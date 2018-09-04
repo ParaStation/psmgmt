@@ -953,37 +953,6 @@ static void alarmHandlerRes(int sig)
     }
 }
 
-/**
- * @brief Get daemon's PSprotocol version
- *
- * @return On success, the local daemon's protocol-version is
- * returned. Otherwise 0 is returned.
- */
-static int getDaemonProtocolVersion(void)
-{
-    PSP_Option_t opt = PSP_OP_DAEMONPROTOVERSION;
-    PSP_Optval_t val;
-    int err, protoVersion = 0;
-
-    err = PSI_infoOption(-1, 1, &opt, &val, 0);
-    if (err != -1) {
-	switch (opt) {
-	case PSP_OP_DAEMONPROTOVERSION:
-	    protoVersion = val;
-	    break;
-	case PSP_OP_UNKNOWN:
-	    PSI_log(-1, "%s: PSP_OP_DAEMONPROTOVERSION unknown\n", __func__);
-	    break;
-	default:
-	    PSI_log(-1, "%s: got option type %d\n", __func__, opt);
-	}
-    } else {
-	PSI_warn(-1, errno, "%s: error getting info\n", __func__);
-    }
-
-    return protoVersion;
-}
-
 int PSI_resolveHWList(char **hwList, uint32_t *hwType)
 {
     int ret = 0;
@@ -1016,7 +985,7 @@ int PSI_createPartition(unsigned int size, uint32_t hwType)
     PSpart_request_t *request = PSpart_newReq();
     nodelist_t *nodelist = NULL;
     uint32_t hwEnv;
-    int daemonProtoVer = getDaemonProtocolVersion(), ret = -1;
+    int ret = -1;
 
     PSI_log(PSI_LOG_VERB, "%s()\n", __func__);
 
@@ -1060,7 +1029,7 @@ int PSI_createPartition(unsigned int size, uint32_t hwType)
 	goto end;
     }
 
-    if (!PSpart_encodeReq(&msg, request, daemonProtoVer)) {
+    if (!PSpart_encodeReq(&msg, request)) {
 	PSI_log(-1, "%s: PSpart_encodeReq\n", __func__);
 	goto end;
     }

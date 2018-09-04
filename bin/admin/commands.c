@@ -1036,56 +1036,6 @@ static void printSlots(int num, PSpart_slot_t *slots, int width, int offset)
     }
 }
 
-static int getMasterProtocolVersion(bool daemonProto)
-{
-    PSnodes_ID_t master = -1;
-    PSP_Option_t opt = PSP_OP_MASTER;
-    PSP_Optval_t val;
-    int err, protoVersion = 0;
-
-    /* Identify master */
-    err = PSI_infoOption(-1, 1, &opt, &val, 0);
-    if (err != -1) {
-	switch (opt) {
-	case PSP_OP_MASTER:
-	    master = val;
-	    break;
-	case PSP_OP_UNKNOWN:
-	    printf(" PSP_OP_MASTER unknown\n");
-	    break;
-	default:
-	    printf(" got option type %d\n", opt);
-	}
-    } else {
-	printf(" error getting info\n");
-    }
-
-    if (master < 0) return -1;
-
-    /* Get master's PSprotocol version */
-    opt = daemonProto ? PSP_OP_DAEMONPROTOVERSION : PSP_OP_PROTOCOLVERSION;
-    err = PSI_infoOption(master, 1, &opt, &val, 0);
-    if (err != -1) {
-	switch (opt) {
-	case PSP_OP_PROTOCOLVERSION:
-	    protoVersion = val;
-	    break;
-	case PSP_OP_DAEMONPROTOVERSION:
-	    protoVersion = val;
-	    break;
-	case PSP_OP_UNKNOWN:
-	    printf(" PSP_OP_PROTOCOLVERSION unknown\n");
-	    break;
-	default:
-	    printf(" got option type %d\n", opt);
-	}
-    } else {
-	printf(" error getting info\n");
-    }
-
-    return protoVersion;
-}
-
 void PSIADM_InstdirStat(char *nl)
 {
     PSnodes_ID_t node;
@@ -1127,7 +1077,7 @@ void PSIADM_JobStat(PStask_ID_t task, PSpart_list_t opt)
     char buf[sizeof(PStask_ID_t)
 	     +sizeof(PSpart_list_t)
 	     +sizeof(PSpart_request_t)];
-    int recvd, masterDaemonPSPversion = getMasterProtocolVersion(true);
+    int recvd;
     bool found = false;
     PStask_ID_t rootTID, parentTID;
     PSpart_request_t *req;
@@ -1170,7 +1120,7 @@ void PSIADM_JobStat(PStask_ID_t task, PSpart_list_t opt)
 	flags = *(PSpart_list_t *)(buf+len);
 	len += sizeof(PSpart_list_t);
 
-	len += PSpart_decodeReq(buf + len, req, masterDaemonPSPversion);
+	len += PSpart_decodeReq(buf + len, req);
 	if (len != recvd) {
 	    printf("Wrong number of bytes received (used %ld vs. rcvd %ld)!\n",
 		   (long)len, (long)recvd);

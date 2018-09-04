@@ -2306,7 +2306,7 @@ static void msg_CREATEPART(DDBufferMsg_t *inmsg)
 	PSID_warn(-1, errno, "%s: PSpart_newReq()", __func__);
 	goto error;
     }
-    PSpart_decodeReq(inmsg->buf, task->request, PSDaemonProtocolVersion);
+    PSpart_decodeReq(inmsg->buf, task->request);
     task->request->uid = task->uid;
     task->request->gid = task->gid;
     task->request->start = task->started.tv_sec;
@@ -2345,8 +2345,7 @@ static void msg_CREATEPART(DDBufferMsg_t *inmsg)
     inmsg->header.type = PSP_DD_GETPART;
     inmsg->header.dest = PSC_getTID(getMasterID(), 0);
     inmsg->header.len = sizeof(inmsg->header);
-    PSpart_encodeReq(inmsg, task->request,
-		     PSIDnodes_getDmnProtoV(getMasterID()));
+    PSpart_encodeReq(inmsg, task->request);
 
     if (sendMsg(inmsg) == -1 && errno != EWOULDBLOCK) {
 	PSID_warn(-1, errno, "%s: sendMsg()", __func__);
@@ -2400,7 +2399,6 @@ error:
 static void msg_GETPART(DDBufferMsg_t *inmsg)
 {
     PSpart_request_t *req = PSpart_newReq();
-    int dmnPSPver = PSIDnodes_getDmnProtoV(PSC_getID(inmsg->header.sender));
 
     if (!knowMaster() || PSC_getMyID() != getMasterID()) return;
 
@@ -2413,7 +2411,7 @@ static void msg_GETPART(DDBufferMsg_t *inmsg)
 	goto error;
     }
 
-    PSpart_decodeReq(inmsg->buf, req, dmnPSPver);
+    PSpart_decodeReq(inmsg->buf, req);
     req->tid = inmsg->header.sender;
 
     /* Set the default sorting strategy if necessary */
@@ -4761,8 +4759,6 @@ int send_GETTASKS(PSnodes_ID_t node)
 static void sendRequests(void)
 {
     list_t *t;
-    int dmnPSPver = PSIDnodes_getDmnProtoV(getMasterID());
-
     list_for_each(t, &managedTasks) {
 	PStask_t *task = list_entry(t, PStask_t, next);
 	if (task->deleted) continue;
@@ -4775,7 +4771,7 @@ static void sendRequests(void)
 		    .len = sizeof(msg.header) },
 		.buf = { '\0' }};
 
-	    if (!PSpart_encodeReq(&msg, task->request, dmnPSPver)) {
+	    if (!PSpart_encodeReq(&msg, task->request)) {
 		PSID_log(-1, "%s: PSpart_encodeReq() failed\n", __func__);
 		continue;
 	    }
@@ -5141,7 +5137,6 @@ static void sendReqList(PStask_ID_t dest, list_t *queue, PSpart_list_t opt)
 	    .len = sizeof(msg.header) + sizeof(msg.type) },
 	.type = PSP_INFO_QUEUE_PARTITION,
 	.buf = {0}};
-    int dmnPSPver = PSIDnodes_getDmnProtoV(PSC_getID(dest));
     list_t *r;
 
     list_for_each(r, queue) {
@@ -5156,7 +5151,7 @@ static void sendReqList(PStask_ID_t dest, list_t *queue, PSpart_list_t opt)
 
 	tmp = req->num;
 	req->num = (opt & PART_LIST_NODES) ? req->size : 0;
-	if (!PSpart_encodeReq((DDBufferMsg_t*)&msg, req, dmnPSPver)) {
+	if (!PSpart_encodeReq((DDBufferMsg_t*)&msg, req)) {
 	    PSID_log(-1, "%s: PSpart_encodeReq\n", __func__);
 	    req->num = tmp;
 	    return;

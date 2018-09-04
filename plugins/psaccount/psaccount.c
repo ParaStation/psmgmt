@@ -135,12 +135,6 @@ int initialize(void)
 	return 1;
     }
 
-    /* read deamon version */
-    if (PSIDnodes_getDmnProtoV(PSC_getMyID()) < 406) {
-	mlog("%s: need daemon protocol version >= 406, exiting\n", __func__);
-	return 1;
-    }
-
     if (!initAccComm()) return 1;
 
     if (!Timer_isInitialized()) {

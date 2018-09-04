@@ -2,17 +2,12 @@
  * ParaStation
  *
  * Copyright (C) 2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2016 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2018 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-#ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__((used)) =
-    "$Id$";
-#endif /* DOXYGEN_SHOULD_SKIP_THIS */
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -130,29 +125,6 @@ void PSpart_snprintf(char* txt, size_t size, PSpart_request_t* request)
     snprintf(txt+strlen(txt), size-strlen(txt), ")");
 }
 
-typedef struct {
-    uint32_t size;
-    uint32_t hwType;
-    uid_t uid;
-    gid_t gid;
-    PSpart_sort_t sort;
-    PSpart_option_t options;
-    uint32_t priority;
-    int32_t num;
-} tmpRequest_400_t;
-
-typedef struct {
-    uint32_t size;
-    uint32_t hwType;
-    uid_t uid;
-    gid_t gid;
-    PSpart_sort_t sort;
-    PSpart_option_t options;
-    uint32_t priority;
-    int32_t num;
-    uint16_t tpp;
-} tmpRequest_406_t;
-
 static struct {
     uint32_t size;
     uint32_t hwType;
@@ -168,10 +140,9 @@ static struct {
 
 static char partString[256];
 
-bool PSpart_encodeReq(DDBufferMsg_t *msg, PSpart_request_t* request,
-		      int daemonProtoVersion)
+bool PSpart_encodeReq(DDBufferMsg_t *msg, PSpart_request_t* request)
 {
-    size_t size, off = msg->header.len - sizeof(msg->header);
+    size_t off = msg->header.len - sizeof(msg->header);
 
     if (!request) {
 	PSC_log(-1, "%s: request is NULL\n", __func__);
@@ -179,19 +150,9 @@ bool PSpart_encodeReq(DDBufferMsg_t *msg, PSpart_request_t* request,
     }
 
     PSpart_snprintf(partString, sizeof(partString), request);
-    PSC_log(PSC_LOG_PART, "%s(%p, request (%s), %d)\n",
-	    __func__, msg, partString, daemonProtoVersion);
+    PSC_log(PSC_LOG_PART, "%s(%p, request (%s))\n", __func__, msg, partString);
 
-    /* size settings for compatibility */
-    if (daemonProtoVersion < 401) {
-	size = sizeof(tmpRequest_400_t);
-    } else if (daemonProtoVersion < 407) {
-	size = sizeof(tmpRequest_406_t);
-    } else {
-	size = sizeof(tmpRequest);
-    }
-
-    if (size > sizeof(msg->buf) - off) {
+    if (sizeof(tmpRequest) > sizeof(msg->buf) - off) {
 	PSC_log(-1, "%s: request '%s' too large\n", __func__, partString);
 	return false;
     }
@@ -207,15 +168,14 @@ bool PSpart_encodeReq(DDBufferMsg_t *msg, PSpart_request_t* request,
     tmpRequest.tpp = request->tpp;
     tmpRequest.start = request->start;
 
-    memcpy(msg->buf + off, &tmpRequest, size);
+    memcpy(msg->buf + off, &tmpRequest, sizeof(tmpRequest));
 
-    msg->header.len += size;
+    msg->header.len += sizeof(tmpRequest);
 
     return true;
 }
 
-size_t PSpart_decodeReq(char* buffer, PSpart_request_t* request,
-			int daemonProtoVersion)
+size_t PSpart_decodeReq(char* buffer, PSpart_request_t* request)
 {
     size_t length =  sizeof(tmpRequest);
 
@@ -224,8 +184,7 @@ size_t PSpart_decodeReq(char* buffer, PSpart_request_t* request,
 	return 0;
     }
 
-    PSC_log(PSC_LOG_PART, "%s(%p, %p, %d)", __func__, buffer, request,
-	    daemonProtoVersion);
+    PSC_log(PSC_LOG_PART, "%s(%p, %p)", __func__, buffer, request);
 
     PSpart_reinitReq(request);
 
@@ -245,15 +204,6 @@ size_t PSpart_decodeReq(char* buffer, PSpart_request_t* request,
 
     PSpart_snprintf(partString, sizeof(partString), request);
     PSC_log(PSC_LOG_PART, " received request = (%s)\n", partString);
-
-    /* size settings for compatibility */
-    if (daemonProtoVersion < 401) {
-	request->tpp = 1;
-	length = sizeof(tmpRequest_400_t);
-    } else if (daemonProtoVersion < 407) {
-	request->start = time(NULL);
-	length = sizeof(tmpRequest_406_t);
-    }
 
     return length;
 }

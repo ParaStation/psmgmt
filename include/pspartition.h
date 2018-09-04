@@ -2,23 +2,20 @@
  * ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2017 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2018 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
 /**
- * @file
- * Basic enumerations for partition creation and reservation.
+ * @file Basic enumerations for partition creation and reservation.
  */
 #ifndef __PSPARTITION_H
 #define __PSPARTITION_H
 
+#include <stdbool.h>
 #include <stdint.h>
-#include <stdbool.h>
-
-#include <stdbool.h>
 
 #include "list_t.h"
 
@@ -185,33 +182,23 @@ int PSpart_delReq(PSpart_request_t *request);
  * error-message is put out and @a false is returned. In the latter
  * case the len member of @a msg is not updated.
  *
- * Since the encoding-scheme might depend on the protocol-version
- * spoken by the remote daemon the corresponding version has to be
- * provided within @a protoVersion.
- *
  * @param msg Message to be modified
  *
  * @param request The partition request structure to encode
- *
- * @param protoVersion Protocol version used for encoding
  *
  * @return On success @a true is returned. Or @a false if the buffer
  * is to small in order to encode the whole partition request.
  *
  * @see PSpart_decodeReq()
  */
-bool PSpart_encodeReq(DDBufferMsg_t *msg, PSpart_request_t* request,
-		      int daemonProtoVersion);
+bool PSpart_encodeReq(DDBufferMsg_t *msg, PSpart_request_t* request);
 
 /**
  * @brief Decode a partition request structure.
  *
  * Decode a partition request structure encoded by @ref
  * PSpart_encodeReq() and stored within @a buffer and write it to the
- * partition request structure @a request is pointing to. Since the
- * encoding-scheme might depend on the protocol-version spoken by the
- * remote daemon the corresponding version has to be provided within
- * @a protoVersion.
+ * partition request structure @a request is pointing to.
  *
  * @param buffer The buffer the encoded partition request structure is
  * stored to.
@@ -221,8 +208,7 @@ bool PSpart_encodeReq(DDBufferMsg_t *msg, PSpart_request_t* request,
  * @return The number of chars within @a buffer used in order to
  * decode the partition request structure.
  */
-size_t PSpart_decodeReq(char *buffer, PSpart_request_t *request,
-			int protoVersion);
+size_t PSpart_decodeReq(char *buffer, PSpart_request_t *request);
 
 /**
  * @brief Print a partition request in a string.
