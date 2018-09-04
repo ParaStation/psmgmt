@@ -187,8 +187,7 @@ static nodeStat_t *nodeStat = NULL;
 
 /**
  * Array holding pointer to temporary statuses while actually creating
- * the partitions within @ref getCandidateList(), @ref getNormalPart()
- * and @ref getOverbookPart().
+ * the partitions within @ref getCandidateList().
  *
  * This individual pointers will point to the CPU-sets within @ref
  * tmpSets.
@@ -197,8 +196,7 @@ static PSCPU_set_t **tmpStat = NULL;
 
 /**
  * Array holding temporary statuses while actually creating the
- * partitions within @ref getCandidateList(), @ref getNormalPart() and
- * @ref getOverbookPart().
+ * partitions within @ref getCandidateList().
  *
  * The individual entries will not be addresses directly but via an
  * indirection through @ref tmpStat.
@@ -1177,505 +1175,6 @@ static void sortCandidates(sortlist_t *list)
 }
 
 /**
- * @brief Get normal partition.
- *
- * Get a normal partition, i.e. a partition, with either the @ref
- * PART_OPT_OVERBOOK option set in the request or with all nodes
- * within the list of candidates allow processor-pinning and
- * over-booking is explicitly requested.
- *
- * The partition will be created conforming to the request @a request
- * from the nodes described by the sorted list @a candidates. The
- * actual slots of the created partition are stored within @a slots.
- *
- * Before calling this function it has to be assured that either the
- * list of candidates contains enough CPUs to allocate all the slots
- * requested or all the candidates allow over-booking and can do
- * process-pinning. Neither of these requirement will be tested within
- * this function.
- *
- * @param request The request describing the partition to create.
- *
- * @param candidates The sorted list of candidates used in order to
- * build the partition
- *
- * @param slots Array of PSpart_slot_t (a slotlist) to hold the newly
- * formed partition.
- *
- * @param overbook Flag marking that over-booking is wanted. This
- * function assumes that process is possible on all nodes within the
- * list of candidates. Otherwise using this newly created partition
- * might badly interfere with other jobs already running.
- *
- * @return On success, the size of the newly created partition is
- * returned, which is identical to the requested size given in @a
- * request->size. If an error occurred, any number smaller than that
- * might be returned.
- */
-static unsigned int getNormalPart(PSpart_request_t *request,
-				  sortlist_t *candidates,
-				  PSpart_slot_t *slots, bool overbook)
-{
-    unsigned int node=0, cand=0, nextSet=0;
-    uint16_t tpp = request->tpp;
-    int nodesFirst = request->options & PART_OPT_NODEFIRST;
-
-    PSID_log(PSID_LOG_PART, "%s\n", __func__);
-
-    if (request->options & PART_OPT_EXACT) {
-	/* This is a exact partition defined by a batch-system */
-	while (cand < candidates->size && node < request->size) {
-	    sortentry_t *ce = &candidates->entry[cand];
-	    PSnodes_ID_t cid = ce->id;
-	    int curSlots = 0;
-	    PSCPU_clrAll(slots[node].CPUset);
-	    while (cand < candidates->size && curSlots<tpp && cid == ce->id) {
-		PSCPU_addCPUs(slots[node].CPUset, ce->CPUset);
-		curSlots++;
-		cand++;
-		if (cand == candidates->size) {
-		    if (overbook) {
-			/* Let's loop and start to overbook */
-			cand = 0;
-		    } else {
-			break;
-		    }
-		}
-		ce = &candidates->entry[cand];
-	    }
-	    if (curSlots < tpp) break;
-	    slots[node].node = cid;
-	    PSID_log(PSID_LOG_PART, "%s: add processors %s of node %d"
-		     " in slot %d\n", __func__,
-		     PSCPU_print(slots[node].CPUset), cid, node);
-	    node++;
-	}
-    } else {
-	/* Standard partition defined by the user */
-	memset(tmpStat, 0, PSC_getNrOfNodes() * sizeof(*tmpStat));
-
-	while (node < request->size) {
-	    PSnodes_ID_t cid = candidates->entry[cand].id;
-	    if (!tmpStat[cid]) {
-		tmpStat[cid] = &tmpSets[nextSet];
-		nextSet++;
-		getFreeCPUs(cid, *tmpStat[cid], tpp);
-	    }
-
-	    if (nodesFirst) {
-		int n = PSCPU_getCPUs(*tmpStat[cid], slots[node].CPUset, tpp);
-		if (n < tpp && overbook) {
-		    /* Let's start to overbook */
-		    getFreeCPUs(cid, *tmpStat[cid], tpp);
-		    n = PSCPU_getCPUs(*tmpStat[cid], slots[node].CPUset, tpp);
-		}
-		if (n == tpp) {
-		    slots[node].node = cid;
-		    PSCPU_remCPUs(*tmpStat[cid], slots[node].CPUset);
-		    PSID_log(PSID_LOG_PART, "%s: add processors %s of node %d"
-			     " in slot %d\n", __func__,
-			     PSCPU_print(slots[node].CPUset), cid, node);
-		    node++;
-		}
-	    } else {
-		while (node < request->size
-		       && PSCPU_getCPUs(*tmpStat[cid],
-					slots[node].CPUset, tpp) == tpp) {
-		    slots[node].node = cid;
-		    PSCPU_remCPUs(*tmpStat[cid], slots[node].CPUset);
-		    PSID_log(PSID_LOG_PART, "%s: add processors %s of node %d"
-			     " in slot %d\n", __func__,
-			     PSCPU_print(slots[node].CPUset), cid, node);
-		    node++;
-		}
-	    }
-	    cand++;
-	    if (cand == candidates->size) {
-		if (!nodesFirst && !overbook) break;
-
-		cand = 0;
-		if (!nodesFirst) {
-		    /* Let's start over to overbook */
-		    memset(tmpStat, 0, PSC_getNrOfNodes() * sizeof(*tmpStat));
-		    nextSet = 0;
-		}
-	    }
-	}
-    }
-    return node;
-}
-
-/**
- * @brief Distribute job slots.
- *
- * Create a list of slots @a candSlots of size @a neededSlots from the
- * sorted list of candidates @a candidates.
- *
- * The distribution strategy's target is to put the processes on the
- * nodes in a way that the processors load is almost equal on each
- * node. Furthermore the node's maxproc limits are respected.
- *
- * The strategy assumes that all the nodes are exclusive to the
- * parallel job. This is enforced from the PSI application level
- * library by enabling PSI_EXCLUSIVE as soon as PSI_OVERBOOK is found.
- *
- * @param neededSlots The number of processes to distribute on the CPUs
- *
- * @param candidates The sorted list of candidates used in order to
- * build the partition
- *
- * @param allowedCPUs The CPUs allowed to use on the candidate
- * nodes. This has to be a array of size @ref PSC_getNrOfNodes()
- * containing the number of CPUs indexed by the node's ParaStation ID.
- *
- * @param candSlots The process distribution to create. This has to be
- * an array of size @ref PSC_getNrOfNodes() initialized with all
- * 0. Upon return it will contain the number of processes allocated to
- * each node indexed by the node's ParaStation ID.
- *
- * @return If enough slots where found and the slot-distribution
- * worked well, true is returned. Otherwise the return value is false.
- */
-static bool distributeSlots(PSpart_request_t *request, sortlist_t* candidates,
-			    unsigned short* candSlots)
-{
-    unsigned int neededSlots = request->size;
-    unsigned int procsPerCPU = 1, stillAvail, cand;
-    int tpp = request->tpp;
-
-    unsigned short *allowedSlots;
-
-    PSID_log(PSID_LOG_PART, "%s\n", __func__);
-
-    /* Generate number of available slots for each node */
-    allowedSlots = calloc(sizeof(unsigned short), PSC_getNrOfNodes());
-    if (!allowedSlots) {
-	PSID_log(-1, "%s: No memory\n", __func__);
-	return false;
-    }
-    memset(tmpStat, 0, PSC_getNrOfNodes() * sizeof(*tmpStat));
-
-    for (cand = 0; cand < candidates->size; cand++) {
-	sortentry_t *ce = &candidates->entry[cand];
-	PSnodes_ID_t cid = ce->id;
-
-	if (request->options & PART_OPT_EXACT) {
-	    int curCPUs = 0;
-	    while (cand < candidates->size && curCPUs < tpp && cid == ce->id) {
-		curCPUs++;
-		cand++;
-		ce = &candidates->entry[cand];
-	    }
-	    if (curCPUs < tpp) {
-		PSID_log(-1,
-			 "%s: Not enough slots for %d threads on node %d\n",
-			 __func__, tpp, cid);
-		free(allowedSlots);
-		return false;
-	    };
-	    allowedSlots[ce->id]++;
-	} else {
-	    if (!tmpStat[cid]) {
-		tmpStat[cid] = (PSCPU_set_t *)-1;
-		allowedSlots[ce->id] = getFreeCPUs(cid, NULL, tpp) / tpp;
-	    }
-	}
-    }
-
-    /* Now distribute available slots */
-    do {
-	stillAvail = 0;
-	for (cand=0; cand<candidates->size; cand++) {
-	    sortentry_t *ce = &candidates->entry[cand];
-	    PSnodes_ID_t cid = ce->id;
-	    int maxProcs = PSIDnodes_getProcs(cid);
-	    unsigned short procs = allowedSlots[cid] * procsPerCPU;
-
-	    if (candSlots[cid] < procs) {
-		if (ce->canPin) {
-		    stillAvail += allowedSlots[cid];
-		    neededSlots -= procs - candSlots[cid];
-		    candSlots[cid] = procs;
-		} else {
-		    switch (PSIDnodes_overbook(cid)) {
-		    case OVERBOOK_FALSE:
-			if (candSlots[cid] < allowedSlots[cid]) {
-			    neededSlots -= allowedSlots[cid]-candSlots[cid];
-			    candSlots[cid] = allowedSlots[cid];
-			}
-			break;
-		    case OVERBOOK_AUTO:
-			if (ce->assgndThreads) {
-			    if (candSlots[cid] < allowedSlots[cid]) {
-				neededSlots -=
-				    allowedSlots[cid]-candSlots[cid];
-				candSlots[cid] = allowedSlots[cid];
-			    }
-			    break;
-			} /* else fallthrough */
-		    case OVERBOOK_TRUE:
-			if (maxProcs == PSNODES_ANYPROC) {
-			    stillAvail += allowedSlots[cid];
-			    neededSlots -= procs - candSlots[cid];
-			    candSlots[cid] = procs;
-			} else if (procs < maxProcs - ce->assgndThreads) {
-			    short tmp = maxProcs - ce->assgndThreads - procs;
-			    stillAvail += (tmp > allowedSlots[cid])
-				? allowedSlots[cid] : tmp;
-			    neededSlots -= procs - candSlots[cid];
-			    candSlots[cid] = procs;
-			} else {
-			    neededSlots -=
-				maxProcs - ce->assgndThreads - candSlots[cid];
-			    candSlots[cid] = maxProcs - ce->assgndThreads;
-			}
-			break;
-		    default:
-			PSID_log(-1, "%s:"
-				 " Unknown value for PSIDnodes_overbook(%d)\n",
-				 __func__, cid);
-			free(allowedSlots);
-			return false;
-		    }
-		}
-	    }
-	}
-	if (!stillAvail) {
-	    if (neededSlots) {
-		PSID_log(PSID_LOG_PART, "%s: No more CPUs. still need %d\n",
-			 __func__, neededSlots);
-		free(allowedSlots);
-		return false;
-	    } else {
-		free(allowedSlots);
-		return true;
-	    }
-	}
-	procsPerCPU += neededSlots / stillAvail;
-    } while (neededSlots > stillAvail);
-
-    if (neededSlots) {
-	short *lateProcs = calloc(sizeof(short), PSC_getNrOfNodes());
-	short round = 1;
-	int maxCPUs = 0;
-	/* Determine maximum number of CPUs on available nodes */
-	for (cand=0; cand<candidates->size; cand++) {
-	    sortentry_t *ce = &candidates->entry[cand];
-	    PSnodes_ID_t cid = ce->id;
-	    unsigned short cpus = 0;
-
-	    if (ce->canPin) {
-		cpus = 1;
-	    } else if ((PSIDnodes_getProcs(cid) == PSNODES_ANYPROC
-			|| candSlots[cid] < PSIDnodes_getProcs(cid))
-		       && ((PSIDnodes_overbook(cid) == OVERBOOK_AUTO
-			    && !ce->assgndThreads)
-			   || PSIDnodes_overbook(cid) == OVERBOOK_TRUE)) {
-		cpus = allowedSlots[cid];
-	    }
-	    if (cpus > maxCPUs) maxCPUs = cpus;
-	}
-	/* Now increase jobs on nodes in a (hopefully) smart way */
-	while (neededSlots > 0) {
-	    for (cand=0; cand<candidates->size && neededSlots; cand++) {
-		sortentry_t *ce = &candidates->entry[cand];
-		PSnodes_ID_t cid = ce->id;
-		unsigned short cpus = 0;
-
-		if (ce->canPin) {
-		    cpus = 1;
-		} else if ((PSIDnodes_getProcs(cid) == PSNODES_ANYPROC
-			    || candSlots[cid] < PSIDnodes_getProcs(cid))
-			   && ((PSIDnodes_overbook(cid) == OVERBOOK_AUTO
-				&& !ce->assgndThreads)
-			       || PSIDnodes_overbook(cid) == OVERBOOK_TRUE)) {
-		    cpus = allowedSlots[cid];
-		}
-
-		if ((lateProcs[cid]+1)*maxCPUs <= round*cpus) {
-		    neededSlots--;
-		    candSlots[cid]++;
-		    lateProcs[cid]++;
-		}
-	    }
-	    round++;
-	}
-	free(lateProcs);
-    }
-    free(allowedSlots);
-
-    return true;
-}
-
-/**
- * @brief Get over-booked partition.
- *
- * Get an over-booked partition, i.e. a partition, where the @ref
- * PART_OPT_OVERBOOK option is set. The partition will be created
- * conforming to the request @a request from the nodes described by
- * the sorted list @a candidates. The created partition is stored
- * within @a partition.
- *
- * @param request The request describing the partition to create.
- *
- * @param candidates The sorted list of candidates used in order to
- * build the partition
- *
- * @param slots Array of PSpart_slot_t (a slot-list) to hold the newly
- * formed partition.
- *
- * @return On success, the size of the newly created partition is
- * returned, which is identical to the requested size given in @a
- * request->size. If an error occurred, any number smaller than that
- * might be returned.
- */
-static unsigned int getOverbookPart(PSpart_request_t *request,
-				    sortlist_t *candidates,
-				    PSpart_slot_t *slots)
-{
-    unsigned int node=0, cand=0, nextSet=0;
-    uint16_t tpp = request->tpp;
-    unsigned short *candSlots;
-    int nodesFirst = request->options & PART_OPT_NODEFIRST;
-
-    PSID_log(PSID_LOG_PART, "%s\n", __func__);
-
-    candSlots = calloc(sizeof(unsigned short), PSC_getNrOfNodes());
-    if (!candSlots) {
-	PSID_log(-1, "%s: No memory\n", __func__);
-	return 0;
-    }
-
-    if (!distributeSlots(request, candidates, candSlots)) {
-	PSID_log(PSID_LOG_PART, "%s: Not enough nodes\n", __func__);
-	free(candSlots);
-	return 0;
-    }
-
-    memset(tmpStat, 0, PSC_getNrOfNodes() * sizeof(*tmpStat));
-
-    if (request->options & PART_OPT_EXACT) {
-	/* This is a exact partition defined by a batch-system */
-	while (node < request->size) {
-	    sortentry_t *ce = &candidates->entry[cand];
-	    PSnodes_ID_t cid = ce->id;
-	    int curSlots = 0;
-	    PSCPU_clrAll(slots[node].CPUset);
-	    while (curSlots < tpp && cid == ce->id) {
-		PSCPU_addCPUs(slots[node].CPUset, ce->CPUset);
-		curSlots++;
-		cand = (cand + 1) % candidates->size;
-		ce = &candidates->entry[cand];
-	    }
-	    if (curSlots < tpp) break;
-	    if (candSlots[cid]) {
-		slots[node].node = cid;
-		PSID_log(PSID_LOG_PART, "%s: add processors %s of node %d"
-			 " in slot %d\n", __func__,
-			 PSCPU_print(slots[node].CPUset), cid, node);
-		node++;
-		candSlots[cid]--;
-	    }
-	}
-    } else {
-	/* Normal partition defined by the user */
-	while (node < request->size) {
-	    PSnodes_ID_t cid = candidates->entry[cand].id;
-	    if (!tmpStat[cid]) {
-		tmpStat[cid] = &tmpSets[nextSet];
-		nextSet++;
-		getFreeCPUs(cid, *tmpStat[cid], tpp);
-	    }
-
-	    if (nodesFirst) {
-		int n = PSCPU_getCPUs(*tmpStat[cid], slots[node].CPUset, tpp);
-		if (n < tpp) {
-		    /* Let's start to over-book */
-		    getFreeCPUs(cid, *tmpStat[cid], tpp);
-		    n = PSCPU_getCPUs(*tmpStat[cid], slots[node].CPUset, tpp);
-		}
-		if (n == tpp) {
-		    slots[node].node = cid;
-		    PSCPU_remCPUs(*tmpStat[cid], slots[node].CPUset);
-		    PSID_log(PSID_LOG_PART, "%s: add processors %s of node %d"
-			     " in slot %d\n", __func__,
-			     PSCPU_print(slots[node].CPUset), cid, node);
-		    node++;
-		    candSlots[cid]--;
-		}
-	    } else {
-		while (candSlots[cid]
-		       && PSCPU_getCPUs(*tmpStat[cid],
-					slots[node].CPUset, tpp) == tpp) {
-		    slots[node].node = cid;
-		    PSCPU_remCPUs(*tmpStat[cid], slots[node].CPUset);
-		    PSID_log(PSID_LOG_PART, "%s: add processors %s of node %d"
-			     " in slot %d\n", __func__,
-			     PSCPU_print(slots[node].CPUset), cid, node);
-		    node++;
-		    candSlots[cid]--;
-		}
-		/* Prepare for next round */
-		getFreeCPUs(cid, *tmpStat[cid], tpp);
-	    }
-	    cand = (cand + 1) % candidates->size;
-	}
-    }
-    free(candSlots);
-    return node;
-}
-
-/**
- * @brief Create partition.
- *
- * Create partition from the sorted @a candidates conforming to @a
- * request.
- *
- * @param request The request describing the partition to create.
- *
- * @param candidates The sorted list of candidates used in order to
- * build the partition
- *
- * @return On success, the slot-list associated with the partition is
- * returned, or NULL if a problem occurred. This may include less
- * available nodes than requested.
-*/
-static PSpart_slot_t *createPartition(PSpart_request_t *request,
-				      sortlist_t *candidates)
-{
-    PSpart_slot_t *slotlist;
-    unsigned int slots = 0;
-    bool overbook = !!(request->options & PART_OPT_OVERBOOK);
-
-    PSID_log(PSID_LOG_PART, "%s\n", __func__);
-
-    PSID_log(PSID_LOG_PART, "%s: Prepare for %d slots\n", __func__,
-	     request->size);
-    slotlist = malloc(request->size * sizeof(*slotlist));
-    if (!slotlist) {
-	PSID_log(-1, "%s: No memory\n", __func__);
-	return NULL;
-    }
-
-    if (candidates->freeHWTs/request->tpp >= request->size
-	|| (overbook && candidates->allPin)) {
-	slots = getNormalPart(request, candidates, slotlist, overbook);
-    } else if (overbook) {
-	slots = getOverbookPart(request, candidates, slotlist);
-    }
-
-    if (slots < request->size) {
-	PSID_log(PSID_LOG_PART, "%s: Not enough slots\n", __func__);
-	free(slotlist);
-
-	return NULL;
-    }
-
-    return slotlist;
-}
-
-
-/**
  * @brief New method to create partition.
  *
  * Create a partition from the sorted @a candidates conforming to @a
@@ -1724,7 +1223,7 @@ static int createNewPartition(PSpart_request_t *request, sortlist_t *candidates)
 
     numRequested = request->size;
     tpp = request->tpp;
-    overbook = !!(request->options & PART_OPT_OVERBOOK);
+    overbook = request->options & PART_OPT_OVERBOOK;
 
     if (overbook && candidates->freeHWTs / tpp >= numRequested) {
 	PSID_log(PSID_LOG_PART, "%s: Over-booking not required.\n", __func__);
@@ -2102,14 +1601,13 @@ static bool sendPartition(PSpart_request_t *req)
  *
  * @return Returns true on success and false in case of an error.
  *
- * @see getCandidateList(), sortCandidates(), createPartition(),
- * createNewPartition(), sendPartition()
+ * @see getCandidateList(), sortCandidates(), createNewPartition(),
+ * sendPartition()
  */
 static bool getPartition(PSpart_request_t *request)
 {
     bool ret = false;
     sortlist_t *candidates = NULL;
-    int dmnPSPver = PSIDnodes_getDmnProtoV(PSC_getID(request->tid));
 
     PSID_log(PSID_LOG_PART, "%s([%s], %d)\n",
 	     __func__, HW_printType(request->hwType), request->size);
@@ -2138,20 +1636,11 @@ static bool getPartition(PSpart_request_t *request)
 
     if (request->sort != PART_SORT_NONE) sortCandidates(candidates);
 
-    if (dmnPSPver < 411) {
-	request->slots = createPartition(request, candidates);
-	if (!request->slots) {
-	    PSID_log(PSID_LOG_PART, "%s: No partition\n", __func__);
-	    errno = EAGAIN;
-	    goto error;
-	}
-    } else {
-	int numExpected = request->size;
-	if (createNewPartition(request, candidates) < numExpected) {
-	    PSID_log(PSID_LOG_PART, "%s: No new partition\n", __func__);
-	    errno = EAGAIN;
-	    goto error;
-	}
+    int numExpected = request->size;
+    if (createNewPartition(request, candidates) < numExpected) {
+	PSID_log(PSID_LOG_PART, "%s: No new partition\n", __func__);
+	errno = EAGAIN;
+	goto error;
     }
 
     if (request->options & PART_OPT_RESPORTS) {
@@ -4243,12 +3732,6 @@ static void msg_GETRESERVATION(DDBufferMsg_t *inmsg)
     if (task->ptid) {
 	inmsg->header.type = PSP_DD_GETRESERVATION;
 	inmsg->header.dest = task->ptid;
-	if (PSIDnodes_getDmnProtoV(PSC_getID(inmsg->header.dest)) < 411) {
-	    PSID_log(-1, "%s: parent's node %d does not support reservations\n",
-		     __func__, PSC_getID(inmsg->header.dest));
-	    eno = ENOSYS;
-	    goto error;
-	}
 	PSID_log(PSID_LOG_PART, "%s: forward to parent process %s\n", __func__,
 		 PSC_printTID(task->ptid));
 	if (sendMsg(inmsg) == -1 && errno != EWOULDBLOCK) {
@@ -5268,7 +4751,7 @@ void PSIDpart_register(PStask_t *task)
 	return;
     }
 
-    if (knowMaster() && PSIDnodes_getDmnProtoV(getMasterID()) > 410) {
+    if (knowMaster()) {
 	sendSinglePart(PSC_getTID(getMasterID(), 0), PSP_DD_REGISTERPART, task);
 	/* Otherwise we'll have to wait for a PSP_DD_GETTASKS message */
     }
