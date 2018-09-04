@@ -1175,7 +1175,7 @@ static void sortCandidates(sortlist_t *list)
 }
 
 /**
- * @brief New method to create partition.
+ * @brief Create partition
  *
  * Create a partition from the sorted @a candidates conforming to @a
  * request. This version creates a more compact partition without
@@ -1209,7 +1209,7 @@ static void sortCandidates(sortlist_t *list)
  * SW-threads and that multiple processes might share the same
  * HW-threads if over-booking is enabled. Otherwise, -1 is returned.
 */
-static int createNewPartition(PSpart_request_t *request, sortlist_t *candidates)
+static int createPartition(PSpart_request_t *request, sortlist_t *candidates)
 {
     PSpart_slot_t *slots;
     unsigned int cand=0, curSlot = 0, numProcs=0, numRequested;
@@ -1583,7 +1583,7 @@ static bool sendPartition(PSpart_request_t *req)
  * list of candidates is created via @ref getCandidateList(). This
  * list will be sorted by @ref sortCandidates() if necessary. The
  * actual creation of the partition is done either within @ref
- * createPartition() or @ref createNewPartition(). As a last step the
+ * createPartition() or @ref createPartition(). As a last step the
  * newly created partition is send to the requesting instance via @ref
  * sendPartition().
  *
@@ -1601,7 +1601,7 @@ static bool sendPartition(PSpart_request_t *req)
  *
  * @return Returns true on success and false in case of an error.
  *
- * @see getCandidateList(), sortCandidates(), createNewPartition(),
+ * @see getCandidateList(), sortCandidates(), createPartition(),
  * sendPartition()
  */
 static bool getPartition(PSpart_request_t *request)
@@ -1637,7 +1637,7 @@ static bool getPartition(PSpart_request_t *request)
     if (request->sort != PART_SORT_NONE) sortCandidates(candidates);
 
     int numExpected = request->size;
-    if (createNewPartition(request, candidates) < numExpected) {
+    if (createPartition(request, candidates) < numExpected) {
 	PSID_log(PSID_LOG_PART, "%s: No new partition\n", __func__);
 	errno = EAGAIN;
 	goto error;
