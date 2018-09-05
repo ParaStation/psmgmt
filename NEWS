@@ -4,6 +4,38 @@ Copyright (C) 2010-2018 ParTec Cluster Competence Center GmbH, Munich
 
 Please send bug reports, questions and suggestions to <support@par-tec.com>
 
+*************************************************************************
+*************************************************************************
+**                                                                     **
+**  Remark: psmgmt 5.1.15 dropps support of ParaStation daemon         **
+**  protocol prior to version 411. Therefore compatibility with        **
+**  versions prior to psmgmt-5.0.47 is dropped by this release.        **
+**                                                                     **
+*************************************************************************
+*************************************************************************
+
+Version 5.1.15:
+===============
+Bugfixes:
+ - Fix segfault with sub pack groups (j3t:#1246,#1247)
+ - Ensure correct byte-order between pspam and PAM module
+ - Fix memory leak in psslurm's pinning code
+ - Fix logical errors unveiled by scan-build
+ - Fix bookkeeping if timesUsed has to be corrected in releaseThreads()
+Enhancements:
+ - Use fragmented PSP_CD_SPAWNREQUEST messages to speedup spawning
+ - Add "_SLURM_SPANK_OPTION_*" to default filter of pspelogue
+ - Enhance psserial for multile message handling
+ - Introduce PSitems to abstract chunks of items
+ - Improve logging for releaseThreads()
+Additional changes:
+ - Drop support for daemon protocol prior to 411 (released at 20.2.2015)
+ - Refactor psaccountproc, Selector, PSIDrsrvtn, PSIDMsgbuf, PSIDFlwCntrl,
+   and PSsignal to make use of PSitems
+ - Introduce PSI_sendSpawnMsg()
+ - Refactor pspmi plugin to use PSI_sendSpawnMsg()
+
+
 Version 5.1.14:
 ===============
 Bugfixes:

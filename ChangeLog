@@ -1,3 +1,217 @@
+Version psmgmt-5.1.15:
+======================
+------------------------------------------------------------------------
+7b279f24 | Norbert Eicker | Wed, 5 Sep 2018 17:23:02 +0200
+
+Bugfix: Ensure correct byte-order between pspam and PAM module
+------------------------------------------------------------------------
+d5c15a64 | Norbert Eicker | Wed, 5 Sep 2018 17:17:16 +0200
+
+Bugfix: Ensure list is initialized in PSitems_clearMem()
+------------------------------------------------------------------------
+cea7c1f1 | Michael Rauh | Wed, 5 Sep 2018 13:56:52 +0200
+
+Bugfix segfault with sub pack groups (j3t:#1246,#1247)
+------------------------------------------------------------------------
+f4eafa47 | Norbert Eicker | Tue, 4 Sep 2018 16:34:06 +0200
+
+Rename createNewPartition()
+
+ -  createNewPartition() -> createPartition() since the old one is gone
+------------------------------------------------------------------------
+1f49d4cc | Norbert Eicker | Tue, 4 Sep 2018 13:12:35 +0200
+
+Drop support for daemon protocol prior to 411
+
+ - Version 411 was released in psmgmt-5.0.47-0 at 20th February 2015
+------------------------------------------------------------------------
+ca3271dc | Norbert Eicker | Tue, 4 Sep 2018 12:57:08 +0200
+
+Drop support for daemon protocol prior to 407
+
+ - Version 407 was released in psmgmt-5.0.30-0 at 16th February 2011
+------------------------------------------------------------------------
+75d6148d | Norbert Eicker | Fri, 31 Aug 2018 19:47:56 +0200
+
+Merge branch 'master' into spawning
+------------------------------------------------------------------------
+64439f22 | Norbert Eicker | Fri, 31 Aug 2018 19:44:57 +0200
+
+Merge branch 'master' into spawning
+------------------------------------------------------------------------
+c7dca907 | Norbert Eicker | Fri, 31 Aug 2018 19:43:29 +0200
+
+Refactor psaccountproc to make use of PSitems
+------------------------------------------------------------------------
+acbac040 | Norbert Eicker | Fri, 31 Aug 2018 19:12:05 +0200
+
+Improve comments
+------------------------------------------------------------------------
+fc3bb20c | Norbert Eicker | Fri, 31 Aug 2018 19:01:11 +0200
+
+Refactor PSsignal to make use of PSitems
+------------------------------------------------------------------------
+3d839730 | Norbert Eicker | Fri, 31 Aug 2018 18:32:58 +0200
+
+Further booleanization of Timer
+------------------------------------------------------------------------
+26af800e | Michael Rauh | Fri, 31 Aug 2018 13:56:05 +0200
+
+Add "_SLURM_SPANK_OPTION_*" to default filter of pspelogue
+------------------------------------------------------------------------
+99343a37 | Norbert Eicker | Fri, 31 Aug 2018 13:54:46 +0200
+
+Refactor Selector to make use of PSitems
+------------------------------------------------------------------------
+98e9ca0e | Norbert Eicker | Thu, 30 Aug 2018 19:01:18 +0200
+
+Refactor PSIDrsrvtn to make use of PSitems
+------------------------------------------------------------------------
+44064a03 | Stephan Krempel | Thu, 30 Aug 2018 15:45:16 +0200
+
+psslurm: Fix memory leak in pinning
+------------------------------------------------------------------------
+0d9aa742 | Norbert Eicker | Thu, 30 Aug 2018 13:55:04 +0200
+
+Refactor PSIDFlwCntrl to make use of PSitems
+------------------------------------------------------------------------
+bdc4be1f | Norbert Eicker | Thu, 30 Aug 2018 12:46:46 +0200
+
+Update comments
+------------------------------------------------------------------------
+adb694dc | Norbert Eicker | Thu, 30 Aug 2018 12:38:07 +0200
+
+Streameline psidtimer.h
+------------------------------------------------------------------------
+9b772f9f | Norbert Eicker | Thu, 30 Aug 2018 12:34:19 +0200
+
+Improve documentation of PSitems
+------------------------------------------------------------------------
+c6a4b7fb | Michael Rauh | Thu, 30 Aug 2018 12:26:14 +0200
+
+Fix logical errors unveiled by scan-build
+------------------------------------------------------------------------
+dd2cc3a8 | Norbert Eicker | Thu, 30 Aug 2018 12:14:41 +0200
+
+Refactor PSIDMsgbuf to make use of PSitems
+------------------------------------------------------------------------
+23c9b10e | Norbert Eicker | Wed, 29 Aug 2018 13:36:48 +0200
+
+Do not install psitems.h
+------------------------------------------------------------------------
+9ae9b52d | Norbert Eicker | Wed, 29 Aug 2018 12:52:49 +0200
+
+Merge branch 'master' into spawning
+------------------------------------------------------------------------
+6f2c4c04 | Norbert Eicker | Wed, 29 Aug 2018 12:47:21 +0200
+
+Enhance psserial for multile message handling
+
+ - Allow to receive multiple messages from the same sending host (but
+   different sender senders) concurrently
+ - First user of the PSitems mechanics including clearMem
+------------------------------------------------------------------------
+5b000180 | Norbert Eicker | Wed, 29 Aug 2018 12:39:00 +0200
+
+Introduce PSitems to abstract chunks of items
+
+ - Dynamically manage items to be allocated in chunks of 128 kB
+ - Allow for garbage collection
+ - Foresees to aggresively clear memory after fork()
+------------------------------------------------------------------------
+625ce92f | Michael Rauh | Thu, 9 Aug 2018 14:15:58 +0200
+
+Merge branch 'master' into spawning
+------------------------------------------------------------------------
+972ddcad | Norbert Eicker | Fri, 3 Aug 2018 00:47:21 +0200
+
+Merge branch 'master' into spawning
+------------------------------------------------------------------------
+97fabc9f | Norbert Eicker | Fri, 3 Aug 2018 00:37:37 +0200
+
+Push protocol version to actualled enable fragmented spawns
+------------------------------------------------------------------------
+6d7f903c | Norbert Eicker | Fri, 3 Aug 2018 00:32:56 +0200
+
+Implement daemon side of serialization layer handling of spawn
+
+ - Implement handling of fragmented PSP_CD_SPAWNREQUEST messages
+ - Introduce PSP_DD_SPAWNLOC messages
+ - Make handling of signedness more consistent
+------------------------------------------------------------------------
+da3989ef | Norbert Eicker | Fri, 3 Aug 2018 00:02:30 +0200
+
+Limit the number of spawned processes in PSI_sendSpawnReq() by parameter
+------------------------------------------------------------------------
+7b9f1412 | Norbert Eicker | Fri, 3 Aug 2018 00:01:16 +0200
+
+Fix bookkeeping if timesUsed has to be corrected in releaseThreads()
+------------------------------------------------------------------------
+f9662288 | Norbert Eicker | Thu, 2 Aug 2018 22:21:26 +0200
+
+Improve logging for releaseThreads()
+------------------------------------------------------------------------
+4f0107f7 | Norbert Eicker | Thu, 2 Aug 2018 21:37:31 +0200
+
+Enable libpsi to utilize the serialization layer for spawning
+
+ - Introduce PSI_sendSpawnReq()
+ - More consisten handling of signedness
+------------------------------------------------------------------------
+d6d45401 | Norbert Eicker | Thu, 2 Aug 2018 21:09:45 +0200
+
+Utilize the serialization layer for task handling
+
+ - Introduce PStask_sendTask() and PStask_sendStrV()
+ - Allow to ignore workingdir in PStask_decodeTask()
+ - Fix various potential problems in PStask_clone()
+ - Make handling of signedness more consistent
+------------------------------------------------------------------------
+b94b4511 | Norbert Eicker | Thu, 2 Aug 2018 14:03:34 +0200
+
+Introduce PSP_DD_SPAWNLOC to the daemon-daemon protocol
+------------------------------------------------------------------------
+6e235007 | Norbert Eicker | Thu, 2 Aug 2018 14:01:58 +0200
+
+Fix some warning on signedness
+------------------------------------------------------------------------
+662f1e78 | Norbert Eicker | Mon, 30 Jul 2018 17:36:18 +0200
+
+Extract PS_SendDB_t into its own header file
+------------------------------------------------------------------------
+d925f0de | Norbert Eicker | Mon, 30 Jul 2018 17:33:48 +0200
+
+Straighten some includes
+------------------------------------------------------------------------
+c1fcae1a | Norbert Eicker | Mon, 30 Jul 2018 16:26:29 +0200
+
+Merge branch 'master' into spawning
+
+Conflicts:
+	lib/psi/psispawn.c
+------------------------------------------------------------------------
+09c4a0db | Norbert Eicker | Fri, 27 Jul 2018 19:38:06 +0200
+
+Let autoreconf do its job
+------------------------------------------------------------------------
+f1c95977 | Norbert Eicker | Fri, 27 Jul 2018 19:30:55 +0200
+
+Booleanize psilog
+------------------------------------------------------------------------
+eebd00f9 | Norbert Eicker | Fri, 27 Jul 2018 19:25:36 +0200
+
+Prepare for next gen spawning mechanism
+------------------------------------------------------------------------
+9c9af336 | Norbert Eicker | Fri, 27 Jul 2018 19:24:37 +0200
+
+Refactor pspmi plugin to use PSI_sendSpawnMsg()
+------------------------------------------------------------------------
+a64c9f9a | Norbert Eicker | Fri, 27 Jul 2018 19:22:51 +0200
+
+Introduce PSI_sendSpawnMsg()
+------------------------------------------------------------------------
+
+
 Version psmgmt-5.1.14:
 ======================
 ------------------------------------------------------------------------
