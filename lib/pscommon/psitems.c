@@ -23,6 +23,9 @@ typedef struct {
     char itemBuf[]; /**< Space for actual items */
 } chunk_t;
 
+/** Track initialization state */
+static bool initialized = false;
+
 void PSitems_init(PSitems_t *items, size_t itemSize, char *name)
 {
     if (!items) return;
@@ -34,6 +37,8 @@ void PSitems_init(PSitems_t *items, size_t itemSize, char *name)
     items->avail = 0;
     items->used = 0;
     items->iPC = (CHUNK_SIZE - sizeof(list_t)) / itemSize + 1;
+
+    initialized = true;
 }
 
 uint32_t PSitems_getAvail(PSitems_t *items)
@@ -226,6 +231,8 @@ void PSitems_gc(PSitems_t *items, bool (*relocItem)(void *))
 
 void PSitems_clearMem(PSitems_t *items)
 {
+    if (!initialized) return;
+
     list_t *c, *tmp;
     list_for_each_safe(c, tmp, &items->chunks) {
 	chunk_t *chunk = list_entry(c, chunk_t, next);
