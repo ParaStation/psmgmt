@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2017 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2017-2018 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -42,6 +42,9 @@ static PSPAMResult_t handleOpenRequest(char *msgBuf)
     PSPAMResult_t res = PSPAM_RES_DENY;
     char *ptr = msgBuf;
 
+    /* ensure we use the same byteorder as the PAM module */
+    bool byteOrder = setByteOrder(true);
+
     /* get ssh pid */
     getPid(&ptr, &pid);
     /* get ssh sid */
@@ -50,6 +53,9 @@ static PSPAMResult_t handleOpenRequest(char *msgBuf)
     getString(&ptr, user, sizeof(user));
     /* get pam rhost */
     getString(&ptr, rhost, sizeof(rhost));
+
+    /* reset psserial's byteorder */
+    setByteOrder(byteOrder);
 
     mdbg(PSPAM_LOG_DEBUG, "%s: got pam request user: '%s' pid: %i sid: %i"
 	 " rhost: '%s'\n", __func__, user, pid, sid, rhost);
