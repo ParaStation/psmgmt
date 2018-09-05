@@ -22,8 +22,8 @@
 /** List of all allocations */
 static LIST_HEAD(AllocList);
 
-Alloc_t *addAlloc(uint32_t id, char *slurmHosts, env_t *env, uid_t uid,
-		  gid_t gid, char *username)
+Alloc_t *addAlloc(uint32_t id, uint32_t packID, char *slurmHosts, env_t *env,
+		  uid_t uid, gid_t gid, char *username)
 {
     Alloc_t *alloc = findAlloc(id);
 
@@ -31,6 +31,7 @@ Alloc_t *addAlloc(uint32_t id, char *slurmHosts, env_t *env, uid_t uid,
 
     alloc = umalloc(sizeof(Alloc_t));
     alloc->id = id;
+    alloc->packID = packID;
     alloc->state = A_INIT;
     alloc->uid = uid;
     alloc->gid = gid;
@@ -97,6 +98,16 @@ Alloc_t *findAlloc(uint32_t id)
     list_for_each(a, &AllocList) {
 	Alloc_t *alloc = list_entry(a, Alloc_t, next);
 	if (alloc->id == id) return alloc;
+    }
+    return NULL;
+}
+
+Alloc_t *findAllocByPackID(uint32_t packID)
+{
+    list_t *a;
+    list_for_each(a, &AllocList) {
+	Alloc_t *alloc = list_entry(a, Alloc_t, next);
+	if (alloc->packID == packID) return alloc;
     }
     return NULL;
 }

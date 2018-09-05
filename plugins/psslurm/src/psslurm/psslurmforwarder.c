@@ -766,43 +766,44 @@ static void buildMpiexecArgs(Forwarder_Data_t *fwdata, strv_t *argV,
     if (step->taskFlags & LAUNCH_MULTI_PROG) {
 	setupArgsFromMultiProg(step, fwdata, argV);
     } else {
-	/* number of processes */
-	strvAdd(argV, ustrdup("-np"));
-	snprintf(buf, sizeof(buf), "%u", step->np);
-	strvAdd(argV, ustrdup(buf));
-
-	/* threads per processes */
-	strvAdd(argV, ustrdup("-tpp"));
-	snprintf(buf, sizeof(buf), "%u", step->numHwThreads/step->np);
-	strvAdd(argV, ustrdup(buf));
-
-	/* executable and arguments */
-	for (i=0; i<step->argc; i++) {
-	    strvAdd(argV, step->argv[i]);
-	}
-    }
-
-    /* additional executables from job pack */
-    if (step->packJobid != NO_VAL) {
-	for (i=0; i<step->numRPackInfo; i++) {
-	    uint32_t z;
-
-	    strvAdd(argV, ":");
-
+	if (step->packJobid == NO_VAL) {
 	    /* number of processes */
 	    strvAdd(argV, ustrdup("-np"));
-	    snprintf(buf, sizeof(buf), "%u", step->rPackInfo[i].np);
+	    snprintf(buf, sizeof(buf), "%u", step->np);
 	    strvAdd(argV, ustrdup(buf));
 
 	    /* threads per processes */
-	    uint16_t tpp = step->rPackInfo[i].numHwThreads/step->rPackInfo[i].np;
 	    strvAdd(argV, ustrdup("-tpp"));
-	    snprintf(buf, sizeof(buf), "%u", tpp);
+	    snprintf(buf, sizeof(buf), "%u", step->numHwThreads/step->np);
 	    strvAdd(argV, ustrdup(buf));
 
 	    /* executable and arguments */
-	    for (z=0; z<step->rPackInfo[i].argc; z++) {
-		strvAdd(argV, step->rPackInfo[i].argv[z]);
+	    for (i=0; i<step->argc; i++) {
+		strvAdd(argV, step->argv[i]);
+	    }
+	} else {
+	    /* executables from job pack */
+	    for (i=0; i<step->numPackInfo; i++) {
+		uint32_t z;
+
+		if (i) strvAdd(argV, ":");
+
+		/* number of processes */
+		strvAdd(argV, ustrdup("-np"));
+		snprintf(buf, sizeof(buf), "%u", step->packInfo[i].np);
+		strvAdd(argV, ustrdup(buf));
+
+		/* threads per processes */
+		uint16_t tpp = step->packInfo[i].numHwThreads /
+				step->packInfo[i].np;
+		strvAdd(argV, ustrdup("-tpp"));
+		snprintf(buf, sizeof(buf), "%u", tpp);
+		strvAdd(argV, ustrdup(buf));
+
+		/* executable and arguments */
+		for (z=0; z<step->packInfo[i].argc; z++) {
+		    strvAdd(argV, step->packInfo[i].argv[z]);
+		}
 	    }
 	}
     }

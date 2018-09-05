@@ -241,8 +241,10 @@ static int handleCreatePart(void *msg)
 	goto error;
     }
 
-    /* allocate space for local and remote hardware threads */
-    numThreads = step->numHwThreads + step->numRPackThreads;
+    /* allocate space for hardware threads */
+    numThreads = (step->packJobid == NO_VAL) ?
+	step->numHwThreads : step->numPackThreads;
+
     task->partThrds = malloc(numThreads * sizeof(*task->partThrds));
     if (!task->partThrds) {
 	errno = ENOMEM;
@@ -253,16 +255,18 @@ static int handleCreatePart(void *msg)
     mlog("%s: register TID %s to step %u:%u numThreads %u\n", __func__,
 	    PSC_printTID(task->tid), step->jobid, step->stepid, numThreads);
 
-    /* copy local hw threads */
-    memcpy(pTptr, step->hwThreads,
-	   step->numHwThreads * sizeof(*task->partThrds));
-    pTptr += step->numHwThreads;
-
-    /* copy remote hw threads */
-    for (i=0; i<step->numRPackInfo; i++) {
-	memcpy(pTptr, step->rPackInfo[i].hwThreads,
-		step->rPackInfo[i].numHwThreads * sizeof(*task->partThrds));
-	pTptr += step->rPackInfo[i].numHwThreads;
+    /* copy hardware threads */
+    if (step->packJobid == NO_VAL) {
+	memcpy(pTptr, step->hwThreads,
+		step->numHwThreads * sizeof(*task->partThrds));
+	pTptr += step->numHwThreads;
+    } else {
+	/* combined pack threads */
+	for (i=0; i<step->numPackInfo; i++) {
+	    memcpy(pTptr, step->packInfo[i].hwThreads,
+		    step->packInfo[i].numHwThreads * sizeof(*task->partThrds));
+	    pTptr += step->packInfo[i].numHwThreads;
+	}
     }
 
     task->totalThreads = numThreads;
@@ -536,11 +540,13 @@ void send_PS_SignalTasks(Step_t *step, uint32_t signal, PStask_group_t group)
 	.buf = {'\0'} };
     PSnodes_ID_t myID = PSC_getMyID();
     uint32_t jobID = step->jobid, stepID = step->stepid, grp = group;
+    uint32_t packID = step->packJobid;
 
     PSP_putTypedMsgBuf(&msg, __func__, "jobID", &jobID, sizeof(jobID));
     PSP_putTypedMsgBuf(&msg, __func__, "stepID", &stepID, sizeof(stepID));
     PSP_putTypedMsgBuf(&msg, __func__, "group", &grp, sizeof(grp));
     PSP_putTypedMsgBuf(&msg, __func__, "signal", &signal, sizeof(signal));
+    PSP_putTypedMsgBuf(&msg, __func__, "packID", &packID, sizeof(packID));
 
     /* send the messages */
     if (step->packNrOfNodes != NO_VAL) {
@@ -919,18 +925,20 @@ static void handleAllocState(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
 static void handlePackInfo(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
 {
     char *ptr = data->buf;
-    uint32_t packJobid, stepid, packMyId, i;
+    uint32_t packJobid, stepid, packAllocID, packNodeOffset, i;
     Step_t *step;
-    RemotePackInfos_t *rInfo;
+    PackInfos_t *rInfo;
     Alloc_t *alloc;
 
-    /* pack jobid */
+    /* packJobid  */
     getUint32(&ptr, &packJobid);
     /* stepid */
     getUint32(&ptr, &stepid);
+    /* pack allocation ID */
+    getUint32(&ptr, &packAllocID);
 
-    if (!(alloc = findAlloc(packJobid))) {
-	flog("allocation %u not found\n", packJobid);
+    if (!(alloc = findAllocByPackID(packAllocID))) {
+	flog("allocation %u not found\n", packAllocID);
 	return;
     }
 
@@ -950,31 +958,31 @@ static void handlePackInfo(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
 	return;
     }
 
-    /* remote pack ID */
-    getUint32(&ptr, &packMyId);
-    if (packMyId >= step->packSize) {
-	mlog("%s: invalid offset %u pack size %u\n", __func__, packMyId,
+    /* offset in pack */
+    getUint32(&ptr, &packNodeOffset);
+    if (packNodeOffset >= step->packSize) {
+	mlog("%s: invalid offset %u pack size %u\n", __func__, packNodeOffset,
 	     step->packSize);
 	sendSlurmRC(&step->srunControlMsg, ESLURMD_FORK_FAILED);
 	deleteStep(step->jobid, step->stepid);
 	return;
     }
-    rInfo = &step->rPackInfo[packMyId-1];
+    rInfo = &step->packInfo[packNodeOffset];
 
     /* np */
     getUint32(&ptr, &rInfo->np);
-    step->numRPackNP += rInfo->np;
+    step->numPackNP += rInfo->np;
     /* argc/argv */
     getStringArrayM(&ptr, &rInfo->argv, &rInfo->argc);
     /* number of hwThreads */
     getUint32(&ptr, &rInfo->numHwThreads);
-    step->numRPackThreads += rInfo->numHwThreads;
+    step->numPackThreads += rInfo->numHwThreads;
     /* hwThreads */
     rInfo->hwThreads = umalloc(rInfo->numHwThreads * sizeof(*rInfo->hwThreads));
 
-    mdbg(PSSLURM_LOG_PACK, "%s: from %s for step %u:%u packid %u "
+    mdbg(PSSLURM_LOG_PACK, "%s: from %s for step %u:%u offset %u "
 	 "numHwThreads %i argc %i np %i\n", __func__,
-	 PSC_printTID(msg->header.sender), packJobid, stepid, packMyId,
+	 PSC_printTID(msg->header.sender), packJobid, stepid, packNodeOffset,
 	 rInfo->numHwThreads, rInfo->argc, rInfo->np);
 
     for(i=0; i<rInfo->numHwThreads; i++) {
@@ -986,15 +994,14 @@ static void handlePackInfo(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
 	     __func__, i, rInfo->hwThreads[i].node, rInfo->hwThreads[i].id,
 	    rInfo->hwThreads[i].timesUsed);
     }
-    step->numRPackInfo++;
+    step->numPackInfo++;
 
     mdbg(PSSLURM_LOG_PACK, "%s: step packNtasks %u numHwThreads %u "
-	 "numRPackThreads %u numRPackNP %u\n", __func__, step->packNtasks,
-	 step->numHwThreads, step->numRPackThreads, step->numRPackNP);
+	 "numPackThreads %u numRPackNP %u\n", __func__, step->packNtasks,
+	 step->numHwThreads, step->numPackThreads, step->numPackNP);
 
     /* test if we have all infos to start */
-    if (alloc->state != A_PROLOGUE &&
-        step->packNtasks == step->np + step->numRPackNP) {
+    if (alloc->state != A_PROLOGUE && step->packNtasks == step->numPackNP) {
 	if (!(execUserStep(step))) {
 	    mlog("%s: starting user step failed\n", __func__);
 	    sendSlurmRC(&step->srunControlMsg, ESLURMD_FORK_FAILED);
@@ -1013,18 +1020,23 @@ static void handlePackInfo(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
  */
 static void handle_SignalTasks(DDTypedBufferMsg_t *msg)
 {
-    uint32_t jobid, stepid, group, sig;
+    uint32_t jobid, stepid, group, sig, packID;
     size_t used = 0;
 
     PSP_getTypedMsgBuf(msg, &used, __func__, "jobID", &jobid, sizeof(jobid));
     PSP_getTypedMsgBuf(msg, &used, __func__, "stepID", &stepid, sizeof(stepid));
     PSP_getTypedMsgBuf(msg, &used, __func__, "group", &group, sizeof(group));
     PSP_getTypedMsgBuf(msg, &used, __func__, "signal", &sig, sizeof(sig));
+    PSP_getTypedMsgBuf(msg, &used, __func__, "packID", &packID, sizeof(packID));
 
     Step_t *step = findStepByStepId(jobid, stepid);
     if (!step) {
-      mlog("%s: step %u:%u to signal not found\n", __func__, jobid, stepid);
-      return;
+	if (packID != NO_VAL) step = findStepByStepId(packID, stepid);
+	if (!step) {
+	  mlog("%s: step %u:%u pack %u to signal not found\n", __func__, jobid,
+	       stepid, packID);
+	  return;
+	}
     }
 
     /* shutdown io */
@@ -1617,6 +1629,13 @@ static void handleCC_Finalize_Msg(PSLog_Msg_t *msg)
     if (step->fwdata) {
 	/* step forwarder should close I/O */
 	sendFWfinMessage(step->fwdata, msg);
+	/* shutdown I/O forwarder if all local processes exited */
+	step->fwFinCount++;
+	if (!step->leader &&
+		step->tasksToLaunch[step->localNodeId] == step->fwFinCount) {
+	    mlog("%s: shutdownforwarder\n", __func__);
+	    shutdownForwarder(step->fwdata);
+	}
 	return;
     }
 
@@ -2383,8 +2402,10 @@ int send_PS_PackInfo(Step_t *step)
     addUint32ToMsg(step->packJobid, &data);
     /* stepid */
     addUint32ToMsg(step->stepid, &data);
-    /* my pack ID */
-    addUint32ToMsg(step->packMyId, &data);
+    /* pack allocation ID */
+    addUint32ToMsg(step->packAllocID, &data);
+    /* packNodeOffset */
+    addUint32ToMsg(step->packNodeOffset, &data);
     /* np */
     addUint32ToMsg(step->np, &data);
     /* argc */
@@ -2403,9 +2424,9 @@ int send_PS_PackInfo(Step_t *step)
 		step->hwThreads[i].node, step->hwThreads[i].id);
     }
 
-    mdbg(PSSLURM_LOG_PACK, "%s: step %u:%u packid %i argc %i numHwThreads %i "
+    mdbg(PSSLURM_LOG_PACK, "%s: step %u:%u offset %i argc %i numHwThreads %i "
 	 "np %i to leader %s\n", __func__, step->packJobid, step->stepid,
-	 step->packMyId, step->argc, step->numHwThreads, step->np,
+	 step->packNodeOffset, step->argc, step->numHwThreads, step->np,
 	 PSC_printTID(PSC_getTID(step->packNodes[0], 0)));
 
     /* send msg to pack group leader */

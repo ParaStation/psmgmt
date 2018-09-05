@@ -29,7 +29,7 @@ typedef struct {
     PSpart_HWThread_t *hwThreads;   /**< PS hardware threads */
     uint32_t numHwThreads;	    /**< number of hardware threads */
     uint32_t np;		    /**< number of processes */
-} RemotePackInfos_t;
+} PackInfos_t;
 
 typedef struct {
     list_t next;                /**< used to put into some step-lists */
@@ -96,6 +96,7 @@ typedef struct {
     char *checkpoint;		/**< directory for checkpoints */
     uint8_t x11forward;		/**< X11 forwarding */
     uint32_t fwInitCount;	/**< track INIT messages from logger to fw */
+    uint32_t fwFinCount;	/**< track FINALZE message from fw to logger */
     bool timeout;		/**< set to true if step ran into a timeout */
     uint8_t ioCon;		/**< track srun I/O connection state */
     uint32_t localNodeId;	/**< local node ID for this step */
@@ -115,13 +116,13 @@ typedef struct {
     uint32_t packOffset;	/**< pack job offset */
     uint32_t packTaskOffset;	/**< pack task offset */
     uint32_t packSize;		/**< the size of the pack */
-    uint32_t packMyId;		/**< pack Id of current node */
+    uint32_t packAllocID;	/**< pack allocation ID */
     char *packHostlist;		/**< pack host-list (Slurm compressed) */
     PSnodes_ID_t *packNodes;	/**< all participating nodes in the pack */
-    RemotePackInfos_t *rPackInfo;/**< remote pack infos */
-    uint32_t numRPackInfo;	/**< number of remote pack infos */
-    uint32_t numRPackThreads;	/**< number of remote hardware threads in pack */
-    uint32_t numRPackNP;	/**< number of remote processes in pack */
+    PackInfos_t *packInfo;	/**< remote pack infos */
+    uint32_t numPackInfo;	/**< number of pack infos */
+    uint32_t numPackThreads;	/**< number of hardware threads in pack */
+    uint32_t numPackNP;		/**< number of processes in pack */
     bool leader;		/**< true if node is pack leader */
 } Step_t;
 

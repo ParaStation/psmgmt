@@ -333,8 +333,6 @@ static void printLaunchTasksInfos(Step_t *step)
 
 static bool extractStepPackInfos(Step_t *step)
 {
-    char *sPackSize, *nextId;
-    char packIdName[256], sJobID[256];
     uint32_t nrOfNodes, i, localid;
 
     mdbg(PSSLURM_LOG_PACK, "%s: packNodeOffset %u  packJobid %u packNtasks %u "
@@ -362,29 +360,20 @@ static bool extractStepPackInfos(Step_t *step)
     }
 
     /* extract pack size */
+    char *sPackSize;
     if (!(sPackSize = envGet(&step->env, "SLURM_PACK_SIZE"))) {
 	mlog("%s: missing SLURM_PACK_SIZE environment\n", __func__);
 	return false;
     }
     step->packSize = atoi(sPackSize);
 
-    /* extract my pack ID */
-    snprintf(sJobID, sizeof(sJobID), "%u", step->jobid);
-    step->packMyId = NO_VAL;
-    for (i=0; i<step->packSize; i++) {
-	snprintf(packIdName, sizeof(packIdName),
-		 "SLURM_JOB_ID_PACK_GROUP_%i", i);
-
-	nextId = envGet(&step->env, packIdName);
-	if (nextId && !strcmp(sJobID, nextId)) {
-	    step->packMyId = i;
-	    break;
-	}
-    }
-    if (step->packMyId == NO_VAL) {
-	mlog("%s: error extracting my pack ID\n", __func__);
+    /* extract allocation ID */
+    char *sPackID;
+    if (!(sPackID = envGet(&step->env, "SLURM_JOB_ID_PACK_GROUP_0"))) {
+	mlog("%s: missing SLURM_JOB_ID_PACK_GROUP_0 environment\n", __func__);
 	return false;
     }
+    step->packAllocID = atoi(sPackID);
 
     return true;
 }
@@ -458,12 +447,18 @@ static void handleLaunchTasks(Slurm_Msg_t *sMsg)
 	step->nrOfNodes = count;
     }
 
+    /* pack info */
+    if (step->packNrOfNodes != NO_VAL) {
+	if (!extractStepPackInfos(step)) {
+	    mlog("%s: extracting pack information failed\n", __func__);
+	    goto ERROR;
+	}
+    }
+
     /* determine my role in the step */
     if (step->packJobid != NO_VAL) {
 	/* step with pack */
-	if (step->nodes[0] == PSC_getMyID() && !step->packNodeOffset) {
-	    step->leader = true;
-	}
+	if (step->packNodes[0] == PSC_getMyID()) step->leader = true;
     } else {
 	if (step->nodes[0] == PSC_getMyID()) step->leader = true;
     }
@@ -473,28 +468,14 @@ static void handleLaunchTasks(Slurm_Msg_t *sMsg)
 	 step->username, step->np, step->slurmHosts, step->nrOfNodes, step->tpp,
 	 step->packSize, step->leader, step->argv[0]);
 
-    /* pack info */
-    if (step->packNrOfNodes != NO_VAL) {
-	if (!extractStepPackInfos(step)) {
-	    mlog("%s: extracting pack information failed\n", __func__);
-	    goto ERROR;
-	}
-    }
-
     /* add allocation */
     id = step->packJobid != NO_VAL ? step->packJobid : step->jobid;
     if (!(job = findJobById(id))) {
 	if (!(alloc = findAlloc(step->jobid))) {
-	    flog("NO ALLOCATION with id %u found\n", step->jobid);
-	    if (step->packNrOfNodes != NO_VAL) {
-		alloc = addAlloc(step->packJobid, step->packHostlist,
-				 &step->env, step->uid, step->gid,
-				 step->username);
-	    } else {
-		alloc = addAlloc(step->jobid, step->cred->jobHostlist,
-				 &step->env, step->uid, step->gid,
-				 step->username);
-	    }
+	    alloc = addAlloc(step->jobid, step->packJobid,
+			     step->cred->jobHostlist, &step->env, step->uid,
+			     step->gid, step->username);
+
 	    /* first received step does *not* have to be step 0 */
 	    alloc->state = A_PROLOGUE;
 	}
@@ -521,8 +502,8 @@ static void handleLaunchTasks(Slurm_Msg_t *sMsg)
 	/* mother superior (pack leader) */
 	if (step->packJobid != NO_VAL) {
 	    /* allocate memory for pack infos from other mother superiors */
-	    step->rPackInfo = umalloc(sizeof(step->rPackInfo) *
-				      (step->packSize-1));
+	    step->packInfo = ucalloc(sizeof(*step->packInfo) *
+				      (step->packSize));
 	}
 
 	step->srunControlMsg.sock = sMsg->sock;
@@ -568,14 +549,6 @@ static void handleLaunchTasks(Slurm_Msg_t *sMsg)
 	}
     } else {
 	/* sister node (pack follower) */
-	if (step->packJobid != NO_VAL && step->packNodeOffset &&
-	    step->nodes[0] == PSC_getMyID()) {
-	    /* forward hw thread infos to pack leader */
-	    if (send_PS_PackInfo(step) == -1) {
-		sendSlurmRC(sMsg, ESLURMD_INVALID_JOB_CREDENTIAL);
-		goto ERROR;
-	    }
-	}
 	if (job || step->stepid || alloc->state == A_PROLOGUE_FINISH) {
 	    /* start I/O forwarder */
 	    execStepFWIO(step);
@@ -583,6 +556,14 @@ static void handleLaunchTasks(Slurm_Msg_t *sMsg)
 	if (sMsg->sock != -1) {
 	    /* say ok to waiting srun */
 	    sendSlurmRC(sMsg, SLURM_SUCCESS);
+	}
+    }
+
+    if (step->packJobid != NO_VAL && step->nodes[0] == PSC_getMyID()) {
+	/* forward hw thread infos to pack leader */
+	if (send_PS_PackInfo(step) == -1) {
+	    sendSlurmRC(sMsg, ESLURMD_INVALID_JOB_CREDENTIAL);
+	    goto ERROR;
 	}
     }
 
@@ -1548,13 +1529,8 @@ static void handleBatchJobLaunch(Slurm_Msg_t *sMsg)
     }
 
     /* add allocation if pspelogue isn't used */
-    if (job->packSize) {
-	alloc = addAlloc(job->jobid, job->packHostlist, &job->env, job->uid,
-			 job->gid, job->username);
-    } else {
-	alloc = addAlloc(job->jobid, job->slurmHosts, &job->env,
-			 job->uid, job->gid, job->username);
-    }
+    alloc = addAlloc(job->jobid, job->packSize, job->slurmHosts, &job->env,
+		     job->uid, job->gid, job->username);
 
     /* santy check allocation state */
     if (alloc->state != A_INIT && alloc->state != A_PROLOGUE_FINISH) {

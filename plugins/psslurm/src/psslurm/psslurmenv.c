@@ -561,16 +561,9 @@ void removeUserVars(env_t *env, bool PMIdisabled)
 
 void setStepEnv(Step_t *step)
 {
-    char *val, tmp[1024];
+    char *val;
     mode_t slurmUmask;
     int dist;
-
-    /* overwrite with pack jobid/stepid, will be reset
-     * in the rank env */
-    snprintf(tmp, sizeof(tmp), "%u", step->jobid);
-    envSet(&step->env, "SLURM_JOBID", tmp);
-    snprintf(tmp, sizeof(tmp), "%u", step->stepid);
-    envSet(&step->env, "SLURM_STEPID", tmp);
 
     /* distribute mpiexec service processes */
     dist = getConfValueI(&Config, "DIST_START");

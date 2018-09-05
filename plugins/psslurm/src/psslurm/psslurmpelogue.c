@@ -46,7 +46,7 @@ static bool startStep(Step_t *step, const void *info)
 		step->jobid, step->stepid, strJobState(step->state));
 
 	if (step->packJobid == NO_VAL ||
-	    (step->packNtasks == step->numHwThreads + step->numRPackThreads)) {
+	    (step->packNtasks == step->numPackThreads)) {
 	    if (!(execUserStep(step))) {
 		sendSlurmRC(&step->srunControlMsg, ESLURMD_FORK_FAILED);
 	    }
@@ -363,8 +363,8 @@ static bool startIOforwarder(Step_t *step, const void *info)
 int handleLocalPElogueStart(void *data)
 {
     PElogueChild_t *pedata = data;
-    uint32_t id = atoi(pedata->jobid);
-    char *slurmHosts, *user, *userEnv;
+    uint32_t id, packID = NO_VAL;
+    char *sPID, *slurmHosts, *user, *userEnv;
 
     if (pedata->type == PELOGUE_EPILOGUE) return 0;
 
@@ -374,11 +374,31 @@ int handleLocalPElogueStart(void *data)
 	return -1;
     }
 
+    /* convert allocation ID */
+    errno = 0;
+    id = strtol(pedata->jobid, NULL, 10);
+    if (packID == 0 && errno == EINVAL) {
+	flog("strol(%s) of pedata->jobid %s failed\n", pedata->jobid);
+	return -1;
+    }
+
+    /* convert optional pack ID */
+    sPID = envGet(&pedata->env, "SLURM_PACK_JOB_ID");
+    if (sPID) {
+	errno = 0;
+	packID = strtol(sPID, NULL, 10);
+	if (packID == 0 && errno == EINVAL) {
+	    flog("strol(%s) of SLURM_PACK_JOB_ID failed\n", sPID);
+	    packID = NO_VAL;
+	}
+    }
+
     userEnv = envGet(&pedata->env, "SLURM_JOB_USER");
     user = userEnv ? userEnv : uid2String(pedata->uid);
 
     mdbg(PSSLURM_LOG_PELOG, "%s: add allocation %u\n", __func__, id);
-    addAlloc(id, slurmHosts, &pedata->env, pedata->uid, pedata->gid, user);
+    addAlloc(id, packID, slurmHosts, &pedata->env, pedata->uid,
+	     pedata->gid, user);
 
     if (!userEnv && user) ufree(user);
 

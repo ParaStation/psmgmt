@@ -32,6 +32,7 @@ typedef enum {
 typedef struct {
     list_t next;            /**< used to put into some allocation-lists */
     uint32_t id;	    /**< unique allocation identifier */
+    uint32_t packID;	    /**< unique pack identifier */
     uid_t uid;		    /**< user ID of the allocation owner */
     gid_t gid;		    /**< group of the allocation owner */
     uint32_t nrOfNodes;	    /**< number of nodes */
@@ -53,6 +54,8 @@ typedef struct {
  *
  * @param id unique allocation identifier
  *
+ * @param packID unique pack identifier
+ *
  * @param slurmHosts Slurm compressed host-list
  *
  * @param env environment variables
@@ -66,8 +69,8 @@ typedef struct {
  * @return Returns the newly created allocation or a existing allocation
  * with the given @a id
  */
-Alloc_t *addAlloc(uint32_t id, char *slurmHosts, env_t *env, uid_t uid,
-		  gid_t gid, char *username);
+Alloc_t *addAlloc(uint32_t id, uint32_t packID, char *slurmHosts, env_t *env,
+		  uid_t uid, gid_t gid, char *username);
 
 /**
  * @brief Visitor function
@@ -114,6 +117,15 @@ bool traverseAllocs(AllocVisitor_t visitor, const void *info);
  * @return Returns the requested allocation or NULL on error
  */
 Alloc_t *findAlloc(uint32_t id);
+
+/**
+ * @brief Find an allocation by pack ID
+ *
+ * @param id unique pack identifier
+ *
+ * @return Returns the requested allocation or NULL on error
+ */
+Alloc_t *findAllocByPackID(uint32_t id);
 
 /**
  * @brief Delete an allocation

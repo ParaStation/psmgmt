@@ -195,14 +195,14 @@ int deleteStep(uint32_t jobid, uint32_t stepid)
     }
     ufree(step->argv);
 
-    for (i=0; i<step->numRPackInfo; i++) {
+    for (i=0; i<step->numPackInfo; i++) {
 	uint32_t x;
-	for (x=0; x<step->rPackInfo[i].argc; x++) {
-	    ufree(step->rPackInfo[i].argv[x]);
+	for (x=0; x<step->packInfo[i].argc; x++) {
+	    ufree(step->packInfo[i].argv[x]);
 	}
-	ufree(step->rPackInfo[i].hwThreads);
+	ufree(step->packInfo[i].hwThreads);
     }
-    ufree(step->rPackInfo);
+    ufree(step->packInfo);
 
     envDestroy(&step->env);
     envDestroy(&step->spankenv);

@@ -762,7 +762,7 @@ bool __unpackReqLaunchTasks(Slurm_Msg_t *sMsg, Step_t **stepPtr,
 	step->packJobid = NO_VAL;
 	step->packNrOfNodes = NO_VAL;
 	step->packOffset = NO_VAL;
-	step->packMyId = NO_VAL;
+	step->packAllocID = NO_VAL;
     }
 
     /* job/step mem limit */
