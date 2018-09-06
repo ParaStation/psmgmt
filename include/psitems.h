@@ -34,6 +34,7 @@ typedef struct {
     list_t chunks;     /**< List of actual chunks of items */
     list_t idleItems;  /**< List of idle items for PSitems_getItem() */
     char *name;        /**< Name of the items to handle */
+    bool initialized;  /**< Track pool of items initialization */
     size_t itemSize;   /**< Size of a single item (including its list_t) */
     uint32_t avail;    /**< Number of items available (used + unused) */
     uint32_t used;     /**< Number of used items */
@@ -81,6 +82,19 @@ typedef struct {
  * @return No return value
  */
 void PSitems_init(PSitems_t *items, size_t itemSize, char *name);
+
+/**
+ * @brief Check pool of items for initialization
+ *
+ * Check if the pool of items represented by @a items is initialized,
+ * i.e. if @ref PSitems_init() was called for this pool before.
+ *
+ * @param items Structure holding all information on the pool of items
+ *
+ * @return Return true if the pool of items is initialized or false
+ * otherwise
+ */
+bool PSitems_isInitialized(PSitems_t *items);
 
 /**
  * @brief Get number of available items

@@ -25,9 +25,6 @@
 
 #include "psidflowcontrol.h"
 
-/** Flag to track initialization */
-static bool initialized = false;
-
 /** StopTID structure */
 typedef struct {
     list_t next;              /**< used to put into hashtable-lists */
@@ -35,7 +32,7 @@ typedef struct {
 } stopTID_t;
 
 /** data structure to handle a pool of stopTIDs */
-static PSitems_t stopTIDs;
+static PSitems_t stopTIDs = { .initialized = false };
 
 /* ==================== Pool management for stopTIDs ==================== */
 
@@ -274,10 +271,7 @@ void PSIDFlwCntrl_printStat(void)
 
 void PSIDFlwCntrl_init(void)
 {
-    if (initialized) return;
-
-    initialized = true;
-
+    if (PSitems_isInitialized(&stopTIDs)) return;
     PSitems_init(&stopTIDs, sizeof(stopTID_t), "stopdTIDs");
 
     PSID_registerMsg(PSP_DD_SENDSTOP, (handlerFunc_t) msg_SENDSTOP);

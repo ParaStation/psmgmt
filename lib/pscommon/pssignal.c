@@ -13,27 +13,17 @@
 
 #include "pssignal.h"
 
-/** Flag to track initialization */
-static bool initialized = false;
-
 /** data structure to handle a pool of signal structures */
-static PSitems_t sigPool;
+static PSitems_t sigPool = { .initialized = false };
 
 void PSsignal_init(void)
 {
-    if (initialized) return;
-
+    if (PSitems_isInitialized(&sigPool)) return;
     PSitems_init(&sigPool, sizeof(PSsignal_t), "PSsignal");
-    initialized = true;
  }
 
 PSsignal_t *PSsignal_get(void)
 {
-    if (!initialized) {
-	PSC_log(-1, "%s: initialize before\n", __func__);
-	return NULL;
-    }
-
     PSsignal_t *sp = PSitems_getItem(&sigPool);
     if (!sp) return NULL;
 
@@ -67,21 +57,11 @@ static bool relocSig(void *item)
 
 void PSsignal_gc(void)
 {
-    if (!initialized) {
-	PSC_log(-1, "%s: initialize before\n", __func__);
-	return;
-    }
-
     PSitems_gc(&sigPool, relocSig);
 }
 
 void PSsignal_printStat(void)
 {
-    if (!initialized) {
-	PSC_log(-1, "%s: initialize before\n", __func__);
-	return;
-    }
-
     PSC_log(-1, "%s: Signals %d/%d (used/avail)\n", __func__,
 	    PSitems_getUsed(&sigPool), PSitems_getAvail(&sigPool));
 }

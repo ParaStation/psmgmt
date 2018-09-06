@@ -92,7 +92,7 @@ static Selector_t **selectors = NULL;
 static int maxSelectorFD = 0;
 
 /** data structure to handle a pool of selectors */
-static PSitems_t selPool;
+static PSitems_t selPool = { .initialized = false };
 
 /**
  * @brief Get selector from pool

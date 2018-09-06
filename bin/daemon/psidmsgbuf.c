@@ -38,7 +38,7 @@ typedef struct {
 } smallMsgBuf_t;
 
 /** data structure to handle a pool of small message buffers*/
-static PSitems_t smallMsgBufs;
+static PSitems_t smallMsgBufs = { .initialized = false };
 
 /** Number of messages-buffers currently in use */
 static unsigned int usedBufs = 0;
@@ -133,7 +133,9 @@ void PSIDMsgbuf_printStat(void)
 
 void PSIDMsgbuf_init(void)
 {
+    if (PSitems_isInitialized(&smallMsgBufs)) return;
     PSitems_init(&smallMsgBufs, sizeof(smallMsgBuf_t), "smallMsgBufs");
+
     PSID_registerLoopAct(PSIDMsgbuf_gc);
 
     return;

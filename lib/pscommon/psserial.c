@@ -113,7 +113,7 @@ typedef struct {
 } recvBuf_t;
 
 /** data structure to handle a pool of receive buffers (of type recvBuf_t) */
-static PSitems_t recvBuffers;
+static PSitems_t recvBuffers = { .initialized = false };
 
 /** List of active receive buffers */
 static LIST_HEAD(activeRecvBufs);
@@ -367,7 +367,7 @@ bool initSerial(size_t bufSize, Send_Msg_Func_t *func)
 {
     PSnodes_ID_t numNodes = PSC_getNrOfNodes();
 
-    if (sendBuf) return true;
+    if (PSitems_isInitialized(&recvBuffers)) return true;
 
     if (!PSC_logInitialized()) PSC_initLog(stderr);
 
@@ -379,6 +379,7 @@ bool initSerial(size_t bufSize, Send_Msg_Func_t *func)
     if (!initSerialBuf(bufSize)) return false;
 
     /* allocated space for destination nodes */
+    if (destNodes) free(destNodes);
     destNodes = malloc(sizeof(*destNodes) * numNodes);
 
     if (!sendBuf || !destNodes) {

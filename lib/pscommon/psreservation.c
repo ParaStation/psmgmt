@@ -15,19 +15,11 @@
 
 #include "psreservation.h"
 
-/** Flag to track initialization */
-static bool initialized = false;
-
 /** data structure to handle a pool of reservations */
-static PSitems_t PSrsrvtns;
+static PSitems_t PSrsrvtns = { .initialized = false };
 
 PSrsrvtn_t *PSrsrvtn_get(void)
 {
-    if (!initialized) {
-	PSC_log(-1, "%s: initialize before\n", __func__);
-	return NULL;
-    }
-
     PSrsrvtn_t *rp = PSitems_getItem(&PSrsrvtns);
     if (!rp) return NULL;
 
@@ -54,11 +46,6 @@ PSrsrvtn_t *PSrsrvtn_get(void)
 
 void PSrsrvtn_put(PSrsrvtn_t *rp)
 {
-    if (!initialized) {
-	PSC_log(-1, "%s: initialize before\n", __func__);
-	return;
-    }
-
     if (rp->slots) {
 	PSC_log(-1, "%s: still slots in registration %#x\n", __func__, rp->rid);
 	free(rp->slots);
@@ -101,39 +88,22 @@ static bool relocPSrsrvtn(void *item)
 
 void PSrsrvtn_gc(void)
 {
-    if (!initialized) {
-	PSC_log(-1, "%s: initialize before\n", __func__);
-	return;
-    }
-
     PSitems_gc(&PSrsrvtns, relocPSrsrvtn);
 }
 
 void PSrsrvtn_printStat(void)
 {
-    if (!initialized) {
-	PSC_log(-1, "%s: initialize before\n", __func__);
-	return;
-    }
-
     PSC_log(-1, "%s: Reservations %d/%d (used/avail)\n", __func__,
 	    PSitems_getUsed(&PSrsrvtns), PSitems_getAvail(&PSrsrvtns));
 }
 
 void PSrsrvtn_clearMem(void)
 {
-    if (!initialized) {
-	PSC_log(-1, "%s: initialize before\n", __func__);
-	return;
-    }
-
     PSitems_clearMem(&PSrsrvtns);
 }
 
 void PSrsrvtn_init(void)
 {
-    if (initialized) return;
-
+    if (PSitems_isInitialized(&PSrsrvtns)) return;
     PSitems_init(&PSrsrvtns, sizeof(PSrsrvtn_t), "PSrsrvtns");
-    initialized = true;
 }

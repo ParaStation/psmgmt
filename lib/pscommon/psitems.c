@@ -23,9 +23,6 @@ typedef struct {
     char itemBuf[]; /**< Space for actual items */
 } chunk_t;
 
-/** Track initialization state */
-static bool initialized = false;
-
 void PSitems_init(PSitems_t *items, size_t itemSize, char *name)
 {
     if (!items) return;
@@ -33,22 +30,26 @@ void PSitems_init(PSitems_t *items, size_t itemSize, char *name)
     INIT_LIST_HEAD(&items->chunks);
     INIT_LIST_HEAD(&items->idleItems);
     items->name = strdup(name);
+    items->initialized = true;
     items->itemSize = itemSize;
     items->avail = 0;
     items->used = 0;
     items->iPC = (CHUNK_SIZE - sizeof(list_t)) / itemSize + 1;
+}
 
-    initialized = true;
+bool PSitems_isInitialized(PSitems_t *items)
+{
+    return items && items->initialized;
 }
 
 uint32_t PSitems_getAvail(PSitems_t *items)
 {
-    return items->avail;
+    return PSitems_isInitialized(items) ? items->avail : 0;
 }
 
 uint32_t PSitems_getUsed(PSitems_t *items)
 {
-    return items->used;
+    return PSitems_isInitialized(items) ? items->used : 0;
 }
 
 /** Stub of the actual item type */
@@ -99,6 +100,11 @@ static int growItems(PSitems_t *items)
 
 void * PSitems_getItem(PSitems_t *items)
 {
+    if (!PSitems_isInitialized(items)) {
+	PSC_log(-1, "%s: initialize before!\n", __func__);
+	return NULL;
+    }
+
     if (list_empty(&items->idleItems)) {
 	PSC_log(PSC_LOG_VERB, "%s(%s): no more items\n", __func__, items->name);
 	if (!growItems(items)) {
@@ -128,6 +134,11 @@ void PSitems_putItem(PSitems_t *items, void *item)
 {
     item_t *i = (item_t *)item;
 
+    if (!PSitems_isInitialized(items)) {
+	PSC_log(-1, "%s: initialize before!\n", __func__);
+	return;
+    }
+
     i->state = PSITEM_IDLE;
     list_add_tail(&i->next, &items->idleItems);
 
@@ -136,6 +147,7 @@ void PSitems_putItem(PSitems_t *items, void *item)
 
 bool PSitems_gcRequired(PSitems_t *items)
 {
+    if (!PSitems_isInitialized(items)) return false;
     return items->avail > items->iPC
 	&& items->used < (items->avail - items->iPC)/2;
 }
@@ -231,7 +243,7 @@ void PSitems_gc(PSitems_t *items, bool (*relocItem)(void *))
 
 void PSitems_clearMem(PSitems_t *items)
 {
-    if (!initialized) return;
+    if (!PSitems_isInitialized(items)) return;
 
     list_t *c, *tmp;
     list_for_each_safe(c, tmp, &items->chunks) {

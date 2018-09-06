@@ -35,7 +35,7 @@
 static LIST_HEAD(procList);
 
 /** data structure to handle a pool of proc snapshot structures */
-static PSitems_t procPool;
+static PSitems_t procPool = { .initialized = false };
 
 static bool relocProc(void *item)
 {
@@ -664,9 +664,12 @@ void updateProcSnapshot(void)
 
 void initProc(void)
 {
+    if (PSitems_isInitialized(&procPool)) return;
+
     cpuCount = getCPUCount();
     if (cpuCount) initCpuFreq();
     PSitems_init(&procPool, sizeof(ProcSnapshot_t), "procSnapshots");
+
     PSID_registerLoopAct(proc_gc);
     PSIDhook_add(PSIDHOOK_CLEARMEM, clearMem);
 }
