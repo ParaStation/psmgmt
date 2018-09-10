@@ -4,6 +4,12 @@ Copyright (C) 2010-2018 ParTec Cluster Competence Center GmbH, Munich
 
 Please send bug reports, questions and suggestions to <support@par-tec.com>
 
+
+Version 5.1.15-1:
+=================
+Bugfixes:
+ - Workaround for orphan jobs using job packs (pct:#126)
+
 *************************************************************************
 *************************************************************************
 **                                                                     **
@@ -13,12 +19,6 @@ Please send bug reports, questions and suggestions to <support@par-tec.com>
 **                                                                     **
 *************************************************************************
 *************************************************************************
-
-Version 5.1.15-1:
-=================
-Bugfixes:
-- Workaround for orphan jobs using job packs (pct:#126)
-
 
 Version 5.1.15:
 ===============
