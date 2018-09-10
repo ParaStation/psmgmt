@@ -1792,6 +1792,8 @@ static void handleTerminateReq(Slurm_Msg_t *sMsg)
     cleanupDelayedSpawns(req->jobid, req->stepid);
 
     if (!alloc) {
+	deleteJob(req->jobid);
+	clearStepList(req->jobid);
 	mlog("%s: allocation %u:%u not found\n", __func__,
 	     req->jobid, req->stepid);
 	if (sMsg->head.type == REQUEST_TERMINATE_JOB) {
