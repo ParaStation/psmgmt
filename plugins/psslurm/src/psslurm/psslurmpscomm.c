@@ -2233,13 +2233,13 @@ static int compareNodeIDs(const void *entry1, const void *entry2)
 
 const char *getSlurmHostbyNodeID(PSnodes_ID_t nodeID)
 {
-    Host_Lookup_t *e;
+    Host_Lookup_t *e, s = { .nodeID = nodeID, .hostname = NULL };
 
     if (!HostLT) return NULL;
 
-    e = bsearch(&nodeID, HostLT, numHostLT, sizeof(*HostLT), compareNodeIDs);
+    e = bsearch(&s, HostLT, numHostLT, sizeof(*HostLT), compareNodeIDs);
     if (e) return e->hostname;
-
+    flog("hostname for nodeID %i not found\n", nodeID);
     return NULL;
 }
 
@@ -2250,7 +2250,10 @@ PSnodes_ID_t getNodeIDbySlurmHost(char *host)
     if (!HostLT) return -1;
 
     /* use hash table for lookup */
-    if (!hsearch_r(e, FIND, &f, &HostHash)) return -1;
+    if (!hsearch_r(e, FIND, &f, &HostHash)) {
+	flog("nodeID for host %s not found\n", host);
+	return -1;
+    }
 
     return *(PSnodes_ID_t *) f->data;
 }
