@@ -29,6 +29,7 @@ typedef struct {
     PSpart_HWThread_t *hwThreads;   /**< PS hardware threads */
     uint32_t numHwThreads;	    /**< number of hardware threads */
     uint32_t np;		    /**< number of processes */
+    uint32_t packTaskOffset;	    /**< pack task offset */
 } PackInfos_t;
 
 typedef struct {

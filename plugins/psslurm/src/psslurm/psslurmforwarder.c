@@ -39,6 +39,7 @@
 #include "psslurmpelogue.h"
 #include "psslurmpin.h"
 #include "psslurmspawn.h"
+#include "psslurmpscomm.h"
 #include "slurmcommon.h"
 
 #include "pluginpty.h"
@@ -783,26 +784,35 @@ static void buildMpiexecArgs(Forwarder_Data_t *fwdata, strv_t *argV,
 	    }
 	} else {
 	    /* executables from job pack */
+	    int64_t last, offset = -1;
+	    uint32_t index = -1;
 	    for (i=0; i<step->numPackInfo; i++) {
-		uint32_t z;
+		/* find next pack task array index */
+		last = offset;
+		if (!findPackIndex(step, last, &offset, &index)) {
+		    flog("calculating task index %u for step %u:%u failed\n", i,
+			 step->jobid, step->stepid);
+		    exit(1);
+		}
 
 		if (i) strvAdd(argV, ":");
 
 		/* number of processes */
 		strvAdd(argV, ustrdup("-np"));
-		snprintf(buf, sizeof(buf), "%u", step->packInfo[i].np);
+		snprintf(buf, sizeof(buf), "%u", step->packInfo[index].np);
 		strvAdd(argV, ustrdup(buf));
 
 		/* threads per processes */
-		uint16_t tpp = step->packInfo[i].numHwThreads /
-				step->packInfo[i].np;
+		uint16_t tpp = step->packInfo[index].numHwThreads /
+				step->packInfo[index].np;
 		strvAdd(argV, ustrdup("-tpp"));
 		snprintf(buf, sizeof(buf), "%u", tpp);
 		strvAdd(argV, ustrdup(buf));
 
 		/* executable and arguments */
-		for (z=0; z<step->packInfo[i].argc; z++) {
-		    strvAdd(argV, step->packInfo[i].argv[z]);
+		uint32_t z;
+		for (z=0; z<step->packInfo[index].argc; z++) {
+		    strvAdd(argV, step->packInfo[index].argv[z]);
 		}
 	    }
 	}

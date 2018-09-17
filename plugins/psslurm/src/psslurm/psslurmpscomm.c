@@ -262,10 +262,20 @@ static int handleCreatePart(void *msg)
 	pTptr += step->numHwThreads;
     } else {
 	/* combined pack threads */
+	int64_t last, offset = -1;
+	uint32_t index = -1;
+
 	for (i=0; i<step->numPackInfo; i++) {
-	    memcpy(pTptr, step->packInfo[i].hwThreads,
-		    step->packInfo[i].numHwThreads * sizeof(*task->partThrds));
-	    pTptr += step->packInfo[i].numHwThreads;
+	    last = offset;
+	    if (!findPackIndex(step, last, &offset, &index)) {
+		flog("calculating task index %u for step %u:%u failed\n", i,
+		     step->jobid, step->stepid);
+		errno = EACCES;
+		goto error;
+	    }
+	    memcpy(pTptr, step->packInfo[index].hwThreads,
+		   step->packInfo[index].numHwThreads * sizeof(*task->partThrds));
+	    pTptr += step->packInfo[index].numHwThreads;
 	}
     }
 
@@ -925,7 +935,7 @@ static void handleAllocState(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
 static void handlePackInfo(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
 {
     char *ptr = data->buf;
-    uint32_t packJobid, stepid, packAllocID, packNodeOffset, i;
+    uint32_t packJobid, stepid, packAllocID, i;
     Step_t *step;
     PackInfos_t *rInfo;
     Alloc_t *alloc;
@@ -953,22 +963,19 @@ static void handlePackInfo(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
 	cache->data = dupDataBuffer(data);
 	list_add_tail(&cache->next, &msgCache);
 
-	mlog("%s: caching msg for step %u:%u\n", __func__,
-	     packJobid, stepid);
+	mlog("%s: caching msg for step %u:%u\n", __func__, packJobid, stepid);
 	return;
     }
 
-    /* offset in pack */
-    getUint32(&ptr, &packNodeOffset);
-    if (packNodeOffset >= step->packSize) {
-	mlog("%s: invalid offset %u pack size %u\n", __func__, packNodeOffset,
-	     step->packSize);
-	sendSlurmRC(&step->srunControlMsg, ESLURMD_FORK_FAILED);
-	deleteStep(step->jobid, step->stepid);
+    if (step->numPackInfo == step->packSize) {
+	flog("too many pack infos, numPackInfo %u packSize %u for step %u:%u\n",
+	     step->numPackInfo, step->packSize, packJobid, stepid);
 	return;
     }
-    rInfo = &step->packInfo[packNodeOffset];
+    rInfo = &step->packInfo[step->numPackInfo++];
 
+    /* pack task offset */
+    getUint32(&ptr, &rInfo->packTaskOffset);
     /* np */
     getUint32(&ptr, &rInfo->np);
     step->numPackNP += rInfo->np;
@@ -980,9 +987,9 @@ static void handlePackInfo(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
     /* hwThreads */
     rInfo->hwThreads = umalloc(rInfo->numHwThreads * sizeof(*rInfo->hwThreads));
 
-    mdbg(PSSLURM_LOG_PACK, "%s: from %s for step %u:%u offset %u "
+    mdbg(PSSLURM_LOG_PACK, "%s: from %s for step %u:%u "
 	 "numHwThreads %i argc %i np %i\n", __func__,
-	 PSC_printTID(msg->header.sender), packJobid, stepid, packNodeOffset,
+	 PSC_printTID(msg->header.sender), packJobid, stepid,
 	 rInfo->numHwThreads, rInfo->argc, rInfo->np);
 
     for(i=0; i<rInfo->numHwThreads; i++) {
@@ -994,7 +1001,6 @@ static void handlePackInfo(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
 	     __func__, i, rInfo->hwThreads[i].node, rInfo->hwThreads[i].id,
 	    rInfo->hwThreads[i].timesUsed);
     }
-    step->numPackInfo++;
 
     mdbg(PSSLURM_LOG_PACK, "%s: step packNtasks %u numHwThreads %u "
 	 "numPackThreads %u numRPackNP %u\n", __func__, step->packNtasks,
@@ -2407,8 +2413,8 @@ int send_PS_PackInfo(Step_t *step)
     addUint32ToMsg(step->stepid, &data);
     /* pack allocation ID */
     addUint32ToMsg(step->packAllocID, &data);
-    /* packNodeOffset */
-    addUint32ToMsg(step->packNodeOffset, &data);
+    /* pack task offset */
+    addUint32ToMsg(step->packTaskOffset, &data);
     /* np */
     addUint32ToMsg(step->np, &data);
     /* argc */
@@ -2471,6 +2477,24 @@ void handleCachedMsg(Step_t *step)
 	}
     }
     deleteCachedMsg(step->jobid, step->stepid);
+}
+
+bool findPackIndex(Step_t *step, int64_t last, int64_t *offset, uint32_t *idx)
+{
+    uint32_t i;
+    bool found = false;
+
+    *offset = -1;
+    for (i=0; i<step->numPackInfo; i++) {
+	uint32_t off = step->packInfo[i].packTaskOffset;
+	if (off <= last) continue;
+	if (*offset == -1 || off < *offset) {
+	    *offset = off;
+	    *idx = i;
+	    found = true;
+	}
+    }
+    return found;
 }
 
 /* vim: set ts=8 sw=4 tw=0 sts=4 noet:*/
