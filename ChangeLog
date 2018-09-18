@@ -1,3 +1,28 @@
+Version psmgmt-5.1.16:
+======================
+------------------------------------------------------------------------
+881bb275 | Michael Rauh | Mon, 17 Sep 2018 13:51:16 +0200
+
+Bugfix: use array pack index to build a composite partition
+------------------------------------------------------------------------
+25afa665 | Michael Rauh | Mon, 17 Sep 2018 11:51:43 +0200
+
+Bugfix: fix reverse hostname lookup which broke tree communication
+------------------------------------------------------------------------
+99c3e3f3 | Norbert Eicker | Mon, 10 Sep 2018 16:46:22 +0200
+
+Minor correction of the NEWS information
+------------------------------------------------------------------------
+9f36c6e5 | Michael Rauh | Mon, 10 Sep 2018 14:49:36 +0200
+
+Merge branch 'ticket-pct-126'
+------------------------------------------------------------------------
+52bbaf9c | Norbert Eicker | Thu, 6 Sep 2018 16:24:21 +0200
+
+More accurate tracking of initialization of PSitems_t
+------------------------------------------------------------------------
+
+
 Version psmgmt-5.1.15-1:
 ========================
 ------------------------------------------------------------------------
