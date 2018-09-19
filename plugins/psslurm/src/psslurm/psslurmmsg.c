@@ -232,10 +232,8 @@ void freeSlurmMsgHead(Slurm_Msg_Header_t *head)
 void clearMsgBuf(void)
 {
     list_t *pos, *tmp;
-    Slurm_Msg_Buf_t *msgBuf;
-
     list_for_each_safe(pos, tmp, &msgBufList) {
-	msgBuf = list_entry(pos, Slurm_Msg_Buf_t, list);
+	Slurm_Msg_Buf_t *msgBuf = list_entry(pos, Slurm_Msg_Buf_t, list);
 	deleteMsgBuf(msgBuf);
     }
 }
@@ -282,7 +280,7 @@ Slurm_Msg_Buf_t *saveSlurmMsg(Slurm_Msg_Header_t *head, PS_SendDB_t *body,
     dupSlurmMsgHead(&msgBuf->head, head);
 
     /* save data buffer */
-    msgBuf->body.bufUsed = 0;
+    msgBuf->body.buf = NULL;
     memToDataBuffer(body->buf, body->bufUsed, &msgBuf->body);
 
     /* dup auth */

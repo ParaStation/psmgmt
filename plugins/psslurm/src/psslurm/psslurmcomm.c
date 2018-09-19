@@ -754,7 +754,7 @@ int __sendSlurmMsgEx(int sock, Slurm_Msg_Header_t *head, PS_SendDB_t *body,
 		     const char *caller, const int line)
 {
     PS_SendDB_t data = { .bufUsed = 0, .useFrag = false };
-    PS_DataBuffer_t payload = { .bufUsed = 0 };
+    PS_DataBuffer_t payload = { .buf = NULL };
     int ret = 0;
     size_t written = 0;
 
