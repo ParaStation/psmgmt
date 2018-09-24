@@ -180,3 +180,8 @@
 #
 # (1 = enabled, 0 = disabled, default: 0)
 #MEASURE_RPC = 1
+
+# Number of maximum terminate requests for an allocation
+#
+# (integer, default: 10)
+#MAX_TERM_REQUESTS = 5

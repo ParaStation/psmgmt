@@ -140,6 +140,10 @@ const ConfDef_t CONFIG_VALUES[] =
 	"bool",
 	"0",
 	"Measure execution times of RPC calls" },
+    { "MAX_TERM_REQUESTS", 1,
+	"int",
+	"10",
+	"Number of maximum terminate requests for an allocation" },
     { NULL, 0, NULL, NULL, NULL },
 };
 

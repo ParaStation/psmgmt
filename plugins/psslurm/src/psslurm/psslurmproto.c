@@ -1573,6 +1573,7 @@ static void handleBatchJobLaunch(Slurm_Msg_t *sMsg)
 static void doTerminateAlloc(Slurm_Msg_t *sMsg, Alloc_t *alloc)
 {
     int grace = getConfValueI(&SlurmConfig, "KillWait");
+    int maxTermReq = getConfValueI(&Config, "MAX_TERM_REQUESTS");
     int signal = SIGTERM, pcount;
 
     if (!alloc->firstKillReq) alloc->firstKillReq = time(NULL);
@@ -1583,23 +1584,35 @@ static void doTerminateAlloc(Slurm_Msg_t *sMsg, Alloc_t *alloc)
 	killForwarderByJobid(alloc->id);
 	signal = SIGKILL;
     }
-    alloc->terminate++;
+
+    if (maxTermReq > 0 && alloc->terminate++ >= maxTermReq) {
+	/* ensure jobs will not get stuck forever */
+	flog("force termination of allocation %u in state %s requests %i\n",
+	     alloc->id, strAllocState(alloc->state), alloc->terminate);
+	sendEpilogueComplete(alloc->id, 0);
+	deleteAlloc(alloc->id);
+	sendSlurmRC(sMsg, SLURM_SUCCESS);
+	return;
+    }
 
     switch (alloc->state) {
 	case A_RUNNING:
 	    if ((pcount = signalAlloc(alloc->id, signal, sMsg->head.uid)) > 0) {
 		sendSlurmRC(sMsg, SLURM_SUCCESS);
-		flog("waiting for %i processes to complete\n", pcount);
+		flog("waiting for %i processes to complete (%i/%i)\n", pcount,
+		     alloc->terminate, maxTermReq);
 		return;
 	    }
 	    break;
 	case A_PROLOGUE:
 	    sendSlurmRC(sMsg, SLURM_SUCCESS);
-	    mlog("%s: waiting for prologue to finish\n", __func__);
+	    mlog("%s: waiting for prologue to finish (%i/%i)\n", __func__,
+		 alloc->terminate, maxTermReq);
 	    return;
 	case A_EPILOGUE:
 	    sendSlurmRC(sMsg, SLURM_SUCCESS);
-	    mlog("%s: waiting for epilogue to finish\n", __func__);
+	    mlog("%s: waiting for epilogue to finish (%i/%i)\n", __func__,
+		 alloc->terminate, maxTermReq);
 	    return;
 	case A_EPILOGUE_FINISH:
 	case A_EXIT:
@@ -1610,17 +1623,10 @@ static void doTerminateAlloc(Slurm_Msg_t *sMsg, Alloc_t *alloc)
 	    } else {
 		/* mother superior will wait for other nodes */
 		if (!finalizeEpilogue(alloc)) {
-		    if (alloc->terminate > 20) {
-			flog("stop waiting for %u sister node(s) for "
-			     "allocation %u\n",
-			     alloc->nrOfNodes - alloc->epilogCnt, alloc->id);
-			sendEpilogueComplete(alloc->id, 0);
-			deleteAlloc(alloc->id);
-		    } else {
-			flog("waiting for %u sister node(s) to complete "
-			     "epilogue\n", alloc->nrOfNodes - alloc->epilogCnt);
-			send_PS_EpilogueStateReq(alloc);
-		    }
+		    flog("waiting for %u sister node(s) to complete epilogue "
+			 "(%i/%i)\n", alloc->nrOfNodes - alloc->epilogCnt,
+			 alloc->terminate, maxTermReq);
+		    send_PS_EpilogueStateReq(alloc);
 		}
 	    }
 	    return;
