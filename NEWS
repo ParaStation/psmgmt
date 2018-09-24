@@ -5,6 +5,12 @@ Copyright (C) 2010-2018 ParTec Cluster Competence Center GmbH, Munich
 Please send bug reports, questions and suggestions to <support@par-tec.com>
 
 
+Version 5.1.16-1:
+=================
+Bugfixes:
+ - Initialize PS_DataBuffer_t correctly (jwt:#1230)
+
+
 Version 5.1.16:
 ===============
 Bugfixes:
