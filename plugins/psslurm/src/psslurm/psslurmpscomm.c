@@ -1139,13 +1139,12 @@ static void handleFWslurmMsg(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
 
     sMsg.sock = socket;
     sMsg.ptr = ptr;
-    getSlurmMsgHeader(&sMsg, NULL);
 
     mdbg(PSSLURM_LOG_FWD, "%s: sender '%s' sock %u time %lu datalen %u\n",
 	 __func__, PSC_printTID(sMsg.source), sMsg.sock, sMsg.recvTime,
 	 data->bufUsed);
 
-    handleSlurmdMsg(&sMsg);
+    processSlurmMsg(&sMsg, NULL, handleSlurmdMsg, NULL);
 }
 
 static void handleFWslurmMsgRes(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)

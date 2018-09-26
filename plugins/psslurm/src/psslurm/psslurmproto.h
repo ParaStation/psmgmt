@@ -141,7 +141,25 @@ void sendNodeRegStatus(void);
 bool getNodesFromSlurmHL(char *slurmHosts, uint32_t *nrOfNodes,
 			 PSnodes_ID_t **nodes, uint32_t *localId);
 
-int getSlurmMsgHeader(Slurm_Msg_t *sMsg, Msg_Forward_t *fw);
+/**
+ * @brief Process a new Slurm message
+ *
+ * Extract and verify a Slurm message header including the protocol
+ * version and munge authentication. Additionally the Slurm tree
+ * forwarding is handled. On success the message payload is passed
+ * to the connection callback to actually handle the message. The
+ * default handler is @ref handleSlurmdMsg().
+ *
+ * @param sMsg The message to process
+ *
+ * @param fw The Slurm tree forward header
+ *
+ * @param cb The callback to handle to processed message
+ *
+ * @param info Additional information passed to the callback
+ */
+void processSlurmMsg(Slurm_Msg_t *sMsg, Msg_Forward_t *fw, Connection_CB_t *cb,
+		     void *info);
 
 /**
  * @brief Send a Slurm rc message
@@ -310,10 +328,10 @@ uint32_t getLocalRankID(uint32_t rank, Step_t *step, uint32_t nodeId);
  * msgType. If @a handler is NULL, all messages of type @a msgType
  * will be silently ignored in the future.
  *
- * @param msgType The message-type to handle.
+ * @param msgType The message-type to handle
  *
  * @param handler The function to call whenever a message of type @a
- * msgType has to be handled.
+ * msgType has to be handled
  *
  * @return If a handler for this message-type was registered before,
  * the corresponding function pointer is returned. If this is the
@@ -328,7 +346,7 @@ slurmdHandlerFunc_t registerSlurmdMsg(int msgType, slurmdHandlerFunc_t handler);
  * handled in the future. This includes end of silent ignore of this
  * message-type.
  *
- * @param msgType The message-type not to handle any longer.
+ * @param msgType The message-type not to handle any longer
  *
  * @return If a handler for this message-type was registered before,
  * the corresponding function pointer is returned. If no handler was
@@ -344,11 +362,13 @@ slurmdHandlerFunc_t clearSlurmdMsg(int msgType);
  * handler associated to the message-type might be registered via @ref
  * registerSlurmdMsg() and unregistered via @ref clearSlurmdMsg().
  *
- * @param msg The message to handle.
+ * @param msg The message to handle
+ *
+ * @param info Additional info currently unused
  *
  * @return Always return 0
  */
-int handleSlurmdMsg(Slurm_Msg_t *msg);
+int handleSlurmdMsg(Slurm_Msg_t *sMsg, void *info);
 
 bool initSlurmdProto(void);
 
@@ -364,5 +384,15 @@ void clearSlurmdProto(void);
  * the username calling @ref ufree().
  */
 char *uid2String(uid_t uid);
+
+/**
+ * @brief Request job information from slurmctld
+ *
+ * @param jobid The jobid to request information for
+ *
+ * @return Returns the number of bytes written, -1 on error or -2 if
+ * the message was stored and will be send out later
+ */
+int requestJobInfo(uint32_t jobid);
 
 #endif /* __PSSLURM_PROTO */

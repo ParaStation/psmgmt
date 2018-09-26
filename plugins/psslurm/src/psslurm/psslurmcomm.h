@@ -19,7 +19,7 @@
 #define SLURMCTLD_SOCK -1
 
 /** callback function of a connection structure */
-typedef int Connection_CB_t(Slurm_Msg_t *msg);
+typedef int Connection_CB_t(Slurm_Msg_t *msg, void *info);
 
 /** structure to track message forwarding for a connection */
 typedef struct {
@@ -101,6 +101,31 @@ int __sendSlurmMsgEx(int sock, Slurm_Msg_Header_t *head, PS_SendDB_t *body,
 
 #define sendSlurmMsgEx(sock, head, body) \
     __sendSlurmMsgEx(sock, head, body, __func__, __LINE__)
+
+/**
+ * @brief Send a RPC request to the slurmctld
+ *
+ * @param type The RPC type to send
+ *
+ * @param body The message body
+ *
+ * @param cb The callback to handle a response
+ *
+ * @param info Additional information passed to the callback
+ *
+ * @param caller Function name of the calling function
+ *
+ * @param line Line number where this function is called
+ *
+ * @return Returns the number of bytes written, -1 on error or -2 if
+ * the message was stored and will be send out later
+ */
+int __sendSlurmReq(slurm_msg_type_t type, PS_SendDB_t *body,
+		   Connection_CB_t *cb, void *info, const char *caller,
+		   const int line);
+
+#define sendSlurmReq(type, body, cb, info) \
+    __sendSlurmReq(type, body, cb, info, __func__, __LINE__)
 
 /**
  * @brief Send a PS data buffer
@@ -363,8 +388,28 @@ void closeAllStepConnections(Step_t *step);
  * controller is made. On success a selector to the function
  * handleSlurmctldReply() is registered for the connected socket.
  *
+ * This is basically a wrapper for @ref openSlurmctldConEx().
+ *
  * @return Returns the connected socket or -1 on error.
  */
-int connect2Slurmctld(void);
+int openSlurmctldCon(void);
+
+/**
+ * @brief Open a new connection to slurmctld
+ *
+ * Open a new connection to the slurmctld. If the connection
+ * can't be established a new connection attempt to the backup
+ * controller is made. On success a selector to the connection
+ * callback @a cb is registered for the connected socket.
+ * Additional information is passed to the callback via @a
+ * info.
+ *
+ * @param cb Callback to handle a reply from the slurmctld
+ *
+ * @param info Additional info passed to the callback
+ *
+ * @return Returns the connected socket or -1 on error.
+ */
+int openSlurmctldConEx(Connection_CB_t *cb, void *info);
 
 #endif  /* __PSSLURM_COMM */

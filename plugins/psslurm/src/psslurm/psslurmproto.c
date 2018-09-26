@@ -378,6 +378,83 @@ static bool extractStepPackInfos(Step_t *step)
     return true;
 }
 
+static int testSlurmVersion(uint32_t version, uint32_t cmd)
+{
+    if (cmd == REQUEST_PING) return 1;
+
+    if (version < SLURM_MIN_PROTO_VERSION ||
+	version > SLURM_MAX_PROTO_VERSION) {
+	mlog("%s: slurm protocol version %u not supported, cmd(%i) %s\n",
+	     __func__, version, cmd, msgType2String(cmd));
+	return 0;
+    }
+    return 1;
+}
+
+/**
+ * @brief Handle a job info response from slurmctld
+ *
+ * @param msg The response message to handle
+ *
+ * @param info Additional info
+ *
+ * @return Always return 0
+ */
+static int handleJobInfoResp(Slurm_Msg_t *msg, void *info)
+{
+    char **ptr = &msg->ptr;
+    uint32_t count;
+    time_t last;
+
+    if (msg->head.type == RESPONSE_SLURM_RC) {
+	uint32_t rc;
+	getUint32(ptr, &rc);
+	flog("got error return code %u\n", rc);
+	return 0;
+    }
+
+    if (msg->head.type != RESPONSE_JOB_INFO) {
+	flog("unexpected message type %s(%i)\n", msgType2String(msg->head.type),
+	     msg->head.type);
+	return 0;
+    }
+
+    /* number of job records */
+    getUint32(ptr, &count);
+    /* last update */
+    getTime(ptr, &last);
+
+    flog("received count: %u time %zu\n", count, last);
+    /* skip */
+    uint32_t tmp;
+    getUint32(ptr, &tmp);
+    getUint32(ptr, &tmp);
+    getStringM(ptr);
+    getUint32(ptr, &tmp);
+    getUint32(ptr, &tmp);
+    getUint32(ptr, &tmp);
+
+    uint32_t jobid, userid;
+    getUint32(ptr, &jobid);
+    getUint32(ptr, &userid);
+
+    flog("jobid: %u userid %u\n", jobid, userid);
+
+    return 0;
+}
+
+int requestJobInfo(uint32_t jobid)
+{
+    uint16_t flags = 16;
+
+    PS_SendDB_t msg = { .bufUsed = 0, .useFrag = false };
+
+    addUint32ToMsg(jobid, &msg);
+    addUint16ToMsg(flags, &msg);
+
+    return sendSlurmReq(REQUEST_JOB_INFO_SINGLE, &msg, &handleJobInfoResp, NULL);
+}
+
 static void handleLaunchTasks(Slurm_Msg_t *sMsg)
 {
     Alloc_t *alloc = NULL;
@@ -464,9 +541,10 @@ static void handleLaunchTasks(Slurm_Msg_t *sMsg)
     }
 
     mlog("%s: step %u:%u user '%s' np %u nodes '%s' N %u tpp %u pack size %u"
-	 " leader %i exe '%s'\n", __func__, step->jobid, step->stepid,
-	 step->username, step->np, step->slurmHosts, step->nrOfNodes, step->tpp,
-	 step->packSize, step->leader, step->argv[0]);
+	 " leader %i exe '%s' packJobid %u\n", __func__, step->jobid,
+	 step->stepid, step->username, step->np, step->slurmHosts,
+	 step->nrOfNodes, step->tpp, step->packSize, step->leader,
+	 step->argv[0], step->packJobid == NO_VAL ? 0 : step->packJobid);
 
     /* add allocation */
     id = step->packJobid != NO_VAL ? step->packJobid : step->jobid;
@@ -1599,20 +1677,20 @@ static void doTerminateAlloc(Slurm_Msg_t *sMsg, Alloc_t *alloc)
 	case A_RUNNING:
 	    if ((pcount = signalAlloc(alloc->id, signal, sMsg->head.uid)) > 0) {
 		sendSlurmRC(sMsg, SLURM_SUCCESS);
-		flog("waiting for %i processes to complete (%i/%i)\n", pcount,
-		     alloc->terminate, maxTermReq);
+		flog("waiting for %i processes to complete, alloc %u (%i/%i)\n",
+		     pcount, alloc->id, alloc->terminate, maxTermReq);
 		return;
 	    }
 	    break;
 	case A_PROLOGUE:
 	    sendSlurmRC(sMsg, SLURM_SUCCESS);
-	    mlog("%s: waiting for prologue to finish (%i/%i)\n", __func__,
-		 alloc->terminate, maxTermReq);
+	    flog("waiting for prologue to finish, alloc %u (%i/%i)\n",
+		 alloc->id, alloc->terminate, maxTermReq);
 	    return;
 	case A_EPILOGUE:
 	    sendSlurmRC(sMsg, SLURM_SUCCESS);
-	    mlog("%s: waiting for epilogue to finish (%i/%i)\n", __func__,
-		 alloc->terminate, maxTermReq);
+	    flog("waiting for epilogue to finish, alloc %u (%i/%i)\n",
+		 alloc->id, alloc->terminate, maxTermReq);
 	    return;
 	case A_EPILOGUE_FINISH:
 	case A_EXIT:
@@ -1860,7 +1938,7 @@ static void handleRespMessageComposite(Slurm_Msg_t *sMsg)
     sendSlurmRC(sMsg, ESLURM_NOT_SUPPORTED);
 }
 
-int getSlurmMsgHeader(Slurm_Msg_t *sMsg, Msg_Forward_t *fw)
+static void getSlurmMsgHeader(Slurm_Msg_t *sMsg, Msg_Forward_t *fw)
 {
     char **ptr = &sMsg->ptr;
     uint16_t i;
@@ -1903,21 +1981,111 @@ int getSlurmMsgHeader(Slurm_Msg_t *sMsg, Msg_Forward_t *fw)
 	     fw->head.nodeList, fw->head.timeout, sMsg->head.treeWidth);
     }
 #endif
-
-    return 1;
 }
 
-static int testSlurmVersion(uint32_t version, uint32_t cmd)
+/**
+ * @brief Forward a Slurm message using RDP
+ *
+ * @param sMsg The Slurm message to forward
+ *
+ * @param fw The forward header of the connection
+ *
+ * @return Returns true on success otherwise false
+ */
+static bool slurmTreeForward(Slurm_Msg_t *sMsg, Msg_Forward_t *fw)
 {
-    if (cmd == REQUEST_PING) return 1;
+    PSnodes_ID_t *nodes = NULL;
+    uint32_t i, nrOfNodes, localId;
+    bool verbose = logger_getMask(psslurmlogger) & PSSLURM_LOG_FWD;
+    struct timeval time_start, time_now, time_diff;
 
-    if (version < SLURM_MIN_PROTO_VERSION ||
-	version > SLURM_MAX_PROTO_VERSION) {
-	mlog("%s: slurm protocol version %u not supported, cmd(%i) %s\n",
-	     __func__, version, cmd, msgType2String(cmd));
-	return 0;
+    /* no forwarding active for this message? */
+    if (!sMsg->head.forward) return true;
+
+    /* convert nodelist to PS nodes */
+    if (!getNodesFromSlurmHL(fw->head.nodeList, &nrOfNodes, &nodes, &localId)) {
+	mlog("%s: resolving PS nodeIDs from %s failed\n", __func__,
+	     fw->head.nodeList);
+	return false;
     }
-    return 1;
+
+    /* save forward information in connection, has to be
+       done *before* sending any messages  */
+    fw->nodes = nodes;
+    fw->nodesCount = nrOfNodes;
+    fw->head.forward = sMsg->head.forward;
+    fw->head.returnList = sMsg->head.returnList;
+    fw->head.fwSize = sMsg->head.forward;
+    fw->head.fwdata =
+	umalloc(sMsg->head.forward * sizeof(Slurm_Forward_Data_t));
+
+    for (i=0; i<sMsg->head.forward; i++) {
+	fw->head.fwdata[i].error = SLURM_COMMUNICATIONS_CONNECTION_ERROR;
+	fw->head.fwdata[i].type = RESPONSE_FORWARD_FAILED;
+	fw->head.fwdata[i].node = -1;
+	fw->head.fwdata[i].body.buf = NULL;
+	fw->head.fwdata[i].body.bufUsed = 0;
+    }
+
+    if (verbose) {
+	gettimeofday(&time_start, NULL);
+
+	mlog("%s: forward type %s count %u nodelist %s timeout %u "
+	     "at %.4f\n", __func__, msgType2String(sMsg->head.type),
+	     sMsg->head.forward, fw->head.nodeList, fw->head.timeout,
+	     time_start.tv_sec + 1e-6 * time_start.tv_usec);
+    }
+
+    /* use RDP to send the message to other nodes */
+    int ret = forwardSlurmMsg(sMsg, nrOfNodes, nodes);
+
+    if (verbose) {
+	gettimeofday(&time_now, NULL);
+	timersub(&time_now, &time_start, &time_diff);
+	mlog("%s: forward type %s of size %u took %.4f seconds\n", __func__,
+	     msgType2String(sMsg->head.type), ret,
+	     time_diff.tv_sec + 1e-6 * time_diff.tv_usec);
+
+    }
+
+    return true;
+}
+
+void processSlurmMsg(Slurm_Msg_t *sMsg, Msg_Forward_t *fw, Connection_CB_t *cb,
+		     void *info)
+{
+    /* extract Slurm message header */
+    getSlurmMsgHeader(sMsg, fw);
+
+    /* forward the message using RDP */
+    if (fw && !slurmTreeForward(sMsg, fw)) {
+	sendSlurmRC(sMsg, SLURM_ERROR);
+	return;
+    }
+
+    mdbg(PSSLURM_LOG_PROTO, "%s: msg(%i): %s, version %u addr %u.%u.%u.%u"
+	    " port %u\n", __func__, sMsg->head.type,
+	    msgType2String(sMsg->head.type), sMsg->head.version,
+	    (sMsg->head.addr & 0x000000ff),
+	    (sMsg->head.addr & 0x0000ff00) >> 8,
+	    (sMsg->head.addr & 0x00ff0000) >> 16,
+	    (sMsg->head.addr & 0xff000000) >> 24,
+	    sMsg->head.port);
+
+    /* verify protocol version */
+    if (!testSlurmVersion(sMsg->head.version, sMsg->head.type)) {
+	sendSlurmRC(sMsg, SLURM_PROTOCOL_VERSION_ERROR);
+	return;
+    }
+
+    /* verify munge authentication */
+    if (!extractSlurmAuth(sMsg)) {
+	sendSlurmRC(sMsg, ESLURM_AUTH_CRED_INVALID);
+	return;
+    }
+
+    /* let the callback handle the message */
+    cb(sMsg, info);
 }
 
 static void handleNodeRegStat(Slurm_Msg_t *sMsg)
@@ -1951,29 +2119,9 @@ typedef struct {
 
 static LIST_HEAD(msgList);
 
-
-int handleSlurmdMsg(Slurm_Msg_t *sMsg)
+int handleSlurmdMsg(Slurm_Msg_t *sMsg, void *info)
 {
     struct timeval time_start, time_now, time_diff;
-
-    mdbg(PSSLURM_LOG_PROTO, "%s: msg(%i): %s, version %u addr %u.%u.%u.%u"
-	 " port %u\n", __func__, sMsg->head.type,
-	 msgType2String(sMsg->head.type), sMsg->head.version,
-	 (sMsg->head.addr & 0x000000ff),
-	 (sMsg->head.addr & 0x0000ff00) >> 8,
-	 (sMsg->head.addr & 0x00ff0000) >> 16,
-	 (sMsg->head.addr & 0xff000000) >> 24,
-	 sMsg->head.port);
-
-    if (!testSlurmVersion(sMsg->head.version, sMsg->head.type)) {
-	sendSlurmRC(sMsg, SLURM_PROTOCOL_VERSION_ERROR);
-	return 0;
-    }
-
-    if (!extractSlurmAuth(sMsg)) {
-	sendSlurmRC(sMsg, SLURM_ERROR);
-	return 0;
-    }
 
     list_t *h;
     list_for_each (h, &msgList) {

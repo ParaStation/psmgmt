@@ -49,6 +49,7 @@ typedef struct {
     list_t next;	    /**< used to put into connection-list */
     PS_DataBuffer_t data;   /**< buffer for received message parts */
     Connection_CB_t *cb;    /**< function to handle received messages */
+    void *info;		    /**< additional info passed to callback */
     int sock;		    /**< socket of the connection */
     time_t recvTime;	    /**< time first complete message was received */
     bool redSize;	    /**< true if the message size was red */
@@ -132,9 +133,12 @@ static bool resetConnection(int socket)
  *
  * @param cb The function to call to handle received messages
  *
+ * @param info Pointer to additional information passed to @a
+ * cb
+ *
  * @return Returns a pointer to the added connection
  */
-static Connection_t *addConnection(int socket, Connection_CB_t *cb)
+static Connection_t *addConnection(int socket, Connection_CB_t *cb, void *info)
 {
     Connection_t *con = findConnection(socket);
 
@@ -150,6 +154,7 @@ static Connection_t *addConnection(int socket, Connection_CB_t *cb)
 
     con->sock = socket;
     con->cb = cb;
+    con->info = info;
     initSlurmMsgHead(&con->fw.head);
 
     list_add_tail(&con->next, &connectionList);
@@ -310,74 +315,6 @@ static bool getSockInfo(int socket, uint32_t *addr, uint16_t *port)
 }
 
 /**
- * @brief Forward a Slurm message using RDP
- *
- * @param sMsg The Slurm message to forward
- *
- * @param fw The forward header of the connection
- *
- * @return Returns true on success otherwise false
- */
-static bool slurmTreeForward(Slurm_Msg_t *sMsg, Msg_Forward_t *fw)
-{
-    PSnodes_ID_t *nodes = NULL;
-    uint32_t i, nrOfNodes, localId;
-    bool verbose = logger_getMask(psslurmlogger) & PSSLURM_LOG_FWD;
-    struct timeval time_start, time_now, time_diff;
-
-    /* no forwarding active for this message? */
-    if (!sMsg->head.forward) return true;
-
-    /* convert nodelist to PS nodes */
-    if (!getNodesFromSlurmHL(fw->head.nodeList, &nrOfNodes, &nodes, &localId)) {
-	mlog("%s: resolving PS nodeIDs from %s failed\n", __func__,
-	     fw->head.nodeList);
-	return false;
-    }
-
-    /* save forward information in connection, has to be
-       done *before* sending any messages  */
-    fw->nodes = nodes;
-    fw->nodesCount = nrOfNodes;
-    fw->head.forward = sMsg->head.forward;
-    fw->head.returnList = sMsg->head.returnList;
-    fw->head.fwSize = sMsg->head.forward;
-    fw->head.fwdata =
-	umalloc(sMsg->head.forward * sizeof(Slurm_Forward_Data_t));
-
-    for (i=0; i<sMsg->head.forward; i++) {
-	fw->head.fwdata[i].error = SLURM_COMMUNICATIONS_CONNECTION_ERROR;
-	fw->head.fwdata[i].type = RESPONSE_FORWARD_FAILED;
-	fw->head.fwdata[i].node = -1;
-	fw->head.fwdata[i].body.buf = NULL;
-	fw->head.fwdata[i].body.bufUsed = 0;
-    }
-
-    if (verbose) {
-	gettimeofday(&time_start, NULL);
-
-	mlog("%s: forward type %s count %u nodelist %s timeout %u "
-	     "at %.4f\n", __func__, msgType2String(sMsg->head.type),
-	     sMsg->head.forward, fw->head.nodeList, fw->head.timeout,
-	     time_start.tv_sec + 1e-6 * time_start.tv_usec);
-    }
-
-    /* use RDP to send the message to other nodes */
-    int ret = forwardSlurmMsg(sMsg, nrOfNodes, nodes);
-
-    if (verbose) {
-	gettimeofday(&time_now, NULL);
-	timersub(&time_now, &time_start, &time_diff);
-	mlog("%s: forward type %s of size %u took %.4f seconds\n", __func__,
-	     msgType2String(sMsg->head.type), ret,
-	     time_diff.tv_sec + 1e-6 * time_diff.tv_usec);
-
-    }
-
-    return true;
-}
-
-/**
  * @brief Read a Slurm message
  *
  * Read a Slurm message from the provided socket. In the first step the size of
@@ -518,15 +455,7 @@ CALLBACK:
 	/* overwrite empty addr informations */
 	getSockInfo(sock, &sMsg.head.addr, &sMsg.head.port);
 
-	/* extract slurm message header */
-	getSlurmMsgHeader(&sMsg, &con->fw);
-
-	/* forward the message using RDP */
-	if (slurmTreeForward(&sMsg, &con->fw)) {
-
-	    /* let the callback handle the message */
-	    con->cb(&sMsg);
-	}
+	processSlurmMsg(&sMsg, &con->fw, con->cb, con->info);
     }
     resetConnection(sock);
 
@@ -548,12 +477,15 @@ CALLBACK:
  * @param sock The socket to register
  *
  * @param cb The function to call to handle received messages
+ *
+ * @param info Pointer to additional information passed to @a
+ * cb
  */
-static void registerSlurmSocket(int sock, Connection_CB_t *cb)
+static void registerSlurmSocket(int sock, Connection_CB_t *cb, void *info)
 {
     Connection_t *con;
 
-    con = addConnection(sock, cb);
+    con = addConnection(sock, cb, info);
 
     if (Selector_register(sock, readSlurmMsg, con) == -1) {
 	mlog("%s: register socket %i failed\n", __func__, sock);
@@ -568,18 +500,22 @@ static void registerSlurmSocket(int sock, Connection_CB_t *cb)
  *
  * @param sMsg The reply message to handle
  *
+ * @param info Additional info currently unused
+ *
  * @return Always returns 0.
  */
-static int handleSlurmctldReply(Slurm_Msg_t *sMsg)
+static int handleSlurmctldReply(Slurm_Msg_t *sMsg, void *info)
 {
-    char **ptr;
+    char **ptr = &sMsg->ptr;
     uint32_t rc;
 
-    if (!extractSlurmAuth(sMsg)) return 0;
+    if (sMsg->head.type != RESPONSE_SLURM_RC) {
+	flog("unexpected slurmctld reply %s(%i)\n",
+	     msgType2String(sMsg->head.type), sMsg->head.type);
+	return 0;
+    }
 
-    ptr = &sMsg->ptr;
     getUint32(ptr, &rc);
-
     if (rc != SLURM_SUCCESS) {
 	mdbg(PSSLURM_LOG_PROTO, "%s: error: msg %s rc %u sock %i\n",
 		__func__, msgType2String(sMsg->head.type), rc, sMsg->sock);
@@ -670,7 +606,12 @@ TCP_RECONNECT:
     return sock;
 }
 
-int connect2Slurmctld(void)
+int openSlurmctldCon(void)
+{
+    return openSlurmctldConEx(handleSlurmctldReply, NULL);
+}
+
+int openSlurmctldConEx(Connection_CB_t *cb, void *info)
 {
     int sock = -1, len;
     char *addr, *port;
@@ -711,7 +652,7 @@ int connect2Slurmctld(void)
     mdbg(PSSLURM_LOG_IO | PSSLURM_LOG_IO_VERB,
 	 "%s: connect to %s socket %i\n", __func__, addr, sock);
 
-    registerSlurmSocket(sock, handleSlurmctldReply);
+    registerSlurmSocket(sock, cb, info);
 
     return sock;
 }
@@ -776,7 +717,7 @@ int __sendSlurmMsgEx(int sock, Slurm_Msg_Header_t *head, PS_SendDB_t *body,
 
     /* connect to slurmctld */
     if (sock < 0) {
-	sock = connect2Slurmctld();
+	sock = openSlurmctldCon();
 	if (sock < 0) {
 	    freeSlurmAuth(auth);
 	    if (needMsgResend(head->type)) {
@@ -820,6 +761,20 @@ int __sendSlurmMsgEx(int sock, Slurm_Msg_Header_t *head, PS_SendDB_t *body,
     ufree(payload.buf);
 
     return ret;
+}
+
+int __sendSlurmReq(slurm_msg_type_t type, PS_SendDB_t *body,
+		   Connection_CB_t *cb, void *info, const char *caller,
+		   const int line)
+{
+    int sock = openSlurmctldConEx(cb, info);
+
+    if (sock < 0) {
+	flog("connection to slurmctld failed\n");
+	return -1;
+    }
+
+    return __sendSlurmMsg(sock, type, body, caller, line);
 }
 
 char *__getBitString(char **ptr, const char *func, const int line)
@@ -927,7 +882,7 @@ static int acceptSlurmClient(int socket, void *data)
     mdbg(PSSLURM_LOG_COMM, "%s: from %s:%u socket:%i\n", __func__,
 	 inet_ntoa(SAddr.sin_addr), ntohs(SAddr.sin_port), newSock);
 
-    registerSlurmSocket(newSock, handleSlurmdMsg);
+    registerSlurmSocket(newSock, handleSlurmdMsg, NULL);
 
     return 0;
 }
