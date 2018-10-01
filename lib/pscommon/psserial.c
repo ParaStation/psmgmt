@@ -787,6 +787,7 @@ int __doWriteEx(int fd, void *buffer, size_t toWrite, size_t *written,
 
 	    PSC_warn(-1, eno, "%s(%s): write(%d)", __func__, func, fd);
 	    lastLog = now;
+	    errno = eno;
 	    return -1;
 	} else if (!ret) {
 	    return ret;
@@ -830,6 +831,7 @@ int __doReadExt(int fd, void *buffer, size_t toRead, size_t *numRead,
 
 	    PSC_warn(-1, eno, "%s(%s): read(%d)", __func__, func, fd);
 	    lastLog = now;
+	    errno = eno;
 	    return -1;
 	} else if (!num) {
 	    return num;

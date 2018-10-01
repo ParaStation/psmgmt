@@ -338,6 +338,7 @@ int resendSlurmMsg(int sock, void *msg)
     packSlurmMsg(&data, &savedMsg->head, &savedMsg->body, savedMsg->auth);
 
     ret = sendDataBuffer(sock, &data, savedMsg->offset, &written);
+    int eno = errno;
 
     savedMsg->sendRetry++;
     savedMsg->offset += written;
@@ -356,8 +357,8 @@ int resendSlurmMsg(int sock, void *msg)
 	}
 
 	if (!written) {
-	    if (errno == EAGAIN || errno == EINTR) return 0;
-	    mwarn(errno, "%s: error writing message %s: ",
+	    if (eno == EAGAIN || eno == EINTR) return 0;
+	    mwarn(eno, "%s: error writing message %s: ",
 		 __func__, msgType2String(savedMsg->head.type));
 	    goto CLEANUP;
 	}

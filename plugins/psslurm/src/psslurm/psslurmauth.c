@@ -266,6 +266,7 @@ bool extractBCastCred(Slurm_Msg_t *sMsg, BCast_t *bcast)
 {
     char *credStart = sMsg->ptr, *sigBuf = NULL;
     BCast_Cred_t cred;
+    int eno;
 
     errno = 0;
     if (!unpackBCastCred(sMsg, &cred)) {
@@ -333,8 +334,10 @@ bool extractBCastCred(Slurm_Msg_t *sMsg, BCast_t *bcast)
     return true;
 
 ERROR:
+    eno = errno;
     freeBCastCred(&cred);
     free(sigBuf);
+    errno = eno;
     return false;
 }
 

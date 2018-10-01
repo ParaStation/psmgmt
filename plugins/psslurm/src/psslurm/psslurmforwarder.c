@@ -305,12 +305,16 @@ static void execBatchJob(Forwarder_Data_t *fwdata, int rerun)
     /* do exec */
     closelog();
     execve(job->jobscript, job->argv, job->env.vars);
+    int err = errno;
 
     /* execve failed */
     fprintf(stderr, "%s: execve %s failed: %s\n", __func__, job->argv[0],
-	    strerror(errno));
-    mwarn(errno, "%s: execve %s failed: ", __func__, job->argv[0]);
-    exit(errno);
+	    strerror(err));
+    openlog("psid", LOG_PID|LOG_CONS, LOG_DAEMON);
+    snprintf(buf, sizeof(buf), "psslurm-job:%u", job->jobid);
+    initLogger(buf, NULL);
+    mwarn(err, "%s: execve %s failed: ", __func__, job->argv[0]);
+    exit(err);
 }
 
 /**
@@ -477,9 +481,9 @@ int handleForwarderClientStatus(void * data)
 	mlog("%s: starting task epilogue '%s' for rank %u of job %u\n",
 	    __func__, taskEpilogue, task->rank, step->jobid);
 
-	execvp (argv[0], argv);
-	mlog("%s: exec for task epilogue '%s' failed for rank %u of job"
-		" %u\n", __func__, taskEpilogue, task->rank, step->jobid);
+	execvp(argv[0], argv);
+	mwarn(errno, "%s: exec for task epilogue '%s' failed for rank %u of job"
+	      " %u", __func__, taskEpilogue, task->rank, step->jobid);
 	exit(-1);
     }
 
@@ -863,12 +867,16 @@ static void execJobStep(Forwarder_Data_t *fwdata, int rerun)
     /* start mpiexec to spawn the parallel job */
     closelog();
     execve(argV.strings[0], argV.strings, step->env.vars);
+    int err = errno;
 
     /* execve failed */
     fprintf(stderr, "%s: execve %s failed: %s\n", __func__, argV.strings[0],
-	    strerror(errno));
-    mwarn(errno, "%s: execve %s failed: ", __func__, argV.strings[0]);
-    exit(errno);
+	    strerror(err));
+    openlog("psid", LOG_PID|LOG_CONS, LOG_DAEMON);
+    snprintf(buf, sizeof(buf), "psslurm-step:%u.%u", step->jobid, step->stepid);
+    initLogger(buf, NULL);
+    mwarn(err, "%s: execve %s failed: ", __func__, argV.strings[0]);
+    exit(err);
 }
 
 static int stepForwarderInit(Forwarder_Data_t *fwdata)
@@ -1040,12 +1048,12 @@ bool execUserJob(Job_t *job)
 static void execBCast(Forwarder_Data_t *fwdata, int rerun)
 {
     BCast_t *bcast = fwdata->userData;
-    int flags = 0, fd, left, ret;
+    int flags = 0, fd, left, ret, eno;
     struct utimbuf times;
     char *ptr;
 
     switchUser(bcast->username, bcast->uid, bcast->gid, NULL);
-    errno = 0;
+    errno = eno = 0;
 
     /* open the file */
     flags = O_WRONLY;
@@ -1061,8 +1069,9 @@ static void execBCast(Forwarder_Data_t *fwdata, int rerun)
     }
 
     if ((fd = open(bcast->fileName, flags, 0700)) == -1) {
-	mwarn(errno, "%s: open '%s' failed :", __func__, bcast->fileName);
-	exit(errno);
+	eno = errno;
+	mwarn(eno, "%s: open '%s' failed :", __func__, bcast->fileName);
+	exit(eno);
     }
 
     /* write the file */
@@ -1070,9 +1079,10 @@ static void execBCast(Forwarder_Data_t *fwdata, int rerun)
     ptr = bcast->block;
     while (left > 0) {
 	if ((ret = write(fd, ptr, left)) == -1) {
-	    if (errno == EINTR || errno == EAGAIN) continue;
-	    mwarn(errno, "%s: write '%s' failed :", __func__, bcast->fileName);
-	    exit(errno);
+	    eno = errno;
+	    if (eno == EINTR || eno == EAGAIN) continue;
+	    mwarn(eno, "%s: write '%s' failed :", __func__, bcast->fileName);
+	    exit(eno);
 	}
 	left -= ret;
 	ptr += ret;
@@ -1081,20 +1091,23 @@ static void execBCast(Forwarder_Data_t *fwdata, int rerun)
     /* set permissions */
     if (bcast->lastBlock) {
 	if ((fchmod(fd, (bcast->modes & 0700))) == -1) {
-	    mwarn(errno, "%s: chmod '%s' failed :", __func__, bcast->fileName);
-	    exit(errno);
+	    eno = errno;
+	    mwarn(eno, "%s: chmod '%s' failed :", __func__, bcast->fileName);
+	    exit(eno);
 	}
 	if ((fchown(fd, bcast->uid, bcast->gid)) == -1) {
-	    mwarn(errno, "%s: chown '%s' failed :", __func__, bcast->fileName);
-	    exit(errno);
+	    eno = errno;
+	    mwarn(eno, "%s: chown '%s' failed :", __func__, bcast->fileName);
+	    exit(eno);
 	}
 	if (bcast->atime) {
 	    times.actime  = bcast->atime;
 	    times.modtime = bcast->mtime;
 	    if (utime(bcast->fileName, &times)) {
-		mwarn(errno, "%s: utime '%s' failed :", __func__,
+		eno = errno;
+		mwarn(eno, "%s: utime '%s' failed :", __func__,
 			bcast->fileName);
-		exit(errno);
+		exit(eno);
 	    }
 	}
     }

@@ -1050,12 +1050,12 @@ static void handleFileBCast(Slurm_Msg_t *sMsg)
 
     /* unpack credential */
     if (!extractBCastCred(sMsg, bcast)) {
-	mlog("%s: extracting bcast credential failed\n", __func__);
 	if (!errno) {
 	    sendSlurmRC(sMsg, ESLURM_AUTH_CRED_INVALID);
 	} else {
 	    sendSlurmRC(sMsg, errno);
 	}
+	mlog("%s: extracting bcast credential failed\n", __func__);
 	goto CLEANUP;
     }
 

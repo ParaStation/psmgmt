@@ -363,9 +363,10 @@ static int readSlurmMsg(int sock, void *param)
 	ptr = dBuf->buf + dBuf->bufUsed;
 	toRead = dBuf->bufSize - dBuf->bufUsed;
 	ret = doReadExtP(sock, ptr, toRead, &size);
+	int eno = errno;
 
 	if (ret < 0) {
-	    if (size > 0 || errno == EAGAIN || errno == EINTR) {
+	    if (size > 0 || eno == EAGAIN || eno == EINTR) {
 		/* not all data arrived yet, lets try again later */
 		dBuf->bufUsed += size;
 		mdbg(PSSLURM_LOG_COMM, "%s: we try later for sock %u "
@@ -373,7 +374,7 @@ static int readSlurmMsg(int sock, void *param)
 		return 0;
 	    }
 	    /* read error */
-	    mwarn(errno, "%s: doReadExtP(%d, toRead %zd, size %zd)", __func__,
+	    mwarn(eno, "%s: doReadExtP(%d, toRead %zd, size %zd)", __func__,
 		  sock, toRead, size);
 	    error = true;
 	    goto CALLBACK;
@@ -409,9 +410,10 @@ static int readSlurmMsg(int sock, void *param)
     ptr = dBuf->buf + dBuf->bufUsed;
     toRead = dBuf->bufSize - dBuf->bufUsed;
     ret = doReadExtP(sock, ptr, toRead, &size);
+    int eno = errno;
 
     if (ret < 0) {
-	if (size > 0 || errno == EAGAIN || errno == EINTR) {
+	if (size > 0 || eno == EAGAIN || eno == EINTR) {
 	    /* not all data arrived yet, lets try again later */
 	    dBuf->bufUsed += size;
 	    mdbg(PSSLURM_LOG_COMM, "%s: we try later for sock %u read %zu\n",
@@ -419,7 +421,7 @@ static int readSlurmMsg(int sock, void *param)
 	    return 0;
 	}
 	/* read error */
-	mwarn(errno, "%s: doReadExtP(%d, toRead %zd, size %zd)", __func__, sock,
+	mwarn(eno, "%s: doReadExtP(%d, toRead %zd, size %zd)", __func__, sock,
 	      toRead, size);
 	error = true;
 	goto CALLBACK;
@@ -580,7 +582,7 @@ TCP_RECONNECT:
 	    err = errno;
 	    if (errno != EINTR) {
 		connectFailed = true;
-		mwarn(errno, "%s: connect(addr %s port %s)", __func__,
+		mwarn(err, "%s: connect(addr %s port %s)", __func__,
 		      addr, port);
 		break;
 	    }
@@ -668,10 +670,12 @@ int __sendDataBuffer(int sock, PS_SendDB_t *data, size_t offset,
     towrite = data->bufUsed - offset;
 
     ret = doWriteExP(sock, ptr, towrite, written);
+    int eno = errno;
     if (ret == -1) {
 	mlog("%s: writing message of length %i failed, ret %i written %zu "
 	     "caller %s " "line %i\n", __func__, data->bufUsed, ret, *written,
 	     caller, line);
+	errno = eno;
 	return -1;
     }
     mdbg(PSSLURM_LOG_COMM, "%s: wrote data: %zu offset: %zu for caller %s "
@@ -1327,7 +1331,7 @@ void srunEnableIO(Step_t *step)
 int srunSendIO(uint16_t type, uint16_t taskid, Step_t *step, char *buf,
 		uint32_t bufLen)
 {
-    int ret, error;
+    int ret, error = 0;
     Slurm_IO_Header_t ioh = {
 	.type = type,
 	.gtid = taskid,
@@ -1347,7 +1351,7 @@ int srunSendIO(uint16_t type, uint16_t taskid, Step_t *step, char *buf,
 		break;
 	}
     }
-
+    errno = error;
     return ret;
 }
 
