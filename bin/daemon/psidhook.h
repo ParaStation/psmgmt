@@ -132,6 +132,9 @@ typedef enum {
 				executed by the pelogue plugin can be inspected.
 				Used by the psslurm plugin. Arg is pointer to
 				PElogueChild_t */
+    PSIDHOOK_PELOGUE_RES,     /**< Hook for requesting additional resources, arg
+				is a pointer to PElogueResource_t. Used by the
+				psgw plugin */
     PSIDHOOK_FRWRD_DSOCK,     /**< In forwarder's init() function, arg is a
 				pointer to the daemon socket. */
     PSIDHOOK_JAIL_CHILD,      /**< Jail child into cgroup, arg points to pid */
