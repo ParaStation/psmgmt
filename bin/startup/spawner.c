@@ -957,11 +957,11 @@ static void setupGDB(Conf_t *conf)
 	int newArgc = 0, j;
 	char **newArgv = umalloc((exec->argc + 5 + 1) * sizeof(*newArgv));
 
-	newArgv[newArgc++] = GDB_COMMAND_EXE;
-	newArgv[newArgc++] = GDB_COMMAND_SILENT;
-	newArgv[newArgc++] = GDB_COMMAND_OPT;
-	newArgv[newArgc++] = GDB_COMMAND_FILE;
-	if (!conf->gdb_noargs) newArgv[newArgc++] = GDB_COMMAND_ARGS;
+	newArgv[newArgc++] = strdup(GDB_COMMAND_EXE);
+	newArgv[newArgc++] = strdup(GDB_COMMAND_SILENT);
+	newArgv[newArgc++] = strdup(GDB_COMMAND_OPT);
+	newArgv[newArgc++] = strdup(GDB_COMMAND_FILE);
+	if (!conf->gdb_noargs) newArgv[newArgc++] = strdup(GDB_COMMAND_ARGS);
 
 	for (j=0; j < exec->argc; j++) newArgv[newArgc++] = exec->argv[j];
 	newArgv[newArgc] = NULL;
@@ -991,15 +991,15 @@ static void setupVALGRIND(Conf_t *conf)
 	int newArgc = 0, j;
 	char **newArgv = umalloc((exec->argc + 3 + 1) * sizeof(*newArgv));
 
-	newArgv[newArgc++] = VALGRIND_COMMAND_EXE;
-	newArgv[newArgc++] = VALGRIND_COMMAND_SILENT;
+	newArgv[newArgc++] = strdup(VALGRIND_COMMAND_EXE);
+	newArgv[newArgc++] = strdup(VALGRIND_COMMAND_SILENT);
 	if (conf->callgrind) {
 	    /* Use Callgrind Tool */
-	    newArgv[newArgc++] = VALGRIND_COMMAND_CALLGRIND;
+	    newArgv[newArgc++] = strdup(VALGRIND_COMMAND_CALLGRIND);
 	} else {
 	     /* Memcheck Tool / leak-check=full? */
 	    if (conf->memcheck) {
-		newArgv[newArgc++] = VALGRIND_COMMAND_MEMCHECK;
+		newArgv[newArgc++] = strdup(VALGRIND_COMMAND_MEMCHECK);
 	    }
 	}
 
@@ -1036,7 +1036,7 @@ static void setupCompat(Conf_t *conf)
 	newArgv[newArgc++] = exec->argv[i];
     }
 
-    newArgv[newArgc++] = "-np";
+    newArgv[newArgc++] = strdup("-np");
     newArgv[newArgc++] = strdup(cnp);
     newArgv[newArgc] = NULL;
 
