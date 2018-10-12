@@ -338,7 +338,7 @@ again:
 	    break;
 	default:
 	    PSID_log(-1, "%s: Unknown message type %s\n",
-		     __func__, PSDaemonP_printMsg(msg->type));
+		     __func__, PSDaemonP_printMsg(msg->header.type));
 	    ret = 0;
 	}
     }
