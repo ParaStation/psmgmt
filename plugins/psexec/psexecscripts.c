@@ -97,7 +97,8 @@ void clearScriptList(void)
 	if (script->pid) {
 	    kill(script->pid, SIGKILL);
 	    PSID_cancelCB(script->pid);
-	    if (script->initiator != -1) sendScriptResult(script, -1);
+	    char output[] = "";
+	    if (script->initiator != -1) sendScriptResult(script, -1, output);
 	}
 	doDeleteScript(script);
     }

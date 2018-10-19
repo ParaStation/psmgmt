@@ -87,7 +87,7 @@ plugin_dep_t dependencies[] = {
     { .name = "psaccount", .version = 25 },
     { .name = "pelogue", .version = 7 },
     { .name = "pspam", .version = 3 },
-    { .name = "psexec", .version = 1 },
+    { .name = "psexec", .version = 2 },
     { .name = "pspmi", .version = 4 },
     { .name = NULL, .version = 0 } };
 

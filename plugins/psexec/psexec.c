@@ -19,7 +19,7 @@
 
 /** psid plugin requirements */
 char name[] = "psexec";
-int version = 1;
+int version = 2;
 int requiredAPI = 109;
 plugin_dep_t dependencies[] = {
     { .name = NULL, .version = 0 } };

@@ -51,11 +51,15 @@ int startLocalScript(Script_t *script);
  *
  * @param script Description of script to provide the exit-code for
  *
+ * @param res Exit code of the script
+ *
+ * @param output Stdout/stderr of the script
+ *
  * @return If an initiator was found and a message was sent
  * successfully, the total number of bytes sent to the destination
  * node is returned. Or -1 otherwise.
  */
-int sendScriptResult(Script_t *script, int32_t res);
+int sendScriptResult(Script_t *script, int32_t res, char *output);
 
 /**
  * @brief Initialize communication layer

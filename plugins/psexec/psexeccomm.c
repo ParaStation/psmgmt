@@ -37,7 +37,9 @@ typedef enum {
 
 #define SCRIPT_DIR LOCALSTATEDIR "/spool/parastation/scripts"
 
-int sendScriptResult(Script_t *script, int32_t res)
+#define MAX_SCRIPT_OUTPUT 1024
+
+int sendScriptResult(Script_t *script, int32_t res, char *output)
 {
     PS_SendDB_t data;
     int ret;
@@ -55,6 +57,8 @@ int sendScriptResult(Script_t *script, int32_t res)
     addUint16ToMsg(script->id, &data);
     /* add res */
     addInt32ToMsg(res, &data);
+    /* output */
+    addStringToMsg(output, &data);
 
     /* send the messages */
     ret = sendFragMsg(&data);
@@ -159,17 +163,18 @@ static bool execScript(Script_t *script, PSID_scriptCB_t cb)
 static int callbackLocalScript(int fd, PSID_scriptCBInfo_t *info)
 {
     Script_t *script = info ? info->info : NULL;
-    char errMsg[1024];
+    char output[MAX_SCRIPT_OUTPUT];
     int32_t exit;
     size_t errLen = 0;
 
-    getScriptCBData(fd, info, &exit, errMsg, sizeof(errMsg), &errLen);
+    getScriptCBData(fd, info, &exit, output, sizeof(output), &errLen);
     if (!script) return 0;
 
     mlog("%s: id %i uID %u exit %i\n", __func__, script->id, script->uID, exit);
 
     if (script->cb) {
-	int rc = script->cb(script->id, exit, PSC_getMyID(), script->uID);
+	int rc = script->cb(script->id, exit, PSC_getMyID(), script->uID,
+			    output);
 	if (rc == PSEXEC_CONT) return 0;
     }
     script->pid = 0;
@@ -183,7 +188,8 @@ int startLocalScript(Script_t *script)
     if (execScript(script, callbackLocalScript)) return 0;
 
     if (script->cb) {
-	int rc = script->cb(script->id, -2, PSC_getMyID(), script->uID);
+	char output[] = "";
+	int rc = script->cb(script->id, -2, PSC_getMyID(), script->uID, output);
 	if (rc == PSEXEC_CONT) return 0;
     }
     deleteScript(script);
@@ -194,18 +200,18 @@ int startLocalScript(Script_t *script)
 static int callbackScript(int fd, PSID_scriptCBInfo_t *info)
 {
     Script_t *script = info ? info->info : NULL;
-    char errMsg[1024];
+    char output[MAX_SCRIPT_OUTPUT];
     int32_t exit;
     size_t errLen = 0;
 
-    getScriptCBData(fd, info, &exit, errMsg, sizeof(errMsg), &errLen);
+    getScriptCBData(fd, info, &exit, output, sizeof(output), &errLen);
     if (!script) return 0;
 
     mlog("%s: initiator %s id %i exit %i\n", __func__,
 	 PSC_printTID(script->initiator), script->id, exit);
 
     /* send result */
-    sendScriptResult(script, exit);
+    sendScriptResult(script, exit, output);
 
     /* cleanup */
     script->pid = 0;
@@ -240,7 +246,8 @@ static void handleExecScript(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
     }
 
     if (!execScript(script, callbackScript)) {
-	sendScriptResult(script, -2);
+	char output[] = "";
+	sendScriptResult(script, -2, output);
 	deleteScript(script);
     }
 }
@@ -251,11 +258,14 @@ static void handleExecScriptRes(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
     uint16_t uID;
     int32_t res;
     Script_t *script;
+    char output[MAX_SCRIPT_OUTPUT];
 
     /* uID */
     getUint16(&ptr, &uID);
     /* exit code */
     getInt32(&ptr, &res);
+    /* output */
+    getString(&ptr, output, sizeof(output));
 
     /* callback */
     script = findScriptByuID(uID);
@@ -267,7 +277,7 @@ static void handleExecScriptRes(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
     mlog("%s: id %i uID %u res %i\n", __func__, script->id, uID, res);
     if (script->cb) {
 	PSnodes_ID_t remote = PSC_getID(msg->header.sender);
-	int rc = script->cb(script->id, res, remote, script->uID);
+	int rc = script->cb(script->id, res, remote, script->uID, output);
 	if (rc == PSEXEC_CONT) return;
     }
     deleteScript(script);
@@ -302,7 +312,8 @@ static void dropExecMsg(DDTypedBufferMsg_t *msg)
     mlog("%s: uID %u\n", __func__, uID);
     if (script->cb) {
 	PSnodes_ID_t remote = PSC_getID(msg->header.dest);
-	int rc = script->cb(script->id, -3, remote, script->uID);
+	char output[] = "";
+	int rc = script->cb(script->id, -3, remote, script->uID, output);
 	if (rc == PSEXEC_CONT) return;
     }
     deleteScript(script);

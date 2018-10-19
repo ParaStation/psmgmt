@@ -428,7 +428,7 @@ static int retryExecScript(PSnodes_ID_t remote, uint16_t scriptID)
 }
 
 static int callbackNodeOffline(uint32_t id, int32_t exit, PSnodes_ID_t remote,
-				uint16_t scriptID)
+			       uint16_t scriptID, char *output)
 {
     Job_t *job = findJobById(id);
     Alloc_t *alloc = findAlloc(id);
@@ -481,7 +481,8 @@ void setNodeOffline(env_t *env, uint32_t id, PSnodes_ID_t dest,
 }
 
 static int callbackRequeueBatchJob(uint32_t id, int32_t exit,
-					PSnodes_ID_t remote, uint16_t scriptID)
+				   PSnodes_ID_t remote, uint16_t scriptID,
+				   char *output)
 {
     if (!exit) {
 	mlog("%s: success for job %u\n", __func__, id);

@@ -40,13 +40,15 @@
  * re-executing the script via @ref psExecSendScriptStart() or @ref
  * psExecStartLocalScript().
  *
+ * @param output Stdout/Stderr of the script
+ *
  * @return If the callback has initiated an additional round of
  * execution for the given script, it shall return PSEXEC_CONT in
  * order to preserve the corresponding script information. Otherwise
  * the return value is ignored.
  */
 typedef int(psExec_Script_CB_t)(uint32_t id, int32_t res, PSnodes_ID_t dest,
-				uint16_t uid);
+				uint16_t uid, char *output);
 
 /**
  * @brief Request to execute a script
