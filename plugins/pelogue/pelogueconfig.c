@@ -143,8 +143,25 @@ static bool validateDirs(char *dir)
 
 static bool checkPluginConfig(Config_t *config)
 {
-    char *scriptDir = getConfValueC(config, "DIR_SCRIPTS");
+    char *opt = getConfValueC(config, "TIMEOUT_PROLOGUE");
+    if (!opt) {
+	mlog("%s: invalid prologue timeout\n", __func__);
+	return false;
+    }
 
+    opt = getConfValueC(config, "TIMEOUT_EPILOGUE");
+    if (!opt) {
+	mlog("%s: invalid epilogue timeout\n", __func__);
+	return false;
+    }
+
+    opt = getConfValueC(config, "TIMEOUT_PE_GRACE");
+    if (!opt) {
+	mlog("%s: invalid grace timeout\n", __func__);
+	return false;
+    }
+
+    char *scriptDir = getConfValueC(config, "DIR_SCRIPTS");
     if (!scriptDir) {
 	mlog("%s: invalid scripts directory\n", __func__);
 	return false;
