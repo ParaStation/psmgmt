@@ -29,6 +29,8 @@
 
 #define SPOOL_DIR LOCALSTATEDIR "/spool/parastation"
 
+#define PELOGUE_REQUEST_VERSION 2
+
 typedef struct {
     PStask_ID_t sender;
     char *requestor;
@@ -186,6 +188,7 @@ static void handlePElogueReq(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
 {
     char *ptr = rData->buf;
     uint8_t type;
+    uint16_t version;
     uint32_t timeout, grace, nrOfNodes;;
     uid_t uid;
     gid_t gid;
@@ -195,6 +198,15 @@ static void handlePElogueReq(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
     PS_SendDB_t config;
     int ret;
 
+    /* verify protocol version */
+    getUint16(&ptr, &version);
+    if (version != PELOGUE_REQUEST_VERSION) {
+	mlog("%s: invalid protocol version %u from %s expect %u\n", __func__,
+	     version, PSC_printTID(msg->header.sender),
+	     PELOGUE_REQUEST_VERSION);
+	sendPrologueResp(0, 1, false, msg->header.sender);
+	return;
+    }
     /* fetch info from message */
     char *requestor = getStringM(&ptr);
     getUint8(&ptr, &type);

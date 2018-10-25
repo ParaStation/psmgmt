@@ -57,7 +57,8 @@ Alloc_t *addAlloc(uint32_t id, uint32_t packID, char *slurmHosts, env_t *env,
     list_add_tail(&alloc->next, &AllocList);
 
     /* add user in pspam for SSH access */
-    psPamAddUser(alloc->username, strJobID(id), PSPAM_STATE_PROLOGUE);
+    uint32_t ID = (alloc->packID != NO_VAL) ? alloc->packID : alloc->id;
+    psPamAddUser(alloc->username, strJobID(ID), PSPAM_STATE_PROLOGUE);
 
     return alloc;
 }
@@ -132,7 +133,8 @@ bool deleteAlloc(uint32_t id)
 		alloc->nrOfNodes, alloc->nodes);
     }
 
-    psPamDeleteUser(alloc->username, strJobID(id));
+    uint32_t ID = (alloc->packID != NO_VAL) ? alloc->packID : alloc->id;
+    psPamDeleteUser(alloc->username, strJobID(ID));
 
     ufree(alloc->nodes);
     ufree(alloc->slurmHosts);

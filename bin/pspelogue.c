@@ -62,6 +62,9 @@ static struct timeval time_diff;
 /** additional environment filter */
 static char *addFilter = NULL;
 
+/** pspelogue protocol version */
+static uint16_t protoVer = 2;
+
 /** popt command line option table */
 static struct poptOption optionsTable[] = {
     { "debug", 'd', POPT_ARG_NONE,
@@ -298,6 +301,8 @@ void sendPElogueReq(char *jobid, char *sUid, char *sGid, uint32_t nrOfNodes,
     initFragBuffer(&msg, PSP_CC_PLUG_PELOGUE, PSP_PELOGUE_REQ);
     setFragDest(&msg, dest);
 
+    /* protocol version */
+    addUint16ToMsg(protoVer, &msg);
     /* add my name */
     addStringToMsg("pspelogue", &msg);
     /* prologue flag */
@@ -348,7 +353,8 @@ int main(const int argc, const char *argv[], char *envp[])
     env_t env, clone;
     char *filter[] = { "SLURM_SPANK_*", "_SLURM_SPANK_OPTION_*", "SLURM_JOBID",
 		       "SLURM_JOB_ID", "SLURM_JOB_NODELIST",
-		       "SLURM_PACK_JOB_ID", NULL, NULL };
+		       "SLURM_PACK_JOB_ID", "SLURM_PACK_JOB_NODELIST", NULL,
+		       NULL };
     size_t numFilter = sizeof(filter)/sizeof(*filter);
 
     init(argc, argv);
@@ -362,10 +368,13 @@ int main(const int argc, const char *argv[], char *envp[])
 	exit(1);
     }
 
-    char *slurmHosts = getenv("SLURM_JOB_NODELIST");
+    char *slurmHosts = getenv("SLURM_PACK_JOB_NODELIST");
     if (!slurmHosts) {
-	fprintf(stderr, "%s: invalid SLURM_JOB_NODELIST\n", argv[0]);
-	exit(1);
+	slurmHosts = getenv("SLURM_JOB_NODELIST");
+	if (!slurmHosts) {
+	    fprintf(stderr, "%s: invalid SLURM_JOB_NODELIST\n", argv[0]);
+	    exit(1);
+	}
     }
 
     char *sUid = getenv("SLURM_JOB_UID");
@@ -396,7 +405,10 @@ int main(const int argc, const char *argv[], char *envp[])
 	exit(1);
     }
 
-    if (verbose) printf("parallel pelogue for job %s starting\n", jobID);
+    if (verbose) {
+	printf("parallel pelogue for job %s nodes %s starting\n", jobID,
+	slurmHosts);
+    }
 
     /* send pelogue start request */
     sendPElogueReq(jobID, sUid, sGid, nrOfNodes, nodes, &clone);
@@ -410,8 +422,6 @@ int main(const int argc, const char *argv[], char *envp[])
 	printf("parallel pelogue for job %s finished in %.3f seconds\n",
 	       jobID, time_diff.tv_sec + 1e-6 * time_diff.tv_usec);
     }
-
-    /* TODO: create psid delegate (partition) */
 
     return 0;
 }

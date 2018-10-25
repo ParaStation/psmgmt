@@ -153,7 +153,6 @@ static void handlePrologueCB(Alloc_t *alloc, int exitStatus)
 	/* prologue was successful, start possible user processes */
 	alloc->state = A_RUNNING;
 	send_PS_AllocState(alloc);
-	psPamSetState(alloc->username, strJobID(alloc->id), PSPAM_STATE_JOB);
 
 	if (job) {
 	    /* execute jobscript */
@@ -364,7 +363,7 @@ int handleLocalPElogueStart(void *data)
 {
     PElogueChild_t *pedata = data;
     uint32_t id, packID = NO_VAL;
-    char *sPID, *slurmHosts, *user, *userEnv;
+    char *sPackID, *slurmHosts, *user, *userEnv;
 
     if (pedata->type == PELOGUE_EPILOGUE) return 0;
 
@@ -383,12 +382,12 @@ int handleLocalPElogueStart(void *data)
     }
 
     /* convert optional pack ID */
-    sPID = envGet(&pedata->env, "SLURM_PACK_JOB_ID");
-    if (sPID) {
+    sPackID = envGet(&pedata->env, "SLURM_PACK_JOB_ID");
+    if (sPackID) {
 	errno = 0;
-	packID = strtol(sPID, NULL, 10);
+	packID = strtol(sPackID, NULL, 10);
 	if (packID == 0 && errno == EINVAL) {
-	    flog("strol(%s) of SLURM_PACK_JOB_ID failed\n", sPID);
+	    flog("strol(%s) of SLURM_PACK_JOB_ID failed\n", sPackID);
 	    packID = NO_VAL;
 	}
     }
@@ -396,13 +395,55 @@ int handleLocalPElogueStart(void *data)
     userEnv = envGet(&pedata->env, "SLURM_JOB_USER");
     user = userEnv ? userEnv : uid2String(pedata->uid);
 
-    mdbg(PSSLURM_LOG_PELOG, "%s: add allocation %u\n", __func__, id);
-    addAlloc(id, packID, slurmHosts, &pedata->env, pedata->uid,
-	     pedata->gid, user);
+    int ret = 0;
+    if (sPackID) {
+	char *packHosts = envGet(&pedata->env, "SLURM_PACK_JOB_NODELIST");
+	if (!packHosts) {
+	    /* non leader prologue for pack,
+	     * add allocation but skip the execution of prologue */
+	    Alloc_t *old = findAllocByPackID(packID);
+	    mdbg(PSSLURM_LOG_PELOG, "%s: no pack hosts, add allocation %u skip "
+		 "prologue\n", __func__, id);
+	    Alloc_t *alloc = addAlloc(id, packID, slurmHosts, &pedata->env,
+				      pedata->uid, pedata->gid, user);
+	    if (old) {
+		mdbg(PSSLURM_LOG_PELOG, "%s: removing old allocation %u\n",
+		     __func__, packID);
+		alloc->state = old->state;
+		deleteAlloc(old->id);
+	    }
+	    ret = -2;
+	} else {
+	    /* pack leader prologue, execute prologue add allocation
+	     * only for leader job */
+	    uint32_t nrOfNodes, localid;
+	    PSnodes_ID_t *nodes;
+	    getNodesFromSlurmHL(slurmHosts, &nrOfNodes, &nodes, &localid);
+	    if (localid != (uint32_t) -1) {
+		mdbg(PSSLURM_LOG_PELOG, "%s: leader with pack hosts, add "
+		     "allocation %u\n", __func__, id);
+		addAlloc(id, packID, slurmHosts, &pedata->env, pedata->uid,
+			pedata->gid, user);
+	    } else {
+		if (!findAllocByPackID(packID)) {
+		    mdbg(PSSLURM_LOG_PELOG, "%s: leader with pack hosts, add "
+			 "temporary allocation %u\n", __func__, packID);
+		    addAlloc(id, packID, slurmHosts, &pedata->env, pedata->uid,
+			    pedata->gid, user);
+		}
+	    }
+	}
+    } else {
+	/* prologue for regular (non pack) job */
+	mdbg(PSSLURM_LOG_PELOG, "%s: non pack job, add allocation %u\n",
+	     __func__, id);
+	addAlloc(id, packID, slurmHosts, &pedata->env, pedata->uid,
+		 pedata->gid, user);
+    }
 
     if (!userEnv && user) ufree(user);
 
-    return 0;
+    return ret;
 }
 
 int handleLocalPElogueFinish(void *data)
@@ -413,19 +454,25 @@ int handleLocalPElogueFinish(void *data)
     Alloc_t *alloc = findAlloc(jobid);
 
     if (!alloc) {
-	flog("no allocation for jobid %u found\n", jobid);
-	return 0;
+	alloc = findAllocByPackID(jobid);
+	if (!alloc) {
+	    flog("no allocation for jobid %u found\n", jobid);
+	    return 0;
+	}
     }
     alloc->state = (pedata->type == PELOGUE_PROLOGUE) ?
 		    A_PROLOGUE_FINISH : A_EPILOGUE_FINISH;
 
+    mdbg(PSSLURM_LOG_PELOG, "%s for %u pack %u\n", __func__, alloc->id,
+	 alloc->packID);
     /* allow/revoke SSH access to my node */
+    uint32_t ID = (alloc->packID != NO_VAL) ? alloc->packID : alloc->id;
     if (!pedata->exit && pedata->type == PELOGUE_PROLOGUE) {
-	psPamAddUser(alloc->username, pedata->jobid, PSPAM_STATE_JOB);
-	psPamSetState(alloc->username, pedata->jobid, PSPAM_STATE_JOB);
+	psPamAddUser(alloc->username, strJobID(ID), PSPAM_STATE_JOB);
+	psPamSetState(alloc->username, strJobID(ID), PSPAM_STATE_JOB);
     }
     if (pedata->type != PELOGUE_PROLOGUE) {
-	psPamDeleteUser(alloc->username, pedata->jobid);
+	psPamDeleteUser(alloc->username, strJobID(ID));
     }
 
     /* start I/O forwarder for all waiting steps */
