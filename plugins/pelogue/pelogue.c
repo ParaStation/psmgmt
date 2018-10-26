@@ -17,6 +17,7 @@
 #include "pspluginprotocol.h"
 #include "psidhook.h"
 #include "psidplugin.h"
+#include "psidutil.h"
 #include "plugin.h"
 #include "timer.h"
 #include "psaccounthandles.h"
@@ -162,6 +163,8 @@ int initialize(void)
 	mdbg(PELOGUE_LOG_WARN, "timer facility not yet ready, try to init\n");
 	Timer_init(NULL);
     }
+
+    PSID_registerLoopAct(clearDeletedJobs);
 
     maskLogger(PELOGUE_LOG_PROCESS | PELOGUE_LOG_WARN);
 

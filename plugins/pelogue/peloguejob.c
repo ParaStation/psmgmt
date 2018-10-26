@@ -52,10 +52,49 @@ char *jobState2String(JobState_t state)
     }
 }
 
+static void cancelJobMonitor(Job_t *job)
+{
+    if (!checkJobPtr(job)) return;
+
+    if (job->monitorId != -1) {
+	Timer_remove(job->monitorId);
+	job->monitorId = -1;
+    }
+}
+
+static void doDeleteJob(Job_t *job)
+{
+    /* make sure pelogue timeout monitoring is gone */
+    cancelJobMonitor(job);
+
+    if (job->id) ufree(job->id);
+    if (job->plugin) ufree(job->plugin);
+    if (job->nodes) ufree(job->nodes);
+
+    list_del(&job->next);
+    ufree(job);
+}
+
+static Job_t *findJob(const char *plugin, const char *jobid, bool deleted)
+{
+    list_t *j;
+
+    if (!plugin || !jobid) return NULL;
+
+    list_for_each(j, &jobList) {
+	Job_t *job = list_entry(j, Job_t, next);
+	if (!deleted && job->deleted) continue;
+	if (!strcmp(job->plugin, plugin) && !strcmp(job->id, jobid)) {
+	    return job;
+	}
+    }
+    return NULL;
+}
+
 Job_t *addJob(const char *plugin, const char *jobid, uid_t uid, gid_t gid,
 	     int numNodes, PSnodes_ID_t *nodes, PElogueJobCb_t *cb, void *info)
 {
-    Job_t *job = findJobById(plugin, jobid);
+    Job_t *job = findJob(plugin, jobid, true);
 
     if (numNodes > PSC_getNrOfNodes()) {
 	mlog("%s: invalid numNodes '%u'\n", __func__, numNodes);
@@ -77,7 +116,7 @@ Job_t *addJob(const char *plugin, const char *jobid, uid_t uid, gid_t gid,
 	return NULL;
     }
 
-    if (job) deleteJob(job);
+    if (job) doDeleteJob(job);
 
     job = umalloc(sizeof(*job));
     if (job) {
@@ -95,6 +134,7 @@ Job_t *addJob(const char *plugin, const char *jobid, uid_t uid, gid_t gid,
 	job->monitorId = -1;
 	job->cb = cb;
 	job->info = info;
+	job->deleted = false;
 
 	job->nodes =umalloc(sizeof(*job->nodes) * numNodes);
 	if (job->nodes) {
@@ -122,18 +162,7 @@ Job_t *addJob(const char *plugin, const char *jobid, uid_t uid, gid_t gid,
 
 Job_t *findJobById(const char *plugin, const char *jobid)
 {
-    list_t *j;
-
-    if (!plugin || !jobid) return NULL;
-
-    list_for_each(j, &jobList) {
-	Job_t *job = list_entry(j, Job_t, next);
-
-	if (!strcmp(job->plugin, plugin) && !strcmp(job->id, jobid)) {
-	    return job;
-	}
-    }
-    return NULL;
+    return findJob(plugin, jobid, false);
 }
 
 bool setJobNodeStatus(Job_t *job, PSnodes_ID_t node, bool prologue,
@@ -209,33 +238,10 @@ bool traverseJobs(JobVisitor_t visitor, const void *info)
     return false;
 }
 
-static void cancelJobMonitor(Job_t *job)
-{
-    if (!checkJobPtr(job)) return;
-
-    if (job->monitorId != -1) {
-	Timer_remove(job->monitorId);
-	job->monitorId = -1;
-    }
-}
-
-static void doDeleteJob(Job_t *job)
-{
-    /* make sure pelogue timeout monitoring is gone */
-    cancelJobMonitor(job);
-
-    if (job->id) ufree(job->id);
-    if (job->plugin) ufree(job->plugin);
-    if (job->nodes) ufree(job->nodes);
-
-    list_del(&job->next);
-    ufree(job);
-}
-
 bool deleteJob(Job_t *job)
 {
     if (!checkJobPtr(job)) return false;
-    doDeleteJob(job);
+    job->deleted = true;
 
     return true;
 }
@@ -246,6 +252,15 @@ void clearJobList(void)
     list_for_each_safe(j, tmp, &jobList) {
 	Job_t *job = list_entry(j, Job_t, next);
 	doDeleteJob(job);
+    }
+}
+
+void clearDeletedJobs(void)
+{
+    list_t *j, *tmp;
+    list_for_each_safe(j, tmp, &jobList) {
+	Job_t *job = list_entry(j, Job_t, next);
+	if (job->deleted) doDeleteJob(job);
     }
 }
 

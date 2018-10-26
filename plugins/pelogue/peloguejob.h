@@ -46,6 +46,7 @@ typedef struct {
     time_t PElogue_start; /**< start time of pelogue execution */
     time_t start_time;    /**< time the job started */
     void *info;           /**< pointer to additional infos passed to cb */
+    bool deleted;	  /**< mark a job structure as deleted */
 } Job_t;
 
 /**
@@ -285,5 +286,14 @@ void finishJobPElogue(Job_t *job, int status, bool prologue);
  * @return No return value
  */
 void cancelJob(Job_t *job);
+
+
+/**
+ * @brief Remove jobs marked for deletion
+ *
+ * Loop over all jobs and actually free memory for jobs marked for deletion.
+ * This function is called by @ref PSID_registerLoopAct().
+ */
+void clearDeletedJobs(void);
 
 #endif  /* __PELOGUE_JOB */

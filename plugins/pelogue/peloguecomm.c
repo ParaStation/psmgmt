@@ -109,15 +109,17 @@ static void CBprologueResp(char *jobid, int exit, bool timeout,
 			     PElogueResList_t *res, void *info)
 {
     RPC_Info_t *rpcInfo = info;
+
+    if (!rpcInfo) return;
+
     Job_t *job = findJobById(rpcInfo->requestor, jobid);
-
-    mdbg(PELOGUE_LOG_VERB, "%s: finished, sending result for job %s to %s\n",
-	 __func__, jobid, PSC_printTID(rpcInfo->sender));
-    sendPrologueResp(jobid, exit, timeout, rpcInfo->sender);
-
     if (job) {
 	PS_SendDB_t data;
 	PSnodes_ID_t n;
+
+	mdbg(PELOGUE_LOG_VERB, "%s: finished, sending result for job %s to "
+	     "%s\n", __func__, jobid, PSC_printTID(rpcInfo->sender));
+	sendPrologueResp(jobid, exit, timeout, rpcInfo->sender);
 
 	/* delete old configuration */
 	initFragBuffer(&data, PSP_CC_PLUG_PELOGUE, PSP_PLUGIN_CONFIG_DEL);
@@ -127,13 +129,14 @@ static void CBprologueResp(char *jobid, int exit, bool timeout,
 	addStringToMsg(rpcInfo->requestor, &data);
 	sendFragMsg(&data);
 
+	job->info = NULL;
 	deleteJob(job);
+
+	ufree(rpcInfo->requestor);
+	ufree(rpcInfo);
     } else {
 	mlog("%s: job '%s' not found\n", __func__, jobid);
     }
-
-    ufree(rpcInfo->requestor);
-    ufree(rpcInfo);
 }
 
 static void handlePluginConfigDel(DDTypedBufferMsg_t *msg,
@@ -308,8 +311,12 @@ static void handlePElogueStart(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
     int ret = PSIDhook_call(PSIDHOOK_PELOGUE_START, child);
 
     if (ret <0) {
-	mlog("%s: PSIDHOOK_PELOGUE_START failed with %u\n", __func__, ret);
-	child->exit = -3;
+	if (ret == -2) {
+	    child->exit = 0;
+	} else {
+	    mlog("%s: PSIDHOOK_PELOGUE_START failed with %u\n", __func__, ret);
+	    child->exit = -3;
+	}
 	sendPElogueFinish(child);
 	deleteChild(child);
 	return;
@@ -544,9 +551,14 @@ static void dropPElogueStartMsg(DDTypedBufferMsg_t *msg)
     free(plugin);
     free(jobid);
 
-    job->state = prologue ? JOB_CANCEL_PROLOGUE : JOB_CANCEL_EPILOGUE;
     setJobNodeStatus(job, PSC_getID(msg->header.dest), prologue,
 		     PELOGUE_TIMEDOUT);
+
+    /* prevent multiple cancel job attempts */
+    if (job->state == JOB_CANCEL_PROLOGUE
+	|| job->state == JOB_CANCEL_EPILOGUE) return;
+
+    job->state = prologue ? JOB_CANCEL_PROLOGUE : JOB_CANCEL_EPILOGUE;
     cancelJob(job);
 }
 
@@ -578,9 +590,14 @@ static void dropPElogueSignalMsg(DDTypedBufferMsg_t *msg)
     free(plugin);
     free(jobid);
 
-    job->state = prologue ? JOB_CANCEL_PROLOGUE : JOB_CANCEL_EPILOGUE;
     setJobNodeStatus(job, PSC_getID(msg->header.dest), prologue,
 		     PELOGUE_TIMEDOUT);
+
+    /* prevent multiple cancel job attempts */
+    if (job->state == JOB_CANCEL_PROLOGUE
+	|| job->state == JOB_CANCEL_EPILOGUE) return;
+
+    job->state = prologue ? JOB_CANCEL_PROLOGUE : JOB_CANCEL_EPILOGUE;
     cancelJob(job);
 }
 
@@ -599,6 +616,10 @@ static void dropPElogueMsg(DDTypedBufferMsg_t *msg)
 	break;
     case PSP_PROLOGUE_FINISH:
     case PSP_EPILOGUE_FINISH:
+    case PSP_PLUGIN_CONFIG_ADD:
+    case PSP_PLUGIN_CONFIG_DEL:
+    case PSP_PELOGUE_REQ:
+    case PSP_PELOGUE_RESP:
 	/* nothing we can do here */
 	break;
     case PSP_PELOGUE_SIGNAL:
