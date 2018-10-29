@@ -383,13 +383,26 @@ static void setBindingEnvVars(Step_t *step)
     setenv("SLURM_MEM_BIND_TYPE", val, 1);
 }
 
+void setPsslurmEnv(env_t *env)
+{
+    uint32_t i;
+
+    for (i=0; i<env->cnt; i++) {
+	flog("%i: %s\n", i, env->vars[i]);
+	if (env->vars[i] && !(strncmp("_PSSLURM_ENV_", env->vars[i], 13))) {
+	    char *ptr = env->vars[i] + 13;
+	    if (ptr)  putenv(ptr);
+	}
+    }
+}
+
 void setRankEnv(int32_t rank, Step_t *step)
 {
     char tmp[128], *myGTIDs, *list = NULL, *val, *display;
     size_t listSize = 0;
     uint32_t myNodeId = step->localNodeId, myLocalId, count = 0, localNodeId;
-    Alloc_t *alloc;
-    Job_t *job;
+    Alloc_t *alloc = findAlloc(step->jobid);
+    Job_t *job = findJobById(step->jobid);
 
     /* remove unwanted variables */
     unsetenv("PSI_INPUTDEST");
@@ -446,9 +459,9 @@ void setRankEnv(int32_t rank, Step_t *step)
     snprintf(tmp, sizeof(tmp), "%u", myLocalId);
     setenv("SLURM_LOCALID", tmp, 1);
 
-    if ((job = findJobById(step->jobid))) {
+    if (job) {
 	localNodeId = job->localNodeId;
-    } else if ((alloc = findAlloc(step->jobid))) {
+    } else if (alloc) {
 	localNodeId = alloc->localNodeId;
     } else {
 	localNodeId = -1;
@@ -505,6 +518,8 @@ void setRankEnv(int32_t rank, Step_t *step)
     /* set SLURM_TASKS_PER_NODE */
     val = getTasksPerNode(step->tasksToLaunch, step->nrOfNodes);
     setenv("SLURM_TASKS_PER_NODE", val, 1);
+
+    if (alloc) setPsslurmEnv(&alloc->env);
 }
 
 /**
@@ -641,4 +656,7 @@ void setJobEnv(Job_t *job)
     }
 
     removeSpankOptions(&job->env);
+
+    Alloc_t *alloc = findAlloc(job->jobid);
+    if (alloc) setPsslurmEnv(&alloc->env);
 }

@@ -402,9 +402,10 @@ int handleLocalPElogueStart(void *data)
 	    /* non leader prologue for pack,
 	     * add allocation but skip the execution of prologue */
 	    Alloc_t *old = findAllocByPackID(packID);
+	    env_t *env = old ? &old->env : &pedata->env;
 	    mdbg(PSSLURM_LOG_PELOG, "%s: no pack hosts, add allocation %u skip "
 		 "prologue\n", __func__, id);
-	    Alloc_t *alloc = addAlloc(id, packID, slurmHosts, &pedata->env,
+	    Alloc_t *alloc = addAlloc(id, packID, slurmHosts, env,
 				      pedata->uid, pedata->gid, user);
 	    if (old) {
 		mdbg(PSSLURM_LOG_PELOG, "%s: removing old allocation %u\n",
@@ -425,11 +426,15 @@ int handleLocalPElogueStart(void *data)
 		addAlloc(id, packID, slurmHosts, &pedata->env, pedata->uid,
 			pedata->gid, user);
 	    } else {
-		if (!findAllocByPackID(packID)) {
+		Alloc_t *alloc = findAllocByPackID(packID);
+		if (!alloc) {
 		    mdbg(PSSLURM_LOG_PELOG, "%s: leader with pack hosts, add "
 			 "temporary allocation %u\n", __func__, packID);
 		    addAlloc(id, packID, slurmHosts, &pedata->env, pedata->uid,
 			    pedata->gid, user);
+		} else {
+		    envDestroy(&alloc->env);
+		    envClone(&pedata->env, &alloc->env, envFilter);
 		}
 	    }
 	}

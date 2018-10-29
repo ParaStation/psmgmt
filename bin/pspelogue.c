@@ -353,8 +353,8 @@ int main(const int argc, const char *argv[], char *envp[])
     env_t env, clone;
     char *filter[] = { "SLURM_SPANK_*", "_SLURM_SPANK_OPTION_*", "SLURM_JOBID",
 		       "SLURM_JOB_ID", "SLURM_JOB_NODELIST",
-		       "SLURM_PACK_JOB_ID", "SLURM_PACK_JOB_NODELIST", NULL,
-		       NULL };
+		       "SLURM_PACK_JOB_ID", "SLURM_PACK_JOB_NODELIST",
+		       "_PSSLURM_*", NULL, NULL };
     size_t numFilter = sizeof(filter)/sizeof(*filter);
 
     init(argc, argv);
