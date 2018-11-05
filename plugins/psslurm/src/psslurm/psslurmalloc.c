@@ -12,6 +12,7 @@
 #include "pluginmalloc.h"
 #include "pspamhandles.h"
 #include "peloguehandles.h"
+#include "psidhook.h"
 
 #include "psslurmalloc.h"
 #include "psslurmproto.h"
@@ -123,6 +124,8 @@ bool deleteAlloc(uint32_t id)
     clearBCastByJobid(id);
 
     if (!(alloc = findAlloc(id))) return false;
+
+    PSIDhook_call(PSIDHOOK_PSSLURM_FINALLOC, alloc);
 
     /* free corresponding pelogue job */
     psPelogueDeleteJob("psslurm", strJobID(alloc->id));

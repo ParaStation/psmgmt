@@ -141,6 +141,10 @@ typedef enum {
 				sendMsg(), arg points to the message to be
 				inspected. If the message shall	be dropped,
 				return 0, otherwise return 1 */
+    PSIDHOOK_PSSLURM_FINALLOC,/**< An allocation has finished and will be
+				deleted by psslurm. The arg is a pointer to
+				Alloc_t holding the allocation to free. Used by
+				the psgw plugin. */
     PSIDHOOK_LAST,            /**< This has to be the last one */
 } PSIDhook_t;
 
