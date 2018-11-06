@@ -11,6 +11,7 @@
 #include <stdlib.h>
 #include <sys/types.h>
 #include <unistd.h>
+#include <ctype.h>
 
 #ifdef HAVE_LIBNUMA
 #include <numa.h>
@@ -148,63 +149,56 @@ static int thread_iter_next(thread_iterator *iter, uint32_t *result) {
  */
 static uint8_t *getCPUsForPartition(PSpart_slot_t *slots, Step_t *step)
 {
-    const char delimiters[] =", \n";
-    uint32_t i, min, max;
-    char *next, *saveptr, *cores, *sep;
     uint8_t *coreMap;
 
-    coreMap = umalloc(step->cred->totalCoreCount * sizeof(uint8_t));
-    for (i=0; i<step->cred->totalCoreCount; i++) coreMap[i] = 0;
+    size_t len;
+    char *bitstr;
+    int count, cur;
+    uint32_t i;
 
-    cores = ustrdup(step->cred->stepCoreBitmap);
-    next = strtok_r(cores, delimiters, &saveptr);
+    coreMap = ucalloc(step->cred->totalCoreCount * sizeof(*coreMap));
+    count = 0;
 
-    while (next) {
-	if (!(sep = strchr(next, '-'))) {
-	    /* single digit */
-	    if ((sscanf(next, "%i", &max)) != 1) {
-		mlog("%s: invalid core '%s'\n", __func__, next);
-		goto ERROR;
-	    }
-	    if (max >= step->cred->totalCoreCount) {
-		mlog("%s: core %i > total core count %i\n", __func__, max,
-		     step->cred->totalCoreCount);
-		goto ERROR;
-	    }
-	    coreMap[max] = 1;
+    bitstr = step->cred->stepCoreBitmap;
 
-	} else {
-	    /* range */
-	    if ((sscanf(next, "%i-%i", &min, &max)) != 2) {
-		mlog("%s: invalid core range '%s'\n", __func__, next);
-		goto ERROR;
-	    }
-	    for (i=min; i<=max; i++) {
-		if (i >= step->cred->totalCoreCount) {
-		    mlog("%s: core %i > total core count %i\n", __func__, i,
-			 step->cred->totalCoreCount);
-		    goto ERROR;
-		}
-		coreMap[i] = 1;
-	    }
+    if (!strncmp(bitstr, "0x", 2)) bitstr += 2;
+    len = strlen(bitstr);
+
+    /* parse slurm bit string in MSB first order */
+    while (len--) {
+	cur = (int)bitstr[len];
+
+	if (!isxdigit(cur)) {
+	    mlog("%s: invalid character in core map sting '%c'\n", __func__,
+		    cur);
+	    ufree(coreMap);
+	    return NULL;
 	}
 
-	next = strtok_r(NULL, delimiters, &saveptr);
+	if (isdigit(cur)) {
+	    cur -= '0';
+	} else {
+	    cur = toupper(cur);
+	    cur -= 'A' - 10;
+	}
+
+	if (cur & 1) coreMap[count] = 1;
+	count++;
+	if (cur & 2) coreMap[count] = 1;
+	count++;
+	if (cur & 4) coreMap[count] = 1;
+	count++;
+	if (cur & 8) coreMap[count] = 1;
+	count++;
     }
 
-    mdbg(PSSLURM_LOG_PART, "%s: cores '%s' coreMap '", __func__, cores);
-    for (i=0; i< step->cred->totalCoreCount; i++) {
+    mdbg(PSSLURM_LOG_PART, "%s: cores '%s' coreMap '", __func__, bitstr);
+    for (i=0; i < step->cred->totalCoreCount; i++) {
 	mdbg(PSSLURM_LOG_PART, "%i", coreMap[i]);
     }
     mdbg(PSSLURM_LOG_PART, "'\n");
 
-    ufree(cores);
     return coreMap;
-
-ERROR:
-    ufree(cores);
-    ufree(coreMap);
-    return NULL;
 }
 
 /*
