@@ -269,11 +269,7 @@ bool __unpackJobCred(Slurm_Msg_t *sMsg, JobCred_t **credPtr,
     /* total core count */
     getUint32(ptr, &cred->totalCoreCount);
     /* job core bitmap */
-    bitStr = getBitString(ptr);
-    cred->jobCoreBitmap = NULL;
-    listSize = 0;
-    hexBitstr2List(bitStr, &cred->jobCoreBitmap, &listSize);
-    ufree(bitStr);
+    cred->jobCoreBitmap = getBitString(ptr);
     /* step core bitmap */
     bitStr = getBitString(ptr);
     cred->stepCoreBitmap = NULL;
@@ -284,9 +280,8 @@ bool __unpackJobCred(Slurm_Msg_t *sMsg, JobCred_t **credPtr,
     getUint16(ptr, &cred->coreArraySize);
 
     mdbg(PSSLURM_LOG_PART, "%s: totalCoreCount '%u' coreArraySize '%u' "
-	    "jobCoreBitmap '%s' stepCoreBitmap '%s'\n",
-	    __func__, cred->totalCoreCount, cred->coreArraySize,
-	    cred->jobCoreBitmap, cred->stepCoreBitmap);
+	 "stepCoreBitmap '%s'\n", __func__, cred->totalCoreCount,
+	 cred->coreArraySize, cred->stepCoreBitmap);
 
     if (cred->coreArraySize) {
 	uint32_t len;
