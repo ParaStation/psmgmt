@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2012-2017 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2012-2018 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -75,38 +75,39 @@ void __ufree(void *ptr, const char *func, const int line)
     free(ptr);
 }
 
-char *__addStrBuf(char *strSave, StrBuffer_t *strBuf, const char *func,
+char *__addStrBuf(char *str, StrBuffer_t *strBuf, const char *func,
 		  const int line)
 {
-    return __strn2Buf(strSave, strlen(strSave), &strBuf->buf, &strBuf->bufSize,
+    return __strn2Buf(str, strlen(str), &strBuf->buf, &strBuf->bufSize,
 		      func, line);
 }
 
-char *__str2Buf(char *strSave, char **buffer, size_t *bufSize, const char *func,
+char *__str2Buf(char *str, char **buffer, size_t *bufSize, const char *func,
 		const int line)
 {
-    return __strn2Buf(strSave, strlen(strSave), buffer, bufSize, func, line);
+    return __strn2Buf(str, strlen(str), buffer, bufSize, func, line);
 }
 
-char *__strn2Buf(char *strSave, size_t lenSave, char **buffer, size_t *bufSize,
+char *__strn2Buf(char *str, size_t lenStr, char **buffer, size_t *bufSize,
 		 const char *func, const int line)
 {
     size_t lenBuf;
 
     if (!*buffer) {
-	*bufSize = (lenSave / STR_MALLOC_SIZE + 1) * STR_MALLOC_SIZE;
+	*bufSize = (lenStr / STR_MALLOC_SIZE + 1) * STR_MALLOC_SIZE;
 	*buffer = __umalloc(*bufSize, func, line);
-	*buffer[0] = '\0';
+	lenBuf = 0;
+    } else {
+	lenBuf = strlen(*buffer);
     }
 
-    lenBuf = strlen(*buffer);
-
-    if (lenBuf + lenSave + 1 > *bufSize) {
-	*bufSize = ((lenBuf + lenSave) / STR_MALLOC_SIZE + 1) * STR_MALLOC_SIZE;
+    if (lenBuf + lenStr + 1 > *bufSize) {
+	*bufSize = ((lenBuf + lenStr) / STR_MALLOC_SIZE + 1) * STR_MALLOC_SIZE;
 	*buffer = __urealloc(*buffer, *bufSize, func, line);
     }
 
-    strncat(*buffer, strSave, lenSave);
+    strncpy(*buffer + lenBuf, str, lenStr);
+    buffer[lenBuf+lenStr] = '\0';
 
     return *buffer;
 }

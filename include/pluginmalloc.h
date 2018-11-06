@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2012-2017 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2012-2018 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -91,14 +91,15 @@ char *__ustrdup(const char *s1, const char *func, const int line);
 /**
  * @brief Save a string into a buffer that dynamically grows if needed
  *
- * Copy the string @a strSave into the dynamic buffer @a strBuf is
+ * Copy the string @a str into the dynamic buffer @a strBuf is
  * pointing to. If required, this buffer will be grown using @ref
- * __umalloc() and @ref __urealloc. The current size of the buffer is
- * traced internally in bufSize. This is a wrapper to @ref strn2Buf().
+ * __umalloc() and @ref __urealloc(). The current size of the buffer
+ * is tracked internally within the string buffer @a strBuf. This is a
+ * wrapper to @ref strn2Buf().
  *
  * In addition to that debug messages are created.
  *
- * @param strSave The string to write to the buffer
+ * @param str The string to write to the buffer
  *
  * @param strBuf The buffer to write the string to
  *
@@ -108,22 +109,22 @@ char *__ustrdup(const char *s1, const char *func, const int line);
  *
  * @return Returns a pointer to the buffer.
  */
-char *__addStrBuf(char *strSave, StrBuffer_t *strBuf, const char *func,
+char *__addStrBuf(char *str, StrBuffer_t *strBuf, const char *func,
 		  const int line);
-#define addStrBuf(strSave, strBuf) \
-    __addStrBuf(strSave, strBuf, __func__, __LINE__)
+#define addStrBuf(str, strBuf) \
+    __addStrBuf(str, strBuf, __func__, __LINE__)
 
 /**
  * @brief Save a string into a buffer that dynamically grows if needed
  *
- * Copy the string @a strSave into the dynamic buffer @a buffer is
+ * Copy the string @a str into the dynamic buffer @a buffer is
  * pointing to. If required, this buffer will be grown using @ref
- * __umalloc() and @ref __urealloc. The current size of the buffer is
- * traced in @a bufSize. This is a wrapper to @ref strn2Buf().
+ * __umalloc() and @ref __urealloc(). The current size of the buffer
+ * is tracked in @a bufSize. This is a wrapper to @ref strn2Buf().
  *
  * In addition to that debug messages are created.
  *
- * @param strSave The string to write to the buffer
+ * @param str The string to write to the buffer
  *
  * @param buffer The buffer to write the string to
  *
@@ -135,24 +136,24 @@ char *__addStrBuf(char *strSave, StrBuffer_t *strBuf, const char *func,
  *
  * @return Returns a pointer to the buffer.
  */
-char *__str2Buf(char *strSave, char **buffer, size_t *bufSize, const char *func,
+char *__str2Buf(char *str, char **buffer, size_t *bufSize, const char *func,
 		const int line);
-#define str2Buf(strSave, buffer, bufSize) \
-    __str2Buf(strSave, buffer, bufSize, __func__, __LINE__)
+#define str2Buf(str, buffer, bufSize) \
+    __str2Buf(str, buffer, bufSize, __func__, __LINE__)
 
 /**
  * @brief Save a string into a buffer that dynamically grows if needed
  *
- * Copy @a lenSave number of bytes from the string @a strSave into the dynamic
- * buffer @a buffer is pointing to. If required, this buffer will be
- * grown using @ref __umalloc() and @ref __urealloc. The current size of the
- * buffer is traced in @a bufSize.
+ * Copy @a lenStr bytes from the string @a str into the dynamic buffer
+ * @a buffer is pointing to. If required, this buffer will be grown
+ * using @ref __umalloc() and @ref __urealloc(). The current size of
+ * the buffer is traced in @a bufSize.
  *
  * In addition to that debug messages are created.
  *
- * @param strSave The string to write to the buffer
+ * @param str The string to write to the buffer
  *
- * @param lenSave The number of bytes to write to the buffer
+ * @param lenStr The number of bytes of @a str to write to the buffer
  *
  * @param buffer The buffer to write the string to
  *
@@ -164,10 +165,10 @@ char *__str2Buf(char *strSave, char **buffer, size_t *bufSize, const char *func,
  *
  * @return Returns a pointer to the buffer.
  */
-char *__strn2Buf(char *strSave, size_t lenSave, char **buffer, size_t *bufSize,
+char *__strn2Buf(char *str, size_t lenStr, char **buffer, size_t *bufSize,
 		 const char *func, const int line);
-#define strn2Buf(strSave, lenSave, buffer, bufSize) \
-    __strn2Buf(strSave, lenSave, buffer, bufSize, __func__, __LINE__)
+#define strn2Buf(str, lenStr, buffer, bufSize) \
+    __strn2Buf(str, lenStr, buffer, bufSize, __func__, __LINE__)
 
 /**
  * @brief calloc() with error handling and logging.
