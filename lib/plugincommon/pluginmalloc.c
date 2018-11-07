@@ -107,7 +107,7 @@ char *__strn2Buf(char *str, size_t lenStr, char **buffer, size_t *bufSize,
     }
 
     strncpy(*buffer + lenBuf, str, lenStr);
-    buffer[lenBuf+lenStr] = '\0';
+    *buffer[lenBuf+lenStr] = '\0';
 
     return *buffer;
 }
