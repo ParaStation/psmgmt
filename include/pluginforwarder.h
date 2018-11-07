@@ -61,9 +61,9 @@ typedef struct __fwData__ {
     void (*hookFinalize)(Forwarder_Data_t *);
 			   /**< Called within forwarder upon finalization */
     int (*handleMthrMsg)(PSLog_Msg_t *, Forwarder_Data_t *);
-			   /**< Additional forwarder-msgs handled by mother */
+			   /**< Additional mother-msgs handled by forwarder */
     int (*handleFwMsg)(PSLog_Msg_t *, Forwarder_Data_t *);
-			   /**< Additional msgs handled by forwarder */
+			   /**< Additional forwarder-msgs handled by mother */
 } ForwarderData_t;
 
 /* ------------- Functions to be executed in forwarder ------------------ */
