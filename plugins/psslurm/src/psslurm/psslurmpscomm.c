@@ -705,7 +705,8 @@ static void handle_EpilogueLaunch(DDTypedBufferMsg_t *msg)
     if (!alloc) {
 	flog("allocation with ID %u not found\n", id);
     } else {
-	if (alloc->state != A_EPILOGUE && A_EPILOGUE_FINISH &&
+	if (alloc->state != A_EPILOGUE &&
+	    alloc->state != A_EPILOGUE_FINISH &&
 	    alloc->state != A_EXIT) {
 	    flog("id %u\n", id);
 	    startPElogue(alloc, PELOGUE_EPILOGUE);
@@ -799,7 +800,8 @@ static void handle_EpilogueStateReq(DDTypedBufferMsg_t *msg)
 	res = 0;
     } else {
 	res = alloc->state;
-	if (alloc->state != A_EPILOGUE && A_EPILOGUE_FINISH &&
+	if (alloc->state != A_EPILOGUE &&
+	    alloc->state != A_EPILOGUE_FINISH &&
 	    alloc->state != A_EXIT) {
 	    flog("starting epilogue for allocation %u state %s\n", id,
 		 strAllocState(alloc->state));
