@@ -204,8 +204,6 @@ bool __unpackJobCred(Slurm_Msg_t *sMsg, JobCred_t **credPtr,
     JobCred_t *cred;
     char **ptr = &sMsg->ptr;
     uint16_t msgVer = sMsg->head.version;
-    char *bitStr;
-    size_t listSize;
 
     if (!sMsg) {
 	mlog("%s: invalid sMsg from '%s' at %i\n", __func__, caller, line);
@@ -271,11 +269,7 @@ bool __unpackJobCred(Slurm_Msg_t *sMsg, JobCred_t **credPtr,
     /* job core bitmap */
     cred->jobCoreBitmap = getBitString(ptr);
     /* step core bitmap */
-    bitStr = getBitString(ptr);
-    cred->stepCoreBitmap = NULL;
-    listSize = 0;
-    hexBitstr2List(bitStr, &cred->stepCoreBitmap, &listSize);
-    ufree(bitStr);
+    cred->stepCoreBitmap = getBitString(ptr);
     /* core array size */
     getUint16(ptr, &cred->coreArraySize);
 

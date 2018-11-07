@@ -39,8 +39,10 @@ typedef struct {
     char *stepHL;		/**< Slurm compressed step hostlist */
     time_t ctime;               /**< creation time of credential */
     uint32_t totalCoreCount;    /**< number of total reserved cores */
-    char *jobCoreBitmap;        /**< reserved core bitmap for job */
-    char *stepCoreBitmap;       /**< reserved core bitmap for step */
+    char *jobCoreBitmap;        /**< reserved core bitmap for job
+                                     (MSB first) */
+    char *stepCoreBitmap;       /**< reserved core bitmap for step
+                                     (MSB first)*/
     uint16_t coreArraySize;     /**< size of the following core arrays */
     uint16_t *coresPerSocket;   /**< # of cores per socket (node indexed) */
     uint16_t *socketsPerNode;   /**< number of sockets per node */
