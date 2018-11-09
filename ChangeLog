@@ -1,6 +1,146 @@
 Version psmgmt-5.1.16-1:
 ========================
 ------------------------------------------------------------------------
+97192ec3 | Norbert Eicker | Fri, 9 Nov 2018 16:39:44 +0100
+
+Remove some superfluous and bad code
+------------------------------------------------------------------------
+5d9766fd | Norbert Eicker | Fri, 9 Nov 2018 16:27:43 +0100
+
+Change fix of memory loss from realloc()
+------------------------------------------------------------------------
+bcbe9515 | Michael Rauh | Fri, 9 Nov 2018 14:58:05 +0100
+
+Fix some memory lost upon failure of realloc() unveiled by cppcheck
+------------------------------------------------------------------------
+0e085d60 | Michael Rauh | Fri, 9 Nov 2018 12:09:26 +0100
+
+Ensure va_list is closed by va_end() unveiled by cppcheck
+------------------------------------------------------------------------
+244e9f9f | Michael Rauh | Fri, 9 Nov 2018 12:07:25 +0100
+
+Fix integer overflow unveiled by cppcheck
+------------------------------------------------------------------------
+7091119f | Michael Rauh | Fri, 9 Nov 2018 12:03:58 +0100
+
+Fix memory leak unveiled by cppcheck
+------------------------------------------------------------------------
+117a4c4c | Michael Rauh | Fri, 9 Nov 2018 11:58:13 +0100
+
+Prevent resource leak unveiled by cppcheck
+------------------------------------------------------------------------
+6a14cb20 | Michael Rauh | Fri, 9 Nov 2018 11:47:12 +0100
+
+Prevent resource leak unveiled by cppcheck
+------------------------------------------------------------------------
+b3658d2d | Norbert Eicker | Thu, 8 Nov 2018 18:48:43 +0100
+
+Bugfix: Take actual operator precedence into account
+------------------------------------------------------------------------
+7754c647 | Michael Rauh | Wed, 7 Nov 2018 17:22:14 +0100
+
+Fix logic error in psslurm unveiled by clang
+------------------------------------------------------------------------
+ff8aa2e5 | Stephan Krempel | Wed, 7 Nov 2018 16:34:00 +0100
+
+Merge branch 'knl'
+------------------------------------------------------------------------
+fddc1614 | Michael Rauh | Wed, 7 Nov 2018 16:32:19 +0100
+
+Fix documentation in pluginforwarder.h
+------------------------------------------------------------------------
+d9ac31a6 | Norbert Eicker | Wed, 7 Nov 2018 11:26:24 +0100
+
+Fix typo introduced in 30aac4bd
+------------------------------------------------------------------------
+7d34866c | Stephan Krempel | Tue, 6 Nov 2018 15:51:17 +0100
+
+Adjust pinning to use unconverted step core bitmap
+------------------------------------------------------------------------
+60b9eb76 | Michael Rauh | Tue, 6 Nov 2018 13:45:51 +0100
+
+Pass step core bitmap without conversation to pinning code in psslurm
+------------------------------------------------------------------------
+68aae4b3 | Michael Rauh | Tue, 6 Nov 2018 13:36:27 +0100
+
+Don't parse unused job core bitmap in psslurm
+------------------------------------------------------------------------
+30aac4bd | Norbert Eicker | Tue, 6 Nov 2018 12:39:40 +0100
+
+Optimize addStrBuf(), str2Buf() and strn2Buf()
+
+ - Get rid of the unnecessary strncpy(). Nevertheless, this family of
+   functions still scales as N^2 due to the unavoidable call to strlen().
+------------------------------------------------------------------------
+9d196561 | Michael Rauh | Mon, 8 Oct 2018 11:37:01 +0200
+
+Add PSIDHOOK_PELOGUE_RES
+    - called by pelogue for slurmctld prologue requests
+    - used by psgw to request additional resources
+------------------------------------------------------------------------
+3c8b8c79 | Michael Rauh | Mon, 5 Nov 2018 14:31:27 +0100
+
+Added PSIDHOOK_PSSLURM_FINALLOC
+    - called in psslurm right before deletion of an allocation
+    - used by psgw to cleanup used resources
+------------------------------------------------------------------------
+5ebb423f | Michael Rauh | Mon, 29 Oct 2018 16:20:46 +0100
+
+Export environment variables with prefix _PSSLURM_ENV_ from prologue
+to user processes
+------------------------------------------------------------------------
+7d6ef7a9 | Michael Rauh | Thu, 25 Oct 2018 13:19:04 +0200
+
+Use SLURM_PACK_JOB_NODELIST for pack jobs in pspelogue (jrt:#8923)
+
+  - The prologue script will only be executed for the pack job leader
+  using the pack joblist
+  - The prologue of the pack follower will be used to distribute the
+  allocation, but no script will be called
+  - The prologue exit status for every node in the pack will be returned
+  in the pack job leader
+  - Added protocol version support for messages between pspelogue and pelogue
+------------------------------------------------------------------------
+6467cbdf | Michael Rauh | Tue, 23 Oct 2018 12:56:32 +0200
+
+Check mandatory configuration options in pelogue
+------------------------------------------------------------------------
+c2782830 | Michael Rauh | Fri, 26 Oct 2018 11:56:24 +0200
+
+Bugfix: prevent memory corruption in pelogue drop handler for
+fragmented messages
+------------------------------------------------------------------------
+15679a55 | Michael Rauh | Fri, 19 Oct 2018 17:21:37 +0200
+
+Let psexec return output from scripts
+------------------------------------------------------------------------
+512263cb | Stephan Krempel | Thu, 11 Oct 2018 10:16:11 +0200
+
+Fix segfault in spawner for gdb, valgrind or mpichComp option set
+------------------------------------------------------------------------
+967e87ba | Stephan Krempel | Fri, 12 Oct 2018 15:27:57 +0200
+
+Fix error msg in psid forwarder
+------------------------------------------------------------------------
+bb602879 | Michael Rauh | Mon, 1 Oct 2018 13:50:45 +0200
+
+Bugfix: Ensure errno will not get overwritten in different
+functions (juwelstrac:#1189)
+------------------------------------------------------------------------
+27babe90 | Michael Rauh | Wed, 26 Sep 2018 18:49:52 +0200
+
+Enhancement: let psslurm handle arbitrarily RCP response messages
+(e.g. RESPONSE_JOB_INFO)
+------------------------------------------------------------------------
+b7e89064 | Michael Rauh | Mon, 24 Sep 2018 13:39:43 +0200
+
+Enhancement: ensure hanging jobs get released after MAX_TERM_REQUESTS
+------------------------------------------------------------------------
+
+
+Version psmgmt-5.1.16-1:
+========================
+------------------------------------------------------------------------
 1e25758a | Norbert Eicker | Wed, 19 Sep 2018 14:54:07 +0200
 
 Bugfix: Initialize PS_DataBuffer_t correctly (jwt:#1230)

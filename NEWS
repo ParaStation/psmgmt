@@ -5,6 +5,32 @@ Copyright (C) 2010-2018 ParTec Cluster Competence Center GmbH, Munich
 Please send bug reports, questions and suggestions to <support@par-tec.com>
 
 
+Version 5.1.17:
+===============
+Bugfixes:
+ - Ensure errno will not get overwritten in different functions (jwt:#1189)
+ - Prevent memory corruption in pelogue drop handler for fragmented messages
+ - Fix logic error in psslurm unveiled by clang
+ - Fix various memory leaks and bugs unvealed by cppcheck
+ - Fix segfault in spawner for gdb, valgrind or mpichComp option set
+Enhancements:
+ - Use SLURM_PACK_JOB_NODELIST for pack jobs in pspelogue (jrt:#8923)
+ - Major spawn speedup through:
+   * Don't parse unused job core bitmap in psslurm
+   * Pass step core bitmap without conversation to pinning code in psslurm
+   * Adjust pinning to use unconverted step core bitmap
+ - Ensure hanging jobs get released after MAX_TERM_REQUESTS
+ - Check mandatory configuration options in pelogue
+ - Let psslurm handle arbitrarily RCP responses (e.g. RESPONSE_JOB_INFO)
+ - Export environment with prefix _PSSLURM_ENV_ from prologue to user procs
+ - Let psexec return output from scripts
+ - Fix error msg in psid forwarder
+Additional changes:
+ - Add PSIDHOOK_PELOGUE_RES and PSIDHOOK_PSSLURM_FINALLOC
+ - Optimize addStrBuf(), str2Buf() and strn2Buf() and avoid strncpy()
+ - Fix documentation in pluginforwarder.h
+
+
 Version 5.1.16-1:
 =================
 Bugfixes:
