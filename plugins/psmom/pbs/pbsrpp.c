@@ -2727,6 +2727,7 @@ int rpp_open(
             memcpy(&tmp_array[j], &sp->addr_array[j], hp->h_length);
             }
           memcpy(&tmp_array[i], hp->h_addr_list[0], hp->h_length);
+	  free(tmp_array);
           }
         }
       }
