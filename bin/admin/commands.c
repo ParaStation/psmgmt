@@ -1132,11 +1132,15 @@ void PSIADM_JobStat(PStask_ID_t task, PSpart_list_t opt)
 
 	    if (req->num * sizeof(PSpart_slot_t) > slotBufSize) {
 		slotBufSize = 2 * req->num * sizeof(PSpart_slot_t);
+		char *oldBuf = slotBuf;
 		slotBuf = realloc(slotBuf, slotBufSize);
+		if (!slotBuf) free(oldBuf);
 	    }
 	    if (req->num * sizeof(*slots) > slotsSize) {
 		slotsSize = 2 * req->num * sizeof(*slots);
+		PSpart_slot_t *oldSlots = slots;
 		slots = realloc(slots, slotsSize);
+		if (!slots) free(oldSlots);
 	    }
 
 	    if (!slotBuf || !slots) {

@@ -347,8 +347,10 @@ char* PSC_parseNodelist(char* descr)
     char* range;
     char* work = NULL;
 
+    char *oldNL = nl;
     nl = realloc(nl, sizeof(char) * PSC_getNrOfNodes());
     if (!nl) {
+	free(oldNL);
 	PSC_log(-1, "%s: no memory\n", __func__);
 	return NULL;
     }

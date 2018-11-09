@@ -54,7 +54,7 @@ static char *getNodeList(char *nl_descr)
     static char *nl = NULL;
     char *host, *work = NULL;
 
-    if (!nl) nl = realloc(nl, sizeof(char) * PSC_getNrOfNodes());
+    if (!nl) nl = malloc(sizeof(char) * PSC_getNrOfNodes());
     if (!nl) {
 	PSC_log(-1, "%s: no memory\n", __func__);
 	return NULL;

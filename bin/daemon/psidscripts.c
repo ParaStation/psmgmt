@@ -281,8 +281,10 @@ int PSIDscripts_setMax(int max)
 
     maxCBFD = max;
 
+    pid_t *oldList = cbList;
     cbList = realloc(cbList, sizeof(*cbList) * maxCBFD);
     if (!cbList) {
+	free(oldList);
 	PSID_warn(-1, ENOMEM, "%s", __func__);
 	errno = ENOMEM;
 	return -1;

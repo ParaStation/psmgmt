@@ -1591,8 +1591,10 @@ static int getCPUmapEnt(char *token)
 				    * sizeof(*default_cpumap));
 	} else if (default_cpumap_size == default_cpumap_maxsize) {
 	    default_cpumap_maxsize *= 2;
+	    short *oldMap = default_cpumap;
 	    default_cpumap = realloc(default_cpumap, default_cpumap_maxsize
 				     * sizeof(*default_cpumap));
+	    if (!default_cpumap) free(oldMap);
 	}
 	if (!default_cpumap) {
 	    parser_comment(-1, "%s: No memory for default_cpumap\n", __func__);
@@ -1603,8 +1605,10 @@ static int getCPUmapEnt(char *token)
     } else {
 	if (node_cpumap_size == node_cpumap_maxsize) {
 	    node_cpumap_maxsize *= 2;
+	    short *oldMap = node_cpumap;
 	    node_cpumap = realloc(node_cpumap, node_cpumap_maxsize
 				  * sizeof(*node_cpumap));
+	    if (!node_cpumap) free(oldMap);
 	}
 	if (!node_cpumap) {
 	    parser_comment(-1, "%s: No memory for node_cpumap\n", __func__);
@@ -1833,8 +1837,11 @@ static int setupNodeFromDefault(void)
 	size_t i;
 	if (default_cpumap_size > node_cpumap_maxsize) {
 	    node_cpumap_maxsize = default_cpumap_size;
+
+	    short *oldMap = node_cpumap;
 	    node_cpumap = realloc(node_cpumap, node_cpumap_maxsize
 				  * sizeof(*node_cpumap));
+	    if (!node_cpumap) free(oldMap);
 	}
 	if (!node_cpumap) {
 	    parser_comment(-1, "%s: No memory\n", __func__);
