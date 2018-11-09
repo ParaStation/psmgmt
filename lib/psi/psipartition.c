@@ -579,35 +579,36 @@ static int nodelistFromPEFile(char *fileName, nodelist_t *nodelist)
 	if (line[0] == '#') continue;
 
 	host = strtok_r(line, delimiters, &work);
-	if (!host || ! *host) return 0;
+	if (!host || ! *host) goto ERROR;
 
 	node = PSI_resolveNodeID(host);
-	if (node < 0) return 0;
+	if (node < 0) goto ERROR;
 
 	numStr = strtok_r(NULL, delimiters, &work);
 	if (!numStr || ! *numStr) {
 	    PSI_log(-1, "%s: number of processes missing for host '%s'\n",
 		    __func__, host);
-	    return 0;
+	    goto ERROR;
 	}
 	num = strtol(numStr, &end, 0);
 	if (*end) {
 	    PSI_log(-1, "%s: failed to determine number of processes for"
 		    " host '%s' from '%s'\n", __func__, host, numStr);
-	    return 0;
+	    goto ERROR;
 	}
 
 	for (i=0; i<num; i++) {
-	    if (!addNode(node, nodelist)) {
-		fclose(file);
-		return 0;
-	    }
+	    if (!addNode(node, nodelist)) goto ERROR;
 	}
 	total += num;
     }
 
     fclose(file);
     return total;
+
+ERROR:
+    fclose(file);
+    return 0;
 }
 
 /**
