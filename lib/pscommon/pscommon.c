@@ -416,6 +416,7 @@ char * PSC_concat(const char *str, ...)
 		newp = (char *) realloc(result, allocated);
 		if (!newp) {
 		    free(result);
+		    va_end(ap);
 		    return NULL;
 		}
 		wp = newp + (wp - result);
