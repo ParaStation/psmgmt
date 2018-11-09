@@ -2711,25 +2711,6 @@ int rpp_open(
           memcpy(&sp->addr_array[0], hp->h_addr_list[0], hp->h_length);
           }
         }
-      else
-        {
-        struct in_addr *tmp_array;
-        int j;
-
-        for(i = 0; &sp->addr_array[i] != NULL; i++);
-
-        tmp_array = ( struct in_addr *)calloc(i, sizeof(struct in_addr));
-
-        if(tmp_array)
-          {
-          for(j = 0; j < i; j++)
-            {
-            memcpy(&tmp_array[j], &sp->addr_array[j], hp->h_length);
-            }
-          memcpy(&tmp_array[i], hp->h_addr_list[0], hp->h_length);
-	  free(tmp_array);
-          }
-        }
       }
     }
 
