@@ -361,7 +361,7 @@ static unsigned long sizeToBytes(char *string)
 	{ "w",  s_word },
 	{ "kw", s_word * 1024 },
 	{ "mw", s_word * 1024 * 1024 },
-	{ "gw", s_word * 1024 * 1024 * 1024 },
+	{ "gw", (uint64_t) s_word * 1024 * 1024 * 1024 },
 	{ "", 0 },
     }, *ptr = conf_table;
 
