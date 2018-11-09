@@ -72,6 +72,7 @@ static bool enforceLimit(char *name, long limit)
     }
     if (fprintf(fp, "%ld\n", limit) < 0) {
 	cgwarn(-1, errno, "%s: failed to set %ld to %s", __func__, limit, name);
+	fclose(fp);
 	return false;
     }
     fclose(fp);
@@ -148,6 +149,7 @@ static int jailProcess(void *info)
     }
     if (fprintf(fp, "%d\n", pid) < 0) {
 	cgwarn(-1, errno, "%s: failed to add %d", __func__, pid);
+	fclose(fp);
 	return -1;
     }
     fclose(fp);
