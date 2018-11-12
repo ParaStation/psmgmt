@@ -2293,7 +2293,7 @@ static bool initHostLT(void)
 
     numEntry = getConfValueI(&Config, "SLURM_HOST_ENTRY_COUNT");
     if (numEntry == -1) {
-	mlog("%s: missing NodeName definition in psslurm.conf\n", __func__);
+	mlog("%s: missing NodeName definition in slurm.conf\n", __func__);
 	goto ERROR;
     }
 
