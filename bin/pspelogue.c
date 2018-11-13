@@ -158,7 +158,7 @@ static void init(const int argc, const char *argv[])
 
 static void timeoutHandler(int sig)
 {
-    fprintf(stderr, "%s: timeout(%u) receiving pelogue result\n",
+    fprintf(stderr, "%s: timeout(%i) receiving pelogue result\n",
 	   __func__, pelogueTimeout + recvTimeout + graceTime);
     exit(1);
 }
@@ -214,7 +214,7 @@ static void handlePElogueResp(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
     free(handledID);
 
     if (exit_status) {
-	fprintf(stderr, "%s: pelogue failed with exit status %u timeout %u\n",
+	fprintf(stderr, "%s: pelogue failed with exit status %i timeout %u\n",
 		__func__, exit_status, timeout);
 	exit(1);
     }

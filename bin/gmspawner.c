@@ -274,7 +274,7 @@ static void *listenToClients(void *val)
     collectInfo(args.sock, args.np, args.magic, args.verbose);
 
     if (args.verbose) {
-	printf("Received data from all %d MPI processes.\n", args.np);
+	printf("Received data from all %u MPI processes.\n", args.np);
     }
 
     /* Send the Port ID/Board ID mapping to all remote processes. */
@@ -301,7 +301,7 @@ static void *listenToClients(void *val)
 	    continue;
 	}
 
-	ret = sscanf(buf, "<<<ABORT_%d_ABORT>>>", &thismagic);
+	ret = sscanf(buf, "<<<ABORT_%u_ABORT>>>", &thismagic);
 
 	if (ret != 1) {
 	    fprintf(stderr,

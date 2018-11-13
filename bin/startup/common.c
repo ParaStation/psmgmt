@@ -285,7 +285,7 @@ static void setupPSIEnv(Conf_t *conf)
     }
 
     if (conf->psiDbgMask) {
-	snprintf(buf, sizeof(buf), "%d", conf->psiDbgMask);
+	snprintf(buf, sizeof(buf), "%u", conf->psiDbgMask);
 	setenv("PSI_DEBUGMASK", buf, 1);
 	if (verbose) printf("PSI_DEBUGMASK=%#x : Set libpsi debug mask\n",
 			    conf->psiDbgMask);
