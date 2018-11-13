@@ -1602,12 +1602,12 @@ static int handleErr(int eno)
 	    (unsigned int) errmsg.msg_controllen);
 
     RDP_log(RDP_LOG_EXTD, "%s: errmsg.msg_flags: < %s%s%s%s%s%s>\n", __func__,
-	    errmsg.msg_flags & MSG_EOR ? "MSG_EOR ":"",
-	    errmsg.msg_flags & MSG_TRUNC ? "MSG_TRUNC ":"",
-	    errmsg.msg_flags & MSG_CTRUNC ? "MSG_CTRUNC ":"",
-	    errmsg.msg_flags & MSG_OOB ? "MSG_OOB ":"",
-	    errmsg.msg_flags & MSG_ERRQUEUE ? "MSG_ERRQUEUE ":"",
-	    errmsg.msg_flags & MSG_DONTWAIT ? "MSG_DONTWAIT ":"");
+	    (errmsg.msg_flags & MSG_EOR) ? "MSG_EOR ":"",
+	    (errmsg.msg_flags & MSG_TRUNC) ? "MSG_TRUNC ":"",
+	    (errmsg.msg_flags & MSG_CTRUNC) ? "MSG_CTRUNC ":"",
+	    (errmsg.msg_flags & MSG_OOB) ? "MSG_OOB ":"",
+	    (errmsg.msg_flags & MSG_ERRQUEUE) ? "MSG_ERRQUEUE ":"",
+	    (errmsg.msg_flags & MSG_DONTWAIT) ? "MSG_DONTWAIT ":"");
 
     cmsg = CMSG_FIRSTHDR(&errmsg);
     if (!cmsg) {
