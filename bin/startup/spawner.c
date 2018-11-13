@@ -766,10 +766,10 @@ static void extractNodeInformation(PSnodes_ID_t *nodeList, int np)
 static int spawnSingleExecutable(int np, int argc, char **argv, char *wd,
 				 PSrsrvtn_ID_t resID, bool verbose)
 {
-    int i, ret, *errors = NULL;
+    int i, ret;
     PStask_ID_t *tids;
 
-    errors = umalloc(sizeof(int) * np);
+    int *errors = umalloc(sizeof(int) * np);
     for (i=0; i<np; i++) errors[i] = 0;
     tids = umalloc(sizeof(PStask_ID_t) * np);
 

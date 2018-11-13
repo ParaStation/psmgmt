@@ -325,8 +325,7 @@ bool registerClient(int rank, PStask_ID_t tid, PStask_group_t group)
 	maxRank = rank;
 	if (destStr) {
 	    const char delimiters[] ="[], \n";
-	    char *saveptr, *parseStr = strdup(destStr);
-	    char *rankStr = strtok_r(destStr, delimiters, &saveptr);
+	    char *saveptr, *rankStr = strtok_r(destStr, delimiters, &saveptr);
 
 	    if (rankStr && !strncasecmp(rankStr, "all", 3)) {
 		int r;
@@ -335,8 +334,6 @@ bool registerClient(int rank, PStask_ID_t tid, PStask_group_t group)
 		    nActvClnts++;
 		}
 	    }
-
-	    free(parseStr);
 	}
     }
 

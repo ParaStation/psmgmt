@@ -258,7 +258,7 @@ static void *listenToClients(void *val)
     /* Gather the information from all remote processes via sockets. */
     unsigned int i;
 
-    if (args.np <= 0) exit(1);
+    if (!args.np) exit(1);
 
     clients = malloc(args.np * sizeof(*clients));
 
