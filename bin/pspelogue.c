@@ -106,7 +106,7 @@ static void getNodesFromSlurmHL(char *slurmHosts, uint32_t *nrOfNodes,
     if (!hostlist || !*nrOfNodes) return;
 
     *nodes = malloc(sizeof(**nodes) * *nrOfNodes);
-    if (!nodes) exit(1);
+    if (!*nodes) exit(1);
 
     next = strtok_r(hostlist, delimiters, &saveptr);
 
@@ -416,7 +416,7 @@ int main(const int argc, const char *argv[], char *envp[])
     /* receive and handle result */
     handleResponse();
 
-    if (nodes) free(nodes);
+    free(nodes);
 
     if (verbose) {
 	printf("parallel pelogue for job %s finished in %.3f seconds\n",

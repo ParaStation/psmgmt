@@ -618,7 +618,7 @@ static char **setupRankEnv(int psRank, void *info)
 
     env[cur++] = NULL;
 
-    if (conf && conf->verbose) printf("spawn rank %d\n", rank);
+    if (conf->verbose) printf("spawn rank %d\n", rank);
 
     rank++;
     return env;

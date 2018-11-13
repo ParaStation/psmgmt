@@ -1233,9 +1233,7 @@ static void handleAccSlotsMsg(char *chead, DDTypedBufferMsg_t * msg)
 	       umalloc(job->exec_hosts_size + EXEC_HOST_SIZE, __func__);
 	   job->exec_hosts_size += EXEC_HOST_SIZE;
 	   strncpy(job->exec_hosts, tmpjob, job->exec_hosts_size);
-	   if (tmpjob) {
-	       free(tmpjob);
-	   }
+	   free(tmpjob);
        }
 
        bufleft = job->exec_hosts_size - strlen(job->exec_hosts);

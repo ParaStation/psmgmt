@@ -258,7 +258,7 @@ int PSID_registerScript(config_t *config, char *type, char *script)
 
     *scriptStr = strdup(script);
 
-    if (!scriptStr) {
+    if (!*scriptStr) {
 	PSID_warn(-1, errno, "%s: strdup(%s)", __func__, script);
 	return -1;
     }
