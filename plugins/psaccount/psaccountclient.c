@@ -761,7 +761,7 @@ char *listClients(char *buf, size_t *bufSize, bool detailed)
 	str2Buf(l, &buf, bufSize);
 	snprintf(l, sizeof(l), "gid %i\n", cl->gid);
 	str2Buf(l, &buf, bufSize);
-	snprintf(l, sizeof(l), "page size %zu\n", cl->data.pageSize);
+	snprintf(l, sizeof(l), "page size %lu\n", cl->data.pageSize);
 	str2Buf(l, &buf, bufSize);
 	snprintf(l, sizeof(l), "start time %s", ctime(&cl->startTime));
 	str2Buf(l, &buf, bufSize);
@@ -770,31 +770,31 @@ char *listClients(char *buf, size_t *bufSize, bool detailed)
 	str2Buf(l, &buf, bufSize);
 
 	if (detailed) {
-	    snprintf(l, sizeof(l), "max mem %zukB\n", cl->data.maxRss);
+	    snprintf(l, sizeof(l), "max mem %lukB\n", cl->data.maxRss);
 	    str2Buf(l, &buf, bufSize);
-	    snprintf(l, sizeof(l), "max vmem %zukB\n", cl->data.maxVsize);
+	    snprintf(l, sizeof(l), "max vmem %lukB\n", cl->data.maxVsize);
 	    str2Buf(l, &buf, bufSize);
-	    snprintf(l, sizeof(l), "cutime %zu\n", cl->data.cutime);
+	    snprintf(l, sizeof(l), "cutime %lu\n", cl->data.cutime);
 	    str2Buf(l, &buf, bufSize);
-	    snprintf(l, sizeof(l), "cstime %zu\n", cl->data.cstime);
+	    snprintf(l, sizeof(l), "cstime %lu\n", cl->data.cstime);
 	    str2Buf(l, &buf, bufSize);
-	    snprintf(l, sizeof(l), "CPU time %zu\n", cl->data.totCputime);
+	    snprintf(l, sizeof(l), "CPU time %lu\n", cl->data.totCputime);
 	    str2Buf(l, &buf, bufSize);
-	    snprintf(l, sizeof(l), "max threads %zu\n", cl->data.maxThreads);
+	    snprintf(l, sizeof(l), "max threads %lu\n", cl->data.maxThreads);
 	    str2Buf(l, &buf, bufSize);
 	    snprintf(l, sizeof(l), "numTask %u\n", cl->data.numTasks);
 	    str2Buf(l, &buf, bufSize);
-	    snprintf(l, sizeof(l), "Vsize %zu\n", cl->data.avgVsizeTotal);
+	    snprintf(l, sizeof(l), "Vsize %lu\n", cl->data.avgVsizeTotal);
 	    str2Buf(l, &buf, bufSize);
-	    snprintf(l, sizeof(l), "#Vsize %zu\n",cl->data.avgVsizeCount);
+	    snprintf(l, sizeof(l), "#Vsize %lu\n",cl->data.avgVsizeCount);
 	    str2Buf(l, &buf, bufSize);
-	    snprintf(l, sizeof(l), "Rss %zu\n", cl->data.avgRssTotal);
+	    snprintf(l, sizeof(l), "Rss %lu\n", cl->data.avgRssTotal);
 	    str2Buf(l, &buf, bufSize);
-	    snprintf(l, sizeof(l), "#Rss %zu\n", cl->data.avgRssCount);
+	    snprintf(l, sizeof(l), "#Rss %lu\n", cl->data.avgRssCount);
 	    str2Buf(l, &buf, bufSize);
-	    snprintf(l, sizeof(l), "Threads %zu\n", cl->data.avgThreadsTotal);
+	    snprintf(l, sizeof(l), "Threads %lu\n", cl->data.avgThreadsTotal);
 	    str2Buf(l, &buf, bufSize);
-	    snprintf(l, sizeof(l), "#Threads %zu\n", cl->data.avgThreadsCount);
+	    snprintf(l, sizeof(l), "#Threads %lu\n", cl->data.avgThreadsCount);
 	    str2Buf(l, &buf, bufSize);
 	}
 	str2Buf("-\n", &buf, bufSize);

@@ -282,8 +282,8 @@ char *listJobs(char *buf, size_t *bufSize)
 	    AccountDataExt_t accData;
 
 	    if (getDataByJob(job->jobscript, &accData)) {
-		snprintf(line, sizeof(line), "utime %zu stime %zu mem[kB] %zu"
-			 " vmem[kB] %zu\n", accData.cutime, accData.cstime,
+		snprintf(line, sizeof(line), "utime %lu stime %lu mem[kB] %lu"
+			 " vmem[kB] %lu\n", accData.cutime, accData.cstime,
 			 accData.maxRssTotal, accData.maxVsizeTotal);
 		str2Buf(line, &buf, bufSize);
 	    }

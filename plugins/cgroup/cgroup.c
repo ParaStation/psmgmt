@@ -405,12 +405,12 @@ static void showLimit(char *name, char **buf, size_t *bufSize)
 	return;
     }
     int ret;
-    if ((ret=fscanf(fp, "%zi", &limit)) != 1) {
+    if ((ret=fscanf(fp, "%zu", &limit)) != 1) {
 	str2Buf("<unknown>", buf, bufSize);
     } else {
 	char limitStr[32];
 
-	snprintf(limitStr, sizeof(limitStr), "%zd", limit);
+	snprintf(limitStr, sizeof(limitStr), "%zu", limit);
 	str2Buf(limitStr, buf, bufSize);
     }
     fclose(fp);

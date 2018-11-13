@@ -577,13 +577,13 @@ int initX11Forwarding2(Job_t *job, char *x11Cookie, int port,
     }
 
     /* set display var */
-    snprintf(x11Display, sizeof(x11Display), "localhost:%u.%u", port, x11Screen);
+    snprintf(x11Display, sizeof(x11Display), "localhost:%i.%u", port, x11Screen);
     setenv("DISPLAY", x11Display, 1);
     unsetenv("XAUTHORITY");
-    snprintf(display, displaySize, "DISPLAY=localhost:%u.%u", port, x11Screen);
+    snprintf(display, displaySize, "DISPLAY=localhost:%i.%u", port, x11Screen);
 
     /* call xauth */
-    snprintf(x11Auth, sizeof(x11Auth), "unix:%u.%u", port, x11Screen);
+    snprintf(x11Auth, sizeof(x11Auth), "unix:%i.%u", port, x11Screen);
     snprintf(xauthCmd, sizeof(xauthCmd), "%s -q -", X11_AUTH_CMD);
 
     if ((fp = popen(xauthCmd, "w")) != NULL) {

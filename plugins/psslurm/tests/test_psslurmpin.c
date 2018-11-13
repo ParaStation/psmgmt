@@ -110,7 +110,7 @@ int main(int argc, char *argv[])
 	    cpuBindString);
     printf("node: %d sockets, %d cores per socket, %d threads per core\n",
 	    socketCount, coresPerSocket, threadsPerCore);
-    printf("job: %d tasks, %d threads per task\n", tasksPerNode,
+    printf("job: %u tasks, %d threads per task\n", tasksPerNode,
 	    threadsPerTask);
     printf("flags: oneThreadPerCore %s\n", atoi(argv[8]) != 0 ? "set" : "unset");
     printf("\n");
@@ -135,7 +135,7 @@ int main(int argc, char *argv[])
 		tasksPerNode, threadsPerTask, local_tid, &lastCpu, &thread,
 		&pininfo);
 
-	printf("%2d: ", local_tid);
+	printf("%2u: ", local_tid);
 	for (i = 0; i < threadCount; i++) {
 	    if (i % coresPerSocket == 0) printf(" ");
 	    if (i % (socketCount * coresPerSocket) == 0) printf("\n    ");

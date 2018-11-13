@@ -138,10 +138,10 @@ static void setJobCpuTime(Job_t *job)
 
     if (job->res.r_chour + job->res.r_cmin + job->res.r_csec >
 	job->res.a_chour + job->res.a_cmin + job->res.a_csec) {
-	snprintf(cputime, sizeof(cputime), "%02i:%02i:%02i", job->res.r_chour,
+	snprintf(cputime, sizeof(cputime), "%02u:%02u:%02u", job->res.r_chour,
 	    job->res.r_cmin, job->res.r_csec);
     } else {
-	snprintf(cputime, sizeof(cputime), "%02i:%02i:%02i", job->res.a_chour,
+	snprintf(cputime, sizeof(cputime), "%02u:%02u:%02u", job->res.a_chour,
 	    job->res.a_cmin, job->res.a_csec);
     }
     setEntry(&job->status.list, "resources_used", "cput", cputime);

@@ -170,11 +170,11 @@ static void handlePluginConfigAdd(DDTypedBufferMsg_t *msg,
 
     INIT_LIST_HEAD(config);
     char timeoutStr[16];
-    snprintf(timeoutStr, sizeof(timeoutStr), "%d", timeout);
+    snprintf(timeoutStr, sizeof(timeoutStr), "%u", timeout);
     addConfigEntry(config, "TIMEOUT_PROLOGUE", timeoutStr);
     addConfigEntry(config, "TIMEOUT_EPILOGUE", timeoutStr);
     char graceStr[16];
-    snprintf(graceStr, sizeof(graceStr), "%d", grace);
+    snprintf(graceStr, sizeof(graceStr), "%u", grace);
     addConfigEntry(config, "TIMEOUT_PE_GRACE", graceStr);
     addConfigEntry(config, "DIR_SCRIPTS", SPOOL_DIR "/scripts");
 
