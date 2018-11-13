@@ -717,7 +717,7 @@ static int callbackPElogue(int fd, PSID_scriptCBInfo_t *info)
 
     /* add error msg */
     if (exitStat) {
-	if (strlen(errMsg) <= 0) {
+	if (!strlen(errMsg)) {
 	    mlog("%s: exit without message for '%s'\n", __func__, data->jobid);
 	    addStringToMsg("no error msg received", &msg);
 	} else {

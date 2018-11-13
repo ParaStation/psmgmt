@@ -604,7 +604,7 @@ void leaveKVS(int used)
     char *ptr = buffer;
     size_t len = 0;
 
-    if (!used || (used && !isSuccReady)) {
+    if (!used || !isSuccReady) {
 	/* inform the provider we are leaving the KVS space */
 	setKVSCmd(&ptr, &len, LEAVE);
 	sendKvstoProvider(buffer, len);

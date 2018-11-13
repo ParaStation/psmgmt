@@ -1727,7 +1727,7 @@ static void writeAccData(char *errLog, int status)
     wDoSend(com);
 
     ReadDigitUL(com, &count);
-    if (count <= 0) {
+    if (!count) {
 	mlog("%s: failed getting account data\n", __func__);
 	return;
     }

@@ -51,6 +51,8 @@
 
 #include "psmomproto.h"
 
+#define ENABLE_TM_REQUEST false
+
 static char buf[2048];
 
 
@@ -1033,7 +1035,6 @@ static int handle_TM_Bjobscript(ComHandle_t *com)
 	send_TM_Error(com, PBSE_UNKJOBID, "Writing Jobscript failed", 1);
 	ufree(jobscript);
 	return 1;
-	break;
     }
 
     fclose(fp);
@@ -2051,10 +2052,11 @@ static int handle_TM_message(ComHandle_t *com)
     /* special tm interface */
     rmPort = getConfValueI(&config, "PORT_RM");
     if (com->type == TCP_PROTOCOL && com->localPort == rmPort) {
-	/* currently disabled */
+	if (ENABLE_TM_REQUEST) {
+	    return handle_TM_Request(com);
+	}
 	wClose(com);
 	return 0;
-	return handle_TM_Request(com);
     }
 
     if ((ReadDigitUI(com, &cmd)) < 0){

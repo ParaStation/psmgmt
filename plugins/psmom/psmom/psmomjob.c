@@ -868,7 +868,7 @@ void cleanJobByNode(PSnodes_ID_t id)
 
 	if (job->state != JOB_PROLOGUE && job->state != JOB_EPILOGUE
 	    && job->state != JOB_RUNNING  && job->state != JOB_CANCEL_PROLOGUE
-	    && job->state == JOB_CANCEL_EPILOGUE) continue;
+	    && job->state != JOB_CANCEL_EPILOGUE) continue;
 
 	for (i=0; i<job->nrOfUniqueNodes; i++) {
 	    if (job->nodes[i].id != id) continue;

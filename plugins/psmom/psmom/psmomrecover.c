@@ -29,12 +29,12 @@ void recoverJobInfo()
     struct dirent *d;
     DIR *dir;
     char accFile[400], value[100] = {'\0'}, buf[101] = {'\0'};
-    char *accPath = NULL, *jobid, *servername, *tmp;
+    char *jobid, *servername, *tmp;
     int ret;
     Job_t *job;
     struct passwd *result;
 
-    accPath = getConfValueC(&config, "DIR_JOB_ACCOUNT");
+    char *accPath = getConfValueC(&config, "DIR_JOB_ACCOUNT");
 
     if (!(dir = opendir(accPath))) {
 	mlog("%s: opening accounting dir '%s' failed\n", __func__, accPath);

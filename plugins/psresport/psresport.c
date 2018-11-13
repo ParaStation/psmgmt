@@ -279,7 +279,7 @@ static void setPortState(uint16_t *resPorts, int value)
 
     if (!nodeBitField) initNodeBitField();
 
-    if (uniqNodeCount < 1 || !uniqNodeCount) {
+    if (!uniqNodeCount) {
 	mlog("%s: internal lists not proper initialized\n", __func__);
 	return;
     }

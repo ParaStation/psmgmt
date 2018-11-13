@@ -524,7 +524,7 @@ int localDoSend(int sock, const char *caller)
 	return -1;
     }
 
-    if (!com->outBuf || com->dataSize <= 0) {
+    if (!com->outBuf || !com->dataSize) {
 	mlog("%s(%s): socket '%i' output buffer is empty\n", __func__, caller,
 		sock);
 	return -1;
