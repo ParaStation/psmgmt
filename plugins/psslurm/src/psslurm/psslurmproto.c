@@ -239,7 +239,7 @@ static int needIOReplace(char *ioString, char symbol)
 static void setIOoptions(char *ioString, int *Opt, int32_t *rank)
 {
     if (ioString && strlen(ioString) > 0) {
-	if ((sscanf(ioString, "%u", rank)) == 1) {
+	if ((sscanf(ioString, "%i", rank)) == 1) {
 	    *Opt = IO_SRUN_RANK;
 	} else if (needIOReplace(ioString, 't')) {
 	    *Opt = IO_RANK_FILE;
@@ -1468,7 +1468,7 @@ static bool extractJobPackInfos(Job_t *job)
 	char *next, nodeListName[256];
 
 	snprintf(nodeListName, sizeof(nodeListName),
-		 "SLURM_JOB_NODELIST_PACK_GROUP_%i", i);
+		 "SLURM_JOB_NODELIST_PACK_GROUP_%u", i);
 
 	if (!(next = envGet(&job->env, nodeListName))) {
 	    mlog("%s: %s not found in job environment\n", __func__,

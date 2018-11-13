@@ -833,28 +833,28 @@ bool hexBitstr2List(char *bitstr, char **list, size_t *listSize)
 
 	if (next & 1) {
 	    if (*listSize) str2Buf(",", list, listSize);
-	    snprintf(tmp, sizeof(tmp), "%u", count);
+	    snprintf(tmp, sizeof(tmp), "%i", count);
 	    str2Buf(tmp, list, listSize);
 	}
 	count++;
 
 	if (next & 2) {
 	    if (*listSize) str2Buf(",", list, listSize);
-	    snprintf(tmp, sizeof(tmp), "%u", count);
+	    snprintf(tmp, sizeof(tmp), "%i", count);
 	    str2Buf(tmp, list, listSize);
 	}
 	count++;
 
 	if (next & 4) {
 	    if (*listSize) str2Buf(",", list, listSize);
-	    snprintf(tmp, sizeof(tmp), "%u", count);
+	    snprintf(tmp, sizeof(tmp), "%i", count);
 	    str2Buf(tmp, list, listSize);
 	}
 	count++;
 
 	if (next & 8) {
 	    if (*listSize) str2Buf(",", list, listSize);
-	    snprintf(tmp, sizeof(tmp), "%u", count);
+	    snprintf(tmp, sizeof(tmp), "%i", count);
 	    str2Buf(tmp, list, listSize);
 	}
 	count++;

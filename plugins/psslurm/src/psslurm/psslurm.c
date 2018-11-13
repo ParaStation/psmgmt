@@ -629,7 +629,7 @@ int initialize(void)
     /* register to slurmctld */
     ctlPort = getConfValueI(&SlurmConfig, "SlurmctldPort");
     if (ctlPort < 0) {
-	snprintf(buf, sizeof(buf), "%u", PSSLURM_SLURMCTLD_PORT);
+	snprintf(buf, sizeof(buf), "%i", PSSLURM_SLURMCTLD_PORT);
 	addConfigEntry(&SlurmConfig, "SlurmctldPort", buf);
     }
     sendNodeRegStatus();

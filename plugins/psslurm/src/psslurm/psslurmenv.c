@@ -93,7 +93,7 @@ static char *getCPUsPerNode(Job_t *job)
 	if (i>0) str2Buf(",", &buffer, &bufSize);
 
 	if (job->cpuCountReps[i] > 1) {
-	    snprintf(tmp, sizeof(tmp), "%u(x%i)", job->cpusPerNode[i],
+	    snprintf(tmp, sizeof(tmp), "%u(x%u)", job->cpusPerNode[i],
 			job->cpuCountReps[i]);
 	} else {
 	    snprintf(tmp, sizeof(tmp), "%u", job->cpusPerNode[i]);

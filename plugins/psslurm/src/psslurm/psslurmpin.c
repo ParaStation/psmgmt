@@ -1230,9 +1230,9 @@ static void parseNUMAmask(struct bitmask *nodemask, char *maskStr, int32_t rank)
 			    curbit + j)) {
 		    numa_bitmask_setbit(nodemask, curbit + j);
 		} else {
-		    mlog("%s: setting bit %d in memory mask not allowed in"
+		    mlog("%s: setting bit %u in memory mask not allowed in"
 			    " rank %d\n", __func__, curbit + j, rank);
-		    fprintf(stderr, "Not allowed to set bit %d in memory mask"
+		    fprintf(stderr, "Not allowed to set bit %u in memory mask"
 			    " of rank %d\n", curbit + j, rank);
 		}
 	    }
@@ -1315,7 +1315,7 @@ void doMemBind(Step_t *step, PStask_t *task)
 		    " (local rank %d > #numa_nodes %d)\n", __func__,
 		    task->rank, lTID, numa_max_node());
 	    fprintf(stderr, "Memory binding to ranks not possible for rank %d,"
-		    " local rank %d larger than max numa node %d.",
+		    " local rank %u larger than max numa node %d.",
 		    task->rank, lTID, numa_max_node());
 	    if (nodemask) numa_free_nodemask(nodemask);
 	    return;
@@ -1325,7 +1325,7 @@ void doMemBind(Step_t *step, PStask_t *task)
 	} else {
 	    mlog("%s: setting bit %d in memory mask not allowed in rank"
 		    " %d\n", __func__, lTID, task->rank);
-	    fprintf(stderr, "Not allowed to set bit %d in memory mask"
+	    fprintf(stderr, "Not allowed to set bit %u in memory mask"
 		    " of rank %d\n", lTID, task->rank);
 	}
 	numa_set_membind(nodemask);

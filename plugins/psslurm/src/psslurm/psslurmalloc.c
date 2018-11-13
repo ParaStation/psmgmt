@@ -200,7 +200,7 @@ const char *strAllocState(AllocState_t state)
 	case A_EXIT:
 	    return "A_EXIT";
 	default:
-	    snprintf(buf, sizeof(buf), "<unknown: %u>", state);
+	    snprintf(buf, sizeof(buf), "<unknown: %i>", state);
 	    return buf;
     }
 }

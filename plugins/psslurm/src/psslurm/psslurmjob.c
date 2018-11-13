@@ -304,7 +304,7 @@ char *strJobState(JobState_t state)
     case JOB_COMPLETE:
 	return "COMPLETE";
     default:
-	snprintf(buf, sizeof(buf), "<unknown: %u>", state);
+	snprintf(buf, sizeof(buf), "<unknown: %i>", state);
 	return buf;
     }
 }
