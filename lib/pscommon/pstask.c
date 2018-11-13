@@ -361,11 +361,6 @@ PStask_t* PStask_clone(PStask_t* task)
 	    goto error;
 	}
 	for (i=0; task->environ[i]; i++) {
-	    if (!task->environ[i]) {
-		PSC_log(-1, "%s: environ[%d] is NULL\n", __func__, i);
-		eno = EINVAL;
-		goto error;
-	    }
 	    clone->environ[i] = strdup(task->environ[i]);
 	    if (!clone->environ[i]) {
 		eno = errno;
