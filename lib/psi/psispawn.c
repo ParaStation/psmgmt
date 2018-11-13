@@ -525,7 +525,7 @@ int PSI_sendSpawnReq(PStask_t* task, PSnodes_ID_t *dstnodes, uint32_t max)
     initFragBuffer(&msg, PSP_CD_SPAWNREQUEST, -1);
     setFragDest(&msg, dest);
 
-    while (dstnodes[num] == dstnodes[0] && num < max) num++;
+    while (num < max && dstnodes[num] == dstnodes[0]) num++;
 
     PSI_log(PSI_LOG_SPAWN, "%s: %d proc to %d at rank %d\n", __func__, num,
 	    dstnodes[0], task->rank);

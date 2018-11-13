@@ -78,7 +78,6 @@ int PSpart_delReq(PSpart_request_t* request)
 
     PSpart_reinitReq(request);
     free(request);
-    request = NULL;
 
     return 1;
 }

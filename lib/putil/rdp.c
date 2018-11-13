@@ -281,10 +281,8 @@ static void insertIPTable(struct in_addr ipno, int node)
  */
 static int lookupIPTable(struct in_addr ipno)
 {
-    ipentry_t *ip = NULL;
     int idx = ntohl(ipno.s_addr) & 0xff;  /* use last byte of IP addr */
-
-    ip = &iptable[idx];
+    ipentry_t *ip = &iptable[idx];
 
     do {
 	if (ip->ipnr == ipno.s_addr) {

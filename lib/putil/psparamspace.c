@@ -351,7 +351,7 @@ void PSPARM_freeKeylist(keylist_t *keylist)
     if (!keylist) return;
 
     for (i=0; keylist[i].key; i++) {
-	if (keylist[i].key) free(keylist[i].key);
+	free(keylist[i].key);
     }
 
     free(keylist);

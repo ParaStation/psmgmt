@@ -255,7 +255,6 @@ static int connectDaemon(PStask_group_t taskGroup, int tryStart)
 	}
 
 	return 1;
-	break;
     }
     default :
 	PSI_log(-1, "%s: unexpected return code %d (%s)\n", __func__,
