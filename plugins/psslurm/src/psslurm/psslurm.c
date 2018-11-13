@@ -532,10 +532,10 @@ static void enableFPEexceptions(void)
 	mlog("%s: feenableexcept() failed\n", __func__);
     } else {
 	mlog("%s: old exception mask: %s %s %s %s\n", __func__,
-	     ret & FE_DIVBYZERO ? "FE_DIVBYZERO :" : "",
-	     ret & FE_INVALID ? "FE_INVALID :" : "",
-	     ret & FE_OVERFLOW ? "FE_OVERFLOW :" : "",
-	     ret & FE_UNDERFLOW ? "FE_UNDERFLOW" : "");
+	     (ret & FE_DIVBYZERO) ? "FE_DIVBYZERO :" : "",
+	     (ret & FE_INVALID) ? "FE_INVALID :" : "",
+	     (ret & FE_OVERFLOW) ? "FE_OVERFLOW :" : "",
+	     (ret & FE_UNDERFLOW) ? "FE_UNDERFLOW" : "");
     }
 }
 

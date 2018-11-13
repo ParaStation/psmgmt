@@ -916,7 +916,7 @@ int setHWthreads(Step_t *step)
 		    && (step->taskDist == SLURM_DIST_BLOCK_CYCLIC
 			|| step->taskDist == SLURM_DIST_CYCLIC_CYCLIC)) {
 		PSCPU_clrAll(slots[tid].CPUset);
-		shift = lTID % 2 ? cred->coresPerSocket[coreArrayIndex] : 0;
+		shift = (lTID % 2) ? cred->coresPerSocket[coreArrayIndex] : 0;
 		shift = shift - step->tpp * ((lTID + 1) / 2);
 		for (i = 0; i < (cpuCount * hwThreads); i++) {
 		    if (PSCPU_isSet(CPUset, i)) {
