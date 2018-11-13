@@ -96,8 +96,7 @@ static int fillCmdForSingleSpawn(SpawnRequest_t *req, int usize,
 				| CPU_BIND_MAP | CPU_BIND_MASK | CPU_BIND_LDMAP
 				| CPU_BIND_LDMASK | CPU_BIND_TO_SOCKETS
 				| CPU_BIND_TO_LDOMS | CPU_BIND_LDRANK
-				| CPU_BIND_LDRANK | CPU_BIND_RANK
-				| CPU_BIND_TO_THREADS ))) {
+				| CPU_BIND_RANK | CPU_BIND_TO_THREADS ))) {
         task->argv[argc++] = ustrdup("--cpu_bind=none");
     }
 
@@ -230,8 +229,7 @@ static int fillCmdForMultiSpawn(SpawnRequest_t *req, int usize,
 				| CPU_BIND_MAP | CPU_BIND_MASK | CPU_BIND_LDMAP
 				| CPU_BIND_LDMASK | CPU_BIND_TO_SOCKETS
 				| CPU_BIND_TO_LDOMS | CPU_BIND_LDRANK
-				| CPU_BIND_LDRANK | CPU_BIND_RANK
-				| CPU_BIND_TO_THREADS ))) {
+				| CPU_BIND_RANK | CPU_BIND_TO_THREADS ))) {
         task->argv[argc++] = ustrdup("--cpu_bind=none");
     }
 

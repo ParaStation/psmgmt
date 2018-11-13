@@ -210,7 +210,6 @@ bool writeJobscript(Job_t *job)
 	mlog("%s: writing jobscript '%s' failed : %s\n", __func__,
 		job->jobscript, strerror(errno));
 	return false;
-	break;
     }
     fclose(fp);
     ufree(job->jsData);
@@ -2391,11 +2390,10 @@ int __sendSlurmRC(Slurm_Msg_t *sMsg, uint32_t rc, const char *func,
 		    const int line)
 {
     PS_SendDB_t body = { .bufUsed = 0, .useFrag = false };
-    int ret = 1;
 
     addUint32ToMsg(rc, &body);
     sMsg->outdata = &body;
-    ret = __sendSlurmReply(sMsg, RESPONSE_SLURM_RC, func, line);
+    int ret = __sendSlurmReply(sMsg, RESPONSE_SLURM_RC, func, line);
 
     if (!sMsg->head.forward) freeSlurmMsg(sMsg);
 

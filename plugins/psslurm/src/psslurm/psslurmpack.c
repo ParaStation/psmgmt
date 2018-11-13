@@ -201,10 +201,6 @@ bool __unpackJobCred(Slurm_Msg_t *sMsg, JobCred_t **credPtr,
 		     list_t *gresList, char **credEnd, const char *caller,
 		     const int line)
 {
-    JobCred_t *cred;
-    char **ptr = &sMsg->ptr;
-    uint16_t msgVer = sMsg->head.version;
-
     if (!sMsg) {
 	mlog("%s: invalid sMsg from '%s' at %i\n", __func__, caller, line);
 	return false;
@@ -225,7 +221,8 @@ bool __unpackJobCred(Slurm_Msg_t *sMsg, JobCred_t **credPtr,
 	return false;
     }
 
-    cred = ucalloc(sizeof(JobCred_t));
+    JobCred_t *cred = ucalloc(sizeof(JobCred_t));
+    char **ptr = &sMsg->ptr;
 
     /* jobid / stepid */
     getUint32(ptr, &cred->jobid);
@@ -233,6 +230,7 @@ bool __unpackJobCred(Slurm_Msg_t *sMsg, JobCred_t **credPtr,
     /* uid */
     getUint32(ptr, &cred->uid);
 
+    uint16_t msgVer = sMsg->head.version;
     if (msgVer >= SLURM_17_11_PROTO_VERSION) {
 	/* gid */
 	getUint32(ptr, &cred->gid);
@@ -319,9 +317,6 @@ ERROR:
 bool __unpackBCastCred(Slurm_Msg_t *sMsg, BCast_Cred_t *cred,
 		       const char *caller, const int line)
 {
-    char **ptr = &sMsg->ptr;
-    uint16_t msgVer = sMsg->head.version;
-
     if (!sMsg) {
 	mlog("%s: invalid sMsg from '%s' at %i\n", __func__, caller, line);
 	return false;
@@ -332,6 +327,7 @@ bool __unpackBCastCred(Slurm_Msg_t *sMsg, BCast_Cred_t *cred,
 	return false;
     }
 
+    char **ptr = &sMsg->ptr;
     /* init cred */
     memset(cred, 0, sizeof(*cred));
     /* creation time */
@@ -341,6 +337,7 @@ bool __unpackBCastCred(Slurm_Msg_t *sMsg, BCast_Cred_t *cred,
     /* jobid */
     getUint32(ptr, &cred->jobid);
 
+    uint16_t msgVer = sMsg->head.version;
     if (msgVer >= SLURM_17_11_PROTO_VERSION) {
 	/* uid */
 	getUint32(ptr, &cred->uid);
@@ -491,11 +488,6 @@ bool __unpackSlurmIOHeader(char **ptr, Slurm_IO_Header_t **iohPtr,
 bool __unpackReqTerminate(Slurm_Msg_t *sMsg, Req_Terminate_Job_t **reqPtr,
 			  const char *caller, const int line)
 {
-    Req_Terminate_Job_t *req;
-    uint32_t tmp;
-    char **ptr = &sMsg->ptr;
-    uint16_t msgVer = sMsg->head.version;
-
     if (!sMsg) {
 	mlog("%s: invalid sMsg from '%s' at %i\n", __func__, caller, line);
 	return false;
@@ -506,8 +498,9 @@ bool __unpackReqTerminate(Slurm_Msg_t *sMsg, Req_Terminate_Job_t **reqPtr,
 	return false;
     }
 
-    req = ucalloc(sizeof(Req_Terminate_Job_t));
+    Req_Terminate_Job_t *req = ucalloc(sizeof(Req_Terminate_Job_t));
 
+    char **ptr = &sMsg->ptr;
     /* jobid*/
     getUint32(ptr, &req->jobid);
     /* jobstate */
@@ -517,6 +510,7 @@ bool __unpackReqTerminate(Slurm_Msg_t *sMsg, Req_Terminate_Job_t **reqPtr,
     /* nodes */
     req->nodes = getStringM(ptr);
 
+    uint16_t msgVer = sMsg->head.version;
     if (msgVer == SLURM_17_02_PROTO_VERSION) {
 	env_t pelogueEnv;
 
@@ -527,6 +521,7 @@ bool __unpackReqTerminate(Slurm_Msg_t *sMsg, Req_Terminate_Job_t **reqPtr,
     }
 
     /* job info */
+    uint32_t tmp;
     getUint32(ptr, &tmp);
     /* spank env */
     getStringArrayM(ptr, &req->spankEnv.vars, &req->spankEnv.cnt);
@@ -542,10 +537,6 @@ bool __unpackReqTerminate(Slurm_Msg_t *sMsg, Req_Terminate_Job_t **reqPtr,
 bool __unpackReqSignalTasks(Slurm_Msg_t *sMsg, Req_Signal_Tasks_t **reqPtr,
 			    const char *caller, const int line)
 {
-    Req_Signal_Tasks_t *req;
-    char **ptr = &sMsg->ptr;
-    uint16_t msgVer = sMsg->head.version;
-
     if (!sMsg) {
 	mlog("%s: invalid sMsg from '%s' at %i\n", __func__, caller, line);
 	return false;
@@ -556,8 +547,10 @@ bool __unpackReqSignalTasks(Slurm_Msg_t *sMsg, Req_Signal_Tasks_t **reqPtr,
 	return false;
     }
 
-    req = ucalloc(sizeof(Req_Terminate_Job_t));
+    Req_Signal_Tasks_t *req = ucalloc(sizeof(Req_Terminate_Job_t));
 
+    char **ptr = &sMsg->ptr;
+    uint16_t msgVer = sMsg->head.version;
     if (msgVer >= SLURM_17_11_PROTO_VERSION) {
 	/* flags */
 	getUint16(ptr, &req->flags);
@@ -655,23 +648,21 @@ static void unpackStepIOoptions(Step_t *step, char **ptr)
 bool __unpackReqLaunchTasks(Slurm_Msg_t *sMsg, Step_t **stepPtr,
 			    const char *caller, const int line)
 {
-    char **ptr = &sMsg->ptr, *unused;
-    uint16_t msgVer = sMsg->head.version, debug;
-    Step_t *step;
     uint32_t jobid, stepid, count, i, tmp;
-    char jobOpt[512];
 
     if (!sMsg) {
 	mlog("%s: invalid sMsg from '%s' at %i\n", __func__, caller, line);
 	return false;
     }
 
+    char **ptr = &sMsg->ptr, *unused;
     /* jobid/stepid */
     getUint32(ptr, &jobid);
     getUint32(ptr, &stepid);
 
-    step = addStep(jobid, stepid);
+    Step_t *step = addStep(jobid, stepid);
 
+    uint16_t msgVer = sMsg->head.version, debug;
     if (msgVer >= SLURM_17_11_PROTO_VERSION) {
 	/* uid */
 	getUint32(ptr, &step->uid);
@@ -819,6 +810,7 @@ bool __unpackReqLaunchTasks(Slurm_Msg_t *sMsg, Step_t **stepPtr,
     }
 
     /* job options (plugin) */
+    char jobOpt[512];
     getString(ptr, jobOpt, sizeof(jobOpt));
     if (!!(strcmp(jobOpt, JOB_OPTIONS_TAG))) {
 	mlog("%s: invalid job options tag '%s'\n", __func__, jobOpt);
@@ -912,17 +904,15 @@ static void readJobCpuOptions(Job_t *job, char **ptr)
 bool __unpackReqBatchJobLaunch(Slurm_Msg_t *sMsg, Job_t **jobPtr,
 			       const char *caller, const int line)
 {
-    char **ptr = &sMsg->ptr;
-    uint16_t msgVer = sMsg->head.version, cpuBindType;
-    Job_t *job;
     uint32_t jobid, tmp, count;
-    char buf[1024], *unused;
+    char buf[1024];
 
     if (!sMsg) {
 	mlog("%s: invalid sMsg from '%s' at %i\n", __func__, caller, line);
 	return false;
     }
 
+    char **ptr = &sMsg->ptr;
     /* jobid */
     getUint32(ptr, &jobid);
     /* stepid */
@@ -932,11 +922,12 @@ bool __unpackReqBatchJobLaunch(Slurm_Msg_t *sMsg, Job_t **jobPtr,
 	return false;
     }
 
-    job = addJob(jobid);
+    Job_t *job = addJob(jobid);
 
     /* uid */
     getUint32(ptr, &job->uid);
 
+    uint16_t msgVer = sMsg->head.version, cpuBindType;
     if (msgVer >= SLURM_17_11_PROTO_VERSION) {
 	/* gid */
 	getUint32(ptr, &job->gid);
@@ -998,7 +989,7 @@ bool __unpackReqBatchJobLaunch(Slurm_Msg_t *sMsg, Job_t **jobPtr,
     job->checkpoint = getStringM(ptr);
     /* directory for restarting checkpoints (unused)
      * see srun --restart-dir */
-    unused = getStringM(ptr);
+    char *unused = getStringM(ptr);
     ufree(unused);
     /* std I/O/E */
     job->stdErr = getStringM(ptr);
@@ -1109,9 +1100,6 @@ static void packAccNodeId(PS_SendDB_t *data, int type,
 bool __packSlurmAccData(PS_SendDB_t *data, SlurmAccData_t *slurmAccData,
 			const char *caller, const int line)
 {
-    AccountDataExt_t *accData = slurmAccData->accData;
-    int i;
-
     if (!data) {
 	mlog("%s: invalid data pointer from '%s' at %i\n", __func__,
 		caller, line);
@@ -1132,6 +1120,7 @@ bool __packSlurmAccData(PS_SendDB_t *data, SlurmAccData_t *slurmAccData,
     addUint8ToMsg(1, data);
 
     if (slurmAccData->empty) {
+	int i;
 	/* pack empty account data */
 	for (i=0; i<6; i++) {
 	    addUint64ToMsg(0, data);
@@ -1152,6 +1141,7 @@ bool __packSlurmAccData(PS_SendDB_t *data, SlurmAccData_t *slurmAccData,
 	return true;
     }
 
+    AccountDataExt_t *accData = slurmAccData->accData;
     /* user cpu sec/usec */
     addUint32ToMsg(accData->rusage.ru_utime.tv_sec, data);
     addUint32ToMsg(accData->rusage.ru_utime.tv_usec, data);

@@ -263,7 +263,6 @@ static void handlePrintChildMsg(Forwarder_Data_t *fwdata, char *ptr)
     uint8_t type;
     uint32_t rank, lrank, i;
     size_t len;
-    char *msg = NULL;
     static IO_Msg_Buf_t *lineBuf;
     int32_t myNodeID = step->localNodeId;
     static int initBuf = 0;
@@ -271,7 +270,7 @@ static void handlePrintChildMsg(Forwarder_Data_t *fwdata, char *ptr)
     /* read message */
     getUint8(&ptr, &type);
     getUint32(&ptr, &rank);
-    msg = getDataM(&ptr, &len);
+    char *msg = getDataM(&ptr, &len);
 
     /* get local rank from rank */
     lrank = getLocalRankID(rank, step, myNodeID);

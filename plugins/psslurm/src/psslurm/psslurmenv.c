@@ -628,7 +628,7 @@ void setStepEnv(Step_t *step)
 
 void setJobEnv(Job_t *job)
 {
-    char tmp[1024], *val = NULL;
+    char tmp[1024];
     mode_t slurmUmask;
 
     envSet(&job->env, "ENVIRONMENT", "BATCH");
@@ -642,7 +642,7 @@ void setJobEnv(Job_t *job)
     envSet(&job->env, "SLURM_TASK_PID", tmp);
 
     /* forward overbook mode */
-    val = envGet(&job->env, "SLURM_OVERCOMMIT");
+    char *val = envGet(&job->env, "SLURM_OVERCOMMIT");
 
     if (job->overcommit || (val && !strcmp(val, "1"))) {
 	envSet(&job->env, "PSI_OVERBOOK", "1");

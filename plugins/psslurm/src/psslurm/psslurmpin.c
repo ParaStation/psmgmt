@@ -807,17 +807,13 @@ int setHWthreads(Step_t *step)
     uint8_t *coreMap = NULL;
     int32_t lastCpu;
     int hwThreads, thread = 0, numThreads;
-    JobCred_t *cred = NULL;
-    Job_t *job;
-    PSpart_slot_t *slots = NULL;
+    JobCred_t *cred = step->cred;
     PSCPU_set_t CPUset;
     pininfo_t pininfo;
 
-    cred = step->cred;
-
     /* generate slotlist */
     slotsSize = step->np;
-    slots = umalloc(slotsSize * sizeof(PSpart_slot_t));
+    PSpart_slot_t *slots = umalloc(slotsSize * sizeof(PSpart_slot_t));
 
     /* get cpus from job credential */
     if (!(coreMap = getCPUsForPartition(slots, step))) {
@@ -826,7 +822,7 @@ int setHWthreads(Step_t *step)
     }
 
     /* find start index for this step in core map that is job global */
-    job = findJobById(step->jobid);
+    Job_t *job = findJobById(step->jobid);
     if (job) {
 	for (node=0; job && node < job->nrOfNodes; node++) {
 

@@ -1158,7 +1158,7 @@ int srunOpenControlConnection(Step_t *step)
     char port[32];
     int sock;
 
-    if (step->numSrunPorts <= 0) {
+    if (!step->numSrunPorts) {
 	mlog("%s: sending failed, no srun ports available\n", __func__);
 	return -1;
     }

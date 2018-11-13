@@ -234,7 +234,7 @@ bool signalJobscript(uint32_t jobid, int signal, uid_t reqUID)
 	return false;
     }
 
-    if (job && job->state == JOB_RUNNING && job->fwdata) {
+    if (job->state == JOB_RUNNING && job->fwdata) {
 	mlog("%s: sending signal %u to jobscript with pid %i\n", __func__,
 	     signal, job->fwdata->cPid);
 	killChild(job->fwdata->cPid, signal);
