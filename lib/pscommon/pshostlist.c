@@ -26,7 +26,7 @@ static char *str2Buf(char *strSave, char **buffer, size_t *bufSize)
     if (!*buffer) {
 	*bufSize = (lenSave / STR_MALLOC_SIZE + 1) * STR_MALLOC_SIZE;
 	*buffer = malloc(*bufSize);
-	if (!buffer) PSC_exit(errno, "%s: malloc(%zu)", __func__, *bufSize);
+	if (!*buffer) PSC_exit(errno, "%s: malloc(%zu)", __func__, *bufSize);
 
 	*buffer[0] = '\0';
     }

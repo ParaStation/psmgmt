@@ -947,7 +947,7 @@ bool getArrayFromBuf(char **ptr, void **val, uint32_t *len,
     if (!getFromBuf(ptr, len, PSDATA_UINT32, sizeof(*len), caller, line))
 	return false;
 
-    if (*len <= 0) return true;
+    if (!*len) return true;
     *val = umalloc(size * *len);
     if (!*val) {
 	PSC_log(-1, "%s(%s@%d): allocation of %zd failed\n", __func__,
