@@ -58,7 +58,7 @@ bool range2List(char *prefix, char *range, char **list, size_t *size,
 	return true;
     }
 
-    if (sscanf(range, "%u%n-%u", &min, &pad, &max) != 2) {
+    if (sscanf(range, "%u%u-%u", &min, &pad, &max) != 2) {
 	PSC_log(-1, "%s: invalid range '%s'\n", __func__, range);
 	return false;
     }

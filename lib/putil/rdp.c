@@ -2324,8 +2324,8 @@ void getConnInfoRDP(int node, char *s, size_t len)
 
 void getStateInfoRDP(int node, char *s, size_t len)
 {
-    snprintf(s, len, "%3d [%s]: IP=%-15s TOT=%6d AP=%2d MP=%2d RTR=%2d"
-	     " TOTRET=%4d NACK=%4d", node,
+    snprintf(s, len, "%3d [%s]: IP=%-15s TOT=%6u AP=%2d MP=%2d RTR=%2d"
+	     " TOTRET=%4u NACK=%4u", node,
 	     stateStringRDP(conntable[node].state),
 	     inet_ntoa(conntable[node].sin.sin_addr), conntable[node].totSent,
 	     conntable[node].ackPending, conntable[node].msgPending,
