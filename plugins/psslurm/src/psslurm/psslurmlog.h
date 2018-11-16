@@ -30,14 +30,17 @@ extern FILE *psslurmlogfile;
  *
  * @param func The function name to use as prefix
  *
+ * @param key The key to use in order to decide if anything is put out
+ *
  * @param format The format to be used in order to produce output. The
  * syntax of this parameter is according to the one defined for the
  * printf() family of functions from the C standard. This string will
  * also define the further parameters to be expected.
  */
-void __flog(const char *func, char *format, ...);
+void __flog(const char *func, int32_t key, char *format, ...);
 
-#define flog(...) __flog(__func__, __VA_ARGS__)
+#define flog(...) __flog(__func__, -1, __VA_ARGS__)
+#define fdbg(key, ...) __flog(__func__, key, __VA_ARGS__)
 
 void initLogger(char *name, FILE *logfile);
 void maskLogger(int32_t mask);

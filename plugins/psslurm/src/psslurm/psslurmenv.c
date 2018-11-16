@@ -388,10 +388,10 @@ void setPsslurmEnv(env_t *env)
     uint32_t i;
 
     for (i=0; i<env->cnt; i++) {
-	flog("%i: %s\n", i, env->vars[i]);
 	if (env->vars[i] && !(strncmp("_PSSLURM_ENV_", env->vars[i], 13))) {
 	    char *ptr = env->vars[i] + 13;
-	    if (ptr)  putenv(ptr);
+	    fdbg(PSSLURM_LOG_ENV, "set %s\n", ptr);
+	    if (ptr) putenv(ptr);
 	}
     }
 }

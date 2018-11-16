@@ -33,12 +33,14 @@ void maskLogger(int32_t mask)
     logger_setMask(psslurmlogger, mask);
 }
 
-void __flog(const char *func, char *format, ...)
+void __flog(const char *func, int32_t key, char *format, ...)
 {
     static char buf[MAX_FLOG_SIZE];
     char *fmt = format;
     va_list ap;
     size_t len;
+
+    if ((key != -1) && !(psslurmlogger->mask & key)) return;
 
     len = snprintf(NULL, 0, "%s: %s", func, format);
     if (len+1 <= sizeof(buf)) {
