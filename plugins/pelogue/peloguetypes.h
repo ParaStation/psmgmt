@@ -77,6 +77,18 @@ typedef enum {
     PSP_PLUGIN_CONFIG_DEL,  /**< delete plugin configuration */
 } PSP_PELOGUE_t;
 
+typedef void(PElogueResourceCb_t)(char *plugin, char *jobid, uint16_t res);
+
+/** Information needed to request additional resources  */
+typedef struct {
+    char *plugin;	    /**< name of the registering plugin */
+    char *jobid;	    /**< batch system's job ID */
+    env_t *env;		    /**< environment provided to the pelogue */
+    uid_t uid;		    /**< user ID of the job owner */
+    gid_t gid;		    /**< group ID of the job owner */
+    PElogueResourceCb_t *cb;/**< callback to return the result */
+} PElogueResource_t;
+
 /**
  * @brief Job callback
  *

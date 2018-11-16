@@ -31,9 +31,14 @@
 
 #define PELOGUE_REQUEST_VERSION 2
 
+/** All information to start a RPC call */
 typedef struct {
-    PStask_ID_t sender;
-    char *requestor;
+    PStask_ID_t sender;	    /**< Task ID of the RPC request sender */
+    char *requestor;	    /**< Name of the RPC requestor (e.g. pspelogue) */
+    PElogueResource_t *res; /**< Information to request additional resources */
+    uint8_t type;	    /**< Type of pelogue to run */
+    uint32_t timeout;	    /**< Timeout of pelogue to run */
+    uint32_t grace;	    /**< Additional grace to of pelogue */
 } RPC_Info_t;
 
 /** Old handler for PSP_CD_UNKNOWN messages */
@@ -184,19 +189,108 @@ static void handlePluginConfigAdd(DDTypedBufferMsg_t *msg,
     ufree(plugin);
 }
 
+static int startPElogueReq(Job_t *job, uint8_t type, uint32_t timeout,
+			   uint32_t grace, env_t *env)
+{
+    PS_SendDB_t config;
+    PSnodes_ID_t n;
+    int ret;
+
+    /* send config to all my sisters nodes */
+    initFragBuffer(&config, PSP_CC_PLUG_PELOGUE, PSP_PLUGIN_CONFIG_ADD);
+    for (n=0; n<job->numNodes; n++) {
+	setFragDest(&config, PSC_getTID(job->nodes[n].id, 0));
+    }
+
+    addStringToMsg(job->plugin, &config);
+    addUint32ToMsg(timeout, &config);
+    addUint32ToMsg(grace, &config);
+
+    ret = sendFragMsg(&config);
+    if (ret == -1) {
+	mlog("%s: sending configuration for %s to sister nodes failed\n",
+	     __func__, job->id);
+	return ret;
+    }
+
+    /* start the pelogue */
+    if (type == PELOGUE_PROLOGUE) {
+	job->state = JOB_PROLOGUE;
+	job->prologueTrack = job->numNodes;
+    } else {
+	job->state = JOB_EPILOGUE;
+	job->epilogueTrack = job->numNodes;
+    }
+
+    ret = sendPElogueStart(job, type, 1, env);
+    if (ret == -1) {
+	mlog("%s: sending pelogue request for %s failed\n", __func__, job->id);
+	return ret;
+    }
+
+    return ret;
+}
+
+static void handleResourceCB(char *plugin, char *jobid, uint16_t result)
+{
+    Job_t *job = findJobById(plugin, jobid);
+    PElogueResource_t *res;
+    RPC_Info_t *info;
+
+    mlog("%s: jobid %s\n", __func__, jobid);
+
+    if (!job) {
+	mlog("%s: job with id %s from plugin %s not found\n", __func__,
+	     jobid, plugin);
+	return;
+    }
+
+    info = (RPC_Info_t *) job->info;
+    res = info->res;
+    if (!res) {
+	mlog("%s: no resources found in job %s\n", __func__, jobid);
+	goto ERROR;
+    }
+
+    if (!result) {
+	mlog("%s: requesting additional resources failed\n", __func__);
+	goto ERROR;
+    }
+
+    if (startPElogueReq(job, info->type, info->timeout,
+			info->grace, res->env) <0) {
+	goto ERROR;
+    }
+
+    envDestroy(res->env);
+    ufree(res->env);
+    ufree(res->plugin);
+    ufree(res);
+    return;
+
+ERROR:
+    sendPrologueResp(jobid, 1, false, info->sender);
+    if (res) {
+	envDestroy(res->env);
+	ufree(res->env);
+	ufree(res->plugin);
+	ufree(res);
+    }
+    deleteJob(job);
+    ufree(info->requestor);
+    ufree(info);
+}
+
 static void handlePElogueReq(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
 {
     char *ptr = rData->buf;
-    uint8_t type;
     uint16_t version;
-    uint32_t timeout, grace, nrOfNodes;;
+    uint32_t nrOfNodes;
     uid_t uid;
     gid_t gid;
-    PSnodes_ID_t *nodes, n;
-    env_t env;
-    RPC_Info_t *info;
-    PS_SendDB_t config;
-    int ret;
+    PSnodes_ID_t *nodes;
+    env_t *env = umalloc(sizeof(*env));
+    RPC_Info_t *info = umalloc(sizeof(*info));
 
     /* verify protocol version */
     getUint16(&ptr, &version);
@@ -209,21 +303,21 @@ static void handlePElogueReq(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
     }
     /* fetch info from message */
     char *requestor = getStringM(&ptr);
-    getUint8(&ptr, &type);
-    getUint32(&ptr, &timeout);
-    getUint32(&ptr, &grace);
+    getUint8(&ptr, &info->type);
+    getUint32(&ptr, &info->timeout);
+    getUint32(&ptr, &info->grace);
     char *jobid = getStringM(&ptr);
     getUint32(&ptr, &uid);
     getUint32(&ptr, &gid);
-
     /* nodelist */
     getInt16Array(&ptr, &nodes, &nrOfNodes);
     /* environment */
-    getStringArrayM(&ptr, &env.vars, &env.cnt);
+    getStringArrayM(&ptr, &env->vars, &env->cnt);
+    env->size = env->cnt;
 
-    info = umalloc(sizeof(*info));
     info->sender = msg->header.sender;
     info->requestor = requestor;
+    info->res = NULL;
 
     mdbg(PELOGUE_LOG_VERB, "%s: handle request from %s for job %s\n", __func__,
 	 PSC_printTID(msg->header.sender), jobid);
@@ -236,40 +330,42 @@ static void handlePElogueReq(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
 	goto ERROR;
     }
 
-    /* send config to all my sisters nodes */
-    initFragBuffer(&config, PSP_CC_PLUG_PELOGUE, PSP_PLUGIN_CONFIG_ADD);
-    for (n=0; n<job->numNodes; n++) {
-	setFragDest(&config, PSC_getTID(job->nodes[n].id, 0));
-    }
+    /* let plugins request additional resources */
+    PElogueResource_t *res = umalloc(sizeof(*res));
+    res->plugin = ustrdup(requestor);
+    res->jobid = jobid;
+    res->env = env;
+    res->cb = handleResourceCB;
+    res->uid = uid;
+    res->gid = gid;
+    info->res = res;
 
-    addStringToMsg(requestor, &config);
-    addUint32ToMsg(timeout, &config);
-    addUint32ToMsg(grace, &config);
+    int ret = PSIDhook_call(PSIDHOOK_PELOGUE_RES, res);
 
-    ret = sendFragMsg(&config);
-
-    if (ret == -1) {
-	mlog("%s: sending configuration for %s to sister nodes failed\n",
-	     __func__, jobid);
+    if (ret == 1) {
+	/* pause and wait for plugin execute callback */
+	return;
+    } else if (ret == PSIDHOOK_NOFUNC || !ret) {
+	/* no plugin registered or no special resources needed */
+	ufree(res->plugin);
+	ufree(res);
+	info->res = NULL;
+    } else {
+	/* error in plugin */
+	mlog("%s: hook PSIDHOOK_PELOGUE_RES failed\n", __func__);
+	ufree(res->plugin);
+	ufree(res);
+	info->res = NULL;
 	goto ERROR;
     }
 
-    /* start the pelogue */
-    if (type == PELOGUE_PROLOGUE) {
-	job->state = JOB_PROLOGUE;
-	job->prologueTrack = job->numNodes;
-    } else {
-	job->state = JOB_EPILOGUE;
-	job->epilogueTrack = job->numNodes;
-    }
-
-    if (sendPElogueStart(job, type, 1, &env) == -1) {
-	mlog("%s: sending pelogue request for %s failed\n", __func__, jobid);
+    if (startPElogueReq(job, info->type, info->timeout, info->grace, env) <0) {
 	goto ERROR;
     }
 
     ufree(jobid);
-    envDestroy(&env);
+    envDestroy(env);
+    ufree(env);
     return;
 
 ERROR:
@@ -280,7 +376,8 @@ ERROR:
     ufree(info->requestor);
     ufree(info);
     ufree(jobid);
-    envDestroy(&env);
+    envDestroy(env);
+    ufree(env);
 }
 
 static void handlePElogueStart(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
