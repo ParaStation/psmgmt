@@ -26,7 +26,7 @@ static char *str2Buf(char *strSave, char **buffer, size_t *bufSize)
     if (!*buffer) {
 	*bufSize = (lenSave / STR_MALLOC_SIZE + 1) * STR_MALLOC_SIZE;
 	*buffer = malloc(*bufSize);
-	if (!buffer) PSC_exit(errno, "%s: malloc(%zu)", __func__, *bufSize);
+	if (!*buffer) PSC_exit(errno, "%s: malloc(%zu)", __func__, *bufSize);
 
 	*buffer[0] = '\0';
     }
@@ -58,7 +58,7 @@ bool range2List(char *prefix, char *range, char **list, size_t *size,
 	return true;
     }
 
-    if (sscanf(range, "%u%n-%u", &min, &pad, &max) != 2) {
+    if (sscanf(range, "%u%u-%u", &min, &pad, &max) != 2) {
 	PSC_log(-1, "%s: invalid range '%s'\n", __func__, range);
 	return false;
     }

@@ -2144,18 +2144,14 @@ config_t *parseConfig(FILE* logfile, int logmask, char *configfile)
     if (stat(configfile, &buf)) {
 	parser_comment(1, "%s: %s => using psconfig\n", configfile,
 		       strerror(errno));
-    }
-    else if (buf.st_size == 0) {
+    } else if (buf.st_size == 0) {
 	parser_comment(1, "%s has zero length => using psconfig\n",
 		       configfile);
-    }
-    else {
+    } else {
 	return parseOldConfig(logfile, logmask, configfile);
     }
 
     /*** use psconfig ***/
-
-    configfile = NULL; //not used with psconfig
 
     INIT_LIST_HEAD(&config.plugins);
 

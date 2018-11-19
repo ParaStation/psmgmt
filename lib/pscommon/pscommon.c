@@ -378,7 +378,7 @@ void PSC_printNodelist(char* nl)
     while (pos < numNodes) {
 	PSnodes_ID_t start=pos, end;
 
-	while (nl[pos] && pos < numNodes) pos++;
+	while (pos < numNodes && nl[pos]) pos++;
 	end = pos - 1;
 
 	if (start==end) {

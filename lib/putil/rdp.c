@@ -281,10 +281,8 @@ static void insertIPTable(struct in_addr ipno, int node)
  */
 static int lookupIPTable(struct in_addr ipno)
 {
-    ipentry_t *ip = NULL;
     int idx = ntohl(ipno.s_addr) & 0xff;  /* use last byte of IP addr */
-
-    ip = &iptable[idx];
+    ipentry_t *ip = &iptable[idx];
 
     do {
 	if (ip->ipnr == ipno.s_addr) {
@@ -1604,12 +1602,12 @@ static int handleErr(int eno)
 	    (unsigned int) errmsg.msg_controllen);
 
     RDP_log(RDP_LOG_EXTD, "%s: errmsg.msg_flags: < %s%s%s%s%s%s>\n", __func__,
-	    errmsg.msg_flags & MSG_EOR ? "MSG_EOR ":"",
-	    errmsg.msg_flags & MSG_TRUNC ? "MSG_TRUNC ":"",
-	    errmsg.msg_flags & MSG_CTRUNC ? "MSG_CTRUNC ":"",
-	    errmsg.msg_flags & MSG_OOB ? "MSG_OOB ":"",
-	    errmsg.msg_flags & MSG_ERRQUEUE ? "MSG_ERRQUEUE ":"",
-	    errmsg.msg_flags & MSG_DONTWAIT ? "MSG_DONTWAIT ":"");
+	    (errmsg.msg_flags & MSG_EOR) ? "MSG_EOR ":"",
+	    (errmsg.msg_flags & MSG_TRUNC) ? "MSG_TRUNC ":"",
+	    (errmsg.msg_flags & MSG_CTRUNC) ? "MSG_CTRUNC ":"",
+	    (errmsg.msg_flags & MSG_OOB) ? "MSG_OOB ":"",
+	    (errmsg.msg_flags & MSG_ERRQUEUE) ? "MSG_ERRQUEUE ":"",
+	    (errmsg.msg_flags & MSG_DONTWAIT) ? "MSG_DONTWAIT ":"");
 
     cmsg = CMSG_FIRSTHDR(&errmsg);
     if (!cmsg) {
@@ -2324,8 +2322,8 @@ void getConnInfoRDP(int node, char *s, size_t len)
 
 void getStateInfoRDP(int node, char *s, size_t len)
 {
-    snprintf(s, len, "%3d [%s]: IP=%-15s TOT=%6d AP=%2d MP=%2d RTR=%2d"
-	     " TOTRET=%4d NACK=%4d", node,
+    snprintf(s, len, "%3d [%s]: IP=%-15s TOT=%6u AP=%2d MP=%2d RTR=%2d"
+	     " TOTRET=%4u NACK=%4u", node,
 	     stateStringRDP(conntable[node].state),
 	     inet_ntoa(conntable[node].sin.sin_addr), conntable[node].totSent,
 	     conntable[node].ackPending, conntable[node].msgPending,

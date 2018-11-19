@@ -525,7 +525,7 @@ static void exchangeInfo(int sock, unsigned int nprocs)
 	    global_addrlen = addrlen;
 	else if (addrlen != global_addrlen) {
 	    snprintf(msgstr, sizeof(msgstr),
-		     "Address lengths %d and %d do not match",
+		     "Address lengths %u and %u do not match",
 		     addrlen, global_addrlen);
 	    msg = msgstr;
 	    goto errexit;
@@ -577,7 +577,7 @@ static void exchangeInfo(int sock, unsigned int nprocs)
 	} else {
 	    if (pidlen != global_pidlen) {
 		snprintf(msgstr, sizeof(msgstr),
-			 "Pid lengths %d and %d do not match\n",
+			 "Pid lengths %u and %u do not match\n",
 			 pidlen, global_pidlen);
 		msg = msgstr;
 		goto errexit;

@@ -153,11 +153,9 @@ void PSI_LSF(void)
 
 void PSI_PBS(void)
 {
-    char *pbs_hostfile=NULL;
-
     PSI_log(PSI_LOG_VERB, "%s()\n", __func__);
 
-    pbs_hostfile = getenv(ENV_NODE_HOSTFILE_PBS);
+    char *pbs_hostfile = getenv(ENV_NODE_HOSTFILE_PBS);
     if (pbs_hostfile) {
 	checkOtherSettings("PBS");
 	setenv(ENV_NODE_SORT, "none", 1);
@@ -177,11 +175,9 @@ void PSI_PBS(void)
 
 void PSI_LL(void)
 {
-    char *ll_hosts=NULL;
-
     PSI_log(PSI_LOG_VERB, "%s()\n", __func__);
 
-    ll_hosts = getenv(ENV_NODE_HOSTS_LL);
+    char *ll_hosts = getenv(ENV_NODE_HOSTS_LL);
     if (ll_hosts) {
 	checkOtherSettings("LoadLeveler");
 	setenv(ENV_NODE_SORT, "none", 1);
@@ -202,11 +198,9 @@ void PSI_LL(void)
 
 void PSI_SGE(void)
 {
-    char *sge_pefile=NULL;
-
     PSI_log(PSI_LOG_VERB, "%s()\n", __func__);
 
-    sge_pefile = getenv(ENV_NODE_PEFILE_SGE);
+    char *sge_pefile = getenv(ENV_NODE_PEFILE_SGE);
     if (sge_pefile) {
 	checkOtherSettings("GridEngine");
 	setenv(ENV_NODE_SORT, "none", 1);
@@ -995,7 +989,7 @@ int PSI_createPartition(unsigned int size, uint32_t hwType)
 	goto end;
     }
 
-    if (size <= 0) {
+    if (!size) {
 	PSI_log(-1, "%s: size %d to small\n", __func__, size);
 	goto end;
     }

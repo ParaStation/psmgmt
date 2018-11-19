@@ -618,7 +618,7 @@ static char **setupRankEnv(int psRank, void *info)
 
     env[cur++] = NULL;
 
-    if (conf && conf->verbose) printf("spawn rank %d\n", rank);
+    if (conf->verbose) printf("spawn rank %d\n", rank);
 
     rank++;
     return env;
@@ -766,10 +766,10 @@ static void extractNodeInformation(PSnodes_ID_t *nodeList, int np)
 static int spawnSingleExecutable(int np, int argc, char **argv, char *wd,
 				 PSrsrvtn_ID_t resID, bool verbose)
 {
-    int i, ret, *errors = NULL;
+    int i, ret;
     PStask_ID_t *tids;
 
-    errors = umalloc(sizeof(int) * np);
+    int *errors = umalloc(sizeof(int) * np);
     for (i=0; i<np; i++) errors[i] = 0;
     tids = umalloc(sizeof(PStask_ID_t) * np);
 
@@ -885,7 +885,7 @@ static int startProcs(Conf_t *conf)
 
 	if ((unsigned)got != exec[i].np * sizeof(*nodeList)) {
 	    fprintf(stderr, "%s: Unable to get nodes in reservation %#x for"
-		    "app %d. Got %d expected %zd\n", __func__, exec[i].resID,
+		    "app %d. Got %d expected %zu\n", __func__, exec[i].resID,
 		    i, got, exec[i].np * sizeof(*nodeList));
 	    if (getenv("PMI_SPAWNED")) sendPMIFail();
 

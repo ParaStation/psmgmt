@@ -1775,7 +1775,7 @@ static void msg_CREATEPART(DDBufferMsg_t *inmsg)
 	goto error;
     }
 
-    if (!task || (task && task->ptid)) {
+    if (!task || task->ptid) {
 	PSID_log(-1, "%s: task %s not root process\n",
 		 __func__, PSC_printTID(inmsg->header.sender));
 	errno = EACCES;
@@ -2009,7 +2009,7 @@ static void msg_CREATEPARTNL(DDBufferMsg_t *inmsg)
 
     if (!PSIDnodes_isStarter(PSC_getMyID())) return; /* drop silently */
 
-    if (!task || (task && task->ptid)) {
+    if (!task || task->ptid) {
 	PSID_log(-1, "%s: task %s not root process\n",
 		 __func__, PSC_printTID(inmsg->header.sender));
 	errno = EACCES;
@@ -2649,7 +2649,6 @@ static int createSlots(uint32_t np, uint16_t ppn, uint16_t tpp,
     int nodeFirst = options & PART_OPT_NODEFIRST;
     int dynamic = options & PART_OPT_DYNAMIC;
     int nextMinUsed, minUsed;
-    int mod = task->totalThreads + ((overbook || nodeFirst) ? 0 : 1);
     int nodeTPP = 0, maxTPP = 0;
     bool fullRound = false;
     static uint16_t *procsPerNode = NULL;
@@ -2712,6 +2711,7 @@ static int createSlots(uint32_t np, uint16_t ppn, uint16_t tpp,
 	goto exit;
     }
 
+    int mod = task->totalThreads + ((overbook || nodeFirst) ? 0 : 1);
     PSID_log(PSID_LOG_PART, "%s: first %d mod %d threads %d minUsed %d"
 	     " maxTPP %d\n", __func__, first, mod, task->totalThreads, minUsed,
 	     maxTPP);

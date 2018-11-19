@@ -139,7 +139,7 @@ static void handleEndMsg(DDTypedBufferMsg_t *msg)
 
     /* pagesize */
     PSP_getTypedMsgBuf(msg, &used, __func__, "pgSize", &pgSize, sizeof(pgSize));
-    printf(" page-size %ld", pgSize);
+    printf(" page-size %lu", pgSize);
 
     /* walltime used by child */
     PSP_getTypedMsgBuf(msg, &used, __func__, "wallTm", &wallTm, sizeof(wallTm));
@@ -168,11 +168,11 @@ static void handleEndMsg(DDTypedBufferMsg_t *msg)
     printf(" sessID %d", sessID);
 
     PSP_getTypedMsgBuf(msg, &used, __func__, "avgRSS", &avgRSS, sizeof(avgRSS));
-    printf(" RSS %ld/%ld", maxRSS, avgRSS);
+    printf(" RSS %lu/%lu", maxRSS, avgRSS);
     PSP_getTypedMsgBuf(msg, &used, __func__, "avgVM", &avgVM, sizeof(avgVM));
-    printf(" VM %ld/%ld", maxVM, avgVM);
+    printf(" VM %lu/%lu", maxVM, avgVM);
     PSP_getTypedMsgBuf(msg, &used, __func__, "avgThd", &avgThd, sizeof(avgThd));
-    printf(" HW-threads %d/%ld", maxThd, avgThd);
+    printf(" HW-threads %u/%lu", maxThd, avgThd);
 }
 
 static void handleStartMsg(DDTypedBufferMsg_t *msg)
