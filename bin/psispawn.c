@@ -62,8 +62,8 @@ int main(int argc, char *argv[])
     }
 
     // get rank from command line.
-    for (i=0; i<argc; i++) {
-	if (i<argc-1 && strstr(argv[i], "-p4rmrank")) {
+    for (i=0; i < argc-1; i++) {
+	if (strstr(argv[i], "-p4rmrank")) {
 	    rank = atoi(argv[i+1]);
 	    break;
 	}

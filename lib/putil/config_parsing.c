@@ -2153,8 +2153,6 @@ config_t *parseConfig(FILE* logfile, int logmask, char *configfile)
 
     /*** use psconfig ***/
 
-    /* configfile is not used with psconfig */
-
     INIT_LIST_HEAD(&config.plugins);
 
     parser_init(logfile, NULL); //TODO
