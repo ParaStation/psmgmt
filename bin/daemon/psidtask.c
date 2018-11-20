@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2002-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2017 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2018 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -23,6 +23,7 @@
 
 #include "psidutil.h"
 #include "psidsignal.h"
+#include "psidspawn.h"
 #include "psidstatus.h"
 #include "psidpartition.h"
 #include "psidcomm.h"
@@ -336,6 +337,19 @@ static int doEnqueue(list_t *list, PStask_t *task, PStask_t *other,
 
 	PSID_log(-1, "%s: old task found: %s\n", func, taskStr);
 	PStasklist_dequeue(old);
+
+	/* Do some cleanup */
+	if (old->group == TG_ANY && old->loggertid) {
+	    sendCHILDRESREL(old->loggertid, old->CPUset, old->tid);
+	}
+	if (old->forwardertid) {
+	    /* prevent forwarder from referring to the new task */
+	    PStask_t *forwarder = PStasklist_find(list, old->forwardertid);
+	    if (forwarder) {
+		PSID_removeSignal(&forwarder->childList, old->tid, -1);
+	    }
+	}
+
 	PStask_delete(old);
     }
 

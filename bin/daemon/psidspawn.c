@@ -1861,29 +1861,12 @@ static int spawnTask(PStask_t *task)
     return err;
 }
 
-/**
- * @brief Send a PSP_DD_CHILDRESREL message
- *
- * Create and send a message of type PSP_DD_CHILDRESREL to the logger
- * @a loggerTID concerning the set of HW-threads @a set. This will
- * release the now unused resources and enable them to be reused. The
- * task ID @a sender will act as the messsenger reporting the released
- * resources.
- *
- * @param loggerTID Destination of the message to send
- *
- * @param set Set of HW-threads to be released
- *
- * @param sender Messenger reporting about the resources to be released
- *
- * @return No return value
- */
-void sendCHILDRESREL(PStask_ID_t loggerTID, PSCPU_set_t set, PStask_ID_t sender)
+void sendCHILDRESREL(PStask_ID_t logger, PSCPU_set_t set, PStask_ID_t sender)
 {
     DDBufferMsg_t resRelMsg = (DDBufferMsg_t) {
 	.header = (DDMsg_t) {
 	    .type = PSP_DD_CHILDRESREL,
-	    .dest = loggerTID,
+	    .dest = logger,
 	    .sender = sender,
 	    .len = sizeof(resRelMsg.header)},
 	.buf = { 0 } };
@@ -1896,7 +1879,7 @@ void sendCHILDRESREL(PStask_ID_t loggerTID, PSCPU_set_t set, PStask_ID_t sender)
     PSP_putMsgBuf(&resRelMsg, __func__, "CPUset", setBuf, nBytes);
 
     PSID_log(PSID_LOG_PART, "%s: PSP_DD_CHILDRESREL  to %s with CPUs %s",
-	     __func__, PSC_printTID(loggerTID), PSCPU_print_part(set, nBytes));
+	     __func__, PSC_printTID(logger), PSCPU_print_part(set, nBytes));
     PSID_log(PSID_LOG_PART, " from %s\n", PSC_printTID(sender));
 
     if (sendMsg(&resRelMsg) < 0) {
@@ -3356,6 +3339,8 @@ static void msg_CHILDDEAD(DDErrorMsg_t *msg)
     PSID_log(PSID_LOG_SPAWN, " to %s", PSC_printTID(msg->header.dest));
     PSID_log(PSID_LOG_SPAWN, " concerning %s\n", PSC_printTID(msg->request));
 
+    /****** This part handles messages forwarded by some daemon ******/
+
     if (msg->header.dest != PSC_getMyTID()) {
 	if (PSC_getID(msg->header.dest) != PSC_getMyID()) {
 	    /* Destination on foreign node. Forward */
@@ -3430,6 +3415,8 @@ static void msg_CHILDDEAD(DDErrorMsg_t *msg)
 	return;
     }
 
+    /****** This part handles original messages from a local forwarder ******/
+
     /* Release the corresponding forwarder */
     forwarder = PStasklist_find(&managedTasks, msg->header.sender);
     if (forwarder) {
@@ -3449,9 +3436,14 @@ static void msg_CHILDDEAD(DDErrorMsg_t *msg)
 	/* This is not critical. Task has been removed by PSIDclient_delete() */
 	PSID_log(PSID_LOG_SPAWN, "%s: task %s not found\n", __func__,
 		 PSC_printTID(msg->request));
+    } else if (task->forwardertid != msg->header.sender) {
+	PSID_log(-1, "%s: forwarder %s not responsible for" , __func__,
+		 PSC_printTID(msg->header.sender));
+	PSID_log(-1, " %s any more\n", PSC_printTID(msg->request));
     } else {
 	if (task->group != TG_SERVICE && task->group != TG_SERVICE_SIG
-	    && task->group != TG_ADMINTASK && task->group != TG_KVS) {
+	    && task->group != TG_ADMINTASK && task->group != TG_KVS
+	    && task->group != TG_PLUGINFW) {
 	    /** Create and send PSP_DD_CHILDRESREL message */
 	    sendCHILDRESREL(task->loggertid, task->CPUset, msg->request);
 	}
@@ -3471,7 +3463,7 @@ static void msg_CHILDDEAD(DDErrorMsg_t *msg)
 	}
 
 	/* Send CHILDDEAD to parent */
-	msg_CHILDDEAD(msg);
+	if (msg->header.dest != PSC_getMyTID()) msg_CHILDDEAD(msg);
     }
 }
 
