@@ -958,7 +958,7 @@ int PSI_resolveHWList(char **hwList, uint32_t *hwType)
 	int err, idx;
 	err = PSI_infoInt(-1, PSP_INFO_HWINDEX, *hwList, &idx, 0);
 	if (!err && (idx >= 0) && (idx < ((int)sizeof(*hwType) * 8))) {
-	    *hwType |= 1 << idx;
+	    *hwType |= (uint32_t)1 << idx;
 	} else {
 	    ret = -1;
 	}
