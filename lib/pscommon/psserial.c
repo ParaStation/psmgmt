@@ -956,7 +956,7 @@ bool getArrayFromBuf(char **ptr, void **val, uint32_t *len,
     }
 
     for (i = 0; i < *len; i++) {
-	getFromBuf(ptr, *val + i*size, type, size, caller, line);
+	getFromBuf(ptr, (char *)*val + i*size, type, size, caller, line);
     }
 
     return true;
@@ -1071,7 +1071,7 @@ static void addFragmentedData(PS_SendDB_t *buffer, const void *data,
 	/* fill message buffer */
 	size_t tocopy = (dataLeft > chunkLeft) ? chunkLeft : dataLeft;
 	PSP_putTypedMsgBuf(&fragMsg, __func__, "payload",
-			   data + (dataLen - dataLeft), tocopy);
+			   (char *)data + (dataLen - dataLeft), tocopy);
 	dataLeft -= tocopy;
 	chunkLeft -= tocopy;
 	buffer->bufUsed += tocopy;
