@@ -11,7 +11,7 @@ Please send bug reports, questions and suggestions to <support@par-tec.com>
 **  Remark: psmgmt 5.1.17 changes the protocol between pspelogue and   **
 **  pelogue. This new version is *NOT* compatible with ParaStation     **
 **  versions 5.1.16 or older when using the slurmctld prologue with    **
-**  pspelogue.        	         	       			       **
+**  pspelogue.                                                         **
 **                                                                     **
 *************************************************************************
 *************************************************************************
