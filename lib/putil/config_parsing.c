@@ -875,10 +875,8 @@ static gid_t gidFromString(char *group)
  */
 static char* userFromUID(uid_t uid)
 {
-    struct passwd *pwd;
-
     if ((int)uid >= 0) {
-	pwd = getpwuid(uid);
+	struct passwd *pwd = getpwuid(uid);
 	if (pwd) {
 	    return strdup(pwd->pw_name);
 	} else {
@@ -903,10 +901,8 @@ static char* userFromUID(uid_t uid)
  */
 static char* groupFromGID(gid_t gid)
 {
-    struct group *grp;
-
     if ((int)gid >= 0) {
-	grp = getgrgid(gid);
+	struct group *grp = getgrgid(gid);
 	if (grp) {
 	    return strdup(grp->gr_name);
 	} else {
@@ -1444,7 +1440,6 @@ static int getEnv(char *key)
 {
     GPtrArray *env;
     GError *err = NULL;
-    gchar *var, *val;
     unsigned int i;
     int ret;
 
@@ -1459,8 +1454,8 @@ static int getEnv(char *key)
 
     ret = 0;
     for(i = 0; (i+1) < env->len; i+=2) {
-	var = (gchar*)g_ptr_array_index(env,i);
-	val = (gchar*)g_ptr_array_index(env,i+1);
+	gchar *var = (gchar*)g_ptr_array_index(env,i);
+	gchar *val = (gchar*)g_ptr_array_index(env,i+1);
 
 	ret = setEnv(var, val);
 	if (ret) break;
@@ -1750,15 +1745,12 @@ static char* hwtype_scripts[] = {
 
 static int getHardwareOptions(char *name)
 {
-    int objlen, env_config_style;
-    gchar *obj, *key, *val;
+    int objlen = strlen(name) + 12, env_config_style;
+    gchar obj[objlen], *key, *val;
     GPtrArray *env;
     GError *err = NULL;
     guint i;
     int ret;
-
-    objlen = strlen(name) + 12;
-    obj = alloca(objlen);
 
     ret = g_snprintf(obj, objlen, "psidhwtype:%s", name);
     if (ret < 0 || ret >= objlen) return -1;
@@ -2006,14 +1998,14 @@ static confkeylist_t nodeoption_list[] = {
 
 static int setupLocalNode(void)
 {
-    int i, ret, allret;
+    int i, allret;
 
     // get parameters for local node
     allret = 0;
     for (i = 0; node_configkey_list[i].key != NULL; i++) {
 	parser_comment(PARSER_LOG_VERB, "%s: processing config key '%s'\n",
 		       __func__, node_configkey_list[i].key);
-	ret = node_configkey_list[i].handler(node_configkey_list[i].key);
+	int ret = node_configkey_list[i].handler(node_configkey_list[i].key);
 	if (ret) {
 	    parser_comment(-1, "Processing config key '%s' failed\n",
 		    node_configkey_list[i].key);
@@ -2134,7 +2126,7 @@ config_t *parseConfig(FILE* logfile, int logmask, char *configfile)
 {
     int ret;
 
-    char *pos, *nodename;
+    char *nodename;
 
     /* Check if configfile exists and has not length 0.
        If so, use it, else use psconfig. */
@@ -2186,7 +2178,7 @@ config_t *parseConfig(FILE* logfile, int logmask, char *configfile)
 	// cut hostname
 	parser_comment(PARSER_LOG_VERB, "%s: Cutting hostname \"%s\" for"
 		" psconfig.\n", __func__, psconfigobj);
-	pos = strchr(psconfigobj, '.');
+	char *pos = strchr(psconfigobj, '.');
 	if (pos == NULL) {
 	    parser_comment(-1,
 			   "ERROR: Cannot find host object for this node.\n");
