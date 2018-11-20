@@ -168,9 +168,8 @@ void PSC_resetMyTID(void)
 
 PStask_ID_t PSC_getMyTID(void)
 {
-    PStask_ID_t tmp;
-
     if (myTID == -1) {
+	PStask_ID_t tmp;
 	/* First call, have to determine TID */
 	if (daemonFlag) {
 	    tmp = PSC_getTID(-1, 0);
