@@ -46,7 +46,7 @@ static char *replaceArgSymbols(char *args, unsigned rank, unsigned offset)
 
     ptr = args;
     last = args;
-    while (ptr && ptr[0] != '\n' && ptr[0] != '\0') {
+    while (ptr[0] != '\n' && ptr[0] != '\0') {
 	/* search for single quotes */
 	if (ptr[0] == '\'') {
 	    if (haveOpenQuote) {
