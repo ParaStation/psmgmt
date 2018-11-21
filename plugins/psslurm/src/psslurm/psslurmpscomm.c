@@ -445,8 +445,7 @@ static int callbackNodeOffline(uint32_t id, int32_t exit, PSnodes_ID_t remote,
     }
 
     if (job) {
-	if (alloc->state == A_PROLOGUE || job->state == JOB_QUEUED ||
-	    job->state == JOB_EXIT) {
+	if (job->state == JOB_QUEUED || job->state == JOB_EXIT) {
 	    /* only mother superior should try to requeue a job */
 	    if (job->nodes[0] == PSC_getMyID()) {
 		requeueBatchJob(job, slurmController);
