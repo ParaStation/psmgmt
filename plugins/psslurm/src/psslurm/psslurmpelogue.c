@@ -61,9 +61,9 @@ void startAllSteps(uint32_t jobid)
 }
 
 /**
- * @brief Handle a failed prologue or epilogue
+ * @brief Handle a failed prologue
  *
- * Set nodes offline if a prologue or epilogue failed to execute. This is an
+ * Set nodes offline if a prologue failed to execute. This is an
  * additional security layer for cases when the normal Slurm communication is
  * failing.
  *
@@ -71,29 +71,19 @@ void startAllSteps(uint32_t jobid)
  *
  * @param resList The list of results for each node
  */
-static void handleFailedPElogue(Alloc_t *alloc, PElogueResList_t *resList)
+static void handleFailedPrologue(Alloc_t *alloc, PElogueResList_t *resList)
 {
     uint32_t i;
     char msg[256];
 
     for (i=0; i<alloc->nrOfNodes; i++) {
 	bool offline = false;
-	if (alloc->state == A_PROLOGUE) {
-	    if (resList[i].prologue == PELOGUE_FAILED) {
-		snprintf(msg, sizeof(msg), "psslurm: prologue failed\n");
-		offline = true;
-	    } else if (resList[i].prologue == PELOGUE_TIMEDOUT) {
-		snprintf(msg, sizeof(msg), "psslurm: prologue timed out\n");
-		offline = true;
-	    }
-	} else {
-	    if (resList[i].epilogue == PELOGUE_FAILED) {
-		snprintf(msg, sizeof(msg), "psslurm: epilogue failed\n");
-		offline = true;
-	    } else if (resList[i].epilogue == PELOGUE_TIMEDOUT) {
-		snprintf(msg, sizeof(msg), "psslurm: epilogue timed out\n");
-		offline = true;
-	    }
+	if (resList[i].prologue == PELOGUE_FAILED) {
+	    snprintf(msg, sizeof(msg), "psslurm: prologue failed\n");
+	    offline = true;
+	} else if (resList[i].prologue == PELOGUE_TIMEDOUT) {
+	    snprintf(msg, sizeof(msg), "psslurm: prologue timed out\n");
+	    offline = true;
 	}
 	if (offline) setNodeOffline(&alloc->env, alloc->id, slurmController,
 				    getSlurmHostbyNodeID(resList[i].id), msg);
@@ -153,6 +143,7 @@ static void handlePrologueCB(Alloc_t *alloc, int exitStatus)
 	/* prologue was successful, start possible user processes */
 	alloc->state = A_RUNNING;
 	send_PS_AllocState(alloc);
+	psPelogueDeleteJob("psslurm", strJobID(alloc->id));
 
 	if (job) {
 	    /* execute jobscript */
@@ -270,15 +261,16 @@ static void cbPElogue(char *sID, int exitStatus, bool timeout,
     }
 
     if (alloc->state == A_PROLOGUE || alloc->state == A_PROLOGUE_FINISH) {
-	handlePrologueCB(alloc, exitStatus);
 	/* try to set failed node(s) offline */
-	if (exitStatus != 0) handleFailedPElogue(alloc, resList);
+	if (exitStatus != 0) handleFailedPrologue(alloc, resList);
+	handlePrologueCB(alloc, exitStatus);
     } else if (alloc->state == A_EPILOGUE || alloc->state == A_EPILOGUE_FINISH) {
 	handleEpilogueCB(alloc, resList);
     } else {
 	flog("allocation %u in invalid state %u\n", alloc->id, alloc->state);
 	goto CLEANUP;
     }
+    return;
 
 CLEANUP:
     psPelogueDeleteJob("psslurm", sID);
