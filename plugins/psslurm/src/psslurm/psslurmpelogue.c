@@ -78,6 +78,7 @@ static void handleFailedPrologue(Alloc_t *alloc, PElogueResList_t *resList)
 
     for (i=0; i<alloc->nrOfNodes; i++) {
 	bool offline = false;
+	if (resList[i].id == PSC_getMyID()) continue;
 	if (resList[i].prologue == PELOGUE_FAILED) {
 	    snprintf(msg, sizeof(msg), "psslurm: prologue failed\n");
 	    offline = true;
