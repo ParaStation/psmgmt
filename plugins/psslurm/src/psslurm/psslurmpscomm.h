@@ -202,7 +202,7 @@ const char *getSlurmHostbyNodeID(PSnodes_ID_t nodeID);
  *
  * @return Returns the requested nodeID or -1 on error
  */
-PSnodes_ID_t getNodeIDbySlurmHost(char *host);
+PSnodes_ID_t getNodeIDbySlurmHost(const char *host);
 
 /**
  * @brief Find the next index in a combined pack task array

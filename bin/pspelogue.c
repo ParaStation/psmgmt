@@ -86,37 +86,6 @@ static struct poptOption optionsTable[] = {
     POPT_TABLEEND
 };
 
-/**
- * @brief Convert a Slurm hostlist to PS node IDs
- *
- * @param slurmHosts The Slurm hostlist to convert
- *
- * @param nrOfNodes The number of converted nodes
- *
- * @param nodes The PS nodelist holding the result
- */
-static void getNodesFromSlurmHL(char *slurmHosts, uint32_t *nrOfNodes,
-				PSnodes_ID_t **nodes)
-{
-    const char delimiters[] =", \n";
-    char *next, *saveptr;
-    char *hostlist = expandHostList(slurmHosts, nrOfNodes);
-    int i = 0;
-
-    if (!hostlist || !*nrOfNodes) return;
-
-    *nodes = malloc(sizeof(**nodes) * *nrOfNodes);
-    if (!*nodes) exit(1);
-
-    next = strtok_r(hostlist, delimiters, &saveptr);
-
-    while (next) {
-	(*nodes)[i++] = PSI_resolveNodeID(next);
-	next = strtok_r(NULL, delimiters, &saveptr);
-    }
-    free(hostlist);
-}
-
 static void init(const int argc, const char *argv[])
 {
     const char **dup_argv;
@@ -340,7 +309,7 @@ void sendPElogueReq(char *jobid, char *sUid, char *sGid, uint32_t nrOfNodes,
     ret = sendFragMsg(&msg);
 
     if (ret == -1) {
-	fprintf(stderr, "%s send request to %s failed\n", __func__,
+	fprintf(stderr, "%s: send request to %s failed\n", __func__,
 		PSC_printTID(dest));
 	exit(1);
     }
@@ -398,7 +367,7 @@ int main(const int argc, const char *argv[], char *envp[])
     envSet(&clone, "SLURM_UID", getenv("SLURM_JOB_UID"));
 
     /* convert Slurm hostlist into PS IDs */
-    getNodesFromSlurmHL(slurmHosts, &nrOfNodes, &nodes);
+    convHLtoPSnodes(slurmHosts, PSI_resolveNodeID, &nodes, &nrOfNodes);
 
     if (!nrOfNodes) {
 	fprintf(stderr, "%s: no nodes found\n", argv[0]);
@@ -419,8 +388,9 @@ int main(const int argc, const char *argv[], char *envp[])
     free(nodes);
 
     if (verbose) {
-	printf("parallel pelogue for job %s finished in %.3f seconds\n",
-	       jobID, time_diff.tv_sec + 1e-6 * time_diff.tv_usec);
+	printf("parallel pelogue for job %s finished in %.3f seconds on %i "
+	       "nodes\n", jobID, time_diff.tv_sec + 1e-6 * time_diff.tv_usec,
+	       nrOfNodes);
     }
 
     return 0;

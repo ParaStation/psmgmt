@@ -31,6 +31,7 @@
 #include "pluginmalloc.h"
 #include "pluginhelper.h"
 #include "psaccounthandles.h"
+#include "pshostlist.h"
 
 #include "psslurmpelogue.h"
 
@@ -410,9 +411,15 @@ int handleLocalPElogueStart(void *data)
 	} else {
 	    /* pack leader prologue, execute prologue add allocation
 	     * only for leader job */
-	    uint32_t nrOfNodes, localid;
+	    uint32_t nrOfNodes;
 	    PSnodes_ID_t *nodes;
-	    getNodesFromSlurmHL(slurmHosts, &nrOfNodes, &nodes, &localid);
+
+	    if (!convHLtoPSnodes(slurmHosts, getNodeIDbySlurmHost,
+			&nodes, &nrOfNodes)) {
+		flog("converting %s to PS node IDs failed\n", slurmHosts);
+	    }
+	    uint32_t localid = getLocalID(nodes, nrOfNodes);
+
 	    if (localid != (uint32_t) -1) {
 		mdbg(PSSLURM_LOG_PELOG, "%s: leader with pack hosts, add "
 		     "allocation %u\n", __func__, id);

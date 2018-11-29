@@ -903,8 +903,11 @@ static void handle_JobLaunch(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
 
     /* get nodelist */
     job->slurmHosts = getStringM(&ptr);
-    getNodesFromSlurmHL(job->slurmHosts, &job->nrOfNodes, &job->nodes,
-			&job->localNodeId);
+
+    if (!convHLtoPSnodes(job->slurmHosts, getNodeIDbySlurmHost,
+			 &job->nodes, &job->nrOfNodes)) {
+	flog("converting %s to PS node IDs failed\n", job->slurmHosts);
+    }
 
     mlog("%s: jobid %u user '%s' nodes %u from '%s'\n", __func__, jobid,
 	    job->username, job->nrOfNodes, PSC_printTID(msg->header.sender));
@@ -2250,9 +2253,9 @@ const char *getSlurmHostbyNodeID(PSnodes_ID_t nodeID)
     return NULL;
 }
 
-PSnodes_ID_t getNodeIDbySlurmHost(char *host)
+PSnodes_ID_t getNodeIDbySlurmHost(const char *host)
 {
-    ENTRY *f, e = { .key = host, .data = NULL };
+    ENTRY *f, e = { .key = (char *) host, .data = NULL };
 
     if (!HostLT) return -1;
 

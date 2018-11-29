@@ -13,9 +13,9 @@
 #include "pspamhandles.h"
 #include "peloguehandles.h"
 #include "psidhook.h"
+#include "pshostlist.h"
 
 #include "psslurmalloc.h"
-#include "psslurmproto.h"
 #include "psslurmlog.h"
 #include "psslurmenv.h"
 #include "psslurmpscomm.h"
@@ -44,8 +44,10 @@ Alloc_t *addAlloc(uint32_t id, uint32_t packID, char *slurmHosts, env_t *env,
     alloc->epilogCnt = 0;
 
     /* init node-list */
-    getNodesFromSlurmHL(slurmHosts, &alloc->nrOfNodes, &alloc->nodes,
-			&alloc->localNodeId);
+    if (!convHLtoPSnodes(slurmHosts, getNodeIDbySlurmHost,
+			 &alloc->nodes, &alloc->nrOfNodes)) {
+	flog("converting %s to PS node IDs failed\n", slurmHosts);
+    }
     alloc->epilogRes = ucalloc(sizeof(bool) * alloc->nrOfNodes);
 
     /* init environment */

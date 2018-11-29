@@ -121,27 +121,6 @@ typedef struct {
 void sendNodeRegStatus(void);
 
 /**
- * @brief Convert a Slurm hostlist to ParaStation node IDs
- *
- * The compressed Slurm hostlist is first converted to a comma
- * separated list of hostnames. For every host the corresponding
- * ParaStation node ID is then looked up in the HostLT table via
- * @ref getNodeIDbyAddr().
- *
- * @param slurmHosts The compressed Slurm hostlist to convert
- *
- * @param nrOfNodes The number of converted nodes
- *
- * @param nodes The PS nodelist holding the result
- *
- * @param localId Will receive the local job node ID
- *
- * @return Returns true on success or false on error
- */
-bool getNodesFromSlurmHL(char *slurmHosts, uint32_t *nrOfNodes,
-			 PSnodes_ID_t **nodes, uint32_t *localId);
-
-/**
  * @brief Process a new Slurm message
  *
  * Extract and verify a Slurm message header including the protocol
@@ -394,5 +373,16 @@ char *uid2String(uid_t uid);
  * the message was stored and will be send out later
  */
 int requestJobInfo(uint32_t jobid);
+
+/**
+ * @brief Get the local ID of current node
+ *
+ * @param nodes The node-list to extract the local ID from
+ *
+ * @param nrOfNodes The number of nodes in @a nodes
+ *
+ * @return Returns the requested local ID or -1 on error.
+ */
+uint32_t getLocalID(PSnodes_ID_t *nodes, uint32_t nrOfNodes);
 
 #endif /* __PSSLURM_PROTO */

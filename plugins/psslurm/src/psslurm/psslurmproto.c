@@ -146,43 +146,6 @@ uint32_t getLocalRankID(uint32_t rank, Step_t *step, uint32_t nodeId)
     return -1;
 }
 
-bool getNodesFromSlurmHL(char *slurmHosts, uint32_t *nrOfNodes,
-			 PSnodes_ID_t **nodes, uint32_t *localId)
-{
-    const char delimiters[] =", \n";
-    char *next, *saveptr, *myHost;
-    char compHL[1024], *hostlist;
-    int i = 0;
-
-    *localId = -1;
-    if (!(hostlist = expandHostList(slurmHosts, nrOfNodes))||
-	!*nrOfNodes) {
-	mlog("%s: invalid hostlist '%s'\n", __func__, compHL);
-	return false;
-    }
-
-    myHost = getConfValueC(&Config, "SLURM_HOSTNAME");
-
-    *nodes = umalloc(sizeof(PSnodes_ID_t *) * *nrOfNodes +
-	    sizeof(PSnodes_ID_t) * *nrOfNodes);
-
-    next = strtok_r(hostlist, delimiters, &saveptr);
-
-    while (next) {
-	(*nodes)[i] = getNodeIDbySlurmHost(next);
-	if ((*nodes)[i] == -1) {
-	    mlog("%s: failed resolving hostname %s\n", __func__, next);
-	    ufree(hostlist);
-	    return false;
-	}
-	if (!strcmp(next, myHost)) *localId = i;
-	i++;
-	next = strtok_r(NULL, delimiters, &saveptr);
-    }
-    ufree(hostlist);
-    return true;
-}
-
 bool writeJobscript(Job_t *job)
 {
     FILE *fp;
@@ -332,7 +295,7 @@ static void printLaunchTasksInfos(Step_t *step)
 
 static bool extractStepPackInfos(Step_t *step)
 {
-    uint32_t nrOfNodes, i, localid;
+    uint32_t nrOfNodes, i;
 
     mdbg(PSSLURM_LOG_PACK, "%s: packNodeOffset %u  packJobid %u packNtasks %u "
 	 "packOffset %u packTaskOffset %u packHostlist '%s' packNrOfNodes %u\n",
@@ -340,8 +303,8 @@ static bool extractStepPackInfos(Step_t *step)
 	    step->packOffset, step->packTaskOffset, step->packHostlist,
 	    step->packNrOfNodes);
 
-    if (!getNodesFromSlurmHL(step->packHostlist, &nrOfNodes,
-			     &step->packNodes, &localid)) {
+    if (!convHLtoPSnodes(step->packHostlist, getNodeIDbySlurmHost,
+			 &step->packNodes, &nrOfNodes)) {
 	mlog("%s: resolving PS nodeIDs from %s failed\n", __func__,
 	     step->packHostlist);
 	return false;
@@ -454,6 +417,15 @@ int requestJobInfo(uint32_t jobid)
     return sendSlurmReq(REQUEST_JOB_INFO_SINGLE, &msg, &handleJobInfoResp, NULL);
 }
 
+uint32_t getLocalID(PSnodes_ID_t *nodes, uint32_t nrOfNodes)
+{
+    uint32_t i, id = -1;
+    PSnodes_ID_t myID = PSC_getMyID();
+
+    for (i=0; i<nrOfNodes; i++) if (nodes[i] == myID) id = i;
+    return id;
+}
+
 static void handleLaunchTasks(Slurm_Msg_t *sMsg)
 {
     Alloc_t *alloc = NULL;
@@ -509,8 +481,9 @@ static void handleLaunchTasks(Slurm_Msg_t *sMsg)
     }
 
     /* convert slurm hostlist to PSnodes   */
-    if (!getNodesFromSlurmHL(step->slurmHosts, &count, &step->nodes,
-			     &step->localNodeId)) {
+
+    if (!convHLtoPSnodes(step->slurmHosts, getNodeIDbySlurmHost,
+			 &step->nodes, &count)) {
 	mlog("%s: resolving PS nodeIDs from %s failed\n", __func__,
 	     step->slurmHosts);
 	sendSlurmRC(sMsg, ESLURMD_INVALID_JOB_CREDENTIAL);
@@ -522,6 +495,7 @@ static void handleLaunchTasks(Slurm_Msg_t *sMsg)
 	     __func__, count, step->nrOfNodes, step->jobid, step->stepid);
 	step->nrOfNodes = count;
     }
+    step->localNodeId = getLocalID(step->nodes, step->nrOfNodes);
 
     /* pack info */
     if (step->packNrOfNodes != NO_VAL) {
@@ -1453,7 +1427,7 @@ static void handleLaunchProlog(Slurm_Msg_t *sMsg)
 static bool extractJobPackInfos(Job_t *job)
 {
     char *sPackSize;
-    uint32_t i, tmp;
+    uint32_t i;
     size_t nlSize = 0;
 
     /* extract pack size */
@@ -1481,8 +1455,8 @@ static bool extractJobPackInfos(Job_t *job)
 	str2Buf(next, &job->packHostlist, &nlSize);
     }
 
-    if (!getNodesFromSlurmHL(job->packHostlist, &job->packNrOfNodes,
-			     &job->packNodes, &tmp)) {
+    if (!convHLtoPSnodes(job->packHostlist, getNodeIDbySlurmHost,
+			 &job->packNodes, &job->packNrOfNodes)) {
 	mlog("%s: resolving PS nodeIDs from %s failed\n", __func__,
 	     job->packHostlist);
 	return false;
@@ -1551,14 +1525,15 @@ static void handleBatchJobLaunch(Slurm_Msg_t *sMsg)
     }
 
     /* convert slurm hostlist to PSnodes   */
-    if (!getNodesFromSlurmHL(job->slurmHosts, &job->nrOfNodes, &job->nodes,
-			     &job->localNodeId)) {
+    if (!convHLtoPSnodes(job->slurmHosts, getNodeIDbySlurmHost,
+			 &job->nodes, &job->nrOfNodes)) {
 	mlog("%s: resolving PS nodeIDs from %s failed\n", __func__,
 	     job->slurmHosts);
 	sendSlurmRC(sMsg, ESLURMD_INVALID_JOB_CREDENTIAL);
 	deleteJob(job->jobid);
 	return;
     }
+    job->localNodeId = getLocalID(job->nodes, job->nrOfNodes);
 
     /* verify job credential */
     if (!(verifyJobData(job))) {
@@ -1994,7 +1969,7 @@ static void getSlurmMsgHeader(Slurm_Msg_t *sMsg, Msg_Forward_t *fw)
 static bool slurmTreeForward(Slurm_Msg_t *sMsg, Msg_Forward_t *fw)
 {
     PSnodes_ID_t *nodes = NULL;
-    uint32_t i, nrOfNodes, localId;
+    uint32_t i, nrOfNodes;
     bool verbose = logger_getMask(psslurmlogger) & PSSLURM_LOG_FWD;
     struct timeval time_start, time_now, time_diff;
 
@@ -2002,7 +1977,8 @@ static bool slurmTreeForward(Slurm_Msg_t *sMsg, Msg_Forward_t *fw)
     if (!sMsg->head.forward) return true;
 
     /* convert nodelist to PS nodes */
-    if (!getNodesFromSlurmHL(fw->head.nodeList, &nrOfNodes, &nodes, &localId)) {
+    if (!convHLtoPSnodes(fw->head.nodeList, getNodeIDbySlurmHost,
+			 &nodes, &nrOfNodes)) {
 	mlog("%s: resolving PS nodeIDs from %s failed\n", __func__,
 	     fw->head.nodeList);
 	return false;
