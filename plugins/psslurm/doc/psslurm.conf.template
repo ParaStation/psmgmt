@@ -166,11 +166,6 @@
 # (integer, default: 300)
 #RESEND_TIMEOUT = 400
 
-# Allow nodes in slurm.conf to have no corresponding PS node ID
-#
-# (1 = enabled, 0 = disabled, default: 0)
-#WEAK_NODEID_CHECK = 1
-
 # Measure execution times of libmunge calls
 #
 # (1 = enabled, 0 = disabled, default: 0)

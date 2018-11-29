@@ -57,6 +57,7 @@
 
 #include "psslurmpscomm.h"
 
+/** Used to cache RDP messages */
 typedef struct {
     list_t next;                /**< used to put into msg-cache-lists */
     int msgType;		/**< psslurm msg type */
@@ -66,10 +67,18 @@ typedef struct {
     PS_DataBuffer_t *data;	/**< msg payload */
 } Msg_Cache_t;
 
+/** Lookup table for hostnames and node IDs */
 typedef struct {
-    char *hostname;
-    PSnodes_ID_t nodeID;
+    char *hostname;	 /**< hostname */
+    PSnodes_ID_t nodeID; /**< PS node ID */
 } Host_Lookup_t;
+
+/** Structure used to resolve hostname to node IDs */
+typedef struct {
+    PSnodes_ID_t *addrIDs; /**< additional node addresses */
+    uint32_t nrOfAddrIDs;  /**< number of additional node addresses */
+    uint32_t addrIdx;	   /**< next address to use */
+} Resolve_Host_t;
 
 /** List of all cached messages */
 static LIST_HEAD(msgCache);
@@ -2025,6 +2034,7 @@ static void freeHostLT(void)
     }
     ufree(HostLT);
     HostLT = NULL;
+    numHostLT = 0;
 }
 
 void finalizePScomm(bool verbose)
@@ -2093,133 +2103,100 @@ void finalizePScomm(bool verbose)
 }
 
 /**
- * @brief Expand a single NodeName and NodeAddr entry
+ * @brief Save a single host in the HostLT
  *
- * @param idx The index of the entry to expand
+ * @param host The host to save
  *
- * @param hostList Receives the comma separated list of hostnames
+ * @param info Pointer holding a Resolve_Host_t structure
  *
- * @param addrList Receives the comma separated list of host addresses
- *
- * @return Returns true on success or false on error
+ * @return Returns true on success otherwise false
  */
-static bool expHostEntry(int idx, char **hostList, char **addrList)
+static bool saveHost(char *host, void *info)
 {
-    char *hostEntry, *hostAddr, tmp[128];
-    uint32_t nrOfHosts, nrOfAddr;
+    Resolve_Host_t *rInfo = info;
+    uint32_t addrIdx = rInfo->addrIdx;
+    uint32_t nrOfNodes = PSC_getNrOfNodes();
 
-    *hostList = *addrList = NULL;
-
-    /* expand host list */
-    snprintf(tmp, sizeof(tmp), "SLURM_HOST_ENTRY_%i", idx);
-    hostEntry = getConfValueC(&Config, tmp);
-    if (!hostEntry) {
-	mlog("%s: host entry %s not found\n", __func__, tmp);
+    /* enough space for next host in HostLT? */
+    if (numHostLT >= nrOfNodes) {
+	flog("more Slurm host definitions %i than PS nodes %i\n",
+	     numHostLT, nrOfNodes);
 	return false;
     }
 
-    if (!(*hostList = expandHostList(hostEntry, &nrOfHosts))) {
-	mlog("%s: expanding host entry %i failed\n", __func__, idx);
-	return false;
+    if (!rInfo->addrIDs) {
+	/* resolve hostname if NodeAddr is not used */
+	HostLT[numHostLT].nodeID = getNodeIDbyName(host);
+    } else {
+	if (addrIdx >= nrOfNodes || addrIdx >= rInfo->nrOfAddrIDs) {
+	    mlog("%s: invalid index %i of %i nodes and %i addresses\n",
+		    __func__, addrIdx, nrOfNodes, rInfo->nrOfAddrIDs);
+	    return false;
+	}
+	HostLT[numHostLT].nodeID = rInfo->addrIDs[addrIdx++];
     }
 
-    /* expand optional node address */
-    snprintf(tmp, sizeof(tmp), "SLURM_HOST_ADDR_%i", idx);
-    if ((hostAddr = getConfValueC(&Config, tmp))) {
-	if (!(*addrList = expandHostList(hostAddr, &nrOfAddr))) {
-	    mlog("%s: expanding host entry %i failed\n", __func__, idx);
-	    return false;
-	}
-	if (nrOfHosts != nrOfAddr) {
-	    mlog("%s: mismatching numbers of NodeName (%i) and NodeAddr (%i) "
-		 "for entry %i\n", __func__, nrOfHosts, nrOfAddr, idx);
-	    return false;
-	}
+    /* did we find a valid ParaStation node ID? */
+    if (HostLT[numHostLT].nodeID == -1) {
+	mlog("%s: unable to get PS nodeID for %s\n", __func__, host);
+	return false;
     }
+    mdbg(PSSLURM_LOG_DEBUG, "%s: numHostLT %zi nodeID %i hostname %s\n",
+	    __func__, numHostLT, HostLT[numHostLT].nodeID, host);
+    HostLT[numHostLT++].hostname = ustrdup(host);
+    rInfo->addrIdx = addrIdx;
+
     return true;
 }
 
 /**
  * @brief Resolve and save a hostname/PS node ID pair in HostLT
  *
- * @param hostIdx The index in the HostLT array to use
- *
- * @param hostList Comma separated list of hostnames
- *
- * @param addrList Comma separated list of host addresses
- *
- * @param skHosts Number of unresolved hosts
+ * @param confIdx The configuration host index to parse
  *
  * @return Returns true on success or false on error
  */
-static bool saveHostEntry(int *hostIdx, char *hostList, char *addrList,
-			  int *skHosts)
+static bool resolveHostEntry(int confIdx)
 {
-    char *next, *saveptr;
-    const char delimiters[] =", \n";
-    int addrCnt = 0, idx, addrIdx = 0, weakIDcheck;
-    PSnodes_ID_t i, nrOfNodes = PSC_getNrOfNodes();
-    PSnodes_ID_t *nodeIDs = NULL;
+    char tmp[128];
+    bool ret = false;
+    Resolve_Host_t info = {
+	.addrIDs = NULL,
+	.nrOfAddrIDs = 0,
+	.addrIdx = 0 };
 
-    /* resolve PS nodeIDs from optional address list */
+    /* get next host-list */
+    snprintf(tmp, sizeof(tmp), "SLURM_HOST_ENTRY_%i", confIdx);
+    char *hostEntry = getConfValueC(&Config, tmp);
+    if (!hostEntry) {
+	mlog("%s: host entry %s not found\n", __func__, tmp);
+	goto FINISH;
+    }
+
+    /* resolve PS nodeIDs from optional address-list */
+    snprintf(tmp, sizeof(tmp), "SLURM_HOST_ADDR_%i", confIdx);
+    char *addrList = getConfValueC(&Config, tmp);
     if (addrList) {
-	nodeIDs = umalloc(sizeof(*nodeIDs) * nrOfNodes);
-	for (i=0; i<nrOfNodes; i++) nodeIDs[i] = -1;
-
-	next = strtok_r(addrList, delimiters, &saveptr);
-	while (next) {
-	    nodeIDs[addrCnt++] = getNodeIDbyName(next);
-	    next = strtok_r(NULL, delimiters, &saveptr);
+	if (!convHLtoPSnodes(addrList, getNodeIDbyName,
+		             &info.addrIDs, &info.nrOfAddrIDs)) {
+	    flog("resolving nodes in address list %s index %i failed\n",
+		 addrList, confIdx);
+	    goto FINISH;
 	}
     }
 
-    /* save hostname and PS nodeID in HostLT */
-    next = strtok_r(hostList, delimiters, &saveptr);
-    idx = *hostIdx;
-    weakIDcheck = getConfValueI(&Config, "WEAK_NODEID_CHECK");
-    while (next) {
-	/* enough space for next host? */
-	if (idx >= nrOfNodes) {
-	    mlog("%s: more Slurm host definitions %i than PS nodes %i\n",
-		 __func__, idx, nrOfNodes);
-	    ufree(nodeIDs);
-	    return false;
-	}
-	if (!addrList) {
-	    /* resolve hostname if NodeAddr is not used */
-	    HostLT[idx].nodeID = getNodeIDbyName(next);
-	} else {
-	    if (addrIdx >= nrOfNodes || addrIdx >= addrCnt) {
-		mlog("%s: invalid index %i of %i nodes and %i addresses\n",
-		     __func__, addrIdx, nrOfNodes, addrCnt);
-		ufree(nodeIDs);
-		return false;
-	    }
-	    HostLT[idx].nodeID = nodeIDs[addrIdx++];
-	}
-	/* did we find a valid ParaStation node ID? */
-	if (HostLT[idx].nodeID == -1) {
-	    (*skHosts)++;
-	    if (weakIDcheck) {
-		mdbg(PSSLURM_LOG_WARN, "%s: unable to get PS nodeID for %s\n",
-			__func__, next);
-		next = strtok_r(NULL, delimiters, &saveptr);
-		continue;
-	    } else {
-		mlog("%s: unable to get PS nodeID for %s\n", __func__, next);
-		ufree(nodeIDs);
-		return false;
-	    }
-	}
-	mdbg(PSSLURM_LOG_DEBUG, "%s: idx %i nodeID %i hostname %s\n",
-	     __func__, idx, HostLT[idx].nodeID, next);
-	HostLT[idx++].hostname = ustrdup(next);
-	next = strtok_r(NULL, delimiters, &saveptr);
+    /* resolve PS nodeIDs for every host */
+    if (!traverseHostList(hostEntry, saveHost, &info)) {
+	flog("resolving nodes in host list %s index %i failed\n",
+	     hostEntry, confIdx);
+	goto FINISH;
     }
-    ufree(nodeIDs);
-    *hostIdx += (idx - *hostIdx);
 
-    return true;
+    ret = true;
+
+FINISH:
+    free(info.addrIDs);
+    return ret;
 }
 
 /**
@@ -2283,8 +2260,6 @@ PSnodes_ID_t getNodeIDbySlurmHost(const char *host)
  */
 static bool initHostLT(void)
 {
-    int numEntry, hostIdx = 0, skHosts = 0;
-    char *hostList = NULL, *addrList = NULL;
     PSnodes_ID_t i, nrOfNodes = PSC_getNrOfNodes();
 
     HostLT = umalloc(sizeof(*HostLT) * nrOfNodes);
@@ -2293,29 +2268,18 @@ static bool initHostLT(void)
 	HostLT[i].nodeID = -1;
     }
 
-    numEntry = getConfValueI(&Config, "SLURM_HOST_ENTRY_COUNT");
+    int numEntry = getConfValueI(&Config, "SLURM_HOST_ENTRY_COUNT");
     if (numEntry == -1) {
 	mlog("%s: missing NodeName definition in slurm.conf\n", __func__);
 	goto ERROR;
     }
 
     for (i=1; i<=numEntry; i++) {
-	/* expand next NodeName and NodeAddr entry */
-	if (!expHostEntry(i, &hostList, &addrList)) {
-	    mlog("%s: expanding host entry %i failed\n", __func__, i);
-	    goto ERROR;
-	}
 	/* find PS nodeIDs and save the result in HostLT */
-	if (!saveHostEntry(&hostIdx, hostList, addrList, &skHosts)) {
+	if (!resolveHostEntry(i)) {
 	    mlog("%s: saving host entry %i failed\n", __func__, i);
 	    goto ERROR;
 	}
-	ufree(hostList);
-	ufree(addrList);
-    }
-    numHostLT = hostIdx;
-    if (skHosts) {
-	mlog("%s: failed to resolve %i Slurm hostnames\n", __func__, skHosts);
     }
     mdbg(PSSLURM_LOG_DEBUG, "%s: found %zu PS nodes\n", __func__, numHostLT);
 
@@ -2344,10 +2308,7 @@ static bool initHostLT(void)
     return true;
 
 ERROR:
-    ufree(hostList);
-    ufree(addrList);
     freeHostLT();
-
     return false;
 }
 

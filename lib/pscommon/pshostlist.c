@@ -297,7 +297,7 @@ bool traverseHostList(char *hostlist, HL_Visitor_t visitor, void *info)
 		goto expandError;
 	    }
 	} else {
-	    visitor(next, info);
+	    if (!visitor(next, info)) goto expandError;
 	}
 	next = strtok_r(NULL, delimiters, &saveptr);
     }
