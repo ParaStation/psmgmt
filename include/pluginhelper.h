@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2014-2016 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2014-2018 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -33,7 +33,7 @@ int removeDir(char *directory, int root);
  *
  * @return Returns the requested nodeID or -1 on error.
  */
-PSnodes_ID_t getNodeIDbyName(char *host);
+PSnodes_ID_t getNodeIDbyName(const char *host);
 
 /**
  * @brief Get the hostname from a PS node ID
