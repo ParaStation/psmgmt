@@ -576,12 +576,12 @@ int initialize(void)
     /* set various config options */
     setConfOpt();
 
+    if (!registerHooks()) goto INIT_ERROR;
     if (!(initSlurmdProto())) goto INIT_ERROR;
 
     enableFPEexceptions();
 
     if (!initPScomm()) goto INIT_ERROR;
-    if (!registerHooks()) goto INIT_ERROR;
     if (!initLimits()) goto INIT_ERROR;
     if (!initEnvFilter()) goto INIT_ERROR;
 

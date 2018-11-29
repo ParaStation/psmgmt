@@ -201,6 +201,8 @@ void cleanup(void)
     /* unregister timer */
     if (cleanupTimerID != -1) Timer_remove(cleanupTimerID);
 
+    PSID_unregisterLoopAct(clearDeletedJobs);
+
     clearChildList();
     clearJobList();
     clearAllPluginConfigs();
