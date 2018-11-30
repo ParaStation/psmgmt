@@ -117,36 +117,31 @@ static int setGresCount(Gres_Conf_t *gres, char *count)
     return 1;
 }
 
+static bool testDevices(char *file, void *info)
+{
+    struct stat sbuf;
+    Gres_Conf_t *gres = info;
+
+    if (stat(file, &sbuf) == -1) {
+	mlog("%s: invalid device '%s' for '%s'\n", __func__, file, gres->name);
+    } else {
+	gres->count++;
+    }
+
+    return true;
+}
+
 static int parseGresFile(Gres_Conf_t *gres, char *file)
 {
-    char *toksave, *next, *files;
-    const char delimiters[] =",\n";
-    struct stat sbuf;
-    uint32_t count;
-
     gres->file = ustrdup(file);
-    files = expandHostList(gres->file, &count);
-    if (!files) {
+
+    /* test every devices */
+    if (!traverseHostList(gres->file, testDevices, gres)) {
 	mlog("%s: invalid gres file '%s' for '%s'\n", __func__,
-		gres->file, gres->name);
+	     gres->file, gres->name);
 	return 0;
     }
 
-    /* test single devices */
-    count = 0;
-    next = strtok_r(files, delimiters, &toksave);
-    while (next) {
-	if (stat(next, &sbuf) == -1) {
-	    mlog("%s: invalid device '%s' for '%s'\n", __func__, next,
-		 gres->name);
-	} else {
-	    count++;
-	}
-	next = strtok_r(NULL, delimiters, &toksave);
-    }
-
-    gres->count = count;
-    ufree(files);
     return 1;
 }
 
