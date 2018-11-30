@@ -13,6 +13,8 @@
 #include <signal.h>
 #include <unistd.h>
 #include <popt.h>
+#include <netdb.h>
+#include <arpa/inet.h>
 
 #include "psenv.h"
 #include "pshostlist.h"
@@ -25,6 +27,10 @@
 
 #include "peloguetypes.h"
 
+typedef struct {
+    PSnodes_ID_t id;
+    char *hostname;
+} PS_NodeList_t;
 
 /** job ID this pspelogue is handling */
 static char *jobID = NULL;
@@ -47,6 +53,9 @@ static int help = 0;
 /** flag for verbosity */
 static int verbose = 0;
 
+/** use psid to resolve hostnames */
+static int psidResolve = 0;
+
 /** start parallel epilogue */
 static int epilogue = 0;
 
@@ -64,6 +73,12 @@ static char *addFilter = NULL;
 
 /** pspelogue protocol version */
 static uint16_t protoVer = 2;
+
+/** complete nodelist */
+static PS_NodeList_t *nodeList = NULL;
+
+/** number of entries in nodeList */
+static PSnodes_ID_t numNodeList = 0;
 
 /** popt command line option table */
 static struct poptOption optionsTable[] = {
@@ -83,8 +98,80 @@ static struct poptOption optionsTable[] = {
       &epilogue, 0, "start parallel epilogue", NULL},
     { "filter", 'f', POPT_ARG_STRING,
       &addFilter, 0, "add additional environment filter", NULL},
+    { "psid_resolve", '\0', POPT_ARG_NONE,
+      &psidResolve, 0, "use psid to resolve hostnames", NULL},
     POPT_TABLEEND
 };
+
+static char *resolveNode(PSnodes_ID_t node)
+{
+    in_addr_t nodeIP;
+    struct sockaddr_in nodeAddr;
+    int rc;
+    static char nodeStr[NI_MAXHOST];
+
+    /* get ip-address of node */
+    rc = PSI_infoUInt(-1, PSP_INFO_NODE, &node, &nodeIP, 0);
+    if (rc || nodeIP == INADDR_ANY) {
+	snprintf(nodeStr, sizeof(nodeStr), "<unknown>(%d)", node);
+	return nodeStr;
+    }
+
+    /* get hostname */
+    nodeAddr = (struct sockaddr_in) {
+	.sin_family = AF_INET,
+	.sin_port = 0,
+	.sin_addr = { .s_addr = nodeIP } };
+    rc = getnameinfo((struct sockaddr *)&nodeAddr, sizeof(nodeAddr), nodeStr,
+		     sizeof(nodeStr), NULL, 0, NI_NAMEREQD | NI_NOFQDN);
+    if (rc) {
+	snprintf(nodeStr, sizeof(nodeStr), "%s", inet_ntoa(nodeAddr.sin_addr));
+    } else {
+	char *ptr = strchr (nodeStr, '.');
+	if (ptr) *ptr = '\0';
+    }
+
+    return nodeStr;
+}
+
+/**
+ * @brief Get ParaStation node ID by hostname
+ *
+ * @param host The hostname to resolve
+ *
+ * @return Returns the requested node ID or -1 on error
+ */
+static PSnodes_ID_t resolveHost(const char *host)
+{
+    PSnodes_ID_t i;
+
+    if (!host) return -1;
+
+    for (i=0; i<numNodeList; i++) {
+	if (!strcmp(host, nodeList[i].hostname)) return nodeList[i].id;
+    }
+    return -1;
+}
+
+/**
+ * @brief Initialize host resolve table
+ */
+static void initHostTable(void)
+{
+    PSnodes_ID_t i, nrOfNodes = PSC_getNrOfNodes();
+
+    nodeList = malloc(sizeof(*nodeList) * nrOfNodes);
+    if (!nodeList) {
+	fprintf(stderr, "no memory for nodeList\n");
+	exit(1);
+    }
+
+    for (i=0; i<nrOfNodes; i++) {
+	nodeList[i].id = i;
+	nodeList[i].hostname = strdup(resolveNode(i));
+	numNodeList++;
+    }
+}
 
 static void init(const int argc, const char *argv[])
 {
@@ -123,6 +210,8 @@ static void init(const int argc, const char *argv[])
 	poptPrintHelp(optCon, stdout, 0);
 	exit(0);
     }
+
+    if (psidResolve) initHostTable();
 }
 
 static void timeoutHandler(int sig)
@@ -367,7 +456,11 @@ int main(const int argc, const char *argv[], char *envp[])
     envSet(&clone, "SLURM_UID", getenv("SLURM_JOB_UID"));
 
     /* convert Slurm hostlist into PS IDs */
-    convHLtoPSnodes(slurmHosts, PSI_resolveNodeID, &nodes, &nrOfNodes);
+    if (psidResolve) {
+	convHLtoPSnodes(slurmHosts, resolveHost, &nodes, &nrOfNodes);
+    } else {
+	convHLtoPSnodes(slurmHosts, PSI_resolveNodeID, &nodes, &nrOfNodes);
+    }
 
     if (!nrOfNodes) {
 	fprintf(stderr, "%s: no nodes found\n", argv[0]);
