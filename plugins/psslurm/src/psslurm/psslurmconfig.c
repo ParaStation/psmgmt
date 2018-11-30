@@ -23,6 +23,16 @@
 
 #include "psslurmconfig.h"
 
+/** used to forward information to host visitor */
+typedef struct {
+    int count;		/**< number of hosts parsed */
+    char *options;	/**< host options */
+    int gres;		/**< gres host definition flag */
+    bool result;	/**< parsing result */
+    bool useNodeAddr;	/**< use NodeAddr option */
+    int localHostIdx;	/**< index of local host in hostlist */
+} Host_Info_t;
+
 const ConfDef_t CONFIG_VALUES[] =
 {
     { "SLURM_CONF", 0,
@@ -276,6 +286,68 @@ bool isLocalAddr(char *addr)
 }
 
 /**
+ * @brief Parse a single host
+ *
+ * @param host The host to parse
+ *
+ * @param info Pointer to Host_Info_t structure
+ *
+ * @return Always returns true
+ */
+static bool parseHost(char *host, void *info)
+{
+    Host_Info_t *hInfo = info;
+    bool res = true;
+
+    hInfo->count++;
+
+    if (hInfo->gres) {
+	char *myHost = getConfValueC(&Config, "SLURM_HOSTNAME");
+	if (myHost && !strcmp(myHost, host)) {
+	    res = parseGresOptions(hInfo->options);
+	}
+    } else {
+	if (!(strcmp(host, "DEFAULT"))) {
+	    mlog("%s: found the default host definition\n", __func__);
+	    res = addHostOptions(hInfo->options);
+	} else if (isLocalAddr(host)) {
+	    flog("found my addr: %s args: %s\n", host, hInfo->options);
+	    if (!hInfo->useNodeAddr) {
+		addConfigEntry(&Config, "SLURM_HOSTNAME", host);
+	    }
+	    hInfo->localHostIdx = hInfo->count;
+	    res = addHostOptions(hInfo->options);
+	}
+    }
+
+    if (!res) hInfo->result = false;
+
+    return true;
+}
+
+/**
+ * @brief Find local host in hostlist
+ *
+ * @param host The host to test
+ *
+ * @param info Pointer to Host_Info_t structure
+ *
+ * @return Returns false if the host was found otherwise
+ * true
+ */
+static bool findMyHost(char *host, void *info)
+{
+    static int count = 1;
+    Host_Info_t *hInfo = info;
+
+    if (count++ == hInfo->localHostIdx) {
+	addConfigEntry(&Config, "SLURM_HOSTNAME", host);
+	return false;
+    }
+    return true;
+}
+
+/**
  * @brief Search and save the current host definition
  *
  * @param hosts The host range to parse
@@ -290,70 +362,23 @@ bool isLocalAddr(char *addr)
  */
 static bool setMyHostDef(char *hosts, char *hostopt, char *nodeAddr, int gres)
 {
-    char *hostlist, *host, *toksave;
-    uint32_t numHosts;
-    const char delimiters[] =", \n";
-    int index = -1, count = 0;
+    Host_Info_t hInfo = {
+	.count = 0,
+	.options = hostopt,
+	.gres = gres,
+	.result = true,
+	.useNodeAddr = nodeAddr ? true : false,
+	.localHostIdx = -1 };
 
-    if (nodeAddr) {
-	if (!(hostlist = expandHostList(nodeAddr, &numHosts))) {
-	    mlog("%s: expanding NodeName '%s' failed\n", __func__, hosts);
-	    return false;
-	}
-    } else {
-	if (!(hostlist = expandHostList(hosts, &numHosts))) {
-	    mlog("%s: expanding NodeName '%s' failed\n", __func__, hosts);
-	    return false;
-	}
-    }
-
-    bool res = true;
-    host = strtok_r(hostlist, delimiters, &toksave);
-    char *myHost = getConfValueC(&Config, "SLURM_HOSTNAME");
-    while (host) {
-	count++;
-	if (gres) {
-	    if (myHost && !strcmp(myHost, host)) {
-		res = parseGresOptions(hostopt);
-		break;
-	    }
-	} else {
-	    if (!(strcmp(host, "DEFAULT"))) {
-		mlog("%s: found the default host definition\n", __func__);
-		res = addHostOptions(hostopt);
-	    } else if (isLocalAddr(host)) {
-		mlog("%s: found my addr: %s args: %s\n", __func__, host,
-			hostopt);
-		if (!nodeAddr) addConfigEntry(&Config, "SLURM_HOSTNAME", host);
-		index = count;
-		res = addHostOptions(hostopt);
-		break;
-	    }
-	}
-	host = strtok_r(NULL, delimiters, &toksave);
-    }
-    ufree(hostlist);
+    /* call parseHost() for every host in the list */
+    traverseHostList(nodeAddr ? nodeAddr : hosts, parseHost, &hInfo);
 
     /* set missing SLURM_HOSTNAME if nodeAddr is used */
-    if (nodeAddr && index != -1) {
-	if (!(hostlist = expandHostList(hosts, &numHosts))) {
-	    mlog("%s: expanding NodeName '%s' failed\n", __func__, hosts);
-	    return false;
-	}
-
-	host = strtok_r(hostlist, delimiters, &toksave);
-	count = 1;
-	while (host) {
-	    if (count++ == index) {
-		addConfigEntry(&Config, "SLURM_HOSTNAME", host);
-		break;
-	    }
-	    host = strtok_r(NULL, delimiters, &toksave);
-	}
-	ufree(hostlist);
+    if (nodeAddr && hInfo.localHostIdx != -1) {
+	traverseHostList(hosts, findMyHost, &hInfo);
     }
 
-    return res;
+    return hInfo.result;
 }
 
 /**
