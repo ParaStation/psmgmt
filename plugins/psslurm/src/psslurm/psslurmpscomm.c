@@ -361,18 +361,10 @@ void send_PS_JobLaunch(Job_t *job)
 
     initFragBuffer(&data, PSP_CC_PLUG_PSSLURM, PSP_JOB_LAUNCH);
 
-    if (job->packSize) {
-	uint32_t n;
-	for (n = 0; n < job->packNrOfNodes; n++) {
-	    if (job->packNodes[n] == myID) continue;
-	    setFragDest(&data, PSC_getTID(job->packNodes[n], 0));
-	}
-    } else {
-	uint32_t n;
-	for (n = 0; n < job->nrOfNodes; n++) {
-	    if (job->nodes[n] == myID) continue;
-	    setFragDest(&data, PSC_getTID(job->nodes[n], 0));
-	}
+    uint32_t n;
+    for (n = 0; n < job->nrOfNodes; n++) {
+	if (job->nodes[n] == myID) continue;
+	setFragDest(&data, PSC_getTID(job->nodes[n], 0));
     }
     if (!getNumFragDest(&data)) return;
 
@@ -384,13 +376,8 @@ void send_PS_JobLaunch(Job_t *job)
     addUint32ToMsg(job->gid, &data);
     addStringToMsg(job->username, &data);
 
-    if (job->packSize) {
-	/* pack node list */
-	addStringToMsg(job->packHostlist, &data);
-    } else {
-	/* node list */
-	addStringToMsg(job->slurmHosts, &data);
-    }
+    /* node list */
+    addStringToMsg(job->slurmHosts, &data);
 
     /* send the messages */
     sendFragMsg(&data);
