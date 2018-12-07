@@ -72,6 +72,9 @@ static PStask_ID_t *destNodes = NULL;
 /** message to collect and send fragments */
 static DDTypedBufferMsg_t fragMsg;
 
+/** count number of active users that have called @ref initSerial() */
+static int activeUsers = 0;
+
 /**
  * Custom function used by @ref __sendFragMsg() to actually send
  * fragments. Set via @ref initSerial().
@@ -99,7 +102,7 @@ static inline void *umalloc(size_t size)
  */
 static void resetBuf(PS_DataBuffer_t *b)
 {
-    if (b->buf) free(b->buf);
+    free(b->buf);
     b->buf = NULL;
     b->bufSize = 0;
     b->bufUsed = 0;
@@ -234,10 +237,10 @@ static int nodeDownHandler(void *nodeID)
  */
 static int clearMem(void *dummy)
 {
-    if (sendBuf) free(sendBuf);
+    free(sendBuf);
     sendBuf = NULL;
     sendBufLen = 0;
-    if (destNodes) free(destNodes);
+    free(destNodes);
     destNodes = NULL;
 
     list_t *r, *tmp;
@@ -247,6 +250,9 @@ static int clearMem(void *dummy)
 	putRecvBuf(recvBuf);
     }
     PSitems_clearMem(&recvBuffers);
+
+    activeUsers = 0;
+    sendPSMsg = NULL;
 
     return 0;
 }
@@ -367,7 +373,7 @@ bool initSerial(size_t bufSize, Send_Msg_Func_t *func)
 {
     PSnodes_ID_t numNodes = PSC_getNrOfNodes();
 
-    if (PSitems_isInitialized(&recvBuffers)) return true;
+    if (activeUsers++) return true;
 
     if (!PSC_logInitialized()) PSC_initLog(stderr);
 
@@ -379,14 +385,14 @@ bool initSerial(size_t bufSize, Send_Msg_Func_t *func)
     if (!initSerialBuf(bufSize)) return false;
 
     /* allocated space for destination nodes */
-    if (destNodes) free(destNodes);
+    free(destNodes);
     destNodes = malloc(sizeof(*destNodes) * numNodes);
 
     if (!sendBuf || !destNodes) {
 	PSC_log(-1, "%s: cannot allocate all buffers\n", __func__);
-	if (sendBuf) free(sendBuf);
+	free(sendBuf);
 	sendBuf = NULL;
-	if (destNodes) free(destNodes);
+	free(destNodes);
 	destNodes = NULL;
 
 	return false;
@@ -404,6 +410,8 @@ bool initSerial(size_t bufSize, Send_Msg_Func_t *func)
 
 void finalizeSerial(void)
 {
+    if (--activeUsers) return;
+
     clearMem(NULL);
 
     if (hookDel) {

@@ -113,7 +113,8 @@ bool initSerial(size_t bufSize, Send_Msg_Func_t *func);
 /**
  * @brief Finalize Psserial facility
  *
- * Finalize the Psserial facility. This includes releasing all buffers.
+ * Finalize the Psserial facility. This includes releasing all buffers
+ * if this was the last user of the facility.
  *
  * @return No return value
  */
