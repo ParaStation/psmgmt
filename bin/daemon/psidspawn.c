@@ -1219,6 +1219,7 @@ static void execForwarder(int daemonfd, PStask_t *task)
     PSID_adjustLoginUID(task->uid);
 
     /* init the process manager sockets */
+    task->fd = daemonfd;
     if ((PSIDhook_call(PSIDHOOK_EXEC_FORWARDER, task)) == -1) {
 	eno = EINVAL;
 	goto error;
