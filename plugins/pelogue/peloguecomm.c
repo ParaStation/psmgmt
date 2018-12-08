@@ -237,8 +237,6 @@ static void handleResourceCB(char *plugin, char *jobid, uint16_t result)
     PElogueResource_t *res;
     RPC_Info_t *info;
 
-    mlog("%s: jobid %s\n", __func__, jobid);
-
     if (!job) {
 	mlog("%s: job with id %s from plugin %s not found\n", __func__,
 	     jobid, plugin);
@@ -253,9 +251,12 @@ static void handleResourceCB(char *plugin, char *jobid, uint16_t result)
     }
 
     if (!result) {
-	mlog("%s: requesting additional resources failed\n", __func__);
+	mlog("%s: requesting additional resources for job %s failed\n",
+	     __func__, jobid);
 	goto ERROR;
     }
+
+    mlog("%s: jobid %s\n", __func__, jobid);
 
     if (startPElogueReq(job, info->type, info->timeout,
 			info->grace, res->env) <0) {
