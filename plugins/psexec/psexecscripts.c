@@ -27,7 +27,8 @@ static LIST_HEAD(scriptList);
 /** node-local unique ID of the next script to register */
 static uint16_t nextUID = 42;
 
-Script_t *addScript(uint32_t id, char *execName, psExec_Script_CB_t *cb)
+Script_t *addScript(uint32_t id, char *execName, char *execPath,
+		    psExec_Script_CB_t *cb)
 {
     Script_t *script = umalloc(sizeof(*script));
 
@@ -41,6 +42,7 @@ Script_t *addScript(uint32_t id, char *execName, psExec_Script_CB_t *cb)
     script->initiator = -1;
     script->cb = cb;
     script->execName = ustrdup(execName);
+    script->execPath = ustrdup(execPath);
     envInit(&script->env);
     script->uID = nextUID++;
     list_add_tail(&script->next, &scriptList);
@@ -61,6 +63,7 @@ Script_t *addScript(uint32_t id, char *execName, psExec_Script_CB_t *cb)
 static void doDeleteScript(Script_t *script)
 {
     ufree(script->execName);
+    ufree(script->execPath);
     envDestroy(&script->env);
     list_del(&script->next);
     ufree(script);

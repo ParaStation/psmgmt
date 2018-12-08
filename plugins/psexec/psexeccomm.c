@@ -29,6 +29,8 @@
 
 #include "psexeccomm.h"
 
+#define PSEXEC_PROTO_VERSION 2
+
 /** Types of messages sent between psexec plugins */
 typedef enum {
     PSP_EXEC_SCRIPT = 10,   /**< Initiate remote execution of script */
@@ -76,10 +78,14 @@ int sendExecScript(Script_t *script, PSnodes_ID_t dest)
     initFragBuffer(&data, PSP_CC_PLUG_PSEXEC, PSP_EXEC_SCRIPT);
     setFragDest(&data, PSC_getTID(dest, 0));
 
+    /* add protocol version */
+    addUint16ToMsg(PSEXEC_PROTO_VERSION, &data);
     /* add uID */
     addUint16ToMsg(script->uID, &data);
     /* add executable */
     addStringToMsg(script->execName, &data);
+    /* add optional executable path */
+    addStringToMsg(script->execPath, &data);
 
     /* add env */
     mlog("%s: name '%s' dest %i\n", __func__, script->execName, dest);
@@ -145,7 +151,9 @@ static bool execScript(Script_t *script, PSID_scriptCB_t cb)
     char exePath[PATH_MAX];
     int ret;
 
-    snprintf(exePath, sizeof(exePath), "%s/%s", SCRIPT_DIR, script->execName);
+    snprintf(exePath, sizeof(exePath), "%s/%s",
+	     (script->execPath && script->execPath[0] != '\0') ?
+	     script->execPath : SCRIPT_DIR, script->execName);
 
     mlog("%s: uID %u exec %s", __func__, script->uID, exePath);
     if (initiator != -1) {
@@ -207,8 +215,8 @@ static int callbackScript(int fd, PSID_scriptCBInfo_t *info)
     getScriptCBData(fd, info, &exit, output, sizeof(output), &errLen);
     if (!script) return 0;
 
-    mlog("%s: initiator %s id %i exit %i\n", __func__,
-	 PSC_printTID(script->initiator), script->id, exit);
+    mlog("%s: initiator %s id %i exit %i output:%s\n", __func__,
+	 PSC_printTID(script->initiator), script->id, exit, output);
 
     /* send result */
     sendScriptResult(script, exit, output);
@@ -225,16 +233,26 @@ static void handleExecScript(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
     char *ptr = data->buf;
     char exe[128];
     uint32_t i, envc;
-    uint16_t uID;
+    uint16_t uID, version;
     Script_t *script;
 
+    /* verify protocol version */
+    getUint16(&ptr, &version);
+    if (version != PSEXEC_PROTO_VERSION) {
+	mlog("%s: invalid protocol version %u from %s expect %u\n", __func__,
+	     version, PSC_printTID(msg->header.sender),
+	     PSEXEC_PROTO_VERSION);
+	return;
+    }
     /* remote uID */
     getUint16(&ptr, &uID);
     /* executable name */
     getString(&ptr, exe, sizeof(exe));
+    /* optional path for executable */
+    char *execPath = getStringM(&ptr);
 
     /* get new script struct */
-    script = addScript(uID, exe, NULL);
+    script = addScript(uID, exe, execPath, NULL);
     script->initiator = msg->header.sender;
 
     /* env */

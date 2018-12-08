@@ -18,7 +18,13 @@
 int psExecStartScript(uint32_t id, char *execName, env_t *env,
 		      PSnodes_ID_t dest, psExec_Script_CB_t *cb)
 {
-    Script_t *script = addScript(id, execName, cb);
+    return psExecStartScriptEx(id, execName, NULL, env, dest, cb);
+}
+
+int psExecStartScriptEx(uint32_t id, char *execName, char *execPath,
+			env_t *env, PSnodes_ID_t dest, psExec_Script_CB_t *cb)
+{
+    Script_t *script = addScript(id, execName, execPath, cb);
     int ret;
 
     /* equip local delegate */

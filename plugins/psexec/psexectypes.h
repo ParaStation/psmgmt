@@ -54,11 +54,11 @@ typedef int(psExec_Script_CB_t)(uint32_t id, int32_t res, PSnodes_ID_t dest,
  * @brief Request to execute a script
  *
  * Request to execute the script identified by its executable @a
- * execName on the node with ParaStation ID @a dest. The environment
- * as seen by the script upon execution is provided within @a env. The
- * callback @a cb will be executed upon finalization of the script's
- * execution. @a id is passed to this callback in order to identify
- * the reason of the calling back.
+ * execName located in @a execPath on the node with ParaStation ID @a dest.
+ * The environment as seen by the script upon execution is provided
+ * within @a env. The callback @a cb will be executed upon finalization
+ * of the script's execution. @a id is passed to this callback in order
+ * to identify the reason of the calling back.
  *
  * In order to execute the script a corresponding script information
  * is created and equipped with a (node-local) unique ID. This unique
@@ -68,6 +68,28 @@ typedef int(psExec_Script_CB_t)(uint32_t id, int32_t res, PSnodes_ID_t dest,
  *
  * @a id ID to be presented as the first argument to the callback @a
  * cb in order to help to identifying the reason for calling back
+ *
+ * @param execName Filename of the script to execute
+ *
+ * @param execPath Optional path of the script to execute
+ *
+ * @param env Environment as it will be seen by the script
+ *
+ * @param dest Destination node the script shall run on
+ *
+ * @param cb Callback executed on finalization of the script
+ *
+ * @return On success the total number of bytes sent to the
+ * destination node is returned. Or -1 in case of error.
+ */
+typedef int (psExecStartScriptEx_t)(uint32_t id, char *execName, char *execPath,
+				    env_t *env, PSnodes_ID_t dest,
+				    psExec_Script_CB_t *cb);
+
+/**
+ * @brief Request to execute a script
+ *
+ * This is a wrapper around @ref psExecStartScriptEx_t.
  *
  * @param execName Filename of the script to execute
  *

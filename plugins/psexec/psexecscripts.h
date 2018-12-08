@@ -30,6 +30,7 @@ typedef struct {
     PStask_ID_t initiator;  /**< task ID or -1 for local delegate */
     psExec_Script_CB_t *cb; /**< callback called upon script's finalization */
     char *execName;         /**< script's filename relative to SCRIPT_DIR */
+    char *execPath;         /**< optional script's path to use */
 } Script_t;
 
 /**
@@ -46,14 +47,17 @@ typedef struct {
  *
  * @param id ID helping the caller to identify the callback reason
  *
- * @param exec Filename of the script to execute
+ * @param execName Filename of the script to execute
+ *
+ * @param execPath Optional path of the script to execute
  *
  * @param cb Callback executed on finalization of the script
  *
  * @return On success the new script information is returned or NULL
  * in case of error,i.e. insufficient memory.
  */
-Script_t *addScript(uint32_t id, char *execName, psExec_Script_CB_t *cb);
+Script_t *addScript(uint32_t id, char *execName, char *execPath,
+		    psExec_Script_CB_t *cb);
 
 /**
  * @brief Find script information by its unique ID

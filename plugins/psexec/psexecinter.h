@@ -14,6 +14,7 @@
 #include "psexectypes.h"
 
 psExecStartScript_t psExecStartScript;
+psExecStartScriptEx_t psExecStartScriptEx;
 
 psExecSendScriptStart_t psExecSendScriptStart;
 psExecStartLocalScript_t psExecStartLocalScript;
