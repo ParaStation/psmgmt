@@ -146,6 +146,67 @@ static void handleFinACK(Forwarder_Data_t *fw)
     Selector_startOver();
 }
 
+/**
+ * @brief Receive message from mother daemon
+ *
+ * Receive a message from the mother daemon connected via the file
+ * descriptor @a fd and store it to @a msg. At most @a size bytes are
+ * read from the file descriptor and stored to @a msg.
+ *
+ * @param fd File descriptor to receive from
+ *
+ * @param msg Buffer to store the message in
+ *
+ * @param size Maximum length of the message, i.e. the size of @a msg.
+ *
+ * @return On success, the number of bytes received is returned, or -1 if
+ * an error occurred. In the latter case errno will be set appropriately.
+ *
+ * @see errno(3)
+ */
+static ssize_t recvMthrMsg(int fd, DDMsg_t *msg, size_t size)
+{
+    ssize_t n;
+    size_t count = 0;
+
+    if (!msg || size < sizeof(*msg)) {
+	pluginlog("%s: size %zd too small\n", __func__, size);
+	errno = EINVAL;
+	return -1;
+    }
+
+    msg->len = sizeof(*msg);
+
+    do {
+	n = read(fd, &((char*) msg)[count], msg->len-count);
+	if (n > 0) {
+	    if (count < sizeof(*msg)) {
+		/* Just received first chunk of data */
+		if (msg->len > size) {
+		    /* message will not fit into msg */
+		    errno = EMSGSIZE;
+		    n = -1;
+		    /* @todo we should remove message from fd (with timeout!) */
+		    break;
+		}
+	    }
+	    count += n;
+	} else if (n < 0 && errno == EINTR) {
+	    continue;
+	} else if (n < 0 && errno == ECONNRESET) {
+	    /* socket is closed unexpectedly */
+	    n = 0;
+	    break;
+	} else break;
+    } while (count < msg->len);
+
+    if (count && count == msg->len) {
+	return msg->len;
+    } else {
+	return n;
+    }
+}
+
 static int handleMthrSock(int fd, void *info)
 {
     Forwarder_Data_t *fw = info;
@@ -154,7 +215,7 @@ static int handleMthrSock(int fd, void *info)
     size_t used = PSLog_headerSize; /* ensure we use the correct offset */
     int32_t signal;
 
-    if (!recvMsg(fd, (DDMsg_t*)&msg, sizeof(msg))) {
+    if (!recvMthrMsg(fd, (DDMsg_t*)&msg, sizeof(msg))) {
 	handleLocalShutdown(fw);
 	return 0;
     }
