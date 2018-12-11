@@ -16,8 +16,6 @@
 
 #include "pshostlist.h"
 
-#define STR_MALLOC_SIZE 512
-
 /** Used by @ref convHLtoPSnodes() to pass information to the visitor */
 typedef struct {
     uint32_t nrOfNodes;		/**< number of resolved nodes */
