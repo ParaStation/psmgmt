@@ -29,6 +29,7 @@ extern bool measureRPC;
 
 typedef struct {
     uint32_t jobid;
+    uint32_t packJobid;
     uint32_t stepid;
     uint32_t jobstate;
     uid_t uid;

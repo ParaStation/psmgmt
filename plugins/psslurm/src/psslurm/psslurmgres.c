@@ -40,50 +40,6 @@ static uint32_t getGresId(char *name)
     return gresId;
 }
 
-void addGresData(PS_SendDB_t *msg, int version)
-{
-    int count=0, cpus;
-    list_t *g;
-    size_t startGresData;
-    uint32_t len;
-    char *ptr;
-
-    cpus = getConfValueI(&Config, "SLURM_CPUS");
-
-    /* add placeholder for gres info size */
-    startGresData = msg->bufUsed;
-    addUint32ToMsg(0, msg);
-    /* add placeholder again for gres info size in pack_mem() */
-    addUint32ToMsg(0, msg);
-
-    /* add slurm version */
-    addUint16ToMsg(version, msg);
-
-    list_for_each(g, &GresConfList) count++;
-    addUint16ToMsg(count, msg);
-
-    list_for_each(g, &GresConfList) {
-	Gres_Conf_t *gres = list_entry(g, Gres_Conf_t, next);
-
-	addUint32ToMsg(GRES_MAGIC, msg);
-	addUint64ToMsg(gres->count, msg);
-	addUint32ToMsg(cpus, msg);
-	addUint8ToMsg((gres->file ? 1 : 0), msg);
-	addUint32ToMsg(gres->id, msg);
-	addStringToMsg(gres->cpus, msg);
-	addStringToMsg(gres->name, msg);
-	addStringToMsg(gres->type, msg);
-    }
-
-    /* set real gres info size */
-    ptr = msg->buf + startGresData;
-    len = msg->bufUsed - startGresData - (2 * sizeof(uint32_t));
-
-    *(uint32_t *)ptr = htonl(len);
-    ptr += sizeof(uint32_t);
-    *(uint32_t *)ptr = htonl(len);
-}
-
 static int setGresCount(Gres_Conf_t *gres, char *count)
 {
     char *end;
@@ -182,6 +138,15 @@ GRES_ERROR:
     return NULL;
 }
 
+int countGresConf()
+{
+    int count = 0;
+    list_t *g;
+
+    list_for_each(g, &GresConfList) count++;
+    return count;
+}
+
 void clearGresConf(void)
 {
     list_t *g, *tmp;
@@ -250,4 +215,16 @@ void freeGresCred(list_t *gresList)
 	list_del(&gres->next);
 	releaseGresCred(gres);
     }
+}
+
+bool traverseGresConf(GresConfVisitor_t visitor, void *info)
+{
+    list_t *g, *tmp;
+    list_for_each_safe(g, tmp, &GresConfList) {
+	Gres_Conf_t *gres = list_entry(g, Gres_Conf_t, next);
+
+	if (visitor(gres, info)) return true;
+    }
+
+    return false;
 }

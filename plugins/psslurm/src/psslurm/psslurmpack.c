@@ -488,6 +488,7 @@ bool __unpackSlurmIOHeader(char **ptr, Slurm_IO_Header_t **iohPtr,
 bool __unpackReqTerminate(Slurm_Msg_t *sMsg, Req_Terminate_Job_t **reqPtr,
 			  const char *caller, const int line)
 {
+
     if (!sMsg) {
 	mlog("%s: invalid sMsg from '%s' at %i\n", __func__, caller, line);
 	return false;
@@ -500,9 +501,16 @@ bool __unpackReqTerminate(Slurm_Msg_t *sMsg, Req_Terminate_Job_t **reqPtr,
 
     Req_Terminate_Job_t *req = ucalloc(sizeof(Req_Terminate_Job_t));
 
+    uint16_t msgVer = sMsg->head.version;
     char **ptr = &sMsg->ptr;
+
     /* jobid*/
     getUint32(ptr, &req->jobid);
+
+    if (msgVer == SLURM_18_08_PROTO_VERSION) {
+	/* pack jobid */
+	getUint32(ptr, &req->packJobid);
+    }
     /* jobstate */
     getUint32(ptr, &req->jobstate);
     /* user id */
@@ -510,7 +518,6 @@ bool __unpackReqTerminate(Slurm_Msg_t *sMsg, Req_Terminate_Job_t **reqPtr,
     /* nodes */
     req->nodes = getStringM(ptr);
 
-    uint16_t msgVer = sMsg->head.version;
     if (msgVer == SLURM_17_02_PROTO_VERSION) {
 	env_t pelogueEnv;
 
@@ -856,7 +863,29 @@ bool __unpackReqLaunchTasks(Slurm_Msg_t *sMsg, Step_t **stepPtr,
     /* jobinfo plugin id */
     getUint32(ptr, &tmp);
 
-    if (msgVer == SLURM_17_02_PROTO_VERSION) {
+    if (msgVer == SLURM_18_08_PROTO_VERSION) {
+	/* tres bind */
+	step->tresBind = getStringM(ptr);
+	/* tres freq */
+	step->tresFreq = getStringM(ptr);
+	/* x11 */
+	getUint16(ptr, &step->x11.x11);
+	/* magic cookie */
+	step->x11.magicCookie = getStringM(ptr);
+	/* x11 host */
+	step->x11.host = getStringM(ptr);
+	/* x11 port */
+	getUint16(ptr, &step->x11.port);
+    } else if (msgVer == SLURM_17_11_PROTO_VERSION) {
+	/* x11 */
+	getUint16(ptr, &step->x11.x11);
+	/* magic cookie */
+	step->x11.magicCookie = getStringM(ptr);
+	/* x11 host */
+	step->x11.host = getStringM(ptr);
+	/* x11 port */
+	getUint16(ptr, &step->x11.port);
+    } else if (msgVer == SLURM_17_02_PROTO_VERSION) {
 	env_t pelogueEnv;
 
 	/* pelogue env */
@@ -913,21 +942,27 @@ bool __unpackReqBatchJobLaunch(Slurm_Msg_t *sMsg, Job_t **jobPtr,
     }
 
     char **ptr = &sMsg->ptr;
+    uint16_t msgVer = sMsg->head.version, cpuBindType;
+
     /* jobid */
     getUint32(ptr, &jobid);
+
+    Job_t *job = addJob(jobid);
+
+    if (msgVer >= SLURM_18_08_PROTO_VERSION) {
+	/* pack jobid */
+	getUint32(ptr, &job->packJobid);
+    }
     /* stepid */
     getUint32(ptr, &tmp);
     if (tmp != SLURM_BATCH_SCRIPT) {
 	mlog("%s: batch job should not have stepid '%u'\n", __func__, tmp);
+	deleteJob(jobid);
 	return false;
     }
-
-    Job_t *job = addJob(jobid);
-
     /* uid */
     getUint32(ptr, &job->uid);
 
-    uint16_t msgVer = sMsg->head.version, cpuBindType;
     if (msgVer >= SLURM_17_11_PROTO_VERSION) {
 	/* gid */
 	getUint32(ptr, &job->gid);
@@ -1049,6 +1084,11 @@ bool __unpackReqBatchJobLaunch(Slurm_Msg_t *sMsg, Job_t **jobPtr,
 	getUint32(ptr, &tmp);
     }
 
+    /* TODO 
+     *          packstr(msg->tres_bind, buffer);
+                packstr(msg->tres_freq, buffer);
+    */
+
     *jobPtr = job;
     return true;
 
@@ -1116,6 +1156,8 @@ bool __packSlurmAccData(PS_SendDB_t *data, SlurmAccData_t *slurmAccData,
 	addUint8ToMsg(0, data);
 	return true;
     }
+
+    xTODO: add new accouting format
 
     addUint8ToMsg(1, data);
 
@@ -1199,6 +1241,55 @@ bool __packSlurmAccData(PS_SendDB_t *data, SlurmAccData_t *slurmAccData,
 		  slurmAccData->nrOfNodes);
 
     return true;
+}
+
+bool packGresConf(Gres_Conf_t *gres, void *info)
+{
+    PS_SendDB_t *msg = info;
+
+    addUint32ToMsg(GRES_MAGIC, msg);
+    addUint64ToMsg(gres->count, msg);
+    addUint32ToMsg(getConfValueI(&Config, "SLURM_CPUS"), msg);
+    addUint8ToMsg((gres->file ? 1 : 0), msg);
+    addUint32ToMsg(gres->id, msg);
+    addStringToMsg(gres->cpus, msg);
+    if (slurmProto >= SLURM_18_08_PROTO_VERSION) {
+	/* links (unused) */
+	addStringToMsg("", msg);
+    }
+    addStringToMsg(gres->name, msg);
+    addStringToMsg(gres->type, msg);
+
+    return false;
+}
+
+void addGresData(PS_SendDB_t *msg, int version)
+{
+    size_t startGresData;
+    uint32_t len;
+    char *ptr;
+
+    /* add placeholder for gres info size */
+    startGresData = msg->bufUsed;
+    addUint32ToMsg(0, msg);
+    /* add placeholder again for gres info size in pack_mem() */
+    addUint32ToMsg(0, msg);
+
+    /* add slurm version */
+    addUint16ToMsg(version, msg);
+
+    /* data count */
+    addUint16ToMsg(countGresConf(), msg);
+
+    traverseGresConf(packGresConf, msg);
+
+    /* set real gres info size */
+    ptr = msg->buf + startGresData;
+    len = msg->bufUsed - startGresData - (2 * sizeof(uint32_t));
+
+    *(uint32_t *)ptr = htonl(len);
+    ptr += sizeof(uint32_t);
+    *(uint32_t *)ptr = htonl(len);
 }
 
 bool __packRespNodeRegStatus(PS_SendDB_t *data, Resp_Node_Reg_Status_t *stat,

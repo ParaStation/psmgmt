@@ -33,6 +33,13 @@ typedef struct {
 } PackInfos_t;
 
 typedef struct {
+    uint16_t x11;
+     char *magicCookie;
+     char *host;
+     uint16_t port;
+} X11_Data_t;
+
+typedef struct {
     list_t next;                /**< used to put into some step-lists */
     uint32_t jobid;		/**< unique job identifier */
     uint32_t stepid;		/**< unique step identifier */
@@ -125,6 +132,9 @@ typedef struct {
     uint32_t numPackThreads;	/**< number of hardware threads in pack */
     uint32_t numPackNP;		/**< number of processes in pack */
     bool leader;		/**< true if node is pack leader */
+    X11_Data_t x11;             /**< X11 support */
+    char *tresBind;
+    char *tresFreq;
 } Step_t;
 
 /**

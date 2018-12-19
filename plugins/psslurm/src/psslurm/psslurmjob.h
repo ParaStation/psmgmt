@@ -77,6 +77,7 @@ typedef struct {
     char *packHostlist;	    /**< pack host-list (Slurm compressed) */
     uint32_t packNrOfNodes; /**< number of nodes in pack */
     PSnodes_ID_t *packNodes;/**< all participating nodes in the pack */
+    uint32_t packJobid;	    /**< unique pack job identifier */
 } Job_t;
 
 /**

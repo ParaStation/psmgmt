@@ -1392,29 +1392,8 @@ static void handleForwardData(Slurm_Msg_t *sMsg)
 
 static void handleLaunchProlog(Slurm_Msg_t *sMsg)
 {
-    uint32_t jobid;
-    uid_t uid;
-    gid_t gid;
-    char *alias, *nodes, *partition;
-    char **ptr = &sMsg->ptr;
-
-    getUint32(ptr, &jobid);
-    getUint32(ptr, &uid);
-    getUint32(ptr, &gid);
-
-    alias = getStringM(ptr);
-    nodes = getStringM(ptr);
-    partition = getStringM(ptr);
-
-    mlog("%s: start prolog jobid %u uid %u gid %u alias '%s' nodes '%s'"
-	 " partition '%s'\n", __func__, jobid, uid, gid, alias, nodes,
-	 partition);
-
-    sendSlurmRC(sMsg, SLURM_SUCCESS);
-
-    ufree(nodes);
-    ufree(alias);
-    ufree(partition);
+    flog("unsupported request, please use the slurmctld prologue\n");
+    sendSlurmRC(sMsg, ESLURM_NOT_SUPPORTED);
 }
 
 /**
@@ -2179,7 +2158,10 @@ bool initSlurmdProto(void)
     /* Slurm protocol version */
     pver = getConfValueC(&Config, "SLURM_PROTO_VERSION");
 
-    if (!strcmp(pver, "17.11") || !strcmp(pver, "1711")) {
+    if (!strcmp(pver, "18.08") || !strcmp(pver, "1808")) {
+	slurmProto = SLURM_18_08_PROTO_VERSION;
+	slurmProtoStr = ustrdup("18.08");
+    } else if (!strcmp(pver, "17.11") || !strcmp(pver, "1711")) {
 	slurmProto = SLURM_17_11_PROTO_VERSION;
 	slurmProtoStr = ustrdup("17.11");
     } else if (!strcmp(pver, "17.02") || !strcmp(pver, "1702")) {
