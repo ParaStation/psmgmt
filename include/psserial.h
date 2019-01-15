@@ -201,7 +201,7 @@ bool __recvFragMsg(DDTypedBufferMsg_t *msg, PS_DataBuffer_func_t *func,
  * sub-type defined previously by @ref initFragBuffer().
  *
  * The sender function which was registered before via @ref
- * initFragBuffer() method is used to send the fragments.
+ * initSerial() method is used to send the fragments.
  *
  * Each fragment holds its own meta-data used to put together the
  * overall message on the receiving side as required by @ref
@@ -536,6 +536,9 @@ bool getFromBuf(char **ptr, void *val, PS_DataType_t type,
 #define getPid(ptr, val) getFromBuf(ptr, val, PSDATA_PID,		\
 				    sizeof(pid_t), __func__, __LINE__)
 
+#define getTaskId(ptr, val) getInt32(ptr, val)
+
+#define getNodeId(ptr, val) getInt16(ptr, val)
 
 /**
  * @brief Read data from buffer
@@ -554,7 +557,8 @@ bool getFromBuf(char **ptr, void *val, PS_DataType_t type,
  * allocated. It will be big enough to hold all the data-items
  * announced in the length item within the memory region addressed by
  * @a ptr. A pointer to the buffer is returned. The caller has to
- * ensure that this buffer is released if it is no longer needed.
+ * ensure that this buffer is released using ufree() if it is no longer
+ * needed.
  *
  * If reading is successful, @a ptr will be updated to point behind
  * the last data read, i.e. prepared to read the next data from it.
@@ -760,6 +764,10 @@ bool addToBuf(const void *val, const uint32_t size, PS_SendDB_t *data,
 #define addPidToMsg(val, data) { pid_t _x = val;		\
 	addToBuf(&_x, sizeof(_x), data, PSDATA_PID,		\
 		 __func__, __LINE__); }
+
+#define addTaskIdToMsg(val, data) addInt32ToMsg(val, data)
+
+#define addNodeIdToMsg(val, data) addInt16ToMsg(val, data)
 
 #define addMemToMsg(mem, len, data)				\
     addToBuf(mem, len, data, PSDATA_MEM, __func__, __LINE__)

@@ -706,12 +706,12 @@ int main(int argc, const char *argv[])
     initOptions();
     initStatus();
     initSignal();
-    PSIDspawn_init();
     initPartition();
     initHW();
     initAccount();
     initInfo();
     initHooks();
+    PSIDspawn_init(); /* After initHooks so initSerial works subsequently */
     initEnvironment();
     /* Plugins shall be last since they use most of the ones before */
     initPlugins();

@@ -25,6 +25,39 @@
 #include "pstask.h"
 #include "selector.h"
 
+/** Structure used as entries for reservation information structs */
+typedef struct {
+    PSnodes_ID_t node;
+    int32_t firstrank;
+    int32_t lastrank;
+} PSresinfoentry_t;
+
+/** Compact reservation information structure, used in non-logger deamons */
+typedef struct {
+    list_t next;              /**< used to put into reservation-lists */
+    PSrsrvtn_ID_t resID;      /**< unique reservation identifier */
+    PStask_ID_t loggertid;    /**< logger tid, used as job identificator */
+    uint32_t nEntries;        /**< Number of entries in @ref entries */
+    PSresinfoentry_t *entries;/**< Slots forming the reservation */
+} PSresinfo_t;
+
+/** List of jobs running on this node */
+typedef struct {
+    list_t next;             /**< used to put into localJobs */
+    PStask_ID_t loggertid;   /**< logger's tid, unique job identifier */
+    uint16_t nReservations;  /**< numer of reservations, entries in resInfos */
+    list_t resInfos;         /**< job's reservations involving this node */
+} PSjob_t;
+
+/**
+ * @brief Find local job by logger tid
+ *
+ * @param loggertid tid of the logger
+ *
+ * @return Returns the job or NULL if not in list
+ */
+PSjob_t* PSID_findJobByLoggerTid(PStask_ID_t loggertid);
+
 #ifdef CPU_ZERO
 /**
  * @brief Map CPUs

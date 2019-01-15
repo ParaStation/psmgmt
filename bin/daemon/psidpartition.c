@@ -23,6 +23,7 @@
 #include "pspartition.h"
 #include "hardware.h"
 #include "psreservation.h"
+#include "psserial.h"
 
 #include "psidutil.h"
 #include "psidcomm.h"
@@ -3274,7 +3275,7 @@ static void msg_NODESRES(DDBufferMsg_t *msg)
  * Enqueue the reservation @a res to the queue @a queue. The
  * reservation might be incomplete when queued and can be found within
  * this queue via @ref findRes() and should be removed from it using
- * the @ref deqPart() function.
+ * the @ref deqRes() function.
  *
  * @param queue The queue the request should be appended to.
  *
@@ -3319,6 +3320,51 @@ static PSrsrvtn_t *findRes(list_t *queue, PSrsrvtn_ID_t rid)
 }
 
 /**
+ * @brief Distribute reservation released information to nodes involved
+ *
+ * Provide information that a reservation got deleted to all nodes that were
+ * part of that reservation. For this, one or more messages of type
+ * PSP_DD_RESRELEASED are emitted.
+ *
+ * @param res  The reservation finished
+ *
+ * @return On success, true is returned, or false if an error occurred.
+ */
+static bool send_RESRELEASED(PSrsrvtn_t *res)
+{
+    int i;
+    PSnodes_ID_t node;
+
+    for (i = 0; i < res->nSlots; i++) {
+	node = res->slots[i].node;
+	if (i < res->nSlots-1 && node == res->slots[i+1].node) {
+	    continue;
+	}
+
+	DDBufferMsg_t msg = {
+	    .header = {
+		.type = PSP_DD_RESRELEASED,
+		.dest = PSC_getTID(node, 0),
+		.sender = PSC_getMyTID(),
+		.len = sizeof(msg.header) },
+	    .buf = { '\0' }};
+
+	PSID_log(PSID_LOG_PART, "%s: send RESRELEASED to %hu for resID %d)\n",
+		__func__, node, res->rid);
+
+	PSP_putMsgBuf(&msg, __func__, "resID", &res->rid, sizeof(res->rid));
+	PSP_putMsgBuf(&msg, __func__, "loggertid", &res->task,
+		sizeof(res->task));
+
+	if (sendMsg(&msg) == -1 && errno != EWOULDBLOCK) {
+	    PSID_warn(-1, errno, "%s: sendMsg()", __func__);
+	    return false;
+	}
+    }
+    return true;
+}
+
+/**
  * @brief Dequeue reservation.
  *
  * Remove the reservation @a res from the queue @a queue. The
@@ -3358,6 +3404,10 @@ static PSrsrvtn_t *deqRes(list_t *queue, PSrsrvtn_t *res)
     }
 
     list_del_init(&r->next);
+
+    if (r->slots) {
+	send_RESRELEASED(r);
+    }
 
     return r;
 }
@@ -3458,6 +3508,80 @@ static int PSIDpart_getReservation(PSrsrvtn_t *res)
     return got;
 }
 
+
+/**
+ * @brief Distribute reservation information to nodes involved
+ *
+ * Provide information on process distribution inside of a reservation to
+ * all nodes that are part of that reservation. For this, one or more messages
+ * of type PSP_DD_RESCREATED are emitted. The collection of messages will
+ * contain the distribution information (which rank will run on which node).
+ *
+ * @param res The reservation to distribute
+ *
+ * @return On success, true is returned, or false if an error occurred.
+ */
+static bool send_RESCREATED(PStask_t *task, PSrsrvtn_t *res)
+{
+    PS_SendDB_t msg;
+    int i;
+    PSnodes_ID_t node;
+    int32_t firstrank, lastrank;
+
+    if (res->nSlots < 1) {
+	PSID_log(-1, "%s: No slots found in reservation %#x\n", __func__,
+		res->rid);
+	return false;
+    }
+
+    /* send message to each node involved */
+    initFragBuffer(&msg, PSP_DD_RESCREATED, -1);
+    for (i = 0; i < res->nSlots; i++) {
+	node = res->slots[i].node;
+	if (i < res->nSlots-1 && node == res->slots[i+1].node) {
+	    continue;
+	}
+
+	PSID_log(PSID_LOG_SPAWN, "%s: send PSP_DD_RESCREATED to node %d\n",
+		__func__, node);
+
+	setFragDest(&msg, PSC_getTID(node, 0));
+    }
+
+    /* write reservation id to message */
+    addInt32ToMsg(res->rid, &msg);
+
+    /* write logger task id to message */
+    addTaskIdToMsg(task->tid, &msg);
+
+    /* compress information into message, optimized for pack nodes first */
+    firstrank = res->firstRank;
+    node = res->slots[0].node;
+    for (i = 0; i < res->nSlots; i++) {
+	if (i < res->nSlots-1 && res->slots[i].node == res->slots[i+1].node) {
+	    continue;
+	}
+
+	lastrank = res->firstRank + i;
+
+	addNodeIdToMsg(node, &msg);
+	addInt32ToMsg(firstrank, &msg);
+	addInt32ToMsg(lastrank, &msg);
+
+	if (i == res->nSlots-1) break;
+
+	firstrank = res->firstRank + i + 1;
+	node = res->slots[i+1].node;
+    }
+
+    if (sendFragMsg(&msg) == -1) {
+	PSID_log(-1, "%s: sending failed\n", __func__);
+	return false;
+    }
+
+    return true;
+}
+
 /**
  * @brief Handle reservation request
  *
@@ -3472,6 +3596,9 @@ static int PSIDpart_getReservation(PSrsrvtn_t *res)
  * request might be sent and the reservation request remains in the
  * task's resRequests list. Otherwise the request is dequeued, and a
  * fatal PSP_CD_RESERVATIONRES is sent to the reserver.
+ *
+ * As a side effect, we inform all nodes involved in the reservation about
+ * that by sending them a PSP_DD_RESCREATED message.
  *
  * @param r The reservation request to handle.
  *
@@ -3565,6 +3692,8 @@ no_task_error:
 	PSID_log(PSID_LOG_PART, "%s: add %d slots to reservation %#x\n",
 		 __func__, got, r->rid);
 	enqRes(&task->reservations, r);
+
+	send_RESCREATED(task, r);
 
 	PSP_putMsgBuf(&msg, __func__, "rid", &r->rid, sizeof(r->rid));
 	PSP_putMsgBuf(&msg, __func__, "nSlots", &r->nSlots, sizeof(r->nSlots));
