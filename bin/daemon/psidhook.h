@@ -70,6 +70,19 @@ typedef enum {
     PSIDHOOK_MASTER_EXITPART, /**< The local node is discharged from the
 				burden of acting as a master, so all relevant
 				resources should be freed. No argument. */
+    PSIDHOOK_LOCALJOBCREATED, /**< After creating a new local job triggered by
+				receiving a message of type PSP_DD_RESCREATED,
+				thus informing us about being involed in a new
+				reservation.
+				The argument is the job already containing the
+				new reservation information.
+				The return value of the hook is ignored. */
+    PSIDHOOK_LOCALJOBREMOVED, /**< Right before a local job gets removed due
+				to its last reservation is removed triggered by
+				receiving a message of type PSP_DD_RESRELEASED.
+				The argument is the job with no reservation
+				information left.
+				The return value of the hook is ignored. */
     PSIDHOOK_EXEC_FORWARDER,  /**< Right before forking the forwarder's child.
 				Arg is a pointer to the child's task structure.
 				The hook might be used to prepare the child's

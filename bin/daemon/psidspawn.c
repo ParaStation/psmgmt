@@ -2586,6 +2586,8 @@ static void handleResCreated(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
 
     res->nEntries = nentries;
 
+    bool jobCreated = false;
+
     /* try to find corresponding job */
     PSjob_t *job;
     job = PSID_findJobByLoggerTid(loggertid);
@@ -2597,6 +2599,7 @@ static void handleResCreated(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
 	job->nReservations = 0;
 	INIT_LIST_HEAD(&job->resInfos);
 	list_add_tail(&job->next, &localJobs);
+	jobCreated = true;
 	PSID_log(-1, "%s: Job created with loggertid %s\n", __func__,
 	       PSC_printTID(loggertid));
     }
@@ -2604,6 +2607,11 @@ static void handleResCreated(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
     /* add reservation to the corresponing job */
     list_add(&res->next, &job->resInfos);
     job->nReservations++;
+
+    if (jobCreated) {
+	/* Give plugins the option to react on job creation */
+        PSIDhook_call(PSIDHOOK_LOCALJOBCREATED, job);
+    }
 }
 
 /**
@@ -2723,6 +2731,10 @@ static void msg_RESRELEASED(DDBufferMsg_t *msg)
 
     /* if there are no reservations left in the job, delete it */
     if (job->nReservations == 0) {
+
+	/* Give plugins the option to react on job removal */
+        PSIDhook_call(PSIDHOOK_LOCALJOBREMOVED, job);
+
 	list_del(&job->next);
 	free(job);
     }
