@@ -2828,6 +2828,13 @@ static void handleSpawnReq(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
     getStringArrayM(&ptr, &task->argv, &task->argc);
     getStringArrayM(&ptr, &task->environ, &task->envSize);
 
+    if (PSIDhook_call(PSIDHOOK_RECV_SPAWNREQ, task) < 0) {
+	PSID_log(-1, "%s: PSIDHOOK_RECV_SPAWNREQ failed.\n", __func__);
+	answer.error = EINVAL; //TODO which error code?
+	sendMsg(&answer);
+	PStask_delete(task);
+	return;
+    }
 
     /* Check if we have to and can copy the location */
     if (isServiceTask(task->group)) {

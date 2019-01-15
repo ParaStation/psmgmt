@@ -83,6 +83,12 @@ typedef enum {
 				The argument is the job with no reservation
 				information left.
 				The return value of the hook is ignored. */
+    PSIDHOOK_RECV_SPAWNREQ,    /**< After receiving a message of type
+				PSP_CD_SPAWNREQ, thus requests us to actually
+				spawn some processes.
+				The argument is the task structure received.
+				If the hook's return value is < 0, the spawn
+				is canceled and a fail response is sent. */
     PSIDHOOK_EXEC_FORWARDER,  /**< Right before forking the forwarder's child.
 				Arg is a pointer to the child's task structure.
 				The hook might be used to prepare the child's
