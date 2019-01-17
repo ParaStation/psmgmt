@@ -52,10 +52,6 @@
 
 /** number of unique nodes */
 static int numUniqNodes = 0;
-/** number of unique hosts */
-static int numUniqHosts = 0;
-/** list of unique hosts */
-static char **uniqHosts = NULL;
 
 /* Some helper fields used especially for OpenMPI support */
 /**
@@ -203,22 +199,56 @@ static char *str2Buf(char *strSave, char *buffer, size_t *bufSize)
 }
 
 /**
- * @brief Generate OpenMPI uniq host string.
+ * @brief Transforms list of node ids to list of hostnames.
+ *
+ * @param nodes     list of node IDs.
+ *
+ * @param numNodes  number elements in @a nodes.
+ *
+ * @return NULL terminated array of strings
+ */
+static char ** getHostnameList(PSnodes_ID_t *nodes, int numNodes)
+{
+    int i = 0;
+
+    if (!nodes || numNodes <= 0) {
+	fprintf(stderr, "%s: invalid list of node IDs\n", __func__);
+	exit(1);
+    }
+
+    char **hostnames;
+    hostnames = umalloc((numNodes + 1) * sizeof(char *));
+
+    for (i = 0; i < numNodes; i++) {
+	hostnames[i] = strdup(getHostByNodeID(nodes[i]));
+    }
+    hostnames[numNodes] = NULL;
+    
+    return hostnames;
+}
+
+/**
+ * @brief Get string with comma separated hostname list.
  *
  * @return Returns the requested string
  */
-static char *ompiGetUniqHostString(Conf_t *conf)
+static char *getUniqueHostnamesString(Conf_t *conf)
 {
     char *buf = NULL;
     size_t bufSize = 0;
     int i;
 
-    for (i=0; i < numUniqHosts; i++) {
+    char **uniqHosts;
+    uniqHosts = getHostnameList(jobLocalUniqNodeIDs, numUniqNodes);
+
+    for (i = 0; uniqHosts[i] != NULL; i++) {
 	buf = str2Buf(uniqHosts[i], buf, &bufSize);
-	if (i + 1 < numUniqHosts) {
+	if (uniqHosts[i+1] != NULL) {
 	    buf = str2Buf(",", buf, &bufSize);
 	}
     }
+
+    free(uniqHosts);
 
     if (conf->ompiDbg) {
 	fprintf(stderr, "setting host string '%s'\n", buf);
@@ -238,10 +268,10 @@ static char *ompiGetTasksPerNode(Conf_t *conf)
     char *buf = NULL;
     size_t bufSize = 0;
 
-    for (i=0; i<numUniqHosts; i++) {
+    for (i=0; i<numUniqNodes; i++) {
 	snprintf(tmp, sizeof(tmp), "%i", numProcPerNode[i]);
 	buf = str2Buf(tmp, buf, &bufSize);
-	if (i +1 < numUniqHosts) {
+	if (i +1 < numUniqNodes) {
 	    buf = str2Buf(",", buf, &bufSize);
 	}
     }
@@ -400,7 +430,7 @@ static void setupCommonEnv(Conf_t *conf)
 	}
 
 	/* uniq node list */
-	env = ompiGetUniqHostString(conf);
+	env = getUniqueHostnamesString(conf);
 	setPSIEnv("SLURM_STEP_NODELIST", env, 1);
 	setPSIEnv("SLURM_NODELIST", env, 1);
 
@@ -625,33 +655,6 @@ static char **setupRankEnv(int psRank, void *info)
 
     rank++;
     return env;
-}
-
-/**
- * @brief Generate a uniq host list by using a uniq node list.
- *
- * @param uniqNodes The uniq node list to start from.
- *
- * @param numUniqNodes The number of uniq nodes in the uniq nodes list.
- *
- * @return No return value
- */
-static void getUniqHosts(PSnodes_ID_t *uniqNodes, int numUniqNodes)
-{
-    int i = 0;
-
-    if (!uniqNodes || numUniqNodes <= 0) {
-	fprintf(stderr, "%s: invalid uniqNodes\n", __func__);
-	exit(1);
-    }
-
-    uniqHosts = umalloc((numUniqNodes + 1) * sizeof(char *));
-
-    for (i=0; i< numUniqNodes; i++) {
-	uniqHosts[i] = strdup(getHostByNodeID(uniqNodes[i]));
-	numUniqHosts++;
-    }
-    uniqHosts[numUniqNodes] = NULL;
 }
 
 /**
@@ -896,16 +899,11 @@ static int startProcs(Conf_t *conf)
     /* extract additional node informations (e.g. uniq nodes) */
     extractNodeInformation(nodeList, conf->np);
 
-    if (conf->openMPI) {
-	/* get uniq hostnames from the uniq nodes list */
-	getUniqHosts(jobLocalUniqNodeIDs, numUniqNodes);
-
-	if (conf->ompiDbg) {
-	    for (i=0; i< conf->np; i++) {
-		fprintf(stderr, "%s: rank '%i' opmi-nodeID '%i' ps-nodeID '%i'"
-			" node '%s'\n", __func__, i, jobLocalNodeIDs[i],
-			nodeList[i], getHostByNodeID(nodeList[i]));
-	    }
+    if (conf->openMPI && conf->ompiDbg) {
+        for (i=0; i< conf->np; i++) {
+	    fprintf(stderr, "%s: rank '%i' opmi-nodeID '%i' ps-nodeID '%i'"
+		    " node '%s'\n", __func__, i, jobLocalNodeIDs[i],
+		    nodeList[i], getHostByNodeID(nodeList[i]));
 	}
     }
     free(nodeList);
