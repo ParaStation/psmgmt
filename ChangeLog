@@ -1,5 +1,201 @@
-Version psmgmt-5.1.16-1:
-========================
+Version psmgmt-5.1.18:
+======================
+------------------------------------------------------------------------
+d098a294 | Thomas Moschny | Fri, 4 Jan 2019 16:31:10 +0100
+
+Remove obsolete logic for supporting old slurm versions.
+------------------------------------------------------------------------
+c5d78836 | Norbert Eicker | Tue, 11 Dec 2018 19:46:37 +0100
+
+Remove one obsolete #define
+------------------------------------------------------------------------
+0b4e99df | Norbert Eicker | Mon, 10 Dec 2018 00:16:32 +0100
+
+Bugfix: Thou shalt not use daemon funtions within the forwarder
+------------------------------------------------------------------------
+31f1e9b9 | Michael Rauh | Sat, 8 Dec 2018 15:53:59 +0100
+
+Add support for arbitrary script path to psexec
+
+	- Additionally add protocol version support
+	- Warning: this breaks compability with old psexec versions
+------------------------------------------------------------------------
+196a4e35 | Michael Rauh | Sat, 8 Dec 2018 12:19:06 +0100
+
+Improve log messages of pelogue
+------------------------------------------------------------------------
+b108df98 | Michael Rauh | Sat, 8 Dec 2018 12:17:24 +0100
+
+Add swap files with ending .swo to gitignore
+------------------------------------------------------------------------
+b16ce8c9 | Norbert Eicker | Fri, 7 Dec 2018 16:24:44 +0100
+
+Improve psserial's usablility for multiple users
+------------------------------------------------------------------------
+1e40ebd7 | Michael Rauh | Tue, 4 Dec 2018 17:13:48 +0100
+
+Bugfix: fix wrong status reporting of pack leader job (pct:#287)
+------------------------------------------------------------------------
+43c8e72c | Michael Rauh | Fri, 30 Nov 2018 18:10:34 +0100
+
+Remove obsolete expandHostList() and range2List()
+------------------------------------------------------------------------
+abe1c065 | Michael Rauh | Fri, 30 Nov 2018 16:57:52 +0100
+
+Use traverseHostList() in psslurmconfig.c
+------------------------------------------------------------------------
+c115cb08 | Michael Rauh | Fri, 30 Nov 2018 13:42:33 +0100
+
+Use traverseHostList() in psslurmgres.c
+------------------------------------------------------------------------
+2d1ebe09 | Michael Rauh | Fri, 30 Nov 2018 12:59:18 +0100
+
+Add option --psid_resolve to pspelogue (#2749)
+------------------------------------------------------------------------
+103b96a0 | Michael Rauh | Thu, 29 Nov 2018 16:51:18 +0100
+
+Use traverseHostList() in psslurmpscomm.c
+
+	- Warning: psslurm configuration option WEAK_NODEID_CHECK is
+	no longer supported
+------------------------------------------------------------------------
+1a5ae752 | Michael Rauh | Thu, 29 Nov 2018 14:48:23 +0100
+
+Fix problems unloading pelogue and psslurm
+------------------------------------------------------------------------
+b19daa41 | Michael Rauh | Thu, 29 Nov 2018 14:46:19 +0100
+
+Make getNodeIDbyName() usable by convHLtoPSnodes()
+------------------------------------------------------------------------
+d64fda8f | Michael Rauh | Thu, 29 Nov 2018 11:01:51 +0100
+
+First steps to replace expandHostList() with traverseHostList()
+------------------------------------------------------------------------
+94582bc2 | Michael Rauh | Thu, 29 Nov 2018 10:52:51 +0100
+
+Add function traverseHostList() to replace expandHostList() (#2747)
+------------------------------------------------------------------------
+b75fc76b | Michael Rauh | Thu, 22 Nov 2018 15:29:59 +0100
+
+Prevent double execution of offline script if prologue fails on
+mother superior
+------------------------------------------------------------------------
+c7d1e4ab | Michael Rauh | Wed, 21 Nov 2018 15:51:00 +0100
+
+Correct fix for sscanf() in pshostlist introduced in ce0ac740d
+------------------------------------------------------------------------
+e12e1b6d | Michael Rauh | Wed, 21 Nov 2018 15:24:07 +0100
+
+Remove needless check unveiled by cppcheck
+------------------------------------------------------------------------
+0c14d3ae | Michael Rauh | Wed, 21 Nov 2018 12:15:02 +0100
+
+Bugfix: fix broken requeue logic for batch jobs (juwelstrac:#2045)
+------------------------------------------------------------------------
+6341fd94 | Norbert Eicker | Tue, 20 Nov 2018 18:52:20 +0100
+
+Fix various cppcheck warnings including the use of alloca
+------------------------------------------------------------------------
+a945669d | Norbert Eicker | Tue, 20 Nov 2018 18:51:37 +0100
+
+Fix signed warning indicated by cppcheck
+------------------------------------------------------------------------
+874c6d07 | Norbert Eicker | Tue, 20 Nov 2018 18:50:23 +0100
+
+Fix void pointer arithmetics indicated by cppcheck
+------------------------------------------------------------------------
+5dff0d35 | Norbert Eicker | Tue, 20 Nov 2018 18:46:57 +0100
+
+Fix scope-warning indicated by cppcheck
+------------------------------------------------------------------------
+0bc68075 | Norbert Eicker | Tue, 20 Nov 2018 18:46:03 +0100
+
+Fix whitespace formatting
+------------------------------------------------------------------------
+8eedc8d6 | Michael Rauh | Tue, 20 Nov 2018 16:12:46 +0100
+
+Added version incompatibility warning for psmgmt 5.1.17 to NEWS
+------------------------------------------------------------------------
+5c828e1f | Norbert Eicker | Tue, 20 Nov 2018 13:03:50 +0100
+
+Bugfix: Prevent infinite recursion in CHILDDEAD handling (#2740)
+------------------------------------------------------------------------
+5a24225e | Norbert Eicker | Mon, 19 Nov 2018 11:51:00 +0100
+
+Merge branch 'cppcheck'
+------------------------------------------------------------------------
+d260d5c8 | Norbert Eicker | Mon, 19 Nov 2018 11:50:09 +0100
+
+Minor streamlining of cppcheck-induced fixes
+------------------------------------------------------------------------
+879d4f26 | Michael Rauh | Fri, 16 Nov 2018 14:41:14 +0100
+
+Let pelogue call hook PSIDHOOK_PELOGUE_RES
+------------------------------------------------------------------------
+636c1806 | Michael Rauh | Fri, 16 Nov 2018 13:08:01 +0100
+
+Add logging function fdbg() to psslurm
+------------------------------------------------------------------------
+0f7d4036 | Michael Rauh | Tue, 13 Nov 2018 15:52:23 +0100
+
+Clarify calculation precedence pointed out by cppchec
+------------------------------------------------------------------------
+0cbc0894 | Michael Rauh | Tue, 13 Nov 2018 15:50:57 +0100
+
+Remove dead code unveiled by cppcheck
+------------------------------------------------------------------------
+a3747024 | Michael Rauh | Tue, 13 Nov 2018 15:34:05 +0100
+
+Remove some needless code pointed out by cppcheck
+------------------------------------------------------------------------
+c6df2e95 | Michael Rauh | Tue, 13 Nov 2018 15:20:28 +0100
+
+Fix some logic errors unveiled by cppcheck
+------------------------------------------------------------------------
+ce0ac740 | Michael Rauh | Tue, 13 Nov 2018 15:09:17 +0100
+
+Fix some string format errors unveiled by cppcheck
+------------------------------------------------------------------------
+ac25bf9c | Michael Rauh | Tue, 13 Nov 2018 15:06:29 +0100
+
+Fix some logic errors unveiled by cppcheck
+------------------------------------------------------------------------
+d01475a7 | Michael Rauh | Tue, 13 Nov 2018 14:00:15 +0100
+
+Fix redundant checks and NULL pointer dereference unveiled by cppcheck
+------------------------------------------------------------------------
+89490136 | Michael Rauh | Tue, 13 Nov 2018 13:44:37 +0100
+
+Fix some string format errors unveiled by cppcheck
+------------------------------------------------------------------------
+d6dcd648 | Michael Rauh | Tue, 13 Nov 2018 13:31:56 +0100
+
+Fix some logic errors unveiled by cppcheck
+------------------------------------------------------------------------
+d2686193 | Michael Rauh | Tue, 13 Nov 2018 13:16:21 +0100
+
+Fix some string format error unveiled by cppcheck
+------------------------------------------------------------------------
+6d670093 | Michael Rauh | Tue, 13 Nov 2018 13:04:40 +0100
+
+Fix some logic errors unveiled by cppcheck
+------------------------------------------------------------------------
+3253d82f | Michael Rauh | Tue, 13 Nov 2018 12:43:25 +0100
+
+Clarify calculation precedence pointed out by cppcheck
+------------------------------------------------------------------------
+6588d75b | Michael Rauh | Tue, 13 Nov 2018 12:40:04 +0100
+
+Fix some string format errors unveiled by cppcheck
+------------------------------------------------------------------------
+e7726876 | Michael Rauh | Mon, 12 Nov 2018 11:16:33 +0100
+
+Fix typo in psslurm error message
+------------------------------------------------------------------------
+
+
+Version psmgmt-5.1.17:
+======================
 ------------------------------------------------------------------------
 97192ec3 | Norbert Eicker | Fri, 9 Nov 2018 16:39:44 +0100
 

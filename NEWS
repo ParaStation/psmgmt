@@ -1,8 +1,33 @@
 psmgmt NEWS -- history of user-visible changes.
 
-Copyright (C) 2010-2018 ParTec Cluster Competence Center GmbH, Munich
+Copyright (C) 2010-2019 ParTec Cluster Competence Center GmbH, Munich
 
 Please send bug reports, questions and suggestions to <support@par-tec.com>
+
+
+
+Version 5.1.18:
+===============
+Bugfixes:
+ - Fix wrong status reporting of pack leader job (pct:#287)
+ - Fix broken requeue logic for batch jobs (juwelstrac:#2045)
+ - Prevent infinite recursion in CHILDDEAD handling (#2740)
+ - Prevent double execution of offline-script if prologue fails on
+   mother superior
+ - Don't use daemon functions from within forwarders
+ - Fix various minor bugs unveiled by cppcheck
+Enhancements:
+ - Replace very slow expandHostList() by hostlist traversal (#2747)
+   * Warning: psslurm option WEAK_NODEID_CHECK no longer supported!
+ - Add option --psid_resolve to pspelogue (#2749)
+ - Add support for arbitrary script path to psexec
+ - Improve psserial's usablility for multiple users
+
+Additional changes:
+ - Fix problems unloading pelogue and psslurm
+ - Let pelogue call hook PSIDHOOK_PELOGUE_RES
+ - Remove obsolete logic for supporting old slurm versions
+ - Cleanup, improved logging and fixing typos
 
 
 *************************************************************************
