@@ -37,7 +37,7 @@
  * Setup global environment also shared with the logger -- i.e. the
  * PMI master. All information required to setup the global
  * environment is expected in the configuration @a conf. This includes
- * the members np, pmiTCP, pmiSock, pmiTmout, and verbose.
+ * the members np, pmiTCP, pmiSock, pmiTmout, PMIx, and verbose.
  *
  * @param conf Configuration as identified from command-line options
  *
@@ -52,16 +52,18 @@ static void setupGlobalEnv(Conf_t *conf)
 	exit(EXIT_FAILURE);
     }
 
+    if (conf->pmiTCP || conf->pmiSock || conf->PMIx) {
+	/* set the size of the job */
+	snprintf(tmp, sizeof(tmp), "%d", conf->np);
+	setPSIEnv("PMI_SIZE", tmp, 1);
+	setenv("PMI_SIZE", tmp, 1);
+    }
+
     if (conf->pmiTCP || conf->pmiSock) {
 	/* generate PMI auth token */
 	snprintf(tmp, sizeof(tmp), "%i", PSC_getMyTID());
 	setPSIEnv("PMI_ID", tmp, 1);
 	setenv("PMI_ID", tmp, 1);
-
-	/* set the size of the job */
-	snprintf(tmp, sizeof(tmp), "%d", conf->np);
-	setPSIEnv("PMI_SIZE", tmp, 1);
-	setenv("PMI_SIZE", tmp, 1);
 
 	/* set the template for the KVS name */
 	snprintf(tmp, sizeof(tmp), "pshost_%i_0", PSC_getMyTID());

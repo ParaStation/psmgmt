@@ -223,7 +223,7 @@ static char ** getHostnameList(PSnodes_ID_t *nodes, int numNodes)
 	hostnames[i] = strdup(getHostByNodeID(nodes[i]));
     }
     hostnames[numNodes] = NULL;
-    
+
     return hostnames;
 }
 
@@ -452,14 +452,77 @@ static void setupCommonEnv(Conf_t *conf)
 	}
     }
 
+    if (conf->PMIx) {
+
+	/* set the PMIX debug mode */
+	if (conf->pmiDbg || getenv("PMIX_DEBUG")) {
+	    setPSIEnv("PMIX_DEBUG", "1", 1);
+	}
+
+	/* uniq node list */
+	env = getUniqueHostnamesString(conf);
+	setPSIEnv("__PMIX_NODELIST", env, 1);
+
+	/* tag for respawned processes */
+	setPSIEnv("PMIX_SPAWNED", getenv("PMIX_SPAWNED"), 1);
+
+    }
+
     /* unset PSI_LOOP_NODES_FIRST in PSI env which is only needed for OpenMPI */
     unsetPSIEnv("PSI_LOOP_NODES_FIRST");
     unsetPSIEnv("PSI_OPENMPI");
 
     unsetPSIEnv("__PMI_PROVIDER_FD");
 
-    if (conf->pmiTCP || conf->pmiSock ) {
+    if (conf->pmiTCP || conf->pmiSock || conf->PMIx) {
+	/* set the init size of the PMI job */
+	env = getenv("PMI_SIZE");
+	if (!env) {
+	    fprintf(stderr, "\n%s: No PMI_SIZE given\n", __func__);
+	    exit(EXIT_FAILURE);
+	}
+	setPSIEnv("PMI_SIZE", env, 1);
+
+	/* set the mpi universe size */
+	snprintf(tmp, sizeof(tmp), "%d", conf->uSize);
+	setPSIEnv("PMI_UNIVERSE_SIZE", tmp, 1);
+
+    }
+
+    if (conf->pmiTCP || conf->pmiSock) {
 	char *mapping;
+
+	/* set the PMI debug mode */
+	if (conf->pmiDbg || getenv("PMI_DEBUG")) {
+	    setPSIEnv("PMI_DEBUG", "1", 1);
+	}
+
+	/* set the PMI debug KVS mode */
+	if (conf->pmiDbgKVS || getenv("PMI_DEBUG_KVS")) {
+	    setPSIEnv("PMI_DEBUG_KVS", "1", 1);
+	}
+
+	/* set the PMI debug client mode */
+	if (conf->pmiDbgClient || getenv("PMI_DEBUG_CLIENT")) {
+	    setPSIEnv("PMI_DEBUG_CLIENT", "1", 1);
+	}
+
+	/* set the template for the KVS name */
+	env = getenv("PMI_KVS_TMP");
+	if (!env) {
+	    fprintf(stderr, "\n%s: No PMI_KVS_TMP given\n", __func__);
+	    exit(EXIT_FAILURE);
+	}
+	setPSIEnv("PMI_KVS_TMP", env, 1);
+
+	/* setup process mapping needed for MVAPICH */
+	mapping = getProcessMap(conf->np);
+	if (mapping) {
+	    setPSIEnv("__PMI_PROCESS_MAPPING", mapping, 1);
+	    free(mapping);
+	} else {
+	    fprintf(stderr, "failed building MVAPICH process mapping\n");
+	}
 
 	/* propagate PMI auth token */
 	env = getenv("PMI_ID");
@@ -477,50 +540,6 @@ static void setupCommonEnv(Conf_t *conf)
 	/* enable PMI sockpair */
 	if (conf->pmiSock) {
 	    setPSIEnv("PMI_ENABLE_SOCKP", "1", 1);
-	}
-
-	/* set the PMI debug mode */
-	if (conf->pmiDbg || getenv("PMI_DEBUG")) {
-	    setPSIEnv("PMI_DEBUG", "1", 1);
-	}
-
-	/* set the PMI debug KVS mode */
-	if (conf->pmiDbgKVS || getenv("PMI_DEBUG_KVS")) {
-	    setPSIEnv("PMI_DEBUG_KVS", "1", 1);
-	}
-
-	/* set the PMI debug client mode */
-	if (conf->pmiDbgClient || getenv("PMI_DEBUG_CLIENT")) {
-	    setPSIEnv("PMI_DEBUG_CLIENT", "1", 1);
-	}
-
-	/* set the init size of the PMI job */
-	env = getenv("PMI_SIZE");
-	if (!env) {
-	    fprintf(stderr, "\n%s: No PMI_SIZE given\n", __func__);
-	    exit(EXIT_FAILURE);
-	}
-	setPSIEnv("PMI_SIZE", env, 1);
-
-	/* set the mpi universe size */
-	snprintf(tmp, sizeof(tmp), "%d", conf->uSize);
-	setPSIEnv("PMI_UNIVERSE_SIZE", tmp, 1);
-
-	/* set the template for the KVS name */
-	env = getenv("PMI_KVS_TMP");
-	if (!env) {
-	    fprintf(stderr, "\n%s: No PMI_KVS_TMP given\n", __func__);
-	    exit(EXIT_FAILURE);
-	}
-	setPSIEnv("PMI_KVS_TMP", env, 1);
-
-	/* setup process mapping needed for MVAPICH */
-	mapping = getProcessMap(conf->np);
-	if (mapping) {
-	    setPSIEnv("__PMI_PROCESS_MAPPING", mapping, 1);
-	    free(mapping);
-	} else {
-	    fprintf(stderr, "failed building MVAPICH process mapping\n");
 	}
 
 	/* MPI processes should use PMI version 1 as long as we don't have
@@ -596,7 +615,7 @@ static void setupExecEnv(Conf_t *conf, int execNum)
 
     snprintf(tmp, sizeof(tmp), "%d", execNum);
     setPSIEnv("PSI_APPNUM", tmp, 1);
-    if (conf->pmiTCP || conf->pmiSock) {
+    if (conf->pmiTCP || conf->pmiSock || conf->PMIx) {
 	setPSIEnv("PMI_APPNUM", tmp, 1);
     }
 }

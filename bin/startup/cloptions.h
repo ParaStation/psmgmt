@@ -60,6 +60,7 @@ typedef struct {
     bool callgrind;     /**< Flag use of valgrind's callgrind tool */
     bool openMPI;       /**< Flag OpenMPI support */
     bool mpichComp;     /**< Flag MPIch-1 compatibility */
+    bool PMIx;          /**< Flag PMIx support */
     /* PMI options */
     bool pmiTCP;        /**< Flag use of TCP sockets to listen for PMI calls */
     bool pmiSock;       /**< Flag use of Unix sockets to listen for PMI calls */
