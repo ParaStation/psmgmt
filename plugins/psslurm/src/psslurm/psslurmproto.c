@@ -419,7 +419,7 @@ int requestJobInfo(uint32_t jobid)
 
 uint32_t getLocalID(PSnodes_ID_t *nodes, uint32_t nrOfNodes)
 {
-    uint32_t i, id = -1;
+    uint32_t i, id = NO_VAL;
     PSnodes_ID_t myID = PSC_getMyID();
 
     for (i=0; i<nrOfNodes; i++) if (nodes[i] == myID) id = i;
@@ -481,7 +481,6 @@ static void handleLaunchTasks(Slurm_Msg_t *sMsg)
     }
 
     /* convert slurm hostlist to PSnodes   */
-
     if (!convHLtoPSnodes(step->slurmHosts, getNodeIDbySlurmHost,
 			 &step->nodes, &count)) {
 	mlog("%s: resolving PS nodeIDs from %s failed\n", __func__,
@@ -494,13 +493,23 @@ static void handleLaunchTasks(Slurm_Msg_t *sMsg)
 	mlog("%s: mismatching number of nodes %u:%u for step %u:%u\n",
 	     __func__, count, step->nrOfNodes, step->jobid, step->stepid);
 	step->nrOfNodes = count;
+	sendSlurmRC(sMsg, ESLURMD_INVALID_JOB_CREDENTIAL);
+	goto ERROR;
     }
+
     step->localNodeId = getLocalID(step->nodes, step->nrOfNodes);
+    if (step->localNodeId == NO_VAL) {
+	flog("could not find my local ID for step %u:%u in %s\n",
+	     step->jobid, step->stepid, step->slurmHosts);
+	sendSlurmRC(sMsg, ESLURMD_INVALID_JOB_CREDENTIAL);
+	goto ERROR;
+    }
 
     /* pack info */
     if (step->packNrOfNodes != NO_VAL) {
 	if (!extractStepPackInfos(step)) {
 	    mlog("%s: extracting pack information failed\n", __func__);
+	    sendSlurmRC(sMsg, ESLURMD_INVALID_JOB_CREDENTIAL);
 	    goto ERROR;
 	}
     }
@@ -1533,7 +1542,15 @@ static void handleBatchJobLaunch(Slurm_Msg_t *sMsg)
 	deleteJob(job->jobid);
 	return;
     }
+
     job->localNodeId = getLocalID(job->nodes, job->nrOfNodes);
+    if (job->localNodeId == NO_VAL) {
+	flog("could not find my local ID for job %u in %s\n",
+	     job->jobid, job->slurmHosts);
+	sendSlurmRC(sMsg, ESLURMD_INVALID_JOB_CREDENTIAL);
+	deleteJob(job->jobid);
+	return;
+    }
 
     /* verify job credential */
     if (!(verifyJobData(job))) {

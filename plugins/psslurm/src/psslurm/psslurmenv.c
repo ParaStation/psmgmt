@@ -396,13 +396,63 @@ void setPsslurmEnv(env_t *env)
     }
 }
 
-void setRankEnv(int32_t rank, Step_t *step)
+static void setGresEnv(Step_t *step)
 {
-    char tmp[128], *myGTIDs, *list = NULL, *val, *display;
-    size_t listSize = 0;
-    uint32_t myNodeId = step->localNodeId, myLocalId, count = 0, localNodeId;
     Alloc_t *alloc = findAlloc(step->jobid);
     Job_t *job = findJobById(step->jobid);
+
+    uint32_t localNodeId = NO_VAL;
+    if (job) {
+	localNodeId = job->localNodeId;
+    } else if (alloc) {
+	localNodeId = alloc->localNodeId;
+    }
+
+    if (localNodeId != NO_VAL) {
+	Gres_Cred_t *gres;
+	char *list = NULL;
+	size_t listSize = 0;
+
+	/* gres "gpu" plugin */
+	gres = findGresCred(&step->gresList, GRES_PLUGIN_GPU, 0);
+	if (gres) {
+	    if (gres->bitAlloc[localNodeId]) {
+		hexBitstr2List(gres->bitAlloc[localNodeId], &list, &listSize);
+		setenv("CUDA_VISIBLE_DEVICES", list, 1);
+		setenv("GPU_DEVICE_ORDINAL", list, 1);
+		ufree(list);
+		list = NULL;
+		listSize = 0;
+	    } else {
+		mlog("%s: invalid gpu gres bitAlloc for local nodeID '%u'\n",
+			__func__, localNodeId);
+	    }
+	}
+
+	/* gres "mic" plugin */
+	gres = findGresCred(&step->gresList, GRES_PLUGIN_MIC, 0);
+	if (gres) {
+	    if (gres->bitAlloc[localNodeId]) {
+		hexBitstr2List(gres->bitAlloc[localNodeId], &list, &listSize);
+		setenv("OFFLOAD_DEVICES", list, 1);
+		ufree(list);
+		list = NULL;
+		listSize = 0;
+	    } else {
+		mlog("%s: invalid mic gres bitAlloc for local nodeID '%u'\n",
+			__func__, localNodeId);
+	    }
+	}
+    } else {
+	flog("unable to set gres: invalid local node ID for step %u:%u\n",
+	     step->jobid, step->stepid);
+    }
+}
+
+void setRankEnv(int32_t rank, Step_t *step)
+{
+    char tmp[128], *myGTIDs, *val, *display;
+    uint32_t myNodeId = step->localNodeId, myLocalId, count = 0;
 
     /* remove unwanted variables */
     unsetenv("PSI_INPUTDEST");
@@ -459,48 +509,6 @@ void setRankEnv(int32_t rank, Step_t *step)
     snprintf(tmp, sizeof(tmp), "%u", myLocalId);
     setenv("SLURM_LOCALID", tmp, 1);
 
-    if (job) {
-	localNodeId = job->localNodeId;
-    } else if (alloc) {
-	localNodeId = alloc->localNodeId;
-    } else {
-	localNodeId = -1;
-    }
-
-    if ((int32_t) localNodeId != -1) {
-	Gres_Cred_t *gres;
-	/* gres "gpu" plugin */
-	gres = findGresCred(&step->gresList, GRES_PLUGIN_GPU, 0);
-	if (gres) {
-	    if (gres->bitAlloc[localNodeId]) {
-		hexBitstr2List(gres->bitAlloc[localNodeId], &list, &listSize);
-		setenv("CUDA_VISIBLE_DEVICES", list, 1);
-		setenv("GPU_DEVICE_ORDINAL", list, 1);
-		ufree(list);
-		list = NULL;
-		listSize = 0;
-	    } else {
-		mlog("%s: invalid gpu gres bitAlloc for local nodeID '%u'\n",
-			__func__, localNodeId);
-	    }
-	}
-
-	/* gres "mic" plugin */
-	gres = findGresCred(&step->gresList, GRES_PLUGIN_MIC, 0);
-	if (gres) {
-	    if (gres->bitAlloc[localNodeId]) {
-		hexBitstr2List(gres->bitAlloc[localNodeId], &list, &listSize);
-		setenv("OFFLOAD_DEVICES", list, 1);
-		ufree(list);
-		list = NULL;
-		listSize = 0;
-	    } else {
-		mlog("%s: invalid mic gres bitAlloc for local nodeID '%u'\n",
-			__func__, localNodeId);
-	    }
-	}
-    }
-
     /* set cpu/memory bind env vars */
     setBindingEnvVars(step);
 
@@ -519,6 +527,10 @@ void setRankEnv(int32_t rank, Step_t *step)
     val = getTasksPerNode(step->tasksToLaunch, step->nrOfNodes);
     setenv("SLURM_TASKS_PER_NODE", val, 1);
 
+    /* set gres environment */
+    setGresEnv(step);
+
+    Alloc_t *alloc = findAlloc(step->jobid);
     if (alloc) setPsslurmEnv(&alloc->env);
 }
 
