@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2014-2018 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2014-2019 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -14,6 +14,7 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <grp.h>
+#include <sys/prctl.h>
 #include <sys/resource.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
@@ -267,6 +268,9 @@ void switchUser(char *username, uid_t uid, gid_t gid, char *cwd)
 		strerror(errno));
 	exit(1);
     }
+
+    /* re-enable capability to create coredumps */
+    prctl(PR_SET_DUMPABLE, 1);
 
     /* change to job working directory */
     if (cwd && (chdir(cwd)) == -1) {

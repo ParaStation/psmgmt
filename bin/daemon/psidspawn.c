@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2002-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2018 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2019 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -17,11 +17,12 @@
 #include <fcntl.h>
 #include <pwd.h>
 #include <grp.h>
-#include <sys/types.h>
+#include <sys/prctl.h>
+#include <sys/resource.h>
 #include <sys/stat.h>
 #include <sys/socket.h>
 #include <sys/time.h>
-#include <sys/resource.h>
+#include <sys/types.h>
 #include <sys/wait.h>
 #include <pty.h>
 #include <signal.h>
@@ -945,6 +946,9 @@ static void execClient(PStask_t *task)
 	exit(1);
     }
 
+    /* re-enable capability to create coredumps */
+    prctl(PR_SET_DUMPABLE, 1);
+
     /* restore various resource limits */
     restoreLimits();
 
@@ -1377,6 +1381,9 @@ static void execForwarder(int daemonfd, PStask_t *task)
 	PSID_warn(-1, eno, "%s: setuid()", __func__);
 	goto error;
     }
+
+    /* re-enable capability to create coredumps */
+    prctl(PR_SET_DUMPABLE, 1);
 
     /* check for a sign from the client */
     PSID_log(PSID_LOG_SPAWN, "%s: waiting for my child (%d)\n", __func__, pid);
