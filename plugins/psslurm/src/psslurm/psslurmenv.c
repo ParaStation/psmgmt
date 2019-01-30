@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2014-2018 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2014-2019 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -483,6 +483,10 @@ void setRankEnv(int32_t rank, Step_t *step)
 	}
 	if (!(strncmp(step->env.vars[count], "PMI_SUBVERSION=", 15))) continue;
 	if (!(strncmp(step->env.vars[count], "PMI_VERSION=", 12))) continue;
+	if (!(strncmp(step->env.vars[count], "PMI_BARRIER_ROUNDS=", 19))) {
+	    continue;
+	}
+
 
 	putenv(step->env.vars[count]);
     }
