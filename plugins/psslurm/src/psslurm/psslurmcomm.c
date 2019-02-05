@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2014-2018 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2014-2019 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -1066,7 +1066,7 @@ int handleSrunMsg(int sock, void *data)
 	if (ret < 0) {
 	    mwarn(errno, "%s: doRead()", __func__);
 	}
-	mlog("%s: close srun connection\n", __func__);
+	mlog("%s: close srun connection %i\n", __func__, sock);
 	goto ERROR;
     }
     ptr = buffer;
@@ -1390,8 +1390,9 @@ int srunSendIOEx(int sock, Slurm_IO_Header_t *iohead, char *buf, int *error)
 	ret -= SLURM_IO_HEAD_SIZE;
 	written += ret;
 	towrite -= ret;
-	mdbg(PSSLURM_LOG_IO | PSSLURM_LOG_IO_VERB, "%s: fd %i ret %i written %i"
-	     " towrite %i\n", __func__, sock, ret, written, towrite);
+	fdbg(PSSLURM_LOG_IO | PSSLURM_LOG_IO_VERB, "fd %i ret %i written %i"
+	     " towrite %i type %i gtid %i\n", sock, ret, written, towrite,
+	     iohead->type, iohead->gtid);
     }
 
     return written;

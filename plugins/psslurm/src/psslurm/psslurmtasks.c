@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2017-2018 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2017-2019 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -31,6 +31,10 @@ PS_Tasks_t *addTask(list_t *list, PStask_ID_t childTID,
     task->childRank = rank;
     task->exitCode = 0;
     task->sentExit = 0;
+
+    fdbg(PSSLURM_LOG_PROCESS, "childTID %s ", PSC_printTID(childTID));
+    mdbg(PSSLURM_LOG_PROCESS, "forwarderTID %s childGroup %i rank %i\n",
+	 PSC_printTID(forwarderTID), childGroup, rank);
 
     list_add_tail(&task->next, list);
 

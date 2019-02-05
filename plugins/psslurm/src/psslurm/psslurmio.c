@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2015-2018 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2015-2019 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -65,6 +65,29 @@ static RingMsgBuffer_t ringBuf[RING_BUFFER_LEN];
 static uint32_t ringBufLast = 0;
 
 static uint32_t ringBufStart = 0;
+
+const char *strIOopt(int opt)
+{
+    static char buf[128];
+
+    switch (opt) {
+       case IO_UNDEF:
+	  return "IO_UNDEF";
+       case IO_SRUN:
+	  return "IO_SRUN";
+       case IO_SRUN_RANK:
+	  return "IO_SRUN_RANK";
+       case IO_GLOBAL_FILE:
+	  return "IO_GLOBAL_FILE";
+       case IO_RANK_FILE:
+	  return "IO_RANK_FILE";
+       case IO_NODE_FILE:
+	  return "IO_NODE_FILE";
+       default:
+	  snprintf(buf, sizeof(buf), "<unknown: %i>", opt);
+	  return buf;
+    }
+}
 
 void initStepIO(Step_t *step)
 {
@@ -150,8 +173,8 @@ void writeIOmsg(char *msg, uint32_t msgLen, uint32_t taskid,
 
     msgPtr = msgLen ? msg : NULL;
 
-    mdbg(PSSLURM_LOG_IO, "%s: msgLen '%i' taskid '%i' type '%i' sattach '%u'\n",
-	    __func__, msgLen, taskid, type, sattachCon);
+    fdbg(PSSLURM_LOG_IO, "msgLen '%i' taskid '%i' type '%s(%i)' sattach '%u'\n",
+	 msgLen, taskid, PSLog_printMsgType(type), type, sattachCon);
     /*
     char format[64];
     if (msgLen>0) {
@@ -481,11 +504,10 @@ static void handleInfoTasks(Forwarder_Data_t *fwdata, char *ptr)
     task = getDataM(&ptr, &len);
     list_add_tail(&task->next, &step->tasks);
 
-    /*
-    mlog("%s: got TID '%s' rank '%i' count tasks '%u'\n", __func__,
-	    PSC_printTID(task->childTID), task->childRank,
-	    countRegTasks(step->tasks.next));
-    */
+    fdbg(PSSLURM_LOG_PROCESS, "step %u:%u child %s rank %i task %u from %u\n",
+	 step->jobid, step->stepid, PSC_printTID(task->childTID),
+	 task->childRank, countRegTasks(step->tasks.next),
+	 step->globalTaskIdsLen[step->localNodeId]);
 
     if (step->globalTaskIdsLen[step->localNodeId] ==
 	countRegTasks(&step->tasks)) {

@@ -63,8 +63,6 @@
 
 #define MPIEXEC_BINARY BINDIR "/mpiexec"
 
-#define DEBUG_MPIEXEC_OPTIONS 0
-
 static int jobCallback(int32_t exit_status, Forwarder_Data_t *fw)
 {
     Job_t *job = fw->userData;
@@ -166,7 +164,6 @@ static int stepCallback(int32_t exit_status, Forwarder_Data_t *fw)
     mlog("%s: step %u:%u state '%s' finished, exit %i / %i\n", __func__,
 	 step->jobid, step->stepid, strJobState(step->state), exit_status,
 	 fw->estatus);
-
 
     /* make sure all processes are gone */
     signalStep(step, SIGKILL, 0);
@@ -833,11 +830,13 @@ static void execJobStep(Forwarder_Data_t *fwdata, int rerun)
     strv_t argV;
     char buf[128];
     bool PMIdisabled = isPMIdisabled(step);
+    int32_t oldMask = psslurmlogger->mask;
 
     /* reopen syslog */
     openlog("psid", LOG_PID|LOG_CONS, LOG_DAEMON);
     snprintf(buf, sizeof(buf), "psslurm-step:%u.%u", step->jobid, step->stepid);
     initLogger(buf, NULL);
+    maskLogger(oldMask);
 
     /* setup standard I/O and pty */
     setupStepIO(fwdata, step);
@@ -866,7 +865,9 @@ static void execJobStep(Forwarder_Data_t *fwdata, int rerun)
     /* remove environment variables not evaluted by mpiexec */
     removeUserVars(&step->env, PMIdisabled);
 
-    if (DEBUG_MPIEXEC_OPTIONS) debugMpiexecStart(argV.strings, step->env.vars);
+    if (psslurmlogger->mask & PSSLURM_LOG_PROCESS) {
+	debugMpiexecStart(argV.strings, step->env.vars);
+    }
 
     /* start mpiexec to spawn the parallel job */
     closelog();

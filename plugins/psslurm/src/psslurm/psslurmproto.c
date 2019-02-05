@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2014-2018 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2014-2019 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -267,14 +267,14 @@ static void printLaunchTasksInfos(Step_t *step)
 
     /* set stdout/stderr/stdin options */
     if (!(step->taskFlags & LAUNCH_USER_MANAGED_IO)) {
-	mdbg(PSSLURM_LOG_IO, "%s: stdOut '%s' stdOutRank %i stdOutOpt %i\n",
-	     __func__, step->stdOut, step->stdOutRank, step->stdOutOpt);
+	fdbg(PSSLURM_LOG_IO, "stdOut '%s' stdOutRank %i stdOutOpt %s\n",
+	     step->stdOut, step->stdOutRank, strIOopt(step->stdOutOpt));
 
-	mdbg(PSSLURM_LOG_IO, "%s: stdErr '%s' stdErrRank %i stdErrOpt %i\n",
-	     __func__, step->stdErr, step->stdErrRank, step->stdErrOpt);
+	fdbg(PSSLURM_LOG_IO, "stdErr '%s' stdErrRank %i stdErrOpt %s\n",
+	     step->stdErr, step->stdErrRank, strIOopt(step->stdErrOpt));
 
-	mdbg(PSSLURM_LOG_IO, "%s: stdIn '%s' stdInRank %i stdInOpt %i\n",
-	     __func__, step->stdIn, step->stdInRank, step->stdInOpt);
+	fdbg(PSSLURM_LOG_IO, "stdIn '%s' stdInRank %i stdInOpt %s\n",
+	     step->stdIn, step->stdInRank, strIOopt(step->stdInOpt));
 
 	mdbg(PSSLURM_LOG_IO, "%s: bufferedIO '%i' labelIO '%i'\n", __func__,
 	     step->taskFlags & LAUNCH_BUFFERED_IO,

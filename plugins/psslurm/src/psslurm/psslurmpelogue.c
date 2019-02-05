@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2015-2018 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2015-2019 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -468,8 +468,9 @@ int handleLocalPElogueFinish(void *data)
     alloc->state = (pedata->type == PELOGUE_PROLOGUE) ?
 		    A_PROLOGUE_FINISH : A_EPILOGUE_FINISH;
 
-    mdbg(PSSLURM_LOG_PELOG, "%s for %u pack %u\n", __func__, alloc->id,
-	 alloc->packID);
+    mdbg(PSSLURM_LOG_PELOG, "%s for jobid %u packID %u exit %u\n", __func__,
+	 alloc->id, alloc->packID, pedata->exit);
+
     /* allow/revoke SSH access to my node */
     uint32_t ID = (alloc->packID != NO_VAL) ? alloc->packID : alloc->id;
     if (!pedata->exit && pedata->type == PELOGUE_PROLOGUE) {
