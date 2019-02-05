@@ -717,7 +717,7 @@ static void handle_EpilogueLaunch(DDTypedBufferMsg_t *msg)
 	    alloc->state != A_EPILOGUE_FINISH &&
 	    alloc->state != A_EXIT) {
 	    flog("id %u\n", id);
-	    startPElogue(alloc, PELOGUE_EPILOGUE);
+	    startEpilogue(alloc);
 	}
     }
 }
@@ -813,7 +813,7 @@ static void handle_EpilogueStateReq(DDTypedBufferMsg_t *msg)
 	    alloc->state != A_EXIT) {
 	    flog("starting epilogue for allocation %u state %s\n", id,
 		 strAllocState(alloc->state));
-	    startPElogue(alloc, PELOGUE_EPILOGUE);
+	    startEpilogue(alloc);
 	}
     }
     send_PS_EpilogueStateRes(msg->header.sender, id, res);
@@ -1021,7 +1021,7 @@ static void handlePackInfo(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
 	 step->numHwThreads, step->numPackThreads, step->numPackNP);
 
     /* test if we have all infos to start */
-    if (alloc->state != A_PROLOGUE && step->packNtasks == step->numPackNP) {
+    if (step->packNtasks == step->numPackNP) {
 	if (!(execUserStep(step))) {
 	    mlog("%s: starting user step failed\n", __func__);
 	    sendSlurmRC(&step->srunControlMsg, ESLURMD_FORK_FAILED);

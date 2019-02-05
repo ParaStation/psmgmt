@@ -101,7 +101,7 @@ static int jobCallback(int32_t exit_status, Forwarder_Data_t *fw)
 	mlog("%s: starting epilogue for allocation %u\n", __func__, alloc->id);
 	mdbg(PSSLURM_LOG_JOB, "%s: job '%u' in '%s'\n", __func__,
 		job->jobid, strJobState(job->state));
-	startPElogue(alloc, PELOGUE_EPILOGUE);
+	startEpilogue(alloc);
     }
 
     job->fwdata = NULL;
@@ -144,7 +144,7 @@ static int stepFWIOcallback(int32_t exit_status, Forwarder_Data_t *fw)
 	/* run epilogue now */
 	mlog("%s: starting epilogue for step '%u:%u'\n", __func__, step->jobid,
 		step->stepid);
-	startPElogue(alloc, PELOGUE_EPILOGUE);
+	startEpilogue(alloc);
     }
 
     return 0;
@@ -167,7 +167,7 @@ static int stepCallback(int32_t exit_status, Forwarder_Data_t *fw)
 
     /* make sure all processes are gone */
     signalStep(step, SIGKILL, 0);
-    killChild(step->loggerTID, SIGKILL);
+    killChild(PSC_getPID(step->loggerTID), SIGKILL);
 
     freeSlurmMsg(&step->srunIOMsg);
 
@@ -207,7 +207,7 @@ static int stepCallback(int32_t exit_status, Forwarder_Data_t *fw)
 	/* run epilogue now */
 	mlog("%s: starting epilogue for step '%u:%u'\n", __func__, step->jobid,
 		step->stepid);
-	startPElogue(alloc, PELOGUE_EPILOGUE);
+	startEpilogue(alloc);
     }
 
     if (!alloc) {

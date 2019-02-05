@@ -35,32 +35,6 @@
 
 #include "psslurmpelogue.h"
 
-static bool startStep(Step_t *step, const void *info)
-{
-    uint32_t jobid = *(uint32_t *) info;
-
-    if (step->jobid == jobid ||
-	(step->packJobid != NO_VAL && step->packJobid == jobid)) {
-
-	step->state = JOB_PRESTART;
-	mdbg(PSSLURM_LOG_JOB, "%s: step '%u:%u' in '%s'\n", __func__,
-		step->jobid, step->stepid, strJobState(step->state));
-
-	if (step->packJobid == NO_VAL ||
-	    (step->packNtasks == step->numPackThreads)) {
-	    if (!(execUserStep(step))) {
-		sendSlurmRC(&step->srunControlMsg, ESLURMD_FORK_FAILED);
-	    }
-	}
-    }
-    return false;
-}
-
-void startAllSteps(uint32_t jobid)
-{
-    traverseSteps(startStep, &jobid);
-}
-
 /**
  * @brief Handle a failed prologue
  *
@@ -92,33 +66,6 @@ static void handleFailedPrologue(Alloc_t *alloc, PElogueResList_t *resList)
     }
 }
 
-static bool cancelStep(Step_t *step, const void *info)
-{
-    uint32_t jobid = *(uint32_t *) info;
-
-    if (step->jobid == jobid ||
-	(step->packJobid != NO_VAL && step->packJobid == jobid)) {
-	/* inform the waiting srun */
-	sendSlurmRC(&step->srunControlMsg, SLURM_ERROR);
-    }
-    return false;
-}
-
-static bool failedStepPrologue(Step_t *step, const void *info)
-{
-    uint32_t jobid = *(uint32_t *) info;
-
-    if (step->jobid == jobid ||
-	(step->packJobid != NO_VAL && step->packJobid == jobid)) {
-
-	sendSlurmRC(&step->srunControlMsg, ESLURMD_PROLOG_FAILED);
-	step->state = JOB_EXIT;
-	mdbg(PSSLURM_LOG_JOB, "%s: step '%u:%u' in '%s'\n", __func__,
-		step->jobid, step->stepid, strJobState(step->state));
-    }
-    return false;
-}
-
 /**
  * @brief Handle a parallel prologue callback
  *
@@ -128,16 +75,9 @@ static bool failedStepPrologue(Step_t *step, const void *info)
  */
 static void handlePrologueCB(Alloc_t *alloc, int exitStatus)
 {
-    Job_t *job = findJobById(alloc->id);
-
     if (alloc->terminate) {
 	/* received terminate request for this allocation
 	 * while prologue was running */
-
-	if (!job) {
-	    /* release all waiting steps */
-	    traverseSteps(cancelStep, &alloc->id);
-	}
 
 	/* start epilogue on all nodes */
 	send_PS_EpilogueLaunch(alloc);
@@ -146,27 +86,7 @@ static void handlePrologueCB(Alloc_t *alloc, int exitStatus)
 	alloc->state = A_RUNNING;
 	send_PS_AllocState(alloc);
 	psPelogueDeleteJob("psslurm", strJobID(alloc->id));
-
-	if (job) {
-	    /* execute jobscript */
-	    job->state = JOB_PRESTART;
-	    mdbg(PSSLURM_LOG_JOB, "%s: job '%u' in '%s'\n", __func__,
-		    job->jobid, strJobState(job->state));
-	    execUserJob(job);
-	} else {
-	    /* start all waiting steps */
-	    startAllSteps(alloc->id);
-	}
     } else {
-	/* prologue failed to execute */
-	if (job) {
-	    job->state = JOB_EXIT;
-	    mdbg(PSSLURM_LOG_JOB, "%s: job '%u' in '%s'\n", __func__,
-		    job->jobid, strJobState(job->state));
-	} else {
-	    /* inform waiting srun(s) */
-	    traverseSteps(failedStepPrologue, &alloc->id);
-	}
 	/* start epilogue on all nodes */
 	send_PS_EpilogueLaunch(alloc);
     }
@@ -262,7 +182,7 @@ static void cbPElogue(char *sID, int exitStatus, bool timeout,
 	goto CLEANUP;
     }
 
-    if (alloc->state == A_PROLOGUE || alloc->state == A_PROLOGUE_FINISH) {
+    if (alloc->state == A_PROLOGUE_FINISH) {
 	/* try to set failed node(s) offline */
 	if (exitStatus != 0) handleFailedPrologue(alloc, resList);
 	handlePrologueCB(alloc, exitStatus);
@@ -278,24 +198,17 @@ CLEANUP:
     psPelogueDeleteJob("psslurm", sID);
 }
 
-bool startPElogue(Alloc_t *alloc, PElogueType_t type)
+bool startEpilogue(Alloc_t *alloc)
 {
     char *sjobid = strJobID(alloc->id);
     char buf[512];
     env_t clone;
 
-    if (type == PELOGUE_PROLOGUE) {
-	/* register prologue for allocation */
-	psPelogueAddJob("psslurm", sjobid, alloc->uid, alloc->gid,
-		        alloc->nrOfNodes, alloc->nodes, cbPElogue, NULL);
+    PSnodes_ID_t myNode = PSC_getMyID();
 
-    } else {
-	PSnodes_ID_t myNode = PSC_getMyID();
-
-	/* register local epilogue */
-	psPelogueAddJob("psslurm", sjobid, alloc->uid, alloc->gid,
-		        1, &myNode, cbPElogue, NULL);
-    }
+    /* register local epilogue */
+    psPelogueAddJob("psslurm", sjobid, alloc->uid, alloc->gid,
+	    1, &myNode, cbPElogue, NULL);
 
     envClone(&alloc->env, &clone, envFilter);
     envSet(&clone, "SLURM_USER", alloc->username);
@@ -303,10 +216,10 @@ bool startPElogue(Alloc_t *alloc, PElogueType_t type)
     envSet(&clone, "SLURM_UID", buf);
     envSet(&clone, "SLURM_JOB_NODELIST", alloc->slurmHosts);
 
-    alloc->state = (type == PELOGUE_PROLOGUE) ? A_PROLOGUE : A_EPILOGUE;
+    alloc->state = A_EPILOGUE;
 
     /* use pelogue plugin to start */
-    bool ret = psPelogueStartPE("psslurm", sjobid, type, 1, &clone);
+    bool ret = psPelogueStartPE("psslurm", sjobid, PELOGUE_EPILOGUE, 1, &clone);
     envDestroy(&clone);
 
     return ret;

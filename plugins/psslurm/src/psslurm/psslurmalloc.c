@@ -191,8 +191,6 @@ const char *strAllocState(AllocState_t state)
     switch (state) {
 	case A_INIT:
 	    return "A_INIT";
-	case A_PROLOGUE:
-	    return "A_PROLOGUE";
 	case A_PROLOGUE_FINISH:
 	    return "A_PROLOGUE_FINISH";
 	case A_RUNNING:
