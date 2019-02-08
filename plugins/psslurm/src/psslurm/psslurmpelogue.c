@@ -420,7 +420,7 @@ int handleLocalPElogueStart(void *data)
 	    }
 	    uint32_t localid = getLocalID(nodes, nrOfNodes);
 
-	    if (localid != (uint32_t) -1) {
+	    if (localid != NO_VAL) {
 		mdbg(PSSLURM_LOG_PELOG, "%s: leader with pack hosts, add "
 		     "allocation %u\n", __func__, id);
 		addAlloc(id, packID, slurmHosts, &pedata->env, pedata->uid,
