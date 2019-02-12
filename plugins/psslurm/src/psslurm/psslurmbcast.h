@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2017-2018 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2017-2019 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -16,6 +16,7 @@
 #include "list_t.h"
 #include "pluginforwarder.h"
 #include "psslurmmsg.h"
+#include "psenv.h"
 
 /** credential to verify a BCast request */
 typedef struct {
@@ -54,6 +55,7 @@ typedef struct {
     Slurm_Msg_t msg;		/**< connection of the BCast request */
     uid_t uid;			/**< user id of the BCast requestor */
     gid_t gid;			/**< group id of the BCast requestor */
+    env_t *env;                 /**< environment of the BCast requestor */
     Forwarder_Data_t *fwdata;	/**< forwarder executing the request */
     char *sig;			/**< credential signature */
     size_t sigLen;		/**< signature length */

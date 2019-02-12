@@ -61,7 +61,7 @@ static void handleFailedPrologue(Alloc_t *alloc, PElogueResList_t *resList)
 	    snprintf(msg, sizeof(msg), "psslurm: prologue timed out\n");
 	    offline = true;
 	}
-	if (offline) setNodeOffline(&alloc->env, alloc->id, slurmController,
+	if (offline) setNodeOffline(&alloc->env, alloc->id,
 				    getSlurmHostbyNodeID(resList[i].id), msg);
     }
 }
@@ -400,12 +400,12 @@ int handleLocalPElogueFinish(void *data)
     }
 
     /* set myself offline */
-    if (pedata->exit == 2) {
+    if (pedata->exit == 2 || pedata->exit < 0) {
 	snprintf(msg, sizeof(msg), "psslurm: %s failed with exit code %i\n",
 		 (pedata->type == PELOGUE_PROLOGUE) ? "prologue" : "epilogue",
 		 pedata->exit);
 
-	setNodeOffline(&alloc->env, alloc->id, slurmController,
+	setNodeOffline(&alloc->env, alloc->id,
 		       getConfValueC(&Config, "SLURM_HOSTNAME"), msg);
     }
 

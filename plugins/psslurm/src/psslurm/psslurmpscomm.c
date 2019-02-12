@@ -468,8 +468,7 @@ static int callbackNodeOffline(uint32_t id, int32_t exit, PSnodes_ID_t remote,
     return 0;
 }
 
-void setNodeOffline(env_t *env, uint32_t id, PSnodes_ID_t dest,
-			const char *host, char *reason)
+void setNodeOffline(env_t *env, uint32_t id, const char *host, char *reason)
 {
     env_t clone;
 
@@ -482,8 +481,9 @@ void setNodeOffline(env_t *env, uint32_t id, PSnodes_ID_t dest,
     envSet(&clone, "SLURM_HOSTNAME", host);
     envSet(&clone, "SLURM_REASON", reason);
 
-    mlog("%s: node '%s' exec script on node %i\n", __func__, host, dest);
-    psExecStartScript(id, "psslurm-offline", &clone, dest, callbackNodeOffline);
+    flog("node '%s' exec script on node %i\n", host, slurmController);
+    psExecStartScript(id, "psslurm-offline", &clone, slurmController,
+		      callbackNodeOffline);
 
     envDestroy(&clone);
 }
@@ -868,7 +868,7 @@ static void handle_EpilogueRes(DDTypedBufferMsg_t *msg)
 	    } else if (res == PELOGUE_TIMEDOUT) {
 		snprintf(reason, sizeof(reason), "psslurm: epilogue timed out\n");
 	    }
-	    setNodeOffline(&alloc->env, alloc->id, slurmController,
+	    setNodeOffline(&alloc->env, alloc->id,
 			   getSlurmHostbyNodeID(sender), reason);
 	} else {
 	    mdbg(PSSLURM_LOG_PELOG, "%s: success for allocation %u on "
@@ -1370,8 +1370,7 @@ static void handleDroppedEpilogue(DDTypedBufferMsg_t *msg)
     }
 
     flog("node %i for epilogue %u unreachable\n", dest, alloc->id);
-    setNodeOffline(&alloc->env, alloc->id, slurmController,
-		   getSlurmHostbyNodeID(dest),
+    setNodeOffline(&alloc->env, alloc->id, getSlurmHostbyNodeID(dest),
 		   "psslurm: node unreachable for epilogue");
 
     finalizeEpilogue(alloc);

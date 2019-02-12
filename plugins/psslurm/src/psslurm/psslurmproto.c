@@ -478,7 +478,7 @@ static void handleLaunchTasks(Slurm_Msg_t *sMsg)
 	setIOoptions(step->stdIn, &step->stdInOpt, &step->stdInRank);
     }
 
-    /* convert slurm hostlist to PSnodes   */
+    /* convert slurm hostlist to PSnodes */
     if (!convHLtoPSnodes(step->slurmHosts, getNodeIDbySlurmHost,
 			 &step->nodes, &count)) {
 	mlog("%s: resolving PS nodeIDs from %s failed\n", __func__,
@@ -1021,12 +1021,14 @@ static void handleFileBCast(Slurm_Msg_t *sMsg)
 	} else {
 	    bcast->uid = alloc->uid;
 	    bcast->gid = alloc->gid;
+	    bcast->env = &alloc->env;
 	    ufree(bcast->username);
 	    bcast->username = ustrdup(alloc->username);
 	}
     } else {
 	bcast->uid = job->uid;
 	bcast->gid = job->gid;
+	bcast->env = &job->env;
 	ufree(bcast->username);
 	bcast->username = ustrdup(job->username);
     }
@@ -1540,7 +1542,7 @@ static void handleBatchJobLaunch(Slurm_Msg_t *sMsg)
     /* write the jobscript */
     if (!(writeJobscript(job))) {
 	/* set myself offline and requeue the job */
-	setNodeOffline(&job->env, job->jobid, slurmController,
+	setNodeOffline(&job->env, job->jobid,
 			getConfValueC(&Config, "SLURM_HOSTNAME"),
 			"psslurm: writing jobscript failed");
 	/* need to return success to be able to requeue the job */

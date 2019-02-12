@@ -1006,8 +1006,13 @@ int execUserStep(Step_t *step)
     fwdata->hookFinalize = stepFinalize;
 
     if (!startForwarder(fwdata)) {
-	mlog("%s: starting forwarder for step '%u:%u' failed\n", __func__,
-		step->jobid, step->stepid);
+	char msg[128];
+
+	snprintf(msg, sizeof(msg), "starting forwarder for step '%u:%u' "
+		 "failed\n", step->jobid, step->stepid);
+	flog(msg);
+	setNodeOffline(&step->env, step->jobid,
+		       getConfValueC(&Config, "SLURM_HOSTNAME"), msg);
 	return 0;
     }
     step->fwdata = fwdata;
@@ -1038,8 +1043,13 @@ bool execUserJob(Job_t *job)
     fwdata->hookChild = handleChildStartJob;
 
     if (!startForwarder(fwdata)) {
-	mlog("%s: starting forwarder for job '%u' failed\n",
-	     __func__, job->jobid);
+	char msg[128];
+
+	snprintf(msg, sizeof(msg), "starting forwarder for job '%u' failed\n",
+		 job->jobid);
+	flog(msg);
+	setNodeOffline(&job->env, job->jobid,
+		       getConfValueC(&Config, "SLURM_HOSTNAME"), msg);
 	return false;
     }
 
@@ -1145,8 +1155,13 @@ int execUserBCast(BCast_t *bcast)
     fwdata->childFunc = execBCast;
 
     if (!startForwarder(fwdata)) {
-	mlog("%s: starting forwarder for bcast '%u' failed\n",
-		__func__, bcast->jobid);
+	char msg[128];
+
+	snprintf(msg, sizeof(msg), "starting forwarder for bcast '%u' failed\n",
+		 bcast->jobid);
+	flog(msg);
+	setNodeOffline(bcast->env, bcast->jobid,
+		       getConfValueC(&Config, "SLURM_HOSTNAME"), msg);
 	return 0;
     }
 
@@ -1205,8 +1220,13 @@ int execStepFWIO(Step_t *step)
     fwdata->hookFinalize = stepFinalize;
 
     if (!startForwarder(fwdata)) {
-	mlog("%s: starting forwarder for step '%u:%u' failed\n",
-		__func__, step->jobid, step->stepid);
+	char msg[128];
+
+	snprintf(msg, sizeof(msg), "starting I/O forwarder for step '%u:%u' "
+		 "failed\n", step->jobid, step->stepid);
+	flog(msg);
+	setNodeOffline(&step->env, step->jobid,
+		       getConfValueC(&Config, "SLURM_HOSTNAME"), msg);
 	return 0;
     }
     step->fwdata = fwdata;
