@@ -887,6 +887,9 @@ void redirectStepIO(Forwarder_Data_t *fwdata, Step_t *step)
 	mwarn(errno, "%s: seteuid(%i) failed: ", __func__, step->uid);
 	return;
     }
+    if (prctl(PR_SET_DUMPABLE, 1) == -1) {
+	mwarn(errno, "%s: prctl(PR_SET_DUMPABLE) failed: ", __func__);
+    }
 
     /* stdout */
     if (step->stdOutOpt == IO_NODE_FILE || step->stdOutOpt == IO_GLOBAL_FILE) {
@@ -1025,6 +1028,9 @@ void redirectStepIO2(Forwarder_Data_t *fwdata, Step_t *step)
     if (seteuid(step->uid) == -1) {
 	mwarn(errno, "%s: seteuid(%i) failed: ", __func__, step->uid);
 	return;
+    }
+    if (prctl(PR_SET_DUMPABLE, 1) == -1) {
+	mwarn(errno, "%s: prctl(PR_SET_DUMPABLE) failed: ", __func__);
     }
 
     /* stdout */
