@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2017-2018 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2017-2019 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -57,14 +57,17 @@ static int numUniqHosts = 0;
 /** list of uniq hsots */
 static char **uniqHosts = NULL;
 
-/** Some helper fields used especially for OpenMPI support */
-/** list of job local uniq nodeIDs */
+/* Some helper fields used especially for OpenMPI support */
+/**
+ * list of uniq nodeIDs within the job. This maps job local nodeIDs
+ * to absolute nodeIDs
+ */
 static PSnodes_ID_t *jobLocalUniqNodeIDs = NULL;
-/** list of number of processes per node */
+/** number of processes per node per job local nodeID */
 static int *numProcPerNode = NULL;
-/** list of job local nodeIDs starting by 0 */
+/** job local nodeIDs (i.e. nodes numbered job locally starting @ 0) per rank */
 static int *jobLocalNodeIDs = NULL;
-/** list of node local processIDs (rank) */
+/** node local processIDs (aka node local rank) per global rank */
 static int *nodeLocalProcIDs = NULL;
 
 /** openmpi list of reserved port */
@@ -675,27 +678,24 @@ static void setRankInfos(int np, PSnodes_ID_t node, PSnodes_ID_t *uniqNodeIDs,
 {
     int i;
 
-    for (i=0; i<np; i++) {
-
-	/* already known node */
+    /* Use reverse search for canonically sorted nodeList */
+    for (i=numUniqNodes-1; i>=0; i--) {
 	if (uniqNodeIDs[i] == node) {
+	    /* already known node */
 	    *procid = listProcIDs[i];
 	    listProcIDs[i]++;
 	    *nodeid = i;
-	    break;
-	}
-
-	/* new unknown node */
-	if (uniqNodeIDs[i] == -1) {
-	    numUniqNodes++;
-
-	    uniqNodeIDs[i] = node;
-	    *procid = listProcIDs[i];
-	    listProcIDs[i]++;
-	    *nodeid = i;
-	    break;
+	    return;
 	}
     }
+
+    /* new unknown node */
+    uniqNodeIDs[numUniqNodes] = node;
+    *procid = 0;
+    listProcIDs[numUniqNodes] = 1;
+    *nodeid = numUniqNodes;
+
+    numUniqNodes++;
 }
 
 /**
@@ -716,20 +716,11 @@ static void extractNodeInformation(PSnodes_ID_t *nodeList, int np)
 	exit(1);
     }
 
-    /* list of job local nodeIDs starting by 0 */
-    jobLocalNodeIDs = umalloc(sizeof(int) * np);
-    for (i=0; i<np; i++) jobLocalNodeIDs[i] = -1;
-
-    /* list of job local uniq node IDs */
-    jobLocalUniqNodeIDs = umalloc(sizeof(int) * np);
-    for (i=0; i<np; i++) jobLocalUniqNodeIDs[i] = -1;
-
-    /* list of all tasks (processes) per node */
-    numProcPerNode = umalloc(sizeof(int) * np);
-    for (i=0; i<np; i++) numProcPerNode[i] = 0;
-
-    /* list of node local processIDs (rank) */
-    nodeLocalProcIDs = umalloc(sizeof(int) * np);
+    /* allocate the helper fields */
+    jobLocalUniqNodeIDs = umalloc(sizeof(*jobLocalUniqNodeIDs) * np);
+    numProcPerNode = umalloc(sizeof(*numProcPerNode) * np);
+    jobLocalNodeIDs = umalloc(sizeof(*jobLocalNodeIDs) * np);
+    nodeLocalProcIDs = umalloc(sizeof(*nodeLocalProcIDs) * np);
 
     /* save the information */
     for (i=0; i< np; i++) {
