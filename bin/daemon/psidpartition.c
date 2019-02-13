@@ -3337,8 +3337,15 @@ static bool send_RESRELEASED(PSrsrvtn_t *res)
 
     for (i = 0; i < res->nSlots; i++) {
 	node = res->slots[i].node;
+
+	/* advance to the next different node */
 	if (i < res->nSlots-1 && node == res->slots[i+1].node) {
 	    continue;
+	}
+
+	/* break if we are looping nodes */
+	if (node == res->slots[0].node) {
+	    break;
 	}
 
 	DDBufferMsg_t msg = {
@@ -3538,8 +3545,15 @@ static bool send_RESCREATED(PStask_t *task, PSrsrvtn_t *res)
     initFragBuffer(&msg, PSP_DD_RESCREATED, -1);
     for (i = 0; i < res->nSlots; i++) {
 	node = res->slots[i].node;
+
+	/* advance to the next different node */
 	if (i < res->nSlots-1 && node == res->slots[i+1].node) {
 	    continue;
+	}
+
+	/* break if we are looping nodes */
+	if (node == res->slots[0].node) {
+	    break;
 	}
 
 	PSID_log(PSID_LOG_SPAWN, "%s: send PSP_DD_RESCREATED to node %d\n",
