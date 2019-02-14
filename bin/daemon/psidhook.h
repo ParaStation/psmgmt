@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2013-2018 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2013-2019 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -12,6 +12,8 @@
  */
 #ifndef __PSIDHOOK_H
 #define __PSIDHOOK_H
+
+#include <stdbool.h>
 
 #include "pstask.h"
 
@@ -180,9 +182,9 @@ typedef enum {
  *
  * @param func The function to register to the hook.
  *
- * @return On success, 1 is returned. Or 0, if an error occurred.
+ * @return On success, true is returned. Or false if an error occurred.
  */
-int PSIDhook_add(PSIDhook_t hook, PSIDhook_func_t func);
+bool PSIDhook_add(PSIDhook_t hook, PSIDhook_func_t func);
 
 /**
  * @brief Remove hook
@@ -194,10 +196,10 @@ int PSIDhook_add(PSIDhook_t hook, PSIDhook_func_t func);
  *
  * @param func The function to register to the hook.
  *
- * @return On success, 1 is returned. Or 0, if an error occurred,
+ * @return On success, true is returned. Or false if an error occurred,
  * i.e. the hook to unregister was not found.
  */
-int PSIDhook_del(PSIDhook_t hook, PSIDhook_func_t func);
+bool PSIDhook_del(PSIDhook_t hook, PSIDhook_func_t func);
 
 /** Magic value to find out, if any hook was called by @ref PSIDhook_call() */
 #define PSIDHOOK_NOFUNC 42
@@ -242,8 +244,14 @@ int PSIDhook_call(PSIDhook_t hook, void *arg);
  * Initialize the hook framework. This allocates the structures used
  * to manage the functions registered to the various hooks available.
  *
+ * The hook framework is also initialized implicitely on the first
+ * call of PSIDhook_add(). Thus, calling this function explicitely is
+ * not required.
+ *
+ * @deprecated Not required any longer.
+ *
  * @return No return value.
  */
-void initHooks(void);
+void initHooks(void) __attribute__ ((deprecated));
 
 #endif  /* __PSIDHOOK_H */
