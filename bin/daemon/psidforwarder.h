@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2018 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2019 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -25,11 +25,16 @@
  * output to stdout and stderr operations of the controlled client
  * process. Therefore the forwarder process is connected to the local
  * daemon via which all communication operations of this kind are
- * delivered.
+ * delivered. The file descriptor connecting the forwarder to the
+ * local daemon is passed via the fd member of @a task.
  *
  * Additionally it's the forwarders tasks to control the client
  * process' live and to supply post mortem failure and usage
- * information to the parent process.
+ * information to the parent process. For this, a controlling file
+ * descriptor connected to the client process is passed within @a
+ * clientFD. It might be used to receive feedback from the client
+ * process like error numbers. At the same time it can signal the
+ * client process to omit the actual execv() and to exit().
  *
  * If @a eno is different from 0, the forwarder expects that something
  * went wrong during creation of the child process. Thus, a
@@ -37,17 +42,16 @@
  * that, everything accessible via the tasks stderr_fd will be
  * appended to the corresponding message.
  *
- * @param task Task structure describing the client process to control.
+ * @param task Task structure describing the client process to control
  *
- * @param daemonfd File descriptor connecting the forwarder to the
- * local daemon.
+ * @param clientFD File descriptor connected to the client process
  *
  * @param eno Error-number (i.e. errno) describing the problem
- * preventing the child-process from being spawned.
+ * preventing the child-process from being spawned
  *
  * @return No return value.
  */
-void PSID_forwarder(PStask_t *task, int daemonfd, int eno);
+void PSID_forwarder(PStask_t *task, int clientFD, int eno);
 
 /**
  * @brief Send a message to the local daemon.

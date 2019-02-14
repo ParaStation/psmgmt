@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2002-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2018 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2019 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -95,7 +95,7 @@ struct __task__ {
     PStask_ID_t forwardertid;      /**< unique identifier of the forwarder */
     /*C*/ int32_t rank;            /**< rank of task within task group */
     PSCPU_set_t CPUset;            /**< set of logical CPUs to pin to */
-    short fd;                      /**< connection fd within psid */
+    short fd;                      /**< connection fd from/to the psid */
     /*C*/ char *workingdir;        /**< working directory */
     /*C*/ uint32_t argc;           /**< size of argv (w/o trailing NULL) */
     /*C*/ char **argv;             /**< command line arguments */

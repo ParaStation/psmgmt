@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2002-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2018 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2019 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -224,17 +224,16 @@ void PSIDspawn_cleanupDelayedTasks(PSIDspawn_filter_t filter, void *info);
  *
  * Prototype of a handler to execute a local task described by the
  * task structure @a task. Such function will be called within the
- * newly created sandbox that is connected to the local daemon via the
- * file descriptor @a fd.
- *
- * @param fd File descriptor connected to the local daemon
+ * newly created sandbox. The sandbox is connected to the local daemon
+ * via a file descriptor that will be passed within the @a fd member
+ * of @a task.
  *
  * @param task Task structure of a local task to be setup and/or
  * executed
  *
  * @return No return value
  */
-typedef void PSIDspawn_creator_t(int fd, PStask_t *task);
+typedef void PSIDspawn_creator_t(PStask_t *task);
 
 /**
  * @brief Spawn local task
@@ -244,9 +243,10 @@ typedef void PSIDspawn_creator_t(int fd, PStask_t *task);
  * to execute the task.
  *
  * The new sandbox is connected to the local daemon via a UNIX stream
- * socketpair. One end of the socketpair will be passed to @a creator,
- * the other end is registered within @a task and will be handled by
- * @a msgHandler if given. All other file descriptors (besides
+ * socketpair. One end of the socketpair will be passed to @a creator
+ * within its version of @a task, the other end is registered within
+ * the local daemon's version of @a task and will be handled by @a
+ * msgHandler if given. All other file descriptors (besides
  * stdin/stdout/stderr) within the new sandbox will be closed.
  *
  * If @a msgHandler is NULL, a default handler is used that expects

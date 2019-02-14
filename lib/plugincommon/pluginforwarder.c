@@ -580,7 +580,7 @@ static void sendFin(void)
     sendMsgToMother(&msg);
 }
 
-static void execForwarder(int motherFD, PStask_t *task)
+static void execForwarder(PStask_t *task)
 {
     fwTask = task;
     Forwarder_Data_t *fw = task->info;
@@ -588,9 +588,7 @@ static void execForwarder(int motherFD, PStask_t *task)
     int status = 0, i;
     struct rusage rusage;
 
-    fwTask->fd = motherFD;
-
-    if (!initForwarder(motherFD, fw)) {
+    if (!initForwarder(fwTask->fd, fw)) {
 	pluginlog("%s: initForwarder failed\n", __func__);
 	exit(1);
     }

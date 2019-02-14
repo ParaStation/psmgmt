@@ -1173,10 +1173,10 @@ static void statPID(pid_t pid)
  *
  * @see fork(), errno
  */
-static void execForwarder(int daemonfd, PStask_t *task)
+static void execForwarder(PStask_t *task)
 {
     pid_t pid;
-    int stdinfds[2], stdoutfds[2], stderrfds[2] = {-1, -1}, controlfds[2];
+    int stdinfds[2], stdoutfds[2], stderrfds[2], controlfds[2] = {-1, -1};
     int ret, eno = 0;
     char *envStr;
     struct timeval start, end = { .tv_sec = 0, .tv_usec = 0 }, stv;
@@ -1221,7 +1221,6 @@ static void execForwarder(int daemonfd, PStask_t *task)
     PSID_adjustLoginUID(task->uid);
 
     /* init the process manager sockets */
-    task->fd = daemonfd;
     if ((PSIDhook_call(PSIDHOOK_EXEC_FORWARDER, task)) == -1) {
 	eno = EINVAL;
 	goto error;
@@ -1231,7 +1230,7 @@ static void execForwarder(int daemonfd, PStask_t *task)
     if (!(pid = fork())) {
 	/* this is the client process */
 	/* no direct connection to the daemon */
-	close(daemonfd);
+	close(task->fd);
 
 	/* prepare connection to forwarder */
 	task->fd = controlfds[1];
@@ -1345,7 +1344,6 @@ static void execForwarder(int daemonfd, PStask_t *task)
     if (pid == -1) eno = errno;
 
     /* prepare connection to child */
-    task->fd = controlfds[0];
     close(controlfds[1]);
 
     /* close the slave ttys / sockets */
@@ -1409,13 +1407,13 @@ static void execForwarder(int daemonfd, PStask_t *task)
 	fd_set rfds;
 
 	FD_ZERO(&rfds);
-	FD_SET(task->fd, &rfds);
+	FD_SET(controlfds[0], &rfds);
 
 	gettimeofday(&start, NULL);               /* get NEW starttime */
 	timersub(&end, &start, &stv);
 	if (stv.tv_sec < 0) timerclear(&stv);
 
-	ret = select(task->fd+1, &rfds, NULL, NULL, &stv);
+	ret = select(controlfds[0] + 1, &rfds, NULL, NULL, &stv);
 	if (ret == -1) {
 	    if (errno == EINTR) {
 		/* Interrupted syscall, just start again */
@@ -1428,7 +1426,7 @@ static void execForwarder(int daemonfd, PStask_t *task)
 		break;
 	    }
 	} else if (!ret) {
-	    PSID_log(-1, "%s: select(%d) timed out\n", __func__, task->fd);
+	    PSID_log(-1, "%s: select(%d) timed out\n", __func__, controlfds[0]);
 	    eno = ETIME;
 	    statPID(pid);
 	    break;
@@ -1441,7 +1439,7 @@ static void execForwarder(int daemonfd, PStask_t *task)
     if (eno) goto error;
 
 restart:
-    if ((ret=read(task->fd, &eno, sizeof(eno))) < 0) {
+    if ((ret=read(controlfds[0], &eno, sizeof(eno))) < 0) {
 	if (errno == EINTR) {
 	    goto restart;
 	}
@@ -1457,7 +1455,7 @@ restart:
 
 error:
     /* Release the waiting daemon and exec forwarder */
-    PSID_forwarder(task, daemonfd, eno);
+    PSID_forwarder(task, controlfds[0], eno);
 
     /* never reached */
     exit(0);
@@ -1610,7 +1608,9 @@ static int buildSandboxAndStart(PSIDspawn_creator_t *creator, PStask_t *task)
 	PSC_setDaemonFlag(0);
 	PSC_resetMyTID();
 
-	creator(socketfds[1], task);
+	task->fd = socketfds[1];
+
+	creator(task);
     }
 
     /* this is the parent process */
