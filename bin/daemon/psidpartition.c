@@ -3338,14 +3338,13 @@ static bool send_RESRELEASED(PSrsrvtn_t *res)
     for (i = 0; i < res->nSlots; i++) {
 	node = res->slots[i].node;
 
-	/* advance to the next different node */
-	if (i < res->nSlots-1 && node == res->slots[i+1].node) {
-	    continue;
-	}
+	/* avoid double sending to the same node */
+	if (i > 0) {
+	    /* advance to the next different node */
+	    if (node == res->slots[i-1].node) continue;
 
-	/* break if we are looping nodes */
-	if (node == res->slots[0].node) {
-	    break;
+	    /* break if we are looping nodes */
+	    if (i > 0 && node == res->slots[0].node) break;
 	}
 
 	DDBufferMsg_t msg = {
@@ -3546,17 +3545,16 @@ static bool send_RESCREATED(PStask_t *task, PSrsrvtn_t *res)
     for (i = 0; i < res->nSlots; i++) {
 	node = res->slots[i].node;
 
-	/* advance to the next different node */
-	if (i < res->nSlots-1 && node == res->slots[i+1].node) {
-	    continue;
+	/* avoid double sending to the same node */
+	if (i > 0) {
+	    /* advance to the next different node */
+	    if (node == res->slots[i-1].node) continue;
+
+	    /* break if we are looping nodes */
+	    if (i > 0 && node == res->slots[0].node) break;
 	}
 
-	/* break if we are looping nodes */
-	if (node == res->slots[0].node) {
-	    break;
-	}
-
-	PSID_log(PSID_LOG_SPAWN, "%s: send PSP_DD_RESCREATED to node %d\n",
+	PSID_log(PSID_LOG_PART, "%s: send PSP_DD_RESCREATED to node %d\n",
 		__func__, node);
 
 	setFragDest(&msg, PSC_getTID(node, 0));
