@@ -18,8 +18,8 @@
  * The actual sending mode might be chosen by either setting
  * PS_SendSB_t's @ref useFrag flag to false (accumulate serialized
  * data in a buffer) or by initializing the PS_SendSB_t structure via
- * initFragBuffer() and setFragDest() (immediately send a series of
- * RDP messages).
+ * initFragBuffer() and setFragDest() or setFragDestUniq()
+ * (immediately send a series of RDP messages).
  */
 #ifndef __PSSERIAL_H
 #define __PSSERIAL_H
@@ -132,7 +132,7 @@ void finalizeSerial(void);
 void initFragBuffer(PS_SendDB_t *buffer, int32_t headType, int32_t msgType);
 
 /**
- * @brief Set an additional destination for fragmented messages.
+ * @brief Set an additional destination for fragmented messages
  *
  * Add the provided Task ID as an additional destination to send
  * the fragmented message to. This functions needs to be called
@@ -148,10 +148,32 @@ void initFragBuffer(PS_SendDB_t *buffer, int32_t headType, int32_t msgType);
 bool setFragDest(PS_SendDB_t *buffer, PStask_ID_t id);
 
 /**
+ * @brief Set an additional unique destination for fragmented messages
+ *
+ * Add the provided Task ID as an additional destination to send
+ * the fragmented message to. This functions needs to be called
+ * before using any functions to add data to the buffer. A good place
+ * is right after the call to @ref initFragBuffer().
+ *
+ * In contrast to @ref setFragDest() this function ensures that the
+ * destination is unique, i.e. that no multiple occurrences of the
+ * same destination task ID appears in the list of destinations.
+ *
+ * @param buffer Send buffer to use
+ *
+ * @param id Task ID to add
+ *
+ * @return Returns true if the destition was added or false on error
+ * or if the destination was found amongst the already registered
+ * destinations
+ */
+bool setFragDestUniq(PS_SendDB_t *buffer, PStask_ID_t id);
+
+/**
  * @brief Get number of destinations
  *
  * Get the number of destinations registered to @a buffer via @ref
- * setFragDest().
+ * setFragDest() or @ref setFragDestUniq().
  *
  * @param buffer Buffer to investigate
  *
@@ -195,10 +217,11 @@ bool __recvFragMsg(DDTypedBufferMsg_t *msg, PS_DataBuffer_func_t *func,
  * @brief Send fragmented message
  *
  * Send the message content found in the message buffer @a buffer to
- * the task ID(s) registered before using @ref setFragDest() as a series
- * of fragments put into ParaStation protocol messages of type
- * @ref DDTypedBufferMsg_t. Each message is of RDPType and the
- * sub-type defined previously by @ref initFragBuffer().
+ * the task ID(s) registered before using @ref setFragDest() or @ref
+ * setFragDestUniq() as a series of fragments put into ParaStation
+ * protocol messages of type @ref DDTypedBufferMsg_t. Each message is
+ * of RDPType and the sub-type defined previously by @ref
+ * initFragBuffer().
  *
  * The sender function which was registered before via @ref
  * initSerial() method is used to send the fragments.

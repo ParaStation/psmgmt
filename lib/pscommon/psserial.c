@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2012-2018 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2012-2019 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -448,6 +448,17 @@ bool setFragDest(PS_SendDB_t *buffer, PStask_ID_t id)
     destNodes[buffer->numDest++] = id;
 
     return true;
+}
+
+bool setFragDestUniq(PS_SendDB_t *buffer, PStask_ID_t id)
+{
+    int i;
+
+    for (i = 0; i < buffer->numDest; i++) {
+	if (destNodes[i] == id) return false;
+    }
+
+    return setFragDest(buffer, id);
 }
 
 /**
