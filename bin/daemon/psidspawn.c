@@ -2500,20 +2500,17 @@ LIST_HEAD(localJobs);
  *
  * @return Returns the job or NULL if not in list
  */
-PSjob_t* PSID_findJobByLoggerTid(PStask_ID_t loggertid)
+static PSjob_t* PSID_findJobByLoggerTid(PStask_ID_t loggertid)
 {
     if (list_empty(&localJobs)) {
 	PSID_log(-1, "%s: No local jobs in list.\n", __func__);
     }
-    PSjob_t *job;
     list_t *j;
     list_for_each(j, &localJobs) {
-	job = list_entry(j, PSjob_t, next);
+	PSjob_t *job = list_entry(j, PSjob_t, next);
 	PSID_log(-1, "%s: Testing job with loggertid %s\n", __func__,
-		PSC_printTID(job->loggertid));
-	if (job->loggertid == loggertid) {
-	    return job;
-	}
+		 PSC_printTID(job->loggertid));
+	if (job->loggertid == loggertid) return job;
     }
     return NULL;
 }
@@ -2555,22 +2552,19 @@ static void handleResCreated(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
     nentries = (rData->buf + rData->bufUsed - ptr) / entrysize;
 
     /* allocate reservation structure */
-    res = calloc(1, sizeof(*res));
-    if (res == NULL) {
-	PSID_log(-1, "%s: Could not allocate memory for reservation info.\n",
-		__func__);
+    res = malloc(sizeof(*res));
+    if (!res) {
+	PSID_log(-1, "%s: No memory for reservation info.\n", __func__);
 	return;
     }
     res->entries = calloc(nentries, sizeof(*res->entries));
-    if (res->entries == NULL) {
+    if (!res->entries) {
 	free(res);
-	PSID_log(-1, "%s: Could not allocate memory for reservation info"
-		"entries.\n", __func__);
+	PSID_log(-1, "%s: No memory for reservation info entries.\n", __func__);
 	return;
     }
 
     res->resID = resID;
-    res->loggertid = loggertid;
 
     /* get entries */
     for (i = 0; i < nentries; i++) {
@@ -2592,28 +2586,25 @@ static void handleResCreated(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
     bool jobCreated = false;
 
     /* try to find corresponding job */
-    PSjob_t *job;
-    job = PSID_findJobByLoggerTid(loggertid);
+    PSjob_t *job = PSID_findJobByLoggerTid(loggertid);
 
-    if (job == NULL) {
+    if (!job) {
 	/* create new job */
 	job = malloc(sizeof(*job));
 	job->loggertid = loggertid;
-	job->nReservations = 0;
 	INIT_LIST_HEAD(&job->resInfos);
 	list_add_tail(&job->next, &localJobs);
 	jobCreated = true;
 	PSID_log(-1, "%s: Job created with loggertid %s\n", __func__,
-	       PSC_printTID(loggertid));
+		 PSC_printTID(loggertid));
     }
 
     /* add reservation to the corresponing job */
     list_add(&res->next, &job->resInfos);
-    job->nReservations++;
 
     if (jobCreated) {
 	/* Give plugins the option to react on job creation */
-        PSIDhook_call(PSIDHOOK_LOCALJOBCREATED, job);
+	PSIDhook_call(PSIDHOOK_LOCALJOBCREATED, job);
     }
 }
 
@@ -2649,7 +2640,7 @@ static void msg_RESCREATED(DDTypedBufferMsg_t *msg)
     /* destination is remote */
     if (!PSIDnodes_isUp(PSC_getID(msg->header.dest))) {
 	PSID_log(-1, "%s: unable to forward fragment to %s (node down)\n",
-		__func__, PSC_printTID(msg->header.dest));
+		 __func__, PSC_printTID(msg->header.dest));
 	return;
     }
 
@@ -2657,7 +2648,7 @@ static void msg_RESCREATED(DDTypedBufferMsg_t *msg)
 	     PSC_getID(msg->header.dest));
     if (sendMsg(msg) < 0) {
 	PSID_log(-1, "%s: unable to forward fragment to %s (sendMsg failed)\n",
-		__func__, PSC_printTID(msg->header.dest));
+		 __func__, PSC_printTID(msg->header.dest));
     }
 }
 
@@ -2671,14 +2662,12 @@ static void msg_RESCREATED(DDTypedBufferMsg_t *msg)
  */
 PSresinfo_t* PSID_findReservationInJob(PSjob_t *job, PSrsrvtn_ID_t resID)
 {
-    PSresinfo_t *res;
     list_t *r;
     list_for_each(r, &job->resInfos) {
-	res = list_entry(r, PSresinfo_t, next);
-	if (res->resID == resID) {
-	    return res;
-	}
+	PSresinfo_t *res = list_entry(r, PSresinfo_t, next);
+	if (res->resID == resID) return res;
     }
+
     return NULL;
 }
 
@@ -2697,46 +2686,39 @@ PSresinfo_t* PSID_findReservationInJob(PSjob_t *job, PSrsrvtn_ID_t resID)
 static void msg_RESRELEASED(DDBufferMsg_t *msg)
 {
     PSrsrvtn_ID_t resID;
-    PStask_ID_t loggertid;
+    PStask_ID_t logTID;
     size_t used = 0;
 
     PSP_getMsgBuf(msg, &used, __func__, "resID", &resID, sizeof(resID));
-    PSP_getMsgBuf(msg, &used, __func__, "loggertid", &loggertid,
-	    sizeof(loggertid));
+    PSP_getMsgBuf(msg, &used, __func__, "logger TID", &logTID, sizeof(logTID));
 
     /* try to find corresponding job */
-    PSjob_t *job;
-    job = PSID_findJobByLoggerTid(loggertid);
-
-    if (job == NULL) {
+    PSjob_t *job = PSID_findJobByLoggerTid(logTID);
+    if (!job) {
 	PSID_log(-1, "%s: Could not find a job with loggertid %s that should"
-		" contain reservation id %d to be released.\n", __func__,
-	       PSC_printTID(loggertid), resID);
+		 " contain reservation id %d to be released.\n", __func__,
+		 PSC_printTID(logTID), resID);
 	return;
     }
 
-    /* try to find reservation in the job */
-    PSresinfo_t *res;
-    res = PSID_findReservationInJob(job, resID);
-
-    if (res == NULL) {
+    /* try to find reservation within the job */
+    PSresinfo_t *res = PSID_findReservationInJob(job, resID);
+    if (!res) {
 	PSID_log(-1, "%s: Could not find reservation id %d to be released in"
-		" job with loggertid %s.\n", __func__, resID,
-		PSC_printTID(loggertid));
+		 " job with loggertid %s.\n", __func__, resID,
+		 PSC_printTID(logTID));
 	return;
     }
 
     list_del(&res->next);
-    job->nReservations--;
 
     free(res->entries);
     free(res);
 
     /* if there are no reservations left in the job, delete it */
-    if (job->nReservations == 0) {
-
+    if (list_empty(&job->resInfos)) {
 	/* Give plugins the option to react on job removal */
-        PSIDhook_call(PSIDHOOK_LOCALJOBREMOVED, job);
+	PSIDhook_call(PSIDHOOK_LOCALJOBREMOVED, job);
 
 	list_del(&job->next);
 	free(job);
