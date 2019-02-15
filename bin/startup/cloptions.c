@@ -1051,7 +1051,7 @@ static void setupConf(Conf_t *conf)
     conf->pmiDbgKVS = pmidebug_kvs;
     conf->pmiDisable = pmidis;
 
-    /* PMI options */
+    /* PMIx options */
     conf->PMIx = pmix;
     if (pmix) conf->pmiDisable = true;
 
