@@ -199,35 +199,6 @@ static char *str2Buf(char *strSave, char *buffer, size_t *bufSize)
 }
 
 /**
- * @brief Transforms list of node ids to list of hostnames.
- *
- * @param nodes     list of node IDs.
- *
- * @param numNodes  number elements in @a nodes.
- *
- * @return NULL terminated array of strings
- */
-static char ** getHostnameList(PSnodes_ID_t *nodes, int numNodes)
-{
-    int i = 0;
-
-    if (!nodes || numNodes <= 0) {
-	fprintf(stderr, "%s: invalid list of node IDs\n", __func__);
-	exit(1);
-    }
-
-    char **hostnames;
-    hostnames = umalloc((numNodes + 1) * sizeof(char *));
-
-    for (i = 0; i < numNodes; i++) {
-	hostnames[i] = strdup(getHostByNodeID(nodes[i]));
-    }
-    hostnames[numNodes] = NULL;
-
-    return hostnames;
-}
-
-/**
  * @brief Get string with comma separated hostname list.
  *
  * @return Returns the requested string
@@ -238,17 +209,11 @@ static char *getUniqueHostnamesString(Conf_t *conf)
     size_t bufSize = 0;
     int i;
 
-    char **uniqHosts;
-    uniqHosts = getHostnameList(jobLocalUniqNodeIDs, numUniqNodes);
+    for (i=0; i < numUniqNodes; i++) {
+	if (i) buf = str2Buf(",", buf, &bufSize);
 
-    for (i = 0; uniqHosts[i] != NULL; i++) {
-	buf = str2Buf(uniqHosts[i], buf, &bufSize);
-	if (uniqHosts[i+1] != NULL) {
-	    buf = str2Buf(",", buf, &bufSize);
-	}
+	buf = str2Buf(getHostByNodeID(jobLocalUniqNodeIDs[i]), buf, &bufSize);
     }
-
-    free(uniqHosts);
 
     if (conf->ompiDbg) {
 	fprintf(stderr, "setting host string '%s'\n", buf);
@@ -263,17 +228,16 @@ static char *getUniqueHostnamesString(Conf_t *conf)
  */
 static char *ompiGetTasksPerNode(Conf_t *conf)
 {
-    int i;
-    char tmp[100];
     char *buf = NULL;
     size_t bufSize = 0;
+    int i;
 
     for (i=0; i<numUniqNodes; i++) {
+	if (i) buf = str2Buf(",", buf, &bufSize);
+
+	char tmp[100];
 	snprintf(tmp, sizeof(tmp), "%i", numProcPerNode[i]);
 	buf = str2Buf(tmp, buf, &bufSize);
-	if (i +1 < numUniqNodes) {
-	    buf = str2Buf(",", buf, &bufSize);
-	}
     }
 
     if (conf->ompiDbg) {
@@ -453,7 +417,6 @@ static void setupCommonEnv(Conf_t *conf)
     }
 
     if (conf->PMIx) {
-
 	/* set the PMIX debug mode */
 	if (conf->pmiDbg || getenv("PMIX_DEBUG")) {
 	    setPSIEnv("PMIX_DEBUG", "1", 1);
@@ -465,7 +428,6 @@ static void setupCommonEnv(Conf_t *conf)
 
 	/* tag for respawned processes */
 	setPSIEnv("PMIX_SPAWNED", getenv("PMIX_SPAWNED"), 1);
-
     }
 
     /* unset PSI_LOOP_NODES_FIRST in PSI env which is only needed for OpenMPI */
@@ -483,14 +445,31 @@ static void setupCommonEnv(Conf_t *conf)
 	}
 	setPSIEnv("PMI_SIZE", env, 1);
 
-	/* set the mpi universe size */
+	/* set PMI's universe size */
 	snprintf(tmp, sizeof(tmp), "%d", conf->uSize);
 	setPSIEnv("PMI_UNIVERSE_SIZE", tmp, 1);
-
     }
 
     if (conf->pmiTCP || conf->pmiSock) {
 	char *mapping;
+
+	/* propagate PMI auth token */
+	env = getenv("PMI_ID");
+	if (!env) {
+	    fprintf(stderr, "\n%s: No PMI_ID given\n", __func__);
+	    exit(EXIT_FAILURE);
+	}
+	setPSIEnv("PMI_ID", env, 1);
+
+	/* enable PMI tcp port */
+	if (conf->pmiTCP) {
+	    setPSIEnv("PMI_ENABLE_TCP", "1", 1);
+	}
+
+	/* enable PMI sockpair */
+	if (conf->pmiSock) {
+	    setPSIEnv("PMI_ENABLE_SOCKP", "1", 1);
+	}
 
 	/* set the PMI debug mode */
 	if (conf->pmiDbg || getenv("PMI_DEBUG")) {
@@ -522,24 +501,6 @@ static void setupCommonEnv(Conf_t *conf)
 	    free(mapping);
 	} else {
 	    fprintf(stderr, "failed building MVAPICH process mapping\n");
-	}
-
-	/* propagate PMI auth token */
-	env = getenv("PMI_ID");
-	if (!env) {
-	    fprintf(stderr, "\n%s: No PMI_ID given\n", __func__);
-	    exit(EXIT_FAILURE);
-	}
-	setPSIEnv("PMI_ID", env, 1);
-
-	/* enable PMI tcp port */
-	if (conf->pmiTCP) {
-	    setPSIEnv("PMI_ENABLE_TCP", "1", 1);
-	}
-
-	/* enable PMI sockpair */
-	if (conf->pmiSock) {
-	    setPSIEnv("PMI_ENABLE_SOCKP", "1", 1);
 	}
 
 	/* MPI processes should use PMI version 1 as long as we don't have

@@ -738,7 +738,6 @@ static int dospawn(int count, PSnodes_ID_t *dstnodes, char *workingdir,
 	PSI_warn(-1, errno, "%s: unable to determine logger's TID", __func__);
 	goto cleanup;
     }
-
     task->resID = resID;
 
     mywd = mygetwd(workingdir);
