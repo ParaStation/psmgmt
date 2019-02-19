@@ -81,6 +81,7 @@ void envUnset(env_t *env, const char *name)
     envUnsetIndex(env, idx);
 }
 
+/* takes ownership of @a envstring and frees it in case of error */
 static bool envDoSet(env_t *env, char *envstring)
 {
     if (!env || !envstring) return false;
@@ -88,7 +89,10 @@ static bool envDoSet(env_t *env, char *envstring)
     if (env->cnt + 1 >= env->size) {
 	uint32_t newSize = env->size + 16;
 	char **tmp = realloc(env->vars, newSize * sizeof(*tmp));
-	if (!tmp) return false;
+	if (!tmp) {
+	    free(envstring);
+	    return false;
+	}
 	env->size = newSize;
 	env->vars = tmp;
     }
