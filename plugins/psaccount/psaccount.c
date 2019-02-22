@@ -103,9 +103,6 @@ int initialize(void)
     /* init logging facility */
     initLogger(false);
 
-    /* init all lists */
-    initProc();
-
     /* init the config facility */
     snprintf(configfn, sizeof(configfn), "%s/%s", PLUGINDIR, PSACCOUNT_CONFIG);
     if (!initConfig(configfn)) return 1;
@@ -114,28 +111,31 @@ int initialize(void)
     debugMask = getConfValueI(&config, "DEBUG_MASK");
     maskLogger(debugMask);
 
+    /* init all lists */
+    initProc();
+
     /* read plattform version */
     if (uname(&uts)) {
 	mwarn(errno, "%s: uname()", __func__);
-	return 1;
+	goto INIT_ERROR;
     } else if (!!strcmp(uts.sysname, "Linux")) {
 	mlog("%s: accounting will only work on Linux platforms\n", __func__);
-	return 1;
+	goto INIT_ERROR;
     }
 
     /* check if system's clock ticks can be determined */
     if (sysconf(_SC_CLK_TCK) < 1) {
 	mlog("%s: reading clock ticks failed\n", __func__);
-	return 1;
+	goto INIT_ERROR;
     }
 
     /* check if system's page size can be determined */
     if (sysconf(_SC_PAGESIZE) < 1) {
 	mlog("%s: reading page size failed\n", __func__);
-	return 1;
+	goto INIT_ERROR;
     }
 
-    if (!initAccComm()) return 1;
+    if (!initAccComm()) goto INIT_ERROR;
 
     if (!Timer_isInitialized()) {
 	mdbg(PSACC_LOG_VERBOSE, "timer facility not ready, trying to initialize"
@@ -150,7 +150,7 @@ int initialize(void)
     if (poll >= 0) setMainTimer(poll ? poll : 30);
     if (mainTimerID == -1) {
 	mlog("registering main timer for poll = %d failed\n", poll);
-	return 1;
+	goto INIT_ERROR;
     }
 
     /* update proc snapshot */
@@ -158,12 +158,16 @@ int initialize(void)
 
     mlog("(%i) successfully started\n", version);
     return 0;
+
+INIT_ERROR:
+    cleanup();
+    return 1;
 }
 
 void cleanup(void)
 {
     /* remove all timer */
-    Timer_remove(mainTimerID);
+    if (mainTimerID != -1) Timer_remove(mainTimerID);
 
     finalizeAccComm();
 
