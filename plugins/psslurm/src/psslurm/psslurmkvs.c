@@ -13,6 +13,7 @@
 #include <string.h>
 
 #include "pluginmalloc.h"
+#include "pshostlist.h"
 
 #include "psslurmconfig.h"
 #include "psslurmlog.h"
@@ -20,6 +21,7 @@
 #include "psslurmalloc.h"
 #include "psslurmpin.h"
 #include "psslurmproto.h"
+#include "psslurmpscomm.h"
 
 #include "psidtask.h"
 #include "plugin.h"
@@ -177,6 +179,48 @@ static char *showAllocations(char *buf, size_t *bufSize)
     traverseAllocs(addAllocInfo, &strBuf);
 
     *bufSize = strBuf.bufSize;
+
+    return buf;
+}
+
+/**
+ * @brief Resolve a given host-list
+ *
+ * Resolve a compressed host-list and show the single hosts including
+ * the corresponding ParaStation node IDs and the local node ID.
+ *
+ * @param buf The buffer to write the information to.
+ *
+ * @param bufSize The size of the buffer.
+ *
+ * @return Returns the buffer with the nodeID and host pairs.
+ */
+static char *resolveIDs(char *hosts, char *buf, size_t *bufSize)
+{
+    PSnodes_ID_t *nodes;
+    uint32_t i, nrOfNodes;
+
+    if (!hosts) {
+	return str2Buf("\nSpecify hosts to resolve\n", &buf, bufSize);
+    }
+
+    if (!convHLtoPSnodes(hosts, getNodeIDbySlurmHost, &nodes, &nrOfNodes)) {
+	return str2Buf("\nResolving PS nodeIDs failed\n", &buf, bufSize);
+    }
+
+    uint32_t localNodeId = getLocalID(nodes, nrOfNodes);
+    if (localNodeId == NO_VAL) {
+	str2Buf("\nCould not find my local ID\n", &buf, bufSize);
+    } else {
+	snprintf(line, sizeof(line), "\nLocal node ID is %i\n", localNodeId);
+	str2Buf(line, &buf, bufSize);
+    }
+
+    for (i=0; i<nrOfNodes; i++) {
+	snprintf(line, sizeof(line), "%i nodeID %i hostname %s\n", i, nodes[i],
+		 getSlurmHostbyNodeID(nodes[i]));
+	str2Buf(line, &buf, bufSize);
+    }
 
     return buf;
 }
@@ -567,6 +611,11 @@ char *show(char *key)
 
     /* show all HW threads */
     if (!strcmp(key, "ahwThreads")) return showHWthreads(buf, &bufSize, true);
+
+    /* show nodeIDs for a list of hosts */
+    if (!strncmp(key, "resolveIDs=", 11)) {
+	return resolveIDs(key+11, buf, &bufSize);
+    }
 
     str2Buf("\nInvalid key '", &buf, &bufSize);
     str2Buf(key, &buf, &bufSize);
