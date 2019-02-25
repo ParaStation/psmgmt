@@ -298,8 +298,8 @@ static void handlePrintChildMsg(Forwarder_Data_t *fwdata, char *ptr)
     /* get local rank from rank */
     lrank = getLocalRankID(rank, step, myNodeID);
     if (lrank == (uint32_t )-1) {
-	mlog("%s: invalid node rank for rank %i myNodeID %i\n",
-		__func__, rank, myNodeID);
+	mlog("%s: invalid node rank for rank %i myNodeID %i step %u:%u\n",
+		__func__, rank, myNodeID, step->jobid, step->stepid);
 	ufree(msg);
 	return;
     }

@@ -497,8 +497,9 @@ static void handleLaunchTasks(Slurm_Msg_t *sMsg)
 
     step->localNodeId = getLocalID(step->nodes, step->nrOfNodes);
     if (step->localNodeId == NO_VAL) {
-	flog("local node ID %i for step %u:%u in %s not found\n", PSC_getMyID(),
-	     step->jobid, step->stepid, step->slurmHosts);
+	flog("local node ID %i for step %u:%u in %s num nodes %i not found\n",
+	     PSC_getMyID(), step->jobid, step->stepid, step->slurmHosts,
+	     step->nrOfNodes);
 	sendSlurmRC(sMsg, ESLURMD_INVALID_JOB_CREDENTIAL);
 	goto ERROR;
     }

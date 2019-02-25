@@ -1521,7 +1521,7 @@ static void handleCC_IO_Msg(PSLog_Msg_t *msg)
 	goto OLD_MSG_HANDLER;
     }
 
-    /* forward stdout for single file on mother superior */
+    /* forward stderr for single file on mother superior */
     if (msg->type == STDERR && step->stdErrOpt == IO_GLOBAL_FILE) {
 	goto OLD_MSG_HANDLER;
     }
@@ -2295,7 +2295,7 @@ static bool initHostLT(void)
 	    goto ERROR;
 	}
     }
-    mdbg(PSSLURM_LOG_DEBUG, "%s: found %zu PS nodes\n", __func__, numHostLT);
+    mdbg(-1, "%s: found %zu PS nodes\n", __func__, numHostLT);
 
     /* sort the array for later use of bsearch */
     qsort(HostLT, numHostLT, sizeof(*HostLT), compareNodeIDs);
