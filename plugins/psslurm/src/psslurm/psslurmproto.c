@@ -497,7 +497,7 @@ static void handleLaunchTasks(Slurm_Msg_t *sMsg)
 
     step->localNodeId = getLocalID(step->nodes, step->nrOfNodes);
     if (step->localNodeId == NO_VAL) {
-	flog("could not find my local ID for step %u:%u in %s\n",
+	flog("local node ID %i for step %u:%u in %s not found\n", PSC_getMyID(),
 	     step->jobid, step->stepid, step->slurmHosts);
 	sendSlurmRC(sMsg, ESLURMD_INVALID_JOB_CREDENTIAL);
 	goto ERROR;

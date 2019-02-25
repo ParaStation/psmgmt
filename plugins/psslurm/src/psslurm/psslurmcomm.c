@@ -1029,8 +1029,8 @@ static int forwardInputMsg(Step_t *step, uint16_t rank, char *buf, int bufLen)
        .sender = -1};
 
     if (!task) {
-	mlog("%s: task for rank %u of step %u:%u not found\n", __func__, rank,
-	     step->jobid, step->stepid);
+	mlog("%s: task for rank %u of step %u:%u local ID %i not found\n",
+	     __func__, rank, step->jobid, step->stepid, step->localNodeId);
 	return -1;
     }
 
