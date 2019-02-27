@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2016-2018 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2016-2019 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -22,6 +22,7 @@
 #include "psslurmpin.h"
 #include "psslurmproto.h"
 #include "psslurmpscomm.h"
+#include "psslurmtasks.h"
 
 #include "psidtask.h"
 #include "plugin.h"
@@ -80,6 +81,14 @@ static bool addJobInfo(Job_t *job, const void *info)
     snprintf(line, sizeof(line), "start time '%s'\n", start);
     addStrBuf(line, strBuf);
 
+    if (job->packSize) {
+	snprintf(line, sizeof(line), "pack size %u\n", job->packSize);
+	addStrBuf(line, strBuf);
+
+	snprintf(line, sizeof(line), "pack host list %s\n", job->packHostlist);
+	addStrBuf(line, strBuf);
+    }
+
     addStrBuf("-\n\n", strBuf);
 
     return false;
@@ -88,28 +97,22 @@ static bool addJobInfo(Job_t *job, const void *info)
 /**
  * @brief Show current jobs.
  *
- * @param buf The buffer to write the information to.
- *
- * @param bufSize The size of the buffer.
- *
  * @return Returns the buffer with the updated job information.
  */
-static char *showJobs(char *buf, size_t *bufSize)
+static char *showJobs()
 {
-    StrBuffer_t strBuf;
+    StrBuffer_t strBuf = {
+	.buf = NULL,
+	.bufSize = 0 };
 
     if (!countJobs()) {
-	return str2Buf("\nNo current jobs.\n", &buf, bufSize);
+	return addStrBuf("\nNo current jobs.\n", &strBuf);
     }
 
-    str2Buf("\njobs:\n\n", &buf, bufSize);
-
-    strBuf.buf = buf;
-    strBuf.bufSize = *bufSize;
+    addStrBuf("\njobs:\n\n", &strBuf);
     traverseJobs(addJobInfo, &strBuf);
 
-    *bufSize = strBuf.bufSize;
-    return buf;
+    return strBuf.buf;
 }
 
 /**
@@ -129,6 +132,11 @@ static bool addAllocInfo(Alloc_t *alloc, const void *info)
 
     snprintf(line, sizeof(line), "- jobid %u -\n", alloc->id);
     addStrBuf(line, strBuf);
+
+    if (alloc->packID != NO_VAL) {
+	snprintf(line, sizeof(line), "packid %u \n", alloc->packID);
+	addStrBuf(line, strBuf);
+    }
 
     snprintf(line, sizeof(line), "user '%s'\n", alloc->username);
     addStrBuf(line, strBuf);
@@ -150,37 +158,99 @@ static bool addAllocInfo(Alloc_t *alloc, const void *info)
     snprintf(line, sizeof(line), "start time '%s'\n", start);
     addStrBuf(line, strBuf);
 
+    snprintf(line, sizeof(line), "local node id %u -\n", alloc->localNodeId);
+    addStrBuf(line, strBuf);
+
     addStrBuf("-\n\n", strBuf);
 
     return false;
 }
 
 /**
+ * @brief Visitor to add information about tasks of a step
+ *
+ * @param step The step to use
+ *
+ * @param info A StrBuffer_t structure to save the information
+ *
+ * @return Always returns false to loop throw all steps
+ */
+static bool addTaskInfo(Step_t *step, const void *info)
+{
+    StrBuffer_t *strBuf = (StrBuffer_t *) info;
+    list_t *tasks = &step->tasks;
+
+    if (step->state == JOB_COMPLETE) return false;
+
+    if (!countTasks(tasks)) {
+	snprintf(line, sizeof(line), "\nno tasks for step %u:%u\n",
+		 step->jobid, step->stepid);
+	addStrBuf(line, strBuf);
+	return false;
+    }
+
+    snprintf(line, sizeof(line), "\n%i tasks for step %u:%u\n",
+	     countTasks(tasks), step->jobid, step->stepid);
+    addStrBuf(line, strBuf);
+
+    list_t *t;
+    list_for_each(t, tasks) {
+	PS_Tasks_t *task = list_entry(t, PS_Tasks_t, next);
+
+	snprintf(line, sizeof(line), "child %s ", PSC_printTID(task->childTID));
+	addStrBuf(line, strBuf);
+
+	snprintf(line, sizeof(line), "forwarder %s rank %i exit %i sent "
+		 "exit %u\n", PSC_printTID(task->forwarderTID), task->childRank,
+		 task->exitCode, task->sentExit);
+	addStrBuf(line, strBuf);
+    }
+
+    addStrBuf("-\n\n", strBuf);
+
+    return false;
+}
+
+/**
+ * @brief Show tasks of all local steps
+ *
+ * @return Returns the buffer with the updated task information
+ */
+static char *showTasks()
+{
+    StrBuffer_t strBuf = {
+	.buf = NULL,
+	.bufSize = 0 };
+
+    if (!countSteps()) {
+	return addStrBuf("\nNo current tasks.\n", &strBuf);
+    }
+
+    addStrBuf("\ntasks for all steps:\n", &strBuf);
+    traverseSteps(addTaskInfo, &strBuf);
+
+    return strBuf.buf;
+}
+
+/**
  * @brief Show current allocations.
- *
- * @param buf The buffer to write the information to.
- *
- * @param bufSize The size of the buffer.
  *
  * @return Returns the buffer with the updated allocation information.
  */
-static char *showAllocations(char *buf, size_t *bufSize)
+static char *showAllocations()
 {
-    StrBuffer_t strBuf;
+    StrBuffer_t strBuf = {
+	.buf = NULL,
+	.bufSize = 0 };
 
     if (!countAllocs()) {
-	return str2Buf("\nNo current allocations.\n", &buf, bufSize);
+	return addStrBuf("\nNo current allocations.\n", &strBuf);
     }
 
-    str2Buf("\nallocations:\n\n", &buf, bufSize);
-
-    strBuf.buf = buf;
-    strBuf.bufSize = *bufSize;
+    addStrBuf("\nallocations:\n\n", &strBuf);
     traverseAllocs(addAllocInfo, &strBuf);
 
-    *bufSize = strBuf.bufSize;
-
-    return buf;
+    return strBuf.buf;
 }
 
 /**
@@ -189,37 +259,35 @@ static char *showAllocations(char *buf, size_t *bufSize)
  * Resolve a compressed host-list and show the single hosts including
  * the corresponding ParaStation node IDs and the local node ID.
  *
- * @param buf The buffer to write the information to.
- *
- * @param bufSize The size of the buffer.
- *
  * @return Returns the buffer with the nodeID and host pairs.
  */
-static char *resolveIDs(char *hosts, char *buf, size_t *bufSize)
+static char *resolveIDs(char *hosts)
 {
     PSnodes_ID_t *nodes;
     uint32_t i, nrOfNodes;
+    char *buf = NULL;
+    size_t bufSize = 0;
 
     if (!hosts) {
-	return str2Buf("\nSpecify hosts to resolve\n", &buf, bufSize);
+	return str2Buf("\nSpecify hosts to resolve\n", &buf, &bufSize);
     }
 
     if (!convHLtoPSnodes(hosts, getNodeIDbySlurmHost, &nodes, &nrOfNodes)) {
-	return str2Buf("\nResolving PS nodeIDs failed\n", &buf, bufSize);
+	return str2Buf("\nResolving PS nodeIDs failed\n", &buf, &bufSize);
     }
 
     uint32_t localNodeId = getLocalID(nodes, nrOfNodes);
     if (localNodeId == NO_VAL) {
-	str2Buf("\nCould not find my local ID\n", &buf, bufSize);
+	str2Buf("\nCould not find my local ID\n", &buf, &bufSize);
     } else {
 	snprintf(line, sizeof(line), "\nLocal node ID is %i\n", localNodeId);
-	str2Buf(line, &buf, bufSize);
+	str2Buf(line, &buf, &bufSize);
     }
 
     for (i=0; i<nrOfNodes; i++) {
 	snprintf(line, sizeof(line), "%i nodeID %i hostname %s\n", i, nodes[i],
 		 getSlurmHostbyNodeID(nodes[i]));
-	str2Buf(line, &buf, bufSize);
+	str2Buf(line, &buf, &bufSize);
     }
 
     return buf;
@@ -299,31 +367,23 @@ static bool addHwthreadsInfo(Step_t *step, const void *info)
 /**
  * @brief Show HW threads
  *
- * @param buf The buffer to write the information to.
- *
- * @param bufSize The size of the buffer.
- *
  * @return Returns the buffer with the updated information.
  */
-static char *showHWthreads(char *buf, size_t *bufSize, bool all)
+static char *showHWthreads(bool all)
 {
-
-    StepInfo_t stepInfo;
+    StepInfo_t stepInfo = {
+	.all = all,
+	.strBuf.buf = NULL,
+	.strBuf.bufSize = 0 };
 
     if (!countSteps()) {
-	return str2Buf("\nNo current HW threads.\n", &buf, bufSize);
+	return addStrBuf("\nNo current HW threads.\n", &stepInfo.strBuf);
     }
 
-    str2Buf("\nHW threads:\n\n", &buf, bufSize);
-
-    stepInfo.all = all;
-    stepInfo.strBuf.buf = buf;
-    stepInfo.strBuf.bufSize = *bufSize;
-
+    addStrBuf("\nHW threads:\n\n", &stepInfo.strBuf);
     traverseSteps(addHwthreadsInfo, &stepInfo);
 
-    *bufSize = stepInfo.strBuf.bufSize;
-    return buf;
+    return stepInfo.strBuf.buf;
 }
 
 /**
@@ -347,6 +407,14 @@ static bool addStepInfo(Step_t *step, const void *info)
     snprintf(line, sizeof(line), "- stepid %u:%u -\n", step->jobid,
 	    step->stepid);
     addStrBuf(line, strBuf);
+
+    if (step->packJobid != NO_VAL) {
+	snprintf(line, sizeof(line), "pack ID: %u\n", step->packJobid);
+	addStrBuf(line, strBuf);
+
+	snprintf(line, sizeof(line), "pack hosts: %s\n", step->packHostlist);
+	addStrBuf(line, strBuf);
+    }
 
     snprintf(line, sizeof(line), "user: '%s' uid: %u gid: %u\n",
 	    step->username, step->uid, step->gid);
@@ -390,6 +458,9 @@ static bool addStepInfo(Step_t *step, const void *info)
 	    PSC_printTID(step->loggerTID));
     addStrBuf(line, strBuf);
 
+    snprintf(line, sizeof(line), "local node ID: %u\n", step->localNodeId);
+    addStrBuf(line, strBuf);
+
     addStrBuf("-\n\n", strBuf);
 
     return false;
@@ -398,52 +469,43 @@ static bool addStepInfo(Step_t *step, const void *info)
 /**
  * @brief Show current steps.
  *
- * @param buf The buffer to write the information to.
- *
- * @param bufSize The size of the buffer.
- *
  * @return Returns the buffer with the updated step information.
  */
-static char *showSteps(char *buf, size_t *bufSize, bool all)
+static char *showSteps(bool all)
 {
-    StepInfo_t stepInfo;
+    StepInfo_t stepInfo = {
+	.all = all,
+	.strBuf.buf = NULL,
+	.strBuf.bufSize = 0 };
 
     if (!countSteps()) {
-	return str2Buf("\nNo current steps.\n", &buf, bufSize);
+	return addStrBuf("\nNo current steps.\n", &stepInfo.strBuf);
     }
 
-    str2Buf("\nsteps:\n\n", &buf, bufSize);
-
-    stepInfo.all = all;
-    stepInfo.strBuf.buf = buf;
-    stepInfo.strBuf.bufSize = *bufSize;
-
+    addStrBuf("\nsteps:\n\n", &stepInfo.strBuf);
     traverseSteps(addStepInfo, &stepInfo);
 
-    *bufSize = stepInfo.strBuf.bufSize;
-    return buf;
+    return stepInfo.strBuf.buf;
 }
 
 /**
  * @brief Show current configuration.
  *
- * @param buf The buffer to write the information to.
- *
- * @param bufSize The size of the buffer.
- *
  * @return Returns the buffer with the updated configuration information.
  */
-static char *showConfig(char *buf, size_t *bufSize)
+static char *showConfig()
 {
+    char *buf = NULL;
+    size_t bufSize = 0;
     int i = 0;
 
-    str2Buf("\n", &buf, bufSize);
+    str2Buf("\n", &buf, &bufSize);
 
     while (CONFIG_VALUES[i].name != NULL) {
 	char *name = CONFIG_VALUES[i].name;
 	char *val = getConfValueC(&Config, name);
 	snprintf(line, sizeof(line), "%21s = %s\n", name, val ? val:"<empty>");
-	str2Buf(line, &buf, bufSize);
+	str2Buf(line, &buf, &bufSize);
 	i++;
     }
 
@@ -468,6 +530,8 @@ static char *showVirtualKeys(char *buf, size_t *bufSize, bool example)
     str2Buf("      steps\tshow running steps\n", &buf, bufSize);
     str2Buf("     asteps\tshow all steps\n", &buf, bufSize);
     str2Buf(" ahwThreads\tshow all hwThreads\n", &buf, bufSize);
+    str2Buf("      tasks\tshow all tasks\n", &buf, bufSize);
+    str2Buf(" resolveIDs\tresolve a Slurm host-list\n", &buf, bufSize);
 
     if (example) str2Buf("\nExample:\nUse 'plugin show psslurm key jobs'\n",
 			 &buf, bufSize);
@@ -592,30 +656,31 @@ char *show(char *key)
     }
 
     /* show current config */
-    if (!strcmp(key, "config")) return showConfig(buf, &bufSize);
+    if (!strcmp(key, "config")) return showConfig();
 
     /* show current jobs */
-    if (!strcmp(key, "jobs")) return showJobs(buf, &bufSize);
+    if (!strcmp(key, "jobs")) return showJobs();
 
     /* show current allocations */
-    if (!strcmp(key, "allocations")) return showAllocations(buf, &bufSize);
+    if (!strcmp(key, "allocations")) return showAllocations();
 
     /* show running current steps */
-    if (!strcmp(key, "steps")) return showSteps(buf, &bufSize, false);
+    if (!strcmp(key, "steps")) return showSteps(false);
 
     /* show all current steps */
-    if (!strcmp(key, "asteps")) return showSteps(buf, &bufSize, true);
+    if (!strcmp(key, "asteps")) return showSteps(true);
 
     /* show running HW threads */
-    if (!strcmp(key, "hwThreads")) return showHWthreads(buf, &bufSize, false);
+    if (!strcmp(key, "hwThreads")) return showHWthreads(false);
 
     /* show all HW threads */
-    if (!strcmp(key, "ahwThreads")) return showHWthreads(buf, &bufSize, true);
+    if (!strcmp(key, "ahwThreads")) return showHWthreads(true);
 
     /* show nodeIDs for a list of hosts */
-    if (!strncmp(key, "resolveIDs=", 11)) {
-	return resolveIDs(key+11, buf, &bufSize);
-    }
+    if (!strncmp(key, "resolveIDs=", 11)) return resolveIDs(key+11);
+
+    /* show tasks */
+    if (!strcmp(key, "tasks")) return showTasks();
 
     str2Buf("\nInvalid key '", &buf, &bufSize);
     str2Buf(key, &buf, &bufSize);
