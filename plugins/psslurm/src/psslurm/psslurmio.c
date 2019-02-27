@@ -877,20 +877,6 @@ void redirectStepIO(Forwarder_Data_t *fwdata, Step_t *step)
 
     flags = getAppendFlags(step->appendMode);
 
-    if (setgid(step->gid) == -1) {
-	mwarn(errno, "%s: setgid(%i) failed: ", __func__, step->gid);
-    }
-
-    /* need to create pipes as user, or the permission to /dev/stdX
-     *  will be denied */
-    if (seteuid(step->uid) == -1) {
-	mwarn(errno, "%s: seteuid(%i) failed: ", __func__, step->uid);
-	return;
-    }
-    if (prctl(PR_SET_DUMPABLE, 1) == -1) {
-	mwarn(errno, "%s: prctl(PR_SET_DUMPABLE) failed: ", __func__);
-    }
-
     /* stdout */
     if (step->stdOutOpt == IO_NODE_FILE || step->stdOutOpt == IO_GLOBAL_FILE) {
 	outFile = addCwd(step->cwd, replaceStepSymbols(step, 0, step->stdOut));
@@ -999,15 +985,6 @@ void redirectStepIO(Forwarder_Data_t *fwdata, Step_t *step)
 		fwdata->stdIn[0], fwdata->stdIn[1]);
     }
 
-    if (seteuid(0) == -1) {
-	mwarn(errno, "%s: seteuid(0) failed: ", __func__);
-    }
-    if (setgid(0) == -1) {
-	mwarn(errno, "%s: setgid(0) failed: ", __func__);
-    }
-    if (prctl(PR_SET_DUMPABLE, 1) == -1) {
-	mwarn(errno, "%s: prctl(PR_SET_DUMPABLE) failed: ", __func__);
-    }
 }
 
 void redirectStepIO2(Forwarder_Data_t *fwdata, Step_t *step)

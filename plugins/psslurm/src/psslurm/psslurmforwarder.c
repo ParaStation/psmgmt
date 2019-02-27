@@ -884,16 +884,76 @@ static void execJobStep(Forwarder_Data_t *fwdata, int rerun)
     exit(err);
 }
 
+static int switchEffectiveUser(char *username, uid_t uid, gid_t gid)
+{
+    /* remove psslurm group memberships */
+    if ((setgroups(0, NULL)) == -1) {
+	mlog("%s: setgroups(0) failed : %s\n", __func__, strerror(errno));
+	return -1;
+    }
+
+    /* set supplementary groups */
+    if ((initgroups(username, gid)) < 0) {
+	mlog("%s: initgroups() failed : %s\n", __func__, strerror(errno));
+	return -1;
+    }
+
+    /* change effective gid */
+    if ((setegid(gid)) < 0) {
+	mlog("%s: setgid(%i) failed : %s\n", __func__, gid, strerror(errno));
+	return -1;
+    }
+
+    /* change effective uid */
+    if ((seteuid(uid)) < 0) {
+	mlog("%s: setuid(%i) failed : %s\n", __func__, uid, strerror(errno));
+	return -1;
+    }
+
+    if (prctl(PR_SET_DUMPABLE, 1) == -1) {
+	mwarn(errno, "%s: prctl(PR_SET_DUMPABLE) failed: ", __func__);
+    }
+
+    return 1;
+}
+
 static int stepForwarderInit(Forwarder_Data_t *fwdata)
 {
     Step_t *step = fwdata->userData;
     step->fwdata = fwdata;
 
+    if (switchEffectiveUser(step->username, step->uid, step->gid) == -1) {
+	mlog("%s: switching effective user failed\n", __func__);
+    }
+
     /* check if we can change working dir */
     if (step->cwd && chdir(step->cwd) == -1) {
-	mlog("%s: chdir to '%s' failed : %s\n", __func__, step->cwd,
-		strerror(errno));
+	mlog("%s: chdir for uid %u gid %u to '%s' failed : %s\n",
+	     __func__, step->uid, step->gid, step->cwd, strerror(errno));
 	return - ESCRIPT_CHDIR_FAILED;
+    }
+
+    /* redirect stdout/stderr/stdin */
+    if (!(step->taskFlags & LAUNCH_PTY)) {
+	if (!(step->taskFlags & LAUNCH_USER_MANAGED_IO)) {
+	    redirectStepIO(fwdata, step);
+	}
+    }
+
+    /* change the uid */
+    if (seteuid(0) < 0) {
+	mlog("%s: setuid(0) failed : %s\n", __func__, strerror(errno));
+	return -1;
+    }
+
+    /* change the gid */
+    if (setegid(0) < 0) {
+	mlog("%s: setgid(0) failed : %s\n", __func__, strerror(errno));
+	return -1;
+    }
+
+    if (prctl(PR_SET_DUMPABLE, 1) == -1) {
+	mwarn(errno, "%s: prctl(PR_SET_DUMPABLE) failed: ", __func__);
     }
 
     /* open stderr/stdout/stdin fds */
@@ -904,12 +964,8 @@ static int stepForwarderInit(Forwarder_Data_t *fwdata)
 	    mlog("%s: openpty() failed\n", __func__);
 	    return -1;
 	}
-    } else {
-	/* user will take care of I/O handling */
-	if (step->taskFlags & LAUNCH_USER_MANAGED_IO) return 1;
-
-	redirectStepIO(fwdata, step);
     }
+
     return 1;
 }
 
