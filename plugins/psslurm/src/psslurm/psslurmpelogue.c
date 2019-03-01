@@ -210,11 +210,27 @@ bool startEpilogue(Alloc_t *alloc)
     psPelogueAddJob("psslurm", sjobid, alloc->uid, alloc->gid,
 	    1, &myNode, cbPElogue, NULL);
 
+    /* buildup epilogue environment */
     envClone(&alloc->env, &clone, envFilter);
+    /* username */
     envSet(&clone, "SLURM_USER", alloc->username);
+    /* uid */
     snprintf(buf, sizeof(buf), "%u", alloc->uid);
     envSet(&clone, "SLURM_UID", buf);
+    /* gid */
+    snprintf(buf, sizeof(buf), "%u", alloc->gid);
+    envSet(&clone, "SLURM_GID", buf);
+    /* host-list */
     envSet(&clone, "SLURM_JOB_NODELIST", alloc->slurmHosts);
+    /* start time */
+    struct tm *ts = localtime(&alloc->startTime);
+    strftime(buf, sizeof(buf), "%Y-%m-%dT%H:%M:%S", ts);
+    envSet(&clone, "SLURM_JOB_STARTTIME", buf);
+    /* pack ID */
+    if (alloc->packID != NO_VAL) {
+	snprintf(buf, sizeof(buf), "%u", alloc->packID);
+	envSet(&clone, "SLURM_PACK_JOBID", buf);
+    }
 
     alloc->state = A_EPILOGUE;
 
