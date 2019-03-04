@@ -2500,7 +2500,7 @@ LIST_HEAD(localJobs);
  *
  * @return Returns the job or NULL if not in list
  */
-static PSjob_t* PSID_findJobByLoggerTid(PStask_ID_t loggertid)
+PSjob_t* PSID_findJobByLoggerTid(PStask_ID_t loggertid)
 {
     if (list_empty(&localJobs)) {
 	PSID_log(-1, "%s: No local jobs in list.\n", __func__);

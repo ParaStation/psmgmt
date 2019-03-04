@@ -47,6 +47,15 @@ typedef struct {
     list_t resInfos;         /**< job's reservations involving this node */
 } PSjob_t;
 
+/**
+ * @brief Find local job by logger tid
+ *
+ * @param loggertid tid of the logger
+ *
+ * @return Returns the job or NULL if not in list
+ */
+PSjob_t* PSID_findJobByLoggerTid(PStask_ID_t loggertid);
+
 #ifdef CPU_ZERO
 /**
  * @brief Map CPUs
