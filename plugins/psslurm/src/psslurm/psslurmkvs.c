@@ -99,7 +99,7 @@ static bool addJobInfo(Job_t *job, const void *info)
  *
  * @return Returns the buffer with the updated job information.
  */
-static char *showJobs()
+static char *showJobs(void)
 {
     StrBuffer_t strBuf = {
 	.buf = NULL,
@@ -216,7 +216,7 @@ static bool addTaskInfo(Step_t *step, const void *info)
  *
  * @return Returns the buffer with the updated task information
  */
-static char *showTasks()
+static char *showTasks(void)
 {
     StrBuffer_t strBuf = {
 	.buf = NULL,
@@ -237,7 +237,7 @@ static char *showTasks()
  *
  * @return Returns the buffer with the updated allocation information.
  */
-static char *showAllocations()
+static char *showAllocations(void)
 {
     StrBuffer_t strBuf = {
 	.buf = NULL,
@@ -493,7 +493,7 @@ static char *showSteps(bool all)
  *
  * @return Returns the buffer with the updated configuration information.
  */
-static char *showConfig()
+static char *showConfig(void)
 {
     char *buf = NULL;
     size_t bufSize = 0;
