@@ -6,6 +6,35 @@ Please send bug reports, questions and suggestions to <support@par-tec.com>
 
 
 
+*************************************************************************
+*************************************************************************
+**                                                                     **
+**  Remark: psmgmt 5.1.19 changes psslurms prologue behavior. Prologue **
+**  is no longer started by psslurm directly but only via the prologue **
+**  plugin mechanism of the slurmctld.                                 **
+**                                                                     **
+*************************************************************************
+*************************************************************************
+
+Version 5.1.19:
+===============
+Bugfixes:
+ - Protect PMI_BARRIER_ROUNDS from user modification in psslurm (pct:#251)
+ - Use effective user ID to test working directory in psslurm (pct:#293)
+ - Fix for hanging job packs (pct:#296)
+ - Fix for interactive jobs using gres resources (juwelstrac:#2365)
+ - Re-enable coredump capability after seteuid() (#2769)
+ - Check if file-descriptor is valid (#2766)
+Enhancements:
+ - Set local node offline via psexec if fork() fails (pct:#299)
+ - Export SLURM_GID, SLURM_JOB_STARTTIME and SLURM_PACK_JOBID to epilogue
+ - Improve psslurm plugin interface: 'show resolveIDs' (juwelstrac:#2360)
+ - Improve psslurm plugin interface: 'show tasks' and pack information
+Additional changes:
+ - Extract node information more efficiently in mpiexec
+ - Drop support for prologue started via psslurm; use slurmctld prologue instead
+
+
 Version 5.1.18:
 ===============
 Bugfixes:
@@ -22,7 +51,6 @@ Enhancements:
  - Add option --psid_resolve to pspelogue (#2749)
  - Add support for arbitrary script path to psexec
  - Improve psserial's usablility for multiple users
-
 Additional changes:
  - Fix problems unloading pelogue and psslurm
  - Let pelogue call hook PSIDHOOK_PELOGUE_RES

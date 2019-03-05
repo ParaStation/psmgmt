@@ -1,3 +1,113 @@
+Version psmgmt-5.1.19:
+======================
+------------------------------------------------------------------------
+97b29e2d | Norbert Eicker | Tue, 5 Mar 2019 12:45:41 +0100
+
+Fix some incorrect prototypes
+------------------------------------------------------------------------
+94dc8080 | Michael Rauh | Fri, 1 Mar 2019 13:49:43 +0100
+
+Undo most of commit 1cf24e78 which does not fix the segfault
+------------------------------------------------------------------------
+24fd2229 | Michael Rauh | Fri, 1 Mar 2019 13:30:44 +0100
+
+Enhancement: export SLURM_GID, SLURM_JOB_STARTTIME and SLURM_PACK_JOBID
+to epilogue
+------------------------------------------------------------------------
+dad2235d | Michael Rauh | Wed, 27 Feb 2019 12:56:32 +0100
+
+Use effective user ID to test working directory in psslurm (pct:#293)
+------------------------------------------------------------------------
+afe4a553 | Michael Rauh | Wed, 27 Feb 2019 11:00:17 +0100
+
+Improved psslurm plugin interface
+
+	- add new command show tasks
+	- add pack information to allocations,jobs and steps
+	- minor code improvements
+------------------------------------------------------------------------
+c836eed3 | Michael Rauh | Mon, 25 Feb 2019 17:22:53 +0100
+
+Add psslurm show command resolveIDs (juwelstrac:#2360)
+------------------------------------------------------------------------
+b4b309c0 | Michael Rauh | Mon, 25 Feb 2019 16:34:35 +0100
+
+Additional improvements of psslurm error messages
+------------------------------------------------------------------------
+5e0c85c0 | Michael Rauh | Mon, 25 Feb 2019 15:51:00 +0100
+
+Improve psslurm error messages related to the local node identification
+------------------------------------------------------------------------
+1cf24e78 | Michael Rauh | Fri, 22 Feb 2019 11:06:24 +0100
+
+Bugfix: fix segfault when initializing of psaccount fails
+------------------------------------------------------------------------
+7a252c99 | Norbert Eicker | Wed, 13 Feb 2019 22:37:52 +0100
+
+Extract node information more efficiently in mpiexec
+------------------------------------------------------------------------
+e5c7ed73 | Michael Rauh | Tue, 12 Feb 2019 11:41:27 +0100
+
+Re-enable coredump capability after seteuid() in psslurm (#2769)
+------------------------------------------------------------------------
+3301d513 | Michael Rauh | Tue, 12 Feb 2019 11:16:24 +0100
+
+Set the local node offline using psexec if forking
+new processes fails (pct:#299)
+------------------------------------------------------------------------
+8723ff32 | Michael Rauh | Tue, 5 Feb 2019 17:38:04 +0100
+
+Drop support for prologue started via psslurm
+	- Use pspelogue started in slurmctld prologue
+	- Fix for hanging job packs (pct:#296)
+	- Warning: this breaks compability with old psslurm versions
+------------------------------------------------------------------------
+4cd64083 | Michael Rauh | Fri, 8 Feb 2019 12:39:11 +0100
+
+Completely fix issue of commit e2d9a4b6
+------------------------------------------------------------------------
+2f459eb5 | Michael Rauh | Tue, 5 Feb 2019 12:26:03 +0100
+
+Improve debug logging of psslurm
+------------------------------------------------------------------------
+74eb21f5 | Norbert Eicker | Wed, 30 Jan 2019 17:49:00 +0100
+
+Re-enable coredump capability after setuid() et al. (#2769)
+------------------------------------------------------------------------
+5edc8956 | Michael Rauh | Wed, 30 Jan 2019 14:28:48 +0100
+
+Protect PMI_BARRIER_ROUNDS from user modification in psslurm (pct:#251)
+------------------------------------------------------------------------
+e2d9a4b6 | Michael Rauh | Tue, 29 Jan 2019 13:07:03 +0100
+
+Bugfix: fix interactive jobs using gres resources (juwelstrac:#2365)
+------------------------------------------------------------------------
+cd058ecb | Norbert Eicker | Fri, 18 Jan 2019 15:07:30 +0100
+
+Merge remote-tracking branch 'refs/remotes/origin/master'
+------------------------------------------------------------------------
+c41b1dff | Michael Rauh | Thu, 17 Jan 2019 17:04:08 +0100
+
+Bugfix: correct resolve array check
+------------------------------------------------------------------------
+5301c497 | Thomas Moschny | Thu, 17 Jan 2019 10:46:47 +0100
+
+Use a designated initializer instead of a compound literal.
+
+Designated initializers are allowed in C99, and as a GNU extension
+also in C90. On the other hand, initialization of objects with static
+storage duration by compound literals is a GNU extension not allowed
+in C99 (because the initializer is not a constant.)
+
+In short, this change should allow compiling with CentOS7's gcc 4.8
+with and without -std=gnu99.
+------------------------------------------------------------------------
+4f1cfbfa | Norbert Eicker | Thu, 17 Jan 2019 18:14:32 +0100
+
+Bugfix: Check if file-descriptor is valid (#2766)
+------------------------------------------------------------------------
+
+
 Version psmgmt-5.1.18:
 ======================
 ------------------------------------------------------------------------
