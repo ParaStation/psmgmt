@@ -54,12 +54,12 @@
 static int numUniqNodes = 0;
 /** number of unique hosts */
 static int numUniqHosts = 0;
-/** list of uniq hosts */
+/** list of unique hosts */
 static char **uniqHosts = NULL;
 
 /* Some helper fields used especially for OpenMPI support */
 /**
- * list of uniq nodeIDs within the job. This maps job local nodeIDs
+ * list of unique nodeIDs within the job. This helps to map job-local nodeIDs
  * to absolute nodeIDs
  */
 static PSnodes_ID_t *jobLocalUniqNodeIDs = NULL;
