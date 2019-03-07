@@ -54,7 +54,7 @@
 static int numUniqNodes = 0;
 /** number of unique hosts */
 static int numUniqHosts = 0;
-/** list of uniq hsots */
+/** list of uniq hosts */
 static char **uniqHosts = NULL;
 
 /* Some helper fields used especially for OpenMPI support */
