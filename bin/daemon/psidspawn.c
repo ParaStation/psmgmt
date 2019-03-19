@@ -2493,13 +2493,6 @@ static void msg_SPAWNLOC(DDBufferMsg_t *msg)
 /** The list of reservations this node is part of. */
 LIST_HEAD(localJobs);
 
-/**
- * @brief Find local job by logger tid
- *
- * @param loggertid tid of the logger
- *
- * @return Returns the job or NULL if not in list
- */
 PSjob_t* PSID_findJobByLoggerTid(PStask_ID_t loggertid)
 {
     if (list_empty(&localJobs)) {
