@@ -14,6 +14,13 @@
 
 #include "psslurmjob.h"
 
+/** Type to distinguish between different PMI environments */
+typedef enum pmi_type {
+	PMI_TYPE_NONE,
+	PMI_TYPE_DEFAULT,
+	PMI_TYPE_PMIX
+} pmi_type_t;
+
 /** environment filter for prologue/epilogue execution */
 extern char **envFilter;
 
@@ -79,8 +86,8 @@ void setRankEnv(int32_t rank, Step_t *step);
  *
  * @param env The environment to strip
  *
- * @param PMIdisabled True if the PMI layer is disabled
+ * @param pmi_type Type of PMI to use
  */
-void removeUserVars(env_t *env, bool PMIdisabled);
+void removeUserVars(env_t *env, pmi_type_t pmi_type);
 
 #endif  /* __PS_SLURM_ENV */

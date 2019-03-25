@@ -556,7 +556,7 @@ static void removeSpankOptions(env_t *env)
     }
 }
 
-void removeUserVars(env_t *env, bool PMIdisabled)
+void removeUserVars(env_t *env, pmi_type_t pmi_type)
 {
     uint32_t i = 0;
 
@@ -578,10 +578,15 @@ void removeUserVars(env_t *env, bool PMIdisabled)
 
 	if (!strncmp(env->vars[i], "PSI_", 4)) continue;
 	if (!strncmp(env->vars[i], "__PSI_", 6)) continue;
-	if (!PMIdisabled) {
+	if (pmi_type == PMI_TYPE_DEFAULT) {
 	    if (!strncmp(env->vars[i], "PMI_", 4)) continue;
 	    if (!strncmp(env->vars[i], "__PMI_", 6)) continue;
 	    if (!strncmp(env->vars[i], "MEASURE_KVS_PROVIDER", 20)) continue;
+	}
+	if (pmi_type == PMI_TYPE_PMIX) {
+	    if (!strncmp(env->vars[i], "PMI_", 4)) continue;
+	    if (!strncmp(env->vars[i], "PMIX_", 5)) continue;
+	    if (!strncmp(env->vars[i], "__PMIX_", 7)) continue;
 	}
 	if (!strncmp(env->vars[i], "__PSID_", 7)) continue;
 

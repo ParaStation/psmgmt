@@ -705,14 +705,29 @@ static void setupStepIO(Forwarder_Data_t *fwdata, Step_t *step)
     }
 }
 
-static bool isPMIdisabled(Step_t *step)
+/* choose PMI layer, default is MPICH's Simple PMI */
+static pmi_type_t getPMIType(Step_t *step)
 {
-    char *val;
+    char *pmi;
 
-    if ((val = envGet(&step->env, "SLURM_MPI_TYPE"))) {
-	if (!strcmp(val, "none")) return true;
+    /* PSSLURM_PMI_TYPE can be used to choose pmi environment to be set up */
+    pmi = envGet(&step->env, "PSSLURM_PMI_TYPE");
+    if (pmi == NULL) return PMI_TYPE_DEFAULT;
+    mlog("%s: '%u:%u' PSSLURM_PMI_TYPE set to '%s'\n", __func__, step->jobid,
+	    step->stepid, pmi);
+    if (strcmp(pmi, "none") == 0) return PMI_TYPE_NONE;
+    if (strcmp(pmi, "pmix") == 0) return PMI_TYPE_PMIX;
+
+    /* if PSSLURM_PMI_TYPE is not set and srun is called with --mpi=none,
+     *  do not setup any pmi environment */
+    pmi = envGet(&step->env, "SLURM_MPI_TYPE");
+    if (pmi != NULL && (strcmp(pmi, "none") == 0)) {
+	mlog("%s: '%u:%u' SLURM_MPI_TYPE set to 'none'\n", __func__,
+		step->jobid, step->stepid);
+	return PMI_TYPE_NONE;
     }
-    return false;
+
+    return PMI_TYPE_DEFAULT;
 }
 
 static void debugMpiexecStart(char **argv, char **env)
@@ -740,7 +755,7 @@ static void debugMpiexecStart(char **argv, char **env)
  * @param PMIdisabled Flag to signal if PMI is used
  */
 static void buildMpiexecArgs(Forwarder_Data_t *fwdata, strv_t *argV,
-			     bool PMIdisabled)
+				pmi_type_t pmi_type)
 {
     Step_t *step = fwdata->userData;
     char buf[128];
@@ -766,8 +781,19 @@ static void buildMpiexecArgs(Forwarder_Data_t *fwdata, strv_t *argV,
     if (step->taskFlags & LAUNCH_PTY) strvAdd(argV, ustrdup("-i"));
     /* label output */
     if (step->taskFlags & LAUNCH_LABEL_IO) strvAdd(argV, ustrdup("-l"));
-    /* PMI layer support */
-    if (PMIdisabled) strvAdd(argV, ustrdup("--pmidisable"));
+
+    /* choose PMI layer, default is MPICH's Simple PMI */
+    switch (pmi_type) {
+	case PMI_TYPE_NONE:
+	    strvAdd(argV, ustrdup("--pmidisable"));
+	    break;
+	case PMI_TYPE_PMIX:
+	    strvAdd(argV, ustrdup("--pmix"));
+	    break;
+	case PMI_TYPE_DEFAULT:
+	default:
+	    break;
+    }
 
     if (step->taskFlags & LAUNCH_MULTI_PROG) {
 	setupArgsFromMultiProg(step, fwdata, argV);
@@ -829,7 +855,7 @@ static void execJobStep(Forwarder_Data_t *fwdata, int rerun)
     Step_t *step = fwdata->userData;
     strv_t argV;
     char buf[128];
-    bool PMIdisabled = isPMIdisabled(step);
+    pmi_type_t pmi_type;
     int32_t oldMask = psslurmlogger->mask;
 
     /* reopen syslog */
@@ -847,8 +873,11 @@ static void execJobStep(Forwarder_Data_t *fwdata, int rerun)
     /* switch user */
     switchUser(step->username, step->uid, step->gid, step->cwd);
 
+    /* descide which pmi type to use */
+    pmi_type = getPMIType(step);
+
     /* build mpiexec argument vector */
-    buildMpiexecArgs(fwdata, &argV, PMIdisabled);
+    buildMpiexecArgs(fwdata, &argV, pmi_type);
 
     /* setup step specific env */
     setStepEnv(step);
@@ -862,8 +891,8 @@ static void execJobStep(Forwarder_Data_t *fwdata, int rerun)
     /* set rlimits */
     setRlimitsFromEnv(&step->env, 1);
 
-    /* remove environment variables not evaluted by mpiexec */
-    removeUserVars(&step->env, PMIdisabled);
+    /* remove environment variables not evaluated by mpiexec */
+    removeUserVars(&step->env, pmi_type);
 
     if (psslurmlogger->mask & PSSLURM_LOG_PROCESS) {
 	debugMpiexecStart(argV.strings, step->env.vars);
