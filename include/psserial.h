@@ -580,7 +580,8 @@ bool getFromBuf(char **ptr, void *val, PS_DataType_t type,
  * allocated. It will be big enough to hold all the data-items
  * announced in the length item within the memory region addressed by
  * @a ptr. A pointer to the buffer is returned. The caller has to
- * ensure that this buffer is released if it is no longer needed.
+ * ensure that this buffer is released using ufree() if it is no longer
+ * needed.
  *
  * If reading is successful, @a ptr will be updated to point behind
  * the last data read, i.e. prepared to read the next data from it.

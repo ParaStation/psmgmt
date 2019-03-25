@@ -428,6 +428,9 @@ static void setupCommonEnv(Conf_t *conf)
 
 	/* tag for respawned processes */
 	setPSIEnv("PMIX_SPAWNED", getenv("PMIX_SPAWNED"), 1);
+
+	snprintf(tmp, sizeof(tmp), "%d", conf->execCount);
+	setPSIEnv("PMIX_APPCOUNT", tmp, 1);
     }
 
     /* unset PSI_LOOP_NODES_FIRST in PSI env which is only needed for OpenMPI */
@@ -578,6 +581,11 @@ static void setupExecEnv(Conf_t *conf, int execNum)
     setPSIEnv("PSI_APPNUM", tmp, 1);
     if (conf->pmiTCP || conf->pmiSock || conf->PMIx) {
 	setPSIEnv("PMI_APPNUM", tmp, 1);
+    }
+
+    if (conf->PMIx) {
+        snprintf(tmp, sizeof(tmp), "%d", conf->exec[execNum].np);
+	setPSIEnv("PMIX_APPSIZE", tmp, 1);
     }
 }
 
