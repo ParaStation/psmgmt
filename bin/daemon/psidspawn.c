@@ -33,6 +33,9 @@
 #include <limits.h>
 #include <sys/select.h>
 
+#define _GNU_SOURCE
+#include <sched.h>
+
 #include "pscommon.h"
 #include "psprotocol.h"
 #include "psprotocolenv.h"

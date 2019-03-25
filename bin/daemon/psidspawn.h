@@ -16,9 +16,7 @@
 #define __PSIDSPAWN_H
 
 #include <stdbool.h>
-#define __USE_GNU
 #include <sched.h>
-#undef __USE_GNU
 
 #include "pscpu.h"
 #include "psnodes.h"
