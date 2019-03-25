@@ -116,6 +116,15 @@ The ParaStation Slurm plugin is a complete replacement of the slurmd on
 compute nodes. No other daemon is necessary to integrate compute nodes into
 a Slurm batch system.
 
+%package pspmix
+Summary:   The PMIx plugin of the ParaStation process management
+Group:     Productivity/Clustering/Computing
+Requires:  %{name} = %{version}
+
+%description pspmix
+The ParaStation PMIx plugin provides support for PMIx based on the libpmix.
+It works standalone or together with psslurm.
+
 
 %if 0%{?suse_version}
 %debug_package
@@ -263,8 +272,6 @@ exit 0
 %endif
 %{_plugindir}/pspmi.so
 %exclude %{_plugindir}/pspmi.la
-%{_plugindir}/pspmix.so
-%exclude %{_plugindir}/pspmix.la
 %{_plugindir}/psresport.so
 %exclude %{_plugindir}/psresport.la
 %config(noreplace) %{_plugindir}/psresport.conf
@@ -349,3 +356,8 @@ exit 0
 %attr(750,root,root) %{_spooldir}/account
 %attr(750,root,root) %{_spooldir}/backup
 %attr(751,root,root) %{_spooldir}/scripts
+
+%files pspmix
+%defattr(-,root,root,-)
+%{_plugindir}/pspmix.so
+%exclude %{_plugindir}/pspmix.la
