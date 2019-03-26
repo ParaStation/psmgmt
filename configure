@@ -645,6 +645,8 @@ AM_LDFLAGS
 AM_CFLAGS
 pmix_LIBS
 pmix_CFLAGS
+BUILD_WITHOUT_PSPMIX_FALSE
+BUILD_WITHOUT_PSPMIX_TRUE
 psconfig_LIBS
 psconfig_CFLAGS
 glib2_LIBS
@@ -799,6 +801,7 @@ with_sysroot
 enable_libtool_lock
 with_pamdir
 enable_psconfig
+enable_pspmix
 enable_testplugins
 with_unitdir
 '
@@ -1455,6 +1458,7 @@ Optional Features:
                           optimize for fast installation [default=yes]
   --disable-libtool-lock  avoid locking (might break parallel builds)
   --disable-psconfig      build without psconfig support
+  --disable-pspmix        do not build pspmix plugin
   --enable-testplugins    build test plugins
 
 Optional Packages:
@@ -12595,6 +12599,27 @@ fi
 
 fi
 
+# Check whether --enable-pspmix was given.
+if test "${enable_pspmix+set}" = set; then :
+  enableval=$enable_pspmix;
+fi
+
+ if test "x$enable_pspmix" = xno; then
+  BUILD_WITHOUT_PSPMIX_TRUE=
+  BUILD_WITHOUT_PSPMIX_FALSE='#'
+else
+  BUILD_WITHOUT_PSPMIX_TRUE='#'
+  BUILD_WITHOUT_PSPMIX_FALSE=
+fi
+
+
+if test -z "$BUILD_WITHOUT_PSPMIX_TRUE"; then :
+
+  { $as_echo "$as_me:${as_lineno-$LINENO}: Not building pspmix plugin" >&5
+$as_echo "$as_me: Not building pspmix plugin" >&6;}
+
+else
+
 
 pkg_failed=no
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking for pmix" >&5
@@ -12684,6 +12709,8 @@ else
 	pmix_LIBS=$pkg_cv_pmix_LIBS
         { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
 $as_echo "yes" >&6; }
+
+fi
 
 fi
 
@@ -13066,7 +13093,14 @@ ac_config_files="$ac_config_files plugins/pspam/pspam/Makefile"
 
 ac_config_files="$ac_config_files plugins/pspmi/Makefile"
 
-ac_config_files="$ac_config_files plugins/pspmix/Makefile"
+
+if test -z "$BUILD_WITHOUT_PSPMIX_TRUE"; then :
+  else
+
+  ac_config_files="$ac_config_files plugins/pspmix/Makefile"
+
+
+fi
 
 ac_config_files="$ac_config_files plugins/psresport/Makefile"
 
@@ -13272,6 +13306,10 @@ Usually this means the macro was only invoked conditionally." "$LINENO" 5
 fi
 if test -z "${BUILD_WITHOUT_PSCONFIG_TRUE}" && test -z "${BUILD_WITHOUT_PSCONFIG_FALSE}"; then
   as_fn_error $? "conditional \"BUILD_WITHOUT_PSCONFIG\" was never defined.
+Usually this means the macro was only invoked conditionally." "$LINENO" 5
+fi
+if test -z "${BUILD_WITHOUT_PSPMIX_TRUE}" && test -z "${BUILD_WITHOUT_PSPMIX_FALSE}"; then
+  as_fn_error $? "conditional \"BUILD_WITHOUT_PSPMIX\" was never defined.
 Usually this means the macro was only invoked conditionally." "$LINENO" 5
 fi
 if test -z "${TESTPLUGINS_ENABLED_TRUE}" && test -z "${TESTPLUGINS_ENABLED_FALSE}"; then

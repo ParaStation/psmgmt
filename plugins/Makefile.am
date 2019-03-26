@@ -10,8 +10,13 @@
 include $(top_srcdir)/common.am
 
 SUBDIRS = cgroup jail pelogue psaccount psexec psmom pspam pspmi	\
-	psresport psslurm pspmix
+	psresport psslurm
 
 if MUNGE_ENABLED
 SUBDIRS += psmunge
 endif
+
+if !BUILD_WITHOUT_PSPMIX
+SUBDIRS += pspmix
+endif
+

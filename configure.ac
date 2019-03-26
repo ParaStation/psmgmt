@@ -80,7 +80,15 @@ AM_COND_IF([BUILD_WITHOUT_PSCONFIG], [
   PKG_CHECK_MODULES([psconfig], [psconfig])
 ])
 
-PKG_CHECK_MODULES([pmix], [pmix >= 3.1.1])
+AC_ARG_ENABLE([pspmix], [AS_HELP_STRING([--disable-pspmix],
+  [do not build pspmix plugin])])
+AM_CONDITIONAL([BUILD_WITHOUT_PSPMIX], [test "x$enable_pspmix" = xno])
+
+AM_COND_IF([BUILD_WITHOUT_PSPMIX], [
+  AC_MSG_NOTICE([Not building pspmix plugin])
+], [
+  PKG_CHECK_MODULES([pmix], [pmix >= 3.1.1])
+])
 
 AX_CHECK_COMPILE_FLAG([-O3],
   [AM_CFLAGS="$AM_CFLAGS -O3"])
@@ -148,7 +156,11 @@ AC_CONFIG_FILES(plugins/pspam/include/Makefile)
 AC_CONFIG_FILES(plugins/pspam/module/Makefile)
 AC_CONFIG_FILES(plugins/pspam/pspam/Makefile)
 AC_CONFIG_FILES(plugins/pspmi/Makefile)
-AC_CONFIG_FILES(plugins/pspmix/Makefile)
+
+AM_COND_IF([BUILD_WITHOUT_PSPMIX], [], [
+  AC_CONFIG_FILES(plugins/pspmix/Makefile)
+])
+
 AC_CONFIG_FILES(plugins/psresport/Makefile)
 AC_CONFIG_FILES(plugins/psslurm/Makefile)
 AC_CONFIG_FILES(plugins/psslurm/doc/Makefile)
