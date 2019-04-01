@@ -1,0 +1,25 @@
+#!/bin/bash
+
+[ -z "$PSGWD_PID" ] && {
+    echo "ERROR: missing PSGWD_PID"
+    exit 1
+}
+
+[ -z "$PSGWD_UID" ] && {
+    echo "ERROR: missing PSGWD_UID"
+    exit 1
+}
+
+NAME=$(ps -p $PSGWD_PID -o fname |grep -v "COMMAND" | tr -d '[:space:]')
+[ "$NAME" != "psgwd" ] && {
+    echo "ERROR: psgwd not running as PID $PSGWD_PID, Name: $NAME"
+    exit 1
+}
+
+REAL_UID=$(ps -p $PSGWD_PID -o euid |grep -v "EUID" | tr -d '[:space:]')
+[ "$REAL_UID" != "$PSGWD_UID" ] && {
+    echo "ERROR: psgwd using UID '$REAL_UID' not '$PSGWD_UID'"
+    exit 1
+}
+
+kill -9 $PSGWD_PID

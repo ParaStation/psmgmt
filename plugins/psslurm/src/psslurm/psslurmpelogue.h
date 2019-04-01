@@ -14,13 +14,13 @@
 #include "peloguetypes.h"
 
 /**
- * @brief Start a pelogue for an allocation
+ * @brief Start a local epilogue for an allocation
  *
  * @param alloc The allocation to start the pelogue for
  *
- * @param type Supported types are prologue and epilogue
+ * @return Returns true on success and false otherwise.
  */
-bool startPElogue(Alloc_t *alloc, PElogueType_t type);
+bool startEpilogue(Alloc_t *alloc);
 
 int handleLocalPElogueStart(void *data);
 

@@ -1,0 +1,75 @@
+/*
+ * ParaStation
+ *
+ * Copyright (C) 2018-2019 ParTec Cluster Competence Center GmbH, Munich
+ *
+ * This file may be distributed under the terms of the Q Public License
+ * as defined in the file LICENSE.QPL included in the packaging of this
+ * file.
+ */
+
+#ifndef __PSGW_RESOURCE
+#define __PSGW_RESOURCE
+
+#include "psgwrequest.h"
+
+/**
+ * @brief Handle pelogue resource hook
+ *
+ * Handle PSIDHOOK_PELOGUE_RES hook called by the pelogue plugin.
+ * The given environment is used to identify if additional gateway
+ * resources should be requested. If additional resources are requested
+ * the callback @ref PElogueResourceCb_t will be invoked if they become ready.
+ *
+ * @param data Pointer to a pelogue resource structure
+ *
+ * @return Returns 0 if no additional resources were requested otherwise 1
+ * is returned. On errors 2 is returned.
+ */
+int handlePElogueRes(void *data);
+
+/**
+ * @brief Finalize the allocation
+ *
+ * The allocation was revoked by the slurmctld and psslurm called
+ * the hook PSIDHOOK_PSSLURM_FINALLOC. Stop the psgwd on the gateway nodes and
+ * delete request.
+ *
+ * @param data Pointer to the psslurm allocation structure
+ *
+ * @return Always return 1
+ */
+int handleFinAlloc(void *data);
+
+/**
+ * @brief Start prologue executed on the gateway nodes
+ *
+ * @param req The request management structure
+ *
+ * @return Returns true on success otherwise false is returned
+ */
+bool startPrologue(PSGW_Req_t *req);
+
+/**
+ * @brief Start the psgwd on the gateway nodes
+ *
+ * @param req The request management structure
+ *
+ * @return Returns true on success otherwise false is returned
+ */
+bool startPSGWD(PSGW_Req_t *req);
+
+/**
+ * @brief Cancel a psgw request
+ *
+ * Kill all started psgwd processes and prologue scripts. Stop all
+ * associated timer and start the psgw_error script on the head
+ * node. The psgw_error script will usually be used to re-queue the job.
+ *
+ * Use the pelogue callback to terminate the waiting slurmctld prologue.
+ *
+ * @param req The request to cancel
+ */
+void cancelReq(PSGW_Req_t *req);
+
+#endif

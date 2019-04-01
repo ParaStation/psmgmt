@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2011-2018 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2011-2019 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -109,6 +109,22 @@ static hook_ref_t * findRef(list_t *refList, PSIDhook_func_t *func)
     return NULL;
 }
 
+static void initHookTable(const char *caller)
+{
+    if (hookTable) {
+	PSID_log(-1, "%s: hook table already initialized!", __func__);
+	PSID_log(-1, " Called by %s\n", caller);
+	return;
+    }
+
+    hookTable = malloc(PSIDHOOK_LAST * sizeof(*hookTable));
+
+    if (!hookTable) PSID_exit(errno, "%s", __func__);
+
+    unsigned int h;
+    for (h=0; h<PSIDHOOK_LAST; h++) INIT_LIST_HEAD(&hookTable[h]);
+}
+
 static inline int checkHook(PSIDhook_t hook)
 {
     if (hook >= PSIDHOOK_LAST || !hookTable) return 0;
@@ -116,51 +132,47 @@ static inline int checkHook(PSIDhook_t hook)
     return 1;
 }
 
-
-int PSIDhook_add(PSIDhook_t hook, PSIDhook_func_t func)
+bool PSIDhook_add(PSIDhook_t hook, PSIDhook_func_t func)
 {
     hook_ref_t *ref;
 
-    if (!hookTable) {
-	PSID_log(-1, "%s: hook facility uninitialized\n", __func__);
-	return 0;
-    }
+    if (!hookTable) initHookTable(__func__);
 
     if (!checkHook(hook)) {
 	PSID_log(-1, "%s: unkown hook %d\n", __func__, hook);
-	return 0;
+	return false;
     }
 
     if (findRef(&hookTable[hook], func)) {
 	PSID_log(-1, "%s: Function %p already registered on hook %d\n",
 		 __func__, func, hook);
-	return 0;
+	return false;
     }
 
     ref = getRef();
     if (!ref) {
 	PSID_warn(-1, errno, "%s", __func__);
-	return 0;
+	return false;
     }
 
     ref->func = func;
     list_add_tail(&ref->next, &hookTable[hook]);
 
-    return 1;
+    return true;
 }
 
-int PSIDhook_del(PSIDhook_t hook, PSIDhook_func_t func)
+bool PSIDhook_del(PSIDhook_t hook, PSIDhook_func_t func)
 {
     hook_ref_t *ref;
 
     if (!hookTable) {
 	PSID_log(-1, "%s: hook facility uninitialized\n", __func__);
-	return 0;
+	return false;
     }
 
     if (!checkHook(hook)) {
 	PSID_log(-1, "%s: unkown hook %d\n", __func__, hook);
-	return 0;
+	return false;
     }
 
     ref = findRef(&hookTable[hook], func);
@@ -168,13 +180,13 @@ int PSIDhook_del(PSIDhook_t hook, PSIDhook_func_t func)
     if (!ref) {
 	PSID_log(-1, "%s: Function %p not found on hook %d\n",
 		 __func__, func, hook);
-	return 0;
+	return false;
     }
 
     list_del(&ref->next);
     putRef(ref);
 
-    return 1;
+    return true;
 }
 
 int PSIDhook_call(PSIDhook_t hook, void *arg)
@@ -204,13 +216,5 @@ int PSIDhook_call(PSIDhook_t hook, void *arg)
 
 void initHooks(void)
 {
-    unsigned int h;
-
-    hookTable = malloc(PSIDHOOK_LAST * sizeof(*hookTable));
-
-    if (!hookTable) {
-	PSID_exit(errno, "%s", __func__);
-    }
-
-    for (h=0; h<PSIDHOOK_LAST; h++) INIT_LIST_HEAD(&hookTable[h]);
+    if (!hookTable) initHookTable(__func__);
 }

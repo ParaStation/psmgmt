@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2013-2018 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2013-2019 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -265,6 +265,10 @@ void startChild(PElogueChild_t *child)
 	mlog("%s: exec %s-script failed\n", __func__, ctype);
 
 	child->exit = -2;
+
+	/* let other plugins get information about completed pelogue */
+	PSIDhook_call(PSIDHOOK_PELOGUE_FINISH, child);
+
 	sendPElogueFinish(child);
 
 	ForwarderData_delete(child->fwData);

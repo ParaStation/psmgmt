@@ -19,6 +19,7 @@
 #include "psslurmlog.h"
 #include "psslurmenv.h"
 #include "psslurmpscomm.h"
+#include "psslurmproto.h"
 
 /** List of all allocations */
 static LIST_HEAD(AllocList);
@@ -48,6 +49,7 @@ Alloc_t *addAlloc(uint32_t id, uint32_t packID, char *slurmHosts, env_t *env,
 			 &alloc->nodes, &alloc->nrOfNodes)) {
 	flog("converting %s to PS node IDs failed\n", slurmHosts);
     }
+    alloc->localNodeId = getLocalID(alloc->nodes, alloc->nrOfNodes);
     alloc->epilogRes = ucalloc(sizeof(bool) * alloc->nrOfNodes);
 
     /* init environment */
@@ -189,8 +191,6 @@ const char *strAllocState(AllocState_t state)
     switch (state) {
 	case A_INIT:
 	    return "A_INIT";
-	case A_PROLOGUE:
-	    return "A_PROLOGUE";
 	case A_PROLOGUE_FINISH:
 	    return "A_PROLOGUE_FINISH";
 	case A_RUNNING:

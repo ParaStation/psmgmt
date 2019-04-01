@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2018 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2019 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -17,7 +17,7 @@
 #include "psprotocol.h"
 
 /** Unique version number of the high-level protocol */
-#define PSDaemonProtocolVersion  412
+#define PSDaemonProtocolVersion  413
 
 /** IDs of the various message types */
 
@@ -93,8 +93,10 @@
 #define PSP_DD_GETSLOTS            0x013D  /**< Forwarded GETSLOTS msg */
 #define PSP_DD_SLOTSRES            0x013E  /**< Results of GETSLOTS msg */
 
-/** Messages for ressource passing during spawn */
+/** Messages for ressource passing during spawn and finish */
 #define PSP_DD_SPAWNLOC            0x0140  /**< Resources for spawn */
+#define PSP_DD_RESCREATED          0x0141  /**< Reservation created with info */
+#define PSP_DD_RESRELEASED         0x0142  /**< Reservation released */
 
     /***********************************************************/
     /* The IDs from 0x0200 on are reserved for plugin messages */

@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2017-2018 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2017-2019 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -52,19 +52,18 @@
 
 /** number of unique nodes */
 static int numUniqNodes = 0;
-/** number of unique hosts */
-static int numUniqHosts = 0;
-/** list of uniq hsots */
-static char **uniqHosts = NULL;
 
-/** Some helper fields used especially for OpenMPI support */
-/** list of job local uniq nodeIDs */
+/* Some helper fields used especially for OpenMPI support */
+/**
+ * list of unique nodeIDs within the job. This helps to map job-local nodeIDs
+ * to absolute nodeIDs
+ */
 static PSnodes_ID_t *jobLocalUniqNodeIDs = NULL;
-/** list of number of processes per node */
+/** number of processes per node per job local nodeID */
 static int *numProcPerNode = NULL;
-/** list of job local nodeIDs starting by 0 */
+/** job local nodeIDs (i.e. nodes numbered job locally starting @ 0) per rank */
 static int *jobLocalNodeIDs = NULL;
-/** list of node local processIDs (rank) */
+/** node local processIDs (aka node local rank) per global rank */
 static int *nodeLocalProcIDs = NULL;
 
 /** openmpi list of reserved port */
@@ -200,21 +199,20 @@ static char *str2Buf(char *strSave, char *buffer, size_t *bufSize)
 }
 
 /**
- * @brief Generate OpenMPI uniq host string.
+ * @brief Get string with comma separated hostname list.
  *
  * @return Returns the requested string
  */
-static char *ompiGetUniqHostString(Conf_t *conf)
+static char *getUniqueHostnamesString(Conf_t *conf)
 {
     char *buf = NULL;
     size_t bufSize = 0;
     int i;
 
-    for (i=0; i < numUniqHosts; i++) {
-	buf = str2Buf(uniqHosts[i], buf, &bufSize);
-	if (i + 1 < numUniqHosts) {
-	    buf = str2Buf(",", buf, &bufSize);
-	}
+    for (i=0; i < numUniqNodes; i++) {
+	if (i) buf = str2Buf(",", buf, &bufSize);
+
+	buf = str2Buf(getHostByNodeID(jobLocalUniqNodeIDs[i]), buf, &bufSize);
     }
 
     if (conf->ompiDbg) {
@@ -230,17 +228,16 @@ static char *ompiGetUniqHostString(Conf_t *conf)
  */
 static char *ompiGetTasksPerNode(Conf_t *conf)
 {
-    int i;
-    char tmp[100];
     char *buf = NULL;
     size_t bufSize = 0;
+    int i;
 
-    for (i=0; i<numUniqHosts; i++) {
+    for (i=0; i<numUniqNodes; i++) {
+	if (i) buf = str2Buf(",", buf, &bufSize);
+
+	char tmp[100];
 	snprintf(tmp, sizeof(tmp), "%i", numProcPerNode[i]);
 	buf = str2Buf(tmp, buf, &bufSize);
-	if (i +1 < numUniqHosts) {
-	    buf = str2Buf(",", buf, &bufSize);
-	}
     }
 
     if (conf->ompiDbg) {
@@ -397,7 +394,7 @@ static void setupCommonEnv(Conf_t *conf)
 	}
 
 	/* uniq node list */
-	env = ompiGetUniqHostString(conf);
+	env = getUniqueHostnamesString(conf);
 	setPSIEnv("SLURM_STEP_NODELIST", env, 1);
 	setPSIEnv("SLURM_NODELIST", env, 1);
 
@@ -419,13 +416,44 @@ static void setupCommonEnv(Conf_t *conf)
 	}
     }
 
+    if (conf->PMIx) {
+	/* set the PMIX debug mode */
+	if (conf->pmiDbg || getenv("PMIX_DEBUG")) {
+	    setPSIEnv("PMIX_DEBUG", "1", 1);
+	}
+
+	/* uniq node list */
+	env = getUniqueHostnamesString(conf);
+	setPSIEnv("__PMIX_NODELIST", env, 1);
+
+	/* tag for respawned processes */
+	setPSIEnv("PMIX_SPAWNED", getenv("PMIX_SPAWNED"), 1);
+
+	snprintf(tmp, sizeof(tmp), "%d", conf->execCount);
+	setPSIEnv("PMIX_APPCOUNT", tmp, 1);
+    }
+
     /* unset PSI_LOOP_NODES_FIRST in PSI env which is only needed for OpenMPI */
     unsetPSIEnv("PSI_LOOP_NODES_FIRST");
     unsetPSIEnv("PSI_OPENMPI");
 
     unsetPSIEnv("__PMI_PROVIDER_FD");
 
-    if (conf->pmiTCP || conf->pmiSock ) {
+    if (conf->pmiTCP || conf->pmiSock || conf->PMIx) {
+	/* set the init size of the PMI job */
+	env = getenv("PMI_SIZE");
+	if (!env) {
+	    fprintf(stderr, "\n%s: No PMI_SIZE given\n", __func__);
+	    exit(EXIT_FAILURE);
+	}
+	setPSIEnv("PMI_SIZE", env, 1);
+
+	/* set PMI's universe size */
+	snprintf(tmp, sizeof(tmp), "%d", conf->uSize);
+	setPSIEnv("PMI_UNIVERSE_SIZE", tmp, 1);
+    }
+
+    if (conf->pmiTCP || conf->pmiSock) {
 	char *mapping;
 
 	/* propagate PMI auth token */
@@ -460,18 +488,6 @@ static void setupCommonEnv(Conf_t *conf)
 	if (conf->pmiDbgClient || getenv("PMI_DEBUG_CLIENT")) {
 	    setPSIEnv("PMI_DEBUG_CLIENT", "1", 1);
 	}
-
-	/* set the init size of the PMI job */
-	env = getenv("PMI_SIZE");
-	if (!env) {
-	    fprintf(stderr, "\n%s: No PMI_SIZE given\n", __func__);
-	    exit(EXIT_FAILURE);
-	}
-	setPSIEnv("PMI_SIZE", env, 1);
-
-	/* set the mpi universe size */
-	snprintf(tmp, sizeof(tmp), "%d", conf->uSize);
-	setPSIEnv("PMI_UNIVERSE_SIZE", tmp, 1);
 
 	/* set the template for the KVS name */
 	env = getenv("PMI_KVS_TMP");
@@ -563,8 +579,13 @@ static void setupExecEnv(Conf_t *conf, int execNum)
 
     snprintf(tmp, sizeof(tmp), "%d", execNum);
     setPSIEnv("PSI_APPNUM", tmp, 1);
-    if (conf->pmiTCP || conf->pmiSock) {
+    if (conf->pmiTCP || conf->pmiSock || conf->PMIx) {
 	setPSIEnv("PMI_APPNUM", tmp, 1);
+    }
+
+    if (conf->PMIx) {
+        snprintf(tmp, sizeof(tmp), "%d", conf->exec[execNum].np);
+	setPSIEnv("PMIX_APPSIZE", tmp, 1);
     }
 }
 
@@ -625,33 +646,6 @@ static char **setupRankEnv(int psRank, void *info)
 }
 
 /**
- * @brief Generate a uniq host list by using a uniq node list.
- *
- * @param uniqNodes The uniq node list to start from.
- *
- * @param numUniqNodes The number of uniq nodes in the uniq nodes list.
- *
- * @return No return value
- */
-static void getUniqHosts(PSnodes_ID_t *uniqNodes, int numUniqNodes)
-{
-    int i = 0;
-
-    if (!uniqNodes || numUniqNodes <= 0) {
-	fprintf(stderr, "%s: invalid uniqNodes\n", __func__);
-	exit(1);
-    }
-
-    uniqHosts = umalloc((numUniqNodes + 1) * sizeof(char *));
-
-    for (i=0; i< numUniqNodes; i++) {
-	uniqHosts[i] = strdup(getHostByNodeID(uniqNodes[i]));
-	numUniqHosts++;
-    }
-    uniqHosts[numUniqNodes] = NULL;
-}
-
-/**
  * @brief Build up various lists holding all informations needed by
  * OpenMPI/PSM.
  *
@@ -675,27 +669,24 @@ static void setRankInfos(int np, PSnodes_ID_t node, PSnodes_ID_t *uniqNodeIDs,
 {
     int i;
 
-    for (i=0; i<np; i++) {
-
-	/* already known node */
+    /* Use reverse search for canonically sorted nodeList */
+    for (i=numUniqNodes-1; i>=0; i--) {
 	if (uniqNodeIDs[i] == node) {
+	    /* already known node */
 	    *procid = listProcIDs[i];
 	    listProcIDs[i]++;
 	    *nodeid = i;
-	    break;
-	}
-
-	/* new unknown node */
-	if (uniqNodeIDs[i] == -1) {
-	    numUniqNodes++;
-
-	    uniqNodeIDs[i] = node;
-	    *procid = listProcIDs[i];
-	    listProcIDs[i]++;
-	    *nodeid = i;
-	    break;
+	    return;
 	}
     }
+
+    /* new unknown node */
+    uniqNodeIDs[numUniqNodes] = node;
+    *procid = 0;
+    listProcIDs[numUniqNodes] = 1;
+    *nodeid = numUniqNodes;
+
+    numUniqNodes++;
 }
 
 /**
@@ -716,20 +707,11 @@ static void extractNodeInformation(PSnodes_ID_t *nodeList, int np)
 	exit(1);
     }
 
-    /* list of job local nodeIDs starting by 0 */
-    jobLocalNodeIDs = umalloc(sizeof(int) * np);
-    for (i=0; i<np; i++) jobLocalNodeIDs[i] = -1;
-
-    /* list of job local uniq node IDs */
-    jobLocalUniqNodeIDs = umalloc(sizeof(int) * np);
-    for (i=0; i<np; i++) jobLocalUniqNodeIDs[i] = -1;
-
-    /* list of all tasks (processes) per node */
-    numProcPerNode = umalloc(sizeof(int) * np);
-    for (i=0; i<np; i++) numProcPerNode[i] = 0;
-
-    /* list of node local processIDs (rank) */
-    nodeLocalProcIDs = umalloc(sizeof(int) * np);
+    /* allocate the helper fields */
+    jobLocalUniqNodeIDs = umalloc(sizeof(*jobLocalUniqNodeIDs) * np);
+    numProcPerNode = umalloc(sizeof(*numProcPerNode) * np);
+    jobLocalNodeIDs = umalloc(sizeof(*jobLocalNodeIDs) * np);
+    nodeLocalProcIDs = umalloc(sizeof(*nodeLocalProcIDs) * np);
 
     /* save the information */
     for (i=0; i< np; i++) {
@@ -905,16 +887,11 @@ static int startProcs(Conf_t *conf)
     /* extract additional node informations (e.g. uniq nodes) */
     extractNodeInformation(nodeList, conf->np);
 
-    if (conf->openMPI) {
-	/* get uniq hostnames from the uniq nodes list */
-	getUniqHosts(jobLocalUniqNodeIDs, numUniqNodes);
-
-	if (conf->ompiDbg) {
-	    for (i=0; i< conf->np; i++) {
-		fprintf(stderr, "%s: rank '%i' opmi-nodeID '%i' ps-nodeID '%i'"
-			" node '%s'\n", __func__, i, jobLocalNodeIDs[i],
-			nodeList[i], getHostByNodeID(nodeList[i]));
-	    }
+    if (conf->openMPI && conf->ompiDbg) {
+        for (i=0; i< conf->np; i++) {
+	    fprintf(stderr, "%s: rank '%i' opmi-nodeID '%i' ps-nodeID '%i'"
+		    " node '%s'\n", __func__, i, jobLocalNodeIDs[i],
+		    nodeList[i], getHostByNodeID(nodeList[i]));
 	}
     }
     free(nodeList);

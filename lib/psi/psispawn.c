@@ -651,6 +651,8 @@ bool PSI_sendSpawnMsg(PStask_t* task, bool envClone, PSnodes_ID_t dest,
  * be started. At the time, TG_ANY and TG_ADMINTASK are good
  * values. The latter is used for admin-tasks, i.e. unaccounted tasks.
  *
+ * @param resID The ID of the reservation to spwan the task into. -1 if none.
+ *
  * @param rank The rank of the first process spawned.
  *
  * @param errors Array holding error codes upon return.
@@ -665,7 +667,7 @@ bool PSI_sendSpawnMsg(PStask_t* task, bool envClone, PSnodes_ID_t dest,
  */
 static int dospawn(int count, PSnodes_ID_t *dstnodes, char *workingdir,
 		   int argc, char **argv, bool strictArgv,
-		   PStask_group_t taskGroup,
+		   PStask_group_t taskGroup, PSrsrvtn_ID_t resID,
 		   unsigned int rank, int *errors, PStask_ID_t *tids)
 {
     int outstanding_answers = 0;
@@ -736,6 +738,7 @@ static int dospawn(int count, PSnodes_ID_t *dstnodes, char *workingdir,
 	PSI_warn(-1, errno, "%s: unable to determine logger's TID", __func__);
 	goto cleanup;
     }
+    task->resID = resID;
 
     mywd = mygetwd(workingdir);
 
@@ -980,8 +983,8 @@ int PSI_spawnStrictHW(int count, uint32_t hwType, uint16_t tpp,
 	PSI_log(PSI_LOG_SPAWN, ".\n");
 	PSI_log(PSI_LOG_SPAWN, "%s: first rank: %d\n", __func__, rank);
 
-	ret = dospawn(chunk, nodes, workdir, argc, argv, strictArgv,
-		      TG_ANY, rank, errors+total, tids ? tids+total : NULL);
+	ret = dospawn(chunk, nodes, workdir, argc, argv, strictArgv, TG_ANY,
+		-1, rank, errors+total, tids ? tids+total : NULL);
 	if (ret != chunk) {
 	    free(nodes);
 	    return -1;
@@ -1034,8 +1037,8 @@ int PSI_spawnRsrvtn(int count, PSrsrvtn_ID_t resID, char *workdir,
 	PSI_log(PSI_LOG_SPAWN, ".\n");
 	PSI_log(PSI_LOG_SPAWN, "%s: first rank: %d\n", __func__, rank);
 
-	num = dospawn(chunk, nodes, workdir, argc, argv, strictArgv,
-		      TG_ANY, rank, errors+total, tids ? tids+total : NULL);
+	num = dospawn(chunk, nodes, workdir, argc, argv, strictArgv, TG_ANY,
+	       resID, rank, errors+total, tids ? tids+total : NULL);
 	if (num != chunk) goto exit;
 
 	count -= chunk;
@@ -1072,7 +1075,7 @@ int PSI_spawnSingle(char *workdir, int argc, char **argv,
     PSI_log(PSI_LOG_SPAWN, "%s: will spawn to: %d  rank %d\n",
 	    __func__, node, rank);
 
-    ret = dospawn(1, &node, workdir, argc, argv, false, TG_ANY, rank,
+    ret = dospawn(1, &node, workdir, argc, argv, false, TG_ANY, -1, rank,
 		  error, tid);
     if (ret != 1) return -1;
 
@@ -1094,7 +1097,7 @@ int PSI_spawnAdmin(PSnodes_ID_t node, char *workdir, int argc, char **argv,
 
     if (node == -1) node = PSC_getMyID();
     ret = dospawn(1, &node, workdir, argc, argv, strictArgv,
-		  TG_ADMINTASK, rank, error, tid);
+		  TG_ADMINTASK, -1, rank, error, tid);
     if (ret != 1) return -1;
 
     return 1;
@@ -1135,7 +1138,7 @@ int PSI_spawnService(PSnodes_ID_t node, PStask_group_t taskGroup, char *wDir,
 
     if (rank >= -1) rank = -2;
 
-    ret = dospawn(1, &node, wDir, argc, argv, false, taskGroup, rank,
+    ret = dospawn(1, &node, wDir, argc, argv, false, taskGroup, -1, rank,
 		  error, tid);
     if (ret != 1) return -1;
 
@@ -1164,7 +1167,7 @@ PStask_ID_t PSI_spawnRank(int rank, char *workdir, int argc, char **argv,
     PSI_log(PSI_LOG_SPAWN, "%s: will spawn to: %d  rank %d\n",
 	    __func__, node, rank);
 
-    ret = dospawn(1, &node, workdir, argc, argv, false, TG_ANY, rank,
+    ret = dospawn(1, &node, workdir, argc, argv, false, TG_ANY, -1, rank,
 		  error, &tid);
     if (ret != 1) return 0;
 
@@ -1192,7 +1195,7 @@ PStask_ID_t PSI_spawnGMSpawner(int np, char *workdir, int argc, char **argv,
 
     PSI_log(PSI_LOG_SPAWN, "%s: will spawn to: %d", __func__, node);
 
-    ret = dospawn(1, &node, workdir, argc, argv, false, TG_ANY, np,
+    ret = dospawn(1, &node, workdir, argc, argv, false, TG_ANY, -1, np,
 		  error, &tid);
     if (ret != 1) return 0;
 

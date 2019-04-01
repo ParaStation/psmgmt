@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2002-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2018 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2019 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -17,11 +17,12 @@
 #include <fcntl.h>
 #include <pwd.h>
 #include <grp.h>
-#include <sys/types.h>
+#include <sys/prctl.h>
+#include <sys/resource.h>
 #include <sys/stat.h>
 #include <sys/socket.h>
 #include <sys/time.h>
-#include <sys/resource.h>
+#include <sys/types.h>
 #include <sys/wait.h>
 #include <pty.h>
 #include <signal.h>
@@ -31,6 +32,9 @@
 #endif
 #include <limits.h>
 #include <sys/select.h>
+
+#define _GNU_SOURCE
+#include <sched.h>
 
 #include "pscommon.h"
 #include "psprotocol.h"
@@ -945,6 +949,9 @@ static void execClient(PStask_t *task)
 	exit(1);
     }
 
+    /* re-enable capability to create coredumps */
+    prctl(PR_SET_DUMPABLE, 1);
+
     /* restore various resource limits */
     restoreLimits();
 
@@ -990,18 +997,6 @@ static void execClient(PStask_t *task)
 
     doClamps(task);
 
-    /* used by psslurm to modify default pinning; thus after doClamps() */
-    if (PSIDhook_call(PSIDHOOK_EXEC_CLIENT_USER, task) < 0) {
-	eno = EPERM;
-	fprintf(stderr, "%s: PSIDHOOK_EXEC_CLIENT_USER failed\n", __func__);
-	if (write(task->fd, &eno, sizeof(eno)) < 0) {
-	    eno = errno;
-	    fprintf(stderr, "%s: PSIDHOOK_EXEC_CLIENT_USER: write(): %s\n",
-		    __func__, get_strerror(eno));
-	}
-	exit(1);
-    }
-
     /* Signal forwarder we're ready for execve() */
     if (write(task->fd, &eno, sizeof(eno)) < 0) {
 	eno = errno;
@@ -1020,6 +1015,20 @@ static void execClient(PStask_t *task)
     if (eno) {
 	fprintf(stderr, "%s: DD_CHILDBORN failed\n", __func__);
 	PSID_log(-1, "%s: DD_CHILDBORN failed\n", __func__);
+	exit(1);
+    }
+
+    /* used by psslurm to modify default pinning; thus after doClamps() */
+    /* used by pspmix to set the environment, needed to be after child born
+     * not to create a deadlock */
+    if (PSIDhook_call(PSIDHOOK_EXEC_CLIENT_USER, task) < 0) {
+	eno = EPERM;
+	fprintf(stderr, "%s: PSIDHOOK_EXEC_CLIENT_USER failed\n", __func__);
+	if (write(task->fd, &eno, sizeof(eno)) < 0) {
+	    eno = errno;
+	    fprintf(stderr, "%s: PSIDHOOK_EXEC_CLIENT_USER: write(): %s\n",
+		    __func__, get_strerror(eno));
+	}
 	exit(1);
     }
 
@@ -1167,10 +1176,10 @@ static void statPID(pid_t pid)
  *
  * @see fork(), errno
  */
-static void execForwarder(int daemonfd, PStask_t *task)
+static void execForwarder(PStask_t *task)
 {
     pid_t pid;
-    int stdinfds[2], stdoutfds[2], stderrfds[2] = {-1, -1}, controlfds[2];
+    int stdinfds[2], stdoutfds[2], stderrfds[2], controlfds[2] = {-1, -1};
     int ret, eno = 0;
     char *envStr;
     struct timeval start, end = { .tv_sec = 0, .tv_usec = 0 }, stv;
@@ -1224,7 +1233,7 @@ static void execForwarder(int daemonfd, PStask_t *task)
     if (!(pid = fork())) {
 	/* this is the client process */
 	/* no direct connection to the daemon */
-	close(daemonfd);
+	close(task->fd);
 
 	/* prepare connection to forwarder */
 	task->fd = controlfds[1];
@@ -1338,7 +1347,6 @@ static void execForwarder(int daemonfd, PStask_t *task)
     if (pid == -1) eno = errno;
 
     /* prepare connection to child */
-    task->fd = controlfds[0];
     close(controlfds[1]);
 
     /* close the slave ttys / sockets */
@@ -1378,6 +1386,9 @@ static void execForwarder(int daemonfd, PStask_t *task)
 	goto error;
     }
 
+    /* re-enable capability to create coredumps */
+    prctl(PR_SET_DUMPABLE, 1);
+
     /* check for a sign from the client */
     PSID_log(PSID_LOG_SPAWN, "%s: waiting for my child (%d)\n", __func__, pid);
 
@@ -1399,13 +1410,13 @@ static void execForwarder(int daemonfd, PStask_t *task)
 	fd_set rfds;
 
 	FD_ZERO(&rfds);
-	FD_SET(task->fd, &rfds);
+	FD_SET(controlfds[0], &rfds);
 
 	gettimeofday(&start, NULL);               /* get NEW starttime */
 	timersub(&end, &start, &stv);
 	if (stv.tv_sec < 0) timerclear(&stv);
 
-	ret = select(task->fd+1, &rfds, NULL, NULL, &stv);
+	ret = select(controlfds[0] + 1, &rfds, NULL, NULL, &stv);
 	if (ret == -1) {
 	    if (errno == EINTR) {
 		/* Interrupted syscall, just start again */
@@ -1418,7 +1429,7 @@ static void execForwarder(int daemonfd, PStask_t *task)
 		break;
 	    }
 	} else if (!ret) {
-	    PSID_log(-1, "%s: select(%d) timed out\n", __func__, task->fd);
+	    PSID_log(-1, "%s: select(%d) timed out\n", __func__, controlfds[0]);
 	    eno = ETIME;
 	    statPID(pid);
 	    break;
@@ -1431,7 +1442,7 @@ static void execForwarder(int daemonfd, PStask_t *task)
     if (eno) goto error;
 
 restart:
-    if ((ret=read(task->fd, &eno, sizeof(eno))) < 0) {
+    if ((ret=read(controlfds[0], &eno, sizeof(eno))) < 0) {
 	if (errno == EINTR) {
 	    goto restart;
 	}
@@ -1447,7 +1458,7 @@ restart:
 
 error:
     /* Release the waiting daemon and exec forwarder */
-    PSID_forwarder(task, daemonfd, eno);
+    PSID_forwarder(task, controlfds[0], eno);
 
     /* never reached */
     exit(0);
@@ -1600,7 +1611,9 @@ static int buildSandboxAndStart(PSIDspawn_creator_t *creator, PStask_t *task)
 	PSC_setDaemonFlag(0);
 	PSC_resetMyTID();
 
-	creator(socketfds[1], task);
+	task->fd = socketfds[1];
+
+	creator(task);
     }
 
     /* this is the parent process */
@@ -2480,6 +2493,234 @@ static void msg_SPAWNLOC(DDBufferMsg_t *msg)
     }
 }
 
+/** The list of reservations this node is part of. */
+LIST_HEAD(localJobs);
+
+PSjob_t* PSID_findJobByLoggerTid(PStask_ID_t loggertid)
+{
+    if (list_empty(&localJobs)) {
+	PSID_log(-1, "%s: No local jobs in list.\n", __func__);
+    }
+    list_t *j;
+    list_for_each(j, &localJobs) {
+	PSjob_t *job = list_entry(j, PSjob_t, next);
+	PSID_log(-1, "%s: Testing job with loggertid %s\n", __func__,
+		 PSC_printTID(job->loggertid));
+	if (job->loggertid == loggertid) return job;
+    }
+    return NULL;
+}
+
+/**
+ * @brief Store reservation information
+ *
+ * Actually stores the reservation information described on the data
+ * buffer @a rData. It contains a whole message of type PSP_DD_RESCREATED
+ * holding all information about which rank will run on which node in
+ * a specific reservation created.
+ * Additional information can be obtained for @a msg containing
+ * meta-information of the last fragment received.
+ *
+ * @param msg Message header (including the type) of the last fragment
+ *
+ * @param rData Data buffer presenting the actual PSP_DD_RESCREATED
+ *
+ * @return No return value
+ */
+static void handleResCreated(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
+{
+    char *ptr = rData->buf;
+
+    PSnodes_ID_t node;
+    int32_t resID, firstrank, lastrank;
+    PStask_ID_t loggertid;
+    size_t i, entrysize, nentries;
+    PSresinfo_t *res;
+
+    /* get reservation and logger task id */
+    getInt32(&ptr, &resID);
+    getTaskId(&ptr, &loggertid);
+
+    /* calculate size of one entry */
+    entrysize = sizeof(node) + sizeof(firstrank) + sizeof(lastrank);
+
+    /* calculate number of entries */
+    nentries = (rData->buf + rData->bufUsed - ptr) / entrysize;
+
+    /* allocate reservation structure */
+    res = malloc(sizeof(*res));
+    if (!res) {
+	PSID_log(-1, "%s: No memory for reservation info.\n", __func__);
+	return;
+    }
+    res->entries = calloc(nentries, sizeof(*res->entries));
+    if (!res->entries) {
+	free(res);
+	PSID_log(-1, "%s: No memory for reservation info entries.\n", __func__);
+	return;
+    }
+
+    res->resID = resID;
+
+    /* get entries */
+    for (i = 0; i < nentries; i++) {
+	getNodeId(&ptr, &node);
+	getInt32(&ptr, &firstrank);
+	getInt32(&ptr, &lastrank);
+
+	/* add to reservation */
+	PSID_log(-1, "%s: Reservation %d: Adding node %hd: ranks %d-%d\n",
+		__func__, resID, node, firstrank, lastrank);
+
+	res->entries[i].node = node;
+	res->entries[i].firstrank = firstrank;
+	res->entries[i].lastrank = lastrank;
+    }
+
+    res->nEntries = nentries;
+
+    bool jobCreated = false;
+
+    /* try to find corresponding job */
+    PSjob_t *job = PSID_findJobByLoggerTid(loggertid);
+
+    if (!job) {
+	/* create new job */
+	job = malloc(sizeof(*job));
+	job->loggertid = loggertid;
+	INIT_LIST_HEAD(&job->resInfos);
+	list_add_tail(&job->next, &localJobs);
+	jobCreated = true;
+	PSID_log(-1, "%s: Job created with loggertid %s\n", __func__,
+		 PSC_printTID(loggertid));
+    }
+
+    /* add reservation to the corresponing job */
+    list_add(&res->next, &job->resInfos);
+
+    if (jobCreated) {
+	/* Give plugins the option to react on job creation */
+	PSIDhook_call(PSIDHOOK_LOCALJOBCREATED, job);
+    }
+}
+
+/**
+ * @brief Handle a PSP_DD_RESCREATED message.
+ *
+ * Handle the message @a msg of type PSP_DD_RESCREATED.
+ *
+ * This will store the reservation information described within this
+ * message. Since the serialization layer is utilized depending on
+ * the size and structure of the reservation the messages might be
+ * split into multiple fragments.
+ *
+ * This function will collect these fragments into a single message
+ * using the serialization layer or forward single fragments to their
+ * final destination.
+ *
+ * The actual handling of the spawn request once all fragments are
+ * received is done within @ref handleResCreated().
+ *
+ * @param msg Pointer to the message holding the fragment to handle
+ *
+ * @return No return value.
+ */
+static void msg_RESCREATED(DDTypedBufferMsg_t *msg)
+{
+    if (PSC_getID(msg->header.dest) == PSC_getMyID()) {
+	/* destination is here */
+	recvFragMsg(msg, handleResCreated);
+	return;
+    }
+
+    /* destination is remote */
+    if (!PSIDnodes_isUp(PSC_getID(msg->header.dest))) {
+	PSID_log(-1, "%s: unable to forward fragment to %s (node down)\n",
+		 __func__, PSC_printTID(msg->header.dest));
+	return;
+    }
+
+    PSID_log(PSID_LOG_SPAWN, "%s: forward to node %d\n", __func__,
+	     PSC_getID(msg->header.dest));
+    if (sendMsg(msg) < 0) {
+	PSID_log(-1, "%s: unable to forward fragment to %s (sendMsg failed)\n",
+		 __func__, PSC_printTID(msg->header.dest));
+    }
+}
+
+/**
+ * @brief Find reservation in job by reservation id
+ *
+ * @param job    job to search inside
+ * @param resID  reservation id of the reservation to find
+ *
+ * @return Returns the reservation info or NULL if not in list
+ */
+PSresinfo_t* PSID_findReservationInJob(PSjob_t *job, PSrsrvtn_ID_t resID)
+{
+    list_t *r;
+    list_for_each(r, &job->resInfos) {
+	PSresinfo_t *res = list_entry(r, PSresinfo_t, next);
+	if (res->resID == resID) return res;
+    }
+
+    return NULL;
+}
+
+/**
+ * @brief Handle a PSP_DD_RESRELEASED message.
+ *
+ * Handle the message @a msg of type PSP_DD_RESRELEASED.
+ *
+ * This will stop all services connected to the reservation being
+ * released and remove all information about it.
+ *
+ * @param msg Pointer to the message to handle
+ *
+ * @return No return value.
+ */
+static void msg_RESRELEASED(DDBufferMsg_t *msg)
+{
+    PSrsrvtn_ID_t resID;
+    PStask_ID_t logTID;
+    size_t used = 0;
+
+    PSP_getMsgBuf(msg, &used, __func__, "resID", &resID, sizeof(resID));
+    PSP_getMsgBuf(msg, &used, __func__, "logger TID", &logTID, sizeof(logTID));
+
+    /* try to find corresponding job */
+    PSjob_t *job = PSID_findJobByLoggerTid(logTID);
+    if (!job) {
+	PSID_log(-1, "%s: Could not find a job with loggertid %s that should"
+		 " contain reservation id %d to be released.\n", __func__,
+		 PSC_printTID(logTID), resID);
+	return;
+    }
+
+    /* try to find reservation within the job */
+    PSresinfo_t *res = PSID_findReservationInJob(job, resID);
+    if (!res) {
+	PSID_log(-1, "%s: Could not find reservation id %d to be released in"
+		 " job with loggertid %s.\n", __func__, resID,
+		 PSC_printTID(logTID));
+	return;
+    }
+
+    list_del(&res->next);
+
+    free(res->entries);
+    free(res);
+
+    /* if there are no reservations left in the job, delete it */
+    if (list_empty(&job->resInfos)) {
+	/* Give plugins the option to react on job removal */
+	PSIDhook_call(PSIDHOOK_LOCALJOBREMOVED, job);
+
+	list_del(&job->next);
+	free(job);
+    }
+}
+
 /**
  * @brief Append string vector
  *
@@ -2567,6 +2808,13 @@ static void handleSpawnReq(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
     getStringArrayM(&ptr, &task->argv, &task->argc);
     getStringArrayM(&ptr, &task->environ, &task->envSize);
 
+    if (PSIDhook_call(PSIDHOOK_RECV_SPAWNREQ, task) < 0) {
+	PSID_log(-1, "%s: PSIDHOOK_RECV_SPAWNREQ failed.\n", __func__);
+	answer.error = EINVAL; //TODO which error code?
+	sendMsg(&answer);
+	PStask_delete(task);
+	return;
+    }
 
     /* Check if we have to and can copy the location */
     if (isServiceTask(task->group)) {
@@ -3544,6 +3792,11 @@ void PSIDspawn_init(void)
 {
     PSID_log(PSID_LOG_VERB, "%s()\n", __func__);
 
+    /* init fragmentation layer used for PSP_DD_RESCREATED messages */
+    if (!initSerial(0, sendMsg)) {
+	PSID_log(-1, "%s: initSerial() failed\n", __func__);
+    }
+
     PSID_registerMsg(PSP_CD_SPAWNREQ, (handlerFunc_t) msg_SPAWNREQ);
     PSID_registerMsg(PSP_CD_SPAWNREQUEST, (handlerFunc_t) msg_SPAWNREQUEST);
     PSID_registerMsg(PSP_CD_SPAWNSUCCESS, (handlerFunc_t) msg_SPAWNSUCCESS);
@@ -3553,6 +3806,8 @@ void PSIDspawn_init(void)
     PSID_registerMsg(PSP_DD_CHILDBORN, (handlerFunc_t) msg_CHILDBORN);
     PSID_registerMsg(PSP_DD_CHILDACK, PSIDclient_frwd);
     PSID_registerMsg(PSP_DD_SPAWNLOC, msg_SPAWNLOC);
+    PSID_registerMsg(PSP_DD_RESCREATED, (handlerFunc_t) msg_RESCREATED);
+    PSID_registerMsg(PSP_DD_RESRELEASED, msg_RESRELEASED);
 
     PSID_registerDropper(PSP_CD_SPAWNREQ, drop_SPAWNREQ);
     PSID_registerDropper(PSP_CD_SPAWNREQUEST, (handlerFunc_t)drop_SPAWNREQUEST);

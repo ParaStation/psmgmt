@@ -17,5 +17,6 @@
 #define PSP_CC_PLUG_PELOGUE	    0x0202  /**< pelogue message */
 #define PSP_CC_PLUG_PSSLURM	    0x0203  /**< psslurm message */
 #define PSP_CC_PLUG_PSEXEC	    0x0204  /**< psexec message */
+#define PSP_CC_PLUG_PSPMIX	    0x0205  /**< pspmix message */
 
 #endif  /* __PSPLUGIN_PROTOCOL */

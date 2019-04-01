@@ -117,7 +117,7 @@ LTLIBRARIES = $(noinst_LTLIBRARIES)
 libplugincommon_la_LIBADD =
 am_libplugincommon_la_OBJECTS = pluginconfig.lo pluginhelper.lo \
 	pluginlog.lo pluginmalloc.lo pluginstrv.lo pluginpty.lo \
-	pluginpartition.lo pluginforwarder.lo
+	pluginpartition.lo pluginforwarder.lo pluginvector.lo
 libplugincommon_la_OBJECTS = $(am_libplugincommon_la_OBJECTS)
 AM_V_lt = $(am__v_lt_@AM_V@)
 am__v_lt_ = $(am__v_lt_@AM_DEFAULT_V@)
@@ -142,7 +142,7 @@ am__depfiles_remade = ./$(DEPDIR)/pluginconfig.Plo \
 	./$(DEPDIR)/pluginforwarder.Plo ./$(DEPDIR)/pluginhelper.Plo \
 	./$(DEPDIR)/pluginlog.Plo ./$(DEPDIR)/pluginmalloc.Plo \
 	./$(DEPDIR)/pluginpartition.Plo ./$(DEPDIR)/pluginpty.Plo \
-	./$(DEPDIR)/pluginstrv.Plo
+	./$(DEPDIR)/pluginstrv.Plo ./$(DEPDIR)/pluginvector.Plo
 am__mv = mv -f
 COMPILE = $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) \
 	$(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
@@ -308,6 +308,8 @@ mkdir_p = @mkdir_p@
 oldincludedir = @oldincludedir@
 pamdir = @pamdir@
 pdfdir = @pdfdir@
+pmix_CFLAGS = @pmix_CFLAGS@
+pmix_LIBS = @pmix_LIBS@
 prefix = @prefix@
 program_transform_name = @program_transform_name@
 psconfig_CFLAGS = @psconfig_CFLAGS@
@@ -376,7 +378,7 @@ scriptsdir = $(prefix)/scripts
 noinst_LTLIBRARIES = libplugincommon.la
 libplugincommon_la_SOURCES = pluginconfig.c pluginhelper.c	\
 	pluginlog.c pluginmalloc.c pluginstrv.c pluginpty.c	\
-	pluginpartition.c pluginforwarder.c
+	pluginpartition.c pluginforwarder.c pluginvector.c
 
 all: all-am
 
@@ -441,6 +443,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/pluginpartition.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/pluginpty.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/pluginstrv.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/pluginvector.Plo@am__quote@ # am--include-marker
 
 $(am__depfiles_remade):
 	@$(MKDIR_P) $(@D)
@@ -611,6 +614,7 @@ distclean: distclean-am
 	-rm -f ./$(DEPDIR)/pluginpartition.Plo
 	-rm -f ./$(DEPDIR)/pluginpty.Plo
 	-rm -f ./$(DEPDIR)/pluginstrv.Plo
+	-rm -f ./$(DEPDIR)/pluginvector.Plo
 	-rm -f Makefile
 distclean-am: clean-am distclean-compile distclean-generic \
 	distclean-tags
@@ -664,6 +668,7 @@ maintainer-clean: maintainer-clean-am
 	-rm -f ./$(DEPDIR)/pluginpartition.Plo
 	-rm -f ./$(DEPDIR)/pluginpty.Plo
 	-rm -f ./$(DEPDIR)/pluginstrv.Plo
+	-rm -f ./$(DEPDIR)/pluginvector.Plo
 	-rm -f Makefile
 maintainer-clean-am: distclean-am maintainer-clean-generic
 

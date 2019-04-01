@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2010-2018 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2010-2019 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -10,16 +10,16 @@
 #define _GNU_SOURCE
 #include <stdlib.h>
 #include <stdio.h>
-#include <sys/resource.h>
-#include <sys/types.h>
 #include <pwd.h>
+#include <errno.h>
 #include <grp.h>
 #include <unistd.h>
-#include <sys/stat.h>
 #include <string.h>
-#include <errno.h>
-#include <sys/time.h>
+#include <sys/prctl.h>
 #include <sys/resource.h>
+#include <sys/stat.h>
+#include <sys/time.h>
+#include <sys/types.h>
 #include <signal.h>
 #include <netdb.h>
 #include <sys/wait.h>
@@ -93,6 +93,9 @@ void switchUser(char *username, struct passwd *spasswd, int saveEnv)
 		strerror(errno));
 	exit(1);
     }
+
+    /* re-enable capability to create coredumps */
+    prctl(PR_SET_DUMPABLE, 1);
 
     /* change to job working directory */
     if ((initDir = getEnvValue("PBS_O_INITDIR"))) {

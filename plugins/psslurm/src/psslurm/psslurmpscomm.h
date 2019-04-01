@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2014-2018 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2014-2019 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -155,8 +155,22 @@ void send_PS_AllocState(Alloc_t *alloc);
  */
 int send_PS_PackInfo(Step_t *step);
 
-void setNodeOffline(env_t *env, uint32_t id, PSnodes_ID_t dest,
-			const char *host, char *reason);
+/**
+ * @brief Set a node offline using psexec
+ *
+ * Set a node in Slurm offline using psexec to call an offline-script.
+ * The script is executed on the primary slurmctld node. If the execution
+ * fails the offline-script is executed again on the backup slurmctld node.
+ *
+ * @param env The Slurm environment forwarded to the offline script
+ *
+ * @param id The jobid executed while the node was set offline
+ *
+ * @param host The host to set offline
+ *
+ * @param reason The reason why the node was set offline
+ */
+void setNodeOffline(env_t *env, uint32_t id, const char *host, char *reason);
 
 void requeueBatchJob(Job_t *job, PSnodes_ID_t dest);
 

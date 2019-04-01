@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2013-2018 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2013-2019 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -12,6 +12,8 @@
  */
 #ifndef __PSIDHOOK_H
 #define __PSIDHOOK_H
+
+#include <stdbool.h>
 
 #include "pstask.h"
 
@@ -70,6 +72,25 @@ typedef enum {
     PSIDHOOK_MASTER_EXITPART, /**< The local node is discharged from the
 				burden of acting as a master, so all relevant
 				resources should be freed. No argument. */
+    PSIDHOOK_LOCALJOBCREATED, /**< After creating a new local job triggered by
+				receiving a message of type PSP_DD_RESCREATED,
+				thus informing us about being involed in a new
+				reservation.
+				The argument is the job already containing the
+				new reservation information.
+				The return value of the hook is ignored. */
+    PSIDHOOK_LOCALJOBREMOVED, /**< Right before a local job gets removed due
+				to its last reservation is removed triggered by
+				receiving a message of type PSP_DD_RESRELEASED.
+				The argument is the job with no reservation
+				information left.
+				The return value of the hook is ignored. */
+    PSIDHOOK_RECV_SPAWNREQ,    /**< After receiving a message of type
+				PSP_CD_SPAWNREQ, thus requests us to actually
+				spawn some processes.
+				The argument is the task structure received.
+				If the hook's return value is < 0, the spawn
+				is canceled and a fail response is sent. */
     PSIDHOOK_EXEC_FORWARDER,  /**< Right before forking the forwarder's child.
 				Arg is a pointer to the child's task structure.
 				The hook might be used to prepare the child's
@@ -161,9 +182,9 @@ typedef enum {
  *
  * @param func The function to register to the hook.
  *
- * @return On success, 1 is returned. Or 0, if an error occurred.
+ * @return On success, true is returned. Or false if an error occurred.
  */
-int PSIDhook_add(PSIDhook_t hook, PSIDhook_func_t func);
+bool PSIDhook_add(PSIDhook_t hook, PSIDhook_func_t func);
 
 /**
  * @brief Remove hook
@@ -175,10 +196,10 @@ int PSIDhook_add(PSIDhook_t hook, PSIDhook_func_t func);
  *
  * @param func The function to register to the hook.
  *
- * @return On success, 1 is returned. Or 0, if an error occurred,
+ * @return On success, true is returned. Or false if an error occurred,
  * i.e. the hook to unregister was not found.
  */
-int PSIDhook_del(PSIDhook_t hook, PSIDhook_func_t func);
+bool PSIDhook_del(PSIDhook_t hook, PSIDhook_func_t func);
 
 /** Magic value to find out, if any hook was called by @ref PSIDhook_call() */
 #define PSIDHOOK_NOFUNC 42
@@ -223,8 +244,14 @@ int PSIDhook_call(PSIDhook_t hook, void *arg);
  * Initialize the hook framework. This allocates the structures used
  * to manage the functions registered to the various hooks available.
  *
+ * The hook framework is also initialized implicitely on the first
+ * call of PSIDhook_add(). Thus, calling this function explicitely is
+ * not required.
+ *
+ * @deprecated Not required any longer.
+ *
  * @return No return value.
  */
-void initHooks(void);
+void initHooks(void) __attribute__ ((deprecated));
 
 #endif  /* __PSIDHOOK_H */

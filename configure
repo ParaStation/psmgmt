@@ -643,6 +643,10 @@ TESTPLUGINS_ENABLED_FALSE
 TESTPLUGINS_ENABLED_TRUE
 AM_LDFLAGS
 AM_CFLAGS
+pmix_LIBS
+pmix_CFLAGS
+BUILD_WITHOUT_PSPMIX_FALSE
+BUILD_WITHOUT_PSPMIX_TRUE
 psconfig_LIBS
 psconfig_CFLAGS
 glib2_LIBS
@@ -652,6 +656,10 @@ PKG_CONFIG_PATH
 PKG_CONFIG
 BUILD_WITHOUT_PSCONFIG_FALSE
 BUILD_WITHOUT_PSCONFIG_TRUE
+SPANK_ENABLED_FALSE
+SPANK_ENABLED_TRUE
+BUILD_WITHOUT_SPANK_FALSE
+BUILD_WITHOUT_SPANK_TRUE
 MUNGE_ENABLED_FALSE
 MUNGE_ENABLED_TRUE
 MUNGE_LIBS
@@ -796,7 +804,9 @@ with_gnu_ld
 with_sysroot
 enable_libtool_lock
 with_pamdir
+enable_spank
 enable_psconfig
+enable_pspmix
 enable_testplugins
 with_unitdir
 '
@@ -816,7 +826,9 @@ PKG_CONFIG_LIBDIR
 glib2_CFLAGS
 glib2_LIBS
 psconfig_CFLAGS
-psconfig_LIBS'
+psconfig_LIBS
+pmix_CFLAGS
+pmix_LIBS'
 
 
 # Initialize some variables set by options.
@@ -1450,7 +1462,9 @@ Optional Features:
   --enable-fast-install[=PKGS]
                           optimize for fast installation [default=yes]
   --disable-libtool-lock  avoid locking (might break parallel builds)
+  --disable-spank         build without spank support
   --disable-psconfig      build without psconfig support
+  --disable-pspmix        do not build pspmix plugin
   --enable-testplugins    build test plugins
 
 Optional Packages:
@@ -1490,6 +1504,8 @@ Some influential environment variables:
               C compiler flags for psconfig, overriding pkg-config
   psconfig_LIBS
               linker flags for psconfig, overriding pkg-config
+  pmix_CFLAGS C compiler flags for pmix, overriding pkg-config
+  pmix_LIBS   linker flags for pmix, overriding pkg-config
 
 Use these variables to override the choices made by `configure' or to help
 it to find libraries and programs with nonstandard names/locations.
@@ -1832,6 +1848,97 @@ $as_echo "$ac_res" >&6; }
   eval $as_lineno_stack; ${as_lineno_stack:+:} unset as_lineno
 
 } # ac_fn_c_check_func
+
+# ac_fn_c_check_header_mongrel LINENO HEADER VAR INCLUDES
+# -------------------------------------------------------
+# Tests whether HEADER exists, giving a warning if it cannot be compiled using
+# the include files in INCLUDES and setting the cache variable VAR
+# accordingly.
+ac_fn_c_check_header_mongrel ()
+{
+  as_lineno=${as_lineno-"$1"} as_lineno_stack=as_lineno_stack=$as_lineno_stack
+  if eval \${$3+:} false; then :
+  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for $2" >&5
+$as_echo_n "checking for $2... " >&6; }
+if eval \${$3+:} false; then :
+  $as_echo_n "(cached) " >&6
+fi
+eval ac_res=\$$3
+	       { $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_res" >&5
+$as_echo "$ac_res" >&6; }
+else
+  # Is the header compilable?
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking $2 usability" >&5
+$as_echo_n "checking $2 usability... " >&6; }
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+$4
+#include <$2>
+_ACEOF
+if ac_fn_c_try_compile "$LINENO"; then :
+  ac_header_compiler=yes
+else
+  ac_header_compiler=no
+fi
+rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_header_compiler" >&5
+$as_echo "$ac_header_compiler" >&6; }
+
+# Is the header present?
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking $2 presence" >&5
+$as_echo_n "checking $2 presence... " >&6; }
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+#include <$2>
+_ACEOF
+if ac_fn_c_try_cpp "$LINENO"; then :
+  ac_header_preproc=yes
+else
+  ac_header_preproc=no
+fi
+rm -f conftest.err conftest.i conftest.$ac_ext
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_header_preproc" >&5
+$as_echo "$ac_header_preproc" >&6; }
+
+# So?  What about this header?
+case $ac_header_compiler:$ac_header_preproc:$ac_c_preproc_warn_flag in #((
+  yes:no: )
+    { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: $2: accepted by the compiler, rejected by the preprocessor!" >&5
+$as_echo "$as_me: WARNING: $2: accepted by the compiler, rejected by the preprocessor!" >&2;}
+    { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: $2: proceeding with the compiler's result" >&5
+$as_echo "$as_me: WARNING: $2: proceeding with the compiler's result" >&2;}
+    ;;
+  no:yes:* )
+    { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: $2: present but cannot be compiled" >&5
+$as_echo "$as_me: WARNING: $2: present but cannot be compiled" >&2;}
+    { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: $2:     check for missing prerequisite headers?" >&5
+$as_echo "$as_me: WARNING: $2:     check for missing prerequisite headers?" >&2;}
+    { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: $2: see the Autoconf documentation" >&5
+$as_echo "$as_me: WARNING: $2: see the Autoconf documentation" >&2;}
+    { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: $2:     section \"Present But Cannot Be Compiled\"" >&5
+$as_echo "$as_me: WARNING: $2:     section \"Present But Cannot Be Compiled\"" >&2;}
+    { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: $2: proceeding with the compiler's result" >&5
+$as_echo "$as_me: WARNING: $2: proceeding with the compiler's result" >&2;}
+( $as_echo "## ---------------------------------- ##
+## Report this to support@par-tec.com ##
+## ---------------------------------- ##"
+     ) | sed "s/^/$as_me: WARNING:     /" >&2
+    ;;
+esac
+  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for $2" >&5
+$as_echo_n "checking for $2... " >&6; }
+if eval \${$3+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  eval "$3=\$ac_header_compiler"
+fi
+eval ac_res=\$$3
+	       { $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_res" >&5
+$as_echo "$ac_res" >&6; }
+fi
+  eval $as_lineno_stack; ${as_lineno_stack:+:} unset as_lineno
+
+} # ac_fn_c_check_header_mongrel
 cat >config.log <<_ACEOF
 This file contains any messages produced by compilers while
 running configure, to aid debugging if configure makes a mistake.
@@ -12262,6 +12369,51 @@ else
 fi
 
 
+# Check whether --enable-spank was given.
+if test "${enable_spank+set}" = set; then :
+  enableval=$enable_spank;
+fi
+
+ if test "x$enable_spank" = xno; then
+  BUILD_WITHOUT_SPANK_TRUE=
+  BUILD_WITHOUT_SPANK_FALSE='#'
+else
+  BUILD_WITHOUT_SPANK_TRUE='#'
+  BUILD_WITHOUT_SPANK_FALSE=
+fi
+
+
+if test -z "$BUILD_WITHOUT_SPANK_TRUE"; then :
+
+  { $as_echo "$as_me:${as_lineno-$LINENO}: Building without spank support" >&5
+$as_echo "$as_me: Building without spank support" >&6;}
+  AM_CFLAGS="$AM_CFLAGS -DBUILD_WITHOUT_SPANK"
+
+else
+
+  for ac_header in slurm/spank.h
+do :
+  ac_fn_c_check_header_mongrel "$LINENO" "slurm/spank.h" "ac_cv_header_slurm_spank_h" "$ac_includes_default"
+if test "x$ac_cv_header_slurm_spank_h" = xyes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_SLURM_SPANK_H 1
+_ACEOF
+  spank_enabled=true
+fi
+
+done
+
+
+fi
+ if test "x$spank_enabled" = xtrue; then
+  SPANK_ENABLED_TRUE=
+  SPANK_ENABLED_FALSE='#'
+else
+  SPANK_ENABLED_TRUE='#'
+  SPANK_ENABLED_FALSE=
+fi
+
+
 # Check whether --enable-psconfig was given.
 if test "${enable_psconfig+set}" = set; then :
   enableval=$enable_psconfig;
@@ -12582,6 +12734,121 @@ See \`config.log' for more details" "$LINENO" 5; }
 else
 	psconfig_CFLAGS=$pkg_cv_psconfig_CFLAGS
 	psconfig_LIBS=$pkg_cv_psconfig_LIBS
+        { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
+$as_echo "yes" >&6; }
+
+fi
+
+fi
+
+# Check whether --enable-pspmix was given.
+if test "${enable_pspmix+set}" = set; then :
+  enableval=$enable_pspmix;
+fi
+
+ if test "x$enable_pspmix" = xno; then
+  BUILD_WITHOUT_PSPMIX_TRUE=
+  BUILD_WITHOUT_PSPMIX_FALSE='#'
+else
+  BUILD_WITHOUT_PSPMIX_TRUE='#'
+  BUILD_WITHOUT_PSPMIX_FALSE=
+fi
+
+
+if test -z "$BUILD_WITHOUT_PSPMIX_TRUE"; then :
+
+  { $as_echo "$as_me:${as_lineno-$LINENO}: Not building pspmix plugin" >&5
+$as_echo "$as_me: Not building pspmix plugin" >&6;}
+
+else
+
+
+pkg_failed=no
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for pmix" >&5
+$as_echo_n "checking for pmix... " >&6; }
+
+if test -n "$pmix_CFLAGS"; then
+    pkg_cv_pmix_CFLAGS="$pmix_CFLAGS"
+ elif test -n "$PKG_CONFIG"; then
+    if test -n "$PKG_CONFIG" && \
+    { { $as_echo "$as_me:${as_lineno-$LINENO}: \$PKG_CONFIG --exists --print-errors \"pmix >= 3.1.1\""; } >&5
+  ($PKG_CONFIG --exists --print-errors "pmix >= 3.1.1") 2>&5
+  ac_status=$?
+  $as_echo "$as_me:${as_lineno-$LINENO}: \$? = $ac_status" >&5
+  test $ac_status = 0; }; then
+  pkg_cv_pmix_CFLAGS=`$PKG_CONFIG --cflags "pmix >= 3.1.1" 2>/dev/null`
+		      test "x$?" != "x0" && pkg_failed=yes
+else
+  pkg_failed=yes
+fi
+ else
+    pkg_failed=untried
+fi
+if test -n "$pmix_LIBS"; then
+    pkg_cv_pmix_LIBS="$pmix_LIBS"
+ elif test -n "$PKG_CONFIG"; then
+    if test -n "$PKG_CONFIG" && \
+    { { $as_echo "$as_me:${as_lineno-$LINENO}: \$PKG_CONFIG --exists --print-errors \"pmix >= 3.1.1\""; } >&5
+  ($PKG_CONFIG --exists --print-errors "pmix >= 3.1.1") 2>&5
+  ac_status=$?
+  $as_echo "$as_me:${as_lineno-$LINENO}: \$? = $ac_status" >&5
+  test $ac_status = 0; }; then
+  pkg_cv_pmix_LIBS=`$PKG_CONFIG --libs "pmix >= 3.1.1" 2>/dev/null`
+		      test "x$?" != "x0" && pkg_failed=yes
+else
+  pkg_failed=yes
+fi
+ else
+    pkg_failed=untried
+fi
+
+
+
+if test $pkg_failed = yes; then
+   	{ $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
+$as_echo "no" >&6; }
+
+if $PKG_CONFIG --atleast-pkgconfig-version 0.20; then
+        _pkg_short_errors_supported=yes
+else
+        _pkg_short_errors_supported=no
+fi
+        if test $_pkg_short_errors_supported = yes; then
+	        pmix_PKG_ERRORS=`$PKG_CONFIG --short-errors --print-errors --cflags --libs "pmix >= 3.1.1" 2>&1`
+        else
+	        pmix_PKG_ERRORS=`$PKG_CONFIG --print-errors --cflags --libs "pmix >= 3.1.1" 2>&1`
+        fi
+	# Put the nasty error message in config.log where it belongs
+	echo "$pmix_PKG_ERRORS" >&5
+
+	as_fn_error $? "Package requirements (pmix >= 3.1.1) were not met:
+
+$pmix_PKG_ERRORS
+
+Consider adjusting the PKG_CONFIG_PATH environment variable if you
+installed software in a non-standard prefix.
+
+Alternatively, you may set the environment variables pmix_CFLAGS
+and pmix_LIBS to avoid the need to call pkg-config.
+See the pkg-config man page for more details." "$LINENO" 5
+elif test $pkg_failed = untried; then
+     	{ $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
+$as_echo "no" >&6; }
+	{ { $as_echo "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
+$as_echo "$as_me: error: in \`$ac_pwd':" >&2;}
+as_fn_error $? "The pkg-config script could not be found or is too old.  Make sure it
+is in your PATH or set the PKG_CONFIG environment variable to the full
+path to pkg-config.
+
+Alternatively, you may set the environment variables pmix_CFLAGS
+and pmix_LIBS to avoid the need to call pkg-config.
+See the pkg-config man page for more details.
+
+To get pkg-config, see <http://pkg-config.freedesktop.org/>.
+See \`config.log' for more details" "$LINENO" 5; }
+else
+	pmix_CFLAGS=$pkg_cv_pmix_CFLAGS
+	pmix_LIBS=$pkg_cv_pmix_LIBS
         { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
 $as_echo "yes" >&6; }
 
@@ -12946,6 +13213,14 @@ ac_config_files="$ac_config_files plugins/psaccount/Makefile"
 
 ac_config_files="$ac_config_files plugins/psexec/Makefile"
 
+ac_config_files="$ac_config_files plugins/psgw/Makefile"
+
+ac_config_files="$ac_config_files plugins/psgw/doc/Makefile"
+
+ac_config_files="$ac_config_files plugins/psgw/route/Makefile"
+
+ac_config_files="$ac_config_files plugins/psgw/spank/Makefile"
+
 ac_config_files="$ac_config_files plugins/psmom/Makefile"
 
 ac_config_files="$ac_config_files plugins/psmom/doc/Makefile"
@@ -12967,6 +13242,15 @@ ac_config_files="$ac_config_files plugins/pspam/module/Makefile"
 ac_config_files="$ac_config_files plugins/pspam/pspam/Makefile"
 
 ac_config_files="$ac_config_files plugins/pspmi/Makefile"
+
+
+if test -z "$BUILD_WITHOUT_PSPMIX_TRUE"; then :
+  else
+
+  ac_config_files="$ac_config_files plugins/pspmix/Makefile"
+
+
+fi
 
 ac_config_files="$ac_config_files plugins/psresport/Makefile"
 
@@ -13170,8 +13454,20 @@ if test -z "${MUNGE_ENABLED_TRUE}" && test -z "${MUNGE_ENABLED_FALSE}"; then
   as_fn_error $? "conditional \"MUNGE_ENABLED\" was never defined.
 Usually this means the macro was only invoked conditionally." "$LINENO" 5
 fi
+if test -z "${BUILD_WITHOUT_SPANK_TRUE}" && test -z "${BUILD_WITHOUT_SPANK_FALSE}"; then
+  as_fn_error $? "conditional \"BUILD_WITHOUT_SPANK\" was never defined.
+Usually this means the macro was only invoked conditionally." "$LINENO" 5
+fi
+if test -z "${SPANK_ENABLED_TRUE}" && test -z "${SPANK_ENABLED_FALSE}"; then
+  as_fn_error $? "conditional \"SPANK_ENABLED\" was never defined.
+Usually this means the macro was only invoked conditionally." "$LINENO" 5
+fi
 if test -z "${BUILD_WITHOUT_PSCONFIG_TRUE}" && test -z "${BUILD_WITHOUT_PSCONFIG_FALSE}"; then
   as_fn_error $? "conditional \"BUILD_WITHOUT_PSCONFIG\" was never defined.
+Usually this means the macro was only invoked conditionally." "$LINENO" 5
+fi
+if test -z "${BUILD_WITHOUT_PSPMIX_TRUE}" && test -z "${BUILD_WITHOUT_PSPMIX_FALSE}"; then
+  as_fn_error $? "conditional \"BUILD_WITHOUT_PSPMIX\" was never defined.
 Usually this means the macro was only invoked conditionally." "$LINENO" 5
 fi
 if test -z "${TESTPLUGINS_ENABLED_TRUE}" && test -z "${TESTPLUGINS_ENABLED_FALSE}"; then
@@ -14066,6 +14362,10 @@ do
     "plugins/pelogue/Makefile") CONFIG_FILES="$CONFIG_FILES plugins/pelogue/Makefile" ;;
     "plugins/psaccount/Makefile") CONFIG_FILES="$CONFIG_FILES plugins/psaccount/Makefile" ;;
     "plugins/psexec/Makefile") CONFIG_FILES="$CONFIG_FILES plugins/psexec/Makefile" ;;
+    "plugins/psgw/Makefile") CONFIG_FILES="$CONFIG_FILES plugins/psgw/Makefile" ;;
+    "plugins/psgw/doc/Makefile") CONFIG_FILES="$CONFIG_FILES plugins/psgw/doc/Makefile" ;;
+    "plugins/psgw/route/Makefile") CONFIG_FILES="$CONFIG_FILES plugins/psgw/route/Makefile" ;;
+    "plugins/psgw/spank/Makefile") CONFIG_FILES="$CONFIG_FILES plugins/psgw/spank/Makefile" ;;
     "plugins/psmom/Makefile") CONFIG_FILES="$CONFIG_FILES plugins/psmom/Makefile" ;;
     "plugins/psmom/doc/Makefile") CONFIG_FILES="$CONFIG_FILES plugins/psmom/doc/Makefile" ;;
     "plugins/psmom/include/Makefile") CONFIG_FILES="$CONFIG_FILES plugins/psmom/include/Makefile" ;;
@@ -14077,6 +14377,7 @@ do
     "plugins/pspam/module/Makefile") CONFIG_FILES="$CONFIG_FILES plugins/pspam/module/Makefile" ;;
     "plugins/pspam/pspam/Makefile") CONFIG_FILES="$CONFIG_FILES plugins/pspam/pspam/Makefile" ;;
     "plugins/pspmi/Makefile") CONFIG_FILES="$CONFIG_FILES plugins/pspmi/Makefile" ;;
+    "plugins/pspmix/Makefile") CONFIG_FILES="$CONFIG_FILES plugins/pspmix/Makefile" ;;
     "plugins/psresport/Makefile") CONFIG_FILES="$CONFIG_FILES plugins/psresport/Makefile" ;;
     "plugins/psslurm/Makefile") CONFIG_FILES="$CONFIG_FILES plugins/psslurm/Makefile" ;;
     "plugins/psslurm/doc/Makefile") CONFIG_FILES="$CONFIG_FILES plugins/psslurm/doc/Makefile" ;;

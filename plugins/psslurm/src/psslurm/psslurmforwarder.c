@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2014-2018 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2014-2019 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -14,6 +14,7 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <grp.h>
+#include <sys/prctl.h>
 #include <sys/resource.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
@@ -62,8 +63,6 @@
 
 #define MPIEXEC_BINARY BINDIR "/mpiexec"
 
-#define DEBUG_MPIEXEC_OPTIONS 0
-
 static int jobCallback(int32_t exit_status, Forwarder_Data_t *fw)
 {
     Job_t *job = fw->userData;
@@ -102,7 +101,7 @@ static int jobCallback(int32_t exit_status, Forwarder_Data_t *fw)
 	mlog("%s: starting epilogue for allocation %u\n", __func__, alloc->id);
 	mdbg(PSSLURM_LOG_JOB, "%s: job '%u' in '%s'\n", __func__,
 		job->jobid, strJobState(job->state));
-	startPElogue(alloc, PELOGUE_EPILOGUE);
+	startEpilogue(alloc);
     }
 
     job->fwdata = NULL;
@@ -145,7 +144,7 @@ static int stepFWIOcallback(int32_t exit_status, Forwarder_Data_t *fw)
 	/* run epilogue now */
 	mlog("%s: starting epilogue for step '%u:%u'\n", __func__, step->jobid,
 		step->stepid);
-	startPElogue(alloc, PELOGUE_EPILOGUE);
+	startEpilogue(alloc);
     }
 
     return 0;
@@ -166,10 +165,9 @@ static int stepCallback(int32_t exit_status, Forwarder_Data_t *fw)
 	 step->jobid, step->stepid, strJobState(step->state), exit_status,
 	 fw->estatus);
 
-
     /* make sure all processes are gone */
     signalStep(step, SIGKILL, 0);
-    killChild(step->loggerTID, SIGKILL);
+    killChild(PSC_getPID(step->loggerTID), SIGKILL);
 
     freeSlurmMsg(&step->srunIOMsg);
 
@@ -209,7 +207,7 @@ static int stepCallback(int32_t exit_status, Forwarder_Data_t *fw)
 	/* run epilogue now */
 	mlog("%s: starting epilogue for step '%u:%u'\n", __func__, step->jobid,
 		step->stepid);
-	startPElogue(alloc, PELOGUE_EPILOGUE);
+	startEpilogue(alloc);
     }
 
     if (!alloc) {
@@ -267,6 +265,9 @@ void switchUser(char *username, uid_t uid, gid_t gid, char *cwd)
 		strerror(errno));
 	exit(1);
     }
+
+    /* re-enable capability to create coredumps */
+    prctl(PR_SET_DUMPABLE, 1);
 
     /* change to job working directory */
     if (cwd && (chdir(cwd)) == -1) {
@@ -704,14 +705,29 @@ static void setupStepIO(Forwarder_Data_t *fwdata, Step_t *step)
     }
 }
 
-static bool isPMIdisabled(Step_t *step)
+/* choose PMI layer, default is MPICH's Simple PMI */
+static pmi_type_t getPMIType(Step_t *step)
 {
-    char *val;
+    char *pmi;
 
-    if ((val = envGet(&step->env, "SLURM_MPI_TYPE"))) {
-	if (!strcmp(val, "none")) return true;
+    /* PSSLURM_PMI_TYPE can be used to choose pmi environment to be set up */
+    pmi = envGet(&step->env, "PSSLURM_PMI_TYPE");
+    if (pmi == NULL) return PMI_TYPE_DEFAULT;
+    mlog("%s: '%u:%u' PSSLURM_PMI_TYPE set to '%s'\n", __func__, step->jobid,
+	    step->stepid, pmi);
+    if (strcmp(pmi, "none") == 0) return PMI_TYPE_NONE;
+    if (strcmp(pmi, "pmix") == 0) return PMI_TYPE_PMIX;
+
+    /* if PSSLURM_PMI_TYPE is not set and srun is called with --mpi=none,
+     *  do not setup any pmi environment */
+    pmi = envGet(&step->env, "SLURM_MPI_TYPE");
+    if (pmi != NULL && (strcmp(pmi, "none") == 0)) {
+	mlog("%s: '%u:%u' SLURM_MPI_TYPE set to 'none'\n", __func__,
+		step->jobid, step->stepid);
+	return PMI_TYPE_NONE;
     }
-    return false;
+
+    return PMI_TYPE_DEFAULT;
 }
 
 static void debugMpiexecStart(char **argv, char **env)
@@ -739,7 +755,7 @@ static void debugMpiexecStart(char **argv, char **env)
  * @param PMIdisabled Flag to signal if PMI is used
  */
 static void buildMpiexecArgs(Forwarder_Data_t *fwdata, strv_t *argV,
-			     bool PMIdisabled)
+				pmi_type_t pmi_type)
 {
     Step_t *step = fwdata->userData;
     char buf[128];
@@ -765,8 +781,19 @@ static void buildMpiexecArgs(Forwarder_Data_t *fwdata, strv_t *argV,
     if (step->taskFlags & LAUNCH_PTY) strvAdd(argV, ustrdup("-i"));
     /* label output */
     if (step->taskFlags & LAUNCH_LABEL_IO) strvAdd(argV, ustrdup("-l"));
-    /* PMI layer support */
-    if (PMIdisabled) strvAdd(argV, ustrdup("--pmidisable"));
+
+    /* choose PMI layer, default is MPICH's Simple PMI */
+    switch (pmi_type) {
+	case PMI_TYPE_NONE:
+	    strvAdd(argV, ustrdup("--pmidisable"));
+	    break;
+	case PMI_TYPE_PMIX:
+	    strvAdd(argV, ustrdup("--pmix"));
+	    break;
+	case PMI_TYPE_DEFAULT:
+	default:
+	    break;
+    }
 
     if (step->taskFlags & LAUNCH_MULTI_PROG) {
 	setupArgsFromMultiProg(step, fwdata, argV);
@@ -828,12 +855,14 @@ static void execJobStep(Forwarder_Data_t *fwdata, int rerun)
     Step_t *step = fwdata->userData;
     strv_t argV;
     char buf[128];
-    bool PMIdisabled = isPMIdisabled(step);
+    pmi_type_t pmi_type;
+    int32_t oldMask = psslurmlogger->mask;
 
     /* reopen syslog */
     openlog("psid", LOG_PID|LOG_CONS, LOG_DAEMON);
     snprintf(buf, sizeof(buf), "psslurm-step:%u.%u", step->jobid, step->stepid);
     initLogger(buf, NULL);
+    maskLogger(oldMask);
 
     /* setup standard I/O and pty */
     setupStepIO(fwdata, step);
@@ -844,8 +873,11 @@ static void execJobStep(Forwarder_Data_t *fwdata, int rerun)
     /* switch user */
     switchUser(step->username, step->uid, step->gid, step->cwd);
 
+    /* descide which pmi type to use */
+    pmi_type = getPMIType(step);
+
     /* build mpiexec argument vector */
-    buildMpiexecArgs(fwdata, &argV, PMIdisabled);
+    buildMpiexecArgs(fwdata, &argV, pmi_type);
 
     /* setup step specific env */
     setStepEnv(step);
@@ -859,10 +891,12 @@ static void execJobStep(Forwarder_Data_t *fwdata, int rerun)
     /* set rlimits */
     setRlimitsFromEnv(&step->env, 1);
 
-    /* remove environment variables not evaluted by mpiexec */
-    removeUserVars(&step->env, PMIdisabled);
+    /* remove environment variables not evaluated by mpiexec */
+    removeUserVars(&step->env, pmi_type);
 
-    if (DEBUG_MPIEXEC_OPTIONS) debugMpiexecStart(argV.strings, step->env.vars);
+    if (psslurmlogger->mask & PSSLURM_LOG_PROCESS) {
+	debugMpiexecStart(argV.strings, step->env.vars);
+    }
 
     /* start mpiexec to spawn the parallel job */
     closelog();
@@ -879,16 +913,76 @@ static void execJobStep(Forwarder_Data_t *fwdata, int rerun)
     exit(err);
 }
 
+static int switchEffectiveUser(char *username, uid_t uid, gid_t gid)
+{
+    /* remove psslurm group memberships */
+    if ((setgroups(0, NULL)) == -1) {
+	mlog("%s: setgroups(0) failed : %s\n", __func__, strerror(errno));
+	return -1;
+    }
+
+    /* set supplementary groups */
+    if ((initgroups(username, gid)) < 0) {
+	mlog("%s: initgroups() failed : %s\n", __func__, strerror(errno));
+	return -1;
+    }
+
+    /* change effective gid */
+    if ((setegid(gid)) < 0) {
+	mlog("%s: setgid(%i) failed : %s\n", __func__, gid, strerror(errno));
+	return -1;
+    }
+
+    /* change effective uid */
+    if ((seteuid(uid)) < 0) {
+	mlog("%s: setuid(%i) failed : %s\n", __func__, uid, strerror(errno));
+	return -1;
+    }
+
+    if (prctl(PR_SET_DUMPABLE, 1) == -1) {
+	mwarn(errno, "%s: prctl(PR_SET_DUMPABLE) failed: ", __func__);
+    }
+
+    return 1;
+}
+
 static int stepForwarderInit(Forwarder_Data_t *fwdata)
 {
     Step_t *step = fwdata->userData;
     step->fwdata = fwdata;
 
+    if (switchEffectiveUser(step->username, step->uid, step->gid) == -1) {
+	mlog("%s: switching effective user failed\n", __func__);
+    }
+
     /* check if we can change working dir */
     if (step->cwd && chdir(step->cwd) == -1) {
-	mlog("%s: chdir to '%s' failed : %s\n", __func__, step->cwd,
-		strerror(errno));
+	mlog("%s: chdir for uid %u gid %u to '%s' failed : %s\n",
+	     __func__, step->uid, step->gid, step->cwd, strerror(errno));
 	return - ESCRIPT_CHDIR_FAILED;
+    }
+
+    /* redirect stdout/stderr/stdin */
+    if (!(step->taskFlags & LAUNCH_PTY)) {
+	if (!(step->taskFlags & LAUNCH_USER_MANAGED_IO)) {
+	    redirectStepIO(fwdata, step);
+	}
+    }
+
+    /* change the uid */
+    if (seteuid(0) < 0) {
+	mlog("%s: setuid(0) failed : %s\n", __func__, strerror(errno));
+	return -1;
+    }
+
+    /* change the gid */
+    if (setegid(0) < 0) {
+	mlog("%s: setgid(0) failed : %s\n", __func__, strerror(errno));
+	return -1;
+    }
+
+    if (prctl(PR_SET_DUMPABLE, 1) == -1) {
+	mwarn(errno, "%s: prctl(PR_SET_DUMPABLE) failed: ", __func__);
     }
 
     /* open stderr/stdout/stdin fds */
@@ -899,12 +993,8 @@ static int stepForwarderInit(Forwarder_Data_t *fwdata)
 	    mlog("%s: openpty() failed\n", __func__);
 	    return -1;
 	}
-    } else {
-	/* user will take care of I/O handling */
-	if (step->taskFlags & LAUNCH_USER_MANAGED_IO) return 1;
-
-	redirectStepIO(fwdata, step);
     }
+
     return 1;
 }
 
@@ -1001,8 +1091,13 @@ int execUserStep(Step_t *step)
     fwdata->hookFinalize = stepFinalize;
 
     if (!startForwarder(fwdata)) {
-	mlog("%s: starting forwarder for step '%u:%u' failed\n", __func__,
-		step->jobid, step->stepid);
+	char msg[128];
+
+	snprintf(msg, sizeof(msg), "starting forwarder for step '%u:%u' "
+		 "failed\n", step->jobid, step->stepid);
+	flog(msg);
+	setNodeOffline(&step->env, step->jobid,
+		       getConfValueC(&Config, "SLURM_HOSTNAME"), msg);
 	return 0;
     }
     step->fwdata = fwdata;
@@ -1033,8 +1128,13 @@ bool execUserJob(Job_t *job)
     fwdata->hookChild = handleChildStartJob;
 
     if (!startForwarder(fwdata)) {
-	mlog("%s: starting forwarder for job '%u' failed\n",
-	     __func__, job->jobid);
+	char msg[128];
+
+	snprintf(msg, sizeof(msg), "starting forwarder for job '%u' failed\n",
+		 job->jobid);
+	flog(msg);
+	setNodeOffline(&job->env, job->jobid,
+		       getConfValueC(&Config, "SLURM_HOSTNAME"), msg);
 	return false;
     }
 
@@ -1140,8 +1240,13 @@ int execUserBCast(BCast_t *bcast)
     fwdata->childFunc = execBCast;
 
     if (!startForwarder(fwdata)) {
-	mlog("%s: starting forwarder for bcast '%u' failed\n",
-		__func__, bcast->jobid);
+	char msg[128];
+
+	snprintf(msg, sizeof(msg), "starting forwarder for bcast '%u' failed\n",
+		 bcast->jobid);
+	flog(msg);
+	setNodeOffline(bcast->env, bcast->jobid,
+		       getConfValueC(&Config, "SLURM_HOSTNAME"), msg);
 	return 0;
     }
 
@@ -1200,8 +1305,13 @@ int execStepFWIO(Step_t *step)
     fwdata->hookFinalize = stepFinalize;
 
     if (!startForwarder(fwdata)) {
-	mlog("%s: starting forwarder for step '%u:%u' failed\n",
-		__func__, step->jobid, step->stepid);
+	char msg[128];
+
+	snprintf(msg, sizeof(msg), "starting I/O forwarder for step '%u:%u' "
+		 "failed\n", step->jobid, step->stepid);
+	flog(msg);
+	setNodeOffline(&step->env, step->jobid,
+		       getConfValueC(&Config, "SLURM_HOSTNAME"), msg);
 	return 0;
     }
     step->fwdata = fwdata;

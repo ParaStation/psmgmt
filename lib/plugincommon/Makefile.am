@@ -15,7 +15,7 @@ noinst_LTLIBRARIES = libplugincommon.la
 
 libplugincommon_la_SOURCES = pluginconfig.c pluginhelper.c	\
 	pluginlog.c pluginmalloc.c pluginstrv.c pluginpty.c	\
-	pluginpartition.c pluginforwarder.c
+	pluginpartition.c pluginforwarder.c pluginvector.c
 
 pluginforwarder.lo: CPPFLAGS = $(AM_CPPFLAGS) \
 			-DLOCALSTATEDIR=\"$(localstatedir)\"

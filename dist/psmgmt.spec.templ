@@ -1,7 +1,7 @@
 #                                                       -*- rpm-spec -*-
 # ParaStation
 #
-# Copyright (C) 2005-2017 ParTec Cluster Competence Center GmbH, Munich
+# Copyright (C) 2005-2018 ParTec Cluster Competence Center GmbH, Munich
 #
 # This file may be distributed under the terms of the Q Public License
 # as defined in the file LICENSE.QPL included in the packaging of this
@@ -11,7 +11,7 @@
 %{?_without_systemd: %global disable_systemd 1}
 %{?_without_munge: %global disable_munge 1}
 %{?_without_pam: %global disable_pam 1}
-%{?_without_slurm1605: %global disable_slurm1605 1}
+%{?_without_spank: %global disable_spank 1}
 
 %if ( 0%{?rhel} && 0%{?rhel} < 7 ) || %(pkg-config --exists systemd; echo $?) != 0
 %global disable_systemd 1
@@ -23,13 +23,12 @@
 
 Summary:   ParaStation Process Management
 Vendor:    ParTec Cluster Competence Center GmbH, Munich, Germany
-Name:      psmgmt%{?disable_psconfig:-parastationconf}%{?disable_slurm1605:-slurm1403}
+Name:      psmgmt%{?disable_psconfig:-parastationconf}
 Version:   @VERSION_psmgmt@
 Release:   @RELEASE_psmgmt@
 License:   QPL
 Group:     Productivity/Clustering/Computing
 Packager:  support@par-tec.de
-Obsoletes: psmgmt-slurm1605 <= 5.0.54
 Source0:   psmgmt-%{version}-%{release}.tar.gz
 %if !0%{?disable_psconfig}
 Requires:  psconfig >= 1.0, glib2 >= 2.22.5
@@ -38,6 +37,9 @@ BuildRequires:	psconfig-dev, glib2-devel
 BuildRequires:	popt-devel
 %if !0%{?disable_pam}
 BuildRequires:	pam-devel
+%endif
+%if !0%{?disable_spank}
+BuildRequires:	slurm-devel
 %endif
 %if 0%{?suse_version}
 BuildRequires:	libnuma-devel
@@ -118,6 +120,15 @@ The ParaStation Slurm plugin is a complete replacement of the slurmd on
 compute nodes. No other daemon is necessary to integrate compute nodes into
 a Slurm batch system.
 
+%package pspmix
+Summary:   The PMIx plugin of the ParaStation process management
+Group:     Productivity/Clustering/Computing
+Requires:  %{name} = %{version}
+
+%description pspmix
+The ParaStation PMIx plugin provides support for PMIx based on the libpmix.
+It works standalone or together with psslurm.
+
 
 %if 0%{?suse_version}
 %debug_package
@@ -131,7 +142,7 @@ export CFLAGS="%(echo %{optflags}|sed -e 's,-O.,,')"
 %configure --datarootdir=%{_datarootdir} --with-pamdir=%{_pamdir} \
 	   %{?disable_psconfig:--disable-psconfig} \
 	   %{?disable_systemd:--with-unitdir=no} \
-	   %{?disable_slurm1605:--disable-slurm_1605}
+	   %{?disable_spank:--disable-spank}
 make %{?_smp_mflags}
 
 %install
@@ -254,6 +265,16 @@ exit 0
 %config(noreplace) %{_plugindir}/psaccount.conf
 %{_plugindir}/psexec.so
 %exclude %{_plugindir}/psexec.la
+%{_plugindir}/psgw.so
+%exclude %{_plugindir}/psgw.la
+%doc plugins/psgw/doc/psgw.conf.template
+%doc plugins/psgw/doc/psgw_error.example
+%if !0%{?disable_spank}
+%dir %{_libdir}/slurm
+%{_libdir}/slurm/psgw_spank.so
+%exclude %{_libdir}/slurm/psgw_spank.la
+%{_libexecdir}/psgw
+%endif
 %if !0%{?disable_munge}
 %{_plugindir}/psmunge.so
 %exclude %{_plugindir}/psmunge.la
@@ -350,3 +371,8 @@ exit 0
 %attr(750,root,root) %{_spooldir}/account
 %attr(750,root,root) %{_spooldir}/backup
 %attr(751,root,root) %{_spooldir}/scripts
+
+%files pspmix
+%defattr(-,root,root,-)
+%{_plugindir}/pspmix.so
+%exclude %{_plugindir}/pspmix.la

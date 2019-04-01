@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2018 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2019 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -23,6 +23,7 @@
 #include "pspartition.h"
 #include "hardware.h"
 #include "psreservation.h"
+#include "psserial.h"
 
 #include "psidutil.h"
 #include "psidcomm.h"
@@ -2938,6 +2939,117 @@ static void handleResRequests(PStask_t *task);
 static PSrsrvtn_t *deqRes(list_t *queue, PSrsrvtn_t *res);
 
 /**
+ * @brief Distribute reservation information to involved nodes
+ *
+ * Provide information on process distribution inside of a reservation to
+ * all nodes that are part of that reservation. For this, one or more messages
+ * of type PSP_DD_RESCREATED are emitted. The collection of messages will
+ * contain the distribution information (which rank will run on which node).
+ *
+ * @param res The reservation to distribute
+ *
+ * @return On success, true is returned, or false if an error occurred.
+ */
+static bool send_RESCREATED(PStask_t *task, PSrsrvtn_t *res)
+{
+    PS_SendDB_t msg;
+    int i;
+
+    if (res->nSlots < 1) {
+	PSID_log(-1, "%s: No slots in reservation %#x\n", __func__, res->rid);
+	return false;
+    }
+
+    /* send message to each involved node */
+    initFragBuffer(&msg, PSP_DD_RESCREATED, -1);
+    for (i = 0; i < res->nSlots; i++) {
+	PSnodes_ID_t node = res->slots[i].node;
+	if (i > 0 && node == res->slots[i-1].node) continue; // don't send twice
+
+	if (setFragDestUniq(&msg, PSC_getTID(node, 0))) {
+	    PSID_log(PSID_LOG_PART, "%s: send PSP_DD_RESCREATED to node %d\n",
+		     __func__, node);
+	}
+    }
+
+    addInt32ToMsg(res->rid, &msg); // reservation ID
+    addTaskIdToMsg(task->tid, &msg); // logger's task ID
+
+    /* compress information into message, optimized for pack nodes first */
+    int32_t firstrank = res->firstRank;
+    for (i = 0; i < res->nSlots; i++) {
+	PSnodes_ID_t node = res->slots[i].node;
+
+	// wait for the last slot per node
+	if (i < res->nSlots-1 && node == res->slots[i+1].node) continue;
+
+	int32_t lastrank = res->firstRank + i;
+
+	addNodeIdToMsg(node, &msg);
+	addInt32ToMsg(firstrank, &msg);
+	addInt32ToMsg(lastrank, &msg);
+
+	firstrank = lastrank + 1;
+    }
+
+    if (sendFragMsg(&msg) == -1) {
+	PSID_log(-1, "%s: sending failed\n", __func__);
+	return false;
+    }
+
+    return true;
+}
+
+/**
+ * @brief Distribute info on released reservation to involved nodes
+ *
+ * Provide information that a reservation got deleted to all nodes
+ * that were part of that reservation. For this, one or more messages
+ * of type PSP_DD_RESRELEASED are emitted.
+ *
+ * @param res ID of the reservation to be released
+ *
+ * @return On success, true is returned, or false if an error occurred.
+ */
+static bool send_RESRELEASED(PSrsrvtn_t *res)
+{
+    DDBufferMsg_t msg = {
+	.header = {
+	    .type = PSP_DD_RESRELEASED,
+	    .dest = PSC_getTID(-1, 0),
+	    .sender = PSC_getMyTID(),
+	    .len = sizeof(msg.header) },
+	.buf = { '\0' }};
+    int i;
+
+    if (!res->slots) {
+	PSID_log(-1, "%s: No slots in reservation %#x\n", __func__, res->rid);
+	return false;
+    }
+
+    PSP_putMsgBuf(&msg, __func__, "resID", &res->rid, sizeof(res->rid));
+    PSP_putMsgBuf(&msg, __func__, "loggertid", &res->task, sizeof(res->task));
+
+    for (i = 0; i < res->nSlots; i++) {
+	PSnodes_ID_t node = res->slots[i].node;
+	if (i > 0 && node == res->slots[i-1].node) continue; // don't send twice
+
+	// break on looping nodes (@todo this might not be sufficient!)
+	if (i > 0 && node == res->slots[0].node) break;
+
+	PSID_log(PSID_LOG_PART, "%s: send RESRELEASED to %hu for resID %d)\n",
+		 __func__, node, res->rid);
+
+	msg.header.dest =  PSC_getTID(node, 0);
+	if (sendMsg(&msg) == -1 && errno != EWOULDBLOCK) {
+	    PSID_warn(-1, errno, "%s: sendMsg()", __func__);
+	    return false;
+	}
+    }
+    return true;
+}
+
+/**
  * @brief Handle a PSP_DD_CHILDRESREL message.
  *
  * Handle the message @a msg of type PSP_DD_CHILDRESREL.
@@ -3007,6 +3119,7 @@ static void msg_CHILDRESREL(DDBufferMsg_t *msg)
 		if (res->relSlots == res->nSlots) {
 		    resDone = true;
 		    deqRes(&task->reservations, res);
+		    send_RESRELEASED(res);
 		    if (res->slots) {
 			free(res->slots);
 			res->slots = NULL;
@@ -3274,7 +3387,7 @@ static void msg_NODESRES(DDBufferMsg_t *msg)
  * Enqueue the reservation @a res to the queue @a queue. The
  * reservation might be incomplete when queued and can be found within
  * this queue via @ref findRes() and should be removed from it using
- * the @ref deqPart() function.
+ * the @ref deqRes() function.
  *
  * @param queue The queue the request should be appended to.
  *
@@ -3473,6 +3586,9 @@ static int PSIDpart_getReservation(PSrsrvtn_t *res)
  * task's resRequests list. Otherwise the request is dequeued, and a
  * fatal PSP_CD_RESERVATIONRES is sent to the reserver.
  *
+ * As a side effect, all involved nodes within the reservation are
+ * told about that via a PSP_DD_RESCREATED message.
+ *
  * @param r The reservation request to handle.
  *
  * @return On success the number of assigned slots is returned. If
@@ -3565,6 +3681,7 @@ no_task_error:
 	PSID_log(PSID_LOG_PART, "%s: add %d slots to reservation %#x\n",
 		 __func__, got, r->rid);
 	enqRes(&task->reservations, r);
+	send_RESCREATED(task, r);
 
 	PSP_putMsgBuf(&msg, __func__, "rid", &r->rid, sizeof(r->rid));
 	PSP_putMsgBuf(&msg, __func__, "nSlots", &r->nSlots, sizeof(r->nSlots));
@@ -3675,6 +3792,7 @@ int PSIDpart_extendRes(PStask_ID_t tid, PSrsrvtn_ID_t resID,
     PSID_log(PSID_LOG_PART, "%s: add %d slots to reservation %#x\n", __func__,
 	     got, res->rid);
     enqRes(&task->reservations, res);
+    send_RESCREATED(task, res);
 
     PSP_putMsgBuf(&msg, __func__, "rid", &res->rid, sizeof(res->rid));
     PSP_putMsgBuf(&msg, __func__, "nSlots", &res->nSlots, sizeof(res->nSlots));
@@ -3852,6 +3970,7 @@ void PSIDpart_cleanupRes(PStask_t *task)
 	}
 
 	deqRes(&task->reservations, res);
+	send_RESRELEASED(res);
 
 	if (res->slots) {
 	    released += releaseThreads(res->slots + res->nextSlot,

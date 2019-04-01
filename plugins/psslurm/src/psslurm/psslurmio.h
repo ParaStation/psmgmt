@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2015-2018 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2015-2019 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -68,5 +68,15 @@ void initStepIO(Step_t *step);
 void sendStepTimeout(Forwarder_Data_t *fwdata);
 int hookFWmsg(PSLog_Msg_t *msg, Forwarder_Data_t *fwData);
 void sendBrokeIOcon(Step_t *step);
+
+/**
+ * @brief Convert a Slurm I/O option to string
+ *
+ * @param opt The I/O option to convert
+ *
+ * @return Returns the string representation of the
+ * give Slurm I/O option.
+ */
+const char *strIOopt(int opt);
 
 #endif  /* __PS_SLURM_IO */

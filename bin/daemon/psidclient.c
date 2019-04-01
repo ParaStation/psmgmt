@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2018 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2019 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -1045,6 +1045,12 @@ static void msg_CC_MSG(DDBufferMsg_t *msg)
     PSID_log(PSID_LOG_CLIENT, "%s: from %s", __func__,
 	     PSC_printTID(msg->header.sender));
     PSID_log(PSID_LOG_CLIENT, " to %s\n", PSC_printTID(msg->header.dest));
+
+    if (msg->header.dest == PSC_getMyTID()) {
+	PSID_log(-1, "%s: from %s to me?! Dropping...\n", __func__,
+		 PSC_printTID(msg->header.sender));
+	PSID_dropMsg(msg);
+    }
 
     /* Forward this message. If this fails, send an error message. */
     if (sendMsg(msg) == -1 && errno != EWOULDBLOCK) {

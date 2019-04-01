@@ -163,7 +163,7 @@ int initialize(void)
 void cleanup(void)
 {
     /* remove all timer */
-    Timer_remove(mainTimerID);
+    if (mainTimerID != -1) Timer_remove(mainTimerID);
 
     finalizeAccComm();
 

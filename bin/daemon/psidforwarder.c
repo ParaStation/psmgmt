@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2018 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2019 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -829,6 +829,11 @@ static size_t collectRead(int sock, char *buf, size_t count, size_t *total)
 
     *total = 0;
 
+    if (sock < 0) {
+	errno = EBADF;
+	return -1;
+    }
+
     do {
 	fd_set fds;
 	struct timeval timeout;
@@ -1167,7 +1172,7 @@ static void sendSpawnFailed(PStask_t *task, int eno)
     bufAvail = sizeof(answer.buf) - bufUsed;
 
     do {
-	collectRead(childTask->stderr_fd, ptr, bufAvail, &read);
+	collectRead(task->stderr_fd, ptr, bufAvail, &read);
 	bufAvail -= read;
 	answer.header.len += read;
 	ptr += read;
@@ -1192,18 +1197,23 @@ static void sendSpawnFailed(PStask_t *task, int eno)
  * the actual spawn of the child-process was successful and the
  * forwarder will switch to normal operations.
  *
- * @param task Structure describing the child-process that was
- * successfully spawned.
+ * After receiving a PSP_DD_CHILDACK message as an answer it will
+ * either signal the child process -- by just closing @a clientFD --
+ * to execv() the actual client process or to just exit() -- upon
+ * receiving some non-NULL data.
  *
- * @return On success, 0 is returned. Or -1, if an error
- * occurred. Then errno is set appropriately.
+ * @param task Structure describing the client-process that was
+ * successfully fork()ed and waits to be execv()ed
+ *
+ * @param clientFD File descriptor connected to the client process
+ *
+ * @return On success true is returned or false if an error occurred
  */
-static int sendChildBorn(PStask_t *task)
+static bool sendChildBorn(PStask_t *task, int clientFD)
 {
     DDErrorMsg_t msg;
     PSLog_Msg_t answer;
-    struct timeval timeout;
-    int ret, eno;
+    int ret;
 
     msg.header.type = PSP_DD_CHILDBORN;
     msg.header.dest = task->ptid;
@@ -1216,7 +1226,7 @@ static int sendChildBorn(PStask_t *task)
 send_again:
     sendDaemonMsg((DDMsg_t *)&msg);
 
-    timeout = (struct timeval) {10, 0};
+    struct timeval timeout = {10, 0};
 again:
     ret = recvMsg(&answer, &timeout);
 
@@ -1226,40 +1236,33 @@ again:
 	    goto again;
 	    break;
 	default:
-	    eno = errno;
-	    PSID_warn(-1, eno, "%s: recvMsg()", __func__);
-	    errno = eno;
-	    return -1;
+	    PSID_warn(-1, errno, "%s: recvMsg()", __func__);
 	}
     } else if (!ret) {
 	PSID_log(-1, "%s: receive timed out. Send again\n", __func__);
 	goto send_again;
     } else if (answer.header.type == PSP_DD_CHILDACK) {
-	if (childTask->fd > -1) {
-	    close(childTask->fd);
-	    childTask->fd = -1;
+	if (clientFD > -1) {
+	    close(clientFD);
+	    return true;
 	} else {
 	    PSID_log(-1, "%s: cannot start child", __func__);
-	    errno = EPIPE;
-	    return -1;
 	}
     } else {
-	ssize_t ret = 0;
+	ssize_t written = 0;
 	PSID_log(-1, "%s: wrong answer type %s, don't execve() child\n",
 		 __func__, PSDaemonP_printMsg(answer.header.type));
-	if (childTask->fd > -1) {
-	    ret = write(childTask->fd, "x", 1);
-	    close(childTask->fd);
+	if (clientFD > -1) {
+	    written = write(clientFD, "x", 1);
+	    close(clientFD);
 	}
-	if (ret != 1) {
+	if (written != 1) {
 	    PSID_log(-1, "%s: cannot stop child, try to kill", __func__);
 	    sendSignal(PSC_getPID(childTask->tid), SIGKILL);
 	}
-	errno = ECHILD;
-	return -1;
     }
 
-    return 0;
+    return false;
 }
 
 /**
@@ -1312,28 +1315,28 @@ static void waitForChildsDead(void)
 }
 
 /* see header file for documentation */
-void PSID_forwarder(PStask_t *task, int daemonfd, int eno)
+void PSID_forwarder(PStask_t *task, int clientFD, int eno)
 {
     static PSLog_msg_t stdoutType = STDOUT, stderrType = STDERR;
     char pTitle[50];
     char *envStr, *timeoutStr;
     long flags, val;
 
-    /* Ensure that PSLog can handle daemonfd via select() */
-    if (daemonfd >= FD_SETSIZE) {
-	int newFD = dup(daemonfd);
+    /* Ensure that PSLog can handle file descriptor to daemon via select() */
+    if (task->fd >= FD_SETSIZE) {
+	int newFD = dup(task->fd);
 	if (newFD >= FD_SETSIZE) {
-	    PSID_exit(ECHRNG, "%s: daemonfd %d", __func__, newFD);
+	    PSID_exit(ECHRNG, "%s: task->fd %d", __func__, newFD);
 	}
-	close(daemonfd);
-	daemonfd = newFD;
+	close(task->fd);
+	task->fd = newFD;
     }
 
     /* Allow to create coredumps */
     prctl(PR_SET_DUMPABLE, 1, /* rest ignored */ 0, 0, 0);
 
     childTask = task;
-    daemonSock = daemonfd;
+    daemonSock = task->fd;
 
     sigset_t set;
     sigemptyset(&set);
@@ -1372,7 +1375,7 @@ void PSID_forwarder(PStask_t *task, int daemonfd, int eno)
 	sendSpawnFailed(childTask, eno);
 	exit(1);
     } else {
-	if (sendChildBorn(childTask)) waitForChildsDead();
+	if (!sendChildBorn(childTask, clientFD)) waitForChildsDead();
     }
 
     /* Make stdin non-blocking for us */
@@ -1410,7 +1413,7 @@ void PSID_forwarder(PStask_t *task, int daemonfd, int eno)
 
     if (verbose) {
 	PSIDfwd_printMsgf(STDERR, "%s: childTask=%s daemon=%d",
-			  tag, PSC_printTID(task->tid), daemonfd);
+			  tag, PSC_printTID(task->tid), daemonSock);
 	PSIDfwd_printMsgf(STDERR, " stdin=%d stdout=%d stderr=%d\n",
 			  task->stdin_fd, task->stdout_fd,  task->stderr_fd);
     }

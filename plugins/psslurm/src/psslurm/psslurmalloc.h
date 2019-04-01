@@ -22,8 +22,7 @@
 
 typedef enum {
     A_INIT = 0x020,
-    A_PROLOGUE,
-    A_PROLOGUE_FINISH,
+    A_PROLOGUE_FINISH = 0x022,
     A_RUNNING,
     A_EPILOGUE,
     A_EPILOGUE_FINISH,

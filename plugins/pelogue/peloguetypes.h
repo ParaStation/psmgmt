@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2015-2018 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2015-2019 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -86,6 +86,7 @@ typedef struct {
     env_t *env;		    /**< environment provided to the pelogue */
     uid_t uid;		    /**< user ID of the job owner */
     gid_t gid;		    /**< group ID of the job owner */
+    PStask_ID_t src;	    /**< task ID of RPC source -- used by psgw */
     PElogueResourceCb_t *cb;/**< callback to return the result */
 } PElogueResource_t;
 

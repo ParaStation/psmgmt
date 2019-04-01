@@ -101,6 +101,7 @@ build_triplet = @build@
 host_triplet = @host@
 target_triplet = @target@
 @MUNGE_ENABLED_TRUE@am__append_1 = psmunge
+@BUILD_WITHOUT_PSPMIX_FALSE@am__append_2 = pspmix
 subdir = plugins
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/m4/ax_check_compile_flag.m4 \
@@ -167,8 +168,8 @@ am__define_uniq_tagged_files = \
   done | $(am__uniquify_input)`
 ETAGS = etags
 CTAGS = ctags
-DIST_SUBDIRS = cgroup jail pelogue psaccount psexec psmom pspam pspmi \
-	psresport psslurm psmunge
+DIST_SUBDIRS = cgroup jail pelogue psaccount psexec psgw psmom pspam \
+	pspmi psresport psslurm psmunge pspmix
 am__DIST_COMMON = $(srcdir)/Makefile.in $(top_srcdir)/common.am
 DISTFILES = $(DIST_COMMON) $(DIST_SOURCES) $(TEXINFOS) $(EXTRA_DIST)
 am__relativize = \
@@ -313,6 +314,8 @@ mkdir_p = @mkdir_p@
 oldincludedir = @oldincludedir@
 pamdir = @pamdir@
 pdfdir = @pdfdir@
+pmix_CFLAGS = @pmix_CFLAGS@
+pmix_LIBS = @pmix_LIBS@
 prefix = @prefix@
 program_transform_name = @program_transform_name@
 psconfig_CFLAGS = @psconfig_CFLAGS@
@@ -352,6 +355,8 @@ do_subst = sed \
 	-e 's,[@]default_cgroup_name[@],$(default_cgroup_name),g'
 
 pamconfdir = $(sysconfdir)/pam.d
+slurmlibdir = $(libdir)/slurm
+psgwlibdir = $(libexecdir)/psgw
 
 # should be $(libdir)/psmgmt-plugins or similar
 plugindir = $(prefix)/plugins
@@ -371,14 +376,14 @@ scriptsdir = $(prefix)/scripts
 #
 # ParaStation
 #
-# Copyright (C) 2012-2018 ParTec Cluster Competence Center GmbH, Munich
+# Copyright (C) 2012-2019 ParTec Cluster Competence Center GmbH, Munich
 #
 # This file may be distributed under the terms of the Q Public License
 # as defined in the file LICENSE.QPL included in the packaging of this
 # file.
 #
-SUBDIRS = cgroup jail pelogue psaccount psexec psmom pspam pspmi \
-	psresport psslurm $(am__append_1)
+SUBDIRS = cgroup jail pelogue psaccount psexec psgw psmom pspam pspmi \
+	psresport psslurm $(am__append_1) $(am__append_2)
 all: all-recursive
 
 .SUFFIXES:

@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2014-2018 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2014-2019 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -204,6 +204,17 @@ static void rejectPartRequest(PStask_ID_t dest, PStask_t *task)
     }
 }
 
+static void printHWthreads(uint32_t numThreads, PSpart_HWThread_t *threads)
+{
+    uint32_t i;
+
+    if (!(psslurmlogger->mask & PSSLURM_LOG_PROCESS)) return;
+
+    for(i=0; i<numThreads; i++) {
+	flog("thread %i node %i id %i\n", i, threads[i].node, threads[i].id);
+    }
+}
+
 /**
  * @brief Handle a create partition message
  *
@@ -289,6 +300,8 @@ static int handleCreatePart(void *msg)
     }
 
     task->totalThreads = numThreads;
+
+    printHWthreads(numThreads, task->partThrds);
 
     /* further preparations of the task structure */
     task->options |= PART_OPT_EXACT;
@@ -455,8 +468,7 @@ static int callbackNodeOffline(uint32_t id, int32_t exit, PSnodes_ID_t remote,
     return 0;
 }
 
-void setNodeOffline(env_t *env, uint32_t id, PSnodes_ID_t dest,
-			const char *host, char *reason)
+void setNodeOffline(env_t *env, uint32_t id, const char *host, char *reason)
 {
     env_t clone;
 
@@ -469,8 +481,9 @@ void setNodeOffline(env_t *env, uint32_t id, PSnodes_ID_t dest,
     envSet(&clone, "SLURM_HOSTNAME", host);
     envSet(&clone, "SLURM_REASON", reason);
 
-    mlog("%s: node '%s' exec script on node %i\n", __func__, host, dest);
-    psExecStartScript(id, "psslurm-offline", &clone, dest, callbackNodeOffline);
+    flog("node '%s' exec script on node %i\n", host, slurmController);
+    psExecStartScript(id, "psslurm-offline", &clone, slurmController,
+		      callbackNodeOffline);
 
     envDestroy(&clone);
 }
@@ -704,7 +717,7 @@ static void handle_EpilogueLaunch(DDTypedBufferMsg_t *msg)
 	    alloc->state != A_EPILOGUE_FINISH &&
 	    alloc->state != A_EXIT) {
 	    flog("id %u\n", id);
-	    startPElogue(alloc, PELOGUE_EPILOGUE);
+	    startEpilogue(alloc);
 	}
     }
 }
@@ -800,7 +813,7 @@ static void handle_EpilogueStateReq(DDTypedBufferMsg_t *msg)
 	    alloc->state != A_EXIT) {
 	    flog("starting epilogue for allocation %u state %s\n", id,
 		 strAllocState(alloc->state));
-	    startPElogue(alloc, PELOGUE_EPILOGUE);
+	    startEpilogue(alloc);
 	}
     }
     send_PS_EpilogueStateRes(msg->header.sender, id, res);
@@ -855,7 +868,7 @@ static void handle_EpilogueRes(DDTypedBufferMsg_t *msg)
 	    } else if (res == PELOGUE_TIMEDOUT) {
 		snprintf(reason, sizeof(reason), "psslurm: epilogue timed out\n");
 	    }
-	    setNodeOffline(&alloc->env, alloc->id, slurmController,
+	    setNodeOffline(&alloc->env, alloc->id,
 			   getSlurmHostbyNodeID(sender), reason);
 	} else {
 	    mdbg(PSSLURM_LOG_PELOG, "%s: success for allocation %u on "
@@ -1008,7 +1021,7 @@ static void handlePackInfo(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
 	 step->numHwThreads, step->numPackThreads, step->numPackNP);
 
     /* test if we have all infos to start */
-    if (alloc->state != A_PROLOGUE && step->packNtasks == step->numPackNP) {
+    if (step->packNtasks == step->numPackNP) {
 	if (!(execUserStep(step))) {
 	    mlog("%s: starting user step failed\n", __func__);
 	    sendSlurmRC(&step->srunControlMsg, ESLURMD_FORK_FAILED);
@@ -1357,8 +1370,7 @@ static void handleDroppedEpilogue(DDTypedBufferMsg_t *msg)
     }
 
     flog("node %i for epilogue %u unreachable\n", dest, alloc->id);
-    setNodeOffline(&alloc->env, alloc->id, slurmController,
-		   getSlurmHostbyNodeID(dest),
+    setNodeOffline(&alloc->env, alloc->id, getSlurmHostbyNodeID(dest),
 		   "psslurm: node unreachable for epilogue");
 
     finalizeEpilogue(alloc);
@@ -1509,7 +1521,7 @@ static void handleCC_IO_Msg(PSLog_Msg_t *msg)
 	goto OLD_MSG_HANDLER;
     }
 
-    /* forward stdout for single file on mother superior */
+    /* forward stderr for single file on mother superior */
     if (msg->type == STDERR && step->stdErrOpt == IO_GLOBAL_FILE) {
 	goto OLD_MSG_HANDLER;
     }
@@ -1857,6 +1869,9 @@ static void handleSpawnReq(DDTypedBufferMsg_t *msg)
     Step_t *step = NULL;
     size_t usedBytes;
 
+    fdbg(PSSLURM_LOG_PSCOMM, "from sender %s\n",
+         PSC_printTID(msg->header.sender));
+
     /* only handle message subtype PSP_SPAWN_END meant for us */
     if (msg->type != PSP_SPAWN_END ||
 	   PSC_getID(msg->header.dest) != PSC_getMyID()) {
@@ -1915,7 +1930,9 @@ FORWARD_SPAWN_REQ_MSG:
 */
 static void handleCCMsg(PSLog_Msg_t *msg)
 {
-    mdbg(PSSLURM_LOG_IO, "%s: %s\n", __func__, PSLog_printMsgType(msg->type));
+    fdbg(PSSLURM_LOG_PSCOMM, "sender %s type %s\n",
+	 PSC_printTID(msg->header.sender), PSLog_printMsgType(msg->type));
+
     switch (msg->type) {
 	case STDOUT:
 	case STDERR:
@@ -1946,13 +1963,18 @@ static void handleCCMsg(PSLog_Msg_t *msg)
 static void handleChildBornMsg(DDErrorMsg_t *msg)
 {
     PStask_t *forwarder = NULL;
-    uint32_t jobid, stepid;
+    uint32_t jobid = 0, stepid = 0;
     PS_Tasks_t *task = NULL;
 
     if (!getJobIDbyForwarderMsgHeader(&(msg->header), &forwarder, &jobid,
 				      &stepid)) {
+	flog("forwarder for sender %s not found\n",
+	     PSC_printTID(msg->header.sender));
 	goto FORWARD_CHILD_BORN;
     }
+
+    fdbg(PSSLURM_LOG_PSCOMM, "from sender %s for jobid %u:%u\n",
+         PSC_printTID(msg->header.sender), jobid, stepid);
 
     if (stepid == SLURM_BATCH_SCRIPT) {
 	Job_t *job = findJobById(jobid);
@@ -1973,7 +1995,12 @@ static void handleChildBornMsg(DDErrorMsg_t *msg)
 		       forwarder->rank - step->packTaskOffset);
 
 	if (!step->loggerTID) step->loggerTID = forwarder->loggertid;
-	if (step->fwdata) sendFWtaskInfo(step->fwdata, task);
+	if (step->fwdata) {
+	    sendFWtaskInfo(step->fwdata, task);
+	} else {
+	    mlog("%s: no forwarder for step %u:%u rank %i\n", __func__,
+	         jobid, stepid, forwarder->rank - step->packTaskOffset);
+	}
     }
 
 FORWARD_CHILD_BORN:
@@ -2268,7 +2295,7 @@ static bool initHostLT(void)
 	    goto ERROR;
 	}
     }
-    mdbg(PSSLURM_LOG_DEBUG, "%s: found %zu PS nodes\n", __func__, numHostLT);
+    mdbg(-1, "%s: found %zu PS nodes\n", __func__, numHostLT);
 
     /* sort the array for later use of bsearch */
     qsort(HostLT, numHostLT, sizeof(*HostLT), compareNodeIDs);

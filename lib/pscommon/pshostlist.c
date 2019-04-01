@@ -172,7 +172,7 @@ static bool hostToPSnode(char *host, void *info)
 {
     PSnodeList_t *psNL = info;
 
-    if (psNL->size == psNL->nrOfNodes + 1) {
+    if (psNL->nrOfNodes >= psNL->size) {
 	PSC_log(-1, "%s: no space left (max %i)\n", __func__, psNL->size);
 	return false;
     }

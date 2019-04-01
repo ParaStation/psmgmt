@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2014-2018 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2014-2019 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -396,79 +396,23 @@ void setPsslurmEnv(env_t *env)
     }
 }
 
-void setRankEnv(int32_t rank, Step_t *step)
+static void setGresEnv(Step_t *step)
 {
-    char tmp[128], *myGTIDs, *list = NULL, *val, *display;
-    size_t listSize = 0;
-    uint32_t myNodeId = step->localNodeId, myLocalId, count = 0, localNodeId;
     Alloc_t *alloc = findAlloc(step->jobid);
     Job_t *job = findJobById(step->jobid);
 
-    /* remove unwanted variables */
-    unsetenv("PSI_INPUTDEST");
-    unsetenv(ENV_PSID_BATCH);
-
-    /* we need the DISPLAY variable set by psslurm */
-    display = getenv("DISPLAY");
-
-    /* set environment variables from user */
-    for (count=0; count<step->env.cnt; count++) {
-	/* protect selected variables from changes */
-	if (!(strncmp(step->env.vars[count], "SLURM_RLIMIT_", 13))) continue;
-	if (!(strncmp(step->env.vars[count], "SLURM_UMASK=", 12))) continue;
-	if (!(strncmp(step->env.vars[count], "PWD=", 4))) continue;
-	if (display &&
-	    !(strncmp(step->env.vars[count], "DISPLAY=", 8))) continue;
-	if (!(strncmp(step->env.vars[count], "PMI_FD=", 7))) continue;
-	if (!(strncmp(step->env.vars[count], "PMI_PORT=", 9))) continue;
-	if (!(strncmp(step->env.vars[count], "PMI_RANK=", 9))) continue;
-	if (!(strncmp(step->env.vars[count], "PMI_SIZE=", 9))) continue;
-	if (!(strncmp(step->env.vars[count], "PMI_UNIVERSE_SIZE=", 18))) {
-	    continue;
-	}
-	if (!(strncmp(step->env.vars[count], "PMI_ID=", 7))) continue;
-	if (!(strncmp(step->env.vars[count], "PMI_APPNUM=", 11))) continue;
-	if (!(strncmp(step->env.vars[count], "PMI_ENABLE_SOCKP=", 17))) {
-	    continue;
-	}
-	if (!(strncmp(step->env.vars[count], "PMI_SUBVERSION=", 15))) continue;
-	if (!(strncmp(step->env.vars[count], "PMI_VERSION=", 12))) continue;
-
-	putenv(step->env.vars[count]);
-    }
-
-    setenv("SLURMD_NODENAME", getConfValueC(&Config, "SLURM_HOSTNAME"), 1);
-    gethostname(tmp, sizeof(tmp));
-    setenv("HOSTNAME", tmp, 1);
-    snprintf(tmp, sizeof(tmp), "%u", getpid());
-    setenv("SLURM_TASK_PID", tmp, 1);
-    setenv("SLURM_CPUS_ON_NODE", getConfValueC(&Config, "SLURM_CPUS"), 1);
-
-    sprintf(tmp, "%d", rank);
-    setenv("SLURM_PROCID", tmp, 1);
-
-    if (myNodeId < step->nrOfNodes) {
-	snprintf(tmp, sizeof(tmp), "%u", myNodeId);
-	setenv("SLURM_NODEID", tmp, 1);
-	myGTIDs = GTIDsToList(step);
-	setenv("SLURM_GTIDS", myGTIDs, 1);
-	ufree(myGTIDs);
-    }
-
-    myLocalId = getLocalRankID(rank, step, myNodeId);
-    snprintf(tmp, sizeof(tmp), "%u", myLocalId);
-    setenv("SLURM_LOCALID", tmp, 1);
-
+    uint32_t localNodeId = NO_VAL;
     if (job) {
 	localNodeId = job->localNodeId;
     } else if (alloc) {
 	localNodeId = alloc->localNodeId;
-    } else {
-	localNodeId = -1;
     }
 
-    if ((int32_t) localNodeId != -1) {
+    if (localNodeId != NO_VAL) {
 	Gres_Cred_t *gres;
+	char *list = NULL;
+	size_t listSize = 0;
+
 	/* gres "gpu" plugin */
 	gres = findGresCred(&step->gresList, GRES_PLUGIN_GPU, 0);
 	if (gres) {
@@ -499,7 +443,75 @@ void setRankEnv(int32_t rank, Step_t *step)
 			__func__, localNodeId);
 	    }
 	}
+    } else {
+	flog("unable to set gres: invalid local node ID for step %u:%u\n",
+	     step->jobid, step->stepid);
     }
+}
+
+void setRankEnv(int32_t rank, Step_t *step)
+{
+    char tmp[128], *myGTIDs, *val, *display;
+    uint32_t myNodeId = step->localNodeId, myLocalId, count = 0;
+
+    /* remove unwanted variables */
+    unsetenv("PSI_INPUTDEST");
+    unsetenv(ENV_PSID_BATCH);
+
+    /* we need the DISPLAY variable set by psslurm */
+    display = getenv("DISPLAY");
+
+    /* set environment variables from user */
+    for (count=0; count<step->env.cnt; count++) {
+	/* protect selected variables from changes */
+	if (!(strncmp(step->env.vars[count], "SLURM_RLIMIT_", 13))) continue;
+	if (!(strncmp(step->env.vars[count], "SLURM_UMASK=", 12))) continue;
+	if (!(strncmp(step->env.vars[count], "PWD=", 4))) continue;
+	if (display &&
+	    !(strncmp(step->env.vars[count], "DISPLAY=", 8))) continue;
+	if (!(strncmp(step->env.vars[count], "PMI_FD=", 7))) continue;
+	if (!(strncmp(step->env.vars[count], "PMI_PORT=", 9))) continue;
+	if (!(strncmp(step->env.vars[count], "PMI_RANK=", 9))) continue;
+	if (!(strncmp(step->env.vars[count], "PMI_SIZE=", 9))) continue;
+	if (!(strncmp(step->env.vars[count], "PMI_UNIVERSE_SIZE=", 18))) {
+	    continue;
+	}
+	if (!(strncmp(step->env.vars[count], "PMI_ID=", 7))) continue;
+	if (!(strncmp(step->env.vars[count], "PMI_APPNUM=", 11))) continue;
+	if (!(strncmp(step->env.vars[count], "PMI_ENABLE_SOCKP=", 17))) {
+	    continue;
+	}
+	if (!(strncmp(step->env.vars[count], "PMI_SUBVERSION=", 15))) continue;
+	if (!(strncmp(step->env.vars[count], "PMI_VERSION=", 12))) continue;
+	if (!(strncmp(step->env.vars[count], "PMI_BARRIER_ROUNDS=", 19))) {
+	    continue;
+	}
+
+
+	putenv(step->env.vars[count]);
+    }
+
+    setenv("SLURMD_NODENAME", getConfValueC(&Config, "SLURM_HOSTNAME"), 1);
+    gethostname(tmp, sizeof(tmp));
+    setenv("HOSTNAME", tmp, 1);
+    snprintf(tmp, sizeof(tmp), "%u", getpid());
+    setenv("SLURM_TASK_PID", tmp, 1);
+    setenv("SLURM_CPUS_ON_NODE", getConfValueC(&Config, "SLURM_CPUS"), 1);
+
+    sprintf(tmp, "%d", rank);
+    setenv("SLURM_PROCID", tmp, 1);
+
+    if (myNodeId < step->nrOfNodes) {
+	snprintf(tmp, sizeof(tmp), "%u", myNodeId);
+	setenv("SLURM_NODEID", tmp, 1);
+	myGTIDs = GTIDsToList(step);
+	setenv("SLURM_GTIDS", myGTIDs, 1);
+	ufree(myGTIDs);
+    }
+
+    myLocalId = getLocalRankID(rank, step, myNodeId);
+    snprintf(tmp, sizeof(tmp), "%u", myLocalId);
+    setenv("SLURM_LOCALID", tmp, 1);
 
     /* set cpu/memory bind env vars */
     setBindingEnvVars(step);
@@ -519,6 +531,10 @@ void setRankEnv(int32_t rank, Step_t *step)
     val = getTasksPerNode(step->tasksToLaunch, step->nrOfNodes);
     setenv("SLURM_TASKS_PER_NODE", val, 1);
 
+    /* set gres environment */
+    setGresEnv(step);
+
+    Alloc_t *alloc = findAlloc(step->jobid);
     if (alloc) setPsslurmEnv(&alloc->env);
 }
 
@@ -540,7 +556,7 @@ static void removeSpankOptions(env_t *env)
     }
 }
 
-void removeUserVars(env_t *env, bool PMIdisabled)
+void removeUserVars(env_t *env, pmi_type_t pmi_type)
 {
     uint32_t i = 0;
 
@@ -562,10 +578,15 @@ void removeUserVars(env_t *env, bool PMIdisabled)
 
 	if (!strncmp(env->vars[i], "PSI_", 4)) continue;
 	if (!strncmp(env->vars[i], "__PSI_", 6)) continue;
-	if (!PMIdisabled) {
+	if (pmi_type == PMI_TYPE_DEFAULT) {
 	    if (!strncmp(env->vars[i], "PMI_", 4)) continue;
 	    if (!strncmp(env->vars[i], "__PMI_", 6)) continue;
 	    if (!strncmp(env->vars[i], "MEASURE_KVS_PROVIDER", 20)) continue;
+	}
+	if (pmi_type == PMI_TYPE_PMIX) {
+	    if (!strncmp(env->vars[i], "PMI_", 4)) continue;
+	    if (!strncmp(env->vars[i], "PMIX_", 5)) continue;
+	    if (!strncmp(env->vars[i], "__PMIX_", 7)) continue;
 	}
 	if (!strncmp(env->vars[i], "__PSID_", 7)) continue;
 

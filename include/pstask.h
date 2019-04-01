@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2002-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2018 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2019 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -90,11 +90,12 @@ struct __task__ {
     /*C*/ struct winsize winsize;  /**< window size of the controlling tty */
     /*C*/ PStask_group_t group;    /**< task group @see PStask_group_t */
     PStask_group_t childGroup;     /**< used by forwarder during spawn */
+    PSrsrvtn_ID_t resID;           /**< reservation to be spawned in */
     /*C*/ PStask_ID_t loggertid;   /**< unique identifier of the logger */
     PStask_ID_t forwardertid;      /**< unique identifier of the forwarder */
     /*C*/ int32_t rank;            /**< rank of task within task group */
     PSCPU_set_t CPUset;            /**< set of logical CPUs to pin to */
-    short fd;                      /**< connection fd within psid */
+    short fd;                      /**< connection fd from/to the psid */
     /*C*/ char *workingdir;        /**< working directory */
     /*C*/ uint32_t argc;           /**< size of argv (w/o trailing NULL) */
     /*C*/ char **argv;             /**< command line arguments */

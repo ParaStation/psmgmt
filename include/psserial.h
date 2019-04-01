@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2012-2018 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2012-2019 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -18,8 +18,8 @@
  * The actual sending mode might be chosen by either setting
  * PS_SendSB_t's @ref useFrag flag to false (accumulate serialized
  * data in a buffer) or by initializing the PS_SendSB_t structure via
- * initFragBuffer() and setFragDest() (immediately send a series of
- * RDP messages).
+ * initFragBuffer() and setFragDest() or setFragDestUniq()
+ * (immediately send a series of RDP messages).
  */
 #ifndef __PSSERIAL_H
 #define __PSSERIAL_H
@@ -132,7 +132,7 @@ void finalizeSerial(void);
 void initFragBuffer(PS_SendDB_t *buffer, int32_t headType, int32_t msgType);
 
 /**
- * @brief Set an additional destination for fragmented messages.
+ * @brief Set an additional destination for fragmented messages
  *
  * Add the provided Task ID as an additional destination to send
  * the fragmented message to. This functions needs to be called
@@ -148,10 +148,32 @@ void initFragBuffer(PS_SendDB_t *buffer, int32_t headType, int32_t msgType);
 bool setFragDest(PS_SendDB_t *buffer, PStask_ID_t id);
 
 /**
+ * @brief Set an additional unique destination for fragmented messages
+ *
+ * Add the provided Task ID as an additional destination to send
+ * the fragmented message to. This functions needs to be called
+ * before using any functions to add data to the buffer. A good place
+ * is right after the call to @ref initFragBuffer().
+ *
+ * In contrast to @ref setFragDest() this function ensures that the
+ * destination is unique, i.e. that no multiple occurrences of the
+ * same destination task ID appears in the list of destinations.
+ *
+ * @param buffer Send buffer to use
+ *
+ * @param id Task ID to add
+ *
+ * @return Returns true if the destition was added or false on error
+ * or if the destination was found amongst the already registered
+ * destinations
+ */
+bool setFragDestUniq(PS_SendDB_t *buffer, PStask_ID_t id);
+
+/**
  * @brief Get number of destinations
  *
  * Get the number of destinations registered to @a buffer via @ref
- * setFragDest().
+ * setFragDest() or @ref setFragDestUniq().
  *
  * @param buffer Buffer to investigate
  *
@@ -195,13 +217,14 @@ bool __recvFragMsg(DDTypedBufferMsg_t *msg, PS_DataBuffer_func_t *func,
  * @brief Send fragmented message
  *
  * Send the message content found in the message buffer @a buffer to
- * the task ID(s) registered before using @ref setFragDest() as a series
- * of fragments put into ParaStation protocol messages of type
- * @ref DDTypedBufferMsg_t. Each message is of RDPType and the
- * sub-type defined previously by @ref initFragBuffer().
+ * the task ID(s) registered before using @ref setFragDest() or @ref
+ * setFragDestUniq() as a series of fragments put into ParaStation
+ * protocol messages of type @ref DDTypedBufferMsg_t. Each message is
+ * of RDPType and the sub-type defined previously by @ref
+ * initFragBuffer().
  *
  * The sender function which was registered before via @ref
- * initFragBuffer() method is used to send the fragments.
+ * initSerial() method is used to send the fragments.
  *
  * Each fragment holds its own meta-data used to put together the
  * overall message on the receiving side as required by @ref
@@ -536,6 +559,9 @@ bool getFromBuf(char **ptr, void *val, PS_DataType_t type,
 #define getPid(ptr, val) getFromBuf(ptr, val, PSDATA_PID,		\
 				    sizeof(pid_t), __func__, __LINE__)
 
+#define getTaskId(ptr, val) getInt32(ptr, val)
+
+#define getNodeId(ptr, val) getInt16(ptr, val)
 
 /**
  * @brief Read data from buffer
@@ -760,6 +786,10 @@ bool addToBuf(const void *val, const uint32_t size, PS_SendDB_t *data,
 #define addPidToMsg(val, data) { pid_t _x = val;		\
 	addToBuf(&_x, sizeof(_x), data, PSDATA_PID,		\
 		 __func__, __LINE__); }
+
+#define addTaskIdToMsg(val, data) addInt32ToMsg(val, data)
+
+#define addNodeIdToMsg(val, data) addInt16ToMsg(val, data)
 
 #define addMemToMsg(mem, len, data)				\
     addToBuf(mem, len, data, PSDATA_MEM, __func__, __LINE__)

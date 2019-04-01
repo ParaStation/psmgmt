@@ -53,7 +53,7 @@ config_t *parseConfig(FILE* logfile, int logmask, char *configfile)
 
 #include "config_parsing.h"
 
-static config_t config = (config_t) {
+static config_t config = {
     .coreDir = "/tmp",
     .selectTime = 2,
     .deadInterval = 10,

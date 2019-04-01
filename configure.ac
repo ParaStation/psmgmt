@@ -68,6 +68,18 @@ AC_CHECK_LIB([munge], [munge_encode],
    [ munge_enabled=true ] ])
 AM_CONDITIONAL([MUNGE_ENABLED], [test "x$munge_enabled" = xtrue])
 
+AC_ARG_ENABLE([spank], [AS_HELP_STRING([--disable-spank],
+  [build without spank support])])
+AM_CONDITIONAL([BUILD_WITHOUT_SPANK], [test "x$enable_spank" = xno])
+
+AM_COND_IF([BUILD_WITHOUT_SPANK], [
+  AC_MSG_NOTICE([Building without spank support])
+  AM_CFLAGS="$AM_CFLAGS -DBUILD_WITHOUT_SPANK"
+], [
+  AC_CHECK_HEADERS([slurm/spank.h], [ spank_enabled=true ])
+])
+AM_CONDITIONAL([SPANK_ENABLED], [test "x$spank_enabled" = xtrue])
+
 AC_ARG_ENABLE([psconfig], [AS_HELP_STRING([--disable-psconfig],
   [build without psconfig support])])
 AM_CONDITIONAL([BUILD_WITHOUT_PSCONFIG], [test "x$enable_psconfig" = xno])
@@ -78,6 +90,16 @@ AM_COND_IF([BUILD_WITHOUT_PSCONFIG], [
 ], [
   PKG_CHECK_MODULES([glib2], [glib-2.0 >= 2.22.0])
   PKG_CHECK_MODULES([psconfig], [psconfig])
+])
+
+AC_ARG_ENABLE([pspmix], [AS_HELP_STRING([--disable-pspmix],
+  [do not build pspmix plugin])])
+AM_CONDITIONAL([BUILD_WITHOUT_PSPMIX], [test "x$enable_pspmix" = xno])
+
+AM_COND_IF([BUILD_WITHOUT_PSPMIX], [
+  AC_MSG_NOTICE([Not building pspmix plugin])
+], [
+  PKG_CHECK_MODULES([pmix], [pmix >= 3.1.1])
 ])
 
 AX_CHECK_COMPILE_FLAG([-O3],
@@ -135,6 +157,10 @@ AC_CONFIG_FILES(plugins/jail/Makefile)
 AC_CONFIG_FILES(plugins/pelogue/Makefile)
 AC_CONFIG_FILES(plugins/psaccount/Makefile)
 AC_CONFIG_FILES(plugins/psexec/Makefile)
+AC_CONFIG_FILES(plugins/psgw/Makefile)
+AC_CONFIG_FILES(plugins/psgw/doc/Makefile)
+AC_CONFIG_FILES(plugins/psgw/route/Makefile)
+AC_CONFIG_FILES(plugins/psgw/spank/Makefile)
 AC_CONFIG_FILES(plugins/psmom/Makefile)
 AC_CONFIG_FILES(plugins/psmom/doc/Makefile)
 AC_CONFIG_FILES(plugins/psmom/include/Makefile)
@@ -146,6 +172,11 @@ AC_CONFIG_FILES(plugins/pspam/include/Makefile)
 AC_CONFIG_FILES(plugins/pspam/module/Makefile)
 AC_CONFIG_FILES(plugins/pspam/pspam/Makefile)
 AC_CONFIG_FILES(plugins/pspmi/Makefile)
+
+AM_COND_IF([BUILD_WITHOUT_PSPMIX], [], [
+  AC_CONFIG_FILES(plugins/pspmix/Makefile)
+])
+
 AC_CONFIG_FILES(plugins/psresport/Makefile)
 AC_CONFIG_FILES(plugins/psslurm/Makefile)
 AC_CONFIG_FILES(plugins/psslurm/doc/Makefile)

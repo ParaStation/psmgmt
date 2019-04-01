@@ -638,7 +638,12 @@ static plugin_t * loadPlugin(char *name, int minVer, plugin_t * trigger)
 	return NULL;
     }
     snprintf(filename, sizeof(filename), "%s/plugins/%s.so", instDir, name);
-    handle = dlopen(filename, RTLD_NOW);
+    if (strcmp(name, "pspmix") == 0) {
+	//XXX this is obviously a hack
+	handle = dlopen(filename, RTLD_NOW | RTLD_GLOBAL);
+    } else {
+	handle = dlopen(filename, RTLD_NOW);
+    }
 
     if (!handle) {
 	PSID_log(-1, "%s: dlopen(%s) failed: %s\n", __func__, filename,

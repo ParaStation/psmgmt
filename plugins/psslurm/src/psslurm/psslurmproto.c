@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2014-2018 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2014-2019 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -267,14 +267,14 @@ static void printLaunchTasksInfos(Step_t *step)
 
     /* set stdout/stderr/stdin options */
     if (!(step->taskFlags & LAUNCH_USER_MANAGED_IO)) {
-	mdbg(PSSLURM_LOG_IO, "%s: stdOut '%s' stdOutRank %i stdOutOpt %i\n",
-	     __func__, step->stdOut, step->stdOutRank, step->stdOutOpt);
+	fdbg(PSSLURM_LOG_IO, "stdOut '%s' stdOutRank %i stdOutOpt %s\n",
+	     step->stdOut, step->stdOutRank, strIOopt(step->stdOutOpt));
 
-	mdbg(PSSLURM_LOG_IO, "%s: stdErr '%s' stdErrRank %i stdErrOpt %i\n",
-	     __func__, step->stdErr, step->stdErrRank, step->stdErrOpt);
+	fdbg(PSSLURM_LOG_IO, "stdErr '%s' stdErrRank %i stdErrOpt %s\n",
+	     step->stdErr, step->stdErrRank, strIOopt(step->stdErrOpt));
 
-	mdbg(PSSLURM_LOG_IO, "%s: stdIn '%s' stdInRank %i stdInOpt %i\n",
-	     __func__, step->stdIn, step->stdInRank, step->stdInOpt);
+	fdbg(PSSLURM_LOG_IO, "stdIn '%s' stdInRank %i stdInOpt %s\n",
+	     step->stdIn, step->stdInRank, strIOopt(step->stdInOpt));
 
 	mdbg(PSSLURM_LOG_IO, "%s: bufferedIO '%i' labelIO '%i'\n", __func__,
 	     step->taskFlags & LAUNCH_BUFFERED_IO,
@@ -419,7 +419,7 @@ int requestJobInfo(uint32_t jobid)
 
 uint32_t getLocalID(PSnodes_ID_t *nodes, uint32_t nrOfNodes)
 {
-    uint32_t i, id = -1;
+    uint32_t i, id = NO_VAL;
     PSnodes_ID_t myID = PSC_getMyID();
 
     for (i=0; i<nrOfNodes; i++) if (nodes[i] == myID) id = i;
@@ -428,10 +428,8 @@ uint32_t getLocalID(PSnodes_ID_t *nodes, uint32_t nrOfNodes)
 
 static void handleLaunchTasks(Slurm_Msg_t *sMsg)
 {
-    Alloc_t *alloc = NULL;
-    Job_t *job = NULL;
     Step_t *step = NULL;
-    uint32_t count, i, id;
+    uint32_t count, i;
 
     if (pluginShutdown) {
 	/* don't accept new steps if a shutdown is in progress */
@@ -480,8 +478,7 @@ static void handleLaunchTasks(Slurm_Msg_t *sMsg)
 	setIOoptions(step->stdIn, &step->stdInOpt, &step->stdInRank);
     }
 
-    /* convert slurm hostlist to PSnodes   */
-
+    /* convert slurm hostlist to PSnodes */
     if (!convHLtoPSnodes(step->slurmHosts, getNodeIDbySlurmHost,
 			 &step->nodes, &count)) {
 	mlog("%s: resolving PS nodeIDs from %s failed\n", __func__,
@@ -494,13 +491,24 @@ static void handleLaunchTasks(Slurm_Msg_t *sMsg)
 	mlog("%s: mismatching number of nodes %u:%u for step %u:%u\n",
 	     __func__, count, step->nrOfNodes, step->jobid, step->stepid);
 	step->nrOfNodes = count;
+	sendSlurmRC(sMsg, ESLURMD_INVALID_JOB_CREDENTIAL);
+	goto ERROR;
     }
+
     step->localNodeId = getLocalID(step->nodes, step->nrOfNodes);
+    if (step->localNodeId == NO_VAL) {
+	flog("local node ID %i for step %u:%u in %s num nodes %i not found\n",
+	     PSC_getMyID(), step->jobid, step->stepid, step->slurmHosts,
+	     step->nrOfNodes);
+	sendSlurmRC(sMsg, ESLURMD_INVALID_JOB_CREDENTIAL);
+	goto ERROR;
+    }
 
     /* pack info */
     if (step->packNrOfNodes != NO_VAL) {
 	if (!extractStepPackInfos(step)) {
 	    mlog("%s: extracting pack information failed\n", __func__);
+	    sendSlurmRC(sMsg, ESLURMD_INVALID_JOB_CREDENTIAL);
 	    goto ERROR;
 	}
     }
@@ -519,17 +527,11 @@ static void handleLaunchTasks(Slurm_Msg_t *sMsg)
 	 step->nrOfNodes, step->tpp, step->packSize, step->leader,
 	 step->argv[0], step->packJobid == NO_VAL ? 0 : step->packJobid);
 
-    /* add allocation */
-    id = step->packJobid != NO_VAL ? step->packJobid : step->jobid;
-    if (!(job = findJobById(id))) {
-	if (!(alloc = findAlloc(step->jobid))) {
-	    alloc = addAlloc(step->jobid, step->packJobid,
-			     step->cred->jobHostlist, &step->env, step->uid,
-			     step->gid, step->username);
-
-	    /* first received step does *not* have to be step 0 */
-	    alloc->state = A_PROLOGUE;
-	}
+    /* ensure an allocation exists for the new step */
+    if (!findAlloc(step->jobid)) {
+	flog("no allocation for jobid %u found\n", step->jobid);
+	sendSlurmRC(sMsg, ESLURMD_INVALID_JOB_CREDENTIAL);
+	goto ERROR;
     }
 
     /* set hardware threads */
@@ -561,49 +563,23 @@ static void handleLaunchTasks(Slurm_Msg_t *sMsg)
 	step->srunControlMsg.head.forward = sMsg->head.forward;
 	step->srunControlMsg.recvTime = sMsg->recvTime;
 
-	if (!step->stepid && !job) {
-	    if (alloc->state == A_PROLOGUE) {
-		/* start prologue for steps without job */
-		mdbg(PSSLURM_LOG_PELOG, "%s: starting prologue for %u:%u\n",
-		     __func__, step->jobid, step->stepid);
-		startPElogue(alloc, PELOGUE_PROLOGUE);
-	    } else {
-		/* job/pspelogue already ran parallel prologue */
-		mdbg(PSSLURM_LOG_PELOG, "%s: starting step %u:%u\n",
-		     __func__, step->jobid, step->stepid);
-		step->state = JOB_PRESTART;
-		if (step->packJobid == NO_VAL) {
-		    if (!(execUserStep(step))) {
-			sendSlurmRC(sMsg, ESLURMD_FORK_FAILED);
-			goto ERROR;
-		    }
-		}
-	    }
-	    mdbg(PSSLURM_LOG_JOB, "%s: step %u:%u in '%s'\n", __func__,
-		    step->jobid, step->stepid, strJobState(step->state));
-	} else if (!job && alloc->state == A_PROLOGUE) {
-	    /* prologue already running, wait till it is finished */
-	    mlog("%s: step %u:%u waiting for prologue\n", __func__,
-		 step->jobid, step->stepid);
-	} else {
-	    /* start mpiexec to spawn the parallel processes,
-	     * intercept createPart call to overwrite the nodelist */
-	    step->state = JOB_PRESTART;
-	    mdbg(PSSLURM_LOG_JOB, "%s: step %u:%u in '%s'\n", __func__,
-		    step->jobid, step->stepid, strJobState(step->state));
-	    if (step->packJobid == NO_VAL) {
-		if (!(execUserStep(step))) {
-		    sendSlurmRC(sMsg, ESLURMD_FORK_FAILED);
-		    goto ERROR;
-		}
+	/* start mpiexec to spawn the parallel processes,
+	 * intercept createPart call to overwrite the nodelist */
+	step->state = JOB_PRESTART;
+	mdbg(PSSLURM_LOG_JOB, "%s: step %u:%u in '%s'\n", __func__,
+		step->jobid, step->stepid, strJobState(step->state));
+	if (step->packJobid == NO_VAL) {
+	    if (!(execUserStep(step))) {
+		sendSlurmRC(sMsg, ESLURMD_FORK_FAILED);
+		goto ERROR;
 	    }
 	}
     } else {
 	/* sister node (pack follower) */
-	if (job || step->stepid || alloc->state == A_PROLOGUE_FINISH) {
-	    /* start I/O forwarder */
-	    execStepFWIO(step);
-	}
+
+	/* start I/O forwarder */
+	execStepFWIO(step);
+
 	if (sMsg->sock != -1) {
 	    /* say ok to waiting srun */
 	    sendSlurmRC(sMsg, SLURM_SUCCESS);
@@ -624,7 +600,6 @@ static void handleLaunchTasks(Slurm_Msg_t *sMsg)
 
 ERROR:
     if (step) deleteStep(step->jobid, step->stepid);
-    if (alloc) deleteAlloc(alloc->id);
 }
 
 /**
@@ -1047,12 +1022,14 @@ static void handleFileBCast(Slurm_Msg_t *sMsg)
 	} else {
 	    bcast->uid = alloc->uid;
 	    bcast->gid = alloc->gid;
+	    bcast->env = &alloc->env;
 	    ufree(bcast->username);
 	    bcast->username = ustrdup(alloc->username);
 	}
     } else {
 	bcast->uid = job->uid;
 	bcast->gid = job->gid;
+	bcast->env = &job->env;
 	ufree(bcast->username);
 	bcast->username = ustrdup(job->username);
     }
@@ -1485,7 +1462,6 @@ static void printJobLaunchInfos(Job_t *job)
 static void handleBatchJobLaunch(Slurm_Msg_t *sMsg)
 {
     Job_t *job;
-    Alloc_t *alloc;
 
     if (pluginShutdown) {
 	/* don't accept new jobs if a shutdown is in progress */
@@ -1512,7 +1488,15 @@ static void handleBatchJobLaunch(Slurm_Msg_t *sMsg)
 	deleteJob(job->jobid);
 	return;
     }
+
     job->localNodeId = getLocalID(job->nodes, job->nrOfNodes);
+    if (job->localNodeId == NO_VAL) {
+	flog("could not find my local ID for job %u in %s\n",
+	     job->jobid, job->slurmHosts);
+	sendSlurmRC(sMsg, ESLURMD_INVALID_JOB_CREDENTIAL);
+	deleteJob(job->jobid);
+	return;
+    }
 
     /* verify job credential */
     if (!(verifyJobData(job))) {
@@ -1538,7 +1522,7 @@ static void handleBatchJobLaunch(Slurm_Msg_t *sMsg)
     /* write the jobscript */
     if (!(writeJobscript(job))) {
 	/* set myself offline and requeue the job */
-	setNodeOffline(&job->env, job->jobid, slurmController,
+	setNodeOffline(&job->env, job->jobid,
 			getConfValueC(&Config, "SLURM_HOSTNAME"),
 			"psslurm: writing jobscript failed");
 	/* need to return success to be able to requeue the job */
@@ -1560,11 +1544,10 @@ static void handleBatchJobLaunch(Slurm_Msg_t *sMsg)
     }
 
     /* add allocation if pspelogue isn't used */
-    alloc = addAlloc(job->jobid, job->packSize, job->slurmHosts, &job->env,
-		     job->uid, job->gid, job->username);
+    Alloc_t *alloc = findAlloc(job->jobid);
 
     /* santy check allocation state */
-    if (alloc->state != A_INIT && alloc->state != A_PROLOGUE_FINISH) {
+    if (alloc->state != A_PROLOGUE_FINISH) {
 	flog("allocation %u in invalid state %s\n", alloc->id,
 	     strAllocState(alloc->state));
 	sendSlurmRC(sMsg, ESLURMD_INVALID_JOB_CREDENTIAL);
@@ -1578,17 +1561,10 @@ static void handleBatchJobLaunch(Slurm_Msg_t *sMsg)
     /* setup job environment */
     initJobEnv(job);
 
-    bool ret;
-    if (alloc->state == A_INIT) {
-	/* start prologue */
-	flog("start prologue\n");
-	ret = startPElogue(alloc, PELOGUE_PROLOGUE);
-    } else {
-	/* pspelogue already ran parallel prologue, start job */
-	flog("start job\n");
-	alloc->state = A_RUNNING;
-	ret = execUserJob(job);
-    }
+    /* pspelogue already ran parallel prologue, start job */
+    flog("start job\n");
+    alloc->state = A_RUNNING;
+    bool ret = execUserJob(job);
     mdbg(PSSLURM_LOG_JOB, "%s: job %u in '%s'\n", __func__,
 	 job->jobid, strJobState(job->state));
 
@@ -1635,11 +1611,6 @@ static void doTerminateAlloc(Slurm_Msg_t *sMsg, Alloc_t *alloc)
 		return;
 	    }
 	    break;
-	case A_PROLOGUE:
-	    sendSlurmRC(sMsg, SLURM_SUCCESS);
-	    flog("waiting for prologue to finish, alloc %u (%i/%i)\n",
-		 alloc->id, alloc->terminate, maxTermReq);
-	    return;
 	case A_EPILOGUE:
 	    sendSlurmRC(sMsg, SLURM_SUCCESS);
 	    flog("waiting for epilogue to finish, alloc %u (%i/%i)\n",
@@ -1676,7 +1647,7 @@ static void doTerminateAlloc(Slurm_Msg_t *sMsg, Alloc_t *alloc)
     sendSlurmRC(sMsg, SLURM_SUCCESS);
     mlog("%s: starting epilogue for allocation %u state %s\n", __func__,
 	 alloc->id, strAllocState(alloc->state));
-    startPElogue(alloc, PELOGUE_EPILOGUE);
+    startEpilogue(alloc);
 }
 
 static void handleAbortReq(Slurm_Msg_t *sMsg, uint32_t jobid, uint32_t stepid)

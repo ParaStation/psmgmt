@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2014-2018 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2014-2019 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -220,15 +220,17 @@ static int handleMthrSock(int fd, void *info)
 	return 0;
     }
 
+    if (fw->handleMthrMsg && fw->handleMthrMsg(lmsg, fw)) return 0;
+
     if (msg.header.type == PSP_CC_ERROR) return 0; /* ignore */
 
+    /* messages not handled by hook need to be PSP_CC_MSG */
     if (msg.header.type != PSP_CC_MSG) {
 	pluginlog("%s: unexpected message %s from %s (type %d)\n", __func__,
 		  PSP_printMsg(msg.header.type),
 		  PSC_printTID(msg.header.sender), lmsg->type);
+	return -1;
     }
-
-    if (fw->handleMthrMsg && fw->handleMthrMsg(lmsg, fw)) return 0;
 
     switch(lmsg->type) {
     case PLGN_SIGNAL_CHLD:
@@ -578,7 +580,7 @@ static void sendFin(void)
     sendMsgToMother(&msg);
 }
 
-static void execForwarder(int motherFD, PStask_t *task)
+static void execForwarder(PStask_t *task)
 {
     fwTask = task;
     Forwarder_Data_t *fw = task->info;
@@ -586,9 +588,7 @@ static void execForwarder(int motherFD, PStask_t *task)
     int status = 0, i;
     struct rusage rusage;
 
-    fwTask->fd = motherFD;
-
-    if (!initForwarder(motherFD, fw)) {
+    if (!initForwarder(fwTask->fd, fw)) {
 	pluginlog("%s: initForwarder failed\n", __func__);
 	exit(1);
     }

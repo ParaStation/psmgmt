@@ -97,6 +97,7 @@ int PStask_init(PStask_t* task)
     task->stderr_fd = -1;
     task->group = TG_ANY;
     task->childGroup = TG_ANY;
+    task->resID = -1;
     task->loggertid = 0;
     task->forwardertid = 0;
     task->rank = -1;
@@ -308,6 +309,7 @@ PStask_t* PStask_clone(PStask_t* task)
     clone->winsize = task->winsize;
     clone->group = task->group;
     clone->childGroup = task->childGroup;
+    clone->resID = task->resID;
     clone->loggertid = task->loggertid;
     clone->forwardertid = task->forwardertid;
     clone->rank = task->rank;
@@ -505,6 +507,7 @@ static struct {
     struct termios termios;
     struct winsize winsize;
     PStask_group_t group;
+    PSrsrvtn_ID_t resID;
     int32_t rank;
     PStask_ID_t loggertid;
     uint32_t argc;
@@ -531,6 +534,7 @@ size_t PStask_encodeTask(char *buffer, size_t size, PStask_t *task, char **off)
     tmpTask.termios = task->termios;
     tmpTask.winsize = task->winsize;
     tmpTask.group = task->group;
+    tmpTask.resID = task->resID;
     tmpTask.rank = task->rank;
     tmpTask.loggertid = task->loggertid;
     tmpTask.argc = task->argc;
@@ -573,6 +577,7 @@ bool PStask_sendTask(PS_SendDB_t *msg, PStask_t *task)
     tmpTask.termios = task->termios;
     tmpTask.winsize = task->winsize;
     tmpTask.group = task->group;
+    tmpTask.resID = task->resID;
     tmpTask.rank = task->rank;
     tmpTask.loggertid = task->loggertid;
     tmpTask.argc = task->argc;
@@ -618,6 +623,7 @@ int PStask_decodeTask(char *buffer, PStask_t *task, bool withWDir)
     task->termios = tmpTask.termios;
     task->winsize = tmpTask.winsize;
     task->group = tmpTask.group;
+    task->resID = tmpTask.resID;
     task->rank = tmpTask.rank;
     task->loggertid = tmpTask.loggertid;
     task->argc = tmpTask.argc;

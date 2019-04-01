@@ -53,6 +53,9 @@ static int pmidebug_client = 0;
 static int pmidebug_kvs = 0;
 static int pmidis = 0;
 
+/* PMIx options */
+static int pmix = 0;
+
 /* OpenMPI options */
 static int openMPI = 0;
 static int ompidebug = 0;
@@ -190,6 +193,8 @@ static struct poptOption poptCommonOptions[] = {
       &mpichcom, 0, "enable ParaStation4 compatibility mode", NULL},
     { "usize", 'u', POPT_ARG_INT,
       &usize, 0, "set the universe size", NULL},
+    { "pmix", 0, POPT_ARG_NONE,
+      &pmix, 0, "enable PMIx support (disables PMI)", NULL},
     { "openmpi", 0, POPT_ARG_NONE,
       &openMPI, 0, "enable OpenMPI support", NULL},
     { "timeout", 0, POPT_ARG_INT,
@@ -1045,6 +1050,10 @@ static void setupConf(Conf_t *conf)
     conf->pmiDbgClient = pmidebug_client;
     conf->pmiDbgKVS = pmidebug_kvs;
     conf->pmiDisable = pmidis;
+
+    /* PMIx options */
+    conf->PMIx = pmix;
+    if (pmix) conf->pmiDisable = true;
 
     /* options going to pscom library */
     conf->PSComSndbuf = sndbuf;
