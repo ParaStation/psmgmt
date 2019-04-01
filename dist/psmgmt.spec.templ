@@ -11,6 +11,7 @@
 %{?_without_systemd: %global disable_systemd 1}
 %{?_without_munge: %global disable_munge 1}
 %{?_without_pam: %global disable_pam 1}
+%{?_without_spank: %global disable_spank 1}
 
 %if ( 0%{?rhel} && 0%{?rhel} < 7 ) || %(pkg-config --exists systemd; echo $?) != 0
 %global disable_systemd 1
@@ -36,6 +37,9 @@ BuildRequires:	psconfig-dev, glib2-devel
 BuildRequires:	popt-devel
 %if !0%{?disable_pam}
 BuildRequires:	pam-devel
+%endif
+%if !0%{?disable_spank}
+BuildRequires:	slurm-devel
 %endif
 %if 0%{?suse_version}
 BuildRequires:	libnuma-devel
@@ -137,7 +141,8 @@ It works standalone or together with psslurm.
 export CFLAGS="%(echo %{optflags}|sed -e 's,-O.,,')"
 %configure --datarootdir=%{_datarootdir} --with-pamdir=%{_pamdir} \
 	   %{?disable_psconfig:--disable-psconfig} \
-	   %{?disable_systemd:--with-unitdir=no}
+	   %{?disable_systemd:--with-unitdir=no} \
+	   %{?disable_spank:--disable-spank}
 make %{?_smp_mflags}
 
 %install
@@ -260,6 +265,16 @@ exit 0
 %config(noreplace) %{_plugindir}/psaccount.conf
 %{_plugindir}/psexec.so
 %exclude %{_plugindir}/psexec.la
+%{_plugindir}/psgw.so
+%exclude %{_plugindir}/psgw.la
+%doc plugins/psgw/doc/psgw.conf.template
+%doc plugins/psgw/doc/psgw_error.example
+%if !0%{?disable_spank}
+%dir %{_libdir}/slurm
+%{_libdir}/slurm/psgw_spank.so
+%exclude %{_libdir}/slurm/psgw_spank.la
+%{_libexecdir}/psgw
+%endif
 %if !0%{?disable_munge}
 %{_plugindir}/psmunge.so
 %exclude %{_plugindir}/psmunge.la
