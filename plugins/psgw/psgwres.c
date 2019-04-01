@@ -1,0 +1,673 @@
+/*
+ * ParaStation
+ *
+ * Copyright (C) 2018-2019 ParTec Cluster Competence Center GmbH, Munich
+ *
+ * This file may be distributed under the terms of the Q Public License
+ * as defined in the file LICENSE.QPL included in the packaging of this
+ * file.
+ */
+#include <stdlib.h>
+#include <unistd.h>
+#include <signal.h>
+#include <limits.h>
+#include <errno.h>
+#include <pwd.h>
+#include <sys/stat.h>
+#include <timer.h>
+
+#include "peloguetypes.h"
+#include "peloguehandles.h"
+#include "psexechandles.h"
+#include "psslurmtypes.h"
+#include "pluginmalloc.h"
+#include "psidscripts.h"
+#include "psidutil.h"
+
+#include "psgwlog.h"
+#include "psgwrequest.h"
+#include "psgwconfig.h"
+
+#include "psgwpart.h"
+
+#include "psgwres.h"
+
+/**
+ * @brief Prepare environment for the routing script
+ *
+ * Set various environment variables for the routing script.
+ *
+ * @param reqPtr Pointer to the request management structure
+ *
+ * @return Always return 0
+ */
+static int prepEnv(void *reqPtr)
+{
+    PSGW_Req_t *req = Request_verify(reqPtr);
+    env_t *env;
+    uint32_t i;
+    char buf[1024];
+
+    if (!req) {
+	flog("invalid request\n");
+	return 0;
+    }
+    env = req->res->env;
+
+    for (i=0; i<env->cnt; i++) {
+	fdbg(PSGW_LOG_DEBUG, "%i: %s\n", i, envGetIndex(env, i));
+	putenv(envGetIndex(env, i));
+    }
+
+    char *tmp = getenv("SLURM_SPANK_PSGW_PLUGIN");
+    if (!tmp) {
+	char *script = getConfValueC(&Config, "DEFAULT_ROUTE_PLUGIN");
+	setenv("SLURM_SPANK_PSGW_PLUGIN", script, 1);
+    }
+
+    snprintf(buf, sizeof(buf), "%u", req->numGWstarted);
+    setenv("NUM_GATEWAYS", buf, 1);
+    for (i=0; i<req->numGWstarted; i++) {
+	snprintf(buf, sizeof(buf), "GATEWAY_ADDR_%u", i);
+	setenv(buf, req->gwAddr[i], 1);
+    }
+
+    if (psgwlogger->mask & PSGW_LOG_ROUTE) {
+	setenv("PSGW_VERBOSE", "1", 1);
+    }
+
+    return 0;
+}
+
+/**
+ * @brief Fetch error msg and exit status from a script callback
+ */
+static bool getScriptCBData(int fd, PSID_scriptCBInfo_t *info, int32_t *exit,
+			    char *errMsg, size_t errMsgLen, size_t *errLen)
+{
+    /* get exit status */
+    PSID_readall(fd, exit, sizeof(*exit));
+    Selector_remove(fd);
+    close(fd);
+
+    /* get stdout/stderr output */
+    if (!info) {
+	mlog("%s: invalid info data\n", __func__);
+	return false;
+    }
+
+    if (!info->iofd) {
+	mlog("%s: invalid iofd\n", __func__);
+	errMsg[0] = '\0';
+    }
+    *errLen = PSID_readall(info->iofd, errMsg, errMsgLen);
+    errMsg[*errLen] = '\0';
+    close(info->iofd);
+
+    if (!info->info) {
+	mlog("%s: info missing\n", __func__);
+	return false;
+    }
+
+    return true;
+}
+
+/**
+ * @brief Callback for the psgwd stop script
+ *
+ * @param id ID of the psgw allocation
+ *
+ * @param exit The exit code of the stop script
+ *
+ * @param dest The node ID of the execution host
+ *
+ * @param uid User ID of the allocation
+ *
+ * @param output Stdout/Stderr of the stop script
+ *
+ * @return Always returns 0
+ */
+static int cbStopPSGWD(uint32_t id, int32_t exit, PSnodes_ID_t dest,
+		       uint16_t uid, char *output)
+{
+    fdbg(PSGW_LOG_DEBUG, "id %u exit %u output %s\n", id, exit, output);
+    return 0;
+}
+
+/**
+ * @brief Stop all psgwd of an allocation
+ *
+ * @param req The request management structure
+ *
+ * @return Returns true on success otherwise false is returned
+ */
+static bool stopPSGWD(PSGW_Req_t *req)
+{
+    env_t env;
+    uint32_t i, id = atoi(req->jobid);
+    char *dir = getConfValueC(&Config, "DIR_ROUTE_SCRIPTS");
+    char buf[1024];
+
+    envInit(&env);
+    snprintf(buf, sizeof(buf), "%u", req->uid);
+    envSet(&env, "PSGWD_UID", buf);
+
+    for (i=0; i<req->numGWnodes; i++) {
+	if (req->gwPIDs[i] == -1) continue;
+
+	fdbg(PSGW_LOG_DEBUG, "stopping psgwd on node %i\n", req->gwNodes[i]);
+
+	snprintf(buf, sizeof(buf), "%u", req->gwPIDs[i]);
+	envSet(&env, "PSGWD_PID", buf);
+
+	int ret = psExecStartScriptEx(id, "psgwd_stop", dir, &env,
+				      req->gwNodes[i], cbStopPSGWD);
+	if (ret == -1) {
+	    flog("stopping psgwd on node %i failed\n", req->gwNodes[i]);
+	    return false;
+	}
+    }
+
+    return true;
+}
+
+/**
+ * @brief Callback for the psgw_error script
+ *
+ * @param id ID of the psgw allocation
+ *
+ * @param exit The exit code of the psgw_error script
+ *
+ * @param dest The node ID of the execution host
+ *
+ * @param uid User ID of the allocation
+ *
+ * @param output Stdout/Stderr of the psgw_error script
+ *
+ * @return Always returns 0
+ */
+static int cbPSGWDerror(uint32_t id, int32_t exit, PSnodes_ID_t dest,
+		        uint16_t uid, char *output)
+{
+    if (exit != 0) flog(" failed: id %u exit %u output %s\n", id, exit, output);
+    return 0;
+}
+
+void cancelReq(PSGW_Req_t *req)
+{
+    PElogueResource_t *res = req->res;
+    int16_t ret;
+
+    flog("canceling request for jobid %u\n", req->jobid);
+
+    /* kill routing script */
+    if (req->routePID != -1) {
+	kill(req->routePID, SIGKILL);
+    }
+
+    /* remove timer for route script */
+    if (req->timerRouteScript != -1) {
+	Timer_remove(req->timerRouteScript);
+	req->timerRouteScript = -1;
+    }
+
+    if (req->timerPartReq != -1) {
+	Timer_remove(req->timerPartReq);
+	req->timerPartReq = -1;
+    }
+
+    /* kill psgw daemon */
+    stopPSGWD(req);
+
+    /* kill prologue on gateway nodes */
+    psPelogueSignalPE("psgw", req->jobid, SIGKILL, "psgw error");
+    psPelogueDeleteJob("psgw", req->jobid);
+
+    /* stop psgw forwarder */
+    if (req->fwdata) shutdownForwarder(req->fwdata);
+
+    if (!res) {
+	flog("invalid pelogue resource for jobid %s\n", req->jobid);
+	Request_delete(req);
+	return;
+    }
+
+    /* call script to forward error to slurmctld */
+    uint32_t id = atoi(req->jobid);
+    ret = psExecStartScript(id, "psgw_error", res->env, PSC_getID(res->src),
+			    cbPSGWDerror);
+    if (ret == -1) {
+	flog("starting psgw_error script for job %s failed\n", req->jobid);
+    }
+
+    /* invoke pelogue callback */
+    ret = 0;
+    res->cb(res->plugin, res->jobid, ret);
+    req->res = NULL;
+
+    /* delete request */
+    Request_delete(req);
+}
+
+/**
+ * @brief Finalize a pending request
+ *
+ * Check if the routing script and all gateway prologue processes
+ * successfully finalized. Invoke the pelogue callback to let the
+ * pending slurmctld prologue start.
+ *
+ * @param req The request to finalize
+ */
+static void finalizeRequest(PSGW_Req_t *req)
+{
+    int16_t ret = 1;
+
+    if (req->routeRes == -1) {
+	fdbg(PSGW_LOG_DEBUG, "waiting for route script\n");
+	return;
+    }
+
+    if (req->prologueState != PSP_PROLOGUE_FINISH) {
+	fdbg(PSGW_LOG_DEBUG, "waiting for prologue on gateway nodes\n");
+	return;
+    }
+
+    /* let pelogue execute prologue */
+    PElogueResource_t *res = req->res;
+    res->cb(res->plugin, res->jobid, ret);
+    req->res = NULL;
+}
+
+/**
+ * @brief Callback of the routing script
+ *
+ * @param fd The file descriptor to read the result
+ *
+ * @param info Info structure holding the request of the routing script
+ *
+ * @return Always returns 0
+ */
+static int cbRouteScript(int fd, PSID_scriptCBInfo_t *info)
+{
+    PSGW_Req_t *req = info ? info->info : NULL;
+    char errMsg[1024];
+    int32_t exit;
+    size_t errLen = 0;
+
+    getScriptCBData(fd, info, &exit, errMsg, sizeof(errMsg), &errLen);
+    fdbg(PSGW_LOG_ROUTE, "routing script exit %i\n", exit);
+
+    req = Request_verify(req);
+    if (!req) {
+	mlog("%s: no request found for script\n", __func__);
+	return 0;
+    }
+    /* remove the timer */
+    if (req->timerRouteScript != -1) {
+	Timer_remove(req->timerRouteScript);
+	req->timerRouteScript = -1;
+    }
+
+    /* save result in request */
+    req->routeRes = exit;
+    req->routePID = -1;
+
+    if (info && errMsg[0] != '\0') {
+	mlog("%s: %s\n", __func__, errMsg);
+    }
+
+    if (exit != 0) {
+	cancelReq(req);
+    } else {
+	finalizeRequest(req);
+    }
+    return 0;
+}
+
+/**
+ * @brief Setup environment for the routing script
+ *
+ * @param req The request management structure
+ *
+ * @return Returns true on success or false on error
+ */
+static bool initRoutingEnv(PSGW_Req_t *req)
+{
+    PElogueResource_t *res = req->res;
+    env_t *env = res->env;
+    char buf[1024];
+
+    snprintf(buf, sizeof(buf), "%u", req->uid);
+    envSet(env, "SLURM_JOB_UID", buf);
+
+    snprintf(buf, sizeof(buf), "%u", req->gid);
+    envSet(env, "SLURM_JOB_GID", buf);
+
+    char *user = envGet(env, "SLURM_USER");
+    if (!user) {
+	flog("Missing SLURM_USER env\n");
+	return false;
+    }
+    envSet(env, "SLURM_JOB_USER", user);
+
+    struct passwd *passwd = getpwnam(user);
+    if (!passwd) {
+	mwarn(errno, "%s: getpwnam for user %s failed", __func__, user);
+	return false;
+    }
+    char *home = passwd->pw_dir;
+    envSet(env, "HOME", home);
+
+    char *routeFile = envGet(env, "SLURM_SPANK_PSGW_ROUTE_FILE");
+    if (!routeFile) {
+	char *prefix = getConfValueC(&Config, "DEFAULT_ROUTE_PREFIX");
+	snprintf(buf, sizeof(buf), "%s/%s-%s", home, prefix, req->jobid);
+	routeFile = buf;
+
+    }
+    req->routeFile = ustrdup(routeFile);
+    envSet(env, "_PSSLURM_ENV_PSP_GW_SERVER", routeFile);
+
+    return true;
+}
+
+/**
+ * @brief Handle a route script timeout
+ *
+ * @param timerId The timerId of the elapsed timer
+ *
+ * @param data The request management structure
+ */
+static void routeScriptTimeout(int timerId, void *data)
+{
+    PSGW_Req_t *req = Request_verify(data);
+
+    /* remove the timer */
+    Timer_remove(timerId);
+
+    if (!req) {
+	flog("no request found for timer %i\n", timerId);
+	return;
+    }
+
+    req->timerRouteScript = -1;
+    flog("route script for jobid %s timed out\n", req->jobid);
+
+    cancelReq(req);
+}
+
+/**
+ * @brief Execute the routing script
+ *
+ * Start the routing script and pass the IP address/port
+ * pairs of the started psgwds. The runtime is monitored
+ * by a timer.
+ *
+ * @param req The request management structure
+ *
+ * @return Returns true on success and false on error
+ */
+static bool execRoutingScript(PSGW_Req_t *req)
+{
+    char exePath[PATH_MAX];
+    char *dir = getConfValueC(&Config, "DIR_ROUTE_SCRIPTS");
+    char *script = getConfValueC(&Config, "ROUTE_SCRIPT");
+    int tmRouteScript = getConfValueI(&Config, "TIMEOUT_ROUTE_SCRIPT");
+
+    snprintf(exePath, sizeof(exePath), "%s/%s", dir, script);
+
+    fdbg(PSGW_LOG_ROUTE, "exec %s timeout %i\n", exePath, tmRouteScript);
+
+    if (!initRoutingEnv(req)) {
+	flog("setup of routing environment failed\n");
+	return false;
+    }
+
+    req->routePID = PSID_execScript(exePath, prepEnv, cbRouteScript, req);
+    if (req->routePID == -1) return false;
+
+    if (tmRouteScript >0) {
+	struct timeval timeout = {tmRouteScript, 0};
+
+	req->timerRouteScript =
+	    Timer_registerEnhanced(&timeout, routeScriptTimeout, req);
+	if (req->timerRouteScript == -1) {
+	    flog("register timer for route script failed\n");
+	}
+    }
+
+    return true;
+}
+
+/**
+ * @brief Callback of the prologue executed on the gateway nodes
+ *
+ * @param jobid The jobid of the allocation
+ *
+ * @param exit The exit code of the prologue
+ *
+ * @param timeout Flag to show a timeout while prologue
+ * execution occurred.
+ *
+ * @param result Unused
+ *
+ * @param info Pointer to the request management structure
+ */
+static void prologueCB(char *jobid, int exit, bool timeout,
+		       PElogueResList_t *result, void *info)
+{
+    PSGW_Req_t *req = Request_verify(info);
+
+    fdbg(PSGW_LOG_DEBUG, "jobid %s exit %i timeout %i\n", jobid, exit, timeout);
+
+    if (!req) {
+	flog("no request found for jobid %s\n", jobid);
+	return;
+    }
+
+    req->prologueState = PSP_PROLOGUE_FINISH;
+
+    if (exit) {
+	/* prologue failed */
+        cancelReq(req);
+    } else {
+	finalizeRequest(req);
+    }
+}
+
+bool startPrologue(PSGW_Req_t *req)
+{
+    PElogueResource_t *res = req->res;
+    bool ret;
+
+    fdbg(PSGW_LOG_DEBUG, "start prologue for job %s\n", res->jobid);
+
+    ret = psPelogueAddJob("psgw", res->jobid, res->uid, res->gid,
+			  req->numGWnodes, req->gwNodes, prologueCB, req);
+    if (!ret) {
+	flog("adding psgw job %s to pelogue failed\n", res->jobid);
+	return false;
+    }
+
+    ret = psPelogueStartPE("psgw", res->jobid, PELOGUE_PROLOGUE, 1, res->env);
+    if (!ret) {
+	flog("starting psgw prologue for job %s failed\n", res->jobid);
+	return false;
+    }
+
+    req->prologueState = PSP_PROLOGUE_START;
+
+    return true;
+}
+
+/**
+ * @brief Callback of the psgw start script
+ *
+ * @param id ID of the psgw allocation
+ *
+ * @param exit The exit code of the stop script
+ *
+ * @param dest The node ID of the execution host
+ *
+ * @param uid User ID of the allocation
+ *
+ * @param output Stdout/Stderr of the stop script
+ *
+ * @return Always returns 0
+ */
+static int cbStartPSGWD(uint32_t id, int32_t exit, PSnodes_ID_t dest,
+			uint16_t uid, char *output)
+{
+    char sid[512];
+
+    snprintf(sid, sizeof(sid), "%u", id);
+    PSGW_Req_t *req = Request_find(sid);
+    if (!req) {
+	flog("no request found for jobid %s\n", sid);
+	return 0;
+    }
+
+    if (exit) {
+	flog("psgwd on node %i failed, exit %i, output %s\n", dest,
+	     exit, output);
+	cancelReq(req);
+	return 0;
+    }
+
+    int pid;
+    char addr[25];
+    if (sscanf(output, "%24s\npid\t%i", addr, &pid) != 2) {
+	flog("parsing psgwd output from node %i failed, output %s\n",
+	     dest, output);
+	cancelReq(req);
+	return 0;
+    }
+
+    uint32_t i;
+    for (i=0; i<req->numGWnodes; i++) {
+	if (req->gwNodes[i] == dest) {
+	    req->gwPIDs[i] = pid;
+	    req->gwAddr[i] = ustrdup(addr);
+	}
+    }
+
+    req->numGWstarted++;
+
+    flog("psgwd (%i/%i) on node %i, pid %u addr %s\n", req->numGWstarted,
+	 req->numGWnodes, dest, pid, addr);
+
+    if (req->numGWnodes == req->numGWstarted) {
+	/* call script to write the routing file */
+	if (!execRoutingScript(req)) {
+	    mlog("%s: executing routing script failed\n", __func__);
+	    cancelReq(req);
+	    return 0;
+	}
+    }
+
+    return 0;
+}
+
+bool startPSGWD(PSGW_Req_t *req)
+{
+    env_t env;
+    char *dir = getConfValueC(&Config, "DIR_ROUTE_SCRIPTS");
+    char *psgwd = getConfValueC(&Config, "PSGWD_BINARY");
+    uint32_t i, id = atoi(req->jobid);
+    char buf[1024];
+
+    envInit(&env);
+    envSet(&env, "PSGWD_BINARY", psgwd);
+    snprintf(buf, sizeof(buf), "%u", req->uid);
+    envSet(&env, "PSGWD_UID", buf);
+
+    char *user = envGet(req->res->env, "SLURM_USER");
+    if (!user) {
+	flog("missing SLURM_USER environment variable\n");
+	return false;
+    }
+    envSet(&env, "PSGWD_USER", user);
+
+    char *gwEnv = envGet(req->res->env, "SLURM_SPANK_PSGW_ENV");
+    if (gwEnv) envSet(&env, "SLURM_SPANK_PSGW_ENV", gwEnv);
+
+    char *gwBinary = envGet(req->res->env, "SLURM_SPANK_PSGWD_BINARY");
+    if (gwBinary) envSet(&env, "PSGWD_BINARY", gwBinary);
+
+    for (i=0; i<req->numGWnodes; i++) {
+	fdbg(PSGW_LOG_DEBUG, "starting psgwd on node %i\n", req->gwNodes[i]);
+
+	int ret = psExecStartScriptEx(id, "psgwd_start", dir, &env,
+				      req->gwNodes[i], cbStartPSGWD);
+	if (ret == -1) {
+	    flog("starting psgwd on node %i failed\n", req->gwNodes[i]);
+	    return false;
+	}
+    }
+
+    /* set timeout to start the psgwd */
+
+    return true;
+}
+
+int handleFinAlloc(void *data)
+{
+    Alloc_t *alloc = data;
+    char jobid[128];
+
+    snprintf(jobid, sizeof(jobid), "%u", alloc->id);
+    PSGW_Req_t *req = Request_find(jobid);
+    if (!req) {
+	snprintf(jobid, sizeof(jobid), "%u", alloc->packID);
+	if (!(req = Request_find(jobid))) {
+	    flog("no request for jobid %s found\n", jobid);
+	    return 1;
+	}
+    }
+
+    /* kill psgw daemon */
+    stopPSGWD(req);
+
+    Request_delete(req);
+
+    return 1;
+}
+
+int handlePElogueRes(void *data)
+{
+    PElogueResource_t *res = data;
+    int numNodes = 0;
+
+    if (!envGet(res->env, "SLURM_PACK_JOB_NODELIST")) {
+	/* no pack leader prologue, nothing to do */
+	return 0;
+    }
+
+    char *psgwNum = envGet(res->env, "SLURM_SPANK_PSGW_NUM");
+    if (psgwNum) numNodes = atoi(psgwNum);
+
+    if (!psgwNum || !numNodes) {
+        mlog("%s: no psgw used\n", __func__);
+        /* no gateway resources needed */
+        return 0;
+    }
+
+    char *packJobID = envGet(res->env, "SLURM_PACK_JOB_ID");
+    if (!packJobID) {
+        flog("no job pack ID for job %s found\n", res->jobid);
+        return 2;
+    }
+
+    mlog("%s: need %i psgw nodes\n", __func__, numNodes);
+    PSGW_Req_t *req = Request_add(res, packJobID);
+
+    if (!requestGWnodes(req, numNodes)) {
+	flog("requesting gateway nodes failed\n");
+	Request_delete(req);
+	return 2;
+    }
+
+    /* wait for result from master */
+
+    return 1;
+}

@@ -1,0 +1,211 @@
+#!/usr/bin/env python
+
+import os
+import sys
+import signal
+import socket
+import tempfile
+import traceback
+import re
+import ClusterShell.NodeSet
+
+from pypsconfig import PSConfig
+
+VERBOSE = 0
+
+def vlog(msg):
+    if VERBOSE == 1:
+        print(msg)
+
+def parseEnv():
+    global VERBOSE
+    verbose = os.getenv("PSGW_VERBOSE")
+    if verbose != None:
+        VERBOSE = 1
+
+    uid = os.getenv("SLURM_JOB_UID")
+    if uid == None or uid == "":
+        raise Exception("Missing SLURM_JOB_UID")
+
+    gid = os.getenv("SLURM_JOB_GID")
+    if gid == None or gid == "":
+        raise Exception("Missing SLURM_JOB_GID")
+
+    user = os.getenv("SLURM_JOB_USER")
+    if user == None or user == "":
+        raise Exception("Missing SLURM_JOB_USER")
+
+    jobid = os.getenv("SLURM_JOB_ID")
+    if jobid == None or jobid == "":
+        raise Exception("Missing SLURM_JOB_ID")
+
+    plugin = os.getenv("SLURM_SPANK_PSGW_PLUGIN")
+    if plugin == None or plugin == "":
+        raise Exception("Missing SLURM_SPANK_PSGW_PLUGIN")
+
+    rFile = os.getenv("_PSSLURM_ENV_PSP_GW_SERVER")
+    if rFile == None or rFile == "":
+        raise Exception("Missing _PSSLURM_ENV_PSP_GW_SERVER")
+
+    home = os.getenv("HOME")
+    if home == None or home == "":
+        raise Exception("Missing HOME")
+
+    nodeList = os.getenv("SLURM_PACK_JOB_NODELIST")
+    if nodeList == None or nodeList == "":
+        raise Exception("Missing SLURM_PACK_JOB_NODELIST")
+
+    vlog("job " + jobid + " user " + user + " plugin " + plugin +
+         " route file " + str(rFile) + " nodeList " + nodeList +
+         " home " + home)
+
+    return jobid, int(uid), int(gid), user, rFile, plugin, nodeList, home
+
+def changeUser(uid, gid, user, home):
+    # remove group memberships
+    os.setgroups([])
+
+    # set supplementary groups
+    os.initgroups(user, gid)
+
+    # change the uid/gid
+    os.setgid(gid)
+    os.setuid(uid)
+
+    # change to home directory
+    os.chdir(home)
+
+def expand(nodelist):
+    return list(ClusterShell.NodeSet.NodeSet(nodelist))
+
+def compress(nodes):
+    return str(ClusterShell.NodeSet.NodeSet(",".join(nodes)))
+
+def writeRouteFile(plugin, rFile, psgwdToPort, nodesA, nodesB):
+    # Security issue, but well ...
+    sys.path.append("/".join(plugin.split("/")[:-2]))
+    plu = __import__(re.sub(r'\.py$', r'', plugin.split("/")[-1]))
+
+    nodesA   = sorted(expand(nodesA))
+    nodesB   = sorted(expand(nodesB))
+    gateways = sorted(psgwdToPort.keys())
+
+    if 0 == len(gateways):
+        raise Exception("No gateways available")
+
+    routes = retrieveRoutes(plu, nodesA, nodesB, gateways)
+
+    count = 0
+    with open(rFile, "w") as f:
+        for gw in gateways:
+            for nodeA, nodeB in routes[gw]:
+                f.write("%s:%d %s %s\n" % (gw, psgwdToPort[gw],
+                        nodeA, nodeB))
+                count += 1
+
+    vlog("wrote " + str(count)  + " lines to route file " + rFile)
+
+    assert count == len(nodesA)*len(nodesB)
+
+def retrieveRoutes(plu, nodesA, nodesB, gateways):
+    routes = {}
+
+    for gw in gateways:
+        routes[gw] = []
+
+    if "routeConnectionX" in dir(plu) and None != plu.routeConnectionX:
+        for nodeA in nodesA:
+            for nodeB in nodesB:
+                err, gw = plu.routeConnectionX(nodesA, nodesB, gateways, nodeA, nodeB)
+                if None != err:
+                    raise Exception("Failure in routeConnectionX")
+                routes[gw] += [(nodeA, nodeB)]
+    elif "routeConnectionS" in dir(plu) and None != plu.routeConnectionS:
+        for i, nodeA in enumerate(nodesA):
+            for j, nodeB in enumerate(nodesB):
+                err, gwId = plu.routeConnectionS(len(nodesA), len(nodesB), len(gateways), i, j)
+                if None != err:
+                    raise Exception("Failure in routeConnectionS")
+                routes[gateways[gwId]] += [(nodeA, nodeB)]
+    else:
+        raise Exception("Neither routeConnectionX() nor routeConnectionS() defined")
+
+    return routes
+
+def splitNodes(nodeList):
+    config = PSConfig()
+    cluster = []
+    booster = []
+
+    for node in expand(nodeList):
+        data = config.getList("host:" + node, "Psid.HardwareTypes",
+                              inherit=True, follow=True)
+        if any("booster" in s for s in data):
+            booster.append(node)
+        else:
+            cluster.append(node)
+
+    nodesA = compress(cluster)
+    vlog("Cluster nodes = %s" % nodesA)
+    if not nodesA:
+        raise Exception("No cluster nodes found")
+
+    nodesB = compress(booster)
+    vlog("Booster nodes = %s" % nodesB)
+    if not nodesB:
+        raise Exception("No booster nodes found")
+
+    return nodesA, nodesB
+
+def extractGateways():
+    psgwdToPort = {}
+
+    num = os.getenv("NUM_GATEWAYS")
+    if num == None or num == "":
+        raise Exception("Missing NUM_GATEWAYS")
+
+    for x in range(int(num)):
+        gw = os.getenv("GATEWAY_ADDR_" + str(x))
+        if gw == None or gw == "":
+            raise Exception("Missing GATEWAY_ADDR_" + str(x))
+        vlog("gw" + str(x) + ": "+ gw)
+        psgwdToPort[gw.split(":")[0]] = int(gw.split(":")[1])
+
+    return psgwdToPort
+
+def handleException(reason, err):
+    print(reason + ": " + str(err))
+    traceback.print_exc()
+    sys.exit(1)
+
+# Parse environment
+try:
+    jobid, uid, gid, user, rFile, plugin, nodeList, home = parseEnv()
+except Exception as err:
+    handleException("Parsing environment failed", err)
+
+# Continue execution as job owner
+try:
+    changeUser(uid, gid, user, home)
+except Exception as err:
+    handleException("Changing user failed", err)
+
+# Split cluster and booster nodes
+try:
+    nodesA, nodesB = splitNodes(nodeList)
+except Exception as err:
+    handleException("Splitting nodes " + nodeList + " failed", err)
+
+# Extract gateway nodes
+try:
+    psgwdToPort = extractGateways()
+except Exception as err:
+    handleException("Extracting gateways failed", err)
+
+# Write routing file
+try:
+    writeRouteFile(plugin, rFile, psgwdToPort, nodesA, nodesB)
+except Exception as err:
+    handleException("Writing routing file failed", err)
+
+vlog("success")

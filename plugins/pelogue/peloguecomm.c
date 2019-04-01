@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2013-2018 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2013-2019 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -339,6 +339,7 @@ static void handlePElogueReq(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
     res->cb = handleResourceCB;
     res->uid = uid;
     res->gid = gid;
+    res->src = msg->header.sender;
     info->res = res;
 
     int ret = PSIDhook_call(PSIDHOOK_PELOGUE_RES, res);

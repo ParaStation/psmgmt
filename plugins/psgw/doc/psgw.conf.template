@@ -1,0 +1,75 @@
+#
+#  Configuration file for ParaStation psgw plugin
+#
+
+
+# Set to max TPP of gateway nodes
+#
+# (integer, default: 8)
+#GATEWAY_TPP = 16
+
+# Maximal execution time of the route script in seconds
+#
+# (integer, default: 60)
+#TIMEOUT_ROUTE_SCRIPT=60
+
+# Default prefix of the routing file
+#
+# (string, default: psgw-route)
+#DEFAULT_ROUTE_PREFIX=psgw
+
+# Directory routing scripts are located
+#
+# (string, default: PSGWLIBDIR)
+#DIR_ROUTE_SCRIPTS=/opt/parastation/libexec/psgw
+
+# Default route plugin
+#
+# (string, default: PSGWLIBDIR "/plugin01.py")
+#DEFAULT_ROUTE_PLUGIN=route-plugin.py
+
+# Strict security checks
+#
+# (flag, default: 1)
+#STRICT_MODE=0
+
+# The filename of the routing script
+#
+# (file, default: psroute.py)
+#ROUTE_SCRIPT=test.py
+
+# The location of the psgwd binary
+#
+# (string, default: BINDIR/psgwd)
+#PSGWD_BINARY=/opt/parastation/bin/psgwd
+
+# Debug mask
+#
+#  Supported masks:
+#
+#   0x000010 Debug
+#   0x000020 Partition reservation
+#   0x000040 Route script
+#
+# (hex value, default: 0x0)
+#DEBUG_MASK = 0x000020
+
+# Directory to search for scripts
+#
+# (string, default: SPOOL_DIR/scripts
+#DIR_SCRIPTS = /var/spool/scripts
+
+# Maximal prologue execution time in seconds
+#
+# (integer, default: 300)
+#TIMEOUT_PROLOGUE = 400
+
+# Maximal epilogue execution time in seconds
+#
+# (integer, default: 300)
+#TIMEOUT_EPILOGUE = 400
+
+# Grace time in seconds for prologue/epilogue scripts
+#
+# (integer, default: 60)
+#TIMEOUT_PE_GRACE = 20

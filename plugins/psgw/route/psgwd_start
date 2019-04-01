@@ -1,0 +1,20 @@
+#!/bin/bash
+
+[ -x "$PSGWD_BINARY" ] || {
+    echo "ERROR: missing PSGWD_BINARY"
+    exit 1
+}
+
+[ -z "$PSGWD_UID" ] && {
+    echo "ERROR: missing PSGWD_UID"
+    exit 1
+}
+
+[ -z "$PSGWD_USER" ] && {
+    echo "ERROR: missing PSGWD_USER"
+    exit 1
+}
+
+DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
+
+su -c "$DIR/psgwd_exec" $PSGWD_USER

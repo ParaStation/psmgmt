@@ -1,0 +1,42 @@
+#
+# ParaStation
+#
+# Copyright (C) 2018 ParTec Cluster Competence Center GmbH, Munich
+#
+# This file may be distributed under the terms of the Q Public License
+# as defined in the file LICENSE.QPL included in the packaging of this
+# file.
+#
+
+include $(top_srcdir)/common.am
+
+if SPANK_ENABLED
+SUBDIRS = spank route
+endif
+
+pelogue_dir   := plugins/pelogue
+psexec_dir    := plugins/psexec
+psslurm_dir   := plugins/psslurm/src/psslurm
+slurm_dir     := plugins/psslurm/src/common
+
+AM_LDFLAGS += -avoid-version -module
+AM_CPPFLAGS += -I$(top_srcdir)/bin/daemon \
+	       -I$(top_srcdir)/$(pelogue_dir) \
+	       -I$(top_srcdir)/$(psslurm_dir) \
+	       -I$(top_srcdir)/$(slurm_dir) \
+	       -I$(top_srcdir)/$(psexec_dir)
+
+plugin_LTLIBRARIES = psgw.la
+
+libplugincommon = $(top_builddir)/lib/plugincommon/libplugincommon.la
+libpscommon = $(top_builddir)/lib/pscommon/libpscommon.la
+
+psgw_la_SOURCES = psgw.c psgwlog.c psgwlog.h psgwres.c psgwres.h \
+		  psgwconfig.c psgwconfig.h psgwrequest.c psgwrequest.h \
+		  psgwpart.c psgwpart.h
+
+psgw_la_CPPFLAGS = $(AM_CPPFLAGS) -DLOCALSTATEDIR=\"$(localstatedir)\" \
+		   -DPLUGINDIR=\"$(plugindir)\" -DBINDIR=\"$(bindir)\" \
+		   -DPSGWLIBDIR=\"$(psgwlibdir)\"
+
+psgw_la_LIBADD = $(libplugincommon) $(libpscommon)

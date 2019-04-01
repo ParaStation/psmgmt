@@ -1,0 +1,7 @@
+#!/bin/bash
+
+exec >/tmp/psgw_error.log 2>&1
+
+echo "Set eligible time for job $SLURM_JOB_ID to now+10 minutes"
+
+scontrol update job="$SLURM_JOB_ID" EligibleTime="now+10 minutes"

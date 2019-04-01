@@ -1,0 +1,8 @@
+#!/bin/bash
+
+[ -n "$SLURM_SPANK_PSGW_ENV" ] && {
+  eval "$SLURM_SPANK_PSGW_ENV"
+  unset SLURM_SPANK_PSGW_ENV
+}
+
+exec $PSGWD_BINARY --showpid --any --daemonize --user $PSGWD_UID $SLURM_SPANK_PSGW_ARGS 0</dev/null
