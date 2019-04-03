@@ -5,6 +5,24 @@ Copyright (C) 2010-2019 ParTec Cluster Competence Center GmbH, Munich
 Please send bug reports, questions and suggestions to <support@par-tec.com>
 
 
+Version 5.1.20:
+===============
+Bugfixes:
+ - Break infinite loop when sending PSP_CC_MSG to daemon (j3t:#1305)
+ - Fix potential memory leak in psenv
+Enhancements:
+ - Report node failure in step error output (pct:#298)
+ - Support to start modular jobs: add psgw and psgw_spank plugins
+ - Support openMPI by adding pspmix pluging adding PMIx support
+ - Distribute reservation infomation to all involved node. Needed for pspmix
+Additional changes:
+ - Introduce PSSLURM_PMI_TYPE to choose the PMI version to use
+ - Move hook PSIDHOOK_EXEC_CLIENT_USER after child born
+ - Set task->fd to daemonfd before PSIDHOOK_EXEC_FORWARDER
+ - Introduce PSIDHOOK_RECV_SPAWNREQ
+ - Improve psidhook
+ - Additional code streamlining
+
 
 *************************************************************************
 *************************************************************************
