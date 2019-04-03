@@ -1270,6 +1270,16 @@ static bool nodeDownAlloc(Alloc_t *alloc, const void *info)
 	    mlog("%s: node %i in allocation %u state %s is down\n", __func__,
 		 node, alloc->id, strAllocState(alloc->state));
 
+	    Step_t *step = findStepByJobid(alloc->id);
+	    if (!step) step = findStepByJobid(alloc->packID);
+	    if (step && step->leader) {
+		char buf[512];
+		snprintf(buf, sizeof(buf), "step %u:%u terminated due to "
+			 "failure of node %s\n", step->jobid, step->stepid,
+			 getSlurmHostbyNodeID(node));
+		printChildMessage(step, buf, strlen(buf), STDERR, 0);
+	    }
+
 	    /* node will not be available for epilogue */
 	    if (alloc->epilogRes[i] == false) {
 		alloc->epilogRes[i] = true;

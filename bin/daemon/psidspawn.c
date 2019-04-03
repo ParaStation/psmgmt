@@ -8,6 +8,7 @@
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
+#define _GNU_SOURCE
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -27,14 +28,13 @@
 #include <pty.h>
 #include <signal.h>
 #include <syslog.h>
+#include <sched.h>
 #ifdef HAVE_LIBNUMA
 #include <numa.h>
 #endif
 #include <limits.h>
 #include <sys/select.h>
 
-#define _GNU_SOURCE
-#include <sched.h>
 
 #include "pscommon.h"
 #include "psprotocol.h"

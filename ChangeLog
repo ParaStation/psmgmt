@@ -1,3 +1,207 @@
+Version psmgmt-5.1.20:
+======================
+------------------------------------------------------------------------
+5f00eec6 | Michael Rauh | Tue, 2 Apr 2019 12:57:32 +0200
+
+Report node failure in step error output (pct:#298)
+------------------------------------------------------------------------
+6ea5619c | Stephan Krempel | Mon, 1 Apr 2019 15:50:31 +0200
+
+Remove special handling for pspmix in loadPlugin()
+
+This is cleaner on our side, but for the moment requires a patched version
+of pmix with fixed dependencies in the MCA modules.
+------------------------------------------------------------------------
+00904032 | Stephan Krempel | Mon, 1 Apr 2019 15:47:55 +0200
+
+Fix pinning.
+
+_GNU_SOURCE needs to be defined before the first header includes
+features.h. To ensure, define it at the very beginning.
+------------------------------------------------------------------------
+6245d441 | Michael Rauh | Mon, 1 Apr 2019 14:49:13 +0200
+
+Add psgw plugin to buildsystem
+------------------------------------------------------------------------
+a5ca0dca | Michael Rauh | Mon, 1 Apr 2019 14:27:15 +0200
+
+Add modular job start support consisting of following parts
+
+  - psgw plugin to request resources and start
+  the psgwd and prologue on the gateway nodes
+  - psgw_spank plugin to extend the SLURM command
+  interface of srun, sbatch and salloc
+  - route scripts to write the routing file
+------------------------------------------------------------------------
+52a10ccb | Stephan Krempel | Tue, 26 Mar 2019 15:49:54 +0100
+
+Allow not to build pspmix by configure option.
+
+Using configure option --disable-pspmix allows to build
+psmgmt without building the pspmix plugin and thus without
+having the libpmix headers available.
+------------------------------------------------------------------------
+02543166 | Stephan Krempel | Tue, 26 Mar 2019 13:28:16 +0100
+
+Fix comment.
+------------------------------------------------------------------------
+1602a52e | Stephan Krempel | Tue, 26 Mar 2019 13:27:17 +0100
+
+Update copyright information in pspmix and pluginvector.
+------------------------------------------------------------------------
+ff83e26c | Stephan Krempel | Mon, 25 Mar 2019 17:54:50 +0100
+
+Put pspmix in a separate package.
+
+Avoid requirement for libpmix in the main package.
+------------------------------------------------------------------------
+d8748ad0 | Stephan Krempel | Mon, 25 Mar 2019 17:36:39 +0100
+
+Squashed commit of the branch pspmix.
+
+This adds the pspmix plugin developed in the pspmix branch.
+------------------------------------------------------------------------
+bce640c4 | Stephan Krempel | Mon, 25 Mar 2019 14:41:31 +0100
+
+Fix using of feature test macro for sched.h
+
+In psidspawn.h no macro is needed since cpu_set_t gets always defined.
+Especially, defining __GNU_USE leads to conflicts if the header is
+included anywhere after a header using features.h.
+In psidspawn.c the correct macro to set is _GNU_SOURCE (see CPU_SET(3)).
+------------------------------------------------------------------------
+7c013842 | Stephan Krempel | Mon, 25 Mar 2019 12:08:24 +0100
+
+Introduce PSSLURM_PMI_TYPE
+
+This new environment variable is used to choose the PMI to be used by
+psslurm. psslurm needs it to choose the correct options for the
+internal call of mpiexec. This is needed to support PMIx and SimplePMI
+in parallel.
+------------------------------------------------------------------------
+b82bb7fb | Stephan Krempel | Tue, 19 Feb 2019 10:55:43 +0100
+
+Fix potential memory leak in psenv
+------------------------------------------------------------------------
+f928e164 | Norbert Eicker | Tue, 19 Mar 2019 09:14:30 +0100
+
+Documentation improvements
+------------------------------------------------------------------------
+e48acb29 | Stephan Krempel | Mon, 4 Mar 2019 15:30:18 +0100
+
+Declare PSID_findJobByLoggerTid() non-static to use it in hook
+------------------------------------------------------------------------
+fab953e7 | Norbert Eicker | Fri, 15 Feb 2019 23:51:46 +0100
+
+Streamlining spawner.c
+------------------------------------------------------------------------
+d603f7f1 | Norbert Eicker | Fri, 15 Feb 2019 23:39:27 +0100
+
+Fix typo
+------------------------------------------------------------------------
+67061cc9 | Norbert Eicker | Fri, 15 Feb 2019 23:30:13 +0100
+
+Update copyright date
+------------------------------------------------------------------------
+f0bd233f | Norbert Eicker | Fri, 15 Feb 2019 19:08:26 +0100
+
+Streamlining psidspawn.c
+------------------------------------------------------------------------
+d1a085db | Norbert Eicker | Thu, 14 Feb 2019 17:35:20 +0100
+
+Pass daemon fd within the task structure to forwarders
+------------------------------------------------------------------------
+0b747f2e | Stephan Krempel | Thu, 14 Feb 2019 12:53:40 +0100
+
+Fix sending reservation created and released messages
+------------------------------------------------------------------------
+dba352bc | Norbert Eicker | Thu, 14 Feb 2019 12:50:25 +0100
+
+Streamline send_RESRELEASED() and send_RESCREATED()
+------------------------------------------------------------------------
+f447d394 | Stephan Krempel | Thu, 14 Feb 2019 12:49:58 +0100
+
+Send reservation notification messages only once per node.
+
+Send the reservation creation and release notification messages
+(PSP_DD_RESCREATED and PSP_DD_RESRELEASED) only once per node
+involved in the reservation, even if loop-nodes-first set.
+------------------------------------------------------------------------
+5dad8e77 | Stephan Krempel | Wed, 13 Feb 2019 10:35:47 +0100
+
+Send PSP_DD_RESCREATED and PSP_DD_RESRELEASED  only once per node.
+
+Send the reservation creation and release notification messages
+only once per node involved in the reservation, even if
+loop-nodes-first set.
+------------------------------------------------------------------------
+2e3df9d1 | Norbert Eicker | Thu, 14 Feb 2019 12:02:59 +0100
+
+Improve psidhook
+
+ - Make initHook obsolete by initialzing implicitely in PSIDhook_add()
+ - Booleanize
+------------------------------------------------------------------------
+1be93acf | Stephan Krempel | Mon, 21 Jan 2019 11:40:25 +0100
+
+Add PSP_DD_RESCREATED and PSP_DD_RESRELEASED string identification
+------------------------------------------------------------------------
+b350d6eb | Stephan Krempel | Thu, 17 Jan 2019 10:35:17 +0100
+
+Add --pmix option to mpiexec
+------------------------------------------------------------------------
+9228ef73 | Stephan Krempel | Thu, 17 Jan 2019 10:30:01 +0100
+
+Get rid of some unnecessary global variables in spawner code
+------------------------------------------------------------------------
+79597a45 | Stephan Krempel | Tue, 15 Jan 2019 11:48:48 +0100
+
+Rearrange handling of mother messages in pluginforwarder
+------------------------------------------------------------------------
+fdc9b013 | Stephan Krempel | Tue, 15 Jan 2019 11:43:38 +0100
+
+Move hook PSIDHOOK_EXEC_CLIENT_USER after child born
+------------------------------------------------------------------------
+9a3a3c4e | Stephan Krempel | Tue, 15 Jan 2019 11:42:29 +0100
+
+Introduce PSIDHOOK_RECV_SPAWNREQ
+------------------------------------------------------------------------
+814e6bd9 | Stephan Krempel | Fri, 7 Dec 2018 06:40:40 +0100
+
+Set task->fd to daemonfd before HOOK_EXEC_FORWARDER
+------------------------------------------------------------------------
+92e6f0f4 | Stephan Krempel | Tue, 15 Jan 2019 11:24:15 +0100
+
+Add reservation id to task structure
+------------------------------------------------------------------------
+224e38ef | Stephan Krempel | Tue, 15 Jan 2019 11:21:36 +0100
+
+Add job creation and destruction hook
+------------------------------------------------------------------------
+dea795dd | Stephan Krempel | Tue, 15 Jan 2019 11:15:35 +0100
+
+Introduce psjob management
+
+psjob is used to hold information of reservations a node is part of.
+The reservation information is distributed whenever a reservation is created
+and managed on the involved nodes in a psjob structure indentified by
+the TID of the logger of the job. The jobs are managed in a list of local jobs
+and each of them contains the list of its reservation information.
+------------------------------------------------------------------------
+9997c38a | Norbert Eicker | Tue, 19 Mar 2019 14:57:15 +0100
+
+Break infinite loop when sending PSP_CC_MSG to daemon (j3t:#1305)
+------------------------------------------------------------------------
+72f9d8b4 | Norbert Eicker | Thu, 7 Mar 2019 10:49:53 +0100
+
+More typos and docu improvements
+------------------------------------------------------------------------
+10eb1dc7 | Norbert Eicker | Thu, 7 Mar 2019 10:38:11 +0100
+
+Fix typo in comment
+------------------------------------------------------------------------
+
+
 Version psmgmt-5.1.19:
 ======================
 ------------------------------------------------------------------------
