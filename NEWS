@@ -5,6 +5,11 @@ Copyright (C) 2010-2019 ParTec Cluster Competence Center GmbH, Munich
 Please send bug reports, questions and suggestions to <support@par-tec.com>
 
 
+Version 5.1.20-1:
+=================
+Bugfixes:
+ - Fix handling of SLURM_MPI_TYPE=none (srun --mpi=none)
+
 Version 5.1.20:
 ===============
 Bugfixes:
