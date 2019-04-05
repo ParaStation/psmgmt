@@ -1193,10 +1193,10 @@ static void handleFWslurmMsgRes(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
 */
 static void handlePsslurmMsg(DDTypedBufferMsg_t *msg)
 {
-    char sender[100], dest[100];
+    char sender[32], dest[32];
 
-    strncpy(sender, PSC_printTID(msg->header.sender), sizeof(sender));
-    strncpy(dest, PSC_printTID(msg->header.dest), sizeof(dest));
+    snprintf(sender, sizeof(sender), "%s", PSC_printTID(msg->header.sender));
+    snprintf(dest, sizeof(dest), "%s", PSC_printTID(msg->header.dest));
 
     mdbg(PSSLURM_LOG_COMM, "%s: new msg type: %s (%i) [%s->%s]\n", __func__,
 	 msg2Str(msg->type), msg->type, sender, dest);

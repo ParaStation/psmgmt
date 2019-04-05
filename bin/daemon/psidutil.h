@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 1999-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2018 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2019 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -309,9 +309,9 @@ void PSID_resetSigs(void);
  * holds at the same time the lock of the running daemon. I.e., as
  * long as the daemon holds this socket no other daemon is able to
  * create its master socket. Therefore, some restriction arises on its
- * address @a sockname, i.e. it has to start with '\0'.
+ * address @a sName, i.e. it has to start with '\0'.
  *
- * @param sockname Address of the UNIX socket where the local
+ * @param sName Address of the UNIX socket where the local
  * ParaStation daemon is connectable. Since an abstract socket must be
  * used in order to have some locking mechanism, this name has to
  * begin with '\0'.
@@ -321,7 +321,7 @@ void PSID_resetSigs(void);
  * @see PSID_enableMasterSock(), PSID_disableMasterSock(),
  * PSID_shutdownMasterSock()
  */
-void PSID_createMasterSock(char *sockname);
+void PSID_createMasterSock(char *sName);
 
 /**
  * @brief Enable master socket.

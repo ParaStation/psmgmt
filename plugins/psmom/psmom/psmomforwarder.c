@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2010-2018 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2010-2019 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -1236,8 +1236,8 @@ int execInterForwarder(void *info)
 	return 1;
     } else if (forwarder_child_pid == 0) {
 	/* the interactive child */
-	char *argv[50], term[50], tmp[100], dis[100];
-	char *tty_name, *ptr;
+	char *argv[50], tmp[QSUB_DATA_SIZE], dis[100];
+	char *tty_name;
 	int argc = 0, fd;
 
 	tty_name = ttyname(stderrfds[1]);
@@ -1266,13 +1266,8 @@ int execInterForwarder(void *info)
 	setWindowSize(data->windowsize, stderrfds[1]);
 
 	/* setup terminal type */
-	if (strlen(data->termtype) < 6) {
-	    strncpy(term, "xterm", sizeof(term));
-	} else {
-	    ptr = data->termtype + 5;
-	    strncpy(term, ptr, sizeof(term));
-	}
-	snprintf(tmp, sizeof(tmp), "TERM=%s", term);
+	snprintf(tmp, sizeof(tmp), "TERM=%s",
+		 (strlen(data->termtype) < 6) ? "xterm" : data->termtype + 5);
 	addEnv(tmp);
 
 	/* close all fd */

@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2007-2018 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2007-2019 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -496,7 +496,6 @@ static void parseUpdateMessage(char *pmiLine, bool lastUpdate, int updateIdx)
     char vname[PMI_KEYLEN_MAX];
     char *nextvalue, *saveptr;
     const char delimiters[] =" \n";
-    size_t len;
 
     /* parse the update message */
     nextvalue = strtok_r(pmiLine, delimiters, &saveptr);
@@ -509,8 +508,8 @@ static void parseUpdateMessage(char *pmiLine, bool lastUpdate, int updateIdx)
 	    critErr();
 	    return;
 	}
-	len = strlen(nextvalue) - strlen(value) - 1;
-	strncpy(vname, nextvalue, len);
+	size_t len = MIN(strlen(nextvalue)-strlen(value)-1, sizeof(vname) - 1);
+	memcpy(vname, nextvalue, len);
 	vname[len] = '\0';
 
 	/* save key/value to kvs */
@@ -953,7 +952,7 @@ static int p_GetByIdx(char *msg)
     char reply[PMIU_MAXLINE];
     char idx[PMI_VALLEN_MAX], kvsname[PMI_KVSNAME_MAX];
     char *ret, name[PMI_KEYLEN_MAX];
-    int index, len;
+    int index;
 
     getpmiv("idx", msg, idx, sizeof(msg));
     getpmiv("kvsname", msg, kvsname, sizeof(msg));
@@ -977,8 +976,8 @@ static int p_GetByIdx(char *msg)
 	    elog("%s(r%i): error in local key value space\n", __func__, rank);
 	    return critErr();
 	}
-	len = strlen(ret) - strlen(value) - 1;
-	strncpy(name, ret, len);
+	size_t len = MIN(strlen(ret) - strlen(value) - 1, sizeof(name) - 1);
+	memcpy(name, ret, len);
 	name[len] = '\0';
 	snprintf(reply, sizeof(reply),
 		 "getbyidx_results rc=0 nextidx=%d key=%s val=%s\n",
@@ -2453,7 +2452,7 @@ static void handleKVSMessage(PSLog_Msg_t *msg)
  *
  * @return Returns true for success, false on errors
  */
-static bool extractPMIcmd(char *msg, char *cmdbuf, int bufsize)
+static bool extractPMIcmd(char *msg, char *cmdbuf, size_t bufsize)
 {
     const char delimiters[] =" \n";
     char *msgCopy, *cmd, *saveptr;
@@ -2467,15 +2466,14 @@ static bool extractPMIcmd(char *msg, char *cmdbuf, int bufsize)
     cmd = strtok_r(msgCopy, delimiters, &saveptr);
 
     while (cmd) {
-	if (!strncmp(cmd, "cmd=", 4)) {
-	    cmd += 4;
-	    strncpy(cmdbuf, cmd, bufsize);
-	    ufree(msgCopy);
-	    return true;
-	}
-	if (!strncmp(cmd, "mcmd=", 5)) {
-	    cmd += 5;
-	    strncpy(cmdbuf, cmd, bufsize);
+	size_t offset = 0;
+	if (!strncmp(cmd, "cmd=", 4)) offset = 4;
+	if (!strncmp(cmd, "mcmd=", 5)) offset = 5;
+	if (offset) {
+	    cmd += offset;
+	    size_t len = MIN(strlen(cmd), bufsize - 1);
+	    memcpy(cmdbuf, cmd, len);
+	    cmdbuf[len] = '\0';
 	    ufree(msgCopy);
 	    return true;
 	}
