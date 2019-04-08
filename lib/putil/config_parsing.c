@@ -1594,7 +1594,7 @@ static int insertNode(void)
     char buffer[64];
     struct in_addr *tmpaddr;
     in_addr_t ipaddr;
-    int nodenum, ret;
+    int nodeid, ret;
 
     // ignore this host object silently if NodeName is not set
     if (getString("NodeName", &nodename) || (*nodename == '\0')) {
@@ -1625,18 +1625,29 @@ static int insertNode(void)
     ipaddr = tmpaddr->s_addr;
     g_free(tmpaddr);
 
-    ret = getNumber("NodeNo", &nodenum);
+    ret = getNumber("Psid.NodeId", &nodeid);
+    if (ret == -1) {
+	ret = getNumber("NodeNo", &nodeid);
+	if (ret == -1) {
+	    parser_comment(-1, "Psid.NodeId is not set for node '%s'\n",
+		    nodename);
+	    return -1;
+	}
+	parser_comment(-1, "Using NodeNo for node '%s'. NodeNo is deprecated"
+		" and support will be removed. Use Psid.NodeId instead.\n",
+		nodename);
+    }
     if (ret) return ret;
 
-    parser_comment(PARSER_LOG_NODE, "Register '%s' as %d\n", nodename, nodenum);
+    parser_comment(PARSER_LOG_NODE, "Register '%s' as %d\n", nodename, nodeid);
     g_free(nodename);
 
-    ret = newHost(nodenum, ipaddr);
+    ret = newHost(nodeid, ipaddr);
     if (ret) return ret;
 
     if (PSC_isLocalIP(ipaddr)) {
-	nodeconf.id = nodenum;
-	PSC_setMyID(nodenum);
+	nodeconf.id = nodeid;
+	PSC_setMyID(nodeid);
     } else {
 	clearEnv();
     }
