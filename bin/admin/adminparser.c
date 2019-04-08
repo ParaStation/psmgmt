@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2017 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2019 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -2381,7 +2381,7 @@ static int versionCommand(char *token)
 
     printf("PSIADMIN: ParaStation administration tool\n");
     printf("Copyright (C) 1996-2004 ParTec AG, Karlsruhe\n");
-    printf("Copyright (C) 2005-2017 ParTec Cluster Competence Center GmbH,"
+    printf("Copyright (C) 2005-2019 ParTec Cluster Competence Center GmbH,"
 	   " Munich\n");
     printf("\n");
     printf("PSProtocol: %d\n", PSProtocolVersion);
