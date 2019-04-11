@@ -349,7 +349,7 @@ scriptsdir = $(prefix)/scripts
 @HAVE_SYSTEMD_TRUE@default_cgroup_root = /sys/fs/cgroup/
 @HAVE_SYSTEMD_FALSE@default_cgroup_name = psmgmtGrp
 @HAVE_SYSTEMD_TRUE@default_cgroup_name = system.slice/psid.service/descendants
-psgwlib_SCRIPTS = plugin01.py psgwd_start psgwd_exec psgwd_stop psroute.py
+psgwlib_SCRIPTS = plugin01.py plugin02.py psgwd_start psgwd_exec psgwd_stop psroute.py
 all: all-am
 
 .SUFFIXES:
