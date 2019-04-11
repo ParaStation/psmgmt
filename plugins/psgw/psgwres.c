@@ -587,6 +587,7 @@ bool startPSGWD(PSGW_Req_t *req)
 	return false;
     }
     envSet(&env, "PSGWD_USER", user);
+    envSet(&env, "SLURM_JOB_ID", req->jobid);
 
     char *gwEnv = envGet(req->res->env, "SLURM_SPANK_PSGW_ENV");
     if (gwEnv) envSet(&env, "SLURM_SPANK_PSGW_ENV", gwEnv);
