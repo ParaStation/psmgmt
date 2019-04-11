@@ -346,6 +346,7 @@ plugins/psgw/doc/psgw_error.example \
 plugins/psgw/psgw.c \
 plugins/psgw/psgwconfig.c \
 plugins/psgw/psgwconfig.h \
+plugins/psgw/psgwkvs.c \
 plugins/psgw/psgwlog.c \
 plugins/psgw/psgwlog.h \
 plugins/psgw/psgwpart.c \

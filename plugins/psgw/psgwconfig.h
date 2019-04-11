@@ -16,6 +16,8 @@
 /** The plugin configuration list. */
 Config_t Config;
 
+extern const ConfDef_t CONFIG_VALUES[];
+
 bool initConfig(char *filename);
 
 #endif
