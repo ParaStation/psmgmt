@@ -277,7 +277,7 @@ static const char* generateNamespaceName(PSrsrvtn_ID_t resID)
 static char * printProcess(PspmixProcess_t *proc) {
     static char buffer[64];
 
-    sprintf(buffer, "(%u,%hu,%u,%u,%hu,%hu)", proc->rank, proc->app->num,
+    sprintf(buffer, "(%u,%u,%u,%u,%hu,%hu)", proc->rank, proc->app->num,
 	    proc->grank, proc->arank, proc->lrank, proc->nrank);
 
     return buffer;

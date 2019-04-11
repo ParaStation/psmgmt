@@ -2640,8 +2640,7 @@ void sendTaskPids(Step_t *step)
     }
     resp.countGlobalTIDs = countGTIDs;
 
-    if (countPIDs != countGTIDs || countPIDs != countLocalPIDs
-	|| countPIDs != countGTIDs) {
+    if (countPIDs != countGTIDs || countPIDs != countLocalPIDs) {
 	mlog("%s: mismatching PID %u and GTID %u count\n", __func__,
 	     countPIDs, countGTIDs);
 	goto CLEANUP;

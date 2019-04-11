@@ -189,7 +189,7 @@ static bool addTaskInfo(Step_t *step, const void *info)
 	return false;
     }
 
-    snprintf(line, sizeof(line), "\n%i tasks for step %u:%u\n",
+    snprintf(line, sizeof(line), "\n%u tasks for step %u:%u\n",
 	     countTasks(tasks), step->jobid, step->stepid);
     addStrBuf(line, strBuf);
 
@@ -280,12 +280,12 @@ static char *resolveIDs(char *hosts)
     if (localNodeId == NO_VAL) {
 	str2Buf("\nCould not find my local ID\n", &buf, &bufSize);
     } else {
-	snprintf(line, sizeof(line), "\nLocal node ID is %i\n", localNodeId);
+	snprintf(line, sizeof(line), "\nLocal node ID is %u\n", localNodeId);
 	str2Buf(line, &buf, &bufSize);
     }
 
     for (i=0; i<nrOfNodes; i++) {
-	snprintf(line, sizeof(line), "%i nodeID %i hostname %s\n", i, nodes[i],
+	snprintf(line, sizeof(line), "%u nodeID %i hostname %s\n", i, nodes[i],
 		 getSlurmHostbyNodeID(nodes[i]));
 	str2Buf(line, &buf, &bufSize);
     }
