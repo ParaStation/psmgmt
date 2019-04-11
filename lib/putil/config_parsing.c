@@ -148,20 +148,26 @@ static nodeconf_t nodeconf = {
     } \
 }
 
-#define CHECK_PSCONFIG_EMPTY_STRING_AND_RETURN(val, key, ret) { \
-    if (*(val) == '\0') { \
-	parser_comment(-1, "PSConfig: '%s(%s)' does not exist or has empty" \
-		       " value\n", psconfigobj, key);			\
-	return ret;							\
-    } \
-}
-
+/*
+ * Get string value from psconfigobj in the psconfig configuration.
+ *
+ * On success, *value is set to the string value and 0 is returned.
+ * On error a parser comment is printed, *value is set to NULL and -1 returned.
+ */
 static int getString(char *key, gchar **value)
 {
     GError *err = NULL;
 
     *value = psconfig_get(psconfig, psconfigobj, key, psconfig_flags, &err);
     CHECK_PSCONFIG_ERROR_AND_RETURN(*value, key, err, -1);
+
+    if (**value == '\0') {
+	parser_comment(-1, "PSConfig: %s(%s): Empty value.\n",
+		psconfigobj, key);
+	g_free(*value);
+	*value = NULL;
+	return -1;
+    }
 
     return 0;
 }
@@ -198,8 +204,6 @@ static int getBool(char *key, int *value)
     ret = getString(key, &token);
     if (ret) return -1;
 
-    CHECK_PSCONFIG_EMPTY_STRING_AND_RETURN(token, key, -1);
-
     ret = toBool(token, value);
     if (ret) {
 	parser_comment(-1, "PSConfig: '%s(%s)' cannot convert string '%s' to"
@@ -232,8 +236,6 @@ static int getNumber(char *key, int *val)
 
     ret = getString(key, &token);
     if (ret) return -1;
-
-    CHECK_PSCONFIG_EMPTY_STRING_AND_RETURN(token, key, -1);
 
     ret = toNumber(token, val);
     if (ret) {
@@ -374,7 +376,6 @@ static int getInstDir(char *key)
     struct stat fstat;
 
     if (getString(key, &dname)) return -1;
-    CHECK_PSCONFIG_EMPTY_STRING_AND_RETURN(dname, key, -1);
 
     /* test if dir is a valid directory */
     if (*dname == '\0') {
@@ -411,7 +412,6 @@ static int getCoreDir(char *key)
     struct stat fstat;
 
     if (getString(key, &dname)) return -1;
-    CHECK_PSCONFIG_EMPTY_STRING_AND_RETURN(dname, key, -1);
 
     /* test if dir is a valid directory */
     if (*dname == '\0') {
@@ -663,7 +663,6 @@ static int getLogDest(char *key)
     gchar *value;
 
     if (getString(key, &value)) return -1;
-    CHECK_PSCONFIG_EMPTY_STRING_AND_RETURN(value, key, -1);
 
     if (*value == '\0') {
 	parser_comment(-1, "empty destination\n");
@@ -733,7 +732,6 @@ static int getPSINodesSort(char *key)
     int ret;
 
     if (getString(key, &value)) return -1;
-    CHECK_PSCONFIG_EMPTY_STRING_AND_RETURN(value, key, -1);
 
     ret = 0;
 
@@ -1230,7 +1228,6 @@ static int getProcs(char *key)
     int procs = -1;
 
     if (getString(key, &procStr)) return -1;
-    CHECK_PSCONFIG_EMPTY_STRING_AND_RETURN(procStr, key, -1);
 
     if (toNumber(procStr, &procs) && strcasecmp(procStr, "any")) {
 	parser_comment(-1, "Unknown number of processes '%s'\n", procStr);
@@ -1256,7 +1253,6 @@ static int getOB(char *key)
     int ob, ret;
 
     if (getString(key, &obStr)) return -1;
-    CHECK_PSCONFIG_EMPTY_STRING_AND_RETURN(obStr, key, -1);
 
     if (strcasecmp(obStr, "auto") == 0) {
 	ob = OVERBOOK_AUTO;
@@ -1606,7 +1602,6 @@ static int insertNode(void)
 	g_free(nodename);
 	return -1;
     }
-    CHECK_PSCONFIG_EMPTY_STRING_AND_RETURN(netname, "Psid.NetworkName", -1);
 
     snprintf(buffer, sizeof(buffer), "%s.DevIPAddress", netname);
     g_free(netname);
@@ -1614,7 +1609,6 @@ static int insertNode(void)
 	g_free(nodename);
 	return -1;
     }
-    CHECK_PSCONFIG_EMPTY_STRING_AND_RETURN(ipaddress, buffer, -1);
 
     tmpaddr = g_malloc(sizeof(struct in_addr));
     if (!inet_pton(AF_INET, ipaddress, tmpaddr)) {
@@ -2188,20 +2182,16 @@ config_t *parseConfig(FILE* logfile, int logmask, char *configfile)
     if (getString("NodeName", &nodename)) {
 	// cut hostname
 	parser_comment(PARSER_LOG_VERB, "%s: Cutting hostname \"%s\" for"
-		" psconfig.\n", __func__, psconfigobj);
+		" psconfig.\n", __func__, psconfigobj+5);
 	char *pos = strchr(psconfigobj, '.');
 	if (pos == NULL) {
 	    parser_comment(-1,
 			   "ERROR: Cannot find host object for this node.\n");
-	    free(psconfigobj);
-	    psconfigobj = NULL;
-	    psconfig_unref(psconfig);
-	    psconfig = NULL;
-	    return NULL;
+	    goto parseConfig_error;
 	}
 	*pos = '\0';
-	parser_comment(-1, "INFO: Trying to use cutted hostname \"%s\" for"
-		" psconfig.\n", psconfigobj);
+	parser_comment(-1, "INFO: Trying to use cutted hostname for psconfig"
+		" host object: \"%s\".\n", psconfigobj);
     }
     else {
 	free(nodename);
@@ -2252,5 +2242,12 @@ config_t *parseConfig(FILE* logfile, int logmask, char *configfile)
     psconfig = NULL;
 
     return &config;
+
+parseConfig_error:
+    free(psconfigobj);
+    psconfigobj = NULL;
+    psconfig_unref(psconfig);
+    psconfig = NULL;
+    return NULL;
 }
 #endif /* BUILD_WITHOUT_PSCONFIG */
