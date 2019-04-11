@@ -82,10 +82,6 @@ def compress(nodes):
     return str(ClusterShell.NodeSet.NodeSet(",".join(nodes)))
 
 def writeRouteFile(plugin, rFile, psgwdToPort, nodesA, nodesB):
-    # Security issue, but well ...
-    sys.path.append("/".join(plugin.split("/")[:-2]))
-    plu = __import__(re.sub(r'\.py$', r'', plugin.split("/")[-1]))
-
     nodesA   = sorted(expand(nodesA))
     nodesB   = sorted(expand(nodesB))
     gateways = sorted(psgwdToPort.keys())
@@ -93,7 +89,7 @@ def writeRouteFile(plugin, rFile, psgwdToPort, nodesA, nodesB):
     if 0 == len(gateways):
         raise Exception("No gateways available")
 
-    routes = retrieveRoutes(plu, nodesA, nodesB, gateways)
+    routes = retrieveRoutes(plugin, nodesA, nodesB, gateways)
 
     count = 0
     with open(rFile, "w") as f:
@@ -107,7 +103,11 @@ def writeRouteFile(plugin, rFile, psgwdToPort, nodesA, nodesB):
 
     assert count == len(nodesA)*len(nodesB)
 
-def retrieveRoutes(plu, nodesA, nodesB, gateways):
+def retrieveRoutes(plugin, nodesA, nodesB, gateways):
+    pluginPath, pluginFile = os.path.split(plugin)
+    sys.path.append(pluginPath)
+    plu = __import__(re.sub(r'\.py$', r'', pluginFile))
+
     routes = {}
 
     for gw in gateways:
