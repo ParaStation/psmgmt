@@ -1649,12 +1649,10 @@ static int insertNode(void)
     return ret;
 }
 
-static int getNodes(void)
+static int getNodes(char *psiddomain)
 {
     GPtrArray *nodeobjlist;
     GError *err = NULL;
-    unsigned int i;
-    int ret = 0;
 
     gchar *parents[] = { "class:host", NULL };
     GHashTable* keyvals = g_hash_table_new(g_str_hash,g_str_equal);
@@ -1669,13 +1667,27 @@ static int getNodes(void)
 	return -1;
     }
 
-    for(i = 0; i < nodeobjlist->len; i++) {
+    char *psconfigobj_old = psconfigobj;
+
+    int ret = 0;
+    for(unsigned int i = 0; i < nodeobjlist->len; i++) {
 	psconfigobj = (gchar*)g_ptr_array_index(nodeobjlist,i);
+
+        /* check psiddomain if set */
+	if (psiddomain) {
+	    char *domain;
+	    /* ignore nodes with no or wrong domain set */
+	    if (getString("Psid.Domain", &domain)) continue;
+	    /* ignore nodes with wrong psid domain */
+	    if (strcmp(domain, psiddomain)) continue;
+	}
+
 	ret = insertNode();
 	if (ret) break;
     }
     g_ptr_array_free(nodeobjlist, TRUE);
-    psconfigobj = NULL;
+
+    psconfigobj = psconfigobj_old;
 
     parser_comment(PARSER_LOG_NODE, "%d nodes registered\n", nodesfound);
 
@@ -2131,8 +2143,6 @@ config_t *parseConfig(FILE* logfile, int logmask, char *configfile)
 {
     int ret;
 
-    char *nodename;
-
     /* Check if configfile exists and has not length 0.
        If so, use it, else use psconfig. */
 
@@ -2160,18 +2170,6 @@ config_t *parseConfig(FILE* logfile, int logmask, char *configfile)
     psconfig = psconfig_new();
     psconfigobj = NULL;
 
-    // get hostname to ID mapping
-    ret = getNodes();
-
-    if (ret) {
-	parser_comment(-1,
-		       "ERROR: Reading nodes configuration from psconfig"
-		       " failed.\n");
-	psconfig_unref(psconfig);
-	psconfig = NULL;
-	return NULL;
-    }
-
     // generate local psconfig host object name
     psconfigobj = malloc(70*sizeof(char));
     strncpy(psconfigobj, "host:", 6);
@@ -2179,6 +2177,7 @@ config_t *parseConfig(FILE* logfile, int logmask, char *configfile)
     psconfigobj[69] = '\0'; //assure object to be null terminated
 
     // check if the host object exists or we have to cut the hostname
+    char *nodename;
     if (getString("NodeName", &nodename)) {
 	// cut hostname
 	parser_comment(PARSER_LOG_VERB, "%s: Cutting hostname \"%s\" for"
@@ -2190,11 +2189,31 @@ config_t *parseConfig(FILE* logfile, int logmask, char *configfile)
 	    goto parseConfig_error;
 	}
 	*pos = '\0';
-	parser_comment(-1, "INFO: Trying to use cutted hostname for psconfig"
-		" host object: \"%s\".\n", psconfigobj);
+	parser_comment(-1,
+		       "INFO: Trying to use cutted hostname for psconfig"
+		       " host object: \"%s\".\n", psconfigobj);
     }
     else {
 	free(nodename);
+    }
+
+    // get local psid domain
+    char *psiddomain;
+    if (getString("Psid.Domain", &psiddomain)) {
+	parser_comment(-1,
+		       "INFO: No psid domain configured, using all host"
+		       " objects.\n");
+    }
+
+    // get hostname to ID mapping
+    ret = getNodes(psiddomain);
+    if (ret) {
+	parser_comment(-1,
+		       "ERROR: Reading nodes configuration from psconfig"
+		       " failed.\n");
+	psconfig_unref(psconfig);
+	psconfig = NULL;
+	return NULL;
     }
 
     // set default UID/GID for local node
