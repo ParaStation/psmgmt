@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 1999-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2018 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2019 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -43,20 +43,20 @@ static int daemonSock = -1;
  *
  * Open a UNIX sockets and connect it to a corresponding socket the
  * local ParaStation daemon is listening on. The address of psid's
- * socket is given in @a sockname.
+ * socket is given in @a sName.
  *
- * @param sockname Address of the UNIX socket where the local
+ * @param sName Address of the UNIX socket where the local
  * ParaStation daemon is connectable.
  *
  * @return On success, the file-descriptor of the connected socket is
  * returned. Otherwise -1 is returned and errno is left appropriately.
  */
-static int daemonSocket(char *sockname)
+static int daemonSocket(char *sName)
 {
     int sock;
     struct sockaddr_un sa;
 
-    PSI_log(PSI_LOG_VERB, "%s(%s)\n", __func__, sockname);
+    PSI_log(PSI_LOG_VERB, "%s(%s)\n", __func__, sName);
 
     sock = socket(PF_UNIX, SOCK_STREAM, 0);
     if (sock < 0) {
@@ -65,11 +65,13 @@ static int daemonSocket(char *sockname)
 
     memset(&sa, 0, sizeof(sa));
     sa.sun_family = AF_UNIX;
-    if (sockname[0] == '\0') {
+    if (sName[0] == '\0') {
 	sa.sun_path[0] = '\0';
-	strncpy(sa.sun_path+1, sockname+1, sizeof(sa.sun_path)-1);
+	sName++;
+	memcpy(sa.sun_path + 1, sName, MIN(sizeof(sa.sun_path) - 1,
+					   strlen(sName) + 1));
     } else {
-	strncpy(sa.sun_path, sockname, sizeof(sa.sun_path));
+	memcpy(sa.sun_path, sName, MIN(sizeof(sa.sun_path), strlen(sName) + 1));
     }
 
     if (connect(sock, (struct sockaddr*) &sa, sizeof(sa)) < 0) {

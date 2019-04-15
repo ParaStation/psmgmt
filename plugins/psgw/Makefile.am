@@ -32,8 +32,8 @@ libplugincommon = $(top_builddir)/lib/plugincommon/libplugincommon.la
 libpscommon = $(top_builddir)/lib/pscommon/libpscommon.la
 
 psgw_la_SOURCES = psgw.c psgwlog.c psgwlog.h psgwres.c psgwres.h \
-		  psgwconfig.c psgwconfig.h psgwrequest.c psgwrequest.h \
-		  psgwpart.c psgwpart.h
+		  psgwconfig.c psgwconfig.h psgwkvs.c psgwrequest.c \
+		  psgwrequest.h psgwpart.c psgwpart.h
 
 psgw_la_CPPFLAGS = $(AM_CPPFLAGS) -DLOCALSTATEDIR=\"$(localstatedir)\" \
 		   -DPLUGINDIR=\"$(plugindir)\" -DBINDIR=\"$(bindir)\" \

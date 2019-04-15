@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2014-2018 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2014-2019 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -103,6 +103,13 @@ Job_t *addJob(const char *plugin, const char *jobid, uid_t uid, gid_t gid,
 
     if (!plugin || !jobid) {
 	mlog("%s: invalid plugin %s or jobid %s\n", __func__, plugin, jobid);
+	return NULL;
+    }
+
+    if (!getPluginConfValueC(plugin, "DIR_SCRIPTS")) {
+	/* test if we have a plugin configuration for the job */
+	mlog("%s: unset script directory for plugin %s job %s\n", __func__,
+	     plugin, jobid);
 	return NULL;
     }
 

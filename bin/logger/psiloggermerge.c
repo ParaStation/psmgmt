@@ -1,19 +1,12 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2007-2016 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2007-2019 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-#ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__((used)) =
-    "$Id$";
-#endif /* DOXYGEN_SHOULD_SKIP_THIS */
-
-#define _GNU_SOURCE
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
@@ -142,20 +135,14 @@ static void *umalloc(size_t size, const char *func)
 static void dumpGlobalBuffer(void)
 {
     struct list_head *npos;
-    bMessages *nval;
 
     PSIlog_stderr(-1, "\n");
     PSIlog_log(-1, "Dumping output buffer:\n");
-    if (!list_empty(&messageCache.list)) {
-	list_for_each(npos, &messageCache.list) {
-	    nval = list_entry(npos, bMessages, list);
-	    if (!nval) {
-		break;
-	    }
-	    if (nval->line) {
-		PSIlog_log(-1, "counter:%i hash:%i line:%s", nval->counter,
-			   nval->hash, nval->line);
-	    }
+    list_for_each(npos, &messageCache.list) {
+	bMessages *nval = list_entry(npos, bMessages, list);
+	if (nval->line) {
+	    PSIlog_log(-1, "counter:%i hash:%i line:%s", nval->counter,
+		       nval->hash, nval->line);
 	}
     }
     PSIlog_log(-1, "dump end\n");
@@ -170,24 +157,17 @@ static void dumpGlobalBuffer(void)
  */
 static void dumpClientBuffer(void)
 {
-    struct list_head *npos;
-    OutputBuffers *nval;
     int x;
 
     PSIlog_stderr(-1, "\n");
     PSIlog_log(-1, "Dumping output buffer:\n");
     for(x=0; x< np; x++) {
-
-	if (!list_empty(&clientOutBuf[x].list)) {
-	    list_for_each(npos, &clientOutBuf[x].list) {
-		/* get data to compare */
-		nval = list_entry(npos, OutputBuffers, list);
-
-		if (!nval) break;
-		if (nval->line) {
-		    PSIlog_log(-1, "client:%i outfd:%d line:%s", x,
-			       nval->outfd, nval->line);
-		}
+	struct list_head *npos;
+	list_for_each(npos, &clientOutBuf[x].list) {
+	    OutputBuffers *nval = list_entry(npos, OutputBuffers, list);
+	    if (nval->line) {
+		PSIlog_log(-1, "client:%i outfd:%d line:%s", x, nval->outfd,
+			   nval->line);
 	    }
 	}
     }
@@ -257,38 +237,33 @@ void outputMergeInit(void)
 static void findEqualData(int ClientIdx, struct list_head *saveBuf[np],
 			  int saveBufInd[np], int *mcount, OutputBuffers *val)
 {
-    int dcount = 0;
     int x;
-    struct list_head *npos;
-    OutputBuffers *nval;
 
-    if (!val || !val->line) {
-	return;
-    }
+    if (!val || !val->line) return;
 
     *mcount = 0;
     for(x=0; x<np; x++) {
-	/* skip myself or empty list */
-	if (x == ClientIdx || list_empty(&clientOutBuf[x].list)) continue;
+	struct list_head *npos;
+	int dcount = 0;
+
+	/* skip myself */
+	if (x == ClientIdx) continue;
 
 	list_for_each(npos, &clientOutBuf[x].list) {
+	    OutputBuffers *nval = list_entry(npos, OutputBuffers, list);
+
 	    dcount++;
-	    /* get data to compare */
-	    nval = list_entry(npos, OutputBuffers, list);
 
-	    if (!nval || !nval->line) break;
+	    if (!nval->line) break;
 
-	    if (val->line == nval->line ) {
-		if (val->outfd == nval->outfd) {
-		    saveBuf[*mcount] = npos;
-		    saveBufInd[*mcount] = x;
-		    (*mcount)++;
-		    break;
-		}
+	    if (val->line == nval->line && val->outfd == nval->outfd) {
+		saveBuf[*mcount] = npos;
+		saveBufInd[*mcount] = x;
+		(*mcount)++;
+		break;
 	    }
 	    if (maxMergeDepth > 0 && dcount == maxMergeDepth) break;
 	}
-	dcount = 0;
     }
 }
 
@@ -308,25 +283,25 @@ static void findEqualData(int ClientIdx, struct list_head *saveBuf[np],
 static void delCachedMsg(OutputBuffers *nval, struct list_head *npos)
 {
     struct list_head *pos;
-    bMessages *val;
+    bMessages *val = NULL;
     bool found = false;
-    val = NULL;
-    if (!list_empty(&messageCache.list)) {
-	list_for_each(pos, &messageCache.list) {
-	    /* get element to compare */
-	    val = list_entry(pos, bMessages, list);
 
-	    if (!val || !val->line) break;
-	    if (nval->line == val->line) {
-		found = true;
-		break;
-	    }
-	}
-    } else {
+    if (list_empty(&messageCache.list)) {
 	PSIlog_log(-1, "%s: list empty: possible error in ouput buffer\n",
 		   __func__);
 	return;
     }
+
+    list_for_each(pos, &messageCache.list) {
+	val = list_entry(pos, bMessages, list);
+
+	if (!val->line) break;
+	if (nval->line == val->line) {
+	    found = true;
+	    break;
+	}
+    }
+
     if (!found) {
 	PSIlog_log(-1, "%s: line not found: possible error in ouput buffer\n",
 		   __func__);
@@ -338,7 +313,7 @@ static void delCachedMsg(OutputBuffers *nval, struct list_head *npos)
 	return;
     }
     (val->counter)--;
-    if (val->counter == 0) {
+    if (!val->counter) {
 	free(val->line);
 	list_del(pos);
 	free(val);
@@ -501,25 +476,22 @@ static void outputSingleCMsg(int client, struct list_head *pos,
 			     struct list_head *saveBuf[np],
 			     int saveBufInd[np], int mcount)
 {
-    list_t *tmppos, *tmpother, *savepos, *saveother;
-    OutputBuffers *nval, *oval;
-    int i, lcount;
-    int savelocInd[mcount+1];
-
+    list_t *tmppos, *savepos;
     list_for_each_safe(tmppos, savepos, &clientOutBuf[client].list) {
-	lcount = 0;
-	if (tmppos == pos) break;
+	OutputBuffers *nval = list_entry(tmppos, OutputBuffers, list);
+	int lcount = 0, i;
+	int savelocInd[mcount+1];
 
-	nval = list_entry(tmppos, OutputBuffers, list);
-	if (!nval || !nval->line) break;
+	if (tmppos == pos || !nval->line) break;
 
 	for (i=0; i<=mcount; i++) {
 	    if (i == client) continue;
+	    list_t *tmpother, *saveother;
 	    list_for_each_safe(tmpother, saveother, &clientOutBuf[i].list) {
-		if (tmpother == saveBuf[i]) break;
+		OutputBuffers *oval = list_entry(tmpother, OutputBuffers, list);
 
-		oval = list_entry(tmpother, OutputBuffers, list);
-		if (!oval || !oval->line) break;
+		if (tmpother == saveBuf[i] || !oval->line) break;
+
 		if (oval->line == nval->line && oval->outfd == nval->outfd) {
 		    savelocInd[lcount] = i;
 		    lcount++;
@@ -563,25 +535,52 @@ static int calcHash(char *line)
 static bMessages *isSaved(bMessages *msgCache, char *msg, int hash)
 {
     struct list_head *pos;
-    bMessages *val;
 
     if (!msgCache || !msg) {
 	PSIlog_log(-1, "%s: invalid msg or msgCache\n", __func__);
 	return NULL;
     }
 
-    if (!list_empty(&msgCache->list)) {
-	list_for_each(pos, &msgCache->list) {
-	    /* get element to compare */
-	    val = list_entry(pos, bMessages, list);
+    list_for_each(pos, &msgCache->list) {
+	bMessages *val = list_entry(pos, bMessages, list);
 
-	    if (!val || !val->line) break;
-	    if (val->hash == hash && (!strcmp(val->line, msg))) {
-		return val;
-	    }
-	}
+	if (!val->line) break;
+	if (val->hash == hash && !strcmp(val->line, msg)) return val;
     }
     return NULL;
+}
+
+/**
+ * @brief Concatenate two strings
+ *
+ * Concatenate the two character strings @a str1 and @a str2 and store
+ * the result in a new string. The function returns a pointer to the
+ * newly allocated string. Memory for the new string is obtained with
+ * @ref umalloc(), and must be freed with free(). The length of the
+ * string @a str2 to be appended must be given in @a len.
+ *
+ * @param str1 First string
+ *
+ * @param str2 Second string
+ *
+ * @param len Length of @a str2
+ *
+ * @param func Name of the calling function to be passed to @ref umalloc()
+ *
+ * @return Returns a pointer to the new string containing the
+ * concatenated content of @a str1 and @a str2
+ */
+static char *strndupcat(char *str1, char *str2, size_t len, const char *func)
+{
+    size_t len1 = strlen(str1);
+    char *savep = umalloc((len1 + len + 1), func);
+    if (savep) {
+	memcpy(savep, str1, len1);
+	memcpy(savep + len1, str2, len);
+	savep[len1 + len] = '\0';
+    }
+
+    return savep;
 }
 
 /**
@@ -617,14 +616,9 @@ static void appendTmpBuffer(int sender, char *newmsg, size_t len, int outfd)
 	tmpBuf->time[outfd] = time(0);
 	savebuf = strndup(newmsg, len);
     } else {
-	int leninc = strlen(tmpLine);
 	if (db) PSIlog_log(-1, "sender:%i no '\\n' ->append :%s\n",
 			   sender, newmsg);
-
-	savebuf = umalloc((len + leninc + 1), __func__);
-	strcpy(savebuf, tmpLine);
-	strncat(savebuf, newmsg, len);
-	savebuf[len + leninc] = '\0';
+	savebuf = strndupcat(tmpLine, newmsg, len, __func__);
     }
 
     if (!savebuf) {
@@ -657,25 +651,23 @@ static void appendTmpBuffer(int sender, char *newmsg, size_t len, int outfd)
 static void delCachedTmpMsg(char *tmpLine)
 {
     struct list_head *pos;
-    bMessages *val;
+    bMessages *val = NULL;
     bool found = false;
-    val = NULL;
 
-    if (!list_empty(&msgTmpCache.list)) {
-	list_for_each(pos, &msgTmpCache.list) {
-	    /* get element to compare */
-	    val = list_entry(pos, bMessages, list);
-
-	    if (!val || !val->line) break;
-	    if (val->line == tmpLine) {
-		found = true;
-		break;
-	    }
-	}
-    } else {
+    if (list_empty(&msgTmpCache.list)) {
 	PSIlog_log(-1, "%s: list empty: possible error in tmp msg cache\n",
 		   __func__);
 	return;
+    }
+
+    list_for_each(pos, &msgTmpCache.list) {
+	val = list_entry(pos, bMessages, list);
+
+	if (!val->line) break;
+	if (val->line == tmpLine) {
+	    found = true;
+	    break;
+	}
     }
 
     if (!found) {
@@ -727,21 +719,14 @@ static void insertOutputBuffer(int sender, char *buf, size_t len, int outfd)
     if (!tmpLine) {
 	savep = strndup(buf, len);
     } else {
-	int leninc = strlen(tmpLine);
-	savep = umalloc((len + leninc + 1), __func__);
-	strncpy(savep, tmpLine, leninc);
-	savep[leninc] = '\0';
-	strncat(savep, buf, len);
-	savep[len + leninc] = '\0';
+	savep = strndupcat(tmpLine, buf, len, __func__);
 	delCachedTmpMsg(tmpLine);
 	tmpBuf->line[outfd] = NULL;
     }
-
     if (!savep) {
 	PSIlog_log(-1, "%s: invalid message to save\n", __func__);
 	return;
     }
-
 
     /* Shall output lines be scanned for Valgrind PID patterns? */
     if (useValgrind) {
@@ -889,8 +874,6 @@ void cacheOutput(PSLog_Msg_t *msg, int outfd)
 
 void displayCachedOutput(bool flush)
 {
-    list_t *pos, *tmp;
-    OutputBuffers *val, *nval;
     int i, z, mcount = 0;
     struct list_head *saveBuf[np];
     int saveBufInd[np];
@@ -904,13 +887,11 @@ void displayCachedOutput(bool flush)
     if (flush) moveTmpToClientBuf();
 
     for (i=0; i<np; i++) {
-	if (list_empty(&clientOutBuf[i].list)) continue;
-
+	list_t *pos, *tmp;
 	list_for_each_safe(pos, tmp, &clientOutBuf[i].list) {
-	    /* get element to compare */
-	    val = list_entry(pos, OutputBuffers, list);
+	    OutputBuffers *val = list_entry(pos, OutputBuffers, list);
 
-	    if (!val || !val->line) break;
+	    if (!val->line) break;
 
 	    if (ltime - val->time > maxMergeWait || flush) {
 		countMode = false;
@@ -937,7 +918,8 @@ void displayCachedOutput(bool flush)
 				 saveBufInd, mcount);
 
 		/* remove already displayed msg from all other ranks */
-		nval = list_entry(saveBuf[z], OutputBuffers, list);
+		OutputBuffers *nval = list_entry(saveBuf[z],
+						 OutputBuffers, list);
 		delCachedMsg(nval, saveBuf[z]);
 	    }
 

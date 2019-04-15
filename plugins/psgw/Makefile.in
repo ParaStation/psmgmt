@@ -154,7 +154,7 @@ am__installdirs = "$(DESTDIR)$(plugindir)"
 LTLIBRARIES = $(plugin_LTLIBRARIES)
 psgw_la_DEPENDENCIES = $(libplugincommon) $(libpscommon)
 am_psgw_la_OBJECTS = psgw_la-psgw.lo psgw_la-psgwlog.lo \
-	psgw_la-psgwres.lo psgw_la-psgwconfig.lo \
+	psgw_la-psgwres.lo psgw_la-psgwconfig.lo psgw_la-psgwkvs.lo \
 	psgw_la-psgwrequest.lo psgw_la-psgwpart.lo
 psgw_la_OBJECTS = $(am_psgw_la_OBJECTS)
 AM_V_lt = $(am__v_lt_@AM_V@)
@@ -178,6 +178,7 @@ depcomp = $(SHELL) $(top_srcdir)/scripts/depcomp
 am__maybe_remake_depfiles = depfiles
 am__depfiles_remade = ./$(DEPDIR)/psgw_la-psgw.Plo \
 	./$(DEPDIR)/psgw_la-psgwconfig.Plo \
+	./$(DEPDIR)/psgw_la-psgwkvs.Plo \
 	./$(DEPDIR)/psgw_la-psgwlog.Plo \
 	./$(DEPDIR)/psgw_la-psgwpart.Plo \
 	./$(DEPDIR)/psgw_la-psgwrequest.Plo \
@@ -459,8 +460,8 @@ plugin_LTLIBRARIES = psgw.la
 libplugincommon = $(top_builddir)/lib/plugincommon/libplugincommon.la
 libpscommon = $(top_builddir)/lib/pscommon/libpscommon.la
 psgw_la_SOURCES = psgw.c psgwlog.c psgwlog.h psgwres.c psgwres.h \
-		  psgwconfig.c psgwconfig.h psgwrequest.c psgwrequest.h \
-		  psgwpart.c psgwpart.h
+		  psgwconfig.c psgwconfig.h psgwkvs.c psgwrequest.c \
+		  psgwrequest.h psgwpart.c psgwpart.h
 
 psgw_la_CPPFLAGS = $(AM_CPPFLAGS) -DLOCALSTATEDIR=\"$(localstatedir)\" \
 		   -DPLUGINDIR=\"$(plugindir)\" -DBINDIR=\"$(bindir)\" \
@@ -548,6 +549,7 @@ distclean-compile:
 
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/psgw_la-psgw.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/psgw_la-psgwconfig.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/psgw_la-psgwkvs.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/psgw_la-psgwlog.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/psgw_la-psgwpart.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/psgw_la-psgwrequest.Plo@am__quote@ # am--include-marker
@@ -610,6 +612,13 @@ psgw_la-psgwconfig.lo: psgwconfig.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='psgwconfig.c' object='psgw_la-psgwconfig.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(psgw_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o psgw_la-psgwconfig.lo `test -f 'psgwconfig.c' || echo '$(srcdir)/'`psgwconfig.c
+
+psgw_la-psgwkvs.lo: psgwkvs.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(psgw_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT psgw_la-psgwkvs.lo -MD -MP -MF $(DEPDIR)/psgw_la-psgwkvs.Tpo -c -o psgw_la-psgwkvs.lo `test -f 'psgwkvs.c' || echo '$(srcdir)/'`psgwkvs.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/psgw_la-psgwkvs.Tpo $(DEPDIR)/psgw_la-psgwkvs.Plo
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='psgwkvs.c' object='psgw_la-psgwkvs.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(psgw_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o psgw_la-psgwkvs.lo `test -f 'psgwkvs.c' || echo '$(srcdir)/'`psgwkvs.c
 
 psgw_la-psgwrequest.lo: psgwrequest.c
 @am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(psgw_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT psgw_la-psgwrequest.lo -MD -MP -MF $(DEPDIR)/psgw_la-psgwrequest.Tpo -c -o psgw_la-psgwrequest.lo `test -f 'psgwrequest.c' || echo '$(srcdir)/'`psgwrequest.c
@@ -834,6 +843,7 @@ clean-am: clean-generic clean-libtool clean-pluginLTLIBRARIES \
 distclean: distclean-recursive
 		-rm -f ./$(DEPDIR)/psgw_la-psgw.Plo
 	-rm -f ./$(DEPDIR)/psgw_la-psgwconfig.Plo
+	-rm -f ./$(DEPDIR)/psgw_la-psgwkvs.Plo
 	-rm -f ./$(DEPDIR)/psgw_la-psgwlog.Plo
 	-rm -f ./$(DEPDIR)/psgw_la-psgwpart.Plo
 	-rm -f ./$(DEPDIR)/psgw_la-psgwrequest.Plo
@@ -885,6 +895,7 @@ installcheck-am:
 maintainer-clean: maintainer-clean-recursive
 		-rm -f ./$(DEPDIR)/psgw_la-psgw.Plo
 	-rm -f ./$(DEPDIR)/psgw_la-psgwconfig.Plo
+	-rm -f ./$(DEPDIR)/psgw_la-psgwkvs.Plo
 	-rm -f ./$(DEPDIR)/psgw_la-psgwlog.Plo
 	-rm -f ./$(DEPDIR)/psgw_la-psgwpart.Plo
 	-rm -f ./$(DEPDIR)/psgw_la-psgwrequest.Plo

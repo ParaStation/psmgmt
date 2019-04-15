@@ -138,10 +138,21 @@ int slurm_spank_init_post_opt(spank_t sp, int ac, char **av)
 int setGwPlugin(int val, const char *optarg, int remote)
 {
     if (optarg == NULL) {
-        slurm_error("psgw: specify the name of the route plugin");
+        slurm_error("psgw: specify the name of the route "
+                    "plugin using --gw_plugin");
         return -1;
     }
-    routePlugin = strdup(optarg);
+
+    if (strchr(optarg, '/')) {
+        char *path = realpath(optarg, NULL);
+        if (!path) {
+            slurm_error("psgw: gw_plugin %s is not a vaild path\n", optarg);
+            return -1;
+        }
+        routePlugin = strdup(path);
+    } else {
+        routePlugin = strdup(optarg);
+    }
 
     if (DEBUG) slurm_info("set gw_plugin to %s", routePlugin);
 
@@ -154,10 +165,16 @@ int setGwPlugin(int val, const char *optarg, int remote)
 int setGwFile(int val, const char *optarg, int remote)
 {
     if (optarg == NULL) {
-        slurm_error("psgw: specify the path to the route file");
+        slurm_error("psgw: specify the path to the route file using --gw_file");
         return -1;
     }
-    routeFile = strdup(optarg);
+
+    if (optarg[0] == '/') {
+        routeFile = strdup(optarg);
+    } else {
+        slurm_error("psgw: specify an absolute path with --gw_file");
+        return -1;
+    }
 
     if (DEBUG) slurm_info("set gw_file to %s", routeFile);
 
@@ -170,13 +187,15 @@ int setGwFile(int val, const char *optarg, int remote)
 int setGwNum(int val, const char *optarg, int remote)
 {
     if (optarg == NULL) {
-        slurm_error ("psgw: specify the number of gateway nodes");
+        slurm_error ("psgw: specify the number of gateway "
+                     "nodes using --gw_num");
         return -1;
     }
 
     int ret = sscanf(optarg, "%i", &gwNum);
-    if (ret != 1) {
-        slurm_error ("gw_num: not a vaild number");
+    if (ret != 1 || gwNum < 1) {
+        slurm_error ("psgw: gw_num %s is not a vaild number for "
+                     "gateway nodes", optarg);
 	return -1;
     }
     if (DEBUG) slurm_info("set gw_num to %i", gwNum);
@@ -190,7 +209,8 @@ int setGwNum(int val, const char *optarg, int remote)
 int setGwEnv(int val, const char *optarg, int remote)
 {
     if (optarg == NULL) {
-        slurm_error("psgw: specify the psgwd environment variable");
+        slurm_error("psgw: specify the psgwd environment "
+                    "variable using --gw_env");
         return -1;
     }
     gwEnv = strdup(optarg);
@@ -218,7 +238,8 @@ int setGwCleanup(int val, const char *optarg, int remote)
 int setGwBinary(int val, const char *optarg, int remote)
 {
     if (optarg == NULL) {
-        slurm_error("psgw: specify the path to the psgwd binary");
+        slurm_error("psgw: specify the path to the psgwd "
+                    "binary using --gw_binary");
         return -1;
     }
     gwBinary = strdup(optarg);

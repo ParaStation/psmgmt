@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2014-2018 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2014-2019 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -148,20 +148,26 @@ static nodeconf_t nodeconf = {
     } \
 }
 
-#define CHECK_PSCONFIG_EMPTY_STRING_AND_RETURN(val, key, ret) { \
-    if (*(val) == '\0') { \
-	parser_comment(-1, "PSConfig: '%s(%s)' does not exist or has empty" \
-		       " value\n", psconfigobj, key);			\
-	return ret;							\
-    } \
-}
-
+/*
+ * Get string value from psconfigobj in the psconfig configuration.
+ *
+ * On success, *value is set to the string value and 0 is returned.
+ * On error a parser comment is printed, *value is set to NULL and -1 returned.
+ */
 static int getString(char *key, gchar **value)
 {
     GError *err = NULL;
 
     *value = psconfig_get(psconfig, psconfigobj, key, psconfig_flags, &err);
     CHECK_PSCONFIG_ERROR_AND_RETURN(*value, key, err, -1);
+
+    if (**value == '\0') {
+	parser_comment(-1, "PSConfig: %s(%s): Empty value.\n",
+		psconfigobj, key);
+	g_free(*value);
+	*value = NULL;
+	return -1;
+    }
 
     return 0;
 }
@@ -198,8 +204,6 @@ static int getBool(char *key, int *value)
     ret = getString(key, &token);
     if (ret) return -1;
 
-    CHECK_PSCONFIG_EMPTY_STRING_AND_RETURN(token, key, -1);
-
     ret = toBool(token, value);
     if (ret) {
 	parser_comment(-1, "PSConfig: '%s(%s)' cannot convert string '%s' to"
@@ -232,8 +236,6 @@ static int getNumber(char *key, int *val)
 
     ret = getString(key, &token);
     if (ret) return -1;
-
-    CHECK_PSCONFIG_EMPTY_STRING_AND_RETURN(token, key, -1);
 
     ret = toNumber(token, val);
     if (ret) {
@@ -374,7 +376,6 @@ static int getInstDir(char *key)
     struct stat fstat;
 
     if (getString(key, &dname)) return -1;
-    CHECK_PSCONFIG_EMPTY_STRING_AND_RETURN(dname, key, -1);
 
     /* test if dir is a valid directory */
     if (*dname == '\0') {
@@ -411,7 +412,6 @@ static int getCoreDir(char *key)
     struct stat fstat;
 
     if (getString(key, &dname)) return -1;
-    CHECK_PSCONFIG_EMPTY_STRING_AND_RETURN(dname, key, -1);
 
     /* test if dir is a valid directory */
     if (*dname == '\0') {
@@ -663,7 +663,6 @@ static int getLogDest(char *key)
     gchar *value;
 
     if (getString(key, &value)) return -1;
-    CHECK_PSCONFIG_EMPTY_STRING_AND_RETURN(value, key, -1);
 
     if (*value == '\0') {
 	parser_comment(-1, "empty destination\n");
@@ -733,7 +732,6 @@ static int getPSINodesSort(char *key)
     int ret;
 
     if (getString(key, &value)) return -1;
-    CHECK_PSCONFIG_EMPTY_STRING_AND_RETURN(value, key, -1);
 
     ret = 0;
 
@@ -1230,7 +1228,6 @@ static int getProcs(char *key)
     int procs = -1;
 
     if (getString(key, &procStr)) return -1;
-    CHECK_PSCONFIG_EMPTY_STRING_AND_RETURN(procStr, key, -1);
 
     if (toNumber(procStr, &procs) && strcasecmp(procStr, "any")) {
 	parser_comment(-1, "Unknown number of processes '%s'\n", procStr);
@@ -1256,7 +1253,6 @@ static int getOB(char *key)
     int ob, ret;
 
     if (getString(key, &obStr)) return -1;
-    CHECK_PSCONFIG_EMPTY_STRING_AND_RETURN(obStr, key, -1);
 
     if (strcasecmp(obStr, "auto") == 0) {
 	ob = OVERBOOK_AUTO;
@@ -1594,7 +1590,7 @@ static int insertNode(void)
     char buffer[64];
     struct in_addr *tmpaddr;
     in_addr_t ipaddr;
-    int nodenum, ret;
+    int nodeid, ret;
 
     // ignore this host object silently if NodeName is not set
     if (getString("NodeName", &nodename) || (*nodename == '\0')) {
@@ -1606,7 +1602,6 @@ static int insertNode(void)
 	g_free(nodename);
 	return -1;
     }
-    CHECK_PSCONFIG_EMPTY_STRING_AND_RETURN(netname, "Psid.NetworkName", -1);
 
     snprintf(buffer, sizeof(buffer), "%s.DevIPAddress", netname);
     g_free(netname);
@@ -1614,7 +1609,6 @@ static int insertNode(void)
 	g_free(nodename);
 	return -1;
     }
-    CHECK_PSCONFIG_EMPTY_STRING_AND_RETURN(ipaddress, buffer, -1);
 
     tmpaddr = g_malloc(sizeof(struct in_addr));
     if (!inet_pton(AF_INET, ipaddress, tmpaddr)) {
@@ -1625,18 +1619,29 @@ static int insertNode(void)
     ipaddr = tmpaddr->s_addr;
     g_free(tmpaddr);
 
-    ret = getNumber("NodeNo", &nodenum);
+    ret = getNumber("Psid.NodeId", &nodeid);
+    if (ret == -1) {
+	ret = getNumber("NodeNo", &nodeid);
+	if (ret == -1) {
+	    parser_comment(-1, "Psid.NodeId is not set for node '%s'\n",
+		    nodename);
+	    return -1;
+	}
+	parser_comment(-1, "Using NodeNo for node '%s'. NodeNo is deprecated"
+		" and support will be removed. Use Psid.NodeId instead.\n",
+		nodename);
+    }
     if (ret) return ret;
 
-    parser_comment(PARSER_LOG_NODE, "Register '%s' as %d\n", nodename, nodenum);
+    parser_comment(PARSER_LOG_NODE, "Register '%s' as %d\n", nodename, nodeid);
     g_free(nodename);
 
-    ret = newHost(nodenum, ipaddr);
+    ret = newHost(nodeid, ipaddr);
     if (ret) return ret;
 
     if (PSC_isLocalIP(ipaddr)) {
-	nodeconf.id = nodenum;
-	PSC_setMyID(nodenum);
+	nodeconf.id = nodeid;
+	PSC_setMyID(nodeid);
     } else {
 	clearEnv();
     }
@@ -1644,15 +1649,14 @@ static int insertNode(void)
     return ret;
 }
 
-static int getNodes(void)
+static int getNodes(char *psiddomain)
 {
     GPtrArray *nodeobjlist;
     GError *err = NULL;
-    unsigned int i;
-    int ret = 0;
 
     gchar *parents[] = { "class:host", NULL };
     GHashTable* keyvals = g_hash_table_new(g_str_hash,g_str_equal);
+    unsigned int i;
 
     nodeobjlist = psconfig_getObjectList(psconfig, "host:*", parents, keyvals,
 					 psconfig_flags, &err);
@@ -1664,13 +1668,27 @@ static int getNodes(void)
 	return -1;
     }
 
+    char *psconfigobj_old = psconfigobj;
+
+    int ret = 0;
     for(i = 0; i < nodeobjlist->len; i++) {
 	psconfigobj = (gchar*)g_ptr_array_index(nodeobjlist,i);
+
+	/* check psiddomain if set */
+	if (psiddomain) {
+	    char *domain;
+	    /* ignore nodes with no or wrong domain set */
+	    if (getString("Psid.Domain", &domain)) continue;
+	    /* ignore nodes with wrong psid domain */
+	    if (strcmp(domain, psiddomain)) continue;
+	}
+
 	ret = insertNode();
 	if (ret) break;
     }
     g_ptr_array_free(nodeobjlist, TRUE);
-    psconfigobj = NULL;
+
+    psconfigobj = psconfigobj_old;
 
     parser_comment(PARSER_LOG_NODE, "%d nodes registered\n", nodesfound);
 
@@ -2126,8 +2144,6 @@ config_t *parseConfig(FILE* logfile, int logmask, char *configfile)
 {
     int ret;
 
-    char *nodename;
-
     /* Check if configfile exists and has not length 0.
        If so, use it, else use psconfig. */
 
@@ -2155,18 +2171,6 @@ config_t *parseConfig(FILE* logfile, int logmask, char *configfile)
     psconfig = psconfig_new();
     psconfigobj = NULL;
 
-    // get hostname to ID mapping
-    ret = getNodes();
-
-    if (ret) {
-	parser_comment(-1,
-		       "ERROR: Reading nodes configuration from psconfig"
-		       " failed.\n");
-	psconfig_unref(psconfig);
-	psconfig = NULL;
-	return NULL;
-    }
-
     // generate local psconfig host object name
     psconfigobj = malloc(70*sizeof(char));
     strncpy(psconfigobj, "host:", 6);
@@ -2174,26 +2178,43 @@ config_t *parseConfig(FILE* logfile, int logmask, char *configfile)
     psconfigobj[69] = '\0'; //assure object to be null terminated
 
     // check if the host object exists or we have to cut the hostname
+    char *nodename;
     if (getString("NodeName", &nodename)) {
 	// cut hostname
 	parser_comment(PARSER_LOG_VERB, "%s: Cutting hostname \"%s\" for"
-		" psconfig.\n", __func__, psconfigobj);
+		" psconfig.\n", __func__, psconfigobj+5);
 	char *pos = strchr(psconfigobj, '.');
 	if (pos == NULL) {
 	    parser_comment(-1,
 			   "ERROR: Cannot find host object for this node.\n");
-	    free(psconfigobj);
-	    psconfigobj = NULL;
-	    psconfig_unref(psconfig);
-	    psconfig = NULL;
-	    return NULL;
+	    goto parseConfig_error;
 	}
 	*pos = '\0';
-	parser_comment(-1, "INFO: Trying to use cutted hostname \"%s\" for"
-		" psconfig.\n", psconfigobj);
+	parser_comment(-1,
+		       "INFO: Trying to use cutted hostname for psconfig"
+		       " host object: \"%s\".\n", psconfigobj);
     }
     else {
 	free(nodename);
+    }
+
+    // get local psid domain
+    char *psiddomain;
+    if (getString("Psid.Domain", &psiddomain)) {
+	parser_comment(-1,
+		       "INFO: No psid domain configured, using all host"
+		       " objects.\n");
+    }
+
+    // get hostname to ID mapping
+    ret = getNodes(psiddomain);
+    if (ret) {
+	parser_comment(-1,
+		       "ERROR: Reading nodes configuration from psconfig"
+		       " failed.\n");
+	psconfig_unref(psconfig);
+	psconfig = NULL;
+	return NULL;
     }
 
     // set default UID/GID for local node
@@ -2241,5 +2262,12 @@ config_t *parseConfig(FILE* logfile, int logmask, char *configfile)
     psconfig = NULL;
 
     return &config;
+
+parseConfig_error:
+    free(psconfigobj);
+    psconfigobj = NULL;
+    psconfig_unref(psconfig);
+    psconfig = NULL;
+    return NULL;
 }
 #endif /* BUILD_WITHOUT_PSCONFIG */

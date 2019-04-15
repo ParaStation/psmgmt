@@ -158,22 +158,12 @@ static void handlePluginConfigDel(DDTypedBufferMsg_t *msg,
     ufree(plugin);
 }
 
-static void handlePluginConfigAdd(DDTypedBufferMsg_t *msg,
-				  PS_DataBuffer_t *data)
+static void savePluginConfig(char *plugin, uint32_t timeout, uint32_t grace)
 {
-    char *ptr = data->buf;
-    uint32_t timeout, grace;
     Config_t *config = umalloc(sizeof(*config));
 
-    /* fetch info from message */
-    char *plugin = getStringM(&ptr);
-    getUint32(&ptr, &timeout);
-    getUint32(&ptr, &grace);
-
-    /* remove old configuration if any */
-    delPluginConfig(plugin);
-
     INIT_LIST_HEAD(config);
+
     char timeoutStr[16];
     snprintf(timeoutStr, sizeof(timeoutStr), "%u", timeout);
     addConfigEntry(config, "TIMEOUT_PROLOGUE", timeoutStr);
@@ -185,6 +175,20 @@ static void handlePluginConfigAdd(DDTypedBufferMsg_t *msg,
 
     mdbg(PELOGUE_LOG_VERB, "%s: add conf for '%s'\n", __func__, plugin);
     addPluginConfig(plugin, config);
+}
+
+static void handlePluginConfigAdd(DDTypedBufferMsg_t *msg,
+				  PS_DataBuffer_t *data)
+{
+    char *ptr = data->buf;
+    uint32_t timeout, grace;
+
+    /* fetch info from message */
+    char *plugin = getStringM(&ptr);
+    getUint32(&ptr, &timeout);
+    getUint32(&ptr, &grace);
+
+    savePluginConfig(plugin, timeout, grace);
 
     ufree(plugin);
 }
@@ -193,24 +197,27 @@ static int startPElogueReq(Job_t *job, uint8_t type, uint32_t timeout,
 			   uint32_t grace, env_t *env)
 {
     PS_SendDB_t config;
-    PSnodes_ID_t n;
+    PSnodes_ID_t n, myID = PSC_getMyID();
     int ret;
 
-    /* send config to all my sisters nodes */
-    initFragBuffer(&config, PSP_CC_PLUG_PELOGUE, PSP_PLUGIN_CONFIG_ADD);
-    for (n=0; n<job->numNodes; n++) {
-	setFragDest(&config, PSC_getTID(job->nodes[n].id, 0));
-    }
+    if (job->numNodes > 1) {
+	/* send config to all my sisters nodes */
+	initFragBuffer(&config, PSP_CC_PLUG_PELOGUE, PSP_PLUGIN_CONFIG_ADD);
+	for (n=0; n<job->numNodes; n++) {
+	    if (job->nodes[n].id == myID) continue;
+	    setFragDest(&config, PSC_getTID(job->nodes[n].id, 0));
+	}
 
-    addStringToMsg(job->plugin, &config);
-    addUint32ToMsg(timeout, &config);
-    addUint32ToMsg(grace, &config);
+	addStringToMsg(job->plugin, &config);
+	addUint32ToMsg(timeout, &config);
+	addUint32ToMsg(grace, &config);
 
-    ret = sendFragMsg(&config);
-    if (ret == -1) {
-	mlog("%s: sending configuration for %s to sister nodes failed\n",
-	     __func__, job->id);
-	return ret;
+	ret = sendFragMsg(&config);
+	if (ret == -1) {
+	    mlog("%s: sending configuration for %s to sister nodes failed\n",
+		 __func__, job->id);
+	    return ret;
+	}
     }
 
     /* start the pelogue */
@@ -323,6 +330,9 @@ static void handlePElogueReq(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
     mdbg(PELOGUE_LOG_VERB, "%s: handle request from %s for job %s\n", __func__,
 	 PSC_printTID(msg->header.sender), jobid);
 
+    /* save plugin configuration *before* adding a job */
+    savePluginConfig(requestor, info->timeout, info->grace);
+
     /* add job */
     Job_t *job = addJob(requestor, jobid, uid, gid, nrOfNodes, nodes,
 			CBprologueResp, info);
@@ -416,8 +426,16 @@ static void handlePElogueStart(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
 	ufree(tmp);
     }
 
-    /* the scripts directory */
-    child->scriptDir = ustrdup(getPluginConfValueC(plugin, "DIR_SCRIPTS"));
+    /* set the script directory */
+    char *scriptDir = getPluginConfValueC(plugin, "DIR_SCRIPTS");
+    if (!scriptDir) {
+	/* root cause may be a missing plugin configuration */
+	mlog("%s: unset script directory for plugin %s job %s\n", __func__,
+	     plugin, jobid);
+	child->exit = -1;
+	goto ERROR;
+    }
+    child->scriptDir = ustrdup(scriptDir);
 
     int ret = PSIDhook_call(PSIDHOOK_PELOGUE_START, child);
 
@@ -428,21 +446,21 @@ static void handlePElogueStart(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
 	    mlog("%s: PSIDHOOK_PELOGUE_START failed with %u\n", __func__, ret);
 	    child->exit = -3;
 	}
-	sendPElogueFinish(child);
-	deleteChild(child);
-	return;
+	goto ERROR;
     }
 
     if (getPluginConfValueI(plugin, "DISABLE_PELOGUE") == 1) {
 	mlog("%s: fixmeeee!!!\n", __func__);
 	child->exit = -42;
-	sendPElogueFinish(child);
-	deleteChild(child);
-
-	return;
+	goto ERROR;
     }
 
     startChild(child);
+    return;
+
+ERROR:
+    sendPElogueFinish(child);
+    deleteChild(child);
 }
 
 void sendPElogueSignal(Job_t *job, int sig, char *reason)

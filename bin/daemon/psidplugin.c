@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2009-2018 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2009-2019 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -1166,11 +1166,10 @@ static void sendStr(DDTypedBufferMsg_t *msg, char *str, const char *caller)
     if (!str) return;
 
     while (*str || first) {
-	size_t len = strlen(str);
-	size_t num = (len >= sizeof(msg->buf)) ? sizeof(msg->buf)-1 : len;
+	size_t num = MIN(strlen(str), sizeof(msg->buf) - 1);
 
 	first = 0;
-	strncpy(msg->buf, str, num);
+	memcpy(msg->buf, str, num);
 	msg->buf[num] = '\0';
 
 	msg->header.len += num+1;

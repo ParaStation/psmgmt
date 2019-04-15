@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2013-2018 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2013-2019 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -178,6 +178,14 @@ bool addPluginConfig(const char *name, Config_t *config)
     if (!checkPluginConfig(config)) {
 	mlog("%s: plugin '%s' provides invalid config\n", __func__, name);
 	return false;
+    }
+
+    for (i=0; i<MAX_SUPPORTED_PLUGINS; i++) {
+	if (pluginConfList[i].name && !strcmp(pluginConfList[i].name, name)) {
+	    /* update existing plugin configuration */
+	    pluginConfList[i].conf = config;
+	    return true;
+	}
     }
 
     for (i=0; i<MAX_SUPPORTED_PLUGINS; i++) {

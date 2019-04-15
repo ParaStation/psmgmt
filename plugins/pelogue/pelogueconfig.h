@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2013-2018 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2013-2019 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -32,7 +32,8 @@ void initPluginConfigs(void);
  * configuration is tagged with @a name for future reference in
  * e.g. @ref getPluginConfValueI() or @ref getPluginConfValueC(). By
  * convention a plugin shall use its own name for tagging a
- * configuration.
+ * configuration. If a configuration for the plugin already exists it
+ * will be updated.
  *
  * While adding the configuration a check for the existence of a
  * parameter DIR_SCRIPTS is made. Furthermore the existence of the

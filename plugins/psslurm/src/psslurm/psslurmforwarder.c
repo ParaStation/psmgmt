@@ -708,25 +708,26 @@ static void setupStepIO(Forwarder_Data_t *fwdata, Step_t *step)
 /* choose PMI layer, default is MPICH's Simple PMI */
 static pmi_type_t getPMIType(Step_t *step)
 {
-    char *pmi;
-
     /* PSSLURM_PMI_TYPE can be used to choose pmi environment to be set up */
-    pmi = envGet(&step->env, "PSSLURM_PMI_TYPE");
-    if (pmi == NULL) return PMI_TYPE_DEFAULT;
-    mlog("%s: '%u:%u' PSSLURM_PMI_TYPE set to '%s'\n", __func__, step->jobid,
-	    step->stepid, pmi);
-    if (strcmp(pmi, "none") == 0) return PMI_TYPE_NONE;
-    if (strcmp(pmi, "pmix") == 0) return PMI_TYPE_PMIX;
-
-    /* if PSSLURM_PMI_TYPE is not set and srun is called with --mpi=none,
-     *  do not setup any pmi environment */
-    pmi = envGet(&step->env, "SLURM_MPI_TYPE");
-    if (pmi != NULL && (strcmp(pmi, "none") == 0)) {
-	mlog("%s: '%u:%u' SLURM_MPI_TYPE set to 'none'\n", __func__,
-		step->jobid, step->stepid);
-	return PMI_TYPE_NONE;
+    char *pmi = envGet(&step->env, "PSSLURM_PMI_TYPE");
+    if (!pmi) {
+	/* if PSSLURM_PMI_TYPE is not set and srun is called with --mpi=none,
+	 *  do not setup any pmi environment */
+	pmi = envGet(&step->env, "SLURM_MPI_TYPE");
+	if (pmi && !strcmp(pmi, "none")) {
+	    mlog("%s: %u:%u SLURM_MPI_TYPE set to 'none'\n", __func__,
+		 step->jobid, step->stepid);
+	    return PMI_TYPE_NONE;
+	}
+	return PMI_TYPE_DEFAULT;
     }
 
+    mlog("%s: %u:%u PSSLURM_PMI_TYPE set to '%s'\n", __func__, step->jobid,
+	 step->stepid, pmi);
+    if (!strcmp(pmi, "none")) return PMI_TYPE_NONE;
+    if (!strcmp(pmi, "pmix")) return PMI_TYPE_PMIX;
+
+    /* if PSSLURM_PMI_TYPE is set to anything else, use default */
     return PMI_TYPE_DEFAULT;
 }
 

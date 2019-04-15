@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2002-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2018 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2019 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -23,6 +23,9 @@
 #include "logging.h"
 #include "psnodes.h"
 #include "pstask.h"
+
+/** Get the smaller value of a and b */
+#define MIN(a,b) (((a) < (b)) ? (a) : (b))
 
 /** The logger we use inside PSC */
 extern logger_t* PSC_logger;
