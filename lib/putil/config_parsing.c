@@ -1656,6 +1656,7 @@ static int getNodes(char *psiddomain)
 
     gchar *parents[] = { "class:host", NULL };
     GHashTable* keyvals = g_hash_table_new(g_str_hash,g_str_equal);
+    unsigned int i;
 
     nodeobjlist = psconfig_getObjectList(psconfig, "host:*", parents, keyvals,
 					 psconfig_flags, &err);
@@ -1670,10 +1671,10 @@ static int getNodes(char *psiddomain)
     char *psconfigobj_old = psconfigobj;
 
     int ret = 0;
-    for(unsigned int i = 0; i < nodeobjlist->len; i++) {
+    for(i = 0; i < nodeobjlist->len; i++) {
 	psconfigobj = (gchar*)g_ptr_array_index(nodeobjlist,i);
 
-        /* check psiddomain if set */
+	/* check psiddomain if set */
 	if (psiddomain) {
 	    char *domain;
 	    /* ignore nodes with no or wrong domain set */
