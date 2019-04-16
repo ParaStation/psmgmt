@@ -4,7 +4,14 @@ Copyright (C) 2010-2019 ParTec Cluster Competence Center GmbH, Munich
 
 Please send bug reports, questions and suggestions to <support@par-tec.com>
 
-
+Version 5.1.21:
+===============
+Changes:
+ - The former psconfig configuration key NodeNo is now called Psid.NodeId
+   (pt#2631)
+ - If a node has Psid.Domain set in its host object, it takes only other nodes
+   into its node list, that have Psid.Domain set to the same string. (pt#2631)
+ 
 Version 5.1.20-1:
 =================
 Bugfixes:
