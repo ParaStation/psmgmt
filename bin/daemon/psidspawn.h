@@ -50,11 +50,11 @@ typedef struct {
  *
  * Find information on a local job by its logger's task ID @a loggertid.
  *
- * @param loggertid Task ID of the logger identifying the job
+ * @param loggerTID Task ID of the logger identifying the job
  *
  * @return Return pointer to the job information or NULL if no job was found
  */
-PSjob_t* PSID_findJobByLoggerTid(PStask_ID_t loggertid);
+PSjob_t* PSID_findJobByLoggerTID(PStask_ID_t loggerTID);
 
 #ifdef CPU_ZERO
 /**

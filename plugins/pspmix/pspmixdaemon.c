@@ -282,20 +282,18 @@ static int hookRecvSpawnReq(void *data)
     if (!pspmix_common_usePMIx(task)) return 0;
 
     /* find job */
-    PSjob_t *job;
-    job = PSID_findJobByLoggerTid(task->loggertid);
-
-    if (job == NULL) {
-	mlog("%s: Could not find job with loggertid %s\n", __func__,
-		PSC_printTID(task->loggertid));
+    PSjob_t *job = PSID_findJobByLoggerTID(task->loggertid);
+    if (!job) {
+	mlog("%s: No job with logger %s\n", __func__,
+	     PSC_printTID(task->loggertid));
 	return -1;
     }
 
     if (list_empty(&job->resInfos)) {
-	mlog("%s: No reservation in job with loggertid %s\n", __func__,
-		PSC_printTID(task->loggertid));
+	mlog("%s: No reservation in job with logger %s\n", __func__,
+	     PSC_printTID(task->loggertid));
     }
-    
+
     if (job->resInfos.next->next != &job->resInfos) {
 	// more than one reservation
 	//TODO implement respawn
@@ -314,7 +312,7 @@ static int hookRecvSpawnReq(void *data)
 		" with loggertid %s: %s\n", __func__, buf,
 		PSC_printTID(server->fwdata->tid));
 
-	//TODO do we need to inform the existing job server about the new 
+	//TODO do we need to inform the existing job server about the new
 	//     task and resinfo ??? think we need to so it can resolve
 	//     rank to node for each reservation
 
