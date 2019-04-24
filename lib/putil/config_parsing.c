@@ -162,11 +162,8 @@ static int getString(char *key, gchar **value)
     CHECK_PSCONFIG_ERROR_AND_RETURN(*value, key, err, -1);
 
     if (**value == '\0') {
-	parser_comment(-1, "PSConfig: %s(%s): Empty value.\n",
-		psconfigobj, key);
-	g_free(*value);
-	*value = NULL;
-	return -1;
+	parser_comment(PARSER_LOG_VERB, "PSConfig: %s(%s) does not exist or has"
+		" empty value\n", psconfigobj, key);
     }
 
     return 0;
@@ -218,7 +215,7 @@ static int toNumber(char *token, int *val)
     char *end;
     int num;
 
-    if (!token) return -1;
+    if (!token || *token == '\0') return -1;
 
     num = (int)strtol(token, &end, 0);
     if (*end != '\0') {
@@ -330,10 +327,11 @@ static int getRLimit(char *pointer)
 
     for (i=0; supported_rlimits[i].key != NULL; i++) {
 	ret = getString(supported_rlimits[i].key, &limit);
-	if (ret) continue;
+	if (ret) continue; /* no not break on errors here */
 
 	if (*limit == '\0') {
-	    // limit not set
+	    /* limit not set */
+	    g_free(limit);
 	    continue;
 	}
 
@@ -380,6 +378,7 @@ static int getInstDir(char *key)
     /* test if dir is a valid directory */
     if (*dname == '\0') {
 	parser_comment(-1, "directory name is empty\n");
+	g_free(dname);
 	return -1;
     }
 
@@ -416,6 +415,7 @@ static int getCoreDir(char *key)
     /* test if dir is a valid directory */
     if (*dname == '\0') {
 	parser_comment(-1, "directory name is empty\n");
+	g_free(dname);
 	return -1;
     }
 
@@ -1593,12 +1593,21 @@ static int insertNode(void)
     int nodeid, ret;
 
     // ignore this host object silently if NodeName is not set
-    if (getString("NodeName", &nodename) || (*nodename == '\0')) {
+    if (getString("NodeName", &nodename)) return 0;
+    if (*nodename == '\0') {
+	g_free(nodename);
 	return 0;
     }
 
     // get parameters for the node
     if (getString("Psid.NetworkName", &netname)) {
+	g_free(nodename);
+	return -1;
+    }
+
+    if (*netname == '\0') {
+	parser_comment(-1, "empty network name for node '%s'\n", nodename);
+	g_free(netname);
 	g_free(nodename);
 	return -1;
     }
@@ -1610,10 +1619,18 @@ static int insertNode(void)
 	return -1;
     }
 
+    if (*ipaddress == '\0') {
+	parser_comment(-1, "empty value of '%s' for node '%s'\n", buffer,
+		nodename);
+	g_free(nodename);
+	return -1;
+    }
+
     tmpaddr = g_malloc(sizeof(struct in_addr));
     if (!inet_pton(AF_INET, ipaddress, tmpaddr)) {
 	parser_comment(-1, "Cannot convert IP address '%s' for node '%s'\n",
 		ipaddress, nodename);
+	g_free(tmpaddr);
 	return -1;
     }
     ipaddr = tmpaddr->s_addr;
@@ -1677,10 +1694,14 @@ static int getNodes(char *psiddomain)
 	/* check psiddomain if set */
 	if (psiddomain) {
 	    char *domain;
-	    /* ignore nodes with no or wrong domain set */
+	    /* ignore errors */
 	    if (getString("Psid.Domain", &domain)) continue;
 	    /* ignore nodes with wrong psid domain */
-	    if (strcmp(domain, psiddomain)) continue;
+	    if (strcmp(domain, psiddomain)) {
+		g_free(domain);
+		continue;
+	    }
+	    g_free(domain);
 	}
 
 	ret = insertNode();
@@ -2208,6 +2229,7 @@ config_t *parseConfig(FILE* logfile, int logmask, char *configfile)
 
     // get hostname to ID mapping
     ret = getNodes(psiddomain);
+    g_free(psiddomain);
     if (ret) {
 	parser_comment(-1,
 		       "ERROR: Reading nodes configuration from psconfig"
