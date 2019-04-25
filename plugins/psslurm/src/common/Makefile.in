@@ -347,6 +347,8 @@ do_subst = sed \
 	-e 's,[@]default_cgroup_name[@],$(default_cgroup_name),g'
 
 pamconfdir = $(sysconfdir)/pam.d
+slurmlibdir = $(libdir)/slurm
+psgwlibdir = $(libexecdir)/psgw
 
 # should be $(libdir)/psmgmt-plugins or similar
 plugindir = $(prefix)/plugins

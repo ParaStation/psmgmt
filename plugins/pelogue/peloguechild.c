@@ -285,6 +285,12 @@ void signalChild(PElogueChild_t *child, int signal, char *reason)
 {
     Forwarder_Data_t *fwData = child->fwData;
 
+    /* forwarder did not start yet */
+    if (!child || !child->fwData) {
+	mlog("%s: no child or forwarder to signal\n", __func__);
+	return;
+    }
+
     /* save the signal we are about to send */
     if (signal == SIGTERM || signal == SIGKILL) {
 	child->signalFlag = signal;

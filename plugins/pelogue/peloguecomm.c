@@ -263,7 +263,7 @@ static void handleResourceCB(char *plugin, char *jobid, uint16_t result)
 	goto ERROR;
     }
 
-    mlog("%s: jobid %s\n", __func__, jobid);
+    mlog("%s: plugin %s jobid %s result %u\n", __func__, plugin, jobid, result);
 
     if (startPElogueReq(job, info->type, info->timeout,
 			info->grace, res->env) <0) {
