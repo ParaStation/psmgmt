@@ -663,12 +663,20 @@ bool getArrayFromBuf(char **ptr, void **val, uint32_t *len, PS_DataType_t type,
     getArrayFromBuf(ptr, (void **)val, len, PSDATA_UINT32, sizeof(uint32_t), \
 		    __func__, __LINE__)
 
+#define getUint64Array(ptr, val, len)					\
+    getArrayFromBuf(ptr, (void **)val, len, PSDATA_UINT64, sizeof(uint64_t), \
+		    __func__, __LINE__)
+
 #define getInt16Array(ptr, val, len)					\
     getArrayFromBuf(ptr, (void **)val, len, PSDATA_INT16, sizeof(int16_t), \
 		    __func__, __LINE__)
 
 #define getInt32Array(ptr, val, len)					\
     getArrayFromBuf(ptr, (void **)val, len, PSDATA_INT32, sizeof(int32_t), \
+		    __func__, __LINE__)
+
+#define getInt64Array(ptr, val, len)					\
+    getArrayFromBuf(ptr, (void **)val, len, PSDATA_INT64, sizeof(int64_t), \
 		    __func__, __LINE__)
 
 
@@ -843,12 +851,20 @@ bool addArrayToBuf(const void *val, const uint32_t num, PS_SendDB_t *data,
     addArrayToBuf(val, num, data, PSDATA_UINT32, sizeof(uint32_t),	\
 		  __func__, __LINE__)
 
+#define addUint64ArrayToMsg(val, num, data)				\
+    addArrayToBuf(val, num, data, PSDATA_UINT64, sizeof(uint64_t),	\
+		  __func__, __LINE__)
+
 #define addInt16ArrayToMsg(val, num, data)				\
     addArrayToBuf(val, num, data, PSDATA_INT16, sizeof(int16_t),	\
 		  __func__, __LINE__)
 
 #define addInt32ArrayToMsg(val, num, data)				\
     addArrayToBuf(val, num, data, PSDATA_INT32, sizeof(int32_t),	\
+		  __func__, __LINE__)
+
+#define addInt64ArrayToMsg(val, num, data)				\
+    addArrayToBuf(val, num, data, PSDATA_INT64, sizeof(int64_t),	\
 		  __func__, __LINE__)
 
 #endif  /* __PSSERIAL_H */
