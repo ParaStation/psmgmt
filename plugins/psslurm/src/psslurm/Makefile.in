@@ -17,7 +17,7 @@
 #
 # ParaStation
 #
-# Copyright (C) 2014-2017 ParTec Cluster Competence Center GmbH, Munich
+# Copyright (C) 2014-2019 ParTec Cluster Competence Center GmbH, Munich
 #
 # This file may be distributed under the terms of the Q Public License
 # as defined in the file LICENSE.QPL included in the packaging of this
@@ -167,7 +167,7 @@ am_psslurm_la_OBJECTS = psslurm_la-psslurm.lo psslurm_la-psslurmlog.lo \
 	psslurm_la-psslurmpack.lo psslurm_la-psslurminter.lo \
 	psslurm_la-psslurmmsg.lo psslurm_la-psslurmtasks.lo \
 	psslurm_la-psslurmstep.lo psslurm_la-psslurmbcast.lo \
-	psslurm_la-psslurmalloc.lo
+	psslurm_la-psslurmalloc.lo psslurm_la-psslurmaccount.lo
 psslurm_la_OBJECTS = $(am_psslurm_la_OBJECTS)
 AM_V_lt = $(am__v_lt_@AM_V@)
 am__v_lt_ = $(am__v_lt_@AM_DEFAULT_V@)
@@ -189,6 +189,7 @@ DEFAULT_INCLUDES = -I.@am__isrc@
 depcomp = $(SHELL) $(top_srcdir)/scripts/depcomp
 am__maybe_remake_depfiles = depfiles
 am__depfiles_remade = ./$(DEPDIR)/psslurm_la-psslurm.Plo \
+	./$(DEPDIR)/psslurm_la-psslurmaccount.Plo \
 	./$(DEPDIR)/psslurm_la-psslurmalloc.Plo \
 	./$(DEPDIR)/psslurm_la-psslurmauth.Plo \
 	./$(DEPDIR)/psslurm_la-psslurmbcast.Plo \
@@ -466,7 +467,8 @@ psslurm_la_SOURCES = psslurm.c psslurm.h psslurmlog.c psslurmlog.h	\
 	psslurmtypes.h psslurminter.c psslurminter.h psslurmhandles.h	\
 	psslurmmsg.h psslurmmsg.c psslurmtasks.h psslurmtasks.c		\
 	psslurmjobcred.h psslurmstep.c psslurmstep.h psslurmbcast.c	\
-	psslurmbcast.h psslurmalloc.c psslurmalloc.h
+	psslurmbcast.h psslurmalloc.c psslurmalloc.h psslurmaccount.h   \
+	psslurmaccount.c
 
 psslurm_la_CPPFLAGS = $(AM_CPPFLAGS) -DPLUGINDIR=\"$(plugindir)\"	\
 	-DLOCALSTATEDIR=\"$(localstatedir)\"				\
@@ -555,6 +557,7 @@ distclean-compile:
 	-rm -f *.tab.c
 
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/psslurm_la-psslurm.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/psslurm_la-psslurmaccount.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/psslurm_la-psslurmalloc.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/psslurm_la-psslurmauth.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/psslurm_la-psslurmbcast.Plo@am__quote@ # am--include-marker
@@ -785,6 +788,13 @@ psslurm_la-psslurmalloc.lo: psslurmalloc.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(psslurm_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o psslurm_la-psslurmalloc.lo `test -f 'psslurmalloc.c' || echo '$(srcdir)/'`psslurmalloc.c
 
+psslurm_la-psslurmaccount.lo: psslurmaccount.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(psslurm_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT psslurm_la-psslurmaccount.lo -MD -MP -MF $(DEPDIR)/psslurm_la-psslurmaccount.Tpo -c -o psslurm_la-psslurmaccount.lo `test -f 'psslurmaccount.c' || echo '$(srcdir)/'`psslurmaccount.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/psslurm_la-psslurmaccount.Tpo $(DEPDIR)/psslurm_la-psslurmaccount.Plo
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='psslurmaccount.c' object='psslurm_la-psslurmaccount.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(psslurm_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o psslurm_la-psslurmaccount.lo `test -f 'psslurmaccount.c' || echo '$(srcdir)/'`psslurmaccount.c
+
 mostlyclean-libtool:
 	-rm -f *.lo
 
@@ -920,6 +930,7 @@ clean-am: clean-generic clean-libtool clean-pluginLTLIBRARIES \
 
 distclean: distclean-am
 		-rm -f ./$(DEPDIR)/psslurm_la-psslurm.Plo
+	-rm -f ./$(DEPDIR)/psslurm_la-psslurmaccount.Plo
 	-rm -f ./$(DEPDIR)/psslurm_la-psslurmalloc.Plo
 	-rm -f ./$(DEPDIR)/psslurm_la-psslurmauth.Plo
 	-rm -f ./$(DEPDIR)/psslurm_la-psslurmbcast.Plo
@@ -990,6 +1001,7 @@ installcheck-am:
 
 maintainer-clean: maintainer-clean-am
 		-rm -f ./$(DEPDIR)/psslurm_la-psslurm.Plo
+	-rm -f ./$(DEPDIR)/psslurm_la-psslurmaccount.Plo
 	-rm -f ./$(DEPDIR)/psslurm_la-psslurmalloc.Plo
 	-rm -f ./$(DEPDIR)/psslurm_la-psslurmauth.Plo
 	-rm -f ./$(DEPDIR)/psslurm_la-psslurmbcast.Plo
