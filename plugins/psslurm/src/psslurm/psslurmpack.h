@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2016-2018 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2016-2019 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -18,6 +18,7 @@
 #include "psslurmio.h"
 #include "psslurmproto.h"
 #include "psslurmjob.h"
+#include "psslurmaccount.h"
 #include "psaccounttypes.h"
 
 /**
@@ -469,5 +470,25 @@ bool __packEnergyData(PS_SendDB_t *data, const char *caller,
 		      const int line);
 
 #define packEnergyData(data) __packEnergyData(data, __func__, __LINE__)
+
+/**
+ * @brief Pack TRes (trackable resources) data
+ *
+ * Pack TRes data and add it to the provided data
+ * buffer.
+ *
+ * @param data Data buffer to save data to
+ *
+ * @param caller Function name of the calling function
+ *
+ * @param line Line number where this function is called
+ *
+ * @return On success true is returned or false in case of an
+ * error. If writing was not successful, @a data might be not updated.
+ */
+bool __packTResData(PS_SendDB_t *data, TRes_t *tres, const char *caller,
+		    const int line);
+
+#define packTResData(data, tres) __packTResData(data, tres, __func__, __LINE__)
 
 #endif  /* __PS_SLURM_PACK */

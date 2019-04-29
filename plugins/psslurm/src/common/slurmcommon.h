@@ -8,7 +8,15 @@
 #define SLURM_SUCCESS 0
 #define SLURM_ERROR -1
 
-#define NO_VAL (0xfffffffe)
+#define INFINITE8  (0xff)
+#define INFINITE16 (0xffff)
+#define INFINITE   (0xffffffff)
+#define INFINITE64 (0xffffffffffffffff)
+#define NO_VAL8    (0xfe)
+#define NO_VAL16   (0xfffe)
+#define NO_VAL     (0xfffffffe)
+#define NO_VAL64   (0xfffffffffffffffe)
+
 #define GRES_MAGIC 0x438a34d4
 #define JOB_OPTIONS_TAG "job_options"
 #define KILL_JOB_BATCH 0x0001

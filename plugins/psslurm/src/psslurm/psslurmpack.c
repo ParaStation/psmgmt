@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2016-2018 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2016-2019 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -1084,7 +1084,7 @@ bool __unpackReqBatchJobLaunch(Slurm_Msg_t *sMsg, Job_t **jobPtr,
 	getUint32(ptr, &tmp);
     }
 
-    /* TODO 
+    /* TODO
      *          packstr(msg->tres_bind, buffer);
                 packstr(msg->tres_freq, buffer);
     */
@@ -1129,38 +1129,18 @@ static void packAccNodeId(PS_SendDB_t *data, int type,
 
     psNodeID = PSC_getID(accData->taskIds[type]);
 
+    /* node ID */
     if ((nid = getSlurmNodeID(psNodeID, nodes, nrOfNodes)) < 0) {
 	addUint32ToMsg((uint32_t) 0, data);
     } else {
 	addUint32ToMsg((uint32_t) nid, data);
     }
+    /* task ID */
     addUint16ToMsg((uint16_t) 0, data);
 }
 
-bool __packSlurmAccData(PS_SendDB_t *data, SlurmAccData_t *slurmAccData,
-			const char *caller, const int line)
+static void packAccData_17(PS_SendDB_t *data, SlurmAccData_t *slurmAccData)
 {
-    if (!data) {
-	mlog("%s: invalid data pointer from '%s' at %i\n", __func__,
-		caller, line);
-	return false;
-    }
-
-    if (!slurmAccData) {
-	mlog("%s: invalid accData pointer from '%s' at %i\n", __func__,
-		caller, line);
-	return false;
-    }
-
-    if (!slurmAccData->type) {
-	addUint8ToMsg(0, data);
-	return true;
-    }
-
-    xTODO: add new accouting format
-
-    addUint8ToMsg(1, data);
-
     if (slurmAccData->empty) {
 	int i;
 	/* pack empty account data */
@@ -1180,7 +1160,7 @@ bool __packSlurmAccData(PS_SendDB_t *data, SlurmAccData_t *slurmAccData,
 	    addUint32ToMsg((uint32_t) NO_VAL, data);
 	    addUint16ToMsg((uint16_t) NO_VAL, data);
 	}
-	return true;
+	return;
     }
 
     AccountDataExt_t *accData = slurmAccData->accData;
@@ -1239,6 +1219,144 @@ bool __packSlurmAccData(PS_SendDB_t *data, SlurmAccData_t *slurmAccData,
 		  slurmAccData->nrOfNodes);
     packAccNodeId(data, ACCID_MAX_DISKWRITE, accData, slurmAccData->nodes,
 		  slurmAccData->nrOfNodes);
+}
+
+bool __packTResData(PS_SendDB_t *data, TRes_t *tres, const char *caller,
+		    const int line)
+{
+    if (!data) {
+	mlog("%s: invalid data pointer from '%s' at %i\n", __func__,
+		caller, line);
+	return false;
+    }
+
+    if (!tres) {
+	mlog("%s: invalid tres pointer from '%s' at %i\n", __func__,
+		caller, line);
+	return false;
+    }
+
+    /* TRes IDs */
+    addUint32ArrayToMsg(tres->ids, tres->count, data);
+
+    /* add empty TRes list */
+    addUint32ToMsg(NO_VAL, data);
+
+    /* in max/min values */
+    addUint64ArrayToMsg(tres->in_max, tres->count, data);
+    addUint64ArrayToMsg(tres->in_max_nodeid, tres->count, data);
+    addUint64ArrayToMsg(tres->in_max_taskid, tres->count, data);
+    addUint64ArrayToMsg(tres->in_min, tres->count, data);
+    addUint64ArrayToMsg(tres->in_min_nodeid, tres->count, data);
+    addUint64ArrayToMsg(tres->in_min_taskid, tres->count, data);
+    /* in total */
+    addUint64ArrayToMsg(tres->in_tot, tres->count, data);
+
+    /* out max/min values */
+    addUint64ArrayToMsg(tres->out_max, tres->count, data);
+    addUint64ArrayToMsg(tres->out_max_nodeid, tres->count, data);
+    addUint64ArrayToMsg(tres->out_max_taskid, tres->count, data);
+    addUint64ArrayToMsg(tres->out_min, tres->count, data);
+    addUint64ArrayToMsg(tres->out_min_nodeid, tres->count, data);
+    addUint64ArrayToMsg(tres->out_min_taskid, tres->count, data);
+    /* in total */
+    addUint64ArrayToMsg(tres->out_tot, tres->count, data);
+
+    return true;
+}
+
+static void convAccDataToTRes(AccountDataExt_t *accData, TRes_t *tres)
+{
+    TRes_Entry_t entry;
+
+    /* vsize */
+    TRes_reset_entry(&entry);
+    entry.in_max = accData->maxVsize;
+    entry.in_tot = accData->avgVsizeTotal;
+    TRes_set(tres, TRES_VMEM, &entry);
+
+    /* mem */
+    TRes_reset_entry(&entry);
+    entry.in_max = accData->maxRss;
+    entry.in_tot = accData->avgRssTotal;
+    TRes_set(tres, TRES_MEM, &entry);
+
+    /* pages */
+    TRes_reset_entry(&entry);
+    entry.in_max = accData->maxMajflt;
+    entry.in_tot = accData->totMajflt;
+    TRes_set(tres, TRES_PAGES, &entry);
+
+    /* cpu */
+    TRes_reset_entry(&entry);
+    entry.in_min = accData->minCputime;
+    entry.in_tot = accData->totCputime;
+    TRes_set(tres, TRES_CPU, &entry);
+
+    /* fs disk */
+    TRes_reset_entry(&entry);
+    entry.in_max = accData->maxDiskRead;
+    entry.in_tot = accData->totDiskRead;
+    entry.out_max = accData->maxDiskWrite;
+    entry.out_tot = accData->totDiskWrite;
+    TRes_set(tres, TRES_FS_DISK, &entry);
+}
+
+bool __packSlurmAccData(PS_SendDB_t *data, SlurmAccData_t *slurmAccData,
+			const char *caller, const int line)
+{
+    if (!data) {
+	mlog("%s: invalid data pointer from '%s' at %i\n", __func__,
+		caller, line);
+	return false;
+    }
+
+    if (!slurmAccData) {
+	mlog("%s: invalid accData pointer from '%s' at %i\n", __func__,
+		caller, line);
+	return false;
+    }
+
+    if (!slurmAccData->type) {
+	addUint8ToMsg(0, data);
+	return true;
+    }
+
+    addUint8ToMsg(1, data);
+
+    if (slurmProto <= SLURM_17_11_PROTO_VERSION) {
+	/* pack old accouting data */
+	packAccData_17(data, slurmAccData);
+	return true;
+    }
+
+    AccountDataExt_t *accData = slurmAccData->accData;
+
+    /* user cpu sec/usec */
+    addUint32ToMsg(accData->rusage.ru_utime.tv_sec, data);
+    addUint32ToMsg(accData->rusage.ru_utime.tv_usec, data);
+
+    /* system cpu sec/usec */
+    addUint32ToMsg(accData->rusage.ru_stime.tv_sec, data);
+    addUint32ToMsg(accData->rusage.ru_stime.tv_usec, data);
+
+    /* act cpufreq */
+    addUint32ToMsg(accData->cpuFreq, data);
+
+    /* energy consumed */
+    addUint64ToMsg(0, data);
+
+    TRes_t *tres = TRes_new();
+
+    flog("ADDING TRES DATA!!!\n");
+
+    convAccDataToTRes(accData, tres);
+
+    TRes_print(tres);
+
+    packTResData(data, tres);
+
+    TRes_destroy(tres);
 
     return true;
 }
