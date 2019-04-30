@@ -495,10 +495,13 @@ plugins/pspmi/pmitypes.h \
 plugins/pspmi/pspmihandles.h \
 plugins/pspmix/Makefile.am \
 plugins/pspmix/Makefile.in \
+plugins/pspmix/pspmix.conf \
 plugins/pspmix/pspmixcomm.c \
 plugins/pspmix/pspmixcomm.h \
 plugins/pspmix/pspmixcommon.c \
 plugins/pspmix/pspmixcommon.h \
+plugins/pspmix/pspmixconfig.c \
+plugins/pspmix/pspmixconfig.h \
 plugins/pspmix/pspmixdaemon.c \
 plugins/pspmix/pspmixdaemon.h \
 plugins/pspmix/pspmixforwarder.c \

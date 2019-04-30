@@ -26,6 +26,7 @@
 # Author:	Thomas Moschny <moschny@par-tec.com>
 #
 
+
 VPATH = @srcdir@
 am__is_gnu_make = { \
   if test -z '$(MAKELEVEL)'; then \
@@ -109,7 +110,8 @@ am__aclocal_m4_deps = $(top_srcdir)/m4/ax_check_compile_flag.m4 \
 	$(top_srcdir)/m4/lt~obsolete.m4 $(top_srcdir)/configure.ac
 am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
 	$(ACLOCAL_M4)
-DIST_COMMON = $(srcdir)/Makefile.am $(am__DIST_COMMON)
+DIST_COMMON = $(srcdir)/Makefile.am $(dist_plugin_DATA) \
+	$(am__DIST_COMMON)
 mkinstalldirs = $(install_sh) -d
 CONFIG_CLEAN_FILES =
 CONFIG_CLEAN_VPATH_FILES =
@@ -140,16 +142,17 @@ am__uninstall_files_from_dir = { \
     || { echo " ( cd '$$dir' && rm -f" $$files ")"; \
          $(am__cd) "$$dir" && rm -f $$files; }; \
   }
-am__installdirs = "$(DESTDIR)$(plugindir)"
+am__installdirs = "$(DESTDIR)$(plugindir)" "$(DESTDIR)$(plugindir)"
 LTLIBRARIES = $(plugin_LTLIBRARIES)
 am__DEPENDENCIES_1 =
 pspmix_la_DEPENDENCIES = $(am__DEPENDENCIES_1) $(libplugincommon) \
 	$(libpscommon)
 am_pspmix_la_OBJECTS = pspmix_la-pspmixmain.lo pspmix_la-pspmixlog.lo \
-	pspmix_la-pspmixcommon.lo pspmix_la-pspmixdaemon.lo \
-	pspmix_la-pspmixforwarder.lo pspmix_la-pspmixjobserver.lo \
-	pspmix_la-pspmixcomm.lo pspmix_la-pspmixservice.lo \
-	pspmix_la-pspmixservicespawn.lo pspmix_la-pspmixserver.lo
+	pspmix_la-pspmixconfig.lo pspmix_la-pspmixcommon.lo \
+	pspmix_la-pspmixdaemon.lo pspmix_la-pspmixforwarder.lo \
+	pspmix_la-pspmixjobserver.lo pspmix_la-pspmixcomm.lo \
+	pspmix_la-pspmixservice.lo pspmix_la-pspmixservicespawn.lo \
+	pspmix_la-pspmixserver.lo
 pspmix_la_OBJECTS = $(am_pspmix_la_OBJECTS)
 AM_V_lt = $(am__v_lt_@AM_V@)
 am__v_lt_ = $(am__v_lt_@AM_DEFAULT_V@)
@@ -175,6 +178,7 @@ depcomp = $(SHELL) $(top_srcdir)/scripts/depcomp
 am__maybe_remake_depfiles = depfiles
 am__depfiles_remade = ./$(DEPDIR)/pspmix_la-pspmixcomm.Plo \
 	./$(DEPDIR)/pspmix_la-pspmixcommon.Plo \
+	./$(DEPDIR)/pspmix_la-pspmixconfig.Plo \
 	./$(DEPDIR)/pspmix_la-pspmixdaemon.Plo \
 	./$(DEPDIR)/pspmix_la-pspmixforwarder.Plo \
 	./$(DEPDIR)/pspmix_la-pspmixjobserver.Plo \
@@ -209,6 +213,7 @@ am__can_run_installinfo = \
     n|no|NO) false;; \
     *) (install-info --version) >/dev/null 2>&1;; \
   esac
+DATA = $(dist_plugin_DATA)
 am__tagged_files = $(HEADERS) $(SOURCES) $(TAGS_FILES) $(LISP)
 # Read a list of newline-separated strings from the standard input,
 # and print each of them once, without duplicates.  Input order is
@@ -426,6 +431,7 @@ libplugincommon = $(top_builddir)/lib/plugincommon/libplugincommon.la
 plugin_LTLIBRARIES = pspmix.la
 pspmix_la_SOURCES = pspmixmain.c pspmixtypes.h \
 		    pspmixlog.c pspmixlog.h \
+		    pspmixconfig.c pspmixconfig.h \
 		    pspmixcommon.c pspmixcommon.h \
 		    pspmixdaemon.c pspmixdaemon.h \
 		    pspmixforwarder.c pspmixforwarder.h \
@@ -436,10 +442,12 @@ pspmix_la_SOURCES = pspmixmain.c pspmixtypes.h \
 		    pspmixserver.c pspmixserver.h
 
 pspmix_la_CPPFLAGS = $(AM_CPPFLAGS) \
-		     -DLIBEXECDIR=\"$(pkglibexecdir)\"
+		     -DLIBEXECDIR=\"$(pkglibexecdir)\" \
+		     -DPLUGINDIR=\"$(plugindir)\"
 
 pspmix_la_CFLAGS = $(AM_CFLAGS) $(pmix_CFLAGS)
 pspmix_la_LIBADD = $(pmix_LIBS) $(libplugincommon) $(libpscommon)
+dist_plugin_DATA = pspmix.conf
 all: all-am
 
 .SUFFIXES:
@@ -521,6 +529,7 @@ distclean-compile:
 
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/pspmix_la-pspmixcomm.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/pspmix_la-pspmixcommon.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/pspmix_la-pspmixconfig.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/pspmix_la-pspmixdaemon.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/pspmix_la-pspmixforwarder.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/pspmix_la-pspmixjobserver.Plo@am__quote@ # am--include-marker
@@ -573,6 +582,13 @@ pspmix_la-pspmixlog.lo: pspmixlog.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='pspmixlog.c' object='pspmix_la-pspmixlog.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(pspmix_la_CPPFLAGS) $(CPPFLAGS) $(pspmix_la_CFLAGS) $(CFLAGS) -c -o pspmix_la-pspmixlog.lo `test -f 'pspmixlog.c' || echo '$(srcdir)/'`pspmixlog.c
+
+pspmix_la-pspmixconfig.lo: pspmixconfig.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(pspmix_la_CPPFLAGS) $(CPPFLAGS) $(pspmix_la_CFLAGS) $(CFLAGS) -MT pspmix_la-pspmixconfig.lo -MD -MP -MF $(DEPDIR)/pspmix_la-pspmixconfig.Tpo -c -o pspmix_la-pspmixconfig.lo `test -f 'pspmixconfig.c' || echo '$(srcdir)/'`pspmixconfig.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/pspmix_la-pspmixconfig.Tpo $(DEPDIR)/pspmix_la-pspmixconfig.Plo
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='pspmixconfig.c' object='pspmix_la-pspmixconfig.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(pspmix_la_CPPFLAGS) $(CPPFLAGS) $(pspmix_la_CFLAGS) $(CFLAGS) -c -o pspmix_la-pspmixconfig.lo `test -f 'pspmixconfig.c' || echo '$(srcdir)/'`pspmixconfig.c
 
 pspmix_la-pspmixcommon.lo: pspmixcommon.c
 @am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(pspmix_la_CPPFLAGS) $(CPPFLAGS) $(pspmix_la_CFLAGS) $(CFLAGS) -MT pspmix_la-pspmixcommon.lo -MD -MP -MF $(DEPDIR)/pspmix_la-pspmixcommon.Tpo -c -o pspmix_la-pspmixcommon.lo `test -f 'pspmixcommon.c' || echo '$(srcdir)/'`pspmixcommon.c
@@ -635,6 +651,27 @@ mostlyclean-libtool:
 
 clean-libtool:
 	-rm -rf .libs _libs
+install-dist_pluginDATA: $(dist_plugin_DATA)
+	@$(NORMAL_INSTALL)
+	@list='$(dist_plugin_DATA)'; test -n "$(plugindir)" || list=; \
+	if test -n "$$list"; then \
+	  echo " $(MKDIR_P) '$(DESTDIR)$(plugindir)'"; \
+	  $(MKDIR_P) "$(DESTDIR)$(plugindir)" || exit 1; \
+	fi; \
+	for p in $$list; do \
+	  if test -f "$$p"; then d=; else d="$(srcdir)/"; fi; \
+	  echo "$$d$$p"; \
+	done | $(am__base_list) | \
+	while read files; do \
+	  echo " $(INSTALL_DATA) $$files '$(DESTDIR)$(plugindir)'"; \
+	  $(INSTALL_DATA) $$files "$(DESTDIR)$(plugindir)" || exit $$?; \
+	done
+
+uninstall-dist_pluginDATA:
+	@$(NORMAL_UNINSTALL)
+	@list='$(dist_plugin_DATA)'; test -n "$(plugindir)" || list=; \
+	files=`for p in $$list; do echo $$p; done | sed -e 's|^.*/||'`; \
+	dir='$(DESTDIR)$(plugindir)'; $(am__uninstall_files_from_dir)
 
 ID: $(am__tagged_files)
 	$(am__define_uniq_tagged_files); mkid -fID $$unique
@@ -723,9 +760,9 @@ distdir-am: $(DISTFILES)
 	done
 check-am: all-am
 check: check-am
-all-am: Makefile $(LTLIBRARIES)
+all-am: Makefile $(LTLIBRARIES) $(DATA)
 installdirs:
-	for dir in "$(DESTDIR)$(plugindir)"; do \
+	for dir in "$(DESTDIR)$(plugindir)" "$(DESTDIR)$(plugindir)"; do \
 	  test -z "$$dir" || $(MKDIR_P) "$$dir"; \
 	done
 install: install-am
@@ -766,6 +803,7 @@ clean-am: clean-generic clean-libtool clean-pluginLTLIBRARIES \
 distclean: distclean-am
 		-rm -f ./$(DEPDIR)/pspmix_la-pspmixcomm.Plo
 	-rm -f ./$(DEPDIR)/pspmix_la-pspmixcommon.Plo
+	-rm -f ./$(DEPDIR)/pspmix_la-pspmixconfig.Plo
 	-rm -f ./$(DEPDIR)/pspmix_la-pspmixdaemon.Plo
 	-rm -f ./$(DEPDIR)/pspmix_la-pspmixforwarder.Plo
 	-rm -f ./$(DEPDIR)/pspmix_la-pspmixjobserver.Plo
@@ -790,7 +828,7 @@ info: info-am
 
 info-am:
 
-install-data-am: install-pluginLTLIBRARIES
+install-data-am: install-dist_pluginDATA install-pluginLTLIBRARIES
 
 install-dvi: install-dvi-am
 
@@ -821,6 +859,7 @@ installcheck-am:
 maintainer-clean: maintainer-clean-am
 		-rm -f ./$(DEPDIR)/pspmix_la-pspmixcomm.Plo
 	-rm -f ./$(DEPDIR)/pspmix_la-pspmixcommon.Plo
+	-rm -f ./$(DEPDIR)/pspmix_la-pspmixconfig.Plo
 	-rm -f ./$(DEPDIR)/pspmix_la-pspmixdaemon.Plo
 	-rm -f ./$(DEPDIR)/pspmix_la-pspmixforwarder.Plo
 	-rm -f ./$(DEPDIR)/pspmix_la-pspmixjobserver.Plo
@@ -845,7 +884,7 @@ ps: ps-am
 
 ps-am:
 
-uninstall-am: uninstall-pluginLTLIBRARIES
+uninstall-am: uninstall-dist_pluginDATA uninstall-pluginLTLIBRARIES
 
 .MAKE: install-am install-strip
 
@@ -854,15 +893,16 @@ uninstall-am: uninstall-pluginLTLIBRARIES
 	cscopelist-am ctags ctags-am distclean distclean-compile \
 	distclean-generic distclean-libtool distclean-tags distdir dvi \
 	dvi-am html html-am info info-am install install-am \
-	install-data install-data-am install-dvi install-dvi-am \
-	install-exec install-exec-am install-html install-html-am \
-	install-info install-info-am install-man install-pdf \
-	install-pdf-am install-pluginLTLIBRARIES install-ps \
-	install-ps-am install-strip installcheck installcheck-am \
-	installdirs maintainer-clean maintainer-clean-generic \
-	mostlyclean mostlyclean-compile mostlyclean-generic \
-	mostlyclean-libtool pdf pdf-am ps ps-am tags tags-am uninstall \
-	uninstall-am uninstall-pluginLTLIBRARIES
+	install-data install-data-am install-dist_pluginDATA \
+	install-dvi install-dvi-am install-exec install-exec-am \
+	install-html install-html-am install-info install-info-am \
+	install-man install-pdf install-pdf-am \
+	install-pluginLTLIBRARIES install-ps install-ps-am \
+	install-strip installcheck installcheck-am installdirs \
+	maintainer-clean maintainer-clean-generic mostlyclean \
+	mostlyclean-compile mostlyclean-generic mostlyclean-libtool \
+	pdf pdf-am ps ps-am tags tags-am uninstall uninstall-am \
+	uninstall-dist_pluginDATA uninstall-pluginLTLIBRARIES
 
 .PRECIOUS: Makefile
 
