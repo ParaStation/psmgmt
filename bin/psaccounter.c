@@ -1500,13 +1500,13 @@ static void openAccLogFile(char *arg_logdir)
 
     /* set gid from accfile to gid from accdir */
     if (!arg_logdir) {
-	if (!stat(DEFAULT_LOG_DIR,&statbuf)) {
-	    if (!fchown(fileno(fp),-1,statbuf.st_gid)) {
+	if (!stat(DEFAULT_LOG_DIR, &statbuf)) {
+	    if (!fchown(fileno(fp), -1, statbuf.st_gid)) {
 		if(debug & 0x010) alog("%s: error changing grp on acc_file\n",
 			       __func__);
 	    }
 	} else {
-	    alog("%s: error stat on dir %s\n", __func__, arg_logdir);
+	    alog("%s: error stat on dir %s\n", __func__, DEFAULT_LOG_DIR);
 	}
     }
     strncpy(oldfilename, filename, sizeof(oldfilename));

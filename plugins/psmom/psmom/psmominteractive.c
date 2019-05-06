@@ -252,8 +252,8 @@ ComHandle_t *initQsubConnection(Job_t *job, Inter_Data_t *data, int term)
 
     /* get qsub host */
     if (!(addr = getEnvValue("PBS_O_HOST"))) {
-	fprintf(stderr, "%s: failed to get qsub host from PBS_O_HOST: '%s'\n",
-		__func__, addr);
+	fprintf(stderr, "%s: failed to get qsub host from PBS_O_HOST\n",
+		__func__);
 	return NULL;
     }
     qsub_addr = ustrdup(addr);
@@ -334,7 +334,7 @@ ComHandle_t *getQsubConnection(Job_t *job)
     int sock;
 
     if (!qsub_addr) {
-	mlog("%s: invalid qsub addr '%s'\n", __func__, qsub_addr);
+	mlog("%s: invalid qsub addr\n", __func__);
 	return NULL;
     }
 

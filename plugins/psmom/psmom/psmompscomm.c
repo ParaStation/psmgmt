@@ -59,12 +59,12 @@ static void shutMyselfDown(char *reason)
     Server_t *serv;
     struct tm *ts;
     time_t now;
-    char buf[32], note[128];
+    char buf[32], note[256];
 
     now = time(NULL);
     ts = localtime(&now);
     strftime(buf, sizeof(buf), "%Y-%m-%d %H:%M:%S", ts);
-    snprintf(note, sizeof(note), "psmom - %s - %s", buf, reason);
+    snprintf(note, sizeof(note), "psmom - %s - %128s", buf, reason);
 
     list_for_each(pos, &ServerList.list) {
 	if ((serv = list_entry(pos, Server_t, list)) == NULL) break;
