@@ -481,7 +481,7 @@ int main(const int argc, const char *argv[], char *envp[])
     free(nodes);
 
     if (verbose) {
-	printf("parallel pelogue for job %s finished in %.3f seconds on %i "
+	printf("parallel pelogue for job %s finished in %.3f seconds on %u "
 	       "nodes\n", jobID, time_diff.tv_sec + 1e-6 * time_diff.tv_usec,
 	       nrOfNodes);
     }

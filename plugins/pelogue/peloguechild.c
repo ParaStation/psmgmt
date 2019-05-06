@@ -283,8 +283,6 @@ void startChild(PElogueChild_t *child)
 
 void signalChild(PElogueChild_t *child, int signal, char *reason)
 {
-    Forwarder_Data_t *fwData = child->fwData;
-
     /* forwarder did not start yet */
     if (!child || !child->fwData) {
 	mlog("%s: no child or forwarder to signal\n", __func__);
@@ -297,6 +295,7 @@ void signalChild(PElogueChild_t *child, int signal, char *reason)
     }
 
     /* send the signal */
+    Forwarder_Data_t *fwData = child->fwData;
     if (fwData->cSid > 0) {
 	mlog("%s: signal %i to pelogue '%s' - reason '%s' - sid %i\n", __func__,
 	     signal, child->jobid, reason, fwData->cSid);
