@@ -121,20 +121,9 @@ static void CBprologueResp(char *jobid, int exit, bool timeout,
 
     Job_t *job = findJobById(rpcInfo->requestor, jobid);
     if (job) {
-	PS_SendDB_t data;
-	PSnodes_ID_t n;
-
 	mdbg(PELOGUE_LOG_VERB, "%s: finished, sending result for job %s to "
 	     "%s\n", __func__, jobid, PSC_printTID(rpcInfo->sender));
 	sendPrologueResp(jobid, exit, timeout, rpcInfo->sender);
-
-	/* delete old configuration */
-	initFragBuffer(&data, PSP_CC_PLUG_PELOGUE, PSP_PLUGIN_CONFIG_DEL);
-	for (n=0; n<job->numNodes; n++) {
-	    setFragDest(&data, PSC_getTID(job->nodes[n].id, 0));
-	}
-	addStringToMsg(rpcInfo->requestor, &data);
-	sendFragMsg(&data);
 
 	job->info = NULL;
 	deleteJob(job);

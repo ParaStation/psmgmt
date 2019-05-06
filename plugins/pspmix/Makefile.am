@@ -24,6 +24,7 @@ plugin_LTLIBRARIES = pspmix.la
 
 pspmix_la_SOURCES = pspmixmain.c pspmixtypes.h \
 		    pspmixlog.c pspmixlog.h \
+		    pspmixconfig.c pspmixconfig.h \
 		    pspmixcommon.c pspmixcommon.h \
 		    pspmixdaemon.c pspmixdaemon.h \
 		    pspmixforwarder.c pspmixforwarder.h \
@@ -34,7 +35,10 @@ pspmix_la_SOURCES = pspmixmain.c pspmixtypes.h \
 		    pspmixserver.c pspmixserver.h
 
 pspmix_la_CPPFLAGS = $(AM_CPPFLAGS) \
-		     -DLIBEXECDIR=\"$(pkglibexecdir)\"
+		     -DLIBEXECDIR=\"$(pkglibexecdir)\" \
+		     -DPLUGINDIR=\"$(plugindir)\"
 
 pspmix_la_CFLAGS = $(AM_CFLAGS) $(pmix_CFLAGS)
 pspmix_la_LIBADD = $(pmix_LIBS) $(libplugincommon) $(libpscommon)
+
+dist_plugin_DATA = pspmix.conf

@@ -584,7 +584,7 @@ static void setupExecEnv(Conf_t *conf, int execNum)
     }
 
     if (conf->PMIx) {
-        snprintf(tmp, sizeof(tmp), "%d", conf->exec[execNum].np);
+	snprintf(tmp, sizeof(tmp), "%d", conf->exec[execNum].np);
 	setPSIEnv("PMIX_APPSIZE", tmp, 1);
     }
 }
@@ -888,7 +888,7 @@ static int startProcs(Conf_t *conf)
     extractNodeInformation(nodeList, conf->np);
 
     if (conf->openMPI && conf->ompiDbg) {
-        for (i=0; i< conf->np; i++) {
+	for (i=0; i< conf->np; i++) {
 	    fprintf(stderr, "%s: rank '%i' opmi-nodeID '%i' ps-nodeID '%i'"
 		    " node '%s'\n", __func__, i, jobLocalNodeIDs[i],
 		    nodeList[i], getHostByNodeID(nodeList[i]));

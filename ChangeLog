@@ -1,3 +1,136 @@
+Version psmgmt-5.1.21:
+======================
+------------------------------------------------------------------------
+f77ab048 | Michael Rauh | Thu, 2 May 2019 11:39:52 +0200
+
+Don't remove pspelouge config in pelogue needed by psgw callback
+------------------------------------------------------------------------
+8425f588 | Stephan Krempel | Tue, 30 Apr 2019 15:59:10 +0200
+
+pspmix: Make configurable by file and psiadmin
+------------------------------------------------------------------------
+896256fe | Norbert Eicker | Mon, 29 Apr 2019 18:59:51 +0200
+
+Fix whitespace typos
+------------------------------------------------------------------------
+413d5428 | Norbert Eicker | Mon, 29 Apr 2019 11:41:41 +0200
+
+Lift required pmix-Version to 3.1.3
+------------------------------------------------------------------------
+78e65663 | Michael Rauh | Thu, 25 Apr 2019 16:47:15 +0200
+
+Added Uint64Array and Int64Array support to psserial
+------------------------------------------------------------------------
+0731617c | Michael Rauh | Thu, 25 Apr 2019 11:13:13 +0200
+
+Improve log output in pelogue
+------------------------------------------------------------------------
+f4dbd524 | Stephan Krempel | Wed, 24 Apr 2019 12:29:42 +0200
+
+PSConfig parser: Restore old tolerance for missing resource limits
+------------------------------------------------------------------------
+9fdc8d2b | Michael Rauh | Tue, 23 Apr 2019 16:51:10 +0200
+
+Bugfix: fix segfault in pelogue plugin on race condition
+------------------------------------------------------------------------
+9d562cac | Norbert Eicker | Tue, 23 Apr 2019 16:44:05 +0200
+
+autoreconf with automake-1.16.1 and autoconf-2.69
+------------------------------------------------------------------------
+fb4d0e95 | Norbert Eicker | Thu, 18 Apr 2019 14:49:08 +0200
+
+Make psid less chatty.
+------------------------------------------------------------------------
+86767fc4 | Stephan Krempel | Tue, 16 Apr 2019 14:05:17 +0200
+
+Update NEWS with changes from pt#2631
+
+- Renaming NodeNo to Psid.NodeId
+- Introducing Psid.Domain
+------------------------------------------------------------------------
+6f2715ff | Norbert Eicker | Mon, 15 Apr 2019 10:55:46 +0200
+
+Fix incompatibility preventing buildbot's success
+------------------------------------------------------------------------
+12bea356 | Stephan Krempel | Fri, 12 Apr 2019 16:11:20 +0200
+
+Introduce psid domain concept. (pt#2631)
+
+If Psid.Domain is set for the local host object in psconfig,
+only other hosts are included in the psid network having the
+same Psid.Domain set. (Works only in the psconfig version)
+------------------------------------------------------------------------
+7807323a | Stephan Krempel | Thu, 11 Apr 2019 14:20:31 +0200
+
+Enhance error checking in psconfig parser.
+------------------------------------------------------------------------
+00bb2c58 | Michael Rauh | Thu, 11 Apr 2019 18:04:20 +0200
+
+Update the buildsystem for psgwkvs.c
+------------------------------------------------------------------------
+236a2f45 | Michael Rauh | Thu, 11 Apr 2019 17:58:52 +0200
+
+Add rudimentary support of psiadmin plugin commands to psgw
+------------------------------------------------------------------------
+fd5f8271 | Michael Rauh | Thu, 11 Apr 2019 16:21:28 +0200
+
+Fixed some minor issues unveiled by cppcheck
+------------------------------------------------------------------------
+9c7e43c3 | Michael Rauh | Thu, 11 Apr 2019 15:50:05 +0200
+
+Update buildsystem for "plugin02.py"
+------------------------------------------------------------------------
+5576e7ad | Michael Rauh | Thu, 11 Apr 2019 15:48:48 +0200
+
+Add psgw route plugin "plugin02.py"
+------------------------------------------------------------------------
+bdbb9ff6 | Michael Rauh | Thu, 11 Apr 2019 15:32:31 +0200
+
+Allow to specify a relative path for routing plugins
+------------------------------------------------------------------------
+f11eb7d2 | Michael Rauh | Thu, 11 Apr 2019 13:18:08 +0200
+
+Allow to specify absolute path for routing plugins
+------------------------------------------------------------------------
+c9c2828b | Michael Rauh | Thu, 11 Apr 2019 11:33:09 +0200
+
+Export SLURM_JOB_ID to the psgwd environment to enable the PSHC
+to detect leftover psgwd processes
+------------------------------------------------------------------------
+86a98cb0 | Michael Rauh | Wed, 10 Apr 2019 17:16:20 +0200
+
+Ensure a plugin configuration exists when a new job is added to pelogue
+------------------------------------------------------------------------
+3e7b55b7 | Michael Rauh | Tue, 9 Apr 2019 12:28:17 +0200
+
+Update an existing pelogue plugin configuration rather than adding it
+multiple times
+------------------------------------------------------------------------
+e0e044a5 | Norbert Eicker | Mon, 8 Apr 2019 22:10:56 +0200
+
+Update copyright statements
+------------------------------------------------------------------------
+56dd415a | Stephan Krempel | Mon, 8 Apr 2019 13:55:39 +0200
+
+psconfig: Use Psid.NodeId in favour of NodeNo.
+
+NodeNo is now deprecated and could be removed in upcoming versions.
+For the moment, print a warning if it is still used.
+------------------------------------------------------------------------
+c2d140bb | Norbert Eicker | Fri, 5 Apr 2019 11:31:33 +0200
+
+Fix warnings highlighted by gcc-8.3 and streamlining
+------------------------------------------------------------------------
+157f3e6c | Norbert Eicker | Fri, 5 Apr 2019 11:09:20 +0200
+
+Fix warnings highlighted by gcc-8.3
+------------------------------------------------------------------------
+e91271e9 | Norbert Eicker | Fri, 5 Apr 2019 10:45:08 +0200
+
+Add macro MIN returning the minimum to pscommon.h
+------------------------------------------------------------------------
+
+
 Version psmgmt-5.1.20-1:
 ========================
 ------------------------------------------------------------------------

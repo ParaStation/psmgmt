@@ -4,18 +4,42 @@ Copyright (C) 2010-2019 ParTec Cluster Competence Center GmbH, Munich
 
 Please send bug reports, questions and suggestions to <support@par-tec.com>
 
+*************************************************************************
+*************************************************************************
+**                                                                     **
+**  Remark: psmgmt 5.1.21 changes the explected content of psconfig    **
+**  that might be incompatible with former configuations:              **
+**   - the key NodeNo is now called Psid.NodeId (but NodeNo might be   **
+**     used if no Psid.NodeId is found)                                **
+**   - If Psid.Domain is set in a node's host object, only other nodes **
+**     with the very same Psid.Domain will be seen                     **
+**                                                                     **
+*************************************************************************
+*************************************************************************
+
 Version 5.1.21:
 ===============
-Changes:
- - The former psconfig configuration key NodeNo is now called Psid.NodeId
-   (pt#2631)
- - If a node has Psid.Domain set in its host object, it takes only other nodes
-   into its node list, that have Psid.Domain set to the same string. (pt#2631)
- 
+Bugfixes:
+ - Fix segfault in pelogue plugin on race condition
+ - Don't remove pspelouge config in pelogue needed by psgw callback
+ - Fix various warnings brought by cppcheck and gcc-8.3
+Enhancements:
+ - Introduce psid domain concept (pt#2631)
+ - Use Psid.NodeId in favour of NodeNo in psconfig
+ - Add psgw route plugin "plugin02.py"
+ - Make pspmix configurable via file and psiadmin
+ - Add rudimentary support of psiadmin plugin commands to psgw
+ - Improve log output in pelogue
+Additional changes:
+ - Lift required pmix-Version to 3.1.3
+ - Add Uint64Array and Int64Array support to psserial
+
+
 Version 5.1.20-1:
 =================
 Bugfixes:
  - Fix handling of SLURM_MPI_TYPE=none (srun --mpi=none)
+
 
 Version 5.1.20:
 ===============
