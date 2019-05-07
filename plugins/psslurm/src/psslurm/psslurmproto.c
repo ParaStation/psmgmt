@@ -86,7 +86,7 @@ char *uid2String(uid_t uid)
 	    break;
 	}
     }
-    if (!pwd) return ustrdup("nobody");
+    if (!pwd) return NULL;
 
     return ustrdup(pwd->pw_name);
 }
