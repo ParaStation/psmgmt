@@ -1769,7 +1769,7 @@ static void backupJob(char *backupScript, Job_t *job, char *outLog,
 
     localBackupDir = getConfValueC(&config, "DIR_LOCAL_BACKUP");
     if (!localBackupDir) {
-	mlog("%s: invalid local backup dir\n", __func__);
+	mlog("%s: no local backup dir given\n", __func__);
 	return;
     }
 

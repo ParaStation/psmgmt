@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2006-2018 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2006-2019 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -1503,10 +1503,11 @@ static void openAccLogFile(char *arg_logdir)
 	if (!stat(DEFAULT_LOG_DIR, &statbuf)) {
 	    if (!fchown(fileno(fp), -1, statbuf.st_gid)) {
 		if(debug & 0x010) alog("%s: error changing grp on acc_file\n",
-			       __func__);
+				       __func__);
 	    }
 	} else {
-	    alog("%s: error stat on dir %s\n", __func__, DEFAULT_LOG_DIR);
+	    alog("%s: error stat on default logdir %s\n", __func__,
+		 DEFAULT_LOG_DIR);
 	}
     }
     strncpy(oldfilename, filename, sizeof(oldfilename));
