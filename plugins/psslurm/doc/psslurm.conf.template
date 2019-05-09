@@ -4,9 +4,9 @@
 
 # Slurm protocol version
 #
-# Supported versions: 17.02, 17.11
+# Supported versions: auto, 17.02, 17.11
 #
-# (string, default: 17.02)
+# (string, default: auto)
 #SLURM_PROTO_VERSION = 17.11
 
 # Soft resources limits
@@ -180,3 +180,8 @@
 #
 # (integer, default: 10)
 #MAX_TERM_REQUESTS = 5
+
+# Absolute path to the sinfo binary used for automatic protocol detection
+#
+# (string, default: /usr/bin/sinfo)
+#SINFO_BINARY = /usr/local/bin/sinfo

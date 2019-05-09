@@ -180,6 +180,10 @@ bool verifyStepData(Step_t *step)
     if (!step->username || step->username[0] == '\0') {
 	ufree(step->username);
 	step->username = uid2String(step->uid);
+	if (!step->username) {
+	    mlog("%s: unable to resolve user ID %i\n", __func__, step->uid);
+	    return false;
+	}
     }
 
     mdbg(PSSLURM_LOG_AUTH, "%s: step '%u:%u' success\n", __func__,
@@ -256,6 +260,10 @@ bool verifyJobData(Job_t *job)
     if (!job->username || job->username[0] == '\0') {
 	ufree(job->username);
 	job->username = uid2String(job->uid);
+	if (!job->username) {
+	    mlog("%s: unable to resolve user ID %i\n", __func__, job->uid);
+	    return false;
+	}
     }
 
     mdbg(PSSLURM_LOG_AUTH, "%s: job '%u' success\n", __func__, job->jobid);

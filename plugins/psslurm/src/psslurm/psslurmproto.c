@@ -86,7 +86,7 @@ char *uid2String(uid_t uid)
 	    break;
 	}
     }
-    if (!pwd) return ustrdup("nobody");
+    if (!pwd) return NULL;
 
     return ustrdup(pwd->pw_name);
 }
@@ -2122,12 +2122,53 @@ slurmdHandlerFunc_t clearSlurmdMsg(int msgType)
     return NULL;
 }
 
+static char *autoDetectSlurmProto(void)
+{
+    char *sinfo = getConfValueC(&Config, "SINFO_BINARY");
+    char *line = NULL;
+    static char autoVer[8];
+    size_t len = 0;
+    ssize_t read;
+    bool ret = false;
+
+    FILE *fp = fopen(sinfo, "r");
+
+    if (!fp) {
+	mwarn(errno, "sinfo binary %s not found:", sinfo);
+	return false;
+    }
+
+    while ((read = getdelim(&line, &len, '\0', fp)) != -1) {
+	if (!strncmp(line, "SLURM_VERSION_STRING", 20)) {
+	    if (sscanf(line, "SLURM_VERSION_STRING \"%5s", autoVer) == 1) {
+		ret = true;
+	    } else {
+		flog("invalid slurm version string: %s\n", line);
+	    }
+	}
+    }
+
+    free(line);
+    fclose(fp);
+
+    return (ret ? autoVer : NULL);
+}
+
 bool initSlurmdProto(void)
 {
     char *pver;
 
     /* Slurm protocol version */
     pver = getConfValueC(&Config, "SLURM_PROTO_VERSION");
+
+    if (!strcmp(pver, "auto")) {
+	pver = autoDetectSlurmProto();
+	if (!pver) {
+	    flog("Automatic detection of the Slurm protocol failed, "
+		 "consider setting SLURM_PROTO_VERSION in psslurm.conf\n");
+	    return false;
+	}
+    }
 
     if (!strcmp(pver, "18.08") || !strcmp(pver, "1808")) {
 	slurmProto = SLURM_18_08_PROTO_VERSION;

@@ -359,7 +359,7 @@ void clearSlurmdProto(void);
  *
  * @param uid The user ID to convert
  *
- * @return Returns the converted username or "nobody" if the user ID could
+ * @return Returns the converted username or NULL if the user ID could
  * not be resolved. The caller is responsible to release the memory for
  * the username calling @ref ufree().
  */
