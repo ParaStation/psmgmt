@@ -1269,36 +1269,43 @@ static void convAccDataToTRes(AccountDataExt_t *accData, TRes_t *tres)
 {
     TRes_Entry_t entry;
 
-    /* vsize */
+    /* vsize in byte */
     TRes_reset_entry(&entry);
-    entry.in_max = accData->maxVsize;
-    entry.in_tot = accData->avgVsizeTotal;
+    entry.in_max = accData->maxVsize * 1024;
+    entry.in_min = accData->maxVsize * 1024;
+    entry.in_tot = accData->avgVsizeTotal * 1024;
     TRes_set(tres, TRES_VMEM, &entry);
 
-    /* mem */
+    /* memory in byte */
     TRes_reset_entry(&entry);
-    entry.in_max = accData->maxRss;
-    entry.in_tot = accData->avgRssTotal;
+    entry.in_max = accData->maxRss * 1024;
+    entry.in_min = accData->maxRss * 1024;
+    entry.in_tot = accData->avgRssTotal * 1024;
     TRes_set(tres, TRES_MEM, &entry);
 
     /* pages */
     TRes_reset_entry(&entry);
     entry.in_max = accData->maxMajflt;
+    entry.in_min = accData->maxMajflt;
     entry.in_tot = accData->totMajflt;
     TRes_set(tres, TRES_PAGES, &entry);
 
     /* cpu */
     TRes_reset_entry(&entry);
-    entry.in_min = accData->minCputime;
-    entry.in_tot = accData->totCputime;
+    entry.in_min = accData->minCputime * 1000;
+    entry.in_max = accData->minCputime * 1000;
+    entry.in_tot = accData->totCputime * 1000;
     TRes_set(tres, TRES_CPU, &entry);
 
-    /* fs disk */
+    /* fs disk in byte */
     TRes_reset_entry(&entry);
-    entry.in_max = accData->maxDiskRead;
-    entry.in_tot = accData->totDiskRead;
-    entry.out_max = accData->maxDiskWrite;
-    entry.out_tot = accData->totDiskWrite;
+    entry.in_max = accData->maxDiskRead * 1048576;
+    entry.in_min = accData->maxDiskRead * 1048576;
+    entry.in_tot = accData->totDiskRead * 1048576;
+
+    entry.out_max = accData->maxDiskWrite * 1048576;
+    entry.out_min = accData->maxDiskWrite * 1048576;
+    entry.out_tot = accData->totDiskWrite * 1048576;
     TRes_set(tres, TRES_FS_DISK, &entry);
 }
 
