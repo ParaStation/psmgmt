@@ -31,11 +31,10 @@
 
 /** psid plugin requirements */
 char name[] = "psgw";
-int version = 1;
+int version = 2;
 int requiredAPI = 122;
 plugin_dep_t dependencies[] = {
     { .name = "pelogue", .version = 7 },
-    { .name = "psslurm", .version = 116 },
     { .name = "psexec", .version = 2 },
     { .name = NULL, .version = 0 } };
 

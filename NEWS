@@ -4,6 +4,12 @@ Copyright (C) 2010-2019 ParTec Cluster Competence Center GmbH, Munich
 
 Please send bug reports, questions and suggestions to <support@par-tec.com>
 
+Version 5.1.21-1:
+=================
+Bugfixes:
+ - Remove dependency of psgw to psslurm
+
+
 *************************************************************************
 *************************************************************************
 **                                                                     **
