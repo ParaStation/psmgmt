@@ -491,4 +491,10 @@ bool __packTResData(PS_SendDB_t *data, TRes_t *tres, const char *caller,
 
 #define packTResData(data, tres) __packTResData(data, tres, __func__, __LINE__)
 
+bool __unpackExtRespNodeReg(Slurm_Msg_t *sMsg, Ext_Resp_Node_Reg_t **respPtr,
+			    const char *caller, const int line);
+
+#define unpackExtRespNodeReg(sMsg, respPtr) \
+    __unpackExtRespNodeReg(sMsg, respPtr, __func__, __LINE__)
+
 #endif  /* __PS_SLURM_PACK */

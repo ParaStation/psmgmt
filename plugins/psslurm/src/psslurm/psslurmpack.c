@@ -1482,13 +1482,12 @@ bool __packRespNodeRegStatus(PS_SendDB_t *data, Resp_Node_Reg_Status_t *stat,
 	addUint32ToMsg(stat->stepids[i], data);
     }
 
-    /*
-    pack16(msg->startup, buffer);
-    if (msg->startup)
-	switch_g_pack_node_info(msg->switch_nodeinfo, buffer);
-	*/
-    /* TODO switch stuff */
-    addUint16ToMsg(0, data);
+    /* flags */
+    addUint16ToMsg(stat->flags, data);
+
+    if (stat->flags & SLURMD_REG_FLAG_STARTUP) {
+	/* TODO pack switch node info */
+    }
 
     /* add gres configuration */
     addGresData(data, slurmProto);
@@ -1737,6 +1736,35 @@ bool __packEnergyData(PS_SendDB_t *data, const char *caller, const int line)
     addUint32ToMsg(0, data);
     addUint64ToMsg(0, data);
     addTimeToMsg(0, data);
+
+    return true;
+}
+
+bool __unpackExtRespNodeReg(Slurm_Msg_t *sMsg, Ext_Resp_Node_Reg_t **respPtr,
+			    const char *caller, const int line)
+{
+    if (!sMsg) {
+	mlog("%s: invalid sMsg from '%s' at %i\n", __func__, caller, line);
+	return false;
+    }
+
+    char **ptr = &sMsg->ptr;
+
+    Ext_Resp_Node_Reg_t *resp = umalloc(sizeof(*resp));
+
+    getUint32(ptr, &resp->count);
+    resp->entry = umalloc(sizeof(*resp->entry) * resp->count);
+
+    uint32_t i;
+    for (i=0; i<resp->count; i++) {
+	getUint64(ptr, &resp->entry[i].allocSec);
+	getUint64(ptr, &resp->entry[i].count);
+	getUint32(ptr, &resp->entry[i].id);
+	resp->entry[i].name = getStringM(ptr);
+	resp->entry[i].type = getStringM(ptr);
+    }
+
+    *respPtr = resp;
 
     return true;
 }

@@ -511,10 +511,16 @@ static int handleSlurmctldReply(Slurm_Msg_t *sMsg, void *info)
     char **ptr = &sMsg->ptr;
     uint32_t rc;
 
-    if (sMsg->head.type != RESPONSE_SLURM_RC) {
-	flog("unexpected slurmctld reply %s(%i)\n",
-	     msgType2String(sMsg->head.type), sMsg->head.type);
-	return 0;
+    switch (sMsg->head.type) {
+	case RESPONSE_SLURM_RC:
+	    break;
+	case RESPONSE_NODE_REGISTRATION:
+	    handleSlurmdMsg(sMsg, info);
+	    return 0;
+	default:
+	    flog("unexpected slurmctld reply %s(%i)\n",
+		 msgType2String(sMsg->head.type), sMsg->head.type);
+	    return 0;
     }
 
     getUint32(ptr, &rc);
@@ -678,8 +684,8 @@ int __sendDataBuffer(int sock, PS_SendDB_t *data, size_t offset,
 	errno = eno;
 	return -1;
     }
-    mdbg(PSSLURM_LOG_COMM, "%s: wrote data: %zu offset: %zu for caller %s "
-	 "at %i\n", __func__, *written, offset, caller, line);
+    mdbg(PSSLURM_LOG_COMM, "%s: wrote data: %zu offset: %zu sock %i for "
+	 "caller %s at %i\n", __func__, *written, offset, sock, caller, line);
 
     return ret;
 }

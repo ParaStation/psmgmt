@@ -632,7 +632,7 @@ int initialize(void)
 	snprintf(buf, sizeof(buf), "%i", PSSLURM_SLURMCTLD_PORT);
 	addConfigEntry(&SlurmConfig, "SlurmctldPort", buf);
     }
-    sendNodeRegStatus();
+    sendNodeRegStatus(true);
 
     isInit = 1;
 

@@ -63,6 +63,7 @@ typedef struct {
     uint16_t sockets;
     uint16_t coresPerSocket;
     uint16_t threadsPerCore;
+    uint16_t flags;
     uint64_t realMem;
     uint32_t tmpDisk;
     uint32_t uptime;
@@ -114,12 +115,26 @@ typedef struct {
     uint32_t *globalTIDs;
 } Resp_Launch_Tasks_t;
 
+typedef struct {
+    uint64_t allocSec;
+    uint64_t count;
+    uint32_t id;
+    char *name;
+    char *type;
+} Ext_Resp_Node_Reg_Entry_t;
+
+typedef struct {
+    Ext_Resp_Node_Reg_Entry_t *entry;
+    uint32_t count;
+} Ext_Resp_Node_Reg_t;
+
+
 /**
  * @brief Send a node registration message
  *
  * Send the current node configuration and status to the slurmctld.
  */
-void sendNodeRegStatus(void);
+void sendNodeRegStatus(bool startup);
 
 /**
  * @brief Process a new Slurm message
