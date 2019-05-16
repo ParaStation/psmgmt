@@ -1265,8 +1265,20 @@ bool __packTResData(PS_SendDB_t *data, TRes_t *tres, const char *caller,
     return true;
 }
 
-static void convAccDataToTRes(AccountDataExt_t *accData, TRes_t *tres)
+static int getAccNodeID(SlurmAccData_t *slurmAccData, int type)
 {
+    AccountDataExt_t *accData = slurmAccData->accData;
+    int nID;
+
+    PSnodes_ID_t psNID = PSC_getID(accData->taskIds[type]);
+    nID = getSlurmNodeID(psNID, slurmAccData->nodes, slurmAccData->nrOfNodes);
+    if (nID == -1) return 0;
+    return nID;
+}
+
+static void convAccDataToTRes(SlurmAccData_t *slurmAccData, TRes_t *tres)
+{
+    AccountDataExt_t *accData = slurmAccData->accData;
     TRes_Entry_t entry;
 
     /* vsize in byte */
@@ -1274,6 +1286,7 @@ static void convAccDataToTRes(AccountDataExt_t *accData, TRes_t *tres)
     entry.in_max = accData->maxVsize * 1024;
     entry.in_min = accData->maxVsize * 1024;
     entry.in_tot = accData->avgVsizeTotal * 1024;
+    entry.in_max_nodeid = getAccNodeID(slurmAccData, ACCID_MAX_VSIZE);
     TRes_set(tres, TRES_VMEM, &entry);
 
     /* memory in byte */
@@ -1281,6 +1294,7 @@ static void convAccDataToTRes(AccountDataExt_t *accData, TRes_t *tres)
     entry.in_max = accData->maxRss * 1024;
     entry.in_min = accData->maxRss * 1024;
     entry.in_tot = accData->avgRssTotal * 1024;
+    entry.in_max_nodeid = getAccNodeID(slurmAccData, ACCID_MAX_RSS);
     TRes_set(tres, TRES_MEM, &entry);
 
     /* pages */
@@ -1288,6 +1302,7 @@ static void convAccDataToTRes(AccountDataExt_t *accData, TRes_t *tres)
     entry.in_max = accData->maxMajflt;
     entry.in_min = accData->maxMajflt;
     entry.in_tot = accData->totMajflt;
+    entry.in_max_nodeid = getAccNodeID(slurmAccData, ACCID_MAX_PAGES);
     TRes_set(tres, TRES_PAGES, &entry);
 
     /* cpu */
@@ -1295,6 +1310,7 @@ static void convAccDataToTRes(AccountDataExt_t *accData, TRes_t *tres)
     entry.in_min = accData->minCputime * 1000;
     entry.in_max = accData->minCputime * 1000;
     entry.in_tot = accData->totCputime * 1000;
+    entry.in_min_nodeid = getAccNodeID(slurmAccData, ACCID_MIN_CPU);
     TRes_set(tres, TRES_CPU, &entry);
 
     /* fs disk in byte */
@@ -1302,10 +1318,12 @@ static void convAccDataToTRes(AccountDataExt_t *accData, TRes_t *tres)
     entry.in_max = accData->maxDiskRead * 1048576;
     entry.in_min = accData->maxDiskRead * 1048576;
     entry.in_tot = accData->totDiskRead * 1048576;
+    entry.in_max_nodeid = getAccNodeID(slurmAccData, ACCID_MAX_DISKREAD);
 
     entry.out_max = accData->maxDiskWrite * 1048576;
     entry.out_min = accData->maxDiskWrite * 1048576;
     entry.out_tot = accData->totDiskWrite * 1048576;
+    entry.out_max_nodeid = getAccNodeID(slurmAccData, ACCID_MAX_DISKWRITE);
     TRes_set(tres, TRES_FS_DISK, &entry);
 }
 
@@ -1329,10 +1347,11 @@ bool __packSlurmAccData(PS_SendDB_t *data, SlurmAccData_t *slurmAccData,
 	return true;
     }
 
+    /* account data is available */
     addUint8ToMsg(1, data);
 
     if (slurmProto <= SLURM_17_11_PROTO_VERSION) {
-	/* pack old accouting data */
+	/* pack older accouting data */
 	packAccData_17(data, slurmAccData);
 	return true;
     }
@@ -1355,11 +1374,9 @@ bool __packSlurmAccData(PS_SendDB_t *data, SlurmAccData_t *slurmAccData,
 
     TRes_t *tres = TRes_new();
 
-    flog("ADDING TRES DATA!!!\n");
+    convAccDataToTRes(slurmAccData, tres);
 
-    convAccDataToTRes(accData, tres);
-
-    TRes_print(tres);
+    if (logger_getMask(psslurmlogger) & PSSLURM_LOG_ACC) TRes_print(tres);
 
     packTResData(data, tres);
 

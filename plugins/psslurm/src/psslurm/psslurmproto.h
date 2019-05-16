@@ -116,17 +116,20 @@ typedef struct {
 } Resp_Launch_Tasks_t;
 
 typedef struct {
-    uint64_t allocSec;
-    uint64_t count;
-    uint32_t id;
-    char *name;
-    char *type;
+    uint64_t allocSec; 	/* number of seconds allocated */
+    uint64_t count;	/* count of tres */
+    uint32_t id;	/* database ID */
+    char *name;		/* optional name of tres */
+    char *type;		/* type of tres */
 } Ext_Resp_Node_Reg_Entry_t;
 
 typedef struct {
     Ext_Resp_Node_Reg_Entry_t *entry;
     uint32_t count;
 } Ext_Resp_Node_Reg_t;
+
+
+extern Ext_Resp_Node_Reg_t *tresDBconfig;
 
 
 /**

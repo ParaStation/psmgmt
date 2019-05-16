@@ -66,6 +66,8 @@ bool measureRPC = false;
 
 static bool needNodeRegResp = true;
 
+Ext_Resp_Node_Reg_t *tresDBconfig = NULL;
+
 typedef struct {
     uint32_t jobid;
     uint32_t stepid;
@@ -1864,23 +1866,29 @@ static void handleRespMessageComposite(Slurm_Msg_t *sMsg)
     sendSlurmRC(sMsg, ESLURM_NOT_SUPPORTED);
 }
 
+/**
+ * @brief Handle response to node registration request
+ *
+ * Currently used to receive TRes accounting fields from slurmctld.
+ *
+ * @param sMsg The Slurm message to handle
+ */
 static void handleRespNodeReg(Slurm_Msg_t *sMsg)
 {
     /* don't request the additional info again */
     needNodeRegResp = false;
 
-    Ext_Resp_Node_Reg_t *resp;
-
-    if (!unpackExtRespNodeReg(sMsg, &resp)) {
+    if (!unpackExtRespNodeReg(sMsg, &tresDBconfig)) {
 	flog("unpack slurmctld node registration response failed\n");
 	return;
     }
 
     uint32_t i;
-    for (i=0; i<resp->count; i++) {
-	flog("alloc %zu count %u id %zu name %s type: %s\n",
-	     resp->entry[i].allocSec, resp->entry[i].count, resp->entry[i].id,
-	     resp->entry[i].name, resp->entry[i].type);
+    for (i=0; i<tresDBconfig->count; i++) {
+	fdbg(PSSLURM_LOG_ACC, "alloc %zu count %u id %zu name %s type: %s\n",
+	     tresDBconfig->entry[i].allocSec, tresDBconfig->entry[i].count,
+	     tresDBconfig->entry[i].id, tresDBconfig->entry[i].name,
+	     tresDBconfig->entry[i].type);
     }
 }
 

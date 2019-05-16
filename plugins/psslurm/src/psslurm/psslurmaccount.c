@@ -12,6 +12,7 @@
 
 #include "psslurmaccount.h"
 #include "psslurmlog.h"
+#include "psslurmproto.h"
 
 #include "pluginmalloc.h"
 
@@ -22,7 +23,8 @@
 TRes_t *TRes_new(void)
 {
     TRes_t *tres = umalloc(sizeof(*tres));
-    tres->count = TRES_TOTAL_CNT;
+    tres->count = (TRES_TOTAL_CNT > tresDBconfig->count) ?
+		    TRES_TOTAL_CNT : tresDBconfig->count;
 
     tres->ids = umalloc(sizeof(uint32_t) * tres->count);
 
@@ -44,7 +46,11 @@ TRes_t *TRes_new(void)
 
     uint32_t i;
     for (i=0; i<tres->count; i++) {
-	tres->ids[i] = i;
+	if (tresDBconfig && tresDBconfig->count>i) {
+	    tres->ids[i] = tresDBconfig->entry[i].id;
+	} else {
+	    tres->ids[i] = i;
+	}
 
 	tres->in_max[i] = INFINITE64;
 	tres->in_max_nodeid[i] = INFINITE64;
@@ -88,6 +94,11 @@ void TRes_reset_entry(TRes_Entry_t *entry)
 bool TRes_set(TRes_t *tres, uint32_t id, TRes_Entry_t *entry)
 {
     uint32_t i;
+
+    if (tresDBconfig && tresDBconfig->count>id) {
+	id = tresDBconfig->entry[id].id;
+    }
+
     for (i=0; i<tres->count; i++) {
 	if (tres->ids[i] == id) {
 	    tres->in_max[i] = entry->in_max;
@@ -116,25 +127,35 @@ void TRes_print(TRes_t *tres)
 {
     uint32_t i;
     for (i=0; i<tres->count; i++) {
-	flog("%s in_max %zu in_max_nodeid %zu in_max_taskid %zu\n",
-	     TRes_ID2Str(tres->ids[i]), INF2Z(tres->in_max[i]),
+	flog("%s id %u in_max %zu in_max_nodeid %zu in_max_taskid %zu\n",
+	     TRes_ID2Str(tres->ids[i]), tres->ids[i], INF2Z(tres->in_max[i]),
 	     INF2Z(tres->in_max_nodeid[i]), INF2Z(tres->in_max_taskid[i]));
-	flog("%s in_min %zu in_min_nodeid %zu in_min_taskid %zu "
-	     "in_tot %zu\n", TRes_ID2Str(tres->ids[i]), INF2Z(tres->in_min[i]),
-	     INF2Z(tres->in_min_nodeid[i]), INF2Z(tres->in_min_taskid[i]),
-	     INF2Z(tres->in_tot[i]));
-	flog("%s out_max %zu out_max_nodeid %zu out_max_taskid %zu\n",
-	     TRes_ID2Str(tres->ids[i]), INF2Z(tres->out_max[i]),
+	flog("%s id %u in_min %zu in_min_nodeid %zu in_min_taskid %zu in_tot "
+	     "%zu\n", TRes_ID2Str(tres->ids[i]), tres->ids[i],
+	     INF2Z(tres->in_min[i]), INF2Z(tres->in_min_nodeid[i]),
+	     INF2Z(tres->in_min_taskid[i]), INF2Z(tres->in_tot[i]));
+	flog("%s id %u out_max %zu out_max_nodeid %zu out_max_taskid %zu\n",
+	     TRes_ID2Str(tres->ids[i]), tres->ids[i], INF2Z(tres->out_max[i]),
 	     INF2Z(tres->out_max_nodeid[i]), INF2Z(tres->out_max_taskid[i]));
-	flog("%s out_min %zu out_min_nodeid %zu out_min_taskid %zu "
-	     "out_tot %zu\n", TRes_ID2Str(tres->ids[i]), INF2Z(tres->out_max[i]),
-	     INF2Z(tres->out_max_nodeid[i]), INF2Z(tres->out_max_taskid[i]));
+	flog("%s id %u out_min %zu out_min_nodeid %zu out_min_taskid %zu "
+	     "out_tot %zu\n", TRes_ID2Str(tres->ids[i]), tres->ids[i],
+	     INF2Z(tres->out_min[i]), INF2Z(tres->out_min_nodeid[i]),
+	     INF2Z(tres->out_min_taskid[i]), INF2Z(tres->out_tot[i]));
     }
 }
 
 const char *TRes_ID2Str(uint16_t ID)
 {
     static char buf[64];
+
+    if (tresDBconfig) {
+	uint32_t i;
+	for (i=0; i<tresDBconfig->count; i++) {
+	    if (tresDBconfig->entry[i].id == ID) {
+		return tresDBconfig->entry[i].type;
+	    }
+	}
+    }
 
     switch (ID) {
 	case TRES_CPU:
