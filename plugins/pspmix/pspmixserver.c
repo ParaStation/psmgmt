@@ -490,8 +490,8 @@ static pmix_status_t server_dmodex_req_cb(
     mdata->cbdata = cbdata;
 
     if (!pspmix_service_sendModexDataRequest(mdata)) {
-	mlog("%s: pspmix_service_getModexData(rank=%u, nspace=%s) failed.\n",
-		__func__, proc->rank, proc->nspace);
+	mlog("%s: pspmix_service_sendModexDataRequest() for rank %u in"
+		" namespace %s failed.\n", __func__, proc->rank, proc->nspace);
 	ufree(mdata);
 
 	return PMIX_ERROR;
@@ -1033,7 +1033,7 @@ static void errhandler(
 	pmix_info_t results[], size_t nresults,
 	pmix_event_notification_cbfunc_fn_t cbfunc, void *cbdata)
 {
-    mdbg(PSPMIX_LOG_CALL, "%s() called with status %d proc %s:%u ninfo %lu"
+    mdbg(PSPMIX_LOG_CALL, "%s() called with status %d, proc %s:%u, ninfo %lu,"
 	    " nresults %lu\n", __func__, status, source->nspace, source->rank,
 	    ninfo, nresults);
 }
@@ -1057,7 +1057,8 @@ static void registerErrorHandler_cb (
 
 bool pspmix_server_init(uint32_t uid, uint32_t gid)
 {
-    mdbg(PSPMIX_LOG_CALL, "%s() called\n", __func__);
+    mdbg(PSPMIX_LOG_CALL, "%s() called with uid %u, gid %u\n", __func__, uid,
+	    gid);
 
     char * env;
     if ((env = getenv("PMIX_DEBUG"))) {
@@ -1069,8 +1070,8 @@ bool pspmix_server_init(uint32_t uid, uint32_t gid)
     cbdata.ninfo = 2;
     PMIX_INFO_CREATE(cbdata.info, cbdata.ninfo);
 
-    PMIX_INFO_LOAD(cbdata.info, PMIX_USERID, &uid, PMIX_UINT32);
-    PMIX_INFO_LOAD(cbdata.info, PMIX_GRPID, &gid, PMIX_UINT32);
+    PMIX_INFO_LOAD(&cbdata.info[0], PMIX_USERID, &uid, PMIX_UINT32);
+    PMIX_INFO_LOAD(&cbdata.info[1], PMIX_GRPID, &gid, PMIX_UINT32);
 
     mdbg(PSPMIX_LOG_VERBOSE, "%s: Setting uid %u gid %u\n", __func__, uid,
 	    gid);
