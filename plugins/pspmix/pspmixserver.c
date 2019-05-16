@@ -1070,8 +1070,8 @@ bool pspmix_server_init(uint32_t uid, uint32_t gid)
     cbdata.ninfo = 2;
     PMIX_INFO_CREATE(cbdata.info, cbdata.ninfo);
 
-    PMIX_INFO_LOAD(cbdata.info, PMIX_USERID, &uid, PMIX_UINT32);
-    PMIX_INFO_LOAD(cbdata.info, PMIX_GRPID, &gid, PMIX_UINT32);
+    PMIX_INFO_LOAD(&cbdata.info[0], PMIX_USERID, &uid, PMIX_UINT32);
+    PMIX_INFO_LOAD(&cbdata.info[1], PMIX_GRPID, &gid, PMIX_UINT32);
 
     mdbg(PSPMIX_LOG_VERBOSE, "%s: Setting uid %u gid %u\n", __func__, uid,
 	    gid);
