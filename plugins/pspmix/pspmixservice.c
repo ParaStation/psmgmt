@@ -1063,6 +1063,11 @@ bool pspmix_service_sendModexDataRequest(modexdata_t *mdata)
 
     PspmixNamespace_t *ns;
     ns = findNamespace(mdata->proc.nspace);
+    if (ns == NULL) {
+	mlog("%s: Namespace '%s' not found.\n", __func__, mdata->proc.nspace);
+	RELEASE_LOCK(namespaceList);
+	return false;
+    }
 
     PSnodes_ID_t nodeid;
     nodeid = getNodeFromRank(mdata->proc.rank, ns->resInfo);
