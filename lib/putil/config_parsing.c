@@ -153,6 +153,8 @@ static nodeconf_t nodeconf = {
  *
  * On success, *value is set to the string value and 0 is returned.
  * On error a parser comment is printed, *value is set to NULL and -1 returned.
+ *
+ * Note: For psconfig an non existing key and an empty value is the same
  */
 static int getString(char *key, gchar **value)
 {
@@ -199,7 +201,7 @@ static int getBool(char *key, int *value)
     int ret;
 
     ret = getString(key, &token);
-    if (ret) return -1;
+    if (ret || *token == '\0') return -1;
 
     ret = toBool(token, value);
     if (ret) {
@@ -232,7 +234,7 @@ static int getNumber(char *key, int *val)
     int ret;
 
     ret = getString(key, &token);
-    if (ret) return -1;
+    if (ret || *token == '\0') return -1;
 
     ret = toNumber(token, val);
     if (ret) {
