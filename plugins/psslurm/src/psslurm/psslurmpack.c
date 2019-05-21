@@ -488,7 +488,6 @@ bool __unpackSlurmIOHeader(char **ptr, Slurm_IO_Header_t **iohPtr,
 bool __unpackReqTerminate(Slurm_Msg_t *sMsg, Req_Terminate_Job_t **reqPtr,
 			  const char *caller, const int line)
 {
-
     if (!sMsg) {
 	mlog("%s: invalid sMsg from '%s' at %i\n", __func__, caller, line);
 	return false;

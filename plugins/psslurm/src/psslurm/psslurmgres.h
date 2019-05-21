@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2014-2018 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2014-2019 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -72,6 +72,11 @@ void releaseGresCred(Gres_Cred_t *gres);
  */
 void freeGresCred(list_t *gresList);
 
+/**
+ * @brief Get Gres configuration count
+ *
+ * @return Returns the number of Gres configurations
+ */
 int countGresConf();
 
 /**

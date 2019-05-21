@@ -33,10 +33,10 @@ typedef struct {
 } PackInfos_t;
 
 typedef struct {
-    uint16_t x11;
-     char *magicCookie;
-     char *host;
-     uint16_t port;
+    uint16_t x11;               /**< flag to use (vanilla) x11 forwarding */
+    char *magicCookie;          /**< magic auth cookie */
+    char *host;                 /**< remote x11 host */
+    uint16_t port;              /**< remote x11 port */
 } X11_Data_t;
 
 typedef struct {
@@ -132,7 +132,7 @@ typedef struct {
     uint32_t numPackThreads;	/**< number of hardware threads in pack */
     uint32_t numPackNP;		/**< number of processes in pack */
     bool leader;		/**< true if node is pack leader */
-    X11_Data_t x11;             /**< X11 support */
+    X11_Data_t x11;             /**< (vanilla) X11 support */
     char *tresBind;             /**< TRes binding (currently env set only) */
     char *tresFreq;             /**< TRes frequency (currently env set only) */
 } Step_t;
@@ -203,7 +203,9 @@ Step_t *findStepByFwPid(pid_t pid);
 Step_t *findStepByTaskPid(pid_t pid);
 
 /**
- * @doctodo
+ * @brief Get the number of steps
+ *
+ * Returns the number of steps
  */
 int countSteps(void);
 

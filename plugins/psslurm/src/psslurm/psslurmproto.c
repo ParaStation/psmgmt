@@ -64,6 +64,7 @@ char *slurmProtoStr = NULL;
 /** Flag to measure Slurm RPC execution times */
 bool measureRPC = false;
 
+/** Flag to request additional info in node registration */
 static bool needNodeRegResp = true;
 
 Ext_Resp_Node_Reg_t *tresDBconfig = NULL;
