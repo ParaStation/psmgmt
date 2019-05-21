@@ -85,6 +85,8 @@ static void doDeleteJob(Job_t *job)
     ufree(job->acctFreq);
     ufree(job->gids);
     ufree(job->packHostlist);
+    ufree(job->tresBind);
+    ufree(job->tresFreq);
 
     for (i=0; i<job->argc; i++) {
 	ufree(job->argv[i]);

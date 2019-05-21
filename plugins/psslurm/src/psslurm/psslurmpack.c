@@ -1084,10 +1084,10 @@ bool __unpackReqBatchJobLaunch(Slurm_Msg_t *sMsg, Job_t **jobPtr,
 	getUint32(ptr, &tmp);
     }
 
-    /* TODO
-     *          packstr(msg->tres_bind, buffer);
-                packstr(msg->tres_freq, buffer);
-    */
+    if (msgVer >= SLURM_18_08_PROTO_VERSION) {
+	job->tresBind = getStringM(ptr);
+	job->tresFreq = getStringM(ptr);
+    }
 
     *jobPtr = job;
     return true;
