@@ -1372,14 +1372,12 @@ bool __packSlurmAccData(PS_SendDB_t *data, SlurmAccData_t *slurmAccData,
     /* energy consumed */
     addUint64ToMsg(0, data);
 
+    /* trackable resources (TRes) */
     TRes_t *tres = TRes_new();
-
     convAccDataToTRes(slurmAccData, tres);
 
     if (logger_getMask(psslurmlogger) & PSSLURM_LOG_ACC) TRes_print(tres);
-
     packTResData(data, tres);
-
     TRes_destroy(tres);
 
     return true;

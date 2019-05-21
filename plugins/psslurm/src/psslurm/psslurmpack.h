@@ -491,6 +491,24 @@ bool __packTResData(PS_SendDB_t *data, TRes_t *tres, const char *caller,
 
 #define packTResData(data, tres) __packTResData(data, tres, __func__, __LINE__)
 
+/**
+ * @brief Unpack an extended node registration response
+ *
+ * Unpack an extended node registration response from the provided
+ * message pointer. The memory is allocated using umalloc().
+ * The caller is responsible to free the memory using ufree().
+ *
+ * @param sMsg The message to unpack
+ *
+ * @param respPtr The response structure holding the result
+ *
+ * @param caller Function name of the calling function
+ *
+ * @param line Line number where this function is called
+ *
+ * @return On success true is returned or false in case of an
+ * error. If reading was not successful, @a sMsg might be not updated.
+ */
 bool __unpackExtRespNodeReg(Slurm_Msg_t *sMsg, Ext_Resp_Node_Reg_t **respPtr,
 			    const char *caller, const int line);
 

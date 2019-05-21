@@ -27,51 +27,86 @@ enum {
 };
 
 typedef struct {
-    uint64_t in_max; 		/* tres in max usage data */
-    uint64_t in_max_nodeid; 	/* tres in max usage data node id */
-    uint64_t in_max_taskid; 	/* tres in max usage data task id */
-    uint64_t in_min; 		/* tres in min usage data */
-    uint64_t in_min_nodeid; 	/* tres in min usage data node id */
-    uint64_t in_min_taskid; 	/* tres in min usage data task id */
+    uint64_t in_max; 		/* TRes in max usage data */
+    uint64_t in_max_nodeid; 	/* TRes in max usage data node id */
+    uint64_t in_max_taskid; 	/* TRes in max usage data task id */
+    uint64_t in_min; 		/* TRes in min usage data */
+    uint64_t in_min_nodeid; 	/* TRes in min usage data node id */
+    uint64_t in_min_taskid; 	/* TRes in min usage data task id */
     uint64_t in_tot; 		/* total in usage (megabytes) */
-    uint64_t out_max; 		/* tres out max usage data */
-    uint64_t out_max_nodeid; 	/* tres out max usage data node id */
-    uint64_t out_max_taskid; 	/* tres out max usage data task id */
-    uint64_t out_min; 		/* tres out min usage data */
-    uint64_t out_min_nodeid; 	/* tres out min usage data node id */
-    uint64_t out_min_taskid; 	/* tres out min usage data task id */
+    uint64_t out_max; 		/* TRes out max usage data */
+    uint64_t out_max_nodeid; 	/* TRes out max usage data node id */
+    uint64_t out_max_taskid; 	/* TRes out max usage data task id */
+    uint64_t out_min; 		/* TRes out min usage data */
+    uint64_t out_min_nodeid; 	/* TRes out min usage data node id */
+    uint64_t out_min_taskid; 	/* TRes out min usage data task id */
     uint64_t out_tot; 		/* total out usage (megabytes) */
 } TRes_Entry_t;
 
 typedef struct {
-    uint32_t count; 		/* count of tres in the usage array's */
-    uint32_t *ids; 		/* array of tres_count of the tres id's */
-    uint64_t *in_max; 		/* tres in max usage data */
-    uint64_t *in_max_nodeid; 	/* tres in max usage data node id */
-    uint64_t *in_max_taskid; 	/* tres in max usage data task id */
-    uint64_t *in_min; 		/* tres in min usage data */
-    uint64_t *in_min_nodeid; 	/* tres in min usage data node id */
-    uint64_t *in_min_taskid; 	/* tres in min usage data task id */
+    uint32_t count; 		/* count of TRes in the usage array's */
+    uint32_t *ids; 		/* array of tres_count of the TRes id's */
+    uint64_t *in_max; 		/* TRes in max usage data */
+    uint64_t *in_max_nodeid; 	/* TRes in max usage data node id */
+    uint64_t *in_max_taskid; 	/* TRes in max usage data task id */
+    uint64_t *in_min; 		/* TRes in min usage data */
+    uint64_t *in_min_nodeid; 	/* TRes in min usage data node id */
+    uint64_t *in_min_taskid; 	/* TRes in min usage data task id */
     uint64_t *in_tot; 		/* total in usage (megabytes) */
-    uint64_t *out_max; 		/* tres out max usage data */
-    uint64_t *out_max_nodeid; 	/* tres out max usage data node id */
-    uint64_t *out_max_taskid; 	/* tres out max usage data task id */
-    uint64_t *out_min; 		/* tres out min usage data */
-    uint64_t *out_min_nodeid; 	/* tres out min usage data node id */
-    uint64_t *out_min_taskid; 	/* tres out min usage data task id */
+    uint64_t *out_max; 		/* TRes out max usage data */
+    uint64_t *out_max_nodeid; 	/* TRes out max usage data node id */
+    uint64_t *out_max_taskid; 	/* TRes out max usage data task id */
+    uint64_t *out_min; 		/* TRes out min usage data */
+    uint64_t *out_min_nodeid; 	/* TRes out min usage data node id */
+    uint64_t *out_min_taskid; 	/* TRes out min usage data task id */
     uint64_t *out_tot; 		/* total out usage (megabytes) */
 } TRes_t;
 
+/**
+ * @brief Get a new TRes structure
+ *
+ * Get a new TRes structure and initialize all fields to INFINITE64.
+ * The memory is allocated using @ref umalloc(). The caller is responsible
+ * to free the memory using @ref TRes_destroy().
+ *
+ * @param Returns a pointer to the new TRes structure
+ */
 TRes_t *TRes_new(void);
 
+/**
+ * @brief Reset a TRes entry
+ *
+ * Reset all values of the give TRes value back to INFINITE64.
+ *
+ * @param entry The entry to reset
+ */
 void TRes_reset_entry(TRes_Entry_t *entry);
 
+/**
+ * @brief Set an entry in a TRes structure
+ *
+ * @param tres The TRes structure to change
+ *
+ * @param id The id of the entry to set
+ *
+ * @param entry The entry holding the values to set
+ *
+ * @return Returns true on success and false on error
+ */
 bool TRes_set(TRes_t *tres, uint32_t id, TRes_Entry_t *entry);
 
+/**
+ * @brief Destroy a TRes structure
+ *
+ * Free all memory from a TRes structure
+ */
 void TRes_destroy(TRes_t *tres);
 
+/**
+ * @brief Print a TRes structure
+ *
+ * @param tres The TRes structure to print
+ */
 void TRes_print(TRes_t *tres);
 
-const char *TRes_ID2Str(uint16_t ID);
-
-#endif
+#endif  /* __PSSLURM_ACCOUNT */

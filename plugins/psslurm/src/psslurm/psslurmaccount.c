@@ -15,7 +15,6 @@
 #include "psslurmproto.h"
 
 #include "pluginmalloc.h"
-
 #include "slurmcommon.h"
 
 #define INF2Z(num) (num == INFINITE64) ? (0) : (num)
@@ -123,28 +122,7 @@ bool TRes_set(TRes_t *tres, uint32_t id, TRes_Entry_t *entry)
     return false;
 }
 
-void TRes_print(TRes_t *tres)
-{
-    uint32_t i;
-    for (i=0; i<tres->count; i++) {
-	flog("%s id %u in_max %zu in_max_nodeid %zu in_max_taskid %zu\n",
-	     TRes_ID2Str(tres->ids[i]), tres->ids[i], INF2Z(tres->in_max[i]),
-	     INF2Z(tres->in_max_nodeid[i]), INF2Z(tres->in_max_taskid[i]));
-	flog("%s id %u in_min %zu in_min_nodeid %zu in_min_taskid %zu in_tot "
-	     "%zu\n", TRes_ID2Str(tres->ids[i]), tres->ids[i],
-	     INF2Z(tres->in_min[i]), INF2Z(tres->in_min_nodeid[i]),
-	     INF2Z(tres->in_min_taskid[i]), INF2Z(tres->in_tot[i]));
-	flog("%s id %u out_max %zu out_max_nodeid %zu out_max_taskid %zu\n",
-	     TRes_ID2Str(tres->ids[i]), tres->ids[i], INF2Z(tres->out_max[i]),
-	     INF2Z(tres->out_max_nodeid[i]), INF2Z(tres->out_max_taskid[i]));
-	flog("%s id %u out_min %zu out_min_nodeid %zu out_min_taskid %zu "
-	     "out_tot %zu\n", TRes_ID2Str(tres->ids[i]), tres->ids[i],
-	     INF2Z(tres->out_min[i]), INF2Z(tres->out_min_nodeid[i]),
-	     INF2Z(tres->out_min_taskid[i]), INF2Z(tres->out_tot[i]));
-    }
-}
-
-const char *TRes_ID2Str(uint16_t ID)
+static const char *TRes_ID2Str(uint16_t ID)
 {
     static char buf[64];
 
@@ -179,6 +157,27 @@ const char *TRes_ID2Str(uint16_t ID)
 	default:
 	    snprintf(buf, sizeof(buf), "%u <Unknown>", ID);
 	    return buf;
+    }
+}
+
+void TRes_print(TRes_t *tres)
+{
+    uint32_t i;
+    for (i=0; i<tres->count; i++) {
+	flog("%s id %u in_max %zu in_max_nodeid %zu in_max_taskid %zu\n",
+	     TRes_ID2Str(tres->ids[i]), tres->ids[i], INF2Z(tres->in_max[i]),
+	     INF2Z(tres->in_max_nodeid[i]), INF2Z(tres->in_max_taskid[i]));
+	flog("%s id %u in_min %zu in_min_nodeid %zu in_min_taskid %zu in_tot "
+	     "%zu\n", TRes_ID2Str(tres->ids[i]), tres->ids[i],
+	     INF2Z(tres->in_min[i]), INF2Z(tres->in_min_nodeid[i]),
+	     INF2Z(tres->in_min_taskid[i]), INF2Z(tres->in_tot[i]));
+	flog("%s id %u out_max %zu out_max_nodeid %zu out_max_taskid %zu\n",
+	     TRes_ID2Str(tres->ids[i]), tres->ids[i], INF2Z(tres->out_max[i]),
+	     INF2Z(tres->out_max_nodeid[i]), INF2Z(tres->out_max_taskid[i]));
+	flog("%s id %u out_min %zu out_min_nodeid %zu out_min_taskid %zu "
+	     "out_tot %zu\n", TRes_ID2Str(tres->ids[i]), tres->ids[i],
+	     INF2Z(tres->out_min[i]), INF2Z(tres->out_min_nodeid[i]),
+	     INF2Z(tres->out_min_taskid[i]), INF2Z(tres->out_tot[i]));
     }
 }
 
