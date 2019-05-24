@@ -30,6 +30,9 @@
 
 #include "pspmixserver.h"
 
+/* allow walking throu the environment */
+extern char **environ;
+
 /* Set to 1 to enable output of the namespace info fields */
 #define PRINT_FILLINFOS 0
 
@@ -1048,9 +1051,15 @@ bool pspmix_server_init(uint32_t uid, uint32_t gid)
     mdbg(PSPMIX_LOG_CALL, "%s() called with uid %u, gid %u\n", __func__, uid,
 	    gid);
 
-    char * env;
-    if ((env = getenv("PMIX_DEBUG"))) {
-	mlog("%s: PMIX_DEBUG=%s set\n", __func__, env);
+    /* print some interesting environment variables if set */
+    size_t i = 0;
+    while (environ[i]) {
+	if (strncmp (environ[i], "PMIX_DEBUG", 10) == 0
+		|| strncmp (environ[i], "PMIX_OUTPUT", 11) == 0
+		|| strncmp (environ[i], "PMIX_MCA_", 9) == 0) {
+	    mlog("%s: %s set\n", __func__, environ[i]);
+	}
+	++i;
     }
 
     mycbdata_t cbdata;
