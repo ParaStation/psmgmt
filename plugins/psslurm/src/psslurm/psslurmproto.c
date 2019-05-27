@@ -571,7 +571,7 @@ static void handleLaunchTasks(Slurm_Msg_t *sMsg)
 	mdbg(PSSLURM_LOG_JOB, "%s: step %u:%u in '%s'\n", __func__,
 		step->jobid, step->stepid, strJobState(step->state));
 	if (step->packJobid == NO_VAL) {
-	    if (!(execUserStep(step))) {
+	    if (!(execStep(step))) {
 		sendSlurmRC(sMsg, ESLURMD_FORK_FAILED);
 		goto ERROR;
 	    }
@@ -580,7 +580,7 @@ static void handleLaunchTasks(Slurm_Msg_t *sMsg)
 	/* sister node (pack follower) */
 
 	/* start I/O forwarder */
-	execStepFWIO(step);
+	execStepIO(step);
 
 	if (sMsg->sock != -1) {
 	    /* say ok to waiting srun */
@@ -1051,7 +1051,7 @@ static void handleFileBCast(Slurm_Msg_t *sMsg)
     }
 
     /* start forwarder to write the file */
-    if (!execUserBCast(bcast)) {
+    if (!execBCast(bcast)) {
 	sendSlurmRC(sMsg, ESLURMD_FORK_FAILED);
 	goto CLEANUP;
     }
@@ -1587,7 +1587,7 @@ static void handleBatchJobLaunch(Slurm_Msg_t *sMsg)
     /* pspelogue already ran parallel prologue, start job */
     flog("start job\n");
     alloc->state = A_RUNNING;
-    bool ret = execUserJob(job);
+    bool ret = execBatchJob(job);
     mdbg(PSSLURM_LOG_JOB, "%s: job %u in '%s'\n", __func__,
 	 job->jobid, strJobState(job->state));
 

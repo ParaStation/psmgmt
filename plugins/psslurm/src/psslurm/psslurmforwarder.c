@@ -108,14 +108,14 @@ static int jobCallback(int32_t exit_status, Forwarder_Data_t *fw)
     return 0;
 }
 
-static int stepFWIOcallback(int32_t exit_status, Forwarder_Data_t *fw)
+static int stepIOcallback(int32_t exit_status, Forwarder_Data_t *fw)
 {
     Step_t *step = fw->userData, *tmp;
 
     /* validate step pointer */
     tmp = findStepByStepId(step->jobid, step->stepid);
     if (!tmp || tmp != step) {
-	mlog("%s: step %u:%u not found\n", __func__, step->jobid, step->stepid);
+	flog("%s not found\n", strStepID(step));
 	return 0;
     }
 
@@ -130,20 +130,18 @@ static int stepFWIOcallback(int32_t exit_status, Forwarder_Data_t *fw)
 
     step->fwdata = NULL;
 
-    flog("step '%u:%u' tid %s finished\n", step->jobid, step->stepid,
-	 PSC_printTID(fw->tid));
+    flog("%s tid %s finished\n", strStepID(step), PSC_printTID(fw->tid));
 
     step->state = JOB_COMPLETE;
-    mdbg(PSSLURM_LOG_JOB, "%s: step '%u:%u' in '%s'\n", __func__,
-	    step->jobid, step->stepid, strJobState(step->state));
+    fdbg(PSSLURM_LOG_JOB, "%s in state %s\n", strStepID(step),
+	 strJobState(step->state));
 
     /* test if we were waiting only for this step to finish */
     Alloc_t *alloc = findAlloc(step->jobid);
     if (!findJobById(step->jobid) && alloc && alloc->state == A_RUNNING
 	&& alloc->terminate) {
 	/* run epilogue now */
-	mlog("%s: starting epilogue for step '%u:%u'\n", __func__, step->jobid,
-		step->stepid);
+	flog("starting epilogue for %s\n", strStepID(step));
 	startEpilogue(alloc);
     }
 
@@ -157,13 +155,12 @@ static int stepCallback(int32_t exit_status, Forwarder_Data_t *fw)
     /* validate step pointer */
     tmp = findStepByStepId(step->jobid, step->stepid);
     if (!tmp || tmp != step) {
-	mlog("%s: step %u:%u not found\n", __func__, step->jobid, step->stepid);
+	flog("%s not found\n", strStepID(step));
 	return 0;
     }
 
-    mlog("%s: step %u:%u state '%s' finished, exit %i / %i\n", __func__,
-	 step->jobid, step->stepid, strJobState(step->state), exit_status,
-	 fw->estatus);
+    flog("%s state %s finished, exit %i / %i\n", strStepID(step),
+	 strJobState(step->state), exit_status, fw->estatus);
 
     /* make sure all processes are gone */
     signalStep(step, SIGKILL, 0);
@@ -199,8 +196,8 @@ static int stepCallback(int32_t exit_status, Forwarder_Data_t *fw)
     }
 
     step->state = JOB_COMPLETE;
-    mdbg(PSSLURM_LOG_JOB, "%s: step '%u:%u' in '%s'\n", __func__,
-	    step->jobid, step->stepid, strJobState(step->state));
+    fdbg(PSSLURM_LOG_JOB, "%s in state %s\n", strStepID(step),
+	 strJobState(step->state));
     psAccountDelJob(PSC_getTID(-1, fw->cPid));
 
     /* test if we were waiting only for this step to finish */
@@ -208,8 +205,7 @@ static int stepCallback(int32_t exit_status, Forwarder_Data_t *fw)
     if (!findJobById(step->jobid) && alloc && alloc->state == A_RUNNING
 	&& alloc->terminate) {
 	/* run epilogue now */
-	mlog("%s: starting epilogue for step '%u:%u'\n", __func__, step->jobid,
-		step->stepid);
+	flog("%s: starting epilogue for %s\n", strStepID(step));
 	startEpilogue(alloc);
     }
 
@@ -257,15 +253,13 @@ void switchUser(char *username, uid_t uid, gid_t gid, char *cwd)
 
     /* change the gid */
     if ((setgid(gid)) < 0) {
-	mlog("%s: setgid(%i) failed : %s\n", __func__, gid,
-		strerror(errno));
+	mlog("%s: setgid(%i) failed : %s\n", __func__, gid, strerror(errno));
 	exit(1);
     }
 
     /* change the uid */
     if ((setuid(uid)) < 0) {
-	mlog("%s: setuid(%i) failed : %s\n", __func__, uid,
-		strerror(errno));
+	mlog("%s: setuid(%i) failed : %s\n", __func__, uid, strerror(errno));
 	exit(1);
     }
 
@@ -279,7 +273,7 @@ void switchUser(char *username, uid_t uid, gid_t gid, char *cwd)
     }
 }
 
-static void execBatchJob(Forwarder_Data_t *fwdata, int rerun)
+static void fwExecBatchJob(Forwarder_Data_t *fwdata, int rerun)
 {
     Job_t *job = fwdata->userData;
     char buf[128];
@@ -373,19 +367,19 @@ static Step_t * __findStepByEnv(char **environ, uint32_t *jobid_out,
 int handleForwarderInit(void * data)
 {
     PStask_t *task = data;
-    Step_t *step;
-    int status;
-    pid_t child = PSC_getPID(task->tid);
-    bool isAdmin;
 
     if (task->rank <0 || task->group != TG_ANY) return 0;
-    isAdmin = isPSAdminUser(task->uid, task->gid);
+    bool isAdmin = isPSAdminUser(task->uid, task->gid);
 
-    if ((step = findStepByEnv(task->environ, NULL, NULL, isAdmin))) {
+    Step_t *step = findStepByEnv(task->environ, NULL, NULL, isAdmin);
+    if (step) {
 
 	initSpawnFacility(step);
 
 	if (step->taskFlags & LAUNCH_PARALLEL_DEBUG) {
+	    pid_t child = PSC_getPID(task->tid);
+	    int status;
+
 	    waitpid(child, &status, WUNTRACED);
 	    if (!WIFSTOPPED(status)) {
 		mlog("%s: child '%i' not stopped\n", __func__, child);
@@ -401,8 +395,7 @@ int handleForwarderInit(void * data)
 	}
     } else {
 	if (!isAdmin) {
-	    mlog("%s: rank '%i' failed to find my step\n",
-		 __func__, task->rank);
+	    flog("rank %i failed to find my step\n", task->rank);
 	}
     }
 
@@ -415,44 +408,36 @@ int handleForwarderInit(void * data)
 int handleForwarderClientStatus(void * data)
 {
     PStask_t *task = data;
-    Step_t *step;
-    pid_t childpid;
-    char *argv[2];
-    char buffer[4096], *taskEpilogue;
-    int status, grace;
-    size_t i;
-    time_t t;
-    bool isAdmin;
 
     if (task->rank <0 || task->group != TG_ANY) return 0;
-    isAdmin = isPSAdminUser(task->uid, task->gid);
+    bool isAdmin = isPSAdminUser(task->uid, task->gid);
 
-    if (!(step = findStepByEnv(task->environ, NULL, NULL, isAdmin))) {
+    Step_t *step = findStepByEnv(task->environ, NULL, NULL, isAdmin);
+    if (!step) {
 	if (!isAdmin) {
-	    mlog("%s: rank '%i' failed to find my step\n",
-		    __func__, task->rank);
+	    flog("rank %i failed to find my step\n", task->rank);
 	}
 	return 0;
     }
 
-    if (task->rank < 0) return 0;
-
     if (!step->taskEpilog || *(step->taskEpilog) == '\0') return 0;
 
-    taskEpilogue = step->taskEpilog;
+    char *taskEpilogue = step->taskEpilog;
 
     /* handle relative paths */
     if (taskEpilogue[0] != '/') {
+	char buffer[4096];
 	snprintf(buffer, 4096, "%s/%s", step->cwd, taskEpilogue);
 	taskEpilogue = buffer;
     }
 
-    if ((childpid = fork()) < 0) {
+    pid_t childpid = fork();
+    if (childpid < 0) {
 	mlog("%s: fork failed\n", __func__);
 	return 0;
     }
 
-    if (childpid == 0) {
+    if (!childpid) {
 	/* This is the child */
 
 	setpgrp();
@@ -468,6 +453,7 @@ int handleForwarderClientStatus(void * data)
 	    exit(-1);
 	}
 
+	size_t i;
 	for (i = 0; i < step->env.cnt; i++) {
 	    putenv(step->env.vars[i]);
 	}
@@ -478,6 +464,7 @@ int handleForwarderClientStatus(void * data)
 	    mwarn(errno, "cannot change to working direktory '%s'", step->cwd);
 	}
 
+	char *argv[2];
 	argv[0] = taskEpilogue;
 	argv[1] = NULL;
 
@@ -493,13 +480,14 @@ int handleForwarderClientStatus(void * data)
 
     /* This is the parent */
 
-    t = time(NULL);
-    grace = getConfValueI(&SlurmConfig, "KillWait");
+    time_t t = time(NULL);
+    int grace = getConfValueI(&SlurmConfig, "KillWait");
 
     while(1) {
 	if ((time(NULL) - t) > 5) killpg(childpid, SIGTERM);
 	if ((time(NULL) - t) > (5 + grace)) killpg(childpid, SIGKILL);
 	usleep(100000);
+	int status;
 	if(waitpid(childpid, &status, WNOHANG) < 0) {
 	    if (errno == EINTR) continue;
 	    killpg(childpid, SIGKILL);
@@ -524,18 +512,16 @@ int handleExecClient(void *data)
 int handleExecClientUser(void *data)
 {
     PStask_t *task = data;
-    Step_t *step;
-    int i;
-    uint32_t jobid = 0;
-    bool isAdmin;
 
     if (task->rank <0 || task->group != TG_ANY) return 0;
-    isAdmin = isPSAdminUser(task->uid, task->gid);
+    bool isAdmin = isPSAdminUser(task->uid, task->gid);
 
     /* unset MALLOC_CHECK_ set by psslurm */
     unsetenv("MALLOC_CHECK_");
 
-    if ((step = findStepByEnv(task->environ, &jobid, NULL, isAdmin))) {
+    uint32_t jobid = 0;
+    Step_t *step = findStepByEnv(task->environ, &jobid, NULL, isAdmin);
+    if (step) {
 	/* set supplementary groups */
 	if (step->gidsLen) {
 	    setgroups(step->gidsLen, step->gids);
@@ -560,12 +546,12 @@ int handleExecClientUser(void *data)
 	verboseMemPinningOutput(step, task);
     } else {
 	if (!isAdmin) {
-	    mlog("%s: rank '%i' failed to find my step\n",
-		 __func__, task->rank);
+	    flog("rank %i failed to find my step\n", task->rank);
 	}
     }
 
     /* clean up environment */
+    int i;
     for (i=0; PSP_rlimitEnv[i].envName; i++) {
 	unsetenv(PSP_rlimitEnv[i].envName);
     }
@@ -718,15 +704,13 @@ static pmi_type_t getPMIType(Step_t *step)
 	 *  do not setup any pmi environment */
 	pmi = envGet(&step->env, "SLURM_MPI_TYPE");
 	if (pmi && !strcmp(pmi, "none")) {
-	    mlog("%s: %u:%u SLURM_MPI_TYPE set to 'none'\n", __func__,
-		 step->jobid, step->stepid);
+	    flog("%s SLURM_MPI_TYPE set to 'none'\n", strStepID(step));
 	    return PMI_TYPE_NONE;
 	}
 	return PMI_TYPE_DEFAULT;
     }
 
-    mlog("%s: %u:%u PSSLURM_PMI_TYPE set to '%s'\n", __func__, step->jobid,
-	 step->stepid, pmi);
+    flog("%s PSSLURM_PMI_TYPE set to '%s'\n", strStepID(step), pmi);
     if (!strcmp(pmi, "none")) return PMI_TYPE_NONE;
     if (!strcmp(pmi, "pmix")) return PMI_TYPE_PMIX;
 
@@ -825,8 +809,8 @@ static void buildMpiexecArgs(Forwarder_Data_t *fwdata, strv_t *argV,
 		/* find next pack task array index */
 		last = offset;
 		if (!findPackIndex(step, last, &offset, &index)) {
-		    flog("calculating task index %u for step %u:%u failed\n", i,
-			 step->jobid, step->stepid);
+		    flog("calculating task index %u for %s failed\n", i,
+			 strStepID(step));
 		    exit(1);
 		}
 
@@ -854,7 +838,7 @@ static void buildMpiexecArgs(Forwarder_Data_t *fwdata, strv_t *argV,
     }
 }
 
-static void execJobStep(Forwarder_Data_t *fwdata, int rerun)
+static void fwExecStep(Forwarder_Data_t *fwdata, int rerun)
 {
     Step_t *step = fwdata->userData;
     strv_t argV;
@@ -889,8 +873,7 @@ static void execJobStep(Forwarder_Data_t *fwdata, int rerun)
     /* setup x11 forwarding */
     if (step->x11forward) initX11Forward(step);
 
-    mlog("%s: exec step '%u:%u' mypid '%u'\n", __func__, step->jobid,
-	    step->stepid, getpid());
+    flog("exec %s mypid %u\n", strStepID(step), getpid());
 
     /* set rlimits */
     setRlimitsFromEnv(&step->env, 1);
@@ -1057,36 +1040,30 @@ static void handleChildStartStep(Forwarder_Data_t *fwdata, pid_t fw,
     psAccountRegisterJob(childPid, NULL);
 
     /* say ok to srun if mpiexec could be spawned */
-    mlog("%s: send launch success for step '%u:%u' to srun sock '%u'\n",
-	    __func__, step->jobid, step->stepid, step->srunControlMsg.sock);
+    flog("launch success for %s to srun sock '%u'\n",
+	 strStepID(step), step->srunControlMsg.sock);
     sendSlurmRC(&step->srunControlMsg, SLURM_SUCCESS);
     step->state = JOB_SPAWNED;
 }
 
-int execUserStep(Step_t *step)
+bool execStep(Step_t *step)
 {
-    Forwarder_Data_t *fwdata;
-    char jobid[100];
-    char fname[300];
-    int grace;
-
-    grace = getConfValueI(&SlurmConfig, "KillWait");
-    mlog("%s: %u:%u grace %u\n", __func__, step->jobid, step->stepid, grace);
+    int grace = getConfValueI(&SlurmConfig, "KillWait");
     if (grace < 3) grace = 30;
 
-    fwdata = ForwarderData_new();
-
+    char jobid[100], fname[300];
     snprintf(jobid, sizeof(jobid), "%u.%u", step->jobid, step->stepid);
     snprintf(fname, sizeof(fname), "psslurm-step:%s", jobid);
-    fwdata->pTitle = ustrdup(fname);
 
+    Forwarder_Data_t *fwdata = ForwarderData_new();
+    fwdata->pTitle = ustrdup(fname);
     fwdata->jobID = ustrdup(jobid);
     fwdata->userData = step;
     fwdata->graceTime = grace;
     fwdata->accounted = true;
     fwdata->killSession = psAccountSignalSession;
     fwdata->callback = stepCallback;
-    fwdata->childFunc = execJobStep;
+    fwdata->childFunc = fwExecStep;
     fwdata->hookLoop = stepForwarderLoop;
     fwdata->hookFWInit = stepForwarderInit;
     fwdata->handleMthrMsg = stepForwarderMsg;
@@ -1097,38 +1074,36 @@ int execUserStep(Step_t *step)
     if (!startForwarder(fwdata)) {
 	char msg[128];
 
-	snprintf(msg, sizeof(msg), "starting forwarder for step '%u:%u' "
-		 "failed\n", step->jobid, step->stepid);
+	snprintf(msg, sizeof(msg), "starting forwarder for %s failed\n",
+		 strStepID(step));
 	flog(msg);
 	setNodeOffline(&step->env, step->jobid,
 		       getConfValueC(&Config, "SLURM_HOSTNAME"), msg);
-	return 0;
+	return false;
     }
+
+    flog("%s tid %s started\n", strStepID(step), PSC_printTID(fwdata->tid));
     step->fwdata = fwdata;
-    return 1;
+    return true;
 }
 
-bool execUserJob(Job_t *job)
+bool execBatchJob(Job_t *job)
 {
-    Forwarder_Data_t *fwdata;
-    char fname[300];
-    int grace;
-
-    grace = getConfValueI(&SlurmConfig, "KillWait");
+    int grace = getConfValueI(&SlurmConfig, "KillWait");
     if (grace < 3) grace = 30;
 
-    fwdata = ForwarderData_new();
-
+    char fname[300];
     snprintf(fname, sizeof(fname), "psslurm-job:%u", job->jobid);
-    fwdata->pTitle = ustrdup(fname);
 
+    Forwarder_Data_t *fwdata = ForwarderData_new();
+    fwdata->pTitle = ustrdup(fname);
     fwdata->jobID = ustrdup(strJobID(job->jobid));
     fwdata->userData = job;
     fwdata->graceTime = grace;
     fwdata->accounted = true;
     fwdata->killSession = psAccountSignalSession;
     fwdata->callback = jobCallback;
-    fwdata->childFunc = execBatchJob;
+    fwdata->childFunc = fwExecBatchJob;
     fwdata->hookChild = handleChildStartJob;
 
     if (!startForwarder(fwdata)) {
@@ -1143,13 +1118,12 @@ bool execUserJob(Job_t *job)
     }
 
     job->state = JOB_RUNNING;
-    mdbg(PSSLURM_LOG_JOB, "%s: job '%u' in '%s'\n", __func__,
-	    job->jobid, strJobState(job->state));
+    flog("job %u tid %s started\n", job->jobid, PSC_printTID(fwdata->tid));
     job->fwdata = fwdata;
     return true;
 }
 
-static void execBCast(Forwarder_Data_t *fwdata, int rerun)
+static void fwExecBCast(Forwarder_Data_t *fwdata, int rerun)
 {
     BCast_t *bcast = fwdata->userData;
     int flags = 0, fd, left, ret, eno;
@@ -1220,28 +1194,23 @@ static void execBCast(Forwarder_Data_t *fwdata, int rerun)
     exit(0);
 }
 
-int execUserBCast(BCast_t *bcast)
+bool execBCast(BCast_t *bcast)
 {
-    Forwarder_Data_t *fwdata;
-    char jobid[100];
-    char fname[300];
-    int grace;
-
-    grace = getConfValueI(&SlurmConfig, "KillWait");
+    int grace = getConfValueI(&SlurmConfig, "KillWait");
     if (grace < 3) grace = 30;
 
-    fwdata = ForwarderData_new();
-
+    char jobid[100], fname[300];
     snprintf(jobid, sizeof(jobid), "%u", bcast->jobid);
     snprintf(fname, sizeof(fname), "psslurm-bcast:%s", jobid);
-    fwdata->pTitle = ustrdup(fname);
 
+    Forwarder_Data_t *fwdata = ForwarderData_new();
+    fwdata->pTitle = ustrdup(fname);
     fwdata->jobID = ustrdup(jobid);
     fwdata->userData = bcast;
     fwdata->graceTime = grace;
     fwdata->killSession = psAccountSignalSession;
     fwdata->callback = bcastCallback;
-    fwdata->childFunc = execBCast;
+    fwdata->childFunc = fwExecBCast;
 
     if (!startForwarder(fwdata)) {
 	char msg[128];
@@ -1251,11 +1220,11 @@ int execUserBCast(BCast_t *bcast)
 	flog(msg);
 	setNodeOffline(bcast->env, bcast->jobid,
 		       getConfValueC(&Config, "SLURM_HOSTNAME"), msg);
-	return 0;
+	return false;
     }
 
     bcast->fwdata = fwdata;
-    return 1;
+    return true;
 }
 
 static void stepFWIOloop(Forwarder_Data_t *fwdata)
@@ -1281,13 +1250,12 @@ static void stepFWIOloop(Forwarder_Data_t *fwdata)
     redirectStepIO2(fwdata, step);
 }
 
-int execStepFWIO(Step_t *step)
+bool execStepIO(Step_t *step)
 {
-    char jobid[100], fname[300];
-
     int grace = getConfValueI(&SlurmConfig, "KillWait");
     if (grace < 3) grace = 30;
 
+    char jobid[100], fname[300];
     snprintf(jobid, sizeof(jobid), "%u.%u", step->jobid, step->stepid);
     snprintf(fname, sizeof(fname), "psslurm-step:%s", jobid);
 
@@ -1300,25 +1268,24 @@ int execStepFWIO(Step_t *step)
     fwdata->hookLoop = stepFWIOloop;
     fwdata->handleMthrMsg = stepForwarderMsg;
     fwdata->handleFwMsg = hookFWmsg;
-    fwdata->callback = stepFWIOcallback;
+    fwdata->callback = stepIOcallback;
     fwdata->hookFinalize = stepFinalize;
 
     if (!startForwarder(fwdata)) {
 	char msg[128];
 
-	snprintf(msg, sizeof(msg), "starting I/O forwarder for step '%u:%u' "
-		 "failed\n", step->jobid, step->stepid);
+	snprintf(msg, sizeof(msg), "starting I/O forwarder for %s failed\n",
+		 strStepID(step));
 	flog(msg);
 	setNodeOffline(&step->env, step->jobid,
 		       getConfValueC(&Config, "SLURM_HOSTNAME"), msg);
-	return 0;
+	return false;
     }
 
-    flog("step %u:%u tid %s started\n", step->jobid, step->stepid,
-	 PSC_printTID(fwdata->tid));
+    flog("%s tid %s started\n", strStepID(step), PSC_printTID(fwdata->tid));
     step->fwdata = fwdata;
 
-    return 1;
+    return true;
 }
 
 /* vim: set ts=8 sw=4 tw=0 sts=4 noet:*/

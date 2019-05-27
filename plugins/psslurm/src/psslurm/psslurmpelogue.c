@@ -276,7 +276,7 @@ static bool startIOforwarder(Step_t *step, const void *info)
 
 	mlog("%s: pelogue exit, starting IO forwarder for step %u:%u \n",
 	     __func__, step->jobid, step->stepid);
-	execStepFWIO(step);
+	execStepIO(step);
     }
 
     return false;
