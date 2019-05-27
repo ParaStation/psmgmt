@@ -130,8 +130,8 @@ static int stepFWIOcallback(int32_t exit_status, Forwarder_Data_t *fw)
 
     step->fwdata = NULL;
 
-    mlog("%s: step '%u:%u' finished\n", __func__,
-	step->jobid, step->stepid);
+    flog("step '%u:%u' tid %s finished\n", step->jobid, step->stepid,
+	 PSC_printTID(fw->tid));
 
     step->state = JOB_COMPLETE;
     mdbg(PSSLURM_LOG_JOB, "%s: step '%u:%u' in '%s'\n", __func__,
@@ -184,14 +184,17 @@ static int stepCallback(int32_t exit_status, Forwarder_Data_t *fw)
 	/* send task exit to srun processes */
 	sendTaskExit(step, NULL, NULL);
 
-	if (step->exitCode != -1) {
-	    sendStepExit(step, step->exitCode);
-	} else {
-	    if (WIFSIGNALED(fw->estatus)) {
-		sendStepExit(step, WTERMSIG(fw->estatus));
-	    } else {
-		sendStepExit(step, fw->estatus);
-	    }
+	/* send step exit to slurmctld */
+	int eStatus = step->exitCode;
+	if (eStatus == -1) {
+	    eStatus = WIFSIGNALED(fw->estatus) ?
+			WTERMSIG(fw->estatus) : fw->estatus;
+	}
+	sendStepExit(step, eStatus);
+
+	/* forward exit status to pack follower */
+	if (step->packJobid != NO_VAL) {
+	    send_PS_PackExit(step, eStatus);
 	}
     }
 
@@ -1280,21 +1283,16 @@ static void stepFWIOloop(Forwarder_Data_t *fwdata)
 
 int execStepFWIO(Step_t *step)
 {
-    Forwarder_Data_t *fwdata;
-    char jobid[100];
-    char fname[300];
-    int grace;
+    char jobid[100], fname[300];
 
-    grace = getConfValueI(&SlurmConfig, "KillWait");
-    mlog("%s: grace %u\n", __func__, grace);
+    int grace = getConfValueI(&SlurmConfig, "KillWait");
     if (grace < 3) grace = 30;
-
-    fwdata = ForwarderData_new();
 
     snprintf(jobid, sizeof(jobid), "%u.%u", step->jobid, step->stepid);
     snprintf(fname, sizeof(fname), "psslurm-step:%s", jobid);
-    fwdata->pTitle = ustrdup(fname);
 
+    Forwarder_Data_t *fwdata = ForwarderData_new();
+    fwdata->pTitle = ustrdup(fname);
     fwdata->jobID = ustrdup(jobid);
     fwdata->userData = step;
     fwdata->graceTime = grace;
@@ -1315,6 +1313,9 @@ int execStepFWIO(Step_t *step)
 		       getConfValueC(&Config, "SLURM_HOSTNAME"), msg);
 	return 0;
     }
+
+    flog("step %u:%u tid %s started\n", step->jobid, step->stepid,
+	 PSC_printTID(fwdata->tid));
     step->fwdata = fwdata;
 
     return 1;

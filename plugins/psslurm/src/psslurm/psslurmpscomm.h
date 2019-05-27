@@ -156,6 +156,22 @@ void send_PS_AllocState(Alloc_t *alloc);
 int send_PS_PackInfo(Step_t *step);
 
 /**
+ * @brief Send pack exit status to pack follower
+ *
+ * This message is send from the pack leader (MS) node to the
+ * pack follower (MS) nodes of a step. Every mother superior of a pack
+ * has to send a step exit message to slurmctld. So the pack leader has
+ * to distribute the compound exit status of mpiexec to all its followers.
+ *
+ * @param step The step to send the information for
+ *
+ * @param exitStatus The compound exit status of the step
+ *
+ * @return Returns the number of bytes send or -1 on error
+ */
+int send_PS_PackExit(Step_t *step, int32_t exitStatus);
+
+/**
  * @brief Set a node offline using psexec
  *
  * Set a node in Slurm offline using psexec to call an offline-script.

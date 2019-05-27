@@ -203,6 +203,7 @@ int deleteStep(uint32_t jobid, uint32_t stepid)
 	ufree(step->packInfo[i].hwThreads);
     }
     ufree(step->packInfo);
+    ufree(step->packFollower);
 
     envDestroy(&step->env);
     envDestroy(&step->spankenv);

@@ -66,6 +66,27 @@ static uint32_t ringBufLast = 0;
 
 static uint32_t ringBufStart = 0;
 
+const char *strIOtype(int type)
+{
+    static char buf[128];
+
+    switch (type) {
+       case SLURM_IO_STDIN:
+	  return "IO_STDIN";
+       case SLURM_IO_STDOUT:
+	  return "IO_STDOUT";
+       case SLURM_IO_STDERR:
+	  return "IO_STDERR";
+       case SLURM_IO_ALLSTDIN:
+	  return "IO_ALLSTDIN";
+       case SLURM_IO_CONNECTION_TEST:
+	  return "IO_CON_TEST";
+       default:
+	  snprintf(buf, sizeof(buf), "<unknown: %i>", type);
+	  return buf;
+    }
+}
+
 const char *strIOopt(int opt)
 {
     static char buf[128];

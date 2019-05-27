@@ -121,6 +121,7 @@ typedef struct {
     char *packHostlist;		/**< pack host-list (Slurm compressed) */
     PSnodes_ID_t *packNodes;	/**< all participating nodes in the pack */
     PackInfos_t *packInfo;	/**< remote pack infos */
+    PSnodes_ID_t *packFollower; /**< pack follower mother superior nodes */
     uint32_t numPackInfo;	/**< number of pack infos */
     uint32_t numPackThreads;	/**< number of hardware threads in pack */
     uint32_t numPackNP;		/**< number of processes in pack */
