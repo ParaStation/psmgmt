@@ -306,4 +306,14 @@ int killStepFWbyJobid(uint32_t jobid);
  */
 void getStepInfos(uint32_t *infoCount, uint32_t **jobids, uint32_t **stepids);
 
+/**
+ * @brief Get jobid and stepid as string
+ *
+ * @param step The step to convert
+ *
+ * @return Returns a string holding the step ID
+ * infos.
+ */
+const char *strStepID(Step_t *step);
+
 #endif  /* __PS_PSSLURM_STEP */

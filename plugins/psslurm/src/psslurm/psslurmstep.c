@@ -397,3 +397,15 @@ void getStepInfos(uint32_t *infoCount, uint32_t **jobids, uint32_t **stepids)
 	     step->jobid, step->stepid);
     }
 }
+
+const char *strStepID(Step_t *step)
+{
+    static char buf[128];
+
+    if (step) {
+	snprintf(buf, sizeof(buf), "step %u:%u", step->jobid, step->stepid);
+    } else {
+	snprintf(buf, sizeof(buf), "step NULL");
+    }
+    return buf;
+}
