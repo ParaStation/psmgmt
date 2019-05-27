@@ -76,9 +76,6 @@ typedef struct {
 /* allow walking throu the environment */
 extern char **environ;
 
-/** If set debug output is generated */
-static bool debug = false;
-
 /** task id of our logger, used as job id */
 static PStask_ID_t loggertid = 0;
 
@@ -221,20 +218,12 @@ static bool __critErr(const char *func, int line)
  */
 bool pspmix_service_init(PStask_ID_t loggerTID, uid_t uid, gid_t gid)
 {
-    char *env;
-
 #if DEBUG_ENV
     i = 0;
     while(environ[i]) { mlog("%lu: %s\n", i, environ[i++]); }
 #endif
 
     mdbg(PSPMIX_LOG_CALL, "%s() called\n", __func__);
-
-    /* set debug mode */
-    env = getenv("PMIX_DEBUG");
-    if (env && atoi(env) > 0) {
-	debug = true;
-    }
 
     loggertid = loggerTID;
 

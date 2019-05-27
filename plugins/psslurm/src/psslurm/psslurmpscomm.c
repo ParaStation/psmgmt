@@ -98,6 +98,7 @@ typedef enum {
     PSP_EPILOGUE_RES,	    /**< result of local epilogue */
     PSP_EPILOGUE_STATE_REQ, /**< request delayed epilogue status */
     PSP_EPILOGUE_STATE_RES, /**< response to epilogue status request */
+    PSP_PACK_EXIT,	    /**< forward exit status to all pack follower */
 } PSP_PSSLURM_t;
 
 /** Old handler for PSP_DD_CHILDBORN messages */
@@ -124,8 +125,10 @@ static size_t numHostLT = 0;
 /** hostname hash table */
 static struct hsearch_data HostHash;
 
-char *msg2Str(PSP_PSSLURM_t type)
+static const char *msg2Str(PSP_PSSLURM_t type)
 {
+    static char buf[64];
+
     switch(type) {
 	case PSP_SIGNAL_TASKS:
 	    return "PSP_SIGNAL_TASKS";
@@ -155,6 +158,11 @@ char *msg2Str(PSP_PSSLURM_t type)
 	    return "PSP_EPILOGUE_STATE_REQ";
 	case PSP_EPILOGUE_STATE_RES:
 	    return "PSP_EPILOGUE_STATE_RES";
+	case PSP_PACK_EXIT:
+	    return "PSP_PACK_EXIT";
+	default:
+	    snprintf(buf, sizeof(buf), "%u <Unknown>", type);
+	    return buf;
     }
     return NULL;
 }
@@ -946,6 +954,55 @@ static void handleAllocState(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
 	 strAllocState(alloc->state), PSC_printTID(msg->header.sender));
 }
 
+/**
+ * @brief Handle a pack exit message
+ *
+ * This message is send from the pack leader (MS) node to the
+ * pack follower (MS) nodes of a step. Every mother superior of a pack
+ * has to send a step exit message to slurmctld. So the pack leader has
+ * to distribute the compound exit status of mpiexec to all its followers.
+ *
+ * @param msg The message to handle
+ *
+ * @param data The actual message data to handle
+ */
+static void handlePackExit(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
+{
+    char *ptr = data->buf;
+    int32_t exitStatus;
+    uint32_t packJobid, stepid;
+
+    /* packJobid  */
+    getUint32(&ptr, &packJobid);
+    /* stepid */
+    getUint32(&ptr, &stepid);
+    /* exit status */
+    getInt32(&ptr, &exitStatus);
+
+    fdbg(PSSLURM_LOG_PACK, "packJobid %u stepid %u exitStatus %i\n",
+	 packJobid, stepid, exitStatus);
+
+    Step_t *step = findStepByStepId(packJobid, stepid);
+    if (step) {
+	sendStepExit(step, exitStatus);
+    } else {
+	flog("no step %u:%u to set exitStatus %i found\n",
+	     packJobid, stepid, exitStatus);
+    }
+}
+
+/**
+ * @brief Handle a pack info message
+ *
+ * This message is send from every pack follower (MS) nodes to the
+ * pack leader (MS) node of a step. To create a single MPI_COMM_WORLD
+ * the information exclusively known by the mother superior nodes
+ * has to be compound on the pack leader node.
+ *
+ * @param msg The message to handle
+ *
+ * @param data The actual message data to handle
+ */
 static void handlePackInfo(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
 {
     char *ptr = data->buf;
@@ -986,6 +1043,7 @@ static void handlePackInfo(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
 	     step->numPackInfo, step->packSize, packJobid, stepid);
 	return;
     }
+    step->packFollower[step->numPackInfo] = PSC_getID(msg->header.sender);
     rInfo = &step->packInfo[step->numPackInfo++];
 
     /* pack task offset */
@@ -1022,7 +1080,7 @@ static void handlePackInfo(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
 
     /* test if we have all infos to start */
     if (step->packNtasks == step->numPackNP) {
-	if (!(execUserStep(step))) {
+	if (!(execStep(step))) {
 	    mlog("%s: starting user step failed\n", __func__);
 	    sendSlurmRC(&step->srunControlMsg, ESLURMD_FORK_FAILED);
 	    deleteStep(step->jobid, step->stepid);
@@ -1038,7 +1096,7 @@ static void handlePackInfo(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
  *
  * @param msg The message to handle
  */
-static void handle_SignalTasks(DDTypedBufferMsg_t *msg)
+static void handleSignalTasks(DDTypedBufferMsg_t *msg)
 {
     uint32_t jobid, stepid, group, sig, packID;
     size_t used = 0;
@@ -1059,13 +1117,14 @@ static void handle_SignalTasks(DDTypedBufferMsg_t *msg)
 	}
     }
 
-    /* shutdown io */
+    /* shutdown (I/O) forwarder */
     if (sig == SIGTERM || sig == SIGKILL) {
 	if (step->fwdata) shutdownForwarder(step->fwdata);
     }
 
     /* signal tasks */
-    mlog("%s: id %u:%u signal %u\n", __func__, jobid, stepid, sig);
+    mlog("%s: step %u:%u signal %u group %i\n", __func__, jobid,
+	 stepid, sig, group);
     signalTasks(step->jobid, step->uid, &step->tasks, sig, group);
 }
 
@@ -1203,7 +1262,7 @@ static void handlePsslurmMsg(DDTypedBufferMsg_t *msg)
 
     switch (msg->type) {
 	case PSP_SIGNAL_TASKS:
-	    handle_SignalTasks(msg);
+	    handleSignalTasks(msg);
 	    break;
 	case PSP_JOB_EXIT:
 	    handle_JobExit(msg);
@@ -1222,6 +1281,9 @@ static void handlePsslurmMsg(DDTypedBufferMsg_t *msg)
 	    break;
 	case PSP_PACK_INFO:
 	    recvFragMsg(msg, handlePackInfo);
+	    break;
+	case PSP_PACK_EXIT:
+	    recvFragMsg(msg, handlePackExit);
 	    break;
 	case PSP_EPILOGUE_LAUNCH:
 	    handle_EpilogueLaunch(msg);
@@ -1421,6 +1483,7 @@ static void handleDroppedMsg(DDTypedBufferMsg_t *msg)
     case PSP_EPILOGUE_RES:
     case PSP_EPILOGUE_STATE_RES:
     case PSP_PACK_INFO:
+    case PSP_PACK_EXIT:
 	/* nothing we can do here */
 	break;
     default:
@@ -1661,7 +1724,7 @@ static void handleCC_Finalize_Msg(PSLog_Msg_t *msg)
 	step->fwFinCount++;
 	if (!step->leader &&
 		step->tasksToLaunch[step->localNodeId] == step->fwFinCount) {
-	    mlog("%s: shutdownforwarder\n", __func__);
+	    mlog("%s: shutdown I/O forwarder\n", __func__);
 	    shutdownForwarder(step->fwdata);
 	}
 	return;
@@ -2388,13 +2451,37 @@ bool initPScomm(void)
     return true;
 }
 
+int send_PS_PackExit(Step_t *step, int32_t exitStatus)
+{
+    if (!step || !step->numPackInfo) return 0;
+
+    PS_SendDB_t data;
+    initFragBuffer(&data, PSP_CC_PLUG_PSSLURM, PSP_PACK_EXIT);
+
+    uint32_t i;
+    PStask_ID_t myID = PSC_getMyID();
+    for (i=0; i<step->numPackInfo; i++) {
+	if (step->packFollower[i] == myID) continue;
+	setFragDest(&data, PSC_getTID(step->packFollower[i], 0));
+    }
+
+    /* pack jobid */
+    addUint32ToMsg(step->packJobid, &data);
+    /* stepid */
+    addUint32ToMsg(step->stepid, &data);
+    /* exit status */
+    addInt32ToMsg(exitStatus, &data);
+
+    return sendFragMsg(&data);
+}
+
 int send_PS_PackInfo(Step_t *step)
 {
     PS_SendDB_t data;
     uint32_t i;
 
     initFragBuffer(&data, PSP_CC_PLUG_PSSLURM, PSP_PACK_INFO);
-    setFragDest(&data,  PSC_getTID(step->packNodes[0], 0));
+    setFragDest(&data, PSC_getTID(step->packNodes[0], 0));
 
     /* pack jobid */
     addUint32ToMsg(step->packJobid, &data);

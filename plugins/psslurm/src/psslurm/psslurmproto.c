@@ -561,7 +561,9 @@ static void handleLaunchTasks(Slurm_Msg_t *sMsg)
 	if (step->packJobid != NO_VAL) {
 	    /* allocate memory for pack infos from other mother superiors */
 	    step->packInfo = ucalloc(sizeof(*step->packInfo) *
-				      (step->packSize));
+				    (step->packSize));
+	    step->packFollower = ucalloc(sizeof(PSnodes_ID_t) *
+					(step->packSize));
 	}
 
 	step->srunControlMsg.sock = sMsg->sock;
@@ -574,7 +576,7 @@ static void handleLaunchTasks(Slurm_Msg_t *sMsg)
 	mdbg(PSSLURM_LOG_JOB, "%s: step %u:%u in '%s'\n", __func__,
 		step->jobid, step->stepid, strJobState(step->state));
 	if (step->packJobid == NO_VAL) {
-	    if (!(execUserStep(step))) {
+	    if (!(execStep(step))) {
 		sendSlurmRC(sMsg, ESLURMD_FORK_FAILED);
 		goto ERROR;
 	    }
@@ -583,7 +585,7 @@ static void handleLaunchTasks(Slurm_Msg_t *sMsg)
 	/* sister node (pack follower) */
 
 	/* start I/O forwarder */
-	execStepFWIO(step);
+	execStepIO(step);
 
 	if (sMsg->sock != -1) {
 	    /* say ok to waiting srun */
@@ -1054,7 +1056,7 @@ static void handleFileBCast(Slurm_Msg_t *sMsg)
     }
 
     /* start forwarder to write the file */
-    if (!execUserBCast(bcast)) {
+    if (!execBCast(bcast)) {
 	sendSlurmRC(sMsg, ESLURMD_FORK_FAILED);
 	goto CLEANUP;
     }
@@ -1569,7 +1571,7 @@ static void handleBatchJobLaunch(Slurm_Msg_t *sMsg)
     /* pspelogue already ran parallel prologue, start job */
     flog("start job\n");
     alloc->state = A_RUNNING;
-    bool ret = execUserJob(job);
+    bool ret = execBatchJob(job);
     mdbg(PSSLURM_LOG_JOB, "%s: job %u in '%s'\n", __func__,
 	 job->jobid, strJobState(job->state));
 
@@ -2442,11 +2444,13 @@ void sendStepExit(Step_t *step, uint32_t exit_status)
 
     /* account data */
     childPid = (step->fwdata) ? step->fwdata->cPid : 1;
+
+    step->accType = (step->leader) ? step->accType : 0;
     addSlurmAccData(step->accType, 0, PSC_getTID(-1, childPid),
 		    &body, step->nodes, step->nrOfNodes);
 
-    mlog("%s: sending REQUEST_STEP_COMPLETE to slurmctld: exit %u\n", __func__,
-	 exit_status);
+    flog("REQUEST_STEP_COMPLETE for %u:%u to slurmctld: exit %u\n",
+	 step->jobid, step->stepid, exit_status);
 
     sendSlurmMsg(SLURMCTLD_SOCK, REQUEST_STEP_COMPLETE, &body);
 }
@@ -2510,7 +2514,7 @@ static void doSendTaskExit(Step_t *step, int exitCode, uint32_t *count,
     addUint32ToMsg(step->stepid, &body);
 
     if (!ctlPort || !ctlAddr) {
-	mlog("%s: sending MESSAGE_TASK_EXIT %u:%u exit %i\n", __func__,
+	flog("MESSAGE_TASK_EXIT %u of %u tasks, exit %i to srun\n",
 	     exitCount, *count,	(step->timeout ? SIGTERM : exitCode));
 
 	srunSendMsg(-1, step, MESSAGE_TASK_EXIT, &body);

@@ -207,6 +207,7 @@ int deleteStep(uint32_t jobid, uint32_t stepid)
 	ufree(step->packInfo[i].hwThreads);
     }
     ufree(step->packInfo);
+    ufree(step->packFollower);
 
     envDestroy(&step->env);
     envDestroy(&step->spankenv);
@@ -399,4 +400,16 @@ void getStepInfos(uint32_t *infoCount, uint32_t **jobids, uint32_t **stepids)
 	mdbg(PSSLURM_LOG_DEBUG, "%s: add step %u:%u\n", __func__,
 	     step->jobid, step->stepid);
     }
+}
+
+const char *strStepID(Step_t *step)
+{
+    static char buf[128];
+
+    if (step) {
+	snprintf(buf, sizeof(buf), "step %u:%u", step->jobid, step->stepid);
+    } else {
+	snprintf(buf, sizeof(buf), "step NULL");
+    }
+    return buf;
 }

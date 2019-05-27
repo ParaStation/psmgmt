@@ -128,6 +128,7 @@ typedef struct {
     char *packHostlist;		/**< pack host-list (Slurm compressed) */
     PSnodes_ID_t *packNodes;	/**< all participating nodes in the pack */
     PackInfos_t *packInfo;	/**< remote pack infos */
+    PSnodes_ID_t *packFollower; /**< pack follower mother superior nodes */
     uint32_t numPackInfo;	/**< number of pack infos */
     uint32_t numPackThreads;	/**< number of hardware threads in pack */
     uint32_t numPackNP;		/**< number of processes in pack */
@@ -316,5 +317,15 @@ int killStepFWbyJobid(uint32_t jobid);
  * @param stepids The stepids of all known steps
  */
 void getStepInfos(uint32_t *infoCount, uint32_t **jobids, uint32_t **stepids);
+
+/**
+ * @brief Get jobid and stepid as string
+ *
+ * @param step The step to convert
+ *
+ * @return Returns a string holding the step ID
+ * infos.
+ */
+const char *strStepID(Step_t *step);
 
 #endif  /* __PS_PSSLURM_STEP */

@@ -30,6 +30,9 @@
 
 #include "pspmixserver.h"
 
+/* allow walking throu the environment */
+extern char **environ;
+
 /* Set to 1 to enable output of the namespace info fields */
 #define PRINT_FILLINFOS 0
 
@@ -306,12 +309,6 @@ void pspmix_server_fenceOut(bool success, modexdata_t *mdata)
     }
 }
 
-static void pseudoTimeoutHandler(int id, void *mdata)
-{
-    pspmix_server_fenceOut(true, mdata);
-    Timer_remove(id);
-}
-
 /* At least one client called either PMIx_Fence or PMIx_Fence_nb. In either case,
  * the host server will be called via a non-blocking function to execute
  * the specified operation once all participating local procs have
@@ -401,16 +398,10 @@ static pmix_status_t server_fencenb_cb(
     if (ret == 0) return PMIX_SUCCESS;
     assert(ret == 1);
 
-#if 0  /* until PMIX_OPERATION_SUCCEEDED works */
     ufree(mdata);
+    mdbg(PSPMIX_LOG_FENCE, "%s: Returning PMIX_OPERATION_SUCCEEDED.\n",
+	    __func__);
     return PMIX_OPERATION_SUCCEEDED;
-#else
-    /* XXX this is a hack since PMIX_OPERATION_SUCCEEDED seems not to
-     *  work here */
-    struct timeval pseudotimeout = {0, 100000};
-    Timer_registerEnhanced(&pseudotimeout, pseudoTimeoutHandler, mdata);
-    return PMIX_SUCCESS;
-#endif
 }
 
 /* free everything to be freed in fence stuff */
@@ -1060,9 +1051,15 @@ bool pspmix_server_init(uint32_t uid, uint32_t gid)
     mdbg(PSPMIX_LOG_CALL, "%s() called with uid %u, gid %u\n", __func__, uid,
 	    gid);
 
-    char * env;
-    if ((env = getenv("PMIX_DEBUG"))) {
-	mlog("%s: PMIX_DEBUG=%s set\n", __func__, env);
+    /* print some interesting environment variables if set */
+    size_t i = 0;
+    while (environ[i]) {
+	if (strncmp (environ[i], "PMIX_DEBUG", 10) == 0
+		|| strncmp (environ[i], "PMIX_OUTPUT", 11) == 0
+		|| strncmp (environ[i], "PMIX_MCA_", 9) == 0) {
+	    mlog("%s: %s set\n", __func__, environ[i]);
+	}
+	++i;
     }
 
     mycbdata_t cbdata;

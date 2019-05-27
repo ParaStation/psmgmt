@@ -79,4 +79,14 @@ void sendBrokeIOcon(Step_t *step);
  */
 const char *strIOopt(int opt);
 
+/**
+ * @brief Convert a Slurm I/O type to string
+ *
+ * @param opt The I/O type to convert
+ *
+ * @return Returns the string representation of the
+ * give Slurm I/O type.
+ */
+const char *strIOtype(int type);
+
 #endif  /* __PS_SLURM_IO */

@@ -80,7 +80,7 @@ PSnodes_ID_t slurmBackupController = -1;
 
 /** psid plugin requirements */
 char name[] = "psslurm";
-int version = 116;
+int version = 117;
 int requiredAPI = 121;
 plugin_dep_t dependencies[] = {
     { .name = "psmunge", .version = 4 },

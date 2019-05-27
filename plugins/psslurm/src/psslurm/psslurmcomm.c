@@ -1072,14 +1072,24 @@ int handleSrunMsg(int sock, void *data)
 	if (ret < 0) {
 	    mwarn(errno, "%s: doRead()", __func__);
 	}
-	mlog("%s: close srun connection %i\n", __func__, sock);
+	flog("close srun connection %i for step %u:%u\n", sock,
+	     step->jobid, step->stepid);
 	goto ERROR;
     }
     ptr = buffer;
 
-    if (!step->fwdata) {
-	mlog("%s: no forwarder running for step %u:%u\n", __func__,
+    if (!unpackSlurmIOHeader(&ptr, &ioh)) {
+	flog("unpack Slurm I/O header for step %u:%u failed\n",
 	     step->jobid, step->stepid);
+	goto ERROR;
+    }
+
+    if (!step->fwdata) {
+	if (ioh->len) {
+	    fdbg(PSSLURM_LOG_IO, "no forwarder for step %u:%u I/O"
+		 " type %s len %u\n", step->jobid, step->stepid,
+		 strIOtype(ioh->type), ioh->len);
+	}
 	goto ERROR;
     }
     pty = step->taskFlags & LAUNCH_PTY;
@@ -1087,24 +1097,22 @@ int handleSrunMsg(int sock, void *data)
     myTaskIdsLen = step->globalTaskIdsLen[step->localNodeId];
     myTaskIds = step->globalTaskIds[step->localNodeId];
 
-    if (!unpackSlurmIOHeader(&ptr, &ioh)) {
-	mlog("%s: unpack slurm I/O header failed\n", __func__);
-	goto ERROR;
-    }
-
     mdbg(PSSLURM_LOG_IO | PSSLURM_LOG_IO_VERB,
-	 "%s: step %u:%u stdin %d type %u length %u gtid %u ltid %u pty %u"
-	 " myTIDsLen %u\n", __func__, step->jobid, step->stepid, fd, ioh->type,
-	 ioh->len, ioh->gtid, ioh->ltid, pty, myTaskIdsLen);
+	 "%s: step %u:%u stdin %d type %s length %u gtid %u ltid %u pty %u"
+	 " myTIDsLen %u\n", __func__, step->jobid, step->stepid, fd,
+	 strIOtype(ioh->type), ioh->len, ioh->gtid, ioh->ltid, pty,
+	 myTaskIdsLen);
 
     if (ioh->type == SLURM_IO_CONNECTION_TEST) {
 	if (ioh->len != 0) {
-	    mlog("%s: invalid connection test, len %u\n", __func__, ioh->len);
+	    flog("invalid connection test for step %u:%u len %u\n",
+		 step->jobid, step->stepid, ioh->len);
 	}
 	srunSendIO(SLURM_IO_CONNECTION_TEST, 0, step, NULL, 0);
     } else if (!ioh->len) {
 	/* forward eof to all forwarders */
-	mlog("%s: got eof of stdin %d\n", __func__, fd);
+	flog("got eof of stdin %d for step %u:%u\n", fd,
+	     step->jobid, step->stepid);
 
 	if (ioh->type == SLURM_IO_STDIN) {
 	    forwardInputMsg(step, ioh->gtid, NULL, 0);
@@ -1113,13 +1121,13 @@ int handleSrunMsg(int sock, void *data)
 		forwardInputMsg(step, myTaskIds[i], NULL, 0);
 	    }
 	} else {
-	    mlog("%s: unsupported I/O type %u\n", __func__, ioh->type);
+	    flog("unsupported I/O type %s\n", strIOtype(ioh->type));
 	}
 
 	/* close loggers stdin */
 	if (!pty) closeSlurmCon(fd);
     } else {
-	/* foward stdin message to forwarders */
+	/* forward stdin message to forwarders */
 	size_t left = ioh->len;
 	while (left > 0) {
 	    size_t readNow = (left > sizeof(buffer)) ? sizeof(buffer) : left;
@@ -1143,7 +1151,7 @@ int handleSrunMsg(int sock, void *data)
 		    }
 		    break;
 		default:
-		    mlog("%s: unsupported I/O type %u\n", __func__, ioh->type);
+		    flog("unsupported I/O type %s\n", strIOtype(ioh->type));
 		}
 	    }
 	    left -= ret;
