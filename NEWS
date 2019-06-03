@@ -4,6 +4,29 @@ Copyright (C) 2010-2019 ParTec Cluster Competence Center GmbH, Munich
 
 Please send bug reports, questions and suggestions to <support@par-tec.com>
 
+
+
+Version 5.1.22:
+===============
+Bugfixes:
+ - Each pack job's mother superior must send REQUEST_STEP_COMPLETE (j3t:#1293)
+ - Fix handling of invalid namespace in pspmix' sendModexDataRequest()
+ - Fix passing of uid and gid to PMIx_server_init()
+Enhancements:
+ - Add automatic detection of Slurm protocol to psslurm (new  default or set
+   "SLURM_PROTO_VERSION = auto" in psslurm's config explicitly)
+ - Add psslurm config option SINFO_BINARY to specify absolute path to sinfo
+ - Let job start fail in psslurm if user ID cannot be resolved (#2765)
+ - Avoid "cannot convert" messages for missing keys in psconfig parser
+ - Allow to log interesting environment variables in pspmix
+ - Return PMIX_OPERATION_SUCCEEDED in pspmix' server_fencenb_cb()
+ - Improved some psslurm log messages
+Additional changes:
+ - Add function strStepID() to easily print step IDs in psslurm
+ - Fix more minor issues unveiled by cppcheck
+ - Fix some NULL pointer format errors unveiled by gcc 9.1.0
+
+
 Version 5.1.21-1:
 =================
 Bugfixes:
@@ -13,7 +36,7 @@ Bugfixes:
 *************************************************************************
 *************************************************************************
 **                                                                     **
-**  Remark: psmgmt 5.1.21 changes the explected content of psconfig    **
+**  Remark: psmgmt 5.1.21 changes the expected content of psconfig     **
 **  that might be incompatible with former configuations:              **
 **   - the key NodeNo is now called Psid.NodeId (but NodeNo might be   **
 **     used if no Psid.NodeId is found)                                **

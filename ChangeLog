@@ -1,3 +1,82 @@
+Version psmgmt-5.1.22:
+======================
+------------------------------------------------------------------------
+ac4ce036 | Michael Rauh | Mon, 27 May 2019 16:13:23 +0200
+
+Documentation and cleanup of psslurmforwarder.[ch]
+------------------------------------------------------------------------
+76af5075 | Michael Rauh | Mon, 27 May 2019 14:11:40 +0200
+
+Add function strStepID() to easily print step IDs in psslurm
+------------------------------------------------------------------------
+2d9c10b7 | Michael Rauh | Mon, 27 May 2019 13:35:11 +0200
+
+Bugfix: every mother superior of a pack job has to send
+REQUEST_STEP_COMPLETE to the slurmctld (j3t:#1293)
+Enhancement: improved some psslurm log messages
+------------------------------------------------------------------------
+2ccc6d5b | Stephan Krempel | Fri, 24 May 2019 16:12:15 +0200
+
+pspmix: Log interesting environment variables if set
+------------------------------------------------------------------------
+40f9c7fd | Stephan Krempel | Fri, 24 May 2019 15:54:24 +0200
+
+pspmix: Remove unused debug variable
+------------------------------------------------------------------------
+745888de | Stephan Krempel | Thu, 16 May 2019 03:19:06 +0200
+
+pspmix: Returning PMIX_OPERATION_SUCCEEDED in server_fencenb_cb()
+
+The handling will be fixed in pmix 3.1.3 so we can use it and
+throw away the ugly workaround.
+------------------------------------------------------------------------
+4978bc1d | Stephan Krempel | Tue, 21 May 2019 13:47:43 +0200
+
+psconfig parser: avoid "cannot convert" messages for missing keys
+------------------------------------------------------------------------
+5434bd73 | Stephan Krempel | Thu, 16 May 2019 03:12:51 +0200
+
+pspmix: Fix handling of invalid namespace in sendModexDataRequest()
+------------------------------------------------------------------------
+fb382af6 | Stephan Krempel | Thu, 16 May 2019 03:11:18 +0200
+
+pspmix: Fix passing of uid and gid to PMIx_server_init()
+------------------------------------------------------------------------
+b13adc74 | Stephan Krempel | Thu, 16 May 2019 03:10:14 +0200
+
+pspmix: Consolidate some debugging output
+------------------------------------------------------------------------
+c6ea6790 | Michael Rauh | Wed, 15 May 2019 16:35:54 +0200
+
+Merge branch 'psmgmt-5.1.21-1'
+------------------------------------------------------------------------
+34f14d92 | Michael Rauh | Thu, 9 May 2019 15:17:07 +0200
+
+Added automatic Slurm protocol detection in psslurm
+
+- Set psslurm configuration option "SLURM_PROTO_VERSION = auto" to activate
+- Automatic detection is the new default for SLURM_PROTO_VERSION
+- Added new configuration option SINFO_BINARY to specify the absolute path
+to the sinfo binary
+------------------------------------------------------------------------
+5cf15a73 | Norbert Eicker | Wed, 8 May 2019 13:32:38 +0200
+
+Improve some log messages
+------------------------------------------------------------------------
+3ca31ca3 | Michael Rauh | Tue, 7 May 2019 11:37:19 +0200
+
+Let job start fail in psslurm if the user ID cannot be resolved (#2765)
+------------------------------------------------------------------------
+f18dfae8 | Michael Rauh | Mon, 6 May 2019 14:15:12 +0200
+
+Fixed some minor issues unveiled by cppcheck
+------------------------------------------------------------------------
+21b6be69 | Michael Rauh | Mon, 6 May 2019 13:43:16 +0200
+
+Fix some NULL pointer format errors unveiled by gcc 9.1.0
+------------------------------------------------------------------------
+
+
 Version psmgmt-5.1.21-1:
 ========================
 ------------------------------------------------------------------------
