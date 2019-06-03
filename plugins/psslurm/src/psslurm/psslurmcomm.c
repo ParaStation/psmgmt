@@ -517,10 +517,11 @@ static int handleSlurmctldReply(Slurm_Msg_t *sMsg, void *info)
 	return 0;
     }
 
+    /* return code */
     getUint32(ptr, &rc);
     if (rc != SLURM_SUCCESS) {
-	mdbg(PSSLURM_LOG_PROTO, "%s: error: msg %s rc %u sock %i\n",
-		__func__, msgType2String(sMsg->head.type), rc, sMsg->sock);
+	flog("%s: error: msg %s rc %u sock %i\n",
+	     msgType2String(sMsg->head.type), rc, sMsg->sock);
     }
 
     if (sMsg->source == -1) {
@@ -718,6 +719,9 @@ int __sendSlurmMsgEx(int sock, Slurm_Msg_Header_t *head, PS_SendDB_t *body,
 	flog("getting a slurm authentication token failed\n");
 	return -1;
     }
+
+    fdbg(PSSLURM_LOG_PROTO, "msg(%i): %s, version %u\n",
+	 head->type, msgType2String(head->type), head->version);
 
     /* connect to slurmctld */
     if (sock < 0) {
