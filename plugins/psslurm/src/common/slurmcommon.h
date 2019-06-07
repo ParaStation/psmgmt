@@ -8,7 +8,15 @@
 #define SLURM_SUCCESS 0
 #define SLURM_ERROR -1
 
-#define NO_VAL (0xfffffffe)
+#define INFINITE8  (0xff)
+#define INFINITE16 (0xffff)
+#define INFINITE   (0xffffffff)
+#define INFINITE64 (0xffffffffffffffff)
+#define NO_VAL8    (0xfe)
+#define NO_VAL16   (0xfffe)
+#define NO_VAL     (0xfffffffe)
+#define NO_VAL64   (0xfffffffffffffffe)
+
 #define GRES_MAGIC 0x438a34d4
 #define JOB_OPTIONS_TAG "job_options"
 #define KILL_JOB_BATCH 0x0001
@@ -24,9 +32,10 @@
 #define SLURM_GLOBAL_AUTH_KEY   0x0001
 
 /* protocol versions */
-#define SLURM_MAX_PROTO_VERSION SLURM_17_11_PROTO_VERSION
+#define SLURM_MAX_PROTO_VERSION SLURM_18_08_PROTO_VERSION
 #define SLURM_MIN_PROTO_VERSION SLURM_17_02_PROTO_VERSION
 
+#define SLURM_18_08_PROTO_VERSION ((33 << 8) | 0)
 #define SLURM_17_11_PROTO_VERSION ((32 << 8) | 0)
 #define SLURM_17_02_PROTO_VERSION ((31 << 8) | 0)
 
@@ -181,5 +190,9 @@ typedef enum task_dist_states {
 #define LAUNCH_BUFFERED_IO      0x00000008
 #define LAUNCH_LABEL_IO         0x00000010
 #define LAUNCH_USER_MANAGED_IO  0x00000020
+
+/* node registration flags */
+#define SLURMD_REG_FLAG_STARTUP  0x0001
+#define SLURMD_REG_FLAG_RESP     0x0002
 
 #endif

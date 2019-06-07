@@ -643,6 +643,9 @@ void setStepEnv(Step_t *step)
     /* prevent mpiexec from resolving the nodelist */
     envSet(&step->env, ENV_PSID_BATCH, "1");
 
+    if (step->tresBind) envSet(&step->env, "SLURMD_TRES_BIND", step->tresBind);
+    if (step->tresFreq) envSet(&step->env, "SLURMD_TRES_FREQ", step->tresFreq);
+
     /* cleanup env */
     removeSpankOptions(&step->env);
 }
@@ -675,6 +678,9 @@ void setJobEnv(Job_t *job)
 	umask(slurmUmask);
 	envUnset(&job->env, "SLURM_UMASK");
     }
+
+    if (job->tresBind) envSet(&job->env, "SLURMD_TRES_BIND", job->tresBind);
+    if (job->tresFreq) envSet(&job->env, "SLURMD_TRES_FREQ", job->tresFreq);
 
     removeSpankOptions(&job->env);
 

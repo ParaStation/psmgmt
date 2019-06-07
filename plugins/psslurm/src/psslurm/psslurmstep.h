@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2017-2018 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2017-2019 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -31,6 +31,13 @@ typedef struct {
     uint32_t np;		    /**< number of processes */
     uint32_t packTaskOffset;	    /**< pack task offset */
 } PackInfos_t;
+
+typedef struct {
+    uint16_t x11;               /**< flag to use (vanilla) x11 forwarding */
+    char *magicCookie;          /**< magic auth cookie */
+    char *host;                 /**< remote x11 host */
+    uint16_t port;              /**< remote x11 port */
+} X11_Data_t;
 
 typedef struct {
     list_t next;                /**< used to put into some step-lists */
@@ -126,6 +133,9 @@ typedef struct {
     uint32_t numPackThreads;	/**< number of hardware threads in pack */
     uint32_t numPackNP;		/**< number of processes in pack */
     bool leader;		/**< true if node is pack leader */
+    X11_Data_t x11;             /**< (vanilla) X11 support */
+    char *tresBind;             /**< TRes binding (currently env set only) */
+    char *tresFreq;             /**< TRes frequency (currently env set only) */
 } Step_t;
 
 /**
@@ -194,7 +204,9 @@ Step_t *findStepByFwPid(pid_t pid);
 Step_t *findStepByTaskPid(pid_t pid);
 
 /**
- * @doctodo
+ * @brief Get the number of steps
+ *
+ * Returns the number of steps
  */
 int countSteps(void);
 

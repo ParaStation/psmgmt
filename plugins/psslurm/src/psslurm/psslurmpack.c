@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2016-2018 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2016-2019 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -500,9 +500,16 @@ bool __unpackReqTerminate(Slurm_Msg_t *sMsg, Req_Terminate_Job_t **reqPtr,
 
     Req_Terminate_Job_t *req = ucalloc(sizeof(Req_Terminate_Job_t));
 
+    uint16_t msgVer = sMsg->head.version;
     char **ptr = &sMsg->ptr;
+
     /* jobid*/
     getUint32(ptr, &req->jobid);
+
+    if (msgVer == SLURM_18_08_PROTO_VERSION) {
+	/* pack jobid */
+	getUint32(ptr, &req->packJobid);
+    }
     /* jobstate */
     getUint32(ptr, &req->jobstate);
     /* user id */
@@ -510,7 +517,6 @@ bool __unpackReqTerminate(Slurm_Msg_t *sMsg, Req_Terminate_Job_t **reqPtr,
     /* nodes */
     req->nodes = getStringM(ptr);
 
-    uint16_t msgVer = sMsg->head.version;
     if (msgVer == SLURM_17_02_PROTO_VERSION) {
 	env_t pelogueEnv;
 
@@ -856,7 +862,29 @@ bool __unpackReqLaunchTasks(Slurm_Msg_t *sMsg, Step_t **stepPtr,
     /* jobinfo plugin id */
     getUint32(ptr, &tmp);
 
-    if (msgVer == SLURM_17_02_PROTO_VERSION) {
+    if (msgVer == SLURM_18_08_PROTO_VERSION) {
+	/* tres bind */
+	step->tresBind = getStringM(ptr);
+	/* tres freq */
+	step->tresFreq = getStringM(ptr);
+	/* x11 */
+	getUint16(ptr, &step->x11.x11);
+	/* magic cookie */
+	step->x11.magicCookie = getStringM(ptr);
+	/* x11 host */
+	step->x11.host = getStringM(ptr);
+	/* x11 port */
+	getUint16(ptr, &step->x11.port);
+    } else if (msgVer == SLURM_17_11_PROTO_VERSION) {
+	/* x11 */
+	getUint16(ptr, &step->x11.x11);
+	/* magic cookie */
+	step->x11.magicCookie = getStringM(ptr);
+	/* x11 host */
+	step->x11.host = getStringM(ptr);
+	/* x11 port */
+	getUint16(ptr, &step->x11.port);
+    } else if (msgVer == SLURM_17_02_PROTO_VERSION) {
 	env_t pelogueEnv;
 
 	/* pelogue env */
@@ -913,21 +941,27 @@ bool __unpackReqBatchJobLaunch(Slurm_Msg_t *sMsg, Job_t **jobPtr,
     }
 
     char **ptr = &sMsg->ptr;
+    uint16_t msgVer = sMsg->head.version, cpuBindType;
+
     /* jobid */
     getUint32(ptr, &jobid);
+
+    Job_t *job = addJob(jobid);
+
+    if (msgVer >= SLURM_18_08_PROTO_VERSION) {
+	/* pack jobid */
+	getUint32(ptr, &job->packJobid);
+    }
     /* stepid */
     getUint32(ptr, &tmp);
     if (tmp != SLURM_BATCH_SCRIPT) {
 	mlog("%s: batch job should not have stepid '%u'\n", __func__, tmp);
+	deleteJob(jobid);
 	return false;
     }
-
-    Job_t *job = addJob(jobid);
-
     /* uid */
     getUint32(ptr, &job->uid);
 
-    uint16_t msgVer = sMsg->head.version, cpuBindType;
     if (msgVer >= SLURM_17_11_PROTO_VERSION) {
 	/* gid */
 	getUint32(ptr, &job->gid);
@@ -1049,6 +1083,11 @@ bool __unpackReqBatchJobLaunch(Slurm_Msg_t *sMsg, Job_t **jobPtr,
 	getUint32(ptr, &tmp);
     }
 
+    if (msgVer >= SLURM_18_08_PROTO_VERSION) {
+	job->tresBind = getStringM(ptr);
+	job->tresFreq = getStringM(ptr);
+    }
+
     *jobPtr = job;
     return true;
 
@@ -1089,36 +1128,18 @@ static void packAccNodeId(PS_SendDB_t *data, int type,
 
     psNodeID = PSC_getID(accData->taskIds[type]);
 
+    /* node ID */
     if ((nid = getSlurmNodeID(psNodeID, nodes, nrOfNodes)) < 0) {
 	addUint32ToMsg((uint32_t) 0, data);
     } else {
 	addUint32ToMsg((uint32_t) nid, data);
     }
+    /* task ID */
     addUint16ToMsg((uint16_t) 0, data);
 }
 
-bool __packSlurmAccData(PS_SendDB_t *data, SlurmAccData_t *slurmAccData,
-			const char *caller, const int line)
+static void packAccData_17(PS_SendDB_t *data, SlurmAccData_t *slurmAccData)
 {
-    if (!data) {
-	mlog("%s: invalid data pointer from '%s' at %i\n", __func__,
-		caller, line);
-	return false;
-    }
-
-    if (!slurmAccData) {
-	mlog("%s: invalid accData pointer from '%s' at %i\n", __func__,
-		caller, line);
-	return false;
-    }
-
-    if (!slurmAccData->type) {
-	addUint8ToMsg(0, data);
-	return true;
-    }
-
-    addUint8ToMsg(1, data);
-
     if (slurmAccData->empty) {
 	int i;
 	/* pack empty account data */
@@ -1138,7 +1159,7 @@ bool __packSlurmAccData(PS_SendDB_t *data, SlurmAccData_t *slurmAccData,
 	    addUint32ToMsg((uint32_t) NO_VAL, data);
 	    addUint16ToMsg((uint16_t) NO_VAL, data);
 	}
-	return true;
+	return;
     }
 
     AccountDataExt_t *accData = slurmAccData->accData;
@@ -1197,8 +1218,217 @@ bool __packSlurmAccData(PS_SendDB_t *data, SlurmAccData_t *slurmAccData,
 		  slurmAccData->nrOfNodes);
     packAccNodeId(data, ACCID_MAX_DISKWRITE, accData, slurmAccData->nodes,
 		  slurmAccData->nrOfNodes);
+}
+
+bool __packTResData(PS_SendDB_t *data, TRes_t *tres, const char *caller,
+		    const int line)
+{
+    if (!data) {
+	mlog("%s: invalid data pointer from '%s' at %i\n", __func__,
+		caller, line);
+	return false;
+    }
+
+    if (!tres) {
+	mlog("%s: invalid tres pointer from '%s' at %i\n", __func__,
+		caller, line);
+	return false;
+    }
+
+    /* TRes IDs */
+    addUint32ArrayToMsg(tres->ids, tres->count, data);
+
+    /* add empty TRes list */
+    addUint32ToMsg(NO_VAL, data);
+
+    /* in max/min values */
+    addUint64ArrayToMsg(tres->in_max, tres->count, data);
+    addUint64ArrayToMsg(tres->in_max_nodeid, tres->count, data);
+    addUint64ArrayToMsg(tres->in_max_taskid, tres->count, data);
+    addUint64ArrayToMsg(tres->in_min, tres->count, data);
+    addUint64ArrayToMsg(tres->in_min_nodeid, tres->count, data);
+    addUint64ArrayToMsg(tres->in_min_taskid, tres->count, data);
+    /* in total */
+    addUint64ArrayToMsg(tres->in_tot, tres->count, data);
+
+    /* out max/min values */
+    addUint64ArrayToMsg(tres->out_max, tres->count, data);
+    addUint64ArrayToMsg(tres->out_max_nodeid, tres->count, data);
+    addUint64ArrayToMsg(tres->out_max_taskid, tres->count, data);
+    addUint64ArrayToMsg(tres->out_min, tres->count, data);
+    addUint64ArrayToMsg(tres->out_min_nodeid, tres->count, data);
+    addUint64ArrayToMsg(tres->out_min_taskid, tres->count, data);
+    /* in total */
+    addUint64ArrayToMsg(tres->out_tot, tres->count, data);
 
     return true;
+}
+
+static int getAccNodeID(SlurmAccData_t *slurmAccData, int type)
+{
+    AccountDataExt_t *accData = slurmAccData->accData;
+    int nID;
+
+    PSnodes_ID_t psNID = PSC_getID(accData->taskIds[type]);
+    nID = getSlurmNodeID(psNID, slurmAccData->nodes, slurmAccData->nrOfNodes);
+    if (nID == -1) return 0;
+    return nID;
+}
+
+static void convAccDataToTRes(SlurmAccData_t *slurmAccData, TRes_t *tres)
+{
+    AccountDataExt_t *accData = slurmAccData->accData;
+    TRes_Entry_t entry;
+
+    /* vsize in byte */
+    TRes_reset_entry(&entry);
+    entry.in_max = accData->maxVsize * 1024;
+    entry.in_min = accData->maxVsize * 1024;
+    entry.in_tot = accData->avgVsizeTotal * 1024;
+    entry.in_max_nodeid = getAccNodeID(slurmAccData, ACCID_MAX_VSIZE);
+    TRes_set(tres, TRES_VMEM, &entry);
+
+    /* memory in byte */
+    TRes_reset_entry(&entry);
+    entry.in_max = accData->maxRss * 1024;
+    entry.in_min = accData->maxRss * 1024;
+    entry.in_tot = accData->avgRssTotal * 1024;
+    entry.in_max_nodeid = getAccNodeID(slurmAccData, ACCID_MAX_RSS);
+    TRes_set(tres, TRES_MEM, &entry);
+
+    /* pages */
+    TRes_reset_entry(&entry);
+    entry.in_max = accData->maxMajflt;
+    entry.in_min = accData->maxMajflt;
+    entry.in_tot = accData->totMajflt;
+    entry.in_max_nodeid = getAccNodeID(slurmAccData, ACCID_MAX_PAGES);
+    TRes_set(tres, TRES_PAGES, &entry);
+
+    /* cpu */
+    TRes_reset_entry(&entry);
+    entry.in_min = accData->minCputime * 1000;
+    entry.in_max = accData->minCputime * 1000;
+    entry.in_tot = accData->totCputime * 1000;
+    entry.in_min_nodeid = getAccNodeID(slurmAccData, ACCID_MIN_CPU);
+    TRes_set(tres, TRES_CPU, &entry);
+
+    /* fs disk in byte */
+    TRes_reset_entry(&entry);
+    entry.in_max = accData->maxDiskRead * 1048576;
+    entry.in_min = accData->maxDiskRead * 1048576;
+    entry.in_tot = accData->totDiskRead * 1048576;
+    entry.in_max_nodeid = getAccNodeID(slurmAccData, ACCID_MAX_DISKREAD);
+
+    entry.out_max = accData->maxDiskWrite * 1048576;
+    entry.out_min = accData->maxDiskWrite * 1048576;
+    entry.out_tot = accData->totDiskWrite * 1048576;
+    entry.out_max_nodeid = getAccNodeID(slurmAccData, ACCID_MAX_DISKWRITE);
+    TRes_set(tres, TRES_FS_DISK, &entry);
+}
+
+bool __packSlurmAccData(PS_SendDB_t *data, SlurmAccData_t *slurmAccData,
+			const char *caller, const int line)
+{
+    if (!data) {
+	mlog("%s: invalid data pointer from '%s' at %i\n", __func__,
+		caller, line);
+	return false;
+    }
+
+    if (!slurmAccData) {
+	mlog("%s: invalid accData pointer from '%s' at %i\n", __func__,
+		caller, line);
+	return false;
+    }
+
+    if (!slurmAccData->type) {
+	addUint8ToMsg(0, data);
+	return true;
+    }
+
+    /* account data is available */
+    addUint8ToMsg(1, data);
+
+    if (slurmProto <= SLURM_17_11_PROTO_VERSION) {
+	/* pack older accouting data */
+	packAccData_17(data, slurmAccData);
+	return true;
+    }
+
+    AccountDataExt_t *accData = slurmAccData->accData;
+
+    /* user cpu sec/usec */
+    addUint32ToMsg(accData->rusage.ru_utime.tv_sec, data);
+    addUint32ToMsg(accData->rusage.ru_utime.tv_usec, data);
+
+    /* system cpu sec/usec */
+    addUint32ToMsg(accData->rusage.ru_stime.tv_sec, data);
+    addUint32ToMsg(accData->rusage.ru_stime.tv_usec, data);
+
+    /* act cpufreq */
+    addUint32ToMsg(accData->cpuFreq, data);
+
+    /* energy consumed */
+    addUint64ToMsg(0, data);
+
+    /* trackable resources (TRes) */
+    TRes_t *tres = TRes_new();
+    convAccDataToTRes(slurmAccData, tres);
+
+    if (logger_getMask(psslurmlogger) & PSSLURM_LOG_ACC) TRes_print(tres);
+    packTResData(data, tres);
+    TRes_destroy(tres);
+
+    return true;
+}
+
+bool packGresConf(Gres_Conf_t *gres, void *info)
+{
+    PS_SendDB_t *msg = info;
+
+    addUint32ToMsg(GRES_MAGIC, msg);
+    addUint64ToMsg(gres->count, msg);
+    addUint32ToMsg(getConfValueI(&Config, "SLURM_CPUS"), msg);
+    addUint8ToMsg((gres->file ? 1 : 0), msg);
+    addUint32ToMsg(gres->id, msg);
+    addStringToMsg(gres->cpus, msg);
+    if (slurmProto >= SLURM_18_08_PROTO_VERSION) {
+	/* links (unused) */
+	addStringToMsg("", msg);
+    }
+    addStringToMsg(gres->name, msg);
+    addStringToMsg(gres->type, msg);
+
+    return false;
+}
+
+void addGresData(PS_SendDB_t *msg, int version)
+{
+    size_t startGresData;
+    uint32_t len;
+    char *ptr;
+
+    /* add placeholder for gres info size */
+    startGresData = msg->bufUsed;
+    addUint32ToMsg(0, msg);
+    /* add placeholder again for gres info size in pack_mem() */
+    addUint32ToMsg(0, msg);
+
+    /* add slurm version */
+    addUint16ToMsg(version, msg);
+
+    /* data count */
+    addUint16ToMsg(countGresConf(), msg);
+
+    traverseGresConf(packGresConf, msg);
+
+    /* set real gres info size */
+    ptr = msg->buf + startGresData;
+    len = msg->bufUsed - startGresData - (2 * sizeof(uint32_t));
+
+    *(uint32_t *)ptr = htonl(len);
+    ptr += sizeof(uint32_t);
+    *(uint32_t *)ptr = htonl(len);
 }
 
 bool __packRespNodeRegStatus(PS_SendDB_t *data, Resp_Node_Reg_Status_t *stat,
@@ -1266,13 +1496,12 @@ bool __packRespNodeRegStatus(PS_SendDB_t *data, Resp_Node_Reg_Status_t *stat,
 	addUint32ToMsg(stat->stepids[i], data);
     }
 
-    /*
-    pack16(msg->startup, buffer);
-    if (msg->startup)
-	switch_g_pack_node_info(msg->switch_nodeinfo, buffer);
-	*/
-    /* TODO switch stuff */
-    addUint16ToMsg(0, data);
+    /* flags */
+    addUint16ToMsg(stat->flags, data);
+
+    if (stat->flags & SLURMD_REG_FLAG_STARTUP) {
+	/* TODO pack switch node info */
+    }
 
     /* add gres configuration */
     addGresData(data, slurmProto);
@@ -1521,6 +1750,35 @@ bool __packEnergyData(PS_SendDB_t *data, const char *caller, const int line)
     addUint32ToMsg(0, data);
     addUint64ToMsg(0, data);
     addTimeToMsg(0, data);
+
+    return true;
+}
+
+bool __unpackExtRespNodeReg(Slurm_Msg_t *sMsg, Ext_Resp_Node_Reg_t **respPtr,
+			    const char *caller, const int line)
+{
+    if (!sMsg) {
+	mlog("%s: invalid sMsg from '%s' at %i\n", __func__, caller, line);
+	return false;
+    }
+
+    char **ptr = &sMsg->ptr;
+
+    Ext_Resp_Node_Reg_t *resp = umalloc(sizeof(*resp));
+
+    getUint32(ptr, &resp->count);
+    resp->entry = umalloc(sizeof(*resp->entry) * resp->count);
+
+    uint32_t i;
+    for (i=0; i<resp->count; i++) {
+	getUint64(ptr, &resp->entry[i].allocSec);
+	getUint64(ptr, &resp->entry[i].count);
+	getUint32(ptr, &resp->entry[i].id);
+	resp->entry[i].name = getStringM(ptr);
+	resp->entry[i].type = getStringM(ptr);
+    }
+
+    *respPtr = resp;
 
     return true;
 }

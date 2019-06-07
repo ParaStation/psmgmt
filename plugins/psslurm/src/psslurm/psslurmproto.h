@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2014-2018 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2014-2019 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -18,17 +18,9 @@
 #include "psslurmcomm.h"
 #include "psaccounttypes.h"
 
-/** Slurm protocol version */
-extern uint32_t slurmProto;
-
-/** Slurm protocol version string */
-extern char *slurmProtoStr;
-
-/** Flag to measure Slurm RPC execution times */
-extern bool measureRPC;
-
 typedef struct {
     uint32_t jobid;
+    uint32_t packJobid;
     uint32_t stepid;
     uint32_t jobstate;
     uid_t uid;
@@ -62,6 +54,7 @@ typedef struct {
     uint16_t sockets;
     uint16_t coresPerSocket;
     uint16_t threadsPerCore;
+    uint16_t flags;
     uint64_t realMem;
     uint32_t tmpDisk;
     uint32_t uptime;
@@ -113,12 +106,37 @@ typedef struct {
     uint32_t *globalTIDs;
 } Resp_Launch_Tasks_t;
 
+typedef struct {
+    uint64_t allocSec; 		/* number of seconds allocated */
+    uint64_t count;		/* count of TRes */
+    uint32_t id;		/* database ID */
+    char *name;			/* optional name of TRes */
+    char *type;			/* type of TRes */
+} Ext_Resp_Node_Reg_Entry_t;
+
+typedef struct {
+    Ext_Resp_Node_Reg_Entry_t *entry;	/* a node registration response entry */
+    uint32_t count;			/* number of entries */
+} Ext_Resp_Node_Reg_t;
+
+/** Slurm protocol version */
+extern uint32_t slurmProto;
+
+/** Slurm protocol version string */
+extern char *slurmProtoStr;
+
+/** Flag to measure Slurm RPC execution times */
+extern bool measureRPC;
+
+/** Node registration response data (Tres) */
+extern Ext_Resp_Node_Reg_t *tresDBconfig;
+
 /**
  * @brief Send a node registration message
  *
  * Send the current node configuration and status to the slurmctld.
  */
-void sendNodeRegStatus(void);
+void sendNodeRegStatus(bool startup);
 
 /**
  * @brief Process a new Slurm message

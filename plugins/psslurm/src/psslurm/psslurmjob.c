@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2014-2018 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2014-2019 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -85,6 +85,8 @@ static void doDeleteJob(Job_t *job)
     ufree(job->acctFreq);
     ufree(job->gids);
     ufree(job->packHostlist);
+    ufree(job->tresBind);
+    ufree(job->tresFreq);
 
     for (i=0; i<job->argc; i++) {
 	ufree(job->argv[i]);

@@ -64,6 +64,11 @@ char *slurmProtoStr = NULL;
 /** Flag to measure Slurm RPC execution times */
 bool measureRPC = false;
 
+/** Flag to request additional info in node registration */
+static bool needNodeRegResp = true;
+
+Ext_Resp_Node_Reg_t *tresDBconfig = NULL;
+
 typedef struct {
     uint32_t jobid;
     uint32_t stepid;
@@ -1371,29 +1376,8 @@ static void handleForwardData(Slurm_Msg_t *sMsg)
 
 static void handleLaunchProlog(Slurm_Msg_t *sMsg)
 {
-    uint32_t jobid;
-    uid_t uid;
-    gid_t gid;
-    char *alias, *nodes, *partition;
-    char **ptr = &sMsg->ptr;
-
-    getUint32(ptr, &jobid);
-    getUint32(ptr, &uid);
-    getUint32(ptr, &gid);
-
-    alias = getStringM(ptr);
-    nodes = getStringM(ptr);
-    partition = getStringM(ptr);
-
-    mlog("%s: start prolog jobid %u uid %u gid %u alias '%s' nodes '%s'"
-	 " partition '%s'\n", __func__, jobid, uid, gid, alias, nodes,
-	 partition);
-
-    sendSlurmRC(sMsg, SLURM_SUCCESS);
-
-    ufree(nodes);
-    ufree(alias);
-    ufree(partition);
+    flog("unsupported request, please use the slurmctld prologue\n");
+    sendSlurmRC(sMsg, ESLURM_NOT_SUPPORTED);
 }
 
 /**
@@ -1885,6 +1869,32 @@ static void handleRespMessageComposite(Slurm_Msg_t *sMsg)
     sendSlurmRC(sMsg, ESLURM_NOT_SUPPORTED);
 }
 
+/**
+ * @brief Handle response to node registration request
+ *
+ * Currently used to receive TRes accounting fields from slurmctld.
+ *
+ * @param sMsg The Slurm message to handle
+ */
+static void handleRespNodeReg(Slurm_Msg_t *sMsg)
+{
+    /* don't request the additional info again */
+    needNodeRegResp = false;
+
+    if (!unpackExtRespNodeReg(sMsg, &tresDBconfig)) {
+	flog("unpack slurmctld node registration response failed\n");
+	return;
+    }
+
+    uint32_t i;
+    for (i=0; i<tresDBconfig->count; i++) {
+	fdbg(PSSLURM_LOG_ACC, "alloc %zu count %u id %zu name %s type: %s\n",
+	     tresDBconfig->entry[i].allocSec, tresDBconfig->entry[i].count,
+	     tresDBconfig->entry[i].id, tresDBconfig->entry[i].name,
+	     tresDBconfig->entry[i].type);
+    }
+}
+
 static void getSlurmMsgHeader(Slurm_Msg_t *sMsg, Msg_Forward_t *fw)
 {
     char **ptr = &sMsg->ptr;
@@ -2039,7 +2049,7 @@ void processSlurmMsg(Slurm_Msg_t *sMsg, Msg_Forward_t *fw, Connection_CB_t *cb,
 static void handleNodeRegStat(Slurm_Msg_t *sMsg)
 {
     sendPing(sMsg);
-    sendNodeRegStatus();
+    sendNodeRegStatus(false);
 }
 
 static void handleInvalid(Slurm_Msg_t *sMsg)
@@ -2193,12 +2203,17 @@ bool initSlurmdProto(void)
 	}
     }
 
-    if (!strcmp(pver, "17.11") || !strcmp(pver, "1711")) {
+    if (!strcmp(pver, "18.08") || !strcmp(pver, "1808")) {
+	slurmProto = SLURM_18_08_PROTO_VERSION;
+	slurmProtoStr = ustrdup("18.08");
+    } else if (!strcmp(pver, "17.11") || !strcmp(pver, "1711")) {
 	slurmProto = SLURM_17_11_PROTO_VERSION;
 	slurmProtoStr = ustrdup("17.11");
+	needNodeRegResp = false;
     } else if (!strcmp(pver, "17.02") || !strcmp(pver, "1702")) {
 	slurmProto = SLURM_17_02_PROTO_VERSION;
 	slurmProtoStr = ustrdup("17.02");
+	needNodeRegResp = false;
     } else {
 	mlog("%s: unsupported Slurm protocol version %s\n", __func__, pver);
 	return false;
@@ -2239,6 +2254,7 @@ bool initSlurmdProto(void)
     registerSlurmdMsg(REQUEST_NETWORK_CALLERID, handleNetworkCallerID);
     registerSlurmdMsg(MESSAGE_COMPOSITE, handleInvalid);
     registerSlurmdMsg(RESPONSE_MESSAGE_COMPOSITE, handleRespMessageComposite);
+    registerSlurmdMsg(RESPONSE_NODE_REGISTRATION, handleRespNodeReg);
 
     return true;
 }
@@ -2280,11 +2296,12 @@ void clearSlurmdProto(void)
     clearSlurmdMsg(REQUEST_NETWORK_CALLERID);
     clearSlurmdMsg(MESSAGE_COMPOSITE);
     clearSlurmdMsg(RESPONSE_MESSAGE_COMPOSITE);
+    clearSlurmdMsg(RESPONSE_NODE_REGISTRATION);
 
     ufree(slurmProtoStr);
 }
 
-void sendNodeRegStatus(void)
+void sendNodeRegStatus(bool startup)
 {
     PS_SendDB_t msg = { .bufUsed = 0, .useFrag = false };
     struct utsname sys;
@@ -2341,6 +2358,10 @@ void sendNodeRegStatus(void)
     /* version string */
     snprintf(stat.verStr, sizeof(stat.verStr), "psslurm-%i-p%s", version,
 	     slurmProtoStr);
+
+    /* flags */
+    if (needNodeRegResp) stat.flags |= SLURMD_REG_FLAG_RESP;
+    if (startup) stat.flags |= SLURMD_REG_FLAG_STARTUP;
 
     packRespNodeRegStatus(&msg, &stat);
 

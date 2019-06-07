@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2017-2018 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2017-2019 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -175,6 +175,10 @@ int deleteStep(uint32_t jobid, uint32_t stepid)
     ufree(step->packTaskCounts);
     ufree(step->packHostlist);
     ufree(step->packNodes);
+    ufree(step->tresBind);
+    ufree(step->tresFreq);
+    ufree(step->x11.host);
+    ufree(step->x11.magicCookie);
 
     clearTasks(&step->tasks);
     freeGresCred(&step->gresList);

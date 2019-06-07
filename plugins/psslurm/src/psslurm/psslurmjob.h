@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2014-2018 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2014-2019 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -77,6 +77,9 @@ typedef struct {
     char *packHostlist;	    /**< pack host-list (Slurm compressed) */
     uint32_t packNrOfNodes; /**< number of nodes in pack */
     PSnodes_ID_t *packNodes;/**< all participating nodes in the pack */
+    uint32_t packJobid;	    /**< unique pack job identifier */
+    char *tresBind;         /**< TRes binding (currently env set only) */
+    char *tresFreq;         /**< TRes frequency (currently env set only) */
 } Job_t;
 
 /**
