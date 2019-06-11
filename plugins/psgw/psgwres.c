@@ -360,10 +360,11 @@ static bool initRoutingEnv(PSGW_Req_t *req)
 
     char *routeFile = envGet(env, "SLURM_SPANK_PSGW_ROUTE_FILE");
     if (!routeFile) {
+	char *cwd = envGet(env, "SLURM_SPANK_PSGW_CWD");
 	char *prefix = getConfValueC(&Config, "DEFAULT_ROUTE_PREFIX");
-	snprintf(buf, sizeof(buf), "%s/%s-%s", home, prefix, req->jobid);
+	snprintf(buf, sizeof(buf), "%s/%s-%s", (cwd ? cwd : home), prefix,
+		 req->jobid);
 	routeFile = buf;
-
     }
     req->routeFile = ustrdup(routeFile);
     envSet(env, "_PSSLURM_ENV_PSP_GW_SERVER", routeFile);
