@@ -142,6 +142,17 @@ bool verifyStepData(Step_t *step)
 	mlog("%s: mismatching uid '%u:%u'\n", __func__, step->uid, cred->uid);
 	return false;
     }
+
+    /* resolve empty username (needed since 17.11) */
+    if (!step->username || step->username[0] == '\0') {
+	ufree(step->username);
+	step->username = uid2String(step->uid);
+	if (!step->username) {
+	    mlog("%s: unable to resolve user ID %i\n", __func__, step->uid);
+	    return false;
+	}
+    }
+
     if (slurmProto >= SLURM_17_11_PROTO_VERSION) {
 	/* gid */
 	if (step->gid != cred->gid) {
@@ -150,7 +161,8 @@ bool verifyStepData(Step_t *step)
 	    return false;
 	}
 	/* username */
-	if (!!(strcmp(step->username, cred->username))) {
+	if (cred->username && cred->username[0] != '\0' &&
+	    !!(strcmp(step->username, cred->username))) {
 	    mlog("%s: mismatching username '%s' - '%s'\n", __func__,
 		 step->username, cred->username);
 	    return false;
@@ -174,16 +186,6 @@ bool verifyStepData(Step_t *step)
 	mlog("%s: mismatching hostlist '%s' - '%s'\n", __func__,
 		step->slurmHosts, cred->stepHL);
 	return false;
-    }
-
-    /* resolve empty username (needed since 17.11) */
-    if (!step->username || step->username[0] == '\0') {
-	ufree(step->username);
-	step->username = uid2String(step->uid);
-	if (!step->username) {
-	    mlog("%s: unable to resolve user ID %i\n", __func__, step->uid);
-	    return false;
-	}
     }
 
     mdbg(PSSLURM_LOG_AUTH, "%s: step '%u:%u' success\n", __func__,
