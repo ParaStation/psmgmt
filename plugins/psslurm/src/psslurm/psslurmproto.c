@@ -452,6 +452,7 @@ static void handleLaunchTasks(Slurm_Msg_t *sMsg)
 
     /* verify job credential */
     if (!(verifyStepData(step))) {
+	flog("invalid data for %s\n", strStepID(step));
 	sendSlurmRC(sMsg, ESLURMD_INVALID_JOB_CREDENTIAL);
 	goto ERROR;
     }

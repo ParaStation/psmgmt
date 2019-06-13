@@ -33,10 +33,12 @@ typedef struct {
 } PackInfos_t;
 
 typedef struct {
-    uint16_t x11;               /**< flag to use (vanilla) x11 forwarding */
+    uint16_t x11;               /**< flag to use (vanilla) X11 forwarding */
     char *magicCookie;          /**< magic auth cookie */
-    char *host;                 /**< remote x11 host */
-    uint16_t port;              /**< remote x11 port */
+    char *host;                 /**< remote X11 host */
+    uint16_t port;              /**< remote X11 port */
+    char *target;               /**< X11 target */
+    uint16_t targetPort;        /**< X11 target port */
 } X11_Data_t;
 
 typedef struct {
@@ -125,6 +127,9 @@ typedef struct {
     uint32_t packTaskOffset;	/**< pack task offset */
     uint32_t packSize;		/**< the size of the pack */
     uint32_t packAllocID;	/**< pack allocation ID */
+    uint32_t packStepCount;     /**< pack step count */
+    uint32_t *packTIDs;         /**< pack task IDs */
+    uint32_t *packTIDsOffset;   /**< pack task offset */
     char *packHostlist;		/**< pack host-list (Slurm compressed) */
     PSnodes_ID_t *packNodes;	/**< all participating nodes in the pack */
     PackInfos_t *packInfo;	/**< remote pack infos */

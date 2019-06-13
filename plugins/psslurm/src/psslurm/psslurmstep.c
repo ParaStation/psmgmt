@@ -179,6 +179,9 @@ int deleteStep(uint32_t jobid, uint32_t stepid)
     ufree(step->tresFreq);
     ufree(step->x11.host);
     ufree(step->x11.magicCookie);
+    ufree(step->x11.target);
+    ufree(step->packTIDs);
+    ufree(step->packTIDsOffset);
 
     clearTasks(&step->tasks);
     freeGresCred(&step->gresList);

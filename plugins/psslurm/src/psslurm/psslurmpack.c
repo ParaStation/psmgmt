@@ -686,17 +686,49 @@ bool __unpackReqLaunchTasks(Slurm_Msg_t *sMsg, Step_t **stepPtr,
 	getUint32(ptr, &step->packNrOfNodes);
 	/* pack task counts */
 	if (step->packNrOfNodes != NO_VAL) {
-	    getUint16Array(ptr, &step->packTaskCounts, &tmp);
-	    if (step->packNrOfNodes != tmp) {
-		mlog("%s: invalid packTaskCounts len %u : %u\n", __func__, tmp,
-		     step->packNrOfNodes);
-		goto ERROR;
+	    uint8_t flagTIDs = 0;
+	    if (msgVer >= SLURM_19_05_PROTO_VERSION) getUint8(ptr, &flagTIDs);
+
+	    if (flagTIDs) {
+		uint32_t i, tcount;
+		for (i=0; i<step->packNrOfNodes; i++) {
+		    getUint16(ptr, &step->packTaskCounts[i]);
+		    /* pack TIDs */
+		    getUint32Array(ptr, &step->packTIDs[i], &tcount);
+		    if (tcount != step->packTaskCounts[i]) {
+			flog("mismatching task count %u : %u\n", tcount,
+			     step->packTaskCounts[i]);
+		    }
+		}
+	    } else {
+		getUint16Array(ptr, &step->packTaskCounts, &tmp);
+		if (step->packNrOfNodes != tmp) {
+		    flog("invalid packTaskCounts len %u : %u\n", tmp,
+			 step->packNrOfNodes);
+		    goto ERROR;
+		}
 	    }
+
 	}
 	/* pack ntasks */
 	getUint32(ptr, &step->packNtasks);
+	if (msgVer > SLURM_19_05_PROTO_VERSION && step->packNtasks != NO_VAL) {
+	    uint8_t flagTIDs = 0;
+	    getUint8(ptr, &flagTIDs);
+
+	    if (flagTIDs) {
+		uint32_t i;
+		for (i=0; i<step->packNtasks; i++) {
+		    getUint32(ptr, &step->packTIDsOffset[i]);
+		}
+	    }
+	}
 	/* pack offset */
 	getUint32(ptr, &step->packOffset);
+	/* pack step count */
+	if (msgVer >= SLURM_19_05_PROTO_VERSION) {
+	    getUint32(ptr, &step->packStepCount);
+	}
 	/* pack task offset */
 	getUint32(ptr, &step->packTaskOffset);
 	if (step->packTaskOffset == NO_VAL) step->packTaskOffset = 0;
@@ -862,7 +894,24 @@ bool __unpackReqLaunchTasks(Slurm_Msg_t *sMsg, Step_t **stepPtr,
     /* jobinfo plugin id */
     getUint32(ptr, &tmp);
 
-    if (msgVer == SLURM_18_08_PROTO_VERSION) {
+    if (msgVer >= SLURM_19_05_PROTO_VERSION) {
+	/* tres bind */
+	step->tresBind = getStringM(ptr);
+	/* tres freq */
+	step->tresFreq = getStringM(ptr);
+	/* x11 */
+	getUint16(ptr, &step->x11.x11);
+	/* x11 host */
+	step->x11.host = getStringM(ptr);
+	/* x11 port */
+	getUint16(ptr, &step->x11.port);
+	/* magic cookie */
+	step->x11.magicCookie = getStringM(ptr);
+	/* x11 target */
+	step->x11.target = getStringM(ptr);
+	/* x11 target port */
+	getUint16(ptr, &step->x11.targetPort);
+    } else if (msgVer == SLURM_18_08_PROTO_VERSION) {
 	/* tres bind */
 	step->tresBind = getStringM(ptr);
 	/* tres freq */
