@@ -159,24 +159,36 @@ bool verifyStepData(Step_t *step)
     }
     /* username */
     if (cred->username && cred->username[0] != '\0' &&
-	    !!(strcmp(step->username, cred->username))) {
+	!!(strcmp(step->username, cred->username))) {
 	mlog("%s: mismatching username '%s' - '%s'\n", __func__,
 		step->username, cred->username);
 	return false;
     }
     /* gids */
-    if (step->gidsLen != cred->gidsLen) {
-	mlog("%s: mismatching gids length %u : %u\n", __func__,
-		step->gidsLen, cred->gidsLen);
-	return false;
-    }
-    for (i=0; i<cred->gidsLen; i++) {
-	if (cred->gids[i] != step->gids[i]) {
-	    mlog("%s: mismatching gid[%i] %u : %u\n", __func__,
-		    i, step->gids[i], cred->gids[i]);
+    if (!step->gidsLen && cred->gidsLen) {
+	/* 19.05: gids are not transmitted via launch request anymore,
+	 * has be set from credential */
+	ufree(step->gids);
+	step->gids = umalloc(sizeof(*step->gids) * cred->gidsLen);
+	for (i=0; i<cred->gidsLen; i++) {
+	    step->gids[i] = cred->gids[i];
+	}
+	step->gidsLen = cred->gidsLen;
+    } else {
+	if (step->gidsLen != cred->gidsLen) {
+	    mlog("%s: mismatching gids length %u : %u\n", __func__,
+		    step->gidsLen, cred->gidsLen);
 	    return false;
 	}
+	for (i=0; i<cred->gidsLen; i++) {
+	    if (cred->gids[i] != step->gids[i]) {
+		mlog("%s: mismatching gid[%i] %u : %u\n", __func__,
+			i, step->gids[i], cred->gids[i]);
+		return false;
+	    }
+	}
     }
+
     /* hostlist */
     if (!!(strcmp(step->slurmHosts, cred->stepHL))) {
 	mlog("%s: mismatching hostlist '%s' - '%s'\n", __func__,
@@ -232,26 +244,6 @@ bool verifyJobData(Job_t *job)
 	mlog("%s: mismatching gid '%u:%u'\n", __func__, job->gid, cred->gid);
 	return false;
     }
-    /* username */
-    if (!!(strcmp(job->username, cred->username))) {
-	mlog("%s: mismatching username '%s' - '%s'\n", __func__,
-		job->username, cred->username);
-	return false;
-    }
-    /* gids */
-    if (job->gidsLen != cred->gidsLen) {
-	mlog("%s: mismatching gids length %u : %u\n", __func__,
-		job->gidsLen, cred->gidsLen);
-	return false;
-    }
-    for (i=0; i<cred->gidsLen; i++) {
-	if (cred->gids[i] != job->gids[i]) {
-	    mlog("%s: mismatching gid[%i] %u : %u\n", __func__,
-		    i, job->gids[i], cred->gids[i]);
-	    return false;
-	}
-    }
-
     /* resolve empty username (needed since 17.11) */
     if (!job->username || job->username[0] == '\0') {
 	ufree(job->username);
@@ -259,6 +251,37 @@ bool verifyJobData(Job_t *job)
 	if (!job->username) {
 	    mlog("%s: unable to resolve user ID %i\n", __func__, job->uid);
 	    return false;
+	}
+    }
+    /* username */
+    if (cred->username && cred->username[0] != '\0' &&
+	!!(strcmp(job->username, cred->username))) {
+	mlog("%s: mismatching username '%s' - '%s'\n", __func__,
+		job->username, cred->username);
+	return false;
+    }
+    /* gids */
+    if (!job->gidsLen && cred->gidsLen) {
+	/* 19.05: gids are not transmitted via launch request anymore,
+	 * has be set from credential */
+	ufree(job->gids);
+	job->gids = umalloc(sizeof(*job->gids) * cred->gidsLen);
+	for (i=0; i<cred->gidsLen; i++) {
+	    job->gids[i] = cred->gids[i];
+	}
+	job->gidsLen = cred->gidsLen;
+    } else {
+	if (job->gidsLen != cred->gidsLen) {
+	    mlog("%s: mismatching gids length %u : %u\n", __func__,
+		    job->gidsLen, cred->gidsLen);
+	    return false;
+	}
+	for (i=0; i<cred->gidsLen; i++) {
+	    if (cred->gids[i] != job->gids[i]) {
+		mlog("%s: mismatching gid[%i] %u : %u\n", __func__,
+			i, job->gids[i], cred->gids[i]);
+		return false;
+	    }
 	}
     }
 
