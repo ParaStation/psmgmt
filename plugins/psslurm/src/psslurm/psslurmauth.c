@@ -142,7 +142,12 @@ bool verifyStepData(Step_t *step)
 	mlog("%s: mismatching uid '%u:%u'\n", __func__, step->uid, cred->uid);
 	return false;
     }
-
+    /* gid */
+    if (step->gid != cred->gid) {
+	mlog("%s: mismatching gid '%u:%u'\n", __func__,
+		step->gid, cred->gid);
+	return false;
+    }
     /* resolve empty username (needed since 17.11) */
     if (!step->username || step->username[0] == '\0') {
 	ufree(step->username);
@@ -152,33 +157,24 @@ bool verifyStepData(Step_t *step)
 	    return false;
 	}
     }
-
-    if (slurmProto >= SLURM_17_11_PROTO_VERSION) {
-	/* gid */
-	if (step->gid != cred->gid) {
-	    mlog("%s: mismatching gid '%u:%u'\n", __func__,
-		 step->gid, cred->gid);
-	    return false;
-	}
-	/* username */
-	if (cred->username && cred->username[0] != '\0' &&
+    /* username */
+    if (cred->username && cred->username[0] != '\0' &&
 	    !!(strcmp(step->username, cred->username))) {
-	    mlog("%s: mismatching username '%s' - '%s'\n", __func__,
-		 step->username, cred->username);
+	mlog("%s: mismatching username '%s' - '%s'\n", __func__,
+		step->username, cred->username);
+	return false;
+    }
+    /* gids */
+    if (step->gidsLen != cred->gidsLen) {
+	mlog("%s: mismatching gids length %u : %u\n", __func__,
+		step->gidsLen, cred->gidsLen);
+	return false;
+    }
+    for (i=0; i<cred->gidsLen; i++) {
+	if (cred->gids[i] != step->gids[i]) {
+	    mlog("%s: mismatching gid[%i] %u : %u\n", __func__,
+		    i, step->gids[i], cred->gids[i]);
 	    return false;
-	}
-	/* gids */
-	if (step->gidsLen != cred->gidsLen) {
-	    mlog("%s: mismatching gids length %u : %u\n", __func__,
-		 step->gidsLen, cred->gidsLen);
-	    return false;
-	}
-	for (i=0; i<cred->gidsLen; i++) {
-	    if (cred->gids[i] != step->gids[i]) {
-		mlog("%s: mismatching gid[%i] %u : %u\n", __func__,
-		     i, step->gids[i], cred->gids[i]);
-		return false;
-	    }
 	}
     }
     /* hostlist */
@@ -231,30 +227,28 @@ bool verifyJobData(Job_t *job)
 		job->slurmHosts, cred->jobHostlist);
 	return false;
     }
-    if (slurmProto >= SLURM_17_11_PROTO_VERSION) {
-	/* gid */
-	if (job->gid != cred->gid) {
-	    mlog("%s: mismatching gid '%u:%u'\n", __func__, job->gid, cred->gid);
+    /* gid */
+    if (job->gid != cred->gid) {
+	mlog("%s: mismatching gid '%u:%u'\n", __func__, job->gid, cred->gid);
+	return false;
+    }
+    /* username */
+    if (!!(strcmp(job->username, cred->username))) {
+	mlog("%s: mismatching username '%s' - '%s'\n", __func__,
+		job->username, cred->username);
+	return false;
+    }
+    /* gids */
+    if (job->gidsLen != cred->gidsLen) {
+	mlog("%s: mismatching gids length %u : %u\n", __func__,
+		job->gidsLen, cred->gidsLen);
+	return false;
+    }
+    for (i=0; i<cred->gidsLen; i++) {
+	if (cred->gids[i] != job->gids[i]) {
+	    mlog("%s: mismatching gid[%i] %u : %u\n", __func__,
+		    i, job->gids[i], cred->gids[i]);
 	    return false;
-	}
-	/* username */
-	if (!!(strcmp(job->username, cred->username))) {
-	    mlog("%s: mismatching username '%s' - '%s'\n", __func__,
-		 job->username, cred->username);
-	    return false;
-	}
-	/* gids */
-	if (job->gidsLen != cred->gidsLen) {
-	    mlog("%s: mismatching gids length %u : %u\n", __func__,
-		 job->gidsLen, cred->gidsLen);
-	    return false;
-	}
-	for (i=0; i<cred->gidsLen; i++) {
-	    if (cred->gids[i] != job->gids[i]) {
-		mlog("%s: mismatching gid[%i] %u : %u\n", __func__,
-		     i, job->gids[i], cred->gids[i]);
-		return false;
-	    }
 	}
     }
 
