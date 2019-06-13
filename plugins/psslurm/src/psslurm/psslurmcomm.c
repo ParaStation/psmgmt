@@ -526,7 +526,7 @@ static int handleSlurmctldReply(Slurm_Msg_t *sMsg, void *info)
     /* return code */
     getUint32(ptr, &rc);
     if (rc != SLURM_SUCCESS) {
-	flog("%s: error: msg %s rc %u sock %i\n",
+	flog("error: msg %s rc %u sock %i\n",
 	     msgType2String(sMsg->head.type), rc, sMsg->sock);
     }
 

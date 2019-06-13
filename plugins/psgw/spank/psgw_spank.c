@@ -12,6 +12,7 @@
 #include <unistd.h>
 #include <string.h>
 #include <stdbool.h>
+#include <limits.h>
 
 #include "slurm/spank.h"
 
@@ -105,6 +106,10 @@ int slurm_spank_init_post_opt(spank_t sp, int ac, char **av)
     if (routeFile) {
 	spank_job_control_setenv(sp, "SLURM_SPANK_PSGW_ROUTE_FILE", routeFile, 1);
         if (writeInfo) slurm_info("psgw: using route file %s", routeFile);
+    } else {
+        char buf[PATH_MAX];
+        char *cwd = getcwd(buf, sizeof(buf));
+	spank_job_control_setenv(sp, "SLURM_SPANK_PSGW_CWD", cwd, 1);
     }
 
     if (routePlugin) {
