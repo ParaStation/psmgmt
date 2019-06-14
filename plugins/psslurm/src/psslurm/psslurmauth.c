@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2014-2018 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2014-2019 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -24,8 +24,14 @@
 #include "psslurmpack.h"
 #include "psslurmauth.h"
 
+/** munge plugin string (obsolete since 19.05) */
 #define AUTH_MUNGE_STRING "auth/munge"
+
+/** munge plugin version (obsolete since 19.05) */
 #define AUTH_MUNGE_VERSION 10
+
+/** munge plugin identification */
+#define MUNGE_PLUGIN_ID 101
 
 bool verifyUserId(uid_t userID, uid_t validID)
 {
@@ -55,6 +61,7 @@ Slurm_Auth_t *dupSlurmAuth(Slurm_Auth_t *auth)
     dupAuth->method = strdup(auth->method);
     dupAuth->cred = strdup(auth->cred);
     dupAuth->version = auth->version;
+    dupAuth->pluginID = auth->pluginID;
 
     return dupAuth;
 }
@@ -70,6 +77,7 @@ Slurm_Auth_t *getSlurmAuth(void)
     auth->method = strdup(AUTH_MUNGE_STRING);
     auth->version = AUTH_MUNGE_VERSION;
     auth->cred = cred;
+    auth->pluginID = MUNGE_PLUGIN_ID;
 
     return auth;
 }
@@ -84,18 +92,17 @@ bool extractSlurmAuth(Slurm_Msg_t *sMsg)
 	goto ERROR;
     }
 
-    if (!!(strcmp(auth->method, AUTH_MUNGE_STRING))) {
-	mlog("%s: invalid auth munge plugin '%s'\n", __func__, auth->method);
+    /* ensure munge is used for authentication */
+    if (auth->pluginID && auth->pluginID != MUNGE_PLUGIN_ID) {
+	flog("unsupported auth plugin %u\n", auth->pluginID);
 	goto ERROR;
     }
 
-    /* TODO: disable check temporarly
-    if (version != AUTH_MUNGE_VERSION) {
-	mlog("%s: auth munge version differ '%u' : '%u'\n", __func__,
-		AUTH_MUNGE_VERSION, version);
-	return 0;
+    /* auth method (obsolete since 19.05) */
+    if (auth->method && !!(strcmp(auth->method, AUTH_MUNGE_STRING))) {
+	mlog("%s: invalid auth munge plugin '%s'\n", __func__, auth->method);
+	goto ERROR;
     }
-    */
 
     ret = psMungeDecode(auth->cred, &sMsg->head.uid, &sMsg->head.gid);
 

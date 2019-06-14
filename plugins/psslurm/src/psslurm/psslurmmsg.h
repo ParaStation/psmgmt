@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2017-2018 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2017-2019 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -20,9 +20,10 @@
 #include "slurmmsg.h"
 
 typedef struct {
-    char *method;
-    uint32_t version;
-    char *cred;
+    char *method;	/* obsolete since 19.05 */
+    uint32_t version;	/* obsolete since 19.05 */
+    char *cred;		/* authentication credential */
+    uint32_t pluginID;	/* plugin used for authentication */
 } Slurm_Auth_t;
 
 typedef struct {

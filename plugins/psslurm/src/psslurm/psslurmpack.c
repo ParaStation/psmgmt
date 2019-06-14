@@ -32,9 +32,14 @@ bool __packSlurmAuth(PS_SendDB_t *data, Slurm_Auth_t *auth,
 	return false;
     }
 
-    addStringToMsg(auth->method, data);
-    addUint32ToMsg(auth->version, data);
-    addStringToMsg(auth->cred, data);
+    if (slurmProto >= SLURM_19_05_PROTO_VERSION) {
+	addUint32ToMsg(auth->pluginID, data);
+	addStringToMsg(auth->cred, data);
+    } else {
+	addStringToMsg(auth->method, data);
+	addUint32ToMsg(auth->version, data);
+	addStringToMsg(auth->cred, data);
+    }
 
     return true;
 }
@@ -56,9 +61,17 @@ bool __unpackSlurmAuth(Slurm_Msg_t *sMsg, Slurm_Auth_t **authPtr,
 	return false;
     }
 
+    uint16_t msgVer = sMsg->head.version;
     auth = umalloc(sizeof(Slurm_Auth_t));
-    auth->method = getStringM(ptr);
-    getUint32(ptr, &auth->version);
+
+    if (msgVer >= SLURM_19_05_PROTO_VERSION) {
+	getUint32(ptr, &auth->pluginID);
+	auth->method = NULL;
+    } else {
+	auth->method = getStringM(ptr);
+	getUint32(ptr, &auth->version);
+	auth->pluginID = 0;
+    }
     auth->cred = getStringM(ptr);
 
     *authPtr = auth;
@@ -76,17 +89,18 @@ static Gres_Cred_t *unpackGresStep(char **ptr, uint16_t index)
     gres = getGresCred();
     gres->job = 0;
 
+    /* gres magic */
     getUint32(ptr, &magic);
-    getUint32(ptr, &gres->id);
-    getUint64(ptr, &gres->countAlloc);
-    getUint32(ptr, &gres->nodeCount);
-    gres->nodeInUse = getBitString(ptr);
-
     if (magic != GRES_MAGIC) {
 	mlog("%s: magic error: '%u' : '%u'\n", __func__, magic, GRES_MAGIC);
 	releaseGresCred(gres);
 	return NULL;
     }
+
+    getUint32(ptr, &gres->id);
+    getUint64(ptr, &gres->countAlloc);
+    getUint32(ptr, &gres->nodeCount);
+    gres->nodeInUse = getBitString(ptr);
 
     mdbg(PSSLURM_LOG_GRES, "%s: index '%i' pluginID '%u' gresCountAlloc '%lu'"
 	    " nodeCount '%u' nodeInUse '%s'\n", __func__, index, gres->id,
@@ -116,17 +130,18 @@ static Gres_Cred_t *unpackGresJob(char **ptr, uint16_t index)
     gres = getGresCred();
     gres->job = 1;
 
+    /* gres magic */
     getUint32(ptr, &magic);
-    getUint32(ptr, &gres->id);
-    getUint64(ptr, &gres->countAlloc);
-    gres->typeModel = getStringM(ptr);
-    getUint32(ptr, &gres->nodeCount);
-
     if (magic != GRES_MAGIC) {
 	mlog("%s: magic error '%u' : '%u'\n", __func__, magic, GRES_MAGIC);
 	releaseGresCred(gres);
 	return NULL;
     }
+
+    getUint32(ptr, &gres->id);
+    getUint64(ptr, &gres->countAlloc);
+    gres->typeModel = getStringM(ptr);
+    getUint32(ptr, &gres->nodeCount);
 
     mdbg(PSSLURM_LOG_GRES, "%s: index '%i' pluginID '%u' "
 	    "gresCountAlloc '%lu' nodeCount '%u'\n", __func__, index,
@@ -169,8 +184,8 @@ static Gres_Cred_t *unpackGresJob(char **ptr, uint16_t index)
     return gres;
 }
 
-static void unpackGres(char **ptr, list_t *gresList, uint32_t jobid,
-		uint32_t stepid, uid_t uid)
+static bool unpackGres(char **ptr, list_t *gresList, uint32_t jobid,
+		       uint32_t stepid, uid_t uid)
 {
     uint16_t count, i;
 
@@ -181,7 +196,10 @@ static void unpackGres(char **ptr, list_t *gresList, uint32_t jobid,
 
     for (i=0; i<count; i++) {
 	Gres_Cred_t *gres = unpackGresJob(ptr, i);
-	if (!gres) continue;
+	if (!gres) {
+	    flog("unpacking gres job data %u failed\n", i);
+	    return false;
+	}
 	list_add_tail(&gres->next, gresList);
     }
 
@@ -192,9 +210,13 @@ static void unpackGres(char **ptr, list_t *gresList, uint32_t jobid,
 
     for (i=0; i<count; i++) {
 	Gres_Cred_t *gres = unpackGresStep(ptr, i);
-	if (!gres) continue;
+	if (!gres) {
+	    flog("unpacking gres step data %u failed\n", i);
+	    return false;
+	}
 	list_add_tail(&gres->next, gresList);
     }
+    return true;
 }
 
 bool __unpackJobCred(Slurm_Msg_t *sMsg, JobCred_t **credPtr,
@@ -233,11 +255,34 @@ bool __unpackJobCred(Slurm_Msg_t *sMsg, JobCred_t **credPtr,
     getUint32(ptr, &cred->gid);
     /* username */
     cred->username = getStringM(ptr);
-    /* gids */
-    getUint32Array(ptr, &cred->gids, &cred->gidsLen);
+
+    uint16_t msgVer = sMsg->head.version;
+    if (msgVer >= SLURM_19_05_PROTO_VERSION) {
+	/* gecos */
+	cred->pwGecos = getStringM(ptr);
+	/* pw dir */
+	cred->pwDir = getStringM(ptr);
+	/* pw shell */
+	cred->pwShell = getStringM(ptr);
+	/* gids */
+	getUint32Array(ptr, &cred->gids, &cred->gidsLen);
+	/* gid names */
+	uint32_t tmp;
+	getStringArrayM(ptr, &cred->gidNames, &tmp);
+	if (tmp && tmp != cred->gidsLen) {
+	    flog("invalid gid name count %u : %u\n", tmp, cred->gidsLen);
+	    goto ERROR;
+	}
+    } else {
+	/* gids */
+	getUint32Array(ptr, &cred->gids, &cred->gidsLen);
+    }
 
     /* gres job/step allocations */
-    unpackGres(ptr, gresList, cred->jobid, cred->stepid, cred->uid);
+    if (!unpackGres(ptr, gresList, cred->jobid, cred->stepid, cred->uid)) {
+	flog("unpacking gres data failed\n");
+	goto ERROR;
+    }
 
     /* count of specialized cores */
     getUint16(ptr, &cred->jobCoreSpec);
@@ -474,6 +519,58 @@ bool __unpackSlurmIOHeader(char **ptr, Slurm_IO_Header_t **iohPtr,
     return true;
 }
 
+/**
+ * @brief Unpack GRes job allocation
+ *
+ * @param ptr Pointer holding data to unpack
+ */
+static bool unpackGresJobAlloc(char **ptr)
+{
+    uint16_t count, i;
+
+    getUint16(ptr, &count);
+
+    for (i=0; i<count; i++) {
+	uint32_t magic;
+	/* gres magic */
+	getUint32(ptr, &magic);
+	if (magic != GRES_MAGIC) {
+	    flog("invalid gres magic %u : %u\n", magic, GRES_MAGIC);
+	    return false;
+	}
+	/* plugin ID */
+	uint32_t pluginID;
+	getUint32(ptr, &pluginID);
+	/* node count */
+	uint32_t nodeCount;
+	getUint32(ptr, &nodeCount);
+	if (nodeCount > NO_VAL) {
+	    flog("invalid node count %u\n", nodeCount);
+	    return false;
+	}
+	/* node allocation */
+	uint8_t filled;
+	getUint8(ptr, &filled);
+	if (filled) {
+	    uint64_t *nodeAlloc;
+	    uint32_t gresNodeAllocCount;
+	    getUint64Array(ptr, &nodeAlloc, &gresNodeAllocCount);
+	    ufree(nodeAlloc);
+	}
+	/* bit allocation */
+	getUint8(ptr, &filled);
+	if (filled) {
+	    uint32_t u;
+	    for (u=0; u<nodeCount; u++) {
+		char *tmp = getBitString(ptr);
+		ufree(tmp);
+	    }
+	}
+    }
+
+    return true;
+}
+
 bool __unpackReqTerminate(Slurm_Msg_t *sMsg, Req_Terminate_Job_t **reqPtr,
 			  const char *caller, const int line)
 {
@@ -492,10 +589,16 @@ bool __unpackReqTerminate(Slurm_Msg_t *sMsg, Req_Terminate_Job_t **reqPtr,
     uint16_t msgVer = sMsg->head.version;
     char **ptr = &sMsg->ptr;
 
-    /* jobid*/
+    if (msgVer >= SLURM_19_05_PROTO_VERSION) {
+	if (!unpackGresJobAlloc(ptr)) {
+	    flog("unpacking gres job allocation info failed\n");
+	    return false;
+	}
+    }
+    /* jobid */
     getUint32(ptr, &req->jobid);
 
-    if (msgVer == SLURM_18_08_PROTO_VERSION) {
+    if (msgVer >= SLURM_18_08_PROTO_VERSION) {
 	/* pack jobid */
 	getUint32(ptr, &req->packJobid);
     }
