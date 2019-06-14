@@ -52,7 +52,7 @@ extern char **environ;
 #define DEBUG_MODEX_DATA 0
 
 /* Set to 1 to enable output of the process map */
-#define PRINT_PROCMAP 1
+#define PRINT_PROCMAP 0
 
 /* Fence object */
 typedef struct {
@@ -263,6 +263,7 @@ static const char* generateNamespaceName(PSrsrvtn_ID_t resID)
     return buf;
 }
 
+#if PRINT_PROCMAP
 static char * printProcess(PspmixProcess_t *proc) {
     static char buffer[64];
 
@@ -272,7 +273,6 @@ static char * printProcess(PspmixProcess_t *proc) {
     return buffer;
 }
 
-#if PRINT_PROCMAP
 static void printProcMap(list_t *map)
 {
     PspmixNode_t *node;
