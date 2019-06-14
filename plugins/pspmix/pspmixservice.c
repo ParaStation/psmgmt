@@ -727,7 +727,7 @@ static PSnodes_ID_t getNodeFromRank(int32_t rank, PSresinfo_t *resInfo)
 }
 
 /* create a fence object */
-static PspmixFence_t * createFenceObject(uint64_t fenceid)
+static PspmixFence_t * createFenceObject(uint64_t fenceid, const char *caller)
 {
     PspmixFence_t *fence;
     fence = ucalloc(sizeof(*fence));
@@ -735,7 +735,7 @@ static PspmixFence_t * createFenceObject(uint64_t fenceid)
     fence->id = fenceid;
 
     mdbg(PSPMIX_LOG_FENCE, "%s: Fence object created for fence id 0x%04lX\n",
-	    __func__, fenceid);
+	    caller, fenceid);
 
     return fence;
 }
@@ -878,7 +878,7 @@ int pspmix_service_fenceIn(const pmix_proc_t procs[], size_t nprocs,
 
     if (fence == NULL) {
 	/* no fence_in message received yet, create object */
-	fence = createFenceObject(fenceid);
+	fence = createFenceObject(fenceid, __func__);
 
 	list_add_tail(&fence->next, &fenceList);
     }
@@ -974,13 +974,18 @@ void pspmix_service_handleFenceIn(uint64_t fenceid, PStask_ID_t sender,
 
     if (fence == NULL) {
 	/* pspmix_service_fenceIn() not called yet, create object */
-	fence = createFenceObject(fenceid);
+	fence = createFenceObject(fenceid, __func__);
 
 	list_add_tail(&fence->next, &fenceList);
     }
     else {
 	mdbg(PSPMIX_LOG_FENCE, "%s: Fence object found for fence id 0x%04lX\n",
 		__func__, fenceid);
+
+	if (fence->receivedIn) {
+	    mlog("%s: UNEXPECTED: Multiple FenceIn messages for id 0x%04lX"
+		    " received.\n", __func__, fenceid);
+	}
     }
 
     fence->precursor = sender;
