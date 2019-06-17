@@ -1204,6 +1204,7 @@ void pspmix_service_handleModexDataResponse(bool success, pmix_proc_t *proc,
 		&& strcmp(cur->proc.nspace, proc->nspace) == 0) {
 	    mdata = cur;
 	    list_del(&cur->next);
+	    break;
 	}
     }
 
