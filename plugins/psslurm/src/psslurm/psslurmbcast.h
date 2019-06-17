@@ -23,6 +23,7 @@ typedef struct {
     time_t ctime;	/**< creation time */
     time_t etime;	/**< expire time */
     uint32_t jobid;	/**< unique job identifier */
+    uint32_t packJobid;	/**< unique pack job identifier */
     uid_t uid;		/**< user id */
     gid_t gid;		/**< group id */
     char *username;	/**< username */

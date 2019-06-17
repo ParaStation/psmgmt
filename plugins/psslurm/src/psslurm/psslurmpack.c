@@ -375,6 +375,13 @@ bool __unpackBCastCred(Slurm_Msg_t *sMsg, BCast_Cred_t *cred,
     getTime(ptr, &cred->etime);
     /* jobid */
     getUint32(ptr, &cred->jobid);
+
+    uint16_t msgVer = sMsg->head.version;
+    if (msgVer >= SLURM_19_05_PROTO_VERSION) {
+	/* pack jobid */
+	getUint32(ptr, &cred->packJobid);
+    }
+
     /* uid */
     getUint32(ptr, &cred->uid);
     /* gid */
