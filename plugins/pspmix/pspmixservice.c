@@ -1081,6 +1081,8 @@ void pspmix_service_handleFenceOut(uint64_t fenceid, void *data, size_t len)
  * Find out the the node where the target rank runs
  * and send direct modex data request to it.
  *
+ * In case of success, takes ownership of @a mdata.
+ *
  * TODO document in header
  */
 bool pspmix_service_sendModexDataRequest(modexdata_t *mdata)
@@ -1111,14 +1113,17 @@ bool pspmix_service_sendModexDataRequest(modexdata_t *mdata)
 	    nodeid);
 #endif
 
+    GET_LOCK(modexRequestList);
+
     if (!pspmix_comm_sendModexDataRequest(nodeid, &mdata->proc)) {
 	mlog("%s: Failed to send modex data request for %s:%d to node %hd.\n",
 		__func__, mdata->proc.nspace, mdata->proc.rank, nodeid);
+	RELEASE_LOCK(modexRequestList);
 	return false;
     }
 
-    GET_LOCK(modexRequestList);
     list_add_tail(&(mdata->next), &modexRequestList);
+
     RELEASE_LOCK(modexRequestList);
 
     return true;
@@ -1197,7 +1202,7 @@ void pspmix_service_handleModexDataResponse(bool success, pmix_proc_t *proc,
 
     GET_LOCK(modexRequestList);
 
-    /* find request in modexRequestList and take it out */
+    /* find first matching request in modexRequestList and take it out */
     list_for_each_safe(s, tmp, &modexRequestList) {
 	modexdata_t *cur = list_entry(s, modexdata_t, next);
 	if (cur->proc.rank == proc->rank
@@ -1212,7 +1217,8 @@ void pspmix_service_handleModexDataResponse(bool success, pmix_proc_t *proc,
 
     if (mdata == NULL) {
 	mlog("%s: No modex data request found for modex data response"
-		" resceived. Ignoring!\n", __func__);
+		" resceived (rank %d namespace %s). Ignoring!\n", __func__,
+		proc->rank, proc->nspace);
 	return;
     }
 
