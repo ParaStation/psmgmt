@@ -302,11 +302,11 @@ static bool extractStepPackInfos(Step_t *step)
 {
     uint32_t nrOfNodes, i;
 
-    mdbg(PSSLURM_LOG_PACK, "%s: packNodeOffset %u  packJobid %u packNtasks %u "
+    fdbg(PSSLURM_LOG_PACK, "packNodeOffset %u  packJobid %u packNtasks %u "
 	 "packOffset %u packTaskOffset %u packHostlist '%s' packNrOfNodes %u\n",
-	    __func__, step->packNodeOffset, step->packJobid, step->packNtasks,
-	    step->packOffset, step->packTaskOffset, step->packHostlist,
-	    step->packNrOfNodes);
+	 step->packNodeOffset, step->packJobid, step->packNtasks,
+	 step->packOffset, step->packTaskOffset, step->packHostlist,
+	 step->packNrOfNodes);
 
     if (!convHLtoPSnodes(step->packHostlist, getNodeIDbySlurmHost,
 			 &step->packNodes, &nrOfNodes)) {
@@ -316,8 +316,8 @@ static bool extractStepPackInfos(Step_t *step)
     }
 
     if (step->packNrOfNodes != nrOfNodes) {
-	mlog("%s extracting PS nodes from Slurm pack hostlist failed\n",
-		__func__);
+	flog("extracting PS nodes from Slurm pack hostlist %s failed (%u:%u)\n",
+	     step->packHostlist, step->packNrOfNodes, nrOfNodes);
 	return false;
     }
 

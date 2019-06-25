@@ -763,6 +763,11 @@ bool __unpackReqLaunchTasks(Slurm_Msg_t *sMsg, Step_t **stepPtr,
 
 	if (flagTIDs) {
 	    uint32_t i, tcount;
+	    step->packTaskCounts =
+		umalloc(sizeof(*step->packTaskCounts) * step->packNrOfNodes);
+	    step->packTIDs =
+		umalloc(sizeof(*step->packTIDs) * step->packNrOfNodes);
+
 	    for (i=0; i<step->packNrOfNodes; i++) {
 		getUint16(ptr, &step->packTaskCounts[i]);
 		/* pack TIDs */
@@ -784,12 +789,15 @@ bool __unpackReqLaunchTasks(Slurm_Msg_t *sMsg, Step_t **stepPtr,
     }
     /* pack ntasks */
     getUint32(ptr, &step->packNtasks);
-    if (msgVer > SLURM_19_05_PROTO_VERSION && step->packNtasks != NO_VAL) {
+    if (msgVer >= SLURM_19_05_PROTO_VERSION && step->packNtasks != NO_VAL) {
 	uint8_t flagTIDs = 0;
 	getUint8(ptr, &flagTIDs);
 
 	if (flagTIDs) {
 	    uint32_t i;
+
+	    step->packTIDsOffset =
+		umalloc(sizeof(*step->packTIDsOffset) * step->packNtasks);
 	    for (i=0; i<step->packNtasks; i++) {
 		getUint32(ptr, &step->packTIDsOffset[i]);
 	    }

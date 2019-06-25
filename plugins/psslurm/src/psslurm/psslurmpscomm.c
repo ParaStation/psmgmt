@@ -2472,6 +2472,9 @@ int send_PS_PackExit(Step_t *step, int32_t exitStatus)
     /* exit status */
     addInt32ToMsg(exitStatus, &data);
 
+    fdbg(PSSLURM_LOG_PACK, "%s pack jobid %u exit %i\n", strStepID(step),
+	 step->packJobid, exitStatus);
+
     return sendFragMsg(&data);
 }
 
