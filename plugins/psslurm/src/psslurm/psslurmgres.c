@@ -50,12 +50,12 @@ static int setGresCount(Gres_Conf_t *gres, char *count)
     errno = 0;
     gCount = strtol(count, &end, 10);
     if (!gCount && errno != 0) {
-	mwarn(errno, "%s: invalid count '%s' for '%s'", __func__, count,
-	      gres->name);
+	mwarn(errno, "%s: invalid count '%s' for '%s'", __func__,
+	      count, gres->name);
 	return 0;
     }
     if (gCount == LONG_MIN || gCount == LONG_MAX) {
-	mlog("%s: invalid count '%s' for '%s'\n", __func__, count, gres->name);
+	flog("invalid count '%s' for '%s'\n", count, gres->name);
 	return 0;
     }
     if (end[0] == 'k' || end[0] == 'K') {
@@ -65,7 +65,7 @@ static int setGresCount(Gres_Conf_t *gres, char *count)
     } else if (end[0] == 'g' || end[0] == 'G') {
 	gCount *= (1024 * 1024 * 1024);
     } else if (end[0] != '\0') {
-	mlog("%s: invalid count '%s' for '%s'\n", __func__, count, gres->name);
+	flog("invalid count '%s' for '%s'\n", count, gres->name);
 	return 0;
     }
 
@@ -87,10 +87,8 @@ static bool testDevices(char *file, void *info)
     return true;
 }
 
-static int parseGresFile(Gres_Conf_t *gres, char *file)
+static int parseGresFile(Gres_Conf_t *gres)
 {
-    gres->file = ustrdup(file);
-
     /* test every devices */
     if (!traverseHostList(gres->file, testDevices, gres)) {
 	mlog("%s: invalid gres file '%s' for '%s'\n", __func__,
@@ -101,44 +99,47 @@ static int parseGresFile(Gres_Conf_t *gres, char *file)
     return 1;
 }
 
-Gres_Conf_t *addGresConf(char *name, char *count, char *file, char *cpus)
+static void freeGresConf(Gres_Conf_t *gres)
 {
-    Gres_Conf_t *gres = umalloc(sizeof(*gres));
-
-    gres->count = 1;
-    gres->name = ustrdup(name);
-    gres->id = getGresId(name);
-
-    /* TODO support CPUs in gres */
-    gres->cpus = NULL;
-    gres->type = NULL;
-
-    /* parse file */
-    if (file) {
-	if (!parseGresFile(gres, file)) goto GRES_ERROR;
-    } else {
-	gres->file = NULL;
-
-	/* parse count */
-	if (!setGresCount(gres, count)) goto GRES_ERROR;
-    }
-
-    mlog("%s: gres conf '%s' count '%lu' file '%s' cpus '%s' "
-	 "id '%u'\n", __func__, gres->name, gres->count, gres->file,
-	 gres->cpus, gres->id);
-    list_add_tail(&gres->next, &GresConfList);
-
-    return gres;
-
-GRES_ERROR:
     ufree(gres->name);
     ufree(gres->cpus);
     ufree(gres->file);
     ufree(gres->type);
+    ufree(gres->cores);
+    ufree(gres);
+}
+
+Gres_Conf_t *saveGresConf(Gres_Conf_t *gres, char *count)
+{
+    gres->id = getGresId(gres->name);
+
+    /* parse file */
+    if (gres->file) {
+	if (!parseGresFile(gres)) goto GRES_ERROR;
+    } else {
+	/* parse count */
+	if (!setGresCount(gres, count)) goto GRES_ERROR;
+    }
+
+    if (gres->cores) {
+	flog("GRES cores feature currently unsupported, ignoring it\n");
+    }
+
+    flog("name '%s' count=%lu%s%s%s%s%s%s\n",
+	 gres->name, gres->count,
+	 gres->file ? " file=" : "", gres->file ? gres->file : "",
+	 gres->type ? " type=" : "", gres->type ? gres->type : "",
+	 gres->cores ? " cores=" : "", gres->cores ? gres->cores : "");
+
+    list_add_tail(&gres->next, &GresConfList);
+    return gres;
+
+GRES_ERROR:
+    freeGresConf(gres);
     return NULL;
 }
 
-int countGresConf()
+int countGresConf(void)
 {
     int count = 0;
     list_t *g;
@@ -152,17 +153,13 @@ void clearGresConf(void)
     list_t *g, *tmp;
     list_for_each_safe(g, tmp, &GresConfList) {
 	Gres_Conf_t *gres = list_entry(g, Gres_Conf_t, next);
-	ufree(gres->name);
-	ufree(gres->cpus);
-	ufree(gres->file);
-	ufree(gres->type);
 
 	list_del(&gres->next);
-	ufree(gres);
+	freeGresConf(gres);
     }
 }
 
-Gres_Cred_t* getGresCred(void)
+Gres_Cred_t *getGresCred(void)
 {
     Gres_Cred_t *gres = ucalloc(sizeof(*gres));
     INIT_LIST_HEAD(&gres->next);
@@ -170,7 +167,7 @@ Gres_Cred_t* getGresCred(void)
     return gres;
 }
 
-Gres_Cred_t * findGresCred(list_t *gresList, uint32_t id, int job)
+Gres_Cred_t *findGresCred(list_t *gresList, uint32_t id, int job)
 {
     list_t *g;
     list_for_each(g, gresList) {
