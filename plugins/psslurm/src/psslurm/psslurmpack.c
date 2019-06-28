@@ -769,7 +769,7 @@ bool __unpackReqLaunchTasks(Slurm_Msg_t *sMsg, Step_t **stepPtr,
     /* count of specialized cores */
     getUint16(ptr, &step->jobCoreSpec);
     /* accelerator bind type */
-    getUint16(ptr, &tmp);
+    getUint16(ptr, &step->accelBindType);
 
     /* job credentials */
     if (!(step->cred = extractJobCred(&step->gresList, sMsg, 1))) {

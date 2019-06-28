@@ -85,7 +85,8 @@ typedef enum cpu_bind_type {    /* cpu binding type from --cpu_bind=... */
         CPU_BIND_CPUSETS   = 0x8000
 } cpu_bind_type_t;
 
-typedef enum mem_bind_type {    /* memory binding type from --mem_bind=... */
+/* memory binding */
+typedef enum mem_bind_type {
         /* verbose can be set with any other flag */
         MEM_BIND_VERBOSE= 0x01, /* =v, */
         /* the following manual binding flags are mutually exclusive */
@@ -96,6 +97,14 @@ typedef enum mem_bind_type {    /* memory binding type from --mem_bind=... */
         MEM_BIND_MASK   = 0x10, /* =mask_mem:<list of CPU masks> */
         MEM_BIND_LOCAL  = 0x20  /* =local */
 } mem_bind_type_t;
+
+/* accelerator binding */
+typedef enum accel_bind_type {
+        ACCEL_BIND_VERBOSE         = 0x01, /* 'v' verbose */
+        ACCEL_BIND_CLOSEST_GPU     = 0x02, /* 'g' Use closest GPU to the CPU */
+        ACCEL_BIND_CLOSEST_MIC     = 0x04, /* 'm' Use closest NIC to CPU */
+        ACCEL_BIND_CLOSEST_NIC     = 0x08  /* 'n' Use closest NIC to CPU */
+} accel_bind_type_t;
 
 /*
  * Task distribution states/methods
@@ -181,7 +190,6 @@ typedef enum task_dist_states {
 #define KILL_STEPS_ONLY 0x0004  /* Do not signal batch script */
 #define KILL_FULL_JOB   0x0008  /* Signal all steps, including batch script */
 #define KILL_FED_REQUEUE 0x0010 /* Mark job as requeued when requeued */
-
 
 /* task flags */
 #define LAUNCH_PARALLEL_DEBUG   0x00000001
