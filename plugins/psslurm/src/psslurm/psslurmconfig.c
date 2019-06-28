@@ -213,34 +213,36 @@ static bool addHostOptions(char *options)
  */
 static bool parseGresOptions(char *options)
 {
-    char *toksave, *next;
+    char *toksave, *next, *count = NULL;
     const char delimiters[] =" \n";
-    char *name, *count, *file, *cpus;
+    Gres_Conf_t *gres = ucalloc(sizeof(*gres));
 
-    name = count = file = cpus = NULL;
     next = strtok_r(options, delimiters, &toksave);
     while (next) {
 	if (!(strncasecmp(next, "Name=", 5))) {
-	    name = ustrdup(next+5);
+	    gres->name = ustrdup(next+5);
 	} else if (!(strncasecmp(next, "Count=", 6))) {
 	    count = ustrdup(next+6);
 	} else if (!(strncasecmp(next, "File=", 5))) {
-	    file = ustrdup(next+5);
+	    gres->file = ustrdup(next+5);
 	} else if (!(strncasecmp(next, "CPUs=", 5))) {
-	    cpus = ustrdup(next+5);
+	    gres->cpus = ustrdup(next+5);
+	} else if (!(strncasecmp(next, "Cores=", 6))) {
+	    gres->cores = ustrdup(next+6);
+	} else if (!(strncasecmp(next, "Type=", 5))) {
+	    gres->type = ustrdup(next+5);
 	} else {
-	    mlog("%s: unknown gres option '%s'\n", __func__, next);
+	    flog("unknown gres option '%s'\n", next);
 	    return false;
 	}
 	next = strtok_r(NULL, delimiters, &toksave);
     }
 
-    addGresConf(name, count, file, cpus);
-    ufree(name);
+    gres = saveGresConf(gres, count);
+    if (!gres) flog("saving GRES configuration failed\n");
+
     ufree(count);
-    ufree(file);
-    ufree(cpus);
-    return true;
+    return gres ? true : false;
 }
 
 /**

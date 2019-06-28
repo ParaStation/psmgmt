@@ -364,12 +364,18 @@ static int hookLocalJobRemoved(void *data)
 {
     PSjob_t *job = data;
 
+    mdbg(PSPMIX_LOG_CALL, "%s() called for job with loggertid %d\n", __func__,
+	    job->loggertid);
+
+    // TODO look if this job is using PMIx
+
     /* is there a PMIx jobserver running for this job? */
     PspmixJobserver_t *server;
     server = findJobserver(job->loggertid);
 
     if (server == NULL) {
-	mlog("%s: No existing PMIx jobserver found for job with loggertid %s\n",
+	mlog("%s: No existing PMIx jobserver found for job with loggertid %s."
+		" (This is fine for jobs not using PMIx.)\n",
 		__func__, PSC_printTID(job->loggertid));
 	return -1;
     }
@@ -395,6 +401,8 @@ static int hookLocalJobRemoved(void *data)
 static int hookNodeDown(void *data)
 {
     PSnodes_ID_t *nodeid = data;
+
+    mdbg(PSPMIX_LOG_CALL, "%s() called with nodeid %hd\n", __func__, *nodeid);
 
     PspmixJobserver_t *jobserver;
     list_t *j, *tmp;

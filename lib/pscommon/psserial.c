@@ -399,8 +399,8 @@ bool initSerial(size_t bufSize, Send_Msg_Func_t *func)
     }
 
     sendPSMsg = func;
-    initSerialHooks();
-    initLoopAction();
+    if (!hookDel) initSerialHooks();
+    if (!relLoopAct) initLoopAction();
 
     /* Initialize receive buffer handling */
     PSitems_init(&recvBuffers, sizeof(recvBuf_t), "recvBuffers");

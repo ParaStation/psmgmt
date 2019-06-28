@@ -16,17 +16,21 @@
 #include "psserial.h"
 #include "slurmcommon.h"
 
-#define GRES_PLUGIN_GPU	7696487
-#define GRES_PLUGIN_MIC	6515053
+/** ID of the GRES GPU plugin */
+#define GRES_PLUGIN_GPU 7696487
+
+/** ID of the GRES MIC plugin */
+#define GRES_PLUGIN_MIC 6515053
 
 typedef struct {
     list_t next;                /**< used to put into some gres-conf-lists */
-    char *name;
-    char *cpus;
-    char *file;
-    char *type;
-    uint64_t count;
-    uint32_t id;
+    char *name;                 /**< name of the GRES resource (e.g. gpu) */
+    char *cpus;                 /**< obsolete, replaced by cores */
+    char *file;                 /**< filename of the device (e.g. /dev/gpu0) */
+    char *type;                 /**< GRES type */
+    char *cores;                /**< cores to bind to GRES */
+    uint64_t count;             /**< number of GRES resources */
+    uint32_t id;                /**< GRES plugin ID */
 } Gres_Conf_t;
 
 typedef struct {
@@ -43,41 +47,62 @@ typedef struct {
 } Gres_Cred_t;
 
 /**
- * @doctodo
+ * @brief Save a GRES configuration
+ *
+ * @param gres The GRES configuration to save
+ *
+ * @param count The number of GRES resources as string
+ *
+ * @return Returns the saved GRES configuration on success or
+ * NULL otherwise
  */
-Gres_Conf_t *addGresConf(char *name, char *count, char *file, char *cpus);
+Gres_Conf_t *saveGresConf(Gres_Conf_t *gres, char *count);
 
 /**
- * @doctodo
+ * @brief Free all saved GRES configurations
  */
 void clearGresConf(void);
 
 /**
- * @doctodo
+ * @brief Allocate and initialize a new GRES credential
+ *
+ * @return Returns the created GRES credential
  */
-Gres_Cred_t * getGresCred(void);
+Gres_Cred_t *getGresCred(void);
 
 /**
- * @doctodo
+ * @brief Find a GRES credential
+ *
+ * @param list The GRES list to search
+ *
+ * @param id The GRES plugin ID
+ *
+ * @param job TODO
+ *
+ * @return Returns the found GRES credential or NULL otherwise
  */
-Gres_Cred_t * findGresCred(list_t *gresList, uint32_t id, int job);
+Gres_Cred_t *findGresCred(list_t *gresList, uint32_t id, int job);
 
 /**
- * @doctodo
+ * @brief Free a GRES credential
+ *
+ * @param gres The GRES credential to free
  */
 void releaseGresCred(Gres_Cred_t *gres);
 
 /**
- * @doctodo
+ * @brief Free GRES credential of a list
+ *
+ * @param gresList The GRES credential list to free
  */
 void freeGresCred(list_t *gresList);
 
 /**
- * @brief Get Gres configuration count
+ * @brief Get GRES configuration count
  *
- * @return Returns the number of Gres configurations
+ * @return Returns the number of GRES configurations
  */
-int countGresConf();
+int countGresConf(void);
 
 /**
  * @brief Visitor function

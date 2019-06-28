@@ -73,6 +73,7 @@ typedef struct {
     char *cpuBind;		/**< CPU binding map */
     uint16_t memBindType;	/**< memory binding type */
     char *memBind;		/**< memory binding map */
+    uint16_t accelBindType;     /**< accelerator binding type */
     uint32_t taskFlags;		/**< e.g. TASK_PARALLEL_DEBUG (slurmcommon.h) */
     int state;			/**< current state of the step */
     int exitCode;		/**< exit code of the step */

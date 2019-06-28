@@ -1562,24 +1562,25 @@ static void handleCC_IO_Msg(PSLog_Msg_t *msg)
 	}
 
 	if (noLoggerDest == msg->header.dest) return;
-	mlog("%s: step for I/O msg logger '%s' not found\n", __func__,
-		PSC_printTID(msg->header.dest));
+	flog("step for I/O msg (logger %s) not found\n",
+	     PSC_printTID(msg->header.dest));
 
 	noLoggerDest = msg->header.dest;
 	return;
     }
     taskid = msg->sender - step->packTaskOffset;
 
-    /*
-    mdbg(PSSLURM_LOG_IO, "%s: sender '%s' msgLen %i type %i taskid %i\n",
-	    __func__, PSC_printTID(msg->header.sender),
-	    msg->header.len - PSLog_headerSize, msg->type, msg->sender);
+    if (psslurmlogger->mask & PSSLURM_LOG_IO) {
+	flog("sender '%s' msgLen %i type %i PS-taskid %i Slurm-taskid %i\n",
+	     PSC_printTID(msg->header.sender),
+	     msg->header.len - PSLog_headerSize, msg->type, msg->sender,
+	     taskid);
 
-    char format[64];
-    snprintf(format, sizeof(format), "%s: msg %%.%is\n",
-		__func__, msg->header.len - PSLog_headerSize);
-    mdbg(PSSLURM_LOG_IO, format, msg->buf);
-    */
+	char format[64];
+	snprintf(format, sizeof(format), "msg %%.%zus\n",
+		 msg->header.len - PSLog_headerSize);
+	flog(format, msg->buf);
+    }
 
     /* filter stdout messages */
     if (msg->type == STDOUT && step->stdOutRank > -1 &&

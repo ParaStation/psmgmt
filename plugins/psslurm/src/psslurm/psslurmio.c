@@ -194,8 +194,9 @@ void writeIOmsg(char *msg, uint32_t msgLen, uint32_t taskid,
 
     msgPtr = msgLen ? msg : NULL;
 
-    fdbg(PSSLURM_LOG_IO, "msgLen '%i' taskid '%i' type '%s(%i)' sattach '%u'\n",
-	 msgLen, taskid, PSLog_printMsgType(type), type, sattachCon);
+    fdbg(PSSLURM_LOG_IO, "msgLen %u taskid %u type %s(%u) local rank %u "
+	 "sattach %i\n", msgLen, taskid, PSLog_printMsgType(type), type,
+	 lrank, sattachCon);
     /*
     char format[64];
     if (msgLen>0) {
@@ -546,6 +547,18 @@ static void handleStepTimeout(Forwarder_Data_t *fwdata)
 int stepForwarderMsg(PSLog_Msg_t *msg, Forwarder_Data_t *fwData)
 {
     PSSLURM_Fw_Cmds_t type = (PSSLURM_Fw_Cmds_t)msg->type;
+
+   /* ignore fw control messages */
+    switch (msg->type) {
+       case PLGN_SIGNAL_CHLD:
+       case PLGN_START_GRACE:
+       case PLGN_SHUTDOWN:
+       case PLGN_FIN_ACK:
+	  return 0;
+      default:
+	  break;
+    }
+
     switch (type) {
     case CMD_PRINT_CHILD_MSG:
 	handlePrintChildMsg(fwData, msg->buf);
@@ -566,7 +579,9 @@ int stepForwarderMsg(PSLog_Msg_t *msg, Forwarder_Data_t *fwData)
 	handleStepTimeout(fwData);
 	break;
     default:
-	mdbg(PSSLURM_LOG_IO, "%s: unexpected type %d\n", __func__, type);
+	flog("unexpected msg, type %d (PSlog type %s) from TID %s (%s) jobid "
+	     "%s\n", type, PSLog_printMsgType(type), PSC_printTID(msg->sender),
+	     fwData->pTitle, fwData->jobID);
 	return 0;
     }
 

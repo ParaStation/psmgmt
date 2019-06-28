@@ -52,7 +52,7 @@ extern char **environ;
 #define DEBUG_MODEX_DATA 0
 
 /* Set to 1 to enable output of the process map */
-#define PRINT_PROCMAP 1
+#define PRINT_PROCMAP 0
 
 /* Fence object */
 typedef struct {
@@ -144,7 +144,7 @@ FIND_IN_LIST_FUNC(Client, PspmixClient_t, pmix_rank_t, rank)
 #endif
 
 /**
- * @brief Find fence in fence list
+ * @brief Find first matching fence in fence list
  *
  * @param fenceid  id of the fence
  *
@@ -263,6 +263,7 @@ static const char* generateNamespaceName(PSrsrvtn_ID_t resID)
     return buf;
 }
 
+#if PRINT_PROCMAP
 static char * printProcess(PspmixProcess_t *proc) {
     static char buffer[64];
 
@@ -272,7 +273,6 @@ static char * printProcess(PspmixProcess_t *proc) {
     return buffer;
 }
 
-#if PRINT_PROCMAP
 static void printProcMap(list_t *map)
 {
     PspmixNode_t *node;
@@ -640,6 +640,29 @@ static uint64_t getFenceID(PSnodes_ID_t sortednodes[], int numnodes)
 /**
  * @brief Check if all requirements for @a fence are met and proceed if so
  *
+ * The general logic behind the fence handling is:
+ *
+ * If pspmix_service_fenceIn is called, forward search fenceList for id
+ *   if found, check if the function was already called for this object
+ *     if no, check if fence_in message was already received for this object
+ *       if yes, forward fence_in message or start fence_out chain
+ *       else proceed waiting for fence_in message
+ *     else continue search
+ *   else create a new object at the end of the list
+ * If fence_in message is received, forward search fenceList for id
+ *   if found, check if there was already received fence_in for this object
+ *     if no, check if pspmix_service_fenceIn was already called for this object
+ *       if yes, forward fence_in message or start fence_out chain
+ *       else proceed waiting for pspmix_service_fenceIn call
+ *     else continue search
+ *   else create a new object at the end of the list
+ * If fence_out message is received, forward search fenceList for id
+ *   if found, check if pspmix_service_fenceIn was called and fence_in was
+ *                                                      received for this object
+ *     if yes, forward fence_in, call fence complete and delete object from list
+ *     else return error
+ *   else return error
+ *
  * @param fence      fence object
  */
 void checkFence(PspmixFence_t *fence) {
@@ -651,7 +674,7 @@ void checkFence(PspmixFence_t *fence) {
 	/* we received fence in and pspmix_service_fenceIn has been called */
 
 	if (fence->started) {
-	    /* we started the chain, now start fance out */
+	    /* we started the chain, now start fence out */
 	    /* fence out runs in the opposite direction since we know
 	     * the tid of our precursor from fence in round
 	     * remote data blob received already contains our own data */
@@ -727,7 +750,7 @@ static PSnodes_ID_t getNodeFromRank(int32_t rank, PSresinfo_t *resInfo)
 }
 
 /* create a fence object */
-static PspmixFence_t * createFenceObject(uint64_t fenceid)
+static PspmixFence_t * createFenceObject(uint64_t fenceid, const char *caller)
 {
     PspmixFence_t *fence;
     fence = ucalloc(sizeof(*fence));
@@ -735,7 +758,7 @@ static PspmixFence_t * createFenceObject(uint64_t fenceid)
     fence->id = fenceid;
 
     mdbg(PSPMIX_LOG_FENCE, "%s: Fence object created for fence id 0x%04lX\n",
-	    __func__, fenceid);
+	    caller, fenceid);
 
     return fence;
 }
@@ -752,6 +775,8 @@ static PspmixFence_t * createFenceObject(uint64_t fenceid)
  * We can forward a pending matching daisy chain barrier_in message now.
  * If we are the node with the first client in the chain we have to start the
  * daisy chain.
+ *
+ * @see checkFence for an overall description of fence handling logic
  *
  * @param procs Processes that need to participate
  * @param ndata Size of @a procs
@@ -874,19 +899,34 @@ int pspmix_service_fenceIn(const pmix_proc_t procs[], size_t nprocs,
     GET_LOCK(fenceList);
 
     PspmixFence_t *fence;
-    fence = findFence(fenceid);
+    bool found = false;
+    list_t *f;
+    list_for_each(f, &fenceList) {
+	fence = list_entry(f, PspmixFence_t, next);
+	/* search first entry with matching id
+	 * and this function not yet called for */
+	if (fence->id == fenceid) {
+	    if (fence->nodes == NULL) {
+		found = true;
+		mdbg(PSPMIX_LOG_FENCE, "%s: Matching fence object found for"
+			" fence id 0x%04lX\n", __func__, fenceid);
+		break;
+	    }
+	    else {
+		mdbg(PSPMIX_LOG_FENCE, "%s: Fence object with matching fence id"
+		" 0x%04lX found but nodes already set, continuing search\n",
+		__func__, fenceid);
+	    }
+	}
+    }
 
-    if (fence == NULL) {
-	/* no fence_in message received yet, create object */
-	fence = createFenceObject(fenceid);
+    if (!found) {
+	/* no fence_in message received yet for this fence, create object */
+	fence = createFenceObject(fenceid, __func__);
 
+	/* add at the END of the list */
 	list_add_tail(&fence->next, &fenceList);
     }
-    else {
-	mdbg(PSPMIX_LOG_FENCE, "%s: Fence object found for fence id 0x%04lX\n",
-		__func__, fenceid);
-    }
-
    
     /* take over data from vector */
     PSnodes_ID_t *sortednodes;
@@ -909,59 +949,24 @@ int pspmix_service_fenceIn(const pmix_proc_t procs[], size_t nprocs,
 		data, ndata);
 	fence->started = true;
     } else {
-	checkFence(fence);
+	if (found) checkFence(fence);
     }
 
     RELEASE_LOCK(fenceList);
 
     return 0;
-
-#if 0
-    list_t *pos, *tmp;
-
-    gotBarrierIn = true;
-
-    /* if we are the first in chain, send starting barrier msg */
-    if (getNodeFromRank(0, nspace) == PSC_getMyID()) {
-	startDaisyBarrier = true;
-    }
-    fenceData = mdata;
-    checkDaisyBarrier();
-
-    mlog("%s(r%d): Called with data: ", __func__, rank);
-    for (size_t i = 0; i < ndata; i++) {
-	mlog("%02x ", data[i]);
-    }
-    mlog(" (%ld)\n", ndata);
-
-    /* send my data to all other participating processes */
-
-    // XXX HACK to make it work for 2 clients
-    mdata->proc.rank = rank;
-    for (int i = 0; i < 2; i++) {
-	if (fwTIDs[i] == PSC_getMyTID()) continue;
-	if (!pspmix_comm_sendFenceDataPut(fwTIDs[i], &mdata->proc, data,
-		    ndata)) {
-	    mlog("%s(r%d): Failed to send fence data to %s\n", __func__, rank,
-		    PSC_printTID(fwTIDs[i]));
-	}
-    }
-    if (data != NULL) {
-	mdata->data = umalloc(ndata);
-	memcpy(mdata->data, data, ndata);
-	mdata->ndata = ndata;
-    }
-#endif
 }
 
 /**
  * @brief Handle messages of type PSPMIX_FENCE_IN comming from PMIx Jobservers
  *        on other nodes
  *
+ * @see checkFence for an overall description of fence handling logic
+ *
  * @param fenceid  ID of the fence
  * @param sender   task ID of the sending jobserver
  * @param data     data blob to share with all participating nodes
-*                  (takes ownership)
+ *                  (takes ownership)
  * @param len      size of the data blob to share
  */
 void pspmix_service_handleFenceIn(uint64_t fenceid, PStask_ID_t sender,
@@ -970,17 +975,33 @@ void pspmix_service_handleFenceIn(uint64_t fenceid, PStask_ID_t sender,
     GET_LOCK(fenceList);
 
     PspmixFence_t *fence;
-    fence = findFence(fenceid);
+    bool found = false;
+    list_t *f;
+    list_for_each(f, &fenceList) {
+	fence = list_entry(f, PspmixFence_t, next);
+	/* search first entry with matching id
+	 * and this function not yet called for */
+	if (fence->id == fenceid) {
+	    if (!fence->receivedIn) {
+		found = true;
+		mdbg(PSPMIX_LOG_FENCE, "%s: Matching fence object found for"
+			" fence id 0x%04lX\n", __func__, fenceid);
+		break;
+	    }
+	    else {
+		mdbg(PSPMIX_LOG_FENCE, "%s: Fence object with matching fence id"
+		" 0x%04lX found but receivedIn already set, continuing"
+		" search\n", __func__, fenceid);
+	    }
+	}
+    }
 
-    if (fence == NULL) {
-	/* pspmix_service_fenceIn() not called yet, create object */
-	fence = createFenceObject(fenceid);
+    if (!found) {
+	/* pspmix_service_fenceIn() not called yet for this fence,
+	 * create object */
+	fence = createFenceObject(fenceid, __func__);
 
 	list_add_tail(&fence->next, &fenceList);
-    }
-    else {
-	mdbg(PSPMIX_LOG_FENCE, "%s: Fence object found for fence id 0x%04lX\n",
-		__func__, fenceid);
     }
 
     fence->precursor = sender;
@@ -988,21 +1009,23 @@ void pspmix_service_handleFenceIn(uint64_t fenceid, PStask_ID_t sender,
     fence->rdata = data;
     fence->nrdata = len;
 
-    checkFence(fence);
+    if (found) checkFence(fence);
 
     RELEASE_LOCK(fenceList);
 }
 
 /**
-* @brief Handle a fence out
-*
-* Put the data to the buffer list
-*
-* @param proc      from which rank and namespace are the data
-* @param data      cumulated data blob to share with all participating nodes
-*                  (takes ownership)
-* @param len     size of the cumulated data blob
-*/
+ * @brief Handle a fence out
+ *
+ * Put the data to the buffer list
+ *
+ * @see checkFence for an overall description of fence handling logic
+ *
+ * @param proc      from which rank and namespace are the data
+ * @param data      cumulated data blob to share with all participating nodes
+ *                  (takes ownership)
+ * @param len       size of the cumulated data blob
+ */
 void pspmix_service_handleFenceOut(uint64_t fenceid, void *data, size_t len)
 {
     GET_LOCK(fenceList);
@@ -1011,8 +1034,22 @@ void pspmix_service_handleFenceOut(uint64_t fenceid, void *data, size_t len)
     fence = findFence(fenceid);
 
     if (fence == NULL) {
-	mlog("%s: UNEXPECTED: Fence with id 0x%04lX not found.\n", __func__,
+	mlog("%s: UNEXPECTED: No fence with id 0x%04lX found.\n", __func__,
 		fenceid);
+	RELEASE_LOCK(fenceList);
+	return;
+    }
+
+    if (fence->nodes == NULL) {
+	mlog("%s: UNEXPECTED: First fence with id 0x%04lX has nodes not set.\n",
+		__func__, fenceid);
+	RELEASE_LOCK(fenceList);
+	return;
+    }
+
+    if (!fence->receivedIn) {
+	mlog("%s: UNEXPECTED: First fence with id 0x%04lX has receivedIn not"
+		" set.\n", __func__, fenceid);
 	RELEASE_LOCK(fenceList);
 	return;
     }
@@ -1044,6 +1081,8 @@ void pspmix_service_handleFenceOut(uint64_t fenceid, void *data, size_t len)
  * Find out the the node where the target rank runs
  * and send direct modex data request to it.
  *
+ * In case of success, takes ownership of @a mdata.
+ *
  * TODO document in header
  */
 bool pspmix_service_sendModexDataRequest(modexdata_t *mdata)
@@ -1074,14 +1113,17 @@ bool pspmix_service_sendModexDataRequest(modexdata_t *mdata)
 	    nodeid);
 #endif
 
+    GET_LOCK(modexRequestList);
+
     if (!pspmix_comm_sendModexDataRequest(nodeid, &mdata->proc)) {
 	mlog("%s: Failed to send modex data request for %s:%d to node %hd.\n",
 		__func__, mdata->proc.nspace, mdata->proc.rank, nodeid);
+	RELEASE_LOCK(modexRequestList);
 	return false;
     }
 
-    GET_LOCK(modexRequestList);
     list_add_tail(&(mdata->next), &modexRequestList);
+
     RELEASE_LOCK(modexRequestList);
 
     return true;
@@ -1160,13 +1202,14 @@ void pspmix_service_handleModexDataResponse(bool success, pmix_proc_t *proc,
 
     GET_LOCK(modexRequestList);
 
-    /* find request in modexRequestList and take it out */
+    /* find first matching request in modexRequestList and take it out */
     list_for_each_safe(s, tmp, &modexRequestList) {
 	modexdata_t *cur = list_entry(s, modexdata_t, next);
 	if (cur->proc.rank == proc->rank
 		&& strcmp(cur->proc.nspace, proc->nspace) == 0) {
 	    mdata = cur;
 	    list_del(&cur->next);
+	    break;
 	}
     }
 
@@ -1174,7 +1217,8 @@ void pspmix_service_handleModexDataResponse(bool success, pmix_proc_t *proc,
 
     if (mdata == NULL) {
 	mlog("%s: No modex data request found for modex data response"
-		" resceived. Ignoring!\n", __func__);
+		" resceived (rank %d namespace %s). Ignoring!\n", __func__,
+		proc->rank, proc->nspace);
 	return;
     }
 
