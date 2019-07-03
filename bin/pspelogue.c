@@ -279,6 +279,31 @@ static void handlePElogueResp(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
 }
 
 /**
+ * @brief Set receive timeout using SIGALRM
+ */
+static void setTimeout(void)
+{
+    sigset_t sigset;
+
+    /* unblock SIGALRM */
+    sigemptyset(&sigset);
+    sigaddset(&sigset, SIGALRM);
+    if (sigprocmask(SIG_UNBLOCK, &sigset, NULL) == -1) {
+	fprintf(stderr, "%s: unblock SIGALRM with sigprocmask() failed\n",
+		__func__);
+	exit(1);
+    }
+
+    /* register SIGALRM sighandler */
+    if (PSC_setSigHandler(SIGALRM, timeoutHandler) == SIG_ERR) {
+	fprintf(stderr, "%s:  register SIGALRM sighandler failed\n",
+		__func__);
+	exit(1);
+    }
+    alarm(pelogueTimeout + recvTimeout + graceTime);
+}
+
+/**
  * @brief Receive and handle response from pelogue
  */
 static void handleResponse(void)
@@ -288,8 +313,7 @@ static void handleResponse(void)
     if (debug) printf("%s: ...done, waiting for answer ...\n", __func__);
 
     /* recv answer */
-    PSC_setSigHandler(SIGALRM, timeoutHandler);
-    alarm(pelogueTimeout + recvTimeout + graceTime);
+    setTimeout();
 
     if (PSI_recvMsg((DDMsg_t *)&answer, sizeof(answer))<0) {
 	fprintf(stderr, "%s: PSI_recvMsg() failed\n", __func__);
