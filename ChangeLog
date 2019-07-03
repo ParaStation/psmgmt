@@ -1,3 +1,87 @@
+Version psmgmt-5.1.23:
+======================
+------------------------------------------------------------------------
+3366e729 | Stephan Krempel | Wed, 3 Jul 2019 11:29:47 +0200
+
+pspmix: Avoid warnings by ignoring control messages
+
+Avoid the warning about unexpected PSP_CC_MSG messages formerly printed by
+the jobserver which are actually plugin forwarder control messages.
+------------------------------------------------------------------------
+c3731e2e | Michael Rauh | Tue, 2 Jul 2019 15:59:15 +0200
+
+Bugfix: ensure SIGALRM is unblocked in pspelogue (juwels:#3664)
+------------------------------------------------------------------------
+014236ce | Michael Rauh | Fri, 28 Jun 2019 14:32:31 +0200
+
+Add accelerator bind types to psslurm
+------------------------------------------------------------------------
+892db3f9 | Michael Rauh | Fri, 28 Jun 2019 14:09:21 +0200
+
+First steps to support GRES cores in psslurm
+------------------------------------------------------------------------
+b6efb158 | Michael Rauh | Fri, 28 Jun 2019 11:11:07 +0200
+
+Improve psslurm I/O message debugging
+------------------------------------------------------------------------
+3d653b67 | Norbert Eicker | Thu, 27 Jun 2019 14:20:52 +0200
+
+Ensure noiseless use of psserial in child processes
+------------------------------------------------------------------------
+ba8926f0 | Stephan Krempel | Mon, 24 Jun 2019 14:29:10 +0200
+
+pspmix: Fix potenital race in modex data handling
+------------------------------------------------------------------------
+c69759ac | Stephan Krempel | Mon, 24 Jun 2019 13:10:50 +0200
+
+pspmix: Add missing call output and clarify server not found output
+------------------------------------------------------------------------
+8f029a91 | Stephan Krempel | Mon, 17 Jun 2019 15:46:47 +0200
+
+pspmix: Fix modex response handling
+------------------------------------------------------------------------
+e209fe97 | Stephan Krempel | Fri, 14 Jun 2019 16:14:57 +0200
+
+pspmix: Fix race in fence handling
+
+List of fences is now organised in a FIFO queue so it cannot
+happen anymore, that a fence_out message deletes a fence object
+from the list for which a fence_in is still open.
+------------------------------------------------------------------------
+b4193276 | Stephan Krempel | Fri, 14 Jun 2019 13:25:38 +0200
+
+pspmix: Better debugging output in fence handling
+------------------------------------------------------------------------
+b54b1927 | Stephan Krempel | Fri, 14 Jun 2019 16:11:06 +0200
+
+pspmix: Disable printing process map every time
+------------------------------------------------------------------------
+3213c39b | Michael Rauh | Thu, 13 Jun 2019 11:06:50 +0200
+
+Bugfix: fix possible segmentation fault in Slurm protocol
+error reporting
+------------------------------------------------------------------------
+7094322e | Michael Rauh | Tue, 11 Jun 2019 16:59:25 +0200
+
+psgw: *new* default location of the routing file is the
+current working directory of the job submit command
+including srun, sbatch and salloc (pct:#307)
+------------------------------------------------------------------------
+563a223e | Michael Rauh | Fri, 7 Jun 2019 10:33:04 +0200
+
+Added support for SLURM 18.08 protocol
+
+- The SLURM protocol can be changed using the SLURM_PROTO_VERSION
+      option of the psslurm configuration
+- Standard protocol is set to automatic detection
+- Additionally psslurm supports protocol 17.11 and 17.02
+------------------------------------------------------------------------
+8e480c0e | Michael Rauh | Mon, 3 Jun 2019 16:37:22 +0200
+
+Improve psslurm protocol logging
+------------------------------------------------------------------------
+
+
 Version psmgmt-5.1.22:
 ======================
 ------------------------------------------------------------------------

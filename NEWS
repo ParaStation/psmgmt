@@ -5,6 +5,26 @@ Copyright (C) 2010-2019 ParTec Cluster Competence Center GmbH, Munich
 Please send bug reports, questions and suggestions to <support@par-tec.com>
 
 
+Version 5.1.23:
+===============
+Bugfixes:
+ - Ensure SIGALRM is unblocked in pspelogue (jwt:#3664)
+ - Fix potential race in pspmix modex data handling
+ - Fix modex response handling in pspmix
+ - Fix race in fence handling in pspmix
+ - Fix possible segmentation fault in Slurm protocol error reporting
+Enhancements:
+ - Move default location of psgw's routing file to submit's CWD (pct:#307)
+ - Add support for SLURM 18.08 protocol
+ - First steps to support GRES cores in psslurm
+ - Avoid warnings from pspmix by ignoring control messages
+ - Improve psslurm I/O message debugging
+ - Add missing call output and clarify server not found output in pspmix
+ - Better debugging output in fence handling in pspmix
+ - Ensure noiseless use of psserial in child processes
+Additional changes:
+ - Disable printing process map every time in pspmix
+
 
 Version 5.1.22:
 ===============
