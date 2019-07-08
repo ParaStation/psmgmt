@@ -129,7 +129,7 @@ typedef struct {
     uint32_t packSize;		/**< the size of the pack */
     uint32_t packAllocID;	/**< pack allocation ID */
     uint32_t packStepCount;     /**< pack step count */
-    uint32_t *packTIDs;         /**< pack task IDs */
+    uint32_t **packTIDs;        /**< pack task IDs */
     uint32_t *packTIDsOffset;   /**< pack task offset */
     char *packHostlist;		/**< pack host-list (Slurm compressed) */
     PSnodes_ID_t *packNodes;	/**< all participating nodes in the pack */

@@ -1034,7 +1034,8 @@ static void handlePackInfo(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
 	cache->data = dupDataBuffer(data);
 	list_add_tail(&cache->next, &msgCache);
 
-	mlog("%s: caching msg for step %u:%u\n", __func__, packJobid, stepid);
+	flog("caching pack info, step %u:%u from %s\n", packJobid, stepid,
+	     PSC_printTID(msg->header.sender));
 	return;
     }
 

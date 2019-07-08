@@ -316,9 +316,21 @@ static bool extractStepPackInfos(Step_t *step)
     }
 
     if (step->packNrOfNodes != nrOfNodes) {
-	flog("extracting PS nodes from Slurm pack hostlist %s failed (%u:%u)\n",
-	     step->packHostlist, step->packNrOfNodes, nrOfNodes);
-	return false;
+	if (step->packNrOfNodes == step->nrOfNodes && !step->packNodeOffset) {
+	    /* correct invalid pack host-list */
+	    fdbg(PSSLURM_LOG_PACK, "correct pack nodes using %s\n",
+		 step->slurmHosts);
+	    ufree(step->packNodes);
+	    step->packNodes = umalloc(sizeof(*step->packNodes) * step->nrOfNodes);
+	    for (i=0; i<step->nrOfNodes; i++) {
+		step->packNodes[i] = step->nodes[i];
+	    }
+	} else {
+	    flog("extracting PS nodes from Slurm pack hostlist %s failed "
+		 "(%u:%u)\n", step->packHostlist, step->packNrOfNodes,
+		 nrOfNodes);
+	    return false;
+	}
     }
 
     for (i=0; i<step->packNrOfNodes; i++) {
@@ -1421,13 +1433,13 @@ static bool extractJobPackInfos(Job_t *job)
 
     if (!convHLtoPSnodes(job->packHostlist, getNodeIDbySlurmHost,
 			 &job->packNodes, &job->packNrOfNodes)) {
-	mlog("%s: resolving PS nodeIDs from %s failed\n", __func__,
+	flog("resolving PS nodeIDs from pack host-list %s failed\n",
 	     job->packHostlist);
 	return false;
     }
 
-    mdbg(PSSLURM_LOG_PACK, "%s: pack hostlist '%s'\n", __func__,
-	 job->packHostlist);
+    fdbg(PSSLURM_LOG_PACK, "job %u pack nrOfNodes %u hostlist '%s'\n",
+	 job->jobid, job->packNrOfNodes, job->packHostlist);
 
     return true;
 }
