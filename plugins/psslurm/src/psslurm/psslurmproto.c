@@ -1637,6 +1637,7 @@ static void doTerminateAlloc(Slurm_Msg_t *sMsg, Alloc_t *alloc)
 			 alloc->terminate, maxTermReq);
 		    send_PS_EpilogueStateReq(alloc);
 		}
+		sendSlurmRC(sMsg, SLURM_SUCCESS);
 	    }
 	    return;
 	case A_INIT:
@@ -1647,6 +1648,7 @@ static void doTerminateAlloc(Slurm_Msg_t *sMsg, Alloc_t *alloc)
 	default:
 	    flog("invalid allocation state %u\n", alloc->state);
 	    deleteAlloc(alloc->id);
+	    sendSlurmRC(sMsg, SLURM_SUCCESS);
 	    return;
     }
 
@@ -1836,6 +1838,7 @@ static void handleTerminateReq(Slurm_Msg_t *sMsg)
 	    doTerminateAlloc(sMsg, alloc);
 	    break;
 	default:
+	    sendSlurmRC(sMsg, ESLURMD_KILL_JOB_ALREADY_COMPLETE);
 	    mlog("%s: unknown terminate request\n", __func__);
     }
 
