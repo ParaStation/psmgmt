@@ -278,7 +278,22 @@ int pspmix_comm_handleMthrMsg(PSLog_Msg_t *tmpmsg, ForwarderData_t *fw)
 {
     mdbg(PSPMIX_LOG_CALL, "%s() called\n", __func__);
 
-    return pspmix_comm_handleMsg((DDMsg_t *)tmpmsg);
+    DDMsg_t *msg = (DDMsg_t *)tmpmsg;
+
+   /* ignore fw control messages */
+    if (msg->type == PSP_CC_MSG) {
+	switch (tmpmsg->type) {
+	   case PLGN_SIGNAL_CHLD:
+	   case PLGN_START_GRACE:
+	   case PLGN_SHUTDOWN:
+	   case PLGN_FIN_ACK:
+	      return 0;
+	  default:
+	      break;
+	}
+    }
+
+    return pspmix_comm_handleMsg(msg);
 }
 
 /**********************************************************
