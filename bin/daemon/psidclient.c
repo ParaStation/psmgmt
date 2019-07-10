@@ -1050,6 +1050,7 @@ static void msg_CC_MSG(DDBufferMsg_t *msg)
 	PSID_log(-1, "%s: from %s to me?! Dropping...\n", __func__,
 		 PSC_printTID(msg->header.sender));
 	PSID_dropMsg(msg);
+	return;
     }
 
     /* Forward this message. If this fails, send an error message. */
