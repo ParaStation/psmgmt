@@ -3625,7 +3625,7 @@ static void msg_CHILDDEAD(DDErrorMsg_t *msg)
 
 	if (task->removeIt && PSID_emptySigList(&task->childList)) {
 	    PSID_log(PSID_LOG_TASK, "%s: PStask_cleanup()\n", __func__);
-	    PStask_cleanup(task->tid);
+	    PStask_cleanup(task);
 	    return;
 	}
 
@@ -3700,7 +3700,7 @@ static void msg_CHILDDEAD(DDErrorMsg_t *msg)
 	 * will also send all signals */
 	if (task->fd == -1) {
 	    PSID_log(PSID_LOG_TASK, "%s: PStask_cleanup()\n", __func__);
-	    PStask_cleanup(msg->request);
+	    PStask_cleanup(task);
 	}
 
 	/* Send CHILDDEAD to parent */
@@ -3743,7 +3743,7 @@ static void checkObstinateTasks(void)
 	    }
 	    if (ret && errno == ESRCH) {
 		if (!task->removeIt) {
-		    PStask_cleanup(task->tid);
+		    PStask_cleanup(task);
 		} else {
 		    task->deleted = true;
 		}

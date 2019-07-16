@@ -574,7 +574,7 @@ void PSIDclient_delete(int fd)
 	    msg.header.len = sizeof(msg);
 	    sendMsg(&msg);
 
-	    if (childTask && childTask->fd == -1) PStask_cleanup(child);
+	    if (childTask && childTask->fd == -1) PStask_cleanup(childTask);
 
 	    sig = -1;
 	};
@@ -593,7 +593,7 @@ void PSIDclient_delete(int fd)
 	    if (parent->removeIt && PSID_emptySigList(&parent->childList)) {
 		PSID_log(PSID_LOG_TASK,
 			 "%s: PStask_cleanup(parent)\n", __func__);
-		PStask_cleanup(parent->tid);
+		PStask_cleanup(parent);
 	    }
 	}
     }
@@ -673,7 +673,7 @@ void PSIDclient_delete(int fd)
     /* Cleanup, if no forwarder available; otherwise wait for CHILDDEAD */
     if (!task->forwardertid) {
 	PSID_log(PSID_LOG_TASK, "%s: PStask_cleanup()\n", __func__);
-	PStask_cleanup(task->tid);
+	PStask_cleanup(task);
     }
 
     return;

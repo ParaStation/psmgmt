@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2002-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2017 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2019 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -243,39 +243,41 @@ PStask_t *PStasklist_find(list_t *list, PStask_ID_t tid);
 /*\@}*/
 
 /**
- * @brief Cleanup task.
+ * @brief Cleanup task
  *
- * Cleanup the whole task @a tid. This includes various step:
+ * Cleanup the whole task described by the structure @a task. This
+ * includes various step:
  *
- * - First of all the task will be dequeued from @ref managedTasks
- * tasklist.
+ * - First of all the task will be marked to get removed. Thus,
+ * further calls to this function will have no other effects than
+ * possibly marking the task to get deleted.
  *
- * - If the task was found, all signal requested explicitly by other
- * tasks will be send, then all relatives will be signaled.
+ * - All signal requested explicitly by other tasks will be send, then
+ * all relatives will get signaled
  *
- * - The status facility will be informed on removing the task.
+ * - The status facility will be informed on removing the task
  *
  * - If the task is of type TG_FORWARDER and not released, the
- * controlled child will be killed.
+ * controlled child will be killed
  *
- * @param tid The unique task ID of the task to be removed.
+ * @param task The structure describing the task to be cleaned up
  *
- * @return No return value.
+ * @return No return value
  */
-void PStask_cleanup(PStask_ID_t tid);
+void PStask_cleanup(PStask_t *task);
 
 /**
  * @brief Memory cleanup
  *
  * Cleanup all dynamic memory currently retained in task structures
- * collected in the @ref managedTasks list.This will very aggressively
+ * collected in the @ref managedTasks list. This will very aggressively
  * free() all allocated memory destroying all information on
  * controlled tasks.
  *
  * The purpose of this function is to cleanup before a fork()ed
  * process is handling other businesses, e.g. becoming a forwarder.
  *
- * @return No return value.
+ * @return No return value
  */
 void PSIDtask_clearMem(void);
 

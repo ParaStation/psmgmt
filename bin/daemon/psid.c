@@ -253,7 +253,7 @@ static int handleSIGCHLD(int fd, void *info)
 		Selector_enable(task->fd);
 	    } else {
 		/* task not connected, remove from tasklist */
-		PStask_cleanup(tid);
+		PStask_cleanup(task);
 	    }
 	}
     }

@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2002-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2018 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2019 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -419,18 +419,14 @@ PStask_t *PStasklist_find(list_t *list, PStask_ID_t tid)
     return task;
 }
 
-void PStask_cleanup(PStask_ID_t tid)
+void PStask_cleanup(PStask_t *task)
 {
-    PStask_t *task;
-
-    PSID_log(PSID_LOG_TASK, "%s(%s)\n", __func__, PSC_printTID(tid));
-
-    task = PStasklist_find(&managedTasks, tid);
     if (!task) {
-	PSID_log(-1, "%s: %s not in my tasklist\n",
-		 __func__, PSC_printTID(tid));
+	PSID_log(-1, "%s: No task\n", __func__);
 	return;
     }
+
+    PSID_log(PSID_LOG_TASK, "%s(%s)\n", __func__, PSC_printTID(task->tid));
 
     if (!task->removeIt) {
 	/* first call for this task */
@@ -456,8 +452,8 @@ void PStask_cleanup(PStask_ID_t tid)
 	PSIDpart_cleanupSlots(task);
 
 	/* Tell master about exiting root process */
-	if (task->request) send_CANCELPART(tid);
-	if (task->partition && task->partitionSize) send_TASKDEAD(tid);
+	if (task->request) send_CANCELPART(task->tid);
+	if (task->partition && task->partitionSize) send_TASKDEAD(task->tid);
 
 	if (task->group==TG_FORWARDER && !task->released) {
 	    /* cleanup children */
@@ -502,7 +498,7 @@ void PStask_cleanup(PStask_ID_t tid)
 			     __func__, PSC_printTID(child->tid));
 
 		    PSID_kill(-PSC_getPID(child->tid), SIGKILL, child->uid);
-		    PStask_cleanup(child->tid);
+		    PStask_cleanup(child);
 		}
 	    }
 
