@@ -101,7 +101,7 @@ bool PStask_init(PStask_t* task)
     task->childGroup = TG_ANY;
     task->resID = -1;
     task->loggertid = 0;
-    task->forwardertid = 0;
+    task->forwarder = NULL;
     task->rank = -1;
     PSCPU_clrAll(task->CPUset);
     task->fd = -1;
@@ -309,7 +309,7 @@ PStask_t* PStask_clone(PStask_t* task)
     clone->childGroup = task->childGroup;
     clone->resID = task->resID;
     clone->loggertid = task->loggertid;
-    clone->forwardertid = task->forwardertid;
+    clone->forwarder = task->forwarder;
     clone->rank = task->rank;
     memcpy(clone->CPUset, task->CPUset, sizeof(clone->CPUset));
     /* clone->fd = -1; */

@@ -558,11 +558,10 @@ void PSIDclient_delete(int fd)
 	    PStask_t *childTask = PStasklist_find(&managedTasks, child);
 	    PSID_log(-1, "%s: kill child %s\n", __func__, PSC_printTID(child));
 
+	    /* Since forwarder is gone eliminate all references */
+	    if (childTask) childTask->forwarder = NULL;
+
 	    /* Try to kill the child, again */
-	    if (childTask && childTask->fd == -1) {
-		/* since forwarder is gone prevent PSID_kill() from using it */
-		childTask->forwardertid = 0;
-	    }
 	    PSID_kill(-child, SIGKILL, 0);
 
 	    /* Assume child is dead */
@@ -671,7 +670,7 @@ void PSIDclient_delete(int fd)
     }
 
     /* Cleanup, if no forwarder available; otherwise wait for CHILDDEAD */
-    if (!task->forwardertid) {
+    if (!task->forwarder) {
 	PSID_log(PSID_LOG_TASK, "%s: PStask_cleanup()\n", __func__);
 	PStask_cleanup(task);
     }
@@ -831,16 +830,9 @@ static void msg_CLIENTCONNECT(int fd, DDBufferMsg_t *bufmsg)
 		child->duplicate = true;
 		PStasklist_enqueue(&managedTasks, child);
 
-		if (task->forwardertid) {
-		    PStask_t *forwarder = PStasklist_find(&managedTasks,
-							  task->forwardertid);
-		    if (forwarder) {
-			/* Register new child to its forwarder */
-			PSID_setSignal(&forwarder->childList, child->tid, -1);
-		    } else {
-			PSID_log(-1, "%s: forwarder %s not found\n",
-				 __func__, PSC_printTID(task->forwardertid));
-		    }
+		if (task->forwarder) {
+		    /* Register new child to its forwarder */
+		    PSID_setSignal(&task->forwarder->childList, child->tid, -1);
 		} else {
 		    PSID_log(-1, "%s: task %s has no forwarder\n",
 			     __func__, PSC_printTID(task->tid));

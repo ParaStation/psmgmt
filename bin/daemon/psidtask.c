@@ -342,12 +342,9 @@ static int doEnqueue(list_t *list, PStask_t *task, PStask_t *other,
 	if (old->group == TG_ANY && old->loggertid) {
 	    sendCHILDRESREL(old->loggertid, old->CPUset, old->tid);
 	}
-	if (old->forwardertid) {
+	if (old->forwarder) {
 	    /* prevent forwarder from referring to the new task */
-	    PStask_t *forwarder = PStasklist_find(list, old->forwardertid);
-	    if (forwarder) {
-		PSID_removeSignal(&forwarder->childList, old->tid, -1);
-	    }
+	    PSID_removeSignal(&old->forwarder->childList, old->tid, -1);
 	}
 
 	PStask_delete(old);
@@ -492,6 +489,9 @@ void PStask_cleanup(PStask_t *task)
 		 * msg_CLIENTCONNECT() concerning re-connected
 		 * processes and duplicate tasks */
 		sig->deleted = true;
+
+		/* Since forwarder is gone eliminate all references */
+		if (child) child->forwarder = NULL;
 
 		if (child && child->fd == -1) {
 		    PSID_log(-1, "%s: forwarder kills child %s\n",

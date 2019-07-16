@@ -3336,8 +3336,8 @@ static void msg_SPAWNSUCCESS(DDErrorMsg_t *msg)
      * its forwarder as a proxy via PMI. Thus, send SPAWNSUCCESS to
      * the proxy.
      */
-    if (task && task->group == TG_ANY && task->fd == -1) {
-	msg->header.dest = task->forwardertid;
+    if (task && task->group == TG_ANY && task->fd == -1 && task->forwarder) {
+	msg->header.dest = task->forwarder->tid;
     }
     sendMsg(msg);
     free(parent);
@@ -3478,7 +3478,7 @@ static void msg_CHILDBORN(DDErrorMsg_t *msg)
     child->tid = msg->request;
     child->fd = -1;
     child->group = forwarder->childGroup;
-    child->forwardertid = forwarder->tid;
+    child->forwarder = forwarder;
 
     /* Accounting info */
     if (child->group != TG_ADMINTASK && child->group != TG_SERVICE
@@ -3534,8 +3534,9 @@ static void msg_CHILDBORN(DDErrorMsg_t *msg)
 	     * not the origin of the spawn but used the forwarder as a
 	     * proxy via PMI. Thus, send SPAWNSUCCESS to the proxy.
 	     */
-	    if (parent->group == TG_ANY && parent->fd == -1) {
-		succMsgDest = parent->forwardertid;
+	    if (parent->group == TG_ANY && parent->fd == -1
+		&& parent->forwarder) {
+		succMsgDest = parent->forwarder->tid;
 	    }
 	}
     }
@@ -3677,7 +3678,7 @@ static void msg_CHILDDEAD(DDErrorMsg_t *msg)
 	/* This is not critical. Task has been removed by PSIDclient_delete() */
 	PSID_log(PSID_LOG_SPAWN, "%s: task %s not found\n", __func__,
 		 PSC_printTID(msg->request));
-    } else if (task->forwardertid != msg->header.sender) {
+    } else if (!task->forwarder || task->forwarder->tid != msg->header.sender) {
 	PSID_log(-1, "%s: forwarder %s not responsible for" , __func__,
 		 PSC_printTID(msg->header.sender));
 	PSID_log(-1, " %s any more\n", PSC_printTID(msg->request));
