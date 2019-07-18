@@ -46,18 +46,18 @@ Forwarder_Data_t *ForwarderData_new(void)
     Forwarder_Data_t *fw;
 
     fw = calloc(sizeof(*fw), 1);
-    if (!fw) return fw;
-
-    fw->childRerun = 1;
-    fw->tid = -1;
-    fw->exitRcvd = false;
-    fw->codeRcvd = false;
-    fw->stdIn[0] = -1;
-    fw->stdIn[1] = -1;
-    fw->stdOut[0] = -1;
-    fw->stdOut[1] = -1;
-    fw->stdErr[0] = -1;
-    fw->stdErr[1] = -1;
+    if (fw) {
+	fw->childRerun = 1;
+	fw->tid = -1;
+	fw->exitRcvd = false;
+	fw->codeRcvd = false;
+	fw->stdIn[0] = -1;
+	fw->stdIn[1] = -1;
+	fw->stdOut[0] = -1;
+	fw->stdOut[1] = -1;
+	fw->stdErr[0] = -1;
+	fw->stdErr[1] = -1;
+    }
 
     return fw;
 }
@@ -767,7 +767,7 @@ static void handleChildFin(PStask_ID_t sender)
  *
  * @param fd Socket connected to a forwarder
  *
- * @param info Pointer to the task structure descrining the forwarder
+ * @param info Pointer to the task structure describing the forwarder
  *
  * @return Always return 0
  */
