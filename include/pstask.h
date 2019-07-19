@@ -119,6 +119,9 @@ struct __task__ {
 				      will be removed from the list of
 				      managed tasks in the next round
 				      of the main loop */
+    bool obsolete;                 /**< flag tasks as obsolete, i.e. removed
+				      from managed tasks but still referred
+				      by a  selector */
     /*C*/ bool noParricide;        /**< flag to be set if kill signals should
 				      not be forwarded to parents. */
     time_t killat;                 /**< flag a killed task, i.e. the time when

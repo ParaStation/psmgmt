@@ -121,6 +121,7 @@ bool PStask_init(PStask_t* task)
     task->suspended = false;
     task->removeIt = false;
     task->deleted = false;
+    task->obsolete = false;
     task->noParricide = false;
     task->killat = 0;
     gettimeofday(&task->started, NULL);
@@ -382,6 +383,7 @@ PStask_t* PStask_clone(PStask_t* task)
     clone->suspended = task->suspended;
     clone->removeIt = task->removeIt;
     clone->deleted = task->deleted;
+    clone->obsolete = task->obsolete;
     clone->noParricide = task->noParricide;
     clone->killat = task->killat;
     gettimeofday(&clone->started, NULL);
