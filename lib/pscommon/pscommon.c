@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2002-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2018 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2019 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -105,7 +105,7 @@ PStask_ID_t PSC_getTID(PSnodes_ID_t node, pid_t pid)
 {
 #ifdef __linux__
     /* Linux uses PIDs smaller than 32768, thus 16 bits for pid are enough */
-    if (node<0) {
+    if (node == -1) {
 	return (((PSC_getMyID()&0xFFFF)<<16)|(pid&0xFFFF));
     } else {
 	return (((node&0xFFFF)<<16)|(pid&0xFFFF));
@@ -114,7 +114,7 @@ PStask_ID_t PSC_getTID(PSnodes_ID_t node, pid_t pid)
     /* Maybe we should do this on every architecture ? *JH* */
     /* But this would limit us to 4096 nodes! *NE* */
     /* Tru64 V5.1 use 19 bit for PID's, we reserve 20 bits */
-    if (node<0) {
+    if (node == -1) {
 	return (((PSC_getMyID()&0xFFFL)<<20)|(pid&0xFFFFFL));
     } else {
 	return (((node&0xFFFL)<<20)|(pid&0xFFFFFL));
@@ -125,11 +125,9 @@ PStask_ID_t PSC_getTID(PSnodes_ID_t node, pid_t pid)
 PSnodes_ID_t PSC_getID(PStask_ID_t tid)
 {
 #ifdef __linux__
-    if (tid>=0) {
-	return (tid>>16)&0xFFFF;
-    } else {
-	return PSC_getMyID();
-    }
+    PSnodes_ID_t node = (tid>>16)&0xFFFF;
+    if (node == -1) return PSC_getMyID();
+    return node;
 #else
     /* Maybe we should do this on every architecture ? *JH* */
     /* But this would limit us to 4096 nodes! *NE* */
@@ -154,9 +152,9 @@ pid_t PSC_getPID(PStask_ID_t tid)
 #endif
 }
 
-static int daemonFlag = 0;
+static bool daemonFlag = false;
 
-void PSC_setDaemonFlag(int flag)
+void PSC_setDaemonFlag(bool flag)
 {
     daemonFlag = flag;
 }

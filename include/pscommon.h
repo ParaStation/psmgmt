@@ -131,26 +131,26 @@ pid_t PSC_getPID(PStask_ID_t tid);
 /**
  * @brief Mark the actual process to be a ParaStation daemon.
  *
- * Mark the actual process to a ParaStation daemon, if @a flag is
- * different from 0. If the actual process is marked, the
- * determination of @ref PSC_getMyTID() is modified.
+ * Mark the actual process to a ParaStation daemon if @a flag is
+ * true. If the current process is marked, the determination of @ref
+ * PSC_getMyTID() is modified.
  *
- * @return No return value.
+ * @return No return value
  *
  * @see PSC_getMyTID()
  */
-void PSC_setDaemonFlag(int flag);
+void PSC_setDaemonFlag(bool flag);
 
 /**
  * @brief Determines the task ID of the actual process.
  *
  * Determines the clusterwide unique task ID of the actual process. If
- * @ref PSC_setDaemonFlag() was called with a value different from 0
- * befor, the process is assumed to be a ParaStation daemon and the
- * corresponding process ID within the task ID is set to 0.
+ * @ref PSC_setDaemonFlag() was called with parameter true before, the
+ * process is assumed to be a ParaStation daemon and the process ID
+ * within the task ID is set to 0.
  *
- * @return The unique task ID of the actual process is returned, or
- * -1, if the cluster is not already initialized.
+ * @return The unique task ID of the actual process is returned; or -1
+ * if the cluster is not yet fully initialized.
  *
  * @see PSC_setDaemonFlag()
  */

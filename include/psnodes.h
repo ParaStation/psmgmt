@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2003 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2018 Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2019 Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -19,7 +19,18 @@
 #include <stdint.h>
 #include <sys/types.h>
 
-/** Type to store unique node IDs in. This enables us to have 32168 nodes. */
+/**
+ * Type to store unique node IDs in. This enables us to have 32168 nodes.
+ *
+ * There are some (negative) node IDs having a special meaning:
+ *
+ * - -1 denotes the local node. Especially in @ref PSC_getTID -1 is
+ *   replaced by the actual local node ID.
+ *
+ * - -2 Marks a task ID to refer to an obsolete task, i.e. a task
+ *    structure not stored in the list @ref managedTasks but in @ref
+ *    obsoleteTasks
+ */
 typedef int16_t PSnodes_ID_t;
 
 /** Pseudo user ID to allow any user to run on a specific node */
