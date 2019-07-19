@@ -33,6 +33,8 @@
 
 LIST_HEAD(managedTasks);
 
+LIST_HEAD(obsoleteTasks);
+
 static void printList(list_t *sigList)
 {
     list_t *s;
@@ -108,7 +110,7 @@ PSsignal_t *PSID_findSignal(list_t *sigList, PStask_ID_t tid, int signal)
 }
 
 static int remSig(const char *fname, list_t *sigList, PStask_ID_t tid,
-		  int signal, int remove)
+		  int signal, bool remove)
 {
     PSsignal_t *sig;
     int blockedRDP, ret = 0;
@@ -155,12 +157,12 @@ static int remSig(const char *fname, list_t *sigList, PStask_ID_t tid,
 
 int PSID_removeSignal(list_t *sigList, PStask_ID_t tid, int signal)
 {
-    return remSig(__func__, sigList, tid, signal, 1);
+    return remSig(__func__, sigList, tid, signal, true /* remove */);
 }
 
 int PSID_deleteSignal(list_t *sigList, PStask_ID_t tid, int signal)
 {
-    return remSig(__func__, sigList, tid, signal, 0);
+    return remSig(__func__, sigList, tid, signal, false /* remove */);
 }
 
 PStask_ID_t PSID_getSignal(list_t *sigList, int *signal)
@@ -338,16 +340,10 @@ static int doEnqueue(list_t *list, PStask_t *task, PStask_t *other,
 	PSID_log(-1, "%s: old task found: %s\n", func, taskStr);
 	PStasklist_dequeue(old);
 
-	/* Do some cleanup */
-	if (old->group == TG_ANY && old->loggertid) {
-	    sendCHILDRESREL(old->loggertid, old->CPUset, old->tid);
-	}
-	if (old->forwarder) {
-	    /* prevent forwarder from referring to the new task */
-	    PSID_removeSignal(&old->forwarder->childList, old->tid, -1);
-	}
+	old->obsolete = true;
+	PStasklist_enqueue(&obsoleteTasks, old);
 
-	PStask_delete(old);
+	// @todo prevent sending signals to obsolete tasks successors
     }
 
     list_add_tail(&task->next, other ? &other->next : list);
@@ -461,10 +457,17 @@ void PStask_cleanup(PStask_t *task)
 
 	    list_for_each_safe(s, tmp, &task->childList) { /* @todo safe req? */
 		PSsignal_t *sig = list_entry(s, PSsignal_t, next);
-		PStask_t *child = PStasklist_find(&managedTasks, sig->tid);
 		DDErrorMsg_t msg;
 
 		if (sig->deleted) continue;
+
+		PStask_t *child = PStasklist_find(&managedTasks, sig->tid);
+		if (!child || child->forwarder != task) {
+		    /* Maybe the child's task was obsoleted */
+		    child = PStasklist_find(&obsoleteTasks, sig->tid);
+		    /* Still not the right childTask? */
+		    if (child && child->forwarder != task) child = NULL;
+		}
 
 		/* somehow we must have missed the CHILDDEAD message */
 		/* how are we called here ? */

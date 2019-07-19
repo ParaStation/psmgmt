@@ -181,9 +181,21 @@ int PSID_emptySigList(list_t *sigList);
 /** @defgroup taskliststuff Tasklist routines */
 /*\@{*/
 
-/** List of all managed tasks (i.e. tasks that have connected or were
-    spawned). Further tasklists might be defined. */
+/**
+ * List of all managed tasks, i.e. tasks that have connected or were
+ * spawned directly or indirectly (via a forwarder).
+ *
+ * Further tasklists might be defined.
+ */
 extern list_t managedTasks;
+
+/**
+ * List of all obsolete tasks, i.e. tasks that are removed from @ref
+ * managedTasks without having received a SIGCHLD or which are still
+ * connected. This mainly happens when task IDs are reused before the
+ * daemon gets aware of the terminated process.
+ */
+extern list_t obsoleteTasks;
 
 /**
  * @brief Enqueue task in tasklist
