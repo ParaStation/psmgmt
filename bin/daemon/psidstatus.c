@@ -624,6 +624,27 @@ bool declareNodeDead(PSnodes_ID_t id, int sendDeadnode, int silent)
 	    PStask_cleanup(task);
 	}
     }
+    /* We might have to cleanup obsolete tasks, too (but no signals required) */
+    list_for_each(t, &obsoleteTasks) {
+	PStask_t *task = list_entry(t, PStask_t, next);
+	PStask_ID_t sndr;
+	int sig;
+	if (task->deleted) continue;
+	while ((sndr = PSID_getSignalByID(&task->assignedSigs, id, &sig, 1))) {
+	    /* controlled task was on dead node */
+
+	    /* This might have been a child */
+	    if (sig == -1) PSID_deleteSignal(&task->childList, sndr, sig);
+	    if (task->removeIt && PSID_emptySigList(&task->childList)) break;
+	}
+	/* delete remote children, even if signals already delivered */
+	while (PSID_getSignalByID(&task->childList, id, &sig, 0));
+
+	if (task->removeIt && PSID_emptySigList(&task->childList)) {
+	    PSID_log(PSID_LOG_TASK, "%s: PStask_cleanup()\n", __func__);
+	    PStask_cleanup(task);
+	}
+    }
 
     PSIDspawn_cleanupByNode(id);
 

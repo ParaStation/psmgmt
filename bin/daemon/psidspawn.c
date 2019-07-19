@@ -3575,11 +3575,17 @@ static void msg_CHILDBORN(DDErrorMsg_t *msg)
 static void msg_CHILDDEAD(DDErrorMsg_t *msg)
 {
     PStask_t *task, *forwarder;
+    bool obsoleteSndr = false;
 
     PSID_log(PSID_LOG_SPAWN, "%s: from %s", __func__,
 	     PSC_printTID(msg->header.sender));
     PSID_log(PSID_LOG_SPAWN, " to %s", PSC_printTID(msg->header.dest));
     PSID_log(PSID_LOG_SPAWN, " concerning %s\n", PSC_printTID(msg->request));
+
+    if (PSC_getID(msg->header.sender) == -2) {
+	obsoleteSndr = true;
+	msg->header.sender = PSC_getTID(-1, PSC_getPID(msg->header.sender));
+    }
 
     /****** This part handles messages forwarded by some daemon ******/
 
@@ -3660,10 +3666,15 @@ static void msg_CHILDDEAD(DDErrorMsg_t *msg)
     /****** This part handles original messages from a local forwarder ******/
 
     /* Release the corresponding forwarder */
-    forwarder = PStasklist_find(&managedTasks, msg->header.sender);
+    forwarder = PStasklist_find(obsoleteSndr ? &obsoleteTasks : &managedTasks,
+				msg->header.sender);
     if (forwarder) {
-	forwarder->released = true;
-	PSID_removeSignal(&forwarder->childList, msg->request, -1);
+	if (PSID_removeSignal(&forwarder->childList, msg->request, -1)) {
+	    forwarder->released = true;
+	} else {
+	    /* ensure non responsible forwarder is not referred any further */
+	    forwarder = NULL;
+	}
     } else {
 	/* Forwarder not found */
 	PSID_log(-1, "%s: forwarder task %s not found\n",
@@ -3672,13 +3683,19 @@ static void msg_CHILDDEAD(DDErrorMsg_t *msg)
 
     /* Try to find the task */
     task = PStasklist_find(&managedTasks, msg->request);
+    if (!task || task->forwarder != forwarder) {
+	/* Maybe the task was obsoleted */
+	task = PStasklist_find(&obsoleteTasks, msg->request);
+	/* Still not the right task? */
+	if (task && task->forwarder != forwarder) task = NULL;
+    }
 
     if (!task) {
 	/* task not found */
 	/* This is not critical. Task has been removed by PSIDclient_delete() */
 	PSID_log(PSID_LOG_SPAWN, "%s: task %s not found\n", __func__,
 		 PSC_printTID(msg->request));
-    } else if (!task->forwarder || task->forwarder->tid != msg->header.sender) {
+    } else if (!task->forwarder || task->forwarder != forwarder) {
 	PSID_log(-1, "%s: forwarder %s not responsible for" , __func__,
 		 PSC_printTID(msg->header.sender));
 	PSID_log(-1, " %s any more\n", PSC_printTID(msg->request));

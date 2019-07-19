@@ -159,6 +159,14 @@ static int handleClientMsg(int fd, void *info)
 	    /* drop message silently */
 	    return 0;
 	}
+	PStask_t *task = PSIDclient_getTask(fd);
+	if (task->obsolete) {
+	    /* Drop all messages besides PSP_DD_CHILDDEAD */
+	    if (msg.header.type != PSP_DD_CHILDDEAD) return 0;
+
+	    /* Tell message handler that forwarder is obsolete */
+	    msg.header.sender = PSC_getTID(-2, PSC_getPID(msg.header.sender));
+	}
 	if (!PSID_handleMsg(&msg)) {
 	    PSID_log(-1, "%s: Problem on socket %d\n", __func__, fd);
 	}
@@ -558,11 +566,20 @@ void PSIDclient_delete(int fd)
 	    PStask_t *childTask = PStasklist_find(&managedTasks, child);
 	    PSID_log(-1, "%s: kill child %s\n", __func__, PSC_printTID(child));
 
+	    if (!childTask || childTask->forwarder != task) {
+		/* Maybe the child's task was obsoleted */
+		childTask = PStasklist_find(&obsoleteTasks, child);
+		/* Still not the right childTask? */
+		if (childTask && childTask->forwarder != task) childTask = NULL;
+	    }
+
 	    /* Since forwarder is gone eliminate all references */
 	    if (childTask) childTask->forwarder = NULL;
 
 	    /* Try to kill the child, again */
-	    PSID_kill(-child, SIGKILL, 0);
+	    if (!childTask || !childTask->obsolete) {
+		PSID_kill(-child, SIGKILL, 0);
+	    }
 
 	    /* Assume child is dead */
 	    msg.header.type = PSP_DD_CHILDDEAD;
@@ -583,17 +600,23 @@ void PSIDclient_delete(int fd)
 
     /* Unregister TG_(PSC)SPAWNER from parent process */
     if (task->group == TG_SPAWNER || task->group == TG_PSCSPAWNER) {
+
+	/* Find correct parent and remove dead spawner from list of children */
 	PStask_t *parent = PStasklist_find(&managedTasks, task->ptid);
-
-	if (parent) {
-	    /* Remove dead spawner from list of children */
-	    PSID_removeSignal(&parent->childList, task->tid, -1);
-
-	    if (parent->removeIt && PSID_emptySigList(&parent->childList)) {
-		PSID_log(PSID_LOG_TASK,
-			 "%s: PStask_cleanup(parent)\n", __func__);
-		PStask_cleanup(parent);
+	if (!parent || !PSID_removeSignal(&parent->childList, task->tid, -1)) {
+	    /* Maybe the parent's task was obsoleted */
+	    parent = PStasklist_find(&obsoleteTasks, task->ptid);
+	    /* Still not the right parent? */
+	    if (parent
+		&&  !PSID_removeSignal(&parent->childList, task->tid, -1)) {
+		parent = NULL;
 	    }
+	}
+
+	if (parent && parent->removeIt
+	    && PSID_emptySigList(&parent->childList)) {
+	    PSID_log(PSID_LOG_TASK, "%s: PStask_cleanup(parent)\n", __func__);
+	    PStask_cleanup(parent);
 	}
     }
 
