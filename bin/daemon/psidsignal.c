@@ -56,7 +56,7 @@ int PSID_kill(pid_t pid, int sig, uid_t uid)
 		      "%s: kill(%d, %d) uid %d", __func__, pid, sig, uid);
 	    return 0;
 	}
-	if (child->forwarder  && child->forwarder->fd != -1
+	if (child->forwarder && child->forwarder->fd != -1
 	    && !child->forwarder->killat) {
 	    /* Try to send signal via forwarder */
 	    PSLog_Msg_t msg = (PSLog_Msg_t) {
@@ -135,7 +135,7 @@ int PSID_kill(pid_t pid, int sig, uid_t uid)
 	}
 
 	if (error) {
-	    PSID_warn((eno==ESRCH) ? PSID_LOG_SIGNAL : -1, eno,
+	    PSID_warn((eno == ESRCH) ? PSID_LOG_SIGNAL : -1, eno,
 		      "%s: kill(%d, %d)", __func__, pid, sig);
 	} else {
 	    PSID_log(PSID_LOG_SIGNAL,
@@ -183,7 +183,7 @@ int PSID_kill(pid_t pid, int sig, uid_t uid)
 void PSID_sendSignal(PStask_ID_t tid, uid_t uid, PStask_ID_t sender,
 		     int signal, int pervasive, int answer)
 {
-    if (PSC_getID(tid)==PSC_getMyID()) {
+    if (PSC_getID(tid) == PSC_getMyID()) {
 	/* receiver is on local node, send signal */
 	PStask_t *dest = PStasklist_find(&managedTasks, tid);
 	pid_t pid = PSC_getPID(tid);
@@ -375,7 +375,7 @@ static void msg_SIGNAL(DDSignalMsg_t *msg)
 	return;
     }
 
-    if (PSC_getID(msg->header.sender)==PSC_getMyID()
+    if (PSC_getID(msg->header.sender) == PSC_getMyID()
 	&& PSC_getPID(msg->header.sender)) {
 	PStask_t *sender = PStasklist_find(&managedTasks, msg->header.sender);
 	if (!sender) {
@@ -384,7 +384,7 @@ static void msg_SIGNAL(DDSignalMsg_t *msg)
 	}
     }
 
-    if (PSC_getID(msg->header.dest)==PSC_getMyID()) {
+    if (PSC_getID(msg->header.dest) == PSC_getMyID()) {
 	/* receiver on local node, send signal */
 	PSID_log(PSID_LOG_SIGNAL, "%s: sending signal %d to %s\n",
 		 __func__, msg->signal, PSC_printTID(msg->header.dest));
@@ -479,7 +479,7 @@ static void msg_NOTIFYDEAD(DDSignalMsg_t *msg)
 
 	if (!PSC_validNode(id)) {
 	    msg->param = EHOSTUNREACH; /* failure */
-	} else if (id==PSC_getMyID()) {
+	} else if (id == PSC_getMyID()) {
 	    /* task is on my node */
 	    PStask_t *task = PStasklist_find(&managedTasks, tid);
 
@@ -494,7 +494,7 @@ static void msg_NOTIFYDEAD(DDSignalMsg_t *msg)
 
 		msg->param = 0; /* sucess */
 
-		if (PSC_getID(registrarTid)==PSC_getMyID()) {
+		if (PSC_getID(registrarTid) == PSC_getMyID()) {
 		    /* registrar is on my node */
 		    task = PStasklist_find(&managedTasks, registrarTid);
 		    if (task) {
@@ -1050,7 +1050,7 @@ static int releaseSignal(PStask_ID_t sigSndr, PStask_ID_t sigRcvr, int sig,
     PSID_log(PSID_LOG_SIGNAL, " from %s: release\n", PSC_printTID(sigSndr));
 
     /* Remove signal from list */
-    if (sig==-1) {
+    if (sig == -1) {
 	/* Release a child */
 	PSID_removeSignal(&task->assignedSigs, sigRcvr, sig);
 	if (!PSID_findSignal(&task->childList, sigRcvr, sig)) {
@@ -1236,7 +1236,7 @@ static int releaseTask(PStask_t *task)
 	    PSID_log(PSID_LOG_SIGNAL,
 		     "%s: release signal %d assigned from %s\n", __func__,
 		     sig, PSC_printTID(sender));
-	    if (PSC_getID(sender)==PSC_getMyID()) {
+	    if (PSC_getID(sender) == PSC_getMyID()) {
 		/* controlled task is local */
 		ret = releaseSignal(sender, task->tid, sig, answer);
 		if (ret > 0) task->pendingReleaseErr = ret;
@@ -1654,7 +1654,7 @@ static void drop_RELEASE(DDBufferMsg_t *msg)
 {
     DDSignalMsg_t sigmsg;
 
-    sigmsg.header.type = (msg->header.type==PSP_CD_RELEASE) ?
+    sigmsg.header.type = (msg->header.type == PSP_CD_RELEASE) ?
 	PSP_CD_RELEASERES : PSP_CD_NOTIFYDEADRES;
     sigmsg.header.dest = msg->header.sender;
     sigmsg.header.sender = PSC_getMyTID();
