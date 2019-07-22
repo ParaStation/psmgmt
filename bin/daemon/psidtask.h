@@ -15,6 +15,8 @@
 #ifndef __PSIDTASK_H
 #define __PSIDTASK_H
 
+#include <stdbool.h>
+
 #include "pstask.h"
 #include "pssignal.h"
 
@@ -149,7 +151,7 @@ PStask_ID_t PSID_getSignalByID(list_t *sigList,
  * @param tid The unique task ID to search for.
  *
  * @return If a signal was found, the associated signal will be
- * returned. Or 0, if no signal was found.
+ * returned; or 0 if no signal was found.
  */
 int PSID_getSignalByTID(list_t *sigList, PStask_ID_t tid);
 
@@ -167,14 +169,14 @@ int PSID_numSignals(list_t *sigList);
 /**
  * @brief Check if signal list is empty
  *
- * Check, if the signal list @a sigList contains any signals.
+ * Check if the signal list @a sigList contains any signals.
  *
  * @param sigList Signal list to investigate
  *
- * @return If any signal is stored in the signal list @a sigList, 0 is
- * returned. Or 1, if the list is empty.
+ * @return If any signal is stored in the signal list @a sigList, false is
+ * returned; or true if the list is empty
  */
-int PSID_emptySigList(list_t *sigList);
+bool PSID_emptySigList(list_t *sigList);
 
 /*\@}*/
 

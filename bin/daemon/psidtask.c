@@ -293,19 +293,20 @@ int PSID_numSignals(list_t *sigList)
     return num;
 }
 
-int PSID_emptySigList(list_t *sigList)
+bool PSID_emptySigList(list_t *sigList)
 {
     list_t *s;
-    int blockedRDP, empty = 1;
+    int blockedRDP;
+    bool empty = true;
 
-    if (!sigList) return 1;
+    if (!sigList) return true;
 
     blockedRDP = RDP_blockTimer(1);
 
     list_for_each(s, sigList) {
 	PSsignal_t *sig = list_entry(s, PSsignal_t, next);
 	if (sig->deleted) continue;
-	empty = 0;
+	empty = false;
 	break;
     }
 
@@ -342,8 +343,6 @@ static int doEnqueue(list_t *list, PStask_t *task, PStask_t *other,
 
 	old->obsolete = true;
 	PStasklist_enqueue(&obsoleteTasks, old);
-
-	// @todo prevent sending signals to obsolete tasks successors
     }
 
     list_add_tail(&task->next, other ? &other->next : list);
