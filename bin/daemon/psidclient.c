@@ -576,8 +576,8 @@ void PSIDclient_delete(int fd)
 	    /* Since forwarder is gone eliminate all references */
 	    if (childTask) childTask->forwarder = NULL;
 
-	    /* Try to kill the child, again */
-	    if (!childTask || !childTask->obsolete) {
+	    /* Try to kill the child, again (obsolete childs are yet gone) */
+	    if (childTask && !childTask->obsolete) {
 		PSID_kill(-child, SIGKILL, 0);
 	    }
 
