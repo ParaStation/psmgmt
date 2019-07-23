@@ -929,6 +929,12 @@ static int setShowMaxProc(char *token)
     return 0;
 }
 
+static int setShowObsTasks(char *token)
+{
+    setShowOpt = PSP_OP_OBSOLETE;
+    return 0;
+}
+
 static int setShowUser(char *token)
 {
     setShowOpt = PSP_OP_UID;
@@ -1236,6 +1242,7 @@ static int setShowError(char *token)
 
 static keylist_t setShowList[] = {
     {"maxproc", setShowMaxProc, numOrAnyList},
+    {"obsoletetasks", setShowObsTasks, NULL},
     {"user", setShowUser, userOrAnyList},
     {"group", setShowGroup, userOrAnyList},
     {"adminuser", setShowAdminUser, userOrAnyList},
@@ -1415,6 +1422,7 @@ static int setCommand(char *token)
     case PSP_OP_MASTER:
     case PSP_OP_MAXSTATTRY:
     case PSP_OP_PLUGINUNLOADTMOUT:
+    case PSP_OP_OBSOLETE:
 	if (parser_getNumber(value, &val)) {
 	    printf("Illegal value '%s'\n", value);
 	    goto printError;
@@ -1547,6 +1555,7 @@ static int setCommand(char *token)
     case PSP_OP_MAXSTATTRY:
     case PSP_OP_MASTER:
     case PSP_OP_PLUGINUNLOADTMOUT:
+    case PSP_OP_OBSOLETE:
     case PSP_OP_RL_AS:
     case PSP_OP_RL_CORE:
     case PSP_OP_RL_CPU:
@@ -1637,6 +1646,7 @@ static int showCommand(char *token)
     case PSP_OP_MAXSTATTRY:
     case PSP_OP_PLUGINAPIVERSION:
     case PSP_OP_PLUGINUNLOADTMOUT:
+    case PSP_OP_OBSOLETE:
 	PSIADM_ShowParam(setShowOpt, nl);
 	break;
     case PSP_OP_ACCT:

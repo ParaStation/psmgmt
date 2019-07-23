@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2018 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2019 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -1286,6 +1286,12 @@ void PSIADM_SetParam(PSP_Option_t type, PSP_Optval_t value, char *nl)
 	    return;
 	}
 	break;
+    case PSP_OP_OBSOLETE:
+	if (value != 0) {
+	    printf(" value must be 0.\n");
+	    return;
+	}
+	break;
     case PSP_OP_PSIDSELECTTIME:
     case PSP_OP_RDPMAXRETRANS:
     case PSP_OP_RDPMAXACKPEND:
@@ -1294,7 +1300,7 @@ void PSIADM_SetParam(PSP_Option_t type, PSP_Optval_t value, char *nl)
     case PSP_OP_STATUS_BCASTS:
     case PSP_OP_ACCTPOLL:
     case PSP_OP_KILLDELAY:
-	if (value<0) {
+	if (value < 0) {
 	    printf(" value must be >= 0.\n");
 	    return;
 	}
@@ -1303,7 +1309,7 @@ void PSIADM_SetParam(PSP_Option_t type, PSP_Optval_t value, char *nl)
     case PSP_OP_RDPRSNDTMOUT:
     case PSP_OP_MAXSTATTRY:
     case PSP_OP_PLUGINUNLOADTMOUT:
-	if (value<1) {
+	if (value < 1) {
 	    printf(" value must be > 0.\n");
 	    return;
 	}
@@ -1461,7 +1467,7 @@ void PSIADM_ShowParam(PSP_Option_t type, char *nl)
 	    if (ret != -1) {
 		switch (t) {
 		case PSP_OP_PROCLIMIT:
-		    if (value==-1)
+		    if (value == -1)
 			printf("ANY\n");
 		    else
 			printf("%d\n", value);
