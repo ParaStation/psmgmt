@@ -719,6 +719,9 @@ static void msg_SETOPTION(DDOptionMsg_t *msg)
 	    case PSP_OP_PLUGINUNLOADTMOUT:
 		PSIDplugin_setUnloadTmout(msg->opt[i].value);
 		break;
+	    case PSP_OP_OBSOLETE:
+		PStasklist_cleanupObsolete();
+		break;
 	    case PSP_OP_LISTEND:
 		/* Ignore */
 		break;
@@ -943,6 +946,9 @@ static void msg_GETOPTION(DDOptionMsg_t *msg)
 		break;
 	    case PSP_OP_PLUGINUNLOADTMOUT:
 		msg->opt[out].value = PSIDplugin_getUnloadTmout();
+		break;
+	    case PSP_OP_OBSOLETE:
+		msg->opt[out].value = PStasklist_count(&obsoleteTasks);
 		break;
 	    default:
 		PSID_log(-1, "%s: unknown option %d\n", __func__,
