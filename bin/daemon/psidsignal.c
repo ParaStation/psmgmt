@@ -183,35 +183,62 @@ int PSID_kill(pid_t pid, int sig, uid_t uid)
 void PSID_sendSignal(PStask_ID_t tid, uid_t uid, PStask_ID_t sender,
 		     int signal, int pervasive, int answer)
 {
-    if (PSC_getID(tid) == PSC_getMyID()) {
-	/* receiver is on local node, send signal */
-	PStask_t *dest = PStasklist_find(&managedTasks, tid);
-	pid_t pid = PSC_getPID(tid);
-	DDErrorMsg_t msg = (DDErrorMsg_t) {
+    if (PSC_getID(tid) != PSC_getMyID()) {
+	/* receiver is on a remote node, send message */
+	DDSignalMsg_t msg = (DDSignalMsg_t) {
 	    .header = (DDMsg_t) {
-		.type = PSP_CD_SIGRES,
-		.sender = PSC_getMyTID(),
-		.dest = sender,
+		.type = PSP_CD_SIGNAL,
+		.sender = sender,
+		.dest = tid,
 		.len = sizeof(msg) },
-	    .request = tid };
-	list_t *r;
+	    .signal = signal,
+	    .param = uid,
+	    .pervasive = pervasive,
+	    .answer = answer };
 
-	PSID_log(PSID_LOG_SIGNAL, "%s: sending signal %d to %s\n",
+	sendMsg(&msg);
+
+	PSID_log(PSID_LOG_SIGNAL, "%s: forward signal %d to %s\n",
 		 __func__, signal, PSC_printTID(tid));
 
-	if (!dest) {
+	return;
+    }
+
+    /* receiver is on local node, send signal */
+    PStask_t *dest = PStasklist_find(&managedTasks, tid);
+    pid_t pid = PSC_getPID(tid);
+    DDErrorMsg_t msg = (DDErrorMsg_t) {
+	.header = (DDMsg_t) {
+	    .type = PSP_CD_SIGRES,
+	    .sender = PSC_getMyTID(),
+	    .dest = sender,
+	    .len = sizeof(msg) },
+	.request = tid };
+    list_t *r;
+
+    PSID_log(PSID_LOG_SIGNAL, "%s: sending signal %d to %s\n",
+	     __func__, signal, PSC_printTID(tid));
+
+    if (!dest) {
+	msg.error = ESRCH;
+
+	if (signal) {
+	    PSID_log(PSID_LOG_SIGNAL, "%s: tried to send sig %d to %s",
+		     __func__, signal, PSC_printTID(tid));
+	    PSID_warn(PSID_LOG_SIGNAL, ESRCH, " sender was %s",
+		      PSC_printTID(sender));
+	}
+    } else if (!pid) {
+	msg.error = EACCES;
+	PSID_log(-1, "%s: Do not send signal to daemon\n", __func__);
+    } else {
+	/* Check if signal was intended for an obsolete task */
+	PStask_t *obsT = PStasklist_find(&obsoleteTasks, tid);
+	if (obsT && PSID_findSignal(&obsT->assignedSigs, sender, signal)) {
 	    msg.error = ESRCH;
-
-	    if (signal) {
-		PSID_log(PSID_LOG_SIGNAL, "%s: tried to send sig %d to %s",
-			 __func__, signal, PSC_printTID(tid));
-		PSID_warn(PSID_LOG_SIGNAL, ESRCH, " sender was %s",
-			  PSC_printTID(sender));
-	    }
-	} else if (!pid) {
-	    msg.error = EACCES;
-
-	    PSID_log(-1, "%s: Do not send signal to daemon\n", __func__);
+	    PSID_log(-1, "%s: sig %d intended for obsolete tasks %s", __func__,
+		     signal, PSC_printTID(tid));
+	    PSID_log(-1, " sender was %s", PSC_printTID(sender));
 	} else if (pervasive) {
 	    list_t *s, *tmp;
 	    int blockedRDP;
@@ -260,7 +287,7 @@ void PSID_sendSignal(PStask_ID_t tid, uid_t uid, PStask_ID_t sender,
 		}
 	    }
 	} else {
-	    int ret, sig = (signal!=-1) ? signal : dest->relativesignal;
+	    int ret, sig = (signal != -1) ? signal : dest->relativesignal;
 
 	    if (signal == -1) {
 		int delay = PSIDnodes_killDelay(PSC_getMyID());
@@ -287,25 +314,9 @@ void PSID_sendSignal(PStask_ID_t tid, uid_t uid, PStask_ID_t sender,
 		PSID_setSignal(&dest->signalSender, sender, sig);
 	    }
 	}
-	if (answer) sendMsg(&msg);
-    } else {
-	/* receiver is on a remote node, send message */
-	DDSignalMsg_t msg = (DDSignalMsg_t) {
-	    .header = (DDMsg_t) {
-		.type = PSP_CD_SIGNAL,
-		.sender = sender,
-		.dest = tid,
-		.len = sizeof(msg) },
-	    .signal = signal,
-	    .param = uid,
-	    .pervasive = pervasive,
-	    .answer = answer };
-
-	sendMsg(&msg);
-
-	PSID_log(PSID_LOG_SIGNAL, "%s: forward signal %d to %s\n",
-		 __func__, signal, PSC_printTID(tid));
     }
+
+    if (answer) sendMsg(&msg);
 }
 
 void PSID_sendAllSignals(PStask_t *task)
@@ -1160,7 +1171,7 @@ static int releaseTask(PStask_t *task)
 
 	    sig = -1;
 	    while ((child = PSID_getSignal(&task->childList, &sig))) {
-		bool assgnd = !!PSID_findSignal(&task->assignedSigs, child, -1);
+		bool assgnd = PSID_findSignal(&task->assignedSigs, child, -1);
 		PSnodes_ID_t childNode = PSC_getID(child);
 
 		PSID_log(PSID_LOG_TASK|PSID_LOG_SIGNAL, "%s: notify child %s\n",

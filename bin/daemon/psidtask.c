@@ -522,10 +522,12 @@ void PStask_cleanup(PStask_t *task)
 		if (child) child->forwarder = NULL;
 
 		if (child && child->fd == -1) {
-		    PSID_log(-1, "%s: forwarder kills child %s\n",
-			     __func__, PSC_printTID(child->tid));
+		    if (!child->obsolete) {
+			PSID_log(-1, "%s: forwarder kills child %s\n",
+				 __func__, PSC_printTID(child->tid));
 
-		    PSID_kill(-PSC_getPID(child->tid), SIGKILL, child->uid);
+			PSID_kill(-PSC_getPID(child->tid), SIGKILL, child->uid);
+		    }
 		    PStask_cleanup(child);
 		}
 	    }
