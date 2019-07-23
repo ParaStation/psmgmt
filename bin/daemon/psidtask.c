@@ -411,6 +411,32 @@ PStask_t *PStasklist_find(list_t *list, PStask_ID_t tid)
     return task;
 }
 
+int PStasklist_count(list_t *list)
+{
+    list_t *t;
+    int num = 0;
+
+    list_for_each(t, list) {
+	PStask_t *task = list_entry(t, PStask_t, next);
+	if (task->deleted && task->fd == -1) continue;
+	num++;
+    }
+
+    return num;
+}
+
+void PStasklist_cleanupObsolete(void)
+{
+    list_t *t, *tmp;
+
+    list_for_each_safe(t, tmp, &obsoleteTasks) {
+	PStask_t *task = list_entry(t, PStask_t, next);
+
+	PStasklist_dequeue(task);
+	PStask_delete(task);
+    }
+}
+
 void PStask_cleanup(PStask_t *task)
 {
     if (!task) {

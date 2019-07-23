@@ -230,7 +230,7 @@ int PStasklist_enqueue(list_t *list, PStask_t *task);
 int PStasklist_enqueueBefore(list_t *list, PStask_t *task, PStask_t *other);
 
 /**
- * @brief Remove task from tasklist.
+ * @brief Remove task from tasklist
  *
  * Remove the task structure @a task from the tasklist it is enqueued
  * in. If @a task is not enqueued in any list, nothing happens.
@@ -242,7 +242,7 @@ int PStasklist_enqueueBefore(list_t *list, PStask_t *task, PStask_t *other);
 void PStasklist_dequeue(PStask_t *task);
 
 /**
- * @brief Find a task within a tasklist.
+ * @brief Find a task within a tasklist
  *
  * Find the task with TID @a tid within the tasklist @a list.
  *
@@ -250,10 +250,31 @@ void PStasklist_dequeue(PStask_t *task);
  *
  * @param tid The TID of the task to find.
  *
- * @return On success, a pointer to the found task is returned, or
+  * @return On success, a pointer to the found task is returned, or
  * NULL if no task with TID @a tid was found within @a list.
  * */
 PStask_t *PStasklist_find(list_t *list, PStask_ID_t tid);
+
+/**
+ * @brief Count number of tasks in tasklist
+ *
+ * Count the number of tasks in the tasklist @a list.
+ *
+ * @param list The tasklist to count through
+ *
+ * @return Number of valid tasks enqueue in the list @a list
+ */
+int PStasklist_count(list_t *list);
+
+/**
+ * @brief Cleanup obsolete tasks
+ *
+ * Cleanup all tasks enqueued in @ref obsoleteTasks. This is meant as
+ * a special action if obsolete tasks remain -- which is unintended.
+ *
+ * @return No return value
+ */
+void PStasklist_cleanupObsolete(void);
 /*\@}*/
 
 /**
