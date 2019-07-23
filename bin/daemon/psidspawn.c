@@ -3768,6 +3768,17 @@ static void checkObstinateTasks(void)
 	    }
 	}
     }
+    list_for_each_safe(t, tmp, &obsoleteTasks) {
+	PStask_t *task = list_entry(t, PStask_t, next);
+
+	if (task->deleted) {
+	    /* If task is still connected, wait for connection closed */
+	    if (task->fd == -1) {
+		PStasklist_dequeue(task);
+		PStask_delete(task);
+	    }
+	}
+    }
 
 }
 
