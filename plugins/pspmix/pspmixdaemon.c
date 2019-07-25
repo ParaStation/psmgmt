@@ -12,7 +12,7 @@
  * @file Implementation of pspmix functions running in the daemon
  *
  * Two jobs are done inside the daemon:
- * 1. Start the PMIx Jobserver as plugin forwarder
+ * 1. Start the PMIx jobserver as plugin forwarder
  * 2. Forward plugin messages
  */
 
@@ -73,12 +73,12 @@ void setTargetToPmixJobserver(DDTypedBufferMsg_t *msg) {
     }
 
     if (count == 0) {
-	mlog("%s: UNEXPECTED: No jobserver found.\n", __func__);
+	mlog("%s: UNEXPECTED: No PMIx jobserver found.\n", __func__);
 	return;
     }
 
     if (count != 1) {
-	mlog("%s: Currently there is only one jobserver per node supported"
+	mlog("%s: Currently there is only one PMIx jobserver per node supported"
 		" (found %d).\n", __func__, count);
 	return;
     }
@@ -135,8 +135,8 @@ static void forwardPspmixMsg(DDMsg_t *vmsg)
 /**
  * @brief Forward messages of type PSP_CC_PLUG_PSPMIX in the main daemon.
  *
- * This function is used to forward messages comming from the local PMIx
- * job server in the daemon.
+ * This function is used to forward messages coming from the local PMIx
+ * jobserver in the daemon.
  *
  * @param vmsg   message received
  * @param fw     the plugin forwarder hosting the PMIx jobserver
@@ -206,9 +206,9 @@ static int jobserverTerminated_cb(int32_t exit_status, Forwarder_Data_t *fw)
 }
 
 /*
- * @brief Start the pmix server process for a job
+ * @brief Start the PMIx server process for a job
  *
- * Start a pluginforwarder as pmix server handling all processes of the job
+ * Start a pluginforwarder as PMIx jobserver handling all processes of the job
  * on this node.
  */
 static bool startJobserver(PspmixJobserver_t *server)
@@ -236,7 +236,7 @@ static bool startJobserver(PspmixJobserver_t *server)
     fwdata->handleFwMsg = forwardPspmixFwMsg;
 
     if (!startForwarder(fwdata)) {
-	mlog("%s: starting pspmix JobServer for job '%s' failed\n", __func__,
+	mlog("%s: starting PMIx jobserver for job '%s' failed\n", __func__,
 		jobid);
 	return false;
     }
@@ -247,9 +247,9 @@ static bool startJobserver(PspmixJobserver_t *server)
 }
 
 /*
- * @brief Stop the pmix server process for a job
+ * @brief Stop the PMIx server process for a job
  *
- * Stop the pluginforwarder working as pmix job server and removes it from
+ * Stop the pluginforwarder working as PMIx jobserver and removes it from
  * the list of jobservers.
  * If the server already died, just remove it from the list.
  */
@@ -280,7 +280,7 @@ static void stopJobserver(PspmixJobserver_t *server)
  *
  * This hook is called after receiving a spawn request message
  *
- * In this function we do start the pmix jobserver.
+ * In this function we do start the PMIx jobserver.
  *
  * @param data Pointer to task structure to be spawned.
  *
@@ -373,7 +373,7 @@ setenv:
  *
  * This hook is called before a local job gets removed
  *
- * In this function we do stop the pmix jobserver.
+ * In this function we do stop the PMIx jobserver.
  *
  * @param data Pointer to job structure to be removed.
  *
@@ -410,7 +410,7 @@ static int hookLocalJobRemoved(void *data)
  *
  * This hook is called if a remote node disappeared
  *
- * In this function we do stop the pmix jobserver of each job whose logger
+ * In this function we do stop the PMIx jobserver of each job whose logger
  * was running on the disappeared node.
  *
  * @param nodeid ID of the disappeared node
