@@ -173,23 +173,34 @@ static int killJobserver(pid_t session, int sig)
  */
 static int jobserverTerminated_cb(int32_t exit_status, Forwarder_Data_t *fw)
 {
-    mlog("%s() called\n", __func__);
+    mdbg(PSPMIX_LOG_CALL, "%s() called with forwarder %s status %d\n", __func__,
+	    PSC_printTID(fw->tid), exit_status);
 
-#if 0
-    PspmixJobserver_t *curserver, *server = NULL;
-    list_t *s;
-    list_for_each(s, &pmixJobservers) {
-	curserver = list_entry(s, PspmixJobserver_t, next);
-	if (curserver->fwdata == fw) {
-	    server = curserver;
-	    break;
-	}
+    /* regularly this function has nothing to do */
+    if (exit_status == 0 && fw->userData == NULL) return 0;
+
+    PspmixJobserver_t *server = fw->userData;
+
+    if (server != NULL) {
+	/* the jobserver forwarder died unintentionally, eliminate reference to
+	 * the fwdata in the corresponding server object */
+	server->fwdata = NULL;
+
+	mlog("%s: PMIx jobserver for job with loggertid %s terminated with"
+		" status %d\n", __func__, PSC_printTID(server->loggertid),
+		exit_status);
+    }
+    else {
+	mlog("%s: UNEXPECTED: PMIx jobserver with tid %s and invalid server"
+		" reference terminated with status %d\n", __func__,
+		PSC_printTID(fw->tid), exit_status);
     }
 
-    /* remove server object from list */
-    list_del(&server->next);
-    ufree(server);
-#endif
+    fw->userData = NULL;
+
+    /* The server is removed from PMIx jobservers list later by stopJobserver()
+     * which will be called in hookLocalJobRemoved() after the psid detected
+     * that the job is canceled */
 
     return 0;
 }
@@ -240,19 +251,27 @@ static bool startJobserver(PspmixJobserver_t *server)
  *
  * Stop the pluginforwarder working as pmix job server and removes it from
  * the list of jobservers.
+ * If the server already died, just remove it from the list.
  */
 static void stopJobserver(PspmixJobserver_t *server)
 {
     mdbg(PSPMIX_LOG_CALL, "%s() called for job with loggertid %s\n", __func__,
 	    PSC_printTID(server->loggertid));
 
-    shutdownForwarder(server->fwdata);
+    if (server->fwdata) {
+	shutdownForwarder(server->fwdata);
+	server->fwdata->userData = NULL;
+	mdbg(PSPMIX_LOG_VERBOSE, "%s: PMIx jobserver stopped for job with"
+		" loggertid %s\n", __func__, PSC_printTID(server->loggertid));
+    }
+    else {
+	mlog("%s: PMIx jobserver for job with loggertid %s has no valid"
+		" forwarder data, just removing from list.\n", __func__,
+		PSC_printTID(server->loggertid));
+    }
 
     list_del(&server->next);
     ufree(server);
-
-    mdbg(PSPMIX_LOG_VERBOSE, "%s: PMIx jobserver stopped for job with"
-		" loggertid %s\n", __func__, PSC_printTID(server->loggertid));
 
 }
 
