@@ -383,8 +383,8 @@ static int hookLocalJobRemoved(void *data)
 {
     PSjob_t *job = data;
 
-    mdbg(PSPMIX_LOG_CALL, "%s() called for job with loggertid %d\n", __func__,
-	    job->loggertid);
+    mdbg(PSPMIX_LOG_CALL, "%s() called for job with loggertid %s\n", __func__,
+	    PSC_printTID(job->loggertid));
 
     // TODO look if this job is using PMIx
 
