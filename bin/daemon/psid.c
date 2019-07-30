@@ -211,7 +211,6 @@ static int handleSIGCHLD(int fd, void *info)
 {
     struct signalfd_siginfo sigInfo;
     pid_t pid;         /* pid of the child process */
-    PStask_ID_t tid;   /* tid of the child process */
     int estatus;       /* termination status of the child process */
 
     /* Ignore data available on fd. We rely on waitpid() alone */
@@ -223,7 +222,6 @@ static int handleSIGCHLD(int fd, void *info)
 	/*
 	 * Delete the task now. These should mainly be forwarders.
 	 */
-	PStask_t *task;
 	int logClass = (WEXITSTATUS(estatus)||WIFSIGNALED(estatus)) ?
 	    -1 : PSID_LOG_CLIENT;
 
@@ -236,9 +234,14 @@ static int handleSIGCHLD(int fd, void *info)
 	}
 	PSID_log(logClass, "\n");
 
-	tid = PSC_getTID(-1, pid);
+	PStask_ID_t tid = PSC_getTID(-1, pid); /* tid of the child process */
 
-	task = PStasklist_find(&managedTasks, tid);
+	/*
+	 * We can safely ignore obsoleteTasks here since those might
+	 * still be connected but for sure were released via waitpid()
+	 * before. Thus, all PIDs from waitpid() are for current tasks
+	 */
+	PStask_t *task = PStasklist_find(&managedTasks, tid);
 	if (task && task->group != TG_DELEGATE) {
 	    /* delegates are handled explicitly in psmom/psslurm */
 	    if (!task->killat) {
@@ -253,7 +256,7 @@ static int handleSIGCHLD(int fd, void *info)
 		Selector_enable(task->fd);
 	    } else {
 		/* task not connected, remove from tasklist */
-		PStask_cleanup(tid);
+		PStask_cleanup(task);
 	    }
 	}
     }

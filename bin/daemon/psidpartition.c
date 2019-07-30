@@ -3142,7 +3142,7 @@ static void msg_CHILDRESREL(DDBufferMsg_t *msg)
 	task->usedThreads -= released;
 	if (task->removeIt && !task->usedThreads) {
 	    task->delegate = NULL;
-	    PStask_cleanup(task->tid);
+	    PStask_cleanup(task);
 	}
     }
 
@@ -4003,7 +4003,7 @@ void PSIDpart_cleanupRes(PStask_t *task)
 	task->usedThreads -= released;
 	if (task->removeIt && !task->usedThreads) {
 	    task->delegate = NULL;
-	    PStask_cleanup(task->tid);
+	    PStask_cleanup(task);
 	}
     }
 

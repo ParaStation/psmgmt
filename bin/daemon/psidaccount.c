@@ -1,17 +1,12 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2006-2013 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2006-2019 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-#ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__((used)) =
-    "$Id$";
-#endif /* DOXYGEN_SHOULD_SKIP_THIS */
-
 #include <stdlib.h>
 #include <errno.h>
 
@@ -163,6 +158,8 @@ static void localForward_ACCOUNT(DDTypedBufferMsg_t *msg)
 		 PSC_printTID(msg->header.dest));
 	return;
     }
+
+    if (task->group != TG_ACCOUNT) return; /* Original task might be obsolete */
 
     /* Unprivileged users may only see their own accounting data. */
     if (task->uid != 0 && task->uid != uid &&

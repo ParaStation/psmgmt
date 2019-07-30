@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2018 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2019 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -75,24 +75,6 @@ static void msg_INFOREQUEST(DDTypedBufferMsg_t *inmsg)
 	    .error = 0};
 
 	if (PSIDnodes_isUp(destID)) {
-	    DDTypedMsg_t msg = {
-		.header = {
-		    .type = PSP_CD_INFORESPONSE,
-		    .sender = PSC_getMyTID(),
-		    .dest = inmsg->header.sender,
-		    .len = sizeof(msg) },
-		.type = PSP_INFO_UNKNOWN };
-
-	    if (PSC_getID(inmsg->header.sender) == PSC_getMyID()) {
-		/* Test for correct protocol version */
-		PStask_t *requester = PStasklist_find(&managedTasks,
-						      inmsg->header.sender);
-		if (!requester) {
-		    PSID_log(-1, "%s: requester %s not found\n",
-			     funcStr, PSC_printTID(inmsg->header.sender));
-		    inmsg = (DDTypedBufferMsg_t *)&msg;
-		}
-	    }
 	    /* transfer to remote daemon */
 	    if (sendMsg(inmsg) == -1 && errno != EWOULDBLOCK) {
 		/* system error */
@@ -240,7 +222,7 @@ static void msg_INFOREQUEST(DDTypedBufferMsg_t *inmsg)
 	{
 	    PStask_ID_t tid = PSC_getPID(inmsg->header.dest) ?
 		inmsg->header.dest : inmsg->header.sender;
-	    PStask_t *task=PStasklist_find(&managedTasks, tid);
+	    PStask_t *task = PStasklist_find(&managedTasks, tid);
 
 	    if (!task) {
 		PSID_log(-1, "%s: task %s not found\n",

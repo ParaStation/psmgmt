@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2002-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2018 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2019 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -68,6 +68,7 @@ typedef enum {
     PSP_OP_HWSTATUS = 0x0001,     /**< Hardware status */
     PSP_OP_PROTOCOLVERSION,       /**< Node's PSProtocol version */
     PSP_OP_PROCLIMIT = 0x0003,    /**< Maximum number of processes */
+    PSP_OP_OBSOLETE,              /**< Number of obsolete tasks */
     PSP_OP_PSIDDEBUG = 0x0005,    /**< psid's debug level */
     PSP_OP_PSIDSELECTTIME,        /**< Time (sec) in psid's select() */
     PSP_OP_MASTER = 0x0008,       /**< current master of the cluster */

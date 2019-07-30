@@ -203,7 +203,7 @@ void PSID_readConfigFile(FILE* logfile, char *configfile)
     }
 
     PSC_setNrOfNodes(PSIDnodes_getMaxID()+1);
-    PSC_setDaemonFlag(1); /* To get the correct result from PSC_getMyTID() */
+    PSC_setDaemonFlag(true); /* To get the correct result from PSC_getMyTID() */
 }
 
 int PSID_writeall(int fd, const void *buf, size_t count)
@@ -453,31 +453,30 @@ void PSID_dumpMsg(DDMsg_t *msg)
     PSID_log(PSID_LOG_MSGDUMP, "\n");
 }
 
-int PSID_checkPrivilege(PStask_ID_t sender)
+bool PSID_checkPrivilege(PStask_ID_t sender)
 {
     if (PSC_getID(sender) != PSC_getMyID()) {
 	/* No info on remote task, lets assumed it's privileged */
-	return 1;
+	return true;
     }
 
     if (!PSC_getPID(sender)) {
 	/* Sender is a daemon itself and, thus, privileged */
-	return 1;
+	return true;
     }
 
     PStask_t *senderTask = PStasklist_find(&managedTasks, sender);
 
-    if (!senderTask) return 0;
-
-    if (senderTask->uid && senderTask->gid
-	&& !PSIDnodes_testGUID(PSC_getMyID(), PSIDNODES_ADMUSER,
-			       (PSIDnodes_guid_t){.u=senderTask->uid})
-	&& !PSIDnodes_testGUID(PSC_getMyID(), PSIDNODES_ADMGROUP,
-			       (PSIDnodes_guid_t){.g=senderTask->gid})) {
-	return 0;
+    if (!senderTask
+	|| (senderTask->uid && senderTask->gid
+	    && !PSIDnodes_testGUID(PSC_getMyID(), PSIDNODES_ADMUSER,
+				   (PSIDnodes_guid_t){.u=senderTask->uid})
+	    && !PSIDnodes_testGUID(PSC_getMyID(), PSIDNODES_ADMGROUP,
+				   (PSIDnodes_guid_t){.g=senderTask->gid}))) {
+	return false;
     }
 
-    return 1;
+    return true;
 }
 
 /** All main-loop actions registered */

@@ -3336,8 +3336,8 @@ static void msg_SPAWNSUCCESS(DDErrorMsg_t *msg)
      * its forwarder as a proxy via PMI. Thus, send SPAWNSUCCESS to
      * the proxy.
      */
-    if (task && task->group == TG_ANY && task->fd == -1) {
-	msg->header.dest = task->forwardertid;
+    if (task && task->group == TG_ANY && task->fd == -1 && task->forwarder) {
+	msg->header.dest = task->forwarder->tid;
     }
     sendMsg(msg);
     free(parent);
@@ -3478,7 +3478,7 @@ static void msg_CHILDBORN(DDErrorMsg_t *msg)
     child->tid = msg->request;
     child->fd = -1;
     child->group = forwarder->childGroup;
-    child->forwardertid = forwarder->tid;
+    child->forwarder = forwarder;
 
     /* Accounting info */
     if (child->group != TG_ADMINTASK && child->group != TG_SERVICE
@@ -3534,8 +3534,9 @@ static void msg_CHILDBORN(DDErrorMsg_t *msg)
 	     * not the origin of the spawn but used the forwarder as a
 	     * proxy via PMI. Thus, send SPAWNSUCCESS to the proxy.
 	     */
-	    if (parent->group == TG_ANY && parent->fd == -1) {
-		succMsgDest = parent->forwardertid;
+	    if (parent->group == TG_ANY && parent->fd == -1
+		&& parent->forwarder) {
+		succMsgDest = parent->forwarder->tid;
 	    }
 	}
     }
@@ -3574,11 +3575,17 @@ static void msg_CHILDBORN(DDErrorMsg_t *msg)
 static void msg_CHILDDEAD(DDErrorMsg_t *msg)
 {
     PStask_t *task, *forwarder;
+    bool obsoleteSndr = false;
 
     PSID_log(PSID_LOG_SPAWN, "%s: from %s", __func__,
 	     PSC_printTID(msg->header.sender));
     PSID_log(PSID_LOG_SPAWN, " to %s", PSC_printTID(msg->header.dest));
     PSID_log(PSID_LOG_SPAWN, " concerning %s\n", PSC_printTID(msg->request));
+
+    if (PSC_getID(msg->header.sender) == -2) {
+	obsoleteSndr = true;
+	msg->header.sender = PSC_getTID(-1, PSC_getPID(msg->header.sender));
+    }
 
     /****** This part handles messages forwarded by some daemon ******/
 
@@ -3625,7 +3632,7 @@ static void msg_CHILDDEAD(DDErrorMsg_t *msg)
 
 	if (task->removeIt && PSID_emptySigList(&task->childList)) {
 	    PSID_log(PSID_LOG_TASK, "%s: PStask_cleanup()\n", __func__);
-	    PStask_cleanup(task->tid);
+	    PStask_cleanup(task);
 	    return;
 	}
 
@@ -3659,10 +3666,15 @@ static void msg_CHILDDEAD(DDErrorMsg_t *msg)
     /****** This part handles original messages from a local forwarder ******/
 
     /* Release the corresponding forwarder */
-    forwarder = PStasklist_find(&managedTasks, msg->header.sender);
+    forwarder = PStasklist_find(obsoleteSndr ? &obsoleteTasks : &managedTasks,
+				msg->header.sender);
     if (forwarder) {
-	forwarder->released = true;
-	PSID_removeSignal(&forwarder->childList, msg->request, -1);
+	if (PSID_removeSignal(&forwarder->childList, msg->request, -1)) {
+	    forwarder->released = true;
+	} else {
+	    /* ensure non responsible forwarder is not referred any further */
+	    forwarder = NULL;
+	}
     } else {
 	/* Forwarder not found */
 	PSID_log(-1, "%s: forwarder task %s not found\n",
@@ -3671,13 +3683,19 @@ static void msg_CHILDDEAD(DDErrorMsg_t *msg)
 
     /* Try to find the task */
     task = PStasklist_find(&managedTasks, msg->request);
+    if (!task || task->forwarder != forwarder) {
+	/* Maybe the task was obsoleted */
+	task = PStasklist_find(&obsoleteTasks, msg->request);
+	/* Still not the right task? */
+	if (task && task->forwarder != forwarder) task = NULL;
+    }
 
     if (!task) {
 	/* task not found */
 	/* This is not critical. Task has been removed by PSIDclient_delete() */
 	PSID_log(PSID_LOG_SPAWN, "%s: task %s not found\n", __func__,
 		 PSC_printTID(msg->request));
-    } else if (task->forwardertid != msg->header.sender) {
+    } else if (!task->forwarder || task->forwarder != forwarder) {
 	PSID_log(-1, "%s: forwarder %s not responsible for" , __func__,
 		 PSC_printTID(msg->header.sender));
 	PSID_log(-1, " %s any more\n", PSC_printTID(msg->request));
@@ -3700,7 +3718,7 @@ static void msg_CHILDDEAD(DDErrorMsg_t *msg)
 	 * will also send all signals */
 	if (task->fd == -1) {
 	    PSID_log(PSID_LOG_TASK, "%s: PStask_cleanup()\n", __func__);
-	    PStask_cleanup(msg->request);
+	    PStask_cleanup(task);
 	}
 
 	/* Send CHILDDEAD to parent */
@@ -3743,10 +3761,21 @@ static void checkObstinateTasks(void)
 	    }
 	    if (ret && errno == ESRCH) {
 		if (!task->removeIt) {
-		    PStask_cleanup(task->tid);
+		    PStask_cleanup(task);
 		} else {
 		    task->deleted = true;
 		}
+	    }
+	}
+    }
+    list_for_each_safe(t, tmp, &obsoleteTasks) {
+	PStask_t *task = list_entry(t, PStask_t, next);
+
+	if (task->deleted) {
+	    /* If task is still connected, wait for connection closed */
+	    if (task->fd == -1) {
+		PStasklist_dequeue(task);
+		PStask_delete(task);
 	    }
 	}
     }

@@ -2,27 +2,15 @@
  * ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2015 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2019 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
 /**
- * \file
- * Help messages of the ParaStation Administration Tool
- *
- * $Id$
- *
- * \author
- * Norbert Eicker <eicker@par-tec.com>
- *
+ * @file Help messages of the ParaStation Administration Tool
  */
-#ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char hlpid[] __attribute__((used)) =
-    "$Id$";
-#endif /* DOXYGEN_SHOULD_SKIP_THIS */
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -267,7 +255,7 @@ static info_t setInfo = {
 	" | cpumap <map> | allowUserMap <bool> | nodessort <mode>"
 	" | adminuser [+|-]{<user>|any} | admingroup [+|-]{<group>|any}"
 	" | accountpoll <interval> | killdelay <delay>"
-	" | pluginUnloadTmout <timeout>"
+	" | pluginUnloadTmout <timeout> | obsoleteTasks 0"
 	" | {rl_{addressspace|as} | rl_core | rl_cpu | rl_data | rl_fsize"
 	"    | rl_locks | rl_memlock | rl_msgqueue | rl_nofile | rl_nproc"
 	"    | rl_rss | rl_sigpending | rl_stack} {<limit>|unlimited}} <nodes>"
@@ -428,6 +416,9 @@ static info_t setInfo = {
 	{ .tag = "set pluginUnloadTmout <timeout>",
 	  .descr = "Set the timeout until plugins are evicted after a"
 	  " 'plugin forceunload' to <timeout> seconds." },
+	{ .tag = "set obsoleteTasks <num>",
+	  .descr = "Reset the number of obsolete tasks. Makes most sense to"
+	  " reset it to 0 which also clears the list of obsolete tasks." },
 	{ .tag = "set rl_{addressspace|as} {<limit>|unlimited}",
 	  .descr = "Set RLIMIT_AS to the given <limit> for both,"
 	  " rlim_cur and rlim_max." },
@@ -484,7 +475,7 @@ static info_t showInfo = {
 	" | starter | runjobs | overbook | exclusive | pinprocs | bindmem"
 	" | cpumap | allowUserMap | nodessort | supplementaryGroups"
 	" | maxStatTry | adminuser | admingroup | accounters | accountpoll"
-	" | killdelay | pluginAPIversion | pluginUnloadTmout"
+	" | killdelay | pluginAPIversion | pluginUnloadTmout | obsoleteTasks"
 	" | rl_{addressspace|as} | rl_core | rl_cpu | rl_data | rl_fsize"
 	" | rl_locks | rl_memlock | rl_msgqueue | rl_nofile | rl_nproc"
 	" | rl_rss | rl_sigpending | rl_stack}"
@@ -585,6 +576,8 @@ static info_t showInfo = {
 	{ .tag = "show pluginUnloadTmout",
 	  .descr = "Show the timeout until plugins are evicted after a"
 	  " 'plugin forceunload'." },
+	{ .tag = "show obsoleteTasks",
+	  .descr = "Show the number of obsolete tasks on this node." },
 	{ .tag = "show rl_{addressspace|as}",
 	  .descr = "Show RLIMIT_AS on this node." },
 	{ .tag = "show rl_core",

@@ -92,7 +92,7 @@ struct __task__ {
     PStask_group_t childGroup;     /**< used by forwarder during spawn */
     PSrsrvtn_ID_t resID;           /**< reservation to be spawned in */
     /*C*/ PStask_ID_t loggertid;   /**< unique identifier of the logger */
-    PStask_ID_t forwardertid;      /**< unique identifier of the forwarder */
+    PStask_t *forwarder;           /**< pointer to forwarder's task struct */
     /*C*/ int32_t rank;            /**< rank of task within task group */
     PSCPU_set_t CPUset;            /**< set of logical CPUs to pin to */
     short fd;                      /**< connection fd from/to the psid */
@@ -119,6 +119,9 @@ struct __task__ {
 				      will be removed from the list of
 				      managed tasks in the next round
 				      of the main loop */
+    bool obsolete;                 /**< flag tasks as obsolete, i.e. removed
+				      from managed tasks but still referred
+				      by a  selector */
     /*C*/ bool noParricide;        /**< flag to be set if kill signals should
 				      not be forwarded to parents. */
     time_t killat;                 /**< flag a killed task, i.e. the time when
@@ -162,8 +165,8 @@ struct __task__ {
  * A new task structure is created and initialized via @ref
  * PStask_init(). It may be removed with @ref PStask_delete().
  *
- * @return On success, a pointer to the new task structure is
- * returned, or NULL otherwise.
+ * @return On success a pointer to the new task structure is
+ * returned, or NULL otherwise
  *
  * @see PStask_init(), PStask_delete()
  */
@@ -177,9 +180,9 @@ PStask_t *PStask_new(void);
  *
  * @param task Pointer to the task structure to be initialized.
  *
- * @return On success, 1 is returned, or 0 otherwise.
+ * @return On success true is returned; or false in case of error
  */
-int PStask_init(PStask_t *task);
+bool PStask_init(PStask_t *task);
 
 /**
  * @brief Reinitialize a task structure.
@@ -190,9 +193,9 @@ int PStask_init(PStask_t *task);
  *
  * @param task Pointer to the task structure to be reinitialized.
  *
- * @return On success, 1 is returned, or 0 otherwise.
+ * @return On success true is returned; or false in case of error
  */
-int PStask_reinit(PStask_t *task);
+bool PStask_reinit(PStask_t *task);
 
 /**
  * @brief Delete a task structure.
@@ -204,9 +207,9 @@ int PStask_reinit(PStask_t *task);
  *
  * @param task Pointer to the task structure to be deleted.
  *
- * @return On success, 1 is returned, or 0 otherwise.
+ * @return On success true is returned; or false in case of error
  */
-int PStask_delete(PStask_t *task);
+bool PStask_delete(PStask_t *task);
 
 /**
  * @brief Clone a task structure.
@@ -239,7 +242,7 @@ PStask_t *PStask_clone(PStask_t *task);
  *
  * @param task Pointer to the task structure to print.
  *
- * @return No return value.
+ * @return No return value
  */
 void PStask_snprintf(char *txt, size_t size, PStask_t *task);
 

@@ -1161,14 +1161,14 @@ void PSIDplugin_forceUnloadAll(void)
 
 static void sendStr(DDTypedBufferMsg_t *msg, char *str, const char *caller)
 {
-    int first = 1;
+    bool first = true;
 
     if (!str) return;
 
     while (*str || first) {
 	size_t num = MIN(strlen(str), sizeof(msg->buf) - 1);
 
-	first = 0;
+	first = false;
 	memcpy(msg->buf, str, num);
 	msg->buf[num] = '\0';
 

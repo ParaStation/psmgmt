@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2002-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2017 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2019 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -14,6 +14,8 @@
  */
 #ifndef __PSIDTASK_H
 #define __PSIDTASK_H
+
+#include <stdbool.h>
 
 #include "pstask.h"
 #include "pssignal.h"
@@ -149,7 +151,7 @@ PStask_ID_t PSID_getSignalByID(list_t *sigList,
  * @param tid The unique task ID to search for.
  *
  * @return If a signal was found, the associated signal will be
- * returned. Or 0, if no signal was found.
+ * returned; or 0 if no signal was found.
  */
 int PSID_getSignalByTID(list_t *sigList, PStask_ID_t tid);
 
@@ -167,23 +169,35 @@ int PSID_numSignals(list_t *sigList);
 /**
  * @brief Check if signal list is empty
  *
- * Check, if the signal list @a sigList contains any signals.
+ * Check if the signal list @a sigList contains any signals.
  *
  * @param sigList Signal list to investigate
  *
- * @return If any signal is stored in the signal list @a sigList, 0 is
- * returned. Or 1, if the list is empty.
+ * @return If any signal is stored in the signal list @a sigList, false is
+ * returned; or true if the list is empty
  */
-int PSID_emptySigList(list_t *sigList);
+bool PSID_emptySigList(list_t *sigList);
 
 /*\@}*/
 
 /** @defgroup taskliststuff Tasklist routines */
 /*\@{*/
 
-/** List of all managed tasks (i.e. tasks that have connected or were
-    spawned). Further tasklists might be defined. */
+/**
+ * List of all managed tasks, i.e. tasks that have connected or were
+ * spawned directly or indirectly (via a forwarder).
+ *
+ * Further tasklists might be defined.
+ */
 extern list_t managedTasks;
+
+/**
+ * List of all obsolete tasks, i.e. tasks that are removed from @ref
+ * managedTasks without having received a SIGCHLD or which are still
+ * connected. This mainly happens when task IDs are reused before the
+ * daemon gets aware of the terminated process.
+ */
+extern list_t obsoleteTasks;
 
 /**
  * @brief Enqueue task in tasklist
@@ -216,7 +230,7 @@ int PStasklist_enqueue(list_t *list, PStask_t *task);
 int PStasklist_enqueueBefore(list_t *list, PStask_t *task, PStask_t *other);
 
 /**
- * @brief Remove task from tasklist.
+ * @brief Remove task from tasklist
  *
  * Remove the task structure @a task from the tasklist it is enqueued
  * in. If @a task is not enqueued in any list, nothing happens.
@@ -228,7 +242,7 @@ int PStasklist_enqueueBefore(list_t *list, PStask_t *task, PStask_t *other);
 void PStasklist_dequeue(PStask_t *task);
 
 /**
- * @brief Find a task within a tasklist.
+ * @brief Find a task within a tasklist
  *
  * Find the task with TID @a tid within the tasklist @a list.
  *
@@ -236,46 +250,69 @@ void PStasklist_dequeue(PStask_t *task);
  *
  * @param tid The TID of the task to find.
  *
- * @return On success, a pointer to the found task is returned, or
+  * @return On success, a pointer to the found task is returned, or
  * NULL if no task with TID @a tid was found within @a list.
  * */
 PStask_t *PStasklist_find(list_t *list, PStask_ID_t tid);
+
+/**
+ * @brief Count number of tasks in tasklist
+ *
+ * Count the number of tasks in the tasklist @a list.
+ *
+ * @param list The tasklist to count through
+ *
+ * @return Number of valid tasks enqueue in the list @a list
+ */
+int PStasklist_count(list_t *list);
+
+/**
+ * @brief Cleanup obsolete tasks
+ *
+ * Cleanup all tasks enqueued in @ref obsoleteTasks. This is meant as
+ * a special action if obsolete tasks remain -- which is unintended.
+ *
+ * @return No return value
+ */
+void PStasklist_cleanupObsolete(void);
 /*\@}*/
 
 /**
- * @brief Cleanup task.
+ * @brief Cleanup task
  *
- * Cleanup the whole task @a tid. This includes various step:
+ * Cleanup the whole task described by the structure @a task. This
+ * includes various step:
  *
- * - First of all the task will be dequeued from @ref managedTasks
- * tasklist.
+ * - First of all the task will be marked to get removed. Thus,
+ * further calls to this function will have no other effects than
+ * possibly marking the task to get deleted.
  *
- * - If the task was found, all signal requested explicitly by other
- * tasks will be send, then all relatives will be signaled.
+ * - All signal requested explicitly by other tasks will be send, then
+ * all relatives will get signaled
  *
- * - The status facility will be informed on removing the task.
+ * - The status facility will be informed on removing the task
  *
  * - If the task is of type TG_FORWARDER and not released, the
- * controlled child will be killed.
+ * controlled child will be killed
  *
- * @param tid The unique task ID of the task to be removed.
+ * @param task The structure describing the task to be cleaned up
  *
- * @return No return value.
+ * @return No return value
  */
-void PStask_cleanup(PStask_ID_t tid);
+void PStask_cleanup(PStask_t *task);
 
 /**
  * @brief Memory cleanup
  *
  * Cleanup all dynamic memory currently retained in task structures
- * collected in the @ref managedTasks list.This will very aggressively
+ * collected in the @ref managedTasks list. This will very aggressively
  * free() all allocated memory destroying all information on
  * controlled tasks.
  *
  * The purpose of this function is to cleanup before a fork()ed
  * process is handling other businesses, e.g. becoming a forwarder.
  *
- * @return No return value.
+ * @return No return value
  */
 void PSIDtask_clearMem(void);
 

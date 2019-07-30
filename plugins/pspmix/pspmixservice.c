@@ -701,9 +701,9 @@ void checkFence(PspmixFence_t *fence) {
 	    i = (i + 1) % fence->nnodes;
 
 	    /* send fence_in to next in chain */
-	    mdbg(PSPMIX_LOG_FENCE, "%s: Adding my data and forward fence_in for"
-		    " fence id 0x%04lX with %lu nodes to node %hd.\n", __func__,
-		    fence->id, fence->nnodes, fence->nodes[i]);
+	    mdbg(PSPMIX_LOG_FENCE, "%s: Adding my data and forwarding fence_in"
+		    " for fence id 0x%04lX with %lu nodes to node %hd.\n",
+		    __func__, fence->id, fence->nnodes, fence->nodes[i]);
 
 	    pspmix_comm_sendFenceIn(fence->nodes[i], loggertid, fence->id,
 		    fence->rdata, fence->nrdata);
@@ -1054,6 +1054,9 @@ void pspmix_service_handleFenceOut(uint64_t fenceid, void *data, size_t len)
 	return;
     }
 
+    mdbg(PSPMIX_LOG_FENCE, "%s: Matching fence object found for fence id"
+	    " 0x%04lX\n", __func__, fenceid);
+
     /* remove fence from list */
     list_del(&fence->next);
 
@@ -1061,8 +1064,16 @@ void pspmix_service_handleFenceOut(uint64_t fenceid, void *data, size_t len)
 
     if (!fence->started) {
 	/* we are not the last one of the chain */
+	mdbg(PSPMIX_LOG_FENCE, "%s: Forwarding fence_out for fence id 0x%04lX"
+		" with %lu nodes to node %hd.\n", __func__, fence->id,
+		fence->nnodes, fence->precursor);
         pspmix_comm_sendFenceOut(fence->precursor, loggertid, fence->id,
 		data, len);
+    }
+    else {
+	mdbg(PSPMIX_LOG_FENCE, "%s: Fence out daisy chain for fence id 0x%04lX"
+		" with %lu nodes completed.\n", __func__, fence->id,
+		fence->nnodes);
     }
 
     fence->mdata->data = data;

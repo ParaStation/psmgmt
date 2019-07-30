@@ -159,6 +159,14 @@ static int handleClientMsg(int fd, void *info)
 	    /* drop message silently */
 	    return 0;
 	}
+	PStask_t *task = PSIDclient_getTask(fd);
+	if (task->obsolete) {
+	    /* Drop all messages besides PSP_DD_CHILDDEAD */
+	    if (msg.header.type != PSP_DD_CHILDDEAD) return 0;
+
+	    /* Tell message handler that forwarder is obsolete */
+	    msg.header.sender = PSC_getTID(-2, PSC_getPID(msg.header.sender));
+	}
 	if (!PSID_handleMsg(&msg)) {
 	    PSID_log(-1, "%s: Problem on socket %d\n", __func__, fd);
 	}
@@ -558,12 +566,20 @@ void PSIDclient_delete(int fd)
 	    PStask_t *childTask = PStasklist_find(&managedTasks, child);
 	    PSID_log(-1, "%s: kill child %s\n", __func__, PSC_printTID(child));
 
-	    /* Try to kill the child, again */
-	    if (childTask && childTask->fd == -1) {
-		/* since forwarder is gone prevent PSID_kill() from using it */
-		childTask->forwardertid = 0;
+	    if (!childTask || childTask->forwarder != task) {
+		/* Maybe the child's task was obsoleted */
+		childTask = PStasklist_find(&obsoleteTasks, child);
+		/* Still not the right childTask? */
+		if (childTask && childTask->forwarder != task) childTask = NULL;
 	    }
-	    PSID_kill(-child, SIGKILL, 0);
+
+	    /* Since forwarder is gone eliminate all references */
+	    if (childTask) childTask->forwarder = NULL;
+
+	    /* Try to kill the child, again (obsolete childs are yet gone) */
+	    if (childTask && !childTask->obsolete) {
+		PSID_kill(-child, SIGKILL, 0);
+	    }
 
 	    /* Assume child is dead */
 	    msg.header.type = PSP_DD_CHILDDEAD;
@@ -574,7 +590,7 @@ void PSIDclient_delete(int fd)
 	    msg.header.len = sizeof(msg);
 	    sendMsg(&msg);
 
-	    if (childTask && childTask->fd == -1) PStask_cleanup(child);
+	    if (childTask && childTask->fd == -1) PStask_cleanup(childTask);
 
 	    sig = -1;
 	};
@@ -584,17 +600,23 @@ void PSIDclient_delete(int fd)
 
     /* Unregister TG_(PSC)SPAWNER from parent process */
     if (task->group == TG_SPAWNER || task->group == TG_PSCSPAWNER) {
+
+	/* Find correct parent and remove dead spawner from list of children */
 	PStask_t *parent = PStasklist_find(&managedTasks, task->ptid);
-
-	if (parent) {
-	    /* Remove dead spawner from list of children */
-	    PSID_removeSignal(&parent->childList, task->tid, -1);
-
-	    if (parent->removeIt && PSID_emptySigList(&parent->childList)) {
-		PSID_log(PSID_LOG_TASK,
-			 "%s: PStask_cleanup(parent)\n", __func__);
-		PStask_cleanup(parent->tid);
+	if (!parent || !PSID_removeSignal(&parent->childList, task->tid, -1)) {
+	    /* Maybe the parent's task was obsoleted */
+	    parent = PStasklist_find(&obsoleteTasks, task->ptid);
+	    /* Still not the right parent? */
+	    if (parent
+		&&  !PSID_removeSignal(&parent->childList, task->tid, -1)) {
+		parent = NULL;
 	    }
+	}
+
+	if (parent && parent->removeIt
+	    && PSID_emptySigList(&parent->childList)) {
+	    PSID_log(PSID_LOG_TASK, "%s: PStask_cleanup(parent)\n", __func__);
+	    PStask_cleanup(parent);
 	}
     }
 
@@ -671,9 +693,9 @@ void PSIDclient_delete(int fd)
     }
 
     /* Cleanup, if no forwarder available; otherwise wait for CHILDDEAD */
-    if (!task->forwardertid) {
+    if (!task->forwarder) {
 	PSID_log(PSID_LOG_TASK, "%s: PStask_cleanup()\n", __func__);
-	PStask_cleanup(task->tid);
+	PStask_cleanup(task);
     }
 
     return;
@@ -831,16 +853,9 @@ static void msg_CLIENTCONNECT(int fd, DDBufferMsg_t *bufmsg)
 		child->duplicate = true;
 		PStasklist_enqueue(&managedTasks, child);
 
-		if (task->forwardertid) {
-		    PStask_t *forwarder = PStasklist_find(&managedTasks,
-							  task->forwardertid);
-		    if (forwarder) {
-			/* Register new child to its forwarder */
-			PSID_setSignal(&forwarder->childList, child->tid, -1);
-		    } else {
-			PSID_log(-1, "%s: forwarder %s not found\n",
-				 __func__, PSC_printTID(task->forwardertid));
-		    }
+		if (task->forwarder) {
+		    /* Register new child to its forwarder */
+		    PSID_setSignal(&task->forwarder->childList, child->tid, -1);
 		} else {
 		    PSID_log(-1, "%s: task %s has no forwarder\n",
 			     __func__, PSC_printTID(task->tid));
@@ -1050,6 +1065,7 @@ static void msg_CC_MSG(DDBufferMsg_t *msg)
 	PSID_log(-1, "%s: from %s to me?! Dropping...\n", __func__,
 		 PSC_printTID(msg->header.sender));
 	PSID_dropMsg(msg);
+	return;
     }
 
     /* Forward this message. If this fails, send an error message. */

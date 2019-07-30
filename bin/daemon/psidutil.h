@@ -429,12 +429,16 @@ void PSID_dumpMsg(DDMsg_t *msg);
  * Check the privileges of the task @a sender in order to trigger some
  * privileged action like starting, stopping, resetting daemons, etc.
  *
- * @param sender The local task ID to check.
+ * All remote tasks are assumed to be privileged. This behavior is
+ * based on the assumption that a corresponding check was executed on
+ * the remote node.
  *
- * @return If @a sender is a privileged task, 1 is returned. Or 0, if
- * the task is not allowed to act so.
+ * @param sender Task ID to check for privilege
+ *
+ * @return If @a sender is a privileged task, true is returned; or
+ * false if the task is not allowed to act so
  */
-int PSID_checkPrivilege(PStask_ID_t sender);
+bool PSID_checkPrivilege(PStask_ID_t sender);
 
 /**
  * @brief Main-loop action

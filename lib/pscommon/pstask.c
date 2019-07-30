@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2002-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2018 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2019 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -81,9 +81,11 @@ PStask_t* PStask_new(void)
     return task;
 }
 
-int PStask_init(PStask_t* task)
+bool PStask_init(PStask_t* task)
 {
     PSC_log(PSC_LOG_TASK, "%s(%p)\n", __func__, task);
+
+    if (!task) return false;
 
     INIT_LIST_HEAD(&task->next);
     task->tid = 0;
@@ -99,7 +101,7 @@ int PStask_init(PStask_t* task)
     task->childGroup = TG_ANY;
     task->resID = -1;
     task->loggertid = 0;
-    task->forwardertid = 0;
+    task->forwarder = NULL;
     task->rank = -1;
     PSCPU_clrAll(task->CPUset);
     task->fd = -1;
@@ -119,6 +121,7 @@ int PStask_init(PStask_t* task)
     task->suspended = false;
     task->removeIt = false;
     task->deleted = false;
+    task->obsolete = false;
     task->noParricide = false;
     task->killat = 0;
     gettimeofday(&task->started, NULL);
@@ -153,7 +156,7 @@ int PStask_init(PStask_t* task)
     INIT_LIST_HEAD(&task->assignedSigs);
     INIT_LIST_HEAD(&task->keptChildren);
 
-    return 1;
+    return true;
 }
 
 static void delSigList(list_t *list)
@@ -182,14 +185,13 @@ static void delReservationList(list_t *list)
     }
 }
 
-int PStask_reinit(PStask_t* task)
+bool PStask_reinit(PStask_t* task)
 {
     uint32_t i;
 
     PSC_log(PSC_LOG_TASK, "%s(%p)\n", __func__, task);
 
-    if (!task)
-	return 0;
+    if (!task) return false;
 
     if (!list_empty(&task->next)) list_del_init(&task->next);
 
@@ -226,22 +228,19 @@ int PStask_reinit(PStask_t* task)
     delSigList(&task->assignedSigs);
     delSigList(&task->keptChildren);
 
-    PStask_init(task);
-
-    return 1;
+    return PStask_init(task);
 }
 
-int PStask_delete(PStask_t* task)
+bool PStask_delete(PStask_t* task)
 {
     PSC_log(PSC_LOG_TASK, "%s(%p)\n", __func__, task);
 
-    if (!task)
-	return 0;
+    if (!task) return false;
 
     PStask_reinit(task);
     free(task);
 
-    return 1;
+    return true;
 }
 
 /**
@@ -311,7 +310,7 @@ PStask_t* PStask_clone(PStask_t* task)
     clone->childGroup = task->childGroup;
     clone->resID = task->resID;
     clone->loggertid = task->loggertid;
-    clone->forwardertid = task->forwardertid;
+    clone->forwarder = task->forwarder;
     clone->rank = task->rank;
     memcpy(clone->CPUset, task->CPUset, sizeof(clone->CPUset));
     /* clone->fd = -1; */
@@ -384,6 +383,7 @@ PStask_t* PStask_clone(PStask_t* task)
     clone->suspended = task->suspended;
     clone->removeIt = task->removeIt;
     clone->deleted = task->deleted;
+    clone->obsolete = task->obsolete;
     clone->noParricide = task->noParricide;
     clone->killat = task->killat;
     gettimeofday(&clone->started, NULL);

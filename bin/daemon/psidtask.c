@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2002-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2018 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2019 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -32,6 +32,8 @@
 #include "psidtask.h"
 
 LIST_HEAD(managedTasks);
+
+LIST_HEAD(obsoleteTasks);
 
 static void printList(list_t *sigList)
 {
@@ -108,7 +110,7 @@ PSsignal_t *PSID_findSignal(list_t *sigList, PStask_ID_t tid, int signal)
 }
 
 static int remSig(const char *fname, list_t *sigList, PStask_ID_t tid,
-		  int signal, int remove)
+		  int signal, bool remove)
 {
     PSsignal_t *sig;
     int blockedRDP, ret = 0;
@@ -155,12 +157,12 @@ static int remSig(const char *fname, list_t *sigList, PStask_ID_t tid,
 
 int PSID_removeSignal(list_t *sigList, PStask_ID_t tid, int signal)
 {
-    return remSig(__func__, sigList, tid, signal, 1);
+    return remSig(__func__, sigList, tid, signal, true /* remove */);
 }
 
 int PSID_deleteSignal(list_t *sigList, PStask_ID_t tid, int signal)
 {
-    return remSig(__func__, sigList, tid, signal, 0);
+    return remSig(__func__, sigList, tid, signal, false /* remove */);
 }
 
 PStask_ID_t PSID_getSignal(list_t *sigList, int *signal)
@@ -291,19 +293,20 @@ int PSID_numSignals(list_t *sigList)
     return num;
 }
 
-int PSID_emptySigList(list_t *sigList)
+bool PSID_emptySigList(list_t *sigList)
 {
     list_t *s;
-    int blockedRDP, empty = 1;
+    int blockedRDP;
+    bool empty = true;
 
-    if (!sigList) return 1;
+    if (!sigList) return true;
 
     blockedRDP = RDP_blockTimer(1);
 
     list_for_each(s, sigList) {
 	PSsignal_t *sig = list_entry(s, PSsignal_t, next);
 	if (sig->deleted) continue;
-	empty = 0;
+	empty = false;
 	break;
     }
 
@@ -338,19 +341,8 @@ static int doEnqueue(list_t *list, PStask_t *task, PStask_t *other,
 	PSID_log(-1, "%s: old task found: %s\n", func, taskStr);
 	PStasklist_dequeue(old);
 
-	/* Do some cleanup */
-	if (old->group == TG_ANY && old->loggertid) {
-	    sendCHILDRESREL(old->loggertid, old->CPUset, old->tid);
-	}
-	if (old->forwardertid) {
-	    /* prevent forwarder from referring to the new task */
-	    PStask_t *forwarder = PStasklist_find(list, old->forwardertid);
-	    if (forwarder) {
-		PSID_removeSignal(&forwarder->childList, old->tid, -1);
-	    }
-	}
-
-	PStask_delete(old);
+	old->obsolete = true;
+	PStasklist_enqueue(&obsoleteTasks, old);
     }
 
     list_add_tail(&task->next, other ? &other->next : list);
@@ -419,18 +411,40 @@ PStask_t *PStasklist_find(list_t *list, PStask_ID_t tid)
     return task;
 }
 
-void PStask_cleanup(PStask_ID_t tid)
+int PStasklist_count(list_t *list)
 {
-    PStask_t *task;
+    list_t *t;
+    int num = 0;
 
-    PSID_log(PSID_LOG_TASK, "%s(%s)\n", __func__, PSC_printTID(tid));
+    list_for_each(t, list) {
+	PStask_t *task = list_entry(t, PStask_t, next);
+	if (task->deleted && task->fd == -1) continue;
+	num++;
+    }
 
-    task = PStasklist_find(&managedTasks, tid);
+    return num;
+}
+
+void PStasklist_cleanupObsolete(void)
+{
+    list_t *t, *tmp;
+
+    list_for_each_safe(t, tmp, &obsoleteTasks) {
+	PStask_t *task = list_entry(t, PStask_t, next);
+
+	PStasklist_dequeue(task);
+	PStask_delete(task);
+    }
+}
+
+void PStask_cleanup(PStask_t *task)
+{
     if (!task) {
-	PSID_log(-1, "%s: %s not in my tasklist\n",
-		 __func__, PSC_printTID(tid));
+	PSID_log(-1, "%s: No task\n", __func__);
 	return;
     }
+
+    PSID_log(PSID_LOG_TASK, "%s(%s)\n", __func__, PSC_printTID(task->tid));
 
     if (!task->removeIt) {
 	/* first call for this task */
@@ -456,8 +470,8 @@ void PStask_cleanup(PStask_ID_t tid)
 	PSIDpart_cleanupSlots(task);
 
 	/* Tell master about exiting root process */
-	if (task->request) send_CANCELPART(tid);
-	if (task->partition && task->partitionSize) send_TASKDEAD(tid);
+	if (task->request) send_CANCELPART(task->tid);
+	if (task->partition && task->partitionSize) send_TASKDEAD(task->tid);
 
 	if (task->group==TG_FORWARDER && !task->released) {
 	    /* cleanup children */
@@ -468,10 +482,17 @@ void PStask_cleanup(PStask_ID_t tid)
 
 	    list_for_each_safe(s, tmp, &task->childList) { /* @todo safe req? */
 		PSsignal_t *sig = list_entry(s, PSsignal_t, next);
-		PStask_t *child = PStasklist_find(&managedTasks, sig->tid);
 		DDErrorMsg_t msg;
 
 		if (sig->deleted) continue;
+
+		PStask_t *child = PStasklist_find(&managedTasks, sig->tid);
+		if (!child || child->forwarder != task) {
+		    /* Maybe the child's task was obsoleted */
+		    child = PStasklist_find(&obsoleteTasks, sig->tid);
+		    /* Still not the right childTask? */
+		    if (child && child->forwarder != task) child = NULL;
+		}
 
 		/* somehow we must have missed the CHILDDEAD message */
 		/* how are we called here ? */
@@ -497,12 +518,17 @@ void PStask_cleanup(PStask_ID_t tid)
 		 * processes and duplicate tasks */
 		sig->deleted = true;
 
-		if (child && child->fd == -1) {
-		    PSID_log(-1, "%s: forwarder kills child %s\n",
-			     __func__, PSC_printTID(child->tid));
+		/* Since forwarder is gone eliminate all references */
+		if (child) child->forwarder = NULL;
 
-		    PSID_kill(-PSC_getPID(child->tid), SIGKILL, child->uid);
-		    PStask_cleanup(child->tid);
+		if (child && child->fd == -1) {
+		    if (!child->obsolete) {
+			PSID_log(-1, "%s: forwarder kills child %s\n",
+				 __func__, PSC_printTID(child->tid));
+
+			PSID_kill(-PSC_getPID(child->tid), SIGKILL, child->uid);
+		    }
+		    PStask_cleanup(child);
 		}
 	    }
 
