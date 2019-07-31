@@ -1,3 +1,142 @@
+Version psmgmt-5.1.24:
+======================
+------------------------------------------------------------------------
+75e8f214 | Norbert Eicker | Tue, 30 Jul 2019 17:28:42 +0200
+
+Fix one warning emmited by clang-8.0.1
+------------------------------------------------------------------------
+359389aa | Stephan Krempel | Fri, 26 Jul 2019 14:56:32 +0200
+
+pspmix: Fix debugging output
+------------------------------------------------------------------------
+e145860e | Stephan Krempel | Thu, 25 Jul 2019 13:56:10 +0200
+
+pspmix: Unify the spelling of "PMIx jobserver"
+------------------------------------------------------------------------
+25c4234e | Stephan Krempel | Thu, 25 Jul 2019 13:54:13 +0200
+
+pspmix: Fix handling of unintentionally terminated jobserver
+
+* Do not call shutdownForwarder() for already gone jobserver
+  forwarder to avoid sending of broken messages to the
+  master psid. (psc:#320)
+* Better debugging output and comments
+------------------------------------------------------------------------
+4b961964 | Norbert Eicker | Wed, 24 Jul 2019 18:31:15 +0200
+
+Ensure to send forwarder messages to valid TIDs (psc:#320)
+------------------------------------------------------------------------
+0cf4c0ad | Norbert Eicker | Tue, 23 Jul 2019 18:35:55 +0200
+
+More prevention from signals to obsoleted tasks (jwt:#3709)
+------------------------------------------------------------------------
+1c8d7faa | Norbert Eicker | Tue, 23 Jul 2019 18:25:21 +0200
+
+Enable psiadmin to count and reset obsoleteTasks
+------------------------------------------------------------------------
+96b2c25f | Norbert Eicker | Tue, 23 Jul 2019 18:23:00 +0200
+
+Allow to count and clean obsoleteTasks remotely
+------------------------------------------------------------------------
+cf8aa065 | Norbert Eicker | Tue, 23 Jul 2019 18:20:41 +0200
+
+Regularly cleanup obsoleteTasks
+------------------------------------------------------------------------
+f1c9521f | Norbert Eicker | Tue, 23 Jul 2019 18:18:54 +0200
+
+Provide ability to count and clean obsoleteTasks
+------------------------------------------------------------------------
+d9af2f3d | Norbert Eicker | Mon, 22 Jul 2019 18:55:45 +0200
+
+More booleanization
+------------------------------------------------------------------------
+bb966acf | Norbert Eicker | Mon, 22 Jul 2019 18:54:31 +0200
+
+Prevent sending signals to obsoleted children
+------------------------------------------------------------------------
+bc6895a3 | Norbert Eicker | Fri, 19 Jul 2019 23:05:55 +0200
+
+Merge remote-tracking branch 'refs/remotes/origin/master'
+------------------------------------------------------------------------
+fbde50ef | Norbert Eicker | Fri, 19 Jul 2019 23:03:07 +0200
+
+Some more booleanization
+------------------------------------------------------------------------
+596b6206 | Norbert Eicker | Fri, 19 Jul 2019 22:52:18 +0200
+
+More handling of obsolete tasks (jwt:#3709)
+------------------------------------------------------------------------
+d869a39e | Norbert Eicker | Fri, 19 Jul 2019 22:48:29 +0200
+
+Introduce a list of obsolete tasks
+
+ - List will hold task structures supplanted by structures for processes
+   that happen to have the same PID. Task in this list shall be
+   short-lived
+------------------------------------------------------------------------
+f60a5b83 | Norbert Eicker | Fri, 19 Jul 2019 22:44:46 +0200
+
+Prepare to use PSnodes_ID_t = -2 to flag obsolete clients
+
+ - Also booleanize PSC_setDaemonFlag()
+------------------------------------------------------------------------
+607d1d20 | Norbert Eicker | Fri, 19 Jul 2019 22:42:11 +0200
+
+Add obsolete flag to task structure
+------------------------------------------------------------------------
+5f80aeb0 | Norbert Eicker | Fri, 19 Jul 2019 22:38:07 +0200
+
+Beautify whitespace
+------------------------------------------------------------------------
+f757e3ba | Norbert Eicker | Fri, 19 Jul 2019 22:36:50 +0200
+
+Add a comment on obsoleteTasks to come soon
+------------------------------------------------------------------------
+26bed479 | Norbert Eicker | Fri, 19 Jul 2019 20:56:56 +0200
+
+Booleanize PSID_checkPrivilege()
+------------------------------------------------------------------------
+1281313a | Stephan Krempel | Fri, 19 Jul 2019 15:51:49 +0200
+
+pspmix: More debugging output in fence handling
+------------------------------------------------------------------------
+32151d3a | Norbert Eicker | Thu, 18 Jul 2019 16:21:07 +0200
+
+Cleanup some obsolete code
+------------------------------------------------------------------------
+4116ce91 | Norbert Eicker | Thu, 18 Jul 2019 15:54:45 +0200
+
+Prepare for obsolete tasks
+
+ - Also some cleanup and streamlining
+------------------------------------------------------------------------
+0ba5a90d | Norbert Eicker | Thu, 18 Jul 2019 13:32:47 +0200
+
+Minor streamlining and fixing typo
+------------------------------------------------------------------------
+1a54c430 | Norbert Eicker | Tue, 16 Jul 2019 18:01:22 +0200
+
+Use direct reference to forwarder's task structure
+------------------------------------------------------------------------
+e0eaf2d1 | Norbert Eicker | Tue, 16 Jul 2019 12:40:53 +0200
+
+Pass task structure instead of its ID to PStask_cleanup()
+------------------------------------------------------------------------
+3f6c784f | Norbert Eicker | Tue, 16 Jul 2019 09:14:43 +0200
+
+Booleanize pstask
+------------------------------------------------------------------------
+a6036ebc | Norbert Eicker | Wed, 10 Jul 2019 14:34:54 +0200
+
+Actually break recursion when sending CC_MSG to daemon (psc:#320)
+------------------------------------------------------------------------
+2d757921 | Michael Rauh | Mon, 8 Jul 2019 16:15:05 +0200
+
+Bugfix: let mother superior answer terminate requests correct if
+it is waiting for other nodes (juwels:#3712)
+------------------------------------------------------------------------
+
+
 Version psmgmt-5.1.23:
 ======================
 ------------------------------------------------------------------------

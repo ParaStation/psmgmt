@@ -5,6 +5,22 @@ Copyright (C) 2010-2019 ParTec Cluster Competence Center GmbH, Munich
 Please send bug reports, questions and suggestions to <support@par-tec.com>
 
 
+Version 5.1.24:
+===============
+Bugfixes:
+ - Answer terminate requests correctly when waiting for other nodes (jwt:#3712)
+ - Actually break recursion when sending CC_MSG to daemon (psc:#320)
+ - Do not call shutdownForwarder() for already gone jobserver (psc:#320)
+ - Ensure to send forwarder messages to valid TIDs only (psc:#320)
+ - Propoer handling of obsolete task structures (jwt:#3709)
+Enhancements:
+ - Enable psiadmin to count and reset obsoleteTasks
+ - pspmix: More debugging output in fence handling
+Additional changes:
+ - Fix compiler warning emmited by clang-8.0.1
+ - Use type bool at more places
+
+
 Version 5.1.23:
 ===============
 Bugfixes:
