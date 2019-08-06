@@ -331,21 +331,7 @@ static void setBindingEnvVars(Step_t *step)
 	setenv("SBATCH_CPU_BIND_VERBOSE", "quiet", 1);
     }
 
-    if (step->cpuBindType & CPU_BIND_NONE) {
-	val = "none";
-    } else if (step->cpuBindType & CPU_BIND_RANK) {
-	val = "rank";
-    } else if (step->cpuBindType & CPU_BIND_TO_SOCKETS) {
-	val = "sockets";
-    } else if (step->cpuBindType & CPU_BIND_TO_LDOMS) {
-	val = "ldoms";
-    } else if (step->cpuBindType & CPU_BIND_MAP) {
-	val = "map_cpu:";
-    } else if (step->cpuBindType & CPU_BIND_MASK) {
-	val = "mask_cpu:";
-    } else {
-	val = "unsupported";
-    }
+    val = genCPUbindTypeString(step);
     setenv("SLURM_CPU_BIND_TYPE", val, 1);
     setenv("SBATCH_CPU_BIND_TYPE", val, 1);
 

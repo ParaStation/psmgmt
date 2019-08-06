@@ -38,6 +38,11 @@ void doMemBind(Step_t *step, PStask_t *task);
 /**
  * @doctodo
  */
+char *genCPUbindTypeString(Step_t *step);
+
+/**
+ * @doctodo
+ */
 char *genCPUbindString(Step_t *step);
 
 /**
