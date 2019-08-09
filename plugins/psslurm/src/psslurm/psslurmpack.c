@@ -66,33 +66,82 @@ bool __unpackSlurmAuth(Slurm_Msg_t *sMsg, Slurm_Auth_t **authPtr,
     return true;
 }
 
-static Gres_Cred_t *unpackGresStep(char **ptr, uint16_t index)
+static Gres_Cred_t *unpackGresStep(char **ptr, uint16_t index, uint16_t msgVer)
 {
-    Gres_Cred_t *gres;
     uint32_t magic;
     uint8_t more;
     unsigned int i;
 
-    gres = getGresCred();
-    gres->job = 0;
+    Gres_Cred_t *gres = getGresCred();
+    gres->credType = GRES_CRED_STEP;
 
+    /* GRes magic */
     getUint32(ptr, &magic);
-    getUint32(ptr, &gres->id);
-    getUint64(ptr, &gres->countAlloc);
-    getUint32(ptr, &gres->nodeCount);
-    gres->nodeInUse = getBitString(ptr);
 
     if (magic != GRES_MAGIC) {
 	mlog("%s: magic error: '%u' : '%u'\n", __func__, magic, GRES_MAGIC);
 	releaseGresCred(gres);
 	return NULL;
     }
+    /* plugin ID */
+    getUint32(ptr, &gres->id);
 
-    mdbg(PSSLURM_LOG_GRES, "%s: index '%i' pluginID '%u' gresCountAlloc '%lu'"
-	    " nodeCount '%u' nodeInUse '%s'\n", __func__, index, gres->id,
-	    gres->countAlloc, gres->nodeCount, gres->nodeInUse);
+    if (msgVer >= SLURM_18_08_PROTO_VERSION) {
+	/* CPUs per GRes */
+	getUint16(ptr, &gres->cpusPerGRes);
+	/* GRes per step */
+	getUint64(ptr, &gres->gresPerStep);
+	/* GRes per node */
+	getUint64(ptr, &gres->gresPerNode);
+	/* GRes per socket */
+	getUint64(ptr, &gres->gresPerSocket);
+	/* GRes per task */
+	getUint64(ptr, &gres->gresPerTask);
+	/* memory per GRes */
+	getUint64(ptr, &gres->memPerGRes);
+	/* total GRes */
+	getUint64(ptr, &gres->totalGres);
+	/* node count */
+	getUint32(ptr, &gres->nodeCount);
+	/* nodes in use */
+	gres->nodeInUse = getBitString(ptr);
 
-    /* bit allocation */
+	fdbg(PSSLURM_LOG_GRES, "index %i pluginID %u cpusPerGres %u "
+	     "gresPerStep %u gresPerNode %u gresPerSocket %u gresPerTask %u "
+	     "memPerGres %u totalGres %u nodeInUse %s\n", index, gres->id,
+	     gres->cpusPerGRes, gres->gresPerStep, gres->gresPerNode,
+	     gres->gresPerSocket, gres->gresPerTask, gres->memPerGRes,
+	     gres->totalGres, gres->nodeInUse);
+
+	/* additional node allocation */
+	getUint8(ptr, &more);
+	if (more) {
+	    uint64_t *nodeAlloc;
+	    uint32_t gresNodeAllocCount;
+	    getUint64Array(ptr, &nodeAlloc, &gresNodeAllocCount);
+	    if (psslurmlogger->mask & PSSLURM_LOG_GRES) {
+		flog("gres node alloc: ");
+		for (i=0; i<gresNodeAllocCount; i++) {
+		    if (i) mlog(", ");
+		    mlog("N%u:%zu", i, nodeAlloc[i]);
+		}
+		mlog("\n");
+	    }
+	    ufree(nodeAlloc);
+	}
+    } else {
+	/* gres per node */
+	getUint64(ptr, &gres->countAlloc);
+	/* node count */
+	getUint32(ptr, &gres->nodeCount);
+	gres->nodeInUse = getBitString(ptr);
+
+	fdbg(PSSLURM_LOG_GRES, "index '%i' pluginID '%u' gresCountAlloc '%lu'"
+	     " nodeCount '%u' nodeInUse '%s'\n", index, gres->id,
+	     gres->countAlloc, gres->nodeCount, gres->nodeInUse);
+    }
+
+    /* additional bit allocation */
     getUint8(ptr, &more);
     if (more) {
 	gres->bitAlloc = umalloc(sizeof(char *) * gres->nodeCount);
@@ -106,21 +155,17 @@ static Gres_Cred_t *unpackGresStep(char **ptr, uint16_t index)
     return gres;
 }
 
-static Gres_Cred_t *unpackGresJob(char **ptr, uint16_t index)
+static Gres_Cred_t *unpackGresJob(char **ptr, uint16_t index, uint16_t msgVer)
 {
     uint32_t magic;
     uint8_t more;
     unsigned int i;
-    Gres_Cred_t *gres;
 
-    gres = getGresCred();
-    gres->job = 1;
+    Gres_Cred_t *gres = getGresCred();
+    gres->credType = GRES_CRED_JOB;
 
+    /* GRes magic */
     getUint32(ptr, &magic);
-    getUint32(ptr, &gres->id);
-    getUint64(ptr, &gres->countAlloc);
-    gres->typeModel = getStringM(ptr);
-    getUint32(ptr, &gres->nodeCount);
 
     if (magic != GRES_MAGIC) {
 	mlog("%s: magic error '%u' : '%u'\n", __func__, magic, GRES_MAGIC);
@@ -128,9 +173,61 @@ static Gres_Cred_t *unpackGresJob(char **ptr, uint16_t index)
 	return NULL;
     }
 
-    mdbg(PSSLURM_LOG_GRES, "%s: index '%i' pluginID '%u' "
-	    "gresCountAlloc '%lu' nodeCount '%u'\n", __func__, index,
-	    gres->id, gres->countAlloc, gres->nodeCount);
+    /* plugin ID */
+    getUint32(ptr, &gres->id);
+
+    if (msgVer >= SLURM_18_08_PROTO_VERSION) {
+	/* CPUs per GRes */
+	getUint16(ptr, &gres->cpusPerGRes);
+	/* GRes per job */
+	getUint64(ptr, &gres->gresPerJob);
+	/* GRes per node */
+	getUint64(ptr, &gres->gresPerNode);
+	/* GRes per socket */
+	getUint64(ptr, &gres->gresPerSocket);
+	/* GRes per task */
+	getUint64(ptr, &gres->gresPerTask);
+	/* memory per GRes */
+	getUint64(ptr, &gres->memPerGRes);
+	/* total GRes */
+	getUint64(ptr, &gres->totalGres);
+	/* type model */
+	gres->typeModel = getStringM(ptr);
+	/* node count */
+	getUint32(ptr, &gres->nodeCount);
+
+	/* additional node allocation */
+	getUint8(ptr, &more);
+	if (more) {
+	    uint64_t *nodeAlloc;
+	    uint32_t gresNodeAllocCount;
+	    getUint64Array(ptr, &nodeAlloc, &gresNodeAllocCount);
+	    if (psslurmlogger->mask & PSSLURM_LOG_GRES) {
+		flog("gres node alloc: ");
+		for (i=0; i<gresNodeAllocCount; i++) {
+		    if (i) mlog(", ");
+		    mlog("N%u:%zu", i, nodeAlloc[i]);
+		}
+		mlog("\n");
+	    }
+	    ufree(nodeAlloc);
+	}
+
+	fdbg(PSSLURM_LOG_GRES, "index %i pluginID %u cpusPerGres %u "
+	     "gresPerJob %u gresPerNode %u gresPerSocket %u gresPerTask %u "
+	     "memPerGres %u totalGres %u type %s nodeCount %u\n", index,
+	     gres->id, gres->cpusPerGRes, gres->gresPerJob, gres->gresPerNode,
+	     gres->gresPerSocket, gres->gresPerTask, gres->memPerGRes,
+	     gres->totalGres, gres->typeModel, gres->nodeCount);
+    } else {
+	getUint64(ptr, &gres->countAlloc);
+	gres->typeModel = getStringM(ptr);
+	getUint32(ptr, &gres->nodeCount);
+
+	fdbg(PSSLURM_LOG_GRES, "index '%i' pluginID '%u gresCountAlloc '%lu' "
+	     "nodeCount '%u'\n", index, gres->id, gres->countAlloc,
+	     gres->nodeCount);
+    }
 
     /* bit allocation */
     getUint8(ptr, &more);
@@ -169,32 +266,40 @@ static Gres_Cred_t *unpackGresJob(char **ptr, uint16_t index)
     return gres;
 }
 
-static void unpackGres(char **ptr, list_t *gresList, uint32_t jobid,
-		uint32_t stepid, uid_t uid)
+static bool unpackGres(char **ptr, list_t *gresList, JobCred_t *cred,
+		       uint16_t msgVer)
 {
     uint16_t count, i;
 
     /* extract gres job data */
     getUint16(ptr, &count);
-    mdbg(PSSLURM_LOG_GRES, "%s: job data: id '%u:%u' uid '%u' gres job "
-	    "count '%u'\n", __func__, jobid, stepid,  uid, count);
+    fdbg(PSSLURM_LOG_GRES, "job data: id %u:%u uid %u gres job count %u\n",
+	 cred->jobid, cred->stepid, cred->uid, count);
 
     for (i=0; i<count; i++) {
-	Gres_Cred_t *gres = unpackGresJob(ptr, i);
-	if (!gres) continue;
+	Gres_Cred_t *gres = unpackGresJob(ptr, i, msgVer);
+	if (!gres) {
+	    flog("unpacking gres job data %u failed\n", i);
+	    return false;
+	}
 	list_add_tail(&gres->next, gresList);
     }
 
     /* extract gres step data */
     getUint16(ptr, &count);
-    mdbg(PSSLURM_LOG_GRES, "%s: step data: id '%u:%u' uid '%u' gres step "
-	    "count '%u'\n", __func__, jobid, stepid,  uid, count);
+    fdbg(PSSLURM_LOG_GRES, "step data: id %u:%u uid %u gres step count %u\n",
+	 cred->jobid, cred->stepid, cred->uid, count);
 
     for (i=0; i<count; i++) {
-	Gres_Cred_t *gres = unpackGresStep(ptr, i);
-	if (!gres) continue;
+	Gres_Cred_t *gres = unpackGresStep(ptr, i, msgVer);
+	if (!gres) {
+	    flog("unpacking gres step data %u failed\n", i);
+	    return false;
+	}
 	list_add_tail(&gres->next, gresList);
     }
+
+    return true;
 }
 
 bool __unpackJobCred(Slurm_Msg_t *sMsg, JobCred_t **credPtr,
@@ -241,7 +346,10 @@ bool __unpackJobCred(Slurm_Msg_t *sMsg, JobCred_t **credPtr,
     }
 
     /* gres job/step allocations */
-    unpackGres(ptr, gresList, cred->jobid, cred->stepid, cred->uid);
+    if (!unpackGres(ptr, gresList, cred, msgVer)) {
+	flog("unpacking gres data failed\n");
+	goto ERROR;
+    }
 
     /* count of specialized cores */
     getUint16(ptr, &cred->jobCoreSpec);

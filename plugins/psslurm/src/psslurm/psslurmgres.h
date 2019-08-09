@@ -22,6 +22,11 @@
 /** ID of the GRES MIC plugin */
 #define GRES_PLUGIN_MIC 6515053
 
+typedef enum {
+    GRES_CRED_STEP,             /**< GRES step credential */
+    GRES_CRED_JOB,              /**< GRES job credential */
+} GRes_Cred_type_t;
+
 typedef struct {
     list_t next;                /**< used to put into some gres-conf-lists */
     char *name;                 /**< name of the GRES resource (e.g. gpu) */
@@ -35,15 +40,24 @@ typedef struct {
 
 typedef struct {
     list_t next;                /**< used to put into some gres-cred-lists */
-    uint32_t id;
-    uint64_t countAlloc;
+    uint32_t id;                /**< GRES plugin ID */
+    uint64_t countAlloc;        /**< GRES per node */
     uint64_t *countStepAlloc;
     char *typeModel;
     uint32_t nodeCount;
-    char **bitAlloc;
-    char **bitStepAlloc;
-    char *nodeInUse;
-    int job;
+    char **bitAlloc;            /**< GRES job bit-string allocation */
+    char **bitStepAlloc;        /**< GRES step bit-string allocation */
+    char *nodeInUse;            /**< GRES use per node */
+    int credType;               /**< credential type (job or step) */
+    uint16_t cpusPerGRes;       /**< CPUs per GRES */
+    uint16_t flags;             /**< GRES flags */
+    uint64_t gresPerJob;        /**< GRES count per job */
+    uint64_t gresPerStep;       /**< GRES count per step */
+    uint64_t gresPerNode;       /**< GRES count per node */
+    uint64_t gresPerSocket;     /**< GRES count per socket */
+    uint64_t gresPerTask;       /**< GRES count per task */
+    uint64_t memPerGRes;        /**< memory per GRES */
+    uint64_t totalGres;         /**< total GRES count */
 } Gres_Cred_t;
 
 /**
@@ -75,13 +89,14 @@ Gres_Cred_t *getGresCred(void);
  *
  * @param list The GRES list to search
  *
- * @param id The GRES plugin ID
+ * @param id The GRES plugin ID or NO_VAL for any ID
  *
- * @param job TODO
+ * @param credType The GRES credential type
+ * (currently GRES_CRED_STEP|GRES_CRED_JOB)
  *
  * @return Returns the found GRES credential or NULL otherwise
  */
-Gres_Cred_t *findGresCred(list_t *gresList, uint32_t id, int job);
+Gres_Cred_t *findGresCred(list_t *gresList, uint32_t id, int credType);
 
 /**
  * @brief Free a GRES credential
