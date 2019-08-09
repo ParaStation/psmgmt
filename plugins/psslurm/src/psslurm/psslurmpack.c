@@ -102,6 +102,11 @@ static Gres_Cred_t *unpackGresStep(char **ptr, uint16_t index, uint16_t msgVer)
     if (msgVer >= SLURM_18_08_PROTO_VERSION) {
 	/* CPUs per GRes */
 	getUint16(ptr, &gres->cpusPerGRes);
+
+	if (msgVer >= SLURM_19_05_PROTO_VERSION) {
+	    /* flags */
+	    getUint16(ptr, &gres->flags);
+	}
 	/* GRes per step */
 	getUint64(ptr, &gres->gresPerStep);
 	/* GRes per node */
@@ -192,6 +197,11 @@ static Gres_Cred_t *unpackGresJob(char **ptr, uint16_t index, uint16_t msgVer)
     if (msgVer >= SLURM_18_08_PROTO_VERSION) {
 	/* CPUs per GRes */
 	getUint16(ptr, &gres->cpusPerGRes);
+
+	if (msgVer >= SLURM_19_05_PROTO_VERSION) {
+	    /* flags */
+	    getUint16(ptr, &gres->flags);
+	}
 	/* GRes per job */
 	getUint64(ptr, &gres->gresPerJob);
 	/* GRes per node */
