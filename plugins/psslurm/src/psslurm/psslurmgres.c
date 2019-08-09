@@ -167,12 +167,13 @@ Gres_Cred_t *getGresCred(void)
     return gres;
 }
 
-Gres_Cred_t *findGresCred(list_t *gresList, uint32_t id, int job)
+Gres_Cred_t *findGresCred(list_t *gresList, uint32_t id, int credType)
 {
     list_t *g;
     list_for_each(g, gresList) {
 	Gres_Cred_t *gres = list_entry(g, Gres_Cred_t, next);
-	if (gres->job == job && gres->id == id) return gres;
+	if (gres->credType == credType && gres->id == id) return gres;
+	if (id == NO_VAL && gres->credType == credType) return gres;
     }
     return NULL;
 }

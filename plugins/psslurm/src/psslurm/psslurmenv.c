@@ -263,9 +263,9 @@ void initJobEnv(Job_t *job)
 	envSet(&job->env, "HOSTNAME", job->hostname);
     }
 
-    /* gres "gpu" plugin */
-    gres = findGresCred(&job->gresList, GRES_PLUGIN_GPU, 1);
-    if (gres) {
+    /* GRes "gpu" plugin */
+    gres = findGresCred(&job->gresList, GRES_PLUGIN_GPU, GRES_CRED_JOB);
+    if (gres && gres->bitAlloc[0]) {
 	hexBitstr2List(gres->bitAlloc[0], &list, &listSize);
 	envSet(&job->env, "CUDA_VISIBLE_DEVICES", list);
 	envSet(&job->env, "GPU_DEVICE_ORDINAL", list);
@@ -274,9 +274,9 @@ void initJobEnv(Job_t *job)
 	listSize = 0;
     }
 
-    /* gres "mic" plugin */
-    gres = findGresCred(&job->gresList, GRES_PLUGIN_MIC, 1);
-    if (gres) {
+    /* GRes "mic" plugin */
+    gres = findGresCred(&job->gresList, GRES_PLUGIN_MIC, GRES_CRED_JOB);
+    if (gres && gres->bitAlloc[0]) {
 	hexBitstr2List(gres->bitAlloc[0], &list, &listSize);
 	envSet(&job->env, "OFFLOAD_DEVICES", list);
 	ufree(list);
@@ -331,21 +331,7 @@ static void setBindingEnvVars(Step_t *step)
 	setenv("SBATCH_CPU_BIND_VERBOSE", "quiet", 1);
     }
 
-    if (step->cpuBindType & CPU_BIND_NONE) {
-	val = "none";
-    } else if (step->cpuBindType & CPU_BIND_RANK) {
-	val = "rank";
-    } else if (step->cpuBindType & CPU_BIND_TO_SOCKETS) {
-	val = "sockets";
-    } else if (step->cpuBindType & CPU_BIND_TO_LDOMS) {
-	val = "ldoms";
-    } else if (step->cpuBindType & CPU_BIND_MAP) {
-	val = "map_cpu:";
-    } else if (step->cpuBindType & CPU_BIND_MASK) {
-	val = "mask_cpu:";
-    } else {
-	val = "unsupported";
-    }
+    val = genCPUbindTypeString(step);
     setenv("SLURM_CPU_BIND_TYPE", val, 1);
     setenv("SBATCH_CPU_BIND_TYPE", val, 1);
 
@@ -414,7 +400,7 @@ static void setGresEnv(Step_t *step)
 	size_t listSize = 0;
 
 	/* gres "gpu" plugin */
-	gres = findGresCred(&step->gresList, GRES_PLUGIN_GPU, 0);
+	gres = findGresCred(&step->gresList, GRES_PLUGIN_GPU, GRES_CRED_STEP);
 	if (gres) {
 	    if (gres->bitAlloc[localNodeId]) {
 		hexBitstr2List(gres->bitAlloc[localNodeId], &list, &listSize);
@@ -430,7 +416,7 @@ static void setGresEnv(Step_t *step)
 	}
 
 	/* gres "mic" plugin */
-	gres = findGresCred(&step->gresList, GRES_PLUGIN_MIC, 0);
+	gres = findGresCred(&step->gresList, GRES_PLUGIN_MIC, GRES_CRED_STEP);
 	if (gres) {
 	    if (gres->bitAlloc[localNodeId]) {
 		hexBitstr2List(gres->bitAlloc[localNodeId], &list, &listSize);
@@ -486,7 +472,6 @@ void setRankEnv(int32_t rank, Step_t *step)
 	if (!(strncmp(step->env.vars[count], "PMI_BARRIER_ROUNDS=", 19))) {
 	    continue;
 	}
-
 
 	putenv(step->env.vars[count]);
     }

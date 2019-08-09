@@ -765,7 +765,8 @@ static void setCPUset(PSCPU_set_t *CPUset, uint16_t cpuBindType,
     } else if (cpuBindType & CPU_BIND_LDRANK) {
 	getSocketRankBinding(CPUset, coreMap, coreMapIndex, &nodeinfo, nodeid,
 		threadsPerTask, lTID, pininfo);
-    } else { /* default, CPU_BIND_RANK, CPU_BIND_TO_THREADS */
+    } else {
+	/* default, CPU_BIND_RANK, CPU_BIND_TO_THREADS, CPU_BIND_TO_CORES */
 	getRankBinding(CPUset, coreMap, coreMapIndex, cpuCount, lastCpu,
 		       nodeid, thread, hwThreads, threadsPerTask, lTID);
     }
@@ -1409,6 +1410,38 @@ void doMemBind(Step_t *step, PStask_t *task) {
 }
 #endif
 
+/* create the string to be set as SLURM_CPU_BIND_TYPE
+ * we do not set the same as vanilla slurm here but a string
+ * describing the pinning we actually do */
+char *genCPUbindTypeString(Step_t *step)
+{
+    char *string;
+
+    if (step->cpuBindType & CPU_BIND_NONE) {
+	string = "none";
+    } else if (step->cpuBindType & CPU_BIND_TO_BOARDS) {
+	string = "boards";
+    } else if (step->cpuBindType & CPU_BIND_MAP) {
+	string = "map_cpu";
+    } else if (step->cpuBindType & CPU_BIND_MASK) {
+	string = "mask_cpu";
+    } else if (step->cpuBindType & CPU_BIND_LDMAP) {
+	string = "map_ldom";
+    } else if (step->cpuBindType & CPU_BIND_LDMASK) {
+	string = "mask_ldom";
+    } else if (step->cpuBindType & (CPU_BIND_TO_SOCKETS | CPU_BIND_TO_LDOMS)) {
+	string = "sockets";
+    } else if (step->cpuBindType & CPU_BIND_LDRANK) {
+	string = "rank_ldom";
+    } else {
+	/* default, CPU_BIND_RANK, CPU_BIND_TO_THREADS, CPU_BIND_TO_CORES */
+	string = "ranks";
+    }
+    return string;
+}
+
+/* create the string to be set as SLURM_CPU_BIND
+ * we do set the same as vanilla slurm here */
 char *genCPUbindString(Step_t *step)
 {
     char *string;

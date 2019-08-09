@@ -1065,10 +1065,10 @@ void pspmix_service_handleFenceOut(uint64_t fenceid, void *data, size_t len)
     if (!fence->started) {
 	/* we are not the last one of the chain */
 	mdbg(PSPMIX_LOG_FENCE, "%s: Forwarding fence_out for fence id 0x%04lX"
-		" with %lu nodes to node %hd.\n", __func__, fence->id,
-		fence->nnodes, fence->precursor);
-        pspmix_comm_sendFenceOut(fence->precursor, loggertid, fence->id,
-		data, len);
+	     " with %lu nodes to node %d.\n", __func__, fence->id,
+	     fence->nnodes, fence->precursor);
+	pspmix_comm_sendFenceOut(fence->precursor, loggertid, fence->id,
+				 data, len);
     }
     else {
 	mdbg(PSPMIX_LOG_FENCE, "%s: Fence out daisy chain for fence id 0x%04lX"
