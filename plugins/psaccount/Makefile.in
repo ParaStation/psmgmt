@@ -17,7 +17,7 @@
 #
 # ParaStation
 #
-# Copyright (C) 2012-2017 ParTec Cluster Competence Center GmbH, Munich
+# Copyright (C) 2012-2019 ParTec Cluster Competence Center GmbH, Munich
 #
 # This file may be distributed under the terms of the Q Public License
 # as defined in the file LICENSE.QPL included in the packaging of this
@@ -158,7 +158,8 @@ am_psaccount_la_OBJECTS = psaccount_la-psaccount.lo \
 	psaccount_la-psaccountinter.lo psaccount_la-psaccountjob.lo \
 	psaccount_la-psaccountkvs.lo psaccount_la-psaccountlog.lo \
 	psaccount_la-psaccountproc.lo psaccount_la-psaccountconfig.lo \
-	psaccount_la-psaccounthistory.lo
+	psaccount_la-psaccounthistory.lo \
+	psaccount_la-psaccountenergy.lo
 psaccount_la_OBJECTS = $(am_psaccount_la_OBJECTS)
 AM_V_lt = $(am__v_lt_@AM_V@)
 am__v_lt_ = $(am__v_lt_@AM_DEFAULT_V@)
@@ -183,6 +184,7 @@ am__depfiles_remade = ./$(DEPDIR)/psaccount_la-psaccount.Plo \
 	./$(DEPDIR)/psaccount_la-psaccountclient.Plo \
 	./$(DEPDIR)/psaccount_la-psaccountcomm.Plo \
 	./$(DEPDIR)/psaccount_la-psaccountconfig.Plo \
+	./$(DEPDIR)/psaccount_la-psaccountenergy.Plo \
 	./$(DEPDIR)/psaccount_la-psaccounthistory.Plo \
 	./$(DEPDIR)/psaccount_la-psaccountinter.Plo \
 	./$(DEPDIR)/psaccount_la-psaccountjob.Plo \
@@ -422,7 +424,8 @@ psaccount_la_SOURCES = psaccount.c psaccountclient.c			\
 	psaccountjob.h psaccountkvs.c psaccountkvs.h psaccountlog.c	\
 	psaccountlog.h psaccountproc.c psaccountproc.h			\
 	psaccountconfig.c psaccountconfig.h psaccounthistory.h		\
-	psaccounthistory.c psaccounthandles.h psaccounttypes.h
+	psaccounthistory.c psaccounthandles.h psaccounttypes.h		\
+	psaccountenergy.c psaccountenergy.h
 
 psaccount_la_CPPFLAGS = $(AM_CPPFLAGS) -DPLUGINDIR=\"$(plugindir)\"
 psaccount_la_LIBADD = $(libplugincommon) $(libpscommon)
@@ -509,6 +512,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/psaccount_la-psaccountclient.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/psaccount_la-psaccountcomm.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/psaccount_la-psaccountconfig.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/psaccount_la-psaccountenergy.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/psaccount_la-psaccounthistory.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/psaccount_la-psaccountinter.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/psaccount_la-psaccountjob.Plo@am__quote@ # am--include-marker
@@ -615,6 +619,13 @@ psaccount_la-psaccounthistory.lo: psaccounthistory.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='psaccounthistory.c' object='psaccount_la-psaccounthistory.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(psaccount_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o psaccount_la-psaccounthistory.lo `test -f 'psaccounthistory.c' || echo '$(srcdir)/'`psaccounthistory.c
+
+psaccount_la-psaccountenergy.lo: psaccountenergy.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(psaccount_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT psaccount_la-psaccountenergy.lo -MD -MP -MF $(DEPDIR)/psaccount_la-psaccountenergy.Tpo -c -o psaccount_la-psaccountenergy.lo `test -f 'psaccountenergy.c' || echo '$(srcdir)/'`psaccountenergy.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/psaccount_la-psaccountenergy.Tpo $(DEPDIR)/psaccount_la-psaccountenergy.Plo
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='psaccountenergy.c' object='psaccount_la-psaccountenergy.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(psaccount_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o psaccount_la-psaccountenergy.lo `test -f 'psaccountenergy.c' || echo '$(srcdir)/'`psaccountenergy.c
 
 mostlyclean-libtool:
 	-rm -f *.lo
@@ -754,6 +765,7 @@ distclean: distclean-am
 	-rm -f ./$(DEPDIR)/psaccount_la-psaccountclient.Plo
 	-rm -f ./$(DEPDIR)/psaccount_la-psaccountcomm.Plo
 	-rm -f ./$(DEPDIR)/psaccount_la-psaccountconfig.Plo
+	-rm -f ./$(DEPDIR)/psaccount_la-psaccountenergy.Plo
 	-rm -f ./$(DEPDIR)/psaccount_la-psaccounthistory.Plo
 	-rm -f ./$(DEPDIR)/psaccount_la-psaccountinter.Plo
 	-rm -f ./$(DEPDIR)/psaccount_la-psaccountjob.Plo
@@ -809,6 +821,7 @@ maintainer-clean: maintainer-clean-am
 	-rm -f ./$(DEPDIR)/psaccount_la-psaccountclient.Plo
 	-rm -f ./$(DEPDIR)/psaccount_la-psaccountcomm.Plo
 	-rm -f ./$(DEPDIR)/psaccount_la-psaccountconfig.Plo
+	-rm -f ./$(DEPDIR)/psaccount_la-psaccountenergy.Plo
 	-rm -f ./$(DEPDIR)/psaccount_la-psaccounthistory.Plo
 	-rm -f ./$(DEPDIR)/psaccount_la-psaccountinter.Plo
 	-rm -f ./$(DEPDIR)/psaccount_la-psaccountjob.Plo
