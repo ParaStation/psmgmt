@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2010-2018 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2010-2019 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -104,10 +104,11 @@ static void handleAccountEnd(DDTypedBufferMsg_t *msg)
 	    job->endTime = time(NULL);
 	    job->complete = true;
 
-	    if (job->childsExit < job->nrOfChilds) {
+	    if (job->childrenExit < job->nrOfChildren) {
 		mdbg(PSACC_LOG_VERBOSE, "%s: logger %s exited, but %i"
 		     " children are still alive\n", __func__,
-		     PSC_printTID(logger), job->nrOfChilds - job->childsExit);
+		     PSC_printTID(logger),
+		     job->nrOfChildren - job->childrenExit);
 	    }
 	}
 	return;
@@ -202,8 +203,8 @@ static void handleAccountEnd(DDTypedBufferMsg_t *msg)
     if (!job) {
 	mlog("%s: job for child %i not found\n", __func__, child);
     } else {
-	job->childsExit++;
-	if (job->childsExit >= job->nrOfChilds) {
+	job->childrenExit++;
+	if (job->childrenExit >= job->nrOfChildren) {
 	    /* all children exited */
 	    if (globalCollectMode && PSC_getID(logger) != PSC_getMyID()) {
 		forwardJobData(job, true);
@@ -213,7 +214,7 @@ static void handleAccountEnd(DDTypedBufferMsg_t *msg)
 	    job->complete = true;
 	    job->endTime = time(NULL);
 	    mdbg(PSACC_LOG_VERBOSE, "%s: job complete [%i:%i]\n", __func__,
-		 job->childsExit, job->nrOfChilds);
+		 job->childrenExit, job->nrOfChildren);
 
 	    if (PSC_getID(job->logger) != PSC_getMyID()) {
 		deleteJob(job->logger);
@@ -296,7 +297,7 @@ static void handleAccountChild(DDTypedBufferMsg_t *msg)
 
     if (!findHist(logger)) saveHist(logger);
 
-    job->nrOfChilds++;
+    job->nrOfChildren++;
     client->logger = logger;
     client->uid = uid;
     client->gid = gid;
