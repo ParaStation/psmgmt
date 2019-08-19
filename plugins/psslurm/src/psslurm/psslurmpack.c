@@ -1614,14 +1614,18 @@ bool __packRespNodeRegStatus(PS_SendDB_t *data, Resp_Node_Reg_Status_t *stat,
     /* add gres configuration */
     addGresData(data, slurmProto);
 
-    /* TODO: acct_gather_energy_pack(msg->energy, buffer, protocol_version); */
-    addUint64ToMsg(0, data);
-    addUint32ToMsg(0, data);
-    addUint64ToMsg(0, data);
-    addUint32ToMsg(0, data);
-    addUint64ToMsg(0, data);
-    time_t now = 0;
-    addTimeToMsg(now, data);
+    /* base energy (joules) */
+    addUint64ToMsg(stat->eData.energyBase, data);
+    /* average power (watt) */
+    addUint32ToMsg(stat->eData.powerAvg, data);
+    /* total energy consumed */
+    addUint64ToMsg(stat->eData.energyCur - stat->eData.energyBase, data);
+    /* current power consumed */
+    addUint32ToMsg(stat->eData.powerCur, data);
+    /* previous energy consumed */
+    addUint64ToMsg(stat->eData.energyCur, data);
+    /* time of the last energy update */
+    addTimeToMsg(stat->eData.lastUpdate, data);
 
     /* protocol version */
     addStringToMsg(stat->verStr, data);

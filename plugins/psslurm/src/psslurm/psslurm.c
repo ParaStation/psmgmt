@@ -84,7 +84,7 @@ int version = 117;
 int requiredAPI = 121;
 plugin_dep_t dependencies[] = {
     { .name = "psmunge", .version = 4 },
-    { .name = "psaccount", .version = 25 },
+    { .name = "psaccount", .version = 27 },
     { .name = "pelogue", .version = 7 },
     { .name = "pspam", .version = 3 },
     { .name = "psexec", .version = 2 },
@@ -242,6 +242,12 @@ static bool regPsAccountHandles(void)
     psAccountDelJob = dlsym(pluginHandle, "psAccountDelJob");
     if (!psAccountDelJob) {
 	mlog("%s: loading psAccountDelJob() failed\n", __func__);
+	return false;
+    }
+
+    psAccountGetEnergy = dlsym(pluginHandle, "psAccountGetEnergy");
+    if (!psAccountGetEnergy) {
+	mlog("%s: loading psAccountGetEnergy() failed\n", __func__);
 	return false;
     }
     return true;

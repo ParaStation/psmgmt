@@ -1083,45 +1083,34 @@ static void addSlurmPids(PStask_ID_t loggerTID, PS_SendDB_t *data)
     ufree(pids);
 }
 
-static int addSlurmAccData(uint8_t accType, pid_t childPid,
-			   PStask_ID_t loggerTID, PS_SendDB_t *data,
-			   PSnodes_ID_t *nodes, uint32_t nrOfNodes)
+static int addSlurmAccData(SlurmAccData_t *slurmAccData, PS_SendDB_t *data)
 {
-    AccountDataExt_t accData;
     bool res;
-    uint64_t avgVsize = 0, avgRss = 0;
-    SlurmAccData_t slurmAccData;
+    AccountDataExt_t accData = { .numTasks = 0 };
+    slurmAccData->accData = &accData;
 
-    slurmAccData.type = accType;
-    slurmAccData.nodes = nodes;
-    slurmAccData.nrOfNodes = nrOfNodes;
-    slurmAccData.accData = &accData;
-    accData.numTasks = 0;
+    /* no accounting data */
+    if (!slurmAccData->type) goto PACK_RESPONSE;
 
-    if (!accType) {
-	/* no accounting */
-	goto PACK_RESPONSE;
-    }
-
-    if (childPid) {
-	res = psAccountGetDataByJob(childPid, &accData);
+    if (slurmAccData->childPid) {
+	res = psAccountGetDataByJob(slurmAccData->childPid, &accData);
     } else {
-	res = psAccountGetDataByLogger(loggerTID, &accData);
+	res = psAccountGetDataByLogger(slurmAccData->loggerTID, &accData);
     }
 
-    slurmAccData.empty = !res;
+    slurmAccData->empty = !res;
 
     if (!res) {
 	/* getting account data failed */
-	mlog("%s: getting account data for pid %u logger '%s' failed\n",
-	     __func__, childPid, PSC_printTID(loggerTID));
+	flog("getting account data for pid %u logger '%s' failed\n",
+	     slurmAccData->childPid, PSC_printTID(slurmAccData->loggerTID));
 	goto PACK_RESPONSE;
     }
 
-    avgVsize = accData.avgVsizeCount ?
-		    accData.avgVsizeTotal / accData.avgVsizeCount : 0;
-    avgRss = accData.avgRssCount ?
-		    accData.avgRssTotal / accData.avgRssCount : 0;
+    uint64_t avgVsize = accData.avgVsizeCount ?
+			accData.avgVsizeTotal / accData.avgVsizeCount : 0;
+    uint64_t avgRss = accData.avgRssCount ?
+		      accData.avgRssTotal / accData.avgRssCount : 0;
 
     mlog("%s: adding account data: maxVsize %zu maxRss %zu pageSize %lu "
 	 "u_sec %lu u_usec %lu s_sec %lu s_usec %lu num_tasks %u avgVsize %lu"
@@ -1154,7 +1143,7 @@ static int addSlurmAccData(uint8_t accType, pid_t childPid,
     }
 
 PACK_RESPONSE:
-    packSlurmAccData(data, &slurmAccData);
+    packSlurmAccData(data, slurmAccData);
 
     return accData.numTasks;
 }
@@ -1188,8 +1177,13 @@ static void handleStepStat(Slurm_Msg_t *sMsg)
     numTasksUsed = msg.bufUsed;
     addUint32ToMsg(SLURM_SUCCESS, &msg);
     /* account data */
-    numTasks = addSlurmAccData(step->accType, 0, step->loggerTID, &msg,
-				step->nodes, step->nrOfNodes);
+    SlurmAccData_t slurmAccData = {
+	.type = step->accType,
+	.nodes = step->nodes,
+	.nrOfNodes = step->nrOfNodes,
+	.loggerTID = step->loggerTID,
+	.childPid = 0 };
+    numTasks = addSlurmAccData(&slurmAccData, &msg);
     /* correct numTasks */
     *(uint32_t *)(msg.buf + numTasksUsed) = htonl(numTasks);
     /* add step pids */
@@ -2366,6 +2360,9 @@ void sendNodeRegStatus(bool startup)
     if (needNodeRegResp) stat.flags |= SLURMD_REG_FLAG_RESP;
     if (startup) stat.flags |= SLURMD_REG_FLAG_STARTUP;
 
+    /* fill energy data */
+    psAccountGetEnergy(&stat.eData);
+
     packRespNodeRegStatus(&msg, &stat);
 
     sendSlurmMsg(SLURMCTLD_SOCK, MESSAGE_NODE_REGISTRATION_STATUS, &msg);
@@ -2432,7 +2429,6 @@ int getSlurmNodeID(PSnodes_ID_t psNodeID, PSnodes_ID_t *nodes,
 void sendStepExit(Step_t *step, uint32_t exit_status)
 {
     PS_SendDB_t body = { .bufUsed = 0, .useFrag = false };
-    pid_t childPid;
 
     /* jobid */
     addUint32ToMsg(step->jobid, &body);
@@ -2446,11 +2442,16 @@ void sendStepExit(Step_t *step, uint32_t exit_status)
     addUint32ToMsg(exit_status, &body);
 
     /* account data */
-    childPid = (step->fwdata) ? step->fwdata->cPid : 1;
-
+    pid_t childPid = (step->fwdata) ? step->fwdata->cPid : 1;
     step->accType = (step->leader) ? step->accType : 0;
-    addSlurmAccData(step->accType, 0, PSC_getTID(-1, childPid),
-		    &body, step->nodes, step->nrOfNodes);
+
+    SlurmAccData_t slurmAccData = {
+	.type = step->accType,
+	.nodes = step->nodes,
+	.nrOfNodes = step->nrOfNodes,
+	.loggerTID = PSC_getTID(-1, childPid),
+	.childPid = 0 };
+    addSlurmAccData(&slurmAccData, &body);
 
     flog("REQUEST_STEP_COMPLETE for %u:%u to slurmctld: exit %u\n",
 	 step->jobid, step->stepid, exit_status);
@@ -2751,10 +2752,21 @@ void sendJobExit(Job_t *job, uint32_t exit_status)
     /* batch job */
     if (!job->fwdata) {
 	/* No data available */
-	addSlurmAccData(0, 0, 0, &body, job->nodes, job->nrOfNodes);
+	SlurmAccData_t slurmAccData = {
+	    .type = 0,
+	    .nodes = job->nodes,
+	    .nrOfNodes = job->nrOfNodes,
+	    .loggerTID = 0,
+	    .childPid = 0 };
+	addSlurmAccData(&slurmAccData, &body);
     } else {
-	addSlurmAccData(job->accType, job->fwdata->cPid, 0, &body, job->nodes,
-			job->nrOfNodes);
+	SlurmAccData_t slurmAccData = {
+	    .type = job->accType,
+	    .nodes = job->nodes,
+	    .nrOfNodes = job->nrOfNodes,
+	    .loggerTID = 0,
+	    .childPid = job->fwdata->cPid };
+	addSlurmAccData(&slurmAccData, &body);
     }
     /* jobid */
     addUint32ToMsg(job->jobid, &body);
