@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2014-2017 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2014-2019 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -66,6 +66,17 @@ typedef struct {
     PStask_ID_t taskIds[6];
     struct rusage rusage;      /**< resource usage collect upon client's dead */
 } AccountDataExt_t;
+
+/** Node energy and power consumption data */
+typedef struct {
+    uint32_t powerMin;	       	/**< minimum power consumption */
+    uint32_t powerMax;		/**< maximal power consumption */
+    uint32_t powerCur;		/**< current power consumption */
+    uint32_t powerAvg;		/**< average power consumption */
+    uint64_t energyBase;	/**< energy base when psaccount was started */
+    uint64_t energyCur;		/**< energy consumption since last update */
+    time_t lastUpdate;		/**< time stamp of the last update */
+} psAccountEnergy_t;
 
 /**
  * @brief Register batch jobscript
@@ -319,5 +330,12 @@ typedef int(psAccountSignalChildren_t)(pid_t mypid, pid_t child, pid_t pgroup,
  * @return Number of children getting a signal
  */
 typedef int(psAccountSignalSession_t)(pid_t session, int sig);
+
+/**
+ * @brief Get nodes energy consumption
+ *
+ * @param eData Will hold the nodes energy consumption data on return
+ */
+typedef void(psAccountGetEnergy_t)(psAccountEnergy_t *eData);
 
 #endif  /* __PS_ACCOUNT_TYPES */
