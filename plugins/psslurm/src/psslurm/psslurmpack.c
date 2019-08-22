@@ -1556,7 +1556,7 @@ bool __packRespNodeRegStatus(PS_SendDB_t *data, Resp_Node_Reg_Status_t *stat,
 	return false;
     }
 
-    /* timestamp */
+    /* time-stamp */
     addTimeToMsg(stat->now, data);
     /* slurmd_start_time */
     addTimeToMsg(stat->startTime, data);
@@ -1569,11 +1569,11 @@ bool __packRespNodeRegStatus(PS_SendDB_t *data, Resp_Node_Reg_Status_t *stat,
     addStringToMsg(stat->nodeName, data);
     /* architecture */
     addStringToMsg(stat->arch, data);
-    /* cpu spec list */
+    /* CPU spec list */
     addStringToMsg("", data);
-    /* os */
+    /* OS */
     addStringToMsg(stat->sysname, data);
-    /* cpus */
+    /* CPUs */
     addUint16ToMsg(stat->cpus, data);
     /* boards */
     addUint16ToMsg(stat->boards, data);
@@ -1583,7 +1583,7 @@ bool __packRespNodeRegStatus(PS_SendDB_t *data, Resp_Node_Reg_Status_t *stat,
     addUint16ToMsg(stat->coresPerSocket, data);
     /* threads */
     addUint16ToMsg(stat->threadsPerCore, data);
-    /* real mem */
+    /* real memory */
     addUint64ToMsg(stat->realMem, data);
     /* tmp disk */
     addUint32ToMsg(stat->tmpDisk, data);
@@ -1591,7 +1591,7 @@ bool __packRespNodeRegStatus(PS_SendDB_t *data, Resp_Node_Reg_Status_t *stat,
     addUint32ToMsg(stat->uptime, data);
     /* hash value of the SLURM config file */
     addUint32ToMsg(stat->config, data);
-    /* cpu load */
+    /* CPU load */
     addUint32ToMsg(stat->cpuload, data);
     /* free memory */
     addUint64ToMsg(stat->freemem, data);
@@ -1611,7 +1611,7 @@ bool __packRespNodeRegStatus(PS_SendDB_t *data, Resp_Node_Reg_Status_t *stat,
 	/* TODO pack switch node info */
     }
 
-    /* add gres configuration */
+    /* add GRes configuration */
     addGresData(data, slurmProto);
 
     /* base energy (joules) */

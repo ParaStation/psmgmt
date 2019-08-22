@@ -1173,7 +1173,7 @@ static void handleStepStat(Slurm_Msg_t *sMsg)
 
     /* add return code */
     addUint32ToMsg(SLURM_SUCCESS, &msg);
-    /* add placeholder for num tasks */
+    /* add placeholder for number of tasks */
     numTasksUsed = msg.bufUsed;
     addUint32ToMsg(SLURM_SUCCESS, &msg);
     /* account data */
@@ -1184,9 +1184,9 @@ static void handleStepStat(Slurm_Msg_t *sMsg)
 	.loggerTID = step->loggerTID,
 	.childPid = 0 };
     numTasks = addSlurmAccData(&slurmAccData, &msg);
-    /* correct numTasks */
+    /* correct number of tasks */
     *(uint32_t *)(msg.buf + numTasksUsed) = htonl(numTasks);
-    /* add step pids */
+    /* add step PIDs */
     addSlurmPids(step->loggerTID, &msg);
 
     sMsg->outdata = &msg;
