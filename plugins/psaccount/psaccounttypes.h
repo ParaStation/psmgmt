@@ -65,6 +65,7 @@ typedef struct {
     uint64_t cpuWeight;
     PStask_ID_t taskIds[6];
     struct rusage rusage;      /**< resource usage collect upon client's dead */
+    uint64_t energyCons;       /**< consumed energy in joules */
 } AccountDataExt_t;
 
 /** Node energy and power consumption data */

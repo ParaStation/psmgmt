@@ -13,6 +13,7 @@
 #include <stdbool.h>
 #include <time.h>
 #include <sys/types.h>
+#include <stdint.h>
 
 #include "list.h"
 #include "pstaskid.h"
@@ -29,6 +30,8 @@ typedef struct {
     time_t latestChildStart;    /**< time when last child started */
     PStask_ID_t logger;         /**< task ID of the logger */
     pid_t jobscript;            /**< process ID of the job-script */
+    uint64_t energyBase;        /**< base energy consumption when
+                                     the job was added */
 } Job_t;
 
 /**

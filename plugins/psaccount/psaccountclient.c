@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2010-2017 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2010-2019 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -18,6 +18,7 @@
 #include "psaccountproc.h"
 #include "psaccountconfig.h"
 #include "psaccountcomm.h"
+#include "psaccountenergy.h"
 
 #include "psaccountclient.h"
 
@@ -441,7 +442,7 @@ static void addAggData(AccountDataExt_t *srcData, AccountDataExt_t *destData)
     timeradd(&destData->rusage.ru_stime, &srcData->rusage.ru_stime,
 	     &destData->rusage.ru_stime);
 
-    /* min cputime */
+    /* minimum CPU-time */
     if (!destData->numTasks) {
 	destData->minCputime = srcData->minCputime;
 	destData->taskIds[ACCID_MIN_CPU] = srcData->taskIds[ACCID_MIN_CPU];
@@ -450,14 +451,17 @@ static void addAggData(AccountDataExt_t *srcData, AccountDataExt_t *destData)
 	destData->taskIds[ACCID_MIN_CPU] = srcData->taskIds[ACCID_MIN_CPU];
     }
 
-    /* total cputime */
+    /* total CPU-time */
     destData->totCputime += srcData->totCputime;
 
-    /* cpu freq */
+    /* CPU frequency */
     destData->cpuFreq += srcData->cpuFreq;
 
     destData->numTasks += srcData->numTasks;
     destData->pageSize = srcData->pageSize;
+
+    /* energy consumption */
+    destData->energyCons += srcData->energyCons;
 
     mdbg(PSACC_LOG_AGGREGATE, "%s: maxThreads %lu maxVsize %lu maxRss %lu"
 	 " cutime %lu cstime %lu avg cpuFreq %.2fG\n", __func__,
@@ -572,18 +576,28 @@ bool aggregateDataByLogger(PStask_ID_t logger, AccountDataExt_t *accData)
 {
     int res = false;
     list_t *c;
+    uint64_t energyLocal = 0;
 
     list_for_each(c, &clientList) {
 	Client_t *client = list_entry(c, Client_t, next);
 	if (client->logger == logger && client->type != ACC_CHILD_JOBSCRIPT) {
 	    if (client->type == ACC_CHILD_PSIDCHILD) {
 		addClientToAggData(client, accData);
+		if (!energyLocal && client->job && client->job->energyBase) {
+		    /* energy is calculated on a per job basis */
+		    psAccountEnergy_t *eData = energyGetData();
+		    energyLocal = eData->energyCur - client->job->energyBase;
+		}
 	    } else if (client->type == ACC_CHILD_REMOTE) {
 		addAggData(&client->data, accData);
 	    }
 	    res = true;
 	}
     }
+    mdbg(PSACC_LOG_ENERGY, "%s: local energy consumption: %zu\n",
+	 __func__, energyLocal);
+    if (energyLocal) accData->energyCons += energyLocal;
+
     return res;
 }
 
@@ -688,7 +702,7 @@ void forwardJobData(Job_t *job, bool force)
 
     if (PSC_getID(logger) == PSC_getMyID()) return;
 
-    /* aggreagate accounting data on a per logger basis */
+    /* aggregate accounting data on a per logger basis */
     memset(&aggData, 0, sizeof(AccountDataExt_t));
     list_for_each(c, &clientList) {
 	Client_t *client = list_entry(c, Client_t, next);
@@ -696,6 +710,15 @@ void forwardJobData(Job_t *job, bool force)
 	    addClientToAggData(client, &aggData);
 	}
     }
+
+    /* calculate energy consumption */
+    psAccountEnergy_t *eData = energyGetData();
+    aggData.energyCons = eData->energyCur - job->energyBase;
+
+    mdbg(PSACC_LOG_ENERGY, "%s: energy aggregation for logger: %s "
+	 "consumption: %zu  base: %zu current: %zu\n", __func__,
+	 PSC_printTID(job->logger), aggData.energyCons, job->energyBase,
+	 eData->energyCur);
 
     /* send the update */
     if (aggData.numTasks) sendAggData(logger, &aggData);

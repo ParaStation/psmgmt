@@ -16,6 +16,7 @@
 #include "psaccountproc.h"
 #include "psaccountclient.h"
 #include "psaccountconfig.h"
+#include "psaccountenergy.h"
 
 #include "psaccountjob.h"
 
@@ -58,6 +59,9 @@ Job_t *addJob(PStask_ID_t loggerTID)
     job->startTime = time(NULL);
     job->endTime = 0;
     job->latestChildStart = 0;
+
+    psAccountEnergy_t *eData = energyGetData();
+    job->energyBase = eData->energyCur;
 
     list_add_tail(&job->next, &jobList);
     return job;

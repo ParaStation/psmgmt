@@ -34,7 +34,7 @@
 
 /** psid plugin requirements */
 char name[] = "psaccount";
-int version = 27;
+int version = 28;
 int requiredAPI = 118;
 plugin_dep_t dependencies[] = {
     { .name = NULL, .version = 0 } };

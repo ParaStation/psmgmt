@@ -416,20 +416,22 @@ void sendAggData(PStask_ID_t logger, AccountDataExt_t *aggData)
     addTimeToMsg(aggData->rusage.ru_stime.tv_sec, &data);
     addTimeToMsg(aggData->rusage.ru_stime.tv_usec, &data);
 
+    addUint64ToMsg(aggData->energyCons, &data);
+
     sendFragMsg(&data);
 
     mdbg(PSACC_LOG_UPDATE_MSG, "%s: to %i maxThreadsTot %lu maxVsizeTot %lu"
 	 " maxRsstot %lu maxThreads %lu maxVsize %lu maxRss %lu numTasks %u"
 	 " avgThreadsTotal %lu avgThreadsCount %lu avgVsizeTotal %lu"
 	 " avgVsizeCount %lu avgRssTotal %lu avgRssCount %lu cutime %lu"
-	 " cstime %lu minCputime %lu totCputime %lu\n", __func__,
-	 loggerNode, aggData->maxThreadsTotal, aggData->maxVsizeTotal,
+	 " cstime %lu minCputime %lu totCputime %lu energyConsump %zu\n",
+	 __func__, loggerNode, aggData->maxThreadsTotal, aggData->maxVsizeTotal,
 	 aggData->maxRssTotal, aggData->maxThreads, aggData->maxVsize,
 	 aggData->maxRss, aggData->numTasks, aggData->avgThreadsTotal,
 	 aggData->avgThreadsCount, aggData->avgVsizeTotal,
 	 aggData->avgVsizeCount, aggData->avgRssTotal, aggData->avgRssCount,
 	 aggData->cutime, aggData->cstime, aggData->minCputime,
-	 aggData->totCputime);
+	 aggData->totCputime, aggData->energyCons);
 }
 
 static void handleAggDataUpdate(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
@@ -488,13 +490,16 @@ static void handleAggDataUpdate(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
     getTime(&ptr, &aggData.rusage.ru_stime.tv_sec);
     getTime(&ptr, &aggData.rusage.ru_stime.tv_usec);
 
+    getUint64(&ptr, &aggData.energyCons);
+
     setAggData(msg->header.sender, logger, &aggData);
 
     mdbg(PSACC_LOG_UPDATE_MSG, "%s: from %s maxThreadsTot %lu maxVsizeTot %lu"
-	 " maxRsstot %lu maxThreads %lu maxVsize %lu maxRss %lu numTasks %u\n",
-	 __func__, PSC_printTID(msg->header.sender), aggData.maxThreadsTotal,
-	 aggData.maxVsizeTotal, aggData.maxRssTotal, aggData.maxThreads,
-	 aggData.maxVsize, aggData.maxRss, aggData.numTasks);
+	 " maxRsstot %lu maxThreads %lu maxVsize %lu maxRss %lu numTasks %u"
+	 " energyConsump %zu\n", __func__, PSC_printTID(msg->header.sender),
+	 aggData.maxThreadsTotal, aggData.maxVsizeTotal, aggData.maxRssTotal,
+	 aggData.maxThreads, aggData.maxVsize, aggData.maxRss,
+	 aggData.numTasks, aggData.energyCons);
 }
 
 /**
