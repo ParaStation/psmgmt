@@ -84,7 +84,7 @@ int version = 117;
 int requiredAPI = 121;
 plugin_dep_t dependencies[] = {
     { .name = "psmunge", .version = 4 },
-    { .name = "psaccount", .version = 27 },
+    { .name = "psaccount", .version = 28 },
     { .name = "pelogue", .version = 7 },
     { .name = "pspam", .version = 3 },
     { .name = "psexec", .version = 2 },

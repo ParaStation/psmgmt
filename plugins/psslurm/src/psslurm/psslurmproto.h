@@ -72,7 +72,6 @@ typedef struct {
 /** structure holding all infos to pack Slurm accounting data */
 typedef struct {
     AccountDataExt_t *accData;	/**< actual accouting data from psaccount */
-    psAccountEnergy_t eData;	/**< actual energy data from psaccount */
     uint8_t type;		/**< type of accounting */
     bool empty;			/**< flag to signal empty accounting data */
     uint32_t nrOfNodes;		/**< number of nodes */

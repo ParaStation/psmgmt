@@ -1303,7 +1303,7 @@ static void packAccData_17(PS_SendDB_t *data, SlurmAccData_t *slurmAccData)
     addUint32ToMsg(accData->cpuFreq, data);
 
     /* energy consumed */
-    addUint64ToMsg(0, data);
+    addUint64ToMsg(accData->energyCons, data);
 
     /* max/total disk read */
     addDoubleToMsg(accData->maxDiskRead, data);
@@ -1477,7 +1477,7 @@ bool __packSlurmAccData(PS_SendDB_t *data, SlurmAccData_t *slurmAccData,
     addUint32ToMsg(accData->cpuFreq, data);
 
     /* energy consumed */
-    addUint64ToMsg(0, data);
+    addUint64ToMsg(accData->energyCons, data);
 
     /* trackable resources (TRes) */
     TRes_t *tres = TRes_new();
