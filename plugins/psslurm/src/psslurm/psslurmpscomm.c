@@ -1513,12 +1513,12 @@ static void forwardToSrunProxy(Step_t *step, PSLog_Msg_t *lmsg,
     if (!step->fwdata) return;
 
     /* connection to srun broke */
-    if (step->ioCon == CON_BROKE) return;
+    if (step->ioCon == IO_CON_BROKE) return;
 
-    if (step->ioCon == CON_ERROR) {
+    if (step->ioCon == IO_CON_ERROR) {
 	mlog("%s: I/O connection for step %u:%u is broken\n", __func__,
 	     step->jobid, step->stepid);
-	step->ioCon = CON_BROKE;
+	step->ioCon = IO_CON_BROKE;
     }
 
     /* if msg from service rank, let it seem like it comes from first task */

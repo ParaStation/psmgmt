@@ -44,7 +44,7 @@ Step_t *addStep(uint32_t jobid, uint32_t stepid)
     step->stdInOpt = IO_UNDEF;
     step->stdOutOpt = IO_UNDEF;
     step->stdErrOpt = IO_UNDEF;
-    step->ioCon = CON_NORM;
+    step->ioCon = IO_CON_NORM;
     step->startTime = time(0);
     step->leader = false;
 

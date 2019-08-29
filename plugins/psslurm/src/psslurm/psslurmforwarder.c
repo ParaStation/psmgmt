@@ -251,19 +251,19 @@ void switchUser(char *username, uid_t uid, gid_t gid, char *cwd)
 	exit(1);
     }
 
-    /* change the gid */
+    /* change the GID */
     if ((setgid(gid)) < 0) {
 	mlog("%s: setgid(%i) failed : %s\n", __func__, gid, strerror(errno));
 	exit(1);
     }
 
-    /* change the uid */
+    /* change the UID */
     if ((setuid(uid)) < 0) {
 	mlog("%s: setuid(%i) failed : %s\n", __func__, uid, strerror(errno));
 	exit(1);
     }
 
-    /* re-enable capability to create coredumps */
+    /* re-enable capability to create core-dumps */
     prctl(PR_SET_DUMPABLE, 1);
 
     /* change to job working directory */
@@ -285,7 +285,7 @@ static void fwExecBatchJob(Forwarder_Data_t *fwdata, int rerun)
 
     setFilePermissions(job);
 
-    /* set default rlimits */
+    /* set default RLimits */
     setDefaultRlimits();
 
     /* switch user */
@@ -294,10 +294,10 @@ static void fwExecBatchJob(Forwarder_Data_t *fwdata, int rerun)
     /* redirect output */
     redirectJobOutput(job);
 
-    /* setup batch specific env */
+    /* setup batch specific environment */
     setJobEnv(job);
 
-    /* set rlimits */
+    /* set RLimits */
     setRlimitsFromEnv(&job->env, 0);
 
     /* do exec */
@@ -305,7 +305,7 @@ static void fwExecBatchJob(Forwarder_Data_t *fwdata, int rerun)
     execve(job->jobscript, job->argv, job->env.vars);
     int err = errno;
 
-    /* execve failed */
+    /* execve() failed */
     fprintf(stderr, "%s: execve %s failed: %s\n", __func__, job->argv[0],
 	    strerror(err));
     openlog("psid", LOG_PID|LOG_CONS, LOG_DAEMON);
@@ -613,7 +613,7 @@ static void setupStepIO(Forwarder_Data_t *fwdata, Step_t *step)
     close(STDIN_FILENO);
 
     if (step->taskFlags & LAUNCH_PTY) {
-	/* setup pty */
+	/* setup PTY */
 	tty_name = ttyname(fwdata->stdOut[0]);
 	close(fwdata->stdOut[1]);
 
@@ -633,7 +633,7 @@ static void setupStepIO(Forwarder_Data_t *fwdata, Step_t *step)
 	    }
 	}
 
-	/* redirect stdout/stderr/stdin to pty */
+	/* redirect stdout/stderr/stdin to PTY */
 	if ((dup2(fwdata->stdOut[0], STDOUT_FILENO)) == -1) {
 	    mwarn(errno, "%s: stdout dup2(%u) failed: ",
 		    __func__, fwdata->stdOut[0]);
@@ -697,7 +697,7 @@ static void setupStepIO(Forwarder_Data_t *fwdata, Step_t *step)
 /* choose PMI layer, default is MPICH's Simple PMI */
 static pmi_type_t getPMIType(Step_t *step)
 {
-    /* PSSLURM_PMI_TYPE can be used to choose pmi environment to be set up */
+    /* PSSLURM_PMI_TYPE can be used to choose PMI environment to be set up */
     char *pmi = envGet(&step->env, "PSSLURM_PMI_TYPE");
     if (!pmi) {
 	/* if PSSLURM_PMI_TYPE is not set and srun is called with --mpi=none,
@@ -852,30 +852,30 @@ static void fwExecStep(Forwarder_Data_t *fwdata, int rerun)
     initLogger(buf, NULL);
     maskLogger(oldMask);
 
-    /* setup standard I/O and pty */
+    /* setup standard I/O and PTY */
     setupStepIO(fwdata, step);
 
-    /* set default rlimits */
+    /* set default RLimits */
     setDefaultRlimits();
 
     /* switch user */
     switchUser(step->username, step->uid, step->gid, step->cwd);
 
-    /* descide which pmi type to use */
+    /* decide which PMI type to use */
     pmi_type = getPMIType(step);
 
     /* build mpiexec argument vector */
     buildMpiexecArgs(fwdata, &argV, pmi_type);
 
-    /* setup step specific env */
+    /* setup step specific environment */
     setStepEnv(step);
 
-    /* setup x11 forwarding */
+    /* setup X11 forwarding */
     if (step->x11forward) initX11Forward(step);
 
     flog("exec %s mypid %u\n", strStepID(step), getpid());
 
-    /* set rlimits */
+    /* set RLimits */
     setRlimitsFromEnv(&step->env, 1);
 
     /* remove environment variables not evaluated by mpiexec */
@@ -890,7 +890,7 @@ static void fwExecStep(Forwarder_Data_t *fwdata, int rerun)
     execve(argV.strings[0], argV.strings, step->env.vars);
     int err = errno;
 
-    /* execve failed */
+    /* execve() failed */
     fprintf(stderr, "%s: execve %s failed: %s\n", __func__, argV.strings[0],
 	    strerror(err));
     openlog("psid", LOG_PID|LOG_CONS, LOG_DAEMON);
@@ -902,28 +902,46 @@ static void fwExecStep(Forwarder_Data_t *fwdata, int rerun)
 
 static int switchEffectiveUser(char *username, uid_t uid, gid_t gid)
 {
-    /* remove psslurm group memberships */
-    if ((setgroups(0, NULL)) == -1) {
-	mlog("%s: setgroups(0) failed : %s\n", __func__, strerror(errno));
-	return -1;
+    if (uid) {
+	/* current user is root, change groups before switching to user */
+	/* remove group memberships */
+	if ((setgroups(0, NULL)) == -1) {
+	    mlog("%s: setgroups(0) failed : %s\n", __func__, strerror(errno));
+	    return -1;
+	}
+
+	/* set supplementary groups */
+	if ((initgroups(username, gid)) < 0) {
+	    mlog("%s: initgroups() failed : %s\n", __func__, strerror(errno));
+	    return -1;
+	}
     }
 
-    /* set supplementary groups */
-    if ((initgroups(username, gid)) < 0) {
-	mlog("%s: initgroups() failed : %s\n", __func__, strerror(errno));
-	return -1;
-    }
-
-    /* change effective gid */
+    /* change effective GID */
     if ((setegid(gid)) < 0) {
 	mlog("%s: setgid(%i) failed : %s\n", __func__, gid, strerror(errno));
 	return -1;
     }
 
-    /* change effective uid */
+    /* change effective UID */
     if ((seteuid(uid)) < 0) {
 	mlog("%s: setuid(%i) failed : %s\n", __func__, uid, strerror(errno));
 	return -1;
+    }
+
+    if (!uid) {
+	/* current user was not root, change groups after switching UID */
+	/* remove group memberships */
+	if ((setgroups(0, NULL)) == -1) {
+	    mlog("%s: setgroups(0) failed : %s\n", __func__, strerror(errno));
+	    return -1;
+	}
+
+	/* set supplementary groups */
+	if ((initgroups(username, gid)) < 0) {
+	    mlog("%s: initgroups() failed : %s\n", __func__, strerror(errno));
+	    return -1;
+	}
     }
 
     if (prctl(PR_SET_DUMPABLE, 1) == -1) {
@@ -942,7 +960,7 @@ static int stepForwarderInit(Forwarder_Data_t *fwdata)
 	mlog("%s: switching effective user failed\n", __func__);
     }
 
-    /* check if we can change working dir */
+    /* check if we can change working directory */
     if (step->cwd && chdir(step->cwd) == -1) {
 	mlog("%s: chdir for uid %u gid %u to '%s' failed : %s\n",
 	     __func__, step->uid, step->gid, step->cwd, strerror(errno));
@@ -953,28 +971,17 @@ static int stepForwarderInit(Forwarder_Data_t *fwdata)
     if (!(step->taskFlags & LAUNCH_PTY)) {
 	if (!(step->taskFlags & LAUNCH_USER_MANAGED_IO)) {
 	    redirectStepIO(fwdata, step);
+	    openStepIOpipes(fwdata, step);
 	}
     }
 
-    /* change the uid */
-    if (seteuid(0) < 0) {
-	mlog("%s: setuid(0) failed : %s\n", __func__, strerror(errno));
-	return -1;
-    }
-
-    /* change the gid */
-    if (setegid(0) < 0) {
-	mlog("%s: setgid(0) failed : %s\n", __func__, strerror(errno));
-	return -1;
-    }
-
-    if (prctl(PR_SET_DUMPABLE, 1) == -1) {
-	mwarn(errno, "%s: prctl(PR_SET_DUMPABLE) failed: ", __func__);
+    if (switchEffectiveUser("root", 0, 0) == -1) {
+	mlog("%s: switching effective user failed\n", __func__);
     }
 
     /* open stderr/stdout/stdin fds */
     if (step->taskFlags & LAUNCH_PTY) {
-	/* open pty */
+	/* open PTY */
 	if ((openpty(&fwdata->stdOut[1], &fwdata->stdOut[0],
 			NULL, NULL, NULL)) == -1) {
 	    mlog("%s: openpty() failed\n", __func__);
@@ -995,7 +1002,7 @@ static void stepForwarderLoop(Forwarder_Data_t *fwdata)
     if (step->taskFlags & LAUNCH_USER_MANAGED_IO) return;
 
     if (!step->IOPort) {
-	mlog("%s: no IO Ports\n", __func__);
+	mlog("%s: no I/O ports available\n", __func__);
 	return;
     }
 
@@ -1005,7 +1012,7 @@ static void stepForwarderLoop(Forwarder_Data_t *fwdata)
     }
 
     if (step->taskFlags & LAUNCH_PTY) {
-	/* open additiional pty connection to srun */
+	/* open additional PTY connection to srun */
 	if ((srunOpenPTYConnection(step)) < 0) {
 	    /* Not working with current srun 14.03 anyway */
 	}
@@ -1039,7 +1046,7 @@ static void handleChildStartStep(Forwarder_Data_t *fwdata, pid_t fw,
 
     psAccountRegisterJob(childPid, NULL);
 
-    /* say ok to srun if mpiexec could be spawned */
+    /* return launch success to waiting srun since mpiexec could be spawned */
     flog("launch success for %s to srun sock '%u'\n",
 	 strStepID(step), step->srunControlMsg.sock);
     sendSlurmRC(&step->srunControlMsg, SLURM_SUCCESS);
@@ -1247,7 +1254,15 @@ static void stepFWIOloop(Forwarder_Data_t *fwdata)
 	return;
     }
 
-    redirectStepIO2(fwdata, step);
+    if (switchEffectiveUser(step->username, step->uid, step->gid) == -1) {
+	mlog("%s: switching effective user failed\n", __func__);
+    }
+
+    redirectStepIO(fwdata, step);
+
+    if (switchEffectiveUser("root", 0, 0) == -1) {
+	mlog("%s: switching effective user failed\n", __func__);
+    }
 }
 
 bool execStepIO(Step_t *step)
