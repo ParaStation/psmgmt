@@ -13,6 +13,14 @@
 
 #include "peloguetypes.h"
 
+/** track started psgwd */
+typedef struct {
+    PSnodes_ID_t node;        /**< list of gateway nodes */
+    pid_t pid;	              /**< PIDs of psgwd */
+    char *addr;	              /**< IP and port of psgwd */
+} PSGWD_t;
+
+/** holding all information about a psgw request */
 typedef struct {
     char *jobid;              /**< leader job ID */
     char *packID;             /**< pack ID of the allocation */
@@ -21,11 +29,12 @@ typedef struct {
     pid_t routePID;	      /**< PID of the routing script */
     char *routeFile;	      /**< path to routing file */
     int prologueState;	      /**< status of the prologue */
+    uint32_t psgwdPerNode;    /**< number of psgwd per gw node */
     uint32_t numGWnodes;      /**< number of gateway nodes */
-    uint32_t numGWstarted;    /**< number of psgwd started */
-    pid_t *gwPIDs;	      /**< PIDs of psgwd */
-    char **gwAddr;	      /**< IP and port of psgwd */
     PSnodes_ID_t *gwNodes;    /**< list of gateway nodes */
+    uint32_t numPSGWD;        /**< number of psgwd entries */
+    PSGWD_t *psgwd;           /**< structure holding active psgwd */
+    uint32_t numGWstarted;    /**< number of psgwd started */
     int timerRouteScript;     /**< timer for route script */
     uid_t uid;		      /**< user ID of job owner */
     gid_t gid;		      /**< group ID of job owner */

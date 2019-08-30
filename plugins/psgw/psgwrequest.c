@@ -34,8 +34,8 @@ PSGW_Req_t *Request_add(PElogueResource_t *res, char *packID)
     req->routePID = -2;
     req->timerRouteScript = -1;
     req->prologueState = -1;
-    req->fwdata = NULL;
     req->cleanup = envGet(res->env, "SLURM_SPANK_PSGW_CLEANUP") ? true : false;
+    req->psgwdPerNode = 1;
 
     list_add_tail(&req->next, &ReqList);
     return req;
@@ -45,13 +45,15 @@ void Request_setNodes(PSGW_Req_t *req, PSnodes_ID_t *nodes, uint32_t numNodes)
 {
     req->gwNodes = nodes;
     req->numGWnodes = numNodes;
-    req->gwPIDs = umalloc(sizeof(*req->gwPIDs) * numNodes);
-    req->gwAddr = umalloc(sizeof(*req->gwAddr) * numNodes);
+
+    req->numPSGWD =  numNodes * req->psgwdPerNode;
+    req->psgwd = umalloc(sizeof(*req->psgwd) * req->numPSGWD);
 
     uint32_t i;
-    for(i=0; i<numNodes; i++) {
-	req->gwAddr[i] = NULL;
-	req->gwPIDs[i] = -1;
+    for(i=0; i<req->numPSGWD; i++) {
+	req->psgwd[i].addr = NULL;
+	req->psgwd[i].pid = -1;
+	req->psgwd[i].node = -1;
     }
 }
 
@@ -74,11 +76,11 @@ void Request_delete(PSGW_Req_t *req)
 	kill(PSC_getPID(req->fwdata->tid), SIGKILL);
     }
 
-    ufree(req->gwPIDs);
-    for(i=0; i<req->numGWnodes; i++) {
-	ufree(req->gwAddr[i]);
+    for(i=0; i<req->numPSGWD; i++) {
+	ufree(req->psgwd[i].addr);
     }
-    ufree(req->gwAddr);
+    ufree(req->psgwd);
+
     ufree(req->jobid);
     ufree(req->packID);
 

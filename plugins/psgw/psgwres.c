@@ -69,7 +69,7 @@ static int prepEnv(void *reqPtr)
     setenv("NUM_GATEWAYS", buf, 1);
     for (i=0; i<req->numGWstarted; i++) {
 	snprintf(buf, sizeof(buf), "GATEWAY_ADDR_%u", i);
-	setenv(buf, req->gwAddr[i], 1);
+	setenv(buf, req->psgwd[i].addr, 1);
     }
 
     if (psgwlogger->mask & PSGW_LOG_ROUTE) {
@@ -152,18 +152,19 @@ static bool stopPSGWD(PSGW_Req_t *req)
     snprintf(buf, sizeof(buf), "%u", req->uid);
     envSet(&env, "PSGWD_UID", buf);
 
-    for (i=0; i<req->numGWnodes; i++) {
-	if (req->gwPIDs[i] == -1) continue;
+    for (i=0; i<req->numPSGWD; i++) {
+	if (req->psgwd[i].pid == -1) continue;
 
-	fdbg(PSGW_LOG_DEBUG, "stopping psgwd on node %i\n", req->gwNodes[i]);
+	fdbg(PSGW_LOG_DEBUG, "stopping psgwd %u on node %i\n",
+	     i, req->psgwd[i].node);
 
-	snprintf(buf, sizeof(buf), "%u", req->gwPIDs[i]);
+	snprintf(buf, sizeof(buf), "%u", req->psgwd[i].pid);
 	envSet(&env, "PSGWD_PID", buf);
 
 	int ret = psExecStartScriptEx(id, "psgwd_stop", dir, &env,
-				      req->gwNodes[i], cbStopPSGWD);
+				      req->psgwd[i].node, cbStopPSGWD);
 	if (ret == -1) {
-	    flog("stopping psgwd on node %i failed\n", req->gwNodes[i]);
+	    flog("stopping psgwd on node %i failed\n", req->psgwd[i].node);
 	    return false;
 	}
     }
@@ -545,19 +546,28 @@ static int cbStartPSGWD(uint32_t id, int32_t exit, PSnodes_ID_t dest,
     }
 
     uint32_t i;
-    for (i=0; i<req->numGWnodes; i++) {
-	if (req->gwNodes[i] == dest) {
-	    req->gwPIDs[i] = pid;
-	    req->gwAddr[i] = ustrdup(addr);
+    bool saved = false;
+    for (i=0; i<req->numPSGWD; i++) {
+	if (req->psgwd[i].node == dest && !req->psgwd[i].addr) {
+	    req->psgwd[i].pid = pid;
+	    req->psgwd[i].addr = ustrdup(addr);
+	    saved = true;
+	    break;
 	}
+    }
+
+    if (!saved) {
+	flog("unable to save psgwd address %s in request\n", addr);
+	cancelReq(req);
+	return 0;
     }
 
     req->numGWstarted++;
 
     flog("psgwd (%i/%i) on node %i, pid %u addr %s\n", req->numGWstarted,
-	 req->numGWnodes, dest, pid, addr);
+	 req->numPSGWD, dest, pid, addr);
 
-    if (req->numGWnodes == req->numGWstarted) {
+    if (req->numPSGWD == req->numGWstarted) {
 	/* call script to write the routing file */
 	if (!execRoutingScript(req)) {
 	    mlog("%s: executing routing script failed\n", __func__);
@@ -574,7 +584,7 @@ bool startPSGWD(PSGW_Req_t *req)
     env_t env;
     char *dir = getConfValueC(&Config, "DIR_ROUTE_SCRIPTS");
     char *psgwd = getConfValueC(&Config, "PSGWD_BINARY");
-    uint32_t i, id = atoi(req->jobid);
+    uint32_t i, z, id = atoi(req->jobid);
     char buf[1024];
 
     envInit(&env);
@@ -596,14 +606,27 @@ bool startPSGWD(PSGW_Req_t *req)
     char *gwBinary = envGet(req->res->env, "SLURM_SPANK_PSGWD_BINARY");
     if (gwBinary) envSet(&env, "PSGWD_BINARY", gwBinary);
 
+    uint32_t gIdx = 0;
     for (i=0; i<req->numGWnodes; i++) {
-	fdbg(PSGW_LOG_DEBUG, "starting psgwd on node %i\n", req->gwNodes[i]);
+	for (z=0; z<req->psgwdPerNode; z++) {
+	    if (gIdx >= req->numPSGWD) {
+		flog("invalid psgwd index %u num psgwd %u\n", gIdx,
+		     req->numPSGWD);
+		return false;
+	    }
+	    req->psgwd[gIdx].node = req->gwNodes[i];
 
-	int ret = psExecStartScriptEx(id, "psgwd_start", dir, &env,
-				      req->gwNodes[i], cbStartPSGWD);
-	if (ret == -1) {
-	    flog("starting psgwd on node %i failed\n", req->gwNodes[i]);
-	    return false;
+	    fdbg(PSGW_LOG_DEBUG, "starting psgwd %u on node %i\n",
+		 gIdx, req->psgwd[gIdx].node);
+
+	    int ret = psExecStartScriptEx(id, "psgwd_start", dir, &env,
+					  req->psgwd[gIdx].node, cbStartPSGWD);
+	    if (ret == -1) {
+		flog("starting psgwd %u on node %i failed\n", gIdx,
+		     req->psgwd[gIdx].node);
+		return false;
+	    }
+	    gIdx++;
 	}
     }
 
@@ -662,6 +685,9 @@ int handlePElogueRes(void *data)
 
     mlog("%s: need %i psgw nodes\n", __func__, numNodes);
     PSGW_Req_t *req = Request_add(res, packJobID);
+
+    char *strPsgwdPerNode = envGet(req->res->env, "SLURM_SPANK_PSGWD_PER_NODE");
+    if (strPsgwdPerNode) req->psgwdPerNode = atoi(strPsgwdPerNode);
 
     if (!requestGWnodes(req, numNodes)) {
 	flog("requesting gateway nodes failed\n");

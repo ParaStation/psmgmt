@@ -37,12 +37,15 @@ static bool gwCleanup = false;
 
 static bool writeInfo = true;
 
+static int numPSGWDperNode = 1;
+
 int setGwNum(int val, const char *optarg, int remote);
 int setGwFile(int val, const char *optarg, int remote);
 int setGwPlugin(int val, const char *optarg, int remote);
 int setGwEnv(int val, const char *optarg, int remote);
 int setGwCleanup(int val, const char *optarg, int remote);
 int setGwBinary(int val, const char *optarg, int remote);
+int setPSGWDperNode(int val, const char *optarg, int remote);
 
 /*
  * Additional options for salloc/sbatch/srun
@@ -55,7 +58,7 @@ static struct spank_option spank_opt[] =
     { "gw_plugin", "string",
       "Name of the route plugin", 1, 0,
       (spank_opt_cb_f) setGwPlugin },
-    { "gw_num", "number",
+    { "gw_num", "n",
       "Number of gateway nodes", 1, 0,
       (spank_opt_cb_f) setGwNum },
     { "gw_env", "string",
@@ -66,6 +69,9 @@ static struct spank_option spank_opt[] =
       (spank_opt_cb_f) setGwCleanup },
     { "gw_binary", "path", "debug psgwd", 1, 0,
       (spank_opt_cb_f) setGwBinary },
+    { "gw_psgwd_per_node", "n",
+      "Number of psgwd per gateway to start", 1, 0,
+      (spank_opt_cb_f) setPSGWDperNode },
     SPANK_OPTIONS_TABLE_END
 };
 
@@ -130,6 +136,13 @@ int slurm_spank_init_post_opt(spank_t sp, int ac, char **av)
     if (gwBinary) {
 	spank_job_control_setenv(sp, "SLURM_SPANK_PSGWD_BINARY", gwBinary, 1);
         if (writeInfo) slurm_info("psgw: using psgwd binary %s", gwBinary);
+    }
+
+    if (numPSGWDperNode > 1) {
+        char buf[1024];
+	snprintf(buf, sizeof(buf), "%i", numPSGWDperNode);
+	spank_job_control_setenv(sp, "SLURM_SPANK_PSGWD_PER_NODE", buf, 1);
+        if (writeInfo) slurm_info("psgw: number of psgwd per node %s", buf);
     }
 
     writeInfo = false;
@@ -250,6 +263,28 @@ int setGwBinary(int val, const char *optarg, int remote)
     gwBinary = strdup(optarg);
 
     if (DEBUG) slurm_info("set gw_binary to %s", gwBinary);
+
+    return 0;
+}
+
+/**
+ * @brief Parse and set the number of PSGWD per node
+ */
+int setPSGWDperNode(int val, const char *optarg, int remote)
+{
+    if (optarg == NULL) {
+        slurm_error("psgw: specify the number of psgwd per node started "
+                    "using --gw_psgwd_per_node");
+        return -1;
+    }
+
+    int ret = sscanf(optarg, "%i", &numPSGWDperNode);
+    if (ret != 1 || numPSGWDperNode < 1) {
+        slurm_error ("psgw: gw_psgwd_per_node %s is not a vaild number for "
+                     "psgwd per node", optarg);
+	return -1;
+    }
+    if (DEBUG) slurm_info("set gw_num to %i", numPSGWDperNode);
 
     return 0;
 }
