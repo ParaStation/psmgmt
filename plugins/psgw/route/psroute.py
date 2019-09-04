@@ -91,12 +91,19 @@ def writeRouteFile(plugin, rFile, psgwdToPort, nodesA, nodesB):
 
     routes = retrieveRoutes(plugin, nodesA, nodesB, gateways)
 
+    gwIndex = {}
+    for gw in gateways:
+        gwIndex[gw] = 0
+
     count = 0
     with open(rFile, "w") as f:
         for gw in gateways:
             for nodeA, nodeB in routes[gw]:
-                f.write("%s:%d %s %s\n" % (gw, psgwdToPort[gw],
+                f.write("%s:%d %s %s\n" % (gw, psgwdToPort[gw][gwIndex[gw]],
                         nodeA, nodeB))
+                gwIndex[gw] += 1
+                if (gwIndex[gw] == len(psgwdToPort[gw])):
+                    gwIndex[gw] = 0
                 count += 1
 
     vlog("wrote " + str(count)  + " lines to route file " + rFile)
@@ -169,7 +176,9 @@ def extractGateways():
         if gw == None or gw == "":
             raise Exception("Missing GATEWAY_ADDR_" + str(x))
         vlog("gw" + str(x) + ": "+ gw)
-        psgwdToPort[gw.split(":")[0]] = int(gw.split(":")[1])
+        if not psgwdToPort.has_key(gw.split(":")[0]):
+            psgwdToPort[gw.split(":")[0]] = []
+        psgwdToPort[gw.split(":")[0]].append(int(gw.split(":")[1]))
 
     return psgwdToPort
 
