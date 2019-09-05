@@ -43,6 +43,7 @@ typedef enum {
     PSGW_LOG_DEBUG    =	0x000010, /**< Debug */
     PSGW_LOG_PART     =	0x000020, /**< Partition reservation */
     PSGW_LOG_ROUTE    =	0x000040, /**< Route script */
+    PSGW_LOG_PSGWD    = 0x000080, /**< psgwd start/stop */
 } PSGW_log_types_t;
 
 /**

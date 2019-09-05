@@ -130,7 +130,8 @@ static bool getScriptCBData(int fd, PSID_scriptCBInfo_t *info, int32_t *exit,
 static int cbStopPSGWD(uint32_t id, int32_t exit, PSnodes_ID_t dest,
 		       uint16_t uid, char *output)
 {
-    fdbg(PSGW_LOG_DEBUG, "id %u exit %u output %s\n", id, exit, output);
+    fdbg(PSGW_LOG_PSGWD | PSGW_LOG_DEBUG, "id %u exit %u output %s\n",
+	 id, exit, output);
     return 0;
 }
 
@@ -155,7 +156,7 @@ static bool stopPSGWD(PSGW_Req_t *req)
     for (i=0; i<req->numPSGWD; i++) {
 	if (req->psgwd[i].pid == -1) continue;
 
-	fdbg(PSGW_LOG_DEBUG, "stopping psgwd %u on node %i\n",
+	fdbg(PSGW_LOG_PSGWD | PSGW_LOG_DEBUG, "stopping psgwd %u on node %i\n",
 	     i, req->psgwd[i].node);
 
 	snprintf(buf, sizeof(buf), "%u", req->psgwd[i].pid);
@@ -564,13 +565,16 @@ static int cbStartPSGWD(uint32_t id, int32_t exit, PSnodes_ID_t dest,
 
     req->numGWstarted++;
 
-    flog("psgwd (%i/%i) on node %i, pid %u addr %s\n", req->numGWstarted,
-	 req->numPSGWD, dest, pid, addr);
+    fdbg(PSGW_LOG_PSGWD | PSGW_LOG_DEBUG, "psgwd (%i/%i) on node %i, pid %u "
+	 "addr %s\n", req->numGWstarted, req->numPSGWD, dest, pid, addr);
 
     if (req->numPSGWD == req->numGWstarted) {
+	flog("all %i psgwd started, spawning routing script\n",
+	     req->numGWstarted);
+
 	/* call script to write the routing file */
 	if (!execRoutingScript(req)) {
-	    mlog("%s: executing routing script failed\n", __func__);
+	    flog("executing routing script failed\n");
 	    cancelReq(req);
 	    return 0;
 	}
@@ -616,8 +620,8 @@ bool startPSGWD(PSGW_Req_t *req)
 	    }
 	    req->psgwd[gIdx].node = req->gwNodes[i];
 
-	    fdbg(PSGW_LOG_DEBUG, "starting psgwd %u on node %i\n",
-		 gIdx, req->psgwd[gIdx].node);
+	    fdbg(PSGW_LOG_PSGWD | PSGW_LOG_DEBUG, "starting psgwd %u on "
+		 "node %i\n", gIdx, req->psgwd[gIdx].node);
 
 	    int ret = psExecStartScriptEx(id, "psgwd_start", dir, &env,
 					  req->psgwd[gIdx].node, cbStartPSGWD);
