@@ -1708,7 +1708,7 @@ static bool killSelectedSteps(Step_t *step, const void *killInfo)
     const Kill_Info_t *info = killInfo;
     char buf[512];
 
-    if (step->jobid != info->jobid) return false;
+    if (!step->fwdata || step->jobid != info->jobid) return false;
     if (info->stepid != NO_VAL && info->stepid != step->stepid) return false;
 
     if (info->timeout) {

@@ -213,6 +213,7 @@ static int stepCallback(int32_t exit_status, Forwarder_Data_t *fw)
 	deleteStep(step->jobid, step->stepid);
     } else {
 	step->fwdata = NULL;
+	clearTasks(&step->tasks);
     }
 
     return 0;
