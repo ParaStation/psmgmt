@@ -69,7 +69,11 @@ bool startPSGWD(PSGW_Req_t *req);
  * Use the pelogue callback to terminate the waiting slurmctld prologue.
  *
  * @param req The request to cancel
+ *
+ * @param reason The reason why the request is canceled
  */
-void cancelReq(PSGW_Req_t *req);
+void __cancelReq(PSGW_Req_t *req, char *reason, const char *func);
+
+#define cancelReq(req, reason) __cancelReq(req, reason, __func__)
 
 #endif

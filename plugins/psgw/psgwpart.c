@@ -221,13 +221,13 @@ static void handleProvidePartSL(DDBufferMsg_t *msg)
 
 	/* start prologue on psgwd nodes using pelogue */
 	if (!startPrologue(req)) {
-	    cancelReq(req);
+	    flog("starting prologue failed\n");
 	    return;
 	}
 
 	/* start psgw daemon using psexec */
 	if (!startPSGWD(req)) {
-	    cancelReq(req);
+	    flog("starting psgwd failed\n");
 	    return;
 	}
     }
@@ -243,6 +243,7 @@ void regPartMsg(void)
 static void partTimeout(int timerId, void *data)
 {
     PSGW_Req_t *req = Request_verify(data);
+    char msgBuf[1024];
 
     /* remove the timer */
     Timer_remove(timerId);
@@ -253,9 +254,10 @@ static void partTimeout(int timerId, void *data)
     }
 
     req->timerPartReq = -1;
-    flog("partition request for jobid %s timed out\n", req->jobid);
 
-    cancelReq(req);
+    snprintf(msgBuf, sizeof(msgBuf), "partition request for jobid %s "
+	     "timed out\n", req->jobid);
+    cancelReq(req, msgBuf);
 }
 
 static bool sendPartitionReq(PStask_t *task, PSGW_Req_t *req, int numNodes)
