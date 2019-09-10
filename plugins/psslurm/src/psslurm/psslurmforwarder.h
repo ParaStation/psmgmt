@@ -105,17 +105,4 @@ int handleForwarderInit(void * data);
  */
 int handleForwarderClientStatus(void * data);
 
-/**
- * @brief Change the executing user
- *
- * @param username The username of the user to switch
- *
- * @param uid The user ID of the user to switch
- *
- * @param gid The group ID of the user to switch
- *
- * @param cwd The new working directory or NULL
- */
-void switchUser(char *username, uid_t uid, gid_t gid, char *cwd);
-
 #endif

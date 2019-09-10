@@ -769,7 +769,7 @@ int execCopyForwarder(void *info)
 	setEnvVars();
 
 	/* switch to user */
-	switchUser(job->user, &job->passwd, 1);
+	psmomSwitchUser(job->user, &job->passwd, 1);
 
 	/* get some config options */
 	spoolDir = getConfValueC(&config, "DIR_SPOOL");
@@ -1026,7 +1026,7 @@ static void startPElogue(int prologue, PElogue_Data_t *data, char *filename,
 	    mlog("%s: getpwnam(%s) failed\n", __func__, data->user);
 	    exit(1);
 	}
-	switchUser(data->user, spasswd, 0);
+	psmomSwitchUser(data->user, spasswd, 0);
     } else {
 	setenv("USER", "root", 1);
 	setenv("USERNAME", "root", 1);
@@ -1294,7 +1294,7 @@ int execInterForwarder(void *info)
 	setResourceLimits(job);
 
 	/* switch to user */
-	switchUser(job->user, &job->passwd, 1);
+	psmomSwitchUser(job->user, &job->passwd, 1);
 
 	/* init x11 forwarding */
 	if (x11Cookie && x11Port != -1) {
@@ -1965,7 +1965,7 @@ int execJobscriptForwarder(void *info)
 	setResourceLimits(job);
 
 	/* switch to user */
-	switchUser(job->user, &job->passwd, 1);
+	psmomSwitchUser(job->user, &job->passwd, 1);
 
 	/* set umask for job output/error files */
 	opt_mask = getJobDetail(&job->data, "umask", NULL);
