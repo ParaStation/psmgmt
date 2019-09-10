@@ -12,7 +12,6 @@
 #include <unistd.h>
 #include <errno.h>
 #include <sys/stat.h>
-#include <sys/types.h>
 #include <grp.h>
 #include <sys/prctl.h>
 #include <sys/resource.h>
@@ -233,47 +232,6 @@ static int bcastCallback(int32_t exit_status, Forwarder_Data_t *fw)
     return 0;
 }
 
-void switchUser(char *username, uid_t uid, gid_t gid, char *cwd)
-{
-    pid_t pid = getpid();
-
-    /* jail child into cgroup */
-    PSIDhook_call(PSIDHOOK_JAIL_CHILD, &pid);
-
-    /* remove psslurm group memberships */
-    if ((setgroups(0, NULL)) == -1) {
-	mlog("%s: setgroups(0) failed : %s\n", __func__, strerror(errno));
-	exit(1);
-    }
-
-    /* set supplementary groups */
-    if ((initgroups(username, gid)) < 0) {
-	mlog("%s: initgroups() failed : %s\n", __func__, strerror(errno));
-	exit(1);
-    }
-
-    /* change the GID */
-    if ((setgid(gid)) < 0) {
-	mlog("%s: setgid(%i) failed : %s\n", __func__, gid, strerror(errno));
-	exit(1);
-    }
-
-    /* change the UID */
-    if ((setuid(uid)) < 0) {
-	mlog("%s: setuid(%i) failed : %s\n", __func__, uid, strerror(errno));
-	exit(1);
-    }
-
-    /* re-enable capability to create core-dumps */
-    prctl(PR_SET_DUMPABLE, 1);
-
-    /* change to job working directory */
-    if (cwd && (chdir(cwd)) == -1) {
-	mlog("%s: chdir to '%s' failed : %s\n", __func__, cwd, strerror(errno));
-	exit(1);
-    }
-}
-
 static void fwExecBatchJob(Forwarder_Data_t *fwdata, int rerun)
 {
     Job_t *job = fwdata->userData;
@@ -290,7 +248,10 @@ static void fwExecBatchJob(Forwarder_Data_t *fwdata, int rerun)
     setDefaultRlimits();
 
     /* switch user */
-    switchUser(job->username, job->uid, job->gid, job->cwd);
+    if (!switchUser(job->username, job->uid, job->gid, job->cwd)) {
+	flog("switching user failed\n");
+	exit(1);
+    }
 
     /* redirect output */
     redirectJobOutput(job);
@@ -860,7 +821,10 @@ static void fwExecStep(Forwarder_Data_t *fwdata, int rerun)
     setDefaultRlimits();
 
     /* switch user */
-    switchUser(step->username, step->uid, step->gid, step->cwd);
+    if (!switchUser(step->username, step->uid, step->gid, step->cwd)) {
+	flog("switching user failed\n");
+	exit(1);
+    }
 
     /* decide which PMI type to use */
     pmi_type = getPMIType(step);
@@ -1138,7 +1102,10 @@ static void fwExecBCast(Forwarder_Data_t *fwdata, int rerun)
     struct utimbuf times;
     char *ptr;
 
-    switchUser(bcast->username, bcast->uid, bcast->gid, NULL);
+    if (!switchUser(bcast->username, bcast->uid, bcast->gid, NULL)) {
+	flog("switching user failed\n");
+	exit(1);
+    }
     errno = eno = 0;
 
     /* open the file */

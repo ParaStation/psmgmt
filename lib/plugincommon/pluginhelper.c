@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2012-2018 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2012-2019 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -16,9 +16,14 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netdb.h>
+#include <unistd.h>
+#include <grp.h>
+#include <errno.h>
+#include <sys/prctl.h>
 
 #include "pscommon.h"
 #include "psidnodes.h"
+#include "psidhook.h"
 #include "pluginlog.h"
 
 #include "pluginhelper.h"
@@ -244,4 +249,55 @@ void __printBinaryData(char *data, size_t len, char *tag,
 	pluginlog("%s%02x", i ? " " : "", (unsigned char) data[i]);
     }
     pluginlog("'\n");
+}
+
+bool switchUser(char *username, uid_t uid, gid_t gid, char *cwd)
+{
+    pid_t pid = getpid();
+
+    if (!username) {
+	pluginlog("%s: invalid username\n", __func__);
+	return false;
+    }
+
+    /* jail child into cgroup */
+    PSIDhook_call(PSIDHOOK_JAIL_CHILD, &pid);
+
+    /* remove psslurm group memberships */
+    if ((setgroups(0, NULL)) == -1) {
+	pluginwarn(errno, "%s: setgroups(0) failed: ", __func__);
+	return false;
+    }
+
+    /* set supplementary groups */
+    if ((initgroups(username, gid)) < 0) {
+	pluginwarn(errno, "%s: initgroups() failed: ", __func__);
+	return false;
+    }
+
+    /* change the GID */
+    if ((setgid(gid)) < 0) {
+	pluginwarn(errno, "%s: setgid(%i) failed: ", __func__, gid);
+	return false;
+    }
+
+    /* change the UID */
+    if ((setuid(uid)) < 0) {
+	pluginwarn(errno, "%s: setuid(%i) failed: ", __func__, uid);
+	return false;
+    }
+
+    /* re-enable capability to create core-dumps */
+    if (prctl(PR_SET_DUMPABLE, 1) == -1) {
+	pluginwarn(errno, "%s: prctl() failed: ", __func__);
+	return false;
+    }
+
+    /* change to job working directory */
+    if (cwd && (chdir(cwd)) == -1) {
+	pluginwarn(errno, "%s: chdir to '%s' failed: ", __func__, cwd);
+	return false;
+    }
+
+    return true;
 }

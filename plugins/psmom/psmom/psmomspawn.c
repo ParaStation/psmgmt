@@ -55,9 +55,9 @@
 
 #include "psmomspawn.h"
 
-void switchUser(char *username, struct passwd *spasswd, int saveEnv)
+void psmomSwitchUser(char *username, struct passwd *spasswd, int saveEnv)
 {
-    char tmp[200], *initDir, *rootDir;
+    char tmp[200], *rootDir;
 
     /* change to new root (chroot) */
     if ((rootDir = getEnvValue("PBS_O_ROOTDIR"))) {
@@ -68,48 +68,12 @@ void switchUser(char *username, struct passwd *spasswd, int saveEnv)
 	}
     }
 
-    /* remove psmom group memberships */
-    if ((setgroups(0, NULL)) == -1) {
-	mlog("%s: setgroups(0) failed : %s\n", __func__, strerror(errno));
+    char *initDir = getEnvValue("PBS_O_INITDIR");
+    char *cwd = initDir ? initDir : spasswd->pw_dir;
+
+    if (!switchUser(spasswd->pw_name, spasswd->pw_uid, spasswd->pw_gid, cwd)) {
+	mlog("%s: changing user failed\n", __func__);
 	exit(1);
-    }
-
-    /* set supplementary groups */
-    if ((initgroups(spasswd->pw_name, spasswd->pw_gid)) < 0) {
-	mlog("%s: init groups failed : %s\n", __func__, strerror(errno));
-	exit(1);
-    }
-
-    /* change the gid */
-    if ((setgid(spasswd->pw_gid)) < 0) {
-	mlog("%s: setgid(%i) failed : %s\n", __func__, spasswd->pw_gid,
-		strerror(errno));
-	exit(1);
-    }
-
-    /* change the uid */
-    if ((setuid(spasswd->pw_uid)) < 0) {
-	mlog("%s: setuid(%i) failed : %s\n", __func__, spasswd->pw_uid,
-		strerror(errno));
-	exit(1);
-    }
-
-    /* re-enable capability to create coredumps */
-    prctl(PR_SET_DUMPABLE, 1);
-
-    /* change to job working directory */
-    if ((initDir = getEnvValue("PBS_O_INITDIR"))) {
-	if ((chdir(initDir)) == -1) {
-	    mlog("%s: chdir to job working dir '%s' failed : %s\n",
-		__func__, initDir, strerror(errno));
-	    exit(1);
-	}
-    } else {
-	if ((chdir(spasswd->pw_dir)) == -1) {
-	    mlog("%s: chdir to users home '%s' failed : %s\n", __func__,
-		spasswd->pw_dir, strerror(errno));
-	    exit(1);
-	}
     }
 
     /* update environment */

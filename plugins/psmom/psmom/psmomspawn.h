@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2010-2013 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2010-2019 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -78,7 +78,7 @@ void setResourceLimits(Job_t *job);
  *
  * @param username The name of the user to switch to.
  */
-void switchUser(char *username, struct passwd *spasswd, int saveEnv);
+void psmomSwitchUser(char *username, struct passwd *spasswd, int saveEnv);
 
 /**
  * @brief Spawn a copy job.
