@@ -334,7 +334,7 @@ static int hookExecForwarder(void *data)
 
     /* block until PMIx environment is set */
     struct timeval timeout;
-    timeout.tv_sec = 10;
+    timeout.tv_sec = 3;
     timeout.tv_usec = 0;
     if (!readClientPMIxEnvironment(childTask->fd, timeout)) {
 	finalizeSerial();
