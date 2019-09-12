@@ -472,6 +472,7 @@ void setRankEnv(int32_t rank, Step_t *step)
 	if (!(strncmp(step->env.vars[count], "PMI_BARRIER_ROUNDS=", 19))) {
 	    continue;
 	}
+	if (!(strncmp(step->env.vars[count], "PMIX_", 5))) continue;
 
 	putenv(step->env.vars[count]);
     }
@@ -541,6 +542,15 @@ static void removeSpankOptions(env_t *env)
     }
 }
 
+/**
+ * @brief Stripping down environment for mpiexec. The intention is to remove
+ *        all environment variables that are not evaluated by mpiexec.
+ *        User variables will are transfered by srun and later merged back
+ *        into the environment in @a setRankEnv()
+ *
+ * @param env       The environment to alter
+ * @param pmi_type  The PMI type of the job
+ */
 void removeUserVars(env_t *env, pmi_type_t pmi_type)
 {
     uint32_t i = 0;
@@ -569,9 +579,8 @@ void removeUserVars(env_t *env, pmi_type_t pmi_type)
 	    if (!strncmp(env->vars[i], "MEASURE_KVS_PROVIDER", 20)) continue;
 	}
 	if (pmi_type == PMI_TYPE_PMIX) {
-	    if (!strncmp(env->vars[i], "PMI_", 4)) continue;
-	    if (!strncmp(env->vars[i], "PMIX_", 5)) continue;
-	    if (!strncmp(env->vars[i], "__PMIX_", 7)) continue;
+	    if (!strncmp(env->vars[i], "PMIX_DEBUG", 10)) continue;
+	    if (!strncmp(env->vars[i], "PMIX_SPAWNED", 12)) continue;
 	}
 	if (!strncmp(env->vars[i], "__PSID_", 7)) continue;
 
