@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2018 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2018-2019 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -31,6 +31,8 @@
 
 static handlerFunc_t oldProvidePart = NULL;
 static handlerFunc_t oldProvidePartSL = NULL;
+
+char msgBuf[1024];
 
 static void handleProvidePart(DDBufferMsg_t *msg)
 {
@@ -243,7 +245,6 @@ void regPartMsg(void)
 static void partTimeout(int timerId, void *data)
 {
     PSGW_Req_t *req = Request_verify(data);
-    char msgBuf[1024];
 
     /* remove the timer */
     Timer_remove(timerId);
@@ -341,6 +342,31 @@ static int fwCallback(int32_t exit_status, Forwarder_Data_t *fw)
 
     if (req) req->fwdata = NULL;
 
+    if (exit_status) {
+	snprintf(msgBuf, sizeof(msgBuf), "partition forwarder for job %s exit "
+		 "with error %i\n", req->jobid, exit_status);
+	cancelReq(req, msgBuf);
+    }
+
+    return 0;
+}
+
+int handleMotherMsg(PSLog_Msg_t *msg, Forwarder_Data_t *fw)
+{
+    PSGW_Req_t *req = Request_verify(fw->userData);
+
+    /* failed to get resources from master */
+    if (msg->header.type == PSP_CD_PARTITIONRES) {
+	snprintf(msgBuf, sizeof(msgBuf), "getting resources for job %s "
+		 "failed\n", req->jobid);
+	flog("%s", msgBuf);
+
+	/* inform user via error file */
+	writeErrorFile(req, msgBuf);
+
+	exit(1);
+    }
+
     return 0;
 }
 
@@ -356,6 +382,7 @@ bool requestGWnodes(PSGW_Req_t *req, int numNodes)
     fwdata->graceTime = 30;
     fwdata->killSession = killSession;
     fwdata->callback = fwCallback;
+    fwdata->handleMthrMsg = handleMotherMsg;
 
     if (!startForwarder(fwdata)) {
 	mlog("%s: starting forwarder for request '%s' failed\n",

@@ -198,9 +198,11 @@ static int cbPSGWDerror(uint32_t id, int32_t exit, PSnodes_ID_t dest,
     return 0;
 }
 
-static void writeErrorFile(PSGW_Req_t *req, char *msg)
+void writeErrorFile(PSGW_Req_t *req, char *msg)
 {
-    char *cwd = envGet(req->res->env, "SLURM_SPANK_PSGW_CWD");
+    if (!envGet(req->res->env, "SLURM_SPANK_PSGW_VERBOSE")) {
+	return;
+    }
 
     PElogueResource_t *res = req->res;
     if (!res) {
@@ -218,6 +220,8 @@ static void writeErrorFile(PSGW_Req_t *req, char *msg)
     pid_t childPID = fork();
 
     if (!childPID) {
+	char *cwd = envGet(req->res->env, "SLURM_SPANK_PSGW_CWD");
+
 	/* switch to user */
 	if (!switchUser(user, req->uid, req->gid, cwd)) {
 	    flog("switching user failed\n");
@@ -246,11 +250,10 @@ static void writeErrorFile(PSGW_Req_t *req, char *msg)
 
 void __cancelReq(PSGW_Req_t *req, char *reason, const char *func)
 {
-    if (envGet(req->res->env, "SLURM_SPANK_PSGW_VERBOSE")) {
-	writeErrorFile(req, reason);
-    }
+    /* inform user via error file */
+    writeErrorFile(req, reason);
 
-    mlog("%s: %s\n", func, reason);
+    mlog("%s: %s", func, reason);
     flog("canceling request for jobid %u\n", req->jobid);
 
     /* kill routing script */

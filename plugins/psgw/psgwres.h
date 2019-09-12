@@ -76,4 +76,16 @@ void __cancelReq(PSGW_Req_t *req, char *reason, const char *func);
 
 #define cancelReq(req, reason) __cancelReq(req, reason, __func__)
 
+/**
+ * @brief Write a message to an error file
+ *
+ * To inform the user about a startup error a error file
+ * is written to the jobs submit directory.
+ *
+ * @param req The request to write the error file for
+ *
+ * @param msg The message to write
+ */
+void writeErrorFile(PSGW_Req_t *req, char *msg);
+
 #endif
