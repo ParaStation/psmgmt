@@ -52,6 +52,7 @@ typedef struct {
     uint32_t msgLen;
 } RingMsgBuffer_t;
 
+/** number of sattach connections */
 static int sattachCon = 0;
 
 static int sattachSockets[MAX_SATTACH_SOCKETS];
@@ -190,9 +191,7 @@ void writeIOmsg(char *msg, uint32_t msgLen, uint32_t taskid,
 		uint8_t type, Forwarder_Data_t *fwdata, Step_t *step,
 		uint32_t lrank)
 {
-    void *msgPtr;
-
-    msgPtr = msgLen ? msg : NULL;
+    void *msgPtr = msgLen ? msg : NULL;
 
     fdbg(PSSLURM_LOG_IO, "msgLen %u taskid %u type %s(%u) local rank %u "
 	 "sattach %i\n", msgLen, taskid, PSLog_printMsgType(type), type,
@@ -206,6 +205,7 @@ void writeIOmsg(char *msg, uint32_t msgLen, uint32_t taskid,
     }
     */
 
+    /* forward the message to all sattach processes */
     if (sattachCon > 0) forward2Sattach(msgPtr, msgLen, taskid, type);
 
     if (type == STDOUT) {
@@ -344,7 +344,7 @@ static void handlePrintChildMsg(Forwarder_Data_t *fwdata, char *ptr)
 	}
     }
 
-    /* handle unbuffered IO */
+    /* handle unbuffered I/O */
     if (type == STDERR || (!(step->taskFlags & LAUNCH_LABEL_IO)
 	&& !(step->taskFlags & LAUNCH_BUFFERED_IO))
 	|| step->taskFlags & LAUNCH_PTY) {
@@ -353,7 +353,7 @@ static void handlePrintChildMsg(Forwarder_Data_t *fwdata, char *ptr)
 	return;
     }
 
-    /* handle buffered IO */
+    /* handle buffered I/O */
     if (!initBuf) {
 	lineBuf = umalloc(sizeof(IO_Msg_Buf_t)
 			  * step->globalTaskIdsLen[myNodeID]);
@@ -548,7 +548,7 @@ int stepForwarderMsg(PSLog_Msg_t *msg, Forwarder_Data_t *fwData)
 {
     PSSLURM_Fw_Cmds_t type = (PSSLURM_Fw_Cmds_t)msg->type;
 
-   /* ignore fw control messages */
+    /* ignore fw control messages */
     switch (msg->type) {
        case PLGN_SIGNAL_CHLD:
        case PLGN_START_GRACE:
@@ -621,7 +621,7 @@ static void handleBrokeIOcon(PSLog_Msg_t *msg)
     Step_t *step = findStepByStepId(jobID, stepID);
     if (!step) return;
 
-    if (step->ioCon == CON_NORM) step->ioCon = CON_ERROR;
+    if (step->ioCon == IO_CON_NORM) step->ioCon = IO_CON_ERROR;
 }
 
 int hookFWmsg(PSLog_Msg_t *msg, Forwarder_Data_t *fwData)
@@ -655,48 +655,45 @@ static int getAppendFlags(uint8_t appendMode)
     return flags;
 }
 
-char *replaceStepSymbols(Step_t *step, int rank, char *path)
-{
-    char *hostname;
-    Job_t *job;
-    uint32_t arrayJobId = 0, arrayTaskId = 0;
-
-    hostname = getConfValueC(&Config, "SLURM_HOSTNAME");
-    if ((job = findJobById(step->jobid))) {
-	arrayJobId = job->arrayJobId;
-	arrayTaskId = job->arrayTaskId;
-    }
-
-    return replaceSymbols(step->jobid, step->stepid, hostname,
-			    step->localNodeId, step->username,
-			    arrayJobId, arrayTaskId, rank, path);
-}
-
-char *replaceJobSymbols(Job_t *job, char *path)
-{
-    return replaceSymbols(job->jobid, SLURM_BATCH_SCRIPT, job->hostname,
-			    0, job->username, job->arrayJobId, job->arrayTaskId,
-			    0, path);
-}
-
-/*
- * supported symbols
+/**
+ * @brief Replace various symbols in a path
  *
- * %A     Job array's master job allocation number.
- * %a     Job array ID (index) number.
+ * Supported symbols:
+ *
+ * %A     Job array's master job allocation number
+ * %a     Job array ID (index) number
  * %J     jobid.stepid of the running job. (e.g. "128.0")
- * %j     jobid of the running job.
- * %s     stepid of the running job.
+ * %j     jobid of the running job
+ * %s     stepid of the running job
  * %N     short hostname. This will create a separate IO file per node.
  * %n     Node identifier relative to current job (e.g. "0" is the first node
  *	    of the running job) This will create a separate IO file per node.
  * %t     task identifier (rank) relative to current job. This will
  *	    create a separate IO file per task.
- * %u     User name.
+ * %u     User name
+ *
+ * @param jobid Unique job identifier
+ *
+ * @param stepid Unique step identifier
+ *
+ * @param nodeid Job local node ID
+ *
+ * @param username Username of step owner
+ *
+ * @param arrayJobId Unique array job identifier
+ *
+ * @parm arrayTaskId Unique array task identifier
+ *
+ * @param rank The rank of the process
+ *
+ * @param path The string (path) holding the symbols to replace
+ *
+ * @param Returns a string holding the result or NULL on error. The caller
+ * is responsible to free the allocated memory after use.
 */
-char *replaceSymbols(uint32_t jobid, uint32_t stepid, char *hostname,
-		     int nodeid, char *username, uint32_t arrayJobId,
-		     uint32_t arrayTaskId, int rank, char *path)
+static char *replaceSymbols(uint32_t jobid, uint32_t stepid, char *hostname,
+			    int nodeid, char *username, uint32_t arrayJobId,
+			    uint32_t arrayTaskId, int rank, char *path)
 {
     char *next, *ptr, *symbol, *symNum, *buf = NULL;
     char tmp[1024], symLen[64], symLen2[256];
@@ -786,6 +783,56 @@ char *replaceSymbols(uint32_t jobid, uint32_t stepid, char *hostname,
     return buf;
 }
 
+/**
+ * @brief Replace various symbols for a step path
+ *
+ * This is a wrapper for @ref replaceSymbols().
+ *
+ * @param step The step to replace the symbols for
+ *
+ * @param rank The rank of the step
+ *
+ * @param path The string to replace the symbols in
+ *
+ * @param Returns a string holding the result or NULL on error. The caller
+ * is responsible to free the allocated memory after use.
+ */
+static char *replaceStepSymbols(Step_t *step, int rank, char *path)
+{
+    Job_t *job;
+    uint32_t arrayJobId = 0, arrayTaskId = 0;
+
+    char *hostname = getConfValueC(&Config, "SLURM_HOSTNAME");
+    if ((job = findJobById(step->jobid))) {
+	arrayJobId = job->arrayJobId;
+	arrayTaskId = job->arrayTaskId;
+    }
+
+    return replaceSymbols(step->jobid, step->stepid, hostname,
+			  step->localNodeId, step->username, arrayJobId,
+			  arrayTaskId, rank, path);
+}
+
+/**
+ * @brief Replace various symbols for a job path
+ *
+ * This is a wrapper for @ref replaceSymbols().
+ *
+ * @param job The job to replace the symbols for
+ *
+ * @param path The string to replace the symbols in
+ *
+ * @param Returns a string holding the result or NULL on error. The caller
+ * is responsible to free the allocated memory after use.
+ */
+static char *replaceJobSymbols(Job_t *job, char *path)
+{
+    return replaceSymbols(job->jobid, SLURM_BATCH_SCRIPT, job->hostname,
+			  0, job->username, job->arrayJobId, job->arrayTaskId,
+			  0, path);
+}
+
+
 static char *addCwd(char *cwd, char *path)
 {
     char *buf = NULL;
@@ -806,13 +853,13 @@ static char *addCwd(char *cwd, char *path)
 void redirectJobOutput(Job_t *job)
 {
     char *outFile, *errFile, *inFile, *defOutName;
-    int fd, flags = 0;
+    int fd;
 
     close(STDOUT_FILENO);
     close(STDERR_FILENO);
     close(STDIN_FILENO);
 
-    flags = getAppendFlags(job->appendMode);
+    int flags = getAppendFlags(job->appendMode);
 
     if (job->arrayTaskId != NO_VAL) {
 	defOutName = "slurm-%A_%a.out";
@@ -904,51 +951,12 @@ int redirectIORank(Step_t *step, int rank)
     return 1;
 }
 
-void redirectStepIO(Forwarder_Data_t *fwdata, Step_t *step)
+void openStepIOpipes(Forwarder_Data_t *fwdata, Step_t *step)
 {
-    char *outFile = NULL, *errFile = NULL, *inFile;
-    int flags = 0;
-    int32_t myNodeID = step->localNodeId;
-    uint32_t i;
-
-    flags = getAppendFlags(step->appendMode);
-
     /* stdout */
-    if (step->stdOutOpt == IO_NODE_FILE || step->stdOutOpt == IO_GLOBAL_FILE) {
-	outFile = addCwd(step->cwd, replaceStepSymbols(step, 0, step->stdOut));
-
-	fwdata->stdOut[0] = -1;
-	if ((fwdata->stdOut[1] = open(outFile, flags, 0666)) == -1) {
-	    mwarn(errno, "%s: open stdout '%s' failed :", __func__, outFile);
-	}
-	mdbg(PSSLURM_LOG_IO, "%s: opt '%u' outfile: '%s' fd '%i'\n", __func__,
-		step->stdOutOpt, outFile, fwdata->stdOut[1]);
-
-    } else if (step->stdOutOpt == IO_RANK_FILE) {
-	/* open files for all ranks */
-	step->outFDs = umalloc(step->globalTaskIdsLen[myNodeID] * sizeof(int));
-
-	for (i=0; i<step->globalTaskIdsLen[myNodeID]; i++) {
-	    outFile = addCwd(step->cwd, replaceStepSymbols(step,
-				step->globalTaskIds[myNodeID][i],
-				step->stdOut));
-
-	    if ((step->outFDs[i] = open(outFile, flags, 0666)) == -1) {
-		mwarn(errno, "%s: open stdout '%s' failed :",
-			__func__, outFile);
-	    }
-	    mdbg(PSSLURM_LOG_IO, "%s: outfile: '%s' fd '%i'\n", __func__,
-		    outFile, fwdata->stdOut[1]);
-	}
-
+    if (step->stdOutOpt != IO_NODE_FILE && step->stdOutOpt != IO_GLOBAL_FILE) {
 	if ((pipe(fwdata->stdOut)) == -1) {
-	    mlog("%s: create stdout pipe failed\n", __func__);
-	    return;
-	}
-
-    } else {
-	if ((pipe(fwdata->stdOut)) == -1) {
-	    mlog("%s: create stdout pipe failed\n", __func__);
+	    mwarn(errno, "%s: create stdout pipe failed", __func__);
 	    return;
 	}
 	mdbg(PSSLURM_LOG_IO, "%s: stdout pipe '%i:%i'\n", __func__,
@@ -956,45 +964,9 @@ void redirectStepIO(Forwarder_Data_t *fwdata, Step_t *step)
     }
 
     /* stderr */
-    if (step->stdErrOpt == IO_NODE_FILE || step->stdErrOpt == IO_GLOBAL_FILE) {
-	errFile = addCwd(step->cwd, replaceStepSymbols(step, 0, step->stdErr));
-
-	fwdata->stdErr[0] = -1;
-	if (outFile && !(strcmp(outFile, errFile))) {
-	    fwdata->stdErr[1] = fwdata->stdOut[1];
-	} else {
-	    if ((fwdata->stdErr[1] = open(errFile, flags, 0666)) == -1) {
-		mwarn(errno, "%s: open stderr '%s' failed :",
-			__func__, errFile);
-	    }
-	}
-	mdbg(PSSLURM_LOG_IO, "%s: errfile: '%s' fd '%i'\n", __func__, errFile,
-		fwdata->stdErr[1]);
-
-    } else if (step->stdErrOpt == IO_RANK_FILE) {
-	/* open files for all ranks */
-	step->errFDs = umalloc(step->globalTaskIdsLen[myNodeID] * sizeof(int));
-
-	for (i=0; i<step->globalTaskIdsLen[myNodeID]; i++) {
-	    errFile = addCwd(step->cwd, replaceStepSymbols(step,
-				step->globalTaskIds[myNodeID][i],
-				step->stdErr));
-
-	    if ((step->errFDs[i] = open(errFile, flags, 0666)) == -1) {
-		mwarn(errno, "%s: open stderr '%s' failed :",
-			__func__, errFile);
-	    }
-	    mdbg(PSSLURM_LOG_IO, "%s: errfile: '%s' fd '%i'\n", __func__,
-		    errFile, fwdata->stdErr[1]);
-	}
+    if (step->stdErrOpt != IO_NODE_FILE && step->stdErrOpt != IO_GLOBAL_FILE) {
 	if ((pipe(fwdata->stdErr)) == -1) {
-	    mlog("%s: create stderr pipe failed\n", __func__);
-	    return;
-	}
-
-    } else {
-	if ((pipe(fwdata->stdErr)) == -1) {
-	    mlog("%s: create stderr pipe failed\n", __func__);
+	    mwarn(errno, "%s: create stderr pipe failed", __func__);
 	    return;
 	}
 	mdbg(PSSLURM_LOG_IO, "%s: stderr pipe '%i:%i'\n", __func__,
@@ -1002,80 +974,56 @@ void redirectStepIO(Forwarder_Data_t *fwdata, Step_t *step)
     }
 
     /* stdin */
-    if (step->stdInRank == -1 && step->stdIn && strlen(step->stdIn) > 0) {
-	inFile = addCwd(step->cwd, replaceStepSymbols(step, 0, step->stdIn));
-
-	fwdata->stdIn[1] = -1;
-	if ((fwdata->stdIn[0] = open(inFile, O_RDONLY)) == -1) {
-	    mwarn(errno, "%s: open stdin '%s' failed :",
-		    __func__, inFile);
-	}
-	mdbg(PSSLURM_LOG_IO, "%s: infile: '%s' fd '%i'\n", __func__, inFile,
-		fwdata->stdIn[0]);
-    } else {
+    if (!(step->stdInRank == -1 && step->stdIn && strlen(step->stdIn) > 0)) {
 	if ((pipe(fwdata->stdIn)) == -1) {
-	    mlog("%s: create stdin pipe failed\n", __func__);
+	    mwarn(errno, "%s: create stdin pipe failed", __func__);
 	    return;
 	}
 	mdbg(PSSLURM_LOG_IO, "%s: stdin pipe '%i:%i'\n", __func__,
 		fwdata->stdIn[0], fwdata->stdIn[1]);
     }
-
 }
 
-void redirectStepIO2(Forwarder_Data_t *fwdata, Step_t *step)
+void redirectStepIO(Forwarder_Data_t *fwdata, Step_t *step)
 {
     char *outFile = NULL, *errFile = NULL, *inFile;
-    int flags = 0;
     int32_t myNodeID = step->localNodeId;
-    uint32_t i;
-
-    flags = getAppendFlags(step->appendMode);
-
-    if (setgid(step->gid) == -1) {
-	mwarn(errno, "%s: setgid(%i) failed: ", __func__, step->gid);
-    }
-
-    /* need to create pipes as user, or the permission to /dev/stdX
-     *  will be denied */
-    if (seteuid(step->uid) == -1) {
-	mwarn(errno, "%s: seteuid(%i) failed: ", __func__, step->uid);
-	return;
-    }
-    if (prctl(PR_SET_DUMPABLE, 1) == -1) {
-	mwarn(errno, "%s: prctl(PR_SET_DUMPABLE) failed: ", __func__);
-    }
+    int flags = getAppendFlags(step->appendMode);
 
     /* stdout */
-    if (step->stdOutOpt == IO_NODE_FILE) {
+    if (step->stdOutOpt == IO_NODE_FILE ||
+	(!myNodeID && step->stdOutOpt == IO_GLOBAL_FILE)) {
 	outFile = addCwd(step->cwd, replaceStepSymbols(step, 0, step->stdOut));
 
 	fwdata->stdOut[0] = -1;
 	if ((fwdata->stdOut[1] = open(outFile, flags, 0666)) == -1) {
 	    mwarn(errno, "%s: open stdout '%s' failed :", __func__, outFile);
 	}
-	mdbg(PSSLURM_LOG_IO, "%s: outfile: '%s' fd '%i'\n", __func__, outFile,
-		fwdata->stdOut[1]);
+	mdbg(PSSLURM_LOG_IO, "%s: opt '%u' outfile: '%s' fd '%i'\n", __func__,
+	     step->stdOutOpt, outFile, fwdata->stdOut[1]);
+
     } else if (step->stdOutOpt == IO_RANK_FILE) {
-	/* open files for all ranks */
+	/* open separate files for all ranks */
 	step->outFDs = umalloc(step->globalTaskIdsLen[myNodeID] * sizeof(int));
 
+	uint32_t i;
 	for (i=0; i<step->globalTaskIdsLen[myNodeID]; i++) {
 	    outFile = addCwd(step->cwd, replaceStepSymbols(step,
-				step->globalTaskIds[myNodeID][i],
-				step->stdOut));
+			     step->globalTaskIds[myNodeID][i],
+			     step->stdOut));
 
 	    if ((step->outFDs[i] = open(outFile, flags, 0666)) == -1) {
 		mwarn(errno, "%s: open stdout '%s' failed :",
 			__func__, outFile);
 	    }
 	    mdbg(PSSLURM_LOG_IO, "%s: outfile: '%s' fd '%i'\n", __func__,
-		    outFile, fwdata->stdOut[1]);
+		 outFile, fwdata->stdOut[1]);
 	}
     }
 
     /* stderr */
-    if (step->stdErrOpt == IO_NODE_FILE) {
+    if (step->stdErrOpt == IO_NODE_FILE ||
+	(!myNodeID && step->stdErrOpt == IO_GLOBAL_FILE)) {
 	errFile = addCwd(step->cwd, replaceStepSymbols(step, 0, step->stdErr));
 
 	fwdata->stdErr[0] = -1;
@@ -1084,26 +1032,28 @@ void redirectStepIO2(Forwarder_Data_t *fwdata, Step_t *step)
 	} else {
 	    if ((fwdata->stdErr[1] = open(errFile, flags, 0666)) == -1) {
 		mwarn(errno, "%s: open stderr '%s' failed :",
-			__func__, errFile);
+		      __func__, errFile);
 	    }
 	}
 	mdbg(PSSLURM_LOG_IO, "%s: errfile: '%s' fd '%i'\n", __func__, errFile,
-		fwdata->stdErr[1]);
+	     fwdata->stdErr[1]);
+
     } else if (step->stdErrOpt == IO_RANK_FILE) {
-	/* open files for all ranks */
+	/* open separate files for all ranks */
 	step->errFDs = umalloc(step->globalTaskIdsLen[myNodeID] * sizeof(int));
 
+	uint32_t i;
 	for (i=0; i<step->globalTaskIdsLen[myNodeID]; i++) {
 	    errFile = addCwd(step->cwd, replaceStepSymbols(step,
-				step->globalTaskIds[myNodeID][i],
-				step->stdErr));
+			     step->globalTaskIds[myNodeID][i],
+			     step->stdErr));
 
 	    if ((step->errFDs[i] = open(errFile, flags, 0666)) == -1) {
 		mwarn(errno, "%s: open stderr '%s' failed :",
-			__func__, errFile);
+		      __func__, errFile);
 	    }
 	    mdbg(PSSLURM_LOG_IO, "%s: errfile: '%s' fd '%i'\n", __func__,
-		    errFile, fwdata->stdErr[1]);
+		 errFile, fwdata->stdErr[1]);
 	}
     }
 
@@ -1113,21 +1063,10 @@ void redirectStepIO2(Forwarder_Data_t *fwdata, Step_t *step)
 
 	fwdata->stdIn[1] = -1;
 	if ((fwdata->stdIn[0] = open(inFile, O_RDONLY)) == -1) {
-	    mwarn(errno, "%s: open stdin '%s' failed :",
-		    __func__, inFile);
+	    mwarn(errno, "%s: open stdin '%s' failed :", __func__, inFile);
 	}
 	mdbg(PSSLURM_LOG_IO, "%s: infile: '%s' fd '%i'\n", __func__, inFile,
-		fwdata->stdIn[0]);
-    }
-
-    if (seteuid(0) == -1) {
-	mwarn(errno, "%s: seteuid(0) failed: ", __func__);
-    }
-    if (setgid(0) == -1) {
-	mwarn(errno, "%s: setgid(0) failed: ", __func__);
-    }
-    if (prctl(PR_SET_DUMPABLE, 1) == -1) {
-	mwarn(errno, "%s: prctl(PR_SET_DUMPABLE) failed: ", __func__);
+	     fwdata->stdIn[0]);
     }
 }
 
@@ -1170,12 +1109,12 @@ void printChildMessage(Step_t *step, char *plMsg, uint32_t msgLen,
     if (!step->fwdata) return;
 
     /* connection to srun broke */
-    if (step->ioCon == CON_BROKE) return;
+    if (step->ioCon == IO_CON_BROKE) return;
 
-    if (step->ioCon == CON_ERROR) {
+    if (step->ioCon == IO_CON_ERROR) {
 	mlog("%s: I/O connection for step '%u:%u' is broken\n", __func__,
 	     step->jobid, step->stepid);
-	step->ioCon = CON_BROKE;
+	step->ioCon = IO_CON_BROKE;
     }
 
     /* if msg from service rank, let it seem like it comes from first task */
@@ -1320,7 +1259,7 @@ int handleUserOE(int sock, void *data)
     mdbg(PSSLURM_LOG_IO, "%s: sock '%i' forward '%s' size '%u'\n", __func__,
 	    sock, type == SLURM_IO_STDOUT ? "stdout" : "stderr", size);
 
-    /* eof to srun */
+    /* EOF to srun */
     if (size <0) size = 0;
     if (size >0) buf[size] = '\0';
 

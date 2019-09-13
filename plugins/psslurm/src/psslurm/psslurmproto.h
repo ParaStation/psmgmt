@@ -66,14 +66,18 @@ typedef struct {
     uint32_t *stepids;
     int protoVersion;
     char verStr[64];
+    psAccountEnergy_t eData;
 } Resp_Node_Reg_Status_t;
 
+/** structure holding all infos to pack Slurm accounting data */
 typedef struct {
-    AccountDataExt_t *accData;
-    uint8_t type;
-    bool empty;
-    uint32_t nrOfNodes;
-    PSnodes_ID_t *nodes;
+    AccountDataExt_t *accData;	/**< actual accouting data from psaccount */
+    uint8_t type;		/**< type of accounting */
+    bool empty;			/**< flag to signal empty accounting data */
+    uint32_t nrOfNodes;		/**< number of nodes */
+    PSnodes_ID_t *nodes;	/**< node-list of accounted nodes */
+    pid_t childPid;		/**< PID being accounted (e.g. job-script) */
+    PStask_ID_t loggerTID;	/**< task ID of the logger (if any) */
 } SlurmAccData_t;
 
 typedef struct {

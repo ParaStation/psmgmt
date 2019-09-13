@@ -1367,7 +1367,7 @@ static void packAccData_17(PS_SendDB_t *data, SlurmAccData_t *slurmAccData)
     addUint32ToMsg(accData->cpuFreq, data);
 
     /* energy consumed */
-    addUint64ToMsg(0, data);
+    addUint64ToMsg(accData->energyCons, data);
 
     /* max/total disk read */
     addDoubleToMsg(accData->maxDiskRead, data);
@@ -1541,7 +1541,7 @@ bool __packSlurmAccData(PS_SendDB_t *data, SlurmAccData_t *slurmAccData,
     addUint32ToMsg(accData->cpuFreq, data);
 
     /* energy consumed */
-    addUint64ToMsg(0, data);
+    addUint64ToMsg(accData->energyCons, data);
 
     /* trackable resources (TRes) */
     TRes_t *tres = TRes_new();
@@ -1620,7 +1620,7 @@ bool __packRespNodeRegStatus(PS_SendDB_t *data, Resp_Node_Reg_Status_t *stat,
 	return false;
     }
 
-    /* timestamp */
+    /* time-stamp */
     addTimeToMsg(stat->now, data);
     /* slurmd_start_time */
     addTimeToMsg(stat->startTime, data);
@@ -1633,11 +1633,11 @@ bool __packRespNodeRegStatus(PS_SendDB_t *data, Resp_Node_Reg_Status_t *stat,
     addStringToMsg(stat->nodeName, data);
     /* architecture */
     addStringToMsg(stat->arch, data);
-    /* cpu spec list */
+    /* CPU spec list */
     addStringToMsg("", data);
-    /* os */
+    /* OS */
     addStringToMsg(stat->sysname, data);
-    /* cpus */
+    /* CPUs */
     addUint16ToMsg(stat->cpus, data);
     /* boards */
     addUint16ToMsg(stat->boards, data);
@@ -1647,7 +1647,7 @@ bool __packRespNodeRegStatus(PS_SendDB_t *data, Resp_Node_Reg_Status_t *stat,
     addUint16ToMsg(stat->coresPerSocket, data);
     /* threads */
     addUint16ToMsg(stat->threadsPerCore, data);
-    /* real mem */
+    /* real memory */
     addUint64ToMsg(stat->realMem, data);
     /* tmp disk */
     addUint32ToMsg(stat->tmpDisk, data);
@@ -1655,7 +1655,7 @@ bool __packRespNodeRegStatus(PS_SendDB_t *data, Resp_Node_Reg_Status_t *stat,
     addUint32ToMsg(stat->uptime, data);
     /* hash value of the SLURM config file */
     addUint32ToMsg(stat->config, data);
-    /* cpu load */
+    /* CPU load */
     addUint32ToMsg(stat->cpuload, data);
     /* free memory */
     addUint64ToMsg(stat->freemem, data);
@@ -1675,17 +1675,21 @@ bool __packRespNodeRegStatus(PS_SendDB_t *data, Resp_Node_Reg_Status_t *stat,
 	/* TODO pack switch node info */
     }
 
-    /* add gres configuration */
+    /* add GRes configuration */
     addGresData(data, slurmProto);
 
-    /* TODO: acct_gather_energy_pack(msg->energy, buffer, protocol_version); */
-    addUint64ToMsg(0, data);
-    addUint32ToMsg(0, data);
-    addUint64ToMsg(0, data);
-    addUint32ToMsg(0, data);
-    addUint64ToMsg(0, data);
-    time_t now = 0;
-    addTimeToMsg(now, data);
+    /* base energy (joules) */
+    addUint64ToMsg(stat->eData.energyBase, data);
+    /* average power (watt) */
+    addUint32ToMsg(stat->eData.powerAvg, data);
+    /* total energy consumed */
+    addUint64ToMsg(stat->eData.energyCur - stat->eData.energyBase, data);
+    /* current power consumed */
+    addUint32ToMsg(stat->eData.powerCur, data);
+    /* previous energy consumed */
+    addUint64ToMsg(stat->eData.energyCur, data);
+    /* time of the last energy update */
+    addTimeToMsg(stat->eData.lastUpdate, data);
 
     /* protocol version */
     addStringToMsg(stat->verStr, data);

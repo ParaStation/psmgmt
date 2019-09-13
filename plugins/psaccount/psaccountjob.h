@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2010-2017 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2010-2019 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -13,22 +13,25 @@
 #include <stdbool.h>
 #include <time.h>
 #include <sys/types.h>
+#include <stdint.h>
 
 #include "list.h"
 #include "pstaskid.h"
 #include "psaccounttypes.h"
 
 typedef struct {
-    list_t next;
-    int nrOfChilds;
-    int childsExit;
-    bool complete;
-    char *jobid;
-    time_t startTime;
-    time_t endTime;
-    time_t latestChildStart;
-    PStask_ID_t logger;
-    pid_t jobscript;
+    list_t next;                /**< used to put into some job-lists */
+    int nrOfChildren;           /**< number of children in job */
+    int childrenExit;           /**< number of children exited */
+    bool complete;              /**< flag to signal if job completed */
+    char *jobid;                /**< unique job identifier */
+    time_t startTime;           /**< time when job started */
+    time_t endTime;             /**< time when job finished */
+    time_t latestChildStart;    /**< time when last child started */
+    PStask_ID_t logger;         /**< task ID of the logger */
+    pid_t jobscript;            /**< process ID of the job-script */
+    uint64_t energyBase;        /**< base energy consumption when
+                                     the job was added */
 } Job_t;
 
 /**

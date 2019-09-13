@@ -129,7 +129,8 @@ int signalTasks(uint32_t jobid, uid_t uid, list_t *taskList, int signal,
 	    if (group > -1 && child->group != (PStask_group_t) group) continue;
 	    if (child->rank < 0 && signal != SIGKILL) continue;
 
-	    if (child->forwarder->tid == task->forwarderTID &&
+	    if (child->rank == task->childRank && child->forwarder &&
+		child->forwarder->tid == task->forwarderTID &&
 		child->uid == uid) {
 		mdbg(PSSLURM_LOG_PROCESS, "%s: rank %i kill(%i) signal %i "
 		     "group %i job %u \n", __func__, child->rank,

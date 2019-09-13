@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2010-2017 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2010-2019 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -16,6 +16,7 @@
 #include "psaccountproc.h"
 #include "psaccountclient.h"
 #include "psaccountconfig.h"
+#include "psaccountenergy.h"
 
 #include "psaccountjob.h"
 
@@ -51,13 +52,16 @@ Job_t *addJob(PStask_ID_t loggerTID)
 
     job->jobscript = 0;
     job->logger = loggerTID;
-    job->childsExit = 0;
-    job->nrOfChilds = 0;
+    job->childrenExit = 0;
+    job->nrOfChildren = 0;
     job->complete = false;
     job->jobid = NULL;
     job->startTime = time(NULL);
     job->endTime = 0;
     job->latestChildStart = 0;
+
+    psAccountEnergy_t *eData = energyGetData();
+    job->energyBase = eData->energyCur;
 
     list_add_tail(&job->next, &jobList);
     return job;
@@ -253,10 +257,12 @@ char *listJobs(char *buf, size_t *bufSize)
     list_for_each(j, &jobList) {
 	Job_t *job = list_entry(j, Job_t, next);
 
-	snprintf(line, sizeof(line), "nr Of Children %i\n", job->nrOfChilds);
+	snprintf(line, sizeof(line), "nr Of Children in job %i\n",
+		 job->nrOfChildren);
 	str2Buf(line, &buf, bufSize);
 
-	snprintf(line, sizeof(line), "exit Children %i\n", job->childsExit);
+	snprintf(line, sizeof(line), "nr of Children exited %i\n",
+		 job->childrenExit);
 	str2Buf(line, &buf, bufSize);
 
 	snprintf(line, sizeof(line), "complete %i\n", job->complete);

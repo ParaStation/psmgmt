@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2010-2017 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2010-2019 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -16,6 +16,7 @@
 #include "psaccountjob.h"
 #include "psaccountlog.h"
 #include "psaccountproc.h"
+#include "psaccountenergy.h"
 
 #include "psaccountinter.h"
 
@@ -108,4 +109,10 @@ void psAccountSetGlobalCollect(bool active)
 PStask_ID_t psAccountGetLoggerByClient(pid_t pid)
 {
     return getLoggerByClientPID(pid);
+}
+
+void psAccountGetEnergy(psAccountEnergy_t *eData)
+{
+    psAccountEnergy_t *eSrc = energyGetData();
+    memcpy(eData, eSrc, sizeof(*eSrc));
 }

@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2010-2018 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2010-2019 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -22,6 +22,7 @@
 #include "psaccountconfig.h"
 #include "psaccounthistory.h"
 #include "psaccountkvs.h"
+#include "psaccountenergy.h"
 
 #include "timer.h"
 #include "plugin.h"
@@ -33,7 +34,7 @@
 
 /** psid plugin requirements */
 char name[] = "psaccount";
-int version = 26;
+int version = 28;
 int requiredAPI = 118;
 plugin_dep_t dependencies[] = {
     { .name = NULL, .version = 0 } };
@@ -69,6 +70,9 @@ static void periodicMain(void)
 
     if (!poll) return;
 
+    /* update node energy/power consumption */
+    energyUpdate();
+
     /* update proc snapshot */
     if (haveActiveClients()) {
 	updateProcSnapshot();
@@ -76,7 +80,6 @@ static void periodicMain(void)
 	/* update all accounting data */
 	updateClients(NULL);
     }
-
 }
 
 /**
@@ -113,6 +116,12 @@ int initialize(void)
     /* init logging facility */
     debugMask = getConfValueI(&config, "DEBUG_MASK");
     maskLogger(debugMask);
+
+    /* init energy facility */
+    if (!energyInit()) {
+	mlog("%s: failed to initialize energy monitoring\n", __func__);
+	return 1;
+    }
 
     /* read plattform version */
     if (uname(&uts)) {

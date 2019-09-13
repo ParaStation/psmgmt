@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2017-2018 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2017-2019 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -434,7 +434,7 @@ int main(const int argc, const char *argv[], char *envp[])
     PSnodes_ID_t *nodes = NULL;
     env_t env, clone;
     char *filter[] = { "SLURM_SPANK_*", "_SLURM_SPANK_OPTION_*", "SLURM_JOBID",
-		       "SLURM_JOB_ID", "SLURM_JOB_NODELIST",
+		       "SLURM_JOB_ID", "SLURM_JOB_NODELIST", "SLURM_SUBMIT_DIR",
 		       "SLURM_PACK_JOB_ID", "SLURM_PACK_JOB_NODELIST",
 		       "_PSSLURM_*", NULL, NULL };
     size_t numFilter = sizeof(filter)/sizeof(*filter);

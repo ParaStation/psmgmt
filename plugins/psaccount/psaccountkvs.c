@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2012-2017 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2012-2019 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -17,10 +17,13 @@
 #include "psaccountclient.h"
 #include "psaccountconfig.h"
 #include "psaccountlog.h"
+#include "psaccountenergy.h"
 
 #include "psaccountkvs.h"
 
 FILE *memoryDebug = NULL;
+
+static char line[256];
 
 /**
  * @brief Show current configuration
@@ -43,7 +46,7 @@ static char *showConfig(char *buf, size_t *bufSize)
     str2Buf("\n", &buf, bufSize);
 
     for (i = 0; confDef[i].name; i++) {
-	char *name = confDef[i].name, line[160];
+	char *name = confDef[i].name;
 	char *val = getConfValueC(&config, name);
 
 	snprintf(line, sizeof(line), "%*s = %s\n", maxKeyLen+2, name, val);
@@ -53,6 +56,21 @@ static char *showConfig(char *buf, size_t *bufSize)
     return buf;
 }
 
+static char *showEnergy(char *buf, size_t *bufSize)
+{
+    psAccountEnergy_t *e = energyGetData();
+
+    str2Buf("\n", &buf, bufSize);
+    snprintf(line, sizeof(line), "power cur: %u avg: %u min: %u max: %u "
+	     "(watt) \n", e->powerCur, e->powerAvg, e->powerMin, e->powerMax);
+    str2Buf(line, &buf, bufSize);
+
+    snprintf(line, sizeof(line), "energy base: %zu consumed: %zu (joules)\n",
+	     e->energyBase, e->energyCur);
+    str2Buf(line, &buf, bufSize);
+
+    return buf;
+}
 
 char *show(char *key)
 {
@@ -60,7 +78,8 @@ char *show(char *key)
     size_t bufSize = 0;
 
     if (!key) {
-	str2Buf("use key [clients|dclients|jobs|config]\n", &buf, &bufSize);
+	str2Buf("use key [clients|dclients|jobs|config|energy]\n",
+		&buf, &bufSize);
 	return buf;
     }
 
@@ -84,7 +103,12 @@ char *show(char *key)
 	return showConfig(buf, &bufSize);
     }
 
-    str2Buf("invalid key, use [clients|dclients|jobs|config]\n",
+    /* show nodes energy/power consumption */
+    if (!strcmp(key, "energy")) {
+	return showEnergy(buf, &bufSize);
+    }
+
+    str2Buf("invalid key, use [clients|dclients|jobs|config|energy]\n",
 	    &buf, &bufSize);
     return buf;
 }
@@ -98,7 +122,6 @@ char *set(char *key, char *val)
     /* search in config for given key */
     if (thisConfDef) {
 	int verRes = verifyConfigEntry(confDef, key, val);
-	char line[160];
 	if (verRes) {
 	    if (verRes == 1) {
 		str2Buf("\nInvalid key '", &buf, &bufSize);
@@ -185,7 +208,7 @@ char *help(void)
     str2Buf("\n# configuration options #\n\n", &buf, &bufSize);
 
     for (i = 0; confDef[i].name; i++) {
-	char type[10], line[160];
+	char type[10];
 	snprintf(type, sizeof(type), "<%s>", confDef[i].type);
 	snprintf(line, sizeof(line), "%*s %8s  %s\n", maxKeyLen+2,
 		 confDef[i].name, type, confDef[i].desc);
