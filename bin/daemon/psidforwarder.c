@@ -655,15 +655,19 @@ static int flushMsgs(int fd /* dummy */, void *info /* dummy */)
 static int writeMsg(PSLog_Msg_t *msg)
 {
     int len = msg->header.len - PSLog_headerSize, written = 0;
-    int stdinSock = childTask->stdin_fd;
 
     if (!list_empty(&oldMsgs)) flushMsgs(0, NULL);
-    if (list_empty(&oldMsgs)) written = doWrite(msg, 0);
+
+    bool emptyList = list_empty(&oldMsgs);
+    if (emptyList) written = doWrite(msg, 0);
 
     if (written<0) return written;
-    if ((written != len) || (!list_empty(&oldMsgs))) {
-	if (!storeMsg(msg, written)) errno = EWOULDBLOCK;
-	if (stdinSock != -1) Selector_awaitWrite(stdinSock, flushMsgs, NULL);
+    if (written != len || !emptyList) {
+	if (!storeMsg(msg, written)) {
+	    errno = EWOULDBLOCK;
+	} else if (emptyList && childTask->stdin_fd != -1) {
+	    Selector_awaitWrite(childTask->stdin_fd, flushMsgs, NULL);
+	}
 	if (len) sendMsg(STOP, NULL, 0);
 	return -1;
     }
