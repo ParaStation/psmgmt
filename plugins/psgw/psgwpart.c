@@ -340,8 +340,12 @@ static int fwCallback(int32_t exit_status, Forwarder_Data_t *fw)
 {
     PSGW_Req_t *req = Request_verify(fw->userData);
 
-    if (req) req->fwdata = NULL;
+    if (!req) {
+	flog("no request for %p\n", fw->userData);
+	return 0;
+    }
 
+    req->fwdata = NULL;
     if (exit_status) {
 	snprintf(msgBuf, sizeof(msgBuf), "partition forwarder for job %s exit "
 		 "with error %i\n", req->jobid, exit_status);
