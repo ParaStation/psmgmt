@@ -31,8 +31,12 @@ typedef struct {
     uid_t uid;                  /**< job user id */
     gid_t gid;			/**< primary group id */
     char *username;		/**< username */
+    char *pwGecos;
+    char *pwDir;
+    char *pwShell;
     uint32_t *gids;		/**< extended (secondary) group ids */
     uint32_t gidsLen;		/**< size of gids array */
+    char **gidNames;
     uint16_t jobCoreSpec;       /**< specialized cores */
     uint64_t jobMemLimit;       /**< job memory limit */
     uint64_t stepMemLimit;      /**< step memory limit */

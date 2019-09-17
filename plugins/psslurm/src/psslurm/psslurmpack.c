@@ -32,9 +32,14 @@ bool __packSlurmAuth(PS_SendDB_t *data, Slurm_Auth_t *auth,
 	return false;
     }
 
-    addStringToMsg(auth->method, data);
-    addUint32ToMsg(auth->version, data);
-    addStringToMsg(auth->cred, data);
+    if (slurmProto >= SLURM_19_05_PROTO_VERSION) {
+	addUint32ToMsg(auth->pluginID, data);
+	addStringToMsg(auth->cred, data);
+    } else {
+	addStringToMsg(auth->method, data);
+	addUint32ToMsg(auth->version, data);
+	addStringToMsg(auth->cred, data);
+    }
 
     return true;
 }
@@ -56,9 +61,17 @@ bool __unpackSlurmAuth(Slurm_Msg_t *sMsg, Slurm_Auth_t **authPtr,
 	return false;
     }
 
+    uint16_t msgVer = sMsg->head.version;
     auth = umalloc(sizeof(Slurm_Auth_t));
-    auth->method = getStringM(ptr);
-    getUint32(ptr, &auth->version);
+
+    if (msgVer >= SLURM_19_05_PROTO_VERSION) {
+	getUint32(ptr, &auth->pluginID);
+	auth->method = NULL;
+    } else {
+	auth->method = getStringM(ptr);
+	getUint32(ptr, &auth->version);
+	auth->pluginID = 0;
+    }
     auth->cred = getStringM(ptr);
 
     *authPtr = auth;
@@ -89,6 +102,11 @@ static Gres_Cred_t *unpackGresStep(char **ptr, uint16_t index, uint16_t msgVer)
     if (msgVer >= SLURM_18_08_PROTO_VERSION) {
 	/* CPUs per GRes */
 	getUint16(ptr, &gres->cpusPerGRes);
+
+	if (msgVer >= SLURM_19_05_PROTO_VERSION) {
+	    /* flags */
+	    getUint16(ptr, &gres->flags);
+	}
 	/* GRes per step */
 	getUint64(ptr, &gres->gresPerStep);
 	/* GRes per node */
@@ -179,6 +197,11 @@ static Gres_Cred_t *unpackGresJob(char **ptr, uint16_t index, uint16_t msgVer)
     if (msgVer >= SLURM_18_08_PROTO_VERSION) {
 	/* CPUs per GRes */
 	getUint16(ptr, &gres->cpusPerGRes);
+
+	if (msgVer >= SLURM_19_05_PROTO_VERSION) {
+	    /* flags */
+	    getUint16(ptr, &gres->flags);
+	}
 	/* GRes per job */
 	getUint64(ptr, &gres->gresPerJob);
 	/* GRes per node */
@@ -334,18 +357,34 @@ bool __unpackJobCred(Slurm_Msg_t *sMsg, JobCred_t **credPtr,
     getUint32(ptr, &cred->stepid);
     /* uid */
     getUint32(ptr, &cred->uid);
+    /* gid */
+    getUint32(ptr, &cred->gid);
+    /* username */
+    cred->username = getStringM(ptr);
 
     uint16_t msgVer = sMsg->head.version;
-    if (msgVer >= SLURM_17_11_PROTO_VERSION) {
-	/* gid */
-	getUint32(ptr, &cred->gid);
-	/* username */
-	cred->username = getStringM(ptr);
+    if (msgVer >= SLURM_19_05_PROTO_VERSION) {
+	/* gecos */
+	cred->pwGecos = getStringM(ptr);
+	/* pw dir */
+	cred->pwDir = getStringM(ptr);
+	/* pw shell */
+	cred->pwShell = getStringM(ptr);
+	/* gids */
+	getUint32Array(ptr, &cred->gids, &cred->gidsLen);
+	/* gid names */
+	uint32_t tmp;
+	getStringArrayM(ptr, &cred->gidNames, &tmp);
+	if (tmp && tmp != cred->gidsLen) {
+	    flog("invalid gid name count %u : %u\n", tmp, cred->gidsLen);
+	    goto ERROR;
+	}
+    } else {
 	/* gids */
 	getUint32Array(ptr, &cred->gids, &cred->gidsLen);
     }
 
-    /* gres job/step allocations */
+    /* GRes job/step allocations */
     if (!unpackGres(ptr, gresList, cred, msgVer)) {
 	flog("unpacking gres data failed\n");
 	goto ERROR;
@@ -364,10 +403,8 @@ bool __unpackJobCred(Slurm_Msg_t *sMsg, JobCred_t **credPtr,
 	mlog("%s: empty step hostlist in credential\n", __func__);
 	goto ERROR;
     }
-    if (msgVer >= SLURM_17_11_PROTO_VERSION) {
-	/* x11 */
-	getUint16(ptr, &cred->x11);
-    }
+    /* x11 */
+    getUint16(ptr, &cred->x11);
     /* time */
     getTime(ptr, &cred->ctime);
     /* total core count */
@@ -446,17 +483,19 @@ bool __unpackBCastCred(Slurm_Msg_t *sMsg, BCast_Cred_t *cred,
     getUint32(ptr, &cred->jobid);
 
     uint16_t msgVer = sMsg->head.version;
-    if (msgVer >= SLURM_17_11_PROTO_VERSION) {
-	/* uid */
-	getUint32(ptr, &cred->uid);
-	/* gid */
-	getUint32(ptr, &cred->gid);
-	/* username */
-	cred->username = getStringM(ptr);
-	/* gids */
-	getUint32Array(ptr, &cred->gids, &cred->gidsLen);
+    if (msgVer >= SLURM_19_05_PROTO_VERSION) {
+	/* pack jobid */
+	getUint32(ptr, &cred->packJobid);
     }
 
+    /* uid */
+    getUint32(ptr, &cred->uid);
+    /* gid */
+    getUint32(ptr, &cred->gid);
+    /* username */
+    cred->username = getStringM(ptr);
+    /* gids */
+    getUint32Array(ptr, &cred->gids, &cred->gidsLen);
     /* hostlist */
     cred->hostlist = getStringM(ptr);
     /* credential end */
@@ -593,6 +632,58 @@ bool __unpackSlurmIOHeader(char **ptr, Slurm_IO_Header_t **iohPtr,
     return true;
 }
 
+/**
+ * @brief Unpack GRes job allocation
+ *
+ * @param ptr Pointer holding data to unpack
+ */
+static bool unpackGresJobAlloc(char **ptr)
+{
+    uint16_t count, i;
+
+    getUint16(ptr, &count);
+
+    for (i=0; i<count; i++) {
+	uint32_t magic;
+	/* gres magic */
+	getUint32(ptr, &magic);
+	if (magic != GRES_MAGIC) {
+	    flog("invalid gres magic %u : %u\n", magic, GRES_MAGIC);
+	    return false;
+	}
+	/* plugin ID */
+	uint32_t pluginID;
+	getUint32(ptr, &pluginID);
+	/* node count */
+	uint32_t nodeCount;
+	getUint32(ptr, &nodeCount);
+	if (nodeCount > NO_VAL) {
+	    flog("invalid node count %u\n", nodeCount);
+	    return false;
+	}
+	/* node allocation */
+	uint8_t filled;
+	getUint8(ptr, &filled);
+	if (filled) {
+	    uint64_t *nodeAlloc;
+	    uint32_t gresNodeAllocCount;
+	    getUint64Array(ptr, &nodeAlloc, &gresNodeAllocCount);
+	    ufree(nodeAlloc);
+	}
+	/* bit allocation */
+	getUint8(ptr, &filled);
+	if (filled) {
+	    uint32_t u;
+	    for (u=0; u<nodeCount; u++) {
+		char *tmp = getBitString(ptr);
+		ufree(tmp);
+	    }
+	}
+    }
+
+    return true;
+}
+
 bool __unpackReqTerminate(Slurm_Msg_t *sMsg, Req_Terminate_Job_t **reqPtr,
 			  const char *caller, const int line)
 {
@@ -611,10 +702,16 @@ bool __unpackReqTerminate(Slurm_Msg_t *sMsg, Req_Terminate_Job_t **reqPtr,
     uint16_t msgVer = sMsg->head.version;
     char **ptr = &sMsg->ptr;
 
-    /* jobid*/
+    if (msgVer >= SLURM_19_05_PROTO_VERSION) {
+	if (!unpackGresJobAlloc(ptr)) {
+	    flog("unpacking gres job allocation info failed\n");
+	    return false;
+	}
+    }
+    /* jobid */
     getUint32(ptr, &req->jobid);
 
-    if (msgVer == SLURM_18_08_PROTO_VERSION) {
+    if (msgVer >= SLURM_18_08_PROTO_VERSION) {
 	/* pack jobid */
 	getUint32(ptr, &req->packJobid);
     }
@@ -624,16 +721,6 @@ bool __unpackReqTerminate(Slurm_Msg_t *sMsg, Req_Terminate_Job_t **reqPtr,
     getUint32(ptr, &req->uid);
     /* nodes */
     req->nodes = getStringM(ptr);
-
-    if (msgVer == SLURM_17_02_PROTO_VERSION) {
-	env_t pelogueEnv;
-
-	/* pelogue env */
-	envInit(&pelogueEnv);
-	getStringArrayM(ptr, &pelogueEnv.vars, &pelogueEnv.cnt);
-	envDestroy(&pelogueEnv);
-    }
-
     /* job info */
     uint32_t tmp;
     getUint32(ptr, &tmp);
@@ -664,30 +751,14 @@ bool __unpackReqSignalTasks(Slurm_Msg_t *sMsg, Req_Signal_Tasks_t **reqPtr,
     Req_Signal_Tasks_t *req = ucalloc(sizeof(Req_Terminate_Job_t));
 
     char **ptr = &sMsg->ptr;
-    uint16_t msgVer = sMsg->head.version;
-    if (msgVer >= SLURM_17_11_PROTO_VERSION) {
-	/* flags */
-	getUint16(ptr, &req->flags);
-	/* jobid*/
-	getUint32(ptr, &req->jobid);
-	/* stepid */
-	getUint32(ptr, &req->stepid);
-	/* signal */
-	getUint16(ptr, &req->signal);
-    } else {
-	uint32_t sigInfo;
-
-	/* jobid*/
-	getUint32(ptr, &req->jobid);
-	/* stepid */
-	getUint32(ptr, &req->stepid);
-	/* encoded flags and signal */
-	getUint32(ptr, &sigInfo);
-
-	/* extract flags and signal */
-	req->flags = sigInfo >> 24;
-	req->signal = sigInfo & 0xfff;
-    }
+    /* flags */
+    getUint16(ptr, &req->flags);
+    /* jobid*/
+    getUint32(ptr, &req->jobid);
+    /* stepid */
+    getUint32(ptr, &req->stepid);
+    /* signal */
+    getUint16(ptr, &req->signal);
 
     *reqPtr = req;
     return true;
@@ -777,87 +848,100 @@ bool __unpackReqLaunchTasks(Slurm_Msg_t *sMsg, Step_t **stepPtr,
     Step_t *step = addStep(jobid, stepid);
 
     uint16_t msgVer = sMsg->head.version, debug;
-    if (msgVer >= SLURM_17_11_PROTO_VERSION) {
-	/* uid */
-	getUint32(ptr, &step->uid);
-	/* gid */
-	getUint32(ptr, &step->gid);
-	/* username */
-	step->username = getStringM(ptr);
-	/* secondary group ids */
-	getUint32Array(ptr, &step->gids, &step->gidsLen);
-	/* node offset */
-	getUint32(ptr, &step->packNodeOffset);
-	/* pack jobid */
-	getUint32(ptr, &step->packJobid);
-	/* pack number of nodes */
-	getUint32(ptr, &step->packNrOfNodes);
-	/* pack task counts */
-	if (step->packNrOfNodes != NO_VAL) {
+    /* uid */
+    getUint32(ptr, &step->uid);
+    /* gid */
+    getUint32(ptr, &step->gid);
+    /* username */
+    step->username = getStringM(ptr);
+    /* secondary group ids */
+    getUint32Array(ptr, &step->gids, &step->gidsLen);
+    /* node offset */
+    getUint32(ptr, &step->packNodeOffset);
+    /* pack jobid */
+    getUint32(ptr, &step->packJobid);
+    /* pack number of nodes */
+    getUint32(ptr, &step->packNrOfNodes);
+    /* pack task counts */
+    if (step->packNrOfNodes != NO_VAL) {
+	uint8_t flagTIDs = 0;
+	if (msgVer >= SLURM_19_05_PROTO_VERSION) getUint8(ptr, &flagTIDs);
+
+	if (flagTIDs) {
+	    uint32_t i, tcount;
+	    step->packTaskCounts =
+		umalloc(sizeof(*step->packTaskCounts) * step->packNrOfNodes);
+	    step->packTIDs =
+		umalloc(sizeof(*step->packTIDs) * step->packNrOfNodes);
+
+	    for (i=0; i<step->packNrOfNodes; i++) {
+		getUint16(ptr, &step->packTaskCounts[i]);
+		/* pack TIDs per node */
+		getUint32Array(ptr, &(step->packTIDs)[i], &tcount);
+		if (tcount != step->packTaskCounts[i]) {
+		    flog("mismatching task count %u : %u\n", tcount,
+			    step->packTaskCounts[i]);
+		}
+
+		if (psslurmlogger->mask & PSSLURM_LOG_PACK) {
+		    flog("pack node %u task count %u", i,
+			 step->packTaskCounts[i]);
+		    uint32_t n;
+		    for (n=0; n<tcount; n++) {
+			if (!n) {
+			    mlog(" TIDs %u", step->packTIDs[i][n]);
+			} else {
+			    mlog(",%u", step->packTIDs[i][n]);
+			}
+		    }
+		    mlog("\n");
+		}
+	    }
+	} else {
 	    getUint16Array(ptr, &step->packTaskCounts, &tmp);
 	    if (step->packNrOfNodes != tmp) {
-		mlog("%s: invalid packTaskCounts len %u : %u\n", __func__, tmp,
-		     step->packNrOfNodes);
+		flog("invalid packTaskCounts len %u : %u\n", tmp,
+			step->packNrOfNodes);
 		goto ERROR;
 	    }
 	}
-	/* pack ntasks */
-	getUint32(ptr, &step->packNtasks);
-	/* pack offset */
-	getUint32(ptr, &step->packOffset);
-	/* pack task offset */
-	getUint32(ptr, &step->packTaskOffset);
-	if (step->packTaskOffset == NO_VAL) step->packTaskOffset = 0;
-	/* pack nodelist */
-	step->packHostlist = getStringM(ptr);
-	/* ntasks */
-	getUint32(ptr, &step->np);
-	/* ntasks per board/core/socket (unused) */
-	getUint16(ptr, &tmp);
-	getUint16(ptr, &tmp);
-	getUint16(ptr, &tmp);
-	/* partition */
-	step->partition = getStringM(ptr);
-    } else {
-	uint32_t mpiJobid;
-	uint32_t mpiNnodes;
-	uint32_t mpiNtasks;
-	uint32_t mpiStepfnodeid;
-	uint32_t mpiStepftaskid;
-	uint32_t mpiStepid;
-	uint32_t packStepid;
 
-	/* unused */
-	getUint32(ptr, &mpiJobid);
-	getUint32(ptr, &mpiNnodes);
-	getUint32(ptr, &mpiNtasks);
-	getUint32(ptr, &mpiStepfnodeid);
-	getUint32(ptr, &mpiStepftaskid);
-	getUint32(ptr, &mpiStepid);
-	/* ntasks */
-	getUint32(ptr, &step->np);
-	/* ntasks per board/core/socket (unused) */
-	getUint16(ptr, &tmp);
-	getUint16(ptr, &tmp);
-	getUint16(ptr, &tmp);
-	/* pack jobid */
-	getUint32(ptr, &step->packJobid);
-	/* pack stepid */
-	getUint32(ptr, &packStepid);
-	/* uid */
-	getUint32(ptr, &step->uid);
-	/* partition */
-	step->partition = getStringM(ptr);
-	/* username */
-	step->username = getStringM(ptr);
-	/* gid */
-	getUint32(ptr, &step->gid);
-	/* set pack values to default */
-	step->packJobid = NO_VAL;
-	step->packNrOfNodes = NO_VAL;
-	step->packOffset = NO_VAL;
-	step->packAllocID = NO_VAL;
     }
+    /* pack ntasks */
+    getUint32(ptr, &step->packNtasks);
+    if (msgVer >= SLURM_19_05_PROTO_VERSION && step->packNtasks != NO_VAL) {
+	uint8_t flagTIDs = 0;
+	getUint8(ptr, &flagTIDs);
+
+	if (flagTIDs) {
+	    uint32_t i;
+
+	    step->packTIDsOffset =
+		umalloc(sizeof(*step->packTIDsOffset) * step->packNtasks);
+	    for (i=0; i<step->packNtasks; i++) {
+		getUint32(ptr, &step->packTIDsOffset[i]);
+	    }
+	}
+    }
+    /* pack offset */
+    getUint32(ptr, &step->packOffset);
+    /* pack step count */
+    if (msgVer >= SLURM_19_05_PROTO_VERSION) {
+	getUint32(ptr, &step->packStepCount);
+    }
+    /* pack task offset */
+    getUint32(ptr, &step->packTaskOffset);
+    if (step->packTaskOffset == NO_VAL) step->packTaskOffset = 0;
+    /* pack nodelist */
+    step->packHostlist = getStringM(ptr);
+    /* ntasks */
+    getUint32(ptr, &step->np);
+    /* ntasks per board/core/socket (unused) */
+    getUint16(ptr, &tmp);
+    getUint16(ptr, &tmp);
+    getUint16(ptr, &tmp);
+    /* partition */
+    step->partition = getStringM(ptr);
 
     /* job/step mem limit */
     getUint64(ptr, &step->jobMemLimit);
@@ -918,10 +1002,8 @@ bool __unpackReqLaunchTasks(Slurm_Msg_t *sMsg, Step_t **stepPtr,
     getUint16(ptr, &debug);
 
     /* switch plugin, does not add anything when using "switch/none" */
-    if (msgVer >= SLURM_17_11_PROTO_VERSION) {
-	/* job info */
-	getUint32(ptr, &tmp);
-    }
+    /* job info */
+    getUint32(ptr, &tmp);
 
     /* job options (plugin) */
     char jobOpt[512];
@@ -970,7 +1052,24 @@ bool __unpackReqLaunchTasks(Slurm_Msg_t *sMsg, Step_t **stepPtr,
     /* jobinfo plugin id */
     getUint32(ptr, &tmp);
 
-    if (msgVer == SLURM_18_08_PROTO_VERSION) {
+    if (msgVer >= SLURM_19_05_PROTO_VERSION) {
+	/* tres bind */
+	step->tresBind = getStringM(ptr);
+	/* tres freq */
+	step->tresFreq = getStringM(ptr);
+	/* x11 */
+	getUint16(ptr, &step->x11.x11);
+	/* x11 host */
+	step->x11.host = getStringM(ptr);
+	/* x11 port */
+	getUint16(ptr, &step->x11.port);
+	/* magic cookie */
+	step->x11.magicCookie = getStringM(ptr);
+	/* x11 target */
+	step->x11.target = getStringM(ptr);
+	/* x11 target port */
+	getUint16(ptr, &step->x11.targetPort);
+    } else if (msgVer == SLURM_18_08_PROTO_VERSION) {
 	/* tres bind */
 	step->tresBind = getStringM(ptr);
 	/* tres freq */
@@ -992,13 +1091,6 @@ bool __unpackReqLaunchTasks(Slurm_Msg_t *sMsg, Step_t **stepPtr,
 	step->x11.host = getStringM(ptr);
 	/* x11 port */
 	getUint16(ptr, &step->x11.port);
-    } else if (msgVer == SLURM_17_02_PROTO_VERSION) {
-	env_t pelogueEnv;
-
-	/* pelogue env */
-	envInit(&pelogueEnv);
-	getStringArrayM(ptr, &pelogueEnv.vars, &pelogueEnv.cnt);
-	envDestroy(&pelogueEnv);
     }
 
     *stepPtr = step;
@@ -1069,27 +1161,14 @@ bool __unpackReqBatchJobLaunch(Slurm_Msg_t *sMsg, Job_t **jobPtr,
     }
     /* uid */
     getUint32(ptr, &job->uid);
-
-    if (msgVer >= SLURM_17_11_PROTO_VERSION) {
-	/* gid */
-	getUint32(ptr, &job->gid);
-	/* username */
-	job->username = getStringM(ptr);
-	/* gids */
-	getUint32Array(ptr, &job->gids, &job->gidsLen);
-	/* partition */
-	job->partition = getStringM(ptr);
-    } else if (msgVer == SLURM_17_02_PROTO_VERSION) {
-	/* partition */
-	job->partition = getStringM(ptr);
-	/* username */
-	job->username = getStringM(ptr);
-	/* gid */
-	getUint32(ptr, &job->gid);
-    } else {
-	mlog("%s: unsupported protocol version %u\n", __func__, msgVer);
-	return false;
-    }
+    /* gid */
+    getUint32(ptr, &job->gid);
+    /* username */
+    job->username = getStringM(ptr);
+    /* gids */
+    getUint32Array(ptr, &job->gids, &job->gidsLen);
+    /* partition */
+    job->partition = getStringM(ptr);
 
     /* ntasks */
     getUint32(ptr, &job->np);
@@ -1175,21 +1254,6 @@ bool __unpackReqBatchJobLaunch(Slurm_Msg_t *sMsg, Job_t **jobPtr,
     ufree(unused);
     /* profile (unused) see srun --profile */
     getUint32(ptr, &tmp);
-
-    if (msgVer == SLURM_17_02_PROTO_VERSION) {
-	env_t pelogueEnv;
-
-	/* pelogue env */
-	envInit(&pelogueEnv);
-	getStringArrayM(ptr, &pelogueEnv.vars, &pelogueEnv.cnt);
-	envDestroy(&pelogueEnv);
-
-	/* reserved ports (unused) */
-	unused = getStringM(ptr);
-	ufree(unused);
-	/* jobpack group number index (unused) */
-	getUint32(ptr, &tmp);
-    }
 
     if (msgVer >= SLURM_18_08_PROTO_VERSION) {
 	job->tresBind = getStringM(ptr);
@@ -1814,13 +1878,10 @@ bool __packRespLaunchTasks(PS_SendDB_t *data, Resp_Launch_Tasks_t *ltasks,
 	return false;
     }
 
-    if (slurmProto >= SLURM_17_11_PROTO_VERSION) {
-	/* jobid */
-	addUint32ToMsg(ltasks->jobid, data);
-	/* stepid */
-	addUint32ToMsg(ltasks->stepid, data);
-    }
-
+    /* jobid */
+    addUint32ToMsg(ltasks->jobid, data);
+    /* stepid */
+    addUint32ToMsg(ltasks->stepid, data);
     /* return code */
     addUint32ToMsg(ltasks->returnCode, data);
     /* node_name */

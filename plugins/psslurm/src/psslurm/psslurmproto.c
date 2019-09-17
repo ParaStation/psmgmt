@@ -302,11 +302,11 @@ static bool extractStepPackInfos(Step_t *step)
 {
     uint32_t nrOfNodes, i;
 
-    mdbg(PSSLURM_LOG_PACK, "%s: packNodeOffset %u  packJobid %u packNtasks %u "
+    fdbg(PSSLURM_LOG_PACK, "packNodeOffset %u  packJobid %u packNtasks %u "
 	 "packOffset %u packTaskOffset %u packHostlist '%s' packNrOfNodes %u\n",
-	    __func__, step->packNodeOffset, step->packJobid, step->packNtasks,
-	    step->packOffset, step->packTaskOffset, step->packHostlist,
-	    step->packNrOfNodes);
+	 step->packNodeOffset, step->packJobid, step->packNtasks,
+	 step->packOffset, step->packTaskOffset, step->packHostlist,
+	 step->packNrOfNodes);
 
     if (!convHLtoPSnodes(step->packHostlist, getNodeIDbySlurmHost,
 			 &step->packNodes, &nrOfNodes)) {
@@ -316,9 +316,21 @@ static bool extractStepPackInfos(Step_t *step)
     }
 
     if (step->packNrOfNodes != nrOfNodes) {
-	mlog("%s extracting PS nodes from Slurm pack hostlist failed\n",
-		__func__);
-	return false;
+	if (step->packNrOfNodes == step->nrOfNodes && !step->packNodeOffset) {
+	    /* correct invalid pack host-list */
+	    fdbg(PSSLURM_LOG_PACK, "correct pack nodes using %s\n",
+		 step->slurmHosts);
+	    ufree(step->packNodes);
+	    step->packNodes = umalloc(sizeof(*step->packNodes) * step->nrOfNodes);
+	    for (i=0; i<step->nrOfNodes; i++) {
+		step->packNodes[i] = step->nodes[i];
+	    }
+	} else {
+	    flog("extracting PS nodes from Slurm pack hostlist %s failed "
+		 "(%u:%u)\n", step->packHostlist, step->packNrOfNodes,
+		 nrOfNodes);
+	    return false;
+	}
     }
 
     for (i=0; i<step->packNrOfNodes; i++) {
@@ -452,6 +464,7 @@ static void handleLaunchTasks(Slurm_Msg_t *sMsg)
 
     /* verify job credential */
     if (!(verifyStepData(step))) {
+	flog("invalid data for %s\n", strStepID(step));
 	sendSlurmRC(sMsg, ESLURMD_INVALID_JOB_CREDENTIAL);
 	goto ERROR;
     }
@@ -1414,13 +1427,13 @@ static bool extractJobPackInfos(Job_t *job)
 
     if (!convHLtoPSnodes(job->packHostlist, getNodeIDbySlurmHost,
 			 &job->packNodes, &job->packNrOfNodes)) {
-	mlog("%s: resolving PS nodeIDs from %s failed\n", __func__,
+	flog("resolving PS nodeIDs from pack host-list %s failed\n",
 	     job->packHostlist);
 	return false;
     }
 
-    mdbg(PSSLURM_LOG_PACK, "%s: pack hostlist '%s'\n", __func__,
-	 job->packHostlist);
+    fdbg(PSSLURM_LOG_PACK, "job %u pack nrOfNodes %u hostlist '%s'\n",
+	 job->jobid, job->packNrOfNodes, job->packHostlist);
 
     return true;
 }
@@ -2200,16 +2213,15 @@ bool initSlurmdProto(void)
 	}
     }
 
-    if (!strcmp(pver, "18.08") || !strcmp(pver, "1808")) {
+    if (!strcmp(pver, "19.05") || !strcmp(pver, "1905")) {
+	slurmProto = SLURM_19_05_PROTO_VERSION;
+	slurmProtoStr = ustrdup("19.05");
+    } else if (!strcmp(pver, "18.08") || !strcmp(pver, "1808")) {
 	slurmProto = SLURM_18_08_PROTO_VERSION;
 	slurmProtoStr = ustrdup("18.08");
     } else if (!strcmp(pver, "17.11") || !strcmp(pver, "1711")) {
 	slurmProto = SLURM_17_11_PROTO_VERSION;
 	slurmProtoStr = ustrdup("17.11");
-	needNodeRegResp = false;
-    } else if (!strcmp(pver, "17.02") || !strcmp(pver, "1702")) {
-	slurmProto = SLURM_17_02_PROTO_VERSION;
-	slurmProtoStr = ustrdup("17.02");
 	needNodeRegResp = false;
     } else {
 	mlog("%s: unsupported Slurm protocol version %s\n", __func__, pver);

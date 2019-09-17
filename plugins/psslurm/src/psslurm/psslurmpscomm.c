@@ -1034,7 +1034,8 @@ static void handlePackInfo(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
 	cache->data = dupDataBuffer(data);
 	list_add_tail(&cache->next, &msgCache);
 
-	mlog("%s: caching msg for step %u:%u\n", __func__, packJobid, stepid);
+	flog("caching pack info, step %u:%u from %s\n", packJobid, stepid,
+	     PSC_printTID(msg->header.sender));
 	return;
     }
 
@@ -2472,6 +2473,9 @@ int send_PS_PackExit(Step_t *step, int32_t exitStatus)
     addUint32ToMsg(step->stepid, &data);
     /* exit status */
     addInt32ToMsg(exitStatus, &data);
+
+    fdbg(PSSLURM_LOG_PACK, "%s pack jobid %u exit %i\n", strStepID(step),
+	 step->packJobid, exitStatus);
 
     return sendFragMsg(&data);
 }

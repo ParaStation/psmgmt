@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2014-2017 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2014-2019 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -36,13 +36,21 @@ Slurm_Auth_t *getSlurmAuth(void);
  */
 void freeSlurmAuth(Slurm_Auth_t *auth);
 
+/**
+ * @brief Duplicate a Slurm authentication
+ *
+ * @param auth The authentication structure to duplicate
+ *
+ * @return Returns the duplicated authentication structure or
+ * NULL on error.
+ */
 Slurm_Auth_t *dupSlurmAuth(Slurm_Auth_t *auth);
 
 /**
  * @brief Extract and verify Slurm authentication
  *
  * Extract Slurm authentication from a message pointer and
- * verify the included credential. The extracted userid and groupid
+ * verify the included credential. The extracted user ID and group ID
  * are set in the Slurm message header. Currently only psmunge
  * is supported as authentication method.
  *
@@ -83,11 +91,11 @@ bool verifyJobData(Job_t *job);
  * @brief Extract and verify a job credential
  *
  * Extract and verify a job credential including the embedded
- * gres credential from the provided message pointer and add it
+ * GRes credential from the provided message pointer and add it
  * to the list of credentials @a gresList.
  *
- * @param gresList List of gres credential structures the included
- * gres credential will be appended to
+ * @param gresList List of GRes credential structures the included
+ * GRes credential will be appended to
  *
  * @param sMsg The message to unpack
  *
@@ -109,7 +117,7 @@ void freeJobCred(JobCred_t *cred);
  *
  * @param sMsg The message to unpack
  *
- * @param bcast The bcast structure holding the result
+ * @param bcast The BCast structure holding the result
  *
  * @return On success true is returned or false in case of an
  * error.
