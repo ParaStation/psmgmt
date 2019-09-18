@@ -5,6 +5,32 @@ Copyright (C) 2010-2019 ParTec Cluster Competence Center GmbH, Munich
 Please send bug reports, questions and suggestions to <support@par-tec.com>
 
 
+Version 5.1.25:
+===============
+Bugfixes:
+ - Fix segfault in psslurm when multiple steps are signaled (jwt:#3999)
+ - pspmix: Reduce timeout for PSID_HOOK_EXEC_FORWARDER (jwt:#3515)
+ - Cleanup PMIx environment variables to fix interactive jobs (jrt:#9831)
+ - Make SLURM_CPU_BIND_TYPE reflect the actually used pinning
+ - Prevent unnecessary calls to Selector_awaitWrite()
+ - Correct invalid pack node-list in rare conditions
+Enhancements:
+ - Add support of Slurm 18.08 and 19.05 protocols
+ - Add support for new Slurm gpu submit options to psslurm
+ - Add TRes support
+ - Update GRES environment and credential unpacking for 19.05
+ - Implement tresBind and tresFreq
+ - Implement job energy accounting in psslurm via psaccount
+ - Also add energy configuration to psaccount.conf template
+ - Add support for RESPONSE_NODE_REGISTRATION
+ - Update unpack BCast credential
+ - Let pspelogue forward SLURM_SUBMIT_DIR to prologue and epilogue
+Additional changes:
+ - Make switchUser() available to all plugins via pluginhelper
+ - Refactor psslurmio and consolidate step input/output redirection
+ - Drop support for 17.02 protocol version
+
+
 Version 5.1.24:
 ===============
 Bugfixes:

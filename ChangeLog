@@ -1,3 +1,252 @@
+Version psmgmt-5.1.25:
+======================
+------------------------------------------------------------------------
+24c91453 | Norbert Eicker | Tue, 17 Sep 2019 15:39:06 +0200
+
+Merge branch 'psslurm-1905'
+------------------------------------------------------------------------
+16f51a0a | Norbert Eicker | Mon, 16 Sep 2019 15:29:51 +0200
+
+Prevent unnecessary calls to Selector_awaitWrite()
+------------------------------------------------------------------------
+fad3e0ff | Michael Rauh | Fri, 13 Sep 2019 14:59:32 +0200
+
+Merge branch 'master' into psslurm-1905
+------------------------------------------------------------------------
+75b634fc | Stephan Krempel | Thu, 12 Sep 2019 14:44:26 +0200
+
+Cleanup PMIx environment variables to fix interactive jobs
+
+* Fixes jrt:#9831
+------------------------------------------------------------------------
+435c993d | Stephan Krempel | Wed, 11 Sep 2019 22:46:59 +0200
+
+pspmix: Reduce timeout for PSID_HOOK_EXEC_FORWARDER
+
+In PSID_HOOK_EXEC_FORWARDER the forwarders are waiting for the
+environment to set for the clients. Reduce the timeout here from
+10 to 3 seconds not to hit slurm internal timeouts. (jwt:#3515)
+------------------------------------------------------------------------
+d7d12e4d | Michael Rauh | Tue, 10 Sep 2019 12:02:37 +0200
+
+Make switchUser() available to all plugins via pluginhelper
+------------------------------------------------------------------------
+0621026f | Michael Rauh | Sat, 7 Sep 2019 11:41:42 +0200
+
+Let pspelogue forward SLURM_SUBMIT_DIR to prologue and epilogue
+------------------------------------------------------------------------
+ceea6599 | Michael Rauh | Tue, 3 Sep 2019 17:04:47 +0200
+
+Bugfix: fix segmentation fault in psslurm when
+multiple step jobs are signaled (juwels:#3999)
+------------------------------------------------------------------------
+056d0890 | Michael Rauh | Thu, 29 Aug 2019 10:24:30 +0200
+
+Refactor psslurmio and consolidate step input/output redirection
+------------------------------------------------------------------------
+c97d3811 | Michael Rauh | Thu, 22 Aug 2019 11:31:34 +0200
+
+Use job energy accounting in psslurm
+------------------------------------------------------------------------
+43f6c989 | Michael Rauh | Thu, 22 Aug 2019 11:28:27 +0200
+
+Improve some comments in psslurm
+------------------------------------------------------------------------
+af75791f | Michael Rauh | Thu, 22 Aug 2019 11:25:46 +0200
+
+Add basic energy accounting for jobs in psaccount
+------------------------------------------------------------------------
+9120623f | Michael Rauh | Mon, 19 Aug 2019 16:53:19 +0200
+
+Improve documentation and typo in psaccountjob
+------------------------------------------------------------------------
+bb7d8b36 | Michael Rauh | Mon, 19 Aug 2019 16:09:23 +0200
+
+Add energy configuration to psaccount.conf template
+------------------------------------------------------------------------
+40a556c2 | Michael Rauh | Mon, 19 Aug 2019 15:41:55 +0200
+
+Use new psaccount energy monitoring in psslurm
+------------------------------------------------------------------------
+c0acfb8d | Michael Rauh | Mon, 19 Aug 2019 15:32:49 +0200
+
+Add psaccountenergy.[ch] to buildsystem
+------------------------------------------------------------------------
+28d06332 | Michael Rauh | Mon, 19 Aug 2019 15:31:02 +0200
+
+Add basic node energy monitoring to psaccount
+------------------------------------------------------------------------
+2da4dfdf | Michael Rauh | Fri, 9 Aug 2019 16:29:40 +0200
+
+Update GRES environment and credential unpacking for 19.05
+------------------------------------------------------------------------
+84c4f115 | Michael Rauh | Fri, 9 Aug 2019 14:23:54 +0200
+
+Merge branch 'master' into psslurm-1905
+------------------------------------------------------------------------
+45ee85a2 | Michael Rauh | Fri, 9 Aug 2019 14:14:27 +0200
+
+Enhancement: add support for new Slurm gpu submit options to psslurm
+------------------------------------------------------------------------
+fd450008 | Stephan Krempel | Tue, 6 Aug 2019 15:29:28 +0200
+
+psslurm: Make SLURM_CPU_BIND_TYPE reflect the actually used pinning
+------------------------------------------------------------------------
+c999e34a | Michael Rauh | Tue, 30 Jul 2019 14:52:06 +0200
+
+Merge branch 'master' into psslurm-1905
+------------------------------------------------------------------------
+d97252c2 | Michael Rauh | Mon, 8 Jul 2019 15:49:55 +0200
+
+Merge branch 'master' into psslurm-1905
+------------------------------------------------------------------------
+442a8019 | Michael Rauh | Mon, 8 Jul 2019 15:47:15 +0200
+
+Bugfix: correct invalid pack node-list in rare conditions
+Enhancement: improve pack debug logging
+------------------------------------------------------------------------
+ac8c648f | Michael Rauh | Wed, 3 Jul 2019 11:29:20 +0200
+
+Merge branch 'master' into psslurm-1905
+------------------------------------------------------------------------
+9a5091c5 | Michael Rauh | Fri, 28 Jun 2019 16:18:23 +0200
+
+Merge branch 'master' into psslurm-1905
+------------------------------------------------------------------------
+70252c84 | Michael Rauh | Tue, 25 Jun 2019 17:14:46 +0200
+
+Update job pack handling
+------------------------------------------------------------------------
+63faf052 | Michael Rauh | Mon, 17 Jun 2019 13:29:52 +0200
+
+Improve logging messages and comments in psslurmauth
+------------------------------------------------------------------------
+8342f4f8 | Michael Rauh | Mon, 17 Jun 2019 12:28:58 +0200
+
+Update unpack BCast credential
+------------------------------------------------------------------------
+bdcf9844 | Michael Rauh | Fri, 14 Jun 2019 14:23:15 +0200
+
+Update various protocol pack functions
+------------------------------------------------------------------------
+dca88e72 | Michael Rauh | Thu, 13 Jun 2019 15:05:32 +0200
+
+gids are not transmitted with launch requests anymore
+------------------------------------------------------------------------
+15148841 | Michael Rauh | Thu, 13 Jun 2019 12:13:37 +0200
+
+Drop support for 17.02 protocol version
+------------------------------------------------------------------------
+9472f7d2 | Michael Rauh | Thu, 13 Jun 2019 11:09:31 +0200
+
+Merge branch 'master' into psslurm-1905
+------------------------------------------------------------------------
+eef44ef7 | Michael Rauh | Thu, 13 Jun 2019 10:26:22 +0200
+
+Update request launch tasks
+------------------------------------------------------------------------
+36792209 | Michael Rauh | Thu, 13 Jun 2019 10:23:02 +0200
+
+Update username credential verification
+------------------------------------------------------------------------
+ebd09378 | Michael Rauh | Thu, 13 Jun 2019 10:22:19 +0200
+
+Add 19.05 protocol definition
+------------------------------------------------------------------------
+fccf6a3e | Michael Rauh | Fri, 7 Jun 2019 11:16:15 +0200
+
+Merge branch 'master' into psslurm-1905
+------------------------------------------------------------------------
+94434c39 | Michael Rauh | Mon, 3 Jun 2019 17:25:43 +0200
+
+Update Slurm protocol type print function
+------------------------------------------------------------------------
+70eec8e8 | Michael Rauh | Mon, 3 Jun 2019 16:48:42 +0200
+
+Merge branch 'master' into psslurm-1808
+------------------------------------------------------------------------
+e9038f44 | Michael Rauh | Mon, 27 May 2019 16:14:08 +0200
+
+Merge branch 'master' into psslurm-1808
+------------------------------------------------------------------------
+a9846da5 | Michael Rauh | Tue, 21 May 2019 14:16:03 +0200
+
+Add psslurmaccount.[ch] to rpm buildsystem
+------------------------------------------------------------------------
+266f1284 | Michael Rauh | Tue, 21 May 2019 12:10:19 +0200
+
+Cleanup and update documentation
+------------------------------------------------------------------------
+3aab1a7f | Michael Rauh | Tue, 21 May 2019 11:39:51 +0200
+
+Implement tresBind and tresFreq
+------------------------------------------------------------------------
+9cd39448 | Michael Rauh | Tue, 21 May 2019 11:18:15 +0200
+
+Update TRes documentation
+------------------------------------------------------------------------
+1a917173 | Michael Rauh | Thu, 16 May 2019 13:28:47 +0200
+
+Actually use database TRes IDs
+------------------------------------------------------------------------
+f11437fd | Michael Rauh | Thu, 16 May 2019 10:26:08 +0200
+
+Add support for RESPONSE_NODE_REGISTRATION
+------------------------------------------------------------------------
+9f78939e | Michael Rauh | Thu, 16 May 2019 10:19:21 +0200
+
+Merge branch 'master' into psslurm-1808
+------------------------------------------------------------------------
+43f907d9 | Michael Rauh | Fri, 10 May 2019 17:23:01 +0200
+
+Adjust accounting to tres units
+------------------------------------------------------------------------
+08712e33 | Michael Rauh | Thu, 9 May 2019 15:32:02 +0200
+
+Merge branch 'master' into psslurm-1808
+------------------------------------------------------------------------
+94ca9654 | Michael Rauh | Mon, 6 May 2019 14:44:22 +0200
+
+Merge branch 'master' into psslurm-1808
+------------------------------------------------------------------------
+41d8ee69 | Michael Rauh | Mon, 6 May 2019 12:30:41 +0200
+
+Merge branch 'master' into psslurm-1808
+------------------------------------------------------------------------
+940dcd1d | Michael Rauh | Mon, 29 Apr 2019 14:20:37 +0200
+
+Update buildsystem
+------------------------------------------------------------------------
+1c540429 | Michael Rauh | Mon, 29 Apr 2019 14:19:57 +0200
+
+Add first version of TRes support
+------------------------------------------------------------------------
+2bad49ee | Michael Rauh | Thu, 25 Apr 2019 16:50:18 +0200
+
+Merge branch 'master' into psslurm-1808
+------------------------------------------------------------------------
+b2b8c3ff | Michael Rauh | Thu, 25 Apr 2019 11:58:41 +0200
+
+Merge branch 'master' into psslurm-1808
+------------------------------------------------------------------------
+fcbcc6e1 | Michael Rauh | Mon, 15 Apr 2019 15:16:03 +0200
+
+Merge branch 'master' into psslurm-1808
+------------------------------------------------------------------------
+d1fd6eaa | Michael Rauh | Wed, 3 Apr 2019 15:47:01 +0200
+
+Merge branch 'master' into psslurm-1808
+------------------------------------------------------------------------
+a9e7b1a5 | Michael Rauh | Mon, 1 Apr 2019 14:59:08 +0200
+
+Merge branch 'master' into psslurm-1808
+------------------------------------------------------------------------
+80cd20f0 | Michael Rauh | Wed, 19 Dec 2018 15:43:56 +0100
+
+First steps to support 18.08
+------------------------------------------------------------------------
+
+
 Version psmgmt-5.1.24:
 ======================
 ------------------------------------------------------------------------
