@@ -1134,7 +1134,7 @@ static int releaseTask(PStask_t *task)
     static bool *sentToNode = NULL;
     static int sTNSize = 0;
 
-    if (sTNSize < PSC_getNrOfNodes()) {
+    if (!sentToNode || sTNSize < PSC_getNrOfNodes()) {
 	bool *bak = sentToNode;
 
 	sTNSize = PSC_getNrOfNodes();

@@ -1614,16 +1614,16 @@ static bool getPartition(PSpart_request_t *request)
 	     __func__, HW_printType(request->hwType), request->size);
 
     if (!request->nodes) {
-	PSnodes_ID_t i;
-	request->nodes = malloc(PSC_getNrOfNodes() * sizeof(*request->nodes));
+	PSnodes_ID_t numNodes = PSC_getNrOfNodes(), i;
+	request->nodes = malloc(numNodes * sizeof(*request->nodes));
 	if (!request->nodes) {
 	    PSID_log(-1, "%s: No memory\n", __func__);
 	    errno = ENOMEM;
 	    goto error;
 	}
-	request->num = PSC_getNrOfNodes();
-	for (i=0; i<PSC_getNrOfNodes(); i++) request->nodes[i] = i;
-	request->numGot = PSC_getNrOfNodes();
+	request->num = numNodes;
+	for (i=0; i < numNodes; i++) request->nodes[i] = i;
+	request->numGot = numNodes;
     }
 
     candidates = getCandidateList(request);

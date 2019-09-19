@@ -236,7 +236,6 @@ static int handleCreatePart(void *msg)
     Step_t *step;
     PStask_t *task;
     uint32_t i, numThreads;
-    PSpart_HWThread_t *pTptr;
     int enforceBatch = getConfValueI(&Config, "ENFORCE_BATCH_START");
 
     /* everyone is allowed to start, nothing to do for us here */
@@ -278,18 +277,17 @@ static int handleCreatePart(void *msg)
 	errno = ENOMEM;
 	goto error;
     }
-    pTptr = task->partThrds;
 
     mlog("%s: register TID %s to step %u:%u numThreads %u\n", __func__,
 	    PSC_printTID(task->tid), step->jobid, step->stepid, numThreads);
 
     /* copy hardware threads */
     if (step->packJobid == NO_VAL) {
-	memcpy(pTptr, step->hwThreads,
+	memcpy(task->partThrds, step->hwThreads,
 		step->numHwThreads * sizeof(*task->partThrds));
-	pTptr += step->numHwThreads;
     } else {
 	/* combined pack threads */
+	PSpart_HWThread_t *pTptr = task->partThrds;
 	int64_t last, offset = -1;
 	uint32_t index = -1;
 
