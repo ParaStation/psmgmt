@@ -338,10 +338,13 @@ int handleLocalPElogueStart(void *data)
 	    }
 	    ret = -2;
 	} else {
-	    /* pack leader prologue, execute prologue add allocation
+	    /* pack leader prologue, execute prologue and add allocation
 	     * only for leader job */
 	    uint32_t nrOfNodes;
 	    PSnodes_ID_t *nodes;
+
+	    fdbg(PSSLURM_LOG_PACK, "add allocation with pack-ID %s "
+		 "pack-nodes %s\n", sPackID, packHosts);
 
 	    if (!convHLtoPSnodes(slurmHosts, getNodeIDbySlurmHost,
 			&nodes, &nrOfNodes)) {

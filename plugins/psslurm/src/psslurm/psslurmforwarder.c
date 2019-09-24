@@ -189,8 +189,10 @@ static int stepCallback(int32_t exit_status, Forwarder_Data_t *fw)
 	sendStepExit(step, eStatus);
 
 	/* forward exit status to pack follower */
-	if (step->packJobid != NO_VAL) {
-	    send_PS_PackExit(step, eStatus);
+	if (step->packJobid != NO_VAL && step->packNrOfNodes > 1) {
+	    if (send_PS_PackExit(step, eStatus) == -1) {
+		flog("sending pack exit for %s failed\n", strStepID(step));
+	    }
 	}
     }
 

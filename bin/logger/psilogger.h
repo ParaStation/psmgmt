@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2007-2017 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2007-2019 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -189,11 +189,11 @@ void PSIlog_finalizeLogs(void);
  *
  * @see logger_exit()
  */
-#define PSIlog_exit(...) if (PSIlog_logger) {		\
+#define PSIlog_exit(...) { if (PSIlog_logger) {		\
 	logger_finalize(PSIlog_stdoutLogger);		\
 	logger_finalize(PSIlog_stderrLogger);		\
 	logger_exit(PSIlog_logger, __VA_ARGS__);	\
-    }
+	} else { exit(-1); } }
 
 /**
  * Various message classes for logging. These define the different

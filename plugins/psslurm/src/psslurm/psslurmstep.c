@@ -179,6 +179,7 @@ int deleteStep(uint32_t jobid, uint32_t stepid)
     ufree(step->tresFreq);
     ufree(step->x11.host);
     ufree(step->x11.magicCookie);
+    ufree(step->x11.target);
 
     clearTasks(&step->tasks);
     freeGresCred(&step->gresList);
@@ -193,6 +194,14 @@ int deleteStep(uint32_t jobid, uint32_t stepid)
     }
     ufree(step->globalTaskIds);
     ufree(step->globalTaskIdsLen);
+
+    if (step->packTIDs) {
+	for (i=0; i<step->packNrOfNodes; i++) {
+	    ufree(step->packTIDs[i]);
+	}
+	ufree(step->packTIDs);
+    }
+    ufree(step->packTIDsOffset);
 
     for (i=0; i<step->argc; i++) {
 	ufree(step->argv[i]);

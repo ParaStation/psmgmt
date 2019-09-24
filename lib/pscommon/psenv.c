@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2014-2018 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2014-2019 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -84,7 +84,10 @@ void envUnset(env_t *env, const char *name)
 /* takes ownership of @a envstring and frees it in case of error */
 static bool envDoSet(env_t *env, char *envstring)
 {
-    if (!env || !envstring) return false;
+    if (!env || !envstring) {
+	if (envstring) free(envstring);
+	return false;
+    }
 
     if (env->cnt + 1 >= env->size) {
 	uint32_t newSize = env->size + 16;

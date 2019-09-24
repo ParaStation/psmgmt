@@ -814,26 +814,26 @@ void cacheOutput(PSLog_Msg_t *msg, int outfd)
 {
     size_t count = msg->header.len - PSLog_headerSize;
     int sender = msg->sender;
-    char *buf, *bufmem;
+    char *bufmem;
     int len;
 
-    bufmem = umalloc((count +1), __func__);
+    bufmem = umalloc(count + 1, __func__);
     strncpy(bufmem, msg->buf, count);
     bufmem[count] = '\0';
-    buf = bufmem;
 
     /* don't try to merge output from special ranks e.g. service processes */
     if (sender < 0) {
 	switch (outfd) {
 	case STDOUT_FILENO:
-	    PSIlog_stdout(-1, "[%i]: %s", sender, buf);
+	    PSIlog_stdout(-1, "[%i]: %s", sender, bufmem);
 	    break;
 	case STDERR_FILENO:
-	    PSIlog_stderr(-1, "[%i]: %s", sender, buf);
+	    PSIlog_stderr(-1, "[%i]: %s", sender, bufmem);
 	    break;
 	default:
 	    PSIlog_log(-1, "%s: unknown outfd %d\n", __func__, outfd);
 	}
+	free(bufmem);
 	return;
     }
 
@@ -842,6 +842,7 @@ void cacheOutput(PSLog_Msg_t *msg, int outfd)
 	 np = sender + 1;
     }
 
+    char *buf = bufmem;
     while (count>0 && strlen(buf) >0) {
 	char *nl;
 
