@@ -359,6 +359,11 @@ int handleMotherMsg(PSLog_Msg_t *msg, Forwarder_Data_t *fw)
 {
     PSGW_Req_t *req = Request_verify(fw->userData);
 
+    if (!req) {
+	flog("no request for %p\n", fw->userData);
+	return 0;
+    }
+
     /* failed to get resources from master */
     if (msg->header.type == PSP_CD_PARTITIONRES) {
 	snprintf(msgBuf, sizeof(msgBuf), "getting resources for job %s "
