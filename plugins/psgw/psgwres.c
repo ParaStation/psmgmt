@@ -229,7 +229,7 @@ void writeErrorFile(PSGW_Req_t *req, char *msg)
 	}
 
 	char path[1024];
-	snprintf(path, sizeof(path), "%s/job-%s-psgw.err", cwd, req->jobid);
+	snprintf(path, sizeof(path), "%s/JOB-%s-psgw.err", cwd, req->jobid);
 
 	FILE *fp;
 	if (!(fp = fopen(path, "a"))) {
