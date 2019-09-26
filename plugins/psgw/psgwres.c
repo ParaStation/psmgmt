@@ -200,7 +200,7 @@ static int cbPSGWDerror(uint32_t id, int32_t exit, PSnodes_ID_t dest,
 
 void writeErrorFile(PSGW_Req_t *req, char *msg)
 {
-    if (!envGet(req->res->env, "SLURM_SPANK_PSGW_VERBOSE")) {
+    if (envGet(req->res->env, "SLURM_SPANK_PSGW_QUIET")) {
 	return;
     }
 
@@ -327,6 +327,14 @@ static void finalizeRequest(PSGW_Req_t *req)
     if (req->prologueState != PSP_PROLOGUE_FINISH) {
 	fdbg(PSGW_LOG_DEBUG, "waiting for prologue on gateway nodes\n");
 	return;
+    }
+
+    /* remove error files from previous startup attempts */
+    char *cwd = envGet(req->res->env, "SLURM_SPANK_PSGW_CWD");
+    if (cwd) {
+	char path[1024];
+	snprintf(path, sizeof(path), "%s/JOB-%s-psgw.err", cwd, req->jobid);
+	unlink(path);
     }
 
     /* let pelogue execute prologue */

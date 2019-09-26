@@ -39,7 +39,7 @@ static bool writeInfo = true;
 
 static int numPSGWDperNode = 1;
 
-static bool gwVerbose = false;
+static bool gwQuiet = false;
 
 int setGwNum(int val, const char *optarg, int remote);
 int setGwFile(int val, const char *optarg, int remote);
@@ -48,7 +48,7 @@ int setGwEnv(int val, const char *optarg, int remote);
 int setGwCleanup(int val, const char *optarg, int remote);
 int setGwBinary(int val, const char *optarg, int remote);
 int setPSGWDperNode(int val, const char *optarg, int remote);
-int setGwVerbose(int val, const char *optarg, int remote);
+int setGwQuiet(int val, const char *optarg, int remote);
 
 /*
  * Additional options for salloc/sbatch/srun
@@ -75,9 +75,9 @@ static struct spank_option spank_opt[] =
     { "gw_psgwd_per_node", "n",
       "Number of psgwd per gateway to start", 1, 0,
       (spank_opt_cb_f) setPSGWDperNode },
-    { "gw_verbose", NULL,
-      "Report gateway startup errors in file", 0, 0,
-      (spank_opt_cb_f) setGwVerbose },
+    { "gw_quiet", NULL,
+      "Suppress reporting gateway startup errors in file", 0, 0,
+      (spank_opt_cb_f) setGwQuiet },
     SPANK_OPTIONS_TABLE_END
 };
 
@@ -151,9 +151,10 @@ int slurm_spank_init_post_opt(spank_t sp, int ac, char **av)
         if (writeInfo) slurm_info("psgw: number of psgwd per node %s", buf);
     }
 
-    if (gwVerbose) {
-	spank_job_control_setenv(sp, "SLURM_SPANK_PSGW_VERBOSE", "1", 1);
-        if (writeInfo) slurm_info("psgw: report gateway starup errors to file");
+    if (gwQuiet) {
+	spank_job_control_setenv(sp, "SLURM_SPANK_PSGW_QUIET", "1", 1);
+        if (writeInfo) slurm_info("psgw: suppress reporting gateway startup "
+                                  "errors to file");
     }
 
     writeInfo = false;
@@ -262,13 +263,13 @@ int setGwCleanup(int val, const char *optarg, int remote)
 }
 
 /**
- * @brief Set gateway verbosity
+ * @brief Set gateway quiet mode
  */
-int setGwVerbose(int val, const char *optarg, int remote)
+int setGwQuiet(int val, const char *optarg, int remote)
 {
-    gwVerbose = true;
+    gwQuiet = true;
 
-    if (DEBUG) slurm_info("set gw_verbose to true");
+    if (DEBUG) slurm_info("set gw_quiet to true");
 
     return 0;
 }
