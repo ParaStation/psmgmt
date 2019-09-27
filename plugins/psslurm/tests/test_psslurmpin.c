@@ -14,11 +14,6 @@
 #include "list.h"
 typedef list_t Config_t;
 
-typedef struct {
-    uint8_t *usedHwThreads;   /* boolean array of hardware threads already assigned */
-    int16_t lastSocket;       /* number of the socket used last */
-} pininfo_t;
-
 /*
  * bitmask cpuBindType:
  * CPU_BIND_ONE_THREAD_PER_CORE - use only one hardware thread per core
@@ -34,11 +29,8 @@ typedef struct {
  * CPU_BIND_RANK                - concerned as default
  * CPU_BIND_TO_THREADS          - concerned as default (same as CPU_BIND_RANK)
 */
-
-int main(int argc, char *argv[])
+int pinning(int argc, char *argv[])
 {
-    int i;
-
     /* node info */
     uint16_t socketCount = 3;
     uint16_t coresPerSocket = 5;
@@ -51,105 +43,133 @@ int main(int argc, char *argv[])
     /* pinning info */
     uint16_t cpuBindType = CPU_BIND_LDRANK;
     char *cpuBindString = "";
-    uint8_t *coreMap = NULL;
-    uint32_t coreMapIndex = 0;
+    uint32_t taskDist;
 
-    /* temporary variables */
-    uint32_t local_tid;
-    int32_t lastCpu;
-    int thread;
-    pininfo_t pininfo;
-
-    /* output variables */
-    PSCPU_set_t CPUset;
-
-    if (argc != 9) {
-	printf("Usage: test_psslurmpin <sockets> <coresPerSocket>"
+    if (argc != 11) {
+	printf("Usage: test_psslurmpin pinning <sockets> <coresPerSocket>"
 		" <threadsPerCore> <tasks> <threadsPerTask> <bindType>"
-		" <bindString> <oneThreadPerCore>\n");
+		" <bindString> <distribution> <oneThreadPerCore>\n");
 	return -1;
     }
 
-    socketCount = atoi(argv[1]);
-    coresPerSocket = atoi(argv[2]);
-    threadsPerCore = atoi(argv[3]);
-    uint32_t threadCount = socketCount * coresPerSocket * threadsPerCore;
+    socketCount = atoi(argv[2]);
+    coresPerSocket = atoi(argv[3]);
+    threadsPerCore = atoi(argv[4]);
 
     /* task info */
-    tasksPerNode = atoi(argv[4]);
-    threadsPerTask = atoi(argv[5]);
+    tasksPerNode = atoi(argv[5]);
+    threadsPerTask = atoi(argv[6]);
 
     /* pinning info */
-    if (strcmp(argv[6], "none") == 0) cpuBindType = CPU_BIND_NONE;
-    else if (strcmp(argv[6], "map") == 0) cpuBindType = CPU_BIND_MAP;
-    else if (strcmp(argv[6], "mask") == 0) cpuBindType = CPU_BIND_MASK;
-    else if (strcmp(argv[6], "ldmap") == 0) cpuBindType = CPU_BIND_LDMAP;
-    else if (strcmp(argv[6], "ldmask") == 0) cpuBindType = CPU_BIND_LDMASK;
-    else if (strcmp(argv[6], "sockets") == 0) cpuBindType = CPU_BIND_TO_SOCKETS;
-    else if (strcmp(argv[6], "ldoms") == 0) cpuBindType = CPU_BIND_TO_LDOMS;
-    else if (strcmp(argv[6], "ldrank") == 0) cpuBindType = CPU_BIND_LDRANK;
-    else if (strcmp(argv[6], "rank") == 0) cpuBindType = CPU_BIND_RANK;
+    if (strcmp(argv[7], "none") == 0) cpuBindType = CPU_BIND_NONE;
+    else if (strcmp(argv[7], "map") == 0) cpuBindType = CPU_BIND_MAP;
+    else if (strcmp(argv[7], "mask") == 0) cpuBindType = CPU_BIND_MASK;
+    else if (strcmp(argv[7], "ldmap") == 0) cpuBindType = CPU_BIND_LDMAP;
+    else if (strcmp(argv[7], "ldmask") == 0) cpuBindType = CPU_BIND_LDMASK;
+    else if (strcmp(argv[7], "boards") == 0) cpuBindType = CPU_BIND_TO_BOARDS;
+    else if (strcmp(argv[7], "sockets") == 0) cpuBindType = CPU_BIND_TO_SOCKETS;
+    else if (strcmp(argv[7], "ldoms") == 0) cpuBindType = CPU_BIND_TO_LDOMS;
+    else if (strcmp(argv[7], "cores") == 0) cpuBindType = CPU_BIND_TO_CORES;
+    else if (strcmp(argv[7], "threads") == 0) cpuBindType = CPU_BIND_TO_THREADS;
+    else if (strcmp(argv[7], "ldrank") == 0) cpuBindType = CPU_BIND_LDRANK;
+    else if (strcmp(argv[7], "rank") == 0) cpuBindType = CPU_BIND_RANK;
     else {
-	printf("Unknown bind type: '%s'.\n", argv[6]);
+	printf("Unknown bind type: '%s'.\n", argv[7]);
 	return -1;
     }
 
-    cpuBindString = argv[7];
+    cpuBindString = argv[8];
 
-    if (atoi(argv[8]) != 0) {
-	cpuBindType |= CPU_BIND_ONE_THREAD_PER_CORE;
+    if (strcmp(argv[9], "") == 0) taskDist = 0;
+    else if (strcmp(argv[9], "cyclic") == 0) taskDist = SLURM_DIST_BLOCK_CYCLIC;
+    else if (strcmp(argv[9], "cyclic:cyclic") == 0) taskDist = SLURM_DIST_BLOCK_CYCLIC_CYCLIC;
+    else if (strcmp(argv[9], "cyclic:block") == 0) taskDist = SLURM_DIST_BLOCK_CYCLIC_BLOCK;
+    else if (strcmp(argv[9], "cyclic:fcyclic") == 0) taskDist = SLURM_DIST_BLOCK_CYCLIC_CFULL;
+    else if (strcmp(argv[9], "block") == 0) taskDist = SLURM_DIST_BLOCK_BLOCK;
+    else if (strcmp(argv[9], "block:cyclic") == 0) taskDist = SLURM_DIST_BLOCK_BLOCK_CYCLIC;
+    else if (strcmp(argv[9], "block:block") == 0) taskDist = SLURM_DIST_BLOCK_BLOCK_BLOCK;
+    else if (strcmp(argv[9], "block:fcyclic") == 0) taskDist = SLURM_DIST_BLOCK_BLOCK_CFULL;
+    else if (strcmp(argv[9], "fcyclic") == 0) taskDist = SLURM_DIST_BLOCK_CFULL;
+    else if (strcmp(argv[9], "fcyclic:cyclic") == 0) taskDist = SLURM_DIST_BLOCK_CFULL_CYCLIC;
+    else if (strcmp(argv[9], "fcyclic:block") == 0) taskDist = SLURM_DIST_BLOCK_CFULL_BLOCK;
+    else if (strcmp(argv[9], "fcyclic:fcyclic") == 0) taskDist = SLURM_DIST_BLOCK_CFULL_CFULL;
+    else {
+	printf("Unknown distribution: '%s'.\n", argv[9]);
+	return -1;
     }
 
-    coreMap = malloc(threadCount * sizeof(*coreMap));
-    for (i = 0; i < threadCount; coreMap[i++] = 1);
+    if (atoi(argv[10]) != 0) cpuBindType |= CPU_BIND_ONE_THREAD_PER_CORE;
 
 
     printf("PINNING TEST\n");
     printf("cpuBindType = 0x%X - cpuBindString = \"%s\"\n", cpuBindType,
 	    cpuBindString);
+    printf("taskDist = 0x%X\n", taskDist);
     printf("node: %d sockets, %d cores per socket, %d threads per core\n",
 	    socketCount, coresPerSocket, threadsPerCore);
     printf("job: %u tasks, %d threads per task\n", tasksPerNode,
 	    threadsPerTask);
-    printf("flags: oneThreadPerCore %s\n", atoi(argv[8]) != 0 ? "set" : "unset");
     printf("\n");
 
-    lastCpu = -1; /* no cpu assigned yet */
-    thread = 0;
-
-    /* initialize pininfo struct (currently only used for RANK_LDOM) */
-    pininfo.usedHwThreads = calloc(
-	    socketCount * coresPerSocket * threadsPerCore,
-	    sizeof(*pininfo.usedHwThreads));
-    pininfo.lastSocket = -1;
-
-    /* set node and cpuset for every task on this node */
-    for (local_tid=0; local_tid < tasksPerNode; local_tid++) {
-
-        PSCPU_clrAll(CPUset);
-
-	/* calc CPUset */
-	test_pinning(&CPUset, cpuBindType, cpuBindString, coreMap,
-		coreMapIndex, socketCount, coresPerSocket, threadsPerCore,
-		tasksPerNode, threadsPerTask, local_tid, &lastCpu, &thread,
-		&pininfo);
-
-	printf("%2u: ", local_tid);
-	for (i = 0; i < threadCount; i++) {
-	    if (i % coresPerSocket == 0) printf(" ");
-	    if (i % (socketCount * coresPerSocket) == 0) printf("\n    ");
-	    printf("%d", PSCPU_isSet(CPUset, i));
-	}
-	printf("\n");
-
-    }
-
-    free(coreMap);
-    free(pininfo.usedHwThreads);
+    test_pinning(cpuBindType, cpuBindString, taskDist, socketCount,
+	    coresPerSocket, threadsPerCore, tasksPerNode, threadsPerTask);
 
     return 0;
-
 }
+
+int iteration(int argc, char *argv[])
+{
+    /* node info */
+    uint16_t socketCount = 3;
+    uint16_t coresPerSocket = 5;
+    uint16_t threadsPerCore = 3;
+
+    /* strategy info */
+    uint8_t strategy = 0;
+
+    if (argc != 6) {
+	printf("Usage: test_psslurmpin iteration <sockets> <coresPerSocket>"
+		" <threadsPerCore> <strategy>\n");
+	return -1;
+    }
+
+    socketCount = atoi(argv[2]);
+    coresPerSocket = atoi(argv[3]);
+    threadsPerCore = atoi(argv[4]);
+
+    strategy = atoi(argv[5]);
+
+    printf("ITERATION TEST\n");
+    printf("node: %d sockets, %d cores per socket, %d threads per core\n",
+	    socketCount, coresPerSocket, threadsPerCore);
+    printf("strategy: %hhu\n", strategy);
+    printf("\n");
+
+
+    test_thread_iterator(socketCount, coresPerSocket, threadsPerCore,
+	    strategy);
+
+    return 0;
+}
+
+int main(int argc, char *argv[])
+{
+
+    if (argc < 2) {
+	printf("First argument has to be \"pinning\" or \"iteration\".\n");
+	return -1;
+    }
+
+    /* select function */
+    if (strcmp(argv[1], "pinning") == 0) return pinning(argc, argv);
+    else if (strcmp(argv[1], "iteration") == 0) return iteration(argc, argv);
+    else {
+	printf("First argument has to be \"pinning\" or \"iteration\".\n");
+	return -1;
+    }
+}
+
+
 #ifdef VERBOSE
 static logger_t lt;
 logger_t *psslurmlogger = &lt;
