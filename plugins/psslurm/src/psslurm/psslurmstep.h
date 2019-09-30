@@ -334,4 +334,14 @@ void getStepInfos(uint32_t *infoCount, uint32_t **jobids, uint32_t **stepids);
  */
 const char *strStepID(Step_t *step);
 
+/**
+ * @brief Verify a step pointer
+ *
+ * @param stepPtr The pointer to verify
+ *
+ * @return Returns true if the pointer is valid otherwise
+ * false
+ */
+bool verifyStepPtr(Step_t *stepPtr);
+
 #endif  /* __PS_PSSLURM_STEP */

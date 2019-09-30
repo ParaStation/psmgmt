@@ -1070,6 +1070,12 @@ int handleSrunMsg(int sock, void *data)
     uint32_t myTaskIdsLen, *myTaskIds;
     bool pty;
 
+    if (!verifyStepPtr(step)) {
+	/* late answer from srun, associated step is already gone */
+	fdbg(PSSLURM_LOG_IO, "no step for socket %i found\n", sock);
+	goto ERROR;
+    }
+
     /* Shall be safe to do first a blocking read() inside a selector */
     ret = doRead(sock, buffer, SLURM_IO_HEAD_SIZE);
     if (ret <= 0) {

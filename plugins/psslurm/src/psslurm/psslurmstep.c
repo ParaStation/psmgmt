@@ -422,3 +422,13 @@ const char *strStepID(Step_t *step)
     }
     return buf;
 }
+
+bool verifyStepPtr(Step_t *stepPtr)
+{
+    list_t *s;
+    list_for_each(s, &StepList) {
+	Step_t *step = list_entry(s, Step_t, next);
+	if (step == stepPtr) return true;
+    }
+    return false;
+}
