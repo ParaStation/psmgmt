@@ -1725,15 +1725,19 @@ static bool killSelectedSteps(Step_t *step, const void *killInfo)
     if (info->stepid != NO_VAL && info->stepid != step->stepid) return false;
 
     if (info->timeout) {
-	snprintf(buf, sizeof(buf), "error: *** step %u:%u CANCELLED DUE TO"
+	if (!step->localNodeId) {
+	    snprintf(buf, sizeof(buf), "error: *** step %u:%u CANCELLED DUE TO"
 		" TIME LIMIT ***\n", step->jobid, step->stepid);
-	printChildMessage(step, buf, strlen(buf), STDERR, 0);
+	    printChildMessage(step, buf, strlen(buf), STDERR, 0);
+	}
 	sendStepTimeout(step->fwdata);
 	step->timeout = true;
     } else {
-	snprintf(buf, sizeof(buf), "error: *** PREEMPTION for step "
-		"%u:%u ***\n", step->jobid, step->stepid);
-	printChildMessage(step, buf, strlen(buf), STDERR, 0);
+	if (!step->localNodeId) {
+	    snprintf(buf, sizeof(buf), "error: *** PREEMPTION for step "
+		    "%u:%u ***\n", step->jobid, step->stepid);
+	    printChildMessage(step, buf, strlen(buf), STDERR, 0);
+	}
     }
 
     if (step->stepid != NO_VAL) signalStep(step, SIGTERM, info->uid);
