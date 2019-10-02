@@ -88,7 +88,9 @@ typedef enum {
     PSIDHOOK_RECV_SPAWNREQ,    /**< After receiving a message of type
 				PSP_CD_SPAWNREQ, thus requests us to actually
 				spawn some processes.
-				The argument is the task structure received.
+				The argument is the task structure prototype
+				for the processes to be spawned only containing
+				information shared between all of them.
 				If the hook's return value is < 0, the spawn
 				is canceled and a fail response is sent. */
     PSIDHOOK_EXEC_FORWARDER,  /**< Right before forking the forwarder's child.

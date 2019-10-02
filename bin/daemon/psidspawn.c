@@ -2801,6 +2801,10 @@ static void handleSpawnReq(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
     getStringArrayM(&ptr, &task->argv, &task->argc);
     getStringArrayM(&ptr, &task->environ, &task->envSize);
 
+    /* Call hook once per PSP_CD_SPAWNREQUEST meaning once per node.
+     * Pay attention that the task provided is only a prototype, containing
+     * all information shared between all tasks of the spawn but not containing
+     * the task specific stuff like rank specific environment. */
     if (PSIDhook_call(PSIDHOOK_RECV_SPAWNREQ, task) < 0) {
 	PSID_log(-1, "%s: PSIDHOOK_RECV_SPAWNREQ failed.\n", __func__);
 	answer.error = EINVAL; //TODO which error code?
