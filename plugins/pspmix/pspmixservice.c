@@ -305,12 +305,12 @@ static void freeProcMap(list_t *map)
 /**
  * @brief Register a new namespace
  *
- * @param spawnTask  task prototype for the tasks to be spawned into the new ns
+ * @param prototask  task prototype for the tasks to be spawned into the new ns
  * @param resInfo    information of the reservation the ns belongs to
  *
  * @return Returns true on success and false on errors
  */
-bool pspmix_service_registerNamespace(PStask_t *spawnTask, PSresinfo_t *resInfo)
+bool pspmix_service_registerNamespace(PStask_t *prototask, PSresinfo_t *resInfo)
 {
     mdbg(PSPMIX_LOG_CALL, "%s() called with reservation %d\n", __func__,
 	    resInfo->resID);
@@ -335,7 +335,7 @@ bool pspmix_service_registerNamespace(PStask_t *spawnTask, PSresinfo_t *resInfo)
     ns->resInfo = resInfo;
 
     /* get information from spawner set environment */
-    env_t e = { spawnTask->environ, spawnTask->envSize, spawnTask->envSize };
+    env_t e = { prototask->environ, prototask->envSize, prototask->envSize };
 
     /* set the MPI universe size from environment set by the spawner */
     char *env;

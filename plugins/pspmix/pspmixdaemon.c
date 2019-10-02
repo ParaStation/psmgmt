@@ -290,27 +290,27 @@ static int hookRecvSpawnReq(void *data)
 {
     char buf[40];
 
-    PStask_t *task = data;
+    PStask_t *prototask = data;
 
     /* leave all special task groups alone */
-    if (task->group != TG_ANY) return 0;
+    if (prototask->group != TG_ANY) return 0;
 
     mdbg(PSPMIX_LOG_CALL, "%s() called with task group TG_ANY\n", __func__);
 
     /* descide if this job wants to use PMIx */
-    if (!pspmix_common_usePMIx(task)) return 0;
+    if (!pspmix_common_usePMIx(prototask)) return 0;
 
     /* find job */
-    PSjob_t *job = PSID_findJobByLoggerTID(task->loggertid);
+    PSjob_t *job = PSID_findJobByLoggerTID(prototask->loggertid);
     if (!job) {
 	mlog("%s: No job with logger %s\n", __func__,
-	     PSC_printTID(task->loggertid));
+	     PSC_printTID(prototask->loggertid));
 	return -1;
     }
 
     if (list_empty(&job->resInfos)) {
 	mlog("%s: No reservation in job with logger %s\n", __func__,
-	     PSC_printTID(task->loggertid));
+	     PSC_printTID(prototask->loggertid));
     }
 
     if (job->resInfos.next->next != &job->resInfos) {
@@ -340,12 +340,12 @@ static int hookRecvSpawnReq(void *data)
 
     /* No jobserver found, start one */
     server = ucalloc(sizeof(*server));
-    server->loggertid = task->loggertid;
+    server->loggertid = prototask->loggertid;
 
     // XXX what needs to be copied when cleanup daemon stuff in jobserver_init?
 
-    /* remember first task of the jobserver */
-    server->task = task;
+    /* set prototask to access it in the forked jobserver process */
+    server->prototask = prototask;
 
     /* copy stuff from job */
     server->resInfos = job->resInfos;
@@ -358,6 +358,9 @@ static int hookRecvSpawnReq(void *data)
 		PSC_printTID(server->fwdata->tid));
 
     list_add_tail(&server->next, &pmixJobservers);
+
+    /* unset prototask, becomes invalid in the daemon once the hook returned */
+    server->prototask = NULL;
 
 setenv:
 

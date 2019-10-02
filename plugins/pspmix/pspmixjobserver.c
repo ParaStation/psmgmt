@@ -60,8 +60,8 @@ int pspmix_jobserver_initialize(Forwarder_Data_t *fwdata)
 
     mdbg(PSPMIX_LOG_CALL, "%s() called\n", __func__);
 
-    PStask_t *spawnTask;
-    spawnTask = server->task;
+    PStask_t *prototask;
+    prototask = server->prototask;
 
     /* there has to be a resInfo in the list */
     if (list_empty(&server->resInfos)) {
@@ -70,11 +70,11 @@ int pspmix_jobserver_initialize(Forwarder_Data_t *fwdata)
     }
 
     PSresinfo_t *resInfo;
-    resInfo = findReservation(spawnTask->resID);
+    resInfo = findReservation(prototask->resID);
 
     if (resInfo == NULL) {
 	mlog("%s: FATAL: Reservation for initial spawn not found (resID %d)\n",
-		__func__, spawnTask->resID);
+		__func__, prototask->resID);
 	return -1;
     }
 
@@ -90,14 +90,14 @@ int pspmix_jobserver_initialize(Forwarder_Data_t *fwdata)
     PSID_clearMem();
 
     /* initialize service modules */
-    if (!pspmix_service_init(spawnTask->loggertid, spawnTask->uid,
-		spawnTask->gid)) {
+    if (!pspmix_service_init(prototask->loggertid, prototask->uid,
+		prototask->gid)) {
 	mlog("%s: Failed to initialize pmix service\n", __func__);
 	return -1;
     }
 
     /* register initial namespace */
-    if (!pspmix_service_registerNamespace(spawnTask, resInfo)) {
+    if (!pspmix_service_registerNamespace(prototask, resInfo)) {
 	mlog("%s: Failed to register initial namespace\n", __func__);
 	return -1;
     }

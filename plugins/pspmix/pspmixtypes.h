@@ -31,7 +31,7 @@ typedef struct {
     PStask_ID_t loggertid;   /**< TID of the jobs logger, used as job id */
     Forwarder_Data_t *fwdata;/**< data of the plugin forwarder (== jobserver) */
     list_t resInfos;         /**< job's reservations involving this node */
-    PStask_t *task;          /**< first task this server is started for */
+    PStask_t *prototask;     /**< task prototype, see PSIDHOOK_RECV_SPAWNREQ */
 } PspmixJobserver_t;
 
 /* Application information */
