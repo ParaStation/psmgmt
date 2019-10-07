@@ -3313,13 +3313,11 @@ static void msg_SPAWNSUCCESS(DDErrorMsg_t *msg)
 {
     PStask_ID_t tid = msg->header.sender;
     PStask_ID_t ptid = msg->header.dest;
-    PStask_t *task;
-    char *parent = strdup(PSC_printTID(ptid));
 
-    PSID_log(PSID_LOG_SPAWN, "%s(%s) with parent(%s)\n",
-	     __func__, PSC_printTID(tid), parent);
+    PSID_log(PSID_LOG_SPAWN, "%s(%s)", __func__, PSC_printTID(tid));
+    PSID_log(PSID_LOG_SPAWN, " with parent(%s)\n", PSC_printTID(ptid));
 
-    task = PStasklist_find(&managedTasks, ptid);
+    PStask_t *task = PStasklist_find(&managedTasks, ptid);
     if (task && (task->fd > -1 || task->group == TG_ANY)) {
 	/* register the child */
 	PSID_setSignal(&task->childList, tid, -1);
@@ -3328,9 +3326,11 @@ static void msg_SPAWNSUCCESS(DDErrorMsg_t *msg)
 	PSID_setSignal(&task->assignedSigs, tid, -1);
     } else {
 	/* task not found, it has already died */
-	PSID_log(-1, "%s(%s) with parent(%s) already dead\n",
-		 __func__, PSC_printTID(tid), parent);
+	PSID_log(-1, "%s(%s)", __func__, PSC_printTID(tid));
+	PSID_log(-1, " with parent(%s) already dead\n", PSC_printTID(ptid));
 	PSID_sendSignal(tid, 0, ptid, -1, 0, 0);
+
+	return;
     }
 
     /*
@@ -3344,7 +3344,6 @@ static void msg_SPAWNSUCCESS(DDErrorMsg_t *msg)
 	msg->header.dest = task->forwarder->tid;
     }
     sendMsg(msg);
-    free(parent);
 }
 
 /**
