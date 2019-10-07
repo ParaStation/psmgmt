@@ -459,6 +459,7 @@ int PSI_recvMsg(DDMsg_t *msg, size_t size)
 	    count+=n;
 	} else if (n == -1 && errno == EINTR) {
 	    PSI_log(PSI_LOG_COMM, "%s: read() interrupted\n", __func__);
+	    n = 1; // ensure next round is started
 	    continue;
 	} else {
 	    PSI_warn(-1, errno ? errno : ENOTCONN,
