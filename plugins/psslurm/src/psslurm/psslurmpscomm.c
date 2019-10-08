@@ -1735,100 +1735,44 @@ FORWARD:
 }
 
 /**
- * Get job ID and step ID from the environment in a task structure.
+ * @brief Get jobid from forwarder message header
  *
- * @task      task structure
- *
- * @jobid     return pointer for the job ID
- *
- * @stepid    return pointer for the step ID
- */
-static int getJobIDbyTask(PStask_t *task, uint32_t *jobid, uint32_t *stepid)
-{
-    char *ptr, *sjobid = NULL, *sstepid = NULL;
-    int32_t i=0;
-
-    if (!task->environ) {
-	mlog("%s: environ == NULL in task structure of task '%s' rank %d\n",
-		__func__, PSC_printTID(task->tid), task->rank);
-	return 0;
-    }
-
-    ptr = task->environ[i];
-    while (ptr) {
-	if (!(strncmp(ptr, "SLURM_JOBID=", 12))) {
-	    sjobid = ptr+12;
-	}
-	if (!(strncmp(ptr, "SLURM_STEPID=", 13))) {
-	    sstepid = ptr+13;
-	}
-	if (sjobid && sstepid) break;
-	ptr = task->environ[++i];
-    }
-
-    if (!sjobid || !sstepid) {
-	/* admin users may start jobs directly via mpiexec */
-	if (isPSAdminUser(task->uid, task->gid)) return 0;
-
-	if (!sjobid) {
-	    mlog("%s: could not find job id in environment of task '%s'"
-		 " rank %d\n", __func__, PSC_printTID(task->tid), task->rank);
-	}
-
-	if (!sstepid) {
-	    mlog("%s: could not find step id in environment of task '%s'"
-		 " rank %d\n", __func__, PSC_printTID(task->tid), task->rank);
-	}
-	return 0;
-    }
-
-    *jobid = atoi(sjobid);
-    *stepid = atoi(sstepid);
-
-    return 1;
-}
-
-/**
  * Get job ID and step ID from forwarder message header.
  * As a side effect returns the forwarder task.
  *
- * @header    the header of the message
+ * @param header The header of the message
  *
- * @fwPtr     return pointer to store the forwarder task
+ * @param fwPtr Pointer to store the forwarder task
  *
- * @jobid     return pointer for the job ID
+ * @param jobid Pointer to store the job ID
  *
- * @stepid    return pointer for the step ID
+ * @param stepid Pointer to store the step ID
+ *
+ * @return Returns true on success or false otherwise
  */
-static int getJobIDbyForwarderMsgHeader(DDMsg_t *header, PStask_t **fwPtr,
-					uint32_t *jobid, uint32_t *stepid)
+static bool getJobIDbyForwarderMsgHeader(DDMsg_t *header, PStask_t **fwPtr,
+					 uint32_t *jobid, uint32_t *stepid)
 {
-    PStask_t *forwarder;
-
-    forwarder = PStasklist_find(&managedTasks, header->sender);
+    PStask_t *forwarder = PStasklist_find(&managedTasks, header->sender);
     if (!forwarder) {
 	mlog("%s: could not find forwarder task for sender '%s'\n",
 		__func__, PSC_printTID(header->sender));
-	return 0;
+	return false;
     }
-
-    /*
-    mlog("%s: forwarder '%s' rank %i\n", __func__,
-	    PSC_printTID(forwarder->tid), forwarder->rank);
-    */
-
     *fwPtr = forwarder;
 
-    if (!getJobIDbyTask(forwarder, jobid, stepid)) {
+    bool isAdmin = isPSAdminUser(forwarder->uid, forwarder->gid);
+    Step_t *step = findStepByEnv(forwarder->environ, jobid, stepid, isAdmin);
+    if (!step) {
 	/* admin users may start jobs directly via mpiexec */
-	if (!(isPSAdminUser(forwarder->uid, forwarder->gid))) {
+	if (!isAdmin) {
 	    mlog("%s: could not find jobid/stepid in forwarder task for sender"
 		    " '%s'\n", __func__, PSC_printTID(header->sender));
 	}
-	return 0;
+	return false;
     }
 
-    return 1;
+    return true;
 }
 
 /**
@@ -1840,7 +1784,6 @@ static void handleSpawnFailed(DDErrorMsg_t *msg)
 {
     PStask_t *forwarder = NULL;
     uint32_t jobid, stepid;
-    Step_t *step = NULL;
 
     mwarn(msg->error, "%s: spawn failed: forwarder '%s' rank %i errno %i",
 	  __func__, PSC_printTID(msg->header.sender),
@@ -1851,7 +1794,7 @@ static void handleSpawnFailed(DDErrorMsg_t *msg)
 	goto FORWARD_SPAWN_FAILED_MSG;
     }
 
-    step = findStepByStepId(jobid, stepid);
+    Step_t *step = findStepByStepId(jobid, stepid);
     if (step) {
 	PS_Tasks_t *task = addTask(&step->tasks, msg->request, forwarder->tid,
 				   forwarder, forwarder->childGroup,
@@ -1894,7 +1837,9 @@ static bool filter(PStask_t *task, void *info)
     uint32_t jobid, stepid;
 
     /* get jobid and stepid from received environment */
-    if (!getJobIDbyTask(task, &jobid, &stepid)) {
+    bool isAdmin = isPSAdminUser(task->uid, task->gid);
+    Step_t *step = findStepByEnv(task->environ, &jobid, &stepid, isAdmin);
+    if (!step) {
 	mlog("%s: no slurm ids found in spawnee environment from %s\n",
 	     __func__, PSC_printTID(task->tid));
 	return false;
@@ -1939,7 +1884,6 @@ static void handleSpawnReq(DDTypedBufferMsg_t *msg)
 {
     PStask_t *spawnee;
     uint32_t jobid, stepid;
-    Step_t *step = NULL;
     size_t usedBytes;
 
     fdbg(PSSLURM_LOG_PSCOMM, "from sender %s\n",
@@ -1971,24 +1915,18 @@ static void handleSpawnReq(DDTypedBufferMsg_t *msg)
     }
 
     /* get jobid and stepid from received environment */
-    if (!getJobIDbyTask(spawnee, &jobid, &stepid)) {
-	/* admin users may start jobs directly via mpiexec */
-	if (!(isPSAdminUser(spawnee->uid, spawnee->gid))) {
-	    mlog("%s: no slurm IDs found in spawnee's environment from %s\n",
-		 __func__, PSC_printTID(spawnee->tid));
-	}
-	goto FORWARD_SPAWN_REQ_MSG;
-    }
-
-    /* try to find step */
-    step = findStepByStepId(jobid, stepid);
+    bool isAdmin = isPSAdminUser(spawnee->uid, spawnee->gid);
+    Step_t *step = findStepByEnv(spawnee->environ, &jobid, &stepid, isAdmin);
     if (!step) {
-	/* if the step is not already created, buffer the spawn end msg */
+	/* admin users may start jobs directly via mpiexec */
+	if (isAdmin) {
+	    goto FORWARD_SPAWN_REQ_MSG;
+	}
+
 	mlog("%s: delay spawnee from %s due to missing step %u:%u\n",
 	     __func__, PSC_printTID(msg->header.sender), jobid, stepid);
 
 	PSIDspawn_delayTask(spawnee);
-
 	return;
     }
 

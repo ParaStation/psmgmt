@@ -279,24 +279,11 @@ static void fwExecBatchJob(Forwarder_Data_t *fwdata, int rerun)
     exit(err);
 }
 
-/**
- * Find step structure by using the values of SLURM_STEPID and SLURM_JOBID
- * in the passed environment. If NULL is passed as environment or one of the
- * variables is not found, the values used are 0 as job id and
- * SLURM_BATCH_SCRIPT as step id.
- *
- * jobid_out and stepid_out are set to the used values if not NULL.
- */
-#define findStepByEnv(environ, jobid_out, stepid_out, isAdmin) \
-	    __findStepByEnv(environ, jobid_out, stepid_out, isAdmin, \
-			    __func__, __LINE__)
-static Step_t * __findStepByEnv(char **environ, uint32_t *jobid_out,
-				uint32_t *stepid_out, bool isAdmin,
-				const char *func, const int line) {
-    int count = 0;
-    char *ptr;
+Step_t * __findStepByEnv(char **environ, uint32_t *jobid_out,
+			 uint32_t *stepid_out, bool isAdmin,
+			 const char *func, const int line)
+{
     uint32_t jobid = 0, stepid = SLURM_BATCH_SCRIPT;
-    Step_t *step;
 
     if (!environ) {
 	mlog("%s: invalid environ pointer from '%s:%i'\n", __func__,
@@ -304,7 +291,8 @@ static Step_t * __findStepByEnv(char **environ, uint32_t *jobid_out,
 	return NULL;
     }
 
-    ptr = environ[count++];
+    int count = 0;
+    char *ptr = environ[count++];
     while (ptr) {
 	if (!(strncmp(ptr, "SLURM_STEPID=", 13))) {
 	    sscanf(ptr+13, "%u", &stepid);
@@ -318,7 +306,8 @@ static Step_t * __findStepByEnv(char **environ, uint32_t *jobid_out,
     if (jobid_out) *jobid_out = jobid;
     if (stepid_out) *stepid_out = stepid;
 
-    if (!(step = findStepByStepId(jobid, stepid))) {
+    Step_t *step = findStepByStepId(jobid, stepid);
+    if (!step) {
 	if (!isAdmin) {
 	    mlog("%s: step '%u:%u' not found for '%s:%i'\n", __func__,
 		 jobid, stepid, func, line);

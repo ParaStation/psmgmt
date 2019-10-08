@@ -105,4 +105,26 @@ int handleForwarderInit(void * data);
  */
 int handleForwarderClientStatus(void * data);
 
+/**
+ * @brief Find a step using the passed environment
+ *
+ * Find step structure by using the values of SLURM_STEPID and SLURM_JOBID
+ * in the passed environment. If NULL is passed as environment or one of the
+ * variables is not found, the values used are 0 as jobid and
+ * SLURM_BATCH_SCRIPT as stepid.
+ *
+ * @param jobid_out Holds the jobid of the step on return if not NULL
+ *
+ * @param stepid_out Holds the stepid of the step on return if not NULL
+ *
+ * @return On success the found step is returned or NULL otherwise
+ */
+Step_t * __findStepByEnv(char **environ, uint32_t *jobid_out,
+			 uint32_t *stepid_out, bool isAdmin,
+			 const char *func, const int line);
+
+#define findStepByEnv(environ, jobid_out, stepid_out, isAdmin) \
+	    __findStepByEnv(environ, jobid_out, stepid_out, isAdmin, \
+			    __func__, __LINE__)
+
 #endif
