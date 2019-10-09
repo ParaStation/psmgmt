@@ -125,8 +125,8 @@ Gres_Conf_t *saveGresConf(Gres_Conf_t *gres, char *count)
 	flog("GRES cores feature currently unsupported, ignoring it\n");
     }
 
-    flog("name '%s' count=%lu%s%s%s%s%s%s\n",
-	 gres->name, gres->count,
+    flog("name '%s' id %u count=%lu%s%s%s%s%s%s\n",
+	 gres->name, gres->id, gres->count,
 	 gres->file ? " file=" : "", gres->file ? gres->file : "",
 	 gres->type ? " type=" : "", gres->type ? gres->type : "",
 	 gres->cores ? " cores=" : "", gres->cores ? gres->cores : "");
