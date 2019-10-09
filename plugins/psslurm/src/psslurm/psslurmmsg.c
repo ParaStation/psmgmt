@@ -193,11 +193,10 @@ Slurm_Msg_t * dupSlurmMsg(Slurm_Msg_t *sMsg)
 {
     Slurm_Msg_t *dupMsg = umalloc(sizeof(*dupMsg));
 
-    initSlurmMsg(dupMsg);
-    dupMsg->sock = sMsg->sock;
+    memcpy(dupMsg, sMsg, sizeof(*dupMsg));
+
     dupMsg->data = dupDataBuffer(sMsg->data);
     dupMsg->ptr = dupMsg->data->buf + (sMsg->ptr - sMsg->data->buf);
-    dupMsg->recvTime = sMsg->recvTime;
 
     dupSlurmMsgHead(&dupMsg->head, &sMsg->head);
 
