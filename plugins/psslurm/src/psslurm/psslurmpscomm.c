@@ -373,6 +373,41 @@ error:
     return 0;
 }
 
+/**
+ * @brief Handle the hook PSIDHOOK_RECV_SPAWNREQ
+ *
+ * Delay spawning of processes if no corresponding step
+ * could be found. This might happen if the step-launch message
+ * send by srun has not arrived yet on the local node, but the mother
+ * superior already started the spawner. The process to spawn has
+ * to be suspended until the srun-launch message holding
+ * vital information arrives.
+ *
+ * @param taskPtr The task structure of the process to spawn
+ *
+ * @return Always returns 0
+ */
+static int handleRecvSpawnReq(void *taskPtr)
+{
+    PStask_t *spawnee = taskPtr;
+    uint32_t jobid, stepid;
+
+    bool isAdmin = isPSAdminUser(spawnee->uid, spawnee->gid);
+    Step_t *step = findStepByEnv(spawnee->environ, &jobid, &stepid, isAdmin);
+    if (!step) {
+	/* allow mpiexec jobs from admin users to pass */
+	if (isAdmin) return 0;
+
+	/* if the step is not already created, delay spawning processes */
+	flog("delay spawning processes for %s due to missing step %u:%u\n",
+	     PSC_printTID(spawnee->loggertid), jobid, stepid);
+
+	spawnee->suspended = true;
+    }
+
+    return 0;
+}
+
 void send_PS_JobLaunch(Job_t *job)
 {
     PS_SendDB_t data;
@@ -1878,6 +1913,12 @@ void cleanupDelayedSpawns(uint32_t jobid, uint32_t stepid) {
 /**
 * @brief Handle a PSP_CD_SPAWNREQ message
 *
+* Warning: This message handler is obsolete and only
+* kept for compatibility reasons. The new mechanism uses
+* the hook PSIDHOOK_RECV_SPAWNREQ.
+*
+* The new handler can be found in @ref handleRecvSpawnReq().
+*
 * @param msg The message to handle
 */
 static void handleSpawnReq(DDTypedBufferMsg_t *msg)
@@ -2081,6 +2122,10 @@ void finalizePScomm(bool verbose)
     if (!PSIDhook_del(PSIDHOOK_CREATEPARTNL, handleCreatePartNL)) {
 	if (verbose) mlog("%s: failed to unregister PSIDHOOK_CREATEPARTNL\n",
 			  __func__);
+    }
+
+    if (!PSIDhook_del(PSIDHOOK_RECV_SPAWNREQ, handleRecvSpawnReq)) {
+	if (verbose) mlog("unregister 'PSIDHOOK_RECV_SPAWNREQ' failed\n");
     }
 
     /* unregister various messages */
@@ -2355,7 +2400,7 @@ bool initPScomm(void)
     oldSpawnFailedHandler = PSID_registerMsg(PSP_CD_SPAWNFAILED,
 					     (handlerFunc_t) handleSpawnFailed);
 
-    /* register PSP_CD_SPAWNREQ message */
+    /* register *obsolete* PSP_CD_SPAWNREQ message */
     oldSpawnReqHandler = PSID_registerMsg(PSP_CD_SPAWNREQ,
 					  (handlerFunc_t) handleSpawnReq);
 
@@ -2378,6 +2423,11 @@ bool initPScomm(void)
 
     if (!PSIDhook_add(PSIDHOOK_CREATEPARTNL, handleCreatePartNL)) {
 	mlog("%s: cannot register PSIDHOOK_CREATEPARTNL\n", __func__);
+	return false;
+    }
+
+    if (!PSIDhook_add(PSIDHOOK_RECV_SPAWNREQ, handleRecvSpawnReq)) {
+	mlog("register 'PSIDHOOK_RECV_SPAWNREQ' failed\n");
 	return false;
     }
 

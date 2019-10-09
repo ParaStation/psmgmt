@@ -2894,14 +2894,19 @@ static void handleSpawnReq(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
 	PStask_snprintf(tasktxt, sizeof(tasktxt), clone);
 	PSID_log(PSID_LOG_SPAWN, "%s: Spawning %s\n", __func__, tasktxt);
 
-	answer.error = spawnTask(clone);
+	if (clone->suspended) {
+	    /* PSIDHOOK_RECV_SPAWNREQ may delay spawning */
+	    clone->suspended = false;
+	    PSIDspawn_delayTask(clone);
+	} else {
+	    answer.error = spawnTask(clone);
+	}
 
 	if (answer.error) {
 	    /* send only on failure. success reported by forwarder */
 	    sendMsg(&answer);
 	    sendCHILDRESREL(loggerTID, CPUset, PSC_getMyTID());
 	}
-
     }
 
     /* reset psserial's byteorder */
@@ -3159,12 +3164,6 @@ static void drop_SPAWNREQUEST(DDTypedBufferMsg_t *msg)
 
 void PSIDspawn_delayTask(PStask_t *task)
 {
-    if (list_empty(&task->next)) {
-	char tasktxt[128];
-	PStask_snprintf(tasktxt, sizeof(tasktxt), task);
-	PSID_log(-1, "%s: Unenqueued task %s\n", __func__, tasktxt);
-	return;
-    }
     PStasklist_dequeue(task);
     list_add_tail(&task->next, &delayedTasks);
 }
