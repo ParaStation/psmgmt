@@ -286,7 +286,7 @@ void initJobEnv(Job_t *job)
 
     /* set JOB_GRES */
     gres = findGresCred(&job->gresList, NO_VAL, GRES_CRED_JOB);
-    if (gres && gres->bitAlloc[0]) {
+    if (gres && gres->bitAlloc && gres->bitAlloc[0]) {
 	hexBitstr2List(gres->bitAlloc[0], &list, &listSize);
 	envSet(&job->env, "SLURM_JOB_GRES", list);
 	ufree(list);
@@ -411,7 +411,7 @@ static void setGresEnv(Step_t *step)
 
 	/* gres "gpu" plugin */
 	gres = findGresCred(&step->gresList, GRES_PLUGIN_GPU, GRES_CRED_STEP);
-	if (gres) {
+	if (gres && gres->bitAlloc) {
 	    if (gres->bitAlloc[localNodeId]) {
 		hexBitstr2List(gres->bitAlloc[localNodeId], &list, &listSize);
 		setenv("CUDA_VISIBLE_DEVICES", list, 1);
@@ -427,7 +427,7 @@ static void setGresEnv(Step_t *step)
 
 	/* gres "mic" plugin */
 	gres = findGresCred(&step->gresList, GRES_PLUGIN_MIC, GRES_CRED_STEP);
-	if (gres) {
+	if (gres && gres->bitAlloc) {
 	    if (gres->bitAlloc[localNodeId]) {
 		hexBitstr2List(gres->bitAlloc[localNodeId], &list, &listSize);
 		setenv("OFFLOAD_DEVICES", list, 1);
@@ -442,7 +442,7 @@ static void setGresEnv(Step_t *step)
 
 	/* set STEP_GRES */
 	gres = findGresCred(&step->gresList, NO_VAL, GRES_CRED_STEP);
-	if (gres && gres->bitAlloc[localNodeId]) {
+	if (gres && gres->bitAlloc && gres->bitAlloc[localNodeId]) {
 	    hexBitstr2List(gres->bitAlloc[localNodeId], &list, &listSize);
 	    setenv("SLURM_STEP_GRES", list, 1);
 	    ufree(list);
