@@ -265,33 +265,45 @@ void initJobEnv(Job_t *job)
 
     /* GRes "gpu" plugin */
     gres = findGresCred(&job->gresList, GRES_PLUGIN_GPU, GRES_CRED_JOB);
-    if (gres && gres->bitAlloc[0]) {
-	hexBitstr2List(gres->bitAlloc[0], &list, &listSize);
-	envSet(&job->env, "CUDA_VISIBLE_DEVICES", list);
-	envSet(&job->env, "GPU_DEVICE_ORDINAL", list);
-	ufree(list);
-	list = NULL;
-	listSize = 0;
+    if (gres && gres->bitAlloc) {
+	if (gres->bitAlloc[0]) {
+	    hexBitstr2List(gres->bitAlloc[0], &list, &listSize);
+	    envSet(&job->env, "CUDA_VISIBLE_DEVICES", list);
+	    envSet(&job->env, "GPU_DEVICE_ORDINAL", list);
+	    ufree(list);
+	    list = NULL;
+	    listSize = 0;
+	} else {
+	    flog("invalid gpu gres bitAlloc for local nodeID 0\n");
+	}
     }
 
     /* GRes "mic" plugin */
     gres = findGresCred(&job->gresList, GRES_PLUGIN_MIC, GRES_CRED_JOB);
-    if (gres && gres->bitAlloc[0]) {
-	hexBitstr2List(gres->bitAlloc[0], &list, &listSize);
-	envSet(&job->env, "OFFLOAD_DEVICES", list);
-	ufree(list);
-	list = NULL;
-	listSize = 0;
+    if (gres && gres->bitAlloc) {
+	if (gres->bitAlloc[0]) {
+	    hexBitstr2List(gres->bitAlloc[0], &list, &listSize);
+	    envSet(&job->env, "OFFLOAD_DEVICES", list);
+	    ufree(list);
+	    list = NULL;
+	    listSize = 0;
+	} else {
+	    flog("invalid mic gres bitAlloc for local nodeID 0\n");
+	}
     }
 
     /* set JOB_GRES */
     gres = findGresCred(&job->gresList, NO_VAL, GRES_CRED_JOB);
-    if (gres && gres->bitAlloc && gres->bitAlloc[0]) {
-	hexBitstr2List(gres->bitAlloc[0], &list, &listSize);
-	envSet(&job->env, "SLURM_JOB_GRES", list);
-	ufree(list);
-	list = NULL;
-	listSize = 0;
+    if (gres && gres->bitAlloc) {
+	if (gres->bitAlloc[0]) {
+	    hexBitstr2List(gres->bitAlloc[0], &list, &listSize);
+	    envSet(&job->env, "SLURM_JOB_GRES", list);
+	    ufree(list);
+	    list = NULL;
+	    listSize = 0;
+	} else {
+	    flog("invalid job gres bitAlloc for local nodeID 0\n");
+	}
     }
 }
 
@@ -420,8 +432,8 @@ static void setGresEnv(Step_t *step)
 		list = NULL;
 		listSize = 0;
 	    } else {
-		mlog("%s: invalid gpu gres bitAlloc for local nodeID '%u'\n",
-			__func__, localNodeId);
+		flog("invalid gpu gres bitAlloc for local nodeID '%u'\n",
+		     localNodeId);
 	    }
 	}
 
@@ -435,19 +447,24 @@ static void setGresEnv(Step_t *step)
 		list = NULL;
 		listSize = 0;
 	    } else {
-		mlog("%s: invalid mic gres bitAlloc for local nodeID '%u'\n",
-			__func__, localNodeId);
+		flog("invalid mic gres bitAlloc for local nodeID '%u'\n",
+		     localNodeId);
 	    }
 	}
 
 	/* set STEP_GRES */
 	gres = findGresCred(&step->gresList, NO_VAL, GRES_CRED_STEP);
-	if (gres && gres->bitAlloc && gres->bitAlloc[localNodeId]) {
-	    hexBitstr2List(gres->bitAlloc[localNodeId], &list, &listSize);
-	    setenv("SLURM_STEP_GRES", list, 1);
-	    ufree(list);
-	    list = NULL;
-	    listSize = 0;
+	if (gres && gres->bitAlloc) {
+	    if (gres->bitAlloc[localNodeId]) {
+		hexBitstr2List(gres->bitAlloc[localNodeId], &list, &listSize);
+		setenv("SLURM_STEP_GRES", list, 1);
+		ufree(list);
+		list = NULL;
+		listSize = 0;
+	    } else {
+		flog("invalid step gres bitAlloc for local nodeID '%u'\n",
+		     localNodeId);
+	    }
 	}
     } else {
 	flog("unable to set gres: invalid local node ID for step %u:%u\n",
