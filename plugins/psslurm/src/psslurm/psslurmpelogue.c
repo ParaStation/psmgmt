@@ -285,12 +285,11 @@ static bool startIOforwarder(Step_t *step, const void *info)
 int handleLocalPElogueStart(void *data)
 {
     PElogueChild_t *pedata = data;
-    uint32_t id, packID = NO_VAL;
-    char *sPackID, *slurmHosts, *user, *userEnv;
+    uint32_t packID = NO_VAL;
 
     if (pedata->type == PELOGUE_EPILOGUE) return 0;
 
-    slurmHosts = envGet(&pedata->env, "SLURM_JOB_NODELIST");
+    char *slurmHosts = envGet(&pedata->env, "SLURM_JOB_NODELIST");
     if (!slurmHosts) {
 	flog("missing SLURM_JOB_NODELIST for allocation\n");
 	return -1;
@@ -298,14 +297,14 @@ int handleLocalPElogueStart(void *data)
 
     /* convert allocation ID */
     errno = 0;
-    id = strtol(pedata->jobid, NULL, 10);
+    uint32_t id = strtol(pedata->jobid, NULL, 10);
     if (packID == 0 && errno == EINVAL) {
 	flog("strol(%s) of pedata->jobid %s failed\n", pedata->jobid);
 	return -1;
     }
 
     /* convert optional pack ID */
-    sPackID = envGet(&pedata->env, "SLURM_PACK_JOB_ID");
+    char *sPackID = envGet(&pedata->env, "SLURM_PACK_JOB_ID");
     if (sPackID) {
 	errno = 0;
 	packID = strtol(sPackID, NULL, 10);
@@ -315,8 +314,12 @@ int handleLocalPElogueStart(void *data)
 	}
     }
 
-    userEnv = envGet(&pedata->env, "SLURM_JOB_USER");
-    user = userEnv ? userEnv : uid2String(pedata->uid);
+    char *userEnv = envGet(&pedata->env, "SLURM_JOB_USER");
+    char *user = userEnv ? userEnv : uid2String(pedata->uid);
+    if (!user) {
+	flog("resolve username for uid %i failed\n", pedata->uid);
+	return -1;
+    }
 
     int ret = 0;
     if (sPackID) {
