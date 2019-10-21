@@ -2174,10 +2174,7 @@ static int fillWithMpiexec(SpawnRequest_t *req, int usize, PStask_t *task)
 static bool tryPMISpawn(SpawnRequest_t *req, int universeSize,
 			int serviceRank, int *totalProcs)
 {
-    PStask_t *task;
-    int i, rc;
-    char *cur, buffer[1024];
-    strv_t env;
+    int i;
 
     if (!req) {
 	mlog("%s: no spawn request (THIS SHOULD NEVER HAPPEN!!!)\n", __func__);
@@ -2189,7 +2186,7 @@ static bool tryPMISpawn(SpawnRequest_t *req, int universeSize,
 	return false;
     }
 
-    task = PStask_new();
+    PStask_t *task = PStask_new();
     if (!task) {
 	mlog("%s: cannot create a new task\n", __func__);
 	return false;
@@ -2214,9 +2211,10 @@ static bool tryPMISpawn(SpawnRequest_t *req, int universeSize,
     }
 
     /* build environment */
+    strv_t env;
     strvInit(&env, NULL, 0);
     for (i = 0; cTask->environ[i]; i++) {
-	cur = cTask->environ[i];
+	char *cur = cTask->environ[i];
 
 	/* skip troublesome old env vars */
 	if (!strncmp(cur, "__KVS_PROVIDER_TID=", 19)) continue;
@@ -2245,7 +2243,7 @@ static bool tryPMISpawn(SpawnRequest_t *req, int universeSize,
     }
 
     /* interchangable function to fill actual spawn command into task */
-    rc = fillTaskFunction(req, universeSize, task);
+    int rc = fillTaskFunction(req, universeSize, task);
 
     if (rc == -1) {
 	/* function to fill the spawn task tells us not to be responsible */

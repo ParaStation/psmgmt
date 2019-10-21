@@ -161,7 +161,7 @@ static const char *msg2Str(PSP_PSSLURM_t type)
 	case PSP_PACK_EXIT:
 	    return "PSP_PACK_EXIT";
 	default:
-	    snprintf(buf, sizeof(buf), "%u <Unknown>", type);
+	    snprintf(buf, sizeof(buf), "%i <Unknown>", type);
 	    return buf;
     }
     return NULL;

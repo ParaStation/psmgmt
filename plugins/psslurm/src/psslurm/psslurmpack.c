@@ -833,7 +833,7 @@ static void unpackStepIOoptions(Step_t *step, char **ptr)
 bool __unpackReqLaunchTasks(Slurm_Msg_t *sMsg, Step_t **stepPtr,
 			    const char *caller, const int line)
 {
-    uint32_t jobid, stepid, count, i, tmp;
+    uint32_t jobid, stepid, tmp;
 
     if (!sMsg) {
 	mlog("%s: invalid sMsg from '%s' at %i\n", __func__, caller, line);
@@ -1014,7 +1014,9 @@ bool __unpackReqLaunchTasks(Slurm_Msg_t *sMsg, Step_t **stepPtr,
     }
 
     /* TODO use job options */
+    uint32_t count;
     getUint32(ptr, &count);
+    uint32_t i;
     for (i=0; i<count; i++) {
 	/* type */
 	getUint32(ptr, &tmp);
