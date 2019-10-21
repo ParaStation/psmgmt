@@ -109,12 +109,11 @@ static int jobCallback(int32_t exit_status, Forwarder_Data_t *fw)
 
 static int stepIOcallback(int32_t exit_status, Forwarder_Data_t *fw)
 {
-    Step_t *step = fw->userData, *tmp;
+    Step_t *step = fw->userData;
 
     /* validate step pointer */
-    tmp = findStepByStepId(step->jobid, step->stepid);
-    if (!tmp || tmp != step) {
-	flog("%s not found\n", strStepID(step));
+    if (!verifyStepPtr(step)) {
+	flog("Invalid step pointer %p\n", step);
 	return 0;
     }
 
@@ -149,12 +148,11 @@ static int stepIOcallback(int32_t exit_status, Forwarder_Data_t *fw)
 
 static int stepCallback(int32_t exit_status, Forwarder_Data_t *fw)
 {
-    Step_t *step = fw->userData, *tmp;
+    Step_t *step = fw->userData;
 
     /* validate step pointer */
-    tmp = findStepByStepId(step->jobid, step->stepid);
-    if (!tmp || tmp != step) {
-	flog("%s not found\n", strStepID(step));
+    if (!verifyStepPtr(step)) {
+	flog("Invalid step pointer %p\n", step);
 	return 0;
     }
 
