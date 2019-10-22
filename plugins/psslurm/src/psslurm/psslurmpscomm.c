@@ -376,14 +376,17 @@ error:
 /**
  * @brief Handle the hook PSIDHOOK_RECV_SPAWNREQ
  *
- * Delay spawning of processes if no corresponding step
- * could be found. This might happen if the step-launch message
- * send by srun has not arrived yet on the local node, but the mother
- * superior already started the spawner. The process to spawn has
- * to be suspended until the srun-launch message holding
- * vital information arrives.
+ * Delay spawning of processes if no corresponding step could be
+ * found. This might happen if the step-launch message send by srun
+ * has not yet arrived on the local node, but the mother superior
+ * already started the spawner. The process to spawn has to be
+ * delayed until the srun-launch message holding vital information
+ * arrives.
  *
- * @param taskPtr The task structure of the process to spawn
+ * The delay is triggered by setting the flag suspended in the task
+ * structure @a taskPtr is pointing to.
+ *
+ * @param taskPtr Task structure describing the processes to spawn
  *
  * @return Always returns 0
  */
@@ -393,11 +396,10 @@ static int handleRecvSpawnReq(void *taskPtr)
     uint32_t jobid, stepid;
 
     bool isAdmin = isPSAdminUser(spawnee->uid, spawnee->gid);
-    Step_t *step = findStepByEnv(spawnee->environ, &jobid, &stepid, isAdmin);
-    if (!step) {
-	/* allow mpiexec jobs from admin users to pass */
-	if (isAdmin) return 0;
+    /* allow processes spawned by admin users to pass */
+    if (isAdmin) return 0;
 
+    if (!findStepByEnv(spawnee->environ, &jobid, &stepid, isAdmin)) {
 	/* if the step is not already created, delay spawning processes */
 	flog("delay spawning processes for %s due to missing step %u:%u\n",
 	     PSC_printTID(spawnee->loggertid), jobid, stepid);
@@ -763,7 +765,8 @@ static void handle_EpilogueLaunch(DDTypedBufferMsg_t *msg)
     }
 }
 
-static void send_PS_EpilogueStateRes(PStask_ID_t dest, uint32_t id, uint16_t res)
+static void send_PS_EpilogueStateRes(PStask_ID_t dest, uint32_t id,
+				     uint16_t res)
 {
     DDTypedBufferMsg_t msg = {
 	.header = {
@@ -907,7 +910,8 @@ static void handle_EpilogueRes(DDTypedBufferMsg_t *msg)
 	    if (res == PELOGUE_FAILED) {
 		snprintf(reason, sizeof(reason), "psslurm: epilogue failed\n");
 	    } else if (res == PELOGUE_TIMEDOUT) {
-		snprintf(reason, sizeof(reason), "psslurm: epilogue timed out\n");
+		snprintf(reason, sizeof(reason),
+			 "psslurm: epilogue timed out\n");
 	    }
 	    setNodeOffline(&alloc->env, alloc->id,
 			   getSlurmHostbyNodeID(sender), reason);
@@ -1382,7 +1386,8 @@ static bool nodeDownAlloc(Alloc_t *alloc, const void *info)
 		alloc->epilogCnt++;
 	    }
 
-	    if (alloc->state == A_RUNNING || alloc->state == A_PROLOGUE_FINISH) {
+	    if (alloc->state == A_RUNNING
+		|| alloc->state == A_PROLOGUE_FINISH) {
 		signalAlloc(alloc->id, SIGKILL, 0);
 	    }
 	    return true;
@@ -1928,7 +1933,7 @@ static void handleSpawnReq(DDTypedBufferMsg_t *msg)
     size_t usedBytes;
 
     fdbg(PSSLURM_LOG_PSCOMM, "from sender %s\n",
-         PSC_printTID(msg->header.sender));
+	 PSC_printTID(msg->header.sender));
 
     /* only handle message subtype PSP_SPAWN_END meant for us */
     if (msg->type != PSP_SPAWN_END ||
@@ -2026,7 +2031,7 @@ static void handleChildBornMsg(DDErrorMsg_t *msg)
     }
 
     fdbg(PSSLURM_LOG_PSCOMM, "from sender %s for jobid %u:%u\n",
-         PSC_printTID(msg->header.sender), jobid, stepid);
+	 PSC_printTID(msg->header.sender), jobid, stepid);
 
     if (stepid == SLURM_BATCH_SCRIPT) {
 	Job_t *job = findJobById(jobid);
@@ -2051,7 +2056,7 @@ static void handleChildBornMsg(DDErrorMsg_t *msg)
 	    sendFWtaskInfo(step->fwdata, task);
 	} else {
 	    mlog("%s: no forwarder for step %u:%u rank %i\n", __func__,
-	         jobid, stepid, forwarder->rank - step->packTaskOffset);
+		 jobid, stepid, forwarder->rank - step->packTaskOffset);
 	}
     }
 
@@ -2125,38 +2130,35 @@ void finalizePScomm(bool verbose)
     }
 
     if (!PSIDhook_del(PSIDHOOK_RECV_SPAWNREQ, handleRecvSpawnReq)) {
-	if (verbose) mlog("unregister 'PSIDHOOK_RECV_SPAWNREQ' failed\n");
+	if (verbose) mlog("%s: failed to unregister PSIDHOOK_RECV_SPAWNREQ\n",
+			  __func__);
     }
 
-    /* unregister various messages */
+    /* unregister from various messages types */
     if (oldChildBornHandler) {
 	PSID_registerMsg(PSP_DD_CHILDBORN, oldChildBornHandler);
     } else {
 	PSID_clearMsg(PSP_DD_CHILDBORN);
     }
 
-    /* unregister PSP_CC_MSG message handler */
     if (oldCCMsgHandler) {
 	PSID_registerMsg(PSP_CC_MSG, oldCCMsgHandler);
     } else {
 	PSID_clearMsg(PSP_CC_MSG);
     }
 
-    /* unregister PSP_CD_SPAWNFAILED message handler */
     if (oldSpawnFailedHandler) {
 	PSID_registerMsg(PSP_CD_SPAWNFAILED, oldSpawnFailedHandler);
     } else {
 	PSID_clearMsg(PSP_CD_SPAWNFAILED);
     }
 
-    /* unregister PSP_CD_SPAWNREQ message handler */
     if (oldSpawnReqHandler) {
 	PSID_registerMsg(PSP_CD_SPAWNREQ, oldSpawnReqHandler);
     } else {
 	PSID_clearMsg(PSP_CD_SPAWNREQ);
     }
 
-    /* unregister PSP_CD_UNKNOWN message handler */
     if (oldUnkownHandler) {
 	PSID_registerMsg(PSP_CD_UNKNOWN, oldUnkownHandler);
     } else {
@@ -2248,7 +2250,7 @@ static bool resolveHostEntry(int confIdx)
     char *addrList = getConfValueC(&Config, tmp);
     if (addrList) {
 	if (!convHLtoPSnodes(addrList, getNodeIDbyName,
-		             &info.addrIDs, &info.nrOfAddrIDs)) {
+			     &info.addrIDs, &info.nrOfAddrIDs)) {
 	    flog("resolving nodes in address list %s index %i failed\n",
 		 addrList, confIdx);
 	    goto FINISH;
@@ -2366,8 +2368,8 @@ static bool initHostLT(void)
     size_t z;
     for (z=0; z<numHostLT; z++) {
 	e.key = HostLT[z].hostname;
-        e.data = &HostLT[z].nodeID;
-        if (!hsearch_r(e, ENTER, &f, &HostHash)) {
+	e.data = &HostLT[z].nodeID;
+	if (!hsearch_r(e, ENTER, &f, &HostHash)) {
 	    mwarn(errno, "%s: hsearch(%s, ENTER) failed: ", __func__,
 		  HostLT[z].hostname);
 	    hdestroy_r(&HostHash);
@@ -2386,25 +2388,25 @@ bool initPScomm(void)
 {
     initSerial(0, sendMsg);
 
-    /* register psslurm PSP_CC_PLUG_PSSLURM message */
+    /* register to psslurm PSP_CC_PLUG_PSSLURM message */
     PSID_registerMsg(PSP_CC_PLUG_PSSLURM, (handlerFunc_t) handlePsslurmMsg);
 
-    /* register PSP_DD_CHILDBORN message */
+    /* register to PSP_DD_CHILDBORN message */
     oldChildBornHandler = PSID_registerMsg(PSP_DD_CHILDBORN,
 					   (handlerFunc_t) handleChildBornMsg);
 
-    /* register PSP_CC_MSG message */
+    /* register to PSP_CC_MSG message */
     oldCCMsgHandler = PSID_registerMsg(PSP_CC_MSG, (handlerFunc_t) handleCCMsg);
 
-    /* register PSP_CD_SPAWNFAILED message */
+    /* register to PSP_CD_SPAWNFAILED message */
     oldSpawnFailedHandler = PSID_registerMsg(PSP_CD_SPAWNFAILED,
 					     (handlerFunc_t) handleSpawnFailed);
 
-    /* register *obsolete* PSP_CD_SPAWNREQ message */
+    /* register to *obsolete* PSP_CD_SPAWNREQ message */
     oldSpawnReqHandler = PSID_registerMsg(PSP_CD_SPAWNREQ,
 					  (handlerFunc_t) handleSpawnReq);
 
-    /* register PSP_CD_UNKNOWN message */
+    /* register to PSP_CD_UNKNOWN message */
     oldUnkownHandler = PSID_registerMsg(PSP_CD_UNKNOWN,
 					(handlerFunc_t) handleUnknownMsg);
 
@@ -2427,7 +2429,7 @@ bool initPScomm(void)
     }
 
     if (!PSIDhook_add(PSIDHOOK_RECV_SPAWNREQ, handleRecvSpawnReq)) {
-	mlog("register 'PSIDHOOK_RECV_SPAWNREQ' failed\n");
+	mlog("%s: cannot register PSIDHOOK_RECV_SPAWNREQ\n", __func__);
 	return false;
     }
 
