@@ -2808,7 +2808,11 @@ static void handleSpawnReq(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
     if (PSIDhook_call(PSIDHOOK_RECV_SPAWNREQ, task) < 0) {
 	PSID_log(-1, "%s: PSIDHOOK_RECV_SPAWNREQ failed.\n", __func__);
 	answer.error = EINVAL; //TODO which error code?
-	sendMsg(&answer);
+	/* send one answer per rank */
+	for (r = 0; r < num; r++) {
+	    answer.request = task->rank + r;
+	    sendMsg(&answer);
+	}
 	PStask_delete(task);
 	return;
     }
@@ -2825,6 +2829,7 @@ static void handleSpawnReq(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
 	uint32_t extraEnvSize;
 
 	PStask_t *clone = PStask_clone(task);
+	clone->suspended = false;
 	clone->rank += r;
 	int32_t rank = clone->rank;
 	answer.request = rank;
@@ -2894,9 +2899,8 @@ static void handleSpawnReq(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
 	PStask_snprintf(tasktxt, sizeof(tasktxt), clone);
 	PSID_log(PSID_LOG_SPAWN, "%s: Spawning %s\n", __func__, tasktxt);
 
-	if (clone->suspended) {
+	if (task->suspended) {
 	    /* PSIDHOOK_RECV_SPAWNREQ may delay spawning */
-	    clone->suspended = false;
 	    PSIDspawn_delayTask(clone);
 	} else {
 	    answer.error = spawnTask(clone);
