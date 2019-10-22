@@ -3147,12 +3147,21 @@ static void drop_SPAWNREQUEST(DDTypedBufferMsg_t *msg)
     /* Ignore trailing fragments */
     if (fNum) return;
 
-    PSP_getTypedMsgBuf(msg, &used, __func__, "num", &num, sizeof(num));
+    /* Extract num and rank from message to drop */
+    char *ptr = msg->buf + used;
 
+    /* ensure we use the same byteorder as libpsi */
+    bool byteOrder = setByteOrder(true);
+
+    /* fetch info from message */
+    getUint32(&ptr, &num);
     PStask_t *task = PStask_new();
-    PStask_decodeTask(msg->buf + used, task, false);
+    ptr += PStask_decodeTask(ptr, task, false);
 
-    int32_t rank = task->rank;
+    /* reset psserial's byteorder */
+    setByteOrder(byteOrder);
+
+    int rank = task->rank;
 
     PStask_delete(task);
 
