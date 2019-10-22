@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2007-2017 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2007-2019 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -22,13 +22,14 @@
 #define PMIU_MAXLINE 1024
 
 /** maximal size of a kvs name */
-#define PMI_KVSNAME_MAX 256
+#define PMI_KVSNAME_MAX 128
 
 /** maximal size of a kvs key */
 #define PMI_KEYLEN_MAX  32
 
 /** maximal size of a kvs value */
-#define PMI_VALLEN_MAX 1024
+//#define PMI_VALLEN_MAX 1024
+#define PMI_VALLEN_MAX (PMIU_MAXLINE - PMI_KVSNAME_MAX - PMI_KEYLEN_MAX - 48)
 
 /** maximal number of arguments for pmi spawn */
 #define PMI_SPAWN_MAX_ARGUMENTS	256
