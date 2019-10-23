@@ -1,3 +1,159 @@
+Version psmgmt-5.1.26:
+======================
+------------------------------------------------------------------------
+6ca7c789 | Michael Rauh | Wed, 23 Oct 2019 13:07:53 +0200
+
+Bugfix: add missing offset to SLURM_GTIDS for pack jobs (pct:#334)
+------------------------------------------------------------------------
+30ee1b48 | Norbert Eicker | Wed, 23 Oct 2019 01:22:22 +0200
+
+Bugfix: Make PMI parameters fit into the line (psc:#332)
+------------------------------------------------------------------------
+c370c956 | Norbert Eicker | Tue, 22 Oct 2019 09:39:14 +0200
+
+Fix implementation of d119dc84
+
+ - Needs to send one answer per rank to make spawner happy
+ - Do not spawn suspended tasks
+------------------------------------------------------------------------
+507b3df2 | Norbert Eicker | Tue, 22 Oct 2019 09:36:28 +0200
+
+Unifyed logging, improved comments, whitespace fixes, etc.
+------------------------------------------------------------------------
+05efc70c | Norbert Eicker | Tue, 22 Oct 2019 08:28:59 +0200
+
+Consider byte-order when dropping SPAWNREQUEST (jwt:#4282)
+------------------------------------------------------------------------
+4eaa54f9 | Michael Rauh | Mon, 21 Oct 2019 10:33:10 +0200
+
+Bugfix: use verifyStepPtr() to ensure the step in the callback
+is still valid (jrt:#10122)
+------------------------------------------------------------------------
+ab0f8a3c | Michael Rauh | Fri, 11 Oct 2019 13:34:52 +0200
+
+Bugfix: fix segmentation fault if username resolution failes (jwt:#4243)
+------------------------------------------------------------------------
+42f468cf | Michael Rauh | Thu, 10 Oct 2019 10:33:50 +0200
+
+Unify gres error reporting
+------------------------------------------------------------------------
+3f300f2e | Michael Rauh | Wed, 9 Oct 2019 15:23:09 +0200
+
+Show gres IDs at psslurm startup
+------------------------------------------------------------------------
+270c55af | Michael Rauh | Wed, 9 Oct 2019 15:05:16 +0200
+
+Bugfix: fix segfault in gres environment parsing
+------------------------------------------------------------------------
+d119dc84 | Michael Rauh | Wed, 9 Oct 2019 11:07:18 +0200
+
+Bugfix: let psslurm delay spawning of processes using the
+new mechanism via PSIDHOOK_RECV_SPAWNREQ (jwt:#2515)
+------------------------------------------------------------------------
+76a05445 | Michael Rauh | Wed, 9 Oct 2019 10:01:45 +0200
+
+Bugfix: ensure dupSlurmMsg() copies the complete structure
+------------------------------------------------------------------------
+ba3bf654 | Michael Rauh | Tue, 8 Oct 2019 15:09:20 +0200
+
+Make findStepByEnv() public and replace getJobIDbyTask()
+------------------------------------------------------------------------
+e225341c | Norbert Eicker | Mon, 7 Oct 2019 18:38:31 +0200
+
+Ensure PSI_recvMsg() ignores interupted read() (jwt:#2494)
+------------------------------------------------------------------------
+93a17a15 | Norbert Eicker | Mon, 7 Oct 2019 12:05:00 +0200
+
+Don't send message to parent known to be dead
+------------------------------------------------------------------------
+4dccda87 | Stephan Krempel | Wed, 2 Oct 2019 12:20:25 +0200
+
+pspmix: Clearer naming of the task protoype variable
+------------------------------------------------------------------------
+573bf0f8 | Stephan Krempel | Wed, 2 Oct 2019 12:18:36 +0200
+
+Better documentation of PSIDHOOK_RECV_SPAWNREQ
+
+Clarify that the passed task struct is only a prototype
+------------------------------------------------------------------------
+949567f5 | Michael Rauh | Tue, 1 Oct 2019 15:47:08 +0200
+
+Only report step timeout message on mother superior
+------------------------------------------------------------------------
+88241bd4 | Michael Rauh | Mon, 30 Sep 2019 16:52:15 +0200
+
+Bugfix: fix segfault in psslurm when late replies from srun arrive
+when the corresponding step is already gone (jrt:10050)
+------------------------------------------------------------------------
+37c7412e | Michael Rauh | Thu, 26 Sep 2019 17:19:41 +0200
+
+Remove psgw error files if the job was re-queued and started successful
+Always write psgw error files if --gw_quiet is not specified
+Replace spank option --gw_verbose with --gw_quiet
+------------------------------------------------------------------------
+4870166b | Michael Rauh | Thu, 26 Sep 2019 14:19:51 +0200
+
+Update psgw error file-name
+------------------------------------------------------------------------
+b396eddf | Michael Rauh | Wed, 25 Sep 2019 12:55:46 +0200
+
+Bugfix: prevent possible segfault in psgw plugin
+------------------------------------------------------------------------
+4b60fc6e | Michael Rauh | Tue, 24 Sep 2019 17:33:57 +0200
+
+Merge branch 'master' into gw_psgwd_per_node
+------------------------------------------------------------------------
+3d523fd5 | Norbert Eicker | Thu, 19 Sep 2019 15:39:20 +0200
+
+Fix potential memory leaks unveiled by scan-build
+------------------------------------------------------------------------
+9722e7d1 | Norbert Eicker | Thu, 19 Sep 2019 13:43:01 +0200
+
+Suppress warnings emitted by scan-build
+------------------------------------------------------------------------
+b62f24fd | Norbert Eicker | Thu, 19 Sep 2019 13:16:41 +0200
+
+Ensure to actually exit on PSIlog_exit().
+------------------------------------------------------------------------
+d561b5e7 | Norbert Eicker | Mon, 16 Sep 2019 16:23:24 +0200
+
+Bugfix: Prevent psgw plugin from crashing the daemon (j3t:#329)
+------------------------------------------------------------------------
+205696f1 | Michael Rauh | Thu, 12 Sep 2019 15:41:17 +0200
+
+Merge branch 'master' into gw_psgwd_per_node
+------------------------------------------------------------------------
+46041c2d | Michael Rauh | Thu, 12 Sep 2019 15:37:47 +0200
+
+Improve psgw error messages if no gateway nodes could be reserved
+for the allocation
+------------------------------------------------------------------------
+1491d331 | Michael Rauh | Tue, 10 Sep 2019 16:47:00 +0200
+
+Add option --gw_verbose to report psgw startup errors to file
+------------------------------------------------------------------------
+cd857074 | Michael Rauh | Tue, 10 Sep 2019 12:03:49 +0200
+
+Merge branch 'master' into gw_psgwd_per_node
+------------------------------------------------------------------------
+235eed40 | Michael Rauh | Thu, 5 Sep 2019 11:26:35 +0200
+
+Merge branch 'master' into gw_psgwd_per_node
+------------------------------------------------------------------------
+8a39021a | Michael Rauh | Thu, 5 Sep 2019 11:20:24 +0200
+
+Improve logging of psgw plugin
+------------------------------------------------------------------------
+c7ede61d | Michael Rauh | Wed, 4 Sep 2019 14:53:56 +0200
+
+Adopt psroute.py to start multiple psgwd on a gateway node
+------------------------------------------------------------------------
+bdbd0c0c | Michael Rauh | Fri, 30 Aug 2019 17:12:55 +0200
+
+Add option --gw_psgwd_per_node start multiple psgwd on a gateway node
+------------------------------------------------------------------------
+
+
 Version psmgmt-5.1.25:
 ======================
 ------------------------------------------------------------------------

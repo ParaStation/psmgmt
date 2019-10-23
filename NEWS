@@ -5,6 +5,35 @@ Copyright (C) 2010-2019 ParTec Cluster Competence Center GmbH, Munich
 Please send bug reports, questions and suggestions to <support@par-tec.com>
 
 
+Version 5.1.26:
+===============
+Bugfixes:
+ - Prevent psgw plugin from crashing the daemon (j3t:#329)
+ - Fix segfault when late srun replies arrive after step is gone (jrt:10050)
+ - Ensure PSI_recvMsg() ignores interupted read() (jwt:#2494)
+ - Let psslurm delay tasks via PSIDHOOK_RECV_SPAWNREQ (jwt:#2515)
+ - Prevent segmentation fault if username resolution failes (jwt:#4234)
+ - Ensure step in callback is still valid (jrt:#10122)
+ - Consider byte-order when dropping SPAWNREQUEST (jwt:#4282)
+ - Make PMI parameters fit into the line (psc:#332)
+ - Add missing offset to SLURM_GTIDS for pack jobs (pct:#334)
+ - Fix segfault in gres environment parsing
+ - Ensure dupSlurmMsg() copies the complete structure
+ - Prevent possible segfault in psgw plugin
+ - Fix potential memory leaks unveiled by scan-build
+ - Ensure to actually exit on PSIlog_exit().
+Enhancements:
+ - Add option --gw_psgwd_per_node start multiple psgwd on a gateway node
+ - Show gres IDs at psslurm startup
+ - Only report step timeout message on mother superior
+ - Unify gres error reporting
+ - Add option --gw_verbose to report psgw startup errors to file
+ - Improve handling of psgw error files
+ - Don't send message to parent known to be dead
+Additional changes:
+ - Adopt psroute.py to start multiple psgwd on a gateway node
+
+
 Version 5.1.25:
 ===============
 Bugfixes:
