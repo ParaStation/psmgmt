@@ -321,10 +321,11 @@ static char *GTIDsToList(Step_t *step)
     uint32_t i;
     char tmp[128];
 
+    uint32_t offset = step->packTaskOffset != NO_VAL ? step->packTaskOffset : 0;
     for (i=0; i<step->globalTaskIdsLen[step->localNodeId]; i++) {
 	if (i > 0) str2Buf(",", &buf, &bufSize);
 	snprintf(tmp, sizeof(tmp), "%u",
-		 step->globalTaskIds[step->localNodeId][i]);
+		 step->globalTaskIds[step->localNodeId][i] + offset);
 	str2Buf(tmp, &buf, &bufSize);
     }
     return buf;
