@@ -17,39 +17,39 @@ def vlog(msg):
 def parseEnv():
     global VERBOSE
     verbose = os.getenv("PSGW_VERBOSE")
-    if verbose != None:
+    if verbose is not None:
         VERBOSE = 1
 
     uid = os.getenv("SLURM_JOB_UID")
-    if uid == None or uid == "":
+    if uid is None or uid == "":
         raise Exception("Missing SLURM_JOB_UID")
 
     gid = os.getenv("SLURM_JOB_GID")
-    if gid == None or gid == "":
+    if gid is None or gid == "":
         raise Exception("Missing SLURM_JOB_GID")
 
     user = os.getenv("SLURM_JOB_USER")
-    if user == None or user == "":
+    if user is None or user == "":
         raise Exception("Missing SLURM_JOB_USER")
 
     jobid = os.getenv("SLURM_JOB_ID")
-    if jobid == None or jobid == "":
+    if jobid is None or jobid == "":
         raise Exception("Missing SLURM_JOB_ID")
 
     plugin = os.getenv("SLURM_SPANK_PSGW_PLUGIN")
-    if plugin == None or plugin == "":
+    if plugin is None or plugin == "":
         raise Exception("Missing SLURM_SPANK_PSGW_PLUGIN")
 
     rFile = os.getenv("_PSSLURM_ENV_PSP_GW_SERVER")
-    if rFile == None or rFile == "":
+    if rFile is None or rFile == "":
         raise Exception("Missing _PSSLURM_ENV_PSP_GW_SERVER")
 
     home = os.getenv("HOME")
-    if home == None or home == "":
+    if home is None or home == "":
         raise Exception("Missing HOME")
 
     nodeList = os.getenv("SLURM_PACK_JOB_NODELIST")
-    if nodeList == None or nodeList == "":
+    if nodeList is None or nodeList == "":
         raise Exception("Missing SLURM_PACK_JOB_NODELIST")
 
     vlog("job " + jobid + " user " + user + " plugin " + plugin +
@@ -117,18 +117,18 @@ def retrieveRoutes(plugin, nodesA, nodesB, gateways):
     for gw in gateways:
         routes[gw] = []
 
-    if "routeConnectionX" in dir(plu) and None != plu.routeConnectionX:
+    if "routeConnectionX" in dir(plu) and plu.routeConnectionX is not None:
         for nodeA in nodesA:
             for nodeB in nodesB:
                 err, gw = plu.routeConnectionX(nodesA, nodesB, gateways, nodeA, nodeB)
-                if None != err:
+                if err is not None:
                     raise Exception("Failure in routeConnectionX")
                 routes[gw] += [(nodeA, nodeB)]
-    elif "routeConnectionS" in dir(plu) and None != plu.routeConnectionS:
+    elif "routeConnectionS" in dir(plu) and plu.routeConnectionS is not None:
         for i, nodeA in enumerate(nodesA):
             for j, nodeB in enumerate(nodesB):
                 err, gwId = plu.routeConnectionS(len(nodesA), len(nodesB), len(gateways), i, j)
-                if None != err:
+                if err is not None:
                     raise Exception("Failure in routeConnectionS")
                 routes[gateways[gwId]] += [(nodeA, nodeB)]
     else:
@@ -165,12 +165,12 @@ def extractGateways():
     psgwdToPort = {}
 
     num = os.getenv("NUM_GATEWAYS")
-    if num == None or num == "":
+    if num is None or num == "":
         raise Exception("Missing NUM_GATEWAYS")
 
     for x in range(int(num)):
         gw = os.getenv("GATEWAY_ADDR_" + str(x))
-        if gw == None or gw == "":
+        if gw is None or gw == "":
             raise Exception("Missing GATEWAY_ADDR_" + str(x))
         vlog("gw" + str(x) + ": "+ gw)
         if not psgwdToPort.has_key(gw.split(":")[0]):
