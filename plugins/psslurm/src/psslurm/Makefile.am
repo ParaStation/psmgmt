@@ -18,6 +18,7 @@ pspam_dir     := plugins/pspam/pspam
 psexec_dir    := plugins/psexec
 pspmi_dir     := plugins/pspmi
 
+AM_CFLAGS += -std=gnu99
 AM_LDFLAGS += -avoid-version -module
 AM_CPPFLAGS += -I$(top_srcdir)/bin/daemon -I$(srcdir)/../include \
 	       -I$(top_srcdir)/$(psslurm_dir)/common \
