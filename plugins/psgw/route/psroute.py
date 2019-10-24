@@ -2,9 +2,6 @@
 
 import os
 import sys
-import signal
-import socket
-import tempfile
 import traceback
 import re
 import ClusterShell.NodeSet
