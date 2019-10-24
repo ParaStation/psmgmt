@@ -184,34 +184,38 @@ def handleException(reason, err):
     traceback.print_exc()
     sys.exit(1)
 
-# Parse environment
-try:
-    jobid, uid, gid, user, rFile, plugin, nodeList, home = parseEnv()
-except Exception as err:
-    handleException("Parsing environment failed", err)
+def main():
+    # Parse environment
+    try:
+        jobid, uid, gid, user, rFile, plugin, nodeList, home = parseEnv()
+    except Exception as err:
+        handleException("Parsing environment failed", err)
 
-# Continue execution as job owner
-try:
-    changeUser(uid, gid, user, home)
-except Exception as err:
-    handleException("Changing user failed", err)
+    # Continue execution as job owner
+    try:
+        changeUser(uid, gid, user, home)
+    except Exception as err:
+        handleException("Changing user failed", err)
 
-# Split cluster and booster nodes
-try:
-    nodesA, nodesB = splitNodes(nodeList)
-except Exception as err:
-    handleException("Splitting nodes " + nodeList + " failed", err)
+    # Split cluster and booster nodes
+    try:
+        nodesA, nodesB = splitNodes(nodeList)
+    except Exception as err:
+        handleException("Splitting nodes " + nodeList + " failed", err)
 
-# Extract gateway nodes
-try:
-    psgwdToPort = extractGateways()
-except Exception as err:
-    handleException("Extracting gateways failed", err)
+    # Extract gateway nodes
+    try:
+        psgwdToPort = extractGateways()
+    except Exception as err:
+        handleException("Extracting gateways failed", err)
 
-# Write routing file
-try:
-    writeRouteFile(plugin, rFile, psgwdToPort, nodesA, nodesB)
-except Exception as err:
-    handleException("Writing routing file failed", err)
+    # Write routing file
+    try:
+        writeRouteFile(plugin, rFile, psgwdToPort, nodesA, nodesB)
+    except Exception as err:
+        handleException("Writing routing file failed", err)
 
-vlog("success")
+    vlog("success")
+
+if __name__ == "__main__":
+    main()
