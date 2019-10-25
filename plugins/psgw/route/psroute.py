@@ -54,9 +54,9 @@ def parseEnv():
     if nodeList is None or nodeList == "":
         raise Exception("Missing SLURM_PACK_JOB_NODELIST")
 
-    vlog("job " + jobid + " user " + user + " plugin " + plugin +
-         " route file " + str(rFile) + " nodeList " + nodeList +
-         " home " + home)
+    vlog("job: %s, user: %s, plugin: %s, "
+         "route file: %s, nodeList: %s, home: %s" %
+         (jobid, user, plugin, rFile, nodeList, home))
 
     return jobid, int(uid), int(gid), user, rFile, plugin, nodeList, home
 
@@ -105,7 +105,7 @@ def writeRouteFile(plugin, rFile, psgwdToPort, nodesA, nodesB):
                     gwIndex[gw] = 0
                 count += 1
 
-    vlog("wrote " + str(count)  + " lines to route file " + rFile)
+    vlog("wrote %d lines to route file %s" % (count, rFile))
 
     assert count == len(nodesA)*len(nodesB)
 
@@ -144,7 +144,7 @@ def splitNodes(nodeList):
     booster = []
 
     for node in expand(nodeList):
-        data = config.getList("host:" + node, "Psid.HardwareTypes",
+        data = config.getList("host:%s" % node, "Psid.HardwareTypes",
                               inherit=True, follow=True)
         if any("booster" in s for s in data):
             booster.append(node)
@@ -171,10 +171,10 @@ def extractGateways():
         raise Exception("Missing NUM_GATEWAYS")
 
     for x in range(int(num)):
-        gw = os.getenv("GATEWAY_ADDR_" + str(x))
+        gw = os.getenv("GATEWAY_ADDR_%d" % x)
         if gw is None or gw == "":
-            raise Exception("Missing GATEWAY_ADDR_" + str(x))
-        vlog("gw" + str(x) + ": "+ gw)
+            raise Exception("Missing GATEWAY_ADDR_%d" % x)
+        vlog("gw%d: %s" % (x, gw))
         if not psgwdToPort.has_key(gw.split(":")[0]):
             psgwdToPort[gw.split(":")[0]] = []
         psgwdToPort[gw.split(":")[0]].append(int(gw.split(":")[1]))
@@ -182,7 +182,7 @@ def extractGateways():
     return psgwdToPort
 
 def handleException(reason, err):
-    print(reason + ": " + str(err))
+    print("%s: %s" % (reason, err))
     traceback.print_exc()
     sys.exit(1)
 
@@ -203,7 +203,7 @@ def main():
     try:
         nodesA, nodesB = splitNodes(nodeList)
     except Exception as err:
-        handleException("Splitting nodes " + nodeList + " failed", err)
+        handleException("Splitting nodes %s failed" % nodeList, err)
 
     # Extract gateway nodes
     try:
