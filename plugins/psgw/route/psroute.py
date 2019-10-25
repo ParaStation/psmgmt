@@ -1,5 +1,8 @@
 #!/usr/bin/env python2
 
+# pylint: disable=invalid-name
+# pylint: disable=missing-docstring
+
 from __future__ import print_function
 
 import os
@@ -13,6 +16,7 @@ from pypsconfig import PSConfig
 VERBOSE = 0
 
 def vlog(msg):
+    global VERBOSE
     if VERBOSE == 1:
         print(msg)
 
@@ -81,11 +85,11 @@ def compress(nodes):
     return str(ClusterShell.NodeSet.NodeSet(",".join(nodes)))
 
 def writeRouteFile(plugin, rFile, psgwdToPort, nodesA, nodesB):
-    nodesA   = sorted(expand(nodesA))
-    nodesB   = sorted(expand(nodesB))
+    nodesA = sorted(expand(nodesA))
+    nodesB = sorted(expand(nodesB))
     gateways = sorted(psgwdToPort.keys())
 
-    if 0 == len(gateways):
+    if not gateways:
         raise Exception("No gateways available")
 
     routes = retrieveRoutes(plugin, nodesA, nodesB, gateways)
@@ -99,9 +103,9 @@ def writeRouteFile(plugin, rFile, psgwdToPort, nodesA, nodesB):
         for gw in gateways:
             for nodeA, nodeB in routes[gw]:
                 f.write("%s:%d %s %s\n" % (gw, psgwdToPort[gw][gwIndex[gw]],
-                        nodeA, nodeB))
+                                           nodeA, nodeB))
                 gwIndex[gw] += 1
-                if (gwIndex[gw] == len(psgwdToPort[gw])):
+                if gwIndex[gw] == len(psgwdToPort[gw]):
                     gwIndex[gw] = 0
                 count += 1
 
@@ -189,7 +193,7 @@ def handleException(reason, err):
 def main():
     # Parse environment
     try:
-        jobid, uid, gid, user, rFile, plugin, nodeList, home = parseEnv()
+        _, uid, gid, user, rFile, plugin, nodeList, home = parseEnv()
     except Exception as err:
         handleException("Parsing environment failed", err)
 
