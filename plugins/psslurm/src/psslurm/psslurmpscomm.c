@@ -464,14 +464,17 @@ void send_PS_AllocState(Alloc_t *alloc)
 
 static int retryExecScript(PSnodes_ID_t remote, uint16_t scriptID)
 {
-    if (remote == slurmController && slurmBackupController > -1) {
-	/* retry using slurm backup controller */
-	mlog("%s: using backup controller, nodeID %i\n", __func__,
-	     slurmBackupController);
-	return psExecSendScriptStart(scriptID, slurmBackupController);
+    int idx = getCtlHostIndex(remote);
+    if (idx == -1) return -1;
+
+    PSnodes_ID_t nextCtl = getCtlHostID(idx+1);
+    if (nextCtl != -1) {
+	/* retry with next controller */
+	flog("using next controller with nodeID %i\n", nextCtl);
+	return psExecSendScriptStart(scriptID, nextCtl);
     } else if (remote != PSC_getMyID()) {
-	/* retry using local offline script */
-	mlog("%s: using local script\n", __func__);
+	/* no more controller left, retry using local offline script */
+	flog("using local script\n");
 	return psExecStartLocalScript(scriptID);
     }
 
@@ -498,9 +501,9 @@ static int callbackNodeOffline(uint32_t id, int32_t exit, PSnodes_ID_t remote,
 
     if (job) {
 	if (job->state == JOB_QUEUED || job->state == JOB_EXIT) {
-	    /* only mother superior should try to requeue a job */
+	    /* only mother superior should try to re-queue a job */
 	    if (job->nodes[0] == PSC_getMyID()) {
-		requeueBatchJob(job, slurmController);
+		requeueBatchJob(job, getCtlHostID(0));
 	    }
 	}
     }
@@ -524,8 +527,8 @@ void setNodeOffline(env_t *env, uint32_t id, const char *host, char *reason)
     envSet(&clone, "SLURM_HOSTNAME", host);
     envSet(&clone, "SLURM_REASON", reason);
 
-    flog("node '%s' exec script on node %i\n", host, slurmController);
-    psExecStartScript(id, "psslurm-offline", &clone, slurmController,
+    flog("node '%s' exec script on node %i\n", host, getCtlHostID(0));
+    psExecStartScript(id, "psslurm-offline", &clone, getCtlHostID(0),
 		      callbackNodeOffline);
 
     envDestroy(&clone);

@@ -252,7 +252,7 @@ PSnodes_ID_t getNodeIDbySlurmHost(const char *host);
 bool findPackIndex(Step_t *step, int64_t last, int64_t *offset, uint32_t *idx);
 
 /**
- * @brief Initialzie PScomm facility
+ * @brief Initialize PScomm facility
  *
  * Initialize the facility handling communication via psid. This
  * includes registering various psid messages and hooks
@@ -266,7 +266,7 @@ bool initPScomm(void);
  *
  * Initialize the facility handling communication via psid. This
  * includes cleaning up various psid messages and hooks. If @a verbose
- * is true, diferent problems when doing so are reported.
+ * is true, different problems when doing so are reported.
  *
  * @param verbose More verbose reports on problems
  *

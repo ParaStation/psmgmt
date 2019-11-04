@@ -39,7 +39,17 @@
 
 #include "psslurmcomm.h"
 
+/** default slurmd port psslurm listens for new srun/slurmcltd requests */
+#define PSSLURM_SLURMD_PORT 6818
+
+/** default slurmctld port */
+#define PSSLURM_SLURMCTLD_PORT 6817
+
+/** maximal allowed length of a bitstring */
 #define MAX_PACK_STR_LEN (16 * 1024 * 1024)
+
+/** maximal number of parallel supported Slurm control daemons */
+#define MAX_CTL_HOSTS 16
 
 /** socket to listen for new Slurm connections */
 static int slurmListenSocket = -1;
@@ -56,8 +66,36 @@ typedef struct {
     Msg_Forward_t fw;	    /**< message forwarding structure */
 } Connection_t;
 
-/* list which holds all connections */
+/** structure holding slurmctld host definitions */
+typedef struct {
+    char *host;		    /**< hostname */
+    char *addr;		    /**< optional host address */
+    PSnodes_ID_t id;	    /**< PS node ID */
+} Ctl_Hosts_t;
+
+/** array holding all configured slurmctld hosts */
+static Ctl_Hosts_t ctlHosts[MAX_CTL_HOSTS];
+
+/** number of control hosts */
+static int ctlHostsCount = 0;
+
+/** list which holds all connections */
 static LIST_HEAD(connectionList);
+
+PSnodes_ID_t getCtlHostID(int index)
+{
+    if (index >= ctlHostsCount) return -1;
+    return ctlHosts[index].id;
+}
+
+int getCtlHostIndex(PSnodes_ID_t id)
+{
+    int i;
+    for (i=0; i<ctlHostsCount; i++) {
+	if (ctlHosts[i].id == id) return i;
+    }
+    return -1;
+}
 
 /**
  * @brief Find a connection
@@ -622,44 +660,24 @@ int openSlurmctldCon(void)
 
 int openSlurmctldConEx(Connection_CB_t *cb, void *info)
 {
-    int sock = -1, len;
-    char *addr, *port;
+    char *port = getConfValueC(&SlurmConfig, "SlurmctldPort");
 
-    port = getConfValueC(&SlurmConfig, "SlurmctldPort");
-    if (!(addr = getConfValueC(&SlurmConfig, "ControlAddr"))) {
-	addr = getConfValueC(&SlurmConfig, "ControlMachine");
-    }
-
-    if (!addr || !port) {
-	mlog("%s: invalid control address %s or port %s\n",
-	     __func__, addr, port);
-	return sock;
-    }
-
-    if (addr[0] == '"') addr++;
-    len = strlen(addr);
-    if (addr[len-1] == '"') addr[len-1] = '\0';
-
-    /* connect to main controller */
-    sock = tcpConnect(addr, port);
-    if (sock < 0) {
-	/* try to connect to backup controller */
-	if (!(addr = getConfValueC(&SlurmConfig, "BackupAddr"))) {
-	    addr = getConfValueC(&SlurmConfig, "BackupController");
-	}
-	if (!addr) return sock;
-
-	if (addr[0] == '"') addr++;
-	len = strlen(addr);
-	if (addr[len-1] == '"') addr[len-1] = '\0';
-	mlog("%s: connect to %s\n", __func__, addr);
+    int i, sock = -1;
+    for (i=0; i<ctlHostsCount; i++) {
+	char *addr = (ctlHosts[i].addr) ? ctlHosts[i].addr : ctlHosts[i].host;
 
 	sock = tcpConnect(addr, port);
-
-	if (sock < 0) return sock;
+	if (sock > -1) {
+	    fdbg(PSSLURM_LOG_IO | PSSLURM_LOG_IO_VERB,
+		 "connected to %s socket %i\n", addr, sock);
+	    break;
+	}
     }
-    mdbg(PSSLURM_LOG_IO | PSSLURM_LOG_IO_VERB,
-	 "%s: connect to %s socket %i\n", __func__, addr, sock);
+
+    if (sock < 0) {
+	flog("connecting to %i configured slurmctld failed\n", ctlHostsCount);
+	return sock;
+    }
 
     registerSlurmSocket(sock, cb, info);
 
@@ -1463,4 +1481,124 @@ void handleBrokenConnection(PSnodes_ID_t nodeID)
 	    }
 	}
     }
+}
+
+/**
+ * @brief deprecated, tbr
+ *
+ * Support for deprecated ControlMachine, ControlAddr, BackupController,
+ * BackupAddr.
+ */
+static bool resControllerIDs(void)
+{
+    /* resolve main controller */
+    char *addr = getConfValueC(&SlurmConfig, "ControlAddr");
+    char *host = getConfValueC(&SlurmConfig, "ControlMachine");
+
+    char *name = (addr) ? addr : host;
+    if (!name) mlog("%s: invalid ControlMachine\n", __func__);
+
+    PSnodes_ID_t slurmCtl = getNodeIDbyName(name);
+    if (slurmCtl == -1) {
+	flog("unable to resolve main controller '%s'\n", name);
+	return false;
+    }
+
+    ctlHosts[ctlHostsCount].host = host;
+    ctlHosts[ctlHostsCount].addr = addr;
+    ctlHosts[ctlHostsCount].id = slurmCtl;
+    ctlHostsCount++;
+
+    /* resolve backup controller */
+    addr = getConfValueC(&SlurmConfig, "BackupAddr");
+    host = getConfValueC(&SlurmConfig, "BackupController");
+
+    name = (addr) ? addr : host;
+    /* we may not have a backup controller configured */
+    if (!name) return true;
+
+    PSnodes_ID_t slurmBackupCtl = getNodeIDbyName(name);
+    if (slurmBackupCtl == -1) {
+	flog("unable to resolve backup controller '%s'\n", name);
+	return false;
+    }
+
+    ctlHosts[ctlHostsCount].host = host;
+    ctlHosts[ctlHostsCount].addr = addr;
+    ctlHosts[ctlHostsCount].id = slurmBackupCtl;
+    ctlHostsCount++;
+
+    return true;
+}
+
+/**
+ * @param Initialize the slurmctld host array
+ *
+ * Convert the slurmctld config (SlurmctldHost) to a host array
+ * and resolve the corresponding PS node IDs.
+ *
+ * @return Returns true on success otherwise false is
+ * returned.
+ */
+static bool initControlHosts()
+{
+    int i, numEntry = getConfValueI(&Config, "SLURM_CTLHOST_ENTRY_COUNT");
+
+    for (i=0; i<numEntry; i++) {
+	char key[64];
+
+	snprintf(key, sizeof(key), "SLURM_CTLHOST_ADDR_%i", i);
+	char *addr = getConfValueC(&Config, key);
+
+	snprintf(key, sizeof(key), "SLURM_CTLHOST_ENTRY_%i", i);
+	char *host = getConfValueC(&Config, key);
+
+	char *name = (addr) ? addr : host;
+	PSnodes_ID_t id = getNodeIDbyName(name);
+	if (id == -1) {
+	    flog("unable to resolve controller(%i) '%s'\n", name, i);
+	    return false;
+	}
+	ctlHosts[ctlHostsCount].host = host;
+	ctlHosts[ctlHostsCount].addr = addr;
+	ctlHosts[ctlHostsCount].id = id;
+	ctlHostsCount++;
+    }
+
+    return true;
+}
+
+bool initSlurmCon(void)
+{
+    memset(ctlHosts, 0, sizeof(ctlHosts));
+
+    /* resolve control hosts */
+    if (!initControlHosts()) {
+	flog("initialize of control hosts failed\n");
+	return false;
+    }
+
+    if (!ctlHostsCount) {
+	/* try deprecated method to resolve the control hosts */
+	if (!resControllerIDs()) {
+	    flog("initialize of control hosts failed\n");
+	    return false;
+	}
+    }
+
+    /* listening on slurmd port */
+    int ctlPort = getConfValueI(&SlurmConfig, "SlurmdPort");
+    if (ctlPort < 0) ctlPort = PSSLURM_SLURMD_PORT;
+    if ((openSlurmdSocket(ctlPort)) < 0) return false;
+
+    /* register to slurmctld */
+    ctlPort = getConfValueI(&SlurmConfig, "SlurmctldPort");
+    if (ctlPort < 0) {
+	char buf[256];
+	snprintf(buf, sizeof(buf), "%i", PSSLURM_SLURMCTLD_PORT);
+	addConfigEntry(&SlurmConfig, "SlurmctldPort", buf);
+    }
+    sendNodeRegStatus(true);
+
+    return true;
 }

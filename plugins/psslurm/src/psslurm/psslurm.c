@@ -52,8 +52,6 @@
 #include "psslurm.h"
 
 #define PSSLURM_CONFIG_FILE  PLUGINDIR "/psslurm.conf"
-#define PSSLURM_SLURMD_PORT 6818
-#define PSSLURM_SLURMCTLD_PORT 6817
 #define MEMORY_DEBUG 0
 
 /** the job cleanup timer */
@@ -74,9 +72,6 @@ bool pluginShutdown = false;
 
 /** hash value of the SLURM config file */
 uint32_t configHash;
-
-PSnodes_ID_t slurmController;
-PSnodes_ID_t slurmBackupController = -1;
 
 /** psid plugin requirements */
 char name[] = "psslurm";
@@ -486,40 +481,6 @@ static void setConfOpt(void)
     }
 }
 
-static int getControllerIDs(void)
-{
-    char *conAddr;
-
-    /* resolve main controller */
-    if (!(conAddr = getConfValueC(&SlurmConfig, "ControlAddr"))) {
-	if (!(conAddr = getConfValueC(&SlurmConfig, "ControlMachine"))) {
-	    mlog("%s: invalid ControlMachine\n", __func__);
-	    return 0;
-	}
-    }
-
-    if ((slurmController = getNodeIDbyName(conAddr)) == -1) {
-	mlog("%s: unable to resolve main controller '%s'\n", __func__, conAddr);
-	return 0;
-    }
-
-    /* resolve backup controller */
-    if (!(conAddr = getConfValueC(&SlurmConfig, "BackupAddr"))) {
-	if (!(conAddr = getConfValueC(&SlurmConfig, "BackupController"))) {
-	    /* we could be running without backup controller */
-	    return 1;
-	}
-    }
-
-    if ((slurmBackupController = getNodeIDbyName(conAddr)) == -1) {
-	mlog("%s: unable to resolve backup controller '%s'\n",
-		__func__, conAddr);
-	return 0;
-    }
-
-    return 1;
-}
-
 /**
  * @brief Enable libc FPE exception traps
  *
@@ -547,8 +508,7 @@ static void enableFPEexceptions(void)
 
 int initialize(void)
 {
-    int ctlPort;
-    char *slurmUser, buf[256];
+    char *slurmUser;
     struct passwd *pw;
 
     start_time = time(NULL);
@@ -613,7 +573,7 @@ int initialize(void)
 	confAccPollTime = 30;
     }
 
-    /* save the Slurm user id */
+    /* save the Slurm user ID */
     if ((slurmUser = getConfValueC(&SlurmConfig, "SlurmUser"))) {
 	if ((pw = getpwnam(slurmUser))) {
 	    slurmUserID = pw->pw_uid;
@@ -624,21 +584,8 @@ int initialize(void)
 	}
     }
 
-    /* resolve controller IDs */
-    if (!getControllerIDs()) goto INIT_ERROR;
-
-    /* listening on slurmd port */
-    ctlPort = getConfValueI(&SlurmConfig, "SlurmdPort");
-    if (ctlPort < 0) ctlPort = PSSLURM_SLURMD_PORT;
-    if ((openSlurmdSocket(ctlPort)) < 0) goto INIT_ERROR;
-
-    /* register to slurmctld */
-    ctlPort = getConfValueI(&SlurmConfig, "SlurmctldPort");
-    if (ctlPort < 0) {
-	snprintf(buf, sizeof(buf), "%i", PSSLURM_SLURMCTLD_PORT);
-	addConfigEntry(&SlurmConfig, "SlurmctldPort", buf);
-    }
-    sendNodeRegStatus(true);
+    /* initialize Slurm communication */
+    if (!initSlurmCon()) goto INIT_ERROR;
 
     isInit = 1;
 
