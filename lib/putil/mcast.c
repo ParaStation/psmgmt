@@ -2,17 +2,12 @@
  * ParaStation
  *
  * Copyright (C) 2002-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2012 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2019 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-#ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__((used)) =
-    "$Id$";
-#endif /* DOXYGEN_SHOULD_SKIP_THIS */
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <errno.h>
@@ -29,11 +24,7 @@ static char vcid[] __attribute__((used)) =
 #include <netdb.h>
 
 /* Extra includes for load-determination */
-#ifdef __linux__
 #include <sys/sysinfo.h>
-#else
-#error WRONG OS Type
-#endif
 
 #include "logging.h"
 #include "selector.h"
@@ -417,13 +408,11 @@ static int initSockMCast(int group, unsigned short port)
 	MCast_exit(errno, "%s: setsockopt(SO_REUSEADDR)", __func__);
     }
 
-#ifndef __linux__
     reuse = 1; /* 0 = disable (default), 1 = enable */
     if (setsockopt(sock, SOL_SOCKET, SO_REUSEPORT, &reuse,
 		   sizeof(reuse)) == -1) {
 	MCast_exit(errno, "%s: setsockopt(SO_REUSEPORT)", __func__);
     }
-#endif
 
     MCast_log(MCAST_LOG_INIT, "%s: I'm node %d, using interface %s\n",
 	      __func__, myID, inet_ntoa(mreq.imr_interface));
@@ -515,16 +504,12 @@ static void checkConnections(void)
 static MCastLoad_t getLoad(void)
 {
     MCastLoad_t load = {{0.0, 0.0, 0.0}};
-#ifdef __linux__
     struct sysinfo s_info;
 
     sysinfo(&s_info);
     load.load[0] = (double) s_info.loads[0] / (1<<SI_LOAD_SHIFT);
     load.load[1] = (double) s_info.loads[1] / (1<<SI_LOAD_SHIFT);
     load.load[2] = (double) s_info.loads[2] / (1<<SI_LOAD_SHIFT);
-#else
-#error BAD OS !!!!
-#endif
 
     return load;
 }

@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 1999-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2018 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2019 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -26,11 +26,9 @@
 #include <netdb.h>
 
 /* Extra includes for extended reliable error message passing */
-#ifdef __linux__
 #include <asm/types.h>
 #include <linux/errqueue.h>
 #include <sys/uio.h>
-#endif
 
 #include "list.h"
 #include "logging.h"
@@ -656,7 +654,6 @@ static int MYrecvfrom(int sock, void *buf, size_t len, int flags,
 	    break;
 	case ECONNREFUSED:
 	case EHOSTUNREACH:
-#ifdef __linux__
 	    RDP_warn(RDP_LOG_CONN, eno, "%s: handle this", __func__);
 	    /* Handle extended error */
 	    ret = handleErr(eno);
@@ -692,7 +689,6 @@ static int MYrecvfrom(int sock, void *buf, size_t len, int flags,
 		return 0;
 	    }
 	    break;
-#endif
 	default:
 	    RDP_warn(-1, eno, "%s", __func__);
 	}
@@ -780,7 +776,6 @@ static int MYsendto(int sock, void *buf, size_t len, int flags,
 	    break;
 	case ECONNREFUSED:
 	case EHOSTUNREACH:
-#ifdef __linux__
 	    RDP_warn(RDP_LOG_CONN, eno, "%s: to %s (%d), handle this", __func__,
 		     inet_ntoa(((struct sockaddr_in *)to)->sin_addr), node);
 	    /* Handle extended error */
@@ -802,7 +797,6 @@ static int MYsendto(int sock, void *buf, size_t len, int flags,
 	    /* Try to send again */
 	    goto restart;
 	    break;
-#endif
 	default:
 	    RDP_warn(-1, eno, "%s to %s(%d)", __func__,
 		     inet_ntoa(((struct sockaddr_in *)to)->sin_addr), node);
@@ -945,7 +939,6 @@ static int initSockRDP(in_addr_t addr, unsigned short port, int qlen)
 	RDP_exit(errno, "%s: bind(%d)", __func__, ntohs(port));
     }
 
-#ifdef __linux__
     /*
      * enable RECV Error Queue
      */
@@ -955,7 +948,6 @@ static int initSockRDP(in_addr_t addr, unsigned short port, int qlen)
 	    RDP_exit(errno, "%s: setsockopt(IP_RECVERR)", __func__);
 	}
     }
-#endif
 
     return s;
 }
@@ -1560,7 +1552,6 @@ static void handleControlPacket(rdphdr_t *hdr, int node)
  */
 static int handleErr(int eno)
 {
-#ifdef __linux__
     struct msghdr errmsg;
     struct sockaddr_in sin;
     struct iovec iov;
@@ -1661,7 +1652,6 @@ static int handleErr(int eno)
 	RDP_warn(-1, eno, "%s: UNKNOWN errno %d to %s(%d) port %d\n", __func__,
 		 eno, inet_ntoa(sin.sin_addr), node, ntohs(sin.sin_port));
     }
-#endif
 
     return 0;
 }
