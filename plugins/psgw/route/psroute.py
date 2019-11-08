@@ -173,8 +173,9 @@ def extractGateways():
     num = os.getenv("NUM_GATEWAYS")
     if num is None or num == "":
         raise Exception("Missing NUM_GATEWAYS")
+    num = int(num)
 
-    for x in range(int(num)):
+    for x in range(num):
         gw = os.getenv("GATEWAY_ADDR_%d" % x)
         if gw is None or gw == "":
             raise Exception("Missing GATEWAY_ADDR_%d" % x)
