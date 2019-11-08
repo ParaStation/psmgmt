@@ -78,6 +78,8 @@ typedef struct {
     PSnodes_ID_t *nodes;	/**< node-list of accounted nodes */
     pid_t childPid;		/**< PID being accounted (e.g. job-script) */
     PStask_ID_t loggerTID;	/**< task ID of the logger (if any) */
+    list_t *tasks;
+    list_t *remoteTasks;
 } SlurmAccData_t;
 
 typedef struct {

@@ -110,6 +110,9 @@ static handlerFunc_t oldCCMsgHandler = NULL;
 /** Old handler for PSP_CD_SPAWNFAILED  messages */
 static handlerFunc_t oldSpawnFailedHandler = NULL;
 
+/** Old handler for PSP_CD_SPAWNSUCCESS  messages */
+static handlerFunc_t oldSpawnSuccessHandler = NULL;
+
 /** Old handler for PSP_CD_SPAWNREQ messages */
 static handlerFunc_t oldSpawnReqHandler = NULL;
 
@@ -1778,9 +1781,9 @@ FORWARD:
 }
 
 /**
- * @brief Get jobid from forwarder message header
+ * @brief Get jobid by forwarder task ID
  *
- * Get job ID and step ID from forwarder message header.
+ * Get job ID and step ID by forwarder task ID.
  * As a side effect returns the forwarder task.
  *
  * @param header The header of the message
@@ -1793,13 +1796,13 @@ FORWARD:
  *
  * @return Returns true on success or false otherwise
  */
-static bool getJobIDbyForwarderMsgHeader(DDMsg_t *header, PStask_t **fwPtr,
-					 uint32_t *jobid, uint32_t *stepid)
+static bool getJobIDbyForwarder(PStask_ID_t fwTID, PStask_t **fwPtr,
+				uint32_t *jobid, uint32_t *stepid)
 {
-    PStask_t *forwarder = PStasklist_find(&managedTasks, header->sender);
+    PStask_t *forwarder = PStasklist_find(&managedTasks, fwTID);
     if (!forwarder) {
 	mlog("%s: could not find forwarder task for sender '%s'\n",
-		__func__, PSC_printTID(header->sender));
+		__func__, PSC_printTID(fwTID));
 	return false;
     }
     *fwPtr = forwarder;
@@ -1810,12 +1813,33 @@ static bool getJobIDbyForwarderMsgHeader(DDMsg_t *header, PStask_t **fwPtr,
 	/* admin users may start jobs directly via mpiexec */
 	if (!isAdmin) {
 	    mlog("%s: could not find jobid/stepid in forwarder task for sender"
-		    " '%s'\n", __func__, PSC_printTID(header->sender));
+		    " '%s'\n", __func__, PSC_printTID(fwTID));
 	}
 	return false;
     }
 
     return true;
+}
+
+/**
+* @brief Handle a PSP_CD_SPAWNSUCCESS message
+*
+* @param msg The message to handle
+*/
+static void handleSpawnSuccess(DDErrorMsg_t *msg)
+{
+    PStask_t *forwarder = NULL;
+    uint32_t jobid, stepid;
+
+    if (getJobIDbyForwarder(msg->header.dest, &forwarder, &jobid, &stepid)) {
+	Step_t *step = findStepByStepId(jobid, stepid);
+	if (step) {
+	    addTask(&step->remoteTasks, msg->header.sender, forwarder->tid,
+		    forwarder, forwarder->childGroup, msg->request);
+	}
+    }
+
+    if (oldSpawnSuccessHandler) oldSpawnSuccessHandler((DDBufferMsg_t *) msg);
 }
 
 /**
@@ -1832,8 +1856,7 @@ static void handleSpawnFailed(DDErrorMsg_t *msg)
 	  __func__, PSC_printTID(msg->header.sender),
 	  msg->request, msg->error);
 
-    if (!getJobIDbyForwarderMsgHeader(&msg->header, &forwarder, &jobid,
-				      &stepid)) {
+    if (!getJobIDbyForwarder(msg->header.sender, &forwarder, &jobid, &stepid)) {
 	goto FORWARD_SPAWN_FAILED_MSG;
     }
 
@@ -2026,8 +2049,7 @@ static void handleChildBornMsg(DDErrorMsg_t *msg)
     uint32_t jobid = 0, stepid = 0;
     PS_Tasks_t *task = NULL;
 
-    if (!getJobIDbyForwarderMsgHeader(&(msg->header), &forwarder, &jobid,
-				      &stepid)) {
+    if (!getJobIDbyForwarder(msg->header.sender, &forwarder, &jobid, &stepid)) {
 	flog("forwarder for sender %s not found\n",
 	     PSC_printTID(msg->header.sender));
 	goto FORWARD_CHILD_BORN;
@@ -2154,6 +2176,12 @@ void finalizePScomm(bool verbose)
 	PSID_registerMsg(PSP_CD_SPAWNFAILED, oldSpawnFailedHandler);
     } else {
 	PSID_clearMsg(PSP_CD_SPAWNFAILED);
+    }
+
+    if (oldSpawnSuccessHandler) {
+	PSID_registerMsg(PSP_CD_SPAWNSUCCESS, oldSpawnSuccessHandler);
+    } else {
+	PSID_clearMsg(PSP_CD_SPAWNSUCCESS);
     }
 
     if (oldSpawnReqHandler) {
@@ -2404,6 +2432,10 @@ bool initPScomm(void)
     /* register to PSP_CD_SPAWNFAILED message */
     oldSpawnFailedHandler = PSID_registerMsg(PSP_CD_SPAWNFAILED,
 					     (handlerFunc_t) handleSpawnFailed);
+
+    /* register to PSP_CD_SPAWNSUCCESS message */
+    oldSpawnSuccessHandler = PSID_registerMsg(PSP_CD_SPAWNSUCCESS,
+					      (handlerFunc_t) handleSpawnSuccess);
 
     /* register to *obsolete* PSP_CD_SPAWNREQ message */
     oldSpawnReqHandler = PSID_registerMsg(PSP_CD_SPAWNREQ,

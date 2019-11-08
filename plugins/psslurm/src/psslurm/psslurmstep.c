@@ -49,6 +49,7 @@ Step_t *addStep(uint32_t jobid, uint32_t stepid)
     step->leader = false;
 
     INIT_LIST_HEAD(&step->tasks);
+    INIT_LIST_HEAD(&step->remoteTasks);
     envInit(&step->env);
     envInit(&step->spankenv);
     envInit(&step->pelogueEnv);
@@ -182,6 +183,7 @@ int deleteStep(uint32_t jobid, uint32_t stepid)
     ufree(step->x11.target);
 
     clearTasks(&step->tasks);
+    clearTasks(&step->remoteTasks);
     freeGresCred(&step->gresList);
     freeJobCred(step->cred);
 

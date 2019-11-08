@@ -1195,6 +1195,8 @@ static void handleStepStat(Slurm_Msg_t *sMsg)
 	.nodes = step->nodes,
 	.nrOfNodes = step->nrOfNodes,
 	.loggerTID = step->loggerTID,
+	.tasks = &step->tasks,
+	.remoteTasks = &step->remoteTasks,
 	.childPid = 0 };
     numTasks = addSlurmAccData(&slurmAccData, &msg);
     /* correct number of tasks */
@@ -2466,6 +2468,8 @@ void sendStepExit(Step_t *step, uint32_t exit_status)
 	.nodes = step->nodes,
 	.nrOfNodes = step->nrOfNodes,
 	.loggerTID = PSC_getTID(-1, childPid),
+	.tasks = &step->tasks,
+	.remoteTasks = &step->remoteTasks,
 	.childPid = 0 };
     addSlurmAccData(&slurmAccData, &body);
 
@@ -2773,6 +2777,8 @@ void sendJobExit(Job_t *job, uint32_t exit_status)
 	    .nodes = job->nodes,
 	    .nrOfNodes = job->nrOfNodes,
 	    .loggerTID = 0,
+	    .tasks = NULL,
+	    .remoteTasks = NULL,
 	    .childPid = 0 };
 	addSlurmAccData(&slurmAccData, &body);
     } else {
@@ -2781,6 +2787,8 @@ void sendJobExit(Job_t *job, uint32_t exit_status)
 	    .nodes = job->nodes,
 	    .nrOfNodes = job->nrOfNodes,
 	    .loggerTID = 0,
+	    .tasks = &job->tasks,
+	    .remoteTasks = NULL,
 	    .childPid = job->fwdata->cPid };
 	addSlurmAccData(&slurmAccData, &body);
     }

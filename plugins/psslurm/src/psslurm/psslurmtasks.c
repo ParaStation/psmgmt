@@ -87,6 +87,16 @@ PS_Tasks_t *findTaskByChildPid(list_t *taskList, pid_t childPid)
     return NULL;
 }
 
+PS_Tasks_t *findTaskByChildTID(list_t *taskList, pid_t childTID)
+{
+    list_t *t;
+    list_for_each(t, taskList) {
+	PS_Tasks_t *task = list_entry(t, PS_Tasks_t, next);
+	if (task->childTID == childTID) return task;
+    }
+    return NULL;
+}
+
 unsigned int countTasks(list_t *taskList)
 {
     unsigned int count = 0;

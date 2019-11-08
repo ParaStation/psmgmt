@@ -119,6 +119,17 @@ PS_Tasks_t *findTaskByFwd(list_t *taskList, PStask_ID_t fwTID);
 PS_Tasks_t *findTaskByChildPid(list_t *taskList, pid_t childPid);
 
 /**
+ * @brief Find a task identified by its child TID
+ *
+ * @param list_head The list of tasks to search
+ *
+ * @param childTID The TID of the task
+ *
+ * @return Returns the found task or NULL on error
+ */
+PS_Tasks_t *findTaskByChildTID(list_t *taskList, PStask_ID_t childTID);
+
+/**
  * @brief Count the number of all tasks in a task-list
  *
  * @param list_head The list of tasks

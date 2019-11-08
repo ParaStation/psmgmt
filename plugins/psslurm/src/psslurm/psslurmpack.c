@@ -11,6 +11,7 @@
 #include "pluginhelper.h"
 #include "pluginmalloc.h"
 #include "slurmcommon.h"
+#include "psidtask.h"
 
 #include "psslurmlog.h"
 #include "psslurmpack.h"
@@ -1297,19 +1298,14 @@ static void packAccNodeId(PS_SendDB_t *data, int type,
 			  AccountDataExt_t *accData, PSnodes_ID_t *nodes,
 			  uint32_t nrOfNodes)
 {
-    PSnodes_ID_t psNodeID;
-    int nid;
+    /* set node ID */
+    PSnodes_ID_t psNodeID = PSC_getID(accData->taskIds[type]);
+    int nid = getSlurmNodeID(psNodeID, nodes, nrOfNodes);
 
-    psNodeID = PSC_getID(accData->taskIds[type]);
+    addUint32ToMsg(((nid<0) ? NO_VAL : (uint32_t) nid), data);
 
-    /* node ID */
-    if ((nid = getSlurmNodeID(psNodeID, nodes, nrOfNodes)) < 0) {
-	addUint32ToMsg((uint32_t) 0, data);
-    } else {
-	addUint32ToMsg((uint32_t) nid, data);
-    }
-    /* task ID */
-    addUint16ToMsg((uint16_t) 0, data);
+    /* set task ID */
+    addUint16ToMsg((uint16_t) NO_VAL16, data);
 }
 
 static void packAccData_17(PS_SendDB_t *data, SlurmAccData_t *slurmAccData)
@@ -1438,15 +1434,30 @@ bool __packTResData(PS_SendDB_t *data, TRes_t *tres, const char *caller,
     return true;
 }
 
-static int getAccNodeID(SlurmAccData_t *slurmAccData, int type)
+static uint64_t getAccNodeID(SlurmAccData_t *slurmData, int type)
 {
-    AccountDataExt_t *accData = slurmAccData->accData;
-    int nID;
-
+    AccountDataExt_t *accData = slurmData->accData;
     PSnodes_ID_t psNID = PSC_getID(accData->taskIds[type]);
-    nID = getSlurmNodeID(psNID, slurmAccData->nodes, slurmAccData->nrOfNodes);
-    if (nID == -1) return 0;
-    return nID;
+
+    int nID = getSlurmNodeID(psNID, slurmData->nodes, slurmData->nrOfNodes);
+    if (nID == -1) return NO_VAL64;
+    return (uint64_t) nID;
+}
+
+static uint64_t getAccRank(SlurmAccData_t *slurmData, int type)
+{
+    AccountDataExt_t *accData = slurmData->accData;
+
+    /* search local tasks */
+    PS_Tasks_t *task = findTaskByChildTID(slurmData->tasks,
+					  accData->taskIds[type]);
+    /* search remote tasks */
+    if (!task) task = findTaskByChildTID(slurmData->remoteTasks,
+					 accData->taskIds[type]);
+
+    if (task) return task->childRank;
+
+    return NO_VAL64;
 }
 
 static void convAccDataToTRes(SlurmAccData_t *slurmAccData, TRes_t *tres)
@@ -1460,6 +1471,7 @@ static void convAccDataToTRes(SlurmAccData_t *slurmAccData, TRes_t *tres)
     entry.in_min = accData->maxVsize * 1024;
     entry.in_tot = accData->avgVsizeTotal * 1024;
     entry.in_max_nodeid = getAccNodeID(slurmAccData, ACCID_MAX_VSIZE);
+    entry.in_max_taskid =  getAccRank(slurmAccData, ACCID_MAX_VSIZE);
     TRes_set(tres, TRES_VMEM, &entry);
 
     /* memory in byte */
@@ -1468,6 +1480,7 @@ static void convAccDataToTRes(SlurmAccData_t *slurmAccData, TRes_t *tres)
     entry.in_min = accData->maxRss * 1024;
     entry.in_tot = accData->avgRssTotal * 1024;
     entry.in_max_nodeid = getAccNodeID(slurmAccData, ACCID_MAX_RSS);
+    entry.in_max_taskid = getAccRank(slurmAccData, ACCID_MAX_RSS);
     TRes_set(tres, TRES_MEM, &entry);
 
     /* pages */
@@ -1476,6 +1489,7 @@ static void convAccDataToTRes(SlurmAccData_t *slurmAccData, TRes_t *tres)
     entry.in_min = accData->maxMajflt;
     entry.in_tot = accData->totMajflt;
     entry.in_max_nodeid = getAccNodeID(slurmAccData, ACCID_MAX_PAGES);
+    entry.in_max_taskid = getAccRank(slurmAccData, ACCID_MAX_PAGES);
     TRes_set(tres, TRES_PAGES, &entry);
 
     /* cpu */
@@ -1484,6 +1498,7 @@ static void convAccDataToTRes(SlurmAccData_t *slurmAccData, TRes_t *tres)
     entry.in_max = accData->minCputime * 1000;
     entry.in_tot = accData->totCputime * 1000;
     entry.in_min_nodeid = getAccNodeID(slurmAccData, ACCID_MIN_CPU);
+    entry.in_min_taskid = getAccRank(slurmAccData, ACCID_MIN_CPU);
     TRes_set(tres, TRES_CPU, &entry);
 
     /* fs disk in byte */
@@ -1492,11 +1507,13 @@ static void convAccDataToTRes(SlurmAccData_t *slurmAccData, TRes_t *tres)
     entry.in_min = accData->maxDiskRead * 1048576;
     entry.in_tot = accData->totDiskRead * 1048576;
     entry.in_max_nodeid = getAccNodeID(slurmAccData, ACCID_MAX_DISKREAD);
+    entry.in_max_taskid = getAccRank(slurmAccData, ACCID_MAX_DISKREAD);
 
     entry.out_max = accData->maxDiskWrite * 1048576;
     entry.out_min = accData->maxDiskWrite * 1048576;
     entry.out_tot = accData->totDiskWrite * 1048576;
     entry.out_max_nodeid = getAccNodeID(slurmAccData, ACCID_MAX_DISKWRITE);
+    entry.out_max_taskid = getAccRank(slurmAccData, ACCID_MAX_DISKWRITE);
     TRes_set(tres, TRES_FS_DISK, &entry);
 }
 
