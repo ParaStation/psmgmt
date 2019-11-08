@@ -179,7 +179,7 @@ def extractGateways():
         if gw is None or gw == "":
             raise Exception("Missing GATEWAY_ADDR_%d" % x)
         vlog("gw%d: %s" % (x, gw))
-        if not psgwdToPort.has_key(gw.split(":")[0]):
+        if gw.split(":")[0] not in psgwdToPort:
             psgwdToPort[gw.split(":")[0]] = []
         psgwdToPort[gw.split(":")[0]].append(int(gw.split(":")[1]))
 
