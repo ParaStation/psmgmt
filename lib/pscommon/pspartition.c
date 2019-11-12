@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2018 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2019 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -92,8 +92,8 @@ void PSpart_snprintf(char* txt, size_t size, PSpart_request_t* request)
 	return;
     }
 
-    snprintf(txt, size, "%stid 0x%08x size %d tpp %d hwType 0x%x uid %d gid %d"
-	     " sort 0x%x options 0x%x priority %d num %d",
+    snprintf(txt, size, "%stid 0x%08x size %u tpp %d hwType 0x%x uid %d gid %d"
+	     " sort 0x%x options 0x%x priority %u num %d",
 	     request->deleted ? "!DELETED! " : "",
 	     request->tid, request->size, request->tpp, request->hwType,
 	     request->uid, request->gid,
