@@ -51,6 +51,53 @@ of the structure is printed.
 end
 
 
+define reverse_print_list
+
+  if $argc < 1
+    echo reverse_print_list LISTHEAD [TYPE [NUM]]\n
+  else
+    set $lp = &$arg0
+    if $argc < 3
+      set $num = 1
+    else
+      set $num = $arg2
+    end
+    set $i = $num
+
+    while $i > 0
+      set $lp = $lp->prev
+      set $i = $i - 1
+
+      if $lp == &$arg0
+	loop_break
+      end
+
+      output $num - $i
+      echo \ :\ \ 
+      if $argc < 2
+	output *((PStask_t *)((char *)($lp)-(unsigned long)(&((PStask_t *)0)->next)))
+      else
+	output *(($arg1 *)((char *)($lp)-(unsigned long)(&(($arg1 *)0)->next)))
+      end
+      echo \n
+    end
+  end
+end
+
+document reverse_print_list
+Syntax: reverse_print_list LISTHEAD [TYPE [NUM]]
+
+Print list defined with the help of the Linux kernel's list.h.
+
+LISTHEAD is the corresponding anchor of the list. It is assumed, that
+each element of the list is of type TYPE. If TYPE is not given
+explicitely, PStask_t is the assumed type. If the optional argument
+NUM is given, the first NUM elements will be displayed. Otherwise only
+the first element will be printed.
+
+end
+
+
 define print_list
 
   if $argc < 1
@@ -226,8 +273,52 @@ the first element of the list will be printed.
 end
 
 
+define reverse_print_list_entry
+
+  if $argc < 3
+    echo reverse_print_list_entry LISTHEAD TYPE ENTRY [NUM]]\n
+  else
+    set $lp = &$arg0
+    if $argc < 4
+      set $num = 1
+    else
+      set $num = $arg3
+    end
+    set $i = $num
+
+    while $i > 0
+      set $lp = $lp->prev
+      set $i = $i - 1
+
+      if $lp == &$arg0
+	loop_break
+      end
+
+      output $num - $i
+      echo \ :\ \ 
+      output (($arg1 *)((char *)($lp)-(unsigned long)(&(($arg1 *)0)->next)))->$arg2
+      echo \n
+    end
+  end
+end
+
+
+document reverse_print_list_entry
+Syntax: reverse_print_list_entry LISTHEAD TYPE ENTRY [NUM]
+
+Print specific entries of each list element.
+
+LISTHEAD is the corresponding anchor of the list. It is assumed, that
+each element of the list is structured and of type TYPE. For each
+list-element the entry named ENTRY will be printed. If the optional
+argument NUM is given, the first NUM entries will be
+displayed. Otherwise only the first entry of the list will be printed.
+
+end
+
+
 define print_list_entry
-  
+
   if $argc < 3
     echo print_list_entry LISTHEAD TYPE ENTRY [NUM]]\n
   else
