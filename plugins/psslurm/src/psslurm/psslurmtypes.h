@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2017 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2019 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -12,6 +12,10 @@
 
 #include "psslurmmsg.h"
 #include "psenv.h"
+
+#ifdef HAVE_SPANK
+#include "slurm/spank.h"
+#endif
 
 typedef struct {
     list_t next;            /**< used to put into some allocation-lists */
@@ -103,5 +107,19 @@ typedef Slurm_Msg_t * psSlurmDupMsg_t(Slurm_Msg_t *msg);
  * @return No return value
  */
 typedef void psSlurmReleaseMsg_t(Slurm_Msg_t *msg);
+
+#ifdef HAVE_SPANK
+
+typedef spank_err_t psSpankSetenv_t(spank_t, const char *, const char *, int);
+
+typedef spank_err_t psSpankGetenv_t(spank_t, const char *, char *buf, int len);
+
+typedef spank_err_t psSpankUnsetenv_t(spank_t, const char *);
+
+typedef spank_err_t psSpankGetItem_t(spank_t, spank_item_t, va_list);
+
+typedef int psSpankSymbolSup_t(const char *);
+
+#endif
 
 #endif /* __PSSLURM_TYPES */
