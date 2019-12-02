@@ -50,9 +50,14 @@ psslurm_la_SOURCES = psslurm.c psslurm.h psslurmlog.c psslurmlog.h	\
 	psslurmbcast.h psslurmalloc.c psslurmalloc.h psslurmaccount.h   \
 	psslurmaccount.c
 
+if SPANK_ENABLED
+psslurm_la_SOURCES += psslurmspank.h psslurmspank.c
+endif
+
 psslurm_la_CPPFLAGS = $(AM_CPPFLAGS) -DPLUGINDIR=\"$(plugindir)\"	\
 	-DLOCALSTATEDIR=\"$(localstatedir)\"				\
-	-DPKGLIBEXECDIR=\"$(pkglibexecdir)\" -DBINDIR=\"$(bindir)\"
+	-DPKGLIBEXECDIR=\"$(pkglibexecdir)\" -DBINDIR=\"$(bindir)\"	\
+	-DSLURMLIBDIR=\"$(slurmlibdir)\"
 
 
 psslurm_la_LIBADD = $(libpsi) $(libplugincommon) $(libslurmcommon) \
