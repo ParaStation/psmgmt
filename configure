@@ -12398,7 +12398,9 @@ if test "x$ac_cv_header_slurm_spank_h" = xyes; then :
   cat >>confdefs.h <<_ACEOF
 #define HAVE_SLURM_SPANK_H 1
 _ACEOF
-  spank_enabled=true
+  $as_echo "#define HAVE_SPANK 1" >>confdefs.h
+
+      spank_enabled=true
 fi
 
 done
@@ -13261,6 +13263,8 @@ ac_config_files="$ac_config_files plugins/psslurm/doc/Makefile"
 ac_config_files="$ac_config_files plugins/psslurm/src/common/Makefile"
 
 ac_config_files="$ac_config_files plugins/psslurm/src/psslurm/Makefile"
+
+ac_config_files="$ac_config_files plugins/psslurm/src/spank/Makefile"
 
 ac_config_files="$ac_config_files scripts/Makefile"
 
@@ -14383,6 +14387,7 @@ do
     "plugins/psslurm/doc/Makefile") CONFIG_FILES="$CONFIG_FILES plugins/psslurm/doc/Makefile" ;;
     "plugins/psslurm/src/common/Makefile") CONFIG_FILES="$CONFIG_FILES plugins/psslurm/src/common/Makefile" ;;
     "plugins/psslurm/src/psslurm/Makefile") CONFIG_FILES="$CONFIG_FILES plugins/psslurm/src/psslurm/Makefile" ;;
+    "plugins/psslurm/src/spank/Makefile") CONFIG_FILES="$CONFIG_FILES plugins/psslurm/src/spank/Makefile" ;;
     "scripts/Makefile") CONFIG_FILES="$CONFIG_FILES scripts/Makefile" ;;
     "tests/plugins/Makefile") CONFIG_FILES="$CONFIG_FILES tests/plugins/Makefile" ;;
     "tests/functional/Makefile") CONFIG_FILES="$CONFIG_FILES tests/functional/Makefile" ;;
