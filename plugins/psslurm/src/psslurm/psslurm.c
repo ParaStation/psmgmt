@@ -32,6 +32,9 @@
 #include "psslurmpelogue.h"
 #include "slurmcommon.h"
 #include "psslurmspawn.h"
+#ifdef HAVE_SPANK
+#include "psslurmspank.h"
+#endif
 
 #include "pluginmalloc.h"
 #include "pluginlog.h"
@@ -142,6 +145,10 @@ static void unregisterHooks(bool verbose)
     if (!PSIDhook_del(PSIDHOOK_PELOGUE_FINISH, handleLocalPElogueFinish)) {
 	if (verbose) mlog("unregister 'PSIDHOOK_PELOGUE_FINISH' failed\n");
     }
+
+    if (!PSIDhook_del(PSIDHOOK_PELOGUE_PREPARE, handlePEloguePrepare)) {
+	if (verbose) mlog("unregister 'PSIDHOOK_PELOGUE_PREPARE' failed\n");
+    }
 }
 
 /**
@@ -176,6 +183,11 @@ static bool registerHooks(void)
 
     if (!PSIDhook_add(PSIDHOOK_PELOGUE_FINISH, handleLocalPElogueFinish)) {
 	mlog("register 'PSIDHOOK_PELOGUE_FINISH' failed\n");
+	return false;
+    }
+
+    if (!PSIDhook_add(PSIDHOOK_PELOGUE_PREPARE, handlePEloguePrepare)) {
+	mlog("register 'PSIDHOOK_PELOGUE_PREPARE' failed\n");
 	return false;
     }
 
@@ -584,6 +596,14 @@ int initialize(void)
 	}
     }
 
+#ifdef HAVE_SPANK
+    /* load global spank symbols */
+    if (!SpankInitGlobalSym()) goto INIT_ERROR;
+
+    /* verify all configured spank plugins */
+    if (!SpankInitPlugins()) goto INIT_ERROR;
+#endif
+
     /* initialize Slurm communication */
     if (!initSlurmCon()) goto INIT_ERROR;
 
@@ -655,6 +675,9 @@ void cleanup(void)
     freeConfig(&SlurmConfig);
     freeConfig(&SlurmGresConfig);
     freeEnvFilter();
+#ifdef HAVE_SPANK
+    SpankFinalize();
+#endif
 
     mlog("...Bye.\n");
 

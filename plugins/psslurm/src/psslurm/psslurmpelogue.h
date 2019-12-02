@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2015-2018 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2015-2019 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -37,6 +37,17 @@ int handleLocalPElogueStart(void *data);
  * @return Always returns 0.
  */
 int handleLocalPElogueFinish(void *data);
+
+/**
+ * @brief Handle hook PSIDHOOK_PELOGUE_PREPARE
+ *
+ * Used for the spank hooks SPANK_JOB_PROLOG and SPANK_JOB_EPILOG.
+ *
+ * @param data PElogueChild structure
+ *
+ * @return Always returns 0
+ */
+int handlePEloguePrepare(void *data);
 
 /** @doctodo */
 int handleTaskPrologue(char *taskPrologue, uint32_t rank,
