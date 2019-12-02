@@ -80,6 +80,7 @@ typedef struct {
     uint32_t packJobid;	    /**< unique pack job identifier */
     char *tresBind;         /**< TRes binding (currently env set only) */
     char *tresFreq;         /**< TRes frequency (currently env set only) */
+    uint16_t restartCnt;    /**< job restart count */
 } Job_t;
 
 /**

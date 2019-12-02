@@ -1191,8 +1191,8 @@ bool __unpackReqBatchJobLaunch(Slurm_Msg_t *sMsg, Job_t **jobPtr,
     getUint16(ptr, &cpuBindType);
     /* cpus per task */
     getUint16(ptr, &job->tpp);
-    /* TODO: restart count */
-    getUint16(ptr, (uint16_t *)&tmp);
+    /* restart count */
+    getUint16(ptr, &job->restartCnt);
     /* count of specialized cores */
     getUint16(ptr, &job->jobCoreSpec);
 
