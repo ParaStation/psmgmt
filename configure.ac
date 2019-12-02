@@ -76,7 +76,9 @@ AM_COND_IF([BUILD_WITHOUT_SPANK], [
   AC_MSG_NOTICE([Building without spank support])
   AM_CFLAGS="$AM_CFLAGS -DBUILD_WITHOUT_SPANK"
 ], [
-  AC_CHECK_HEADERS([slurm/spank.h], [ spank_enabled=true ])
+  AC_CHECK_HEADERS([slurm/spank.h],
+    [ AC_DEFINE([HAVE_SPANK])
+     [ spank_enabled=true ] ])
 ])
 AM_CONDITIONAL([SPANK_ENABLED], [test "x$spank_enabled" = xtrue])
 
@@ -182,6 +184,7 @@ AC_CONFIG_FILES(plugins/psslurm/Makefile)
 AC_CONFIG_FILES(plugins/psslurm/doc/Makefile)
 AC_CONFIG_FILES(plugins/psslurm/src/common/Makefile)
 AC_CONFIG_FILES(plugins/psslurm/src/psslurm/Makefile)
+AC_CONFIG_FILES(plugins/psslurm/src/spank/Makefile)
 AC_CONFIG_FILES(scripts/Makefile)
 AC_CONFIG_FILES(tests/plugins/Makefile)
 AC_CONFIG_FILES(tests/functional/Makefile)
