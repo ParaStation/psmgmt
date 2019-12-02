@@ -26,6 +26,15 @@
 
 #include "psslurmconfig.h"
 
+/** The psslurm plugin configuration list. */
+Config_t Config;
+
+/** The Slurm configuration list. */
+Config_t SlurmConfig;
+
+/** The Slurm GRes configuration list. */
+Config_t SlurmGresConfig;
+
 /** used to forward information to host visitor */
 typedef struct {
     int count;		/**< number of hosts parsed */
@@ -705,6 +714,7 @@ int initConfig(char *filename, uint32_t *hash)
     gres = 1;
     if (!(confFile = getConfValueC(&Config, "SLURM_GRES_CONF"))) return 0;
     if (stat(confFile, &sbuf) != -1) {
+	Config_t SlurmGresTmp;
 	if (parseConfigFile(confFile, &SlurmGresTmp, true /*trimQuotes*/) < 0)
 	    return 0;
 
