@@ -589,6 +589,8 @@ plugins/psslurm/src/psslurm/psslurmproto.c \
 plugins/psslurm/src/psslurm/psslurmproto.h \
 plugins/psslurm/src/psslurm/psslurmpscomm.c \
 plugins/psslurm/src/psslurm/psslurmpscomm.h \
+plugins/psslurm/src/psslurm/psslurmspank.c \
+plugins/psslurm/src/psslurm/psslurmspank.h \
 plugins/psslurm/src/psslurm/psslurmspawn.c \
 plugins/psslurm/src/psslurm/psslurmspawn.h \
 plugins/psslurm/src/psslurm/psslurmstep.c \
@@ -596,6 +598,9 @@ plugins/psslurm/src/psslurm/psslurmstep.h \
 plugins/psslurm/src/psslurm/psslurmtasks.c \
 plugins/psslurm/src/psslurm/psslurmtasks.h \
 plugins/psslurm/src/psslurm/psslurmtypes.h \
+plugins/psslurm/src/spank/Makefile.am \
+plugins/psslurm/src/spank/Makefile.in \
+plugins/psslurm/src/spank/spank_api.c \
 scripts/.gdbinit \
 scripts/Makefile.am \
 scripts/Makefile.in \

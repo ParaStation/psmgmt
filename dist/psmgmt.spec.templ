@@ -273,6 +273,8 @@ exit 0
 %dir %{_libdir}/slurm
 %{_libdir}/slurm/psgw_spank.so
 %exclude %{_libdir}/slurm/psgw_spank.la
+%{_libdir}/slurm/spank_api.so
+%exclude %{_libdir}/slurm/spank_api.la
 %{_libexecdir}/psgw
 %endif
 %if !0%{?disable_munge}

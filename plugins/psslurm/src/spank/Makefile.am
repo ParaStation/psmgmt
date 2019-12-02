@@ -10,11 +10,11 @@
 
 include $(top_srcdir)/common.am
 
-psslurm_dir := plugins/psslurm/src/
+psslurm_dir := plugins/psslurm/src
 
 AM_LDFLAGS += -avoid-version -module
-AM_CPPFLAGS += -I$(top_srcdir)/bin/daemon	\
-	       -I$(top_srcdir)/$(psslurm_dir)/common \
+AM_CPPFLAGS += -I$(top_srcdir)/bin/daemon		\
+	       -I$(top_srcdir)/$(psslurm_dir)/common 	\
 	       -I$(top_srcdir)/$(psslurm_dir)/psslurm
 
 slurmlib_LTLIBRARIES = spank_api.la
