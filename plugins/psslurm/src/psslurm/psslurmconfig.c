@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2014-2018 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2014-2019 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -20,6 +20,9 @@
 
 #include "psslurmlog.h"
 #include "psslurmgres.h"
+#ifdef HAVE_SPANK
+#include "psslurmspank.h"
+#endif
 
 #include "psslurmconfig.h"
 
@@ -27,10 +30,10 @@
 typedef struct {
     int count;		/**< number of hosts parsed */
     char *options;	/**< host options */
-    int gres;		/**< gres host definition flag */
+    int gres;		/**< GRes host definition flag */
     bool result;	/**< parsing result */
     bool useNodeAddr;	/**< use NodeAddr option */
-    int localHostIdx;	/**< index of local host in hostlist */
+    int localHostIdx;	/**< index of local host in host-list */
 } Host_Info_t;
 
 const ConfDef_t CONFIG_VALUES[] =
@@ -43,6 +46,10 @@ const ConfDef_t CONFIG_VALUES[] =
 	"file",
 	"/etc/slurm/gres.conf",
 	"Gres configuration file of slurm" },
+    { "SLURM_SPANK_CONF", 0,
+	"file",
+	"/etc/slurm/plugstack.conf",
+	"Default spank configuration file of slurm" },
     { "DIR_SCRIPTS", 0,
 	"path",
 	SPOOL_DIR "/scripts",
@@ -167,7 +174,7 @@ const ConfDef_t CONFIG_VALUES[] =
 static bool addHostOptions(char *options)
 {
     char *toksave, *next;
-    const char delimiters[] =" \n";
+    const char delimiters[] =" \t\n";
 
     next = strtok_r(options, delimiters, &toksave);
     while (next) {
@@ -214,7 +221,7 @@ static bool addHostOptions(char *options)
 static bool parseGresOptions(char *options)
 {
     char *toksave, *next, *count = NULL;
-    const char delimiters[] =" \n";
+    const char delimiters[] =" \t\n";
     Gres_Conf_t *gres = ucalloc(sizeof(*gres));
 
     next = strtok_r(options, delimiters, &toksave);
@@ -269,7 +276,7 @@ bool isLocalAddr(char *addr)
 
     rc = getaddrinfo(addr, NULL, &hints, &result);
     if (rc) {
-	mlog("%s: unknown addr %s: %s\n", __func__, addr, gai_strerror(rc));
+	mlog("%s: unknown address %s: %s\n", __func__, addr, gai_strerror(rc));
 	return false;
     }
 
@@ -396,7 +403,7 @@ static bool setMyHostDef(char *hosts, char *hostopt, char *nodeAddr, int gres)
  */
 static char *findNodeAddr(char *hostopt)
 {
-    const char delimiters[] =" \n";
+    const char delimiters[] =" \t\n";
     char *toksave, *next, *nodeAddr = NULL, *res = NULL;
     char *options = ustrdup(hostopt);
 
@@ -557,7 +564,7 @@ static bool parseSlurmConf(char *key, char *value, const void *info)
 	char *hostline = ustrdup(value);
 	if (!parseNodeNameEntry(hostline, *gres)) {
 	    ufree(hostline);
-	    return true; /* an error occured, return true to stop parsing */
+	    return true; /* an error occurred, return true to stop parsing */
 	}
 	ufree(hostline);
     } else if (*gres && !(strcmp(key, "Name"))) {
@@ -568,12 +575,73 @@ static bool parseSlurmConf(char *key, char *value, const void *info)
 	ufree(tmp);
     } else if (!strcmp(key, "SlurmctldHost")) {
 	if (!saveCtldHost(value)) {
-	    return true; /* an error occured, return true to stop parsing */
+	    return true; /* an error occurred, return true to stop parsing */
 	}
     }
     /* parsing was successful, continue with next line */
     return false;
 }
+
+#ifdef HAVE_SPANK
+static bool parseSlurmPlugConf(char *key, char *value, const void *info)
+{
+    const char delimiters[] =" \t\n";
+    char *toksave;
+    Spank_Plugin_t *def = umalloc(sizeof(*def));
+
+    /* optional/required flag */
+    char *optional = strtok_r(key, delimiters, &toksave);
+    if (!optional) {
+	flog("invalid optional flag: '%s'\n", key);
+	goto ERROR;
+    }
+    if (!strcmp("optional", optional)) {
+	def->optional = true;
+    } else if (!strcmp("required", optional)) {
+	def->optional = false;
+    } else {
+	flog("invalid optional flag '%s'\n", optional);
+	goto ERROR;
+    }
+
+    /* path to plugin */
+    char *path = strtok_r(NULL, delimiters, &toksave);
+    if (!path) {
+	flog("invalid path to spank plugin '%s'\n", key);
+	goto ERROR;
+    }
+    def->path = ustrdup(path);
+    fdbg(PSSLURM_LOG_SPANK, "flag '%s' path '%s'", optional, path);
+
+    /* additional arguments */
+    strvInit(&def->argV, NULL, 0);
+
+    char *arg1 = strtok_r(NULL, delimiters, &toksave);
+    if (arg1) {
+	char tmp[1024];
+	char *val1 = strtok_r(value, delimiters, &toksave);
+	snprintf(tmp, sizeof(tmp), "%s=%s", arg1, val1);
+
+	char *args = tmp;
+	while (args) {
+	    strvAdd(&def->argV, args);
+	    mdbg(PSSLURM_LOG_SPANK, " args: '%s'", args);
+	    args = strtok_r(NULL, delimiters, &toksave);
+	}
+    }
+    mdbg(PSSLURM_LOG_SPANK, "\n");
+
+    SpankSavePlugin(def);
+
+    /* parsing was successful, continue with next line */
+    return false;
+
+ERROR:
+    ufree(def);
+    return true; /* an error occurred, return true to stop parsing */
+
+}
+#endif
 
 /**
  * @brief Do various sanity checks for a Slurm configuration
@@ -623,7 +691,7 @@ int initConfig(char *filename, uint32_t *hash)
 	return 0;
     }
 
-    /* parse slurm config file */
+    /* parse Slurm config file */
     if (!(confFile = getConfValueC(&Config, "SLURM_CONF"))) return 0;
     registerConfigHashAccumulator(hash);
     if (parseConfigFile(confFile, &SlurmConfig, true /*trimQuotes*/) < 0)
@@ -632,16 +700,33 @@ int initConfig(char *filename, uint32_t *hash)
     if (traverseConfig(&SlurmConfig, parseSlurmConf, &gres)) return 0;
     if (!(verifySlurmConf())) return 0;
 
-    /* parse optional slurm gres config file */
+    /* parse optional Slurm GRes config file */
     INIT_LIST_HEAD(&SlurmGresConfig);
     gres = 1;
     if (!(confFile = getConfValueC(&Config, "SLURM_GRES_CONF"))) return 0;
-    if (stat(confFile, &sbuf) == -1) return 1;
-    if (parseConfigFile(confFile, &SlurmGresTmp, true /*trimQuotes*/) < 0)
-	return 0;
+    if (stat(confFile, &sbuf) != -1) {
+	if (parseConfigFile(confFile, &SlurmGresTmp, true /*trimQuotes*/) < 0)
+	    return 0;
 
-    if (traverseConfig(&SlurmGresTmp, parseSlurmConf, &gres)) return 0;
-    freeConfig(&SlurmGresTmp);
+	if (traverseConfig(&SlurmGresTmp, parseSlurmConf, &gres)) return 0;
+	freeConfig(&SlurmGresTmp);
+    }
+
+#ifdef HAVE_SPANK
+    Config_t SlurmPlugConf;
+
+    /* parse optional plugstack.conf holding spank plugins */
+    if (!(confFile = getConfValueC(&SlurmConfig, "PlugStackConfig"))) {
+	if (!(confFile = getConfValueC(&Config, "SLURM_SPANK_CONF"))) return 0;
+    }
+    if (stat(confFile, &sbuf) != -1) {
+	if (parseConfigFile(confFile, &SlurmPlugConf, true /*trimQuotes*/) < 0)
+	    return 0;
+
+	if (traverseConfig(&SlurmPlugConf, parseSlurmPlugConf, NULL)) return 0;
+	freeConfig(&SlurmPlugConf);
+    }
+#endif
 
     return 1;
 }
