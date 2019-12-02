@@ -41,6 +41,10 @@
 #include "psslurmspawn.h"
 #include "psslurmpscomm.h"
 #include "slurmcommon.h"
+#ifdef HAVE_SPANK
+#include "psslurmspank.h"
+#include "psidtask.h"
+#endif
 
 #include "pluginpty.h"
 #include "pluginmalloc.h"
@@ -322,7 +326,8 @@ int handleForwarderInit(void * data)
     if (task->rank <0 || task->group != TG_ANY) return 0;
     bool isAdmin = isPSAdminUser(task->uid, task->gid);
 
-    Step_t *step = findStepByEnv(task->environ, NULL, NULL, isAdmin);
+    uint32_t jobid = 0;
+    Step_t *step = findStepByEnv(task->environ, &jobid, NULL, isAdmin);
     if (step) {
 
 	initSpawnFacility(step);
@@ -353,6 +358,17 @@ int handleForwarderInit(void * data)
     /* override spawn task filling function in pspmi */
     psPmiSetFillSpawnTaskFunction(fillSpawnTaskWithSrun);
 
+#ifdef HAVE_SPANK
+    struct spank_handle spank = {
+	.task = task,
+	.alloc = findAlloc(jobid),
+	.job = findJobById(jobid),
+	.step = step,
+	.hook = SPANK_TASK_POST_FORK
+    };
+    SpankCallHook(&spank);
+#endif
+
     return 0;
 }
 
@@ -363,13 +379,25 @@ int handleForwarderClientStatus(void * data)
     if (task->rank <0 || task->group != TG_ANY) return 0;
     bool isAdmin = isPSAdminUser(task->uid, task->gid);
 
-    Step_t *step = findStepByEnv(task->environ, NULL, NULL, isAdmin);
+    uint32_t jobid = 0;
+    Step_t *step = findStepByEnv(task->environ, &jobid, NULL, isAdmin);
     if (!step) {
 	if (!isAdmin) {
 	    flog("rank %i failed to find my step\n", task->rank);
 	}
 	return 0;
     }
+
+#ifdef HAVE_SPANK
+    struct spank_handle spank = {
+	.task = task,
+	.alloc = findAlloc(jobid),
+	.job = findJobById(jobid),
+	.step = step,
+	.hook = SPANK_TASK_EXIT
+    };
+    SpankCallHook(&spank);
+#endif
 
     if (!step->taskEpilog || *(step->taskEpilog) == '\0') return 0;
 
@@ -453,9 +481,25 @@ int handleExecClient(void *data)
 {
     PStask_t *task = data;
 
+    /* skip service tasks */
     if (task->rank <0) return 0;
 
     setDefaultRlimits();
+
+#ifdef HAVE_SPANK
+    bool isAdmin = isPSAdminUser(task->uid, task->gid);
+    uint32_t jobid = 0;
+    Step_t *step = findStepByEnv(task->environ, &jobid, NULL, isAdmin);
+
+    struct spank_handle spank = {
+	.task = task,
+	.alloc = findAlloc(jobid),
+	.job = findJobById(jobid),
+	.step = step,
+	.hook = SPANK_TASK_INIT_PRIVILEGED
+    };
+    SpankCallHook(&spank);
+#endif
 
     return 0;
 }
@@ -515,6 +559,16 @@ int handleExecClientUser(void *data)
     unsetenv("__MPIEXEC_DIST_START");
     unsetenv("MPIEXEC_VERBOSE");
 
+#ifdef HAVE_SPANK
+    struct spank_handle spank = {
+	.task = task,
+	.alloc = findAlloc(jobid),
+	.job = findJobById(jobid),
+	.step = step,
+	.hook = SPANK_TASK_INIT
+    };
+    SpankCallHook(&spank);
+#endif
     return 0;
 }
 

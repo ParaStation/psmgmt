@@ -24,6 +24,9 @@
 #include "psslurmenv.h"
 #include "psslurmconfig.h"
 #include "psslurmlimits.h"
+#ifdef HAVE_SPANK
+#include "psslurmspank.h"
+#endif
 
 #include "slurmcommon.h"
 #include "peloguehandles.h"
@@ -384,6 +387,28 @@ int handleLocalPElogueStart(void *data)
     if (!userEnv && user) ufree(user);
 
     return ret;
+}
+
+int handlePEloguePrepare(void *data)
+{
+#ifdef HAVE_SPANK
+    PElogueChild_t *pedata = data;
+    uint32_t jobid = atoi(pedata->jobid);
+
+    struct spank_handle spank = {
+	.task = NULL,
+	.alloc = findAlloc(jobid),
+	.job = findJobById(jobid),
+	.step = NULL,
+	.hook = SPANK_JOB_PROLOG
+    };
+
+    if (pedata->type != PELOGUE_PROLOGUE) spank.hook = SPANK_JOB_EPILOG;
+
+    SpankCallHook(&spank);
+#endif
+
+    return 0;
 }
 
 int handleLocalPElogueFinish(void *data)
