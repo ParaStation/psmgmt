@@ -108,7 +108,8 @@ PStask_ID_t PSC_getTID(PSnodes_ID_t node, pid_t pid)
      * PID were enough.
      *
      * Changing this would incompatibly change the protocol and
-     * requires serious testing. */
+     * requires serious testing.
+     */
     if (node == -1) {
 	return (((PSC_getMyID()&0xFFFF)<<16)|(pid&0xFFFF));
     } else {

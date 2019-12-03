@@ -49,8 +49,7 @@ void __vectorAddCount(vector_t *vector, void *new, size_t count,
     }
 
     memcpy((char *)vector->data + vector->len * vector->typesize, new,
-	   //memcpy(vector->data+vector->len*vector->typesize, new,
-	    count * vector->typesize);
+	   count * vector->typesize);
     vector->len += count;
 }
 
