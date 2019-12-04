@@ -2184,7 +2184,7 @@ static char *autoDetectSlurmProto(void)
 
     if (!fp) {
 	mwarn(errno, "sinfo binary %s not found:", sinfo);
-	return false;
+	return NULL;
     }
 
     while ((read = getdelim(&line, &len, '\0', fp)) != -1) {

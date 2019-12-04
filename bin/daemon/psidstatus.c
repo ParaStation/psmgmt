@@ -17,11 +17,7 @@
 #include <sys/socket.h>
 
 /* Extra includes for load-determination */
-#ifdef __linux__
 #include <sys/sysinfo.h>
-#else
-#error WRONG OS Type
-#endif
 
 #include "pscommon.h"
 #include "psprotocol.h"
@@ -66,16 +62,12 @@ static int totNodes = 0;
 static PSID_Load_t getLoad(void)
 {
     PSID_Load_t load = {{0.0, 0.0, 0.0}};
-#ifdef __linux__
     struct sysinfo s_info;
 
     sysinfo(&s_info);
     load.load[0] = (double) s_info.loads[0] / (1<<SI_LOAD_SHIFT);
     load.load[1] = (double) s_info.loads[1] / (1<<SI_LOAD_SHIFT);
     load.load[2] = (double) s_info.loads[2] / (1<<SI_LOAD_SHIFT);
-#else
-#error BAD OS !!!!
-#endif
 
     return load;
 }
@@ -92,15 +84,11 @@ static PSID_Load_t getLoad(void)
 static PSID_Mem_t getMem(void)
 {
     PSID_Mem_t mem = {-1, -1};
-#ifdef __linux__
     struct sysinfo s_info;
 
     sysinfo(&s_info);
     mem.total = s_info.totalram * s_info.mem_unit;
     mem.free = s_info.freeram * s_info.mem_unit;
-#else
-#error BAD OS !!!!
-#endif
 
     return mem;
 }

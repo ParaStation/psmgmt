@@ -24,11 +24,7 @@
 #define PSProtocolVersion 341
 
 /** The location of the UNIX socket used to contact the daemon. */
-#ifdef __linux__
 #define PSmasterSocketName "\0parastation.sock"
-#else
-#error WRONG OS Type
-#endif
 
 /** Environment used to pass number of service processes to logger */
 #define ENV_NUM_SERVICE_PROCS    "__PSI_SERVICE_PROCS"

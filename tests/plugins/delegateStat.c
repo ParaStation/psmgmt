@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2017 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2017-2019 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -88,7 +88,7 @@ char * show(char *key)
     if (task->totalThreads > 0 && task->partThrds) {
 	unsigned int t;
 	PSnodes_ID_t lastNode = -1;
-	snprintf(l, sizeof(l), "\t%u of %u threads used:\n", task->usedThreads,
+	snprintf(l, sizeof(l), "\t%d of %u threads used:\n", task->usedThreads,
 		 task->totalThreads);
 	str2Buf(l, &buf, &bufSize);
 	for (t=0; t<task->totalThreads; t++) {
@@ -169,20 +169,20 @@ char * set(char *key, char *val)
 
     if (task->totalThreads > 0 && task->partThrds) {
 	unsigned int t;
-	snprintf(l, sizeof(l), "\n%u of %u threads used:\n", task->usedThreads,
+	snprintf(l, sizeof(l), "\n%d of %u threads used:\n", task->usedThreads,
 		 task->totalThreads);
 	str2Buf(l, &buf, &bufSize);
 	for (t=0; t<task->totalThreads; t++) {
 	    PSpart_HWThread_t *hwThrd = &task->partThrds[t];
 	    if (hwThrd->timesUsed) {
-		snprintf(l, sizeof(l), "\tfree %u thread(s) of %d/%d\n",
+		snprintf(l, sizeof(l), "\tfree %d thread(s) of %d/%d\n",
 			 hwThrd->timesUsed, hwThrd->node, hwThrd->id);
 		str2Buf(l, &buf, &bufSize);
 		task->usedThreads -= hwThrd->timesUsed;
 		hwThrd->timesUsed = 0;
 	    }
 	}
-	snprintf(l, sizeof(l), "%u of %u threads used\n", task->usedThreads,
+	snprintf(l, sizeof(l), "%d of %u threads used\n", task->usedThreads,
 		 task->totalThreads);
 	str2Buf(l, &buf, &bufSize);
     } else {

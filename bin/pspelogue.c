@@ -335,7 +335,7 @@ static void handleResponse(void)
 	exit(1);
 	break;
     default:
-	fprintf(stderr, "%s: received unexpected msg type %u:%u\n", __func__,
+	fprintf(stderr, "%s: received unexpected msg type %hd:%d\n", __func__,
 		answer.header.type, answer.type);
 	exit(1);
     }
@@ -344,7 +344,7 @@ static void handleResponse(void)
     case PSP_PELOGUE_RESP:
 	break;
     default:
-	fprintf(stderr, "%s: received unexpected msg type %u:%u\n", __func__,
+	fprintf(stderr, "%s: received unexpected msg type %hd:%d\n", __func__,
 		answer.header.type, answer.type);
 	exit(1);
     }

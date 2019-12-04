@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2018 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2018-2019 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -46,7 +46,7 @@ static char *checkScript(char *script)
     if (script[0] == '/') {
 	fName = strdup(script);
     } else {
-	fName = PSC_concat(PLUGINDIR, "/", script, NULL);
+	fName = PSC_concat(PLUGINDIR, "/", script, 0L);
     }
 
     struct stat sb;
@@ -80,7 +80,7 @@ static int jailProcess(void *info)
 
     char argument[64];
     snprintf(argument, sizeof(argument), " %d", pid);
-    char *command = PSC_concat(jailScript, argument, NULL);
+    char *command = PSC_concat(jailScript, argument, 0L);
 
     if (command) {
 	int ret = system(command);

@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2014-2017 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2014-2019 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -177,7 +177,7 @@ const ConfDef_t *getConfigDef(char *name, const ConfDef_t confDef[])
     int i;
 
     for (i = 0; confDef[i].name; i++) {
-	if (!(strcmp(name, confDef[i].name))) return &confDef[i];
+	if (!(strcmp(name, confDef[i].name))) return confDef + i;
     }
     return NULL;
 }

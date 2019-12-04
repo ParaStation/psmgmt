@@ -304,10 +304,8 @@ static void msg_INFOREQUEST(DDTypedBufferMsg_t *inmsg)
 		    break;
 		case PSP_INFO_LIST_LOAD:
 		    status = getStatusInfo(node);
-		    ((float *)msg.buf)[3*idx+0] = status.load.load[0];
-		    ((float *)msg.buf)[3*idx+1] = status.load.load[1];
-		    ((float *)msg.buf)[3*idx+2] = status.load.load[2];
-		    size = 3*sizeof(float);
+		    size = 3 * sizeof(float);
+		    memcpy(msg.buf + size * idx, status.load.load, size);
 		    break;
 		case PSP_INFO_LIST_MEMORY:
 		    memory = getMemoryInfo(node);

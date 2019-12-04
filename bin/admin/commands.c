@@ -1171,7 +1171,7 @@ void PSIADM_JobStat(PStask_ID_t task, PSpart_list_t opt)
 	    printf("   %c  ", (flags & PART_LIST_PEND) ? 'P' :
 		   (flags & PART_LIST_RUN) ? 'R' :
 		   (flags & PART_LIST_SUSP) ? 'S' : '?');
-	    printf(" %5d", req->size);
+	    printf(" %5u", req->size);
 	    printf(" %5d", req->uid);
 	    printf(" %5d", req->gid);
 	    if (req->num) {

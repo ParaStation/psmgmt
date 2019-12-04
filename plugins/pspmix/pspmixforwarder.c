@@ -191,7 +191,7 @@ static bool sendRegisterClientMsg(int fd, PStask_ID_t loggertid, int32_t resid,
 	return false;
     }
 
-    if (sscanf(tmp, "%u", &serverTID) != 1) {
+    if (sscanf(tmp, "%d", &serverTID) != 1) {
 	mlog("%s(r%d): Cannot parse TID of the local PMIx job server.",
 		__func__, rank);
 	return false;

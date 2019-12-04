@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2018 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2018-2019 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -45,11 +45,11 @@ void __vectorAddCount(vector_t *vector, void *new, size_t count,
 	    vector->allocated += vector->chunksize;
 	} while (vector->allocated < needed);
 
-        vector->data = __urealloc(vector->data, vector->allocated, func, line);
+	vector->data = __urealloc(vector->data, vector->allocated, func, line);
     }
 
-    memcpy(vector->data+vector->len*vector->typesize, new,
-	    count * vector->typesize);
+    memcpy((char *)vector->data + vector->len * vector->typesize, new,
+	   count * vector->typesize);
     vector->len += count;
 }
 
@@ -60,7 +60,7 @@ void * __vectorGet(vector_t *vector, size_t index, const char *func,
     assert(vector->data != NULL);
     assert(vector->len > index);
 
-    return vector->data + index * vector->typesize;
+    return (char *)vector->data + index * vector->typesize;
 }
 
 bool __vectorContains(vector_t *vector, void *entry, const char *func,
@@ -72,7 +72,7 @@ bool __vectorContains(vector_t *vector, void *entry, const char *func,
 
     size_t i;
     for (i = 0; i < vector->len; i++) {
-	if (memcmp(entry, vector->data + i * vector->typesize,
+	if (memcmp(entry, (char *)vector->data + i * vector->typesize,
 		    vector->typesize) == 0) return true;
     }
 
