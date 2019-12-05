@@ -314,10 +314,10 @@ static bool parseHost(char *host, void *info)
 	}
     } else {
 	if (!(strcmp(host, "DEFAULT"))) {
-	    mlog("%s: found the default host definition\n", __func__);
+	    flog("saved default host definition\n");
 	    res = addHostOptions(hInfo->options);
 	} else if (isLocalAddr(host)) {
-	    flog("found my addr: %s args: %s\n", host, hInfo->options);
+	    flog("local addr: %s args: %s\n", host, hInfo->options);
 	    if (!hInfo->useNodeAddr) {
 		addConfigEntry(&Config, "SLURM_HOSTNAME", host);
 	    }
@@ -483,6 +483,60 @@ static bool parseNodeNameEntry(char *line, int gres)
 }
 
 /**
+ * @brief Save slurmctld hosts
+ *
+ * @param confVal The slurmctld host to save
+ *
+ * @return Returns true on success otherwise false
+ */
+static bool saveCtldHost(char *confVal)
+{
+    /* save node entry in config */
+    int numEntry = getConfValueI(&Config, "SLURM_CTLHOST_ENTRY_COUNT");
+    numEntry = (numEntry == -1) ? 0 : numEntry;
+
+    /* separate and save host address */
+    char *value = strdup(confVal);
+    char *addr = strchr(value, '(');
+    if (addr) {
+	/* remove brackets */
+	addr[0] = '\0';
+	addr++;
+	if (!addr) {
+	    flog("parsing entry SlurmctldHost=%s failed\n", confVal);
+	    ufree(value);
+	    return false;
+	}
+	size_t len = strlen(addr);
+	addr[len-1] = '\0';
+    }
+
+    char tmp[128];
+    if (addr) {
+	snprintf(tmp, sizeof(tmp), "SLURM_CTLHOST_ADDR_%i", numEntry);
+	addConfigEntry(&Config, tmp, addr);
+    }
+
+    /* save host-name */
+    snprintf(tmp, sizeof(tmp), "SLURM_CTLHOST_ENTRY_%i", numEntry);
+    addConfigEntry(&Config, tmp, value);
+
+    flog("slurmctld(%i) host=%s", numEntry, value);
+    if (addr) {
+	mlog(" address=%s\n", addr);
+    } else {
+	mlog("\n");
+    }
+
+    /* update node entry count */
+    snprintf(tmp, sizeof(tmp), "%i", ++numEntry);
+    addConfigEntry(&Config, "SLURM_CTLHOST_ENTRY_COUNT", tmp);
+
+    ufree(value);
+    return true;
+}
+
+/**
  * @brief Parse a Slurm configuration pair
  *
  * @param key The key to parse
@@ -496,24 +550,26 @@ static bool parseNodeNameEntry(char *line, int gres)
  */
 static bool parseSlurmConf(char *key, char *value, const void *info)
 {
-    char *hostline, *tmp;
     const int *gres = info;
 
     /* parse all NodeName entries */
-    if (!(strcmp(key, "NodeName"))) {
-	hostline = ustrdup(value);
-	if (!(parseNodeNameEntry(hostline, *gres))) {
+    if (!strcmp(key, "NodeName")) {
+	char *hostline = ustrdup(value);
+	if (!parseNodeNameEntry(hostline, *gres)) {
 	    ufree(hostline);
-	    /* an error occured, return true to stop parsing */
-	    return true;
+	    return true; /* an error occured, return true to stop parsing */
 	}
 	ufree(hostline);
     } else if (*gres && !(strcmp(key, "Name"))) {
-	tmp = umalloc(strlen(value) +6 + 1);
+	char *tmp = umalloc(strlen(value) +6 + 1);
 	snprintf(tmp, strlen(value) +6, "Name=%s", value);
 	//mlog("%s: Gres single name '%s'\n", __func__, tmp);
 	parseGresOptions(tmp);
 	ufree(tmp);
+    } else if (!strcmp(key, "SlurmctldHost")) {
+	if (!saveCtldHost(value)) {
+	    return true; /* an error occured, return true to stop parsing */
+	}
     }
     /* parsing was successful, continue with next line */
     return false;

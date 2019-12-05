@@ -50,6 +50,7 @@ static void deleteTask(PS_Tasks_t *task)
 
 void clearTasks(list_t *taskList)
 {
+    if (!taskList) return;
     list_t *t, *tmp;
     list_for_each_safe(t, tmp, taskList) {
 	PS_Tasks_t *task = list_entry(t, PS_Tasks_t, next);
@@ -59,6 +60,7 @@ void clearTasks(list_t *taskList)
 
 PS_Tasks_t *findTaskByRank(list_t *taskList, int32_t rank)
 {
+    if (!taskList) return NULL;
     list_t *t;
     list_for_each(t, taskList) {
 	PS_Tasks_t *task = list_entry(t, PS_Tasks_t, next);
@@ -69,6 +71,7 @@ PS_Tasks_t *findTaskByRank(list_t *taskList, int32_t rank)
 
 PS_Tasks_t *findTaskByFwd(list_t *taskList, PStask_ID_t fwTID)
 {
+    if (!taskList) return NULL;
     list_t *t;
     list_for_each(t, taskList) {
 	PS_Tasks_t *task = list_entry(t, PS_Tasks_t, next);
@@ -79,6 +82,7 @@ PS_Tasks_t *findTaskByFwd(list_t *taskList, PStask_ID_t fwTID)
 
 PS_Tasks_t *findTaskByChildPid(list_t *taskList, pid_t childPid)
 {
+    if (!taskList) return NULL;
     list_t *t;
     list_for_each(t, taskList) {
 	PS_Tasks_t *task = list_entry(t, PS_Tasks_t, next);
@@ -87,9 +91,21 @@ PS_Tasks_t *findTaskByChildPid(list_t *taskList, pid_t childPid)
     return NULL;
 }
 
+PS_Tasks_t *findTaskByChildTID(list_t *taskList, pid_t childTID)
+{
+    if (!taskList) return NULL;
+    list_t *t;
+    list_for_each(t, taskList) {
+	PS_Tasks_t *task = list_entry(t, PS_Tasks_t, next);
+	if (task->childTID == childTID) return task;
+    }
+    return NULL;
+}
+
 unsigned int countTasks(list_t *taskList)
 {
     unsigned int count = 0;
+    if (!taskList) return 0;
     list_t *t;
     list_for_each(t, taskList) count++;
     return count;
@@ -100,6 +116,7 @@ unsigned int countRegTasks(list_t *taskList)
     unsigned int count = 0;
     list_t *t;
 
+    if (!taskList) return 0;
     list_for_each(t, taskList) {
 	PS_Tasks_t *task = list_entry(t, PS_Tasks_t, next);
 	if (task->childRank < 0) continue;

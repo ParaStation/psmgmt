@@ -110,6 +110,9 @@ static handlerFunc_t oldCCMsgHandler = NULL;
 /** Old handler for PSP_CD_SPAWNFAILED  messages */
 static handlerFunc_t oldSpawnFailedHandler = NULL;
 
+/** Old handler for PSP_CD_SPAWNSUCCESS  messages */
+static handlerFunc_t oldSpawnSuccessHandler = NULL;
+
 /** Old handler for PSP_CD_SPAWNREQ messages */
 static handlerFunc_t oldSpawnReqHandler = NULL;
 
@@ -161,7 +164,7 @@ static const char *msg2Str(PSP_PSSLURM_t type)
 	case PSP_PACK_EXIT:
 	    return "PSP_PACK_EXIT";
 	default:
-	    snprintf(buf, sizeof(buf), "%u <Unknown>", type);
+	    snprintf(buf, sizeof(buf), "%i <Unknown>", type);
 	    return buf;
     }
     return NULL;
@@ -464,14 +467,17 @@ void send_PS_AllocState(Alloc_t *alloc)
 
 static int retryExecScript(PSnodes_ID_t remote, uint16_t scriptID)
 {
-    if (remote == slurmController && slurmBackupController > -1) {
-	/* retry using slurm backup controller */
-	mlog("%s: using backup controller, nodeID %i\n", __func__,
-	     slurmBackupController);
-	return psExecSendScriptStart(scriptID, slurmBackupController);
+    int idx = getCtlHostIndex(remote);
+    if (idx == -1) return -1;
+
+    PSnodes_ID_t nextCtl = getCtlHostID(idx+1);
+    if (nextCtl != -1) {
+	/* retry with next controller */
+	flog("using next controller with nodeID %i\n", nextCtl);
+	return psExecSendScriptStart(scriptID, nextCtl);
     } else if (remote != PSC_getMyID()) {
-	/* retry using local offline script */
-	mlog("%s: using local script\n", __func__);
+	/* no more controller left, retry using local offline script */
+	flog("using local script\n");
 	return psExecStartLocalScript(scriptID);
     }
 
@@ -498,9 +504,9 @@ static int callbackNodeOffline(uint32_t id, int32_t exit, PSnodes_ID_t remote,
 
     if (job) {
 	if (job->state == JOB_QUEUED || job->state == JOB_EXIT) {
-	    /* only mother superior should try to requeue a job */
+	    /* only mother superior should try to re-queue a job */
 	    if (job->nodes[0] == PSC_getMyID()) {
-		requeueBatchJob(job, slurmController);
+		requeueBatchJob(job, getCtlHostID(0));
 	    }
 	}
     }
@@ -524,8 +530,8 @@ void setNodeOffline(env_t *env, uint32_t id, const char *host, char *reason)
     envSet(&clone, "SLURM_HOSTNAME", host);
     envSet(&clone, "SLURM_REASON", reason);
 
-    flog("node '%s' exec script on node %i\n", host, slurmController);
-    psExecStartScript(id, "psslurm-offline", &clone, slurmController,
+    flog("node '%s' exec script on node %i\n", host, getCtlHostID(0));
+    psExecStartScript(id, "psslurm-offline", &clone, getCtlHostID(0),
 		      callbackNodeOffline);
 
     envDestroy(&clone);
@@ -1775,9 +1781,9 @@ FORWARD:
 }
 
 /**
- * @brief Get jobid from forwarder message header
+ * @brief Get jobid by forwarder task ID
  *
- * Get job ID and step ID from forwarder message header.
+ * Get job ID and step ID by forwarder task ID.
  * As a side effect returns the forwarder task.
  *
  * @param header The header of the message
@@ -1790,13 +1796,13 @@ FORWARD:
  *
  * @return Returns true on success or false otherwise
  */
-static bool getJobIDbyForwarderMsgHeader(DDMsg_t *header, PStask_t **fwPtr,
-					 uint32_t *jobid, uint32_t *stepid)
+static bool getJobIDbyForwarder(PStask_ID_t fwTID, PStask_t **fwPtr,
+				uint32_t *jobid, uint32_t *stepid)
 {
-    PStask_t *forwarder = PStasklist_find(&managedTasks, header->sender);
+    PStask_t *forwarder = PStasklist_find(&managedTasks, fwTID);
     if (!forwarder) {
 	mlog("%s: could not find forwarder task for sender '%s'\n",
-		__func__, PSC_printTID(header->sender));
+		__func__, PSC_printTID(fwTID));
 	return false;
     }
     *fwPtr = forwarder;
@@ -1807,12 +1813,33 @@ static bool getJobIDbyForwarderMsgHeader(DDMsg_t *header, PStask_t **fwPtr,
 	/* admin users may start jobs directly via mpiexec */
 	if (!isAdmin) {
 	    mlog("%s: could not find jobid/stepid in forwarder task for sender"
-		    " '%s'\n", __func__, PSC_printTID(header->sender));
+		    " '%s'\n", __func__, PSC_printTID(fwTID));
 	}
 	return false;
     }
 
     return true;
+}
+
+/**
+* @brief Handle a PSP_CD_SPAWNSUCCESS message
+*
+* @param msg The message to handle
+*/
+static void handleSpawnSuccess(DDErrorMsg_t *msg)
+{
+    PStask_t *forwarder = NULL;
+    uint32_t jobid, stepid;
+
+    if (getJobIDbyForwarder(msg->header.dest, &forwarder, &jobid, &stepid)) {
+	Step_t *step = findStepByStepId(jobid, stepid);
+	if (step) {
+	    addTask(&step->remoteTasks, msg->header.sender, forwarder->tid,
+		    forwarder, forwarder->childGroup, msg->request);
+	}
+    }
+
+    if (oldSpawnSuccessHandler) oldSpawnSuccessHandler((DDBufferMsg_t *) msg);
 }
 
 /**
@@ -1829,8 +1856,7 @@ static void handleSpawnFailed(DDErrorMsg_t *msg)
 	  __func__, PSC_printTID(msg->header.sender),
 	  msg->request, msg->error);
 
-    if (!getJobIDbyForwarderMsgHeader(&msg->header, &forwarder, &jobid,
-				      &stepid)) {
+    if (!getJobIDbyForwarder(msg->header.sender, &forwarder, &jobid, &stepid)) {
 	goto FORWARD_SPAWN_FAILED_MSG;
     }
 
@@ -2023,8 +2049,7 @@ static void handleChildBornMsg(DDErrorMsg_t *msg)
     uint32_t jobid = 0, stepid = 0;
     PS_Tasks_t *task = NULL;
 
-    if (!getJobIDbyForwarderMsgHeader(&(msg->header), &forwarder, &jobid,
-				      &stepid)) {
+    if (!getJobIDbyForwarder(msg->header.sender, &forwarder, &jobid, &stepid)) {
 	flog("forwarder for sender %s not found\n",
 	     PSC_printTID(msg->header.sender));
 	goto FORWARD_CHILD_BORN;
@@ -2151,6 +2176,12 @@ void finalizePScomm(bool verbose)
 	PSID_registerMsg(PSP_CD_SPAWNFAILED, oldSpawnFailedHandler);
     } else {
 	PSID_clearMsg(PSP_CD_SPAWNFAILED);
+    }
+
+    if (oldSpawnSuccessHandler) {
+	PSID_registerMsg(PSP_CD_SPAWNSUCCESS, oldSpawnSuccessHandler);
+    } else {
+	PSID_clearMsg(PSP_CD_SPAWNSUCCESS);
     }
 
     if (oldSpawnReqHandler) {
@@ -2401,6 +2432,10 @@ bool initPScomm(void)
     /* register to PSP_CD_SPAWNFAILED message */
     oldSpawnFailedHandler = PSID_registerMsg(PSP_CD_SPAWNFAILED,
 					     (handlerFunc_t) handleSpawnFailed);
+
+    /* register to PSP_CD_SPAWNSUCCESS message */
+    oldSpawnSuccessHandler = PSID_registerMsg(PSP_CD_SPAWNSUCCESS,
+					      (handlerFunc_t) handleSpawnSuccess);
 
     /* register to *obsolete* PSP_CD_SPAWNREQ message */
     oldSpawnReqHandler = PSID_registerMsg(PSP_CD_SPAWNREQ,

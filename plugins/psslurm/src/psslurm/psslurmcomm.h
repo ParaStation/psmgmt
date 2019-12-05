@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2014-2018 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2014-2019 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -33,9 +33,43 @@ typedef struct {
 } Msg_Forward_t;
 
 /**
+ * @brief Initialize the Slurm communication facility
+ *
+ * Initialize the facility handling communication of the Slurm
+ * protocol. This includes opening the slurmd socket for
+ * srun/slurmctld communication and sending an initial
+ * node registration request to the slurmctld. For this
+ * all slurmctl daemons are extracted from the configuration
+ * and there PS node ID is resolved.
+ *
+ * @return On success true is returned or false otherwise
+ */
+bool initSlurmCon(void);
+
+/**
  * @brief Close all Slurm connections and free used memory
  */
 void clearSlurmCon(void);
+
+/**
+ * @brief Get the host index
+ *
+ * @param id The PS node ID to get the index for
+ *
+ * @return Returns the requested host index on success
+ * or -1 otherwise
+ */
+int getCtlHostIndex(PSnodes_ID_t id);
+
+/**
+ * @brief Get the PS node ID by index
+ *
+ * @param index The index to get the PS node ID for
+ *
+ * @return Returns the requested PS node ID on success
+ * or -1 otherwise
+ */
+PSnodes_ID_t getCtlHostID(int index);
 
 /**
  * @brief Close a Slurm connection
@@ -51,7 +85,7 @@ void closeSlurmCon(int socket);
  *
  * Generate a Slurm message header and set the given message type.
  * Assemble the Slurm message starting with the header followed by
- * the munge authentication and finalized with the give message body.
+ * the munge authentication and finalized with the given message body.
  * The message is send out using the provided socket. If the socket is
  * lesser 0 a new TCP connection to the slurmctld will be opened and used
  * to send the message.
@@ -78,7 +112,7 @@ int __sendSlurmMsg(int sock, slurm_msg_type_t type, PS_SendDB_t *body,
  * @brief Send a Slurm message
  *
  * Assemble the Slurm message starting with the header followed by
- * the munge authentication and finalized with the give message body.
+ * the munge authentication and finalized with the given message body.
  * The message is send out using the provided socket. If the socket is
  * lesser 0 a new TCP connection to the slurmctld will be opened and used
  * to send the message.

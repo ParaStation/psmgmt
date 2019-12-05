@@ -65,7 +65,7 @@ static char *showEnergy(char *buf, size_t *bufSize)
 	     "(watt) \n", e->powerCur, e->powerAvg, e->powerMin, e->powerMax);
     str2Buf(line, &buf, bufSize);
 
-    snprintf(line, sizeof(line), "energy base: %zu consumed: %zu (joules)\n",
+    snprintf(line, sizeof(line), "energy base: %lu consumed: %lu (joules)\n",
 	     e->energyBase, e->energyCur);
     str2Buf(line, &buf, bufSize);
 

@@ -4,6 +4,25 @@ Copyright (C) 2010-2019 ParTec Cluster Competence Center GmbH, Munich
 
 Please send bug reports, questions and suggestions to <support@par-tec.com>
 
+Version 5.1.27-1:
+=================
+Bugfixes:
+ - Fix possible segfault when accounting data is packed (j3t:#1345)
+
+
+Version 5.1.27:
+===============
+Bugfixes:
+ - Fix possible segfault in psgw startup
+ - Make --gw_env option work without specifying export
+Enhancements:
+ - Add support for slurm.conf SlurmctldHost option (pct:#336)
+ - Set SLURM_NTASKS_PER_NODE if not set by sbatch (pct:#339)
+ - Add accounting of various min/max task values with 19.05 (pct:#337)
+Additional changes:
+ - Add two new functions to .gdbinit: reverse_print_list[_entry]
+ - Fix various cppcheck warning
+
 
 Version 5.1.26:
 ===============

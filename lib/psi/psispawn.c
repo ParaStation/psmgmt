@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 1999-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2018 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2019 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -120,11 +120,7 @@ static char *mygetwd(const char *ext)
 	if (temp) {
 	    dir = strdup(temp);
 	} else {
-#ifdef __linux__
 	    dir = getcwd(NULL, 0);
-#else
-#error wrong OS
-#endif
 	}
 	if (!dir) goto error;
 
@@ -766,7 +762,6 @@ static int dospawn(int count, PSnodes_ID_t *dstnodes, char *workingdir,
 	struct stat statbuf;
 
 	if (stat(argv[0], &statbuf) && !strictArgv) {
-#ifdef __linux__
 	    char myexec[PATH_MAX];
 	    int length;
 
@@ -778,10 +773,6 @@ static int dospawn(int count, PSnodes_ID_t *dstnodes, char *workingdir,
 	    }
 
 	    task->argv[0] = strdup(myexec);
-#else
-	    PSI_log(-1, "%s: Cannot start job from PATH.\n", __func__);
-	    goto cleanup;
-#endif
 	} else {
 	    task->argv[0] = strdup(argv[0]);
 	}
@@ -1222,7 +1213,7 @@ char *PSI_createPGfile(int num, const char *prog, int local)
     } else {
 	/* File open failed, lets try the user's home directory */
 	char *home = getenv("HOME");
-	PIfilename = PSC_concat(home, "/", filename, NULL);
+	PIfilename = PSC_concat(home, "/", filename, 0L);
 
 	PIfile = fopen(PIfilename, "w+");
 	/* File open failed finally */
@@ -1270,7 +1261,7 @@ char *PSI_createMPIhosts(int num, int local)
     } else {
 	/* File open failed, lets try the user's home directory */
 	char *home = getenv("HOME");
-	MPIhostsFilename = PSC_concat(home, "/", filename, NULL);
+	MPIhostsFilename = PSC_concat(home, "/", filename, 0L);
 
 	MPIhostsFile = fopen(MPIhostsFilename, "w+");
 	/* File open failed finally */

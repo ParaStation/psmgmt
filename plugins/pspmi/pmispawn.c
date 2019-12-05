@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2013-2016 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2013-2019 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -29,7 +29,7 @@
 static int forwarderSock = -1;
 
 /** the type of the PMI connection */
-static PMItype_t pmiType;
+static PMItype_t pmiType = PMI_DISABLED;
 
 /* socket connecting the KVS provider's forwarder to the provider */
 static int kvsProviderSock = -1;
@@ -121,16 +121,9 @@ static void setPMI_PORT(int PMISock, char *cPMI_PORT, int size )
  * - PMI_ENABLE_TCP will trigger an TCP socket.
  *
  * - PMI_ENABLE_SOCKP will trigger an AF_UNIX socketpair.
- *
- * @return Depending on the socket-type created PMI_OVER_TCP or
- * PMI_OVER_UNIX will be returned. If both environment variables
- * discussed above are set or an error occurred PMI_FAILED will be
- * returned. If no socket is created due to missing environment
- * variables PMI_DISABLED is returned.
  */
-static PMItype_t preparePMI(int *forwarderSock)
+static void preparePMI(int *forwarderSock)
 {
-    PMItype_t pmiType = PMI_DISABLED;
     int pmiEnableTcp = 0;
     int pmiEnableSockp = 0;
     char *envstr = getenv("PMI_ENABLE_TCP");
@@ -145,7 +138,8 @@ static PMItype_t preparePMI(int *forwarderSock)
     if (pmiEnableSockp && pmiEnableTcp) {
 	mwarn(EINVAL,
 		  "%s: only one type of PMI connection allowed", __func__);
-	return PMI_FAILED;
+	pmiType = PMI_FAILED;
+	return;
     }
 
     /* unset bogus PMI settings */
@@ -159,7 +153,8 @@ static PMItype_t preparePMI(int *forwarderSock)
 	*forwarderSock = setupPMISock();
 	if (*forwarderSock < 0) {
 	    mwarn(errno, "%s: create PMI/TCP socket failed", __func__);
-	    return PMI_FAILED;
+	    pmiType = PMI_FAILED;
+	    return;
 	}
 	pmiType = PMI_OVER_TCP;
 
@@ -174,7 +169,8 @@ static PMItype_t preparePMI(int *forwarderSock)
 
 	if (socketpair(PF_UNIX, SOCK_STREAM, 0, socketfds)<0) {
 	    mwarn(errno, "%s: socketpair()", __func__);
-	    return PMI_FAILED;
+	    pmiType = PMI_FAILED;
+	    return;
 	}
 	*forwarderSock = socketfds[1];
 	pmiType = PMI_OVER_UNIX;
@@ -182,8 +178,6 @@ static PMItype_t preparePMI(int *forwarderSock)
 	snprintf(cPMI_FD, sizeof(cPMI_FD), "%d", socketfds[0]);
 	setenv("PMI_FD", cPMI_FD, 1);
     }
-
-    return pmiType;
 }
 
 static void setupKVSProviderComm(void)
@@ -223,7 +217,8 @@ static int handleForwarderSpawn(void *data)
     PStask_t *task = data;
 
     if (task->group == TG_ANY) {
-	pmiType = preparePMI(&forwarderSock);
+	/* set PMI type */
+	preparePMI(&forwarderSock);
 	if (pmiType == PMI_FAILED) return -1;
 
 	setConnectionInfo(pmiType, forwarderSock);

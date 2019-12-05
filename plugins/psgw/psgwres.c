@@ -200,13 +200,13 @@ static int cbPSGWDerror(uint32_t id, int32_t exit, PSnodes_ID_t dest,
 
 void writeErrorFile(PSGW_Req_t *req, char *msg)
 {
-    if (envGet(req->res->env, "SLURM_SPANK_PSGW_QUIET")) {
-	return;
-    }
-
     PElogueResource_t *res = req->res;
     if (!res) {
 	flog("invalid pelogue resource for jobid %s\n", req->jobid);
+	return;
+    }
+
+    if (envGet(req->res->env, "SLURM_SPANK_PSGW_QUIET")) {
 	return;
     }
 

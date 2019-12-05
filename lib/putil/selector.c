@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2018 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2019 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -21,34 +21,6 @@
 #include "timer.h"
 
 #include "selector.h"
-
-#ifndef __linux__
-/**
- * OSF provides neither timeradd nor timersub in sys/time.h
- */
-#ifndef timeradd
-#define timeradd(a, b, result)                                        \
-  do {                                                                \
-    (result)->tv_sec = (a)->tv_sec + (b)->tv_sec;                     \
-    (result)->tv_usec = (a)->tv_usec + (b)->tv_usec;                  \
-    if ((result)->tv_usec >= 1000000) {                               \
-	++(result)->tv_sec;                                           \
-	(result)->tv_usec -= 1000000;                                 \
-    }                                                                 \
-  } while (0)
-#endif
-#ifndef timersub
-#define timersub(a, b, result)                                        \
-  do {                                                                \
-    (result)->tv_sec = (a)->tv_sec - (b)->tv_sec;                     \
-    (result)->tv_usec = (a)->tv_usec - (b)->tv_usec;                  \
-    if ((result)->tv_usec < 0) {                                      \
-      --(result)->tv_sec;                                             \
-      (result)->tv_usec += 1000000;                                   \
-    }                                                                 \
-  } while (0)
-#endif
-#endif
 
 /** Flag to let Sselect() start over, i.e. return 0 and all fds cleared */
 static int startOver = 0;

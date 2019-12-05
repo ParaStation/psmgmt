@@ -365,7 +365,7 @@ static int hookRecvSpawnReq(void *data)
 setenv:
 
     /* set jobserver tid in environment for the spawn forwarder */
-    snprintf(buf, sizeof(buf), "%u", server->fwdata->tid);
+    snprintf(buf, sizeof(buf), "%d", server->fwdata->tid);
     setenv("__PSPMIX_LOCAL_JOBSERVER_TID", buf, 1);
 
     return 0;

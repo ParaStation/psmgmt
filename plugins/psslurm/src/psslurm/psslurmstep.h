@@ -115,7 +115,8 @@ typedef struct {
     Forwarder_Data_t *fwdata;   /**< parameters of running job forwarder */
     uint32_t numHwThreads;	/**< number of hardware threads */
     PSpart_HWThread_t *hwThreads;/**< PS hardware threads */
-    list_t tasks;		/**< list of tasks started for this step */
+    list_t tasks;		/**< list of local tasks started */
+    list_t remoteTasks;         /**< list of remote tasks */
     char *acctFreq;		/**< account polling frequency */
     uint32_t *gids;		/**< extended group ids */
     uint32_t gidsLen;		/**< size of extended group ids */

@@ -103,53 +103,32 @@ void PSC_setMyID(PSnodes_ID_t id)
 
 PStask_ID_t PSC_getTID(PSnodes_ID_t node, pid_t pid)
 {
-#ifdef __linux__
-    /* Linux uses PIDs smaller than 32768, thus 16 bits for pid are enough */
+    /*
+     * Linux used to use PIDs smaller than 32768, thus 16 bits for
+     * PID were enough.
+     *
+     * Changing this would incompatibly change the protocol and
+     * requires serious testing.
+     */
     if (node == -1) {
 	return (((PSC_getMyID()&0xFFFF)<<16)|(pid&0xFFFF));
     } else {
 	return (((node&0xFFFF)<<16)|(pid&0xFFFF));
     }
-#else
-    /* Maybe we should do this on every architecture ? *JH* */
-    /* But this would limit us to 4096 nodes! *NE* */
-    /* Tru64 V5.1 use 19 bit for PID's, we reserve 20 bits */
-    if (node == -1) {
-	return (((PSC_getMyID()&0xFFFL)<<20)|(pid&0xFFFFFL));
-    } else {
-	return (((node&0xFFFL)<<20)|(pid&0xFFFFFL));
-    }
-#endif
 }
 
 PSnodes_ID_t PSC_getID(PStask_ID_t tid)
 {
-#ifdef __linux__
+    /* See comment in PSC_getTID() */
     PSnodes_ID_t node = (tid>>16)&0xFFFF;
     if (node == -1) return PSC_getMyID();
     return node;
-#else
-    /* Maybe we should do this on every architecture ? *JH* */
-    /* But this would limit us to 4096 nodes! *NE* */
-    /* Tru64 V5.1 use 19 bit for PID's, we reserve 20 bits */
-    if (tid>=0) {
-	return (tid>>20)&0xFFFL;
-    } else {
-	return PSC_getMyID();
-    }
-#endif
 }
 
 pid_t PSC_getPID(PStask_ID_t tid)
 {
-#ifdef __linux__
+    /* See comment in PSC_getTID() */
     return (tid & 0xFFFF);
-#else
-    /* Maybe we should do this on every architecture ? *JH* */
-    /* But this would limit us to 4096 nodes! *NE* */
-    /* Tru64 V5.1 use 19 bit for PID's, we reserve 24 bits */
-    return (tid & 0xFFFFF);
-#endif
 }
 
 static bool daemonFlag = false;
@@ -255,7 +234,7 @@ char* PSC_lookupInstalldir(char *hint)
     struct stat fstat;
 
     if (hint || !installdir) {
-	char *name = PSC_concat(hint ? hint : DEFAULT_INSTDIR, LOGGER, NULL);
+	char *name = PSC_concat(hint ? hint : DEFAULT_INSTDIR, LOGGER, 0L);
 
 	installdir = NULL;
 
