@@ -317,9 +317,12 @@ static spank_err_t getJobItem(spank_t spank, spank_item_t item, va_list ap)
     uid_t *pUID;
     gid_t *pGID;
     gid_t **pGIDs;
+    uint16_t *pUint16;
     uint32_t *pUint32;
+    uint64_t *pUint64;
     int *pInt;
-    char ***pChar;
+    char ***pChar3;
+    char **pChar2;
 
     switch(item) {
 	case S_JOB_UID:
@@ -331,7 +334,8 @@ static spank_err_t getJobItem(spank_t spank, spank_item_t item, va_list ap)
 	    } else if (spank->alloc) {
 		*pUID = spank->alloc->uid;
 	    } else {
-		return ESPANK_BAD_ARG;
+		*pUID = 0;
+		return ESPANK_NOT_AVAIL;
 	    }
 	    break;
 	case S_JOB_GID:
@@ -343,7 +347,8 @@ static spank_err_t getJobItem(spank_t spank, spank_item_t item, va_list ap)
 	    } else if (spank->alloc) {
 		*pGID = spank->alloc->gid;
 	    } else {
-		return ESPANK_BAD_ARG;
+		*pGID = 0;
+		return ESPANK_NOT_AVAIL;
 	    }
 	    break;
 	case S_JOB_ID:
@@ -355,7 +360,8 @@ static spank_err_t getJobItem(spank_t spank, spank_item_t item, va_list ap)
 	    } else if (spank->alloc) {
 		*pUint32 = spank->alloc->id;
 	    } else {
-		return ESPANK_BAD_ARG;
+		*pUint32 = 0;
+		return ESPANK_NOT_AVAIL;
 	    }
 	    break;
 	case S_JOB_STEPID:
@@ -365,7 +371,8 @@ static spank_err_t getJobItem(spank_t spank, spank_item_t item, va_list ap)
 	    } else if (spank->job || spank->alloc) {
 		*pUint32 = SLURM_BATCH_SCRIPT;
 	    } else {
-		return ESPANK_BAD_ARG;
+		*pUint32 = 0;
+		return ESPANK_NOT_AVAIL;
 	    }
 	    break;
 	case S_JOB_NNODES:
@@ -377,7 +384,8 @@ static spank_err_t getJobItem(spank_t spank, spank_item_t item, va_list ap)
 	    } else if (spank->alloc) {
 		*pUint32 = spank->alloc->nrOfNodes;
 	    } else {
-		return ESPANK_BAD_ARG;
+		*pUint32 = 0;
+		return ESPANK_NOT_AVAIL;
 	    }
 	    break;
 	case S_JOB_NODEID:
@@ -389,33 +397,34 @@ static spank_err_t getJobItem(spank_t spank, spank_item_t item, va_list ap)
 	    } else if (spank->alloc) {
 		*pUint32 = spank->alloc->localNodeId;
 	    } else {
-		return ESPANK_BAD_ARG;
+		*pUint32 = 0;
+		return ESPANK_NOT_AVAIL;
 	    }
 	    break;
 	case S_JOB_ARGV:
 	    pInt = va_arg(ap, int *);
-	    pChar = va_arg(ap, char ***);
+	    pChar3 = va_arg(ap, char ***);
 	    if (spank->step) {
 		*pInt = spank->step->argc;
-		*pChar = spank->step->argv;
+		*pChar3 = spank->step->argv;
 	    } else if (spank->job) {
 		*pInt = spank->job->argc;
-		*pChar = spank->job->argv;
+		*pChar3 = spank->job->argv;
 	    } else {
 		*pInt = 0;
-		*pChar = NULL;
+		*pChar3 = NULL;
 	    }
 	    break;
 	case S_JOB_ENV:
-	    pChar = va_arg(ap, char ***);
+	    pChar3 = va_arg(ap, char ***);
 	    if (spank->step) {
-		*pChar = spank->step->env.vars;
+		*pChar3 = spank->step->env.vars;
 	    } else if (spank->job) {
-		*pChar = spank->job->env.vars;
+		*pChar3 = spank->job->env.vars;
 	    } else if (spank->alloc) {
-		*pChar = spank->alloc->env.vars;
+		*pChar3 = spank->alloc->env.vars;
 	    } else {
-		*pChar = NULL;
+		*pChar3 = NULL;
 	    }
 	    break;
 	case S_SLURM_RESTART_COUNT:
@@ -423,7 +432,8 @@ static spank_err_t getJobItem(spank_t spank, spank_item_t item, va_list ap)
 	    if (spank->job) {
 		*pUint32 = spank->job->restartCnt;
 	    } else {
-		return ESPANK_BAD_ARG;
+		*pUint32 = 0;
+		return ESPANK_NOT_AVAIL;
 	    }
 	    break;
 	case S_JOB_SUPPLEMENTARY_GIDS:
@@ -437,20 +447,35 @@ static spank_err_t getJobItem(spank_t spank, spank_item_t item, va_list ap)
 		*pInt = spank->job->gidsLen;
 	    } else {
 		*pInt = 0;
-		return ESPANK_BAD_ARG;
+		return ESPANK_NOT_AVAIL;
 	    }
 	    break;
 	/* TODO */
 	case S_JOB_NCPUS:
 	    /* Number of CPUs used by this job (uint16_t *) */
+	    pUint16 = va_arg(ap, uint16_t *);
+	    *pUint16 = 0;
+	    return ESPANK_NOT_AVAIL;
 	case S_JOB_ALLOC_CORES:
 	    /* Job allocated cores in list format (char **) */
+	    pChar2 = va_arg(ap, char **);
+	    *pChar2 = "";
+	    return ESPANK_NOT_AVAIL;
 	case S_JOB_ALLOC_MEM:
 	    /* Job allocated memory in MB (uint64_t *)      */
+	    pUint64 = va_arg(ap, uint64_t *);
+	    *pUint64 = 0;
+	    return ESPANK_NOT_AVAIL;
 	case S_STEP_ALLOC_CORES:
 	    /* Step alloc'd cores in list format  (char **) */
+	    pChar2 = va_arg(ap, char **);
+	    *pChar2 = "";
+	    return ESPANK_NOT_AVAIL;
 	case S_STEP_ALLOC_MEM:
 	    /* Step alloc'd memory in MB (uint64_t *)       */
+	    pUint64 = va_arg(ap, uint64_t *);
+	    *pUint64 = 0;
+	    return ESPANK_NOT_AVAIL;
 	default:
 	    return ESPANK_BAD_ARG;
     }
@@ -505,10 +530,19 @@ static spank_err_t getTaskItem(spank_t spank, spank_item_t item, va_list ap)
 	/* TODO */
 	case S_JOB_LOCAL_TASK_COUNT:
 	    /* Number of local tasks (uint32_t *)           */
+	    pUint32 = va_arg(ap, uint32_t *);
+	    *pUint32 = 0;
+	    return ESPANK_NOT_AVAIL;
 	case S_JOB_TOTAL_TASK_COUNT:
 	    /* Total number of tasks in job (uint32_t *)    */
+	    pUint32 = va_arg(ap, uint32_t *);
+	    *pUint32 = 0;
+	    return ESPANK_NOT_AVAIL;
 	case S_TASK_EXIT_STATUS:
 	    /* Exit status of task if exited (int *)        */
+	    pInt = va_arg(ap, int *);
+	    *pInt = 0;
+	    return ESPANK_NOT_AVAIL;
 	default:
 	    return ESPANK_BAD_ARG;
     }
@@ -516,9 +550,8 @@ static spank_err_t getTaskItem(spank_t spank, spank_item_t item, va_list ap)
     return ESPANK_SUCCESS;
 }
 
-spank_err_t getOtherItem(spank_t spank, spank_item_t item, va_list ap)
+spank_err_t getVersionItem(spank_t spank, spank_item_t item, va_list ap)
 {
-    uint32_t *pUint32;
     char **pChar;
     static char verMajor[8], verMinor[8], verMicro[8];
     static bool init = false;
@@ -531,7 +564,36 @@ spank_err_t getOtherItem(spank_t spank, spank_item_t item, va_list ap)
 	snprintf(verMajor, sizeof(verMajor), "%i", major);
 	snprintf(verMinor, sizeof(verMinor), "%i", minor);
 	snprintf(verMicro, sizeof(verMicro), "%i", micro);
+	init = true;
     }
+
+    switch(item) {
+	case S_SLURM_VERSION:
+	    pChar = va_arg(ap, char **);
+	    *pChar = slurmVerStr;
+	    break;
+	case S_SLURM_VERSION_MAJOR:
+	    pChar = va_arg(ap, char **);
+	    *pChar = verMajor;
+	    break;
+	case S_SLURM_VERSION_MINOR:
+	    pChar = va_arg(ap, char **);
+	    *pChar = verMinor;
+	    break;
+	case S_SLURM_VERSION_MICRO:
+	    pChar = va_arg(ap, char **);
+	    *pChar = verMicro;
+	    break;
+	default:
+	    return ESPANK_BAD_ARG;
+    }
+
+    return ESPANK_SUCCESS;
+}
+
+spank_err_t getOtherItem(spank_t spank, spank_item_t item, va_list ap)
+{
+    uint32_t *pUint32;
 
     switch(item) {
 	case S_JOB_ARRAY_ID:
@@ -550,30 +612,31 @@ spank_err_t getOtherItem(spank_t spank, spank_item_t item, va_list ap)
 		*pUint32 = 0;
 	    }
 	    break;
-	case S_SLURM_VERSION:
-	    pChar = va_arg(ap, char **);
-	    *pChar = slurmVerStr;
-	    break;
-	case S_SLURM_VERSION_MAJOR:
-	    pChar = va_arg(ap, char **);
-	    *pChar = verMajor;
-	    break;
-	case S_SLURM_VERSION_MINOR:
-	    pChar = va_arg(ap, char **);
-	    *pChar = verMinor;
-	    break;
-	case S_SLURM_VERSION_MICRO:
-	    pChar = va_arg(ap, char **);
-	    *pChar = verMicro;
-	    break;
+	/* TODO */
 	case S_JOB_PID_TO_GLOBAL_ID:
 	    /* global task id from pid (pid_t, uint32_t *)  */
+	    va_arg(ap, pid_t);
+	    pUint32 = va_arg(ap, uint32_t *);
+	    *pUint32 = 0;
+	    return ESPANK_NOT_AVAIL;
 	case S_JOB_PID_TO_LOCAL_ID:
 	    /* local task id from pid (pid_t, uint32_t *)   */
+	    va_arg(ap, pid_t);
+	    pUint32 = va_arg(ap, uint32_t *);
+	    *pUint32 = 0;
+	    return ESPANK_NOT_AVAIL;
 	case S_JOB_LOCAL_TO_GLOBAL_ID:
 	    /* local id to global id (uint32_t, uint32_t *) */
+	    va_arg(ap, uint32_t);
+	    pUint32 = va_arg(ap, uint32_t *);
+	    *pUint32 = 0;
+	    return ESPANK_NOT_AVAIL;
 	case S_JOB_GLOBAL_TO_LOCAL_ID:
 	    /* global id to local id (uint32_t, uint32_t *) */
+	    va_arg(ap, uint32_t);
+	    pUint32 = va_arg(ap, uint32_t *);
+	    *pUint32 = 0;
+	    return ESPANK_NOT_AVAIL;
 	default:
 	    return ESPANK_BAD_ARG;
     }
@@ -611,12 +674,13 @@ spank_err_t psSpankGetItem(spank_t spank, spank_item_t item, va_list ap)
 	case S_TASK_PID:
 	case S_STEP_CPUS_PER_TASK:
 	    return getTaskItem(spank, item, ap);
-	case S_JOB_ARRAY_ID:
-	case S_JOB_ARRAY_TASK_ID:
 	case S_SLURM_VERSION:
 	case S_SLURM_VERSION_MAJOR:
 	case S_SLURM_VERSION_MINOR:
 	case S_SLURM_VERSION_MICRO:
+	    return getVersionItem(spank, item, ap);
+	case S_JOB_ARRAY_ID:
+	case S_JOB_ARRAY_TASK_ID:
 	case S_JOB_PID_TO_GLOBAL_ID:
 	case S_JOB_PID_TO_LOCAL_ID:
 	case S_JOB_LOCAL_TO_GLOBAL_ID:
