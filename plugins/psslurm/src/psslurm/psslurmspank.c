@@ -520,6 +520,18 @@ spank_err_t getOtherItem(spank_t spank, spank_item_t item, va_list ap)
 {
     uint32_t *pUint32;
     char **pChar;
+    static char verMajor[8], verMinor[8], verMicro[8];
+    static bool init = false;
+
+    if (!init) {
+	int major = 0, minor = 0, micro = 0;
+	if (sscanf(slurmVerStr, "%i.%i.%i-", &major, &minor, &micro) != 3) {
+	    flog("Slurm version string '%s' parsing failed\n", slurmVerStr);
+	}
+	snprintf(verMajor, sizeof(verMajor), "%i", major);
+	snprintf(verMinor, sizeof(verMinor), "%i", minor);
+	snprintf(verMicro, sizeof(verMicro), "%i", micro);
+    }
 
     switch(item) {
 	case S_JOB_ARRAY_ID:
@@ -540,15 +552,20 @@ spank_err_t getOtherItem(spank_t spank, spank_item_t item, va_list ap)
 	    break;
 	case S_SLURM_VERSION:
 	    pChar = va_arg(ap, char **);
-	    *pChar = slurmProtoStr;
+	    *pChar = slurmVerStr;
 	    break;
-	/* TODO */
 	case S_SLURM_VERSION_MAJOR:
-	    /* Slurm version major release (char **)        */
+	    pChar = va_arg(ap, char **);
+	    *pChar = verMajor;
+	    break;
 	case S_SLURM_VERSION_MINOR:
-	    /* Slurm version minor release (char **)        */
+	    pChar = va_arg(ap, char **);
+	    *pChar = verMinor;
+	    break;
 	case S_SLURM_VERSION_MICRO:
-	    /* Slurm version micro release (char **)        */
+	    pChar = va_arg(ap, char **);
+	    *pChar = verMicro;
+	    break;
 	case S_JOB_PID_TO_GLOBAL_ID:
 	    /* global task id from pid (pid_t, uint32_t *)  */
 	case S_JOB_PID_TO_LOCAL_ID:

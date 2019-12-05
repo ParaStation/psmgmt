@@ -131,6 +131,9 @@ extern uint32_t slurmProto;
 /** Slurm protocol version string */
 extern char *slurmProtoStr;
 
+/** Slurm version string */
+extern char *slurmVerStr;
+
 /** Flag to measure Slurm RPC execution times */
 extern bool measureRPC;
 

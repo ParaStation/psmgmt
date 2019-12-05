@@ -61,6 +61,9 @@ uint32_t slurmProto;
 /** Slurm protocol version string */
 char *slurmProtoStr = NULL;
 
+/** Slurm version string */
+char *slurmVerStr = NULL;
+
 /** Flag to measure Slurm RPC execution times */
 bool measureRPC = false;
 
@@ -2163,26 +2166,35 @@ slurmdHandlerFunc_t clearSlurmdMsg(int msgType)
     return NULL;
 }
 
-static char *autoDetectSlurmProto(void)
+/**
+ * @brief Automatically detect the installed Slurm version
+ */
+static const char *autoDetectSlurmVer(void)
 {
-    char *sinfo = getConfValueC(&Config, "SINFO_BINARY");
+    const char *sinfo = getConfValueC(&Config, "SINFO_BINARY");
     char *line = NULL;
-    static char autoVer[8];
+    static char autoVer[16];
     size_t len = 0;
     ssize_t read;
     bool ret = false;
 
     FILE *fp = fopen(sinfo, "r");
-
     if (!fp) {
-	mwarn(errno, "sinfo binary %s not found:", sinfo);
+	const char *pver = getConfValueC(&Config, "SLURM_PROTO_VERSION");
+	if (!strcmp(pver, "auto")) {
+	    mwarn(errno, "sinfo binary %s not found:", sinfo);
+	    flog("please set SINFO_BINARY to the correct path of sinfo\n");
+	}
 	return NULL;
     }
 
     while ((read = getdelim(&line, &len, '\0', fp)) != -1) {
 	if (!strncmp(line, "SLURM_VERSION_STRING", 20)) {
-	    if (sscanf(line, "SLURM_VERSION_STRING \"%5s", autoVer) == 1) {
+	    if (sscanf(line, "SLURM_VERSION_STRING \"%s\"", autoVer) == 1) {
+		char *quote = strchr(autoVer, '"');
+		if (quote) quote[0] = '\0';
 		ret = true;
+		break;
 	    } else {
 		flog("invalid slurm version string: %s\n", line);
 	    }
@@ -2197,33 +2209,38 @@ static char *autoDetectSlurmProto(void)
 
 bool initSlurmdProto(void)
 {
-    char *pver;
-
-    /* Slurm protocol version */
-    pver = getConfValueC(&Config, "SLURM_PROTO_VERSION");
+    const char *pver = getConfValueC(&Config, "SLURM_PROTO_VERSION");
+    const char *autoVer = autoDetectSlurmVer();
 
     if (!strcmp(pver, "auto")) {
-	pver = autoDetectSlurmProto();
-	if (!pver) {
+	if (!autoVer) {
 	    flog("Automatic detection of the Slurm protocol failed, "
 		 "consider setting SLURM_PROTO_VERSION in psslurm.conf\n");
 	    return false;
 	}
+	slurmVerStr = ustrdup(autoVer);
+	pver = autoVer;
     }
 
-    if (!strcmp(pver, "19.05") || !strcmp(pver, "1905")) {
+    if (!strncmp(pver, "19.05", 5) || !strncmp(pver, "1905", 4)) {
 	slurmProto = SLURM_19_05_PROTO_VERSION;
 	slurmProtoStr = ustrdup("19.05");
-    } else if (!strcmp(pver, "18.08") || !strcmp(pver, "1808")) {
+    } else if (!strncmp(pver, "18.08", 5) || !strncmp(pver, "1808", 4)) {
 	slurmProto = SLURM_18_08_PROTO_VERSION;
 	slurmProtoStr = ustrdup("18.08");
-    } else if (!strcmp(pver, "17.11") || !strcmp(pver, "1711")) {
+    } else if (!strncmp(pver, "17.11", 5) || !strncmp(pver, "1711", 4)) {
 	slurmProto = SLURM_17_11_PROTO_VERSION;
 	slurmProtoStr = ustrdup("17.11");
 	needNodeRegResp = false;
     } else {
 	mlog("%s: unsupported Slurm protocol version %s\n", __func__, pver);
 	return false;
+    }
+
+    if (!slurmVerStr) {
+	char buf[64];
+	snprintf(buf, sizeof(buf), "%s.0-0", slurmProtoStr);
+	slurmVerStr = ustrdup(buf);
     }
 
     registerSlurmdMsg(REQUEST_LAUNCH_PROLOG, handleLaunchProlog);
@@ -2306,6 +2323,7 @@ void clearSlurmdProto(void)
     clearSlurmdMsg(RESPONSE_NODE_REGISTRATION);
 
     ufree(slurmProtoStr);
+    ufree(slurmVerStr);
 }
 
 void sendNodeRegStatus(bool startup)
