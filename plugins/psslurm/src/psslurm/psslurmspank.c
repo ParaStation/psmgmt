@@ -41,7 +41,7 @@ static const struct {
     int hook;
     char *strName;
 } Spank_Hook_Table[] = {
-    { false, SPANK_INIT,                   "slurm_spank_init"		      },
+    { true,  SPANK_INIT,                   "slurm_spank_init"		      },
     { false, SPANK_SLURMD_INIT,            "slurm_spank_slurmd_init"	      },
     { true,  SPANK_JOB_PROLOG,             "slurm_spank_job_prolog"	      },
     { false, SPANK_INIT_POST_OPT,          "slurm_spank_init_post_opt"	      },
@@ -53,7 +53,7 @@ static const struct {
     { true,  SPANK_TASK_EXIT,              "slurm_spank_task_exit"	      },
     { true,  SPANK_JOB_EPILOG,             "slurm_spank_job_epilog"	      },
     { false, SPANK_SLURMD_EXIT,            "slurm_spank_slurmd_exit"	      },
-    { false, SPANK_EXIT,                   "slurm_spank_exit"		      },
+    { true,  SPANK_EXIT,                   "slurm_spank_exit"		      },
     { false, SPANK_END,                    NULL				      }
 };
 
@@ -267,21 +267,20 @@ spank_err_t psSpankSetenv(spank_t spank, const char *var, const char *val,
 	case SPANK_TASK_INIT_PRIVILEGED:
 	case SPANK_TASK_INIT:
 	case SPANK_JOB_EPILOG:
-	    if (setenv(var, var, overwrite) == -1) return ESPANK_BAD_ARG;
+	    if (setenv(var, val, overwrite) == -1) return ESPANK_BAD_ARG;
     }
-
 
     /* TODO: should we set it also in the management structures? */
     if (spank->step) {
-
+	envSet(&spank->step->env, var, val);
     }
 
     if (spank->job) {
-
+	envSet(&spank->job->env, var, val);
     }
 
     if (spank->alloc) {
-
+	envSet(&spank->alloc->env, var, val);
     }
 
     return ESPANK_SUCCESS;
@@ -459,7 +458,7 @@ static spank_err_t getJobItem(spank_t spank, spank_item_t item, va_list ap)
 	case S_JOB_ALLOC_CORES:
 	    /* Job allocated cores in list format (char **) */
 	    pChar2 = va_arg(ap, char **);
-	    *pChar2 = "";
+	    *pChar2 = NULL;
 	    return ESPANK_NOT_AVAIL;
 	case S_JOB_ALLOC_MEM:
 	    /* Job allocated memory in MB (uint64_t *)      */
@@ -469,7 +468,7 @@ static spank_err_t getJobItem(spank_t spank, spank_item_t item, va_list ap)
 	case S_STEP_ALLOC_CORES:
 	    /* Step alloc'd cores in list format  (char **) */
 	    pChar2 = va_arg(ap, char **);
-	    *pChar2 = "";
+	    *pChar2 = NULL;
 	    return ESPANK_NOT_AVAIL;
 	case S_STEP_ALLOC_MEM:
 	    /* Step alloc'd memory in MB (uint64_t *)       */
@@ -510,7 +509,7 @@ static spank_err_t getTaskItem(spank_t spank, spank_item_t item, va_list ap)
 	    break;
 	case S_TASK_ID:
 	    pInt = va_arg(ap, int *);
-	    if (spank->step) {
+	    if (spank->step && spank->task) {
 		*pInt = getLocalRankID(spank->task->rank, spank->step,
 				       spank->step->localNodeId);
 	    } else {

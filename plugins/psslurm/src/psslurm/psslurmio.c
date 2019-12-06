@@ -382,34 +382,6 @@ static void closeIOchannel(Forwarder_Data_t *fwdata, uint32_t taskid,
     handlePrintChildMsg(fwdata, msg.buf);
 }
 
-void stepFinalize(Forwarder_Data_t *fwdata)
-{
-    Step_t *step = fwdata->userData;
-    uint32_t i, myNodeID = step->localNodeId;
-
-    /* make sure to close all leftover I/O channels */
-    for (i=0; i<step->globalTaskIdsLen[myNodeID]; i++) {
-	if (step->outChannels && step->outChannels[i] != 0) {
-	    closeIOchannel(fwdata, step->globalTaskIds[myNodeID][i], STDOUT);
-	}
-	if (step->errChannels && step->errChannels[i] != 0) {
-	    closeIOchannel(fwdata, step->globalTaskIds[myNodeID][i], STDERR);
-	}
-    }
-
-    /* send task exit to sattach processes */
-    sendTaskExit(step, sattachCtlSock, sattachAddr);
-
-    /* close all sattach sockets */
-    for (i=0; i<MAX_SATTACH_SOCKETS; i++) {
-	if (Selector_isRegistered(sattachSockets[i])) {
-	    Selector_remove(sattachSockets[i]);
-	}
-	close(sattachSockets[i]);
-	close(sattachCtlSock[i]);
-    }
-}
-
 static void handleEnableSrunIO(Forwarder_Data_t *fwdata)
 {
     Step_t *step = fwdata->userData;
@@ -444,6 +416,34 @@ static void handleFWfinalize(Forwarder_Data_t *fwdata, char *ptr)
     /* let main psslurm forward FINALIZE to logger */
     sendMsgToMother(msg);
     ufree(msg);
+}
+
+void stepFinalizeIO(Forwarder_Data_t *fwdata)
+{
+    Step_t *step = fwdata->userData;
+    uint32_t i, myNodeID = step->localNodeId;
+
+    /* make sure to close all leftover I/O channels */
+    for (i=0; i<step->globalTaskIdsLen[myNodeID]; i++) {
+	if (step->outChannels && step->outChannels[i] != 0) {
+	    closeIOchannel(fwdata, step->globalTaskIds[myNodeID][i], STDOUT);
+	}
+	if (step->errChannels && step->errChannels[i] != 0) {
+	    closeIOchannel(fwdata, step->globalTaskIds[myNodeID][i], STDERR);
+	}
+    }
+
+    /* send task exit to sattach processes */
+    sendTaskExit(step, sattachCtlSock, sattachAddr);
+
+    /* close all sattach sockets */
+    for (i=0; i<MAX_SATTACH_SOCKETS; i++) {
+	if (Selector_isRegistered(sattachSockets[i])) {
+	    Selector_remove(sattachSockets[i]);
+	}
+	close(sattachSockets[i]);
+	close(sattachCtlSock[i]);
+    }
 }
 
 static void handleReattachTasks(Forwarder_Data_t *fwdata, char *ptr)

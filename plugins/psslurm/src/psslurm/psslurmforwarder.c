@@ -997,6 +997,17 @@ static int stepForwarderInit(Forwarder_Data_t *fwdata)
 	}
     }
 
+#ifdef HAVE_SPANK
+    struct spank_handle spank = {
+	.task = NULL,
+	.alloc = findAlloc(step->jobid),
+	.job = findJobById(step->jobid),
+	.step = step,
+	.hook = SPANK_INIT
+    };
+    SpankCallHook(&spank);
+#endif
+
     return 1;
 }
 
@@ -1039,6 +1050,24 @@ static void stepForwarderLoop(Forwarder_Data_t *fwdata)
 	if (step->stdErrOpt == IO_SRUN) close(fwdata->stdErr[1]);
 	close(fwdata->stdIn[0]);
     }
+}
+
+static void stepFinalize(Forwarder_Data_t *fwdata)
+{
+    Step_t *step = fwdata->userData;
+
+    stepFinalizeIO(fwdata);
+
+#ifdef HAVE_SPANK
+    struct spank_handle spank = {
+	.task = NULL,
+	.alloc = findAlloc(step->jobid),
+	.job = findJobById(step->jobid),
+	.step = step,
+	.hook = SPANK_EXIT
+    };
+    SpankCallHook(&spank);
+#endif
 }
 
 static void handleChildStartJob(Forwarder_Data_t *fwdata, pid_t fw,
@@ -1276,6 +1305,24 @@ static void stepFWIOloop(Forwarder_Data_t *fwdata)
     }
 }
 
+static int stepFWIOinit(Forwarder_Data_t *fwdata)
+{
+    Step_t *step = fwdata->userData;
+
+#ifdef HAVE_SPANK
+    struct spank_handle spank = {
+	.task = NULL,
+	.alloc = findAlloc(step->jobid),
+	.job = findJobById(step->jobid),
+	.step = step,
+	.hook = SPANK_INIT
+    };
+    SpankCallHook(&spank);
+#endif
+
+    return 1;
+}
+
 bool execStepIO(Step_t *step)
 {
     int grace = getConfValueI(&SlurmConfig, "KillWait");
@@ -1292,6 +1339,7 @@ bool execStepIO(Step_t *step)
     fwdata->graceTime = grace;
     fwdata->killSession = psAccountSignalSession;
     fwdata->hookLoop = stepFWIOloop;
+    fwdata->hookFWInit = stepFWIOinit;
     fwdata->handleMthrMsg = stepForwarderMsg;
     fwdata->handleFwMsg = hookFWmsg;
     fwdata->callback = stepIOcallback;
