@@ -153,12 +153,16 @@ am__uninstall_files_from_dir = { \
 am__installdirs = "$(DESTDIR)$(slurmlibdir)"
 LTLIBRARIES = $(slurmlib_LTLIBRARIES)
 spank_api_la_LIBADD =
-am_spank_api_la_OBJECTS = spank_api_la-spank_api.lo
+am_spank_api_la_OBJECTS = spank_api_la-spank_api.lo \
+	spank_api_la-spank_test.lo
 spank_api_la_OBJECTS = $(am_spank_api_la_OBJECTS)
 AM_V_lt = $(am__v_lt_@AM_V@)
 am__v_lt_ = $(am__v_lt_@AM_DEFAULT_V@)
 am__v_lt_0 = --silent
 am__v_lt_1 = 
+spank_test_la_LIBADD =
+spank_test_la_SOURCES = spank_test.c
+spank_test_la_OBJECTS = spank_test.lo
 AM_V_P = $(am__v_P_@AM_V@)
 am__v_P_ = $(am__v_P_@AM_DEFAULT_V@)
 am__v_P_0 = false
@@ -174,7 +178,9 @@ am__v_at_1 =
 DEFAULT_INCLUDES = -I.@am__isrc@
 depcomp = $(SHELL) $(top_srcdir)/scripts/depcomp
 am__maybe_remake_depfiles = depfiles
-am__depfiles_remade = ./$(DEPDIR)/spank_api_la-spank_api.Plo
+am__depfiles_remade = ./$(DEPDIR)/spank_api_la-spank_api.Plo \
+	./$(DEPDIR)/spank_api_la-spank_test.Plo \
+	./$(DEPDIR)/spank_test.Plo
 am__mv = mv -f
 COMPILE = $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) \
 	$(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
@@ -194,8 +200,8 @@ AM_V_CCLD = $(am__v_CCLD_@AM_V@)
 am__v_CCLD_ = $(am__v_CCLD_@AM_DEFAULT_V@)
 am__v_CCLD_0 = @echo "  CCLD    " $@;
 am__v_CCLD_1 = 
-SOURCES = $(spank_api_la_SOURCES)
-DIST_SOURCES = $(spank_api_la_SOURCES)
+SOURCES = $(spank_api_la_SOURCES) spank_test.c
+DIST_SOURCES = $(spank_api_la_SOURCES) spank_test.c
 am__can_run_installinfo = \
   case $$AM_UPDATE_INFO_DIR in \
     n|no|NO) false;; \
@@ -402,8 +408,8 @@ scriptsdir = $(prefix)/scripts
 @HAVE_SYSTEMD_FALSE@default_cgroup_name = psmgmtGrp
 @HAVE_SYSTEMD_TRUE@default_cgroup_name = system.slice/psid.service/descendants
 psslurm_dir := plugins/psslurm/src
-slurmlib_LTLIBRARIES = spank_api.la
-spank_api_la_SOURCES = spank_api.c
+slurmlib_LTLIBRARIES = spank_api.la spank_test.la
+spank_api_la_SOURCES = spank_api.c spank_test.c
 spank_api_la_CPPFLAGS = $(AM_CPPFLAGS) -DSLURMLIBDIR=\"$(slurmlibdir)\"
 all: all-am
 
@@ -478,6 +484,9 @@ clean-slurmlibLTLIBRARIES:
 spank_api.la: $(spank_api_la_OBJECTS) $(spank_api_la_DEPENDENCIES) $(EXTRA_spank_api_la_DEPENDENCIES) 
 	$(AM_V_CCLD)$(LINK) -rpath $(slurmlibdir) $(spank_api_la_OBJECTS) $(spank_api_la_LIBADD) $(LIBS)
 
+spank_test.la: $(spank_test_la_OBJECTS) $(spank_test_la_DEPENDENCIES) $(EXTRA_spank_test_la_DEPENDENCIES) 
+	$(AM_V_CCLD)$(LINK) -rpath $(slurmlibdir) $(spank_test_la_OBJECTS) $(spank_test_la_LIBADD) $(LIBS)
+
 mostlyclean-compile:
 	-rm -f *.$(OBJEXT)
 
@@ -485,6 +494,8 @@ distclean-compile:
 	-rm -f *.tab.c
 
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/spank_api_la-spank_api.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/spank_api_la-spank_test.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/spank_test.Plo@am__quote@ # am--include-marker
 
 $(am__depfiles_remade):
 	@$(MKDIR_P) $(@D)
@@ -522,6 +533,13 @@ spank_api_la-spank_api.lo: spank_api.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='spank_api.c' object='spank_api_la-spank_api.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(spank_api_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o spank_api_la-spank_api.lo `test -f 'spank_api.c' || echo '$(srcdir)/'`spank_api.c
+
+spank_api_la-spank_test.lo: spank_test.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(spank_api_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT spank_api_la-spank_test.lo -MD -MP -MF $(DEPDIR)/spank_api_la-spank_test.Tpo -c -o spank_api_la-spank_test.lo `test -f 'spank_test.c' || echo '$(srcdir)/'`spank_test.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/spank_api_la-spank_test.Tpo $(DEPDIR)/spank_api_la-spank_test.Plo
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='spank_test.c' object='spank_api_la-spank_test.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(spank_api_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o spank_api_la-spank_test.lo `test -f 'spank_test.c' || echo '$(srcdir)/'`spank_test.c
 
 mostlyclean-libtool:
 	-rm -f *.lo
@@ -658,6 +676,8 @@ clean-am: clean-generic clean-libtool clean-slurmlibLTLIBRARIES \
 
 distclean: distclean-am
 		-rm -f ./$(DEPDIR)/spank_api_la-spank_api.Plo
+	-rm -f ./$(DEPDIR)/spank_api_la-spank_test.Plo
+	-rm -f ./$(DEPDIR)/spank_test.Plo
 	-rm -f Makefile
 distclean-am: clean-am distclean-compile distclean-generic \
 	distclean-tags
@@ -704,6 +724,8 @@ installcheck-am:
 
 maintainer-clean: maintainer-clean-am
 		-rm -f ./$(DEPDIR)/spank_api_la-spank_api.Plo
+	-rm -f ./$(DEPDIR)/spank_api_la-spank_test.Plo
+	-rm -f ./$(DEPDIR)/spank_test.Plo
 	-rm -f Makefile
 maintainer-clean-am: distclean-am maintainer-clean-generic
 
