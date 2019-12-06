@@ -113,7 +113,7 @@ int handleUserOE(int sock, void *data);
 
 int setFilePermissions(Job_t *job);
 
-void stepFinalize(Forwarder_Data_t *fwData);
+void stepFinalizeIO(Forwarder_Data_t *fwdata);
 
 int stepForwarderMsg(PSLog_Msg_t *msg, Forwarder_Data_t *fwData);
 

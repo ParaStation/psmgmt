@@ -77,6 +77,8 @@ int handleExecClient(void *data);
  * Used to change the child's environment, set memory binding,
  * execute the task prologue and setup the ptrace interface.
  *
+ * Additionally the spank hook SPANK_TASK_INIT is called.
+ *
  * @param data Task structure of the client
  *
  * @return Returns 0 on success or -1 otherwise
@@ -87,6 +89,8 @@ int handleExecClientUser(void * data);
  * @brief Handle hook PSIDHOOK_FRWRD_INIT
  *
  * Used to initialize the PMI interface and setup the ptrace interface.
+ *
+ * Additionally the spank hook SPANK_TASK_POST_FORK is called.
  *
  * @param data Task structure of the client
  *
