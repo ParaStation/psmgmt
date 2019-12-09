@@ -239,13 +239,6 @@ void initJobEnv(Job_t *job)
 	cpus = getCPUsPerNode(job);
     }
     envSet(&job->env, "SLURM_TASKS_PER_NODE", cpus);
-
-    /* set SLURM_NTASKS_PER_NODE if it was not set by sbatch */
-    if (!envGet(&job->env, "SLURM_NTASKS_PER_NODE")) {
-	char *brk = strchr(cpus, '(');
-	if (brk) brk[0] = '\0';
-	envSet(&job->env, "SLURM_NTASKS_PER_NODE", cpus);
-    }
     ufree(cpus);
 
     if (job->arrayTaskId != NO_VAL) {
