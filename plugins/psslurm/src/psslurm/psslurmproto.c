@@ -357,14 +357,14 @@ static bool extractStepPackInfos(Step_t *step)
     return true;
 }
 
-static int testSlurmVersion(uint32_t version, uint32_t cmd)
+static int testSlurmVersion(uint32_t pVer, uint32_t cmd)
 {
     if (cmd == REQUEST_PING) return 1;
 
-    if (version < SLURM_MIN_PROTO_VERSION ||
-	version > SLURM_MAX_PROTO_VERSION) {
-	mlog("%s: slurm protocol version %u not supported, cmd(%i) %s\n",
-	     __func__, version, cmd, msgType2String(cmd));
+    if (pVer < SLURM_MIN_PROTO_VERSION ||
+	pVer > SLURM_MAX_PROTO_VERSION) {
+	flog("slurm protocol version %u not supported, cmd(%i) %s\n",
+	     pVer, cmd, msgType2String(cmd));
 	return 0;
     }
     return 1;

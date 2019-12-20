@@ -46,10 +46,10 @@ static char *showConfig(char *buf, size_t *bufSize)
     str2Buf("\n", &buf, bufSize);
 
     for (i = 0; confDef[i].name; i++) {
-	char *name = confDef[i].name;
-	char *val = getConfValueC(&config, name);
+	char *cName = confDef[i].name;
+	char *cVal = getConfValueC(&config, cName);
 
-	snprintf(line, sizeof(line), "%*s = %s\n", maxKeyLen+2, name, val);
+	snprintf(line, sizeof(line), "%*s = %s\n", maxKeyLen+2, cName, cVal);
 	str2Buf(line, &buf, bufSize);
     }
 

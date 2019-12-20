@@ -182,7 +182,7 @@ static int handle_IS_CLUSTER_ADDRS(ComHandle_t *com)
 static int handle_IS_message(ComHandle_t *com)
 {
     Server_t *serv;
-    unsigned int version = 0;
+    unsigned int pVer = 0;
     unsigned int cmd = 0;
     int ret = -1;
 
@@ -190,9 +190,9 @@ static int handle_IS_message(ComHandle_t *com)
 	serv->lastContact = time(NULL);
     }
 
-    if ((ret = ReadDigitUI(com, &version)) < 0
-	 || version != IS_PROTOCOL_VER) {
-	 mlog("%s: invalid protocol version:%i\n", __func__, version);
+    if ((ret = ReadDigitUI(com, &pVer)) < 0
+	 || pVer != IS_PROTOCOL_VER) {
+	 mlog("%s: invalid protocol pVer:%i\n", __func__, pVer);
 	 return ret;
     }
 
@@ -201,7 +201,7 @@ static int handle_IS_message(ComHandle_t *com)
 	 return ret;
     }
 
-    mdbg(PSMOM_LOG_PIS, "%s: got cmd:%i ver:%i\n", __func__, cmd, version);
+    mdbg(PSMOM_LOG_PIS, "%s: got cmd:%i ver:%i\n", __func__, cmd, pVer);
     switch (cmd) {
 	case IS_NULL:
 	    ret = handle_IS_NULL();
@@ -360,13 +360,13 @@ static int handle_RM_SHUTDOWN(ComHandle_t *com)
  */
 static int handle_RM_message(ComHandle_t *com)
 {
-    unsigned int version = 0;
+    unsigned int pVer = 0;
     unsigned int cmd = 0;
     int ret = -1;
 
-    if ((ReadDigitUI(com, &version)) < 0
-	 || version != RM_PROTOCOL_VER) {
-	 mlog("%s: invalid protocol version:%i\n", __func__, version);
+    if ((ReadDigitUI(com, &pVer)) < 0
+	 || pVer != RM_PROTOCOL_VER) {
+	 mlog("%s: invalid protocol pVer:%i\n", __func__, pVer);
 	 return -1;
     }
 
@@ -376,7 +376,7 @@ static int handle_RM_message(ComHandle_t *com)
     }
 
     /* Resource Monitor request */
-    mdbg(PSMOM_LOG_PRM, "%s: got cmd:%i ver:%i\n", __func__, cmd, version);
+    mdbg(PSMOM_LOG_PRM, "%s: got cmd:%i ver:%i\n", __func__, cmd, pVer);
 
     switch (cmd) {
 	case RM_CMD_CLOSE:
@@ -2038,19 +2038,18 @@ static void handleTMError(ComHandle_t *com, unsigned int cmd)
  */
 static int handle_TM_message(ComHandle_t *com)
 {
-    unsigned int version = 0;
+    unsigned int pVer = 0;
     unsigned int cmd = 0;
     char sender[200];
-    int rmPort, ret = -1;
+    int ret = -1;
 
-    if ((ReadDigitUI(com, &version)) < 0 || version != TM_PROTOCOL_VER) {
-	mlog("%s: invalid protocol version:%i from:'%s:%i'\n", __func__,
-		version, com->remoteAddr, com->remotePort);
+    if ((ReadDigitUI(com, &pVer)) < 0 || pVer != TM_PROTOCOL_VER) {
+	mlog("%s: invalid protocol pVer:%i from:'%s:%i'\n", __func__,
+		pVer, com->remoteAddr, com->remotePort);
 	return -1;
     }
 
     /* special tm interface */
-    rmPort = getConfValueI(&config, "PORT_RM");
     if (com->type == TCP_PROTOCOL && com->localPort == rmPort) {
 	if (ENABLE_TM_REQUEST) {
 	    return handle_TM_Request(com);
@@ -2078,7 +2077,7 @@ static int handle_TM_message(ComHandle_t *com)
     }
 
     mdbg(PSMOM_LOG_PTM, "%s: got cmd:%i sender:%s ver:%i\n", __func__,
-	cmd, sender, version);
+	cmd, sender, pVer);
 
     switch (cmd) {
 	case PBS_BATCH_Connect:
@@ -2237,13 +2236,13 @@ int WriteTM_Batch_Reply(ComHandle_t *com, int cmd)
 
 int ReadTM(ComHandle_t *com, int *cmd)
 {
-    unsigned int proto, version;
+    unsigned int proto, pVer;
 
     ReadDigitUI(com, &proto);
-    ReadDigitUI(com, &version);
+    ReadDigitUI(com, &pVer);
     ReadDigitI(com, cmd);
 
-    if (proto == TM_PROTOCOL && version == TM_PROTOCOL_VER) {
+    if (proto == TM_PROTOCOL && pVer == TM_PROTOCOL_VER) {
 	return 1;
     }
 

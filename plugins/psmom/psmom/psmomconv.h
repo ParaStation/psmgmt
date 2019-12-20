@@ -80,14 +80,14 @@ int ReadDigitUL(ComHandle_t *com, unsigned long *digit);
  *
  * @param com The communication handle to use.
  *
- * @param buf Pointer to a buffer to write the string to.
+ * @param buffer Pointer to a buffer to write the string to.
  *
  * @param len The size of the buffer.
  *
  * @return Returns the number of bytes read or -1 on error.
  */
-#define ReadString(com, buf, len) __ReadString(com, buf, len, __func__)
-int __ReadString(ComHandle_t *com, char *buf, size_t len, const char *caller);
+#define ReadString(com, buffer, len) __ReadString(com, buffer, len, __func__)
+int __ReadString(ComHandle_t *com, char *buffer, size_t len, const char *caller);
 
 /**
  * @brief Read a PBS encoded string.

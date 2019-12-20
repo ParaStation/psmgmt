@@ -602,10 +602,10 @@ static char *showConfig(char *buf, size_t *bufSize)
     str2Buf("\n", &buf, bufSize);
 
     for (i = 0; confDef[i].name; i++) {
-	char *name = confDef[i].name, line[160];
-	char *val = getConfValueC(&config, name);
+	char *cName = confDef[i].name;
+	char *cVal = getConfValueC(&config, cName);
 
-	snprintf(line, sizeof(line), "%*s = %s\n", maxKeyLen+2, name, val);
+	snprintf(line, sizeof(line), "%*s = %s\n", maxKeyLen+2, cName, cVal);
 	str2Buf(line, &buf, bufSize);
     }
 
@@ -673,7 +673,7 @@ static char *showVirtualKeys(char *buf, size_t *bufSize, int example)
 char *set(char *key, char *value)
 {
     const ConfDef_t *thisConfDef = getConfigDef(key, confDef);
-    char *buf = NULL, line[1024];
+    char *buf = NULL;
     size_t bufSize = 0;
 
     /* search in config for given key */
@@ -803,7 +803,7 @@ char *help(void)
 
     str2Buf("\n# configuration options #\n\n", &buf, &bufSize);
     for (i = 0; confDef[i].name; i++) {
-	char type[10], line[160];
+	char type[10];
 	snprintf(type, sizeof(type), "<%s>", confDef[i].type);
 	snprintf(line, sizeof(line), "%*s %8s  %s\n", maxKeyLen+2,
 		 confDef[i].name, type, confDef[i].desc);

@@ -1365,9 +1365,6 @@ void pmi_finalize(void)
  *
  * @param msgLen The len of the message
  *
- * @param isSuccReady Flag to indicate if this message has to be
- * forwarded to the successor
- *
  * @param barrierIn Flag to indicate if this update has to be sent to
  * the local MPI client
  *
@@ -1377,9 +1374,8 @@ void pmi_finalize(void)
  *
  * @return No return value
  */
-static void bufferCacheUpdate(char *msg, size_t msgLen, bool isSuccReady,
-			      bool barrierIn, bool lastUpdate, size_t strLen,
-			      int updateIndex)
+static void bufferCacheUpdate(char *msg, size_t msgLen, bool barrierIn,
+			      bool lastUpdate, size_t strLen, int updateIndex)
 {
     Update_Buffer_t *uBuf;
 
@@ -1435,7 +1431,7 @@ static void handleKVScacheUpdate(PSLog_Msg_t *msg, char *ptr, bool lastUpdate)
 
     /* we need to buffer the message for later */
     if (len > 0 && (!isSuccReady || !gotBarrierIn)) {
-	bufferCacheUpdate(msg->buf, msgSize, isSuccReady, gotBarrierIn,
+	bufferCacheUpdate(msg->buf, msgSize, gotBarrierIn,
 			  lastUpdate, len, updateIndex);
     }
 

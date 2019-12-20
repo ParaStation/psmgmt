@@ -502,9 +502,10 @@ static char *showConfig(void)
     str2Buf("\n", &buf, &bufSize);
 
     while (CONFIG_VALUES[i].name != NULL) {
-	char *name = CONFIG_VALUES[i].name;
-	char *val = getConfValueC(&Config, name);
-	snprintf(line, sizeof(line), "%21s = %s\n", name, val ? val:"<empty>");
+	char *cName = CONFIG_VALUES[i].name;
+	char *cVal = getConfValueC(&Config, cName);
+	snprintf(line, sizeof(line), "%21s = %s\n",
+		 cName, cVal ? cVal : "<empty>");
 	str2Buf(line, &buf, &bufSize);
 	i++;
     }

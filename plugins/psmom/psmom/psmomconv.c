@@ -429,7 +429,7 @@ int WriteDataStruct(ComHandle_t *com, Data_Entry_t *data)
     return 1;
 }
 
-int __ReadString(ComHandle_t *com, char *buf, size_t len, const char *caller)
+int __ReadString(ComHandle_t *com, char *buffer, size_t len, const char *caller)
 {
     unsigned long size = 0;
     int ret;
@@ -454,7 +454,7 @@ int __ReadString(ComHandle_t *com, char *buf, size_t len, const char *caller)
     /* nothing to do for us here */
     if (size == 0) return 0;
 
-    if ((ret = wReadT(com, buf, len, size)) < 0) {
+    if ((ret = wReadT(com, buffer, len, size)) < 0) {
 	mlog("%s(%s): reading string failed\n", __func__, caller);
 	return ret;
     }
@@ -465,7 +465,7 @@ char *__ReadStringEx(ComHandle_t *com, size_t *len, const char *func)
 {
     int ret;
     ssize_t read;
-    char *buf = NULL;
+    char *data = NULL;
 
     *len = 0;
     if ((ret = ReadDigitUL(com, (unsigned long *) len)) < 0) {
@@ -473,17 +473,17 @@ char *__ReadStringEx(ComHandle_t *com, size_t *len, const char *func)
 	return NULL;
     }
 
-    buf = umalloc(*len + 1);
+    data = umalloc(*len + 1);
 
     mdbg(PSMOM_LOG_CONVERT, "%s: reading len:%zu for '%s'\n", __func__, *len,
 	func);
 
-    if ((read = wReadT(com, buf, *len + 1, *len)) != (ssize_t) *len) {
+    if ((read = wReadT(com, data, *len + 1, *len)) != (ssize_t) *len) {
 	mlog("%s: reading string for '%s' failed : read '%zi' len '%zu' str"
 		" '%s'\n", __func__, func,
-	    read, *len, buf);
-	ufree(buf);
+	    read, *len, data);
+	ufree(data);
 	return NULL;
     }
-    return buf;
+    return data;
 }

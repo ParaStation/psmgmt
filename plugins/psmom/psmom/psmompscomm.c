@@ -100,16 +100,16 @@ void sendPSmomVersion(Job_t *job)
 
 static void handleVersion(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
 {
-    int32_t version;
     char *ptr = rData->buf;
 
-    /* get jobid */
-    getInt32(&ptr, &version);
+    /* get psmom communication version */
+    int32_t cVer;
+    getInt32(&ptr, &cVer);
 
-    if (version != PSMOM_PSCOMM_VERSION) {
+    if (cVer != PSMOM_PSCOMM_VERSION) {
 	char note[100];
 	mlog("%s: incompatible psmom version '%i - %i' on mother superior '%i'"
-		", shutting myself down\n", __func__, version,
+		", shutting myself down\n", __func__, cVer,
 		PSMOM_PSCOMM_VERSION, PSC_getID(msg->header.sender));
 
 	snprintf(note, sizeof(note), "incompatible psmom comm version to node"

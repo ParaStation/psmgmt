@@ -247,14 +247,14 @@ int handleCreatePartNL(void *msg)
 
 error:
     {
-	DDTypedMsg_t msg = (DDTypedMsg_t) {
+	DDTypedMsg_t eMsg = (DDTypedMsg_t) {
 	    .header = (DDMsg_t) {
 		.type = PSP_CD_PARTITIONRES,
 		.dest = inmsg->header.sender,
 		.sender = PSC_getMyTID(),
-		.len = sizeof(msg)},
+		.len = sizeof(eMsg)},
 	    .type = errno};
-	sendMsg(&msg);
+	sendMsg(&eMsg);
 
 	return 0;
     }

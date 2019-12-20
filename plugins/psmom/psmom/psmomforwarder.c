@@ -1863,13 +1863,11 @@ static void backupJob(char *backupScript, Job_t *job, char *outLog,
 	    /* never reached */
 	    exit(1);
 	} else {
-	    int timeout = 0;
-
 	    /* monitor backup process with a timeout */
-	    timeout = getConfValueI(&config, "TIMEOUT_BACKUP");
-	    if (timeout > 0) {
+	    int bTimeout = getConfValueI(&config, "TIMEOUT_BACKUP");
+	    if (bTimeout > 0) {
 		PSC_setSigHandler(SIGALRM, backupTimeout);
-		alarm(timeout);
+		alarm(bTimeout);
 	    }
 
 	    /* wait for the backup script */

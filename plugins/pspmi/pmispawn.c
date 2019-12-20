@@ -122,7 +122,7 @@ static void setPMI_PORT(int PMISock, char *cPMI_PORT, int size )
  *
  * - PMI_ENABLE_SOCKP will trigger an AF_UNIX socketpair.
  */
-static void preparePMI(int *forwarderSock)
+static void preparePMI()
 {
     int pmiEnableTcp = 0;
     int pmiEnableSockp = 0;
@@ -150,15 +150,15 @@ static void preparePMI(int *forwarderSock)
     if (pmiEnableTcp) {
 	char cPMI_PORT[50];
 
-	*forwarderSock = setupPMISock();
-	if (*forwarderSock < 0) {
+	forwarderSock = setupPMISock();
+	if (forwarderSock < 0) {
 	    mwarn(errno, "%s: create PMI/TCP socket failed", __func__);
 	    pmiType = PMI_FAILED;
 	    return;
 	}
 	pmiType = PMI_OVER_TCP;
 
-	setPMI_PORT(*forwarderSock, cPMI_PORT, sizeof(cPMI_PORT));
+	setPMI_PORT(forwarderSock, cPMI_PORT, sizeof(cPMI_PORT));
 	setenv("PMI_PORT", cPMI_PORT, 1);
     }
 
@@ -172,7 +172,7 @@ static void preparePMI(int *forwarderSock)
 	    pmiType = PMI_FAILED;
 	    return;
 	}
-	*forwarderSock = socketfds[1];
+	forwarderSock = socketfds[1];
 	pmiType = PMI_OVER_UNIX;
 
 	snprintf(cPMI_FD, sizeof(cPMI_FD), "%d", socketfds[0]);
@@ -217,8 +217,8 @@ static int handleForwarderSpawn(void *data)
     PStask_t *task = data;
 
     if (task->group == TG_ANY) {
-	/* set PMI type */
-	preparePMI(&forwarderSock);
+	/* set PMI type and forwarderSock */
+	preparePMI();
 	if (pmiType == PMI_FAILED) return -1;
 
 	setConnectionInfo(pmiType, forwarderSock);

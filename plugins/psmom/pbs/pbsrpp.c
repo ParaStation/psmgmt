@@ -2065,17 +2065,17 @@ static int rpp_recv_pkt(
       */
       for (spp = sp->send_head; spp; spp = spp->next)
         {
-        int len = spp->len;
+        int sppLen = spp->len;
 
         LOCAL_DBPRT((DBTO, "%s: idx %d link %d seq %d len %d to sendq\n",
-               id, streamid, spp->type, spp->sequence, len))
-        I2TOH(spp->type, (char *)&spp->data[len])
+               id, streamid, spp->type, spp->sequence, sppLen))
+        I2TOH(spp->type, (char *)&spp->data[sppLen])
         I8TOH(sp->stream_id,
-              (char *)&spp->data[len+RPP_HDR_SID])
+              (char *)&spp->data[sppLen+RPP_HDR_SID])
         I8TOH(spp->sequence,
-              (char *)&spp->data[len+RPP_HDR_SEQ])
-        I8TOH(crc(spp->data, (u_long)(len + RPP_PKT_CRC)),
-              (char *)&spp->data[len+RPP_PKT_CRC])
+              (char *)&spp->data[sppLen+RPP_HDR_SEQ])
+        I8TOH(crc(spp->data, (u_long)(sppLen + RPP_PKT_CRC)),
+              (char *)&spp->data[sppLen+RPP_PKT_CRC])
 
         if (bottom)
           bottom->down = spp;

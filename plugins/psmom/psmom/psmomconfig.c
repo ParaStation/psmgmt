@@ -117,8 +117,8 @@ LIST_HEAD(config);
 
 static bool verifyVisitor(char *key, char *value, const void *info)
 {
-    const ConfDef_t *confDef = info;
-    int res = verifyConfigEntry(confDef, key, value);
+    const ConfDef_t *confEntry = info;
+    int res = verifyConfigEntry(confEntry, key, value);
 
     switch (res) {
     case 0:
