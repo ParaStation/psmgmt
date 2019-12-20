@@ -498,6 +498,7 @@ int main(const int argc, const char *argv[], char *envp[])
 
     /* send pelogue start request */
     sendPElogueReq(jobID, sUid, sGid, nrOfNodes, nodes, &clone);
+    envDestroy(&clone);
 
     /* receive and handle result */
     handleResponse();
