@@ -433,7 +433,7 @@ JobCred_t *extractJobCred(list_t *gresList, Slurm_Msg_t *sMsg, bool verify)
 	}
 
 	if (!!(memcmp(sigBuf, credStart, sigBufLen))) {
-	    flog("%s: manipulated data\n");
+	    flog("manipulated data\n");
 	    printBinaryData(sigBuf, sigBufLen, "sigBuf");
 	    printBinaryData(credStart, credLen, "jobData");
 	    goto ERROR;

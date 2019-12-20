@@ -204,7 +204,7 @@ static int stepCallback(int32_t exit_status, Forwarder_Data_t *fw)
     if (!findJobById(step->jobid) && alloc && alloc->state == A_RUNNING
 	&& alloc->terminate) {
 	/* run epilogue now */
-	flog("%s: starting epilogue for %s\n", strStepID(step));
+	flog("starting epilogue for %s\n", strStepID(step));
 	startEpilogue(alloc);
     }
 
