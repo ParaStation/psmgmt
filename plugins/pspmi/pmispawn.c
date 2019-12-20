@@ -122,7 +122,7 @@ static void setPMI_PORT(int PMISock, char *cPMI_PORT, int size )
  *
  * - PMI_ENABLE_SOCKP will trigger an AF_UNIX socketpair.
  */
-static void preparePMI()
+static void preparePMI(void)
 {
     int pmiEnableTcp = 0;
     int pmiEnableSockp = 0;
