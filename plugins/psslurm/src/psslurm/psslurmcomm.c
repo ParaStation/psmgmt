@@ -240,7 +240,7 @@ void __saveFrwrdMsgRes(Slurm_Msg_t *sMsg, uint32_t error, const char *func,
     uint16_t i, saved = 0;
     PSnodes_ID_t srcNode;
 
-    if (!sMsg || !sMsg->outdata) {
+    if (!sMsg || !sMsg->reply.buf) {
 	mlog("%s: invalid %s from %s at %i\n", __func__,
 		(!sMsg ? "sMsg" : "data"), func, line);
 	return;
@@ -261,7 +261,7 @@ void __saveFrwrdMsgRes(Slurm_Msg_t *sMsg, uint32_t error, const char *func,
     if (srcNode == PSC_getMyID()) {
 	/* save local processed message */
 	fw->head.type = sMsg->head.type;
-	if (!memToDataBuffer(sMsg->outdata->buf, sMsg->outdata->bufUsed,
+	if (!memToDataBuffer(sMsg->reply.buf, sMsg->reply.bufUsed,
 			     &fw->body)) {
 	    mlog("%s: error saving local result, caller %s at %i\n",
 		 __func__, func, line);
@@ -280,9 +280,9 @@ void __saveFrwrdMsgRes(Slurm_Msg_t *sMsg, uint32_t error, const char *func,
 		fwdata->error = error;
 		fwdata->type = sMsg->head.type;
 		fwdata->node = srcNode;
-		if (sMsg->outdata->bufUsed) {
-		    if (!memToDataBuffer(sMsg->outdata->buf,
-					 sMsg->outdata->bufUsed,
+		if (sMsg->reply.bufUsed) {
+		    if (!memToDataBuffer(sMsg->reply.buf,
+					 sMsg->reply.bufUsed,
 					 &fwdata->body)) {
 			mlog("%s: saving error failed, caller %s at %i\n",
 			     __func__, func, line);

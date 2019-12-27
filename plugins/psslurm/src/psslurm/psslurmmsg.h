@@ -57,7 +57,7 @@ typedef struct {
     int sock;			/* socket the message was red from */
     PStask_ID_t source;		/* root TID of the forwarding tree */
     PS_DataBuffer_t *data;
-    PS_SendDB_t *outdata;
+    PS_SendDB_t reply;
     char *ptr;
     time_t recvTime;		/* time the message was received */
 } Slurm_Msg_t;

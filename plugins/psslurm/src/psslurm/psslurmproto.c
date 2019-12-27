@@ -130,14 +130,13 @@ static void getSysInfo(uint32_t *cpuload, uint64_t *freemem, uint32_t *uptime)
  */
 static void sendPing(Slurm_Msg_t *sMsg)
 {
-    PS_SendDB_t msg = { .bufUsed = 0, .useFrag = false };
     Resp_Ping_t ping;
     uint32_t unused;
 
     getSysInfo(&ping.cpuload, &ping.freemem, &unused);
 
-    packRespPing(&msg, &ping);
-    sMsg->outdata = &msg;
+    PS_SendDB_t *msg = &sMsg->reply;
+    packRespPing(msg, &ping);
     sendSlurmReply(sMsg, RESPONSE_PING_SLURMD);
 }
 
@@ -684,50 +683,49 @@ static void handleCheckpointTasks(Slurm_Msg_t *sMsg)
 
 static void sendReattchReply(Step_t *step, Slurm_Msg_t *sMsg, uint32_t rc)
 {
-    PS_SendDB_t reply = { .bufUsed = 0, .useFrag = false };
+    PS_SendDB_t *reply = &sMsg->reply;
     uint32_t i, numTasks, countPIDS = 0, countPos;
 
     /* hostname */
-    addStringToMsg(getConfValueC(&Config, "SLURM_HOSTNAME"), &reply);
+    addStringToMsg(getConfValueC(&Config, "SLURM_HOSTNAME"), reply);
     /* return code */
-    addUint32ToMsg(rc, &reply);
+    addUint32ToMsg(rc, reply);
 
     if (rc == SLURM_SUCCESS) {
 	list_t *t;
 	numTasks = step->globalTaskIdsLen[step->localNodeId];
 	/* number of tasks */
-	addUint32ToMsg(numTasks, &reply);
+	addUint32ToMsg(numTasks, reply);
 	/* gtids */
 	addUint32ArrayToMsg(step->globalTaskIds[step->localNodeId],
-			    numTasks, &reply);
+			    numTasks, reply);
 	/* local pids */
-	countPos = reply.bufUsed;
-	addUint32ToMsg(0, &reply);
+	countPos = reply->bufUsed;
+	addUint32ToMsg(0, reply);
 
 	list_for_each(t, &step->tasks) {
 	    PS_Tasks_t *task = list_entry(t, PS_Tasks_t, next);
 	    if (task->childRank >= 0) {
 		countPIDS++;
-		addUint32ToMsg(PSC_getPID(task->childTID), &reply);
+		addUint32ToMsg(PSC_getPID(task->childTID), reply);
 	    }
 	}
-	*(uint32_t *) (reply.buf + countPos) = htonl(countPIDS);
+	*(uint32_t *) (reply->buf + countPos) = htonl(countPIDS);
 
 	/* executable names */
 	for (i=0; i<numTasks; i++) {
-	    addStringToMsg(step->argv[0], &reply);
+	    addStringToMsg(step->argv[0], reply);
 	}
     } else {
 	/* number of tasks */
-	addUint32ToMsg(0, &reply);
+	addUint32ToMsg(0, reply);
 	/* gtids */
-	addUint32ToMsg(0, &reply);
+	addUint32ToMsg(0, reply);
 	/* local pids */
-	addUint32ToMsg(0, &reply);
+	addUint32ToMsg(0, reply);
 	/* no executable names */
     }
 
-    sMsg->outdata = &reply;
     sendSlurmReply(sMsg, RESPONSE_REATTACH_TASKS);
 }
 
@@ -942,7 +940,7 @@ static void handleHealthCheck(Slurm_Msg_t *sMsg)
 
 static void handleAcctGatherUpdate(Slurm_Msg_t *sMsg)
 {
-    PS_SendDB_t msg = { .bufUsed = 0, .useFrag = false };
+    PS_SendDB_t *msg = &sMsg->reply;
 
     /* check permissions */
     if (sMsg->head.uid != 0 && sMsg->head.uid != slurmUserID) {
@@ -952,15 +950,14 @@ static void handleAcctGatherUpdate(Slurm_Msg_t *sMsg)
     }
 
     /* pack dummy data */
-    packEnergyData(&msg);
+    packEnergyData(msg);
 
-    sMsg->outdata = &msg;
     sendSlurmReply(sMsg, RESPONSE_ACCT_GATHER_UPDATE);
 }
 
 static void handleAcctGatherEnergy(Slurm_Msg_t *sMsg)
 {
-    PS_SendDB_t msg = { .bufUsed = 0, .useFrag = false };
+    PS_SendDB_t *msg = &sMsg->reply;
 
     /* check permissions */
     if (sMsg->head.uid != 0 && sMsg->head.uid != slurmUserID) {
@@ -970,9 +967,8 @@ static void handleAcctGatherEnergy(Slurm_Msg_t *sMsg)
     }
 
     /* pack dummy data */
-    packEnergyData(&msg);
+    packEnergyData(msg);
 
-    sMsg->outdata = &msg;
     sendSlurmReply(sMsg, RESPONSE_ACCT_GATHER_ENERGY);
 }
 
@@ -990,11 +986,10 @@ static void handleJobId(Slurm_Msg_t *sMsg)
 
     Step_t *step = findStepByTaskPid(pid);
     if (step) {
-	PS_SendDB_t msg = { .bufUsed = 0, .useFrag = false };
+	PS_SendDB_t *msg = &sMsg->reply;
 
-	addUint32ToMsg(step->jobid, &msg);
-	addUint32ToMsg(SLURM_SUCCESS, &msg);
-	sMsg->outdata = &msg;
+	addUint32ToMsg(step->jobid, msg);
+	addUint32ToMsg(SLURM_SUCCESS, msg);
 
 	sendSlurmReply(sMsg, RESPONSE_JOB_ID);
     } else {
@@ -1163,7 +1158,7 @@ PACK_RESPONSE:
 
 static void handleStepStat(Slurm_Msg_t *sMsg)
 {
-    PS_SendDB_t msg = { .bufUsed = 0, .useFrag = false };
+    PS_SendDB_t *msg = &sMsg->reply;
     char **ptr = &sMsg->ptr;
     uint32_t jobid, stepid, numTasks, numTasksUsed;
     Step_t *step;
@@ -1185,10 +1180,10 @@ static void handleStepStat(Slurm_Msg_t *sMsg)
     }
 
     /* add return code */
-    addUint32ToMsg(SLURM_SUCCESS, &msg);
+    addUint32ToMsg(SLURM_SUCCESS, msg);
     /* add placeholder for number of tasks */
-    numTasksUsed = msg.bufUsed;
-    addUint32ToMsg(SLURM_SUCCESS, &msg);
+    numTasksUsed = msg->bufUsed;
+    addUint32ToMsg(SLURM_SUCCESS, msg);
     /* account data */
     SlurmAccData_t slurmAccData = {
 	.type = step->accType,
@@ -1198,19 +1193,17 @@ static void handleStepStat(Slurm_Msg_t *sMsg)
 	.tasks = &step->tasks,
 	.remoteTasks = &step->remoteTasks,
 	.childPid = 0 };
-    numTasks = addSlurmAccData(&slurmAccData, &msg);
+    numTasks = addSlurmAccData(&slurmAccData, msg);
     /* correct number of tasks */
-    *(uint32_t *)(msg.buf + numTasksUsed) = htonl(numTasks);
+    *(uint32_t *)(msg->buf + numTasksUsed) = htonl(numTasks);
     /* add step PIDs */
-    addSlurmPids(step->loggerTID, &msg);
+    addSlurmPids(step->loggerTID, msg);
 
-    sMsg->outdata = &msg;
     sendSlurmReply(sMsg, RESPONSE_JOB_STEP_STAT);
 }
 
 static void handleStepPids(Slurm_Msg_t *sMsg)
 {
-    PS_SendDB_t msg = { .bufUsed = 0, .useFrag = false };
     char **ptr = &sMsg->ptr;
     Step_t *step;
     uint32_t jobid, stepid;
@@ -1231,10 +1224,9 @@ static void handleStepPids(Slurm_Msg_t *sMsg)
 	return;
     }
 
-    /* add step pids */
-    addSlurmPids(step->loggerTID, &msg);
-
-    sMsg->outdata = &msg;
+    /* send step pids */
+    PS_SendDB_t *msg = &sMsg->reply;
+    addSlurmPids(step->loggerTID, msg);
     sendSlurmReply(sMsg, RESPONSE_JOB_STEP_PIDS);
 }
 
@@ -2400,7 +2392,7 @@ int __sendSlurmReply(Slurm_Msg_t *sMsg, slurm_msg_type_t type,
     if (sMsg->source == -1) {
 	if (!sMsg->head.forward) {
 	    /* no forwarding active for this message, just send the answer */
-	    ret = sendSlurmMsg(sMsg->sock, type, sMsg->outdata);
+	    ret = sendSlurmMsg(sMsg->sock, type, &sMsg->reply);
 	} else {
 	    /* we are the root of the forwarding tree, so we save the result
 	     * and wait for all other forwarded messages to return */
@@ -2418,10 +2410,10 @@ int __sendSlurmReply(Slurm_Msg_t *sMsg, slurm_msg_type_t type,
 int __sendSlurmRC(Slurm_Msg_t *sMsg, uint32_t rc, const char *func,
 		    const int line)
 {
-    PS_SendDB_t body = { .bufUsed = 0, .useFrag = false };
+    PS_SendDB_t *body = &sMsg->reply;
 
-    addUint32ToMsg(rc, &body);
-    sMsg->outdata = &body;
+    addUint32ToMsg(rc, body);
+
     int ret = __sendSlurmReply(sMsg, RESPONSE_SLURM_RC, func, line);
 
     if (!sMsg->head.forward) freeSlurmMsg(sMsg);

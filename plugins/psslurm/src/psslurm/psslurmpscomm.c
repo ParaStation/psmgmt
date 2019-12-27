@@ -1228,7 +1228,7 @@ int send_PS_ForwardRes(Slurm_Msg_t *sMsg)
     /* message type */
     addUint16ToMsg(sMsg->head.type, &msg);
     /* msg payload */
-    addMemToMsg(sMsg->outdata->buf, sMsg->outdata->bufUsed, &msg);
+    addMemToMsg(sMsg->reply.buf, sMsg->reply.bufUsed, &msg);
 
     ret = sendFragMsg(&msg);
 
@@ -1268,7 +1268,6 @@ static void handleFWslurmMsgRes(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
 {
     Slurm_Msg_t sMsg;
     char *ptr = data->buf;
-    PS_SendDB_t outdata;
     int16_t socket;
 
     initSlurmMsg(&sMsg);
@@ -1282,9 +1281,8 @@ static void handleFWslurmMsgRes(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
     /* message type */
     getUint16(&ptr, &sMsg.head.type);
     /* save payload in data buffer */
-    outdata.bufUsed = data->bufUsed - (ptr - data->buf);
-    outdata.buf = ptr;
-    sMsg.outdata = &outdata;
+    sMsg.reply.bufUsed = data->bufUsed - (ptr - data->buf);
+    sMsg.reply.buf = ptr;
 
     saveFrwrdMsgRes(&sMsg, SLURM_SUCCESS);
 }
@@ -1425,7 +1423,6 @@ static int handleNodeDown(void *nodeID)
 static void saveForwardError(DDTypedBufferMsg_t *msg)
 {
     Slurm_Msg_t sMsg;
-    PS_SendDB_t outdata = { .bufUsed = 0, .useFrag = false };
     size_t used = 0;
     uint8_t fType;
     uint16_t fNum;
@@ -1441,7 +1438,6 @@ static void saveForwardError(DDTypedBufferMsg_t *msg)
     char *ptr = msg->buf + used;
 
     initSlurmMsg(&sMsg);
-    sMsg.outdata = &outdata;
     sMsg.source = msg->header.dest;
     sMsg.head.type = RESPONSE_FORWARD_FAILED;
 
