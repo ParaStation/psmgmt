@@ -292,6 +292,7 @@ exit 0
 %config(noreplace) %{_plugindir}/psresport.conf
 %config(missingok,noreplace) %{_sysconfdir}/profile.d/psmgmt.sh
 %config(missingok,noreplace) %{_sysconfdir}/profile.d/psmgmt.csh
+%config(noreplace) %{_sysctldir}/99-psid.conf
 %if !0%{?disable_systemd}
 %_unitdir/psid.service
 %_unitdir/psidstarter@.service

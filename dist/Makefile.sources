@@ -130,6 +130,7 @@ doc/README.cgroup \
 doc/README.pspam \
 doc/parastation.conf.tmpl \
 doc/psaccount.conf \
+doc/99-psid.conf \
 doc/psresport.conf \
 doc/cgroup.conf.in \
 doc/psconfig/psmgmt.vipsconfig \
