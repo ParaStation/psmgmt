@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 1999-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2019 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2020 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -654,6 +654,7 @@ static int MYrecvfrom(int sock, void *buf, size_t len, int flags,
 	    break;
 	case ECONNREFUSED:
 	case EHOSTUNREACH:
+	case ENOENT:
 	    RDP_warn(RDP_LOG_CONN, eno, "%s: handle this", __func__);
 	    /* Handle extended error */
 	    ret = handleErr(eno);
@@ -1645,6 +1646,11 @@ static int handleErr(int eno)
 	break;
     case EHOSTUNREACH:
 	RDP_log(RDP_LOG_CONN, "%s: HOSTUNREACH to %s(%d) port %d\n", __func__,
+		inet_ntoa(sin.sin_addr), node, ntohs(sin.sin_port));
+	closeConnection(node, 1, 0);
+	break;
+    case ENOENT:
+	RDP_log(RDP_LOG_CONN, "%s: NOENT to %s(%d) port %d\n", __func__,
 		inet_ntoa(sin.sin_addr), node, ntohs(sin.sin_port));
 	closeConnection(node, 1, 0);
 	break;
