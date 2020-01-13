@@ -777,7 +777,7 @@ static void getThreadsBinding(PSCPU_set_t *CPUset, const nodeinfo_t *nodeinfo,
 
     uint32_t start = 0;
 
-    if (pininfo->lastUsedThread > 0) {
+    if (pininfo->lastUsedThread >= 0) {
 	start = getNextStartThread(nodeinfo, pininfo);
 
 	if (start == UINT32_MAX) {
