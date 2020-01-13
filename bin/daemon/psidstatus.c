@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2019 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2020 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -261,11 +261,11 @@ static void handleMasterTasks(void)
     round %= 10;
     if (!round) {
 	static PSnodes_ID_t next;
-	static int firstCall = 1;
+	static bool firstCall = true;
 	int count = (nrDownNodes > 10) ? 10 : nrDownNodes;
 
 	if (firstCall) {
-	    firstCall = 0;
+	    firstCall = false;
 	    next = PSC_getMyID();
 	}
 
@@ -333,7 +333,7 @@ void setStatusTimeout(int timeout)
     StatusTimeout.tv_usec = (timeout%1000) * 1000;
 
     if (timerID > 0) {
-	Timer_block(timerID, 1);
+	Timer_block(timerID, true);
 	releaseStatusTimer();
 	timerID = Timer_register(&StatusTimeout, sendRDPPing);
 	if (timerID < 0) {
@@ -556,7 +556,7 @@ static int stateChangeCB(int fd, PSID_scriptCBInfo_t *cbInfo)
     return 0;
 }
 
-bool declareNodeDead(PSnodes_ID_t id, int sendDeadnode, int silent)
+bool declareNodeDead(PSnodes_ID_t id, int sendDeadnode, bool silent)
 {
     list_t *t;
 
@@ -835,18 +835,18 @@ static void msg_DAEMONCONNECT(DDBufferMsg_t *msg)
  */
 static void drop_DAEMONCONNECT(DDBufferMsg_t *msg)
 {
-    static int block = 0;
+    static bool block = false;
 
     if (!block && !PSID_config->useMCast && !knowMaster()
 	&& ! (PSID_getDaemonState() & PSID_STATE_SHUTDOWN)) {
 	PSnodes_ID_t next = PSC_getID(msg->header.dest) + 1;
 
-	block = 1;
+	block = true;
 	while (next < PSC_getMyID() && send_DAEMONCONNECT(next) < 0
 	       && (errno == EHOSTUNREACH || errno == ECONNREFUSED)) {
 	    next++;
 	}
-	block = 0;
+	block = false;
 	if (next == PSC_getMyID()) declareMaster(next);
     }
 }
@@ -892,7 +892,7 @@ int send_DAEMONSHUTDOWN(void)
 	.sender = PSC_getMyTID(),
 	.dest = 0,
 	.len = sizeof(msg) };
-    int count=1, i;
+    int count = 1, i;
 
     /* broadcast to every daemon except the sender */
     for (i=0; i<PSC_getNrOfNodes(); i++) {
@@ -1068,13 +1068,13 @@ static void msg_ACTIVENODES(DDBufferMsg_t *msg)
 	    for (n=0; n<node; n++) {
 		if (PSIDnodes_isUp(n)) send_DAEMONCONNECT(n);
 	    }
-	    firstUntested = node+1;
+	    firstUntested = node + 1;
 	}
 	for (n=firstUntested; n<node; n++) {
 	    if (PSIDnodes_isUp(n)) send_MASTERIS(n);
 	}
 	if (!PSIDnodes_isUp(node)) send_DAEMONCONNECT(node);
-	firstUntested = node+1;
+	firstUntested = node + 1;
     }
 }
 
