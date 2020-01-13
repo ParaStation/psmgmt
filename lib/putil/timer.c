@@ -49,7 +49,7 @@ typedef struct {
     handler_t timeoutHandler;      /**< Handler called, if signal received. */
     void *info;                    /**< Pointer to be passed to enh. handler */
     bool sigBlocked;               /**< Flag to block this timer.
-				      Set by blockTimer(). */
+				      Set by Timer_block(). */
     bool sigPending;               /**< A blocked signal is pending. */
     bool deleted;                  /**< Timer is actually deleted */
 } Timer_t;
