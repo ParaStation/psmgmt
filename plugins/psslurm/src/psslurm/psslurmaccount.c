@@ -22,8 +22,12 @@
 TRes_t *TRes_new(void)
 {
     TRes_t *tres = umalloc(sizeof(*tres));
-    tres->count = (TRES_TOTAL_CNT > tresDBconfig->count) ?
-		    TRES_TOTAL_CNT : tresDBconfig->count;
+    if (tresDBconfig) {
+	tres->count = (TRES_TOTAL_CNT > tresDBconfig->count) ?
+			TRES_TOTAL_CNT : tresDBconfig->count;
+    } else {
+	tres->count = TRES_TOTAL_CNT;
+    }
 
     tres->ids = umalloc(sizeof(uint32_t) * tres->count);
 
