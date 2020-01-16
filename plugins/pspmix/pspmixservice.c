@@ -461,6 +461,8 @@ nscreate_error:
     return false;
 }
 
+static PSnodes_ID_t getNodeFromRank(int32_t rank, PSresinfo_t *resInfo);
+
 /**
  * @brief Register the client and send its environment to its forwarder
  *
@@ -479,7 +481,6 @@ bool pspmix_service_registerClientAndSendEnv(PspmixClient_t *client,
     const char* nsname;
     nsname = generateNamespaceName(client->resID);
 
-#if 0
     GET_LOCK(namespaceList);
 
     /* find namespace in list */
@@ -495,11 +496,12 @@ bool pspmix_service_registerClientAndSendEnv(PspmixClient_t *client,
 
     client->nspace = ns;
 
+#if 0
     /* add to list of clients of namespace */
     list_add_tail(&client->next, &ns->clientList);
+#endif
 
     RELEASE_LOCK(namespaceList);
-#endif
 
     /* register client at server */
     /* the client object is passed to the PMIx server and is returned
@@ -529,6 +531,48 @@ bool pspmix_service_registerClientAndSendEnv(PspmixClient_t *client,
     for (count = 0; envp[count]; count++) {
 	mdbg(PSPMIX_LOG_ENV, "%s: Got %s\n", __func__, envp[count]);
     }
+
+    /* add custom environment variables */
+    char tmp[256];
+    envp = urealloc(envp, (count + 6) * sizeof(*envp));
+    snprintf(tmp, 256, "OMPI_COMM_WORLD_SIZE=%u", client->nspace->jobSize);
+    envp[count++] = strdup(tmp);
+    snprintf(tmp, 256, "OMPI_COMM_WORLD_RANK=%d", client->rank);
+    envp[count++] = strdup(tmp);
+    snprintf(tmp, 256, "OMPI_UNIVERSE_SIZE=%u", client->nspace->universeSize);
+    envp[count++] = strdup(tmp);
+
+    PSresinfo_t *resInfo = client->nspace->resInfo;
+    PSnodes_ID_t nodeId = getNodeFromRank(client->rank, resInfo);
+    bool found = false;
+    int lrank = -1;
+    int lsize = 0;
+    int nrank = -1;
+    for (uint32_t i = 0; i < resInfo->nEntries; i++) {
+	PSresinfoentry_t *cur = &resInfo->entries[i];
+	if (!found) {
+	    nrank = (cur->node == resInfo->entries[0].node) ? 0 : nrank + 1;
+	}
+	if (cur->node == nodeId) {
+	    if (cur->firstrank <= (signed)client->rank
+		    && cur->lastrank >= (signed)client->rank) {
+		lrank += found ? 0 : client->rank - cur->firstrank + 1;
+		found = true;
+	    }
+	    else {
+		lrank += found ? 0 : cur->lastrank - cur->firstrank + 1;
+	    }
+	    lsize += cur->lastrank - cur->firstrank + 1;
+	}
+    }
+    snprintf(tmp, 256, "OMPI_COMM_WORLD_LOCAL_RANK=%d", found ? lrank : -1);
+    envp[count++] = strdup(tmp);
+    snprintf(tmp, 256, "OMPI_COMM_WORLD_LOCAL_SIZE=%d", lsize);
+    envp[count++] = strdup(tmp);
+    snprintf(tmp, 256, "OMPI_COMM_WORLD_NODE_RANK=%d", found ? nrank : -1 );
+    envp[count++] = strdup(tmp);
+
+    RELEASE_LOCK(namespaceList);
 
     /* send message */
     if (!pspmix_comm_sendClientPMIxEnvironment(clienttid, envp, count)) {
