@@ -464,7 +464,7 @@ nscreate_error:
 /**
  * @brief Register the client and send its environment to its forwarder
  *
- * @param client     client to register
+ * @param client     client to register (takes ownership)
  * @param clienttid  TID of the client forwarder
  *
  * @return Returns true on success and false on errors
@@ -502,6 +502,9 @@ bool pspmix_service_registerClientAndSendEnv(PspmixClient_t *client,
 #endif
 
     /* register client at server */
+    /* the client object is passed to the PMIx server and is returned
+     * with pspmix_service_clientConnected(), pspmix_service_clientFinalized(),
+     * and pspmix_service_abort(). It is freed in the later two. */
     if (!pspmix_server_registerClient(nsname, client->rank, client->uid,
 		client->gid, (void*)client)) {
 	mlog("%s(r%d): failed to register client to PMIx server\n",
@@ -509,6 +512,7 @@ bool pspmix_service_registerClientAndSendEnv(PspmixClient_t *client,
 	ufree(client);
 	return false;
     }
+
     /* create empty environment */
     char **envp;
     envp = ucalloc(sizeof(*envp));
@@ -617,8 +621,8 @@ void pspmix_service_abort(void *clientObject)
     elog("%s: aborting on users request from rank %d\n", __func__,
 	    client->rank);
 
+    ufree(client);
     terminateJob();
-
 }
 
 /**
