@@ -2368,6 +2368,7 @@ static bool send_SPAWNLOC(uint32_t num, int32_t rank, PStask_ID_t sender,
     for (i = 0; i < num; i++) {
 	PSCPU_set_t setBuf;
 
+	memset(&setBuf, 0, sizeof(setBuf));
 	PSCPU_extract(setBuf, ptask->spawnNodes[rank+i].CPUset, nBytes);
 	PSID_log(PSID_LOG_SPAWN, "%s: add %s for rank %d\n", __func__,
 		 PSCPU_print_part(setBuf, nBytes), rank + i);
