@@ -1,8 +1,31 @@
 psmgmt NEWS -- history of user-visible changes.
 
-Copyright (C) 2010-2019 ParTec Cluster Competence Center GmbH, Munich
+Copyright (C) 2010-2020 ParTec Cluster Competence Center GmbH, Munich
 
 Please send bug reports, questions and suggestions to <support@par-tec.com>
+
+Version 5.1.28:
+===============
+Bugfixes:
+ - Fix possible segfault when the TRes database is not configured
+ - When running in VM, recvfrom() might return ENOENT
+Enhancements:
+ - Add OMPI_* variables to client environment in pspmix (psc#326)
+ - Limit PIDs to 32768 via sysctl configuration (#2826)
+ - Improve Slurm message reply code of psslurm
+ - Make slurmctld prologue work with the gcc address sanitizer on
+Additional changes:
+ - Unifiy prototype of PSID_sendSignal()
+ - Initialize various structures detected by valgrind
+ - Ensure building RPMs works without pam-devel
+ - Fix some warnings unveiled by gcc -Wshadow option
+ - Revert "Enhancement: set SLURM_NTASKS_PER_NODE if it was not set by sbatch"
+ - Fix a number of pylint warnings.
+ - has_key() is deprecated
+ - Use more Pythonic way of string formatting
+ - Check for None with 'is'
+ - Make Python version used explicit
+
 
 Version 5.1.27-1:
 =================
