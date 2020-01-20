@@ -2361,7 +2361,7 @@ static bool initHostLT(void)
 {
     PSnodes_ID_t i, nrOfNodes = PSC_getNrOfNodes();
 
-    HostLT = umalloc(sizeof(*HostLT) * nrOfNodes);
+    HostLT = ucalloc(sizeof(*HostLT) * nrOfNodes);
     for (i=0; i<nrOfNodes; i++) {
 	HostLT[i].hostname = NULL;
 	HostLT[i].nodeID = -1;
