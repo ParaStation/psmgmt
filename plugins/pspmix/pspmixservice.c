@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2018-2019 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2018-2020 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -249,7 +249,7 @@ bool pspmix_service_init(PStask_ID_t loggerTID, uid_t uid, gid_t gid)
 
 /**
  * @brief Generate namespace name
- * 
+ *
  * @param resID      reservation id of the task the client is part of
  *
  * @return Returns buffer containing the generated name
@@ -316,9 +316,9 @@ bool pspmix_service_registerNamespace(PStask_t *prototask, PSresinfo_t *resInfo)
 	    resInfo->resID);
 
     if (resInfo->nEntries < 1) {
-        mlog("%s: Bad parameter: empty reservation %d\n", __func__,
-		resInfo->resID);
-        return false;
+	mlog("%s: Bad parameter: empty reservation %d\n", __func__,
+	     resInfo->resID);
+	return false;
     }
 
     /* session id is not really used for now, could be set to slurm job id */
@@ -461,7 +461,33 @@ nscreate_error:
     return false;
 }
 
-static PSnodes_ID_t getNodeFromRank(int32_t rank, PSresinfo_t *resInfo);
+/**
+ * @brief Get the node containing a specific rank in a given reservation
+ *
+ * @param rank     rank in reservation
+ * @param resInfo  reservation info
+ *
+ * @return Returns node id or -1 if reservation not found and -2 if rank not
+ *         found.
+ */
+static PSnodes_ID_t getNodeFromRank(int32_t rank, PSresinfo_t *resInfo)
+{
+
+    //TODO: translate namespace rank to parastation rank ?!?
+
+    uint32_t i;
+    for (i = 0; i < resInfo->nEntries; i++) {
+	PSresinfoentry_t *entry = &resInfo->entries[i];
+	if (rank >= entry->firstrank && rank <= entry->lastrank) {
+	    return entry->node;
+	}
+    }
+
+    mlog("%s: Rank %d not found in reservation with ID %d.\n", __func__, rank,
+	 resInfo->resID);
+    return -2;
+
+}
 
 /**
  * @brief Register the client and send its environment to its forwarder
@@ -618,7 +644,7 @@ bool pspmix_service_clientConnected(void *clientObject)
     mlog("%s called for rank %d\n", __func__, client->rank);
 
     /* TODO TODO TODO
-    if (psAccountSwitchAccounting) psAccountSwitchAccounting(childTask->tid, false);
+       if (psAccountSwitchAccounting) psAccountSwitchAccounting(childTask->tid, false);
     */
 
     return true;
@@ -767,36 +793,6 @@ static int compare_nodeIDs(const void *a, const void *b)
     return (*ca > *cb) - (*ca < *cb);
 }
 
-
-/**
- * @brief Get the node containing a specific rank in a given reservation
- *
- * @param rank     rank in reservation
- * @param resInfo  reservation info
- *
- * @return Returns node id or -1 if reservation not found and -2 if rank not
- *         found.
- */
-static PSnodes_ID_t getNodeFromRank(int32_t rank, PSresinfo_t *resInfo)
-{
-
-    //TODO: translate namespace rank to parastation rank ?!?
-
-    uint32_t i;
-    PSresinfoentry_t *entry;
-    for (i = 0; i < resInfo->nEntries; i++) {
-	entry = &resInfo->entries[i];
-	if (rank >= entry->firstrank && rank <= entry->lastrank) {
-	    return entry->node;
-	}
-    }
-
-    mlog("%s: Rank %d not found in reservation with ID %d.\n", __func__, rank,
-	    resInfo->resID);
-    return -2;
-
-}
-
 /* create a fence object */
 static PspmixFence_t * createFenceObject(uint64_t fenceid, const char *caller)
 {
@@ -883,7 +879,7 @@ int pspmix_service_fenceIn(const pmix_proc_t procs[], size_t nprocs,
 	    continue;
 	}
 
-        PSnodes_ID_t nodeid;
+	PSnodes_ID_t nodeid;
 	nodeid = getNodeFromRank(procs[i].rank, ns->resInfo);
 	if (nodeid < 0) {
 	    mlog("%s: Failed to get node for rank %d in namespace '%s'.\n",
@@ -905,7 +901,7 @@ int pspmix_service_fenceIn(const pmix_proc_t procs[], size_t nprocs,
 	mlog("%s: UNEXPECTED: No node in list of participating nodes.\n",
 		__func__);
 	vectorDestroy(&nodes);
-        return -1;
+	return -1;
     }
 
     PSnodes_ID_t myNodeID;
@@ -975,7 +971,7 @@ int pspmix_service_fenceIn(const pmix_proc_t procs[], size_t nprocs,
 	/* add at the END of the list */
 	list_add_tail(&fence->next, &fenceList);
     }
-   
+
     /* take over data from vector */
     PSnodes_ID_t *sortednodes;
     sortednodes = (PSnodes_ID_t *)nodes.data;
