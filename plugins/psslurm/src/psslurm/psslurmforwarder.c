@@ -43,7 +43,6 @@
 #include "slurmcommon.h"
 #ifdef HAVE_SPANK
 #include "psslurmspank.h"
-#include "psidtask.h"
 #endif
 
 #include "pluginpty.h"
