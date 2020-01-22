@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2014-2019 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2014-2020 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -1054,11 +1054,10 @@ static void stepForwarderLoop(Forwarder_Data_t *fwdata)
 
 static void stepFinalize(Forwarder_Data_t *fwdata)
 {
-    Step_t *step = fwdata->userData;
-
     stepFinalizeIO(fwdata);
 
 #ifdef HAVE_SPANK
+    Step_t *step = fwdata->userData;
     struct spank_handle spank = {
 	.task = NULL,
 	.alloc = findAlloc(step->jobid),
@@ -1307,9 +1306,8 @@ static void stepFWIOloop(Forwarder_Data_t *fwdata)
 
 static int stepFWIOinit(Forwarder_Data_t *fwdata)
 {
-    Step_t *step = fwdata->userData;
-
 #ifdef HAVE_SPANK
+    Step_t *step = fwdata->userData;
     struct spank_handle spank = {
 	.task = NULL,
 	.alloc = findAlloc(step->jobid),
