@@ -1006,25 +1006,30 @@ bool __unpackReqLaunchTasks(Slurm_Msg_t *sMsg, Step_t **stepPtr,
     /* job info */
     getUint32(ptr, &tmp);
 
-    /* job options (plugin) */
-    char jobOpt[512];
-    getString(ptr, jobOpt, sizeof(jobOpt));
-    if (!!(strcmp(jobOpt, JOB_OPTIONS_TAG))) {
-	mlog("%s: invalid job options tag '%s'\n", __func__, jobOpt);
+    /* spank options magic tag */
+    char *jobOptTag = getStringM(ptr);
+    if (!!(strcmp(jobOptTag, JOB_OPTIONS_TAG))) {
+	flog("invalid spank job options tag '%s'\n", jobOptTag);
+	ufree(jobOptTag);
 	goto ERROR;
     }
+    ufree(jobOptTag);
 
-    /* TODO use job options */
-    uint32_t count;
+    /* spank cmdline options */
+    uint32_t count, i;
     getUint32(ptr, &count);
-    uint32_t i;
     for (i=0; i<count; i++) {
 	/* type */
 	getUint32(ptr, &tmp);
 	/* name */
-	getString(ptr, jobOpt, sizeof(jobOpt));
+	char *optName = getStringM(ptr);
 	/* value */
-	getString(ptr, jobOpt, sizeof(jobOpt));
+	char *optVal = getStringM(ptr);
+
+	fdbg(PSSLURM_LOG_SPANK, "spank option(%i): type %u name %s val %s\n",
+	     i, tmp, optName, optVal);
+	ufree(optName);
+	ufree(optVal);
     }
 
     /* node alias */
