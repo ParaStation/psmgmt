@@ -81,10 +81,10 @@ int PSID_kill(pid_t pid, int sig, uid_t uid);
  *
  * @param uid User ID of the user that (virtually) sends the signal
  *
- * @param senderTid Task ID of the task that (virtually) sends the
+ * @param sender Task ID of the task that (virtually) sends the
  * signal
  *
- * @param sig Signal to send
+ * @param signal Signal to send
  *
  * @param pervasive Flag the signal to be pervasive. If different from
  * 0, all children of @a tid will be signaled, too. Otherwise, only @a
@@ -94,8 +94,8 @@ int PSID_kill(pid_t pid, int sig, uid_t uid);
  *
  * @return No return value
  */
-void PSID_sendSignal(PStask_ID_t tid, uid_t uid, PStask_ID_t senderTid,
-		     int sig, int pervasive, int answer);
+void PSID_sendSignal(PStask_ID_t tid, uid_t uid, PStask_ID_t sender,
+		     int signal, int pervasive, int answer);
 
 /**
  * @brief Send signals to all tasks which have asked for

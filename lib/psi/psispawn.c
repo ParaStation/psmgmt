@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 1999-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2019 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2020 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -95,9 +95,7 @@ void PSI_RemoteArgs(int Argc, char **Argv, int *RArgc, char ***RArgv)
  * @brief Get current working directory.
  *
  * Get the current working directory. If @a ext is given, it will be
- * appended to the determined string. If the working directory starts
- * with a string indicating the use of an automount ("/tmp_mnt" or
- * "/export" for now), this signiture will be cut from the string.
+ * appended to the determined string.
  *
  * The strategy to determine the current working directory is to
  * firstly look for the PWD environment variable and if this is not
@@ -115,10 +113,10 @@ static char *mygetwd(const char *ext)
     char *dir;
 
     if (!ext || (ext[0]!='/')) {
-	char *temp = getenv("PWD"), *tmp;
+	char *tmp = getenv("PWD");
 
-	if (temp) {
-	    dir = strdup(temp);
+	if (tmp) {
+	    dir = strdup(tmp);
 	} else {
 	    dir = getcwd(NULL, 0);
 	}
@@ -134,17 +132,6 @@ static char *mygetwd(const char *ext)
 
 	strcat(dir, "/");
 	strcat(dir, ext ? ext : "");
-
-	/* remove automount directory name. */
-	if (!strncmp(dir, "/tmp_mnt", strlen("/tmp_mnt"))) {
-	    temp = dir;
-	    dir = strdup(&temp[strlen("/tmp_mnt")]);
-	    free(temp);
-	} else if (!strncmp(dir, "/export", strlen("/export"))) {
-	    temp = dir;
-	    dir = strdup(&temp[strlen("/export")]);
-	    free(temp);
-	}
     } else {
 	dir = strdup(ext);
     }

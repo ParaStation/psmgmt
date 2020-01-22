@@ -1,3 +1,126 @@
+Version psmgmt-5.1.28:
+======================
+------------------------------------------------------------------------
+3c9cecab | Norbert Eicker | Mon, 20 Jan 2020 16:24:04 +0100
+
+Merge branch 'valgrind'
+------------------------------------------------------------------------
+be6e24fb | Norbert Eicker | Mon, 20 Jan 2020 16:22:06 +0100
+
+Some streamlining.
+------------------------------------------------------------------------
+1aec5b13 | Michael Rauh | Fri, 17 Jan 2020 10:52:08 +0100
+
+Unifiy prototype of PSID_sendSignal()
+------------------------------------------------------------------------
+ac84d4c2 | Michael Rauh | Fri, 17 Jan 2020 10:50:31 +0100
+
+Initialize various structures detected by valgrind
+------------------------------------------------------------------------
+eb360d99 | Stephan Krempel | Thu, 16 Jan 2020 13:37:57 +0100
+
+pspmix: Add OMPI_* variables to client environment (psc#326)
+------------------------------------------------------------------------
+d893f948 | Stephan Krempel | Thu, 16 Jan 2020 13:36:10 +0100
+
+pspmix: Comment on client object usage
+------------------------------------------------------------------------
+72a670c8 | Michael Rauh | Tue, 14 Jan 2020 15:50:32 +0100
+
+Fix possible segfault when the TRes database is not configured
+------------------------------------------------------------------------
+c2b72b28 | Norbert Eicker | Mon, 13 Jan 2020 09:59:04 +0100
+
+When running in VM, recvfrom() might return ENOENT
+------------------------------------------------------------------------
+cb9b6ff9 | Norbert Eicker | Mon, 13 Jan 2020 09:51:09 +0100
+
+More booleanization of psidstatus.
+------------------------------------------------------------------------
+6c25b60b | Norbert Eicker | Mon, 13 Jan 2020 09:43:55 +0100
+
+Fix docu comment.
+------------------------------------------------------------------------
+5a62bac0 | Norbert Eicker | Fri, 10 Jan 2020 20:39:49 +0100
+
+Limit PIDs to 32768 via sysctl configuration (#2826)
+------------------------------------------------------------------------
+dfe559c9 | Norbert Eicker | Fri, 10 Jan 2020 19:39:23 +0100
+
+Ensure building RPMs works without pam-devel
+------------------------------------------------------------------------
+645235fb | Michael Rauh | Fri, 27 Dec 2019 21:16:45 +0100
+
+Improve Slurm message reply code of psslurm
+------------------------------------------------------------------------
+38e5637b | Norbert Eicker | Fri, 20 Dec 2019 17:41:52 +0100
+
+Fix function declaration.
+------------------------------------------------------------------------
+99ada29e | Michael Rauh | Fri, 20 Dec 2019 14:51:39 +0100
+
+Fix some warnings unveiled by gcc -Wshadow option
+------------------------------------------------------------------------
+49631e46 | Michael Rauh | Fri, 20 Dec 2019 13:08:08 +0100
+
+Make slurmctld prologue work with the gcc address sanitizer on
+------------------------------------------------------------------------
+dea9a4f6 | Michael Rauh | Fri, 20 Dec 2019 13:05:57 +0100
+
+Fix format string errors
+------------------------------------------------------------------------
+95a87e79 | Norbert Eicker | Tue, 10 Dec 2019 12:59:06 +0100
+
+Merge branch 'tm/psgw_py_fixes'
+------------------------------------------------------------------------
+e09d7dda | Michael Rauh | Mon, 9 Dec 2019 17:03:29 +0100
+
+Revert "Enhancement: set SLURM_NTASKS_PER_NODE if it was not set by sbatch"
+
+This reverts commit 54e5d5738ec88d6c9d9a16aa0bfdcde87f4719fd.
+------------------------------------------------------------------------
+580655fb | Michael Rauh | Thu, 5 Dec 2019 16:11:19 +0100
+
+Merge branch 'master' into tm/psgw_py_fixes
+------------------------------------------------------------------------
+99975465 | Thomas Moschny | Fri, 8 Nov 2019 08:42:56 +0100
+
+Cosmetics.
+------------------------------------------------------------------------
+f2f198e0 | Thomas Moschny | Fri, 8 Nov 2019 08:39:56 +0100
+
+has_key() is deprecated.
+------------------------------------------------------------------------
+bdf791a6 | Thomas Moschny | Fri, 25 Oct 2019 14:03:43 +0200
+
+Fix a number of pylint warnings.
+------------------------------------------------------------------------
+4ce457bc | Thomas Moschny | Fri, 25 Oct 2019 13:45:35 +0200
+
+Use more Pythonic way of string formatting.
+------------------------------------------------------------------------
+3d9c8c18 | Thomas Moschny | Fri, 25 Oct 2019 10:28:39 +0200
+
+Make it explicit that print is used as a function.
+------------------------------------------------------------------------
+6616eaad | Thomas Moschny | Thu, 24 Oct 2019 19:40:14 +0200
+
+Move main code in its own function.
+------------------------------------------------------------------------
+0ea08344 | Thomas Moschny | Thu, 24 Oct 2019 19:38:36 +0200
+
+Check for None with 'is'.
+------------------------------------------------------------------------
+3be5fd15 | Thomas Moschny | Thu, 24 Oct 2019 19:32:07 +0200
+
+Remove unused imports.
+------------------------------------------------------------------------
+163106fd | Thomas Moschny | Thu, 24 Oct 2019 19:28:40 +0200
+
+Make Python version used explicit.
+------------------------------------------------------------------------
+
+
 Version psmgmt-5.1.27-1:
 ========================
 ------------------------------------------------------------------------

@@ -1554,8 +1554,13 @@ static void handleBatchJobLaunch(Slurm_Msg_t *sMsg)
 	return;
     }
 
-    /* add allocation if pspelogue isn't used */
     Alloc_t *alloc = findAlloc(job->jobid);
+    if (!alloc) {
+	flog("no allocation for job %u found\n", job->jobid);
+	sendSlurmRC(sMsg, ESLURMD_INVALID_JOB_CREDENTIAL);
+	deleteJob(job->jobid);
+	return;
+    }
 
     /* santy check allocation state */
     if (alloc->state != A_PROLOGUE_FINISH) {
@@ -1665,15 +1670,12 @@ static void doTerminateAlloc(Slurm_Msg_t *sMsg, Alloc_t *alloc)
 
 static void handleAbortReq(Slurm_Msg_t *sMsg, uint32_t jobid, uint32_t stepid)
 {
-    Step_t *step;
-    Job_t *job;
-    Alloc_t *alloc;
-
     /* send success back to slurmctld */
     sendSlurmRC(sMsg, SLURM_SUCCESS);
 
     if (stepid != NO_VAL) {
-	if (!(step = findStepByStepId(jobid, stepid))) {
+	Step_t *step = findStepByStepId(jobid, stepid);
+	if (!step) {
 	    mlog("%s: step %u:%u not found\n", __func__, jobid, stepid);
 	    return;
 	}
@@ -1682,8 +1684,7 @@ static void handleAbortReq(Slurm_Msg_t *sMsg, uint32_t jobid, uint32_t stepid)
 	return;
     }
 
-    job = findJobById(jobid);
-    alloc = findAlloc(jobid);
+    Job_t *job = findJobById(jobid);
 
     if (job) {
 	if (!job->mother) {
@@ -1693,7 +1694,8 @@ static void handleAbortReq(Slurm_Msg_t *sMsg, uint32_t jobid, uint32_t stepid)
 	}
 	deleteJob(jobid);
     } else {
-	if (isAllocLeader(alloc)) {
+	Alloc_t *alloc = findAlloc(jobid);
+	if (alloc && isAllocLeader(alloc)) {
 	    signalStepsByJobid(alloc->id, SIGKILL, sMsg->head.uid);
 	    send_PS_JobExit(alloc->id, SLURM_BATCH_SCRIPT,
 		    alloc->nrOfNodes, alloc->nodes);
@@ -1781,7 +1783,6 @@ static void handleKillReq(Slurm_Msg_t *sMsg, Alloc_t *alloc, Kill_Info_t *info)
 
 static void handleTerminateReq(Slurm_Msg_t *sMsg)
 {
-    Alloc_t *alloc;
     Req_Terminate_Job_t *req = NULL;
     Kill_Info_t info;
 
@@ -1809,12 +1810,12 @@ static void handleTerminateReq(Slurm_Msg_t *sMsg)
     /* restore account freq */
     PSIDnodes_setAcctPollI(PSC_getMyID(), confAccPollTime);
 
-    /* find the corresponding allocation */
-    alloc = findAlloc(req->jobid);
-
     /* remove all unfinished spawn requests */
     PSIDspawn_cleanupBySpawner(PSC_getMyTID());
     cleanupDelayedSpawns(req->jobid, req->stepid);
+
+    /* find the corresponding allocation */
+    Alloc_t *alloc = findAlloc(req->jobid);
 
     if (!alloc) {
 	deleteJob(req->jobid);

@@ -328,6 +328,7 @@ int Selector_register(int fd, Selector_CB_t selectHandler, void *info)
     list_add_tail(&selector->next, &selectorList);
     selectors[fd] = selector;
 
+    memset(&ev, 0, sizeof(ev));
     ev.data.fd = fd;
     ev.events = EPOLLIN | EPOLLPRI | (selector->writeHandler ? EPOLLOUT : 0);
     rc = epoll_ctl(epollFD,
@@ -479,6 +480,7 @@ int Selector_vacateWrite(int fd)
     logger_print(logger, SELECTOR_LOG_VERB, "%s(%d, %s)\n", __func__, fd,
 		 selector->readHandler ? "MOD" : "DEL");
 
+    memset(&ev, 0, sizeof(ev));
     ev.data.fd = fd;
     ev.events = selector->readHandler ? (EPOLLIN | EPOLLPRI) : 0;
     rc = epoll_ctl(epollFD,

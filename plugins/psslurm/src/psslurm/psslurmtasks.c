@@ -22,7 +22,7 @@ PS_Tasks_t *addTask(list_t *list, PStask_ID_t childTID,
 		    PStask_ID_t forwarderTID, PStask_t *forwarder,
 		    PStask_group_t childGroup, int32_t rank)
 {
-    PS_Tasks_t *task = umalloc(sizeof(*task));
+    PS_Tasks_t *task = ucalloc(sizeof(*task));
 
     task->childTID = childTID;
     task->forwarderTID = forwarderTID;
