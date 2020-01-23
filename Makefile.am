@@ -1,7 +1,7 @@
 #
 # ParaStation
 #
-# Copyright (C) 2012-2018 ParTec Cluster Competence Center GmbH, Munich
+# Copyright (C) 2012-2020 ParTec Cluster Competence Center GmbH, Munich
 #
 # This file may be distributed under the terms of the Q Public License
 # as defined in the file LICENSE.QPL included in the packaging of this
@@ -50,6 +50,12 @@ if !MUNGE_ENABLED
 endif
 if !PAM_ENABLED
   AM_CONFIGARGS := $(AM_CONFIGARGS) -without pam
+endif
+if !SPANK_ENABLED
+  AM_CONFIGARGS := $(AM_CONFIGARGS) -without spank
+endif
+if !HAVE_SYSTEMD
+  AM_CONFIGARGS := $(AM_CONFIGARGS) -without systemd
 endif
 
 .PHONY: tar rpm srpm tag version
