@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2016-2019 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2016-2020 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -23,6 +23,9 @@
 #include "psslurmproto.h"
 #include "psslurmpscomm.h"
 #include "psslurmtasks.h"
+#ifdef HAVE_SPANK
+#include "psslurmspank.h"
+#endif
 
 #include "psidtask.h"
 #include "plugin.h"
@@ -231,6 +234,53 @@ static char *showTasks(void)
 
     return strBuf.buf;
 }
+
+#ifdef HAVE_SPANK
+
+/**
+ * @brief Visitor to add information about spank plugins
+ *
+ * @param sp The spank plugin to use
+ *
+ * @param info A StrBuffer_t structure to save the information
+ *
+ * @return Always returns false to loop throw all steps
+ */
+static bool addSpankInfo(Spank_Plugin_t *sp, const void *info)
+{
+    StrBuffer_t *strBuf = (StrBuffer_t *) info;
+
+    snprintf(line, sizeof(line), "plugin %s: type=%s ver=%u optional=%s "
+	     "path=%s\n", sp->name, sp->type, sp->version,
+	     (sp->optional ? "true" : false), sp->path);
+    addStrBuf(line, strBuf);
+
+    return false;
+}
+
+#endif
+
+/**
+ * @brief Show registered spank plugins
+ *
+ * @return Returns the buffer with the updated spank information
+ */
+static char *showSpank(void)
+{
+    StrBuffer_t strBuf = {
+	.buf = NULL,
+	.bufSize = 0 };
+
+#ifdef HAVE_SPANK
+    addStrBuf("\nactive spank plugins:\n\n", &strBuf);
+    SpankTraversePlugins(addSpankInfo, &strBuf);
+#else
+    addStrBuf("\npsmgmt was compiled without spank support\n\n", &strBuf);
+#endif
+
+    return strBuf.buf;
+}
+
 
 /**
  * @brief Show current allocations.
@@ -682,6 +732,9 @@ char *show(char *key)
 
     /* show tasks */
     if (!strcmp(key, "tasks")) return showTasks();
+
+    /* show spank plugins */
+    if (!strcmp(key, "spank")) return showSpank();
 
     str2Buf("\nInvalid key '", &buf, &bufSize);
     str2Buf(key, &buf, &bufSize);

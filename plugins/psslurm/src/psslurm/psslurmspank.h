@@ -91,6 +91,43 @@ void __SpankCallHook(spank_t spank, const char *func, const int line);
 #define SpankCallHook(spank) __SpankCallHook(spank, __func__, __LINE__)
 
 /**
+ * @brief Visitor function
+ *
+ * Visitor function used by @ref SpankTraversePlugins() in order to visit
+ * each spank plugin currently registered.
+ *
+ * The parameters are as follows: @a sp points to the spank plugin to
+ * visit. @a info points to the additional information passed to @ref
+ * SpankTraversePlugins() in order to be forwarded to each plugin.
+ *
+ * If the visitor function returns true the traversal will be
+ * interrupted and @ref SpankTraversePlugins() will return to its calling
+ * function.
+ */
+typedef bool SpankVisitor_t(Spank_Plugin_t *sp, const void *info);
+
+/**
+ * @brief Traverse all spank plugins
+ *
+ * Traverse all spank plugins by calling @a visitor for each of the registered
+ * plugins. In addition to a pointer to the current spank plugin @a info
+ * is passed as additional information to @a visitor.
+ *
+ * If @a visitor returns true, the traversal will be stopped
+ * immediately and true is returned to the calling function.
+ *
+ * @param visitor Visitor function to be called for each plugin
+ *
+ * @param info Additional information to be passed to @a visitor while
+ * visiting the spank plugins
+ *
+ * @return If the visitor returns true, traversal will be stopped and
+ * true is returned. If no visitor returned true during the traversal
+ * false is returned.
+ */
+bool SpankTraversePlugins(SpankVisitor_t visitor, const void *info);
+
+/**
  * The following functions will be called by Spank plugins
  *
  * Also see src/spank/spank_api.c holding the wrapper functions and

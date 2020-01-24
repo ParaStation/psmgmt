@@ -226,6 +226,18 @@ static bool testMagic(spank_t spank, const char *func)
     return true;
 }
 
+bool SpankTraversePlugins(SpankVisitor_t visitor, const void *info)
+{
+    list_t *s, *tmp;
+    list_for_each_safe(s, tmp, &SpankList) {
+	Spank_Plugin_t *sp = list_entry(s, Spank_Plugin_t, next);
+
+	if (visitor(sp, info)) return true;
+    }
+
+    return false;
+}
+
 /**
  * The following functions will be called by Spank plugins
  *
@@ -706,3 +718,10 @@ int psSpankSymbolSup(const char *symbol)
     }
     return 0;
 }
+
+/**
+ * The functions above will be called by Spank plugins
+ *
+ * Also see src/spank/spank_api.c holding the wrapper functions and
+ * further documentation.
+ **/
