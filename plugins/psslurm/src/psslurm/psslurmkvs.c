@@ -281,7 +281,6 @@ static char *showSpank(void)
     return strBuf.buf;
 }
 
-
 /**
  * @brief Show current allocations.
  *
@@ -583,6 +582,7 @@ static char *showVirtualKeys(char *buf, size_t *bufSize, bool example)
     str2Buf(" ahwThreads\tshow all hwThreads\n", &buf, bufSize);
     str2Buf("      tasks\tshow all tasks\n", &buf, bufSize);
     str2Buf(" resolveIDs\tresolve a Slurm host-list\n", &buf, bufSize);
+    str2Buf("      spank\tshow active spank plugins\n", &buf, bufSize);
 
     if (example) str2Buf("\nExample:\nUse 'plugin show psslurm key jobs'\n",
 			 &buf, bufSize);
