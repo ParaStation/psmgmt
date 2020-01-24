@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2019 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2019-2020 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -549,7 +549,7 @@ static spank_err_t getTaskItem(spank_t spank, spank_item_t item, va_list ap)
     return ESPANK_SUCCESS;
 }
 
-spank_err_t getVersionItem(spank_t spank, spank_item_t item, va_list ap)
+static spank_err_t getVersionItem(spank_t spank, spank_item_t item, va_list ap)
 {
     char **pChar;
     static char verMajor[8], verMinor[8], verMicro[8];
@@ -590,7 +590,7 @@ spank_err_t getVersionItem(spank_t spank, spank_item_t item, va_list ap)
     return ESPANK_SUCCESS;
 }
 
-spank_err_t getOtherItem(spank_t spank, spank_item_t item, va_list ap)
+static spank_err_t getOtherItem(spank_t spank, spank_item_t item, va_list ap)
 {
     uint32_t *pUint32;
 
