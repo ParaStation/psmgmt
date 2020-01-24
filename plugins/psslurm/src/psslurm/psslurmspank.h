@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2019 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2019-2020 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -46,14 +46,13 @@ typedef enum {
 } Spank_Hook_Calls_t;
 
 struct spank_handle {
-    int magic;                  /**< magic value to detect corrupted
-                                     spank structures */
-    Alloc_t *alloc;             /**< allocation of the current context or NULL */
-    Job_t *job;                 /**< job of the current context or NULL */
-    Step_t *step;               /**< step of the current context or NULL */
-    int hook;                   /**< hook which is currently called */
-    PStask_t *task;             /**< child task structure which called the hook */
-    Spank_Plugin_t *plugin;     /**< spank plugin currently executed */
+    int magic;               /**< magic to detect corrupted spank structures */
+    Alloc_t *alloc;          /**< allocation of the current context or NULL */
+    Job_t *job;              /**< job of the current context or NULL */
+    Step_t *step;            /**< step of the current context or NULL */
+    unsigned int hook;       /**< hook which is currently called */
+    PStask_t *task;          /**< child task structure which called the hook */
+    Spank_Plugin_t *plugin;  /**< spank plugin currently executed */
 };
 
 /**
