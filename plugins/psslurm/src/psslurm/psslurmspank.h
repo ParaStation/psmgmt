@@ -24,6 +24,8 @@ typedef struct {
     bool optional;              /**< is the plugin optional or required */
     char *path;                 /**< absolute path of the plugin */
     char *name;                 /**< plugin name */
+    char *type;                 /**< plugin type */
+    uint32_t version;           /**< plugin version */
     strv_t argV;                /**< argument vector from plugstack config */
     void *handle;               /**< handle returned by dlopen() */
 } Spank_Plugin_t;

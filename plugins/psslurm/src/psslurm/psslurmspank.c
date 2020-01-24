@@ -67,6 +67,8 @@ void SpankSavePlugin(Spank_Plugin_t *def)
 {
     def->handle = NULL;
     def->name = NULL;
+    def->type = NULL;
+    def->version = 0;
     list_add_tail(&def->next, &SpankList);
 }
 
@@ -90,19 +92,19 @@ bool SpankInitPlugins(void)
 	    return false;
 	}
 
-	char *type = dlsym(sp->handle, PLUGIN_TYPE);
-	char *name = dlsym(sp->handle, PLUGIN_NAME);
+	sp->type = dlsym(sp->handle, PLUGIN_TYPE);
+	sp->name = dlsym(sp->handle, PLUGIN_NAME);
 	uint32_t *version = (uint32_t *) dlsym(sp->handle, PLUGIN_VERSION);
 
-	if (!type || !name || !version) {
-	    flog("missing symbols in plugin %s, type %s name %s "
-		    "version %u\n", sp->path, type, name, *version);
+	if (!sp->type || !sp->name || !version) {
+	    flog("missing symbols in plugin %s, type %s name %s\n",
+		 sp->path, sp->type, sp->name);
 	    return false;
 	}
-	sp->name = name;
+	sp->version = *version;
 
-	fdbg(PSSLURM_LOG_SPANK, "plugin=%s type=%s version=%u\n", name,
-	     type, *version);
+	fdbg(PSSLURM_LOG_SPANK, "plugin=%s type=%s version=%u\n", sp->name,
+	     sp->type, sp->version);
 	count++;
     }
     if (count) flog("successfully loaded %i spank plugins\n", count);
