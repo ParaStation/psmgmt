@@ -963,8 +963,20 @@ static int stepForwarderInit(Forwarder_Data_t *fwdata)
     Step_t *step = fwdata->userData;
     step->fwdata = fwdata;
 
+#ifdef HAVE_SPANK
+    struct spank_handle spank = {
+	.task = NULL,
+	.alloc = findAlloc(step->jobid),
+	.job = findJobById(step->jobid),
+	.step = step,
+	.hook = SPANK_INIT
+    };
+    SpankCallHook(&spank);
+#endif
+
     if (switchEffectiveUser(step->username, step->uid, step->gid) == -1) {
 	mlog("%s: switching effective user failed\n", __func__);
+	exit(1);
     }
 
     /* check if we can change working directory */
@@ -982,8 +994,14 @@ static int stepForwarderInit(Forwarder_Data_t *fwdata)
 	}
     }
 
+#ifdef HAVE_SPANK
+    spank.hook = SPANK_USER_INIT;
+    SpankCallHook(&spank);
+#endif
+
     if (switchEffectiveUser("root", 0, 0) == -1) {
 	mlog("%s: switching effective user failed\n", __func__);
+	exit(1);
     }
 
     /* open stderr/stdout/stdin fds */
@@ -995,17 +1013,6 @@ static int stepForwarderInit(Forwarder_Data_t *fwdata)
 	    return -1;
 	}
     }
-
-#ifdef HAVE_SPANK
-    struct spank_handle spank = {
-	.task = NULL,
-	.alloc = findAlloc(step->jobid),
-	.job = findJobById(step->jobid),
-	.step = step,
-	.hook = SPANK_INIT
-    };
-    SpankCallHook(&spank);
-#endif
 
     return 1;
 }
@@ -1294,12 +1301,14 @@ static void stepFWIOloop(Forwarder_Data_t *fwdata)
 
     if (switchEffectiveUser(step->username, step->uid, step->gid) == -1) {
 	mlog("%s: switching effective user failed\n", __func__);
+	exit(1);
     }
 
     redirectStepIO(fwdata, step);
 
     if (switchEffectiveUser("root", 0, 0) == -1) {
 	mlog("%s: switching effective user failed\n", __func__);
+	exit(1);
     }
 }
 
@@ -1307,6 +1316,7 @@ static int stepFWIOinit(Forwarder_Data_t *fwdata)
 {
 #ifdef HAVE_SPANK
     Step_t *step = fwdata->userData;
+
     struct spank_handle spank = {
 	.task = NULL,
 	.alloc = findAlloc(step->jobid),
@@ -1315,6 +1325,20 @@ static int stepFWIOinit(Forwarder_Data_t *fwdata)
 	.hook = SPANK_INIT
     };
     SpankCallHook(&spank);
+
+    if (switchEffectiveUser(step->username, step->uid, step->gid) == -1) {
+	mlog("%s: switching effective user failed\n", __func__);
+	exit(1);
+    }
+
+    spank.hook = SPANK_USER_INIT;
+    SpankCallHook(&spank);
+
+    if (switchEffectiveUser("root", 0, 0) == -1) {
+	mlog("%s: switching effective user failed\n", __func__);
+	exit(1);
+    }
+
 #endif
 
     return 1;
