@@ -31,20 +31,20 @@ typedef struct {
 } Spank_Plugin_t;
 
 typedef enum {
-    SPANK_INIT = 0,
-    SPANK_SLURMD_INIT,
-    SPANK_JOB_PROLOG,
-    SPANK_INIT_POST_OPT,
-    SPANK_LOCAL_USER_INIT,
-    SPANK_USER_INIT,
-    SPANK_TASK_INIT_PRIVILEGED,
-    SPANK_TASK_INIT,
-    SPANK_TASK_POST_FORK,
-    SPANK_TASK_EXIT,
-    SPANK_JOB_EPILOG,
-    SPANK_SLURMD_EXIT,
-    SPANK_EXIT,
-    SPANK_END
+    SPANK_INIT = 0,             /**< called in forwarder initialize */
+    SPANK_SLURMD_INIT,          /**< unsupported, prevent changes to main psid*/
+    SPANK_JOB_PROLOG,           /**< called before prologue is started */
+    SPANK_INIT_POST_OPT,        /**< unsupported, because of missing options */
+    SPANK_LOCAL_USER_INIT,      /**< called in local (srun) context only */
+    SPANK_USER_INIT,            /**< called after privileges temp drop */
+    SPANK_TASK_INIT_PRIVILEGED, /**< called for every task as root user */
+    SPANK_TASK_INIT,            /**< called for every task before execve() */
+    SPANK_TASK_POST_FORK,       /**< called in parent after fork */
+    SPANK_TASK_EXIT,            /**< exec when task exit status is available */
+    SPANK_JOB_EPILOG,           /**< called before epilogue is started */
+    SPANK_SLURMD_EXIT,          /**< unsupported, prevent changes to main psid*/
+    SPANK_EXIT,                 /**< called before step forwarder exits */
+    SPANK_END                   /**< mark end of hook table */
 } Spank_Hook_Calls_t;
 
 struct spank_handle {
