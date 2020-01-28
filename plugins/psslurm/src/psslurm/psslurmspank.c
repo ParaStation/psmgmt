@@ -554,14 +554,20 @@ static spank_err_t getTaskItem(spank_t spank, spank_item_t item, va_list ap)
 		return ESPANK_NOT_TASK;
 	    }
 	    break;
+	case S_JOB_TOTAL_TASK_COUNT:
+	    pUint32 = va_arg(ap, uint32_t *);
+	    if (spank->step) {
+		*pUint32 = spank->step->np;
+	    } else if (spank->job) {
+		*pUint32 = spank->job->np;
+	    } else {
+		*pUint32 = 0;
+		return ESPANK_NOT_AVAIL;
+	    }
+	    break;
 	/* TODO */
 	case S_JOB_LOCAL_TASK_COUNT:
 	    /* Number of local tasks (uint32_t *)           */
-	    pUint32 = va_arg(ap, uint32_t *);
-	    *pUint32 = 0;
-	    return ESPANK_NOT_AVAIL;
-	case S_JOB_TOTAL_TASK_COUNT:
-	    /* Total number of tasks in job (uint32_t *)    */
 	    pUint32 = va_arg(ap, uint32_t *);
 	    *pUint32 = 0;
 	    return ESPANK_NOT_AVAIL;
