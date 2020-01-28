@@ -483,12 +483,16 @@ static spank_err_t getJobItem(spank_t spank, spank_item_t item, va_list ap)
 		return ESPANK_NOT_AVAIL;
 	    }
 	    break;
-	/* TODO */
 	case S_JOB_NCPUS:
-	    /* Number of CPUs used by this job (uint16_t *) */
 	    pUint16 = va_arg(ap, uint16_t *);
-	    *pUint16 = 0;
-	    return ESPANK_NOT_AVAIL;
+	    if (spank->job) {
+		*pUint16 = spank->job->tpp;
+	    } else {
+		*pUint16 = 0;
+		return ESPANK_NOT_AVAIL;
+	    }
+	    break;
+	/* TODO */
 	case S_JOB_ALLOC_CORES:
 	    /* Job allocated cores in list format (char **) */
 	    pChar2 = va_arg(ap, char **);
