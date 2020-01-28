@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2016-2019 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2016-2020 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -970,6 +970,10 @@ bool __unpackReqLaunchTasks(Slurm_Msg_t *sMsg, Step_t **stepPtr,
 	goto ERROR;
     }
 
+    /* overwrite empty memory limits */
+    if (!step->jobMemLimit) step->jobMemLimit = step->cred->jobMemLimit;
+    if (!step->stepMemLimit) step->stepMemLimit = step->cred->stepMemLimit;
+
     /* tasks to launch / global task ids */
     unpackStepTaskIds(step, ptr);
 
@@ -1248,6 +1252,9 @@ bool __unpackReqBatchJobLaunch(Slurm_Msg_t *sMsg, Job_t **jobPtr,
 	mlog("%s: extracting job credentail failed\n", __func__);
 	goto ERROR;
     }
+
+    /* overwrite empty memory limit */
+    if (!job->memLimit) job->memLimit = job->cred->jobMemLimit;
 
     /* jobinfo plugin id */
     getUint32(ptr, &tmp);

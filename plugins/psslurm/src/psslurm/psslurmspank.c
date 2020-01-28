@@ -463,6 +463,26 @@ static spank_err_t getJobItem(spank_t spank, spank_item_t item, va_list ap)
 		return ESPANK_NOT_AVAIL;
 	    }
 	    break;
+	case S_JOB_ALLOC_MEM:
+	    pUint64 = va_arg(ap, uint64_t *);
+	    if (spank->job) {
+		*pUint64 = spank->job->memLimit;
+	    } else if (spank->step) {
+		*pUint64 = spank->step->jobMemLimit;
+	    } else {
+		*pUint64 = 0;
+		return ESPANK_NOT_AVAIL;
+	    }
+	    break;
+	case S_STEP_ALLOC_MEM:
+	    pUint64 = va_arg(ap, uint64_t *);
+	    if (spank->step) {
+		*pUint64 = spank->step->stepMemLimit;
+	    } else {
+		*pUint64 = 0;
+		return ESPANK_NOT_AVAIL;
+	    }
+	    break;
 	/* TODO */
 	case S_JOB_NCPUS:
 	    /* Number of CPUs used by this job (uint16_t *) */
@@ -474,20 +494,10 @@ static spank_err_t getJobItem(spank_t spank, spank_item_t item, va_list ap)
 	    pChar2 = va_arg(ap, char **);
 	    *pChar2 = NULL;
 	    return ESPANK_NOT_AVAIL;
-	case S_JOB_ALLOC_MEM:
-	    /* Job allocated memory in MB (uint64_t *)      */
-	    pUint64 = va_arg(ap, uint64_t *);
-	    *pUint64 = 0;
-	    return ESPANK_NOT_AVAIL;
 	case S_STEP_ALLOC_CORES:
 	    /* Step alloc'd cores in list format  (char **) */
 	    pChar2 = va_arg(ap, char **);
 	    *pChar2 = NULL;
-	    return ESPANK_NOT_AVAIL;
-	case S_STEP_ALLOC_MEM:
-	    /* Step alloc'd memory in MB (uint64_t *)       */
-	    pUint64 = va_arg(ap, uint64_t *);
-	    *pUint64 = 0;
 	    return ESPANK_NOT_AVAIL;
 	default:
 	    return ESPANK_BAD_ARG;
