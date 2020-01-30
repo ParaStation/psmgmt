@@ -515,6 +515,7 @@ static spank_err_t getTaskItem(spank_t spank, spank_item_t item, va_list ap)
     pid_t *pPID;
     uint32_t *pUint32;
     int *pInt;
+    Step_t *step = spank->step;
 
     switch(item) {
 	case S_TASK_GLOBAL_ID:
@@ -537,9 +538,9 @@ static spank_err_t getTaskItem(spank_t spank, spank_item_t item, va_list ap)
 	    break;
 	case S_TASK_ID:
 	    pInt = va_arg(ap, int *);
-	    if (spank->step && spank->task) {
-		*pInt = getLocalRankID(spank->task->rank, spank->step,
-				       spank->step->localNodeId);
+	    if (step && spank->task) {
+		*pInt = getLocalRankID(spank->task->rank, step,
+				       step->localNodeId);
 	    } else {
 		*pInt = -1;
 		return ESPANK_NOT_TASK;
@@ -547,8 +548,8 @@ static spank_err_t getTaskItem(spank_t spank, spank_item_t item, va_list ap)
 	    break;
 	case S_STEP_CPUS_PER_TASK:
 	    pUint32 = va_arg(ap, uint32_t *);
-	    if (spank->step) {
-		*pUint32 = spank->step->tpp;
+	    if (step) {
+		*pUint32 = step->tpp;
 	    } else {
 		*pUint32 = 0;
 		return ESPANK_NOT_TASK;
@@ -556,8 +557,8 @@ static spank_err_t getTaskItem(spank_t spank, spank_item_t item, va_list ap)
 	    break;
 	case S_JOB_TOTAL_TASK_COUNT:
 	    pUint32 = va_arg(ap, uint32_t *);
-	    if (spank->step) {
-		*pUint32 = spank->step->np;
+	    if (step) {
+		*pUint32 = step->np;
 	    } else if (spank->job) {
 		*pUint32 = spank->job->np;
 	    } else {
@@ -565,12 +566,16 @@ static spank_err_t getTaskItem(spank_t spank, spank_item_t item, va_list ap)
 		return ESPANK_NOT_AVAIL;
 	    }
 	    break;
-	/* TODO */
 	case S_JOB_LOCAL_TASK_COUNT:
-	    /* Number of local tasks (uint32_t *)           */
 	    pUint32 = va_arg(ap, uint32_t *);
-	    *pUint32 = 0;
-	    return ESPANK_NOT_AVAIL;
+	    if (step) {
+		*pUint32 = step->tasksToLaunch[step->localNodeId];
+	    } else {
+		*pUint32 = 0;
+		return ESPANK_NOT_AVAIL;
+	    }
+	    break;
+	/* TODO */
 	case S_TASK_EXIT_STATUS:
 	    /* Exit status of task if exited (int *)        */
 	    pInt = va_arg(ap, int *);
