@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2017-2019 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2017-2020 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -127,12 +127,12 @@ void clearStepList(uint32_t jobid)
     }
 }
 
-int deleteStep(uint32_t jobid, uint32_t stepid)
+bool deleteStep(uint32_t jobid, uint32_t stepid)
 {
     Step_t *step = findStepByStepId(jobid, stepid);
     uint32_t i;
 
-    if (!step) return 0;
+    if (!step) return false;
 
     mdbg(PSSLURM_LOG_JOB, "%s: '%u:%u'\n", __func__, jobid, stepid);
 
@@ -227,7 +227,7 @@ int deleteStep(uint32_t jobid, uint32_t stepid)
     list_del(&step->next);
     ufree(step);
 
-    return 1;
+    return true;
 }
 
 int signalStep(Step_t *step, int signal, uid_t reqUID)

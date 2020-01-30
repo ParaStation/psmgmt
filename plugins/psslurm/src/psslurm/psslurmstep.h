@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2017-2019 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2017-2020 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -146,17 +146,31 @@ typedef struct {
 } Step_t;
 
 /**
- * @doctodo
+ * @brief Add a new step
+ *
+ * @param jobid The jobid of the step
+ *
+ * @param stepid The stepid of the step
+ *
+ * @return Returns the newly created step
  */
 Step_t *addStep(uint32_t jobid, uint32_t stepid);
 
 /**
- * @doctodo
+ * @brief Delete a step
+ *
+ * @param jobid The jobid of the step to delete
+ *
+ * @param stepid The stepid of the step to delete
+ *
+ * @return Returns true on success or false otherwise
  */
-int deleteStep(uint32_t jobid, uint32_t stepid);
+bool deleteStep(uint32_t jobid, uint32_t stepid);
 
 /**
- * @doctodo
+ * @brief Delete all steps of a specific job
+ *
+ * @param jobid The jobid to identify the steps to delete
  */
 void clearStepList(uint32_t jobid);
 
@@ -255,12 +269,19 @@ int signalStepsByJobid(uint32_t jobid, int signal, uid_t reqUID);
 int signalStep(Step_t *step, int signal, uid_t reqUID);
 
 /**
- * @doctodo
+ * @brief Test if a job has active steps
+ *
+ * @param jobid The jobid of the job to test
+ *
+ * @return Returns true if the job has active steps or
+ * false otherwise
  */
 bool haveRunningSteps(uint32_t jobid);
 
 /**
- * @doctodo
+ * @brief Shutdown all step forwarders of a job
+ *
+ * @param jobid The jobid of the job
  */
 void shutdownStepForwarder(uint32_t jobid);
 
@@ -310,7 +331,11 @@ bool traverseSteps(StepVisitor_t visitor, const void *info);
 char *getActiveStepList();
 
 /**
- * @doctodo
+ * @brief Send SIGKILL to all step forwarders of a job
+ *
+ * @param jobid The jobid of the steps to kill
+ *
+ * @return Returns the number of steps SIGKILL was sent to
  */
 int killStepFWbyJobid(uint32_t jobid);
 
