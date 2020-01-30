@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2014-2019 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2014-2020 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -118,7 +118,12 @@ Job_t *findJobById(uint32_t jobid);
 Job_t *findJobByIdC(char *id);
 
 /**
- * @doctodo
+ * @brief Find a job node entry
+ *
+ * @param job The job to browse
+ *
+ * @return Returns the found job node entry
+ * on success or NULL otherwise
  */
 PSnodes_ID_t *findJobNodeEntry(Job_t *job, PSnodes_ID_t id);
 
@@ -132,12 +137,16 @@ PSnodes_ID_t *findJobNodeEntry(Job_t *job, PSnodes_ID_t id);
 bool deleteJob(uint32_t jobid);
 
 /**
- * @doctodo
+ * @brief Convert a job state to its string representation
+ *
+ * @param state The job state to convert
  */
 char *strJobState(JobState_t state);
 
 /**
- * @doctodo
+ * @brief Get the number of jobs
+ *
+ * Returns the number of jobs
  */
 int countJobs(void);
 
@@ -201,7 +210,15 @@ int signalJob(Job_t *job, int signal, uid_t reqUID);
 int signalJobs(int signal);
 
 /**
- * @doctodo
+ * @brief Send SIGKILL to a job
+ *
+ * Send SIGKILL to a job forwarder and all its
+ * associated step forwarders.
+ *
+ * @param jobid The jobid of the job to signal
+ *
+ * @return Returns the number of all forwarders
+ * the SIGKILL was sent to
  */
 int killForwarderByJobid(uint32_t jobid);
 
