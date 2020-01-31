@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2015-2019 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2015-2020 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -459,27 +459,19 @@ int handleLocalPElogueFinish(void *data)
     return 0;
 }
 
-int handleTaskPrologue(char *taskPrologue, uint32_t rank,
-			uint32_t jobid, pid_t task_pid, char *wdir)
+int startTaskPrologue(Step_t *step, PStask_t *task)
 {
-    int pipe_fd[2];
-    pid_t child;
-    char *child_argv[2];
-    FILE *output;
     char envstr[21], line[4096], buffer[4096];
-    char *saveptr, *key;
-    size_t last;
 
-    int status;
-
+    char *taskPrologue = step->taskProlog;
     if (!taskPrologue || *taskPrologue == '\0') return 0;
 
     mlog("%s: starting task prologue '%s' for rank '%u' of job '%u'\n",
-	    __func__, taskPrologue, rank, jobid);
+	    __func__, taskPrologue, task->rank, step->jobid);
 
     /* handle relative paths */
     if (taskPrologue[0] != '/') {
-        snprintf(buffer, 4096, "%s/%s", wdir, taskPrologue);
+        snprintf(buffer, 4096, "%s/%s", step->cwd, taskPrologue);
 	taskPrologue = buffer;
     }
 
@@ -488,14 +480,17 @@ int handleTaskPrologue(char *taskPrologue, uint32_t rank,
 	return -1;
     }
 
+    int pipe_fd[2];
     if (pipe(pipe_fd) < 0) {
         mlog("%s: open pipe failed\n", __func__);
 	return -1;
     }
 
+    char *child_argv[2];
     child_argv[0] = taskPrologue;
     child_argv[1] = NULL;
 
+    pid_t child;
     if ((child = fork()) < 0) {
         mlog("%s: fork failed\n", __func__);
 	return -1;
@@ -511,39 +506,39 @@ int handleTaskPrologue(char *taskPrologue, uint32_t rank,
 	setpgrp();
 
 	/* Set SLURM_TASK_PID variable in environment */
-	sprintf(envstr, "%d", task_pid);
+	sprintf(envstr, "%d", PSC_getPID(task->tid));
 	setenv("SLURM_TASK_PID", envstr, 1);
 
         /* Execute task prologue */
 	execvp (child_argv[0], child_argv);
         mlog("%s: exec for task prologue '%s' failed in rank %d of job %d\n",
-		__func__, taskPrologue, rank, jobid);
+		__func__, taskPrologue, task->rank, step->jobid);
 	return -1;
     }
 
     /* This is the parent */
     close(pipe_fd[1]);
 
-    output = fdopen(pipe_fd[0], "r");
-    if (output == NULL) {
+    FILE *output = fdopen(pipe_fd[0], "r");
+    if (!output) {
         mlog("%s: cannot open pipe output\n", __func__);
 	return -1;
     }
 
     while (fgets(line, sizeof(line), output) != NULL) {
-
-	last = strlen(line)-1;
+	char *saveptr;
+	size_t last = strlen(line)-1;
 	if (line[last] == '\n') line[last] = '\0';
 
 	/* only interested in lines "export key=value" */
-	key = strtok_r(line, " ", &saveptr);
+	char *key = strtok_r(line, " ", &saveptr);
 
 	if (key == NULL || strcmp(key, "export") != 0) {
 	    continue;
 	}
 
 	mlog("%s: setting '%s' for rank %d of job %d as requested by task"
-		" prologue\n", __func__, saveptr, rank, jobid);
+		" prologue\n", __func__, saveptr, task->rank, step->jobid);
 
 	if (putenv(saveptr) != 0) {
 	    mwarn(errno, "Failed to set task prologue requested environment");
@@ -555,6 +550,7 @@ int handleTaskPrologue(char *taskPrologue, uint32_t rank,
     close(pipe_fd[1]);
 
     while (1) {
+	int status;
 	if(waitpid(child, &status, 0) < 0) {
 	    if (errno == EINTR)	continue;
 	    killpg(child, SIGKILL);

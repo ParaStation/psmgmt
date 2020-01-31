@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2015-2019 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2015-2020 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -18,10 +18,20 @@
  *
  * @param alloc The allocation to start the pelogue for
  *
- * @return Returns true on success and false otherwise.
+ * @return Returns true on success and false otherwise
  */
 bool startEpilogue(Alloc_t *alloc);
 
+/**
+ * @brief Handle hook PSIDHOOK_PELOGUE_START
+ *
+ * Save various information from the slurmctld prologue environment and
+ * add an allocation.
+ *
+ * @param data Pointer to the PElogueChild structure
+ *
+ * @return Returns 0 on success or -1 otherwise
+ */
 int handleLocalPElogueStart(void *data);
 
 /**
@@ -34,7 +44,7 @@ int handleLocalPElogueStart(void *data);
  *
  * @param data Pointer to the PElogueChild structure
  *
- * @return Always returns 0.
+ * @return Always returns 0
  */
 int handleLocalPElogueFinish(void *data);
 
@@ -49,18 +59,16 @@ int handleLocalPElogueFinish(void *data);
  */
 int handlePEloguePrepare(void *data);
 
-/** @doctodo */
-int handleTaskPrologue(char *taskPrologue, uint32_t rank,
-	uint32_t jobid, pid_t task_pid, char *wdir);
-
-/** @doctodo */
-int startTaskEpilogues(Step_t *step);
-
-/** @doctodo */
-void execTaskEpilogues(void *data, int rerun);
-
-/** @doctodo */
-void startAllSteps(uint32_t jobid);
+/**
+ * @brief Start a task prologue
+ *
+ * @param step The step to start a task prologue for
+ *
+ * @param task The PS task structure
+ *
+ * @return Returns 0 on success or -1 otherwise
+ */
+int startTaskPrologue(Step_t *step, PStask_t *task);
 
 /**
  * @brief Finalize an epilogue on the allocation leader node
