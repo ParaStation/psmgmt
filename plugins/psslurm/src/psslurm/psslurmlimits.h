@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2014-2018 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2014-2020 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -11,40 +11,33 @@
 #define __PS_PSSLURM_LIMITS
 
 #include <sys/resource.h>
+#include <stdbool.h>
 
 #include "psenv.h"
 
-/** @doctodo */
-typedef struct {
-    rlim_t limit;
-    char *name;
-    char *psname;
-    int propagate;
-} Limits_t;
-
 /**
- * @doctodo
- */
-int initLimits(void);
-
-/**
- * @doctodo
+ * @brief Initialize resources limits from configuration
  *
- * @return No return value
+ * @return Returns true on success or false otherwise
+ */
+bool initLimits(void);
+
+/**
+ * @brief Log all supported resource limits
  */
 void printLimits(void);
 
 /**
- * @doctodo
+ * @brief Set resources limits from job environment
  *
- * @return No return value
+ * @param env The environment holding rlimits to set
+ *
+ * @param psi If true set PSI rlimit environment variables
  */
-void setRlimitsFromEnv(env_t *env, int psi);
+void setRlimitsFromEnv(env_t *env, bool psi);
 
 /**
- * @doctodo
- *
- * @return No return value
+ * @brief Set default soft/hard rlimits from configuration
  */
 void setDefaultRlimits(void);
 

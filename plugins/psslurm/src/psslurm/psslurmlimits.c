@@ -1,20 +1,12 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2014-2016 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2014-2020 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-/**
- * $Id$
- *
- * \author
- * Michael Rauh <rauh@par-tec.com>
- *
- */
-
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -30,19 +22,28 @@
 
 #include "psslurmlimits.h"
 
-Limits_t slurmConfLimits[] =
+/** structure holding resource limits */
+typedef struct {
+    rlim_t limit;   /**< resource limit */
+    char *name;     /**< Slurm rlimit name */
+    char *psname;   /**< PSI rlimit name */
+    bool propagate; /**< if true the limit is propagated */
+} Limits_t;
+
+/** holding all supported limits */
+static Limits_t slurmConfLimits[] =
 {
-    { RLIMIT_CPU,     "CPU",	 "__PSI_CPU",       0 },
-    { RLIMIT_FSIZE,   "FSIZE",   "__PSI_FSIZE",     0 },
-    { RLIMIT_DATA,    "DATA",	 "__PSI_DATASIZE",  0 },
-    { RLIMIT_STACK,   "STACK",   "__PSI_STACKSIZE", 0 },
-    { RLIMIT_CORE,    "CORE",	 "__PSI_CORESIZE",  0 },
-    { RLIMIT_RSS,     "RSS",	 "__PSI_RSS",       0 },
-    { RLIMIT_NPROC,   "NPROC",   "__PSI_NPROC",     0 },
-    { RLIMIT_NOFILE,  "NOFILE",  "__PSI_NOFILE",    0 },
-    { RLIMIT_MEMLOCK, "MEMLOCK", "__PSI_MEMLOCK",   0 },
-    { RLIMIT_AS,      "AS",	 "__PSI_ASSIZE",    0 },
-    { 0, NULL, NULL, 0 },
+    { RLIMIT_CPU,     "CPU",	 "__PSI_CPU",       false },
+    { RLIMIT_FSIZE,   "FSIZE",   "__PSI_FSIZE",     false },
+    { RLIMIT_DATA,    "DATA",	 "__PSI_DATASIZE",  false },
+    { RLIMIT_STACK,   "STACK",   "__PSI_STACKSIZE", false },
+    { RLIMIT_CORE,    "CORE",	 "__PSI_CORESIZE",  false },
+    { RLIMIT_RSS,     "RSS",	 "__PSI_RSS",       false },
+    { RLIMIT_NPROC,   "NPROC",   "__PSI_NPROC",     false },
+    { RLIMIT_NOFILE,  "NOFILE",  "__PSI_NOFILE",    false },
+    { RLIMIT_MEMLOCK, "MEMLOCK", "__PSI_MEMLOCK",   false },
+    { RLIMIT_AS,      "AS",	 "__PSI_ASSIZE",    false },
+    { 0,	      NULL,	 NULL,		    false },
 };
 
 void printLimits(void)
@@ -56,7 +57,7 @@ void printLimits(void)
     }
 }
 
-static void setPropagateFlags(int prop)
+static void setPropagateFlags(bool prop)
 {
     int i = 0;
 
@@ -66,7 +67,7 @@ static void setPropagateFlags(int prop)
     }
 }
 
-int initLimits(void)
+bool initLimits(void)
 {
     const char delimiters[] =", \t\n";
     char *next, *saveptr;
@@ -79,14 +80,14 @@ int initLimits(void)
 
 	while (next) {
 	    if (!(strcasecmp(next, "ALL"))) {
-		setPropagateFlags(1);
+		setPropagateFlags(true);
 	    } else if (!(strcasecmp(next, "NONE"))) {
-		setPropagateFlags(0);
+		setPropagateFlags(false);
 	    } else {
 		found = i = 0;
 		while (slurmConfLimits[i].name) {
 		    if (!(strcasecmp(next, slurmConfLimits[i].name))) {
-			slurmConfLimits[i].propagate = 1;
+			slurmConfLimits[i].propagate = true;
 			found = 1;
 			break;
 		    }
@@ -95,14 +96,14 @@ int initLimits(void)
 		if (!found) {
 		    mlog("%s: invalid entry '%s' for PropagateResourceLimits\n",
 			 __func__, next);
-		    return 0;
+		    return false;
 		}
 	    }
 	    next = strtok_r(NULL, delimiters, &saveptr);
 	}
     } else {
 	/* default is to propagate all limits */
-	setPropagateFlags(1);
+	setPropagateFlags(true);
     }
 
     if ((conf = getConfValueC(&SlurmConfig, "PropagateResourceLimitsExcept"))) {
@@ -111,14 +112,14 @@ int initLimits(void)
 
 	while (next) {
 	    if (!(strcasecmp(next, "ALL"))) {
-		setPropagateFlags(0);
+		setPropagateFlags(false);
 	    } else if (!(strcasecmp(next, "NONE"))) {
 		/* nothing to do here */
 	    } else {
 		found = i = 0;
 		while (slurmConfLimits[i].name) {
 		    if (!(strcasecmp(next, slurmConfLimits[i].name))) {
-			slurmConfLimits[i].propagate = 0;
+			slurmConfLimits[i].propagate = false;
 			found = 1;
 			break;
 		    }
@@ -127,14 +128,14 @@ int initLimits(void)
 		if (!found) {
 		    mlog("%s: invalid entry '%s' for PropagateResourceLimits"
 			    "Except\n", __func__, next);
-		    return 0;
+		    return false;
 		}
 	    }
 	    next = strtok_r(NULL, delimiters, &saveptr);
 	}
     }
 
-    return 1;
+    return true;
 }
 
 static int resString2Limit(char *limit)
@@ -230,22 +231,23 @@ void setDefaultRlimits(void)
     }
 }
 
-void setRlimitsFromEnv(env_t *env, int psi)
+void setRlimitsFromEnv(env_t *env, bool psi)
 {
     struct rlimit limit;
     unsigned long softLimit;
     char *val, climit[128], pslimit[128];
-    int i = 0, propagate = 0;
+    int i = 0;
+    bool propagate = false;
 
     while (slurmConfLimits[i].name) {
 
 	snprintf(climit, sizeof(climit), "SLURM_RLIMIT_%s",
 		    slurmConfLimits[i].name);
 	if ((val = envGet(env, climit))) {
-	    /* user wants us to propagate value */
+	    /* user request to propagate value */
 	    if (val[0] == 'U') {
 		val++;
-		propagate = 1;
+		propagate = true;
 	    } else {
 		propagate = slurmConfLimits[i].propagate;
 	    }
