@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2015-2018 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2015-2020 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -16,14 +16,22 @@
 #include "psslurmstep.h"
 
 /**
- * @doctodo
+ * @brief Initialize the spawn facility
  *
- * @return No return value
+ * @param jobstep The step of the facility to initialize
  */
 void initSpawnFacility(Step_t *jobstep);
 
 /**
- * @doctodo
+ *  @brief Fills the passed task structure to spawn processes using srun
+ *
+ *  @param req    spawn request
+ *
+ *  @param usize  universe size
+ *
+ *  @param task   task structure to adjust
+ *
+ *  @return Returns 1 on success, 0 on error, -1 on not responsible
  */
 int fillSpawnTaskWithSrun(SpawnRequest_t *req, int usize, PStask_t *task);
 

@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2015-2018 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2015-2020 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -33,8 +33,8 @@ static char buffer[1024];
 
 static Step_t *step = NULL;
 
-
-void initSpawnFacility(Step_t *jobstep) {
+void initSpawnFacility(Step_t *jobstep)
+{
     step = jobstep;
 }
 
@@ -67,23 +67,18 @@ static void addSpawnPreputToEnv(int preputc, KVP_t *preputv, env_t *env)
 }
 
 static int fillCmdForSingleSpawn(SpawnRequest_t *req, int usize,
-				 PStask_t *task) {
+				 PStask_t *task)
+{
+    int i, maxargc;
 
-    int i, argc, maxargc;
-
-    SingleSpawn_t *spawn;
-    KVP_t *info;
-
-    if (req->num != 1) {
-	return 0;
-    }
+    if (req->num != 1) return 0;
 
     /* calc max number of arguments to be passed to srun */
     maxargc = 6; /* "srun --cpu_bind=none --ntasks=<NP> --chdir=<WDIR>
 		    --hosts=<HOSTLIST> <BINARY> ... */
     maxargc += req->spawns[0].argc;
 
-    argc = 0;
+    int argc = 0;
     task->argv = umalloc(maxargc * sizeof(char *));
 
     task->argv[argc++] = ustrdup(SRUN_BINARY);
@@ -100,7 +95,7 @@ static int fillCmdForSingleSpawn(SpawnRequest_t *req, int usize,
         task->argv[argc++] = ustrdup("--cpu_bind=none");
     }
 
-    spawn = &(req->spawns[0]);
+    SingleSpawn_t *spawn = &(req->spawns[0]);
 
     /* set the number of processes to spawn */
     snprintf(buffer, sizeof(buffer), "--ntasks=%d", spawn->np);
@@ -133,7 +128,7 @@ static int fillCmdForSingleSpawn(SpawnRequest_t *req, int usize,
      *		+ 0:2 means 0,1,2
      */
     for (i = 0; i < spawn->infoc; i++) {
-	info = &(spawn->infov[i]);
+	KVP_t *info = &(spawn->infov[i]);
 
 	if (strcmp(info->key, "wdir") == 0) {
 	    snprintf(buffer, sizeof(buffer), "--chdir=%s", info->value);
@@ -159,17 +154,11 @@ static int fillCmdForSingleSpawn(SpawnRequest_t *req, int usize,
 }
 
 static int fillCmdForMultiSpawn(SpawnRequest_t *req, int usize,
-				PStask_t *task) {
-
-    int totalSpawns, i, j, argc, maxargc, ntasks, fd;
-
-    FILE *fs;
+				PStask_t *task)
+{
+    int i, j, argc, maxargc, ntasks, fd;
 
     char filebuf[64];
-
-    SingleSpawn_t *spawn;
-
-    totalSpawns = req->num;
 
     /* create multi-prog file */
     sprintf(filebuf, "/tmp/psslurm-spawn.%d.XXXXXX", getpid());
@@ -179,19 +168,20 @@ static int fillCmdForMultiSpawn(SpawnRequest_t *req, int usize,
 		__func__, filebuf, strerror(errno));
 	return 0;
     }
-    fs = fdopen(fd, "w");
+    FILE *fs = fdopen(fd, "w");
     if (!fs) {
 	mlog("%s: failed to open stream for temporary multi-prog file %s: %s\n",
 		__func__, filebuf, strerror(errno));
 	return 0;
     }
 
+    int totalSpawns = req->num;
     mlog("Writing %d spawn requests to multi-prog file '%s'\n", totalSpawns,
 	    filebuf);
 
     ntasks = 0;
     for (i = 0; i < totalSpawns; i++) {
-	spawn = &(req->spawns[i]);
+	SingleSpawn_t *spawn = &(req->spawns[i]);
 
 	/* TODO: handle info (slurm ignores too) */
 	if (spawn->infoc > 0) {
@@ -244,33 +234,19 @@ static int fillCmdForMultiSpawn(SpawnRequest_t *req, int usize,
 
     return 1;
 }
-/*
- *  fills the passed task structure to spawn processes using srun
- *
- *  @param req    spawn request
- *
- *  @param usize  universe size
- *
- *  @param task   task structure to adjust
- *
- *  @return 1 on success, 0 on error, -1 on not responsible
- */
-int fillSpawnTaskWithSrun(SpawnRequest_t *req, int usize, PStask_t *task) {
 
-    size_t i, totalSpawns;
-    char *display;
-
+int fillSpawnTaskWithSrun(SpawnRequest_t *req, int usize, PStask_t *task)
+{
+    size_t i;
     env_t newenv;
 
-    SingleSpawn_t *spawn;
-
-    if (step == NULL) {
+    if (!step) {
 	mlog("%s: There is no slurm step. Assuming this is not a slurm job.\n",
 		__func__);
 	return -1;
     }
 
-    totalSpawns = req->num;
+    size_t totalSpawns = req->num;
 
     /* *** build environment *** */
     envInit(&newenv);
@@ -283,7 +259,7 @@ int fillSpawnTaskWithSrun(SpawnRequest_t *req, int usize, PStask_t *task) {
     /* add step environment */
 
     /* we need the DISPLAY variable set by psslurm */
-    display = getenv("DISPLAY");
+    char *display = getenv("DISPLAY");
 
     for (i=0; i < step->env.cnt; i++) {
 	if (!(strncmp(step->env.vars[i], "SLURM_RLIMIT_", 13))) continue;
@@ -304,7 +280,7 @@ int fillSpawnTaskWithSrun(SpawnRequest_t *req, int usize, PStask_t *task) {
      * local KVS.
      *
      * Only the values of the first single spawn are used. */
-    spawn = &(req->spawns[0]);
+    SingleSpawn_t *spawn = &(req->spawns[0]);
     addSpawnPreputToEnv(spawn->preputc, spawn->preputv, &newenv);
 
     /* replace task environment */
