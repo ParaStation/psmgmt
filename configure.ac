@@ -186,6 +186,7 @@ AM_COND_IF([BUILD_WITHOUT_PSPMIX], [], [
 AC_CONFIG_FILES(plugins/psresport/Makefile)
 AC_CONFIG_FILES(plugins/psslurm/Makefile)
 AC_CONFIG_FILES(plugins/psslurm/doc/Makefile)
+AC_CONFIG_FILES(plugins/psslurm/src/bin/Makefile)
 AC_CONFIG_FILES(plugins/psslurm/src/common/Makefile)
 AC_CONFIG_FILES(plugins/psslurm/src/psslurm/Makefile)
 AC_CONFIG_FILES(plugins/psslurm/src/spank/Makefile)

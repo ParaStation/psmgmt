@@ -12605,8 +12605,8 @@ else
 
 
 pkg_failed=no
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for glib-2.0 >= 2.22.0" >&5
-$as_echo_n "checking for glib-2.0 >= 2.22.0... " >&6; }
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for glib2" >&5
+$as_echo_n "checking for glib2... " >&6; }
 
 if test -n "$glib2_CFLAGS"; then
     pkg_cv_glib2_CFLAGS="$glib2_CFLAGS"
@@ -12646,7 +12646,7 @@ fi
 
 
 if test $pkg_failed = yes; then
-        { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
+   	{ $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
 $as_echo "no" >&6; }
 
 if $PKG_CONFIG --atleast-pkgconfig-version 0.20; then
@@ -12673,7 +12673,7 @@ Alternatively, you may set the environment variables glib2_CFLAGS
 and glib2_LIBS to avoid the need to call pkg-config.
 See the pkg-config man page for more details." "$LINENO" 5
 elif test $pkg_failed = untried; then
-        { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
+     	{ $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
 $as_echo "no" >&6; }
 	{ { $as_echo "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
 $as_echo "$as_me: error: in \`$ac_pwd':" >&2;}
@@ -12737,7 +12737,7 @@ fi
 
 
 if test $pkg_failed = yes; then
-        { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
+   	{ $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
 $as_echo "no" >&6; }
 
 if $PKG_CONFIG --atleast-pkgconfig-version 0.20; then
@@ -12764,7 +12764,7 @@ Alternatively, you may set the environment variables psconfig_CFLAGS
 and psconfig_LIBS to avoid the need to call pkg-config.
 See the pkg-config man page for more details." "$LINENO" 5
 elif test $pkg_failed = untried; then
-        { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
+     	{ $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
 $as_echo "no" >&6; }
 	{ { $as_echo "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
 $as_echo "$as_me: error: in \`$ac_pwd':" >&2;}
@@ -12811,8 +12811,8 @@ else
 
 
 pkg_failed=no
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for pmix >= 3.1.3" >&5
-$as_echo_n "checking for pmix >= 3.1.3... " >&6; }
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for pmix" >&5
+$as_echo_n "checking for pmix... " >&6; }
 
 if test -n "$pmix_CFLAGS"; then
     pkg_cv_pmix_CFLAGS="$pmix_CFLAGS"
@@ -12852,7 +12852,7 @@ fi
 
 
 if test $pkg_failed = yes; then
-        { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
+   	{ $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
 $as_echo "no" >&6; }
 
 if $PKG_CONFIG --atleast-pkgconfig-version 0.20; then
@@ -12879,7 +12879,7 @@ Alternatively, you may set the environment variables pmix_CFLAGS
 and pmix_LIBS to avoid the need to call pkg-config.
 See the pkg-config man page for more details." "$LINENO" 5
 elif test $pkg_failed = untried; then
-        { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
+     	{ $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
 $as_echo "no" >&6; }
 	{ { $as_echo "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
 $as_echo "$as_me: error: in \`$ac_pwd':" >&2;}
@@ -13304,6 +13304,8 @@ ac_config_files="$ac_config_files plugins/psresport/Makefile"
 ac_config_files="$ac_config_files plugins/psslurm/Makefile"
 
 ac_config_files="$ac_config_files plugins/psslurm/doc/Makefile"
+
+ac_config_files="$ac_config_files plugins/psslurm/src/bin/Makefile"
 
 ac_config_files="$ac_config_files plugins/psslurm/src/common/Makefile"
 
@@ -14430,6 +14432,7 @@ do
     "plugins/psresport/Makefile") CONFIG_FILES="$CONFIG_FILES plugins/psresport/Makefile" ;;
     "plugins/psslurm/Makefile") CONFIG_FILES="$CONFIG_FILES plugins/psslurm/Makefile" ;;
     "plugins/psslurm/doc/Makefile") CONFIG_FILES="$CONFIG_FILES plugins/psslurm/doc/Makefile" ;;
+    "plugins/psslurm/src/bin/Makefile") CONFIG_FILES="$CONFIG_FILES plugins/psslurm/src/bin/Makefile" ;;
     "plugins/psslurm/src/common/Makefile") CONFIG_FILES="$CONFIG_FILES plugins/psslurm/src/common/Makefile" ;;
     "plugins/psslurm/src/psslurm/Makefile") CONFIG_FILES="$CONFIG_FILES plugins/psslurm/src/psslurm/Makefile" ;;
     "plugins/psslurm/src/spank/Makefile") CONFIG_FILES="$CONFIG_FILES plugins/psslurm/src/spank/Makefile" ;;

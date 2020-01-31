@@ -9,7 +9,7 @@
 #
 include $(top_srcdir)/common.am
 
-SUBDIRS = doc src/common src/psslurm
+SUBDIRS = doc src/common src/psslurm src/bin
 
 if SPANK_ENABLED
 SUBDIRS += src/spank
