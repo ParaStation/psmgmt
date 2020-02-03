@@ -324,7 +324,7 @@ again:
 	case PSP_CD_RELEASERES:
 	    /* release the client */
 	    res = 1;
-	    PSIDhook_call(PSIDHOOK_FRWRD_RESCLIENT, &res);
+	    PSIDhook_call(PSIDHOOK_FRWRD_EXIT, &res);
 	    break;
 	case PSP_DD_CHILDACK:
 	case PSP_DD_CHILDDEAD:
@@ -774,7 +774,7 @@ static int readFromDaemon(int fd, void *data)
 	    /* Logger is going to die */
 	    /* Release the client */
 	    res = 0;
-	    PSIDhook_call(PSIDHOOK_FRWRD_RESCLIENT, &res);
+	    PSIDhook_call(PSIDHOOK_FRWRD_EXIT, &res);
 	    /* Release the daemon */
 	    closeDaemonSock();
 	    /* Cleanup child */
@@ -1134,7 +1134,7 @@ static void finalizeForwarder(void)
 
     /* Release the client */
     res = 0;
-    PSIDhook_call(PSIDHOOK_FRWRD_RESCLIENT, &res);
+    PSIDhook_call(PSIDHOOK_FRWRD_EXIT, &res);
 
     /* Release the daemon */
     closeDaemonSock();

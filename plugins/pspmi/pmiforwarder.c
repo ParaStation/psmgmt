@@ -406,13 +406,13 @@ static int releasePMIClient(void *data)
 void initForwarder(void)
 {
     PSIDhook_add(PSIDHOOK_FRWRD_INIT, setupPMIsockets);
-    PSIDhook_add(PSIDHOOK_FRWRD_RESCLIENT, releasePMIClient);
+    PSIDhook_add(PSIDHOOK_FRWRD_EXIT, releasePMIClient);
     PSIDhook_add(PSIDHOOK_FRWRD_CLNT_RLS, getClientStatus);
 }
 
 void finalizeForwarder(void)
 {
     PSIDhook_del(PSIDHOOK_FRWRD_INIT, setupPMIsockets);
-    PSIDhook_del(PSIDHOOK_FRWRD_RESCLIENT, releasePMIClient);
+    PSIDhook_del(PSIDHOOK_FRWRD_EXIT, releasePMIClient);
     PSIDhook_del(PSIDHOOK_FRWRD_CLNT_RLS, getClientStatus);
 }

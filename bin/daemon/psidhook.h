@@ -109,11 +109,10 @@ typedef enum {
 				about pre/succ ranks */
     PSIDHOOK_FRWRD_KVS,       /**< Handle a KVS/Service messages, arg
 				points to msg */
-    PSIDHOOK_FRWRD_RESCLIENT, /**< Executed at forwarder's child release. Used
-				to release the PMI client. The arg is a pointer
-				to an int when set to 1 a PMI release msg will
-				be send, otherwise only the connection will
-				be closed. */
+    PSIDHOOK_FRWRD_EXIT,      /**< Tell attached (PMI-)plugin that the forwarder
+				is going to exit. The arg is a pointer to int.
+				If the int is set to 1, PMI is expected to
+				release its client. */
     PSIDHOOK_FRWRD_CLNT_RLS,  /**< Tell attached plugins that the client is
 				ready for release. The client is described by
 				the task structure passed in arg. If 0 is
