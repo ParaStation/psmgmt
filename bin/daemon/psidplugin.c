@@ -129,8 +129,10 @@ static LIST_HEAD(pluginList);
  * 121: new hook PSIDHOOK_PSSLURM_FINALLOC
  *
  * 122: new hook PSIDHOOK_PELOGUE_RES
+ *
+ * 123: new hook PSIDHOOK_FRWRD_CLNT_RES
  */
-static int pluginAPIVersion = 122;
+static int pluginAPIVersion = 123;
 
 
 /** Grace period between finalize and unload on forcefully unloads */

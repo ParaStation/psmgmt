@@ -171,6 +171,8 @@ typedef enum {
 				deleted by psslurm. The arg is a pointer to
 				Alloc_t holding the allocation to free. Used by
 				the psgw plugin. */
+    PSIDHOOK_FRWRD_CLNT_RES,  /**< Tell attached plugins about client's exit
+				status in the arg. */
     PSIDHOOK_LAST,            /**< This has to be the last one */
 } PSIDhook_t;
 

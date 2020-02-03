@@ -1302,6 +1302,9 @@ static int handleSIGCHLD(int fd, void *info)
 	Selector_remove(fd);
 	Selector_startOver();
 	close(fd);
+
+	/* Tell attached plugins about child's exit status */
+	PSIDhook_call(PSIDHOOK_FRWRD_CLNT_RES, &childStatus);
     }
 
     return 0;
