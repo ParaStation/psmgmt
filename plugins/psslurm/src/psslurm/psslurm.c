@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2014-2019 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2014-2020 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -134,8 +134,8 @@ static void unregisterHooks(bool verbose)
 	if (verbose) mlog("unregister 'PSIDHOOK_FRWRD_INIT' failed\n");
     }
 
-    if (!PSIDhook_del(PSIDHOOK_FRWRD_CLIENT_STAT, handleForwarderClientStatus)){
-	if (verbose) mlog("unregister 'PSIDHOOK_FRWRD_CLIENT_STAT' failed\n");
+    if (!PSIDhook_del(PSIDHOOK_FRWRD_CLNT_RLS, handleForwarderClientStatus)){
+	if (verbose) mlog("unregister 'PSIDHOOK_FRWRD_CLNT_RLS' failed\n");
     }
 
     if (!PSIDhook_del(PSIDHOOK_PELOGUE_START, handleLocalPElogueStart)) {
@@ -171,8 +171,8 @@ static bool registerHooks(void)
 	return false;
     }
 
-    if (!PSIDhook_add(PSIDHOOK_FRWRD_CLIENT_STAT, handleForwarderClientStatus)){
-	mlog("register 'PSIDHOOK_FRWRD_CLIENT_STAT' failed\n");
+    if (!PSIDhook_add(PSIDHOOK_FRWRD_CLNT_RLS, handleForwarderClientStatus)){
+	mlog("register 'PSIDHOOK_FRWRD_CLNT_RLS' failed\n");
 	return false;
     }
 

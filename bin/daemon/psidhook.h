@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2013-2019 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2013-2020 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -114,10 +114,11 @@ typedef enum {
 				to an int when set to 1 a PMI release msg will
 				be send, otherwise only the connection will
 				be closed. */
-    PSIDHOOK_FRWRD_CLIENT_STAT,/**< Ask all plugins if we are ready to release
-				the child. Since psslurm uses this to execute
-				task's epilogue at sister nodes, the client's
-				task structure is passed as arg. */
+    PSIDHOOK_FRWRD_CLNT_RLS,  /**< Tell attached plugins that the client is
+				ready for release. The client is described by
+				the task structure passed in arg. If 0 is
+				returned, a PSP_CD_RELEASE message might be
+				sent. */
     PSIDHOOK_FRWRD_SPAWNRES,  /**< A result msg to a spawn request. Arg is a
 				pointer to the msg. Used by pspmi to handle the
 				result of spawning new service processes. */

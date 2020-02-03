@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2009-2019 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2009-2020 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -103,7 +103,7 @@ static LIST_HEAD(pluginList);
  * 110: added PSIDHOOK_EXEC_FORWARDER, PSIDHOOK_EXEC_CLIENT,
  *	PSIDHOOK_FRWRD_INIT, PSIDHOOK_FRWRD_CINFO,
  *	PSIDHOOK_FRWRD_KVS, PSIDHOOK_FRWRD_RESCLIENT,
- *	PSIDHOOK_FRWRD_CLIENT_STAT
+ *	PSIDHOOK_FRWRD_CLNT_RLS
  *
  * 111: added PSID_cancelCB()
  *

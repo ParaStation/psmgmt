@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2013-2016 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2013-2020 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -407,12 +407,12 @@ void initForwarder(void)
 {
     PSIDhook_add(PSIDHOOK_FRWRD_INIT, setupPMIsockets);
     PSIDhook_add(PSIDHOOK_FRWRD_RESCLIENT, releasePMIClient);
-    PSIDhook_add(PSIDHOOK_FRWRD_CLIENT_STAT, getClientStatus);
+    PSIDhook_add(PSIDHOOK_FRWRD_CLNT_RLS, getClientStatus);
 }
 
 void finalizeForwarder(void)
 {
     PSIDhook_del(PSIDHOOK_FRWRD_INIT, setupPMIsockets);
     PSIDhook_del(PSIDHOOK_FRWRD_RESCLIENT, releasePMIClient);
-    PSIDhook_del(PSIDHOOK_FRWRD_CLIENT_STAT, getClientStatus);
+    PSIDhook_del(PSIDHOOK_FRWRD_CLNT_RLS, getClientStatus);
 }

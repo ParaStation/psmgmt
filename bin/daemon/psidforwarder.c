@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2019 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2020 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -1086,7 +1086,7 @@ static void finalizeForwarder(void)
 
     sendMsg(USAGE, (char *) &childRUsage, sizeof(childRUsage));
 
-    clientStat = PSIDhook_call(PSIDHOOK_FRWRD_CLIENT_STAT, childTask);
+    clientStat = PSIDhook_call(PSIDHOOK_FRWRD_CLNT_RLS, childTask);
 
     /* Release, if no error occurred and not already done */
     if ((!clientStat || clientStat == PSIDHOOK_NOFUNC)
