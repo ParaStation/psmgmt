@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2015-2019 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2015-2020 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -67,7 +67,7 @@ static uint32_t ringBufLast = 0;
 
 static uint32_t ringBufStart = 0;
 
-const char *strIOtype(int type)
+const char *IO_strType(int type)
 {
     static char buf[128];
 
@@ -88,7 +88,7 @@ const char *strIOtype(int type)
     }
 }
 
-const char *strIOopt(int opt)
+const char *IO_strOpt(int opt)
 {
     static char buf[128];
 
@@ -111,7 +111,7 @@ const char *strIOopt(int opt)
     }
 }
 
-void initStepIO(Step_t *step)
+void IO_init()
 {
     uint16_t i;
 
@@ -133,7 +133,7 @@ static void forward2Sattach(char *msg, uint32_t msgLen, uint32_t taskid,
 			    uint8_t type)
 {
     int i, ret, error;
-    Slurm_IO_Header_t ioh;
+    IO_Slurm_Header_t ioh;
 
     ioh.type = (type == STDOUT) ?  SLURM_IO_STDOUT : SLURM_IO_STDERR;
     ioh.gtid = taskid;
@@ -187,22 +187,22 @@ static void msg2Buffer(char *msg, uint32_t msgLen, uint32_t taskid,
     }
 }
 
-void writeIOmsg(char *msg, uint32_t msgLen, uint32_t taskid,
-		uint8_t type, Forwarder_Data_t *fwdata, Step_t *step,
-		uint32_t lrank)
+static void IO_writeMsg(Forwarder_Data_t *fwdata, char *msg, uint32_t msgLen,
+		        uint32_t taskid, uint8_t type, uint32_t lrank)
 {
+    Step_t *step = fwdata->userData;
     void *msgPtr = msgLen ? msg : NULL;
 
     fdbg(PSSLURM_LOG_IO, "msgLen %u taskid %u type %s(%u) local rank %u "
-	 "sattach %i\n", msgLen, taskid, PSLog_printMsgType(type), type,
-	 lrank, sattachCon);
+	    "sattach %i\n", msgLen, taskid, PSLog_printMsgType(type), type,
+	    lrank, sattachCon);
     /*
-    char format[64];
-    if (msgLen>0) {
-	snprintf(format, sizeof(format), "%s: msg: '%%.%is'\n", __func__,
-		    msgLen);
-	mdbg(PSSLURM_LOG_IO, format, msg);
-    }
+       char format[64];
+       if (msgLen>0) {
+       snprintf(format, sizeof(format), "%s: msg: '%%.%is'\n", __func__,
+       msgLen);
+       mdbg(PSSLURM_LOG_IO, format, msg);
+       }
     */
 
     /* forward the message to all sattach processes */
@@ -215,7 +215,7 @@ void writeIOmsg(char *msg, uint32_t msgLen, uint32_t taskid,
 	    doWriteP(step->outFDs[lrank], msgPtr, msgLen);
 	} else {
 	    srunSendIO(SLURM_IO_STDOUT, taskid, step,
-			msgPtr, msgLen);
+		    msgPtr, msgLen);
 	}
     } else if (type == STDERR) {
 	if (step->stdErrOpt == IO_NODE_FILE) {
@@ -224,10 +224,10 @@ void writeIOmsg(char *msg, uint32_t msgLen, uint32_t taskid,
 	    doWriteP(step->errFDs[lrank], msgPtr, msgLen);
 	} else if (step->taskFlags & LAUNCH_PTY) {
 	    srunSendIO(SLURM_IO_STDOUT, taskid, step,
-			msgPtr, msgLen);
+		    msgPtr, msgLen);
 	} else {
 	    srunSendIO(SLURM_IO_STDERR, taskid, step,
-			msgPtr, msgLen);
+		    msgPtr, msgLen);
 	}
     }
 
@@ -243,11 +243,12 @@ static int getWidth(int32_t num)
     return width;
 }
 
-static void writeLabelIOmsg(char *msg, uint32_t msgLen, uint32_t taskid,
-			    uint8_t type, Forwarder_Data_t *fwdata,
-			    Step_t *step, uint32_t lrank)
+static void writeLabelIOmsg(Forwarder_Data_t *fwdata, char *msg,
+			    uint32_t msgLen, uint32_t taskid, uint8_t type,
+			    uint32_t lrank)
 
 {
+    Step_t *step = fwdata->userData;
     char label[128], format[64];
     char *ptr, *nl;
     uint32_t left, len;
@@ -257,7 +258,7 @@ static void writeLabelIOmsg(char *msg, uint32_t msgLen, uint32_t taskid,
 	(step->stdOutOpt == IO_SRUN || step->stdOutOpt == IO_SRUN_RANK)) ||
 	(type == STDERR &&
 	(step->stdOutOpt == IO_SRUN || step->stdOutOpt == IO_SRUN_RANK))) {
-	writeIOmsg(msg, msgLen, taskid, type, fwdata, step, lrank);
+	IO_writeMsg(fwdata, msg, msgLen, taskid, type, lrank);
 	return;
     }
 
@@ -270,16 +271,16 @@ static void writeLabelIOmsg(char *msg, uint32_t msgLen, uint32_t taskid,
 
     while (ptr && left > 0 && (nl = memchr(ptr, '\n', left))) {
 	len = (nl +1) - ptr;
-	writeIOmsg(label, strlen(label), taskid, type, fwdata, step, lrank);
-	writeIOmsg(ptr, len, taskid, type, fwdata, step, lrank);
+	IO_writeMsg(fwdata, label, strlen(label), taskid, type, lrank);
+	IO_writeMsg(fwdata, ptr, len, taskid, type, lrank);
 	left -= len;
 	ptr = nl+1;
     }
 }
 
-static void handleBufferedMsg(char *msg, uint32_t len, PS_DataBuffer_t *buffer,
-			      Forwarder_Data_t *fwdata, Step_t *step,
-			      uint32_t taskid, uint8_t type, uint32_t lrank)
+static void handleBufferedMsg(Forwarder_Data_t *fwdata, char *msg, uint32_t len,
+			      PS_DataBuffer_t *buffer, uint32_t taskid,
+			      uint8_t type, uint32_t lrank)
 {
     uint32_t nlLen;
     char *nl;
@@ -288,12 +289,12 @@ static void handleBufferedMsg(char *msg, uint32_t len, PS_DataBuffer_t *buffer,
 
     if (nl || !len || buffer->bufUsed + len > MAX_LINE_BUF_LENGTH) {
 	if (buffer->bufUsed) {
-	    writeLabelIOmsg(buffer->buf, buffer->bufUsed, taskid, type,
-			fwdata, step, lrank);
+	    writeLabelIOmsg(fwdata, buffer->buf, buffer->bufUsed, taskid,
+			    type, lrank);
 	    buffer->bufUsed = 0;
 	}
 	nlLen = nl ? nl - msg +1: len;
-	writeLabelIOmsg(msg, nlLen, taskid, type, fwdata, step, lrank);
+	writeLabelIOmsg(fwdata, msg, nlLen, taskid, type, lrank);
 	if (len - nlLen > 0) {
 	    memToDataBuffer(msg + nlLen, len - nlLen, buffer);
 	}
@@ -302,23 +303,22 @@ static void handleBufferedMsg(char *msg, uint32_t len, PS_DataBuffer_t *buffer,
     }
 }
 
-static void handlePrintChildMsg(Forwarder_Data_t *fwdata, char *ptr)
+void IO_closeChannel(Forwarder_Data_t *fwdata, uint32_t taskid, uint8_t type)
+{
+    IO_printChildMsg(fwdata, NULL, 0, taskid, type);
+}
+
+void IO_printChildMsg(Forwarder_Data_t *fwdata, char *msg, size_t msgLen,
+		      uint32_t rank, uint8_t type)
 {
     Step_t *step = fwdata->userData;
-    uint8_t type;
-    uint32_t rank, lrank, i;
-    size_t len;
+    uint32_t i;
     static IO_Msg_Buf_t *lineBuf;
     int32_t myNodeID = step->localNodeId;
     static int initBuf = 0;
 
-    /* read message */
-    getUint8(&ptr, &type);
-    getUint32(&ptr, &rank);
-    char *msg = getDataM(&ptr, &len);
-
     /* get local rank from rank */
-    lrank = getLocalRankID(rank, step, myNodeID);
+    uint32_t lrank = getLocalRankID(rank, step, myNodeID);
     if (lrank == (uint32_t )-1) {
 	mlog("%s: invalid node rank for rank %i myNodeID %i step %u:%u\n",
 		__func__, rank, myNodeID, step->jobid, step->stepid);
@@ -327,7 +327,7 @@ static void handlePrintChildMsg(Forwarder_Data_t *fwdata, char *ptr)
     }
 
     /* track I/O channels */
-    if (!len) {
+    if (!msgLen) {
 	if (type == STDOUT && step->outChannels) {
 	    if (step->outChannels[lrank] == 0) {
 		ufree(msg);
@@ -348,7 +348,7 @@ static void handlePrintChildMsg(Forwarder_Data_t *fwdata, char *ptr)
     if (type == STDERR || (!(step->taskFlags & LAUNCH_LABEL_IO)
 	&& !(step->taskFlags & LAUNCH_BUFFERED_IO))
 	|| step->taskFlags & LAUNCH_PTY) {
-	writeIOmsg(msg, len, rank, type, fwdata, step, lrank);
+	IO_writeMsg(fwdata, msg, msgLen, rank, type, lrank);
 	ufree(msg);
 	return;
     }
@@ -364,61 +364,14 @@ static void handlePrintChildMsg(Forwarder_Data_t *fwdata, char *ptr)
 	initBuf = 1;
     }
 
-   handleBufferedMsg(msg, len,
+   handleBufferedMsg(fwdata, msg, msgLen,
 		    type == STDOUT ?  &lineBuf[lrank].out : &lineBuf[lrank].err,
-		    fwdata, step, rank, type, lrank);
+		    rank, type, lrank);
 
     ufree(msg);
 }
 
-static void closeIOchannel(Forwarder_Data_t *fwdata, uint32_t taskid,
-			   uint8_t type)
-{
-    PS_SendDB_t msg = { .bufUsed = 0, .useFrag = false };
-
-    addUint8ToMsg(type, &msg);
-    addUint32ToMsg(taskid, &msg);
-    addDataToMsg(NULL, 0, &msg);
-    handlePrintChildMsg(fwdata, msg.buf);
-}
-
-static void handleEnableSrunIO(Forwarder_Data_t *fwdata)
-{
-    Step_t *step = fwdata->userData;
-
-    srunEnableIO(step);
-}
-
-static void handleFWfinalize(Forwarder_Data_t *fwdata, char *ptr)
-{
-    Step_t *step = fwdata->userData;
-    size_t len;
-    PSLog_Msg_t *msg = getDataM(&ptr, &len);
-    PStask_ID_t sender = msg->header.sender;
-    PS_Tasks_t *task = findTaskByFwd(&step->tasks, sender);
-    uint32_t taskid = msg->sender - step->packTaskOffset;
-
-
-    mdbg(PSSLURM_LOG_IO, "%s from %s\n", __func__, PSC_printTID(sender));
-
-    if (!(step->taskFlags & LAUNCH_PTY)) {
-	/* close stdout/stderr */
-	closeIOchannel(fwdata, taskid, STDOUT);
-	closeIOchannel(fwdata, taskid, STDERR);
-    }
-
-    if (!task) {
-	mlog("%s: no task for forwarder %s\n", __func__, PSC_printTID(sender));
-    } else {
-	task->exitCode = *(int *) msg->buf;
-    }
-
-    /* let main psslurm forward FINALIZE to logger */
-    sendMsgToMother(msg);
-    ufree(msg);
-}
-
-void stepFinalizeIO(Forwarder_Data_t *fwdata)
+void IO_finalize(Forwarder_Data_t *fwdata)
 {
     Step_t *step = fwdata->userData;
     uint32_t i, myNodeID = step->localNodeId;
@@ -426,10 +379,10 @@ void stepFinalizeIO(Forwarder_Data_t *fwdata)
     /* make sure to close all leftover I/O channels */
     for (i=0; i<step->globalTaskIdsLen[myNodeID]; i++) {
 	if (step->outChannels && step->outChannels[i] != 0) {
-	    closeIOchannel(fwdata, step->globalTaskIds[myNodeID][i], STDOUT);
+	    IO_closeChannel(fwdata, step->globalTaskIds[myNodeID][i], STDOUT);
 	}
 	if (step->errChannels && step->errChannels[i] != 0) {
-	    closeIOchannel(fwdata, step->globalTaskIds[myNodeID][i], STDERR);
+	    IO_closeChannel(fwdata, step->globalTaskIds[myNodeID][i], STDERR);
 	}
     }
 
@@ -446,19 +399,10 @@ void stepFinalizeIO(Forwarder_Data_t *fwdata)
     }
 }
 
-static void handleReattachTasks(Forwarder_Data_t *fwdata, char *ptr)
+void IO_sattachTasks(Step_t *step, uint32_t ioAddr, uint16_t ioPort,
+		     uint16_t ctlPort, char *sig)
 {
-    Step_t *step = fwdata->userData;
-    uint16_t ioPort, ctlPort;
-    uint32_t ioAddr, index = ringBufStart;
-    char *sig;
-    int sock, i, ret, sockIndex = 0, error;
-    RingMsgBuffer_t *rBuf;
-
-    getUint32(&ptr, &ioAddr);
-    getUint16(&ptr, &ioPort);
-    getUint16(&ptr, &ctlPort);
-    sig = getStringM(&ptr);
+    int sock, i, sockIndex = 0;
 
     if ((sock = srunOpenIOConnectionEx(step, ioAddr, ioPort, sig)) == -1) {
 	mlog("%s: I/O connection to srun '%u:%u' failed\n", __func__,
@@ -487,12 +431,13 @@ static void handleReattachTasks(Forwarder_Data_t *fwdata, char *ptr)
     }
 
     /* send previous buffered output */
+    uint32_t index = ringBufStart;
     for (i=0; i<RING_BUFFER_LEN; i++) {
-	Slurm_IO_Header_t ioh;
-
-	rBuf = &ringBuf[index];
+        int ret, error;
+        RingMsgBuffer_t *rBuf = &ringBuf[index];
 	if (!rBuf->msg) break;
 
+	IO_Slurm_Header_t ioh;
 	ioh.type = rBuf->type;
 	ioh.gtid = rBuf->taskid;
 	ioh.len = rBuf->msgLen;
@@ -515,128 +460,6 @@ static void handleReattachTasks(Forwarder_Data_t *fwdata, char *ptr)
 	mlog("%s: Selector_register(%i) srun I/O socket failed\n",
 		__func__, sock);
     }
-}
-
-static void handleInfoTasks(Forwarder_Data_t *fwdata, char *ptr)
-{
-    Step_t *step = fwdata->userData;
-    PS_Tasks_t *task;
-    size_t len;
-
-    task = getDataM(&ptr, &len);
-    list_add_tail(&task->next, &step->tasks);
-
-    fdbg(PSSLURM_LOG_PROCESS, "step %u:%u child %s rank %i task %u from %u\n",
-	 step->jobid, step->stepid, PSC_printTID(task->childTID),
-	 task->childRank, countRegTasks(step->tasks.next),
-	 step->globalTaskIdsLen[step->localNodeId]);
-
-    if (step->globalTaskIdsLen[step->localNodeId] ==
-	countRegTasks(&step->tasks)) {
-	sendTaskPids(step);
-    }
-}
-
-static void handleStepTimeout(Forwarder_Data_t *fwdata)
-{
-    Step_t *step = fwdata->userData;
-
-    step->timeout = true;
-}
-
-int stepForwarderMsg(PSLog_Msg_t *msg, Forwarder_Data_t *fwData)
-{
-    PSSLURM_Fw_Cmds_t type = (PSSLURM_Fw_Cmds_t)msg->type;
-
-    /* ignore fw control messages */
-    switch (msg->type) {
-       case PLGN_SIGNAL_CHLD:
-       case PLGN_START_GRACE:
-       case PLGN_SHUTDOWN:
-       case PLGN_FIN_ACK:
-	  return 0;
-      default:
-	  break;
-    }
-
-    switch (type) {
-    case CMD_PRINT_CHILD_MSG:
-	handlePrintChildMsg(fwData, msg->buf);
-	break;
-    case CMD_ENABLE_SRUN_IO:
-	handleEnableSrunIO(fwData);
-	break;
-    case CMD_FW_FINALIZE:
-	handleFWfinalize(fwData, msg->buf);
-	break;
-    case CMD_REATTACH_TASKS:
-	handleReattachTasks(fwData, msg->buf);
-	break;
-    case CMD_INFO_TASKS:
-	handleInfoTasks(fwData, msg->buf);
-	break;
-    case CMD_STEP_TIMEOUT:
-	handleStepTimeout(fwData);
-	break;
-    default:
-	flog("unexpected msg, type %d (PSlog type %s) from TID %s (%s) jobid "
-	     "%s\n", type, PSLog_printMsgType(type), PSC_printTID(msg->sender),
-	     fwData->pTitle, fwData->jobID);
-	return 0;
-    }
-
-    return 1;
-}
-
-void sendBrokeIOcon(Step_t *step)
-{
-    PSLog_Msg_t msg = (PSLog_Msg_t) {
-	.header = (DDMsg_t) {
-	    .type = PSP_CC_MSG,
-	    .dest = PSC_getTID(-1,0),
-	    .sender = PSC_getMyTID(),
-	    .len = offsetof(PSLog_Msg_t, buf) },
-	.version = PLUGINFW_PROTO_VERSION,
-	.type = (PSLog_msg_t)CMD_BROKE_IO_CON,
-	.sender = -1};
-    DDBufferMsg_t *bMsg = (DDBufferMsg_t *)&msg;
-    uint32_t myJobID = step->jobid, myStepID = step->stepid;
-
-    PSP_putMsgBuf(bMsg, __func__, "jobID", &myJobID, sizeof(myJobID));
-    PSP_putMsgBuf(bMsg, __func__, "stepID", &myStepID, sizeof(myStepID));
-
-    sendMsgToMother(&msg);
-}
-
-static void handleBrokeIOcon(PSLog_Msg_t *msg)
-{
-    DDBufferMsg_t *bMsg = (DDBufferMsg_t *)&msg;
-    size_t used = offsetof(PSLog_Msg_t, buf) - offsetof(DDBufferMsg_t, buf);
-    uint32_t jobID, stepID;
-
-    PSP_getMsgBuf(bMsg, &used, __func__, "jobID", &jobID, sizeof(jobID));
-    PSP_getMsgBuf(bMsg, &used, __func__, "stepID", &stepID, sizeof(stepID));
-
-    /* step might already be deleted */
-    Step_t *step = findStepByStepId(jobID, stepID);
-    if (!step) return;
-
-    if (step->ioCon == IO_CON_NORM) step->ioCon = IO_CON_ERROR;
-}
-
-int hookFWmsg(PSLog_Msg_t *msg, Forwarder_Data_t *fwData)
-{
-    PSSLURM_Fw_Cmds_t type = (PSSLURM_Fw_Cmds_t)msg->type;
-    switch (type) {
-    case CMD_BROKE_IO_CON:
-	handleBrokeIOcon(msg);
-	break;
-    default:
-	mdbg(PSSLURM_LOG_IO_VERB, "%s: Unhandled type %d\n", __func__, type);
-	return 0;
-    }
-
-    return 1;
 }
 
 static int getAppendFlags(uint8_t appendMode)
@@ -832,7 +655,6 @@ static char *replaceJobSymbols(Job_t *job, char *path)
 			  0, path);
 }
 
-
 static char *addCwd(char *cwd, char *path)
 {
     char *buf = NULL;
@@ -850,7 +672,7 @@ static char *addCwd(char *cwd, char *path)
     return buf;
 }
 
-void redirectJobOutput(Job_t *job)
+void IO_redirectJob(Job_t *job)
 {
     char *outFile, *errFile, *inFile, *defOutName;
     int fd;
@@ -921,15 +743,14 @@ void redirectJobOutput(Job_t *job)
     ufree(inFile);
 }
 
-int redirectIORank(Step_t *step, int rank)
+int IO_redirectRank(Step_t *step, int rank)
 {
-    char *ptr, *inFile;
     int fd;
 
     /* redirect stdin */
     if (step->stdInOpt == IO_RANK_FILE) {
-	ptr = replaceStepSymbols(step, rank, step->stdIn);
-	inFile = addCwd(step->cwd, ptr);
+	char *ptr = replaceStepSymbols(step, rank, step->stdIn);
+	char *inFile = addCwd(step->cwd, ptr);
 
 	if ((fd = open(inFile, O_RDONLY)) == -1) {
 	    mwarn(errno, "%s: open stdin '%s' failed: ", __func__, inFile);
@@ -951,7 +772,7 @@ int redirectIORank(Step_t *step, int rank)
     return 1;
 }
 
-void openStepIOpipes(Forwarder_Data_t *fwdata, Step_t *step)
+void IO_openPipes(Forwarder_Data_t *fwdata, Step_t *step)
 {
     /* stdout */
     if (step->stdOutOpt != IO_NODE_FILE && step->stdOutOpt != IO_GLOBAL_FILE) {
@@ -984,7 +805,7 @@ void openStepIOpipes(Forwarder_Data_t *fwdata, Step_t *step)
     }
 }
 
-void redirectStepIO(Forwarder_Data_t *fwdata, Step_t *step)
+void IO_redirectStep(Forwarder_Data_t *fwdata, Step_t *step)
 {
     char *outFile = NULL, *errFile = NULL, *inFile;
     int32_t myNodeID = step->localNodeId;
@@ -1070,173 +891,6 @@ void redirectStepIO(Forwarder_Data_t *fwdata, Step_t *step)
     }
 }
 
-void sendEnableSrunIO(Step_t *step)
-{
-    PSLog_Msg_t msg = (PSLog_Msg_t) {
-	.header = (DDMsg_t) {
-	    .type = PSP_CC_MSG,
-	    .dest = step->fwdata ? step->fwdata->tid : -1,
-	    .sender = PSC_getMyTID(),
-	    .len = offsetof(PSLog_Msg_t, buf) },
-	.version = PLUGINFW_PROTO_VERSION,
-	.type = (PSLog_msg_t)CMD_ENABLE_SRUN_IO,
-	.sender = -1};
-
-    /* might happen that forwarder is already gone */
-    if (!step->fwdata) return;
-    mdbg(PSSLURM_LOG_IO, "%s: to %s\n", __func__,
-	 PSC_printTID(step->fwdata->tid));
-    sendMsg(&msg);
-}
-
-void printChildMessage(Step_t *step, char *plMsg, uint32_t msgLen,
-		       uint8_t type, int32_t rank)
-{
-    PSLog_Msg_t msg = (PSLog_Msg_t) {
-	.header = (DDMsg_t) {
-	    .type = PSP_CC_MSG,
-	    .dest = step->fwdata ? step->fwdata->tid : -1,
-	    .sender = PSC_getMyTID(),
-	    .len = offsetof(PSLog_Msg_t, buf) },
-	.version = PLUGINFW_PROTO_VERSION,
-	.type = (PSLog_msg_t)CMD_PRINT_CHILD_MSG,
-	.sender = -1};
-    const size_t chunkSize = sizeof(msg.buf) - sizeof(uint8_t)
-	- sizeof(uint32_t) - sizeof(uint32_t);
-    size_t left = msgLen;
-
-    /* might happen that forwarder is already gone */
-    if (!step->fwdata) return;
-
-    /* connection to srun broke */
-    if (step->ioCon == IO_CON_BROKE) return;
-
-    if (step->ioCon == IO_CON_ERROR) {
-	mlog("%s: I/O connection for step '%u:%u' is broken\n", __func__,
-	     step->jobid, step->stepid);
-	step->ioCon = IO_CON_BROKE;
-    }
-
-    /* if msg from service rank, let it seem like it comes from first task */
-    if (rank < 0) rank = step->globalTaskIds[step->localNodeId][0];
-
-    do {
-	uint32_t chunk = left > chunkSize ? chunkSize : left;
-	uint32_t nRank = htonl(rank);
-	uint32_t len = htonl(chunk);
-	DDBufferMsg_t *bMsg = (DDBufferMsg_t *)&msg;
-	bMsg->header.len = offsetof(PSLog_Msg_t, buf);
-
-	PSP_putMsgBuf(bMsg, __func__, "type", &type, sizeof(type));
-	PSP_putMsgBuf(bMsg, __func__, "rank", &nRank, sizeof(nRank));
-	/* Add data chunk including its length mimicking addData */
-	PSP_putMsgBuf(bMsg, __func__, "len", &len, sizeof(len));
-	PSP_putMsgBuf(bMsg, __func__, "data", plMsg + msgLen - left, chunk);
-
-	sendMsg(&msg);
-	left -= chunk;
-    } while (left);
-}
-
-void reattachTasks(Forwarder_Data_t *fwdata, uint32_t addr,
-		   uint16_t ioPort, uint16_t ctlPort, char *sig)
-{
-    PSLog_Msg_t msg = (PSLog_Msg_t) {
-	.header = (DDMsg_t) {
-	    .type = PSP_CC_MSG,
-	    .dest = fwdata ? fwdata->tid : -1,
-	    .sender = PSC_getMyTID(),
-	    .len = offsetof(PSLog_Msg_t, buf) },
-	.version = PLUGINFW_PROTO_VERSION,
-	.type = (PSLog_msg_t)CMD_REATTACH_TASKS,
-	.sender = -1};
-    DDBufferMsg_t *bMsg = (DDBufferMsg_t *)&msg;
-    uint32_t nAddr = htonl(addr);
-    uint16_t nioPort = htons(ioPort), nctlPort = htons(ctlPort);
-    uint32_t len = htonl(PSP_strLen(sig));
-
-    /* might happen that forwarder is already gone */
-    if (!fwdata) return;
-
-    PSP_putMsgBuf(bMsg, __func__, "addr", &nAddr, sizeof(nAddr));
-    PSP_putMsgBuf(bMsg, __func__, "ioPort", &nioPort, sizeof(nioPort));
-    PSP_putMsgBuf(bMsg, __func__, "ctlPort", &nctlPort, sizeof(nctlPort));
-    /* Add string including its length mimicking addString */
-    PSP_putMsgBuf(bMsg, __func__, "len", &len, sizeof(len));
-    PSP_putMsgBuf(bMsg, __func__, "sigStr", sig, PSP_strLen(sig));
-
-    sendMsg(&msg);
-}
-
-void sendFWfinMessage(Forwarder_Data_t *fwdata, PSLog_Msg_t *plMsg)
-{
-    PSLog_Msg_t msg = (PSLog_Msg_t) {
-	.header = (DDMsg_t) {
-	    .type = PSP_CC_MSG,
-	    .dest = fwdata ? fwdata->tid : -1,
-	    .sender = PSC_getMyTID(),
-	    .len = offsetof(PSLog_Msg_t, buf) },
-	.version = PLUGINFW_PROTO_VERSION,
-	.type = (PSLog_msg_t)CMD_FW_FINALIZE,
-	.sender = -1};
-    DDBufferMsg_t *bMsg = (DDBufferMsg_t *)&msg;
-    uint32_t len = htonl(plMsg->header.len);
-
-    /* might happen that forwarder is already gone */
-    if (!fwdata) return;
-
-    /* This shall be okay since FINALIZE messages are << PSLog_Msg_t */
-    /* Add data including its length mimicking addData */
-    PSP_putMsgBuf(bMsg, __func__, "len", &len, sizeof(len));
-    PSP_putMsgBuf(bMsg, __func__, "plMsg", plMsg, plMsg->header.len);
-
-    if (msg.header.dest == -1) mlog("%s unkown destination for %s\n", __func__,
-				    PSC_printTID(plMsg->header.sender));
-    sendMsg(&msg);
-}
-
-void sendFWtaskInfo(Forwarder_Data_t *fwdata, PS_Tasks_t *task)
-{
-    PSLog_Msg_t msg = (PSLog_Msg_t) {
-	.header = (DDMsg_t) {
-	    .type = PSP_CC_MSG,
-	    .dest = fwdata ? fwdata->tid : -1,
-	    .sender = PSC_getMyTID(),
-	    .len = offsetof(PSLog_Msg_t, buf) },
-	.version = PLUGINFW_PROTO_VERSION,
-	.type = (PSLog_msg_t)CMD_INFO_TASKS,
-	.sender = -1};
-    DDBufferMsg_t *bMsg = (DDBufferMsg_t *)&msg;
-    uint32_t len = htonl(sizeof(*task));
-
-    /* might happen that forwarder is already gone */
-    if (!fwdata) return;
-
-    /* Add data including its length mimicking addData */
-    PSP_putMsgBuf(bMsg, __func__, "len", &len, sizeof(len));
-    PSP_putMsgBuf(bMsg, __func__, "task", task, sizeof(*task));
-
-    sendMsg(&msg);
-}
-
-void sendStepTimeout(Forwarder_Data_t *fwdata)
-{
-    PSLog_Msg_t msg = (PSLog_Msg_t) {
-	.header = (DDMsg_t) {
-	    .type = PSP_CC_MSG,
-	    .dest = fwdata ? fwdata->tid : -1,
-	    .sender = PSC_getMyTID(),
-	    .len = offsetof(PSLog_Msg_t, buf) },
-	.version = PLUGINFW_PROTO_VERSION,
-	.type = (PSLog_msg_t)CMD_STEP_TIMEOUT,
-	.sender = -1};
-
-    /* might happen that forwarder is already gone */
-    if (!fwdata) return;
-
-    sendMsg(&msg);
-}
-
 int handleUserOE(int sock, void *data)
 {
     static char buf[1024];
@@ -1272,26 +926,6 @@ int handleUserOE(int sock, void *data)
 	    mwarn(errno, "%s: sending IO failed: size:%i ret:%i error:%i ",
 		    __func__, (size +10), ret, errno);
 	}
-    }
-
-    return 0;
-}
-
-int setFilePermissions(Job_t *job)
-{
-    if (!job->jobscript) return 1;
-
-    if ((chown(job->jobscript, job->uid, job->gid)) == -1) {
-	mlog("%s: chown(%i:%i) '%s' failed : %s\n", __func__,
-		job->uid, job->gid, job->jobscript,
-		strerror(errno));
-	return 1;
-    }
-
-    if ((chmod(job->jobscript, 0700)) == -1) {
-	mlog("%s: chmod 0700 on '%s' failed : %s\n", __func__,
-		job->jobscript, strerror(errno));
-	return 1;
     }
 
     return 0;

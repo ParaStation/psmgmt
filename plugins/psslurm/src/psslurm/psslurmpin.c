@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2014-2018 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2014-2020 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -32,6 +32,7 @@
 #include "psslurmconfig.h"
 #include "psslurmproto.h"
 #include "psslurmio.h"
+#include "psslurmfwcomm.h"
 
 #include "psslurmpin.h"
 
@@ -1137,7 +1138,7 @@ void verboseCpuPinningOutput(Step_t *step, PS_Tasks_t *task) {
 						 step->localNodeId),
 		 pid, printCpuMask(pid), action);
 
-	printChildMessage(step, vStr, strlen(vStr), STDERR, task->childRank);
+	fwCMD_printMessage(step, vStr, strlen(vStr), STDERR, task->childRank);
     }
 }
 

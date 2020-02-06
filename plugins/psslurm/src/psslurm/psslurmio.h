@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2015-2019 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2015-2020 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -26,7 +26,7 @@ typedef struct {
     uint16_t gtid;	/**< global task ID */
     uint16_t ltid;	/**< local task ID */
     uint32_t len;	/**< data length */
-} Slurm_IO_Header_t;
+} IO_Slurm_Header_t;
 
 /** Slurm I/O options */
 typedef enum {
@@ -46,24 +46,30 @@ typedef enum {
 } IO_Con_State_t;
 
 /**
+ * @brief Initialize the I/O facility
+ */
+void IO_init();
+
+/**
+ * @brief Finalize the I/O facility
+ */
+void IO_finalize(Forwarder_Data_t *fwdata);
+
+/**
  * @brief Write a stdout or stderr message
+ *
+ * @param fwdata The forwarder executing the step
  *
  * @param msg The message to write
  *
  * @param msgLen The length of the message
  *
- * @param taskid The task ID of the message origin
+ * @param rank The rank of the message origin
  *
  * @param type The message type (stdout or stderr)
- *
- * @param fwdata The forwarder executing the step
- *
- * @param step The step the message origin belongs to
- *
- * @param lrank The step dependent local rank of the message origin
  */
-void writeIOmsg(char *msg, uint32_t msgLen, uint32_t taskid, uint8_t type,
-	        Forwarder_Data_t *fwdata, Step_t *step, uint32_t lrank);
+void IO_printChildMsg(Forwarder_Data_t *fwdata, char *msg, size_t msgLen,
+		      uint32_t rank, uint8_t type);
 
 /**
  * @brief Redirect I/O of a job
@@ -75,7 +81,7 @@ void writeIOmsg(char *msg, uint32_t msgLen, uint32_t taskid, uint8_t type,
  *
  * @param job The job to redirect
  */
-void redirectJobOutput(Job_t *job);
+void IO_redirectJob(Job_t *job);
 
 /**
  * @brief Redirect I/O of a step
@@ -89,9 +95,32 @@ void redirectJobOutput(Job_t *job);
  *
  * @param step The step to redirect
  */
-void redirectStepIO(Forwarder_Data_t *fwdata, Step_t *step);
+void IO_redirectStep(Forwarder_Data_t *fwdata, Step_t *step);
 
-int redirectIORank(Step_t *step, int rank);
+/**
+ * @brief Redirect stdin of a rank
+ *
+ * Redirect the stdin of a rank from a local file depending
+ * on options specified by the user. Additionally various symbols in the
+ * filename will be replaced. See @ref replaceSymbols() for a full list
+ * of supported symbols.
+ *
+ * @param step The step of the rank
+ *
+ * @param rank The rank to redirect
+ */
+int IO_redirectRank(Step_t *step, int rank);
+
+/**
+ * @brief Close an I/O channel
+ *
+ * @param fwdata The forwarder associated with the I/O channel
+ *
+ * @param taskid The taskid of the I/O channel
+ *
+ * @param type The I/O type of the channel
+ */
+void IO_closeChannel(Forwarder_Data_t *fwdata, uint32_t taskid, uint8_t type);
 
 /**
  * @brief Open I/O pipes for a step connected to the psilogger
@@ -102,35 +131,28 @@ int redirectIORank(Step_t *step, int rank);
  *
  * @param step The step to open the pipes for
  */
-void openStepIOpipes(Forwarder_Data_t *fwdata, Step_t *step);
+void IO_openPipes(Forwarder_Data_t *fwdata, Step_t *step);
 
-void sendEnableSrunIO(Step_t *step);
+/**
+ * @brief Attach an additional I/O connection to sattach
+ *
+ * @param step The step to open a new connection for
+ *
+ * @param ioAddr The address of sattach
+ *
+ * @param ioPort The I/O port of sattach
+ *
+ * @param ctlPort The control port of sattach
+ *
+ * @param sig The signature to validate the connection
+ */
+void IO_sattachTasks(Step_t *step, uint32_t ioAddr, uint16_t ioPort,
+		     uint16_t ctlPort, char *sig);
 
-void printChildMessage(Step_t *step, char *msg, uint32_t msgLen,
-		       uint8_t type, int32_t rank);
-
+/**
+ * @brief doctodo
+ */
 int handleUserOE(int sock, void *data);
-
-int setFilePermissions(Job_t *job);
-
-void stepFinalizeIO(Forwarder_Data_t *fwdata);
-
-int stepForwarderMsg(PSLog_Msg_t *msg, Forwarder_Data_t *fwData);
-
-void sendFWfinMessage(Forwarder_Data_t *fwdata, PSLog_Msg_t *msg);
-
-void reattachTasks(Forwarder_Data_t *fwdata, uint32_t addr,
-		    uint16_t ioPort, uint16_t ctlPort, char *sig);
-
-void sendFWtaskInfo(Forwarder_Data_t *fwdata, PS_Tasks_t *task);
-
-void initStepIO(Step_t *step);
-
-void sendStepTimeout(Forwarder_Data_t *fwdata);
-
-int hookFWmsg(PSLog_Msg_t *msg, Forwarder_Data_t *fwData);
-
-void sendBrokeIOcon(Step_t *step);
 
 /**
  * @brief Convert a Slurm I/O option to string
@@ -140,7 +162,7 @@ void sendBrokeIOcon(Step_t *step);
  * @return Returns the string representation of the
  * give Slurm I/O option.
  */
-const char *strIOopt(int opt);
+const char *IO_strOpt(int opt);
 
 /**
  * @brief Convert a Slurm I/O type to string
@@ -150,6 +172,6 @@ const char *strIOopt(int opt);
  * @return Returns the string representation of the
  * give Slurm I/O type.
  */
-const char *strIOtype(int type);
+const char *IO_strType(int type);
 
 #endif  /* __PS_SLURM_IO */

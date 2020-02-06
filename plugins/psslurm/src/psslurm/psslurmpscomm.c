@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2014-2019 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2014-2020 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -54,6 +54,7 @@
 #include "psslurmpelogue.h"
 #include "psslurmenv.h"
 #include "psslurm.h"
+#include "psslurmfwcomm.h"
 
 #include "psslurmpscomm.h"
 
@@ -1381,7 +1382,7 @@ static bool nodeDownAlloc(Alloc_t *alloc, const void *info)
 		snprintf(buf, sizeof(buf), "step %u:%u terminated due to "
 			 "failure of node %s\n", step->jobid, step->stepid,
 			 getSlurmHostbyNodeID(node));
-		printChildMessage(step, buf, strlen(buf), STDERR, 0);
+		fwCMD_printMessage(step, buf, strlen(buf), STDERR, 0);
 	    }
 
 	    /* node will not be available for epilogue */
@@ -1532,58 +1533,6 @@ static void handleDroppedMsg(DDTypedBufferMsg_t *msg)
     }
 }
 
-static void forwardToSrunProxy(Step_t *step, PSLog_Msg_t *lmsg,
-			       int32_t senderRank)
-{
-    PSLog_Msg_t msg = (PSLog_Msg_t) {
-	.header = (DDMsg_t) {
-	    .type = PSP_CC_MSG,
-	    .dest = step->fwdata ? step->fwdata->tid : -1,
-	    .sender = lmsg->header.sender,
-	    .len = offsetof(PSLog_Msg_t, buf) },
-	.version = PLUGINFW_PROTO_VERSION,
-	.type = (PSLog_msg_t)CMD_PRINT_CHILD_MSG,
-	.sender = -1};
-    const size_t chunkSize = sizeof(msg.buf) - sizeof(uint8_t)
-	- sizeof(uint32_t) - sizeof(uint32_t);
-    char *buf = lmsg->buf;
-    size_t msgLen = lmsg->header.len - offsetof(PSLog_Msg_t, buf);
-    size_t left = msgLen;
-
-    /* might happen if forwarder is already gone */
-    if (!step->fwdata) return;
-
-    /* connection to srun broke */
-    if (step->ioCon == IO_CON_BROKE) return;
-
-    if (step->ioCon == IO_CON_ERROR) {
-	mlog("%s: I/O connection for step %u:%u is broken\n", __func__,
-	     step->jobid, step->stepid);
-	step->ioCon = IO_CON_BROKE;
-    }
-
-    /* if msg from service rank, let it seem like it comes from first task */
-    if (senderRank < 0) senderRank = step->globalTaskIds[step->localNodeId][0];
-
-    do {
-	uint32_t chunk = left > chunkSize ? chunkSize : left;
-	uint8_t type = lmsg->type;
-	uint32_t nRank = htonl(senderRank);
-	uint32_t len = htonl(chunk);
-	DDBufferMsg_t *bMsg = (DDBufferMsg_t *)&msg;
-	bMsg->header.len = offsetof(PSLog_Msg_t, buf);
-
-	PSP_putMsgBuf(bMsg, __func__, "type", &type, sizeof(type));
-	PSP_putMsgBuf(bMsg, __func__, "rank", &nRank, sizeof(nRank));
-       /* Add data chunk including its length mimicking addData */
-	PSP_putMsgBuf(bMsg, __func__, "len", &len, sizeof(len));
-	PSP_putMsgBuf(bMsg, __func__, "data", buf + msgLen - left, chunk);
-
-	sendMsg(&msg);
-	left -= chunk;
-    } while (left);
-}
-
 static void handleCC_IO_Msg(PSLog_Msg_t *msg)
 {
     Step_t *step = NULL;
@@ -1641,7 +1590,7 @@ static void handleCC_IO_Msg(PSLog_Msg_t *msg)
 	goto OLD_MSG_HANDLER;
     }
 
-    forwardToSrunProxy(step, msg, taskid);
+    fwCMD_msgSrunProxy(step, msg, taskid);
 
     return;
 
@@ -1667,7 +1616,7 @@ static void handleCC_INIT_Msg(PSLog_Msg_t *msg)
 			step->fwInitCount) {
 
 		    mdbg(PSSLURM_LOG_IO, "%s: enable srunIO\n", __func__);
-		    sendEnableSrunIO(step);
+		    fwCMD_enableSrunIO(step);
 		    step->state = JOB_RUNNING;
 		}
 	    } else {
@@ -1761,7 +1710,7 @@ static void handleCC_Finalize_Msg(PSLog_Msg_t *msg)
 
     if (step->fwdata) {
 	/* step forwarder should close I/O */
-	sendFWfinMessage(step->fwdata, msg);
+	fwCMD_finalize(step->fwdata, msg);
 	/* shutdown I/O forwarder if all local processes exited */
 	step->fwFinCount++;
 	if (!step->leader &&
@@ -1876,9 +1825,9 @@ static void handleSpawnFailed(DDErrorMsg_t *msg)
 	}
 
 	if (!step->loggerTID) step->loggerTID = forwarder->loggertid;
-	if (step->fwdata) sendFWtaskInfo(step->fwdata, task);
+	if (step->fwdata) fwCMD_taskInfo(step->fwdata, task);
 
-	sendEnableSrunIO(step);
+	fwCMD_enableSrunIO(step);
 
 	step->state = JOB_RUNNING;
 	step->exitCode = 0x200;
@@ -2074,7 +2023,7 @@ static void handleChildBornMsg(DDErrorMsg_t *msg)
 
 	if (!step->loggerTID) step->loggerTID = forwarder->loggertid;
 	if (step->fwdata) {
-	    sendFWtaskInfo(step->fwdata, task);
+	    fwCMD_taskInfo(step->fwdata, task);
 	} else {
 	    mlog("%s: no forwarder for step %u:%u rank %i\n", __func__,
 		 jobid, stepid, forwarder->rank - step->packTaskOffset);

@@ -41,6 +41,7 @@
 #include "psslurmspawn.h"
 #include "psslurmpscomm.h"
 #include "slurmcommon.h"
+#include "psslurmfwcomm.h"
 #ifdef HAVE_SPANK
 #include "psslurmspank.h"
 #endif
@@ -235,6 +236,26 @@ static int bcastCallback(int32_t exit_status, Forwarder_Data_t *fw)
     return 0;
 }
 
+static int setFilePermissions(Job_t *job)
+{
+    if (!job->jobscript) return 1;
+
+    if ((chown(job->jobscript, job->uid, job->gid)) == -1) {
+	mlog("%s: chown(%i:%i) '%s' failed : %s\n", __func__,
+		job->uid, job->gid, job->jobscript,
+		strerror(errno));
+	return 1;
+    }
+
+    if ((chmod(job->jobscript, 0700)) == -1) {
+	mlog("%s: chmod 0700 on '%s' failed : %s\n", __func__,
+		job->jobscript, strerror(errno));
+	return 1;
+    }
+
+    return 0;
+}
+
 static void fwExecBatchJob(Forwarder_Data_t *fwdata, int rerun)
 {
     Job_t *job = fwdata->userData;
@@ -257,7 +278,7 @@ static void fwExecBatchJob(Forwarder_Data_t *fwdata, int rerun)
     }
 
     /* redirect output */
-    redirectJobOutput(job);
+    IO_redirectJob(job);
 
     /* setup batch specific environment */
     setJobEnv(job);
@@ -521,7 +542,7 @@ int handleExecClientUser(void *data)
 	    setgroups(step->gidsLen, step->gids);
 	}
 
-	if (!(redirectIORank(step, task->rank))) return -1;
+	if (!(IO_redirectRank(step, task->rank))) return -1;
 
 	/* stop child after exec */
 	if (step->taskFlags & LAUNCH_PARALLEL_DEBUG) {
@@ -988,8 +1009,8 @@ static int stepForwarderInit(Forwarder_Data_t *fwdata)
     /* redirect stdout/stderr/stdin */
     if (!(step->taskFlags & LAUNCH_PTY)) {
 	if (!(step->taskFlags & LAUNCH_USER_MANAGED_IO)) {
-	    redirectStepIO(fwdata, step);
-	    openStepIOpipes(fwdata, step);
+	    IO_redirectStep(fwdata, step);
+	    IO_openPipes(fwdata, step);
 	}
     }
 
@@ -1020,7 +1041,7 @@ static void stepForwarderLoop(Forwarder_Data_t *fwdata)
 {
     Step_t *step = fwdata->userData;
 
-    initStepIO(step);
+    IO_init();
 
     /* user will take care of I/O handling */
     if (step->taskFlags & LAUNCH_USER_MANAGED_IO) return;
@@ -1059,7 +1080,7 @@ static void stepForwarderLoop(Forwarder_Data_t *fwdata)
 
 static void stepFinalize(Forwarder_Data_t *fwdata)
 {
-    stepFinalizeIO(fwdata);
+    IO_finalize(fwdata);
 
 #ifdef HAVE_SPANK
     Step_t *step = fwdata->userData;
@@ -1114,8 +1135,8 @@ bool execStep(Step_t *step)
     fwdata->childFunc = fwExecStep;
     fwdata->hookLoop = stepForwarderLoop;
     fwdata->hookFWInit = stepForwarderInit;
-    fwdata->handleMthrMsg = stepForwarderMsg;
-    fwdata->handleFwMsg = hookFWmsg;
+    fwdata->handleMthrMsg = fwCMD_handleMthrMsg;
+    fwdata->handleFwMsg = fwCMD_handleFwMsg;
     fwdata->hookChild = handleChildStartStep;
     fwdata->hookFinalize = stepFinalize;
 
@@ -1283,7 +1304,7 @@ static void stepFWIOloop(Forwarder_Data_t *fwdata)
     Step_t *step = fwdata->userData;
     step->fwdata = fwdata;
 
-    initStepIO(step);
+    IO_init();
 
     /* user will take care of I/O handling */
     if (step->taskFlags & LAUNCH_USER_MANAGED_IO) return;
@@ -1303,7 +1324,7 @@ static void stepFWIOloop(Forwarder_Data_t *fwdata)
 	exit(1);
     }
 
-    redirectStepIO(fwdata, step);
+    IO_redirectStep(fwdata, step);
 
     if (switchEffectiveUser("root", 0, 0) == -1) {
 	mlog("%s: switching effective user failed\n", __func__);
@@ -1360,8 +1381,8 @@ bool execStepIO(Step_t *step)
     fwdata->killSession = psAccountSignalSession;
     fwdata->hookLoop = stepFWIOloop;
     fwdata->hookFWInit = stepFWIOinit;
-    fwdata->handleMthrMsg = stepForwarderMsg;
-    fwdata->handleFwMsg = hookFWmsg;
+    fwdata->handleMthrMsg = fwCMD_handleMthrMsg;
+    fwdata->handleFwMsg = fwCMD_handleFwMsg;
     fwdata->callback = stepIOcallback;
     fwdata->hookFinalize = stepFinalize;
 

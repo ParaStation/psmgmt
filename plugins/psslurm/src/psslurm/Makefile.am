@@ -48,7 +48,7 @@ psslurm_la_SOURCES = psslurm.c psslurm.h psslurmlog.c psslurmlog.h	\
 	psslurmmsg.h psslurmmsg.c psslurmtasks.h psslurmtasks.c		\
 	psslurmjobcred.h psslurmstep.c psslurmstep.h psslurmbcast.c	\
 	psslurmbcast.h psslurmalloc.c psslurmalloc.h psslurmaccount.h   \
-	psslurmaccount.c
+	psslurmaccount.c psslurmfwcomm.c psslurmfwcomm.h
 
 if SPANK_ENABLED
 psslurm_la_SOURCES += psslurmspank.h psslurmspank.c

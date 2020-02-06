@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2014-2019 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2014-2020 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -28,6 +28,7 @@
 #include "psslurmenv.h"
 #include "psslurmpscomm.h"
 #include "psslurmpack.h"
+#include "psslurmfwcomm.h"
 
 #include "psserial.h"
 #include "pluginconfig.h"
@@ -1083,7 +1084,7 @@ int handleSrunMsg(int sock, void *data)
     Step_t *step = data;
     char *ptr, buffer[1024];
     int ret, fd = -1;
-    Slurm_IO_Header_t *ioh = NULL;
+    IO_Slurm_Header_t *ioh = NULL;
     uint16_t i;
     uint32_t myTaskIdsLen, *myTaskIds;
     bool pty;
@@ -1116,7 +1117,7 @@ int handleSrunMsg(int sock, void *data)
 	if (ioh->len) {
 	    fdbg(PSSLURM_LOG_IO, "no forwarder for step %u:%u I/O"
 		 " type %s len %u\n", step->jobid, step->stepid,
-		 strIOtype(ioh->type), ioh->len);
+		 IO_strType(ioh->type), ioh->len);
 	}
 	goto ERROR;
     }
@@ -1128,7 +1129,7 @@ int handleSrunMsg(int sock, void *data)
     mdbg(PSSLURM_LOG_IO | PSSLURM_LOG_IO_VERB,
 	 "%s: step %u:%u stdin %d type %s length %u gtid %u ltid %u pty %u"
 	 " myTIDsLen %u\n", __func__, step->jobid, step->stepid, fd,
-	 strIOtype(ioh->type), ioh->len, ioh->gtid, ioh->ltid, pty,
+	 IO_strType(ioh->type), ioh->len, ioh->gtid, ioh->ltid, pty,
 	 myTaskIdsLen);
 
     if (ioh->type == SLURM_IO_CONNECTION_TEST) {
@@ -1149,7 +1150,7 @@ int handleSrunMsg(int sock, void *data)
 		forwardInputMsg(step, myTaskIds[i], NULL, 0);
 	    }
 	} else {
-	    flog("unsupported I/O type %s\n", strIOtype(ioh->type));
+	    flog("unsupported I/O type %s\n", IO_strType(ioh->type));
 	}
 
 	/* close loggers stdin */
@@ -1179,7 +1180,7 @@ int handleSrunMsg(int sock, void *data)
 		    }
 		    break;
 		default:
-		    flog("unsupported I/O type %s\n", strIOtype(ioh->type));
+		    flog("unsupported I/O type %s\n", IO_strType(ioh->type));
 		}
 	    }
 	    left -= ret;
@@ -1374,7 +1375,7 @@ int srunSendIO(uint16_t type, uint16_t taskid, Step_t *step, char *buf,
 		uint32_t bufLen)
 {
     int ret, error = 0;
-    Slurm_IO_Header_t ioh = {
+    IO_Slurm_Header_t ioh = {
 	.type = type,
 	.gtid = taskid,
 	.ltid = (uint16_t)NO_VAL,
@@ -1388,7 +1389,7 @@ int srunSendIO(uint16_t type, uint16_t taskid, Step_t *step, char *buf,
 	    case ECONNRESET:
 	    case EPIPE:
 	    case EBADF:
-		sendBrokeIOcon(step);
+		fwCMD_brokeIOcon(step);
 		freeSlurmMsg(&step->srunIOMsg);
 		break;
 	}
@@ -1397,12 +1398,12 @@ int srunSendIO(uint16_t type, uint16_t taskid, Step_t *step, char *buf,
     return ret;
 }
 
-int srunSendIOEx(int sock, Slurm_IO_Header_t *iohead, char *buf, int *error)
+int srunSendIOEx(int sock, IO_Slurm_Header_t *iohead, char *buf, int *error)
 {
     PS_SendDB_t data = { .bufUsed = 0, .useFrag = false };
     int ret = 0, once = 1;
     int32_t towrite, written = 0;
-    Slurm_IO_Header_t ioh;
+    IO_Slurm_Header_t ioh;
 
     if (sock < 0) return -1;
 
@@ -1413,7 +1414,7 @@ int srunSendIOEx(int sock, Slurm_IO_Header_t *iohead, char *buf, int *error)
 
     towrite = iohead->len;
     errno = *error = 0;
-    memcpy(&ioh, iohead, sizeof(Slurm_IO_Header_t));
+    memcpy(&ioh, iohead, sizeof(IO_Slurm_Header_t));
 
     while (once || towrite > 0) {
 	ioh.len = towrite > 1000 ? 1000 : towrite;

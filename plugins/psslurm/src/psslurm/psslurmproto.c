@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2014-2019 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2014-2020 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -50,6 +50,7 @@
 #include "psslurmpelogue.h"
 #include "psslurmpack.h"
 #include "psslurm.h"
+#include "psslurmfwcomm.h"
 
 #include "psslurmproto.h"
 
@@ -275,13 +276,13 @@ static void printLaunchTasksInfos(Step_t *step)
     /* set stdout/stderr/stdin options */
     if (!(step->taskFlags & LAUNCH_USER_MANAGED_IO)) {
 	fdbg(PSSLURM_LOG_IO, "stdOut '%s' stdOutRank %i stdOutOpt %s\n",
-	     step->stdOut, step->stdOutRank, strIOopt(step->stdOutOpt));
+	     step->stdOut, step->stdOutRank, IO_strOpt(step->stdOutOpt));
 
 	fdbg(PSSLURM_LOG_IO, "stdErr '%s' stdErrRank %i stdErrOpt %s\n",
-	     step->stdErr, step->stdErrRank, strIOopt(step->stdErrOpt));
+	     step->stdErr, step->stdErrRank, IO_strOpt(step->stdErrOpt));
 
 	fdbg(PSSLURM_LOG_IO, "stdIn '%s' stdInRank %i stdInOpt %s\n",
-	     step->stdIn, step->stdInRank, strIOopt(step->stdInOpt));
+	     step->stdIn, step->stdInRank, IO_strOpt(step->stdInOpt));
 
 	mdbg(PSSLURM_LOG_IO, "%s: bufferedIO '%i' labelIO '%i'\n", __func__,
 	     step->taskFlags & LAUNCH_BUFFERED_IO,
@@ -812,10 +813,10 @@ static void handleReattachTasks(Slurm_Msg_t *sMsg)
     }
 
     /* send message to forwarder */
-    reattachTasks(step->fwdata, sMsg->head.addr,
-		    ioPorts[step->localNodeId % numIOports],
-		    ctlPorts[step->localNodeId % numCtlPorts],
-		    cred->sig);
+    fwCMD_reattachTasks(step->fwdata, sMsg->head.addr,
+			ioPorts[step->localNodeId % numIOports],
+			ctlPorts[step->localNodeId % numCtlPorts],
+			cred->sig);
 SEND_REPLY:
 
     sendReattchReply(step, sMsg, rc);
@@ -1364,9 +1365,9 @@ static void handleJobNotify(Slurm_Msg_t *sMsg)
 	    step->stepid);
     */
 
-    printChildMessage(step, "psslurm: ", strlen("psslurm: "), STDERR, 0);
-    printChildMessage(step, msg, strlen(msg), STDERR, 0);
-    printChildMessage(step, "\n", strlen("\n"), STDERR, 0);
+    fwCMD_printMessage(step, "psslurm: ", strlen("psslurm: "), STDERR, 0);
+    fwCMD_printMessage(step, msg, strlen(msg), STDERR, 0);
+    fwCMD_printMessage(step, "\n", strlen("\n"), STDERR, 0);
 
     sendSlurmRC(sMsg, SLURM_SUCCESS);
     ufree(msg);
@@ -1727,15 +1728,15 @@ static bool killSelectedSteps(Step_t *step, const void *killInfo)
 	if (!step->localNodeId) {
 	    snprintf(buf, sizeof(buf), "error: *** step %u:%u CANCELLED DUE TO"
 		" TIME LIMIT ***\n", step->jobid, step->stepid);
-	    printChildMessage(step, buf, strlen(buf), STDERR, 0);
+	    fwCMD_printMessage(step, buf, strlen(buf), STDERR, 0);
 	}
-	sendStepTimeout(step->fwdata);
+	fwCMD_stepTimeout(step->fwdata);
 	step->timeout = true;
     } else {
 	if (!step->localNodeId) {
 	    snprintf(buf, sizeof(buf), "error: *** PREEMPTION for step "
 		    "%u:%u ***\n", step->jobid, step->stepid);
-	    printChildMessage(step, buf, strlen(buf), STDERR, 0);
+	    fwCMD_printMessage(step, buf, strlen(buf), STDERR, 0);
 	}
     }
 

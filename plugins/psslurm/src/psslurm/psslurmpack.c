@@ -574,7 +574,7 @@ bool __packSlurmHeader(PS_SendDB_t *data, Slurm_Msg_Header_t *head,
     return true;
 }
 
-bool __packSlurmIOMsg(PS_SendDB_t *data, Slurm_IO_Header_t *ioh, char *body,
+bool __packSlurmIOMsg(PS_SendDB_t *data, IO_Slurm_Header_t *ioh, char *body,
 		      const char *caller, const int line)
 {
     if (!data) {
@@ -603,10 +603,10 @@ bool __packSlurmIOMsg(PS_SendDB_t *data, Slurm_IO_Header_t *ioh, char *body,
     return true;
 }
 
-bool __unpackSlurmIOHeader(char **ptr, Slurm_IO_Header_t **iohPtr,
+bool __unpackSlurmIOHeader(char **ptr, IO_Slurm_Header_t **iohPtr,
 			   const char *caller, const int line)
 {
-    Slurm_IO_Header_t *ioh;
+    IO_Slurm_Header_t *ioh;
 
     if (!ptr) {
 	mlog("%s: invalid ptr from '%s' at %i\n", __func__, caller, line);
@@ -619,7 +619,7 @@ bool __unpackSlurmIOHeader(char **ptr, Slurm_IO_Header_t **iohPtr,
 	return false;
     }
 
-    ioh = umalloc(sizeof(Slurm_IO_Header_t));
+    ioh = umalloc(sizeof(IO_Slurm_Header_t));
     /* type */
     getUint16(ptr, &ioh->type);
     /* global taskid */

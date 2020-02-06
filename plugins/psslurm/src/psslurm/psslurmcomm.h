@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2014-2019 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2014-2020 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -372,7 +372,7 @@ int srunSendIO(uint16_t type, uint16_t taskid, Step_t *step, char *buf,
  *
  * @return Returns the number of bytes written or -1 on error
  */
-int srunSendIOEx(int sock, Slurm_IO_Header_t *ioh, char *buf, int *error);
+int srunSendIOEx(int sock, IO_Slurm_Header_t *ioh, char *buf, int *error);
 
 /**
  * @brief Send a message to srun

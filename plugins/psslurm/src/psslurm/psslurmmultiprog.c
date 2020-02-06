@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2014-2016 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2014-2020 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -488,7 +488,7 @@ void setupArgsFromMultiProg(Step_t *step, Forwarder_Data_t *fwdata,
 
 setup_error:
     msg = "Error setting up arguments from multiprog file.\n";
-    writeIOmsg(msg, strlen(msg), 0, STDERR, fwdata, step, 0);
+    IO_printChildMsg(fwdata, msg, strlen(msg), 0, STDERR);
     exit(1);
 }
 

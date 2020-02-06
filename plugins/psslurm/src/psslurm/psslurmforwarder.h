@@ -14,16 +14,6 @@
 #include "psslurmjob.h"
 #include "psslurmbcast.h"
 
-typedef enum {
-    CMD_PRINT_CHILD_MSG = 100,
-    CMD_ENABLE_SRUN_IO,
-    CMD_FW_FINALIZE,
-    CMD_REATTACH_TASKS,
-    CMD_INFO_TASKS,
-    CMD_STEP_TIMEOUT,
-    CMD_BROKE_IO_CON,
-} PSSLURM_Fw_Cmds_t;
-
 /**
  * @brief Execute a step forwarder
  *
