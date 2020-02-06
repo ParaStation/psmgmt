@@ -209,7 +209,7 @@ int verifyConfig(Config_t *conf, const ConfDef_t confDef[])
 
     list_for_each(o, conf) {
 	ConfObj_t *obj = list_entry(o, ConfObj_t, next);
-	int res = verifyConfigEntry(confDef, obj->key, obj->value);
+	res = verifyConfigEntry(confDef, obj->key, obj->value);
 	if (res) return res;
     }
 

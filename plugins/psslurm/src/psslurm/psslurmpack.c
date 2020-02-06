@@ -1344,7 +1344,7 @@ static void packAccData_17(PS_SendDB_t *data, SlurmAccData_t *slurmAccData)
 	return;
     }
 
-    AccountDataExt_t *accData = slurmAccData->accData;
+    AccountDataExt_t *accData = &slurmAccData->psAcct;
     /* user cpu sec/usec */
     addUint32ToMsg(accData->rusage.ru_utime.tv_sec, data);
     addUint32ToMsg(accData->rusage.ru_utime.tv_usec, data);
@@ -1448,7 +1448,7 @@ bool __packTResData(PS_SendDB_t *data, TRes_t *tres, const char *caller,
 
 static uint64_t getAccNodeID(SlurmAccData_t *slurmData, int type)
 {
-    AccountDataExt_t *accData = slurmData->accData;
+    AccountDataExt_t *accData = &slurmData->psAcct;
     PSnodes_ID_t psNID = PSC_getID(accData->taskIds[type]);
 
     int nID = getSlurmNodeID(psNID, slurmData->nodes, slurmData->nrOfNodes);
@@ -1458,7 +1458,7 @@ static uint64_t getAccNodeID(SlurmAccData_t *slurmData, int type)
 
 static uint64_t getAccRank(SlurmAccData_t *slurmData, int type)
 {
-    AccountDataExt_t *accData = slurmData->accData;
+    AccountDataExt_t *accData = &slurmData->psAcct;
 
     /* search local tasks */
     PS_Tasks_t *task = findTaskByChildTID(slurmData->tasks,
@@ -1474,7 +1474,7 @@ static uint64_t getAccRank(SlurmAccData_t *slurmData, int type)
 
 static void convAccDataToTRes(SlurmAccData_t *slurmAccData, TRes_t *tres)
 {
-    AccountDataExt_t *accData = slurmAccData->accData;
+    AccountDataExt_t *accData = &slurmAccData->psAcct;
     TRes_Entry_t entry;
 
     /* vsize in byte */
@@ -1558,7 +1558,7 @@ bool __packSlurmAccData(PS_SendDB_t *data, SlurmAccData_t *slurmAccData,
 	return true;
     }
 
-    AccountDataExt_t *accData = slurmAccData->accData;
+    AccountDataExt_t *accData = &slurmAccData->psAcct;
 
     /* user cpu sec/usec */
     addUint32ToMsg(accData->rusage.ru_utime.tv_sec, data);

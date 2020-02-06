@@ -1098,16 +1098,15 @@ static void addSlurmPids(PStask_ID_t loggerTID, PS_SendDB_t *data)
 static int addSlurmAccData(SlurmAccData_t *slurmAccData, PS_SendDB_t *data)
 {
     bool res;
-    AccountDataExt_t accData = { .numTasks = 0 };
-    slurmAccData->accData = &accData;
+    AccountDataExt_t *accData = &slurmAccData->psAcct;
 
     /* no accounting data */
     if (!slurmAccData->type) goto PACK_RESPONSE;
 
     if (slurmAccData->childPid) {
-	res = psAccountGetDataByJob(slurmAccData->childPid, &accData);
+	res = psAccountGetDataByJob(slurmAccData->childPid, accData);
     } else {
-	res = psAccountGetDataByLogger(slurmAccData->loggerTID, &accData);
+	res = psAccountGetDataByLogger(slurmAccData->loggerTID, accData);
     }
 
     slurmAccData->empty = !res;
@@ -1119,45 +1118,45 @@ static int addSlurmAccData(SlurmAccData_t *slurmAccData, PS_SendDB_t *data)
 	goto PACK_RESPONSE;
     }
 
-    uint64_t avgVsize = accData.avgVsizeCount ?
-			accData.avgVsizeTotal / accData.avgVsizeCount : 0;
-    uint64_t avgRss = accData.avgRssCount ?
-		      accData.avgRssTotal / accData.avgRssCount : 0;
+    uint64_t avgVsize = accData->avgVsizeCount ?
+			accData->avgVsizeTotal / accData->avgVsizeCount : 0;
+    uint64_t avgRss = accData->avgRssCount ?
+		      accData->avgRssTotal / accData->avgRssCount : 0;
 
     mlog("%s: adding account data: maxVsize %zu maxRss %zu pageSize %lu "
 	 "u_sec %lu u_usec %lu s_sec %lu s_usec %lu num_tasks %u avgVsize %lu"
-	 " avgRss %lu avg cpufreq %.2fG\n", __func__, accData.maxVsize,
-	 accData.maxRss, accData.pageSize, accData.rusage.ru_utime.tv_sec,
-	 accData.rusage.ru_utime.tv_usec, accData.rusage.ru_stime.tv_sec,
-	 accData.rusage.ru_stime.tv_usec, accData.numTasks, avgVsize, avgRss,
-	 ((double) accData.cpuFreq / (double) accData.numTasks)
+	 " avgRss %lu avg cpufreq %.2fG\n", __func__, accData->maxVsize,
+	 accData->maxRss, accData->pageSize, accData->rusage.ru_utime.tv_sec,
+	 accData->rusage.ru_utime.tv_usec, accData->rusage.ru_stime.tv_sec,
+	 accData->rusage.ru_stime.tv_usec, accData->numTasks, avgVsize, avgRss,
+	 ((double) accData->cpuFreq / (double) accData->numTasks)
 	 / (double) 1048576);
 
     mdbg(PSSLURM_LOG_ACC, "%s: nodes maxVsize %u maxRss %u maxPages %u "
 	 "minCpu %u maxDiskRead %u maxDiskWrite %u\n", __func__,
-	 PSC_getID(accData.taskIds[ACCID_MAX_VSIZE]),
-	 PSC_getID(accData.taskIds[ACCID_MAX_RSS]),
-	 PSC_getID(accData.taskIds[ACCID_MAX_PAGES]),
-	 PSC_getID(accData.taskIds[ACCID_MIN_CPU]),
-	 PSC_getID(accData.taskIds[ACCID_MAX_DISKREAD]),
-	 PSC_getID(accData.taskIds[ACCID_MAX_DISKWRITE]));
+	 PSC_getID(accData->taskIds[ACCID_MAX_VSIZE]),
+	 PSC_getID(accData->taskIds[ACCID_MAX_RSS]),
+	 PSC_getID(accData->taskIds[ACCID_MAX_PAGES]),
+	 PSC_getID(accData->taskIds[ACCID_MIN_CPU]),
+	 PSC_getID(accData->taskIds[ACCID_MAX_DISKREAD]),
+	 PSC_getID(accData->taskIds[ACCID_MAX_DISKWRITE]));
 
-    if (accData.avgVsizeCount > 0 &&
-	accData.avgVsizeCount != accData.numTasks) {
+    if (accData->avgVsizeCount > 0 &&
+	accData->avgVsizeCount != accData->numTasks) {
 	mlog("%s: warning: total Vsize is not sum of #tasks values (%lu!=%u)\n",
-		__func__, accData.avgVsizeCount, accData.numTasks);
+		__func__, accData->avgVsizeCount, accData->numTasks);
     }
 
-    if (accData.avgRssCount > 0 &&
-	    accData.avgRssCount != accData.numTasks) {
+    if (accData->avgRssCount > 0 &&
+	    accData->avgRssCount != accData->numTasks) {
 	mlog("%s: warning: total RSS is not sum of #tasks values (%lu!=%u)\n",
-		__func__, accData.avgRssCount, accData.numTasks);
+		__func__, accData->avgRssCount, accData->numTasks);
     }
 
 PACK_RESPONSE:
     packSlurmAccData(data, slurmAccData);
 
-    return accData.numTasks;
+    return accData->numTasks;
 }
 
 static void handleStepStat(Slurm_Msg_t *sMsg)
@@ -1190,6 +1189,7 @@ static void handleStepStat(Slurm_Msg_t *sMsg)
     addUint32ToMsg(SLURM_SUCCESS, msg);
     /* account data */
     SlurmAccData_t slurmAccData = {
+	.psAcct = { .numTasks = 0 },
 	.type = step->accType,
 	.nodes = step->nodes,
 	.nrOfNodes = step->nrOfNodes,
@@ -2175,7 +2175,7 @@ static const char *autoDetectSlurmVer(void)
 {
     const char *sinfo = getConfValueC(&Config, "SINFO_BINARY");
     char *line = NULL;
-    static char autoVer[16];
+    static char autoVer[32];
     size_t len = 0;
     ssize_t read;
     bool ret = false;
@@ -2192,7 +2192,7 @@ static const char *autoDetectSlurmVer(void)
 
     while ((read = getdelim(&line, &len, '\0', fp)) != -1) {
 	if (!strncmp(line, "SLURM_VERSION_STRING", 20)) {
-	    if (sscanf(line, "SLURM_VERSION_STRING \"%s\"", autoVer) == 1) {
+	    if (sscanf(line, "SLURM_VERSION_STRING \"%31s\"", autoVer) == 1) {
 		char *quote = strchr(autoVer, '"');
 		if (quote) quote[0] = '\0';
 		ret = true;
@@ -2476,6 +2476,7 @@ void sendStepExit(Step_t *step, uint32_t exit_status)
     step->accType = (step->leader) ? step->accType : 0;
 
     SlurmAccData_t slurmAccData = {
+	.psAcct = { .numTasks = 0 },
 	.type = step->accType,
 	.nodes = step->nodes,
 	.nrOfNodes = step->nrOfNodes,
@@ -2785,6 +2786,7 @@ void sendJobExit(Job_t *job, uint32_t exit_status)
     if (!job->fwdata) {
 	/* No data available */
 	SlurmAccData_t slurmAccData = {
+	    .psAcct = { .numTasks = 0 },
 	    .type = 0,
 	    .nodes = job->nodes,
 	    .nrOfNodes = job->nrOfNodes,
@@ -2795,6 +2797,7 @@ void sendJobExit(Job_t *job, uint32_t exit_status)
 	addSlurmAccData(&slurmAccData, &body);
     } else {
 	SlurmAccData_t slurmAccData = {
+	    .psAcct = { .numTasks = 0 },
 	    .type = job->accType,
 	    .nodes = job->nodes,
 	    .nrOfNodes = job->nrOfNodes,

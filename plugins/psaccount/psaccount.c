@@ -55,14 +55,14 @@ static void setMainTimer(int sec);
  */
 static void periodicMain(void)
 {
-    static int cleanup = 0;
+    static int cleanCtr = 0;
     int poll = PSIDnodes_acctPollI(PSC_getMyID());
 
     /* cleanup old jobs */
-    if (cleanup++ == 4) {
+    if (cleanCtr++ == 4) {
 	cleanupJobs();
 	cleanupClients();
-	cleanup = 0;
+	cleanCtr = 0;
     }
 
     /* check if config changed */

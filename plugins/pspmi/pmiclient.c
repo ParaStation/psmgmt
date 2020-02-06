@@ -1535,9 +1535,9 @@ static void handleSuccReady(char *mbuf)
 			 strlen(pmiLine), pLen);
 		    critErr();
 		}
+		sendKvstoSucc(uBuf->msg, uBuf->len);
 	    }
 
-	    if (succtid != kvsProvTID) sendKvstoSucc(uBuf->msg, uBuf->len);
 	    uBuf->isSuccReady = true;
 
 	    if (uBuf->gotBarrierIn) deluBufferEntry(uBuf);

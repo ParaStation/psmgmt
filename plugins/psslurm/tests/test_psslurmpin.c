@@ -43,7 +43,6 @@ int main(int argc, char *argv[])
     uint16_t socketCount = 3;
     uint16_t coresPerSocket = 5;
     uint16_t threadsPerCore = 3;
-    uint32_t threadCount = socketCount * coresPerSocket * threadsPerCore;
 
     /* task info */
     uint32_t tasksPerNode = 3;
@@ -74,7 +73,7 @@ int main(int argc, char *argv[])
     socketCount = atoi(argv[1]);
     coresPerSocket = atoi(argv[2]);
     threadsPerCore = atoi(argv[3]);
-    threadCount = socketCount * coresPerSocket * threadsPerCore;
+    uint32_t threadCount = socketCount * coresPerSocket * threadsPerCore;
 
     /* task info */
     tasksPerNode = atoi(argv[4]);
