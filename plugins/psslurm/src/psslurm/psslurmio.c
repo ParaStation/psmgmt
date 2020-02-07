@@ -322,7 +322,6 @@ void IO_printChildMsg(Forwarder_Data_t *fwdata, char *msg, size_t msgLen,
     if (lrank == (uint32_t )-1) {
 	mlog("%s: invalid node rank for rank %i myNodeID %i step %u:%u\n",
 		__func__, rank, myNodeID, step->jobid, step->stepid);
-	ufree(msg);
 	return;
     }
 
@@ -330,14 +329,12 @@ void IO_printChildMsg(Forwarder_Data_t *fwdata, char *msg, size_t msgLen,
     if (!msgLen) {
 	if (type == STDOUT && step->outChannels) {
 	    if (step->outChannels[lrank] == 0) {
-		ufree(msg);
 		return;
 	    }
 	    step->outChannels[lrank] = 0;
 	}
 	if (type == STDERR && step->errChannels) {
 	    if (step->errChannels[lrank] == 0) {
-		ufree(msg);
 		return;
 	    }
 	    step->errChannels[lrank] = 0;
@@ -349,7 +346,6 @@ void IO_printChildMsg(Forwarder_Data_t *fwdata, char *msg, size_t msgLen,
 	&& !(step->taskFlags & LAUNCH_BUFFERED_IO))
 	|| step->taskFlags & LAUNCH_PTY) {
 	IO_writeMsg(fwdata, msg, msgLen, rank, type, lrank);
-	ufree(msg);
 	return;
     }
 
@@ -367,8 +363,6 @@ void IO_printChildMsg(Forwarder_Data_t *fwdata, char *msg, size_t msgLen,
    handleBufferedMsg(fwdata, msg, msgLen,
 		    type == STDOUT ?  &lineBuf[lrank].out : &lineBuf[lrank].err,
 		    rank, type, lrank);
-
-    ufree(msg);
 }
 
 void IO_finalize(Forwarder_Data_t *fwdata)
