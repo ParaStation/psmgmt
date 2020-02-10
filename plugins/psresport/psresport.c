@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2012-2018 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2012-2020 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -577,7 +577,7 @@ int initialize(void)
     initConfig(configfn);
 
     /* init logging facility */
-    debugMask = getConfValueI(&psresportConfig, "DEBUG_MASK");
+    debugMask = getConfValueI(&config, "DEBUG_MASK");
     maskLogger(debugMask);
 
     if (!(PSIDhook_add(PSIDHOOK_MASTER_GETPART, addNewReservation))) {
@@ -601,7 +601,7 @@ int initialize(void)
     }
 
     /* get reserved ports from config */
-    ports = getConfValueC(&psresportConfig, "RESERVED_PORTS");
+    ports = getConfValueC(&config, "RESERVED_PORTS");
 
     if (!(extractPortInfos(ports))) {
 	mlog("%s: invalid port range '%s'\n", __func__, ports);

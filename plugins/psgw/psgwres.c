@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2018-2019 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2018-2020 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -33,7 +33,7 @@
 
 #include "psgwres.h"
 
-char msgBuf[1024];
+static char msgBuf[1024];
 
 /**
  * @brief Prepare environment for the routing script
@@ -64,7 +64,7 @@ static int prepEnv(void *reqPtr)
 
     char *tmp = getenv("SLURM_SPANK_PSGW_PLUGIN");
     if (!tmp) {
-	char *script = getConfValueC(&Config, "DEFAULT_ROUTE_PLUGIN");
+	char *script = getConfValueC(&config, "DEFAULT_ROUTE_PLUGIN");
 	setenv("SLURM_SPANK_PSGW_PLUGIN", script, 1);
     }
 
@@ -149,7 +149,7 @@ static bool stopPSGWD(PSGW_Req_t *req)
 {
     env_t env;
     uint32_t i, id = atoi(req->jobid);
-    char *dir = getConfValueC(&Config, "DIR_ROUTE_SCRIPTS");
+    char *dir = getConfValueC(&config, "DIR_ROUTE_SCRIPTS");
     char buf[1024];
 
     envInit(&env);
@@ -431,7 +431,7 @@ static bool initRoutingEnv(PSGW_Req_t *req)
     char *routeFile = envGet(env, "SLURM_SPANK_PSGW_ROUTE_FILE");
     if (!routeFile) {
 	char *cwd = envGet(env, "SLURM_SPANK_PSGW_CWD");
-	char *prefix = getConfValueC(&Config, "DEFAULT_ROUTE_PREFIX");
+	char *prefix = getConfValueC(&config, "DEFAULT_ROUTE_PREFIX");
 	snprintf(buf, sizeof(buf), "%s/%s-%s", (cwd ? cwd : home), prefix,
 		 req->jobid);
 	routeFile = buf;
@@ -482,9 +482,9 @@ static void routeScriptTimeout(int timerId, void *data)
 static bool execRoutingScript(PSGW_Req_t *req)
 {
     char exePath[PATH_MAX];
-    char *dir = getConfValueC(&Config, "DIR_ROUTE_SCRIPTS");
-    char *script = getConfValueC(&Config, "ROUTE_SCRIPT");
-    int tmRouteScript = getConfValueI(&Config, "TIMEOUT_ROUTE_SCRIPT");
+    char *dir = getConfValueC(&config, "DIR_ROUTE_SCRIPTS");
+    char *script = getConfValueC(&config, "ROUTE_SCRIPT");
+    int tmRouteScript = getConfValueI(&config, "TIMEOUT_ROUTE_SCRIPT");
 
     snprintf(exePath, sizeof(exePath), "%s/%s", dir, script);
 
@@ -543,7 +543,7 @@ static void prologueCB(char *jobid, int exit, bool timeout,
 	/* prologue failed */
 	snprintf(msgBuf, sizeof(msgBuf), "prologue on gateway failed, jobid %s "
 		 "exit %i timeout %i\n", jobid, exit, timeout);
-        cancelReq(req, msgBuf);
+	cancelReq(req, msgBuf);
     } else {
 	finalizeRequest(req);
     }
@@ -663,8 +663,8 @@ static int cbStartPSGWD(uint32_t id, int32_t exit, PSnodes_ID_t dest,
 bool startPSGWD(PSGW_Req_t *req)
 {
     env_t env;
-    char *dir = getConfValueC(&Config, "DIR_ROUTE_SCRIPTS");
-    char *psgwd = getConfValueC(&Config, "PSGWD_BINARY");
+    char *dir = getConfValueC(&config, "DIR_ROUTE_SCRIPTS");
+    char *psgwd = getConfValueC(&config, "PSGWD_BINARY");
     uint32_t i, z, id = atoi(req->jobid);
     char buf[1024];
 

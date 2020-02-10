@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2014-2019 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2014-2020 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -45,7 +45,7 @@ typedef struct {
     int localHostIdx;	/**< index of local host in host-list */
 } Host_Info_t;
 
-const ConfDef_t CONFIG_VALUES[] =
+const ConfDef_t confDef[] =
 {
     { "SLURM_CONF", 0,
 	"file",
@@ -694,8 +694,8 @@ int initConfig(char *filename, uint32_t *hash)
 
     /* parse psslurm config file */
     if (parseConfigFile(filename, &Config, false /*trimQuotes*/) < 0) return 0;
-    setConfigDefaults(&Config, CONFIG_VALUES);
-    if (verifyConfig(&Config, CONFIG_VALUES) != 0) {
+    setConfigDefaults(&Config, confDef);
+    if (verifyConfig(&Config, confDef) != 0) {
 	mlog("%s: verfiy of %s failed\n", __func__, filename);
 	return 0;
     }

@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2018-2019 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2018-2020 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -44,8 +44,8 @@ plugin_dep_t dependencies[] = {
 static bool checkRouteScript(void)
 {
     char rScript[PATH_MAX];
-    char *dir = getConfValueC(&Config, "DIR_ROUTE_SCRIPTS");
-    char *script = getConfValueC(&Config, "ROUTE_SCRIPT");
+    char *dir = getConfValueC(&config, "DIR_ROUTE_SCRIPTS");
+    char *script = getConfValueC(&config, "ROUTE_SCRIPT");
     struct stat sb;
 
     snprintf(rScript, sizeof(rScript), "%s/%s", dir, script);
@@ -55,7 +55,7 @@ static bool checkRouteScript(void)
 	return false;
     }
 
-    int strict = getConfValueI(&Config, "STRICT_MODE");
+    int strict = getConfValueI(&config, "STRICT_MODE");
     if (strict) {
 	/* readable and executable by root and NOT writable by anyone
 	 * besides root */
@@ -74,7 +74,7 @@ static bool checkRouteScript(void)
     }
 
     /* test default routing plugin */
-    script = getConfValueC(&Config, "DEFAULT_ROUTE_PLUGIN");
+    script = getConfValueC(&config, "DEFAULT_ROUTE_PLUGIN");
     if (stat(script, &sb) < 0) {
 	mlog("%s: routing plugin %s not found\n", __func__, script);
 	return false;
@@ -201,7 +201,7 @@ int initialize(void)
     }
 
     /* psgw debug */
-    int32_t mask = getConfValueI(&Config, "DEBUG_MASK");
+    int32_t mask = getConfValueI(&config, "DEBUG_MASK");
     if (mask) {
 	mlog("%s: set psgw debug mask '%i'\n", __func__, mask);
 	maskLogger(mask);
@@ -213,7 +213,7 @@ int initialize(void)
 	return 1;
     }
 
-    psPelogueAddPluginConfig("psgw", &Config);
+    psPelogueAddPluginConfig("psgw", &config);
 
     if (!PSIDhook_add(PSIDHOOK_PELOGUE_RES, handlePElogueRes)) {
 	mlog("register 'PSIDHOOK_PELOGUE_RES' failed\n");

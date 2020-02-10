@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2019 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2019-2020 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -22,8 +22,8 @@ char *set(char *key, char *value)
     size_t bufSize = 0;
 
     /* search in config for given key */
-    if (getConfigDef(key, CONFIG_VALUES)) {
-	int ret = verifyConfigEntry(CONFIG_VALUES, key, value);
+    if (getConfigDef(key, confDef)) {
+	int ret = verifyConfigEntry(confDef, key, value);
 	if (ret) {
 	    switch (ret) {
 	    case 1:
@@ -50,7 +50,7 @@ char *set(char *key, char *value)
 	}
 
 	/* save new config value */
-	addConfigEntry(&Config, key, value);
+	addConfigEntry(&config, key, value);
 
 	snprintf(line, sizeof(line), "\nsaved '%s = %s'\n", key, value);
 	return str2Buf(line, &buf, &bufSize);
@@ -71,10 +71,10 @@ char *help(void)
 
     str2Buf("\n# configuration options #\n\n", &buf, &bufSize);
 
-    while (CONFIG_VALUES[i].name != NULL) {
-	snprintf(type, sizeof(type), "<%s>", CONFIG_VALUES[i].type);
-	snprintf(line, sizeof(line), "%21s\t%8s    %s\n", CONFIG_VALUES[i].name,
-		type, CONFIG_VALUES[i].desc);
+    while (confDef[i].name != NULL) {
+	snprintf(type, sizeof(type), "<%s>", confDef[i].type);
+	snprintf(line, sizeof(line), "%21s\t%8s    %s\n", confDef[i].name,
+		type, confDef[i].desc);
 	str2Buf(line, &buf, &bufSize);
 	i++;
     }
@@ -99,9 +99,9 @@ static char *showConfig(void)
 
     str2Buf("\n", &buf, &bufSize);
 
-    while (CONFIG_VALUES[i].name != NULL) {
-	char *name = CONFIG_VALUES[i].name;
-	char *val = getConfValueC(&Config, name);
+    while (confDef[i].name != NULL) {
+	char *name = confDef[i].name;
+	char *val = getConfValueC(&config, name);
 	snprintf(line, sizeof(line), "%21s = %s\n", name, val ? val:"<empty>");
 	str2Buf(line, &buf, &bufSize);
 	i++;
@@ -137,7 +137,7 @@ char *show(char *key)
     if (!key) return showVirtualKeys(buf, &bufSize, true);
 
     /* search in config for given key */
-    tmp = getConfValueC(&Config, key);
+    tmp = getConfValueC(&config, key);
     if (tmp) {
 	str2Buf(key, &buf, &bufSize);
 	str2Buf(" = ", &buf, &bufSize);
@@ -161,7 +161,7 @@ char *unset(char *key)
     char *buf = NULL;
     size_t bufSize = 0;
 
-    if (unsetConfigEntry(&Config, CONFIG_VALUES, key)) return buf;
+    if (unsetConfigEntry(&config, confDef, key)) return buf;
 
     str2Buf("\nInvalid key '", &buf, &bufSize);
     str2Buf(key, &buf, &bufSize);

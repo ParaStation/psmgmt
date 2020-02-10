@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2018-2019 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2018-2020 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -32,7 +32,7 @@
 static handlerFunc_t oldProvidePart = NULL;
 static handlerFunc_t oldProvidePartSL = NULL;
 
-char msgBuf[1024];
+static char msgBuf[1024];
 
 static void handleProvidePart(DDBufferMsg_t *msg)
 {
@@ -268,7 +268,7 @@ static bool sendPartitionReq(PStask_t *task, PSGW_Req_t *req, int numNodes)
 	flog("PSpart_newReq() failed\n");
 	return false;
     }
-    int tpp = getConfValueI(&Config, "GATEWAY_TPP");
+    int tpp = getConfValueI(&config, "GATEWAY_TPP");
 
     task->request->uid = req->uid;
     task->request->gid = req->gid;

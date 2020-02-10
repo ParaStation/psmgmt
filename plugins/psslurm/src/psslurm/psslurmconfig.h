@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2014-2019 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2014-2020 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -25,7 +25,7 @@ extern Config_t SlurmConfig;
 extern Config_t SlurmGresConfig;
 
 /** Psslurm configuration options */
-extern const ConfDef_t CONFIG_VALUES[];
+extern const ConfDef_t confDef[];
 
 /**
  * @brief Initialize the psslurm configuration

@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2012-2016 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2012-2020 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -14,10 +14,10 @@
 #include "pluginconfig.h"
 
 /** psresport's configuration list */
-extern Config_t psresportConfig;
+extern Config_t config;
 
 /** Defintion of psresport's configuration */
-extern const ConfDef_t psresportConfDef[];
+extern const ConfDef_t confDef[];
 
 /**
  * @brief Parse configuration file and save result

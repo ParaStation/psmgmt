@@ -550,8 +550,8 @@ static char *showConfig(void)
 
     str2Buf("\n", &buf, &bufSize);
 
-    while (CONFIG_VALUES[i].name != NULL) {
-	char *cName = CONFIG_VALUES[i].name;
+    while (confDef[i].name != NULL) {
+	char *cName = confDef[i].name;
 	char *cVal = getConfValueC(&Config, cName);
 	snprintf(line, sizeof(line), "%21s = %s\n",
 		 cName, cVal ? cVal : "<empty>");
@@ -595,8 +595,8 @@ char *set(char *key, char *value)
     size_t bufSize = 0;
 
     /* search in config for given key */
-    if (getConfigDef(key, CONFIG_VALUES)) {
-	int ret = verifyConfigEntry(CONFIG_VALUES, key, value);
+    if (getConfigDef(key, confDef)) {
+	int ret = verifyConfigEntry(confDef, key, value);
 	if (ret) {
 	    switch (ret) {
 	    case 1:
@@ -658,7 +658,7 @@ char *unset(char *key)
     char *buf = NULL;
     size_t bufSize = 0;
 
-    if (unsetConfigEntry(&Config, CONFIG_VALUES, key)) return buf;
+    if (unsetConfigEntry(&Config, confDef, key)) return buf;
 
     str2Buf("\nInvalid key '", &buf, &bufSize);
     str2Buf(key, &buf, &bufSize);
@@ -677,10 +677,10 @@ char *help(void)
 
     str2Buf("\n# configuration options #\n\n", &buf, &bufSize);
 
-    while (CONFIG_VALUES[i].name != NULL) {
-	snprintf(type, sizeof(type), "<%s>", CONFIG_VALUES[i].type);
-	snprintf(line, sizeof(line), "%21s\t%8s    %s\n", CONFIG_VALUES[i].name,
-		type, CONFIG_VALUES[i].desc);
+    while (confDef[i].name != NULL) {
+	snprintf(type, sizeof(type), "<%s>", confDef[i].type);
+	snprintf(line, sizeof(line), "%21s\t%8s    %s\n", confDef[i].name,
+		type, confDef[i].desc);
 	str2Buf(line, &buf, &bufSize);
 	i++;
     }

@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2019 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2019-2020 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -19,7 +19,7 @@ const ConfDef_t confDef[] =
     { NULL, false, NULL, NULL, NULL},
 };
 
-LIST_HEAD(config);
+Config_t config;
 
 static bool verifyVisitor(char *key, char *value, const void *info)
 {
