@@ -156,7 +156,7 @@ int fwCMD_handleMthrMsg(PSLog_Msg_t *msg, Forwarder_Data_t *fwdata)
 	    break;
 	default:
 	    flog("unexpected msg, type %d (PSlog type %s) from TID %s (%s) "
-		 "jobid %s\n", type, PSLog_printMsgType(type),
+		 "jobid %s\n", type, PSLog_printMsgType(msg->type),
 		 PSC_printTID(msg->sender), fwdata->pTitle, fwdata->jobID);
 	    return 0;
     }
