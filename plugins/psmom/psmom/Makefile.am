@@ -16,6 +16,7 @@ pspam_dir := plugins/pspam/pspam
 AM_LDFLAGS += -avoid-version -module
 AM_CPPFLAGS += -I$(top_srcdir)/bin/daemon -I$(srcdir)/../include \
 		-I$(top_srcdir)/$(psaccount_dir) -I$(top_srcdir)/$(pspam_dir)
+AM_CFLAGS += -fcommon
 
 plugin_LTLIBRARIES = psmom.la
 

@@ -17,7 +17,7 @@
 #
 # ParaStation
 #
-# Copyright (C) 2018 ParTec Cluster Competence Center GmbH, Munich
+# Copyright (C) 2018-2020 ParTec Cluster Competence Center GmbH, Munich
 #
 # This file may be distributed under the terms of the Q Public License
 # as defined in the file LICENSE.QPL included in the packaging of this
@@ -273,7 +273,7 @@ am__relativize = \
   reldir="$$dir2"
 ACLOCAL = @ACLOCAL@
 AMTAR = @AMTAR@
-AM_CFLAGS = @AM_CFLAGS@
+AM_CFLAGS = @AM_CFLAGS@ -fcommon
 AM_DEFAULT_VERBOSITY = @AM_DEFAULT_VERBOSITY@
 AM_LDFLAGS = @AM_LDFLAGS@ -avoid-version -module
 AR = @AR@

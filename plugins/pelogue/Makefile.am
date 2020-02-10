@@ -1,7 +1,7 @@
 #
 # ParaStation
 #
-# Copyright (C) 2013-2018 ParTec Cluster Competence Center GmbH, Munich
+# Copyright (C) 2013-2020 ParTec Cluster Competence Center GmbH, Munich
 #
 # This file may be distributed under the terms of the Q Public License
 # as defined in the file LICENSE.QPL included in the packaging of this
@@ -14,6 +14,7 @@ psaccount_dir := plugins/psaccount
 
 AM_LDFLAGS += -avoid-version -module
 AM_CPPFLAGS += -I$(top_srcdir)/bin/daemon -I$(top_srcdir)/$(psaccount_dir)
+AM_CFLAGS += -fcommon
 
 plugin_LTLIBRARIES = pelogue.la
 
