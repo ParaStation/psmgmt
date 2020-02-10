@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2014-2019 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2014-2020 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -205,15 +205,13 @@ int verifyConfigEntry(const ConfDef_t confDef[], char *key, char *value)
 int verifyConfig(Config_t *conf, const ConfDef_t confDef[])
 {
     list_t *o;
-    int res = 0;
-
     list_for_each(o, conf) {
 	ConfObj_t *obj = list_entry(o, ConfObj_t, next);
-	res = verifyConfigEntry(confDef, obj->key, obj->value);
+	int res = verifyConfigEntry(confDef, obj->key, obj->value);
 	if (res) return res;
     }
 
-    return res;
+    return 0;
 }
 
 static void delConfObj(ConfObj_t *obj)
@@ -227,7 +225,6 @@ static void delConfObj(ConfObj_t *obj)
 void freeConfig(Config_t *conf)
 {
     list_t *o, *tmp;
-
     list_for_each_safe(o, tmp, conf) {
 	ConfObj_t *obj = list_entry(o, ConfObj_t, next);
 	delConfObj(obj);
