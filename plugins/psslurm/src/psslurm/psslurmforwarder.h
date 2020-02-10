@@ -121,4 +121,15 @@ Step_t * __findStepByEnv(char **environ, uint32_t *jobid_out,
 	    __findStepByEnv(environ, jobid_out, stepid_out, isAdmin, \
 			    __func__, __LINE__)
 
+/**
+ * @brief Handle hook PSIDHOOK_FRWRD_CLNT_RES
+ *
+ * Used to forward the client exit status in spank hook SPANK_TASK_EXIT.
+ *
+ * @param data Exit status of the client
+ *
+ * @return Always returns 0
+ */
+int handleFwRes(void * data);
+
 #endif

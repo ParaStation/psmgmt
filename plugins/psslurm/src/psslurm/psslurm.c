@@ -79,7 +79,7 @@ uint32_t configHash;
 /** psid plugin requirements */
 char name[] = "psslurm";
 int version = 117;
-int requiredAPI = 121;
+int requiredAPI = 123;
 plugin_dep_t dependencies[] = {
     { .name = "psmunge", .version = 4 },
     { .name = "psaccount", .version = 28 },
@@ -149,6 +149,10 @@ static void unregisterHooks(bool verbose)
     if (!PSIDhook_del(PSIDHOOK_PELOGUE_PREPARE, handlePEloguePrepare)) {
 	if (verbose) mlog("unregister 'PSIDHOOK_PELOGUE_PREPARE' failed\n");
     }
+
+    if (!PSIDhook_del(PSIDHOOK_FRWRD_CLNT_RES, handleFwRes)) {
+	if (verbose) mlog("unregister 'PSIDHOOK_FRWRD_CLNT_RES' failed\n");
+    }
 }
 
 /**
@@ -188,6 +192,11 @@ static bool registerHooks(void)
 
     if (!PSIDhook_add(PSIDHOOK_PELOGUE_PREPARE, handlePEloguePrepare)) {
 	mlog("register 'PSIDHOOK_PELOGUE_PREPARE' failed\n");
+	return false;
+    }
+
+    if (!PSIDhook_add(PSIDHOOK_FRWRD_CLNT_RES, handleFwRes)) {
+	mlog("register 'PSIDHOOK_FRWRD_CLNT_RES' failed\n");
 	return false;
     }
 

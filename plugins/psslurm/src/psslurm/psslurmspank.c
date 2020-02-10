@@ -575,12 +575,15 @@ static spank_err_t getTaskItem(spank_t spank, spank_item_t item, va_list ap)
 		return ESPANK_NOT_AVAIL;
 	    }
 	    break;
-	/* TODO */
 	case S_TASK_EXIT_STATUS:
-	    /* Exit status of task if exited (int *)        */
 	    pInt = va_arg(ap, int *);
-	    *pInt = 0;
-	    return ESPANK_NOT_AVAIL;
+	    if (spank->hook == SPANK_TASK_EXIT) {
+		*pInt = step->exitCode;
+	    } else {
+		*pInt = 0;
+		return ESPANK_NOT_AVAIL;
+	    }
+	    break;
 	default:
 	    return ESPANK_BAD_ARG;
     }

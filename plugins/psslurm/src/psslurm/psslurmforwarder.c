@@ -66,6 +66,18 @@
 
 #define MPIEXEC_BINARY BINDIR "/mpiexec"
 
+/** Allocation structure of the forwarder */
+Alloc_t *fwAlloc = NULL;
+
+/** Job structure of the forwarder */
+Job_t *fwJob = NULL;
+
+/** Step structure of the forwarder */
+Step_t *fwStep = NULL;
+
+/** Task structure of the forwarder */
+PStask_t *fwTask = NULL;
+
 static int jobCallback(int32_t exit_status, Forwarder_Data_t *fw)
 {
     Job_t *job = fw->userData;
@@ -339,20 +351,33 @@ Step_t * __findStepByEnv(char **environ, uint32_t *jobid_out,
     return step;
 }
 
+static void initFwPtr(PStask_t *task)
+{
+    if (fwStep) return;
+
+    bool isAdmin = isPSAdminUser(task->uid, task->gid);
+    uint32_t jobid = 0;
+    Step_t *step = findStepByEnv(task->environ, &jobid, NULL, isAdmin);
+
+    if (step) {
+	fwStep = step;
+	fwJob = findJobById(jobid);
+	fwAlloc = findAlloc(jobid);
+    }
+    fwTask = task;
+}
+
 int handleForwarderInit(void * data)
 {
     PStask_t *task = data;
 
     if (task->rank <0 || task->group != TG_ANY) return 0;
-    bool isAdmin = isPSAdminUser(task->uid, task->gid);
 
-    uint32_t jobid = 0;
-    Step_t *step = findStepByEnv(task->environ, &jobid, NULL, isAdmin);
-    if (step) {
+    initFwPtr(task);
+    if (fwStep) {
+	initSpawnFacility(fwStep);
 
-	initSpawnFacility(step);
-
-	if (step->taskFlags & LAUNCH_PARALLEL_DEBUG) {
+	if (fwStep->taskFlags & LAUNCH_PARALLEL_DEBUG) {
 	    pid_t child = PSC_getPID(task->tid);
 	    int status;
 
@@ -370,7 +395,7 @@ int handleForwarderInit(void * data)
 	    }
 	}
     } else {
-	if (!isAdmin) {
+	if (!isPSAdminUser(task->uid, task->gid)) {
 	    flog("rank %i failed to find my step\n", task->rank);
 	}
     }
@@ -380,10 +405,10 @@ int handleForwarderInit(void * data)
 
 #ifdef HAVE_SPANK
     struct spank_handle spank = {
-	.task = task,
-	.alloc = findAlloc(jobid),
-	.job = findJobById(jobid),
-	.step = step,
+	.task = fwTask,
+	.alloc = fwAlloc,
+	.job = fwJob,
+	.step = fwStep,
 	.hook = SPANK_TASK_POST_FORK
     };
     SpankCallHook(&spank);
@@ -397,36 +422,23 @@ int handleForwarderClientStatus(void * data)
     PStask_t *task = data;
 
     if (task->rank <0 || task->group != TG_ANY) return 0;
-    bool isAdmin = isPSAdminUser(task->uid, task->gid);
 
-    uint32_t jobid = 0;
-    Step_t *step = findStepByEnv(task->environ, &jobid, NULL, isAdmin);
-    if (!step) {
-	if (!isAdmin) {
+    initFwPtr(task);
+    if (!fwStep) {
+	if (!isPSAdminUser(task->uid, task->gid)) {
 	    flog("rank %i failed to find my step\n", task->rank);
 	}
 	return 0;
     }
 
-#ifdef HAVE_SPANK
-    struct spank_handle spank = {
-	.task = task,
-	.alloc = findAlloc(jobid),
-	.job = findJobById(jobid),
-	.step = step,
-	.hook = SPANK_TASK_EXIT
-    };
-    SpankCallHook(&spank);
-#endif
+    if (!fwStep->taskEpilog || *(fwStep->taskEpilog) == '\0') return 0;
 
-    if (!step->taskEpilog || *(step->taskEpilog) == '\0') return 0;
-
-    char *taskEpilogue = step->taskEpilog;
+    char *taskEpilogue = fwStep->taskEpilog;
 
     /* handle relative paths */
     if (taskEpilogue[0] != '/') {
 	char buffer[4096];
-	snprintf(buffer, 4096, "%s/%s", step->cwd, taskEpilogue);
+	snprintf(buffer, 4096, "%s/%s", fwStep->cwd, taskEpilogue);
 	taskEpilogue = buffer;
     }
 
@@ -443,7 +455,7 @@ int handleForwarderClientStatus(void * data)
 
 	setDefaultRlimits();
 
-	setStepEnv(step);
+	setStepEnv(fwStep);
 
 	errno = 0;
 
@@ -453,14 +465,14 @@ int handleForwarderClientStatus(void * data)
 	}
 
 	size_t i;
-	for (i = 0; i < step->env.cnt; i++) {
-	    putenv(step->env.vars[i]);
+	for (i = 0; i < fwStep->env.cnt; i++) {
+	    putenv(fwStep->env.vars[i]);
 	}
 
-	setRankEnv(task->rank, step);
+	setRankEnv(task->rank, fwStep);
 
-	if (chdir(step->cwd) != 0) {
-	    mwarn(errno, "cannot change to working direktory '%s'", step->cwd);
+	if (chdir(fwStep->cwd) != 0) {
+	    mwarn(errno, "cannot change to working direktory '%s'", fwStep->cwd);
 	}
 
 	char *argv[2];
@@ -469,11 +481,11 @@ int handleForwarderClientStatus(void * data)
 
 	/* execute task epilogue */
 	mlog("%s: starting task epilogue '%s' for rank %u of job %u\n",
-	    __func__, taskEpilogue, task->rank, step->jobid);
+	    __func__, taskEpilogue, task->rank, fwStep->jobid);
 
 	execvp(argv[0], argv);
 	mwarn(errno, "%s: exec for task epilogue '%s' failed for rank %u of job"
-	      " %u", __func__, taskEpilogue, task->rank, step->jobid);
+	      " %u", __func__, taskEpilogue, task->rank, fwStep->jobid);
 	exit(-1);
     }
 
@@ -505,17 +517,14 @@ int handleExecClient(void *data)
     if (task->rank <0) return 0;
 
     setDefaultRlimits();
+    initFwPtr(task);
 
 #ifdef HAVE_SPANK
-    bool isAdmin = isPSAdminUser(task->uid, task->gid);
-    uint32_t jobid = 0;
-    Step_t *step = findStepByEnv(task->environ, &jobid, NULL, isAdmin);
-
     struct spank_handle spank = {
-	.task = task,
-	.alloc = findAlloc(jobid),
-	.job = findJobById(jobid),
-	.step = step,
+	.task = fwTask,
+	.alloc = fwAlloc,
+	.job = fwJob,
+	.step = fwStep,
 	.hook = SPANK_TASK_INIT_PRIVILEGED
     };
     SpankCallHook(&spank);
@@ -529,37 +538,35 @@ int handleExecClientUser(void *data)
     PStask_t *task = data;
 
     if (task->rank <0 || task->group != TG_ANY) return 0;
-    bool isAdmin = isPSAdminUser(task->uid, task->gid);
 
     /* unset MALLOC_CHECK_ set by psslurm */
     unsetenv("MALLOC_CHECK_");
 
-    uint32_t jobid = 0;
-    Step_t *step = findStepByEnv(task->environ, &jobid, NULL, isAdmin);
-    if (step) {
+    initFwPtr(task);
+    if (fwStep) {
 	/* set supplementary groups */
-	if (step->gidsLen) {
-	    setgroups(step->gidsLen, step->gids);
+	if (fwStep->gidsLen) {
+	    setgroups(fwStep->gidsLen, fwStep->gids);
 	}
 
-	if (!(IO_redirectRank(step, task->rank))) return -1;
+	if (!(IO_redirectRank(fwStep, task->rank))) return -1;
 
 	/* stop child after exec */
-	if (step->taskFlags & LAUNCH_PARALLEL_DEBUG) {
+	if (fwStep->taskFlags & LAUNCH_PARALLEL_DEBUG) {
 	    if ((ptrace(PTRACE_TRACEME, 0, 0, 0)) == -1) {
 		mwarn(errno, "%s: ptrace() failed: ", __func__);
 		return -1;
 	    }
 	}
 
-	setRankEnv(task->rank, step);
+	setRankEnv(task->rank, fwStep);
 
-	startTaskPrologue(step, task);
+	startTaskPrologue(fwStep, task);
 
-	doMemBind(step, task);
-	verboseMemPinningOutput(step, task);
+	doMemBind(fwStep, task);
+	verboseMemPinningOutput(fwStep, task);
     } else {
-	if (!isAdmin) {
+	if (!isPSAdminUser(task->uid, task->gid)) {
 	    flog("rank %i failed to find my step\n", task->rank);
 	}
     }
@@ -580,10 +587,10 @@ int handleExecClientUser(void *data)
 
 #ifdef HAVE_SPANK
     struct spank_handle spank = {
-	.task = task,
-	.alloc = findAlloc(jobid),
-	.job = findJobById(jobid),
-	.step = step,
+	.task = fwTask,
+	.alloc = fwAlloc,
+	.job = fwJob,
+	.step = fwStep,
 	.hook = SPANK_TASK_INIT
     };
     SpankCallHook(&spank);
@@ -1401,6 +1408,25 @@ bool execStepIO(Step_t *step)
     step->fwdata = fwdata;
 
     return true;
+}
+
+int handleFwRes(void * data)
+{
+#ifdef HAVE_SPANK
+    if (fwStep) {
+	fwStep->exitCode = *(int *) data;
+
+	struct spank_handle spank = {
+	    .task = fwTask,
+	    .alloc = fwAlloc,
+	    .job = fwJob,
+	    .step = fwStep,
+	    .hook = SPANK_TASK_EXIT
+	};
+	SpankCallHook(&spank);
+    }
+#endif
+    return 0;
 }
 
 /* vim: set ts=8 sw=4 tw=0 sts=4 noet:*/
