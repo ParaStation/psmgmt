@@ -29,8 +29,8 @@ Config_t config;
 
 static bool verifyVisitor(char *key, char *value, const void *info)
 {
-    const ConfDef_t *confDef = info;
-    int res = verifyConfigEntry(confDef, key, value);
+    const ConfDef_t *cDef = info;
+    int res = verifyConfigEntry(cDef, key, value);
 
     switch (res) {
     case 0:

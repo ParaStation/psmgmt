@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2016 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2016-2020 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -55,7 +55,7 @@ static char *myCgroup = NULL;
 /** Actual pid-file to jail processes */
 static char *tasksFile = NULL;
 
-static bool enforceLimit(char *name, long limit)
+static bool enforceLimit(char *lName, long lmt)
 {
     if (!myCgroup) {
 	cglog(-1, "%s: no local cgroup defined!\n", __func__);
@@ -63,15 +63,15 @@ static bool enforceLimit(char *name, long limit)
     }
 
     char fName[PATH_MAX];
-    snprintf(fName, sizeof(fName), "%s/%s", myCgroup, name);
+    snprintf(fName, sizeof(fName), "%s/%s", myCgroup, lName);
 
     FILE *fp = fopen(fName, "w");
     if (!fp) {
 	cgwarn(-1, errno, "%s: cannot open '%s'", __func__, fName);
 	return false;
     }
-    if (fprintf(fp, "%ld\n", limit) < 0) {
-	cgwarn(-1, errno, "%s: failed to set %ld to %s", __func__, limit, name);
+    if (fprintf(fp, "%ld\n", lmt) < 0) {
+	cgwarn(-1, errno, "%s: failed to set %ld to %s", __func__, lmt, lName);
 	fclose(fp);
 	return false;
     }
@@ -383,12 +383,12 @@ char *unset(char *key)
 }
 
 
-static void showLimit(char *name, char **buf, size_t *bufSize)
+static void showLimit(char *lName, char **buf, size_t *bufSize)
 {
     size_t limit;
 
     str2Buf("\t", buf, bufSize);
-    str2Buf(name, buf, bufSize);
+    str2Buf(lName, buf, bufSize);
     str2Buf(" = ", buf, bufSize);
 
     if (!myCgroup) {
@@ -397,7 +397,7 @@ static void showLimit(char *name, char **buf, size_t *bufSize)
     }
 
     char fName[PATH_MAX];
-    snprintf(fName, sizeof(fName), "%s/%s", myCgroup, name);
+    snprintf(fName, sizeof(fName), "%s/%s", myCgroup, lName);
 
     FILE *fp = fopen(fName, "r");
     if (!fp) {
@@ -478,10 +478,10 @@ char *show(char *key)
 
 	str2Buf("\n", &buf, &bufSize);
 	for (i = 0; confDef[i].name; i++) {
-	    char *name = confDef[i].name, line[160];
-	    val = getConfValueC(&config, name);
+	    char *cName = confDef[i].name, line[160];
+	    val = getConfValueC(&config, cName);
 
-	    snprintf(line, sizeof(line), "%*s = %s\n", maxKeyLen+2, name, val);
+	    snprintf(line, sizeof(line), "%*s = %s\n", maxKeyLen+2, cName, val);
 	    str2Buf(line, &buf, &bufSize);
 	}
     } else if (!(strcmp(key, "status"))) {

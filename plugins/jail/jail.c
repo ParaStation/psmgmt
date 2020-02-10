@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2018-2019 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2018-2020 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -239,10 +239,10 @@ char *show(char *key)
 
 	str2Buf("\n", &buf, &bufSize);
 	for (i = 0; confDef[i].name; i++) {
-	    char *name = confDef[i].name, line[160];
-	    val = getConfValueC(&config, name);
+	    char *cName = confDef[i].name, line[160];
+	    val = getConfValueC(&config, cName);
 
-	    snprintf(line, sizeof(line), "%*s = %s\n", maxKeyLen+2, name, val);
+	    snprintf(line, sizeof(line), "%*s = %s\n", maxKeyLen+2, cName, val);
 	    str2Buf(line, &buf, &bufSize);
 	}
 	str2Buf("\n", &buf, &bufSize);
