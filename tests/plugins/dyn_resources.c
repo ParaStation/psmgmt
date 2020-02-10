@@ -1,16 +1,12 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2015 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2015-2020 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
- *
- * $Id$
- *
  */
-
 #include <stdio.h>
 #include <string.h>
 
@@ -48,11 +44,11 @@ char *getHWStr(unsigned int hwType)
 
     while (hwType) {
 	if (hwType & 1) {
-	    char *name = HW_name(hwNum);
+	    char *hwName = HW_name(hwNum);
 
-	    if (name) {
+	    if (hwName) {
 		snprintf(txt+strlen(txt), sizeof(txt)-strlen(txt),
-			 "%s ", name);
+			 "%s ", hwName);
 	    } else {
 		snprintf(txt+strlen(txt), sizeof(txt)-strlen(txt), "unknown ");
 	    }
@@ -126,9 +122,10 @@ void provideSlots(void)
 		 name, __func__, numSlot, min, max);
 	PSIDpart_extendRes(tid, rid, numSlot, slots);
     } else {
-	int s, t, frd=0;
-	for (s=0; s<numSlot+1; s++) {
-	    for (t=0; t<MAXTHREADS; t++) {
+	int frd = 0;
+	for (s = 0; s < numSlot + 1; s++) {
+	    int t;
+	    for (t = 0; t < MAXTHREADS; t++) {
 		if (PSCPU_isSet(slots[s].CPUset, t)) {
 		    usedThreads[t] = 0;
 		    frd++;
