@@ -62,10 +62,10 @@ typedef struct {
  * @param caller String used for better error logging.
  *
  * @return On success, i.e. if @a list was large enough or the
- * extension of @a list was possible, 1 is returned. Otherwise 0 is
+ * extension of @a list was possible, true is returned. Otherwise false is
  * returned.
  */
-static int extendList(sizedList_t *list, size_t size, const char *caller)
+static bool extendList(sizedList_t *list, size_t size, const char *caller)
 {
     if (list->actSize < size) {
 	char *tmp = list->list;
@@ -74,11 +74,11 @@ static int extendList(sizedList_t *list, size_t size, const char *caller)
 	if (!list->list) {
 	    printf("%s: %s: out of memory\n", caller, __func__);
 	    free(tmp);
-	    list->actSize=0;
-	    return 0;
+	    list->actSize = 0;
+	    return false;
 	}
     }
-    return 1;
+    return true;
 }
 
 /**
@@ -281,7 +281,7 @@ void PSIADM_AddNode(char *nl)
 
     if (! getHostStatus()) return;
 
-    for (node=0; node<PSC_getNrOfNodes(); node++) {
+    for (node = 0; node < PSC_getNrOfNodes(); node++) {
 	if (nl && !nl[node]) continue;
 
 	if (hostStatus.list[node]) {
@@ -314,7 +314,7 @@ void PSIADM_ShutdownNode(int silent, char *nl)
 
     if (! getHostStatus()) return;
 
-    for (node=0; node<PSC_getNrOfNodes(); node++) {
+    for (node = 0; node < PSC_getNrOfNodes(); node++) {
 	if (nl && !nl[node]) continue;
 
 	if (!hostStatus.list[node]) {
@@ -359,7 +359,7 @@ void PSIADM_HWStart(int hw, char *nl)
 
     if (! getHostStatus()) return;
 
-    for (node=0; node<PSC_getNrOfNodes(); node++) {
+    for (node = 0; node < PSC_getNrOfNodes(); node++) {
 	if (nl && !nl[node]) continue;
 
 	if (hostStatus.list[node]) {
@@ -395,7 +395,7 @@ void PSIADM_HWStop(int hw, char *nl)
 
     if (! getHostStatus()) return;
 
-    for (node=0; node<PSC_getNrOfNodes(); node++) {
+    for (node = 0; node < PSC_getNrOfNodes(); node++) {
 	if (nl && !nl[node]) continue;
 
 	if (hostStatus.list[node]) {
@@ -413,7 +413,7 @@ void PSIADM_NodeStat(char *nl)
 
     if (! getHostStatus()) return;
 
-    for (node=0; node<PSC_getNrOfNodes(); node++) {
+    for (node = 0; node < PSC_getNrOfNodes(); node++) {
 	if (nl && !nl[node]) continue;
 
 	printf("%s\t", nodeString(node));
@@ -441,7 +441,7 @@ void PSIADM_SummaryStat(char *nl, int max)
 
     if (! getHostStatus()) return;
 
-    for (node=0; node<PSC_getNrOfNodes(); node++) {
+    for (node = 0; node < PSC_getNrOfNodes(); node++) {
 	if (nl && !nl[node]) continue;
 
 	if (hostStatus.list[node]) {
@@ -469,7 +469,7 @@ void PSIADM_StarttimeStat(char *nl)
     if (! getHostStatus()) return;
 
     printf("%4s\t%16s\n", "Node", "Start-time ");
-    for (node=0; node<PSC_getNrOfNodes(); node++) {
+    for (node = 0; node < PSC_getNrOfNodes(); node++) {
 	if (nl && !nl[node]) continue;
 
 	printf("%s\t", nodeString(node));
@@ -497,7 +497,7 @@ void PSIADM_ScriptStat(PSP_Info_t type, char *nl)
     if (! getHostStatus()) return;
 
     printf("%4s\t%s\n", "Node", "Script");
-    for (node=0; node<PSC_getNrOfNodes(); node++) {
+    for (node = 0; node < PSC_getNrOfNodes(); node++) {
 	if (nl && !nl[node]) continue;
 	printf("%s\t", nodeString(node));
 	if (hostStatus.list[node]) {
@@ -529,7 +529,7 @@ void PSIADM_SomeStat(char *nl, char mode)
 
     if (! getHostStatus()) return;
 
-    for (node=0; node<PSC_getNrOfNodes(); node++) {
+    for (node = 0; node < PSC_getNrOfNodes(); node++) {
 	bool printIt = false;
 
 	if (nl && !nl[node]) continue;
@@ -558,11 +558,11 @@ void PSIADM_RDPStat(char *nl)
 
     if (! getHostStatus()) return;
 
-    for (node=0; node<PSC_getNrOfNodes(); node++) {
+    for (node = 0; node < PSC_getNrOfNodes(); node++) {
 	if (nl && !nl[node]) continue;
 	printf("%s:\n", nodeString(node));
 	if (hostStatus.list[node]) {
-	    for (partner=0; partner<PSC_getNrOfNodes(); partner++) {
+	    for (partner = 0; partner < PSC_getNrOfNodes(); partner++) {
 		int err = PSI_infoString(node, PSP_INFO_RDPSTATUS, &partner,
 					 line, sizeof(line), 1);
 		if (!err) printf("%s\n", line);
@@ -580,11 +580,11 @@ void PSIADM_RDPConnStat(char *nl)
 
     if (! getHostStatus()) return;
 
-    for (node=0; node<PSC_getNrOfNodes(); node++) {
+    for (node = 0; node < PSC_getNrOfNodes(); node++) {
 	if (nl && !nl[node]) continue;
 	printf("%s:\n", nodeString(node));
 	if (hostStatus.list[node]) {
-	    for (partner=0; partner<PSC_getNrOfNodes(); partner++) {
+	    for (partner = 0; partner < PSC_getNrOfNodes(); partner++) {
 		int err = PSI_infoString(node, PSP_INFO_RDPCONNSTATUS, &partner,
 					 line, sizeof(line), 1);
 		if (!err) printf("%s\n", line);
@@ -602,7 +602,7 @@ void PSIADM_MCastStat(char *nl)
 
     if (! getHostStatus()) return;
 
-    for (node=0; node<PSC_getNrOfNodes(); node++) {
+    for (node = 0; node < PSC_getNrOfNodes(); node++) {
 	int err;
 	if ((nl && !nl[node])) continue;
 	err = PSI_infoString(-1, PSP_INFO_MCASTSTATUS, &node,
@@ -616,13 +616,13 @@ static int getHeaderLine(int32_t hw)
     PSnodes_ID_t node;
     uint32_t *hwStatus = (uint32_t *)hwList.list;
 
-    for (node=0; node<PSC_getNrOfNodes(); node++) {
+    for (node = 0; node < PSC_getNrOfNodes(); node++) {
 	if (hostStatus.list[node] && hwStatus[node] & 1<<hw) {
 	    int err = PSI_infoString(node, PSP_INFO_COUNTHEADER, &hw,
 				     line, sizeof(line), 1);
 	    if (!err) {
 		char name[40];
-		int last = strlen(line)-1;
+		int last = strlen(line) - 1;
 
 		err = PSI_infoString(-1, PSP_INFO_HWNAME, &hw,
 				     name, sizeof(name), 1);
@@ -631,7 +631,7 @@ static int getHeaderLine(int32_t hw)
 		       err ? "unknown" : name);
 		printf("%6s ", "NODE");
 
-		if (line[(last>0) ? last : 0] == '\n') {
+		if (line[(last > 0) ? last : 0] == '\n') {
 		    printf("%s", line);
 		} else {
 		    printf("%s\n", line);
@@ -663,10 +663,10 @@ void PSIADM_CountStat(int hw, char *nl)
     if (! getHWStat()) return;
     hwStatus = (uint32_t *)hwList.list;
 
-    for (hw=first; hw<=last; hw++) {
+    for (hw = first; hw <= last; hw++) {
 	if (getHeaderLine(hw) == PSC_getNrOfNodes()) continue;
 
-	for (node=0; node<PSC_getNrOfNodes(); node++) {
+	for (node = 0; node < PSC_getNrOfNodes(); node++) {
 	    if (nl && !nl[node]) continue;
 
 	    printf("%s\t", nodeString(node));
@@ -707,15 +707,15 @@ void PSIADM_ProcStat(int count, int full, char *nl)
     if (! getHostStatus()) return;
 
     if (!extendList(&tiList,
-		    ((count<0) ? 20 : (count+1)) * sizeof(PSP_taskInfo_t),
+		    ((count < 0) ? 20 : (count + 1)) * sizeof(PSP_taskInfo_t),
 		    __func__)) return;
     taskInfo = (PSP_taskInfo_t *)tiList.list;
 
     usedWidth = printf("%s\t%22s %22s %3s %5s %5s %3s ", "Node", "TaskId",
 		       "ParentTaskId", "Con", "UID", "rank", "Cls");
     printf("%.*s\n", (width-usedWidth) > 0 ? width-usedWidth : 0, "Cmd");
-    for (node=0; node<PSC_getNrOfNodes(); node++) {
-	int numTasks = 0, task, displdTasks;
+    for (node = 0; node < PSC_getNrOfNodes(); node++) {
+	int numTasks = 0, task;
 
 	if (nl && !nl[node]) continue;
 
@@ -758,8 +758,8 @@ void PSIADM_ProcStat(int count, int full, char *nl)
 	}
 
 	/* Now do the output */
-	displdTasks = (count<0) ? numTasks : (numTasks<count) ? numTasks:count;
-	for (task=0; task < displdTasks; task++) {
+	int displd = count < 0 ? numTasks : numTasks < count ? numTasks : count;
+	for (task = 0; task < displd; task++) {
 	    usedWidth = printf("%s\t", nodeString(node));
 	    /* Adapt to actual width due to <TAB> */
 	    usedWidth = ((usedWidth-1)/8 + 1) * 8;
@@ -795,8 +795,8 @@ void PSIADM_ProcStat(int count, int full, char *nl)
 	    }
 	    printf("\n");
 	}
-	if (numTasks>displdTasks) {
-	    printf(" + %d more tasks\n", numTasks-displdTasks);
+	if (numTasks > displd) {
+	    printf(" + %d more tasks\n", numTasks - displd);
 	}
     }
 }
@@ -823,12 +823,12 @@ void PSIADM_LoadStat(char *nl)
     printf("Node\t\t Load\t\t     Jobs\n");
     printf("\t  1 min\t  5 min\t 15 min\t  tot.\t norm.\talloc.\texclusive\n");
 
-    for (node=0; node<PSC_getNrOfNodes(); node++) {
+    for (node = 0; node < PSC_getNrOfNodes(); node++) {
 	if (nl && !nl[node]) continue;
 	printf("%s\t", nodeString(node));
 	if (hostStatus.list[node]) {
 	    printf("%7.2f\t%7.2f\t%7.2f\t%6d\t%6d\t%6d\t%5d\n",
-		   loads[3*node+0], loads[3*node+1], loads[3*node+2],
+		   loads[3*node + 0], loads[3*node + 1], loads[3*node + 2],
 		   taskNumFull[node], taskNumNorm[node], taskNumAlloc[node],
 		   exclusiveFlag[node]);
 	} else {
@@ -849,13 +849,13 @@ void PSIADM_MemStat(char *nl)
     printf("Node\t\t\tMemory\n");
     printf("\t\t total\t\t free\n");
 
-    for (node=0; node<PSC_getNrOfNodes(); node++) {
+    for (node = 0; node < PSC_getNrOfNodes(); node++) {
 	if (nl && !nl[node]) continue;
 	printf("%s\t", nodeString(node));
 	if (hostStatus.list[node]) {
 	    printf("%15llu\t%15llu\n",
-		   (long long unsigned int) memory[2*node+0],
-		   (long long unsigned int) memory[2*node+1]);
+		   (long long unsigned int) memory[2*node + 0],
+		   (long long unsigned int) memory[2*node + 1]);
 	} else {
 	    printf("down\n");
 	}
@@ -877,7 +877,7 @@ void PSIADM_HWStat(char *nl)
     virtCPUs = (uint16_t *)vcpuList.list;
 
     printf("Node\t CPUs\t Available Hardware\n");
-    for (node=0; node<PSC_getNrOfNodes(); node++) {
+    for (node = 0; node < PSC_getNrOfNodes(); node++) {
 	if (nl && !nl[node]) continue;
 
 	printf("%s\t", nodeString(node));
@@ -908,12 +908,12 @@ void PSIADM_PluginStat(char *nl)
     usedWidth = ((usedWidth-1)/8 + 1) * 8;
     usedWidth += printf("%16s   %3s   ", "Plugin", "Ver");
     printf("%.*s\n", (width-usedWidth) > 0 ? width-usedWidth : 0, "Used by");
-    for (node=0; node<PSC_getNrOfNodes(); node++) {
-	int firstline = 1;
+    for (node = 0; node < PSC_getNrOfNodes(); node++) {
+	bool firstline = true;
 
 	if (nl && !nl[node]) continue;
 
-	printf("%.*s\n", (width) > 0 ? width : 0,
+	printf("%.*s\n", width > 0 ? width : 0,
 	       "---------------------------------------------------------"
 	       "---------------------------------------------------------");
 	nodeStr = nodeString(node);
@@ -930,7 +930,7 @@ void PSIADM_PluginStat(char *nl)
 	while (PSI_infoQueueNext(what, line, sizeof(line), 1) > 0) {
 	    if (firstline) {
 		usedWidth = printf("%s", nodeStr);
-		firstline = 0;
+		firstline = false;
 	    } else {
 		usedWidth = printf("%*s", usedWidth, "");
 	    }
@@ -953,12 +953,12 @@ void PSIADM_EnvStat(char *key, char *nl)
     }
 
     usedWidth = printf("%4s  %s\n", "Node", "<key>=<value>");
-    for (node=0; node<PSC_getNrOfNodes(); node++) {
-	int firstline = 1;
+    for (node = 0; node < PSC_getNrOfNodes(); node++) {
+	bool firstline = true;
 
 	if (nl && !nl[node]) continue;
 
-	printf("%.*s\n", (width) > 0 ? width : 0,
+	printf("%.*s\n", width > 0 ? width : 0,
 	       "---------------------------------------------------------"
 	       "---------------------------------------------------------");
 	nodeStr = nodeString(node);
@@ -975,7 +975,7 @@ void PSIADM_EnvStat(char *key, char *nl)
 	while (PSI_infoQueueNext(what, line, sizeof(line), 1) > 0) {
 	    if (firstline) {
 		usedWidth = printf("%s", nodeStr);
-		firstline = 0;
+		firstline = false;
 	    } else {
 		usedWidth = printf("%*s", usedWidth, "");
 	    }
@@ -986,8 +986,8 @@ void PSIADM_EnvStat(char *key, char *nl)
 
 static void printSlots(int num, PSpart_slot_t *slots, int width, int offset)
 {
-    int i=0, pos=0;
-    int myWidth = (width<20) ? 20 : width;
+    int i = 0, pos = 0;
+    int myWidth = (width < 20) ? 20 : width;
     char range[128];
 
     /* @todo pinning Smarter output: Print which slots to use. */
@@ -995,7 +995,7 @@ static void printSlots(int num, PSpart_slot_t *slots, int width, int offset)
     printf(" ");
     while (i < num) {
 	PSnodes_ID_t cur = slots[i].node, loopCur;
-	int rep = 0, loopStep=0, loopRep;
+	int rep = 0, loopStep = 0, loopRep;
 
 	while(i<num && slots[i].node == cur) {
 	    rep++;
@@ -1022,14 +1022,14 @@ static void printSlots(int num, PSpart_slot_t *slots, int width, int offset)
 	    snprintf(range+strlen(range), sizeof(range)-strlen(range),
 		     "-%d", loopCur-loopStep);
 	}
-	if (rep>1) {
+	if (rep > 1) {
 	    snprintf(range+strlen(range), sizeof(range)-strlen(range),
 		     "(%d)", rep);
 	}
-	pos+=strlen(range)+1;
+	pos+=strlen(range) + 1;
 	if (pos > myWidth) {
 	    printf("\n%*s", offset, "");
-	    pos = strlen(range)+1;
+	    pos = strlen(range) + 1;
 	}
 	printf("%s%s", range, (i < num) ? "," : "");
     }
@@ -1044,7 +1044,7 @@ void PSIADM_InstdirStat(char *nl)
     if (! getHostStatus()) return;
 
     printf("%4s\t%s\n", "Node", "Installation directory");
-    for (node=0; node<PSC_getNrOfNodes(); node++) {
+    for (node = 0; node < PSC_getNrOfNodes(); node++) {
 	if (nl && !nl[node]) continue;
 	printf("%s\t", nodeString(node));
 	if (hostStatus.list[node]) {
@@ -1215,7 +1215,7 @@ void PSIADM_VersionStat(char *nl)
     if (! getHostStatus()) return;
 
     printf("%4s\t%-36s %6s\n", "Node", "psid version", "Protocols");
-    for (node=0; node<PSC_getNrOfNodes(); node++) {
+    for (node = 0; node < PSC_getNrOfNodes(); node++) {
 	if (nl && !nl[node]) continue;
 
 	printf("%s\t", nodeString(node));
@@ -1234,7 +1234,7 @@ void PSIADM_VersionStat(char *nl)
 	    err = PSI_infoOption(node, 2, optType, optVal, 1);
 	    if (err != -1) {
 		int i;
-		for (i=0; i<2; i++) {
+		for (i = 0; i < 2; i++) {
 		    switch (optType[i]) {
 		    case PSP_OP_UNKNOWN:
 			printf("unknown");
@@ -1242,7 +1242,7 @@ void PSIADM_VersionStat(char *nl)
 		    default:
 			printf("%3d", optVal[i]);
 		    }
-		    if (i<2-1) printf("/");
+		    if (i < 2-1) printf("/");
 		}
 		printf("\n");
 	    } else {
@@ -1315,13 +1315,13 @@ void PSIADM_SetParam(PSP_Option_t type, PSP_Optval_t value, char *nl)
 	break;
     case PSP_OP_STATUS_TMOUT:
     case PSP_OP_RDPTMOUT:
-	if (value<MIN_TIMEOUT_MSEC) {
+	if (value < MIN_TIMEOUT_MSEC) {
 	    printf(" value must be >= %d.\n", MIN_TIMEOUT_MSEC);
 	    return;
 	}
 	break;
     case PSP_OP_RDPPKTLOSS:
-	if (value<0 || value>100) {
+	if (value < 0 || value > 100) {
 	    printf(" value must be 0 <= val <= 100.\n");
 	    return;
 	}
@@ -1377,7 +1377,7 @@ void PSIADM_SetParam(PSP_Option_t type, PSP_Optval_t value, char *nl)
 
     if (! getHostStatus()) return;
 
-    for (node=0; node<PSC_getNrOfNodes(); node++) {
+    for (node = 0; node < PSC_getNrOfNodes(); node++) {
 	if (nl && !nl[node]) continue;
 
 	if (hostStatus.list[node]) {
@@ -1413,13 +1413,13 @@ void PSIADM_SetParamList(PSP_Option_t type, PSIADM_valList_t *val, char *nl)
 	msg.opt[(int) msg.count].value = 0;
 	msg.count++;
 
-	for (i=0; i<val->num; i++) {
+	for (i = 0; i < val->num; i++) {
 	    msg.opt[(int) msg.count].option = PSP_OP_APP_CPUMAP;
 	    msg.opt[(int) msg.count].value = val->value[i];
 
 	    msg.count++;
 	    if (msg.count == DDOptionMsgMax) {
-		for (node=0; node<PSC_getNrOfNodes(); node++) {
+		for (node = 0; node < PSC_getNrOfNodes(); node++) {
 		    if (nl && !nl[node]) continue;
 
 		    if (hostStatus.list[node]) {
@@ -1432,7 +1432,7 @@ void PSIADM_SetParamList(PSP_Option_t type, PSIADM_valList_t *val, char *nl)
 	}
 
 	if (msg.count) {
-	    for (node=0; node<PSC_getNrOfNodes(); node++) {
+	    for (node = 0; node < PSC_getNrOfNodes(); node++) {
 		if (nl && !nl[node]) continue;
 
 		if (hostStatus.list[node]) {
@@ -1456,7 +1456,7 @@ void PSIADM_ShowParam(PSP_Option_t type, char *nl)
 
     if (! getHostStatus()) return;
 
-    for (node=0; node<PSC_getNrOfNodes(); node++) {
+    for (node = 0; node < PSC_getNrOfNodes(); node++) {
 	if (nl && !nl[node]) continue;
 
 	printf("%s\t", nodeString(node));
@@ -1522,8 +1522,8 @@ void PSIADM_ShowParamList(PSP_Option_t type, char *nl)
 
     if (! getHostStatus()) return;
 
-    for (node=0; node<PSC_getNrOfNodes(); node++) {
-	int total=0;
+    for (node = 0; node < PSC_getNrOfNodes(); node++) {
+	int total = 0;
 	if (nl && !nl[node]) continue;
 
 	printf("%s\t", nodeString(node));
@@ -1546,7 +1546,7 @@ void PSIADM_ShowParamList(PSP_Option_t type, char *nl)
 		break;
 	    }
 
-	    for (i=0; i<ret; i++, total++) {
+	    for (i = 0; i < ret; i++, total++) {
 		switch (options[i].option) {
 		case PSP_OP_ACCT:
 		    if (total) printf(", ");
@@ -1555,7 +1555,7 @@ void PSIADM_ShowParamList(PSP_Option_t type, char *nl)
 		case PSP_OP_UID:
 		case PSP_OP_ADMUID:
 		    if (total) printf(", ");
-		    if (options[i].value==-1)
+		    if (options[i].value == -1)
 			printf("ANY");
 		    else {
 			struct passwd *passwd = getpwuid(options[i].value);
@@ -1569,7 +1569,7 @@ void PSIADM_ShowParamList(PSP_Option_t type, char *nl)
 		case PSP_OP_GID:
 		case PSP_OP_ADMGID:
 		    if (total) printf(", ");
-		    if (options[i].value==-1)
+		    if (options[i].value == -1)
 			printf(" ANY");
 		    else {
 			struct group *group = getgrgid(options[i].value);
@@ -1615,7 +1615,7 @@ void PSIADM_ShowParamList(PSP_Option_t type, char *nl)
 		    goto next_node;
 		}
 	    }
-	} while (1);
+	} while (true);
     next_node:
 	printf("\n");
     }
@@ -1677,7 +1677,7 @@ void PSIADM_Reset(int reset_hw, char *nl)
 
     if (! getHostStatus()) return;
 
-    for (node=0; node<PSC_getNrOfNodes(); node++) {
+    for (node = 0; node < PSC_getNrOfNodes(); node++) {
 	if (nl && !nl[node]) continue;
 
 	if (hostStatus.list[node]) {
@@ -1704,7 +1704,7 @@ void PSIADM_TestNetwork(int mode)
 
     dir = PSC_lookupInstalldir(NULL);
     if (dir) {
-	if (chdir(dir)<0) {
+	if (chdir(dir) < 0) {
 	    printf("Cannot change to directory '%s'.\n", dir);
 	    return;
 	}
@@ -1763,7 +1763,7 @@ void PSIADM_Resolve(char *nl)
 {
     PSnodes_ID_t node;
 
-    for (node=0; node<PSC_getNrOfNodes(); node++) {
+    for (node = 0; node < PSC_getNrOfNodes(); node++) {
 	if (nl && !nl[node]) continue;
 
 	printf("%4d\t%s\n", node, resolveNode(node));
@@ -1789,7 +1789,7 @@ void PSIADM_Plugin(char *nl, char *name, PSP_Plugin_t action)
 
     if (! getHostStatus()) return;
 
-    for (node=0; node<PSC_getNrOfNodes(); node++) {
+    for (node = 0; node < PSC_getNrOfNodes(); node++) {
 	if (nl && !nl[node]) continue;
 
 	if (hostStatus.list[node]) {
@@ -1889,11 +1889,11 @@ void PSIADM_PluginKey(char *nl, char *name, char *key, char *value,
 
     if (! getHostStatus()) return;
 
-    for (node=0; node<PSC_getNrOfNodes(); node++) {
+    for (node = 0; node < PSC_getNrOfNodes(); node++) {
 	if (nl && !nl[node]) continue;
 
 	if (separator) {
-	    printf("%.*s\n", (width) > 0 ? width : 0,
+	    printf("%.*s\n", width > 0 ? width : 0,
 		   "---------------------------------------------------------"
 		   "---------------------------------------------------------");
 	}
@@ -1950,7 +1950,7 @@ void PSIADM_Environment(char *nl, char *key, char *value, PSP_Env_t action)
 
     if (! getHostStatus()) return;
 
-    for (node=0; node<PSC_getNrOfNodes(); node++) {
+    for (node = 0; node < PSC_getNrOfNodes(); node++) {
 	if (nl && !nl[node]) continue;
 
 	if (hostStatus.list[node]) {
