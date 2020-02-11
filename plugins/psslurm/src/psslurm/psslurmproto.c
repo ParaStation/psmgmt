@@ -294,6 +294,8 @@ static void printLaunchTasksInfos(Step_t *step)
 	 step->jobid, step->stepid, strJobState(step->state));
 
     /* pinning */
+    mdbg(PSSLURM_LOG_PART, "%s: taskDist 0x%hx\n", __func__, step->taskDist);
+
     mdbg(PSSLURM_LOG_PART, "%s: cpuBindType 0x%hx, cpuBind '%s'\n", __func__,
 	 step->cpuBindType, step->cpuBind);
 
