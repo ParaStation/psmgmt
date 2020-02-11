@@ -82,7 +82,17 @@ typedef enum cpu_bind_type {    /* cpu binding type from --cpu_bind=... */
 
         /* the following is used only as a flag for expressing
          * the contents of TaskPluginParams */
-        CPU_BIND_CPUSETS   = 0x8000
+        CPU_BIND_CPUSETS   = 0x8000,
+
+	/* default binding if auto binding doesn't match. */
+        CPU_AUTO_BIND_TO_THREADS = 0x04000,
+        CPU_AUTO_BIND_TO_CORES   = 0x10000,
+        CPU_AUTO_BIND_TO_SOCKETS = 0x20000,
+
+        /* the following is used only as a flag for expressing
+         * the contents of TaskPluginParams */
+        SLURMD_OFF_SPEC            = 0x40000,
+        CPU_BIND_OFF               = 0x80000    /* Disable binding */
 } cpu_bind_type_t;
 
 /* memory binding */
@@ -95,7 +105,10 @@ typedef enum mem_bind_type {
         MEM_BIND_RANK   = 0x04, /* =rank */
         MEM_BIND_MAP    = 0x08, /* =map_mem:<list of CPU IDs> */
         MEM_BIND_MASK   = 0x10, /* =mask_mem:<list of CPU masks> */
-        MEM_BIND_LOCAL  = 0x20  /* =local */
+        MEM_BIND_LOCAL  = 0x20, /* =local */
+	/* sort and prefer can be set with any other flags */
+        MEM_BIND_SORT   = 0x40, /* =sort */
+        MEM_BIND_PREFER = 0x80  /* =prefer */
 } mem_bind_type_t;
 
 /* accelerator binding */
