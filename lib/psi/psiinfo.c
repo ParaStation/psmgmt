@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2017 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2020 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -42,18 +42,18 @@
  * The actual type of the info message will be returned.
  *
  *
- * @param buf The buffer to store the content of the info message to.
+ * @param buf The buffer to store the content of the info message to
  *
  * @param size The actual size of the buffer @a buf. On return the
  * number of bytes received from the info message and stored to @a
  * buf.
  *
- * @param verbose Flag to enable more verbose output.
+ * @param verbose Flag to enable more verbose output
  *
  * @return On success the type of the info message received will be
  * returned. Otherwise PSP_INFO_UNKNOWN is returned.
  */
-static PSP_Info_t receiveInfo(void *buf, size_t *size, int verbose)
+static PSP_Info_t receiveInfo(void *buf, size_t *size, bool verbose)
 {
     DDTypedBufferMsg_t msg;
     PSP_Info_t ret;
@@ -172,7 +172,7 @@ recv_retry:
 }
 
 int PSI_infoInt(PSnodes_ID_t node, PSP_Info_t what, const void *param,
-		int32_t *val, int verbose)
+		int32_t *val, bool verbose)
 {
     DDTypedBufferMsg_t msg = {
 	.header = {
@@ -221,7 +221,7 @@ int PSI_infoInt(PSnodes_ID_t node, PSP_Info_t what, const void *param,
 }
 
 int PSI_infoInt64(PSnodes_ID_t node, PSP_Info_t what, const void *param,
-		  int64_t *val, int verbose)
+		  int64_t *val, bool verbose)
 {
     DDTypedBufferMsg_t msg = {
 	.header = {
@@ -255,7 +255,7 @@ int PSI_infoInt64(PSnodes_ID_t node, PSP_Info_t what, const void *param,
 }
 
 int PSI_infoUInt(PSnodes_ID_t node, PSP_Info_t what, const void *param,
-		 uint32_t *val, int verbose)
+		 uint32_t *val, bool verbose)
 {
     DDTypedBufferMsg_t msg = {
 	.header = {
@@ -298,7 +298,7 @@ int PSI_infoUInt(PSnodes_ID_t node, PSP_Info_t what, const void *param,
 }
 
 int PSI_infoString(PSnodes_ID_t node, PSP_Info_t what, const void *param,
-		   char *string, size_t size, int verbose)
+		   char *string, size_t size, bool verbose)
 {
     DDTypedBufferMsg_t msg = (DDTypedBufferMsg_t) {
 	.header = (DDMsg_t) {
@@ -372,7 +372,7 @@ int PSI_infoString(PSnodes_ID_t node, PSP_Info_t what, const void *param,
 }
 
 int PSI_infoTaskID(PSnodes_ID_t node, PSP_Info_t what, const void *param,
-		   PStask_ID_t *tid, int verbose)
+		   PStask_ID_t *tid, bool verbose)
 {
     DDTypedBufferMsg_t msg = (DDTypedBufferMsg_t) {
 	.header = (DDMsg_t) {
@@ -408,7 +408,7 @@ int PSI_infoTaskID(PSnodes_ID_t node, PSP_Info_t what, const void *param,
 }
 
 int PSI_infoNodeID(PSnodes_ID_t node, PSP_Info_t what, const void *param,
-		   PSnodes_ID_t *nid, int verbose)
+		   PSnodes_ID_t *nid, bool verbose)
 {
     DDTypedBufferMsg_t msg = (DDTypedBufferMsg_t) {
 	.header = (DDMsg_t) {
@@ -462,7 +462,7 @@ int PSI_infoNodeID(PSnodes_ID_t node, PSP_Info_t what, const void *param,
 }
 
 int PSI_infoList(PSnodes_ID_t node, PSP_Info_t what, const void *param,
-		 void *buf, size_t size, int verbose)
+		 void *buf, size_t size, bool verbose)
 {
     DDTypedBufferMsg_t msg = (DDTypedBufferMsg_t) {
 	.header = (DDMsg_t) {
@@ -589,7 +589,7 @@ int PSI_infoQueueReq(PSnodes_ID_t node, PSP_Info_t what, const void *param)
     return 0;
 }
 
-int PSI_infoQueueNext(PSP_Info_t what, void *buf, size_t size, int verbose)
+int PSI_infoQueueNext(PSP_Info_t what, void *buf, size_t size, bool verbose)
 {
     PSP_Info_t type;
     size_t recvd = 0;
@@ -630,7 +630,7 @@ int PSI_infoQueueNext(PSP_Info_t what, void *buf, size_t size, int verbose)
 }
 
 int PSI_infoOption(PSnodes_ID_t node, int num, PSP_Option_t option[],
-		   PSP_Optval_t value[], int verbose)
+		   PSP_Optval_t value[], bool verbose)
 {
     DDOptionMsg_t msg;
     int i;
@@ -713,7 +713,7 @@ int PSI_infoOptionList(PSnodes_ID_t node, PSP_Option_t option)
     return 0;
 }
 
-int PSI_infoOptionListNext(DDOption_t opts[], int num, int verbose)
+int PSI_infoOptionListNext(DDOption_t opts[], int num, bool verbose)
 {
     DDOptionMsg_t msg;
     int i;
@@ -766,7 +766,7 @@ char *PSI_printHWType(unsigned int hwType)
     while (hwType) {
 	if (hwType & 1) {
 	    int err = PSI_infoString(-1, PSP_INFO_HWNAME,
-				     &hwNum, name, sizeof(name), 1);
+				     &hwNum, name, sizeof(name), true);
 
 	    if (!err) {
 		snprintf(txt+strlen(txt), sizeof(txt)-strlen(txt),
@@ -815,9 +815,9 @@ PSnodes_ID_t PSI_resolveNodeID(const char *host)
     for (rp = result; rp != NULL; rp = rp->ai_next) {
 	switch (rp->ai_family) {
 	case AF_INET:
-	    rc=PSI_infoNodeID(-1, PSP_INFO_HOST,
-			      &((struct sockaddr_in *)rp->ai_addr)->sin_addr.s_addr,
-			      &nodeID, 0);
+	    rc = PSI_infoNodeID(-1, PSP_INFO_HOST,
+			&((struct sockaddr_in *)rp->ai_addr)->sin_addr.s_addr,
+				&nodeID, false);
 	    break;
 	case AF_INET6:
 	    /* ignore -- don't handle IPv6 yet */

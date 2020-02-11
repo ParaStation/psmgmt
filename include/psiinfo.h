@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2017 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2020 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -16,6 +16,7 @@
 #ifndef __PSIINFO_H
 #define __PSIINFO_H
 
+#include <stdbool.h>
 #include <stdint.h>
 
 #include "psnodes.h"
@@ -51,17 +52,17 @@
  * where the latter denotes the process to be the logger process. No
  * further parameters needed.
  *
- * @param node The ParaStation ID of the node to ask.
+ * @param node The ParaStation ID of the node to ask
  *
- * @param what The type of information to request as described above.
+ * @param what The type of information to request as described above
  *
  * @param param Pointer to further parameters needed in order to
- * retrieve the requested information.
+ * retrieve the requested information
  *
- * @param val Pointer to the datum reserved for the result.
+ * @param val Pointer to the datum reserved for the result
  *
- * @param verbose Flag to be more verbose, if something within the
- * information retrival went wrong.
+ * @param verbose Flag to be more verbose in the case something went
+ * wrong during information retrival
  *
  * @return On success, 0 is returned. Otherwise -1 is returned and
  * errno is set appropriately.
@@ -69,7 +70,7 @@
  * @see errno(3)
  */
 int PSI_infoInt(PSnodes_ID_t node, PSP_Info_t what, const void *param,
-		int32_t *val, int verbose);
+		int32_t *val, bool verbose);
 
 /**
  * @brief Retrieve 64-bit integer information.
@@ -84,17 +85,17 @@ int PSI_infoInt(PSnodes_ID_t node, PSP_Info_t what, const void *param,
  * - PSP_INFO_STARTTIME request the start-time of the node. No further
  *   parameters needed.
  *
- * @param node The ParaStation ID of the node to ask.
+ * @param node The ParaStation ID of the node to ask
  *
- * @param what The type of information to request as described above.
+ * @param what The type of information to request as described above
  *
  * @param param Pointer to further parameters needed in order to
- * retrieve the requested information.
+ * retrieve the requested information
  *
- * @param val Pointer to the datum reserved for the result.
+ * @param val Pointer to the datum reserved for the result
  *
- * @param verbose Flag to be more verbose, if something within the
- * information retrival went wrong.
+ * @param verbose Flag to be more verbose in the case something went
+ * wrong during information retrival
  *
  * @return On success, 0 is returned. Otherwise -1 is returned and
  * errno is set appropriately.
@@ -102,7 +103,7 @@ int PSI_infoInt(PSnodes_ID_t node, PSP_Info_t what, const void *param,
  * @see errno(3)
  */
 int PSI_infoInt64(PSnodes_ID_t node, PSP_Info_t what, const void *param,
-		  int64_t *val, int verbose);
+		  int64_t *val, bool verbose);
 
 /**
  * @brief Retrieve unsigned integer information.
@@ -119,17 +120,17 @@ int PSI_infoInt64(PSnodes_ID_t node, PSP_Info_t what, const void *param,
  * ParaStation ID. Although @a val points to a datum of type @c
  * int32_t, the value returned has to be interpreted as a @c uint32_t.
  *
- * @param node The ParaStation ID of the node to ask.
+ * @param node The ParaStation ID of the node to ask
  *
- * @param what The type of information to request as described above.
+ * @param what The type of information to request as described above
  *
  * @param param Pointer to further parameters needed in order to
- * retrieve the requested information.
+ * retrieve the requested information
  *
- * @param val Pointer to the datum reserved for the result.
+ * @param val Pointer to the datum reserved for the result
  *
- * @param verbose Flag to be more verbose, if something within the
- * information retrival went wrong.
+ * @param verbose Flag to be more verbose in the case something went
+ * wrong during information retrival
  *
  * @return On success, 0 is returned. Otherwise -1 is returned and
  * errno is set appropriately.
@@ -137,7 +138,7 @@ int PSI_infoInt64(PSnodes_ID_t node, PSP_Info_t what, const void *param,
  * @see errno(3)
  */
 int PSI_infoUInt(PSnodes_ID_t node, PSP_Info_t what, const void *param,
-		 uint32_t *val, int verbose);
+		 uint32_t *val, bool verbose);
 
 /**
  * @brief Retrieve string information.
@@ -207,20 +208,20 @@ int PSI_infoUInt(PSnodes_ID_t node, PSP_Info_t what, const void *param,
  * the master daemon whenever a node disappeares from the concert of
  * daemons within a cluster.
  *
- * @param node The ParaStation ID of the node to ask.
+ * @param node The ParaStation ID of the node to ask
  *
- * @param what The type of information to request as described above.
+ * @param what The type of information to request as described above
  *
  * @param param Pointer to further parameters needed in order to
- * retrieve the requested information.
+ * retrieve the requested information
  *
  * @param string Pointer to the character array reserved for the
- * result.
+ * result
  *
- * @param size The size of @a string.
+ * @param size The size of @a string
  *
- * @param verbose Flag to be more verbose, if something within the
- * information retrival went wrong.
+ * @param verbose Flag to be more verbose in the case something went
+ * wrong during information retrival
  *
  * @return On success, 0 is returned. Otherwise -1 is returned and
  * errno is set appropriately.
@@ -228,7 +229,7 @@ int PSI_infoUInt(PSnodes_ID_t node, PSP_Info_t what, const void *param,
  * @see errno(3)
  */
 int PSI_infoString(PSnodes_ID_t node, PSP_Info_t what, const void *param,
-		   char *string, size_t size, int verbose);
+		   char *string, size_t size, bool verbose);
 
 /**
  * @brief Retrieve task ID.
@@ -251,17 +252,17 @@ int PSI_infoString(PSnodes_ID_t node, PSP_Info_t what, const void *param,
  * to be of type PStask_ID_t.
  *
  *
- * @param node The ParaStation ID of the node to ask.
+ * @param node The ParaStation ID of the node to ask
  *
- * @param what The type of information to request as described above.
+ * @param what The type of information to request as described above
  *
  * @param param Pointer to further parameters needed in order to
- * retrieve the requested information.
+ * retrieve the requested information
  *
- * @param tid Pointer to a datum reserved for the result.
+ * @param tid Pointer to a datum reserved for the result
  *
- * @param verbose Flag to be more verbose, if something within the
- * information retrival went wrong.
+ * @param verbose Flag to be more verbose in the case something went
+ * wrong during information retrival
  *
  * @return On success, 0 is returned. Otherwise -1 is returned and
  * errno is set appropriately.
@@ -269,7 +270,7 @@ int PSI_infoString(PSnodes_ID_t node, PSP_Info_t what, const void *param,
  * @see errno(3)
  */
 int PSI_infoTaskID(PSnodes_ID_t node, PSP_Info_t what, const void *param,
-		   PStask_ID_t *tid, int verbose);
+		   PStask_ID_t *tid, bool verbose);
 
 /**
  * @brief Retrieve ParaStation ID.
@@ -291,17 +292,17 @@ int PSI_infoTaskID(PSnodes_ID_t node, PSP_Info_t what, const void *param,
  * of interest stored within a @c uint32_t datum.
  *
  *
- * @param node The ParaStation ID of the node to ask.
+ * @param node The ParaStation ID of the node to ask
  *
- * @param what The type of information to request as described above.
+ * @param what The type of information to request as described above
  *
  * @param param Pointer to further parameters needed in order to
- * retrieve the requested information.
+ * retrieve the requested information
  *
- * @param nid Pointer to a datum reserved for the result.
+ * @param nid Pointer to a datum reserved for the result
  *
- * @param verbose Flag to be more verbose, if something within the
- * information retrival went wrong.
+ * @param verbose Flag to be more verbose in the case something went
+ * wrong during information retrival
  *
  * @return On success, 0 is returned. Otherwise -1 is returned and
  * errno is set appropriately.
@@ -309,7 +310,7 @@ int PSI_infoTaskID(PSnodes_ID_t node, PSP_Info_t what, const void *param,
  * @see errno(3)
  */
 int PSI_infoNodeID(PSnodes_ID_t node, PSP_Info_t what, const void *param,
-		   PSnodes_ID_t *nid, int verbose);
+		   PSnodes_ID_t *nid, bool verbose);
 
 /**
  * @brief Retrieve info list
@@ -392,19 +393,19 @@ int PSI_infoNodeID(PSnodes_ID_t node, PSP_Info_t what, const void *param,
  * reservation ID with type PSrsrvtn_ID_t. The list of nodes is given
  * back as a list of entries of type PSnodes_ID_t.
  *
- * @param node The ParaStation ID of the node to ask.
+ * @param node The ParaStation ID of the node to ask
  *
- * @param what The type of information to request as described above.
+ * @param what The type of information to request as described above
  *
  * @param param Pointer to further parameters needed in order to
- * retrieve the requested information.
+ * retrieve the requested information
  *
- * @param buf Buffer to store the requested list to.
+ * @param buf Buffer to store the requested list to
  *
- * @param size Actual size of the buffer @a buf.
+ * @param size Actual size of the buffer @a buf
  *
- * @param verbose Flag to be more verbose, if something within the
- * information retrival went wrong.
+ * @param verbose Flag to be more verbose in the case something went
+ * wrong during information retrival
  *
  * @return On success, the number of bytes received and stored within
  * buf is returned. Otherwise -1 is returned and errno is set
@@ -413,7 +414,7 @@ int PSI_infoNodeID(PSnodes_ID_t node, PSP_Info_t what, const void *param,
  * @see errno(3)
  */
 int PSI_infoList(PSnodes_ID_t node, PSP_Info_t what, const void *param,
-		 void *buf, size_t size, int verbose);
+		 void *buf, size_t size, bool verbose);
 
 /**
  * @brief Retrieve queue of information
@@ -520,14 +521,14 @@ int PSI_infoQueueReq(PSnodes_ID_t node, PSP_Info_t what, const void *param);
  * communication protocol, i.e. the size of PSP_BufferMsg_t's
  * buffer.
  *
- * @param what The type of information to request as described above.
+ * @param what The type of information to request as described above
  *
- * @param buf Buffer to store the requested list to.
+ * @param buf Buffer to store the requested list to
  *
- * @param size Actual size of the buffer @a buf.
+ * @param size Actual size of the buffer @a buf
  *
- * @param verbose Flag to be more verbose, if something within the
- * information retrival went wrong.
+ * @param verbose Flag to be more verbose in the case something went
+ * wrong during information retrival
  *
  * @return On success, the number of bytes received and stored within
  * @a buf is returned. If no more information is available, 0 is
@@ -535,7 +536,7 @@ int PSI_infoQueueReq(PSnodes_ID_t node, PSP_Info_t what, const void *param);
  *
  * @see errno(3)
  */
-int PSI_infoQueueNext(PSP_Info_t what, void *buf, size_t size, int verbose);
+int PSI_infoQueueNext(PSP_Info_t what, void *buf, size_t size, bool verbose);
 
 /**
  * @brief Request options
@@ -552,17 +553,17 @@ int PSI_infoQueueNext(PSP_Info_t what, void *buf, size_t size, int verbose);
  * options to the daemon (resulting in a PSP_OP_UNKNOWN returned) can
  * be controlled.
  *
- * @param node The ParaStation ID of the node to ask.
+ * @param node The ParaStation ID of the node to ask
  *
- * @param num The number of option to request.
+ * @param num The number of option to request
  *
- * @param option Array holding the actual options to request. Size is
- * @a num.
+ * @param option Array of size @a num holding the actual options to
+ * request
  *
- * @param value Array the requested options are stored to. Size is @a num.
+ * @param value Array of size @a num the requested options are stored to
  *
- * @param verbose Flag to be more verbose, if something within the
- * information retrival went wrong.
+ * @param verbose Flag to be more verbose in the case something went
+ * wrong during information retrival
  *
  * @return On success, the number of options received and stored
  * within value is returned. Otherwise -1 is returned and
@@ -571,7 +572,7 @@ int PSI_infoQueueNext(PSP_Info_t what, void *buf, size_t size, int verbose);
  * @see errno(3)
  */
 int PSI_infoOption(PSnodes_ID_t node, int num,
-		   PSP_Option_t option[], PSP_Optval_t value[], int verbose);
+		   PSP_Option_t option[], PSP_Optval_t value[], bool verbose);
 
 /**
  * @brief Retrieve list of options
@@ -604,12 +605,12 @@ int PSI_infoOption(PSnodes_ID_t node, int num,
  * corresponding option values of the answers will contain GIDs.
  *
  *
- * @param node The ParaStation ID of the node to ask.
+ * @param node The ParaStation ID of the node to ask
  *
- * @param option The type of information to request as described above.
+ * @param option The type of information to request as described above
  *
  * @param param Pointer to further parameters needed in order to
- * retrieve the requested information.
+ * retrieve the requested information
  *
  * @return On success, the 0 is returned. Otherwise -1 is returned and
  * errno is set appropriately.
@@ -656,12 +657,12 @@ int PSI_infoOptionList(PSnodes_ID_t node, PSP_Option_t option);
  * will be received.
  *
  *
- * @param opts Buffer to store the option list to.
+ * @param opts Buffer to store the option list to
  *
- * @param num Actual number of entries within the buffer @a optsbuf.
+ * @param num Actual number of entries within the buffer @a optsbuf
  *
- * @param verbose Flag to be more verbose, if something within the
- * information retrival went wrong.
+ * @param verbose Flag to be more verbose in the case something went
+ * wrong during information retrival
  *
  * @return On success, the number of options received and stored
  * within @a opts is returned. Otherwise -1 is returned and errno is
@@ -669,7 +670,7 @@ int PSI_infoOptionList(PSnodes_ID_t node, PSP_Option_t option);
  *
  * @see errno(3)
  */
-int PSI_infoOptionListNext(DDOption_t opts[], int num, int verbose);
+int PSI_infoOptionListNext(DDOption_t opts[], int num, bool verbose);
 
 /**
  * @brief Get hardware name.

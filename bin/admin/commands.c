@@ -110,7 +110,7 @@ static bool getFullList(sizedList_t *list, PSP_Info_t what, size_t itemSize)
 	     "%s(%s)", __func__, PSP_printInfo(what));
     if (!extendList(list, itemSize*PSC_getNrOfNodes(), funcStr)) return false;
 
-    recv = PSI_infoList(-1, what, NULL, list->list, list->actSize, 1);
+    recv = PSI_infoList(-1, what, NULL, list->list, list->actSize, true);
     hosts = recv/itemSize;
 
     if (hosts != PSC_getNrOfNodes()) {
@@ -222,7 +222,7 @@ static char *resolveNode(PSnodes_ID_t node)
     static char nodeStr[NI_MAXHOST];
 
     /* get ip-address of node */
-    rc = PSI_infoUInt(-1, PSP_INFO_NODE, &node, &nodeIP, 0);
+    rc = PSI_infoUInt(-1, PSP_INFO_NODE, &node, &nodeIP, false);
     if (rc || nodeIP == INADDR_ANY) {
 	snprintf(nodeStr, sizeof(nodeStr), "<unknown>(%d)", node);
 	return nodeStr;
@@ -352,7 +352,7 @@ void PSIADM_HWStart(int hw, char *nl)
 	return;
     }
 
-    err = PSI_infoInt(-1, PSP_INFO_HWNUM, NULL, &hwnum, 1);
+    err = PSI_infoInt(-1, PSP_INFO_HWNUM, NULL, &hwnum, true);
     if (err || hw < -1 || hw >= hwnum) return;
 
     PSP_putMsgBuf(&msg, __func__, "hardware type", &hw32, sizeof(hw32));
@@ -388,7 +388,7 @@ void PSIADM_HWStop(int hw, char *nl)
 	return;
     }
 
-    err = PSI_infoInt(-1, PSP_INFO_HWNUM, NULL, &hwnum, 1);
+    err = PSI_infoInt(-1, PSP_INFO_HWNUM, NULL, &hwnum, true);
     if (err || hw < -1 || hw >= hwnum) return;
 
     PSP_putMsgBuf(&msg, __func__, "hardware type", &hw32, sizeof(hw32));
@@ -477,7 +477,7 @@ void PSIADM_StarttimeStat(char *nl)
 	    int64_t secs;
 	    int err;
 
-	    err = PSI_infoInt64(node, PSP_INFO_STARTTIME, NULL, &secs, 0);
+	    err = PSI_infoInt64(node, PSP_INFO_STARTTIME, NULL, &secs, false);
 	    if (!err) {
 		time_t startTime = (time_t) secs;
 		printf(" %s", ctime(&startTime));
@@ -502,7 +502,7 @@ void PSIADM_ScriptStat(PSP_Info_t type, char *nl)
 	printf("%s\t", nodeString(node));
 	if (hostStatus.list[node]) {
 	    int err = PSI_infoString(node, type, NULL, scriptName,
-				     sizeof(scriptName), 1);
+				     sizeof(scriptName), true);
 	    if (!err) {
 		size_t len = strlen(scriptName);
 		if (len) {
@@ -564,7 +564,7 @@ void PSIADM_RDPStat(char *nl)
 	if (hostStatus.list[node]) {
 	    for (partner = 0; partner < PSC_getNrOfNodes(); partner++) {
 		int err = PSI_infoString(node, PSP_INFO_RDPSTATUS, &partner,
-					 line, sizeof(line), 1);
+					 line, sizeof(line), true);
 		if (!err) printf("%s\n", line);
 	    }
 	    printf("\n");
@@ -586,7 +586,7 @@ void PSIADM_RDPConnStat(char *nl)
 	if (hostStatus.list[node]) {
 	    for (partner = 0; partner < PSC_getNrOfNodes(); partner++) {
 		int err = PSI_infoString(node, PSP_INFO_RDPCONNSTATUS, &partner,
-					 line, sizeof(line), 1);
+					 line, sizeof(line), true);
 		if (!err) printf("%s\n", line);
 	    }
 	    printf("\n");
@@ -606,7 +606,7 @@ void PSIADM_MCastStat(char *nl)
 	int err;
 	if ((nl && !nl[node])) continue;
 	err = PSI_infoString(-1, PSP_INFO_MCASTSTATUS, &node,
-			     line, sizeof(line), 1);
+			     line, sizeof(line), true);
 	if (!err) printf("%s\n", line);
     }
 }
@@ -619,13 +619,13 @@ static int getHeaderLine(int32_t hw)
     for (node = 0; node < PSC_getNrOfNodes(); node++) {
 	if (hostStatus.list[node] && hwStatus[node] & 1<<hw) {
 	    int err = PSI_infoString(node, PSP_INFO_COUNTHEADER, &hw,
-				     line, sizeof(line), 1);
+				     line, sizeof(line), true);
 	    if (!err) {
 		char name[40];
 		int last = strlen(line) - 1;
 
 		err = PSI_infoString(-1, PSP_INFO_HWNAME, &hw,
-				     name, sizeof(name), 1);
+				     name, sizeof(name), true);
 
 		printf("Counter for hardware type '%s':\n\n",
 		       err ? "unknown" : name);
@@ -650,7 +650,7 @@ void PSIADM_CountStat(int hw, char *nl)
     int hwnum;
     int first = 0, last;
 
-    int err = PSI_infoInt(-1, PSP_INFO_HWNUM, NULL, &hwnum, 1);
+    int err = PSI_infoInt(-1, PSP_INFO_HWNUM, NULL, &hwnum, true);
     if (err || hw < -1 || hw >= hwnum) return;
 
     if (hw != -1) {
@@ -673,7 +673,7 @@ void PSIADM_CountStat(int hw, char *nl)
 	    if (hostStatus.list[node]) {
 		if (hwStatus[node] & 1<<hw) {
 		    if (!PSI_infoString(node, PSP_INFO_COUNTSTATUS, &hw,
-					line, sizeof(line), 1)) {
+					line, sizeof(line), true)) {
 			int lastChar = strlen(line) - 1;
 			if (line[(lastChar > 0) ? lastChar : 0] == '\n') {
 			    printf("%s", line);
@@ -735,7 +735,7 @@ void PSIADM_ProcStat(int count, int full, char *nl)
 	/* This has to be splitted from the actual output due to
 	 * PSI_infoString() calls there */
 	while (PSI_infoQueueNext(what, &taskInfo[numTasks],
-				 sizeof(*taskInfo), 1) > 0) {
+				 sizeof(*taskInfo), true) > 0) {
 	    if (taskInfo[numTasks].group==TG_FORWARDER && !full) continue;
 	    if (taskInfo[numTasks].group==TG_SPAWNER && !full) continue;
 	    if (taskInfo[numTasks].group==TG_GMSPAWNER && !full) continue;
@@ -789,7 +789,7 @@ void PSIADM_ProcStat(int count, int full, char *nl)
 		pid_t pid = PSC_getPID(taskInfo[task].tid);
 		char cmdline[8096] = { '\0' };
 		PSI_infoString(node, PSP_INFO_CMDLINE, &pid,
-			       cmdline, sizeof(cmdline), 0);
+			       cmdline, sizeof(cmdline), false);
 		printf("%.*s",
 		       (width-usedWidth) > 0 ? width-usedWidth : 0, cmdline);
 	    }
@@ -927,7 +927,7 @@ void PSIADM_PluginStat(char *nl)
 	    printf("Error!!\n");
 	}
 
-	while (PSI_infoQueueNext(what, line, sizeof(line), 1) > 0) {
+	while (PSI_infoQueueNext(what, line, sizeof(line), true) > 0) {
 	    if (firstline) {
 		usedWidth = printf("%s", nodeStr);
 		firstline = false;
@@ -972,7 +972,7 @@ void PSIADM_EnvStat(char *key, char *nl)
 	    printf("Error!!\n");
 	}
 
-	while (PSI_infoQueueNext(what, line, sizeof(line), 1) > 0) {
+	while (PSI_infoQueueNext(what, line, sizeof(line), true) > 0) {
 	    if (firstline) {
 		usedWidth = printf("%s", nodeStr);
 		firstline = false;
@@ -1049,7 +1049,7 @@ void PSIADM_InstdirStat(char *nl)
 	printf("%s\t", nodeString(node));
 	if (hostStatus.list[node]) {
 	    int err = PSI_infoString(node, PSP_INFO_INSTDIR, NULL, instDir,
-				     sizeof(instDir), 1);
+				     sizeof(instDir), true);
 	    if (!err) {
 		size_t len = strlen(instDir);
 		if (len) {
@@ -1078,23 +1078,20 @@ void PSIADM_JobStat(PStask_ID_t task, PSpart_list_t opt)
 	     +sizeof(PSpart_request_t)];
     int recvd;
     bool found = false;
-    PStask_ID_t rootTID, parentTID;
+    PStask_ID_t rootTID, pTID;
     PSpart_request_t *req;
 
     int width = PSC_getWidth();
 
     /* Determine root process of given task */
-    rootTID=parentTID=task;
-    while (parentTID) {
-	int ret;
-
-	ret = PSI_infoTaskID(-1, PSP_INFO_PARENTTID, &rootTID, &parentTID, 1);
-	if (ret) {
+    rootTID = pTID = task;
+    while (pTID) {
+	if (PSI_infoTaskID(-1, PSP_INFO_PARENTTID, &rootTID, &pTID, true)) {
 	    printf("root-task for task '%s' not found:", PSC_printTID(task));
 	    printf(" unknown task '%s'\n", PSC_printTID(rootTID));
 	    return;
 	}
-	if (parentTID) rootTID = parentTID;
+	if (pTID) rootTID = pTID;
     }
 
     if (PSI_infoQueueReq(-1, what, &opt) < 0) {
@@ -1104,7 +1101,7 @@ void PSIADM_JobStat(PStask_ID_t task, PSpart_list_t opt)
 
     req = PSpart_newReq();
 
-    while ((recvd=PSI_infoQueueNext(what, buf, sizeof(buf), 1)) > 0) {
+    while ((recvd = PSI_infoQueueNext(what, buf, sizeof(buf), true)) > 0) {
 	static PSpart_slot_t *slots = NULL;
 	static char *slotBuf = NULL;
 	static size_t slotsSize = 0, slotBufSize = 0;
@@ -1147,7 +1144,7 @@ void PSIADM_JobStat(PStask_ID_t task, PSpart_list_t opt)
 		break;
 	    }
 
-	    recvd=PSI_infoQueueNext(what, slotBuf, slotBufSize, 1);
+	    recvd = PSI_infoQueueNext(what, slotBuf, slotBufSize, true);
 
 	    itemSize = sizeof(PSnodes_ID_t);
 	    itemSize += *(uint16_t *)slotBuf;
@@ -1228,10 +1225,10 @@ void PSIADM_VersionStat(char *nl)
 
 	    versionStr[0] = '\0';
 	    err = PSI_infoString(node, PSP_INFO_RPMREV, NULL,
-				 versionStr, sizeof(versionStr), 0);
+				 versionStr, sizeof(versionStr), false);
 	    printf("%-36s ", !err ? versionStr : "unknown");
 
-	    err = PSI_infoOption(node, 2, optType, optVal, 1);
+	    err = PSI_infoOption(node, 2, optType, optVal, true);
 	    if (err != -1) {
 		int i;
 		for (i = 0; i < 2; i++) {
@@ -1452,7 +1449,6 @@ void PSIADM_ShowParam(PSP_Option_t type, char *nl)
 {
     PSnodes_ID_t node;
     PSP_Optval_t value;
-    int ret;
 
     if (! getHostStatus()) return;
 
@@ -1462,7 +1458,7 @@ void PSIADM_ShowParam(PSP_Option_t type, char *nl)
 	printf("%s\t", nodeString(node));
 	if (hostStatus.list[node]) {
 	    PSP_Option_t t = type;
-	    ret = PSI_infoOption(node, 1, &t, &value, 1);
+	    int ret = PSI_infoOption(node, 1, &t, &value, true);
 	    if (ret != -1) {
 		switch (t) {
 		case PSP_OP_PROCLIMIT:
@@ -1518,7 +1514,6 @@ void PSIADM_ShowParamList(PSP_Option_t type, char *nl)
 {
     PSnodes_ID_t node;
     DDOption_t options[DDOptionMsgMax];
-    int ret;
 
     if (! getHostStatus()) return;
 
@@ -1532,15 +1527,14 @@ void PSIADM_ShowParamList(PSP_Option_t type, char *nl)
 	    continue;
 	}
 
-	ret = PSI_infoOptionList(node, type);
-	if (ret == -1) {
+	if (PSI_infoOptionList(node, type) == -1) {
 	    printf("Cannot get\n");
 	    continue;
 	}
 	do {
 	    int i;
 
-	    ret = PSI_infoOptionListNext(options, DDOptionMsgMax, 1);
+	    int ret = PSI_infoOptionListNext(options, DDOptionMsgMax, true);
 	    if (ret == -1) {
 		printf("error getting info");
 		break;

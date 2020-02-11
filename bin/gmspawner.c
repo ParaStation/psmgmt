@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2018 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2020 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -549,7 +549,7 @@ int main(int argc, const char *argv[])
 	exit(10);
     }
 
-    PSI_infoInt(-1, PSP_INFO_TASKRANK, NULL, &rank, 0);
+    PSI_infoInt(-1, PSP_INFO_TASKRANK, NULL, &rank, false);
     if (rank != np) {
 	fprintf(stderr, "%s: rank(%d) != np(%d).\n", argv[dup_argc], rank, np);
 
@@ -603,13 +603,13 @@ int main(int argc, const char *argv[])
 	struct in_addr ip;
 	int err;
 
-	err = PSI_infoNodeID(-1, PSP_INFO_RANKID, &rank, &node, 1);
+	err = PSI_infoNodeID(-1, PSP_INFO_RANKID, &rank, &node, true);
 	if (err) {
 	    fprintf(stderr, "Could not determine rank %d's node.\n", rank);
 	    exit(1);
 	}
 
-	err = PSI_infoUInt(-1, PSP_INFO_NODE, &node, &ip.s_addr, 1);
+	err = PSI_infoUInt(-1, PSP_INFO_NODE, &node, &ip.s_addr, true);
 	if (err) {
 	    fprintf(stderr, "Could not determine node %d's IP\n", node);
 	    exit(1);

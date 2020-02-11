@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 1999-2003 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2017 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2020 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -91,8 +91,8 @@ void PSE_initialize(void)
 	exitAll("Initialization of PSI failed", 10);
     }
 
-    PSI_infoTaskID(-1, PSP_INFO_PARENTTID, NULL, &parentTID, 0);
-    PSI_infoInt(-1, PSP_INFO_TASKRANK, NULL, &worldRank, 0);
+    PSI_infoTaskID(-1, PSP_INFO_PARENTTID, NULL, &parentTID, false);
+    PSI_infoInt(-1, PSP_INFO_TASKRANK, NULL, &worldRank, false);
 
     logger_print(logger, PSE_LOG_VERB, "[%d] My TID is %s\n",
 		 PSE_getRank(), PSC_printTID(PSC_getMyTID()));
@@ -127,7 +127,7 @@ int PSE_getSize(void)
 {
     int err, size;
 
-    err = PSI_infoInt(-1, PSP_INFO_TASKSIZE, NULL, &size, 0);
+    err = PSI_infoInt(-1, PSP_INFO_TASKSIZE, NULL, &size, false);
 
     if (err) return -1;
 

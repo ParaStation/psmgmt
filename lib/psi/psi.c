@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 1999-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2019 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2020 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -232,20 +232,18 @@ static int connectDaemon(PStask_group_t taskGroup, int tryStart)
     }
     case PSP_CD_CLIENTESTABLISHED:
     {
-	int err, nrOfNodes;
+	int nrOfNodes;
 	char instdir[PATH_MAX];
 
 	PSC_setMyID(answer.type);
 
-	err = PSI_infoInt(-1, PSP_INFO_NROFNODES, NULL, &nrOfNodes, 0);
-	if (err) {
+	if (PSI_infoInt(-1, PSP_INFO_NROFNODES, NULL, &nrOfNodes, false)) {
 	    PSI_log(-1, "%s:  Cannot determine # of nodes\n", __func__);
 	    break;
 	} else PSC_setNrOfNodes(nrOfNodes);
 
-	err = PSI_infoString(-1, PSP_INFO_INSTDIR, NULL,
-			     instdir, sizeof(instdir), 0);
-	if (err) {
+	if (PSI_infoString(-1, PSP_INFO_INSTDIR, NULL,
+			   instdir, sizeof(instdir), false)) {
 	    PSI_log(-1, "%s:  Cannot determine instdir\n", __func__);
 	    break;
 	} else {
@@ -371,10 +369,9 @@ int PSI_exitClient(void)
 char* PSI_getPsidVersion(void)
 {
     static char vStr[40];
-    int err;
 
-    err = PSI_infoString(-1, PSP_INFO_DAEMONVER, NULL, vStr, sizeof(vStr), 0);
-    if (err) {
+    if (PSI_infoString(-1, PSP_INFO_DAEMONVER, NULL,
+		       vStr, sizeof(vStr), false)) {
 	PSI_log(-1, "%s: Cannot get version string\n", __func__);
 
 	return NULL;

@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2018 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2020 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -748,8 +748,8 @@ static uint32_t getHWEnv(void)
 
     hw = strtok_r(env, " \f\n\r\t\v", &work);
     while (hw) {
-	int err, idx;
-	err = PSI_infoInt(-1, PSP_INFO_HWINDEX, hw, &idx, 0);
+	int idx;
+	int err = PSI_infoInt(-1, PSP_INFO_HWINDEX, hw, &idx, false);
 	if (!err && (idx >= 0) && (idx < ((int)sizeof(hwType) * 8))) {
 	    hwType |= 1 << idx;
 	} else {
@@ -820,7 +820,6 @@ static uint16_t getTPPEnv(void)
  */
 static bool getFullList(void *list, PSP_Info_t what, size_t itemSize)
 {
-    int recv, hosts;
     size_t listSize = itemSize*PSC_getNrOfNodes();
     char **myList = list;
 
@@ -830,8 +829,8 @@ static bool getFullList(void *list, PSP_Info_t what, size_t itemSize)
 	return false;
     }
 
-    recv = PSI_infoList(-1, what, NULL, *myList, listSize, 1);
-    hosts = recv/itemSize;
+    int recv = PSI_infoList(-1, what, NULL, *myList, listSize, true);
+    int hosts = recv/itemSize;
 
     if (hosts != PSC_getNrOfNodes()) {
 	PSI_log(-1, "%s(%s): failed\n", __func__, PSP_printInfo(what));
@@ -955,8 +954,8 @@ int PSI_resolveHWList(char **hwList, uint32_t *hwType)
     *hwType = 0;
 
     while (hwList && *hwList) {
-	int err, idx;
-	err = PSI_infoInt(-1, PSP_INFO_HWINDEX, *hwList, &idx, 0);
+	int idx;
+	int err = PSI_infoInt(-1, PSP_INFO_HWINDEX, *hwList, &idx, false);
 	if (!err && (idx >= 0) && (idx < ((int)sizeof(*hwType) * 8))) {
 	    *hwType |= (uint32_t)1 << idx;
 	} else {

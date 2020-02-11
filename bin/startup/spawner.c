@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2017-2019 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2017-2020 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -137,7 +137,7 @@ static char *getHostByNodeID(PSnodes_ID_t nodeID)
     static char nodeName[NI_MAXHOST];
 
     /* get ip-address of node */
-    rc = PSI_infoUInt(-1, PSP_INFO_NODE, &nodeID, &nodeIP, 0);
+    rc = PSI_infoUInt(-1, PSP_INFO_NODE, &nodeID, &nodeIP, false);
     if (rc || nodeIP == INADDR_ANY) {
 	fprintf(stderr, "%s: getting node info for node ID %i failed, "
 		"errno:%i ret:%i\n", __func__, nodeID, errno, rc);
@@ -265,7 +265,7 @@ static char *opmiGetReservedPorts(Conf_t *conf)
     resPorts = umalloc((conf->np + 2) * sizeof(uint16_t));
 
     PSI_infoList(-1, PSP_INFO_LIST_RESPORTS, NULL,
-		 resPorts, (conf->np + 2) * sizeof(uint16_t), 1);
+		 resPorts, (conf->np + 2) * sizeof(uint16_t), true);
 
     /* resPorts[0] is holding the number of reserved ports following */
     if (resPorts[0] == 0) {
@@ -862,8 +862,8 @@ static int startProcs(Conf_t *conf)
 
     for (i=0; i < conf->execCount; i++) {
 	int got = PSI_infoList(-1, PSP_INFO_LIST_RESNODES, &exec[i].resID,
-			       nodeList+off,
-			       (conf->np-off)*sizeof(*nodeList), 0);
+			       nodeList+off, (conf->np-off)*sizeof(*nodeList),
+			       false);
 
 	if ((unsigned)got != exec[i].np * sizeof(*nodeList)) {
 	    fprintf(stderr, "%s: Unable to get nodes in reservation %#x for"

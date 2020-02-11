@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2017-2019 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2017-2020 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -436,7 +436,7 @@ PSnodes_ID_t getIDbyIdx(Conf_t *conf, int index)
 	exit(EXIT_FAILURE);
     }
     numBytes = PSI_infoList(-1, PSP_INFO_LIST_PARTITION, NULL,
-			    slotList, pSize*sizeof(*slotList), 0);
+			    slotList, pSize*sizeof(*slotList), false);
     if (numBytes < 0) {
 	fprintf(stderr, "%s: PSI_infoList(): %m\n", __func__);
 	exit(EXIT_FAILURE);

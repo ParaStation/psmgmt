@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2007-2018 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2007-2020 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -119,7 +119,7 @@ static void createSpawner(int argc, char *argv[], int np)
 	if (PSE_getPartition(np)<0) exit(1);
 
 	PSI_infoList(-1, PSP_INFO_LIST_PARTITION, NULL,
-		     nds, np*sizeof(*nds), 0);
+		     nds, np*sizeof(*nds), false);
 
 	PSI_spawnService(nds[0], TG_SERVICE_SIG, NULL, argc, argv, &error,
 			 &spawnedProc, 0);

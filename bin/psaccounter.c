@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2006-2019 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2006-2020 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -1656,7 +1656,7 @@ static void getNodeInformation(void)
     int n, rc;
 
     /* get number of nodes */
-    if (PSI_infoInt(-1, PSP_INFO_NROFNODES, NULL, &nrOfNodes, 0)) {
+    if (PSI_infoInt(-1, PSP_INFO_NROFNODES, NULL, &nrOfNodes, false)) {
 	alog("%s: error getting number of nodes\n", __func__);
 	exit(EXIT_FAILURE);
     }
@@ -1670,7 +1670,7 @@ static void getNodeInformation(void)
 	accNodes[n].node = n;
 
 	/* get ip-address of node */
-	rc = PSI_infoUInt(-1, PSP_INFO_NODE, &n, &accNodes[n].hostaddr, 0);
+	rc = PSI_infoUInt(-1, PSP_INFO_NODE, &n, &accNodes[n].hostaddr, false);
 	if (rc || accNodes[n].hostaddr == INADDR_ANY) {
 	    alog("%s: getting node info failed, errno:%i\n", __func__, errno);
 	    exit(EXIT_FAILURE);
@@ -1692,7 +1692,7 @@ static void getNodeInformation(void)
 	}
 
 	/* get daemon protocoll version */
-	if (PSI_infoOption(n, 1, &opt, &val, 0) == -1 ) {
+	if (PSI_infoOption(n, 1, &opt, &val, false) == -1 ) {
 	    if (debug & 0x010) {
 		alog("%s: error getting protocol version for node:%s\n",
 		     __func__, accNodes[n].hostname);

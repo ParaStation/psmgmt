@@ -165,15 +165,13 @@ static int getProtoVersion(PSnodes_ID_t node)
     static int lastProtoVersion = 0;
     PSP_Option_t opt = PSP_OP_PROTOCOLVERSION;
     PSP_Optval_t val;
-    int err;
 
     if (node == lastNode) {
 	return lastProtoVersion;
     }
 
     lastNode = node;
-    err = PSI_infoOption(node, 1, &opt, &val, 0);
-    if (err == -1) {
+    if (PSI_infoOption(node, 1, &opt, &val, false) == -1) {
 	PSI_log(-1, "%s: error getting info\n", __func__);
 	lastNode = -2;
     }
@@ -717,7 +715,8 @@ static int dospawn(int count, PSnodes_ID_t *dstnodes, char *workingdir,
 	ioctl(fd, TIOCGWINSZ, &task->winsize);
     }
     task->group = taskGroup;
-    if (PSI_infoTaskID(-1, PSP_INFO_LOGGERTID, NULL, &(task->loggertid), 0)) {
+    if (PSI_infoTaskID(-1, PSP_INFO_LOGGERTID, NULL,
+		       &(task->loggertid), false)) {
 	PSI_warn(-1, errno, "%s: unable to determine logger's TID", __func__);
 	goto cleanup;
     }
@@ -1217,14 +1216,14 @@ char *PSI_createPGfile(int num, const char *prog, int local)
 	static struct in_addr hostaddr;
 
 	if (!local || !i) {
-	    int ret = PSI_infoNodeID(-1, PSP_INFO_RANKID, &i, &node, 1);
-	    if (ret || (node < 0)) {
+	    if (PSI_infoNodeID(-1, PSP_INFO_RANKID, &i, &node, true)
+		|| (node < 0)) {
 		fclose(PIfile);
 		free(PIfilename);
 		free(myprog);
 		return NULL;
 	    }
-	    PSI_infoUInt(-1, PSP_INFO_NODE, &node, &hostaddr.s_addr, 0);
+	    PSI_infoUInt(-1, PSP_INFO_NODE, &node, &hostaddr.s_addr, false);
 	}
 	fprintf(PIfile, "%s %d %s\n", inet_ntoa(hostaddr), (i != 0), myprog);
     }
@@ -1264,14 +1263,14 @@ char *PSI_createMPIhosts(int num, int local)
 	static struct in_addr hostaddr;
 
 	if (!local || !i) {
-	    int ret = PSI_infoNodeID(-1, PSP_INFO_RANKID, &i, &node, 1);
-	    if (ret || (node < 0)) {
+	    if (PSI_infoNodeID(-1, PSP_INFO_RANKID, &i, &node, true)
+		|| (node < 0)) {
 		fclose(MPIhostsFile);
 		free(MPIhostsFilename);
 		return NULL;
 	    }
-	    ret = PSI_infoUInt(-1, PSP_INFO_NODE, &node, &hostaddr.s_addr, 0);
-	    if (ret || (hostaddr.s_addr == INADDR_ANY)) {
+	    if (PSI_infoUInt(-1, PSP_INFO_NODE, &node, &hostaddr.s_addr, false)
+		|| (hostaddr.s_addr == INADDR_ANY)) {
 		fclose(MPIhostsFile);
 		free(MPIhostsFilename);
 		return NULL;

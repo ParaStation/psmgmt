@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2019 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2020 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -157,7 +157,7 @@ static int hwstartCommand(char *token)
     }
 
     if (hw) {
-	int err = PSI_infoInt(-1, PSP_INFO_HWINDEX, hw, &hwIndex, 1);
+	int err = PSI_infoInt(-1, PSP_INFO_HWINDEX, hw, &hwIndex, true);
 	if (err || (hwIndex == -1 && strcasecmp(hw, "all"))) goto error;
     }
     PSIADM_HWStart(hwIndex, nl);
@@ -188,7 +188,7 @@ static int hwstopCommand(char *token)
     }
 
     if (hw) {
-	int err = PSI_infoInt(-1, PSP_INFO_HWINDEX, hw, &hwIndex, 1);
+	int err = PSI_infoInt(-1, PSP_INFO_HWINDEX, hw, &hwIndex, true);
 	if (err || (hwIndex == -1 && strcasecmp(hw, "all"))) goto error;
     }
     PSIADM_HWStop(hwIndex, nl);
@@ -290,7 +290,7 @@ static int listCountCommand(char *token)
     if (nl_descr && !strcasecmp(nl_descr, "hw")) {
 	char *hw = parser_getString();
 	if (hw) {
-	    int err = PSI_infoInt(-1, PSP_INFO_HWINDEX, hw, &hwIndex, 1);
+	    int err = PSI_infoInt(-1, PSP_INFO_HWINDEX, hw, &hwIndex, true);
 	    if (err || hwIndex == -1) goto error;
 	} else goto error;
 	nl_descr = parser_getString();
@@ -2397,7 +2397,7 @@ static int versionCommand(char *token)
     printf("PSProtocol: %d\n", PSProtocolVersion);
     printf("PSIADMIN:   %s-%s\n", VERSION_psmgmt, RELEASE_psmgmt);
 
-    err = PSI_infoString(-1, PSP_INFO_RPMREV, NULL, tmp, sizeof(tmp), 0);
+    err = PSI_infoString(-1, PSP_INFO_RPMREV, NULL, tmp, sizeof(tmp), false);
     if (err) strcpy(tmp, "unknown");
     printf("PSID:       %s\n", tmp);
     return 0;
