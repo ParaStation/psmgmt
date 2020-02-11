@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2015-2018 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2015-2020 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -38,8 +38,8 @@ PSrsrvtn_t *PSrsrvtn_get(void)
     rp->slots = NULL;
     rp->nextSlot = 0;
     rp->relSlots = 0;
-    rp->checked = 0;
-    rp->dynSent = 0;
+    rp->checked = false;
+    rp->dynSent = false;
 
     return rp;
 }

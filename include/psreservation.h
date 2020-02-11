@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2015-2018 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2015-2020 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -13,6 +13,7 @@
 #ifndef __PSRESERVATION_H
 #define __PSRESERVATION_H
 
+#include <stdbool.h>
 #include <stdint.h>
 
 #include "list_t.h"
@@ -47,8 +48,8 @@ typedef struct {
     PSpart_slot_t *slots;     /**< Slots forming the reservation */
     int nextSlot;             /**< Number of next slot to use */
     int relSlots;             /**< Number of slots already released */
-    char checked;             /**< Was checked to be completable */
-    char dynSent;             /**< Dynamic request was sent */
+    bool checked;             /**< Was checked to be completable */
+    bool dynSent;             /**< Dynamic request was sent */
 } PSrsrvtn_t;
 
 /** Structure used for the PSIDHOOK_RELS_PART_DYNAMIC hook */
