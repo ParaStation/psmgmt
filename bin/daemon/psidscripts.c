@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2009-2019 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2009-2020 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -87,7 +87,7 @@ static int doExec(char *script, PSID_scriptFunc_t func, PSID_scriptPrep_t prep,
 
     if (!pid) {
 	/* This part calls the script/func and returns results to the parent */
-	int fd, ret = 0, maxFD = sysconf(_SC_OPEN_MAX);
+	int fd, maxFD = sysconf(_SC_OPEN_MAX);
 
 	PSID_resetSigs();
 	PSID_blockSig(0, SIGTERM);
