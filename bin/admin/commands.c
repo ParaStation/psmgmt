@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2019 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2020 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -550,7 +550,7 @@ void PSIADM_SomeStat(char *nl, char mode)
 }
 
 
-static char line[1024];
+static char line[BufTypedMsgSize];
 
 void PSIADM_RDPStat(char *nl)
 {
@@ -647,10 +647,10 @@ void PSIADM_CountStat(int hw, char *nl)
 {
     PSnodes_ID_t node;
     uint32_t *hwStatus;
-    int hwnum, err;
+    int hwnum;
     int first = 0, last;
 
-    err = PSI_infoInt(-1, PSP_INFO_HWNUM, NULL, &hwnum, 1);
+    int err = PSI_infoInt(-1, PSP_INFO_HWNUM, NULL, &hwnum, 1);
     if (err || hw < -1 || hw >= hwnum) return;
 
     if (hw != -1) {
@@ -672,11 +672,10 @@ void PSIADM_CountStat(int hw, char *nl)
 	    printf("%s\t", nodeString(node));
 	    if (hostStatus.list[node]) {
 		if (hwStatus[node] & 1<<hw) {
-		    int err = PSI_infoString(node, PSP_INFO_COUNTSTATUS, &hw,
-					     line, sizeof(line), 1);
-		    if (!err) {
-			int last = strlen(line)-1;
-			if (line[(last>0) ? last : 0] == '\n') {
+		    if (!PSI_infoString(node, PSP_INFO_COUNTSTATUS, &hw,
+					line, sizeof(line), 1)) {
+			int lastChar = strlen(line) - 1;
+			if (line[(lastChar > 0) ? lastChar : 0] == '\n') {
 			    printf("%s", line);
 			} else {
 			    printf("%s\n", line);
@@ -896,7 +895,7 @@ void PSIADM_PluginStat(char *nl)
     PSnodes_ID_t node;
     PSP_Info_t what = PSP_INFO_QUEUE_PLUGINS;
     int width = PSC_getWidth(), usedWidth;
-    char line[512], *nodeStr;
+    char *nodeStr;
 
     if (! getHostStatus()) return;
     if (width < 20) {
@@ -945,7 +944,7 @@ void PSIADM_EnvStat(char *key, char *nl)
     PSnodes_ID_t node;
     PSP_Info_t what = PSP_INFO_QUEUE_ENVS;
     int width = PSC_getWidth(), usedWidth;
-    char line[BufTypedMsgSize], *nodeStr;
+    char *nodeStr;
 
     if (! getHostStatus()) return;
     if (width < 20) {
