@@ -1207,7 +1207,7 @@ void linenoiseFree(void *ptr) {
 /* linenoise state used for asynchronous editing */
 static struct linenoiseState as = { .prompt = NULL, .plen = 0 };
 
-static char buf[LINENOISE_MAX_LINE];
+static char asyncBuf[LINENOISE_MAX_LINE];
 
 /* Register a function to handle the full line upon completion of line */
 int linenoiseSetHandlerCallback(char *prompt, linenoiseHandlingCallback *fn) {
@@ -1216,8 +1216,8 @@ int linenoiseSetHandlerCallback(char *prompt, linenoiseHandlingCallback *fn) {
 
     as.ifd = STDIN_FILENO;
     as.ofd = STDOUT_FILENO;
-    as.buf = buf;
-    as.buflen = sizeof(buf);
+    as.buf = asyncBuf;
+    as.buflen = sizeof(asyncBuf);
     as.oldpos = as.pos = 0;
     as.len = 0;
     as.maxrows = 0;
@@ -1262,7 +1262,7 @@ void linenoiseReadChar(void)
         history_len--;
         free(history[history_len]);
         disableRawMode(STDIN_FILENO);
-        handlingCallback(buf);
+        handlingCallback(asyncBuf);
         enableRawMode(STDIN_FILENO);
         linenoiseHistoryAdd("");
     }

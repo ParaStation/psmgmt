@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2003 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2017 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2020 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -118,27 +118,26 @@ char *HW_dumpEnv(const int idx, const int num)
 
 char *HW_printType(const unsigned int hwType)
 {
-    unsigned int hw = hwType;
+    unsigned int hwT = hwType;
     int index = 0;
     static char txt[80];
 
     txt[0] = '\0';
 
-    if (!hw) snprintf(txt, sizeof(txt), "none ");
+    if (!hwT) snprintf(txt, sizeof(txt), "none ");
 
-    while (hw) {
-	if (hw & 1) {
+    while (hwT) {
+	if (hwT & 1) {
 	    char *name = HW_name(index);
 
 	    if (name) {
-		snprintf(txt+strlen(txt), sizeof(txt)-strlen(txt),
-			 "%s ", name);
+		snprintf(txt+strlen(txt), sizeof(txt)-strlen(txt), "%s ", name);
 	    } else {
 		snprintf(txt+strlen(txt), sizeof(txt)-strlen(txt), "unknown ");
 	    }
 	}
 
-	hw >>= 1;
+	hwT >>= 1;
 	index++;
     }
 

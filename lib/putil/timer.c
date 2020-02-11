@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2002-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2018 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2020 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -179,10 +179,10 @@ static int deleteTimer(Timer_t *timer)
 	actPeriod = maxPeriod;
 
 	list_for_each(t, &timerList) {
-	    Timer_t *timer = list_entry(t, Timer_t, next);
-	    if (timer->deleted) continue;
-	    if (timercmp(&timer->timeout, &actPeriod, <)) {
-		actPeriod = timer->timeout;
+	    Timer_t *tmr = list_entry(t, Timer_t, next);
+	    if (tmr->deleted) continue;
+	    if (timercmp(&tmr->timeout, &actPeriod, <)) {
+		actPeriod = tmr->timeout;
 	    }
 	}
 
@@ -195,7 +195,7 @@ static int deleteTimer(Timer_t *timer)
 	}
     }
 
-    /* Release allocated memory for removed timer */
+    /* Release allocated memory of removed timer */
     free(timer);
 
     /* Unblock SIGALRM, again */

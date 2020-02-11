@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2014-2019 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2014-2020 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -2126,11 +2126,11 @@ static int setupLocalNode(void)
     pushAndClearEnv();
 
     if (nodeconf.cpumap_size) {
-	size_t i;
-	for (i=0; i<nodeconf.cpumap_size; i++) {
-	    if (PSIDnodes_appendCPUMap(nodeconf.id, nodeconf.cpumap[i])) {
+	size_t c;
+	for (c = 0; c < nodeconf.cpumap_size; c++) {
+	    if (PSIDnodes_appendCPUMap(nodeconf.id, nodeconf.cpumap[c])) {
 		parser_comment(-1, "PSIDnodes_appendCPUMap(%ld, %d) failed\n",
-			       nodeconf.id, nodeconf.cpumap[i]);
+			       nodeconf.id, nodeconf.cpumap[c]);
 		return -1;
 	    }
 	}
