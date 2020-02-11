@@ -55,6 +55,6 @@ void test_thread_iterator(uint16_t socketCount, uint16_t coresPerSocket,
 
 void test_pinning(uint16_t cpuBindType,	char *cpuBindString, uint32_t taskDist,
 	uint16_t socketCount, uint16_t coresPerSocket, uint16_t threadsPerCore,
-	uint32_t tasksPerNode, uint16_t threadsPerTask);
+	uint32_t tasksPerNode, uint16_t threadsPerTask, bool humanreadable);
 #endif  /* __PS_SLURM_PIN */
 /* vim: set ts=8 sw=4 tw=0 sts=4 noet :*/

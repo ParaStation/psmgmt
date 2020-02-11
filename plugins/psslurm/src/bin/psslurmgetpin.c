@@ -24,6 +24,7 @@
 typedef list_t Config_t;
 
 static int verbosity = 0;
+static bool humanreadable = false;
 
 enum output_level {
     ERROROUT,
@@ -138,41 +139,72 @@ static bool readDistribution(char *ptr, uint32_t *taskDist) {
 
     if (!ptr) return false;
 
-    if (strncmp(ptr, "cyclic", 6) == 0) {
-	*taskDist = SLURM_DIST_BLOCK_CYCLIC;
-    }
-    else if (strncmp(ptr, "cyclic:cyclic", 13) == 0) {
-	*taskDist = SLURM_DIST_BLOCK_CYCLIC_CYCLIC;
-    }
-    else if (strncmp(ptr, "cyclic:block", 12) == 0) {
-	*taskDist = SLURM_DIST_BLOCK_CYCLIC_BLOCK;
-    }
-    else if (strncmp(ptr, "cyclic:fcyclic", 14) == 0) {
-	*taskDist = SLURM_DIST_BLOCK_CYCLIC_CFULL;
+    ptr++;
+
+    if (strncmp(ptr, "cyclic", 6) == 0 || *ptr == '*') {
+	if (*ptr == '*') {
+	    ptr += 1;
+	}
+	else {
+	    ptr += 6;
+	}
+
+	if (strncmp(ptr, ":cyclic", 7) == 0
+		|| strncmp(ptr, ":*", 2) == 0) {
+	    *taskDist = SLURM_DIST_BLOCK_CYCLIC_CYCLIC;
+        }
+	else if (strncmp(ptr, ":block", 6) == 0) {
+	    *taskDist = SLURM_DIST_BLOCK_CYCLIC_BLOCK;
+        }
+	else if (strncmp(ptr, ":fcyclic", 8) == 0) {
+	    *taskDist = SLURM_DIST_BLOCK_CYCLIC_CFULL;
+        }
+	else if (*ptr == '\0' || *ptr == ',') {
+	    *taskDist = SLURM_DIST_BLOCK_CYCLIC;
+	}
+	else {
+	    return false;
+	}
     }
     else if (strncmp(ptr, "block", 5) == 0) {
-	*taskDist = SLURM_DIST_BLOCK_BLOCK;
-    }
-    else if (strncmp(ptr, "block:cyclic", 12) == 0) {
-	*taskDist = SLURM_DIST_BLOCK_BLOCK_CYCLIC;
-    }
-    else if (strncmp(ptr, "block:block", 11) == 0) {
-	*taskDist = SLURM_DIST_BLOCK_BLOCK_BLOCK;
-    }
-    else if (strncmp(ptr, "block:fcyclic", 13) == 0) {
-	*taskDist = SLURM_DIST_BLOCK_BLOCK_CFULL;
+	ptr += 5;
+
+	if (strncmp(ptr, ":cyclic", 7) == 0) {
+	    *taskDist = SLURM_DIST_BLOCK_BLOCK_CYCLIC;
+        }
+	else if (strncmp(ptr, ":block", 6) == 0
+		|| strncmp(ptr, ":*", 2) == 0) {
+	    *taskDist = SLURM_DIST_BLOCK_BLOCK_BLOCK;
+        }
+	else if (strncmp(ptr, ":fcyclic", 8) == 0) {
+	    *taskDist = SLURM_DIST_BLOCK_BLOCK_CFULL;
+        }
+	else if (*ptr == '\0' || *ptr == ',') {
+	    *taskDist = SLURM_DIST_BLOCK_BLOCK;
+	}
+	else {
+	    return false;
+	}
     }
     else if (strncmp(ptr, "fcyclic", 7) == 0) {
-	*taskDist = SLURM_DIST_BLOCK_CFULL;
-    }
-    else if (strncmp(ptr, "fcyclic:cyclic", 14) == 0) {
-	*taskDist = SLURM_DIST_BLOCK_CFULL_CYCLIC;
-    }
-    else if (strncmp(ptr, "fcyclic:block", 13) == 0) {
-	*taskDist = SLURM_DIST_BLOCK_CFULL_BLOCK;
-    }
-    else if (strncmp(ptr, "fcyclic:fcyclic", 15) == 0) {
-	*taskDist = SLURM_DIST_BLOCK_CFULL_CFULL;
+	ptr += 7;
+
+	if (strncmp(ptr, ":cyclic", 7) == 0) {
+	    *taskDist = SLURM_DIST_BLOCK_CFULL_CYCLIC;
+        }
+	else if (strncmp(ptr, ":block", 6) == 0) {
+	    *taskDist = SLURM_DIST_BLOCK_CFULL_BLOCK;
+        }
+	else if (strncmp(ptr, ":fcyclic", 8) == 0
+		|| strncmp(ptr, ":*", 2) == 0) {
+	    *taskDist = SLURM_DIST_BLOCK_CFULL_CFULL;
+        }
+	else if (*ptr == '\0' || *ptr == ',') {
+	    *taskDist = SLURM_DIST_BLOCK_CFULL;
+	}
+	else {
+	    return false;
+	}
     }
     else {
 	return false;
@@ -232,6 +264,10 @@ int main(int argc, char *argv[])
 	    verbosity++;
 	}
 
+	if (strcmp(cur, "--human-readable") == 0 || strcmp(cur, "-h") == 0) {
+	    humanreadable = true;
+	}
+
 	if (strcmp(cur, ":") == 0) {
 	    break;
 	}
@@ -251,39 +287,55 @@ int main(int argc, char *argv[])
     /* parse srun options */
     for (i++; i < argc; i++) {
 	char *cur = argv[i];
+	char *val;
 
-	if (strcmp(cur, "-N") == 0) {
-	    if (++i == argc) {
-		outline(ERROROUT, "Syntax error reading value for -N.");
-		return -1;
+	if (strncmp(cur, "-N", 2) == 0) {
+	    if (*(cur+2) == '\0') {
+		if (++i == argc) {
+		    outline(ERROROUT, "Syntax error reading value for -N.");
+		    return -1;
+		}
+		val = argv[i];
+	    } else {
+		val = cur + 2;
 	    }
-	    outline(DEBUGOUT, "Reading -N value: \"%s\"", argv[i]);
-	    if (atoi(argv[i]) != 1) {
+	    outline(DEBUGOUT, "Reading -N value: \"%s\"", val);
+	    if (atoi(val) != 1) {
 		outline(ERROROUT, "Only supported value for -N option is 1.");
 		return -1;
 	    }
 	}
 
-	if (strcmp(cur, "-n") == 0) {
-	    if (++i == argc) {
-		outline(ERROROUT, "Syntax error reading value for -n.");
-		return -1;
+	if (strncmp(cur, "-n", 2) == 0) {
+	    if (*(cur+2) == '\0') {
+		if (++i == argc) {
+		    outline(ERROROUT, "Syntax error reading value for -n.");
+		    return -1;
+		}
+		val = argv[i];
+	    } else {
+		val = cur + 2;
 	    }
-	    outline(DEBUGOUT, "Reading -n value: \"%s\"", argv[i]);
-	    tasksPerNode = atoi(argv[i]);
+	    outline(DEBUGOUT, "Reading -n value: \"%s\"", val);
+	    tasksPerNode = atoi(val);
 	    if (tasksPerNode == 0) {
 		outline(ERROROUT, "Invalid number of tasks.");
 		return -1;
 	    }
 	}
 
-	if (strcmp(cur, "-c") == 0) {
-	    if (++i == argc) {
-		outline(ERROROUT, "Syntax error reading value for -c.");
-		return -1;
+	if (strncmp(cur, "-c", 2) == 0) {
+	    if (*(cur+2) == '\0') {
+		if (++i == argc) {
+		    outline(ERROROUT, "Syntax error reading value for -c.");
+		    return -1;
+		}
+		val = argv[i];
+	    } else {
+		val = cur + 2;
 	    }
-	    outline(DEBUGOUT, "Reading -c value: \"%s\"", argv[i]);
-	    threadsPerTask = atoi(argv[i]);
+	    outline(DEBUGOUT, "Reading -c value: \"%s\"", val);
+	    threadsPerTask = atoi(val);
 	    if (threadsPerTask == 0) {
 		outline(ERROROUT, "Invalid number of threads per task.");
 		return -1;
@@ -331,19 +383,19 @@ int main(int argc, char *argv[])
     outline(INFOOUT, "");
 
     test_pinning(cpuBindType, cpuBindString, taskDist, socketCount,
-	    coresPerSocket, threadsPerCore, tasksPerNode, threadsPerTask);
+	    coresPerSocket, threadsPerCore, tasksPerNode, threadsPerTask,
+	    humanreadable);
 }
 
 
-#ifdef VERBOSE
 static logger_t lt;
 logger_t *psslurmlogger = &lt;
-#else
-logger_t *psslurmlogger = NULL;
-#endif
 logger_t *pluginlogger = NULL;
 
 void logger_print(logger_t* logger, int32_t key, const char* format, ...) {
+
+    if (verbosity != DEBUGOUT) return;
+
     va_list ap;
     va_start(ap, format);
     vprintf(format, ap);

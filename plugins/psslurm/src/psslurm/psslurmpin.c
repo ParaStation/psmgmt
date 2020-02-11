@@ -1863,7 +1863,7 @@ void test_thread_iterator(uint16_t socketCount, uint16_t coresPerSocket,
  */
 void test_pinning(uint16_t cpuBindType,	char *cpuBindString, uint32_t taskDist,
 	uint16_t socketCount, uint16_t coresPerSocket, uint16_t threadsPerCore,
-	uint32_t tasksPerNode, uint16_t threadsPerTask) {
+	uint32_t tasksPerNode, uint16_t threadsPerTask, bool humanreadable) {
 
     uint32_t nodeid = 0;  /* only used for debugging output */
 
@@ -1905,10 +1905,15 @@ void test_pinning(uint16_t cpuBindType,	char *cpuBindString, uint32_t taskDist,
 		&pininfo);
 
 	printf("%2u: ", local_tid);
-	for (size_t i = 0; i < threadCount; i++) {
-	    if (i % coresPerSocket == 0) printf(" ");
-	    if (i % (socketCount * coresPerSocket) == 0) printf("\n    ");
-	    printf("%d", PSCPU_isSet(CPUset, i));
+	if (humanreadable) {
+	    for (size_t i = 0; i < threadCount; i++) {
+		if (i % coresPerSocket == 0) printf(" ");
+		if (i % (socketCount * coresPerSocket) == 0) printf("\n    ");
+		printf("%d", PSCPU_isSet(CPUset, i));
+	    }
+	}
+	else {
+	    printf("%s", PSCPU_print_part(CPUset, nodeinfo.threadCount/8));
 	}
 	printf("\n");
 
