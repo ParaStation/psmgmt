@@ -1008,6 +1008,12 @@ static void setCPUset(PSCPU_set_t *CPUset, uint16_t cpuBindType,
 {
     PSCPU_clrAll(*CPUset);
 
+    mdbg(PSSLURM_LOG_PART, "%s: socketCount %hu coresPerSocket %hu"
+	    " threadsPerCore %hu coreCount %u threadCount %u\n", __func__,
+	    nodeinfo->socketCount, nodeinfo->coresPerSocket,
+	    nodeinfo->threadsPerCore, nodeinfo->coreCount,
+	    nodeinfo->threadCount);
+
     if (cpuBindType & CPU_BIND_NONE) {
 	PSCPU_setAll(*CPUset);
 	mdbg(PSSLURM_LOG_PART, "%s: (cpu_bind_none)\n", __func__);
@@ -1051,6 +1057,8 @@ static void setCPUset(PSCPU_set_t *CPUset, uint16_t cpuBindType,
     /* default binding to threads */
     getThreadsBinding(CPUset, nodeinfo, nodeid, threadsPerTask, lTID, pininfo);
 
+    mdbg(PSSLURM_LOG_PART, "%s: %s\n", __func__,
+	    PSCPU_print_part(*CPUset, nodeinfo->threadCount/8));
 
     /* bind to sockets */
     if (cpuBindType & (CPU_BIND_TO_SOCKETS | CPU_BIND_TO_LDOMS)) {
@@ -1180,6 +1188,8 @@ int setHWthreads(Step_t *step)
 	    /* handle --hint=nomultithread */
 	    if (step->cpuBindType & CPU_BIND_ONE_THREAD_PER_CORE) {
 		nodeinfo.threadsPerCore = 1;
+		mdbg(PSSLURM_LOG_PART, "%s: CPU_BIND_ONE_THREAD_PER_CORE set,"
+			" setting nodeinfo.threadsPerCore = 1\n", __func__);
 	    }
 
 	    /* calc CPUset */
@@ -1187,6 +1197,10 @@ int setHWthreads(Step_t *step)
 		    &nodeinfo, &lastCpu, node, &thread,
 		    step->globalTaskIdsLen[node], threadsPerTask, lTID,
 		    &pininfo);
+
+	    mdbg(PSSLURM_LOG_PART, "%s: CPUset for task %u: %s\n", __func__,
+		    tid, PSCPU_print_part(slots[tid].CPUset,
+			    nodeinfo.threadCount/8));
 
 	    slots[tid].node = step->nodes[node];
 	}
