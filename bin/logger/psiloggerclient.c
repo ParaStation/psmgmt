@@ -1,17 +1,12 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2009-2016 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2009-2020 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-#ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__((used)) =
-    "$Id$";
-#endif /* DOXYGEN_SHOULD_SKIP_THIS */
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -97,7 +92,7 @@ int getNextServiceRank(void)
      int ret;
 
      /* return next free (and unique!) service rank: */
-     ret = minRank - offsetServiceRank;
+     ret = getMinRank() - offsetServiceRank;
 
      /* keep returned/assigned service ranks unique: */
      offsetServiceRank += 2; /* service process plus KVS provider */
@@ -112,7 +107,7 @@ int getMaxRank(void)
 
 int getClientRank(PStask_ID_t tid)
 {
-    int rank = minRank;
+    int rank = getMinRank();
 
     if (!clients) {
 	PSIlog_log(-1, "%s: Not initialized", __func__);
@@ -120,7 +115,7 @@ int getClientRank(PStask_ID_t tid)
 	exit(1);
     }
 
-    while ((rank <= maxRank) && (clients[rank].tid != tid)) rank++;
+    while ((rank <= getMaxRank()) && (clients[rank].tid != tid)) rank++;
 
     return rank;
 }
@@ -133,7 +128,7 @@ PStask_ID_t getClientTID(int rank)
 	exit(1);
     }
 
-    if (rank < minRank || rank > maxRank) return -1;
+    if (rank < getMinRank() || rank > getMaxRank()) return -1;
 
     return clients[rank].tid;
 }
@@ -174,9 +169,9 @@ bool clientIsActive(int rank)
 	exit(1);
     }
 
-    if (rank < minRank || rank > maxRank) return false;
+    if (rank < getMinRank() || rank > getMaxRank()) return false;
 
-    return !!(clients[rank].flags & CLIENT_ACTIVE);
+    return clients[rank].flags & CLIENT_ACTIVE;
 }
 
 bool clientIsGone(int rank)
@@ -187,9 +182,9 @@ bool clientIsGone(int rank)
 	exit(1);
     }
 
-    if (rank < minRank || rank > maxRank) return false;
+    if (rank < getMinRank() || rank > getMaxRank()) return false;
 
-    return !!(clients[rank].flags & CLIENT_GONE);
+    return clients[rank].flags & CLIENT_GONE;
 }
 
 /**
@@ -212,9 +207,9 @@ static bool clientIsStopped(int rank)
 	exit(1);
     }
 
-    if (rank < minRank || rank > maxRank) return false;
+    if (rank < getMinRank() || rank > getMaxRank()) return false;
 
-    return !!(clients[rank].flags & CLIENT_STOPPED);
+    return clients[rank].flags & CLIENT_STOPPED;
 }
 
 bool allActiveThere(void)
@@ -247,15 +242,15 @@ static void growClients(int newMin, int newMax)
     client_t *tmp;
     int i;
 
-    if (newMin > minRank || newMax < maxClient) {
+    if (newMin > getMinRank() || newMax < maxClient) {
 	PSIlog_log(-1, "%s: Do not shrink clients.\n", __func__);
 	PSIlog_finalizeLogs();
 	exit(1);
     }
 
-    if (newMin==minRank && newMax==maxClient) return;
+    if (newMin == getMinRank() && newMax == maxClient) return;
 
-    if (clients && newMin < minRank) {
+    if (clients && newMin < getMinRank()) {
 	tmp = malloc(sizeof(*tmp) * (newMax - newMin + 1));
 	if (!tmp) PSIlog_exit(ENOMEM, "%s: malloc()", __func__);
 
@@ -305,7 +300,7 @@ void initClients(int minClientRank, int maxClientRank)
 
 bool registerClient(int rank, PStask_ID_t tid, PStask_group_t group)
 {
-    int oldMaxRank = maxRank;
+    int oldMaxRank = getMaxRank();
 
     if (!clients) {
 	PSIlog_log(-1, "%s: Not initialized", __func__);
@@ -313,15 +308,15 @@ bool registerClient(int rank, PStask_ID_t tid, PStask_group_t group)
 	exit(1);
     }
 
-    if (rank < minRank) {
+    if (rank < getMinRank()) {
 	 offsetServiceRank -= (minRank - rank);
 	 growClients(rank, maxClient);
     }
 
     if (rank > maxClient) {
-	growClients(minRank, 2*rank);
+	growClients(getMinRank(), 2*rank);
     }
-    if (rank > maxRank) {
+    if (rank > getMaxRank()) {
 	maxRank = rank;
 	if (destStr) {
 	    const char delimiters[] ="[], \n";
@@ -329,7 +324,7 @@ bool registerClient(int rank, PStask_ID_t tid, PStask_group_t group)
 
 	    if (rankStr && !strncasecmp(rankStr, "all", 3)) {
 		int r;
-		for (r=oldMaxRank+1; r<=getMaxRank(); r++) {
+		for (r = oldMaxRank+1; r <= getMaxRank(); r++) {
 		    addClnt(r);
 		    nActvClnts++;
 		}
@@ -375,7 +370,8 @@ void deregisterClient(int rank)
 	exit(1);
     }
 
-    if (rank < minRank || rank > maxRank) PSIlog_exit(EINVAL, "%s", __func__);
+    if (rank < getMinRank() || rank > getMaxRank())
+	PSIlog_exit(EINVAL, "%s", __func__);
 
     if (getClientTID(rank) == -1) {
 	int key = clientIsGone(rank) ? PSILOG_LOG_VERB : -1;
@@ -390,7 +386,7 @@ void deregisterClient(int rank)
     if (rank > -1) {
 	if (!(--nTaskClnts)) {
 	    /* last regular child left -> tell all service processes to exit */
-	    for (i=minRank; i<0; i++) {
+	    for (i = getMinRank(); i < 0; i++) {
 		if (clients[i].tid != -1 && clients[i].group == TG_KVS
 		    && !(clients[i].flags & CLIENT_REL)) {
 		    PSLog_write(clients[i].tid, SERV_EXT, NULL, 0);
@@ -496,14 +492,14 @@ void handleSENDCONT(DDMsg_t *msg)
  */
 static inline void destListError(void)
 {
-    int r, minRank = getMinRank();
+    int r;
 
     PSIlog_log(-1, " for input redirection. Valid ranks: [0-%i]. Setting"
 	       " input destination to rank 0.\n", getMaxRank());
 
     /* reset input destinations */
-    for (r=minRank; r<=getMaxRank(); r++) remClnt(r);
-    addClnt(minRank > 0 ? minRank : 0);
+    for (r = getMinRank(); r <= getMaxRank(); r++) remClnt(r);
+    addClnt(getMinRank() > 0 ? getMinRank() : 0);
 }
 
 void setupDestList(char *input)
@@ -528,21 +524,21 @@ void setupDestList(char *input)
     parseStr = strdup(destStr);
 
     if (!(rankStr = strtok_r(parseStr, delimiters, &saveptr))) {
-	for (r=getMinRank(); r<=getMaxRank(); r++) remClnt(r);
+	for (r = getMinRank(); r <= getMaxRank(); r++) remClnt(r);
     } else if (!strncasecmp(rankStr, "all", 3)) {
 	/* set input to all ranks */
 	int start;
 	if (getMinRank() < 0) {
 	    /* expect rank < 0 to be service processes */
-	    for (r=getMinRank(); r<0; r++) remClnt(r);
+	    for (r = getMinRank(); r < 0; r++) remClnt(r);
 	    start = 0;
 	} else {
 	    start = getMinRank();
 	}
-	for (r=start; r<=getMaxRank(); r++) addClnt(r);
+	for (r = start; r <= getMaxRank(); r++) addClnt(r);
     } else {
 	/* reset old input destinations */
-	for (r=getMinRank(); r<=getMaxRank(); r++) remClnt(r);
+	for (r = getMinRank(); r <= getMaxRank(); r++) remClnt(r);
 
 	while (rankStr) {
 	    if (strchr(rankStr, '-')) {
@@ -558,7 +554,7 @@ void setupDestList(char *input)
 		    destListError();
 		    break;
 		}
-		for (r=first; r<=last; r++) addClnt(r);
+		for (r = first; r <= last; r++) addClnt(r);
 	    } else {
 		char *end;
 		r = strtol(rankStr, &end, 10);
@@ -588,7 +584,7 @@ void setupDestList(char *input)
     nRecvClnts = 0;
     nActvSTOPs = 0;
 
-    for (r=getMinRank(); r<=getMaxRank(); r++) {
+    for (r = getMinRank(); r <= getMaxRank(); r++) {
 	INIT_LIST_HEAD(&clients[r].next);
 	if (clientIsGone(r)) remClnt(r);
 	if (clientIsActive(r)) {

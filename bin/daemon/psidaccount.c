@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2006-2019 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2006-2020 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -33,7 +33,6 @@ static LIST_HEAD(PSID_accounters);
 
 void PSID_addAcct(PStask_ID_t acctr)
 {
-    PSID_acct_t *acct;
     list_t *pos;
 
     PSID_log(PSID_LOG_VERB, "%s: %s\n", __func__, PSC_printTID(acctr));
@@ -47,7 +46,7 @@ void PSID_addAcct(PStask_ID_t acctr)
 	}
     }
 
-    acct = malloc(sizeof(*acct));
+    PSID_acct_t *acct = malloc(sizeof(*acct));
     acct->acct = acctr;
     list_add_tail(&acct->next, &PSID_accounters);
 }

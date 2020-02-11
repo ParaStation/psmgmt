@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2002-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2019 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2020 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -903,15 +903,14 @@ static void restoreLimits(void)
 static void execClient(PStask_t *task)
 {
     /* logging is done via the forwarder thru stderr! */
-    int ret, eno = 0, timeout = 30;
+    int eno = 0, timeout = 30;
     char *executable = NULL, *envStr;
 
     /* change the gid */
     if (setgid(task->gid)<0) {
 	eno = errno;
 	fprintf(stderr, "%s: setgid: %s\n", __func__, get_strerror(eno));
-	ret = write(task->fd, &eno, sizeof(eno));
-	if (ret < 0) {
+	if (write(task->fd, &eno, sizeof(eno)) < 0) {
 	    eno = errno;
 	    fprintf(stderr, "%s: setgid: write(): %s\n", __func__,
 		    get_strerror(eno));
@@ -959,8 +958,7 @@ static void execClient(PStask_t *task)
     envStr = getenv("__PSI_UMASK");
     if (envStr) {
 	mode_t mask;
-	int ret = sscanf(envStr, "%o", &mask);
-	if (ret > 0) umask(mask);
+	if (sscanf(envStr, "%o", &mask) > 0) umask(mask);
     }
 
     /* setup alarm */
@@ -968,8 +966,8 @@ static void execClient(PStask_t *task)
     PSC_setSigHandler(SIGALRM, alarmHandler);
     envStr = getenv("__PSI_ALARM_TMOUT");
     if (envStr) {
-	int tmout, ret = sscanf(envStr, "%d", &tmout);
-	if (ret > 0) timeout = tmout;
+	int tmout;
+	if (sscanf(envStr, "%d", &tmout) > 0) timeout = tmout;
     }
     alarm(timeout);
 
@@ -1180,7 +1178,7 @@ static void execForwarder(PStask_t *task)
 {
     pid_t pid;
     int stdinfds[2], stdoutfds[2], stderrfds[2], controlfds[2] = {-1, -1};
-    int ret, eno = 0;
+    int eno = 0;
     char *envStr;
     struct timeval start, end = { .tv_sec = 0, .tv_usec = 0 }, stv;
     struct timeval timeout = { .tv_sec = 30, .tv_usec = 0};
@@ -1398,8 +1396,8 @@ static void execForwarder(PStask_t *task)
     /* Just wait a finite time for the client process */
     envStr = getenv("__PSI_ALARM_TMOUT");
     if (envStr) {
-	int tmout, ret = sscanf(envStr, "%d", &tmout);
-	if (ret > 0) timeout.tv_sec = tmout;
+	int tmout;
+	if (sscanf(envStr, "%d", &tmout) > 0) timeout.tv_sec = tmout;
     }
     timeout.tv_sec += 2;  /* 2 secs more than client */
 
@@ -1416,7 +1414,7 @@ static void execForwarder(PStask_t *task)
 	timersub(&end, &start, &stv);
 	if (stv.tv_sec < 0) timerclear(&stv);
 
-	ret = select(controlfds[0] + 1, &rfds, NULL, NULL, &stv);
+	int ret = select(controlfds[0] + 1, &rfds, NULL, NULL, &stv);
 	if (ret == -1) {
 	    if (errno == EINTR) {
 		/* Interrupted syscall, just start again */
@@ -1442,18 +1440,21 @@ static void execForwarder(PStask_t *task)
     if (eno) goto error;
 
 restart:
-    if ((ret=read(controlfds[0], &eno, sizeof(eno))) < 0) {
-	if (errno == EINTR) {
-	    goto restart;
+    {
+	int ret = read(controlfds[0], &eno, sizeof(eno));
+	if (ret < 0) {
+	    if (errno == EINTR) {
+		goto restart;
+	    }
+	    eno = errno;
+	    PSID_warn(-1, eno, "%s: read() failed. eno is %d", __func__, eno);
+	    goto error;
 	}
-	eno = errno;
-	PSID_warn(-1, eno, "%s: read() failed. eno is %d", __func__, eno);
-	goto error;
-    }
 
-    if (!ret) {
-	PSID_log(-1, "%s: ret is %d\n", __func__, ret);
-	eno = EBADMSG;
+	if (!ret) {
+	    PSID_log(-1, "%s: ret is %d\n", __func__, ret);
+	    eno = EBADMSG;
+	}
     }
 
 error:

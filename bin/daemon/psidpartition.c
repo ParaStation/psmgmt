@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2019 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2020 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -3364,13 +3364,13 @@ static void msg_NODESRES(DDBufferMsg_t *msg)
 
 	/* Morph msg to CD_NODESRES message */
 	if (task->spawnNum >= nextRank+rqstd) {
-	    PSpart_slot_t *slots = task->spawnNodes + nextRank;
+	    PSpart_slot_t *msgSlots = task->spawnNodes + nextRank;
 	    PSnodes_ID_t *nodeBuf = (PSnodes_ID_t *)(msg->buf+sizeof(int32_t));
 
 	    msg->header.type = PSP_CD_NODESRES;
 	    msg->header.len = sizeof(msg->header) + sizeof(int32_t);
 
-	    for (n = 0; n < rqstd; n++) nodeBuf[n] = slots[n].node;
+	    for (n = 0; n < rqstd; n++) nodeBuf[n] = msgSlots[n].node;
 	    msg->header.len += rqstd * sizeof(*nodeBuf);
 	} else {
 	    return;
@@ -3520,7 +3520,7 @@ static int PSIDpart_getReservation(PSrsrvtn_t *res)
 
 	if (!res->checked) {
 	    PSpart_HWThread_t *thread;
-	    unsigned int got = 0, thrdsGot = 0, t;
+	    unsigned int slotsGot = 0, thrdsGot = 0, t;
 
 	    thread = delegate->partThrds;
 
@@ -3535,15 +3535,15 @@ static int PSIDpart_getReservation(PSrsrvtn_t *res)
 		    thrdsGot = 1;
 		}
 		if (thrdsGot == res->tpp) {
-		    got++;
+		    slotsGot++;
 		    thrdsGot = 0;
 		}
 	    }
-	    if (got < res->nMin) {
+	    if (slotsGot < res->nMin) {
 		PSID_log(-1, "%s: partition not sufficient\n", __func__);
 		return -1;
 	    }
-	    res->checked = 1;
+	    res->checked = true;
 	    return 0;
 	} else {
 	     /* checked before */
@@ -3654,7 +3654,7 @@ static int handleSingleResRequest(PSrsrvtn_t *r)
 	    }
 	} else {
 	    /* Do not send twice */
-	    r->dynSent = 1;
+	    r->dynSent = true;
 	    /* Answer is sent by hook's callback */
 	    return 1; // Handle next request
 	}
@@ -4197,15 +4197,15 @@ static void msg_SLOTSRES(DDBufferMsg_t *msg)
 
     /* Morph msg to CD_SLOTSRES message */
     if (task->spawnNum >= rank + requested) {
-	PSpart_slot_t *slots = task->spawnNodes + rank;
+	PSpart_slot_t *msgSlots = task->spawnNodes + rank;
 
 	msg->header.type = PSP_CD_SLOTSRES;
 	/* Keep the rank */
 	msg->header.len = sizeof(msg->header) + sizeof(int32_t);
 
 	for (n = 0; n < requested; n++)
-	    PSP_putMsgBuf(msg, __func__, "CPUset", &slots[n].node,
-			  sizeof(slots[n].node));
+	    PSP_putMsgBuf(msg, __func__, "CPUset", &msgSlots[n].node,
+			  sizeof(msgSlots[n].node));
     } else {
 	return;
     }

@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 1999-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2018 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2020 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -1532,8 +1532,6 @@ int main( int argc, char**argv)
 	if (!*envstr) {
 	    PSIlog_log(-1, "PSI_MAXTIME is empty.\n");
 	} else {
-	    char *end;
-
 	    maxTime = strtol(envstr, &end, 10);
 	    if (*end) {
 		PSIlog_log(-1, "PSI_MAXTIME '%s' is invalid.\n", envstr);

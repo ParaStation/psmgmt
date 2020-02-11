@@ -190,7 +190,7 @@ static plugin_ref_t * getRef(void){
  * getRef(). Plugin-references are used to store references to
  * plugins in reference-lists.
  *
- * @param ref The reference to be put back.
+ * @param ref The reference to be put back
  *
  * @return No return value.
  */
@@ -386,24 +386,24 @@ static void printRefList(char *buf, size_t size, list_t *refList)
 /**
  * @brief Find plugin
  *
- * Find a plugin by its name @a name from the list of plugins @ref
+ * Find a plugin by its name @a pName from the list of plugins @ref
  * pluginList.
  *
- * @param name Name of the plugin to find.
+ * @param pName Name of the plugin to find
  *
  * @return If the plugin was found, a pointer to the describing
  * structure is returned. Or NULL otherwise.
  */
-static plugin_t * findPlugin(char *name)
+static plugin_t * findPlugin(char *pName)
 {
     list_t *p;
 
-    if (!name || ! *name) return NULL;
+    if (!pName || ! *pName) return NULL;
 
     list_for_each(p, &pluginList) {
 	plugin_t *plugin = list_entry(p, plugin_t, next);
 
-	if (!strcmp(name, plugin->name)) return plugin;
+	if (!strcmp(pName, plugin->name)) return plugin;
     }
 
     return NULL;
@@ -413,23 +413,23 @@ static plugin_t * findPlugin(char *name)
  * @brief Create plugin structure
  *
  * Create and initialize a plugin structure. The structure will
- * describe the loaded plugin referred by @a handle with name @a name
+ * describe the loaded plugin referred by @a handle with name @a pName
  * and version @a version.
  *
- * @param handle Handle of the plugin created via dlopen().
+ * @param handle Handle of the plugin created via dlopen()
  *
- * @param name Name of the plugin.
+ * @param pName Name of the plugin
  *
- * @param version Version of the plugin.
+ * @param pVer Version of the plugin
  *
  * @return Return the newly created structure, or NULL, if some error
  * occurred.
  */
-static plugin_t * newPlugin(void *handle, char *name, int version)
+static plugin_t * newPlugin(void *handle, char *pName, int pVer)
 {
     plugin_t *plugin;
 
-    PSID_log(PSID_LOG_PLUGIN, "%s(%p,%s,%d)\n",__func__, handle, name, version);
+    PSID_log(PSID_LOG_PLUGIN, "%s(%p, %s, %d)\n",__func__, handle, pName, pVer);
 
     plugin = malloc(sizeof(*plugin));
     if (!plugin) {
@@ -437,9 +437,9 @@ static plugin_t * newPlugin(void *handle, char *name, int version)
 	return NULL;
     }
 
-    plugin->name = strdup(name);
+    plugin->name = strdup(pName);
     plugin->handle = handle;
-    plugin->version = version;
+    plugin->version = pVer;
     INIT_LIST_HEAD(&plugin->next);
     INIT_LIST_HEAD(&plugin->triggers);
     INIT_LIST_HEAD(&plugin->depends);
@@ -507,7 +507,7 @@ static void delPlugin(plugin_t *plugin)
  * Register the plugin @a new to the list of currently loaded plugins
  * @ref pluginList.
  *
- * @param new The plugin to register.
+ * @param new The plugin to register
  *
  * @return If a plugin with the same name is already registered, a
  * pointer to this plugin is given back. If the new plugin @a new is
@@ -561,7 +561,7 @@ int PSIDplugin_getNum(void)
 /**
  * @brief Load plugin
  *
- * Load the plugin @a name with minimum Version @a minVer. If loading
+ * Load the plugin @a pName with minimum version @a minVer. If loading
  * the plugin is triggered by the requirements of another plugin, @a
  * trigger has to hold this plugin.
  *
@@ -581,17 +581,17 @@ int PSIDplugin_getNum(void)
  * If @a trigger is different from NULL, the corresponding plugin will
  * be marked as a triggering plugin within the newly created plugin.
  *
- * @param name Name of the plugin to load
+ * @param pName Name of the plugin to load
  *
  * @param minVer Minimal required version of the plugin. Might be 0
  *
- * @param trigger Plugin triggering the current plugin to be loaded.
+ * @param trigger Plugin triggering the current plugin to be loaded
  *
  * @return Upon success, i.e. if the plugin is loaded afterward, the
  * structure describing the plugin is given back. Or NULL, if the
  * plugin could not be loaded.
  */
-static plugin_t * loadPlugin(char *name, int minVer, plugin_t * trigger)
+static plugin_t * loadPlugin(char *pName, int minVer, plugin_t * trigger)
 {
     char filename[PATH_MAX], *instDir;
     void *handle = NULL;
@@ -601,15 +601,15 @@ static plugin_t * loadPlugin(char *name, int minVer, plugin_t * trigger)
     int *plugin_version = NULL;
     plugin_dep_t *plugin_deps = NULL;
 
-    plugin_t *plugin = findPlugin(name);
+    plugin_t *plugin = findPlugin(pName);
 
-    if (!name || ! *name) {
+    if (!pName || ! *pName) {
 	PSID_log(-1, "%s: No name given\n", __func__);
 	return NULL;
     }
 
     PSID_log(PSID_LOG_PLUGIN, "%s(%s, %d, %s)\n", __func__,
-	     name, minVer, trigger ? trigger->name : "<no trigger>");
+	     pName, minVer, trigger ? trigger->name : "<no trigger>");
 
     if (plugin) {
 	PSID_log(PSID_LOG_PLUGIN, "%s: version %d already loaded\n",
@@ -639,7 +639,7 @@ static plugin_t * loadPlugin(char *name, int minVer, plugin_t * trigger)
 	PSID_log(-1, "%s: installation directory not found\n", __func__);
 	return NULL;
     }
-    snprintf(filename, sizeof(filename), "%s/plugins/%s.so", instDir, name);
+    snprintf(filename, sizeof(filename), "%s/plugins/%s.so", instDir, pName);
     handle = dlopen(filename, RTLD_NOW);
 
     if (!handle) {
@@ -661,7 +661,7 @@ static plugin_t * loadPlugin(char *name, int minVer, plugin_t * trigger)
     }
     if (plugin_reqAPI && pluginAPIVersion < *plugin_reqAPI) {
 	PSID_log(-1, "%s: '%s' needs API version %d or above. This is %d\n",
-		 __func__, name, *plugin_reqAPI, pluginAPIVersion);
+		 __func__, pName, *plugin_reqAPI, pluginAPIVersion);
 	dlclose(handle);
 	return NULL;
     }
@@ -671,14 +671,14 @@ static plugin_t * loadPlugin(char *name, int minVer, plugin_t * trigger)
 		 filename);
 	dlclose(handle);
 	return NULL;
-    } else if (strcmp(plugin_name, name)) {
+    } else if (strcmp(plugin_name, pName)) {
 	PSID_log(-1, "%s: WARNING: plugin_name '%s' and name '%s' differ\n",
-		 __func__, plugin_name, name);
+		 __func__, plugin_name, pName);
     }
 
     if (!plugin_version) {
 	PSID_log(-1, "%s: Cannot determine version of '%s'\n",
-		 __func__, name);
+		 __func__, pName);
 	dlclose(handle);
 	return NULL;
     }
@@ -688,12 +688,12 @@ static plugin_t * loadPlugin(char *name, int minVer, plugin_t * trigger)
 
     if (minVer && *plugin_version < minVer) {
 	PSID_log(-1, "%s: 'version %d or above of '%s' required. This is %d\n",
-		 __func__, minVer, name, *plugin_version);
+		 __func__, minVer, pName, *plugin_version);
 	dlclose(handle);
 	return NULL;
     }
 
-    plugin = newPlugin(handle, name, *plugin_version);
+    plugin = newPlugin(handle, pName, *plugin_version);
 
     /* Register plugin before it's possibly unloaded */
     registerPlugin(plugin);
@@ -786,9 +786,9 @@ void PSIDplugin_sendList(PStask_ID_t dest)
     return;
 }
 
-void *PSIDplugin_getHandle(char *name)
+void *PSIDplugin_getHandle(char *pName)
 {
-    plugin_t *plugin = findPlugin(name);
+    plugin_t *plugin = findPlugin(pName);
 
     if (plugin) return plugin->handle;
 
@@ -863,7 +863,7 @@ static int unloadPlugin(plugin_t *plugin)
  * immediately, if it is no longer required by other plugins depending
  * on it.
  *
- * @param plugin The plugin to be finalized.
+ * @param plugin The plugin to be finalized
  *
  * @return If @a plugin is NULL, -1 is returned. Otherwise 0 is
  * returned.
@@ -1058,7 +1058,7 @@ static plugin_t *findMaxDistPlugin(void)
 /**
  * @brief Unload plugin forcefully
  *
- * Forcefully unload the plugin @a name. For this, the plugin's
+ * Forcefully unload the plugin @a pName. For this, the plugin's
  * dependency-graph is walked in order to evict all plugins it depends
  * on in a direct or indirect way. Walking the dependency-graph is done
  * by calling @ref walkDepGraph().
@@ -1082,14 +1082,14 @@ static plugin_t *findMaxDistPlugin(void)
  * into one plugin or extract parts depending on each other into an
  * extra plugin.
  *
- * @param name Name of the plugin to unload
+ * @param pName Name of the plugin to unload
  *
  * @return If the plugin is not found, -1 is returned. Otherwise 0 is
  * returned.
  */
-static int forceUnloadPlugin(char *name)
+static int forceUnloadPlugin(char *pName)
 {
-    plugin_t *plugin = findPlugin(name);
+    plugin_t *plugin = findPlugin(pName);
     int rounds = 0;
 
     if (!plugin) return -1;
@@ -1128,9 +1128,9 @@ static int forceUnloadPlugin(char *name)
     return 0;
 }
 
-int PSIDplugin_finalize(char *name)
+int PSIDplugin_finalize(char *pName)
 {
-    plugin_t *plugin = findPlugin(name);
+    plugin_t *plugin = findPlugin(pName);
 
     if (!plugin) return -1;
 
@@ -1139,9 +1139,9 @@ int PSIDplugin_finalize(char *name)
     return plugin->finalized;
 }
 
-int PSIDplugin_unload(char *name)
+int PSIDplugin_unload(char *pName)
 {
-    plugin_t *plugin = findPlugin(name);
+    plugin_t *plugin = findPlugin(pName);
 
     if (!plugin) return -1;
 
@@ -1237,7 +1237,7 @@ end:
     sendStr(&msg, "", __func__);
 }
 
-static void sendHelp(PStask_ID_t dest, char *name)
+static void sendHelp(PStask_ID_t dest, char *pName)
 {
     DDTypedBufferMsg_t msg = (DDTypedBufferMsg_t) {
 	    .header = (DDMsg_t) {
@@ -1246,18 +1246,18 @@ static void sendHelp(PStask_ID_t dest, char *name)
 		.sender = PSC_getMyTID(),
 		.len = sizeof(msg.header) + sizeof(msg.type) },
 	    .type = PSP_PLUGIN_HELP};
-    plugin_t *plugin = findPlugin(name);
+    plugin_t *plugin = findPlugin(pName);
 
     if (!plugin) {
-	char buf[sizeof(msg.buf)];
-	snprintf(buf, sizeof(buf), "\tpsid: %s: unknown plugin '%s'\n",
-		 __func__, name);
-	sendStr(&msg, buf, __func__);
+	char mBuf[sizeof(msg.buf)];
+	snprintf(mBuf, sizeof(mBuf), "\tpsid: %s: unknown plugin '%s'\n",
+		 __func__, pName);
+	sendStr(&msg, mBuf, __func__);
     } else if (!plugin->help) {
-	char buf[sizeof(msg.buf)];
-	snprintf(buf, sizeof(buf), "\tpsid: %s: no help-method for '%s' \n",
-		 __func__, name);
-	sendStr(&msg, buf, __func__);
+	char mBuf[sizeof(msg.buf)];
+	snprintf(mBuf, sizeof(mBuf), "\tpsid: %s: no help-method for '%s' \n",
+		 __func__, pName);
+	sendStr(&msg, mBuf, __func__);
     } else {
 	char *res = plugin->help();
 
@@ -1273,9 +1273,9 @@ static void sendHelp(PStask_ID_t dest, char *name)
 
 static void handleSetKey(PStask_ID_t dest, char *buf)
 {
-    char *name = buf, *key = name + PSP_strLen(name);
+    char *pName = buf, *key = pName + PSP_strLen(pName);
     char *val = key + PSP_strLen(key);
-    plugin_t *plugin = findPlugin(name);
+    plugin_t *plugin = findPlugin(pName);
     DDTypedBufferMsg_t msg = (DDTypedBufferMsg_t) {
 	    .header = (DDMsg_t) {
 		.type = PSP_CD_PLUGINRES,
@@ -1286,15 +1286,15 @@ static void handleSetKey(PStask_ID_t dest, char *buf)
 
 
     if (!plugin) {
-	char buf[sizeof(msg.buf)];
-	snprintf(buf, sizeof(buf), "\tpsid: %s: unknown plugin '%s'\n",
-		 __func__, name);
-	sendStr(&msg, buf, __func__);
+	char mBuf[sizeof(msg.buf)];
+	snprintf(mBuf, sizeof(mBuf), "\tpsid: %s: unknown plugin '%s'\n",
+		 __func__, pName);
+	sendStr(&msg, mBuf, __func__);
     } else if (!plugin->set) {
-	char buf[sizeof(msg.buf)];
-	snprintf(buf, sizeof(buf), "\tpsid: %s: no set-method for '%s' \n",
-		 __func__, name);
-	sendStr(&msg, buf, __func__);
+	char mBuf[sizeof(msg.buf)];
+	snprintf(mBuf, sizeof(mBuf), "\tpsid: %s: no set-method for '%s' \n",
+		 __func__, pName);
+	sendStr(&msg, mBuf, __func__);
     } else {
 	char *res = plugin->set(key, val);
 
@@ -1310,8 +1310,8 @@ static void handleSetKey(PStask_ID_t dest, char *buf)
 
 static void handleUnsetKey(PStask_ID_t dest, char *buf)
 {
-    char *name = buf, *key = buf + PSP_strLen(name);
-    plugin_t *plugin = findPlugin(name);
+    char *pName = buf, *key = pName + PSP_strLen(pName);
+    plugin_t *plugin = findPlugin(pName);
     DDTypedBufferMsg_t msg = (DDTypedBufferMsg_t) {
 	    .header = (DDMsg_t) {
 		.type = PSP_CD_PLUGINRES,
@@ -1321,15 +1321,15 @@ static void handleUnsetKey(PStask_ID_t dest, char *buf)
 	    .type = PSP_PLUGIN_UNSET};
 
     if (!plugin) {
-	char buf[sizeof(msg.buf)];
-	snprintf(buf, sizeof(buf), "\tpsid: %s: unknown plugin '%s'\n",
-		 __func__, name);
-	sendStr(&msg, buf, __func__);
+	char mBuf[sizeof(msg.buf)];
+	snprintf(mBuf, sizeof(mBuf), "\tpsid: %s: unknown plugin '%s'\n",
+		 __func__, pName);
+	sendStr(&msg, mBuf, __func__);
     } else if (!plugin->unset) {
-	char buf[sizeof(msg.buf)];
-	snprintf(buf, sizeof(buf), "\tpsid: %s: no unset-method for '%s' \n",
-		 __func__, name);
-	sendStr(&msg, buf, __func__);
+	char mBuf[sizeof(msg.buf)];
+	snprintf(mBuf, sizeof(mBuf), "\tpsid: %s: no unset-method for '%s' \n",
+		 __func__, pName);
+	sendStr(&msg, mBuf, __func__);
     } else {
 	char *res = plugin->unset(key);
 
@@ -1345,8 +1345,8 @@ static void handleUnsetKey(PStask_ID_t dest, char *buf)
 
 static void handleShowKey(PStask_ID_t dest, char *buf)
 {
-    char *name = buf, *key = buf + PSP_strLen(name);
-    plugin_t *plugin = findPlugin(name);
+    char *pName = buf, *key = pName + PSP_strLen(pName);
+    plugin_t *plugin = findPlugin(pName);
     DDTypedBufferMsg_t msg = (DDTypedBufferMsg_t) {
 	    .header = (DDMsg_t) {
 		.type = PSP_CD_PLUGINRES,
@@ -1358,15 +1358,15 @@ static void handleShowKey(PStask_ID_t dest, char *buf)
     if (! *key) key=NULL;
 
     if (!plugin) {
-	char buf[sizeof(msg.buf)];
-	snprintf(buf, sizeof(buf), "\tpsid: %s: unknown plugin '%s'\n",
-		 __func__, name);
-	sendStr(&msg, buf, __func__);
+	char mBuf[sizeof(msg.buf)];
+	snprintf(mBuf, sizeof(mBuf), "\tpsid: %s: unknown plugin '%s'\n",
+		 __func__, pName);
+	sendStr(&msg, mBuf, __func__);
     } else if (!plugin->show) {
-	char buf[sizeof(msg.buf)];
-	snprintf(buf, sizeof(buf), "\tpsid: %s: no show-method for '%s' \n",
-		 __func__, name);
-	sendStr(&msg, buf, __func__);
+	char mBuf[sizeof(msg.buf)];
+	snprintf(mBuf, sizeof(mBuf), "\tpsid: %s: no show-method for '%s' \n",
+		 __func__, pName);
+	sendStr(&msg, mBuf, __func__);
     } else {
 	char *res = plugin->show(key);
 
@@ -1389,16 +1389,16 @@ static void sendLoadTime(PStask_ID_t dest, plugin_t *plugin)
 		.sender = PSC_getMyTID(),
 		.len = sizeof(msg.header) + sizeof(msg.type) },
 	    .type = PSP_PLUGIN_LOADTIME};
-    char buf[sizeof(msg.buf)];
+    char mBuf[sizeof(msg.buf)];
 
     if (!plugin) return;
 
-    snprintf(buf, sizeof(buf), "\t%10s %4d %s", plugin->name, plugin->version,
+    snprintf(mBuf, sizeof(mBuf), "\t%10s %4d %s", plugin->name, plugin->version,
 	     ctime(&plugin->load.tv_sec));
-    sendStr(&msg, buf, __func__);
+    sendStr(&msg, mBuf, __func__);
 }
 
-static void handleLoadTime(PStask_ID_t dest, char *name)
+static void handleLoadTime(PStask_ID_t dest, char *pName)
 {
     DDTypedBufferMsg_t msg = (DDTypedBufferMsg_t) {
 	    .header = (DDMsg_t) {
@@ -1408,16 +1408,16 @@ static void handleLoadTime(PStask_ID_t dest, char *name)
 		.len = sizeof(msg.header) + sizeof(msg.type) },
 	    .type = PSP_PLUGIN_LOADTIME};
 
-    if (!name) return;
+    if (!pName) return;
 
-    if (*name) {
-	plugin_t *plugin = findPlugin(name);
+    if (*pName) {
+	plugin_t *plugin = findPlugin(pName);
 
 	if (!plugin) {
-	    char buf[sizeof(msg.buf)];
-	    snprintf(buf, sizeof(buf), "\tpsid: %s: plugin '%s' not found\n",
-		     __func__, name);
-	    sendStr(&msg, buf, __func__);
+	    char mBuf[sizeof(msg.buf)];
+	    snprintf(mBuf, sizeof(mBuf), "\tpsid: %s: plugin '%s' not found\n",
+		     __func__, pName);
+	    sendStr(&msg, mBuf, __func__);
 	    msg.header.len = sizeof(msg.header) + sizeof(msg.type);
 	} else {
 	    sendLoadTime(dest, plugin);
@@ -1454,7 +1454,7 @@ int PSIDplugin_getAPIversion(void)
  *
  * An answer will be sent as an PSP_CD_PLUGINRES message.
  *
- * @param inmsg Pointer to the message to handle.
+ * @param inmsg Pointer to the message to handle
  *
  * @return No return value.
  */
@@ -1557,7 +1557,7 @@ end:
  * Since the requesting process waits for a reaction to its request a
  * corresponding answer is created.
  *
- * @param msg Pointer to the message to drop.
+ * @param msg Pointer to the message to drop
  *
  * @return No return value.
  */

@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2013-2018 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2013-2020 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -689,22 +689,21 @@ static void sendDaisyReady(PStask_ID_t tid, PStask_ID_t succ)
  *
  * @return No return value.
  */
-static void handleInitTimeout(int timerid, void *ptr)
+static void handleInitTimeout(int dummy, void *ptr)
 {
     int i;
 
     mlog("Timeout: Not all clients called pmi_init(): "
-	    "init=%i left=%i round=%i\n", initCount,
-	    maxClients - initCount,
-	    initRounds - initRoundsCount+1);
+	 "init=%i left=%i round=%i\n", initCount, maxClients - initCount,
+	 initRounds - initRoundsCount+1);
 
     if (--initRoundsCount) return;
 
     mlog("Missing clients:\n");
-    for (i=0; i<maxClients; i++) {
+    for (i = 0; i < maxClients; i++) {
 	if (!clients[i].init) {
 	    mlog("%s rank %d\n", (clients[i].tid == -1) ?
-		       "unconnected" : PSC_printTID(clients[i].tid), i);
+		 "unconnected" : PSC_printTID(clients[i].tid), i);
 	}
     }
 
