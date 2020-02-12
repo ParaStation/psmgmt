@@ -15,13 +15,19 @@
 #include "psslurmbcast.h"
 
 /**
- * @brief Execute a step forwarder
+ * @brief Execute a step leader forwarder
+ *
+ * The step leader forwarder is started on the mother superior
+ * of the step. The main purpose of the forwarder is to start
+ * the mpiexec executable to spawn all compute processes.
+ * Additional tasks include handling of node local I/O streams
+ * and calling various spank hooks.
  *
  * @param step The step to execute the forwarder for
  *
  * @return Returns true on success otherwise false is returned
  */
-bool execStep(Step_t *step);
+bool execStepLeader(Step_t *step);
 
 /**
  * @brief Execute a batch job forwarder
@@ -42,13 +48,19 @@ bool execBatchJob(Job_t *job);
 bool execBCast(BCast_t *bcast);
 
 /**
- * @brief Execute a step I/O forwarder
+ * @brief Execute a step follower forwarder
+ *
+ * The step follower forwarder is started on the all nodes
+ * of the step with the exception of the mother superior.
+ * The main purpose of the forwarder is handling of node
+ * local I/O streams. Additionally various spank hooks are
+ * called.
  *
  * @param step The step to execute the forwarder for
  *
  * @return Returns true on success otherwise false is returned
  */
-bool execStepIO(Step_t *step);
+bool execStepFollower(Step_t *step);
 
 /**
  * @brief Handle hook PSIDHOOK_EXEC_CLIENT

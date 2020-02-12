@@ -594,7 +594,7 @@ static void handleLaunchTasks(Slurm_Msg_t *sMsg)
 	mdbg(PSSLURM_LOG_JOB, "%s: step %u:%u in '%s'\n", __func__,
 		step->jobid, step->stepid, strJobState(step->state));
 	if (step->packJobid == NO_VAL) {
-	    if (!(execStep(step))) {
+	    if (!(execStepLeader(step))) {
 		sendSlurmRC(sMsg, ESLURMD_FORK_FAILED);
 		goto ERROR;
 	    }
@@ -603,7 +603,7 @@ static void handleLaunchTasks(Slurm_Msg_t *sMsg)
 	/* sister node (pack follower) */
 
 	/* start I/O forwarder */
-	execStepIO(step);
+	execStepFollower(step);
 
 	if (sMsg->sock != -1) {
 	    /* say ok to waiting srun */

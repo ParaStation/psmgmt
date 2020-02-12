@@ -123,7 +123,7 @@ static int jobCallback(int32_t exit_status, Forwarder_Data_t *fw)
     return 0;
 }
 
-static int stepIOcallback(int32_t exit_status, Forwarder_Data_t *fw)
+static int stepFollowerCB(int32_t exit_status, Forwarder_Data_t *fw)
 {
     Step_t *step = fw->userData;
 
@@ -1122,7 +1122,7 @@ static void handleChildStartStep(Forwarder_Data_t *fwdata, pid_t fw,
     step->state = JOB_SPAWNED;
 }
 
-bool execStep(Step_t *step)
+bool execStepLeader(Step_t *step)
 {
     int grace = getConfValueI(&SlurmConfig, "KillWait");
     if (grace < 3) grace = 30;
@@ -1306,7 +1306,7 @@ bool execBCast(BCast_t *bcast)
     return true;
 }
 
-static void stepFWIOloop(Forwarder_Data_t *fwdata)
+static void stepFollowerFWloop(Forwarder_Data_t *fwdata)
 {
     Step_t *step = fwdata->userData;
     step->fwdata = fwdata;
@@ -1339,7 +1339,7 @@ static void stepFWIOloop(Forwarder_Data_t *fwdata)
     }
 }
 
-static int stepFWIOinit(Forwarder_Data_t *fwdata)
+static int stepFollowerFWinit(Forwarder_Data_t *fwdata)
 {
 #ifdef HAVE_SPANK
     Step_t *step = fwdata->userData;
@@ -1371,7 +1371,7 @@ static int stepFWIOinit(Forwarder_Data_t *fwdata)
     return 1;
 }
 
-bool execStepIO(Step_t *step)
+bool execStepFollower(Step_t *step)
 {
     int grace = getConfValueI(&SlurmConfig, "KillWait");
     if (grace < 3) grace = 30;
@@ -1386,17 +1386,17 @@ bool execStepIO(Step_t *step)
     fwdata->userData = step;
     fwdata->graceTime = grace;
     fwdata->killSession = psAccountSignalSession;
-    fwdata->hookLoop = stepFWIOloop;
-    fwdata->hookFWInit = stepFWIOinit;
+    fwdata->hookLoop = stepFollowerFWloop;
+    fwdata->hookFWInit = stepFollowerFWinit;
     fwdata->handleMthrMsg = fwCMD_handleMthrMsg;
     fwdata->handleFwMsg = fwCMD_handleFwMsg;
-    fwdata->callback = stepIOcallback;
+    fwdata->callback = stepFollowerCB;
     fwdata->hookFinalize = stepFinalize;
 
     if (!startForwarder(fwdata)) {
 	char msg[128];
 
-	snprintf(msg, sizeof(msg), "starting I/O forwarder for %s failed\n",
+	snprintf(msg, sizeof(msg), "starting step forwarder for %s failed\n",
 		 strStepID(step));
 	flog(msg);
 	setNodeOffline(&step->env, step->jobid,

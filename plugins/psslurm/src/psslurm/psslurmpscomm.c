@@ -1125,7 +1125,7 @@ static void handlePackInfo(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
 
     /* test if we have all infos to start */
     if (step->packNtasks == step->numPackNP) {
-	if (!(execStep(step))) {
+	if (!(execStepLeader(step))) {
 	    mlog("%s: starting user step failed\n", __func__);
 	    sendSlurmRC(&step->srunControlMsg, ESLURMD_FORK_FAILED);
 	    deleteStep(step->jobid, step->stepid);

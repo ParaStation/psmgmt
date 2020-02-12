@@ -259,16 +259,16 @@ bool finalizeEpilogue(Alloc_t *alloc)
 }
 
 /**
- * @brief Start IO forwarder for all steps with matching jobid
+ * @brief Start step follower forwarder for all steps with matching jobid
  *
- * Start a IO forwarder if the step has the matching jobid
+ * Start a step follower forwarder if the step has the matching jobid
  * or packjobid.
  *
  * @param step The next step in the step list
  *
  * @param info The jobid of the step to start
  */
-static bool startIOforwarder(Step_t *step, const void *info)
+static bool startStepFollowerFW(Step_t *step, const void *info)
 {
     uint32_t jobid = *(uint32_t *) info;
 
@@ -277,9 +277,9 @@ static bool startIOforwarder(Step_t *step, const void *info)
     if (step->jobid == jobid ||
 	(step->packJobid != NO_VAL && step->packJobid == jobid)) {
 
-	mlog("%s: pelogue exit, starting IO forwarder for step %u:%u \n",
+	mlog("%s: pelogue exit, starting step follower fw for step %u:%u \n",
 	     __func__, step->jobid, step->stepid);
-	execStepIO(step);
+	execStepFollower(step);
     }
 
     return false;
@@ -441,9 +441,9 @@ int handleLocalPElogueFinish(void *data)
 	psPamDeleteUser(alloc->username, strJobID(ID));
     }
 
-    /* start I/O forwarder for all waiting steps */
+    /* start step forwarder for all waiting steps */
     if (!pedata->exit && pedata->type == PELOGUE_PROLOGUE) {
-	traverseSteps(startIOforwarder, &jobid);
+	traverseSteps(startStepFollowerFW, &jobid);
     }
 
     /* set myself offline */
