@@ -1188,6 +1188,7 @@ int setHWthreads(Step_t *step)
 	    /* handle --hint=nomultithread */
 	    if (step->cpuBindType & CPU_BIND_ONE_THREAD_PER_CORE) {
 		nodeinfo.threadsPerCore = 1;
+		nodeinfo.threadCount = nodeinfo.coreCount;
 		mdbg(PSSLURM_LOG_PART, "%s: CPU_BIND_ONE_THREAD_PER_CORE set,"
 			" setting nodeinfo.threadsPerCore = 1\n", __func__);
 	    }
@@ -1895,6 +1896,14 @@ void test_pinning(uint16_t cpuBindType,	char *cpuBindString, uint32_t taskDist,
 	.threadCount = threadCount,
 	.coreMap = coreMap
     };
+
+    /* handle --hint=nomultithread */
+    if (cpuBindType & CPU_BIND_ONE_THREAD_PER_CORE) {
+	nodeinfo.threadsPerCore = 1;
+	nodeinfo.threadCount = nodeinfo.coreCount;
+	mdbg(PSSLURM_LOG_PART, "%s: CPU_BIND_ONE_THREAD_PER_CORE set,"
+		" setting nodeinfo.threadsPerCore = 1\n", __func__);
+    }
 
     pininfo_t pininfo;
     pininfo.usedHwThreads = ucalloc(nodeinfo.coreCount * threadsPerCore
