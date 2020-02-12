@@ -635,6 +635,10 @@ static spank_err_t getVersionItem(spank_t spank, spank_item_t item, va_list ap)
 static spank_err_t getOtherItem(spank_t spank, spank_item_t item, va_list ap)
 {
     uint32_t *pUint32;
+    uint32_t Uint32Val, len;
+    Step_t *step = spank->step;
+    pid_t cPID;
+    PStask_t *task = spank->task;
 
     switch(item) {
 	case S_JOB_ARRAY_ID:
@@ -653,31 +657,60 @@ static spank_err_t getOtherItem(spank_t spank, spank_item_t item, va_list ap)
 		*pUint32 = 0;
 	    }
 	    break;
-	/* TODO */
-	case S_JOB_PID_TO_GLOBAL_ID:
-	    /* global task id from pid (pid_t, uint32_t *)  */
-	    va_arg(ap, pid_t);
-	    pUint32 = va_arg(ap, uint32_t *);
-	    *pUint32 = 0;
-	    return ESPANK_NOT_AVAIL;
-	case S_JOB_PID_TO_LOCAL_ID:
-	    /* local task id from pid (pid_t, uint32_t *)   */
-	    va_arg(ap, pid_t);
-	    pUint32 = va_arg(ap, uint32_t *);
-	    *pUint32 = 0;
-	    return ESPANK_NOT_AVAIL;
-	case S_JOB_LOCAL_TO_GLOBAL_ID:
-	    /* local id to global id (uint32_t, uint32_t *) */
-	    va_arg(ap, uint32_t);
-	    pUint32 = va_arg(ap, uint32_t *);
-	    *pUint32 = 0;
-	    return ESPANK_NOT_AVAIL;
 	case S_JOB_GLOBAL_TO_LOCAL_ID:
-	    /* global id to local id (uint32_t, uint32_t *) */
-	    va_arg(ap, uint32_t);
+	    Uint32Val = va_arg(ap, uint32_t);
 	    pUint32 = va_arg(ap, uint32_t *);
-	    *pUint32 = 0;
-	    return ESPANK_NOT_AVAIL;
+	    if (step) {
+		*pUint32 = getLocalRankID(Uint32Val, step, step->localNodeId);
+		if (*pUint32 == (uint32_t) -1) return ESPANK_NOEXIST;
+	    } else {
+		*pUint32 = 0;
+		return ESPANK_NOT_AVAIL;
+	    }
+	    break;
+	case S_JOB_LOCAL_TO_GLOBAL_ID:
+	    Uint32Val = va_arg(ap, uint32_t);
+	    pUint32 = va_arg(ap, uint32_t *);
+	    if (step) {
+		len = step->globalTaskIdsLen[step->localNodeId];
+		if (Uint32Val < len) {
+		    *pUint32 =
+			step->globalTaskIds[step->localNodeId][Uint32Val];
+		} else {
+		    *pUint32 = 0;
+		    return ESPANK_BAD_ARG;
+		}
+	    } else {
+		*pUint32 = 0;
+		return ESPANK_NOT_AVAIL;
+	    }
+	    break;
+	case S_JOB_PID_TO_GLOBAL_ID:
+	    cPID = va_arg(ap, pid_t);
+	    pUint32 = va_arg(ap, uint32_t *);
+	    if (task) {
+		if (PSC_getPID(task->tid) == cPID) {
+		    *pUint32 = task->rank;
+		}
+	    } else {
+		*pUint32 = 0;
+		return ESPANK_NOT_AVAIL;
+	    }
+	    break;
+	case S_JOB_PID_TO_LOCAL_ID:
+	    cPID = va_arg(ap, pid_t);
+	    pUint32 = va_arg(ap, uint32_t *);
+	    if (task && step) {
+		if (PSC_getPID(task->tid) == cPID) {
+		    *pUint32 = getLocalRankID(task->rank, step,
+					      step->localNodeId);
+		    if (*pUint32 == (uint32_t) -1) return ESPANK_NOEXIST;
+		}
+	    } else {
+		*pUint32 = 0;
+		return ESPANK_NOT_AVAIL;
+	    }
+	    break;
 	default:
 	    return ESPANK_BAD_ARG;
     }

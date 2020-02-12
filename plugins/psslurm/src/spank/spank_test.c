@@ -171,10 +171,25 @@ static int testHook(spank_t sp, int ac, char **av, const char *func)
     ret = spank_get_item(sp, S_TASK_PID, &taskPID);
     slurm_info("%s: S_TASK_PID: %u ret: %i", func, taskPID, ret);
 
-//    S_JOB_PID_TO_GLOBAL_ID,  /* global task id from pid (pid_t, uint32_t *)  */
-//    S_JOB_PID_TO_LOCAL_ID,   /* local task id from pid (pid_t, uint32_t *)   */
-//    S_JOB_LOCAL_TO_GLOBAL_ID,/* local id to global id (uint32_t, uint32_t *) */
-//    S_JOB_GLOBAL_TO_LOCAL_ID,/* global id to local id (uint32_t, uint32_t *) */
+    if (ret == ESPANK_SUCCESS) {
+	uint32_t global, local, tmp;
+
+	/* global task id from pid (pid_t, uint32_t *)  */
+	ret = spank_get_item(sp, S_JOB_PID_TO_GLOBAL_ID, taskPID, &global);
+	slurm_info("%s: S_JOB_PID_TO_GLOBAL_ID: %u ret: %i", func, global, ret);
+
+	/* local task id from pid (pid_t, uint32_t *)   */
+	ret = spank_get_item(sp, S_JOB_PID_TO_LOCAL_ID, taskPID, &local);
+	slurm_info("%s: S_JOB_PID_TO_LOCAL_ID: %u ret: %i", func, local, ret);
+
+	/* local id to global id (uint32_t, uint32_t *) */
+	ret = spank_get_item(sp, S_JOB_LOCAL_TO_GLOBAL_ID, local, &tmp);
+	slurm_info("%s: S_JOB_LOCAL_TO_GLOBAL_ID: %u ret: %i", func, tmp, ret);
+
+	/* global id to local id (uint32_t, uint32_t *) */
+	ret = spank_get_item(sp,S_JOB_GLOBAL_TO_LOCAL_ID, global, &tmp);
+	slurm_info("%s: S_JOB_GLOBAL_TO_LOCAL_ID: %u ret: %i", func, tmp, ret);
+    }
 
     /* Array of suppl. gids (gid_t **, int *)       */
     gid_t *gids;
