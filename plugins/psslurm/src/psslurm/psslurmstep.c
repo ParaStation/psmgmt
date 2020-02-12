@@ -170,7 +170,7 @@ bool deleteStep(uint32_t jobid, uint32_t stepid)
     ufree(step->errFDs);
     ufree(step->outChannels);
     ufree(step->errChannels);
-    ufree(step->hwThreads);
+    ufree(step->slots);
     ufree(step->acctFreq);
     ufree(step->gids);
     ufree(step->packTaskCounts);
@@ -215,7 +215,7 @@ bool deleteStep(uint32_t jobid, uint32_t stepid)
 	for (x=0; x<step->packInfo[i].argc; x++) {
 	    ufree(step->packInfo[i].argv[x]);
 	}
-	ufree(step->packInfo[i].hwThreads);
+	ufree(step->packInfo[i].slots);
     }
     ufree(step->packInfo);
     ufree(step->packFollower);

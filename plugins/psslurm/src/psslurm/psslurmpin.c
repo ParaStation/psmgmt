@@ -773,35 +773,6 @@ static void setCPUset(PSCPU_set_t *CPUset, uint16_t cpuBindType,
     }
 }
 
-static int genThreads(PSpart_slot_t *slots, uint32_t num,
-			PSpart_HWThread_t **threads)
-{
-    unsigned int s, t = 0, totThreads = 0;
-    PSpart_HWThread_t *HWThreads;
-
-    for (s=0; s<num; s++) {
-	totThreads += PSCPU_getCPUs(slots[s].CPUset, NULL, PSCPU_MAX);
-    }
-
-    HWThreads = umalloc(totThreads * sizeof(*HWThreads));
-
-    for (s=0; s<num; s++) {
-	unsigned int cpu;
-	for (cpu=0; cpu<PSCPU_MAX; cpu++) {
-	    if (PSCPU_isSet(slots[s].CPUset, cpu)) {
-		HWThreads[t].node = slots[s].node;
-		HWThreads[t].id = cpu;
-		HWThreads[t].timesUsed = 0;
-		t++;
-	    }
-	}
-    }
-
-    *threads = HWThreads;
-
-    return totThreads;
-}
-
 int setHWthreads(Step_t *step)
 {
     uint32_t node, lTID, tid, slotsSize, cpuCount, i, shift;
@@ -946,17 +917,19 @@ int setHWthreads(Step_t *step)
 	}
     }
 
-    if ((numThreads = genThreads(slots, slotsSize, &step->hwThreads)) < 0) {
-	goto error;
+    /* count threads */
+    numThreads = 0;
+    for (size_t s = 0; s < slotsSize; s++) {
+	numThreads += PSCPU_getCPUs(slots[s].CPUset, NULL, PSCPU_MAX);
     }
     if (numThreads == 0) {
 	mlog("%s: Error: numThreads == 0\n", __func__);
 	goto error;
     }
     step->numHwThreads = numThreads;
+    step->slots = slots;
 
     ufree(coreMap);
-    ufree(slots);
 
     return 1;
 

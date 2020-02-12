@@ -29,6 +29,7 @@
 #include "psidspawn.h"
 #include "psidpartition.h"
 #include "psidtask.h"
+#include "psidnodes.h"
 
 #include "pluginmalloc.h"
 #include "pluginhelper.h"
@@ -227,6 +228,36 @@ static void printHWthreads(uint32_t numThreads, PSpart_HWThread_t *threads)
     }
 }
 
+static ssize_t genThreads(PSpart_slot_t *slots, uint32_t num,
+	PSpart_HWThread_t **threads, bool allocate)
+{
+    unsigned int s, t = 0, totThreads = 0;
+
+    for (s=0; s<num; s++) {
+	totThreads += PSCPU_getCPUs(slots[s].CPUset, NULL, PSCPU_MAX);
+    }
+
+    if (allocate) {
+	*threads = umalloc(totThreads * sizeof(**threads));
+	if (*threads == NULL) {
+	    return -1;
+	}
+    }
+
+    for (s=0; s<num; s++) {
+	unsigned int cpu;
+	for (cpu=0; cpu<PSCPU_MAX; cpu++) {
+	    if (PSCPU_isSet(slots[s].CPUset, cpu)) {
+		(*threads)[t].node = slots[s].node;
+		(*threads)[t].id = cpu;
+		(*threads)[t].timesUsed = 0;
+		t++;
+	    }
+	}
+    }
+    return totThreads;
+}
+
 /**
  * @brief Handle a create partition message
  *
@@ -240,7 +271,8 @@ static int handleCreatePart(void *msg)
     DDBufferMsg_t *inmsg = (DDBufferMsg_t *) msg;
     Step_t *step;
     PStask_t *task;
-    uint32_t i, numThreads;
+    uint32_t i;
+    ssize_t numThreads;
     int enforceBatch = getConfValueI(&Config, "ENFORCE_BATCH_START");
 
     /* everyone is allowed to start, nothing to do for us here */
@@ -266,35 +298,39 @@ static int handleCreatePart(void *msg)
 	goto error;
     }
 
-    if (!step->hwThreads) {
-	mlog("%s: invalid hw threads in step %u:%u\n", __func__,
+    if (!step->slots) {
+	mlog("%s: invalid slots in step %u:%u\n", __func__,
 	     step->jobid, step->stepid);
 	errno = EACCES;
 	goto error;
     }
 
     /* allocate space for hardware threads */
-    numThreads = (step->packJobid == NO_VAL) ?
-	step->numHwThreads : step->numPackThreads;
-
-    task->partThrds = calloc(1, numThreads * sizeof(*task->partThrds));
-    if (!task->partThrds) {
-	errno = ENOMEM;
-	goto error;
-    }
-
-    mlog("%s: register TID %s to step %u:%u numThreads %u\n", __func__,
-	    PSC_printTID(task->tid), step->jobid, step->stepid, numThreads);
-
-    /* copy hardware threads */
     if (step->packJobid == NO_VAL) {
-	memcpy(task->partThrds, step->hwThreads,
-		step->numHwThreads * sizeof(*task->partThrds));
-    } else {
+	numThreads = genThreads(step->slots, step->np, &task->partThrds, true);
+	if (numThreads < 0) {
+	    errno = ENOMEM;
+	    goto error;
+	}
+    }
+    else {
+	numThreads = step->numPackThreads;
+
+	task->partThrds = malloc(numThreads * sizeof(*task->partThrds));
+	if (!task->partThrds) {
+	    errno = ENOMEM;
+	    goto error;
+	}
+
+	mlog("%s: register TID %s to step %u:%u numThreads %zd\n", __func__,
+		PSC_printTID(task->tid), step->jobid, step->stepid,
+		numThreads);
+
 	/* combined pack threads */
 	PSpart_HWThread_t *pTptr = task->partThrds;
 	int64_t last, offset = -1;
 	uint32_t index = -1;
+	size_t n;
 
 	for (i=0; i<step->numPackInfo; i++) {
 	    last = offset;
@@ -304,9 +340,15 @@ static int handleCreatePart(void *msg)
 		errno = EACCES;
 		goto error;
 	    }
-	    memcpy(pTptr, step->packInfo[index].hwThreads,
-		   step->packInfo[index].numHwThreads * sizeof(*task->partThrds));
-	    pTptr += step->packInfo[index].numHwThreads;
+	    n = genThreads(step->packInfo[index].slots,
+		    step->packInfo[index].np, &pTptr, false);
+	    pTptr += n;
+	}
+	if (pTptr - task->partThrds != numThreads) {
+	    flog("total number of threads generated does not match calculation"
+		    " (%u != %u)\n", pTptr - task->partThrds, numThreads);
+	    errno = EINVAL;
+	    goto error;
 	}
     }
 
@@ -1000,6 +1042,27 @@ static void handleAllocState(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
 	 strAllocState(alloc->state), PSC_printTID(msg->header.sender));
 }
 
+static void getSlotsFromMsg(char **ptr, PSpart_slot_t **slots, uint32_t *len)
+{
+    uint16_t CPUbytes;
+    uint32_t n;
+
+    getUint32(ptr, len);
+    getUint16(ptr, &CPUbytes);
+    *slots = umalloc(*len * sizeof(PSpart_slot_t));
+
+    for (n = 0; n < *len; n++) {
+	getUint16(ptr, &((*slots)[n].node));
+	
+	PSCPU_clrAll((*slots)[n].CPUset);
+	PSCPU_inject((*slots)[n].CPUset, ptr, CPUbytes);
+	ptr += CPUbytes;
+	mdbg(PSSLURM_LOG_PACK, "%s: slot %i node %i cpumask %s\n",
+		__func__, n, (*slots)[n].node,
+		PSCPU_print((*slots)[n].CPUset));
+    }
+}
+
 /**
  * @brief Handle a pack exit message
  *
@@ -1052,7 +1115,7 @@ static void handlePackExit(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
 static void handlePackInfo(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
 {
     char *ptr = data->buf;
-    uint32_t packJobid, stepid, packAllocID, i;
+    uint32_t packJobid, stepid, packAllocID, len;
     Step_t *step;
     PackInfos_t *rInfo;
     Alloc_t *alloc;
@@ -1103,23 +1166,18 @@ static void handlePackInfo(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
     /* number of hwThreads */
     getUint32(&ptr, &rInfo->numHwThreads);
     step->numPackThreads += rInfo->numHwThreads;
-    /* hwThreads */
-    rInfo->hwThreads = umalloc(rInfo->numHwThreads * sizeof(*rInfo->hwThreads));
+    /* slots */
+    getSlotsFromMsg(&ptr, &rInfo->slots, &len);
+    if (len != rInfo->np) {
+	flog("length of slots list does not match number of processes"
+		" (%u != %u)\n", len, rInfo->np);
+    }
+    step->numPackThreads += len;
 
     mdbg(PSSLURM_LOG_PACK, "%s: from %s for step %u:%u "
 	 "numHwThreads %i argc %i np %i\n", __func__,
 	 PSC_printTID(msg->header.sender), packJobid, stepid,
 	 rInfo->numHwThreads, rInfo->argc, rInfo->np);
-
-    for(i=0; i<rInfo->numHwThreads; i++) {
-	getInt16(&ptr, &rInfo->hwThreads[i].node);
-	getInt16(&ptr, &rInfo->hwThreads[i].id);
-	rInfo->hwThreads[i].timesUsed = 0;
-
-	mdbg(PSSLURM_LOG_PACK, "%s: hwThread %i node %i id %i used %i\n",
-	     __func__, i, rInfo->hwThreads[i].node, rInfo->hwThreads[i].id,
-	    rInfo->hwThreads[i].timesUsed);
-    }
 
     mdbg(PSSLURM_LOG_PACK, "%s: step packNtasks %u numHwThreads %u "
 	 "numPackThreads %u numRPackNP %u\n", __func__, step->packNtasks,
@@ -2452,6 +2510,38 @@ int send_PS_PackExit(Step_t *step, int32_t exitStatus)
     return sendFragMsg(&data);
 }
 
+static void addSlotsToMsg(PSpart_slot_t *slots, uint32_t len, PS_SendDB_t *data)
+{
+    uint16_t maxCPUs = 0, CPUbytes;
+    uint32_t n;
+
+    /* Determine maximum number of CPUs */
+    for (n = 0; n < len; n++) {
+	unsigned short cpus = PSIDnodes_getVirtCPUs(slots[n].node);
+	if (cpus > maxCPUs) maxCPUs = cpus;
+    }
+    if (!maxCPUs) {
+	flog("no CPUs in slotlist\n");
+    }
+
+    CPUbytes = PSCPU_bytesForCPUs(maxCPUs);
+    if (!maxCPUs) {
+	flog("maxCPUs (=%hu) out of range\n", maxCPUs);
+	return;
+    }
+    addUint32ToMsg(len, data);
+    addUint16ToMsg(CPUbytes, data);
+
+    for (n = 0; n < len; n++) {
+	char cpuBuf[CPUbytes];
+	addUint16ToMsg(slots[n].node, data);
+	PSCPU_extract(cpuBuf, slots[n].CPUset, CPUbytes);
+	addMemToMsg(cpuBuf, CPUbytes, data);
+	mdbg(PSSLURM_LOG_PACK, "%s: slot %i node %i cpuset %s\n", __func__, n,
+		slots[n].node, PSCPU_print(slots[n].CPUset));
+    }
+}
+
 int send_PS_PackInfo(Step_t *step)
 {
     PS_SendDB_t data;
@@ -2478,13 +2568,8 @@ int send_PS_PackInfo(Step_t *step)
     }
     /* number of hwThreads */
     addUint32ToMsg(step->numHwThreads, &data);
-    /* hwThreads */
-    for (i=0; i<step->numHwThreads; i++) {
-	addInt16ToMsg(step->hwThreads[i].node, &data);
-	addInt16ToMsg(step->hwThreads[i].id, &data);
-	mdbg(PSSLURM_LOG_PACK, "%s: thread %i node %i id %i\n", __func__, i,
-		step->hwThreads[i].node, step->hwThreads[i].id);
-    }
+    /* slots */
+    addSlotsToMsg(step->slots, step->np, &data);
 
     mdbg(PSSLURM_LOG_PACK, "%s: step %u:%u offset %i argc %i numHwThreads %i "
 	 "np %i to leader %s\n", __func__, step->packJobid, step->stepid,

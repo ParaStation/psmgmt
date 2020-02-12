@@ -15,6 +15,8 @@
 #include "pluginmalloc.h"
 #include "pshostlist.h"
 
+#include "psidnodes.h"
+
 #include "psslurmconfig.h"
 #include "psslurmlog.h"
 #include "psslurmjob.h"
@@ -357,6 +359,7 @@ static bool addHwthreadsInfo(Step_t *step, const void *info)
     StrBuffer_t *strBuf = &stepInfo->strBuf;
     PSnodes_ID_t lastNode = -1;
     uint32_t i;
+    uint16_t cpu;
 
     if (step->state == JOB_COMPLETE && !stepInfo->all) return false;
 
@@ -365,22 +368,26 @@ static bool addHwthreadsInfo(Step_t *step, const void *info)
 	    step->cred->stepCoreBitmap);
     addStrBuf(line, strBuf);
 
-    if (!step->hwThreads) {
+    if (!step->slots) {
 	addStrBuf("\nno HW threads\n-\n\n", strBuf);
 	return false;
     }
 
     addStrBuf("\npsslurm threads:", strBuf);
-    for (i=0; i<step->numHwThreads; i++) {
-	if (lastNode != step->hwThreads[i].node) {
+    for (i=0; i<step->np; i++) {
+	if (lastNode != step->slots[i].node) {
 	    snprintf(line, sizeof(line), "\nnode %i: ",
-		    step->hwThreads[i].node);
+		    step->slots[i].node);
 	    addStrBuf(line, strBuf);
 	}
-	lastNode = step->hwThreads[i].node;
+	lastNode = step->slots[i].node;
 
-	snprintf(line, sizeof(line), "%i ", step->hwThreads[i].id);
-	addStrBuf(line, strBuf);
+	for (cpu=0; cpu < PSIDnodes_getVirtCPUs(step->slots[i].node); cpu++) {
+	    if (PSCPU_isSet(step->slots[i].CPUset, cpu)) {
+		snprintf(line, sizeof(line), "%hi ", cpu);
+		addStrBuf(line, strBuf);
+	    }
+	}
     }
 
     if (step->fwdata && step->fwdata->cPid != 0) {

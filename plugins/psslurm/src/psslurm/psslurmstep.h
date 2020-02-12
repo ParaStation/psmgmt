@@ -26,9 +26,9 @@
 typedef struct {
     char **argv;		    /**< program arguments */
     uint32_t argc;		    /**< number of arguments */
-    PSpart_HWThread_t *hwThreads;   /**< PS hardware threads */
-    uint32_t numHwThreads;	    /**< number of hardware threads */
     uint32_t np;		    /**< number of processes */
+    PSpart_slot_t *slots;           /**< CPUs to use (length is np) */
+    uint32_t numHwThreads;	    /**< number of hardware threads */
     uint32_t packTaskOffset;	    /**< pack task offset */
 } PackInfos_t;
 
@@ -114,7 +114,7 @@ typedef struct {
     time_t startTime;           /**< time the step started */
     Forwarder_Data_t *fwdata;   /**< parameters of running job forwarder */
     uint32_t numHwThreads;	/**< number of hardware threads */
-    PSpart_HWThread_t *hwThreads;/**< PS hardware threads */
+    PSpart_slot_t *slots;       /**< CPUs to use (length is np) */
     list_t tasks;		/**< list of local tasks started */
     list_t remoteTasks;         /**< list of remote tasks */
     char *acctFreq;		/**< account polling frequency */
