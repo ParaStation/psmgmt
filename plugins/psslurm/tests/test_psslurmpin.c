@@ -112,7 +112,7 @@ int pinning(int argc, char *argv[])
     printf("\n");
 
     test_pinning(cpuBindType, cpuBindString, taskDist, socketCount,
-	    coresPerSocket, threadsPerCore, tasksPerNode, threadsPerTask);
+	    coresPerSocket, threadsPerCore, tasksPerNode, threadsPerTask, true);
 
     return 0;
 }
