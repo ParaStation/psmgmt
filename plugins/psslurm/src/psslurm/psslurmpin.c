@@ -1383,6 +1383,14 @@ void verboseCpuPinningOutput(Step_t *step, PS_Tasks_t *task) {
 	    bind_type = "NONE";
 	} else if (step->cpuBindType & CPU_BIND_TO_BOARDS) {
 	    bind_type = "BOARDS";
+	} else if (step->cpuBindType & CPU_BIND_TO_SOCKETS) {
+	    bind_type = "SOCKETS";
+	} else if (step->cpuBindType & CPU_BIND_TO_LDOMS) {
+	    bind_type = "LDOMS";
+	} else if (step->cpuBindType & CPU_BIND_TO_CORES) {
+	    bind_type = "CORES";
+	} else if (step->cpuBindType & CPU_BIND_TO_THREADS) {
+	    bind_type = "THREADS";
 	} else if (step->cpuBindType & CPU_BIND_MASK) {
 	    bind_type = "MASK";
 	} else if (step->cpuBindType & CPU_BIND_MAP) {
@@ -1391,14 +1399,10 @@ void verboseCpuPinningOutput(Step_t *step, PS_Tasks_t *task) {
 	    bind_type = "LDMASK";
 	} else if (step->cpuBindType & CPU_BIND_LDMAP) {
 	    bind_type = "LDMAP";
-	} else if (step->cpuBindType & CPU_BIND_TO_SOCKETS) {
-	    bind_type = "SOCKETS";
-	} else if (step->cpuBindType & CPU_BIND_TO_LDOMS) {
-	    bind_type = "LDOMS";
 	} else if (step->cpuBindType & CPU_BIND_LDRANK) {
 	    bind_type = "LDRANK";
-	} else { /* default, CPU_BIND_RANK, CPU_BIND_TO_THREADS */
-	    bind_type = "RANK";
+	} else { /* default */
+	    bind_type = "DEFAULT";
 	}
 
 	char vStr[512];
@@ -1696,6 +1700,12 @@ char *genCPUbindTypeString(Step_t *step)
 	string = "none";
     } else if (step->cpuBindType & CPU_BIND_TO_BOARDS) {
 	string = "boards";
+    } else if (step->cpuBindType & (CPU_BIND_TO_SOCKETS | CPU_BIND_TO_LDOMS)) {
+	string = "sockets";
+    } else if (step->cpuBindType & (CPU_BIND_TO_CORES)) {
+	string = "cores";
+    } else if (step->cpuBindType & (CPU_BIND_TO_THREADS)) {
+	string = "threads";
     } else if (step->cpuBindType & CPU_BIND_MAP) {
 	string = "map_cpu";
     } else if (step->cpuBindType & CPU_BIND_MASK) {
@@ -1704,22 +1714,20 @@ char *genCPUbindTypeString(Step_t *step)
 	string = "map_ldom";
     } else if (step->cpuBindType & CPU_BIND_LDMASK) {
 	string = "mask_ldom";
-    } else if (step->cpuBindType & (CPU_BIND_TO_SOCKETS | CPU_BIND_TO_LDOMS)) {
-	string = "sockets";
+    } else if (step->cpuBindType & CPU_BIND_RANK) {
+	string = "ranks";
     } else if (step->cpuBindType & CPU_BIND_LDRANK) {
 	string = "rank_ldom";
     } else {
-	/* default, CPU_BIND_RANK, CPU_BIND_TO_THREADS, CPU_BIND_TO_CORES */
-	string = "ranks";
+	string = "threads";
     }
     return string;
 }
 
-/* create the string to be set as SLURM_CPU_BIND
- * we do set the same as vanilla slurm here */
+/* create the string to be set as SLURM_CPU_BIND */
 char *genCPUbindString(Step_t *step)
 {
-    char *string;
+    char *string, *tmp;
     int len = 0;
 
     string = (char *) umalloc(sizeof(char) * (25 + strlen(step->cpuBind) + 1));
@@ -1733,48 +1741,17 @@ char *genCPUbindString(Step_t *step)
 	len += 5;
     }
 
-    if (step->cpuBindType & CPU_BIND_TO_THREADS) {
-	strcpy(string+len, ",threads");
-	len += 8;
-    } else if (step->cpuBindType & CPU_BIND_TO_CORES) {
-	strcpy(string+len, ",cores");
-	len += 6;
-    } else if (step->cpuBindType & CPU_BIND_TO_SOCKETS) {
-	strcpy(string+len, ",sockets");
-	len += 8;
-    } else if (step->cpuBindType & CPU_BIND_TO_LDOMS) {
-	strcpy(string+len, ",ldoms");
-	len += 6;
-    } else if (step->cpuBindType & CPU_BIND_TO_BOARDS) {
-	strcpy(string+len, ",boards");
-	len += 7;
-    }
+    *(string+len) = ',';
+    len++;
 
-    if (step->cpuBindType & CPU_BIND_NONE) {
-	strcpy(string+len, ",none");
-	len += 5;
-    } else if (step->cpuBindType & CPU_BIND_RANK) {
-	strcpy(string+len, ",rank");
-	len += 5;
-    } else if (step->cpuBindType & CPU_BIND_MAP) {
-	strcpy(string+len, ",map_cpu:");
-	len += 9;
-    } else if (step->cpuBindType & CPU_BIND_MASK) {
-	strcpy(string+len, ",mask_cpu:");
-	len += 10;
-    } else if (step->cpuBindType & CPU_BIND_LDRANK) {
-	strcpy(string+len, ",rank_ldom");
-	len += 10;
-    } else if (step->cpuBindType & CPU_BIND_LDMAP) {
-	strcpy(string+len, ",map_ldom");
-	len += 9;
-    } else if (step->cpuBindType & CPU_BIND_LDMASK) {
-	strcpy(string+len, ",mask_ldom");
-	len += 10;
-    }
+    tmp = genCPUbindTypeString(step);
+    strcpy(string+len, tmp);
+    len += strlen(tmp);
 
-    if (step->cpuBindType & (CPU_BIND_MAP | CPU_BIND_MASK)) {
-	strcpy(string+len, step->cpuBind);
+    if (step->cpuBindType & (CPU_BIND_MAP | CPU_BIND_MASK
+		| CPU_BIND_LDMAP | CPU_BIND_LDMASK)) {
+	*(string+len) = ':';
+	strcpy(string+len+1, step->cpuBind);
     }
 
     return string;

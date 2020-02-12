@@ -352,7 +352,8 @@ static void setBindingEnvVars(Step_t *step)
     setenv("SLURM_CPU_BIND_TYPE", val, 1);
     setenv("SBATCH_CPU_BIND_TYPE", val, 1);
 
-    if (step->cpuBindType & (CPU_BIND_MAP | CPU_BIND_MASK)) {
+    if (step->cpuBindType & (CPU_BIND_MAP | CPU_BIND_MASK
+		| CPU_BIND_LDMAP | CPU_BIND_LDMASK)) {
 	setenv("SLURM_CPU_BIND_LIST", step->cpuBind, 1);
 	setenv("SBATCH_CPU_BIND_LIST", step->cpuBind, 1);
     } else {
