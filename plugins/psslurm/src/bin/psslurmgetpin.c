@@ -305,8 +305,7 @@ int main(int argc, char *argv[])
 		return -1;
 	    }
 	}
-
-	if (strncmp(cur, "-n", 2) == 0) {
+	else if (strncmp(cur, "-n", 2) == 0) {
 	    if (*(cur+2) == '\0') {
 		if (++i == argc) {
 		    outline(ERROROUT, "Syntax error reading value for -n.");
@@ -323,8 +322,7 @@ int main(int argc, char *argv[])
 		return -1;
 	    }
 	}
-
-	if (strncmp(cur, "-c", 2) == 0) {
+	else if (strncmp(cur, "-c", 2) == 0) {
 	    if (*(cur+2) == '\0') {
 		if (++i == argc) {
 		    outline(ERROROUT, "Syntax error reading value for -c.");
@@ -341,35 +339,38 @@ int main(int argc, char *argv[])
 		return -1;
 	    }
 	}
-
-	if (strncmp(cur, "--cpu-bind=", 11) == 0) {
+	else if (strncmp(cur, "--cpu-bind=", 11) == 0) {
 	    outline(DEBUGOUT, "Reading --cpu-bind value: \"%s\"", cur+11);
 	    if (!readCpuBindType(cur+11, &cpuBindType, &cpuBindString)) {
 		outline(ERROROUT, "Invalid bind type.");
+		return -1;
 	    }
 	}
-
-	if (strncmp(cur, "--distribution=", 15) == 0) {
+	else if (strncmp(cur, "--distribution=", 15) == 0) {
 	    outline(DEBUGOUT, "Reading --distribution value: \"%s\"", cur+15);
 	    if (!readDistribution(cur+15, &taskDist)) {
-		outline(ERROROUT, "Invalid bind type.");
+		outline(ERROROUT, "Invalid distribution type.");
+		return -1;
 	    }
 	}
-
-	if (strcmp(cur, "-m") == 0) {
+	else if (strcmp(cur, "-m") == 0) {
 	    if (++i == argc) {
 		outline(ERROROUT, "Syntax error reading value for -m.");
 		return -1;
 	    }
 	    outline(DEBUGOUT, "Reading -m value: \"%s\"", argv[i]);
 	    if (!readDistribution(argv[i], &taskDist)) {
-		outline(ERROROUT, "Invalid bind type.");
+		outline(ERROROUT, "Invalid distribution type.");
+		return -1;
 	    }
 	}
-
-	if (strcmp(cur, "--hint=nomultithread") == 0) {
+	else if (strcmp(cur, "--hint=nomultithread") == 0) {
 	    outline(DEBUGOUT, "Read hint \"nomultithread\"");
 	    nomultithread = true;
+	}
+	else {
+	    outline(DEBUGOUT, "Invalid argument: \"%s\"", cur);
+	    return -1;
 	}
     }
 
