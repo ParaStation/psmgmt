@@ -603,7 +603,6 @@ plugins/psslurm/src/psslurm/psslurmtypes.h \
 plugins/psslurm/src/spank/Makefile.am \
 plugins/psslurm/src/spank/Makefile.in \
 plugins/psslurm/src/spank/spank_api.c \
-plugins/psslurm/src/spank/spank_test.c \
 scripts/.gdbinit \
 scripts/Makefile.am \
 scripts/Makefile.in \
@@ -658,6 +657,7 @@ tests/plugins/no_flowcontrol.c \
 tests/plugins/dyn_resources.c \
 tests/plugins/delaySlurmMsg.c \
 tests/plugins/delegateStat.c \
+tests/plugins/spank_test.c \
 tests/psid/Makefile \
 tests/psid/config.tmpl \
 tests/psid/mpi_hello.c \
