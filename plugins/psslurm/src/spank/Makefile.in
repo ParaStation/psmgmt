@@ -402,7 +402,7 @@ scriptsdir = $(prefix)/scripts
 @HAVE_SYSTEMD_TRUE@default_cgroup_name = system.slice/psid.service/descendants
 psslurm_dir := plugins/psslurm/src
 slurmlib_LTLIBRARIES = spank_api.la
-spank_api_la_SOURCES = spank_api.c
+spank_api_la_SOURCES = spank_api.c spank_api.h
 spank_api_la_CPPFLAGS = $(AM_CPPFLAGS) -DSLURMLIBDIR=\"$(slurmlibdir)\"
 all: all-am
 
