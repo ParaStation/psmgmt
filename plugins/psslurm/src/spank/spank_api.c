@@ -34,7 +34,6 @@ static int psSpank_loglevel = SPANK_LOG_VERBOSE;
     mlog("\n");                                         \
 }
 
-bool psSpank_Init(bool verbose);
 bool psSpank_Init(bool verbose)
 {
     psSpank_logger = logger_init(NULL, NULL);

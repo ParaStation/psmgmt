@@ -52,6 +52,8 @@ psslurm_la_SOURCES = psslurm.c psslurm.h psslurmlog.c psslurmlog.h	\
 	psslurmaccount.c psslurmfwcomm.c psslurmfwcomm.h
 
 if SPANK_ENABLED
+AM_CPPFLAGS += -I$(top_srcdir)/$(psslurm_dir)/spank
+
 psslurm_la_SOURCES += psslurmspank.h psslurmspank.c
 endif
 

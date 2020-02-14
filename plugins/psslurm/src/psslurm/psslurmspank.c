@@ -19,6 +19,8 @@
 #include "psslurmspank.h"
 #include "psslurmproto.h"
 
+#include "spank_api.h"
+
 #include "pluginmalloc.h"
 
 /** symbols every spank plugin has to implement */
@@ -134,11 +136,6 @@ void SpankFinalize(void)
     if (globalSym) dlclose(globalSym);
 }
 
-/**
- * @brief Init function for the global spank API
- */
-typedef void(fpInitSpank)(bool);
-
 bool SpankInitGlobalSym(void)
 {
     globalSym = dlopen(GLOBAL_SYMBOLS, RTLD_NOW | RTLD_GLOBAL);
@@ -149,15 +146,14 @@ bool SpankInitGlobalSym(void)
     fdbg(PSSLURM_LOG_SPANK, "dlopen(%s) success\n", GLOBAL_SYMBOLS);
 
     /* register global spank symbols */
-    fpInitSpank *pSpankInit = dlsym(globalSym, "psSpank_Init");
-    if (!pSpankInit) {
+    psSpank_Init = dlsym(globalSym, "psSpank_Init");
+    if (!psSpank_Init) {
 	dlclose(globalSym);
 	flog("dlsym(%s) failed to get psSpank_Init handle\n", GLOBAL_SYMBOLS);
 	return false;
     }
-    pSpankInit(psslurmlogger->mask & PSSLURM_LOG_SPANK);
 
-    return true;
+    return psSpank_Init(psslurmlogger->mask & PSSLURM_LOG_SPANK);
 }
 
 static void doCallHook(Spank_Plugin_t *plugin, spank_t spank, char *hook)
