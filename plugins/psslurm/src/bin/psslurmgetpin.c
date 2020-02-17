@@ -55,8 +55,23 @@ static void outline(enum output_level lvl, const char* format, ...) {
 }
 
 static void print_help() {
-    printf("Usage: test_psslurmpin <sockets> <coresPerSocket> <options>"
-	    " : <srunOptions>\n");
+    printf("Usage: psslurmgetpin <sockets> <coresPerSocket> <threadsPerCore>"
+	    " <options> : <srunOptions>\n"
+	    "\n"
+	    "Options:\n"
+	    "   --help\n"
+	    "          Print this help\n"
+	    "   -v, --verbose\n"
+	    "          Be verbose (twice for debugging)\n"
+	    "   -h, --human-readable\n"
+	    "          Print 0/1-blocks instead of hex masks\n"
+	    "\n"
+	    "Supported srun Options (see srun manpage):\n"
+	    "   -N 1\n"
+	    "   -n <tasks>\n"
+	    "   -c <threadsPerTask>\n"
+	    "   --cpu_bind=<cpuBindType>\n"
+	    "   -m <distribution>, --distribution=<distribution>\n");
 }
 
 /*
