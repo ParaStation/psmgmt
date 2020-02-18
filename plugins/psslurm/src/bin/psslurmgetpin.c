@@ -290,7 +290,7 @@ int main(int argc, char *argv[])
 
     /* task info */
     uint32_t tasksPerNode = 0;
-    uint16_t threadsPerTask = 0;
+    uint16_t threadsPerTask = 1;
 
     /* pinning info */
     uint16_t cpuBindType = 0;
