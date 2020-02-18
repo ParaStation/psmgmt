@@ -391,6 +391,16 @@ int main(int argc, char *argv[])
 
     if (nomultithread) cpuBindType |= CPU_BIND_ONE_THREAD_PER_CORE;
 
+    if (tasksPerNode == 0) {
+	outline(ERROROUT, "Invalid number of tasks per node.");
+	return -1;
+    }
+
+    if (threadsPerTask == 0) {
+	outline(ERROROUT, "Invalid number of threads per task.");
+	return -1;
+    }
+
     outline(INFOOUT, "job: %u tasks, %hu threads per task", tasksPerNode,
 	    threadsPerTask);
     outline(INFOOUT, "cpuBindType = 0x%X - cpuBindString = \"%s\"", cpuBindType,
