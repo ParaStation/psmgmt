@@ -70,7 +70,7 @@ static void print_help() {
 	    "   -N 1\n"
 	    "   -n <tasks>\n"
 	    "   -c <threadsPerTask>\n"
-	    "   --cpu_bind=<cpuBindType>\n"
+	    "   --cpu-bind=<cpuBindType>\n"
 	    "   -m <distribution>, --distribution=<distribution>\n");
 }
 
@@ -384,7 +384,7 @@ int main(int argc, char *argv[])
 	    nomultithread = true;
 	}
 	else {
-	    outline(DEBUGOUT, "Invalid argument: \"%s\"", cur);
+	    outline(ERROROUT, "Invalid argument: \"%s\"", cur);
 	    return -1;
 	}
     }
