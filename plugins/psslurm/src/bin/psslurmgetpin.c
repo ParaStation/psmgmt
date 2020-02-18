@@ -74,6 +74,12 @@ static void print_help() {
 	    "   -m <distribution>, --distribution=<distribution>\n");
 }
 
+static unsigned int atoui(char* in) {
+    int num;
+    num = atoi(in);
+    return (num < 0) ? 0 : (unsigned) num;
+}
+
 /*
  * bitmask cpuBindType:
  * CPU_BIND_ONE_THREAD_PER_CORE - use only one hardware thread per core
@@ -241,9 +247,9 @@ int main(int argc, char *argv[])
     uint16_t coresPerSocket = 0;
     uint16_t threadsPerCore = 0;
 
-    socketCount = atoi(argv[1]);
-    coresPerSocket = atoi(argv[2]);
-    threadsPerCore = atoi(argv[3]);
+    socketCount = atoui(argv[1]);
+    coresPerSocket = atoui(argv[2]);
+    threadsPerCore = atoui(argv[3]);
 
     if (socketCount == 0) {
 	outline(ERROROUT, "Invalid number of sockets.");
@@ -331,7 +337,7 @@ int main(int argc, char *argv[])
 		val = cur + 2;
 	    }
 	    outline(DEBUGOUT, "Reading -n value: \"%s\"", val);
-	    tasksPerNode = atoi(val);
+	    tasksPerNode = atoui(val);
 	    if (tasksPerNode == 0) {
 		outline(ERROROUT, "Invalid number of tasks.");
 		return -1;
@@ -348,7 +354,7 @@ int main(int argc, char *argv[])
 		val = cur + 2;
 	    }
 	    outline(DEBUGOUT, "Reading -c value: \"%s\"", val);
-	    threadsPerTask = atoi(val);
+	    threadsPerTask = atoui(val);
 	    if (threadsPerTask == 0) {
 		outline(ERROROUT, "Invalid number of threads per task.");
 		return -1;
