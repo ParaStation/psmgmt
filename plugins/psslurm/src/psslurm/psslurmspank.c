@@ -84,7 +84,7 @@ bool SpankInitPlugins(void)
 	Spank_Plugin_t *sp = list_entry(s, Spank_Plugin_t, next);
 
 	if (stat(sp->path, &sbuf) == -1) {
-	    flog("plugin %s not found", sp->path);
+	    flog("plugin %s not found\n", sp->path);
 	    return false;
 	}
 
