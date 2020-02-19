@@ -135,6 +135,13 @@
 # (string, default: /etc/slurm/gres.conf)
 #SLURM_GRES_CONF = /etc/gres.conf
 
+# Path to the Slurm spank configuration file
+#
+# Only used if "PlugStackConfig" is not set in "slurm.conf"
+#
+# (string, default: /etc/slurm/plugstack.conf)
+#SLURM_SPANK_CONF = /etc/plugstack.conf
+
 # Enforce jobs to use the batchsystem, only PS admin user
 # may use mpiexec directly
 #
