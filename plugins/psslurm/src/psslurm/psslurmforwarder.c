@@ -81,7 +81,7 @@ PStask_t *fwTask = NULL;
 static int jobCallback(int32_t exit_status, Forwarder_Data_t *fw)
 {
     Job_t *job = fw->userData;
-    Alloc_t *alloc;
+    Alloc_t *alloc = findAlloc(job->jobid);
 
     mlog("%s: job '%u' finished, exit %i / %i\n", __func__, job->jobid,
 	 exit_status, fw->estatus);
@@ -98,10 +98,20 @@ static int jobCallback(int32_t exit_status, Forwarder_Data_t *fw)
     job->state = JOB_COMPLETE;
     mdbg(PSSLURM_LOG_JOB, "%s: job '%u' in '%s'\n", __func__,
 	    job->jobid, strJobState(job->state));
-    sendJobExit(job, fw->estatus);
+
+    /* get exit status of child */
+    int eStatus = fw->exitRcvd ? fw->estatus : fw->ecode;
+
+    /* job aborted due to node failure */
+    if (alloc && alloc->nodeFail) eStatus = 9;
+
+    flog("job %u finished, exit %i\n", job->jobid, eStatus);
+
+    sendJobExit(job, eStatus);
+
     psAccountDelJob(PSC_getTID(-1, fw->cPid));
 
-    if (!(alloc = findAlloc(job->jobid))) {
+    if (!alloc) {
 	flog("allocation for job %u not found\n", job->jobid);
 	deleteJob(job->jobid);
 	return 0;
@@ -165,6 +175,7 @@ static int stepFollowerCB(int32_t exit_status, Forwarder_Data_t *fw)
 static int stepCallback(int32_t exit_status, Forwarder_Data_t *fw)
 {
     Step_t *step = fw->userData;
+    Alloc_t *alloc = findAlloc(step->jobid);
 
     /* validate step pointer */
     if (!verifyStepPtr(step)) {
@@ -200,6 +211,10 @@ static int stepCallback(int32_t exit_status, Forwarder_Data_t *fw)
 	    eStatus = WIFSIGNALED(fw->estatus) ?
 			WTERMSIG(fw->estatus) : fw->estatus;
 	}
+
+	/* step aborted due to node failure */
+	if (alloc && alloc->nodeFail) eStatus = 9;
+
 	sendStepExit(step, eStatus);
 
 	/* forward exit status to pack follower */
@@ -216,7 +231,6 @@ static int stepCallback(int32_t exit_status, Forwarder_Data_t *fw)
     psAccountDelJob(PSC_getTID(-1, fw->cPid));
 
     /* test if we were waiting only for this step to finish */
-    Alloc_t *alloc = findAlloc(step->jobid);
     if (!findJobById(step->jobid) && alloc && alloc->state == A_RUNNING
 	&& alloc->terminate) {
 	/* run epilogue now */

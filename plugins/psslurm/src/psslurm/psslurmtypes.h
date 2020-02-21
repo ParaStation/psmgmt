@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2017-2019 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2017-2020 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -35,6 +35,7 @@ typedef struct {
     uint32_t localNodeId;   /**< local node ID for this allocation */
     bool *epilogRes;	    /**< track epilogue results per node */
     uint32_t epilogCnt;     /**< number of nodes finished epilogue */
+    bool nodeFail;	    /**< flag to save node failure */
 } Alloc_t;
 
 /** Handler type for SLURMd messages */

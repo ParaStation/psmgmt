@@ -1371,32 +1371,34 @@ static bool nodeDownAlloc(Alloc_t *alloc, const void *info)
     const PSnodes_ID_t node = *(PSnodes_ID_t *) info;
 
     for (i=0; i<alloc->nrOfNodes; i++) {
-	if (alloc->nodes[i] == node) {
-	    mlog("%s: node %i in allocation %u state %s is down\n", __func__,
-		 node, alloc->id, strAllocState(alloc->state));
+	if (alloc->nodes[i] != node) continue;
 
-	    Step_t *step = findStepByJobid(alloc->id);
-	    if (!step) step = findStepByJobid(alloc->packID);
-	    if (step && step->leader) {
-		char buf[512];
-		snprintf(buf, sizeof(buf), "step %u:%u terminated due to "
-			 "failure of node %s\n", step->jobid, step->stepid,
-			 getSlurmHostbyNodeID(node));
-		fwCMD_printMessage(step, buf, strlen(buf), STDERR, 0);
-	    }
+	flog("node %i in allocation %u state %s is down\n",
+	     node, alloc->id, strAllocState(alloc->state));
 
-	    /* node will not be available for epilogue */
-	    if (alloc->epilogRes[i] == false) {
-		alloc->epilogRes[i] = true;
-		alloc->epilogCnt++;
-	    }
-
-	    if (alloc->state == A_RUNNING
-		|| alloc->state == A_PROLOGUE_FINISH) {
-		signalAlloc(alloc->id, SIGKILL, 0);
-	    }
-	    return true;
+	Step_t *step = findStepByJobid(alloc->id);
+	if (!step) step = findStepByJobid(alloc->packID);
+	if (step && step->leader) {
+	    char buf[512];
+	    snprintf(buf, sizeof(buf), "step %u:%u terminated due to "
+		     "failure of node %s\n", step->jobid, step->stepid,
+		     getSlurmHostbyNodeID(node));
+	    fwCMD_printMessage(step, buf, strlen(buf), STDERR, 0);
 	}
+
+	/* node will not be available for epilogue */
+	if (alloc->epilogRes[i] == false) {
+	    alloc->epilogRes[i] = true;
+	    alloc->epilogCnt++;
+	}
+
+	if (alloc->state == A_RUNNING
+	    || alloc->state == A_PROLOGUE_FINISH) {
+	    signalAlloc(alloc->id, SIGKILL, 0);
+	}
+
+	alloc->nodeFail = true;
+	return true;
     }
     return false;
 }
