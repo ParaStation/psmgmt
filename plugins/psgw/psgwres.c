@@ -155,6 +155,7 @@ static bool stopPSGWD(PSGW_Req_t *req)
     envInit(&env);
     snprintf(buf, sizeof(buf), "%u", req->uid);
     envSet(&env, "PSGWD_UID", buf);
+    envSet(&env, "PSGWD_USER", req->username);
 
     for (i=0; i<req->numPSGWD; i++) {
 	if (req->psgwd[i].pid == -1) continue;
@@ -210,12 +211,6 @@ void writeErrorFile(PSGW_Req_t *req, char *msg)
 	return;
     }
 
-    char *user = envGet(req->res->env, "SLURM_USER");
-    if (!user) {
-	flog("Missing SLURM_USER env\n");
-	return;
-    }
-
     /* write may block in parallel filesystem, execute in separate process */
     pid_t childPID = fork();
 
@@ -223,8 +218,8 @@ void writeErrorFile(PSGW_Req_t *req, char *msg)
 	char *cwd = envGet(req->res->env, "SLURM_SPANK_PSGW_CWD");
 
 	/* switch to user */
-	if (!switchUser(user, req->uid, req->gid, cwd)) {
-	    flog("switching user failed\n");
+	if (!switchUser(req->username, req->uid, req->gid, cwd)) {
+	    flog("switching user %s failed\n", req->username);
 	    exit(1);
 	}
 
@@ -412,17 +407,12 @@ static bool initRoutingEnv(PSGW_Req_t *req)
 
     snprintf(buf, sizeof(buf), "%u", req->gid);
     envSet(env, "SLURM_JOB_GID", buf);
+    envSet(env, "SLURM_JOB_USER", req->username);
 
-    char *user = envGet(env, "SLURM_USER");
-    if (!user) {
-	flog("Missing SLURM_USER env\n");
-	return false;
-    }
-    envSet(env, "SLURM_JOB_USER", user);
-
-    struct passwd *passwd = getpwnam(user);
+    struct passwd *passwd = getpwnam(req->username);
     if (!passwd) {
-	mwarn(errno, "%s: getpwnam for user %s failed", __func__, user);
+	mwarn(errno, "%s: getpwnam for user %s failed", __func__,
+	      req->username);
 	return false;
     }
     char *home = passwd->pw_dir;
@@ -673,14 +663,7 @@ bool startPSGWD(PSGW_Req_t *req)
     snprintf(buf, sizeof(buf), "%u", req->uid);
     envSet(&env, "PSGWD_UID", buf);
 
-    char *user = envGet(req->res->env, "SLURM_USER");
-    if (!user) {
-	snprintf(msgBuf, sizeof(msgBuf), "missing SLURM_USER environment "
-		 "variable\n");
-	cancelReq(req, msgBuf);
-	return false;
-    }
-    envSet(&env, "PSGWD_USER", user);
+    envSet(&env, "PSGWD_USER", req->username);
     envSet(&env, "SLURM_JOB_ID", req->jobid);
 
     char *gwEnv = envGet(req->res->env, "SLURM_SPANK_PSGW_ENV");
@@ -770,6 +753,10 @@ int handlePElogueRes(void *data)
 
     mlog("%s: need %i psgw nodes\n", __func__, numNodes);
     PSGW_Req_t *req = Request_add(res, packJobID);
+    if (!req) {
+	flog("adding request failed\n");
+	return 2;
+    }
 
     char *strPsgwdPerNode = envGet(req->res->env, "SLURM_SPANK_PSGWD_PER_NODE");
     if (strPsgwdPerNode) req->psgwdPerNode = atoi(strPsgwdPerNode);

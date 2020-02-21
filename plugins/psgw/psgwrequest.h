@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2018-2019 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2018-2020 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -38,6 +38,7 @@ typedef struct {
     int timerRouteScript;     /**< timer for route script */
     uid_t uid;		      /**< user ID of job owner */
     gid_t gid;		      /**< group ID of job owner */
+    char *username;           /**< username of job owner */
     Forwarder_Data_t *fwdata; /**< psgw forwarder to request a partition */
     int timerPartReq;         /**< timer for partition request */
     bool cleanup;             /**< automatic cleanup of route file */
@@ -51,7 +52,8 @@ typedef struct {
  *
  * @param packID The pack ID of the allocation
  *
- * @return Returns the newly created request
+ * @return Returns the newly created request on success or
+ * NULL otherwise
  */
 PSGW_Req_t *Request_add(PElogueResource_t *res, char *packID);
 

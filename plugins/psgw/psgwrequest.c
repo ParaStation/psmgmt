@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2018-2019 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2018-2020 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -36,6 +36,14 @@ PSGW_Req_t *Request_add(PElogueResource_t *res, char *packID)
     req->prologueState = -1;
     req->cleanup = envGet(res->env, "SLURM_SPANK_PSGW_CLEANUP") ? true : false;
     req->psgwdPerNode = 1;
+
+    char *user = envGet(res->env, "SLURM_USER");
+    if (!user) {
+	flog("missing SLURM_USER in environment\n");
+	Request_delete(req);
+	return NULL;
+    }
+    req->username = ustrdup(user);
 
     list_add_tail(&req->next, &ReqList);
     return req;
@@ -83,6 +91,7 @@ void Request_delete(PSGW_Req_t *req)
 
     ufree(req->jobid);
     ufree(req->packID);
+    ufree(req->username);
 
     list_del(&req->next);
     ufree(req);

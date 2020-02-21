@@ -10,16 +10,16 @@
     exit 1
 }
 
-NAME=$(ps -p $PSGWD_PID -o fname |grep -v "COMMAND" | tr -d '[:space:]')
-[ "$NAME" != "psgwd" ] && {
-    echo "ERROR: psgwd not running as PID $PSGWD_PID, Name: $NAME"
-    exit 1
-}
-
 REAL_UID=$(ps -p $PSGWD_PID -o euid |grep -v "EUID" | tr -d '[:space:]')
 [ "$REAL_UID" != "$PSGWD_UID" ] && {
     echo "ERROR: psgwd using UID '$REAL_UID' not '$PSGWD_UID'"
     exit 1
 }
 
-kill -9 $PSGWD_PID
+[ -z "$PSGWD_USER" ] && {
+    echo "ERROR: missing PSGWD_USER"
+    kill -9 "$PSGWD_PID"
+    exit 0;
+}
+
+su -c 'kill -9 "-$PSGWD_PID"' $PSGWD_USER
