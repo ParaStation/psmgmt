@@ -14,6 +14,8 @@
 #include "list.h"
 typedef list_t Config_t;
 
+Config_t Config = LIST_HEAD_INIT(Config);
+
 /*
  * bitmask cpuBindType:
  * CPU_BIND_ONE_THREAD_PER_CORE - use only one hardware thread per core
@@ -231,5 +233,10 @@ char *getConfValueC(Config_t *conf, char *key) {
 
 PSnodes_ID_t PSC_getMyID(void) {
     return 0;
+}
+
+void fwCMD_printMessage(Step_t *step, char *plMsg, uint32_t msgLen,
+		        uint8_t type, int32_t rank) {
+    return;
 }
 /* vim: set ts=8 sw=4 tw=0 sts=4 noet :*/
