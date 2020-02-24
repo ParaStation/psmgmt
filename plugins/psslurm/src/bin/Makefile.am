@@ -33,11 +33,6 @@ AM_CPPFLAGS += -I$(top_srcdir)/bin/daemon -I$(srcdir)/../include \
 
 bin_PROGRAMS = psslurmgetpin
 
-
-libplugincommon = $(top_builddir)/lib/plugincommon/libplugincommon.la
-libslurmcommon = $(top_builddir)/$(psslurm_dir)/common/libslurmcommon.la
-libpscommon = $(top_builddir)/lib/pscommon/libpscommon.la
-
 psslurmgetpin_SOURCES=\
 	psslurmgetpin.c
 
@@ -49,9 +44,6 @@ psslurmgetpin_LDFLAGS=\
 	$(NUMA_LIBS) -lm
 
 psslurmgetpin_LDADD=\
-	$(libpscommon)\
-	$(libslurmcommon)\
-	$(libplugincommon)\
 	$(top_builddir)/$(psslurm_dir)/psslurm/.libs/psslurm_la-psslurmpin.o\
-	$(libpsslurm)
-
+	$(top_builddir)/lib/plugincommon/.libs/pluginmalloc.o\
+	$(top_builddir)/lib/pscommon/.libs/pscpu.o

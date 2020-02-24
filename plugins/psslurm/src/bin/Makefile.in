@@ -126,9 +126,9 @@ am__installdirs = "$(DESTDIR)$(bindir)"
 PROGRAMS = $(bin_PROGRAMS)
 am_psslurmgetpin_OBJECTS = psslurmgetpin-psslurmgetpin.$(OBJEXT)
 psslurmgetpin_OBJECTS = $(am_psslurmgetpin_OBJECTS)
-psslurmgetpin_DEPENDENCIES = $(libpscommon) $(libslurmcommon) \
-	$(libplugincommon) \
-	$(top_builddir)/$(psslurm_dir)/psslurm/.libs/psslurm_la-psslurmpin.o
+psslurmgetpin_DEPENDENCIES = $(top_builddir)/$(psslurm_dir)/psslurm/.libs/psslurm_la-psslurmpin.o \
+	$(top_builddir)/lib/plugincommon/.libs/pluginmalloc.o \
+	$(top_builddir)/lib/pscommon/.libs/pscpu.o
 AM_V_lt = $(am__v_lt_@AM_V@)
 am__v_lt_ = $(am__v_lt_@AM_DEFAULT_V@)
 am__v_lt_0 = --silent
@@ -390,9 +390,6 @@ psmunge_dir := plugins/psmunge
 pspam_dir := plugins/pspam/pspam
 psexec_dir := plugins/psexec
 pspmi_dir := plugins/pspmi
-libplugincommon = $(top_builddir)/lib/plugincommon/libplugincommon.la
-libslurmcommon = $(top_builddir)/$(psslurm_dir)/common/libslurmcommon.la
-libpscommon = $(top_builddir)/lib/pscommon/libpscommon.la
 psslurmgetpin_SOURCES = \
 	psslurmgetpin.c
 
@@ -404,11 +401,9 @@ psslurmgetpin_LDFLAGS = \
 	$(NUMA_LIBS) -lm
 
 psslurmgetpin_LDADD = \
-	$(libpscommon)\
-	$(libslurmcommon)\
-	$(libplugincommon)\
 	$(top_builddir)/$(psslurm_dir)/psslurm/.libs/psslurm_la-psslurmpin.o\
-	$(libpsslurm)
+	$(top_builddir)/lib/plugincommon/.libs/pluginmalloc.o\
+	$(top_builddir)/lib/pscommon/.libs/pscpu.o
 
 all: all-am
 
