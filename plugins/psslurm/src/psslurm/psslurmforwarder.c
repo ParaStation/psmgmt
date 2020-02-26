@@ -1004,6 +1004,8 @@ static int stepForwarderInit(Forwarder_Data_t *fwdata)
     Step_t *step = fwdata->userData;
     step->fwdata = fwdata;
 
+    initSerial(0, sendMsg);
+
 #ifdef HAVE_SPANK
     struct spank_handle spank = {
 	.task = NULL,
@@ -1355,6 +1357,8 @@ static void stepFollowerFWloop(Forwarder_Data_t *fwdata)
 
 static int stepFollowerFWinit(Forwarder_Data_t *fwdata)
 {
+    initSerial(0, sendMsg);
+
 #ifdef HAVE_SPANK
     Step_t *step = fwdata->userData;
 

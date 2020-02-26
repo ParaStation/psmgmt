@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2014-2017 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2014-2020 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -107,6 +107,9 @@ void ForwarderData_delete(Forwarder_Data_t *fw);
  * @brief Start forwarder
  *
  * Start a forwarder described by the structure @a fw.
+ * To reduce the forwarders memory footprint @ref PSID_clearMem()
+ * is called. Therefore certain facilities e.g. psserial will
+ * require to be initialized again before they can be used.
  *
  * @param fw Structure to describe the forwarder to start
  *

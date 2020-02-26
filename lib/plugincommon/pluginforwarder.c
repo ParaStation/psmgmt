@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2014-2019 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2014-2020 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -587,6 +587,9 @@ static void execForwarder(PStask_t *task)
     fwData = fw;
     int status = 0, i;
     struct rusage rusage;
+
+    /* cleanup daemon memory and reset global facilities */
+    PSID_clearMem();
 
     if (!initForwarder(fwTask->fd, fw)) {
 	pluginlog("%s: initForwarder failed\n", __func__);
