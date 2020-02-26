@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2017-2018 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2017-2020 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -44,8 +44,6 @@ const char *msgType2String(int type)
 	    return "REQUEST_KILL_TIMELIMIT";
 	case REQUEST_REATTACH_TASKS:
 	    return "REQUEST_REATTACH_TASKS";
-	case REQUEST_SIGNAL_JOB:
-	    return "REQUEST_SIGNAL_JOB";
 	case REQUEST_SUSPEND_INT:
 	    return "REQUEST_SUSPEND_INT";
 	case REQUEST_ABORT_JOB:

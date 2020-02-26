@@ -878,50 +878,6 @@ SEND_REPLY:
     ufree(ctlPorts);
 }
 
-static void handleSignalJob(Slurm_Msg_t *sMsg)
-{
-    char **ptr = &sMsg->ptr;
-    Job_t *job;
-    Step_t *step;
-    uint32_t jobid, siginfo, flag;
-    int signal;
-
-    getUint32(ptr, &jobid);
-    getUint32(ptr, &siginfo);
-
-    flag = siginfo >> 24;
-    signal = siginfo & 0xfff;
-
-    job = findJobById(jobid);
-    step = findStepByJobid(jobid);
-
-    if (!job && !step) {
-	mlog("%s: job %u to signal not found\n", __func__, jobid);
-	sendSlurmRC(sMsg, ESLURM_INVALID_JOB_ID);
-	return;
-    }
-
-    if (job && (flag & KILL_JOB_BATCH)) {
-	mlog("%s: send jobscript %u signal %u\n", __func__,
-		jobid, signal);
-	/* signal only job, not all corresponding steps */
-	if (job->state == JOB_RUNNING && job->fwdata) {
-	    killChild(PSC_getPID(job->fwdata->tid), signal, job->uid);
-	}
-    } else if (job) {
-	mlog("%s: send job %u signal %u\n", __func__,
-		jobid, signal);
-	if (signal == SIGUSR1) job->signaled = true;
-	signalJob(job, signal, sMsg->head.uid);
-    } else {
-	mlog("%s: send steps with jobid %u signal %u\n", __func__,
-		jobid, signal);
-	signalStepsByJobid(jobid, signal, sMsg->head.uid);
-    }
-
-    sendSlurmRC(sMsg, SLURM_SUCCESS);
-}
-
 static void handleSuspendInt(Slurm_Msg_t *sMsg)
 {
     Req_Suspend_Int_t *req;
@@ -2316,16 +2272,15 @@ bool initSlurmdProto(void)
 	pver = autoVer;
     }
 
-    if (!strncmp(pver, "19.05", 5) || !strncmp(pver, "1905", 4)) {
+    if (!strncmp(pver, "20.02", 5) || !strncmp(pver, "2002", 4)) {
+	slurmProto = SLURM_20_02_PROTO_VERSION;
+	slurmProtoStr = ustrdup("20.02");
+    } else if (!strncmp(pver, "19.05", 5) || !strncmp(pver, "1905", 4)) {
 	slurmProto = SLURM_19_05_PROTO_VERSION;
 	slurmProtoStr = ustrdup("19.05");
     } else if (!strncmp(pver, "18.08", 5) || !strncmp(pver, "1808", 4)) {
 	slurmProto = SLURM_18_08_PROTO_VERSION;
 	slurmProtoStr = ustrdup("18.08");
-    } else if (!strncmp(pver, "17.11", 5) || !strncmp(pver, "1711", 4)) {
-	slurmProto = SLURM_17_11_PROTO_VERSION;
-	slurmProtoStr = ustrdup("17.11");
-	needNodeRegResp = false;
     } else {
 	mlog("%s: unsupported Slurm protocol version %s\n", __func__, pver);
 	return false;
@@ -2349,7 +2304,6 @@ bool initSlurmdProto(void)
     registerSlurmdMsg(REQUEST_ABORT_JOB, handleTerminateReq);
     registerSlurmdMsg(REQUEST_TERMINATE_JOB, handleTerminateReq);
     registerSlurmdMsg(REQUEST_SUSPEND_INT, handleSuspendInt);
-    registerSlurmdMsg(REQUEST_SIGNAL_JOB, handleSignalJob); /* defunct in 17.11 */
     registerSlurmdMsg(REQUEST_COMPLETE_BATCH_SCRIPT, handleInvalid);
     registerSlurmdMsg(REQUEST_UPDATE_JOB_TIME, handleUpdateJobTime);
     registerSlurmdMsg(REQUEST_SHUTDOWN, handleShutdown);
@@ -2391,7 +2345,6 @@ void clearSlurmdProto(void)
     clearSlurmdMsg(REQUEST_ABORT_JOB);
     clearSlurmdMsg(REQUEST_TERMINATE_JOB);
     clearSlurmdMsg(REQUEST_SUSPEND_INT);
-    clearSlurmdMsg(REQUEST_SIGNAL_JOB);
     clearSlurmdMsg(REQUEST_COMPLETE_BATCH_SCRIPT);
     clearSlurmdMsg(REQUEST_UPDATE_JOB_TIME);
     clearSlurmdMsg(REQUEST_SHUTDOWN);

@@ -1094,15 +1094,6 @@ bool __unpackReqLaunchTasks(Slurm_Msg_t *sMsg, Step_t **stepPtr,
 	step->x11.host = getStringM(ptr);
 	/* x11 port */
 	getUint16(ptr, &step->x11.port);
-    } else if (msgVer == SLURM_17_11_PROTO_VERSION) {
-	/* x11 */
-	getUint16(ptr, &step->x11.x11);
-	/* magic cookie */
-	step->x11.magicCookie = getStringM(ptr);
-	/* x11 host */
-	step->x11.host = getStringM(ptr);
-	/* x11 port */
-	getUint16(ptr, &step->x11.port);
     }
 
     *stepPtr = step;
@@ -1310,102 +1301,6 @@ bool __packRespPing(PS_SendDB_t *data, Resp_Ping_t *ping,
     return true;
 }
 
-static void packAccNodeId(PS_SendDB_t *data, int type,
-			  AccountDataExt_t *accData, PSnodes_ID_t *nodes,
-			  uint32_t nrOfNodes)
-{
-    /* set node ID */
-    PSnodes_ID_t psNodeID = PSC_getID(accData->taskIds[type]);
-    int nid = getSlurmNodeID(psNodeID, nodes, nrOfNodes);
-
-    addUint32ToMsg(((nid<0) ? NO_VAL : (uint32_t) nid), data);
-
-    /* set task ID */
-    addUint16ToMsg((uint16_t) NO_VAL16, data);
-}
-
-static void packAccData_17(PS_SendDB_t *data, SlurmAccData_t *slurmAccData)
-{
-    if (slurmAccData->empty) {
-	int i;
-	/* pack empty account data */
-	for (i=0; i<6; i++) {
-	    addUint64ToMsg(0, data);
-	}
-	for (i=0; i<5; i++) {
-	    addUint32ToMsg(0, data);
-	}
-	addDoubleToMsg(0, data);
-	addUint32ToMsg(0, data);
-	addUint64ToMsg(0, data);
-	for (i=0; i<4; i++) {
-	    addDoubleToMsg(0, data);
-	}
-	for (i=0; i<6; i++) {
-	    addUint32ToMsg((uint32_t) NO_VAL, data);
-	    addUint16ToMsg((uint16_t) NO_VAL, data);
-	}
-	return;
-    }
-
-    AccountDataExt_t *accData = &slurmAccData->psAcct;
-    /* user cpu sec/usec */
-    addUint32ToMsg(accData->rusage.ru_utime.tv_sec, data);
-    addUint32ToMsg(accData->rusage.ru_utime.tv_usec, data);
-
-    /* system cpu sec/usec */
-    addUint32ToMsg(accData->rusage.ru_stime.tv_sec, data);
-    addUint32ToMsg(accData->rusage.ru_stime.tv_usec, data);
-
-    /* max vsize */
-    addUint64ToMsg(accData->maxVsize, data);
-    /* total vsize (sum of average vsize of all tasks, slurm divides) */
-    addUint64ToMsg(accData->avgVsizeTotal, data);
-
-    /* max rss */
-    addUint64ToMsg(accData->maxRss, data);
-    /* total rss (sum of average rss of all tasks, slurm divides) */
-    addUint64ToMsg(accData->avgRssTotal, data);
-
-    /* max/total major page faults */
-    addUint64ToMsg(accData->maxMajflt, data);
-    addUint64ToMsg(accData->totMajflt, data);
-
-    /* minimum cpu time */
-    addUint32ToMsg(accData->minCputime, data);
-
-    /* total cpu time */
-    addDoubleToMsg(accData->totCputime, data);
-
-    /* act cpufreq */
-    addUint32ToMsg(accData->cpuFreq, data);
-
-    /* energy consumed */
-    addUint64ToMsg(accData->energyCons, data);
-
-    /* max/total disk read */
-    addDoubleToMsg(accData->maxDiskRead, data);
-    addDoubleToMsg(accData->totDiskRead, data);
-
-    /* max/total disk write */
-    addDoubleToMsg(accData->maxDiskWrite, data);
-    addDoubleToMsg(accData->totDiskWrite, data);
-
-    /* node ids */
-    packAccNodeId(data, ACCID_MAX_VSIZE, accData, slurmAccData->nodes,
-		  slurmAccData->nrOfNodes);
-    packAccNodeId(data, ACCID_MAX_RSS, accData, slurmAccData->nodes,
-		  slurmAccData->nrOfNodes);
-    packAccNodeId(data, ACCID_MAX_PAGES, accData, slurmAccData->nodes,
-		  slurmAccData->nrOfNodes);
-    packAccNodeId(data, ACCID_MIN_CPU, accData, slurmAccData->nodes,
-		  slurmAccData->nrOfNodes);
-    packAccNodeId(data, ACCID_MAX_DISKREAD, accData, slurmAccData->nodes,
-		  slurmAccData->nrOfNodes);
-    packAccNodeId(data, ACCID_MAX_DISKWRITE, accData, slurmAccData->nodes,
-		  slurmAccData->nrOfNodes);
-}
-
 bool __packTResData(PS_SendDB_t *data, TRes_t *tres, const char *caller,
 		    const int line)
 {
@@ -1555,12 +1450,6 @@ bool __packSlurmAccData(PS_SendDB_t *data, SlurmAccData_t *slurmAccData,
 
     /* account data is available */
     addUint8ToMsg(1, data);
-
-    if (slurmProto <= SLURM_17_11_PROTO_VERSION) {
-	/* pack older accouting data */
-	packAccData_17(data, slurmAccData);
-	return true;
-    }
 
     AccountDataExt_t *accData = &slurmAccData->psAcct;
 
