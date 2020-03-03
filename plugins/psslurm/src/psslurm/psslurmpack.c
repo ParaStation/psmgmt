@@ -711,15 +711,14 @@ bool __unpackReqTerminate(Slurm_Msg_t *sMsg, Req_Terminate_Job_t **reqPtr,
     }
     /* jobid */
     getUint32(ptr, &req->jobid);
-
-    if (msgVer >= SLURM_18_08_PROTO_VERSION) {
-	/* pack jobid */
-	getUint32(ptr, &req->packJobid);
-    }
+    /* pack jobid */
+    getUint32(ptr, &req->packJobid);
     /* jobstate */
     getUint32(ptr, &req->jobstate);
-    /* user id */
+    /* user ID */
     getUint32(ptr, &req->uid);
+    /* group ID */
+    getUint32(ptr, &req->gid);
     /* nodes */
     req->nodes = getStringM(ptr);
     /* job info */

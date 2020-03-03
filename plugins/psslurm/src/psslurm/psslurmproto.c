@@ -730,13 +730,6 @@ static void handleSignalTasks(Slurm_Msg_t *sMsg)
     sendSlurmRC(sMsg, SLURM_SUCCESS);
 }
 
-static void handleCheckpointTasks(Slurm_Msg_t *sMsg)
-{
-    /* need slurm plugin to do the checkpointing */
-    mlog("%s: implement me!\n", __func__);
-    sendSlurmRC(sMsg, ESLURM_NOT_SUPPORTED);
-}
-
 static void sendReattchReply(Step_t *step, Slurm_Msg_t *sMsg, uint32_t rc)
 {
     PS_SendDB_t *reply = &sMsg->reply;
@@ -2297,7 +2290,6 @@ bool initSlurmdProto(void)
     registerSlurmdMsg(REQUEST_LAUNCH_TASKS, handleLaunchTasks);
     registerSlurmdMsg(REQUEST_SIGNAL_TASKS, handleSignalTasks);
     registerSlurmdMsg(REQUEST_TERMINATE_TASKS, handleSignalTasks);
-    registerSlurmdMsg(REQUEST_CHECKPOINT_TASKS, handleCheckpointTasks);
     registerSlurmdMsg(REQUEST_REATTACH_TASKS, handleReattachTasks);
     registerSlurmdMsg(REQUEST_KILL_PREEMPTED, handleTerminateReq);
     registerSlurmdMsg(REQUEST_KILL_TIMELIMIT, handleTerminateReq);
@@ -2338,7 +2330,6 @@ void clearSlurmdProto(void)
     clearSlurmdMsg(REQUEST_LAUNCH_TASKS);
     clearSlurmdMsg(REQUEST_SIGNAL_TASKS);
     clearSlurmdMsg(REQUEST_TERMINATE_TASKS);
-    clearSlurmdMsg(REQUEST_CHECKPOINT_TASKS);
     clearSlurmdMsg(REQUEST_REATTACH_TASKS);
     clearSlurmdMsg(REQUEST_KILL_PREEMPTED);
     clearSlurmdMsg(REQUEST_KILL_TIMELIMIT);
