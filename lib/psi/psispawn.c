@@ -389,21 +389,23 @@ static bool sendEnv(DDTypedBufferMsg_t *msg, char **env, size_t *len,
  * firstRank. Errors are logged within @a errors, the resulting task
  * IDs will be stored within @a tids.
  *
- * @param firstRank
+ * @param firstRank Rank of the first process to spawn
  *
- * @param count The number of processes to spawn.
+ * @param count Number of processes to spawn
  *
- * @param dstnodes The nodes used in order to spawn processes.
+ * @param dstnodes Array of node IDs used in order to spawn processes
  *
  * @param errors Array holding error codes upon return.
  *
  * @param tids Array holding unique task IDs upon return. If this is
  * NULL, no such information will be stored.
  *
- * @return Return might have 4 different values: -1: fatal error, 0:
- * general error, but answer from known node, 1: no error, 2: ignore
- * message, e.g. from unknown node or answer on "who died" question.
- */
+ * @return Return might be one of four different values:
+ * -2: ignore message; from unknown node, answer to "who died" question, etc.
+ * -1: fatal error
+ *  0: legitimate error while spawning; permission denied, down node, etc.
+ *  1: no error
+  */
 static int handleAnswer(unsigned int firstRank, int count,
 			PSnodes_ID_t *dstnodes, int *errors, PStask_ID_t *tids)
 {
@@ -411,29 +413,41 @@ static int handleAnswer(unsigned int firstRank, int count,
     DDErrorMsg_t *errMsg = (DDErrorMsg_t *)&answer;
     DDSignalMsg_t *sigMsg = (DDSignalMsg_t *)&answer;
     int rank;
-    bool fallback = false;
 
-recv_retry:
     if (PSI_recvMsg((DDMsg_t *)&answer, sizeof(answer)) < 0) {
 	PSI_warn(-1, errno, "%s: PSI_recvMsg", __func__);
 	return -1;
     }
     switch (answer.header.type) {
-    case PSP_CD_SPAWNFAILED:
     case PSP_CD_SPAWNSUCCESS:
 	rank = errMsg->request - firstRank;
+	if (rank >= 0 && rank < count) {
+	    errors[rank] = errMsg->error;
+	    if (tids) tids[rank] = answer.header.sender;
+	} else {
+	    PSI_log(-1, "%s: %s from illegal rank %d at node %d\n", __func__,
+		    PSP_printMsg(answer.header.type), errMsg->request,
+		    PSC_getID(answer.header.sender));
+	    return -2; /* Ignore answer */
+	}
+	return 1;
+    case PSP_CD_SPAWNFAILED:
+	rank = errMsg->request - firstRank;
+
 	/* find the right task request */
-	if (rank && (rank >= count
-		     || (dstnodes[rank] != PSC_getID(answer.header.sender))
-		     || (tids && tids[rank])
-		     || errors[rank])) {
-	    fallback = true;
+	/* errMsg->request == 0 might be due to rank == 0 or unknown rank */
+	bool found = false;
+	if (errMsg->request == 0 && firstRank == 0
+	    && dstnodes[0] == PSC_getID(answer.header.sender)
+	    && (!tids || tids[0] == 0)
+	    && !errors[0]) {
+	    found = true;
 	}
 
-	if (!rank || fallback) {
+	if (errMsg->request == 0 && !found) {
 	    for (rank = 0; rank < count; rank++) {
 		if (dstnodes[rank] == PSC_getID(answer.header.sender)
-		    && (!tids || !tids[rank]) && !errors[rank]) {
+		    && (!tids || tids[rank] == 0) && !errors[rank]) {
 		    /*
 		     * We have to test for !errors[i], since daemon on node 0
 		     * (which has tid 0) might have returned an error.
@@ -452,47 +466,45 @@ recv_retry:
 	    if (PSC_getID(answer.header.sender) == PSC_getMyID()
 		&& errMsg->error == EACCES && count == 1) {
 		/* This might be due to 'starting not allowed' here */
+		/* @todo is this actually true? IMHO these are always
+		 * sent with the correct (remote) sender */
+		PSI_log(-1, "%s: Starting not allowed from node %d\n", __func__,
+			PSC_getID(answer.header.sender));
 		errors[0] = errMsg->error;
 		if (tids) tids[0] = answer.header.sender;
 	    } else {
 		PSI_log(-1, "%s: %s from unknown node %d\n", __func__,
 			PSP_printMsg(answer.header.type),
 			PSC_getID(answer.header.sender));
-		return 2; /* Ignore answer */
+		return -2; /* Ignore answer */
 	    }
 	}
 
-	if (answer.header.type == PSP_CD_SPAWNFAILED) {
-	    if ((size_t)answer.header.len > sizeof(*errMsg)) {
-		size_t bufUsed = sizeof(*errMsg) - sizeof(answer.header);
-		char *note = answer.buf + bufUsed;
+	if ((size_t)answer.header.len > sizeof(*errMsg)) {
+	    size_t bufUsed = sizeof(*errMsg) - sizeof(answer.header);
+	    char *note = answer.buf + bufUsed;
 
-		if (note[strlen(note)-1] == '\n') note[strlen(note)-1] = '\0';
-		if (note[strlen(note)-1] == '\r') note[strlen(note)-1] = '\0';
+	    if (note[strlen(note)-1] == '\n') note[strlen(note)-1] = '\0';
+	    if (note[strlen(note)-1] == '\r') note[strlen(note)-1] = '\0';
 
-		PSI_log(-1, "%s: spawn to node %d failed: \"%s\"\n",
-			__func__, PSC_getID(answer.header.sender), note);
-	    } else {
-		PSI_warn(-1, errMsg->error, "%s: spawn to node %d failed",
-			 __func__, PSC_getID(answer.header.sender));
-	    }
-	    return 0;
+	    PSI_log(-1, "%s: spawn to node %d failed: \"%s\"\n",
+		    __func__, PSC_getID(answer.header.sender), note);
+	} else {
+	    PSI_warn(-1, errMsg->error, "%s: spawn to node %d failed",
+		     __func__, PSC_getID(answer.header.sender));
 	}
-	break;
+	return 0;
     case PSP_CD_WHODIED:
 	PSI_log(-1, "%s: got signal %d from %s\n", __func__, sigMsg->signal,
 		PSC_printTID(sigMsg->header.sender));
-	return 2; /* Ignore answer */
-	break;
+	__attribute__((fallthrough));
     case PSP_CD_SENDSTOP:
     case PSP_CD_SENDCONT:
-	/* Wait for answer */
-	goto recv_retry;
-	break;
+	return -2; /* Ignore answer */
     default:
 	PSI_log(-1, "%s: unexpected answer %s\n", __func__,
 		PSP_printMsg(answer.header.type));
-	return 2; /* Ignore answer */
+	return -2; /* Ignore answer */
     }
     return 1;
 }
@@ -616,9 +628,9 @@ bool PSI_sendSpawnMsg(PStask_t* task, bool envClone, PSnodes_ID_t dest,
  * what cause the failure. The array @a tids will hold the unique task
  * ID of the started processes, if @a tids was different from NULL.
  *
- * @param count The number of processes to spawn.
+ * @param count Number of processes to spawn
  *
- * @param dstnodes The nodes used in order to spawn processes.
+ * @param dstnodes Array of node IDs used in order to spawn processes
  *
  * @param workingdir The initial working directory of the spawned processes.
  *
@@ -732,10 +744,9 @@ static int dospawn(int count, PSnodes_ID_t *dstnodes, char *workingdir,
     task->workingdir = mywd;
     task->argc = argc;
 
-    if(!valgrind) {
+    if (!valgrind) {
 	 task->argv = malloc(sizeof(char*)*(task->argc+1));
-    }
-    else {
+    } else {
 	 /* add 'valgrind' and its parameters before executable: (see below)*/
 	 task->argv = malloc(sizeof(char*)*(task->argc+4));
     }
@@ -744,24 +755,22 @@ static int dospawn(int count, PSnodes_ID_t *dstnodes, char *workingdir,
 	PSI_warn(-1, errno, "%s: unable to store argument vector", __func__);
 	goto cleanup;
     }
-    {
-	struct stat statbuf;
 
-	if (stat(argv[0], &statbuf) && !strictArgv) {
-	    char myexec[PATH_MAX];
-	    int length;
+    struct stat statbuf;
+    if (stat(argv[0], &statbuf) && !strictArgv) {
+	char myexec[PATH_MAX];
+	int length;
 
-	    length = readlink("/proc/self/exe", myexec, sizeof(myexec)-1);
-	    if (length < 0) {
-		PSI_warn(-1, errno, "%s: readlink", __func__);
-	    } else {
-		myexec[length]='\0';
-	    }
-
-	    task->argv[0] = strdup(myexec);
+	length = readlink("/proc/self/exe", myexec, sizeof(myexec)-1);
+	if (length < 0) {
+	    PSI_warn(-1, errno, "%s: readlink", __func__);
 	} else {
-	    task->argv[0] = strdup(argv[0]);
+	    myexec[length]='\0';
 	}
+
+	task->argv[0] = strdup(myexec);
+    } else {
+	task->argv[0] = strdup(argv[0]);
     }
 
     /* check for valgrind support and whether this is the actual executable: */
@@ -852,18 +861,18 @@ static int dospawn(int count, PSnodes_ID_t *dstnodes, char *workingdir,
 	while (PSI_availMsg() > 0 && outstanding_answers) {
 	    int r = handleAnswer(firstRank, count, dstnodes, errors, tids);
 	    switch (r) {
+	    case -2:
+		/* just ignore */
+		break;
 	    case -1:
 		goto cleanup;
 		break;
 	    case 0:
 		error = true;
-		/* fallthrough */
+		__attribute__((fallthrough));
 	    case 1:
 		outstanding_answers--;
 		ret++;
-		break;
-	    case 2:
-		/* just ignore */
 		break;
 	    default:
 		PSI_log(-1, "%s: unknown return %d, from handleAnswer()\n",
@@ -875,21 +884,21 @@ static int dospawn(int count, PSnodes_ID_t *dstnodes, char *workingdir,
     PStask_delete(task);
 
     /* collect outstanding answers */
-    while (outstanding_answers) {
+    while (outstanding_answers > 0) {
 	int r = handleAnswer(firstRank, count, dstnodes, errors, tids);
 	switch (r) {
+	case -2:
+	    /* just ignore */
+	    break;
 	case -1:
 	    return -1;
 	    break;
 	case 0:
 	    error = true;
-	    /* fallthrough */
+	    __attribute__((fallthrough));
 	case 1:
 	    outstanding_answers--;
 	    ret++;
-	    break;
-	case 2:
-	    /* just ignore */
 	    break;
 	default:
 	    PSI_log(-1, "%s: unknown return %d, from handleAnswer()\n",

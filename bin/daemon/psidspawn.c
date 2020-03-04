@@ -2982,7 +2982,7 @@ static void msg_SPAWNREQUEST(DDTypedBufferMsg_t *msg)
     PSID_log(PSID_LOG_SPAWN, "%s: fragment %d from %s msglen %d\n", __func__,
 	     fNum, PSC_printTID(msg->header.sender), msg->header.len);
 
-    /* If message is first from my node, test if everything is okay */
+    /* First fragment, take a peek if it is from my node */
     if (localSender && fNum == 0) {
 	char *ptr = msg->buf + used;
 
@@ -2997,6 +2997,7 @@ static void msg_SPAWNREQUEST(DDTypedBufferMsg_t *msg)
 	/* reset psserial's byteorder */
 	setByteOrder(byteOrder);
 
+	/* Check if everything is okay */
 	answer.error = checkRequest(msg->header.sender, task);
 
 	/* Store some info from task for latter use */
@@ -3022,7 +3023,6 @@ static void msg_SPAWNREQUEST(DDTypedBufferMsg_t *msg)
 	}
     }
 
-
     if (PSC_getID(msg->header.dest) == PSC_getMyID()) {
 	/* destination is here */
 	recvFragMsg(msg, handleSpawnReq);
@@ -3033,10 +3033,13 @@ static void msg_SPAWNREQUEST(DDTypedBufferMsg_t *msg)
 
     if (!PSIDnodes_isUp(PSC_getID(msg->header.dest))) {
 	answer.error = EHOSTDOWN;
-	for (i = 0; i < num; i++) {
-	    answer.request = rank + i;
-	    sendMsg(&answer);
-	}
+	if (fNum == 0) {
+	    /* first fragment */
+	    for (i = 0; i < num; i++) {
+		answer.request = rank + i;
+		sendMsg(&answer);
+	    }
+	} /* ignore follow-up fragments */
 	return;
     }
 
