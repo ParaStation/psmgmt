@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 1999-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2019 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2020 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -500,7 +500,7 @@ int PSID_unregisterLoopAct(PSID_loopAction_t);
  * only makes sense to call this function from within psid's
  * main-loop.
  *
- * @return No return value.
+ * @return No return value
  */
 void PSID_handleLoopActions(void);
 
@@ -508,8 +508,10 @@ void PSID_handleLoopActions(void);
  * @brief Memory cleanup
  *
  * Cleanup all memory currently used by the daemon and its modules. It
- * will very aggressively free all allocated memory probably
- * destroying existing data structures and functionality.
+ * will aggressively free all allocated memory probably destroying
+ * existing data structures and functionality. If the @a aggressive
+ * flag is set, even more memory is freed including all information on
+ * managed task and the status of remote nodes.
  *
  * The purpose of this function is cleanup before a fork()ed process
  * is handling other tasks, e.g. becoming a forwarder.
@@ -517,9 +519,11 @@ void PSID_handleLoopActions(void);
  * @warn This one is currently only partially implemented, thus, leaving
  * some memory allocated.
  *
- * @return No return value.
+ * @param aggressive Flag to even more aggressively free memory
+ *
+ * @return No return value
  */
-void PSID_clearMem(void);
+void PSID_clearMem(bool aggressive);
 
 /**
  * @brief Set process' loginuid

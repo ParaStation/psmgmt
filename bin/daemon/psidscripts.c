@@ -117,7 +117,7 @@ static int doExec(char *script, PSID_scriptFunc_t func, PSID_scriptPrep_t prep,
 
 	if (func) {
 	    /* Cleanup all unneeded memory. */
-	    PSID_clearMem();
+	    PSID_clearMem(false);
 
 	    ret = func(info);
 	} else {

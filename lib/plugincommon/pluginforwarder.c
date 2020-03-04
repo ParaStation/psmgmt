@@ -589,7 +589,7 @@ static void execForwarder(PStask_t *task)
     struct rusage rusage;
 
     /* cleanup daemon memory and reset global facilities */
-    PSID_clearMem();
+    PSID_clearMem(false);
 
     if (!initForwarder(fwTask->fd, fw)) {
 	pluginlog("%s: initForwarder failed\n", __func__);
