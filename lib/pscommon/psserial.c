@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2012-2019 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2012-2020 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -288,7 +288,7 @@ static void initSerialHooks(void)
 	    PSC_log(-1, "%s: cannot register PSIDHOOK_NODE_DOWN\n", __func__);
 	}
 	if (!hookAdd(PSIDHOOK_CLEARMEM, clearMem)) {
-	    PSC_log(-1, "%s: cannot register PPSIDHOOK_CLEARMEM\n", __func__);
+	    PSC_log(-1, "%s: cannot register PSIDHOOK_CLEARMEM\n", __func__);
 	}
     }
 }
