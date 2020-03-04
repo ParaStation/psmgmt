@@ -464,7 +464,7 @@ void PSID_clearMem(bool aggressive)
     RDP_clearMem();
 
     /* Now call all cleanup functions registered by plugins */
-    PSIDhook_call(PSIDHOOK_CLEARMEM, NULL);
+    PSIDhook_call(PSIDHOOK_CLEARMEM, &aggressive);
 
     malloc_trim(0);
 }

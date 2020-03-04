@@ -162,7 +162,8 @@ typedef enum {
 				pointer to the daemon socket. */
     PSIDHOOK_JAIL_CHILD,      /**< Jail child into cgroup, arg points to pid */
     PSIDHOOK_CLEARMEM,        /**< Release memory after forking before handling
-				other tasks, e.g. becoming a forwarder.  */
+				other tasks, e.g. becoming a forwarder.
+				arg points to aggressive flag of type bool */
     PSIDHOOK_RANDOM_DROP,     /**< Determine if a message shall be dropped by
 				sendMsg(), arg points to the message to be
 				inspected. If the message shall	be dropped,
