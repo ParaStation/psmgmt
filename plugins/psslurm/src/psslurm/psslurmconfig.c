@@ -13,6 +13,8 @@
 #include <sys/stat.h>
 #include <sys/socket.h>
 #include <netdb.h>
+#include <dirent.h>
+#include <errno.h>
 
 #include "pshostlist.h"
 
@@ -592,6 +594,49 @@ static bool parseSlurmConf(char *key, char *value, const void *info)
 }
 
 #ifdef HAVE_SPANK
+
+#define DEFAULT_PLUG_DIR "/usr/lib64/slurm"
+
+static bool findSpankAbsPath(char *relPath, char *absPath, size_t lenPath)
+{
+    const char delimiters[] =": ";
+    char *toksave;
+    char *plugDir = getConfValueC(&SlurmConfig, "PluginDir");
+    if (!plugDir) plugDir = DEFAULT_PLUG_DIR;
+
+    char *dirDup = ustrdup(plugDir);
+    char *dirNext = strtok_r(dirDup, delimiters, &toksave);
+
+    while(dirNext) {
+	struct dirent *dent;
+	DIR *dir = opendir(dirNext);
+
+	if (!dir) {
+	    mwarn(errno, "%s: open directory %s failed :", __func__, dirNext);
+	    ufree(dirDup);
+	    return false;
+	}
+	rewinddir(dir);
+
+	while ((dent = readdir(dir))) {
+	    if (!strcmp(relPath, dent->d_name)) {
+		size_t len = strlen(dirNext);
+		if (dirNext[len-1] == '/') dirNext[len-1] = '\0';
+		snprintf(absPath, lenPath, "%s/%s", dirNext, relPath);
+		ufree(dirDup);
+		return true;
+	    }
+	}
+	closedir(dir);
+
+	dirNext = strtok_r(NULL, delimiters, &toksave);
+    }
+    ufree(dirDup);
+
+    flog("spank plugin %s in PluginDir %s not found\n", relPath, plugDir);
+    return false;
+}
+
 static bool parseSlurmPlugConf(char *key, char *value, const void *info)
 {
     const char delimiters[] =" \t\n";
@@ -619,8 +664,19 @@ static bool parseSlurmPlugConf(char *key, char *value, const void *info)
 	flog("invalid path to spank plugin '%s'\n", key);
 	goto ERROR;
     }
-    def->path = ustrdup(path);
-    fdbg(PSSLURM_LOG_SPANK, "flag '%s' path '%s'", optional, path);
+
+    /* find absolute path to plugin */
+    if (path[0] != '/') {
+	char absPath[1024];
+	if (!findSpankAbsPath(path, absPath, sizeof(absPath))) {
+	    flog("path for plugin '%s' not found\n", path);
+	    goto ERROR;
+	}
+	def->path = ustrdup(absPath);
+    } else {
+	def->path = ustrdup(path);
+    }
+    fdbg(PSSLURM_LOG_SPANK, "flag '%s' path '%s'", optional, def->path);
 
     /* additional arguments */
     strvInit(&def->argV, NULL, 0);
@@ -646,6 +702,12 @@ static bool parseSlurmPlugConf(char *key, char *value, const void *info)
     return false;
 
 ERROR:
+    if (def->optional) {
+	/* plugin not needed, continue parsing */
+	ufree(def);
+	return false;
+    }
+
     ufree(def);
     return true; /* an error occurred, return true to stop parsing */
 
@@ -698,6 +760,13 @@ int initConfig(char *filename, uint32_t *hash)
     if (verifyConfig(&Config, confDef) != 0) {
 	mlog("%s: verfiy of %s failed\n", __func__, filename);
 	return 0;
+    }
+
+    /* make logging with debug mask available */
+    int mask = getConfValueI(&Config, "DEBUG_MASK");
+    if (mask) {
+	mlog("%s: set psslurm debug mask '%i'\n", __func__, mask);
+	maskLogger(mask);
     }
 
     /* parse Slurm config file */

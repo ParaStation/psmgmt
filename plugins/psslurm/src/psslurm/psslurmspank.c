@@ -74,13 +74,25 @@ void SpankSavePlugin(Spank_Plugin_t *def)
     list_add_tail(&def->next, &SpankList);
 }
 
+static void delSpankPlug(Spank_Plugin_t *sp)
+{
+    if (sp->handle) {
+	dlclose(sp->handle);
+	sp->handle = NULL;
+    }
+    ufree(sp->path);
+    strvDestroy(&sp->argV);
+    list_del(&sp->next);
+    ufree(sp);
+}
+
 bool SpankInitPlugins(void)
 {
-    list_t *s;
+    list_t *s, *tmp;
     struct stat sbuf;
     int count = 0;
 
-    list_for_each(s, &SpankList) {
+    list_for_each_safe(s, tmp, &SpankList) {
 	Spank_Plugin_t *sp = list_entry(s, Spank_Plugin_t, next);
 
 	if (stat(sp->path, &sbuf) == -1) {
@@ -107,9 +119,18 @@ bool SpankInitPlugins(void)
 
 	fdbg(PSSLURM_LOG_SPANK, "plugin=%s type=%s version=%u\n", sp->name,
 	     sp->type, sp->version);
+
+	if (!!strcmp(sp->type, "spank")) {
+	    /* drop non spank plugins */
+	    fdbg(PSSLURM_LOG_SPANK, "Dropping plugin=%s type=%s\n",
+		 sp->name, sp->type);
+	    delSpankPlug(sp);
+	    continue;
+	}
+
 	count++;
     }
-    if (count) flog("successfully loaded %i spank plugins\n", count);
+    if (count) flog("successfully loaded %i spank plugin(s)\n", count);
 
     return true;
 }
@@ -122,14 +143,7 @@ void SpankFinalize(void)
     list_for_each_safe(s, tmp, &SpankList) {
 	Spank_Plugin_t *sp = list_entry(s, Spank_Plugin_t, next);
 
-	if (sp->handle) {
-	    dlclose(sp->handle);
-	    sp->handle = NULL;
-	}
-	ufree(sp->path);
-	strvDestroy(&sp->argV);
-	list_del(&sp->next);
-	ufree(sp);
+	delSpankPlug(sp);
     }
 
     /* unload global spank symbols */

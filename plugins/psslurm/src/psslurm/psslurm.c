@@ -464,17 +464,8 @@ static bool initPluginHandles(void)
 
 static void setConfOpt(void)
 {
-    int mask, measure;
-
-    /* psslurm debug */
-    mask = getConfValueI(&Config, "DEBUG_MASK");
-    if (mask) {
-	mlog("%s: set psslurm debug mask '%i'\n", __func__, mask);
-	maskLogger(mask);
-    }
-
     /* plugin library debug */
-    mask = getConfValueI(&Config, "PLUGIN_DEBUG_MASK");
+    int mask = getConfValueI(&Config, "PLUGIN_DEBUG_MASK");
     if (mask) {
 	mlog("%s: set plugin debug mask '%i'\n", __func__, mask);
 	maskPluginLogger(mask);
@@ -488,7 +479,7 @@ static void setConfOpt(void)
     }
 
     /* measure libmunge */
-    measure = getConfValueI(&Config, "MEASURE_MUNGE");
+    int measure = getConfValueI(&Config, "MEASURE_MUNGE");
     if (measure) {
 	mlog("%s: measure libmunge executing times\n", __func__);
 	psMungeMeasure(true);
