@@ -1,3 +1,414 @@
+Version psmgmt-5.1.29:
+======================
+------------------------------------------------------------------------
+83c5ecf | Norbert Eicker | Fri, 6 Mar 2020 16:07:51 +0100
+
+Don't be too aggressive on freeing memory
+------------------------------------------------------------------------
+2ee7eb3d | Michael Rauh | Thu, 5 Mar 2020 18:47:54 +0100
+
+Add support for Slurm PluginDir option in psslurm
+ - support relative path to spank plugins
+ - make psslurm debug logging available in config parsing
+ - automatically unload non spank plugins
+ - add support for spank optional flag
+------------------------------------------------------------------------
+2fbb3f8e | Norbert Eicker | Wed, 4 Mar 2020 23:59:50 +0100
+
+Pass aggressive flag to PSIDHOOK_CLEARMEM
+
+ - Also bump pluginAPIVersion to 124
+------------------------------------------------------------------------
+3af32fc3 | Norbert Eicker | Wed, 4 Mar 2020 23:57:46 +0100
+
+Fix typo
+------------------------------------------------------------------------
+4a27ba24 | Norbert Eicker | Wed, 4 Mar 2020 23:40:08 +0100
+
+Bugfix: Don't send infinite SPAWNFAILED messages (jwt:#5160)
+------------------------------------------------------------------------
+be4baf34 | Norbert Eicker | Wed, 4 Mar 2020 12:38:31 +0100
+
+Add aggressive flag to PSID_clearMem()
+
+ - Free even information on tasks and nodes
+ - Flag only set for psidforwarder which shall be save
+------------------------------------------------------------------------
+644fb2b5 | Michael Rauh | Wed, 26 Feb 2020 16:14:54 +0100
+
+Call PSID_clearMem() for all plugin forwarders
+------------------------------------------------------------------------
+8eb9482e | Michael Rauh | Fri, 21 Feb 2020 16:25:20 +0100
+
+Let the psgw plugin signal the process group when
+stopping the psgwd
+------------------------------------------------------------------------
+8b398eb0 | Michael Rauh | Fri, 21 Feb 2020 12:27:34 +0100
+
+Improve reporting of node failures to slurmctld
+------------------------------------------------------------------------
+87e8e298 | Michael Rauh | Wed, 19 Feb 2020 13:25:19 +0100
+
+Add option SLURM_SPANK_CONF to configuration template
+------------------------------------------------------------------------
+9a514c66 | Michael Rauh | Wed, 19 Feb 2020 13:07:41 +0100
+
+Add missing newline to error message
+------------------------------------------------------------------------
+d865c203 | Michael Rauh | Fri, 14 Feb 2020 13:20:21 +0100
+
+Update buildsystem
+------------------------------------------------------------------------
+197a7f4e | Michael Rauh | Fri, 14 Feb 2020 13:17:02 +0100
+
+Cleanup initialize function of the spank API
+------------------------------------------------------------------------
+b262bdaa | Michael Rauh | Thu, 13 Feb 2020 11:28:39 +0100
+
+Update buildsystem
+------------------------------------------------------------------------
+fbb9db95 | Michael Rauh | Thu, 13 Feb 2020 11:27:48 +0100
+
+Move spank_test to plugin test folder
+------------------------------------------------------------------------
+882393b8 | Norbert Eicker | Thu, 13 Feb 2020 09:17:04 +0100
+
+Remove obsolete build dependency systemd-devel on OpenSUSE
+------------------------------------------------------------------------
+14c79336 | Michael Rauh | Wed, 12 Feb 2020 14:58:40 +0100
+
+Improve naming of the psslurm step forwarders
+------------------------------------------------------------------------
+bb59545a | Michael Rauh | Wed, 12 Feb 2020 10:34:27 +0100
+
+Add support for spank items S_JOB_PID_TO_GLOBAL_ID, S_JOB_PID_TO_LOCAL_ID,
+S_JOB_LOCAL_TO_GLOBAL_ID and S_JOB_GLOBAL_TO_LOCAL_ID
+------------------------------------------------------------------------
+4e4e26dc | Norbert Eicker | Tue, 11 Feb 2020 19:40:33 +0100
+
+Booleanize psiinfo
+------------------------------------------------------------------------
+7e2e4278 | Norbert Eicker | Tue, 11 Feb 2020 18:25:19 +0100
+
+Last -Wshadow warnings fixed
+------------------------------------------------------------------------
+9b35fb69 | Norbert Eicker | Tue, 11 Feb 2020 18:06:18 +0100
+
+Booleanize flags in PSrsrvtn_t
+------------------------------------------------------------------------
+b9ea6f1b | Norbert Eicker | Tue, 11 Feb 2020 13:24:55 +0100
+
+Bugfix: Fix bug unveiled by -Wshadow
+
+ - This prevented PSID_execScript() and PSID_execFunc() to report failed
+   execution to the controlling daemon
+------------------------------------------------------------------------
+99114faf | Michael Rauh | Tue, 11 Feb 2020 12:49:51 +0100
+
+Update Slurm binding definitions
+------------------------------------------------------------------------
+edefb13d | Stephan Krempel | Tue, 11 Feb 2020 12:29:17 +0100
+
+psslurm: Print task distribution mask in debugging output
+------------------------------------------------------------------------
+ae0c05c6 | Norbert Eicker | Tue, 11 Feb 2020 12:30:19 +0100
+
+Streamlining, booleanization, etc.
+------------------------------------------------------------------------
+226024ef | Norbert Eicker | Tue, 11 Feb 2020 11:00:36 +0100
+
+More -Wshadow warnings fixed
+------------------------------------------------------------------------
+e46f6833 | Norbert Eicker | Tue, 11 Feb 2020 10:44:40 +0100
+
+Merge upstream bugfix into linenoise
+------------------------------------------------------------------------
+01294a60 | Norbert Eicker | Tue, 11 Feb 2020 10:42:28 +0100
+
+More -Wshadow warnings fixed
+------------------------------------------------------------------------
+794662d1 | Michael Rauh | Mon, 10 Feb 2020 14:36:03 +0100
+
+Add support for spank item SPANK_TASK_EXIT
+------------------------------------------------------------------------
+9a035988 | Norbert Eicker | Mon, 10 Feb 2020 22:12:15 +0100
+
+Fix more -Wshadow warnings
+------------------------------------------------------------------------
+8f21e8ac | Norbert Eicker | Mon, 10 Feb 2020 22:06:12 +0100
+
+Fix some more -Wshadow warnings
+------------------------------------------------------------------------
+8081d480 | Norbert Eicker | Mon, 10 Feb 2020 21:32:07 +0100
+
+Revert gcc-10's change to make -fno-common default where required
+------------------------------------------------------------------------
+cd047f3d | Norbert Eicker | Mon, 10 Feb 2020 21:29:59 +0100
+
+Unify naming of config(-definition) in plugins
+------------------------------------------------------------------------
+76fbdbe8 | Norbert Eicker | Mon, 10 Feb 2020 12:58:19 +0100
+
+Actually print the right type
+------------------------------------------------------------------------
+5713cadd | Norbert Eicker | Mon, 10 Feb 2020 11:38:07 +0100
+
+Minor streamlining
+------------------------------------------------------------------------
+872bd541 | Michael Rauh | Fri, 7 Feb 2020 16:52:05 +0100
+
+Fix segfault introduced in 6955e2cb
+------------------------------------------------------------------------
+ef7708b7 | Michael Rauh | Thu, 6 Feb 2020 17:46:05 +0100
+
+Fix warnings unveiled by cppcheck
+------------------------------------------------------------------------
+6955e2cb | Michael Rauh | Thu, 6 Feb 2020 16:50:31 +0100
+
+Refactor psslurmio
+
+ - move forwarder communication to psslurmfwcomm
+ - common function naming scheme
+ - update documentation
+------------------------------------------------------------------------
+e43fcf20 | Norbert Eicker | Mon, 3 Feb 2020 20:25:11 +0100
+
+Add new hook PSIDHOOK_FRWRD_CLNT_RES
+
+ - Tell attached plugins about clients exit status
+ - Mainly used to implement spank functionality
+ - Also bump pluginAPIVersion to 123
+------------------------------------------------------------------------
+4e9654fe | Norbert Eicker | Mon, 3 Feb 2020 20:21:49 +0100
+
+Rename PSIDHOOK_FRWRD_RESCLIENT to PSIDHOOK_FRWRD_EXIT
+------------------------------------------------------------------------
+82147651 | Norbert Eicker | Mon, 3 Feb 2020 19:56:01 +0100
+
+Rename PSIDHOOK_FRWRD_CLIENT_STAT to PSIDHOOK_FRWRD_CLNT_RLS
+------------------------------------------------------------------------
+4e280ca3 | Michael Rauh | Fri, 31 Jan 2020 12:19:34 +0100
+
+Update documentation and minor streamlining of psslurmpelogue
+------------------------------------------------------------------------
+99f5b5ff | Michael Rauh | Fri, 31 Jan 2020 11:25:24 +0100
+
+Booleanization and update documentation of psslurmlimits
+------------------------------------------------------------------------
+64085959 | Michael Rauh | Fri, 31 Jan 2020 11:24:51 +0100
+
+Update documentation of psslurmjobcred
+------------------------------------------------------------------------
+6bd27a7c | Michael Rauh | Fri, 31 Jan 2020 10:11:11 +0100
+
+Update documentation and minor streamlining of psslurmspawn
+------------------------------------------------------------------------
+a1fc3867 | Michael Rauh | Thu, 30 Jan 2020 17:47:18 +0100
+
+Update documentation of psslurmjob
+------------------------------------------------------------------------
+2acda3cf | Michael Rauh | Thu, 30 Jan 2020 17:15:41 +0100
+
+Update documentation of psslurmstep
+------------------------------------------------------------------------
+e8403780 | Michael Rauh | Thu, 30 Jan 2020 15:10:25 +0100
+
+Add support for spank S_JOB_LOCAL_TASK_COUNT
+------------------------------------------------------------------------
+af675775 | Michael Rauh | Tue, 28 Jan 2020 17:53:51 +0100
+
+Add support for spank S_JOB_TOTAL_TASK_COUNT
+------------------------------------------------------------------------
+54e5190a | Michael Rauh | Tue, 28 Jan 2020 16:10:38 +0100
+
+Add support for spank S_JOB_NCPUS
+------------------------------------------------------------------------
+53d1e86c | Michael Rauh | Tue, 28 Jan 2020 12:45:10 +0100
+
+Add support for spank S_JOB_ALLOC_MEM and S_STEP_ALLOC_MEM
+------------------------------------------------------------------------
+eeec3631 | Michael Rauh | Mon, 27 Jan 2020 17:38:40 +0100
+
+Call spank hook SPANK_USER_INIT in psslurm
+------------------------------------------------------------------------
+9e891c7b | Michael Rauh | Mon, 27 Jan 2020 16:52:43 +0100
+
+Add documentation to Spank_Hook_Calls_t
+------------------------------------------------------------------------
+6250c1d2 | Michael Rauh | Fri, 24 Jan 2020 16:29:30 +0100
+
+Update psslurm show command for spank plugins
+------------------------------------------------------------------------
+90644375 | Michael Rauh | Fri, 24 Jan 2020 15:55:34 +0100
+
+Add support to show spank plugins via psiadmin
+------------------------------------------------------------------------
+0185dc7c | Michael Rauh | Fri, 24 Jan 2020 14:56:16 +0100
+
+Save spank plugin type and version information
+------------------------------------------------------------------------
+452cfe42 | Michael Rauh | Fri, 24 Jan 2020 14:30:44 +0100
+
+Declare getVersionItem() and getOtherItem() static
+------------------------------------------------------------------------
+c2902079 | Michael Rauh | Fri, 24 Jan 2020 11:24:51 +0100
+
+Merge branch 'spank' of git.ccc:/psmgmt into spank
+------------------------------------------------------------------------
+f5525b28 | Norbert Eicker | Thu, 23 Jan 2020 11:24:33 +0100
+
+Ensure RPM build work without slurm-devel and/or systemd-devel
+------------------------------------------------------------------------
+27d0b67a | Norbert Eicker | Wed, 22 Jan 2020 19:06:31 +0100
+
+Fix various copyright statements
+------------------------------------------------------------------------
+2b52d724 | Norbert Eicker | Wed, 22 Jan 2020 19:05:46 +0100
+
+Remove obsolete include
+------------------------------------------------------------------------
+fbe2b670 | Norbert Eicker | Wed, 22 Jan 2020 17:37:58 +0100
+
+Prevent reading out of Spank_Hook_Table's boundaries
+------------------------------------------------------------------------
+652681ed | Norbert Eicker | Wed, 22 Jan 2020 17:24:29 +0100
+
+Suppress warning when building without spank
+------------------------------------------------------------------------
+720a7b1f | Michael Rauh | Wed, 22 Jan 2020 13:50:55 +0100
+
+Merge branch 'master' into spank
+------------------------------------------------------------------------
+202cd160 | Michael Rauh | Wed, 22 Jan 2020 12:16:54 +0100
+
+Bugfix: fix segfault for long spank cmdline options (jrt:#10196)
+------------------------------------------------------------------------
+8b09baeb | Norbert Eicker | Tue, 21 Jan 2020 19:26:00 +0100
+
+Remove obsolete tweaks for automounts
+------------------------------------------------------------------------
+5cca1794 | Michael Rauh | Fri, 17 Jan 2020 12:52:41 +0100
+
+Merge branch 'spank' of git.ccc:/psmgmt into spank
+------------------------------------------------------------------------
+57bf7912 | Michael Rauh | Fri, 6 Dec 2019 14:19:51 +0100
+
+Udpate build system
+------------------------------------------------------------------------
+4d18e87c | Michael Rauh | Fri, 6 Dec 2019 14:11:53 +0100
+
+Add spank test plugin
+------------------------------------------------------------------------
+002a9071 | Michael Rauh | Fri, 6 Dec 2019 13:45:27 +0100
+
+Add support for spank hooks SPANK_INIT and SPANK_EXIT
+------------------------------------------------------------------------
+e0898ff8 | Michael Rauh | Thu, 5 Dec 2019 15:55:22 +0100
+
+Improve error values in spank item query calls
+------------------------------------------------------------------------
+4a135e7b | Michael Rauh | Thu, 5 Dec 2019 12:51:25 +0100
+
+Add support for slurm version query in spank
+------------------------------------------------------------------------
+e1924c10 | Michael Rauh | Mon, 2 Dec 2019 16:14:36 +0100
+
+Update RPM build system
+------------------------------------------------------------------------
+edff8dc1 | Michael Rauh | Mon, 2 Dec 2019 15:19:45 +0100
+
+Add hooks to call the spank plugins in psslurm forwarder
+------------------------------------------------------------------------
+484f19dc | Michael Rauh | Mon, 2 Dec 2019 14:45:34 +0100
+
+Update psslurmconfig documentation and fix object definition
+------------------------------------------------------------------------
+70e1f6ec | Michael Rauh | Mon, 2 Dec 2019 14:36:27 +0100
+
+Add spank config parsing of plugstack.conf
+------------------------------------------------------------------------
+d420b109 | Michael Rauh | Mon, 2 Dec 2019 14:19:51 +0100
+
+Save job restart count
+------------------------------------------------------------------------
+91e4f7f5 | Michael Rauh | Mon, 2 Dec 2019 14:18:20 +0100
+
+Add spank function handles and debug mask
+------------------------------------------------------------------------
+98f459f9 | Michael Rauh | Mon, 2 Dec 2019 13:58:45 +0100
+
+Update the buildsystem
+------------------------------------------------------------------------
+e69e7488 | Michael Rauh | Mon, 2 Dec 2019 13:56:32 +0100
+
+Add prototype to support the Slurm spank api
+------------------------------------------------------------------------
+162824d8 | Michael Rauh | Fri, 6 Dec 2019 15:30:00 +0100
+
+Merge branch 'master' into spank
+------------------------------------------------------------------------
+08a5e73d | Michael Rauh | Fri, 6 Dec 2019 14:19:51 +0100
+
+Udpate build system
+------------------------------------------------------------------------
+31b757fc | Michael Rauh | Fri, 6 Dec 2019 14:11:53 +0100
+
+Add spank test plugin
+------------------------------------------------------------------------
+f971ca2f | Michael Rauh | Fri, 6 Dec 2019 13:45:27 +0100
+
+Add support for spank hooks SPANK_INIT and SPANK_EXIT
+------------------------------------------------------------------------
+0714ab74 | Michael Rauh | Thu, 5 Dec 2019 15:55:22 +0100
+
+Improve error values in spank item query calls
+------------------------------------------------------------------------
+61dbf1ba | Michael Rauh | Thu, 5 Dec 2019 12:51:25 +0100
+
+Add support for slurm version query in spank
+------------------------------------------------------------------------
+de542389 | Michael Rauh | Wed, 4 Dec 2019 12:00:20 +0100
+
+Merge branch 'master' into spank
+------------------------------------------------------------------------
+ead38df8 | Michael Rauh | Mon, 2 Dec 2019 16:14:36 +0100
+
+Update RPM build system
+------------------------------------------------------------------------
+3ac48885 | Michael Rauh | Mon, 2 Dec 2019 15:21:47 +0100
+
+Merge branch 'master' into spank
+------------------------------------------------------------------------
+cf605933 | Michael Rauh | Mon, 2 Dec 2019 15:19:45 +0100
+
+Add hooks to call the spank plugins in psslurm forwarder
+------------------------------------------------------------------------
+d9faeaf5 | Michael Rauh | Mon, 2 Dec 2019 14:45:34 +0100
+
+Update psslurmconfig documentation and fix object definition
+------------------------------------------------------------------------
+0e78523e | Michael Rauh | Mon, 2 Dec 2019 14:36:27 +0100
+
+Add spank config parsing of plugstack.conf
+------------------------------------------------------------------------
+77fa7daf | Michael Rauh | Mon, 2 Dec 2019 14:19:51 +0100
+
+Save job restart count
+------------------------------------------------------------------------
+0731fda9 | Michael Rauh | Mon, 2 Dec 2019 14:18:20 +0100
+
+Add spank function handles and debug mask
+------------------------------------------------------------------------
+cc7dd2b3 | Michael Rauh | Mon, 2 Dec 2019 13:58:45 +0100
+
+Update the buildsystem
+------------------------------------------------------------------------
+13da6f34 | Michael Rauh | Mon, 2 Dec 2019 13:56:32 +0100
+
+Add prototype to support the Slurm spank api
+------------------------------------------------------------------------
+
+
 Version psmgmt-5.1.28:
 ======================
 ------------------------------------------------------------------------

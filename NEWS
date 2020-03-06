@@ -4,6 +4,35 @@ Copyright (C) 2010-2020 ParTec Cluster Competence Center GmbH, Munich
 
 Please send bug reports, questions and suggestions to <support@par-tec.com>
 
+Version 5.1.29:
+===============
+Bugfixes:
+ - Don't send infinite SPAWNFAILED messages (jwt:#5160)
+ - Fix segfault for long spank cmdline options (jrt:#10196)
+ - Don't prevent PSID_execFunc() et al. to report failed execution
+Enhancements:
+ - Improve reporting of node failures to slurmctld
+ - Add support for spank plugins to psslurm. Supported hooks are:
+   SPANK_INIT, SPANK_JOB_PROLOG, SPANK_LOCAL_USER_INIT, SPANK_USER_INIT,
+   SPANK_TASK_INIT_PRIVILEGED, SPANK_TASK_INIT, SPANK_TASK_POST_FORK,
+   SPANK_TASK_EXIT, SPANK_JOB_EPILOG, SPANK_EXIT
+ - Show spank plugins via psiadmin
+ - Reduce memory footprint of various forwarder processes
+ - Let the psgw plugin signal the process group when stopping the psgwd
+ - psslurm: Print task distribution mask in debugging output
+ - Remove obsolete tweaks for automounts
+Additional changes:
+ - Bump pluginAPIVersion to 124
+ - Add aggressive flag to PSID_clearMem()
+ - Refactor psslurmio: move forwarder communication to psslurmfwcomm, etc.
+ - PSIDHOOK_FRWRD_CLNT_RES reports clients exit status to attached plugins
+ - Rename PSIDHOOK_FRWRD_RESCLIENT to PSIDHOOK_FRWRD_EXIT
+ - Rename PSIDHOOK_FRWRD_CLIENT_STAT to PSIDHOOK_FRWRD_CLNT_RLS
+ - Ensure RPM build work without slurm-devel and/or systemd-devel
+ - Remove obsolete build dependency systemd-devel on OpenSUSE
+ - Fix various warning unveiled by -Wshadow and cppcheck
+
+
 Version 5.1.28:
 ===============
 Bugfixes:
