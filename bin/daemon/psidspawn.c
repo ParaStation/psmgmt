@@ -1339,7 +1339,7 @@ static void execForwarder(PStask_t *task)
     /* this is the forwarder process */
 
     /* Cleanup all unneeded memory */
-    PSID_clearMem(true);
+    PSID_clearMem(false); // @todo check how to allow true here
 
     /* save errno in case of error */
     if (pid == -1) eno = errno;
