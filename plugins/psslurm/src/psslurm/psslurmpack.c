@@ -693,8 +693,10 @@ bool __unpackReqTerminate(Slurm_Msg_t *sMsg, Req_Terminate_Job_t **reqPtr,
     getUint32(ptr, &req->jobstate);
     /* user ID */
     getUint32(ptr, &req->uid);
-    /* group ID */
-    getUint32(ptr, &req->gid);
+    if (msgVer >= SLURM_20_02_PROTO_VERSION) {
+	/* group ID */
+	getUint32(ptr, &req->gid);
+    }
     /* nodes */
     req->nodes = getStringM(ptr);
     /* job info */
