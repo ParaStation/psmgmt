@@ -284,7 +284,7 @@ again:
 	}
     } else if (!ret) {
 	if (!timeout) {
-	    PSID_log(-1, "%s: logger closed connection", __func__);
+	    PSID_log(-1, "%s: logger closed connection\n", __func__);
 	    closeDaemonSock();
 	}
     } else {
@@ -1250,7 +1250,7 @@ again:
 	    close(clientFD);
 	    return true;
 	} else {
-	    PSID_log(-1, "%s: cannot start child", __func__);
+	    PSID_log(-1, "%s: cannot start child\n", __func__);
 	}
     } else {
 	ssize_t written = 0;
@@ -1261,7 +1261,7 @@ again:
 	    close(clientFD);
 	}
 	if (written != 1) {
-	    PSID_log(-1, "%s: cannot stop child, try to kill", __func__);
+	    PSID_log(-1, "%s: cannot stop child, try to kill\n", __func__);
 	    sendSignal(PSC_getPID(childTask->tid), SIGKILL);
 	}
     }
