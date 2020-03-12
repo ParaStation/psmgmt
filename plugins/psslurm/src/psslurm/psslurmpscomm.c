@@ -232,7 +232,8 @@ static void printHWthreads(uint32_t numThreads, PSpart_HWThread_t *threads)
  *
  * @param msg The message to handle.
  *
- * @return Always returns 0.
+ * @return Returns 0 if the request is finally handeled
+ *   and 1 if it should be further handled by the caller.
  */
 static int handleCreatePart(void *msg)
 {
@@ -335,7 +336,8 @@ error:
  *
  * @param msg The message to handle.
  *
- * @return Always returns 0.
+ * @return Returns 0 if the request is finally handeled
+ *   and 1 if it should be further handled by the caller.
  */
 static int handleCreatePartNL(void *msg)
 {
