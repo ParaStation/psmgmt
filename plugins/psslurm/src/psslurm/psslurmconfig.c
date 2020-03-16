@@ -54,6 +54,14 @@ const ConfDef_t confDef[] =
 	"file",
 	"/etc/slurm/slurm.conf",
 	"Configuration file of slurm" },
+    { "SLURM_CONF_SERVER", 0,
+	"ip:port",
+	"none",
+	"slurmctld to fetch configuration files from" },
+    { "SLURM_CONF_BACKUP_SERVER", 0,
+	"ip:port",
+	"none",
+	"slurmctld backup to fetch configuration files from" },
     { "SLURM_GRES_CONF", 0,
 	"file",
 	"/etc/slurm/gres.conf",
@@ -205,6 +213,14 @@ const ConfDef_t confDef[] =
 	"bool",
 	"0",
 	"If true nodes will be drained without the help of psexec" },
+    { "SLURM_RUN_DIR", 0,
+	"path",
+	"/run/slurm",
+	"The Slurm /run directory. Used to link to Slurm configuration" },
+    { "SLURM_CONF_DIR", 0,
+	"path",
+	SPOOL_DIR "/slurm_conf",
+	"The Slurm config directory. Used to save Slurm configuration files" },
     { NULL, 0, NULL, NULL, NULL },
 };
 
@@ -831,26 +847,11 @@ static bool verifySlurmConf()
     return true;
 }
 
-int initConfig(char *filename, uint32_t *hash)
+int parseSlurmConfigFiles(uint32_t *hash)
 {
     char *confFile;
     struct stat sbuf;
     int gres = 0;
-
-    /* parse psslurm config file */
-    if (parseConfigFile(filename, &Config, false /*trimQuotes*/) < 0) return 0;
-    setConfigDefaults(&Config, confDef);
-    if (verifyConfig(&Config, confDef) != 0) {
-	mlog("%s: verfiy of %s failed\n", __func__, filename);
-	return 0;
-    }
-
-    /* make logging with debug mask available */
-    int mask = getConfValueI(&Config, "DEBUG_MASK");
-    if (mask) {
-	mlog("%s: set psslurm debug mask '%i'\n", __func__, mask);
-	maskLogger(mask);
-    }
 
     /* parse Slurm config file */
     if (!(confFile = getConfValueC(&Config, "SLURM_CONF"))) return 0;
@@ -892,4 +893,35 @@ int initConfig(char *filename, uint32_t *hash)
 #endif
 
     return 1;
+}
+
+int initConfig(char *filename, uint32_t *hash)
+{
+    /* parse psslurm config file */
+    if (parseConfigFile(filename, &Config, false /*trimQuotes*/) < 0) {
+	flog("parsing '%s' failed\n", filename);
+	return CONFIG_ERROR;
+    }
+    setConfigDefaults(&Config, confDef);
+    if (verifyConfig(&Config, confDef) != 0) {
+	mlog("%s: verfiy of %s failed\n", __func__, filename);
+	return CONFIG_ERROR;
+    }
+
+    /* make logging with debug mask available */
+    int mask = getConfValueI(&Config, "DEBUG_MASK");
+    if (mask) {
+	mlog("%s: set psslurm debug mask '%i'\n", __func__, mask);
+	maskLogger(mask);
+    }
+
+    char *confServer = getConfValueC(&Config, "SLURM_CONF_SERVER");
+    if (confServer && !!strcmp(confServer, "none")) {
+	/* request Slurm configuration files */
+	return CONFIG_SERVER;
+    }
+
+    /* parse various Slurm configuration files if we start
+     * with a local configuration */
+    return parseSlurmConfigFiles(hash);
 }

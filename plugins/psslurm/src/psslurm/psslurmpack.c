@@ -1869,6 +1869,37 @@ bool __unpackReqSuspendInt(Slurm_Msg_t *sMsg, Req_Suspend_Int_t **reqPtr,
     getUint16(ptr, &req->op);
 
     *reqPtr = req;
+
+    return true;
+}
+
+bool __unpackConfigMsg(Slurm_Msg_t *sMsg, Config_Msg_t **confPtr,
+		       const char *caller, const int line)
+{
+    if (!sMsg) {
+	mlog("%s: invalid sMsg from '%s' at %i\n", __func__, caller, line);
+	return false;
+    }
+
+    char **ptr = &sMsg->ptr;
+
+    Config_Msg_t *req = umalloc(sizeof(*req));
+
+    req->slurm_conf = getStringM(ptr);
+    req->acct_gather_conf = getStringM(ptr);
+    req->cgroup_conf = getStringM(ptr);
+    req->cgroup_allowed_dev_conf = getStringM(ptr);
+    req->ext_sensor_conf = getStringM(ptr);
+    req->gres_conf = getStringM(ptr);
+    req->knl_cray_conf = getStringM(ptr);
+    req->knl_generic_conf = getStringM(ptr);
+    req->plugstack_conf = getStringM(ptr);
+    req->topology_conf = getStringM(ptr);
+    req->xtra_conf = getStringM(ptr);
+    req->slurmd_spooldir = getStringM(ptr);
+
+    *confPtr = req;
+
     return true;
 }
 

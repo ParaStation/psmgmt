@@ -15,6 +15,12 @@
 
 #define SPOOL_DIR LOCALSTATEDIR "/spool/parastation"
 
+typedef enum {
+    CONFIG_SUCCESS = 0x010,
+    CONFIG_ERROR,
+    CONFIG_SERVER,
+} Conf_Parse_Results_t;
+
 /** The psslurm plugin configuration list. */
 extern Config_t Config;
 
@@ -31,8 +37,17 @@ extern const ConfDef_t confDef[];
  * @brief Initialize the psslurm configuration
  *
  * Parse and save diffrent configuration files including
- * the main psslurm configuration and various Slurm configuration
- * files.
+ * the main psslurm configuration. Additionally various Slurm configuration
+ * files are parsed if configless mode is not used.
+ *
+ * @param filename The path to the psslurm configuration file
+ *
+ * @param hash Will receive the hash of the slurm.conf file
+ *  if not running in configless mode
+ *
+ *  @return Returns CONFIG_SUCCESS on success. CONFIG_SERVER is returned
+ *  when running in configless mode. On error in both cases
+ *  CONFIG_ERROR will be returned.
  */
 int initConfig(char *filename, uint32_t *hash);
 
@@ -47,5 +62,14 @@ int initConfig(char *filename, uint32_t *hash);
  * and false otherwise
  */
 bool parseSlurmPlugLine(char *key, char *value, const void *info);
+
+/**
+ * @brief Parse Slurm configuration files
+ *
+ * @param hash Will receive the hash of the slurm.conf file
+ *
+ * @return Returns 1 on success or 0 otherwise
+ */
+int parseSlurmConfigFiles(uint32_t *hash);
 
 #endif

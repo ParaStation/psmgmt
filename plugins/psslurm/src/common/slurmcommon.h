@@ -224,4 +224,9 @@ typedef enum task_dist_states {
 #define SLURMD_REG_FLAG_STARTUP  0x0001
 #define SLURMD_REG_FLAG_RESP     0x0002
 
+typedef enum {
+	CONFIG_REQUEST_SLURM_CONF = 0,
+	CONFIG_REQUEST_SLURMD,
+} config_request_flags_t;
+
 #endif

@@ -43,9 +43,6 @@
 /** default slurmd port psslurm listens for new srun/slurmcltd requests */
 #define PSSLURM_SLURMD_PORT 6818
 
-/** default slurmctld port */
-#define PSSLURM_SLURMCTLD_PORT 6817
-
 /** maximal allowed length of a bitstring */
 #define MAX_PACK_STR_LEN (16 * 1024 * 1024)
 
@@ -535,28 +532,15 @@ CALLBACK:
     return 0;
 }
 
-/**
- * @brief Register a Slurm socket
- *
- * Add a Slurm connection for a socket and monitor it for incoming
- * data.
- *
- * @param sock The socket to register
- *
- * @param cb The function to call to handle received messages
- *
- * @param info Pointer to additional information passed to @a
- * cb
- */
-static void registerSlurmSocket(int sock, Connection_CB_t *cb, void *info)
+bool registerSlurmSocket(int sock, Connection_CB_t *cb, void *info)
 {
-    Connection_t *con;
-
-    con = addConnection(sock, cb, info);
+    Connection_t *con = addConnection(sock, cb, info);
 
     if (Selector_register(sock, readSlurmMsg, con) == -1) {
 	mlog("%s: register socket %i failed\n", __func__, sock);
+	return false;
     }
+    return true;
 }
 
 /**
@@ -1621,9 +1605,7 @@ bool initSlurmCon(void)
     /* register to slurmctld */
     ctlPort = getConfValueI(&SlurmConfig, "SlurmctldPort");
     if (ctlPort < 0) {
-	char buf[256];
-	snprintf(buf, sizeof(buf), "%i", PSSLURM_SLURMCTLD_PORT);
-	addConfigEntry(&SlurmConfig, "SlurmctldPort", buf);
+	addConfigEntry(&SlurmConfig, "SlurmctldPort", PSSLURM_SLURMCTLD_PORT);
     }
     sendNodeRegStatus(true);
 

@@ -64,7 +64,7 @@ static int cleanupTimerID = -1;
 /** the maximal number of seconds to wait for all jobs to exit. */
 static int obitTime = 5;
 
-static int isInit = 0;
+bool isInit = false;
 
 int confAccPollTime;
 
@@ -537,75 +537,16 @@ static void enableFPEexceptions(void)
     }
 }
 
-int initialize(void)
+bool initSlurmOpt(void)
 {
-    char *slurmUser;
     struct passwd *pw;
-
-    start_time = time(NULL);
-
-    /* init the logger (log to syslog) */
-    initLogger("psslurm", NULL);
-
-    if (MEMORY_DEBUG) {
-	FILE *lfile = fopen("/tmp/malloc", "w+");
-	initPluginLogger(NULL, lfile);
-	maskPluginLogger(PLUGIN_LOG_MALLOC);
-    } else {
-	initPluginLogger("psslurm", NULL);
-    }
-
-    /* we need to have root privileges */
-    if(getuid() != 0) {
-	mlog("%s: psslurm must have root privileges\n", __func__);
-	return 1;
-    }
-
-    /* init the configuration */
-    if (!initConfig(PSSLURM_CONFIG_FILE, &configHash)) {
-	mlog("%s: init of the configuration failed\n", __func__);
-	return 1;
-    }
-
-    /* init plugin handles, *has* to be called before using INIT_ERROR */
-    if (!initPluginHandles()) return 1;
-
-    /* set various config options */
-    setConfOpt();
-
-    if (!registerHooks()) goto INIT_ERROR;
-    if (!(initSlurmdProto())) goto INIT_ERROR;
-
-    enableFPEexceptions();
 
     if (!initPScomm()) goto INIT_ERROR;
     if (!initLimits()) goto INIT_ERROR;
-    if (!initEnvFilter()) goto INIT_ERROR;
-
-    /* we want to have periodic updates on used resources */
-    if (!PSIDnodes_acctPollI(PSC_getMyID())) {
-	PSIDnodes_setAcctPollI(PSC_getMyID(), 30);
-    }
-
-    /* set collect mode in psaccount */
-    psAccountSetGlobalCollect(true);
-
-    psPelogueAddPluginConfig("psslurm", &Config);
-
-    /* make sure timer facility is ready */
-    if (!Timer_isInitialized()) {
-	mdbg(PSSLURM_LOG_WARN, "timer facility not ready, trying to initialize"
-	    " it\n");
-	Timer_init(NULL);
-    }
-
-    /* save default account poll time */
-    if ((confAccPollTime = PSIDnodes_acctPollI(PSC_getMyID())) < 0) {
-	confAccPollTime = 30;
-    }
 
     /* save the Slurm user ID */
-    if ((slurmUser = getConfValueC(&SlurmConfig, "SlurmUser"))) {
+    char *slurmUser = getConfValueC(&SlurmConfig, "SlurmUser");
+    if (slurmUser) {
 	if ((pw = getpwnam(slurmUser))) {
 	    slurmUserID = pw->pw_uid;
 	} else {
@@ -635,10 +576,103 @@ int initialize(void)
     /* initialize Slurm communication */
     if (!initSlurmCon()) goto INIT_ERROR;
 
+    return true;
+
+INIT_ERROR:
+    return false;
+}
+
+int initialize(void)
+{
+    start_time = time(NULL);
+
+    /* init the logger (log to syslog) */
+    initLogger("psslurm", NULL);
+
+    if (MEMORY_DEBUG) {
+	FILE *lfile = fopen("/tmp/malloc", "w+");
+	initPluginLogger(NULL, lfile);
+	maskPluginLogger(PLUGIN_LOG_MALLOC);
+    } else {
+	initPluginLogger("psslurm", NULL);
+    }
+
+    /* we need to have root privileges */
+    if(getuid() != 0) {
+	mlog("%s: psslurm must have root privileges\n", __func__);
+	return 1;
+    }
+
+    /* init the configuration */
+    int confRes = initConfig(PSSLURM_CONFIG_FILE, &configHash);
+    if (confRes == CONFIG_ERROR) {
+	mlog("%s: init of the configuration failed\n", __func__);
+	return 1;
+    }
+
+    /* init plugin handles, *has* to be called before using INIT_ERROR */
+    if (!initPluginHandles()) return 1;
+
+    /* set various psslurm config options */
+    setConfOpt();
+
+    if (!registerHooks()) goto INIT_ERROR;
+    if (!(initSlurmdProto())) goto INIT_ERROR;
+
+    enableFPEexceptions();
+
+    if (!initEnvFilter()) goto INIT_ERROR;
+
+    /* we want to have periodic updates on used resources */
+    if (!PSIDnodes_acctPollI(PSC_getMyID())) {
+	PSIDnodes_setAcctPollI(PSC_getMyID(), 30);
+    }
+
+    /* set collect mode in psaccount */
+    psAccountSetGlobalCollect(true);
+
+    psPelogueAddPluginConfig("psslurm", &Config);
+
+    /* make sure timer facility is ready */
+    if (!Timer_isInitialized()) {
+	mdbg(PSSLURM_LOG_WARN, "timer facility not ready, trying to initialize"
+	    " it\n");
+	Timer_init(NULL);
+    }
+
+    /* save default account poll time */
+    if ((confAccPollTime = PSIDnodes_acctPollI(PSC_getMyID())) < 0) {
+	confAccPollTime = 30;
+    }
+
+    if (confRes == CONFIG_SERVER) {
+	/* request Slurm configuration files from slurmctld */
+	char *server = getConfValueC(&Config, "SLURM_CONF_SERVER");
+	if (!server) goto INIT_ERROR;
+
+	if (!sendConfigReq(server, CONF_ACT_STARTUP)) {
+	    server = getConfValueC(&Config, "SLURM_CONF_BACKUP_SERVER");
+	    if (server) {
+		flog("requesting config from backup server\n");
+		if (!sendConfigReq(server, CONF_ACT_STARTUP)) {
+		    flog("requesting Slurm configuration failed\n");
+		    goto INIT_ERROR;
+		}
+	    } else {
+		flog("requesting Slurm configuration failed\n");
+		goto INIT_ERROR;
+	    }
+	}
+	flog("waiting to receive Slurm configuration from server\n");
+	return 0;
+    }
+
+    if (!initSlurmOpt()) goto INIT_ERROR;
+
     /* initialize pinning defaults */
     if (!initPinning()) goto INIT_ERROR;
 
-    isInit = 1;
+    isInit = true;
 
     mlog("(%i) successfully started, protocol '%s (%i)'\n", version,
 	 slurmProtoStr, slurmProto);

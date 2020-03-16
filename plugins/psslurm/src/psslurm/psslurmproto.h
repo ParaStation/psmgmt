@@ -149,6 +149,28 @@ typedef struct {
     uint32_t weight;	    /**< new weight */
 } Req_Update_Node_t;
 
+/** structure holding all received configuration files */
+typedef struct {
+    char *slurm_conf;
+    char *acct_gather_conf;
+    char *cgroup_conf;
+    char *cgroup_allowed_dev_conf;
+    char *ext_sensor_conf;
+    char *gres_conf;
+    char *knl_cray_conf;
+    char *knl_generic_conf;
+    char *plugstack_conf;
+    char *topology_conf;
+    char *xtra_conf;
+    char *slurmd_spooldir;
+} Config_Msg_t;
+
+typedef enum {
+    CONF_ACT_STARTUP = 0x20,
+    CONF_ACT_RELOAD,
+    CONF_ACT_NONE
+} Config_Action_t;
+
 /** Slurm protocol version */
 extern uint32_t slurmProto;
 
@@ -421,7 +443,7 @@ int requestJobInfo(uint32_t jobid);
  *
  * @param nrOfNodes The number of nodes in @a nodes
  *
- * @return Returns the requested local ID or -1 on error.
+ * @return Returns the requested local ID or -1 on error
  */
 uint32_t getLocalID(PSnodes_ID_t *nodes, uint32_t nrOfNodes);
 
@@ -436,5 +458,22 @@ uint32_t getLocalID(PSnodes_ID_t *nodes, uint32_t nrOfNodes);
  * @param reason The reason the nodes will be drained
  */
 void sendDrainNode(const char *nodeList, const char *reason);
+
+/**
+ * @brief Send a Slurm configuration request
+ *
+ * Send a Slurm configuration request to the given slurmctld
+ * server. In a configless mode the slurmctld will send all
+ * known configuration files in the response message. The response
+ * is handled in @ref handleSlurmConf().
+ *
+ * @param server The slurmctld server to send the request to
+ *
+ * @param action The action to be taken if the configuration was successful
+ * fetched
+ *
+ * @return Returns true on success or false on error
+ */
+bool sendConfigReq(const char *server, const int action);
 
 #endif /* __PSSLURM_PROTO */

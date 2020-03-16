@@ -16,6 +16,8 @@
 #include <signal.h>
 #include <sys/vfs.h>
 #include <malloc.h>
+#include <pwd.h>
+#include <sys/stat.h>
 
 #include "pshostlist.h"
 #include "psserial.h"
@@ -71,6 +73,8 @@ bool measureRPC = false;
 
 /** Flag to request additional info in node registration */
 static bool needNodeRegResp = true;
+
+static int confAction = 0;
 
 Ext_Resp_Node_Reg_t *tresDBconfig = NULL;
 
@@ -945,7 +949,31 @@ static void handleReconfigure(Slurm_Msg_t *sMsg)
 	return;
     }
 
-    sendSlurmRC(sMsg, SLURM_SUCCESS);
+    /* protocol version SLURM_20_02 and above don't expect an answer */
+    if (slurmProto <= SLURM_19_05_PROTO_VERSION) {
+	sendSlurmRC(sMsg, SLURM_SUCCESS);
+    }
+}
+
+static void handleConfig(Slurm_Msg_t *sMsg)
+{
+    Config_Msg_t *config;
+
+    /* check permissions */
+    if (sMsg->head.uid != 0 && sMsg->head.uid != slurmUserID) {
+	mlog("%s: request from invalid user %u\n", __func__, sMsg->head.uid);
+	return;
+    }
+
+    /* disable for now */
+    return;
+
+    /* unpack request */
+    if (!(unpackConfigMsg(sMsg, &config))) {
+	mlog("%s: unpacking job launch request failed\n", __func__);
+	return;
+    }
+
 }
 
 static void handleRebootNodes(Slurm_Msg_t *sMsg)
@@ -2300,6 +2328,7 @@ bool initSlurmdProto(void)
     registerSlurmdMsg(REQUEST_UPDATE_JOB_TIME, handleUpdateJobTime);
     registerSlurmdMsg(REQUEST_SHUTDOWN, handleShutdown);
     registerSlurmdMsg(REQUEST_RECONFIGURE, handleReconfigure);
+    registerSlurmdMsg(REQUEST_RECONFIGURE_WITH_CONFIG, handleConfig);
     registerSlurmdMsg(REQUEST_REBOOT_NODES, handleRebootNodes);
     registerSlurmdMsg(REQUEST_NODE_REGISTRATION_STATUS, handleNodeRegStat);
     registerSlurmdMsg(REQUEST_PING, sendPing);
@@ -2889,6 +2918,230 @@ void sendDrainNode(const char *nodeList, const char *reason)
 
     packUpdateNode(&msg, &req);
     sendSlurmMsg(SLURMCTLD_SOCK, REQUEST_UPDATE_NODE, &msg);
+}
+
+static bool writeFile(const char *name, const char *dir, const char *data)
+{
+    char path[1024];
+
+    /* skip empty files */
+    if (!data || strlen(data) < 1) return true;
+
+    snprintf(path, sizeof(path), "%s/%s", dir, name);
+
+    FILE *fp = fopen(path, "w+");
+    if (!fp) {
+	mwarn(errno, "%s: open %s failed: ", __func__, path);
+	return false;
+    }
+
+    if (data) {
+	errno = 0;
+	fwrite(data, strlen(data), 1, fp);
+	if (errno) {
+	    mwarn(errno, "%s: writing to %s failed: ", __func__, path);
+	    return false;
+	}
+    }
+
+    fclose(fp);
+    return true;
+}
+
+/**
+ * @brief Write various Slurm configuration files
+ *
+ * @param config The configuration message holding the payload to write
+ *
+ * @param confDir The directory to write configuration files to
+ *
+ * @return Returns true on success or false on error
+ */
+static bool writeSlurmConfigFiles(Config_Msg_t *config, char *confDir)
+{
+    if (mkdir(confDir, 0755) == -1) {
+	if (errno != EEXIST) {
+	    mwarn(errno, "%s: mkdir(%s) failed: ", __func__, confDir);
+	    return false;
+	}
+    }
+
+    /* write various Slurm configuration files */
+    if (!writeFile("slurm.conf", confDir, config->slurm_conf)) return false;
+    if (!writeFile("acct_gather.conf", confDir, config->acct_gather_conf)) {
+	return false;
+    }
+    if (!writeFile("cgroup.conf", confDir, config->cgroup_conf)) return false;
+    if (!writeFile("cgroup_allowd_dev.conf", confDir,
+		   config->cgroup_allowed_dev_conf)) {
+	return false;
+    }
+    if (!writeFile("ext_sensor.conf", confDir, config->ext_sensor_conf)) {
+	return false;
+    }
+    if (!writeFile("gres.conf", confDir, config->gres_conf)) return false;
+    if (!writeFile("knl_cray.conf", confDir, config->knl_cray_conf)) {
+	return false;
+    }
+    if (!writeFile("knl_generic.conf", confDir, config->knl_generic_conf)) {
+	return false;
+    }
+    if (!writeFile("plugstack.conf", confDir, config->plugstack_conf)) {
+	return false;
+    }
+    if (!writeFile("topology.conf", confDir, config->topology_conf)) {
+	return false;
+    }
+
+    /* link configuration to Slurm /run-directory so Slurm commands (e.g.
+     * scontrol, sbatch) can use them */
+    char *runDir = getConfValueC(&Config, "SLURM_RUN_DIR");
+    if (mkdir(runDir, 0755) == -1) {
+	if (errno != EEXIST) {
+	    mwarn(errno, "%s: mkdir(%s) failed: ", __func__, runDir);
+	    return false;
+	}
+    }
+
+    char destLink[1024];
+    snprintf(destLink, sizeof(destLink), "%s/conf", runDir);
+
+    unlink(destLink);
+    if (symlink(confDir, destLink) == -1) {
+	flog("symlink to %s -> %s failed\n", destLink, confDir);
+	return false;
+    }
+
+    return true;
+}
+
+/**
+ * @brief Handle a Slurm configuration response
+ *
+ * @param sMsg The Slurm message to handle
+ *
+ * @param info The action to be taken if the configuration
+ * was successful fetched
+ *
+ * @return Always returns 0
+ */
+static int handleSlurmConf(Slurm_Msg_t *sMsg, void *info)
+{
+    Config_Msg_t *config;
+    uint32_t rc;
+    int *action = info;
+
+    switch (sMsg->head.type) {
+	case RESPONSE_SLURM_RC:
+	    /* return code */
+	    getUint32(&sMsg->ptr, &rc);
+	    flog("configuration request error: reply %s rc %u sock %i\n",
+		 msgType2String(sMsg->head.type), rc, sMsg->sock);
+	    return 0;
+	case RESPONSE_CONFIG:
+	    break;
+	default:
+	    flog("unexpected message type %i\n", sMsg->head.type);
+	    return 0;
+    }
+
+    /* check permissions */
+    if (sMsg->head.uid != 0 && sMsg->head.uid != slurmUserID) {
+	mlog("%s: request from invalid user %u\n", __func__, sMsg->head.uid);
+	return 0;
+    }
+
+    /* unpack request */
+    if (!(unpackConfigMsg(sMsg, &config))) {
+	mlog("%s: unpacking job launch request failed\n", __func__);
+	return 0;
+    }
+
+    flog("successful unpacked config msg\n");
+
+    char *confDir = getConfValueC(&Config, "SLURM_CONF_DIR");
+    if (!writeSlurmConfigFiles(config, confDir)) {
+	flog("failed to write slurm configuration files\n");
+	return 0;
+    }
+
+    /* update configuration file defaults */
+    char path[1024];
+    snprintf(path, sizeof(path), "%s/%s", confDir, "slurm.conf");
+    addConfigEntry(&Config, "SLURM_CONF", path);
+
+    snprintf(path, sizeof(path), "%s/%s", confDir, "gres.conf");
+    addConfigEntry(&Config, "SLURM_GRES_CONF", path);
+
+    snprintf(path, sizeof(path), "%s/%s", confDir, "plugstack.conf");
+    addConfigEntry(&Config, "SLURM_SPANK_CONF", path);
+
+    switch (*action) {
+	case CONF_ACT_STARTUP:
+	    /* parse updated configuration files */
+	    parseSlurmConfigFiles(&configHash);
+
+	    if (!initSlurmOpt()) {
+		flog("initialize Slurm configuration failed\n");
+	    } else {
+		isInit = true;
+		mlog("(%i) successfully started, protocol '%s (%i)'\n", version,
+		     slurmProtoStr, slurmProto);
+	    }
+	    break;
+	case CONF_ACT_RELOAD:
+	    break;
+	case CONF_ACT_NONE:
+	    break;
+    }
+
+    return 0;
+}
+
+bool sendConfigReq(const char *server, const int action)
+{
+    PS_SendDB_t body = { .bufUsed = 0, .useFrag = false };
+    char *confServer = ustrdup(server);
+    char *confPort = strchr(confServer, ':');
+    confAction = action;
+
+    if (confPort) {
+	confPort[0] = '\0';
+	confPort++;
+    } else {
+	confPort = PSSLURM_SLURMCTLD_PORT;
+    }
+
+    /* open connection to slurmcltd */
+    int sock = tcpConnect(confServer, confPort);
+    if (sock > -1) {
+	fdbg(PSSLURM_LOG_IO | PSSLURM_LOG_IO_VERB,
+	     "connected to %s socket %i\n", confServer, sock);
+    }
+
+    if (sock < 0) {
+	flog("open connection to %s:%s failed\n", confServer, confPort);
+	goto ERROR;
+    }
+
+    if (!registerSlurmSocket(sock, handleSlurmConf, &confAction)) {
+	flog("register Slurm socket %i failed\n", sock);
+	goto ERROR;
+    }
+
+    /* send configuration request message to slurmctld */
+    addUint32ToMsg(CONFIG_REQUEST_SLURMD, &body);
+    if (sendSlurmMsg(sock, REQUEST_CONFIG, &body) == -1) {
+	flog("sending config request message failed\n");
+	goto ERROR;
+    }
+
+    ufree(confServer);
+    return true;
+
+ERROR:
+    ufree(confServer);
+    return false;
 }
 
 /* vim: set ts=8 sw=4 tw=0 sts=4 noet:*/

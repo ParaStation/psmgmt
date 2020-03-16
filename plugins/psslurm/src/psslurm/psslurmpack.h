@@ -561,4 +561,28 @@ bool __packUpdateNode(PS_SendDB_t *data, Req_Update_Node_t *update,
 #define packUpdateNode(sMsg, update) \
     __packUpdateNode(sMsg, update, __func__, __LINE__)
 
+/**
+ * @brief Unpack a node configuration message
+ *
+ * Unpack a node configuration message from the provided
+ * message pointer. The memory is allocated using umalloc().
+ * The caller is responsible to free the memory using ufree().
+ *
+ * @param sMsg The message to unpack
+ *
+ * @param respPtr The response structure holding the result
+ *
+ * @param caller Function name of the calling function
+ *
+ * @param line Line number where this function is called
+ *
+ * @return On success true is returned or false in case of an
+ * error. If reading was not successful, @a sMsg might be not updated.
+ */
+bool __unpackConfigMsg(Slurm_Msg_t *sMsg, Config_Msg_t **confPtr,
+		       const char *caller, const int line);
+
+#define unpackConfigMsg(sMsg, respPtr) \
+    __unpackConfigMsg(sMsg, respPtr, __func__, __LINE__)
+
 #endif  /* __PS_SLURM_PACK */

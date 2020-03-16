@@ -16,6 +16,9 @@
 #include "psslurmmsg.h"
 #include "psslurmauth.h"
 
+/** default slurmctld port */
+#define PSSLURM_SLURMCTLD_PORT "6817"
+
 #define SLURMCTLD_SOCK -1
 
 /** callback function of a connection structure */
@@ -454,5 +457,22 @@ int openSlurmctldCon(void);
  * @return Returns the connected socket or -1 on error.
  */
 int openSlurmctldConEx(Connection_CB_t *cb, void *info);
+
+/**
+ * @brief Register a Slurm socket
+ *
+ * Add a Slurm connection for a socket and monitor it for incoming
+ * data.
+ *
+ * @param sock The socket to register
+ *
+ * @param cb The function to call to handle received messages
+ *
+ * @param info Pointer to additional information passed to @a
+ * cb
+ *
+ * @return Returns true on success and false otherwise
+ */
+bool registerSlurmSocket(int sock, Connection_CB_t *cb, void *info);
 
 #endif  /* __PSSLURM_COMM */
