@@ -13,6 +13,7 @@
 #include <string.h>
 
 #include "pluginmalloc.h"
+#include "pluginhelper.h"
 #include "pshostlist.h"
 
 #include "psidnodes.h"
@@ -592,8 +593,12 @@ static char *showVirtualKeys(char *buf, size_t *bufSize, bool example)
     str2Buf("      spank\tshow active spank plugins\n", &buf, bufSize);
     str2Buf("    tainted\tshow if a spank plugin taints psid\n", &buf, bufSize);
 
-    if (example) str2Buf("\nExample:\nUse 'plugin show psslurm key jobs'\n",
-			 &buf, bufSize);
+    if (example) {
+	str2Buf("\nExamples:\n * Use 'plugin show psslurm key jobs' "
+		"to display jobs\n", &buf, bufSize);
+	str2Buf(" * Use 'plugin set psslurm CLEAR_CONF_CACHE 1' to clear "
+		"config cache\n", &buf, bufSize);
+    }
     return buf;
 }
 
@@ -653,6 +658,14 @@ char *set(char *key, char *value)
 
 	snprintf(line, sizeof(line), "\nsaved '%s = %s'\n", key, value);
 	return str2Buf(line, &buf, &bufSize);
+    }
+
+    if (!strcmp(key, "CLEAR_CONF_CACHE")) {
+	char *confDir = getConfValueC(&Config, "SLURM_CONF_DIR");
+	removeDir(confDir, 0);
+	str2Buf("Clear Slurm configuration cache ", &buf, &bufSize);
+	str2Buf(confDir, &buf, &bufSize);
+	return str2Buf("\n", &buf, &bufSize);
     }
 
     str2Buf("\nInvalid key '", &buf, &bufSize);
