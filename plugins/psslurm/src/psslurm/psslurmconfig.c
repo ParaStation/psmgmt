@@ -221,6 +221,10 @@ const ConfDef_t confDef[] =
 	"path",
 	SPOOL_DIR "/slurm_conf",
 	"The Slurm config directory. Used to save Slurm configuration files" },
+    { "SLURM_UPDATE_CONF_AT_STARTUP", 1,
+	"bool",
+	"1",
+	"Always update Slurm configuration at startup in configless mode" },
     { NULL, 0, NULL, NULL, NULL },
 };
 

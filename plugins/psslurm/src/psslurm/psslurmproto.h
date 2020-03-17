@@ -476,4 +476,13 @@ void sendDrainNode(const char *nodeList, const char *reason);
  */
 bool sendConfigReq(const char *server, const int action);
 
+/**
+ * @brief Use Slurm configuration cache
+ *
+ * Use Slurm configuration cache instead of the default location.
+ *
+ * @param confDir The configuration cache directory to use
+ */
+void activateConfigCache(char *confDir);
+
 #endif /* __PSSLURM_PROTO */

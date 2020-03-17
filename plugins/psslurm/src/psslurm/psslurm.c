@@ -582,6 +582,47 @@ INIT_ERROR:
     return false;
 }
 
+static bool needConfUpdate(char *confDir)
+{
+    int forceUpdate = getConfValueI(&Config, "SLURM_UPDATE_CONF_AT_STARTUP");
+    if (!forceUpdate) {
+	char buf[1024];
+
+	snprintf(buf, sizeof(buf), "%s/slurm.conf", confDir);
+	struct stat sbuf;
+	if (stat(buf, &sbuf) != -1) {
+	    flog("Using available configuration cache\n");
+	    return false;
+	}
+    }
+
+    return true;
+}
+
+static bool requestConfig(void)
+{
+    /* request Slurm configuration files from slurmctld */
+    char *server = getConfValueC(&Config, "SLURM_CONF_SERVER");
+    if (!server) return false;
+
+    if (!sendConfigReq(server, CONF_ACT_STARTUP)) {
+	server = getConfValueC(&Config, "SLURM_CONF_BACKUP_SERVER");
+	if (server) {
+	    flog("requesting config from backup server\n");
+	    if (!sendConfigReq(server, CONF_ACT_STARTUP)) {
+		flog("requesting Slurm configuration failed\n");
+		return false;
+	    }
+	} else {
+	    flog("requesting Slurm configuration failed\n");
+	    return false;
+	}
+    }
+    flog("waiting to receive Slurm configuration from server\n");
+
+    return true;
+}
+
 int initialize(void)
 {
     start_time = time(NULL);
@@ -646,25 +687,18 @@ int initialize(void)
     }
 
     if (confRes == CONFIG_SERVER) {
-	/* request Slurm configuration files from slurmctld */
-	char *server = getConfValueC(&Config, "SLURM_CONF_SERVER");
-	if (!server) goto INIT_ERROR;
-
-	if (!sendConfigReq(server, CONF_ACT_STARTUP)) {
-	    server = getConfValueC(&Config, "SLURM_CONF_BACKUP_SERVER");
-	    if (server) {
-		flog("requesting config from backup server\n");
-		if (!sendConfigReq(server, CONF_ACT_STARTUP)) {
-		    flog("requesting Slurm configuration failed\n");
-		    goto INIT_ERROR;
-		}
-	    } else {
-		flog("requesting Slurm configuration failed\n");
-		goto INIT_ERROR;
-	    }
+	char *confDir = getConfValueC(&Config, "SLURM_CONF_DIR");
+	if (needConfUpdate(confDir)) {
+	    /* wait for config response from slurmctld */
+	    if (!requestConfig()) goto INIT_ERROR;
+	    return 0;
 	}
-	flog("waiting to receive Slurm configuration from server\n");
-	return 0;
+
+	/* update configuration file defaults */
+	activateConfigCache(confDir);
+
+	/* parse configuration files */
+	parseSlurmConfigFiles(&configHash);
     }
 
     if (!initSlurmOpt()) goto INIT_ERROR;

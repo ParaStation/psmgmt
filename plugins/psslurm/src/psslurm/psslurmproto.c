@@ -3015,6 +3015,19 @@ static bool writeSlurmConfigFiles(Config_Msg_t *config, char *confDir)
     return true;
 }
 
+void activateConfigCache(char *confDir)
+{
+    char path[1024];
+    snprintf(path, sizeof(path), "%s/%s", confDir, "slurm.conf");
+    addConfigEntry(&Config, "SLURM_CONF", path);
+
+    snprintf(path, sizeof(path), "%s/%s", confDir, "gres.conf");
+    addConfigEntry(&Config, "SLURM_GRES_CONF", path);
+
+    snprintf(path, sizeof(path), "%s/%s", confDir, "plugstack.conf");
+    addConfigEntry(&Config, "SLURM_SPANK_CONF", path);
+}
+
 /**
  * @brief Handle a Slurm configuration response
  *
@@ -3066,15 +3079,7 @@ static int handleSlurmConf(Slurm_Msg_t *sMsg, void *info)
     }
 
     /* update configuration file defaults */
-    char path[1024];
-    snprintf(path, sizeof(path), "%s/%s", confDir, "slurm.conf");
-    addConfigEntry(&Config, "SLURM_CONF", path);
-
-    snprintf(path, sizeof(path), "%s/%s", confDir, "gres.conf");
-    addConfigEntry(&Config, "SLURM_GRES_CONF", path);
-
-    snprintf(path, sizeof(path), "%s/%s", confDir, "plugstack.conf");
-    addConfigEntry(&Config, "SLURM_SPANK_CONF", path);
+    activateConfigCache(confDir);
 
     switch (*action) {
 	case CONF_ACT_STARTUP:
