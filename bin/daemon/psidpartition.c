@@ -4832,7 +4832,7 @@ static int partFromThreads(PStask_t *task)
 void PSIDpart_register(PStask_t *task)
 {
     if (!task) {
-	PSID_log(-1, "%s: No task", __func__);
+	PSID_log(-1, "%s: No task\n", __func__);
 	return;
     }
 
@@ -4848,7 +4848,7 @@ void PSIDpart_register(PStask_t *task)
     }
 
     if (!knowMaster()) {
-	PSID_log(-1, "%s: Unknown master", __func__);
+	PSID_log(-1, "%s: Unknown master\n", __func__);
 	return;
     }
 
