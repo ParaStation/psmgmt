@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 1999-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2016 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2020 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -11,22 +11,9 @@
 /**
  * @file
  * Reliable Datagram Protocol for ParaStation daemon
- *
- * $Id$
- *
- * @author
- * Norbert Eicker <eicker@par-tec.com>
- *
  */
 #ifndef __RDP_H
 #define __RDP_H
-
-#ifdef __cplusplus
-extern "C" {
-#if 0
-} /* <- just for emacs indentation */
-#endif
-#endif
 
 #include <stdio.h>
 #include <stdint.h>
@@ -552,12 +539,10 @@ void RDP_printStat(void);
  * The purpose of this function is cleanup before a fork()ed process
  * is handling other tasks, e.g. becoming a forwarder.
  *
+ * As a side effect it will also reset Timer information.
+ *
  * @return No return value.
  */
 void RDP_clearMem(void);
-
-#ifdef __cplusplus
-}/* extern "C" */
-#endif
 
 #endif /* __RDP_H */

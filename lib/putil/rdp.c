@@ -969,8 +969,6 @@ static void clearMsgQ(int node)
 {
     Rconninfo_t *cp = &conntable[node];
     list_t *m;
-    int blocked = Timer_block(timerID, 1);
-
     list_for_each(m, &cp->pendList) {
 	msgbuf_t *mp = list_entry(m, msgbuf_t, next);
 
@@ -989,8 +987,6 @@ static void clearMsgQ(int node)
     }
 
     cp->ackExpected = cp->frameToSend;          /* restore initial setting */
-
-    Timer_block(timerID, blocked);
 }
 
 /**
@@ -2352,6 +2348,7 @@ void closeConnRDP(int node)
 
 int RDP_blockTimer(int block)
 {
+    if (timerID == -1) return -1;
     return Timer_block(timerID, block);
 }
 
@@ -2405,4 +2402,5 @@ void RDP_clearMem(void)
     if (SmsgPool) free(SmsgPool);
     cleanupIPTable();
     if (conntable) free(conntable);
+    timerID = -1;
 }
