@@ -1447,4 +1447,56 @@ int handleFwRes(void * data)
     return 0;
 }
 
+static void fwExecEpiFin(Forwarder_Data_t *fwdata, int rerun)
+{
+    Alloc_t *alloc = fwdata->userData;
+    char *argv[1];
+    char buf[1024];
+    char *dirScripts = getConfValueC(&Config, "DIR_SCRIPTS");
+
+    snprintf(buf, sizeof(buf), "%s/epilogue.finalize", dirScripts);
+
+    argv[0] = NULL;
+    execve(buf, argv, alloc->env.vars);
+}
+
+static int epiFinCallback(int32_t exit_status, Forwarder_Data_t *fwdata)
+{
+    Alloc_t *alloc = fwdata->userData;
+
+    if (alloc->terminate) {
+	sendEpilogueComplete(alloc->id, 0);
+	deleteAlloc(alloc->id);
+    }
+
+    return 0;
+}
+
+bool execEpilogueFin(Alloc_t *alloc)
+{
+    int grace = getConfValueI(&SlurmConfig, "KillWait");
+    if (grace < 3) grace = 30;
+
+    char jobid[100], fname[300];
+    snprintf(jobid, sizeof(jobid), "%u", alloc->id);
+    snprintf(fname, sizeof(fname), "psslurm-epifin:%s", jobid);
+
+    Forwarder_Data_t *fwdata = ForwarderData_new();
+    fwdata->pTitle = ustrdup(fname);
+    fwdata->jobID = ustrdup(jobid);
+    fwdata->userData = alloc;
+    fwdata->graceTime = grace;
+    fwdata->killSession = psAccountSignalSession;
+    fwdata->callback = epiFinCallback;
+    fwdata->childFunc = fwExecEpiFin;
+
+    if (!startForwarder(fwdata)) {
+	flog("starting epilogue finalize forwarder for alloc '%u' failed\n",
+	     alloc->id);
+	return false;
+    }
+
+    return true;
+}
+
 /* vim: set ts=8 sw=4 tw=0 sts=4 noet:*/

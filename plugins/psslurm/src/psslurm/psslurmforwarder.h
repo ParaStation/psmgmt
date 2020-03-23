@@ -11,6 +11,7 @@
 #ifndef __PS_SLURM_FORWARDER
 #define __PS_SLURM_FORWARDER
 
+#include "psslurmalloc.h"
 #include "psslurmjob.h"
 #include "psslurmbcast.h"
 
@@ -61,6 +62,19 @@ bool execBCast(BCast_t *bcast);
  * @return Returns true on success otherwise false is returned
  */
 bool execStepFollower(Step_t *step);
+
+/**
+ * @brief Execute an epilogue finalize forwarder
+ *
+ * The epilogue finalize forwarder is started on the mother
+ * superior of an allocation. The forwarder executes a
+ * finalize script which is used to compress log files.
+ *
+ * @param alloc The allocation to execute the forwarder for
+ *
+ * @return Returns true on success otherwise false is returned
+ */
+bool execEpilogueFin(Alloc_t *alloc);
 
 /**
  * @brief Handle hook PSIDHOOK_EXEC_CLIENT

@@ -14,6 +14,7 @@
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <signal.h>
+#include <sys/stat.h>
 
 #include "psslurm.h"
 #include "psslurmlog.h"
@@ -244,15 +245,34 @@ bool startEpilogue(Alloc_t *alloc)
     return ret;
 }
 
+static bool epilogueFinScript(Alloc_t *alloc)
+{
+    char buf[1024];
+    char *dirScripts = getConfValueC(&Config, "DIR_SCRIPTS");
+
+    snprintf(buf, sizeof(buf), "%s/epilogue.finalize", dirScripts);
+
+    struct stat sbuf;
+    if (stat(buf, &sbuf) == -1) return false;
+
+    flog("executing epilogue finalize script for %i\n", alloc->id);
+    if (!execEpilogueFin(alloc)) return false;
+
+    return true;
+}
+
 bool finalizeEpilogue(Alloc_t *alloc)
 {
     if (alloc->nrOfNodes == alloc->epilogCnt) {
 	mlog("%s: epilogue for allocation %u on %u "
 	     "node(s) finished\n", __func__, alloc->id, alloc->epilogCnt);
-	if (alloc->terminate) {
-	    sendEpilogueComplete(alloc->id, 0);
-	    deleteAlloc(alloc->id);
-	    return true;
+
+	if (!epilogueFinScript(alloc)) {
+	    if (alloc->terminate) {
+		sendEpilogueComplete(alloc->id, 0);
+		deleteAlloc(alloc->id);
+		return true;
+	    }
 	}
     }
     return false;
