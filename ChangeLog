@@ -1,3 +1,32 @@
+Version psmgmt-5.1.29-1:
+========================
+------------------------------------------------------------------------
+614f2e0c | Michael Rauh | Tue, 24 Mar 2020 12:11:54 +0100
+
+Add option DISABLE_SPANK to prevent loading of spank plugins in psslurm
+------------------------------------------------------------------------
+d66d03c0 | Michael Rauh | Mon, 23 Mar 2020 13:51:41 +0100
+
+Let psslurm execute an epilogue finalize script on mother superior
+------------------------------------------------------------------------
+e30d002b | Norbert Eicker | Fri, 20 Mar 2020 17:59:11 +0100
+
+Bugfix: Avoid RDP-Timer warnings in psidforwarder (jwt:#4473)
+------------------------------------------------------------------------
+c51bf688 | Norbert Eicker | Thu, 12 Mar 2020 20:44:51 +0100
+
+Bugfix: Add missing newlines to psidforwarder's logs
+------------------------------------------------------------------------
+d0cae419 | Stephan Krempel | Thu, 12 Mar 2020 16:15:37 +0100
+
+psslurm: Fix typos
+------------------------------------------------------------------------
+e1728c16 | Stephan Krempel | Thu, 12 Mar 2020 16:13:05 +0100
+
+psslurm: Fix some function comments
+------------------------------------------------------------------------
+
+
 Version psmgmt-5.1.29:
 ======================
 ------------------------------------------------------------------------

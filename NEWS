@@ -4,6 +4,16 @@ Copyright (C) 2010-2020 ParTec Cluster Competence Center GmbH, Munich
 
 Please send bug reports, questions and suggestions to <support@par-tec.com>
 
+Version 5.1.29-1:
+=================
+Bugfixes:
+ - Avoid RDP-Timer warnings in psidforwarder (jwt:#4473)
+ - Add missing newlines to psidforwarder's logs
+Enhancements:
+ - Add option DISABLE_SPANK to prevent loading of spank plugins in psslurm
+ - Let psslurm execute an epilogue finalize script on mother superior
+
+
 Version 5.1.29:
 ===============
 Bugfixes:
