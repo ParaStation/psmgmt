@@ -172,6 +172,10 @@ const ConfDef_t confDef[] =
 	"string",
 	"/usr/bin/sinfo",
 	"Path to the sinfo binary used for automatic protocol detection" },
+    { "DISABLE_SPANK", 1,
+	"bool",
+	"0",
+	"If true no spank plugins will be loaded" },
     { NULL, 0, NULL, NULL, NULL },
 };
 
@@ -798,7 +802,8 @@ int initConfig(char *filename, uint32_t *hash)
     if (!(confFile = getConfValueC(&SlurmConfig, "PlugStackConfig"))) {
 	if (!(confFile = getConfValueC(&Config, "SLURM_SPANK_CONF"))) return 0;
     }
-    if (stat(confFile, &sbuf) != -1) {
+    int disabled = getConfValueU(&Config, "DISABLE_SPANK");
+    if (!disabled && stat(confFile, &sbuf) != -1) {
 	if (parseConfigFile(confFile, &SlurmPlugConf, true /*trimQuotes*/) < 0)
 	    return 0;
 
