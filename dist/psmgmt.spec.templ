@@ -46,6 +46,7 @@ BuildRequires:	libnuma-devel
 %else
 BuildRequires:	numactl-devel
 %endif
+BuildRequires:	hwloc-devel
 %if !0%{?disable_systemd}
 BuildRequires:  systemd
 Requires(post): systemd

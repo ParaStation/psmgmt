@@ -696,7 +696,7 @@ int main(int argc, const char *argv[])
     PSIDnodes_setAcctPollI(PSC_getMyID(), PSID_config->acctPollInterval);
 
     /* Bring node up with correct numbers of CPUs */
-    declareNodeAlive(PSC_getMyID(), PSID_getPhysCPUs(), PSID_getVirtCPUs());
+    declareNodeAlive(PSC_getMyID(), PSID_getPhysCores(), PSID_getHWthreads());
 
     /* Initialize timeouts, etc. */
     PSID_initStarttime();

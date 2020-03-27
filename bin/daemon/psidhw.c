@@ -1,12 +1,13 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2006-2017 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2006-2020 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
+#include <hwloc.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -25,71 +26,99 @@
 #include "psidnodes.h"
 #include "psidcomm.h"
 #include "psidscripts.h"
-#include "psidamd.h"
-#include "psidintel.h"
-#include "psidppc.h"
 
 #include "psidhw.h"
 
-#define RETRY_SLEEP 5
-#define MAX_RETRY 12
+/**
+ * hwloc topology of the local system. This shall be initialized and
+ * loaded implicitly by calling initHWloc() if @ref hwlocInitialized
+ * is still false.
+ */
+static hwloc_topology_t topology;
 
-long PSID_getVirtCPUs(void)
+/** Flag indicating if @ref topology is already initialized */
+static bool hwlocInitialized = false;
+
+/**
+ * @brief Initialized hwloc topology
+ *
+ * Initialize and load the hwloc topology @ref topology representing
+ * the local systems hardware. If for some reason @ref topology cannot
+ * be initialized or loaded, the program is terminated by calling exit().
+ *
+ * @return No return value
+ */
+static void initHWloc(void)
 {
-    long virtCPUs = 0, retry = 0;
+    if (hwlocInitialized) return;
 
-    while (!virtCPUs) {
-	virtCPUs = sysconf(_SC_NPROCESSORS_CONF);
-	if (virtCPUs) break;
-
-	retry++;
-	if (retry > MAX_RETRY) {
-	    PSID_log(-1 ,"%s: Found no CPU for %d sec. This most probably is"
-		     " not true. Exiting\n", __func__, RETRY_SLEEP * MAX_RETRY);
-	    PSID_finalizeLogs();
-	    exit(1);
-	}
-	PSID_log(-1, "%s: found no CPU. sleep(%d)...\n", __func__, RETRY_SLEEP);
-	sleep(RETRY_SLEEP);
+    if (hwloc_topology_init(&topology) < 0) {
+	PSID_log(-1 ,"%s: Failed to initialize hwloc's topology. Exiting\n",
+		 __func__);
+	PSID_finalizeLogs();
+	exit(1);
     }
 
-    PSID_log(PSID_LOG_VERB, "%s: got %ld virtual CPUs\n", __func__, virtCPUs);
+    if (hwloc_topology_load(topology) < 0) {
+	PSID_log(-1 ,"%s: Failed to load topology. Exiting\n", __func__);
+	PSID_finalizeLogs();
+	exit(1);
+    }
 
-    return virtCPUs;
+    hwlocInitialized = true;
 }
 
-long PSID_getPhysCPUs(void)
+int PSID_getHWthreads(void)
 {
-    long physCPUs = 0, retry = 0;
+    static int hwThreads = 0;
 
-    while (!physCPUs) {
-	if (PSID_GenuineIntel()) {
-	    physCPUs = PSID_getPhysCPUs_IA32();
-	} else if (PSID_AuthenticAMD()) {
-	    physCPUs = PSID_getPhysCPUs_AMD();
-	} else if (PSID_PPC()) {
-	    physCPUs = PSID_getPhysCPUs_PPC();
-	} else {
-	    /* generic case (assume no SMT) */
-	    PSID_log(-1, "%s: Generic case.\n", __func__);
-	    physCPUs = PSID_getVirtCPUs();
-	}
-	if (physCPUs) break;
+    if (!hwThreads) {
+	if (!hwlocInitialized) initHWloc();
 
-	retry++;
-	if (retry > MAX_RETRY) {
-	    PSID_log(-1 ,"%s: Found no CPU for %d sec. This most probably is"
-		     " not true. Exiting\n", __func__, RETRY_SLEEP * MAX_RETRY);
+	hwThreads = hwloc_get_nbobjs_by_type(topology, HWLOC_OBJ_PU);
+
+	if (!hwThreads) {
+	    PSID_log(-1 ,"%s: No hardware-threads found. This is most probably"
+		     " not true. Exiting\n", __func__);
+	    PSID_finalizeLogs();
+	    exit(1);
+	} else if (hwThreads < 0) {
+	    PSID_log(-1 ,"%s: Hardware threads at different topology levels."
+		     " Do not know how to handle this. Exiting\n", __func__);
 	    PSID_finalizeLogs();
 	    exit(1);
 	}
-	PSID_log(-1, "%s: found no CPU. sleep(%d)...\n", __func__, RETRY_SLEEP);
-	sleep(RETRY_SLEEP);
     }
+    PSID_log(PSID_LOG_VERB, "%s: got %d hardware threads\n", __func__,
+	     hwThreads);
 
-    PSID_log(PSID_LOG_VERB, "%s: got %ld physical CPUs\n", __func__, physCPUs);
+    return hwThreads;
+}
 
-    return physCPUs;
+int PSID_getPhysCores(void)
+{
+    static int physCores = 0;
+
+    if (!physCores) {
+	if (!hwlocInitialized) initHWloc();
+
+	physCores = hwloc_get_nbobjs_by_type(topology, HWLOC_OBJ_CORE);
+
+	if (!physCores) {
+	    PSID_log(-1 ,"%s: No physical cores found. This is most probably"
+		     " not true. Exiting\n", __func__);
+	    PSID_finalizeLogs();
+	    exit(1);
+	} else if (physCores < 0) {
+	    PSID_log(-1 ,"%s: Physical cores at different topology levels."
+		     " Do not know how to handle this. Exiting\n", __func__);
+	    PSID_finalizeLogs();
+	    exit(1);
+	}
+    }
+    PSID_log(PSID_LOG_VERB, "%s: got %d physical cores\n", __func__, physCores);
+
+    return physCores;
 }
 
 /** Info to be passed to @ref prepSwitchEnv() and @ref switchHWCB(). */

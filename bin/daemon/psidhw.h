@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2006-2017 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2006-2020 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -84,34 +84,38 @@ void PSID_stopAllHW(void);
 void PSID_getCounter(DDTypedBufferMsg_t *inmsg);
 
 /**
- * @brief Get number of virtual CPUs.
+ * @brief Get number of hardware threads
  *
- * Determine the number of virtual CPUs. This is done via a call to
- * sysconfig(_SC_NPROCESSORS_CONF).
+ * Determine the number of hardware threads. This utilizes the hwloc
+ * framework and returns the number of PUs detected there.
  *
- * If for some reason the number of virtual CPUs cannot be determined,
- * i.e. the number reported is 0, after some seconds of sleep() the
- * determination is repeated. If this fails finally, exit() is called.
+ * hwloc is initialized implicitly if this has not happened before.
  *
- * @return On success, the number of virtual processors is
- * returned.
- */
-long PSID_getVirtCPUs(void);
-
-/**
- * @brief Get number of physical CPUs.
- *
- * Determine the number of physical CPUs. The number of physical CPUs
- * might differ from the number of virtual CPUs e.g. on newer Pentium
- * platforms which support the Hyper-Threading Technology.
- *
- * If for some reason the number of physical CPUs cannot be
- * determined, i.e. the number reported is 0, after some seconds of
- * sleep() the determination is repeated. If this fails finally,
+ * If for some reason the hwloc framework cannot be initialized,
  * exit() is called.
  *
- * @return On success, the number of physical CPUs is returned.
+ * @return On success, the number of virtual processors is returned
  */
-long PSID_getPhysCPUs(void);
+int PSID_getHWthreads(void);
+
+/**
+ * @brief Get number of physical cores
+ *
+ * Determine the number of physical cores. This utilizes the hwloc
+ * framework and returns the number of cores detected there.
+ *
+ * The number of physical cores might differ from the number of
+ * hardware threads on any platform supporting SMT, like e.g. Intel
+ * CPUs supporting Hyper-Threading Technology, AMD CPUs starting with
+ * the Zen generation or modern Power or ARM CPUs.
+ *
+ * hwloc is initialized implicitly if this has not happened before.
+ *
+ * If for some reason the hwloc framework cannot be initialized,
+ * exit() is called.
+ *
+ * @return On success, the number of physical cores is returned
+ */
+int PSID_getPhysCores(void);
 
 #endif /* __PSIDHW_H */

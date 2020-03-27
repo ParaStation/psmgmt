@@ -35,8 +35,6 @@ bin/daemon/Makefile.in \
 bin/daemon/psid.c \
 bin/daemon/psidaccount.c \
 bin/daemon/psidaccount.h \
-bin/daemon/psidamd.c \
-bin/daemon/psidamd.h \
 bin/daemon/psidclient.c \
 bin/daemon/psidclient.h \
 bin/daemon/psidcomm.c \
@@ -53,8 +51,6 @@ bin/daemon/psidhw.c \
 bin/daemon/psidhw.h \
 bin/daemon/psidinfo.c \
 bin/daemon/psidinfo.h \
-bin/daemon/psidintel.c \
-bin/daemon/psidintel.h \
 bin/daemon/psidmsgbuf.c \
 bin/daemon/psidmsgbuf.h \
 bin/daemon/psidnodes.c \
@@ -65,8 +61,6 @@ bin/daemon/psidpartition.c \
 bin/daemon/psidpartition.h \
 bin/daemon/psidplugin.c \
 bin/daemon/psidplugin.h \
-bin/daemon/psidppc.c \
-bin/daemon/psidppc.h \
 bin/daemon/psidrdp.c \
 bin/daemon/psidrdp.h \
 bin/daemon/psidscripts.c \

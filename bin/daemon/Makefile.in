@@ -17,7 +17,7 @@
 #
 # ParaStation
 #
-# Copyright (C) 2017 ParTec Cluster Competence Center GmbH, Munich
+# Copyright (C) 2017-2020 ParTec Cluster Competence Center GmbH, Munich
 #
 # This file may be distributed under the terms of the Q Public License
 # as defined in the file LICENSE.QPL included in the packaging of this
@@ -127,20 +127,19 @@ CONFIG_CLEAN_VPATH_FILES =
 am__installdirs = "$(DESTDIR)$(bindir)" "$(DESTDIR)$(includedir)"
 PROGRAMS = $(bin_PROGRAMS)
 am_psid_OBJECTS = psid.$(OBJEXT) psidaccount.$(OBJEXT) \
-	psidamd.$(OBJEXT) psidclient.$(OBJEXT) psidcomm.$(OBJEXT) \
-	psidenv.$(OBJEXT) psidforwarder.$(OBJEXT) psidhook.$(OBJEXT) \
-	psidhw.$(OBJEXT) psidinfo.$(OBJEXT) psidmsgbuf.$(OBJEXT) \
-	psidnodes.$(OBJEXT) psidoption.$(OBJEXT) \
-	psidpartition.$(OBJEXT) psidplugin.$(OBJEXT) psidppc.$(OBJEXT) \
-	psidrdp.$(OBJEXT) psidscripts.$(OBJEXT) psidsignal.$(OBJEXT) \
-	psidspawn.$(OBJEXT) psidstate.$(OBJEXT) psidstatus.$(OBJEXT) \
-	psidtask.$(OBJEXT) psidutil.$(OBJEXT) psidintel.$(OBJEXT) \
+	psidclient.$(OBJEXT) psidcomm.$(OBJEXT) psidenv.$(OBJEXT) \
+	psidforwarder.$(OBJEXT) psidhook.$(OBJEXT) psidhw.$(OBJEXT) \
+	psidinfo.$(OBJEXT) psidmsgbuf.$(OBJEXT) psidnodes.$(OBJEXT) \
+	psidoption.$(OBJEXT) psidpartition.$(OBJEXT) \
+	psidplugin.$(OBJEXT) psidrdp.$(OBJEXT) psidscripts.$(OBJEXT) \
+	psidsignal.$(OBJEXT) psidspawn.$(OBJEXT) psidstate.$(OBJEXT) \
+	psidstatus.$(OBJEXT) psidtask.$(OBJEXT) psidutil.$(OBJEXT) \
 	psidflowcontrol.$(OBJEXT)
 psid_OBJECTS = $(am_psid_OBJECTS)
 am__DEPENDENCIES_1 =
 psid_DEPENDENCIES = $(libputil) $(libpscommon) $(libpslog) \
 	$(am__DEPENDENCIES_1) $(am__DEPENDENCIES_1) \
-	$(am__DEPENDENCIES_1)
+	$(am__DEPENDENCIES_1) $(am__DEPENDENCIES_1)
 AM_V_lt = $(am__v_lt_@AM_V@)
 am__v_lt_ = $(am__v_lt_@AM_DEFAULT_V@)
 am__v_lt_0 = --silent
@@ -170,19 +169,17 @@ DEFAULT_INCLUDES = -I.@am__isrc@
 depcomp = $(SHELL) $(top_srcdir)/scripts/depcomp
 am__maybe_remake_depfiles = depfiles
 am__depfiles_remade = ./$(DEPDIR)/psid.Po ./$(DEPDIR)/psidaccount.Po \
-	./$(DEPDIR)/psidamd.Po ./$(DEPDIR)/psidclient.Po \
-	./$(DEPDIR)/psidcomm.Po ./$(DEPDIR)/psidenv.Po \
-	./$(DEPDIR)/psidflowcontrol.Po ./$(DEPDIR)/psidforwarder.Po \
-	./$(DEPDIR)/psidhook.Po ./$(DEPDIR)/psidhw.Po \
-	./$(DEPDIR)/psidinfo.Po ./$(DEPDIR)/psidintel.Po \
+	./$(DEPDIR)/psidclient.Po ./$(DEPDIR)/psidcomm.Po \
+	./$(DEPDIR)/psidenv.Po ./$(DEPDIR)/psidflowcontrol.Po \
+	./$(DEPDIR)/psidforwarder.Po ./$(DEPDIR)/psidhook.Po \
+	./$(DEPDIR)/psidhw.Po ./$(DEPDIR)/psidinfo.Po \
 	./$(DEPDIR)/psidmsgbuf.Po ./$(DEPDIR)/psidnodes.Po \
 	./$(DEPDIR)/psidoption.Po ./$(DEPDIR)/psidpartition.Po \
-	./$(DEPDIR)/psidplugin.Po ./$(DEPDIR)/psidppc.Po \
-	./$(DEPDIR)/psidrdp.Po ./$(DEPDIR)/psidscripts.Po \
-	./$(DEPDIR)/psidsignal.Po ./$(DEPDIR)/psidspawn.Po \
-	./$(DEPDIR)/psidstate.Po ./$(DEPDIR)/psidstatus.Po \
-	./$(DEPDIR)/psidtask.Po ./$(DEPDIR)/psidutil.Po \
-	./$(DEPDIR)/test_config.Po
+	./$(DEPDIR)/psidplugin.Po ./$(DEPDIR)/psidrdp.Po \
+	./$(DEPDIR)/psidscripts.Po ./$(DEPDIR)/psidsignal.Po \
+	./$(DEPDIR)/psidspawn.Po ./$(DEPDIR)/psidstate.Po \
+	./$(DEPDIR)/psidstatus.Po ./$(DEPDIR)/psidtask.Po \
+	./$(DEPDIR)/psidutil.Po ./$(DEPDIR)/test_config.Po
 am__mv = mv -f
 COMPILE = $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) \
 	$(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
@@ -446,22 +443,21 @@ include_HEADERS = psidcomm.h psidhook.h	psidnodes.h psidplugin.h	\
 libputil = $(top_builddir)/lib/putil/libputil.la
 libpscommon = $(top_builddir)/lib/pscommon/libpscommon.la
 libpslog = $(top_builddir)/lib/pslog/libpslog.la
-psid_SOURCES = psid.c psidaccount.c psidaccount.h psidamd.c psidamd.h	\
-	psidclient.c psidclient.h psidcomm.c psidcomm.h psidenv.c	\
-	psidenv.h psidforwarder.c psidforwarder.h psidhook.c		\
-	psidhook.h psidhw.c psidhw.h psidinfo.c psidinfo.h		\
-	psidmsgbuf.c psidmsgbuf.h psidnodes.c psidnodes.h		\
-	psidoption.c psidoption.h psidpartition.c psidpartition.h	\
-	psidplugin.c psidplugin.h psidppc.c psidppc.h psidrdp.c		\
-	psidrdp.h psidscripts.c psidscripts.h psidsignal.c		\
-	psidsignal.h psidspawn.c psidspawn.h psidstate.c psidstate.h	\
-	psidstatus.c psidstatus.h psidtask.c psidtask.h psidtimer.h	\
-	psidutil.c psidutil.h psidintel.c psidintel.h			\
-	psidflowcontrol.c psidflowcontrol.h
+psid_SOURCES = psid.c psidaccount.c psidaccount.h psidclient.c		\
+	psidclient.h psidcomm.c psidcomm.h psidenv.c psidenv.h		\
+	psidforwarder.c psidforwarder.h psidhook.c psidhook.h		\
+	psidhw.c psidhw.h psidinfo.c psidinfo.h psidmsgbuf.c		\
+	psidmsgbuf.h psidnodes.c psidnodes.h psidoption.c		\
+	psidoption.h psidpartition.c psidpartition.h psidplugin.c	\
+	psidplugin.h psidrdp.c psidrdp.h psidscripts.c psidscripts.h	\
+	psidsignal.c psidsignal.h psidspawn.c psidspawn.h psidstate.c	\
+	psidstate.h psidstatus.c psidstatus.h psidtask.c psidtask.h	\
+	psidtimer.h psidutil.c psidutil.h psidflowcontrol.c		\
+	psidflowcontrol.h
 
 psid_LDFLAGS = $(AM_LDFLAGS) $(glib2_LIBS) -export-dynamic
 psid_LDADD = $(libputil) $(libpscommon) $(libpslog) -lutil	\
-	-ldl $(POPT_LIBS) $(NUMA_LIBS) $(psconfig_LIBS)
+	-ldl $(POPT_LIBS) $(NUMA_LIBS) $(HWLOC_LIBS) $(psconfig_LIBS)
 
 test_config_SOURCES = test_config.c psidnodes.c psidnodes.h	\
 	psidscripts.c psidscripts.h psidutil.c psidutil.h
@@ -569,7 +565,6 @@ distclean-compile:
 
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/psid.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/psidaccount.Po@am__quote@ # am--include-marker
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/psidamd.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/psidclient.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/psidcomm.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/psidenv.Po@am__quote@ # am--include-marker
@@ -578,13 +573,11 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/psidhook.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/psidhw.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/psidinfo.Po@am__quote@ # am--include-marker
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/psidintel.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/psidmsgbuf.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/psidnodes.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/psidoption.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/psidpartition.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/psidplugin.Po@am__quote@ # am--include-marker
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/psidppc.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/psidrdp.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/psidscripts.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/psidsignal.Po@am__quote@ # am--include-marker
@@ -781,7 +774,6 @@ clean-am: clean-binPROGRAMS clean-generic clean-libtool mostlyclean-am
 distclean: distclean-am
 		-rm -f ./$(DEPDIR)/psid.Po
 	-rm -f ./$(DEPDIR)/psidaccount.Po
-	-rm -f ./$(DEPDIR)/psidamd.Po
 	-rm -f ./$(DEPDIR)/psidclient.Po
 	-rm -f ./$(DEPDIR)/psidcomm.Po
 	-rm -f ./$(DEPDIR)/psidenv.Po
@@ -790,13 +782,11 @@ distclean: distclean-am
 	-rm -f ./$(DEPDIR)/psidhook.Po
 	-rm -f ./$(DEPDIR)/psidhw.Po
 	-rm -f ./$(DEPDIR)/psidinfo.Po
-	-rm -f ./$(DEPDIR)/psidintel.Po
 	-rm -f ./$(DEPDIR)/psidmsgbuf.Po
 	-rm -f ./$(DEPDIR)/psidnodes.Po
 	-rm -f ./$(DEPDIR)/psidoption.Po
 	-rm -f ./$(DEPDIR)/psidpartition.Po
 	-rm -f ./$(DEPDIR)/psidplugin.Po
-	-rm -f ./$(DEPDIR)/psidppc.Po
 	-rm -f ./$(DEPDIR)/psidrdp.Po
 	-rm -f ./$(DEPDIR)/psidscripts.Po
 	-rm -f ./$(DEPDIR)/psidsignal.Po
@@ -853,7 +843,6 @@ installcheck-am:
 maintainer-clean: maintainer-clean-am
 		-rm -f ./$(DEPDIR)/psid.Po
 	-rm -f ./$(DEPDIR)/psidaccount.Po
-	-rm -f ./$(DEPDIR)/psidamd.Po
 	-rm -f ./$(DEPDIR)/psidclient.Po
 	-rm -f ./$(DEPDIR)/psidcomm.Po
 	-rm -f ./$(DEPDIR)/psidenv.Po
@@ -862,13 +851,11 @@ maintainer-clean: maintainer-clean-am
 	-rm -f ./$(DEPDIR)/psidhook.Po
 	-rm -f ./$(DEPDIR)/psidhw.Po
 	-rm -f ./$(DEPDIR)/psidinfo.Po
-	-rm -f ./$(DEPDIR)/psidintel.Po
 	-rm -f ./$(DEPDIR)/psidmsgbuf.Po
 	-rm -f ./$(DEPDIR)/psidnodes.Po
 	-rm -f ./$(DEPDIR)/psidoption.Po
 	-rm -f ./$(DEPDIR)/psidpartition.Po
 	-rm -f ./$(DEPDIR)/psidplugin.Po
-	-rm -f ./$(DEPDIR)/psidppc.Po
 	-rm -f ./$(DEPDIR)/psidrdp.Po
 	-rm -f ./$(DEPDIR)/psidscripts.Po
 	-rm -f ./$(DEPDIR)/psidsignal.Po
