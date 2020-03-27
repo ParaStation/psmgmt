@@ -560,8 +560,10 @@ int startTaskPrologue(Step_t *step, PStask_t *task)
 	mlog("%s: setting '%s' for rank %d of job %d as requested by task"
 		" prologue\n", __func__, saveptr, task->rank, step->jobid);
 
-	if (putenv(saveptr) != 0) {
+	char *env = ustrdup(saveptr);
+	if (putenv(env) != 0) {
 	    mwarn(errno, "Failed to set task prologue requested environment");
+	    ufree(env);
 	}
     }
 
