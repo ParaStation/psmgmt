@@ -575,8 +575,6 @@ int handleExecClientUser(void *data)
 
 	setRankEnv(task->rank, fwStep);
 
-	startTaskPrologue(fwStep, task);
-
 	doMemBind(fwStep, task);
 	verboseMemPinningOutput(fwStep, task);
     } else {
@@ -609,6 +607,9 @@ int handleExecClientUser(void *data)
     };
     SpankCallHook(&spank);
 #endif
+
+    if (fwStep) startTaskPrologue(fwStep, task);
+
     return 0;
 }
 

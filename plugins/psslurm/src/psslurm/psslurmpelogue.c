@@ -550,20 +550,25 @@ int startTaskPrologue(Step_t *step, PStask_t *task)
 	size_t last = strlen(line)-1;
 	if (line[last] == '\n') line[last] = '\0';
 
-	/* only interested in lines "export key=value" */
 	char *key = strtok_r(line, " ", &saveptr);
+	if (!key) continue;
 
-	if (key == NULL || strcmp(key, "export") != 0) {
-	    continue;
-	}
+	if (!strcmp(key, "export")) {
+	    fdbg(PSSLURM_LOG_PELOG, "setting '%s' for rank %d of job %d\n",
+		 saveptr, task->rank, step->jobid);
 
-	mlog("%s: setting '%s' for rank %d of job %d as requested by task"
-		" prologue\n", __func__, saveptr, task->rank, step->jobid);
-
-	char *env = ustrdup(saveptr);
-	if (putenv(env) != 0) {
-	    mwarn(errno, "Failed to set task prologue requested environment");
-	    ufree(env);
+	    char *env = ustrdup(saveptr);
+	    if (putenv(env) != 0) {
+		mwarn(errno, "Failed to set '%s' task prologue "
+		      "requested environment", env);
+		ufree(env);
+	    }
+	} else if (!strcmp(key, "print")) {
+	    fdbg(PSSLURM_LOG_PELOG, "printing '%s'\n", saveptr);
+	    fprintf(stderr, "%s\n", saveptr);
+	} else if (!strcmp(key, "unset")) {
+	    fdbg(PSSLURM_LOG_PELOG, "unset '%s'\n", saveptr);
+	    unsetenv(saveptr);
 	}
     }
 
