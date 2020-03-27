@@ -1,7 +1,7 @@
 #
 # ParaStation
 #
-# Copyright (C) 2012-2019 ParTec Cluster Competence Center GmbH, Munich
+# Copyright (C) 2012-2020 ParTec Cluster Competence Center GmbH, Munich
 #
 # This file may be distributed under the terms of the Q Public License
 # as defined in the file LICENSE.QPL included in the packaging of this
@@ -41,6 +41,10 @@ AC_CHECK_LIB([numa], [numa_available],
    AC_DEFINE([HAVE_LIBNUMA])]
    AC_CHECK_LIB([numa], [numa_allocate_nodemask],
      [AC_DEFINE([HAVE_NUMA_ALLOCATE_NODEMASK])]))
+
+AC_CHECK_LIB([hwloc], [hwloc_topology_init],
+  [AC_SUBST([HWLOC_LIBS], [-lhwloc])],
+  [AC_MSG_ERROR([please install the hwloc devel package])])
 
 AC_CHECK_LIB([popt], [poptGetContext],
   [AC_SUBST([POPT_LIBS], [-lpopt])],
