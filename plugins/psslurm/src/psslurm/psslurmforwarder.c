@@ -663,8 +663,14 @@ static void setupStepIO(Forwarder_Data_t *fwdata, Step_t *step)
 	tty_name = ttyname(fwdata->stdOut[0]);
 	close(fwdata->stdOut[1]);
 
-	pty_setowner(step->uid, step->gid, tty_name);
-	pty_make_controlling_tty(&fwdata->stdOut[0], tty_name);
+	if (!pty_setowner(step->uid, step->gid, tty_name)) {
+	    flog("setting pty owner failed\n");
+	    exit(1);
+	}
+	if (!pty_make_controlling_tty(&fwdata->stdOut[0], tty_name)) {
+	    flog("initialize controlling tty failed\n");
+	    exit(1);
+	}
 
 	cols = envGet(&step->env, "SLURM_PTY_WIN_COL");
 	rows = envGet(&step->env, "SLURM_PTY_WIN_ROW");

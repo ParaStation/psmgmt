@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2010-2019 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2010-2020 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -1256,8 +1256,15 @@ int execInterForwarder(void *info)
 	}
 
 	/* prepare the pty */
-	pty_setowner(job->passwd.pw_uid, job->passwd.pw_gid, tty_name);
-	pty_make_controlling_tty(&stderrfds[1], tty_name);
+	if (!pty_setowner(job->passwd.pw_uid, job->passwd.pw_gid, tty_name)) {
+	    mlog("setting pty owner failed\n");
+	    exit(1);
+
+	}
+	if (!pty_make_controlling_tty(&stderrfds[1], tty_name)) {
+	    mlog("initialize controlling tty failed\n");
+	    exit(1);
+	}
 
 	/* setup term options */
 	setTermOptions(data->termcontrol, stderrfds[1]);
