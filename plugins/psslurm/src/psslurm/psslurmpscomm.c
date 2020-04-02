@@ -277,7 +277,7 @@ static int handleCreatePart(void *msg)
     numThreads = (step->packJobid == NO_VAL) ?
 	step->numHwThreads : step->numPackThreads;
 
-    task->partThrds = malloc(numThreads * sizeof(*task->partThrds));
+    task->partThrds = calloc(1, numThreads * sizeof(*task->partThrds));
     if (!task->partThrds) {
 	errno = ENOMEM;
 	goto error;

@@ -7,16 +7,6 @@
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-/**
- * $Id$
- *
- * \author
- * Michael Rauh <rauh@par-tec.com>
- * Stephan Krempel <krempel@par-tec.com>
- * Thomas Moschny <moschny@par-tec.com>
- *
- */
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <assert.h>
@@ -95,7 +85,7 @@ static char *replaceArgSymbols(char *args, unsigned rank, unsigned offset)
 }
 
 static void unrollRanks(Multi_Prog_t *mp, uint32_t np, char *rankList,
-			    char *executable, char *args)
+			char *executable, char *args)
 {
     const char delimiters[] = ",";
     char *saveptr, *range;
@@ -140,10 +130,10 @@ static void unrollRanks(Multi_Prog_t *mp, uint32_t np, char *rankList,
 
 static void parseMultiProgConf(char *conf, Multi_Prog_t *mp, uint32_t np)
 {
-    char *line, *saveptr, *tmp, *rank, *executable, *args, *sepSpace, *sepTab;
+    char *saveptr;
     const char delimiters[] ="\n";
 
-    line = strtok_r(conf, delimiters, &saveptr);
+    char *line = strtok_r(conf, delimiters, &saveptr);
     while (line) {
 	/* skip comments and empty lines */
 	if (line[0] == '#' || line[0] == '\0') {
@@ -154,16 +144,18 @@ static void parseMultiProgConf(char *conf, Multi_Prog_t *mp, uint32_t np)
 	line = trim(line);
 
 	/* rank range (1,7,2-3) */
-	rank = line;
+	char *rank = line;
 
 	/* executable */
-	sepSpace = strchr(line, ' ');
-	sepTab = strchr(line, '\t');
+	char *sepSpace = strchr(line, ' ');
+	char *sepTab = strchr(line, '\t');
 
 	if (!sepSpace && !sepTab) {
 	    mlog("%s: invalid executable for '%s'\n", __func__, line);
 	    exit(1);
 	}
+
+	char *tmp, *args;
 	if (!sepSpace) {
 	    tmp = sepTab;
 	} else if (!sepTab) {
@@ -172,7 +164,7 @@ static void parseMultiProgConf(char *conf, Multi_Prog_t *mp, uint32_t np)
 	    tmp = (sepSpace < sepTab) ? sepSpace : sepTab;
 	}
 
-	executable = tmp+1;
+	char *executable = tmp+1;
 	tmp[0] = '\0';
 	executable = ltrim(executable);
 
@@ -203,14 +195,15 @@ static void parseMultiProgConf(char *conf, Multi_Prog_t *mp, uint32_t np)
 static int const chunksize = 5;
 
 typedef enum {
-  betweenword,
-  inword,
-  in_single,
-  in_double,
-  finished,
+    betweenword,
+    inword,
+    in_single,
+    in_double,
+    finished,
 } state_t;
 
-static char ** push(char **argv, size_t *argc, char *pos) {
+static char ** push(char **argv, size_t *argc, char *pos)
+{
     if (*argc % chunksize == 0) {
 	argv = urealloc(argv, sizeof(char*) * (*argc + chunksize));
     }
@@ -225,7 +218,12 @@ static char ** push(char **argv, size_t *argc, char *pos) {
     return argv;
 }
 
-static char ** splitArguments(char *args){
+static char ** splitArguments(char *args)
+{
+    if (!args) {
+	flog("invalid argument pointer\n");
+	return NULL;
+    }
     /* out will hold all argv strings */
     char *out = umalloc(strlen(args) + 1);
 
@@ -364,8 +362,8 @@ static char ** splitArguments(char *args){
 }
 
 static int addExecutableToArgv(strv_t *argV, const char *lastExe,
-	uint32_t exeCount, char *lastArgs) {
-
+			       uint32_t exeCount, char *lastArgs)
+{
     int i;
 #if 0
     int j;
@@ -407,14 +405,11 @@ static int addExecutableToArgv(strv_t *argV, const char *lastExe,
 }
 
 void setupArgsFromMultiProg(Step_t *step, Forwarder_Data_t *fwdata,
-	strv_t *argV)
+			    strv_t *argV)
 {
-    Multi_Prog_t *mp;
     uint32_t i, exeCount = 0, uniqExeCount = 0;
-    size_t startArgc;
-    char *lastExe, *lastArgs, *msg;
 
-    mp = umalloc(step->np * sizeof(Multi_Prog_t));
+    Multi_Prog_t *mp = umalloc(step->np * sizeof(Multi_Prog_t));
     for (i=0; i<step->np; i++) mp[i].exe = mp[i].args = NULL;
 
     /* parse the multi prog conf */
@@ -428,11 +423,12 @@ void setupArgsFromMultiProg(Step_t *step, Forwarder_Data_t *fwdata,
 #endif
 
     /* generate arguments for every executable */
-    lastExe = mp[0].exe;
-    lastArgs = mp[0].args;
+    char *lastExe = mp[0].exe;
+    char *lastArgs = mp[0].args;
 
-    startArgc = argV->count;
+    size_t startArgc = argV->count;
     for (i = 0; i < step->np; i++) {
+	if (!mp[i].exe) goto setup_error;
 	if (!strcmp(mp[i].exe, lastExe) && !strcmp(mp[i].args, lastArgs)) {
 	    /* count how often this exe/args combination should run (==np) */
 	    exeCount++;
@@ -486,6 +482,7 @@ void setupArgsFromMultiProg(Step_t *step, Forwarder_Data_t *fwdata,
 
     return;
 
+    char *msg;
 setup_error:
     msg = "Error setting up arguments from multiprog file.\n";
     IO_printChildMsg(fwdata, msg, strlen(msg), 0, STDERR);
