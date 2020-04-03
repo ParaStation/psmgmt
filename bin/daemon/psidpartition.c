@@ -3814,7 +3814,7 @@ int PSIDpart_extendRes(PStask_ID_t tid, PSrsrvtn_ID_t resID,
  * PSP_CD_GETRESERVATION.
  *
  * This kind of message is used by clients in order to atomically
- * reserve any number of slots witin a given partition. It is answered
+ * reserve any number of slots within a given partition. It is answered
  * by a PSP_CD_RESERVATIONRES message that contains providing a unique
  * reservation ID and the number of slots actually reserved. By
  * sending subsequent PSP_CD_GETSLOTS messages the actual slots can be
