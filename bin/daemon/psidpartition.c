@@ -3714,7 +3714,7 @@ no_task_error:
     if (!eno) {
 	task->numChild += got;
 
-	PSID_log(PSID_LOG_PART, "%s: add %d slots to reservation %#x\n",
+	PSID_log(PSID_LOG_PART, "%s: created reservation %#x with %d slots\n",
 		 __func__, got, r->rid);
 	enqRes(&task->reservations, r);
 	send_RESCREATED(task, r);
