@@ -846,7 +846,7 @@ static void buildMpiexecArgs(Forwarder_Data_t *fwdata, strv_t *argV,
 
 	    /* threads per processes */
 	    strvAdd(argV, ustrdup("-tpp"));
-	    snprintf(buf, sizeof(buf), "%u", step->numHwThreads/step->np);
+	    snprintf(buf, sizeof(buf), "%u", step->tpp);
 	    strvAdd(argV, ustrdup(buf));
 
 	    /* executable and arguments */
@@ -874,8 +874,7 @@ static void buildMpiexecArgs(Forwarder_Data_t *fwdata, strv_t *argV,
 		strvAdd(argV, ustrdup(buf));
 
 		/* threads per processes */
-		uint16_t tpp = step->packInfo[index].numHwThreads /
-				step->packInfo[index].np;
+		uint16_t tpp = step->packInfo[index].tpp;
 		strvAdd(argV, ustrdup("-tpp"));
 		snprintf(buf, sizeof(buf), "%u", tpp);
 		strvAdd(argV, ustrdup(buf));

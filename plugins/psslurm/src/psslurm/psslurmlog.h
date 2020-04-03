@@ -56,7 +56,7 @@ typedef enum {
     PSSLURM_LOG_ENV      =      0x000800, /**< Env */
     PSSLURM_LOG_PROTO    =      0x001000, /**< Protocol */
     PSSLURM_LOG_AUTH     =      0x002000, /**< Auth */
-    PSSLURM_LOG_PART     =      0x004000, /**< Partition */
+    PSSLURM_LOG_PART     =      0x004000, /**< Partition and Reservation */
     PSSLURM_LOG_GRES     =      0x008000, /**< Gres */
     PSSLURM_LOG_FWD      =      0x010000, /**< Msg forwarding */
     PSSLURM_LOG_IO       =      0x020000, /**< I/O */

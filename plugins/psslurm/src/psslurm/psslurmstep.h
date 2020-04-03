@@ -27,8 +27,8 @@ typedef struct {
     char **argv;		    /**< program arguments */
     uint32_t argc;		    /**< number of arguments */
     uint32_t np;		    /**< number of processes */
+    uint16_t tpp;                   /**< threads per process */
     PSpart_slot_t *slots;           /**< CPUs to use (length is np) */
-    uint32_t numHwThreads;	    /**< number of hardware threads */
     uint32_t packTaskOffset;	    /**< pack task offset */
 } PackInfos_t;
 
@@ -113,8 +113,8 @@ typedef struct {
     uint32_t localNodeId;	/**< local node ID for this step */
     time_t startTime;           /**< time the step started */
     Forwarder_Data_t *fwdata;   /**< parameters of running job forwarder */
-    uint32_t numHwThreads;	/**< number of hardware threads */
     PSpart_slot_t *slots;       /**< CPUs to use (length is np) */
+    uint32_t numHwThreads;	/**< number of hardware threads assigned */
     list_t tasks;		/**< list of local tasks started */
     list_t remoteTasks;         /**< list of remote tasks */
     char *acctFreq;		/**< account polling frequency */
@@ -137,12 +137,14 @@ typedef struct {
     PackInfos_t *packInfo;	/**< remote pack infos */
     PSnodes_ID_t *packFollower; /**< pack follower mother superior nodes */
     uint32_t numPackInfo;	/**< number of pack infos */
-    uint32_t numPackThreads;	/**< number of hardware threads in pack */
-    uint32_t numPackNP;		/**< number of processes in pack */
     bool leader;		/**< true if node is pack leader */
     X11_Data_t x11;             /**< (vanilla) X11 support */
     char *tresBind;             /**< TRes binding (currently env set only) */
     char *tresFreq;             /**< TRes frequency (currently env set only) */
+/* helper variables, only used temporarily by specific functions */
+    uint32_t rcvdPackInfos;	/**< number of received pack infos */
+    uint32_t rcvdPackProcs;	/**< number of received pack processes */
+    ssize_t lastPackInfoOffset; /**< iterator variable for packInfo*/
 } Step_t;
 
 /**

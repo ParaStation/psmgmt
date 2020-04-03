@@ -217,36 +217,61 @@ static void rejectPartRequest(PStask_ID_t dest, PStask_t *task)
     }
 }
 
-static void printHWthreads(uint32_t numThreads, PSpart_HWThread_t *threads)
+static void logSlots(const char* prefix,
+	PSpart_slot_t *slots, uint32_t numSlots)
 {
-    uint32_t i;
+    if (!(psslurmlogger->mask & (PSSLURM_LOG_PROCESS | PSSLURM_LOG_PART))) {
+	return;
+    }
 
-    if (!(psslurmlogger->mask & PSSLURM_LOG_PROCESS)) return;
-
-    for(i=0; i<numThreads; i++) {
-	flog("thread %i node %i id %i\n", i, threads[i].node, threads[i].id);
+    for(size_t s = 0; s < numSlots; s++) {
+	mlog("%s: slot %zu node %hd cpus %s\n", prefix,
+		s, slots[s].node, PSCPU_print_part(slots[s].CPUset,
+		    PSCPU_bytesForCPUs(PSIDnodes_getVirtCPUs(slots[s].node))));
     }
 }
 
-static ssize_t genThreads(PSpart_slot_t *slots, uint32_t num,
-	PSpart_HWThread_t **threads, bool allocate)
+static void logHWthreads(const char* prefix,
+	PSpart_HWThread_t *threads, uint32_t numThreads)
 {
-    unsigned int s, t = 0, totThreads = 0;
+    if (!(psslurmlogger->mask & PSSLURM_LOG_PART)) return;
 
-    for (s=0; s<num; s++) {
-	totThreads += PSCPU_getCPUs(slots[s].CPUset, NULL, PSCPU_MAX);
+    for(size_t t = 0; t < numThreads; t++) {
+	mlog("%s: thread %zu node %hd id %hd timesUsed %hd\n", prefix,
+		t, threads[t].node, threads[t].id, threads[t].timesUsed);
+    }
+}
+
+/**
+ * @brief Generate hardware threads array from slots array
+ *
+ * This just concatenates the threads of each slot, so iff there are threads
+ * used in multiple slots, they will be multiple times in the resulting array.
+ *
+ * @param threads    OUT generated array (use ufree() to free)
+ * @param numThreads OUT Number of entries in threads
+ * @param slots      IN  Slots array to use
+ * @param num        IN  Number of entries in slots
+ *
+ * @return true on success and false on error with errno set
+ */
+static bool genThreadsArray(PSpart_HWThread_t **threads, uint32_t *numThreads,
+	PSpart_slot_t *slots, uint32_t num)
+{
+    *numThreads = 0;
+    for (size_t s = 0; s < num; s++) {
+	*numThreads += PSCPU_getCPUs(slots[s].CPUset, NULL, PSCPU_MAX);
     }
 
-    if (allocate) {
-	*threads = umalloc(totThreads * sizeof(**threads));
-	if (*threads == NULL) {
-	    return -1;
-	}
+    *threads = umalloc(*numThreads * sizeof(**threads));
+    if (*threads == NULL) {
+	errno = ENOMEM;
+        return false;
     }
 
-    for (s=0; s<num; s++) {
-	unsigned int cpu;
-	for (cpu=0; cpu<PSCPU_MAX; cpu++) {
+    size_t t = 0;
+    for (size_t s = 0; s < num; s++) {
+	for (size_t cpu = 0; cpu < PSCPU_MAX; cpu++) {
 	    if (PSCPU_isSet(slots[s].CPUset, cpu)) {
 		(*threads)[t].node = slots[s].node;
 		(*threads)[t].id = cpu;
@@ -255,7 +280,99 @@ static ssize_t genThreads(PSpart_slot_t *slots, uint32_t num,
 	    }
 	}
     }
-    return totThreads;
+    return true;
+}
+
+/**
+ * @brief Add CPUs set in slots to a combined node slots array.
+ *
+ * @param nodeslots  I/O initialized node slot array with node IDs set
+ * @param numNodes   IN  number of entries in nodeslots
+ * @param slots      IN  slots array to add
+ * @param numSlots   IN  number of entries in slots
+ */
+static void addSlotsToNodeSlotsArray(PSpart_slot_t *nodeslots,
+	uint32_t numNodes, PSpart_slot_t *slots, uint32_t numSlots)
+{
+    for (size_t n = 0; n < numNodes; n++) {
+	for (size_t s = 0; s < numSlots; s++) {
+	    if (slots[s].node == nodeslots[n].node) {
+		PSCPU_addCPUs(nodeslots[n].CPUset, slots[s].CPUset);
+	    }
+	}
+    }
+}
+
+/**
+ * @brief Generate an array of slots with one slot per node
+ *
+ * Combines all slots of each node so we have a compressed list of
+ * hardware threads used on each node. The length of the array will
+ * be slots->nrOfNodes.
+ *
+ * @param nodeslots  OUT generated array (use ufree() to free)
+ * @param nrOfNodes  OUT length of the generated array
+ * @param step       IN  Step to use
+ *
+ * @return true on success, false on error (errno set)
+ */
+static bool genNodeSlotsArray(PSpart_slot_t **nodeslots, uint32_t *nrOfNodes,
+	Step_t *step)
+{
+    PSnodes_ID_t *nodes;
+
+    if (step->packJobid == NO_VAL) {
+	*nrOfNodes = step->nrOfNodes;
+	nodes = step->nodes;
+    }
+    else {
+	*nrOfNodes = step->packNrOfNodes;
+	nodes = step->packNodes;
+    }
+
+    *nodeslots = umalloc(*nrOfNodes * sizeof(**nodeslots));
+    if (!nodeslots) {
+        errno = ENOMEM;
+        return false;
+    }
+
+    /* initialize node slots array */
+    for (size_t n = 0; n < *nrOfNodes; n++) {
+	(*nodeslots)[n].node = nodes[n];
+	PSCPU_clrAll((*nodeslots)[n].CPUset);
+    }
+
+    /* fill node slots array */
+    if (step->packJobid == NO_VAL) {
+
+	addSlotsToNodeSlotsArray(*nodeslots, *nrOfNodes,
+		step->slots, step->np);
+    }
+    else {
+
+	int64_t last, offset = -1;
+
+	for (size_t i = 0; i < step->numPackInfo; i++) {
+	    last = offset;
+
+	    uint32_t index;
+	    if (!findPackIndex(step, last, &offset, &index)) {
+		flog("calculating task index %zu for step %u:%u failed\n", i,
+		     step->jobid, step->stepid);
+		errno = EACCES;
+		ufree(nodeslots);
+		return false;
+	    }
+
+	    /* fill node slots array */
+	    addSlotsToNodeSlotsArray(*nodeslots, *nrOfNodes,
+		    step->packInfo[index].slots, step->packInfo[index].np);
+	    logSlots(__func__,
+		    step->packInfo[index].slots, step->packInfo[index].np);
+	}
+    }
+
+    return true;
 }
 
 /**
@@ -271,8 +388,7 @@ static int handleCreatePart(void *msg)
     DDBufferMsg_t *inmsg = (DDBufferMsg_t *) msg;
     Step_t *step;
     PStask_t *task;
-    uint32_t i;
-    ssize_t numThreads;
+
     int enforceBatch = getConfValueI(&Config, "ENFORCE_BATCH_START");
 
     /* everyone is allowed to start, nothing to do for us here */
@@ -280,8 +396,8 @@ static int handleCreatePart(void *msg)
 
     /* find task */
     if (!(task = PStasklist_find(&managedTasks, inmsg->header.sender))) {
-	mlog("%s: task for msg from '%s' not found\n", __func__,
-	    PSC_printTID(inmsg->header.sender));
+	flog("task for msg from '%s' not found\n",
+		PSC_printTID(inmsg->header.sender));
 	errno = EACCES;
 	goto error;
     }
@@ -291,7 +407,7 @@ static int handleCreatePart(void *msg)
 	/* admin user can always pass */
 	if (isPSAdminUser(task->uid, task->gid)) return 1;
 
-	mlog("%s: step for sender '%s' not found\n", __func__,
+	flog("step for sender '%s' not found\n",
 		PSC_printTID(inmsg->header.sender));
 
 	errno = EACCES;
@@ -299,62 +415,27 @@ static int handleCreatePart(void *msg)
     }
 
     if (!step->slots) {
-	mlog("%s: invalid slots in step %u:%u\n", __func__,
-	     step->jobid, step->stepid);
+	flog("invalid slots in step %u:%u\n", step->jobid, step->stepid);
 	errno = EACCES;
 	goto error;
     }
 
-    /* allocate space for hardware threads */
-    if (step->packJobid == NO_VAL) {
-	numThreads = genThreads(step->slots, step->np, &task->partThrds, true);
-	if (numThreads < 0) {
-	    errno = ENOMEM;
-	    goto error;
-	}
-    }
-    else {
-	numThreads = step->numPackThreads;
-
-	task->partThrds = malloc(numThreads * sizeof(*task->partThrds));
-	if (!task->partThrds) {
-	    errno = ENOMEM;
-	    goto error;
-	}
-
-	mlog("%s: register TID %s to step %u:%u numThreads %zd\n", __func__,
-		PSC_printTID(task->tid), step->jobid, step->stepid,
-		numThreads);
-
-	/* combined pack threads */
-	PSpart_HWThread_t *pTptr = task->partThrds;
-	int64_t last, offset = -1;
-	uint32_t index = -1;
-	size_t n;
-
-	for (i=0; i<step->numPackInfo; i++) {
-	    last = offset;
-	    if (!findPackIndex(step, last, &offset, &index)) {
-		flog("calculating task index %u for step %u:%u failed\n", i,
-		     step->jobid, step->stepid);
-		errno = EACCES;
-		goto error;
-	    }
-	    n = genThreads(step->packInfo[index].slots,
-		    step->packInfo[index].np, &pTptr, false);
-	    pTptr += n;
-	}
-	if (pTptr - task->partThrds != numThreads) {
-	    flog("total number of threads generated does not match calculation"
-		    " (%u != %u)\n", pTptr - task->partThrds, numThreads);
-	    errno = EINVAL;
-	    goto error;
-	}
+    /* generate node slots array forming the partition */
+    if (!genNodeSlotsArray(&task->partition, &task->partitionSize, step)) {
+	flog("generation of node slots array failed\n");
+	goto error;
     }
 
-    task->totalThreads = numThreads;
+    logSlots(__func__, task->partition, task->partitionSize);
 
-    printHWthreads(numThreads, task->partThrds);
+    /* generate hardware threads array */
+    if (!genThreadsArray(&task->partThrds, &task->totalThreads,
+	    task->partition, task->partitionSize)) {
+	flog("generation of hardware threads array failed\n");
+	goto error;
+    }
+
+    logHWthreads(__func__, task->partThrds, task->totalThreads);
 
     /* further preparations of the task structure */
     task->options |= PART_OPT_EXACT;
@@ -417,6 +498,129 @@ static int handleCreatePartNL(void *msg)
 
 error:
     rejectPartRequest(inmsg->header.sender, task);
+
+    return 0;
+}
+
+/**
+ * @brief Handle to create a reservation
+ *
+ * Fills the passed reservation using the data calculated by the pinning
+ * algorithms as response to a PSP_CD_GETRESERVATION message.
+ *
+ * @param res The reservation request and reservation to fill in one struct.
+ *
+ * @return Returns 0 if the reservation is finally filled
+ *   and 1 in case of an error.
+ */
+static int handleGetReservation(void *res) {
+
+    PSrsrvtn_t *r = (PSrsrvtn_t *) res;
+
+
+    if (!r) return 1;
+
+    /* find task */
+    PStask_t * task;
+    if (!(task = PStasklist_find(&managedTasks, r->task))) {
+	flog("No task associated to %#x\n", r->rid);
+	return 1;
+    }
+
+    /* with psslurm no delegates are used */
+    if (task->delegate) {
+	flog("Unexpected delegate entry found in task '%s'\n",
+		PSC_printTID(task->tid));
+	return 1;
+    }
+
+    /* find step */
+    Step_t *step;
+    if (!(step = findStepByFwPid(PSC_getPID(task->tid)))) {
+	flog("No step found for forwarder '%s'\n",
+		PSC_printTID(task->forwarder->tid));
+
+	return 1;
+    }
+
+    /* find correct slots array calculated by pinning */
+    int nSlots;
+    PSpart_slot_t *slots;
+    if (step->packJobid == NO_VAL) {
+	nSlots = step->np;
+        slots = step->slots;
+    }
+    else {
+	int64_t last;
+
+	/* start iteration if this is the first reservation for this job pack */
+	if (task->usedThreads == 0) {
+	    step->lastPackInfoOffset = -1;
+	}
+
+	fdbg(PSSLURM_LOG_PART, "usedThreads %d lastPackInfoOffset %zd\n",
+		task->usedThreads, step->lastPackInfoOffset);
+
+	last = step->lastPackInfoOffset;
+
+	uint32_t index;
+	if (!findPackIndex(step, last, &step->lastPackInfoOffset, &index)) {
+	    flog("calculating next task index for step %u:%u failed\n",
+		    step->jobid, step->stepid);
+	    errno = EACCES;
+	    return 1;
+	}
+
+	nSlots = step->packInfo[index].np;
+	slots = step->packInfo[index].slots;
+    }
+
+    /* copy slots into reservation */
+    r->nSlots = nSlots;
+    r->slots = malloc(r->nSlots * sizeof(PSpart_slot_t));
+    if (!r->slots) {
+	mwarn(errno, "%s(%s)", __func__, PSC_printTID(task->tid));
+	return 1;
+    }
+    memcpy(r->slots, slots, r->nSlots * sizeof(PSpart_slot_t));
+
+    logSlots(__func__, r->slots, r->nSlots);
+
+    size_t addUsedThreads = 0;
+    size_t slotsThreads = 0;
+
+    /* mark used threads in task */
+    for (ssize_t s = 0; s < r->nSlots; s++) {
+	for (ssize_t cpu = 0; cpu < PSCPU_MAX; cpu++) {
+	    if (!PSCPU_isSet(r->slots[s].CPUset, cpu)) continue;
+
+	    /* find matching entry in partition threads array */
+	    bool found = false;
+	    for (size_t t = 0; t < task->totalThreads; t++) {
+		PSpart_HWThread_t *thread = &(task->partThrds[t]);
+		if (thread->node == r->slots[s].node && thread->id == cpu) {
+		    /* increase number of used threads
+		     * only if this threads was unused before */
+		    if (!thread->timesUsed) addUsedThreads++;
+		    slotsThreads++;
+		    thread->timesUsed++;
+		    found = true;
+		    break;
+		}
+	    }
+	    if (!found) {
+		flog("hardware thread not found: node %hu cpu %u\n",
+			r->slots[s].node, cpu);
+	    }
+	}
+    }
+
+    task->usedThreads += addUsedThreads;
+
+    fdbg(PSSLURM_LOG_PART, "slotsThreads %zu usedThreads %d (+%zu)\n",
+	    slotsThreads, task->usedThreads, addUsedThreads);
+
+    logHWthreads(__func__, task->partThrds, task->totalThreads);
 
     return 0;
 }
@@ -1032,34 +1236,35 @@ static void handleAllocState(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
     getUint16(&ptr, &state);
 
     if (!(alloc = findAlloc(jobid))) {
-	mlog("%s: allocation %u not found\n", __func__, jobid);
+	flog("allocation %u not found\n", jobid);
 	return;
     }
 
     alloc->state = state;
 
-    mlog("%s: jobid %u state '%s' from %s\n", __func__, jobid,
-	 strAllocState(alloc->state), PSC_printTID(msg->header.sender));
+    flog("jobid %u state '%s' from %s\n", jobid, strAllocState(alloc->state),
+	    PSC_printTID(msg->header.sender));
 }
 
 static void getSlotsFromMsg(char **ptr, PSpart_slot_t **slots, uint32_t *len)
 {
     uint16_t CPUbytes;
-    uint32_t n;
 
     getUint32(ptr, len);
     getUint16(ptr, &CPUbytes);
-    *slots = umalloc(*len * sizeof(PSpart_slot_t));
+    *slots = umalloc(*len * sizeof(**slots));
 
-    for (n = 0; n < *len; n++) {
-	getUint16(ptr, &((*slots)[n].node));
+    fdbg(PSSLURM_LOG_PACK, "len %u CPUbytes %hd\n", *len, CPUbytes);
+
+    for (size_t s = 0; s < *len; s++) {
+	getUint16(ptr, &((*slots)[s].node));
 	
-	PSCPU_clrAll((*slots)[n].CPUset);
-	PSCPU_inject((*slots)[n].CPUset, ptr, CPUbytes);
-	ptr += CPUbytes;
-	mdbg(PSSLURM_LOG_PACK, "%s: slot %i node %i cpumask %s\n",
-		__func__, n, (*slots)[n].node,
-		PSCPU_print((*slots)[n].CPUset));
+	PSCPU_clrAll((*slots)[s].CPUset);
+	PSCPU_inject((*slots)[s].CPUset, *ptr, CPUbytes);
+	*ptr += CPUbytes;
+	fdbg(PSSLURM_LOG_PACK, "slot %zu node %hd cpuset %s\n", s,
+		(*slots)[s].node,
+		PSCPU_print_part((*slots)[s].CPUset, CPUbytes));
     }
 }
 
@@ -1160,33 +1365,33 @@ static void handlePackInfo(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
     getUint32(&ptr, &rInfo->packTaskOffset);
     /* np */
     getUint32(&ptr, &rInfo->np);
-    step->numPackNP += rInfo->np;
+    step->rcvdPackProcs += rInfo->np;
+    /* tpp */
+    getUint16(&ptr, &rInfo->tpp);
     /* argc/argv */
     getStringArrayM(&ptr, &rInfo->argv, &rInfo->argc);
-    /* number of hwThreads */
-    getUint32(&ptr, &rInfo->numHwThreads);
-    step->numPackThreads += rInfo->numHwThreads;
+
+    step->rcvdPackInfos++;
+
+    /* debug print what we have right now, slots are printed
+     *  inside the loop in getSlotsFromMsg() */
+    fdbg(PSSLURM_LOG_PACK, "from %s for step %u:%u: pack info %u (now %u/%u"
+	    " pack procs): np %u tpp %hu argc %d slots:\n",
+	    PSC_printTID(msg->header.sender), packJobid, stepid,
+	    step->rcvdPackInfos, step->rcvdPackProcs, step->packNtasks,
+	    rInfo->np, rInfo->tpp, rInfo->argc);
+
     /* slots */
     getSlotsFromMsg(&ptr, &rInfo->slots, &len);
     if (len != rInfo->np) {
 	flog("length of slots list does not match number of processes"
 		" (%u != %u)\n", len, rInfo->np);
     }
-    step->numPackThreads += len;
-
-    mdbg(PSSLURM_LOG_PACK, "%s: from %s for step %u:%u "
-	 "numHwThreads %i argc %i np %i\n", __func__,
-	 PSC_printTID(msg->header.sender), packJobid, stepid,
-	 rInfo->numHwThreads, rInfo->argc, rInfo->np);
-
-    mdbg(PSSLURM_LOG_PACK, "%s: step packNtasks %u numHwThreads %u "
-	 "numPackThreads %u numRPackNP %u\n", __func__, step->packNtasks,
-	 step->numHwThreads, step->numPackThreads, step->numPackNP);
 
     /* test if we have all infos to start */
-    if (step->packNtasks == step->numPackNP) {
+    if (step->rcvdPackProcs == step->packNtasks) {
 	if (!(execStepLeader(step))) {
-	    mlog("%s: starting user step failed\n", __func__);
+	    flog("starting user step failed\n");
 	    sendSlurmRC(&step->srunControlMsg, ESLURMD_FORK_FAILED);
 	    deleteStep(step->jobid, step->stepid);
 	}
@@ -2161,6 +2366,11 @@ void finalizePScomm(bool verbose)
 			  __func__);
     }
 
+    if (!PSIDhook_del(PSIDHOOK_GETRESERVATION, handleGetReservation)) {
+	if (verbose) mlog("%s: failed to unregister PSIDHOOK_GETRESERVATION\n",
+			  __func__);
+    }
+
     if (!PSIDhook_del(PSIDHOOK_RECV_SPAWNREQ, handleRecvSpawnReq)) {
 	if (verbose) mlog("%s: failed to unregister PSIDHOOK_RECV_SPAWNREQ\n",
 			  __func__);
@@ -2470,6 +2680,11 @@ bool initPScomm(void)
 	return false;
     }
 
+    if (!PSIDhook_add(PSIDHOOK_GETRESERVATION, handleGetReservation)) {
+	mlog("%s: cannot register PSIDHOOK_GETRESERVATION\n", __func__);
+	return false;
+    }
+
     if (!PSIDhook_add(PSIDHOOK_RECV_SPAWNREQ, handleRecvSpawnReq)) {
 	mlog("%s: cannot register PSIDHOOK_RECV_SPAWNREQ\n", __func__);
 	return false;
@@ -2512,33 +2727,37 @@ int send_PS_PackExit(Step_t *step, int32_t exitStatus)
 
 static void addSlotsToMsg(PSpart_slot_t *slots, uint32_t len, PS_SendDB_t *data)
 {
-    uint16_t maxCPUs = 0, CPUbytes;
-    uint32_t n;
 
     /* Determine maximum number of CPUs */
-    for (n = 0; n < len; n++) {
-	unsigned short cpus = PSIDnodes_getVirtCPUs(slots[n].node);
+    uint16_t maxCPUs = 0;
+
+    for (size_t s = 0; s < len; s++) {
+	unsigned short cpus = PSIDnodes_getVirtCPUs(slots[s].node);
 	if (cpus > maxCPUs) maxCPUs = cpus;
     }
     if (!maxCPUs) {
 	flog("no CPUs in slotlist\n");
     }
 
+    size_t CPUbytes;
     CPUbytes = PSCPU_bytesForCPUs(maxCPUs);
     if (!maxCPUs) {
-	flog("maxCPUs (=%hu) out of range\n", maxCPUs);
+	flog("maxCPUs (=%zu) out of range\n", maxCPUs);
 	return;
     }
     addUint32ToMsg(len, data);
     addUint16ToMsg(CPUbytes, data);
 
-    for (n = 0; n < len; n++) {
+    fdbg(PSSLURM_LOG_PACK, "len %u maxCPUs %hu CPUbytes %zd\n", len, maxCPUs,
+	    CPUbytes);
+
+    for (size_t s = 0; s < len; s++) {
 	char cpuBuf[CPUbytes];
-	addUint16ToMsg(slots[n].node, data);
-	PSCPU_extract(cpuBuf, slots[n].CPUset, CPUbytes);
+	addUint16ToMsg(slots[s].node, data);
+	PSCPU_extract(cpuBuf, slots[s].CPUset, CPUbytes);
 	addMemToMsg(cpuBuf, CPUbytes, data);
-	mdbg(PSSLURM_LOG_PACK, "%s: slot %i node %i cpuset %s\n", __func__, n,
-		slots[n].node, PSCPU_print(slots[n].CPUset));
+	fdbg(PSSLURM_LOG_PACK, "slot %zu node %hd cpuset %s\n", s,
+		slots[s].node, PSCPU_print_part(slots[s].CPUset, CPUbytes));
     }
 }
 
@@ -2560,21 +2779,21 @@ int send_PS_PackInfo(Step_t *step)
     addUint32ToMsg(step->packTaskOffset, &data);
     /* np */
     addUint32ToMsg(step->np, &data);
+    /* tpp */
+    addUint16ToMsg(step->tpp, &data);
     /* argc */
     addUint32ToMsg(step->argc, &data);
     /* argv */
     for (i=0; i<step->argc; i++) {
 	addStringToMsg(step->argv[i], &data);
     }
-    /* number of hwThreads */
-    addUint32ToMsg(step->numHwThreads, &data);
     /* slots */
     addSlotsToMsg(step->slots, step->np, &data);
 
-    mdbg(PSSLURM_LOG_PACK, "%s: step %u:%u offset %i argc %i numHwThreads %i "
-	 "np %i to leader %s\n", __func__, step->packJobid, step->stepid,
-	 step->packNodeOffset, step->argc, step->numHwThreads, step->np,
-	 PSC_printTID(PSC_getTID(step->packNodes[0], 0)));
+    fdbg(PSSLURM_LOG_PACK, "step %u:%u offset %i argc %u np %u tpp %hu to"
+	    " leader %s\n", step->packJobid, step->stepid, step->packNodeOffset,
+	    step->argc, step->np, step->tpp,
+	    PSC_printTID(PSC_getTID(step->packNodes[0], 0)));
 
     /* send msg to pack group leader */
     return sendFragMsg(&data);
