@@ -57,6 +57,11 @@ typedef enum {
 				nothing else is done. Otherwise
 				further measure might be taken
 				afterwards. */
+    PSIDHOOK_GETRESERVATION,  /**< Handle a get reservation request, arg is
+				pointer to PSrsrvtn_t holding the reservation
+				request (which is also the reservation itself).
+				If return code is 0, a validly filled
+				reservation is assumed. On error return 1. */
     PSIDHOOK_SHUTDOWN,        /**< Daemon got signaled to shutdown, no arg */
     PSIDHOOK_MASTER_GETPART,  /**< Master is creating a new partition, the arg
 				is a pointer to PSpart_request_t holding the new

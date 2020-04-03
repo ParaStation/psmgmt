@@ -3606,7 +3606,7 @@ static int handleSingleResRequest(PSrsrvtn_t *r)
 	    .sender = PSC_getMyTID(),
 	    .len = sizeof(msg.header) },
 	.buf = { 0 } };
-    int got = -1, eno = 0;
+    int got = -1, eno = 0, ret;
     PStask_t *task, *delegate;
 
     if (!r) return -1;  // Omit and handle next request
@@ -3621,15 +3621,49 @@ static int handleSingleResRequest(PSrsrvtn_t *r)
     /* Dynamic requests shall be handled only once */
     if (r->dynSent) return 1; // Handle next request
 
-    got = PSIDpart_getReservation(r);
-
     r->firstRank = task->numChild;
-    r->nSlots = got;
     r->nextSlot = 0;
     r->relSlots = 0;
 
+    /* This hook is used by plugins like psslurm to override the
+     * generic reservation creation with own mechanisms. So they
+     * can for example create inhomogeneous partitions.
+     * If the plugin has created a valid reservation, it will return 0.
+     * If an error occurred, it will return 1.
+     * If no plugin is registered, the return code will be PSIDHOOK_NOFUNC and
+     * the generic mechanism here will manage the reservation creation.
+     *
+     * Note:
+     * When returning 0 here, the plugin has to assure that in the reservation
+     * passed the parameters nSlots and slots are set and that they are
+     * compatible to the nThreads and threads in the corresponding task.
+     */
+    ret = PSIDhook_call(PSIDHOOK_GETRESERVATION, r);
+    if (ret == 0) {
+	if (task->delegate) {
+	    /* we cannot do the "double entry bookkeeping on delegation"
+	     * since we do not have a clue how many used threads were added.
+	     * To fix, we need to create a channel for the plugin to tell us
+	     * the number to added to task->usedThreads. */
+	    PSID_log(-1, "%s: WARNING: Using PSIDHOOK_GETRESERVATION and"
+		    " task->delegate together is currenly not supported!\n",
+		    __func__);
+	}
+
+	/* ret == 0 means we got what we requested */
+	got = r->nSlots;
+
+	goto reservation_created;
+    } else if (ret == 1) {
+	eno = ECANCELED;
+	goto no_task_error;
+    }
+
+    got = PSIDpart_getReservation(r);
+
+    r->nSlots = got;
+
     if (got < (int)r->nMax && r->options & PART_OPT_DYNAMIC) {
-	int ret;
 
 	if (got < 0) r->nSlots = 0;
 	task->numChild += r->nMax; /* This might create a gap in ranks */
@@ -3673,7 +3707,9 @@ static int handleSingleResRequest(PSrsrvtn_t *r)
 	eno = ENOSPC;
     }
 
+reservation_created:
     deqRes(&delegate->resRequests, r);
+
 no_task_error:
     if (!eno) {
 	task->numChild += got;
