@@ -488,6 +488,7 @@ static int getAppendFlags(uint8_t appendMode)
  * %t     task identifier (rank) relative to current job. This will
  *	    create a separate IO file per task.
  * %u     User name
+ * %x     Job name
  *
  * @param jobid Unique job identifier
  *
@@ -510,7 +511,8 @@ static int getAppendFlags(uint8_t appendMode)
 */
 static char *replaceSymbols(uint32_t jobid, uint32_t stepid, char *hostname,
 			    int nodeid, char *username, uint32_t arrayJobId,
-			    uint32_t arrayTaskId, int rank, char *path)
+			    uint32_t arrayTaskId, int rank, char *path,
+			    char *jobname)
 {
     char *next, *ptr, *symbol, *symNum, *buf = NULL;
     char tmp[1024], symLen[64], symLen2[256];
@@ -584,6 +586,12 @@ static char *replaceSymbols(uint32_t jobid, uint32_t stepid, char *hostname,
 		str2Buf(username, &buf, &bufSize);
 		saved = 1;
 		break;
+	    case 'x':
+		if (jobname) {
+		   str2Buf(jobname, &buf, &bufSize);
+		   saved = 1;
+	        }
+		break;
 	}
 
 	if (!saved) {
@@ -625,9 +633,11 @@ static char *replaceStepSymbols(Step_t *step, int rank, char *path)
 	arrayTaskId = job->arrayTaskId;
     }
 
+    char *jobname = envGet(&step->env, "SLURM_JOB_NAME");
+
     return replaceSymbols(step->jobid, step->stepid, hostname,
 			  step->localNodeId, step->username, arrayJobId,
-			  arrayTaskId, rank, path);
+			  arrayTaskId, rank, path, jobname);
 }
 
 /**
@@ -644,9 +654,11 @@ static char *replaceStepSymbols(Step_t *step, int rank, char *path)
  */
 static char *replaceJobSymbols(Job_t *job, char *path)
 {
+    char *jobname = envGet(&job->env, "SLURM_JOB_NAME");
+
     return replaceSymbols(job->jobid, SLURM_BATCH_SCRIPT, job->hostname,
 			  0, job->username, job->arrayJobId, job->arrayTaskId,
-			  0, path);
+			  0, path, jobname);
 }
 
 static char *addCwd(char *cwd, char *path)
