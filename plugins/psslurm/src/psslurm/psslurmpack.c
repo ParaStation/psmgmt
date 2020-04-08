@@ -1182,7 +1182,11 @@ bool __unpackReqBatchJobLaunch(Slurm_Msg_t *sMsg, Job_t **jobPtr,
     /* partition */
     job->partition = getStringM(ptr);
 
-    /* ntasks */
+    /* ntasks
+     *
+     * Warning: ntasks does not hold the correct values
+     * for tasks in the job. See (pct:#355). Don't use
+     * it for NTASKS or NPROCS */
     getUint32(ptr, &job->np);
     /* pn_min_memory */
     getUint64(ptr, &job->nodeMinMemory);

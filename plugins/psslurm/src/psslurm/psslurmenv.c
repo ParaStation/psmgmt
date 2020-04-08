@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2014-2019 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2014-2020 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -199,12 +199,6 @@ void initJobEnv(Job_t *job)
      * SLURM_TOPOLOGY_ADDR=j3c053
      * SLURM_TOPOLOGY_ADDR_PATTERN=node
      * */
-
-    if (job->np) {
-	snprintf(tmp, sizeof(tmp), "%u", job->np);
-	envSet(&job->env, "SLURM_NTASKS", tmp);
-	envSet(&job->env, "SLURM_NPROCS", tmp);
-    }
 
     if (job->partition) {
 	envSet(&job->env, "SLURM_JOB_PARTITION", job->partition);
