@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2007-2018 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2007-2020 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -275,7 +275,7 @@ char *PSCPU_print(PSCPU_set_t set);
 /**
  * @brief Print parts of CPU-set
  *
- * Get a string describing the last @a num bytes CPU-set @a set. The
+ * Get a string describing the last @a num bytes of CPU-set @a set. The
  * returned pointer leads to a static character array that contains
  * the description. Sequent calls to @ref PSCPU_print() or @ref
  * PSCPU_print_part() will change the content of this array. Therefore
@@ -283,9 +283,12 @@ char *PSCPU_print(PSCPU_set_t set);
  * function is made within a single argument-list of printf(3) and
  * friends.
  *
- * @param set The CPU-set to describe
+ * @attention The granularity of @a num is limited to multiples of
+ * PSCPU_mask_t and therefore to two bytes.
  *
- * @param num The number of bytes to describe
+ * @param set CPU-set to describe
+ *
+ * @param num Number of bytes to describe
  *
  * @return A pointer to a static character array containing task ID's
  * description. Do not try to free(2) this array.
