@@ -415,12 +415,12 @@ void setupArgsFromMultiProg(Step_t *step, Forwarder_Data_t *fwdata,
     /* parse the multi prog conf */
     parseMultiProgConf(step->argv[1], mp, step->np);
 
-#if 0
-    mlog("%s: Got following multiprog data:\n", __func__);
-    for (i=0; i<step->np; i++) {
-        mlog ("%i:  %s   %s\n", i, mp[i].exe, mp[i].args);
+    if (psslurmlogger->mask & PSSLURM_LOG_PROCESS) {
+	flog("Got following multiprog data:\n");
+	for (i=0; i<step->np; i++) {
+	    flog("  %i:  %s   %s\n", i, mp[i].exe, mp[i].args);
+	}
     }
-#endif
 
     /* generate arguments for every executable */
     char *lastExe = mp[0].exe;
