@@ -133,8 +133,10 @@ static LIST_HEAD(pluginList);
  * 123: new hook PSIDHOOK_FRWRD_CLNT_RES
  *
  * 124: PSIDHOOK_CLEARMEM get aggressive flag as argument
+ *
+ * 125: new hook PSIDHOOK_GETRESERVATION
  */
-static int pluginAPIVersion = 124;
+static int pluginAPIVersion = 125;
 
 
 /** Grace period between finalize and unload on forcefully unloads */
