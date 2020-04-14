@@ -50,7 +50,7 @@ static LIST_HEAD(regisReq);
  * @brief Enqueue partition.
  *
  * Enqueue the partition @a part to the queue @a queue. The partition
- * might be incomplete while appendig and can be found within this
+ * might be incomplete while appending and can be found within this
  * queue later on via @ref findPart(). It shall be removed from it
  * using the @ref deqPart() function.
  *
@@ -76,10 +76,9 @@ static void enqPart(list_t *queue, PSpart_request_t *part)
  * Find the partition associated to the task with taskID @a tid within
  * the queue @a queue.
  *
- * @param queue The queue the partition is searched in.
+ * @param queue The queue the partition is searched in
  *
- * @param tid The taskID of the task assiciated to the partition to
- * search.
+ * @param tid Task ID of the task associated to the partition to search
  *
  * @return On success, i.e. if a corresponding partition was found, a
  * pointer to it is returned. Or NULL in case of an error.
@@ -1048,7 +1047,7 @@ static sortlist_t *getCandidateList(PSpart_request_t *request)
 		    case PART_SORT_NONE:
 			break;
 		    default:
-			PSID_log(-1, "%s: Unknown criterium\n", __func__);
+			PSID_log(-1, "%s: Unknown criterion\n", __func__);
 			free(list.entry);
 			errno = EINVAL;
 			return NULL;
@@ -1950,7 +1949,7 @@ static void msg_GETPART(DDBufferMsg_t *inmsg)
  * in the partition request @a request.
  *
  * @a buf contains the a list of nodes stored as PSnodes_ID_t data
- * preceeded by the number of nodes within this chunk. The size of the
+ * preceded by the number of nodes within this chunk. The size of the
  * chunk, i.e. the number of nodes, is stored as a int16_t at the
  * beginning of the buffer.
  *
@@ -2137,7 +2136,7 @@ static void msg_GETPARTNL(DDBufferMsg_t *inmsg)
  * chunk. The size of the chunk, i.e. the number of slots, is stored
  * as a int16_t at the beginning of the buffer.
  *
- * Each slot contains a nodeID and a CPU-set part. The latter is
+ * Each slot contains a node ID and a CPU-set part. The latter is
  * expected to have a fixed size throughout the message. In recent
  * versions of the protocol another int16_t entry will hold this size.
  *
@@ -3462,7 +3461,7 @@ static PSrsrvtn_t *deqRes(list_t *queue, PSrsrvtn_t *res)
     r = findRes(queue, res->rid);
 
     if (!r) {
-	PSID_log(-1, "%s: reservationt %#x not found\n", __func__, res->rid);
+	PSID_log(-1, "%s: reservation %#x not found\n", __func__, res->rid);
 	return NULL;
     }
     if (r != res) {
@@ -3592,9 +3591,9 @@ static int PSIDpart_getReservation(PSrsrvtn_t *res)
  * @param r The reservation request to handle.
  *
  * @return On success the number of assigned slots is returned. If
- * handling was not successfull right now but the reservation is a
+ * handling was not successful right now but the reservation is a
  * able to wait for further resources, 0 or 1 will be returned
- * signaling the ability to handle furster requests (1) or not (0). If
+ * signaling the ability to handle further requests (1) or not (0). If
  * the request failed finally, -1 is returned.
  */
 static int handleSingleResRequest(PSrsrvtn_t *r)
@@ -3627,7 +3626,8 @@ static int handleSingleResRequest(PSrsrvtn_t *r)
 
     /* This hook is used by plugins like psslurm to override the
      * generic reservation creation with own mechanisms. So they
-     * can for example create inhomogeneous partitions.
+     * can e.g. create multiple reservations at once to support job packs
+     * with different tpp across the jobs.
      * If the plugin has created a valid reservation, it will return 0.
      * If an error occurred, it will return 1.
      * If no plugin is registered, the return code will be PSIDHOOK_NOFUNC and
@@ -3644,9 +3644,12 @@ static int handleSingleResRequest(PSrsrvtn_t *r)
 	    /* we cannot do the "double entry bookkeeping on delegation"
 	     * since we do not have a clue how many used threads were added.
 	     * To fix, we need to create a channel for the plugin to tell us
-	     * the number to added to task->usedThreads. */
+	     * the number to added to task->usedThreads.
+	     * This is no problem since psslurm (the only user of this hook
+	     * for the time being) does not use delegates.
+	     */
 	    PSID_log(-1, "%s: WARNING: Using PSIDHOOK_GETRESERVATION and"
-		    " task->delegate together is currenly not supported!\n",
+		    " task->delegate together is currently not supported!\n",
 		    __func__);
 	}
 
@@ -3714,7 +3717,7 @@ no_task_error:
     if (!eno) {
 	task->numChild += got;
 
-	PSID_log(PSID_LOG_PART, "%s: created reservation %#x with %d slots\n",
+	PSID_log(PSID_LOG_PART, "%s: new reservation %#x of %d slots\n",
 		 __func__, got, r->rid);
 	enqRes(&task->reservations, r);
 	send_RESCREATED(task, r);
