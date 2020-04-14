@@ -534,6 +534,14 @@ static int handleGetReservation(void *res) {
 	return 1;
     }
 
+    /* psslurm does not support dynamic reservation requests */
+    if (r->nMin != r->nMax) {
+	flog("Unexpected dynamic reservation request %d for task '%s'"
+		" (%d != %d)\n", r->rid, PSC_printTID(task->tid),
+		r->nMin, r->nMax);
+	return 1;
+    }
+
     /* find step */
     Step_t *step;
     if (!(step = findStepByFwPid(PSC_getPID(task->tid)))) {
@@ -543,12 +551,23 @@ static int handleGetReservation(void *res) {
 	return 1;
     }
 
+
     /* find correct slots array calculated by pinning */
     int nSlots;
     PSpart_slot_t *slots;
     if (step->packJobid == NO_VAL) {
-	nSlots = step->np;
-	slots = step->slots;
+
+	/* only for MULTI_PROG steps we expect to get multiple reservation
+	 * requests since an mpiexec call with colons was generated for it */
+	if (!(step->taskFlags & LAUNCH_MULTI_PROG) && (r->nMin != step->np)) {
+	    flog("WARNING: Unexpected reservation request %d for task '%s':"
+		    " Only %u from %d slots requested\n", r->rid,
+		    PSC_printTID(task->tid), r->nMin, step->np);
+	}
+
+	nSlots = r->nMin;
+	slots = step->slots + step->usedSlots;
+	step->usedSlots += nSlots;
     }
     else {
 	int64_t last;
@@ -617,8 +636,9 @@ static int handleGetReservation(void *res) {
 
     task->usedThreads += addUsedThreads;
 
-    fdbg(PSSLURM_LOG_PART, "slotsThreads %zu usedThreads %d (+%zu)\n",
-	    slotsThreads, task->usedThreads, addUsedThreads);
+    fdbg(PSSLURM_LOG_PART, "slotsThreads %zu usedThreads %d (+%zu)"
+	    " firstRank %d\n", slotsThreads, task->usedThreads, addUsedThreads,
+	    r->firstRank);
 
     logHWthreads(__func__, task->partThrds, task->totalThreads);
 

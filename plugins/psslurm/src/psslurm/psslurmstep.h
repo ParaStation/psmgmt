@@ -114,6 +114,7 @@ typedef struct {
     time_t startTime;           /**< time the step started */
     Forwarder_Data_t *fwdata;   /**< parameters of running job forwarder */
     PSpart_slot_t *slots;       /**< CPUs to use (length is np) */
+    uint32_t usedSlots;		/**< number of slots used in reservations */
     uint32_t numHwThreads;	/**< number of hardware threads assigned */
     list_t tasks;		/**< list of local tasks started */
     list_t remoteTasks;         /**< list of remote tasks */
