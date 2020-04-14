@@ -3655,62 +3655,60 @@ static int handleSingleResRequest(PSrsrvtn_t *r)
 
 	/* ret == 0 means we got what we requested */
 	got = r->nSlots;
-
-	goto reservation_created;
     } else if (ret == 1) {
 	eno = ECANCELED;
 	goto no_task_error;
-    }
+    } else {
+	/* fall back to normal creation of reservation */
+	got = PSIDpart_getReservation(r);
 
-    got = PSIDpart_getReservation(r);
+	r->nSlots = got;
 
-    r->nSlots = got;
+	if (got < (int)r->nMax && r->options & PART_OPT_DYNAMIC) {
 
-    if (got < (int)r->nMax && r->options & PART_OPT_DYNAMIC) {
+	    if (got < 0) r->nSlots = 0;
+	    task->numChild += r->nMax; /* This might create a gap in ranks */
 
-	if (got < 0) r->nSlots = 0;
-	task->numChild += r->nMax; /* This might create a gap in ranks */
-
-	/* Try to get more resources */
-	ret = PSIDhook_call(PSIDHOOK_XTND_PART_DYNAMIC, r);
-	if (ret == PSIDHOOK_NOFUNC) {
-	    if (got < (int)r->nMin) {
-		task->numChild -= r->nMax;            /* Fix the gap */
-		/* free resource and error */
-		if (got > 0) {
-		    int released = releaseThreads(r->slots, got,
-						  delegate, __func__);
-		    delegate->usedThreads -= released;
-		    /* double entry bookkeeping on delegation */
-		    if (task->delegate) task->usedThreads -= released;
+	    /* Try to get more resources */
+	    ret = PSIDhook_call(PSIDHOOK_XTND_PART_DYNAMIC, r);
+	    if (ret == PSIDHOOK_NOFUNC) {
+		if (got < (int)r->nMin) {
+		    task->numChild -= r->nMax;            /* Fix the gap */
+		    /* free resource and error */
+		    if (got > 0) {
+			int released = releaseThreads(r->slots, got,
+						      delegate, __func__);
+			delegate->usedThreads -= released;
+			/* double entry bookkeeping on delegation */
+			if (task->delegate) task->usedThreads -= released;
+		    }
+		    eno = ENOSPC;
+		} else {
+		    task->numChild -= (r->nMax - got);    /* Fix the gap */
+		    /* send answer below */
 		}
-		eno = ENOSPC;
 	    } else {
-		task->numChild -= (r->nMax - got);    /* Fix the gap */
-		/* send answer below */
+		/* Do not send twice */
+		r->dynSent = true;
+		/* Answer is sent by hook's callback */
+		return 1; // Handle next request
 	    }
-	} else {
-	    /* Do not send twice */
-	    r->dynSent = true;
-	    /* Answer is sent by hook's callback */
-	    return 1; // Handle next request
+	} else if (!got) {
+	    if (r->options & PART_OPT_WAIT) {
+		PSID_log(PSID_LOG_PART, "%s: %#x must wait", __func__, r->rid);
+		/* Answer will be sent once reservation is established */
+		return 0; // Do not handle next request
+	    } else {
+		PSID_log(-1, "%s: Insuffcient resources without PART_OPT_WAIT"
+			 " for %#x\n", __func__, r->rid);
+		eno = EBUSY;
+	    }
+	} else if (got < 0) {
+	    PSID_log(-1, "%s: Insuffcient resources\n", __func__);
+	    eno = ENOSPC;
 	}
-    } else if (!got) {
-	if (r->options & PART_OPT_WAIT) {
-	    PSID_log(PSID_LOG_PART, "%s: %#x must wait", __func__, r->rid);
-	    /* Answer will be sent once reservation is established */
-	    return 0; // Do not handle next request
-	} else {
-	    PSID_log(-1, "%s: Insuffcient resources without PART_OPT_WAIT"
-		     " for %#x\n", __func__, r->rid);
-	    eno = EBUSY;
-	}
-    } else if (got < 0) {
-	PSID_log(-1, "%s: Insuffcient resources\n", __func__);
-	eno = ENOSPC;
     }
 
-reservation_created:
     deqRes(&delegate->resRequests, r);
 
 no_task_error:
