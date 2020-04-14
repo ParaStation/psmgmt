@@ -266,7 +266,7 @@ static bool genThreadsArray(PSpart_HWThread_t **threads, uint32_t *numThreads,
     *threads = umalloc(*numThreads * sizeof(**threads));
     if (*threads == NULL) {
 	errno = ENOMEM;
-        return false;
+	return false;
     }
 
     size_t t = 0;
@@ -332,8 +332,8 @@ static bool genNodeSlotsArray(PSpart_slot_t **nodeslots, uint32_t *nrOfNodes,
 
     *nodeslots = umalloc(*nrOfNodes * sizeof(**nodeslots));
     if (!nodeslots) {
-        errno = ENOMEM;
-        return false;
+	errno = ENOMEM;
+	return false;
     }
 
     /* initialize node slots array */
@@ -548,7 +548,7 @@ static int handleGetReservation(void *res) {
     PSpart_slot_t *slots;
     if (step->packJobid == NO_VAL) {
 	nSlots = step->np;
-        slots = step->slots;
+	slots = step->slots;
     }
     else {
 	int64_t last;
@@ -2535,7 +2535,7 @@ static int compareNodeIDs(const void *entry1, const void *entry2)
     const Host_Lookup_t *e1 = (Host_Lookup_t *) entry1;
     const Host_Lookup_t *e2 = (Host_Lookup_t *) entry2;
 
-     return (e1->nodeID > e2->nodeID) - (e1->nodeID < e2->nodeID);
+    return (e1->nodeID > e2->nodeID) - (e1->nodeID < e2->nodeID);
 }
 
 const char *getSlurmHostbyNodeID(PSnodes_ID_t nodeID)
