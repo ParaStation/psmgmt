@@ -845,6 +845,8 @@ static void buildMpiexecArgs(Forwarder_Data_t *fwdata, strv_t *argV,
 	    strvAdd(argV, ustrdup(buf));
 
 	    /* threads per processes */
+	    /* NOTE: Actually it is unnecessary to pass tpp since it is
+	     * ignored by psslurm reservation generation replacement code */
 	    strvAdd(argV, ustrdup("-tpp"));
 	    snprintf(buf, sizeof(buf), "%u", step->tpp);
 	    strvAdd(argV, ustrdup(buf));
@@ -874,6 +876,8 @@ static void buildMpiexecArgs(Forwarder_Data_t *fwdata, strv_t *argV,
 		strvAdd(argV, ustrdup(buf));
 
 		/* threads per processes */
+		/* NOTE: Actually it is unnecessary to pass tpp since it is
+		 * ignored by psslurm reservation generation replacement code */
 		uint16_t tpp = step->packInfo[index].tpp;
 		strvAdd(argV, ustrdup("-tpp"));
 		snprintf(buf, sizeof(buf), "%u", tpp);
