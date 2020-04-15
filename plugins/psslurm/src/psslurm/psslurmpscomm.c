@@ -1271,6 +1271,12 @@ static void getSlotsFromMsg(char **ptr, PSpart_slot_t **slots, uint32_t *len)
     uint16_t CPUbytes;
 
     getUint32(ptr, len);
+
+    if (*len == 0) {
+	flog("No slots in message");
+	*slots = NULL;
+    }
+
     getUint16(ptr, &CPUbytes);
     *slots = umalloc(*len * sizeof(**slots));
 
@@ -2761,10 +2767,12 @@ static void addSlotsToMsg(PSpart_slot_t *slots, uint32_t len, PS_SendDB_t *data)
 
     size_t CPUbytes;
     CPUbytes = PSCPU_bytesForCPUs(maxCPUs);
-    if (!maxCPUs) {
+    if (!CPUbytes) {
 	flog("maxCPUs (=%zu) out of range\n", maxCPUs);
+	addUint32ToMsg(0, data); /* signal problem to read function */
 	return;
     }
+
     addUint32ToMsg(len, data);
     addUint16ToMsg(CPUbytes, data);
 
