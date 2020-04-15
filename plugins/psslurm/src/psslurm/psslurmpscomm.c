@@ -438,11 +438,21 @@ static int handleCreatePart(void *msg)
     logHWthreads(__func__, task->partThrds, task->totalThreads);
 
     /* further preparations of the task structure */
+    task->options = task->request->options;
     task->options |= PART_OPT_EXACT;
     task->partition = NULL;
     task->usedThreads = 0;
     task->activeChild = 0;
     task->partitionSize = 0;
+
+    fdbg(PSSLURM_LOG_PART, "Created partition for task '%s': size %u"
+	    "NODEFIRST %d EXCLUSIVE %d OVERBOOK %d WAIT %d EXACT %d\n",
+	    PSC_printTID(task->tid), task->partitionSize,
+	    task->options & PART_OPT_NODEFIRST ? 1 : 0,
+	    task->options & PART_OPT_EXCLUSIVE ? 1 : 0,
+	    task->options & PART_OPT_OVERBOOK ? 1 : 0,
+	    task->options & PART_OPT_WAIT ? 1 : 0,
+	    task->options & PART_OPT_EXACT ? 1 : 0);
 
     if (!task->request->num) grantPartRequest(task);
 
