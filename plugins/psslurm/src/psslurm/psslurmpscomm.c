@@ -331,7 +331,7 @@ static bool genNodeSlotsArray(PSpart_slot_t **nodeslots, uint32_t *nrOfNodes,
     }
 
     *nodeslots = umalloc(*nrOfNodes * sizeof(**nodeslots));
-    if (!nodeslots) {
+    if (!*nodeslots) {
 	errno = ENOMEM;
 	return false;
     }
@@ -448,11 +448,11 @@ static int handleCreatePart(void *msg)
     fdbg(PSSLURM_LOG_PART, "Created partition for task '%s': size %u"
 	    "NODEFIRST %d EXCLUSIVE %d OVERBOOK %d WAIT %d EXACT %d\n",
 	    PSC_printTID(task->tid), task->partitionSize,
-	    task->options & PART_OPT_NODEFIRST ? 1 : 0,
-	    task->options & PART_OPT_EXCLUSIVE ? 1 : 0,
-	    task->options & PART_OPT_OVERBOOK ? 1 : 0,
-	    task->options & PART_OPT_WAIT ? 1 : 0,
-	    task->options & PART_OPT_EXACT ? 1 : 0);
+	    (task->options & PART_OPT_NODEFIRST) ? 1 : 0,
+	    (task->options & PART_OPT_EXCLUSIVE) ? 1 : 0,
+	    (task->options & PART_OPT_OVERBOOK) ? 1 : 0,
+	    (task->options & PART_OPT_WAIT) ? 1 : 0,
+	    (task->options & PART_OPT_EXACT) ? 1 : 0);
 
     if (!task->request->num) grantPartRequest(task);
 
