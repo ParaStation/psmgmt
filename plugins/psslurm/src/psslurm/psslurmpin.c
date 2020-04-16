@@ -1075,7 +1075,7 @@ static void setCPUset(PSCPU_set_t *CPUset, uint16_t cpuBindType,
     /* default, CPU_BIND_TO_THREADS */
 }
 
-int setHWthreads(Step_t *step)
+bool setStepSlots(Step_t *step)
 {
     uint32_t node, lTID, tid, slotsSize, coreCount;
     uint32_t coreMapIndex = 0, coreArrayIndex = 0, coreArrayCount = 0;
@@ -1232,12 +1232,12 @@ int setHWthreads(Step_t *step)
 
     ufree(coreMap);
 
-    return 1;
+    return true;
 
 error:
     ufree(coreMap);
     ufree(slots);
-    return 0;
+    return false;
 
 }
 

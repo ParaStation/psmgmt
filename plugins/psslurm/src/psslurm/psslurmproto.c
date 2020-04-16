@@ -557,8 +557,8 @@ static void handleLaunchTasks(Slurm_Msg_t *sMsg)
 	goto ERROR;
     }
 
-    /* set hardware threads */
-    if (!(setHWthreads(step))) {
+    /* set slots for the step (and number of hardware threads) */
+    if (!(setStepSlots(step))) {
 	mlog("%s: setting hardware threads for step %u:%u failed\n", __func__,
 	     step->jobid, step->stepid);
 	sendSlurmRC(sMsg, ESLURMD_INVALID_JOB_CREDENTIAL);

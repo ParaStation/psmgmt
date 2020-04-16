@@ -16,9 +16,19 @@
 #include "psslurmtasks.h"
 
 /**
- * @doctodo
+ * @brief Set the slots list containing the hardware threads to use.
+ *
+ * This function fills the slots parameter of the @a step as well as the
+ * numHWthreads parameter containing the total number of hardware threads
+ * used by all slots together. The slots list afterwards contain one slot per
+ * process (so lenth is np) specifying the hardware threads to be assigned to
+ * each process.
+ *
+ * @param step  The step to manipulate
+ *
+ * @return Returns true on success and false otherwise
  */
-int setHWthreads(Step_t *step);
+bool setStepSlots(Step_t *step);
 
 /**
  * @doctodo
