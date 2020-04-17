@@ -88,7 +88,8 @@ typedef struct {
  */
 static void thread_iter_init(thread_iterator *iter,
 	enum thread_iter_strategy strategy, const nodeinfo_t *nodeinfo,
-	uint32_t start) {
+	uint32_t start)
+{
     iter->strategy = strategy;
     iter->nodeinfo = nodeinfo;
     iter->next = start;
@@ -103,7 +104,8 @@ static void thread_iter_init(thread_iterator *iter,
  *
  * @returns true if a thread is left, false if not
  */
-static bool thread_iter_next(thread_iterator *iter, uint32_t *result) {
+static bool thread_iter_next(thread_iterator *iter, uint32_t *result)
+{
 
     uint16_t coresPerSocket; /* number of cores per socket */
     uint32_t coreCount;      /* number of cores */
@@ -213,7 +215,8 @@ static bool thread_iter_next(thread_iterator *iter, uint32_t *result) {
  * @return  number of the first thread of the next socket
  */
 static uint32_t getNextSocketStart(uint32_t thread,
-	const nodeinfo_t *nodeinfo, bool respectThread) {
+	const nodeinfo_t *nodeinfo, bool respectThread)
+{
 
     uint32_t ret;
 
@@ -236,8 +239,8 @@ static uint32_t getNextSocketStart(uint32_t thread,
  *
  * @return  number of the first thread of the next core
  */
-static uint32_t getNextCoreStart(uint32_t thread, const nodeinfo_t *nodeinfo) {
-
+static uint32_t getNextCoreStart(uint32_t thread, const nodeinfo_t *nodeinfo)
+{
     uint32_t ret;
 
     ret = getCore(thread, nodeinfo) + 1;
@@ -320,8 +323,8 @@ static uint8_t *getCPUsForPartition(Step_t *step)
 /*
  * Set the distribution strategies according to the step's task distribution
  */
-static void fillDistributionStrategies(uint32_t taskDist, pininfo_t *pininfo) {
-
+static void fillDistributionStrategies(uint32_t taskDist, pininfo_t *pininfo)
+{
     uint32_t socketDist = taskDist & SLURM_DIST_SOCKMASK;
     uint32_t coreDist = taskDist & SLURM_DIST_COREMASK;
 
@@ -450,8 +453,8 @@ static void pinToCore(PSCPU_set_t *CPUset, const nodeinfo_t *nodeinfo,
  *
  * If the sting is not a valid hex number, each bit in @a CPUset becomes set.
  */
-static void parseCPUmask(PSCPU_set_t *CPUset, char *maskStr) {
-
+static void parseCPUmask(PSCPU_set_t *CPUset, char *maskStr)
+{
     char *mask, *curchar, *endptr;
     size_t len;
     uint32_t curbit;
@@ -702,8 +705,8 @@ static void getRankBinding(PSCPU_set_t *CPUset, const nodeinfo_t *nodeinfo,
  * Returns UINT32_MAX if no matching threads exists.
  */
 static uint32_t getNextStartThread(const nodeinfo_t *nodeinfo,
-	const pininfo_t *pininfo) {
-
+	const pininfo_t *pininfo)
+{
     thread_iterator iter;
 
     switch(pininfo->nextStartStrategy) {
@@ -773,8 +776,6 @@ static void getThreadsBinding(PSCPU_set_t *CPUset, const nodeinfo_t *nodeinfo,
 		uint32_t nodeid, uint16_t threadsPerTask, uint32_t local_tid,
 		pininfo_t *pininfo)
 {
-
-
     uint32_t start = 0;
 
     if (pininfo->lastUsedThread >= 0) {
@@ -1241,8 +1242,8 @@ error:
 
 }
 
-static char * printCpuMask(pid_t pid) {
-
+static char * printCpuMask(pid_t pid)
+{
     cpu_set_t mask;
     PSCPU_set_t CPUset;
     int numcpus, i;
@@ -1289,7 +1290,8 @@ static char * printCpuMask(pid_t pid) {
     return ret;
 }
 
-static char * printMemMask(void) {
+static char * printMemMask(void)
+{
 #ifdef HAVE_LIBNUMA
     struct bitmask *memmask;
     int i, j, p, max, s;
@@ -1319,8 +1321,8 @@ static char * printMemMask(void) {
 }
 
 /* verbose binding output */
-void verboseCpuPinningOutput(Step_t *step, PS_Tasks_t *task) {
-
+void verboseCpuPinningOutput(Step_t *step, PS_Tasks_t *task)
+{
     char *units, *bind_type, *action;
     pid_t pid;
 
@@ -1423,8 +1425,8 @@ void verboseCpuPinningOutput(Step_t *step, PS_Tasks_t *task) {
 /* output memory binding, this is done in the client right before execve()
  * since it is only possible to get the own memmask not the one of other
  * processes */
-void verboseMemPinningOutput(Step_t *step, PStask_t *task) {
-
+void verboseMemPinningOutput(Step_t *step, PStask_t *task)
+{
     char *bind_type, *action;
 
     if (step->memBindType & MEM_BIND_VERBOSE) {
@@ -1684,7 +1686,8 @@ void doMemBind(Step_t *step, PStask_t *task)
     return;
 }
 #else
-void doMemBind(Step_t *step, PStask_t *task) {
+void doMemBind(Step_t *step, PStask_t *task)
+{
     mlog("%s: No libnuma support: No memory binding\n", __func__);
 }
 #endif
@@ -1801,8 +1804,8 @@ char *genMemBindString(Step_t *step)
  * this function in for testing the thread iterator function
  */
 void test_thread_iterator(uint16_t socketCount, uint16_t coresPerSocket,
-	uint16_t threadsPerCore, uint8_t strategy) {
-
+	uint16_t threadsPerCore, uint8_t strategy)
+{
     char* strategystr[] = {
 	"CYCLECORES",
 	"CYCLESOCKETS_CYCLECORES",
@@ -1855,8 +1858,8 @@ void test_thread_iterator(uint16_t socketCount, uint16_t coresPerSocket,
  */
 void test_pinning(uint16_t cpuBindType,	char *cpuBindString, uint32_t taskDist,
 	uint16_t socketCount, uint16_t coresPerSocket, uint16_t threadsPerCore,
-	uint32_t tasksPerNode, uint16_t threadsPerTask, bool humanreadable) {
-
+	uint32_t tasksPerNode, uint16_t threadsPerTask, bool humanreadable)
+{
     uint32_t nodeid = 0;  /* only used for debugging output */
 
     uint32_t threadCount = socketCount * coresPerSocket * threadsPerCore;
