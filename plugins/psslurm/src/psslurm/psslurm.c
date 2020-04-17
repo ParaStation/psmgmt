@@ -32,6 +32,7 @@
 #include "psslurmpelogue.h"
 #include "slurmcommon.h"
 #include "psslurmspawn.h"
+#include "psslurmpin.h"
 #ifdef HAVE_SPANK
 #include "psslurmspank.h"
 #endif
@@ -606,6 +607,9 @@ int initialize(void)
 
     /* initialize Slurm communication */
     if (!initSlurmCon()) goto INIT_ERROR;
+
+    /* initialize pinning defaults */
+    if (!initPinning()) goto INIT_ERROR;
 
     isInit = 1;
 

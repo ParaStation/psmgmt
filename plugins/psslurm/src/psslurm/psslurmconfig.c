@@ -176,6 +176,21 @@ const ConfDef_t confDef[] =
 	"bool",
 	"0",
 	"If true no spank plugins will be loaded" },
+    { "DEFAULT_CPU_BIND_TYPE", 0,
+	"string",
+	"threads",
+	"Default cpu-bind type used for pinning"
+	    " (none|rank|threads|cores|sockets)" },
+    { "DEFAULT_SOCKET_DIST", 0,
+	"string",
+	"cyclic",
+	"Default to use as distribution over sockets"
+	    " (cyclic|block|fcyclic)" },
+    { "DEFAULT_CORE_DIST", 0,
+	"string",
+	"inherit",
+	"Default to use as distribution over sockets"
+	    " (inherit|block|cyclic|fcyclic)" },
     { NULL, 0, NULL, NULL, NULL },
 };
 

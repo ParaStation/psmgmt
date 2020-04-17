@@ -16,6 +16,17 @@
 #include "psslurmtasks.h"
 
 /**
+ * @brief Initialize pinning
+ *
+ * This function initialize the pinning by reading in configuration variables.
+ * It is to be called before any other pinning function but after the
+ * initialization of the configuration interface.
+ *
+ * @return Returns true on success and false otherwise
+ */
+bool initPinning(void);
+
+/**
  * @brief Set the slots list containing the hardware threads to use.
  *
  * This function fills the slots parameter of the @a step as well as the

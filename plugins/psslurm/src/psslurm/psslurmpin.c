@@ -36,6 +36,10 @@
 
 #include "psslurmpin.h"
 
+static cpu_bind_type_t defaultCPUbindType = 0;
+static task_dist_states_t defaultSocketDist = 0;
+static task_dist_states_t defaultCoreDist = 0;
+
 enum thread_iter_strategy {
     CYCLECORES,              /* core, socket, thread:  1 2  3 4   5 6  7 8 */
     CYCLESOCKETS_CYCLECORES, /* socket, core, thread:  1 3  2 4   5 7  6 8 */
@@ -1076,6 +1080,167 @@ static void setCPUset(PSCPU_set_t *CPUset, uint16_t cpuBindType,
     /* default, CPU_BIND_TO_THREADS */
 }
 
+/* sets the cpu bind type to configured default if not set by the user */
+static void setCpuBindType(Step_t *step)
+{
+    uint16_t anyType = CPU_BIND_TO_THREADS | CPU_BIND_TO_CORES
+	    | CPU_BIND_TO_SOCKETS | CPU_BIND_TO_LDOMS | CPU_BIND_TO_BOARDS
+	    | CPU_BIND_NONE | CPU_BIND_RANK | CPU_BIND_MAP | CPU_BIND_MASK
+	    | CPU_BIND_LDRANK | CPU_BIND_LDMAP | CPU_BIND_LDMASK;
+
+    if (step->cpuBindType & anyType) {
+	/* cpu-bind option used by the user */
+	flog("Using user defined cpu-bind '%s': 0x%04x\n",
+		genCPUbindTypeString(step), step->cpuBindType);
+	return;
+    }
+
+    step->cpuBindType |= defaultCPUbindType;
+
+    flog("Using default cpu-bind '%s': 0x%04x\n",
+	    genCPUbindTypeString(step), step->cpuBindType);
+}
+
+/* return the default core dist which might be "inherit" and so dependent on
+ * the current socket distribution. */
+static task_dist_states_t getDefaultCoreDist(uint32_t taskDist)
+{
+    if (defaultCoreDist) return defaultCoreDist;
+
+    if (taskDist & SLURM_DIST_SOCKBLOCK) return SLURM_DIST_COREBLOCK;
+    if (taskDist & SLURM_DIST_SOCKCYCLIC) return SLURM_DIST_CORECYCLIC;
+    if (taskDist & SLURM_DIST_SOCKCFULL) return SLURM_DIST_CORECFULL;
+
+    flog("WARNING: Default core distribution cannot be determined.\n");
+    return SLURM_DIST_CORECYCLIC;
+}
+
+/* returns a string decribing the sockets distribution */
+static char *getSocketDistString(Step_t *step)
+{
+    uint32_t dist = step->taskDist & SLURM_DIST_SOCKMASK;
+
+    if (dist & SLURM_DIST_UNKNOWN) return "unknown";
+    if (dist & SLURM_DIST_SOCKBLOCK) return "block";
+    if (dist & SLURM_DIST_SOCKCYCLIC) return "cyclic";
+    if (dist & SLURM_DIST_SOCKCFULL) return "fcyclic";
+
+    return "invalid";
+}
+
+/* returns a string decribing the sockets distribution */
+static char *getCoreDistString(Step_t *step)
+{
+    uint32_t dist = step->taskDist & SLURM_DIST_COREMASK;
+
+    if (dist & SLURM_DIST_UNKNOWN) return "unknown";
+    if (dist & SLURM_DIST_COREBLOCK) return "block";
+    if (dist & SLURM_DIST_CORECYCLIC) return "cyclic";
+    if (dist & SLURM_DIST_CORECFULL) return "fcyclic";
+
+    return "invalid";
+}
+
+/* sets the distributions to configured defaults if not set by the user */
+static void setDistributions(Step_t *step)
+{
+    /* warn and remove if strange bit set */
+    if (step->taskDist & SLURM_DIST_NO_LLLP) {
+	flog("WARNING: SLURM_DIST_NO_LLLP is set, removing not to break"
+		" distribution default configuration.\n");
+	step->taskDist &= ~SLURM_DIST_NO_LLLP;
+    }
+
+    if (step->taskDist & SLURM_DIST_UNKNOWN) {
+	step->taskDist &= ~SLURM_DIST_UNKNOWN;
+	step->taskDist |= defaultSocketDist;
+	step->taskDist |= getDefaultCoreDist(step->taskDist);
+
+	flog("Using all distribution defaults '%s:%s': 0x%02x\n",
+		getSocketDistString(step), getCoreDistString(step),
+		step->taskDist & (SLURM_DIST_SOCKMASK | SLURM_DIST_COREMASK));
+	return;
+    }
+
+    /* set socket distribution if the user did not specify it or gave '*' */
+    if (!(step->taskDist & SLURM_DIST_SOCKMASK)) {
+	step->taskDist |= defaultSocketDist;
+
+	flog("Using default socket level distribution '%s': 0x%04x\n",
+		getSocketDistString(step),
+		step->taskDist & SLURM_DIST_SOCKMASK);
+    } else {
+	flog("Using user defined socket level distribution '%s': 0x%04x\n",
+		getSocketDistString(step),
+		step->taskDist & SLURM_DIST_SOCKMASK);
+    }
+
+    if (step->taskDist & SLURM_DIST_COREMASK) {
+	/* core distribution already set by user */
+	flog("Using user defined core level distribution '%s': 0x%04x\n",
+		getCoreDistString(step),
+		step->taskDist & SLURM_DIST_COREMASK);
+	return;
+    }
+
+    step->taskDist |= getDefaultCoreDist(step->taskDist);
+
+    flog("Using default core level distribution '%s': 0x%04x\n",
+		getCoreDistString(step),
+		step->taskDist & SLURM_DIST_SOCKMASK);
+}
+
+/* initialization function to be called the very first */
+bool initPinning(void)
+{
+    const char *type = getConfValueC(&Config, "DEFAULT_CPU_BIND_TYPE");
+
+    if (!strcmp(type, "none"))         defaultCPUbindType = CPU_BIND_NONE;
+    else if (!strcmp(type, "rank"))    defaultCPUbindType = CPU_BIND_RANK;
+    else if (!strcmp(type, "threads")) defaultCPUbindType = CPU_BIND_TO_THREADS;
+    else if (!strcmp(type, "cores"))   defaultCPUbindType = CPU_BIND_TO_CORES;
+    else if (!strcmp(type, "sockets")) defaultCPUbindType = CPU_BIND_TO_SOCKETS;
+    else {
+	flog("Invalid value for DEFAULT_CPU_BIND in psslurm config: '%s'.\n",
+		type);
+	return false;
+    }
+
+    fdbg(PSSLURM_LOG_PART, "Using default cpu-bind '%s'\n", type);
+
+    const char *dist = getConfValueC(&Config, "DEFAULT_SOCKET_DIST");
+
+    if (!strcmp(dist, "block"))       defaultSocketDist = SLURM_DIST_SOCKBLOCK;
+    else if (!strcmp(dist, "cyclic")) defaultSocketDist = SLURM_DIST_SOCKCYCLIC;
+    else if (!strcmp(dist, "fcyclic")) defaultSocketDist = SLURM_DIST_SOCKCFULL;
+    else {
+	flog("Invalid value for DEFAULT_SOCKET_DIST in psslurm config:"
+		" '%s'.\n", dist);
+	return false;
+    }
+
+    fdbg(PSSLURM_LOG_PART, "Using default distribution on sockets: '%s'\n",
+	    dist);
+
+    dist = getConfValueC(&Config, "DEFAULT_CORE_DIST");
+
+    if (!strcmp(dist, "block"))       defaultCoreDist = SLURM_DIST_COREBLOCK;
+    else if (!strcmp(dist, "cyclic")) defaultCoreDist = SLURM_DIST_CORECYCLIC;
+    else if (!strcmp(dist, "fcyclic")) defaultCoreDist = SLURM_DIST_CORECFULL;
+    else if (!strcmp(dist, "inherit")) defaultCoreDist = 0;
+    else {
+	flog("Invalid value for DEFAULT_CORE_DIST in psslurm config:"
+		" '%s'.\n", dist);
+	return false;
+    }
+
+    fdbg(PSSLURM_LOG_PART, "Using default distribution on cores: '%s'\n",
+	    dist);
+
+    return true;
+}
+
+/* This is the entry point to the whole pinning stuff */
 bool setStepSlots(Step_t *step)
 {
     uint32_t node, lTID, tid, slotsSize, coreCount;
@@ -1129,6 +1294,16 @@ bool setStepSlots(Step_t *step)
 	    }
 	}
     }
+
+    /* set configured defaults for bind type and distributions */
+    fdbg(PSSLURM_LOG_PART, "Masks before assigning defaults:"
+	    " CpuBindType 0x%05x, TaskDist 0x%04x\n", step->cpuBindType,
+	    step->taskDist);
+    setCpuBindType(step);
+    setDistributions(step);
+    fdbg(PSSLURM_LOG_PART, "Masks after assigning defaults: "
+	    " CpuBindType 0x%05x, TaskDist 0x%04x\n",
+	    step->cpuBindType, step->taskDist);
 
     for (node=0; node < step->nrOfNodes; node++) {
 	thread = 0;
@@ -1718,11 +1893,11 @@ char *genCPUbindTypeString(Step_t *step)
     } else if (step->cpuBindType & CPU_BIND_LDMASK) {
 	string = "mask_ldom";
     } else if (step->cpuBindType & CPU_BIND_RANK) {
-	string = "ranks";
+	string = "rank";
     } else if (step->cpuBindType & CPU_BIND_LDRANK) {
 	string = "rank_ldom";
     } else {
-	string = "threads";
+	string = "invalid";
     }
     return string;
 }
