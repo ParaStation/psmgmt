@@ -531,7 +531,7 @@ plugins/psslurm/doc/psslurm-prologue.example \
 plugins/psslurm/doc/psslurm.conf.template \
 plugins/psslurm/src/bin/Makefile.am \
 plugins/psslurm/src/bin/Makefile.in \
-plugins/psslurm/src/bin/psslurmgetpin.c \
+plugins/psslurm/src/bin/psslurmgetbind.c \
 plugins/psslurm/src/common/Makefile.am \
 plugins/psslurm/src/common/Makefile.in \
 plugins/psslurm/src/common/slurmcommon.h \

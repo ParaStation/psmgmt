@@ -57,7 +57,7 @@ static void outline(enum output_level lvl, const char* format, ...) {
 }
 
 static void print_help() {
-    printf("Usage: psslurmgetpin <sockets> <coresPerSocket> <threadsPerCore>"
+    printf("Usage: psslurmgetbind <sockets> <coresPerSocket> <threadsPerCore>"
 	    " <options> : <srunOptions>\n"
 	    "\n"
 	    "Options:\n"

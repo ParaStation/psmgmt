@@ -31,19 +31,19 @@ AM_CPPFLAGS += -I$(top_srcdir)/bin/daemon -I$(srcdir)/../include \
 	       -I$(top_srcdir)/$(pspmi_dir)
 
 
-bin_PROGRAMS = psslurmgetpin
+bin_PROGRAMS = psslurmgetbind
 
-psslurmgetpin_SOURCES=\
-	psslurmgetpin.c
+psslurmgetbind_SOURCES=\
+	psslurmgetbind.c
 
-psslurmgetpin_CFLAGS=\
+psslurmgetbind_CFLAGS=\
 	$(AM_CFLAGS)
 
-psslurmgetpin_LDFLAGS=\
+psslurmgetbind_LDFLAGS=\
 	$(AM_LDFLAGS)\
 	$(NUMA_LIBS) -lm
 
-psslurmgetpin_LDADD=\
+psslurmgetbind_LDADD=\
 	$(top_builddir)/$(psslurm_dir)/psslurm/.libs/psslurm_la-psslurmpin.o\
 	$(top_builddir)/lib/plugincommon/.libs/pluginmalloc.o\
 	$(top_builddir)/lib/pscommon/.libs/pscpu.o
