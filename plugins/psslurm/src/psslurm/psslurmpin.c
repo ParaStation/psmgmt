@@ -1107,6 +1107,7 @@ static task_dist_states_t getDefaultCoreDist(uint32_t taskDist)
 {
     if (defaultCoreDist) return defaultCoreDist;
 
+    /* default core distribution is 'inherit' */
     if (taskDist & SLURM_DIST_SOCKBLOCK) return SLURM_DIST_COREBLOCK;
     if (taskDist & SLURM_DIST_SOCKCYCLIC) return SLURM_DIST_CORECYCLIC;
     if (taskDist & SLURM_DIST_SOCKCFULL) return SLURM_DIST_CORECFULL;
