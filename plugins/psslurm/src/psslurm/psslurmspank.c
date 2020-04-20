@@ -81,7 +81,13 @@ static void delSpankPlug(Spank_Plugin_t *sp)
 	sp->handle = NULL;
     }
     ufree(sp->path);
+
+    size_t i;
+    for (i=0; i<sp->argV.count; i++) {
+	ufree(sp->argV.strings[i]);
+    }
     strvDestroy(&sp->argV);
+
     list_del(&sp->next);
     ufree(sp);
 }

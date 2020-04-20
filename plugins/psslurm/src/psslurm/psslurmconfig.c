@@ -693,7 +693,7 @@ static bool parseSlurmPlugConf(char *key, char *value, const void *info)
 
 	char *args = tmp;
 	while (args) {
-	    strvAdd(&def->argV, args);
+	    strvAdd(&def->argV, ustrdup(args));
 	    mdbg(PSSLURM_LOG_SPANK, " args: '%s'", args);
 	    args = strtok_r(NULL, delimiters, &toksave);
 	}
