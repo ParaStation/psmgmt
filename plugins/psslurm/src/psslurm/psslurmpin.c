@@ -34,6 +34,8 @@
 #include "psslurmio.h"
 #include "psslurmfwcomm.h"
 
+#include "psenv.h"
+
 #include "psslurmpin.h"
 
 static cpu_bind_type_t defaultCPUbindType = 0;
@@ -1306,6 +1308,40 @@ bool setStepSlots(Step_t *step)
 	    " CpuBindType 0x%05x, TaskDist 0x%04x\n",
 	    step->cpuBindType, step->taskDist);
 
+    /* handle hints */
+    bool hint_compute_bound = false;
+    bool hint_memory_bound = false;
+    bool hint_nomultithread = false;
+
+    char *hint;
+    if ((hint = envGet(&step->env, "PSSLURM_HINT"))
+	    || (hint = envGet(&step->env, "SLURM_HINT"))) {
+	for (char *ptr = hint; *ptr != '\0'; ptr++) {
+	    if (!strncmp(ptr, "compute_bound", 13)
+		    && (ptr[13] == ',' || ptr[13] == '\0')) {
+		hint_compute_bound = true;
+		ptr+=13;
+		flog("Valid hint: compute_bound\n");
+	    }
+	    else if (!strncmp(ptr, "memory_bound", 12)
+		    && (ptr[12] == ',' || ptr[12] == '\0')) {
+		hint_memory_bound = true;
+		ptr+=12;
+		flog("Valid hint: memory_bound\n");
+	    }
+	    else if (!strncmp(ptr, "nomultithread", 13)
+		    && (ptr[13] == ',' || ptr[13] == '\0')) {
+		hint_nomultithread = true;
+		ptr+=13;
+		flog("Valid hint: nomultithread\n");
+	    }
+	    else {
+		flog("Invalid hint: '%s'\n", hint);
+		break;
+	    }
+	}
+    }
+
     for (node=0; node < step->nrOfNodes; node++) {
 	thread = 0;
 
@@ -1332,6 +1368,24 @@ bool setStepSlots(Step_t *step)
 	/* handle --distribution */
 	fillDistributionStrategies(step->taskDist, &pininfo);
 
+	/* current node's parameters */
+	nodeinfo_t nodeinfo = {
+	    .socketCount = cred->socketsPerNode[coreArrayIndex],
+	    .coresPerSocket = cred->coresPerSocket[coreArrayIndex],
+	    .threadsPerCore = threadsPerCore,
+	    .coreCount = coreCount,
+	    .threadCount = coreCount * threadsPerCore,
+	    .coreMap = coreMap + coreMapIndex
+	};
+
+	/* handle hint "nomultithreads" */
+	if (hint_nomultithread) {
+	    nodeinfo.threadsPerCore = 1;
+	    nodeinfo.threadCount = nodeinfo.coreCount;
+	    fdbg(PSSLURM_LOG_PART, "hint 'nomultithread' set,"
+		    " setting nodeinfo.threadsPerCore = 1\n");
+	}
+
 	/* set node and cpuset for every task on this node */
 	for (lTID=0; lTID < step->globalTaskIdsLen[node]; lTID++) {
 
@@ -1351,24 +1405,6 @@ bool setStepSlots(Step_t *step)
 
 	    /* task parameter */
 	    uint16_t threadsPerTask = step->tpp;
-
-	    /* current node's parameters */
-	    nodeinfo_t nodeinfo = {
-		.socketCount = cred->socketsPerNode[coreArrayIndex],
-		.coresPerSocket = cred->coresPerSocket[coreArrayIndex],
-		.threadsPerCore = threadsPerCore,
-		.coreCount = coreCount,
-		.threadCount = coreCount * threadsPerCore,
-		.coreMap = coreMap + coreMapIndex
-	    };
-
-	    /* handle --hint=nomultithread */
-	    if (step->cpuBindType & CPU_BIND_ONE_THREAD_PER_CORE) {
-		nodeinfo.threadsPerCore = 1;
-		nodeinfo.threadCount = nodeinfo.coreCount;
-		mdbg(PSSLURM_LOG_PART, "%s: CPU_BIND_ONE_THREAD_PER_CORE set,"
-			" setting nodeinfo.threadsPerCore = 1\n", __func__);
-	    }
 
 	    /* calc CPUset */
 	    setCPUset(&slots[tid].CPUset, step->cpuBindType, step->cpuBind,

@@ -509,4 +509,9 @@ void fwCMD_printMessage(Step_t *step, char *plMsg, uint32_t msgLen,
 		        uint8_t type, int32_t rank) {
     return;
 }
+
+char *envGet(env_t *env, const char *name)
+{
+    return NULL;
+}
 /* vim: set ts=8 sw=4 tw=0 sts=4 noet :*/
