@@ -284,7 +284,7 @@ am__DIST_COMMON = $(srcdir)/Makefile.in $(top_srcdir)/common.am \
 DISTFILES = $(DIST_COMMON) $(DIST_SOURCES) $(TEXINFOS) $(EXTRA_DIST)
 ACLOCAL = @ACLOCAL@
 AMTAR = @AMTAR@
-AM_CFLAGS = @AM_CFLAGS@ -fcommon -std=gnu99
+AM_CFLAGS = @AM_CFLAGS@ -std=gnu99 -fcommon
 AM_DEFAULT_VERBOSITY = @AM_DEFAULT_VERBOSITY@
 AM_LDFLAGS = @AM_LDFLAGS@ -avoid-version -module
 AR = @AR@
