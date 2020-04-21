@@ -1111,59 +1111,70 @@ static void setCpuBindType(uint16_t *cpuBindType)
 
 /* return the default core dist which might be "inherit" and so dependent on
  * the current socket distribution. */
-static task_dist_states_t getDefaultCoreDist(uint32_t taskDist)
+static task_dist_states_t getDefaultCoreDist(task_dist_states_t taskDist)
 {
     if (defaultCoreDist) return defaultCoreDist;
 
     /* default core distribution is 'inherit' */
-    if (taskDist & SLURM_DIST_SOCKBLOCK) return SLURM_DIST_COREBLOCK;
-    if (taskDist & SLURM_DIST_SOCKCYCLIC) return SLURM_DIST_CORECYCLIC;
-    if (taskDist & SLURM_DIST_SOCKCFULL) return SLURM_DIST_CORECFULL;
-
-    flog("WARNING: Default core distribution cannot be determined.\n");
-    return SLURM_DIST_CORECYCLIC;
+    switch(taskDist) {
+	case SLURM_DIST_SOCKBLOCK:
+	    return SLURM_DIST_COREBLOCK;
+	case SLURM_DIST_SOCKCYCLIC:
+	    return SLURM_DIST_CORECYCLIC;
+	case SLURM_DIST_SOCKCFULL:
+	    return SLURM_DIST_CORECFULL;
+	default:
+	    flog("WARNING: Default core distribution cannot be determined.\n");
+	    return SLURM_DIST_CORECYCLIC;
+    }
 }
 
 /* returns a string decribing the sockets distribution */
-static char *getSocketDistString(uint32_t taskDist)
+static char *getSocketDistString(task_dist_states_t taskDist)
 {
-    uint32_t dist = taskDist & SLURM_DIST_SOCKMASK;
-
-    if (dist & SLURM_DIST_UNKNOWN) return "unknown";
-    if (dist & SLURM_DIST_SOCKBLOCK) return "block";
-    if (dist & SLURM_DIST_SOCKCYCLIC) return "cyclic";
-    if (dist & SLURM_DIST_SOCKCFULL) return "fcyclic";
-
-    return "invalid";
+    switch(taskDist & SLURM_DIST_SOCKMASK) {
+	case SLURM_DIST_UNKNOWN:
+	    return "unknown";
+	case SLURM_DIST_SOCKBLOCK:
+	    return "block";
+	case SLURM_DIST_SOCKCYCLIC:
+	    return "cyclic";
+	case SLURM_DIST_SOCKCFULL:
+	    return "fcyclic";
+	default:
+	    return "invalid";
+    }
 }
 
 /* returns a string decribing the sockets distribution */
-static char *getCoreDistString(uint32_t taskDist)
+static char *getCoreDistString(task_dist_states_t taskDist)
 {
-    uint32_t dist = taskDist & SLURM_DIST_COREMASK;
-
-    if (dist & SLURM_DIST_UNKNOWN) return "unknown";
-    if (dist & SLURM_DIST_COREBLOCK) return "block";
-    if (dist & SLURM_DIST_CORECYCLIC) return "cyclic";
-    if (dist & SLURM_DIST_CORECFULL) return "fcyclic";
-
-    return "invalid";
+    switch(taskDist & SLURM_DIST_COREMASK) {
+	case SLURM_DIST_UNKNOWN:
+	    return "unknown";
+	case SLURM_DIST_COREBLOCK:
+	    return "block";
+	case SLURM_DIST_CORECYCLIC:
+	    return "cyclic";
+	case SLURM_DIST_CORECFULL:
+	    return "fcyclic";
+	default:
+	    return "invalid";
+    }
 }
 
 /* sets the distributions to configured defaults if not set by the user */
-static void setDistributions(uint32_t *taskDist)
+static void setDistributions(task_dist_states_t *taskDist)
 {
     /* warn and remove if strange bit set */
-    if (*taskDist & SLURM_DIST_NO_LLLP) {
+    if (*taskDist == SLURM_DIST_NO_LLLP) {
 	flog("WARNING: SLURM_DIST_NO_LLLP is set, removing not to break"
 		" distribution default configuration.\n");
 	*taskDist &= ~SLURM_DIST_NO_LLLP;
     }
 
-    if (*taskDist & SLURM_DIST_UNKNOWN) {
-	*taskDist &= ~SLURM_DIST_UNKNOWN;
-	*taskDist |= defaultSocketDist;
-	*taskDist |= getDefaultCoreDist(*taskDist);
+    if (*taskDist == SLURM_DIST_UNKNOWN) {
+	*taskDist = defaultSocketDist | getDefaultCoreDist(*taskDist);
 
 	flog("Using all distribution defaults '%s:%s': 0x%02x\n",
 		getSocketDistString(*taskDist), getCoreDistString(*taskDist),

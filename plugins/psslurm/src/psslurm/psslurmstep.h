@@ -58,7 +58,7 @@ typedef struct {
     char *slurmHosts;		/**< Slurm compressed host-list (SLURM_NODELIST) */
     uint32_t jobMemLimit;	/**< memory limit of job */
     uint32_t stepMemLimit;	/**< memory limit of step */
-    uint32_t taskDist;		/**< task distribution (e.g. cyclic) */
+    task_dist_states_t taskDist;/**< task distribution (e.g. cyclic) */
     uint16_t jobCoreSpec;	/**< count of specialized cores */
     uint16_t *tasksToLaunch;	/**< number of tasks to launch (per node) */
     uint32_t **globalTaskIds;	/**< step global Slurm task IDs (per node) */
