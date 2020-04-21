@@ -145,7 +145,7 @@ static bool readCpuBindType(char *ptr, uint16_t *cpuBindType,
 	*cpuBindType = CPU_BIND_RANK;
 	*cpuBindString = NULL;
     }
-    else if (strcmp(ptr, "ldrank") == 0) {
+    else if (strcmp(ptr, "rank_ldom") == 0) {
 	*cpuBindType = CPU_BIND_LDRANK;
 	*cpuBindString = NULL;
     }
