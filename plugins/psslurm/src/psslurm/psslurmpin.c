@@ -42,6 +42,12 @@ static cpu_bind_type_t defaultCPUbindType = 0;
 static task_dist_states_t defaultSocketDist = 0;
 static task_dist_states_t defaultCoreDist = 0;
 
+struct {
+    bool compute_bound;
+    bool memory_bound;
+    bool nomultithread;
+} hints = { false, false, false };
+
 enum thread_iter_strategy {
     CYCLECORES,              /* core, socket, thread:  1 2  3 4   5 6  7 8 */
     CYCLESOCKETS_CYCLECORES, /* socket, core, thread:  1 3  2 4   5 7  6 8 */
@@ -1241,6 +1247,38 @@ bool initPinning(void)
     return true;
 }
 
+/* read environment and fill global hints struct */
+static void fillHints(env_t *env) {
+    char *hint;
+    if ((hint = envGet(env, "PSSLURM_HINT"))
+	    || (hint = envGet(env, "SLURM_HINT"))) {
+	for (char *ptr = hint; *ptr != '\0'; ptr++) {
+	    if (!strncmp(ptr, "compute_bound", 13)
+		    && (ptr[13] == ',' || ptr[13] == '\0')) {
+		hints.compute_bound = true;
+		ptr+=13;
+		flog("Valid hint: compute_bound\n");
+	    }
+	    else if (!strncmp(ptr, "memory_bound", 12)
+		    && (ptr[12] == ',' || ptr[12] == '\0')) {
+		hints.memory_bound = true;
+		ptr+=12;
+		flog("Valid hint: memory_bound\n");
+	    }
+	    else if (!strncmp(ptr, "nomultithread", 13)
+		    && (ptr[13] == ',' || ptr[13] == '\0')) {
+		hints.nomultithread = true;
+		ptr+=13;
+		flog("Valid hint: nomultithread\n");
+	    }
+	    else {
+		flog("Invalid hint: '%s'\n", hint);
+		break;
+	    }
+	}
+    }
+}
+
 /* This is the entry point to the whole pinning stuff */
 bool setStepSlots(Step_t *step)
 {
@@ -1307,38 +1345,7 @@ bool setStepSlots(Step_t *step)
 	    step->cpuBindType, step->taskDist);
 
     /* handle hints */
-    bool hint_compute_bound = false;
-    bool hint_memory_bound = false;
-    bool hint_nomultithread = false;
-
-    char *hint;
-    if ((hint = envGet(&step->env, "PSSLURM_HINT"))
-	    || (hint = envGet(&step->env, "SLURM_HINT"))) {
-	for (char *ptr = hint; *ptr != '\0'; ptr++) {
-	    if (!strncmp(ptr, "compute_bound", 13)
-		    && (ptr[13] == ',' || ptr[13] == '\0')) {
-		hint_compute_bound = true;
-		ptr+=13;
-		flog("Valid hint: compute_bound\n");
-	    }
-	    else if (!strncmp(ptr, "memory_bound", 12)
-		    && (ptr[12] == ',' || ptr[12] == '\0')) {
-		hint_memory_bound = true;
-		ptr+=12;
-		flog("Valid hint: memory_bound\n");
-	    }
-	    else if (!strncmp(ptr, "nomultithread", 13)
-		    && (ptr[13] == ',' || ptr[13] == '\0')) {
-		hint_nomultithread = true;
-		ptr+=13;
-		flog("Valid hint: nomultithread\n");
-	    }
-	    else {
-		flog("Invalid hint: '%s'\n", hint);
-		break;
-	    }
-	}
-    }
+    fillHints(&step->env);
 
     for (node=0; node < step->nrOfNodes; node++) {
 	thread = 0;
@@ -1377,7 +1384,7 @@ bool setStepSlots(Step_t *step)
 	};
 
 	/* handle hint "nomultithreads" */
-	if (hint_nomultithread) {
+	if (hints.nomultithread) {
 	    nodeinfo.threadsPerCore = 1;
 	    nodeinfo.threadCount = nodeinfo.coreCount;
 	    fdbg(PSSLURM_LOG_PART, "hint 'nomultithread' set,"
@@ -2064,11 +2071,12 @@ void test_thread_iterator(uint16_t socketCount, uint16_t coresPerSocket,
 
 
 /*
- * this function in for testing the static functions setCPUset()
+ * this function is for testing the static function setCPUset()
  */
 void test_pinning(uint16_t cpuBindType,	char *cpuBindString, uint32_t taskDist,
 	uint16_t socketCount, uint16_t coresPerSocket, uint16_t threadsPerCore,
-	uint32_t tasksPerNode, uint16_t threadsPerTask, bool humanreadable)
+	uint32_t tasksPerNode, uint16_t threadsPerTask, env_t *env,
+	bool humanreadable)
 {
     uint32_t nodeid = 0;  /* only used for debugging output */
 
@@ -2096,12 +2104,14 @@ void test_pinning(uint16_t cpuBindType,	char *cpuBindString, uint32_t taskDist,
     setCpuBindType(&cpuBindType);
     setDistributions(&taskDist);
 
-    /* handle --hint=nomultithread */
-    if (cpuBindType & CPU_BIND_ONE_THREAD_PER_CORE) {
+    fillHints(env);
+
+    /* handle hint "nomultithreads" */
+    if (hints.nomultithread) {
 	nodeinfo.threadsPerCore = 1;
 	nodeinfo.threadCount = nodeinfo.coreCount;
-	mdbg(PSSLURM_LOG_PART, "%s: CPU_BIND_ONE_THREAD_PER_CORE set,"
-		" setting nodeinfo.threadsPerCore = 1\n", __func__);
+	fdbg(PSSLURM_LOG_PART, "hint 'nomultithread' set,"
+		" setting nodeinfo.threadsPerCore = 1\n");
     }
 
     pininfo_t pininfo;
@@ -2135,7 +2145,7 @@ void test_pinning(uint16_t cpuBindType,	char *cpuBindString, uint32_t taskDist,
 	    }
 	}
 	else {
-	    printf("%s", PSCPU_print_part(CPUset, nodeinfo.threadCount/8));
+	    printf("%s", PSCPU_print_part(CPUset, threadCount/8));
 	}
 	printf("\n");
 

@@ -430,7 +430,10 @@ int main(int argc, char *argv[])
 	}
     }
 
-    if (nomultithread) cpuBindType |= CPU_BIND_ONE_THREAD_PER_CORE;
+    /* creating env containing hints */
+    env_t env;
+    envInit(&env);
+    if (nomultithread) envSet(&env, "PSSLURM_HINT", "nomultithread");
 
     if (tasksPerNode == 0) {
 	outline(ERROROUT, "Invalid number of tasks per node.");
@@ -456,7 +459,7 @@ int main(int argc, char *argv[])
 
     test_pinning(cpuBindType, cpuBindString, taskDist, socketCount,
 	    coresPerSocket, threadsPerCore, tasksPerNode, threadsPerTask,
-	    humanreadable);
+	    &env, humanreadable);
 }
 
 
@@ -542,10 +545,6 @@ PSnodes_ID_t PSC_getMyID(void) {
 void fwCMD_printMessage(Step_t *step, char *plMsg, uint32_t msgLen,
 		        uint8_t type, int32_t rank) {
     return;
-}
-
-char *envGet(env_t *env, const char *name) {
-    return NULL;
 }
 
 char *trim_quotes(char *string) {

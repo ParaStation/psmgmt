@@ -11,6 +11,7 @@
 #define __PS_SLURM_PIN
 
 #include "pstask.h"
+#include "psenv.h"
 
 #include "psslurmstep.h"
 #include "psslurmtasks.h"
@@ -91,8 +92,25 @@ char *genMemBindString(Step_t *step);
 void test_thread_iterator(uint16_t socketCount, uint16_t coresPerSocket,
 	uint16_t threadsPerCore, uint8_t strategy);
 
+/**
+ * @brief Unit test function calculating and printing the pinning
+ *
+ * This function is especially used by the tool psslurmgetbind.
+ *
+ * @param cpuBindType    bind type bit field
+ * @param cpuBindString  bind string
+ * @param taskDist       distribution bit field
+ * @param socketCount    number of sockets
+ * @param coresPerSocket number of cores per socket
+ * @param threadsPerCore number of hardware threads per core
+ * @param tasksPerNode   number of tasks per node
+ * @param threadsPerTask number of threads per task
+ * @param env            environment containing hint variables
+ * @param humanreadable  write output more human readable (no hex masks)
+ */
 void test_pinning(uint16_t cpuBindType,	char *cpuBindString, uint32_t taskDist,
 	uint16_t socketCount, uint16_t coresPerSocket, uint16_t threadsPerCore,
-	uint32_t tasksPerNode, uint16_t threadsPerTask, bool humanreadable);
+	uint32_t tasksPerNode, uint16_t threadsPerTask, env_t *env,
+	bool humanreadable);
 #endif  /* __PS_SLURM_PIN */
 /* vim: set ts=8 sw=4 tw=0 sts=4 noet :*/
