@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2019 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2020 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -304,8 +304,11 @@ static void msg_INFOREQUEST(DDTypedBufferMsg_t *inmsg)
 		    break;
 		case PSP_INFO_LIST_LOAD:
 		    status = getStatusInfo(node);
-		    size = 3 * sizeof(float);
-		    memcpy(msg.buf + size * idx, status.load.load, size);
+		    float loadStat[3] = {status.load.load[0],
+					 status.load.load[1],
+					 status.load.load[2]};
+		    size = sizeof(loadStat);
+		    memcpy(msg.buf + size * idx, loadStat, size);
 		    break;
 		case PSP_INFO_LIST_MEMORY:
 		    memory = getMemoryInfo(node);
