@@ -57,9 +57,26 @@ void verboseMemPinningOutput(Step_t *step, PStask_t *task);
 void doMemBind(Step_t *step, PStask_t *task);
 
 /**
- * @doctodo
+ * @brief Generate a string describing the cpu bind type
+ *
+ * Supported types:
+ *  - none
+ *  - boards
+ *  - sockets
+ *  - cores
+ *  - threads
+ *  - map_cpu
+ *  - mask_cpu
+ *  - map_ldom
+ *  - mask_ldom
+ *  - rank
+ *  - rank_ldom
+ *
+ * @param cpuBindType cpu bind type bit field (usually found in step)
+ *
+ * @return String form of the first type detected or "invalid"
  */
-char *genCPUbindTypeString(Step_t *step);
+char *genCPUbindTypeString(uint16_t cpuBindType);
 
 /**
  * @doctodo

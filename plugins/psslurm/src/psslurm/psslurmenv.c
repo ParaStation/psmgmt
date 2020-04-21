@@ -348,7 +348,7 @@ static void setBindingEnvVars(Step_t *step)
 	setenv("SBATCH_CPU_BIND_VERBOSE", "quiet", 1);
     }
 
-    val = genCPUbindTypeString(step);
+    val = genCPUbindTypeString(step->cpuBindType);
     setenv("SLURM_CPU_BIND_TYPE", val, 1);
     setenv("SBATCH_CPU_BIND_TYPE", val, 1);
 

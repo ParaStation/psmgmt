@@ -1083,24 +1083,24 @@ static void setCPUset(PSCPU_set_t *CPUset, uint16_t cpuBindType,
 }
 
 /* sets the cpu bind type to configured default if not set by the user */
-static void setCpuBindType(Step_t *step)
+static void setCpuBindType(uint16_t *cpuBindType)
 {
     uint16_t anyType = CPU_BIND_TO_THREADS | CPU_BIND_TO_CORES
 	    | CPU_BIND_TO_SOCKETS | CPU_BIND_TO_LDOMS | CPU_BIND_TO_BOARDS
 	    | CPU_BIND_NONE | CPU_BIND_RANK | CPU_BIND_MAP | CPU_BIND_MASK
 	    | CPU_BIND_LDRANK | CPU_BIND_LDMAP | CPU_BIND_LDMASK;
 
-    if (step->cpuBindType & anyType) {
+    if (*cpuBindType & anyType) {
 	/* cpu-bind option used by the user */
 	flog("Using user defined cpu-bind '%s': 0x%04x\n",
-		genCPUbindTypeString(step), step->cpuBindType);
+		genCPUbindTypeString(*cpuBindType), *cpuBindType);
 	return;
     }
 
-    step->cpuBindType |= defaultCPUbindType;
+    *cpuBindType |= defaultCPUbindType;
 
     flog("Using default cpu-bind '%s': 0x%04x\n",
-	    genCPUbindTypeString(step), step->cpuBindType);
+	    genCPUbindTypeString(*cpuBindType), *cpuBindType);
 }
 
 /* return the default core dist which might be "inherit" and so dependent on
@@ -1119,9 +1119,9 @@ static task_dist_states_t getDefaultCoreDist(uint32_t taskDist)
 }
 
 /* returns a string decribing the sockets distribution */
-static char *getSocketDistString(Step_t *step)
+static char *getSocketDistString(uint32_t taskDist)
 {
-    uint32_t dist = step->taskDist & SLURM_DIST_SOCKMASK;
+    uint32_t dist = taskDist & SLURM_DIST_SOCKMASK;
 
     if (dist & SLURM_DIST_UNKNOWN) return "unknown";
     if (dist & SLURM_DIST_SOCKBLOCK) return "block";
@@ -1132,9 +1132,9 @@ static char *getSocketDistString(Step_t *step)
 }
 
 /* returns a string decribing the sockets distribution */
-static char *getCoreDistString(Step_t *step)
+static char *getCoreDistString(uint32_t taskDist)
 {
-    uint32_t dist = step->taskDist & SLURM_DIST_COREMASK;
+    uint32_t dist = taskDist & SLURM_DIST_COREMASK;
 
     if (dist & SLURM_DIST_UNKNOWN) return "unknown";
     if (dist & SLURM_DIST_COREBLOCK) return "block";
@@ -1145,52 +1145,50 @@ static char *getCoreDistString(Step_t *step)
 }
 
 /* sets the distributions to configured defaults if not set by the user */
-static void setDistributions(Step_t *step)
+static void setDistributions(uint32_t *taskDist)
 {
     /* warn and remove if strange bit set */
-    if (step->taskDist & SLURM_DIST_NO_LLLP) {
+    if (*taskDist & SLURM_DIST_NO_LLLP) {
 	flog("WARNING: SLURM_DIST_NO_LLLP is set, removing not to break"
 		" distribution default configuration.\n");
-	step->taskDist &= ~SLURM_DIST_NO_LLLP;
+	*taskDist &= ~SLURM_DIST_NO_LLLP;
     }
 
-    if (step->taskDist & SLURM_DIST_UNKNOWN) {
-	step->taskDist &= ~SLURM_DIST_UNKNOWN;
-	step->taskDist |= defaultSocketDist;
-	step->taskDist |= getDefaultCoreDist(step->taskDist);
+    if (*taskDist & SLURM_DIST_UNKNOWN) {
+	*taskDist &= ~SLURM_DIST_UNKNOWN;
+	*taskDist |= defaultSocketDist;
+	*taskDist |= getDefaultCoreDist(*taskDist);
 
 	flog("Using all distribution defaults '%s:%s': 0x%02x\n",
-		getSocketDistString(step), getCoreDistString(step),
-		step->taskDist & (SLURM_DIST_SOCKMASK | SLURM_DIST_COREMASK));
+		getSocketDistString(*taskDist), getCoreDistString(*taskDist),
+		*taskDist & (SLURM_DIST_SOCKMASK | SLURM_DIST_COREMASK));
 	return;
     }
 
     /* set socket distribution if the user did not specify it or gave '*' */
-    if (!(step->taskDist & SLURM_DIST_SOCKMASK)) {
-	step->taskDist |= defaultSocketDist;
+    if (!(*taskDist & SLURM_DIST_SOCKMASK)) {
+	*taskDist |= defaultSocketDist;
 
 	flog("Using default socket level distribution '%s': 0x%04x\n",
-		getSocketDistString(step),
-		step->taskDist & SLURM_DIST_SOCKMASK);
+		getSocketDistString(*taskDist),
+		*taskDist & SLURM_DIST_SOCKMASK);
     } else {
 	flog("Using user defined socket level distribution '%s': 0x%04x\n",
-		getSocketDistString(step),
-		step->taskDist & SLURM_DIST_SOCKMASK);
+		getSocketDistString(*taskDist),
+		*taskDist & SLURM_DIST_SOCKMASK);
     }
 
-    if (step->taskDist & SLURM_DIST_COREMASK) {
+    if (*taskDist & SLURM_DIST_COREMASK) {
 	/* core distribution already set by user */
 	flog("Using user defined core level distribution '%s': 0x%04x\n",
-		getCoreDistString(step),
-		step->taskDist & SLURM_DIST_COREMASK);
+		getCoreDistString(*taskDist), *taskDist & SLURM_DIST_COREMASK);
 	return;
     }
 
-    step->taskDist |= getDefaultCoreDist(step->taskDist);
+    *taskDist |= getDefaultCoreDist(*taskDist);
 
     flog("Using default core level distribution '%s': 0x%04x\n",
-		getCoreDistString(step),
-		step->taskDist & SLURM_DIST_SOCKMASK);
+		getCoreDistString(*taskDist), *taskDist & SLURM_DIST_SOCKMASK);
 }
 
 /* initialization function to be called the very first */
@@ -1302,8 +1300,8 @@ bool setStepSlots(Step_t *step)
     fdbg(PSSLURM_LOG_PART, "Masks before assigning defaults:"
 	    " CpuBindType 0x%05x, TaskDist 0x%04x\n", step->cpuBindType,
 	    step->taskDist);
-    setCpuBindType(step);
-    setDistributions(step);
+    setCpuBindType(&step->cpuBindType);
+    setDistributions(&step->taskDist);
     fdbg(PSSLURM_LOG_PART, "Masks after assigning defaults: "
 	    " CpuBindType 0x%05x, TaskDist 0x%04x\n",
 	    step->cpuBindType, step->taskDist);
@@ -1907,31 +1905,31 @@ void doMemBind(Step_t *step, PStask_t *task)
 /* create the string to be set as SLURM_CPU_BIND_TYPE
  * we do not set the same as vanilla slurm here but a string
  * describing the pinning we actually do */
-char *genCPUbindTypeString(Step_t *step)
+char *genCPUbindTypeString(uint16_t cpuBindType)
 {
     char *string;
 
-    if (step->cpuBindType & CPU_BIND_NONE) {
+    if (cpuBindType & CPU_BIND_NONE) {
 	string = "none";
-    } else if (step->cpuBindType & CPU_BIND_TO_BOARDS) {
+    } else if (cpuBindType & CPU_BIND_TO_BOARDS) {
 	string = "boards";
-    } else if (step->cpuBindType & (CPU_BIND_TO_SOCKETS | CPU_BIND_TO_LDOMS)) {
+    } else if (cpuBindType & (CPU_BIND_TO_SOCKETS | CPU_BIND_TO_LDOMS)) {
 	string = "sockets";
-    } else if (step->cpuBindType & (CPU_BIND_TO_CORES)) {
+    } else if (cpuBindType & (CPU_BIND_TO_CORES)) {
 	string = "cores";
-    } else if (step->cpuBindType & (CPU_BIND_TO_THREADS)) {
+    } else if (cpuBindType & (CPU_BIND_TO_THREADS)) {
 	string = "threads";
-    } else if (step->cpuBindType & CPU_BIND_MAP) {
+    } else if (cpuBindType & CPU_BIND_MAP) {
 	string = "map_cpu";
-    } else if (step->cpuBindType & CPU_BIND_MASK) {
+    } else if (cpuBindType & CPU_BIND_MASK) {
 	string = "mask_cpu";
-    } else if (step->cpuBindType & CPU_BIND_LDMAP) {
+    } else if (cpuBindType & CPU_BIND_LDMAP) {
 	string = "map_ldom";
-    } else if (step->cpuBindType & CPU_BIND_LDMASK) {
+    } else if (cpuBindType & CPU_BIND_LDMASK) {
 	string = "mask_ldom";
-    } else if (step->cpuBindType & CPU_BIND_RANK) {
+    } else if (cpuBindType & CPU_BIND_RANK) {
 	string = "rank";
-    } else if (step->cpuBindType & CPU_BIND_LDRANK) {
+    } else if (cpuBindType & CPU_BIND_LDRANK) {
 	string = "rank_ldom";
     } else {
 	string = "invalid";
@@ -1959,7 +1957,7 @@ char *genCPUbindString(Step_t *step)
     *(string+len) = ',';
     len++;
 
-    tmp = genCPUbindTypeString(step);
+    tmp = genCPUbindTypeString(step->cpuBindType);
     strcpy(string+len, tmp);
     len += strlen(tmp);
 
@@ -2088,6 +2086,15 @@ void test_pinning(uint16_t cpuBindType,	char *cpuBindString, uint32_t taskDist,
 	.threadCount = threadCount,
 	.coreMap = coreMap
     };
+
+    if(!initPinning()) {
+	flog("Pinning initialization failed!");
+	return;
+    }
+
+    /* get defaults from config */
+    setCpuBindType(&cpuBindType);
+    setDistributions(&taskDist);
 
     /* handle --hint=nomultithread */
     if (cpuBindType & CPU_BIND_ONE_THREAD_PER_CORE) {

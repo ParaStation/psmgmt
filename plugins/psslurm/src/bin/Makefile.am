@@ -36,6 +36,10 @@ bin_PROGRAMS = psslurmgetbind
 psslurmgetbind_SOURCES=\
 	psslurmgetbind.c
 
+psslurmgetbind_CPPFLAGS=\
+	$(AM_CPPFLAGS)\
+	-DPLUGINDIR=\"$(plugindir)\"
+
 psslurmgetbind_CFLAGS=\
 	$(AM_CFLAGS)
 
@@ -46,4 +50,5 @@ psslurmgetbind_LDFLAGS=\
 psslurmgetbind_LDADD=\
 	$(top_builddir)/$(psslurm_dir)/psslurm/.libs/psslurm_la-psslurmpin.o\
 	$(top_builddir)/lib/plugincommon/.libs/pluginmalloc.o\
-	$(top_builddir)/lib/pscommon/.libs/pscpu.o
+	$(top_builddir)/lib/pscommon/.libs/pscpu.o\
+	$(top_builddir)/lib/plugincommon/.libs/pluginconfig.o

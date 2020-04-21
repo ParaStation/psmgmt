@@ -20,10 +20,10 @@
 
 #include "psnodes.h" /* typedef of PSnodes_ID_t for stubs */
 
+#include "pluginconfig.h" /* read configuration file */
+
 #include "list.h"
 typedef list_t Config_t;
-
-Config_t Config = LIST_HEAD_INIT(Config); /* fake */
 
 static int verbosity = 0;
 static bool humanreadable = false;
@@ -236,6 +236,39 @@ static bool readDistribution(char *ptr, uint32_t *taskDist) {
     return true;
 }
 
+#define PSSLURM_CONFIG_FILE  PLUGINDIR "/psslurm.conf"
+
+const ConfDef_t confDef[] =
+{
+    { "DEFAULT_CPU_BIND_TYPE", 0,
+	"string",
+	"threads",
+	"Default cpu-bind type used for pinning"
+	    " (none|rank|threads|cores|sockets)" },
+    { "DEFAULT_SOCKET_DIST", 0,
+	"string",
+	"cyclic",
+	"Default to use as distribution over sockets"
+	    " (cyclic|block|fcyclic)" },
+    { "DEFAULT_CORE_DIST", 0,
+	"string",
+	"inherit",
+	"Default to use as distribution over sockets"
+	    " (inherit|block|cyclic|fcyclic)" },
+    { NULL, 0, NULL, NULL, NULL },
+};
+
+Config_t Config = LIST_HEAD_INIT(Config);
+
+bool readConfigFile(void) {
+
+    /* parse psslurm config file */
+    if (parseConfigFile(PSSLURM_CONFIG_FILE, &Config, false) < 0) return false;
+    setConfigDefaults(&Config, confDef);
+
+    return true;
+}
+
 int main(int argc, char *argv[])
 {
 
@@ -416,6 +449,11 @@ int main(int argc, char *argv[])
     outline(INFOOUT, "taskDist = 0x%X", taskDist);
     outline(INFOOUT, "");
 
+    if (!readConfigFile()) {
+	outline(ERROROUT, "Error reading psslurm.conf.");
+	return -1;
+    }
+
     test_pinning(cpuBindType, cpuBindString, taskDist, socketCount,
 	    coresPerSocket, threadsPerCore, tasksPerNode, threadsPerTask,
 	    humanreadable);
@@ -497,10 +535,6 @@ pid_t PSC_getPID(PStask_ID_t tid) {
     return 0;
 }
 
-char *getConfValueC(Config_t *conf, char *key) {
-    return key;
-}
-
 PSnodes_ID_t PSC_getMyID(void) {
     return 0;
 }
@@ -510,8 +544,29 @@ void fwCMD_printMessage(Step_t *step, char *plMsg, uint32_t msgLen,
     return;
 }
 
-char *envGet(env_t *env, const char *name)
-{
+char *envGet(env_t *env, const char *name) {
     return NULL;
+}
+
+char *trim_quotes(char *string) {
+    return string;
+}
+
+char *trim(char *string) {
+    if (!string) return NULL;
+
+    /* remove leading whitespaces */
+    while (string[0] == ' ') {
+	string++;
+    }
+
+    /* remove trailing whitespaces */
+    size_t len = strlen(string);
+    while (len >0 && (string[len-1] == ' ' || string[len-1] == '\n')) {
+	string[len-1] = '\0';
+	len--;
+    }
+
+    return string;
 }
 /* vim: set ts=8 sw=4 tw=0 sts=4 noet :*/

@@ -128,14 +128,16 @@ am_psslurmgetbind_OBJECTS = psslurmgetbind-psslurmgetbind.$(OBJEXT)
 psslurmgetbind_OBJECTS = $(am_psslurmgetbind_OBJECTS)
 psslurmgetbind_DEPENDENCIES = $(top_builddir)/$(psslurm_dir)/psslurm/.libs/psslurm_la-psslurmpin.o \
 	$(top_builddir)/lib/plugincommon/.libs/pluginmalloc.o \
-	$(top_builddir)/lib/pscommon/.libs/pscpu.o
+	$(top_builddir)/lib/pscommon/.libs/pscpu.o \
+	$(top_builddir)/lib/plugincommon/.libs/pluginconfig.o
 AM_V_lt = $(am__v_lt_@AM_V@)
 am__v_lt_ = $(am__v_lt_@AM_DEFAULT_V@)
 am__v_lt_0 = --silent
 am__v_lt_1 = 
-psslurmgetbind_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
-	$(LIBTOOLFLAGS) --mode=link $(CCLD) $(psslurmgetbind_CFLAGS) \
-	$(CFLAGS) $(psslurmgetbind_LDFLAGS) $(LDFLAGS) -o $@
+psslurmgetbind_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC \
+	$(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=link $(CCLD) \
+	$(psslurmgetbind_CFLAGS) $(CFLAGS) $(psslurmgetbind_LDFLAGS) \
+	$(LDFLAGS) -o $@
 AM_V_P = $(am__v_P_@AM_V@)
 am__v_P_ = $(am__v_P_@AM_DEFAULT_V@)
 am__v_P_0 = false
@@ -228,6 +230,7 @@ EGREP = @EGREP@
 EXEEXT = @EXEEXT@
 FGREP = @FGREP@
 GREP = @GREP@
+HWLOC_LIBS = @HWLOC_LIBS@
 INSTALL = @INSTALL@
 INSTALL_DATA = @INSTALL_DATA@
 INSTALL_PROGRAM = @INSTALL_PROGRAM@
@@ -393,6 +396,10 @@ pspmi_dir := plugins/pspmi
 psslurmgetbind_SOURCES = \
 	psslurmgetbind.c
 
+psslurmgetbind_CPPFLAGS = \
+	$(AM_CPPFLAGS)\
+	-DPLUGINDIR=\"$(plugindir)\"
+
 psslurmgetbind_CFLAGS = \
 	$(AM_CFLAGS)
 
@@ -403,7 +410,8 @@ psslurmgetbind_LDFLAGS = \
 psslurmgetbind_LDADD = \
 	$(top_builddir)/$(psslurm_dir)/psslurm/.libs/psslurm_la-psslurmpin.o\
 	$(top_builddir)/lib/plugincommon/.libs/pluginmalloc.o\
-	$(top_builddir)/lib/pscommon/.libs/pscpu.o
+	$(top_builddir)/lib/pscommon/.libs/pscpu.o\
+	$(top_builddir)/lib/plugincommon/.libs/pluginconfig.o
 
 all: all-am
 
@@ -532,18 +540,18 @@ am--depfiles: $(am__depfiles_remade)
 @am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LTCOMPILE) -c -o $@ $<
 
 psslurmgetbind-psslurmgetbind.o: psslurmgetbind.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(psslurmgetbind_CFLAGS) $(CFLAGS) -MT psslurmgetbind-psslurmgetbind.o -MD -MP -MF $(DEPDIR)/psslurmgetbind-psslurmgetbind.Tpo -c -o psslurmgetbind-psslurmgetbind.o `test -f 'psslurmgetbind.c' || echo '$(srcdir)/'`psslurmgetbind.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(psslurmgetbind_CPPFLAGS) $(CPPFLAGS) $(psslurmgetbind_CFLAGS) $(CFLAGS) -MT psslurmgetbind-psslurmgetbind.o -MD -MP -MF $(DEPDIR)/psslurmgetbind-psslurmgetbind.Tpo -c -o psslurmgetbind-psslurmgetbind.o `test -f 'psslurmgetbind.c' || echo '$(srcdir)/'`psslurmgetbind.c
 @am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/psslurmgetbind-psslurmgetbind.Tpo $(DEPDIR)/psslurmgetbind-psslurmgetbind.Po
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='psslurmgetbind.c' object='psslurmgetbind-psslurmgetbind.o' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(psslurmgetbind_CFLAGS) $(CFLAGS) -c -o psslurmgetbind-psslurmgetbind.o `test -f 'psslurmgetbind.c' || echo '$(srcdir)/'`psslurmgetbind.c
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(psslurmgetbind_CPPFLAGS) $(CPPFLAGS) $(psslurmgetbind_CFLAGS) $(CFLAGS) -c -o psslurmgetbind-psslurmgetbind.o `test -f 'psslurmgetbind.c' || echo '$(srcdir)/'`psslurmgetbind.c
 
 psslurmgetbind-psslurmgetbind.obj: psslurmgetbind.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(psslurmgetbind_CFLAGS) $(CFLAGS) -MT psslurmgetbind-psslurmgetbind.obj -MD -MP -MF $(DEPDIR)/psslurmgetbind-psslurmgetbind.Tpo -c -o psslurmgetbind-psslurmgetbind.obj `if test -f 'psslurmgetbind.c'; then $(CYGPATH_W) 'psslurmgetbind.c'; else $(CYGPATH_W) '$(srcdir)/psslurmgetbind.c'; fi`
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(psslurmgetbind_CPPFLAGS) $(CPPFLAGS) $(psslurmgetbind_CFLAGS) $(CFLAGS) -MT psslurmgetbind-psslurmgetbind.obj -MD -MP -MF $(DEPDIR)/psslurmgetbind-psslurmgetbind.Tpo -c -o psslurmgetbind-psslurmgetbind.obj `if test -f 'psslurmgetbind.c'; then $(CYGPATH_W) 'psslurmgetbind.c'; else $(CYGPATH_W) '$(srcdir)/psslurmgetbind.c'; fi`
 @am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/psslurmgetbind-psslurmgetbind.Tpo $(DEPDIR)/psslurmgetbind-psslurmgetbind.Po
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='psslurmgetbind.c' object='psslurmgetbind-psslurmgetbind.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(psslurmgetbind_CFLAGS) $(CFLAGS) -c -o psslurmgetbind-psslurmgetbind.obj `if test -f 'psslurmgetbind.c'; then $(CYGPATH_W) 'psslurmgetbind.c'; else $(CYGPATH_W) '$(srcdir)/psslurmgetbind.c'; fi`
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(psslurmgetbind_CPPFLAGS) $(CPPFLAGS) $(psslurmgetbind_CFLAGS) $(CFLAGS) -c -o psslurmgetbind-psslurmgetbind.obj `if test -f 'psslurmgetbind.c'; then $(CYGPATH_W) 'psslurmgetbind.c'; else $(CYGPATH_W) '$(srcdir)/psslurmgetbind.c'; fi`
 
 mostlyclean-libtool:
 	-rm -f *.lo
