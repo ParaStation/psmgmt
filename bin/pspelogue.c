@@ -216,8 +216,8 @@ static void init(const int argc, const char *argv[])
 
 static void timeoutHandler(int sig)
 {
-    fprintf(stderr, "%s: timeout(%i) receiving pelogue result\n",
-	   __func__, pelogueTimeout + recvTimeout + graceTime);
+    fprintf(stderr, "%s: timeout(%i) receiving pelogue result for job %s\n",
+	   __func__, pelogueTimeout + recvTimeout + graceTime, jobID);
     exit(1);
 }
 
@@ -238,8 +238,8 @@ void handleRespUnknown(DDBufferMsg_t *answer)
     /* original type */
     PSP_getMsgBuf(answer, &used, __func__, "type", &type, sizeof(type));
 
-    fprintf(stderr, "%s: delivery of message with type %i to %s failed\n",
-	    __func__, type, PSC_printTID(dest));
+    fprintf(stderr, "%s: delivery of message with type %i to %s job %s "
+	    "failed\n", __func__, type, PSC_printTID(dest), jobID);
 
     fprintf(stderr, "%s: please make sure the plugin 'pelogue' is loaded on"
 	    " node %i\n", __func__, PSC_getID(answer->header.sender));
@@ -272,8 +272,8 @@ static void handlePElogueResp(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
     free(handledID);
 
     if (exit_status) {
-	fprintf(stderr, "%s: pelogue failed with exit status %i timeout %u\n",
-		__func__, exit_status, timeout);
+	fprintf(stderr, "%s: pelogue failed: jobid %s exit status %i "
+		"timeout %u\n", __func__, jobID, exit_status, timeout);
 	exit(1);
     }
 }
@@ -296,8 +296,8 @@ static void setTimeout(void)
 
     /* register SIGALRM sighandler */
     if (PSC_setSigHandler(SIGALRM, timeoutHandler) == SIG_ERR) {
-	fprintf(stderr, "%s:  register SIGALRM sighandler failed\n",
-		__func__);
+	fprintf(stderr, "%s:  register SIGALRM sighandler for job %s failed\n",
+		__func__, jobID);
 	exit(1);
     }
     alarm(pelogueTimeout + recvTimeout + graceTime);
@@ -316,7 +316,8 @@ static void handleResponse(void)
     setTimeout();
 
     if (PSI_recvMsg((DDMsg_t *)&answer, sizeof(answer))<0) {
-	fprintf(stderr, "%s: PSI_recvMsg() failed\n", __func__);
+	fprintf(stderr, "%s: PSI_recvMsg() for job %s failed\n",
+		__func__, jobID);
 	exit(1);
     }
 
@@ -335,8 +336,8 @@ static void handleResponse(void)
 	exit(1);
 	break;
     default:
-	fprintf(stderr, "%s: received unexpected msg type %hd:%d\n", __func__,
-		answer.header.type, answer.type);
+	fprintf(stderr, "%s: received unexpected msg type %hd:%d job %s\n",
+		__func__, answer.header.type, answer.type, jobID);
 	exit(1);
     }
 
@@ -344,15 +345,15 @@ static void handleResponse(void)
     case PSP_PELOGUE_RESP:
 	break;
     default:
-	fprintf(stderr, "%s: received unexpected msg type %hd:%d\n", __func__,
-		answer.header.type, answer.type);
+	fprintf(stderr, "%s: received unexpected msg type %hd:%d job %s\n",
+		__func__, answer.header.type, answer.type, jobID);
 	exit(1);
     }
 
-    if (debug) printf("%s: received answer at %f diff %f from %s\n", __func__,
-		      time_now.tv_sec + 1e-6 * time_now.tv_usec,
+    if (debug) printf("%s: received answer at %f diff %f from %s job %s\n",
+		      __func__, time_now.tv_sec + 1e-6 * time_now.tv_usec,
 		      time_diff.tv_sec + 1e-6 * time_diff.tv_usec,
-		      PSC_printTID(answer.header.sender));
+		      PSC_printTID(answer.header.sender), jobID);
 
     recvFragMsg(&answer, handlePElogueResp);
 }
@@ -415,15 +416,15 @@ void sendPElogueReq(char *jobid, char *sUid, char *sGid, uint32_t nrOfNodes,
 
     /* send prologue request to mother superior */
     gettimeofday(&time_start, NULL);
-    if (debug) printf("%s: send request to %s at %f\n", __func__,
+    if (debug) printf("%s: send request to %s at %f job %s\n", __func__,
 		      PSC_printTID(dest),
-		      time_start.tv_sec + 1e-6 * time_start.tv_usec);
+		      time_start.tv_sec + 1e-6 * time_start.tv_usec, jobID);
 
     ret = sendFragMsg(&msg);
 
     if (ret == -1) {
-	fprintf(stderr, "%s: send request to %s failed\n", __func__,
-		PSC_printTID(dest));
+	fprintf(stderr, "%s: send request to %s for job %s failed\n", __func__,
+		PSC_printTID(dest), jobID);
 	exit(1);
     }
 }
@@ -454,20 +455,23 @@ int main(const int argc, const char *argv[], char *envp[])
     if (!slurmHosts) {
 	slurmHosts = getenv("SLURM_JOB_NODELIST");
 	if (!slurmHosts) {
-	    fprintf(stderr, "%s: invalid SLURM_JOB_NODELIST\n", argv[0]);
+	    fprintf(stderr, "%s: invalid SLURM_JOB_NODELIST for job %s\n",
+		    argv[0], jobID);
 	    exit(1);
 	}
     }
 
     char *sUid = getenv("SLURM_JOB_UID");
     if (!sUid) {
-	fprintf(stderr, "%s: invalid SLURM_JOB_UID\n", argv[0]);
+	fprintf(stderr, "%s: invalid SLURM_JOB_UID for job %s\n",
+		argv[0], jobID);
 	exit(1);
     }
 
     char *sGid = getenv("SLURM_JOB_GID");
     if (!sGid) {
-	fprintf(stderr, "%s: invalid SLURM_JOB_GID\n", argv[0]);
+	fprintf(stderr, "%s: invalid SLURM_JOB_GID for job %s\n",
+		argv[0], jobID);
 	exit(1);
     }
 
@@ -487,13 +491,13 @@ int main(const int argc, const char *argv[], char *envp[])
     }
 
     if (!nrOfNodes) {
-	fprintf(stderr, "%s: no nodes found\n", argv[0]);
+	fprintf(stderr, "%s: no nodes for job %s found\n", argv[0], jobID);
 	exit(1);
     }
 
     if (verbose) {
 	printf("parallel pelogue for job %s nodes %s starting\n", jobID,
-	slurmHosts);
+	       slurmHosts);
     }
 
     /* send pelogue start request */
