@@ -1205,7 +1205,7 @@ static void setDistributions(task_dist_states_t *taskDist)
     *taskDist |= getDefaultCoreDist(*taskDist);
 
     flog("Using default core level distribution '%s': 0x%04x\n",
-		getCoreDistString(*taskDist), *taskDist & SLURM_DIST_SOCKMASK);
+		getCoreDistString(*taskDist), *taskDist & SLURM_DIST_COREMASK);
 }
 
 /* initialization function to be called the very first */
