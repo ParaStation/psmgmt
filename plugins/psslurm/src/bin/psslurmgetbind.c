@@ -73,7 +73,8 @@ static void print_help() {
 	    "   -n <tasks>\n"
 	    "   -c <threadsPerTask>\n"
 	    "   --cpu-bind=<cpuBindType>\n"
-	    "   -m <distribution>, --distribution=<distribution>\n");
+	    "   -m <distribution>, --distribution=<distribution>\n"
+	    "   -B <ressources>, --extra-node-info=<ressources>\n");
 }
 
 static unsigned int atoui(char* in) {
@@ -234,6 +235,24 @@ static bool readDistribution(char *ptr, uint32_t *taskDist) {
     }
 
     return true;
+}
+
+static void handleExtraNodeInfo(char *value, uint16_t *cpuBindType) {
+    char *cur = value;
+
+    /* never override settings from --cpu-bind */
+    if (*cpuBindType) return;
+
+    /* sockets given */
+    *cpuBindType = CPU_BIND_TO_SOCKETS;
+    if ((cur = strstr(cur, ":"))) {
+	/* cores given */
+	*cpuBindType = CPU_BIND_TO_CORES;
+	if ((cur = strstr(cur+1, ":"))) {
+	    /* threads given */
+	    *cpuBindType = CPU_BIND_TO_THREADS;
+	}
+    }
 }
 
 #define PSSLURM_CONFIG_FILE  PLUGINDIR "/psslurm.conf"
@@ -419,6 +438,19 @@ int main(int argc, char *argv[])
 		outline(ERROROUT, "Invalid distribution type.");
 		return -1;
 	    }
+	}
+	else if (strncmp(cur, "--extra-node-info=", 18) == 0) {
+	    outline(DEBUGOUT, "Reading --extra-node-info value: \"%s\"",
+		    cur+18);
+	    handleExtraNodeInfo(cur+18, &cpuBindType);
+	}
+	else if (strcmp(cur, "-B") == 0) {
+	    if (++i == argc) {
+		outline(ERROROUT, "Syntax error reading value for -B.");
+		return -1;
+	    }
+	    outline(DEBUGOUT, "Reading -B value: \"%s\"", argv[i]);
+	    handleExtraNodeInfo(argv[i], &cpuBindType);
 	}
 	else if (strcmp(cur, "--hint=nomultithread") == 0) {
 	    outline(DEBUGOUT, "Read hint \"nomultithread\"");
