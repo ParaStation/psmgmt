@@ -727,20 +727,20 @@ static int MYrecvfrom(int sock, void *buf, size_t len, int flags,
  * the sending of a message since automatic retries a triggered.
  *
  *
- * @param sock The socket to send to.
+ * @param sock Socket used to send
  *
- * @param buf Buffer the message is stored in.
+ * @param buf Buffer the message is stored in
  *
- * @param len Length of the message.
+ * @param len Length of the message
  *
- * @param flags Flags passed to sendto().
+ * @param flags Flags passed to sendto()
  *
- * @param node The node ID of the node to send to.
+ * @param node ID of the destination node
  *
- * @param hton
+ * @param hton Flag header's conversion to network byte-order
  *
  * @return On success, the number of bytes sent is returned, or -1 if an error
- * occurred.
+ * occurred
  *
  * @see sendto(2)
  */
@@ -1711,7 +1711,7 @@ static int handleRDP(int fd, void *info)
     if (RDPPktLoss) {
 	if (100.0*rand()/(RAND_MAX+1.0) < RDPPktLoss) {
 
-	    /* really get the msg */
+	    /* Actually get the msg */
 	    if (MYrecvfrom(fd, &msg, sizeof(msg), 0,
 			   (struct sockaddr *) &sin, &slen)<0) {
 		RDP_exit(errno, "%s/PKTLOSS: MYrecvfrom", __func__);
@@ -1729,7 +1729,7 @@ static int handleRDP(int fd, void *info)
 	RDP_log(-1, "%s: unable to resolve %s\n", __func__,
 		inet_ntoa(sin.sin_addr));
 
-	/* really get the msg */
+	/* Actually get the msg */
 	if (MYrecvfrom(fd, &msg, sizeof(msg), 0,
 		       (struct sockaddr *) &sin, &slen)<0) {
 	    RDP_exit(errno, "%s/ELNRNG: MYrecvfrom", __func__);
@@ -1747,7 +1747,7 @@ static int handleRDP(int fd, void *info)
 	gettimeofday(&tv, NULL);
 
 	if (timercmp(&tv, &conntable[fromnode].closed, <)) {
-	    /* really get the msg */
+	    /* Actually fetch the msg */
 	    if (MYrecvfrom(fd, &msg, sizeof(msg), 0,
 			   (struct sockaddr *) &sin, &slen)<0) {
 		RDP_exit(errno, "%s/CLOSED: MYrecvfrom", __func__);
@@ -1766,7 +1766,7 @@ static int handleRDP(int fd, void *info)
     if (msg.header.type != RDP_DATA) {
 	/* This is a control message */
 
-	/* really get the msg */
+	/* Actually get the msg */
 	ret = MYrecvfrom(fd, &msg, sizeof(msg), 0,
 			 (struct sockaddr *) &sin, &slen);
 	if (ret < 0) {
