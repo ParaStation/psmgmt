@@ -1278,22 +1278,22 @@ static void updateState(rdphdr_t *hdr, int node)
 		closeConnection(node, 1, 0);
 		cp->state = SYN_RECVD;
 		cp->frameExpected = hdr->seqno;
-		cp->ConnID_in = hdr->connid;
 		RDP_log(-1, "%s: state(%d): ACTIVE -> SYN_RECVD (%x vs %x)"
 			" on %s, FE=%x, seqno=%x\n", __func__, node,
 			hdr->connid, cp->ConnID_in, RDPMsgString(hdr->type),
 			oldFE, cp->frameExpected);
+		cp->ConnID_in = hdr->connid;
 		sendSYNACK(node);
 		break;
 	    case RDP_SYNACK:
 		closeConnection(node, 1, 0);
 		cp->state = SYN_SENT;
 		cp->frameExpected = hdr->seqno;
-		cp->ConnID_in = hdr->connid;
 		RDP_log(-1, "%s: state(%d): ACTIVE -> SYN_SENT (%x vs %x)"
 			" on %s, FE=%x, seqno=%x\n", __func__, node,
 			hdr->connid, cp->ConnID_in, RDPMsgString(hdr->type),
 			oldFE, cp->frameExpected);
+		cp->ConnID_in = hdr->connid;
 		sendSYN(node);
 		break;
 	    default:
