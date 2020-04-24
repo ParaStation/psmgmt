@@ -42,11 +42,11 @@ static cpu_bind_type_t defaultCPUbindType = 0;
 static task_dist_states_t defaultSocketDist = 0;
 static task_dist_states_t defaultCoreDist = 0;
 
-struct {
+typedef struct {
     bool compute_bound;
     bool memory_bound;
     bool nomultithread;
-} hints = { false, false, false };
+} hints_t;
 
 enum thread_iter_strategy {
     CYCLECORES,              /* core, socket, thread:  1 2  3 4   5 6  7 8 */
@@ -1259,31 +1259,34 @@ bool initPinning(void)
 }
 
 /* read environment and fill global hints struct */
-static void fillHints(env_t *env) {
-    char *hint;
-    if ((hint = envGet(env, "PSSLURM_HINT"))
-	    || (hint = envGet(env, "SLURM_HINT"))) {
-	for (char *ptr = hint; *ptr != '\0'; ptr++) {
+static void fillHints(hints_t *hints, env_t *env)
+{
+    memset(hints, 0, sizeof(*hints));
+
+    char *hintstr;
+    if ((hintstr = envGet(env, "PSSLURM_HINT"))
+	    || (hintstr = envGet(env, "SLURM_HINT"))) {
+	for (char *ptr = hintstr; *ptr != '\0'; ptr++) {
 	    if (!strncmp(ptr, "compute_bound", 13)
 		    && (ptr[13] == ',' || ptr[13] == '\0')) {
-		hints.compute_bound = true;
+		hints->compute_bound = true;
 		ptr+=13;
 		flog("Valid hint: compute_bound\n");
 	    }
 	    else if (!strncmp(ptr, "memory_bound", 12)
 		    && (ptr[12] == ',' || ptr[12] == '\0')) {
-		hints.memory_bound = true;
+		hints->memory_bound = true;
 		ptr+=12;
 		flog("Valid hint: memory_bound\n");
 	    }
 	    else if (!strncmp(ptr, "nomultithread", 13)
 		    && (ptr[13] == ',' || ptr[13] == '\0')) {
-		hints.nomultithread = true;
+		hints->nomultithread = true;
 		ptr+=13;
 		flog("Valid hint: nomultithread\n");
 	    }
 	    else {
-		flog("Invalid hint: '%s'\n", hint);
+		flog("Invalid hint: '%s'\n", hintstr);
 		break;
 	    }
 	}
@@ -1356,7 +1359,8 @@ bool setStepSlots(Step_t *step)
 	    step->cpuBindType, step->taskDist);
 
     /* handle hints */
-    fillHints(&step->env);
+    hints_t hints;
+    fillHints(&hints, &step->env);
 
     for (node=0; node < step->nrOfNodes; node++) {
 	thread = 0;
@@ -2115,7 +2119,8 @@ void test_pinning(uint16_t cpuBindType,	char *cpuBindString, uint32_t taskDist,
     setCpuBindType(&cpuBindType);
     setDistributions(&taskDist);
 
-    fillHints(env);
+    hints_t hints;
+    fillHints(&hints, env);
 
     /* handle hint "nomultithreads" */
     if (hints.nomultithread) {
