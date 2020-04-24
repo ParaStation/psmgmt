@@ -258,27 +258,24 @@ static void handleMasterTasks(void)
     /* Re-enable DD_DEADNODE broadcasts */
     statusBcasts = 0;
 
-    round %= 10;
     if (!round) {
-	static PSnodes_ID_t next;
-	static bool firstCall = true;
+	static PSnodes_ID_t next = -1;
 	int count = (nrDownNodes > 10) ? 10 : nrDownNodes;
 
-	if (firstCall) {
-	    firstCall = false;
-	    next = PSC_getMyID();
-	}
+	if (next < 0) next = PSC_getMyID(); // first call
 
-	while (count) {
-	    next %= PSC_getNrOfNodes();
+	PSnodes_ID_t last = next;
+	do {
 	    if (!PSIDnodes_isUp(next)) {
-		send_DAEMONCONNECT(next);
-		count--;
+		errno = 0;
+		if (send_DAEMONCONNECT(next) != -1 || errno != EHOSTUNREACH) {
+		    count--;
+		}
 	    }
-	    next++;
-	}
+	    next = (next + 1) % PSC_getNrOfNodes();
+	} while (count && next != last);
     }
-    round++;
+    round = (round + 1) % 10;
 
     return;
 }
