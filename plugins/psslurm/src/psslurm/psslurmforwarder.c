@@ -1460,19 +1460,33 @@ int handleFwRes(void * data)
 static void fwExecEpiFin(Forwarder_Data_t *fwdata, int rerun)
 {
     Alloc_t *alloc = fwdata->userData;
-    char *argv[1];
-    char buf[1024];
+    char *argv[2];
+    char buf[1024], script[1024];
     char *dirScripts = getConfValueC(&Config, "DIR_SCRIPTS");
 
-    snprintf(buf, sizeof(buf), "%s/epilogue.finalize", dirScripts);
+    snprintf(script, sizeof(script), "%s/epilogue.finalize", dirScripts);
 
-    argv[0] = NULL;
-    execve(buf, argv, alloc->env.vars);
+    argv[0] = script;
+    argv[1] = NULL;
+    execve(argv[0], argv, alloc->env.vars);
+    int err = errno;
+
+    /* execve() failed */
+    fprintf(stderr, "%s: execve %s failed: %s\n", __func__, buf,
+	    strerror(err));
+    openlog("psid", LOG_PID|LOG_CONS, LOG_DAEMON);
+    snprintf(buf, sizeof(buf), "psslurm-epifin:%u", alloc->id);
+    initLogger(buf, NULL);
+    mwarn(err, "%s: execve %s failed: ", __func__, script);
+    exit(err);
 }
 
 static int epiFinCallback(int32_t exit_status, Forwarder_Data_t *fwdata)
 {
     Alloc_t *alloc = fwdata->userData;
+
+    fdbg(PSSLURM_LOG_PELOG, "exit_status: %i fw-estatus %i\n", exit_status,
+	 fwdata->estatus);
 
     if (alloc->terminate) {
 	sendEpilogueComplete(alloc->id, 0);

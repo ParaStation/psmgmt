@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2014-2019 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2014-2020 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -89,7 +89,7 @@ static bool envDoSet(env_t *env, char *envstring)
 	return false;
     }
 
-    if (env->cnt + 1 >= env->size) {
+    if (env->cnt + 2 >= env->size) {
 	uint32_t newSize = env->size + 16;
 	char **tmp = realloc(env->vars, newSize * sizeof(*tmp));
 	if (!tmp) {
@@ -100,6 +100,7 @@ static bool envDoSet(env_t *env, char *envstring)
 	env->vars = tmp;
     }
     env->vars[env->cnt++] = envstring;
+    env->vars[env->cnt] = NULL;
 
     return true;
 }
