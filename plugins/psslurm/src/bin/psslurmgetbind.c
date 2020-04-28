@@ -14,6 +14,10 @@
 #include <unistd.h>
 #include <string.h>
 
+#ifdef HAVE_LIBNUMA
+#include <numa.h>
+#endif
+
 #include "psslurmpin.h"
 
 #include "slurmcommon.h" /* bind type constants */
@@ -27,6 +31,7 @@ typedef list_t Config_t;
 
 static int verbosity = 0;
 static bool humanreadable = false;
+static bool printmembind = false;
 
 enum output_level {
     ERROROUT,
@@ -67,6 +72,8 @@ static void print_help() {
 	    "          Be verbose (twice for debugging)\n"
 	    "   -h, --human-readable\n"
 	    "          Print 0/1-blocks instead of hex masks\n"
+	    "   -m, --membind\n"
+	    "          Print memory binding, too\n"
 	    "\n"
 	    "Supported srun Options (see srun manpage):\n"
 	    "   -N 1\n"
@@ -74,7 +81,8 @@ static void print_help() {
 	    "   -c <threadsPerTask>\n"
 	    "   --cpu-bind=<cpuBindType>\n"
 	    "   -m <distribution>, --distribution=<distribution>\n"
-	    "   -B <ressources>, --extra-node-info=<ressources>\n");
+	    "   -B <ressources>, --extra-node-info=<ressources>\n"
+	    "   --mem-bind=<memBindType>\n");
 }
 
 static unsigned int atoui(char* in) {
@@ -237,6 +245,34 @@ static bool readDistribution(char *ptr, uint32_t *taskDist) {
     return true;
 }
 
+static bool readMemBindType(char *ptr, uint16_t *memBindType,
+	char **memBindString) {
+    if (strcmp(ptr, "none") == 0 || strcmp(ptr, "no") == 0) {
+	*memBindType = MEM_BIND_NONE;
+	*memBindString = NULL;
+    }
+    else if (strncmp(ptr, "map_mem:", 8) == 0) {
+	*memBindType = MEM_BIND_MAP;
+	*memBindString = strdup(ptr+8);
+    }
+    else if (strncmp(ptr, "mask_mem:", 9) == 0) {
+	*memBindType = MEM_BIND_MASK;
+	*memBindString = strdup(ptr+9);
+    }
+    else if (strcmp(ptr, "local") == 0) {
+	*memBindType = MEM_BIND_LOCAL;
+	*memBindString = NULL;
+    }
+    else if (strcmp(ptr, "rank") == 0) {
+	*memBindType = MEM_BIND_RANK;
+	*memBindString = NULL;
+    }
+    else {
+	return false;
+    }
+    return true;
+}
+
 static void handleExtraNodeInfo(char *value, uint16_t *cpuBindType) {
     char *cur = value;
 
@@ -288,6 +324,11 @@ bool readConfigFile(void) {
     return true;
 }
 
+/* node info */
+uint16_t socketCount = 0;
+uint16_t coresPerSocket = 0;
+uint16_t threadsPerCore = 0;
+
 int main(int argc, char *argv[])
 {
 
@@ -295,11 +336,6 @@ int main(int argc, char *argv[])
 	print_help();
 	return -1;
     }
-
-    /* node info */
-    uint16_t socketCount = 0;
-    uint16_t coresPerSocket = 0;
-    uint16_t threadsPerCore = 0;
 
     socketCount = atoui(argv[1]);
     coresPerSocket = atoui(argv[2]);
@@ -343,8 +379,21 @@ int main(int argc, char *argv[])
 	    humanreadable = true;
 	}
 
+	if (strcmp(cur, "--membind") == 0 || strcmp(cur, "-m") == 0) {
+	    printmembind = true;
+	}
+
 	if (strcmp(cur, ":") == 0) {
 	    break;
+	}
+    }
+
+    if (printmembind) {
+	int maxnodes = sizeof(*((struct bitmask *)0)->maskp) * 8;
+	if (socketCount > maxnodes) {
+	    outline(ERROROUT, "Membind printing not supported for more than"
+		    " %d sockets", maxnodes);
+	    return -1;
 	}
     }
 
@@ -358,6 +407,9 @@ int main(int argc, char *argv[])
     uint32_t taskDist = 0;
     bool nomultithread = false;
 
+    /* membind info */
+    uint16_t memBindType = 0;
+    char *memBindString = "";
 
     /* parse srun options */
     for (i++; i < argc; i++) {
@@ -417,7 +469,7 @@ int main(int argc, char *argv[])
 	else if (strncmp(cur, "--cpu-bind=", 11) == 0) {
 	    outline(DEBUGOUT, "Reading --cpu-bind value: \"%s\"", cur+11);
 	    if (!readCpuBindType(cur+11, &cpuBindType, &cpuBindString)) {
-		outline(ERROROUT, "Invalid bind type.");
+		outline(ERROROUT, "Invalid cpu bind type.");
 		return -1;
 	    }
 	}
@@ -456,6 +508,13 @@ int main(int argc, char *argv[])
 	    outline(DEBUGOUT, "Read hint \"nomultithread\"");
 	    nomultithread = true;
 	}
+	else if (strncmp(cur, "--mem-bind=", 11) == 0) {
+	    outline(DEBUGOUT, "Reading --mem-bind value: \"%s\"", cur+11);
+	    if (!readMemBindType(cur+11, &memBindType, &memBindString)) {
+		outline(ERROROUT, "Invalid memory bind type.");
+		return -1;
+	    }
+	}
 	else {
 	    outline(ERROROUT, "Invalid argument: \"%s\"", cur);
 	    return -1;
@@ -489,9 +548,9 @@ int main(int argc, char *argv[])
 	return -1;
     }
 
-    test_pinning(cpuBindType, cpuBindString, taskDist, socketCount,
-	    coresPerSocket, threadsPerCore, tasksPerNode, threadsPerTask,
-	    &env, humanreadable);
+    test_pinning(socketCount, coresPerSocket, threadsPerCore, tasksPerNode,
+	    threadsPerTask, cpuBindType, cpuBindString, taskDist, memBindType,
+	    memBindString, &env, humanreadable, printmembind);
 }
 
 
@@ -534,7 +593,7 @@ void __flog(const char *func, int32_t key, char *format, ...)
 typedef void Job_t;
 
 uint32_t getLocalRankID(uint32_t rank, Step_t *step, uint32_t nodeId) {
-    return 0;
+    return rank;
 }
 
 Job_t *findJobById(uint32_t jobid) {
@@ -600,4 +659,52 @@ char *trim(char *string) {
 
     return string;
 }
+
+int numa_available(void) {
+    return 0;
+}
+
+struct bitmask *numa_allocate_nodemask(void) {
+    struct bitmask *b = malloc(sizeof(*b));
+    b->maskp = calloc(1, sizeof(unsigned long));
+    b->size = sizeof(unsigned long) * 8;
+    return b;
+}
+
+void numa_bitmask_free(struct bitmask *b) {
+    free(b->maskp);
+    free(b);
+}
+
+int numa_bitmask_isbitset(const struct bitmask *b, unsigned int n) {
+    if (b == NULL) return 1;
+    return (*(b->maskp) & (1 << n)) ? 1 : 0;
+}
+
+struct bitmask *numa_bitmask_setbit(struct bitmask *b, unsigned int n) {
+    *(b->maskp) |= 1 << n;
+    return b;
+}
+
+int numa_max_node(void) {
+    return socketCount - 1;
+}
+
+struct bitmask *numa_get_mems_allowed(void) {
+    return NULL;
+}
+
+void numa_set_membind(struct bitmask *nodemask) {
+    return;
+}
+
+struct bitmask *numa_bitmask_setall(struct bitmask *b) {
+    memset(b->maskp, 0xff, sizeof(*b->maskp));
+    return b;
+}
+
+struct bitmask *numa_get_membind(void) {
+    return NULL;
+}
+
 /* vim: set ts=8 sw=4 tw=0 sts=4 noet :*/

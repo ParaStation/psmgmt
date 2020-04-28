@@ -399,14 +399,15 @@ psslurmgetbind_SOURCES = \
 
 psslurmgetbind_CPPFLAGS = \
 	$(AM_CPPFLAGS)\
-	-DPLUGINDIR=\"$(plugindir)\"
+	-DPLUGINDIR=\"$(plugindir)\"\
+	-DHAVE_NUMA_ALLOCATE_NODEMASK
 
 psslurmgetbind_CFLAGS = \
 	$(AM_CFLAGS)
 
 psslurmgetbind_LDFLAGS = \
 	$(AM_LDFLAGS)\
-	$(NUMA_LIBS) -lm
+	-lm
 
 psslurmgetbind_LDADD = \
 	$(top_builddir)/$(psslurm_dir)/psslurm/.libs/psslurm_la-psslurmpin.o\

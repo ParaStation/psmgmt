@@ -2080,10 +2080,11 @@ void test_thread_iterator(uint16_t socketCount, uint16_t coresPerSocket,
 /*
  * this function is for testing the static function setCPUset()
  */
-void test_pinning(uint16_t cpuBindType,	char *cpuBindString, uint32_t taskDist,
-	uint16_t socketCount, uint16_t coresPerSocket, uint16_t threadsPerCore,
-	uint32_t tasksPerNode, uint16_t threadsPerTask, env_t *env,
-	bool humanreadable)
+void test_pinning(uint16_t socketCount, uint16_t coresPerSocket,
+	uint16_t threadsPerCore, uint32_t tasksPerNode, uint16_t threadsPerTask,
+	uint16_t cpuBindType, char *cpuBindString, uint32_t taskDist,
+	uint16_t memBindType, char *memBindString, env_t *env,
+	bool humanreadable, bool printmembind)
 {
     uint32_t nodeid = 0;  /* only used for debugging output */
 
@@ -2154,6 +2155,49 @@ void test_pinning(uint16_t cpuBindType,	char *cpuBindString, uint32_t taskDist,
 	}
 	else {
 	    printf("%s", PSCPU_print_part(CPUset, threadCount/8));
+	}
+
+	if (printmembind) {
+
+	    struct bitmask *nodemask;
+	    if (memBindType & MEM_BIND_LOCAL) {
+		/* default usually handled in psid */
+		nodemask = numa_allocate_nodemask();
+		for (size_t i = 0; i < threadCount; i++) {
+		    if (PSCPU_isSet(CPUset, i)) {
+			numa_bitmask_setbit(nodemask,
+				getSocketByThread(i, &nodeinfo));
+		    }
+		}
+	    }
+	    else if (memBindType
+			& (MEM_BIND_MAP| MEM_BIND_MASK | MEM_BIND_RANK)) {
+		nodemask = getMemBindMask(0, local_tid, local_tid, tasksPerNode,
+			memBindType, memBindString);
+	    }
+	    else {
+		/* no memory binding => bind to all */
+		nodemask = numa_allocate_nodemask();
+		numa_bitmask_setall(nodemask);
+	    }
+
+	    if (nodemask) {
+		printf("    mem: ");
+		if (humanreadable) {
+		    for (int i = 0; i < socketCount; i++) {
+			int s = numa_bitmask_isbitset(nodemask, i) ? 1 : 0;
+			printf("%d", s);
+		    }
+		}
+		else {
+		    printf("0x");
+		    for (int i = (socketCount - 1) - socketCount % 4 + 1;
+			    i >= 0; i -= 4) {
+			printf("%lx", (*(nodemask->maskp) & (0xF << i)) >> i);
+		    }
+		}
+		numa_free_nodemask(nodemask);
+	    }
 	}
 	printf("\n");
 

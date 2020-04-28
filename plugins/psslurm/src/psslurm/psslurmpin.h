@@ -105,20 +105,24 @@ void test_thread_iterator(uint16_t socketCount, uint16_t coresPerSocket,
  *
  * This function is especially used by the tool psslurmgetbind.
  *
- * @param cpuBindType    bind type bit field
- * @param cpuBindString  bind string
- * @param taskDist       distribution bit field
  * @param socketCount    number of sockets
  * @param coresPerSocket number of cores per socket
  * @param threadsPerCore number of hardware threads per core
  * @param tasksPerNode   number of tasks per node
  * @param threadsPerTask number of threads per task
+ * @param cpuBindType    cpu bind type bit field
+ * @param cpuBindString  cpu bind string
+ * @param taskDist       cpu bind distribution bit field
+ * @param memBindType    memory bind type bit field
+ * @param memBindString  memory bind string
  * @param env            environment containing hint variables
  * @param humanreadable  write output more human readable (no hex masks)
+ * @param printmembind   print membind instead of cpu bind
  */
-void test_pinning(uint16_t cpuBindType,	char *cpuBindString, uint32_t taskDist,
-	uint16_t socketCount, uint16_t coresPerSocket, uint16_t threadsPerCore,
-	uint32_t tasksPerNode, uint16_t threadsPerTask, env_t *env,
-	bool humanreadable);
+void test_pinning(uint16_t socketCount, uint16_t coresPerSocket,
+	uint16_t threadsPerCore, uint32_t tasksPerNode, uint16_t threadsPerTask,
+	uint16_t cpuBindType, char *cpuBindString, uint32_t taskDist,
+	uint16_t memBindType, char *memBindString, env_t *env,
+	bool humanreadable, bool printmembind);
 #endif  /* __PS_SLURM_PIN */
 /* vim: set ts=8 sw=4 tw=0 sts=4 noet :*/
