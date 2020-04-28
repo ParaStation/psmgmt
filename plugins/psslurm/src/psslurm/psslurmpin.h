@@ -53,7 +53,15 @@ void verboseCpuPinningOutput(Step_t *step, PS_Tasks_t *task);
 void verboseMemPinningOutput(Step_t *step, PStask_t *task);
 
 /**
- * @doctodo
+ * @brief Do memory binding.
+ *
+ * This is handling the binding types map_mem, mask_mem and rank.
+ * The types local (default) and none are handled directly by the deamon.
+ *
+ * When using libnuma with API v1, this is a noop, just giving a warning.
+ *
+ * @param step  Step structure
+ * @param task  Task structure
  */
 void doMemBind(Step_t *step, PStask_t *task);
 

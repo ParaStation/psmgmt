@@ -1760,97 +1760,59 @@ error:
     numa_bitmask_setall(nodemask);
 }
 # endif
-
-/**
- * @brief Do memory binding.
- *
- * This is handling the binding types map_mem, mask_mem and rank.
- * The types local (default) and none are handled directly by the deamon.
- *
- * When using libnuma with API v1, this is a noop, just giving a warning.
- *
- * @param step  Step structure
- * @param task  Task structure
- *
- * @return No return value.
- */
-void doMemBind(Step_t *step, PStask_t *task)
-{
-
-# ifndef HAVE_NUMA_ALLOCATE_NODEMASK
-    mlog("%s: psslurm does not support memory binding types map_mem, mask_mem"
-	    " and rank with libnuma v1\n", __func__);
-    fprintf(stderr, "Memory binding type not supported with used libnuma"
-	   " version");
-    return;
-# else
+static struct bitmask * getMemBindMask(uint32_t localNodeId, uint32_t rank,
+	uint32_t lTID, uint16_t tasksToLaunch, uint16_t memBindType,
+	const char *memBindString) {
 
     const char delimiters[] = ",";
-    uint32_t lTID;
     char *next, *saveptr, *ents, *myent, *endptr;
     char **entarray;
     unsigned int numents;
     uint16_t mynode;
 
-    struct bitmask *nodemask = NULL;
-
-    if (!(step->memBindType & MEM_BIND_MAP)
-	    && !(step->memBindType & MEM_BIND_MASK)
-	    && !(step->memBindType & MEM_BIND_RANK)) {
-	/* things are handled elsewhere */
-	return;
-    }
-
-    if (!PSIDnodes_bindMem(PSC_getMyID()) || getenv("__PSI_NO_MEMBIND")) {
-	    // info messages already printed in doClamps()
-	return;
-    }
+    struct bitmask *nodemask;
 
     if (numa_available()==-1) {
 	fprintf(stderr, "NUMA not available:");
-	return;
+	return NULL;
     }
 
     nodemask = numa_allocate_nodemask();
     if (!nodemask) {
 	fprintf(stderr, "Allocation of nodemask failed:");
-	return;
+	return NULL;
     }
 
-    lTID = getLocalRankID(task->rank, step, step->localNodeId);
-
-    if (step->memBindType & MEM_BIND_RANK) {
+    if (memBindType & MEM_BIND_RANK) {
 	if (lTID > (unsigned int)numa_max_node()) {
 	    mlog("%s: memory binding to ranks not possible for rank %d."
 		    " (local rank %d > #numa_nodes %d)\n", __func__,
-		    task->rank, lTID, numa_max_node());
+		    rank, lTID, numa_max_node());
 	    fprintf(stderr, "Memory binding to ranks not possible for rank %d,"
 		    " local rank %u larger than max numa node %d.",
-		    task->rank, lTID, numa_max_node());
-	    if (nodemask) numa_free_nodemask(nodemask);
-	    return;
+		    rank, lTID, numa_max_node());
+	    numa_bitmask_setall(nodemask);
+	    return nodemask;
 	}
 	if (numa_bitmask_isbitset(numa_get_mems_allowed(), lTID)) {
 	    numa_bitmask_setbit(nodemask, lTID);
 	} else {
 	    mlog("%s: setting bit %d in memory mask not allowed in rank"
-		    " %d\n", __func__, lTID, task->rank);
+		    " %d\n", __func__, lTID, rank);
 	    fprintf(stderr, "Not allowed to set bit %u in memory mask"
-		    " of rank %d\n", lTID, task->rank);
+		    " of rank %d\n", lTID, rank);
 	}
-	numa_set_membind(nodemask);
-	if (nodemask) numa_free_nodemask(nodemask);
-	return;
+	return nodemask;
     }
 
-    ents = ustrdup(step->memBind);
-    entarray = umalloc(step->tasksToLaunch[step->localNodeId] * sizeof(char*));
+    ents = ustrdup(memBindString);
+    entarray = umalloc(tasksToLaunch * sizeof(*entarray));
     numents = 0;
     myent = NULL;
     entarray[0] = NULL;
 
     next = strtok_r(ents, delimiters, &saveptr);
-    while (next && (numents < step->tasksToLaunch[step->localNodeId])) {
+    while (next && (numents < tasksToLaunch)) {
 	entarray[numents++] = next;
 	if (numents == lTID+1) {
 	    myent = next;
@@ -1864,17 +1826,17 @@ void doMemBind(Step_t *step, PStask_t *task)
     }
 
     if (!myent) {
-	numa_set_membind(numa_all_nodes_ptr);
-	if (step->memBindType & MEM_BIND_MASK) {
+	if (memBindType & MEM_BIND_MASK) {
 	    mlog("%s: invalid mem mask string '%s'\n", __func__, ents);
 	}
-	else if (step->memBindType & MEM_BIND_MAP) {
+	else if (memBindType & MEM_BIND_MAP) {
 	    mlog("%s: invalid mem map string '%s'\n", __func__, ents);
 	}
+	numa_bitmask_setall(nodemask);
 	goto cleanup;
     }
 
-    if (step->memBindType & MEM_BIND_MAP) {
+    if (memBindType & MEM_BIND_MAP) {
 
 	if (strncmp(myent, "0x", 2) == 0) {
 	    mynode = strtoul (myent+2, &endptr, 16);
@@ -1887,35 +1849,65 @@ void doMemBind(Step_t *step, PStask_t *task)
 		numa_bitmask_setbit(nodemask, mynode);
 	    } else {
 		mlog("%s: setting bit %d in memory mask not allowed in rank"
-			" %d\n", __func__, mynode, task->rank);
+			" %d\n", __func__, mynode, rank);
 		fprintf(stderr, "Not allowed to set bit %d in memory mask"
-			" of rank %d\n", mynode, task->rank);
+			" of rank %d\n", mynode, rank);
 	    }
 	} else {
 	    mlog("%s: invalid memory map entry '%s' (%d) for rank %d\n",
-		    __func__, myent, mynode, task->rank);
+		    __func__, myent, mynode, rank);
 	    fprintf(stderr, "Invalid memory map entry '%s' for rank %d\n",
-		    myent, task->rank);
-	    numa_set_membind(numa_all_nodes_ptr);
+		    myent, rank);
+	    numa_bitmask_setall(nodemask);
 	    goto cleanup;
 	}
 	mdbg(PSSLURM_LOG_PART, "%s: (bind_map) node %i local task %i"
-	     " memstr '%s'\n", __func__, step->localNodeId, lTID, myent);
+	     " memstr '%s'\n", __func__, localNodeId, lTID, myent);
 
-    } else if (step->memBindType & MEM_BIND_MASK) {
-	parseNUMAmask(nodemask, myent, task->rank);
+    } else if (memBindType & MEM_BIND_MASK) {
+	parseNUMAmask(nodemask, myent, rank);
     }
 
-    numa_set_membind(nodemask);
-
-    cleanup:
-
+cleanup:
     ufree(ents);
     ufree(entarray);
-    if (nodemask) numa_free_nodemask(nodemask);
-# endif
 
-    return;
+    return nodemask;
+}
+
+void doMemBind(Step_t *step, PStask_t *task)
+{
+# ifndef HAVE_NUMA_ALLOCATE_NODEMASK
+    mlog("%s: psslurm does not support memory binding types map_mem, mask_mem"
+	    " and rank with libnuma v1\n", __func__);
+    fprintf(stderr, "Memory binding type not supported with used libnuma"
+	   " version");
+# else
+
+    if (!(step->memBindType & MEM_BIND_MAP)
+	    && !(step->memBindType & MEM_BIND_MASK)
+	    && !(step->memBindType & MEM_BIND_RANK)) {
+	/* things are handled elsewhere */
+	return;
+    }
+
+    if (!PSIDnodes_bindMem(PSC_getMyID()) || getenv("__PSI_NO_MEMBIND")) {
+	    // info messages already printed in doClamps()
+	return;
+    }
+
+    uint32_t lTID = getLocalRankID(task->rank, step, step->localNodeId);
+
+    uint16_t tasksToLaunch = step->tasksToLaunch[step->localNodeId];
+
+    struct bitmask *nodemask;
+    nodemask = getMemBindMask(step->localNodeId, task->rank, lTID,
+	    tasksToLaunch, step->memBindType, step->memBind);
+    if (nodemask) {
+	numa_set_membind(nodemask);
+	numa_free_nodemask(nodemask);
+    }
+# endif
 }
 #else
 void doMemBind(Step_t *step, PStask_t *task)
