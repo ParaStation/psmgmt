@@ -1025,6 +1025,9 @@ static int stepForwarderInit(Forwarder_Data_t *fwdata)
 	.hook = SPANK_INIT
     };
     SpankCallHook(&spank);
+
+    spank.hook = SPANK_INIT_POST_OPT;
+    SpankCallHook(&spank);
 #endif
 
     if (switchEffectiveUser(step->username, step->uid, step->gid) == -1) {
@@ -1379,6 +1382,9 @@ static int stepFollowerFWinit(Forwarder_Data_t *fwdata)
 	.step = step,
 	.hook = SPANK_INIT
     };
+    SpankCallHook(&spank);
+
+    spank.hook = SPANK_INIT_POST_OPT;
     SpankCallHook(&spank);
 
     if (switchEffectiveUser(step->username, step->uid, step->gid) == -1) {

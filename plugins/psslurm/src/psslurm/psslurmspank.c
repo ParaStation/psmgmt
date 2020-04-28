@@ -46,7 +46,7 @@ static const struct {
     { true,  SPANK_INIT,                   "slurm_spank_init"		      },
     { false, SPANK_SLURMD_INIT,            "slurm_spank_slurmd_init"	      },
     { true,  SPANK_JOB_PROLOG,             "slurm_spank_job_prolog"	      },
-    { false, SPANK_INIT_POST_OPT,          "slurm_spank_init_post_opt"	      },
+    { true,  SPANK_INIT_POST_OPT,          "slurm_spank_init_post_opt"	      },
     { true,  SPANK_LOCAL_USER_INIT,        "slurm_spank_local_user_init"      },
     { true,  SPANK_USER_INIT,              "slurm_spank_user_init"	      },
     { true,  SPANK_TASK_INIT_PRIVILEGED,   "slurm_spank_task_init_privileged" },
@@ -192,13 +192,18 @@ static void doCallHook(Spank_Plugin_t *plugin, spank_t spank, char *hook)
     spank->plugin = plugin;
 
     gettimeofday(&time_start, NULL);
-    (*hSym)(spank, plugin->argV.count, plugin->argV.strings);
+    int res = (*hSym)(spank, plugin->argV.count, plugin->argV.strings);
     gettimeofday(&time_now, NULL);
 
     timersub(&time_now, &time_start, &time_diff);
     if (time_diff.tv_sec > HOOK_MAX_RUNTIME) {
 	flog("warning: hook %s from spank plugin %s took %.4f seconds\n", hook,
-		plugin->name, time_diff.tv_sec + 1e-6 * time_diff.tv_usec);
+	     plugin->name, time_diff.tv_sec + 1e-6 * time_diff.tv_usec);
+    }
+
+    if (res != SLURM_SUCCESS) {
+	flog("warning: hook %s from spank plugin %s returned %i\n", hook,
+	     plugin->name, res);
     }
 }
 
