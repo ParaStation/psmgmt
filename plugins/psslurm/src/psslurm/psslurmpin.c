@@ -1526,7 +1526,7 @@ static char * printMemMask(void)
 {
 #ifdef HAVE_LIBNUMA
     struct bitmask *memmask;
-    int i, j, p, max, s;
+    int i, p, max, s;
 
     static char ret[PSCPU_MAX/4+10];
 
@@ -1534,13 +1534,13 @@ static char * printMemMask(void)
 
     strcpy(ret, "0x");
 
-    i = 0;
     p = 2;
     max = numa_max_node();
-    while (i <= max) {
+    i = max + (4 - (max + 1) % 4);
+    while (i >= 0) {
 	s = 0;
-	for (j = 0; j < 4 && i <= max; j++) {
-	    s += (numa_bitmask_isbitset(memmask, i++) ? 1 : 0) * pow(2, j);
+	for (int j = 3; j >= 0 && i >= 0; j--) {
+	    s += (numa_bitmask_isbitset(memmask, i--) ? 1 : 0) * pow(2, j);
 	}
 	snprintf(ret+(p++), 2, "%X", s);
     }
