@@ -1785,10 +1785,10 @@ static struct bitmask * getMemBindMask(uint32_t localNodeId, uint32_t rank,
 
     if (memBindType & MEM_BIND_RANK) {
 	if (lTID > (unsigned int)numa_max_node()) {
-	    mlog("%s: memory binding to ranks not possible for rank %d."
+	    mlog("%s: memory binding to ranks not possible for rank %u."
 		    " (local rank %d > #numa_nodes %d)\n", __func__,
 		    rank, lTID, numa_max_node());
-	    fprintf(stderr, "Memory binding to ranks not possible for rank %d,"
+	    fprintf(stderr, "Memory binding to ranks not possible for rank %u,"
 		    " local rank %u larger than max numa node %d.",
 		    rank, lTID, numa_max_node());
 	    numa_bitmask_setall(nodemask);
@@ -1800,7 +1800,7 @@ static struct bitmask * getMemBindMask(uint32_t localNodeId, uint32_t rank,
 	    mlog("%s: setting bit %d in memory mask not allowed in rank"
 		    " %d\n", __func__, lTID, rank);
 	    fprintf(stderr, "Not allowed to set bit %u in memory mask"
-		    " of rank %d\n", lTID, rank);
+		    " of rank %u\n", lTID, rank);
 	}
 	return nodemask;
     }
@@ -1849,14 +1849,14 @@ static struct bitmask * getMemBindMask(uint32_t localNodeId, uint32_t rank,
 		numa_bitmask_setbit(nodemask, mynode);
 	    } else {
 		mlog("%s: setting bit %d in memory mask not allowed in rank"
-			" %d\n", __func__, mynode, rank);
+			" %u\n", __func__, mynode, rank);
 		fprintf(stderr, "Not allowed to set bit %d in memory mask"
-			" of rank %d\n", mynode, rank);
+			" of rank %u\n", mynode, rank);
 	    }
 	} else {
-	    mlog("%s: invalid memory map entry '%s' (%d) for rank %d\n",
+	    mlog("%s: invalid memory map entry '%s' (%d) for rank %u\n",
 		    __func__, myent, mynode, rank);
-	    fprintf(stderr, "Invalid memory map entry '%s' for rank %d\n",
+	    fprintf(stderr, "Invalid memory map entry '%s' for rank %u\n",
 		    myent, rank);
 	    numa_bitmask_setall(nodemask);
 	    goto cleanup;
@@ -2066,7 +2066,7 @@ void test_thread_iterator(uint16_t socketCount, uint16_t coresPerSocket,
 	/* which thread of this core is this thread? */
 	uint16_t corethread = getCorethread(thread, &nodeinfo);
 
-	printf("thread %2hu - core %2u: s %hu  c %2u  t %hu\n",
+	printf("thread %2u - core %2u: s %hu  c %2u  t %hu\n",
 		thread, core, socket, socketcore, corethread);
 
 	if (count++ > 2 * nodeinfo.threadCount) {
