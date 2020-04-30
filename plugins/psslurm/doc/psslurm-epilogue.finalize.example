@@ -1,0 +1,28 @@
+#!/bin/bash
+
+dbgfile=/dev/null
+#dbgfile=/tmp/epilogue.finalize.log
+execFile=/opt/parastation/lib/actions/notifyUserCollect.sh
+logDir=/p/hpcmon/jobinfo
+clusterName=''
+TIMEOUT=10
+
+exec &> $dbgfile
+
+echo "epilogue.finalize called, SLURM_JOB_ID = $SLURM_JOB_ID"
+
+eval clusterName=$(psconfig -b get host:${HOSTNAME%%.*} Cluster.ClusterName 2>/dev/null)
+if [ -z "$clusterName" ] 
+then
+        echo "ERROR: unknown cluster name"
+        exit 1
+fi
+logDir=$logDir/$clusterName
+
+if [ -x $execFile ]
+then
+        echo "INFO: exec /opt/parastation/bin/pstimeout $TIMEOUT $execFile -o $logDir"
+        exec /opt/parastation/bin/pstimeout $TIMEOUT $execFile -o $logDir
+else
+        echo "ERROR: unknown $execFile"
+fi
