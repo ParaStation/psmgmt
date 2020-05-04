@@ -2176,9 +2176,11 @@ void test_pinning(uint16_t socketCount, uint16_t coresPerSocket,
 			memBindType, memBindString);
 	    }
 	    else {
-		/* no memory binding => bind to all */
+		/* no memory binding => bind to all existing sockets */
 		nodemask = numa_allocate_nodemask();
-		numa_bitmask_setall(nodemask);
+		for (int i = 0; i < socketCount; i++) {
+		    numa_bitmask_setbit(nodemask, i);
+		}
 	    }
 
 	    if (nodemask) {
