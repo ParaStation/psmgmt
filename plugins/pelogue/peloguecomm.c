@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2013-2019 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2013-2020 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -724,8 +724,15 @@ static void dropPElogueMsg(DDTypedBufferMsg_t *msg)
     PSnodes_ID_t node = PSC_getID(msg->header.dest);
     const char *hname = getHostnameByNodeId(node);
 
-    mlog("%s: drop msg type %s(%i) to host %s(%i)\n", __func__,
-	 msg2Str(msg->type), msg->type, hname, node);
+    size_t used = 0;
+    uint8_t fType;
+    uint16_t fNum;
+
+    PSP_getTypedMsgBuf(msg, &used, __func__, "fragType", &fType, sizeof(fType));
+    PSP_getTypedMsgBuf(msg, &used, __func__, "fragNum", &fNum, sizeof(fNum));
+
+    mlog("%s: drop msg type %s(%i) fragment %hu to host %s(%i)\n", __func__,
+	 msg2Str(msg->type), msg->type, fNum, hname, node);
 
     switch (msg->type) {
     case PSP_PROLOGUE_START:
@@ -779,7 +786,7 @@ bool initComm(void)
     PSID_registerMsg(PSP_CC_PLUG_PELOGUE, (handlerFunc_t) handlePElogueMsg);
     PSID_registerDropper(PSP_CC_PLUG_PELOGUE, (handlerFunc_t) dropPElogueMsg);
     oldUnkownHandler = PSID_registerMsg(PSP_CD_UNKNOWN,
-				        (handlerFunc_t) handleUnknownMsg);
+					(handlerFunc_t) handleUnknownMsg);
 
     return true;
 }
