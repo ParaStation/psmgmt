@@ -4,6 +4,30 @@ Copyright (C) 2010-2020 ParTec Cluster Competence Center GmbH, Munich
 
 Please send bug reports, questions and suggestions to <support@par-tec.com>
 
+Version 5.1.30:
+===============
+Bugfixes:
+ - Protocol messed up between psid and psiadmin (#2841)
+ - Do not set SLURM_NTASKS and SLURM_NPROCS for jobs (psc:#355)
+ - Fix spank plugin argument parsing
+ - Do not use putenv() with an automatic variable (prevents export of
+   multiple environments in task prolog)
+Enhancements:
+ - Complete rework of pinning within psslurm (psc:#349, 
+ - Add psslurmgetbind tool
+ - Add support for file pattern "%x" to psslurm (psc:#353)
+ - Add epilogue.finalize script
+ - Add support for "print" and "unset" in psslurm task prologue
+ - Use hwloc to detect HW-threads and cores (#2833)
+ - Activate spank hook SPANK_INIT_POST_OPT and warn on spank hooks return error
+ - Skip undefined nodes faster in case of split brain situations
+Additional changes:
+ - Add psslurm epilogue.finalize example script
+ - Add debugging output for multiprog step handling
+ - Add PSIDHOOK_GETRESERVATION and push API version to 125
+ - Fix warnings unveiled by cppcheck, clang, et al.
+
+
 Version 5.1.29-1:
 =================
 Bugfixes:
