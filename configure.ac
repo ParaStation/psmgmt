@@ -177,6 +177,7 @@ AC_CONFIG_FILES(plugins/pspam/Makefile)
 AC_CONFIG_FILES(plugins/pspam/include/Makefile)
 AC_CONFIG_FILES(plugins/pspam/module/Makefile)
 AC_CONFIG_FILES(plugins/pspam/pspam/Makefile)
+AC_CONFIG_FILES(plugins/pspam/service/Makefile)
 AC_CONFIG_FILES(plugins/pspmi/Makefile)
 
 AM_COND_IF([BUILD_WITHOUT_PSPMIX], [], [
