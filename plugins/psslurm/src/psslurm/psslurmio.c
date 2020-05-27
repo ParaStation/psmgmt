@@ -72,19 +72,19 @@ const char *IO_strType(int type)
     static char buf[128];
 
     switch (type) {
-       case SLURM_IO_STDIN:
-	  return "IO_STDIN";
-       case SLURM_IO_STDOUT:
-	  return "IO_STDOUT";
-       case SLURM_IO_STDERR:
-	  return "IO_STDERR";
-       case SLURM_IO_ALLSTDIN:
-	  return "IO_ALLSTDIN";
-       case SLURM_IO_CONNECTION_TEST:
-	  return "IO_CON_TEST";
-       default:
-	  snprintf(buf, sizeof(buf), "<unknown: %i>", type);
-	  return buf;
+	case SLURM_IO_STDIN:
+	    return "IO_STDIN";
+	case SLURM_IO_STDOUT:
+	    return "IO_STDOUT";
+	case SLURM_IO_STDERR:
+	    return "IO_STDERR";
+	case SLURM_IO_ALLSTDIN:
+	    return "IO_ALLSTDIN";
+	case SLURM_IO_CONNECTION_TEST:
+	    return "IO_CON_TEST";
+	default:
+	    snprintf(buf, sizeof(buf), "<unknown: %i>", type);
+	    return buf;
     }
 }
 
@@ -93,21 +93,21 @@ const char *IO_strOpt(int opt)
     static char buf[128];
 
     switch (opt) {
-       case IO_UNDEF:
-	  return "IO_UNDEF";
-       case IO_SRUN:
-	  return "IO_SRUN";
-       case IO_SRUN_RANK:
-	  return "IO_SRUN_RANK";
-       case IO_GLOBAL_FILE:
-	  return "IO_GLOBAL_FILE";
-       case IO_RANK_FILE:
-	  return "IO_RANK_FILE";
-       case IO_NODE_FILE:
-	  return "IO_NODE_FILE";
-       default:
-	  snprintf(buf, sizeof(buf), "<unknown: %i>", opt);
-	  return buf;
+	case IO_UNDEF:
+	    return "IO_UNDEF";
+	case IO_SRUN:
+	    return "IO_SRUN";
+	case IO_SRUN_RANK:
+	    return "IO_SRUN_RANK";
+	case IO_GLOBAL_FILE:
+	    return "IO_GLOBAL_FILE";
+	case IO_RANK_FILE:
+	    return "IO_RANK_FILE";
+	case IO_NODE_FILE:
+	    return "IO_NODE_FILE";
+	default:
+	    snprintf(buf, sizeof(buf), "<unknown: %i>", opt);
+	    return buf;
     }
 }
 
@@ -197,12 +197,12 @@ static void IO_writeMsg(Forwarder_Data_t *fwdata, char *msg, uint32_t msgLen,
 	    "sattach %i\n", msgLen, taskid, PSLog_printMsgType(type), type,
 	    lrank, sattachCon);
     /*
-       char format[64];
-       if (msgLen>0) {
-       snprintf(format, sizeof(format), "%s: msg: '%%.%is'\n", __func__,
-       msgLen);
-       mdbg(PSSLURM_LOG_IO, format, msg);
-       }
+    char format[64];
+    if (msgLen>0) {
+	snprintf(format, sizeof(format), "%s: msg: '%%.%is'\n", __func__,
+		msgLen);
+	mdbg(PSSLURM_LOG_IO, format, msg);
+    }
     */
 
     /* forward the message to all sattach processes */
@@ -360,9 +360,10 @@ void IO_printChildMsg(Forwarder_Data_t *fwdata, char *msg, size_t msgLen,
 	initBuf = 1;
     }
 
-   handleBufferedMsg(fwdata, msg, msgLen,
-		    type == STDOUT ?  &lineBuf[lrank].out : &lineBuf[lrank].err,
-		    rank, type, lrank);
+    handleBufferedMsg(fwdata, msg, msgLen,
+		     (type == STDOUT) ?
+			&lineBuf[lrank].out : &lineBuf[lrank].err,
+		     rank, type, lrank);
 }
 
 void IO_finalize(Forwarder_Data_t *fwdata)
@@ -427,8 +428,8 @@ void IO_sattachTasks(Step_t *step, uint32_t ioAddr, uint16_t ioPort,
     /* send previous buffered output */
     uint32_t index = ringBufStart;
     for (i=0; i<RING_BUFFER_LEN; i++) {
-        int ret, error;
-        RingMsgBuffer_t *rBuf = &ringBuf[index];
+	int ret, error;
+	RingMsgBuffer_t *rBuf = &ringBuf[index];
 	if (!rBuf->msg) break;
 
 	IO_Slurm_Header_t ioh;
