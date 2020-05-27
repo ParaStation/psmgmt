@@ -679,59 +679,28 @@ static char *addCwd(char *cwd, char *path)
     return buf;
 }
 
-void IO_redirectJob(Job_t *job)
+void IO_redirectJob(Forwarder_Data_t *fwdata, Job_t *job)
 {
-    char *outFile, *errFile, *inFile, *defOutName;
+    char *inFile;
     int fd;
 
     close(STDOUT_FILENO);
     close(STDERR_FILENO);
     close(STDIN_FILENO);
 
-    int flags = getAppendFlags(job->appendMode);
-
-    if (job->arrayTaskId != NO_VAL) {
-	defOutName = "slurm-%A_%a.out";
-    } else {
-	defOutName = "slurm-%j.out";
-    }
-
     /* stdout */
-    if (!(strlen(job->stdOut))) {
-	outFile = addCwd(job->cwd, replaceJobSymbols(job, defOutName));
-    } else {
-	outFile = addCwd(job->cwd, replaceJobSymbols(job, job->stdOut));
-    }
-
-    if ((fd = open(outFile, flags, 0666)) == -1) {
-	mwarn(errno, "%s: open stdout '%s' failed :", __func__, outFile);
+    if ((dup2(fwdata->stdOut[1], STDOUT_FILENO)) == -1) {
+	mwarn(errno, "%s: dup2(%i) failed :", __func__, fwdata->stdOut[1]);
 	exit(1);
     }
-    if ((dup2(fd, STDOUT_FILENO)) == -1) {
-	mwarn(errno, "%s: dup2(%i) '%s' failed :", __func__, fd, outFile);
-	exit(1);
-    }
+    close(fwdata->stdOut[0]);
 
     /* stderr */
-    if (!(strlen(job->stdErr))) {
-	errFile = addCwd(job->cwd, replaceJobSymbols(job, defOutName));
-    } else {
-	errFile = addCwd(job->cwd, replaceJobSymbols(job, job->stdErr));
-    }
-
-    if (strlen(job->stdErr)) {
-	if ((fd = open(errFile, flags, 0666)) == -1) {
-	    mwarn(errno, "%s: open stderr '%s' failed :", __func__, errFile);
-	    exit(1);
-	}
-    }
-    if ((dup2(fd, STDERR_FILENO)) == -1) {
-	mwarn(errno, "%s: dup2(%i) '%s' failed :", __func__, fd, errFile);
+    if ((dup2(fwdata->stdErr[1], STDERR_FILENO)) == -1) {
+	mwarn(errno, "%s: dup2(%i) failed :", __func__, fwdata->stdErr[1]);
 	exit(1);
     }
-
-    ufree(errFile);
-    ufree(outFile);
+    close(fwdata->stdErr[0]);
 
     /* stdin */
     if (!(strlen(job->stdIn))) {
@@ -779,7 +748,32 @@ int IO_redirectRank(Step_t *step, int rank)
     return 1;
 }
 
-void IO_openPipes(Forwarder_Data_t *fwdata, Step_t *step)
+int IO_openJobPipes(Forwarder_Data_t *fwdata)
+{
+    Job_t *job = fwdata->userData;
+
+    /* stdout */
+    if ((pipe(fwdata->stdOut)) == -1) {
+	mwarn(errno, "%s: open stdout pipe for job %u failed", __func__,
+	      job->jobid);
+	return 0;
+    }
+    mdbg(PSSLURM_LOG_IO, "%s: stdout pipe %i:%i for job %u\n", __func__,
+	 fwdata->stdOut[0], fwdata->stdOut[1], job->jobid);
+
+    /* stderr */
+    if ((pipe(fwdata->stdErr)) == -1) {
+	mwarn(errno, "%s: create stderr pipe for job %u failed", __func__,
+	      job->jobid);
+	return 0;
+    }
+    mdbg(PSSLURM_LOG_IO, "%s: stderr pipe %i:%i for job %u\n", __func__,
+	 fwdata->stdErr[0], fwdata->stdErr[1], job->jobid);
+
+    return 1;
+}
+
+void IO_openStepPipes(Forwarder_Data_t *fwdata, Step_t *step)
 {
     /* stdout */
     if (step->stdOutOpt != IO_NODE_FILE && step->stdOutOpt != IO_GLOBAL_FILE) {
@@ -810,6 +804,92 @@ void IO_openPipes(Forwarder_Data_t *fwdata, Step_t *step)
 	mdbg(PSSLURM_LOG_IO, "%s: stdin pipe '%i:%i'\n", __func__,
 		fwdata->stdIn[0], fwdata->stdIn[1]);
     }
+}
+
+int IO_forwardJobData(int sock, void *data)
+{
+    static char buf[1024];
+    Forwarder_Data_t *fwdata = data;
+    Job_t *job = fwdata->userData;
+
+    /* read from child */
+    int32_t size = doRead(sock, buf, sizeof(buf));
+    if (size <= 0) {
+	Selector_remove(sock);
+	mdbg(PSSLURM_LOG_IO, "%s: job %u close std[out|err] sock %i\n",
+	     __func__, job->jobid, sock);
+	close(sock);
+	return 0;
+    }
+
+    if (sock == fwdata->stdOut[0]) {
+	/* write to stdout socket */
+	doWriteP(job->stdOutFD, buf, size);
+	mdbg(PSSLURM_LOG_IO_VERB, "%s: write job %u sock %u stdout msg %s\n",
+	     __func__, job->jobid, sock, buf);
+    } else if (sock == fwdata->stdErr[0]) {
+	/* write to stderr socket */
+	doWriteP(job->stdErrFD, buf, size);
+	mdbg(PSSLURM_LOG_IO_VERB, "%s: write job %u sock %u stderr msg %s\n",
+	     __func__, job->jobid, sock, buf);
+    } else {
+	flog("unknown socket %i for job %u\n", sock, job->jobid);
+    }
+
+    return 0;
+}
+
+void IO_openJobIOfiles(Forwarder_Data_t *fwdata)
+{
+    Job_t *job = fwdata->userData;
+    int flags = getAppendFlags(job->appendMode);
+    char *outFile, *defOutName;
+
+    if (job->arrayTaskId != NO_VAL) {
+	defOutName = "slurm-%A_%a.out";
+    } else {
+	defOutName = "slurm-%j.out";
+    }
+
+    /* stdout */
+    close(STDOUT_FILENO);
+
+    if (!(strlen(job->stdOut))) {
+	outFile = addCwd(job->cwd, replaceJobSymbols(job, defOutName));
+    } else {
+	outFile = addCwd(job->cwd, replaceJobSymbols(job, job->stdOut));
+    }
+
+    mdbg(PSSLURM_LOG_IO, "%s: job %u stdout file %s\n", __func__,
+	 job->jobid, outFile);
+    if ((job->stdOutFD = open(outFile, flags, 0666)) == -1) {
+	mwarn(errno, "%s: open stdout '%s' failed :", __func__, outFile);
+	exit(1);
+    }
+    ufree(outFile);
+
+    Selector_register(fwdata->stdOut[0], IO_forwardJobData, fwdata);
+    close(fwdata->stdOut[1]);
+
+    /* stderr */
+    close(STDERR_FILENO);
+
+    if (strlen(job->stdErr)) {
+	char *errFile = addCwd(job->cwd, replaceJobSymbols(job, job->stdErr));
+	mdbg(PSSLURM_LOG_IO, "%s: job %u stderr file %s\n", __func__,
+	     job->jobid, errFile);
+	if ((job->stdErrFD = open(errFile, flags, 0666)) == -1) {
+	    mwarn(errno, "%s: open stderr '%s' failed for job %u: ", __func__,
+		  errFile, job->jobid);
+	    exit(1);
+	}
+	ufree(errFile);
+    } else {
+	job->stdErrFD = job->stdOutFD;
+    }
+
+    Selector_register(fwdata->stdErr[0], IO_forwardJobData, fwdata);
+    close(fwdata->stdErr[1]);
 }
 
 void IO_redirectStep(Forwarder_Data_t *fwdata, Step_t *step)

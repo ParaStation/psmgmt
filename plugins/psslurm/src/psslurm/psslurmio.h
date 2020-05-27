@@ -81,7 +81,7 @@ void IO_printChildMsg(Forwarder_Data_t *fwdata, char *msg, size_t msgLen,
  *
  * @param job The job to redirect
  */
-void IO_redirectJob(Job_t *job);
+void IO_redirectJob(Forwarder_Data_t *fwdata, Job_t *job);
 
 /**
  * @brief Redirect I/O of a step
@@ -131,7 +131,40 @@ void IO_closeChannel(Forwarder_Data_t *fwdata, uint32_t taskid, uint8_t type);
  *
  * @param step The step to open the pipes for
  */
-void IO_openPipes(Forwarder_Data_t *fwdata, Step_t *step);
+void IO_openStepPipes(Forwarder_Data_t *fwdata, Step_t *step);
+
+/**
+ * @brief Open I/O pipes for a job
+ *
+ * @param fwdata The forwarder structure of the job
+ *
+ * @return Returns 1 on success otherwise 0 is returned
+ */
+int IO_openJobPipes(Forwarder_Data_t *fwdata);
+
+/**
+ * @brief Open I/O files for a job
+ *
+ * @param fwdata The forwarder structure of the job
+ */
+void IO_openJobIOfiles(Forwarder_Data_t *fwdata);
+
+/**
+ * @brief Forward I/O data for a job
+ *
+ * Read from pipes connected to stdout and stderr of
+ * the job-script. The red data is written to the jobs
+ * stdout and stderr files respectively. This forwarding
+ * mechanism allows psslurm to inject additional messages
+ * into the message stream.
+ *
+ * @param sock The socket holding new data to read
+ *
+ * @param data Pointer holding the forwarder structure
+ *
+ * @return Always returns 0
+ */
+int IO_forwardJobData(int sock, void *data);
 
 /**
  * @brief Attach an additional I/O connection to sattach

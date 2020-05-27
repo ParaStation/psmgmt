@@ -304,7 +304,7 @@ static void fwExecBatchJob(Forwarder_Data_t *fwdata, int rerun)
     }
 
     /* redirect output */
-    IO_redirectJob(job);
+    IO_redirectJob(fwdata, job);
 
     /* setup batch specific environment */
     setJobEnv(job);
@@ -1046,7 +1046,7 @@ static int stepForwarderInit(Forwarder_Data_t *fwdata)
     if (!(step->taskFlags & LAUNCH_PTY)) {
 	if (!(step->taskFlags & LAUNCH_USER_MANAGED_IO)) {
 	    IO_redirectStep(fwdata, step);
-	    IO_openPipes(fwdata, step);
+	    IO_openStepPipes(fwdata, step);
 	}
     }
 
@@ -1192,6 +1192,23 @@ bool execStepLeader(Step_t *step)
     return true;
 }
 
+void handleJobLoop(Forwarder_Data_t *fwdata)
+{
+    Job_t *job = fwdata->userData;
+
+    if (switchEffectiveUser(job->username, job->uid, job->gid) == -1) {
+	mlog("%s: switching effective user failed\n", __func__);
+	exit(1);
+    }
+
+    IO_openJobIOfiles(fwdata);
+
+    if (switchEffectiveUser("root", 0, 0) == -1) {
+	mlog("%s: switching effective user failed\n", __func__);
+	exit(1);
+    }
+}
+
 bool execBatchJob(Job_t *job)
 {
     int grace = getConfValueI(&SlurmConfig, "KillWait");
@@ -1210,6 +1227,8 @@ bool execBatchJob(Job_t *job)
     fwdata->callback = jobCallback;
     fwdata->childFunc = fwExecBatchJob;
     fwdata->hookChild = handleChildStartJob;
+    fwdata->hookFWInit = IO_openJobPipes;
+    fwdata->hookLoop = handleJobLoop;
 
     if (!startForwarder(fwdata)) {
 	char msg[128];

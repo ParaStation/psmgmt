@@ -52,6 +52,8 @@ typedef struct {
     char *stdOut;	    /**< redirect stdout to this file */
     char *stdIn;	    /**< redirect stdin from this file */
     char *stdErr;	    /**< redirect stderr to this file */
+    int stdOutFD;           /**< job stdout file descriptor */
+    int stdErrFD;           /**< job stderr file descriptor */
     char *jobscript;	    /**< absolute path of the jobscript */
     char *jsData;	    /**< jobscript data */
     char *hostname;	    /**< hostname of the jobscript */
