@@ -46,6 +46,8 @@ typedef struct __fwData__ {
     int stdIn[2];          /**< stdIn provided to forwarder's child */
     int stdOut[2];         /**< stdOut provided to forwarder's child */
     int stdErr[2];         /**< stdErr provided to forwarder's child */
+    bool hideFWctrlMsg;	   /**< hide internal forwarder control messages
+			    * from handleMthrMsg() hook. Defaults to true. */
     int (*killSession)(pid_t, int);
 			   /**< Method to kill forwarder and all its children */
     int (*callback)(int32_t, Forwarder_Data_t *);

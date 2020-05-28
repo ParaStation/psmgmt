@@ -57,6 +57,7 @@ Forwarder_Data_t *ForwarderData_new(void)
 	fw->stdOut[1] = -1;
 	fw->stdErr[0] = -1;
 	fw->stdErr[1] = -1;
+	fw->hideFWctrlMsg = true;
     }
 
     return fw;
@@ -220,7 +221,10 @@ static int handleMthrSock(int fd, void *info)
 	return 0;
     }
 
-    if (fw->handleMthrMsg && fw->handleMthrMsg(lmsg, fw)) return 0;
+    if (!(fw->hideFWctrlMsg && msg.header.type == PSP_CC_MSG &&
+	lmsg->type >= 32 && lmsg->type <= 64)) {
+	if (fw->handleMthrMsg && fw->handleMthrMsg(lmsg, fw)) return 0;
+    }
 
     if (msg.header.type == PSP_CC_ERROR) return 0; /* ignore */
 
