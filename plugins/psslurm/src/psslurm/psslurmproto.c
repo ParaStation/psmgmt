@@ -1334,45 +1334,52 @@ static void handleDaemonStatus(Slurm_Msg_t *sMsg)
 
 static void handleJobNotify(Slurm_Msg_t *sMsg)
 {
-    Step_t *step;
     char **ptr = &sMsg->ptr;
-    char *msg = NULL;
     uint32_t jobid, stepid;
 
     getUint32(ptr, &jobid);
     getUint32(ptr, &stepid);
 
-    if (stepid == SLURM_BATCH_SCRIPT) {
-	step = findStepByJobid(jobid);
-    } else {
-	step = findStepByStepId(jobid, stepid);
-    }
+    flog("notify jobid %u stepid %u\n", jobid, stepid);
 
-    if (!step) {
-	mlog("%s: step %u.%u to signal not found\n", __func__, jobid, stepid);
+    Job_t *job = findJobById(jobid);
+    Step_t *step = findStepByStepId(jobid, stepid);
+
+    if (job) {
+	/* check permissions */
+	if (!(verifyUserId(sMsg->head.uid, job->uid))) {
+	    flog("request from invalid user %u for job %u\n", sMsg->head.uid,
+		 jobid);
+	    sendSlurmRC(sMsg, ESLURM_USER_ID_MISSING);
+	    return;
+	}
+
+	char *msg = getStringM(ptr);
+	fwCMD_printJobMsg(job, "psslurm: ", strlen("psslurm: "), STDERR);
+	fwCMD_printJobMsg(job, msg, strlen(msg), STDERR);
+	fwCMD_printJobMsg(job, "\n", strlen("\n"), STDERR);
+	ufree(msg);
+    } else if (step) {
+	/* check permissions */
+	if (!(verifyUserId(sMsg->head.uid, step->uid))) {
+	    flog("request from invalid user %u %s\n", sMsg->head.uid,
+		 strStepID(step));
+	    sendSlurmRC(sMsg, ESLURM_USER_ID_MISSING);
+	    return;
+	}
+
+	char *msg = getStringM(ptr);
+	fwCMD_printMessage(step, "psslurm: ", strlen("psslurm: "), STDERR, 0);
+	fwCMD_printMessage(step, msg, strlen(msg), STDERR, 0);
+	fwCMD_printMessage(step, "\n", strlen("\n"), STDERR, 0);
+	ufree(msg);
+    } else {
+	flog("job/step %u.%u to notify not found\n", jobid, stepid);
 	sendSlurmRC(sMsg, ESLURM_INVALID_JOB_ID);
 	return;
     }
 
-    /* check permissions */
-    if (!(verifyUserId(sMsg->head.uid, step->uid))) {
-	mlog("%s: request from invalid user %u\n", __func__, sMsg->head.uid);
-	sendSlurmRC(sMsg, ESLURM_USER_ID_MISSING);
-	return;
-    }
-
-    msg = getStringM(ptr);
-    /*
-    mlog("%s: send message '%s' to step %u:%u\n", __func__, msg, step->jobid,
-	    step->stepid);
-    */
-
-    fwCMD_printMessage(step, "psslurm: ", strlen("psslurm: "), STDERR, 0);
-    fwCMD_printMessage(step, msg, strlen(msg), STDERR, 0);
-    fwCMD_printMessage(step, "\n", strlen("\n"), STDERR, 0);
-
     sendSlurmRC(sMsg, SLURM_SUCCESS);
-    ufree(msg);
 }
 
 static void handleForwardData(Slurm_Msg_t *sMsg)

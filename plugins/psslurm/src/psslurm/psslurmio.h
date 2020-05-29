@@ -56,7 +56,7 @@ void IO_init();
 void IO_finalize(Forwarder_Data_t *fwdata);
 
 /**
- * @brief Write a stdout or stderr message
+ * @brief Write a stdout or stderr message for a step
  *
  * @param fwdata The forwarder executing the step
  *
@@ -68,8 +68,22 @@ void IO_finalize(Forwarder_Data_t *fwdata);
  *
  * @param type The message type (stdout or stderr)
  */
-void IO_printChildMsg(Forwarder_Data_t *fwdata, char *msg, size_t msgLen,
-		      uint32_t rank, uint8_t type);
+void IO_printStepMsg(Forwarder_Data_t *fwdata, char *msg, size_t msgLen,
+		     uint32_t rank, uint8_t type);
+
+/**
+ * @brief Write a stdout or stderr message for a job
+ *
+ * @param fwdata The forwarder executing the job
+ *
+ * @param msg The message to write
+ *
+ * @param msgLen The length of the message
+ *
+ * @param type The message type (stdout or stderr)
+ */
+void IO_printJobMsg(Forwarder_Data_t *fwdata, char *msg, size_t msgLen,
+		    uint8_t type);
 
 /**
  * @brief Redirect I/O of a job

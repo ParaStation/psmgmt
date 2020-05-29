@@ -17,7 +17,7 @@
 #include "psslurmtasks.h"
 
 /**
- * @brief Handle a message from forwarder sendto mother
+ * @brief Handle a message from step forwarder sendto mother
  *
  * @param msg The message to handle
  *
@@ -25,10 +25,10 @@
  *
  * @return Returns 1 on success and 0 otherwise
  */
-int fwCMD_handleFwMsg(PSLog_Msg_t *msg, Forwarder_Data_t *fwdata);
+int fwCMD_handleFwStepMsg(PSLog_Msg_t *msg, Forwarder_Data_t *fwdata);
 
 /**
- * @brief Handle a message from mother sendto forwarder
+ * @brief Handle a message from mother sendto step forwarder
  *
  * @param msg The message to handle
  *
@@ -36,7 +36,18 @@ int fwCMD_handleFwMsg(PSLog_Msg_t *msg, Forwarder_Data_t *fwdata);
  *
  * @return Returns 1 on success and 0 otherwise
  */
-int fwCMD_handleMthrMsg(PSLog_Msg_t *msg, Forwarder_Data_t *fwdata);
+int fwCMD_handleMthrStepMsg(PSLog_Msg_t *msg, Forwarder_Data_t *fwdata);
+
+/**
+ * @brief Handle a message from mother sendto job forwarder
+ *
+ * @param msg The message to handle
+ *
+ * @param fwdata The forwarder management structure
+ *
+ * @return Returns 1 on success and 0 otherwise
+ */
+int fwCMD_handleMthrJobMsg(PSLog_Msg_t *msg, Forwarder_Data_t *fwdata);
 
 /**
  * @brief Send CMD_STEP_TIMEOUT to a forwarder
@@ -62,7 +73,7 @@ void fwCMD_brokeIOcon(Step_t *step);
 void fwCMD_finalize(Forwarder_Data_t *fwdata, PSLog_Msg_t *msg);
 
 /**
- * @brief Send CMD_PRINT_CHILD_MSG to a forwarder
+ * @brief Send CMD_PRINT_CHILD_MSG to a step forwarder
  *
  * @param step The step to print the message for
  *
@@ -74,8 +85,21 @@ void fwCMD_finalize(Forwarder_Data_t *fwdata, PSLog_Msg_t *msg);
  *
  * @param rank The rank of the message origin
  */
-void fwCMD_printMessage(Step_t *step, char *msg, uint32_t msgLen,
+void fwCMD_printMessage(Step_t *step, char *plMsg, uint32_t msgLen,
 		        uint8_t type, int32_t rank);
+
+/**
+ * @brief Send CMD_PRINT_CHILD_MSG to a job forwarder
+ *
+ * @param job The job to print the message for
+ *
+ * @param plMsg The message to print
+ *
+ * @param msgLen The length of the message
+ *
+ * @param type The message type (stdout or stderr)
+ */
+void fwCMD_printJobMsg(Job_t *job, char *plMsg, uint32_t msgLen, uint8_t type);
 
 /**
  * @brief Send CMD_REATTACH_TASKS to a forwarder

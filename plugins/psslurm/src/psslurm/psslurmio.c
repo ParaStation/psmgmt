@@ -305,11 +305,31 @@ static void handleBufferedMsg(Forwarder_Data_t *fwdata, char *msg, uint32_t len,
 
 void IO_closeChannel(Forwarder_Data_t *fwdata, uint32_t taskid, uint8_t type)
 {
-    IO_printChildMsg(fwdata, NULL, 0, taskid, type);
+    IO_printStepMsg(fwdata, NULL, 0, taskid, type);
 }
 
-void IO_printChildMsg(Forwarder_Data_t *fwdata, char *msg, size_t msgLen,
-		      uint32_t rank, uint8_t type)
+void IO_printJobMsg(Forwarder_Data_t *fwdata, char *msg, size_t msgLen,
+		    uint8_t type)
+{
+    Job_t *job = fwdata->userData;
+
+    if (type == STDOUT) {
+	/* write to stdout socket */
+	doWriteP(job->stdOutFD, msg, msgLen);
+	mdbg(PSSLURM_LOG_IO_VERB, "%s: write job %u sock %u stdout msg %s\n",
+	     __func__, job->jobid, job->stdOutFD, msg);
+    } else if (type == STDERR) {
+	/* write to stderr socket */
+	doWriteP(job->stdErrFD, msg, msgLen);
+	mdbg(PSSLURM_LOG_IO_VERB, "%s: write job %u sock %u stderr msg %s\n",
+	     __func__, job->jobid, job->stdErrFD, msg);
+    } else {
+	flog("unknown type %u for job %u\n", type, job->jobid);
+    }
+}
+
+void IO_printStepMsg(Forwarder_Data_t *fwdata, char *msg, size_t msgLen,
+		     uint32_t rank, uint8_t type)
 {
     Step_t *step = fwdata->userData;
     uint32_t i;

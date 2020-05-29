@@ -104,7 +104,7 @@ static void handleSattachTasks(Forwarder_Data_t *fwdata, char *ptr)
     ufree(sig);
 }
 
-static void handlePrintChildMsg(Forwarder_Data_t *fwdata, char *ptr)
+static void handlePrintStepMsg(Forwarder_Data_t *fwdata, char *ptr)
 {
     uint8_t type;
     uint32_t rank;
@@ -115,29 +115,18 @@ static void handlePrintChildMsg(Forwarder_Data_t *fwdata, char *ptr)
     getUint32(&ptr, &rank);
     char *msg = getDataM(&ptr, &msglen);
 
-    IO_printChildMsg(fwdata, msg, msglen, rank, type);
+    IO_printStepMsg(fwdata, msg, msglen, rank, type);
 
     ufree(msg);
 }
 
-int fwCMD_handleMthrMsg(PSLog_Msg_t *msg, Forwarder_Data_t *fwdata)
+int fwCMD_handleMthrStepMsg(PSLog_Msg_t *msg, Forwarder_Data_t *fwdata)
 {
     PSSLURM_Fw_Cmds_t type = (PSSLURM_Fw_Cmds_t)msg->type;
 
-    /* ignore fw control messages */
-    switch (msg->type) {
-	case PLGN_SIGNAL_CHLD:
-	case PLGN_START_GRACE:
-	case PLGN_SHUTDOWN:
-	case PLGN_FIN_ACK:
-	    return 0;
-	default:
-	    break;
-    }
-
     switch (type) {
 	case CMD_PRINT_CHILD_MSG:
-	    handlePrintChildMsg(fwdata, msg->buf);
+	    handlePrintStepMsg(fwdata, msg->buf);
 	    break;
 	case CMD_ENABLE_SRUN_IO:
 	    handleEnableSrunIO(fwdata);
@@ -153,6 +142,38 @@ int fwCMD_handleMthrMsg(PSLog_Msg_t *msg, Forwarder_Data_t *fwdata)
 	    break;
 	case CMD_STEP_TIMEOUT:
 	    handleStepTimeout(fwdata);
+	    break;
+	default:
+	    flog("unexpected msg, type %d (PSlog type %s) from TID %s (%s) "
+		 "jobid %s\n", type, PSLog_printMsgType(msg->type),
+		 PSC_printTID(msg->sender), fwdata->pTitle, fwdata->jobID);
+	    return 0;
+    }
+
+    return 1;
+}
+
+static void handlePrintJobMsg(Forwarder_Data_t *fwdata, char *ptr)
+{
+    uint8_t type;
+    size_t msglen;
+
+    /* read message */
+    getUint8(&ptr, &type);
+    char *msg = getDataM(&ptr, &msglen);
+
+    IO_printJobMsg(fwdata, msg, msglen, type);
+
+    ufree(msg);
+}
+
+int fwCMD_handleMthrJobMsg(PSLog_Msg_t *msg, Forwarder_Data_t *fwdata)
+{
+    PSSLURM_Fw_Cmds_t type = (PSSLURM_Fw_Cmds_t)msg->type;
+
+    switch (type) {
+	case CMD_PRINT_CHILD_MSG:
+	    handlePrintJobMsg(fwdata, msg->buf);
 	    break;
 	default:
 	    flog("unexpected msg, type %d (PSlog type %s) from TID %s (%s) "
@@ -180,7 +201,7 @@ static void handleBrokeIOcon(PSLog_Msg_t *msg)
     if (step->ioCon == IO_CON_NORM) step->ioCon = IO_CON_ERROR;
 }
 
-int fwCMD_handleFwMsg(PSLog_Msg_t *msg, Forwarder_Data_t *fwdata)
+int fwCMD_handleFwStepMsg(PSLog_Msg_t *msg, Forwarder_Data_t *fwdata)
 {
     PSSLURM_Fw_Cmds_t type = (PSSLURM_Fw_Cmds_t)msg->type;
     switch (type) {
@@ -250,6 +271,40 @@ void fwCMD_enableSrunIO(Step_t *step)
     mdbg(PSSLURM_LOG_IO, "%s: to %s\n", __func__,
 	 PSC_printTID(step->fwdata->tid));
     sendMsg(&msg);
+}
+
+void fwCMD_printJobMsg(Job_t *job, char *plMsg, uint32_t msgLen, uint8_t type)
+{
+    PSLog_Msg_t msg = (PSLog_Msg_t) {
+	.header = (DDMsg_t) {
+	    .type = PSP_CC_MSG,
+	    .dest = job->fwdata ? job->fwdata->tid : -1,
+	    .sender = PSC_getMyTID(),
+	    .len = offsetof(PSLog_Msg_t, buf) },
+	.version = PLUGINFW_PROTO_VERSION,
+	.type = (PSLog_msg_t)CMD_PRINT_CHILD_MSG,
+	.sender = -1};
+    const size_t chunkSize = sizeof(msg.buf) - sizeof(uint8_t)
+	- sizeof(uint32_t) - sizeof(uint32_t);
+    size_t left = msgLen;
+
+    /* might happen that forwarder is already gone */
+    if (!job->fwdata) return;
+
+    do {
+	uint32_t chunk = left > chunkSize ? chunkSize : left;
+	uint32_t len = htonl(chunk);
+	DDBufferMsg_t *bMsg = (DDBufferMsg_t *)&msg;
+	bMsg->header.len = offsetof(PSLog_Msg_t, buf);
+
+	PSP_putMsgBuf(bMsg, __func__, "type", &type, sizeof(type));
+	/* Add data chunk including its length mimicking addData */
+	PSP_putMsgBuf(bMsg, __func__, "len", &len, sizeof(len));
+	PSP_putMsgBuf(bMsg, __func__, "data", plMsg + msgLen - left, chunk);
+
+	sendMsg(&msg);
+	left -= chunk;
+    } while (left);
 }
 
 void fwCMD_printMessage(Step_t *step, char *plMsg, uint32_t msgLen,

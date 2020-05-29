@@ -1171,8 +1171,8 @@ bool execStepLeader(Step_t *step)
     fwdata->childFunc = fwExecStep;
     fwdata->hookLoop = stepForwarderLoop;
     fwdata->hookFWInit = stepForwarderInit;
-    fwdata->handleMthrMsg = fwCMD_handleMthrMsg;
-    fwdata->handleFwMsg = fwCMD_handleFwMsg;
+    fwdata->handleMthrMsg = fwCMD_handleMthrStepMsg;
+    fwdata->handleFwMsg = fwCMD_handleFwStepMsg;
     fwdata->hookChild = handleChildStartStep;
     fwdata->hookFinalize = stepFinalize;
 
@@ -1229,6 +1229,7 @@ bool execBatchJob(Job_t *job)
     fwdata->hookChild = handleChildStartJob;
     fwdata->hookFWInit = IO_openJobPipes;
     fwdata->hookLoop = handleJobLoop;
+    fwdata->handleMthrMsg = fwCMD_handleMthrJobMsg;
 
     if (!startForwarder(fwdata)) {
 	char msg[128];
@@ -1441,8 +1442,8 @@ bool execStepFollower(Step_t *step)
     fwdata->killSession = psAccountSignalSession;
     fwdata->hookLoop = stepFollowerFWloop;
     fwdata->hookFWInit = stepFollowerFWinit;
-    fwdata->handleMthrMsg = fwCMD_handleMthrMsg;
-    fwdata->handleFwMsg = fwCMD_handleFwMsg;
+    fwdata->handleMthrMsg = fwCMD_handleMthrStepMsg;
+    fwdata->handleFwMsg = fwCMD_handleFwStepMsg;
     fwdata->callback = stepFollowerCB;
     fwdata->hookFinalize = stepFinalize;
 

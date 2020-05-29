@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2014-2019 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2014-2020 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -112,6 +112,7 @@ Job_t *addJob(uint32_t jobid)
     deleteJob(jobid);
 
     job->jobid = jobid;
+    job->stdOutFD = job->stdErrFD = -1;
     INIT_LIST_HEAD(&job->gresList);
     job->state = JOB_INIT;
     job->startTime = time(0);

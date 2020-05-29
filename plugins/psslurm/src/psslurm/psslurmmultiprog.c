@@ -485,7 +485,7 @@ void setupArgsFromMultiProg(Step_t *step, Forwarder_Data_t *fwdata,
     char *msg;
 setup_error:
     msg = "Error setting up arguments from multiprog file.\n";
-    IO_printChildMsg(fwdata, msg, strlen(msg), 0, STDERR);
+    IO_printStepMsg(fwdata, msg, strlen(msg), 0, STDERR);
     exit(1);
 }
 
