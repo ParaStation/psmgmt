@@ -1765,18 +1765,24 @@ static void handleKillReq(Slurm_Msg_t *sMsg, Alloc_t *alloc, Kill_Info_t *info)
     }
 
     /* kill request for complete allocation */
-    if (!alloc->firstKillReq) alloc->firstKillReq = time(NULL);
     alloc->terminate++;
-    Job_t *job = findJobById(info->jobid);
+    if (!alloc->firstKillReq) {
+	alloc->firstKillReq = time(NULL);
 
-    if (info->timeout) {
-	if (job) job->timeout = 1;
-	/* TODO: redirect to job output */
-	mlog("error: *** job %u CANCELLED DUE TO TIME LIMIT ***\n",
-	     info->jobid);
-    } else {
-	/* TODO: redirect to job output */
-	mlog("error: *** PREEMPTION for job %u ***\n", info->jobid);
+	Job_t *job = findJobById(info->jobid);
+	if (job) {
+	    char buf[512];
+	    if (info->timeout) {
+		job->timeout = 1;
+		snprintf(buf, sizeof(buf), "error: *** job %u CANCELLED DUE "
+			 "TO TIME LIMIT ***\n", info->jobid);
+		fwCMD_printJobMsg(job, buf, strlen(buf), STDERR);
+	    } else {
+		snprintf(buf, sizeof(buf), "error: *** PREEMPTION for "
+			 "job %u ***\n", info->jobid);
+		fwCMD_printJobMsg(job, buf, strlen(buf), STDERR);
+	    }
+	}
     }
 
     if (alloc->state == A_RUNNING || alloc->state == A_PROLOGUE_FINISH) {
