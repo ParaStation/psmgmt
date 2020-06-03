@@ -1653,7 +1653,7 @@ static void handlePsslurmMsg(DDTypedBufferMsg_t *msg)
 }
 
 /**
- * @brief Test if a unreachable node is part of an allocation
+ * @brief Test if an unreachable node is part of an allocation
  *
  * If a unreachable node is part of an allocation the corresponding
  * job and steps are signaled. Also the node is marked as unavailable
@@ -1685,6 +1685,18 @@ static bool nodeDownAlloc(Alloc_t *alloc, const void *info)
 		     "failure of node %s\n", step->jobid, step->stepid,
 		     getSlurmHostbyNodeID(node));
 	    fwCMD_printMessage(step, buf, strlen(buf), STDERR, 0);
+	}
+
+	if (!alloc->nodeFail) {
+	    Job_t *job = findJobById(alloc->id);
+	    if (!job) job = findJobById(alloc->packID);
+	    if (job && !job->mother) {
+		char buf[512];
+		snprintf(buf, sizeof(buf), "job %u terminated due to "
+			 "failure of node %s\n", job->jobid,
+			 getSlurmHostbyNodeID(node));
+		fwCMD_printJobMsg(job, buf, strlen(buf), STDERR);
+	    }
 	}
 
 	/* node will not be available for epilogue */
