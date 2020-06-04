@@ -186,7 +186,16 @@ int __sendDataBuffer(int sock, PS_SendDB_t *data, size_t offset,
     __sendDataBuffer(sock, data, offset, written, __func__, __LINE__)
 
 /**
- * @brief Save result of a fowarded message
+ * @brief Handle the result of a forwarded RPC message
+ *
+ * This function will only be used on the root node of the forwarding tree.
+ * If a new Slurm RPC message enables forwarding, handleFrwrdMsgReply() will
+ * collect and handle the results of the foward process. The sMsg will hold
+ * the information where the RPC was executed and error will hold the result.
+ * The forward process is tracked in the connection object from the original
+ * RPC request. If all RPC results from the involved nodes were collected the
+ * original RPC is answered holding the results from all nodes imbedded
+ * in the message header.
  *
  * @param sMsg The forwarded message to save
  *
@@ -196,11 +205,11 @@ int __sendDataBuffer(int sock, PS_SendDB_t *data, size_t offset,
  *
  * @param line Line number where this function is called
  */
-void __saveFrwrdMsgRes(Slurm_Msg_t *sMsg, uint32_t error, const char *func,
-		       const int line);
+void __handleFrwrdMsgReply(Slurm_Msg_t *sMsg, uint32_t error, const char *func,
+			   const int line);
 
-#define saveFrwrdMsgRes(sMsg, error) \
-    __saveFrwrdMsgRes(sMsg, error, __func__, __LINE__);
+#define handleFrwrdMsgReply(sMsg, error) \
+    __handleFrwrdMsgReply(sMsg, error, __func__, __LINE__);
 
 /**
  * @brief Handle a broken connection

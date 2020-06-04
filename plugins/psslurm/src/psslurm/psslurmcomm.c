@@ -232,33 +232,26 @@ void clearSlurmCon(void)
     }
 }
 
-void __saveFrwrdMsgRes(Slurm_Msg_t *sMsg, uint32_t error, const char *func,
-		       const int line)
+/**
+ * @brief Save a single result of a forwarded RPC messages
+ *
+ * @param sMsg The message holding the result to save
+ *
+ * @param fw The forward structure to save the result in
+ *
+ * @param error Error code to save
+ *
+ * @param func Function name of the calling function
+ *
+ * @param line Line number where this function is called
+ * @return Returns false if the processing should be stopped
+ * otherwise true is returned even if errors occured.
+ */
+static bool saveFrwrdMsgReply(Slurm_Msg_t *sMsg, Msg_Forward_t *fw,
+			      uint32_t error, const char *func, const int line)
 {
-    Connection_t *con;
-    Msg_Forward_t *fw;
-    Slurm_Forward_Data_t *fwdata;
-    uint16_t i, saved = 0;
-    PSnodes_ID_t srcNode;
-
-    if (!sMsg || !sMsg->reply.buf) {
-	mlog("%s: invalid %s from %s at %i\n", __func__,
-		(!sMsg ? "sMsg" : "data"), func, line);
-	return;
-    }
-
-    con = findConnectionEx(sMsg->sock, sMsg->recvTime);
-    if (!con) {
-	mlog("%s: no connection to %s socket %i recvTime %zu type %s caller %s"
-	     " at %i\n", __func__, PSC_printTID(sMsg->source), sMsg->sock,
-	     sMsg->recvTime, msgType2String(sMsg->head.type), func, line);
-	return;
-    }
-
-    fw = &con->fw;
     fw->numRes++;
-    srcNode = PSC_getID(sMsg->source);
-
+    PSnodes_ID_t srcNode = PSC_getID(sMsg->source);
     if (srcNode == PSC_getMyID()) {
 	/* save local processed message */
 	fw->head.type = sMsg->head.type;
@@ -266,18 +259,23 @@ void __saveFrwrdMsgRes(Slurm_Msg_t *sMsg, uint32_t error, const char *func,
 			     &fw->body)) {
 	    mlog("%s: error saving local result, caller %s at %i\n",
 		 __func__, func, line);
+	    return true;
 	}
     } else {
 	/* save message from other node */
+	uint16_t i, saved = 0;
 	for (i=0; i<fw->head.forward; i++) {
-	    fwdata = &fw->head.fwdata[i];
+	    Slurm_Forward_Data_t *fwdata = &fw->head.fwdata[i];
+	    /* test for double replies */
 	    if (fwdata->node == srcNode) {
 		mlog("%s: result for node %i already saved, caller %s "
 		     "line %i\n", __func__, srcNode, func, line);
 		fw->numRes--;
-		return;
+		return false;
 	    }
+	    /* find the next free slot */
 	    if (fwdata->node == -1) {
+		/* save the result */
 		fwdata->error = error;
 		fwdata->type = sMsg->head.type;
 		fwdata->node = srcNode;
@@ -297,14 +295,41 @@ void __saveFrwrdMsgRes(Slurm_Msg_t *sMsg, uint32_t error, const char *func,
 	if (!saved) {
 	    mlog("%s: error saving result for src %s, caller %s at %i\n",
 		 __func__, PSC_printTID(sMsg->source), func, line);
+	    return true;
 	}
     }
+    return true;
+}
+
+void __handleFrwrdMsgReply(Slurm_Msg_t *sMsg, uint32_t error, const char *func,
+			   const int line)
+{
+    if (!sMsg || !sMsg->reply.buf) {
+	mlog("%s: invalid %s from %s at %i\n", __func__,
+		(!sMsg ? "sMsg" : "data"), func, line);
+	return;
+    }
+
+    /* find open connection for forwarded message */
+    Connection_t *con = findConnectionEx(sMsg->sock, sMsg->recvTime);
+    if (!con) {
+	mlog("%s: no connection to %s socket %i recvTime %zu type %s caller %s"
+	     " at %i\n", __func__, PSC_printTID(sMsg->source), sMsg->sock,
+	     sMsg->recvTime, msgType2String(sMsg->head.type), func, line);
+	return;
+    }
+
+    Msg_Forward_t *fw = &con->fw;
+
+    /* save the new result for a single node */
+    if (!saveFrwrdMsgReply(sMsg, fw, error, func, line)) return;
 
     mdbg(PSSLURM_LOG_FWD, "%s(%s:%i): type %s forward %u resCount %u "
 	    "source %s sock %i recvTime %zu\n", __func__, func, line,
 	    msgType2String(sMsg->head.type), fw->head.forward, fw->numRes,
 	    PSC_printTID(sMsg->source), sMsg->sock, sMsg->recvTime);
 
+    /* test if all nodes replied and therefore the forward is complete */
     if (fw->numRes == fw->nodesCount + 1) {
 	PS_SendDB_t msg = { .bufUsed = 0, .useFrag = false };
 
@@ -322,6 +347,8 @@ void __saveFrwrdMsgRes(Slurm_Msg_t *sMsg, uint32_t error, const char *func,
 	    return;
 	}
 
+	/* Answer the original RPC request from Slurm. This reply will hold
+	 * results from all the nodes the RPC was forwarded to. */
 	msg.buf = fw->body.buf;
 	msg.bufUsed = fw->body.bufUsed;
 	sendSlurmMsgEx(con->sock, &fw->head, &msg);
@@ -1474,7 +1501,7 @@ void handleBrokenConnection(PSnodes_ID_t nodeID)
 		sMsg.recvTime = con->recvTime;
 		sMsg.data = &data;
 
-		saveFrwrdMsgRes(&sMsg, SLURM_COMMUNICATIONS_CONNECTION_ERROR);
+		handleFrwrdMsgReply(&sMsg, SLURM_COMMUNICATIONS_CONNECTION_ERROR);
 		mlog("%s: message error for node %i saved\n", __func__, nodeID);
 
 		/* assuming nodes[] contains each node id only once */

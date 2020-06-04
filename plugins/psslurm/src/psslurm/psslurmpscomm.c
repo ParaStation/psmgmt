@@ -1586,7 +1586,7 @@ static void handleFWslurmMsgRes(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
     sMsg.reply.bufUsed = data->bufUsed - (ptr - data->buf);
     sMsg.reply.buf = ptr;
 
-    saveFrwrdMsgRes(&sMsg, SLURM_SUCCESS);
+    handleFrwrdMsgReply(&sMsg, SLURM_SUCCESS);
 }
 
 /**
@@ -1763,7 +1763,7 @@ static void saveForwardError(DDTypedBufferMsg_t *msg)
     /* receive time */
     getTime(&ptr, &sMsg.recvTime);
 
-    saveFrwrdMsgRes(&sMsg, SLURM_COMMUNICATIONS_CONNECTION_ERROR);
+    handleFrwrdMsgReply(&sMsg, SLURM_COMMUNICATIONS_CONNECTION_ERROR);
 }
 
 /**

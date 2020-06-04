@@ -2431,7 +2431,7 @@ int __sendSlurmReply(Slurm_Msg_t *sMsg, slurm_msg_type_t type,
 	} else {
 	    /* we are the root of the forwarding tree, so we save the result
 	     * and wait for all other forwarded messages to return */
-	    __saveFrwrdMsgRes(sMsg, SLURM_SUCCESS, func, line);
+	    __handleFrwrdMsgReply(sMsg, SLURM_SUCCESS, func, line);
 	}
     } else {
 	/* forwarded message from other psid,
