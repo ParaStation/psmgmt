@@ -31,6 +31,7 @@
 #include "psidpartition.h"
 #include "psidtask.h"
 #include "psidnodes.h"
+#include "psidutil.h"
 
 #include "pluginmalloc.h"
 #include "pluginhelper.h"
@@ -1652,6 +1653,15 @@ static void handlePsslurmMsg(DDTypedBufferMsg_t *msg)
 
     snprintf(sender, sizeof(sender), "%s", PSC_printTID(msg->header.sender));
     snprintf(dest, sizeof(dest), "%s", PSC_printTID(msg->header.dest));
+
+    /* only authorized users may send pelogue messages */
+    if (!PSID_checkPrivilege(msg->header.sender)) {
+	PStask_t *task = PStasklist_find(&managedTasks, msg->header.sender);
+	mlog("%s: access violation: dropping message uid %i type %i "
+	     "sender %s\n", __func__, (task ? task->uid : 0), msg->type,
+	     PSC_printTID(msg->header.sender));
+	return;
+    }
 
     mdbg(PSSLURM_LOG_COMM, "%s: new msg type: %s (%i) [%s->%s]\n", __func__,
 	 msg2Str(msg->type), msg->type, sender, dest);

@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2010-2018 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2010-2020 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -33,6 +33,8 @@
 #include "psidplugin.h"
 #include "pscommon.h"
 #include "psidnodes.h"
+#include "psidutil.h"
+#include "psidtask.h"
 
 #include "psmompscomm.h"
 
@@ -358,6 +360,15 @@ static void handlePSMsg(DDTypedBufferMsg_t *msg)
     snprintf(cover, sizeof(cover), "[%s->", PSC_printTID(msg->header.sender));
     snprintf(cover+strlen(cover), sizeof(cover)-strlen(cover), "%s]",
 	     PSC_printTID(msg->header.dest));
+
+    /* only authorized users may send pelogue messages */
+    if (!PSID_checkPrivilege(msg->header.sender)) {
+	PStask_t *task = PStasklist_find(&managedTasks, msg->header.sender);
+	mlog("%s: access violation: dropping message uid %i type %i "
+	     "sender %s\n", __func__, (task ? task->uid : 0), msg->type,
+	     PSC_printTID(msg->header.sender));
+	return;
+    }
 
     mdbg(PSMOM_LOG_PSCOM, "%s(%i) %s\n", __func__, msg->type, cover);
 

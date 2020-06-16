@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2018-2019 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2018-2020 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -27,6 +27,8 @@
 #include "psidcomm.h"
 #include "psidclient.h"
 #include "psidspawn.h"
+#include "psidutil.h"
+#include "psidtask.h"
 #include "pspluginprotocol.h"
 #include "pluginforwarder.h"
 
@@ -107,6 +109,15 @@ static void forwardPspmixMsg(DDMsg_t *vmsg)
     mdbg(PSPMIX_LOG_CALL, "%s() called\n", __func__);
 
     DDTypedBufferMsg_t *msg = (DDTypedBufferMsg_t *)vmsg;
+
+    /* only authorized users may send pelogue messages */
+    if (!PSID_checkPrivilege(msg->header.sender)) {
+	PStask_t *task = PStasklist_find(&managedTasks, msg->header.sender);
+	mlog("%s: access violation: dropping message uid %i type %i "
+	     "sender %s\n", __func__, (task ? task->uid : 0), msg->type,
+	     PSC_printTID(msg->header.sender));
+	return;
+    }
 
     strcpy(sender, PSC_printTID(msg->header.sender));
     strcpy(dest, PSC_printTID(msg->header.dest));

@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2010-2019 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2010-2020 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -18,6 +18,8 @@
 #include "psserial.h"
 #include "psidcomm.h"
 #include "psidhook.h"
+#include "psidutil.h"
+#include "psidtask.h"
 
 #include "psaccountlog.h"
 #include "psaccountclient.h"
@@ -307,6 +309,15 @@ static void handleAccountChild(DDTypedBufferMsg_t *msg)
 
 static void handlePSMsg(DDTypedBufferMsg_t *msg)
 {
+    /* only authorized users may send pelogue messages */
+    if (!PSID_checkPrivilege(msg->header.sender)) {
+	PStask_t *task = PStasklist_find(&managedTasks, msg->header.sender);
+	mlog("%s: access violation: dropping message uid %i type %i "
+	     "sender %s\n", __func__, (task ? task->uid : 0), msg->type,
+	     PSC_printTID(msg->header.sender));
+	return;
+    }
+
     if (msg->header.dest == PSC_getMyTID()) {
 	/* message for me, let's get infos and forward to all accounters */
 

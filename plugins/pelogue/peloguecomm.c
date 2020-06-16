@@ -14,6 +14,8 @@
 #include "pscommon.h"
 #include "pspluginprotocol.h"
 #include "psidcomm.h"
+#include "psidutil.h"
+#include "psidtask.h"
 #include "psidhook.h"
 #include "pluginmalloc.h"
 #include "pluginhelper.h"
@@ -581,6 +583,15 @@ static void handlePElogueFinish(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
 static void handlePElogueMsg(DDTypedBufferMsg_t *msg)
 {
     char cover[128];
+
+    /* only authorized users may send pelogue messages */
+    if (!PSID_checkPrivilege(msg->header.sender)) {
+	PStask_t *task = PStasklist_find(&managedTasks, msg->header.sender);
+	mlog("%s: access violation: dropping message uid %i type %i "
+	     "sender %s\n", __func__, (task ? task->uid : 0), msg->type,
+	     PSC_printTID(msg->header.sender));
+	return;
+    }
 
     if (PSC_getID(msg->header.dest) != PSC_getMyID()) {
 	/* forward messages to other nodes */
