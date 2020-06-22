@@ -58,6 +58,7 @@ Forwarder_Data_t *ForwarderData_new(void)
 	fw->stdErr[0] = -1;
 	fw->stdErr[1] = -1;
 	fw->hideFWctrlMsg = true;
+	fw->fwChildOE = false;
     }
 
     return fw;
@@ -221,8 +222,8 @@ static int handleMthrSock(int fd, void *info)
 	return 0;
     }
 
-    if (!(fw->hideFWctrlMsg && msg.header.type == PSP_CC_MSG &&
-	lmsg->type >= 32 && lmsg->type <= 64)) {
+    if (!(fw->hideFWctrlMsg && msg.header.type == PSP_CC_MSG
+	&& lmsg->type <= 64)) {
 	if (fw->handleMthrMsg && fw->handleMthrMsg(lmsg, fw)) return 0;
     }
 
@@ -407,6 +408,23 @@ static void initChild(int controlFD, Forwarder_Data_t *fw)
 	close(fd);
     }
 
+    if (fw->fwChildOE) {
+	/* redirect stdout */
+	close(STDOUT_FILENO);
+	if ((dup2(fw->stdOut[1], STDOUT_FILENO)) == -1) {
+	    pluginwarn(errno, "%s: dup2(%i) failed :", __func__, fw->stdOut[1]);
+	    exit(1);
+	}
+	close(fw->stdOut[0]);
+	/* redirect stderr */
+	close(STDERR_FILENO);
+	if ((dup2(fw->stdErr[1], STDERR_FILENO)) == -1) {
+	    pluginwarn(errno, "%s: dup2(%i) failed :", __func__, fw->stdErr[1]);
+	    exit(1);
+	}
+	close(fw->stdErr[0]);
+    }
+
     /* restore sighandler */
     PSC_setSigHandler(SIGALRM, SIG_DFL);
     PSC_setSigHandler(SIGTERM, SIG_DFL);
@@ -584,6 +602,70 @@ static void sendFin(void)
     sendMsgToMother(&msg);
 }
 
+static int handleChildOE(int fd, void *info)
+{
+    Forwarder_Data_t *fw = info;
+    static char buf[1024];
+
+    /* read from child */
+    int32_t size = doRead(fd, buf, sizeof(buf));
+    if (size <= 0) {
+	Selector_remove(fd);
+	close(fd);
+	return 0;
+    }
+
+    /* send to mother */
+    PSLog_Msg_t msg = (PSLog_Msg_t) {
+	.header = (DDMsg_t) {
+	    .type = PSP_CC_MSG,
+	    .dest = PSC_getTID(-1,0),
+	    .sender = PSC_getMyTID(),
+	    .len = PSLog_headerSize },
+	.version = PLUGINFW_PROTO_VERSION,
+	.type = (fd == fw->stdOut[0] ? STDOUT : STDERR),
+	.sender = -1};
+
+    /* Add data chunk including its length mimicking addData */
+    uint32_t len = htonl(size);
+    PSP_putMsgBuf((DDBufferMsg_t*)&msg, __func__, "len", &len, sizeof(len));
+    PSP_putMsgBuf((DDBufferMsg_t*)&msg, __func__, "data", buf, size);
+
+    sendMsgToMother(&msg);
+
+    return 0;
+}
+
+static void monitorOEpipes(Forwarder_Data_t *fw)
+{
+    if (Selector_register(fw->stdOut[0], handleChildOE, fw) <0) {
+	pluginlog("%s: register fd %i failed\n", __func__, fw->stdOut[0]);
+    }
+    close(fw->stdOut[1]);
+
+    if (Selector_register(fw->stdErr[0], handleChildOE, fw) <0) {
+	pluginlog("%s: register fd %i failed\n", __func__, fw->stdErr[0]);
+    }
+    close(fw->stdErr[1]);
+}
+
+static bool openOEpipes(Forwarder_Data_t *fw)
+{
+    /* stdout */
+    if ((pipe(fw->stdOut)) == -1) {
+	pluginwarn(errno, "%s: open stdout pipe for job %s failed", __func__,
+		   fw->jobID);
+	return false;
+    }
+    /* stderr */
+    if ((pipe(fw->stdErr)) == -1) {
+	pluginwarn(errno, "%s: create stderr pipe for job %s failed", __func__,
+	           fw->jobID);
+	return false;
+    }
+    return true;
+}
+
 static void execForwarder(PStask_t *task)
 {
     fwTask = task;
@@ -606,6 +688,13 @@ static void execForwarder(PStask_t *task)
 	    pluginlog("%s: hookFWInit failed with %d\n", __func__, ret);
 	    sendCodeInfo(ret);
 	    exit(-1);
+	}
+    }
+
+    if (fw->fwChildOE) {
+	if (!openOEpipes(fw)) {
+	    pluginlog("%s: initialize child STDOUT/STDERR failed\n", __func__);
+	    exit(1);
 	}
     }
 
@@ -647,6 +736,7 @@ static void execForwarder(PStask_t *task)
 	    }
 	}
 
+	if (fw->fwChildOE) monitorOEpipes(fw);
 	if (fw->hookLoop) fw->hookLoop(fw);
 	forwarderLoop(fw);
 
@@ -795,7 +885,14 @@ static int handleFwSock(int fd, void *info)
 	return 0;
     }
 
-    if (fw->handleFwMsg && fw->handleFwMsg(lmsg, fw)) return 0;
+    if (!(fw->hideFWctrlMsg && msg.header.type == PSP_CC_MSG
+	&& lmsg->type <= 64)) {
+	if (fw->handleFwMsg && fw->handleFwMsg(lmsg, fw)) return 0;
+    } else if (fw->fwChildOE && (lmsg->type == STDOUT || lmsg->type == STDERR)) {
+	/* forward child STDOUT/STDERR if requested */
+	if (fw->handleFwMsg) fw->handleFwMsg(lmsg, fw);
+	return 0;
+    }
 
     switch (lmsg->type) {
     case STDIN:
