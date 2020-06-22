@@ -166,6 +166,10 @@ typedef enum {
     PSIDHOOK_PELOGUE_RES,     /**< Hook for requesting additional resources, arg
 				is a pointer to PElogueResource_t. Used by the
 				psgw plugin */
+    PSIDHOOK_PELOGUE_OE,      /**< The stdout/stderr messages of the prologue
+				and epilogue script are provided. Used by
+				psslurm to collect job errors. Arg is pointer to
+				PElogue_OEdata_t */
     PSIDHOOK_FRWRD_DSOCK,     /**< In forwarder's init() function, arg is a
 				pointer to the daemon socket. */
     PSIDHOOK_JAIL_CHILD,      /**< Jail child into cgroup, arg points to pid */
