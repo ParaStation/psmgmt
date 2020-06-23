@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2014-2019 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2014-2020 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -92,7 +92,8 @@ static Job_t *findJob(const char *plugin, const char *jobid, bool deleted)
 }
 
 Job_t *addJob(const char *plugin, const char *jobid, uid_t uid, gid_t gid,
-	     int numNodes, PSnodes_ID_t *nodes, PElogueJobCb_t *cb, void *info)
+	     int numNodes, PSnodes_ID_t *nodes, PElogueJobCb_t *cb, void *info,
+	     bool fwStdOE)
 {
     Job_t *job = findJob(plugin, jobid, true);
 
@@ -142,6 +143,7 @@ Job_t *addJob(const char *plugin, const char *jobid, uid_t uid, gid_t gid,
 	job->cb = cb;
 	job->info = info;
 	job->deleted = false;
+	job->fwStdOE = fwStdOE;
 
 	job->nodes =umalloc(sizeof(*job->nodes) * numNodes);
 	if (job->nodes) {

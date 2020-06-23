@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2013-2019 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2013-2020 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -23,6 +23,7 @@
 #include "list.h"
 #include "pscommon.h"
 #include "psenv.h"
+#include "psserial.h"
 
 #include "psidhook.h"
 
@@ -237,6 +238,48 @@ static int fwCallback(int32_t forwStatus, Forwarder_Data_t *fwData)
     return 0;
 }
 
+/**
+ * @brief Provides hook PSIDHOOK_PELOGUE_OE
+ *
+ * Provides hook PSIDHOOK_PELOGUE_OE for psslurm
+ * to handle stdout and stderr streams of the prologue/epilogue.
+ */
+static void handlePeIO(Forwarder_Data_t *fwdata, short outType, char *ptr)
+{
+    PElogue_OEdata_t oeData = {
+	.type = outType,
+	.child = fwdata->userData,
+    };
+
+    /* read message */
+    oeData.msg = getDataM(&ptr, &oeData.msgLen);
+
+    /* hook to forward STDOUT/STDERR to psslurm */
+    PSIDhook_call(PSIDHOOK_PELOGUE_OE, &oeData);
+
+    ufree(oeData.msg);
+}
+
+/**
+ * @brief Handle messages form pelogue forwarder
+ */
+static int handlePeFwMsg(PSLog_Msg_t *msg, Forwarder_Data_t *fwdata)
+{
+    switch (msg->type) {
+	case STDOUT:
+	case STDERR:
+	    handlePeIO(fwdata, msg->type, msg->buf);
+	    break;
+	default:
+	    mlog("%s: unexpected msg, type %s from TID %s (%s) "
+		 "jobid %s\n", __func__, PSLog_printMsgType(msg->type),
+		 PSC_printTID(msg->sender), fwdata->pTitle, fwdata->jobID);
+	    return 0;
+    }
+
+    return 1;
+}
+
 void startChild(PElogueChild_t *child)
 {
     char ctype[20], fname[100];
@@ -247,7 +290,7 @@ void startChild(PElogueChild_t *child)
     manageTempDir(child, prlg);
 
     child->fwData = ForwarderData_new();
-    snprintf(fname, sizeof(fname), "%sforwarder", child->plugin);
+    snprintf(fname, sizeof(fname), "pelogue-%s", child->plugin);
     child->fwData->pTitle = ustrdup(fname);
     child->fwData->jobID = ustrdup(child->jobid);
     child->fwData->userData = child;
@@ -257,6 +300,8 @@ void startChild(PElogueChild_t *child)
     child->fwData->childRerun = child->rounds;
     child->fwData->childFunc = execPElogueScript;
     child->fwData->timeoutChild = child->timeout;
+    child->fwData->handleFwMsg = handlePeFwMsg;
+    child->fwData->fwChildOE = child->fwStdOE;
 
     snprintf(ctype, sizeof(ctype), "%s %s", frntnd ? "local" : "remote",
 	     prlg ? "prologue" : "epilogue");

@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2014-2018 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2014-2020 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -38,7 +38,7 @@ static int obitTime = 2;
 /** psid plugin requirements */
 char name[] = "pelogue";
 int version = 8;
-int requiredAPI = 122;
+int requiredAPI = 126;
 plugin_dep_t dependencies[] = {
     { .name = "psaccount", .version = 21 },
     { .name = NULL, .version = 0 } };

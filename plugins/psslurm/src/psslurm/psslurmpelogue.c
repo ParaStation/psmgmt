@@ -212,7 +212,7 @@ bool startEpilogue(Alloc_t *alloc)
 
     /* register local epilogue */
     psPelogueAddJob("psslurm", sjobid, alloc->uid, alloc->gid,
-	    1, &myNode, cbPElogue, NULL);
+		    1, &myNode, cbPElogue, NULL, false);
 
     /* buildup epilogue environment */
     envClone(&alloc->env, &clone, envFilter);

@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2015-2019 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2015-2020 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -47,6 +47,7 @@ typedef struct {
     char **argv;        /**< argument vector of the pelogue actually started */
     int32_t signalFlag; /**< flag if any signal was sent to the pelogue */
     int32_t exit;       /**< pelogue's exit value */
+    bool fwStdOE;	/**< flag to forward stdout/stderr of pelogue script */
 } PElogueChild_t;
 
 /** Various states a pelogue might be in */
@@ -89,6 +90,14 @@ typedef struct {
     PStask_ID_t src;	    /**< task ID of RPC source -- used by psgw */
     PElogueResourceCb_t *cb;/**< callback to return the result */
 } PElogueResource_t;
+
+/** Argument of hook PSIDHOOK_PELOGUE_OE for pelogues stdout/stderr */
+typedef struct {
+    PElogueChild_t *child;  /**< holding information about a running pelogue */
+    short type;		    /**< type set to STDOUT or STDERR */
+    char *msg;		    /**< the message to handle */
+    size_t msgLen;	    /**< the length of the message */
+} PElogue_OEdata_t;
 
 /**
  * @brief Job callback
@@ -188,7 +197,7 @@ typedef bool(psPelogueDelPluginConfig_t)(char *name);
 typedef bool(psPelogueAddJob_t)(const char *plugin, const char *jobid,
 				uid_t uid, gid_t gid, int numNode,
 				PSnodes_ID_t *nodes, PElogueJobCb_t *cb,
-				void *info);
+				void *info, bool fwStdOE);
 
 /**
  * @brief Start job's pelogues

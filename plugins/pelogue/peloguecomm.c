@@ -83,6 +83,7 @@ int sendPElogueStart(Job_t *job, PElogueType_t type, int rounds, env_t *env)
     for (i=0; i<env->cnt; i++) {
 	addStringToMsg(env->vars[i], &data);
     }
+    addUint8ToMsg(job->fwStdOE, &data);
 
     /* start global timeout monitoring */
     startJobMonitor(job);
@@ -324,7 +325,7 @@ static void handlePElogueReq(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
 
     /* add job */
     Job_t *job = addJob(requestor, jobid, uid, gid, nrOfNodes, nodes,
-			CBprologueResp, info);
+			CBprologueResp, info, false);
     if (!job) {
 	mlog("%s: failed to add job %s for %s\n", __func__, jobid, requestor);
 	goto ERROR;
@@ -414,6 +415,8 @@ static void handlePElogueStart(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
 	envPut(&child->env, tmp);
 	ufree(tmp);
     }
+
+    getUint8(&ptr, &child->fwStdOE);
 
     /* set the script directory */
     char *scriptDir = getPluginConfValueC(plugin, "DIR_SCRIPTS");

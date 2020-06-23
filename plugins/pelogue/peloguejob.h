@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2014-2018 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2014-2020 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -47,6 +47,7 @@ typedef struct {
     time_t start_time;    /**< time the job started */
     void *info;           /**< pointer to additional infos passed to cb */
     bool deleted;	  /**< mark a job structure as deleted */
+    bool fwStdOE;	  /**< flag to forward stdout/stderr of pelogue script */
 } Job_t;
 
 /**
@@ -88,10 +89,13 @@ char *jobState2String(JobState_t state);
  *
  * @param info Additional information to be passed to @a cb
  *
+ * @param fwStdOE Flag to forward stdout/stderr of pelogue script
+ *
  * @return Returns the newly created job structure or NULL on error
  */
 Job_t *addJob(const char *plugin, const char *jobid, uid_t uid, gid_t gid,
-	     int numNodes, PSnodes_ID_t *nodes, PElogueJobCb_t *cb, void *info);
+	     int numNodes, PSnodes_ID_t *nodes, PElogueJobCb_t *cb, void *info,
+	     bool fwStdOE);
 
 /**
  * @brief Find job by its job ID

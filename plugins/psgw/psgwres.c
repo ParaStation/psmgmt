@@ -547,7 +547,8 @@ bool startPrologue(PSGW_Req_t *req)
     fdbg(PSGW_LOG_DEBUG, "start prologue for job %s\n", res->jobid);
 
     ret = psPelogueAddJob("psgw", res->jobid, res->uid, res->gid,
-			  req->numGWnodes, req->gwNodes, prologueCB, req);
+			  req->numGWnodes, req->gwNodes, prologueCB, req,
+			  false);
     if (!ret) {
 	snprintf(msgBuf, sizeof(msgBuf), "adding psgw job %s to pelogue "
 		 "failed\n", res->jobid);

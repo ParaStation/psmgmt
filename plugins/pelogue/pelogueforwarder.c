@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2013-2016 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2013-2020 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -105,9 +105,11 @@ void execPElogueScript(Forwarder_Data_t *fwData, int rerun)
 	/* if the prologue file does not exists, everything is fine */
 	exit(0);
     case 1:
-	/* redirect stdout and stderr */
-	dup2(open("/dev/null", 0), STDOUT_FILENO);
-	dup2(open("/dev/null", 0), STDERR_FILENO);
+	if (!child->fwStdOE) {
+	    /* redirect stdout and stderr */
+	    dup2(open("/dev/null", 0), STDOUT_FILENO);
+	    dup2(open("/dev/null", 0), STDERR_FILENO);
+	}
 
 	execPElogue(child, fName, root);
 	exit(0);
