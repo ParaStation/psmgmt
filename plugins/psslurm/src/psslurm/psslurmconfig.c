@@ -104,6 +104,15 @@ const ConfDef_t confDef[] =
 	"SLURM_*,_PSSLURM_*",
 	"Positive filter which will allow forwarding of selected "
 	"environment variables to prologue/epilogue." },
+    { "PELOGUE_LOG_OE", 1,
+	"bool",
+	"0",
+	"Log stdout/stderr of epilogue" },
+    { "PELOGUE_LOG_PATH", 0,
+	"path",
+	"/dev/shm/",
+	"Path to write stdout and stderr logs of a prologue/epilogue "
+	"scripts." },
     { "RLIMITS_SOFT", 0,
 	"list",
 	NULL,

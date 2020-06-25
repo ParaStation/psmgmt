@@ -4,10 +4,8 @@
 
 # Slurm protocol version
 #
-# Supported versions: auto, 17.02, 17.11
-#
 # (string, default: auto)
-#SLURM_PROTO_VERSION = 17.11
+#SLURM_PROTO_VERSION = 19.05
 
 # Soft resources limits
 #
@@ -44,6 +42,21 @@
 #
 # (comma separted list, default = SLURM_*)
 #PELOGUE_ENV_FILTER = SLURM_*
+
+# Path to save prologue/epilogue stdout and stderr files
+# on the mother superior
+#
+# (string, default: /dev/shm)
+#PELOGUE_LOG_PATH = /dev/shm
+
+# Flag to enable logging of epilogue stdout/stderr files
+# on the mother superior
+#
+# Hint: Logging of prologue stdout/stderr is enabled in pspelogue
+# with the --fwPrologueOE option
+#
+# (bool, 1 = enabled, 0 = disabled, default: 0)
+#PELOGUE_LOG_OE = 1
 
 # Directory to search for prologue/epilogue scripts
 #

@@ -96,7 +96,6 @@ typedef struct {
     PElogueChild_t *child;  /**< holding information about a running pelogue */
     short type;		    /**< type set to STDOUT or STDERR */
     char *msg;		    /**< the message to handle */
-    size_t msgLen;	    /**< the length of the message */
 } PElogue_OEdata_t;
 
 /**

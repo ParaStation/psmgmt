@@ -252,7 +252,7 @@ static void handlePeIO(Forwarder_Data_t *fwdata, short outType, char *ptr)
     };
 
     /* read message */
-    oeData.msg = getDataM(&ptr, &oeData.msgLen);
+    oeData.msg = getStringM(&ptr);
 
     /* hook to forward STDOUT/STDERR to psslurm */
     PSIDhook_call(PSIDHOOK_PELOGUE_OE, &oeData);

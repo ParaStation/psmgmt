@@ -211,8 +211,9 @@ bool startEpilogue(Alloc_t *alloc)
     PSnodes_ID_t myNode = PSC_getMyID();
 
     /* register local epilogue */
+    bool fwEpilogueOE= getConfValueU(&Config, "PELOGUE_LOG_OE");
     psPelogueAddJob("psslurm", sjobid, alloc->uid, alloc->gid,
-		    1, &myNode, cbPElogue, NULL, false);
+		    1, &myNode, cbPElogue, NULL, fwEpilogueOE);
 
     /* buildup epilogue environment */
     envClone(&alloc->env, &clone, envFilter);
@@ -585,6 +586,29 @@ int startTaskPrologue(Step_t *step, PStask_t *task)
 	}
 	return 0;
     }
+}
+
+int handlePelogueOE(void *data)
+{
+    PElogue_OEdata_t *oeData = data;
+    PElogueChild_t *pedata = oeData->child;
+    uint32_t jobid = atoi(pedata->jobid);
+
+    Alloc_t *alloc = findAlloc(jobid);
+    if (!alloc) {
+	static uint32_t errJobID = -1;
+
+	if (jobid == errJobID) return 0;
+	flog("Allocation for job %u not found, dropping output\n", jobid);
+	flog("Will suppress similar errors for job %u\n", jobid);
+	errJobID = jobid;
+	return 0;
+    }
+
+    /* forward output to leader */
+    sendPElogueOE(alloc, oeData);
+
+    return 0;
 }
 
 /* vim: set ts=8 sw=4 tw=0 sts=4 noet:*/

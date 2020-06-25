@@ -29,7 +29,7 @@
 
 #define SPOOL_DIR LOCALSTATEDIR "/spool/parastation"
 
-#define PELOGUE_REQUEST_VERSION 2
+#define PELOGUE_REQUEST_VERSION 3
 
 /** All information to start a RPC call */
 typedef struct {
@@ -312,6 +312,9 @@ static void handlePElogueReq(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
     /* environment */
     getStringArrayM(&ptr, &env->vars, &env->cnt);
     env->size = env->cnt;
+    /* fwPrologueOE */
+    uint16_t fwPrologueOE = false;
+    getUint16(&ptr, &fwPrologueOE);
 
     info->sender = msg->header.sender;
     info->requestor = requestor;
@@ -325,7 +328,7 @@ static void handlePElogueReq(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
 
     /* add job */
     Job_t *job = addJob(requestor, jobid, uid, gid, nrOfNodes, nodes,
-			CBprologueResp, info, false);
+			CBprologueResp, info, fwPrologueOE);
     if (!job) {
 	mlog("%s: failed to add job %s for %s\n", __func__, jobid, requestor);
 	goto ERROR;

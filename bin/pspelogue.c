@@ -72,13 +72,16 @@ static struct timeval time_diff;
 static char *addFilter = NULL;
 
 /** pspelogue protocol version */
-static uint16_t protoVer = 2;
+static uint16_t protoVer = 3;
 
 /** complete nodelist */
 static PS_NodeList_t *nodeList = NULL;
 
 /** number of entries in nodeList */
 static PSnodes_ID_t numNodeList = 0;
+
+/** Flag to forward stdout/stderr of prologue scripts */
+static int fwPrologueOE = 0;
 
 /** popt command line option table */
 static struct poptOption optionsTable[] = {
@@ -96,6 +99,8 @@ static struct poptOption optionsTable[] = {
       &verbose, 0, "be verbose", NULL},
     { "epilogue", 'e', POPT_ARG_NONE,
       &epilogue, 0, "start parallel epilogue", NULL},
+    { "fwPrologueOE", '\0', POPT_ARG_NONE,
+      &fwPrologueOE, 0, "forward stdout/stderr of prologue", NULL},
     { "filter", 'f', POPT_ARG_STRING,
       &addFilter, 0, "add additional environment filter", NULL},
     { "psid_resolve", '\0', POPT_ARG_NONE,
@@ -413,6 +418,8 @@ void sendPElogueReq(char *jobid, char *sUid, char *sGid, uint32_t nrOfNodes,
     */
     addUint32ToMsg(env->cnt, &msg);
     for (i=0; i<env->cnt; i++) addStringToMsg(env->vars[i], &msg);
+    /* fwPrologueOE */
+    addUint16ToMsg(fwPrologueOE, &msg);
 
     /* send prologue request to mother superior */
     gettimeofday(&time_start, NULL);

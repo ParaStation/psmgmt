@@ -626,8 +626,8 @@ static int handleChildOE(int fd, void *info)
 	.type = (fd == fw->stdOut[0] ? STDOUT : STDERR),
 	.sender = -1};
 
-    /* Add data chunk including its length mimicking addData */
-    uint32_t len = htonl(size);
+    /* Add data chunk including its length mimicking addString */
+    uint32_t len = htonl(size+1);
     PSP_putMsgBuf((DDBufferMsg_t*)&msg, __func__, "len", &len, sizeof(len));
     PSP_putMsgBuf((DDBufferMsg_t*)&msg, __func__, "data", buf, size);
 

@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2014-2019 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2014-2020 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -18,6 +18,7 @@
 #include "pslog.h"
 #include "psslurmjob.h"
 #include "psslurmalloc.h"
+#include "peloguetypes.h"
 
 #include "psslurmcomm.h"
 
@@ -250,6 +251,15 @@ PSnodes_ID_t getNodeIDbySlurmHost(const char *host);
  * false is returned. On error offset and idx might not be updated.
  */
 bool findPackIndex(Step_t *step, int64_t last, int64_t *offset, uint32_t *idx);
+
+/**
+ * @brief Send pelogue stdout/stderr data
+ *
+ * @para alloc The allocation of the pelogue
+ *
+ * @param oeData The data to send
+ */
+void sendPElogueOE(Alloc_t *alloc, PElogue_OEdata_t *oeData);
 
 /**
  * @brief Initialize PScomm facility

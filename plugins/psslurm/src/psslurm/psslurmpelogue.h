@@ -83,4 +83,15 @@ int startTaskPrologue(Step_t *step, PStask_t *task);
  */
 bool finalizeEpilogue(Alloc_t *alloc);
 
+/**
+ * @brief Handle hook PSIDHOOK_PELOGUE_OE
+ *
+ * Used to handle stdout and stderr of prologue and epilogue scripts.
+ *
+ * @param data PElogue_OEdata_t structure
+ *
+ * @return Always returns 0
+ */
+int handlePelogueOE(void *data);
+
 #endif

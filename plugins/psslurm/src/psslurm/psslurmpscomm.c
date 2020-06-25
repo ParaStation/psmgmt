@@ -17,6 +17,7 @@
 #include <search.h>
 #undef __USE_GNU
 #include <math.h>
+#include <sys/stat.h>
 
 #include "pscommon.h"
 #include "psdaemonprotocol.h"
@@ -101,6 +102,7 @@ typedef enum {
     PSP_EPILOGUE_STATE_REQ, /**< request delayed epilogue status */
     PSP_EPILOGUE_STATE_RES, /**< response to epilogue status request */
     PSP_PACK_EXIT,	    /**< forward exit status to all pack follower */
+    PSP_PELOGUE_OE,	    /**< forward pelogue script stdout/stderr */
 } PSP_PSSLURM_t;
 
 /** Old handler for PSP_DD_CHILDBORN messages */
@@ -165,6 +167,8 @@ static const char *msg2Str(PSP_PSSLURM_t type)
 	    return "PSP_EPILOGUE_STATE_RES";
 	case PSP_PACK_EXIT:
 	    return "PSP_PACK_EXIT";
+	case PSP_PELOGUE_OE:
+	    return "PSP_PELOGUE_OE";
 	default:
 	    snprintf(buf, sizeof(buf), "%i <Unknown>", type);
 	    return buf;
@@ -1589,6 +1593,58 @@ static void handleFWslurmMsgRes(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
     handleFrwrdMsgReply(&sMsg, SLURM_SUCCESS);
 }
 
+static void handlePElogueOE(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
+{
+    char *ptr = data->buf;
+    uint32_t allocID;
+    int8_t PElogueType, msgType;
+
+    /* allocation ID */
+    getUint32(&ptr, &allocID);
+    /* pelogue type */
+    getInt8(&ptr, &PElogueType);
+    /* output type */
+    getInt8(&ptr, &msgType);
+    /* message */
+    char *msgData = getStringM(&ptr);
+    char *logPath = getConfValueC(&Config, "PELOGUE_LOG_PATH");
+    char buf[2048];
+    snprintf(buf, sizeof(buf), "%s/%u", logPath, allocID);
+
+    struct stat st;
+    if (stat(buf, &st) == -1) {
+	if (mkdir(buf, S_IRWXU) == -1) {
+	    if (errno != EEXIST) {
+		mwarn(errno, "mkdir(%s) failed: ", buf);
+		return;
+	    }
+	}
+    }
+
+    snprintf(buf, sizeof(buf), "%s/%u/%s-%s.%s", logPath, allocID,
+	     getSlurmHostbyNodeID(PSC_getID(msg->header.sender)),
+	     (PElogueType == PELOGUE_PROLOGUE ? "prologue" : "epilogue"),
+	     (msgType == STDOUT ? "out" : "err"));
+
+    /* write data */
+    FILE *fp = fopen(buf, "a+");
+    if (!fp) {
+	mlog("%s: open file '%s' failed\n", __func__, buf);
+	return;
+    }
+
+    int written;
+    while ((written = fprintf(fp, "%s", msgData)) !=
+	    (int) strlen(msgData)) {
+	if (errno == EINTR) continue;
+	flog("writing pelogue log for allocation %u failed : %s\n",
+	     allocID, strerror(errno));
+	break;
+    }
+    fclose(fp);
+    ufree(msgData);
+}
+
 /**
 * @brief Handle a PSP_CC_PLUG_PSSLURM message
 *
@@ -1640,6 +1696,9 @@ static void handlePsslurmMsg(DDTypedBufferMsg_t *msg)
 	    break;
 	case PSP_EPILOGUE_STATE_RES:
 	    handle_EpilogueStateRes(msg);
+	    break;
+	case PSP_PELOGUE_OE:
+	    recvFragMsg(msg, handlePElogueOE);
 	    break;
 	case PSP_ALLOC_LAUNCH:
 	case PSP_JOB_STATE_REQ:
@@ -2902,6 +2961,25 @@ bool findPackIndex(Step_t *step, int64_t last, int64_t *offset, uint32_t *idx)
 	}
     }
     return found;
+}
+
+void sendPElogueOE(Alloc_t *alloc, PElogue_OEdata_t *oeData)
+{
+    PS_SendDB_t data;
+
+    initFragBuffer(&data, PSP_CC_PLUG_PSSLURM, PSP_PELOGUE_OE);
+    setFragDest(&data, PSC_getTID(alloc->nodes[0], 0));
+
+    /* allocation ID */
+    addUint32ToMsg(alloc->id, &data);
+    /* pelogue type */
+    addInt8ToMsg(oeData->child->type, &data);
+    /* output type */
+    addInt8ToMsg(oeData->type, &data);
+    /* message */
+    addStringToMsg(oeData->msg, &data);
+
+    sendFragMsg(&data);
 }
 
 /* vim: set ts=8 sw=4 tw=0 sts=4 noet:*/
