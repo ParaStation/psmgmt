@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2014-2019 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2014-2020 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -124,6 +124,13 @@ typedef struct {
     Ext_Resp_Node_Reg_Entry_t *entry;	/* a node registration response entry */
     uint32_t count;			/* number of entries */
 } Ext_Resp_Node_Reg_t;
+
+typedef struct {
+    uint8_t  indefSus;	    /* indefinitely suspended (switch plugin) */
+    uint16_t jobCoreSpec;   /* number of specialized cores */
+    uint32_t jobid;	    /* unique job identifier */
+    uint16_t op;	    /* operation (suspend or resume) */
+} Req_Suspend_Int_t;
 
 /** Slurm protocol version */
 extern uint32_t slurmProto;

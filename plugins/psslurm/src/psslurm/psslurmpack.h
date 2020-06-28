@@ -515,4 +515,28 @@ bool __unpackExtRespNodeReg(Slurm_Msg_t *sMsg, Ext_Resp_Node_Reg_t **respPtr,
 #define unpackExtRespNodeReg(sMsg, respPtr) \
     __unpackExtRespNodeReg(sMsg, respPtr, __func__, __LINE__)
 
+/**
+ * @brief Unpack a suspend job request
+ *
+ * Unpack a suspend job request from the provided message pointer.
+ * The memory is allocated using umalloc(). The caller is responsible
+ * to free the memory using ufree().
+ *
+ * @param sMsg The message to unpack
+ *
+ * @param reqPtr The request structure holding the result
+ *
+ * @param caller Function name of the calling function
+ *
+ * @param line Line number where this function is called
+ *
+ * @return On success true is returned or false in case of an
+ * error. If reading was not successful, @a sMsg might be not updated.
+ */
+bool __unpackReqSuspendInt(Slurm_Msg_t *sMsg, Req_Suspend_Int_t **reqPtr,
+			const char *caller, const int line);
+
+#define unpackReqSuspendInt(sMsg, reqPtr) \
+    __unpackReqSuspendInt(sMsg, reqPtr, __func__, __LINE__)
+
 #endif  /* __PS_SLURM_PACK */

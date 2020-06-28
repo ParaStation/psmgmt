@@ -1990,3 +1990,24 @@ bool __unpackExtRespNodeReg(Slurm_Msg_t *sMsg, Ext_Resp_Node_Reg_t **respPtr,
 
     return true;
 }
+
+bool __unpackReqSuspendInt(Slurm_Msg_t *sMsg, Req_Suspend_Int_t **reqPtr,
+			const char *caller, const int line)
+{
+    if (!sMsg) {
+	mlog("%s: invalid ptr from '%s' at %i\n", __func__, caller, line);
+	return false;
+    }
+
+    char **ptr = &sMsg->ptr;
+
+    Req_Suspend_Int_t *req = umalloc(sizeof(*req));
+
+    getUint8(ptr, &req->indefSus);
+    getUint16(ptr, &req->jobCoreSpec);
+    getUint32(ptr, &req->jobid);
+    getUint16(ptr, &req->op);
+
+    *reqPtr = req;
+    return true;
+}

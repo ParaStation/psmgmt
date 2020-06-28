@@ -80,6 +80,12 @@ typedef struct {
     uid_t uid;
 } Kill_Info_t;
 
+/* operations of RPC SUSPEND_INT */
+enum {
+    SUSPEND_JOB,
+    RESUME_JOB
+};
+
 char *uid2String(uid_t uid)
 {
     struct passwd *pwd = NULL;
@@ -874,8 +880,31 @@ static void handleSignalJob(Slurm_Msg_t *sMsg)
 
 static void handleSuspendInt(Slurm_Msg_t *sMsg)
 {
-    mlog("%s: implement me!\n", __func__);
-    sendSlurmRC(sMsg, ESLURM_NOT_SUPPORTED);
+    Req_Suspend_Int_t *req;
+
+    /* unpack request */
+    if (!unpackReqSuspendInt(sMsg, &req)) {
+	flog("unpacking request suspend_int failed\n");
+	sendSlurmRC(sMsg, SLURM_ERROR);
+	return;
+    }
+
+    switch (req->op) {
+	case SUSPEND_JOB:
+	    flog("suspend job %u\n",req->jobid);
+	    signalStepsByJobid(req->jobid, SIGSTOP, sMsg->head.uid);
+	    break;
+	case RESUME_JOB:
+	    flog("resume job %u\n",req->jobid);
+	    signalStepsByJobid(req->jobid, SIGCONT, sMsg->head.uid);
+	    break;
+	default:
+	    flog("unknown suspend_int operation %u\n", req->op);
+	    sendSlurmRC(sMsg, ESLURM_NOT_SUPPORTED);
+	    return;
+    }
+
+    sendSlurmRC(sMsg, SLURM_SUCCESS);
 }
 
 static void handleUpdateJobTime(Slurm_Msg_t *sMsg)
