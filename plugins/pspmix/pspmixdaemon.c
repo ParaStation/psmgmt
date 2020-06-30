@@ -110,15 +110,6 @@ static void forwardPspmixMsg(DDMsg_t *vmsg)
 
     DDTypedBufferMsg_t *msg = (DDTypedBufferMsg_t *)vmsg;
 
-    /* only authorized users may send pelogue messages */
-    if (!PSID_checkPrivilege(msg->header.sender)) {
-	PStask_t *task = PStasklist_find(&managedTasks, msg->header.sender);
-	mlog("%s: access violation: dropping message uid %i type %i "
-	     "sender %s\n", __func__, (task ? task->uid : 0), msg->type,
-	     PSC_printTID(msg->header.sender));
-	return;
-    }
-
     strcpy(sender, PSC_printTID(msg->header.sender));
     strcpy(dest, PSC_printTID(msg->header.dest));
 
