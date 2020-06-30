@@ -467,12 +467,17 @@ bool PSID_checkPrivilege(PStask_ID_t sender)
 
     PStask_t *senderTask = PStasklist_find(&managedTasks, sender);
 
-    if (!senderTask
-	|| (senderTask->uid && senderTask->gid
+    if (!senderTask) {
+	PSID_log(-1, "%s: sender not found in managed tasks\n", __func__);
+	return false;
+    }
+
+    if (senderTask->uid && senderTask->gid
 	    && !PSIDnodes_testGUID(PSC_getMyID(), PSIDNODES_ADMUSER,
 				   (PSIDnodes_guid_t){.u=senderTask->uid})
 	    && !PSIDnodes_testGUID(PSC_getMyID(), PSIDNODES_ADMGROUP,
-				   (PSIDnodes_guid_t){.g=senderTask->gid}))) {
+				   (PSIDnodes_guid_t){.g=senderTask->gid})) {
+	    PSID_log(-1, "%s: sender not privileged\n", __func__);
 	return false;
     }
 
