@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2019 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2020 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -34,54 +34,9 @@
 #include "psidsignal.h"
 #include "pslog.h"
 
-int PSID_kill(pid_t pid, int sig, uid_t uid)
+int pskill(pid_t pid, int sig, uid_t uid)
 {
-    PStask_ID_t childTID = PSC_getTID(-1, pid < 0 ? -pid : pid);
-    PStask_t *child = PStasklist_find(&managedTasks, childTID);
     int cntrlfds[2];  /* pipe fds to control the actuall kill(2) */
-    int ret, eno;
-    pid_t forkPid;
-
-    PSID_log(PSID_LOG_SIGNAL, "%s(%d, %d, %d)\n", __func__, pid, sig, uid);
-
-    if (!sig) return 0;
-
-    if (!child) {
-	PSID_log(PSID_LOG_SIGNAL, "%s: child %s not found\n",
-		 __func__, PSC_printTID(childTID));
-    } else {
-	if (uid && child->uid != uid) {
-	    /* Task is not allowed to send signal */
-	    PSID_warn(-1, EACCES,
-		      "%s: kill(%d, %d) uid %d", __func__, pid, sig, uid);
-	    return 0;
-	}
-	if (child->forwarder && child->forwarder->fd != -1
-	    && !child->forwarder->killat) {
-	    /* Try to send signal via forwarder */
-	    PSLog_Msg_t msg = (PSLog_Msg_t) {
-		.header = (DDMsg_t) {
-		    .type = PSP_CC_MSG,
-		    .sender = PSC_getMyTID(),
-		    .dest = child->forwarder->tid,
-		    .len = PSLog_headerSize },
-		.version = 1,
-		.type = SIGNAL,
-		.sender = 0 };
-	    int32_t myPID = pid, mySig = sig;
-
-	    /* Make sure to listen to the forwarder */
-	    Selector_enable(child->forwarder->fd);
-
-	    PSP_putMsgBuf((DDBufferMsg_t *) &msg, __func__, "pid",
-			  &myPID, sizeof(myPID));
-
-	    PSP_putMsgBuf((DDBufferMsg_t *) &msg, __func__, "signal",
-			  &mySig, sizeof(mySig));
-
-	    if (sendMsg(&msg) == msg.header.len) return 0;
-	}
-    }
 
     /* create a control channel */
     if (pipe(cntrlfds)<0) {
@@ -94,9 +49,9 @@ int PSID_kill(pid_t pid, int sig, uid_t uid)
      * fork to a new process to change the userid
      * and get the right errors
      */
-    forkPid = fork();
+    pid_t forkPid = fork();
     /* save errno in case of error */
-    eno = errno;
+    int eno = errno;
 
     if (!forkPid) {
 	/* the killing process */
@@ -158,6 +113,7 @@ int PSID_kill(pid_t pid, int sig, uid_t uid)
 	return -1;
     }
 
+    int ret;
  restart:
     if ((ret=read(cntrlfds[0], &eno, sizeof(eno))) < 0) {
 	if (errno == EINTR) {
@@ -178,6 +134,55 @@ int PSID_kill(pid_t pid, int sig, uid_t uid)
     }
 
     return ret;
+}
+
+int PSID_kill(pid_t pid, int sig, uid_t uid)
+{
+    PStask_ID_t childTID = PSC_getTID(-1, pid < 0 ? -pid : pid);
+    PStask_t *child = PStasklist_find(&managedTasks, childTID);
+
+    PSID_log(PSID_LOG_SIGNAL, "%s(%d, %d, %d)\n", __func__, pid, sig, uid);
+
+    if (!sig) return 0;
+
+    if (!child) {
+	PSID_log(PSID_LOG_SIGNAL, "%s: child %s not found\n",
+		 __func__, PSC_printTID(childTID));
+    } else {
+	if (uid && child->uid != uid) {
+	    /* Task is not allowed to send signal */
+	    PSID_warn(-1, EACCES,
+		      "%s: kill(%d, %d) uid %d", __func__, pid, sig, uid);
+	    return 0;
+	}
+	if (child->forwarder && child->forwarder->fd != -1
+	    && !child->forwarder->killat) {
+	    /* Try to send signal via forwarder */
+	    PSLog_Msg_t msg = (PSLog_Msg_t) {
+		.header = (DDMsg_t) {
+		    .type = PSP_CC_MSG,
+		    .sender = PSC_getMyTID(),
+		    .dest = child->forwarder->tid,
+		    .len = PSLog_headerSize },
+		.version = 1,
+		.type = SIGNAL,
+		.sender = 0 };
+	    int32_t myPID = pid, mySig = sig;
+
+	    /* Make sure to listen to the forwarder */
+	    Selector_enable(child->forwarder->fd);
+
+	    PSP_putMsgBuf((DDBufferMsg_t *) &msg, __func__, "pid",
+			  &myPID, sizeof(myPID));
+
+	    PSP_putMsgBuf((DDBufferMsg_t *) &msg, __func__, "signal",
+			  &mySig, sizeof(mySig));
+
+	    if (sendMsg(&msg) == msg.header.len) return 0;
+	}
+    }
+
+    return pskill(pid, sig, uid);
 }
 
 void PSID_sendSignal(PStask_ID_t tid, uid_t uid, PStask_ID_t sender,

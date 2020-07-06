@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2017 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2020 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -33,7 +33,45 @@ void initSignal(void);
  * @brief Send signal to process
  *
  * Send the signal @a sig to the process or process group @a pid. Send
- * the signal as user @a uid.
+ * the signal as user @a uid. In contrast to @ref PSID_kill() the signal
+ * will be delivered without the help of a psidforwarder. Thus this function
+ * may be used by plugins implementing their own forwarders.
+ *
+ * This is mainly a wrapper to the kill(2) system call.
+ *
+ *
+ * @param pid Depending on the value, @a pid my have different meanings:
+ *
+ * -If pid is positive, then signal sig is sent to pid.
+ *
+ * -If pid equals 0, then sig is sent to every process in the process
+ * group of the current process.
+ *
+ * -If pid equals -1, then sig is sent to every process except for
+ * process 1 (init), but see below.
+ *
+ * -If pid is less than -1, then sig is sent to every process in the
+ * process group -pid.
+ *
+ * @param sig Signal to send
+ *
+ * @param uid Convert to this user via the setuid(2) system call
+ * before actually sending the signal
+ *
+ *
+ * @return On success, 0 is returned. On error, -1 is returned, and
+ * errno is set appropriately.
+ */
+int pskill(pid_t pid, int sig, uid_t uid);
+
+/**
+ * @brief Send signal to process
+ *
+ * Send the signal @a sig to the process or process group @a pid. Send
+ * the signal as user @a uid. If a psidforwarder of the process to signal
+ * is found, a PSlog message is sent to the psidforwarder to deliver to
+ * signal. Otherwise @ref pskill() is used which will fork and switch
+ * to the given @uid to send the signal.
  *
  * This is mainly a wrapper to the kill(2) system call.
  *
