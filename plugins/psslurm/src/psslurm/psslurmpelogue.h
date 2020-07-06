@@ -60,7 +60,10 @@ int handleLocalPElogueFinish(void *data);
 int handlePEloguePrepare(void *data);
 
 /**
- * @brief Start a task prologue
+ * @brief Start a task prologue in PSIDHOOK_EXEC_CLIENT_USER
+ *
+ * This function is called right before starting the users executable. Thus
+ * the task prologue is spawned directly without the use of a pluginforwarder.
  *
  * @param step The step to start a task prologue for
  *
