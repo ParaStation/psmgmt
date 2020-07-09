@@ -58,6 +58,7 @@
 #include "pspmihandles.h"
 #include "pslog.h"
 #include "psidhook.h"
+#include "psidsignal.h"
 #include "psipartition.h"
 
 #include "psslurmforwarder.h"
@@ -188,7 +189,7 @@ static int stepCallback(int32_t exit_status, Forwarder_Data_t *fw)
 
     /* make sure all processes are gone */
     signalStep(step, SIGKILL, 0);
-    killChild(PSC_getPID(step->loggerTID), SIGKILL);
+    killChild(PSC_getPID(step->loggerTID), SIGKILL, step->uid);
 
     freeSlurmMsg(&step->srunIOMsg);
 
@@ -401,7 +402,7 @@ int handleForwarderInit(void * data)
 	    if (!WIFSTOPPED(status)) {
 		mlog("%s: child '%i' not stopped\n", __func__, child);
 	    } else {
-		if ((killChild(child, SIGSTOP)) == -1) {
+		if ((killChild(child, SIGSTOP, task->uid)) == -1) {
 		    mwarn(errno, "%s: kill(%i) failed: ", __func__, child);
 		}
 		if ((ptrace(PTRACE_DETACH, child, 0, 0)) == -1) {
@@ -511,13 +512,15 @@ int handleForwarderClientStatus(void * data)
     int grace = getConfValueI(&SlurmConfig, "KillWait");
 
     while(1) {
-	if ((time(NULL) - t) > 5) killpg(childpid, SIGTERM);
-	if ((time(NULL) - t) > (5 + grace)) killpg(childpid, SIGKILL);
+	if ((time(NULL) - t) > 5) pskill(-childpid, SIGTERM, task->uid);
+	if ((time(NULL) - t) > (5 + grace)) {
+	    pskill(-childpid, SIGKILL, task->uid);
+	}
 	usleep(100000);
 	int status;
 	if(waitpid(childpid, &status, WNOHANG) < 0) {
 	    if (errno == EINTR) continue;
-	    killpg(childpid, SIGKILL);
+	    pskill(-childpid, SIGKILL, task->uid);
 	    break;
 	}
     }

@@ -1049,7 +1049,7 @@ static int handleSrunPTYMsg(int sock, void *data)
     if (ioctl(step->stdOut[1], TIOCSWINSZ, &ws)) {
 	mwarn(errno, "%s: ioctl(TIOCSWINSZ)", __func__);
     }
-    if (step->fwdata && killChild(step->fwdata->cPid, SIGWINCH)) {
+    if (step->fwdata && killChild(step->fwdata->cPid, SIGWINCH, step->uid)) {
 	if (errno == ESRCH) return 0;
 	mwarn(errno, "%s: send SIGWINCH to %i", __func__, step->fwdata->cPid);
     }

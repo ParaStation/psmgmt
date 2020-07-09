@@ -24,14 +24,16 @@
 #include "pscommon.h"
 #include "selector.h"
 #include "timer.h"
-#include "psidutil.h"
 #include "psserial.h"
 #include "pluginhelper.h"
 #include "pluginmalloc.h"
 #include "pluginlog.h"
+
+#include "psidutil.h"
 #include "psidclient.h"
 #include "psidcomm.h"
 #include "psidspawn.h"
+#include "psidsignal.h"
 
 #include "pluginforwarder.h"
 
@@ -123,13 +125,13 @@ static void killForwarderChild(Forwarder_Data_t *fw, int sig, char *reason)
 
     if (sig == SIGTERM) {
 	/* let children beeing debugged continue */
-	kill(fw->cPid, SIGCONT);
-	if (!kill(fw->cPid, sig)) {
+	fwData->killSession(fw->cSid, SIGCONT);
+	if (!fwData->killSession(fw->cSid, sig)) {
 	    killAllChildren = true;
 	    alarm(grace);
 	}
     } else {
-	kill(fw->cPid, sig);
+	fwData->killSession(fw->cSid, sig);
     }
 }
 
@@ -728,7 +730,7 @@ static void execForwarder(PStask_t *task)
 		close(controlFDs[0]);
 		if (read != sizeof(pid_t)) {
 		    pluginlog("%s: reading childs sid failed\n", __func__);
-		    kill(SIGKILL, fw->cPid);
+		    pskill(SIGKILL, fw->cPid, 0);
 		}
 		gettimeofday(&childStart, NULL);
 
@@ -973,7 +975,7 @@ bool signalForwarderChild(Forwarder_Data_t *fw, int sig)
 
 	/* Trigger the forwarder itself, too */
 	if ((sig == SIGTERM || sig == SIGKILL) && fw->tid > 0) {
-	    kill(PSC_getPID(fw->tid), SIGTERM);
+	    pskill(PSC_getPID(fw->tid), SIGTERM, 0);
 	}
 	return true;
     } else if (fw->tid != -1 && PSC_getPID(fw->tid)) {

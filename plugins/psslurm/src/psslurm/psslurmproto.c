@@ -905,7 +905,7 @@ static void handleSignalJob(Slurm_Msg_t *sMsg)
 		jobid, signal);
 	/* signal only job, not all corresponding steps */
 	if (job->state == JOB_RUNNING && job->fwdata) {
-	    killChild(PSC_getPID(job->fwdata->tid), signal);
+	    killChild(PSC_getPID(job->fwdata->tid), signal, job->uid);
 	}
     } else if (job) {
 	mlog("%s: send job %u signal %u\n", __func__,

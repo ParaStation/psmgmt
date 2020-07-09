@@ -16,6 +16,7 @@ endif
 
 pelogue_dir   := plugins/pelogue
 psexec_dir    := plugins/psexec
+psaccount_dir := plugins/psaccount
 psslurm_dir   := plugins/psslurm/src/psslurm
 slurm_dir     := plugins/psslurm/src/common
 
@@ -24,7 +25,8 @@ AM_CPPFLAGS += -I$(top_srcdir)/bin/daemon \
 	       -I$(top_srcdir)/$(pelogue_dir) \
 	       -I$(top_srcdir)/$(psslurm_dir) \
 	       -I$(top_srcdir)/$(slurm_dir) \
-	       -I$(top_srcdir)/$(psexec_dir)
+	       -I$(top_srcdir)/$(psexec_dir) \
+	       -I$(top_srcdir)/$(psaccount_dir)
 AM_CFLAGS += -fcommon
 
 plugin_LTLIBRARIES = psgw.la

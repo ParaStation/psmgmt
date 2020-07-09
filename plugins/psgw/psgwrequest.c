@@ -15,6 +15,7 @@
 #include "pluginmalloc.h"
 #include "peloguehandles.h"
 #include "pscommon.h"
+#include "psidsignal.h"
 
 #include "psgwlog.h"
 #include "psgwrequest.h"
@@ -85,7 +86,7 @@ void Request_delete(PSGW_Req_t *req)
 
     /* stop psgw forwarder */
     if (req->fwdata) {
-	kill(PSC_getPID(req->fwdata->tid), SIGKILL);
+	pskill(PSC_getPID(req->fwdata->tid), SIGKILL, 0);
     }
 
     for(i=0; i<req->numPSGWD; i++) {

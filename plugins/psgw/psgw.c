@@ -19,6 +19,7 @@
 #include "peloguehandles.h"
 #include "psexechandles.h"
 #include "pspluginprotocol.h"
+#include "psaccounthandles.h"
 
 #include "psidcomm.h"
 
@@ -38,6 +39,7 @@ int requiredAPI = 122;
 plugin_dep_t dependencies[] = {
     { .name = "pelogue", .version = 7 },
     { .name = "psexec", .version = 2 },
+    { .name = "psaccount", .version = 21 },
     { .name = NULL, .version = 0 } };
 
 /**
@@ -175,6 +177,46 @@ static bool regPsExecHandles(void)
     return true;
 }
 
+/**
+ * @brief Register psaccount plugin handles
+ */
+static bool regPsAccountHandles(void)
+{
+    void *accHandle = PSIDplugin_getHandle("psaccount");
+    if (!accHandle) {
+	flog("getting psaccount handle failed\n");
+	return false;
+    }
+
+    psAccountSignalSession = dlsym(accHandle, "psAccountSignalSession");
+    if (!psAccountSignalSession) {
+	flog("loading function psAccountSignalSession() failed\n");
+	return false;
+    }
+
+    return true;
+}
+
+static bool initPluginHandles(void)
+{
+    if (!regPElogueHandles()) {
+	flog("register pelogue handles failed\n");
+	return false;
+    }
+
+    if (!regPsExecHandles()) {
+	flog("register psexec handles failed\n");
+	return false;
+    }
+
+    if (!regPsAccountHandles()) {
+	flog("register psaccount handles failed\n");
+	return false;
+    }
+
+    return true;
+}
+
 int initialize(void)
 {
     /* init the logger (log to syslog) */
@@ -186,13 +228,8 @@ int initialize(void)
 	return 1;
     }
 
-    if (!regPElogueHandles()) {
-	flog("register pelogue handles failed\n");
-	return 1;
-    }
-
-    if (!regPsExecHandles()) {
-	flog("register psexec handles failed\n");
+    if (!initPluginHandles()) {
+	flog("initialize plugin handles failed\n");
 	return 1;
     }
 

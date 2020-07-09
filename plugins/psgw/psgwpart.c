@@ -20,6 +20,7 @@
 #include "psidnodes.h"
 #include "hardware.h"
 #include "timer.h"
+#include "psaccounthandles.h"
 
 #include "pluginmalloc.h"
 
@@ -331,11 +332,6 @@ ERROR:
     return false;
 }
 
-static int killSession(pid_t pid, int sig)
-{
-    return kill(pid, sig);
-}
-
 static int fwCallback(int32_t exit_status, Forwarder_Data_t *fw)
 {
     PSGW_Req_t *req = Request_verify(fw->userData);
@@ -390,7 +386,7 @@ bool requestGWnodes(PSGW_Req_t *req, int numNodes)
     fwdata->jobID = ustrdup(req->jobid);
     fwdata->userData = req;
     fwdata->graceTime = 30;
-    fwdata->killSession = killSession;
+    fwdata->killSession = psAccountSignalSession;
     fwdata->callback = fwCallback;
     fwdata->handleMthrMsg = handleMotherMsg;
 

@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2010-2018 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2010-2020 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -22,6 +22,7 @@
 
 #include "psidutil.h"
 #include "psidhook.h"
+#include "psidsignal.h"
 
 #include "pluginconfig.h"
 #include "pluginmalloc.h"
@@ -210,7 +211,7 @@ ProcSnapshot_t *findProcSnapshot(pid_t pid)
 }
 
 /**
- * @brief Send the actual kill signal.
+ * @brief Send the actual kill signal using pskill()
  *
  * @param child PID of child to kill.
  *
@@ -225,8 +226,16 @@ static void doKill(pid_t child, pid_t pgroup, int sig)
     mdbg(PSACC_LOG_SIGNAL, "%s(child %d pgroup %d sig %d)\n", __func__,
 	 child, pgroup, sig);
 
-    if (pgroup > 0) killpg(pgroup, sig);
-    kill(child, sig);
+    ProcSnapshot_t *ps = findProcSnapshot(child);
+    if (!ps) {
+	mlog("%s: proc snapshot for child %i not found\n", __func__, child);
+	/* fallback to direct kill() */
+	if (pgroup > 0) kill(-pgroup, sig);
+	kill(child, sig);
+    } else {
+	if (pgroup > 0) pskill(-pgroup, sig, ps->uid);
+	pskill(child, sig, ps->uid);
+    }
 }
 
 int signalChildren(pid_t mypid, pid_t child, pid_t pgrp, int sig)

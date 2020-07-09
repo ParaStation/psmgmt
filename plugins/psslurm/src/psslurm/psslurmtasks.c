@@ -14,6 +14,7 @@
 
 #include "pluginmalloc.h"
 #include "psidtask.h"
+#include "psidsignal.h"
 #include "pscommon.h"
 
 #include "psslurmtasks.h"
@@ -125,13 +126,13 @@ unsigned int countRegTasks(list_t *taskList)
     return count;
 }
 
-int killChild(pid_t pid, int signal)
+int killChild(pid_t pid, int signal, uid_t uid)
 {
     if (!pid || pid == -1) return -1;
     if (pid == getpid()) return -1;
     if ((signal == SIGKILL || signal == SIGTERM) && pid > 1) pid *= -1;
 
-    return kill(pid, signal);
+    return pskill(pid, signal, uid);
 }
 
 int signalTasks(uint32_t jobid, uid_t uid, list_t *taskList, int signal,
@@ -153,7 +154,7 @@ int signalTasks(uint32_t jobid, uid_t uid, list_t *taskList, int signal,
 		mdbg(PSSLURM_LOG_PROCESS, "%s: rank %i kill(%i) signal %i "
 		     "group %i job %u \n", __func__, child->rank,
 		     PSC_getPID(child->tid), signal, child->group, jobid);
-		killChild(PSC_getPID(child->tid), signal);
+		PSID_kill(PSC_getPID(child->tid), signal, child->uid);
 		count++;
 	    }
 	}

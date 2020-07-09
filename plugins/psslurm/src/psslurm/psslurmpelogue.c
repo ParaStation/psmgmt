@@ -36,6 +36,7 @@
 #include "pluginhelper.h"
 #include "psaccounthandles.h"
 #include "pshostlist.h"
+#include "psidsignal.h"
 
 #include "psslurmpelogue.h"
 
@@ -581,7 +582,7 @@ int startTaskPrologue(Step_t *step, PStask_t *task)
 	int status;
 	if(waitpid(child, &status, 0) < 0) {
 	    if (errno == EINTR)	continue;
-	    killpg(child, SIGKILL);
+	    pskill(-child, SIGKILL, task->uid);
 	    return status;
 	}
 	return 0;

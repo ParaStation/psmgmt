@@ -26,6 +26,7 @@
 #include "psserial.h"
 
 #include "psidhook.h"
+#include "psidsignal.h"
 
 #include "pluginforwarder.h"
 #include "pluginhelper.h"
@@ -348,9 +349,9 @@ void signalChild(PElogueChild_t *child, int signal, char *reason)
     } else if (fwData->cPid > 0) {
 	mlog("%s: signal %i to pelogue '%s' - reason '%s' - pid %i\n", __func__,
 	     signal, child->jobid, reason, fwData->cPid);
-	kill(fwData->cPid, signal);
+	pskill(fwData->cPid, signal, child->uid);
     } else if ((signal == SIGTERM || signal == SIGKILL) && fwData->tid != -1) {
-	kill(PSC_getPID(fwData->tid), SIGTERM);
+	pskill(PSC_getPID(fwData->tid), SIGTERM, child->uid);
     } else {
 	mlog("%s: invalid forwarder data for signal %i to job '%s'\n", __func__,
 	     signal, child->jobid);

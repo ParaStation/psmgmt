@@ -17,6 +17,7 @@
 #include "psserial.h"
 
 #include "psidtask.h"
+#include "psidsignal.h"
 
 #include "pluginmalloc.h"
 
@@ -61,8 +62,8 @@ static void doDeleteJob(Job_t *job)
 	}
 
 	if (job->fwdata) {
-	    killChild(job->fwdata->cPid, SIGKILL);
-	    killChild(PSC_getPID(job->fwdata->tid), SIGKILL);
+	    killChild(job->fwdata->cPid, SIGKILL, job->uid);
+	    killChild(PSC_getPID(job->fwdata->tid), SIGKILL, 0);
 	}
     }
 
@@ -188,7 +189,7 @@ int killForwarderByJobid(uint32_t jobid)
     list_for_each_safe(j, tmp, &JobList) {
 	Job_t *job = list_entry(j, Job_t, next);
 	if (job->jobid == jobid && job->fwdata) {
-	    kill(PSC_getPID(job->fwdata->tid), SIGKILL);
+	    pskill(PSC_getPID(job->fwdata->tid), SIGKILL, 0);
 	    count++;
 	}
     }
@@ -240,7 +241,7 @@ bool signalJobscript(uint32_t jobid, int signal, uid_t reqUID)
     if (job->state == JOB_RUNNING && job->fwdata) {
 	mlog("%s: sending signal %u to jobscript with pid %i\n", __func__,
 	     signal, job->fwdata->cPid);
-	killChild(job->fwdata->cPid, signal);
+	killChild(job->fwdata->cPid, signal, job->uid);
 	return true;
     }
     return false;

@@ -23,6 +23,7 @@
 #include "pluginmalloc.h"
 #include "psidscripts.h"
 #include "psidutil.h"
+#include "psidsignal.h"
 #include "pluginhelper.h"
 
 #include "psgwlog.h"
@@ -251,7 +252,7 @@ void __cancelReq(PSGW_Req_t *req, char *reason, const char *func)
 
     /* kill routing script */
     if (req->routePID != -1) {
-	kill(req->routePID, SIGKILL);
+	pskill(req->routePID, SIGKILL, 0);
     }
 
     /* remove timer for route script */

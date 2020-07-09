@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2017-2018 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2017-2020 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -46,7 +46,7 @@ void clearBCastByJobid(uint32_t jobid)
 	BCast_t *bcast = list_entry(b, BCast_t, next);
 	if (bcast->jobid == jobid) {
 	    if (bcast->fwdata) {
-		killChild(PSC_getPID(bcast->fwdata->tid), SIGKILL);
+		killChild(PSC_getPID(bcast->fwdata->tid), SIGKILL, bcast->uid);
 	    } else {
 		deleteBCast(bcast);
 	    }

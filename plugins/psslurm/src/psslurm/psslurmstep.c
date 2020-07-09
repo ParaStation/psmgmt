@@ -17,6 +17,7 @@
 #include "psslurmproto.h"
 #include "psslurmenv.h"
 
+#include "psidsignal.h"
 #include "pluginmalloc.h"
 #include "pspamhandles.h"
 #include "peloguehandles.h"
@@ -143,9 +144,11 @@ bool deleteStep(uint32_t jobid, uint32_t stepid)
 
     if (step->fwdata) {
 	signalTasks(jobid, step->uid, &step->tasks, SIGKILL, -1);
-	if (step->fwdata->cPid) killChild(step->fwdata->cPid, SIGKILL);
+	if (step->fwdata->cPid) {
+	    killChild(step->fwdata->cPid, SIGKILL, step->uid);
+	}
 	if (step->fwdata->tid != -1) {
-	    killChild(PSC_getPID(step->fwdata->tid), SIGKILL);
+	    killChild(PSC_getPID(step->fwdata->tid), SIGKILL, 0);
 	}
     }
 
@@ -388,7 +391,7 @@ int killStepFWbyJobid(uint32_t jobid)
 	Step_t *step = list_entry(s, Step_t, next);
 
 	if (step->jobid == jobid && step->fwdata) {
-	    kill(PSC_getPID(step->fwdata->tid), SIGKILL);
+	    pskill(PSC_getPID(step->fwdata->tid), SIGKILL, 0);
 	    count++;
 	}
     }

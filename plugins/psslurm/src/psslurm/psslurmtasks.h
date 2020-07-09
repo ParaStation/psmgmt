@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2017-2018 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2017-2020 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -81,9 +81,11 @@ void clearTasks(list_t *taskList);
  *
  * @param signal The signal to send
  *
+ * @param uid The uid if the process owner
+ *
  * @param return Returns 0 on success and -1 on error
  */
-int killChild(pid_t pid, int signal);
+int killChild(pid_t pid, int signal, uid_t uid);
 
 /**
  * @brief Find a task identified by its rank
