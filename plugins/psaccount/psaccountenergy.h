@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2019 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2019-2020 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -33,5 +33,10 @@ bool energyUpdate(void);
  * @return Returns a pointer to the current energy data
  */
 psAccountEnergy_t *energyGetData(void);
+
+/**
+ * @brief Finalize energy monitoring
+ */
+void energyFinalize(void);
 
 #endif  /* __PS_ACCOUNT_ENERGY */

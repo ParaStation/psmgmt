@@ -37,6 +37,10 @@ const ConfDef_t confDef[] =
       "Path to the nodes power consumption sensor" },
     { "POWER_UNIT", false, "string", "W",
       "Unit of the power consumption sensor" },
+    { "ENERGY_SCRIPT", false, "file", "",
+      "Absolute path to energy monitoring script" },
+    { "ENERGY_SCRIPT_POLL", true, "num", "30",
+      "Energy script poll time in seconds" },
     { NULL, false, NULL, NULL, NULL },
 };
 
