@@ -122,7 +122,7 @@ static LIST_HEAD(pluginList);
  *
  * 118: added PSID_adjustLoginUID()
  *
- * 119: added PSIDHOOK_PELOGUE_START
+ * 119: new hook PSIDHOOK_PELOGUE_START
  *
  * 120: new hook PSIDHOOK_RANDOM_DROP
  *
@@ -132,13 +132,13 @@ static LIST_HEAD(pluginList);
  *
  * 123: new hook PSIDHOOK_FRWRD_CLNT_RES
  *
- * 124: PSIDHOOK_CLEARMEM get aggressive flag as argument
+ * 124: PSIDHOOK_CLEARMEM gets aggressive flag as argument
  *
  * 125: new hook PSIDHOOK_GETRESERVATION
  *
  * 126: new hook PSIDHOOK_PELOGUE_OE
  *
- * 127: added PSIDHOOK_PSSLURM_JOB_FWINIT, PSIDHOOK_PSSLURM_JOB_FWFIN,
+ * 127: new hooks PSIDHOOK_PSSLURM_JOB_FWINIT, PSIDHOOK_PSSLURM_JOB_FWFIN,
  *	PSIDHOOK_PSSLURM_JOB_EXEC
  */
 static int pluginAPIVersion = 127;

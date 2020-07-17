@@ -306,11 +306,11 @@ bool switchUser(char *username, uid_t uid, gid_t gid, char *cwd)
 
 char *uid2String(uid_t uid)
 {
-    struct passwd *pwd = NULL;
+    struct passwd *pwd;
 
     if (!uid) return ustrdup("root");
 
-    while (!pwd) {
+    do {
 	errno = 0;
 	pwd = getpwuid(uid);
 	if (!pwd) {
@@ -318,7 +318,8 @@ char *uid2String(uid_t uid)
 	    pluginwarn(errno, "%s: getpwuid for %i failed\n", __func__, uid);
 	    break;
 	}
-    }
+    } while (!pwd);
+
     if (!pwd) return NULL;
 
     return ustrdup(pwd->pw_name);
