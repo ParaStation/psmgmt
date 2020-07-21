@@ -151,7 +151,8 @@ am__uninstall_files_from_dir = { \
 am__installdirs = "$(DESTDIR)$(plugindir)"
 LTLIBRARIES = $(plugin_LTLIBRARIES)
 pam_service_la_DEPENDENCIES = $(libplugincommon) $(libpscommon)
-am_pam_service_la_OBJECTS = pamservice.lo pamservice_log.lo
+am_pam_service_la_OBJECTS = pamservice.lo pamservice_log.lo \
+	pamservice_kvs.lo
 pam_service_la_OBJECTS = $(am_pam_service_la_OBJECTS)
 AM_V_lt = $(am__v_lt_@AM_V@)
 am__v_lt_ = $(am__v_lt_@AM_DEFAULT_V@)
@@ -173,7 +174,7 @@ DEFAULT_INCLUDES = -I.@am__isrc@
 depcomp = $(SHELL) $(top_srcdir)/scripts/depcomp
 am__maybe_remake_depfiles = depfiles
 am__depfiles_remade = ./$(DEPDIR)/pamservice.Plo \
-	./$(DEPDIR)/pamservice_log.Plo
+	./$(DEPDIR)/pamservice_kvs.Plo ./$(DEPDIR)/pamservice_log.Plo
 am__mv = mv -f
 COMPILE = $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) \
 	$(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
@@ -404,7 +405,9 @@ scriptsdir = $(prefix)/scripts
 plugin_LTLIBRARIES = pam_service.la
 libplugincommon = $(top_builddir)/lib/plugincommon/libplugincommon.la
 libpscommon = $(top_builddir)/lib/pscommon/libpscommon.la
-pam_service_la_SOURCES = pamservice.c pamservice_log.h pamservice_log.c
+pam_service_la_SOURCES = pamservice.c pamservice.h pamservice_log.h pamservice_log.c \
+			 pamservice_kvs.c
+
 pam_service_la_LIBADD = -lpam $(libplugincommon) $(libpscommon)
 all: all-am
 
@@ -486,6 +489,7 @@ distclean-compile:
 	-rm -f *.tab.c
 
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/pamservice.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/pamservice_kvs.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/pamservice_log.Plo@am__quote@ # am--include-marker
 
 $(am__depfiles_remade):
@@ -653,6 +657,7 @@ clean-am: clean-generic clean-libtool clean-pluginLTLIBRARIES \
 
 distclean: distclean-am
 		-rm -f ./$(DEPDIR)/pamservice.Plo
+	-rm -f ./$(DEPDIR)/pamservice_kvs.Plo
 	-rm -f ./$(DEPDIR)/pamservice_log.Plo
 	-rm -f Makefile
 distclean-am: clean-am distclean-compile distclean-generic \
@@ -700,6 +705,7 @@ installcheck-am:
 
 maintainer-clean: maintainer-clean-am
 		-rm -f ./$(DEPDIR)/pamservice.Plo
+	-rm -f ./$(DEPDIR)/pamservice_kvs.Plo
 	-rm -f ./$(DEPDIR)/pamservice_log.Plo
 	-rm -f Makefile
 maintainer-clean-am: distclean-am maintainer-clean-generic

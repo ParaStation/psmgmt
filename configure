@@ -5,7 +5,7 @@
 # Report bugs to <support@par-tec.com>.
 #
 #
-# Copyright (C) 1992-1996, 1998-2012 Free Software Foundation, Inc.
+# Copyright (C) 1992-1996, 1998-2020 Free Software Foundation, Inc.
 #
 #
 # This configure script is free software; the Free Software Foundation
@@ -13288,6 +13288,8 @@ ac_config_files="$ac_config_files plugins/pspam/module/Makefile"
 
 ac_config_files="$ac_config_files plugins/pspam/pspam/Makefile"
 
+ac_config_files="$ac_config_files plugins/pspam/service/Makefile"
+
 ac_config_files="$ac_config_files plugins/pspmi/Makefile"
 
 
@@ -14427,6 +14429,7 @@ do
     "plugins/pspam/include/Makefile") CONFIG_FILES="$CONFIG_FILES plugins/pspam/include/Makefile" ;;
     "plugins/pspam/module/Makefile") CONFIG_FILES="$CONFIG_FILES plugins/pspam/module/Makefile" ;;
     "plugins/pspam/pspam/Makefile") CONFIG_FILES="$CONFIG_FILES plugins/pspam/pspam/Makefile" ;;
+    "plugins/pspam/service/Makefile") CONFIG_FILES="$CONFIG_FILES plugins/pspam/service/Makefile" ;;
     "plugins/pspmi/Makefile") CONFIG_FILES="$CONFIG_FILES plugins/pspmi/Makefile" ;;
     "plugins/pspmix/Makefile") CONFIG_FILES="$CONFIG_FILES plugins/pspmix/Makefile" ;;
     "plugins/psresport/Makefile") CONFIG_FILES="$CONFIG_FILES plugins/psresport/Makefile" ;;
@@ -15017,7 +15020,7 @@ See \`config.log' for more details" "$LINENO" 5; }
 # Provide generalized library-building support services.
 # Written by Gordon Matzigkeit, 1996
 
-# Copyright (C) 2014 Free Software Foundation, Inc.
+# Copyright (C) 2014-2020 Free Software Foundation, Inc.
 # This is free software; see the source for copying conditions.  There is NO
 # warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 
