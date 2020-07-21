@@ -23,7 +23,9 @@
 
 #include "pamservice_log.h"
 
-#define DEBUG 0
+#include "pamservice.h"
+
+int32_t debugMask = 0;
 
 /** psid plugin requirements */
 char name[] = "pam_service";
@@ -41,7 +43,8 @@ static void startPAMservice(char *user)
     const struct pam_conv conversation;
     const char serviceName[] = "psid";
 
-    if (DEBUG) mlog("%s: start pam serivce for %s\n", __func__, user);
+    mdbg(PAMSERVICE_LOG_DEBUG, "%s: start pam serivce for %s\n",
+	 __func__, user);
 
     retPAM = pam_start(serviceName, user, &conversation, &pamh);
     if (retPAM != PAM_SUCCESS) {
@@ -57,7 +60,8 @@ static void startPAMsession(char *user)
         return;
     }
 
-    if (DEBUG) mlog("%s: start pam session for %s\n", __func__, user);
+    mdbg(PAMSERVICE_LOG_DEBUG, "%s: start pam session for %s\n",
+	 __func__, user);
 
     retPAM = pam_open_session(pamh, PAM_SILENT);
     if (retPAM != PAM_SUCCESS) {
@@ -73,7 +77,7 @@ static int finishPAMservice(void *unused)
 	return 0;
     }
 
-    if (DEBUG) mlog("%s: stop pam service\n", __func__);
+    mdbg(PAMSERVICE_LOG_DEBUG, "%s: stop pam service\n", __func__);
 
     retPAM = pam_close_session(pamh, 0);
     if (retPAM != PAM_SUCCESS) {

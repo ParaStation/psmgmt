@@ -20,6 +20,7 @@ plugin_LTLIBRARIES = pam_service.la
 libplugincommon = $(top_builddir)/lib/plugincommon/libplugincommon.la
 libpscommon = $(top_builddir)/lib/pscommon/libpscommon.la
 
-pam_service_la_SOURCES = pamservice.c pamservice_log.h pamservice_log.c
+pam_service_la_SOURCES = pamservice.c pamservice.h pamservice_log.h pamservice_log.c \
+			 pamservice_kvs.c
 
 pam_service_la_LIBADD = -lpam $(libplugincommon) $(libpscommon)

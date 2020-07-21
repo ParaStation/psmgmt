@@ -14,14 +14,16 @@
 
 extern logger_t *pamservice_logger;
 
-#define mlog(...) if (pamservice_logger) logger_print(pamservice_logger, -1, __VA_ARGS__)
-#define mwarn(...) if (pamservice_logger) logger_warn(pamservice_logger, -1, __VA_ARGS__)
-#define mdbg(...) if (pamservice_logger) logger_print(pamservice_logger, __VA_ARGS__)
+#define mlog(...) if (pamservice_logger) \
+                        logger_print(pamservice_logger, -1, __VA_ARGS__)
+#define mwarn(...) if (pamservice_logger) \
+                        logger_warn(pamservice_logger, -1, __VA_ARGS__)
+#define mdbg(...) if (pamservice_logger) \
+                        logger_print(pamservice_logger, __VA_ARGS__)
 
 /** Various types of logging levels for more verbose logging */
 typedef enum {
     PAMSERVICE_LOG_DEBUG    =	0x000010, /**< Debug */
-    PAMSERVICE_LOG_WARN     =	0x000020, /**< Warnings */
 } PAMSERVICE_log_types_t;
 
 /**
