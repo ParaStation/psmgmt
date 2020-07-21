@@ -186,6 +186,16 @@ typedef enum {
 				the psgw plugin. */
     PSIDHOOK_FRWRD_CLNT_RES,  /**< Tell attached plugins about client's exit
 				status in the arg. */
+    PSIDHOOK_PSSLURM_JOB_FWINIT,/**< In psslurm job forwarder's init()
+				function. Arg is job owners username.
+				Called by pamservice plugin */
+    PSIDHOOK_PSSLURM_JOB_FWFIN,/**< In psslurm job forwarder's finalize()
+				function. Arg is job owners username.
+				Called by pamservice plugin */
+    PSIDHOOK_PSSLURM_JOB_EXEC,/**< In the psslurm job forwarder as root before
+				switching to job owner and executing the
+				jobscript. Arg is job owners username.
+				Called by pamservice plugin */
     PSIDHOOK_LAST,            /**< This has to be the last one */
 } PSIDhook_t;
 

@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2012-2019 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2012-2020 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -20,11 +20,13 @@
 #include <grp.h>
 #include <errno.h>
 #include <sys/prctl.h>
+#include <pwd.h>
 
 #include "pscommon.h"
 #include "psidnodes.h"
 #include "psidhook.h"
 #include "pluginlog.h"
+#include "pluginmalloc.h"
 
 #include "pluginhelper.h"
 
@@ -300,4 +302,24 @@ bool switchUser(char *username, uid_t uid, gid_t gid, char *cwd)
     }
 
     return true;
+}
+
+char *uid2String(uid_t uid)
+{
+    struct passwd *pwd = NULL;
+
+    if (!uid) return ustrdup("root");
+
+    while (!pwd) {
+	errno = 0;
+	pwd = getpwuid(uid);
+	if (!pwd) {
+	    if (errno == EINTR) continue;
+	    pluginwarn(errno, "%s: getpwuid for %i failed\n", __func__, uid);
+	    break;
+	}
+    }
+    if (!pwd) return NULL;
+
+    return ustrdup(pwd->pw_name);
 }

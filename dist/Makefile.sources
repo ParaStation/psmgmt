@@ -475,6 +475,11 @@ plugins/pspam/pspam/pspamssh.h \
 plugins/pspam/pspam/pspamtypes.h \
 plugins/pspam/pspam/pspamuser.c \
 plugins/pspam/pspam/pspamuser.h \
+plugins/pspam/service/Makefile.am \
+plugins/pspam/service/Makefile.in \
+plugins/pspam/service/pamservice.c \
+plugins/pspam/service/pamservice_log.c \
+plugins/pspam/service/pamservice_log.h \
 plugins/pspmi/Makefile.am \
 plugins/pspmi/Makefile.in \
 plugins/pspmi/pmiclient.c \

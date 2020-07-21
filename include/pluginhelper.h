@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2014-2019 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2014-2020 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -183,5 +183,16 @@ void __printBinaryData(char *data, size_t len, char *tag,
  * @return Returns true on success otherwise false is returned
  */
 bool switchUser(char *username, uid_t uid, gid_t gid, char *cwd);
+
+/**
+ * @brief Convert a user ID to string
+ *
+ * @param uid The user ID to convert
+ *
+ * @return Returns the converted username or NULL if the user ID could
+ * not be resolved. The caller is responsible to release the memory for
+ * the username calling @ref ufree().
+ */
+char *uid2String(uid_t uid);
 
 #endif  /* __PS_PLUGIN_LIB_HELPER */

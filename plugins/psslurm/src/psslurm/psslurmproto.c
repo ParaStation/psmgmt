@@ -16,7 +16,6 @@
 #include <signal.h>
 #include <sys/vfs.h>
 #include <malloc.h>
-#include <pwd.h>
 
 #include "pshostlist.h"
 #include "psserial.h"
@@ -86,26 +85,6 @@ enum {
     SUSPEND_JOB,
     RESUME_JOB
 };
-
-char *uid2String(uid_t uid)
-{
-    struct passwd *pwd = NULL;
-
-    if (!uid) return ustrdup("root");
-
-    while (!pwd) {
-	errno = 0;
-	pwd = getpwuid(uid);
-	if (!pwd) {
-	    if (errno == EINTR) continue;
-	    mwarn(errno, "%s: getpwuid for %i failed\n", __func__, uid);
-	    break;
-	}
-    }
-    if (!pwd) return NULL;
-
-    return ustrdup(pwd->pw_name);
-}
 
 /**
  * @brief Get CPU load average and free memory

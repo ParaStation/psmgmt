@@ -389,17 +389,6 @@ bool initSlurmdProto(void);
 void clearSlurmdProto(void);
 
 /**
- * @brief Convert a user ID to string
- *
- * @param uid The user ID to convert
- *
- * @return Returns the converted username or NULL if the user ID could
- * not be resolved. The caller is responsible to release the memory for
- * the username calling @ref ufree().
- */
-char *uid2String(uid_t uid);
-
-/**
  * @brief Request job information from slurmctld
  *
  * @param jobid The jobid to request information for

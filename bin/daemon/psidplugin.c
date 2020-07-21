@@ -137,8 +137,11 @@ static LIST_HEAD(pluginList);
  * 125: new hook PSIDHOOK_GETRESERVATION
  *
  * 126: new hook PSIDHOOK_PELOGUE_OE
+ *
+ * 127: added PSIDHOOK_PSSLURM_JOB_FWINIT, PSIDHOOK_PSSLURM_JOB_FWFIN,
+ *	PSIDHOOK_PSSLURM_JOB_EXEC
  */
-static int pluginAPIVersion = 126;
+static int pluginAPIVersion = 127;
 
 
 /** Grace period between finalize and unload on forcefully unloads */

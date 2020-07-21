@@ -294,6 +294,8 @@ static void fwExecBatchJob(Forwarder_Data_t *fwdata, int rerun)
 
     setFilePermissions(job);
 
+    PSIDhook_call(PSIDHOOK_PSSLURM_JOB_EXEC, job->username);
+
     /* set default RLimits */
     setDefaultRlimits();
 
@@ -1209,6 +1211,22 @@ void handleJobLoop(Forwarder_Data_t *fwdata)
     }
 }
 
+static int jobForwarderInit(Forwarder_Data_t *fwdata)
+{
+    Job_t *job = fwdata->userData;
+
+    PSIDhook_call(PSIDHOOK_PSSLURM_JOB_FWINIT, job->username);
+
+    return IO_openJobPipes(fwdata);
+}
+
+static void jobForwarderFin(Forwarder_Data_t *fwdata)
+{
+    Job_t *job = fwdata->userData;
+
+    PSIDhook_call(PSIDHOOK_PSSLURM_JOB_FWFIN, job->username);
+}
+
 bool execBatchJob(Job_t *job)
 {
     int grace = getConfValueI(&SlurmConfig, "KillWait");
@@ -1227,9 +1245,10 @@ bool execBatchJob(Job_t *job)
     fwdata->callback = jobCallback;
     fwdata->childFunc = fwExecBatchJob;
     fwdata->hookChild = handleChildStartJob;
-    fwdata->hookFWInit = IO_openJobPipes;
+    fwdata->hookFWInit = jobForwarderInit;
     fwdata->hookLoop = handleJobLoop;
     fwdata->handleMthrMsg = fwCMD_handleMthrJobMsg;
+    fwdata->hookFinalize = jobForwarderFin;
 
     if (!startForwarder(fwdata)) {
 	char msg[128];

@@ -284,6 +284,8 @@ exit 0
 %if !0%{?disable_pam}
 %{_pamdir}/pam_pspam.so
 %exclude %{_pamdir}/pam_pspam.la
+%{_plugindir}/pam_service.so
+%exclude %{_plugindir}/pam_service.la
 %endif
 %{_plugindir}/pspmi.so
 %exclude %{_plugindir}/pspmi.la
