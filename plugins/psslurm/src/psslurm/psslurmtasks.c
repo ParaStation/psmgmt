@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2017-2019 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2017-2020 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -127,8 +127,9 @@ unsigned int countRegTasks(list_t *taskList)
 
 int killChild(pid_t pid, int signal)
 {
-    if (!pid || pid < 0) return -1;
+    if (!pid || pid == -1) return -1;
     if (pid == getpid()) return -1;
+    if ((signal == SIGKILL || signal == SIGTERM) && pid > 1) pid *= -1;
 
     return kill(pid, signal);
 }

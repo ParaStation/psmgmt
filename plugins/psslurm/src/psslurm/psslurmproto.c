@@ -22,6 +22,7 @@
 #include "psserial.h"
 #include "env.h"
 #include "selector.h"
+#include "timer.h"
 
 #include "psidnodes.h"
 #include "psidspawn.h"
@@ -633,6 +634,75 @@ ERROR:
     if (step) deleteStep(step->jobid, step->stepid);
 }
 
+static int doSignalTasks(Req_Signal_Tasks_t *req)
+{
+    if (req->flags & KILL_FULL_JOB) {
+	/* send signal to complete job including all steps */
+	mlog("%s: sending all processes of job %u signal %u\n", __func__,
+	     req->jobid, req->signal);
+	signalJobscript(req->jobid, req->signal, req->uid);
+	signalStepsByJobid(req->jobid, req->signal, req->uid);
+    } else if (req->flags & KILL_STEPS_ONLY) {
+	/* send signal to all steps excluding the jobscript */
+	mlog("%s: send steps %u signal %u\n", __func__,
+	     req->jobid, req->signal);
+	signalStepsByJobid(req->jobid, req->signal, req->uid);
+    } else {
+	int ret = 0;
+
+	if (req->stepid == SLURM_BATCH_SCRIPT) {
+	    /* signal jobscript only, not all corresponding steps */
+	    ret = signalJobscript(req->jobid, req->signal, req->uid);
+	} else {
+	    /* signal a single step */
+	    mlog("%s: sending step %u:%u signal %u\n", __func__, req->jobid,
+		 req->stepid, req->signal);
+	    Step_t *step = findStepByStepId(req->jobid, req->stepid);
+	    if (step) ret = signalStep(step, req->signal, req->uid);
+	}
+
+	/* we only return an error if we signal a specific jobscript/step */
+	return ret;
+    }
+
+    return 1;
+}
+
+/**
+ * @brief Send a SIGKILL for a request after a grace period
+ */
+static void sendDelayedKill(int timerId, void *data)
+{
+    Timer_remove(timerId);
+
+    Req_Signal_Tasks_t *req = data;
+    req->signal = SIGKILL;
+    doSignalTasks(req);
+
+    ufree(req);
+}
+
+/**
+ * @brief Send SIGCONT, SIGTERM and SIGKILL to job
+ *
+ * @param req The request holding all needed information
+ */
+static void doSendTermKill(Req_Signal_Tasks_t *req)
+{
+    req->signal = SIGCONT;
+    doSignalTasks(req);
+
+    req->signal = SIGTERM;
+    doSignalTasks(req);
+
+    Req_Signal_Tasks_t *reqDup = umalloc(sizeof(*req));
+    memcpy(reqDup, req, sizeof(*req));
+
+    int grace = getConfValueI(&SlurmConfig, "KillWait");
+    struct timeval timeout = {grace, 0};
+    Timer_registerEnhanced(&timeout, sendDelayedKill, reqDup);
+}
+
 /**
  * @brief Handle a signal tasks request
  *
@@ -652,37 +722,31 @@ static void handleSignalTasks(Slurm_Msg_t *sMsg)
 	sendSlurmRC(sMsg, SLURM_ERROR);
 	return;
     }
+    req->uid = sMsg->head.uid;
 
-    if (req->flags & KILL_FULL_JOB) {
-	/* send signal to complete job including all steps */
-	mlog("%s: sending all processes of job %u signal %u\n", __func__,
-	     req->jobid, req->signal);
-	signalJobscript(req->jobid, req->signal, sMsg->head.uid);
-	signalStepsByJobid(req->jobid, req->signal, sMsg->head.uid);
-    } else if (req->flags & KILL_STEPS_ONLY) {
-	/* send signal to all steps excluding the jobscript */
-	mlog("%s: send steps %u signal %u\n", __func__,
-	     req->jobid, req->signal);
-	signalStepsByJobid(req->jobid, req->signal, sMsg->head.uid);
-    } else {
-	int ret = 0;
-
-	if (req->stepid == SLURM_BATCH_SCRIPT) {
-	    /* signal jobscript only, not all corresponding steps */
-	    ret = signalJobscript(req->jobid, req->signal, sMsg->head.uid);
-	} else {
-	    /* signal a single step */
-	    mlog("%s: sending step %u:%u signal %u\n", __func__, req->jobid,
-		 req->stepid, req->signal);
-	    Step_t *step = findStepByStepId(req->jobid, req->stepid);
-	    if (step) ret = signalStep(step, req->signal, sMsg->head.uid);
-	}
-	/* we only return an error if we signal a specific jobscript/step */
-	if (ret != 1) {
-	    sendSlurmRC(sMsg, ESLURM_INVALID_JOB_ID);
+    /* handle magic Slurm signals */
+    switch (req->signal) {
+	case SIG_TERM_KILL:
+	    doSendTermKill(req);
+	    sendSlurmRC(sMsg, SLURM_SUCCESS);
 	    return;
-	}
+	case SIG_UME:
+	case SIG_REQUEUED:
+	case SIG_PREEMPTED:
+	case SIG_TIME_LIMIT:
+	case SIG_ABORT:
+	case SIG_NODE_FAIL:
+	case SIG_FAILURE:
+	    sendSlurmRC(sMsg, SLURM_SUCCESS);
+	    flog("%s: implement signal %u\n", req->signal);
+	    return;
     }
+
+    if (!doSignalTasks(req)) {
+	sendSlurmRC(sMsg, ESLURM_INVALID_JOB_ID);
+	return;
+    }
+
     sendSlurmRC(sMsg, SLURM_SUCCESS);
 }
 

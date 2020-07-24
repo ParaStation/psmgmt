@@ -35,6 +35,7 @@ typedef struct {
     uint32_t stepid;	/**< unique step identifier */
     uint16_t signal;	/**< the signal to send */
     uint16_t flags;	/**< various signal options */
+    uid_t uid;		/**< user ID of requestor */
 } Req_Signal_Tasks_t;
 
 typedef struct {

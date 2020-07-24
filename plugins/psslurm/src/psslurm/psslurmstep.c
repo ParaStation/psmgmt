@@ -233,10 +233,8 @@ bool deleteStep(uint32_t jobid, uint32_t stepid)
 int signalStep(Step_t *step, int signal, uid_t reqUID)
 {
     int ret = 0;
-    PStask_group_t group;
 
     if (!step) return 0;
-    group = (signal == SIGTERM || signal == SIGKILL) ? -1 : TG_ANY;
 
     /* check permissions */
     if (!(verifyUserId(reqUID, step->uid))) {
@@ -250,6 +248,9 @@ int signalStep(Step_t *step, int signal, uid_t reqUID)
 	    if (!(step->taskFlags & LAUNCH_PARALLEL_DEBUG)) return 0;
 	    signal = SIGCONT;
 	    break;
+	case SIG_TERM_KILL:
+	case SIG_UME:
+	case SIG_REQUEUED:
 	case SIG_PREEMPTED:
 	case SIG_TIME_LIMIT:
 	case SIG_ABORT:
@@ -258,6 +259,8 @@ int signalStep(Step_t *step, int signal, uid_t reqUID)
 	    mlog("%s: implement signal %u\n", __func__, signal);
 	    return 0;
     }
+
+    PStask_group_t group = (signal == SIGTERM || signal == SIGKILL) ? -1 : TG_ANY;
 
     /* if we are not the mother superior we just signal all our local tasks */
     if (!step->leader) {
