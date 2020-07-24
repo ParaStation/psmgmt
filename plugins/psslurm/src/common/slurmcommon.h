@@ -190,9 +190,17 @@ typedef enum task_dist_states {
 #define SLURM_DIST_NODESOCKMASK           0xF0FF
 
 /* magic slurm signals */
-#define SIG_PREEMPTED   994     /* Dummy signal value for job preemption */
-#define SIG_DEBUG_WAKE  995     /* Dummy signal value to wake procs stopped
-                                 * for debugger */
+#define SIG_OOM		253	/* Dummy signal value for out of memory
+				 * (OOM) notification. Exist status reported as
+				 * 0:125 (0x80 is the signal flag and
+				 * 253 - 128 = 125) */
+#define SIG_TERM_KILL	991	/* Send SIGCONT + SIGTERM + SIGKILL */
+#define SIG_UME		992	/* Dummy signal value for uncorrectable memory
+				 * error (UME) notification */
+#define SIG_REQUEUED	993	/* Dummy signal value to job requeue */
+#define SIG_PREEMPTED	994     /* Dummy signal value for job preemption */
+#define SIG_DEBUG_WAKE	995     /* Dummy signal value to wake procs stopped
+				 * for debugger */
 #define SIG_TIME_LIMIT  996     /* Dummy signal value for time limit reached */
 #define SIG_ABORT       997     /* Dummy signal value to abort a job */
 #define SIG_NODE_FAIL   998     /* Dummy signal value to signify node failure */
