@@ -75,7 +75,8 @@ static int testHook(spank_t sp, int ac, char **av, const char *func)
     /* set environment */
     ret = spank_setenv(sp, func, "psslurm-test", 1);
     if (ret != ESPANK_SUCCESS) {
-	slurm_info("%s: spank_setenv failed: %i", func, ret);
+	slurm_info("%s: spank_setenv failed: %i, %s", func, ret,
+		   spank_strerror(ret));
     }
 
     getAllEnv(sp, func);
@@ -140,6 +141,9 @@ static int testHook(spank_t sp, int ac, char **av, const char *func)
 	    slurm_info("%s: S_JOB_ARGV: arg%u=%s ret: %i", func, i,
 		       argv[i], ret);
 	}
+    } else {
+	slurm_info("%s: error: spank_get_item(S_JOB_ARGV) ret:%i, %s\n",
+		   __func__, ret, spank_strerror(ret));
     }
 
     /* Job env array (char ***)                     */
@@ -149,6 +153,9 @@ static int testHook(spank_t sp, int ac, char **av, const char *func)
 	if (env && env[0]) {
 	    slurm_info("%s: S_JOB_ENV: env[0]:%s ret: %i", func, env[0], ret);
 	}
+    } else {
+	slurm_info("%s: error: spank_get_item(S_JOB_ENV) ret:%i, %s\n",
+		   __func__, ret, spank_strerror(ret));
     }
 
     /* Local task id (int *)                        */
