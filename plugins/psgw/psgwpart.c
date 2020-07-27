@@ -222,7 +222,7 @@ static void handleProvidePartSL(DDBufferMsg_t *msg)
 	Request_setNodes(req, nodes, task->partitionSize);
 
 	/* start prologue on psgwd nodes using pelogue */
-	if (!startPrologue(req)) {
+	if (!startPElogue(req, PELOGUE_PROLOGUE)) {
 	    flog("starting prologue failed\n");
 	    return;
 	}
@@ -341,7 +341,8 @@ static int fwCallback(int32_t exit_status, Forwarder_Data_t *fw)
     PSGW_Req_t *req = Request_verify(fw->userData);
 
     if (!req) {
-	flog("no request for %p\n", fw->userData);
+	/* may happen on shutdown after epilogue */
+	fdbg(PSGW_LOG_DEBUG, "no request for %p\n", fw->userData);
 	return 0;
     }
 

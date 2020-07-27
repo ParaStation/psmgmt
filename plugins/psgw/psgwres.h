@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2018-2019 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2018-2020 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -42,13 +42,13 @@ int handlePElogueRes(void *data);
 int handleFinAlloc(void *data);
 
 /**
- * @brief Start prologue executed on the gateway nodes
+ * @brief Start prologue/epilogue executed on the gateway nodes
  *
  * @param req The request management structure
  *
  * @return Returns true on success otherwise false is returned
  */
-bool startPrologue(PSGW_Req_t *req);
+bool startPElogue(PSGW_Req_t *req, PElogueType_t type);
 
 /**
  * @brief Start the psgwd on the gateway nodes

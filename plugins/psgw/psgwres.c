@@ -272,15 +272,14 @@ void __cancelReq(PSGW_Req_t *req, char *reason, const char *func)
 
     /* kill prologue on gateway nodes */
     psPelogueSignalPE("psgw", req->jobid, SIGKILL, "psgw error");
-    psPelogueDeleteJob("psgw", req->jobid);
-
-    /* stop psgw forwarder */
-    if (req->fwdata) shutdownForwarder(req->fwdata);
 
     PElogueResource_t *res = req->res;
     if (!res) {
 	flog("invalid pelogue resource for jobid %s\n", req->jobid);
-	Request_delete(req);
+	/* start epilogue on gateway nodes */
+	if (!startPElogue(req, PELOGUE_EPILOGUE)) {
+	    Request_delete(req);
+	}
 	return;
     }
 
@@ -297,8 +296,10 @@ void __cancelReq(PSGW_Req_t *req, char *reason, const char *func)
     res->cb(res->plugin, res->jobid, ret);
     req->res = NULL;
 
-    /* delete request */
-    Request_delete(req);
+    /* start epilogue on gateway nodes */
+    if (!startPElogue(req, PELOGUE_EPILOGUE)) {
+	Request_delete(req);
+    }
 }
 
 /**
@@ -319,7 +320,7 @@ static void finalizeRequest(PSGW_Req_t *req)
 	return;
     }
 
-    if (req->prologueState != PSP_PROLOGUE_FINISH) {
+    if (req->pelogueState == PSP_PROLOGUE_START) {
 	fdbg(PSGW_LOG_DEBUG, "waiting for prologue on gateway nodes\n");
 	return;
     }
@@ -502,7 +503,7 @@ static bool execRoutingScript(PSGW_Req_t *req)
 }
 
 /**
- * @brief Callback of the prologue executed on the gateway nodes
+ * @brief Callback of the pelogue executed on the gateway nodes
  *
  * @param jobid The jobid of the allocation
  *
@@ -515,56 +516,79 @@ static bool execRoutingScript(PSGW_Req_t *req)
  *
  * @param info Pointer to the request management structure
  */
-static void prologueCB(char *jobid, int exit, bool timeout,
-		       PElogueResList_t *result, void *info)
+static void pelogueCB(char *jobid, int exit, bool timeout,
+		      PElogueResList_t *result, void *info)
 {
     PSGW_Req_t *req = Request_verify(info);
 
-    fdbg(PSGW_LOG_DEBUG, "jobid %s exit %i timeout %i\n", jobid, exit, timeout);
+    flog("gateway %s for jobid %s exit %i timeout %i\n",
+	(req->pelogueState == PSP_PROLOGUE_START ? "prologue" : "epilogue"),
+	 jobid, exit, timeout);
 
     if (!req) {
 	flog("no request found for jobid %s\n", jobid);
 	return;
     }
 
-    req->prologueState = PSP_PROLOGUE_FINISH;
+    if (req->pelogueState == PSP_PROLOGUE_START) {
+	req->pelogueState = PSP_PROLOGUE_FINISH;
 
-    if (exit) {
-	/* prologue failed */
-	snprintf(msgBuf, sizeof(msgBuf), "prologue on gateway failed, jobid %s "
-		 "exit %i timeout %i\n", jobid, exit, timeout);
-	cancelReq(req, msgBuf);
+	if (exit) {
+	    /* prologue failed */
+	    snprintf(msgBuf, sizeof(msgBuf), "prologue on gateway failed, "
+		     "jobid %s exit %i timeout %i\n", jobid, exit, timeout);
+	    cancelReq(req, msgBuf);
+	} else {
+	    finalizeRequest(req);
+	}
     } else {
-	finalizeRequest(req);
+	shutdownForwarder(req->fwdata);
+	if (exit) {
+	    flog("epilogue on gateway failed, jobid %s exit %i timeout %i\n",
+		 jobid, exit, timeout);
+	}
+	Request_delete(req);
     }
 }
 
-bool startPrologue(PSGW_Req_t *req)
+bool startPElogue(PSGW_Req_t *req, PElogueType_t type)
 {
-    PElogueResource_t *res = req->res;
     bool ret;
 
-    fdbg(PSGW_LOG_DEBUG, "start prologue for job %s\n", res->jobid);
+    fdbg(PSGW_LOG_DEBUG, "start %s for job %s\n",
+	 (type == PELOGUE_PROLOGUE) ? "prologue" : "epilogue", req->jobid);
 
-    ret = psPelogueAddJob("psgw", res->jobid, res->uid, res->gid,
-			  req->numGWnodes, req->gwNodes, prologueCB, req,
-			  false);
+    if (type == PELOGUE_PROLOGUE) {
+	ret = psPelogueAddJob("psgw", req->jobid, req->uid, req->gid,
+			      req->numGWnodes, req->gwNodes, pelogueCB, req,
+			      false);
+	if (!ret) {
+	    snprintf(msgBuf, sizeof(msgBuf), "adding psgw job %s to pelogue "
+		     "failed\n", req->jobid);
+	    cancelReq(req, msgBuf);
+	    return false;
+	}
+    }
+
+    ret = psPelogueStartPE("psgw", req->jobid, type, 1, &req->env);
     if (!ret) {
-	snprintf(msgBuf, sizeof(msgBuf), "adding psgw job %s to pelogue "
-		 "failed\n", res->jobid);
-	cancelReq(req, msgBuf);
+	snprintf(msgBuf, sizeof(msgBuf), "starting psgw %s for job %s "
+		 "failed\n",
+		 (type == PELOGUE_PROLOGUE) ? "prologue" : "epilogue",
+		 req->jobid);
+	if (type == PELOGUE_PROLOGUE) {
+	    cancelReq(req, msgBuf);
+	} else {
+	    flog("%s", msgBuf);
+	}
 	return false;
     }
 
-    ret = psPelogueStartPE("psgw", res->jobid, PELOGUE_PROLOGUE, 1, res->env);
-    if (!ret) {
-	snprintf(msgBuf, sizeof(msgBuf), "starting psgw prologue for job %s "
-		 "failed\n", res->jobid);
-	cancelReq(req, msgBuf);
-	return false;
+    if (type == PELOGUE_PROLOGUE) {
+	req->pelogueState = PSP_PROLOGUE_START;
+    } else {
+	req->pelogueState = PSP_EPILOGUE_START;
     }
-
-    req->prologueState = PSP_PROLOGUE_START;
 
     return true;
 }
@@ -722,7 +746,10 @@ int handleFinAlloc(void *data)
     /* kill psgw daemon */
     stopPSGWD(req);
 
-    Request_delete(req);
+    /* start the epilogue on gateway nodes */
+    if (!startPElogue(req, PELOGUE_EPILOGUE)) {
+	Request_delete(req);
+    }
 
     return 1;
 }

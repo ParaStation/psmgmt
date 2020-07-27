@@ -28,7 +28,7 @@ typedef struct {
     int routeRes;	      /**< result of the routing script */
     pid_t routePID;	      /**< PID of the routing script */
     char *routeFile;	      /**< path to routing file */
-    int prologueState;	      /**< status of the prologue */
+    int pelogueState;	      /**< status of the pelogue on gateway nodes */
     uint32_t psgwdPerNode;    /**< number of psgwd per gw node */
     uint32_t numGWnodes;      /**< number of gateway nodes */
     PSnodes_ID_t *gwNodes;    /**< list of gateway nodes */
@@ -42,6 +42,7 @@ typedef struct {
     Forwarder_Data_t *fwdata; /**< psgw forwarder to request a partition */
     int timerPartReq;         /**< timer for partition request */
     bool cleanup;             /**< automatic cleanup of route file */
+    env_t env;                /**< environment of the allocation */
     list_t next;              /**< used to put into some request-lists */
 } PSGW_Req_t;
 

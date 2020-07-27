@@ -13,6 +13,7 @@
 #include <signal.h>
 
 #include "pluginmalloc.h"
+#include "peloguehandles.h"
 #include "pscommon.h"
 
 #include "psgwlog.h"
@@ -33,9 +34,10 @@ PSGW_Req_t *Request_add(PElogueResource_t *res, char *packID)
     req->routeRes = -1;
     req->routePID = -2;
     req->timerRouteScript = -1;
-    req->prologueState = -1;
+    req->pelogueState = -1;
     req->cleanup = envGet(res->env, "SLURM_SPANK_PSGW_CLEANUP") ? true : false;
     req->psgwdPerNode = 1;
+    envClone(res->env, &req->env, NULL);
 
     char *user = envGet(res->env, "SLURM_USER");
     if (!user) {
@@ -79,7 +81,9 @@ void Request_delete(PSGW_Req_t *req)
 	ufree(req->routeFile);
 	req->routeFile = NULL;
     }
+    psPelogueDeleteJob("psgw", req->jobid);
 
+    /* stop psgw forwarder */
     if (req->fwdata) {
 	kill(PSC_getPID(req->fwdata->tid), SIGKILL);
     }
@@ -92,6 +96,7 @@ void Request_delete(PSGW_Req_t *req)
     ufree(req->jobid);
     ufree(req->packID);
     ufree(req->username);
+    envDestroy(&req->env);
 
     list_del(&req->next);
     ufree(req);
