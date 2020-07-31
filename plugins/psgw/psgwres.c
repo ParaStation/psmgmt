@@ -511,14 +511,15 @@ static void pelogueCB(char *jobid, int exit, bool timeout,
 {
     PSGW_Req_t *req = Request_verify(info);
 
+    if (!req) {
+	flog("no request found for jobid %s exit %i timeout %i\n",
+	     jobid, exit, timeout);
+	return;
+    }
+
     flog("gateway %s for jobid %s exit %i timeout %i\n",
 	(req->pelogueState == PSP_PROLOGUE_START ? "prologue" : "epilogue"),
 	 jobid, exit, timeout);
-
-    if (!req) {
-	flog("no request found for jobid %s\n", jobid);
-	return;
-    }
 
     if (req->pelogueState == PSP_PROLOGUE_START) {
 	req->pelogueState = PSP_PROLOGUE_FINISH;
