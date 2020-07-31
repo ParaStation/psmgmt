@@ -70,6 +70,10 @@ const ConfDef_t confDef[] =
 	"int",
 	"8",
 	"Set to max tpp of gateway nodes" },
+    { "PELOGUE_LOG_OE", 1,
+	"bool",
+	"0",
+	"Log stdout/stderr of gateway prologue and epilogue scripts" },
     { NULL, 0, NULL, NULL, NULL },
 };
 

@@ -199,15 +199,9 @@ static int cbPSGWDerror(uint32_t id, int32_t exit, PSnodes_ID_t dest,
     return 0;
 }
 
-void writeErrorFile(PSGW_Req_t *req, char *msg)
+void writeErrorFile(PSGW_Req_t *req, char *msg, char *file, bool header)
 {
-    PElogueResource_t *res = req->res;
-    if (!res) {
-	flog("invalid pelogue resource for jobid %s\n", req->jobid);
-	return;
-    }
-
-    if (envGet(req->res->env, "SLURM_SPANK_PSGW_QUIET")) {
+    if (envGet(&req->env, "SLURM_SPANK_PSGW_QUIET")) {
 	return;
     }
 
@@ -215,7 +209,7 @@ void writeErrorFile(PSGW_Req_t *req, char *msg)
     pid_t childPID = fork();
 
     if (!childPID) {
-	char *cwd = envGet(req->res->env, "SLURM_SPANK_PSGW_CWD");
+	char *cwd = envGet(&req->env, "SLURM_SPANK_PSGW_CWD");
 
 	/* switch to user */
 	if (!switchUser(req->username, req->uid, req->gid, cwd)) {
@@ -224,15 +218,19 @@ void writeErrorFile(PSGW_Req_t *req, char *msg)
 	}
 
 	char path[1024];
-	snprintf(path, sizeof(path), "%s/JOB-%s-psgw.err", cwd, req->jobid);
+	if (!file) {
+	    snprintf(path, sizeof(path), "%s/JOB-%s-psgw.err", cwd, req->jobid);
+	    file = path;
+	}
 
 	FILE *fp;
-	if (!(fp = fopen(path, "a"))) {
-	    mwarn(errno, "%s: open file '%s' failed :", __func__, path);
+	if (!(fp = fopen(file, "a"))) {
+	    mwarn(errno, "%s: open file '%s' failed :", __func__, file);
 	    exit(1);
 	}
 
-	fprintf(fp, "gateway startup failed: %s", msg);
+	if (header) fprintf(fp, "gateway startup failed:\n");
+	fprintf(fp, "%s", msg);
 	fclose(fp);
 
 	exit(0);
@@ -246,7 +244,7 @@ void writeErrorFile(PSGW_Req_t *req, char *msg)
 void __cancelReq(PSGW_Req_t *req, char *reason, const char *func)
 {
     /* inform user via error file */
-    writeErrorFile(req, reason);
+    writeErrorFile(req, reason, NULL, true);
 
     mlog("%s: %s", func, reason);
     flog("canceling request for jobid %u\n", req->jobid);
@@ -323,14 +321,6 @@ static void finalizeRequest(PSGW_Req_t *req)
     if (req->pelogueState == PSP_PROLOGUE_START) {
 	fdbg(PSGW_LOG_DEBUG, "waiting for prologue on gateway nodes\n");
 	return;
-    }
-
-    /* remove error files from previous startup attempts */
-    char *cwd = envGet(req->res->env, "SLURM_SPANK_PSGW_CWD");
-    if (cwd) {
-	char path[1024];
-	snprintf(path, sizeof(path), "%s/JOB-%s-psgw.err", cwd, req->jobid);
-	unlink(path);
     }
 
     /* let pelogue execute prologue */
@@ -559,9 +549,10 @@ bool startPElogue(PSGW_Req_t *req, PElogueType_t type)
 	 (type == PELOGUE_PROLOGUE) ? "prologue" : "epilogue", req->jobid);
 
     if (type == PELOGUE_PROLOGUE) {
+	int fwOE = getConfValueI(&config, "PELOGUE_LOG_OE");
 	ret = psPelogueAddJob("psgw", req->jobid, req->uid, req->gid,
 			      req->numGWnodes, req->gwNodes, pelogueCB, req,
-			      false);
+			      fwOE);
 	if (!ret) {
 	    snprintf(msgBuf, sizeof(msgBuf), "adding psgw job %s to pelogue "
 		     "failed\n", req->jobid);
@@ -784,6 +775,14 @@ int handlePElogueRes(void *data)
     if (!req) {
 	flog("adding request failed\n");
 	return 2;
+    }
+
+    /* remove error files from previous startup attempts */
+    char *cwd = envGet(req->res->env, "SLURM_SPANK_PSGW_CWD");
+    if (cwd) {
+	char path[1024];
+	snprintf(path, sizeof(path), "%s/JOB-%s-psgw.err", cwd, req->jobid);
+	unlink(path);
     }
 
     char *strPsgwdPerNode = envGet(req->res->env, "SLURM_SPANK_PSGWD_PER_NODE");

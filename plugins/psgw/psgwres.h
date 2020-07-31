@@ -84,8 +84,13 @@ void __cancelReq(PSGW_Req_t *req, char *reason, const char *func);
  *
  * @param req The request to write the error file for
  *
+ * @param header Preceed msg with error header
+ *
+ * @param file File to write, if null default job error file
+ * is used
+ *
  * @param msg The message to write
  */
-void writeErrorFile(PSGW_Req_t *req, char *msg);
+void writeErrorFile(PSGW_Req_t *req, char *msg, char *file, bool header);
 
 #endif

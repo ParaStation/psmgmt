@@ -372,7 +372,7 @@ int handleMotherMsg(PSLog_Msg_t *msg, Forwarder_Data_t *fw)
 	flog("%s", msgBuf);
 
 	/* inform user via error file */
-	writeErrorFile(req, msgBuf);
+	writeErrorFile(req, msgBuf, NULL, true);
 
 	exit(1);
     }

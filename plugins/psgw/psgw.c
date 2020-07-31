@@ -18,6 +18,7 @@
 #include "plugin.h"
 #include "peloguehandles.h"
 #include "psexechandles.h"
+#include "pspluginprotocol.h"
 
 #include "psidcomm.h"
 
@@ -26,6 +27,7 @@
 #include "psgwconfig.h"
 #include "psgwrequest.h"
 #include "psgwpart.h"
+#include "psgwcomm.h"
 
 #define PSGW_CONFIG_FILE  PLUGINDIR "/psgw.conf"
 
@@ -225,6 +227,14 @@ int initialize(void)
 	return 1;
     }
 
+    if (!PSIDhook_add(PSIDHOOK_PELOGUE_OE, handlePelogueOE)) {
+	mlog("register 'PSIDHOOK_PELOGUE_OE' failed\n");
+	return false;
+    }
+
+    /* register to psgw PSP_CC_PLUG_PSGW message */
+    PSID_registerMsg(PSP_CC_PLUG_PSGW, (handlerFunc_t) handlePSGWmsg);
+
     regPartMsg();
 
     mlog("(%i) successfully started\n", version);
@@ -240,6 +250,13 @@ void cleanup(void)
     if (!PSIDhook_del(PSIDHOOK_PSSLURM_FINALLOC, handleFinAlloc)) {
 	mlog("unregister 'PSIDHOOK_PSSLURM_FINALLOC' failed\n");
     }
+
+    if (!PSIDhook_del(PSIDHOOK_PELOGUE_OE, handlePelogueOE)) {
+	mlog("unregister 'PSIDHOOK_PELOGUE_OE' failed\n");
+    }
+
+    /* unregister psgw msg */
+    PSID_clearMsg(PSP_CC_PLUG_PSGW);
 
     Request_clear();
 
