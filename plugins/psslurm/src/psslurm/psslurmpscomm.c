@@ -522,8 +522,9 @@ error:
  *
  * @param res The reservation request and reservation to fill in one struct.
  *
- * @return Returns 0 if the reservation is finally filled
- *   and 1 in case of an error.
+ * @return Returns 0 if the reservation is finally filled, 1 in case
+ * of an error, and 2 to signal the caller to create the reservation
+ * by itself.
  */
 static int handleGetReservation(void *res) {
 
@@ -553,13 +554,14 @@ static int handleGetReservation(void *res) {
     }
 
     /* find step */
-    Step_t *step;
-    if (!(step = findStepByFwPid(PSC_getPID(task->tid)))) {
-	flog("No step found for forwarder %s\n",
-	     PSC_printTID(task->forwarder->tid));
+    Step_t *step = findStepByFwPid(PSC_getPID(task->tid));
+    if (!step) {
+	/* admin users might be allowed => fall back to normal mechanism */
+	if (isPSAdminUser(task->uid, task->gid)) return 2;
+
+	flog("No step found for %s\n", PSC_printTID(task->tid));
 	return 1;
     }
-
 
     /* find correct slots array calculated by pinning */
     int nSlots;
