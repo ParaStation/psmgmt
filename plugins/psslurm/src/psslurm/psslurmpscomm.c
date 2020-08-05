@@ -328,8 +328,7 @@ static bool genNodeSlotsArray(PSpart_slot_t **nodeslots, uint32_t *nrOfNodes,
     if (step->packJobid == NO_VAL) {
 	*nrOfNodes = step->nrOfNodes;
 	nodes = step->nodes;
-    }
-    else {
+    } else {
 	*nrOfNodes = step->packNrOfNodes;
 	nodes = step->packNodes;
     }
@@ -351,8 +350,7 @@ static bool genNodeSlotsArray(PSpart_slot_t **nodeslots, uint32_t *nrOfNodes,
 
 	addSlotsToNodeSlotsArray(*nodeslots, *nrOfNodes,
 		step->slots, step->np);
-    }
-    else {
+    } else {
 
 	int64_t last, offset = -1;
 
@@ -531,12 +529,11 @@ static int handleGetReservation(void *res) {
 
     PSrsrvtn_t *r = (PSrsrvtn_t *) res;
 
-
     if (!r) return 1;
 
     /* find task */
-    PStask_t * task;
-    if (!(task = PStasklist_find(&managedTasks, r->task))) {
+    PStask_t * task = PStasklist_find(&managedTasks, r->task);
+    if (!task) {
 	flog("No task associated to %#x\n", r->rid);
 	return 1;
     }
@@ -560,8 +557,7 @@ static int handleGetReservation(void *res) {
     Step_t *step;
     if (!(step = findStepByFwPid(PSC_getPID(task->tid)))) {
 	flog("No step found for forwarder '%s'\n",
-		PSC_printTID(task->forwarder->tid));
-
+	     PSC_printTID(task->forwarder->tid));
 	return 1;
     }
 
@@ -582,8 +578,7 @@ static int handleGetReservation(void *res) {
 	nSlots = r->nMin;
 	slots = step->slots + step->usedSlots;
 	step->usedSlots += nSlots;
-    }
-    else {
+    } else {
 	int64_t last;
 
 	/* start iteration if this is the first reservation for this job pack */
@@ -826,7 +821,7 @@ static int callbackRequeueBatchJob(uint32_t id, int32_t exit,
 {
     if (!exit) {
 	mlog("%s: success for job %u\n", __func__, id);
-    }  else {
+    } else {
 	if (retryExecScript(remote, scriptID) != -1) return 2;
 
 	mlog("%s: failed for job %u exit %u remote %i\n", __func__,
