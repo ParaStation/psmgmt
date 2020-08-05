@@ -398,8 +398,8 @@ static int handleCreatePart(void *msg)
 
     /* find task */
     if (!(task = PStasklist_find(&managedTasks, inmsg->header.sender))) {
-	flog("task for msg from '%s' not found\n",
-		PSC_printTID(inmsg->header.sender));
+	flog("task for msg from %s not found\n",
+	     PSC_printTID(inmsg->header.sender));
 	errno = EACCES;
 	goto error;
     }
@@ -409,8 +409,8 @@ static int handleCreatePart(void *msg)
 	/* admin user can always pass */
 	if (isPSAdminUser(task->uid, task->gid)) return 1;
 
-	flog("step for sender '%s' not found\n",
-		PSC_printTID(inmsg->header.sender));
+	flog("step for sender %s not found\n",
+	     PSC_printTID(inmsg->header.sender));
 
 	errno = EACCES;
 	goto error;
@@ -447,7 +447,7 @@ static int handleCreatePart(void *msg)
     task->activeChild = 0;
     task->partitionSize = 0;
 
-    fdbg(PSSLURM_LOG_PART, "Created partition for task '%s': size %u"
+    fdbg(PSSLURM_LOG_PART, "Created partition for task %s: size %u"
 	    "NODEFIRST %d EXCLUSIVE %d OVERBOOK %d WAIT %d EXACT %d\n",
 	    PSC_printTID(task->tid), task->partitionSize,
 	    (task->options & PART_OPT_NODEFIRST) ? 1 : 0,
@@ -485,8 +485,8 @@ static int handleCreatePartNL(void *msg)
 
     /* find task */
     if (!(task = PStasklist_find(&managedTasks, inmsg->header.sender))) {
-	mlog("%s: task for msg from '%s' not found\n", __func__,
-	    PSC_printTID(inmsg->header.sender));
+	mlog("%s: task for msg from %s not found\n", __func__,
+	     PSC_printTID(inmsg->header.sender));
 	errno = EACCES;
 	goto error;
     }
@@ -540,23 +540,22 @@ static int handleGetReservation(void *res) {
 
     /* with psslurm no delegates are used */
     if (task->delegate) {
-	flog("Unexpected delegate entry found in task '%s'\n",
-		PSC_printTID(task->tid));
+	flog("Unexpected delegate entry found in task %s\n",
+	     PSC_printTID(task->tid));
 	return 1;
     }
 
     /* psslurm does not support dynamic reservation requests */
     if (r->nMin != r->nMax) {
-	flog("Unexpected dynamic reservation request %d for task '%s'"
-		" (%d != %d)\n", r->rid, PSC_printTID(task->tid),
-		r->nMin, r->nMax);
+	flog("Unexpected dynamic reservation request %d for task %s (%d"
+	     " != %d)\n", r->rid, PSC_printTID(task->tid), r->nMin, r->nMax);
 	return 1;
     }
 
     /* find step */
     Step_t *step;
     if (!(step = findStepByFwPid(PSC_getPID(task->tid)))) {
-	flog("No step found for forwarder '%s'\n",
+	flog("No step found for forwarder %s\n",
 	     PSC_printTID(task->forwarder->tid));
 	return 1;
     }
@@ -570,9 +569,9 @@ static int handleGetReservation(void *res) {
 	/* only for MULTI_PROG steps we expect to get multiple reservation
 	 * requests since an mpiexec call with colons was generated for it */
 	if (!(step->taskFlags & LAUNCH_MULTI_PROG) && (r->nMin != step->np)) {
-	    flog("WARNING: Unexpected reservation request %d for task '%s':"
-		    " Only %u from %d slots requested\n", r->rid,
-		    PSC_printTID(task->tid), r->nMin, step->np);
+	    flog("WARNING: Unexpected reservation request %d for task %s:"
+		 " Only %u from %d slots requested\n", r->rid,
+		 PSC_printTID(task->tid), r->nMin, step->np);
 	}
 
 	nSlots = r->nMin;
@@ -992,7 +991,7 @@ void send_PS_EpilogueRes(Alloc_t *alloc, int16_t res)
     /* send the messages */
     if (sendMsg(&msg) == -1 && errno != EWOULDBLOCK) {
 	mwarn(errno, "%s: sending msg to %s failed ", __func__,
-		PSC_printTID(msg.header.dest));
+	      PSC_printTID(msg.header.dest));
     }
 }
 
@@ -1004,8 +1003,8 @@ static void handle_JobExit(DDTypedBufferMsg_t *msg)
     PSP_getTypedMsgBuf(msg, &used, __func__, "jobID", &jobid, sizeof(jobid));
     PSP_getTypedMsgBuf(msg, &used, __func__, "stepID", &stepid, sizeof(stepid));
 
-    mlog("%s: id %u:%u from '%s'\n", __func__, jobid, stepid,
-	    PSC_printTID(msg->header.sender));
+    mlog("%s: id %u:%u from %s\n", __func__, jobid, stepid,
+	 PSC_printTID(msg->header.sender));
 
     if (stepid == SLURM_BATCH_SCRIPT) {
 	Job_t *job = findJobById(jobid);
@@ -1069,7 +1068,7 @@ static void send_PS_EpilogueStateRes(PStask_ID_t dest, uint32_t id,
 
     if (sendMsg(&msg) == -1 && errno != EWOULDBLOCK) {
 	mwarn(errno, "%s: sending msg to %s failed ", __func__,
-		PSC_printTID(msg.header.dest));
+	      PSC_printTID(msg.header.dest));
     }
 }
 
@@ -1247,8 +1246,8 @@ static void handle_JobLaunch(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
 	flog("converting %s to PS node IDs failed\n", job->slurmHosts);
     }
 
-    mlog("%s: jobid %u user '%s' nodes %u from '%s'\n", __func__, jobid,
-	    job->username, job->nrOfNodes, PSC_printTID(msg->header.sender));
+    mlog("%s: jobid %u user '%s' nodes %u from %s\n", __func__, jobid,
+	 job->username, job->nrOfNodes, PSC_printTID(msg->header.sender));
 }
 
 static void handleAllocState(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
@@ -1271,8 +1270,8 @@ static void handleAllocState(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
 
     alloc->state = state;
 
-    flog("jobid %u state '%s' from %s\n", jobid, strAllocState(alloc->state),
-	    PSC_printTID(msg->header.sender));
+    flog("jobid %u state %s from %s\n", jobid, strAllocState(alloc->state),
+	 PSC_printTID(msg->header.sender));
 }
 
 static void getSlotsFromMsg(char **ptr, PSpart_slot_t **slots, uint32_t *len)
@@ -1533,7 +1532,7 @@ int send_PS_ForwardRes(Slurm_Msg_t *sMsg)
 
     ret = sendFragMsg(&msg);
 
-    mdbg(PSSLURM_LOG_FWD, "%s: type '%s' source '%s' socket %i recvTime %zu\n",
+    mdbg(PSSLURM_LOG_FWD, "%s: type '%s' source %s socket %i recvTime %zu\n",
 	 __func__, msgType2String(sMsg->head.type), PSC_printTID(sMsg->source),
 	 sMsg->sock, sMsg->recvTime);
 
@@ -1558,7 +1557,7 @@ static void handleFWslurmMsg(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
     sMsg.sock = socket;
     sMsg.ptr = ptr;
 
-    mdbg(PSSLURM_LOG_FWD, "%s: sender '%s' sock %u time %lu datalen %u\n",
+    mdbg(PSSLURM_LOG_FWD, "%s: sender %s sock %u time %lu datalen %u\n",
 	 __func__, PSC_printTID(sMsg.source), sMsg.sock, sMsg.recvTime,
 	 data->bufUsed);
 
@@ -1930,7 +1929,7 @@ static void handleCC_IO_Msg(PSLog_Msg_t *msg)
     taskid = msg->sender - step->packTaskOffset;
 
     if (psslurmlogger->mask & PSSLURM_LOG_IO) {
-	flog("sender '%s' msgLen %i type %i PS-taskid %i Slurm-taskid %i\n",
+	flog("sender %s msgLen %i type %i PS-taskid %i Slurm-taskid %i\n",
 	     PSC_printTID(msg->header.sender),
 	     msg->header.len - PSLog_headerSize, msg->type, msg->sender,
 	     taskid);
@@ -1989,8 +1988,8 @@ static void handleCC_INIT_Msg(PSLog_Msg_t *msg)
 		    step->state = JOB_RUNNING;
 		}
 	    } else {
-		mlog("%s: task for forwarder '%s' not found\n", __func__,
-			PSC_printTID(msg->header.dest));
+		mlog("%s: task for forwarder %s not found\n", __func__,
+		     PSC_printTID(msg->header.dest));
 	    }
 	}
     } else if (msg->sender >= 0) {
@@ -2010,9 +2009,9 @@ static void handleCC_STDIN_Msg(PSLog_Msg_t *msg)
 {
     int msgLen = msg->header.len - offsetof(PSLog_Msg_t, buf);
 
-    mdbg(PSSLURM_LOG_IO, "%s: src '%s' ", __func__,
+    mdbg(PSSLURM_LOG_IO, "%s: src %s ", __func__,
 	 PSC_printTID(msg->header.sender));
-    mdbg(PSSLURM_LOG_IO, "dest '%s' data len %u\n",
+    mdbg(PSSLURM_LOG_IO, "dest %s data len %u\n",
 	 PSC_printTID(msg->header.dest), msgLen);
 
     Step_t *step = findActiveStepByLogger(msg->header.sender);
@@ -2023,8 +2022,8 @@ static void handleCC_STDIN_Msg(PSLog_Msg_t *msg)
 	    if (isPSAdminUser(task->uid, task->gid)) goto OLD_MSG_HANDLER;
 	}
 
-	mlog("%s: step for stdin msg from logger '%s' not found\n", __func__,
-		PSC_printTID(msg->header.sender));
+	mlog("%s: step for stdin msg from logger %s not found\n", __func__,
+	     PSC_printTID(msg->header.sender));
 	goto OLD_MSG_HANDLER;
     }
 
@@ -2059,10 +2058,8 @@ static void handleCC_Finalize_Msg(PSLog_Msg_t *msg)
 	}
 
 	if (msg->header.dest != lastDest) {
-	    mlog("%s: step for CC msg with logger '%s' not found\n", __func__,
-		    PSC_printTID(msg->header.dest));
-	    mlog("%s: suppressing similar messages for logger '%s'\n", __func__,
-		    PSC_printTID(msg->header.dest));
+	    mlog("%s: step for CC msg with logger %s not found. Suppressing"
+		 " further msgs\n", __func__, PSC_printTID(msg->header.dest));
 	    lastDest = msg->header.dest;
 	}
 	goto FORWARD;
@@ -2071,8 +2068,8 @@ static void handleCC_Finalize_Msg(PSLog_Msg_t *msg)
     /* save exit code */
     task = findTaskByFwd(&step->tasks, msg->header.sender);
     if (!task) {
-	mlog("%s: task for forwarder '%s' not found\n", __func__,
-		PSC_printTID(msg->header.sender));
+	mlog("%s: task for forwarder %s not found\n", __func__,
+	     PSC_printTID(msg->header.sender));
 	goto FORWARD;
     }
     task->exitCode = *(int *) msg->buf;
@@ -2115,8 +2112,8 @@ static bool getJobIDbyForwarder(PStask_ID_t fwTID, PStask_t **fwPtr,
 {
     PStask_t *forwarder = PStasklist_find(&managedTasks, fwTID);
     if (!forwarder) {
-	mlog("%s: could not find forwarder task for sender '%s'\n",
-		__func__, PSC_printTID(fwTID));
+	mlog("%s: could not find forwarder task for sender %s\n",
+	     __func__, PSC_printTID(fwTID));
 	return false;
     }
     *fwPtr = forwarder;
@@ -2127,7 +2124,7 @@ static bool getJobIDbyForwarder(PStask_ID_t fwTID, PStask_t **fwPtr,
 	/* admin users may start jobs directly via mpiexec */
 	if (!isAdmin) {
 	    mlog("%s: could not find jobid/stepid in forwarder task for sender"
-		    " '%s'\n", __func__, PSC_printTID(fwTID));
+		 " %s\n", __func__, PSC_printTID(fwTID));
 	}
 	return false;
     }
@@ -2166,7 +2163,7 @@ static void handleSpawnFailed(DDErrorMsg_t *msg)
     PStask_t *forwarder = NULL;
     uint32_t jobid, stepid;
 
-    mwarn(msg->error, "%s: spawn failed: forwarder '%s' rank %i errno %i",
+    mwarn(msg->error, "%s: spawn failed: forwarder %s rank %i errno %i",
 	  __func__, PSC_printTID(msg->header.sender),
 	  msg->request, msg->error);
 
@@ -2423,7 +2420,7 @@ static void handleUnknownMsg(DDBufferMsg_t *msg)
     if (type == PSP_CC_PLUG_PSSLURM) {
 	/* psslurm message */
 	mlog("%s: delivery of psslurm message type %i to %s failed\n",
-		__func__, type, PSC_printTID(dest));
+	     __func__, type, PSC_printTID(dest));
 
 	mlog("%s: please make sure the plugin 'psslurm' is loaded on"
 		" node %i\n", __func__, PSC_getID(msg->header.sender));
