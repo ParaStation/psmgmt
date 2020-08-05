@@ -185,7 +185,7 @@ void __printBinaryData(char *data, size_t len, char *tag,
 bool switchUser(char *username, uid_t uid, gid_t gid, char *cwd);
 
 /**
- * @brief Convert a user ID to string
+ * @brief Convert user ID to string
  *
  * @param uid The user ID to convert
  *
