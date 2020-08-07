@@ -33,9 +33,10 @@ void initSignal(void);
  * @brief Send signal to process
  *
  * Send the signal @a sig to the process or process group @a pid. Send
- * the signal as user @a uid. In contrast to @ref PSID_kill() the signal
- * will be delivered without the help of a psidforwarder. Thus this function
- * may be used by plugins implementing their own forwarders.
+ * the signal as user @a uid. In contrast to @ref PSID_kill() the
+ * signal will be delivered without the help of a psidforwarder. Thus,
+ * this function may be used by plugins implementing their own
+ * forwarders.
  *
  * This is mainly a wrapper to the kill(2) system call.
  *
