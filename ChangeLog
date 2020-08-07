@@ -1,3 +1,212 @@
+Version psmgmt-5.1.31:
+======================
+------------------------------------------------------------------------
+4b06dab1 | Norbert Eicker | Fri, 7 Aug 2020 11:25:02 +0200
+
+Push automake to 1.16.2
+------------------------------------------------------------------------
+591f5e43 | Norbert Eicker | Fri, 7 Aug 2020 11:21:31 +0200
+
+Rename PStask_cleanup() -> PSIDtask_cleanup() for consistency
+------------------------------------------------------------------------
+6106c860 | Norbert Eicker | Fri, 7 Aug 2020 11:08:41 +0200
+
+Streamlining
+------------------------------------------------------------------------
+1af9a7e3 | Norbert Eicker | Fri, 7 Aug 2020 11:04:33 +0200
+
+Add a comma
+------------------------------------------------------------------------
+8d360826 | Michael Rauh | Thu, 9 Jul 2020 17:28:02 +0200
+
+Replace kill() with pskill() and PSID_kill() in the plugins
+------------------------------------------------------------------------
+d9133f92 | Michael Rauh | Mon, 6 Jul 2020 20:01:21 +0200
+
+Removed unused psAccountSignalChildren() in psmom
+------------------------------------------------------------------------
+7e1f4221 | Michael Rauh | Mon, 6 Jul 2020 16:11:18 +0200
+
+Split PSID_kill() and introduce pskill() for signaling non
+psidforwarder processes
+------------------------------------------------------------------------
+562e83ce | Michael Rauh | Mon, 6 Jul 2020 15:22:59 +0200
+
+Update documentation
+------------------------------------------------------------------------
+a0df4879 | Norbert Eicker | Fri, 7 Aug 2020 10:40:41 +0200
+
+Improve documentation comments
+------------------------------------------------------------------------
+aa917146 | Michael Rauh | Fri, 31 Jul 2020 15:32:11 +0200
+
+Remove privileged check for PSP_CC_PLUG_ACCOUNT messages
+------------------------------------------------------------------------
+019475e3 | Norbert Eicker | Fri, 3 Jul 2020 11:02:04 +0200
+
+Improve rejection logging
+------------------------------------------------------------------------
+4a14f277 | Stephan Krempel | Tue, 30 Jun 2020 13:43:45 +0200
+
+pspmix: Remove privileged check for PSP_CC_PLUG_PSPMIX messages
+------------------------------------------------------------------------
+46168a63 | Stephan Krempel | Tue, 30 Jun 2020 13:39:36 +0200
+
+Log the reason for rejecting messages as unprivileged
+------------------------------------------------------------------------
+d508ff07 | Michael Rauh | Tue, 16 Jun 2020 12:00:49 +0200
+
+Verify message sender is a privileged user in all plugins
+
+ * Warning: the slurm user on the slurmctld node needs to be a
+   psid admin user for pspelogue to work
+------------------------------------------------------------------------
+b006d2ce | Norbert Eicker | Fri, 7 Aug 2020 10:01:40 +0200
+
+Don't store pamservice' logger mask twice
+
+ - Use the mask stored in the logger anyhow
+ - This makes pamservice.h obsolete
+------------------------------------------------------------------------
+13de1a39 | Norbert Eicker | Wed, 5 Aug 2020 16:11:22 +0200
+
+Streamlining
+------------------------------------------------------------------------
+513a4c45 | Michael Rauh | Fri, 31 Jul 2020 15:04:51 +0200
+
+Add missing files to rpm build
+------------------------------------------------------------------------
+82893165 | Michael Rauh | Tue, 21 Jul 2020 12:45:35 +0200
+
+Update buildsystem for pam_service plugin
+------------------------------------------------------------------------
+05b22cbd | Michael Rauh | Tue, 21 Jul 2020 12:43:55 +0200
+
+Let debug mask of pamservice plugin be changed via psiadmin
+------------------------------------------------------------------------
+1d508c68 | Norbert Eicker | Fri, 17 Jul 2020 17:33:04 +0200
+
+Typos and minor improvements
+------------------------------------------------------------------------
+87942670 | Michael Rauh | Mon, 25 May 2020 17:13:43 +0200
+
+Update buildsystem for pam_service plugin
+------------------------------------------------------------------------
+952b51f0 | Michael Rauh | Tue, 21 Jul 2020 12:24:35 +0200
+
+Added new plugin pam_service (pct:#362)
+ - starts a pam session for all psid and psslurm children
+ - activated by loading the plugin, no configuration required
+------------------------------------------------------------------------
+f0520d4b | Norbert Eicker | Wed, 5 Aug 2020 14:38:42 +0200
+
+Allow admin users direct use of mpiexec (#2845)
+------------------------------------------------------------------------
+d4ab669b | Norbert Eicker | Wed, 5 Aug 2020 14:32:36 +0200
+
+Streamlining.
+------------------------------------------------------------------------
+5a1ac8ca | Norbert Eicker | Wed, 5 Aug 2020 14:16:31 +0200
+
+Code style fixes
+------------------------------------------------------------------------
+aa72efa9 | Michael Rauh | Fri, 31 Jul 2020 16:15:47 +0200
+
+Fix possible segfault in psgw plugin
+------------------------------------------------------------------------
+c4f0d4f1 | Michael Rauh | Fri, 31 Jul 2020 14:06:21 +0200
+
+Update buildsystem
+------------------------------------------------------------------------
+9da766c7 | Michael Rauh | Fri, 31 Jul 2020 14:01:52 +0200
+
+Let psgw plugin forward stdout/stderr of pelogue scripts
+ - new psgw configuration option PELOGUE_LOG_OE to
+   activate forwarding
+ - the user may prevent the generation of the files
+   with the --gw_quiet spank option
+------------------------------------------------------------------------
+82ad1ee8 | Michael Rauh | Mon, 27 Jul 2020 16:51:42 +0200
+
+Execute epilogue on gateway nodes
+------------------------------------------------------------------------
+f5b85f3d | Michael Rauh | Fri, 24 Jul 2020 16:50:08 +0200
+
+Add support for magic Slurm signal SIG_TERM_KILL
+------------------------------------------------------------------------
+c27cf014 | Michael Rauh | Fri, 24 Jul 2020 16:37:06 +0200
+
+Update magic Slurm signals
+------------------------------------------------------------------------
+4b2fa46d | Michael Rauh | Fri, 24 Jul 2020 16:35:57 +0200
+
+Minor improvment of spank_test error messages
+------------------------------------------------------------------------
+52f8ae63 | Michael Rauh | Mon, 13 Jul 2020 18:32:30 +0200
+
+Add support to psaccount to read energy data
+collected using a script
+------------------------------------------------------------------------
+d1be08ae | Michael Rauh | Sun, 28 Jun 2020 12:58:33 +0200
+
+Add support for RPC REQUEST_SUSPEND_INT in psslurm (pct:#174)
+------------------------------------------------------------------------
+566d98eb | Michael Rauh | Thu, 25 Jun 2020 11:33:15 +0200
+
+Save output of prologue/epilogue scripts of an allocation on
+the mother superior node
+ - can be enabled for prologue with pspelogue option --fwPrologueOE
+ - can be enabled for epilogue with psslurm option PELOGUE_LOG_OE
+------------------------------------------------------------------------
+08d5f6e9 | Michael Rauh | Tue, 23 Jun 2020 10:33:33 +0200
+
+Use hook PSIDHOOK_PELOGUE_OE in pelogue to forward scripts
+stdout and stderr streams
+------------------------------------------------------------------------
+ac467e35 | Michael Rauh | Mon, 22 Jun 2020 17:26:40 +0200
+
+Add new hook PSIDHOOK_PELOGUE_OE
+ - let plugins handle stdout and stderr of pro/epilogue scripts
+ - mainly used by psslurm
+ - set pluginAPIVersion to 126
+------------------------------------------------------------------------
+caedb020 | Michael Rauh | Mon, 22 Jun 2020 16:08:00 +0200
+
+Add option to let pluginforwarder forward the child's stdout/stderr
+to the mother
+------------------------------------------------------------------------
+30a7d543 | Michael Rauh | Thu, 4 Jun 2020 15:06:48 +0200
+
+Refactore saveForwardedMsgRes() and improve documentation
+------------------------------------------------------------------------
+67da4435 | Michael Rauh | Wed, 3 Jun 2020 16:03:47 +0200
+
+Report node failure in job error output (pct:#298)
+------------------------------------------------------------------------
+e3adffb2 | Michael Rauh | Tue, 2 Jun 2020 12:36:55 +0200
+
+Print error message to jobs stderr if the job is cancelled due to
+wall-time limit (pct:#219)
+------------------------------------------------------------------------
+b8f26413 | Michael Rauh | Fri, 29 May 2020 16:27:23 +0200
+
+Add support for REQUEST_JOB_NOTIFY (pct:#175)
+------------------------------------------------------------------------
+36e4ed87 | Michael Rauh | Thu, 28 May 2020 14:23:54 +0200
+
+Hide forwarder control messages from hook handleMthrMsg()
+if not requested otherwise
+------------------------------------------------------------------------
+18a878a1 | Michael Rauh | Wed, 27 May 2020 12:10:05 +0200
+
+New job I/O handling mechanism to allow message injection
+------------------------------------------------------------------------
+9c4ff7ae | Michael Rauh | Wed, 27 May 2020 11:27:50 +0200
+
+Fix indentation of psslurmio.c
+------------------------------------------------------------------------
+
+
 Version psmgmt-5.1.30:
 ======================
 ------------------------------------------------------------------------

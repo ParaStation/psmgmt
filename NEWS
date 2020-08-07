@@ -4,6 +4,44 @@ Copyright (C) 2010-2020 ParTec Cluster Competence Center GmbH, Munich
 
 Please send bug reports, questions and suggestions to <support@par-tec.com>
 
+
+
+*************************************************************************
+*************************************************************************
+**                                                                     **
+**  Remark: From psmgmt 5.1.31 on the slurm user on the slurmctld node **
+**  needs to be a psid admin user for pspelogue to work                **
+**                                                                     **
+*************************************************************************
+*************************************************************************
+
+Version 5.1.31:
+===============
+Bugfixes:
+ - Report node failure in job error output (pct:#298)
+ - Report to jobs stderr if job was canceled due to wall-time limit (pct:#219)
+ - Allow admin users direct use of mpiexec (#2845)
+ - Fix possible segfault in psgw plugin
+Enhancements:
+ - Add support for RPC REQUEST_SUSPEND_INT in psslurm (pct:#174)
+ - Add support for REQUEST_JOB_NOTIFY (pct:#175)
+ - New plugin pam_service (pct:#362) starts PAM session for all
+   children of psid and psslurm. Activate by loading the plugin
+ - Add support to psaccount to read energy data collected using a script
+ - Save output of prologue/epilogue scripts on mother superior node
+   * to enable for prologue with pspelogue option --fwPrologueOE
+   * to enable for epilogue with psslurm option PELOGUE_LOG_OE
+ - Let psgw plugin forward stdout/stderr of pelogue scripts
+ - Execute epilogue on gateway nodes
+ - Verify message sender is a privileged user in all plugins
+ - Add support for magic Slurm signal SIG_TERM_KILL
+ - Update magic Slurm signals
+ - Replace kill() with pskill() and PSID_kill() in the plugins
+Additional changes:
+ - Rename PStask_cleanup() -> PSIDtask_cleanup() for consistency
+ - Push automake to 1.16.2
+
+
 Version 5.1.30:
 ===============
 Bugfixes:
