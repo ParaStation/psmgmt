@@ -19,7 +19,12 @@ void initLogger(FILE *logfile)
     initPluginLogger(NULL, logfile);
 }
 
-void maskLogger(int32_t mask)
+void setLoggerMask(int32_t mask)
 {
     logger_setMask(pamservice_logger, mask);
+}
+
+int32_t getLoggerMask(void)
+{
+    return logger_getMask(pamservice_logger);
 }

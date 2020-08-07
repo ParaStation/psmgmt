@@ -478,7 +478,6 @@ plugins/pspam/pspam/pspamuser.h \
 plugins/pspam/service/Makefile.am \
 plugins/pspam/service/Makefile.in \
 plugins/pspam/service/pamservice.c \
-plugins/pspam/service/pamservice.h \
 plugins/pspam/service/pamservice_kvs.c \
 plugins/pspam/service/pamservice_log.c \
 plugins/pspam/service/pamservice_log.h \

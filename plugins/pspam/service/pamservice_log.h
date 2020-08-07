@@ -15,11 +15,11 @@
 extern logger_t *pamservice_logger;
 
 #define mlog(...) if (pamservice_logger) \
-                        logger_print(pamservice_logger, -1, __VA_ARGS__)
+	logger_print(pamservice_logger, -1, __VA_ARGS__)
 #define mwarn(...) if (pamservice_logger) \
-                        logger_warn(pamservice_logger, -1, __VA_ARGS__)
+	logger_warn(pamservice_logger, -1, __VA_ARGS__)
 #define mdbg(...) if (pamservice_logger) \
-                        logger_print(pamservice_logger, __VA_ARGS__)
+	logger_print(pamservice_logger, __VA_ARGS__)
 
 /** Various types of logging levels for more verbose logging */
 typedef enum {
@@ -40,6 +40,16 @@ typedef enum {
 void initLogger(FILE *logfile);
 
 /**
+ * @brief Get logger's debug mask
+ *
+ * Get the logger's debug mask.
+ *
+ * @return @a Returns the mask which is a bit-field of type @ref
+ * PAMSERVICE_log_types_t
+ */
+int32_t getLoggerMask(void);
+
+/**
  * @brief Set logger's debug mask
  *
  * Set the logger's debug mask to @a mask. @a mask is expected to be a
@@ -49,6 +59,6 @@ void initLogger(FILE *logfile);
  *
  * @return No return value
  */
-void maskLogger(int32_t mask);
+void setLoggerMask(int32_t mask);
 
 #endif /* __PAMSERVICE_LOG */

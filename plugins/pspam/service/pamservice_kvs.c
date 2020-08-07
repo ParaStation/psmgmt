@@ -12,7 +12,6 @@
 #include "pluginmalloc.h"
 
 #include "pamservice_log.h"
-#include "pamservice.h"
 
 static char line[256];
 
@@ -25,7 +24,7 @@ char *show(char *key)
 			     &buf, &bufSize);
 
     if (!strcmp(key, "DEBUG_MASK")) {
-	snprintf(line, sizeof(line), "\nDEBUG_MASK = %i\n", debugMask);
+	snprintf(line, sizeof(line), "\nDEBUG_MASK = %#x\n", getLoggerMask());
 	return str2Buf(line, &buf, &bufSize);
     }
 
@@ -54,11 +53,12 @@ char *set(char *key, char *value)
 	int32_t mask;
 
 	if (sscanf(value, "%i", &mask) != 1) {
-	    return str2Buf("\nInvalid debug mask: NAN\n", &buf, &bufSize);
+	    str2Buf("\nInvalid debug mask: '", &buf, &bufSize);
+	    str2Buf(value, &buf, &bufSize);
+	    return str2Buf("'\n", &buf, &bufSize);
 	}
-	maskLogger(mask);
-	debugMask = mask;
-	snprintf(line, sizeof(line), "\nsaved '%s = %s'\n", key, value);
+	setLoggerMask(mask);
+	snprintf(line, sizeof(line), "\nnew %s = %#x\n", key, getLoggerMask());
 
 	return str2Buf(line, &buf, &bufSize);
     }
