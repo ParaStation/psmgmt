@@ -342,7 +342,7 @@ static void handlePsExecMsg(DDTypedBufferMsg_t *msg)
 {
     char cover[128];
 
-    /* only authorized users may send pelogue messages */
+    /* only authorized users may send psexec messages */
     if (!PSID_checkPrivilege(msg->header.sender)) {
 	PStask_t *task = PStasklist_find(&managedTasks, msg->header.sender);
 	mlog("%s: access violation: dropping message uid %i type %i "

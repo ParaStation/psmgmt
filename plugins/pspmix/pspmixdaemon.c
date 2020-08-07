@@ -27,8 +27,6 @@
 #include "psidcomm.h"
 #include "psidclient.h"
 #include "psidspawn.h"
-#include "psidutil.h"
-#include "psidtask.h"
 #include "pspluginprotocol.h"
 #include "pluginforwarder.h"
 

@@ -361,7 +361,7 @@ static void handlePSMsg(DDTypedBufferMsg_t *msg)
     snprintf(cover+strlen(cover), sizeof(cover)-strlen(cover), "%s]",
 	     PSC_printTID(msg->header.dest));
 
-    /* only authorized users may send pelogue messages */
+    /* only authorized users may send messages directly to psmom */
     if (!PSID_checkPrivilege(msg->header.sender)) {
 	PStask_t *task = PStasklist_find(&managedTasks, msg->header.sender);
 	mlog("%s: access violation: dropping message uid %i type %i "
