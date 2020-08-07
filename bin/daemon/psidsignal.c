@@ -45,10 +45,8 @@ int pskill(pid_t pid, int sig, uid_t uid)
     }
 
     PSID_blockSig(1, SIGTERM);
-    /*
-     * fork to a new process to change the userid
-     * and get the right errors
-     */
+    /* fork to a new process to change the userid and get the right errors */
+    errno = 0;
     pid_t forkPid = fork();
     /* save errno in case of error */
     int eno = errno;
@@ -114,13 +112,14 @@ int pskill(pid_t pid, int sig, uid_t uid)
     }
 
     int ret;
- restart:
-    if ((ret=read(cntrlfds[0], &eno, sizeof(eno))) < 0) {
-	if (errno == EINTR) {
-	    goto restart;
+    while (true) {
+	ret = read(cntrlfds[0], &eno, sizeof(eno));
+	if (ret < 0) {
+	    if (errno == EINTR) continue;
+	    eno = errno;
+	    PSID_warn(-1, eno, "%s: read()", __func__);
 	}
-	eno = errno;
-	PSID_warn(-1, eno, "%s: read()", __func__);
+	break;  // loop just once
     }
 
     if (!ret) {
