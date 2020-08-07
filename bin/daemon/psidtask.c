@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2002-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2019 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2020 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -437,7 +437,7 @@ void PStasklist_cleanupObsolete(void)
     }
 }
 
-void PStask_cleanup(PStask_t *task)
+void PSIDtask_cleanup(PStask_t *task)
 {
     if (!task) {
 	PSID_log(-1, "%s: No task\n", __func__);
@@ -528,7 +528,7 @@ void PStask_cleanup(PStask_t *task)
 
 			PSID_kill(-PSC_getPID(child->tid), SIGKILL, child->uid);
 		    }
-		    PStask_cleanup(child);
+		    PSIDtask_cleanup(child);
 		}
 	    }
 

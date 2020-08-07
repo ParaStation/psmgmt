@@ -140,7 +140,7 @@ typedef enum {
     PSID_LOG_STATUS =   0x0000100, /**< Status determination */
     PSID_LOG_CLIENT =   0x0000200, /**< Client handling */
     PSID_LOG_SPAWN =    0x0000400, /**< Spawning clients */
-    PSID_LOG_TASK =     0x0000800, /**< PStask_cleanup() call etc. */
+    PSID_LOG_TASK =     0x0000800, /**< PSIDtask_cleanup() call etc. */
     PSID_LOG_RDP =      0x0001000, /**< RDP messages @see RDP module */
     PSID_LOG_MCAST =    0x0002000, /**< MCast messages @see MCast modules*/
     PSID_LOG_VERB =     0x0004000, /**< Be more verbose (function call, etc.) */

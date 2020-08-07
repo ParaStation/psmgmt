@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2019 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2020 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -590,7 +590,7 @@ void PSIDclient_delete(int fd)
 	    msg.header.len = sizeof(msg);
 	    sendMsg(&msg);
 
-	    if (childTask && childTask->fd == -1) PStask_cleanup(childTask);
+	    if (childTask && childTask->fd == -1) PSIDtask_cleanup(childTask);
 
 	    sig = -1;
 	};
@@ -615,8 +615,8 @@ void PSIDclient_delete(int fd)
 
 	if (parent && parent->removeIt
 	    && PSID_emptySigList(&parent->childList)) {
-	    PSID_log(PSID_LOG_TASK, "%s: PStask_cleanup(parent)\n", __func__);
-	    PStask_cleanup(parent);
+	    PSID_log(PSID_LOG_TASK, "%s: PSIDtask_cleanup(parent)\n", __func__);
+	    PSIDtask_cleanup(parent);
 	}
     }
 
@@ -694,8 +694,8 @@ void PSIDclient_delete(int fd)
 
     /* Cleanup, if no forwarder available; otherwise wait for CHILDDEAD */
     if (!task->forwarder) {
-	PSID_log(PSID_LOG_TASK, "%s: PStask_cleanup()\n", __func__);
-	PStask_cleanup(task);
+	PSID_log(PSID_LOG_TASK, "%s: PSIDtask_cleanup()\n", __func__);
+	PSIDtask_cleanup(task);
     }
 
     return;

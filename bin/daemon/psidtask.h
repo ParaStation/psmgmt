@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2002-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2019 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2020 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -299,7 +299,7 @@ void PStasklist_cleanupObsolete(void);
  *
  * @return No return value
  */
-void PStask_cleanup(PStask_t *task);
+void PSIDtask_cleanup(PStask_t *task);
 
 /**
  * @brief Memory cleanup

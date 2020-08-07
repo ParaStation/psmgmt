@@ -605,8 +605,8 @@ bool declareNodeDead(PSnodes_ID_t id, int sendDeadnode, bool silent)
 	while (PSID_getSignalByID(&task->childList, id, &sig, 0));
 
 	if (task->removeIt && PSID_emptySigList(&task->childList)) {
-	    PSID_log(PSID_LOG_TASK, "%s: PStask_cleanup()\n", __func__);
-	    PStask_cleanup(task);
+	    PSID_log(PSID_LOG_TASK, "%s: PSIDtask_cleanup()\n", __func__);
+	    PSIDtask_cleanup(task);
 	}
     }
     /* We might have to cleanup obsolete tasks, too (but no signals required) */
@@ -626,8 +626,8 @@ bool declareNodeDead(PSnodes_ID_t id, int sendDeadnode, bool silent)
 	while (PSID_getSignalByID(&task->childList, id, &sig, 0));
 
 	if (task->removeIt && PSID_emptySigList(&task->childList)) {
-	    PSID_log(PSID_LOG_TASK, "%s: PStask_cleanup()\n", __func__);
-	    PStask_cleanup(task);
+	    PSID_log(PSID_LOG_TASK, "%s: PSIDtask_cleanup()\n", __func__);
+	    PSIDtask_cleanup(task);
 	}
     }
 
