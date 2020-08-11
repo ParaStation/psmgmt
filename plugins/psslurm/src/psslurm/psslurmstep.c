@@ -98,7 +98,7 @@ Step_t *findActiveStepByLogger(PStask_ID_t loggerTID)
     return NULL;
 }
 
-Step_t *findStepByFwPid(pid_t pid)
+Step_t *findStepByPsslurmChild(pid_t pid)
 {
     list_t *s;
     list_for_each(s, &StepList) {

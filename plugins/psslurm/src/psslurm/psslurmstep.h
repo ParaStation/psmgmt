@@ -180,6 +180,11 @@ void clearStepList(uint32_t jobid);
 /**
  * @brief Find a step identified by a jobid
  *
+ * Find a step by its jobid. If multiple steps exists
+ * with the same jobid the first step in the list is
+ * returned. To select a step with a specific stepid use
+ * @ref findStepByStepId().
+ *
  * @param jobid The jobid of the step
  *
  * @return Returns the requested step or NULL on error
@@ -191,6 +196,11 @@ Step_t *findStepByJobid(uint32_t jobid);
  *
  * Find an active step identified by the TaskID of the psilogger.
  * Steps in the state "completed" or "exit" will be ignored.
+ *
+ * Warning: The logger TID will be set by catching
+ * the message PSP_DD_CHILDBORN in @ref handleChildBornMsg().
+ * Before any user processes are spawned step->loggerTID will be
+ * 0 and therefore findActiveStepByLogger() will return NULL.
  *
  * @param loggerTID The task ID of the psilogger
  *
@@ -210,22 +220,36 @@ Step_t *findActiveStepByLogger(PStask_ID_t loggerTID);
 Step_t *findStepByStepId(uint32_t jobid, uint32_t stepid);
 
 /**
- * @brief Find a step identified by the PID of its forwarder
+ * @brief Find a step identified by the PID of a psslurm child
  *
- * @param pid The PID of the steps forwarder
+ * Find a step identified by the PID of a psslurm child. The child
+ * must be running on the local node and be under the control
+ * of a psslurm forwarder. This can be used e.g. to find the step of
+ * a mpiexec process started by psslurm.
+ *
+ * @param pid The PID of the psslurm child
  *
  * @return Returns the requested step or NULL on error
  */
-Step_t *findStepByFwPid(pid_t pid);
+Step_t *findStepByPsslurmChild(pid_t pid);
 
 /**
- * @brief Find a step identified by the PID of its tasks
+ * @brief Find a step identified by one of its psid tasks
  *
- * @param pid The PID of a task from the step to find
+ * Find a step by one of its psid tasks. Only psid tasks spawned
+ * on the local node will be found.
+ *
+ * Warning: The tasklist of the step will be filled by catching
+ * the message PSP_DD_CHILDBORN in @ref handleChildBornMsg().
+ * Before any user processes are spawned on the local node
+ * the tasklist of the step will be empty and @ref findStepByPsidTask()
+ * will return NULL.
+ *
+ * @param pid The PID of a psid task from the step to find
  *
  * @return Returns the requested step or NULL on error
  */
-Step_t *findStepByTaskPid(pid_t pid);
+Step_t *findStepByPsidTask(pid_t pid);
 
 /**
  * @brief Get the number of steps

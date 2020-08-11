@@ -1062,7 +1062,7 @@ static void handleJobId(Slurm_Msg_t *sMsg)
 
     getUint32(ptr, &pid);
 
-    Step_t *step = findStepByTaskPid(pid);
+    Step_t *step = findStepByPsidTask(pid);
     if (step) {
 	PS_SendDB_t *msg = &sMsg->reply;
 

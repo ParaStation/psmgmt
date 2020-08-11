@@ -406,7 +406,7 @@ static int handleCreatePart(void *msg)
     }
 
     /* find step */
-    if (!(step = findStepByFwPid(PSC_getPID(inmsg->header.sender)))) {
+    if (!(step = findStepByPsslurmChild(PSC_getPID(inmsg->header.sender)))) {
 	/* admin user can always pass */
 	if (isPSAdminUser(task->uid, task->gid)) return 1;
 
@@ -493,7 +493,7 @@ static int handleCreatePartNL(void *msg)
     }
 
     /* find step */
-    if (!findStepByFwPid(PSC_getPID(inmsg->header.sender))) {
+    if (!findStepByPsslurmChild(PSC_getPID(inmsg->header.sender))) {
 	/* admin users can start mpiexec direct */
 	if (isPSAdminUser(task->uid, task->gid)) return 1;
 	errno = EACCES;
@@ -555,7 +555,7 @@ static int handleGetReservation(void *res) {
     }
 
     /* find step */
-    Step_t *step = findStepByFwPid(PSC_getPID(task->tid));
+    Step_t *step = findStepByPsslurmChild(PSC_getPID(task->tid));
     if (!step) {
 	/* admin users might be allowed => fall back to normal mechanism */
 	if (isPSAdminUser(task->uid, task->gid)) return 2;
