@@ -33,6 +33,7 @@ psSpankGetenv_t *psSpankGetenv;
 psSpankUnsetenv_t *psSpankUnsetenv;
 psSpankGetItem_t *psSpankGetItem;
 psSpankSymbolSup_t *psSpankSymbolSup;
+psSpankGetContext_t *psSpankGetContext;
 #endif
 
 #endif /* __PSSLURM_HANDLES */

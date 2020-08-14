@@ -75,6 +75,12 @@ bool psSpank_Init(bool verbose)
 	return false;
     }
 
+    psSpankGetContext = dlsym(pluginHandle, "psSpankGetContext");
+    if (!psSpankGetContext) {
+	mlog("%s: loading psSpankGetContext() failed\n", __func__);
+	return false;
+    }
+
     if (verbose) mlog("spank api successfully started\n");
 
     return true;
@@ -180,7 +186,9 @@ int spank_symbol_supported (const char *symbol)
  */
 int spank_remote (spank_t spank)
 {
-    return 1;
+    if (!spank) return -1;
+    if (psSpankGetContext(spank) == S_CTX_REMOTE) return 1;
+    return 0;
 }
 
 /*
@@ -191,7 +199,7 @@ int spank_remote (spank_t spank)
  */
 spank_context_t spank_context (void)
 {
-    return S_CTX_REMOTE;
+    return psSpankGetContext(NULL);
 }
 
 /*

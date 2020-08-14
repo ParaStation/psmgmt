@@ -65,6 +65,9 @@ static LIST_HEAD(SpankList);
 /** handle to symbols of the spank API */
 static void *globalSym = NULL;
 
+/** pointer to the spank structure of the executing callback */
+static spank_t current_spank = NULL;
+
 void SpankSavePlugin(Spank_Plugin_t *def)
 {
     def->handle = NULL;
@@ -190,6 +193,16 @@ static void doCallHook(Spank_Plugin_t *plugin, spank_t spank, char *hook)
     fdbg(PSSLURM_LOG_SPANK, "calling hook %s for %s\n", hook, plugin->name);
     spank->magic = SPANK_MAGIC;
     spank->plugin = plugin;
+    if (spank->hook == SPANK_SLURMD_INIT ||
+	spank->hook == SPANK_SLURMD_EXIT) {
+	spank->context = S_CTX_SLURMD;
+    } else if (spank->hook == SPANK_JOB_PROLOG ||
+	       spank->hook == SPANK_JOB_EPILOG) {
+	spank->context = S_CTX_JOB_SCRIPT;
+    } else {
+	spank->context = S_CTX_REMOTE;
+    }
+    current_spank = spank;
 
     gettimeofday(&time_start, NULL);
     int res = (*hSym)(spank, plugin->argV.count, plugin->argV.strings);
@@ -799,6 +812,13 @@ int psSpankSymbolSup(const char *symbol)
 	}
     }
     return 0;
+}
+
+int psSpankGetContext(spank_t spank)
+{
+    if (spank) return spank->context;
+    if (current_spank) return current_spank->context;
+    return S_CTX_ERROR;
 }
 
 /**

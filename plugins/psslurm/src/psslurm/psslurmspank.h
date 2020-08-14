@@ -55,6 +55,7 @@ struct spank_handle {
     unsigned int hook;       /**< hook which is currently called */
     PStask_t *task;          /**< child task structure which called the hook */
     Spank_Plugin_t *plugin;  /**< spank plugin currently executed */
+    unsigned int context;    /**< spank context */
 };
 
 /**
@@ -144,5 +145,7 @@ spank_err_t psSpankUnsetenv(spank_t spank, const char *var);
 spank_err_t psSpankGetItem(spank_t spank, spank_item_t item, va_list ap);
 
 int psSpankSymbolSup(const char *symbol);
+
+int psSpankGetContext(spank_t spank);
 
 #endif /* __PSSLURM_SPANK */
