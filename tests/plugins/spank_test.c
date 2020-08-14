@@ -68,9 +68,8 @@ static int testHook(spank_t sp, int ac, char **av, const char *func)
     spank_err_t ret;
     int i;
 
-    uid_t puid = getuid();
-    gid_t pgid = getgid();
-    slurm_info("%s: local uid %i local gid %i", func, puid, pgid);
+    slurm_info("%s: local uid %i gid %i pid %i isremote %i", func,
+	       getuid(), getgid(), getpid(), spank_remote(sp));
 
     /* set environment */
     ret = spank_setenv(sp, func, "psslurm-test", 1);
@@ -282,6 +281,34 @@ static int testHook(spank_t sp, int ac, char **av, const char *func)
     uint32_t arrayTaskID;
     ret = spank_get_item(sp, S_JOB_ARRAY_TASK_ID, &arrayTaskID);
     slurm_info("%s: S_JOB_ARRAY_TASK_ID: %u ret: %i", func, arrayTaskID, ret);
+
+    /* context */
+    int ctx = spank_context();
+    char *strCtx = NULL;
+
+    switch (ctx) {
+	case S_CTX_ERROR:
+	    strCtx = "S_CTX_ERROR";
+	    break;
+	case S_CTX_LOCAL:
+	    strCtx = "S_CTX_LOCAL";
+	    break;
+	case S_CTX_REMOTE:
+	    strCtx = "S_CTX_REMOTE";
+	    break;
+	case S_CTX_ALLOCATOR:
+	    strCtx = "S_CTX_ALLOCATOR";
+	    break;
+	case S_CTX_SLURMD:
+	    strCtx = "S_CTX_SLURMD";
+	    break;
+	case S_CTX_JOB_SCRIPT:
+	    strCtx = "S_CTX_JOB_SCRIPT";
+	    break;
+	default:
+	    strCtx = "unknown";
+    }
+    slurm_info("%s: current context(%i) %s\n", func, ctx, strCtx);
 
     return ESPANK_SUCCESS;
 }
