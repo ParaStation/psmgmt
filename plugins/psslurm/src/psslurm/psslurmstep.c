@@ -108,7 +108,7 @@ Step_t *findStepByPsslurmChild(pid_t pid)
     return NULL;
 }
 
-Step_t *findStepByTaskPid(pid_t pid)
+Step_t *findStepByPsidTask(pid_t pid)
 {
     list_t *s;
     list_for_each(s, &StepList) {
