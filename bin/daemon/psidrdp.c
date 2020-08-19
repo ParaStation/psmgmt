@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2017 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2020 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -70,7 +70,7 @@ void clearRDPMsgs(int node)
     node_bufs[node].flags |= CLOSE;
 
     list_for_each_safe(m, tmp, &node_bufs[node].list) {
-	msgbuf_t *mp = list_entry(m, msgbuf_t, next);
+	PSIDmsgbuf_t *mp = list_entry(m, PSIDmsgbuf_t, next);
 	DDBufferMsg_t *msg = (DDBufferMsg_t *)mp->msg;
 
 	list_del(&mp->next);
@@ -106,7 +106,7 @@ void clearRDPMsgs(int node)
 static int storeMsgRDP(int node, DDMsg_t *msg)
 {
     int blockedRDP;
-    msgbuf_t *msgbuf = PSIDMsgbuf_get(msg->len);
+    PSIDmsgbuf_t *msgbuf = PSIDMsgbuf_get(msg->len);
 
     if (!msgbuf) {
 	errno = ENOMEM;
@@ -140,7 +140,7 @@ int flushRDPMsgs(int node)
     node_bufs[node].flags |= FLUSH;
 
     list_for_each_safe(m, tmp, &node_bufs[node].list) {
-	msgbuf_t *msgbuf = list_entry(m, msgbuf_t, next);
+	PSIDmsgbuf_t *msgbuf = list_entry(m, PSIDmsgbuf_t, next);
 	DDMsg_t *msg = (DDMsg_t *)msgbuf->msg;
 	PStask_ID_t sender = msg->sender, dest = msg->dest;
 	int sent = Rsendto(PSC_getID(dest), msg, msg->len);
@@ -280,7 +280,7 @@ void PSIDRDP_clearMem(void)
 	list_t *m, *tmp;
 
 	list_for_each_safe(m, tmp, &node_bufs[node].list) {
-	    msgbuf_t *mp = list_entry(m, msgbuf_t, next);
+	    PSIDmsgbuf_t *mp = list_entry(m, PSIDmsgbuf_t, next);
 
 	    list_del(&mp->next);
 	    PSIDMsgbuf_put(mp);

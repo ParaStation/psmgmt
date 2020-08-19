@@ -1,15 +1,13 @@
 #
 # ParaStation
 #
-# Copyright (C) 2011-2014 ParTec Cluster Competence Center GmbH, Munich
+# Copyright (C) 2011-2020 ParTec Cluster Competence Center GmbH, Munich
 #
 # This file may be distributed under the terms of the Q Public License
 # as defined in the file LICENSE.QPL included in the packaging of this
 # file.
 #
 # Author:      Norbert Eicker <eicker@par-tec.com>
-#
-# $Id$
 #
 
 define print_array
@@ -18,7 +16,7 @@ define print_array
     echo print_array ARRAY [NUM [FIELD]]\n
   else
     set $array = $arg0
-    if $argc < 2 
+    if $argc < 2
       set $num = 5
     else
       set $num = $arg1
@@ -29,9 +27,9 @@ define print_array
       output $i
       echo \ :\ \ 
       if $argc < 3
-        output $array[$i++]
+	output $array[$i++]
       else
-        output $array[$i++].$arg2
+	output $array[$i++].$arg2
       end
       echo \n
     end
@@ -157,14 +155,14 @@ define list_len
       set $lp = $lp->next
 
       if $lp == &$arg0
-        loop_break
+	loop_break
       end
 
       set $i = $i + 1
 
       if ($i % 10000) == 0
-        output $i
-        echo \n
+	output $i
+	echo \n
       end
 
     end
@@ -206,9 +204,9 @@ define array_list_len
       output $j
       echo \ :\ \ 
       if $argc < 2
-        list_len $array[$j].list
+	list_len $array[$j].list
       else
-        list_len $array[$j].$arg1
+	list_len $array[$j].$arg1
       end
       set $j = $j + 1
     end
@@ -255,7 +253,7 @@ define print_msg_list
 
       output $num - $i
       echo \ :\ \ 
-      output *(DDMsg_t *)((msgbuf_t *)((char *)($lp)-(unsigned long)(&((msgbuf_t *)0)->next)))->msg
+      output *(DDMsg_t *)((PSIDmsgbuf_t *)((char *)($lp)-(unsigned long)(&((PSIDmsgbuf_t *)0)->next)))->msg
       echo \n
     end
   end
@@ -267,7 +265,7 @@ Syntax: print_msg_list LISTHEAD [NUM]
 Print list of messages.
 
 LISTHEAD is the corresponding anchor of the list. It is assumed, that
-each element of the list is of type msgbuf_t. If the optional argument
+each element of the list is of type PSIDmsgbuf_t. If the optional argument
 NUM is given, the first NUM elements will be displayed. Otherwise only
 the first element of the list will be printed.
 end

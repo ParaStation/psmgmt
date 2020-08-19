@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2018 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2020 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -22,14 +22,14 @@
  * Message buffer used to temporarily store a message that cannot be
  * delivered to its destination right now.
  *
- * To get a message buffer use getMsgbuf(). putMsgbuf() should be used
- * to put it back.
+ * To get a message buffer use PSIDMsgbuf_get(). PSIDMsgbuf_put()
+ * shall be used to put it back.
  */
 typedef struct {
     list_t next;           /**< Pointer to the next message buffer */
     int offset;            /**< Number of bytes already sent */
     char msg[0];           /**< The actual message to store */
-} msgbuf_t;
+} PSIDmsgbuf_t;
 
 /**
  * @brief Get a message buffer
@@ -39,7 +39,7 @@ typedef struct {
  * its destination.
  *
  * The required memory is allocated via malloc(3). The message buffer
- * is intended to be freed via passing it back via @ref putMsgbuf().
+ * is intended to be freed via passing it back via @ref PSIDMsgbuf_put().
  *
  * @param len The length of the message to be stored in the message
  * buffer acquired.
@@ -47,14 +47,14 @@ typedef struct {
  * @return On success a pointer to the message buffer is returned, or
  * NULL if allocating the message-buffer failed.
  */
-msgbuf_t *PSIDMsgbuf_get(size_t len);
+PSIDmsgbuf_t *PSIDMsgbuf_get(size_t len);
 
 /**
  * @brief Put a message buffer back
  *
  * Put the message buffer @a mp back after it is no longer
  * required. The message buffer had to be acquired using the @ref
- * getMsgbuf() function.
+ * PSIDMsgbuf_get() function.
  *
  * @warning The message buffer will not be removed from the list it
  * is stored to. Thus, if @a mp is still registerd to a list when
@@ -65,7 +65,7 @@ msgbuf_t *PSIDMsgbuf_get(size_t len);
  *
  * @return No return value.
  */
-void PSIDMsgbuf_put(msgbuf_t *mp);
+void PSIDMsgbuf_put(PSIDmsgbuf_t *mp);
 
 /**
  * @brief Memory cleanup

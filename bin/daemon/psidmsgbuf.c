@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2018 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2020 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -81,9 +81,9 @@ static void PSIDMsgbuf_gc(void)
     RDP_blockTimer(blockedRDP);
 }
 
-msgbuf_t *PSIDMsgbuf_get(size_t len)
+PSIDmsgbuf_t *PSIDMsgbuf_get(size_t len)
 {
-    msgbuf_t *mp;
+    PSIDmsgbuf_t *mp;
 
     if (len <= MSGBUF_SMALLSIZE) {
 	int blockedRDP = RDP_blockTimer(1);
@@ -111,7 +111,7 @@ msgbuf_t *PSIDMsgbuf_get(size_t len)
     return mp;
 }
 
-void PSIDMsgbuf_put(msgbuf_t *mp)
+void PSIDMsgbuf_put(PSIDmsgbuf_t *mp)
 {
     DDMsg_t *msg = (DDMsg_t *)mp->msg;
 

@@ -247,7 +247,7 @@ static int do_send(int fd, DDMsg_t *msg, int offset)
 static int storeMsgClient(int fd, DDMsg_t *msg, int offset)
 {
     int blockedRDP;
-    msgbuf_t *msgbuf = PSIDMsgbuf_get(msg->len);
+    PSIDmsgbuf_t *msgbuf = PSIDMsgbuf_get(msg->len);
 
     if (!msgbuf) {
 	errno = ENOMEM;
@@ -298,7 +298,7 @@ static int flushClientMsgs(int fd, void *info)
     clients[fd].flags |= FLUSH;
 
     list_for_each_safe(m, tmp, &clients[fd].msgs) {
-	msgbuf_t *msgbuf = list_entry(m, msgbuf_t, next);
+	PSIDmsgbuf_t *msgbuf = list_entry(m, PSIDmsgbuf_t, next);
 	DDMsg_t *msg = (DDMsg_t *)msgbuf->msg;
 	int sent = do_send(fd, msg, msgbuf->offset);
 
@@ -507,7 +507,7 @@ static void closeConnection(int fd)
     clients[fd].flags |= CLOSE;
 
     list_for_each_safe(m, tmp, &clients[fd].msgs) {
-	msgbuf_t *mp = list_entry(m, msgbuf_t, next);
+	PSIDmsgbuf_t *mp = list_entry(m, PSIDmsgbuf_t, next);
 	DDBufferMsg_t *msg = (DDBufferMsg_t *)mp->msg;
 
 	list_del(&mp->next);
@@ -1204,7 +1204,7 @@ void PSIDclient_clearMem(void)
 	list_t *m, *tmp;
 
 	list_for_each_safe(m, tmp, &clients[fd].msgs) {
-	    msgbuf_t *mp = list_entry(m, msgbuf_t, next);
+	    PSIDmsgbuf_t *mp = list_entry(m, PSIDmsgbuf_t, next);
 
 	    list_del(&mp->next);
 	    PSIDMsgbuf_put(mp);

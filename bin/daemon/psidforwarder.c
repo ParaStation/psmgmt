@@ -606,7 +606,7 @@ static int doWrite(PSLog_Msg_t *msg, int offset)
 
 static int storeMsg(PSLog_Msg_t *msg, int offset)
 {
-    msgbuf_t *msgbuf =  PSIDMsgbuf_get(msg->header.len);
+    PSIDmsgbuf_t *msgbuf =  PSIDMsgbuf_get(msg->header.len);
 
     if (!msgbuf) {
 	errno = ENOMEM;
@@ -627,7 +627,7 @@ static int flushMsgs(int fd /* dummy */, void *info /* dummy */)
     int stdinSock = childTask->stdin_fd;
 
     list_for_each_safe(m, tmp, &oldMsgs) {
-	msgbuf_t *msgbuf = list_entry(m, msgbuf_t, next);
+	PSIDmsgbuf_t *msgbuf = list_entry(m, PSIDmsgbuf_t, next);
 	PSLog_Msg_t *msg = (PSLog_Msg_t *)msgbuf->msg;
 	int len = msg->header.len - PSLog_headerSize;
 	int written = doWrite(msg, msgbuf->offset);
