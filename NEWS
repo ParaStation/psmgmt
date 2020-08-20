@@ -5,6 +5,16 @@ Copyright (C) 2010-2020 ParTec Cluster Competence Center GmbH, Munich
 Please send bug reports, questions and suggestions to <support@par-tec.com>
 
 
+Version 5.1.31-1:
+=================
+Bugfixes:
+ - Extended error handling for ENOENT after sendto() is on CentOS8 required
+ - Set correct spank context for spank callbacks
+Additional changes:
+ - Rename msgbuf_t to PSIDmsgbuf_t avoids clash with RDP
+ - Improve naming and documentation of findStepByFwPid() and
+   findStepByTaskPid() (#2847)
+
 
 *************************************************************************
 *************************************************************************
@@ -505,7 +515,7 @@ Enhancements:
 
 
 Version 5.1.12-1:
-===============
+=================
 Bugfixes:
  - Report all known jobs/steps in node registration status (#jrt:8639)
 

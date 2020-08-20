@@ -1,3 +1,33 @@
+Version psmgmt-5.1.31-1:
+========================
+------------------------------------------------------------------------
+ea97a4d3 | Norbert Eicker | Thu, 20 Aug 2020 10:25:55 +0200
+
+Extended error handling for ENOENT after sendto(), too
+------------------------------------------------------------------------
+e37a10cd | Norbert Eicker | Wed, 19 Aug 2020 17:54:50 +0200
+
+Rename msgbuf_t to PSIDmsgbuf_t avoids clash with RDP
+------------------------------------------------------------------------
+5cd23130 | Michael Rauh | Fri, 14 Aug 2020 15:43:52 +0200
+
+Add spank context and pid of the current process to spank_test
+------------------------------------------------------------------------
+389b55d5 | Michael Rauh | Fri, 14 Aug 2020 15:43:08 +0200
+
+Set correct spank context for spank callbacks
+------------------------------------------------------------------------
+5e2d03fb | Michael Rauh | Fri, 14 Aug 2020 15:28:36 +0200
+
+Add missing psslurmstep.c changes for commit c07a09e567
+------------------------------------------------------------------------
+c07a09e5 | Michael Rauh | Tue, 11 Aug 2020 11:35:22 +0200
+
+Improve naming and documentation of findStepByFwPid() and
+findStepByTaskPid() (#2847)
+------------------------------------------------------------------------
+
+
 Version psmgmt-5.1.31:
 ======================
 ------------------------------------------------------------------------
