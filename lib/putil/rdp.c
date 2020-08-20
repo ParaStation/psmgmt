@@ -645,6 +645,7 @@ static int MYrecvfrom(int sock, void *buf, size_t len, int flags,
 {
     int ret;
  restart:
+    errno = 0;
     ret = recvfrom(sock, buf, len, flags, from, fromlen);
     if (ret < 0) {
 	int eno = errno;
@@ -768,6 +769,7 @@ static int MYsendto(int sock, void *buf, size_t len, int flags,
 	msg->connid = pshton32(msg->connid);
     }
  restart:
+    errno = 0;
     ret = sendto(sock, buf, len, flags, to, tolen);
     if (ret < 0) {
 	int eno = errno;
@@ -778,6 +780,7 @@ static int MYsendto(int sock, void *buf, size_t len, int flags,
 	    break;
 	case ECONNREFUSED:
 	case EHOSTUNREACH:
+	case ENOENT:
 	    RDP_warn(RDP_LOG_CONN, eno, "%s: to %s (%d), handle this", __func__,
 		     inet_ntoa(((struct sockaddr_in *)to)->sin_addr), node);
 	    /* Handle extended error */
