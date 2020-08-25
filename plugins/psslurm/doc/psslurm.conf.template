@@ -205,3 +205,26 @@
 #
 # (string, default: /usr/bin/sinfo)
 #SINFO_BINARY = /usr/local/bin/sinfo
+
+# Disable the loading of spank plugins
+#
+# (bool, 1 = enabled, 0 = disabled, default: 0)
+#DISABLE_SPANK = 1
+
+# Default cpu-bind type used for pinning
+# (none|rank|threads|cores|sockets)
+#
+# (string, default: threads)
+#DEFAULT_CPU_BIND_TYPE = cores
+
+# Default to use as distribution over sockets
+# (cyclic|block|fcyclic)
+#
+# (string, default: cyclic)
+#DEFAULT_SOCKET_DIST = block
+
+# Default to use as distribution over sockets
+# (inherit|block|cyclic|fcyclic)
+#
+# (string, default: inherit
+#DEFAULT_CORE_DIST = block
