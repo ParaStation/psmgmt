@@ -59,6 +59,15 @@ static void initHWloc(void)
 	exit(1);
     }
 
+#if HWLOC_API_VERSION >= 0x00020000 /* hwloc 2.0 */
+    /* do not filter PCI devices */
+    hwloc_topology_set_type_filter(topology, HWLOC_OBJ_PCI_DEVICE,
+	    HWLOC_TYPE_FILTER_KEEP_ALL);
+#else
+    /* enable detection of GPUs and NICs (incl HCAs) */
+    hwloc_topology_set_flags(topology, HWLOC_TOPOLOGY_FLAG_IO_DEVICES);
+#endif
+
     if (hwloc_topology_load(topology) < 0) {
 	PSID_log(-1 ,"%s: Failed to load topology. Exiting\n", __func__);
 	PSID_finalizeLogs();
