@@ -491,6 +491,16 @@ short PSIDnodes_mapCPU(PSnodes_ID_t id, short cpu)
     }
 }
 
+short PSIDnodes_unmapCPU(PSnodes_ID_t id, short hwthread)
+{
+    if (validID(id) && hwthread >= 0 && (unsigned)hwthread<nodes[id].CPUmapSize
+	&& hwthread<PSIDnodes_getVirtCPUs(id)) {
+	for (short i = 0; (unsigned)i < nodes[id].CPUmapSize; i++) {
+	    if (nodes[id].CPUmap[i] == hwthread) return i;
+	}
+    }
+    return -1;
+}
 
 int PSIDnodes_clearCPUMap(PSnodes_ID_t id)
 {

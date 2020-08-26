@@ -130,6 +130,128 @@ int PSID_getPhysCores(void)
     return physCores;
 }
 
+int PSID_getNUMAnodes(void)
+{
+    static int numaNodes = 0;
+
+    if (!numaNodes) {
+	numaNodes = hwloc_get_nbobjs_by_type(topology, HWLOC_OBJ_NUMANODE);
+    }
+    return numaNodes ? numaNodes : 1;
+}
+
+PSCPU_set_t* PSID_getCPUmaskOfNUMAnodes(bool psorder)
+{
+    static PSCPU_set_t *masks = NULL;
+
+    if (!masks) {
+	masks = malloc(PSID_getNUMAnodes() * sizeof(*masks));
+
+	hwloc_obj_t numanode;
+
+	for (unsigned i = 0; i < (unsigned)PSID_getNUMAnodes(); i++) {
+	    numanode = hwloc_get_numanode_obj_by_os_index(topology, i);
+	    if (!numanode) {
+		PSCPU_setAll(masks[i]);
+		continue;
+	    }
+	    PSCPU_clrAll(masks[i]);
+	    short hwthread, cpu;
+	    hwloc_bitmap_foreach_begin(hwthread, numanode->cpuset)
+		if (psorder) {
+		    cpu = PSIDnodes_unmapCPU(PSC_getMyID(), hwthread);
+		}
+		else {
+		    cpu = hwthread;
+		}
+		PSCPU_setCPU(masks[i], cpu);
+	    hwloc_bitmap_foreach_end();
+	}
+    }
+
+    return masks;
+}
+
+int PSID_getGPUs(void)
+{
+    static int gpus = 0;
+
+    if (!gpus) {
+	if (!hwlocInitialized) initHWloc();
+
+	/* Find GPU PCU devices by Class ID */
+	hwloc_obj_t osdevobj = NULL;
+	while ((osdevobj = hwloc_get_next_obj_by_type(topology,
+			HWLOC_OBJ_PCI_DEVICE, osdevobj))) {
+
+	    if (!osdevobj) break;
+
+	    /* ClassID needs to be "3D" */
+	    if (osdevobj->attr->pcidev.class_id != 0x0302) continue;
+
+	    gpus++;
+	}
+    }
+    PSID_log(PSID_LOG_VERB, "%s: got %d gpus\n", __func__, gpus);
+
+    return gpus;
+}
+
+/* set in @a gpumask the bit for each GPU directly connected to a NUMA
+ * node of a CPU set in @a cpumask.
+ *
+ * assumes @a cpumask in os order (means not mapped using cpu map) */
+static void setGPUmaskForCPUmask(PSCPU_set_t *gpumask, PSCPU_set_t *cpumask)
+{
+    PSCPU_clrAll(*gpumask);
+
+    /* Find GPU PCI devices by Class ID */
+    hwloc_obj_t pciobj = NULL;
+    int idx = 0;
+    while ((pciobj = hwloc_get_next_obj_by_type(topology,
+		    HWLOC_OBJ_PCI_DEVICE, pciobj))) {
+
+	if (!pciobj) break;
+
+	/* ClassID needs to be "3D" */
+	if (pciobj->attr->pcidev.class_id != 0x0302) continue;
+
+	/* Find CPU set this gpu is connected to */
+	hwloc_obj_t obj = pciobj;
+	while (obj && (!obj->cpuset || hwloc_bitmap_iszero(obj->cpuset))) {
+	    obj = obj->parent;
+	}
+
+	short hwthread;
+	hwloc_bitmap_foreach_begin(hwthread, obj->cpuset)
+	    if (PSCPU_isSet(*cpumask, hwthread)) {
+		PSCPU_setCPU(*gpumask, idx);
+		break;
+	    }
+	hwloc_bitmap_foreach_end();
+
+	idx++;
+    }
+}
+
+PSCPU_set_t* PSID_getGPUmaskOfNUMAnodes(void)
+{
+    static PSCPU_set_t *masks = NULL;
+
+    if (!masks) {
+	masks = malloc(PSID_getNUMAnodes() * sizeof(*masks));
+
+	PSCPU_set_t *cpumasks;
+	cpumasks = PSID_getCPUmaskOfNUMAnodes(false);
+
+	for (unsigned i = 0; i < (unsigned)PSID_getNUMAnodes(); i++) {
+	    setGPUmaskForCPUmask(masks+i, cpumasks+i);
+	}
+    }
+
+    return masks;
+}
+
 /** Info to be passed to @ref prepSwitchEnv() and @ref switchHWCB(). */
 typedef struct {
     int hw;    /**< Hardware-type to prepare for. */

@@ -672,6 +672,22 @@ int PSIDnodes_appendCPUMap(PSnodes_ID_t id, short cpu);
 short PSIDnodes_mapCPU(PSnodes_ID_t id, short cpu);
 
 /**
+ * @brief Map physical hardware thread to CPU-slot.
+ *
+ * Map the physical hardware thread @a hwthread to a CPU-slot according CPU-map
+ * of the node with ParaStation ID @a id. The CPU-map is put together by
+ * calling @ref PSIDnodes_appendCPUMap() subsequently.
+ *
+ * @param id ParaStation ID of the CPU-map to use.
+ *
+ * @param cpu Number of physical hardware thread to map on a CPU-slot.
+ *
+ * @return On success, the number of the CPU-slot the hardware thread is mapped
+ * to will be returned. Or -1 if an error occurred.
+ */
+short PSIDnodes_unmapCPU(PSnodes_ID_t id, short hwthread);
+
+/**
  * @brief Send CPU-map.
  *
  * Send the CPU-map of the local daemon to @a dest within one or more
