@@ -632,7 +632,7 @@ int PSIDnodes_bindMem(PSnodes_ID_t id);
  *
  * Clear the CPU-map of the node with ParaStation ID @a id. The
  * CPU-map is used to map virtual CPU slots given by the scheduler to
- * physical cores on the local node.
+ * physical hardware threads on the local node.
  *
  * @param id ParaStation ID of the node to change.
  *
@@ -645,7 +645,7 @@ int PSIDnodes_clearCPUMap(PSnodes_ID_t id);
  *
  * Append the CPU with number @a cpu to the CPU-map of the node with
  * ParaStation ID @a id. The CPU-map is used to map virtual CPU slots
- * given by the scheduler to physical cores on the local node.
+ * given by the scheduler to physical hardware threads on the local node.
  *
  * @param id ParaStation ID of the node to change.
  *
@@ -656,17 +656,17 @@ int PSIDnodes_clearCPUMap(PSnodes_ID_t id);
 int PSIDnodes_appendCPUMap(PSnodes_ID_t id, short cpu);
 
 /**
- * @brief Map CPU-slot to pysical core.
+ * @brief Map CPU-slot to physical hardware thread.
  *
- * Map the CPU-slot @a cpu to a physical core according CPU-map of the
- * node with ParaStation ID @a id. The CPU-map is put together by
+ * Map the CPU-slot @a cpu to a physical hardware thread according CPU-map
+ * of the node with ParaStation ID @a id. The CPU-map is put together by
  * calling @ref PSIDnodes_appendCPUMap() subsequently.
  *
  * @param id ParaStation ID of the CPU-map to use.
  *
- * @param cpu Number of the CPU-slot to map on a physical core.
+ * @param cpu Number of the CPU-slot to map on a physical hardware thread.
  *
- * @return On success, the number of the core the CPU-slot is mapped
+ * @return On success, the number of the hardware thread the CPU-slot is mapped
  * to will be returned. Or -1 if an error occurred.
  */
 short PSIDnodes_mapCPU(PSnodes_ID_t id, short cpu);
