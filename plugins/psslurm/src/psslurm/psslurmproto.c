@@ -1732,7 +1732,11 @@ static void doTerminateAlloc(Slurm_Msg_t *sMsg, Alloc_t *alloc)
 	    }
 	    return;
 	case A_INIT:
-	    /* no processes started, execute epilogue now */
+	    sendSlurmRC(sMsg, SLURM_SUCCESS);
+	    /* wait for running prologue to finish */
+	    flog("waiting for prologue to finish, alloc %u (%i/%i)\n",
+		 alloc->id, alloc->terminate, maxTermReq);
+	    return;
 	case A_PROLOGUE_FINISH:
 	    /* local epilogue can start now */
 	    break;
