@@ -135,6 +135,8 @@ int PSID_getNUMAnodes(void)
     static int numaNodes = 0;
 
     if (!numaNodes) {
+	if (!hwlocInitialized) initHWloc();
+
 	numaNodes = hwloc_get_nbobjs_by_type(topology, HWLOC_OBJ_NUMANODE);
     }
     return numaNodes ? numaNodes : 1;
@@ -145,6 +147,8 @@ PSCPU_set_t* PSID_getCPUmaskOfNUMAnodes(bool psorder)
     static PSCPU_set_t *masks = NULL;
 
     if (!masks) {
+	if (!hwlocInitialized) initHWloc();
+
 	masks = malloc(PSID_getNUMAnodes() * sizeof(*masks));
 
 	hwloc_obj_t numanode;
