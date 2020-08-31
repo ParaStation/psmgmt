@@ -152,7 +152,11 @@ psmstart_OBJECTS = psmstart.$(OBJEXT)
 psmstart_DEPENDENCIES = $(libpse) $(am__DEPENDENCIES_1)
 pspelogue_SOURCES = pspelogue.c
 pspelogue_OBJECTS = pspelogue-pspelogue.$(OBJEXT)
-pspelogue_DEPENDENCIES = $(libpsi) $(am__DEPENDENCIES_1)
+pspelogue_DEPENDENCIES = $(libpsi) $(am__DEPENDENCIES_1) \
+	$(am__DEPENDENCIES_1)
+pspelogue_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
+	$(LIBTOOLFLAGS) --mode=link $(CCLD) $(pspelogue_CFLAGS) \
+	$(CFLAGS) $(pspelogue_LDFLAGS) $(LDFLAGS) -o $@
 pssh_SOURCES = pssh.c
 pssh_OBJECTS = pssh.$(OBJEXT)
 pssh_DEPENDENCIES = $(libpse) $(am__DEPENDENCIES_1)
@@ -461,7 +465,7 @@ scriptsdir = $(prefix)/scripts
 #
 # ParaStation
 #
-# Copyright (C) 2012-2018 ParTec Cluster Competence Center GmbH, Munich
+# Copyright (C) 2012-2020 ParTec Cluster Competence Center GmbH, Munich
 #
 # This file may be distributed under the terms of the Q Public License
 # as defined in the file LICENSE.QPL included in the packaging of this
@@ -485,8 +489,10 @@ test_pse_LDADD = $(libpse) $(POPT_LIBS)
 pssh_LDADD = $(libpse) $(POPT_LIBS)
 psaccounter_CPPFLAGS = $(AM_CPPFLAGS) -DLOCALSTATEDIR=\"$(localstatedir)\"
 psaccounter_LDADD = $(libpse) $(POPT_LIBS)
+pspelogue_CFLAGS = $(AM_CFLAGS) $(glib2_CFLAGS)
+pspelogue_LDFLAGS = $(AM_LDFLAGS) $(glib2_LDFLAGS)
 pspelogue_CPPFLAGS = $(AM_CPPFLAGS)  -I$(top_srcdir)/plugins/pelogue
-pspelogue_LDADD = $(libpsi) $(POPT_LIBS)
+pspelogue_LDADD = $(libpsi) $(POPT_LIBS) $(psconfig_LIBS)
 testacct_LDADD = $(libpsi) $(POPT_LIBS)
 all: all-recursive
 
@@ -615,7 +621,7 @@ psmstart$(EXEEXT): $(psmstart_OBJECTS) $(psmstart_DEPENDENCIES) $(EXTRA_psmstart
 
 pspelogue$(EXEEXT): $(pspelogue_OBJECTS) $(pspelogue_DEPENDENCIES) $(EXTRA_pspelogue_DEPENDENCIES) 
 	@rm -f pspelogue$(EXEEXT)
-	$(AM_V_CCLD)$(LINK) $(pspelogue_OBJECTS) $(pspelogue_LDADD) $(LIBS)
+	$(AM_V_CCLD)$(pspelogue_LINK) $(pspelogue_OBJECTS) $(pspelogue_LDADD) $(LIBS)
 
 pssh$(EXEEXT): $(pssh_OBJECTS) $(pssh_DEPENDENCIES) $(EXTRA_pssh_DEPENDENCIES) 
 	@rm -f pssh$(EXEEXT)
@@ -707,18 +713,18 @@ psaccounter-psaccounter.obj: psaccounter.c
 @am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(psaccounter_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o psaccounter-psaccounter.obj `if test -f 'psaccounter.c'; then $(CYGPATH_W) 'psaccounter.c'; else $(CYGPATH_W) '$(srcdir)/psaccounter.c'; fi`
 
 pspelogue-pspelogue.o: pspelogue.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(pspelogue_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT pspelogue-pspelogue.o -MD -MP -MF $(DEPDIR)/pspelogue-pspelogue.Tpo -c -o pspelogue-pspelogue.o `test -f 'pspelogue.c' || echo '$(srcdir)/'`pspelogue.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(pspelogue_CPPFLAGS) $(CPPFLAGS) $(pspelogue_CFLAGS) $(CFLAGS) -MT pspelogue-pspelogue.o -MD -MP -MF $(DEPDIR)/pspelogue-pspelogue.Tpo -c -o pspelogue-pspelogue.o `test -f 'pspelogue.c' || echo '$(srcdir)/'`pspelogue.c
 @am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/pspelogue-pspelogue.Tpo $(DEPDIR)/pspelogue-pspelogue.Po
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='pspelogue.c' object='pspelogue-pspelogue.o' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(pspelogue_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o pspelogue-pspelogue.o `test -f 'pspelogue.c' || echo '$(srcdir)/'`pspelogue.c
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(pspelogue_CPPFLAGS) $(CPPFLAGS) $(pspelogue_CFLAGS) $(CFLAGS) -c -o pspelogue-pspelogue.o `test -f 'pspelogue.c' || echo '$(srcdir)/'`pspelogue.c
 
 pspelogue-pspelogue.obj: pspelogue.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(pspelogue_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT pspelogue-pspelogue.obj -MD -MP -MF $(DEPDIR)/pspelogue-pspelogue.Tpo -c -o pspelogue-pspelogue.obj `if test -f 'pspelogue.c'; then $(CYGPATH_W) 'pspelogue.c'; else $(CYGPATH_W) '$(srcdir)/pspelogue.c'; fi`
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(pspelogue_CPPFLAGS) $(CPPFLAGS) $(pspelogue_CFLAGS) $(CFLAGS) -MT pspelogue-pspelogue.obj -MD -MP -MF $(DEPDIR)/pspelogue-pspelogue.Tpo -c -o pspelogue-pspelogue.obj `if test -f 'pspelogue.c'; then $(CYGPATH_W) 'pspelogue.c'; else $(CYGPATH_W) '$(srcdir)/pspelogue.c'; fi`
 @am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/pspelogue-pspelogue.Tpo $(DEPDIR)/pspelogue-pspelogue.Po
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='pspelogue.c' object='pspelogue-pspelogue.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(pspelogue_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o pspelogue-pspelogue.obj `if test -f 'pspelogue.c'; then $(CYGPATH_W) 'pspelogue.c'; else $(CYGPATH_W) '$(srcdir)/pspelogue.c'; fi`
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(pspelogue_CPPFLAGS) $(CPPFLAGS) $(pspelogue_CFLAGS) $(CFLAGS) -c -o pspelogue-pspelogue.obj `if test -f 'pspelogue.c'; then $(CYGPATH_W) 'pspelogue.c'; else $(CYGPATH_W) '$(srcdir)/pspelogue.c'; fi`
 
 mostlyclean-libtool:
 	-rm -f *.lo
