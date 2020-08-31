@@ -16,6 +16,12 @@
 #include <netdb.h>
 #include <arpa/inet.h>
 
+#ifndef BUILD_WITHOUT_PSCONFIG
+#include <glib.h>
+#include <psconfig.h>
+#include <psconfig-utils.h>
+#endif
+
 #include "psenv.h"
 #include "pshostlist.h"
 #include "psnodes.h"
@@ -55,6 +61,13 @@ static int verbose = 0;
 
 /** use psid to resolve hostnames */
 static int psidResolve = 0;
+
+#ifndef BUILD_WITHOUT_PSCONFIG
+/** use psconfig to resolve hostnames */
+static int psconfigRes = 0;
+
+static PSConfig* config = NULL;
+#endif
 
 /** start parallel epilogue */
 static int epilogue = 0;
@@ -105,6 +118,10 @@ static struct poptOption optionsTable[] = {
       &addFilter, 0, "add additional environment filter", NULL},
     { "psid_resolve", '\0', POPT_ARG_NONE,
       &psidResolve, 0, "use psid to resolve hostnames", NULL},
+#ifndef BUILD_WITHOUT_PSCONFIG
+    { "psconfig_resolve", '\0', POPT_ARG_NONE,
+      &psconfigRes, 0, "use psconfig to resolve hostnames", NULL},
+#endif
     POPT_TABLEEND
 };
 
@@ -157,6 +174,26 @@ static PSnodes_ID_t resolveHost(const char *host)
     }
     return -1;
 }
+
+#ifndef BUILD_WITHOUT_PSCONFIG
+
+static PSnodes_ID_t psconfigResHost(const char *host)
+{
+    if (!config) return -1;
+
+    GError *err = NULL;
+    char tmp[255];
+    sprintf(tmp, "host:%s", host);
+    gchar* string = psconfig_get(config, tmp, "Psid.NodeId",
+		    PSCONFIG_FLAG_INHERIT | PSCONFIG_FLAG_FOLLOW, &err);
+    if (!string) {
+	fprintf(stderr, "%s", err->message);
+	exit(1);
+    }
+    return atoi(string);
+}
+
+#endif
 
 /**
  * @brief Initialize host resolve table
@@ -491,10 +528,37 @@ int main(const int argc, const char *argv[], char *envp[])
     envSet(&clone, "SLURM_UID", getenv("SLURM_JOB_UID"));
 
     /* convert Slurm hostlist into PS IDs */
-    if (psidResolve) {
-	convHLtoPSnodes(slurmHosts, resolveHost, &nodes, &nrOfNodes);
-    } else {
-	convHLtoPSnodes(slurmHosts, PSI_resolveNodeID, &nodes, &nrOfNodes);
+    bool resolved = false;
+    #ifndef BUILD_WITHOUT_PSCONFIG
+    if (psconfigRes) {
+	resolved = true;
+
+	gettimeofday(&time_start, NULL);
+
+	/* open psconfig database */
+	config = psconfig_new();
+	/* resolve hostnames using psconfig */
+	convHLtoPSnodes(slurmHosts, psconfigResHost, &nodes, &nrOfNodes);
+	psconfig_unref(config);
+	config = NULL;
+
+	gettimeofday(&time_now, NULL);
+	timersub(&time_now, &time_start, &time_diff);
+
+	if (verbose) {
+	    printf("psconfig resolve for job %s finished in %.3f seconds on %u "
+		   "nodes\n", jobID, time_diff.tv_sec + 1e-6 * time_diff.tv_usec,
+		   nrOfNodes);
+	}
+    }
+    #endif
+
+    if (!resolved) {
+	if (psidResolve) {
+	    convHLtoPSnodes(slurmHosts, resolveHost, &nodes, &nrOfNodes);
+	} else {
+	    convHLtoPSnodes(slurmHosts, PSI_resolveNodeID, &nodes, &nrOfNodes);
+	}
     }
 
     if (!nrOfNodes) {
