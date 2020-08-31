@@ -5,6 +5,16 @@ Copyright (C) 2010-2020 ParTec Cluster Competence Center GmbH, Munich
 Please send bug reports, questions and suggestions to <support@par-tec.com>
 
 
+Version 5.1.31-2:
+=================
+Bugfixes:
+ - Ensure epilogue will not be started while the prologue is running (#2788)
+Enhancements:
+ - Let pspelogue resolve hostnames using psconfig
+Additional changes:
+ - Update psslurm configuration template
+
+
 Version 5.1.31-1:
 =================
 Bugfixes:
