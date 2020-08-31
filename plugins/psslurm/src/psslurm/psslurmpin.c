@@ -88,6 +88,7 @@ typedef struct {
     const nodeinfo_t *nodeinfo;
     uint32_t next;
     uint8_t valid;    /* is this iterator still valid */
+    uint32_t count;   /* iteration counter */
 } thread_iterator;
 
 /*
@@ -106,6 +107,7 @@ static void thread_iter_init(thread_iterator *iter,
     iter->nodeinfo = nodeinfo;
     iter->next = start;
     iter->valid = (iter->next < nodeinfo->threadCount) ? 1 : 0;
+    iter->count = 0;
 }
 
 /*
@@ -131,8 +133,8 @@ static bool thread_iter_next(thread_iterator *iter, uint32_t *result)
 
     *result = iter->next;
 
-    if (iter->next == iter->nodeinfo->threadCount - 1) {
-	/* this is the last thread */
+    if (iter->count == iter->nodeinfo->threadCount) {
+	/* iterated through all threads */
 	iter->valid = 0;
 	return true;
     }
@@ -193,6 +195,8 @@ static bool thread_iter_next(thread_iterator *iter, uint32_t *result)
 	    }
 	    break;
     }
+
+    iter->count++;
 
     return true;
 }
