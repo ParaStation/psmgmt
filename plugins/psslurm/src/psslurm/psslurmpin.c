@@ -1178,7 +1178,8 @@ static void setDistributions(task_dist_states_t *taskDist)
     }
 
     if (*taskDist == SLURM_DIST_UNKNOWN) {
-	*taskDist = defaultSocketDist | getDefaultCoreDist(*taskDist);
+	*taskDist = defaultSocketDist;
+	*taskDist |= getDefaultCoreDist(*taskDist);
 
 	flog("Using all distribution defaults '%s:%s': 0x%02x\n",
 		getSocketDistString(*taskDist), getCoreDistString(*taskDist),
