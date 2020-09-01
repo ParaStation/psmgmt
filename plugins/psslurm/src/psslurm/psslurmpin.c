@@ -81,6 +81,8 @@ typedef struct {
     int64_t lastUsedThread;   /* number of the thread used last */
     enum thread_iter_strategy threadIterStrategy;
     enum next_start_strategy nextStartStrategy;
+    uint16_t* tasksPerSocket;  /* array of number of tasks left for each socket */
+    uint32_t firstThread;      /* first thread assigned for current task */
 } pininfo_t;
 
 typedef struct {
@@ -758,6 +760,20 @@ static uint32_t getNextStartThread(const nodeinfo_t *nodeinfo,
 	    continue;
 	}
 
+	/* omit sockets for which are no tasks left */
+	if (pininfo->tasksPerSocket) {
+	    uint16_t socket = getSocketByThread(thread, nodeinfo);
+	    mdbg(PSSLURM_LOG_PART, "%s: thread '%u' belongs to socket '%u'"
+		    " having %d tasks left\n", __func__, thread, socket,
+		    pininfo->tasksPerSocket[socket]);
+	    if (pininfo->tasksPerSocket[socket] == 0) {
+		mdbg(PSSLURM_LOG_PART, "%s: omitting thread '%u' since"
+			" socket '%u' has no tasks left\n", __func__, thread,
+			socket);
+		continue;
+	    }
+	}
+
 	mdbg(PSSLURM_LOG_PART, "%s: found thread '%u' with strategy %s\n",
 		__func__, thread,
 		nextStartStrategyString[pininfo->nextStartStrategy]);
@@ -834,6 +850,9 @@ static void getThreadsBinding(PSCPU_set_t *CPUset, const nodeinfo_t *nodeinfo,
 
 	mdbg(PSSLURM_LOG_PART, "%s: thread '%u' core '%u' socket '%hu'\n",
 		__func__, thread, core, getSocketByCore(core, nodeinfo));
+
+	/* this is the first thread assigned to the task so remember */
+	if (threadsLeft == threadsPerTask) pininfo->firstThread = thread;
 
 	/* assign hardware thread */
 	PSCPU_setCPU(*CPUset, thread);
@@ -1077,6 +1096,15 @@ static void setCPUset(PSCPU_set_t *CPUset, uint16_t cpuBindType,
     mdbg(PSSLURM_LOG_PART, "%s: %s\n", __func__,
 	    PSCPU_print_part(*CPUset, nodeinfo->threadCount/8));
 
+    /* handle --ntasks-per-socket option */
+    if (pininfo->tasksPerSocket) {
+	uint16_t socket = getSocketByThread(pininfo->firstThread, nodeinfo);
+	pininfo->tasksPerSocket[socket]--;
+	mdbg(PSSLURM_LOG_PART, "%s: first thread %u is on socket %u (now %d"
+		" tasks left)\n", __func__, pininfo->firstThread, socket,
+		pininfo->tasksPerSocket[socket]);
+    }
+
     /* bind to sockets */
     if (cpuBindType & (CPU_BIND_TO_SOCKETS | CPU_BIND_TO_LDOMS)) {
 	bindToSockets(CPUset, nodeinfo, nodeid, lTID);
@@ -1298,6 +1326,34 @@ static void fillHints(hints_t *hints, env_t *env)
     }
 }
 
+static void fillTasksPerSocket(pininfo_t *pininfo, env_t *env,
+	nodeinfo_t *nodeinfo)
+{
+    char *tmp = envGet(env, "SLURM_NTASKS_PER_SOCKET");
+
+    if (!tmp) {
+	pininfo->tasksPerSocket = NULL;
+	mdbg(PSSLURM_LOG_PART, "%s: tasksPerSocket unset\n", __func__);
+	return;
+    }
+
+    int tasksPerSocket = atoi(tmp);
+
+    if (tasksPerSocket <= 0) {
+        pininfo->tasksPerSocket = NULL;
+        mdbg(PSSLURM_LOG_PART, "%s: tasksPerSocket invalid\n", __func__);
+	return;
+    }
+
+    pininfo->tasksPerSocket = ucalloc(nodeinfo->socketCount
+	    * sizeof(*pininfo->tasksPerSocket));
+    for (int i = 0; i < nodeinfo->socketCount; i++) {
+	pininfo->tasksPerSocket[i] = tasksPerSocket;
+    }
+    mdbg(PSSLURM_LOG_PART, "%s: tasksPerSocket set to %u\n", __func__,
+	    tasksPerSocket);
+}
+
 /* This is the entry point to the whole pinning stuff */
 bool setStepSlots(Step_t *step)
 {
@@ -1403,6 +1459,10 @@ bool setStepSlots(Step_t *step)
 	    .coreMap = coreMap + coreMapIndex
 	};
 
+	/* handle --ntasks-per-socket option
+	 * With node sharing enabled, this option is handled by the scheduler */
+	fillTasksPerSocket(&pininfo, &step->env, &nodeinfo);
+
 	/* handle hint "nomultithreads" */
 	if (hints.nomultithread) {
 	    nodeinfo.threadsPerCore = 1;
@@ -1430,6 +1490,10 @@ bool setStepSlots(Step_t *step)
 
 	    /* task parameter */
 	    uint16_t threadsPerTask = step->tpp;
+
+
+	    /* reset first thread */
+	    pininfo.firstThread = UINT32_MAX;
 
 	    /* calc CPUset */
 	    setCPUset(&slots[tid].CPUset, step->cpuBindType, step->cpuBind,
