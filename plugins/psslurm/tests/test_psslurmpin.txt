@@ -7,7 +7,8 @@ Steps to test pinning:
 > gcc -Wall ../plugins/psslurm/tests/test_psslurmpin.c -o plugins/psslurm/tests/test_psslurmpin \
       -I../include -I../plugins/psslurm/src/common -I../plugins/psslurm/src/psslurm -lnuma -lm\
       plugins/psslurm/src/psslurm/.libs/psslurm_la-psslurmpin.o \
-      lib/plugincommon/.libs/pluginmalloc.o lib/pscommon/.libs/pscpu.o
+      lib/plugincommon/.libs/pluginmalloc.o lib/pscommon/.libs/pscpu.o \
+      lib/plugincommon/.libs/pluginconfig.o lib/pscommon/.libs/psenv.o
 
 To get debugging output, add -DVERBOSE to gcc parameters.
 
@@ -17,9 +18,10 @@ To get debugging output, add -DVERBOSE to gcc parameters.
 There are two modi, one to test the iterators and one to test the pinning:
 
 
-Usage: test_psslurmpin iteration <sockets> <coresPerSocket> <threadsPerCore> <strategy>
+Usage: test_psslurmpin iteration <sockets> <coresPerSocket> <threadsPerCore> <strategy> <start>
 
 With: sockets, coresPerSocket, threadsPerCore are any natural number
+      start is a number in [0, numberOfThreads-1]
       strategy is a number in [0,4]:
 
 0 = CYCLECORES,              /* core, socket, thread:  1 2  3 4   5 6  7 8 */
@@ -28,7 +30,7 @@ With: sockets, coresPerSocket, threadsPerCore are any natural number
 3 = FILLSOCKETS_CYCLECORES,  /* core, thread, socket:  1 2  5 6   3 4  7 8 */
 4 = FILLSOCKETS_FILLCORES    /* thread, core, socket:  1 3  5 7   2 4  6 8 */
 
-Example: plugins/psslurm/tests/test_psslurmpin iteration 2 8 2  3
+Example: plugins/psslurm/tests/test_psslurmpin iteration 2 8 2  3  0
 
 
 Usage: test_psslurmpin pinning <sockets> <coresPerSocket> <threadsPerCore>
@@ -42,4 +44,6 @@ With: sockets, coresPerSocket, threadsPerCore, tasks, threadsPerTask are any nat
       oneThreadPerCore is 1 or 0
 
 Example: plugins/psslurm/tests/test_psslurmpin pinning 2 8 2  8 4  threads "" "block:cyclic" 0
+
+NOTE: pinning is currently not supported any more, in favour of psslurmgetbind
 

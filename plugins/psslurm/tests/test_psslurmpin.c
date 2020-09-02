@@ -15,7 +15,7 @@
 typedef list_t Config_t;
 
 Config_t Config = LIST_HEAD_INIT(Config);
-
+#if 0
 /*
  * bitmask cpuBindType:
  * CPU_BIND_ONE_THREAD_PER_CORE - use only one hardware thread per core
@@ -118,6 +118,9 @@ int pinning(int argc, char *argv[])
 
     return 0;
 }
+#else
+int pinning(int argc, char *argv[]) { return 0; }
+#endif
 
 int iteration(int argc, char *argv[])
 {
@@ -128,10 +131,11 @@ int iteration(int argc, char *argv[])
 
     /* strategy info */
     uint8_t strategy = 0;
+    uint32_t start = 0;
 
-    if (argc != 6) {
+    if (argc != 7) {
 	printf("Usage: test_psslurmpin iteration <sockets> <coresPerSocket>"
-		" <threadsPerCore> <strategy>\n");
+		" <threadsPerCore> <strategy> <start>\n");
 	return -1;
     }
 
@@ -140,16 +144,17 @@ int iteration(int argc, char *argv[])
     threadsPerCore = atoi(argv[4]);
 
     strategy = atoi(argv[5]);
+    start = atoi(argv[6]);
 
     printf("ITERATION TEST\n");
     printf("node: %d sockets, %d cores per socket, %d threads per core\n",
 	    socketCount, coresPerSocket, threadsPerCore);
-    printf("strategy: %hhu\n", strategy);
+    printf("strategy: %hhu, start: %u\n", strategy, start);
     printf("\n");
 
 
     test_thread_iterator(socketCount, coresPerSocket, threadsPerCore,
-	    strategy);
+	    strategy, start);
 
     return 0;
 }
@@ -186,6 +191,25 @@ void logger_print(logger_t* logger, int32_t key, const char* format, ...) {
     vprintf(format, ap);
     va_end(ap);
     return;
+}
+
+#define MAX_FLOG_SIZE 4096
+void __flog(const char *func, int32_t key, char *format, ...)
+{
+    static char buf[MAX_FLOG_SIZE];
+    char *fmt = format;
+    va_list ap;
+    size_t len;
+
+    len = snprintf(NULL, 0, "%s: %s", func, format);
+    if (len+1 <= sizeof(buf)) {
+	snprintf(buf, sizeof(buf), "%s: %s", func, format);
+	fmt = buf;
+    }
+
+    va_start(ap, format);
+    vprintf(fmt, ap);
+    va_end(ap);
 }
 
 typedef void Job_t;
@@ -227,10 +251,6 @@ pid_t PSC_getPID(PStask_ID_t tid) {
     return 0;
 }
 
-char *getConfValueC(Config_t *conf, char *key) {
-    return key;
-}
-
 PSnodes_ID_t PSC_getMyID(void) {
     return 0;
 }
@@ -238,5 +258,27 @@ PSnodes_ID_t PSC_getMyID(void) {
 void fwCMD_printMessage(Step_t *step, char *plMsg, uint32_t msgLen,
 		        uint8_t type, int32_t rank) {
     return;
+}
+
+char *trim_quotes(char *string) {
+    return string;
+}
+
+char *trim(char *string) {
+    if (!string) return NULL;
+
+    /* remove leading whitespaces */
+    while (string[0] == ' ') {
+	string++;
+    }
+
+    /* remove trailing whitespaces */
+    size_t len = strlen(string);
+    while (len >0 && (string[len-1] == ' ' || string[len-1] == '\n')) {
+	string[len-1] = '\0';
+	len--;
+    }
+
+    return string;
 }
 /* vim: set ts=8 sw=4 tw=0 sts=4 noet :*/

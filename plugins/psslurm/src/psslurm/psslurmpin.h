@@ -98,7 +98,7 @@ char *genCPUbindString(Step_t *step);
 char *genMemBindString(Step_t *step);
 
 void test_thread_iterator(uint16_t socketCount, uint16_t coresPerSocket,
-	uint16_t threadsPerCore, uint8_t strategy);
+	uint16_t threadsPerCore, uint8_t strategy, uint32_t start);
 
 /**
  * @brief Unit test function calculating and printing the pinning

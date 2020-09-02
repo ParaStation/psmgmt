@@ -2109,7 +2109,7 @@ char *genMemBindString(Step_t *step)
  * this function in for testing the thread iterator function
  */
 void test_thread_iterator(uint16_t socketCount, uint16_t coresPerSocket,
-	uint16_t threadsPerCore, uint8_t strategy)
+	uint16_t threadsPerCore, uint8_t strategy, uint32_t start)
 {
     char* strategystr[] = {
 	"CYCLECORES",
@@ -2118,7 +2118,8 @@ void test_thread_iterator(uint16_t socketCount, uint16_t coresPerSocket,
 	"FILLSOCKETS_CYCLECORES",
 	"FILLSOCKETS_FILLCORES"
     };
-    printf("Strategy %hhu (%s) selected.\n", strategy, strategystr[strategy]);
+    printf("Strategy %hhu (%s) selected, starting with thread %u.\n",
+	    strategy, strategystr[strategy], start);
 
     nodeinfo_t nodeinfo = {
 	.socketCount = socketCount,
@@ -2129,7 +2130,7 @@ void test_thread_iterator(uint16_t socketCount, uint16_t coresPerSocket,
     };
 
     thread_iterator iter;
-    thread_iter_init(&iter, strategy, &nodeinfo, 0);
+    thread_iter_init(&iter, strategy, &nodeinfo, start);
 
     uint32_t thread;
     size_t count = 0;
@@ -2147,7 +2148,7 @@ void test_thread_iterator(uint16_t socketCount, uint16_t coresPerSocket,
 	/* which thread of this core is this thread? */
 	uint16_t corethread = getCorethread(thread, &nodeinfo);
 
-	printf("thread %2u - core %2u: s %hu  c %2u  t %hu\n",
+	printf("%u: thread %2u - core %2u: s %hu  c %2u  t %hu\n", iter.count,
 		thread, core, socket, socketcore, corethread);
 
 	if (count++ > 2 * nodeinfo.threadCount) {
