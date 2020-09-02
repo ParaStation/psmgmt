@@ -148,6 +148,12 @@ static bool thread_iter_next(thread_iterator *iter, uint32_t *result)
 	return true;
     }
 
+    /* the last thread is always followed by thread 0 */
+    if (iter->next == threadCount - 1) {
+	iter->next = 0;
+	return true;
+    }
+
     uint32_t thread = iter->next / coreCount;
     uint32_t core = iter->next % coreCount;
     uint16_t socket = core / coresPerSocket;
