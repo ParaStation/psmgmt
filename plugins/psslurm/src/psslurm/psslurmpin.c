@@ -48,12 +48,19 @@ typedef struct {
     bool nomultithread;
 } hints_t;
 
+/*
+  CYCLECORES,              core, socket, thread:  0 1  2 3   4 5  6 7
+  CYCLESOCKETS_CYCLECORES, socket, core, thread:  0 2  1 3   4 6  5 7
+  CYCLESOCKETS_FILLCORES,  socket, thread, core:  0 2  4 6   1 3  5 7
+  FILLSOCKETS_CYCLECORES,  core, thread, socket:  0 1  4 5   2 3  6 7
+  FILLSOCKETS_FILLCORES    thread, core, socket:  0 4  1 5   2 6  3 7
+*/
 enum thread_iter_strategy {
     CYCLECORES,              /* core, socket, thread:  1 2  3 4   5 6  7 8 */
     CYCLESOCKETS_CYCLECORES, /* socket, core, thread:  1 3  2 4   5 7  6 8 */
-    CYCLESOCKETS_FILLCORES,  /* socket, thread, core:  1 5  2 6   3 7  4 8 */
+    CYCLESOCKETS_FILLCORES,  /* socket, thread, core:  1 3  5 7   2 4  6 8 */
     FILLSOCKETS_CYCLECORES,  /* core, thread, socket:  1 2  5 6   3 4  7 8 */
-    FILLSOCKETS_FILLCORES    /* thread, core, socket:  1 3  5 7   2 4  6 8 */
+    FILLSOCKETS_FILLCORES    /* thread, core, socket:  1 5  2 6   3 7  4 8 */
 };
 
 enum next_start_strategy {
@@ -146,11 +153,11 @@ static bool thread_iter_next(thread_iterator *iter, uint32_t *result)
     uint16_t socket = core / coresPerSocket;
 
     switch(iter->strategy) {
-	case CYCLECORES:  /* 1 2  3 4   5 6  7 8 */
+	case CYCLECORES:  /* 0 1  2 3   4 5  6 7 */
 	    iter->next++;
 	    break;
 
-	case CYCLESOCKETS_CYCLECORES: /* 1 3  2 4   5 7  6 8 */
+	case CYCLESOCKETS_CYCLECORES: /* 0 2  1 3   4 6  5 7 */
 	    /* if iter->next is on the last core, move to next thread */
 	    if ((iter->next + 1) % coreCount == 0) {
 		iter->next = (thread + 1) * coreCount;
@@ -169,13 +176,13 @@ static bool thread_iter_next(thread_iterator *iter, uint32_t *result)
 	    iter->next += coreCount * thread;
 	    break;
 
-	case CYCLESOCKETS_FILLCORES: /* 1 5  2 6   3 7  4 8 */
+	case CYCLESOCKETS_FILLCORES:  /* 0 2  4 6   1 3  5 7 */
 	    iter->next += coresPerSocket;
 	    iter->next += iter->next >= threadCount ? 1 : 0;
 	    iter->next %= threadCount;
 	    break;
 
-	case FILLSOCKETS_CYCLECORES:  /* 1 2  5 6   3 4  7 8 */
+	case FILLSOCKETS_CYCLECORES:  /* 0 1  4 5   2 3  6 7 */
 	    iter->next += 1;
 	    uint32_t nextcore = iter->next % coreCount;
 	    uint16_t nextsocket = nextcore / coresPerSocket;
@@ -189,7 +196,7 @@ static bool thread_iter_next(thread_iterator *iter, uint32_t *result)
 	    }
 	    break;
 
-	case FILLSOCKETS_FILLCORES:  /* 1 3  5 7   2 4  6 8 */
+	case FILLSOCKETS_FILLCORES: /* 0 4  1 5   2 6  3 7 */
 	    iter->next += coreCount;
 	    if (iter->next >= threadCount) {
 		iter->next %= threadCount;
