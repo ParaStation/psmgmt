@@ -142,8 +142,8 @@ static bool thread_iter_next(thread_iterator *iter, uint32_t *result)
 
     *result = iter->next;
 
-    if (iter->count == iter->nodeinfo->threadCount) {
-	/* iterated through all threads */
+    if (++iter->count >= iter->nodeinfo->threadCount) {
+	/* iterated through all threads, next call should be last one */
 	iter->valid = 0;
 	return true;
     }
@@ -204,8 +204,6 @@ static bool thread_iter_next(thread_iterator *iter, uint32_t *result)
 	    }
 	    break;
     }
-
-    iter->count++;
 
     return true;
 }
