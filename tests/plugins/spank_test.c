@@ -10,6 +10,7 @@
  * Slurm plugin loader.
  */
 SPANK_PLUGIN(psslurm-test, 1);
+const char psid_plugin[] = "yes";
 
 typedef enum {
     SPANK_INIT = 0,

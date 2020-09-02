@@ -612,6 +612,15 @@ int initialize(void)
 
     /* verify all configured spank plugins */
     if (!SpankInitPlugins()) goto INIT_ERROR;
+
+    struct spank_handle spank = {
+	.task = NULL,
+	.alloc = NULL,
+	.job = NULL,
+	.step = NULL,
+	.hook = SPANK_SLURMD_INIT
+    };
+    SpankCallHook(&spank);
 #endif
 
     /* initialize Slurm communication */
@@ -652,6 +661,17 @@ void finalize(void)
 
 	return;
     }
+
+#ifdef HAVE_SPANK
+    struct spank_handle spank = {
+	.task = NULL,
+	.alloc = NULL,
+	.job = NULL,
+	.step = NULL,
+	.hook = SPANK_SLURMD_EXIT
+    };
+    SpankCallHook(&spank);
+#endif
 
     closeSlurmdSocket();
     PSIDplugin_unload(name);

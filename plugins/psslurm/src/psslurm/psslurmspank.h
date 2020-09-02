@@ -58,6 +58,9 @@ struct spank_handle {
     unsigned int context;    /**< spank context */
 };
 
+/** flag to mark if a spank plugin taints the main psid process */
+extern bool tainted;
+
 /**
  * @brief Initialize the spank facility
  *
@@ -88,6 +91,11 @@ void SpankSavePlugin(Spank_Plugin_t *def);
  */
 void SpankFinalize(void);
 
+/**
+ * @brief Call a Spank hook in all registered Spank plugins
+ *
+ * @param spank Pointer to the spank handle
+ */
 void __SpankCallHook(spank_t spank, const char *func, const int line);
 #define SpankCallHook(spank) __SpankCallHook(spank, __func__, __LINE__)
 
@@ -147,5 +155,9 @@ spank_err_t psSpankGetItem(spank_t spank, spank_item_t item, va_list ap);
 int psSpankSymbolSup(const char *symbol);
 
 int psSpankGetContext(spank_t spank);
+
+/**
+ * End of wrapper Spank functions
+ */
 
 #endif /* __PSSLURM_SPANK */

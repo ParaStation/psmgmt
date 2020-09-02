@@ -44,7 +44,7 @@ static const struct {
     char *strName;
 } Spank_Hook_Table[] = {
     { true,  SPANK_INIT,                   "slurm_spank_init"		      },
-    { false, SPANK_SLURMD_INIT,            "slurm_spank_slurmd_init"	      },
+    { true,  SPANK_SLURMD_INIT,            "slurm_spank_init"		      },
     { true,  SPANK_JOB_PROLOG,             "slurm_spank_job_prolog"	      },
     { true,  SPANK_INIT_POST_OPT,          "slurm_spank_init_post_opt"	      },
     { true,  SPANK_LOCAL_USER_INIT,        "slurm_spank_local_user_init"      },
@@ -54,7 +54,7 @@ static const struct {
     { true,  SPANK_TASK_POST_FORK,         "slurm_spank_task_post_fork"	      },
     { true,  SPANK_TASK_EXIT,              "slurm_spank_task_exit"	      },
     { true,  SPANK_JOB_EPILOG,             "slurm_spank_job_epilog"	      },
-    { false, SPANK_SLURMD_EXIT,            "slurm_spank_slurmd_exit"	      },
+    { true,  SPANK_SLURMD_EXIT,            "slurm_spank_slurmd_exit"	      },
     { true,  SPANK_EXIT,                   "slurm_spank_exit"		      },
     { false, SPANK_END,                    NULL				      }
 };
@@ -67,6 +67,8 @@ static void *globalSym = NULL;
 
 /** pointer to the spank structure of the executing callback */
 static spank_t current_spank = NULL;
+
+bool tainted = false;
 
 void SpankSavePlugin(Spank_Plugin_t *def)
 {
@@ -135,6 +137,19 @@ bool SpankInitPlugins(void)
 		 sp->name, sp->type);
 	    delSpankPlug(sp);
 	    continue;
+	}
+
+	char *initHook = Spank_Hook_Table[SPANK_SLURMD_INIT].strName;
+	char *exitHook = Spank_Hook_Table[SPANK_SLURMD_EXIT].strName;
+	if (!dlsym(sp->handle, "psid_plugin") &&
+	    (dlsym(sp->handle, initHook) || dlsym(sp->handle, exitHook))) {
+	    if (!tainted) {
+		flog("spank plugin %s taints the psid\n", sp->name);
+	    } else {
+		fdbg(PSSLURM_LOG_SPANK, "spank plugin %s taints the psid\n",
+		     sp->name);
+	    }
+	    tainted = true;
 	}
 
 	count++;

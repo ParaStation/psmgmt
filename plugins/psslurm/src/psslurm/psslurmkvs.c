@@ -590,6 +590,7 @@ static char *showVirtualKeys(char *buf, size_t *bufSize, bool example)
     str2Buf("      tasks\tshow all tasks\n", &buf, bufSize);
     str2Buf(" resolveIDs\tresolve a Slurm host-list\n", &buf, bufSize);
     str2Buf("      spank\tshow active spank plugins\n", &buf, bufSize);
+    str2Buf("    tainted\tshow if a spank plugin taints psid\n", &buf, bufSize);
 
     if (example) str2Buf("\nExample:\nUse 'plugin show psslurm key jobs'\n",
 			 &buf, bufSize);
@@ -742,6 +743,13 @@ char *show(char *key)
 
     /* show spank plugins */
     if (!strcmp(key, "spank")) return showSpank();
+
+    /* show spank plugins */
+    if (!strcmp(key, "tainted")) {
+	str2Buf("\nThe psid is ", &buf, &bufSize);
+	if (!tainted) str2Buf("not ", &buf, &bufSize);
+	return str2Buf("tainted\n", &buf, &bufSize);
+    };
 
     str2Buf("\nInvalid key '", &buf, &bufSize);
     str2Buf(key, &buf, &bufSize);
