@@ -752,9 +752,15 @@ static uint32_t getNextStartThread(const nodeinfo_t *nodeinfo,
     uint32_t thread;
     while (thread_iter_next(&iter, &thread)) {
 
-	/* omit cpus not to use or already assigned */
-	if (nodeinfo->coreMap[getCore(thread, nodeinfo)] != 1
-		|| pininfo->usedHwThreads[thread] == 1) {
+	/* omit cpus not in core map and thus not to use by this job step */
+	if (nodeinfo->coreMap[getCore(thread, nodeinfo)] != 1) {
+	    mdbg(PSSLURM_LOG_PART, "%s: thread '%u' not assigned to step (not"
+		    " in core map)\n", __func__, thread);
+	    continue;
+	}
+
+	/* omit cpus already assigned */
+	if (pininfo->usedHwThreads[thread] == 1) {
 	    mdbg(PSSLURM_LOG_PART, "%s: thread '%u' already used\n", __func__,
 		    thread);
 	    continue;
@@ -837,10 +843,16 @@ static void getThreadsBinding(PSCPU_set_t *CPUset, const nodeinfo_t *nodeinfo,
 	/* on which core is this thread? */
 	uint32_t core = getCore(thread, nodeinfo);
 
-	/* omit cpus not to use or already assigned */
-	if (nodeinfo->coreMap[core] != 1
-		|| pininfo->usedHwThreads[thread] == 1) {
+	/* omit cpus not in core map and thus not to use by this job step */
+	if (nodeinfo->coreMap[core] != 1) {
+	    mdbg(PSSLURM_LOG_PART, "%s: thread '%u' core '%u' socket '%hu'"
+		    " not assigned to step (not in core map)\n", __func__,
+		    thread, core, getSocketByCore(core, nodeinfo));
+	    continue;
+	}
 
+	/* omit cpus already assigned */
+	if (pininfo->usedHwThreads[thread] == 1) {
 	    mdbg(PSSLURM_LOG_PART, "%s: thread '%u' core '%u' socket '%hu'"
 		    " already used\n",
 		    __func__, thread, core, getSocketByCore(core, nodeinfo));
