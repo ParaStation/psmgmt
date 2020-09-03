@@ -1,6 +1,6 @@
 psmgmt README.pspam -- Remarks on PAM setup for pspam
 
-Copyright (C) 2017 ParTec Cluster Competence Center GmbH, Munich
+Copyright (C) 2020 ParTec Cluster Competence Center GmbH, Munich
 
 Please send bug reports, questions and suggestions to <support@par-tec.com>
 
@@ -19,13 +19,16 @@ combination with the psslurm and psmom plugins. These plugins will
 access the pspam plugin and take the required measures to register and
 unregister batch-jobs.
 
-In order to activate this functionality two prerequisites have to be met:
-1. The pspam plugin has to be loaded.
-2. The pam_pspam module has to be configured in PAM
+In order to activate this functionality three prerequisites have to be met:
+1. The user can successfully authenticate to the sshd
+2. The pspam plugin has to be loaded
+3. The pam_pspam module has to be configured in PAM
 
-The first prerequisite is resolved automatically, since the pspam
+The first prerequisite is the authentication process which is not influenced by the pam module. All usual mechanisms for the ssh authentication process can be used. This includes the ssh password login or the public key authentication. For password less logins it is recommend that a public/private ssh key is generated which is included into the users authorized_keys file.
+
+The second prerequisite is resolved automatically, since the pspam
 plugin is marked as a dependency of both, psmom and psslurm. The
-second one requires some configuration effort towards PAM.
+third one requires some configuration effort towards PAM.
 
 From a high level point of view the mechanism works as follows:
  - The local sshd asks PAM if access to the node shall be granted
