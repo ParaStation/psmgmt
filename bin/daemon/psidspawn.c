@@ -55,6 +55,7 @@
 #include "psidsignal.h"
 #include "psidaccount.h"
 #include "psidhook.h"
+#include "psidhw.h"
 
 #include "psidspawn.h"
 
@@ -373,6 +374,59 @@ end:
 void PSID_pinToCPUs(cpu_set_t *physSet)
 {
     sched_setaffinity(0, sizeof(*physSet), physSet);
+}
+
+void PSID_bindToGPUs(cpu_set_t *physSet)
+{
+    int nodes = PSID_getNUMAnodes();
+    int threads = PSID_getHWthreads();
+    int gpus = PSID_getGPUs();
+
+    PSCPU_set_t *gpumap = PSID_getGPUmaskOfNUMAnodes();
+    PSCPU_set_t *cpumap = PSID_getCPUmaskOfNUMAnodes(false);
+
+#if 0
+    for(int i = 0; i < nodes; i++) {
+	fprintf(stderr, "%s: %s\n", __func__, PSCPU_print_part(cpumap[i], 12));
+    }
+
+    for(int i = 0; i < nodes; i++) {
+	fprintf(stderr, "%s: %s\n", __func__, PSCPU_print_part(gpumap[i], 1));
+    }
+#endif
+
+    bool used[PSNUMANODE_MAX];
+    memset(used, 0, sizeof(used));
+
+    /* find numa nodes this process in running on */
+    for (int i = 0; i < nodes; i++) {
+	for (int16_t cpu = 0; cpu < threads; cpu++) {
+	    if (CPU_ISSET(cpu, physSet) && PSCPU_isSet(cpumap[i], cpu)) {
+		PSID_log(-1, "%s: NUMA domain %d used\n", __func__, i);
+		used[i] = true;
+		break;
+	    }
+	}
+    }
+
+    char tmp[3*PSGPU_MAX];
+    int len = 0;
+
+    /* build string listing the GPUs connected to those NUMA nodes */
+    for (int i = 0; i < nodes; i++) {
+	if (!used[i]) continue;
+	for (int gpu = 0; gpu < gpus; gpu++) {
+	    if (PSCPU_isSet(gpumap[i], gpu)) {
+		len += snprintf(tmp+len, 4, "%d,", gpu);
+	    }
+	}
+    }
+
+    tmp[len ? len-1 : len] = '\0';
+
+    PSID_log(-1, "%s: Setting environment to use GPUs '%s'\n", __func__, tmp);
+    setenv("CUDA_VISIBLE_DEVICES", tmp, 1); /* Nvidia GPUs */
+    setenv("GPU_DEVICE_ORDINAL", tmp, 1);   /* AMD GPUs */
 }
 
 typedef struct{
@@ -707,6 +761,16 @@ static void doClamps(PStask_t *task)
 		}
 	    } else {
 		PSID_bindToNodes(physSet);
+	    }
+	}
+	if (true /*PSIDnodes_bindGPUs(PSC_getMyID())*/) {
+	    if (getenv("__PSI_NO_GPUBIND")) {
+		if (!getenv("SLURM_JOBID")) {
+		    fprintf(stderr, "Binding suppressed for rank %d\n",
+			    task->rank);
+		}
+	    } else {
+		PSID_bindToGPUs(physSet);
 	    }
 	}
 #else

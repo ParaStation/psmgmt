@@ -17,6 +17,9 @@
 #include "psprotocol.h"
 #include "pscpu.h"
 
+#define PSNUMANODE_MAX 16
+#define PSGPU_MAX 32
+
 /**
  * @brief Initialize hardware stuff
  *
