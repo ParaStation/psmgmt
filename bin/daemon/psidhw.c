@@ -144,7 +144,10 @@ int PSID_getNUMAnodes(void)
 
 PSCPU_set_t* PSID_getCPUmaskOfNUMAnodes(bool psorder)
 {
-    static PSCPU_set_t *masks = NULL;
+    static PSCPU_set_t *masksos = NULL;
+    static PSCPU_set_t *masksps = NULL;
+
+    PSCPU_set_t *masks = psorder ? masksps : masksos;
 
     if (!masks) {
 	if (!hwlocInitialized) initHWloc();
