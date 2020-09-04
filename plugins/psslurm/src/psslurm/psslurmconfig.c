@@ -15,6 +15,7 @@
 #include <netdb.h>
 #include <dirent.h>
 #include <errno.h>
+#include <glob.h>
 
 #include "pshostlist.h"
 
@@ -665,24 +666,74 @@ static bool findSpankAbsPath(char *relPath, char *absPath, size_t lenPath)
     return false;
 }
 
-static bool parseSlurmPlugConf(char *key, char *value, const void *info)
+/**
+ * @brief Handle an include statement of the Slurm plugstack.conf
+ *
+ * @param path The path to include
+ *
+ * @return Return true on succes otherwise false is returned
+ */
+static bool handleSlurmPlugInc(const char *path)
+{
+    /* expand shell patterns  */
+    glob_t pglob;
+    int ret = glob(path, 0, NULL, &pglob);
+    if (ret) {
+	flog("glob(%s) failed with error %i\n", path, ret);
+	goto ERROR;
+    }
+
+    /* parse all files */
+    for (size_t i=0; i<pglob.gl_pathc; i++) {
+	fdbg(PSSLURM_LOG_SPANK, "parse file %s\n", pglob.gl_pathv[i]);
+	Config_t SlurmPlugConf;
+	if (parseConfigFile(pglob.gl_pathv[i], &SlurmPlugConf, true) < 0) {
+	    flog("parsing file %s failed\n", pglob.gl_pathv[i]);
+	    goto ERROR;
+	}
+	if (traverseConfig(&SlurmPlugConf, parseSlurmPlugLine, NULL)) {
+	    flog("parsing file %s failed\n", pglob.gl_pathv[i]);
+	    freeConfig(&SlurmPlugConf);
+	    goto ERROR;
+	};
+	freeConfig(&SlurmPlugConf);
+    }
+
+    globfree(&pglob);
+    return true;
+
+ERROR:
+    globfree(&pglob);
+    return false;
+}
+
+bool parseSlurmPlugLine(char *key, char *value, const void *info)
 {
     const char delimiters[] =" \t\n";
     char *toksave;
     Spank_Plugin_t *def = umalloc(sizeof(*def));
 
-    /* optional/required flag */
-    char *optional = strtok_r(key, delimiters, &toksave);
-    if (!optional) {
-	flog("invalid optional flag: '%s'\n", key);
+    /* include/optional/required flag */
+    char *flag = strtok_r(key, delimiters, &toksave);
+    if (!flag) {
+	flog("missing flag for key: '%s'\n", key);
 	goto ERROR;
     }
-    if (!strcmp("optional", optional)) {
+
+    if (!strcmp("include", flag)) {
+	const char *path = strtok_r(NULL, delimiters, &toksave);
+	if (!path) {
+	    flog("%s: missing path for include statement\n");
+	    goto ERROR;
+	}
+	if (!handleSlurmPlugInc(path)) return true; /* break on error */
+	return false; /* success, continue with next line */
+    } else if (!strcmp("optional", flag)) {
 	def->optional = true;
-    } else if (!strcmp("required", optional)) {
+    } else if (!strcmp("required", flag)) {
 	def->optional = false;
     } else {
-	flog("invalid optional flag '%s'\n", optional);
+	flog("invalid flag '%s'\n", flag);
 	goto ERROR;
     }
 
@@ -704,7 +755,7 @@ static bool parseSlurmPlugConf(char *key, char *value, const void *info)
     } else {
 	def->path = ustrdup(path);
     }
-    fdbg(PSSLURM_LOG_SPANK, "flag '%s' path '%s'", optional, def->path);
+    fdbg(PSSLURM_LOG_SPANK, "flag '%s' path '%s'", flag, def->path);
 
     /* additional arguments */
     strvInit(&def->argV, NULL, 0);
@@ -831,7 +882,7 @@ int initConfig(char *filename, uint32_t *hash)
 	if (parseConfigFile(confFile, &SlurmPlugConf, true /*trimQuotes*/) < 0)
 	    return 0;
 
-	if (traverseConfig(&SlurmPlugConf, parseSlurmPlugConf, NULL)) return 0;
+	if (traverseConfig(&SlurmPlugConf, parseSlurmPlugLine, NULL)) return 0;
 	freeConfig(&SlurmPlugConf);
     }
 #endif
