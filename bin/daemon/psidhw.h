@@ -135,7 +135,7 @@ int PSID_getPhysCores(void);
  * If for some reason the hwloc framework cannot be initialized,
  * exit() is called.
  *
- * @return On success, the number of gpus is returned
+ * @return On success, the number of NUMA nodes is returned
  */
 int PSID_getNUMAnodes(void);
 
