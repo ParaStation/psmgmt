@@ -871,6 +871,20 @@ static void getThreadsBinding(PSCPU_set_t *CPUset, const nodeinfo_t *nodeinfo,
 	    continue;
 	}
 
+	/* check if all lower threads of the core are used
+	 * this is needed for some special cases as `*:fcyclic:cyclic` */
+	uint32_t corethread = getCorethread(thread, nodeinfo);
+	for (uint32_t t = 0; t < corethread; t++) {
+	    uint32_t checkthread = t * nodeinfo->coreCount + core;
+	    if (pininfo->usedHwThreads[checkthread] != 1) {
+		mdbg(PSSLURM_LOG_PART, "%s: thread '%u' core '%u' socket '%hu'"
+		    " unused, take it\n",
+		    __func__, thread, core, getSocketByCore(core, nodeinfo));
+		thread = checkthread;
+		break;
+	    }
+	}
+
 	mdbg(PSSLURM_LOG_PART, "%s: thread '%u' core '%u' socket '%hu'\n",
 		__func__, thread, core, getSocketByCore(core, nodeinfo));
 
