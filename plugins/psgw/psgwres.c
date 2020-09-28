@@ -527,7 +527,7 @@ static void pelogueCB(char *jobid, int exit, bool timeout,
 
 	if (exit) {
 	    /* prologue failed */
-	    StrBuffer_t failNodes = { .buf = NULL, .bufSize = 0 };
+	    StrBuffer_t failNodes = { .buf = NULL };
 	    for (uint32_t i=0; i<req->numGWnodes; i++) {
 		if (result[i].prologue != PELOGUE_DONE) {
 		    if (failNodes.buf) addStrBuf(",", &failNodes);

@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2012-2021 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2012-2020 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -78,8 +78,25 @@ void __ufree(void *ptr, const char *func, const int line)
 char *__addStrBuf(const char *str, StrBuffer_t *strBuf, const char *func,
 		  const int line)
 {
-    return __strn2Buf(str, strlen(str), &strBuf->buf, &strBuf->bufSize,
-		      func, line);
+    size_t lenStr = strlen(str);
+
+    if (!strBuf->buf) {
+	strBuf->size = (lenStr / STR_MALLOC_SIZE + 1) * STR_MALLOC_SIZE;
+	strBuf->buf = __umalloc(strBuf->size, func, line);
+	strBuf->strLen = 0;
+    }
+
+    if (strBuf->strLen + lenStr + 1 > strBuf->size) {
+	strBuf->size = ((strBuf->strLen + lenStr) / STR_MALLOC_SIZE + 1) *
+			STR_MALLOC_SIZE;
+	strBuf->buf = __urealloc(strBuf->buf, strBuf->size, func, line);
+    }
+
+    memcpy(strBuf->buf + strBuf->strLen, str, lenStr);
+    (strBuf->buf)[strBuf->strLen+lenStr] = '\0';
+    strBuf->strLen += lenStr;
+
+    return strBuf->buf;
 }
 
 char *__str2Buf(const char *str, char **buffer, size_t *bufSize,

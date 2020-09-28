@@ -107,9 +107,7 @@ static bool addJobInfo(Job_t *job, const void *info)
  */
 static char *showJobs(void)
 {
-    StrBuffer_t strBuf = {
-	.buf = NULL,
-	.bufSize = 0 };
+    StrBuffer_t strBuf = { .buf = NULL };
 
     if (!countJobs()) {
 	return addStrBuf("\nNo current jobs.\n", &strBuf);
@@ -223,9 +221,7 @@ static bool addTaskInfo(Step_t *step, const void *info)
  */
 static char *showTasks(void)
 {
-    StrBuffer_t strBuf = {
-	.buf = NULL,
-	.bufSize = 0 };
+    StrBuffer_t strBuf = { .buf = NULL };
 
     if (!countSteps()) {
 	return addStrBuf("\nNo current tasks.\n", &strBuf);
@@ -269,9 +265,7 @@ static bool addSpankInfo(Spank_Plugin_t *sp, const void *info)
  */
 static char *showSpank(void)
 {
-    StrBuffer_t strBuf = {
-	.buf = NULL,
-	.bufSize = 0 };
+    StrBuffer_t strBuf = { .buf = NULL };
 
 #ifdef HAVE_SPANK
     addStrBuf("\nactive spank plugins:\n\n", &strBuf);
@@ -290,9 +284,7 @@ static char *showSpank(void)
  */
 static char *showAllocations(void)
 {
-    StrBuffer_t strBuf = {
-	.buf = NULL,
-	.bufSize = 0 };
+    StrBuffer_t strBuf = { .buf = NULL };
 
     if (!countAllocs()) {
 	return addStrBuf("\nNo current allocations.\n", &strBuf);
@@ -428,8 +420,7 @@ static char *showHWthreads(bool all)
 {
     StepInfo_t stepInfo = {
 	.all = all,
-	.strBuf.buf = NULL,
-	.strBuf.bufSize = 0 };
+	.strBuf.buf = NULL };
 
     if (!countSteps()) {
 	return addStrBuf("\nNo current HW threads.\n", &stepInfo.strBuf);
@@ -528,8 +519,7 @@ static char *showSteps(bool all)
 {
     StepInfo_t stepInfo = {
 	.all = all,
-	.strBuf.buf = NULL,
-	.strBuf.bufSize = 0 };
+	.strBuf.buf = NULL };
 
     if (!countSteps()) {
 	return addStrBuf("\nNo current steps.\n", &stepInfo.strBuf);

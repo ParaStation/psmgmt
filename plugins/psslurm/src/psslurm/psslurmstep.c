@@ -326,7 +326,7 @@ char *getActiveStepList()
 {
     list_t *s;
     char strStep[128];
-    StrBuffer_t strBuf = { .buf = NULL, .bufSize = 0 };
+    StrBuffer_t strBuf = { .buf = NULL };
 
     list_for_each(s, &StepList) {
 	Step_t *step = list_entry(s, Step_t, next);
@@ -334,7 +334,7 @@ char *getActiveStepList()
 	if (step->state == JOB_EXIT ||
 	    step->state == JOB_COMPLETE) continue;
 
-	if (strBuf.bufSize) addStrBuf(", ", &strBuf);
+	if (strBuf.buf) addStrBuf(", ", &strBuf);
 	snprintf(strStep, sizeof(strStep), "%u.%u", step->jobid, step->stepid);
 	addStrBuf(strStep, &strBuf);
     }

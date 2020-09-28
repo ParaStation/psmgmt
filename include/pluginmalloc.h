@@ -15,7 +15,8 @@
 
 typedef struct {
     char *buf;
-    size_t bufSize;
+    size_t size;
+    size_t strLen;
 } StrBuffer_t;
 
 /**
