@@ -355,8 +355,8 @@ static bool addHwthreadsInfo(Step_t *step, const void *info)
 
     if (step->state == JOB_COMPLETE && !stepInfo->all) return false;
 
-    snprintf(line, sizeof(line), "- %s threads %u core map '%s'-\n",
-	     strStepID(step), step->numHwThreads, step->cred->stepCoreBitmap);
+    snprintf(line, sizeof(line), "- %s threads %u coremap '%s'-\n",
+	     strStepID(step), step->numHwThreads, step->stepCoreMap);
     addStrBuf(line, strBuf);
 
     if (!step->slots) {
