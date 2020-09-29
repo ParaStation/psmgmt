@@ -194,10 +194,10 @@ static char *getTasksPerNode(uint16_t tasksPerNode[], uint32_t nrOfNodes)
 
 void initJobEnv(Job_t *job)
 {
-    char tmp[1024], *cpus = NULL, *list = NULL;
+    char tmp[1024], *cpus = NULL;
     Gres_Cred_t *gres;
-    size_t listSize = 0;
     uint16_t *tasksPerNode;
+    StrBuffer_t strList = { .buf = NULL };
 
     /* MISSING BATCH VARS:
      *
@@ -268,13 +268,13 @@ void initJobEnv(Job_t *job)
     gres = findGresCred(&job->gresList, GRES_PLUGIN_GPU, GRES_CRED_JOB);
     if (gres && gres->bitAlloc) {
 	if (gres->bitAlloc[0]) {
-	    hexBitstr2List(gres->bitAlloc[0], &list, &listSize);
+	    hexBitstr2List(gres->bitAlloc[0], &strList, false);
 
 	    /* always set informational variable */
-	    envSet(&job->env, "SLURM_JOB_GPUS", list);
+	    envSet(&job->env, "SLURM_JOB_GPUS", strList.buf);
 
 	    /* tell doClamps() which gpus to use */
-	    envSet(&job->env, "__PSID_USE_GPUS", list);
+	    envSet(&job->env, "__PSID_USE_GPUS", strList.buf);
 
 	    char *prefix = "__AUTO_";
 	    char name[GPU_VARIABLE_MAXLEN+strlen(prefix)+1];
@@ -285,17 +285,15 @@ void initJobEnv(Job_t *job)
 			    gpu_variables[i]);
 		    /* append some spaces to help step code to detect whether
 		     * the user has changed the variable in his job script */
-		    char *val = umalloc(strlen(list) + 6);
-		    sprintf(val, "%s     ", list);
+		    char *val = umalloc(strList.strLen + 6);
+		    sprintf(val, "%s     ", strList.buf);
 		    envSet(&job->env, gpu_variables[i], val);
 		    envSet(&job->env, name, val);
 		    ufree(val);
 		}
 	    }
 
-	    ufree(list);
-	    list = NULL;
-	    listSize = 0;
+	    ufree(strList.buf);
 	} else {
 	    flog("invalid gpu gres bitAlloc for local nodeID 0\n");
 	}
@@ -305,11 +303,9 @@ void initJobEnv(Job_t *job)
     gres = findGresCred(&job->gresList, GRES_PLUGIN_MIC, GRES_CRED_JOB);
     if (gres && gres->bitAlloc) {
 	if (gres->bitAlloc[0]) {
-	    hexBitstr2List(gres->bitAlloc[0], &list, &listSize);
-	    envSet(&job->env, "OFFLOAD_DEVICES", list);
-	    ufree(list);
-	    list = NULL;
-	    listSize = 0;
+	    hexBitstr2List(gres->bitAlloc[0], &strList, false);
+	    envSet(&job->env, "OFFLOAD_DEVICES", strList.buf);
+	    ufree(strList.buf);
 	} else {
 	    flog("invalid mic gres bitAlloc for local nodeID 0\n");
 	}
@@ -319,11 +315,9 @@ void initJobEnv(Job_t *job)
     gres = findGresCred(&job->gresList, NO_VAL, GRES_CRED_JOB);
     if (gres && gres->bitAlloc) {
 	if (gres->bitAlloc[0]) {
-	    hexBitstr2List(gres->bitAlloc[0], &list, &listSize);
-	    envSet(&job->env, "SLURM_JOB_GRES", list);
-	    ufree(list);
-	    list = NULL;
-	    listSize = 0;
+	    hexBitstr2List(gres->bitAlloc[0], &strList, false);
+	    envSet(&job->env, "SLURM_JOB_GRES", strList.buf);
+	    ufree(strList.buf);
 	} else {
 	    flog("invalid job gres bitAlloc for local nodeID 0\n");
 	}
@@ -504,8 +498,7 @@ static void setGresEnv(uint32_t localRankId, Step_t *step)
 
     if (jobNodeId != NO_VAL) {
 	Gres_Cred_t *gres;
-	char *list = NULL;
-	size_t listSize = 0;
+	StrBuffer_t strList = { .buf = NULL };
 
 	/* gres "gpu" plugin */
 	gres = findGresCred(&step->gresList, GRES_PLUGIN_GPU, GRES_CRED_STEP);
@@ -517,11 +510,9 @@ static void setGresEnv(uint32_t localRankId, Step_t *step)
 	gres = findGresCred(&step->gresList, GRES_PLUGIN_MIC, GRES_CRED_STEP);
 	if (gres && gres->bitAlloc) {
 	    if (gres->bitAlloc[jobNodeId]) {
-		hexBitstr2List(gres->bitAlloc[jobNodeId], &list, &listSize);
-		setenv("OFFLOAD_DEVICES", list, 1);
-		ufree(list);
-		list = NULL;
-		listSize = 0;
+		hexBitstr2List(gres->bitAlloc[jobNodeId], &strList, false);
+		setenv("OFFLOAD_DEVICES", strList.buf, 1);
+		ufree(strList.buf);
 	    } else {
 		flog("invalid mic gres bitAlloc for job node ID %u\n",
 		     jobNodeId);
@@ -532,11 +523,9 @@ static void setGresEnv(uint32_t localRankId, Step_t *step)
 	gres = findGresCred(&step->gresList, NO_VAL, GRES_CRED_STEP);
 	if (gres && gres->bitAlloc) {
 	    if (gres->bitAlloc[jobNodeId]) {
-		hexBitstr2List(gres->bitAlloc[jobNodeId], &list, &listSize);
-		setenv("SLURM_STEP_GRES", list, 1);
-		ufree(list);
-		list = NULL;
-		listSize = 0;
+		hexBitstr2List(gres->bitAlloc[jobNodeId], &strList, false);
+		setenv("SLURM_STEP_GRES", strList.buf, 1);
+		ufree(strList.buf);
 	    } else {
 		flog("invalid step gres bitAlloc for job node ID %u\n",
 		     jobNodeId);
@@ -766,17 +755,16 @@ void setStepEnv(Step_t *step)
 	uint32_t jobNodeId = getJobNodeId(step);
 	if (jobNodeId != NO_VAL) {
 	    if (gres->bitAlloc[jobNodeId]) {
-		char *list = NULL;
-		size_t listSize = 0;
-		hexBitstr2List(gres->bitAlloc[jobNodeId], &list, &listSize);
+		StrBuffer_t strList = { .buf = NULL };
+		hexBitstr2List(gres->bitAlloc[jobNodeId], &strList, false);
 
 		/* always set informational variable */
-		envSet(&step->env, "SLURM_STEP_GPUS", list);
+		envSet(&step->env, "SLURM_STEP_GPUS",  strList.buf);
 
 		/* tell doClamps() which gpus to use */
-		envSet(&step->env, "__PSID_USE_GPUS", list);
+		envSet(&step->env, "__PSID_USE_GPUS", strList.buf);
 
-		ufree(list);
+		ufree(strList.buf);
 	    }
 	}
 	else {

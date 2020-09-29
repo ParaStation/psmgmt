@@ -15,6 +15,7 @@
 #include "psserial.h"
 #include "psslurmmsg.h"
 #include "psslurmauth.h"
+#include "pluginmalloc.h"
 
 /** default slurmctld port */
 #define PSSLURM_SLURMCTLD_PORT "6817"
@@ -276,22 +277,57 @@ char *__getBitString(char **ptr, const char *func, const int line);
 bool hexBitstr2Array(char *bitstr, int **array, size_t *arraySize);
 
 /**
+ * @brief Convert function of hexBitstr2List()
+ *
+ * A convert function for @ref hexBitstr2List which will be called
+ * for every value of the list can be defined. Used to map the
+ * logical CPU representation from Slurm to a physical CPU of the node.
+ * If the convert function returns -1 the value will on added
+ * to the list and the conversion is continued with the next value.
+ *
+ * @return Returns the converted value or -1 on error.
+ */
+typedef int32_t hexBitStrConv_func_t(int32_t);
+
+/**
  * @brief Convert a hex bitstring to a comma separated list.
  *
- * To start with an empty list the caller needs to initialize
- * list and listSize with zero.The list is grown using @ref __umalloc()
+ * This function is a wrapper for @ref hexBitstr2ListEx(). See
+ * this documentation for further information.
+ *
+ * @param bitstr The bitstring to convert
+ *
+ * @param strBuf The list holding the result
+ *
+ * @param range If true compact the list using range syntax
+ *
+ * @return Returns true on success otherwise false
+ */
+bool hexBitstr2List(char *bitstr, StrBuffer_t *strBuf, bool range);
+
+/**
+ * @brief Convert a hex bitstring to a comma separated list.
+ *
+ * The provided bitstring is converted into a comma seperated list.
+ * The list is initialized at start. If the range option is set to true
+ * the values are compacted into range syntax. Otherwise every single value will
+ * lead to an entry in the list. The convert function will be called for every
+ * value before it is added. The list is grown using @ref __umalloc()
  * and @ref __urealloc. The caller is responsible to free the memory
  * using @ref ufree().
  *
  * @param bitstr The bitstring to convert
  *
- * @para list The list holding the result
+ * @param strBuf The list holding the result
  *
- * @param listSize The size of the list
+ * @param range If true compact the list using range syntax
+ *
+ * @param conv A convert function or NULL
  *
  * @return Returns true on success otherwise false
  */
-bool hexBitstr2List(char *bitstr, char **list, size_t *listSize);
+bool hexBitstr2ListEx(char *bitstr, StrBuffer_t *strBuf, bool range,
+		      hexBitStrConv_func_t *conv);
 
 /**
  * @brief Open a TCP connection

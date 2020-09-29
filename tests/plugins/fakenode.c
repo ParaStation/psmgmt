@@ -77,9 +77,7 @@ static void resetFakeTopology(void)
 static char * doEval(const char *key, const pluginConfigVal_t *val,
 		     const void *info)
 {
-    StrBuffer_t strBuf = {
-	.buf = NULL,
-	.bufSize = 0 };
+    StrBuffer_t strBuf = { .buf = NULL };
 
     if (!strcmp(key, "DebugMask")) {
 	// uint32_t mask = val ? val->val.num : 0;
@@ -197,9 +195,7 @@ void cleanup(void)
 
 char * help(void)
 {
-    StrBuffer_t strBuf = {
-	.buf = NULL,
-	.bufSize = 0 };
+    StrBuffer_t strBuf = { .buf = NULL };
 
     addStrBuf("\nTest plugin helping to fake hwloc topologies.\n", &strBuf);
     addStrBuf("Topologies might be set via psiadmin:\n", &strBuf);
@@ -220,9 +216,7 @@ char * help(void)
 
 char *set(char *key, char *value)
 {
-    StrBuffer_t strBuf = {
-	.buf = NULL,
-	.bufSize = 0 };
+    StrBuffer_t strBuf = { .buf = NULL };
     const pluginConfigDef_t *thisDef = pluginConfig_getDef(config, key);
 
     if (!thisDef) {
@@ -250,9 +244,7 @@ char *unset(char *key)
 
 char *show(char *key)
 {
-    StrBuffer_t strBuf = {
-	.buf = NULL,
-	.bufSize = 0 };
+    StrBuffer_t strBuf = { .buf = NULL };
 
     if (key) {
 	if (!pluginConfig_showKeyVal(config, key, &strBuf)) {

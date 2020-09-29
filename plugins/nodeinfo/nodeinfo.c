@@ -662,9 +662,7 @@ void cleanup(void)
 
 char *help(void)
 {
-    StrBuffer_t strBuf = {
-	.buf = NULL,
-	.bufSize = 0 };
+    StrBuffer_t strBuf = { .buf = NULL };
 
     addStrBuf("\tDistribute, collect and store info on node configurations\n\n",
 	      &strBuf);
@@ -835,9 +833,7 @@ void printPCIIDs(PCI_ID_t *id, StrBuffer_t *strBuf)
 
 char *show(char *key)
 {
-    StrBuffer_t strBuf = {
-	.buf = NULL,
-	.bufSize = 0 };
+    StrBuffer_t strBuf = { .buf = NULL };
 
     if (!key) {
 	/* Show the whole configuration */

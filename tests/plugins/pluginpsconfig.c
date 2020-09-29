@@ -79,9 +79,7 @@ void cleanup(void)
 
 char * help(void)
 {
-    StrBuffer_t strBuf = {
-	.buf = NULL,
-	.bufSize = 0 };
+    StrBuffer_t strBuf = { .buf = NULL };
 
     addStrBuf("\tSome dummy plugin mimicking psconfig usage.\n", &strBuf);
     addStrBuf("\n# configuration options #\n\n", &strBuf);
@@ -144,9 +142,7 @@ char *unset(char *key)
 
 char *show(char *key)
 {
-    StrBuffer_t strBuf = {
-	.buf = NULL,
-	.bufSize = 0 };
+    StrBuffer_t strBuf = { .buf = NULL };
 
     if (!key) {
 	/* Show the whole configuration */

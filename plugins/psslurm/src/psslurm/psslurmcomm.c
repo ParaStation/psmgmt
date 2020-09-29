@@ -892,22 +892,91 @@ bool hexBitstr2Array(char *bitstr, int **array, size_t *arraySize)
     return true;
 }
 
-bool hexBitstr2List(char *bitstr, char **list, size_t *listSize)
+static void addVal2List(StrBuffer_t *strBuf, int32_t val, bool range, bool fin,
+			hexBitStrConv_func_t *conv)
 {
-    int *array;
-    size_t arraySize;
+    char tmp[128];
+    static int32_t lastVal, rangeVal;
 
-    if (!hexBitstr2Array(bitstr, &array, &arraySize)) return false;
-
-    char tmp[1024];
-    for (size_t i = 0; i < arraySize; i++) {
-        if (*listSize) str2Buf(",", list, listSize);
-        snprintf(tmp, sizeof(tmp), "%i", array[i]);
-        str2Buf(tmp, list, listSize);
+    if (fin) {
+	/* add end range of compected list */
+	if (range && rangeVal != -1) {
+	    snprintf(tmp, sizeof(tmp), "-%i", rangeVal);
+	    addStrBuf(tmp, strBuf);
+	}
+	lastVal = rangeVal = -1;
+	return;
     }
-    str2Buf("", list, listSize);
 
-    ufree(array);
+    /* call convert func */
+    if (conv) {
+	val = conv(val);
+	if (val == -1) return;
+    }
+
+    if (range) {
+	/* compact list with range syntax */
+	if (!strBuf->buf) lastVal = rangeVal = -1;
+
+	if (lastVal != -1 && val == lastVal+1) {
+	    rangeVal = val;
+	} else {
+	    if (rangeVal != -1) {
+		snprintf(tmp, sizeof(tmp), "-%i", rangeVal);
+		addStrBuf(tmp, strBuf);
+		rangeVal = -1;
+	    }
+	    if (strBuf->buf) addStrBuf(",", strBuf);
+	    snprintf(tmp, sizeof(tmp), "%i", val);
+	    addStrBuf(tmp, strBuf);
+	}
+	lastVal = val;
+    } else {
+	/* comma separated list only */
+	if (strBuf->buf) addStrBuf(",", strBuf);
+	snprintf(tmp, sizeof(tmp), "%i", val);
+	addStrBuf(tmp, strBuf);
+    }
+}
+
+bool hexBitstr2List(char *bitstr, StrBuffer_t *strBuf, bool range)
+{
+    return hexBitstr2ListEx(bitstr, strBuf, range, NULL);
+}
+
+bool hexBitstr2ListEx(char *bitstr, StrBuffer_t *strBuf, bool range,
+		      hexBitStrConv_func_t *conv)
+{
+    strBuf->buf = NULL;
+    if (!bitstr) {
+	mlog("%s: invalid bitstring\n", __func__);
+	return false;
+    }
+
+    if (!strncmp(bitstr, "0x", 2)) bitstr += 2;
+    size_t len = strlen(bitstr);
+    int32_t count = 0;
+
+    while (len--) {
+	int32_t next = (int32_t) bitstr[len];
+
+	if (!isxdigit(next)) return false;
+
+	if (isdigit(next)) {
+	    next -= '0';
+	} else {
+	    next = toupper(next);
+	    next -= 'A' - 10;
+	}
+
+	for (int32_t i = 1; i <= 8; i *= 2) {
+	    if (next & i) addVal2List(strBuf, count, range, false, conv);;
+	    count++;
+	}
+    }
+
+    if (range) addVal2List(strBuf, 0, range, true, conv);
+    addStrBuf("", strBuf);
 
     return true;
 }
