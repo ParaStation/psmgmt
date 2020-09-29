@@ -453,6 +453,11 @@ uint32_t getLocalID(PSnodes_ID_t *nodes, uint32_t nrOfNodes)
     return id;
 }
 
+static int32_t convCPU(int32_t cpu)
+{
+    return PSIDnodes_mapCPU(PSC_getMyID(), cpu);
+}
+
 static void handleLaunchTasks(Slurm_Msg_t *sMsg)
 {
     Step_t *step = NULL;
@@ -528,6 +533,14 @@ static void handleLaunchTasks(Slurm_Msg_t *sMsg)
 	sendSlurmRC(sMsg, ESLURMD_INVALID_JOB_CREDENTIAL);
 	goto ERROR;
     }
+
+    StrBuffer_t jobCoreList;
+    hexBitstr2ListEx(step->cred->jobCoreBitmap, &jobCoreList, true, convCPU);
+    step->jobCoreMap = jobCoreList.buf;
+
+    StrBuffer_t stepCoreList;
+    hexBitstr2ListEx(step->cred->stepCoreBitmap, &stepCoreList, true, convCPU);
+    step->stepCoreMap = stepCoreList.buf;
 
     /* pack info */
     if (step->packNrOfNodes != NO_VAL) {
@@ -1590,6 +1603,10 @@ static void handleBatchJobLaunch(Slurm_Msg_t *sMsg)
 	sendSlurmRC(sMsg, ESLURMD_INVALID_JOB_CREDENTIAL);
 	return;
     }
+
+    StrBuffer_t jobCoreList;
+    hexBitstr2ListEx(job->cred->jobCoreBitmap, &jobCoreList, true, convCPU);
+    job->jobCoreMap = jobCoreList.buf;
 
     job->hostname = ustrdup(getConfValueC(&Config, "SLURM_HOSTNAME"));
 

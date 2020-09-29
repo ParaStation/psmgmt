@@ -77,6 +77,17 @@ bool execStepFollower(Step_t *step);
 bool execEpilogueFin(Alloc_t *alloc);
 
 /**
+ * @brief Handle hook PSIDHOOK_EXEC_FORWARDER
+ *
+ * Used to prepare the psidforwarders environment
+ *
+ * @param data Task structure of the client
+ *
+ * @return Always returns 0
+ */
+int handleHookExecFW(void *data);
+
+/**
  * @brief Handle hook PSIDHOOK_EXEC_CLIENT
  *
  * Used to set Slurm rlimits in child processes.

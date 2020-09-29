@@ -89,6 +89,7 @@ typedef struct {
     char *qos;              /**< qos (unused) */
     char *resName;          /**< reservation name (unused) */
     uint32_t profile;       /**< profile (unused) */
+    char *jobCoreMap;       /**< reserved cores for job as string list */
 } Job_t;
 
 /**

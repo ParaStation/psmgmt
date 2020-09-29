@@ -61,12 +61,17 @@
 #include "psidhook.h"
 #include "psidsignal.h"
 #include "psipartition.h"
+#include "psidnodes.h"
 
 #include "psslurmforwarder.h"
 
 #define X11_AUTH_CMD "/usr/bin/xauth"
 
 #define MPIEXEC_BINARY BINDIR "/mpiexec"
+
+#define STEP_CORE_BITMAP "__PSSLURM_STEP_CORE_BITMAP"
+
+#define JOB_CORE_BITMAP "__PSSLURM_JOB_CORE_BITMAP"
 
 /** Allocation structure of the forwarder */
 Alloc_t *fwAlloc = NULL;
@@ -536,6 +541,20 @@ int handleForwarderClientStatus(void * data)
     return 0;
 }
 
+int handleHookExecFW(void *data)
+{
+    PStask_t *task = data;
+
+    initFwPtr(task);
+
+    if (fwStep) {
+	setenv(STEP_CORE_BITMAP, fwStep->stepCoreMap, 1);
+	setenv(JOB_CORE_BITMAP, fwStep->jobCoreMap, 1);
+    }
+
+    return 0;
+}
+
 int handleExecClient(void *data)
 {
     PStask_t *task = data;
@@ -609,6 +628,8 @@ int handleExecClientUser(void *data)
     unsetenv("__PSI_LOGGER_UNBUFFERED");
     unsetenv("__MPIEXEC_DIST_START");
     unsetenv("MPIEXEC_VERBOSE");
+    unsetenv(STEP_CORE_BITMAP);
+    unsetenv(JOB_CORE_BITMAP);
 
 #ifdef HAVE_SPANK
     struct spank_handle spank = {

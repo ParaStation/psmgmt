@@ -163,6 +163,10 @@ static void unregisterHooks(bool verbose)
     if (!PSIDhook_del(PSIDHOOK_PELOGUE_GLOBAL, handlePelogueGlobal)) {
 	if (verbose) mlog("unregister 'PSIDHOOK_PELOGUE_GLOBAL' failed\n");
     }
+
+    if (!PSIDhook_del(PSIDHOOK_EXEC_FORWARDER, handleHookExecFW)) {
+	if (verbose) mlog("unregister 'PSIDHOOK_EXEC_FORWARDER' failed\n");
+    }
 }
 
 /**
@@ -217,6 +221,11 @@ static bool registerHooks(void)
 
     if (!PSIDhook_add(PSIDHOOK_PELOGUE_GLOBAL, handlePelogueGlobal)) {
 	mlog("register 'PSIDHOOK_PELOGUE_GLOBAL' failed\n");
+	return false;
+    }
+
+    if (!PSIDhook_add(PSIDHOOK_EXEC_FORWARDER, handleHookExecFW)) {
+	mlog("register 'PSIDHOOK_EXEC_FORWARDER' failed\n");
 	return false;
     }
 

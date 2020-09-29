@@ -92,6 +92,7 @@ static void doDeleteJob(Job_t *job)
     ufree(job->account);
     ufree(job->qos);
     ufree(job->resName);
+    ufree(job->jobCoreMap);
 
     for (i=0; i<job->argc; i++) {
 	ufree(job->argv[i]);

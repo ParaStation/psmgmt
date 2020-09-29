@@ -159,6 +159,8 @@ typedef struct {
     X11_Data_t x11;             /**< (vanilla) X11 support */
     char *tresBind;             /**< TRes binding (currently env set only) */
     char *tresFreq;             /**< TRes frequency (currently env set only) */
+    char *jobCoreMap;           /**< reserved cores for job as string list */
+    char *stepCoreMap;          /**< reserved cores for step as string list */
 /* helper variables, only used temporarily by specific functions */
     uint32_t rcvdPackInfos;	/**< number of received pack infos */
     uint32_t rcvdPackProcs;	/**< number of received pack processes */
