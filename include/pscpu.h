@@ -40,7 +40,9 @@ typedef PSCPU_mask_t PSCPU_set_t[PSCPU_MAX/CPUmask_s];
 /**
  * @brief Set bit in CPU-set
  *
- * Set the bit representing CPU @a cpu within the CPU-set @a set.
+ * Set the bit representing CPU @a cpu within the CPU-set @a
+ * set. Setting the corresponding bit might fail silently if @cpu is
+ * out of range, i.e. larger than PSCPU_MAX.
  *
  * @param set The CPU-set to manipulate
  *
@@ -48,9 +50,9 @@ typedef PSCPU_mask_t PSCPU_set_t[PSCPU_MAX/CPUmask_s];
  *
  * @return No return value
  */
-static inline void PSCPU_setCPU(PSCPU_set_t set, int16_t cpu)
+static inline void PSCPU_setCPU(PSCPU_set_t set, uint16_t cpu)
 {
-    set[cpu/CPUmask_s] |= 1 << cpu%CPUmask_s;
+    if (cpu < PSCPU_MAX) set[cpu/CPUmask_s] |= 1 << cpu%CPUmask_s;
 }
 
 /**
@@ -90,7 +92,9 @@ static inline void PSCPU_addCPUs(PSCPU_set_t set, PSCPU_set_t add)
 /**
  * @brief Clear bit in CPU-set
  *
- * Clear the bit representing CPU @a cpu within the CPU-set @a set.
+ * Clear the bit representing CPU @a cpu within the CPU-set @a
+ * set. Clearing the corresponding bit might fail silently if @cpu is
+ * out of range, i.e. larger than PSCPU_MAX.
  *
  * @param set The CPU-set to manipulate
  *
@@ -98,9 +102,9 @@ static inline void PSCPU_addCPUs(PSCPU_set_t set, PSCPU_set_t add)
  *
  * @return No return value
  */
-static inline void PSCPU_clrCPU(PSCPU_set_t set, int16_t cpu)
+static inline void PSCPU_clrCPU(PSCPU_set_t set, uint16_t cpu)
 {
-    set[cpu/CPUmask_s] &= ~(1 << cpu%CPUmask_s);
+    if (cpu < PSCPU_MAX) set[cpu/CPUmask_s] &= ~(1 << cpu%CPUmask_s);
 }
 
 /**
@@ -149,9 +153,9 @@ static inline void PSCPU_remCPUs(PSCPU_set_t set, PSCPU_set_t rem)
  *
  * @return If the tested bit is set, true is returned. Or false otherwise.
  */
-static inline bool PSCPU_isSet(PSCPU_set_t set, int16_t cpu)
+static inline bool PSCPU_isSet(PSCPU_set_t set, uint16_t cpu)
 {
-    return set[cpu/CPUmask_s] & 1<<cpu%CPUmask_s;
+    return (cpu < PSCPU_MAX) && (set[cpu/CPUmask_s] & 1<<cpu%CPUmask_s);
 }
 
 /**
