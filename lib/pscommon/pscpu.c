@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2007-2018 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2007-2020 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -15,14 +15,15 @@
 #include "pscpu.h"
 
 /** Number of bits (i.e. CPUs) encoded within @ref PSCPU_mask_t. */
-#define CPUmask_s (8*sizeof(PSCPU_mask_t))
+#define CPUmask_s (int16_t)(8*sizeof(PSCPU_mask_t))
 
 bool PSCPU_any(PSCPU_set_t set, uint16_t physCPUs)
 {
     unsigned int i;
-    for (i=0; i<PSCPU_MAX/CPUmask_s && physCPUs>0; i++, physCPUs-=CPUmask_s) {
+    int16_t pCPUs = (physCPUs > PSCPU_MAX) ? PSCPU_MAX : physCPUs;
+    for (i = 0; i < PSCPU_MAX/CPUmask_s && pCPUs > 0; i++, pCPUs -= CPUmask_s) {
 	PSCPU_mask_t m = set[i];
-	if (m && (physCPUs >= CPUmask_s || (m << (CPUmask_s-physCPUs)) != 0)) {
+	if (m && (pCPUs >= CPUmask_s || (m << (CPUmask_s - pCPUs)) != 0)) {
 	    return true;
 	}
     }
@@ -33,9 +34,10 @@ bool PSCPU_any(PSCPU_set_t set, uint16_t physCPUs)
 bool PSCPU_all(PSCPU_set_t set, uint16_t physCPUs)
 {
     unsigned int i;
-    for (i=0; i<PSCPU_MAX/CPUmask_s && physCPUs>0; i++, physCPUs-=CPUmask_s) {
+    int16_t pCPUs = (physCPUs > PSCPU_MAX) ? PSCPU_MAX : physCPUs;
+    for (i = 0; i < PSCPU_MAX/CPUmask_s && pCPUs > 0; i++, pCPUs -= CPUmask_s) {
 	PSCPU_mask_t m = ~set[i];
-	if (m && (physCPUs >= CPUmask_s || (m << (CPUmask_s-physCPUs)) != 0)) {
+	if (m && (pCPUs >= CPUmask_s || (m << (CPUmask_s-pCPUs)) != 0)) {
 	    return false;
 	}
     }
@@ -49,14 +51,14 @@ int16_t PSCPU_first(PSCPU_set_t set, uint16_t physCPUs)
     unsigned int i;
     int cpu=0;
 
-    for (i=0; i<PSCPU_MAX/CPUmask_s && cpu<physCPUs; i++) {
+    if (physCPUs > PSCPU_MAX) physCPUs = PSCPU_MAX;
+    for (i = 0; i < PSCPU_MAX/CPUmask_s && cpu < physCPUs; i++) {
 	m = set[i];
 	if (m) break;
 	cpu += CPUmask_s;
     }
 
-
-    while (m && !(m & 1) && cpu<physCPUs) {
+    while (m && !(m & 1) && cpu < physCPUs) {
 	cpu++;
 	m >>= 1;
     }
@@ -72,7 +74,7 @@ int PSCPU_getCPUs(PSCPU_set_t origSet, PSCPU_set_t newSet, int16_t num)
     int found=0;
 
     if (newSet) PSCPU_clrAll(newSet);
-    for (cpu=0; cpu < PSCPU_MAX && found < num; cpu++) {
+    for (cpu = 0; cpu < PSCPU_MAX && found < num; cpu++) {
 	if (PSCPU_isSet(origSet, cpu)) {
 	    if (newSet) PSCPU_setCPU(newSet, cpu);
 	    found++;
@@ -83,22 +85,24 @@ int PSCPU_getCPUs(PSCPU_set_t origSet, PSCPU_set_t newSet, int16_t num)
 }
 
 
-int PSCPU_getUnset(PSCPU_set_t set, int16_t physCPUs,
-		   PSCPU_set_t free, int16_t tpp)
+int PSCPU_getUnset(PSCPU_set_t set, uint16_t physCPUs,
+		   PSCPU_set_t free, uint16_t tpp)
 {
     int16_t cpu;
     int found=0;
 
     if (free) PSCPU_clrAll(free);
-    for (cpu=0; cpu < physCPUs; cpu++) {
+    /* Shortcut if physCPUs is unreasonably large */
+    if (physCPUs > PSCPU_MAX) physCPUs = PSCPU_MAX;
+    for (cpu = 0; cpu < physCPUs; cpu++) {
 	if (!PSCPU_isSet(set, cpu)) {
 	    if (free) PSCPU_setCPU(free, cpu);
 	    found++;
 	}
     }
 
-    for (cpu=physCPUs-1; found%tpp; cpu--) {
-	if (free ? PSCPU_isSet(free, cpu) : 1) {
+    for (cpu = physCPUs - 1; found%tpp; cpu--) {
+	if (free ? PSCPU_isSet(free, cpu) : true) {
 	    found--;
 	    if (free) PSCPU_clrCPU(free, cpu);
 	}
@@ -112,9 +116,10 @@ char *PSCPU_print_part(PSCPU_set_t set, size_t num)
     static char setStr[PSCPU_MAX/4+10];
     unsigned int i;
 
+    if (num > PSCPU_MAX/8) num = PSCPU_MAX/8;
     snprintf(setStr, sizeof(setStr), "0x");
-    for (i=(num+1)/sizeof(PSCPU_mask_t); i>0; i--) {
-	snprintf(setStr+strlen(setStr), sizeof(setStr)-strlen(setStr),
+    for (i = (num+1)/sizeof(PSCPU_mask_t); i > 0; i--) {
+	snprintf(setStr + strlen(setStr), sizeof(setStr) - strlen(setStr),
 		 "%0*hx", (int)sizeof(PSCPU_mask_t) * 2, set[i-1]);
     }
 

@@ -41,12 +41,14 @@ typedef PSCPU_mask_t PSCPU_set_t[PSCPU_MAX/CPUmask_s];
  * @brief Set bit in CPU-set
  *
  * Set the bit representing CPU @a cpu within the CPU-set @a
- * set. Setting the corresponding bit might fail silently if @cpu is
- * out of range, i.e. larger than PSCPU_MAX.
+ * set.
+ *
+ * @attention Setting the corresponding bit might fail silently if @a
+ * cpu is out of range, i.e. larger than PSCPU_MAX.
  *
  * @param set The CPU-set to manipulate
  *
- * @param cpu Number of the bit within @a set to set.
+ * @param cpu Number of the bit within @a set to set
  *
  * @return No return value
  */
@@ -93,8 +95,10 @@ static inline void PSCPU_addCPUs(PSCPU_set_t set, PSCPU_set_t add)
  * @brief Clear bit in CPU-set
  *
  * Clear the bit representing CPU @a cpu within the CPU-set @a
- * set. Clearing the corresponding bit might fail silently if @cpu is
- * out of range, i.e. larger than PSCPU_MAX.
+ * set.
+ *
+ * @attention Clearing the corresponding bit might fail silently if @a
+ * cpu is out of range, i.e. larger than PSCPU_MAX.
  *
  * @param set The CPU-set to manipulate
  *
@@ -167,7 +171,7 @@ static inline bool PSCPU_isSet(PSCPU_set_t set, uint16_t cpu)
  *
  * @param set The CPU-set to investigate
  *
- * @param physCPUs The number of CPUs actualy to investigate.
+ * @param physCPUs The number of CPUs actualy to investigate
  *
  * @return If any CPU is set, true is returned. Otherwise false is returned
  */
@@ -183,7 +187,7 @@ bool PSCPU_any(PSCPU_set_t set, uint16_t physCPUs);
  *
  * @param set The CPU-set to investigate
  *
- * @param physCPUs The number of CPUs actualy to investigate.
+ * @param physCPUs The number of CPUs actualy to investigate
  *
  * @return If all CPU are set, true is returned. Otherwise false is returned
  */
@@ -200,7 +204,7 @@ bool PSCPU_all(PSCPU_set_t set, uint16_t physCPUs);
  *
  * @param set The CPU-set to investigate
  *
- * @param physCPUs The number of CPUs actualy to investigate.
+ * @param physCPUs The number of CPUs actualy to investigate
  *
  * @return If a CPU defined within @a set is found, the corresponding
  * number is returned. If no CPU is defined within the first @a
@@ -217,7 +221,7 @@ int16_t PSCPU_first(PSCPU_set_t set, uint16_t physCPUs);
  * @param origSet The CPU-set to get CPUs from. Left untouched.
  *
  * @param newSet The CPU-set used to store the CPUs selected from @a
- * origSet.
+ * origSet
  *
  * @param num The number of CPUs to get.
  *
@@ -245,17 +249,17 @@ int PSCPU_getCPUs(PSCPU_set_t origSet, PSCPU_set_t newSet, int16_t num);
  * @param set The CPU-set to take the free CPUs from
  *
  * @param physCPUs The number of CPUs in @a set actualy to
- * investigate.
+ * investigate
  *
- * @param free The CPU-set to store the results in.
+ * @param free The CPU-set to store the results in
  *
  * @param tpp Possible 'threads per process'. The number of CPUs set
  * within @a free will be a multiple of this value.
  *
  * @return The number of CPUs set within @a free.
  */
-int PSCPU_getUnset(PSCPU_set_t set, int16_t physCPUs,
-		   PSCPU_set_t free, int16_t tpp);
+int PSCPU_getUnset(PSCPU_set_t set, uint16_t physCPUs,
+		   PSCPU_set_t free, uint16_t tpp);
 
 
 /**
@@ -304,7 +308,7 @@ char *PSCPU_print_part(PSCPU_set_t set, size_t num);
  *
  * Copy the content of CPU-set @a src into the CPU-set @a dest.
  *
- * @param dest The destination CPU-set.
+ * @param dest The destination CPU-set
  *
  * @param src The CPU-set to copy
  *
