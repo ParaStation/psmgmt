@@ -363,7 +363,9 @@ int handleMotherMsg(PSLog_Msg_t *msg, Forwarder_Data_t *fw)
 
     /* failed to get resources from master */
     if (msg->header.type == PSP_CD_PARTITIONRES) {
-	snprintf(msgBuf, sizeof(msgBuf), "getting resources for job %s "
+	int tpp = getConfValueI(&config, "GATEWAY_TPP");
+	flog("error: no free gateway nodes with %i cores found\n", tpp);
+	snprintf(msgBuf, sizeof(msgBuf), "getting gateway resources for job %s "
 		 "failed\n", req->jobid);
 	flog("%s", msgBuf);
 

@@ -3,7 +3,9 @@
 #
 
 
-# Set to max TPP of gateway nodes
+# Set to max TPP of gateway nodes on the booster and cluster
+#
+# Essential for the proper reservation of gateway nodes.
 #
 # (integer, default: 8)
 #GATEWAY_TPP = 16
