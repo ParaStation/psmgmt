@@ -15,6 +15,7 @@
 #include <limits.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <signal.h>
 
 #include "plugin.h"
 #include "pscommon.h"
@@ -83,8 +84,16 @@ static int jailProcess(void *info)
     char *command = PSC_concat(jailScript, argument, 0L);
 
     if (command) {
+	/* ensure system() is able to catch SIGCHLD */
+	sigset_t set, oldset;
+	sigemptyset(&set);
+	sigaddset(&set, SIGCHLD);
+	sigprocmask(SIG_UNBLOCK, &set, &oldset);
+
 	int ret = system(command);
 	if (ret == -1) jlog(-1, "%s: system(%s) failed\n", __func__, command);
+
+	sigprocmask(SIG_SETMASK, &oldset, NULL);
 	free(command);
     }
 
