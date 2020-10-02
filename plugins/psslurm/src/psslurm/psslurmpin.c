@@ -1095,7 +1095,7 @@ static void setCPUset(PSCPU_set_t *CPUset, uint16_t cpuBindType,
 	    nodeinfo->threadCount);
 
     if (cpuBindType & CPU_BIND_NONE) {
-	PSCPU_setAll(*CPUset);
+	pinToAllThreads(CPUset, nodeinfo);
 	mdbg(PSSLURM_LOG_PART, "%s: (cpu_bind_none)\n", __func__);
 	return;
     }
