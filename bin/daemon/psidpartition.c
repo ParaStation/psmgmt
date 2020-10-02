@@ -3716,7 +3716,7 @@ no_task_error:
 	task->numChild += got;
 
 	PSID_log(PSID_LOG_PART, "%s: new reservation %#x of %d slots\n",
-		 __func__, got, r->rid);
+		 __func__, r->rid, got);
 	enqRes(&task->reservations, r);
 	send_RESCREATED(task, r);
 
