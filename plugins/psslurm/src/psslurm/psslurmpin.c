@@ -1988,6 +1988,9 @@ cleanup:
     return nodemask;
 }
 
+/* This function sets the memory binding for the calling process.
+ * It is called from in PSIDHOOK_EXEC_CLIENT_USER which is executed by
+ * the final client (in execClient()) after doClamps right before execve() */
 void doMemBind(Step_t *step, PStask_t *task)
 {
 # ifndef HAVE_NUMA_ALLOCATE_NODEMASK
