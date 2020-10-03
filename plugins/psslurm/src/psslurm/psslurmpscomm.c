@@ -621,12 +621,27 @@ static int handleGetReservation(void *res) {
 
     /* mark used threads in task */
     for (ssize_t s = 0; s < r->nSlots; s++) {
+	/* find first entry in partition threads array matching node */
+	bool found = false;
+	size_t first_thread = 0;
+	for (size_t t = 0; t < task->totalThreads; t++) {
+	    if (task->partThrds[t].node == r->slots[s].node) {
+		found = true;
+		first_thread = t;
+		break;
+	    }
+	}
+	if (!found) {
+	    flog("node not found: node %hu\n", r->slots[s].node);
+	    continue;
+	}
+
 	for (ssize_t cpu = 0; cpu < PSCPU_MAX; cpu++) {
 	    if (!PSCPU_isSet(r->slots[s].CPUset, cpu)) continue;
 
 	    /* find matching entry in partition threads array */
-	    bool found = false;
-	    for (size_t t = 0; t < task->totalThreads; t++) {
+	    found = false;
+	    for (size_t t = first_thread; t < task->totalThreads; t++) {
 		PSpart_HWThread_t *thread = &(task->partThrds[t]);
 		if (thread->node == r->slots[s].node && thread->id == cpu) {
 		    /* increase number of used threads
