@@ -36,6 +36,7 @@ void deleteBCast(BCast_t *bcast)
     ufree(bcast->fileName);
     ufree(bcast->block);
     ufree(bcast->sig);
+    ufree(bcast->jobCoreMap);
     ufree(bcast);
 }
 

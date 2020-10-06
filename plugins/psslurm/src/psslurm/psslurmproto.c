@@ -1118,11 +1118,14 @@ static void handleFileBCast(Slurm_Msg_t *sMsg)
 	    bcast->env = &alloc->env;
 	    ufree(bcast->username);
 	    bcast->username = ustrdup(alloc->username);
+	    Step_t *step = findStepByJobid(bcast->jobid);
+	    if (step) bcast->jobCoreMap = ustrdup(step->jobCoreMap);
 	}
     } else {
 	bcast->uid = job->uid;
 	bcast->gid = job->gid;
 	bcast->env = &job->env;
+	bcast->jobCoreMap = ustrdup(job->jobCoreMap);
 	ufree(bcast->username);
 	bcast->username = ustrdup(job->username);
     }

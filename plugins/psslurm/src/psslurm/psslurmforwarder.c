@@ -1042,12 +1042,26 @@ static int switchEffectiveUser(char *username, uid_t uid, gid_t gid)
     return 1;
 }
 
+static void setJailEnv(env_t *env, char *user, char *stepCoreMap,
+		       char *jobCoreMap)
+{
+    if (stepCoreMap) setenv(STEP_CORE_BITMAP, stepCoreMap, 1);
+    if (jobCoreMap) setenv(JOB_CORE_BITMAP, jobCoreMap, 1);
+
+    char *id = envGet(env, "SLURM_JOBID");
+    if (id) setenv("SLURM_JOBID", id, 1);
+    id = envGet(env, "SLURM_STEPID");
+    if (id) setenv("SLURM_STEPID", id, 1);
+    if (user) setenv("SLURM_USER", user, 1);
+}
+
 static int stepForwarderInit(Forwarder_Data_t *fwdata)
 {
     Step_t *step = fwdata->userData;
     step->fwdata = fwdata;
 
     initSerial(0, sendMsg);
+    setJailEnv(&step->env, step->username, step->stepCoreMap, step->jobCoreMap);
 
 #ifdef HAVE_SPANK
     struct spank_handle spank = {
@@ -1209,6 +1223,7 @@ bool execStepLeader(Step_t *step)
     fwdata->handleFwMsg = fwCMD_handleFwStepMsg;
     fwdata->hookChild = handleChildStartStep;
     fwdata->hookFinalize = stepFinalize;
+    fwdata->jailChild = true;
 
     if (!startForwarder(fwdata)) {
 	char msg[128];
@@ -1249,6 +1264,8 @@ static int jobForwarderInit(Forwarder_Data_t *fwdata)
 
     PSIDhook_call(PSIDHOOK_PSSLURM_JOB_FWINIT, job->username);
 
+    setJailEnv(&job->env, job->username, NULL, job->jobCoreMap);
+
     return IO_openJobPipes(fwdata);
 }
 
@@ -1281,6 +1298,7 @@ bool execBatchJob(Job_t *job)
     fwdata->hookLoop = handleJobLoop;
     fwdata->handleMthrMsg = fwCMD_handleMthrJobMsg;
     fwdata->hookFinalize = jobForwarderFin;
+    fwdata->jailChild = true;
 
     if (!startForwarder(fwdata)) {
 	char msg[128];
@@ -1364,6 +1382,15 @@ static void fwExecBCast(Forwarder_Data_t *fwdata, int rerun)
     exit(0);
 }
 
+static int initBCastFW(Forwarder_Data_t *fwdata)
+{
+    BCast_t *bcast = fwdata->userData;
+
+    setJailEnv(bcast->env, bcast->username, NULL, bcast->jobCoreMap);
+
+    return 0;
+}
+
 bool execBCast(BCast_t *bcast)
 {
     int grace = getConfValueI(&SlurmConfig, "KillWait");
@@ -1381,6 +1408,8 @@ bool execBCast(BCast_t *bcast)
     fwdata->killSession = psAccountSignalSession;
     fwdata->callback = bcastCallback;
     fwdata->childFunc = fwExecBCast;
+    fwdata->hookFWInit = initBCastFW;
+    fwdata->jailChild = true;
 
     if (!startForwarder(fwdata)) {
 	char msg[128];
@@ -1434,8 +1463,10 @@ static int stepFollowerFWinit(Forwarder_Data_t *fwdata)
 {
     initSerial(0, sendMsg);
 
-#ifdef HAVE_SPANK
     Step_t *step = fwdata->userData;
+    setJailEnv(&step->env, step->username, step->stepCoreMap, step->jobCoreMap);
+
+#ifdef HAVE_SPANK
 
     struct spank_handle spank = {
 	.task = NULL,
@@ -1488,6 +1519,7 @@ bool execStepFollower(Step_t *step)
     fwdata->handleFwMsg = fwCMD_handleFwStepMsg;
     fwdata->callback = stepFollowerCB;
     fwdata->hookFinalize = stepFinalize;
+    fwdata->jailChild = true;
 
     if (!startForwarder(fwdata)) {
 	char msg[128];

@@ -59,6 +59,7 @@ typedef struct {
     gid_t gid;			/**< group id of the BCast requestor */
     env_t *env;                 /**< environment of the BCast requestor */
     Forwarder_Data_t *fwdata;	/**< forwarder executing the request */
+    char *jobCoreMap;           /**< reserved cores for job as string list */
     char *sig;			/**< credential signature */
     size_t sigLen;		/**< signature length */
 } BCast_t;

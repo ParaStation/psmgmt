@@ -35,6 +35,7 @@
 #include "psidcomm.h"
 #include "psidspawn.h"
 #include "psidsignal.h"
+#include "psidhook.h"
 
 #include "pluginforwarder.h"
 
@@ -63,6 +64,7 @@ Forwarder_Data_t *ForwarderData_new(void)
 	fw->hideFWctrlMsg = true;
 	fw->hideCCError = true;
 	fw->fwChildOE = false;
+	fw->jailChild = false;
     }
 
     return fw;
@@ -726,6 +728,12 @@ static void execForwarder(PStask_t *task)
 	    pluginlog("%s: initialize child STDOUT/STDERR failed\n", __func__);
 	    exit(1);
 	}
+    }
+
+    /* jail myself and all my children */
+    if (fw->jailChild) {
+	pid_t mypid = getpid();
+	PSIDhook_call(PSIDHOOK_JAIL_CHILD, &mypid);
     }
 
     for (i = 1; i <= fw->childRerun; i++) {
