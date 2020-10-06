@@ -707,4 +707,8 @@ struct bitmask *numa_get_membind(void) {
     return NULL;
 }
 
+short PSIDnodes_unmapCPU(PSnodes_ID_t id, short hwthread) {
+    return hwthread;
+}
+
 /* vim: set ts=8 sw=4 tw=0 sts=4 noet :*/

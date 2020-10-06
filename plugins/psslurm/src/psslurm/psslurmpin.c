@@ -442,7 +442,7 @@ static void pinToAllThreads(PSCPU_set_t *CPUset, const nodeinfo_t *nodeinfo)
  * Pin to specified socket
  */
 static void pinToSocket(PSCPU_set_t *CPUset, const nodeinfo_t *nodeinfo,
-	    uint16_t socket)
+	    uint16_t socket, bool os_order)
 {
     int t;
     uint16_t s;
@@ -456,7 +456,13 @@ static void pinToSocket(PSCPU_set_t *CPUset, const nodeinfo_t *nodeinfo,
 	    for (i = 0; i < nodeinfo->coresPerSocket; i++) {
 		thread = (t * nodeinfo->coreCount)
 					+ (s * nodeinfo->coresPerSocket) + i;
-		PSCPU_setCPU(*CPUset, thread);
+		if (os_order) {
+		    PSCPU_setCPU(*CPUset,
+			    PSIDnodes_unmapCPU(nodeinfo->id, thread));
+		}
+		else {
+		    PSCPU_setCPU(*CPUset, thread);
+		}
 	    }
 	}
     }
@@ -483,7 +489,8 @@ static void pinToCore(PSCPU_set_t *CPUset, const nodeinfo_t *nodeinfo,
  *
  * If the sting is not a valid hex number, each bit in @a CPUset becomes set.
  */
-static void parseCPUmask(PSCPU_set_t *CPUset, char *maskStr)
+static void parseCPUmask(PSCPU_set_t *CPUset, const nodeinfo_t *nodeinfo,
+			 char *maskStr)
 {
     char *mask, *curchar, *endptr;
     size_t len;
@@ -512,7 +519,8 @@ static void parseCPUmask(PSCPU_set_t *CPUset, char *maskStr)
 
 	for (j = 0; j<4; j++) {
 	    if (digit & (1 << j)) {
-		PSCPU_setCPU(*CPUset, curbit + j);
+		PSCPU_setCPU(*CPUset,
+			PSIDnodes_unmapCPU(nodeinfo->id, curbit + j));
 	    }
 	}
 	curbit += 4;
@@ -558,7 +566,7 @@ static void parseSocketMask(PSCPU_set_t *CPUset, const nodeinfo_t *nodeinfo,
 
 	for (j = 0; j<4; j++) {
 	    if (digit & (1 << j)) {
-		pinToSocket(CPUset, nodeinfo, curbit + j);
+		pinToSocket(CPUset, nodeinfo, curbit + j, true);
 	    }
 	}
 	curbit += 4;
@@ -629,7 +637,7 @@ static void getBindMapFromString(PSCPU_set_t *CPUset, uint16_t cpuBindType,
     PSCPU_clrAll(*CPUset);
 
     if (cpuBindType & CPU_BIND_MASK) {
-	parseCPUmask(CPUset, myent);
+	parseCPUmask(CPUset, nodeinfo, myent);
 	mdbg(PSSLURM_LOG_PART, "%s: (bind_mask) node %i local task %i "
 	     "cpumaskstr '%s' cpumask '%s'\n", __func__, nodeinfo->id, lTID,
 	     myent, PSCPU_print(*CPUset));
@@ -642,7 +650,7 @@ static void getBindMapFromString(PSCPU_set_t *CPUset, uint16_t cpuBindType,
 	if (*endptr == '\0') {
 	    if (mycpu < nodeinfo->threadCount) {
 		/* this is the regular case, mycpu is valid */
-		PSCPU_setCPU(*CPUset, mycpu);
+		PSCPU_setCPU(*CPUset, PSIDnodes_unmapCPU(nodeinfo->id, mycpu));
 	    } else {
 		mlog("%s: invalid cpu id %hu in cpu map '%s'\n", __func__,
 		        mycpu, myent);
@@ -667,7 +675,7 @@ static void getBindMapFromString(PSCPU_set_t *CPUset, uint16_t cpuBindType,
 	    mysock = strtoul (myent, &endptr, 10);
 	}
 	if (*endptr == '\0') {
-	    pinToSocket(CPUset, nodeinfo, mysock);
+	    pinToSocket(CPUset, nodeinfo, mysock, true);
 	} else {
 	    mlog("%s: invalid socket map '%s'\n", __func__, myent);
 	    PSCPU_setAll(*CPUset); //XXX other result in error case?
@@ -939,7 +947,7 @@ static void bindToSockets(PSCPU_set_t *CPUset, const nodeinfo_t *nodeinfo,
 
 	if (PSCPU_isSet(*CPUset, thread)) {
 	    uint16_t socket = getSocketByThread(thread, nodeinfo);
-	    pinToSocket(CPUset, nodeinfo, socket);
+	    pinToSocket(CPUset, nodeinfo, socket, false);
 	    if (socket + 1 == nodeinfo->socketCount) break;
 	    iter.next = getNextSocketStart(thread, nodeinfo, false);
 	}
