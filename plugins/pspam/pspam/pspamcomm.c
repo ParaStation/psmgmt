@@ -16,12 +16,14 @@
 #include <sys/types.h>
 #include <sys/un.h>
 #include <pwd.h>
+#include <stdlib.h>
 
 #include "pscio.h"
 #include "psserial.h"
 #include "pluginmalloc.h"
 #include "pluginpartition.h"
 #include "selector.h"
+#include "psidhook.h"
 
 #include "pspamcommon.h"
 #include "pspamlog.h"
@@ -76,6 +78,11 @@ static PSPAMResult_t handleOpenRequest(char *msgBuf)
 	} else {
 	    res = PSPAM_RES_BATCH;
 	    addSession(user, rhost, pid, sid);
+
+	    /* Jail allowed ssh processes */
+	    setenv("__PSPAM_ADD_USER", user, 1);
+	    PSIDhook_call(PSIDHOOK_JAIL_CHILD, &pid);
+	    unsetenv("__PSPAM_ADD_USER");
 	}
     }
 
