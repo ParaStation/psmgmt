@@ -835,7 +835,6 @@ static void statPID(pid_t pid)
  */
 static void execForwarder(PStask_t *task)
 {
-    pid_t pid;
     int stdinfds[2], stdoutfds[2], stderrfds[2], controlfds[2] = {-1, -1};
     int eno = 0;
     char *envStr;
@@ -885,6 +884,10 @@ static void execForwarder(PStask_t *task)
 	eno = EINVAL;
 	goto error;
     }
+
+    /* Jail all my children */
+    pid_t pid = getpid();
+    PSIDhook_call(PSIDHOOK_JAIL_CHILD, &pid);
 
     /* fork the client */
     if (!(pid = fork())) {
@@ -1026,9 +1029,6 @@ static void execForwarder(PStask_t *task)
 	PSID_warn(-1, eno, "%s: fork()", __func__);
 	goto error;
     }
-
-    /* Jail all my children */
-    PSIDhook_call(PSIDHOOK_JAIL_CHILD, &pid);
 
     /* change the gid */
     if (setgid(task->gid)<0) {
