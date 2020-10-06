@@ -417,6 +417,8 @@ static void setGresEnv(Step_t *step)
 	char *list = NULL;
 	size_t listSize = 0;
 
+#if 0 /* Deactivate for now since psid does the job, we will need something
+	  like this again to support node sharing */
 	/* gres "gpu" plugin */
 	gres = findGresCred(&step->gresList, GRES_PLUGIN_GPU, GRES_CRED_STEP);
 	if (gres && gres->bitAlloc) {
@@ -432,6 +434,7 @@ static void setGresEnv(Step_t *step)
 		     localNodeId);
 	    }
 	}
+#endif
 
 	/* gres "mic" plugin */
 	gres = findGresCred(&step->gresList, GRES_PLUGIN_MIC, GRES_CRED_STEP);
