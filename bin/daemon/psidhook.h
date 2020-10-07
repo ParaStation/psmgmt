@@ -177,6 +177,8 @@ typedef enum {
     PSIDHOOK_FRWRD_DSOCK,     /**< In forwarder's init() function, arg is a
 				pointer to the daemon socket. (obsolete!) */
     PSIDHOOK_JAIL_CHILD,      /**< Jail child into cgroup, arg points to PID */
+    PSIDHOOK_JAIL_TERM,	      /**< Terminate all jailed children of a cgroup,
+				arg points to PID */
     PSIDHOOK_CLEARMEM,        /**< Release memory after forking before handling
 				other tasks, e.g. becoming a forwarder.
 				arg points to aggressive flag of type bool */

@@ -150,8 +150,10 @@ static LIST_HEAD(pluginList);
  *      numNICs(), _setNICSet(), _NICSet(),
  *
  * 130: New PSIDhw public functionality _getNumPCIDevs(), _getPCISets()
+ *
+ * 131: new hook PSIDHOOK_JAIL_TERM
  */
-static int pluginAPIVersion = 130;
+static int pluginAPIVersion = 131;
 
 
 /** Grace period between finalize and unload on forcefully unloads */
