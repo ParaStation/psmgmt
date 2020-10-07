@@ -21,8 +21,6 @@
 #include "pscommon.h"
 #include "psidhook.h"
 
-//#include "psidutil.h"
-
 #include "pluginmalloc.h"
 #include "pluginlog.h"
 
@@ -33,12 +31,15 @@
 
 /** psid plugin requirements */
 char name[] = "jail";
-int version = 1;
-int requiredAPI = 118;
+int version = 2;
+int requiredAPI = 129;
 plugin_dep_t dependencies[] = { { NULL, 0 } };
 
 /** Name of the script to use for jailing */
 static char *jailScript = NULL;
+
+/** Name of the script to use for terminating a jail */
+static char *termScript = NULL;
 
 static char *checkScript(char *script)
 {
@@ -68,20 +69,11 @@ static char *checkScript(char *script)
     return fName;
 }
 
-static int jailProcess(void *info)
+static int execScript(pid_t child, char *script)
 {
-    pid_t pid = *(pid_t *)info;
-
-    jlog(J_LOG_VERBOSE, "%s: called for %d\n", __func__, pid);
-
-    if (!jailScript) {
-	jlog(-1, "%s: no script provided\n", __func__);
-	return 0;
-    }
-
     char argument[64];
-    snprintf(argument, sizeof(argument), " %d", pid);
-    char *command = PSC_concat(jailScript, argument, 0L);
+    snprintf(argument, sizeof(argument), " %d", child);
+    char *command = PSC_concat(script, argument, 0L);
 
     if (command) {
 	/* ensure system() is able to catch SIGCHLD */
@@ -98,6 +90,33 @@ static int jailProcess(void *info)
     }
 
     return 0;
+}
+
+static int jailProcess(void *info)
+{
+    pid_t pid = *(pid_t *)info;
+
+    jlog(J_LOG_VERBOSE, "%s: called for %d\n", __func__, pid);
+
+    if (!jailScript) {
+	jlog(-1, "%s: no jail script provided\n", __func__);
+	return 0;
+    }
+    return execScript(pid, jailScript);
+}
+
+static int jailTerminate(void *info)
+{
+    pid_t pid = *(pid_t *)info;
+
+    jlog(J_LOG_VERBOSE, "%s: called for %d\n", __func__, pid);
+
+    if (!termScript) {
+	jlog(-1, "%s: no terminate script provided\n", __func__);
+	return 0;
+    }
+
+    return execScript(pid, termScript);
 }
 
 int initialize(void)
@@ -122,13 +141,27 @@ int initialize(void)
     jailScript = checkScript(script);
 
     if (!jailScript) {
-	jlog(-1, "(%i) no script defined\n", version);
+	jlog(-1, "(%i) no jail script defined\n", version);
     } else {
-	jlog(J_LOG_VERBOSE, "script set to '%s'\n", jailScript);
+	jlog(J_LOG_VERBOSE, "jail script set to '%s'\n", jailScript);
+    }
+
+    script = getConfValueC(&config, "JAIL_TERM_SCRIPT");
+    termScript = checkScript(script);
+
+    if (!termScript) {
+	jlog(-1, "(%i) no terminate script defined\n", version);
+    } else {
+	jlog(J_LOG_VERBOSE, "terminate script set to '%s'\n", termScript);
     }
 
     if (!PSIDhook_add(PSIDHOOK_JAIL_CHILD, jailProcess)) {
 	jlog(-1, "%s: register PSIDHOOK_JAIL_CHILD failed\n", __func__);
+	return 1;
+    }
+
+    if (!PSIDhook_add(PSIDHOOK_JAIL_TERM, jailTerminate)) {
+	jlog(-1, "%s: register PSIDHOOK_JAIL_TERM failed\n", __func__);
 	return 1;
     }
 
@@ -143,7 +176,12 @@ void cleanup(void)
 	jlog(-1, "removing PSIDHOOK_JAIL_CHILD failed\n");
     }
 
+    if (!PSIDhook_del(PSIDHOOK_JAIL_TERM, jailTerminate)) {
+	jlog(-1, "removing PSIDHOOK_JAIL_TERM failed\n");
+    }
+
     if (jailScript) free(jailScript);
+    if (termScript) free(termScript);
     freeConfig(&config);
 
     jlog(-1, "...Bye.\n");
@@ -161,7 +199,9 @@ char *help(void)
 
     str2Buf("\tModify child process' cgroup setup while jailing\n",
 	    &buf, &bufSize);
-    str2Buf("\tAll action takes place in the JAIL_SCRIPT\n\n", &buf, &bufSize);
+    str2Buf("\tAll cgroups are defined in the JAIL_SCRIPT\n\n", &buf, &bufSize);
+    str2Buf("\tThe destruction of cgroups is in the JAIL_TERM_SCRIPT\n\n",
+	    &buf, &bufSize);
     str2Buf("# configuration options #\n", &buf, &bufSize);
 
     for (i = 0; confDef[i].name; i++) {
@@ -199,6 +239,21 @@ char *set(char *key, char *val)
 	    str2Buf("' is invalid\n", &buf, &bufSize);
 	    return buf;
 	}
+    } else if (!strcmp(key, "JAIL_TERM_SCRIPT")) {
+	addConfigEntry(&config, key, val);
+	if (termScript) free(termScript);
+	char *script = getConfValueC(&config, "JAIL_TERM_SCRIPT");
+	termScript = checkScript(script);
+	jlog(J_LOG_VERBOSE, "termScript set to '%s'\n",
+	     termScript ? termScript : "<invalid>");
+	if (!termScript) {
+	    char *buf = NULL;
+	    size_t bufSize = 0;
+	    str2Buf("\tterm script '", &buf, &bufSize);
+	    str2Buf(script, &buf, &bufSize);
+	    str2Buf("' is invalid\n", &buf, &bufSize);
+	    return buf;
+	}
     } else if (!strcmp(key, "DEBUG_MASK")) {
 	int dbgMask;
 	addConfigEntry(&config, key, val);
@@ -223,6 +278,16 @@ char *unset(char *key)
 	    jlog(-1, "%s: no script defined\n", __func__);
 	} else {
 	    jlog(J_LOG_VERBOSE, "script set to '%s'\n", jailScript);
+	}
+    } else if (!strcmp(key, "JAIL_TERM_SCRIPT")) {
+	unsetConfigEntry(&config, confDef, key);
+	if (termScript) free(termScript);
+	char *script = getConfValueC(&config, "JAIL_TERM_SCRIPT");
+	termScript = checkScript(script);
+	if (!termScript) {
+	    jlog(-1, "%s: no term script defined\n", __func__);
+	} else {
+	    jlog(J_LOG_VERBOSE, "term script set to '%s'\n", termScript);
 	}
     } else if (!strcmp(key, "DEBUG_MASK")) {
 	int dbgMask;
@@ -257,11 +322,18 @@ char *show(char *key)
 	}
 	str2Buf("\n", &buf, &bufSize);
 	if (jailScript) {
-	    str2Buf("script in use: '", &buf, &bufSize);
+	    str2Buf("jail script in use: '", &buf, &bufSize);
 	    str2Buf(jailScript, &buf, &bufSize);
 	    str2Buf("'\n", &buf, &bufSize);
 	} else {
-	    str2Buf("no script defined!\n", &buf, &bufSize);
+	    str2Buf("no jail script defined!\n", &buf, &bufSize);
+	}
+	if (termScript) {
+	    str2Buf("term script in use: '", &buf, &bufSize);
+	    str2Buf(termScript, &buf, &bufSize);
+	    str2Buf("'\n", &buf, &bufSize);
+	} else {
+	    str2Buf("no term script defined!\n", &buf, &bufSize);
 	}
     } else if ((val = getConfValueC(&config, key))) {
 	str2Buf("\t", &buf, &bufSize);
