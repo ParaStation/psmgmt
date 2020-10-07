@@ -181,6 +181,18 @@ PSCPU_set_t* PSID_getCPUmaskOfNUMAnodes(bool psorder);
 int PSID_getGPUs(void);
 
 /**
+ * @brief Translate the gpu id in hwloc order to PCI address order
+ *
+ * hwloc is initialized implicitly if this has not happened before.
+ *
+ * If for some reason the hwloc framework cannot be initialized,
+ * exit() is called.
+ *
+ * @return On success, the id in pci address order is returned
+ */
+uint16_t PSID_getGPUinPCIorder(uint16_t gpu);
+
+/**
  * @brief Get the GPU masks for all NUMA nodes
  *
  * Determine the GPU mask for each NUMA node and returns them as array.

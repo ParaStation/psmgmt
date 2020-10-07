@@ -376,45 +376,6 @@ void PSID_pinToCPUs(cpu_set_t *physSet)
     sched_setaffinity(0, sizeof(*physSet), physSet);
 }
 
-
-/* translate a gpu in hwloc order into gpu in mapped order */
-static uint16_t mapGPU(uint16_t gpu) {
-
-    static uint16_t *map = NULL;
-    static int size = 0;
-
-    if (!map) {
-	map = malloc(PSGPU_MAX * sizeof(*map));
-
-	char *mapString = getenv("PSI_GPUMAP");
-	if (mapString && *mapString != '\0') {
-	    PSID_log(-1, "%s: Using GPU map: %s\n", __func__, mapString);
-
-	    mapString = strdup(mapString);
-
-	    char *delim = " ";
-
-	    char *next;
-	    next = strtok(mapString, delim);
-	    while (next) {
-		map[size++] = atoi(next);
-		next = strtok(NULL, delim);
-	    }
-	    free(mapString);
-	}
-	else {
-	    /* assume identitiy map */
-	    size = PSGPU_MAX;
-	    for (uint16_t i = 0; i < size; i++) {
-		map[i] = i;
-	    }
-	    PSID_log(-1, "%s: Using GPU map: identitiy\n", __func__);
-	}
-    }
-
-    return map[gpu % size];
-}
-
 void PSID_bindToGPUs(cpu_set_t *physSet)
 {
     int nodes = PSID_getNUMAnodes();
@@ -456,7 +417,7 @@ void PSID_bindToGPUs(cpu_set_t *physSet)
 	if (!used[i]) continue;
 	for (uint16_t gpu = 0; gpu < gpus; gpu++) {
 	    if (PSCPU_isSet(gpumap[i], gpu)) {
-		len += snprintf(tmp+len, 4, "%hu,", mapGPU(gpu));
+		len += snprintf(tmp+len, 4, "%hu,", PSID_getGPUinPCIorder(gpu));
 	    }
 	}
     }

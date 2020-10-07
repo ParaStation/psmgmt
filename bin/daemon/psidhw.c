@@ -204,6 +204,54 @@ int PSID_getGPUs(void)
     return gpus;
 }
 
+/* translate gpu number from hwloc to pci adress order (user by CUDA) */
+uint16_t PSID_getGPUinPCIorder(uint16_t gpu) {
+
+    static uint16_t* map = NULL;
+
+    if (!map) {
+	int gpus = PSID_getGPUs();    /* side effect: initializes hwloc */
+
+	map = malloc(gpus * sizeof(*map));
+
+	uint32_t pciaddress[PSGPU_MAX];
+
+	int gpu = 0;
+
+	/* Find GPU PCU devices by Class ID */
+	hwloc_obj_t pcidevobj = NULL;
+	while ((pcidevobj = hwloc_get_next_obj_by_type(topology,
+			HWLOC_OBJ_PCI_DEVICE, pcidevobj))) {
+
+	    if (!pcidevobj) break;
+
+	    /* ClassID needs to be "3D" */
+	    if (pcidevobj->attr->pcidev.class_id != 0x0302) continue;
+
+	    pciaddress[gpu++] = pcidevobj->attr->pcidev.bus << 16
+		| pcidevobj->attr->pcidev.dev << 8
+		| pcidevobj->attr->pcidev.func;
+	}
+
+	/* init map */
+	for (int i = 0; i < gpus; i++) map[i] = i;
+
+	/* do bubble sort */
+	for (int n = gpus; n > 1; n--) {
+	    for (int i = 0; i < n-1; i++) {
+		if (pciaddress[map[i]] >= pciaddress[map[i+1]]) {
+		    /* swap */
+		    map[i] ^= map[i+1];
+		    map[i+1] ^= map[i];
+		    map[i] ^= map[i+1];
+		}
+	    }
+	}
+    }
+
+    return map[gpu];
+}
+
 /* set in @a gpumask the bit for each GPU directly connected to a NUMA
  * node of a CPU set in @a cpumask.
  *
