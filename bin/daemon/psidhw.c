@@ -187,14 +187,14 @@ int PSID_getGPUs(void)
 	if (!hwlocInitialized) initHWloc();
 
 	/* Find GPU PCU devices by Class ID */
-	hwloc_obj_t osdevobj = NULL;
-	while ((osdevobj = hwloc_get_next_obj_by_type(topology,
-			HWLOC_OBJ_PCI_DEVICE, osdevobj))) {
+	hwloc_obj_t pcidevobj = NULL;
+	while ((pcidevobj = hwloc_get_next_obj_by_type(topology,
+			HWLOC_OBJ_PCI_DEVICE, pcidevobj))) {
 
-	    if (!osdevobj) break;
+	    if (!pcidevobj) break;
 
 	    /* ClassID needs to be "3D" */
-	    if (osdevobj->attr->pcidev.class_id != 0x0302) continue;
+	    if (pcidevobj->attr->pcidev.class_id != 0x0302) continue;
 
 	    gpus++;
 	}
