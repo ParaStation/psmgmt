@@ -617,37 +617,42 @@ static int handleGetReservation(void *res) {
 
     logSlots(__func__, r->slots, r->nSlots);
 
-    size_t addUsedThreads = 0;
+    size_t usedThreads = 0;
     size_t slotsThreads = 0;
+    size_t firstThread = 0;
+    PSnodes_ID_t thisNode = -1;
 
     /* mark used threads in task */
     for (ssize_t s = 0; s < r->nSlots; s++) {
 	/* find first entry in partition threads array matching node */
-	bool found = false;
-	size_t first_thread = 0;
-	for (size_t t = 0; t < task->totalThreads; t++) {
-	    if (task->partThrds[t].node == r->slots[s].node) {
-		found = true;
-		first_thread = t;
-		break;
+	if (r->slots[s].node != thisNode) {
+	    size_t i, t;
+	    for (t = firstThread, i = 0; i < task->totalThreads;
+		 t = (t + 1) % task->totalThreads, i++) {
+		if (task->partThrds[t].node == r->slots[s].node) {
+		    firstThread = t;
+		    break;
+		}
 	    }
-	}
-	if (!found) {
-	    flog("node not found: node %hu\n", r->slots[s].node);
-	    continue;
+	    if (i == task->totalThreads) {
+		flog("node not found: node %hu\n", r->slots[s].node);
+		continue;
+	    }
+	    thisNode = r->slots[s].node;
 	}
 
-	for (ssize_t cpu = 0; cpu < PSCPU_MAX; cpu++) {
+	for (ssize_t cpu = 0; cpu < PSIDnodes_getVirtCPUs(thisNode); cpu++) {
 	    if (!PSCPU_isSet(r->slots[s].CPUset, cpu)) continue;
 
 	    /* find matching entry in partition threads array */
-	    found = false;
-	    for (size_t t = first_thread; t < task->totalThreads; t++) {
+	    bool found = false;
+	    for (size_t t = firstThread; t < task->totalThreads; t++) {
 		PSpart_HWThread_t *thread = &(task->partThrds[t]);
-		if (thread->node == r->slots[s].node && thread->id == cpu) {
+		if (thread->node != thisNode) break;
+		if (thread->id == cpu) {
 		    /* increase number of used threads
 		     * only if this threads was unused before */
-		    if (!thread->timesUsed) addUsedThreads++;
+		    if (!thread->timesUsed) usedThreads++;
 		    slotsThreads++;
 		    thread->timesUsed++;
 		    found = true;
@@ -656,16 +661,16 @@ static int handleGetReservation(void *res) {
 	    }
 	    if (!found) {
 		flog("hardware thread not found: node %hu cpu %u\n",
-			r->slots[s].node, cpu);
+		     r->slots[s].node, cpu);
 	    }
 	}
     }
 
-    task->usedThreads += addUsedThreads;
+    task->usedThreads += usedThreads;
 
     fdbg(PSSLURM_LOG_PART, "slotsThreads %zu usedThreads %d (+%zu)"
-	    " firstRank %d\n", slotsThreads, task->usedThreads, addUsedThreads,
-	    r->firstRank);
+	 " firstRank %d\n", slotsThreads, task->usedThreads, usedThreads,
+	 r->firstRank);
 
     logHWthreads(__func__, task->partThrds, task->totalThreads);
 
