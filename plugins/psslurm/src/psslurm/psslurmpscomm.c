@@ -296,13 +296,14 @@ static bool genThreadsArray(PSpart_HWThread_t **threads, uint32_t *numThreads,
  * @param slots      IN  slots array to add
  * @param numSlots   IN  number of entries in slots
  */
-static void addSlotsToNodeSlotsArray(PSpart_slot_t *nodeslots,
-	uint32_t numNodes, PSpart_slot_t *slots, uint32_t numSlots)
+static void addCPUsToSlotsArray(PSpart_slot_t *nodeslots, uint32_t numNodes,
+				PSpart_slot_t *slots, uint32_t numSlots)
 {
-    for (size_t n = 0; n < numNodes; n++) {
-	for (size_t s = 0; s < numSlots; s++) {
+    for (size_t s = 0; s < numSlots; s++) {
+	for (size_t n = 0; n < numNodes; n++) {
 	    if (slots[s].node == nodeslots[n].node) {
 		PSCPU_addCPUs(nodeslots[n].CPUset, slots[s].CPUset);
+		break;
 	    }
 	}
     }
@@ -349,8 +350,7 @@ static bool genNodeSlotsArray(PSpart_slot_t **nodeslots, uint32_t *nrOfNodes,
     /* fill node slots array */
     if (step->packJobid == NO_VAL) {
 
-	addSlotsToNodeSlotsArray(*nodeslots, *nrOfNodes,
-		step->slots, step->np);
+	addCPUsToSlotsArray(*nodeslots, *nrOfNodes, step->slots, step->np);
     } else {
 
 	int64_t last, offset = -1;
@@ -368,8 +368,9 @@ static bool genNodeSlotsArray(PSpart_slot_t **nodeslots, uint32_t *nrOfNodes,
 	    }
 
 	    /* fill node slots array */
-	    addSlotsToNodeSlotsArray(*nodeslots, *nrOfNodes,
-		    step->packInfo[index].slots, step->packInfo[index].np);
+	    addCPUsToSlotsArray(*nodeslots, *nrOfNodes,
+				step->packInfo[index].slots,
+				step->packInfo[index].np);
 	    logSlots(__func__,
 		    step->packInfo[index].slots, step->packInfo[index].np);
 	}
