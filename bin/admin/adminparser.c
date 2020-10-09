@@ -1103,6 +1103,12 @@ static int setShowBindMem(char *token)
     return 0;
 }
 
+static int setShowBindGPUs(char *token)
+{
+    setShowOpt = PSP_OP_BINDGPUS;
+    return 0;
+}
+
 static int setShowCPUMap(char *token)
 {
     setShowOpt = PSP_OP_CPUMAP;
@@ -1272,6 +1278,7 @@ static keylist_t setShowList[] = {
     {"starter", setShowStarter, boolList},
     {"pinprocs", setShowPinProcs, boolList},
     {"bindmem", setShowBindMem, boolList},
+    {"bindgpus", setShowBindGPUs, boolList},
     {"cpumap", setShowCPUMap, NULL},
     {"allowusermap", setShowAllowUserMap, boolList},
     {"accounters", setShowAccounter, NULL},
@@ -1446,6 +1453,7 @@ static int setCommand(char *token)
     case PSP_OP_STARTER:
     case PSP_OP_PINPROCS:
     case PSP_OP_BINDMEM:
+    case PSP_OP_BINDGPUS:
     case PSP_OP_ALLOWUSERMAP:
     case PSP_OP_SUPPL_GRPS:
     case PSP_OP_RDPSTATISTICS:
@@ -1547,6 +1555,7 @@ static int setCommand(char *token)
     case PSP_OP_STARTER:
     case PSP_OP_PINPROCS:
     case PSP_OP_BINDMEM:
+    case PSP_OP_BINDGPUS:
     case PSP_OP_ALLOWUSERMAP:
     case PSP_OP_NODESSORT:
     case PSP_OP_ACCTPOLL:
@@ -1639,6 +1648,7 @@ static int showCommand(char *token)
     case PSP_OP_RUNJOBS:
     case PSP_OP_PINPROCS:
     case PSP_OP_BINDMEM:
+    case PSP_OP_BINDGPUS:
     case PSP_OP_ALLOWUSERMAP:
     case PSP_OP_ACCTPOLL:
     case PSP_OP_KILLDELAY:

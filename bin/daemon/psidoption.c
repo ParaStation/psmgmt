@@ -77,6 +77,9 @@ void send_OPTIONS(PSnodes_ID_t destnode)
     msg.opt[(int) msg.count].option = PSP_OP_BINDMEM;
     msg.opt[(int) msg.count].value = PSIDnodes_bindMem(PSC_getMyID());
     msg.count++;
+    msg.opt[(int) msg.count].option = PSP_OP_BINDGPUS;
+    msg.opt[(int) msg.count].value = PSIDnodes_bindGPUs(PSC_getMyID());
+    msg.count++;
     msg.opt[(int) msg.count].option = PSP_OP_SUPPL_GRPS;
     msg.opt[(int) msg.count].value = PSIDnodes_supplGrps(PSC_getMyID());
     msg.count++;
@@ -606,6 +609,27 @@ static void msg_SETOPTION(DDOptionMsg_t *msg)
 					 msg->opt[i].value);
 		}
 		break;
+	    case PSP_OP_BINDGPUS:
+		if (PSC_getPID(msg->header.sender)) {
+		    DDOptionMsg_t info = {
+			.header = {
+			    .type = PSP_CD_SETOPTION,
+			    .sender = PSC_getMyTID(),
+			    .dest = 0,
+			    .len = sizeof(info) },
+			.count = 1,
+			.opt = {{ .option = msg->opt[i].option,
+				  .value = msg->opt[i].value }} };
+
+		    PSIDnodes_setBindMem(PSC_getMyID(), msg->opt[i].value);
+
+		    /* Info all nodes about my BINDGPUS */
+		    broadcastMsg(&info);
+		} else {
+		    PSIDnodes_setBindGPUs(PSC_getID(msg->header.sender),
+					 msg->opt[i].value);
+		}
+		break;
 	    case PSP_OP_CLR_CPUMAP:
 		PSIDnodes_clearCPUMap(PSC_getMyID());
 		break;
@@ -859,6 +883,9 @@ static void msg_GETOPTION(DDOptionMsg_t *msg)
 		break;
 	    case PSP_OP_BINDMEM:
 		msg->opt[out].value = PSIDnodes_bindMem(PSC_getMyID());
+		break;
+	    case PSP_OP_BINDGPUS:
+		msg->opt[out].value = PSIDnodes_bindGPUs(PSC_getMyID());
 		break;
 	    case PSP_OP_CPUMAP:
 		send_CPUMap_OPTIONS(msg->header.sender);

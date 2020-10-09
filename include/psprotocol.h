@@ -21,7 +21,7 @@
 #include "pstaskid.h"
 
 /** Unique version number of the high-level protocol */
-#define PSProtocolVersion 341
+#define PSProtocolVersion 342
 
 /** The location of the UNIX socket used to contact the daemon. */
 #define PSmasterSocketName "\0parastation.sock"
@@ -105,6 +105,7 @@ typedef enum {
 
     PSP_OP_PINPROCS = 0x0048,     /**< Process-pinning is used on this node */
     PSP_OP_BINDMEM,               /**< Memory-binding is used on this node */
+    PSP_OP_BINDGPUS,              /**< Memory-binding is used on this node */
     PSP_OP_CLR_CPUMAP,            /**< clear CPU-map */
     PSP_OP_APP_CPUMAP,            /**< append an element to CPU-map */
     PSP_OP_CPUMAP,                /**< request full CPU-map (returns list)*/

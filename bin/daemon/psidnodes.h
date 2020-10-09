@@ -628,6 +628,33 @@ int PSIDnodes_setBindMem(PSnodes_ID_t id, int bindMem);
 int PSIDnodes_bindMem(PSnodes_ID_t id);
 
 /**
+ * @brief Set the GPU-binding flag of a node.
+ *
+ * Set the GPU-binding flag of the node with ParaStation ID @a id to @a
+ * bindGPUs.
+ *
+ * @param id ParaStation ID of the node to be modified.
+ *
+ * @param bindGPUs The GPU-binding flag to be set to this node.
+ *
+ * @return On success, 0 is returned. Or -1 if an error occurred.
+ */
+int PSIDnodes_setBindGPUs(PSnodes_ID_t id, int bindGPUs);
+
+/**
+ * @brief Get the GPU-binding flag of a node.
+ *
+ * Get the GPU-binding flag of the node with ParaStation ID @a id.
+ *
+ * @param id ParaStation ID of the node to look up.
+ *
+ * @return If the node was found, the GPU-binding flag is returned. Or
+ * -1 if an error occurred.
+ */
+int PSIDnodes_bindGPUs(PSnodes_ID_t id);
+
+
+/**
  * @brief Clear a node's CPU-map.
  *
  * Clear the CPU-map of the node with ParaStation ID @a id. The

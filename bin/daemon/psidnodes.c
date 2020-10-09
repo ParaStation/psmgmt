@@ -56,6 +56,7 @@ typedef struct {
     char exclusive;        /**< Flag to assign this node exclusively */
     char pinProcs;         /**< Flag to mark that node to pin processes */
     char bindMem;          /**< Flag to mark that node to bind memory */
+    char bindGPUs;         /**< Flag to mark that node to bind GPUs */
     short *CPUmap;         /**< Map to match virt. CPU slots to phys. cores */
     size_t CPUmapSize;     /**< Current size of @ref CPUmap */
     size_t CPUmapMaxSize;  /**< Allocated size of @ref CPUmap */
@@ -98,6 +99,7 @@ static void nodeInit(node_t *node)
     node->isStarter = 0;
     node->pinProcs = 0;
     node->bindMem = 0;
+    node->bindGPUs = 0;
     node->CPUmap = NULL;
     node->CPUmapSize = 0;
     node->CPUmapMaxSize = 0;
@@ -476,6 +478,25 @@ int PSIDnodes_bindMem(PSnodes_ID_t id)
 {
     if (validID(id)) {
 	return nodes[id].bindMem;
+    } else {
+	return -1;
+    }
+}
+
+int PSIDnodes_setBindGPUs(PSnodes_ID_t id, int bindGPUs)
+{
+    if (validID(id)) {
+	nodes[id].bindGPUs = bindGPUs;
+	return 0;
+    } else {
+	return -1;
+    }
+}
+
+int PSIDnodes_bindGPUs(PSnodes_ID_t id)
+{
+    if (validID(id)) {
+	return nodes[id].bindGPUs;
     } else {
 	return -1;
     }
