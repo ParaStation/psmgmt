@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2003 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2017 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2020 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -664,10 +664,11 @@ int PSIDnodes_appendCPUMap(PSnodes_ID_t id, short cpu);
  *
  * @param id ParaStation ID of the CPU-map to use.
  *
- * @param cpu Number of the CPU-slot to map on a physical hardware thread.
+ * @param cpu Number of the CPU-slot to map on a physical hardware
+ * thread
  *
- * @return On success, the number of the hardware thread the CPU-slot is mapped
- * to will be returned. Or -1 if an error occurred.
+ * @return On success, the number of the hardware thread the CPU-slot
+ * is mapped to will be returned. Or -1 if an error occurred.
  */
 short PSIDnodes_mapCPU(PSnodes_ID_t id, short cpu);
 
@@ -680,10 +681,11 @@ short PSIDnodes_mapCPU(PSnodes_ID_t id, short cpu);
  *
  * @param id ParaStation ID of the CPU-map to use.
  *
- * @param cpu Number of physical hardware thread to map on a CPU-slot.
+ * @param hwthread Number of the physical hardware thread to map on a
+ * CPU-slot
  *
- * @return On success, the number of the CPU-slot the hardware thread is mapped
- * to will be returned. Or -1 if an error occurred.
+ * @return On success, the number of the CPU-slot the hardware thread
+ * is mapped to will be returned. Or -1 if an error occurred.
  */
 short PSIDnodes_unmapCPU(PSnodes_ID_t id, short hwthread);
 
@@ -693,9 +695,9 @@ short PSIDnodes_unmapCPU(PSnodes_ID_t id, short hwthread);
  * Send the CPU-map of the local daemon to @a dest within one or more
  * option messages of type PSP_OP_CPUMAP.
  *
- * @param dest Task ID of the destination task to send to.
+ * @param dest Task ID of the destination task to send to
  *
- * @return No return value.
+ * @return No return value
  */
 void send_CPUMap_OPTIONS(PStask_ID_t dest);
 
