@@ -14,10 +14,13 @@
 #ifndef __PSIDHW_H
 #define __PSIDHW_H
 
-#include "psprotocol.h"
 #include "pscpu.h"
+#include "psprotocol.h"
 
+/** Maximum number of local NUMA nodes supported */
 #define PSNUMANODE_MAX 16
+
+/** Maximum number of local GPUs supported */
 #define PSGPU_MAX 32
 
 /**
@@ -151,12 +154,11 @@ int PSID_getNUMAnodes(void);
  * By using @a PSID_getNUMAnodes() this implicitly initializes hwloc
  * if this has not happened before and could result in exit().
  *
- * The array returned is indexed by the NUMA node numbers. It is owned by
+ * The array returned is indexed by NUMA node numbers. It is owned by
  * the psidhw framework and should not be changed or freed elsewhere.
  *
- * @param psorder  Flag to return the masks in ParaStation CPU order
- *
- *                 (thus mapped using cpu map)
+ * @param psorder Flag to return the masks in ParaStation CPU order
+ * (thus mapped using cpu map)
  *
  * @return On success, the array of CPU masks is returned
  */
@@ -166,7 +168,7 @@ PSCPU_set_t* PSID_getCPUmaskOfNUMAnodes(bool psorder);
  * @brief Get number of GPUs
  *
  * Determine the number of graphics processing units. This utilizes the hwloc
- * framework and returns the number of gpus detected there.
+ * framework and returns the number of GPUs detected there.
  *
  * This relies on the PCI device node of the GPU card in the hwloc topology
  * to have PCI Class ID 0x0302 (3D).
@@ -181,14 +183,17 @@ PSCPU_set_t* PSID_getCPUmaskOfNUMAnodes(bool psorder);
 int PSID_getGPUs(void);
 
 /**
- * @brief Translate the gpu id in hwloc order to PCI address order
+ * @brief Translate GPU ID in hwloc order to ID in PCI address order
+ *
+ * Translate the GPU ID @a gpu in hwloc order to the ID in PCI address
+ * order.
  *
  * hwloc is initialized implicitly if this has not happened before.
  *
  * If for some reason the hwloc framework cannot be initialized,
  * exit() is called.
  *
- * @return On success, the id in pci address order is returned
+ * @return On success, the ID in PCI address order is returned
  */
 uint16_t PSID_getGPUinPCIorder(uint16_t gpu);
 
@@ -205,7 +210,7 @@ uint16_t PSID_getGPUinPCIorder(uint16_t gpu);
  * the psidhw framework and should not be changed or freed elsewhere.
  *
  * This abuses the PSCPU framework to store the GPU masks. Just use it as
- * the GPUs where single core CPUs.
+ * if the GPUs where single core CPUs.
  *
  * @return On success, the array of GPU masks is returned
  */
