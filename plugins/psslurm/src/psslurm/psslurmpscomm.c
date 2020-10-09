@@ -660,7 +660,7 @@ static int handleGetReservation(void *res) {
 		}
 	    }
 	    if (!found) {
-		flog("hardware thread not found: node %hu cpu %u\n",
+		flog("hardware thread not found: node %hu cpu %zd\n",
 		     r->slots[s].node, cpu);
 	    }
 	}
