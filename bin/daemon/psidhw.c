@@ -158,7 +158,7 @@ PSCPU_set_t* PSID_getCPUmaskOfNUMAnodes(bool psorder)
 
 	hwloc_obj_t numanode;
 
-	for (unsigned i = 0; i < (unsigned)PSID_getNUMAnodes(); i++) {
+	for (int i = 0; i < PSID_getNUMAnodes(); i++) {
 	    numanode = hwloc_get_numanode_obj_by_os_index(topology, i);
 	    if (!numanode) {
 		PSCPU_setAll(masks[i]);
@@ -166,15 +166,14 @@ PSCPU_set_t* PSID_getCPUmaskOfNUMAnodes(bool psorder)
 	    }
 	    PSCPU_clrAll(masks[i]);
 	    short hwthread, cpu;
-	    hwloc_bitmap_foreach_begin(hwthread, numanode->cpuset)
+	    hwloc_bitmap_foreach_begin(hwthread, numanode->cpuset) {
 		if (psorder) {
 		    cpu = PSIDnodes_unmapCPU(PSC_getMyID(), hwthread);
-		}
-		else {
+		} else {
 		    cpu = hwthread;
 		}
 		PSCPU_setCPU(masks[i], cpu);
-	    hwloc_bitmap_foreach_end();
+	    } hwloc_bitmap_foreach_end();
 	}
     }
 
@@ -192,10 +191,8 @@ int PSID_getGPUs(void)
 	/* Find GPU PCU devices by Class ID */
 	hwloc_obj_t pcidevobj = NULL;
 	while ((pcidevobj = hwloc_get_next_obj_by_type(topology,
-			HWLOC_OBJ_PCI_DEVICE, pcidevobj))) {
-
-	    if (!pcidevobj) break;
-
+						       HWLOC_OBJ_PCI_DEVICE,
+						       pcidevobj))) {
 	    /* ClassID needs to be "3D" */
 	    if (pcidevobj->attr->pcidev.class_id != 0x0302) continue;
 
@@ -207,9 +204,9 @@ int PSID_getGPUs(void)
     return gpus;
 }
 
-/* translate gpu number from hwloc to pci adress order (user by CUDA) */
-uint16_t PSID_getGPUinPCIorder(uint16_t gpu) {
-
+/* translate gpu number from hwloc to pci adress order (used by CUDA) */
+uint16_t PSID_getGPUinPCIorder(uint16_t gpu)
+{
     static uint16_t* map = NULL;
 
     if (!map) {
@@ -224,10 +221,8 @@ uint16_t PSID_getGPUinPCIorder(uint16_t gpu) {
 	/* Find GPU PCU devices by Class ID */
 	hwloc_obj_t pcidevobj = NULL;
 	while ((pcidevobj = hwloc_get_next_obj_by_type(topology,
-			HWLOC_OBJ_PCI_DEVICE, pcidevobj))) {
-
-	    if (!pcidevobj) break;
-
+						       HWLOC_OBJ_PCI_DEVICE,
+						       pcidevobj))) {
 	    /* ClassID needs to be "3D" */
 	    if (pcidevobj->attr->pcidev.class_id != 0x0302) continue;
 
@@ -267,10 +262,8 @@ static void setGPUmaskForCPUmask(PSCPU_set_t *gpumask, PSCPU_set_t *cpumask)
     hwloc_obj_t pciobj = NULL;
     int idx = 0;
     while ((pciobj = hwloc_get_next_obj_by_type(topology,
-		    HWLOC_OBJ_PCI_DEVICE, pciobj))) {
-
-	if (!pciobj) break;
-
+						HWLOC_OBJ_PCI_DEVICE,
+						pciobj))) {
 	/* ClassID needs to be "3D" */
 	if (pciobj->attr->pcidev.class_id != 0x0302) continue;
 
@@ -281,12 +274,12 @@ static void setGPUmaskForCPUmask(PSCPU_set_t *gpumask, PSCPU_set_t *cpumask)
 	}
 
 	short hwthread;
-	hwloc_bitmap_foreach_begin(hwthread, obj->cpuset)
+	hwloc_bitmap_foreach_begin(hwthread, obj->cpuset) {
 	    if (PSCPU_isSet(*cpumask, hwthread)) {
 		PSCPU_setCPU(*gpumask, idx);
 		break;
 	    }
-	hwloc_bitmap_foreach_end();
+	} hwloc_bitmap_foreach_end();
 
 	idx++;
     }
@@ -299,10 +292,9 @@ PSCPU_set_t* PSID_getGPUmaskOfNUMAnodes(void)
     if (!masks) {
 	masks = malloc(PSID_getNUMAnodes() * sizeof(*masks));
 
-	PSCPU_set_t *cpumasks;
-	cpumasks = PSID_getCPUmaskOfNUMAnodes(false);
+	PSCPU_set_t *cpumasks = PSID_getCPUmaskOfNUMAnodes(false);
 
-	for (unsigned i = 0; i < (unsigned)PSID_getNUMAnodes(); i++) {
+	for (int i = 0; i < PSID_getNUMAnodes(); i++) {
 	    setGPUmaskForCPUmask(masks+i, cpumasks+i);
 	}
     }
