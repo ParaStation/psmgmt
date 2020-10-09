@@ -181,11 +181,12 @@ PSCPU_set_t* PSID_getCPUmaskOfNUMAnodes(bool psorder)
 
 int PSID_getGPUs(void)
 {
-    static int gpus = 0;
+    static int gpus = -1;
 
-    if (!gpus) {
+    if (gpus < 0) {
 	if (!hwlocInitialized) initHWloc();
 
+	gpus = 0;
 	/* Find GPU PCU devices by Class ID */
 	hwloc_obj_t pcidevobj = NULL;
 	while ((pcidevobj = hwloc_get_next_obj_by_type(topology,
