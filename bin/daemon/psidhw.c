@@ -138,8 +138,10 @@ int PSID_getNUMAnodes(void)
 	if (!hwlocInitialized) initHWloc();
 
 	numaNodes = hwloc_get_nbobjs_by_type(topology, HWLOC_OBJ_NUMANODE);
+
+	if (!numaNodes) numaNodes = 1;
     }
-    return numaNodes ? numaNodes : 1;
+    return numaNodes;
 }
 
 PSCPU_set_t* PSID_getCPUmaskOfNUMAnodes(bool psorder)
