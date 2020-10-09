@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2003 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2018 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2020 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -493,8 +493,7 @@ short PSIDnodes_mapCPU(PSnodes_ID_t id, short cpu)
 
 short PSIDnodes_unmapCPU(PSnodes_ID_t id, short hwthread)
 {
-    if (validID(id) && hwthread >= 0 && (unsigned)hwthread<nodes[id].CPUmapSize
-	&& hwthread<PSIDnodes_getVirtCPUs(id)) {
+    if (validID(id)) {
 	for (short i = 0; (unsigned)i < nodes[id].CPUmapSize; i++) {
 	    if (nodes[id].CPUmap[i] == hwthread) return i;
 	}
