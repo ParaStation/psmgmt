@@ -398,7 +398,7 @@ void PSID_bindToGPUs(cpu_set_t *physSet)
     bool used[PSNUMANODE_MAX];
     memset(used, 0, sizeof(used));
 
-    /* find numa nodes this process in running on */
+    /* find numa nodes this process is running on */
     for (int i = 0; i < nodes; i++) {
 	for (int16_t cpu = 0; cpu < threads; cpu++) {
 	    if (CPU_ISSET(cpu, physSet) && PSCPU_isSet(cpumap[i], cpu)) {
@@ -410,7 +410,7 @@ void PSID_bindToGPUs(cpu_set_t *physSet)
     }
 
     char tmp[3*PSGPU_MAX];
-    int len = 0;
+    size_t len = 0;
 
     /* build string listing the GPUs connected to those NUMA nodes */
     for (int i = 0; i < nodes; i++) {
