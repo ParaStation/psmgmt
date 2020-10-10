@@ -160,7 +160,8 @@ int PSID_getNUMAnodes(void);
  * @param psorder Flag to return the masks in ParaStation CPU order
  * (thus mapped using cpu map)
  *
- * @return On success, the array of CPU masks is returned
+ * @return On success, the array of CPU masks is returned, on error, NULL
+ * is returned
  */
 PSCPU_set_t* PSID_getCPUmaskOfNUMAnodes(bool psorder);
 
@@ -178,7 +179,7 @@ PSCPU_set_t* PSID_getCPUmaskOfNUMAnodes(bool psorder);
  * If for some reason the hwloc framework cannot be initialized,
  * exit() is called.
  *
- * @return On success, the number of GPUs is returned
+ * @return On success, the number of GPUs is returned, on error, 0 is returned
  */
 int PSID_getGPUs(void);
 
@@ -212,7 +213,8 @@ uint16_t PSID_getGPUinPCIorder(uint16_t gpu);
  * This abuses the PSCPU framework to store the GPU masks. Just use it as
  * if the GPUs where single core CPUs.
  *
- * @return On success, the array of GPU masks is returned
+ * @return On success, the array of GPU masks is returned, on error, NULL
+ * is returned
  */
 PSCPU_set_t* PSID_getGPUmaskOfNUMAnodes(void);
 

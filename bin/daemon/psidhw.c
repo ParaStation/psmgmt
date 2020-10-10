@@ -156,6 +156,10 @@ PSCPU_set_t* PSID_getCPUmaskOfNUMAnodes(bool psorder)
 	if (!hwlocInitialized) initHWloc();
 
 	masks = malloc(PSID_getNUMAnodes() * sizeof(*masks));
+	if (!masks) {
+	    PSID_warn(-1, errno, "%s: malloc()", __func__);
+	    return NULL;
+	}
 
 	hwloc_obj_t numanode;
 
@@ -223,6 +227,10 @@ uint16_t PSID_getGPUinPCIorder(uint16_t gpu)
 	int gpus = PSID_getGPUs();    /* side effect: initializes hwloc */
 
 	map = malloc(gpus * sizeof(*map));
+	if (!map) {
+	    PSID_warn(-1, errno, "%s: malloc()", __func__);
+	    return 0;
+	}
 
 	uint32_t pciaddress[PSGPU_MAX];
 
@@ -292,6 +300,10 @@ PSCPU_set_t* PSID_getGPUmaskOfNUMAnodes(void)
 
     if (!masks) {
 	masks = malloc(PSID_getNUMAnodes() * sizeof(*masks));
+	if (!masks) {
+	    PSID_warn(-1, errno, "%s: malloc()", __func__);
+	    return NULL;
+	}
 
 	PSCPU_set_t *cpumasks = PSID_getCPUmaskOfNUMAnodes(false);
 
