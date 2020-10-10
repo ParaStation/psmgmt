@@ -133,9 +133,6 @@ int PSID_getPhysCores(void);
  * or 1 if no NUMA nodes are detected, which is the normal case
  * for UMA systems.
  *
- * This relies on the PCI device node of the GPU card in the hwloc topology
- * to have PCI Class ID 0x0302 (3D).
- *
  * hwloc is initialized implicitly if this has not happened before.
  *
  * If for some reason the hwloc framework cannot be initialized,
