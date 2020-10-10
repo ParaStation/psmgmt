@@ -143,7 +143,7 @@ int PSID_getPhysCores(void);
  *
  * @return On success, the number of NUMA nodes is returned
  */
-int PSID_getNUMAnodes(void);
+uint16_t PSID_getNUMAnodes(void);
 
 /**
  * @brief Get the CPU masks for all NUMA nodes
@@ -181,7 +181,7 @@ PSCPU_set_t* PSID_getCPUmaskOfNUMAnodes(bool psorder);
  *
  * @return On success, the number of GPUs is returned, on error, 0 is returned
  */
-int PSID_getGPUs(void);
+uint16_t PSID_getGPUs(void);
 
 /**
  * @brief Translate GPU ID in hwloc order to ID in PCI address order

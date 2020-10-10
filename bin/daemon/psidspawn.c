@@ -378,9 +378,9 @@ void PSID_pinToCPUs(cpu_set_t *physSet)
 
 void PSID_bindToGPUs(cpu_set_t *physSet)
 {
-    int nodes = PSID_getNUMAnodes();
+    uint16_t nodes = PSID_getNUMAnodes();
     int threads = PSID_getHWthreads();
-    int gpus = PSID_getGPUs();
+    uint16_t gpus = PSID_getGPUs();
 
     PSCPU_set_t *gpumap = PSID_getGPUmaskOfNUMAnodes();
     PSCPU_set_t *cpumap = PSID_getCPUmaskOfNUMAnodes(false);

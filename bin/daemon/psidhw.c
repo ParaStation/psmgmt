@@ -131,9 +131,9 @@ int PSID_getPhysCores(void)
     return physCores;
 }
 
-int PSID_getNUMAnodes(void)
+uint16_t PSID_getNUMAnodes(void)
 {
-    static int numaNodes = 0;
+    static uint16_t numaNodes = 0;
 
     if (!numaNodes) {
 	if (!hwlocInitialized) initHWloc();
@@ -141,6 +141,7 @@ int PSID_getNUMAnodes(void)
 	numaNodes = hwloc_get_nbobjs_by_type(topology, HWLOC_OBJ_NUMANODE);
 
 	if (!numaNodes) numaNodes = 1;
+	else if (numaNodes > PSNUMANODE_MAX) numaNodes = PSNUMANODE_MAX;
     }
     return numaNodes;
 }
@@ -163,7 +164,7 @@ PSCPU_set_t* PSID_getCPUmaskOfNUMAnodes(bool psorder)
 
 	hwloc_obj_t numanode;
 
-	for (int i = 0; i < PSID_getNUMAnodes(); i++) {
+	for (size_t i = 0; i < PSID_getNUMAnodes(); i++) {
 	    numanode = hwloc_get_numanode_obj_by_os_index(topology, i);
 	    if (!numanode) {
 		PSCPU_setAll(masks[i]);
@@ -185,11 +186,11 @@ PSCPU_set_t* PSID_getCPUmaskOfNUMAnodes(bool psorder)
     return masks;
 }
 
-int PSID_getGPUs(void)
+uint16_t PSID_getGPUs(void)
 {
-    static int gpus = -1;
+    static uint16_t gpus = PSGPU_MAX+1;
 
-    if (gpus < 0) {
+    if (gpus > PSGPU_MAX) {
 	if (!hwlocInitialized) initHWloc();
 
 	gpus = 0;
@@ -203,6 +204,7 @@ int PSID_getGPUs(void)
 
 	    gpus++;
 	}
+	if (gpus > PSGPU_MAX) gpus = PSGPU_MAX;
     }
     PSID_log(PSID_LOG_VERB, "%s: got %d gpus\n", __func__, gpus);
 
@@ -224,7 +226,7 @@ uint16_t PSID_getGPUinPCIorder(uint16_t gpu)
     static uint16_t* map = NULL;
 
     if (!map) {
-	int gpus = PSID_getGPUs();    /* side effect: initializes hwloc */
+	uint16_t gpus = PSID_getGPUs();    /* side effect: initializes hwloc */
 
 	map = malloc(gpus * sizeof(*map));
 	if (!map) {
@@ -234,7 +236,7 @@ uint16_t PSID_getGPUinPCIorder(uint16_t gpu)
 
 	uint32_t pciaddress[PSGPU_MAX];
 
-	int gpu = 0;
+	uint16_t gpu = 0;
 
 	/* Find GPU PCU devices by Class ID */
 	hwloc_obj_t pcidevobj = NULL;
@@ -250,7 +252,7 @@ uint16_t PSID_getGPUinPCIorder(uint16_t gpu)
 	}
 
 	/* init map */
-	for (int i = 0; i < gpus; i++) map[i] = i;
+	for (size_t i = 0; i < gpus; i++) map[i] = i;
 
 	/* do sort */
 	qsort_r(map, gpus, sizeof(*map), comparePCIaddr, pciaddress);
@@ -307,7 +309,7 @@ PSCPU_set_t* PSID_getGPUmaskOfNUMAnodes(void)
 
 	PSCPU_set_t *cpumasks = PSID_getCPUmaskOfNUMAnodes(false);
 
-	for (int i = 0; i < PSID_getNUMAnodes(); i++) {
+	for (size_t i = 0; i < PSID_getNUMAnodes(); i++) {
 	    setGPUmaskForCPUmask(masks+i, cpumasks+i);
 	}
     }
