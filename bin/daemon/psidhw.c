@@ -7,6 +7,7 @@
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
+#define _GNU_SOURCE
 #include <hwloc.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -204,6 +205,15 @@ int PSID_getGPUs(void)
     return gpus;
 }
 
+int comparePCIaddr(const void *a, const void *b, void *pciaddr) {
+    uint32_t *pciaddress = (uint32_t *) pciaddr;
+
+    int64_t val_a = pciaddress[*(uint16_t*)a];
+    int64_t val_b = pciaddress[*(uint16_t*)b];
+
+    return val_a - val_b;
+}
+
 /* translate gpu number from hwloc to pci adress order (used by CUDA) */
 uint16_t PSID_getGPUinPCIorder(uint16_t gpu)
 {
@@ -234,17 +244,8 @@ uint16_t PSID_getGPUinPCIorder(uint16_t gpu)
 	/* init map */
 	for (int i = 0; i < gpus; i++) map[i] = i;
 
-	/* do bubble sort */
-	for (int n = gpus; n > 1; n--) {
-	    for (int i = 0; i < n-1; i++) {
-		if (pciaddress[map[i]] >= pciaddress[map[i+1]]) {
-		    /* swap */
-		    map[i] ^= map[i+1];
-		    map[i+1] ^= map[i];
-		    map[i] ^= map[i+1];
-		}
-	    }
-	}
+	/* do sort */
+	qsort_r(map, gpus, sizeof(*map), comparePCIaddr, pciaddress);
     }
 
     return map[gpu];
