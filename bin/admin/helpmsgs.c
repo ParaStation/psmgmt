@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2019 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2020 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -251,11 +251,11 @@ static info_t setInfo = {
 	" | mcastdebug <level> | {freeonsuspend|fos} <bool>"
 	" | starter <bool> | runjobs <bool>"
 	" | overbook {<bool>|auto} | exclusive <bool> | pinprocs <bool>"
-	" | bindmem <bool> | supplementaryGroups <bool> | maxStatTry <num>"
-	" | cpumap <map> | allowUserMap <bool> | nodessort <mode>"
-	" | adminuser [+|-]{<user>|any} | admingroup [+|-]{<group>|any}"
-	" | accountpoll <interval> | killdelay <delay>"
-	" | pluginUnloadTmout <timeout> | obsoleteTasks 0"
+	" | bindmem <bool> | bindGPUs <bool> | supplementaryGroups <bool>"
+	" | maxStatTry <num> | cpumap <map> | allowUserMap <bool>"
+	" | nodessort <mode> | adminuser [+|-]{<user>|any}"
+	" | admingroup [+|-]{<group>|any} | accountpoll <interval>"
+	" | killdelay <delay> | pluginUnloadTmout <timeout> | obsoleteTasks 0"
 	" | {rl_{addressspace|as} | rl_core | rl_cpu | rl_data | rl_fsize"
 	"    | rl_locks | rl_memlock | rl_msgqueue | rl_nofile | rl_nproc"
 	"    | rl_rss | rl_sigpending | rl_stack} {<limit>|unlimited}} <nodes>"
@@ -361,6 +361,10 @@ static info_t setInfo = {
 	  .descr = "Set flag marking if this nodes will use memory-binding"
 	  " as NUMA policy. Relevant values are 'false', 'true',"
 	  " 'no', 'yes', 0 or different from 0." },
+	{ .tag = "set bindGPUs <bool>",
+	  .descr = "Set flag marking if this nodes will use GPU-binding"
+	  " Relevant values are 'false', 'true', 'no', 'yes'"
+	  ", 0 or different from 0." },
 	{ .tag = "set supplementaryGroups <bool>",
 	  .descr = "Set flag marking if this nodes will set the user's"
 	  " supplementary groups while spawning new processes. Relevant"
@@ -473,7 +477,7 @@ static info_t showInfo = {
 	" | rdpretrans | rdpclosedtimeout | rdpmaxackpend | rdpstatistics"
 	" | mcastdebug | master | {freeonsuspend|fos}"
 	" | starter | runjobs | overbook | exclusive | pinprocs | bindmem"
-	" | cpumap | allowUserMap | nodessort | supplementaryGroups"
+	" | bindGPUs | cpumap | allowUserMap | nodessort | supplementaryGroups"
 	" | maxStatTry | adminuser | admingroup | accounters | accountpoll"
 	" | killdelay | pluginAPIversion | pluginUnloadTmout | obsoleteTasks"
 	" | rl_{addressspace|as} | rl_core | rl_cpu | rl_data | rl_fsize"
@@ -541,6 +545,8 @@ static info_t showInfo = {
 	{ .tag = "show bindmem",
 	  .descr = "Show flag marking if this nodes uses binding as NUMA"
 	  " policy." },
+	{ .tag = "show bindGPUs",
+	  .descr = "Show flag marking if this nodes uses GPU binding." },
 	{ .tag = "show supplementaryGroups",
 	  .descr = "Show flag marking if this nodes will set the user's"
 	  " supplementary groups while spawning new processes." },
