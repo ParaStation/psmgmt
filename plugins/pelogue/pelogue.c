@@ -69,13 +69,10 @@ static void cleanupJobs(void)
 
 static bool nodeDownVisitor(Job_t *job, const void *info)
 {
-    PSnodes_ID_t id = *(PSnodes_ID_t *)info;
-    int i;
-
     if (job->state != JOB_PROLOGUE && job->state != JOB_EPILOGUE) return false;
-    if (!findChild(job->plugin, job->id)) return false;
+    PSnodes_ID_t id = *(PSnodes_ID_t *)info;
 
-    for (i=0; i<job->numNodes; i++) {
+    for (int i=0; i<job->numNodes; i++) {
 	if (job->nodes[i].id == id) {
 	    const char *hname = getHostnameByNodeId(id);
 
@@ -91,7 +88,10 @@ static bool nodeDownVisitor(Job_t *job, const void *info)
 	    }
 
 	    /* stop pelogue scripts on all nodes */
-	    sendPElogueSignal(job, SIGTERM, "node down");
+	    char buf[128];
+	    snprintf(buf, sizeof(buf), "node %s is down", hname);
+	    sendPElogueSignal(job, SIGTERM, buf);
+
 	    cancelJob(job);
 	    break;
 	}
