@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2002-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2019 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2020 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -105,11 +105,11 @@ typedef enum {
 
     PSP_OP_PINPROCS = 0x0048,     /**< Process-pinning is used on this node */
     PSP_OP_BINDMEM,               /**< Memory-binding is used on this node */
-    PSP_OP_BINDGPUS,              /**< Memory-binding is used on this node */
     PSP_OP_CLR_CPUMAP,            /**< clear CPU-map */
     PSP_OP_APP_CPUMAP,            /**< append an element to CPU-map */
     PSP_OP_CPUMAP,                /**< request full CPU-map (returns list)*/
     PSP_OP_ALLOWUSERMAP,          /**< allow user to influence CPU-mapping */
+    PSP_OP_BINDGPUS,              /**< GPU-binding is used on this node */
 
     PSP_OP_SET_UID = 0x0050,      /**< set an exclusive user */
     PSP_OP_ADD_UID,               /**< add a new exclusive user */
