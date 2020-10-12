@@ -612,4 +612,21 @@ int handlePelogueOE(void *data)
     return 0;
 }
 
+int handlePelogueGlobal(void *data)
+{
+    PElogue_Global_Res_t *pedata = data;
+    uint32_t jobid = atoi(pedata->jobid);
+
+    if (!pedata->exit) return 0;
+
+    Alloc_t *alloc = findAlloc(jobid);
+    if (alloc) {
+	if (alloc->state == A_INIT || alloc->state == A_PROLOGUE_FINISH) {
+	    handleFailedPrologue(alloc, pedata->res);
+	}
+    }
+
+    return 0;
+}
+
 /* vim: set ts=8 sw=4 tw=0 sts=4 noet:*/

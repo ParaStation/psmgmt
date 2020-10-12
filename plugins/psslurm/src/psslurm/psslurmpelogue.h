@@ -97,4 +97,16 @@ bool finalizeEpilogue(Alloc_t *alloc);
  */
 int handlePelogueOE(void *data);
 
+/**
+ * @brief Handle hook PSIDHOOK_PELOGUE_GLOBAL
+ *
+ * Used to set nodes offline if the global slurmctld
+ * prologue failed.
+ *
+ * @param data PElogue_Global_Res_t structure
+ *
+ * @return Always returns 0
+ */
+int handlePelogueGlobal(void *data);
+
 #endif

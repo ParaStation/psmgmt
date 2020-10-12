@@ -80,11 +80,11 @@ uint32_t configHash;
 /** psid plugin requirements */
 char name[] = "psslurm";
 int version = 117;
-int requiredAPI = 123;
+int requiredAPI = 128;
 plugin_dep_t dependencies[] = {
     { .name = "psmunge", .version = 4 },
     { .name = "psaccount", .version = 28 },
-    { .name = "pelogue", .version = 7 },
+    { .name = "pelogue", .version = 9 },
     { .name = "pspam", .version = 3 },
     { .name = "psexec", .version = 2 },
     { .name = "pspmi", .version = 4 },
@@ -158,6 +158,10 @@ static void unregisterHooks(bool verbose)
     if (!PSIDhook_del(PSIDHOOK_PELOGUE_OE, handlePelogueOE)) {
 	if (verbose) mlog("unregister 'PSIDHOOK_PELOGUE_OE' failed\n");
     }
+
+    if (!PSIDhook_del(PSIDHOOK_PELOGUE_GLOBAL, handlePelogueGlobal)) {
+	if (verbose) mlog("unregister 'PSIDHOOK_PELOGUE_GLOBAL' failed\n");
+    }
 }
 
 /**
@@ -207,6 +211,11 @@ static bool registerHooks(void)
 
     if (!PSIDhook_add(PSIDHOOK_PELOGUE_OE, handlePelogueOE)) {
 	mlog("register 'PSIDHOOK_PELOGUE_OE' failed\n");
+	return false;
+    }
+
+    if (!PSIDhook_add(PSIDHOOK_PELOGUE_GLOBAL, handlePelogueGlobal)) {
+	mlog("register 'PSIDHOOK_PELOGUE_GLOBAL' failed\n");
 	return false;
     }
 

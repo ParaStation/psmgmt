@@ -56,6 +56,7 @@ typedef enum {
     PELOGUE_DONE,         /**< pelogue finished succesfully */
     PELOGUE_FAILED,       /**< pelogue finished but failed */
     PELOGUE_TIMEDOUT,     /**< pelogue did not finish in time */
+    PELOGUE_NODEDOWN	  /**< node died while running pelogue */
 } PElogueState_t;
 
 /** Collection of pelogue results associated to a job */
@@ -97,6 +98,12 @@ typedef struct {
     short type;		    /**< type set to STDOUT or STDERR */
     char *msg;		    /**< the message to handle */
 } PElogue_OEdata_t;
+
+typedef struct {
+    char *jobid;            /**< batch system's job ID */
+    PElogueResList_t *res;  /**< list of results */
+    int exit;		    /**< accumulated exit status */
+} PElogue_Global_Res_t;
 
 /**
  * @brief Job callback

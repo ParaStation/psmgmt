@@ -16,6 +16,7 @@
 #include "pluginmalloc.h"
 #include "timer.h"
 #include "pscommon.h"
+#include "psidhook.h"
 
 #include "peloguelog.h"
 #include "peloguecomm.h"
@@ -302,6 +303,14 @@ void finishJobPElogue(Job_t *job, int status, bool prologue)
 
 	/* stop monitoring the PELouge script for timeout */
 	cancelJobMonitor(job);
+
+	PElogue_Global_Res_t gRes = {
+	    .res = job->nodes,
+	    .jobid = job->id,
+	    .exit = *exit
+	};
+	PSIDhook_call(PSIDHOOK_PELOGUE_GLOBAL, &gRes);
+
 	job->cb(job->id, *exit, false, job->nodes, job->info);
     } else if (status && !*exit) {
 	char *reason = prologue ? "prologue failed" : "epilogue failed";
@@ -412,5 +421,13 @@ void cancelJob(Job_t *job)
     if (!checkJobPtr(job)) return;
 
     cancelJobMonitor(job);
+
+    PElogue_Global_Res_t gRes = {
+	.res = job->nodes,
+	.jobid = job->id,
+	.exit = -4
+    };
+    PSIDhook_call(PSIDHOOK_PELOGUE_GLOBAL, &gRes);
+
     job->cb(job->id, -4, true, job->nodes, job->info);
 }

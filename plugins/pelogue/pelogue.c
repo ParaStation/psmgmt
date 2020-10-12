@@ -37,8 +37,8 @@ static int obitTime = 2;
 
 /** psid plugin requirements */
 char name[] = "pelogue";
-int version = 8;
-int requiredAPI = 126;
+int version = 9;
+int requiredAPI = 128;
 plugin_dep_t dependencies[] = {
     { .name = "psaccount", .version = 21 },
     { .name = NULL, .version = 0 } };
@@ -69,23 +69,35 @@ static void cleanupJobs(void)
 
 static bool nodeDownVisitor(Job_t *job, const void *info)
 {
-    if (job->state != JOB_PROLOGUE && job->state != JOB_EPILOGUE) return false;
     PSnodes_ID_t id = *(PSnodes_ID_t *)info;
 
     for (int i=0; i<job->numNodes; i++) {
 	if (job->nodes[i].id == id) {
+	    /* update node result */
+	    if (job->state == JOB_PROLOGUE) {
+		job->nodes[i].prologue = PELOGUE_NODEDOWN;
+	    } else {
+		job->nodes[i].epilogue = PELOGUE_NODEDOWN;
+	    }
+
+	    if (job->state != JOB_PROLOGUE &&
+		job->state != JOB_EPILOGUE) {
+		/* job is already cancelled, process next node */
+		return false;
+	    }
+
+	    if (job->state == JOB_PROLOGUE) {
+		job->state = JOB_CANCEL_PROLOGUE;
+	    } else {
+		job->state = JOB_CANCEL_EPILOGUE;
+	    }
+
 	    const char *hname = getHostnameByNodeId(id);
 
 	    mlog("%s: node %s(%i) running job '%s' jstate '%s' is down\n",
 		 __func__, hname, id, job->id, jobState2String(job->state));
-
-	    if (job->state == JOB_PROLOGUE) {
-		job->nodes[i].prologue = PELOGUE_TIMEDOUT;
-		job->state = JOB_CANCEL_PROLOGUE;
-	    } else {
-		job->nodes[i].epilogue = PELOGUE_TIMEDOUT;
-		job->state = JOB_CANCEL_EPILOGUE;
-	    }
+	    mlog("%s: suppressing further node down error messages "
+		 "for job %s\n", __func__, job->id);
 
 	    /* stop pelogue scripts on all nodes */
 	    char buf[128];
