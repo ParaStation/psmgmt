@@ -141,7 +141,11 @@ uint16_t PSID_getNUMAnodes(void)
 	numaNodes = hwloc_get_nbobjs_by_type(topology, HWLOC_OBJ_NUMANODE);
 
 	if (!numaNodes) numaNodes = 1;
-	else if (numaNodes > PSNUMANODE_MAX) numaNodes = PSNUMANODE_MAX;
+	else if (numaNodes > PSNUMANODE_MAX) {
+	    PSID_log(-1 ,"%s: Number of NUMA nodes %d exceeds the supported"
+		     " limit %d\n", __func__, numaNodes, PSNUMANODE_MAX);
+	    numaNodes = PSNUMANODE_MAX;
+	}
     }
     return numaNodes;
 }
@@ -204,7 +208,11 @@ uint16_t PSID_getGPUs(void)
 
 	    gpus++;
 	}
-	if (gpus > PSGPU_MAX) gpus = PSGPU_MAX;
+	if (gpus > PSGPU_MAX) {
+	    PSID_log(-1 ,"%s: Number of GPUs %d exceeds the supported"
+		     " limit %d\n", __func__, gpus, PSGPU_MAX);
+	    gpus = PSGPU_MAX;
+	}
     }
     PSID_log(PSID_LOG_VERB, "%s: got %d gpus\n", __func__, gpus);
 
