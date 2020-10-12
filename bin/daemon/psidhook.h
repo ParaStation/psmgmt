@@ -170,6 +170,10 @@ typedef enum {
 				and epilogue script are provided. Used by
 				psslurm to collect job errors. Arg is pointer to
 				PElogue_OEdata_t */
+    PSIDHOOK_PELOGUE_GLOBAL,  /**< The result of a global prologue/epilogue run
+				executed by the pelogue plugin can be inspected.
+				Used by the psslurm plugin. Arg is pointer to
+				PElogue_Global_Res_t */
     PSIDHOOK_FRWRD_DSOCK,     /**< In forwarder's init() function, arg is a
 				pointer to the daemon socket. */
     PSIDHOOK_JAIL_CHILD,      /**< Jail child into cgroup, arg points to pid */
