@@ -201,6 +201,10 @@ const ConfDef_t confDef[] =
 	"inherit",
 	"Default to use as distribution over sockets"
 	    " (inherit|block|cyclic|fcyclic)" },
+    { "DIRECT_DRAIN", 0,
+	"bool",
+	"0",
+	"If true nodes will be drained without the help of psexec" },
     { NULL, 0, NULL, NULL, NULL },
 };
 

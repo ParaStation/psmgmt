@@ -2930,7 +2930,7 @@ void sendEpilogueComplete(uint32_t jobid, uint32_t rc)
     sendSlurmMsg(SLURMCTLD_SOCK, MESSAGE_EPILOG_COMPLETE, &body);
 }
 
-void sendDrainNode(char *nodeList, char *reason)
+void sendDrainNode(const char *nodeList, const char *reason)
 {
     PS_SendDB_t msg = { .bufUsed = 0, .useFrag = false };
 

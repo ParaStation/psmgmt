@@ -187,7 +187,8 @@ int send_PS_PackExit(Step_t *step, int32_t exitStatus);
  *
  * @param reason The reason why the node was set offline
  */
-void setNodeOffline(env_t *env, uint32_t id, const char *host, char *reason);
+void setNodeOffline(env_t *env, uint32_t id, const char *host,
+		    const char *reason);
 
 void requeueBatchJob(Job_t *job, PSnodes_ID_t dest);
 

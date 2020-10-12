@@ -818,24 +818,32 @@ static int callbackNodeOffline(uint32_t id, int32_t exit, PSnodes_ID_t remote,
     return 0;
 }
 
-void setNodeOffline(env_t *env, uint32_t id, const char *host, char *reason)
+void setNodeOffline(env_t *env, uint32_t id, const char *host,
+		    const char *reason)
 {
-    env_t clone;
-
     if (!host || !reason) {
-	mlog("%s: empty host or reason\n", __func__);
+	flog("error: empty host or reason\n");
 	return;
     }
 
-    envClone(env, &clone, envFilter);
-    envSet(&clone, "SLURM_HOSTNAME", host);
-    envSet(&clone, "SLURM_REASON", reason);
+    int directDrain = getConfValueI(&Config, "DIRECT_DRAIN");
+    if (directDrain == 1) {
+	/* emulate a scontrol request to drain a node in Slurm */
+	flog("draining hosts %s, reason: %s\n", host, reason);
+	sendDrainNode(host, reason);
+    } else {
+	/* use psexec to drain nodes in Slurm */
+	env_t clone;
+	envClone(env, &clone, envFilter);
+	envSet(&clone, "SLURM_HOSTNAME", host);
+	envSet(&clone, "SLURM_REASON", reason);
 
-    flog("node '%s' exec script on node %i\n", host, getCtlHostID(0));
-    psExecStartScript(id, "psslurm-offline", &clone, getCtlHostID(0),
-		      callbackNodeOffline);
+	flog("node '%s' exec script on node %i\n", host, getCtlHostID(0));
+	psExecStartScript(id, "psslurm-offline", &clone, getCtlHostID(0),
+			  callbackNodeOffline);
 
-    envDestroy(&clone);
+	envDestroy(&clone);
+    }
 }
 
 static int callbackRequeueBatchJob(uint32_t id, int32_t exit,

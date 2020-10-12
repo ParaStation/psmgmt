@@ -141,9 +141,9 @@ typedef struct {
     char *gres;		    /**< new generic resources */
     char *nodeAddr;	    /**< node address */
     char *hostname;	    /**< hostname */
-    char *nodeList;	    /**< nodelist (NodeName in Slurm) */
+    const char *nodeList;   /**< nodelist (NodeName in Slurm) */
     uint32_t nodeState;	    /**< new node state */
-    char *reason;	    /**< reason for update */
+    const char *reason;	    /**< reason for update */
     uint32_t reasonUID;	    /**< user ID of request */
     uint32_t weight;	    /**< new weight */
 } Req_Update_Node_t;
@@ -434,6 +434,6 @@ uint32_t getLocalID(PSnodes_ID_t *nodes, uint32_t nrOfNodes);
  *
  * @param reason The reason the nodes will be drained
  */
-void sendDrainNode(char *nodeList, char *reason);
+void sendDrainNode(const char *nodeList, const char *reason);
 
 #endif /* __PSSLURM_PROTO */

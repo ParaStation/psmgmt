@@ -228,3 +228,8 @@
 #
 # (string, default: inherit
 #DEFAULT_CORE_DIST = block
+
+# If true nodes will be drained without the help of psexec
+#
+# (bool, 1 = enabled, 0 = disabled, default: 0)
+#DIRECT_DRAIN = 1
