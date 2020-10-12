@@ -2011,3 +2011,44 @@ bool __unpackReqSuspendInt(Slurm_Msg_t *sMsg, Req_Suspend_Int_t **reqPtr,
     *reqPtr = req;
     return true;
 }
+
+bool __packUpdateNode(PS_SendDB_t *data, Req_Update_Node_t *update,
+		      const char *caller, const int line)
+{
+    if (!data) {
+	mlog("%s: invalid data pointer from '%s' at %i\n", __func__,
+		caller, line);
+	return false;
+    }
+
+    if (!update) {
+	mlog("%s: invalid update pointer from '%s' at %i\n", __func__,
+		caller, line);
+	return false;
+    }
+
+    /* default cpu bind type */
+    addUint32ToMsg(update->cpuBind, data);
+    /* new features */
+    addStringToMsg(update->features, data);
+    /* new active features */
+    addStringToMsg(update->activeFeat, data);
+    /* new generic resources */
+    addStringToMsg(update->gres, data);
+    /* node address */
+    addStringToMsg(update->nodeAddr, data);
+    /* node hostname */
+    addStringToMsg(update->hostname, data);
+    /* nodelist */
+    addStringToMsg(update->nodeList, data);
+    /* node state */
+    addUint32ToMsg(update->nodeState, data);
+    /* reason */
+    addStringToMsg(update->reason, data);
+    /* reason user ID */
+    addUint32ToMsg(update->reasonUID, data);
+    /* new weight */
+    addUint32ToMsg(update->weight, data);
+
+    return true;
+}

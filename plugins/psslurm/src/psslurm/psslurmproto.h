@@ -133,6 +133,21 @@ typedef struct {
     uint16_t op;	    /* operation (suspend or resume) */
 } Req_Suspend_Int_t;
 
+/** Data for the REQUEST_UPDATE_NODE message */
+typedef struct {
+    uint32_t cpuBind;	    /**< new CPU bind type */
+    char *features;	    /**< new features */
+    char *activeFeat;	    /**< new active features */
+    char *gres;		    /**< new generic resources */
+    char *nodeAddr;	    /**< node address */
+    char *hostname;	    /**< hostname */
+    char *nodeList;	    /**< nodelist (NodeName in Slurm) */
+    uint32_t nodeState;	    /**< new node state */
+    char *reason;	    /**< reason for update */
+    uint32_t reasonUID;	    /**< user ID of request */
+    uint32_t weight;	    /**< new weight */
+} Req_Update_Node_t;
+
 /** Slurm protocol version */
 extern uint32_t slurmProto;
 
@@ -408,5 +423,17 @@ int requestJobInfo(uint32_t jobid);
  * @return Returns the requested local ID or -1 on error.
  */
 uint32_t getLocalID(PSnodes_ID_t *nodes, uint32_t nrOfNodes);
+
+/**
+ * @brief Drain node(s) in Slurm
+ *
+ * This will drain nodes in Slurm using the same messages
+ * like scontrol.
+ *
+ * @param nodeList A list holding all nodes to drain
+ *
+ * @param reason The reason the nodes will be drained
+ */
+void sendDrainNode(char *nodeList, char *reason);
 
 #endif /* __PSSLURM_PROTO */

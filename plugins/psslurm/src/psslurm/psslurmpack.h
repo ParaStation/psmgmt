@@ -539,4 +539,26 @@ bool __unpackReqSuspendInt(Slurm_Msg_t *sMsg, Req_Suspend_Int_t **reqPtr,
 #define unpackReqSuspendInt(sMsg, reqPtr) \
     __unpackReqSuspendInt(sMsg, reqPtr, __func__, __LINE__)
 
+/**
+ * @brief Pack node update request data
+ *
+ * Pack node update request data and add it to the provided data
+ * buffer.
+ *
+ * @param data Data buffer to save data to
+ *
+ * @param update The data to pack into the message
+ *
+ * @param caller Function name of the calling function
+ *
+ * @param line Line number where this function is called
+ *
+ * @return On success true is returned or false in case of an
+ * error. If writing was not successful, @a data might be not updated.
+ */
+bool __packUpdateNode(PS_SendDB_t *data, Req_Update_Node_t *update,
+		      const char *caller, const int line);
+#define packUpdateNode(sMsg, update) \
+    __packUpdateNode(sMsg, update, __func__, __LINE__)
+
 #endif  /* __PS_SLURM_PACK */

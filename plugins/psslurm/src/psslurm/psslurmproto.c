@@ -36,6 +36,7 @@
 #include "pspamhandles.h"
 
 #include "slurmcommon.h"
+#include "slurmnode.h"
 #include "psslurmjob.h"
 #include "psslurmgres.h"
 #include "psslurmlog.h"
@@ -2927,6 +2928,23 @@ void sendEpilogueComplete(uint32_t jobid, uint32_t rc)
     addStringToMsg(getConfValueC(&Config, "SLURM_HOSTNAME"), &body);
 
     sendSlurmMsg(SLURMCTLD_SOCK, MESSAGE_EPILOG_COMPLETE, &body);
+}
+
+void sendDrainNode(char *nodeList, char *reason)
+{
+    PS_SendDB_t msg = { .bufUsed = 0, .useFrag = false };
+
+    Req_Update_Node_t req;
+    memset(&req, 0, sizeof(req));
+
+    req.weight = NO_VAL;
+    req.nodeList = nodeList;
+    req.reason = reason;
+    req.reasonUID = getuid();
+    req.nodeState = NODE_STATE_DRAIN;
+
+    packUpdateNode(&msg, &req);
+    sendSlurmMsg(SLURMCTLD_SOCK, REQUEST_UPDATE_NODE, &msg);
 }
 
 /* vim: set ts=8 sw=4 tw=0 sts=4 noet:*/
