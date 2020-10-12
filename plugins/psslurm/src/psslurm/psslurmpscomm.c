@@ -1227,6 +1227,10 @@ static void handle_EpilogueRes(DDTypedBufferMsg_t *msg)
 	    } else if (res == PELOGUE_TIMEDOUT) {
 		snprintf(reason, sizeof(reason),
 			 "psslurm: epilogue timed out\n");
+	    } else {
+		snprintf(reason, sizeof(reason),
+			 "psslurm: epilogue failed with unknown result %i\n",
+			 res);
 	    }
 	    setNodeOffline(&alloc->env, alloc->id,
 			   getSlurmHostbyNodeID(sender), reason);

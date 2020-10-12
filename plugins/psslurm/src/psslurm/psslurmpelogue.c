@@ -53,17 +53,20 @@
  */
 static void handleFailedPrologue(Alloc_t *alloc, PElogueResList_t *resList)
 {
-    uint32_t i;
-    char msg[256];
-
-    for (i=0; i<alloc->nrOfNodes; i++) {
+    for (uint32_t i=0; i<alloc->nrOfNodes; i++) {
 	bool offline = false;
+	char msg[256];
+
 	if (resList[i].id == PSC_getMyID()) continue;
 	if (resList[i].prologue == PELOGUE_FAILED) {
-	    snprintf(msg, sizeof(msg), "psslurm: prologue failed\n");
+	    snprintf(msg, sizeof(msg), "psslurm: slurmctld prologue failed\n");
 	    offline = true;
 	} else if (resList[i].prologue == PELOGUE_TIMEDOUT) {
-	    snprintf(msg, sizeof(msg), "psslurm: prologue timed out\n");
+	    snprintf(msg, sizeof(msg), "psslurm: slurmctld prologue timed out\n");
+	    offline = true;
+	} else if (resList[i].prologue == PELOGUE_NODEDOWN) {
+	    snprintf(msg, sizeof(msg), "psslurm: node down while slurmctld "
+				        "prologue\n");
 	    offline = true;
 	}
 	if (offline) setNodeOffline(&alloc->env, alloc->id,
