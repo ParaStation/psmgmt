@@ -12,6 +12,7 @@ include $(top_srcdir)/common.am
 
 psaccount_dir := plugins/psaccount
 
+AM_CFLAGS += -std=gnu99
 AM_LDFLAGS += -avoid-version -module
 AM_CPPFLAGS += -I$(top_srcdir)/bin/daemon -I$(top_srcdir)/$(psaccount_dir)
 AM_CFLAGS += -fcommon
