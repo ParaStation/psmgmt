@@ -546,6 +546,7 @@ plugins/psslurm/src/common/Makefile.in \
 plugins/psslurm/src/common/slurmcommon.h \
 plugins/psslurm/src/common/slurmerrno.h \
 plugins/psslurm/src/common/slurmmsg.h \
+plugins/psslurm/src/common/slurmnode.h \
 plugins/psslurm/src/psslurm/Makefile.am \
 plugins/psslurm/src/psslurm/Makefile.in \
 plugins/psslurm/src/psslurm/psslurm.h \
