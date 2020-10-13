@@ -75,22 +75,18 @@ static bool nodeDownVisitor(Job_t *job, const void *info)
     for (int i=0; i<job->numNodes; i++) {
 	if (job->nodes[i].id == id) {
 	    /* update node result */
-	    if (job->state == JOB_PROLOGUE) {
+	    switch (job->state) {
+	    case JOB_PROLOGUE:
 		job->nodes[i].prologue = PELOGUE_NODEDOWN;
-	    } else {
+		job->state = JOB_CANCEL_PROLOGUE;
+		break;
+	    case JOB_EPILOGUE:
 		job->nodes[i].epilogue = PELOGUE_NODEDOWN;
-	    }
-
-	    if (job->state != JOB_PROLOGUE &&
-		job->state != JOB_EPILOGUE) {
+		job->state = JOB_CANCEL_EPILOGUE;
+		break;
+	    default:
 		/* job is already cancelled, process next node */
 		return false;
-	    }
-
-	    if (job->state == JOB_PROLOGUE) {
-		job->state = JOB_CANCEL_PROLOGUE;
-	    } else {
-		job->state = JOB_CANCEL_EPILOGUE;
 	    }
 
 	    if (!hname) hname = getHostnameByNodeId(id);
