@@ -70,6 +70,7 @@ static void cleanupJobs(void)
 static bool nodeDownVisitor(Job_t *job, const void *info)
 {
     PSnodes_ID_t id = *(PSnodes_ID_t *)info;
+    const char *hname = NULL;
 
     for (int i=0; i<job->numNodes; i++) {
 	if (job->nodes[i].id == id) {
@@ -92,7 +93,7 @@ static bool nodeDownVisitor(Job_t *job, const void *info)
 		job->state = JOB_CANCEL_EPILOGUE;
 	    }
 
-	    const char *hname = getHostnameByNodeId(id);
+	    if (!hname) hname = getHostnameByNodeId(id);
 
 	    mlog("%s: node %s(%i) running job '%s' jstate '%s' is down\n",
 		 __func__, hname, id, job->id, jobState2String(job->state));
