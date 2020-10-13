@@ -277,13 +277,15 @@ char *__getBitString(char **ptr, const char *func, const int line);
 bool hexBitstr2Array(char *bitstr, int **array, size_t *arraySize);
 
 /**
- * @brief Convert function of hexBitstr2List()
+ * @brief Converter function of hexBitstr2List()
  *
- * A convert function for @ref hexBitstr2List which will be called
- * for every value of the list can be defined. Used to map the
+ * A converter function for @ref hexBitstr2List() can be defined. The function
+ * will be called for every value of the list. It is currently used to map the
  * logical CPU representation from Slurm to a physical CPU of the node.
- * If the convert function returns -1 the value will on added
- * to the list and the conversion is continued with the next value.
+ *
+ * If the converter function returns -1 the current value is skipped and will
+ * not be added to the list. The conversion process will continue with the next
+ * value of the bitstring.
  *
  * @return Returns the converted value or -1 on error.
  */
