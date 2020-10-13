@@ -20,6 +20,7 @@
 #include "plugin.h"
 #include "pscommon.h"
 #include "psidhook.h"
+#include "psidutil.h"
 
 #include "pluginmalloc.h"
 #include "pluginlog.h"
@@ -77,15 +78,12 @@ static int execScript(pid_t child, char *script)
 
     if (command) {
 	/* ensure system() is able to catch SIGCHLD */
-	sigset_t set, oldset;
-	sigemptyset(&set);
-	sigaddset(&set, SIGCHLD);
-	sigprocmask(SIG_UNBLOCK, &set, &oldset);
+	int blocked = PSID_blockSig(0, SIGCHLD);
 
 	int ret = system(command);
 	if (ret == -1) jlog(-1, "%s: system(%s) failed\n", __func__, command);
 
-	sigprocmask(SIG_SETMASK, &oldset, NULL);
+	PSID_blockSig(blocked, SIGCHLD);
 	free(command);
     }
 
