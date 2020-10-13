@@ -346,6 +346,12 @@ int handleLocalPElogueStart(void *data)
     char *user = userEnv ? userEnv : uid2String(pedata->uid);
     if (!user) {
 	flog("resolve username for uid %i failed\n", pedata->uid);
+	/* set my node offline */
+	char reason[128];
+	snprintf(reason, sizeof(reason),
+		 "psslurm: resolve username for uid %i failed\n", pedata->uid);
+	char *hostname = getConfValueC(&Config, "SLURM_HOSTNAME");
+	setNodeOffline(&pedata->env, id, hostname, reason);
 	return -1;
     }
 

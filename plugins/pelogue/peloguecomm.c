@@ -440,7 +440,7 @@ static void handlePElogueStart(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
 	if (ret == -2) {
 	    child->exit = 0;
 	} else {
-	    mlog("%s: PSIDHOOK_PELOGUE_START failed with %u\n", __func__, ret);
+	    mlog("%s: PSIDHOOK_PELOGUE_START failed with %i\n", __func__, ret);
 	    child->exit = -3;
 	}
 	goto ERROR;
