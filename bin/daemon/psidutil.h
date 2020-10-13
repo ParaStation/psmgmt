@@ -219,7 +219,7 @@ int PSID_readall(int fd, void *buf, size_t count);
  * @brief (Un-)Block signal.
  *
  * Block or unblock the signal @a sig depending on the value of @a
- * block. If block is 0, the signal will be blocked. Otherwise it will
+ * block. If block is 1, the signal will be blocked. Otherwise it will
  * be unblocked.
  *
  * @param block Flag steering the (un-)blocking of the signal.
