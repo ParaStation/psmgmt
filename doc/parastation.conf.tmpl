@@ -2,7 +2,7 @@
 # ParaStation
 #
 # Copyright (C) 2003-2004 ParTec AG, Karlsruhe
-# Copyright (C) 2005-2016 ParTec Cluster Competence Center GmbH, Munich
+# Copyright (C) 2005-2020 ParTec Cluster Competence Center GmbH, Munich
 #
 # This file may be distributed under the terms of the Q Public License
 # as defined in the file LICENSE.QPL included in the packaging of this
@@ -239,9 +239,9 @@ HWType	{ ethernet p4sock }
 # bindMem	yes
 
 #
-# Enable binding of process to GPUs connected to the same NUMA local domain.
+# Enable binding of process to GPUs connected to the same NUMA domain
 #
-# This can also be set during run-time via psiadmin's 'set bindgpus' directive.
+# This can also be set during run-time via psiadmin's 'set bindGPUs' directive.
 #
 # bindGPUs	yes
 
@@ -287,7 +287,7 @@ Nodes {
 	node-4		4
 # Node 5 (on 'node-5') has only Ethernet communication hardware.
 	node-5		5 hwtype { ethernet }
-# Allow at most 8 processes on nodes 6 and 7
+# Allow at most 8 processes on nodes 6 but any on node 7
 	node-6		6 processes 8
 	node-7		7 processes any
 # Start the accounting daemon on node 8

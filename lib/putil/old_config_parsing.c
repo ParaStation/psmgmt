@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2018 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2020 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -1517,7 +1517,7 @@ static int getBindGPUs(char *token)
 
     if (currentID == DEFAULT_ID) {
 	default_bindGPUs = bindGPUs;
-	parser_comment(PARSER_LOG_NODE, "setting default 'BindGpus' to '%s'\n",
+	parser_comment(PARSER_LOG_NODE, "setting default 'BindGPUs' to '%s'\n",
 		       bindGPUs ? "TRUE" : "FALSE");
     } else {
 	node_bindGPUs = bindGPUs;
@@ -2076,7 +2076,7 @@ static keylist_t nodeline_list[] = {
     {"exclusive", getExcl, NULL},
     {"pinprocs", getPinProcs, NULL},
     {"bindmem", getBindMem, NULL},
-    {"bindgpus", getBindGPUs, NULL},
+    {"bindGPUs", getBindGPUs, NULL},
     {"allowusermap", getAllowUserMap, NULL},
     {"supplGrps", getSupplGrps, NULL},
     {"maxStatTry", getMaxStatTry, NULL},
@@ -2691,7 +2691,7 @@ static keylist_t config_list[] = {
     {"exclusive", getExcl, NULL},
     {"pinprocs", getPinProcs, NULL},
     {"bindmem", getBindMem, NULL},
-    {"bindgpus", getBindGPUs, NULL},
+    {"bindGPUs", getBindGPUs, NULL},
     {"allowusermap", getAllowUserMap, NULL},
     {"supplGrps", getSupplGrps, NULL},
     {"maxStatTry", getMaxStatTry, NULL},
