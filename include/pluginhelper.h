@@ -48,17 +48,6 @@ PSnodes_ID_t getNodeIDbyName(const char *host);
 const char *getHostnameByNodeId(PSnodes_ID_t id);
 
 /**
- * @brief Block a signal.
- *
- * @param signal The signal to block.
- *
- * @param block Flag to block the signal if set to 1 or unblock it if set to 0.
- *
- * @return No return value.
- */
-void blockSignal(int signal, int block);
-
-/**
  * @brief Eliminate leading whitespaces
  *
  * Remove all leading whitespace (i.e. just <space> characters) from

@@ -329,8 +329,8 @@ static void resetSignalHandling(void)
     PSC_setSigHandler(SIGPIPE, SIG_DFL);
 
     /* unblock blocked signals */
-    blockSignal(SIGCHLD, 0);
-    blockSignal(SIGALRM, 0);
+    PSID_blockSig(SIGCHLD, 0);
+    PSID_blockSig(SIGALRM, 0);
 }
 
 /**
@@ -439,8 +439,8 @@ static void forwarderLoop(void)
     }
 
     /* enable signals again */
-    blockSignal(SIGCHLD, 0);
-    blockSignal(SIGALRM, 0);
+    PSID_blockSig(SIGCHLD, 0);
+    PSID_blockSig(SIGALRM, 0);
 
     while (!sigChild) {
 	/* check for really short jobs */
@@ -544,8 +544,8 @@ static int initForwarder(int forwarderType, char *jobname)
 
     sendForwarderHello();
 
-    blockSignal(SIGCHLD, 1);
-    blockSignal(SIGALRM, 1);
+    PSID_blockSig(SIGCHLD, 1);
+    PSID_blockSig(SIGALRM, 1);
 
     PSC_setSigHandler(SIGALRM, signalHandler);
     PSC_setSigHandler(SIGTERM, signalHandler);

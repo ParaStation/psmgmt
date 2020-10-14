@@ -140,15 +140,6 @@ const char *getHostnameByNodeId(PSnodes_ID_t id)
     return nName;
 }
 
-void blockSignal(int signal, int block)
-{
-    sigset_t set, oldset;
-
-    sigemptyset(&set);
-    sigaddset(&set, signal);
-    sigprocmask(block ? SIG_BLOCK : SIG_UNBLOCK, &set, &oldset);
-}
-
 char *trim(char *string)
 {
     if (!string) return NULL;
