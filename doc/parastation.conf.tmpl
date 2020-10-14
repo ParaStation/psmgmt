@@ -239,6 +239,13 @@ HWType	{ ethernet p4sock }
 # bindMem	yes
 
 #
+# Enable binding of process to GPUs connected to the same NUMA local domain.
+#
+# This can also be set during run-time via psiadmin's 'set bindgpus' directive.
+#
+# bindGPUs	yes
+
+#
 # Define map assigning logical process-slots to physical processor cores.
 #
 # This can also be set during run-time via psiadmin's 'set cpumap' directive.

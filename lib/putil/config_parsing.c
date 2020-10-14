@@ -111,6 +111,7 @@ typedef struct nodeconf_T {
     int exclusive;
     int pinProcs;
     int bindMem;
+    int bindGPUs;
     int allowUserMap;
     int supplGrps;
     int maxStatTry;
@@ -129,6 +130,7 @@ static nodeconf_t nodeconf = {
     .exclusive = 1,
     .pinProcs = 1,
     .bindMem = 1,
+    .bindGPUs = 1,
     .allowUserMap = 0,
     .supplGrps = 0,
     .maxStatTry = 1,
@@ -1316,6 +1318,20 @@ static int getBindMem(char *key)
     return 0;
 }
 
+static int getBindGPUs(char *key)
+{
+    int bindGPUs, ret;
+
+    ret = getBool(key, &bindGPUs);
+    if (ret) return ret;
+
+    nodeconf.bindGPUs = bindGPUs;
+    parser_comment(PARSER_LOG_NODE, " GPUs get%s bound\n",
+		   bindGPUs ? "":" not");
+
+    return 0;
+}
+
 static int getAllowUserMap(char *key)
 {
     int allowMap, ret;
@@ -1981,6 +1997,7 @@ static confkeylist_t node_configkey_list[] = {
     {"Psid.AllowExclusive", getExcl},
     {"Psid.PinProcesses", getPinProcs},
     {"Psid.BindMemory", getBindMem},
+    {"Psid.BindGpus", getBindGPUs},
     {"Psid.AllowUserCpuMap", getAllowUserMap},
     {"Psid.SetSupplementaryGroups", getSupplGrps},
     {"Psid.MaxStatTry", getMaxStatTry},
@@ -2029,6 +2046,7 @@ static confkeylist_t nodeoption_list[] = {
     {"Psid.AllowExclusive", getExcl},
     {"Psid.PinProcesses", getPinProcs},
     {"Psid.BindMemory", getBindMem},
+    {"Psid.BindGpus", getBindGPUs},
     {"Psid.AllowUserCpuMap", getAllowUserMap},
     {"Psid.SetSupplementaryGroups", getSupplGrps},
     {"Psid.MaxStatTry", getMaxStatTry},
@@ -2101,6 +2119,12 @@ static int setupLocalNode(void)
     if (PSIDnodes_setBindMem(nodeconf.id, nodeconf.bindMem)) {
 	parser_comment(-1, "PSIDnodes_setBindMem(%ld, %d) failed\n",
 		       nodeconf.id, nodeconf.bindMem);
+	return -1;
+    }
+
+    if (PSIDnodes_setBindGPUs(nodeconf.id, nodeconf.bindGPUs)) {
+	parser_comment(-1, "PSIDnodes_setBindGPUs(%ld, %d) failed\n",
+		       nodeconf.id, nodeconf.bindGPUs);
 	return -1;
     }
 

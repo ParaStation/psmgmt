@@ -1506,6 +1506,27 @@ static int getBindMem(char *token)
     return 0;
 }
 
+static int default_bindGPUs = 1, node_bindGPUs;
+
+static int getBindGPUs(char *token)
+{
+    int bindGPUs, ret;
+
+    ret = parser_getBool(parser_getString(), &bindGPUs, "bindGPUs");
+    if (ret) return ret;
+
+    if (currentID == DEFAULT_ID) {
+	default_bindGPUs = bindGPUs;
+	parser_comment(PARSER_LOG_NODE, "setting default 'BindGpus' to '%s'\n",
+		       bindGPUs ? "TRUE" : "FALSE");
+    } else {
+	node_bindGPUs = bindGPUs;
+	parser_comment(PARSER_LOG_NODE, " GPUs get%s bound",
+		       bindGPUs ? "":" not");
+    }
+    return 0;
+}
+
 static int default_allowUserMap = 0, node_allowUserMap;
 
 static int getAllowUserMap(char *token)
@@ -1829,6 +1850,7 @@ static int setupNodeFromDefault(void)
     node_exclusive = default_exclusive;
     node_pinProcs = default_pinProcs;
     node_bindMem = default_bindMem;
+    node_bindGPUs = default_bindGPUs;
     node_allowUserMap = default_allowUserMap;
     node_supplGrps = default_supplGrps;
     node_maxStatTry = default_maxStatTry;
@@ -1965,6 +1987,12 @@ static int newHost(int id, in_addr_t addr)
 	return -1;
     }
 
+    if (PSIDnodes_setBindGPUs(id, node_bindGPUs)) {
+	parser_comment(-1, "PSIDnodes_setBindGPUs(%d, %d) failed\n",
+		       id, node_bindGPUs);
+	return -1;
+    }
+
     if (PSIDnodes_setAllowUserMap(id, node_allowUserMap)) {
 	parser_comment(-1, "PSIDnodes_setAllowUserMap(%d, %d) failed\n",
 		       id, node_allowUserMap);
@@ -2048,6 +2076,7 @@ static keylist_t nodeline_list[] = {
     {"exclusive", getExcl, NULL},
     {"pinprocs", getPinProcs, NULL},
     {"bindmem", getBindMem, NULL},
+    {"bindgpus", getBindGPUs, NULL},
     {"allowusermap", getAllowUserMap, NULL},
     {"supplGrps", getSupplGrps, NULL},
     {"maxStatTry", getMaxStatTry, NULL},
@@ -2662,6 +2691,7 @@ static keylist_t config_list[] = {
     {"exclusive", getExcl, NULL},
     {"pinprocs", getPinProcs, NULL},
     {"bindmem", getBindMem, NULL},
+    {"bindgpus", getBindGPUs, NULL},
     {"allowusermap", getAllowUserMap, NULL},
     {"supplGrps", getSupplGrps, NULL},
     {"maxStatTry", getMaxStatTry, NULL},
