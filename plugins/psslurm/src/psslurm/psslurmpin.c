@@ -2238,12 +2238,15 @@ void test_pinning(uint16_t socketCount, uint16_t coresPerSocket,
 		" setting nodeinfo.threadsPerCore = 1\n");
     }
 
+    /* prepare pininfo */
     pininfo_t pininfo;
     pininfo.usedHwThreads = ucalloc(nodeinfo.coreCount * threadsPerCore
 	    * sizeof(*pininfo.usedHwThreads));
     pininfo.lastUsedThread = -1;
 
     fillDistributionStrategies(taskDist, &pininfo);
+    fillTasksPerSocket(&pininfo, env, &nodeinfo);
+
 
     int32_t lastCpu = -1;
     int thread = 0;
@@ -2255,6 +2258,9 @@ void test_pinning(uint16_t socketCount, uint16_t coresPerSocket,
     for (local_tid=0; local_tid < tasksPerNode; local_tid++) {
 
         PSCPU_clrAll(CPUset);
+
+	/* reset first thread */
+	pininfo.firstThread = UINT32_MAX;
 
 	setCPUset(&CPUset, cpuBindType, cpuBindString, &nodeinfo, &lastCpu,
 		&thread, tasksPerNode, threadsPerTask, local_tid, &pininfo);
