@@ -2032,29 +2032,6 @@ static confkeylist_t node_configkey_list[] = {
     {NULL, NULL}
 };
 
-#if 0
-static confkeylist_t nodeoption_list[] = {
-    {"Psid.HardwareTypes", getHW},
-    {"Psid.IsStarter", getCS},
-    {"Psid.RunJobs", getRJ},
-    {"Psid.MaxNumberOfProcesses", getProcs},
-    {"Psid.AllowedUser", getUser},
-    {"Psid.AllowedGroup", getGroup},
-    {"Psid.AdminUser", getAdminUser},
-    {"Psid.AdminGroup", getAdminGroup},
-    {"Psid.AllowOverbooking", getOB},
-    {"Psid.AllowExclusive", getExcl},
-    {"Psid.PinProcesses", getPinProcs},
-    {"Psid.BindMemory", getBindMem},
-    {"Psid.BindGpus", getBindGPUs},
-    {"Psid.AllowUserCpuMap", getAllowUserMap},
-    {"Psid.SetSupplementaryGroups", getSupplGrps},
-    {"Psid.MaxStatTry", getMaxStatTry},
-    {"Psid.CpuMap", getCPUmap},
-    {NULL, NULL}
-};
-#endif
-
 static int setupLocalNode(void)
 {
     int i, allret;
