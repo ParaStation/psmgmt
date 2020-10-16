@@ -121,22 +121,22 @@ typedef struct nodeconf_T {
 } nodeconf_t;
 
 static nodeconf_t nodeconf = {
-    .id = 0,
-    .hwtype = 0,
-    .canstart = 1,
-    .runjobs = 1,
-    .procs = -1,
-    .overbook = OVERBOOK_FALSE,
-    .exclusive = 1,
-    .pinProcs = 1,
-    .bindMem = 1,
-    .bindGPUs = 1,
-    .allowUserMap = 0,
-    .supplGrps = 0,
-    .maxStatTry = 1,
-    .cpumap = NULL,
-    .cpumap_size = 0,
-    .cpumap_maxsize = 16
+    .id = 0,                       /* local node */
+    .hwtype = 0,                   /* local node */
+    .canstart = 1,                 /* local node */
+    .runjobs = 1,                  /* local node */
+    .procs = -1,                   /* local node */
+    .overbook = OVERBOOK_FALSE,    /* local node */
+    .exclusive = 1,                /* local node */
+    .pinProcs = 1,                 /* local node */
+    .bindMem = 1,                  /* local node */
+    .bindGPUs = 1,                 /* local node */
+    .allowUserMap = 0,             /* local node */
+    .supplGrps = 0,                /* local node */
+    .maxStatTry = 1,               /* local node */
+    .cpumap = NULL,                /* each node */
+    .cpumap_size = 0,              /* each node */
+    .cpumap_maxsize = 16           /* each node */
 };
 
 /*----------------------------------------------------------------------*/
@@ -1407,6 +1407,12 @@ static int getCPUmap(char *key)
 {
     int ret;
 
+    /* remove map from other node */
+    if (nodeconf.cpumap) {
+	free(nodeconf.cpumap);
+	nodeconf.cpumap = NULL;
+    }
+
     nodeconf.cpumap_size = 0;
     parser_comment(PARSER_LOG_NODE, " CPUMap {");
 
@@ -1528,10 +1534,10 @@ static void clearEnv(void)
 }
 
 /*----------------------------------------------------------------------*/
-/** @brief Setup local node settings
- *
- * @return On success, 0 is returned. Or -1, if any error occurred.
- */
+static confkeylist_t each_node_configkey_list[] = {
+    {"Psid.CpuMap", getCPUmap},
+    {NULL, NULL}
+};
 
 /**
  * @brief Insert a node.
@@ -1592,6 +1598,34 @@ static int newHost(int id, in_addr_t addr)
     parser_comment(PARSER_LOG_VERB,
 		   "%s: host <%s> inserted in hostlist with id=%d.\n",
 		   __func__, inet_ntoa(* (struct in_addr *) &addr), id);
+
+
+    // get parameters this node
+    int allret = 0;
+    for (size_t i = 0; each_node_configkey_list[i].key != NULL; i++) {
+	parser_comment(PARSER_LOG_VERB, "%s: processing config key '%s'\n",
+		       __func__, each_node_configkey_list[i].key);
+	int ret = each_node_configkey_list[i].handler(
+					    each_node_configkey_list[i].key);
+	if (ret) {
+	    parser_comment(-1, "Processing config key '%s' for node %d"
+		    " failed\n", each_node_configkey_list[i].key, id);
+	}
+	allret = ret ? 1 : allret;
+    }
+    if (allret) return -1;
+
+    /* set cpu map for new node */
+    if (nodeconf.cpumap_size) {
+	size_t c;
+	for (c = 0; c < nodeconf.cpumap_size; c++) {
+	    if (PSIDnodes_appendCPUMap(id, nodeconf.cpumap[c])) {
+		parser_comment(-1, "PSIDnodes_appendCPUMap(%d, %d) failed\n",
+			       id, nodeconf.cpumap[c]);
+		return -1;
+	    }
+	}
+    }
 
     return 0;
 
@@ -1981,7 +2015,7 @@ static int getDaemonScript(char *key)
 
 /* ---------------------------------------------------------------------- */
 
-static confkeylist_t node_configkey_list[] = {
+static confkeylist_t local_node_configkey_list[] = {
     {"Psid.InstallDirectory", getInstDir},
     {"Psid.CoreDirectory", getCoreDir},
     {"Psid.AvailableHardwareTypes", getHardwareList},
@@ -2001,7 +2035,6 @@ static confkeylist_t node_configkey_list[] = {
     {"Psid.AllowUserCpuMap", getAllowUserMap},
     {"Psid.SetSupplementaryGroups", getSupplGrps},
     {"Psid.MaxStatTry", getMaxStatTry},
-    {"Psid.CpuMap", getCPUmap},
     {"Psid.UseMCast", getMCastUse},
     {"Psid.MCastGroup", getMCastGroup},
     {"Psid.MCastPort", getMCastPort},
@@ -2032,19 +2065,24 @@ static confkeylist_t node_configkey_list[] = {
     {NULL, NULL}
 };
 
+/** @brief Setup local node settings
+ *
+ * @return On success, 0 is returned. Or -1, if any error occurred.
+ */
 static int setupLocalNode(void)
 {
     int i, allret;
 
     // get parameters for local node
     allret = 0;
-    for (i = 0; node_configkey_list[i].key != NULL; i++) {
+    for (i = 0; local_node_configkey_list[i].key != NULL; i++) {
 	parser_comment(PARSER_LOG_VERB, "%s: processing config key '%s'\n",
-		       __func__, node_configkey_list[i].key);
-	int ret = node_configkey_list[i].handler(node_configkey_list[i].key);
+		       __func__, local_node_configkey_list[i].key);
+	int ret = local_node_configkey_list[i].handler(
+					    local_node_configkey_list[i].key);
 	if (ret) {
 	    parser_comment(-1, "Processing config key '%s' failed\n",
-		    node_configkey_list[i].key);
+		    local_node_configkey_list[i].key);
 	}
 	allret = ret ? 1 : allret;
     }
@@ -2125,17 +2163,6 @@ static int setupLocalNode(void)
 
     // setup environment of the local node
     pushAndClearEnv();
-
-    if (nodeconf.cpumap_size) {
-	size_t c;
-	for (c = 0; c < nodeconf.cpumap_size; c++) {
-	    if (PSIDnodes_appendCPUMap(nodeconf.id, nodeconf.cpumap[c])) {
-		parser_comment(-1, "PSIDnodes_appendCPUMap(%ld, %d) failed\n",
-			       nodeconf.id, nodeconf.cpumap[c]);
-		return -1;
-	    }
-	}
-    }
 
     if (pushGUID(nodeconf.id, PSIDNODES_USER, &nodeUID)) {
 	parser_comment(-1, "pushGUID(%ld, PSIDNODES_USER, %p) failed\n",
