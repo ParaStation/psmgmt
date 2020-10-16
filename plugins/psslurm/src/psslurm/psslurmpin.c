@@ -75,7 +75,7 @@ static char* nextStartStrategyString[] = {
 };
 
 typedef struct {
-    uint32_t id;             /* parastation node id */
+    PSnodes_ID_t id;         /* parastation node id */
     uint16_t socketCount;    /* number of sockets */
     uint16_t coresPerSocket; /* number of cores per socket */
     uint16_t threadsPerCore; /* number of hardware threads per core */
@@ -1493,7 +1493,7 @@ bool setStepSlots(Step_t *step)
 
 	/* current node's parameters */
 	nodeinfo_t nodeinfo = {
-	    .id = node,
+	    .id = step->nodes[node],
 	    .socketCount = cred->socketsPerNode[coreArrayIndex],
 	    .coresPerSocket = cred->coresPerSocket[coreArrayIndex],
 	    .threadsPerCore = threadsPerCore,
