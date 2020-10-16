@@ -1502,6 +1502,14 @@ bool setStepSlots(Step_t *step)
 	    .coreMap = coreMap + coreMapIndex
 	};
 
+	/* check cpu mapping */
+	for (size_t cpu = 0; cpu < nodeinfo.threadCount; cpu++) {
+	    if (PSIDnodes_unmapCPU(nodeinfo.id, cpu) < 0) {
+		flog("CPU %hu not included in CPUmap for node %hu.\n",
+			cpu, nodeinfo.id);
+	    }
+	}
+
 	/* handle --ntasks-per-socket option
 	 * With node sharing enabled, this option is handled by the scheduler */
 	fillTasksPerSocket(&pininfo, &step->env, &nodeinfo);
