@@ -1405,18 +1405,10 @@ static int getCPUmapEnt(char *token)
 
 static int getCPUmap(char *key)
 {
-    int ret;
-
-    /* remove map from other node */
-    if (nodeconf.cpumap) {
-	free(nodeconf.cpumap);
-	nodeconf.cpumap = NULL;
-    }
-
     nodeconf.cpumap_size = 0;
     parser_comment(PARSER_LOG_NODE, " CPUMap {");
 
-    ret = doForList(key, getCPUmapEnt);
+    int ret = doForList(key, getCPUmapEnt);
 
     if (!ret) parser_comment(PARSER_LOG_NODE, " }\n");
 
