@@ -399,11 +399,12 @@ void PSID_bindToGPUs(cpu_set_t *physSet)
     memset(used, 0, sizeof(used));
 
     /* find numa nodes this process is running on */
-    for (int i = 0; i < nodes; i++) {
+    for (int node = 0; node < nodes; node++) {
 	for (int16_t cpu = 0; cpu < threads; cpu++) {
-	    if (CPU_ISSET(cpu, physSet) && PSCPU_isSet(cpumap[i], cpu)) {
-		PSID_log(-1, "%s: NUMA domain %d used\n", __func__, i);
-		used[i] = true;
+	    if (CPU_ISSET(cpu, physSet) && PSCPU_isSet(cpumap[node], cpu)) {
+		PSID_log(PSID_LOG_SPAWN, "%s: NUMA domain %d used\n",
+			 __func__, node);
+		used[node] = true;
 		break;
 	    }
 	}
@@ -412,10 +413,10 @@ void PSID_bindToGPUs(cpu_set_t *physSet)
     /* build list of GPUs connected to those NUMA nodes */
     uint16_t closelist[PSGPU_MAX];
     size_t closecount = 0;
-    for (int i = 0; i < nodes; i++) {
-	if (!used[i]) continue;
+    for (int node = 0; node < nodes; node++) {
+	if (!used[node]) continue;
 	for (uint16_t gpu = 0; gpu < gpus; gpu++) {
-	    if (PSCPU_isSet(gpumap[i], gpu)) {
+	    if (PSCPU_isSet(gpumap[node], gpu)) {
 		closelist[closecount++] = PSID_getGPUinPCIorder(gpu);
 	    }
 	}
@@ -429,7 +430,9 @@ void PSID_bindToGPUs(cpu_set_t *physSet)
 	char *tmp = strdup(usable);
 	char *tok;
 	for (char *ptr = tmp; (tok = strtok(ptr, ",")); ptr = NULL) {
-	    usablelist[usablecount++] = atoi(tok);
+	    char *end;
+	    usablelist[usablecount] = strtol(tok, &end, 0);
+	    if (!*end) usablecount++;
 	}
 	free(tmp);
     }
@@ -439,20 +442,20 @@ void PSID_bindToGPUs(cpu_set_t *physSet)
 
     /* build string listing the usable GPUs connected to those NUMA nodes */
     for (size_t i = 0; i < closecount; i++) {
-	bool add = usablecount ? false : true;
+	bool add = false;
 	for (size_t j = 0; j < usablecount; j++) {
 	    if (usablelist[j] == closelist[i]) {
 		add = true;
 		break;
 	    }
 	}
-	if (!add) continue;
+	if (usablecount && !add) continue;
 	len += snprintf(tmp+len, 4, "%hu,", closelist[i]);
     }
 
     tmp[len ? len-1 : len] = '\0';
 
-    PSID_log(-1, "%s: Setting environment to use GPUs '%s'\n", __func__, tmp);
+    PSID_log(PSID_LOG_SPAWN, "%s: Setup to use GPUs '%s'\n", __func__, tmp);
 
     char * variables[] = {
 	"CUDA_VISIBLE_DEVICES", /* Nvidia GPUs */
@@ -462,8 +465,8 @@ void PSID_bindToGPUs(cpu_set_t *physSet)
 
     char name[1024];
     for (size_t i = 0; variables[i]; i++) {
-	snprintf(name, 1024, "PROTECT_%s", variables[i]);
-	if (!(getenv(name))) {
+	snprintf(name, sizeof(name), "PROTECT_%s", variables[i]);
+	if (!getenv(name)) {
 	    /* variable is not protected */
 	    setenv(variables[i], tmp, 1);
 	}
