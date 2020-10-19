@@ -463,7 +463,7 @@ static void setGPUEnv(Gres_Cred_t *gres, uint32_t localNodeId)
 	setenv("CUDA_VISIBLE_DEVICES", list, 1);
     }
 
-    if (!getenv("PROTECT_CUDA_VISIBLE_DEVICES")) {
+    if (!getenv("PROTECT_GPU_DEVICE_ORDINAL")) {
 	setenv("GPU_DEVICE_ORDINAL", list, 1);
     }
 
