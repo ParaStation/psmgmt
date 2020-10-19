@@ -15,6 +15,7 @@
 #include <stdbool.h>
 
 #include "psnodes.h"
+#include "psidscripts.h"
 
 /**
  * @brief Remove a directory recursive.
@@ -184,5 +185,30 @@ bool switchUser(char *username, uid_t uid, gid_t gid, char *cwd);
  * the username calling @ref ufree().
  */
 char *uid2String(uid_t uid);
+
+/**
+ * @brief Fetch error message and exit status from a script callback
+ *
+ * @param fd The given file descriptor in the callback
+ *
+ * @param info The given info pointer in the callback
+ *
+ * @param exit Will hold the exit status of the child upon return
+ *
+ * @param errMsg Buffer to store child's error messages
+ *
+ * @param errMsgLen Size of the error buffer
+ *
+ * @param errLen The actual lenght of the error message
+ *
+ * @return Returns true on success otherwise false is returned
+ */
+bool __getScriptCBdata(int fd, PSID_scriptCBInfo_t *info, int32_t *exit,
+		       char *errMsg, size_t errMsgLen, size_t *errLen,
+		       const char *func, const int line);
+
+#define getScriptCBdata(fd, info, exit, errMsg, errMsgLen, errLen)  \
+    __getScriptCBdata(fd, info, exit, errMsg, errMsgLen, errLen,    \
+		      __func__, __LINE__)
 
 #endif  /* __PS_PLUGIN_LIB_HELPER */

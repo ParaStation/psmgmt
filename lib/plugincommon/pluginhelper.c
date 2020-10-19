@@ -26,6 +26,7 @@
 #include "pscommon.h"
 #include "psidnodes.h"
 #include "psidhook.h"
+#include "psidutil.h"
 #include "pluginlog.h"
 #include "pluginmalloc.h"
 
@@ -331,4 +332,36 @@ char *uid2String(uid_t uid)
     if (!pwd) return NULL;
 
     return ustrdup(pwd->pw_name);
+}
+
+bool __getScriptCBdata(int fd, PSID_scriptCBInfo_t *info, int32_t *exit,
+		       char *errMsg, size_t errMsgLen, size_t *errLen,
+		       const char *func, const int line)
+{
+    /* get exit status */
+    PSID_readall(fd, exit, sizeof(*exit));
+    Selector_remove(fd);
+    close(fd);
+
+    /* get stdout/stderr output */
+    if (!info) {
+	pluginlog("%s: invalid info data from caller %s:%i\n",
+		  __func__, func, line);
+	return false;
+    }
+
+    if (!info->iofd) {
+	pluginlog("%s: invalid iofd from caller %s:%i\n", __func__, func, line);
+	errMsg[0] = '\0';
+    }
+    *errLen = PSID_readall(info->iofd, errMsg, errMsgLen);
+    errMsg[*errLen] = '\0';
+    close(info->iofd);
+
+    if (!info->info) {
+	pluginlog("%s: info missing from caller %s:%i\n", __func__, func, line);
+	return false;
+    }
+
+    return true;
 }
