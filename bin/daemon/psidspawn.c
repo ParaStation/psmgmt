@@ -809,10 +809,7 @@ static void doClamps(PStask_t *task)
 	}
 	if (PSIDnodes_bindGPUs(PSC_getMyID())) {
 	    if (getenv("__PSI_NO_GPUBIND")) {
-		if (!getenv("SLURM_JOBID")) {
-		    fprintf(stderr, "Binding suppressed for rank %d\n",
-			    task->rank);
-		}
+		fprintf(stderr, "Binding suppressed for rank %d\n", task->rank);
 	    } else {
 		PSID_bindToGPUs(physSet);
 	    }
