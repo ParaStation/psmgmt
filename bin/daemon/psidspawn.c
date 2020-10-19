@@ -409,24 +409,68 @@ void PSID_bindToGPUs(cpu_set_t *physSet)
 	}
     }
 
-    char tmp[3*PSGPU_MAX];
-    size_t len = 0;
-
-    /* build string listing the GPUs connected to those NUMA nodes */
+    /* build list of GPUs connected to those NUMA nodes */
+    uint16_t closelist[PSGPU_MAX];
+    size_t closecount = 0;
     for (int i = 0; i < nodes; i++) {
 	if (!used[i]) continue;
 	for (uint16_t gpu = 0; gpu < gpus; gpu++) {
 	    if (PSCPU_isSet(gpumap[i], gpu)) {
-		len += snprintf(tmp+len, 4, "%hu,", PSID_getGPUinPCIorder(gpu));
+		closelist[closecount++] = PSID_getGPUinPCIorder(gpu);
 	    }
 	}
+    }
+
+    /* build list of usable GPUs */
+    uint16_t usablelist[PSGPU_MAX];
+    size_t usablecount = 0;
+    char *usable = getenv("__PSI_USE_GPUS");
+    if (usable) {
+	char *tmp = strdup(usable);
+	char *tok;
+	for (char *ptr = tmp; (tok = strtok(ptr, ",")); ptr = NULL) {
+	    usablelist[usablecount++] = atoi(tok);
+	}
+	free(tmp);
+    }
+
+    char tmp[3*PSGPU_MAX];
+    size_t len = 0;
+
+    /* build string listing the usable GPUs connected to those NUMA nodes */
+    for (size_t i = 0; i < closecount; i++) {
+	bool add = usablecount ? false : true;
+	for (size_t j = 0; j < usablecount; j++) {
+	    if (usablelist[j] == closelist[i]) {
+		add = true;
+		break;
+	    }
+	}
+	if (!add) continue;
+	len += snprintf(tmp+len, 4, "%hu,", closelist[i]);
     }
 
     tmp[len ? len-1 : len] = '\0';
 
     PSID_log(-1, "%s: Setting environment to use GPUs '%s'\n", __func__, tmp);
-    setenv("CUDA_VISIBLE_DEVICES", tmp, 1); /* Nvidia GPUs */
-    setenv("GPU_DEVICE_ORDINAL", tmp, 1);   /* AMD GPUs */
+
+    char * variables[] = {
+	"CUDA_VISIBLE_DEVICES", /* Nvidia GPUs */
+	"GPU_DEVICE_ORDINAL",   /* AMD GPUs */
+	NULL
+    };
+
+    char name[1024];
+    for (size_t i = 0; variables[i]; i++) {
+	snprintf(name, 1024, "PROTECT_%s", variables[i]);
+	if (!(getenv(name))) {
+	    /* variable is not protected */
+	    setenv(variables[i], tmp, 1);
+	}
+    }
+
+    /* always set PSID version */
+    setenv("PSI_CLOSE_GPUS", tmp, 1);
 }
 
 typedef struct{

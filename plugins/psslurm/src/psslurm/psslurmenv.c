@@ -262,8 +262,20 @@ void initJobEnv(Job_t *job)
     if (gres && gres->bitAlloc) {
 	if (gres->bitAlloc[0]) {
 	    hexBitstr2List(gres->bitAlloc[0], &list, &listSize);
-	    envSet(&job->env, "CUDA_VISIBLE_DEVICES", list);
-	    envSet(&job->env, "GPU_DEVICE_ORDINAL", list);
+
+	    /* tell doClamps() which gpus to use */
+	    envSet(&job->env, "__PSI_USE_GPUS", list);
+
+	    /* set Nvidia variable if not protected */
+	    if (!envGet(&job->env, "PROTECT_CUDA_VISIBLE_DEVICES")) {
+		envSet(&job->env, "CUDA_VISIBLE_DEVICES", list);
+	    }
+
+	    /* set AMD variable if not protected */
+	    if (!envGet(&job->env, "PROTECT_GPU_DEVICE_ORDINAL")) {
+		envSet(&job->env, "GPU_DEVICE_ORDINAL", list);
+	    }
+
 	    ufree(list);
 	    list = NULL;
 	    listSize = 0;
@@ -400,6 +412,66 @@ void setPsslurmEnv(env_t *env)
     }
 }
 
+static void setGPUEnv(Gres_Cred_t *gres, uint32_t localNodeId)
+{
+    char *list = NULL;
+    size_t listSize = 0;
+    if (!gres || !gres->bitAlloc) {
+	flog("invalid gpu gres bitAlloc for local nodeID '%u'\n", localNodeId);
+	return;
+    }
+
+    if (gres->bitAlloc[localNodeId]) {
+	return;
+    }
+
+    hexBitstr2List(gres->bitAlloc[localNodeId], &list, &listSize);
+
+    /* build list of usable GPUs */
+    char *usable = getenv("PSI_CLOSE_GPUS");
+    if (usable) {
+	char **usablelist = umalloc(strlen(usable));
+	size_t usablecount = 0;
+	char *tmp, *tok;
+
+	tmp = strdup(usable);
+	for (char *ptr = tmp; (tok = strtok(ptr, ",")); ptr = NULL) {
+	    usablelist[usablecount++] = tok;
+	}
+
+	char *newlist = umalloc(3*usablecount);
+	size_t newlistSize = 0;
+
+	tmp = strdup(list);
+	for (char *ptr = tmp; (tok = strtok(ptr, ",")); ptr = NULL) {
+	    for (size_t i = 0; i < usablecount; i++) {
+		if (strcmp(usablelist[i], tok)) continue;
+		newlistSize += snprintf(newlist+newlistSize, 4, "%s,", tok);
+		break;
+	    }
+	}
+	newlist[newlistSize ? newlistSize-1 : newlistSize] = '\0';
+
+	ufree(usablelist);
+	ufree(list);
+
+	list = newlist;
+	listSize = newlistSize;
+    }
+
+    if (!getenv("PROTECT_CUDA_VISIBLE_DEVICES")) {
+	setenv("CUDA_VISIBLE_DEVICES", list, 1);
+    }
+
+    if (!getenv("PROTECT_CUDA_VISIBLE_DEVICES")) {
+	setenv("GPU_DEVICE_ORDINAL", list, 1);
+    }
+
+    ufree(list);
+    list = NULL;
+    listSize = 0;
+}
+
 static void setGresEnv(Step_t *step)
 {
     Alloc_t *alloc = findAlloc(step->jobid);
@@ -417,24 +489,9 @@ static void setGresEnv(Step_t *step)
 	char *list = NULL;
 	size_t listSize = 0;
 
-#if 0 /* Deactivate for now since psid does the job, we will need something
-	  like this again to support node sharing */
 	/* gres "gpu" plugin */
 	gres = findGresCred(&step->gresList, GRES_PLUGIN_GPU, GRES_CRED_STEP);
-	if (gres && gres->bitAlloc) {
-	    if (gres->bitAlloc[localNodeId]) {
-		hexBitstr2List(gres->bitAlloc[localNodeId], &list, &listSize);
-		setenv("CUDA_VISIBLE_DEVICES", list, 1);
-		setenv("GPU_DEVICE_ORDINAL", list, 1);
-		ufree(list);
-		list = NULL;
-		listSize = 0;
-	    } else {
-		flog("invalid gpu gres bitAlloc for local nodeID '%u'\n",
-		     localNodeId);
-	    }
-	}
-#endif
+	setGPUEnv(gres, localNodeId);
 
 	/* gres "mic" plugin */
 	gres = findGresCred(&step->gresList, GRES_PLUGIN_MIC, GRES_CRED_STEP);
