@@ -85,6 +85,47 @@ Step_t *fwStep = NULL;
 /** Task structure of the forwarder */
 PStask_t *fwTask = NULL;
 
+static void setJailEnv(env_t *env, char *user, char *stepCoreMap,
+		       char *jobCoreMap)
+{
+    if (stepCoreMap) setenv(STEP_CORE_BITMAP, stepCoreMap, 1);
+    if (jobCoreMap) setenv(JOB_CORE_BITMAP, jobCoreMap, 1);
+
+    char *id = envGet(env, "SLURM_JOBID");
+    if (id) setenv("SLURM_JOBID", id, 1);
+    id = envGet(env, "SLURM_STEPID");
+    if (id) setenv("SLURM_STEPID", id, 1);
+    if (user) setenv("SLURM_USER", user, 1);
+}
+
+static int termJobJail(void *info)
+{
+    Job_t *job = info;
+
+    setJailEnv(&job->env, job->username, NULL, job->jobCoreMap);
+    return PSIDhook_call(PSIDHOOK_JAIL_TERM, &job->fwdata->cPid);
+}
+
+static int cbTermJail(int fd, PSID_scriptCBInfo_t *info)
+{
+    int32_t exit = 0;
+    char errMsg[1024];
+    size_t errLen;
+
+    bool ret = getScriptCBdata(fd, info, &exit, errMsg, sizeof(errMsg), &errLen);
+    if (!ret) {
+	mlog("%s: getting jail term script callback data failed\n", __func__);
+	return 0;
+    }
+
+    if (exit != 0) {
+	mlog("%s: jail script failed with exit status %i\n", __func__, exit);
+	mlog("%s: %s\n", __func__, errMsg);
+    }
+
+    return 0;
+}
+
 static int jobCallback(int32_t exit_status, Forwarder_Data_t *fw)
 {
     Job_t *job = fw->userData;
@@ -96,6 +137,9 @@ static int jobCallback(int32_t exit_status, Forwarder_Data_t *fw)
 	mlog("%s: job '%u' not found\n", __func__, job->jobid);
 	return 0;
     }
+
+    /* terminate cgroup */
+    PSID_execFunc(termJobJail, NULL, cbTermJail, job);
 
     /* make sure all processes are gone */
     signalStepsByJobid(job->jobid, SIGKILL, 0);
@@ -139,6 +183,14 @@ static int jobCallback(int32_t exit_status, Forwarder_Data_t *fw)
     return 0;
 }
 
+static int termStepJail(void *info)
+{
+    Step_t *step = info;
+
+    setJailEnv(&step->env, step->username, step->stepCoreMap, step->jobCoreMap);
+    return PSIDhook_call(PSIDHOOK_JAIL_TERM, &step->fwdata->cPid);
+}
+
 static int stepFollowerCB(int32_t exit_status, Forwarder_Data_t *fw)
 {
     Step_t *step = fw->userData;
@@ -148,6 +200,9 @@ static int stepFollowerCB(int32_t exit_status, Forwarder_Data_t *fw)
 	flog("Invalid step pointer %p\n", step);
 	return 0;
     }
+
+    /* terminate cgroup */
+    PSID_execFunc(termStepJail, NULL, cbTermJail, step);
 
     /* send launch error if local processes failed to start */
     unsigned int taskCount = countRegTasks(&step->tasks);
@@ -195,6 +250,9 @@ static int stepCallback(int32_t exit_status, Forwarder_Data_t *fw)
 
     flog("%s in %s finished, exit %i / %i\n", strStepID(step),
 	 strJobState(step->state), exit_status, fw->chldExitStatus);
+
+    /* terminate cgroup */
+    PSID_execFunc(termStepJail, NULL, cbTermJail, step);
 
     /* make sure all processes are gone */
     signalStep(step, SIGKILL, 0);
@@ -1040,19 +1098,6 @@ static int switchEffectiveUser(char *username, uid_t uid, gid_t gid)
     }
 
     return 1;
-}
-
-static void setJailEnv(env_t *env, char *user, char *stepCoreMap,
-		       char *jobCoreMap)
-{
-    if (stepCoreMap) setenv(STEP_CORE_BITMAP, stepCoreMap, 1);
-    if (jobCoreMap) setenv(JOB_CORE_BITMAP, jobCoreMap, 1);
-
-    char *id = envGet(env, "SLURM_JOBID");
-    if (id) setenv("SLURM_JOBID", id, 1);
-    id = envGet(env, "SLURM_STEPID");
-    if (id) setenv("SLURM_STEPID", id, 1);
-    if (user) setenv("SLURM_USER", user, 1);
 }
 
 static int stepForwarderInit(Forwarder_Data_t *fwdata)

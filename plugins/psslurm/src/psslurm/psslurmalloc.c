@@ -8,11 +8,14 @@
  * file.
  */
 #include <time.h>
+#include <stdlib.h>
 
 #include "pluginmalloc.h"
+#include "pluginhelper.h"
 #include "pspamhandles.h"
 #include "peloguehandles.h"
 #include "psidhook.h"
+#include "psidscripts.h"
 #include "pshostlist.h"
 
 #include "psslurmalloc.h"
@@ -119,6 +122,39 @@ Alloc_t *findAllocByPackID(uint32_t packID)
     return NULL;
 }
 
+static int termJail(void *info)
+{
+    Alloc_t *alloc = info;
+    pid_t pid = -1;
+    char buf[1024];
+
+    snprintf(buf, sizeof(buf), "%i", alloc->id);
+    setenv("SLURM_JOBID", buf, 1);
+    setenv("SLURM_USER", alloc->username, 1);
+
+    return PSIDhook_call(PSIDHOOK_JAIL_TERM, &pid);
+}
+
+static int cbTermJail(int fd, PSID_scriptCBInfo_t *info)
+{
+    int32_t exit = 0;
+    char errMsg[1024];
+    size_t errLen;
+
+    bool ret = getScriptCBdata(fd, info, &exit, errMsg, sizeof(errMsg), &errLen);
+    if (!ret) {
+	mlog("%s: getting jail term script callback data failed\n", __func__);
+	return 0;
+    }
+
+    if (exit != 0) {
+	mlog("%s: jail script failed with exit status %i\n", __func__, exit);
+	mlog("%s: %s\n", __func__, errMsg);
+    }
+
+    return 0;
+}
+
 bool deleteAlloc(uint32_t id)
 {
     Alloc_t *alloc;
@@ -129,6 +165,9 @@ bool deleteAlloc(uint32_t id)
     clearBCastByJobid(id);
 
     if (!(alloc = findAlloc(id))) return false;
+
+    /* terminate cgroup */
+    PSID_execFunc(termJail, NULL, cbTermJail, alloc);
 
     PSIDhook_call(PSIDHOOK_PSSLURM_FINALLOC, alloc);
 
