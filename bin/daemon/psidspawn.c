@@ -437,7 +437,7 @@ void PSID_bindToGPUs(cpu_set_t *physSet)
 	free(tmp);
     }
 
-    char tmp[3*PSGPU_MAX];
+    char val[3*PSGPU_MAX];
     size_t len = 0;
 
     /* build string listing the usable GPUs connected to those NUMA nodes */
@@ -450,12 +450,12 @@ void PSID_bindToGPUs(cpu_set_t *physSet)
 	    }
 	}
 	if (usablecount && !add) continue;
-	len += snprintf(tmp+len, 4, "%hu,", closelist[i]);
+	len += snprintf(val+len, 4, "%hu,", closelist[i]);
     }
 
-    tmp[len ? len-1 : len] = '\0';
+    val[len ? len-1 : len] = '\0';
 
-    PSID_log(PSID_LOG_SPAWN, "%s: Setup to use GPUs '%s'\n", __func__, tmp);
+    PSID_log(PSID_LOG_SPAWN, "%s: Setup to use GPUs '%s'\n", __func__, val);
 
     char * variables[] = {
 	"CUDA_VISIBLE_DEVICES", /* Nvidia GPUs */
@@ -468,12 +468,12 @@ void PSID_bindToGPUs(cpu_set_t *physSet)
 	snprintf(name, sizeof(name), "PROTECT_%s", variables[i]);
 	if (!getenv(name)) {
 	    /* variable is not protected */
-	    setenv(variables[i], tmp, 1);
+	    setenv(variables[i], val, 1);
 	}
     }
 
     /* always set PSID version */
-    setenv("PSI_CLOSE_GPUS", tmp, 1);
+    setenv("PSI_CLOSE_GPUS", val, 1);
 }
 
 typedef struct{
