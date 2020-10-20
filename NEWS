@@ -5,6 +5,49 @@ Copyright (C) 2010-2020 ParTec Cluster Competence Center GmbH, Munich
 Please send bug reports, questions and suggestions to <support@par-tec.com>
 
 
+*************************************************************************
+*************************************************************************
+**                                                                     **
+**  Remark: From psmgmt 5.1.32 on Psid.BindGpus has to be defined in   **
+**  psconfig or psid will not start                                    **
+**                                                                     **
+*************************************************************************
+*************************************************************************
+
+Version 5.1.32:
+===============
+Bugfixes:
+ - Ensure mother superior cancels a pelogue script even without local child
+ - psslurmgetbind: Fix segfault by uncomplete pininfo
+ - Fix distribution *:fcyclic:cyclic issue in (psc#350)
+ - psslurm: Set only existing cpus in slots with bind type none
+ - Prevent out of bound accesses to PSCPU_set_t (#2855)
+Enhancements:
+ - Add support for binding processes to local GPUs; might be set
+   persistently (psconfig/parastation.conf) or at runtime (psiadmin)
+ - Add support for REQUEST_UPDATE_NODE to psslurm
+ - Add support for include statement in Slurm's plugstack.conf
+ - Option DIRECT_DRAIN lets psslurm drain nodes without psexec's help
+ - psslurm: offline a node if name resolution of job owner fails (pct:#374)
+ - psslurm: offline a node if the slurmctld prologue fails
+ - Enable GPU remapping by envvar PSI_GPUMAP
+ - psslurm: report out of bound problems with --cpu-bind=map_cpu:*
+ - psslurm: add support for --ntasks-per-socket option
+ - Improve psgw error logging
+ - Add support for spank API calls slurm_spank_init() and
+   slurm_spank_slurmd_exit() in slurmd context
+ - Add PSSLURM_JOB_GPUS, PSSLURM_STEP_GPUS, and PSSLURM_CLOSE_STEP_GPUS to env
+ - Avoid compile problems with hwloc >= 2.0
+Additional changes:
+ - Improve pspam's documentation
+ - Add hook PSIDHOOK_PELOGUE_GLOBAL and bump pluginAPIVersion to 128
+ - Add hook PSIDHOOK_PELOGUE_GLOBAL
+ - Introduce PSIDnodes_unmapCPU()
+ - Use __AUTO_CUDA_VISIBLE_DEVICES, etc. to protect user-defined env
+ - psslurm: ptimize building reservations significantly
+ - Replace obsolete blockSignal() with PSID_blockSig()
+
+
 Version 5.1.31-2:
 =================
 Bugfixes:
@@ -71,7 +114,7 @@ Bugfixes:
  - Do not use putenv() with an automatic variable (prevents export of
    multiple environments in task prolog)
 Enhancements:
- - Complete rework of pinning within psslurm (psc:#349, 
+ - Complete rework of pinning within psslurm (psc:#349)
  - Add psslurmgetbind tool
  - Add support for file pattern "%x" to psslurm (psc:#353)
  - Add epilogue.finalize script

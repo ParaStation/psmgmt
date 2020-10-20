@@ -1,3 +1,430 @@
+Version psmgmt-5.1.32:
+======================
+------------------------------------------------------------------------
+7659aa92 | Stephan Krempel | Tue, 20 Oct 2020 18:42:25 +0200
+
+psslurm: Add some informational variables to user environment
+
+Adds the variables PSSLURM_JOB_GPUS, PSSLURM_STEP_GPUS, and
+PSSLURM_CLOSE_STEP_GPUS to the process environment showing the
+actual situation independently of whether the user has set
+CUDA_VISIBLE_DEVICES manually or not.
+------------------------------------------------------------------------
+74908c28 | Stephan Krempel | Tue, 20 Oct 2020 18:41:27 +0200
+
+GPU Binding: Remove env var PROTECT_* in favour of __AUTO_*
+
+Instead of requiring the user to explicitly set a PROTECT_*
+variable to protect his manually set GPU binding variable we
+now use __AUTO_* variables to detect who set the actual
+variable. To handle the problem that we cannot detect an
+explicit resetting of the variable to the same value, we add
+some space characters which CUDA does not care about but
+hopefully a user will never append by himself.
+------------------------------------------------------------------------
+69708cc8 | Stephan Krempel | Tue, 20 Oct 2020 18:20:41 +0200
+
+psslurmenv: Fix calling GPU binding code
+------------------------------------------------------------------------
+555ee340 | Stephan Krempel | Tue, 20 Oct 2020 18:16:11 +0200
+
+Rename variable
+------------------------------------------------------------------------
+03da4c49 | Norbert Eicker | Tue, 20 Oct 2020 01:14:48 +0200
+
+Streamlining, more readable, atoi -> strtol
+------------------------------------------------------------------------
+24d9a180 | Norbert Eicker | Tue, 20 Oct 2020 01:12:22 +0200
+
+Fix typo
+------------------------------------------------------------------------
+33513350 | Stephan Krempel | Mon, 19 Oct 2020 14:47:21 +0200
+
+Remove unnecessary check for SLURM_JOBID
+------------------------------------------------------------------------
+852da7d9 | Stephan Krempel | Mon, 19 Oct 2020 14:38:42 +0200
+
+Rework of setting GPU binding variables
+
+The goal of this rework was not to randomly override variables set
+by the user. The problem here is, that with psslurm, we have to
+support multiple start methods. Using sbatch, first the job writes
+CUDA_VISIBLE_DEVICES for the case no srun is used inside the job
+script. If the user then sets the variable manually inside the job
+script and uses srun, too, it is impossible to descide if the user
+of psslurm did set it and thus if psslurm should override it or not.
+Therefor we introduce PROTECT_CUDA_VISIBLE_DEVICES for the user to
+tell explicitly that he is setting the variable himself.
+------------------------------------------------------------------------
+bbe0f42e | Norbert Eicker | Mon, 19 Oct 2020 09:31:47 +0200
+
+Do not alloc space for CPUMap again and again
+------------------------------------------------------------------------
+4b87f0c2 | Stephan Krempel | Fri, 16 Oct 2020 17:52:55 +0200
+
+With psconfig, read in the CPU map of each node
+
+This is to have all the maps available for PSIDnodes_unmapCPU()
+function needed in psslurm pinning.
+
+There are two drawbacks to be addressed shortly:
+- Thus it is not considered if one chances the CPU map via psiadmin
+- Pinning options using that are broken with parastation.conf
+------------------------------------------------------------------------
+2b08f950 | Stephan Krempel | Fri, 16 Oct 2020 16:02:11 +0200
+
+psslurmpin: Check completeness of cpu map for each node involved
+------------------------------------------------------------------------
+4078b1d5 | Stephan Krempel | Fri, 16 Oct 2020 16:00:23 +0200
+
+psslurmpin: Correctly set id in nodeinfo struct
+------------------------------------------------------------------------
+72f7a124 | Stephan Krempel | Wed, 14 Oct 2020 14:40:21 +0200
+
+Add BindGpus parameter to psconfig object diagram
+------------------------------------------------------------------------
+f55741fd | Stephan Krempel | Wed, 14 Oct 2020 14:37:09 +0200
+
+Update psconfig object diagram to UMLet v14
+------------------------------------------------------------------------
+99d9b252 | Michael Rauh | Wed, 14 Oct 2020 14:14:12 +0200
+
+Replace obsolete blockSignal() with PSID_blockSig()
+------------------------------------------------------------------------
+16015d91 | Norbert Eicker | Tue, 13 Oct 2020 23:52:51 +0200
+
+Simplify distinction of cases
+------------------------------------------------------------------------
+bf99e7d8 | Norbert Eicker | Tue, 13 Oct 2020 23:38:16 +0200
+
+Identify readable hostname only once
+------------------------------------------------------------------------
+5bc542bb | Michael Rauh | Tue, 13 Oct 2020 12:10:24 +0200
+
+Update buildsystem
+------------------------------------------------------------------------
+4a384b9a | Michael Rauh | Tue, 13 Oct 2020 12:09:25 +0200
+
+Build pelogue plugin with -std=gnu99
+------------------------------------------------------------------------
+2cdc5d71 | Michael Rauh | Tue, 13 Oct 2020 12:07:32 +0200
+
+Add slurmnode.h to rpm build system
+------------------------------------------------------------------------
+70e81a91 | Michael Rauh | Tue, 13 Oct 2020 10:35:55 +0200
+
+Enhancement: let psslurm offline the node if name resolution of the job
+owner UID fails (pct:#374)
+------------------------------------------------------------------------
+db27e019 | Michael Rauh | Mon, 12 Oct 2020 16:10:59 +0200
+
+Improve psslurm node offline reasons
+------------------------------------------------------------------------
+6d2de4f2 | Michael Rauh | Mon, 12 Oct 2020 15:49:45 +0200
+
+Let psslurm set nodes offline if the slurmctld prologue failed
+------------------------------------------------------------------------
+90e3c13a | Michael Rauh | Mon, 12 Oct 2020 15:36:34 +0200
+
+Add hook PSIDHOOK_PELOGUE_GLOBAL
+
+ - let psslurm offline nodes which failed to
+   to execute the slurmctld prologue
+ - bump pluginAPIVersion to 128
+------------------------------------------------------------------------
+2c270306 | Michael Rauh | Mon, 12 Oct 2020 13:32:54 +0200
+
+Add option DIRECT_DRAIN to let psslurm drain nodes directly
+without the help of psexec
+
+ - psexec is still the default for now
+ - may become the default in future releases
+------------------------------------------------------------------------
+444fd200 | Michael Rauh | Mon, 12 Oct 2020 12:39:25 +0200
+
+Add support for REQUEST_UPDATE_NODE to psslurm
+
+ - allow psslurm to change the node state in Slurm
+   similar to scontrol
+ - add ability to drain nodes without the use of psexec
+------------------------------------------------------------------------
+4465fbf6 | Michael Rauh | Mon, 12 Oct 2020 10:52:18 +0200
+
+Bugfix: ensure the mother superior will cancel a pelogue script
+even if there is no local child
+------------------------------------------------------------------------
+caf8bd65 | Norbert Eicker | Fri, 16 Oct 2020 01:02:24 +0200
+
+Cleanup commented out remnants
+------------------------------------------------------------------------
+3bc64704 | Stephan Krempel | Thu, 15 Oct 2020 17:45:10 +0200
+
+psslurmgetbind: Fix segfault by uncomplete pininfo
+------------------------------------------------------------------------
+bf581a10 | Norbert Eicker | Fri, 16 Oct 2020 00:55:39 +0200
+
+Rename psconfig key back to strange notation used there all over the place
+------------------------------------------------------------------------
+da016f7f | Norbert Eicker | Wed, 14 Oct 2020 13:55:18 +0200
+
+Rename psconfig key to Psid.BindGPUs
+------------------------------------------------------------------------
+6854ebb2 | Stephan Krempel | Wed, 14 Oct 2020 10:58:33 +0200
+
+Make bindgpu configurable at start time
+
+psconfig: The new key is "Psid.BindGpus"
+parastation.conf: The new key is "BindGPUs"
+
+Attention: The new parameter needs to be set or psid will not start
+------------------------------------------------------------------------
+96b7c8ca | Norbert Eicker | Wed, 14 Oct 2020 00:28:04 +0200
+
+Fix documentation
+------------------------------------------------------------------------
+43c39be8 | Norbert Eicker | Mon, 12 Oct 2020 23:24:07 +0200
+
+Bugfix: Do not break backward compatibility
+------------------------------------------------------------------------
+099100e6 | Norbert Eicker | Mon, 12 Oct 2020 23:23:17 +0200
+
+Bugfix: Actually set GPU-binding, not Mem-binding
+------------------------------------------------------------------------
+08c1c58f | Norbert Eicker | Mon, 12 Oct 2020 23:21:30 +0200
+
+Add help message to psiadmin for new directive set/show binGPUs
+------------------------------------------------------------------------
+08a368a1 | Stephan Krempel | Sat, 10 Oct 2020 01:17:25 +0200
+
+Add bindGPUs option
+------------------------------------------------------------------------
+86e7f6e5 | Norbert Eicker | Mon, 12 Oct 2020 10:17:07 +0200
+
+Emit warning if maximum number of GPUs or NUMA nodes exceeded
+------------------------------------------------------------------------
+55673522 | Stephan Krempel | Sat, 10 Oct 2020 02:47:18 +0200
+
+Fix docu of PSID_getNUMAnodes()
+------------------------------------------------------------------------
+9ccb51f5 | Stephan Krempel | Sat, 10 Oct 2020 02:43:56 +0200
+
+Consequently use uint16_t for GPUs and NUMA nodes and check maxima
+------------------------------------------------------------------------
+982f7b16 | Stephan Krempel | Sat, 10 Oct 2020 02:21:40 +0200
+
+Add missing checks of some malloc() return values
+------------------------------------------------------------------------
+5993ab54 | Stephan Krempel | Sat, 10 Oct 2020 02:11:09 +0200
+
+Use qsort_r() instead of self-made bubble sort
+------------------------------------------------------------------------
+abfdb9fd | Norbert Eicker | Fri, 9 Oct 2020 16:11:55 +0200
+
+Minor improvements
+------------------------------------------------------------------------
+0d0da658 | Norbert Eicker | Fri, 9 Oct 2020 14:35:34 +0200
+
+Improve documentation comments
+------------------------------------------------------------------------
+444177d1 | Norbert Eicker | Fri, 9 Oct 2020 14:34:53 +0200
+
+Relax checks from unneded boundary tests
+------------------------------------------------------------------------
+2575fe78 | Norbert Eicker | Fri, 9 Oct 2020 14:27:57 +0200
+
+Improve documentation
+------------------------------------------------------------------------
+cc56f177 | Norbert Eicker | Fri, 9 Oct 2020 14:27:50 +0200
+
+Streamlining
+------------------------------------------------------------------------
+194c96df | Norbert Eicker | Fri, 9 Oct 2020 13:55:20 +0200
+
+Don't search for NUMA nodes again and again
+------------------------------------------------------------------------
+5b9d3379 | Norbert Eicker | Fri, 9 Oct 2020 12:57:45 +0200
+
+Don't search for GPUs again and again
+------------------------------------------------------------------------
+ae39c67a | Stephan Krempel | Wed, 7 Oct 2020 16:18:19 +0200
+
+Automatically sort GPUs by PCI addresses for CUDA pinning
+------------------------------------------------------------------------
+b0fab998 | Stephan Krempel | Wed, 7 Oct 2020 16:17:15 +0200
+
+Adjust variable name for hwloc pci device object
+------------------------------------------------------------------------
+cb17ca1c | Stephan Krempel | Tue, 6 Oct 2020 12:21:50 +0200
+
+psslurmpin: Do not use CPU mapping for explicit pinning options
+
+The parameters give to the explicit pinning options
+{map|mask}_{cpu|ldom} are now supposed to be in OS order
+------------------------------------------------------------------------
+87f1909e | Stephan Krempel | Tue, 6 Oct 2020 10:47:15 +0200
+
+psslurmpin: Include node id into nodeinfo struct
+------------------------------------------------------------------------
+a62ff011 | Stephan Krempel | Tue, 6 Oct 2020 10:18:56 +0200
+
+psslurmpin: Enable GPU remapping by envvar PSI_GPUMAP
+------------------------------------------------------------------------
+c3dabb65 | Stephan Krempel | Tue, 6 Oct 2020 10:17:17 +0200
+
+psslurmpin: Disable general setting of GPU pinning in rank env
+------------------------------------------------------------------------
+8f080c7b | Stephan Krempel | Fri, 4 Sep 2020 18:31:17 +0200
+
+Pin processes to the GPUs connected to the same NUMA domain
+
+Setup the environment so processes use the GPUs connected to the
+same NUMA domain they are pinned to.
+------------------------------------------------------------------------
+dad7c593 | Stephan Krempel | Fri, 4 Sep 2020 18:30:47 +0200
+
+Fix mixing up NUMA to CPUs maps in OS and psid order
+------------------------------------------------------------------------
+f875c591 | Stephan Krempel | Fri, 4 Sep 2020 14:43:05 +0200
+
+Fix comment
+------------------------------------------------------------------------
+457cda34 | Stephan Krempel | Fri, 28 Aug 2020 15:51:56 +0200
+
+Add missing init calls in hwloc functions
+------------------------------------------------------------------------
+39f00352 | Stephan Krempel | Wed, 26 Aug 2020 15:37:46 +0200
+
+Add functions for getting NUMA/CPU/GPU masks from hwloc
+------------------------------------------------------------------------
+24a7c2cf | Stephan Krempel | Wed, 26 Aug 2020 15:02:49 +0200
+
+Adjust docu: Changing "cores" to "hardware threads" where appropriate
+------------------------------------------------------------------------
+9124cc47 | Stephan Krempel | Tue, 25 Aug 2020 11:58:23 +0200
+
+Avoid compile problems with hwloc >= 2.0
+------------------------------------------------------------------------
+cbbfcea9 | Stephan Krempel | Fri, 9 Oct 2020 18:22:02 +0200
+
+Fix output format string
+------------------------------------------------------------------------
+543831d6 | Norbert Eicker | Fri, 9 Oct 2020 01:22:40 +0200
+
+Optimize the loop counting used threads even more
+------------------------------------------------------------------------
+5f812f08 | Norbert Eicker | Fri, 9 Oct 2020 00:59:30 +0200
+
+Optimize addSlotsToNodeSlotsArray() and rename it to addCPUsToSlotsArray()
+------------------------------------------------------------------------
+934a69e1 | Stephan Krempel | Sat, 3 Oct 2020 07:57:56 +0200
+
+psslurm: Optimize building reservations
+
+Optimize the loop counting used threads during building reservations
+------------------------------------------------------------------------
+795c04e8 | Stephan Krempel | Fri, 2 Oct 2020 18:41:55 +0200
+
+psslurmpin: Set only existing cpus in slots with bind type none
+------------------------------------------------------------------------
+c7e011b5 | Stephan Krempel | Sat, 3 Oct 2020 07:25:40 +0200
+
+psslurmpin: Add how-to-be-called comment to doMemBind()
+------------------------------------------------------------------------
+45da3607 | Stephan Krempel | Fri, 2 Oct 2020 16:35:13 +0200
+
+Fix debugging output for new reservations
+------------------------------------------------------------------------
+90e64d6f | Michael Rauh | Thu, 1 Oct 2020 16:21:16 +0200
+
+Improve psgw error logging
+------------------------------------------------------------------------
+470eba14 | Stephan Krempel | Thu, 1 Oct 2020 12:41:08 +0200
+
+psslumpin: Report out of bound problems with --cpu-bind=map_cpu:*
+------------------------------------------------------------------------
+887d7eab | Norbert Eicker | Wed, 30 Sep 2020 20:03:13 +0200
+
+Fix more potential signed vs. unsigned flaws
+------------------------------------------------------------------------
+4d45d653 | Norbert Eicker | Wed, 30 Sep 2020 18:02:17 +0200
+
+Bugfix: Prevent out of bound accesses to PSCPU_set_t (#2855)
+------------------------------------------------------------------------
+88c14d75 | Stephan Krempel | Mon, 28 Sep 2020 12:31:43 +0200
+
+psslurmpin: Always use first threads of a core first
+
+Fixes distribution *:fcyclic:cyclic issue in psc#350.
+------------------------------------------------------------------------
+0b693253 | Michael Rauh | Fri, 4 Sep 2020 16:11:40 +0200
+
+Add support for the include statement in Slurm plugstack.conf
+------------------------------------------------------------------------
+ebc8cc51 | Michael Rauh | Thu, 3 Sep 2020 11:03:29 +0200
+
+Improve documentation of pspam
+------------------------------------------------------------------------
+0ea4f236 | Michael Rauh | Wed, 2 Sep 2020 16:52:21 +0200
+
+Add support for spank API calls slurm_spank_init()
+and slurm_spank_slurmd_exit() in slurmd context
+
+ - spank plugins using the new hooks will trigger the tainted flag
+ - approved psid spank plugins may set the symbol "psid_plugin" to avoid
+   triggering the tainted flag
+ - to query the tainted flag use the psiadmin show command with
+   the key tainted
+------------------------------------------------------------------------
+bc3f48bd | Stephan Krempel | Wed, 2 Sep 2020 15:35:43 +0200
+
+psslurmpin: Fix iteration cycling
+------------------------------------------------------------------------
+35d35aac | Stephan Krempel | Wed, 2 Sep 2020 15:34:41 +0200
+
+psslurmpin: Fix iteration termination condition
+------------------------------------------------------------------------
+4c2d38aa | Stephan Krempel | Wed, 2 Sep 2020 15:31:45 +0200
+
+psslurmpin: Change iteration order documentation
+------------------------------------------------------------------------
+573bb619 | Stephan Krempel | Wed, 2 Sep 2020 15:22:27 +0200
+
+psslurmpin: Fix iteration test program and include start thread
+
+test_psslurmpin:
+- no longer supports pinning testing (use psslurmgetbind)
+- iteration test working again and now supports start thread
+------------------------------------------------------------------------
+3f1c74eb | Stephan Krempel | Wed, 2 Sep 2020 15:16:30 +0200
+
+psslurmpin: More precise debugging output
+
+A distinction is now made in the debugging output as to why
+a thread is not selected: not included in core map or already used.
+------------------------------------------------------------------------
+ad0246d6 | Stephan Krempel | Tue, 1 Sep 2020 16:44:53 +0200
+
+psslurmpin: Support for --ntasks-per-socket option
+
+This adds support for --ntasks-per-socket option of Slurm's
+select/cons_tres plugin without node sharing so with partitions
+configured with OverSubscribe=EXCLUSIVE.
+------------------------------------------------------------------------
+1d3d536c | Stephan Krempel | Tue, 1 Sep 2020 16:44:03 +0200
+
+psslurmpin: Fix detection of default core distribution
+------------------------------------------------------------------------
+58fa2f31 | Stephan Krempel | Mon, 31 Aug 2020 11:54:32 +0200
+
+psslurmpin: End thread iteration after all threads
+
+Until now iteration ended after last thread, in some
+combination of options this missed empty threads. Now
+iteration goes through all threads round robin and ends
+after hitting each thread once.
+------------------------------------------------------------------------
+
+
 Version psmgmt-5.1.31-2:
 ========================
 ------------------------------------------------------------------------
