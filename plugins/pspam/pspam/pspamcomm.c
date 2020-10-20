@@ -22,8 +22,10 @@
 #include "psserial.h"
 #include "pluginmalloc.h"
 #include "pluginpartition.h"
+#include "pluginhelper.h"
 #include "selector.h"
 #include "psidhook.h"
+#include "psidscripts.h"
 
 #include "pspamcommon.h"
 #include "pspamlog.h"
@@ -35,6 +37,34 @@
 
 /** socket plugin is listening on to be accesses from PAM module */
 static int masterSock = -1;
+
+static int jailChild(void *info)
+{
+    Session_t *session = info;
+
+    setenv("__PSPAM_ADD_USER", session->user, 1);
+    return PSIDhook_call(PSIDHOOK_JAIL_CHILD, &session->pid);
+}
+
+static int cbJailChild(int fd, PSID_scriptCBInfo_t *info)
+{
+    int32_t exit = 0;
+    char errMsg[1024];
+    size_t errLen;
+
+    bool ret = getScriptCBdata(fd, info, &exit, errMsg, sizeof(errMsg), &errLen);
+    if (!ret) {
+	mlog("%s: getting jail script callback data failed\n", __func__);
+	return 0;
+    }
+
+    if (exit != 0) {
+	mlog("%s: jail script failed with exit status %i\n", __func__, exit);
+	mlog("%s: %s\n", __func__, errMsg);
+    }
+
+    return 0;
+}
 
 static PSPAMResult_t handleOpenRequest(char *msgBuf)
 {
@@ -77,12 +107,14 @@ static PSPAMResult_t handleOpenRequest(char *msgBuf)
 	    res = PSPAM_RES_PROLOG;
 	} else {
 	    res = PSPAM_RES_BATCH;
-	    addSession(user, rhost, pid, sid);
-
-	    /* Jail allowed ssh processes */
-	    setenv("__PSPAM_ADD_USER", user, 1);
-	    PSIDhook_call(PSIDHOOK_JAIL_CHILD, &pid);
-	    unsetenv("__PSPAM_ADD_USER");
+	    Session_t *session = addSession(user, rhost, pid, sid);
+	    if (session) {
+		/* Jail allowed ssh processes */
+		PSID_execFunc(jailChild, NULL, cbJailChild, session);
+	    } else {
+		mlog("%s: saving session for user %s failed\n", __func__, user);
+		res = PSPAM_RES_DENY;
+	    }
 	}
     }
 

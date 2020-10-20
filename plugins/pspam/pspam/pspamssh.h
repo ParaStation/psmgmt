@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2011-2017 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2011-2020 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -12,6 +12,18 @@
 
 #include <stdbool.h>
 #include <sys/types.h>
+
+#include "list.h"
+
+/** Structure holding all information concerning a specific ssh session */
+typedef struct {
+    list_t next;       /**< used to put into list of sessions */
+    char *user;        /**< username of the ssh-session owner */
+    char *rhost;       /**< remote host the ssh-session came from */
+    pid_t pid;         /**< pid of the SSH forwarder */
+    pid_t sid;         /**< session ID of the SSH forwarder */
+    time_t startTime;  /**< time when the ssh-session was started */
+} Session_t;
 
 /**
  * @brief Add new SSH session
@@ -28,10 +40,10 @@
  *
  * @param sshSID Session ID of the SSH session to add
  *
- * @return If a new SSH session was added true is returned. Otherwise
- * false is returned.
+ * @return Returns the new session on success. Otherwise
+ * NULL is returned.
  */
-bool addSession(char *user, char *rhost, pid_t sshPid, pid_t sshSid);
+Session_t *addSession(char *user, char *rhost, pid_t sshPid, pid_t sshSid);
 
 /**
  * @brief Search for SSH session PID belongs to
