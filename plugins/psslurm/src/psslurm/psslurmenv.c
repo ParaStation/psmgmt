@@ -417,11 +417,11 @@ static void setGPUEnv(Gres_Cred_t *gres, uint32_t localNodeId)
     char *list = NULL;
     size_t listSize = 0;
     if (!gres || !gres->bitAlloc) {
-	flog("invalid gpu gres bitAlloc for local nodeID '%u'\n", localNodeId);
 	return;
     }
 
-    if (gres->bitAlloc[localNodeId]) {
+    if (!gres->bitAlloc[localNodeId]) {
+	flog("invalid gpu gres bitAlloc for local nodeID '%u'\n", localNodeId);
 	return;
     }
 
