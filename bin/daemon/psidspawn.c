@@ -463,12 +463,18 @@ void PSID_bindToGPUs(cpu_set_t *physSet)
 	NULL
     };
 
+    char *prefix = "__AUTO_";
     char name[1024];
     for (size_t i = 0; variables[i]; i++) {
-	snprintf(name, sizeof(name), "PROTECT_%s", variables[i]);
-	if (!getenv(name)) {
-	    /* variable is not protected */
+	snprintf(name, sizeof(name), "%s%s", prefix, variables[i]);
+	if (!getenv(variables[i])
+		|| (getenv(name)
+		    && !strcmp(getenv(name), getenv(variables[i])))) {
+	    /* variable is not set at all
+	     * or it had been set automatically and not changed in the meantime,
+	     * so set it and add/renew the auto set detection variable */
 	    setenv(variables[i], val, 1);
+	    setenv(name, val, 1);
 	}
     }
 

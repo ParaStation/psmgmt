@@ -31,6 +31,13 @@
 
 char **envFilter = NULL;
 
+#define GPU_VARIABLE_MAXLEN 20
+static char * gpu_variables[] = {
+    "CUDA_VISIBLE_DEVICES", /* Nvidia GPUs */
+    "GPU_DEVICE_ORDINAL",   /* AMD GPUs */
+    NULL
+};
+
 bool initEnvFilter(void)
 {
     char *conf, *dup, *next, *saveptr;
@@ -266,14 +273,21 @@ void initJobEnv(Job_t *job)
 	    /* tell doClamps() which gpus to use */
 	    envSet(&job->env, "__PSI_USE_GPUS", list);
 
-	    /* set Nvidia variable if not protected */
-	    if (!envGet(&job->env, "PROTECT_CUDA_VISIBLE_DEVICES")) {
-		envSet(&job->env, "CUDA_VISIBLE_DEVICES", list);
-	    }
-
-	    /* set AMD variable if not protected */
-	    if (!envGet(&job->env, "PROTECT_GPU_DEVICE_ORDINAL")) {
-		envSet(&job->env, "GPU_DEVICE_ORDINAL", list);
+	    char *prefix = "__AUTO_";
+	    char name[GPU_VARIABLE_MAXLEN+strlen(prefix)+1];
+	    for (size_t i = 0; gpu_variables[i]; i++) {
+		/* set variable if not already set by the user */
+		if (!envGet(&job->env, gpu_variables[i])) {
+		    snprintf(name, sizeof(name), "%s%s", prefix,
+			    gpu_variables[i]);
+		    /* append some spaces to help step code to detect whether
+		     * the user has changed the variable in his job script */
+		    char *val = umalloc(strlen(list) + 6);
+		    sprintf(val, "%s     ", list);
+		    envSet(&job->env, gpu_variables[i], val);
+		    envSet(&job->env, name, val);
+		    ufree(val);
+		}
 	    }
 
 	    ufree(list);
@@ -459,12 +473,21 @@ static void setGPUEnv(Gres_Cred_t *gres, uint32_t localNodeId)
 	listSize = newlistSize;
     }
 
-    if (!getenv("PROTECT_CUDA_VISIBLE_DEVICES")) {
-	setenv("CUDA_VISIBLE_DEVICES", list, 1);
-    }
+    char *prefix = "__AUTO_";
+    char name[GPU_VARIABLE_MAXLEN+strlen(prefix)+1];
+    for (size_t i = 0; gpu_variables[i]; i++) {
+	snprintf(name, sizeof(name), "%s%s", prefix, gpu_variables[i]);
+	if (!getenv(gpu_variables[i])
+		|| (getenv(name)
+		    && !strcmp(getenv(name), getenv(gpu_variables[i])))) {
+	    /* variable is not set at all
+	     * or it had been set automatically and not changed in the meantime,
+	     * so set it */
+	    setenv(gpu_variables[i], list, 1);
+	}
 
-    if (!getenv("PROTECT_GPU_DEVICE_ORDINAL")) {
-	setenv("GPU_DEVICE_ORDINAL", list, 1);
+	/* automation detection is no longer needed */
+	unsetenv(name);
     }
 
     ufree(list);
