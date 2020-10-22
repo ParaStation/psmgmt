@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2002-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2019 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2020 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -377,30 +377,30 @@ int PSC_getServicePort(char* name , int def);
 bool PSC_isLocalIP(in_addr_t ipaddr);
 
 /**
- * @brief Get nodelist from string.
+ * @brief Get nodelist from string
  *
  * Parse the string @a descr describing a nodelist and create and
- * return the corresponding nodelist. The resulting nodelist is a char
- * array of size PSC_getNrOfNodes(), each char describing if the
- * corresponding nodes was found within @a descr. The char set to 1
- * means the nodes is described, the char is set to 0 otherwise.
+ * return the corresponding nodelist. The resulting nodelist is an
+ * array of size PSC_getNrOfNodes(), each bool flagging if the
+ * corresponding nodes was found within @a descr.
  *
  * The nodelist is returned in a statically allocated buffer, which
  * subsequent calls will overwrite.
  *
- * @param descr The string describing a list of nodes. The string is of
- * the form n[-m]{,o[-p]}*, where n, m, o and p are numbers. Each
- * number might be in decimal, octal or hexadecimal notation. Octal
- * notation is marked by a leading 0, hexadecimal notation by a
- * leading 0x.
+ * @param descr Character string describing a list of nodes. It must
+ * be of the form n[-m]{,o[-p]}*, where n, m, o and p are
+ * numbers. Each number might be in decimal, octal or hexadecimal
+ * notation. Octal notation is marked by a leading 0, hexadecimal
+ * notation by a leading 0x.
  *
- * @return On success, a char array as described above is returned. Or
- * NULL if an (parsing-) error occurred.
+ * @return On success, an array indexed by node ID flagging if the
+ * node is contained in @a descr is returned. Or NULL if an (parsing-)
+ * error occurred.
  */
-char *PSC_parseNodelist(char* descr);
+bool * PSC_parseNodelist(char* descr);
 
 /**
- * @brief Print a nodelist description.
+ * @brief Print a nodelist description
  *
  * Print a string to stdout that describes the nodelist stored in @a
  * nl. The printed string might be parsed by @ref PSC_parseNodelist()
@@ -409,13 +409,13 @@ char *PSC_parseNodelist(char* descr);
  * The string printed out is expected to be the shortest description
  * of the nodelist @a nl that is possible.
  *
- * @param nl A nodelist as returned by the PSC_parseNodelist() function.
+ * @param nl A nodelist as returned by the PSC_parseNodelist() function
  *
- * @return No return value.
+ * @return No return value
  *
  * @see PSC_parseNodelist()
  */
-void PSC_printNodelist(char* nl);
+void PSC_printNodelist(bool* nl);
 
 /**
  * @brief Concatenate strings.

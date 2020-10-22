@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2002-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2019 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2020 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -269,30 +269,30 @@ int PSC_getServicePort(char* name , int def)
     }
 }
 
-static int parseRange(char* list, char* range)
+static bool parseRange(bool *list, char *range)
 {
-    long first, last, i;
+    long first, last;
     char *start = strsep(&range, "-"), *end;
 
     if (*start == '\0') {
 	first = -1;
     } else {
 	first = strtol(start, &end, 0);
-	if (*end != '\0') return 0;
+	if (*end != '\0') return false;
 	if (!PSC_validNode(first)) {
 	    PSC_log(-1, "node %ld out of range\n", first);
-	    return 0;
+	    return false;
 	}
     }
 
     if (range) {
-	if (*range == '\0') return 0;
+	if (*range == '\0') return false;
 	last = strtol(range, &end, 0);
-	if (*end != '\0') return 0;
+	if (*end != '\0') return false;
 	if (last < 0
 	    || (last >= PSC_getNrOfNodes() && !(first == -1 && last == 1))) {
 	    PSC_log(-1, "node %ld out of range\n", last);
-	    return 0;
+	    return false;
 	}
     } else {
 	last = first;
@@ -303,7 +303,7 @@ static int parseRange(char* list, char* range)
 	    first = last = PSC_getMyID();
 	} else {
 	    fprintf(stderr, "node %ld out of range\n", -last);
-	    return 0;
+	    return false;
 	}
     }
 
@@ -313,22 +313,22 @@ static int parseRange(char* list, char* range)
 	first = tmp;
     }
 
-    for (i=first; i<=last; i++) list[i] = 1;
-    return 1;
+    for (int i = first; i <= last; i++) list[i] = true;
+    return true;
 }
 
-char* PSC_parseNodelist(char* descr)
+bool * PSC_parseNodelist(char* descr)
 {
-    static char* nl = NULL;
+    static bool *nl = NULL;
     char* range;
     char* work = NULL;
 
-    if (!nl) nl = malloc(sizeof(char) * PSC_getNrOfNodes());
+    if (!nl) nl = malloc(sizeof(*nl) * PSC_getNrOfNodes());
     if (!nl) {
 	PSC_log(-1, "%s: no memory\n", __func__);
 	return NULL;
     }
-    memset(nl, 0, sizeof(char) * PSC_getNrOfNodes());
+    memset(nl, 0, sizeof(*nl) * PSC_getNrOfNodes());
 
     range = strtok_r(descr, ",", &work);
 
@@ -340,9 +340,9 @@ char* PSC_parseNodelist(char* descr)
     return nl;
 }
 
-void PSC_printNodelist(char* nl)
+void PSC_printNodelist(bool *nl)
 {
-    PSnodes_ID_t pos=0, numNodes = PSC_getNrOfNodes();
+    PSnodes_ID_t pos = 0, numNodes = PSC_getNrOfNodes();
     int first=1;
 
     while (nl && !nl[pos] && pos < numNodes) pos++;

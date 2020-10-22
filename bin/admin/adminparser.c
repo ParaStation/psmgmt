@@ -32,15 +32,15 @@
 
 #include "helpmsgs.c"
 
-static char *defaultNL = NULL;
+static bool *defaultNL = NULL;
 
-static int setupDefaultNL(void)
+static bool setupDefaultNL(void)
 {
-    defaultNL = malloc(PSC_getNrOfNodes());
-    if (!defaultNL) return 0;
+    defaultNL = malloc(PSC_getNrOfNodes() * sizeof(*defaultNL));
+    if (!defaultNL) return false;
 
-    memset(defaultNL, 1, PSC_getNrOfNodes());
-    return 1;
+    for (int n = 0; n < PSC_getNrOfNodes(); n++) defaultNL[n] = true;
+    return true;
 }
 
 static void releaseDefaultNL(void)
@@ -49,24 +49,24 @@ static void releaseDefaultNL(void)
     defaultNL = NULL;
 }
 
-static char *getNodeList(char *nl_descr)
+static bool * getNodeList(char *nl_descr)
 {
-    static char *nl = NULL;
+    static bool *nl = NULL;
     char *host, *work = NULL;
 
-    if (!nl) nl = malloc(sizeof(char) * PSC_getNrOfNodes());
+    if (!nl) nl = malloc(sizeof(*nl) * PSC_getNrOfNodes());
     if (!nl) {
 	PSC_log(-1, "%s: no memory\n", __func__);
 	return NULL;
     }
 
-    memset(nl, 0, sizeof(char) * PSC_getNrOfNodes());
+    memset(nl, 0, sizeof(*nl) * PSC_getNrOfNodes());
     if (!strcasecmp(nl_descr, "all")) {
-	memset(nl, 1, PSC_getNrOfNodes());
+	for (int n = 0; n < PSC_getNrOfNodes(); n++) defaultNL[n] = true;
 	return nl;
     } else {
 	host = strdup(nl_descr);
-	char *ret = PSC_parseNodelist(host);
+	bool *ret = PSC_parseNodelist(host);
 	free(host);
 	if (ret) return ret;
     }
@@ -77,7 +77,7 @@ static char *getNodeList(char *nl_descr)
 
 	if (node < 0) goto error;
 
-	nl[node] = 1;
+	nl[node] = true;
 	host = strtok_r(NULL, ",", &work);
     }
     return nl;
@@ -92,7 +92,7 @@ error:
 static int addCommand(char *token)
 {
     char *nl_descr = parser_getString();
-    char *nl = defaultNL;
+    bool *nl = defaultNL;
 
     if (parser_getString()) goto error;
 
@@ -113,7 +113,7 @@ static int addCommand(char *token)
 static int shutdownCommand(char *token)
 {
     char *nl_descr = parser_getString();
-    char *nl = defaultNL;
+    bool *nl = defaultNL;
     int silent = 0;
 
     if (nl_descr && !strcasecmp(nl_descr, "silent")) {
@@ -140,7 +140,8 @@ static int shutdownCommand(char *token)
 static int hwstartCommand(char *token)
 {
     char *nl_descr = parser_getString();
-    char *nl = defaultNL, *hw = NULL;
+    bool *nl = defaultNL;
+    char *hw = NULL;
     int hwIndex = -1;
 
     if (nl_descr && !strcasecmp(nl_descr, "hw")) {
@@ -171,7 +172,8 @@ static int hwstartCommand(char *token)
 static int hwstopCommand(char *token)
 {
     char *nl_descr = parser_getString();
-    char *nl = defaultNL, *hw = NULL;
+    bool *nl = defaultNL;
+    char *hw = NULL;
     int hwIndex = -1;
 
     if (nl_descr && !strcasecmp(nl_descr, "hw")) {
@@ -202,7 +204,7 @@ static int hwstopCommand(char *token)
 static int restartCommand(char *token)
 {
     char *nl_descr = parser_getString();
-    char *nl = defaultNL;
+    bool *nl = defaultNL;
 
     if (parser_getString()) goto error;
 
@@ -234,7 +236,7 @@ static int rangeCommand(char *token)
     if (parser_getString()) goto error;
 
     if (nl_descr) {
-	char *nl = getNodeList(nl_descr);
+	bool *nl = getNodeList(nl_descr);
 	if (!nl) return -1;
 
 	memcpy(defaultNL, nl, PSC_getNrOfNodes());
@@ -256,7 +258,7 @@ static int rangeCommand(char *token)
 static int resetCommand(char *token)
 {
     char *nl_descr = parser_getString();
-    char *nl = defaultNL;
+    bool *nl = defaultNL;
     int hw = 0;
 
     if (nl_descr && !strcasecmp(nl_descr, "hw")) {
@@ -284,7 +286,7 @@ static int resetCommand(char *token)
 static int listCountCommand(char *token)
 {
     char *nl_descr = parser_getString();
-    char *nl = defaultNL;
+    bool *nl = defaultNL;
     int hwIndex = -1;
 
     if (nl_descr && !strcasecmp(nl_descr, "hw")) {
@@ -314,7 +316,7 @@ static int listCountCommand(char *token)
 static int listProcCommand(char *token)
 {
     char *nl_descr = parser_getString();
-    char *nl = defaultNL;
+    bool *nl = defaultNL;
     long cnt = -1;
 
     if (nl_descr && !strcasecmp(nl_descr, "cnt")) {
@@ -347,7 +349,7 @@ static int listProcCommand(char *token)
 static int listPluginCommand(char *token)
 {
     char *nl_descr = parser_getString();
-    char *nl = defaultNL;
+    bool *nl = defaultNL;
 
     if (parser_getString()) goto error;
 
@@ -372,7 +374,7 @@ error:
 static int listEnvCommand(char *token)
 {
     char *key = NULL, *nl_descr = parser_getString();
-    char *nl = defaultNL;
+    bool *nl = defaultNL;
 
 
     if (nl_descr && !strcasecmp(nl_descr, "key")) {
@@ -404,7 +406,7 @@ static int listEnvCommand(char *token)
 static int listNodeCommand(char *token)
 {
     char *nl_descr = parser_getString();
-    char *nl = defaultNL;
+    bool *nl = defaultNL;
 
     if (parser_getString()) goto error;
 
@@ -424,7 +426,7 @@ static int listNodeCommand(char *token)
 static int listSomeCommand(char *token)
 {
     char *nl_descr = parser_getString();
-    char *nl = defaultNL;
+    bool *nl = defaultNL;
 
     if (parser_getString()) goto error;
 
@@ -444,7 +446,7 @@ static int listSomeCommand(char *token)
 static int listSummaryCommand(char *token)
 {
     char *nl_descr = parser_getString();
-    char *nl = defaultNL;
+    bool *nl = defaultNL;
     long max = 20;
 
     while (nl_descr) {
@@ -475,7 +477,7 @@ static int listSummaryCommand(char *token)
 static int listStarttimeCommand(char *token)
 {
     char *nl_descr = parser_getString();
-    char *nl = defaultNL;
+    bool *nl = defaultNL;
 
     if (parser_getString()) goto error;
 
@@ -496,7 +498,7 @@ static int listScriptCommand(char *token)
 {
     PSP_Info_t info;
     char *nl_descr = parser_getString();
-    char *nl = defaultNL;
+    bool *nl = defaultNL;
 
     if (parser_getString()) goto error;
 
@@ -527,7 +529,7 @@ static int listScriptCommand(char *token)
 static int listRDPCommand(char *token)
 {
     char *nl_descr = parser_getString();
-    char *nl = defaultNL;
+    bool *nl = defaultNL;
 
     if (parser_getString()) goto error;
 
@@ -547,7 +549,7 @@ static int listRDPCommand(char *token)
 static int listRDPConnCommand(char *token)
 {
     char *nl_descr = parser_getString();
-    char *nl = defaultNL;
+    bool *nl = defaultNL;
 
     if (parser_getString()) goto error;
 
@@ -567,7 +569,7 @@ static int listRDPConnCommand(char *token)
 static int listMCastCommand(char *token)
 {
     char *nl_descr = parser_getString();
-    char *nl = defaultNL;
+    bool *nl = defaultNL;
 
     if (parser_getString()) goto error;
 
@@ -587,7 +589,7 @@ static int listMCastCommand(char *token)
 static int listLoadCommand(char *token)
 {
     char *nl_descr = parser_getString();
-    char *nl = defaultNL;
+    bool *nl = defaultNL;
 
     if (parser_getString()) goto error;
 
@@ -607,7 +609,7 @@ static int listLoadCommand(char *token)
 static int listMemoryCommand(char *token)
 {
     char *nl_descr = parser_getString();
-    char *nl = defaultNL;
+    bool *nl = defaultNL;
 
     if (parser_getString()) goto error;
 
@@ -627,7 +629,7 @@ static int listMemoryCommand(char *token)
 static int listHWCommand(char *token)
 {
     char *nl_descr = parser_getString();
-    char *nl = defaultNL;
+    bool *nl = defaultNL;
 
     if (parser_getString()) goto error;
 
@@ -647,7 +649,7 @@ static int listHWCommand(char *token)
 static int listInstdirCommand(char *token)
 {
     char *nl_descr = parser_getString();
-    char *nl = defaultNL;
+    bool *nl = defaultNL;
 
     if (parser_getString()) goto error;
 
@@ -714,7 +716,7 @@ static int listJobsCommand(char *token)
 static int listVersionCommand(char *token)
 {
     char *nl_descr = parser_getString();
-    char *nl = defaultNL;
+    bool *nl = defaultNL;
 
     if (parser_getString()) goto error;
 
@@ -733,7 +735,7 @@ static int listVersionCommand(char *token)
 
 static int listSpecialCommand(char *token)
 {
-    char *nl = defaultNL;
+    bool *nl = defaultNL;
 
     if (parser_getString()) goto error;
 
@@ -1352,7 +1354,7 @@ static int setCommand(char *token)
     char *what = parser_getString();
     char *value = parser_getQuotedString();
     char *nl_descr = parser_getString();
-    char *nl = defaultNL;
+    bool *nl = defaultNL;
     PSP_Option_t setOpt;
     long val;
     PSIADM_valList_t *valList = NULL;
@@ -1610,7 +1612,7 @@ static int showCommand(char *token)
 {
     char *what = parser_getString();
     char *nl_descr = parser_getString();
-    char *nl = defaultNL;
+    bool *nl = defaultNL;
 
     if (parser_getString() || !what) goto error;
 
@@ -1746,7 +1748,7 @@ static int pluginLoadCmd(char *token)
 {
     char *plugin = parser_getString();
     char *nl_descr = parser_getString();
-    char *nl = defaultNL;
+    bool *nl = defaultNL;
 
     if (parser_getString() || !plugin) goto error;
 
@@ -1769,7 +1771,7 @@ static int pluginRmCmd(char *token)
 {
     char *plugin = parser_getString();
     char *nl_descr = parser_getString();
-    char *nl = defaultNL;
+    bool *nl = defaultNL;
 
     if (parser_getString() || !plugin) goto error;
 
@@ -1792,7 +1794,7 @@ static int pluginFRmCmd(char *token)
 {
     char *plugin = parser_getString();
     char *nl_descr = parser_getString();
-    char *nl = defaultNL;
+    bool *nl = defaultNL;
 
     if (parser_getString() || !plugin) goto error;
 
@@ -1814,7 +1816,7 @@ static int pluginFRmCmd(char *token)
 static int pluginAvailCmd(char *token)
 {
     char *nl_descr = parser_getString();
-    char *nl = defaultNL;
+    bool *nl = defaultNL;
 
     if (parser_getString()) goto error;
 
@@ -1837,7 +1839,7 @@ static int pluginHelpCmd(char *token)
 {
     char *plugin = parser_getString();
     char *nl_descr = parser_getString();
-    char *nl = defaultNL;
+    bool *nl = defaultNL;
 
     if (parser_getString() || !plugin) goto error;
 
@@ -1859,7 +1861,8 @@ static int pluginHelpCmd(char *token)
 static int pluginLoadTmCmd(char *token)
 {
     char *nl_descr = parser_getString();
-    char *nl = defaultNL, *plugin = NULL;
+    bool *nl = defaultNL;
+    char *plugin = NULL;
 
     if (nl_descr && !strcasecmp(nl_descr, "plugin")) {
 	plugin = parser_getString();
@@ -1885,7 +1888,8 @@ static int pluginShowCmd(char *token)
 {
     char *plugin = parser_getString();
     char *nl_descr = parser_getString();
-    char *nl = defaultNL, *key = NULL;
+    bool *nl = defaultNL;
+    char *key = NULL;
 
     if (nl_descr && !strcasecmp(nl_descr, "key")) {
 	key = parser_getString();
@@ -1913,7 +1917,7 @@ static int pluginSetCmd(char *token)
     char *key = parser_getString();
     char *value = parser_getQuotedString();
     char *nl_descr = parser_getString();
-    char *nl = defaultNL;
+    bool *nl = defaultNL;
 
     if (parser_getString() || !plugin || !key || !value) goto error;
 
@@ -1935,7 +1939,7 @@ static int pluginUnsetCmd(char *token)
     char *plugin = parser_getString();
     char *key = parser_getString();
     char *nl_descr = parser_getString();
-    char *nl = defaultNL;
+    bool *nl = defaultNL;
 
     if (parser_getString() || !plugin || !key) goto error;
 
@@ -1996,7 +2000,7 @@ static int envSetCommand(char *token)
     char *key = parser_getString();
     char *value = parser_getQuotedString();
     char *nl_descr = parser_getString();
-    char *nl = defaultNL;
+    bool *nl = defaultNL;
 
     if (parser_getString() || !key || !value) goto error;
 
@@ -2019,7 +2023,7 @@ static int envUnsetCommand(char *token)
 {
     char *key = parser_getString();
     char *nl_descr = parser_getString();
-    char *nl = defaultNL;
+    bool *nl = defaultNL;
 
     if (parser_getString() || !key) goto error;
 
@@ -2340,13 +2344,11 @@ static char * paramHexFormatHelp(void *data)
 
 static char * setRange(void *data, char *nl_descr)
 {
-    char *nl;
-
     if (!nl_descr) return strdup("value missing");
 
-    nl = getNodeList(nl_descr);
+    bool *nl = getNodeList(nl_descr);
 
-    if (nl) memcpy(defaultNL, nl, PSC_getNrOfNodes());
+    if (nl) memcpy(defaultNL, nl, PSC_getNrOfNodes() * sizeof(*defaultNL));
 
     return NULL;
 }
@@ -2360,8 +2362,6 @@ static keylist_t *parametersList = NULL;
 
 static void setupParameters(void)
 {
-    int i;
-
     PSPARM_init();
 
     PSPARM_register("range", NULL,
@@ -2374,17 +2374,15 @@ static void setupParameters(void)
 		    PSPARM_boolKeys);
 
     parametersList = PSPARM_getKeylist();
-    for (i=0; paramList[i].key; i++) paramList[i].next = parametersList;
+    for (int i = 0; paramList[i].key; i++) paramList[i].next = parametersList;
 }
 
 static void cleanupParameters(void)
 {
-    int i;
-
     if (parametersList) PSPARM_freeKeylist(parametersList);
     parametersList = NULL;
 
-    for (i=0; paramList[i].key; i++) paramList[i].next = NULL;
+    for (int i = 0; paramList[i].key; i++) paramList[i].next = NULL;
 
     PSPARM_finalize();
 }
@@ -2447,7 +2445,7 @@ static int sleepCommand(char *token)
 static int resolveCommand(char *token)
 {
     char *nl_descr = parser_getString();
-    char *nl = defaultNL;
+    bool *nl = defaultNL;
 
     if (parser_getString()) goto error;
 
