@@ -131,17 +131,15 @@ static ClientStatus_t *clientStat = NULL;
  */
 static void allocMasterSpace(void)
 {
-    PSnodes_ID_t node;
-
     clientStat = realloc(clientStat, PSC_getNrOfNodes() * sizeof(*clientStat));
     if (!clientStat) PSID_exit(errno, "%s", __func__);
 
-    for (node=0; node<PSC_getNrOfNodes(); node++) {
-	gettimeofday(&clientStat[node].lastPing, NULL);
-	clientStat[node].jobs = (PSID_Jobs_t) { .normal = 0, .total = 0 };
-	clientStat[node].mem = (PSID_Mem_t) { -1, -1 };
-	clientStat[node].missCounter = 0;
-	clientStat[node].wrongClients = 0;
+    for (PSnodes_ID_t n = 0; n < PSC_getNrOfNodes(); n++) {
+	gettimeofday(&clientStat[n].lastPing, NULL);
+	clientStat[n].jobs = (PSID_Jobs_t) { .normal = 0, .total = 0 };
+	clientStat[n].mem = (PSID_Mem_t) { -1, -1 };
+	clientStat[n].missCounter = 0;
+	clientStat[n].wrongClients = 0;
     }
 }
 
@@ -224,7 +222,6 @@ void setMaxStatBCast(int limit)
  */
 static void handleMasterTasks(void)
 {
-    PSnodes_ID_t node;
     static int round = 0;
     int nrDownNodes = 0;
     struct timeval tv;
@@ -235,20 +232,19 @@ static void handleMasterTasks(void)
 
     gettimeofday(&tv, NULL);
     mytimersub(&tv, StatusTimeout.tv_sec, StatusTimeout.tv_usec);
-    for (node=0; node<PSC_getNrOfNodes(); node++) {
-	if (PSIDnodes_isUp(node)) {
-	    if (timercmp(&clientStat[node].lastPing, &tv, <)) {
+    for (PSnodes_ID_t n = 0; n < PSC_getNrOfNodes(); n++) {
+	if (PSIDnodes_isUp(n)) {
+	    if (timercmp(&clientStat[n].lastPing, &tv, <)) {
 		/* no ping in the last 'round' */
 		PSID_log(PSID_LOG_STATUS,
 			 "%s: Ping from node %d missing [%d]\n",
-			 __func__, node, clientStat[node].missCounter);
-		clientStat[node].missCounter++;
+			 __func__, n, clientStat[n].missCounter);
+		clientStat[n].missCounter++;
 	    }
-	    if (clientStat[node].missCounter > DeadLimit) {
+	    if (clientStat[n].missCounter > DeadLimit) {
 		PSID_log(PSID_LOG_STATUS,
-			 "%s: miss-count exceeded to node %d\n",
-			 __func__, node);
-		send_DAEMONCONNECT(node);
+			 "%s: miss-count exceeded to node %d\n", __func__, n);
+		send_DAEMONCONNECT(n);
 	    }
 	} else {
 	    nrDownNodes++;
@@ -683,7 +679,7 @@ static int send_ACTIVENODES(PSnodes_ID_t dest);
 
 bool declareNodeAlive(PSnodes_ID_t id, int physCPUs, int virtCPUs)
 {
-    int wasUp = PSIDnodes_isUp(id);
+    bool wasUp = PSIDnodes_isUp(id);
 
     PSID_log(PSID_LOG_STATUS, "%s: node %d\n", __func__, id);
 
@@ -889,15 +885,15 @@ int send_DAEMONSHUTDOWN(void)
 	.sender = PSC_getMyTID(),
 	.dest = 0,
 	.len = sizeof(msg) };
-    int count = 1, i;
+    int count = 1;
 
     /* broadcast to every daemon except the sender */
-    for (i=0; i<PSC_getNrOfNodes(); i++) {
-	if (PSIDnodes_isUp(i) && i != PSC_getMyID()) {
-	    msg.dest = PSC_getTID(i, 0);
+    for (PSnodes_ID_t n = 0; n < PSC_getNrOfNodes(); n++) {
+	if (PSIDnodes_isUp(n) && n != PSC_getMyID()) {
+	    msg.dest = PSC_getTID(n, 0);
 	    if (sendMsg(&msg) >= 0) count++;
 	    /* Close RDP connection immediately after send */
-	    closeConnRDP(i);
+	    closeConnRDP(n);
 	}
     }
 
@@ -1005,28 +1001,27 @@ static int send_ACTIVENODES(PSnodes_ID_t dest)
 	    .len = sizeof(msg.header) },
 	.buf = {'\0'} };
     const size_t emptyLen = sizeof(msg.header);
-    PSnodes_ID_t node;
     int total = 0;
 
     if (dest == PSC_getMyID()) return 0;
 
-    for (node=0; node<PSC_getNrOfNodes(); node++) {
-	if (!PSIDnodes_isUp(node)) continue;
-	if (!PSP_tryPutMsgBuf(&msg, __func__, "node", &node, sizeof(node))) {
+    for (PSnodes_ID_t n = 0; n < PSC_getNrOfNodes(); n++) {
+	if (!PSIDnodes_isUp(n)) continue;
+	if (!PSP_tryPutMsgBuf(&msg, __func__, "node", &n, sizeof(n))) {
 	    int ret = sendMsg(&msg);
-	    if (ret<0) {
+	    if (ret < 0) {
 		return ret;
 	    } else {
 		total += ret;
 	    }
 	    msg.header.len = emptyLen;
-	    PSP_putMsgBuf(&msg, __func__, "node", &node, sizeof(node));
+	    PSP_putMsgBuf(&msg, __func__, "node", &n, sizeof(n));
 	}
     }
 
     if (msg.header.len > emptyLen) {
 	int ret = sendMsg(&msg);
-	if (ret<0) {
+	if (ret < 0) {
 	    return ret;
 	} else {
 	    total += ret;
@@ -1058,16 +1053,15 @@ static void msg_ACTIVENODES(DDBufferMsg_t *msg)
     size_t used = 0;
 
     while (PSP_tryGetMsgBuf(msg, &used, __func__, "node", &node, sizeof(node))){
-	PSnodes_ID_t n;
 	PSID_log(PSID_LOG_STATUS, "%s: check %d\n", __func__, node);
 	if (node == sender) {
 	    /* Sender is first active node, all previous nodes are down */
-	    for (n=0; n<node; n++) {
+	    for (PSnodes_ID_t n = 0; n < node; n++) {
 		if (PSIDnodes_isUp(n)) send_DAEMONCONNECT(n);
 	    }
 	    firstUntested = node + 1;
 	}
-	for (n=firstUntested; n<node; n++) {
+	for (PSnodes_ID_t n = firstUntested; n < node; n++) {
 	    if (PSIDnodes_isUp(n)) send_MASTERIS(n);
 	}
 	if (!PSIDnodes_isUp(node)) send_DAEMONCONNECT(node);
