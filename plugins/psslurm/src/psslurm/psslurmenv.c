@@ -270,8 +270,8 @@ void initJobEnv(Job_t *job)
 	if (gres->bitAlloc[0]) {
 	    hexBitstr2List(gres->bitAlloc[0], &list, &listSize);
 
-	    /* always set our own variable */
-	    envSet(&job->env, "PSSLURM_JOB_GPUS", list);
+	    /* always set informational variable */
+	    envSet(&job->env, "SLURM_JOB_GPUS", list);
 
 	    /* tell doClamps() which gpus to use */
 	    envSet(&job->env, "__PSI_USE_GPUS", list);
@@ -444,8 +444,8 @@ static void setGPUEnv(Gres_Cred_t *gres, uint32_t localNodeId)
 
     hexBitstr2List(gres->bitAlloc[localNodeId], &list, &listSize);
 
-    /* always set our own variable */
-    setenv("PSSLURM_STEP_GPUS", list, 1);
+    /* always set informational variable */
+    setenv("SLURM_STEP_GPUS", list, 1);
 
     /* build list of usable GPUs */
     char *usable = getenv("PSI_CLOSE_GPUS");
