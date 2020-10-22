@@ -64,7 +64,7 @@ typedef enum {
  * @brief Initialize logging facility
  *
  * Initialize the logging facility @ref pluginlogger using the tag @a
- * name to log into @a logfile. Use syslog(), if @a logfile is NULL.
+ * name to log into @a logfile. Use syslog() if @a logfile is NULL.
  *
  * @param name Tag to be used for all output
  *
