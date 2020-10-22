@@ -142,8 +142,10 @@ static LIST_HEAD(pluginList);
  *	PSIDHOOK_PSSLURM_JOB_EXEC
  *
  * 128: new hook PSIDHOOK_PELOGUE_GLOBAL
+ *
+ * 129: new hook PSIDHOOK_DIST_INFO
  */
-static int pluginAPIVersion = 128;
+static int pluginAPIVersion = 129;
 
 
 /** Grace period between finalize and unload on forcefully unloads */

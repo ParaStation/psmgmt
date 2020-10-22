@@ -200,6 +200,10 @@ typedef enum {
 				switching to job owner and executing the
 				jobscript. Arg is job owner's username.
 				Called by pamservice plugin */
+    PSIDHOOK_DIST_INFO,       /**< Called in msg_SETOPTION when
+				information is updated. Shall trigger
+				distribution of option updates. Arg is
+				type of info to be updated. */
     PSIDHOOK_LAST,            /**< This has to be the last one */
 } PSIDhook_t;
 

@@ -148,6 +148,8 @@ typedef enum {
     PSP_OP_SUPPL_GRPS = 0x0078,   /**< (Dis-)Enable setting suppl. groups */
     PSP_OP_MAXSTATTRY,            /**< Maximum stat() tries during spawn */
     PSP_OP_KILLDELAY,             /**< Delay before sending SIGKILL */
+    PSP_OP_TRIGGER_DIST,          /**< trigger distribution of options */
+
 } PSP_Option_t;
 
 /** Messages used for information retrieval */

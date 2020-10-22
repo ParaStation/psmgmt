@@ -1397,14 +1397,16 @@ void PSIADM_SetParamList(PSP_Option_t type, PSIADM_valList_t *val, bool *nl)
 	    }
 	}
 
-	if (msg.count) {
-	    for (PSnodes_ID_t node = 0; node < PSC_getNrOfNodes(); node++) {
-		if (nl && !nl[node]) continue;
+	msg.opt[(int) msg.count].option = PSP_OP_TRIGGER_DIST;
+	msg.opt[(int) msg.count].value = PSP_OP_CPUMAP;
+	msg.count++;
 
-		if (hostStatus.list[node]) {
-		    msg.header.dest = PSC_getTID(node, 0);
-		    PSI_sendMsg(&msg);
-		}
+	for (PSnodes_ID_t node = 0; node < PSC_getNrOfNodes(); node++) {
+	    if (nl && !nl[node]) continue;
+
+	    if (hostStatus.list[node]) {
+		msg.header.dest = PSC_getTID(node, 0);
+		PSI_sendMsg(&msg);
 	    }
 	}
 	break;

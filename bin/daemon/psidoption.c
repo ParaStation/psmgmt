@@ -28,6 +28,7 @@
 #include "psidnodes.h"
 #include "psidtask.h"
 #include "psidstatus.h"
+#include "psidhook.h"
 #include "psidhw.h"
 #include "psidaccount.h"
 #include "psidplugin.h"
@@ -635,6 +636,9 @@ static void msg_SETOPTION(DDOptionMsg_t *msg)
 		break;
 	    case PSP_OP_APP_CPUMAP:
 		PSIDnodes_appendCPUMap(PSC_getMyID(), msg->opt[i].value);
+		break;
+	    case PSP_OP_TRIGGER_DIST:
+		PSIDhook_call(PSIDHOOK_DIST_INFO, &msg->opt[i].value);
 		break;
 	    case PSP_OP_ALLOWUSERMAP:
 		PSIDnodes_setAllowUserMap(PSC_getMyID(), msg->opt[i].value);
