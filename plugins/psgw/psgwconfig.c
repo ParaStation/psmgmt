@@ -79,7 +79,7 @@ const ConfDef_t confDef[] =
 
 Config_t config;
 
-bool initConfig(char *filename)
+bool initPSGWConfig(char *filename)
 {
     /* parse psslurm config file */
     if (parseConfigFile(filename, &config, false /*trimQuotes*/) < 0) return 0;

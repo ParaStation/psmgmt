@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2012-2016 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2012-2020 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -28,6 +28,6 @@ extern const ConfDef_t confDef[];
  *
  * @return Upon success true is returned or false in case of an error
  */
-bool initConfig(char *cfgName);
+bool initPSAccConfig(char *cfgName);
 
 #endif  /* __PS_ACCOUNT_CONFIG */

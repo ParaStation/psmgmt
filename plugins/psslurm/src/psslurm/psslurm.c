@@ -645,7 +645,7 @@ int initialize(void)
     }
 
     /* init the configuration */
-    int confRes = initConfig(PSSLURM_CONFIG_FILE, &configHash);
+    int confRes = initPSSlurmConfig(PSSLURM_CONFIG_FILE, &configHash);
     if (confRes == CONFIG_ERROR) {
 	mlog("%s: init of the configuration failed\n", __func__);
 	return 1;

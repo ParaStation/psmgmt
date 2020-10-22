@@ -29,6 +29,6 @@ extern const ConfDef_t confDef[];
  *
  * @return No return value
  */
-void initConfig(char *cfgName);
+void initPSResPortConfig(char *cfgName);
 
 #endif  /* __PS_RESPORT_CONFIG */

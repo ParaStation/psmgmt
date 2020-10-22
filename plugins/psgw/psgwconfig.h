@@ -18,6 +18,6 @@ extern Config_t config;
 
 extern const ConfDef_t confDef[];
 
-bool initConfig(char *filename);
+bool initPSGWConfig(char *filename);
 
 #endif

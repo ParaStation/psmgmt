@@ -65,6 +65,12 @@ void registerConfigHashAccumulator(uint32_t *hashAcc)
     configHashAcc = hashAcc;
 }
 
+void initConfig(Config_t *conf)
+{
+    /* init config list */
+    INIT_LIST_HEAD(conf);
+}
+
 int parseConfigFile(char *filename, Config_t *conf, bool trimQuotes)
 {
     FILE *fp;
@@ -73,8 +79,7 @@ int parseConfigFile(char *filename, Config_t *conf, bool trimQuotes)
     ssize_t read;
     int count = 0;
 
-    /* init config list */
-    INIT_LIST_HEAD(conf);
+    initConfig(conf);
 
     if (!(fp = fopen(filename, "r"))) {
 	char *cwd = getcwd(NULL, 0);

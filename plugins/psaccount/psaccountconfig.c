@@ -66,7 +66,7 @@ static bool verifyVisitor(char *key, char *value, const void *info)
     return false;
 }
 
-bool initConfig(char *cfgName)
+bool initPSAccConfig(char *cfgName)
 {
     if (parseConfigFile(cfgName, &config, false /* trimQuotes */) < 0) {
 	mlog("%s: failed to open '%s'\n", __func__, cfgName);

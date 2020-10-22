@@ -102,7 +102,7 @@ int initialize(void)
     /* init the config facility */
     snprintf(configFile, sizeof(configFile), "%s/%s", PLUGINDIR, JAIL_CONFIG);
 
-    initConfig(configFile);
+    initJailConfig(configFile);
 
     /* adapt the debug mask */
     debugMask = getConfValueI(&config, "DEBUG_MASK");

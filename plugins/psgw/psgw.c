@@ -234,7 +234,7 @@ int initialize(void)
     }
 
     /* init the configuration */
-    if (!initConfig(PSGW_CONFIG_FILE)) {
+    if (!initPSGWConfig(PSGW_CONFIG_FILE)) {
 	mlog("%s: init of the configuration failed\n", __func__);
 	return 1;
     }

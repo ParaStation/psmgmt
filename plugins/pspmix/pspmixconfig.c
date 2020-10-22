@@ -41,7 +41,7 @@ static bool verifyVisitor(char *key, char *value, const void *info)
     return false;
 }
 
-void initConfig(char *cfgName)
+void initPSPMIxConfig(char *cfgName)
 {
     if (parseConfigFile(cfgName, &config, false /* trimQuotes */) < 0) {
 	mlog("%s: failed to open '%s'\n", __func__, cfgName);

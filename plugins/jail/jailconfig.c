@@ -47,7 +47,7 @@ static bool verifyVisitor(char *key, char *value, const void *info)
     return false;
 }
 
-void initConfig(char *cfgName)
+void initJailConfig(char *cfgName)
 {
     if (parseConfigFile(cfgName, &config, false /* trimQuotes */) < 0) {
 	jlog(-1, "%s: failed to open '%s'\n", __func__, cfgName);

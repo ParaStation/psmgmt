@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2014-2017 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2014-2020 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -18,6 +18,20 @@
 
 /** Configuration parsed from a file */
 typedef list_t Config_t;
+
+/**
+ * @brief Init configuration
+ *
+ * Initialize the configuration @a conf. @a conf is assumed to be
+ * empty. If @a conf already holds valid configuration, some memory
+ * might get leaked. Therefore, previous configurations shall be
+ * destructed via @ref freeConfig().
+ *
+ * @param conf Configuration ready for further use
+ *
+ * @return No return value
+ */
+void initConfig(Config_t *conf);
 
 /**
  * @brief Fetch configuration from a file
@@ -40,10 +54,10 @@ typedef list_t Config_t;
  *
  * @param trimQuotes Flag to unquote each configuration value before
  * putting it into @a conf
-  *
+ *
  * @return Upon success the number of configuration entries found in
  * the file is returned. Or -1 if an error occurred.
-*/
+ */
 int parseConfigFile(char *filename, Config_t *conf, bool trimQuotes);
 
 /**

@@ -901,7 +901,7 @@ int parseSlurmConfigFiles(uint32_t *hash)
     return 1;
 }
 
-int initConfig(char *filename, uint32_t *hash)
+int initPSSlurmConfig(char *filename, uint32_t *hash)
 {
     /* parse psslurm config file */
     if (parseConfigFile(filename, &Config, false /*trimQuotes*/) < 0) {

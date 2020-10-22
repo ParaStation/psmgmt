@@ -111,7 +111,7 @@ int initialize(void)
 
     /* init the config facility */
     snprintf(configfn, sizeof(configfn), "%s/%s", PLUGINDIR, PSACCOUNT_CONFIG);
-    if (!initConfig(configfn)) return 1;
+    if (!initPSAccConfig(configfn)) return 1;
 
     /* init logging facility */
     debugMask = getConfValueI(&config, "DEBUG_MASK");

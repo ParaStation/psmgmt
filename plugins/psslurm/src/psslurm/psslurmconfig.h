@@ -49,7 +49,7 @@ extern const ConfDef_t confDef[];
  *  when running in configless mode. On error in both cases
  *  CONFIG_ERROR will be returned.
  */
-int initConfig(char *filename, uint32_t *hash);
+int initPSSlurmConfig(char *filename, uint32_t *hash);
 
 /**
  * @brief Parse a Slurm plugstack configuration line

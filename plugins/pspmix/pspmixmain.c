@@ -49,7 +49,7 @@ int initialize(void)
     /* init the config facility */
     snprintf(configFile, sizeof(configFile), "%s/%s", PLUGINDIR, PSPMIX_CONFIG);
 
-    initConfig(configFile);
+    initPSPMIxConfig(configFile);
 
     /* adapt the debug mask */
     debugMask = getConfValueI(&config, "DEBUG_MASK");

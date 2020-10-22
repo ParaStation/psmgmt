@@ -574,7 +574,7 @@ int initialize(void)
     /* init the config facility */
     snprintf(configfn, sizeof(configfn), "%s/%s", PLUGINDIR, RESPORT_CONFIG);
 
-    initConfig(configfn);
+    initPSResPortConfig(configfn);
 
     /* init logging facility */
     debugMask = getConfValueI(&config, "DEBUG_MASK");
