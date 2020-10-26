@@ -44,7 +44,7 @@ static bool relocProc(void *item)
     if (!repl) return false;
 
     /* copy proc snapshot struct's content */
-    repl->state = PROC_USED;
+    repl->state = orig->state;
     repl->uid = orig->uid;
     repl->pid = orig->pid;
     repl->ppid = orig->ppid;
@@ -233,6 +233,7 @@ static void doKill(pid_t child, pid_t pgroup, int sig)
 	if (pgroup > 0) kill(-pgroup, sig);
 	kill(child, sig);
     } else {
+	ps->state = PROC_SIGNALED;
 	if (pgroup > 0) pskill(-pgroup, sig, ps->uid);
 	pskill(child, sig, ps->uid);
     }
@@ -247,10 +248,11 @@ int signalChildren(pid_t mypid, pid_t child, pid_t pgrp, int sig)
     if (child == mypid) return 0;
 
     list_for_each(p, &procList) {
-	ProcSnapshot_t *childProc = list_entry(p, ProcSnapshot_t, next);
-	int myPgrp = (pgrp > 0) ? childProc->pgrp : pgrp;
-	if (childProc->ppid == child) {
-	    sendCount += signalChildren(mypid, childProc->pid, myPgrp, sig);
+	ProcSnapshot_t *proc = list_entry(p, ProcSnapshot_t, next);
+	if (proc->state == PROC_SIGNALED) continue;
+	if (proc->ppid == child) {
+	    sendCount += signalChildren(mypid, proc->pid,
+					(pgrp > 0) ? proc->pgrp : pgrp, sig);
 	}
     }
     doKill(child, pgrp, sig);
@@ -272,12 +274,11 @@ int signalSession(pid_t session, int sig)
     updateProcSnapshot();
 
     list_for_each(p, &procList) {
-	ProcSnapshot_t *childProc = list_entry(p, ProcSnapshot_t, next);
-	pid_t child = childProc->pid;
-
-	if (childProc->session == session) {
-	    if (child != mypid && child > 0) {
-		sendCount += signalChildren(mypid, child, childProc->pgrp, sig);
+	ProcSnapshot_t *proc = list_entry(p, ProcSnapshot_t, next);
+	if (proc->state == PROC_SIGNALED) continue;
+	if (proc->session == session) {
+	    if (proc->pid != mypid && proc->pid > 0) {
+		sendCount += signalChildren(mypid, proc->pid, proc->pgrp, sig);
 	    }
 	}
     }
@@ -294,13 +295,12 @@ void findDaemonProcs(uid_t uid, bool kill, bool warn)
     updateProcSnapshot();
 
     list_for_each(p, &procList) {
-	ProcSnapshot_t *childProc = list_entry(p, ProcSnapshot_t, next);
-
-	if (childProc->uid == uid && childProc->ppid == 1) {
+	ProcSnapshot_t *proc = list_entry(p, ProcSnapshot_t, next);
+	if (proc->state == PROC_SIGNALED) continue;
+	if (proc->uid == uid && proc->ppid == 1) {
 	    if (warn) mlog("found %sdaemon process: pid %i uid %i\n",
-			   kill ? "and kill " : "", childProc->pid, uid);
-	    if (kill) signalChildren(mypid, childProc->pid,
-				     childProc->pgrp, SIGKILL);
+			   kill ? "and kill " : "", proc->pid, uid);
+	    if (kill) signalChildren(mypid, proc->pid, proc->pgrp, SIGKILL);
 	}
     }
 }
@@ -598,20 +598,18 @@ static void collectDescendantData(pid_t pid, ProcSnapshot_t *res)
 {
     list_t *p;
     list_for_each(p, &procList) {
-	ProcSnapshot_t *childProc = list_entry(p, ProcSnapshot_t, next);
+	ProcSnapshot_t *proc = list_entry(p, ProcSnapshot_t, next);
 
-	if (childProc->ppid == pid) {
-	    res->mem += childProc->mem;
-	    res->vmem += childProc->vmem;
-	    res->cutime += childProc->cutime;
-	    res->cstime += childProc->cstime;
+	if (proc->ppid == pid) {
+	    res->mem += proc->mem;
+	    res->vmem += proc->vmem;
+	    res->cutime += proc->cutime;
+	    res->cstime += proc->cstime;
 
 	    mdbg(PSACC_LOG_PROC, "%s: pid:%i ppid:%i cutime:%lu "
-		 "cstime:%lu mem:%lu vmem:%lu\n", __func__,
-		 childProc->pid, childProc->ppid,
-		 childProc->cutime, childProc->cstime,
-		 childProc->mem, childProc->vmem);
-	    collectDescendantData(childProc->pid, res);
+		 "cstime:%lu mem:%lu vmem:%lu\n", __func__, proc->pid,
+		 proc->ppid, proc->cutime, proc->cstime, proc->mem, proc->vmem);
+	    collectDescendantData(proc->pid, res);
 	}
     }
 }
