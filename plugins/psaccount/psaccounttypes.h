@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2014-2019 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2014-2020 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -295,28 +295,6 @@ typedef void(psAccountGetPidsByLogger_t)(PStask_ID_t logger, pid_t **pids,
  * @return No return value
  */
 typedef void(psAccountFindDaemonProcs_t)(uid_t uid, bool kill, bool warn);
-
-/**
- * @brief Send signal to PID and all its descendants
- *
- * Send the signal @a sig to the process @a child and all its
- * descendants. If the process to be signaled has the process ID @a
- * mypid no signal will be sent to this process. If @a pgroup is
- * larger than 0, the process group of the signaled processes receives a
- * signal, too.
- *
- * @param mypid Process ID of a process to survive
- *
- * @param child Process ID to be killed including all descendants
- *
- * @param pgroup Kill process group, too, if larger than 0
- *
- * @param sig Signal to send.
- *
- * @return Number of children getting a signal
- */
-typedef int(psAccountSignalChildren_t)(pid_t mypid, pid_t child, pid_t pgroup,
-				       int sig);
 
 /**
  * @brief Send signal to session

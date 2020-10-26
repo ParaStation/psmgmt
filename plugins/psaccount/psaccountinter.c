@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2010-2019 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2010-2020 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -39,13 +39,6 @@ bool psAccountGetDataByLogger(PStask_ID_t logger, AccountDataExt_t *accData)
 bool psAccountGetDataByJob(pid_t jobscript, AccountDataExt_t *accData)
 {
     return getDataByJob(jobscript, accData);
-}
-
-int psAccountSignalChildren(pid_t mypid, pid_t child, pid_t pgroup, int sig)
-{
-    mdbg(PSACC_LOG_SIGNAL, "%s(mypid %d child %d pgroup %d sig %d)\n", __func__,
-	 mypid, child, pgroup, sig);
-    return signalChildren(mypid, child, pgroup, sig);
 }
 
 int psAccountSignalSession(pid_t session, int sig)
