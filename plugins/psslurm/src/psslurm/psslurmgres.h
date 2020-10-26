@@ -34,6 +34,7 @@ typedef struct {
     char *file;                 /**< filename of the device (e.g. /dev/gpu0) */
     char *type;                 /**< GRES type */
     char *cores;                /**< cores to bind to GRES */
+    char *flags;                /**< flags specified for the GRES */
     uint64_t count;             /**< number of GRES resources */
     uint32_t id;                /**< GRES plugin ID */
 } Gres_Conf_t;

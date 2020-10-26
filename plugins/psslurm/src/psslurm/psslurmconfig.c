@@ -302,6 +302,8 @@ static bool parseGresOptions(char *options)
 	    gres->cores = ustrdup(next+6);
 	} else if (!(strncasecmp(next, "Type=", 5))) {
 	    gres->type = ustrdup(next+5);
+	} else if (!(strncasecmp(next, "Flags=", 6))) {
+	    gres->flags = ustrdup(next+6);
 	} else {
 	    flog("unknown gres option '%s'\n", next);
 	    return false;
