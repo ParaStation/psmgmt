@@ -629,7 +629,6 @@ static int getMap(char *envStr, short **map)
 
 cpu_set_t *PSID_mapCPUs(PSCPU_set_t set)
 {
-    short cpu, maxCPU = PSIDnodes_getVirtCPUs(PSC_getMyID());
     static cpu_set_t physSet;
     short *localMap = NULL;
     int localMapSize = 0;
@@ -644,29 +643,29 @@ cpu_set_t *PSID_mapCPUs(PSCPU_set_t set)
     }
 
     CPU_ZERO(&physSet);
-    for (cpu=0; cpu<maxCPU; cpu++) {
-	if (PSCPU_isSet(set, cpu)) {
-	    short physCPU = -1;
+    short maxHWThrd = PSIDnodes_getVirtCPUs(PSC_getMyID());
+    for (short thrd = 0; thrd < maxHWThrd; thrd++) {
+	if (PSCPU_isSet(set, thrd)) {
+	    short physThrd = -1;
 	    if (localMapSize) {
-		if (cpu < localMapSize) physCPU = localMap[cpu];
+		if (thrd < localMapSize) physThrd = localMap[thrd];
 	    } else {
-		physCPU = PSIDnodes_mapCPU(PSC_getMyID(), cpu);
+		physThrd = PSIDnodes_mapCPU(PSC_getMyID(), thrd);
 	    }
-	    if (physCPU<0 || physCPU >= maxCPU) {
+	    if (physThrd < 0 || physThrd >= maxHWThrd) {
 		fprintf(stderr,
 			"Mapping CPU %d->%d out of range. No pinning\n",
-			cpu, physCPU);
+			thrd, physThrd);
 		continue;
 	    }
-	    CPU_SET(physCPU, &physSet);
+	    CPU_SET(physThrd, &physSet);
 	}
     }
 
     {
 	char txt[PSCPU_MAX+2] = { '\0' };
-	int i;
-	for (i=maxCPU-1; i>=0; i--) {
-	    if (CPU_ISSET(i, &physSet))
+	for (short thrd = maxHWThrd - 1; thrd >= 0; thrd--) {
+	    if (CPU_ISSET(thrd, &physSet))
 		snprintf(txt+strlen(txt), sizeof(txt)-strlen(txt), "1");
 	    else
 		snprintf(txt+strlen(txt), sizeof(txt)-strlen(txt), "0");
@@ -787,12 +786,12 @@ static void doClamps(PStask_t *task)
 {
     setenv("PSID_CPU_PINNING", PSCPU_print(task->CPUset), 1);
 
-    int16_t physCPUs = PSIDnodes_getVirtCPUs(PSC_getMyID());
+    int16_t lastBit = PSIDnodes_getVirtCPUs(PSC_getMyID());
 
-    if (!PSCPU_any(task->CPUset, physCPUs)) {
+    if (!PSCPU_any(task->CPUset, lastBit)) {
 	fprintf(stderr, "CPU slots not set. Old executable? "
 		"You might want to relink your program.\n");
-    } else if (PSCPU_all(task->CPUset, physCPUs)) {
+    } else if (PSCPU_all(task->CPUset, lastBit)) {
 	/* No mapping */
     } else if (PSIDnodes_pinProcs(PSC_getMyID())
 	       || PSIDnodes_bindMem(PSC_getMyID())) {

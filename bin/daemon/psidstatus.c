@@ -677,7 +677,7 @@ bool declareNodeDead(PSnodes_ID_t id, int sendDeadnode, bool silent)
 /* Prototype forward declaration */
 static int send_ACTIVENODES(PSnodes_ID_t dest);
 
-bool declareNodeAlive(PSnodes_ID_t id, int physCPUs, int virtCPUs)
+bool declareNodeAlive(PSnodes_ID_t id, int numCores, int virtCPUs)
 {
     bool wasUp = PSIDnodes_isUp(id);
 
@@ -690,7 +690,7 @@ bool declareNodeAlive(PSnodes_ID_t id, int physCPUs, int virtCPUs)
 
     if (!wasUp) totNodes++;
     PSIDnodes_bringUp(id);
-    PSIDnodes_setNumCores(id, physCPUs);
+    PSIDnodes_setNumCores(id, numCores);
     PSIDnodes_setVirtCPUs(id, virtCPUs);
 
     if (!wasUp) PSIDhook_call(PSIDHOOK_NODE_UP, &id);
@@ -867,7 +867,7 @@ static void msg_DAEMONESTABLISHED(DDBufferMsg_t *msg)
 
     PSID_log(PSID_LOG_STATUS, "%s(%d)\n", __func__, id);
 
-    PSP_getMsgBuf(msg, &used, __func__, "physCPUs", &pCPUs, sizeof(pCPUs));
+    PSP_getMsgBuf(msg, &used, __func__, "numCores", &pCPUs, sizeof(pCPUs));
     PSP_getMsgBuf(msg, &used, __func__, "virtCPUs", &vCPUs, sizeof(vCPUs));
 
     /* id is out of range -> nothing left to do */

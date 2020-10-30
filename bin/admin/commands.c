@@ -187,21 +187,21 @@ static inline bool getMem(void)
     return getFullList(&memList, PSP_INFO_LIST_MEMORY, 2 * sizeof(uint64_t));
 }
 
-/** List used for storing of physical CPU informations. */
-static sizedList_t pcpuList = { .actSize = 0, .list = NULL };
-/** List used for storing of virtual CPU informations. */
-static sizedList_t vcpuList = { .actSize = 0, .list = NULL };
+/** List used for storing of physical cores informations. */
+static sizedList_t coreList = { .actSize = 0, .list = NULL };
+/** List used for storing of hardware thread informations. */
+static sizedList_t thrdList = { .actSize = 0, .list = NULL };
 
-/** Simple wrapper for retrieval of physical CPU numbers */
-static inline bool getPhysCPUs(void)
+/** Simple wrapper for retrieval of physical core numbers */
+static inline bool getNumCores(void)
 {
-    return getFullList(&pcpuList, PSP_INFO_LIST_PHYSCPUS, sizeof(uint16_t));
+    return getFullList(&coreList, PSP_INFO_LIST_PHYSCPUS, sizeof(uint16_t));
 }
 
-/** Simple wrapper for retrieval of virtual CPU numbers */
-static inline bool getVirtCPUs(void)
+/** Simple wrapper for retrieval of hardware thread numbers */
+static inline bool getNumThrds(void)
 {
-    return getFullList(&vcpuList, PSP_INFO_LIST_VIRTCPUS, sizeof(uint16_t));
+    return getFullList(&thrdList, PSP_INFO_LIST_VIRTCPUS, sizeof(uint16_t));
 }
 
 
@@ -844,15 +844,14 @@ void PSIADM_MemStat(bool *nl)
 void PSIADM_HWStat(bool *nl)
 {
     uint32_t *hwStatus;
-    uint16_t *physCPUs, *virtCPUs;
 
     if (! getHostStatus()) return;
     if (! getHWStat()) return;
     hwStatus = (uint32_t *)hwList.list;
-    if (! getPhysCPUs()) return;
-    physCPUs = (uint16_t *)pcpuList.list;
-    if (! getVirtCPUs()) return;
-    virtCPUs = (uint16_t *)vcpuList.list;
+    if (! getNumCores()) return;
+    uint16_t *numCores = (uint16_t *)coreList.list;
+    if (! getNumThrds()) return;
+    uint16_t *numThrds = (uint16_t *)thrdList.list;
 
     printf("Node\t CPUs\t Available Hardware\n");
     for (PSnodes_ID_t node = 0; node < PSC_getNrOfNodes(); node++) {
@@ -860,7 +859,7 @@ void PSIADM_HWStat(bool *nl)
 
 	printf("%s\t", nodeString(node));
 	if (hostStatus.list[node]) {
-	    printf("%2d/%2d\t %s\n", virtCPUs[node], physCPUs[node],
+	    printf("%2d/%2d\t %s\n", numThrds[node], numCores[node],
 		   PSI_printHWType(hwStatus[node]));
 	} else {
 	    printf("down\n");
