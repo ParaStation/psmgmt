@@ -569,7 +569,7 @@ bool declareNodeDead(PSnodes_ID_t id, int sendDeadnode, bool silent)
 
     totNodes--;
     PSIDnodes_bringDown(id);
-    PSIDnodes_setPhysCPUs(id, 0);
+    PSIDnodes_setNumCores(id, 0);
     PSIDnodes_setVirtCPUs(id, 0);
 
     if (PSID_config->useMCast) declareNodeDeadMCast(id);
@@ -690,7 +690,7 @@ bool declareNodeAlive(PSnodes_ID_t id, int physCPUs, int virtCPUs)
 
     if (!wasUp) totNodes++;
     PSIDnodes_bringUp(id);
-    PSIDnodes_setPhysCPUs(id, physCPUs);
+    PSIDnodes_setNumCores(id, physCPUs);
     PSIDnodes_setVirtCPUs(id, virtCPUs);
 
     if (!wasUp) PSIDhook_call(PSIDHOOK_NODE_UP, &id);
@@ -746,7 +746,6 @@ int send_DAEMONCONNECT(PSnodes_ID_t id)
 	    .dest = PSC_getTID(id, 0),
 	    .len = sizeof(msg.header) },
 	.buf = {'\0'} };
-    int32_t tmp;
 
     PSID_log(PSID_LOG_STATUS, "%s(%d)\n", __func__, id);
 
@@ -755,8 +754,8 @@ int send_DAEMONCONNECT(PSnodes_ID_t id)
 	return -1;
     }
 
-    tmp = PSIDnodes_getPhysCPUs(PSC_getMyID());
-    PSP_putMsgBuf(&msg, __func__, "physCPUs", &tmp, sizeof(tmp));
+    int32_t tmp = PSIDnodes_getNumCores(PSC_getMyID());
+    PSP_putMsgBuf(&msg, __func__, "numCores", &tmp, sizeof(tmp));
 
     tmp = PSIDnodes_getVirtCPUs(PSC_getMyID());
     PSP_putMsgBuf(&msg, __func__, "virtCPUs", &tmp, sizeof(tmp));
@@ -783,12 +782,12 @@ int send_DAEMONCONNECT(PSnodes_ID_t id)
 static void msg_DAEMONCONNECT(DDBufferMsg_t *msg)
 {
     PSnodes_ID_t id = PSC_getID(msg->header.sender);
-    int32_t pCPUs, vCPUs, tmp;
+    int32_t pCPUs, vCPUs;
     size_t used = 0;
 
     PSID_log(PSID_LOG_STATUS, "%s(%d)\n", __func__, id);
 
-    PSP_getMsgBuf(msg, &used, __func__, "physCPUs", &pCPUs, sizeof(pCPUs));
+    PSP_getMsgBuf(msg, &used, __func__, "numCores", &pCPUs, sizeof(pCPUs));
     PSP_getMsgBuf(msg, &used, __func__, "virtCPUs", &vCPUs, sizeof(vCPUs));
 
     /* id is out of range -> nothing left to do */
@@ -801,8 +800,8 @@ static void msg_DAEMONCONNECT(DDBufferMsg_t *msg)
 	.dest = PSC_getTID(id, 0),
 	.len = sizeof(msg->header) };
 
-    tmp = PSIDnodes_getPhysCPUs(PSC_getMyID());
-    PSP_putMsgBuf(msg, __func__, "physCPUs", &tmp, sizeof(tmp));
+    int32_t tmp = PSIDnodes_getNumCores(PSC_getMyID());
+    PSP_putMsgBuf(msg, __func__, "numCores", &tmp, sizeof(tmp));
 
     tmp = PSIDnodes_getVirtCPUs(PSC_getMyID());
     PSP_putMsgBuf(msg, __func__, "virtCPUs", &tmp, sizeof(tmp));

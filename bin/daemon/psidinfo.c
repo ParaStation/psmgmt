@@ -295,7 +295,7 @@ static void msg_INFOREQUEST(DDTypedBufferMsg_t *inmsg)
 		    size = sizeof(uint16_t);
 		    break;
 		case PSP_INFO_LIST_PHYSCPUS:
-		    ((uint16_t *)msg.buf)[idx] = PSIDnodes_getPhysCPUs(node);
+		    ((uint16_t *)msg.buf)[idx] = PSIDnodes_getNumCores(node);
 		    size = sizeof(uint16_t);
 		    break;
 		case PSP_INFO_LIST_HWSTATUS:

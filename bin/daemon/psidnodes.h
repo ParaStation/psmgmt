@@ -311,30 +311,31 @@ int PSIDnodes_setExtraIP(PSnodes_ID_t id, in_addr_t addr);
 in_addr_t PSIDnodes_getExtraIP(PSnodes_ID_t id);
 
 /**
- * @brief Set the number of physical CPUs of a node.
+ * @brief Set the number of physical cores of a node
  *
- * Set the number of physical CPUs of the node with ParaStation ID @a
- * id to @a numCPU.
+ * Set the number of physical processor cores of the node with
+ * ParaStation ID @a id to @a numCores.
  *
- * @param id ParaStation ID of the node to be modified.
+ * @param id ParaStation ID of the node to be modified
  *
- * @param numCPU The number of physical CPUs to be set to this node.
+ * @param numCores Number of physical processor cores to be set to this node
  *
  * @return On success, 0 is returned. Or -1 if an error occurred.
  */
-int PSIDnodes_setPhysCPUs(PSnodes_ID_t id, short numCPU);
+int PSIDnodes_setNumCores(PSnodes_ID_t id, short numCores);
 
 /**
- * @brief Get the number of physical CPUs of a node.
+ * @brief Get the number of physical cores of a node
  *
- * Get the number of physical CPUs of the node with ParaStation ID @a id.
+ * Get the number of physical processor cores of the node with
+ * ParaStation ID @a id.
  *
- * @param id ParaStation ID of the node to look up.
+ * @param id ParaStation ID of the node to look up
  *
- * @return If the node was found, the number of physical CPUs is
- * returned. Or -1 if an error occurred.
+ * @return If the node was found, the number of physical processor
+ * cores is returned. Or -1 if an error occurred.
  */
-short PSIDnodes_getPhysCPUs(PSnodes_ID_t id);
+short PSIDnodes_getNumCores(PSnodes_ID_t id);
 
 /**
  * @brief Set the number of virtual CPUs of a node.

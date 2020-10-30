@@ -44,7 +44,7 @@ typedef struct {
     in_addr_t addr;        /**< IP address of that node */
     int protoVer;          /**< Node's PSprotocol version */
     int daemonProtoVer;    /**< Node's PSDaemonprotocol version */
-    short physCPU;         /**< Number of physical CPUs in that node */
+    short numCores;        /**< Number of physical processor cores */
     short virtCPU;         /**< Number of virtual CPUs in that node */
     bool isUp;             /**< Actual status of that node */
     unsigned int hwType;   /**< Communication hardware on that node */
@@ -89,7 +89,7 @@ static void nodeInit(node_t *node)
     node->addr = INADDR_ANY;
     node->protoVer = 0;
     node->daemonProtoVer = 0;
-    node->physCPU = 0;
+    node->numCores = 0;
     node->virtCPU = 0;
     node->isUp = false;
     node->hwType = 0;
@@ -630,20 +630,20 @@ in_addr_t PSIDnodes_getExtraIP(PSnodes_ID_t id)
     }
 }
 
-int PSIDnodes_setPhysCPUs(PSnodes_ID_t id, short numCPU)
+int PSIDnodes_setNumCores(PSnodes_ID_t id, short numCores)
 {
     if (validID(id)) {
-	nodes[id].physCPU = numCPU;
+	nodes[id].numCores = numCores;
 	return 0;
     } else {
 	return -1;
     }
 }
 
-short PSIDnodes_getPhysCPUs(PSnodes_ID_t id)
+short PSIDnodes_getNumCores(PSnodes_ID_t id)
 {
     if (validID(id)) {
-	return nodes[id].physCPU;
+	return nodes[id].numCores;
     } else {
 	return -1;
     }
