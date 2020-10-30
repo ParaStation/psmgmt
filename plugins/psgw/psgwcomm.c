@@ -37,7 +37,7 @@ int handlePelogueOE(void *pedata)
     /* forward output to leader */
     PS_SendDB_t data;
 
-    initFragBuffer(&data, PSP_CC_PLUG_PSGW, PSP_PELOGUE_OE);
+    initFragBuffer(&data, PSP_PLUG_PSGW, PSP_PELOGUE_OE);
     setFragDest(&data, PSC_getTID(child->mainPElogue, 0));
 
     /* allocation ID */

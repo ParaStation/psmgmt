@@ -66,7 +66,7 @@ int sendPElogueStart(Job_t *job, PElogueType_t type, int rounds, env_t *env)
 	return -1;
     }
 
-    initFragBuffer(&data, PSP_CC_PLUG_PELOGUE, msgType);
+    initFragBuffer(&data, PSP_PLUG_PELOGUE, msgType);
     for (n=0; n<job->numNodes; n++) {
 	setFragDest(&data, PSC_getTID(job->nodes[n].id, 0));
     }
@@ -194,7 +194,7 @@ static int startPElogueReq(Job_t *job, uint8_t type, uint32_t timeout,
 
     if (job->numNodes > 1) {
 	/* send config to all my sisters nodes */
-	initFragBuffer(&config, PSP_CC_PLUG_PELOGUE, PSP_PLUGIN_CONFIG_ADD);
+	initFragBuffer(&config, PSP_PLUG_PELOGUE, PSP_PLUGIN_CONFIG_ADD);
 	for (n=0; n<job->numNodes; n++) {
 	    if (job->nodes[n].id == myID) continue;
 	    setFragDest(&config, PSC_getTID(job->nodes[n].id, 0));
@@ -467,7 +467,7 @@ void sendPElogueSignal(Job_t *job, int sig, char *reason)
 
     job->signalFlag = sig;
 
-    initFragBuffer(&data, PSP_CC_PLUG_PELOGUE, PSP_PELOGUE_SIGNAL);
+    initFragBuffer(&data, PSP_PLUG_PELOGUE, PSP_PELOGUE_SIGNAL);
     for (n=0; n<job->numNodes; n++) {
 	PElogueState_t status = (job->state == JOB_PROLOGUE) ?
 	    job->nodes[n].prologue : job->nodes[n].epilogue;
@@ -518,7 +518,7 @@ void sendPElogueFinish(PElogueChild_t *child)
     int32_t type = (child->type == PELOGUE_PROLOGUE) ?
 	PSP_PROLOGUE_FINISH : PSP_EPILOGUE_FINISH;
 
-    initFragBuffer(&data, PSP_CC_PLUG_PELOGUE, type);
+    initFragBuffer(&data, PSP_PLUG_PELOGUE, type);
     setFragDest(&data, PSC_getTID(child->mainPElogue, 0));
 
     addStringToMsg(child->plugin, &data);
@@ -784,7 +784,7 @@ static void handleUnknownMsg(DDBufferMsg_t *msg)
     /* original type */
     PSP_getMsgBuf(msg, &used, __func__, "type", &type, sizeof(type));
 
-    if (type == PSP_CC_PLUG_PELOGUE) {
+    if (type == PSP_PLUG_PELOGUE) {
 	/* pelogue message */
 	mlog("%s: delivery of pelogue message type %i to %s failed\n",
 		__func__, type, PSC_printTID(dest));
@@ -800,8 +800,8 @@ static void handleUnknownMsg(DDBufferMsg_t *msg)
 bool initComm(void)
 {
     initSerial(0, sendMsg);
-    PSID_registerMsg(PSP_CC_PLUG_PELOGUE, (handlerFunc_t) handlePElogueMsg);
-    PSID_registerDropper(PSP_CC_PLUG_PELOGUE, (handlerFunc_t) dropPElogueMsg);
+    PSID_registerMsg(PSP_PLUG_PELOGUE, (handlerFunc_t) handlePElogueMsg);
+    PSID_registerDropper(PSP_PLUG_PELOGUE, (handlerFunc_t) dropPElogueMsg);
     oldUnkownHandler = PSID_registerMsg(PSP_CD_UNKNOWN,
 					(handlerFunc_t) handleUnknownMsg);
 
@@ -810,8 +810,8 @@ bool initComm(void)
 
 void finalizeComm(void)
 {
-    PSID_clearMsg(PSP_CC_PLUG_PELOGUE);
-    PSID_clearDropper(PSP_CC_PLUG_PELOGUE);
+    PSID_clearMsg(PSP_PLUG_PELOGUE);
+    PSID_clearDropper(PSP_PLUG_PELOGUE);
     if (oldUnkownHandler) {
 	PSID_registerMsg(PSP_CD_UNKNOWN, (handlerFunc_t) oldUnkownHandler);
     } else {

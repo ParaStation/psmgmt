@@ -14,7 +14,7 @@
 int handlePelogueOE(void *data);
 
 /**
-* @brief Handle a PSP_CC_PLUG_PSSLURM message
+* @brief Handle a PSP_PLUG_PSSLURM message
 *
 * @param msg The message to handle
 */

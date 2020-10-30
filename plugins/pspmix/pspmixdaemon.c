@@ -90,7 +90,7 @@ void setTargetToPmixJobserver(DDTypedBufferMsg_t *msg) {
 }
 
 /*
- * @brief Forward messages of type PSP_CC_PLUG_PSPMIX in the main daemon.
+ * @brief Forward messages of type PSP_PLUG_PSPMIX in the main daemon.
  *
  * This function is registered in the daemon and used for messages comming
  * from the client forwarder and from other deamons and thus from PMIx
@@ -133,7 +133,7 @@ static void forwardPspmixMsg(DDMsg_t *vmsg)
 }
 
 /**
- * @brief Forward messages of type PSP_CC_PLUG_PSPMIX in the main daemon.
+ * @brief Forward messages of type PSP_PLUG_PSPMIX in the main daemon.
  *
  * This function is used to forward messages coming from the local PMIx
  * jobserver in the daemon.
@@ -149,7 +149,7 @@ static int forwardPspmixFwMsg(PSLog_Msg_t *tmpmsg, ForwarderData_t *fw) {
 
     DDMsg_t *vmsg = (DDMsg_t *)tmpmsg; /* HACK */
 
-    if (vmsg->type != PSP_CC_PLUG_PSPMIX) return 0;
+    if (vmsg->type != PSP_PLUG_PSPMIX) return 0;
 
     forwardPspmixMsg(vmsg);
 
@@ -442,7 +442,7 @@ void pspmix_initDaemonModule(void)
     PSIDhook_add(PSIDHOOK_RECV_SPAWNREQ, hookRecvSpawnReq);
     PSIDhook_add(PSIDHOOK_LOCALJOBREMOVED, hookLocalJobRemoved);
     PSIDhook_add(PSIDHOOK_NODE_DOWN, hookNodeDown);
-    PSID_registerMsg(PSP_CC_PLUG_PSPMIX, (handlerFunc_t) forwardPspmixMsg);
+    PSID_registerMsg(PSP_PLUG_PSPMIX, (handlerFunc_t) forwardPspmixMsg);
 }
 
 void pspmix_finalizeDaemonModule(void)
@@ -450,7 +450,7 @@ void pspmix_finalizeDaemonModule(void)
     PSIDhook_del(PSIDHOOK_RECV_SPAWNREQ, hookRecvSpawnReq);
     PSIDhook_del(PSIDHOOK_LOCALJOBREMOVED, hookLocalJobRemoved);
     PSIDhook_del(PSIDHOOK_NODE_DOWN, hookNodeDown);
-    PSID_clearMsg(PSP_CC_PLUG_PSPMIX);
+    PSID_clearMsg(PSP_PLUG_PSPMIX);
 }
 
 /* vim: set ts=8 sw=4 tw=0 sts=4 noet :*/

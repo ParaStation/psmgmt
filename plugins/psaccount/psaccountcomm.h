@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2010-2016 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2010-2020 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -18,7 +18,7 @@
  *
  * Initialize the plugin's communication layer. This will mainly
  * register an alternative handler for accounting messages of type
- * PSP_CD_ACCOUNT and PSP_CC_PLUG_ACCOUNT.
+ * PSP_CD_ACCOUNT and PSP_PLUG_ACCOUNT.
  *
  * @return On success true is returned. Or false in case of an error
  */

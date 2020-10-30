@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2018-2019 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2018-2020 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -168,11 +168,10 @@ typedef void(psPmixSetFillSpawnTaskFunction_t)(fillerFunc_t spawnFunc);
  */
 typedef void(psPmixResetFillSpawnTaskFunction_t)(void);
 
-/** Sub-types of message type PSP_CC_PLUG_PSPMIX */
+/** Sub-types of message type PSP_PLUG_PSPMIX */
 typedef enum {
     PSPMIX_REGISTER_CLIENT,  /**< Request to register a new client */
-    PSPMIX_CLIENT_PMIX_ENV,  /**< Message containing the environment addition
-			          for a client */
+    PSPMIX_CLIENT_PMIX_ENV,  /**< Client's environment addition */
     PSPMIX_FENCE_IN,         /**< Enter fence request */
     PSPMIX_FENCE_OUT,        /**< Leave fence permission */
     PSPMIX_MODEX_DATA_REQ,   /**< Request direct modex */

@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2010-2019 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2010-2020 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -456,7 +456,7 @@ int sendPElogueStart(Job_t *job, bool prologue)
     }
 
     /* add PElogue data structure */
-    initFragBuffer(&data, PSP_CC_PLUG_PSMOM, type);
+    initFragBuffer(&data, PSP_PLUG_PSMOM, type);
     for (i=0; i<job->nrOfUniqueNodes; i++) {
 	setFragDest(&data, PSC_getTID(job->nodes[i].id, 0));
     }

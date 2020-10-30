@@ -368,7 +368,7 @@ void sendAggData(PStask_ID_t logger, AccountDataExt_t *aggData)
     PS_SendDB_t data;
     PSnodes_ID_t loggerNode = PSC_getID(logger);
 
-    initFragBuffer(&data, PSP_CC_PLUG_ACCOUNT, PSP_ACCOUNT_AGG_DATA_UPDATE);
+    initFragBuffer(&data, PSP_PLUG_ACCOUNT, PSP_ACCOUNT_AGG_DATA_UPDATE);
     setFragDest(&data, PSC_getTID(loggerNode, 0));
 
     /* add logger TaskID */
@@ -518,7 +518,7 @@ static void sendAggDataFinish(PStask_ID_t logger)
 {
     PS_SendDB_t data;
 
-    initFragBuffer(&data, PSP_CC_PLUG_ACCOUNT, PSP_ACCOUNT_AGG_DATA_FINISH);
+    initFragBuffer(&data, PSP_PLUG_ACCOUNT, PSP_ACCOUNT_AGG_DATA_FINISH);
     setFragDest(&data, PSC_getTID(PSC_getID(logger), 0));
 
     /* add logger TaskID */
@@ -569,7 +569,7 @@ int switchAccounting(PStask_ID_t clientTID, bool enable)
 {
     DDTypedBufferMsg_t msg = (DDTypedBufferMsg_t) {
 	.header = (DDMsg_t) {
-	    .type = PSP_CC_PLUG_ACCOUNT,
+	    .type = PSP_PLUG_ACCOUNT,
 	    .sender = PSC_getMyTID(),
 	    .dest = PSC_getTID(PSC_getMyID(), 0),
 	    .len = sizeof(msg.header) + sizeof(msg.type)},
@@ -594,7 +594,7 @@ bool initAccComm(void)
     initSerial(0, sendMsg);
 
     origHandler = PSID_registerMsg(PSP_CD_ACCOUNT, (handlerFunc_t) handlePSMsg);
-    PSID_registerMsg(PSP_CC_PLUG_ACCOUNT, (handlerFunc_t) handleInterAccount);
+    PSID_registerMsg(PSP_PLUG_ACCOUNT, (handlerFunc_t) handleInterAccount);
 
     if (!PSIDhook_add(PSIDHOOK_FRWRD_DSOCK, setDaemonSock)) {
 	mlog("register 'PSIDHOOK_FRWRD_DSOCK' failed\n");
@@ -608,7 +608,7 @@ void finalizeAccComm(void)
     PSID_clearMsg(PSP_CD_ACCOUNT);
     if (origHandler) PSID_registerMsg(PSP_CD_ACCOUNT, origHandler);
 
-    PSID_clearMsg(PSP_CC_PLUG_ACCOUNT);
+    PSID_clearMsg(PSP_PLUG_ACCOUNT);
 
     if (!PSIDhook_del(PSIDHOOK_FRWRD_DSOCK, setDaemonSock)) {
 	mlog("unregister 'PSIDHOOK_FRWRD_DSOCK' failed\n");

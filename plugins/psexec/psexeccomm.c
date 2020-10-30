@@ -53,7 +53,7 @@ int sendScriptResult(Script_t *script, int32_t res, char *output)
 	return -1;
     }
 
-    initFragBuffer(&data, PSP_CC_PLUG_PSEXEC, PSP_EXEC_SCRIPT_RES);
+    initFragBuffer(&data, PSP_PLUG_PSEXEC, PSP_EXEC_SCRIPT_RES);
     setFragDest(&data, script->initiator);
 
     /* add uID */
@@ -76,7 +76,7 @@ int sendExecScript(Script_t *script, PSnodes_ID_t dest)
     int ret;
     env_t *env = &script->env;
 
-    initFragBuffer(&data, PSP_CC_PLUG_PSEXEC, PSP_EXEC_SCRIPT);
+    initFragBuffer(&data, PSP_PLUG_PSEXEC, PSP_EXEC_SCRIPT);
     setFragDest(&data, PSC_getTID(dest, 0));
 
     /* add protocol version */
@@ -389,15 +389,15 @@ static void dropPsExecMsg(DDTypedBufferMsg_t *msg)
 bool initComm(void)
 {
     initSerial(0, sendMsg);
-    PSID_registerMsg(PSP_CC_PLUG_PSEXEC, (handlerFunc_t) handlePsExecMsg);
-    PSID_registerDropper(PSP_CC_PLUG_PSEXEC, (handlerFunc_t) dropPsExecMsg);
+    PSID_registerMsg(PSP_PLUG_PSEXEC, (handlerFunc_t) handlePsExecMsg);
+    PSID_registerDropper(PSP_PLUG_PSEXEC, (handlerFunc_t) dropPsExecMsg);
 
     return true;
 }
 
 void finalizeComm(void)
 {
-    PSID_clearMsg(PSP_CC_PLUG_PSEXEC);
-    PSID_clearDropper(PSP_CC_PLUG_PSSLURM);
+    PSID_clearMsg(PSP_PLUG_PSEXEC);
+    PSID_clearDropper(PSP_PLUG_PSSLURM);
     finalizeSerial();
 }

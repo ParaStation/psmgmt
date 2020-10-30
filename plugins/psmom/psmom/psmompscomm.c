@@ -91,7 +91,7 @@ void sendPSmomVersion(Job_t *job)
 {
     PS_SendDB_t msg;
 
-    initFragBuffer(&msg, PSP_CC_PLUG_PSMOM, PSP_PSMOM_VERSION);
+    initFragBuffer(&msg, PSP_PLUG_PSMOM, PSP_PSMOM_VERSION);
     setFragDestFromJob(&msg, job, false);
     if (!getNumFragDest(&msg)) return;
 
@@ -238,7 +238,7 @@ void sendJobUpdate(Job_t *job)
 {
     PS_SendDB_t msg;
 
-    initFragBuffer(&msg, PSP_CC_PLUG_PSMOM, PSP_PSMOM_JOB_UPDATE);
+    initFragBuffer(&msg, PSP_PLUG_PSMOM, PSP_PSMOM_JOB_UPDATE);
     setFragDestFromJob(&msg, job, false);
     if (!getNumFragDest(&msg)) return;
 
@@ -255,7 +255,7 @@ void sendJobInfo(Job_t *job, int start)
 {
     PS_SendDB_t msg;
 
-    initFragBuffer(&msg, PSP_CC_PLUG_PSMOM, PSP_PSMOM_JOB_INFO);
+    initFragBuffer(&msg, PSP_PLUG_PSMOM, PSP_PSMOM_JOB_INFO);
     setFragDestFromJob(&msg, job, false);
     if (!getNumFragDest(&msg)) return;
 
@@ -406,19 +406,19 @@ void initPSComm(void)
     initSerial(0, sendMsg);
 
     /* register inter psmom msg */
-    PSID_registerMsg(PSP_CC_PLUG_PSMOM, (handlerFunc_t) handlePSMsg);
+    PSID_registerMsg(PSP_PLUG_PSMOM, (handlerFunc_t) handlePSMsg);
 
     /* register handler for dropped msgs */
-    PSID_registerDropper(PSP_CC_PLUG_PSMOM, (handlerFunc_t) dropPSMsg);
+    PSID_registerDropper(PSP_PLUG_PSMOM, (handlerFunc_t) dropPSMsg);
 }
 
 void finalizePSComm(void)
 {
     /* unregister psmom msg */
-    PSID_clearMsg(PSP_CC_PLUG_PSMOM);
+    PSID_clearMsg(PSP_PLUG_PSMOM);
 
     /* unregister msg drop handler */
-    PSID_clearDropper(PSP_CC_PLUG_PSMOM);
+    PSID_clearDropper(PSP_PLUG_PSMOM);
 
     finalizeSerial();
 }

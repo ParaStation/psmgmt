@@ -12,12 +12,12 @@
 #define __PSPLUGIN_PROTOCOL
 
 /** Various message types used by plugins */
-#define PSP_CC_PLUG_PSMOM	    0x0200  /**< psmom message */
-#define PSP_CC_PLUG_ACCOUNT	    0x0201  /**< psaccount message */
-#define PSP_CC_PLUG_PELOGUE	    0x0202  /**< pelogue message */
-#define PSP_CC_PLUG_PSSLURM	    0x0203  /**< psslurm message */
-#define PSP_CC_PLUG_PSEXEC	    0x0204  /**< psexec message */
-#define PSP_CC_PLUG_PSPMIX	    0x0205  /**< pspmix message */
-#define PSP_CC_PLUG_PSGW	    0x0206  /**< psgw message */
+#define PSP_PLUG_PSMOM		    0x0200  /**< psmom message */
+#define PSP_PLUG_ACCOUNT	    0x0201  /**< psaccount message */
+#define PSP_PLUG_PELOGUE	    0x0202  /**< pelogue message */
+#define PSP_PLUG_PSSLURM	    0x0203  /**< psslurm message */
+#define PSP_PLUG_PSEXEC		    0x0204  /**< psexec message */
+#define PSP_PLUG_PSPMIX		    0x0205  /**< pspmix message */
+#define PSP_PLUG_PSGW		    0x0206  /**< psgw message */
 
 #endif  /* __PSPLUGIN_PROTOCOL */

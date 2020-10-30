@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2010-2018 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2010-2020 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -82,7 +82,7 @@ void signalPElogue(Job_t *job, char *signal, char *reason)
 {
     DDTypedBufferMsg_t msg = (DDTypedBufferMsg_t) {
 	.header = (DDMsg_t) {
-	    .type = PSP_CC_PLUG_PSMOM,
+	    .type = PSP_PLUG_PSMOM,
 	    .sender = PSC_getMyTID(),
 	    .dest = PSC_getMyTID(),
 	    .len = offsetof(DDTypedBufferMsg_t, buf) },
@@ -672,7 +672,7 @@ static int callbackPElogue(int fd, PSID_scriptCBInfo_t *info)
     PS_SendDB_t msg;
 
     if (data->prologue) {
-	initFragBuffer(&msg, PSP_CC_PLUG_PSMOM, PSP_PSMOM_PROLOGUE_FINISH);
+	initFragBuffer(&msg, PSP_PLUG_PSMOM, PSP_PSMOM_PROLOGUE_FINISH);
 
 	/* add to statistic */
 	if (data->frontend){
@@ -694,7 +694,7 @@ static int callbackPElogue(int fd, PSID_scriptCBInfo_t *info)
 	    removeDir(data->tmpDir, 1);
 	}
     } else {
-	initFragBuffer(&msg, PSP_CC_PLUG_PSMOM, PSP_PSMOM_EPILOGUE_FINISH);
+	initFragBuffer(&msg, PSP_PLUG_PSMOM, PSP_PSMOM_EPILOGUE_FINISH);
 
 	/* delete temp directory in epilogue */
 	if (data->tmpDir) {
@@ -899,7 +899,7 @@ void handlePELogueStart(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *msgData)
     if (prologue) {
 	struct stat statbuf;
 
-	initFragBuffer(&ans, PSP_CC_PLUG_PSMOM, PSP_PSMOM_PROLOGUE_FINISH);
+	initFragBuffer(&ans, PSP_PLUG_PSMOM, PSP_PSMOM_PROLOGUE_FINISH);
 
 	snprintf(ctype, sizeof(ctype), "%s", "prologue");
 	itype = PSMOM_CHILD_PROLOGUE;
@@ -922,7 +922,7 @@ void handlePELogueStart(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *msgData)
 	    }
 	}
     } else {
-	initFragBuffer(&ans, PSP_CC_PLUG_PSMOM, PSP_PSMOM_EPILOGUE_FINISH);
+	initFragBuffer(&ans, PSP_PLUG_PSMOM, PSP_PSMOM_EPILOGUE_FINISH);
 
 	snprintf(ctype, sizeof(ctype), "%s", "epilogue");
 	itype = PSMOM_CHILD_EPILOGUE;

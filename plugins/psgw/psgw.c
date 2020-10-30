@@ -269,8 +269,8 @@ int initialize(void)
 	return false;
     }
 
-    /* register to psgw PSP_CC_PLUG_PSGW message */
-    PSID_registerMsg(PSP_CC_PLUG_PSGW, (handlerFunc_t) handlePSGWmsg);
+    /* register to psgw PSP_PLUG_PSGW message */
+    PSID_registerMsg(PSP_PLUG_PSGW, (handlerFunc_t) handlePSGWmsg);
 
     regPartMsg();
 
@@ -293,7 +293,7 @@ void cleanup(void)
     }
 
     /* unregister psgw msg */
-    PSID_clearMsg(PSP_CC_PLUG_PSGW);
+    PSID_clearMsg(PSP_PLUG_PSGW);
 
     Request_clear();
 

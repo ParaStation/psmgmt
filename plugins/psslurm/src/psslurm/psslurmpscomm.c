@@ -719,7 +719,7 @@ void send_PS_JobLaunch(Job_t *job)
     PS_SendDB_t data;
     PStask_ID_t myID = PSC_getMyID();
 
-    initFragBuffer(&data, PSP_CC_PLUG_PSSLURM, PSP_JOB_LAUNCH);
+    initFragBuffer(&data, PSP_PLUG_PSSLURM, PSP_JOB_LAUNCH);
 
     uint32_t n;
     for (n = 0; n < job->nrOfNodes; n++) {
@@ -749,7 +749,7 @@ void send_PS_AllocState(Alloc_t *alloc)
     PStask_ID_t myID = PSC_getMyID();
     uint32_t i;
 
-    initFragBuffer(&data, PSP_CC_PLUG_PSSLURM, PSP_ALLOC_STATE);
+    initFragBuffer(&data, PSP_PLUG_PSSLURM, PSP_ALLOC_STATE);
     for (i=0; i<alloc->nrOfNodes; i++) {
 	if (alloc->nodes[i] == myID) continue;
 	setFragDest(&data, PSC_getTID(alloc->nodes[i], 0));
@@ -883,7 +883,7 @@ void send_PS_JobExit(uint32_t jobid, uint32_t stepid, uint32_t numDest,
 {
     DDTypedBufferMsg_t msg = {
 	.header = {
-	    .type = PSP_CC_PLUG_PSSLURM,
+	    .type = PSP_PLUG_PSSLURM,
 	    .sender = PSC_getMyTID(),
 	    .len = offsetof(DDTypedBufferMsg_t, buf) },
 	.type = PSP_JOB_EXIT,
@@ -910,7 +910,7 @@ void send_PS_SignalTasks(Step_t *step, uint32_t signal, PStask_group_t group)
 {
     DDTypedBufferMsg_t msg = {
 	.header = {
-	    .type = PSP_CC_PLUG_PSSLURM,
+	    .type = PSP_PLUG_PSSLURM,
 	    .sender = PSC_getMyTID(),
 	    .len = offsetof(DDTypedBufferMsg_t, buf) },
 	.type = PSP_SIGNAL_TASKS,
@@ -955,7 +955,7 @@ void send_PS_EpilogueLaunch(Alloc_t *alloc)
 {
     DDTypedBufferMsg_t msg = {
 	.header = {
-	    .type = PSP_CC_PLUG_PSSLURM,
+	    .type = PSP_PLUG_PSSLURM,
 	    .sender = PSC_getMyTID(),
 	    .len = offsetof(DDTypedBufferMsg_t, buf) },
 	.type = PSP_EPILOGUE_LAUNCH,
@@ -982,7 +982,7 @@ void send_PS_EpilogueStateReq(Alloc_t *alloc)
 {
     DDTypedBufferMsg_t msg = {
 	.header = {
-	    .type = PSP_CC_PLUG_PSSLURM,
+	    .type = PSP_PLUG_PSSLURM,
 	    .sender = PSC_getMyTID(),
 	    .len = offsetof(DDTypedBufferMsg_t, buf) },
 	.type = PSP_EPILOGUE_STATE_REQ,
@@ -1007,7 +1007,7 @@ void send_PS_EpilogueRes(Alloc_t *alloc, int16_t res)
 {
     DDTypedBufferMsg_t msg = {
 	.header = {
-	    .type = PSP_CC_PLUG_PSSLURM,
+	    .type = PSP_PLUG_PSSLURM,
 	    .sender = PSC_getMyTID(),
 	    .dest = PSC_getTID(alloc->nodes[0], 0),
 	    .len = offsetof(DDTypedBufferMsg_t, buf) },
@@ -1085,7 +1085,7 @@ static void send_PS_EpilogueStateRes(PStask_ID_t dest, uint32_t id,
 {
     DDTypedBufferMsg_t msg = {
 	.header = {
-	    .type = PSP_CC_PLUG_PSSLURM,
+	    .type = PSP_PLUG_PSSLURM,
 	    .sender = PSC_getMyTID(),
 	    .dest = dest,
 	    .len = offsetof(DDTypedBufferMsg_t, buf) },
@@ -1513,7 +1513,7 @@ int forwardSlurmMsg(Slurm_Msg_t *sMsg, uint32_t nrOfNodes, PSnodes_ID_t *nodes)
     PS_SendDB_t msg;
 
     /* send the message to other nodes */
-    initFragBuffer(&msg, PSP_CC_PLUG_PSSLURM, PSP_FORWARD_SMSG);
+    initFragBuffer(&msg, PSP_PLUG_PSSLURM, PSP_FORWARD_SMSG);
     uint32_t i;
     for (i=0; i<nrOfNodes; i++) {
 	if (!(setFragDest(&msg, PSC_getTID(nodes[i], 0)))) {
@@ -1554,7 +1554,7 @@ int send_PS_ForwardRes(Slurm_Msg_t *sMsg)
     int ret;
 
     /* add forward information */
-    initFragBuffer(&msg, PSP_CC_PLUG_PSSLURM, PSP_FORWARD_SMSG_RES);
+    initFragBuffer(&msg, PSP_PLUG_PSSLURM, PSP_FORWARD_SMSG_RES);
     setFragDest(&msg, sMsg->source);
 
     /* socket */
@@ -1676,7 +1676,7 @@ static void handlePElogueOE(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
 }
 
 /**
-* @brief Handle a PSP_CC_PLUG_PSSLURM message
+* @brief Handle a PSP_PLUG_PSSLURM message
 *
 * @param msg The message to handle
 */
@@ -1904,7 +1904,7 @@ static void handleDroppedEpilogue(DDTypedBufferMsg_t *msg)
 }
 
 /**
-* @brief Handle a dropped PSP_CC_PLUG_PSSLURM message
+* @brief Handle a dropped PSP_PLUG_PSSLURM message
 *
 * @param msg The message to handle
 */
@@ -2462,7 +2462,7 @@ static void handleUnknownMsg(DDBufferMsg_t *msg)
     /* original type */
     PSP_getMsgBuf(msg, &used, __func__, "type", &type, sizeof(type));
 
-    if (type == PSP_CC_PLUG_PSSLURM) {
+    if (type == PSP_PLUG_PSSLURM) {
 	/* psslurm message */
 	mlog("%s: delivery of psslurm message type %i to %s failed\n",
 	     __func__, type, PSC_printTID(dest));
@@ -2492,7 +2492,7 @@ static void freeHostLT(void)
 void finalizePScomm(bool verbose)
 {
     /* unregister psslurm msg */
-    PSID_clearMsg(PSP_CC_PLUG_PSSLURM);
+    PSID_clearMsg(PSP_PLUG_PSSLURM);
 
     /* unregister different hooks */
     if (!PSIDhook_del(PSIDHOOK_NODE_DOWN, handleNodeDown)) {
@@ -2558,7 +2558,7 @@ void finalizePScomm(bool verbose)
     }
 
     /* unregister msg drop handler */
-    PSID_clearDropper(PSP_CC_PLUG_PSSLURM);
+    PSID_clearDropper(PSP_PLUG_PSSLURM);
 
     finalizeSerial();
 
@@ -2780,8 +2780,8 @@ bool initPScomm(void)
 {
     initSerial(0, sendMsg);
 
-    /* register to psslurm PSP_CC_PLUG_PSSLURM message */
-    PSID_registerMsg(PSP_CC_PLUG_PSSLURM, (handlerFunc_t) handlePsslurmMsg);
+    /* register to psslurm PSP_PLUG_PSSLURM message */
+    PSID_registerMsg(PSP_PLUG_PSSLURM, (handlerFunc_t) handlePsslurmMsg);
 
     /* register to PSP_DD_CHILDBORN message */
     oldChildBornHandler = PSID_registerMsg(PSP_DD_CHILDBORN,
@@ -2807,7 +2807,7 @@ bool initPScomm(void)
 					(handlerFunc_t) handleUnknownMsg);
 
     /* register handler for dropped msgs */
-    PSID_registerDropper(PSP_CC_PLUG_PSSLURM, (handlerFunc_t) handleDroppedMsg);
+    PSID_registerDropper(PSP_PLUG_PSSLURM, (handlerFunc_t) handleDroppedMsg);
 
     if (!PSIDhook_add(PSIDHOOK_NODE_DOWN, handleNodeDown)) {
 	mlog("%s: cannot register PSIDHOOK_NODE_DOWN\n", __func__);
@@ -2847,7 +2847,7 @@ int send_PS_PackExit(Step_t *step, int32_t exitStatus)
     if (!step || !step->numPackInfo) return 0;
 
     PS_SendDB_t data;
-    initFragBuffer(&data, PSP_CC_PLUG_PSSLURM, PSP_PACK_EXIT);
+    initFragBuffer(&data, PSP_PLUG_PSSLURM, PSP_PACK_EXIT);
 
     uint32_t i;
     PStask_ID_t myID = PSC_getMyID();
@@ -2912,7 +2912,7 @@ int send_PS_PackInfo(Step_t *step)
     PS_SendDB_t data;
     uint32_t i;
 
-    initFragBuffer(&data, PSP_CC_PLUG_PSSLURM, PSP_PACK_INFO);
+    initFragBuffer(&data, PSP_PLUG_PSSLURM, PSP_PACK_INFO);
     setFragDest(&data, PSC_getTID(step->packNodes[0], 0));
 
     /* pack jobid */
@@ -3004,7 +3004,7 @@ void sendPElogueOE(Alloc_t *alloc, PElogue_OEdata_t *oeData)
 {
     PS_SendDB_t data;
 
-    initFragBuffer(&data, PSP_CC_PLUG_PSSLURM, PSP_PELOGUE_OE);
+    initFragBuffer(&data, PSP_PLUG_PSSLURM, PSP_PELOGUE_OE);
     setFragDest(&data, PSC_getTID(alloc->nodes[0], 0));
 
     /* allocation ID */

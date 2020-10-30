@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2013-2018 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2013-2020 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -78,8 +78,7 @@ void sendPElogueFinish(PElogueChild_t *child);
  * @brief Initialize communication layer
  *
  * Initialize the plugin's communication layer. This will mainly
- * register handler and dropper for messages of type
- * PSP_CC_PLUG_PELOGUE.
+ * register handler and dropper for messages of type PSP_PLUG_PELOGUE.
  *
  * @return On success true is returned. Or false in case of an error
  */

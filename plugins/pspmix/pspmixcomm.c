@@ -196,7 +196,7 @@ static void handleModexDataResponse(DDTypedBufferMsg_t *msg,
 }
 
 /**
-* @brief Handle a PSP_CC_PLUG_PSPMIX message
+* @brief Handle a PSP_PLUG_PSPMIX message
 *
 * @param msg The message to handle
 */
@@ -237,7 +237,7 @@ static void handlePspmixMsg(DDTypedBufferMsg_t *msg)
 /**
  * @brief Handle incomming messages
  *
- * Only messages of type PSP_CC_PLUG_PSPMIX should come in here.
+ * Only messages of type PSP_PLUG_PSPMIX should come in here.
  *
  * @param msg Message to handle
  *
@@ -250,7 +250,7 @@ static int pspmix_comm_handleMsg(DDMsg_t *msg)
     mdbg(PSPMIX_LOG_CALL, "%s() called\n", __func__);
 
     switch(msg->type) {
-	case PSP_CC_PLUG_PSPMIX:
+	case PSP_PLUG_PSPMIX:
 	    handlePspmixMsg((DDTypedBufferMsg_t *)msg);
 	    break;
 	default:
@@ -344,7 +344,7 @@ bool pspmix_comm_sendClientPMIxEnvironment(PStask_ID_t targetTID,
 
     mdbg(PSPMIX_LOG_CALL, "%s() called\n", __func__);
 
-    initFragBuffer(&msg, PSP_CC_PLUG_PSPMIX, PSPMIX_CLIENT_PMIX_ENV);
+    initFragBuffer(&msg, PSP_PLUG_PSPMIX, PSPMIX_CLIENT_PMIX_ENV);
 
     setFragDest(&msg, targetTID);
 
@@ -391,7 +391,7 @@ bool pspmix_comm_sendFenceIn(PSnodes_ID_t target, PStask_ID_t loggertid,
 
     PS_SendDB_t msg;
 
-    initFragBuffer(&msg, PSP_CC_PLUG_PSPMIX, PSPMIX_FENCE_IN);
+    initFragBuffer(&msg, PSP_PLUG_PSPMIX, PSPMIX_FENCE_IN);
 
     PStask_ID_t targetTID = PSC_getTID(target, 0);
 
@@ -439,7 +439,7 @@ bool pspmix_comm_sendFenceOut(PStask_ID_t targetTID, PStask_ID_t loggertid,
 
     PS_SendDB_t msg;
 
-    initFragBuffer(&msg, PSP_CC_PLUG_PSPMIX, PSPMIX_FENCE_OUT);
+    initFragBuffer(&msg, PSP_PLUG_PSPMIX, PSPMIX_FENCE_OUT);
 
     setFragDest(&msg, targetTID);
 
@@ -479,7 +479,7 @@ bool pspmix_comm_sendModexDataRequest(PSnodes_ID_t target, pmix_proc_t *proc)
 
     DDTypedBufferMsg_t msg = {
 	.header = {
-	    .type = PSP_CC_PLUG_PSPMIX,
+	    .type = PSP_PLUG_PSPMIX,
 	    .sender = myTID,
 	    .dest = targetTID,
 	    .len = offsetof(DDTypedBufferMsg_t, buf) },
@@ -531,7 +531,7 @@ bool pspmix_comm_sendModexDataResponse(PStask_ID_t targetTID, bool status,
 	    " (status %d nspace %s ndata %zu\n", __func__, proc->rank, status,
 	    proc->nspace, ndata);
 
-    initFragBuffer(&msg, PSP_CC_PLUG_PSPMIX, PSPMIX_MODEX_DATA_RES);
+    initFragBuffer(&msg, PSP_PLUG_PSPMIX, PSPMIX_MODEX_DATA_RES);
 
     setFragDest(&msg, targetTID);
 
@@ -567,8 +567,8 @@ bool pspmix_comm_init()
 {
     mdbg(PSPMIX_LOG_CALL, "%s() called\n", __func__);
 
-    /* unregister PSP_CC_PLUG_PSPMIX messages XXX why does this harm??? */
-    PSID_clearMsg(PSP_CC_PLUG_PSPMIX);
+    /* unregister PSP_PLUG_PSPMIX messages XXX why does this harm??? */
+    PSID_clearMsg(PSP_PLUG_PSPMIX);
 
     /* initialize fragmentation layer */
     if (!initSerial(0, (Send_Msg_Func_t *)sendMsgToDaemon)) {

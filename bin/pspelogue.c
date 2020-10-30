@@ -423,7 +423,7 @@ void sendPElogueReq(char *jobid, char *sUid, char *sGid, uint32_t nrOfNodes,
     PS_SendDB_t msg;
     PStask_ID_t dest = PSC_getTID(nodes[0], 0);
 
-    initFragBuffer(&msg, PSP_CC_PLUG_PELOGUE, PSP_PELOGUE_REQ);
+    initFragBuffer(&msg, PSP_PLUG_PELOGUE, PSP_PELOGUE_REQ);
     setFragDest(&msg, dest);
 
     /* protocol version */
