@@ -166,32 +166,32 @@ static inline bool PSCPU_isSet(PSCPU_set_t set, uint16_t cpu)
  * @brief Test for CPU
  *
  * Test, if any CPU is defined within the CPU-set @a set. Only the
- * first @a physCPUs CPUs are actually investigated, all further ones
+ * first @a numBits CPUs are actually investigated, all further ones
  * will be ignored.
  *
  * @param set The CPU-set to investigate
  *
- * @param physCPUs The number of CPUs actualy to investigate
+ * @param numBits Number of bits to actualy investigate
  *
  * @return If any CPU is set, true is returned. Otherwise false is returned
  */
-bool PSCPU_any(PSCPU_set_t set, uint16_t physCPUs);
+bool PSCPU_any(PSCPU_set_t set, uint16_t numBits);
 
 /**
  * @brief Test for CPUs
  *
  * Test, if any CPU is *not* defined within the CPU-set @a set.
  *
- * Only the first @a physCPUs CPUs are actually investigated, all
+ * Only the first @a numBits CPUs are actually investigated, all
  * further ones will be ignored.
  *
  * @param set The CPU-set to investigate
  *
- * @param physCPUs The number of CPUs actualy to investigate
+ * @param numBits Number of bits to actualy investigate
  *
  * @return If all CPU are set, true is returned. Otherwise false is returned
  */
-bool PSCPU_all(PSCPU_set_t set, uint16_t physCPUs);
+bool PSCPU_all(PSCPU_set_t set, uint16_t numBits);
 
 /**
  * @brief Get first CPU
@@ -200,17 +200,17 @@ bool PSCPU_all(PSCPU_set_t set, uint16_t physCPUs);
  * mainly used to create messages needed for backward-compatibility.
  *
  * Actually not the whole CPU-set is investigated, but only the first
- * @a physCPUs slots.
+ * @a numBits slots.
  *
  * @param set The CPU-set to investigate
  *
- * @param physCPUs The number of CPUs actualy to investigate
+ * @param numBits Number of bits to actualy investigate
  *
- * @return If a CPU defined within @a set is found, the corresponding
- * number is returned. If no CPU is defined within the first @a
- * physCPUs, -1 is returned.
+ * @return If a bit is set within @a set, the corresponding number is
+ * returned. If no bit is set within the first @a numBits, -1 is
+ * returned.
  */
-int16_t PSCPU_first(PSCPU_set_t set, uint16_t physCPUs);
+int16_t PSCPU_first(PSCPU_set_t set, uint16_t numBits);
 
 /**
  * @brief Get CPUs from CPU-set
@@ -234,7 +234,7 @@ int PSCPU_getCPUs(PSCPU_set_t origSet, PSCPU_set_t newSet, int16_t num);
  * @brief Get CPU-set with unset CPUs
  *
  * Create a CPU-set from all the unset CPUs in @a set and store it in
- * @a free. Only the first @a physCPUs CPUs are actually investigated,
+ * @a free. Only the first @a numBits CPUs are actually investigated,
  * all further ones will be ignored.
  *
  * If @a free is NULL, no manipulation is done but the number of free
@@ -248,8 +248,7 @@ int PSCPU_getCPUs(PSCPU_set_t origSet, PSCPU_set_t newSet, int16_t num);
  *
  * @param set The CPU-set to take the free CPUs from
  *
- * @param physCPUs The number of CPUs in @a set actualy to
- * investigate
+ * @param numBits Number of bits in @a set to actualy investigate
  *
  * @param free The CPU-set to store the results in
  *
@@ -258,7 +257,7 @@ int PSCPU_getCPUs(PSCPU_set_t origSet, PSCPU_set_t newSet, int16_t num);
  *
  * @return The number of CPUs set within @a free.
  */
-int PSCPU_getUnset(PSCPU_set_t set, uint16_t physCPUs,
+int PSCPU_getUnset(PSCPU_set_t set, uint16_t numBits,
 		   PSCPU_set_t free, uint16_t tpp);
 
 

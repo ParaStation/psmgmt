@@ -17,10 +17,10 @@
 /** Number of bits (i.e. CPUs) encoded within @ref PSCPU_mask_t. */
 #define CPUmask_s (int16_t)(8*sizeof(PSCPU_mask_t))
 
-bool PSCPU_any(PSCPU_set_t set, uint16_t physCPUs)
+bool PSCPU_any(PSCPU_set_t set, uint16_t numBits)
 {
     unsigned int i;
-    int16_t pCPUs = (physCPUs > PSCPU_MAX) ? PSCPU_MAX : physCPUs;
+    int16_t pCPUs = (numBits > PSCPU_MAX) ? PSCPU_MAX : numBits;
     for (i = 0; i < PSCPU_MAX/CPUmask_s && pCPUs > 0; i++, pCPUs -= CPUmask_s) {
 	PSCPU_mask_t m = set[i];
 	if (m && (pCPUs >= CPUmask_s || (m << (CPUmask_s - pCPUs)) != 0)) {
@@ -31,10 +31,10 @@ bool PSCPU_any(PSCPU_set_t set, uint16_t physCPUs)
     return false;
 }
 
-bool PSCPU_all(PSCPU_set_t set, uint16_t physCPUs)
+bool PSCPU_all(PSCPU_set_t set, uint16_t numBits)
 {
     unsigned int i;
-    int16_t pCPUs = (physCPUs > PSCPU_MAX) ? PSCPU_MAX : physCPUs;
+    int16_t pCPUs = (numBits > PSCPU_MAX) ? PSCPU_MAX : numBits;
     for (i = 0; i < PSCPU_MAX/CPUmask_s && pCPUs > 0; i++, pCPUs -= CPUmask_s) {
 	PSCPU_mask_t m = ~set[i];
 	if (m && (pCPUs >= CPUmask_s || (m << (CPUmask_s-pCPUs)) != 0)) {
@@ -45,25 +45,25 @@ bool PSCPU_all(PSCPU_set_t set, uint16_t physCPUs)
     return true;
 }
 
-int16_t PSCPU_first(PSCPU_set_t set, uint16_t physCPUs)
+int16_t PSCPU_first(PSCPU_set_t set, uint16_t numBits)
 {
     PSCPU_mask_t m=0;
     unsigned int i;
     int cpu=0;
 
-    if (physCPUs > PSCPU_MAX) physCPUs = PSCPU_MAX;
-    for (i = 0; i < PSCPU_MAX/CPUmask_s && cpu < physCPUs; i++) {
+    if (numBits > PSCPU_MAX) numBits = PSCPU_MAX;
+    for (i = 0; i < PSCPU_MAX/CPUmask_s && cpu < numBits; i++) {
 	m = set[i];
 	if (m) break;
 	cpu += CPUmask_s;
     }
 
-    while (m && !(m & 1) && cpu < physCPUs) {
+    while (m && !(m & 1) && cpu < numBits) {
 	cpu++;
 	m >>= 1;
     }
 
-    if (cpu >= physCPUs) cpu=-1;
+    if (cpu >= numBits) cpu=-1;
 
     return cpu;
 }
@@ -85,23 +85,22 @@ int PSCPU_getCPUs(PSCPU_set_t origSet, PSCPU_set_t newSet, int16_t num)
 }
 
 
-int PSCPU_getUnset(PSCPU_set_t set, uint16_t physCPUs,
+int PSCPU_getUnset(PSCPU_set_t set, uint16_t numBits,
 		   PSCPU_set_t free, uint16_t tpp)
 {
-    int16_t cpu;
     int found=0;
 
     if (free) PSCPU_clrAll(free);
-    /* Shortcut if physCPUs is unreasonably large */
-    if (physCPUs > PSCPU_MAX) physCPUs = PSCPU_MAX;
-    for (cpu = 0; cpu < physCPUs; cpu++) {
+    /* Shortcut if numBits is unreasonably large */
+    if (numBits > PSCPU_MAX) numBits = PSCPU_MAX;
+    for (int16_t cpu = 0; cpu < numBits; cpu++) {
 	if (!PSCPU_isSet(set, cpu)) {
 	    if (free) PSCPU_setCPU(free, cpu);
 	    found++;
 	}
     }
 
-    for (cpu = physCPUs - 1; found%tpp; cpu--) {
+    for (int16_t cpu = numBits - 1; found%tpp; cpu--) {
 	if (free ? PSCPU_isSet(free, cpu) : true) {
 	    found--;
 	    if (free) PSCPU_clrCPU(free, cpu);
