@@ -507,7 +507,7 @@ static void appendToMap(short cpu, CPUmap_t *map)
 	if (map->maxSize) {
 	    map->maxSize *= 2;
 	} else {
-	    map->maxSize = PSIDnodes_getVirtCPUs(PSC_getMyID());
+	    map->maxSize = PSIDnodes_getNumThrds(PSC_getMyID());
 	}
 	map->map = realloc(map->map, map->maxSize * sizeof(*map->map));
 	if (!map->map) PSID_exit(ENOMEM, "%s", __func__);
@@ -545,7 +545,7 @@ static bool appendRange(CPUmap_t *map, char *range)
 
     first = strtol(start, &end, 0);
     if (*end != '\0') return false;
-    if (first < 0 || first >= PSIDnodes_getVirtCPUs(PSC_getMyID())) {
+    if (first < 0 || first >= PSIDnodes_getNumThrds(PSC_getMyID())) {
 	fprintf(stderr, "core %ld out of range\n", first);
 	return false;
     }
@@ -554,7 +554,7 @@ static bool appendRange(CPUmap_t *map, char *range)
 	if (*range == '\0') return false;
 	last = strtol(range, &end, 0);
 	if (*end != '\0') return 0;
-	if (last < 0 || last >= PSIDnodes_getVirtCPUs(PSC_getMyID())) {
+	if (last < 0 || last >= PSIDnodes_getNumThrds(PSC_getMyID())) {
 	    fprintf(stderr, "core %ld out of range\n", last);
 	    return false;
 	}
@@ -643,7 +643,7 @@ cpu_set_t *PSID_mapCPUs(PSCPU_set_t set)
     }
 
     CPU_ZERO(&physSet);
-    short maxHWThrd = PSIDnodes_getVirtCPUs(PSC_getMyID());
+    short maxHWThrd = PSIDnodes_getNumThrds(PSC_getMyID());
     for (short thrd = 0; thrd < maxHWThrd; thrd++) {
 	if (PSCPU_isSet(set, thrd)) {
 	    short physThrd = -1;
@@ -786,7 +786,7 @@ static void doClamps(PStask_t *task)
 {
     setenv("PSID_CPU_PINNING", PSCPU_print(task->CPUset), 1);
 
-    int16_t lastBit = PSIDnodes_getVirtCPUs(PSC_getMyID());
+    int16_t lastBit = PSIDnodes_getNumThrds(PSC_getMyID());
 
     if (!PSCPU_any(task->CPUset, lastBit)) {
 	fprintf(stderr, "CPU slots not set. Old executable? "
@@ -1804,7 +1804,7 @@ static void sendAcctStart(PStask_ID_t sender, PStask_t *task)
     sendMsg((DDMsg_t *)&msg);
 
     for (slot = 0; slot < pSize; slot++) {
-	unsigned short cpus = PSIDnodes_getVirtCPUs(task->partition[slot].node);
+	unsigned short cpus = PSIDnodes_getNumThrds(task->partition[slot].node);
 	if (cpus > maxCPUs) maxCPUs = cpus;
     }
     if (!pSize || !maxCPUs) {
@@ -1998,7 +1998,7 @@ void sendCHILDRESREL(PStask_ID_t logger, PSCPU_set_t set, PStask_ID_t sender)
 	    .len = sizeof(resRelMsg.header)},
 	.buf = { 0 } };
     PSCPU_set_t setBuf;
-    uint16_t nBytes = PSCPU_bytesForCPUs(PSIDnodes_getVirtCPUs(PSC_getMyID()));
+    uint16_t nBytes = PSCPU_bytesForCPUs(PSIDnodes_getNumThrds(PSC_getMyID()));
 
     PSP_putMsgBuf(&resRelMsg, __func__, "nBytes", &nBytes, sizeof(nBytes));
 
@@ -2228,7 +2228,7 @@ static void msg_SPAWNREQ(DDTypedBufferMsg_t *msg)
 	    PSnodes_ID_t destID = PSC_getID(locMsg.header.dest);
 
 	    PSCPU_set_t setBuf;
-	    short numCPUs = PSIDnodes_getVirtCPUs(destID);
+	    short numCPUs = PSIDnodes_getNumThrds(destID);
 	    uint16_t nBytes = PSCPU_bytesForCPUs(numCPUs);
 
 	    PSP_putTypedMsgBuf(&locMsg, __func__, "nBytes", &nBytes,
@@ -2472,7 +2472,7 @@ static bool send_SPAWNLOC(uint32_t num, int32_t rank, PStask_ID_t sender,
     PSID_log(PSID_LOG_SPAWN, "%s: send PSP_DD_SPAWNLOC to node %d\n", __func__,
 	     destID);
 
-    short numCPUs = PSIDnodes_getVirtCPUs(destID);
+    short numCPUs = PSIDnodes_getNumThrds(destID);
     uint16_t nBytes = PSCPU_bytesForCPUs(numCPUs);
 
     PSP_putMsgBuf(&locMsg, __func__, "num", &num, sizeof(num));

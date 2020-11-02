@@ -383,7 +383,7 @@ static bool addHwthreadsInfo(Step_t *step, const void *info)
 	}
 	lastNode = step->slots[i].node;
 
-	for (cpu=0; cpu < PSIDnodes_getVirtCPUs(step->slots[i].node); cpu++) {
+	for (cpu = 0; cpu < PSIDnodes_getNumThrds(step->slots[i].node); cpu++) {
 	    if (PSCPU_isSet(step->slots[i].CPUset, cpu)) {
 		snprintf(line, sizeof(line), "%hu ", cpu);
 		addStrBuf(line, strBuf);

@@ -223,16 +223,16 @@ static void rejectPartRequest(PStask_ID_t dest, PStask_t *task)
 }
 
 static void logSlots(const char* prefix,
-	PSpart_slot_t *slots, uint32_t numSlots)
+		     PSpart_slot_t *slots, uint32_t numSlots)
 {
     if (!(psslurmlogger->mask & (PSSLURM_LOG_PROCESS | PSSLURM_LOG_PART))) {
 	return;
     }
 
-    for(size_t s = 0; s < numSlots; s++) {
-	mlog("%s: slot %zu node %hd cpus %s\n", prefix,
-		s, slots[s].node, PSCPU_print_part(slots[s].CPUset,
-		    PSCPU_bytesForCPUs(PSIDnodes_getVirtCPUs(slots[s].node))));
+    for (size_t s = 0; s < numSlots; s++) {
+	mlog("%s: slot %zu node %hd cpus %s\n", prefix, s, slots[s].node,
+	     PSCPU_print_part(slots[s].CPUset,
+		    PSCPU_bytesForCPUs(PSIDnodes_getNumThrds(slots[s].node))));
     }
 }
 
@@ -241,9 +241,9 @@ static void logHWthreads(const char* prefix,
 {
     if (!(psslurmlogger->mask & PSSLURM_LOG_PART)) return;
 
-    for(size_t t = 0; t < numThreads; t++) {
-	mlog("%s: thread %zu node %hd id %hd timesUsed %hd\n", prefix,
-		t, threads[t].node, threads[t].id, threads[t].timesUsed);
+    for (size_t t = 0; t < numThreads; t++) {
+	mlog("%s: thread %zu node %hd id %hd timesUsed %hd\n", prefix, t,
+	     threads[t].node, threads[t].id, threads[t].timesUsed);
     }
 }
 
@@ -641,7 +641,7 @@ static int handleGetReservation(void *res) {
 	    thisNode = r->slots[s].node;
 	}
 
-	for (ssize_t cpu = 0; cpu < PSIDnodes_getVirtCPUs(thisNode); cpu++) {
+	for (ssize_t cpu = 0; cpu < PSIDnodes_getNumThrds(thisNode); cpu++) {
 	    if (!PSCPU_isSet(r->slots[s].CPUset, cpu)) continue;
 
 	    /* find matching entry in partition threads array */
@@ -2876,7 +2876,7 @@ static void addSlotsToMsg(PSpart_slot_t *slots, uint32_t len, PS_SendDB_t *data)
     uint16_t maxCPUs = 0;
 
     for (size_t s = 0; s < len; s++) {
-	unsigned short cpus = PSIDnodes_getVirtCPUs(slots[s].node);
+	unsigned short cpus = PSIDnodes_getNumThrds(slots[s].node);
 	if (cpus > maxCPUs) maxCPUs = cpus;
     }
     if (!maxCPUs) {

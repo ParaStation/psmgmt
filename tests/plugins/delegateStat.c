@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2017-2019 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2017-2020 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -44,7 +44,7 @@ char * show(char *key)
     size_t bufSize = 0;
     bool resFound = false;
     char l[128];
-    uint16_t nBytes = PSCPU_bytesForCPUs(PSIDnodes_getVirtCPUs(PSC_getMyID()));
+    uint16_t nBytes = PSCPU_bytesForCPUs(PSIDnodes_getNumThrds(PSC_getMyID()));
 
     if (!key || !key[0]) {
 	snprintf(l, sizeof(l), "\nUsage: 'plugin show %s key <tid>'\n", name);

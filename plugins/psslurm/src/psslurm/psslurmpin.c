@@ -1478,7 +1478,7 @@ bool setStepSlots(Step_t *step)
 	coreCount = cred->coresPerSocket[coreArrayIndex]
 		    * cred->socketsPerNode[coreArrayIndex];
 
-	threadsPerCore = PSIDnodes_getVirtCPUs(step->nodes[node]) / coreCount;
+	threadsPerCore = PSIDnodes_getNumThrds(step->nodes[node]) / coreCount;
 	if (threadsPerCore < 1) threadsPerCore = 1;
 
 	lastCpu = -1; /* no cpu assigned yet */

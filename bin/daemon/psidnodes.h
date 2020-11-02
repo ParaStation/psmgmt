@@ -311,7 +311,7 @@ int PSIDnodes_setExtraIP(PSnodes_ID_t id, in_addr_t addr);
 in_addr_t PSIDnodes_getExtraIP(PSnodes_ID_t id);
 
 /**
- * @brief Set the number of physical cores of a node
+ * @brief Set number of physical cores of a node
  *
  * Set the number of physical processor cores of the node with
  * ParaStation ID @a id to @a numCores.
@@ -325,7 +325,7 @@ in_addr_t PSIDnodes_getExtraIP(PSnodes_ID_t id);
 int PSIDnodes_setNumCores(PSnodes_ID_t id, short numCores);
 
 /**
- * @brief Get the number of physical cores of a node
+ * @brief Get node's number of physical cores
  *
  * Get the number of physical processor cores of the node with
  * ParaStation ID @a id.
@@ -338,30 +338,30 @@ int PSIDnodes_setNumCores(PSnodes_ID_t id, short numCores);
 short PSIDnodes_getNumCores(PSnodes_ID_t id);
 
 /**
- * @brief Set the number of virtual CPUs of a node.
+ * @brief Set number of hardware threads of a node
  *
- * Set the number of virtual CPUs of the node with ParaStation ID @a
- * id to @a numCPU.
+ * Set the number of hardware threads of the node with ParaStation ID
+ * @a id to @a numThrds.
  *
- * @param id ParaStation ID of the node to be modified.
+ * @param id ParaStation ID of the node to be modified
  *
- * @param numCPU The number of virtual CPUs to be set to this node.
+ * @param numThrds Number of hardware threads to be set to this node
  *
  * @return On success, 0 is returned. Or -1 if an error occurred.
  */
-int PSIDnodes_setVirtCPUs(PSnodes_ID_t id, short numCPU);
+int PSIDnodes_setNumThrds(PSnodes_ID_t id, short numThrds);
 
 /**
- * @brief Get the number of virtual CPUs of a node.
+ * @brief Get node's number of hardware threads
  *
  * Get the number of virtual CPUs of the node with ParaStation ID @a id.
  *
- * @param id ParaStation ID of the node to look up.
+ * @param id ParaStation ID of the node to look up
  *
- * @return If the node was found, the number of virtual CPUs is
+ * @return If the node was found, the number of hardware threads is
  * returned. Or -1 if an error occurred.
  */
-short PSIDnodes_getVirtCPUs(PSnodes_ID_t id);
+short PSIDnodes_getNumThrds(PSnodes_ID_t id);
 
 /**
  * @brief Set the hardware status of a node.

@@ -570,7 +570,7 @@ bool declareNodeDead(PSnodes_ID_t id, int sendDeadnode, bool silent)
     totNodes--;
     PSIDnodes_bringDown(id);
     PSIDnodes_setNumCores(id, 0);
-    PSIDnodes_setVirtCPUs(id, 0);
+    PSIDnodes_setNumThrds(id, 0);
 
     if (PSID_config->useMCast) declareNodeDeadMCast(id);
 
@@ -677,7 +677,7 @@ bool declareNodeDead(PSnodes_ID_t id, int sendDeadnode, bool silent)
 /* Prototype forward declaration */
 static int send_ACTIVENODES(PSnodes_ID_t dest);
 
-bool declareNodeAlive(PSnodes_ID_t id, int numCores, int virtCPUs)
+bool declareNodeAlive(PSnodes_ID_t id, int numCores, int numThrds)
 {
     bool wasUp = PSIDnodes_isUp(id);
 
@@ -691,7 +691,7 @@ bool declareNodeAlive(PSnodes_ID_t id, int numCores, int virtCPUs)
     if (!wasUp) totNodes++;
     PSIDnodes_bringUp(id);
     PSIDnodes_setNumCores(id, numCores);
-    PSIDnodes_setVirtCPUs(id, virtCPUs);
+    PSIDnodes_setNumThrds(id, numThrds);
 
     if (!wasUp) PSIDhook_call(PSIDHOOK_NODE_UP, &id);
 
@@ -757,8 +757,8 @@ int send_DAEMONCONNECT(PSnodes_ID_t id)
     int32_t tmp = PSIDnodes_getNumCores(PSC_getMyID());
     PSP_putMsgBuf(&msg, __func__, "numCores", &tmp, sizeof(tmp));
 
-    tmp = PSIDnodes_getVirtCPUs(PSC_getMyID());
-    PSP_putMsgBuf(&msg, __func__, "virtCPUs", &tmp, sizeof(tmp));
+    tmp = PSIDnodes_getNumThrds(PSC_getMyID());
+    PSP_putMsgBuf(&msg, __func__, "numThrds", &tmp, sizeof(tmp));
 
     return sendMsg(&msg);
 }
@@ -788,7 +788,7 @@ static void msg_DAEMONCONNECT(DDBufferMsg_t *msg)
     PSID_log(PSID_LOG_STATUS, "%s(%d)\n", __func__, id);
 
     PSP_getMsgBuf(msg, &used, __func__, "numCores", &pCPUs, sizeof(pCPUs));
-    PSP_getMsgBuf(msg, &used, __func__, "virtCPUs", &vCPUs, sizeof(vCPUs));
+    PSP_getMsgBuf(msg, &used, __func__, "numThrds", &vCPUs, sizeof(vCPUs));
 
     /* id is out of range -> nothing left to do */
     if (!declareNodeAlive(id, pCPUs, vCPUs)) return;
@@ -803,8 +803,8 @@ static void msg_DAEMONCONNECT(DDBufferMsg_t *msg)
     int32_t tmp = PSIDnodes_getNumCores(PSC_getMyID());
     PSP_putMsgBuf(msg, __func__, "numCores", &tmp, sizeof(tmp));
 
-    tmp = PSIDnodes_getVirtCPUs(PSC_getMyID());
-    PSP_putMsgBuf(msg, __func__, "virtCPUs", &tmp, sizeof(tmp));
+    tmp = PSIDnodes_getNumThrds(PSC_getMyID());
+    PSP_putMsgBuf(msg, __func__, "numThrds", &tmp, sizeof(tmp));
 
     if (sendMsg(msg) == -1 && errno != EWOULDBLOCK) {
 	PSID_warn(PSID_LOG_STATUS, errno, "%s: sendMsg()", __func__);
@@ -868,7 +868,7 @@ static void msg_DAEMONESTABLISHED(DDBufferMsg_t *msg)
     PSID_log(PSID_LOG_STATUS, "%s(%d)\n", __func__, id);
 
     PSP_getMsgBuf(msg, &used, __func__, "numCores", &pCPUs, sizeof(pCPUs));
-    PSP_getMsgBuf(msg, &used, __func__, "virtCPUs", &vCPUs, sizeof(vCPUs));
+    PSP_getMsgBuf(msg, &used, __func__, "numThrds", &vCPUs, sizeof(vCPUs));
 
     /* id is out of range -> nothing left to do */
     if (!declareNodeAlive(id, pCPUs, vCPUs)) return;

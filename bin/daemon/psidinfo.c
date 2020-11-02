@@ -291,7 +291,7 @@ static void msg_INFOREQUEST(DDTypedBufferMsg_t *inmsg)
 		    size = sizeof(char);
 		    break;
 		case PSP_INFO_LIST_VIRTCPUS:
-		    ((uint16_t *)msg.buf)[idx] = PSIDnodes_getVirtCPUs(node);
+		    ((uint16_t *)msg.buf)[idx] = PSIDnodes_getNumThrds(node);
 		    size = sizeof(uint16_t);
 		    break;
 		case PSP_INFO_LIST_PHYSCPUS:

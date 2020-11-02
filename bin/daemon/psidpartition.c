@@ -278,14 +278,14 @@ static inline void freeCPUs(PSnodes_ID_t node, PSCPU_set_t set)
 
 static inline int getFreeCPUs(PSnodes_ID_t node, PSCPU_set_t free, int tpp)
 {
-    int checkedCPUs = PSIDnodes_getVirtCPUs(node);
+    int numBits = PSIDnodes_getNumThrds(node);
     int procs = PSIDnodes_getProcs(node);
 
-    if (procs != PSNODES_ANYPROC && procs < checkedCPUs) checkedCPUs = procs;
-    PSID_log(PSID_LOG_PART, "%s: node %d checkedCPUs %d procs %d tpp %d\n" ,
-	     __func__, node, checkedCPUs, procs, tpp);
+    if (procs != PSNODES_ANYPROC && procs < numBits) numBits = procs;
+    PSID_log(PSID_LOG_PART, "%s: node %d numBits %d procs %d tpp %d\n" ,
+	     __func__, node, numBits, procs, tpp);
 
-    return PSCPU_getUnset(nodeStat[node].CPUset, checkedCPUs, free, tpp);
+    return PSCPU_getUnset(nodeStat[node].CPUset, numBits, free, tpp);
 }
 
 /**
@@ -835,7 +835,7 @@ static bool nodeOK(PSnodes_ID_t node, PSpart_request_t *req)
 					     (PSIDnodes_guid_t){.u=req->uid}))
 	&& ( !req->gid || PSIDnodes_testGUID(node, PSIDNODES_GROUP,
 					     (PSIDnodes_guid_t){.g=req->gid}))
-	&& (PSIDnodes_getVirtCPUs(node))) {
+	&& (PSIDnodes_getNumThrds(node))) {
 	return true;
     }
 
@@ -899,7 +899,7 @@ static bool nodeFree(PSnodes_ID_t node, PSpart_request_t *req, int threads)
     }
     if (req->options & PART_OPT_OVERBOOK
 	&& !(PSIDnodes_overbook(node)==OVERBOOK_FALSE
-	     && PSIDnodes_getVirtCPUs(node) > threads)
+	     && PSIDnodes_getNumThrds(node) > threads)
 	&& !(PSIDnodes_overbook(node)==OVERBOOK_AUTO)
 	&& !(PSIDnodes_overbook(node)==OVERBOOK_TRUE)) {
 	reason = "overbook";
@@ -989,7 +989,7 @@ static sortlist_t *getCandidateList(PSpart_request_t *request)
 	    return NULL;
 	}
 
-	int HWThreads = PSIDnodes_getVirtCPUs(node);
+	int HWThreads = PSIDnodes_getNumThrds(node);
 	int assgndThreads = getAssignedThreads(node);
 	bool canPin = !!PSIDnodes_pinProcs(node);
 	PSID_NodeStatus_t status = getStatusInfo(node);
@@ -1424,7 +1424,7 @@ static int sendSlotlist(PSpart_slot_t *slots, int num, DDBufferMsg_t *msg)
 {
     int offset = 0;
     int bufOffset = msg->header.len - sizeof(msg->header);
-    unsigned short maxCPUs = 0;
+    unsigned short numBits = 0;
     int slotsChunk, n;
 
     PSID_log(PSID_LOG_PART, "%s(%s)\n", __func__,
@@ -1435,20 +1435,20 @@ static int sendSlotlist(PSpart_slot_t *slots, int num, DDBufferMsg_t *msg)
 	return -1;
     }
 
-    /* Determine maximum number of CPUs */
+    /* Determine maximum number of bits to send */
     for (n = 0; n < num; n++) {
-	unsigned short cpus = PSIDnodes_getVirtCPUs(slots[n].node);
-	if (cpus > maxCPUs) maxCPUs = cpus;
+	unsigned short thrds = PSIDnodes_getNumThrds(slots[n].node);
+	if (thrds > numBits) numBits = thrds;
     }
-    if (!maxCPUs) {
-	PSID_log(-1, "%s: No remote CPUs\n", __func__);
+    if (!numBits) {
+	PSID_log(-1, "%s: No bits to send?\n", __func__);
 	return -1;
     }
-    slotsChunk = 1024/(sizeof(PSnodes_ID_t)+PSCPU_bytesForCPUs(maxCPUs));
+    slotsChunk = 1024/(sizeof(PSnodes_ID_t)+PSCPU_bytesForCPUs(numBits));
 
-    uint16_t nBytes = PSCPU_bytesForCPUs(maxCPUs);
+    uint16_t nBytes = PSCPU_bytesForCPUs(numBits);
     if (!nBytes) {
-	PSID_log(-1, "%s: Too many CPUs (%d)\n", __func__, maxCPUs);
+	PSID_log(-1, "%s: Too many hardware threads (%d)\n", __func__, numBits);
 	return -1;
     }
 
@@ -4268,7 +4268,7 @@ void PSIDpart_cleanupSlots(PStask_t *task)
     for (r = 0; r < task->spawnNodesSize; r++) {
 	PSnodes_ID_t rankNode = task->spawnNodes[r].node;
 	PSCPU_set_t *rankSet = &task->spawnNodes[r].CPUset;
-	uint16_t nBytes = PSCPU_bytesForCPUs(PSIDnodes_getVirtCPUs(rankNode));
+	uint16_t nBytes = PSCPU_bytesForCPUs(PSIDnodes_getNumThrds(rankNode));
 	PSCPU_set_t setBuf;
 
 	if (!PSCPU_any(*rankSet, PSCPU_MAX)) continue;
@@ -4691,7 +4691,7 @@ static bool sendReqSlots(DDTypedBufferMsg_t *msg, PSpart_request_t *req)
 
     /* Determine maximum number of CPUs */
     for (n = 0; n < num; n++) {
-	unsigned short cpus = PSIDnodes_getVirtCPUs(req->slots[n].node);
+	unsigned short cpus = PSIDnodes_getNumThrds(req->slots[n].node);
 	if (cpus > maxCPUs) maxCPUs = cpus;
     }
     if (!maxCPUs) {

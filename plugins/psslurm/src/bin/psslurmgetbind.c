@@ -599,7 +599,7 @@ Job_t *findJobById(uint32_t jobid) {
     return NULL;
 }
 
-short PSIDnodes_getVirtCPUs(PSnodes_ID_t id) {
+short PSIDnodes_getNumThrds(PSnodes_ID_t id) {
     return 0;
 }
 

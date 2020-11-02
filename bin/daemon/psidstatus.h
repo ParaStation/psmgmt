@@ -362,23 +362,24 @@ bool declareNodeDead(PSnodes_ID_t id, int sendDeadnode, bool silent);
  * Declare the node with ParaStation ID @a id to be alive. Therefore
  * various internal and externel (e.g. within PSnodes or MCast)
  * indicators are set appropriately. Within this process the node is
- * registered to have @a virtCPUs logical CPUs realized by @a numCores
- * physical processor cores. These numbers differ on some platforms
- * due to CPUs implementing multi threading (SMT). An example for the
- * latter case is Intels Hyper-Threading-Technology (HTT).
+ * registered to have @a numThrds hardware threads realized by @a
+ * numCores physical processor cores. These numbers differ on some
+ * platforms due to CPUs implementing multi threading (SMT). An
+ * example for the latter case is Intels Hyper-Threading-Technology
+ * (HTT).
  *
  * @param id The ParaStation ID of the node declared to be alive
  *
  * @param numCores Number of physical processor cores the registered
  * node is claimed to have
  *
- * @param virtCPUs Number of virtual CPUs the registered node is
- * claimed to have.
+ * @param numThrds Number of hardware threads the registered node is
+ * claimed to have
  *
  * @return If successfull, true is returned. Or false if @id is out of
  * range.
  */
-bool declareNodeAlive(PSnodes_ID_t id, int numCores, int virtCPUs);
+bool declareNodeAlive(PSnodes_ID_t id, int numCores, int numThrds);
 
 /**
  * @brief Send a PSP_DD_DAEMONCONNECT message.

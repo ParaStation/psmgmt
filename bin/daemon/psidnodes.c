@@ -39,13 +39,13 @@ struct host_t {
 /** Array (indexed by hashes) to store all known hosts */
 static struct host_t *hosts[256];
 
-/** Structure holding all known info available concerning a special node */
+/** Structure holding all known info available concerning a specific node */
 typedef struct {
     in_addr_t addr;        /**< IP address of that node */
     int protoVer;          /**< Node's PSprotocol version */
     int daemonProtoVer;    /**< Node's PSDaemonprotocol version */
     short numCores;        /**< Number of physical processor cores */
-    short virtCPU;         /**< Number of virtual CPUs in that node */
+    short numThrds;        /**< Number of hardware threads */
     bool isUp;             /**< Actual status of that node */
     unsigned int hwType;   /**< Communication hardware on that node */
     unsigned int hwStatus; /**< Corresponding statuses of the hardware */
@@ -57,7 +57,7 @@ typedef struct {
     char pinProcs;         /**< Flag to mark that node to pin processes */
     char bindMem;          /**< Flag to mark that node to bind memory */
     char bindGPUs;         /**< Flag to mark that node to bind GPUs */
-    short *CPUmap;         /**< Map to match virt. CPU slots to phys. cores */
+    short *CPUmap;         /**< Map virt. procs. slots to hardware threads */
     size_t CPUmapSize;     /**< Current size of @ref CPUmap */
     size_t CPUmapMaxSize;  /**< Allocated size of @ref CPUmap */
     char allowUserMap;     /**< Flag to allow users to influence mapping */
@@ -90,7 +90,7 @@ static void nodeInit(node_t *node)
     node->protoVer = 0;
     node->daemonProtoVer = 0;
     node->numCores = 0;
-    node->virtCPU = 0;
+    node->numThrds = 0;
     node->isUp = false;
     node->hwType = 0;
     node->hwStatus = 0;
@@ -505,7 +505,7 @@ int PSIDnodes_bindGPUs(PSnodes_ID_t id)
 short PSIDnodes_mapCPU(PSnodes_ID_t id, short cpu)
 {
     if (validID(id) && cpu >= 0 && (unsigned)cpu<nodes[id].CPUmapSize
-	&& cpu<PSIDnodes_getVirtCPUs(id)) {
+	&& cpu < PSIDnodes_getNumThrds(id)) {
 	return nodes[id].CPUmap[cpu];
     } else {
 	return -1;
@@ -565,8 +565,8 @@ void send_CPUMap_OPTIONS(PStask_ID_t dest)
 	.opt = {{ .option = 0, .value = 0 }} };
     node_t *myNode = &nodes[PSC_getMyID()];
     short *CPUmap = myNode->CPUmap;
-    int i, mapEntries = (int)myNode->CPUmapSize < myNode->virtCPU ?
-	(int)myNode->CPUmapSize : myNode->virtCPU;
+    int i, mapEntries = (int)myNode->CPUmapSize < myNode->numThrds ?
+	(int)myNode->CPUmapSize : myNode->numThrds;
 
     PSID_log(PSID_LOG_VERB, "%s: %s", __func__, PSC_printTID(dest));
 
@@ -649,20 +649,20 @@ short PSIDnodes_getNumCores(PSnodes_ID_t id)
     }
 }
 
-int PSIDnodes_setVirtCPUs(PSnodes_ID_t id, short numCPU)
+int PSIDnodes_setNumThrds(PSnodes_ID_t id, short numThrds)
 {
     if (validID(id)) {
-	nodes[id].virtCPU = numCPU;
+	nodes[id].numThrds = numThrds;
 	return 0;
     } else {
 	return -1;
     }
 }
 
-short PSIDnodes_getVirtCPUs(PSnodes_ID_t id)
+short PSIDnodes_getNumThrds(PSnodes_ID_t id)
 {
     if (validID(id)) {
-	return nodes[id].virtCPU;
+	return nodes[id].numThrds;
     } else {
 	return -1;
     }
