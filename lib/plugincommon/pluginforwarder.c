@@ -350,11 +350,11 @@ static bool initForwarder(int motherFD, Forwarder_Data_t *fw)
 
     Selector_register(motherFD, handleMthrSock, fw);
 
-    PSID_blockSig(SIGALRM, 1);
+    PSID_blockSig(1, SIGALRM);
 
     sigemptyset(&mask);
     sigaddset(&mask, SIGCHLD);
-    PSID_blockSig(SIGCHLD, 1);
+    PSID_blockSig(1, SIGCHLD);
     signalFD = signalfd(-1, &mask, 0);
     if (signalFD == -1) {
 	pluginwarn(errno, "%s: signalfd()", __func__);
@@ -434,8 +434,8 @@ static void initChild(int controlFD, Forwarder_Data_t *fw)
     PSC_setSigHandler(SIGPIPE, SIG_DFL);
 
     /* unblock blocked signals */
-    PSID_blockSig(SIGCHLD, 0);
-    PSID_blockSig(SIGALRM, 0);
+    PSID_blockSig(0, SIGCHLD);
+    PSID_blockSig(0, SIGALRM);
 }
 
 /**
@@ -454,7 +454,7 @@ static void forwarderLoop(Forwarder_Data_t *fw)
     if (fw->timeoutChild > 0) alarm(fw->timeoutChild);
 
     /* enable signals again */
-    PSID_blockSig(SIGALRM, 0);
+    PSID_blockSig(0, SIGALRM);
 
     while (!sigChild) {
 	if (Swait(-1) < 0  &&  errno != EINTR) {
@@ -473,9 +473,9 @@ static void forwarderLoop(Forwarder_Data_t *fw)
  */
 static void forwarderExit(Forwarder_Data_t *fw)
 {
-    PSID_blockSig(SIGALRM, 1);
-    PSID_blockSig(SIGCHLD, 1);
-    PSID_blockSig(SIGTERM, 1);
+    PSID_blockSig(1, SIGALRM);
+    PSID_blockSig(1, SIGCHLD);
+    PSID_blockSig(1, SIGTERM);
 
     /* reset possible alarms */
     alarm(0);
