@@ -304,9 +304,8 @@ static bool saveFrwrdMsgReply(Slurm_Msg_t *sMsg, Msg_Forward_t *fw,
 void __handleFrwrdMsgReply(Slurm_Msg_t *sMsg, uint32_t error, const char *func,
 			   const int line)
 {
-    if (!sMsg || !sMsg->reply.buf) {
-	mlog("%s: invalid %s from %s at %i\n", __func__,
-		(!sMsg ? "sMsg" : "data"), func, line);
+    if (!sMsg) {
+	mlog("%s: invalid sMsg from %s at %i\n", __func__, func, line);
 	return;
     }
 
