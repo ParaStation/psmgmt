@@ -117,9 +117,7 @@ static void nodeInit(node_t *node)
 
 static void initHash(void)
 {
-    unsigned int i;
-
-    for (i=0; i < sizeof(hosts)/sizeof(*hosts); i++) hosts[i] = NULL;
+    for (unsigned i = 0; i < sizeof(hosts)/sizeof(*hosts); i++) hosts[i] = NULL;
 }
 
 static inline void fixList(list_t *list, list_t *oldHead)
@@ -138,7 +136,6 @@ int PSIDnodes_grow(PSnodes_ID_t num)
 {
     PSnodes_ID_t oldNum = PSIDnodes_getNum();
     node_t *oldNodes = nodes;
-    int i;
 
     if (PSIDnodes_getNum() >= num) return 0; /* don't shrink */
 
@@ -159,7 +156,7 @@ int PSIDnodes_grow(PSnodes_ID_t num)
 
     /* Restore old lists if necessary */
     if (nodes != oldNodes) {
-	for (i=0; i<oldNum; i++) {
+	for (int i = 0; i < oldNum; i++) {
 	    fixList(&nodes[i].uid_list, &oldNodes[i].uid_list);
 	    fixList(&nodes[i].gid_list, &oldNodes[i].gid_list);
 	    fixList(&nodes[i].admuid_list, &oldNodes[i].admuid_list);
@@ -168,7 +165,7 @@ int PSIDnodes_grow(PSnodes_ID_t num)
     }
 
     /* Initialize new nodes */
-    for (i=oldNum; i<numNodes; i++) {
+    for (int i = oldNum; i < numNodes; i++) {
 	nodeInit(&nodes[i]);
     }
 
@@ -250,9 +247,6 @@ int PSIDnodes_register(PSnodes_ID_t id, in_addr_t addr)
 
 PSnodes_ID_t PSIDnodes_lookupHost(in_addr_t addr)
 {
-    unsigned int hostno;
-    struct host_t *host;
-
     if (PSIDnodes_getNum() < 0) return -1;
 
     /* loopback address */
@@ -260,8 +254,8 @@ PSnodes_ID_t PSIDnodes_lookupHost(in_addr_t addr)
 	return PSC_getMyID();
 
     /* other addresses */
-    hostno = ntohl(addr) & 0xff;
-    for (host = hosts[hostno]; host; host = host->next) {
+    unsigned int hostno = ntohl(addr) & 0xff;
+    for (struct host_t *host = hosts[hostno]; host; host = host->next) {
 	if (host->addr == addr) {
 	    return host->id;
 	}
@@ -272,271 +266,218 @@ PSnodes_ID_t PSIDnodes_lookupHost(in_addr_t addr)
 
 in_addr_t PSIDnodes_getAddr(PSnodes_ID_t id)
 {
-    if (validID(id)) {
-	return nodes[id].addr;
-    } else {
-	return INADDR_ANY;
-    }
+    if (!validID(id)) return INADDR_ANY;
+
+    return nodes[id].addr;
 }
 
 int PSIDnodes_bringUp(PSnodes_ID_t id)
 {
-    if (validID(id)) {
-	nodes[id].isUp = true;
-	return 0;
-    } else {
-	return -1;
-    }
+    if (!validID(id)) return -1;
+
+    nodes[id].isUp = true;
+    return 0;
 }
 
 int PSIDnodes_bringDown(PSnodes_ID_t id)
 {
-    if (validID(id)) {
-	nodes[id].isUp = false;
-	return 0;
-    } else {
-	return -1;
-    }
+    if (!validID(id)) return -1;
+
+    nodes[id].isUp = false;
+    return 0;
 }
 
 bool PSIDnodes_isUp(PSnodes_ID_t id)
 {
-    if (validID(id)) {
-	return nodes[id].isUp;
-    } else {
-	return false;
-    }
+    if (!validID(id)) return false;
+
+    return nodes[id].isUp;
 }
 
 /**********************************************************************/
 int PSIDnodes_setProtoV(PSnodes_ID_t id, int version)
 {
-    if (validID(id)) {
-	nodes[id].protoVer = version;
-	return 0;
-    } else {
-	return -1;
-    }
+    if (!validID(id)) return -1;
+
+    nodes[id].protoVer = version;
+    return 0;
 }
 
 int PSIDnodes_getProtoV(PSnodes_ID_t id)
 {
-    if (validID(id)) {
-	return nodes[id].protoVer;
-    } else {
-	return -1;
-    }
+    if (!validID(id)) return -1;
+
+    return nodes[id].protoVer;
 }
 
 int PSIDnodes_setDmnProtoV(PSnodes_ID_t id, int version)
 {
-    if (validID(id)) {
-	nodes[id].daemonProtoVer = version;
-	return 0;
-    } else {
-	return -1;
-    }
+    if (!validID(id)) return -1;
+
+    nodes[id].daemonProtoVer = version;
+    return 0;
 }
 
 int PSIDnodes_getDmnProtoV(PSnodes_ID_t id)
 {
-    if (validID(id)) {
-	return nodes[id].daemonProtoVer;
-    } else {
-	return -1;
-    }
+    if (!validID(id)) return -1;
+
+    return nodes[id].daemonProtoVer;
 }
 
 /**********************************************************************/
 
 int PSIDnodes_setHWType(PSnodes_ID_t id, int hwType)
 {
-    if (validID(id)) {
-	nodes[id].hwType = hwType;
-	return 0;
-    } else {
-	return -1;
-    }
+    if (!validID(id)) return -1;
+
+    nodes[id].hwType = hwType;
+    return 0;
 }
 
 int PSIDnodes_getHWType(PSnodes_ID_t id)
 {
-    if (validID(id)) {
-	return nodes[id].hwType;
-    } else {
-	return -1;
-    }
+    if (!validID(id)) return -1;
+
+    return nodes[id].hwType;
 }
 
 int PSIDnodes_setRunJobs(PSnodes_ID_t id, int runjobs)
 {
-    if (validID(id)) {
-	nodes[id].runJobs = runjobs;
-	return 0;
-    } else {
-	return -1;
-    }
+    if (!validID(id)) return -1;
+
+    nodes[id].runJobs = runjobs;
+    return 0;
 }
 
 
 int PSIDnodes_runJobs(PSnodes_ID_t id)
 {
-    if (validID(id)) {
-	return nodes[id].runJobs;
-    } else {
-	return -1;
-    }
+    if (!validID(id)) return -1;
+
+    return nodes[id].runJobs;
 }
 
 int PSIDnodes_setIsStarter(PSnodes_ID_t id, int starter)
 {
-    if (validID(id)) {
-	nodes[id].isStarter = starter;
-	return 0;
-    } else {
-	return -1;
-    }
+    if (!validID(id)) return -1;
+
+    nodes[id].isStarter = starter;
+    return 0;
 }
 
 int PSIDnodes_isStarter(PSnodes_ID_t id)
 {
-    if (validID(id)) {
-	return nodes[id].isStarter;
-    } else {
-	return -1;
-    }
+    if (!validID(id)) return -1;
+
+    return nodes[id].isStarter;
 }
 
 int PSIDnodes_setOverbook(PSnodes_ID_t id, PSnodes_overbook_t overbook)
 {
-    if (validID(id)) {
-	nodes[id].overbooking = overbook;
-	return 0;
-    } else {
-	return -1;
-    }
+    if (!validID(id)) return -1;
+
+    nodes[id].overbooking = overbook;
+    return 0;
 }
 
 PSnodes_overbook_t PSIDnodes_overbook(PSnodes_ID_t id)
 {
-    if (validID(id)) {
-	return nodes[id].overbooking;
-    } else {
-	return -1;
-    }
+    if (!validID(id)) return -1;
+
+    return nodes[id].overbooking;
 }
 
 int PSIDnodes_setExclusive(PSnodes_ID_t id, int exclusive)
 {
-    if (validID(id)) {
-	nodes[id].exclusive = exclusive;
-	return 0;
-    } else {
-	return -1;
-    }
+    if (!validID(id)) return -1;
+
+    nodes[id].exclusive = exclusive;
+    return 0;
 }
 
 int PSIDnodes_exclusive(PSnodes_ID_t id)
 {
-    if (validID(id)) {
-	return nodes[id].exclusive;
-    } else {
-	return -1;
-    }
+    if (!validID(id)) return -1;
+
+    return nodes[id].exclusive;
 }
 
 int PSIDnodes_setPinProcs(PSnodes_ID_t id, int pinProcs)
 {
-    if (validID(id)) {
-	nodes[id].pinProcs = pinProcs;
-	return 0;
-    } else {
-	return -1;
-    }
+    if (!validID(id)) return -1;
+
+    nodes[id].pinProcs = pinProcs;
+    return 0;
 }
 
 int PSIDnodes_pinProcs(PSnodes_ID_t id)
 {
-    if (validID(id)) {
-	return nodes[id].pinProcs;
-    } else {
-	return -1;
-    }
+    if (!validID(id)) return -1;
+
+    return nodes[id].pinProcs;
 }
 
 int PSIDnodes_setBindMem(PSnodes_ID_t id, int bindMem)
 {
-    if (validID(id)) {
-	nodes[id].bindMem = bindMem;
-	return 0;
-    } else {
-	return -1;
-    }
+    if (!validID(id)) return -1;
+
+    nodes[id].bindMem = bindMem;
+    return 0;
 }
 
 int PSIDnodes_bindMem(PSnodes_ID_t id)
 {
-    if (validID(id)) {
-	return nodes[id].bindMem;
-    } else {
-	return -1;
-    }
+    if (!validID(id)) return -1;
+
+    return nodes[id].bindMem;
 }
 
 int PSIDnodes_setBindGPUs(PSnodes_ID_t id, int bindGPUs)
 {
-    if (validID(id)) {
-	nodes[id].bindGPUs = bindGPUs;
-	return 0;
-    } else {
-	return -1;
-    }
+    if (!validID(id)) return -1;
+
+    nodes[id].bindGPUs = bindGPUs;
+    return 0;
 }
 
 int PSIDnodes_bindGPUs(PSnodes_ID_t id)
 {
-    if (validID(id)) {
-	return nodes[id].bindGPUs;
-    } else {
-	return -1;
-    }
+    if (!validID(id)) return -1;
+
+    return nodes[id].bindGPUs;
 }
 
 short PSIDnodes_mapCPU(PSnodes_ID_t id, short cpu)
 {
-    if (validID(id) && cpu >= 0 && (unsigned)cpu<nodes[id].CPUmapSize
-	&& cpu < PSIDnodes_getNumThrds(id)) {
-	return nodes[id].CPUmap[cpu];
-    } else {
-	return -1;
-    }
+    if (!validID(id) || cpu < 0 || (unsigned)cpu >= nodes[id].CPUmapSize
+	|| cpu >= PSIDnodes_getNumThrds(id)) return -1;
+
+    return nodes[id].CPUmap[cpu];
 }
 
 short PSIDnodes_unmapCPU(PSnodes_ID_t id, short hwthread)
 {
-    if (validID(id)) {
-	for (short i = 0; (unsigned)i < nodes[id].CPUmapSize; i++) {
-	    if (nodes[id].CPUmap[i] == hwthread) return i;
-	}
+    if (!validID(id)) return -1;
+
+    for (unsigned short i = 0; i < nodes[id].CPUmapSize; i++) {
+	if (nodes[id].CPUmap[i] == hwthread) return i;
     }
     return -1;
 }
 
 int PSIDnodes_clearCPUMap(PSnodes_ID_t id)
 {
-    if (validID(id)) {
-	nodes[id].CPUmapSize = 0;
-	return 0;
-    } else {
-	return -1;
-    }
+    if (!validID(id)) return -1;
+
+    nodes[id].CPUmapSize = 0;
+    return 0;
 }
 
 int PSIDnodes_appendCPUMap(PSnodes_ID_t id, short cpu)
 {
-    if (!validID(id)) {
-	return -1;
-    }
+    if (!validID(id)) return -1;
+
     if (nodes[id].CPUmapSize == nodes[id].CPUmapMaxSize) {
 	if (nodes[id].CPUmapMaxSize) {
 	    nodes[id].CPUmapMaxSize *= 2;
@@ -565,12 +506,12 @@ void send_CPUMap_OPTIONS(PStask_ID_t dest)
 	.opt = {{ .option = 0, .value = 0 }} };
     node_t *myNode = &nodes[PSC_getMyID()];
     short *CPUmap = myNode->CPUmap;
-    int i, mapEntries = (int)myNode->CPUmapSize < myNode->numThrds ?
+    int mapEntries = (int)myNode->CPUmapSize < myNode->numThrds ?
 	(int)myNode->CPUmapSize : myNode->numThrds;
 
     PSID_log(PSID_LOG_VERB, "%s: %s", __func__, PSC_printTID(dest));
 
-    for (i=0; i<mapEntries; i++) {
+    for (int i = 0; i < mapEntries; i++) {
 	msg.opt[(int) msg.count].option = PSP_OP_CPUMAP;
 	msg.opt[(int) msg.count].value = CPUmap[i];
 
@@ -593,98 +534,78 @@ void send_CPUMap_OPTIONS(PStask_ID_t dest)
 
 int PSIDnodes_setAllowUserMap(PSnodes_ID_t id, int allowMap)
 {
-    if (validID(id)) {
-	nodes[id].allowUserMap = allowMap;
-	return 0;
-    } else {
-	return -1;
-    }
+    if (!validID(id)) return -1;
+
+    nodes[id].allowUserMap = allowMap;
+    return 0;
 }
 
 int PSIDnodes_allowUserMap(PSnodes_ID_t id)
 {
-    if (validID(id)) {
-	return nodes[id].allowUserMap;
-    } else {
-	return -1;
-    }
+    if (!validID(id)) return -1;
+
+    return nodes[id].allowUserMap;
 }
 
 
 int PSIDnodes_setExtraIP(PSnodes_ID_t id, in_addr_t addr)
 {
-    if (validID(id)) {
-	nodes[id].extraIP = addr;
-	return 0;
-    } else {
-	return -1;
-    }
+    if (!validID(id)) return -1;
+
+    nodes[id].extraIP = addr;
+    return 0;
 }
 
 in_addr_t PSIDnodes_getExtraIP(PSnodes_ID_t id)
 {
-    if (validID(id)) {
-	return nodes[id].extraIP;
-    } else {
-	return -1;
-    }
+    if (!validID(id)) return -1;
+
+    return nodes[id].extraIP;
 }
 
 int PSIDnodes_setNumCores(PSnodes_ID_t id, short numCores)
 {
-    if (validID(id)) {
-	nodes[id].numCores = numCores;
-	return 0;
-    } else {
-	return -1;
-    }
+    if (!validID(id)) return -1;
+
+    nodes[id].numCores = numCores;
+    return 0;
 }
 
 short PSIDnodes_getNumCores(PSnodes_ID_t id)
 {
-    if (validID(id)) {
-	return nodes[id].numCores;
-    } else {
-	return -1;
-    }
+    if (!validID(id)) return -1;
+
+    return nodes[id].numCores;
 }
 
 int PSIDnodes_setNumThrds(PSnodes_ID_t id, short numThrds)
 {
-    if (validID(id)) {
-	nodes[id].numThrds = numThrds;
-	return 0;
-    } else {
-	return -1;
-    }
+    if (!validID(id)) return -1;
+
+    nodes[id].numThrds = numThrds;
+    return 0;
 }
 
 short PSIDnodes_getNumThrds(PSnodes_ID_t id)
 {
-    if (validID(id)) {
-	return nodes[id].numThrds;
-    } else {
-	return -1;
-    }
+    if (!validID(id)) return -1;
+
+    return nodes[id].numThrds;
 }
 
 int PSIDnodes_setHWStatus(PSnodes_ID_t id, int hwStatus)
 {
-    if (validID(id)) {
-	nodes[id].hwStatus = hwStatus;
-	return 0;
-    } else {
-	return -1;
-    }
+    if (!validID(id)) return -1;
+
+    nodes[id].hwStatus = hwStatus;
+    return 0;
 }
 
 int PSIDnodes_getHWStatus(PSnodes_ID_t id)
 {
-    if (validID(id)) {
-	return nodes[id].hwStatus;
-    } else {
-	return -1;
-    }
+    if (!validID(id)) return -1;
+
+    return nodes[id].hwStatus;
 }
 
 /** List type to store group/user entries */
@@ -983,104 +904,82 @@ void send_GUID_OPTIONS(PStask_ID_t dest, PSIDnodes_gu_t what)
 
 int PSIDnodes_setProcs(PSnodes_ID_t id, int procs)
 {
-    if (validID(id)) {
-	nodes[id].maxProcs = procs;
-	return 0;
-    } else {
-	return -1;
-    }
+    if (!validID(id)) return -1;
+
+    nodes[id].maxProcs = procs;
+    return 0;
 }
 
 int PSIDnodes_getProcs(PSnodes_ID_t id)
 {
-    if (validID(id)) {
-	return nodes[id].maxProcs;
-    } else {
-	return -1;
-    }
+    if (!validID(id)) return -1;
+
+    return nodes[id].maxProcs;
 }
 
 int PSIDnodes_setAcctPollI(PSnodes_ID_t id, int interval)
 {
-    if (validID(id)) {
-	nodes[id].acctPollInterval = interval;
-	return 0;
-    } else {
-	return -1;
-    }
+    if (!validID(id)) return -1;
+
+    nodes[id].acctPollInterval = interval;
+    return 0;
 }
 
 int PSIDnodes_acctPollI(PSnodes_ID_t id)
 {
-    if (validID(id)) {
-	return nodes[id].acctPollInterval;
-    } else {
-	return -1;
-    }
+    if (!validID(id)) return -1;
+
+    return nodes[id].acctPollInterval;
 }
 
 int PSIDnodes_setKillDelay(PSnodes_ID_t id, int delay)
 {
-    if (validID(id) && delay >= 0) {
-	nodes[id].killDelay = delay;
-	return 0;
-    } else {
-	return -1;
-    }
+    if (!validID(id) || delay < 0) return -1;
+
+    nodes[id].killDelay = delay;
+    return 0;
 }
 
 int PSIDnodes_killDelay(PSnodes_ID_t id)
 {
-    if (validID(id)) {
-	return nodes[id].killDelay;
-    } else {
-	return -1;
-    }
+    if (!validID(id)) return -1;
+
+    return nodes[id].killDelay;
 }
 
 int PSIDnodes_setSupplGrps(PSnodes_ID_t id, int supplGrps)
 {
-    if (validID(id)) {
-	nodes[id].supplGrps = supplGrps;
-	return 0;
-    } else {
-	return -1;
-    }
+    if (!validID(id)) return -1;
+
+    nodes[id].supplGrps = supplGrps;
+    return 0;
 }
 
 int PSIDnodes_supplGrps(PSnodes_ID_t id)
 {
-    if (validID(id)) {
-	return nodes[id].supplGrps;
-    } else {
-	return -1;
-    }
+    if (!validID(id)) return -1;
+
+    return nodes[id].supplGrps;
 }
 
 int PSIDnodes_setMaxStatTry(PSnodes_ID_t id, int tries)
 {
-    if (validID(id)) {
-	nodes[id].maxStatTry = tries;
-	return 0;
-    } else {
-	return -1;
-    }
+    if (!validID(id)) return -1;
+
+    nodes[id].maxStatTry = tries;
+    return 0;
 }
 
 int PSIDnodes_maxStatTry(PSnodes_ID_t id)
 {
-    if (validID(id)) {
-	return nodes[id].maxStatTry;
-    } else {
-	return -1;
-    }
+    if (!validID(id)) return -1;
+
+    return nodes[id].maxStatTry;
 }
 
 void PSIDnodes_clearMem(void)
 {
-    int h, n;
-
-    for (h=0; h<256; h++) {
+    for (int h = 0; h < 256; h++) {
 	struct host_t *host = hosts[h];
 	while (host) {
 	    struct host_t *next = host->next;
@@ -1089,7 +988,7 @@ void PSIDnodes_clearMem(void)
 	}
     }
 
-    for (n=0; n<PSIDnodes_getNum(); n++) {
+    for (int n = 0; n < PSIDnodes_getNum(); n++) {
 	clear_GUID_list(&nodes[n].uid_list);
 	clear_GUID_list(&nodes[n].gid_list);
 	clear_GUID_list(&nodes[n].admuid_list);
