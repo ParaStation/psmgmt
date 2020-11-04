@@ -213,29 +213,29 @@ ProcSnapshot_t *findProcSnapshot(pid_t pid)
 /**
  * @brief Send the actual kill signal using pskill()
  *
- * @param child PID of child to kill.
+ * @param pid PID of process to kill
  *
- * @param pgroup Pgroup of child to kill.
+ * @param pgroup Pgroup of process to kill
  *
  * @param sig Signal to send.
  *
  * @return No return value.
  */
-static void doKill(pid_t child, pid_t pgroup, int sig)
+static void doKill(pid_t pid, pid_t pgroup, int sig)
 {
-    mdbg(PSACC_LOG_SIGNAL, "%s(child %d pgroup %d sig %d)\n", __func__,
-	 child, pgroup, sig);
+    mdbg(PSACC_LOG_SIGNAL, "%s(pid %d pgroup %d sig %d)\n", __func__,
+	 pid, pgroup, sig);
 
-    ProcSnapshot_t *ps = findProcSnapshot(child);
+    ProcSnapshot_t *ps = findProcSnapshot(pid);
     if (!ps) {
-	mlog("%s: proc snapshot for child %i not found\n", __func__, child);
+	mlog("%s: proc snapshot for PID %i not found\n", __func__, pid);
 	/* fallback to direct kill() */
 	if (pgroup > 0) kill(-pgroup, sig);
-	kill(child, sig);
+	kill(pid, sig);
     } else {
 	ps->state = PROC_SIGNALED;
 	if (pgroup > 0) pskill(-pgroup, sig, ps->uid);
-	pskill(child, sig, ps->uid);
+	pskill(pid, sig, ps->uid);
     }
 }
 
