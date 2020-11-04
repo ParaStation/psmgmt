@@ -1,3 +1,55 @@
+Version psmgmt-5.1.33:
+======================
+------------------------------------------------------------------------
+0f50a050 | Norbert Eicker | Wed, 4 Nov 2020 16:57:09 +0100
+
+Block signals to prevent asynchronous call via sighandler (#2856)
+------------------------------------------------------------------------
+5ad17e70 | Norbert Eicker | Wed, 4 Nov 2020 16:50:30 +0100
+
+Rename parameter for understanding
+------------------------------------------------------------------------
+dcf45870 | Michael Rauh | Wed, 4 Nov 2020 16:52:48 +0100
+
+Hide PSP_CC_ERROR messages from hook handleMthrMsg() in pluginforwarder
+if not requested otherwise
+
+ - the flag hideCCError allows a plugin to handle PSP_CC_ERROR messages
+ - this fixes ticket j3:#1359
+------------------------------------------------------------------------
+0f701fec | Michael Rauh | Tue, 3 Nov 2020 20:52:13 +0100
+
+Bugfix: remove incorrect check in handleFrwrdMsgReply()
+
+ - this led to drained head node of a Slurm forwarding tree if there
+ were unresponsive nodes within the tree
+ - see ticket juwels:#8622
+------------------------------------------------------------------------
+066ce91e | Michael Rauh | Mon, 2 Nov 2020 14:23:26 +0100
+
+Bugfix: fix blocking of SIGUSR introduced in 99d9b252 (j3:#1359)
+------------------------------------------------------------------------
+aae81098 | Norbert Eicker | Mon, 26 Oct 2020 02:04:00 +0100
+
+psaccount: Ensure signals are delivered only once per round
+------------------------------------------------------------------------
+76c25688 | Norbert Eicker | Mon, 26 Oct 2020 01:59:03 +0100
+
+Eliminate obsolete psAccountSignalChildren
+------------------------------------------------------------------------
+ea2224e2 | Norbert Eicker | Thu, 22 Oct 2020 14:36:53 +0200
+
+Streamlining
+------------------------------------------------------------------------
+7f3075e8 | Stephan Krempel | Thu, 22 Oct 2020 14:20:37 +0200
+
+psslurm: Rename informational environment variables
+
+Rename PSSLURM_[JOB|STEP]_GPUS into SLURM_[JOB|STEP]_GPUS
+since they exist as such in vanilla Slurm, too.
+------------------------------------------------------------------------
+
+
 Version psmgmt-5.1.32:
 ======================
 ------------------------------------------------------------------------

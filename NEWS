@@ -5,6 +5,20 @@ Copyright (C) 2010-2020 ParTec Cluster Competence Center GmbH, Munich
 Please send bug reports, questions and suggestions to <support@par-tec.com>
 
 
+Version 5.1.32:
+===============
+Bugfixes:
+ - Remove incorrect check in handleFrwrdMsgReply() (jw:#8622)
+ - Hide PSP_CC_ERROR messages from hook handleMthrMsg() (j3:#1359)
+ - Fix blocking of SIGUSR introduced in 99d9b252 (j3:#1359)
+ - Block signals to prevent asynchronous call via signal handler (#2856)
+Enhancements:
+ - psslurm: Rename PSSLURM_[JOB|STEP]_GPUS to SLURM_[JOB|STEP]_GPUS
+ - psaccount: Ensure signals are delivered only once per round
+Additional changes:
+ - Eliminate obsolete psAccountSignalChildren
+
+
 *************************************************************************
 *************************************************************************
 **                                                                     **
@@ -18,7 +32,7 @@ Version 5.1.32:
 ===============
 Bugfixes:
  - Ensure mother superior cancels a pelogue script even without local child
- - psslurmgetbind: Fix segfault by uncomplete pininfo
+ - psslurmgetbind: Fix segfault by incomplete pininfo
  - Fix distribution *:fcyclic:cyclic issue in (psc#350)
  - psslurm: Set only existing cpus in slots with bind type none
  - Prevent out of bound accesses to PSCPU_set_t (#2855)
@@ -44,7 +58,7 @@ Additional changes:
  - Add hook PSIDHOOK_PELOGUE_GLOBAL
  - Introduce PSIDnodes_unmapCPU()
  - Use __AUTO_CUDA_VISIBLE_DEVICES, etc. to protect user-defined env
- - psslurm: ptimize building reservations significantly
+ - psslurm: optimize building reservations significantly
  - Replace obsolete blockSignal() with PSID_blockSig()
 
 
