@@ -270,6 +270,10 @@ int signalSession(pid_t session, int sig)
     /* don't kill zombies */
     if (session < 1) return 0;
 
+    /* block signals to prevent asynchronous call via sighandler */
+    int blockedTERM = PSID_blockSig(1, SIGTERM);
+    int blockedALRM = PSID_blockSig(1, SIGALRM);
+
     /* we need up2date information */
     updateProcSnapshot();
 
@@ -282,6 +286,9 @@ int signalSession(pid_t session, int sig)
 	    }
 	}
     }
+
+    PSID_blockSig(blockedALRM, SIGALRM);
+    PSID_blockSig(blockedTERM, SIGTERM);
 
     return sendCount;
 }
