@@ -70,6 +70,12 @@ typedef struct {
     int killDelay;         /**< Seconds between relatives' signal and SIGKILL */
     char supplGrps;        /**< Set supplementary groups for new tasks */
     char maxStatTry;       /**< Number of tries to stat() executable to spawn */
+    short numNUMADoms;     /**< Number of NUMA domains */
+    PSCPU_set_t *CPUset;   /**< Distribution of CPUs over NUMA domains */
+    short numGPUs;         /**< Number of GPUs */
+    PSCPU_set_t *GPUset;   /**< Distribution of GPUs over NUMA domains */
+    short numNICs;         /**< Number of HPC NICs (like HCAs, HFIs, etc.) */
+    PSCPU_set_t *NICset;   /**< Distribution of NICs over NUMA domains */
 } node_t;
 
 /** Array (indexed by node number) to store all known nodes */
@@ -113,6 +119,12 @@ static void nodeInit(node_t *node)
     node->killDelay = 0;
     node->supplGrps = 0;
     node->maxStatTry = 1;
+    node->numNUMADoms = 1;
+    node->CPUset = NULL;
+    node->numGPUs = 0;
+    node->GPUset = NULL;
+    node->numNICs = 0;
+    node->NICset = NULL;
 }
 
 static void initHash(void)
@@ -977,6 +989,99 @@ int PSIDnodes_maxStatTry(PSnodes_ID_t id)
     return nodes[id].maxStatTry;
 }
 
+int PSIDnodes_setNumNUMADoms(PSnodes_ID_t id, short num)
+{
+    if (!validID(id)) return -1;
+
+    nodes[id].numNUMADoms = num;
+    return 0;
+}
+
+short PSIDnodes_numNUMADoms(PSnodes_ID_t id)
+{
+    if (!validID(id)) return -1;
+
+    return nodes[id].numNUMADoms;
+}
+
+int PSIDnodes_setCPUSet(PSnodes_ID_t id, PSCPU_set_t *CPUset)
+{
+    if (!validID(id)) return -1;
+
+    if (nodes[id].CPUset) free(nodes[id].CPUset);
+    nodes[id].CPUset = CPUset;
+    return 0;
+}
+
+PSCPU_set_t * PSIDnodes_CPUSet(PSnodes_ID_t id)
+{
+    if (!validID(id)) return NULL;
+
+    return nodes[id].CPUset;
+}
+
+int PSIDnodes_setNumGPUs(PSnodes_ID_t id, short num)
+{
+    if (!validID(id)) return -1;
+
+    nodes[id].numGPUs = num;
+    return 0;
+}
+
+short PSIDnodes_numGPUs(PSnodes_ID_t id)
+{
+    if (!validID(id)) return -1;
+
+    return nodes[id].numGPUs;
+}
+
+int PSIDnodes_setGPUSet(PSnodes_ID_t id, PSCPU_set_t *GPUset)
+{
+    if (!validID(id)) return -1;
+
+    if (nodes[id].GPUset) free(nodes[id].GPUset);
+    nodes[id].GPUset = GPUset;
+    return 0;
+}
+
+PSCPU_set_t * PSIDnodes_GPUSet(PSnodes_ID_t id)
+{
+    if (!validID(id)) return NULL;
+
+    return nodes[id].GPUset;
+}
+
+int PSIDnodes_setNumNICs(PSnodes_ID_t id, short num)
+{
+    if (!validID(id)) return -1;
+
+    nodes[id].numNICs = num;
+    return 0;
+}
+
+short PSIDnodes_numNICs(PSnodes_ID_t id)
+{
+    if (!validID(id)) return -1;
+
+    return nodes[id].numNICs;
+}
+
+int PSIDnodes_setNICSet(PSnodes_ID_t id, PSCPU_set_t *NICset)
+{
+    if (!validID(id)) return -1;
+
+    if (nodes[id].NICset) free(nodes[id].NICset);
+    nodes[id].NICset = NICset;
+    return 0;
+}
+
+PSCPU_set_t * PSIDnodes_NICSet(PSnodes_ID_t id)
+{
+    if (!validID(id)) return NULL;
+
+    return nodes[id].NICset;
+}
+
 void PSIDnodes_clearMem(void)
 {
     for (int h = 0; h < 256; h++) {
@@ -994,6 +1099,9 @@ void PSIDnodes_clearMem(void)
 	clear_GUID_list(&nodes[n].admuid_list);
 	clear_GUID_list(&nodes[n].admgid_list);
 	if (nodes[n].CPUmap) free(nodes[n].CPUmap);
+	if (nodes[n].CPUset) free(nodes[n].CPUset);
+	if (nodes[n].GPUset) free(nodes[n].GPUset);
+	if (nodes[n].NICset) free(nodes[n].NICset);
     }
 
     free(nodes);

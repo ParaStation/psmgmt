@@ -143,7 +143,10 @@ static LIST_HEAD(pluginList);
  *
  * 128: new hook PSIDHOOK_PELOGUE_GLOBAL
  *
- * 129: new hook PSIDHOOK_DIST_INFO
+ * 129: new hook PSIDHOOK_DIST_INFO; new PSIDnode functionality
+ *      _setNumNUMADoms(), _numNUMADoms(), _setCPUSet(), _CPUSet(),
+ *      _setNumGPUs, numGPUs(), _setGPUSet(), _GPUSet(), _setNumNICs,
+ *      numNICs(), _setNICSet(), _NICSet(),
  */
 static int pluginAPIVersion = 129;
 

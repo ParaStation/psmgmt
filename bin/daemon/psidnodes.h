@@ -19,6 +19,7 @@
 #include <stdbool.h>
 #include <netinet/in.h>
 
+#include "pscpu.h"
 #include "psnodes.h"
 #include "pstask.h"
 
@@ -865,7 +866,7 @@ int PSIDnodes_supplGrps(PSnodes_ID_t id);
 int PSIDnodes_setMaxStatTry(PSnodes_ID_t id, int tries);
 
 /**
- * @brief Get the supplementary groups flag of a node.
+ * @brief Get node's supplementary groups flag
  *
  * Get the maximum number of tries to stat() an executable to spawn of
  * the node with ParaStation ID @a id.
@@ -883,11 +884,239 @@ int PSIDnodes_setMaxStatTry(PSnodes_ID_t id, int tries);
 int PSIDnodes_maxStatTry(PSnodes_ID_t id);
 
 /**
+ * @brief Set node's number of NUMA domains
+ *
+ * Set the number of NUMA domains of the node with ParaStation ID @a
+ * id to @a num.
+ *
+ * @param id ParaStation ID of the node to be modified
+ *
+ * @param num Number of NUMA domains to be set to this node
+ *
+ * @return On success, 0 is returned. Or -1 if an error occurred.
+ */
+int PSIDnodes_setNumNUMADoms(PSnodes_ID_t id, short num);
+
+/**
+ * @brief Get node's number of NUMA domains
+ *
+ * Get number of NUMA domains of the node with ParaStation ID @a id.
+ *
+ * @param id ParaStation ID of the node to look up
+ *
+ * @return If the node was found, the number of NUMA domains is
+ * returned. Or -1 if an error occurred.
+ */
+short PSIDnodes_numNUMADoms(PSnodes_ID_t id);
+
+/**
+ * @brief Set node's hardware thread distribution over NUMA domains
+ *
+ * Set the distribution of hardware threads over NUMA domains of the
+ * node with ParaStation ID @a id to @a CPUset.
+ *
+ * The distribution of hardware threads is represented by an array of
+ * bit-sets -- one set per NUMA domain (@see PSIDnodes_numNUMADoms()
+ * for the size of the array)). Each bit-set represents the hardware
+ * threads directly attached to this NUMA domain. The bit-sets are
+ * expected to have valid entries according to the number of hardware
+ * threads on this node (@see PSIDnodes_numThrds()). Further entries
+ * might be ignored.
+ *
+ * @a CPUset is expected to be allocated with @ref malloc() and
+ * friends and will be freed within @ref PSIDnodes_clearMem(). If a
+ * distribution was set before, further calls to this function will
+ * @ref free() the old distribution before setting the new one. If @a
+ * CPUset is NULL, the old distribution will be freed, too.
+ *
+ * @param id ParaStation ID of the node to be modified
+ *
+ * @param CPUset Bit-sets representing hardware threads attached to a
+ * NUMA domain on the node to be modified
+ *
+ * @return On success, 0 is returned. Or -1 if an error occurred.
+ */
+int PSIDnodes_setCPUSet(PSnodes_ID_t id, PSCPU_set_t *CPUset);
+
+/**
+ * @brief Get node's hardware thread distribution over NUMA domains
+ *
+ * Get the distribution of hardware threads over NUMA domains of the
+ * node with ParaStation ID @a id.
+ *
+ * The distribution of hardware threads is represented by an array of
+ * bit-sets -- one set per NUMA domain (@see PSIDnodes_numNUMADoms()
+ * for the size of the array)). Each bit-set represents the hardware
+ * threads directly attached to this NUMA domain. The bit-sets are
+ * expected to have valid entries according to the number of hardware
+ * threads on this node (@see PSIDnodes_numThrds()). Further entries
+ * might be ignored.
+ *
+ * @param id ParaStation ID of the node to look up
+ *
+ * @return If the node was found, an array of bit-sets is returned.
+ * Or NULL if an error occurred or no distribution was set.
+ */
+PSCPU_set_t * PSIDnodes_CPUSet(PSnodes_ID_t id);
+
+/**
+ * @brief Set node's number of GPUs
+ *
+ * Set the number of GPUs of the node with ParaStation ID @a id to @a
+ * num.
+ *
+ * @param id ParaStation ID of the node to be modified
+ *
+ * @param num Number of GPUs to be set to this node
+ *
+ * @return On success, 0 is returned. Or -1 if an error occurred.
+ */
+int PSIDnodes_setNumGPUs(PSnodes_ID_t id, short num);
+
+/**
+ * @brief Get node's number of GPUs
+ *
+ * Get number of GPUs of the node with ParaStation ID @a id.
+ *
+ * @param id ParaStation ID of the node to look up
+ *
+ * @return If the node was found, the number of GPUs is returned. Or
+ * -1 if an error occurred.
+ */
+short PSIDnodes_numGPUs(PSnodes_ID_t id);
+
+/**
+ * @brief Set node's GPU distribution over NUMA domains
+ *
+ * Set the distribution of GPUs over NUMA domains of the node with
+ * ParaStation ID @a id to @a GPUset.
+ *
+ * The distribution of GPUs is represented by an array of bit-sets --
+ * one set per NUMA domain (@see PSIDnodes_numNUMADoms() for the size
+ * of the array)). Each bit-set represents the GPUs directly attached
+ * to this NUMA domain. The bit-sets are expected to have valid
+ * entries according to the number of GPUs on this node (@see
+ * PSIDnodes_numGPUs()). Further entries might be ignored.
+ *
+ * @a GPUset is expected to be allocated with @ref malloc() and
+ * friends and will be freed within @ref PSIDnodes_clearMem(). If a
+ * distribution was set before, further calls to this function will
+ * @ref free() the old distribution before setting the new one. If @a
+ * GPUset is NULL, the old distribution will be freed, too.
+ *
+ * @param id ParaStation ID of the node to be modified
+ *
+ * @param GPUset Bit-sets representing GPUs attached to a NUMA domain
+ * on the node to be modified
+ *
+ * @return On success, 0 is returned. Or -1 if an error occurred.
+ */
+int PSIDnodes_setGPUSet(PSnodes_ID_t id, PSCPU_set_t *GPUset);
+
+/**
+ * @brief Get node's GPUs distribution over NUMA domains
+ *
+ * Get the distribution of GPUs over NUMA domains of the node with
+ * ParaStation ID @a id.
+ *
+ * The distribution of GPUs is represented by an array of bit-sets --
+ * one set per NUMA domain (@see PSIDnodes_numNUMADoms() for the size
+ * of the array)). Each bit-set represents the GPUs directly attached
+ * to this NUMA domain. The bit-sets are expected to have valid
+ * entries according to the number of GPUs on this node (@see
+ * PSIDnodes_numGPUs()). Further entries might be ignored.
+ *
+ * @param id ParaStation ID of the node to look up
+ *
+ * @return If the node was found, an array of bit-sets is returned.
+ * Or NULL if an error occurred or no distribution was set.
+ */
+PSCPU_set_t * PSIDnodes_GPUSet(PSnodes_ID_t id);
+
+/**
+ * @brief Set node's number of NICs
+ *
+ * Set the number of NICs of the node with ParaStation ID @a id to @a
+ * num. This number shall reflect the amount of HPC NICs (like HCAs,
+ * HFIs, etc.)  of this node.
+ *
+ * @param id ParaStation ID of the node to be modified
+ *
+ * @param num Number of NICs to be set to this node
+ *
+ * @return On success, 0 is returned. Or -1 if an error occurred.
+ */
+int PSIDnodes_setNumNICs(PSnodes_ID_t id, short num);
+
+/**
+ * @brief Get node's number of NICs
+ *
+ * Get number of NICs of the node with ParaStation ID @a id. This
+ * number shall reflect the amount of HPC NICs (like HCAs, HFIs, etc.)
+ * of this node.
+ *
+ * @param id ParaStation ID of the node to look up
+ *
+ * @return If the node was found, the number of NICs is returned. Or
+ * -1 if an error occurred.
+ */
+short PSIDnodes_numNICs(PSnodes_ID_t id);
+
+/**
+ * @brief Set node's NIC distribution over NUMA domains
+ *
+ * Set the distribution of NICs over NUMA domains of the node with
+ * ParaStation ID @a id to @a NICset.
+ *
+ * The distribution of NICs is represented by an array of bit-sets --
+ * one set per NUMA domain (@see PSIDnodes_numNUMADoms() for the size
+ * of the array)). Each bit-set represents the NICs directly attached
+ * to this NUMA domain. The bit-sets are expected to have valid
+ * entries according to the number of NICs on this node (@see
+ * PSIDnodes_numNICs()). Further entries might be ignored.
+ *
+ * @a NICset is expected to be allocated with @ref malloc() and
+ * friends and will be freed within @ref PSIDnodes_clearMem(). If a
+ * distribution was set before, further calls to this function will
+ * @ref free() the old distribution before setting the new one. If @a
+ * NICset is NULL, the old distribution will be freed, too.
+ *
+ * @param id ParaStation ID of the node to be modified
+ *
+ * @param NICset Bit-sets representing NICs attached to a NUMA domain
+ * on the node to be modified
+ *
+ * @return On success, 0 is returned. Or -1 if an error occurred.
+ */
+int PSIDnodes_setNICSet(PSnodes_ID_t id, PSCPU_set_t *NICset);
+
+/**
+ * @brief Get node's NICs distribution over NUMA domains
+ *
+ * Get the distribution of NICs over NUMA domains of the node with
+ * ParaStation ID @a id.
+ *
+ * The distribution of NICs is represented by an array of bit-sets --
+ * one set per NUMA domain (@see PSIDnodes_numNUMADoms() for the size
+ * of the array)). Each bit-set represents the NICs directly attached
+ * to this NUMA domain. The bit-sets are expected to have valid
+ * entries according to the number of NICs on this node (@see
+ * PSIDnodes_numNICs()). Further entries might be ignored.
+ *
+ * @param id ParaStation ID of the node to look up
+ *
+ * @return If the node was found, an array of bit-sets is returned.
+ * Or NULL if an error occurred or no distribution was set.
+ */
+PSCPU_set_t * PSIDnodes_NICSet(PSnodes_ID_t id);
+
+
+/**
  * @brief Memory cleanup
  *
  * Cleanup all memory currently used by the module. It will very
  * aggressively free all allocated memory most likely destroying
- * all the module's funcitonality.
+ * all the module's functionality.
  *
  * The purpose of this function is to cleanup before a fork()ed
  * process is handling other tasks, e.g. becoming a forwarder.
