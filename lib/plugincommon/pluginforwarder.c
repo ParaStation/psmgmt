@@ -60,6 +60,7 @@ Forwarder_Data_t *ForwarderData_new(void)
 	fw->stdErr[0] = -1;
 	fw->stdErr[1] = -1;
 	fw->hideFWctrlMsg = true;
+	fw->hideCCError = true;
 	fw->fwChildOE = false;
     }
 
@@ -223,6 +224,8 @@ static int handleMthrSock(int fd, void *info)
 	handleLocalShutdown(fw);
 	return 0;
     }
+
+    if (fw->hideCCError && msg.header.type == PSP_CC_ERROR) return 0;
 
     if (!(fw->hideFWctrlMsg && msg.header.type == PSP_CC_MSG
 	&& lmsg->type <= 64)) {
