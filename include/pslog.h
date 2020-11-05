@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2003 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2018 Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2020 Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -47,8 +47,8 @@ typedef enum {
     PLGN_FIN_ACK,     /**< plgn -> fw ACK finalization */
     PLGN_SIGNAL,      /**< used by psmom ?? */
     PLGN_REQ_ACCNT,   /**< used by psmom ?? */
-    /* LAST = 64 */  /**< all numbers beyond this might be used privately,
-       e.g. between plugins and their own forwarders */
+    PSLOG_LAST = 64,  /**< all numbers beyond this might be used privately,
+			 e.g. between plugins and their own forwarders */
 } PSLog_msg_t;
 
 /** Untyped Buffer Message. Used for all communication. */

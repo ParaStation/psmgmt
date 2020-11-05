@@ -227,8 +227,8 @@ static int handleMthrSock(int fd, void *info)
 
     if (fw->hideCCError && msg.header.type == PSP_CC_ERROR) return 0;
 
-    if (!(fw->hideFWctrlMsg && msg.header.type == PSP_CC_MSG
-	&& lmsg->type <= 64)) {
+    if (!fw->hideFWctrlMsg || msg.header.type != PSP_CC_MSG
+	|| lmsg->type > PSLOG_LAST) {
 	if (fw->handleMthrMsg && fw->handleMthrMsg(lmsg, fw)) return 0;
     }
 
