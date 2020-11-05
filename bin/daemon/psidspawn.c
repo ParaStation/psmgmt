@@ -794,7 +794,8 @@ static void doClamps(PStask_t *task)
     } else if (PSCPU_all(task->CPUset, lastBit)) {
 	/* No mapping */
     } else if (PSIDnodes_pinProcs(PSC_getMyID())
-	       || PSIDnodes_bindMem(PSC_getMyID())) {
+	       || PSIDnodes_bindMem(PSC_getMyID())
+	       || PSIDnodes_bindGPUs(PSC_getMyID())) {
 #ifdef CPU_ZERO
 	cpu_set_t *physSet = PSID_mapCPUs(task->CPUset);
 
@@ -817,7 +818,7 @@ static void doClamps(PStask_t *task)
 	}
 	if (PSIDnodes_bindGPUs(PSC_getMyID())) {
 	    if (getenv("__PSI_NO_GPUBIND")) {
-		fprintf(stderr, "Binding suppressed for rank %d\n", task->rank);
+		fprintf(stderr, "No GPU-binding for rank %d\n", task->rank);
 	    } else {
 		PSID_bindToGPUs(physSet);
 	    }
