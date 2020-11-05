@@ -61,11 +61,6 @@ bool PSCPU_overlap(PSCPU_set_t set1, PSCPU_set_t set2, uint16_t numBits)
     return false;
 }
 
-bool PSCPU_disjoint(PSCPU_set_t set1, PSCPU_set_t set2, uint16_t numBits)
-{
-    return !PSCPU_overlap(set1, set2, numBits);
-}
-
 int16_t PSCPU_first(PSCPU_set_t set, uint16_t numBits)
 {
     PSCPU_mask_t m=0;

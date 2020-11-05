@@ -225,7 +225,11 @@ bool PSCPU_overlap(PSCPU_set_t set1, PSCPU_set_t set2, uint16_t numBits);
  * @return If both sets are disjoint amongst the first @a numBits
  * bits, true is returned; or false otherwise
  */
-bool PSCPU_disjoint(PSCPU_set_t set1, PSCPU_set_t set2, uint16_t numBits);
+static inline bool PSCPU_disjoint(PSCPU_set_t set1, PSCPU_set_t set2,
+				  uint16_t numBits)
+{
+    return ! PSCPU_overlap(set1, set2, numBits);
+}
 
 /**
  * @brief Get first CPU
