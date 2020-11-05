@@ -194,6 +194,40 @@ bool PSCPU_any(PSCPU_set_t set, uint16_t numBits);
 bool PSCPU_all(PSCPU_set_t set, uint16_t numBits);
 
 /**
+ * @brief Check for overlap between CPU-sets
+ *
+ * Check if the CPU-sets @a s1 and @a s2 have any common bit set in
+ * the first @a numBits bits.
+ *
+ * @param s1 CPU-set to compare
+ *
+ * @param s2 CPU-set to compare
+ *
+ * @param numBits Number of bits to actualy investigate
+ *
+ * @return If any bit is set in both sets amongst the first @a
+ * numBits bits, true is returned; or false otherwise
+ */
+bool PSCPU_overlap(PSCPU_set_t set1, PSCPU_set_t set2, uint16_t numBits);
+
+/**
+ * @brief Check for disjointedness between CPU-sets
+ *
+ * Check if the CPU-sets @a s1 and @a s2 are disjoint within the first
+ * @a numBits bits.
+ *
+ * @param s1 CPU-set to compare
+ *
+ * @param s2 CPU-set to compare
+ *
+ * @param numBits Number of bits to actualy investigate
+ *
+ * @return If both sets are disjoint amongst the first @a numBits
+ * bits, true is returned; or false otherwise
+ */
+bool PSCPU_disjoint(PSCPU_set_t set1, PSCPU_set_t set2, uint16_t numBits);
+
+/**
  * @brief Get first CPU
  *
  * Get first CPU defined in the CPU-set @a set. This function is

@@ -45,6 +45,27 @@ bool PSCPU_all(PSCPU_set_t set, uint16_t numBits)
     return true;
 }
 
+bool PSCPU_overlap(PSCPU_set_t set1, PSCPU_set_t set2, uint16_t numBits)
+{
+    int16_t pCPUs = (numBits > PSCPU_MAX) ? PSCPU_MAX : numBits;
+    for (uint16_t i = 0;
+	 i < PSCPU_MAX/CPUmask_s && pCPUs > 0; i++, pCPUs -= CPUmask_s) {
+	PSCPU_mask_t m1 = set1[i], m2 = set2[i];
+	if ((m1 & m2)
+	    && (pCPUs >= CPUmask_s
+		|| ((m1 << (CPUmask_s-pCPUs)) & (m2 << (CPUmask_s-pCPUs))
+		    & (PSCPU_mask_t)-1))) {
+	    return true;
+	}
+    }
+    return false;
+}
+
+bool PSCPU_disjoint(PSCPU_set_t set1, PSCPU_set_t set2, uint16_t numBits)
+{
+    return !PSCPU_overlap(set1, set2, numBits);
+}
+
 int16_t PSCPU_first(PSCPU_set_t set, uint16_t numBits)
 {
     PSCPU_mask_t m=0;
