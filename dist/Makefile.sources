@@ -650,6 +650,7 @@ scripts/xinetd.d/psidstarter.in \
 tests/functional/Makefile.am \
 tests/functional/Makefile.in \
 tests/functional/listInfoTypes.c \
+tests/functional/test_bitsets.c \
 tests/functional/test_logging.c \
 tests/functional/test_paramspace.c \
 tests/functional/test_psicomm.c \

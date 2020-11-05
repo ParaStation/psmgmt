@@ -1,7 +1,7 @@
 #
 # ParaStation
 #
-# Copyright (C) 2012-2017 ParTec Cluster Competence Center GmbH, Munich
+# Copyright (C) 2012-2020 ParTec Cluster Competence Center GmbH, Munich
 #
 # This file may be distributed under the terms of the Q Public License
 # as defined in the file LICENSE.QPL included in the packaging of this
@@ -11,9 +11,10 @@ include $(top_srcdir)/common.am
 
 AM_LDFLAGS += -avoid-version -module
 
-check_PROGRAMS = test_logging test_paramspace test_psicomm listInfoTypes
+check_PROGRAMS = test_logging test_paramspace test_psicomm	\
+	listInfoTypes test_bitsets
 
-TESTS = test_logging test_paramspace
+TESTS = test_logging test_paramspace test_bitsets
 
 libpscommon = $(top_builddir)/lib/pscommon/libpscommon.la
 libputil = $(top_builddir)/lib/putil/libputil.la
@@ -30,3 +31,6 @@ test_psicomm_LDADD = $(libpsi)
 
 listInfoTypes_SOURCES = listInfoTypes.c
 listInfoTypes_LDADD = $(libpscommon)
+
+test_bitsets_SOURCES = test_bitsets.c
+test_bitsets_LDADD = $(libpscommon)

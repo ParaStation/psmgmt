@@ -99,8 +99,10 @@ build_triplet = @build@
 host_triplet = @host@
 target_triplet = @target@
 check_PROGRAMS = test_logging$(EXEEXT) test_paramspace$(EXEEXT) \
-	test_psicomm$(EXEEXT) listInfoTypes$(EXEEXT)
-TESTS = test_logging$(EXEEXT) test_paramspace$(EXEEXT)
+	test_psicomm$(EXEEXT) listInfoTypes$(EXEEXT) \
+	test_bitsets$(EXEEXT)
+TESTS = test_logging$(EXEEXT) test_paramspace$(EXEEXT) \
+	test_bitsets$(EXEEXT)
 subdir = tests/functional
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/m4/ax_check_compile_flag.m4 \
@@ -120,6 +122,9 @@ AM_V_lt = $(am__v_lt_@AM_V@)
 am__v_lt_ = $(am__v_lt_@AM_DEFAULT_V@)
 am__v_lt_0 = --silent
 am__v_lt_1 = 
+am_test_bitsets_OBJECTS = test_bitsets.$(OBJEXT)
+test_bitsets_OBJECTS = $(am_test_bitsets_OBJECTS)
+test_bitsets_DEPENDENCIES = $(libpscommon)
 am_test_logging_OBJECTS = test_logging.$(OBJEXT)
 test_logging_OBJECTS = $(am_test_logging_OBJECTS)
 test_logging_DEPENDENCIES = $(libpscommon)
@@ -145,8 +150,8 @@ DEFAULT_INCLUDES = -I.@am__isrc@
 depcomp = $(SHELL) $(top_srcdir)/scripts/depcomp
 am__maybe_remake_depfiles = depfiles
 am__depfiles_remade = ./$(DEPDIR)/listInfoTypes.Po \
-	./$(DEPDIR)/test_logging.Po ./$(DEPDIR)/test_paramspace.Po \
-	./$(DEPDIR)/test_psicomm.Po
+	./$(DEPDIR)/test_bitsets.Po ./$(DEPDIR)/test_logging.Po \
+	./$(DEPDIR)/test_paramspace.Po ./$(DEPDIR)/test_psicomm.Po
 am__mv = mv -f
 COMPILE = $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) \
 	$(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
@@ -166,10 +171,12 @@ AM_V_CCLD = $(am__v_CCLD_@AM_V@)
 am__v_CCLD_ = $(am__v_CCLD_@AM_DEFAULT_V@)
 am__v_CCLD_0 = @echo "  CCLD    " $@;
 am__v_CCLD_1 = 
-SOURCES = $(listInfoTypes_SOURCES) $(test_logging_SOURCES) \
-	$(test_paramspace_SOURCES) $(test_psicomm_SOURCES)
-DIST_SOURCES = $(listInfoTypes_SOURCES) $(test_logging_SOURCES) \
-	$(test_paramspace_SOURCES) $(test_psicomm_SOURCES)
+SOURCES = $(listInfoTypes_SOURCES) $(test_bitsets_SOURCES) \
+	$(test_logging_SOURCES) $(test_paramspace_SOURCES) \
+	$(test_psicomm_SOURCES)
+DIST_SOURCES = $(listInfoTypes_SOURCES) $(test_bitsets_SOURCES) \
+	$(test_logging_SOURCES) $(test_paramspace_SOURCES) \
+	$(test_psicomm_SOURCES)
 am__can_run_installinfo = \
   case $$AM_UPDATE_INFO_DIR in \
     n|no|NO) false;; \
@@ -410,7 +417,7 @@ AM_DEFAULT_VERBOSITY = @AM_DEFAULT_VERBOSITY@
 #
 # ParaStation
 #
-# Copyright (C) 2012-2017 ParTec Cluster Competence Center GmbH, Munich
+# Copyright (C) 2012-2020 ParTec Cluster Competence Center GmbH, Munich
 #
 # This file may be distributed under the terms of the Q Public License
 # as defined in the file LICENSE.QPL included in the packaging of this
@@ -600,6 +607,8 @@ test_psicomm_SOURCES = test_psicomm.c
 test_psicomm_LDADD = $(libpsi)
 listInfoTypes_SOURCES = listInfoTypes.c
 listInfoTypes_LDADD = $(libpscommon)
+test_bitsets_SOURCES = test_bitsets.c
+test_bitsets_LDADD = $(libpscommon)
 all: all-am
 
 .SUFFIXES:
@@ -648,6 +657,10 @@ listInfoTypes$(EXEEXT): $(listInfoTypes_OBJECTS) $(listInfoTypes_DEPENDENCIES) $
 	@rm -f listInfoTypes$(EXEEXT)
 	$(AM_V_CCLD)$(LINK) $(listInfoTypes_OBJECTS) $(listInfoTypes_LDADD) $(LIBS)
 
+test_bitsets$(EXEEXT): $(test_bitsets_OBJECTS) $(test_bitsets_DEPENDENCIES) $(EXTRA_test_bitsets_DEPENDENCIES) 
+	@rm -f test_bitsets$(EXEEXT)
+	$(AM_V_CCLD)$(LINK) $(test_bitsets_OBJECTS) $(test_bitsets_LDADD) $(LIBS)
+
 test_logging$(EXEEXT): $(test_logging_OBJECTS) $(test_logging_DEPENDENCIES) $(EXTRA_test_logging_DEPENDENCIES) 
 	@rm -f test_logging$(EXEEXT)
 	$(AM_V_CCLD)$(LINK) $(test_logging_OBJECTS) $(test_logging_LDADD) $(LIBS)
@@ -667,6 +680,7 @@ distclean-compile:
 	-rm -f *.tab.c
 
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/listInfoTypes.Po@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test_bitsets.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test_logging.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test_paramspace.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test_psicomm.Po@am__quote@ # am--include-marker
@@ -914,6 +928,13 @@ test_paramspace.log: test_paramspace$(EXEEXT)
 	--log-file $$b.log --trs-file $$b.trs \
 	$(am__common_driver_flags) $(AM_LOG_DRIVER_FLAGS) $(LOG_DRIVER_FLAGS) -- $(LOG_COMPILE) \
 	"$$tst" $(AM_TESTS_FD_REDIRECT)
+test_bitsets.log: test_bitsets$(EXEEXT)
+	@p='test_bitsets$(EXEEXT)'; \
+	b='test_bitsets'; \
+	$(am__check_pre) $(LOG_DRIVER) --test-name "$$f" \
+	--log-file $$b.log --trs-file $$b.trs \
+	$(am__common_driver_flags) $(AM_LOG_DRIVER_FLAGS) $(LOG_DRIVER_FLAGS) -- $(LOG_COMPILE) \
+	"$$tst" $(AM_TESTS_FD_REDIRECT)
 .test.log:
 	@p='$<'; \
 	$(am__set_b); \
@@ -1008,6 +1029,7 @@ clean-am: clean-checkPROGRAMS clean-generic clean-libtool \
 
 distclean: distclean-am
 		-rm -f ./$(DEPDIR)/listInfoTypes.Po
+	-rm -f ./$(DEPDIR)/test_bitsets.Po
 	-rm -f ./$(DEPDIR)/test_logging.Po
 	-rm -f ./$(DEPDIR)/test_paramspace.Po
 	-rm -f ./$(DEPDIR)/test_psicomm.Po
@@ -1057,6 +1079,7 @@ installcheck-am:
 
 maintainer-clean: maintainer-clean-am
 		-rm -f ./$(DEPDIR)/listInfoTypes.Po
+	-rm -f ./$(DEPDIR)/test_bitsets.Po
 	-rm -f ./$(DEPDIR)/test_logging.Po
 	-rm -f ./$(DEPDIR)/test_paramspace.Po
 	-rm -f ./$(DEPDIR)/test_psicomm.Po
