@@ -293,7 +293,7 @@ void initJobEnv(Job_t *job)
 		}
 	    }
 
-	    ufree(strList.buf);
+	    freeStrBuf(&strList);
 	} else {
 	    flog("invalid gpu gres bitAlloc for local nodeID 0\n");
 	}
@@ -305,7 +305,7 @@ void initJobEnv(Job_t *job)
 	if (gres->bitAlloc[0]) {
 	    hexBitstr2List(gres->bitAlloc[0], &strList, false);
 	    envSet(&job->env, "OFFLOAD_DEVICES", strList.buf);
-	    ufree(strList.buf);
+	    freeStrBuf(&strList);
 	} else {
 	    flog("invalid mic gres bitAlloc for local nodeID 0\n");
 	}
@@ -317,7 +317,7 @@ void initJobEnv(Job_t *job)
 	if (gres->bitAlloc[0]) {
 	    hexBitstr2List(gres->bitAlloc[0], &strList, false);
 	    envSet(&job->env, "SLURM_JOB_GRES", strList.buf);
-	    ufree(strList.buf);
+	    freeStrBuf(&strList);
 	} else {
 	    flog("invalid job gres bitAlloc for local nodeID 0\n");
 	}
@@ -512,7 +512,7 @@ static void setGresEnv(uint32_t localRankId, Step_t *step)
 	    if (gres->bitAlloc[jobNodeId]) {
 		hexBitstr2List(gres->bitAlloc[jobNodeId], &strList, false);
 		setenv("OFFLOAD_DEVICES", strList.buf, 1);
-		ufree(strList.buf);
+		freeStrBuf(&strList);
 	    } else {
 		flog("invalid mic gres bitAlloc for job node ID %u\n",
 		     jobNodeId);
@@ -525,7 +525,7 @@ static void setGresEnv(uint32_t localRankId, Step_t *step)
 	    if (gres->bitAlloc[jobNodeId]) {
 		hexBitstr2List(gres->bitAlloc[jobNodeId], &strList, false);
 		setenv("SLURM_STEP_GRES", strList.buf, 1);
-		ufree(strList.buf);
+		freeStrBuf(&strList);
 	    } else {
 		flog("invalid step gres bitAlloc for job node ID %u\n",
 		     jobNodeId);
@@ -764,7 +764,7 @@ void setStepEnv(Step_t *step)
 		/* tell doClamps() which gpus to use */
 		envSet(&step->env, "__PSID_USE_GPUS", strList.buf);
 
-		ufree(strList.buf);
+		freeStrBuf(&strList);
 	    }
 	}
 	else {
@@ -775,7 +775,6 @@ void setStepEnv(Step_t *step)
 	/* tell psid to bind no GPUs */
 	envSet(&step->env, "__PSID_USE_GPUS", "");
     }
-
 
     /* cleanup env */
     removeSpankOptions(&step->env);
