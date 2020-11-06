@@ -99,6 +99,13 @@ char *__addStrBuf(const char *str, StrBuffer_t *strBuf, const char *func,
     return strBuf->buf;
 }
 
+void __freeStrBuf(StrBuffer_t *strBuf, const char *func, const int line)
+{
+    __ufree(strBuf->buf, func, line);
+    strBuf->buf = NULL;
+    strBuf->size = strBuf->strLen = 0;
+}
+
 char *__str2Buf(const char *str, char **buffer, size_t *bufSize,
 		const char *func, const int line)
 {

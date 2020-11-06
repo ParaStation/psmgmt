@@ -95,10 +95,10 @@ char *__ustrdup(const char *s1, const char *func, const int line);
  * Copy the string @a str into the dynamic buffer @a strBuf is
  * pointing to. If required, this buffer will be grown using @ref
  * __umalloc() and @ref __urealloc(). The current size of the buffer
- * is tracked internally within the string buffer @a strBuf. This is a
- * wrapper to @ref strn2Buf().
- *
- * In addition to that debug messages are created.
+ * is tracked internally within the string buffer @a strBuf. This improves
+ * performance in comparison to @ref str2Buf() and @ref strn2Buf() and is
+ * the preferred choice. The user is responsible to free the buffer after
+ * use with @ref freeStrBuf().
  *
  * @param str The string to write to the buffer
  *
@@ -116,14 +116,23 @@ char *__addStrBuf(const char *str, StrBuffer_t *strBuf, const char *func,
     __addStrBuf(str, strBuf, __func__, __LINE__)
 
 /**
+ * @brief Free memory used by a string buffer
+ *
+ * @param strBuf Pointer to the string buffer to free
+ */
+void __freeStrBuf(StrBuffer_t *strBuf, const char *func, const int line);
+#define freeStrBuf(strBuf) \
+    __freeStrBuf(strBuf, __func__, __LINE__)
+
+/**
  * @brief Save a string into a buffer that dynamically grows if needed
+ *
+ * If possible @ref addStrBuf() should be used instead.
  *
  * Copy the string @a str into the dynamic buffer @a buffer is
  * pointing to. If required, this buffer will be grown using @ref
  * __umalloc() and @ref __urealloc(). The current size of the buffer
  * is tracked in @a bufSize. This is a wrapper to @ref strn2Buf().
- *
- * In addition to that debug messages are created.
  *
  * @param str The string to write to the buffer
  *
@@ -145,12 +154,12 @@ char *__str2Buf(const char *str, char **buffer, size_t *bufSize,
 /**
  * @brief Save a string into a buffer that dynamically grows if needed
  *
+ * If possible @ref addStrBuf() should be used instead.
+ *
  * Copy @a lenStr bytes from the string @a str into the dynamic buffer
  * @a buffer is pointing to. If required, this buffer will be grown
  * using @ref __umalloc() and @ref __urealloc(). The current size of
  * the buffer is traced in @a bufSize.
- *
- * In addition to that debug messages are created.
  *
  * @param str The string to write to the buffer
  *
