@@ -924,6 +924,9 @@ short PSIDnodes_numNUMADoms(PSnodes_ID_t id);
  * threads on this node (@see PSIDnodes_numThrds()). Further entries
  * might be ignored.
  *
+ * Hardware threads are numbered according the hwloc
+ * conventions. I.e. psmgmt's mapping is not applied at all.
+ *
  * @a CPUset is expected to be allocated with @ref malloc() and
  * friends and will be freed within @ref PSIDnodes_clearMem(). If a
  * distribution was set before, further calls to this function will
@@ -952,6 +955,9 @@ int PSIDnodes_setCPUSet(PSnodes_ID_t id, PSCPU_set_t *CPUset);
  * expected to have valid entries according to the number of hardware
  * threads on this node (@see PSIDnodes_numThrds()). Further entries
  * might be ignored.
+ *
+ * Hardware threads are numbered according the hwloc
+ * conventions. I.e. psmgmt's mapping is not applied at all.
  *
  * @param id ParaStation ID of the node to look up
  *
@@ -999,6 +1005,8 @@ short PSIDnodes_numGPUs(PSnodes_ID_t id);
  * entries according to the number of GPUs on this node (@see
  * PSIDnodes_numGPUs()). Further entries might be ignored.
  *
+ * GPUs are numbered accoring to PCI device order as expected by CUDA.
+ *
  * @a GPUset is expected to be allocated with @ref malloc() and
  * friends and will be freed within @ref PSIDnodes_clearMem(). If a
  * distribution was set before, further calls to this function will
@@ -1026,6 +1034,8 @@ int PSIDnodes_setGPUSet(PSnodes_ID_t id, PSCPU_set_t *GPUset);
  * to this NUMA domain. The bit-sets are expected to have valid
  * entries according to the number of GPUs on this node (@see
  * PSIDnodes_numGPUs()). Further entries might be ignored.
+ *
+ * GPUs are numbered accoring to PCI device order as expected by CUDA.
  *
  * @param id ParaStation ID of the node to look up
  *
@@ -1076,6 +1086,8 @@ short PSIDnodes_numNICs(PSnodes_ID_t id);
  * entries according to the number of NICs on this node (@see
  * PSIDnodes_numNICs()). Further entries might be ignored.
  *
+ * NICs are numbered according to hwloc order.
+ *
  * @a NICset is expected to be allocated with @ref malloc() and
  * friends and will be freed within @ref PSIDnodes_clearMem(). If a
  * distribution was set before, further calls to this function will
@@ -1103,6 +1115,8 @@ int PSIDnodes_setNICSet(PSnodes_ID_t id, PSCPU_set_t *NICset);
  * to this NUMA domain. The bit-sets are expected to have valid
  * entries according to the number of NICs on this node (@see
  * PSIDnodes_numNICs()). Further entries might be ignored.
+ *
+ * NICs are numbered according to hwloc order.
  *
  * @param id ParaStation ID of the node to look up
  *
