@@ -733,7 +733,10 @@ static void execForwarder(PStask_t *task)
     /* jail myself and all my children */
     if (fw->jailChild) {
 	pid_t mypid = getpid();
-	PSIDhook_call(PSIDHOOK_JAIL_CHILD, &mypid);
+	if (PSIDhook_call(PSIDHOOK_JAIL_CHILD, &mypid) < 0) {
+	    pluginlog("%s: hook PSIDHOOK_JAIL_CHILD failed\n", __func__);
+	    exit(1);
+	}
     }
 
     for (i = 1; i <= fw->childRerun; i++) {

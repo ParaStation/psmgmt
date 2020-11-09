@@ -102,4 +102,14 @@ void clearSessionList(void);
  */
 char *listSessions(char *buf, size_t *bufSize);
 
+/**
+ * @brief Verify a session pointer
+ *
+ * @param sessPtr The pointer to verify
+ *
+ * @return Returns true if the pointer is valid otherwise
+ * false
+ */
+bool verifySessionPtr(Session_t *sessPtr);
+
 #endif /* __PSPAM_SSH */

@@ -133,7 +133,10 @@ static void doForwarderChildStart(void)
     }
 
     /* Jail all my children */
-    PSIDhook_call(PSIDHOOK_JAIL_CHILD, &forwarder_child_pid);
+    if (PSIDhook_call(PSIDHOOK_JAIL_CHILD, &forwarder_child_pid) <0) {
+	mlog("%s: hook PSIDHOOK_JAIL_CHILD failed\n", __func__);
+	kill(SIGKILL, forwarder_child_pid);
+    }
 
     /* send header */
     WriteDigit(com, CMD_LOCAL_CHILD_START);

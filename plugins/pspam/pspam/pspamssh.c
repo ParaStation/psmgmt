@@ -160,3 +160,13 @@ char *listSessions(char *buf, size_t *bufSize)
 
     return buf;
 }
+
+bool verifySessionPtr(Session_t *sessPtr)
+{
+    list_t *s;
+    list_for_each(s, &sshList) {
+	Session_t *sess = list_entry(s, Session_t, next);
+	if (sess == sessPtr) return true;
+    }
+    return false;
+}

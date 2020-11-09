@@ -85,6 +85,8 @@ static int execScript(pid_t child, char *script)
 
 	PSID_blockSig(blocked, SIGCHLD);
 	free(command);
+
+	if (ret != 0) return -1;
     }
 
     return 0;

@@ -58,9 +58,18 @@ static int cbJailChild(int fd, PSID_scriptCBInfo_t *info)
 	return 0;
     }
 
-    if (exit != 0) {
+    if (exit < 0) {
+	Session_t *session = info->info;
+
 	mlog("%s: jail script failed with exit status %i\n", __func__, exit);
 	mlog("%s: %s\n", __func__, errMsg);
+
+	if (verifySessionPtr(session)) {
+	    killSessions(session->user);
+	} else {
+	    mlog("%s: invalid session pointer: ssh process cannot be killed\n",
+		 __func__);
+	}
     }
 
     return 0;
