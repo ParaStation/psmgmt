@@ -131,95 +131,147 @@ int PSID_getPhysCores(void)
     return physCores;
 }
 
-uint16_t PSID_getNUMAnodes(void)
+/**
+ * @brief Get number of NUMA domains
+ *
+ * Determine the number of NUMA domains. This utilizes the hwloc
+ * framework and returns the number of NUMA domains detected there or
+ * 1 if no NUMA domains are detected, which is the normal case for UMA
+ * systems.
+ *
+ * hwloc is initialized implicitly if this has not happened before.
+ *
+ * If for some reason the hwloc framework cannot be initialized,
+ * exit() is called.
+ *
+ * @return On success, the number of NUMA domains is returned
+ */
+static uint16_t getNUMADoms(void)
 {
-    static uint16_t numaNodes = 0;
+    static uint16_t numaDoms = 0;
 
-    if (!numaNodes) {
+    if (!numaDoms) {
 	if (!hwlocInitialized) initHWloc();
 
-	numaNodes = hwloc_get_nbobjs_by_type(topology, HWLOC_OBJ_NUMANODE);
+	numaDoms = hwloc_get_nbobjs_by_type(topology, HWLOC_OBJ_NUMANODE);
 
-	if (!numaNodes) numaNodes = 1;
-	else if (numaNodes > PSNUMANODE_MAX) {
-	    PSID_log(-1 ,"%s: Number of NUMA nodes %d exceeds the supported"
-		     " limit %d\n", __func__, numaNodes, PSNUMANODE_MAX);
-	    numaNodes = PSNUMANODE_MAX;
-	}
+	if (!numaDoms) numaDoms = 1;
     }
-    return numaNodes;
+
+    return numaDoms;
 }
 
-PSCPU_set_t* PSID_getCPUmaskOfNUMAnodes(bool psorder)
+/**
+ * @brief Get the CPU sets for all NUMA domains
+ *
+ * Determine the CPU set for each NUMA domain and return them as an
+ * array. This utilizes the hwloc framework.
+ *
+ * By using @ref getNUMADoms() this implicitly initializes hwloc if
+ * this has not happened before and could result in an exit().
+ *
+ * The array returned is indexed by NUMA domain numbers. It is
+ * allocated via malloc() and has to be free()ed by the caller once it
+ * is no longer needed. Thus, it is well suited to be registered to
+ * the PSIDnodes facility via PSIDnodes_setCPUSet().
+ *
+ * @return On success, the array of CPU set is returned; on error, NULL
+ * might be returned
+ */
+static PSCPU_set_t * getCPUSets(void)
 {
-    static PSCPU_set_t *masksos = NULL;
-    static PSCPU_set_t *masksps = NULL;
+    PSCPU_set_t *sets = malloc(getNUMADoms() * sizeof(*sets));
+    if (!sets) PSID_exit(errno, "%s: malloc()", __func__);
 
-    PSCPU_set_t *masks = psorder ? masksps : masksos;
-
-    if (!masks) {
-	if (!hwlocInitialized) initHWloc();
-
-	masks = malloc(PSID_getNUMAnodes() * sizeof(*masks));
-	if (!masks) {
-	    PSID_warn(-1, errno, "%s: malloc()", __func__);
-	    return NULL;
-	}
-
-	hwloc_obj_t numanode;
-
-	for (size_t i = 0; i < PSID_getNUMAnodes(); i++) {
-	    numanode = hwloc_get_numanode_obj_by_os_index(topology, i);
-	    if (!numanode) {
-		PSCPU_setAll(masks[i]);
-		continue;
+    for (uint16_t d = 0; d < getNUMADoms(); d++) {
+	hwloc_obj_t numanode = hwloc_get_numanode_obj_by_os_index(topology, d);
+	PSCPU_clrAll(sets[d]);
+	if (!numanode) {
+	    for (uint16_t t = 0; t < PSID_getHWthreads(); t++) {
+		PSCPU_setCPU(sets[d], t);
 	    }
-	    PSCPU_clrAll(masks[i]);
-	    short hwthread, cpu;
+	} else {
+	    short hwthread;
 	    hwloc_bitmap_foreach_begin(hwthread, numanode->cpuset) {
-		if (psorder) {
-		    cpu = PSIDnodes_unmapCPU(PSC_getMyID(), hwthread);
-		} else {
-		    cpu = hwthread;
-		}
-		PSCPU_setCPU(masks[i], cpu);
+		PSCPU_setCPU(sets[d], hwthread);
 	    } hwloc_bitmap_foreach_end();
 	}
     }
 
-    return masks;
+    return sets;
 }
 
-uint16_t PSID_getGPUs(void)
+/* Type used to identiy PCI devices in checkPCIDev() and callers */
+typedef struct {
+    unsigned short vendor_id;
+    unsigned short device_id;
+    unsigned short subvendor_id;
+    unsigned short subdevice_id;
+} PCI_ID_t;
+
+/**
+ * @brief Check PCI device
+ *
+ * Check if the PCI device @a pcidev as reported by hwloc is included
+ * in the list of PCI devices @a ID_list.
+ *
+ * @param pcidev Description of a PCI devices as provided by hwloc
+ *
+ * @param ID_list Array of descriptions of "valid" PCI devices
+ *
+ * @return If the device is included in @a ID_list, true is returned;
+ * or false otherwise
+ */
+static bool checkPCIDev(struct hwloc_pcidev_attr_s *pcidev, PCI_ID_t ID_list[])
 {
-    static uint16_t gpus = PSGPU_MAX+1;
-
-    if (gpus > PSGPU_MAX) {
-	if (!hwlocInitialized) initHWloc();
-
-	gpus = 0;
-	/* Find GPU PCU devices by Class ID */
-	hwloc_obj_t pcidevobj = NULL;
-	while ((pcidevobj = hwloc_get_next_obj_by_type(topology,
-						       HWLOC_OBJ_PCI_DEVICE,
-						       pcidevobj))) {
-	    /* ClassID needs to be "3D" */
-	    if (pcidevobj->attr->pcidev.class_id != 0x0302) continue;
-
-	    gpus++;
-	}
-	if (gpus > PSGPU_MAX) {
-	    PSID_log(-1 ,"%s: Number of GPUs %d exceeds the supported"
-		     " limit %d\n", __func__, gpus, PSGPU_MAX);
-	    gpus = PSGPU_MAX;
+    for (uint16_t d = 0; ID_list[d].vendor_id; d++) {
+	if (pcidev->vendor_id == ID_list[d].vendor_id
+	    && pcidev->device_id == ID_list[d].device_id
+	    && (!ID_list[d].subvendor_id
+		|| pcidev->subvendor_id == ID_list[d].subvendor_id )
+	    && (!ID_list[d].subdevice_id
+		|| pcidev->subdevice_id == ID_list[d].subdevice_id )) {
+	    return true;
 	}
     }
-    PSID_log(PSID_LOG_VERB, "%s: got %d gpus\n", __func__, gpus);
-
-    return gpus;
+    return false;
 }
 
-int comparePCIaddr(const void *a, const void *b, void *pciaddr) {
+/**
+ * @brief Get number of PCI devices of a specific kind
+ *
+ * Determine the number of PCI devices conforming the definition of @a
+ * ID_list. Each PCI devices as reported by hwloc is passed to @ref
+ * checkPCIDev() with @a ID_list as the second argument and will be
+ * counted if this function returns true.
+ *
+ * hwloc is initialized implicitly if this has not happened before.
+ *
+ * If for some reason the hwloc framework cannot be initialized,
+ * exit() is called.
+ *
+ * @param ID_list Array of PCI vendor, device, subvendor and subdevice
+ * IDs identifying the PCI devices to handle
+ *
+ * @return Number of PCI devices of the selected kind
+ */
+static uint16_t getNumPCIDevs(PCI_ID_t ID_list[])
+{
+    if (!hwlocInitialized) initHWloc();
+
+    uint16_t numDevs = 0;
+
+    /* Find PCI devices by vendor, device, subvendor and subdevice IDs */
+    hwloc_obj_t pciObj = NULL;
+    while ((pciObj = hwloc_get_next_obj_by_type(topology, HWLOC_OBJ_PCI_DEVICE,
+						pciObj))) {
+	if (checkPCIDev(&pciObj->attr->pcidev, ID_list)) numDevs++;
+    }
+
+    return numDevs;
+}
+
+static int comparePCIaddr(const void *a, const void *b, void *pciaddr) {
     uint32_t *pciaddress = (uint32_t *) pciaddr;
 
     int64_t val_a = pciaddress[*(uint16_t*)a];
@@ -228,101 +280,161 @@ int comparePCIaddr(const void *a, const void *b, void *pciaddr) {
     return val_a - val_b;
 }
 
-/* translate gpu number from hwloc to pci adress order (used by CUDA) */
-uint16_t PSID_getGPUinPCIorder(uint16_t gpu)
+/**
+ * @brief Get map to translate PCI device ID from hwloc order into PCI
+ * address order
+ *
+ * Create a map of size @a numDevs to translate PCI device number for
+ * devices conforming to @a ID_list from hwloc order into PCI address
+ * order as used by e.g. CUDA
+ *
+ * The map returned is allocated with malloc() and shall be free()ed by
+ * the caller if it is not needed any longer.
+ *
+ * hwloc is initialized implicitly if this has not happened before.
+ *
+ * If for some reason the hwloc framework cannot be initialized,
+ * exit() is called.
+ *
+ * @param numDevs Size of the map to be created; this has to be
+ * identical to the number of PCI devices on the local node conforming
+ * to ID_list
+ *
+ * @param ID_list Array of PCI vendor, device, subvendor and subdevice
+ * IDs identifying the PCI devices to handle
+ *
+ * @return On success, a map translating IDs into PCI address order is
+ * returned; or NULL in case of error
+ */
+static uint16_t * getPCIorderMap(uint16_t numDevs, PCI_ID_t ID_list[])
 {
-    static uint16_t* map = NULL;
+    if (!numDevs) return NULL;
 
-    if (!map) {
-	uint16_t gpus = PSID_getGPUs();    /* side effect: initializes hwloc */
+    uint16_t* map = malloc(numDevs * sizeof(*map));
+    if (!map) PSID_exit(errno, "%s: malloc()", __func__);
 
-	map = malloc(gpus * sizeof(*map));
-	if (!map) {
-	    PSID_warn(-1, errno, "%s: malloc()", __func__);
-	    return 0;
-	}
+    uint32_t pciaddress[numDevs];
 
-	uint32_t pciaddress[PSGPU_MAX];
+    /* Find GPU PCU devices by Class ID */
+    uint16_t dev = 0;
+    hwloc_obj_t pciObj = NULL;
+    while ((pciObj = hwloc_get_next_obj_by_type(topology, HWLOC_OBJ_PCI_DEVICE,
+						pciObj))) {
+	if (!checkPCIDev(&pciObj->attr->pcidev, ID_list)) continue;
 
-	uint16_t gpu = 0;
-
-	/* Find GPU PCU devices by Class ID */
-	hwloc_obj_t pcidevobj = NULL;
-	while ((pcidevobj = hwloc_get_next_obj_by_type(topology,
-						       HWLOC_OBJ_PCI_DEVICE,
-						       pcidevobj))) {
-	    /* ClassID needs to be "3D" */
-	    if (pcidevobj->attr->pcidev.class_id != 0x0302) continue;
-
-	    pciaddress[gpu++] = pcidevobj->attr->pcidev.bus << 16
-		| pcidevobj->attr->pcidev.dev << 8
-		| pcidevobj->attr->pcidev.func;
-	}
-
-	/* init map */
-	for (size_t i = 0; i < gpus; i++) map[i] = i;
-
-	/* do sort */
-	qsort_r(map, gpus, sizeof(*map), comparePCIaddr, pciaddress);
+	pciaddress[dev++] = pciObj->attr->pcidev.bus << 16
+	    | pciObj->attr->pcidev.dev << 8 | pciObj->attr->pcidev.func;
+	if (dev == numDevs) break;
     }
 
-    return map[gpu];
+    if (dev != numDevs) {
+	PSID_log(-1, "%s: device mismatch: %d / %d\n", __func__, dev, numDevs);
+	return NULL;
+    }
+
+    /* init map */
+    for (dev = 0; dev < numDevs; dev++) map[dev] = dev;
+
+    /* do sort */
+    qsort_r(map, numDevs, sizeof(*map), comparePCIaddr, pciaddress);
+
+    return map;
 }
 
-/* set in @a gpumask the bit for each GPU directly connected to a NUMA
- * node of a CPU set in @a cpumask.
+/**
+ * @brief Get the PCI device sets for all NUMA nodes
  *
- * assumes @a cpumask in os order (means not mapped using cpu map) */
-static void setGPUmaskForCPUmask(PSCPU_set_t *gpumask, PSCPU_set_t *cpumask)
+ * Determine the PCI device sets for devices conforming to @a ID_list
+ * for each NUMA domain and return them as an array. This utilizes the
+ * hwloc framework.
+ *
+ * PCI devices are identified by utilizing @a ID_list. Depending on
+ * the flag @a PCIorder devices are either numbered in PCI device
+ * order or in hwloc order. If @a PCIorder is true, PCI devices order
+ * is used utilizing the map created by @ref getPCIorderMap().
+ *
+ * By using @ref getNUMADoms() and @ref getNumPCIDevs() this
+ * implicitly initializes hwloc if this has not happened before and
+ * could result in an exit().
+ *
+ * The array returned is indexed by NUMA domain numbers. It is
+ * allocated via malloc() and has to be free()ed by the caller once it
+ * is no longer needed. Thus, it is well suited to be registered to
+ * the PSIDnodes facility via PSIDnodes_setGPUSet() or
+ * PSIDnodes_setNICSet().
+ *
+ * @param PCIorder Flag to trigger PCI device order for numbering the
+ * PCI devices to handle
+ *
+ * @param ID_list Array of PCI vendor, device, subvendor and subdevice
+ * IDs identifying the PCI devices to handle
+ *
+ * @return On success, the array of CPU set is returned; on error, NULL
+ * might be returned
+ */
+static PSCPU_set_t * getPCISets(bool PCIorder, PCI_ID_t ID_list[])
 {
-    PSCPU_clrAll(*gpumask);
+    uint16_t numDevs = getNumPCIDevs(ID_list);
 
-    /* Find GPU PCI devices by Class ID */
-    hwloc_obj_t pciobj = NULL;
+    if (!numDevs) return NULL;
+
+    PSCPU_set_t *sets = malloc(getNUMADoms() * sizeof(*sets));
+    if (!sets) PSID_exit(errno, "%s: malloc()", __func__);
+    for (uint16_t d = 0; d < getNUMADoms(); d++) PSCPU_clrAll(sets[d]);
+
+    uint16_t *map = NULL;
+    if (PCIorder) {
+	map = getPCIorderMap(numDevs, ID_list);
+	if (!map) {
+	    PSID_log(-1, "%s: unable to get GPU map\n", __func__);
+	    PSID_finalizeLogs();
+	    exit(1);
+	}
+    }
+
+    PSCPU_set_t *CPUSets = PSIDnodes_CPUSet(PSC_getMyID());
+    if (!CPUSets) {
+	PSID_log(-1, "%s: unable to get GPU sets\n", __func__);
+	PSID_finalizeLogs();
+	exit(1);
+    }
+
+    hwloc_obj_t pciObj;
     int idx = 0;
-    while ((pciobj = hwloc_get_next_obj_by_type(topology,
-						HWLOC_OBJ_PCI_DEVICE,
-						pciobj))) {
-	/* ClassID needs to be "3D" */
-	if (pciobj->attr->pcidev.class_id != 0x0302) continue;
+    while ((pciObj = hwloc_get_next_obj_by_type(topology, HWLOC_OBJ_PCI_DEVICE,
+						pciObj))) {
+	/* Identify PCI device by vendor, device, subvendor and subdevice IDs */
+	if (!checkPCIDev(&pciObj->attr->pcidev, ID_list)) continue;
 
-	/* Find CPU set this gpu is connected to */
-	hwloc_obj_t obj = pciobj;
+	/* Find CPU set this device is connected to */
+	/* The detour via CPU sets is necessary since there is no
+	 * guarantee for a NUMA domain the device is associated to
+	 * (e.g. on UMA systems) */
+	hwloc_obj_t obj = pciObj;
 	while (obj && (!obj->cpuset || hwloc_bitmap_iszero(obj->cpuset))) {
 	    obj = obj->parent;
 	}
 
 	short hwthread;
+	bool found = false;
+	/* @todo what happens if cores are members of multiple NUMA domains? */
 	hwloc_bitmap_foreach_begin(hwthread, obj->cpuset) {
-	    if (PSCPU_isSet(*cpumask, hwthread)) {
-		PSCPU_setCPU(*gpumask, idx);
-		break;
+	    for (uint16_t d = 0; d < getNUMADoms(); d++) {
+		if (PSCPU_isSet(CPUSets[d], hwthread)) {
+		    PSCPU_setCPU(sets[d], map ? map[idx] : idx);
+		    found = true;
+		    break;
+		}
 	    }
+	    if (found) break;
 	} hwloc_bitmap_foreach_end();
 
 	idx++;
     }
-}
 
-PSCPU_set_t* PSID_getGPUmaskOfNUMAnodes(void)
-{
-    static PSCPU_set_t *masks = NULL;
+    if (map) free(map);
 
-    if (!masks) {
-	masks = malloc(PSID_getNUMAnodes() * sizeof(*masks));
-	if (!masks) {
-	    PSID_warn(-1, errno, "%s: malloc()", __func__);
-	    return NULL;
-	}
-
-	PSCPU_set_t *cpumasks = PSID_getCPUmaskOfNUMAnodes(false);
-
-	for (size_t i = 0; i < PSID_getNUMAnodes(); i++) {
-	    setGPUmaskForCPUmask(masks+i, cpumasks+i);
-	}
-    }
-
-    return masks;
+    return sets;
 }
 
 /** Info to be passed to @ref prepSwitchEnv() and @ref switchHWCB(). */
@@ -780,8 +892,8 @@ static void msg_HWSTOP(DDBufferMsg_t *msg)
 	     __func__, PSC_printTID(msg->header.sender));
 
     if (!PSID_checkPrivilege(msg->header.sender)) {
-	PSID_log(-1, "%s: task %s not allowed to stop HW\n",
-		 __func__, PSC_printTID(msg->header.sender));
+	PSID_log(-1, "%s: task %s not allowed to stop HW\n", __func__,
+		 PSC_printTID(msg->header.sender));
 
 	return;
     }
@@ -799,9 +911,55 @@ static void msg_HWSTOP(DDBufferMsg_t *msg)
     }
 }
 
+/** List of PCI devices identified as GPUs */
+// @todo make this configurable!!
+static PCI_ID_t GPU_ID_list[] = {
+    { 0x10de, 0x20b0, 0, 0 }, // NVIDIA A100-SXM4 (JUWELS)
+    { 0x10de, 0x1db6, 0, 0 }, // NVIDIA V100 PCIe (DEEP-EST DAM/ESB)
+    { 0x10de, 0x102d, 0, 0 }, // NVIDIA K80 PCIe (JURECA)
+    { 0, 0, 0, 0} };
+
+/** List of PCI devices identified as NICs */
+// @todo make this configurable!!
+static PCI_ID_t NIC_ID_list[] = {
+    { 0x15b3, 0x101b, 0, 0 }, // Mellanox ConnectX-6 (JUWELS Booster)
+    { 0x15b3, 0x1017, 0, 0 }, // Mellanox ConnectX-5 (DEEP-EST CM/ESB)
+    { 0x15b3, 0x1013, 0, 0 }, // Mellanox ConnectX-4 (JURECA/JUWELS)
+    { 0x15b3, 0x1011, 0, 0 }, // Mellanox Connect-IB (JUROPA3)
+    { 0x8086, 0x24f1, 0 ,0 }, // Omni-Path HFI [integrated] (JURECA Booster)
+    { 0, 0, 0, 0} };
+
 void initHW(void)
 {
     PSID_log(PSID_LOG_VERB, "%s()\n", __func__);
+
+    /* Determine various HW parameters and feed them into PSIDnodes */
+    uint16_t numNUMA = getNUMADoms();
+    if (!numNUMA) {
+	PSID_log(-1, "%s: Unable to determine NUMA domains\n", __func__);
+	PSID_finalizeLogs();
+	exit(1);
+    }
+    PSIDnodes_setNumNUMADoms(PSC_getMyID(), numNUMA);
+
+    PSCPU_set_t *CPUsets = getCPUSets();
+    PSIDnodes_setCPUSet(PSC_getMyID(), CPUsets);
+
+    uint16_t numGPUs = getNumPCIDevs(GPU_ID_list);
+    PSIDnodes_setNumGPUs(PSC_getMyID(), numGPUs);
+    if (numGPUs) {
+	// @todo make PCIe order configurable!!
+	PSCPU_set_t *GPUsets = getPCISets(true /* PCIe order */, GPU_ID_list);
+	PSIDnodes_setGPUSet(PSC_getMyID(), GPUsets);
+    }
+
+    uint16_t numNICs = getNumPCIDevs(NIC_ID_list);
+    PSIDnodes_setNumNICs(PSC_getMyID(), numNICs);
+    if (numNICs) {
+	// @todo make PCIe order configurable!!
+	PSCPU_set_t *NICsets = getPCISets(false /* PCIe order */, NIC_ID_list);
+	PSIDnodes_setNICSet(PSC_getMyID(), NICsets);
+    }
 
     PSID_registerMsg(PSP_CD_HWSTART, msg_HWSTART);
     PSID_registerMsg(PSP_CD_HWSTOP, msg_HWSTOP);

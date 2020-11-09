@@ -17,17 +17,15 @@
 #include "pscpu.h"
 #include "psprotocol.h"
 
-/** Maximum number of local NUMA nodes supported */
-#define PSNUMANODE_MAX 16
-
-/** Maximum number of local GPUs supported */
-#define PSGPU_MAX 32
-
 /**
  * @brief Initialize hardware stuff
  *
  * Initialize the communication hardware framework. This registers the
- * necessary message handlers.
+ * necessary message handlers and determines various hardware
+ * parameters of the local node and pushes them into the PSIDnodes
+ * facility. The parameters contain NUMA domains, distribution of
+ * hardware threads over NUMA domains, number and distribution over
+ * NUMA domains of GPUs and high performance NICs like HCAs or HFIs.
  *
  * @return No return value.
  */
@@ -83,7 +81,7 @@ void PSID_stopAllHW(void);
  * type = PSP_INFO_COUNTHEADER) or the actual counter line is
  * generated.
  *
- * @param insmsg The requesting message containig the hardwre, the
+ * @param insmsg The requesting message containing the hardware, the
  * actual type of information, the requester, etc.
  *
  * @return No return value.
@@ -124,95 +122,5 @@ int PSID_getHWthreads(void);
  * @return On success, the number of physical cores is returned
  */
 int PSID_getPhysCores(void);
-
-/**
- * @brief Get number of NUMA nodes
- *
- * Determine the number of NUMA nodes. This utilizes the hwloc
- * framework and returns the number of NUMA nodes detected there
- * or 1 if no NUMA nodes are detected, which is the normal case
- * for UMA systems.
- *
- * hwloc is initialized implicitly if this has not happened before.
- *
- * If for some reason the hwloc framework cannot be initialized,
- * exit() is called.
- *
- * @return On success, the number of NUMA nodes is returned
- */
-uint16_t PSID_getNUMAnodes(void);
-
-/**
- * @brief Get the CPU masks for all NUMA nodes
- *
- * Determine the CPU mask for each NUMA node and returns them as array.
- * This utilizes the hwloc framework.
- *
- * By using @a PSID_getNUMAnodes() this implicitly initializes hwloc
- * if this has not happened before and could result in exit().
- *
- * The array returned is indexed by NUMA node numbers. It is owned by
- * the psidhw framework and should not be changed or freed elsewhere.
- *
- * @param psorder Flag to return the masks in ParaStation CPU order
- * (thus mapped using cpu map)
- *
- * @return On success, the array of CPU masks is returned, on error, NULL
- * is returned
- */
-PSCPU_set_t* PSID_getCPUmaskOfNUMAnodes(bool psorder);
-
-/**
- * @brief Get number of GPUs
- *
- * Determine the number of graphics processing units. This utilizes the hwloc
- * framework and returns the number of GPUs detected there.
- *
- * This relies on the PCI device node of the GPU card in the hwloc topology
- * to have PCI Class ID 0x0302 (3D).
- *
- * hwloc is initialized implicitly if this has not happened before.
- *
- * If for some reason the hwloc framework cannot be initialized,
- * exit() is called.
- *
- * @return On success, the number of GPUs is returned, on error, 0 is returned
- */
-uint16_t PSID_getGPUs(void);
-
-/**
- * @brief Translate GPU ID in hwloc order to ID in PCI address order
- *
- * Translate the GPU ID @a gpu in hwloc order to the ID in PCI address
- * order.
- *
- * hwloc is initialized implicitly if this has not happened before.
- *
- * If for some reason the hwloc framework cannot be initialized,
- * exit() is called.
- *
- * @return On success, the ID in PCI address order is returned
- */
-uint16_t PSID_getGPUinPCIorder(uint16_t gpu);
-
-/**
- * @brief Get the GPU masks for all NUMA nodes
- *
- * Determine the GPU mask for each NUMA node and returns them as array.
- * This utilizes the hwloc framework.
- *
- * By using @a PSID_getNUMAnodes() this implicitly initializes hwloc
- * if this has not happened before and could result in exit().
- *
- * The array returned is indexed by the NUMA node numbers. It is owned by
- * the psidhw framework and should not be changed or freed elsewhere.
- *
- * This abuses the PSCPU framework to store the GPU masks. Just use it as
- * if the GPUs where single core CPUs.
- *
- * @return On success, the array of GPU masks is returned, on error, NULL
- * is returned
- */
-PSCPU_set_t* PSID_getGPUmaskOfNUMAnodes(void);
 
 #endif /* __PSIDHW_H */

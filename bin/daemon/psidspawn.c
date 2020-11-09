@@ -55,7 +55,6 @@
 #include "psidsignal.h"
 #include "psidaccount.h"
 #include "psidhook.h"
-#include "psidhw.h"
 
 #include "psidspawn.h"
 
@@ -378,52 +377,42 @@ void PSID_pinToCPUs(cpu_set_t *physSet)
 
 void PSID_bindToGPUs(cpu_set_t *physSet)
 {
-    uint16_t nodes = PSID_getNUMAnodes();
-    int threads = PSID_getHWthreads();
-    uint16_t gpus = PSID_getGPUs();
+    uint16_t numNUMA = PSIDnodes_numNUMADoms(PSC_getMyID());
+    int numThrds = PSIDnodes_getNumThrds(PSC_getMyID());
 
-    PSCPU_set_t *gpumap = PSID_getGPUmaskOfNUMAnodes();
-    PSCPU_set_t *cpumap = PSID_getCPUmaskOfNUMAnodes(false);
+    PSCPU_set_t *CPUSets = PSIDnodes_CPUSet(PSC_getMyID());
 
-#if 0
-    for(int i = 0; i < nodes; i++) {
-	fprintf(stderr, "%s: %s\n", __func__, PSCPU_print_part(cpumap[i], 12));
+    PSCPU_set_t thisSet;
+    PSCPU_clrAll(thisSet);
+    for (uint16_t t = 0; t < numThrds; t++) {
+	if (CPU_ISSET(t, physSet)) PSCPU_setCPU(thisSet, t);
     }
 
-    for(int i = 0; i < nodes; i++) {
-	fprintf(stderr, "%s: %s\n", __func__, PSCPU_print_part(gpumap[i], 1));
-    }
-#endif
-
-    bool used[PSNUMANODE_MAX];
+    bool used[numNUMA];
     memset(used, 0, sizeof(used));
 
-    /* find numa nodes this process is running on */
-    for (int node = 0; node < nodes; node++) {
-	for (int16_t cpu = 0; cpu < threads; cpu++) {
-	    if (CPU_ISSET(cpu, physSet) && PSCPU_isSet(cpumap[node], cpu)) {
-		PSID_log(PSID_LOG_SPAWN, "%s: NUMA domain %d used\n",
-			 __func__, node);
-		used[node] = true;
-		break;
-	    }
+    /* identify NUMA domains this process will run on */
+    for (uint16_t d = 0; d < numNUMA; d++) {
+	if (PSCPU_overlap(thisSet, CPUSets[d], numThrds)) {
+	    PSID_log(PSID_LOG_SPAWN, "%s: use NUMA domain %d\n", __func__, d);
+	    used[d] = true;
 	}
     }
 
     /* build list of GPUs connected to those NUMA nodes */
-    uint16_t closelist[PSGPU_MAX];
+    uint16_t numGPUs = PSIDnodes_numGPUs(PSC_getMyID());
+    PSCPU_set_t *GPUsets = PSIDnodes_GPUSet(PSC_getMyID());
+    uint16_t closelist[numGPUs];
     size_t closecount = 0;
-    for (int node = 0; node < nodes; node++) {
-	if (!used[node]) continue;
-	for (uint16_t gpu = 0; gpu < gpus; gpu++) {
-	    if (PSCPU_isSet(gpumap[node], gpu)) {
-		closelist[closecount++] = PSID_getGPUinPCIorder(gpu);
-	    }
+    for (uint16_t d = 0; d < numNUMA; d++) {
+	if (!used[d]) continue;
+	for (uint16_t gpu = 0; gpu < numGPUs; gpu++) {
+	    if (PSCPU_isSet(GPUsets[d], gpu)) closelist[closecount++] = gpu;
 	}
     }
 
     /* build list of usable GPUs */
-    uint16_t usablelist[PSGPU_MAX];
+    uint16_t usablelist[numNUMA];
     size_t usablecount = 0;
     char *usable = getenv("__PSI_USE_GPUS");
     if (usable) {
@@ -437,7 +426,7 @@ void PSID_bindToGPUs(cpu_set_t *physSet)
 	free(tmp);
     }
 
-    char val[3*PSGPU_MAX];
+    char val[3*numNUMA];
     size_t len = 0;
 
     /* build string listing the usable GPUs connected to those NUMA nodes */
