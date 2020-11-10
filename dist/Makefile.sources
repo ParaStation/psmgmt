@@ -277,6 +277,9 @@ plugins/cgroup/cgrouplog.c \
 plugins/cgroup/cgrouplog.h \
 plugins/jail/Makefile.am \
 plugins/jail/Makefile.in \
+plugins/jail/jail-config.inc \
+plugins/jail/jail-functions.inc \
+plugins/jail/jail-term.sh \
 plugins/jail/jail.c \
 plugins/jail/jail.conf \
 plugins/jail/jail.sh \

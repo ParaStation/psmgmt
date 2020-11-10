@@ -283,6 +283,9 @@ exit 0
 %{_plugindir}/jail.so
 %exclude %{_plugindir}/jail.la
 %config(noreplace) %{_plugindir}/jail.conf
+%config(noreplace) %{_plugindir}/jail-config.inc
+%config(noreplace) %{_plugindir}/jail-functions.inc
+%config(noreplace) %{_plugindir}/jail-term.sh
 %config(noreplace) %{_plugindir}/jail.sh
 %{_plugindir}/nodeinfo.so
 %exclude %{_plugindir}/nodeinfo.la

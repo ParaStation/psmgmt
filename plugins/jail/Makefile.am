@@ -1,7 +1,7 @@
 #
 # ParaStation
 #
-# Copyright (C) 2018 ParTec Cluster Competence Center GmbH, Munich
+# Copyright (C) 2018-2020 ParTec Cluster Competence Center GmbH, Munich
 #
 # This file may be distributed under the terms of the Q Public License
 # as defined in the file LICENSE.QPL included in the packaging of this
@@ -23,4 +23,4 @@ jail_la_CPPFLAGS = $(AM_CPPFLAGS) -DPLUGINDIR=\"$(plugindir)\"
 jail_la_LIBADD = $(libplugincommon) $(libpscommon)
 
 dist_plugin_DATA = jail.conf
-dist_plugin_SCRIPTS = jail.sh
+dist_plugin_SCRIPTS = jail-config.inc jail-functions.inc jail-term.sh jail.sh
