@@ -1,0 +1,11 @@
+This directory contains different topologies created via:
+lstopo-no-graphics topo.`hostname -s`.xml
+
+File		   System
+topo.dp-cn01.xml   DEEP-EST CM
+topo.dp-dam01.xml  DEEP-EST DAM
+topo.dp-esb01.xml  DEEP-EST ESB with EDR IB
+topo.jrc0386.xml   JURECA-DC GPU partition
+topo.jrc5001.xml   JURECA-Booster
+topo.jwb0001.xml   JUWELS-Booster
+topo.jwc00n001.xml JUWELS-Cluster CPU partition
