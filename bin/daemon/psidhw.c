@@ -914,7 +914,7 @@ static void msg_HWSTOP(DDBufferMsg_t *msg)
 /** List of PCI devices identified as GPUs */
 // @todo make this configurable!!
 static PCI_ID_t GPU_ID_list[] = {
-    { 0x10de, 0x20b0, 0, 0 }, // NVIDIA A100-SXM4 (JUWELS)
+    { 0x10de, 0x20b0, 0, 0 }, // NVIDIA A100-SXM4 (JUWELS-Booster)
     { 0x10de, 0x1db6, 0, 0 }, // NVIDIA V100 PCIe (DEEP-EST DAM/ESB)
     { 0x10de, 0x102d, 0, 0 }, // NVIDIA K80 PCIe (JURECA)
     { 0, 0, 0, 0} };
@@ -922,11 +922,12 @@ static PCI_ID_t GPU_ID_list[] = {
 /** List of PCI devices identified as NICs */
 // @todo make this configurable!!
 static PCI_ID_t NIC_ID_list[] = {
-    { 0x15b3, 0x101b, 0, 0 }, // Mellanox ConnectX-6 (JUWELS Booster)
+    { 0x15b3, 0x101b, 0, 0 }, // Mellanox ConnectX-6 (JURECA-DC/JUWELS-Booster)
     { 0x15b3, 0x1017, 0, 0 }, // Mellanox ConnectX-5 (DEEP-EST CM/ESB)
     { 0x15b3, 0x1013, 0, 0 }, // Mellanox ConnectX-4 (JURECA/JUWELS)
     { 0x15b3, 0x1011, 0, 0 }, // Mellanox Connect-IB (JUROPA3)
     { 0x8086, 0x24f1, 0 ,0 }, // Omni-Path HFI [integrated] (JURECA Booster)
+    { 0x1cad, 0x0011, 0, 0 }, // Extoll Tourmalet (rev 01) (DEEP-EST DAM)
     { 0, 0, 0, 0} };
 
 void initHW(void)
