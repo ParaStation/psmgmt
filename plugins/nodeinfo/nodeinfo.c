@@ -234,15 +234,16 @@ static char *printSets(PSnodes_ID_t node, char *tag, uint16_t numNUMA,
     StrBuffer_t strBuf = {
 	.buf = NULL,
 	.bufSize = 0 };
+    char line[80];
 
     addStrBuf("\n", &strBuf);
     addStrBuf(tag, &strBuf);
     if (node != PSC_getMyID()) {
-	char line[80];
 	snprintf(line, sizeof(line), " (for node %d)", node);
 	addStrBuf(line, &strBuf);
     }
-    addStrBuf(":\n", &strBuf);
+    snprintf(line, sizeof(line), ": %d devices\n", setSize);
+    addStrBuf(line, &strBuf);
 
     if (!sets) {
 	addStrBuf("\t<none>\n", &strBuf);
@@ -250,7 +251,6 @@ static char *printSets(PSnodes_ID_t node, char *tag, uint16_t numNUMA,
     }
 
     for (uint16_t dom = 0; dom < numNUMA; dom++) {
-	char line[80];
 	snprintf(line, sizeof(line), "\t%d\t%s\n", dom,
 		 PSCPU_print_part(sets[dom], PSCPU_bytesForCPUs(setSize)));
 	addStrBuf(line, &strBuf);

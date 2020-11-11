@@ -399,12 +399,16 @@ static PSCPU_set_t * getPCISets(bool PCIorder, PCI_ID_t ID_list[])
 	exit(1);
     }
 
-    hwloc_obj_t pciObj;
     int idx = 0;
+    hwloc_obj_t pciObj = NULL;
     while ((pciObj = hwloc_get_next_obj_by_type(topology, HWLOC_OBJ_PCI_DEVICE,
 						pciObj))) {
 	/* Identify PCI device by vendor, device, subvendor and subdevice IDs */
+	PSID_log(PSID_LOG_HW, "%s: Investigate %x:%x\n", __func__,
+		 pciObj->attr->pcidev.vendor_id,
+		 pciObj->attr->pcidev.device_id);
 	if (!checkPCIDev(&pciObj->attr->pcidev, ID_list)) continue;
+	PSID_log(PSID_LOG_HW, "%s: Match\n", __func__);
 
 	/* Find CPU set this device is connected to */
 	/* The detour via CPU sets is necessary since there is no
@@ -428,6 +432,9 @@ static PSCPU_set_t * getPCISets(bool PCIorder, PCI_ID_t ID_list[])
 	    for (uint16_t d = 0; d < getNUMADoms(); d++) {
 		if (PSCPU_isSet(CPUSets[d], hwthread)) {
 		    PSCPU_setCPU(sets[d], map ? map[idx] : idx);
+		    PSID_log(PSID_LOG_HW, "%s: register as %d at %d\n",
+			     __func__, map ? map[idx] : idx, d);
+
 		    found = true;
 		    break;
 		}
