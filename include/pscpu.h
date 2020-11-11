@@ -305,8 +305,8 @@ int PSCPU_getUnset(PSCPU_set_t set, uint16_t numBits,
  * Get a string describing the CPU-set @a set. The returned pointer
  * leads to a static character array that contains the
  * description. Sequent calls to @ref PSCPU_print() or @ref
- * PSCPU_print() will change the content of this array. Therefore the
- * result is not what you expect if more than one call of this
+ * PSCPU_print_part() will change the content of this array. Therefore
+ * the result is not what you expect if more than one call of this
  * function is made within a single argument-list of printf(3) and
  * friends.
  *
