@@ -19,5 +19,6 @@
 #define PSP_PLUG_PSEXEC		    0x0204  /**< psexec message */
 #define PSP_PLUG_PSPMIX		    0x0205  /**< pspmix message */
 #define PSP_PLUG_PSGW		    0x0206  /**< psgw message */
+#define PSP_PLUG_NODEINFO	    0x0207  /**< nodeinfo message */
 
 #endif  /* __PSPLUGIN_PROTOCOL */

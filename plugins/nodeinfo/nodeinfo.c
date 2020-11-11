@@ -14,8 +14,12 @@
 #include <unistd.h>
 
 #include "plugin.h"
+#include "pscommon.h"
 #include "psprotocol.h"
+#include "pspluginprotocol.h"
+#include "psserial.h"
 
+#include "psidcomm.h"
 #include "psidhook.h"
 #include "psidnodes.h"
 #include "psidplugin.h"
@@ -25,6 +29,7 @@
 
 #include "nodeinfolog.h"
 #include "nodeinfoconfig.h"
+#include "nodeinfotypes.h"
 
 /** psid plugin requirements */
 char name[] = "nodeinfo";
@@ -32,9 +37,163 @@ int version = 1;
 int requiredAPI = 129;
 plugin_dep_t dependencies[] = { { NULL, 0 } };
 
-static void sendTopologyData(PSnodes_ID_t id)
+static void addCPUMapData(PS_SendDB_t *data)
 {
-    // @todo
+    int16_t numThrds = PSIDnodes_getNumThrds(PSC_getMyID());
+    if (numThrds <= 0) return;
+
+    addUint8ToMsg(PSP_NODEINFO_CPUMAP, data);
+    addUint16ToMsg(numThrds, data);
+    for (uint16_t thrd = 0; thrd < numThrds; thrd++) {
+	addInt16ToMsg(PSIDnodes_mapCPU(PSC_getMyID(), thrd), data);
+    }
+}
+
+bool handleCPUMapData(char **ptr, PSnodes_ID_t sender)
+{
+    uint16_t numThrds;
+    getUint16(ptr, &numThrds);
+
+    if (PSIDnodes_clearCPUMap(sender) < 0) return false;
+
+    for (uint16_t thrd = 0; thrd < numThrds; thrd++) {
+	int16_t mappedThrd;
+	getInt16(ptr, &mappedThrd);
+	if (PSIDnodes_appendCPUMap(sender, mappedThrd) < 0) return false;
+    }
+
+    return true;
+}
+
+static void addSetsData(PSP_NodeInfo_t type, PSCPU_set_t *sets,
+			int16_t setSize, PS_SendDB_t *data)
+{
+    uint16_t numNUMA = PSIDnodes_numNUMADoms(PSC_getMyID());
+    if (!numNUMA || setSize <= 0 || !sets) return;
+
+    addUint8ToMsg(type, data);
+    addUint16ToMsg(numNUMA, data);
+    addInt16ToMsg(setSize, data);
+    uint16_t nBytes = PSCPU_bytesForCPUs(setSize);
+    for (uint16_t dom = 0; dom < numNUMA; dom++) {
+	uint8_t setBuf[nBytes];
+	PSCPU_extract(setBuf, sets[dom], nBytes);
+	for (uint16_t b = 0; b < nBytes; b++) addUint8ToMsg(setBuf[b], data);
+    }
+}
+
+static bool handleSetData(char **ptr, PSnodes_ID_t sender,
+			  int setSetSize(PSnodes_ID_t, short),
+			  int setSets(PSnodes_ID_t, PSCPU_set_t *))
+{
+    uint16_t numNUMA;
+    getUint16(ptr, &numNUMA);
+    if (!PSIDnodes_numNUMADoms(sender)) {
+	PSIDnodes_setNumNUMADoms(sender, numNUMA);
+    } else if (PSIDnodes_numNUMADoms(sender) != numNUMA) {
+	mlog("%s: mismatch in numNUMA %d/%d\n", __func__, numNUMA,
+	     PSIDnodes_numNUMADoms(sender));
+	return false;
+    }
+
+    int16_t setSize;
+    getUint16(ptr, &setSize);
+    setSetSize(sender, setSize);
+
+    PSCPU_set_t *sets = malloc(numNUMA * sizeof(*sets));
+    uint16_t nBytes = PSCPU_bytesForCPUs(setSize);
+    for (uint16_t dom = 0; dom < numNUMA; dom++) {
+	uint8_t setBuf[nBytes];
+	for (uint16_t b = 0; b < nBytes; b++) getUint8(ptr, &setBuf[b]);
+	PSCPU_clrAll(sets[dom]);
+	PSCPU_inject(sets[dom], setBuf, nBytes);
+    }
+    setSets(sender, sets);
+
+    return true;
+}
+
+/**
+ * @brief Send nodeinfo data
+ *
+ * Send the nodeinfo data of the local node to node @a node.
+ *
+ * @param node Destination node
+ *
+ * @return No return value
+ */
+static void sendNodeInfoData(PSnodes_ID_t node)
+{
+    PS_SendDB_t data;
+
+    if (!PSC_validNode(node)) {
+	mlog("%s: invalid node id %i\n", __func__, node);
+	return;
+    }
+
+    initFragBuffer(&data, PSP_PLUG_NODEINFO, 0);
+    setFragDest(&data, PSC_getTID(node, 0));
+
+    addCPUMapData(&data);
+    addSetsData(PSP_NODEINFO_NUMANODES, PSIDnodes_CPUSet(PSC_getMyID()),
+		PSIDnodes_getNumThrds(PSC_getMyID()), &data);
+    addSetsData(PSP_NODEINFO_GPU, PSIDnodes_GPUSet(PSC_getMyID()),
+		PSIDnodes_numGPUs(PSC_getMyID()), &data);
+    addSetsData(PSP_NODEINFO_NIC, PSIDnodes_NICSet(PSC_getMyID()),
+		PSIDnodes_numNICs(PSC_getMyID()), &data);
+    addUint8ToMsg(0, &data); // declare end of message
+
+    /* send the messages */
+    sendFragMsg(&data);
+}
+
+static void broadcastMapData(void)
+{
+    PS_SendDB_t data;
+
+    mdbg(NODEINFO_LOG_VERBOSE,"%s: distribute map informaton\n", __func__);
+
+    initFragBuffer(&data, PSP_PLUG_NODEINFO, 0);
+    for (PSnodes_ID_t n = 0; n < PSC_getNrOfNodes(); n++) {
+	if (PSIDnodes_isUp(n)) setFragDest(&data, PSC_getTID(n, 0));
+    }
+    addCPUMapData(&data);
+
+    /* send the messages */
+    sendFragMsg(&data);
+}
+
+static void handleNodeInfoData(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
+{
+    PSnodes_ID_t sender = PSC_getID(msg->header.sender);
+    char *ptr = rData->buf;
+    PSP_NodeInfo_t type;
+
+    getUint8(&ptr, &type);
+    while (type) {
+	switch (type) {
+	case PSP_NODEINFO_CPUMAP:
+	    if (!handleCPUMapData(&ptr, sender)) return;
+	    break;
+	case PSP_NODEINFO_NUMANODES:
+	    if (!handleSetData(&ptr, sender, PSIDnodes_setNumNUMADoms,
+			       PSIDnodes_setCPUSet)) return;
+	    break;
+	case PSP_NODEINFO_GPU:
+	    if (!handleSetData(&ptr, sender, PSIDnodes_setNumGPUs,
+			       PSIDnodes_setGPUSet)) return;
+	    break;
+	case PSP_NODEINFO_NIC:
+	    if (!handleSetData(&ptr, sender, PSIDnodes_setNumNICs,
+			       PSIDnodes_setNICSet)) return;
+	    break;
+	default:
+	    mlog("%s: unknown type %d\n", __func__, type);
+	    return;
+	}
+	/* Peek into next type */
+	getUint8(&ptr, &type);
+    }
 }
 
 static int handleNodeUp(void *nodeID)
@@ -50,7 +209,7 @@ static int handleNodeUp(void *nodeID)
 
     if (id == PSC_getMyID()) return 1;
 
-    sendTopologyData(id);
+    sendNodeInfoData(id);
 
     return 1;
 }
@@ -85,12 +244,22 @@ static int handleDistInfo(void *infoType)
 
     PSP_Optval_t type = *(PSP_Optval_t *) infoType;
 
-    // @todo send info to be updated to all nodes
-    mlog("%s: going to distribute info of type %d\n", __func__, type);
+    switch (type) {
+    case PSP_OP_TRIGGER_DIST:
+	broadcastMapData();
+	break;
+    default:
+	mlog("%s: unsupported option type %d\n", __func__, type);
+    }
+
 
     return 1;
 }
 
+static void handleNodeInfoMsg(DDTypedBufferMsg_t *msg)
+{
+    recvFragMsg(msg, handleNodeInfoData);
+}
 
 /**
  * @brief Unregister all hooks and message handler.
@@ -103,13 +272,16 @@ static int handleDistInfo(void *infoType)
 static void unregisterHooks(bool verbose)
 {
     if (!PSIDhook_del(PSIDHOOK_NODE_UP, handleNodeUp)) {
-	mlog("%s: unregister 'PSIDHOOK_NODE_UP' failed\n", __func__);
+	if (verbose) mlog("%s: unregister 'PSIDHOOK_NODE_UP' failed\n",
+			  __func__);
     }
     if (!PSIDhook_del(PSIDHOOK_NODE_DOWN, handleNodeDown)) {
-	mlog("%s: unregister 'PSIDHOOK_NODE_DOWN' failed\n", __func__);
+	if (verbose) mlog("%s: unregister 'PSIDHOOK_NODE_DOWN' failed\n",
+			  __func__);
     }
     if (!PSIDhook_del(PSIDHOOK_DIST_INFO, handleDistInfo)) {
-	mlog("%s: unregister 'PSIDHOOK_DIST_INFO' failed\n", __func__);
+	if (verbose) mlog("%s: unregister 'PSIDHOOK_DIST_INFO' failed\n",
+			  __func__);
     }
 }
 
@@ -126,10 +298,6 @@ int initialize(void)
     maskNodeInfoLogger(mask);
     mdbg(NODEINFO_LOG_VERBOSE, "%s: debugMask set to %#x\n", __func__, mask);
 
-    // @todo setup structures to store remote topology data
-
-    // @todo setup data to send
-
     if (!PSIDhook_add(PSIDHOOK_NODE_UP, handleNodeUp)) {
 	mlog("%s: register 'PSIDHOOK_NODE_UP' failed\n", __func__);
 	goto INIT_ERROR;
@@ -143,14 +311,22 @@ int initialize(void)
 	goto INIT_ERROR;
     }
 
-    // @todo register message handler
+    if (!initSerial(0, sendMsg)) {
+	mlog("%s: initSerial() failed\n", __func__);
+	goto INIT_ERROR;
+    }
+
+    PSID_registerMsg(PSP_PLUG_NODEINFO, (handlerFunc_t) handleNodeInfoMsg);
 
     mlog("(%i) successfully started\n", version);
 
     return 0;
 
 INIT_ERROR:
+    PSID_clearMsg(PSP_PLUG_NODEINFO);
     unregisterHooks(false);
+    finalizeSerial();
+
     return 1;
 }
 
@@ -161,9 +337,9 @@ void finalize(void)
 
 void cleanup(void)
 {
+    PSID_clearMsg(PSP_PLUG_NODEINFO);
     unregisterHooks(true);
-
-    // @todo unregister message handler
+    finalizeSerial();
 }
 
 char *help(void)
