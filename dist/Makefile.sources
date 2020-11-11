@@ -272,6 +272,8 @@ plugins/jail/jailconfig.c \
 plugins/jail/jailconfig.h \
 plugins/jail/jaillog.c \
 plugins/jail/jaillog.h \
+plugins/nodeinfo/Makefile.am \
+plugins/nodeinfo/Makefile.in \
 plugins/nodeinfo/nodeinfo.c \
 plugins/nodeinfo/nodeinfoconfig.c \
 plugins/nodeinfo/nodeinfoconfig.h \
