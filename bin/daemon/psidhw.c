@@ -414,6 +414,12 @@ static PSCPU_set_t * getPCISets(bool PCIorder, PCI_ID_t ID_list[])
 	while (obj && (!obj->cpuset || hwloc_bitmap_iszero(obj->cpuset))) {
 	    obj = obj->parent;
 	}
+	if (!obj) {
+	    PSID_log(-1, "%s: unable to get CPU set for PCI device\n",
+		    __func__);
+	    PSID_finalizeLogs();
+	    exit(1);
+	}
 
 	short hwthread;
 	bool found = false;
