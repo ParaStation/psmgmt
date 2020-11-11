@@ -118,6 +118,9 @@ int initialize(void)
     /* init logging facility */
     initNodeInfoLogger(name);
 
+    /* init default configuration (no config file yet; wait for psconfig?) */
+    initNodeInfoConfig();
+
     /* adapt the debug mask */
     int mask = getConfValueI(&nodeInfoConfig, "DEBUG_MASK");
     maskNodeInfoLogger(mask);

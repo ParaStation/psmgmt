@@ -7,9 +7,6 @@
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-#include "pluginconfig.h"
-#include "nodeinfolog.h"
-
 #include "nodeinfoconfig.h"
 
 const ConfDef_t confDef[] =

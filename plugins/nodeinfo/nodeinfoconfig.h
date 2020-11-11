@@ -24,8 +24,6 @@ extern const ConfDef_t confDef[];
  * Initialize the default configuration and save the result into @ref
  * nodeInfoConfig.
  *
- * @param cfgName Name of the configuration file to parse
- *
  * @return No return value
  */
 void initNodeInfoConfig(void);
