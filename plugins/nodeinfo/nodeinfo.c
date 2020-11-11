@@ -7,15 +7,17 @@
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-#include <stdio.h>
-#include <unistd.h>
 #include <stdbool.h>
+#include <stdio.h>
+#include <stdlib.h>
 #include <errno.h>
+#include <unistd.h>
 
 #include "plugin.h"
 #include "psprotocol.h"
 
 #include "psidhook.h"
+#include "psidnodes.h"
 #include "psidplugin.h"
 #include "psidutil.h"
 
@@ -31,7 +33,9 @@ int requiredAPI = 129;
 plugin_dep_t dependencies[] = { { NULL, 0 } };
 
 static void sendTopologyData(PSnodes_ID_t id)
-{}
+{
+    // @todo
+}
 
 static int handleNodeUp(void *nodeID)
 {
@@ -39,17 +43,14 @@ static int handleNodeUp(void *nodeID)
 
     PSnodes_ID_t id = *(PSnodes_ID_t *)nodeID;
 
-    if (id == PSC_getMyID()) return 1;
     if (!PSC_validNode(id)) {
 	mlog("%s: invalid node id %i\n", __func__, id);
 	return 1;
     }
 
-    if (id < PSC_getMyID()) {
-	sendTopologyData(id);
-    } else {
-	//nodeStatus[id].state = NResUnknown;
-    }
+    if (id == PSC_getMyID()) return 1;
+
+    sendTopologyData(id);
 
     return 1;
 }
@@ -65,7 +66,15 @@ static int handleNodeDown(void *nodeID)
 	return 1;
     }
 
-    // @todo cleanup topology data
+    if (id == PSC_getMyID()) return 1;
+
+    // reset/cleanup CPUmap and hardware topology data
+    PSIDnodes_setNumNUMADoms(id, 0);
+    PSIDnodes_setCPUSet(id, NULL);
+    PSIDnodes_setNumGPUs(id, 0);
+    PSIDnodes_setGPUSet(id, NULL);
+    PSIDnodes_setNumNICs(id, 0);
+    PSIDnodes_setNICSet(id, NULL);
 
     return 1;
 }
@@ -77,7 +86,7 @@ static int handleDistInfo(void *infoType)
     PSP_Optval_t type = *(PSP_Optval_t *) infoType;
 
     // @todo send info to be updated to all nodes
-    mlog("%s: goind to distribute info of type %d\n", __func__, type);
+    mlog("%s: going to distribute info of type %d\n", __func__, type);
 
     return 1;
 }
@@ -156,23 +165,29 @@ void cleanup(void)
 
 char *help(void)
 {
-    char *buf = NULL;
-    size_t bufSize = 0;
+    StrBuffer_t strBuf = {
+	.buf = NULL,
+	.bufSize = 0 };
+
+    addStrBuf("\tDistribute, collect and store info on node configurations\n\n",
+	      &strBuf);
+    addStrBuf("\tHW threads are displayed under key 'cpu'\n", &strBuf);
+    addStrBuf("\tGPUs are displayed under key 'gpu'\n", &strBuf);
+    addStrBuf("\tNICs are displayed under key 'nic'\n", &strBuf);
+    addStrBuf("\tCPU-maps are displayed under key 'map'\n", &strBuf);
+    addStrBuf("\tTo display all HW information use key 'all'\n", &strBuf);
+    addStrBuf("\n# configuration options #\n", &strBuf);
+
     int maxKeyLen = getMaxKeyLen(confDef);
-
-    str2Buf("\tDistribute, collect and store info on node configurations\n\n",
-	    &buf, &bufSize);
-    str2Buf("# configuration options #\n", &buf, &bufSize);
-
     for (int i = 0; confDef[i].name; i++) {
 	char type[10], line[160];
 	snprintf(type, sizeof(type), "<%s>", confDef[i].type);
 	snprintf(line, sizeof(line), "%*s %10s  %s\n",
 		 maxKeyLen+2, confDef[i].name, type, confDef[i].desc);
-	str2Buf(line, &buf, &bufSize);
+	addStrBuf(line, &strBuf);
     }
 
-    return buf;
+    return strBuf.buf;
 }
 
 char *set(char *key, char *val)
@@ -210,32 +225,130 @@ char *unset(char *key)
     return NULL;
 }
 
+static char *printSets(PSnodes_ID_t node, char *tag, uint16_t numNUMA,
+		       PSCPU_set_t *sets, uint16_t setSize)
+{
+    StrBuffer_t strBuf = {
+	.buf = NULL,
+	.bufSize = 0 };
+
+    addStrBuf("\n", &strBuf);
+    addStrBuf(tag, &strBuf);
+    if (node != PSC_getMyID()) {
+	char line[80];
+	snprintf(line, sizeof(line), " (for node %d)", node);
+	addStrBuf(line, &strBuf);
+    }
+    addStrBuf(":\n", &strBuf);
+
+    if (!sets) {
+	addStrBuf("\t<none>\n", &strBuf);
+	return strBuf.buf;
+    }
+
+    for (uint16_t dom = 0; dom < numNUMA; dom++) {
+	char line[80];
+	snprintf(line, sizeof(line), "\t%d\t%s\n", dom,
+		 PSCPU_print_part(sets[dom], PSCPU_bytesForCPUs(setSize)));
+	addStrBuf(line, &strBuf);
+    }
+
+    return strBuf.buf;
+}
+
+static PSnodes_ID_t getNode(char *key)
+{
+    PSnodes_ID_t node = -1;
+    if (strlen(key) > 3 && key[3] == '_') {
+	sscanf(key + 4, "%hd", &node);
+    }
+    if (!PSC_validNode(node)) node = PSC_getMyID();
+
+    return node;
+}
+
+static char *showMap(char *key)
+{
+    StrBuffer_t strBuf = {
+	.buf = NULL,
+	.bufSize = 0 };
+    PSnodes_ID_t node = getNode(key);
+    char line[80];
+
+    addStrBuf("\nMap", &strBuf);
+    if (node != PSC_getMyID()) {
+	snprintf(line, sizeof(line), " (for node %d)", node);
+	addStrBuf(line, &strBuf);
+    }
+    addStrBuf(":\n\t", &strBuf);
+    for (uint16_t thrd = 0; thrd < PSIDnodes_getNumThrds(node); thrd++) {
+	snprintf(line, sizeof(line), " %d->%d", thrd,
+		 PSIDnodes_mapCPU(node, thrd));
+	addStrBuf(line, &strBuf);
+    }
+    addStrBuf("\n", &strBuf);
+
+    return strBuf.buf;
+}
+
 
 char *show(char *key)
 {
-    char *buf = NULL, *val;
-    size_t bufSize = 0;
+    StrBuffer_t strBuf = {
+	.buf = NULL,
+	.bufSize = 0 };
+    char *val;
 
     if (!key) {
 	/* Show the whole configuration */
 	int maxKeyLen = getMaxKeyLen(confDef);
-	int i;
 
-	str2Buf("\n", &buf, &bufSize);
-	for (i = 0; confDef[i].name; i++) {
+	addStrBuf("\n", &strBuf);
+	for (int i = 0; confDef[i].name; i++) {
 	    char *cName = confDef[i].name, line[160];
 	    val = getConfValueC(&nodeInfoConfig, cName);
-
 	    snprintf(line, sizeof(line), "%*s = %s\n", maxKeyLen+2, cName, val);
-	    str2Buf(line, &buf, &bufSize);
+	    addStrBuf(line, &strBuf);
 	}
+    } else if (!(strncmp(key, "cpu", strlen("cpu")))) {
+	PSnodes_ID_t node = getNode(key);
+	return printSets(node, "HW threads", PSIDnodes_numNUMADoms(node),
+			 PSIDnodes_CPUSet(node), PSIDnodes_getNumThrds(node));
+    } else if (!(strncmp(key, "gpu", strlen("gpu")))) {
+	PSnodes_ID_t node = getNode(key);
+	return printSets(node, "GPUs", PSIDnodes_numNUMADoms(node),
+			 PSIDnodes_GPUSet(node), PSIDnodes_numGPUs(node));
+    } else if (!(strncmp(key, "nic", strlen("nic")))) {
+	PSnodes_ID_t node = getNode(key);
+	return printSets(node, "NICs", PSIDnodes_numNUMADoms(node),
+			 PSIDnodes_NICSet(node), PSIDnodes_numNICs(node));
+    } else if (!(strncmp(key, "map", strlen("map")))) {
+	return showMap(key);
+    } else if (!(strncmp(key, "all", strlen("all")))) {
+	PSnodes_ID_t node = getNode(key);
+	char *tmp;
+	tmp = printSets(node, "HW threads", PSIDnodes_numNUMADoms(node),
+			PSIDnodes_CPUSet(node), PSIDnodes_getNumThrds(node));
+	addStrBuf(tmp, &strBuf);
+	free(tmp);
+	tmp = showMap(key);
+	addStrBuf(tmp, &strBuf);
+	free(tmp);
+	tmp = printSets(node, "GPUs", PSIDnodes_numNUMADoms(node),
+			PSIDnodes_GPUSet(node), PSIDnodes_numGPUs(node));
+	addStrBuf(tmp, &strBuf);
+	free(tmp);
+	tmp = printSets(node, "NICs", PSIDnodes_numNUMADoms(node),
+			PSIDnodes_NICSet(node), PSIDnodes_numNICs(node));
+	addStrBuf(tmp, &strBuf);
+	free(tmp);
     } else if ((val = getConfValueC(&nodeInfoConfig, key))) {
-	str2Buf("\n", &buf, &bufSize);
-	str2Buf(key, &buf, &bufSize);
-	str2Buf(" = ", &buf, &bufSize);
-	str2Buf(val, &buf, &bufSize);
-	str2Buf("\n", &buf, &bufSize);
+	addStrBuf("\n", &strBuf);
+	addStrBuf(key, &strBuf);
+	addStrBuf(" = ", &strBuf);
+	addStrBuf(val, &strBuf);
+	addStrBuf("\n", &strBuf);
     }
 
-    return buf;
+    return strBuf.buf;
 }
