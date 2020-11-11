@@ -940,7 +940,7 @@ short PSIDnodes_numNUMADoms(PSnodes_ID_t id);
  *
  * @return On success, 0 is returned; or -1 if an error occurred
  */
-int PSIDnodes_setCPUSet(PSnodes_ID_t id, PSCPU_set_t *CPUset);
+int PSIDnodes_setCPUSets(PSnodes_ID_t id, PSCPU_set_t *CPUset);
 
 /**
  * @brief Get node's hardware thread distribution over NUMA domains
@@ -964,7 +964,7 @@ int PSIDnodes_setCPUSet(PSnodes_ID_t id, PSCPU_set_t *CPUset);
  * @return If the node was found, an array of bit-sets is returned;
  * or NULL if an error occurred or no distribution was set.
  */
-PSCPU_set_t * PSIDnodes_CPUSet(PSnodes_ID_t id);
+PSCPU_set_t * PSIDnodes_CPUSets(PSnodes_ID_t id);
 
 /**
  * @brief Set node's number of GPUs
@@ -1020,7 +1020,7 @@ short PSIDnodes_numGPUs(PSnodes_ID_t id);
  *
  * @return On success, 0 is returned; or -1 if an error occurred
  */
-int PSIDnodes_setGPUSet(PSnodes_ID_t id, PSCPU_set_t *GPUset);
+int PSIDnodes_setGPUSets(PSnodes_ID_t id, PSCPU_set_t *GPUset);
 
 /**
  * @brief Get node's GPUs distribution over NUMA domains
@@ -1042,7 +1042,7 @@ int PSIDnodes_setGPUSet(PSnodes_ID_t id, PSCPU_set_t *GPUset);
  * @return If the node was found, an array of bit-sets is returned;
  * or NULL if an error occurred or no distribution was set.
  */
-PSCPU_set_t * PSIDnodes_GPUSet(PSnodes_ID_t id);
+PSCPU_set_t * PSIDnodes_GPUSets(PSnodes_ID_t id);
 
 /**
  * @brief Set node's number of NICs
@@ -1101,7 +1101,7 @@ short PSIDnodes_numNICs(PSnodes_ID_t id);
  *
  * @return On success, 0 is returned; or -1 if an error occurred
  */
-int PSIDnodes_setNICSet(PSnodes_ID_t id, PSCPU_set_t *NICset);
+int PSIDnodes_setNICSets(PSnodes_ID_t id, PSCPU_set_t *NICset);
 
 /**
  * @brief Get node's NICs distribution over NUMA domains
@@ -1123,7 +1123,7 @@ int PSIDnodes_setNICSet(PSnodes_ID_t id, PSCPU_set_t *NICset);
  * @return If the node was found, an array of bit-sets is returned;
  * or NULL if an error occurred or no distribution was set
  */
-PSCPU_set_t * PSIDnodes_NICSet(PSnodes_ID_t id);
+PSCPU_set_t * PSIDnodes_NICSets(PSnodes_ID_t id);
 
 
 /**

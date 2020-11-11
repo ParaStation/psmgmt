@@ -1004,7 +1004,7 @@ short PSIDnodes_numNUMADoms(PSnodes_ID_t id)
     return nodes[id].numNUMADoms;
 }
 
-int PSIDnodes_setCPUSet(PSnodes_ID_t id, PSCPU_set_t *CPUset)
+int PSIDnodes_setCPUSets(PSnodes_ID_t id, PSCPU_set_t *CPUset)
 {
     if (!validID(id)) return -1;
 
@@ -1013,7 +1013,7 @@ int PSIDnodes_setCPUSet(PSnodes_ID_t id, PSCPU_set_t *CPUset)
     return 0;
 }
 
-PSCPU_set_t * PSIDnodes_CPUSet(PSnodes_ID_t id)
+PSCPU_set_t * PSIDnodes_CPUSets(PSnodes_ID_t id)
 {
     if (!validID(id)) return NULL;
 
@@ -1035,7 +1035,7 @@ short PSIDnodes_numGPUs(PSnodes_ID_t id)
     return nodes[id].numGPUs;
 }
 
-int PSIDnodes_setGPUSet(PSnodes_ID_t id, PSCPU_set_t *GPUset)
+int PSIDnodes_setGPUSets(PSnodes_ID_t id, PSCPU_set_t *GPUset)
 {
     if (!validID(id)) return -1;
 
@@ -1044,7 +1044,7 @@ int PSIDnodes_setGPUSet(PSnodes_ID_t id, PSCPU_set_t *GPUset)
     return 0;
 }
 
-PSCPU_set_t * PSIDnodes_GPUSet(PSnodes_ID_t id)
+PSCPU_set_t * PSIDnodes_GPUSets(PSnodes_ID_t id)
 {
     if (!validID(id)) return NULL;
 
@@ -1066,7 +1066,7 @@ short PSIDnodes_numNICs(PSnodes_ID_t id)
     return nodes[id].numNICs;
 }
 
-int PSIDnodes_setNICSet(PSnodes_ID_t id, PSCPU_set_t *NICset)
+int PSIDnodes_setNICSets(PSnodes_ID_t id, PSCPU_set_t *NICset)
 {
     if (!validID(id)) return -1;
 
@@ -1075,7 +1075,7 @@ int PSIDnodes_setNICSet(PSnodes_ID_t id, PSCPU_set_t *NICset)
     return 0;
 }
 
-PSCPU_set_t * PSIDnodes_NICSet(PSnodes_ID_t id)
+PSCPU_set_t * PSIDnodes_NICSets(PSnodes_ID_t id)
 {
     if (!validID(id)) return NULL;
 

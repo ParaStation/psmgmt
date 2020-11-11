@@ -173,7 +173,7 @@ static uint16_t getNUMADoms(void)
  * The array returned is indexed by NUMA domain numbers. It is
  * allocated via malloc() and has to be free()ed by the caller once it
  * is no longer needed. Thus, it is well suited to be registered to
- * the PSIDnodes facility via PSIDnodes_setCPUSet().
+ * the PSIDnodes facility via PSIDnodes_setCPUSets().
  *
  * @return On success, the array of CPU set is returned; on error, NULL
  * might be returned
@@ -360,8 +360,8 @@ static uint16_t * getPCIorderMap(uint16_t numDevs, PCI_ID_t ID_list[])
  * The array returned is indexed by NUMA domain numbers. It is
  * allocated via malloc() and has to be free()ed by the caller once it
  * is no longer needed. Thus, it is well suited to be registered to
- * the PSIDnodes facility via PSIDnodes_setGPUSet() or
- * PSIDnodes_setNICSet().
+ * the PSIDnodes facility via PSIDnodes_setGPUSets() or
+ * PSIDnodes_setNICSets().
  *
  * @param PCIorder Flag to trigger PCI device order for numbering the
  * PCI devices to handle
@@ -392,7 +392,7 @@ static PSCPU_set_t * getPCISets(bool PCIorder, PCI_ID_t ID_list[])
 	}
     }
 
-    PSCPU_set_t *CPUSets = PSIDnodes_CPUSet(PSC_getMyID());
+    PSCPU_set_t *CPUSets = PSIDnodes_CPUSets(PSC_getMyID());
     if (!CPUSets) {
 	PSID_log(-1, "%s: unable to get CPU sets\n", __func__);
 	PSID_finalizeLogs();
@@ -957,14 +957,14 @@ void initHW(void)
     PSIDnodes_setNumNUMADoms(PSC_getMyID(), numNUMA);
 
     PSCPU_set_t *CPUsets = getCPUSets();
-    PSIDnodes_setCPUSet(PSC_getMyID(), CPUsets);
+    PSIDnodes_setCPUSets(PSC_getMyID(), CPUsets);
 
     uint16_t numGPUs = getNumPCIDevs(GPU_ID_list);
     PSIDnodes_setNumGPUs(PSC_getMyID(), numGPUs);
     if (numGPUs) {
 	// @todo make PCIe order configurable!!
 	PSCPU_set_t *GPUsets = getPCISets(true /* PCIe order */, GPU_ID_list);
-	PSIDnodes_setGPUSet(PSC_getMyID(), GPUsets);
+	PSIDnodes_setGPUSets(PSC_getMyID(), GPUsets);
     }
 
     uint16_t numNICs = getNumPCIDevs(NIC_ID_list);
@@ -972,7 +972,7 @@ void initHW(void)
     if (numNICs) {
 	// @todo make PCIe order configurable!!
 	PSCPU_set_t *NICsets = getPCISets(false /* PCIe order */, NIC_ID_list);
-	PSIDnodes_setNICSet(PSC_getMyID(), NICsets);
+	PSIDnodes_setNICSets(PSC_getMyID(), NICsets);
     }
 
     PSID_registerMsg(PSP_CD_HWSTART, msg_HWSTART);

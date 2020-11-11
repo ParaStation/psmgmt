@@ -135,11 +135,11 @@ static void sendNodeInfoData(PSnodes_ID_t node)
     setFragDest(&data, PSC_getTID(node, 0));
 
     addCPUMapData(&data);
-    addSetsData(PSP_NODEINFO_NUMANODES, PSIDnodes_CPUSet(PSC_getMyID()),
+    addSetsData(PSP_NODEINFO_NUMANODES, PSIDnodes_CPUSets(PSC_getMyID()),
 		PSIDnodes_getNumThrds(PSC_getMyID()), &data);
-    addSetsData(PSP_NODEINFO_GPU, PSIDnodes_GPUSet(PSC_getMyID()),
+    addSetsData(PSP_NODEINFO_GPU, PSIDnodes_GPUSets(PSC_getMyID()),
 		PSIDnodes_numGPUs(PSC_getMyID()), &data);
-    addSetsData(PSP_NODEINFO_NIC, PSIDnodes_NICSet(PSC_getMyID()),
+    addSetsData(PSP_NODEINFO_NIC, PSIDnodes_NICSets(PSC_getMyID()),
 		PSIDnodes_numNICs(PSC_getMyID()), &data);
     addUint8ToMsg(0, &data); // declare end of message
 
@@ -177,15 +177,15 @@ static void handleNodeInfoData(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
 	    break;
 	case PSP_NODEINFO_NUMANODES:
 	    if (!handleSetData(&ptr, sender, PSIDnodes_setNumNUMADoms,
-			       PSIDnodes_setCPUSet)) return;
+			       PSIDnodes_setCPUSets)) return;
 	    break;
 	case PSP_NODEINFO_GPU:
 	    if (!handleSetData(&ptr, sender, PSIDnodes_setNumGPUs,
-			       PSIDnodes_setGPUSet)) return;
+			       PSIDnodes_setGPUSets)) return;
 	    break;
 	case PSP_NODEINFO_NIC:
 	    if (!handleSetData(&ptr, sender, PSIDnodes_setNumNICs,
-			       PSIDnodes_setNICSet)) return;
+			       PSIDnodes_setNICSets)) return;
 	    break;
 	default:
 	    mlog("%s: unknown type %d\n", __func__, type);
@@ -229,11 +229,11 @@ static int handleNodeDown(void *nodeID)
 
     // reset/cleanup CPUmap and hardware topology data
     PSIDnodes_setNumNUMADoms(id, 0);
-    PSIDnodes_setCPUSet(id, NULL);
+    PSIDnodes_setCPUSets(id, NULL);
     PSIDnodes_setNumGPUs(id, 0);
-    PSIDnodes_setGPUSet(id, NULL);
+    PSIDnodes_setGPUSets(id, NULL);
     PSIDnodes_setNumNICs(id, 0);
-    PSIDnodes_setNICSet(id, NULL);
+    PSIDnodes_setNICSets(id, NULL);
 
     return 1;
 }
@@ -492,33 +492,33 @@ char *show(char *key)
     } else if (!(strncmp(key, "cpu", strlen("cpu")))) {
 	PSnodes_ID_t node = getNode(key);
 	return printSets(node, "HW threads", PSIDnodes_numNUMADoms(node),
-			 PSIDnodes_CPUSet(node), PSIDnodes_getNumThrds(node));
+			 PSIDnodes_CPUSets(node), PSIDnodes_getNumThrds(node));
     } else if (!(strncmp(key, "gpu", strlen("gpu")))) {
 	PSnodes_ID_t node = getNode(key);
 	return printSets(node, "GPUs", PSIDnodes_numNUMADoms(node),
-			 PSIDnodes_GPUSet(node), PSIDnodes_numGPUs(node));
+			 PSIDnodes_GPUSets(node), PSIDnodes_numGPUs(node));
     } else if (!(strncmp(key, "nic", strlen("nic")))) {
 	PSnodes_ID_t node = getNode(key);
 	return printSets(node, "NICs", PSIDnodes_numNUMADoms(node),
-			 PSIDnodes_NICSet(node), PSIDnodes_numNICs(node));
+			 PSIDnodes_NICSets(node), PSIDnodes_numNICs(node));
     } else if (!(strncmp(key, "map", strlen("map")))) {
 	return showMap(key);
     } else if (!(strncmp(key, "all", strlen("all")))) {
 	PSnodes_ID_t node = getNode(key);
 	char *tmp;
 	tmp = printSets(node, "HW threads", PSIDnodes_numNUMADoms(node),
-			PSIDnodes_CPUSet(node), PSIDnodes_getNumThrds(node));
+			PSIDnodes_CPUSets(node), PSIDnodes_getNumThrds(node));
 	addStrBuf(tmp, &strBuf);
 	free(tmp);
 	tmp = showMap(key);
 	addStrBuf(tmp, &strBuf);
 	free(tmp);
 	tmp = printSets(node, "GPUs", PSIDnodes_numNUMADoms(node),
-			PSIDnodes_GPUSet(node), PSIDnodes_numGPUs(node));
+			PSIDnodes_GPUSets(node), PSIDnodes_numGPUs(node));
 	addStrBuf(tmp, &strBuf);
 	free(tmp);
 	tmp = printSets(node, "NICs", PSIDnodes_numNUMADoms(node),
-			PSIDnodes_NICSet(node), PSIDnodes_numNICs(node));
+			PSIDnodes_NICSets(node), PSIDnodes_numNICs(node));
 	addStrBuf(tmp, &strBuf);
 	free(tmp);
     } else if ((val = getConfValueC(&nodeInfoConfig, key))) {

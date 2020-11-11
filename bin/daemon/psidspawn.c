@@ -380,7 +380,7 @@ void PSID_bindToGPUs(cpu_set_t *physSet)
     uint16_t numNUMA = PSIDnodes_numNUMADoms(PSC_getMyID());
     int numThrds = PSIDnodes_getNumThrds(PSC_getMyID());
 
-    PSCPU_set_t *CPUSets = PSIDnodes_CPUSet(PSC_getMyID());
+    PSCPU_set_t *CPUSets = PSIDnodes_CPUSets(PSC_getMyID());
 
     PSCPU_set_t thisSet;
     PSCPU_clrAll(thisSet);
@@ -401,7 +401,7 @@ void PSID_bindToGPUs(cpu_set_t *physSet)
 
     /* build list of GPUs connected to those NUMA nodes */
     uint16_t numGPUs = PSIDnodes_numGPUs(PSC_getMyID());
-    PSCPU_set_t *GPUsets = PSIDnodes_GPUSet(PSC_getMyID());
+    PSCPU_set_t *GPUsets = PSIDnodes_GPUSets(PSC_getMyID());
     uint16_t closelist[numGPUs];
     size_t closecount = 0;
     for (uint16_t d = 0; d < numNUMA; d++) {
