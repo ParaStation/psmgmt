@@ -201,7 +201,7 @@ static PSCPU_set_t * getCPUSets(void)
     return sets;
 }
 
-/* Type used to identiy PCI devices in checkPCIDev() and callers */
+/* Type used to identify PCI devices in checkPCIDev() and callers */
 typedef struct {
     unsigned short vendor_id;
     unsigned short device_id;
@@ -386,7 +386,7 @@ static PSCPU_set_t * getPCISets(bool PCIorder, PCI_ID_t ID_list[])
     if (PCIorder) {
 	map = getPCIorderMap(numDevs, ID_list);
 	if (!map) {
-	    PSID_log(-1, "%s: unable to get GPU map\n", __func__);
+	    PSID_log(-1, "%s: unable to get PCI device map\n", __func__);
 	    PSID_finalizeLogs();
 	    exit(1);
 	}
@@ -394,7 +394,7 @@ static PSCPU_set_t * getPCISets(bool PCIorder, PCI_ID_t ID_list[])
 
     PSCPU_set_t *CPUSets = PSIDnodes_CPUSet(PSC_getMyID());
     if (!CPUSets) {
-	PSID_log(-1, "%s: unable to get GPU sets\n", __func__);
+	PSID_log(-1, "%s: unable to get CPU sets\n", __func__);
 	PSID_finalizeLogs();
 	exit(1);
     }
