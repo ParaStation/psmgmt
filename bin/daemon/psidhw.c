@@ -941,6 +941,7 @@ static PCI_ID_t NIC_ID_list[] = {
     { 0x15b3, 0x1011, 0, 0 }, // Mellanox Connect-IB (JUROPA3)
     { 0x8086, 0x24f1, 0 ,0 }, // Omni-Path HFI [integrated] (JURECA Booster)
     { 0x1cad, 0x0011, 0, 0 }, // Extoll Tourmalet (rev 01) (DEEP-EST DAM)
+    { 0x1fc1, 0x0010, 0, 0 }, // QLogic IBA6120 InfiniBand HCA (testcluster)
     { 0, 0, 0, 0} };
 
 void initHW(void)
