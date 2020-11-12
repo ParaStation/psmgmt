@@ -475,7 +475,7 @@ void sendPElogueReq(char *jobid, char *sUid, char *sGid, uint32_t nrOfNodes,
 
 int main(const int argc, const char *argv[], char *envp[])
 {
-    uint32_t nrOfNodes, envc = 0;
+    uint32_t nrOfNodes = 0, envc = 0;
     PSnodes_ID_t *nodes = NULL;
     env_t env, clone;
     char *filter[] = { "SLURM_SPANK_*", "_SLURM_SPANK_OPTION_*", "SLURM_JOBID",
