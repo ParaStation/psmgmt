@@ -119,7 +119,7 @@ static void nodeInit(node_t *node)
     node->killDelay = 0;
     node->supplGrps = 0;
     node->maxStatTry = 1;
-    node->numNUMADoms = 1;
+    node->numNUMADoms = 0;
     node->CPUset = NULL;
     node->numGPUs = 0;
     node->GPUset = NULL;
