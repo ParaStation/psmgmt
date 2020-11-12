@@ -97,7 +97,7 @@ static bool handleSetData(char **ptr, PSnodes_ID_t sender,
     }
 
     int16_t setSize;
-    getUint16(ptr, &setSize);
+    getInt16(ptr, &setSize);
     if (setSetSize) setSetSize(sender, setSize);
 
     PSCPU_set_t *sets = malloc(numNUMA * sizeof(*sets));
@@ -155,9 +155,11 @@ static void broadcastMapData(void)
 
     initFragBuffer(&data, PSP_PLUG_NODEINFO, 0);
     for (PSnodes_ID_t n = 0; n < PSC_getNrOfNodes(); n++) {
-	if (PSIDnodes_isUp(n)) setFragDest(&data, PSC_getTID(n, 0));
+	if (n == PSC_getMyID() || !PSIDnodes_isUp(n)) continue;
+	setFragDest(&data, PSC_getTID(n, 0));
     }
     addCPUMapData(&data);
+    addUint8ToMsg(0, &data); // declare end of message
 
     /* send the messages */
     sendFragMsg(&data);
@@ -266,10 +268,9 @@ static void checkOtherNodes(void)
 
     initFragBuffer(&data, PSP_PLUG_NODEINFO, 0);
     for (PSnodes_ID_t n = 0; n < PSC_getNrOfNodes(); n++) {
-	if (PSIDnodes_isUp(n)) {
-	    setFragDest(&data, PSC_getTID(n, 0));
-	    numPartners++;
-	}
+	if (n == PSC_getMyID() || !PSIDnodes_isUp(n)) continue;
+	setFragDest(&data, PSC_getTID(n, 0));
+	numPartners++;
     }
 
     if (!numPartners) return; // no other nodes are up yet
