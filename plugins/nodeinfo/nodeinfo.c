@@ -98,7 +98,7 @@ static bool handleSetData(char **ptr, PSnodes_ID_t sender,
 
     int16_t setSize;
     getUint16(ptr, &setSize);
-    setSetSize(sender, setSize);
+    if (setSetSize) setSetSize(sender, setSize);
 
     PSCPU_set_t *sets = malloc(numNUMA * sizeof(*sets));
     uint16_t nBytes = PSCPU_bytesForCPUs(setSize);
@@ -176,7 +176,7 @@ static void handleNodeInfoData(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
 	    if (!handleCPUMapData(&ptr, sender)) return;
 	    break;
 	case PSP_NODEINFO_NUMANODES:
-	    if (!handleSetData(&ptr, sender, PSIDnodes_setNumNUMADoms,
+	    if (!handleSetData(&ptr, sender, NULL,
 			       PSIDnodes_setCPUSets)) return;
 	    break;
 	case PSP_NODEINFO_GPU:
