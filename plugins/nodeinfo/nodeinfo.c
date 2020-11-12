@@ -187,6 +187,9 @@ static void handleNodeInfoData(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
 	    if (!handleSetData(&ptr, sender, PSIDnodes_setNumNICs,
 			       PSIDnodes_setNICSets)) return;
 	    break;
+	case PSP_NODEINFO_REQ:
+	    sendNodeInfoData(sender);
+	    break;
 	default:
 	    mlog("%s: unknown type %d\n", __func__, type);
 	    return;
@@ -249,11 +252,40 @@ static int handleDistInfo(void *infoType)
 	broadcastMapData();
 	break;
     default:
-	mlog("%s: unsupported option type %#0.2x\n", __func__, type);
+	mlog("%s: unsupported option type %#04x\n", __func__, type);
     }
 
 
     return 1;
+}
+
+static void checkOtherNodes(void)
+{
+    PS_SendDB_t data;
+    int numPartners = 0;
+
+    initFragBuffer(&data, PSP_PLUG_NODEINFO, 0);
+    for (PSnodes_ID_t n = 0; n < PSC_getNrOfNodes(); n++) {
+	if (PSIDnodes_isUp(n)) {
+	    setFragDest(&data, PSC_getTID(n, 0));
+	    numPartners++;
+	}
+    }
+
+    if (!numPartners) return; // no other nodes are up yet
+
+    addUint8ToMsg(PSP_NODEINFO_REQ, &data);  // request info
+    addCPUMapData(&data);
+    addSetsData(PSP_NODEINFO_NUMANODES, PSIDnodes_CPUSets(PSC_getMyID()),
+		PSIDnodes_getNumThrds(PSC_getMyID()), &data);
+    addSetsData(PSP_NODEINFO_GPU, PSIDnodes_GPUSets(PSC_getMyID()),
+		PSIDnodes_numGPUs(PSC_getMyID()), &data);
+    addSetsData(PSP_NODEINFO_NIC, PSIDnodes_NICSets(PSC_getMyID()),
+		PSIDnodes_numNICs(PSC_getMyID()), &data);
+    addUint8ToMsg(0, &data);  // declare end of message
+
+    /* send the messages */
+    sendFragMsg(&data);
 }
 
 static void handleNodeInfoMsg(DDTypedBufferMsg_t *msg)
@@ -319,6 +351,9 @@ int initialize(void)
     PSID_registerMsg(PSP_PLUG_NODEINFO, (handlerFunc_t) handleNodeInfoMsg);
 
     mlog("(%i) successfully started\n", version);
+
+    /* Test if we were loaded late (far after psid startu) and send/req info */
+    checkOtherNodes();
 
     return 0;
 
