@@ -375,6 +375,12 @@ void cleanup(void)
     PSID_clearMsg(PSP_PLUG_NODEINFO);
     unregisterHooks(true);
     finalizeSerial();
+    freeConfig(&nodeInfoConfig);
+
+    mlog("...Bye.\n");
+
+    /* release the logger */
+    logger_finalize(nodeInfoLogger);
 }
 
 char *help(void)
