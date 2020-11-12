@@ -365,11 +365,6 @@ INIT_ERROR:
     return 1;
 }
 
-void finalize(void)
-{
-    PSIDplugin_unload(name);
-}
-
 void cleanup(void)
 {
     PSID_clearMsg(PSP_PLUG_NODEINFO);
