@@ -95,6 +95,7 @@ void cleanup(void)
     pspmix_finalizeDaemonModule();
 
 //    if (memoryDebug) fclose(memoryDebug); XXX wozu ist das gut?
+    freeConfig(&config);
 
     logger_finalize(pmixlogger);
 }

@@ -135,6 +135,7 @@ void cleanup(void)
     }
 
     if (jailScript) free(jailScript);
+    freeConfig(&config);
 
     jlog(-1, "...Bye.\n");
 
