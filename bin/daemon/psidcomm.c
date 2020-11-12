@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2018 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2020 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -390,7 +390,7 @@ int PSID_handleMsg(DDBufferMsg_t *msg)
 	}
     }
 
-    PSID_log(-1, "%s: Wrong msgtype %d (%s)\n", __func__,
+    PSID_log(-1, "%s: no handler for type %#x (%s)\n", __func__,
 	     msg->header.type, PSDaemonP_printMsg(msg->header.type));
 
     DDBufferMsg_t err = {

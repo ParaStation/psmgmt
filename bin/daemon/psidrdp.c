@@ -266,9 +266,7 @@ void PSIDRDP_handleMsg(int fd)
 	    PSID_log(-1, "%s: PSP_CD_CLIENTCONNECT on RDP?\n", __func__);
 	}
 
-	if (!PSID_handleMsg(&msg)) {
-	    PSID_log(-1, "%s: Problem on RDP-socket\n", __func__);
-	}
+	PSID_handleMsg(&msg);
     }
 }
 

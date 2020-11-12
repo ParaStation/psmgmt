@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2019 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2020 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -10,16 +10,20 @@
  */
 #include <stdio.h>
 
+#include "pspluginprotocol.h"
+
 #include "psdaemonprotocol.h"
 
 /*
  * string identification of message IDs.
  * Nicer output for errors and debugging.
  */
-static struct {
+typedef struct {
     int id;
-    char *message;
-} ctrlmessages[] = {
+    char *name;
+} msgString_t;
+
+static msgString_t daemonMessages[] = {
     { PSP_DD_DAEMONCONNECT    , "PSP_DD_DAEMONCONNECT"    },
     { PSP_DD_DAEMONESTABLISHED, "PSP_DD_DAEMONESTABLISHED"},
     { PSP_DD_DAEMONREFUSED    , "PSP_DD_DAEMONREFUSED"    },
@@ -46,17 +50,17 @@ static struct {
     { PSP_DD_GETPARTNL        , "PSP_DD_GETPARTNL"        },
     { PSP_DD_PROVIDEPART      , "PSP_DD_PROVIDEPART"      },
     { PSP_DD_PROVIDEPARTSL    , "PSP_DD_PROVIDEPARTSL"    },
-    { PSP_DD_PROVIDEPARTRP    , "PSP_DD_PROVIDEPARTRP"    },
     { PSP_DD_GETNODES         , "PSP_DD_GETNODES"         },
     { PSP_DD_GETTASKS         , "PSP_DD_GETTASKS"         },
     { PSP_DD_PROVIDETASK      , "PSP_DD_PROVIDETASK"      },
     { PSP_DD_PROVIDETASKSL    , "PSP_DD_PROVIDETASKSL"    },
-    { PSP_DD_PROVIDETASKRP    , "PSP_DD_PROVIDETASKRP"    },
     { PSP_DD_CANCELPART       , "PSP_DD_CANCELPART"       },
     { PSP_DD_TASKDEAD         , "PSP_DD_TASKDEAD"         },
     { PSP_DD_TASKSUSPEND      , "PSP_DD_TASKSUSPEND"      },
     { PSP_DD_TASKRESUME       , "PSP_DD_TASKRESUME"       },
     { PSP_DD_GETRANKNODE      , "PSP_DD_GETRANKNODE"      },
+    { PSP_DD_PROVIDETASKRP    , "PSP_DD_PROVIDETASKRP"    },
+    { PSP_DD_PROVIDEPARTRP    , "PSP_DD_PROVIDEPARTRP"    },
 
     { PSP_DD_LOAD             , "PSP_DD_LOAD"             },
     { PSP_DD_ACTIVE_NODES     , "PSP_DD_ACTIVE_NODES"     },
@@ -67,7 +71,6 @@ static struct {
     { PSP_DD_REGISTERPART     , "PSP_DD_REGISTERPART"     },
     { PSP_DD_REGISTERPARTSL   , "PSP_DD_REGISTERPARTSL"   },
     { PSP_DD_REGISTERPARTRP   , "PSP_DD_REGISTERPARTRP"   },
-
     { PSP_DD_GETRESERVATION   , "PSP_DD_GETRESERVATION"   },
     { PSP_DD_GETSLOTS         , "PSP_DD_GETSLOTS"         },
     { PSP_DD_SLOTSRES         , "PSP_DD_SLOTSRES"         },
@@ -79,23 +82,42 @@ static struct {
     {0,NULL}
 };
 
+static msgString_t pluginMessages[] = {
+    { PSP_PLUG_PSMOM          , "PSP_PLUG_PSMOM"          },
+    { PSP_PLUG_ACCOUNT        , "PSP_PLUG_ACCOUNT"        },
+    { PSP_PLUG_PELOGUE        , "PSP_PLUG_PELOGUE"        },
+    { PSP_PLUG_PSSLURM        , "PSP_PLUG_PSSLURM"        },
+    { PSP_PLUG_PSEXEC         , "PSP_PLUG_PSEXEC"         },
+    { PSP_PLUG_PSPMIX         , "PSP_PLUG_PSPMIX"         },
+    { PSP_PLUG_PSGW           , "PSP_PLUG_PSGW"           },
+    { PSP_PLUG_NODEINFO       , "PSP_PLUG_NODEINFO"       },
+    { 0, NULL }
+};
+
+static char *printDaemonMsg(int msgtype)
+{
+    int m = 0;
+    while (pluginMessages[m].name && pluginMessages[m].id != msgtype) m++;
+    if (pluginMessages[m].name) return pluginMessages[m].name;
+
+    static char txt[30];
+    snprintf(txt, sizeof(txt), "msgtype %#x UNKNOWN", msgtype);
+    return txt;
+}
+
 char *PSDaemonP_printMsg(int msgtype)
 {
-    static char txt[30];
-    int i = 0;
-
     if (msgtype < 0x0100) {
 	return PSP_printMsg(msgtype);
+    } else if (msgtype >= 0x0200) {
+	return printDaemonMsg(msgtype);
     }
 
-    while (ctrlmessages[i].id && ctrlmessages[i].id != msgtype) {
-	i++;
-    }
+    int m = 0;
+    while (daemonMessages[m].name && daemonMessages[m].id != msgtype) m++;
+    if (daemonMessages[m].name) return daemonMessages[m].name;
 
-    if (ctrlmessages[i].id) {
-	return ctrlmessages[i].message;
-    } else {
-	snprintf(txt, sizeof(txt), "msgtype 0x%x UNKNOWN", msgtype);
-	return txt;
-    }
+    static char txt[30];
+    snprintf(txt, sizeof(txt), "msgtype %#x UNKNOWN", msgtype);
+    return txt;
 }
