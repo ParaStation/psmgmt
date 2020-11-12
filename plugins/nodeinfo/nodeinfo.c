@@ -245,11 +245,11 @@ static int handleDistInfo(void *infoType)
     PSP_Optval_t type = *(PSP_Optval_t *) infoType;
 
     switch (type) {
-    case PSP_OP_TRIGGER_DIST:
+    case PSP_OP_CPUMAP:
 	broadcastMapData();
 	break;
     default:
-	mlog("%s: unsupported option type %d\n", __func__, type);
+	mlog("%s: unsupported option type %#0.2x\n", __func__, type);
     }
 
 
