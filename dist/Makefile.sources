@@ -279,7 +279,7 @@ plugins/nodeinfo/nodeinfoconfig.c \
 plugins/nodeinfo/nodeinfoconfig.h \
 plugins/nodeinfo/nodeinfolog.c \
 plugins/nodeinfo/nodeinfolog.h \
-plugins/nodeinfo/nodeinfotype.h \
+plugins/nodeinfo/nodeinfotypes.h \
 plugins/pelogue/Makefile.am \
 plugins/pelogue/Makefile.in \
 plugins/pelogue/pelogue.c \
