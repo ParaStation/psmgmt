@@ -15,14 +15,6 @@
 # This script will be called by the jail plugin via system() and get
 # the process ID of the process to be jailed as an argument.
 
-CommandPath=${0%/*}
-CHILD=${1}
-
-source $CommandPath/jail-functions.inc
-source $CommandPath/jail-config.inc
-
-exec 2>>$LOG_FILE 1>&2
-
 [ -n "$SLURM_USER" ] && export USER="$SLURM_USER"
 
 CG_USER="$BASE/$PREFIX-$USER"
@@ -38,12 +30,11 @@ CG_STEP="$CG_JOB/step-$SLURM_STEPID"
 if [ -n "$SLURM_STEPID" ]; then
 	mlog "killing step $SLURM_JOBID:$SLURM_STEPID with signal $KILL_SIGNAL"
 
-	[ -d "$CG_STEP" ] || {
+	if [ -d "$CG_STEP" ]; then
+		killTasks "$CG_STEP"
+	else
 		mlog "no cgroup step $CG_STEP"
-		exit 0
-	}
-
-	killTasks "$CG_STEP"
+	fi
 
 elif [ -n "$SLURM_JOBID" ]; then
 	mlog "killing job $SLURM_JOBID with signal $KILL_SIGNAL"
@@ -71,5 +62,3 @@ elif [ -n "$SLURM_JOBID" ]; then
 else
 	elog "missing SLURM_JOBID"
 fi
-
-exit 0;

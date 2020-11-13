@@ -8,8 +8,11 @@
 # as defined in the file LICENSE.QPL included in the packaging of this
 # file.
 
-# base directory of the cpuset cgroup
-BASE="/sys/fs/cgroup/cpuset"
+# active modules
+MODULES="cpuset,oom"
+
+# base directory of the cgroup filesystem
+CGROUP_BASE="/sys/fs/cgroup"
 
 # path to psnameexpand executable
 EXPAND="/opt/parastation/bin/psnameexpand"
@@ -27,4 +30,4 @@ PREFIX="psid"
 MAX_KILL_RETRY="10"
 
 # path to logging file
-LOG_FILE="/tmp/jail-term.log"
+LOG_FILE="/tmp/jail.log"
