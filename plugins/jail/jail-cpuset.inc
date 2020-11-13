@@ -67,7 +67,10 @@ else
 		fi
 	fi
 
-	echo "0-1" > $CG_USER/cpuset.mems
+	# set memory nodes from base for now
+	MEM_NODES=$(cat $BASE/cpuset.mems)
+
+	echo "$MEM_NODES" > $CG_USER/cpuset.mems
 	dlog "user cpuset: " $(cat $CG_USER/cpuset.cpus)
 
 	[ -n "$SLURM_JOBID" ] || elog "no jobid for pid $CHILD user $USER"
@@ -79,7 +82,7 @@ else
 	dlog "JOB: $SLURM_JOBID STEP:$SLURM_STEPID"
 
 	echo "$JOB_CPUS" > $CG_JOB/cpuset.cpus
-	echo "0-1" > $CG_JOB/cpuset.mems
+	echo "$MEM_NODES" > $CG_JOB/cpuset.mems
 
 	dlog "adding child $CHILD to $CG_JOB/tasks"
 	echo "$CHILD" > $CG_JOB/tasks
@@ -91,7 +94,7 @@ else
 		mdsave "$CG_STEP"
 
 		echo "$JOB_CPUS" > $CG_STEP/cpuset.cpus
-		echo "0-1" > $CG_STEP/cpuset.mems
+		echo "$MEM_NODES" > $CG_STEP/cpuset.mems
 
 		dlog "adding child $CHILD to $CG_STEP/tasks"
 		echo "$CHILD" > $CG_STEP/tasks
