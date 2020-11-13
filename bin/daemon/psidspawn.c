@@ -887,7 +887,11 @@ static void execForwarder(PStask_t *task)
 
     /* Jail all my children */
     pid_t pid = getpid();
-    PSIDhook_call(PSIDHOOK_JAIL_CHILD, &pid);
+    if (PSIDhook_call(PSIDHOOK_JAIL_CHILD, &pid) < 0) {
+	PSID_log(-1, "%s: hook PSIDHOOK_JAIL_CHILD failed\n", __func__);
+	eno = EINVAL;
+	goto error;
+    }
 
     /* fork the client */
     if (!(pid = fork())) {
