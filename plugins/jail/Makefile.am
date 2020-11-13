@@ -23,4 +23,6 @@ jail_la_CPPFLAGS = $(AM_CPPFLAGS) -DPLUGINDIR=\"$(plugindir)\"
 jail_la_LIBADD = $(libplugincommon) $(libpscommon)
 
 dist_plugin_DATA = jail.conf
-dist_plugin_SCRIPTS = jail-config.inc jail-functions.inc jail-term.sh jail.sh
+dist_plugin_SCRIPTS = jail-config.inc jail-cpuacct.inc jail-cpuset.inc \
+		      jail-functions.inc jail-main.sh jail-oom.inc \
+		      jail-term-cpuacct.inc jail-term-cpuset.inc
