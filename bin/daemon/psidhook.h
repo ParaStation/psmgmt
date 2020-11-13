@@ -104,7 +104,9 @@ typedef enum {
     PSIDHOOK_EXEC_FORWARDER,  /**< Right before forking the forwarder's child.
 				Arg is a pointer to the child's task structure.
 				The hook might be used to prepare the child's
-				and forwarder's environment */
+				and forwarder's environment. Return -1 if
+				preparation failed and the child will
+				be terminated. */
     PSIDHOOK_EXEC_CLIENT,     /**< Right before exec()ing the child, arg is a
 				pointer to the child's task structure. This
 				hook might be used to prepare the child's env */
@@ -176,7 +178,9 @@ typedef enum {
 				PElogue_Global_Res_t */
     PSIDHOOK_FRWRD_DSOCK,     /**< In forwarder's init() function, arg is a
 				pointer to the daemon socket. (obsolete!) */
-    PSIDHOOK_JAIL_CHILD,      /**< Jail child into cgroup, arg points to PID */
+    PSIDHOOK_JAIL_CHILD,      /**< Jail child into cgroup, arg points to PID.
+				Return -1 if jailing failed and the child
+				will be terminated. */
     PSIDHOOK_JAIL_TERM,	      /**< Terminate all jailed children of a cgroup,
 				arg points to PID */
     PSIDHOOK_CLEARMEM,        /**< Release memory after forking before handling
