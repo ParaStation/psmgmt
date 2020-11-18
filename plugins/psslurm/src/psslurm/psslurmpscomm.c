@@ -450,7 +450,7 @@ static int handleCreatePart(void *msg)
     task->partitionSize = 0;
 
     fdbg(PSSLURM_LOG_PART, "Created partition for task %s: size %u"
-	    "NODEFIRST %d EXCLUSIVE %d OVERBOOK %d WAIT %d EXACT %d\n",
+	    " NODEFIRST %d EXCLUSIVE %d OVERBOOK %d WAIT %d EXACT %d\n",
 	    PSC_printTID(task->tid), task->partitionSize,
 	    (task->options & PART_OPT_NODEFIRST) ? 1 : 0,
 	    (task->options & PART_OPT_EXCLUSIVE) ? 1 : 0,
