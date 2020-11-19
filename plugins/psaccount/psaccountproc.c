@@ -239,7 +239,29 @@ static void doKill(pid_t pid, pid_t pgroup, int sig)
     }
 }
 
-int signalChildren(pid_t mypid, pid_t child, pid_t pgrp, int sig)
+/**
+ * @brief Send signal to process and all descendants
+ *
+ * Send the signal @a sig to the process @a child and all its
+ * descendants. At the same time it is ensured that the signal will
+ * not be sent to the process @a mypid. This is to ensure that a
+ * process will not kill itself by accident. Beyond that the not only
+ * the processes itself are killed but also the corresponding process
+ * group @a pgrp unless it is 0. In the latter case the process group
+ * of the process itself as determined by psaccount will receive the
+ * signal.
+ *
+ * @param mypid My own PID to protect myself
+ *
+ * @param child PID of the process to receive the first signal
+ *
+ * @param pgrp Process group to also receive the signal
+ *
+ * @param sig Signal to send
+ *
+ * @return Total number of signals sent
+ */
+static int signalChildren(pid_t mypid, pid_t child, pid_t pgrp, int sig)
 {
     int sendCount = 0;
     list_t *p;
@@ -280,10 +302,8 @@ int signalSession(pid_t session, int sig)
     list_for_each(p, &procList) {
 	ProcSnapshot_t *proc = list_entry(p, ProcSnapshot_t, next);
 	if (proc->state == PROC_SIGNALED) continue;
-	if (proc->session == session) {
-	    if (proc->pid != mypid && proc->pid > 0) {
-		sendCount += signalChildren(mypid, proc->pid, proc->pgrp, sig);
-	    }
+	if (proc->session == session && proc->pid != mypid && proc->pid > 0) {
+	    sendCount += signalChildren(mypid, proc->pid, proc->pgrp, sig);
 	}
     }
 
