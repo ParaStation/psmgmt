@@ -5,6 +5,18 @@ Copyright (C) 2010-2020 ParTec Cluster Competence Center GmbH, Munich
 Please send bug reports, questions and suggestions to <support@par-tec.com>
 
 
+Version 5.1.33-1:
+=================
+Bugfixes:
+ - Abort loop over procList if unused snapshot is found (#2858)
+ - Do not unblock SIGTERM in pskill() if it was blocked before (#2856)
+ - Ensure pluginforwarder catches the correct SIGCHLD (#2856)
+ - Only forward pelogue output in plugins which actually requested it
+Enhancements:
+ - Fix debugging output in psslurm's handleCreatePart()
+ - More proper cleanup in more plugins
+
+
 Version 5.1.33:
 ===============
 Bugfixes:

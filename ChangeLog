@@ -1,3 +1,65 @@
+Version psmgmt-5.1.33-1:
+========================
+------------------------------------------------------------------------
+cea7d661 | Michael Rauh | Fri, 20 Nov 2020 12:50:41 +0100
+
+Bugfix: only forward pelogue output in plugins which
+actually requested it
+------------------------------------------------------------------------
+515635b4 | Norbert Eicker | Fri, 20 Nov 2020 03:07:31 +0100
+
+Make parameter name more meaningful
+------------------------------------------------------------------------
+e1a4eb02 | Norbert Eicker | Fri, 20 Nov 2020 03:04:51 +0100
+
+Abort loop over procList if unused snapshot is found
+------------------------------------------------------------------------
+14d27550 | Norbert Eicker | Fri, 20 Nov 2020 01:32:36 +0100
+
+Ensure pluginforwarder catches the correct SIGCHLD (#2856)
+------------------------------------------------------------------------
+6c83a0df | Norbert Eicker | Fri, 20 Nov 2020 01:06:06 +0100
+
+Booleanize selector some more
+------------------------------------------------------------------------
+af1f27ab | Norbert Eicker | Thu, 19 Nov 2020 23:38:13 +0100
+
+Make signalChildren() static
+------------------------------------------------------------------------
+2915c3cb | Norbert Eicker | Thu, 19 Nov 2020 22:39:25 +0100
+
+Do not unblock SIGTERM if it was blocked before (#2856)
+------------------------------------------------------------------------
+daa54cb7 | Stephan Krempel | Wed, 18 Nov 2020 16:32:29 +0100
+
+Fix debugging output in psslurm's handleCreatePart()
+------------------------------------------------------------------------
+bcb6edf4 | Thomas Moschny | Thu, 12 Nov 2020 15:09:47 +0100
+
+Silence a clang warning about possibly using an uninitailized variable.
+------------------------------------------------------------------------
+f634b9db | Thomas Moschny | Thu, 12 Nov 2020 15:01:03 +0100
+
+Remove 'h' modifier, argument is of type enum, i.e., int.
+------------------------------------------------------------------------
+5faf989f | Norbert Eicker | Thu, 12 Nov 2020 11:31:16 +0100
+
+More proper cleanup in more plugins
+------------------------------------------------------------------------
+c7fdd535 | Norbert Eicker | Thu, 5 Nov 2020 17:28:40 +0100
+
+Make message delivery to forwarders more readable
+------------------------------------------------------------------------
+a1b67a2e | Michael Rauh | Thu, 5 Nov 2020 12:45:41 +0100
+
+Remove obsolete forwarder control message check
+------------------------------------------------------------------------
+5820944a | Norbert Eicker | Thu, 5 Nov 2020 11:58:52 +0100
+
+Fix typo. News actually describes version 5.1.33
+------------------------------------------------------------------------
+
+
 Version psmgmt-5.1.33:
 ======================
 ------------------------------------------------------------------------
