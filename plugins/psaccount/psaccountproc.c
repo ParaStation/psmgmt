@@ -264,14 +264,18 @@ static void doKill(pid_t pid, pid_t pgroup, int sig)
 static int signalChildren(pid_t mypid, pid_t child, pid_t pgrp, int sig)
 {
     int sendCount = 0;
-    list_t *p;
 
     /* never send signal to myself */
     if (child == mypid) return 0;
 
+    list_t *p;
     list_for_each(p, &procList) {
 	ProcSnapshot_t *proc = list_entry(p, ProcSnapshot_t, next);
 	if (proc->state == PROC_SIGNALED) continue;
+	if (proc->state == PROC_UNUSED) {
+	    mlog("%s: abort due to UNUSED proc snapshot\n", __func__);
+	    break;
+	}
 	if (proc->ppid == child) {
 	    sendCount += signalChildren(mypid, proc->pid,
 					(pgrp > 0) ? proc->pgrp : pgrp, sig);
@@ -287,7 +291,6 @@ int signalSession(pid_t session, int sig)
 {
     pid_t mypid = getpid();
     int sendCount = 0;
-    list_t *p;
 
     /* don't kill zombies */
     if (session < 1) return 0;
@@ -299,9 +302,15 @@ int signalSession(pid_t session, int sig)
     /* we need up2date information */
     updateProcSnapshot();
 
+    list_t *p;
     list_for_each(p, &procList) {
 	ProcSnapshot_t *proc = list_entry(p, ProcSnapshot_t, next);
 	if (proc->state == PROC_SIGNALED) continue;
+	if (proc->state == PROC_UNUSED) {
+	    mlog("%s(%d, %d): abort due to UNUSED proc snapshot\n", __func__,
+		 session, sig);
+	    break;
+	}
 	if (proc->session == session && proc->pid != mypid && proc->pid > 0) {
 	    sendCount += signalChildren(mypid, proc->pid, proc->pgrp, sig);
 	}
@@ -316,14 +325,18 @@ int signalSession(pid_t session, int sig)
 void findDaemonProcs(uid_t uid, bool kill, bool warn)
 {
     pid_t mypid = getpid();
-    list_t *p;
 
     /* we need up2date information */
     updateProcSnapshot();
 
+    list_t *p;
     list_for_each(p, &procList) {
 	ProcSnapshot_t *proc = list_entry(p, ProcSnapshot_t, next);
 	if (proc->state == PROC_SIGNALED) continue;
+	if (proc->state == PROC_UNUSED) {
+	    mlog("%s: abort due to UNUSED proc snapshot\n", __func__);
+	    break;
+	}
 	if (proc->uid == uid && proc->ppid == 1) {
 	    if (warn) mlog("found %sdaemon process: pid %i uid %i\n",
 			   kill ? "and kill " : "", proc->pid, uid);
@@ -577,12 +590,12 @@ static void clearAllProcSnapshots(void)
 void getSessionInfo(int *count, char *buf, size_t size, int *userCount)
 {
     uid_t users[MAX_USER];
-    list_t *p;
 
     buf[0] = '\0';
     *count = 0;
     *userCount = 0;
 
+    list_t *p;
     list_for_each(p, &procList) {
 	ProcSnapshot_t *proc = list_entry(p, ProcSnapshot_t, next);
 	char sessStr[50];
