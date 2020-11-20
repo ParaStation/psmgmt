@@ -604,6 +604,10 @@ int handlePelogueOE(void *data)
     PElogueChild_t *pedata = oeData->child;
     uint32_t jobid = atoi(pedata->jobid);
 
+    /* don't forward output requested by other plugins */
+    bool fwEpilogueOE= getConfValueU(&Config, "PELOGUE_LOG_OE");
+    if (!fwEpilogueOE) return 0;
+
     Alloc_t *alloc = findAlloc(jobid);
     if (!alloc) {
 	static uint32_t errJobID = -1;

@@ -17,6 +17,7 @@
 #include "psgwlog.h"
 #include "psgwrequest.h"
 #include "psgwres.h"
+#include "psgwconfig.h"
 
 #include "psgwcomm.h"
 
@@ -29,7 +30,9 @@ int handlePelogueOE(void *pedata)
     PElogue_OEdata_t *oeData = pedata;
     PElogueChild_t *child = oeData->child;
 
-    flog("got new pelogue message\n");
+    /* don't forward messages requested by psslurm or other plugins */
+    int fwOE = getConfValueI(&config, "PELOGUE_LOG_OE");
+    if (!fwOE) return 0;
 
     /* forward output to leader */
     PS_SendDB_t data;
