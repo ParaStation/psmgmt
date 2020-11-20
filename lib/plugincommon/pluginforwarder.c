@@ -282,8 +282,18 @@ static int handleMthrSock(int fd, void *info)
  */
 static int handleSignalFd(int fd, void *info)
 {
-    sigChild = true;
-    Selector_startOver();
+    Forwarder_Data_t *fw = info;
+
+    struct signalfd_siginfo sigInfo;
+    if (read(fd, &sigInfo, sizeof(sigInfo)) < 0) {
+	pluginwarn(errno, "%s: read()", __func__);
+    }
+
+    if (sigInfo.ssi_signo == SIGCHLD && (pid_t)sigInfo.ssi_pid == fw->cPid) {
+	sigChild = true;
+	Selector_startOver();
+    }
+
     return 0;
 }
 
@@ -363,7 +373,7 @@ static bool initForwarder(int motherFD, Forwarder_Data_t *fw)
 	pluginwarn(errno, "%s: signalfd()", __func__);
 	return false;
     }
-    if (Selector_register(signalFD, handleSignalFd, NULL)) {
+    if (Selector_register(signalFD, handleSignalFd, fw)) {
 	pluginwarn(errno, "%s: Selector_register(signalFD)", __func__);
 	return false;
     }
@@ -461,7 +471,7 @@ static void forwarderLoop(Forwarder_Data_t *fw)
 
     while (!sigChild) {
 	if (Swait(-1) < 0  &&  errno != EINTR) {
-	    pluginwarn(errno, "%s: select()", __func__);
+	    pluginwarn(errno, "%s: Swait()", __func__);
 	    killForwarderChild(fw, SIGKILL, "Swait() error");
 	    break;
 	}
@@ -477,7 +487,6 @@ static void forwarderLoop(Forwarder_Data_t *fw)
 static void forwarderExit(Forwarder_Data_t *fw)
 {
     PSID_blockSig(1, SIGALRM);
-    PSID_blockSig(1, SIGCHLD);
     PSID_blockSig(1, SIGTERM);
 
     /* reset possible alarms */
@@ -665,7 +674,7 @@ static bool openOEpipes(Forwarder_Data_t *fw)
     /* stderr */
     if ((pipe(fw->stdErr)) == -1) {
 	pluginwarn(errno, "%s: create stderr pipe for job %s failed", __func__,
-	           fw->jobID);
+		   fw->jobID);
 	return false;
     }
     return true;
@@ -893,7 +902,8 @@ static int handleFwSock(int fd, void *info)
     if (!(fw->hideFWctrlMsg && msg.header.type == PSP_CC_MSG
 	&& lmsg->type <= 64)) {
 	if (fw->handleFwMsg && fw->handleFwMsg(lmsg, fw)) return 0;
-    } else if (fw->fwChildOE && (lmsg->type == STDOUT || lmsg->type == STDERR)) {
+    } else if (fw->fwChildOE
+	       && (lmsg->type == STDOUT || lmsg->type == STDERR)) {
 	/* forward child STDOUT/STDERR if requested */
 	if (fw->handleFwMsg) fw->handleFwMsg(lmsg, fw);
 	return 0;
