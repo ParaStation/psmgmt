@@ -242,7 +242,7 @@ static void doKill(pid_t pid, pid_t pgroup, int sig)
 /**
  * @brief Send signal to process and all descendants
  *
- * Send the signal @a sig to the process @a child and all its
+ * Send the signal @a sig to the process @a pid and all its
  * descendants. At the same time it is ensured that the signal will
  * not be sent to the process @a mypid. This is to ensure that a
  * process will not kill itself by accident. Beyond that the not only
@@ -253,7 +253,7 @@ static void doKill(pid_t pid, pid_t pgroup, int sig)
  *
  * @param mypid My own PID to protect myself
  *
- * @param child PID of the process to receive the first signal
+ * @param pid PID of the process to receive the first signal
  *
  * @param pgrp Process group to also receive the signal
  *
@@ -261,12 +261,12 @@ static void doKill(pid_t pid, pid_t pgroup, int sig)
  *
  * @return Total number of signals sent
  */
-static int signalChildren(pid_t mypid, pid_t child, pid_t pgrp, int sig)
+static int signalChildren(pid_t mypid, pid_t pid, pid_t pgrp, int sig)
 {
     int sendCount = 0;
 
     /* never send signal to myself */
-    if (child == mypid) return 0;
+    if (pid == mypid) return 0;
 
     list_t *p;
     list_for_each(p, &procList) {
@@ -276,12 +276,12 @@ static int signalChildren(pid_t mypid, pid_t child, pid_t pgrp, int sig)
 	    mlog("%s: abort due to UNUSED proc snapshot\n", __func__);
 	    break;
 	}
-	if (proc->ppid == child) {
+	if (proc->ppid == pid) {
 	    sendCount += signalChildren(mypid, proc->pid,
 					(pgrp > 0) ? proc->pgrp : pgrp, sig);
 	}
     }
-    doKill(child, pgrp, sig);
+    doKill(pid, pgrp, sig);
     sendCount++;
 
     return sendCount;
