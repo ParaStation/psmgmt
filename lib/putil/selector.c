@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2019 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2020 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -23,7 +23,7 @@
 #include "selector.h"
 
 /** Flag to let Sselect() start over, i.e. return 0 and all fds cleared */
-static int startOver = 0;
+static bool startOver = false;
 
 typedef enum {
     SEL_DRAINED = PSITEM_DRAINED,  /**< Unused and ready for discard */
@@ -575,7 +575,7 @@ int Selector_enable(int fd)
 
 void Selector_startOver(void)
 {
-    startOver = 1;
+    startOver = true;
 }
 
 #define NUM_EVENTS 20
@@ -832,7 +832,7 @@ int Sselect(int n, fd_set  *readfds,  fd_set  *writefds, fd_set *exceptfds,
 
     if (startOver) {
 	/* Hard start-over triggered */
-	startOver = 0;
+	startOver = false;
 	if (readfds)   FD_ZERO(readfds);
 	if (writefds)  FD_ZERO(writefds);
 	if (exceptfds) FD_ZERO(exceptfds);
@@ -996,7 +996,7 @@ int Swait(int timeout)
 
     if (startOver) {
 	/* Hard start-over triggered */
-	startOver = 0;
+	startOver = false;
 	return 0;
     }
 
