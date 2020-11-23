@@ -2303,15 +2303,15 @@ bool initSlurmdProto(void)
 	pver = autoVer;
     }
 
-    if (!strncmp(pver, "20.02", 5) || !strncmp(pver, "2002", 4)) {
+    if (!strncmp(pver, "20.11", 5) || !strncmp(pver, "2011", 4)) {
+	slurmProto = SLURM_20_11_PROTO_VERSION;
+	slurmProtoStr = ustrdup("20.11");
+    } else if (!strncmp(pver, "20.02", 5) || !strncmp(pver, "2002", 4)) {
 	slurmProto = SLURM_20_02_PROTO_VERSION;
 	slurmProtoStr = ustrdup("20.02");
     } else if (!strncmp(pver, "19.05", 5) || !strncmp(pver, "1905", 4)) {
 	slurmProto = SLURM_19_05_PROTO_VERSION;
 	slurmProtoStr = ustrdup("19.05");
-    } else if (!strncmp(pver, "18.08", 5) || !strncmp(pver, "1808", 4)) {
-	slurmProto = SLURM_18_08_PROTO_VERSION;
-	slurmProtoStr = ustrdup("18.08");
     } else {
 	mlog("%s: unsupported Slurm protocol version %s\n", __func__, pver);
 	return false;
