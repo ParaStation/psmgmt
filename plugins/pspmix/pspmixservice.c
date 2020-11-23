@@ -691,7 +691,6 @@ void pspmix_service_abort(void *clientObject)
     elog("%s: aborting on users request from rank %d\n", __func__,
 	    client->rank);
 
-    ufree(client);
     terminateJob();
 }
 

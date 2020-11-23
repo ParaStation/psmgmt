@@ -238,6 +238,9 @@ static pmix_status_t server_client_finalized_cb(const pmix_proc_t *proc,
 {
     mdbg(PSPMIX_LOG_CALL, "%s() called\n", __func__);
 
+    mlog("Got notification of finalization of %s:%d\n", proc->nspace,
+	    proc->rank);
+
     pspmix_service_clientFinalized(clientObject);
 
     return PMIX_OPERATION_SUCCEEDED;
@@ -254,6 +257,22 @@ static pmix_status_t server_abort_cb(const pmix_proc_t *proc,
 	size_t nprocs, pmix_op_cbfunc_t cbfunc, void *cbdata)
 {
     mdbg(PSPMIX_LOG_CALL, "%s() called\n", __func__);
+
+    mlog("Got notification of abort request by %s:%d for ", proc->nspace,
+	    proc->rank);
+    if (!procs || (nprocs == 1 && strcmp(procs[0].nspace, proc->nspace) == 0
+		    && procs[0].rank == PMIX_RANK_WILDCARD)) {
+	mlog("the whole namespace\n");
+    }
+    else {
+	for (size_t i = 0; i < nprocs; i++) {
+	    mlog(" %s%s:%d", i ? "," : "", proc[i].nspace, proc[i].rank);
+	}
+	mlog(" (not supported)\n");
+
+        // we do currently not support aborting subsets of namespaces
+	return PMIX_ERR_NOT_SUPPORTED;
+    }
 
     pspmix_service_abort(clientObject);
 
