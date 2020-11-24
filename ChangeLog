@@ -1,3 +1,19 @@
+Version psmgmt-5.1.33-2:
+========================
+------------------------------------------------------------------------
+13e4904d | Stephan Krempel | Mon, 23 Nov 2020 09:38:30 +0100
+
+pspmix: Improve PMIx_Abort handling to avoid double free()
+
+Only handle PMIx_Abort if the whole namespace (thus currently the
+whole job) is to be aborted. Else return NOT_SUPPORTED.
+
+Do not free the server object during PMIx_Abort handling, the server
+helper library seems to always call clientFinalized callback for each
+aborted client, too.
+------------------------------------------------------------------------
+
+
 Version psmgmt-5.1.33-1:
 ========================
 ------------------------------------------------------------------------

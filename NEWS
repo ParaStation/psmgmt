@@ -5,6 +5,12 @@ Copyright (C) 2010-2020 ParTec Cluster Competence Center GmbH, Munich
 Please send bug reports, questions and suggestions to <support@par-tec.com>
 
 
+Version 5.1.33-2:
+=================
+Bugfixes:
+ - Improve PMIx_Abort handling to avoid double free()
+
+
 Version 5.1.33-1:
 =================
 Bugfixes:
