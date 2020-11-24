@@ -141,8 +141,9 @@ am__uninstall_files_from_dir = { \
   }
 am__installdirs = "$(DESTDIR)$(bindir)" "$(DESTDIR)$(configdir)" \
 	"$(DESTDIR)$(init_ddir)" "$(DESTDIR)$(scriptsdir)" \
-	"$(DESTDIR)$(configdir)" "$(DESTDIR)$(sysconfdir)" \
-	"$(DESTDIR)$(profile_ddir)" "$(DESTDIR)$(unitdir)"
+	"$(DESTDIR)$(configdir)" "$(DESTDIR)$(gdbinit_ddir)" \
+	"$(DESTDIR)$(sysconfdir)" "$(DESTDIR)$(profile_ddir)" \
+	"$(DESTDIR)$(unitdir)"
 SCRIPTS = $(bin_SCRIPTS) $(config_SCRIPTS) $(init_d_SCRIPTS) \
 	$(noinst_SCRIPTS) $(scripts_SCRIPTS)
 AM_V_P = $(am__v_P_@AM_V@)
@@ -164,8 +165,8 @@ am__can_run_installinfo = \
     n|no|NO) false;; \
     *) (install-info --version) >/dev/null 2>&1;; \
   esac
-DATA = $(config_DATA) $(nobase_sysconf_DATA) $(profile_d_DATA) \
-	$(unit_DATA)
+DATA = $(config_DATA) $(gdbinit_d_DATA) $(nobase_sysconf_DATA) \
+	$(profile_d_DATA) $(unit_DATA)
 am__tagged_files = $(HEADERS) $(SOURCES) $(TAGS_FILES) $(LISP)
 am__DIST_COMMON = $(srcdir)/Makefile.in $(top_srcdir)/common.am \
 	compile config.guess config.sub depcomp install-sh ltmain.sh \
@@ -352,7 +353,7 @@ scriptsdir = $(prefix)/scripts
 #
 # ParaStation
 #
-# Copyright (C) 2012-2016 ParTec Cluster Competence Center GmbH, Munich
+# Copyright (C) 2012-2020 ParTec Cluster Competence Center GmbH, Munich
 #
 # This file may be distributed under the terms of the Q Public License
 # as defined in the file LICENSE.QPL included in the packaging of this
@@ -364,6 +365,8 @@ bin_SCRIPTS = psh psaccview
 profile_ddir = $(sysconfdir)/profile.d
 profile_d_DATA = psmgmt.csh psmgmt.sh
 init_ddir = $(sysconfdir)/init.d
+gdbinit_ddir = $(sysconfdir)/gdbinit.d
+gdbinit_d_DATA = psmgmt.gdb
 @HAVE_SYSTEMD_TRUE@unit_DATA = systemd/psid.service \
 @HAVE_SYSTEMD_TRUE@	systemd/psidstarter.socket \
 @HAVE_SYSTEMD_TRUE@	systemd/psidstarter@.service
@@ -375,7 +378,7 @@ scripts_SCRIPTS = ps_gmcounters
 noinst_SCRIPTS = psid2cmustatus memtest.py
 
 # for simplicity, put all dist files here, so no dist_ primaries above
-EXTRA_DIST = .gdbinit init.d/parastation.in loggerdebug.py lsf  \
+EXTRA_DIST = psmgmt.gdb init.d/parastation.in loggerdebug.py lsf  \
         memtest.py mpiexec.gdb mpirun_java parastation_tru64    \
         ps_acc.in ps_gm.in ps_gmcounters psaccview.in psh       \
         psid2cmustatus.in psmgmt.csh.in psmgmt.sh.in            \
@@ -589,6 +592,27 @@ uninstall-configDATA:
 	@list='$(config_DATA)'; test -n "$(configdir)" || list=; \
 	files=`for p in $$list; do echo $$p; done | sed -e 's|^.*/||'`; \
 	dir='$(DESTDIR)$(configdir)'; $(am__uninstall_files_from_dir)
+install-gdbinit_dDATA: $(gdbinit_d_DATA)
+	@$(NORMAL_INSTALL)
+	@list='$(gdbinit_d_DATA)'; test -n "$(gdbinit_ddir)" || list=; \
+	if test -n "$$list"; then \
+	  echo " $(MKDIR_P) '$(DESTDIR)$(gdbinit_ddir)'"; \
+	  $(MKDIR_P) "$(DESTDIR)$(gdbinit_ddir)" || exit 1; \
+	fi; \
+	for p in $$list; do \
+	  if test -f "$$p"; then d=; else d="$(srcdir)/"; fi; \
+	  echo "$$d$$p"; \
+	done | $(am__base_list) | \
+	while read files; do \
+	  echo " $(INSTALL_DATA) $$files '$(DESTDIR)$(gdbinit_ddir)'"; \
+	  $(INSTALL_DATA) $$files "$(DESTDIR)$(gdbinit_ddir)" || exit $$?; \
+	done
+
+uninstall-gdbinit_dDATA:
+	@$(NORMAL_UNINSTALL)
+	@list='$(gdbinit_d_DATA)'; test -n "$(gdbinit_ddir)" || list=; \
+	files=`for p in $$list; do echo $$p; done | sed -e 's|^.*/||'`; \
+	dir='$(DESTDIR)$(gdbinit_ddir)'; $(am__uninstall_files_from_dir)
 install-nobase_sysconfDATA: $(nobase_sysconf_DATA)
 	@$(NORMAL_INSTALL)
 	@list='$(nobase_sysconf_DATA)'; test -n "$(sysconfdir)" || list=; \
@@ -699,7 +723,7 @@ check-am: all-am
 check: check-am
 all-am: Makefile $(SCRIPTS) $(DATA)
 installdirs:
-	for dir in "$(DESTDIR)$(bindir)" "$(DESTDIR)$(configdir)" "$(DESTDIR)$(init_ddir)" "$(DESTDIR)$(scriptsdir)" "$(DESTDIR)$(configdir)" "$(DESTDIR)$(sysconfdir)" "$(DESTDIR)$(profile_ddir)" "$(DESTDIR)$(unitdir)"; do \
+	for dir in "$(DESTDIR)$(bindir)" "$(DESTDIR)$(configdir)" "$(DESTDIR)$(init_ddir)" "$(DESTDIR)$(scriptsdir)" "$(DESTDIR)$(configdir)" "$(DESTDIR)$(gdbinit_ddir)" "$(DESTDIR)$(sysconfdir)" "$(DESTDIR)$(profile_ddir)" "$(DESTDIR)$(unitdir)"; do \
 	  test -z "$$dir" || $(MKDIR_P) "$$dir"; \
 	done
 install: install-am
@@ -754,8 +778,8 @@ info: info-am
 info-am:
 
 install-data-am: install-configDATA install-configSCRIPTS \
-	install-init_dSCRIPTS install-profile_dDATA \
-	install-scriptsSCRIPTS install-unitDATA
+	install-gdbinit_dDATA install-init_dSCRIPTS \
+	install-profile_dDATA install-scriptsSCRIPTS install-unitDATA
 
 install-dvi: install-dvi-am
 
@@ -800,9 +824,10 @@ ps: ps-am
 ps-am:
 
 uninstall-am: uninstall-binSCRIPTS uninstall-configDATA \
-	uninstall-configSCRIPTS uninstall-init_dSCRIPTS \
-	uninstall-nobase_sysconfDATA uninstall-profile_dDATA \
-	uninstall-scriptsSCRIPTS uninstall-unitDATA
+	uninstall-configSCRIPTS uninstall-gdbinit_dDATA \
+	uninstall-init_dSCRIPTS uninstall-nobase_sysconfDATA \
+	uninstall-profile_dDATA uninstall-scriptsSCRIPTS \
+	uninstall-unitDATA
 
 .MAKE: install-am install-strip
 
@@ -811,16 +836,17 @@ uninstall-am: uninstall-binSCRIPTS uninstall-configDATA \
 	distclean-libtool distdir dvi dvi-am html html-am info info-am \
 	install install-am install-binSCRIPTS install-configDATA \
 	install-configSCRIPTS install-data install-data-am install-dvi \
-	install-dvi-am install-exec install-exec-am install-html \
-	install-html-am install-info install-info-am \
-	install-init_dSCRIPTS install-man install-nobase_sysconfDATA \
-	install-pdf install-pdf-am install-profile_dDATA install-ps \
-	install-ps-am install-scriptsSCRIPTS install-strip \
-	install-unitDATA installcheck installcheck-am installdirs \
-	maintainer-clean maintainer-clean-generic mostlyclean \
-	mostlyclean-generic mostlyclean-libtool pdf pdf-am ps ps-am \
-	tags-am uninstall uninstall-am uninstall-binSCRIPTS \
-	uninstall-configDATA uninstall-configSCRIPTS \
+	install-dvi-am install-exec install-exec-am \
+	install-gdbinit_dDATA install-html install-html-am \
+	install-info install-info-am install-init_dSCRIPTS install-man \
+	install-nobase_sysconfDATA install-pdf install-pdf-am \
+	install-profile_dDATA install-ps install-ps-am \
+	install-scriptsSCRIPTS install-strip install-unitDATA \
+	installcheck installcheck-am installdirs maintainer-clean \
+	maintainer-clean-generic mostlyclean mostlyclean-generic \
+	mostlyclean-libtool pdf pdf-am ps ps-am tags-am uninstall \
+	uninstall-am uninstall-binSCRIPTS uninstall-configDATA \
+	uninstall-configSCRIPTS uninstall-gdbinit_dDATA \
 	uninstall-init_dSCRIPTS uninstall-nobase_sysconfDATA \
 	uninstall-profile_dDATA uninstall-scriptsSCRIPTS \
 	uninstall-unitDATA

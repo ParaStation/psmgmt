@@ -1,7 +1,7 @@
 #
 # ParaStation
 #
-# Copyright (C) 2012-2016 ParTec Cluster Competence Center GmbH, Munich
+# Copyright (C) 2012-2020 ParTec Cluster Competence Center GmbH, Munich
 #
 # This file may be distributed under the terms of the Q Public License
 # as defined in the file LICENSE.QPL included in the packaging of this
@@ -16,6 +16,9 @@ bin_SCRIPTS = psh psaccview
 profile_ddir = $(sysconfdir)/profile.d
 profile_d_DATA = psmgmt.csh psmgmt.sh
 init_ddir = $(sysconfdir)/init.d
+gdbinit_ddir = $(sysconfdir)/gdbinit.d
+gdbinit_d_DATA = psmgmt.gdb
+
 
 if HAVE_SYSTEMD
   unit_DATA = systemd/psid.service
@@ -35,7 +38,7 @@ scripts_SCRIPTS = ps_gmcounters
 noinst_SCRIPTS = psid2cmustatus memtest.py
 
 # for simplicity, put all dist files here, so no dist_ primaries above
-EXTRA_DIST = .gdbinit init.d/parastation.in loggerdebug.py lsf  \
+EXTRA_DIST = psmgmt.gdb init.d/parastation.in loggerdebug.py lsf  \
         memtest.py mpiexec.gdb mpirun_java parastation_tru64    \
         ps_acc.in ps_gm.in ps_gmcounters psaccview.in psh       \
         psid2cmustatus.in psmgmt.csh.in psmgmt.sh.in            \

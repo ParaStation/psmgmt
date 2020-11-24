@@ -292,6 +292,7 @@ exit 0
 %{_plugindir}/psresport.so
 %exclude %{_plugindir}/psresport.la
 %config(noreplace) %{_plugindir}/psresport.conf
+%config(missingok,noreplace) %{_sysconfdir}/gdbinit.d/psmgmt.gdb
 %config(missingok,noreplace) %{_sysconfdir}/profile.d/psmgmt.sh
 %config(missingok,noreplace) %{_sysconfdir}/profile.d/psmgmt.csh
 %config(noreplace) %{_sysctldir}/99-psid.conf

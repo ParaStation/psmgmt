@@ -611,7 +611,7 @@ plugins/psslurm/src/spank/Makefile.am \
 plugins/psslurm/src/spank/Makefile.in \
 plugins/psslurm/src/spank/spank_api.c \
 plugins/psslurm/src/spank/spank_api.h \
-scripts/.gdbinit \
+scripts/psmgmt.gdb \
 scripts/Makefile.am \
 scripts/Makefile.in \
 scripts/compile \
