@@ -1,33 +1,19 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2011 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2011-2020 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
 /**
- * @file
- * Helper functions for environment handling.
- *
- * $Id$
- *
- * @author
- * Norbert Eicker <eicker@par-tec.com>
- *
+ * @file Helper functions for environment handling
  */
 #ifndef __PSIDENV_H
 #define __PSIDENV_H
 
 #include "pstask.h"
-
-#ifdef __cplusplus
-extern "C" {
-#if 0
-} /* <- just for emacs indentation */
-#endif
-#endif
 
 /**
  * @brief Initialize environment stuff
@@ -55,10 +41,5 @@ void initEnvironment(void);
  * @return No return value.
  */
 void PSID_sendEnvList(PStask_ID_t dest, char *key);
-
-
-#ifdef __cplusplus
-}/* extern "C" */
-#endif
 
 #endif  /* __PSIDENV_H */

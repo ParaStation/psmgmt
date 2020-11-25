@@ -2,31 +2,17 @@
  * ParaStation
  *
  * Copyright (C) 2002-2003 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2008 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2020 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
 /**
- * \file
- * ParaStation MultiCast facility
- *
- * $Id$
- *
- * \author
- * Norbert Eicker <eicker@par-tec.com>
- *
+ * @file ParaStation MultiCast facility
  */
 #ifndef __MCAST_H
 #define __MCAST_H
-
-#ifdef __cplusplus
-extern "C" {
-#if 0
-} /* <- just for emacs indentation */
-#endif
-#endif
 
 #include <stdio.h>
 #include <stdint.h>
@@ -284,8 +270,4 @@ void getInfoMCast(int node, MCastConInfo_t* info);
  */
 void getStateInfoMCast(int node, char* string, size_t len);
 
-#ifdef __cplusplus
-}/* extern "C" */
-#endif
-
-#endif /* __MCAST_H */
+#endif  /* __MCAST_H */

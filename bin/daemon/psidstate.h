@@ -1,32 +1,18 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2008-2010 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2008-2020 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
 /**
- * @file
- * Helper functions for daemon status handling (reset, shutdown,
+ * @file Helper functions for daemon status handling (reset, shutdown,
  * master-socket,etc.)
- *
- * $Id$
- *
- * @author
- * Norbert Eicker <eicker@par-tec.com>
- *
  */
 #ifndef __PSIDSTATE_H
 #define __PSIDSTATE_H
-
-#ifdef __cplusplus
-extern "C" {
-#if 0
-} /* <- just for emacs indentation */
-#endif
-#endif
 
 /**
  * @brief Initialize daemon status stuff
@@ -152,9 +138,5 @@ void PSID_shutdown(void);
  * @return No return value
  */
 void PSID_reset(void);
-
-#ifdef __cplusplus
-}/* extern "C" */
-#endif
 
 #endif  /* __PSIDSTATE_H */

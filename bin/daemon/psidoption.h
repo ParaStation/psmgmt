@@ -2,34 +2,19 @@
  * ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2008 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2020 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
 /**
- * @file
- * Handle option requests to the ParaStation daemon.
- *
- * $Id$
- *
- * @author
- * Norbert Eicker <eicker@par-tec.com>
- *
+ * @file Handle option requests to the ParaStation daemon
  */
 #ifndef __PSIDOPTIONS_H
 #define __PSIDOPTIONS_H
 
-#include "psprotocol.h"
 #include "psnodes.h"
-
-#ifdef __cplusplus
-extern "C" {
-#if 0
-} /* <- just for emacs indentation */
-#endif
-#endif
 
 /**
  * @brief Initialize option stuff
@@ -52,9 +37,5 @@ void initOptions(void);
  * @return No return value.
  */
 void send_OPTIONS(PSnodes_ID_t destnode);
-
-#ifdef __cplusplus
-}/* extern "C" */
-#endif
 
 #endif  /* __PSIDOPTIONS_H */

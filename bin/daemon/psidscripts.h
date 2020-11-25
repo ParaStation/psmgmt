@@ -1,38 +1,21 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2009-2016 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2009-2020 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
 /**
- * \file
- * Script-handling for the ParaStation daemon
- *
- * $Id$
- *
- * \author
- * Norbert Eicker <eicker@par-tec.com>
- *
+ * @file Script-handling for the ParaStation daemon
  */
 #ifndef __PSIDSCRIPTS_H
 #define __PSIDSCRIPTS_H
 
-#include <stdio.h>
-#include <time.h>
+#include <sys/types.h>
 
-#include "psprotocol.h"
-#include "logging.h"
 #include "config_parsing.h"
-
-#ifdef __cplusplus
-extern "C" {
-#if 0
-} /* <- just for emacs indentation */
-#endif
-#endif
 
 /** Information passed to script's callback function. */
 typedef struct {
@@ -241,8 +224,4 @@ int PSID_cancelCB(pid_t pid);
  */
 int PSIDscripts_setMax(int max);
 
-#ifdef __cplusplus
-}/* extern "C" */
-#endif
-
-#endif /* __PSIDSCRIPTS_H */
+#endif  /* __PSIDSCRIPTS_H */

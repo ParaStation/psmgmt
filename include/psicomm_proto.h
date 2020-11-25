@@ -1,21 +1,14 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2013-2017 Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2013-2020 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
 /**
- * @file
- * psicomm_proto: Protocol details of the PSIcomm protocol
- *
- * $Id$
- *
- * @author
- * Norbert Eicker <eicker@par-tec.com>
- *
+ * @file psicomm_proto: Protocol details of the PSIcomm protocol
  */
 #ifndef __PSICOMM_PROTO_H
 #define __PSICOMM_PROTO_H

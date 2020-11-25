@@ -1,22 +1,16 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2009-2016 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2009-2020 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
 /**
- * \file
- * Facility to manage clients and input forwarding of the log-daemon
- *
- * $Id$
- *
- * \author
- * Norbert Eicker <eicker@par-tec.com>
+ * @file Facility to manage clients and input forwarding of the
+ * log-daemon
  */
-
 #ifndef __PSILOGGERCLIENT_H
 #define __PSILOGGERCLIENT_H
 
@@ -24,13 +18,6 @@
 
 #include "pstask.h"
 #include "pslog.h"
-
-#ifdef __cplusplus
-extern "C" {
-#if 0
-} /* <- just for emacs indentation */
-#endif
-#endif
 
 /**
  * @brief Initialize client management
@@ -297,9 +284,4 @@ char *getDestStr(size_t maxLen);
  */
 int forwardInputStr(char *buf, size_t len);
 
-
-#ifdef __cplusplus
-}/* extern "C" */
-#endif
-
-#endif /* __PSILOGGERCLIENT_H */
+#endif  /* __PSILOGGERCLIENT_H */

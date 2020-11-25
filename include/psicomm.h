@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2013 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2013-2020 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -15,24 +15,11 @@
  *
  * @attention This functionality will require the psicomm plugin to be
  * loaded on all engaged cluster nodes.
- *
- * $Id$
- *
- * @author
- * Norbert Eicker <eicker@par-tec.com>
- *
  */
 #ifndef __PSICOMM_H
 #define __PSICOMM_H
 
 #include <stdlib.h>
-
-#ifdef __cplusplus
-extern "C" {
-#if 0
-} /* <- just for emacs indentation */
-#endif
-#endif
 
 /** Maximum size of PSIcomm message payload */
 #define PSICOMM_MAX_SIZE 1024
@@ -162,7 +149,6 @@ int PSIcomm_recv(int *src_rank, int *type, void *payload, size_t *len);
  */
 int PSIcomm_close(int rank);
 
-
 /**
  * @brief Shutdown the PSIcomm facility.
  *
@@ -171,9 +157,5 @@ int PSIcomm_close(int rank);
  * @return file-descriptor
  */
 int PSIcomm_finalize(void);
-
-#ifdef __cplusplus
-}/* extern "C" */
-#endif
 
 #endif  /* __PSICOMM_H */

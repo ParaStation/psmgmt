@@ -2,31 +2,17 @@
  * ParaStation
  *
  * Copyright (C) 2003 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2013 Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2020 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
 /**
- * @file
- * Simple environment handling
- *
- * $Id$
- *
- * @author
- * Jens Hauke <hauke@par-tec.com>
- *
+ * @file Simple environment handling
  */
 #ifndef _ENV_H_
 #define _ENV_H_
-
-#ifdef __cplusplus
-extern "C" {
-#if 0
-} /* <- just for emacs indentation */
-#endif
-#endif
 
 /** The structure holding the environment */
 typedef struct env_fields_s{
@@ -199,8 +185,4 @@ int env_unset(env_fields_t *env, const char *name);
  */
 char *env_dump(env_fields_t *env, int idx);
 
-#ifdef __cplusplus
-}/* extern "C" */
-#endif
-
-#endif /* _ENV_H_ */
+#endif  /* _ENV_H_ */

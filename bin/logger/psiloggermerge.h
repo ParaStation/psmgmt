@@ -1,22 +1,15 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2007-2016 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2007-2020 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
 /**
- * \file
- * ParaStation functions for output merging in logger
- *
- * $Id$
- *
- * \author
- * Michael Rauh <rauh@par-tec.com>
+ * @file ParaStation functions for output merging in logger
  */
-
 #ifndef __PSILOGGERMERGE
 #define __PSILOGGERMERGE
 
@@ -61,4 +54,4 @@ void cacheOutput(PSLog_Msg_t *msg, int outfd);
  */
 void outputMergeInit(void);
 
-#endif
+#endif  /* __PSILOGGERMERGE */

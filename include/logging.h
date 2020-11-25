@@ -1,31 +1,23 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2005-2016 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2020 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
 /**
- * @file
- * ParaStation logging facility used within RDP, MCast, psid etc.
- *
- * $Id$
+ * @file ParaStation logging facility used within RDP, MCast, psid
+ * etc.
  */
 #ifndef __LOGGING_H
 #define __LOGGING_H
 
-#ifdef __cplusplus
-extern "C" {
-#if 0
-} /* <- just for emacs indentation */
-#endif
-#endif
-
-#include <stdio.h>
-#include <stdint.h>
 #include <stdarg.h>
+#include <stddef.h>
+#include <stdint.h>
+#include <stdio.h>
 
 /**
  * Container for all the internal information of a logger facility.
@@ -384,9 +376,4 @@ __attribute__((format(printf,4,5)));
 void logger_exit(logger_t* logger, int errorno, const char* format, ...)
     __attribute__((format(printf,3,4),noreturn));
 
-
-#ifdef __cplusplus
-}/* extern "C" */
-#endif
-
-#endif /* __LOGGING_H */
+#endif  /* __LOGGING_H */

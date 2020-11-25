@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2009 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2009-2020 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -18,25 +18,12 @@
  * This file defines six helper functions that convert values of size
  * 16 bit, 32 bit and 64 bit from and to this above defined network
  * byteorder on different architectures.
- *
- * $Id$
- *
- * @author
- * Norbert Eicker <eicker@par-tec.com>
- *
  */
 #ifndef _PSBYTEORDER_H_
 #define _PSBYTEORDER_H_
 
 #include <endian.h>
 #include <byteswap.h>
-
-#ifdef __cplusplus
-extern "C" {
-#if 0
-} /* <- just for emacs indentation */
-#endif
-#endif
 
 #if __BYTE_ORDER == __BIG_ENDIAN
 /** Convert the 64 bit value @a x to host-byteorder */
@@ -72,8 +59,4 @@ extern "C" {
 #  endif
 #endif
 
-#ifdef __cplusplus
-}/* extern "C" */
-#endif
-
-#endif /* _PSBYTEORDER_H_ */
+#endif  /* _PSBYTEORDER_H_ */

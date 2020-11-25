@@ -2,15 +2,15 @@
  * ParaStation
  *
  * Copyright (C) 2003 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2020 Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2020 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
 /**
- * @file
- * pslog: Forwarding protocol for ParaStation I/O forwarding facilities
+ * @file pslog: Forwarding protocol for ParaStation I/O forwarding
+ * facilities
  */
 #ifndef __PSLOGMSG_H
 #define __PSLOGMSG_H
@@ -188,4 +188,4 @@ int PSLog_read(PSLog_Msg_t *msg, struct timeval *timeout);
  */
 const char *PSLog_printMsgType(PSLog_msg_t type);
 
-#endif /* __PSLOG_H */
+#endif  /* __PSLOG_H */

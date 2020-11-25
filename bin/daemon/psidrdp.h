@@ -2,35 +2,21 @@
  * ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2016 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2020 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
 /**
- * \file
- * RDP wrapper and helper functions for the ParaStation daemon
- *
- * $Id$
- *
- * \author
- * Norbert Eicker <eicker@par-tec.com>
- *
+ * @file RDP wrapper and helper functions for the ParaStation daemon
  */
 #ifndef __PSIDRDP_H
 #define __PSIDRDP_H
 
-#include <sys/types.h>
+#include <stddef.h>
 
 #include "psprotocol.h"
-
-#ifdef __cplusplus
-extern "C" {
-#if 0
-} /* <- just for emacs indentation */
-#endif
-#endif
 
 /** The socket used for all RDP communication */
 extern int RDPSocket;
@@ -141,9 +127,5 @@ void PSIDRDP_handleMsg(int fd);
  * @return No return value.
  */
 void PSIDRDP_clearMem(void);
-
-#ifdef __cplusplus
-}/* extern "C" */
-#endif
 
 #endif /* __PSIDRDP_H */
