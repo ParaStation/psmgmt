@@ -39,8 +39,16 @@
 #define SLURM_20_02_PROTO_VERSION ((35 << 8) | 0)
 #define SLURM_19_05_PROTO_VERSION ((34 << 8) | 0)
 
-/* stepid of batch jobs */
-#define SLURM_BATCH_SCRIPT (0xfffffffe)
+/* step ID of normal step */
+#define SLURM_MAX_NORMAL_STEP_ID (0xfffffff0)
+/* step ID of pending step */
+#define SLURM_PENDING_STEP (0xfffffffd)
+/* step ID of external process container */
+#define SLURM_EXTERN_CONT  (0xfffffffc)
+/* step ID of batch scripts */
+#define SLURM_BATCH_SCRIPT (0xfffffffb)
+/* step ID for the interactive step */
+#define SLURM_INTERACTIVE_STEP (0xfffffffa)
 
 /* IO */
 #define IO_PROTOCOL_VERSION 0xb001
