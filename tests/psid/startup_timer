@@ -8,12 +8,8 @@
 # as defined in the file LICENSE.QPL included in the packaging of this
 # file.
 #
-# Authors:      Norbert Eicker <eicker@par-tec.com>
-#
 # This script starts some test programs as fast as possible and does
 # some timing measurements.
-#
-# $Id$
 #
 
 $maxNP=52;
@@ -42,11 +38,11 @@ for ($np=1; $np <= $maxNP; $np++) {
     $ssum=0;
 
     for ($i=0 ; $i<$numStartup; $i++) {
- 	system("${mpi_starter} -np ${np} ${mpi_prog} 2>&1 > /dev/null");
+	system("${mpi_starter} -np ${np} ${mpi_prog} 2>&1 > /dev/null");
     }
 
     for ($i=0; $i<$numMeasure; $i++) {
- 	$val=`${timer} ${mpi_starter} -np ${np} ${mpi_prog} 2>&1 > /dev/null`;
+	$val=`${timer} ${mpi_starter} -np ${np} ${mpi_prog} 2>&1 > /dev/null`;
 	$sum+=$val;
 	$ssum+=$val*$val;
     }

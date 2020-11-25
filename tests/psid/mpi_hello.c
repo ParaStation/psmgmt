@@ -6,20 +6,10 @@
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
- *
- * Authors:     Norbert Eicker <eicker@par-tec.com>
- *
  */
 /**
- * @file
- * mpi_hello: Simple MPI 'hello world' program. This is started
+ * @file mpi_hello: Simple MPI 'hello world' program. This is started
  * repeatedly as a work-load within the stress-testing scripts.
- *
- * $Id$ 
- *
- * @author
- * Norbert Eicker <eicker@par-tec.com>
- *
  */
 #include <stdio.h>
 #include <stdlib.h>

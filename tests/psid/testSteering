@@ -8,11 +8,7 @@
 # as defined in the file LICENSE.QPL included in the packaging of this
 # file.
 #
-# Authors:      Norbert Eicker <eicker@par-tec.com>
-#
 # Script to orchestrate various stress testing scripts
-#
-# $Id$
 #
 
 if [ -f stopIt ]; then
@@ -21,7 +17,7 @@ if [ -f stopIt ]; then
 fi
 
 log=log.`hostname`
-exec 8> $log 
+exec 8> $log
 echo "log to $log"
 
 if [ ! -s config ]; then

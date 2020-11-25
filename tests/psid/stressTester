@@ -8,11 +8,7 @@
 # as defined in the file LICENSE.QPL included in the packaging of this
 # file.
 #
-# Authors:      Norbert Eicker <eicker@par-tec.com>
-#
 # This script starts some test programs as fast as possible
-#
-# $Id$
 #
 
 if [ -z "${NUM}" ]; then
@@ -27,7 +23,7 @@ unset PSI_LOOP_NODES_FIRST
 export PSI_WAIT=1
 
 log=log.`hostname`
-exec 8> $log 
+exec 8> $log
 echo "log to $log"
 
 printenv USE_MPI1 > /dev/null 2>&1
@@ -63,4 +59,3 @@ while true; do
 
     ((i++));
 done
-

@@ -8,11 +8,8 @@
 # as defined in the file LICENSE.QPL included in the packaging of this
 # file.
 #
-# Authors:      Norbert Eicker <eicker@par-tec.com>
-#
-# This script repeatedly kills and restarts the local ParaStation daemon psid.
-#
-# $Id$
+# This script repeatedly kills and restarts the local ParaStation
+# daemon psid.
 #
 
 if [ $USER != "root" ]; then
@@ -29,7 +26,7 @@ disabled=${1}
 sleep=${2}
 
 log=log.killer@`hostname`
-exec 8> $log 
+exec 8> $log
 echo "log to $log"
 
 i=0
@@ -70,4 +67,3 @@ while true; do
 
     ((i++));
 done
-
