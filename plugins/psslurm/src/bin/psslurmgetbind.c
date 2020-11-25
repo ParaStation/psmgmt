@@ -27,7 +27,6 @@
 #include "pluginconfig.h" /* read configuration file */
 
 #include "list.h"
-typedef list_t Config_t;
 
 static int verbosity = 0;
 static bool humanreadable = false;
