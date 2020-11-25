@@ -9,8 +9,7 @@
  * file.
  */
 /**
- * @file
- * psilogger: Log-daemon for ParaStation I/O forwarding facility
+ * @file psilogger: Log-daemon for ParaStation I/O forwarding facility
  */
 #include <stdbool.h>
 #include <stdio.h>
@@ -84,8 +83,8 @@ static int retVal = 0;
 /** Flag marking a client got signaled */
 static bool signaled = false;
 
-logger_t *PSIlog_stdoutLogger = NULL;
-logger_t *PSIlog_stderrLogger = NULL;
+logger_t *PSIlog_stdout = NULL;
+logger_t *PSIlog_stderr = NULL;
 logger_t *PSIlog_logger = NULL;
 
 /* Wrapper functions for logging */
@@ -97,13 +96,13 @@ void PSIlog_initLogs(FILE *logfile)
 	exit(1);
     }
 
-    PSIlog_stdoutLogger = logger_init(NULL, stdout);
-    if (!PSIlog_stdoutLogger) {
+    PSIlog_stdout = logger_init(NULL, stdout);
+    if (!PSIlog_stdout) {
 	PSIlog_exit(errno, "%s: Failed to initialize stdout", __func__);
     }
 
-    PSIlog_stderrLogger = logger_init(NULL, stderr);
-    if (!PSIlog_stderrLogger) {
+    PSIlog_stderr = logger_init(NULL, stderr);
+    if (!PSIlog_stderr) {
 	PSIlog_exit(errno, "%s: Failed to initialize stderr", __func__);
     }
 }
@@ -126,18 +125,18 @@ bool PSIlog_getTimeFlag(void)
 void PSIlog_setTimeFlag(bool flag)
 {
     logger_setTimeFlag(PSIlog_logger, flag);
-    logger_setTimeFlag(PSIlog_stdoutLogger, flag);
-    logger_setTimeFlag(PSIlog_stderrLogger, flag);
+    logger_setTimeFlag(PSIlog_stdout, flag);
+    logger_setTimeFlag(PSIlog_stderr, flag);
 }
 
 void PSIlog_finalizeLogs(void)
 {
     logger_finalize(PSIlog_logger);
     PSIlog_logger = NULL;
-    logger_finalize(PSIlog_stdoutLogger);
-    PSIlog_stdoutLogger = NULL;
-    logger_finalize(PSIlog_stderrLogger);
-    PSIlog_stderrLogger = NULL;
+    logger_finalize(PSIlog_stdout);
+    PSIlog_stdout = NULL;
+    logger_finalize(PSIlog_stderr);
+    PSIlog_stderr = NULL;
 }
 
 /**
@@ -1519,13 +1518,13 @@ int main( int argc, char**argv)
 
     if (getenv("PSI_LOGGER_RAW_MODE") && isatty(STDIN_FILENO)) {
 	enterRawMode();
-	if (PSIlog_stdoutLogger) logger_setWaitNLFlag(PSIlog_stdoutLogger, 0);
-	if (PSIlog_stderrLogger) logger_setWaitNLFlag(PSIlog_stderrLogger, 0);
+	if (PSIlog_stdout) logger_setWaitNLFlag(PSIlog_stdout, false);
+	if (PSIlog_stderr) logger_setWaitNLFlag(PSIlog_stderr, false);
     }
 
     if (getenv("__PSI_LOGGER_UNBUFFERED")) {
-	if (PSIlog_stdoutLogger) logger_setWaitNLFlag(PSIlog_stdoutLogger, 0);
-	if (PSIlog_stderrLogger) logger_setWaitNLFlag(PSIlog_stderrLogger, 0);
+	if (PSIlog_stdout) logger_setWaitNLFlag(PSIlog_stdout, false);
+	if (PSIlog_stderr) logger_setWaitNLFlag(PSIlog_stderr, false);
     }
 
     if ((envstr = getenv("PSI_MAXTIME"))) {

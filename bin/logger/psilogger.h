@@ -1,15 +1,14 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2007-2019 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2007-2020 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
 /**
- * @file
- * psilogger.h: Log-daemon for ParaStation I/O forwarding facility
+ * @file Log-daemon for ParaStation I/O forwarding facility
  */
 #ifndef __PSILOGGER_H
 #define __PSILOGGER_H
@@ -22,10 +21,10 @@
 #include "logging.h"
 
 /** A logger used within psilogger. This one is used for stdout stuff */
-extern logger_t *PSIlog_stdoutLogger;
+extern logger_t *PSIlog_stdout;
 
 /** A logger used within psilogger. This one is used for stderr stuff */
-extern logger_t *PSIlog_stderrLogger;
+extern logger_t *PSIlog_stderr;
 
 /** A logger used within psilogger. This one is used for error messages */
 extern logger_t *PSIlog_logger;
@@ -53,16 +52,16 @@ extern bool GDBcmdEcho;
 extern bool useValgrind;
 
 /**
- * @brief Initialize the psilogger logging facilities.
+ * @brief Initialize psilogger's logging facilities
  *
- * Initialize the psilogger logging facilities. This is mainly a
- * wrapper to @ref logger_init() but additionally also initializes the
+ * Initialize psilogger's logging facilities. This is mainly a wrapper
+ * to @ref logger_init() but additionally also initializes the
  * facilities handling output to stdout and stderr.
  *
  * @param logfile File to use for logging. If NULL, use stderr for
- * any output.
+ * any output
  *
- * @return No return value.
+ * @return No return value
  *
  * @see logger_init(), PSIlog_finalizeLogs()
  */
@@ -98,39 +97,39 @@ int32_t PSIlog_getDebugMask(void);
 void PSIlog_setDebugMask(int32_t mask);
 
 /**
- * @brief Get the time-flag of the psilogger logging facility.
+ * @brief Get the time-flag of psilogger's logging facility
  *
  * Get the current time-flag of the psilogger logging facility. This is
  * mainly a wrapper to @ref logger_getTimeFlag().
  *
- * @return The current time-flag is returned.
+ * @return The current time-flag is returned
  *
  * @see PSIlog_setTimeFlag(), logger_getTimeFlag()
  */
 bool PSIlog_getTimeFlag(void);
 
 /**
- * @brief Set the time-flag of the psilogger logging facility.
+ * @brief Set the time-flag of psilogger's logging facility
  *
  * Set the time-flag of the psilogger logging facility to @a flag.
  *
  * This is mainly a wrapper to @ref logger_setTimeFlag().
  *
- * @param flag The time-flag to be set.
+ * @param flag The time-flag to be set
  *
- * @return No return value.
+ * @return No return value
  *
  * @see logger_setTimeFlag()
  */
 void PSIlog_setTimeFlag(bool flag);
 
 /**
- * @brief Finalize psiloggers's logging facility.
+ * @brief Finalize psiloggers's logging facility
  *
  * Finalize psilogger's logging facility. This is mainly a wrapper to
  * @ref logger_finalize().
  *
- * @return No return value.
+ * @return No return value
  *
  * @see PSIlog_initLogs(), logger_finalize()
  */
@@ -138,28 +137,28 @@ void PSIlog_finalizeLogs(void);
 
 /**
  * Print a log messages via psiloggers's logging facility @a
- * PSIlog_stdoutLogger .
+ * PSIlog_stdout.
  *
  * This is a wrapper to @ref logger_print().
  *
  * @see logger_print()
  */
-#define PSIlog_stdout(...) if (PSIlog_stdoutLogger)	\
-	logger_print(PSIlog_stdoutLogger, __VA_ARGS__)
+#define PSIlog_stdout(...) if (PSIlog_stdout)	\
+	logger_print(PSIlog_stdout, __VA_ARGS__)
 
-#define PSIlog_writeout(buf, count) if (PSIlog_stdoutLogger)	\
-	logger_write(PSIlog_stdoutLogger, -1, buf, count)
+#define PSIlog_writeout(buf, count) if (PSIlog_stdout)	\
+	logger_write(PSIlog_stdout, -1, buf, count)
 
 /**
  * Print a log messages via psiloggers's logging facility @a
- * PSIlog_stderrLogger .
+ * PSIlog_stderr .
  *
  * This is a wrapper to @ref logger_print().
  *
  * @see logger_print()
  */
-#define PSIlog_stderr(...) if (PSIlog_stderrLogger)	\
-	logger_print(PSIlog_stderrLogger, __VA_ARGS__)
+#define PSIlog_stderr(...) if (PSIlog_stderr)	\
+	logger_print(PSIlog_stderr, __VA_ARGS__)
 
 /**
  * Print a log messages via psiloggers's logging facility @a PSIlog_logger .
@@ -190,8 +189,8 @@ void PSIlog_finalizeLogs(void);
  * @see logger_exit()
  */
 #define PSIlog_exit(...) { if (PSIlog_logger) {		\
-	logger_finalize(PSIlog_stdoutLogger);		\
-	logger_finalize(PSIlog_stderrLogger);		\
+	logger_finalize(PSIlog_stdout);			\
+	logger_finalize(PSIlog_stderr);			\
 	logger_exit(PSIlog_logger, __VA_ARGS__);	\
 	} else { exit(-1); } }
 

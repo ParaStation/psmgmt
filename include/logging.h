@@ -15,6 +15,7 @@
 #define __LOGGING_H
 
 #include <stdarg.h>
+#include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -33,8 +34,8 @@ typedef struct {
 			 had a closing '\n' character. */
     size_t trailSize; /**< Maximum size to be currently stored in trail */
     size_t trailUsed; /**< Number of character currently stored in trail */
-    int timeFlag;     /**< Flag if current time shall be given within tag */
-    int waitNLFlag;   /**< Flag if actual output waits for next newline */
+    bool timeFlag;    /**< Flag if current time shall be given within tag */
+    bool waitNLFlag;  /**< Flag if actual output waits for next newline */
 
     char* fmt;        /**< Internal buffer used to store formats */
     size_t fmtSize;   /**< Actual size of @a fmt */
@@ -74,30 +75,30 @@ int32_t logger_getMask(logger_t* logger);
 void logger_setMask(logger_t* logger, int32_t mask);
 
 /**
- * @brief Query the log-tag.
+ * @brief Query the log-tag
  *
  * Get the actual log-tag of the logger module @a logger.
  *
- * @param logger The logger to ask.
+ * @param logger The logger to ask
  *
- * @return The actual log-tag is returned.
+ * @return The actual log-tag is returned
  *
  * @see logger_setTag()
  */
 char* logger_getTag(logger_t* logger);
 
 /**
- * @brief Set the log-tag.
+ * @brief Set the log-tag
  *
  * Set the log-tag of the logger module @a logger. The log-tag is
  * prepended to each message put out via @ref logger_print(), @ref
  * logger_vprint(), @ref logger_warn() or @ref logger_exit().
  *
- * @param logger The logger to manipulate.
+ * @param logger The logger to manipulate
  *
- * @param tag The log-tag to be set.
+ * @param tag The log-tag to be set
  *
- * @return No return value.
+ * @return No return value
  *
  * @see logger_getTag(), logger_print(), logger_vprint(),
  * logger_warn(), logger_exit()
@@ -105,62 +106,62 @@ char* logger_getTag(logger_t* logger);
 void logger_setTag(logger_t* logger, const char* tag);
 
 /**
- * @brief Query the time-flag.
+ * @brief Query the time-flag
  *
  * Get the current time-flag of the logger module @a logger.
  *
- * @param logger The logger to ask.
+ * @param logger The logger to ask
  *
- * @return The current time-flag is returned. Or -1, if the
- * logger-handle is invalid.
+ * @return The current time-flag is returned; or false if the
+ * logger-handle is invalid
  *
  * @see logger_setTimeFlag()
  */
-int logger_getTimeFlag(logger_t* logger);
+bool logger_getTimeFlag(logger_t* logger);
 
 /**
- * @brief Set the time-flag.
+ * @brief Set the time-flag
  *
- * Set the time-flag of the logger module @a logger. If the time-flag
- * is set, a time-stamp is appended to the tag of each message put out
- * via @ref logger_print(), @ref logger_vprint(), @ref logger_warn()
- * or @ref logger_exit().
+ * Set the time-flag of the logger module @a logger to @a flag. If the
+ * time-flag is set, a time-stamp is appended to the tag of each
+ * message put out via @ref logger_print(), @ref logger_vprint(), @ref
+ * logger_warn() or @ref logger_exit().
  *
  * The logger's default behavior is to not print time-flags.
  *
- * @param logger The logger to manipulate.
+ * @param logger The logger to manipulate
  *
- * @param flag The flag's value to be set.
+ * @param flag The flag's value to be set
  *
- * @return No return value.
+ * @return No return value
  *
  * @see logger_getTimeFlag(), logger_print(), logger_vprint(),
  * logger_warn(), logger_exit()
  */
-void logger_setTimeFlag(logger_t* logger, int flag);
+void logger_setTimeFlag(logger_t* logger, bool flag);
 
 /**
- * @brief Query the waitNL-flag.
+ * @brief Query the waitNL-flag
  *
  * Get the current waitNL-flag of the logger module @a logger.
  *
- * @param logger The logger to ask.
+ * @param logger The logger to ask
  *
- * @return The current waitNL-flag is returned. Or -1, if the
- * logger-handle is invalid.
+ * @return The current waitNL-flag is returned; or false, if the
+ * logger-handle is invalid
  *
  * @see logger_setWaitNLFlag()
  */
-int logger_getWaitNLFlag(logger_t* logger);
+bool logger_getWaitNLFlag(logger_t* logger);
 
 /**
- * @brief Set the waitNL-flag.
+ * @brief Set the waitNL-flag
  *
- * Set the waitNL-flag of the logger module @a logger. If the
- * waitNL-flag is set, output sent to @a logger is not printed out
+ * Set the waitNL-flag of the logger module @a logger to @a flag. If
+ * the waitNL-flag is set, output sent to @a logger is not printed out
  * unless a trailing new-line was sent to the logger. Instead, such
  * output is collected within the logger module and printed as a whole
- * as soon as the newline is received.
+ * line as soon as the newline is received.
  *
  * This might introduced unexpected behavior within interactive
  * applications that use a logger-facility to create output like
@@ -171,15 +172,15 @@ int logger_getWaitNLFlag(logger_t* logger);
  * In order to flush a logger's trailing output upon a program's
  * finalization @ref plugin_finalize() shall be called.
  *
- * @param logger The logger to manipulate.
+ * @param logger The logger to manipulate
  *
- * @param flag The flag's value to be set.
+ * @param flag The flag's value to be set
  *
- * @return No return value.
+ * @return No return value
  *
  * @see logger_getWaitNLFlag(), logger_finalize()
  */
-void logger_setWaitNLFlag(logger_t* logger, int flag);
+void logger_setWaitNLFlag(logger_t* logger, bool flag);
 
 
 /**

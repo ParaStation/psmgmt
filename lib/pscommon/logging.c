@@ -1,17 +1,12 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2005-2016 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2020 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-#ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__((used)) =
-    "$Id$";
-#endif /* DOXYGEN_SHOULD_SKIP_THIS */
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdarg.h>
@@ -59,28 +54,28 @@ void logger_setTag(logger_t* logger, const char* tag)
     }
 }
 
-int logger_getTimeFlag(logger_t* logger)
+bool logger_getTimeFlag(logger_t* logger)
 {
-    if (!logger) return -1;
+    if (!logger) return false;
 
     return logger->timeFlag;
 }
 
-void logger_setTimeFlag(logger_t* logger, int flag)
+void logger_setTimeFlag(logger_t* logger, bool flag)
 {
     if (!logger) return;
 
     logger->timeFlag = flag;
 }
 
-int logger_getWaitNLFlag(logger_t* logger)
+bool logger_getWaitNLFlag(logger_t* logger)
 {
-    if (!logger) return -1;
+    if (!logger) return false;
 
     return logger->waitNLFlag;
 }
 
-void logger_setWaitNLFlag(logger_t* logger, int flag)
+void logger_setWaitNLFlag(logger_t* logger, bool flag)
 {
     if (!logger) return;
 
@@ -100,8 +95,8 @@ logger_t* logger_init(const char* tag, FILE* logfile)
 	logger->trailSize = 256;
 	logger->trail = (char*)malloc(logger->trailSize);
 	logger->trailUsed = 0;
-	logger->timeFlag = 0;
-	logger->waitNLFlag = 1;
+	logger->timeFlag = false;
+	logger->waitNLFlag = true;
 
 	/* pre-allocate fmt, prfx and txt to prevent psid from bloating */
 	logger->fmtSize = 256;
