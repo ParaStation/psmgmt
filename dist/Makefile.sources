@@ -182,7 +182,6 @@ include/psreservation.h \
 include/pssenddb_t.h \
 include/psserial.h \
 include/pssignal.h \
-include/psstrings.h \
 include/pstask.h \
 include/pstaskid.h \
 include/rdp.h \
@@ -246,7 +245,6 @@ lib/putil/old_config_parsing.c \
 lib/putil/parser.c \
 lib/putil/psdaemonprotocol.c \
 lib/putil/psparamspace.c \
-lib/putil/psstrings.c \
 lib/putil/rdp.c \
 lib/putil/selector.c \
 lib/putil/timer.c \
