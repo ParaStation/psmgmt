@@ -7,14 +7,6 @@
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-/**
- * $Id$
- *
- * \author
- * Michael Rauh <rauh@par-tec.com>
- *
- */
-
 #ifndef __PS_MOM_PROTO
 #define __PS_MOM_PROTO
 
@@ -105,4 +97,4 @@ int setPBSNodeState(char *server, char *note, char *state, const char *host);
  */
 void setPBSNodeOffline(char *server, const char *host, char *note);
 
-#endif
+#endif  /* __PS_MOM_PROTO */

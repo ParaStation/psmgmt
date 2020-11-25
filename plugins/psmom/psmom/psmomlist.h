@@ -7,16 +7,8 @@
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-/**
- * $Id$
- *
- * \author
- * Michael Rauh <rauh@par-tec.com>
- *
- */
-
-#ifndef PS_MOM_LIST
-#define PS_MOM_LIST
+#ifndef __PS_MOM_LIST
+#define __PS_MOM_LIST
 
 #include "list.h"
 
@@ -33,4 +25,4 @@ void printDataEntry(Data_Entry_t *data);
 char *getValue(struct list_head *list, char *name, char *resource);
 void clearDataList(struct list_head *list);
 
-#endif
+#endif  /* __PS_MOM_LIST */

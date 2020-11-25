@@ -7,14 +7,6 @@
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-/**
- * $Id$
- *
- * \author
- * Michael Rauh <rauh@par-tec.com>
- *
- */
-
 #ifndef __PS_MOM_COLLECT
 #define __PS_MOM_COLLECT
 
@@ -61,4 +53,4 @@ void initInfoList(void);
  */
 void setPsmomState(char *state);
 
-#endif
+#endif  /* __PS_MOM_COLLECT */

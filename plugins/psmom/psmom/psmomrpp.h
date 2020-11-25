@@ -7,14 +7,6 @@
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-/**
- * $Id$
- *
- * \author
- * Michael Rauh <rauh@par-tec.com>
- *
- */
-
 #ifndef __PS_MOM_RPP
 #define __PS_MOM_RPP
 
@@ -134,4 +126,4 @@ void rppShutdown(void);
  */
 struct sockaddr_in* rppGetAddr(int stream);
 
-#endif
+#endif  /* __PS_MOM_RPP */

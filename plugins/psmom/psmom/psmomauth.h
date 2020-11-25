@@ -7,14 +7,6 @@
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-/**
- * $Id$
- *
- * \author
- * Michael Rauh <rauh@par-tec.com>
- *
- */
-
 #ifndef __PS_MOM_AUTH
 #define __PS_MOM_AUTH
 
@@ -33,4 +25,4 @@ int isAuthIP(unsigned long ipaddr);
 void addAuthIP(unsigned long ipaddr);
 void clearAuthList(void);
 
-#endif
+#endif  /* __PS_MOM_AUTH */

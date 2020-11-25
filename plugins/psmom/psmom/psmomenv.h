@@ -7,14 +7,6 @@
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-/**
- * $Id$
- *
- * \author
- * Michael Rauh <rauh@par-tec.com>
- *
- */
-
 #ifndef __PS_MOM_ENVIRONMENT
 #define __PS_MOM_ENVIRONMENT
 
@@ -91,4 +83,4 @@ void setEnvVars(void);
  */
 void setupPBSEnv(Job_t *job, int interactive);
 
-#endif
+#endif  /* __PS_MOM_ENVIRONMENT */

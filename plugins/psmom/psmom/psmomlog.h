@@ -7,14 +7,6 @@
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-/**
- * $Id$
- *
- * \author
- * Michael Rauh <rauh@par-tec.com>
- *
- */
-
 #ifndef __PS_MOM_LOG
 #define __PS_MOM_LOG
 
@@ -32,8 +24,8 @@ void maskLogger(int32_t mask);
 
 typedef enum {
     PSMOM_LOG_PSCOM =	0x000010, /**< Communication via psid */
-    PSMOM_LOG_RPP =  	0x000020, /**< RPP protocol */
-    PSMOM_LOG_TCP = 	0x000040, /**< TCP protocol */
+    PSMOM_LOG_RPP =	0x000020, /**< RPP protocol */
+    PSMOM_LOG_TCP =	0x000040, /**< TCP protocol */
     PSMOM_LOG_PTM =	0x000080, /**< TM Messages */
     PSMOM_LOG_PRM =	0x000100, /**< RM Messages */
     PSMOM_LOG_PIS =	0x000200, /**< IS Messages */
@@ -51,4 +43,4 @@ typedef enum {
 } PSMOM_log_types_t;
 
 
-#endif
+#endif  /* __PS_MOM_LOG */

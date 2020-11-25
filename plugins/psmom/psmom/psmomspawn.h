@@ -7,14 +7,6 @@
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-/**
- * $Id$
- *
- * \author
- * Michael Rauh <rauh@par-tec.com>
- *
- */
-
 #ifndef __PS_MOM_SPAWN
 #define __PS_MOM_SPAWN
 
@@ -156,4 +148,4 @@ void afterJobCleanup(char *user);
  */
 void handleFailedSpawn(void);
 
-#endif
+#endif  /* __PS_MOM_SPAWN */

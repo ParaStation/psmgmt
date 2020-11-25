@@ -1,22 +1,14 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2010-2013 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2010-2020 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-/**
- * $Id$
- *
- * \author
- * Michael Rauh <rauh@par-tec.com>
- *
- */
-
-#ifndef PS_MOM_CHILD
-#define PS_MOM_CHILD
+#ifndef __PS_MOM_CHILD
+#define __PS_MOM_CHILD
 
 #include "list.h"
 #include "psmomjob.h"
@@ -31,17 +23,17 @@ typedef enum {
 } PSMOM_child_types_t;
 
 typedef struct {
-    pid_t pid;			    /* pid of the forwarder */
-    pid_t c_pid;		    /* pid of the forwarders child (e.g. jobscript) */
-    pid_t c_sid;		    /* sesssion id of the forwarders child */
-    PSMOM_child_types_t type;	    /* type of the forwarder (e.g. interactive) */
-    struct timeval start_time;	    /* the start time of the forwarder */
-    long fw_timeout;		    /* forwarder walltime timeout in seconds */
-    char *jobid;		    /* the PBS jobid */
-    int childMonitorId;		    /* timerid to montior the timeout */
-    int killFlag;		    /* set to 1 if we are waiting to send SIGKILL */
-    int signalFlag;		    /* child was canceld on request by TERM/KILL */
-    ComHandle_t *sharedComm;	    /* communication handle connected to the child */
+    pid_t pid;			/* pid of the forwarder */
+    pid_t c_pid;		/* pid of forwarder's child (e.g. jobscript) */
+    pid_t c_sid;		/* sesssion id of forwarder's child */
+    PSMOM_child_types_t type;	/* type of forwarder (e.g. interactive) */
+    struct timeval start_time;	/* the start time of the forwarder */
+    long fw_timeout;		/* forwarder's walltime timeout in seconds */
+    char *jobid;		/* the PBS jobid */
+    int childMonitorId;		/* timerid to montior the timeout */
+    int killFlag;		/* set to 1 if we are waiting to send SIGKILL */
+    int signalFlag;		/* child was canceld on request by TERM/KILL */
+    ComHandle_t *sharedComm;	/* communication handle connected to child */
     struct list_head list;
 } Child_t;
 
@@ -126,4 +118,4 @@ Child_t *findChildByJobid(char *jobid, int type);
  */
 void setChildTimeout(Child_t *child, time_t timeout, int addGrace);
 
-#endif
+#endif  /* __PS_MOM_CHILD */

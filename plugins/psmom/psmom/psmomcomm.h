@@ -7,14 +7,6 @@
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-/**
- * $Id$
- *
- * \author
- * Michael Rauh <rauh@par-tec.com>
- *
- */
-
 #ifndef __PS_MOM_COMM
 #define __PS_MOM_COMM
 
@@ -378,4 +370,4 @@ int doSend(int sock, char *msg, int offset, int len, const char *func);
  */
 char *ComHType2String(int type);
 
-#endif
+#endif  /* __PS_MOM_COMM */

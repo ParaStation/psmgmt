@@ -7,14 +7,6 @@
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-/**
- * $Id$
- *
- * \author
- * Michael Rauh <rauh@par-tec.com>
- *
- */
-
 #ifndef __PS_MOM_TCP
 #define __PS_MOM_TCP
 
@@ -85,4 +77,4 @@ int tcpWrite(int sock, void *msg, size_t len, const char *caller);
  */
 int tcpClose(int sock);
 
-#endif
+#endif  /* __PS_MOM_TCP */

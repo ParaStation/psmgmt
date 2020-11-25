@@ -7,14 +7,6 @@
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-/**
- * $Id$
- *
- * \author
- * Michael Rauh <rauh@par-tec.com>
- *
- */
-
 #ifndef __PS_MOM_CONV
 #define __PS_MOM_CONV
 
@@ -157,4 +149,4 @@ int WriteString(ComHandle_t *com, char *data);
  */
 int WriteDataStruct(ComHandle_t *com, Data_Entry_t *data);
 
-#endif
+#endif  /* __PS_MOM_CONV */
