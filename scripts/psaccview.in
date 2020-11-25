@@ -9,10 +9,6 @@
 # as defined in the file LICENSE.QPL included in the packaging of this
 # file.
 #
-# Authors:      Michael Rauh <rauh@par-tec.com>
-#
-# $Id$
-#
 
 use strict;
 use warnings;

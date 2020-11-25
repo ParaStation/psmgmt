@@ -1,6 +1,5 @@
 #!/bin/sh
-# esub for lsf 
-# $Id$
+# esub for lsf
 #######################################################################
 
 if [ -z "$LSB_SUB_PARM_FILE" ]; then
@@ -31,17 +30,3 @@ echo "LSB_SUB_COMMAND_LINE=\"$PSM_ADDITIONAL_CMD $LSB_SUB_COMMAND_LINE"\" >> $LS
 #more $LSB_SUB_PARM_FILE
 #echo "LSB_SUB_MODIFY_FILE contains:"
 #more $LSB_SUB_MODIFY_FILE
-
-
-
-
-
-
-
-
-
-
-
-
-
-

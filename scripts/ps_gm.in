@@ -8,14 +8,9 @@
 # as defined in the file LICENSE.QPL included in the packaging of this
 # file.
 #
-# Authors:      Jens Hauke <hauke@par-tec.com>
-#               Norbert Eicker <eicker@par-tec.com>
-#
 # GM Myrinet Device Driver for Parastation
 #
 # Script to load/unload the module and configure the interface
-#
-# $Id$
 #
 
 #checks
@@ -41,7 +36,7 @@ case "$1" in
 	# if [ "$PS_IPENABLED" = "1" ]; then
 	#     /sbin/ifconfig myri0 up
 	# fi
-	
+
 	;;
 
     stop)

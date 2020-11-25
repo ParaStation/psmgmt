@@ -8,11 +8,7 @@
 # as defined in the file LICENSE.QPL included in the packaging of this
 # file.
 #
-# Authors:      Michael Rauh <rauh@par-tec.com>
-#
 # Pseudo hardware-type skript to start the psaccounter.
-#
-# $Id$
 #
 
 case "$1" in
@@ -21,7 +17,7 @@ case "$1" in
 	;;
 
     stop)
-        killall psaccounter 2>&1 1>/dev/null	
+	killall psaccounter 2>&1 1>/dev/null
 	;;
 
     statusheader)

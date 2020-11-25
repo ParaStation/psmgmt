@@ -8,13 +8,9 @@
 # as defined in the file LICENSE.QPL included in the packaging of this
 # file.
 #
-# Authors:      Norbert Eicker <eicker@par-tec.com>
-#
 # GM Myrinet Device Driver for Parastation
 #
 # Script to get specific gm counters
-#
-# $Id$
 #
 
 GM_INSTALLDIR=${GM_INSTALLDIR-"/opt/gm"}

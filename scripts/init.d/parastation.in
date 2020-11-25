@@ -10,8 +10,6 @@
 #
 # parastation:       Starts the ParaStation Daemon.
 #
-# Version:           $Id$
-#
 # chkconfig: 35 15 72
 # description: The ParaStation management daemon
 # processname: psid
