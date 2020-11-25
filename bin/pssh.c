@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2006-2017 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2006-2020 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -31,8 +31,7 @@
  */
 static void printVersion(void)
 {
-    char revision[] = "$Revision$";
-    fprintf(stderr, "pssh %s\b \n", revision+11);
+    fprintf(stderr, "pssh %s-%s\n", VERSION_psmgmt, RELEASE_psmgmt);
 }
 
 #define OTHER_OPTIONS_STR "<command> [options]"

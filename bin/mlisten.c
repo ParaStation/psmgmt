@@ -55,8 +55,7 @@ static void init(int num_nodes)
  */
 static void printVersion(void)
 {
-    char revision[] = "$Revision$";
-    fprintf(stderr, "mlisten %s\b \n", revision+11);
+    fprintf(stderr, "mlisten %s-%s\n", VERSION_psmgmt, RELEASE_psmgmt);
 }
 
 int main(int argc, const char *argv[])

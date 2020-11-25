@@ -3,7 +3,7 @@
 # ParaStation
 #
 # Copyright (C) 1999-2004 ParTec AG, Karlsruhe
-# Copyright (C) 2005-2010 ParTec Cluster Competence Center GmbH, Munich
+# Copyright (C) 2005-2020 ParTec Cluster Competence Center GmbH, Munich
 #
 # This file may be distributed under the terms of the Q Public License
 # as defined in the file LICENSE.QPL included in the packaging of this
@@ -130,8 +130,7 @@ if(!$norcfile) {
 $ENV{PATH} = "/bin";
 $ENV{ENV} = "";
 
-my $confptr = \%conf;
-my $help=0; my $version; my $rev = '$Revision$';
+my $confptr = \%conf; $help = 0;
 my $human; ; my $nospace; my $noheader; my $fulljobname; my $clocktime;
 my $pedantic; my $listjobs; my $listuser; my $listgroup; my $listtotal;
 my $timespan; my $last_days;
@@ -168,16 +167,8 @@ GetOptions(
 	   'norcfile'	   => \$norcfile,
 	   'timeout=s'	   => \$conf{'all'}{'timeout'},
 	   'help|?'	   => \$help,
-	   'version|v'     => \$version
 )or pod2usage(2);
 pod2usage(1) if $help;
-
-if($version) {
-    my $ver;
-    ($ver=$rev)  =~s/(^.+: )([0-9]+)(.*)/$2/;
-    printf("\npsaccview version: $ver\n\n");
-    exit(0);
-}
 
 # Setup arrays for data formating
 my @time_values = ('walltime', 'cputime', 'qtime', 'cpuweight');
@@ -893,7 +884,7 @@ psaccview [options]
 	--timespan {today,week,month,year} --nospace
 	--node {nodename} --norcfile --help
 	--accountdir {value}  -- fulljob --clocktime
-	--begin {yyyymmdd} --end {yyyymmdd} --version
+	--begin {yyyymmdd} --end {yyyymmdd}
 	--sortjob {value} --sortuser {value}
 	--sortgroup {value}
 
@@ -1065,10 +1056,6 @@ Do not read any rcfiles.
 =item B<--timeout>
 
 Defines a timeout after which the script will stop parsing with an error message.
-
-=item B<--version -v>
-
-Display version information and exit.
 
 =back
 

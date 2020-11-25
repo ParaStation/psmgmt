@@ -9,8 +9,7 @@
  * file.
  */
 /**
- * @file
- * test_config: ParaStation configuration validator
+ * @file test_config: ParaStation configuration validator
  */
 #include <stdio.h>
 #include <stdlib.h>
@@ -40,14 +39,13 @@ PStask_t *PStasklist_find(list_t *list, PStask_ID_t tid) {return NULL;}
 /**
  * @brief Print version info.
  *
- * Print version infos of the current CVS revision number to stderr.
+ * Print version infos of the current RPM revision number to stderr.
  *
  * @return No return value.
  */
 static void printVersion(void)
 {
-    char revision[] = "$Revision$";
-    fprintf(stderr, "test_config %s\b \n", revision+11);
+    fprintf(stderr, "test_config %s-%s\n", VERSION_psmgmt, RELEASE_psmgmt);
 }
 
 int main(int argc, const char *argv[])
