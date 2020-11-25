@@ -2,23 +2,15 @@
  * ParaStation
  *
  * Copyright (C) 2001-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2016 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2020 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
 /**
- * \file
- * test_pse: ParaStation PSE test program
- *
- * $Id$
- *
- * \author
- * Jens Hauke <hauke@par-tec.com>
- *
+ * @file test_pse: ParaStation PSE test program
  */
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -110,16 +102,6 @@ int main(int argc, char *argv[])
     }
 
     run(argc,argv,arg_np);
+
     return 0;
 }
-
-
-/*
- * Local Variables:
- *  compile-command: "make test_pse"
- * End:
- */
-
-/*
-ssh io "cdl psm;cd tools;make test_nodes";cdl psm;scp -C tools/alpha_Linux/test_nodes alice:
-*/
