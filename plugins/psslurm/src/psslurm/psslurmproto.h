@@ -44,31 +44,32 @@ typedef struct {
     uint64_t freemem;
 } Resp_Ping_t;
 
+/** structure for registering the node to slurmctld */
 typedef struct {
-    time_t now;
-    time_t startTime;
-    uint32_t status;
-    char *nodeName;
-    char *arch;
-    char *sysname;
-    uint16_t cpus;
-    uint16_t boards;
-    uint16_t sockets;
-    uint16_t coresPerSocket;
-    uint16_t threadsPerCore;
-    uint16_t flags;
-    uint64_t realMem;
-    uint32_t tmpDisk;
-    uint32_t uptime;
-    uint32_t config;
-    uint32_t cpuload;
-    uint64_t freemem;
-    uint32_t jobInfoCount;
-    uint32_t *jobids;
-    uint32_t *stepids;
-    int protoVersion;
-    char verStr[64];
-    psAccountEnergy_t eData;
+    time_t now;			/**< current time */
+    time_t startTime;		/**< the time psslurm was loaded */
+    uint32_t status;		/**< always set to SLURM_SUCCESS */
+    char *nodeName;		/**< the host-name of the local node */
+    char *arch;			/**< hardware architecture of the node */
+    char *sysname;		/**< system name */
+    uint16_t cpus;		/**< number of CPUs */
+    uint16_t boards;		/**< number of boards */
+    uint16_t sockets;		/**< number of sockets */
+    uint16_t coresPerSocket;	/**< cores per socket */
+    uint16_t threadsPerCore;	/**< threads per core */
+    uint16_t flags;		/**< node flags (e.g. SLURMD_REG_FLAG_RESP) */
+    uint64_t realMem;		/**< real node memory */
+    uint32_t tmpDisk;		/**< tmp disc space */
+    uint32_t uptime;		/**< system uptime */
+    uint32_t config;		/**< configuration hash or NO_VAL */
+    uint32_t cpuload;		/**< current CPU load */
+    uint64_t freemem;		/**< current free memory */
+    uint32_t jobInfoCount;	/**< count of following job infos */
+    uint32_t *jobids;		/**< running job IDs */
+    uint32_t *stepids;		/**< running step IDs */
+    int protoVersion;		/**< protocol version */
+    char verStr[64];		/**< version string */
+    psAccountEnergy_t eData;	/**< energy accounting data */
 } Resp_Node_Reg_Status_t;
 
 /** structure holding all infos to pack Slurm accounting data */
