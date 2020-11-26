@@ -1,3 +1,106 @@
+Version psmgmt-5.1.34:
+======================
+------------------------------------------------------------------------
+8ea10c20 | Thomas Moschny | Wed, 25 Nov 2020 17:57:38 +0100
+
+Remove duplicated typedef.
+------------------------------------------------------------------------
+c347d53f | Stephan Krempel | Mon, 26 Oct 2020 15:07:08 +0100
+
+psslurm: Support "Flags" option in gres.conf
+------------------------------------------------------------------------
+5f0c49d6 | Michael Rauh | Tue, 17 Mar 2020 11:41:16 +0100
+
+Add option SLURM_UPDATE_CONF_AT_STARTUP to choose if the Slurm
+configuration cache is always update at startup
+------------------------------------------------------------------------
+83b0c749 | Michael Rauh | Mon, 16 Mar 2020 21:14:07 +0100
+
+Let psslurm support the cleanup of the Slurm configuration cache
+via the CLEAR_CONF_CACHE set command using psiadmin
+------------------------------------------------------------------------
+38478b35 | Michael Rauh | Mon, 16 Mar 2020 20:40:03 +0100
+
+Add support for Slurm configless mode
+------------------------------------------------------------------------
+b452d930 | Michael Rauh | Tue, 10 Mar 2020 12:54:09 +0100
+
+Don't break Slurm 19.05 and below
+------------------------------------------------------------------------
+378564cd | Michael Rauh | Fri, 6 Mar 2020 17:02:25 +0100
+
+Add Slurm configuration RPC calls
+------------------------------------------------------------------------
+c4627c34 | Michael Rauh | Tue, 3 Mar 2020 16:45:55 +0100
+
+Remove special treatment for protocol 18.08
+------------------------------------------------------------------------
+ef7f12bb | Michael Rauh | Tue, 3 Mar 2020 16:29:47 +0100
+
+Update Slurm 20.02 RPC calls
+------------------------------------------------------------------------
+fbc80476 | Michael Rauh | Wed, 26 Feb 2020 17:32:28 +0100
+
+Add 20.02 protocol definition and drop 17.11 support
+------------------------------------------------------------------------
+289ed3c8 | Norbert Eicker | Wed, 25 Nov 2020 14:36:07 +0100
+
+RCS-style keywords are not needed any longer
+------------------------------------------------------------------------
+5d1786be | Norbert Eicker | Wed, 25 Nov 2020 14:30:16 +0100
+
+Get rid of $Revision$ keyword
+------------------------------------------------------------------------
+b1ee2330 | Norbert Eicker | Wed, 25 Nov 2020 13:50:18 +0100
+
+Remove all remaining occurrences of $Id$
+------------------------------------------------------------------------
+59805b43 | Norbert Eicker | Wed, 25 Nov 2020 13:17:16 +0100
+
+Cleanup
+------------------------------------------------------------------------
+3731b76a | Norbert Eicker | Wed, 25 Nov 2020 13:15:48 +0100
+
+Cleanup and streamlining
+------------------------------------------------------------------------
+62b0dfeb | Norbert Eicker | Wed, 25 Nov 2020 13:00:41 +0100
+
+Cleanup
+------------------------------------------------------------------------
+51cfdab6 | Norbert Eicker | Wed, 25 Nov 2020 12:21:49 +0100
+
+Some cleanup and streamlining
+------------------------------------------------------------------------
+d2d6cea0 | Norbert Eicker | Wed, 25 Nov 2020 12:21:23 +0100
+
+Booleanize and cleanup the logging facility
+------------------------------------------------------------------------
+465c23a3 | Norbert Eicker | Wed, 25 Nov 2020 11:39:16 +0100
+
+Also cleanup $Id in psmom
+------------------------------------------------------------------------
+09b84bd1 | Norbert Eicker | Wed, 25 Nov 2020 09:32:04 +0100
+
+More cleanup of $Id entries
+------------------------------------------------------------------------
+bc2bc5b6 | Norbert Eicker | Wed, 25 Nov 2020 01:40:31 +0100
+
+Cleanup and streamline test_pse
+------------------------------------------------------------------------
+d95940ad | Norbert Eicker | Wed, 25 Nov 2020 01:38:27 +0100
+
+Cleanup and streamline various header files
+------------------------------------------------------------------------
+9f276207 | Norbert Eicker | Wed, 25 Nov 2020 01:16:21 +0100
+
+Seems that psstrings.c contained only dead code
+------------------------------------------------------------------------
+fa17f487 | Norbert Eicker | Wed, 25 Nov 2020 00:36:32 +0100
+
+Rename .gdbinit to psmgmt.gdb and install it to /etc/gdbinit.d/
+------------------------------------------------------------------------
+
+
 Version psmgmt-5.1.33-2:
 ========================
 ------------------------------------------------------------------------

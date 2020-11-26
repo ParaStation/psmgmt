@@ -5,6 +5,29 @@ Copyright (C) 2010-2020 ParTec Cluster Competence Center GmbH, Munich
 Please send bug reports, questions and suggestions to <support@par-tec.com>
 
 
+*************************************************************************
+*************************************************************************
+**                                                                     **
+**  Remark: From psmgmt 5.1.34 on support for Slurm 17.11 is dropped   **
+**                                                                     **
+*************************************************************************
+*************************************************************************
+
+Version 5.1.34:
+===============
+Enhancements:
+ - Add 20.02 protocol definition and drop 17.11 support
+ - Add support for Slurm configless mode
+ - SLURM_UPDATE_CONF_AT_STARTUP chooses update of Slurm configuration
+   cache at startup
+ - Cleanup of Slurm configuration cache via psiadmin's "set CLEAR_CONF_CACHE"
+ - Support "Flags" option in gres.conf
+Additional changes:
+ - Remove special treatment for protocol 18.08
+ - Install psmgmt.gdb to /etc/gdbinit.d/
+ - Drop psstrings.c since it contained only dead code
+
+
 Version 5.1.33-2:
 =================
 Bugfixes:
