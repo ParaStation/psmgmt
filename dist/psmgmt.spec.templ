@@ -112,6 +112,9 @@ daemon is necessary to integrate compute nodes into a Torque batch system.
 Summary:   The Slurm plugin of the ParaStation process management
 Group:     Productivity/Clustering/Computing
 Requires:  %{name} = %{version}
+%if !0%{?disable_spank}
+Requires:  %{name}-spank = %{version}
+%endif
 
 %description psslurm
 The ParaStation Slurm plugin is a complete replacement of the slurmd on
@@ -127,6 +130,16 @@ Requires:  %{name} = %{version}
 The ParaStation PMIx plugin provides support for PMIx based on the libpmix.
 It works standalone or together with psslurm.
 
+%if !0%{?disable_spank}
+%package spank
+Summary:   Spank plugins required for e.g. support of psgw functionality
+Group:     Productivity/Clustering/Computing
+
+%description spank
+Slurm spank plugins required to support e.g. the interplay of psgw
+funktionality and Slurm.
+
+%endif
 
 %if 0%{?suse_version}
 %debug_package
@@ -267,14 +280,6 @@ exit 0
 %exclude %{_plugindir}/psgw.la
 %doc plugins/psgw/doc/psgw.conf.template
 %doc plugins/psgw/doc/psgw_error.example
-%if !0%{?disable_spank}
-%dir %{_libdir}/slurm
-%{_libdir}/slurm/psgw_spank.so
-%exclude %{_libdir}/slurm/psgw_spank.la
-%{_libdir}/slurm/spank_api.so
-%exclude %{_libdir}/slurm/spank_api.la
-%{_libexecdir}/psgw
-%endif
 %if !0%{?disable_munge}
 %{_plugindir}/psmunge.so
 %exclude %{_plugindir}/psmunge.la
@@ -383,3 +388,13 @@ exit 0
 %{_plugindir}/pspmix.so
 %exclude %{_plugindir}/pspmix.la
 %config(noreplace) %{_plugindir}/pspmix.conf
+
+%if !0%{?disable_spank}
+%files spank
+%dir %{_libdir}/slurm
+%{_libdir}/slurm/psgw_spank.so
+%exclude %{_libdir}/slurm/psgw_spank.la
+%{_libdir}/slurm/spank_api.so
+%exclude %{_libdir}/slurm/spank_api.la
+%{_libexecdir}/psgw
+%endif
