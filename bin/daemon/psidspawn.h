@@ -97,6 +97,26 @@ void PSID_bindToNodes(cpu_set_t *physSet);
 #endif
 
 /**
+ * @brief Get a list of GPUs close to the CPUs in @a thisSet
+ *
+ * This returns a list of all GPUs that are connected directly to
+ * NUMA domains that contain CPUs set in @a thisSet.
+ *
+ * This function is used by the psid's default GPU pinning mechanism as
+ * well as by psslurm to do enhanced GPU pinning.
+ *
+ * The list returned via @a closelist has to be free()ed by the caller.
+ *
+ * @param closelist Return pointer for the requested list
+ *
+ * @param closecount Return pointer for the length of the list
+ *
+ * @param thisSet The set of CPUs to which the list will be created
+ */
+void PSID_getCloseGPUsList(uint16_t **closelist, size_t *closecount,
+			    PSCPU_set_t *thisSet);
+
+/**
  * @brief Cleanup task waiting to be spawned by node
  *
  * Mark tasks waiting to be spawned as deleted. This disables further

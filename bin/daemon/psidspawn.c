@@ -375,25 +375,20 @@ void PSID_pinToCPUs(cpu_set_t *physSet)
     sched_setaffinity(0, sizeof(*physSet), physSet);
 }
 
-void PSID_bindToGPUs(cpu_set_t *physSet)
+void PSID_getCloseGPUsList(uint16_t **closelist, size_t *closecount,
+			    PSCPU_set_t *thisSet)
 {
     uint16_t numNUMA = PSIDnodes_numNUMADoms(PSC_getMyID());
     int numThrds = PSIDnodes_getNumThrds(PSC_getMyID());
 
     PSCPU_set_t *CPUSets = PSIDnodes_CPUSets(PSC_getMyID());
 
-    PSCPU_set_t thisSet;
-    PSCPU_clrAll(thisSet);
-    for (uint16_t t = 0; t < numThrds; t++) {
-	if (CPU_ISSET(t, physSet)) PSCPU_setCPU(thisSet, t);
-    }
-
     bool used[numNUMA];
     memset(used, 0, sizeof(used));
 
     /* identify NUMA domains this process will run on */
     for (uint16_t d = 0; d < numNUMA; d++) {
-	if (PSCPU_overlap(thisSet, CPUSets[d], numThrds)) {
+	if (PSCPU_overlap(*thisSet, CPUSets[d], numThrds)) {
 	    PSID_log(PSID_LOG_SPAWN, "%s: use NUMA domain %d\n", __func__, d);
 	    used[d] = true;
 	}
@@ -402,14 +397,32 @@ void PSID_bindToGPUs(cpu_set_t *physSet)
     /* build list of GPUs connected to those NUMA nodes */
     uint16_t numGPUs = PSIDnodes_numGPUs(PSC_getMyID());
     PSCPU_set_t *GPUsets = PSIDnodes_GPUSets(PSC_getMyID());
-    uint16_t closelist[numGPUs];
-    size_t closecount = 0;
+    *closelist = malloc(numGPUs * sizeof(**closelist));
+    *closecount = 0;
     for (uint16_t d = 0; d < numNUMA; d++) {
 	if (!used[d]) continue;
 	for (uint16_t gpu = 0; gpu < numGPUs; gpu++) {
-	    if (PSCPU_isSet(GPUsets[d], gpu)) closelist[closecount++] = gpu;
+	    if (PSCPU_isSet(GPUsets[d], gpu)) *closelist[*closecount++] = gpu;
 	}
     }
+}
+
+
+/* list must have enough space for PSIDnodes_numGPUs(PSC_getMyID()) entries */
+void PSID_bindToGPUs(cpu_set_t *physSet)
+{
+    uint16_t numNUMA = PSIDnodes_numNUMADoms(PSC_getMyID());
+    int numThrds = PSIDnodes_getNumThrds(PSC_getMyID());
+
+    PSCPU_set_t thisSet;
+    PSCPU_clrAll(thisSet);
+    for (uint16_t t = 0; t < numThrds; t++) {
+	if (CPU_ISSET(t, physSet)) PSCPU_setCPU(thisSet, t);
+    }
+
+    uint16_t *closelist = NULL;
+    size_t closecount;
+    PSID_getCloseGPUsList(&closelist, &closecount, &thisSet);
 
     /* build list of usable GPUs */
     uint16_t usablelist[numNUMA];
@@ -443,6 +456,8 @@ void PSID_bindToGPUs(cpu_set_t *physSet)
     }
 
     val[len ? len-1 : len] = '\0';
+
+    free(closelist);
 
     PSID_log(PSID_LOG_SPAWN, "%s: Setup to use GPUs '%s'\n", __func__, val);
 
