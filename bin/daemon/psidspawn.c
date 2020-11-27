@@ -468,7 +468,7 @@ void PSID_bindToGPUs(cpu_set_t *physSet)
     }
 
     /* always set PSID version */
-    setenv("PSI_CLOSE_GPUS", val, 1);
+    setenv("PSID_CLOSE_GPUS", val, 1);
 }
 
 typedef struct{
