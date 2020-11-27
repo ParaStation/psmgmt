@@ -85,7 +85,7 @@ static int jobCallback(int32_t exit_status, Forwarder_Data_t *fw)
     Alloc_t *alloc = findAlloc(job->jobid);
 
     mlog("%s: job '%u' finished, exit %i / %i\n", __func__, job->jobid,
-	 exit_status, fw->estatus);
+	 exit_status, fw->chldExitStatus);
     if (!findJobById(job->jobid)) {
 	mlog("%s: job '%u' not found\n", __func__, job->jobid);
 	return 0;
@@ -101,7 +101,7 @@ static int jobCallback(int32_t exit_status, Forwarder_Data_t *fw)
 	    job->jobid, strJobState(job->state));
 
     /* get exit status of child */
-    int eStatus = fw->exitRcvd ? fw->estatus : fw->ecode;
+    int eStatus = fw->exitRcvd ? fw->chldExitStatus : fw->hookExitCode;
 
     /* job aborted due to node failure */
     if (alloc && alloc->nodeFail) eStatus = 9;
@@ -185,7 +185,7 @@ static int stepCallback(int32_t exit_status, Forwarder_Data_t *fw)
     }
 
     flog("%s state %s finished, exit %i / %i\n", strStepID(step),
-	 strJobState(step->state), exit_status, fw->estatus);
+	 strJobState(step->state), exit_status, fw->chldExitStatus);
 
     /* make sure all processes are gone */
     signalStep(step, SIGKILL, 0);
@@ -195,7 +195,7 @@ static int stepCallback(int32_t exit_status, Forwarder_Data_t *fw)
 
     if (step->state == JOB_PRESTART) {
 	/* spawn failed */
-	if (fw->codeRcvd && fw->ecode == - ESCRIPT_CHDIR_FAILED) {
+	if (fw->codeRcvd && fw->hookExitCode == - ESCRIPT_CHDIR_FAILED) {
 	    sendSlurmRC(&step->srunControlMsg, ESCRIPT_CHDIR_FAILED);
 	} else {
 	    sendSlurmRC(&step->srunControlMsg, SLURM_ERROR);
@@ -209,8 +209,8 @@ static int stepCallback(int32_t exit_status, Forwarder_Data_t *fw)
 	/* send step exit to slurmctld */
 	int eStatus = step->exitCode;
 	if (eStatus == -1) {
-	    eStatus = WIFSIGNALED(fw->estatus) ?
-			WTERMSIG(fw->estatus) : fw->estatus;
+	    eStatus = WIFSIGNALED(fw->chldExitStatus) ?
+			WTERMSIG(fw->chldExitStatus) : fw->chldExitStatus;
 	}
 
 	/* step aborted due to node failure */
@@ -253,7 +253,7 @@ static int bcastCallback(int32_t exit_status, Forwarder_Data_t *fw)
 {
     BCast_t *bcast = fw->userData;
 
-    sendSlurmRC(&bcast->msg, WEXITSTATUS(fw->estatus));
+    sendSlurmRC(&bcast->msg, WEXITSTATUS(fw->chldExitStatus));
 
     bcast->fwdata = NULL;
     if (bcast->lastBlock) {
@@ -1533,8 +1533,8 @@ static int epiFinCallback(int32_t exit_status, Forwarder_Data_t *fwdata)
 {
     Alloc_t *alloc = fwdata->userData;
 
-    fdbg(PSSLURM_LOG_PELOG, "exit_status: %i fw-estatus %i\n", exit_status,
-	 fwdata->estatus);
+    fdbg(PSSLURM_LOG_PELOG, "exit_status: %i fw-chldExitStatus %i\n",
+	 exit_status, fwdata->chldExitStatus);
 
     if (alloc->terminate) {
 	sendEpilogueComplete(alloc->id, 0);

@@ -807,7 +807,7 @@ static void sigChldCB(int estatus, PStask_t *task)
 	ForwarderData_delete(fw);
 	task->info = NULL;
     } else {
-	/* sigChldCB to be removed from task in caller */
+	/* sigChldCB() to be removed from task in caller */
 	/* wait for connection to close */
     }
 }
@@ -834,10 +834,10 @@ static void handleChildCode(Forwarder_Data_t *fw, PSLog_Msg_t *msg)
     size_t used = PSLog_headerSize - sizeof(msg->header);
 
     PSP_getMsgBuf((DDBufferMsg_t *)msg, &used, __func__, "exit code",
-		  &fw->ecode, sizeof(fw->ecode));
+		  &fw->hookExitCode, sizeof(fw->hookExitCode));
     fw->codeRcvd = true;
 
-    plugindbg(PLUGIN_LOG_FW, "%s: ecode %i\n", __func__, fw->ecode);
+    plugindbg(PLUGIN_LOG_FW, "%s: ecode %i\n", __func__, fw->hookExitCode);
 }
 
 static void handleChildExit(Forwarder_Data_t *fw, PSLog_Msg_t *msg)
@@ -845,10 +845,10 @@ static void handleChildExit(Forwarder_Data_t *fw, PSLog_Msg_t *msg)
     size_t used = PSLog_headerSize - sizeof(msg->header);
 
     PSP_getMsgBuf((DDBufferMsg_t *)msg, &used, __func__, "exit status",
-		  &fw->estatus, sizeof(fw->estatus));
+		  &fw->chldExitStatus, sizeof(fw->chldExitStatus));
     fw->exitRcvd = true;
 
-    plugindbg(PLUGIN_LOG_FW, "%s: estatus %i\n", __func__, fw->estatus);
+    plugindbg(PLUGIN_LOG_FW, "%s: estatus %i\n", __func__, fw->chldExitStatus);
 }
 
 static void handleChildFin(PStask_ID_t sender)

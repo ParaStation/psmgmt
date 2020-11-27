@@ -200,7 +200,7 @@ static int fwCallback(int32_t forwStatus, Forwarder_Data_t *fwData)
     if (!child) return 0;
 
     if (fwData->exitRcvd) {
-	int pelogueStatus = fwData->estatus;
+	int pelogueStatus = fwData->chldExitStatus;
 	if (WIFEXITED(pelogueStatus)) {
 	    exitStatus = WEXITSTATUS(pelogueStatus);
 	} else if (WIFSIGNALED(pelogueStatus)) {
