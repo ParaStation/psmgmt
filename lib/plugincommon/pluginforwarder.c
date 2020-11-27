@@ -801,9 +801,10 @@ static void sigChldCB(int estatus, PStask_t *task)
     plugindbg(PLUGIN_LOG_FW, " TID %s returns %d\n",
 	      PSC_printTID(task->tid), estatus);
 
-    if (fw && fw->callback) fw->callback(estatus, fw);
+    fw->fwExitStatus = estatus;
 
     if (task->fd == -1) {
+	if (fw && fw->callback) fw->callback(fw->fwExitStatus, fw);
 	ForwarderData_delete(fw);
 	task->info = NULL;
     } else {
@@ -892,6 +893,7 @@ static int handleFwSock(int fd, void *info)
     if (!recvMsg(fd, (DDMsg_t*)&msg, sizeof(msg))) {
 	if (!task->sigChldCB) {
 	    /* SIGCHLD already received */
+	    if (fw && fw->callback) fw->callback(fw->fwExitStatus, fw);
 	    ForwarderData_delete(fw);
 	    task->info = NULL;
 	}

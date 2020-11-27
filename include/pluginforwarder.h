@@ -39,6 +39,7 @@ typedef struct __fwData__ {
     PStask_ID_t tid;       /**< Forwarder's task ID */
     pid_t cPid;            /**< PID of forwarder's child if any */
     pid_t cSid;            /**< Session ID of forwarder's child if any */
+    int32_t fwExitStatus;  /**< Forwarder's exit status (only available in cb)*/
     bool exitRcvd;         /**< Flag chldExitStatus as valid */
     int32_t chldExitStatus;/**< Child's exit status (only available in cb) */
     bool codeRcvd;         /**< Flag hookExitCode as valid */
