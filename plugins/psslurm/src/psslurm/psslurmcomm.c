@@ -844,7 +844,7 @@ char *__getBitString(char **ptr, const char *func, const int line)
     return bitStr;
 }
 
-bool hexBitstr2List(char *bitstr, char **list, size_t *listSize)
+bool hexBitstr2Array(char *bitstr, int **array, size_t *arraySize)
 {
     size_t len;
     int32_t next, count = 0;
@@ -857,11 +857,16 @@ bool hexBitstr2List(char *bitstr, char **list, size_t *listSize)
     if (!strncmp(bitstr, "0x", 2)) bitstr += 2;
     len = strlen(bitstr);
 
+    *array = umalloc(len * 4 * sizeof(**array));
+    *arraySize = 0;
+
     while (len--) {
-	char tmp[1024];
 	next = (int32_t) bitstr[len];
 
-	if (!isxdigit(next)) return false;
+	if (!isxdigit(next)) {
+	    ufree(*array);
+	    return false;
+	}
 
 	if (isdigit(next)) {
 	    next -= '0';
@@ -870,33 +875,29 @@ bool hexBitstr2List(char *bitstr, char **list, size_t *listSize)
 	    next -= 'A' - 10;
 	}
 
-	if (next & 1) {
-	    if (*listSize) str2Buf(",", list, listSize);
-	    snprintf(tmp, sizeof(tmp), "%i", count);
-	    str2Buf(tmp, list, listSize);
+	for (int32_t i = 1; i <= 8; i *= 2) {
+	    if (next & i) (*array)[(*arraySize)++] = count;
+	    count++;
 	}
-	count++;
+    }
 
-	if (next & 2) {
-	    if (*listSize) str2Buf(",", list, listSize);
-	    snprintf(tmp, sizeof(tmp), "%i", count);
-	    str2Buf(tmp, list, listSize);
-	}
-	count++;
+    *array = urealloc(*array, *arraySize * sizeof(**array));
 
-	if (next & 4) {
-	    if (*listSize) str2Buf(",", list, listSize);
-	    snprintf(tmp, sizeof(tmp), "%i", count);
-	    str2Buf(tmp, list, listSize);
-	}
-	count++;
+    return true;
+}
 
-	if (next & 8) {
-	    if (*listSize) str2Buf(",", list, listSize);
-	    snprintf(tmp, sizeof(tmp), "%i", count);
-	    str2Buf(tmp, list, listSize);
-	}
-	count++;
+bool hexBitstr2List(char *bitstr, char **list, size_t *listSize)
+{
+    int *array;
+    size_t arraySize;
+
+    if (!hexBitstr2Array(bitstr, &array, &arraySize)) return false;
+
+    char tmp[1024];
+    for (size_t i = 0; i < arraySize; i++) {
+        if (*listSize) str2Buf(",", list, listSize);
+        snprintf(tmp, sizeof(tmp), "%i", array[i]);
+        str2Buf(tmp, list, listSize);
     }
     str2Buf("", list, listSize);
 

@@ -257,6 +257,24 @@ char *__getBitString(char **ptr, const char *func, const int line);
 
 #define getBitString(ptr) __getBitString(ptr, __func__, __LINE__)
 
+
+/**
+ * @brief Convert a hex bitstring to an array of integers.
+ *
+ * Existing values of @a list and @a listSize are ignored and overridden.
+ * The caller is responsible to free @a list using @ref ufree() if true is
+ * returned.
+ *
+ * @param bitstr The bitstring to convert
+ *
+ * @param array The list holding the result
+ *
+ * @param arraySize The size of the list
+ *
+ * @return Returns true on success otherwise false
+ */
+bool hexBitstr2Array(char *bitstr, int **array, size_t *arraySize);
+
 /**
  * @brief Convert a hex bitstring to a comma separated list.
  *
