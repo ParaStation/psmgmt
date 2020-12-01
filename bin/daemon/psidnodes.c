@@ -1051,6 +1051,39 @@ PSCPU_set_t * PSIDnodes_GPUSets(PSnodes_ID_t id)
     return nodes[id].GPUset;
 }
 
+void PSIDnodes_getCloseGPUsList(PSnodes_ID_t id,
+				uint16_t **closelist, size_t *closecount,
+				PSCPU_set_t *thisSet)
+{
+    uint16_t numNUMA = PSIDnodes_numNUMADoms(id);
+    int numThrds = PSIDnodes_getNumThrds(id);
+
+    PSCPU_set_t *CPUSets = PSIDnodes_CPUSets(id);
+
+    bool used[numNUMA];
+    memset(used, 0, sizeof(used));
+
+    /* identify NUMA domains this process will run on */
+    for (uint16_t d = 0; d < numNUMA; d++) {
+	if (PSCPU_overlap(*thisSet, CPUSets[d], numThrds)) {
+	    PSID_log(PSID_LOG_SPAWN, "%s: use NUMA domain %d\n", __func__, d);
+	    used[d] = true;
+	}
+    }
+
+    /* build list of GPUs connected to those NUMA nodes */
+    uint16_t numGPUs = PSIDnodes_numGPUs(id);
+    PSCPU_set_t *GPUsets = PSIDnodes_GPUSets(id);
+    *closelist = malloc(numGPUs * sizeof(**closelist));
+    *closecount = 0;
+    for (uint16_t d = 0; d < numNUMA; d++) {
+	if (!used[d]) continue;
+	for (uint16_t gpu = 0; gpu < numGPUs; gpu++) {
+	    if (PSCPU_isSet(GPUsets[d], gpu)) *closelist[*closecount++] = gpu;
+	}
+    }
+}
+
 int PSIDnodes_setNumNICs(PSnodes_ID_t id, short num)
 {
     if (!validID(id)) return -1;
