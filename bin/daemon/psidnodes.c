@@ -1072,15 +1072,21 @@ void PSIDnodes_getCloseGPUsList(PSnodes_ID_t id,
     }
 
     /* build list of GPUs connected to those NUMA nodes */
+    PSCPU_set_t GPUs;
+    PSCPU_clrAll(GPUs);
     uint16_t numGPUs = PSIDnodes_numGPUs(id);
     PSCPU_set_t *GPUsets = PSIDnodes_GPUSets(id);
+    for (uint16_t d = 0; d < numNUMA && used[d]; d++) {
+	for (uint16_t gpu = 0; gpu < numGPUs; gpu++) {
+	    if (PSCPU_isSet(GPUsets[d], gpu)) PSCPU_setCPU(GPUs, gpu);
+	}
+    }
+
+    /* create list */
     *closelist = malloc(numGPUs * sizeof(**closelist));
     *closecount = 0;
-    for (uint16_t d = 0; d < numNUMA; d++) {
-	if (!used[d]) continue;
-	for (uint16_t gpu = 0; gpu < numGPUs; gpu++) {
-	    if (PSCPU_isSet(GPUsets[d], gpu)) *closelist[*closecount++] = gpu;
-	}
+    for (uint16_t gpu = 0; gpu < numGPUs; gpu++) {
+        if (PSCPU_isSet(GPUs, gpu)) (*closelist)[(*closecount)++] = gpu;
     }
 }
 
