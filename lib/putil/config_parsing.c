@@ -1850,7 +1850,8 @@ static int getHardwareOptions(char *name)
 	    if (env_config_style != 0) {
 		parser_comment(-1, "Invalid environment setting for hwtype"
 			       " '%s'\n", name);
-		break;
+		g_ptr_array_free(env, TRUE);
+		return -1;
 	    }
 	    env_config_style = 2; // old style detected
 	    break;
@@ -1875,7 +1876,7 @@ static int getHardwareOptions(char *name)
 	    parser_comment(-1, "Invalid environment setting for hwtype '%s'\n",
 			   name);
 	    g_ptr_array_free(env, TRUE);
-	    return 0;
+	    return -1;
 	}
 
 	for(i = 0; (i+1) < env->len; i+=2) {
