@@ -15,6 +15,7 @@
 #ifndef __RDP_H
 #define __RDP_H
 
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdint.h>
 #include <sys/types.h>
@@ -374,38 +375,38 @@ int getRetransRDP(void);
 void setRetransRDP(unsigned int newCount);
 
 /**
- * @brief Get status of RDP-statistics.
+ * @brief Get status of RDP-statistics
  *
  * Get the current status of RDP-statistics. If it's switched on, mean
  * time to ACK will be measures. Results might be accessed via
  * getStateInfoRDP(). RDP-statistics might be switched on and off via
  * RDP_setStatistics().
  *
- * @return The current state of RDP-statistics.
+ * @return The current state of RDP-statistics
  *
  * @see RDP_setStatistics()
  */
-int RDP_getStatistics(void);
+bool RDP_getStatistics(void);
 
 /**
- * @brief Set status of RDP-statistics.
+ * @brief Set status of RDP-statistics
  *
  * Set the status of RDP-statistics to @a newState. If @a newState is
- * 0, collecting statistics is disabled. Otherwise it will be enabled
- * and all counters are reset. Resetting the counters should show no
- * side-effects.
+ * false, collecting statistics is disabled. Otherwise it will be
+ * enabled and all counters are reset. Resetting the counters should
+ * show no side-effects.
  *
- * @param newState The status of RDP-statistics to set.
+ * @param newState The status of RDP-statistics to set
  *
- * @return No return value.
+ * @return No return value
  *
  * @see RDP_getStatistics()
  */
-void RDP_setStatistics(int newState);
+void RDP_setStatistics(bool newState);
 
 
 /**
- * @brief Send a RDP packet.
+ * @brief Send an RDP packet
  *
  * Send a RDP packet of length @a len in @a buf to node @a node.
  *

@@ -46,7 +46,7 @@ static int rdpsock = -1;
 static int timerID = -1;
 
 /** The size of the cluster. Set via RDP_init(). */
-static int nrOfNodes = 0;
+static unsigned int nrOfNodes = 0;
 
 /** The logger we use inside RDP */
 static logger_t *logger;
@@ -2006,18 +2006,17 @@ void setMaxAckPendRDP(int limit)
     RDPMaxAckPending = limit;
 }
 
-int RDP_getStatistics(void)
+bool RDP_getStatistics(void)
 {
     return RDPStatistics;
 }
 
-void RDP_setStatistics(int state)
+void RDP_setStatistics(bool state)
 {
     RDPStatistics = state;
 
     if (RDPStatistics) {
-	int n;
-	for (n = 0; n < nrOfNodes; n++) {
+	for (unsigned int n = 0; n < nrOfNodes; n++) {
 	    timerclear(&conntable[n].TTA);
 	    conntable[n].totRetrans = 0;
 	    conntable[n].totSent = 0;
@@ -2031,7 +2030,7 @@ int Rsendto(int node, void *buf, size_t len)
     msgbuf_t *mp;
     int retval = 0, blocked;
 
-    if (((node < 0) || (node >= nrOfNodes))) {
+    if (((node < 0) || (node >= (int)nrOfNodes))) {
 	/* illegal node number */
 	RDP_log(-1, "%s: illegal node number %d\n", __func__, node);
 	errno = EHOSTUNREACH;
@@ -2207,7 +2206,7 @@ int Rrecvfrom(int *node, void *msg, size_t len)
 	errno = EINVAL;
 	return -1;
     }
-    if (((*node < -1) || (*node >= nrOfNodes))) {
+    if (((*node < -1) || (*node >= (int)nrOfNodes))) {
 	/* illegal node number */
 	RDP_log(-1, "%s: illegal node number %d\n", __func__, *node);
 	errno = EINVAL;
