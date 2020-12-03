@@ -1632,7 +1632,6 @@ static int insertNode(void)
 {
     gchar *nodename, *netname, *ipaddress;
     char buffer[64];
-    struct in_addr *tmpaddr;
     in_addr_t ipaddr;
     int nodeid, ret;
 
@@ -1671,17 +1670,15 @@ static int insertNode(void)
 	return -1;
     }
 
-    tmpaddr = g_malloc(sizeof(struct in_addr));
-    if (!inet_pton(AF_INET, ipaddress, tmpaddr)) {
+    struct in_addr tmpaddr;
+    if (!inet_pton(AF_INET, ipaddress, &tmpaddr)) {
 	parser_comment(-1, "Cannot convert IP address '%s' for node '%s'\n",
 		ipaddress, nodename);
 	g_free(ipaddress);
-	g_free(tmpaddr);
 	return -1;
     }
     g_free(ipaddress);
-    ipaddr = tmpaddr->s_addr;
-    g_free(tmpaddr);
+    ipaddr = tmpaddr.s_addr;
 
     ret = getNumber("Psid.NodeId", &nodeid);
     if (ret == -1) {
@@ -2001,6 +1998,7 @@ static int getDaemonScript(char *key)
 
     if (*value == '\0') {
 	// script not set
+	g_free(value);
 	return 0;
     }
 
@@ -2241,19 +2239,16 @@ config_t *parseConfig(FILE* logfile, int logmask, char *configfile)
 	    goto parseConfig_error;
 	}
 	*pos = '\0';
-	parser_comment(-1,
-		       "INFO: Trying to use cutted hostname for psconfig"
+	parser_comment(-1, "INFO: Trying to use cutted hostname for psconfig"
 		       " host object: \"%s\".\n", psconfigobj);
-    }
-    else {
-	free(nodename);
+    } else {
+	g_free(nodename);
     }
 
     // get local psid domain
     char *psiddomain;
     if (!getString("Psid.Domain", &psiddomain)) {
-	parser_comment(-1,
-		       "INFO: No psid domain configured, using all host"
+	parser_comment(-1, "INFO: No psid domain configured, using all host"
 		       " objects.\n");
     }
 
@@ -2261,8 +2256,7 @@ config_t *parseConfig(FILE* logfile, int logmask, char *configfile)
     ret = getNodes(psiddomain);
     g_free(psiddomain);
     if (ret) {
-	parser_comment(-1,
-		       "ERROR: Reading nodes configuration from psconfig"
+	parser_comment(-1, "ERROR: Reading nodes configuration from psconfig"
 		       " failed.\n");
 	psconfig_unref(psconfig);
 	psconfig = NULL;
