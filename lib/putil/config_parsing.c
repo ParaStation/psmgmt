@@ -1666,6 +1666,7 @@ static int insertNode(void)
     if (*ipaddress == '\0') {
 	parser_comment(-1, "empty value of '%s' for node '%s'\n", buffer,
 		nodename);
+	g_free(ipaddress);
 	g_free(nodename);
 	return -1;
     }
@@ -1674,9 +1675,11 @@ static int insertNode(void)
     if (!inet_pton(AF_INET, ipaddress, tmpaddr)) {
 	parser_comment(-1, "Cannot convert IP address '%s' for node '%s'\n",
 		ipaddress, nodename);
+	g_free(ipaddress);
 	g_free(tmpaddr);
 	return -1;
     }
+    g_free(ipaddress);
     ipaddr = tmpaddr->s_addr;
     g_free(tmpaddr);
 
