@@ -173,40 +173,31 @@ static bool getString(char *key, gchar **value)
     return true;
 }
 
-static int toBool(char *token, int *value)
+static bool toBool(char *token, bool *value)
 {
-    int ret;
-    ret = 0;
-
-    if (strcasecmp(token, "true")==0) {
-	*value = 1;
-    } else if (strcasecmp(token, "false")==0) {
-	*value = 0;
-    } else if (strcasecmp(token, "yes")==0) {
-	*value = 1;
-    } else if (strcasecmp(token, "no")==0) {
-	*value = 0;
-    } else if (strcasecmp(token, "1")==0) {
-	*value = 1;
-    } else if (strcasecmp(token, "0")==0) {
-	*value = 0;
+    if (!strcasecmp(token, "true") || !strcasecmp(token, "yes")
+	|| !strcasecmp(token, "1")) {
+	*value = true;
+    } else if (!strcasecmp(token, "false") || !strcasecmp(token, "no")
+	|| !strcasecmp(token, "0")) {
+	*value = false;
     } else {
-	ret = -1;
+	return false;
     }
 
-    return ret;
+    return true;
 }
 
-static int getBool(char *key, int *value)
+static bool getBool(char *key, bool *value)
 {
     gchar *token;
     if (!getString(key, &token) || *token == '\0') {
 	if (token) g_free(token);
-	return -1;
+	return false;
     }
 
-    int ret = toBool(token, value);
-    if (ret) {
+    bool ret = toBool(token, value);
+    if (!ret) {
 	parser_comment(-1, "PSConfig: '%s(%s)' cannot convert string '%s' to"
 		       " boolean\n", psconfigobj, key, token);
     }
@@ -445,11 +436,8 @@ static int getCoreDir(char *key)
 
 static int getMCastUse(char *key)
 {
-    int mc, ret;
-
-    ret = getBool(key, &mc);
-
-    if (ret) return ret;
+    bool mc;
+    if (!getBool(key, &mc)) return -1;
 
     if (mc) {
 	config.useMCast = 1;
@@ -546,15 +534,12 @@ static int getRDPMaxACKPend(char *key)
 
 static int getRDPStatistics(char *key)
 {
-    int ret, tmp;
-
-    ret = getBool(key, &tmp);
-
-    if (ret) return ret;
+    bool tmp;
+    if (!getBool(key, &tmp)) return -1;
 
     RDP_setStatistics(tmp);
 
-    return ret;
+    return 0;
 }
 
 static int getSelectTime(char *key)
@@ -716,16 +701,12 @@ static int getLogDest(char *key)
 
 static int getFreeOnSusp(char *key)
 {
-    int fs, ret;
+    bool fs;
+    if (!getBool(key, &fs)) return -1;
 
-    ret = getBool(key, &fs);
-
-    if (ret) return ret;
-
-    if (fs) {
-	config.freeOnSuspend = 1;
-	parser_comment(-1, "suspended jobs will free their resources\n");
-    }
+    config.freeOnSuspend = fs;
+    parser_comment(PARSER_LOG_NODE, "suspended jobs will%s free their"
+		   " resources\n", fs ? "" : " not");
 
     return 0;
 }
@@ -1202,23 +1183,18 @@ static int getAdminGroups(char *key)
 
 static int getCS(char *key)
 {
-    int cs, ret;
-
-    ret = getBool(key, &cs);
-    if (ret) return ret;
+    bool cs;
+    if (!getBool(key, &cs)) return -1;
 
     nodeconf.canstart = cs;
-    parser_comment(PARSER_LOG_NODE, " starting%s allowed\n",
-		   cs ? "":" not");
+    parser_comment(PARSER_LOG_NODE, " starting%s allowed\n", cs ? "":" not");
     return 0;
 }
 
 static int getRJ(char *key)
 {
-    int rj, ret;
-
-    ret = getBool(key, &rj);
-    if (ret) return ret;
+    bool rj;
+    if (!getBool(key, &rj)) return -1;
 
     nodeconf.runjobs = rj;
     parser_comment(PARSER_LOG_NODE, " jobs%s allowed\n", rj ? "":" not");
@@ -1254,20 +1230,21 @@ static int getProcs(char *key)
 static int getOB(char *key)
 {
     gchar *obStr;
-    int ob, ret;
-
     if (!getString(key, &obStr)) return -1;
 
-    if (strcasecmp(obStr, "auto") == 0) {
+    PSnodes_overbook_t ob;
+    if (!strcasecmp(obStr, "auto")) {
 	ob = OVERBOOK_AUTO;
 	parser_comment(PARSER_LOG_NODE, "got 'auto' for value 'overbook'\n");
-	ret = 0;
     } else {
-	ret = toBool(obStr, &ob);
+	bool tmp;
+	if (!toBool(obStr, &tmp)) {
+	    g_free(obStr);
+	    return -1;
+	}
+	ob = tmp ? OVERBOOK_TRUE : OVERBOOK_FALSE;
     }
     g_free(obStr);
-
-    if (ret) return ret;
 
     nodeconf.overbook = ob;
     parser_comment(PARSER_LOG_NODE, " overbooking is '%s'\n",
@@ -1278,10 +1255,8 @@ static int getOB(char *key)
 
 static int getExcl(char *key)
 {
-    int excl, ret;
-
-    ret = getBool(key, &excl);
-    if (ret) return ret;
+    bool excl;
+    if (!getBool(key, &excl)) return -1;
 
     nodeconf.exclusive = excl;
     parser_comment(PARSER_LOG_NODE, " exclusive assign%s allowed\n",
@@ -1292,10 +1267,8 @@ static int getExcl(char *key)
 
 static int getPinProcs(char *key)
 {
-    int pinProcs, ret;
-
-    ret = getBool(key, &pinProcs);
-    if (ret) return ret;
+    bool pinProcs;
+    if (!getBool(key, &pinProcs)) return -1;
 
     nodeconf.pinProcs = pinProcs;
     parser_comment(PARSER_LOG_NODE, " processes are%s pinned\n",
@@ -1306,10 +1279,8 @@ static int getPinProcs(char *key)
 
 static int getBindMem(char *key)
 {
-    int bindMem, ret;
-
-    ret = getBool(key, &bindMem);
-    if (ret) return ret;
+    bool bindMem;
+    if (!getBool(key, &bindMem)) return -1;
 
     nodeconf.bindMem = bindMem;
     parser_comment(PARSER_LOG_NODE, " memory is%s bound\n",
@@ -1320,10 +1291,8 @@ static int getBindMem(char *key)
 
 static int getBindGPUs(char *key)
 {
-    int bindGPUs, ret;
-
-    ret = getBool(key, &bindGPUs);
-    if (ret) return ret;
+    bool bindGPUs;
+    if (!getBool(key, &bindGPUs)) return -1;
 
     nodeconf.bindGPUs = bindGPUs;
     parser_comment(PARSER_LOG_NODE, " GPUs get%s bound\n",
@@ -1334,10 +1303,8 @@ static int getBindGPUs(char *key)
 
 static int getAllowUserMap(char *key)
 {
-    int allowMap, ret;
-
-    ret = getBool(key, &allowMap);
-    if (ret) return ret;
+    bool allowMap;
+    if (!getBool(key, &allowMap)) return -1;
 
     nodeconf.allowUserMap = allowMap;
     parser_comment(PARSER_LOG_NODE, " user's CPU-mapping is%s allowed\n",
@@ -1348,10 +1315,8 @@ static int getAllowUserMap(char *key)
 
 static int getSupplGrps(char *key)
 {
-    int supplGrps, ret;
-
-    ret = getBool(key, &supplGrps);
-    if (ret) return ret;
+    bool supplGrps;
+    if (!getBool(key, &supplGrps)) return -1;
 
     nodeconf.supplGrps = supplGrps;
     parser_comment(PARSER_LOG_NODE, " supplementary groups are%s set\n",
