@@ -153,24 +153,24 @@ static nodeconf_t nodeconf = {
 /*
  * Get string value from psconfigobj in the psconfig configuration.
  *
- * On success, *value is set to the string value and 0 is returned.
- * On error a parser comment is printed, *value is set to NULL and -1 returned.
+ * On success, *value is set to the string value and true is returned.
+ * On error *value is will be NULL, prints a parser comment, and return false
  *
  * Note: For psconfig an non existing key and an empty value is the same
  */
-static int getString(char *key, gchar **value)
+static bool getString(char *key, gchar **value)
 {
     GError *err = NULL;
 
     *value = psconfig_get(psconfig, psconfigobj, key, psconfig_flags, &err);
-    CHECK_PSCONFIG_ERROR_AND_RETURN(*value, key, err, -1);
+    CHECK_PSCONFIG_ERROR_AND_RETURN(*value, key, err, false);
 
     if (**value == '\0') {
 	parser_comment(PARSER_LOG_VERB, "PSConfig: %s(%s) does not exist or has"
 		" empty value\n", psconfigobj, key);
     }
 
-    return 0;
+    return true;
 }
 
 static int toBool(char *token, int *value)
@@ -200,12 +200,12 @@ static int toBool(char *token, int *value)
 static int getBool(char *key, int *value)
 {
     gchar *token;
-    int ret;
+    if (!getString(key, &token) || *token == '\0') {
+	if (token) g_free(token);
+	return -1;
+    }
 
-    ret = getString(key, &token);
-    if (ret || *token == '\0') return -1;
-
-    ret = toBool(token, value);
+    int ret = toBool(token, value);
     if (ret) {
 	parser_comment(-1, "PSConfig: '%s(%s)' cannot convert string '%s' to"
 		       " boolean\n", psconfigobj, key, token);
@@ -233,12 +233,12 @@ static int toNumber(char *token, int *val)
 static int getNumber(char *key, int *val)
 {
     gchar *token;
-    int ret;
+    if (!getString(key, &token) || *token == '\0') {
+	if (token) g_free(token);
+	return -1;
+    }
 
-    ret = getString(key, &token);
-    if (ret || *token == '\0') return -1;
-
-    ret = toNumber(token, val);
+    int ret = toNumber(token, val);
     if (ret) {
 	parser_comment(-1, "PSConfig: '%s(%s)' cannot convert string '%s' to"
 		       " number\n", psconfigobj, key, token);
@@ -330,8 +330,8 @@ static int getRLimit(char *pointer)
     int i, intval, ret = 0;
 
     for (i=0; supported_rlimits[i].key != NULL; i++) {
-	ret = getString(supported_rlimits[i].key, &limit);
-	if (ret) continue; /* no not break on errors here */
+	/* no not break on errors here */
+	if (!getString(supported_rlimits[i].key, &limit)) continue;
 
 	if (*limit == '\0') {
 	    /* limit not set */
@@ -377,7 +377,7 @@ static int getInstDir(char *key)
     gchar *dname;
     struct stat fstat;
 
-    if (getString(key, &dname)) return -1;
+    if (!getString(key, &dname)) return -1;
 
     /* test if dir is a valid directory */
     if (*dname == '\0') {
@@ -414,7 +414,7 @@ static int getCoreDir(char *key)
     char *dname;
     struct stat fstat;
 
-    if (getString(key, &dname)) return -1;
+    if (!getString(key, &dname)) return -1;
 
     /* test if dir is a valid directory */
     if (*dname == '\0') {
@@ -666,7 +666,7 @@ static int getLogDest(char *key)
     int ret;
     gchar *value;
 
-    if (getString(key, &value)) return -1;
+    if (!getString(key, &value)) return -1;
 
     if (*value == '\0') {
 	parser_comment(-1, "empty destination\n");
@@ -735,7 +735,7 @@ static int getPSINodesSort(char *key)
     gchar *value;
     int ret;
 
-    if (getString(key, &value)) return -1;
+    if (!getString(key, &value)) return -1;
 
     ret = 0;
 
@@ -1231,7 +1231,7 @@ static int getProcs(char *key)
     gchar *procStr;
     int procs = -1;
 
-    if (getString(key, &procStr)) return -1;
+    if (!getString(key, &procStr)) return -1;
 
     if (toNumber(procStr, &procs) && strcasecmp(procStr, "any")) {
 	parser_comment(-1, "Unknown number of processes '%s'\n", procStr);
@@ -1256,7 +1256,7 @@ static int getOB(char *key)
     gchar *obStr;
     int ob, ret;
 
-    if (getString(key, &obStr)) return -1;
+    if (!getString(key, &obStr)) return -1;
 
     if (strcasecmp(obStr, "auto") == 0) {
 	ob = OVERBOOK_AUTO;
@@ -1637,14 +1637,14 @@ static int insertNode(void)
     int nodeid, ret;
 
     // ignore this host object silently if NodeName is not set
-    if (getString("NodeName", &nodename)) return 0;
+    if (!getString("NodeName", &nodename)) return 0;
     if (*nodename == '\0') {
 	g_free(nodename);
 	return 0;
     }
 
     // get parameters for the node
-    if (getString("Psid.NetworkName", &netname)) {
+    if (!getString("Psid.NetworkName", &netname)) {
 	g_free(nodename);
 	return -1;
     }
@@ -1658,7 +1658,7 @@ static int insertNode(void)
 
     snprintf(buffer, sizeof(buffer), "%s.DevIPAddress", netname);
     g_free(netname);
-    if (getString(buffer, &ipaddress)) {
+    if (!getString(buffer, &ipaddress)) {
 	g_free(nodename);
 	return -1;
     }
@@ -1747,7 +1747,7 @@ static int getNodes(char *psiddomain)
 	if (psiddomain) {
 	    char *domain;
 	    /* ignore errors */
-	    if (getString("Psid.Domain", &domain)) continue;
+	    if (!getString("Psid.Domain", &domain)) continue;
 	    /* ignore nodes with wrong psid domain */
 	    if (strcmp(domain, psiddomain)) {
 		g_free(domain);
@@ -1997,7 +1997,7 @@ static int getDaemonScript(char *key)
 	return -1;
     }
 
-    if (getString(key, &value)) return -1;
+    if (!getString(key, &value)) return -1;
 
     if (*value == '\0') {
 	// script not set
@@ -2230,7 +2230,7 @@ config_t *parseConfig(FILE* logfile, int logmask, char *configfile)
 
     // check if the host object exists or we have to cut the hostname
     char *nodename;
-    if (getString("NodeName", &nodename)) {
+    if (!getString("NodeName", &nodename)) {
 	// cut hostname
 	parser_comment(PARSER_LOG_VERB, "%s: Cutting hostname \"%s\" for"
 		" psconfig.\n", __func__, psconfigobj+5);
@@ -2251,7 +2251,7 @@ config_t *parseConfig(FILE* logfile, int logmask, char *configfile)
 
     // get local psid domain
     char *psiddomain;
-    if (getString("Psid.Domain", &psiddomain)) {
+    if (!getString("Psid.Domain", &psiddomain)) {
 	parser_comment(-1,
 		       "INFO: No psid domain configured, using all host"
 		       " objects.\n");
