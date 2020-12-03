@@ -1383,16 +1383,9 @@ static bool newHost(int id, in_addr_t addr)
 
     nodesfound++;
 
-    if (nodesfound > PSIDnodes_getNum()) { /* more hosts than nodes ??? */
-	parser_comment(-1, "NrOfNodes = %d does not match number of hosts in"
-		       " list (%d)\n", PSIDnodes_getNum(), nodesfound);
-	return false;
-    }
-
     parser_comment(PARSER_LOG_VERB,
 		   "%s: host <%s> inserted in hostlist with id=%d.\n",
 		   __func__, inet_ntoa(* (struct in_addr *) &addr), id);
-
 
     // get parameters this node
     bool fail = false;
