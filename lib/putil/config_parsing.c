@@ -1327,27 +1327,6 @@ static void pushAndClearEnv(void)
     }
 }
 
-/**
- * @brief Clear environment
- *
- * Clear the current list of environments collected in @ref envList.
- *
- * @return No return value.
- */
-static void clearEnv(void)
-{
-    list_t *pos, *tmp;
-
-    list_for_each_safe(pos, tmp, &envList) {
-	EnvEnt_t *env = list_entry(pos, EnvEnt_t, next);
-	list_del(pos);
-	if (env->name) free(env->name);
-	if (env->value) free(env->value);
-
-	free(env);
-    }
-}
-
 /*----------------------------------------------------------------------*/
 static confkeylist_t each_node_configkey_list[] = {
     {"Psid.CpuMap", getCPUmap},
@@ -1520,8 +1499,6 @@ static bool insertNode(void)
     if (PSC_isLocalIP(ipaddr)) {
 	nodeconf.id = nodeid;
 	PSC_setMyID(nodeid);
-    } else {
-	clearEnv();
     }
 
     return true;
