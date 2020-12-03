@@ -1842,7 +1842,7 @@ static int getHardwareOptions(char *name)
     // 2 means old config style having key, value alternating list entries
     env_config_style = 0;
 
-    for(i = 0; (i+1) < env->len; i++) {
+    for(i = 0; i < env->len; i++) {
 	key = (gchar*)g_ptr_array_index(env,i);
 	val = strstr(key, "=");
 
