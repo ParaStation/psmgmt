@@ -262,24 +262,24 @@ static bool saveFrwrdMsgReply(Slurm_Msg_t *sMsg, Msg_Forward_t *fw,
 	/* save message from other node */
 	uint16_t i, saved = 0;
 	for (i=0; i<fw->head.forward; i++) {
-	    Slurm_Forward_Data_t *fwdata = &fw->head.fwdata[i];
+	    Slurm_Forward_Res_t *fwRes = &fw->head.fwRes[i];
 	    /* test for double replies */
-	    if (fwdata->node == srcNode) {
+	    if (fwRes->node == srcNode) {
 		mlog("%s: result for node %i already saved, caller %s "
 		     "line %i\n", __func__, srcNode, func, line);
 		fw->numRes--;
 		return false;
 	    }
 	    /* find the next free slot */
-	    if (fwdata->node == -1) {
+	    if (fwRes->node == -1) {
 		/* save the result */
-		fwdata->error = error;
-		fwdata->type = sMsg->head.type;
-		fwdata->node = srcNode;
+		fwRes->error = error;
+		fwRes->type = sMsg->head.type;
+		fwRes->node = srcNode;
 		if (sMsg->reply.bufUsed) {
 		    if (!memToDataBuffer(sMsg->reply.buf,
 					 sMsg->reply.bufUsed,
-					 &fwdata->body)) {
+					 &fwRes->body)) {
 			mlog("%s: saving error failed, caller %s at %i\n",
 			     __func__, func, line);
 		    }

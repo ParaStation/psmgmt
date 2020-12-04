@@ -516,30 +516,30 @@ bool __packSlurmHeader(PS_SendDB_t *data, Slurm_Msg_Header_t *head,
     addUint16ToMsg(head->forward, data);
     if (head->forward > 0) {
 	/* nodelist */
-	addStringToMsg(head->nodeList, data);
+	addStringToMsg(head->fwNodeList, data);
 	/* timeout */
-	addUint32ToMsg(head->timeout, data);
+	addUint32ToMsg(head->fwTimeout, data);
 	/* tree width */
-	addUint16ToMsg(head->treeWidth, data);
+	addUint16ToMsg(head->fwTreeWidth, data);
     }
 
     /* return list */
     addUint16ToMsg(head->returnList, data);
     for (i=0; i<head->returnList; i++) {
 	/* error */
-	addUint32ToMsg(head->fwdata[i].error, data);
+	addUint32ToMsg(head->fwRes[i].error, data);
 
 	/* msg type */
-	addUint16ToMsg(head->fwdata[i].type, data);
+	addUint16ToMsg(head->fwRes[i].type, data);
 
 	/* nodename */
-	hn = getSlurmHostbyNodeID(head->fwdata[i].node);
+	hn = getSlurmHostbyNodeID(head->fwRes[i].node);
 	addStringToMsg(hn, data);
 
 	/* msg body */
-	if (head->fwdata[i].body.bufUsed) {
-	    addMemToMsg(head->fwdata[i].body.buf,
-			head->fwdata[i].body.bufUsed, data);
+	if (head->fwRes[i].body.bufUsed) {
+	    addMemToMsg(head->fwRes[i].body.buf,
+			head->fwRes[i].body.bufUsed, data);
 	}
     }
 

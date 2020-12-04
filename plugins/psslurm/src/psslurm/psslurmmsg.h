@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2017-2019 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2017-2020 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -20,60 +20,62 @@
 #include "slurmmsg.h"
 
 typedef struct {
-    char *method;	/* obsolete since 19.05 */
-    uint32_t version;	/* obsolete since 19.05 */
-    char *cred;		/* authentication credential */
-    uint32_t pluginID;	/* plugin used for authentication */
+    char *method;	/**< obsolete since 19.05 */
+    uint32_t version;	/**< obsolete since 19.05 */
+    char *cred;		/**< authentication credential */
+    uint32_t pluginID;	/**< plugin used for authentication */
 } Slurm_Auth_t;
 
+/** holding Slurm forward tree results */
 typedef struct {
-    uint32_t error;
-    uint16_t type;
-    PSnodes_ID_t node;
-    PS_DataBuffer_t body;
-} Slurm_Forward_Data_t;
+    uint32_t error;		/**< possible forward error */
+    uint16_t type;		/**< message type of returned message */
+    PSnodes_ID_t node;		/**< node which returned the result */
+    PS_DataBuffer_t body;	/**< message payload */
+} Slurm_Forward_Res_t;
 
+/** Slurm message header */
 typedef struct {
-    uint16_t version;
-    uint16_t flags;
-    uint16_t type;
-    uint32_t bodyLen;
-    uint16_t forward;
-    uint16_t returnList;
-    uint32_t addr;
-    uint16_t port;
-    uint32_t timeout;
-    uint16_t index;
-    uint16_t treeWidth;
-    char *nodeList;
-    Slurm_Forward_Data_t *fwdata;
-    uint32_t fwSize;
-    uid_t uid;
-    gid_t gid;
+    uint16_t version;		/**< Slurm protocol version */
+    uint16_t flags;		/**< currently set to SLURM_GLOBAL_AUTH_KEY */
+    uint16_t type;		/**< message type (e.g. REQUEST_LAUNCH_TASKS) */
+    uint16_t index;		/**< message index */
+    uint32_t bodyLen;		/**< length of the message payload */
+    uint32_t addr;		/**< sender address */
+    uint16_t port;		/**< sender port */
+    uint16_t forward;		/**< message forwarding */
+    uint16_t returnList;	/**< number of returned results */
+    uint32_t fwTimeout;		/**< forward timeout */
+    uint16_t fwTreeWidth;	/**< width of the forwarding tree */
+    char *fwNodeList;		/**< node-list to forward the message to */
+    Slurm_Forward_Res_t *fwRes; /**< returned results on a per node basis */
+    uint32_t fwResSize;		/**< size of the forward results */
+    uid_t uid;			/**< user ID of the message sender */
+    gid_t gid;			/**< group ID of the message sender */
 } Slurm_Msg_Header_t;
 
 typedef struct {
-    Slurm_Msg_Header_t head;	/* Slurm message header */
-    int sock;			/* socket the message was red from */
-    PStask_ID_t source;		/* root TID of the forwarding tree */
+    Slurm_Msg_Header_t head;	/**< Slurm message header */
+    int sock;			/**< socket the message was red from */
+    PStask_ID_t source;		/**< root TID of the forwarding tree */
     PS_DataBuffer_t *data;
     PS_SendDB_t reply;
     char *ptr;
-    time_t recvTime;		/* time the message was received */
+    time_t recvTime;		/**< time the message was received */
 } Slurm_Msg_t;
 
 typedef struct {
-    Slurm_Auth_t *auth;		/* Slurm authentication */
-    Slurm_Msg_Header_t head;	/* Slurm message head */
-    PS_DataBuffer_t body;	/* Slurm message body */
-    size_t offset;		/* bytes already written */
-    int sock;			/* the connected socket */
-    int sendRetry;		/* actual retries to send the message */
-    int conRetry;		/* actual reconnect attempts */
-    int maxConRetry;		/* maximal reconnect attempts */
-    int timerID;		/* reconnect timer id */
-    time_t authTime;		/* authentication timestamp */
-    list_t list;		/* the list element */
+    Slurm_Auth_t *auth;		/**< Slurm authentication */
+    Slurm_Msg_Header_t head;	/**< Slurm message head */
+    PS_DataBuffer_t body;	/**< Slurm message body */
+    size_t offset;		/**< bytes already written */
+    int sock;			/**< the connected socket */
+    int sendRetry;		/**< actual retries to send the message */
+    int conRetry;		/**< actual reconnect attempts */
+    int maxConRetry;		/**< maximal reconnect attempts */
+    int timerID;		/**< reconnect timer ID */
+    time_t authTime;		/**< authentication time-stamp */
+    list_t list;		/**< the list element */
 } Slurm_Msg_Buf_t;
 
 /**

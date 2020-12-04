@@ -160,26 +160,26 @@ void dupSlurmMsgHead(Slurm_Msg_Header_t *dupHead, Slurm_Msg_Header_t *head)
 
     memcpy(dupHead, head, sizeof(*dupHead));
 
-    if (head->nodeList) {
-	dupHead->nodeList = strdup(head->nodeList);
+    if (head->fwNodeList) {
+	dupHead->fwNodeList = strdup(head->fwNodeList);
     }
 
-    if (head->fwSize) {
-	dupHead->fwdata =
-	    umalloc(head->fwSize * sizeof(Slurm_Forward_Data_t));
+    if (head->fwResSize) {
+	dupHead->fwRes =
+	    umalloc(head->fwResSize * sizeof(Slurm_Forward_Res_t));
 
-	memcpy(dupHead->fwdata, head->fwdata,
-	       head->fwSize * sizeof(Slurm_Forward_Data_t));
+	memcpy(dupHead->fwRes, head->fwRes,
+	       head->fwResSize * sizeof(Slurm_Forward_Res_t));
 
-	for (i=0; i<head->fwSize; i++) {
-	    if (head->fwdata[i].body.bufSize) {
-		dupHead->fwdata[i].body.buf =
-		    umalloc(head->fwdata[i].body.bufSize);
-		memcpy(dupHead->fwdata[i].body.buf, head->fwdata[i].body.buf,
-		       head->fwdata[i].body.bufUsed);
+	for (i=0; i<head->fwResSize; i++) {
+	    if (head->fwRes[i].body.bufSize) {
+		dupHead->fwRes[i].body.buf =
+		    umalloc(head->fwRes[i].body.bufSize);
+		memcpy(dupHead->fwRes[i].body.buf, head->fwRes[i].body.buf,
+		       head->fwRes[i].body.bufUsed);
 	    } else {
-		memset(&dupHead->fwdata[i].body, 0,
-		       sizeof(dupHead->fwdata[i].body));
+		memset(&dupHead->fwRes[i].body, 0,
+		       sizeof(dupHead->fwRes[i].body));
 	    }
 	}
     }
@@ -207,7 +207,7 @@ void releaseSlurmMsg(Slurm_Msg_t *sMsg)
 	if (sMsg->data->buf) ufree(sMsg->data->buf);
 	ufree(sMsg->data);
     }
-    if (sMsg->head.nodeList) ufree(sMsg->head.nodeList);
+    if (sMsg->head.fwNodeList) ufree(sMsg->head.fwNodeList);
 
     ufree(sMsg);
 }
@@ -217,21 +217,21 @@ void initSlurmMsgHead(Slurm_Msg_Header_t *head)
     memset(head, 0, sizeof(Slurm_Msg_Header_t));
     head->version = slurmProto;
     head->flags |= SLURM_GLOBAL_AUTH_KEY;
-    head->treeWidth = 1;
+    head->fwTreeWidth = 1;
 }
 
 void freeSlurmMsgHead(Slurm_Msg_Header_t *head)
 {
     uint32_t i;
 
-    if (head->fwdata) {
-	for (i=0; i<head->fwSize; i++) {
-	    ufree(head->fwdata[i].body.buf);
+    if (head->fwRes) {
+	for (i=0; i<head->fwResSize; i++) {
+	    ufree(head->fwRes[i].body.buf);
 	}
     }
 
-    ufree(head->nodeList);
-    ufree(head->fwdata);
+    ufree(head->fwNodeList);
+    ufree(head->fwRes);
 }
 
 void clearMsgBuf(void)

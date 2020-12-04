@@ -1992,9 +1992,9 @@ static void getSlurmMsgHeader(Slurm_Msg_t *sMsg, Msg_Forward_t *fw)
     /* get forwarding info */
     getUint16(ptr, &sMsg->head.forward);
     if (sMsg->head.forward >0) {
-	fw->head.nodeList = getStringM(ptr);
-	getUint32(ptr, &fw->head.timeout);
-	getUint16(ptr, &sMsg->head.treeWidth);
+	fw->head.fwNodeList = getStringM(ptr);
+	getUint32(ptr, &fw->head.fwTimeout);
+	getUint16(ptr, &sMsg->head.fwTreeWidth);
     }
     getUint16(ptr, &sMsg->head.returnList);
 
@@ -2012,12 +2012,12 @@ static void getSlurmMsgHeader(Slurm_Msg_t *sMsg, Msg_Forward_t *fw)
     mlog("%s: version %u flags %u index %u type %u bodyLen %u forward %u"
 	 " treeWidth %u returnList %u\n", __func__, sMsg->head.version,
 	 sMsg->head.flags, sMsg->head.index, sMsg->head.type,
-	 sMsg->head.bodyLen, sMsg->head.forward, sMsg->head.treeWidth,
+	 sMsg->head.bodyLen, sMsg->head.forward, sMsg->head.fwTreeWidth,
 	 sMsg->head.returnList);
 
     if (sMsg->head.forward) {
 	mlog("%s: forward to nodeList '%s' timeout %u treeWidth %u\n", __func__,
-	     fw->head.nodeList, fw->head.timeout, sMsg->head.treeWidth);
+	     fw->head.fwNodeList, fw->head.fwTimeout, sMsg->head.fwTreeWidth);
     }
 #endif
 }
@@ -2042,10 +2042,10 @@ static bool slurmTreeForward(Slurm_Msg_t *sMsg, Msg_Forward_t *fw)
     if (!sMsg->head.forward) return true;
 
     /* convert nodelist to PS nodes */
-    if (!convHLtoPSnodes(fw->head.nodeList, getNodeIDbySlurmHost,
+    if (!convHLtoPSnodes(fw->head.fwNodeList, getNodeIDbySlurmHost,
 			 &nodes, &nrOfNodes)) {
 	mlog("%s: resolving PS nodeIDs from %s failed\n", __func__,
-	     fw->head.nodeList);
+	     fw->head.fwNodeList);
 	return false;
     }
 
@@ -2055,16 +2055,16 @@ static bool slurmTreeForward(Slurm_Msg_t *sMsg, Msg_Forward_t *fw)
     fw->nodesCount = nrOfNodes;
     fw->head.forward = sMsg->head.forward;
     fw->head.returnList = sMsg->head.returnList;
-    fw->head.fwSize = sMsg->head.forward;
-    fw->head.fwdata =
-	umalloc(sMsg->head.forward * sizeof(Slurm_Forward_Data_t));
+    fw->head.fwResSize = sMsg->head.forward;
+    fw->head.fwRes =
+	umalloc(sMsg->head.forward * sizeof(Slurm_Forward_Res_t));
 
     for (i=0; i<sMsg->head.forward; i++) {
-	fw->head.fwdata[i].error = SLURM_COMMUNICATIONS_CONNECTION_ERROR;
-	fw->head.fwdata[i].type = RESPONSE_FORWARD_FAILED;
-	fw->head.fwdata[i].node = -1;
-	fw->head.fwdata[i].body.buf = NULL;
-	fw->head.fwdata[i].body.bufUsed = 0;
+	fw->head.fwRes[i].error = SLURM_COMMUNICATIONS_CONNECTION_ERROR;
+	fw->head.fwRes[i].type = RESPONSE_FORWARD_FAILED;
+	fw->head.fwRes[i].node = -1;
+	fw->head.fwRes[i].body.buf = NULL;
+	fw->head.fwRes[i].body.bufUsed = 0;
     }
 
     if (verbose) {
@@ -2072,7 +2072,7 @@ static bool slurmTreeForward(Slurm_Msg_t *sMsg, Msg_Forward_t *fw)
 
 	mlog("%s: forward type %s count %u nodelist %s timeout %u "
 	     "at %.4f\n", __func__, msgType2String(sMsg->head.type),
-	     sMsg->head.forward, fw->head.nodeList, fw->head.timeout,
+	     sMsg->head.forward, fw->head.fwNodeList, fw->head.fwTimeout,
 	     time_start.tv_sec + 1e-6 * time_start.tv_usec);
     }
 
