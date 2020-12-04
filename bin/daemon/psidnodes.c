@@ -1088,9 +1088,11 @@ void PSIDnodes_getCloseGPUsList(PSnodes_ID_t id,
     PSCPU_clrAll(GPUs);
     uint16_t numGPUs = PSIDnodes_numGPUs(id);
     PSCPU_set_t *GPUsets = PSIDnodes_GPUSets(id);
-    for (uint16_t d = 0; d < numNUMA && used[d]; d++) {
+    for (uint16_t d = 0; d < numNUMA; d++) {
+	if (!used[d]) continue;
+	PSID_log(PSID_LOG_NODES, "%s(%d): GPU mask of NUMA domain %hu: %s\n",
+		__func__, id, d, PSCPU_print_part(GPUsets[d],2));
 	for (uint16_t gpu = 0; gpu < numGPUs; gpu++) {
-
 	    if (PSCPU_isSet(GPUsets[d], gpu)) {
 		PSID_log(PSID_LOG_NODES, "%s(%d): Using GPU %hu\n", __func__,
 			id, gpu);
