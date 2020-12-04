@@ -375,7 +375,6 @@ void PSID_pinToCPUs(cpu_set_t *physSet)
     sched_setaffinity(0, sizeof(*physSet), physSet);
 }
 
-/* list must have enough space for PSIDnodes_numGPUs(PSC_getMyID()) entries */
 void PSID_bindToGPUs(cpu_set_t *physSet)
 {
     uint16_t numNUMA = PSIDnodes_numNUMADoms(PSC_getMyID());
@@ -448,6 +447,11 @@ void PSID_bindToGPUs(cpu_set_t *physSet)
 	    setenv(variables[i], val, 1);
 	    setenv(name, val, 1);
 	}
+	else {
+	    PSID_log(PSID_LOG_SPAWN, "%s: Not overriding already set '%s'\n",
+		    __func__, variables[i]);
+	}
+
     }
 
     /* always set PSID version */
