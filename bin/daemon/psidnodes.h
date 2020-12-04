@@ -1049,7 +1049,8 @@ PSCPU_set_t * PSIDnodes_GPUSets(PSnodes_ID_t id);
  *
  * This returns a list of all GPUs that are connected directly to
  * NUMA domains that contain CPUs set in @a thisSet on the node with
- * ParaStation ID @a id.
+ * ParaStation ID @a id. The list will be ordered ascending and will not
+ * contain double entries.
  *
  * This function is used by the psid's default GPU pinning mechanism as
  * well as by psslurm to do enhanced GPU pinning.

@@ -1063,10 +1063,14 @@ void PSIDnodes_getCloseGPUsList(PSnodes_ID_t id,
     bool used[numNUMA];
     memset(used, 0, sizeof(used));
 
+    PSID_log(PSID_LOG_NODES, "%s(%d): Analysing cpuset %s\n", __func__, id,
+	    PSCPU_print_part(*thisSet, PSCPU_bytesForCPUs(numThrds)));
+
     /* identify NUMA domains this process will run on */
     for (uint16_t d = 0; d < numNUMA; d++) {
 	if (PSCPU_overlap(*thisSet, CPUSets[d], numThrds)) {
-	    PSID_log(PSID_LOG_SPAWN, "%s: use NUMA domain %d\n", __func__, d);
+	    PSID_log(PSID_LOG_NODES, "%s(%d): Using numa domain %hu\n",
+		    __func__, id, d);
 	    used[d] = true;
 	}
     }
@@ -1078,11 +1082,16 @@ void PSIDnodes_getCloseGPUsList(PSnodes_ID_t id,
     PSCPU_set_t *GPUsets = PSIDnodes_GPUSets(id);
     for (uint16_t d = 0; d < numNUMA && used[d]; d++) {
 	for (uint16_t gpu = 0; gpu < numGPUs; gpu++) {
-	    if (PSCPU_isSet(GPUsets[d], gpu)) PSCPU_setCPU(GPUs, gpu);
+
+	    if (PSCPU_isSet(GPUsets[d], gpu)) {
+		PSID_log(PSID_LOG_NODES, "%s(%d): Using GPU %hu\n", __func__,
+			id, gpu);
+		PSCPU_setCPU(GPUs, gpu);
+	    }
 	}
     }
 
-    /* create list */
+    /* create ascending list with no double entries */
     *closelist = malloc(numGPUs * sizeof(**closelist));
     *closecount = 0;
     for (uint16_t gpu = 0; gpu < numGPUs; gpu++) {
