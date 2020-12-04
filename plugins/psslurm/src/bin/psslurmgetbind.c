@@ -710,4 +710,13 @@ short PSIDnodes_unmapCPU(PSnodes_ID_t id, short hwthread) {
     return hwthread;
 }
 
+short PSIDnodes_numGPUs(PSnodes_ID_t id) {
+    return 0;
+}
+
+void PSIDnodes_getCloseGPUsList(PSnodes_ID_t id, uint16_t **closelist,
+	size_t *closecount, PSCPU_set_t *thisSet) {
+    return;
+}
+
 /* vim: set ts=8 sw=4 tw=0 sts=4 noet :*/
