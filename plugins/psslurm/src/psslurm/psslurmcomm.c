@@ -901,6 +901,8 @@ bool hexBitstr2List(char *bitstr, char **list, size_t *listSize)
     }
     str2Buf("", list, listSize);
 
+    ufree(array);
+
     return true;
 }
 
