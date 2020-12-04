@@ -395,7 +395,7 @@ void PSID_bindToGPUs(cpu_set_t *physSet)
     /* build list of usable GPUs */
     uint16_t usablelist[numNUMA];
     size_t usablecount = 0;
-    char *usable = getenv("__PSI_USE_GPUS");
+    char *usable = getenv("__PSID_USE_GPUS");
     if (usable) {
 	char *tmp = strdup(usable);
 	char *tok;

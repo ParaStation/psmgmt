@@ -274,7 +274,7 @@ void initJobEnv(Job_t *job)
 	    envSet(&job->env, "SLURM_JOB_GPUS", list);
 
 	    /* tell doClamps() which gpus to use */
-	    envSet(&job->env, "__PSI_USE_GPUS", list);
+	    envSet(&job->env, "__PSID_USE_GPUS", list);
 
 	    char *prefix = "__AUTO_";
 	    char name[GPU_VARIABLE_MAXLEN+strlen(prefix)+1];
