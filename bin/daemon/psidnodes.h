@@ -1063,11 +1063,11 @@ PSCPU_set_t * PSIDnodes_GPUSets(PSnodes_ID_t id);
  *
  * @param closecount Return pointer for the length of the list
  *
- * @param thisSet The set of CPUs to which the list will be created
+ * @param cpuSet The unmapped set of CPUs to which the list will be created
  */
 void PSIDnodes_getCloseGPUsList(PSnodes_ID_t id,
 				uint16_t **closelist, size_t *closecount,
-				PSCPU_set_t *thisSet);
+				PSCPU_set_t *cpuSet);
 
 /**
  * @brief Set node's number of NICs

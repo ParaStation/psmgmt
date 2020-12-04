@@ -375,21 +375,14 @@ void PSID_pinToCPUs(cpu_set_t *physSet)
     sched_setaffinity(0, sizeof(*physSet), physSet);
 }
 
-void PSID_bindToGPUs(cpu_set_t *physSet)
+static void PSID_bindToGPUs(PSCPU_set_t *cpuSet)
 {
     uint16_t numNUMA = PSIDnodes_numNUMADoms(PSC_getMyID());
-    int numThrds = PSIDnodes_getNumThrds(PSC_getMyID());
-
-    PSCPU_set_t thisSet;
-    PSCPU_clrAll(thisSet);
-    for (uint16_t t = 0; t < numThrds; t++) {
-	if (CPU_ISSET(t, physSet)) PSCPU_setCPU(thisSet, t);
-    }
 
     uint16_t *closelist = NULL;
     size_t closecount;
     PSIDnodes_getCloseGPUsList(PSC_getMyID(), &closelist, &closecount,
-	    &thisSet);
+	    cpuSet);
 
     /* build list of usable GPUs */
     uint16_t usablelist[numNUMA];
@@ -796,7 +789,7 @@ static void doClamps(PStask_t *task)
 	    if (getenv("__PSI_NO_GPUBIND")) {
 		fprintf(stderr, "No GPU-binding for rank %d\n", task->rank);
 	    } else {
-		PSID_bindToGPUs(physSet);
+		PSID_bindToGPUs(&(task->CPUset));
 	    }
 	}
 #else

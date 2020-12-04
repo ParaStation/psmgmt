@@ -1053,22 +1053,30 @@ PSCPU_set_t * PSIDnodes_GPUSets(PSnodes_ID_t id)
 
 void PSIDnodes_getCloseGPUsList(PSnodes_ID_t id,
 				uint16_t **closelist, size_t *closecount,
-				PSCPU_set_t *thisSet)
+				PSCPU_set_t *cpuSet)
 {
     uint16_t numNUMA = PSIDnodes_numNUMADoms(id);
     int numThrds = PSIDnodes_getNumThrds(id);
 
     PSCPU_set_t *CPUSets = PSIDnodes_CPUSets(id);
 
+    PSCPU_set_t mappedSet;
+    PSCPU_clrAll(mappedSet);
+    for (uint16_t t = 0; t < numThrds; t++) {
+	if (PSCPU_isSet(*cpuSet, t)) {
+	    PSCPU_setCPU(mappedSet, PSIDnodes_mapCPU(id, t));
+	}
+    }
+
     bool used[numNUMA];
     memset(used, 0, sizeof(used));
 
-    PSID_log(PSID_LOG_NODES, "%s(%d): Analysing cpuset %s\n", __func__, id,
-	    PSCPU_print_part(*thisSet, PSCPU_bytesForCPUs(numThrds)));
+    PSID_log(PSID_LOG_NODES, "%s(%d): Analysing mapped cpuset %s\n", __func__,
+	    id, PSCPU_print_part(mappedSet, PSCPU_bytesForCPUs(numThrds)));
 
     /* identify NUMA domains this process will run on */
     for (uint16_t d = 0; d < numNUMA; d++) {
-	if (PSCPU_overlap(*thisSet, CPUSets[d], numThrds)) {
+	if (PSCPU_overlap(mappedSet, CPUSets[d], numThrds)) {
 	    PSID_log(PSID_LOG_NODES, "%s(%d): Using numa domain %hu\n",
 		    __func__, id, d);
 	    used[d] = true;
