@@ -59,8 +59,10 @@ bool setStepSlots(Step_t *step);
  * @param gpusAssigned     GPUs to be used (ordered ascending, no doubles)
  *
  * @param numGPUsAssigned  Length of @a gpusAssigned
+ *
+ * @return True if GPUs are found and @a ret is filled, else false.
  */
-void getNodeGPUPinning(uint16_t ret[], Step_t *step, uint32_t stepNodeId,
+bool getNodeGPUPinning(uint16_t ret[], Step_t *step, uint32_t stepNodeId,
 	int *gpusAssigned, size_t numGPUsAssigned);
 
 /**

@@ -1051,7 +1051,7 @@ PSCPU_set_t * PSIDnodes_GPUSets(PSnodes_ID_t id)
     return nodes[id].GPUset;
 }
 
-void PSIDnodes_getCloseGPUsList(PSnodes_ID_t id,
+bool PSIDnodes_getCloseGPUsList(PSnodes_ID_t id,
 				uint16_t **closelist, size_t *closecount,
 				PSCPU_set_t *cpuSet)
 {
@@ -1088,6 +1088,10 @@ void PSIDnodes_getCloseGPUsList(PSnodes_ID_t id,
     PSCPU_clrAll(GPUs);
     uint16_t numGPUs = PSIDnodes_numGPUs(id);
     PSCPU_set_t *GPUsets = PSIDnodes_GPUSets(id);
+    if (!GPUsets) {
+	PSID_log(PSID_LOG_NODES, "%s(%d): No GPU sets found.\n", __func__, id);
+	return false;
+    }
     for (uint16_t d = 0; d < numNUMA; d++) {
 	if (!used[d]) continue;
 	PSID_log(PSID_LOG_NODES, "%s(%d): GPU mask of NUMA domain %hu: %s\n",
@@ -1107,6 +1111,7 @@ void PSIDnodes_getCloseGPUsList(PSnodes_ID_t id,
     for (uint16_t gpu = 0; gpu < numGPUs; gpu++) {
         if (PSCPU_isSet(GPUs, gpu)) (*closelist)[(*closecount)++] = gpu;
     }
+    return true;
 }
 
 int PSIDnodes_setNumNICs(PSnodes_ID_t id, short num)

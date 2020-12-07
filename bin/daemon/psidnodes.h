@@ -1055,7 +1055,8 @@ PSCPU_set_t * PSIDnodes_GPUSets(PSnodes_ID_t id);
  * This function is used by the psid's default GPU pinning mechanism as
  * well as by psslurm to do enhanced GPU pinning.
  *
- * The list returned via @a closelist has to be free()ed by the caller.
+ * The list returned via @a closelist when true is returned has to be
+ * free()ed by the caller.
  *
  * @param id ParaStation ID of the node to look up
  *
@@ -1064,8 +1065,10 @@ PSCPU_set_t * PSIDnodes_GPUSets(PSnodes_ID_t id);
  * @param closecount Return pointer for the length of the list
  *
  * @param cpuSet The unmapped set of CPUs to which the list will be created
+ *
+ * @return True if GPU sets are found and @a closelist is set, else false.
  */
-void PSIDnodes_getCloseGPUsList(PSnodes_ID_t id,
+bool PSIDnodes_getCloseGPUsList(PSnodes_ID_t id,
 				uint16_t **closelist, size_t *closecount,
 				PSCPU_set_t *cpuSet);
 

@@ -1447,7 +1447,7 @@ static void filterCloselist(uint16_t **closeList, size_t *closeCount,
     *closeCount = newcloseCount;
 }
 
-void getNodeGPUPinning(uint16_t ret[], Step_t *step, uint32_t stepNodeId,
+bool getNodeGPUPinning(uint16_t ret[], Step_t *step, uint32_t stepNodeId,
 	int *gpusAssigned, size_t numGPUsAssigned)
 {
     /* number of local tasks */
@@ -1466,8 +1466,10 @@ void getNodeGPUPinning(uint16_t ret[], Step_t *step, uint32_t stepNodeId,
 
 	uint16_t *closeList = NULL;
 	size_t closeCount = 0;
-	PSIDnodes_getCloseGPUsList(step->nodes[stepNodeId], &closeList,
-		&closeCount, &step->slots[tid].CPUset);
+	if (!PSIDnodes_getCloseGPUsList(step->nodes[stepNodeId], &closeList,
+		&closeCount, &step->slots[tid].CPUset)) {
+	    return false;
+	}
 
 	/* remove gpus not assigned from list of close GPUs */
 	filterCloselist(&closeList, &closeCount, gpusAssigned,
@@ -1511,6 +1513,8 @@ void getNodeGPUPinning(uint16_t ret[], Step_t *step, uint32_t stepNodeId,
 	ret[nogpu_tasks[t]] = leastused_gpu;
 	used[leastused_gpu]++;
     }
+
+    return true;
 }
 
 /* This is the entry point to the whole CPU pinning stuff */

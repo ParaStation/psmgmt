@@ -381,8 +381,10 @@ static void PSID_bindToGPUs(PSCPU_set_t *cpuSet)
 
     uint16_t *closelist = NULL;
     size_t closecount;
-    PSIDnodes_getCloseGPUsList(PSC_getMyID(), &closelist, &closecount,
-	    cpuSet);
+    if (!PSIDnodes_getCloseGPUsList(PSC_getMyID(), &closelist, &closecount,
+	    cpuSet)) {
+	return;
+    }
 
     /* build list of usable GPUs */
     uint16_t usablelist[numNUMA];
