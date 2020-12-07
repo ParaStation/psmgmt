@@ -18,6 +18,8 @@
 #include "psslurmpscomm.h"
 #include "psslurmconfig.h"
 
+#undef DEBUG_MSG_HEADER
+
 bool __packSlurmAuth(PS_SendDB_t *data, Slurm_Auth_t *auth,
 		     const char *caller, const int line)
 {
@@ -483,6 +485,72 @@ bool __unpackBCastCred(Slurm_Msg_t *sMsg, BCast_Cred_t *cred,
     return true;
 }
 
+bool __unpackSlurmHeader(char **ptr, Slurm_Msg_Header_t *head,
+			 Msg_Forward_t *fw, const char *caller, const int line)
+{
+    if (!ptr) {
+	mlog("%s: invalid ptr from '%s' at %i\n", __func__, caller, line);
+	return false;
+    }
+
+    if (!head) {
+	mlog("%s: invalid head pointer from '%s' at %i\n",
+		__func__, caller, line);
+	return false;
+    }
+
+    /* Slurm protocol version */
+    getUint16(ptr, &head->version);
+    /* message flags */
+    getUint16(ptr, &head->flags);
+    /* message index */
+    getUint16(ptr, &head->index);
+    /* type (RPC) */
+    getUint16(ptr, &head->type);
+    /* body lenght */
+    getUint32(ptr, &head->bodyLen);
+
+    /* get forwarding info */
+    getUint16(ptr, &head->forward);
+    if (head->forward >0) {
+	if (!fw) {
+	    mlog("%s: invalid fw pointer from '%s' at %i\n",
+		    __func__, caller, line);
+	    return false;
+	}
+	fw->head.fwNodeList = getStringM(ptr);
+	getUint32(ptr, &fw->head.fwTimeout);
+	getUint16(ptr, &head->fwTreeWidth);
+    }
+    getUint16(ptr, &head->returnList);
+
+    if (!head->addr) {
+	/* addr/port info */
+	getUint32(ptr, &head->addr);
+	getUint16(ptr, &head->port);
+    } else {
+	/* don't overwrite address info set before */
+	uint32_t tmp;
+	getUint32(ptr, &tmp);
+	uint16_t i;
+	getUint16(ptr, &i);
+    }
+
+#if defined (DEBUG_MSG_HEADER)
+    flog("version %u flags %u index %u type %u bodyLen %u forward %u"
+	 " treeWidth %u returnList %u\n", head->version, head->flags,
+	 head->index, head->type, head->bodyLen, head->forward,
+	 head->fwTreeWidth, head->returnList);
+
+    if (head->forward) {
+	flog("forward to nodeList '%s' timeout %u treeWidth %u\n",
+	     fw->head.fwNodeList, fw->head.fwTimeout, head->fwTreeWidth);
+    }
+#endif
+
+    return true;
+}
+
 bool __packSlurmHeader(PS_SendDB_t *data, Slurm_Msg_Header_t *head,
 		       const char *caller, const int line)
 {
@@ -501,29 +569,29 @@ bool __packSlurmHeader(PS_SendDB_t *data, Slurm_Msg_Header_t *head,
 	return false;
     }
 
-    /* protocol version */
+    /* Slurm protocol version */
     addUint16ToMsg(head->version, data);
     /* flags */
     addUint16ToMsg(head->flags, data);
-    /* index */
+    /* message index */
     addUint16ToMsg(head->index, data);
-    /* type */
+    /* message (RPC) type */
     addUint16ToMsg(head->type, data);
     /* body len */
     addUint32ToMsg(head->bodyLen, data);
 
-    /* forward */
+    /* flag to enable forward */
     addUint16ToMsg(head->forward, data);
     if (head->forward > 0) {
-	/* nodelist */
+	/* forward node-list */
 	addStringToMsg(head->fwNodeList, data);
-	/* timeout */
+	/* forward timeout */
 	addUint32ToMsg(head->fwTimeout, data);
 	/* tree width */
 	addUint16ToMsg(head->fwTreeWidth, data);
     }
 
-    /* return list */
+    /* flag to enable return list */
     addUint16ToMsg(head->returnList, data);
     for (i=0; i<head->returnList; i++) {
 	/* error */

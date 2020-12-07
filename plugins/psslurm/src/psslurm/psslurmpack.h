@@ -166,6 +166,32 @@ bool __packSlurmIOMsg(PS_SendDB_t *data, IO_Slurm_Header_t *ioh, char *body,
     __packSlurmIOMsg(data, ioMsg, body, __func__, __LINE__)
 
 /**
+ * @brief Unpack a Slurm message header
+ *
+ * Unpack a Slurm message header from the provided message pointer.
+ * The memory is allocated using umalloc(). The caller is responsible
+ * to free the memory using ufree().
+ *
+ * @param ptr The message to unpack the data from
+ *
+ * @param head The Slurm message header holding the result
+ *
+ * @param fw The Slurm forward header holding the result
+ *
+ * @param caller Function name of the calling function
+ *
+ * @param line Line number where this function is called
+ *
+ * @return On success true is returned or false in case of an
+ * error. If reading was not successful, @a ptr might be not updated.
+ */
+bool __unpackSlurmHeader(char **ptr, Slurm_Msg_Header_t *head,
+			 Msg_Forward_t *fw, const char *caller, const int line);
+
+#define unpackSlurmHeader(ptr, head, fw) \
+    __unpackSlurmHeader(ptr, head, fw, __func__, __LINE__)
+
+/**
  * @brief Unpack a Slurm I/O message header
  *
  * Unpack a Slurm I/O message header from the provided message pointer.

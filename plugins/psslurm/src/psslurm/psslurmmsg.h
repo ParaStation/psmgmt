@@ -57,7 +57,7 @@ typedef struct {
 typedef struct {
     Slurm_Msg_Header_t head;	/**< Slurm message header */
     int sock;			/**< socket the message was red from */
-    PStask_ID_t source;		/**< root TID of the forwarding tree */
+    PStask_ID_t source;		/**< root TID of the forwarding tree or -1 */
     PS_DataBuffer_t *data;
     PS_SendDB_t reply;
     char *ptr;

@@ -57,8 +57,6 @@
 
 #include "psslurmproto.h"
 
-#undef DEBUG_MSG_HEADER
-
 /** Slurm protocol version */
 uint32_t slurmProto;
 
@@ -1981,51 +1979,6 @@ static void handleRespNodeReg(Slurm_Msg_t *sMsg)
     }
 }
 
-static void getSlurmMsgHeader(Slurm_Msg_t *sMsg, Msg_Forward_t *fw)
-{
-    char **ptr = &sMsg->ptr;
-    uint16_t i;
-    uint32_t tmp;
-
-    getUint16(ptr, &sMsg->head.version);
-    getUint16(ptr, &sMsg->head.flags);
-    getUint16(ptr, &sMsg->head.index);
-    getUint16(ptr, &sMsg->head.type);
-    getUint32(ptr, &sMsg->head.bodyLen);
-
-    /* get forwarding info */
-    getUint16(ptr, &sMsg->head.forward);
-    if (sMsg->head.forward >0) {
-	fw->head.fwNodeList = getStringM(ptr);
-	getUint32(ptr, &fw->head.fwTimeout);
-	getUint16(ptr, &sMsg->head.fwTreeWidth);
-    }
-    getUint16(ptr, &sMsg->head.returnList);
-
-    /* addr/port info */
-    if (sMsg->source != -1) {
-	getUint32(ptr, &sMsg->head.addr);
-	getUint16(ptr, &sMsg->head.port);
-    } else {
-	/* skip empty info */
-	getUint32(ptr, &tmp);
-	getUint16(ptr, &i);
-    }
-
-#if defined (DEBUG_MSG_HEADER)
-    mlog("%s: version %u flags %u index %u type %u bodyLen %u forward %u"
-	 " treeWidth %u returnList %u\n", __func__, sMsg->head.version,
-	 sMsg->head.flags, sMsg->head.index, sMsg->head.type,
-	 sMsg->head.bodyLen, sMsg->head.forward, sMsg->head.fwTreeWidth,
-	 sMsg->head.returnList);
-
-    if (sMsg->head.forward) {
-	mlog("%s: forward to nodeList '%s' timeout %u treeWidth %u\n", __func__,
-	     fw->head.fwNodeList, fw->head.fwTimeout, sMsg->head.fwTreeWidth);
-    }
-#endif
-}
-
 /**
  * @brief Forward a Slurm message using RDP
  *
@@ -2099,7 +2052,10 @@ void processSlurmMsg(Slurm_Msg_t *sMsg, Msg_Forward_t *fw, Connection_CB_t *cb,
 		     void *info)
 {
     /* extract Slurm message header */
-    getSlurmMsgHeader(sMsg, fw);
+    if (!unpackSlurmHeader(&sMsg->ptr, &sMsg->head, fw)) {
+	sendSlurmRC(sMsg, SLURM_ERROR);
+	return;
+    }
 
     /* forward the message using RDP */
     if (fw && !slurmTreeForward(sMsg, fw)) {
