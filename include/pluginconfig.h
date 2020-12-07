@@ -7,7 +7,6 @@
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-
 #ifndef __PLUGIN_LIB_CONFIG
 #define __PLUGIN_LIB_CONFIG
 
@@ -36,10 +35,10 @@ void initConfig(Config_t *conf);
 /**
  * @brief Fetch configuration from a file
  *
- * Parse the configuration form the file named by @a filename and
+ * Parse the configuration from the file named by @a filename and
  * store it into @a conf. @a conf is assumed to be empty. If @a conf
  * already holds valid configuration, some memory might get
- * leaked. Therefore previous configurations shall be destructed via
+ * leaked. Therefore, previous configurations shall be destructed via
  * @ref freeConfig(). If the flag @a trimQuotes is true, each
  * configuration value gets unquoted before being put into the
  * configuration.
@@ -82,7 +81,7 @@ void registerConfigHashAccumulator(uint32_t *hashAcc);
  * @brief Free complete configuration
  *
  * Free the complete configuration @a conf, i.e. release all dynamic
- * memory associated to the configuration. For this the whole
+ * memory associated to the configuration. For this, the whole
  * configuration is traversed and for each key, value and
  * helper-structure free() is called.
  *
