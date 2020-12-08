@@ -10,12 +10,15 @@
 include $(top_srcdir)/common.am
 
 AM_CPPFLAGS += -I$(top_srcdir)/bin/daemon
+AM_LDFLAGS += $(glib2_LDFLAGS)
 
 noinst_LTLIBRARIES = libplugincommon.la
 
 libplugincommon_la_SOURCES = pluginconfig.c pluginforwarder.c		\
 	pluginhelper.c pluginlog.c pluginmalloc.c pluginpartition.c	\
 	pluginpsconfig.c pluginpty.c pluginstrv.c pluginvector.c
+
+pluginpsconfig.lo: AM_CFLAGS += $(glib2_CFLAGS)
 
 pluginforwarder.lo: CPPFLAGS = $(AM_CPPFLAGS) \
 			-DLOCALSTATEDIR=\"$(localstatedir)\"

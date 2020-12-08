@@ -63,10 +63,12 @@ void pluginConfig_destroy(pluginConfig_t conf);
  *
  * @param configKey Name of the psconfig branch to be used
  *
+ * @param setDefaults @doctodo
+ *
  * @return Upon success the number of matching configuration entries
- * found in psconfig is returned. Or -1 if an error occurred.
+ * found in psconfig is returned. Or -1 if an error occurred. @todo make it bool
  */
-int pluginConfig_load(pluginConfig_t conf, char *configKey);
+bool pluginConfig_load(pluginConfig_t conf, char *configKey, bool setDefaults);
 
 /** Types of data available for configuration values */
 typedef enum {

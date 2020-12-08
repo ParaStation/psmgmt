@@ -38,7 +38,7 @@ int initialize(void)
 {
     pluginConfig_new(&config);
 
-    pluginConfig_load(config, "pluginConfig");
+    pluginConfig_load(config, "pluginConfig", true);
 
     PSID_log(-1, "%s: (%i) successfully started\n", name, version);
     return 0;

@@ -9,9 +9,15 @@
  */
 
 #include <stdlib.h>
-#include <stdio.h>
 #include <string.h>
+
+#ifndef BUILD_WITHOUT_PSCONFIG
 #include <unistd.h>
+
+#include <glib.h>
+#include <psconfig.h>
+#include <psconfig-utils.h>
+#endif
 
 #include "list.h"
 
@@ -47,8 +53,8 @@ static inline size_t lstLen(char **lst)
     return len;
 }
 
-static void fillConfigValue(pluginConfigObj_t *obj, pluginConfigVal_t *value,
-			    const char *caller)
+static void fillValue(pluginConfigObj_t *obj, pluginConfigVal_t *value,
+		      const char *caller)
 {
     if (!obj) return;
 
@@ -77,7 +83,7 @@ static void fillConfigValue(pluginConfigObj_t *obj, pluginConfigVal_t *value,
     }
 }
 
-static void cleanupConfigValue(pluginConfigObj_t *obj)
+static void cleanupValue(pluginConfigObj_t *obj)
 {
     switch (obj->value.type) {
     case PLUGINCONFIG_VALUE_NUM:
@@ -97,26 +103,25 @@ static void cleanupConfigValue(pluginConfigObj_t *obj)
     }
 }
 
-static pluginConfigObj_t * addConfigObj(pluginConfig_t conf, const char *key,
-					pluginConfigVal_t *value,
-					const char *caller)
+static pluginConfigObj_t * addObj(pluginConfig_t conf, const char *key,
+				  pluginConfigVal_t *value, const char *caller)
 {
     if (!checkConfig(conf) || !key || !value) return false;
 
     pluginConfigObj_t *obj = umalloc(sizeof(*obj));
     obj->key = ustrdup(key);
-    fillConfigValue(obj, value, caller);
+    fillValue(obj, value, caller);
 
     list_add_tail(&(obj->next), &conf->config);
 
     return obj;
 }
 
-static void delConfigObj(pluginConfigObj_t *obj)
+static void delObj(pluginConfigObj_t *obj)
 {
     if (!obj) return;
     if (obj->key) ufree(obj->key);
-    cleanupConfigValue(obj);
+    cleanupValue(obj);
     list_del(&obj->next);
     ufree(obj);
 }
@@ -156,7 +161,7 @@ void pluginConfig_destroy(pluginConfig_t conf)
     list_t *o, *tmp;
     list_for_each_safe(o, tmp, &(conf->config)) {
 	pluginConfigObj_t *obj = list_entry(o, pluginConfigObj_t, next);
-	delConfigObj(obj);
+	delObj(obj);
     }
     ufree(conf);
 }
@@ -169,46 +174,151 @@ bool pluginConfig_setDef(pluginConfig_t conf, pluginConfigDef_t def[])
     return true;
 }
 
+#ifndef BUILD_WITHOUT_PSCONFIG
 
-int pluginConfig_load(pluginConfig_t conf, char *configKey)
+guint psCfgFlags =
+    PSCONFIG_FLAG_FOLLOW | PSCONFIG_FLAG_INHERIT | PSCONFIG_FLAG_ANCESTRAL;
+
+#define CHECK_PSCONFIG_ERROR_AND_RETURN(obj, val, key, err, ret) {	\
+	if (!val) {							\
+	    printf("PSConfig: %s(%s): %s\n", obj, key, err->message);	\
+	    g_error_free(err);						\
+	    return ret;							\
+	}								\
+}
+
+/*
+ * Get string value from psconfigobj in the psconfig configuration.
+ *
+ * On success, *value is set to the string value and 0 is returned.
+ * On error a parser comment is printed, *value is set to NULL and -1 returned.
+ *
+ * Note: For psconfig an non existing key and an empty value is the same
+ */
+static bool getString(PSConfig* psconfig, char *obj, char *key, gchar **value)
 {
-    int count = 0;
+    GError *err = NULL;
 
-    if (!checkConfig(conf)) return -1;
+    *value = psconfig_get(psconfig, obj, key, psCfgFlags, &err);
+    if (!*value) {
+	pluginlog("%s: %s(%s): %s\n", __func__, obj, key, err->message);
+	g_error_free(err);
+	return false;
+    }
 
-    /* while ((read = getline(&linebuf, &len, fp)) != -1) { */
-    /* 	char *line = linebuf, *key, *val, *tmp; */
+    return true;
+}
 
-    /* 	if (configHashAcc && read) updateHash(configHashAcc, line); */
+/**
+ * @brief @doctodo
+ */
+static bool handleObj(pluginConfig_t conf, PSConfig *cfg,
+		      gchar *obj, gchar *key, bool check)
+{
+    GError *err = NULL;
+    gchar *val = psconfig_get(cfg, obj, key, psCfgFlags, &err);
+    printf("val is %p \"%s\"\n", val, val);
+    if (val) {
+	if (*val == '\0') {
+	    printf("PSConfig: %s(%s) not existing or empty value\n", obj, key);
+	} else {
+	    printf("\t\"%s\"\n", val);
+	}
+	g_free(val);
+    } else if (err->code == PSCONFIG_FRONTEND_ERROR_VALUETYPE) {
+	g_error_free(err);
+	err = NULL;
 
-    /* 	/\* skip comments and empty lines *\/ */
-    /* 	if (!read || line[0] == '\n' || line[0] == '#' || line[0] == '\0') { */
-    /* 	    continue; */
-    /* 	} */
+	// Maybe this is a list...
+	GPtrArray *list = psconfig_getList(cfg, obj, key, psCfgFlags, &err);
+	if (!list) {
+	    printf("PSConfig: %s(%s): %s\n", obj, key, err->message);
+	    g_error_free(err);
+	    return false;
+	}
 
-    /* 	/\* remove trailing comments *\/ */
-    /* 	if ((tmp = strchr(line, '#'))) *tmp = '\0'; */
+	if (!list->len) {
+	    printf("PSConfig: '%s(%s)' not existing or empty\n", obj, key);
+	    return false;
+	}
 
-    /* 	/\* Split line into key and value *\/ */
-    /* 	key = line; */
-    /* 	val = strchr(line,'='); */
+	printf("list:\n");
+	for (guint i = 0; i < list->len; i++) {
+	    printf("\t[%d]\t\"%s\"\n", i, (gchar*)g_ptr_array_index(list, i));
+	}
+	g_ptr_array_free(list, TRUE);
+    } else {
+	printf("PSConfig: %s (code %s): %s (%d)\n", obj, key, err->message,
+	       err->code);
+	g_error_free(err);
+    }
+    return true;
+}
+#endif
 
-    /* 	if (val) { */
-    /* 	    *val = '\0'; */
-    /* 	    val = trim(++val); */
-    /* 	    /\* remove quotes from value if required *\/ */
-    /* 	    if (trimQuotes) val = trim_quotes(val); */
-    /* 	    if (!strlen(val)) val = NULL; */
-    /* 	} */
+bool pluginConfig_load(pluginConfig_t conf, char *configKey, bool check)
+{
+#ifdef BUILD_WITHOUT_PSCONFIG
+    pluginlog("%s: psconfig is not supported!\n", __func__);
+    return false;
+#else
+    if (!checkConfig(conf)) return false;
 
-    /* 	doAddConfigEntry(conf, key, val); */
-    /* 	count++; */
-    /* } */
+    /* open psconfig database */
+    PSConfig* psCfg = psconfig_new();
 
-    /* if (linebuf) ufree(linebuf); */
-    /* fclose(fp); */
+    /* generate local psconfig host object name */
+    char psCfgObj[128] = "host:";
+    gethostname(psCfgObj+strlen(psCfgObj), sizeof(psCfgObj)-strlen(psCfgObj));
+    psCfgObj[sizeof(psCfgObj) - 1] = '\0'; //assure object is null terminated
 
-    return count;
+    // check if the host object exists or we have to cut the hostname
+    char *nodename;
+    if (!getString(psCfg, psCfgObj, "NodeName", &nodename)) {
+	/* cut hostname and try again */
+	char *pos = strchr(psCfgObj, '.');
+	if (pos) *pos = '\0';
+
+	if (!pos || !getString(psCfg, psCfgObj, "NodeName", &nodename)) {
+	    pluginlog("%s: Cannot find host object for this node.\n", __func__);
+	    goto loadCfgErr;
+	}
+    }
+    g_free(nodename);
+
+    GError *err = NULL;
+    gchar keypat[128];
+    snprintf(keypat, sizeof(keypat), "Psid.PluginConfigs.%s.*", configKey);
+    GHashTable *configHash = psconfig_getKeyList(psCfg, psCfgObj, keypat,
+						 psCfgFlags, &err);
+    if (!configHash) {
+	pluginlog("%s: %s(%s): %s\n", __func__, psCfgObj, keypat, err->message);
+	g_error_free(err);
+	goto loadCfgErr;
+    }
+
+    GHashTableIter iter;
+    gpointer key, obj;
+    g_hash_table_iter_init (&iter, configHash);
+    while (g_hash_table_iter_next(&iter, &key, &obj)) {
+	pluginlog("%s: key: \"%s\"\n", __func__, (gchar *)key);
+	pluginlog("%s: obj: \"%s\"\n", __func__, (gchar *)obj);
+
+	if (!handleObj(conf, psCfg, psCfgObj, key, check)) {
+	    g_hash_table_destroy(configHash);
+	    goto loadCfgErr;
+	}
+    }
+    g_hash_table_destroy(configHash);
+    psconfig_unref(psCfg);
+
+    return true;
+
+loadCfgErr:
+    psconfig_unref(psCfg);
+
+    return false;
+#endif
 }
 
 bool pluginConfig_add(pluginConfig_t conf, char *key, pluginConfigVal_t *value)
@@ -217,10 +327,10 @@ bool pluginConfig_add(pluginConfig_t conf, char *key, pluginConfigVal_t *value)
 
     pluginConfigObj_t *obj = findConfigObj(conf, key);
     if (obj) {
-	cleanupConfigValue(obj);
-	fillConfigValue(obj, value, __func__);
+	cleanupValue(obj);
+	fillValue(obj, value, __func__);
     } else {
-	addConfigObj(conf, key, value, __func__);
+	addObj(conf, key, value, __func__);
     }
     // @todo check default!!
     return true;
@@ -367,9 +477,8 @@ static char **dupLst(const char * const defDeflt[])
     return lst;
 }
 
-
-static bool setConfigValueDefault(pluginConfigObj_t *obj,
-				  const pluginConfigDef_t *def)
+static bool setValueDefault(pluginConfigObj_t *obj,
+			    const pluginConfigDef_t *def)
 {
     if (!obj || !def || !def->deflt || !def->deflt[0]) return false;
 
@@ -401,11 +510,11 @@ bool pluginConfig_unset(pluginConfig_t conf, char *key)
 
     const pluginConfigDef_t *def = pluginConfig_getDef(conf, key);
     if (!def || !def->deflt || !def->deflt[0]) {
-	delConfigObj(obj);
+	delObj(obj);
 	return true;
     }
-    cleanupConfigValue(obj);
-    return setConfigValueDefault(obj, def);
+    cleanupValue(obj);
+    return setValueDefault(obj, def);
 }
 
 void pluginConfig_setDefaults(pluginConfig_t conf)
@@ -417,9 +526,9 @@ void pluginConfig_setDefaults(pluginConfig_t conf)
 	    && conf->def[i].deflt && conf->def[i].deflt[0]) {
 	    pluginConfigVal_t dummy = {.type = PLUGINCONFIG_VALUE_NUM,
 				       .val.num = 0 };
-	    pluginConfigObj_t *obj = addConfigObj(conf, conf->def[i].name,
-						  &dummy, __func__);
-	    setConfigValueDefault(obj, &(conf->def[i]));
+	    pluginConfigObj_t *obj = addObj(conf, conf->def[i].name,
+					    &dummy, __func__);
+	    setValueDefault(obj, &(conf->def[i]));
 	}
     }
 }

@@ -195,7 +195,7 @@ ACLOCAL = @ACLOCAL@
 AMTAR = @AMTAR@
 AM_CFLAGS = @AM_CFLAGS@
 AM_DEFAULT_VERBOSITY = @AM_DEFAULT_VERBOSITY@
-AM_LDFLAGS = @AM_LDFLAGS@
+AM_LDFLAGS = @AM_LDFLAGS@ $(glib2_LDFLAGS)
 AR = @AR@
 AUTOCONF = @AUTOCONF@
 AUTOHEADER = @AUTOHEADER@
@@ -715,6 +715,8 @@ uninstall-am:
 
 %: %.in
 	$(subst_verbose)$(do_subst) < $^ > $@ && chmod --reference $^ $@
+
+pluginpsconfig.lo: AM_CFLAGS += $(glib2_CFLAGS)
 
 pluginforwarder.lo: CPPFLAGS = $(AM_CPPFLAGS) \
 			-DLOCALSTATEDIR=\"$(localstatedir)\"
