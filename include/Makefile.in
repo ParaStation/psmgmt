@@ -377,11 +377,11 @@ include_HEADERS = pse.h psprotocol.h psnodes.h pstask.h pspartition.h	\
 
 noinst_HEADERS = env.h hardware.h kvscommon.h kvs.h mcast.h parser.h	\
 	psbyteorder.h psilog.h pslog.h pspartition.h rdp.h		\
-	psipartition.h psparamspace.h kvslog.h pluginmalloc.h		\
-	psserial.h pluginlog.h psprotocolenv.h pluginconfig.h		\
-	pluginhelper.h pluginstrv.h pluginpty.h pluginpartition.h	\
-	pluginforwarder.h linenoise.h pspluginprotocol.h pssenddb_t.h	\
-	psitems.h pluginvector.h
+	psipartition.h psparamspace.h psprotocolenv.h psserial.h	\
+	kvslog.h linenoise.h pluginconfig.h pluginforwarder.h		\
+	pluginhelper.h pluginlog.h pluginmalloc.h pluginpartition.h	\
+	pluginpsconfig.h pluginpty.h pluginstrv.h pluginvector.h	\
+	pspluginprotocol.h pssenddb_t.h psitems.h
 
 all: all-am
 

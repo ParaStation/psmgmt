@@ -154,6 +154,7 @@ include/pluginhelper.h \
 include/pluginlog.h \
 include/pluginmalloc.h \
 include/pluginpartition.h \
+include/pluginpsconfig.h \
 include/pluginstrv.h \
 include/pluginpty.h \
 include/pluginvector.h \
@@ -199,6 +200,7 @@ lib/plugincommon/pluginhelper.c \
 lib/plugincommon/pluginlog.c \
 lib/plugincommon/pluginmalloc.c \
 lib/plugincommon/pluginpartition.c \
+lib/plugincommon/pluginpsconfig.c \
 lib/plugincommon/pluginstrv.c \
 lib/plugincommon/pluginpty.c \
 lib/plugincommon/pluginvector.c \
