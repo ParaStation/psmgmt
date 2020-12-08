@@ -19,7 +19,8 @@ libpscommon = $(top_builddir)/lib/pscommon/libpscommon.la
 pkglib_LTLIBRARIES = plugin1.la plugin2.la plugin3.la plugin4.la	\
 	plugin5.la plugin6.la plugin7.la plugin8.la plugin9.la		\
 	no_flowcontrol.la dyn_resources.la delaySlurmMsg.la		\
-	fixLoginuid.la delegateStat.la psBlackHole.la spank_test.la
+	fixLoginuid.la delegateStat.la psBlackHole.la spank_test.la	\
+	pluginpsconfig.la
 
 delaySlurmMsg_la_CPPFLAGS = $(AM_CPPFLAGS)		\
 	-I$(top_srcdir)/plugins/psslurm/src/psslurm	\

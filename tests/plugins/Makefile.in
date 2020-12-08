@@ -196,6 +196,9 @@ plugin8_la_OBJECTS = plugin8.lo
 plugin9_la_LIBADD =
 plugin9_la_SOURCES = plugin9.c
 plugin9_la_OBJECTS = plugin9.lo
+pluginpsconfig_la_LIBADD =
+pluginpsconfig_la_SOURCES = pluginpsconfig.c
+pluginpsconfig_la_OBJECTS = pluginpsconfig.lo
 psBlackHole_la_DEPENDENCIES = $(libplugincommon) $(libpscommon)
 psBlackHole_la_SOURCES = psBlackHole.c
 psBlackHole_la_OBJECTS = psBlackHole.lo
@@ -224,7 +227,8 @@ am__depfiles_remade = ./$(DEPDIR)/delaySlurmMsg_la-delaySlurmMsg.Plo \
 	./$(DEPDIR)/plugin3.Plo ./$(DEPDIR)/plugin4.Plo \
 	./$(DEPDIR)/plugin5.Plo ./$(DEPDIR)/plugin6.Plo \
 	./$(DEPDIR)/plugin7.Plo ./$(DEPDIR)/plugin8.Plo \
-	./$(DEPDIR)/plugin9.Plo ./$(DEPDIR)/psBlackHole.Plo \
+	./$(DEPDIR)/plugin9.Plo ./$(DEPDIR)/pluginpsconfig.Plo \
+	./$(DEPDIR)/psBlackHole.Plo \
 	./$(DEPDIR)/spank_test_la-spank_test.Plo
 am__mv = mv -f
 COMPILE = $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) \
@@ -248,11 +252,11 @@ am__v_CCLD_1 =
 SOURCES = delaySlurmMsg.c delegateStat.c dyn_resources.c fixLoginuid.c \
 	no_flowcontrol.c plugin1.c plugin2.c plugin3.c plugin4.c \
 	plugin5.c plugin6.c plugin7.c plugin8.c plugin9.c \
-	psBlackHole.c spank_test.c
+	pluginpsconfig.c psBlackHole.c spank_test.c
 DIST_SOURCES = delaySlurmMsg.c delegateStat.c dyn_resources.c \
 	fixLoginuid.c no_flowcontrol.c plugin1.c plugin2.c plugin3.c \
 	plugin4.c plugin5.c plugin6.c plugin7.c plugin8.c plugin9.c \
-	psBlackHole.c spank_test.c
+	pluginpsconfig.c psBlackHole.c spank_test.c
 am__can_run_installinfo = \
   case $$AM_UPDATE_INFO_DIR in \
     n|no|NO) false;; \
@@ -463,7 +467,8 @@ libpscommon = $(top_builddir)/lib/pscommon/libpscommon.la
 pkglib_LTLIBRARIES = plugin1.la plugin2.la plugin3.la plugin4.la	\
 	plugin5.la plugin6.la plugin7.la plugin8.la plugin9.la		\
 	no_flowcontrol.la dyn_resources.la delaySlurmMsg.la		\
-	fixLoginuid.la delegateStat.la psBlackHole.la spank_test.la
+	fixLoginuid.la delegateStat.la psBlackHole.la spank_test.la	\
+	pluginpsconfig.la
 
 delaySlurmMsg_la_CPPFLAGS = $(AM_CPPFLAGS)		\
 	-I$(top_srcdir)/plugins/psslurm/src/psslurm	\
@@ -584,6 +589,9 @@ plugin8.la: $(plugin8_la_OBJECTS) $(plugin8_la_DEPENDENCIES) $(EXTRA_plugin8_la_
 plugin9.la: $(plugin9_la_OBJECTS) $(plugin9_la_DEPENDENCIES) $(EXTRA_plugin9_la_DEPENDENCIES) 
 	$(AM_V_CCLD)$(LINK) -rpath $(pkglibdir) $(plugin9_la_OBJECTS) $(plugin9_la_LIBADD) $(LIBS)
 
+pluginpsconfig.la: $(pluginpsconfig_la_OBJECTS) $(pluginpsconfig_la_DEPENDENCIES) $(EXTRA_pluginpsconfig_la_DEPENDENCIES) 
+	$(AM_V_CCLD)$(LINK) -rpath $(pkglibdir) $(pluginpsconfig_la_OBJECTS) $(pluginpsconfig_la_LIBADD) $(LIBS)
+
 psBlackHole.la: $(psBlackHole_la_OBJECTS) $(psBlackHole_la_DEPENDENCIES) $(EXTRA_psBlackHole_la_DEPENDENCIES) 
 	$(AM_V_CCLD)$(LINK) -rpath $(pkglibdir) $(psBlackHole_la_OBJECTS) $(psBlackHole_la_LIBADD) $(LIBS)
 
@@ -610,6 +618,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/plugin7.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/plugin8.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/plugin9.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/pluginpsconfig.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/psBlackHole.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/spank_test_la-spank_test.Plo@am__quote@ # am--include-marker
 
@@ -805,6 +814,7 @@ distclean: distclean-am
 	-rm -f ./$(DEPDIR)/plugin7.Plo
 	-rm -f ./$(DEPDIR)/plugin8.Plo
 	-rm -f ./$(DEPDIR)/plugin9.Plo
+	-rm -f ./$(DEPDIR)/pluginpsconfig.Plo
 	-rm -f ./$(DEPDIR)/psBlackHole.Plo
 	-rm -f ./$(DEPDIR)/spank_test_la-spank_test.Plo
 	-rm -f Makefile
@@ -866,6 +876,7 @@ maintainer-clean: maintainer-clean-am
 	-rm -f ./$(DEPDIR)/plugin7.Plo
 	-rm -f ./$(DEPDIR)/plugin8.Plo
 	-rm -f ./$(DEPDIR)/plugin9.Plo
+	-rm -f ./$(DEPDIR)/pluginpsconfig.Plo
 	-rm -f ./$(DEPDIR)/psBlackHole.Plo
 	-rm -f ./$(DEPDIR)/spank_test_la-spank_test.Plo
 	-rm -f Makefile

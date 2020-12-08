@@ -672,10 +672,11 @@ tests/plugins/plugin6.c \
 tests/plugins/plugin7.c \
 tests/plugins/plugin8.c \
 tests/plugins/plugin9.c \
-tests/plugins/no_flowcontrol.c \
-tests/plugins/dyn_resources.c \
 tests/plugins/delaySlurmMsg.c \
 tests/plugins/delegateStat.c \
+tests/plugins/dyn_resources.c \
+tests/plugins/no_flowcontrol.c \
+tests/plugins/pluginconfig.c \
 tests/plugins/spank_test.c \
 tests/psid/Makefile \
 tests/psid/config.tmpl \
