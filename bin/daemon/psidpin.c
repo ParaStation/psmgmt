@@ -467,13 +467,13 @@ bool PSIDpin_getCloseGPUs(PSnodes_ID_t id, uint16_t **closelist,
     bool used[numNUMA];
     memset(used, 0, sizeof(used));
 
-    PSID_log(PSID_LOG_NODES, "%s(%d): Analysing mapped cpuset %s\n", __func__,
+    PSID_log(PSID_LOG_SPAWN, "%s(%d): Analysing mapped cpuset %s\n", __func__,
 	    id, PSCPU_print_part(mappedSet, PSCPU_bytesForCPUs(numThrds)));
 
     /* identify NUMA domains this process will run on */
     for (uint16_t d = 0; d < numNUMA; d++) {
 	if (PSCPU_overlap(mappedSet, CPUSets[d], numThrds)) {
-	    PSID_log(PSID_LOG_NODES, "%s(%d): Using numa domain %hu\n",
+	    PSID_log(PSID_LOG_SPAWN, "%s(%d): Using numa domain %hu\n",
 		    __func__, id, d);
 	    used[d] = true;
 	}
@@ -485,16 +485,16 @@ bool PSIDpin_getCloseGPUs(PSnodes_ID_t id, uint16_t **closelist,
     uint16_t numGPUs = PSIDnodes_numGPUs(id);
     PSCPU_set_t *GPUsets = PSIDnodes_GPUSets(id);
     if (!GPUsets) {
-	PSID_log(PSID_LOG_NODES, "%s(%d): No GPU sets found.\n", __func__, id);
+	PSID_log(PSID_LOG_SPAWN, "%s(%d): No GPU sets found.\n", __func__, id);
 	return false;
     }
     for (uint16_t d = 0; d < numNUMA; d++) {
 	if (!used[d]) continue;
-	PSID_log(PSID_LOG_NODES, "%s(%d): GPU mask of NUMA domain %hu: %s\n",
+	PSID_log(PSID_LOG_SPAWN, "%s(%d): GPU mask of NUMA domain %hu: %s\n",
 		__func__, id, d, PSCPU_print_part(GPUsets[d],2));
 	for (uint16_t gpu = 0; gpu < numGPUs; gpu++) {
 	    if (PSCPU_isSet(GPUsets[d], gpu)) {
-		PSID_log(PSID_LOG_NODES, "%s(%d): Using GPU %hu\n", __func__,
+		PSID_log(PSID_LOG_SPAWN, "%s(%d): Using GPU %hu\n", __func__,
 			id, gpu);
 		PSCPU_setCPU(GPUs, gpu);
 	    }
