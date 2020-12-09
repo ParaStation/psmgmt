@@ -39,7 +39,7 @@
 static void bindToNodes(cpu_set_t *physSet)
 {
 #ifdef HAVE_LIBNUMA
-    int node, ret = 1;
+    int ret = 1;
 #ifdef HAVE_NUMA_ALLOCATE_NODEMASK
     struct bitmask *nodemask = NULL, *cpumask = NULL;
 #else
@@ -68,8 +68,7 @@ static void bindToNodes(cpu_set_t *physSet)
 #endif
 
     /* Try to determine the nodes */
-    for (node=0; node<=numa_max_node(); node++) {
-	unsigned int cpu;
+    for (int node = 0; node <= numa_max_node(); node++) {
 #ifdef HAVE_NUMA_ALLOCATE_NODEMASK
 	ret = numa_node_to_cpus(node, cpumask);
 #else
@@ -84,7 +83,7 @@ static void bindToNodes(cpu_set_t *physSet)
 	    }
 	    goto end;
 	}
-	for (cpu=0; cpu<CPU_SETSIZE; cpu++) {
+	for (unsigned int cpu = 0; cpu < CPU_SETSIZE; cpu++) {
 #ifdef HAVE_NUMA_ALLOCATE_NODEMASK
 	    if (CPU_ISSET(cpu, physSet)
 		&& numa_bitmask_isbitset(cpumask, cpu)) {
@@ -195,10 +194,9 @@ static void bindToGPUs(PSCPU_set_t *cpuSet)
 	     * so set it and add/renew the auto set detection variable */
 	    setenv(variables[i], val, 1);
 	    setenv(name, val, 1);
-	}
-	else {
+	} else {
 	    PSID_log(PSID_LOG_SPAWN, "%s: Not overriding already set '%s'\n",
-		    __func__, variables[i]);
+		     __func__, variables[i]);
 	}
 
     }
@@ -259,7 +257,7 @@ static void appendToMap(short cpu, CPUmap_t *map)
  */
 static bool appendRange(CPUmap_t *map, char *range)
 {
-    long first, last, i;
+    long first, last;
     char *start = strsep(&range, "-"), *end;
 
     if (*start == '\0') {
@@ -287,9 +285,9 @@ static bool appendRange(CPUmap_t *map, char *range)
     }
 
     if (first > last) {
-	for (i=first; i>=last; i--) appendToMap(i, map);
+	for (long i = first; i >= last; i--) appendToMap(i, map);
     } else {
-	for (i=first; i<=last; i++) appendToMap(i, map);
+	for (long i = first; i <= last; i++) appendToMap(i, map);
     }
 
     return true;
