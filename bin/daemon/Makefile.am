@@ -27,15 +27,15 @@ libpslog = $(top_builddir)/lib/pslog/libpslog.la
 
 psid_SOURCES = psid.c psidaccount.c psidaccount.h psidclient.c		\
 	psidclient.h psidcomm.c psidcomm.h psidenv.c psidenv.h		\
-	psidforwarder.c psidforwarder.h psidhook.c psidhook.h		\
-	psidhw.c psidhw.h psidinfo.c psidinfo.h psidmsgbuf.c		\
-	psidmsgbuf.h psidnodes.c psidnodes.h psidoption.c		\
-	psidoption.h psidpartition.c psidpartition.h psidplugin.c	\
-	psidplugin.h psidrdp.c psidrdp.h psidscripts.c psidscripts.h	\
-	psidsignal.c psidsignal.h psidspawn.c psidspawn.h psidstate.c	\
-	psidstate.h psidstatus.c psidstatus.h psidtask.c psidtask.h	\
-	psidtimer.h psidutil.c psidutil.h psidflowcontrol.c		\
-	psidflowcontrol.h
+	psidflowcontrol.c psidflowcontrol.h psidforwarder.c		\
+	psidforwarder.h psidhook.c psidhook.h psidhw.c psidhw.h		\
+	psidinfo.c psidinfo.h psidmsgbuf.c psidmsgbuf.h psidnodes.c	\
+	psidnodes.h psidoption.c psidoption.h psidpartition.c		\
+	psidpartition.h psidpin.c psidpin.h psidplugin.c psidplugin.h	\
+	psidrdp.c psidrdp.h psidscripts.c psidscripts.h psidsignal.c	\
+	psidsignal.h psidspawn.c psidspawn.h psidstate.c psidstate.h	\
+	psidstatus.c psidstatus.h psidtask.c psidtask.h psidtimer.h	\
+	psidutil.c psidutil.h
 
 psid_LDFLAGS = $(AM_LDFLAGS) $(glib2_LIBS) -export-dynamic
 psid_LDADD = $(libputil) $(libpscommon) $(libpslog) -lutil	\

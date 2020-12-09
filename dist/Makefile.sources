@@ -59,6 +59,8 @@ bin/daemon/psidoption.c \
 bin/daemon/psidoption.h \
 bin/daemon/psidpartition.c \
 bin/daemon/psidpartition.h \
+bin/daemon/psidpin.c \
+bin/daemon/psidpin.h \
 bin/daemon/psidplugin.c \
 bin/daemon/psidplugin.h \
 bin/daemon/psidrdp.c \
