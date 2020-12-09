@@ -13,12 +13,14 @@
 #ifndef __PSIDPIN_H
 #define __PSIDPIN_H
 
+#include <stdbool.h>
+#include <stdint.h>
+#include <stdlib.h>
 #include <sched.h>
 
 #include "pscpu.h"
 #include "pstask.h"
 
-#ifdef CPU_ZERO
 /**
  * @brief Map CPUs
  *
@@ -36,7 +38,6 @@
  * modify this set.
  */
 cpu_set_t *PSIDpin_mapCPUs(PSCPU_set_t set);
-#endif
 
 /**
  * @brief Do various process clamps.
@@ -55,5 +56,33 @@ cpu_set_t *PSIDpin_mapCPUs(PSCPU_set_t set);
  * @see PSID_mapCPUs()
  */
 void PSIDpin_doClamps(PStask_t *task);
+
+/**
+ * @brief Get a node's list of GPUs close to the CPUs in @a thisSet
+ *
+ * This returns a list of all GPUs that are connected directly to
+ * NUMA domains that contain CPUs set in @a thisSet on the node with
+ * ParaStation ID @a id. The list will be ordered ascending and will not
+ * contain double entries.
+ *
+ * This function is used by the psid's default GPU pinning mechanism as
+ * well as by psslurm to do enhanced GPU pinning.
+ *
+ * The list returned via @a closelist when true is returned has to be
+ * free()ed by the caller.
+ *
+ * @param id ParaStation ID of the node to look up
+ *
+ * @param closelist Return pointer for the requested list
+ *
+ * @param closecount Return pointer for the length of the list
+ *
+ * @param cpuSet The unmapped set of CPUs to which the list will be created
+ *
+ * @return True if GPU sets are found and @a closelist is set, else false
+ */
+bool PSIDpin_getCloseGPUs(PSnodes_ID_t id,
+			  uint16_t **closelist, size_t *closecount,
+			  PSCPU_set_t *cpuSet);
 
 #endif /* __PSIDPIN_H */

@@ -26,6 +26,7 @@
 #include "psslurmlog.h"
 
 #include "psidnodes.h"
+#include "psidpin.h"
 #include "pluginmalloc.h"
 #include "slurmcommon.h"
 
@@ -654,7 +655,7 @@ static void getBindMapFromString(PSCPU_set_t *CPUset, uint16_t cpuBindType,
 		PSCPU_setCPU(*CPUset, PSIDnodes_unmapCPU(nodeinfo->id, mycpu));
 	    } else {
 		mlog("%s: invalid cpu id %hu in cpu map '%s'\n", __func__,
-		        mycpu, myent);
+		     mycpu, myent);
 		PSCPU_setAll(*CPUset); //XXX other result in error case?
 	    }
 	} else {
@@ -1466,8 +1467,8 @@ bool getNodeGPUPinning(uint16_t ret[], Step_t *step, uint32_t stepNodeId,
 
 	uint16_t *closeList = NULL;
 	size_t closeCount = 0;
-	if (!PSIDnodes_getCloseGPUsList(step->nodes[stepNodeId], &closeList,
-		&closeCount, &step->slots[tid].CPUset)) {
+	if (!PSIDpin_getCloseGPUs(step->nodes[stepNodeId], &closeList,
+				  &closeCount, &step->slots[tid].CPUset)) {
 	    return false;
 	}
 

@@ -714,8 +714,8 @@ short PSIDnodes_numGPUs(PSnodes_ID_t id) {
     return 0;
 }
 
-void PSIDnodes_getCloseGPUsList(PSnodes_ID_t id, uint16_t **closelist,
-	size_t *closecount, PSCPU_set_t *thisSet) {
+void PSIDpin_getCloseGPUs(PSnodes_ID_t id, uint16_t **closelist,
+			  size_t *closecount, PSCPU_set_t *thisSet) {
     return;
 }
 

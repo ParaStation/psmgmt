@@ -7,11 +7,13 @@
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
+#define _GNU_SOURCE
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <errno.h>
 
 #ifdef HAVE_LIBNUMA
 #include <numa.h>
@@ -25,6 +27,7 @@
 #include "psidpin.h"
 
 #ifdef CPU_ZERO
+
 /**
  * @brief Bind process to node
  *
@@ -134,8 +137,7 @@ static void bindToGPUs(PSCPU_set_t *cpuSet)
 
     uint16_t *closelist = NULL;
     size_t closecount;
-    if (!PSIDnodes_getCloseGPUsList(PSC_getMyID(), &closelist, &closecount,
-	    cpuSet)) {
+    if (!PSIDpin_getCloseGPUs(PSC_getMyID(), &closelist, &closecount, cpuSet)) {
 	return;
     }
 
@@ -397,7 +399,7 @@ cpu_set_t *PSIDpin_mapCPUs(PSCPU_set_t set)
     return &physSet;
 }
 
-#endif
+#endif  /* CPU_ZERO */
 
 void PSIDpin_doClamps(PStask_t *task)
 {
@@ -414,7 +416,7 @@ void PSIDpin_doClamps(PStask_t *task)
 	       || PSIDnodes_bindMem(PSC_getMyID())
 	       || PSIDnodes_bindGPUs(PSC_getMyID())) {
 #ifdef CPU_ZERO
-	cpu_set_t *physSet = PSID_mapCPUs(task->CPUset);
+	cpu_set_t *physSet = PSIDpin_mapCPUs(task->CPUset);
 
 	if (PSIDnodes_pinProcs(PSC_getMyID())) {
 	    if (getenv("__PSI_NO_PINPROC")) {
@@ -444,4 +446,66 @@ void PSIDpin_doClamps(PStask_t *task)
 	fprintf(stderr, "Daemon has no sched_setaffinity(). No pinning\n");
 #endif
     }
+}
+
+bool PSIDpin_getCloseGPUs(PSnodes_ID_t id, uint16_t **closelist,
+			  size_t *closecount, PSCPU_set_t *cpuSet)
+{
+    uint16_t numNUMA = PSIDnodes_numNUMADoms(id);
+    int numThrds = PSIDnodes_getNumThrds(id);
+
+    PSCPU_set_t *CPUSets = PSIDnodes_CPUSets(id);
+
+    PSCPU_set_t mappedSet;
+    PSCPU_clrAll(mappedSet);
+    for (uint16_t t = 0; t < numThrds; t++) {
+	if (PSCPU_isSet(*cpuSet, t)) {
+	    PSCPU_setCPU(mappedSet, PSIDnodes_mapCPU(id, t));
+	}
+    }
+
+    bool used[numNUMA];
+    memset(used, 0, sizeof(used));
+
+    PSID_log(PSID_LOG_NODES, "%s(%d): Analysing mapped cpuset %s\n", __func__,
+	    id, PSCPU_print_part(mappedSet, PSCPU_bytesForCPUs(numThrds)));
+
+    /* identify NUMA domains this process will run on */
+    for (uint16_t d = 0; d < numNUMA; d++) {
+	if (PSCPU_overlap(mappedSet, CPUSets[d], numThrds)) {
+	    PSID_log(PSID_LOG_NODES, "%s(%d): Using numa domain %hu\n",
+		    __func__, id, d);
+	    used[d] = true;
+	}
+    }
+
+    /* build list of GPUs connected to those NUMA nodes */
+    PSCPU_set_t GPUs;
+    PSCPU_clrAll(GPUs);
+    uint16_t numGPUs = PSIDnodes_numGPUs(id);
+    PSCPU_set_t *GPUsets = PSIDnodes_GPUSets(id);
+    if (!GPUsets) {
+	PSID_log(PSID_LOG_NODES, "%s(%d): No GPU sets found.\n", __func__, id);
+	return false;
+    }
+    for (uint16_t d = 0; d < numNUMA; d++) {
+	if (!used[d]) continue;
+	PSID_log(PSID_LOG_NODES, "%s(%d): GPU mask of NUMA domain %hu: %s\n",
+		__func__, id, d, PSCPU_print_part(GPUsets[d],2));
+	for (uint16_t gpu = 0; gpu < numGPUs; gpu++) {
+	    if (PSCPU_isSet(GPUsets[d], gpu)) {
+		PSID_log(PSID_LOG_NODES, "%s(%d): Using GPU %hu\n", __func__,
+			id, gpu);
+		PSCPU_setCPU(GPUs, gpu);
+	    }
+	}
+    }
+
+    /* create ascending list with no double entries */
+    *closelist = malloc(numGPUs * sizeof(**closelist));
+    *closecount = 0;
+    for (uint16_t gpu = 0; gpu < numGPUs; gpu++) {
+	if (PSCPU_isSet(GPUs, gpu)) (*closelist)[(*closecount)++] = gpu;
+    }
+    return true;
 }
