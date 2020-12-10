@@ -88,6 +88,7 @@ plugin_dep_t dependencies[] = {
     { .name = "pspam", .version = 3 },
     { .name = "psexec", .version = 2 },
     { .name = "pspmi", .version = 4 },
+    { .name = "nodeinfo", .version = 1 },
     { .name = NULL, .version = 0 } };
 
 static void cleanupJobs(void)
