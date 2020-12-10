@@ -456,11 +456,15 @@ bool PSIDpin_getCloseGPUs(PSnodes_ID_t id, uint16_t **closelist,
 
     PSCPU_set_t *CPUSets = PSIDnodes_CPUSets(id);
 
+    /* get mapped CPUs regarding __PSI_CPUMAP if set */
+    cpu_set_t *tmpMappedSet = PSIDpin_mapCPUs(*cpuSet);
+
+    /* tranform into PCCPU_set_t */
     PSCPU_set_t mappedSet;
     PSCPU_clrAll(mappedSet);
     for (uint16_t t = 0; t < numThrds; t++) {
-	if (PSCPU_isSet(*cpuSet, t)) {
-	    PSCPU_setCPU(mappedSet, PSIDnodes_mapCPU(id, t));
+	if (CPU_ISSET(t, tmpMappedSet)) {
+	    PSCPU_setCPU(mappedSet, t);
 	}
     }
 
