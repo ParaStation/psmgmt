@@ -361,6 +361,8 @@ static int testSlurmVersion(uint32_t pVer, uint32_t cmd)
 	pVer > SLURM_MAX_PROTO_VERSION) {
 	flog("slurm protocol version %u not supported, cmd(%i) %s\n",
 	     pVer, cmd, msgType2String(cmd));
+
+	sendNodeRegStatus(false);
 	return 0;
     }
     return 1;
