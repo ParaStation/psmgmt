@@ -469,8 +469,11 @@ static void setGPUEnv(Gres_Cred_t *gres, uint32_t jobNodeId, Step_t *step,
 
     uint16_t gpus[step->globalTaskIdsLen[stepNodeId]];
 
-    if(!getNodeGPUPinning(gpus, step, stepNodeId, gpusAssigned,
-		numGPUsAssigned)) return;
+    bool success = getNodeGPUPinning(gpus, step, stepNodeId, gpusAssigned,
+		numGPUsAssigned);
+    ufree(gpusAssigned);
+
+    if (!success) return;
 
     char tmp[10];
     snprintf(tmp, sizeof(tmp), "%i", gpus[localRankId]);
