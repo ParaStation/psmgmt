@@ -483,33 +483,33 @@ bool PSIDpin_getCloseGPUs(PSnodes_ID_t id, uint16_t **closelist,
 	}
     }
 
-    /* build list of GPUs connected to those NUMA nodes */
-    PSCPU_set_t GPUs;
-    PSCPU_clrAll(GPUs);
     uint16_t numGPUs = PSIDnodes_numGPUs(id);
     PSCPU_set_t *GPUsets = PSIDnodes_GPUSets(id);
     if (!GPUsets) {
 	PSID_log(PSID_LOG_SPAWN, "%s(%d): No GPU sets found.\n", __func__, id);
 	return false;
     }
-    for (uint16_t d = 0; d < numNUMA; d++) {
-	if (!used[d]) continue;
-	PSID_log(PSID_LOG_SPAWN, "%s(%d): GPU mask of NUMA domain %hu: %s\n",
-		__func__, id, d, PSCPU_print_part(GPUsets[d],2));
-	for (uint16_t gpu = 0; gpu < numGPUs; gpu++) {
-	    if (PSCPU_isSet(GPUsets[d], gpu)) {
-		PSID_log(PSID_LOG_SPAWN, "%s(%d): Using GPU %hu\n", __func__,
-			id, gpu);
-		PSCPU_setCPU(GPUs, gpu);
-	    }
-	}
-    }
 
     /* create ascending list with no double entries */
     *closelist = malloc(numGPUs * sizeof(**closelist));
     *closecount = 0;
     for (uint16_t gpu = 0; gpu < numGPUs; gpu++) {
-	if (PSCPU_isSet(GPUs, gpu)) (*closelist)[(*closecount)++] = gpu;
+	for (uint16_t d = 0; d < numNUMA; d++) {
+	    if (!used[d]) continue;
+	    if (gpu == 0) {
+		/* print only oncy */
+		PSID_log(PSID_LOG_SPAWN, "%s(%d): GPU mask of NUMA domain"
+			 " %hu: %s\n", __func__, id, d,
+			 PSCPU_print_part(GPUsets[d],2));
+	    }
+	    if (PSCPU_isSet(GPUsets[d], gpu)) {
+		(*closelist)[(*closecount)++] = gpu;
+		PSID_log(PSID_LOG_SPAWN, "%s(%d): Using GPU %hu\n",
+			__func__, id, gpu);
+		break;
+	    }
+	}
     }
+
     return true;
 }
