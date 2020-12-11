@@ -18,6 +18,9 @@ git tag -a -m "Tagging <new-tag>" <new-tag>
    where <new-tag> is of the form 5.1.x-0
 
 6. Push the newly tagged commits upstream using:
+git push --follow-tags
+
+Was before:
 git push --tags; git push
 
 
