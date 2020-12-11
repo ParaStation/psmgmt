@@ -1,3 +1,314 @@
+Version psmgmt-5.1.35:
+======================
+------------------------------------------------------------------------
+6f7d0c93 | Norbert Eicker | Fri, 11 Dec 2020 17:06:46 +0100
+
+Merge branch '5.1.34' again
+------------------------------------------------------------------------
+543c8be3 | Norbert Eicker | Fri, 11 Dec 2020 17:05:33 +0100
+
+Update build recipe
+------------------------------------------------------------------------
+04544993 | Norbert Eicker | Thu, 10 Dec 2020 16:29:18 +0100
+
+Fix typo
+------------------------------------------------------------------------
+07d4be2e | Stephan Krempel | Thu, 10 Dec 2020 15:47:33 +0100
+
+psslurm: Fix memory leak
+------------------------------------------------------------------------
+46da56f6 | Stephan Krempel | Thu, 10 Dec 2020 15:34:18 +0100
+
+Pinning: Reduce complexity of building list of close GPUs
+------------------------------------------------------------------------
+5474c3b7 | Stephan Krempel | Thu, 10 Dec 2020 14:55:41 +0100
+
+Respect __PSI_CPUMAP in GPU pinning, too
+------------------------------------------------------------------------
+917ff3a4 | Norbert Eicker | Thu, 10 Dec 2020 08:10:07 +0100
+
+Add plugin-dependency psslurm->nodeinfo
+------------------------------------------------------------------------
+e7da3ab5 | Norbert Eicker | Wed, 9 Dec 2020 21:28:00 +0100
+
+Use PSID_LOG_SPAWN throughout psidpin
+------------------------------------------------------------------------
+49edc29d | Norbert Eicker | Wed, 9 Dec 2020 17:07:52 +0100
+
+Also move getCloseGPUs[List]() to psidpin
+------------------------------------------------------------------------
+e559da71 | Norbert Eicker | Wed, 9 Dec 2020 12:27:42 +0100
+
+Minor cleanup
+------------------------------------------------------------------------
+cb1a54f8 | Norbert Eicker | Wed, 9 Dec 2020 12:22:40 +0100
+
+Create new psid module for pinning stuff
+------------------------------------------------------------------------
+a32ac7b4 | Stephan Krempel | Wed, 9 Dec 2020 14:13:04 +0100
+
+Add PCI IDs of Tesla K20X cards found in Juropa 3 GPU nodes
+------------------------------------------------------------------------
+4a6739a8 | Stephan Krempel | Mon, 7 Dec 2020 15:13:44 +0100
+
+Pinning: Fix handling in no GPUs available case
+------------------------------------------------------------------------
+5b75c9dd | Stephan Krempel | Fri, 4 Dec 2020 15:37:02 +0100
+
+Pinning: Fix finding close GPUs
+------------------------------------------------------------------------
+e1532df8 | Stephan Krempel | Fri, 4 Dec 2020 15:11:32 +0100
+
+Pinning: Fix mapping when getting close GPU sets
+------------------------------------------------------------------------
+e232caee | Stephan Krempel | Fri, 4 Dec 2020 12:44:23 +0100
+
+psslurm: Implement NUMA based GPU pinning
+
+In contrast to the NUMA aware GPU pinning done by the psid
+the implementation in psslurm is able to take the pinning of
+sister processes into account and such use less uses GPUs and
+GPUs not connected to the NUMA node the process in running on.
+
+The heuristic is to first handle processes running on GPU
+near NUMA domains. If there are multiple near GPUs to a
+some processes they are bound round robin. Second each
+process not running on a GPU near NUMA domain gets the
+GPUs bound round robin which are bound to least other
+processes. At the end each process is bound to exactly
+one GPU.
+------------------------------------------------------------------------
+75f012a1 | Stephan Krempel | Fri, 4 Dec 2020 12:35:07 +0100
+
+Fix memory leak
+------------------------------------------------------------------------
+5045b3ce | Stephan Krempel | Fri, 4 Dec 2020 12:33:27 +0100
+
+Remove obsolete comment and add debug output in PSID_bindToGPUs()
+------------------------------------------------------------------------
+86b06b63 | Stephan Krempel | Fri, 4 Dec 2020 12:32:29 +0100
+
+Rename __PSI_USE_GPUS to __PSID_USE_GPUS
+------------------------------------------------------------------------
+172b0c41 | Stephan Krempel | Fri, 4 Dec 2020 12:26:27 +0100
+
+Enhance comments and debugging output for PSIDnodes_getCloseGPUsList()
+------------------------------------------------------------------------
+0399cf99 | Stephan Krempel | Wed, 2 Dec 2020 18:47:10 +0100
+
+Fix segfault in PSIDnodes_getCloseGPUsList()
+------------------------------------------------------------------------
+1f5fb4bd | Stephan Krempel | Tue, 1 Dec 2020 12:02:45 +0100
+
+Move PSID_getCloseGPUsList() to PSIDnodes_getCloseGPUsList()
+------------------------------------------------------------------------
+a2dc53e0 | Stephan Krempel | Tue, 1 Dec 2020 11:59:05 +0100
+
+psslurm: Introduce function hexBitstr2Array()
+------------------------------------------------------------------------
+82607f61 | Stephan Krempel | Fri, 27 Nov 2020 18:17:42 +0100
+
+Separate creation of list of close GPUs for using in psslurm
+------------------------------------------------------------------------
+eec2c98f | Stephan Krempel | Fri, 27 Nov 2020 16:40:31 +0100
+
+Rename envar PSI_CLOSE_GPUS to PSID_CLOSE_GPUS
+------------------------------------------------------------------------
+518b305a | Norbert Eicker | Fri, 13 Nov 2020 00:20:41 +0100
+
+Improve logging
+------------------------------------------------------------------------
+04361690 | Norbert Eicker | Fri, 13 Nov 2020 00:18:19 +0100
+
+Bugfix: Do not send msg to myself and corrupt buffer
+------------------------------------------------------------------------
+99a79704 | Norbert Eicker | Thu, 12 Nov 2020 11:33:02 +0100
+
+Simplify nodeinfo plugin's interface
+------------------------------------------------------------------------
+4afa5c1c | Norbert Eicker | Thu, 12 Nov 2020 11:21:21 +0100
+
+More proper cleanup upon unload
+------------------------------------------------------------------------
+7dbc88f1 | Norbert Eicker | Thu, 12 Nov 2020 10:29:05 +0100
+
+Handle late loading of nodeinfo plugin properly
+------------------------------------------------------------------------
+43289ebd | Norbert Eicker | Thu, 12 Nov 2020 02:12:32 +0100
+
+Add ancient QLogic HCA to the list
+------------------------------------------------------------------------
+00dbfb1a | Norbert Eicker | Thu, 12 Nov 2020 01:57:16 +0100
+
+Bugfix: match to correct option type in handleDistInfo()
+------------------------------------------------------------------------
+50337460 | Norbert Eicker | Thu, 12 Nov 2020 01:45:08 +0100
+
+Bugfix: initialize numNUMADoms to 0 as expected by nodeinfo plugin
+------------------------------------------------------------------------
+e1e75d00 | Norbert Eicker | Thu, 12 Nov 2020 01:31:47 +0100
+
+Bugfix: Do net set numThrds as numNUMADoms
+------------------------------------------------------------------------
+d46dae51 | Norbert Eicker | Thu, 12 Nov 2020 01:05:34 +0100
+
+Fix typo
+------------------------------------------------------------------------
+a4be70e6 | Norbert Eicker | Thu, 12 Nov 2020 00:57:15 +0100
+
+Rename PSIDnodes_*Set to PSIDnodes_*Sets
+------------------------------------------------------------------------
+34ba0598 | Norbert Eicker | Thu, 12 Nov 2020 00:49:44 +0100
+
+Add communication capabilities to nodeinfo plugin
+------------------------------------------------------------------------
+5128c714 | Norbert Eicker | Wed, 11 Nov 2020 19:53:01 +0100
+
+Ensure we see all devices and add some debug
+------------------------------------------------------------------------
+cbba01d4 | Stephan Krempel | Wed, 11 Nov 2020 16:30:56 +0100
+
+Catch if no cpuset is found for pci device in hwloc
+------------------------------------------------------------------------
+d6e66667 | Stephan Krempel | Wed, 11 Nov 2020 16:28:15 +0100
+
+Fix some comments and typos
+------------------------------------------------------------------------
+e1a14cee | Norbert Eicker | Wed, 11 Nov 2020 14:40:10 +0100
+
+Init nodeinfo's configuration before use
+------------------------------------------------------------------------
+e1625cc7 | Norbert Eicker | Wed, 11 Nov 2020 10:46:54 +0100
+
+Fix building RPMs by adding nodeinfo.so
+------------------------------------------------------------------------
+970dd2bf | Norbert Eicker | Wed, 11 Nov 2020 10:39:36 +0100
+
+Add missing Makefile.[in|am] to Makefile.sources
+------------------------------------------------------------------------
+9a907fb4 | Norbert Eicker | Wed, 11 Nov 2020 01:46:15 +0100
+
+Improve nodeinfo plugin's user interface towards psiadmin
+------------------------------------------------------------------------
+3dcaaf84 | Norbert Eicker | Wed, 11 Nov 2020 01:37:26 +0100
+
+Fix docu
+------------------------------------------------------------------------
+4ddb0be3 | Norbert Eicker | Wed, 11 Nov 2020 00:11:05 +0100
+
+Add PCI info on Extoll Tourmalet cards for DEEP-EST
+------------------------------------------------------------------------
+1ae2f90c | Norbert Eicker | Wed, 11 Nov 2020 00:10:02 +0100
+
+Add information on recorded hwloc topologies
+------------------------------------------------------------------------
+740dde22 | Norbert Eicker | Tue, 10 Nov 2020 23:52:51 +0100
+
+Add various hwloc topologies recorded on different systems
+------------------------------------------------------------------------
+8679747e | Norbert Eicker | Tue, 10 Nov 2020 00:47:52 +0100
+
+Major rework of psidhw
+------------------------------------------------------------------------
+57c2ba6d | Norbert Eicker | Tue, 10 Nov 2020 00:24:42 +0100
+
+Add docu on PSIDnodes numbering conventions
+------------------------------------------------------------------------
+2d5c0dbf | Norbert Eicker | Fri, 6 Nov 2020 00:03:56 +0100
+
+Make PSCPU_disjoint() an inline function
+------------------------------------------------------------------------
+44f03429 | Norbert Eicker | Fri, 6 Nov 2020 00:00:11 +0100
+
+Start testprogram for bitsets
+------------------------------------------------------------------------
+d4bbdb0b | Norbert Eicker | Thu, 5 Nov 2020 23:58:32 +0100
+
+Add PSCPU_overlap() and PSCPU_disjoint()
+------------------------------------------------------------------------
+3c680575 | Norbert Eicker | Thu, 5 Nov 2020 22:01:34 +0100
+
+Bugfix: Ensure GPU-bindign is actually done
+------------------------------------------------------------------------
+c115b062 | Norbert Eicker | Wed, 4 Nov 2020 12:13:13 +0100
+
+Streamline documentation
+------------------------------------------------------------------------
+23625fcb | Norbert Eicker | Wed, 4 Nov 2020 11:43:41 +0100
+
+Prepare PSIDnodes to support remote hardware topologies
+------------------------------------------------------------------------
+1243c84f | Norbert Eicker | Wed, 4 Nov 2020 00:05:27 +0100
+
+Streamline for more compact code
+------------------------------------------------------------------------
+e08ea83d | Norbert Eicker | Mon, 2 Nov 2020 10:49:33 +0100
+
+Rename PSIDnodes_[gs]etVirtCPUs() to PSIDnodes_[gs]etNumThrds()
+------------------------------------------------------------------------
+52badf6b | Norbert Eicker | Fri, 30 Oct 2020 20:09:42 +0100
+
+More consistent wording within pscpu toolbox
+------------------------------------------------------------------------
+ff792b74 | Norbert Eicker | Fri, 30 Oct 2020 15:28:25 +0100
+
+More consistent naming concerning cores vs. CPUs
+------------------------------------------------------------------------
+84d4c4bd | Norbert Eicker | Fri, 30 Oct 2020 15:27:09 +0100
+
+Rename PSIDnodes_[gs]etPhysCPUs() to PSIDnodes_[gs]etNumCores()
+------------------------------------------------------------------------
+9b1e2110 | Norbert Eicker | Fri, 30 Oct 2020 14:19:18 +0100
+
+Rename PSP_CC_PLUG_* message types to PSP_PLUG_*
+------------------------------------------------------------------------
+2a9898b9 | Norbert Eicker | Fri, 23 Oct 2020 00:18:54 +0200
+
+Early sketch of nodeinfo plugin
+------------------------------------------------------------------------
+ddd1fae2 | Norbert Eicker | Fri, 23 Oct 2020 00:07:21 +0200
+
+Fix typo
+------------------------------------------------------------------------
+32893d59 | Norbert Eicker | Thu, 22 Oct 2020 23:42:18 +0200
+
+Add PSP_OP_TRIGGER_DIST and PSIDHOOK_DIST_INFO
+
+    - bump pluginAPIVersion to 129
+------------------------------------------------------------------------
+20951aa1 | Norbert Eicker | Thu, 22 Oct 2020 23:36:14 +0200
+
+Lots of booleanization and streamlining
+------------------------------------------------------------------------
+bd57bf33 | Norbert Eicker | Thu, 22 Oct 2020 21:31:54 +0200
+
+Introduce initConfig() to pluginconfig
+
+ - For this multiple initConfig()s in the modules have to be moved out
+   of the way
+------------------------------------------------------------------------
+f8ac7e26 | Norbert Eicker | Thu, 10 Dec 2020 19:13:44 +0100
+
+Merge branch '5.1.34'
+------------------------------------------------------------------------
+24b53e8f | Michael Rauh | Fri, 4 Dec 2020 10:56:18 +0100
+
+Improve naming and documentation of Slurm_Msg_Header_t
+------------------------------------------------------------------------
+dea5af3d | Norbert Eicker | Fri, 27 Nov 2020 17:13:30 +0100
+
+Move spank plugins into their own sub-RPM
+------------------------------------------------------------------------
+51c953ca | Norbert Eicker | Fri, 27 Nov 2020 16:33:58 +0100
+
+Bugfix: Delay fw->callback until connection is closed (jwt:#7136)
+------------------------------------------------------------------------
+513ad9ef | Norbert Eicker | Fri, 27 Nov 2020 15:24:32 +0100
+
+Use more speaking names for some members of ForwarderData_t
+------------------------------------------------------------------------
+
+
 Version psmgmt-5.1.34-2:
 ========================
 ------------------------------------------------------------------------

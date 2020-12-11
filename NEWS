@@ -5,6 +5,27 @@ Copyright (C) 2010-2020 ParTec Cluster Competence Center GmbH, Munich
 Please send bug reports, questions and suggestions to <support@par-tec.com>
 
 
+Version 5.1.35:
+===============
+Bugfixes:
+ - Delay fw->callback until connection is closed (jwt:#7136)
+Enhancements:
+ - psslurm: Implement NUMA based GPU pinning
+ - Introduce psid's nodeinfo plugin to sync hwloc info between nodes
+ - Add PSP_OP_TRIGGER_DIST and PSIDHOOK_DIST_INFO; bump pluginAPIVersion to 129
+Additional changes:
+ - Move spank plugins into their own sub-RPM
+ - Rename __PSI_USE_GPUS to __PSID_USE_GPUS
+ - Rename envar PSI_CLOSE_GPUS to PSID_CLOSE_GPUS
+ - Add plugin-dependency psslurm->nodeinfo
+ - Create new psid module for pinning stuff
+ - Add PSCPU_overlap() and PSCPU_disjoint()
+ - Rename PSP_CC_PLUG_* message types to PSP_PLUG_*
+ - Rename PSIDnodes_[gs]etVirtCPUs() to PSIDnodes_[gs]etNumThrds()
+ - Rename PSIDnodes_[gs]etPhysCPUs() to PSIDnodes_[gs]etNumCores()
+ - Add various hwloc topologies recorded on different systems
+
+
 Version 5.1.34-2:
 =================
 Bugfixes:
