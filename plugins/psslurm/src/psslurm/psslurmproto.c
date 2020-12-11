@@ -355,14 +355,16 @@ static bool extractStepPackInfos(Step_t *step)
 
 static int testSlurmVersion(uint32_t pVer, uint32_t cmd)
 {
-    if (cmd == REQUEST_PING) return 1;
+    /* allow ping and node registration RPC to pass since they don't
+     * contain any body to extract */
+    if (cmd == REQUEST_PING || cmd == REQUEST_NODE_REGISTRATION_STATUS) {
+	return 1;
+    }
 
     if (pVer < SLURM_MIN_PROTO_VERSION ||
 	pVer > SLURM_MAX_PROTO_VERSION) {
 	flog("slurm protocol version %u not supported, cmd(%i) %s\n",
 	     pVer, cmd, msgType2String(cmd));
-
-	sendNodeRegStatus(false);
 	return 0;
     }
     return 1;
@@ -2116,6 +2118,12 @@ void processSlurmMsg(Slurm_Msg_t *sMsg, Msg_Forward_t *fw, Connection_CB_t *cb,
 
     /* verify protocol version */
     if (!testSlurmVersion(sMsg->head.version, sMsg->head.type)) {
+	/* try to update the incorrect node protocol in slurmctld */
+	static bool nodeReq = false;
+	if (!nodeReq) {
+	    sendNodeRegStatus(false);
+	    nodeReq = true;
+	}
 	sendSlurmRC(sMsg, SLURM_PROTOCOL_VERSION_ERROR);
 	return;
     }
