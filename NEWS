@@ -5,6 +5,12 @@ Copyright (C) 2010-2020 ParTec Cluster Competence Center GmbH, Munich
 Please send bug reports, questions and suggestions to <support@par-tec.com>
 
 
+Version 5.1.34-2:
+=================
+Bugfixes:
+ - Accept node registration RPC from any Slurm protocol version (juwels:#7423)
+
+
 Version 5.1.34-1:
 =================
 Bugfixes:
