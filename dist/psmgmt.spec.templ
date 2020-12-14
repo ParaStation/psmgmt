@@ -282,6 +282,9 @@ exit 0
 %exclude %{_plugindir}/psgw.la
 %doc plugins/psgw/doc/psgw.conf.template
 %doc plugins/psgw/doc/psgw_error.example
+%if !0%{?disable_spank}
+%{_libexecdir}/psgw
+%endif
 %if !0%{?disable_munge}
 %{_plugindir}/psmunge.so
 %exclude %{_plugindir}/psmunge.la
@@ -384,6 +387,11 @@ exit 0
 %attr(750,root,root) %{_spooldir}/account
 %attr(750,root,root) %{_spooldir}/backup
 %attr(751,root,root) %{_spooldir}/scripts
+%if !0%{?disable_spank}
+%dir %{_libdir}/slurm
+%{_libdir}/slurm/spank_api.so
+%exclude %{_libdir}/slurm/spank_api.la
+%endif
 
 %files pspmix
 %defattr(-,root,root,-)
@@ -396,7 +404,4 @@ exit 0
 %dir %{_libdir}/slurm
 %{_libdir}/slurm/psgw_spank.so
 %exclude %{_libdir}/slurm/psgw_spank.la
-%{_libdir}/slurm/spank_api.so
-%exclude %{_libdir}/slurm/spank_api.la
-%{_libexecdir}/psgw
 %endif
