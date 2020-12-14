@@ -757,12 +757,14 @@ char *show(char *key)
     /* show spank plugins */
     if (!strcmp(key, "spank")) return showSpank();
 
+#ifdef HAVE_SPANK
     /* show spank plugins */
     if (!strcmp(key, "tainted")) {
 	str2Buf("\nThe psid is ", &buf, &bufSize);
 	if (!tainted) str2Buf("not ", &buf, &bufSize);
 	return str2Buf("tainted\n", &buf, &bufSize);
     };
+#endif
 
     str2Buf("\nInvalid key '", &buf, &bufSize);
     str2Buf(key, &buf, &bufSize);
