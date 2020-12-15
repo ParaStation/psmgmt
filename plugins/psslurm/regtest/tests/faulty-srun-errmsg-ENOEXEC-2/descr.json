@@ -1,7 +1,0 @@
-{
-	"type": "batch",
-	"submit": "srun -N 1 -n 2 -t 2 ./not-executable-file",
-	"eval": ["eval.py"],
-	"fproc": null,
-	"monitor_hz": 10
-}

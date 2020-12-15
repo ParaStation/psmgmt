@@ -1,7 +1,0 @@
-{
-	"type": "batch",
-	"submit": "srun -n 4 --ntasks-per-node 2 -t 1 hostname",
-	"eval": ["eval.py"],
-	"fproc": null,
-	"monitor_hz": 10
-}

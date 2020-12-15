@@ -1,7 +1,0 @@
-{
-	"type": "batch",
-	"submit": "srun -n 1 --cpu_bind=verbose true",
-	"eval": ["eval.py"],
-	"fproc": null,
-	"monitor_hz": 10
-}

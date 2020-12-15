@@ -1,7 +1,0 @@
-{
-	"type": "batch",
-	"submit": "srun -n 6 -t 1 -l --multi-prog multi.conf",
-	"eval": ["eval.py"],
-	"fproc": null,
-	"monitor_hz": 10
-}

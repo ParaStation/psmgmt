@@ -1,7 +1,0 @@
-{
-	"type": "batch",
-	"submit": "sbatch -N 1 -n 1 -t 1 pmi-fd.sh",
-	"eval": ["eval.py"],
-	"fproc": null,
-	"monitor_hz": 10
-}

@@ -1,7 +1,0 @@
-{
-	"type": "batch",
-	"submit": "salloc -N 2 ./test.sh",
-	"eval": "eval.py",
-	"fproc": null,
-	"monitor_hz": 10
-}

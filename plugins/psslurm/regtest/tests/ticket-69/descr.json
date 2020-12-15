@@ -1,9 +1,0 @@
-{
-	"type": "batch",
-	"submit": "sbatch -n 1 -t 1 -o @O/slurm-%j.out test.sh",
-	"eval": ["eval.py"],
-	"fproc": null,
-	"monitor_hz": 10,
-	# Make sure -e is not added to the submission line
-	"flags": [ "SUBMIT_NO_E_OPTION"]
-}

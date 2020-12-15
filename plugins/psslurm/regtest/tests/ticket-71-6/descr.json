@@ -1,7 +1,0 @@
-{
-	"type": "batch",
-	"submit": "sbatch -N 2 --ntasks-per-node=1 -c @P -t 1 test.sh",
-	"eval": ["eval.py"],
-	"fproc": null,
-	"monitor_hz": 10
-}

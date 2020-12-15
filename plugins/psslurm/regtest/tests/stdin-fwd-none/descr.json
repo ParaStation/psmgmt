@@ -1,7 +1,0 @@
-{
-	"type": "batch",
-	"submit": "srun -N 2 -n |2*@P| -t 2 -i none ./read.py",
-	"eval": "eval.py",
-	"fproc": null,
-	"monitor_hz": 10
-}

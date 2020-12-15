@@ -1,7 +1,0 @@
-{
-	"type": "batch",
-	"submit": "srun -N 1 -n 4 -t 1 -i /dev/null cat @O/../input.txt",
-	"eval": ["eval.py"],
-	"fproc": null,
-	"monitor_hz": 10
-}

@@ -1,8 +1,0 @@
-{
-	"type": "batch",
-	"submit": "sbatch -N 1 -t 1 -e /dev/null test.sh",
-	"eval": ["eval.py"],
-	"fproc": null,
-	"monitor_hz": 10,
-	"flags": ["SUBMIT_NO_O_OPTION"]
-}

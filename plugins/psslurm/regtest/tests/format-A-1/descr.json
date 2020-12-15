@@ -1,7 +1,0 @@
-{
-	"type": "batch",
-	"submit": "sbatch -a 0-2 -N 1 -o @O/slurm-%A-x-%a.out -e @O/slurm-%A-x-%a.err test.sh",
-	"eval": ["eval.py"],
-	"fproc": null,
-	"monitor_hz": 10
-}

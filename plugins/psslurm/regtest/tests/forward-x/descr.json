@@ -1,7 +1,0 @@
-{
-	"type": "batch",
-	"submit": "srun -N 1 -n 1 -t 1 --forward-x python2 test.py",
-	"eval": ["eval.py"],
-	"fproc": null,
-	"monitor_hz": 10
-}

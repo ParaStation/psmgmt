@@ -1,7 +1,0 @@
-{
-	"type": "batch",
-	"submit": "sbatch -N 1 -n 1 --mem 128M -t 1 test.py",
-	"eval": ["eval.py"],
-	"fproc": null,
-	"monitor_hz": 10
-}

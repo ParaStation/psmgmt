@@ -1,7 +1,0 @@
-{
-	"type": "batch",
-	"submit": "srun -N 1-2 -n 4 --debugger-test -t 1 echo NOK",
-	"eval": ["eval.py"],
-	"fproc": null,
-	"monitor_hz": 10
-}

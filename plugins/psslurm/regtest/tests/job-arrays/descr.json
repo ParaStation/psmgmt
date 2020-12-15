@@ -1,9 +1,0 @@
-{
-	"type": "batch",
-	"submit": "sbatch -a 0-2 -N 1 test.sh",
-	"eval": ["eval.py"],
-	"fproc": null,
-	"monitor_hz": 10,
-	# Make sure -o and -e are not added to the submission line
-	"flags": [ "SUBMIT_NO_O_OPTION", "SUBMIT_NO_E_OPTION"]
-}

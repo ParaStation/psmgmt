@@ -1,7 +1,0 @@
-{
-	"type": "batch",
-	"submit": "srun -N1 /usr/bin/scontrol show slurmd",
-	"eval": ["eval.py"],
-	"fproc": null,
-	"monitor_hz": 10
-}

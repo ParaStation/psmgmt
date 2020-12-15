@@ -1,7 +1,0 @@
-{
-	"type": "batch",
-	"submit": "sbatch -N 1 -t 10 test.py",
-	"eval": "eval.py",
-	"fproc": "scancel.py",
-	"monitor_hz": 10
-}

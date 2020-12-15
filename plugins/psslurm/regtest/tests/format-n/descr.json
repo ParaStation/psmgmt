@@ -1,7 +1,0 @@
-{
-	"type": "batch",
-	"submit": "srun -N 4 -n 8 --ntasks-per-node=2 -t 1 -o @O/slurm-%j-%n.out -e @O/slurm-%j-%n.err hostname.py",
-	"eval": ["eval.py"],
-	"fproc": null,
-	"monitor_hz": 10
-}

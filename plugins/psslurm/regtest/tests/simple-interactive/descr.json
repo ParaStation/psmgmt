@@ -1,7 +1,0 @@
-{
-	"type": "interactive",
-	"submit": "srun -n 1 -t 5 --pty /bin/bash",
-	"eval": ["eval.py"],
-	"fproc": "slave.py",
-	"monitor_hz": 10
-}
