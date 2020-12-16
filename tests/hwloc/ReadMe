@@ -6,7 +6,8 @@ topo.dp-cn01.xml   DEEP-EST CM
 topo.dp-dam01.xml  DEEP-EST DAM
 topo.dp-esb01.xml  DEEP-EST ESB with EDR IB
 topo.j3c053.xml    JUROPA3 GPU node
-topo.jsfc005.xml   JUSUF
+topo.jsfc005.xml   JUSUF GPU node
+topo.jsfc070.xml   JUSUF standard node
 topo.jrc0386.xml   JURECA-DC GPU partition
 topo.jrc5001.xml   JURECA-Booster
 topo.jwb0001.xml   JUWELS-Booster
