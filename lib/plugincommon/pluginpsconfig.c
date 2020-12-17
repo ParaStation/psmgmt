@@ -53,34 +53,32 @@ static inline size_t lstLen(char **lst)
     return len;
 }
 
-static void fillValue(pluginConfigObj_t *obj, pluginConfigVal_t *value,
-		      const char *caller)
+/*
+ * All data value is refering to will be reused
+ * @doctodo
+ */
+static bool fillValue(pluginConfigObj_t *obj, pluginConfigVal_t *value)
 {
-    if (!obj) return;
+    if (!obj || !value) return false;
 
-    obj->value.type = value ? value->type : PLUGINCONFIG_VALUE_STR;
+    obj->value.type = value->type;
     switch (obj->value.type) {
+    case PLUGINCONFIG_VALUE_NONE:
+	break;
     case PLUGINCONFIG_VALUE_NUM:
 	obj->value.val.num = value->val.num;
 	break;
     case PLUGINCONFIG_VALUE_STR:
-	obj->value.val.str = value ? ustrdup(value->val.str) : ustrdup("");
+	obj->value.val.str = value->val.str;
 	break;
     case PLUGINCONFIG_VALUE_LST:
-    {
-	size_t len = lstLen(value->val.lst);
-	obj->value.val.lst = umalloc((len + 1) * sizeof(*(value->val.lst)));
-	for (size_t l = 0; l < len; l++) {
-	    obj->value.val.lst[l] = ustrdup(value->val.lst[l]);
-	}
-	obj->value.val.lst[len] = NULL;
+	obj->value.val.lst = value->val.lst;
 	break;
-    }
     default:
-	pluginlog("%s: unable to handle type %d\n", caller, value->type);
-	ufree(obj);
-	return;
+	pluginlog("%s: unknown type %ud\n", __func__, value->type);
+	return false;
     }
+    return true;
 }
 
 static void cleanupValue(pluginConfigObj_t *obj)
@@ -105,14 +103,27 @@ static void cleanupValue(pluginConfigObj_t *obj)
 }
 
 static pluginConfigObj_t * addObj(pluginConfig_t conf, const char *key,
-				  pluginConfigVal_t *value, const char *caller)
+				  pluginConfigVal_t *value)
 {
-    if (!checkConfig(conf) || !key || !value) return false;
+    if (!checkConfig(conf) || !key || !value) return NULL;
 
     pluginConfigObj_t *obj = umalloc(sizeof(*obj));
+    if (!obj) {
+	pluginlog("%s: No memory for %s's obj\n", __func__, key);
+	return NULL;
+    }
     obj->key = ustrdup(key);
-    fillValue(obj, value, caller);
-
+    if (!obj->key) {
+	pluginlog("%s: No memory for %s's key\n", __func__, key);
+	free(obj);
+	return NULL;
+    }
+    if (!fillValue(obj, value)) {
+	pluginlog("%s: Cannot fill %s's val\n", __func__, key);
+	free(obj->key);
+	free(obj);
+	return NULL;
+    }
     list_add_tail(&(obj->next), &conf->config);
 
     return obj;
@@ -127,7 +138,18 @@ static void delObj(pluginConfigObj_t *obj)
     ufree(obj);
 }
 
-static pluginConfigObj_t *findConfigObj(pluginConfig_t conf, const char *key)
+static void cleanAllObjs(pluginConfig_t conf)
+{
+    if (!checkConfig(conf)) return;
+
+    list_t *o, *tmp;
+    list_for_each_safe(o, tmp, &(conf->config)) {
+	pluginConfigObj_t *obj = list_entry(o, pluginConfigObj_t, next);
+	delObj(obj);
+    }
+}
+
+static pluginConfigObj_t *findObj(pluginConfig_t conf, const char *key)
 {
     if (!checkConfig(conf) || !key) return NULL;
 
@@ -159,11 +181,7 @@ void pluginConfig_destroy(pluginConfig_t conf)
 {
     if (!checkConfig(conf)) return;
 
-    list_t *o, *tmp;
-    list_for_each_safe(o, tmp, &(conf->config)) {
-	pluginConfigObj_t *obj = list_entry(o, pluginConfigObj_t, next);
-	delObj(obj);
-    }
+    cleanAllObjs(conf);
     ufree(conf);
 }
 
@@ -196,14 +214,6 @@ bool pluginConfig_setDef(pluginConfig_t conf, const pluginConfigDef_t def[])
 guint psCfgFlags =
     PSCONFIG_FLAG_FOLLOW | PSCONFIG_FLAG_INHERIT | PSCONFIG_FLAG_ANCESTRAL;
 
-#define CHECK_PSCONFIG_ERROR_AND_RETURN(obj, val, key, err, ret) {	\
-	if (!val) {							\
-	    printf("PSConfig: %s(%s): %s\n", obj, key, err->message);	\
-	    g_error_free(err);						\
-	    return ret;							\
-	}								\
-}
-
 /*
  * Get string value from psconfigobj in the psconfig configuration.
  *
@@ -226,6 +236,15 @@ static bool getString(PSConfig* psconfig, char *obj, char *key, gchar **value)
     return true;
 }
 
+static bool toLong(char *token, long *value)
+{
+    if (!token || !*token) return false;
+
+    char *end;
+    *value = strtol(token, &end, 0);
+    return !*end;
+}
+
 /**
  * @brief @doctodo
  */
@@ -233,42 +252,64 @@ static bool handleObj(pluginConfig_t conf, PSConfig *cfg, gchar *obj,gchar *key)
 {
     GError *err = NULL;
     gchar *val = psconfig_get(cfg, obj, key, psCfgFlags, &err);
-    printf("val is %p \"%s\"\n", val, val);
+    const pluginConfigDef_t *def = pluginConfig_getDef(conf, key);
+    pluginConfigVal_t cVal = { .type = PLUGINCONFIG_VALUE_NONE };
+
+    pluginlog("%s: val is %p '%s'\n", __func__, val, val); // @todo
+    if (def) cVal.type = def->type;
+
     if (val) {
-	if (*val == '\0') {
-	    printf("PSConfig: %s(%s) not existing or empty value\n", obj, key);
+	if (cVal.type == PLUGINCONFIG_VALUE_NUM) {
+	    if (!toLong(val, &cVal.val.num)) {
+		pluginlog("%s: %s value '%s' not number\n", __func__, key, val);
+		g_free(val);
+		return false;
+	    }
+	    g_free(val);
+	} else if (cVal.type == PLUGINCONFIG_VALUE_LST) {
+	    pluginlog("%s: %s expects list\n", __func__, key);
+	    return false;
 	} else {
-	    printf("\t\"%s\"\n", val);
+	    cVal.type = PLUGINCONFIG_VALUE_STR;
+	    cVal.val.str = val;
 	}
-	g_free(val);
     } else if (err->code == PSCONFIG_FRONTEND_ERROR_VALUETYPE) {
 	g_error_free(err);
 	err = NULL;
 
-	// Maybe this is a list...
+	if (cVal.type != PLUGINCONFIG_VALUE_LST) {
+	    pluginlog("%s: %s's value of wrong type\n", __func__, key);
+	    return false;
+	}
+
+	/* This should be a list */
 	GPtrArray *list = psconfig_getList(cfg, obj, key, psCfgFlags, &err);
 	if (!list) {
-	    printf("PSConfig: %s(%s): %s\n", obj, key, err->message);
+	    pluginlog("%s: %s(%s): %s\n", __func__, obj, key, err->message);
 	    g_error_free(err);
 	    return false;
 	}
 
-	if (!list->len) {
-	    printf("PSConfig: '%s(%s)' not existing or empty\n", obj, key);
+	cVal.val.lst = umalloc((list->len + 1) * sizeof(*(cVal.val.lst)));
+	if (!cVal.val.lst) {
+	    pluginlog("%s: %s: No memory\n", __func__, key);
+	    g_ptr_array_free(list, TRUE);
 	    return false;
 	}
 
-	printf("list:\n");
 	for (guint i = 0; i < list->len; i++) {
-	    printf("\t[%d]\t\"%s\"\n", i, (gchar*)g_ptr_array_index(list, i));
+	    cVal.val.lst[i] = (char *)g_ptr_array_index(list, i);
 	}
-	g_ptr_array_free(list, TRUE);
+	cVal.val.lst[list->len] = NULL;
+
+	g_ptr_array_free(list, FALSE);
     } else {
-	printf("PSConfig: %s (code %s): %s (%d)\n", obj, key, err->message,
-	       err->code);
+	pluginlog("%s: %s(%s): %s\n", __func__, obj, key, err->message);
 	g_error_free(err);
+	return false;
     }
-    return true;
+
+    return addObj(conf, key, &cVal);
 }
 #endif
 
@@ -296,7 +337,7 @@ bool pluginConfig_load(pluginConfig_t conf, char *configKey)
 	if (pos) *pos = '\0';
 
 	if (!pos || !getString(psCfg, psCfgObj, "NodeName", &nodename)) {
-	    pluginlog("%s: Cannot find host object for this node.\n", __func__);
+	    pluginlog("%s: No host object for this node\n", __func__);
 	    goto loadCfgErr;
 	}
     }
@@ -317,9 +358,8 @@ bool pluginConfig_load(pluginConfig_t conf, char *configKey)
     gpointer key, obj;
     g_hash_table_iter_init (&iter, configHash);
     while (g_hash_table_iter_next(&iter, &key, &obj)) {
-	pluginlog("%s: key: \"%s\"\n", __func__, (gchar *)key);
-	pluginlog("%s: obj: \"%s\"\n", __func__, (gchar *)obj);
-
+	pluginlog("%s: key: \"%s\"\n", __func__, (gchar *)key); // @todo
+	pluginlog("%s: obj: \"%s\"\n", __func__, (gchar *)obj); // @todo
 	if (!handleObj(conf, psCfg, psCfgObj, key)) {
 	    g_hash_table_destroy(configHash);
 	    goto loadCfgErr;
@@ -331,6 +371,7 @@ bool pluginConfig_load(pluginConfig_t conf, char *configKey)
     return true;
 
 loadCfgErr:
+    cleanAllObjs(conf);
     psconfig_unref(psCfg);
 
     return false;
@@ -341,19 +382,23 @@ bool pluginConfig_add(pluginConfig_t conf, char *key, pluginConfigVal_t *value)
 {
     if (!checkConfig(conf) || !key) return false;
 
-    pluginConfigObj_t *obj = findConfigObj(conf, key);
+    pluginConfigObj_t *obj = findObj(conf, key);
     if (obj) {
 	cleanupValue(obj);
-	fillValue(obj, value, __func__);
+	if (!fillValue(obj, value)) {
+	    pluginlog("%s: Cannot fill %s's val\n", __func__, key);
+	    obj->value.type = PLUGINCONFIG_VALUE_NONE;
+	    return false;
+	}
     } else {
-	addObj(conf, key, value, __func__);
+	return addObj(conf, key, value);
     }
     return true;
 }
 
 const pluginConfigVal_t * pluginConfig_get(pluginConfig_t conf, const char *key)
 {
-    pluginConfigObj_t *obj = findConfigObj(conf, key);
+    pluginConfigObj_t *obj = findObj(conf, key);
     if (obj) return &obj->value;
 
     return NULL;
@@ -361,7 +406,7 @@ const pluginConfigVal_t * pluginConfig_get(pluginConfig_t conf, const char *key)
 
 long pluginConfig_getNum(pluginConfig_t conf, const char *key)
 {
-    pluginConfigObj_t *obj = findConfigObj(conf, key);
+    pluginConfigObj_t *obj = findObj(conf, key);
     if (obj && obj->value.type == PLUGINCONFIG_VALUE_NUM)
 	return obj->value.val.num;
 
@@ -370,7 +415,7 @@ long pluginConfig_getNum(pluginConfig_t conf, const char *key)
 
 char * pluginConfig_getStr(pluginConfig_t conf, const char *key)
 {
-    pluginConfigObj_t *obj = findConfigObj(conf, key);
+    pluginConfigObj_t *obj = findObj(conf, key);
     if (obj && obj->value.type == PLUGINCONFIG_VALUE_STR)
 	return obj->value.val.str;
 
@@ -379,7 +424,7 @@ char * pluginConfig_getStr(pluginConfig_t conf, const char *key)
 
 char ** pluginConfig_getLst(pluginConfig_t conf, const char *key)
 {
-    pluginConfigObj_t *obj = findConfigObj(conf, key);
+    pluginConfigObj_t *obj = findObj(conf, key);
     if (obj && obj->value.type == PLUGINCONFIG_VALUE_LST)
 	return obj->value.val.lst;
 
@@ -388,7 +433,7 @@ char ** pluginConfig_getLst(pluginConfig_t conf, const char *key)
 
 size_t pluginConfig_getLstLen(pluginConfig_t conf, const char *key)
 {
-    pluginConfigObj_t *obj = findConfigObj(conf, key);
+    pluginConfigObj_t *obj = findObj(conf, key);
     if (obj && obj->value.type == PLUGINCONFIG_VALUE_LST)
 	return lstLen(obj->value.val.lst);
 
@@ -420,13 +465,13 @@ int pluginConfig_verifyEntry(pluginConfig_t conf,
 	return 1;
     }
 
-    if (val) {
-	pluginlog("%s: no value for '%s'\n", __func__, key);
+    if (!val) {
+	pluginlog("%s: no value for %s\n", __func__, key);
 	return 1;
     }
 
     if (val->type != def->type) {
-	pluginlog("%s: '%s' type mismatch\n", __func__, key);
+	pluginlog("%s: type mismatch for %s\n", __func__, key);
 	return 2;
     }
 
@@ -450,51 +495,9 @@ int pluginConfig_verify(pluginConfig_t conf)
     return 0;
 }
 
-static bool dupNum(pluginConfigObj_t *obj, const char * const defDeflt[])
-{
-    if (!obj) return false;
-    if (!defDeflt || !defDeflt[0] || !*defDeflt[0]) {
-	obj->value.type = PLUGINCONFIG_VALUE_NONE;
-	return false;
-    }
-
-    char *end;
-    obj->value.val.num = strtol(defDeflt[0], &end, 0);
-    if (*end) {
-	obj->value.type = PLUGINCONFIG_VALUE_NONE;
-	return false;
-    }
-
-    return true;
-}
-
-static bool dupStr(pluginConfigObj_t *obj, const char * const defDeflt[])
-{
-    if (!obj) return false;
-    if (!defDeflt || !defDeflt[0]) {
-	obj->value.type = PLUGINCONFIG_VALUE_NONE;
-	return false;
-    }
-
-    obj->value.val.str = ustrdup(defDeflt[0]);
-    return true;
-}
-
-static char **dupLst(const char * const defDeflt[])
-{
-    size_t len = 0;
-    for (size_t i = 0; defDeflt && defDeflt[i]; i++) len++;
-
-    char **lst = umalloc((len + 1) * sizeof(*lst));
-    for (size_t i = 0; i < len; i++) lst[i] = ustrdup(defDeflt[i]);
-    lst[len] = NULL;
-
-    return lst;
-}
-
 bool pluginConfig_unset(pluginConfig_t conf, char *key)
 {
-    pluginConfigObj_t *obj = findConfigObj(conf, key);
+    pluginConfigObj_t *obj = findObj(conf, key);
     if (!obj) return false;
 
     cleanupValue(obj);
@@ -504,7 +507,7 @@ bool pluginConfig_unset(pluginConfig_t conf, char *key)
 
 bool pluginConfig_remove(pluginConfig_t conf, char *key)
 {
-    pluginConfigObj_t *obj = findConfigObj(conf, key);
+    pluginConfigObj_t *obj = findObj(conf, key);
     if (!obj) return false;
 
     delObj(obj);
