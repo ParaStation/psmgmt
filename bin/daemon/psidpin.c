@@ -403,9 +403,9 @@ cpu_set_t *PSIDpin_mapCPUs(PSCPU_set_t set)
 
 void PSIDpin_doClamps(PStask_t *task)
 {
-    setenv("PSID_CPU_PINNING", PSCPU_print(task->CPUset), 1);
-
     int16_t lastBit = PSIDnodes_getNumThrds(PSC_getMyID());
+
+    setenv("PSID_CPU_PINNING", PSCPU_print_part(task->CPUset, lastBit/8), 1);
 
     if (!PSCPU_any(task->CPUset, lastBit)) {
 	fprintf(stderr, "CPU slots not set. Old executable? "
