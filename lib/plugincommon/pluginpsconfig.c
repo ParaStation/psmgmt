@@ -86,6 +86,7 @@ static void fillValue(pluginConfigObj_t *obj, pluginConfigVal_t *value,
 static void cleanupValue(pluginConfigObj_t *obj)
 {
     switch (obj->value.type) {
+    case PLUGINCONFIG_VALUE_NONE:
     case PLUGINCONFIG_VALUE_NUM:
 	break;
     case PLUGINCONFIG_VALUE_STR:
@@ -166,9 +167,25 @@ void pluginConfig_destroy(pluginConfig_t conf)
     ufree(conf);
 }
 
-bool pluginConfig_setDef(pluginConfig_t conf, pluginConfigDef_t def[])
+bool pluginConfig_setDef(pluginConfig_t conf, const pluginConfigDef_t def[])
 {
-    if (!checkConfig(conf)) return false;
+    if (!checkConfig(conf) || !def) return false;
+
+    size_t i;
+    for (i = 0; def[i].name; i++) {
+	switch (def[i].type) {
+	case PLUGINCONFIG_VALUE_NONE:
+	case PLUGINCONFIG_VALUE_NUM:
+	case PLUGINCONFIG_VALUE_STR:
+	case PLUGINCONFIG_VALUE_LST:
+	    continue;
+	default:
+	    return false;
+	}
+    }
+    if (def[i].type != PLUGINCONFIG_VALUE_NONE || def[i].desc) {
+	return false;
+    }
 
     conf->def = def;
     return true;
@@ -212,8 +229,7 @@ static bool getString(PSConfig* psconfig, char *obj, char *key, gchar **value)
 /**
  * @brief @doctodo
  */
-static bool handleObj(pluginConfig_t conf, PSConfig *cfg,
-		      gchar *obj, gchar *key, bool check)
+static bool handleObj(pluginConfig_t conf, PSConfig *cfg, gchar *obj,gchar *key)
 {
     GError *err = NULL;
     gchar *val = psconfig_get(cfg, obj, key, psCfgFlags, &err);
@@ -256,7 +272,7 @@ static bool handleObj(pluginConfig_t conf, PSConfig *cfg,
 }
 #endif
 
-bool pluginConfig_load(pluginConfig_t conf, char *configKey, bool check)
+bool pluginConfig_load(pluginConfig_t conf, char *configKey)
 {
 #ifdef BUILD_WITHOUT_PSCONFIG
     pluginlog("%s: psconfig is not supported!\n", __func__);
@@ -304,7 +320,7 @@ bool pluginConfig_load(pluginConfig_t conf, char *configKey, bool check)
 	pluginlog("%s: key: \"%s\"\n", __func__, (gchar *)key);
 	pluginlog("%s: obj: \"%s\"\n", __func__, (gchar *)obj);
 
-	if (!handleObj(conf, psCfg, psCfgObj, key, check)) {
+	if (!handleObj(conf, psCfg, psCfgObj, key)) {
 	    g_hash_table_destroy(configHash);
 	    goto loadCfgErr;
 	}
@@ -332,11 +348,10 @@ bool pluginConfig_add(pluginConfig_t conf, char *key, pluginConfigVal_t *value)
     } else {
 	addObj(conf, key, value, __func__);
     }
-    // @todo check default!!
     return true;
 }
 
-pluginConfigVal_t * pluginConfig_get(pluginConfig_t conf, const char *key)
+const pluginConfigVal_t * pluginConfig_get(pluginConfig_t conf, const char *key)
 {
     pluginConfigObj_t *obj = findConfigObj(conf, key);
     if (obj) return &obj->value;
@@ -344,7 +359,7 @@ pluginConfigVal_t * pluginConfig_get(pluginConfig_t conf, const char *key)
     return NULL;
 }
 
-long pluginConfig_getNum(pluginConfig_t conf, char *key)
+long pluginConfig_getNum(pluginConfig_t conf, const char *key)
 {
     pluginConfigObj_t *obj = findConfigObj(conf, key);
     if (obj && obj->value.type == PLUGINCONFIG_VALUE_NUM)
@@ -353,7 +368,7 @@ long pluginConfig_getNum(pluginConfig_t conf, char *key)
     return -1;
 }
 
-char * pluginConfig_getStr(pluginConfig_t conf, char *key)
+char * pluginConfig_getStr(pluginConfig_t conf, const char *key)
 {
     pluginConfigObj_t *obj = findConfigObj(conf, key);
     if (obj && obj->value.type == PLUGINCONFIG_VALUE_STR)
@@ -362,7 +377,7 @@ char * pluginConfig_getStr(pluginConfig_t conf, char *key)
     return NULL;
 }
 
-char ** pluginConfig_getLst(pluginConfig_t conf, char *key)
+char ** pluginConfig_getLst(pluginConfig_t conf, const char *key)
 {
     pluginConfigObj_t *obj = findConfigObj(conf, key);
     if (obj && obj->value.type == PLUGINCONFIG_VALUE_LST)
@@ -371,7 +386,7 @@ char ** pluginConfig_getLst(pluginConfig_t conf, char *key)
     return NULL;
 }
 
-size_t pluginConfig_getLstLen(pluginConfig_t conf, char *key)
+size_t pluginConfig_getLstLen(pluginConfig_t conf, const char *key)
 {
     pluginConfigObj_t *obj = findConfigObj(conf, key);
     if (obj && obj->value.type == PLUGINCONFIG_VALUE_LST)
@@ -385,7 +400,7 @@ const pluginConfigDef_t * pluginConfig_getDef(pluginConfig_t conf, char *key)
     if (!checkConfig(conf) || !conf->def) return NULL;
 
     for (size_t i = 0; conf->def[i].name; i++) {
-	if (!strcmp(key, conf->def[i].name)) return conf->def + i;
+	if (!strcmp(key, conf->def[i].name)) return &(conf->def[i]);
     }
     return NULL;
 }
@@ -477,60 +492,23 @@ static char **dupLst(const char * const defDeflt[])
     return lst;
 }
 
-static bool setValueDefault(pluginConfigObj_t *obj,
-			    const pluginConfigDef_t *def)
-{
-    if (!obj || !def || !def->deflt || !def->deflt[0]) return false;
-
-    obj->value.type = def->type;
-    switch (def->type) {
-    case PLUGINCONFIG_VALUE_NUM:
-	return dupNum(obj, def->deflt);
-    case PLUGINCONFIG_VALUE_STR:
-	return dupStr(obj, def->deflt);
-    case PLUGINCONFIG_VALUE_LST:
-	obj->value.val.lst = dupLst(def->deflt);
-	if (!obj->value.val.lst) {
-	    obj->value.type = PLUGINCONFIG_VALUE_NONE;
-	    return false;
-	}
-	break;
-    default:
-	pluginlog("%s: unable to handle type %d\n", __func__, obj->value.type);
-	return false;
-    }
-
-    return true;
-}
-
 bool pluginConfig_unset(pluginConfig_t conf, char *key)
 {
     pluginConfigObj_t *obj = findConfigObj(conf, key);
     if (!obj) return false;
 
-    const pluginConfigDef_t *def = pluginConfig_getDef(conf, key);
-    if (!def || !def->deflt || !def->deflt[0]) {
-	delObj(obj);
-	return true;
-    }
     cleanupValue(obj);
-    return setValueDefault(obj, def);
+    obj->value.type = PLUGINCONFIG_VALUE_NONE;
+    return true;
 }
 
-void pluginConfig_setDefaults(pluginConfig_t conf)
+bool pluginConfig_remove(pluginConfig_t conf, char *key)
 {
-    if (!checkConfig(conf) || !conf->def) return;
+    pluginConfigObj_t *obj = findConfigObj(conf, key);
+    if (!obj) return false;
 
-    for (size_t i = 0; conf->def[i].name; i++) {
-	if (!pluginConfig_get(conf, conf->def[i].name)
-	    && conf->def[i].deflt && conf->def[i].deflt[0]) {
-	    pluginConfigVal_t dummy = {.type = PLUGINCONFIG_VALUE_NUM,
-				       .val.num = 0 };
-	    pluginConfigObj_t *obj = addObj(conf, conf->def[i].name,
-					    &dummy, __func__);
-	    setValueDefault(obj, &(conf->def[i]));
-	}
-    }
+    delObj(obj);
+    return true;
 }
 
 bool pluginConfig_traverse(pluginConfig_t conf, pluginConfigVisitor_t visitor,

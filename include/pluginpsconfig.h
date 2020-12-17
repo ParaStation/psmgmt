@@ -19,7 +19,7 @@ struct pluginConfig;
 /**
  * @brief Configuration context
  *
- * To be initialzied with @ref pluginConfig_new() and filled with @ref
+ * To be initialized with @ref pluginConfig_new() and filled with @ref
  * pluginConfig_parse().
  */
 typedef struct pluginConfig * pluginConfig_t;
@@ -51,24 +51,25 @@ void pluginConfig_destroy(pluginConfig_t conf);
 /**
  * @brief Load configuration from psconfig
  *
- * Load the configuration from the branch of psconfig identified by
- * @a configKey and store it to @a conf. All configuration is fetched
- * from Psid.PluginCfg.@a configKey of the local host object.
+ * Load the configuration from the branch of psconfig identified by @a
+ * configKey and store it to the configration context @a conf. All
+ * configuration is fetched from Psid.PluginCfg.@a configKey of the
+ * local host object.
  *
  * If a definition of the configuration is available, i.e. was
- * registered via @ref pluginConfig_setDef(), the configuration will
- * be verified immediately via @ref pluginConfig_verify().
+ * registered before via @ref pluginConfig_setDef(), the configuration
+ * will be verified immediately via @ref pluginConfig_verify().
  *
  * @param conf Configuration ready for further use
  *
  * @param configKey Name of the psconfig branch to be used
  *
- * @param setDefaults @doctodo
- *
- * @return Upon success the number of matching configuration entries
- * found in psconfig is returned. Or -1 if an error occurred. @todo make it bool
+ * @return If the configuration was successfully loaded, true is
+ * returned; or false if an error occurred, i.e. either no
+ * configration was found within the local host object or not all
+ * configuration elements were validated successfully.
  */
-bool pluginConfig_load(pluginConfig_t conf, char *configKey, bool setDefaults);
+bool pluginConfig_load(pluginConfig_t conf, char *configKey);
 
 /** Types of data available for configuration values */
 typedef enum {
@@ -93,34 +94,46 @@ typedef struct {
     const char *name;                 /**< name of the config key */
     const pluginConfigValType_t type; /**< type of the config value */
     const char *desc;                 /**< short help description */
-    const char *deflt[];              /**< default value; NULL for no
-				       default; NULL-terminated  @todo */
 } pluginConfigDef_t;
 
 /**
- * @brief Set configuraton definition
+ * @brief Set configuration definition
  *
- * @doctodo
+ * Add the configuration definition @a def to the configuration
+ * context @a conf. @a def will be used in order to validate the
+ * values within the configuration loaded from psconfig or set via
+ * @ref pluginConfig_set(). Furthermore, @def contains all information
+ * required to describe the configuration entries to the outside
+ * world.
  *
- * @doctodo def must be NULL terminated!!
+ * @a def must be NULL terminated, i.e. the last entry must be of the
+ * form `{ NULL, PLUGINCONFIG_VALUE_NONE, NULL }`.
  *
- * @remark def must be static, i.e. conf will reffer to the argument
- * passed without creating a copy.
+ * @remark @a def must be static, i.e. conf will refer to the passed
+ * argument without creating a copy.
+ *
+ * @param conf Configuration context to be described
+ *
+ * @param def Definition describing the content of the handled
+ * configuration context
+ *
+ * @return Return true if @a def is valid and was added; or false
+ * otherwise
  */
-bool pluginConfig_setDef(pluginConfig_t conf, pluginConfigDef_t def[]);
+bool pluginConfig_setDef(pluginConfig_t conf, const pluginConfigDef_t def[]);
 
 /**
  * @brief Visitor function
  *
  * Visitor function used by @ref traverseConfig() in order to visit
- * each object in a given configuration.
+ * each object in a given configuration context.
  *
  * The parameters are as follows: @a key and @a value are the
  * corresponding parts of the key-value pair forming the configuration
  * object. @a info points to the additional information passed to @ref
  * traverseConfig() in order to be forwarded to each object.
  *
- * If the visitor function returns true the traversal will be
+ * If the visitor function returns false, the traversal will be
  * interrupted and @ref traverseConfig() will return to its calling
  * function.
  */
@@ -130,23 +143,23 @@ typedef bool pluginConfigVisitor_t(char *key, pluginConfigVal_t *val,
 /**
  * @brief Traverse configuration
  *
- * Traverse the configuration @a conf by calling @a visitor for each
+ * Traverse the configuration context @a conf by calling @a visitor for each
  * of the embodied objects. In addition to the object's key and value
  * @a info is passed as additional information.
  *
  * If @a visitor returns true, the traversal will be stopped
  * immediately and true is returned to the calling function.
  *
- * @param conf Configuration to be traversed
+ * @param conf Configuration context to be traversed
  *
  * @param visitor Visitor function to be called for each object
  *
  * @param info Additional information to be passed to @a visitor while
- * visiting the objects within @a conf
+ * visiting all objects within @a conf
  *
- * @return If the visitor returns true, traversal will be stopped and
- * true is returned. If no visitor returned true during the traversal
- * false is returned.
+ * @return If a visitor returns false, traversal will be stopped and
+ * false is returned; or true if no visitor returned false during the
+ * traversal
  */
 bool pluginConfig_traverse(pluginConfig_t conf, pluginConfigVisitor_t visitor,
 			   const void *info);
@@ -160,100 +173,157 @@ bool pluginConfig_traverse(pluginConfig_t conf, pluginConfigVisitor_t visitor,
  * replaced. Otherwise a new key-value pair is added to the
  * configuration.
  *
- * @param conf Configuration to be modified
+ * If a definition of the configuration is available, i.e. was
+ * registered before via @ref pluginConfig_setDef(), the entry will be
+ * verified immediately via @ref pluginConfig_verifyEntry().
+ *
+ * @todo If definition, entry might be str of num
+ *
+ * @param conf Configuration context to be expanded
  *
  * @param key Key-part of the key-value pair to be added
  *
  * @param value Value-part of the key-value pair to be added
  *
- * @return @docotodo
+  * @return If the configuration was successfully expanded, i.e. the
+ * key-value pair could be added, true is returned; or false if an
+ * error occurred; the latter might hint to the fact that @a value
+ * violates the definition
+ */
+bool pluginConfig_addStr(pluginConfig_t conf, char *key, char *value);
+
+/**
+ * @brief Add entry to configuration
+ *
+ * Add the key-value pair given by @a key and @a value to the existing
+ * configuration @a conf. If an entry with key @a key is already
+ * existing in the configuration, the corresponding value is
+ * replaced. Otherwise a new key-value pair is added to the
+ * configuration.
+ *
+ * If a definition of the configuration is available, i.e. was
+ * registered before via @ref pluginConfig_setDef(), the entry will be
+ * verified immediately via @ref pluginConfig_verifyEntry().
+ *
+ * @param conf Configuration context to be expanded
+ *
+ * @param key Key-part of the key-value pair to be added
+ *
+ * @param value Value-part of the key-value pair to be added
+ *
+  * @return If the configuration was successfully expanded, i.e. the
+ * key-value pair could be added, true is returned; or false if an
+ * error occurred; the latter might hint to the fact that @a value
+ * violates the definition
  */
 bool pluginConfig_add(pluginConfig_t conf, char *key, pluginConfigVal_t *value);
 
 /**
  * @brief Get value
  *
- * @doctodo
- * Get the value of the entry identified by the key @a key from the
- * configuration @a conf. The value is returned as the original
- * character array.
+ * Get a pointer to the value of the entry identified by the key @a
+ * key from the configuration context @a conf. The pointer must not be
+ * de-referenced for manipulation.
  *
- * @param conf Configuration to be searched
+ * @param conf Configuration context to be searched
  *
  * @param key Key identifying the entry
  *
- * @return If a corresponding entry is found, a pointer to the value's
- * character array is returned. Otherwise NULL is returned.
+ * @return If a corresponding entry is found a pointer to its value is
+ * returned; otherwise NULL is returned
  */
-pluginConfigVal_t * pluginConfig_get(pluginConfig_t conf, const char *key);
+const pluginConfigVal_t *pluginConfig_get(pluginConfig_t conf, const char *key);
 
 /**
  * @brief Get value as number
  *
- * @doctodo
  * Get the value of the entry identified by the key @a key from the
- * configuration @a conf. The value is returned as an unsigned
- * integer. If no entry was found or conversion into an unsigned
- * integer failed -1 is returned.
+ * configuration context @a conf. The value is returned as a long
+ * if it is of type PLUGINCONFIG_VALUE_NUM.
  *
- * @param conf Configuration to be searched
+ * @param conf Configuration context to be searched
  *
  * @param key Key identifying the entry
  *
- * @return If a corresponding entry is found and its value can be
- * converted to an unsigned integer, this value is returned. Otherwise
- * -1 is returned.
+ * @return If a corresponding entry is found and is of type
+ * PLUGINCONFIG_VALUE_NUM, its value is returned; otherwise -1 is
+ * returned
  */
-long pluginConfig_getNum(pluginConfig_t conf, char *key);
+long pluginConfig_getNum(pluginConfig_t conf, const char *key);
 
 /**
  * @brief Get value as character array
  *
- * @doctodo
  * Get the value of the entry identified by the key @a key from the
- * configuration @a conf. The value is returned as the original
- * character array.
+ * configuration context @a conf. The value is returned as a pointer
+ * to a character array if it is of type PLUGINCONFIG_VALUE_STR.
  *
- * @param conf Configuration to be searched
+ * @param conf Configuration context to be searched
  *
  * @param key Key identifying the entry
  *
- * @return If a corresponding entry is found, a pointer to the value's
- * character array is returned. Otherwise NULL is returned.
+ * @return If a corresponding entry is found and is of type
+ * PLUGINCONFIG_VALUE_STR, a pointer to the value's character array is
+ * returned; otherwise NULL is returned
  */
-char * pluginConfig_getStr(pluginConfig_t conf, char *key);
+char * pluginConfig_getStr(pluginConfig_t conf, const char *key);
 
 /**
  * @brief Get value as string list
  *
- * @doctodo
+ * Get the value of the entry identified by the key @a key from the
+ * configuration context @a conf. The value is returned as a pointer
+ * to an array of pointers to character arrays if it is of type
+ * PLUGINCONFIG_VALUE_LST.
+ *
+ * @param conf Configuration context to be searched
+ *
+ * @param key Key identifying the entry
+ *
+ * @return If a corresponding entry is found and is of type
+ * PLUGINCONFIG_VALUE_LST, a pointer to the value's list is returned;
+ * otherwise NULL is returned
  */
-char ** pluginConfig_getLst(pluginConfig_t conf, char *key);
+char ** pluginConfig_getLst(pluginConfig_t conf, const char *key);
 
 /**
- * @brief Verify a configuration entry
+ * @brief Get length of value's string list
+ *
+ * Get the length of the string list representing the value of the
+ * entry identified by the key @a key from the configuration context
+ * @a conf. The length is returned if the value is of type
+ * PLUGINCONFIG_VALUE_LST.
+ *
+ * @param conf Configuration context to be searched
+ *
+ * @param key Key identifying the entry
+ *
+ * @return If a corresponding entry is found and is of type
+ * PLUGINCONFIG_VALUE_LST, the length of the list is returned;
+ * otherwise 0 is returned
+ */
+size_t pluginConfig_getLstLen(pluginConfig_t conf, const char *key);
+
+/**
+ * @brief Verify a key-value pair
  *
  * Verify the correctness of the key-value pair @a key and @a value
- * being part of a configuration according to the definition within @a
- * confDef.
+ * being part of a configuration context @a conf according to the
+ * definition within. The definition has to be registered via @ref
+ * pluginConfig_setDef() before.
  *
- * If @a key is not found within @a confDef, 1 is returned. If @a key
- * is marked to expect a numerical value, this is checked, too. Upon
- * success 0 is returned. Or 2 if @a value turned out to be no number.
+ * If @a key is not found within this definition or no definition
+ * exists at all, 1 is returned. If @a val corresponds to the expected
+ * type as given by the definition, 0 is returned. Or 2 if @a value
+ * turned out to be not matching.
  *
- * @doctodo check againt type
- *
- *
- * @remark according to definition registered via @ref pluginConfig_setDef()
- *
- *
- * @param confDef Definition of a valid configuration to be ensured
+ * @param conf Configuration context to be used
  *
  * @param key Key to be checked
  *
- * @param value Value to be checkd
+ * @param value Value to be checked
  *
- * @return 0, 1 or 2 according to discussion above.
+ * @return 0, 1 or 2 according to discussion above
  */
 int pluginConfig_verifyEntry(pluginConfig_t conf,
 			     char *key, pluginConfigVal_t *val);
@@ -261,87 +331,80 @@ int pluginConfig_verifyEntry(pluginConfig_t conf,
 /**
  * @brief Verify a configuration
  *
- * Verify the correctness of the configuration @a conf according to
- * the definition within @a confDef.
+ * Verify the correctness of the whole configuration being part of a
+ * configuration context @a conf according to the definition
+ * within. The definition has to be registered via @ref
+ * pluginConfig_setDef() before.
  *
- * For this @ref verifyPSConfigEntry() is called for each key-value pair
+ * For this @ref pluginConfig_verifyEntry() is called for each entry
  * found within @a conf.
  *
+ * @param conf Configuration context to be verified
  *
- * @remark according to definition registered via @ref pluginConfig_setDef()
- *
- *
- * @param conf Configuration to be verified
- *
- * @param confDef Definition of a valid configuration to be ensured
- *
- * @return If @a conf conforms to @a confDef, 0 is returned. Or 1 or 2
- * depending on the results of @ref verifyConfigEntry() for the first
- * non-conforming pair.
+ * @return If all key-value entries of @a conf conform to the
+ * definition contained, 0 is returned; or 1 or 2 depending on the
+ * results of @ref pluginConfig_verifyEntry() for the first
+ * non-conforming pair
  */
 int pluginConfig_verify(pluginConfig_t conf);
 
 /**
- * @brief Get definition for a name
+ * @brief Get definition for key
  *
- * Search for the definition of the key @a name within the configuration
- * definition given in @a confDef.
+ * Search for the definition of the key @a key within the definition
+ * of the configuration context @a conf.
  *
- * @param name Name to be searched for
+ * @param conf Configuration context to be searched
  *
- * @param confDef Definition of a valid configuration to be scanned
+ * @param key Name to be searched for
  *
- * @return If a definition for @a name is found a corresponding
- * pointer is retured. Or NULL otherwise.
+ * @return If a definition for @a key is found, a pointer to the
+ * corresponding definition is returned; or NULL otherwise
  */
 const pluginConfigDef_t *pluginConfig_getDef(pluginConfig_t conf, char *key);
 
 /**
- * @brief Reset configuration entry
+ * @brief Unset configuration entry
  *
- * Reset the configuration entry within the configuration @a conf
- * marked by @a key with its default value given within the
- * configuration definition @a confDef. If no default value is given
- * in @a confDef the corresponding entry is removed from @a conf.
+ * Unset the configuration entry identified by @a key within the
+ * configuration context @a conf. For this the value's type will be
+ * set to PLUGINCONFIG_VALUE_NONE and all associated dynamic memory
+ * will be free()ed.
  *
- * @param conf Configuration to be modified
+ * @param conf Configuration context to be modified
  *
- * @param confDef Definition of the configuration
+ * @param key Key identifying the entry to be unset
  *
- * @param key Key identifying the entry to be modified.
- *
- * @return If a corresponding entry is found and modified true is
- * returned. Or false otherwise.
+ * @return If a corresponding entry is found and unset, true is
+ * returned; or false otherwise
  */
 bool pluginConfig_unset(pluginConfig_t conf, char *key);
 
 /**
- * @brief Extend configuration by defaults
+ * @brief Remove configuration entry
  *
- * Extend the configuration @a conf by entries given by the defaults
- * within the definition @a confDef. No key-value pair already
- * existing within @a conf is replaced. For each key described within
- * @a confDef together with a default and not yet found within @a conf
- * will be added to the configration.
+ * Remove the configuration entry identified by @a key from the
+ * configuration context @a conf.
  *
- * @remark according to definition registered via @ref pluginConfig_setDef()
+ * @param conf Configuration context to be modified
  *
- * @param conf Configuration to be extended
+ * @param key Key identifying the entry to be removed
  *
- * @param confDef Definition of the configuration holding default values
- *
- * @return No return value
+ * @return If a corresponding entry is found and removed, true is
+ * returned; or false otherwise
  */
-void pluginConfig_setDefaults(pluginConfig_t conf);
+bool pluginConfig_remove(pluginConfig_t conf, char *key);
 
 /**
  * @brief Get length of longest key-name
  *
- * Get the length of the longest key-name withing the definition @a confDef.
+ * Get the length of the longest key-name within the definition of the
+ * configuration context @a conf.
  *
- * @param confDef Configuration definition to be analyzed
+ * @param conf Configuration context to be analyzed
  *
- * @return The length of the longest key-name
+ * @return The length of the longest key-name or 0 if @a conf does not
+ * contain a definition
  */
 size_t pluginConfig_maxKeyLen(pluginConfig_t conf);
 
