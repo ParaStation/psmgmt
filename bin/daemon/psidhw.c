@@ -928,7 +928,8 @@ static void msg_HWSTOP(DDBufferMsg_t *msg)
 // @todo make this configurable!!
 static PCI_ID_t GPU_ID_list[] = {
     { 0x10de, 0x20b0, 0, 0 }, // NVIDIA A100-SXM4 (JUWELS-Booster)
-    { 0x10de, 0x1db6, 0, 0 }, // NVIDIA V100 PCIe (DEEP-EST DAM/ESB)
+    { 0x10de, 0x1db6, 0, 0 }, // NVIDIA V100 PCIe 32GB (DEEP-EST DAM/ESB)
+    { 0x10de, 0x1db4, 0, 0 }, // NVIDIA V100 PCIe 16GB (JUSUF)
     { 0x10de, 0x102d, 0, 0 }, // NVIDIA K80 PCIe (JURECA)
     { 0x10de, 0x1021, 0, 0 }, // NVIDIA K20X PCIe (JUROPA3)
     { 0, 0, 0, 0} };
