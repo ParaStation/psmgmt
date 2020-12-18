@@ -1138,7 +1138,8 @@ static void setCPUset(PSCPU_set_t *CPUset, uint16_t cpuBindType,
     getThreadsBinding(CPUset, nodeinfo, threadsPerTask, lTID, pininfo);
 
     mdbg(PSSLURM_LOG_PART, "%s: %s\n", __func__,
-	    PSCPU_print_part(*CPUset, nodeinfo->threadCount/8));
+	    PSCPU_print_part(*CPUset,
+		PSCPU_bytesForCPUs(nodeinfo->threadCount)));
 
     /* handle --ntasks-per-socket option */
     if (pininfo->tasksPerSocket) {
@@ -1675,7 +1676,7 @@ bool setStepSlots(Step_t *step)
 
 	    mdbg(PSSLURM_LOG_PART, "%s: CPUset for task %u: %s\n", __func__,
 		    tid, PSCPU_print_part(slots[tid].CPUset,
-			    nodeinfo.threadCount/8));
+			    PSCPU_bytesForCPUs(nodeinfo.threadCount)));
 
 	    slots[tid].node = step->nodes[node];
 	}
@@ -2404,7 +2405,8 @@ void test_pinning(uint16_t socketCount, uint16_t coresPerSocket,
 	    }
 	}
 	else {
-	    printf("%s", PSCPU_print_part(CPUset, threadCount/8));
+	    printf("%s", PSCPU_print_part(CPUset,
+			PSCPU_bytesForCPUs(threadCount)));
 	}
 
 	if (printmembind) {
