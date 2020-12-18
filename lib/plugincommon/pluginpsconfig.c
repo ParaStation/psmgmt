@@ -7,7 +7,6 @@
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-
 #include <stdlib.h>
 #include <string.h>
 
@@ -54,8 +53,20 @@ static inline size_t lstLen(char **lst)
 }
 
 /*
- * All data value is refering to will be reused
- * @doctodo
+ * @brief Fill value into object
+ *
+ * Fill the value referred by @a value into the configuration object
+ * @a obj. For this, all dynamic data @a value is referring to
+ * (e.g. the character array @a str, or the list @a lst and its
+ * content) will be reused. Thus, the mentioned data of @a value must
+ * be dynamically allocated and must not be free()ed by the calling
+ * process.
+ *
+ * @param obj Configuration object to be filled
+ *
+ * @param value Configuration value holding the data to be filled
+ *
+ * @return On success true is returned; or false in case of failure
  */
 static bool fillValue(pluginConfigObj_t *obj, pluginConfigVal_t *value)
 {
@@ -102,6 +113,27 @@ static void cleanupValue(pluginConfigObj_t *obj)
     }
 }
 
+/*
+ * @brief Create configuration object and add it to the context
+ *
+ * Create a configuration object indexed by key, fill it with the
+ * value @a value using @ref fillValue() and add it to the context @a
+ * conf.
+ *
+ * Filling the value referred by @a value will reuse all dynamic data
+ * @a value is referring to (e.g. the character array @a str, or the
+ * list @a lst and its content). Thus, the mentioned data of @a value
+ * must be dynamically allocated and must not be free()ed by the
+ * calling process.
+ *
+ * @param conf Configuration context to be extended
+ *
+ * @param key Key used to identify the newly created object
+ *
+ * @param value Configuration value holding the data to be filled
+ *
+ * @return On success true is returned; or false in case of failure
+ */
 static pluginConfigObj_t * addObj(pluginConfig_t conf, const char *key,
 				  pluginConfigVal_t *value)
 {
@@ -109,17 +141,17 @@ static pluginConfigObj_t * addObj(pluginConfig_t conf, const char *key,
 
     pluginConfigObj_t *obj = umalloc(sizeof(*obj));
     if (!obj) {
-	pluginlog("%s: No memory for %s's obj\n", __func__, key);
+	pluginlog("%s: no memory for %s's obj\n", __func__, key);
 	return NULL;
     }
     obj->key = ustrdup(key);
     if (!obj->key) {
-	pluginlog("%s: No memory for %s's key\n", __func__, key);
+	pluginlog("%s: no memory for %s's key\n", __func__, key);
 	free(obj);
 	return NULL;
     }
     if (!fillValue(obj, value)) {
-	pluginlog("%s: Cannot fill %s's val\n", __func__, key);
+	pluginlog("%s: cannot fill %s's value\n", __func__, key);
 	free(obj->key);
 	free(obj);
 	return NULL;
@@ -246,18 +278,42 @@ static bool toLong(char *token, long *value)
 }
 
 /**
- * @brief @doctodo
+ * @brief Handle single psconfig entry
+ *
+ * Handle a single psconfig entry described by @a key fetched from the
+ * object @a obj in the psconfig context @a cfg. If the configuration
+ * context @a conf contains a description
+ *
+ * @param conf Configuration context to use
+ *
+ * @param cfg PSConfig context to use
+ *
+ * @param obj PSConfig object to fetch the entry from; this is
+ * typically the local host object
+ *
+ * @param key
+ *
+ * @return If the entry described by @a key could be fetched from @a
+ * obj in @a cfg, its value conforms to a given description in @a conf
+ * and it could be added to @a conf, true is returned; or false
+ * otherwise
  */
-static bool handleObj(pluginConfig_t conf, PSConfig *cfg, gchar *obj,gchar *key)
+static bool handlePSConfigEntry(pluginConfig_t conf, PSConfig *cfg,
+				gchar *obj, gchar *key)
 {
     GError *err = NULL;
-    gchar *val = psconfig_get(cfg, obj, key, psCfgFlags, &err);
+
+    if (!checkConfig(conf)) {
+	pluginlog("%s: context not ready\n", __func__);
+	return false;
+    }
+
     const pluginConfigDef_t *def = pluginConfig_getDef(conf, key);
     pluginConfigVal_t cVal = { .type = PLUGINCONFIG_VALUE_NONE };
-
-    pluginlog("%s: val is %p '%s'\n", __func__, val, val); // @todo
     if (def) cVal.type = def->type;
 
+    gchar *val = psconfig_get(cfg, obj, key, psCfgFlags, &err);
+    pluginlog("%s: val is %p '%s'\n", __func__, val, val); // @todo
     if (val) {
 	if (cVal.type == PLUGINCONFIG_VALUE_NUM) {
 	    if (!toLong(val, &cVal.val.num)) {
@@ -277,7 +333,8 @@ static bool handleObj(pluginConfig_t conf, PSConfig *cfg, gchar *obj,gchar *key)
 	g_error_free(err);
 	err = NULL;
 
-	if (cVal.type != PLUGINCONFIG_VALUE_LST) {
+	if (cVal.type != PLUGINCONFIG_VALUE_NONE
+	    && cVal.type != PLUGINCONFIG_VALUE_LST) {
 	    pluginlog("%s: %s's value of wrong type\n", __func__, key);
 	    return false;
 	}
@@ -292,7 +349,7 @@ static bool handleObj(pluginConfig_t conf, PSConfig *cfg, gchar *obj,gchar *key)
 
 	cVal.val.lst = umalloc((list->len + 1) * sizeof(*(cVal.val.lst)));
 	if (!cVal.val.lst) {
-	    pluginlog("%s: %s: No memory\n", __func__, key);
+	    pluginlog("%s: %s: no memory\n", __func__, key);
 	    g_ptr_array_free(list, TRUE);
 	    return false;
 	}
@@ -337,7 +394,7 @@ bool pluginConfig_load(pluginConfig_t conf, char *configKey)
 	if (pos) *pos = '\0';
 
 	if (!pos || !getString(psCfg, psCfgObj, "NodeName", &nodename)) {
-	    pluginlog("%s: No host object for this node\n", __func__);
+	    pluginlog("%s: no host object for this node\n", __func__);
 	    goto loadCfgErr;
 	}
     }
@@ -359,10 +416,8 @@ bool pluginConfig_load(pluginConfig_t conf, char *configKey)
     g_hash_table_iter_init (&iter, configHash);
     while (g_hash_table_iter_next(&iter, &key, &obj)) {
 	pluginlog("%s: key: \"%s\"\n", __func__, (gchar *)key); // @todo
-	pluginlog("%s: obj: \"%s\"\n", __func__, (gchar *)obj); // @todo
-	if (!handleObj(conf, psCfg, psCfgObj, key)) {
-	    g_hash_table_destroy(configHash);
-	    goto loadCfgErr;
+	if (!handlePSConfigEntry(conf, psCfg, psCfgObj, key)) {
+	    pluginlog("%s: failed to handle '%s'\n", __func__, (gchar *)key);
 	}
     }
     g_hash_table_destroy(configHash);
@@ -371,7 +426,6 @@ bool pluginConfig_load(pluginConfig_t conf, char *configKey)
     return true;
 
 loadCfgErr:
-    cleanAllObjs(conf);
     psconfig_unref(psCfg);
 
     return false;
@@ -380,20 +434,82 @@ loadCfgErr:
 
 bool pluginConfig_add(pluginConfig_t conf, char *key, pluginConfigVal_t *value)
 {
-    if (!checkConfig(conf) || !key) return false;
+    if (!checkConfig(conf) || !key || !value) return false;
+
+    const pluginConfigDef_t *def = pluginConfig_getDef(conf, key);
+    if (def && value->type != def->type) {
+	pluginlog("%s: type mismatch for %s\n", __func__, key);
+	return false;
+    }
 
     pluginConfigObj_t *obj = findObj(conf, key);
     if (obj) {
 	cleanupValue(obj);
 	if (!fillValue(obj, value)) {
-	    pluginlog("%s: Cannot fill %s's val\n", __func__, key);
+	    pluginlog("%s: Cannot fill %s's value\n", __func__, key);
 	    obj->value.type = PLUGINCONFIG_VALUE_NONE;
 	    return false;
 	}
-    } else {
-	return addObj(conf, key, value);
+	return true;
     }
-    return true;
+
+    return addObj(conf, key, value);
+}
+
+bool pluginConfig_addStr(pluginConfig_t conf, char *key, char *value)
+{
+    if (!checkConfig(conf) || !key || !value) return false;
+
+    const pluginConfigDef_t *def = pluginConfig_getDef(conf, key);
+    if (def && def->type != PLUGINCONFIG_VALUE_STR
+	&& def->type != PLUGINCONFIG_VALUE_NUM) {
+	pluginlog("%s: type mismatch for %s\n", __func__, key);
+	return false;
+    }
+    pluginConfigVal_t val = { .type = def ? def->type:PLUGINCONFIG_VALUE_STR };
+    if (val.type == PLUGINCONFIG_VALUE_NUM && !toLong(value, &val.val.num)) {
+	pluginlog("%s: type mismatch for %s\n", __func__, key);
+	return false;
+    } else {
+	val.val.str = value;
+    }
+
+    return pluginConfig_add(conf, key, &val);
+}
+
+bool pluginConfig_addToLst(pluginConfig_t conf, char *key, char *item)
+{
+    if (!checkConfig(conf) || !key || !item) return false;
+
+    pluginConfigObj_t *obj = findObj(conf, key);
+    if (obj) {
+	if (obj->value.type != PLUGINCONFIG_VALUE_LST) {
+	    pluginlog("%s: type mismatch for %s\n", __func__, key);
+	    return false;
+	}
+	size_t len = lstLen(obj->value.val.lst);
+	char **newLst = urealloc(obj->value.val.lst,
+				 (len + 2) * sizeof(*(obj->value.val.lst)));
+	if (!newLst) {
+	    pluginlog("%s: no memory for %s\n", __func__, key);
+	    return false;
+	}
+	newLst[len] = item;
+	newLst[len+1] = NULL;
+	obj->value.val.lst = newLst;
+	return true;
+    }
+
+    pluginConfigVal_t val = { .type = PLUGINCONFIG_VALUE_LST };
+    val.val.lst = umalloc(2 * sizeof(*(val.val.lst)));
+    if (!val.val.lst) {
+	pluginlog("%s: no memory for %s\n", __func__, key);
+	return false;
+    }
+    val.val.lst[0] = item;
+    val.val.lst[1] = NULL;
+
+    return pluginConfig_add(conf, key, &val);
 }
 
 const pluginConfigVal_t * pluginConfig_get(pluginConfig_t conf, const char *key)
@@ -522,10 +638,10 @@ bool pluginConfig_traverse(pluginConfig_t conf, pluginConfigVisitor_t visitor,
     list_t *o;
     list_for_each(o, &(conf->config)) {
 	pluginConfigObj_t *obj = list_entry(o, pluginConfigObj_t, next);
-	if (visitor(obj->key, &(obj->value), info)) return true;
+	if (!visitor(obj->key, &(obj->value), info)) return false;
     }
 
-    return false;
+    return true;
 }
 
 size_t pluginConfig_maxKeyLen(pluginConfig_t conf)

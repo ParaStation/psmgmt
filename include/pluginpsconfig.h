@@ -48,29 +48,6 @@ bool pluginConfig_new(pluginConfig_t *conf);
  */
 void pluginConfig_destroy(pluginConfig_t conf);
 
-/**
- * @brief Load configuration from psconfig
- *
- * Load the configuration from the branch of psconfig identified by @a
- * configKey and store it to the configration context @a conf. All
- * configuration is fetched from Psid.PluginCfg.@a configKey of the
- * local host object.
- *
- * If a definition of the configuration is available, i.e. was
- * registered before via @ref pluginConfig_setDef(), the configuration
- * will be verified immediately via @ref pluginConfig_verify().
- *
- * @param conf Configuration ready for further use
- *
- * @param configKey Name of the psconfig branch to be used
- *
- * @return If the configuration was successfully loaded, true is
- * returned; or false if an error occurred, i.e. either no
- * configration was found within the local host object or not all
- * configuration elements were validated successfully.
- */
-bool pluginConfig_load(pluginConfig_t conf, char *configKey);
-
 /** Types of data available for configuration values */
 typedef enum {
     PLUGINCONFIG_VALUE_NONE,  /**< No type specified (unused) */
@@ -123,6 +100,29 @@ typedef struct {
 bool pluginConfig_setDef(pluginConfig_t conf, const pluginConfigDef_t def[]);
 
 /**
+ * @brief Load configuration from psconfig
+ *
+ * Load the configuration from the branch of psconfig identified by @a
+ * configKey and store it to the configration context @a conf. All
+ * configuration is fetched from Psid.PluginCfg.@a configKey of the
+ * local host object.
+ *
+ * If a definition of the configuration is available, i.e. was
+ * registered before via @ref pluginConfig_setDef(), the configuration
+ * will be verified immediately via @ref pluginConfig_verify().
+ *
+ * @param conf Configuration ready for further use
+ *
+ * @param configKey Name of the psconfig branch to be used
+ *
+ * @return If the configuration was successfully loaded, true is
+ * returned; or false if an error occurred, i.e. either no
+ * configration was found within the local host object or not all
+ * configuration elements were validated successfully.
+ */
+bool pluginConfig_load(pluginConfig_t conf, char *configKey);
+
+/**
  * @brief Visitor function
  *
  * Visitor function used by @ref traverseConfig() in order to visit
@@ -165,6 +165,7 @@ bool pluginConfig_traverse(pluginConfig_t conf, pluginConfigVisitor_t visitor,
 			   const void *info);
 
 /**
+ * @doctodo check
  * @brief Add entry to configuration
  *
  * Add the key-value pair given by @a key and @a value to the existing
@@ -193,13 +194,43 @@ bool pluginConfig_traverse(pluginConfig_t conf, pluginConfigVisitor_t visitor,
 bool pluginConfig_addStr(pluginConfig_t conf, char *key, char *value);
 
 /**
+ * @doctodo check
+ * @brief Add item to list-entry of configuration
+ *
+ * Add a single list-item @a item to the list identified by @a key in
+ * the configuration context @a conf. If no entry with key @a key is
+ * existing yet, a new key-value pair is added to the configuration.
+ *
+ * If a definition of the configuration is available, i.e. was
+ * registered before via @ref pluginConfig_setDef(), the entry will be
+ * verified immediately via @ref pluginConfig_verifyEntry().
+ *
+ * @param conf Configuration context to be expanded
+ *
+ * @param key Key-part of the key-value pair to be added
+ *
+ * @param value Value-part of the key-value pair to be added
+ *
+ * @return If the key-value pair was successfully expanded or created,
+ * true is returned; or false if an error occurred; the latter might
+ * hint to the fact that it violates the definition
+ */
+bool pluginConfig_addToLst(pluginConfig_t conf, char *key, char *item);
+
+/**
  * @brief Add entry to configuration
  *
  * Add the key-value pair given by @a key and @a value to the existing
- * configuration @a conf. If an entry with key @a key is already
- * existing in the configuration, the corresponding value is
+ * configuration context @a conf. If an entry with key @a key is
+ * already existing in the configuration, the corresponding value is
  * replaced. Otherwise a new key-value pair is added to the
  * configuration.
+ *
+ * Filling the entry with @a value will reuse all dynamic data @a
+ * value is referring to (e.g. the character array @a str, or the list
+ * @a lst and its content). Thus, the mentioned data of @a value must
+ * be dynamically allocated and must not be free()ed by the calling
+ * process.
  *
  * If a definition of the configuration is available, i.e. was
  * registered before via @ref pluginConfig_setDef(), the entry will be
