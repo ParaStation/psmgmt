@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2002-2003 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2017 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2020 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -493,5 +493,14 @@ int parser_parseOn(char* line, parser_t* parser);
  * @return No return value.
  */
 void parser_finalize(void);
+
+/**
+ * @brief Calculate a configuration hash from a given line
+ *
+ * @param hashVal receives the updated hash value
+ *
+ * @param line buffer add to the hash calculation
+ */
+void parser_confHash(uint32_t *hashVal, char *line);
 
 #endif /* __PARSING_H */

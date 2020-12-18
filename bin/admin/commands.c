@@ -1182,16 +1182,18 @@ void PSIADM_VersionStat(bool *nl)
 {
     if (! getHostStatus()) return;
 
-    printf("%4s\t%-36s %6s\n", "Node", "psid version", "Protocols");
+    printf("%4s\t%-36s %6s\t%s\n", "Node", "psid version", "Protocols",
+	   "config hash");
     for (PSnodes_ID_t node = 0; node < PSC_getNrOfNodes(); node++) {
 	if (nl && !nl[node]) continue;
 
 	printf("%s\t", nodeString(node));
 	if (hostStatus.list[node]) {
 	    char versionStr[128];
-	    PSP_Optval_t optVal[2];
+	    PSP_Optval_t optVal[3];
 	    PSP_Option_t optType[] = { PSP_OP_PROTOCOLVERSION,
-				       PSP_OP_DAEMONPROTOVERSION };
+				       PSP_OP_DAEMONPROTOVERSION,
+				       PSP_OP_CONFIG_HASH };
 	    int err;
 
 	    versionStr[0] = '\0';
@@ -1199,17 +1201,28 @@ void PSIADM_VersionStat(bool *nl)
 				 versionStr, sizeof(versionStr), false);
 	    printf("%-36s ", !err ? versionStr : "unknown");
 
-	    err = PSI_infoOption(node, 2, optType, optVal, true);
+	    err = PSI_infoOption(node, 3, optType, optVal, true);
 	    if (err != -1) {
 		for (int i = 0; i < 2; i++) {
 		    switch (optType[i]) {
 		    case PSP_OP_UNKNOWN:
 			printf("unknown");
 			break;
+		    case PSP_OP_CONFIG_HASH:
+			printf("\t%8u", optVal[i]);
+			break;
 		    default:
 			printf("%3d", optVal[i]);
 		    }
 		    if (i < 2-1) printf("/");
+		}
+		switch (optType[2]) {
+		    case PSP_OP_CONFIG_HASH:
+			printf("\t%8u", optVal[2]);
+			break;
+		    default:
+			printf("\tunknown");
+			break;
 		}
 		printf("\n");
 	    } else {

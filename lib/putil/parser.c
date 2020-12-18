@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2002-2003 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2017 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2020 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -561,4 +561,25 @@ int parser_parseOn(char *token, parser_t *parser)
     }
 
     return ret;
+}
+
+void parser_confHash(uint32_t *hashVal, char *line)
+{
+    int i, len = strlen(line);
+
+    if (!hashVal) return;
+
+    for (i = 0; i < len; i++) {
+	int idx;
+	*hashVal = *hashVal ^ line[i] << 8;
+
+	for (idx = 0; idx < 8; idx++) {
+	    if (*hashVal & 0x8000) {
+		*hashVal <<= 1;
+		*hashVal = *hashVal ^ 4129;
+	    } else {
+		*hashVal <<= 1;
+	    }
+	}
+    }
 }

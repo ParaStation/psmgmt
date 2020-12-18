@@ -64,7 +64,7 @@ static config_t config = {
     .startupScript = NULL,
     .nodeUpScript = NULL,
     .nodeDownScript = NULL,
-
+    .confHash = 0,
 };
 
 #define ENV_END 17 /* Some magic value */
@@ -2123,6 +2123,8 @@ static int getNodeLine(char *token)
 
     ret = newHost(nodenum, ipaddr);
     if (ret) return ret;
+
+    parser_confHash(&config.confHash, hostname);
 
     if (PSC_isLocalIP(ipaddr)) {
 	pushAndClearEnv();

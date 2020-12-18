@@ -149,7 +149,7 @@ typedef enum {
     PSP_OP_MAXSTATTRY,            /**< Maximum stat() tries during spawn */
     PSP_OP_KILLDELAY,             /**< Delay before sending SIGKILL */
     PSP_OP_TRIGGER_DIST,          /**< trigger distribution of options */
-
+    PSP_OP_CONFIG_HASH,
 } PSP_Option_t;
 
 /** Messages used for information retrieval */

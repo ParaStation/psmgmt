@@ -15,6 +15,7 @@
 #define __PARSE_H
 
 #include <stdio.h>
+#include <stdint.h>
 
 #include "list.h"
 
@@ -72,6 +73,7 @@ typedef struct {
     char *startupScript; /**< Script called during daemon's startup */
     char *nodeUpScript;  /**< Script called, if node connects to master */
     char *nodeDownScript;/**< Script called, if node disconnects from master */
+    uint32_t confHash;
 } config_t;
 
 /** Structure to store lists of name. Used e.g. for the list of plugins. */
