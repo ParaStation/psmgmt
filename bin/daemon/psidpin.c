@@ -131,6 +131,32 @@ static void pinToCPUs(cpu_set_t *physSet)
     sched_setaffinity(0, sizeof(*physSet), physSet);
 }
 
+/**
+ * @brief Bind process to GPUs by setting environment variable
+ *
+ * The environment variables named below are set to a comma separated
+ * list containing the numbers of all GPUs that are connected to the same
+ * NUMA locality domain as any of the threads set in @a cpuSet.
+ *
+ * Sets the informational environment variable
+ * - PSID_CLOSE_GPUS
+ *
+ * Sets the functional environment variables
+ * - CUDA_VISIBLE_DEVICES (for Nvidia GPUs)
+ * - GPU_DEVICE_ORDINAL   (for AMD GPUs)
+ *
+ * This function respects the value of the environment variable
+ * __PSID_USE_GPUS and takes only the here listed GPUs into account. If the
+ * variable is set but empty, no variables are set.
+ *
+ * It further respects the environment variables AUTO_CUDA_VISIBLE_DEVICES and
+ * AUTO_GPU_DEVICE_ORDINAL and only overrides the functional variables if the
+ * old value matches the corresponding AUTO_* variable.
+ *
+ * @param cpuSet    The CPUs the process is running on
+ *
+ * @return No return value
+ */
 static void bindToGPUs(PSCPU_set_t *cpuSet)
 {
     uint16_t numNUMA = PSIDnodes_numNUMADoms(PSC_getMyID());
@@ -156,6 +182,10 @@ static void bindToGPUs(PSCPU_set_t *cpuSet)
 	free(tmp);
     }
 
+    if (usable && !usablecount) {
+	return;
+    }
+
     char val[3*numNUMA];
     size_t len = 0;
 
@@ -168,7 +198,7 @@ static void bindToGPUs(PSCPU_set_t *cpuSet)
 		break;
 	    }
 	}
-	if (usablecount && !add) continue;
+	if (usable && !add) continue;
 	len += snprintf(val+len, 4, "%hu,", closelist[i]);
     }
 
@@ -206,6 +236,7 @@ static void bindToGPUs(PSCPU_set_t *cpuSet)
     /* always set PSID version */
     setenv("PSID_CLOSE_GPUS", val, 1);
 }
+
 typedef struct{
     size_t maxSize;
     size_t size;

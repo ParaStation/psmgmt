@@ -466,7 +466,6 @@ static void setGPUEnv(Gres_Cred_t *gres, uint32_t jobNodeId, Step_t *step,
     size_t numGPUsAssigned = 0;
     hexBitstr2Array(gres->bitAlloc[jobNodeId], &gpusAssigned, &numGPUsAssigned);
 
-
     uint16_t gpus[step->globalTaskIdsLen[stepNodeId]];
 
     bool success = getNodeGPUPinning(gpus, step, stepNodeId, gpusAssigned,
@@ -780,6 +779,11 @@ void setStepEnv(Step_t *step)
 	    flog("Cannot find job node id for getting GPU credentials.\n");
 	}
     }
+    else {
+	/* tell psid to bind no GPUs */
+	envSet(&step->env, "__PSID_USE_GPUS", "");
+    }
+
 
     /* cleanup env */
     removeSpankOptions(&step->env);
