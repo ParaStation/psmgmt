@@ -565,15 +565,13 @@ int parser_parseOn(char *token, parser_t *parser)
 
 void parser_confHash(uint32_t *hashVal, char *line)
 {
-    int i, len = strlen(line);
+    if (!hashVal || !line) return;
 
-    if (!hashVal) return;
-
-    for (i = 0; i < len; i++) {
-	int idx;
+    size_t len = strlen(line);
+    for (size_t i = 0; i < len; i++) {
 	*hashVal = *hashVal ^ line[i] << 8;
 
-	for (idx = 0; idx < 8; idx++) {
+	for (int j = 0; j < 8; j++) {
 	    if (*hashVal & 0x8000) {
 		*hashVal <<= 1;
 		*hashVal = *hashVal ^ 4129;
