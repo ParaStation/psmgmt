@@ -44,7 +44,7 @@ typedef struct {
 } RPC_Info_t;
 
 /** Old handler for PSP_CD_UNKNOWN messages */
-handlerFunc_t oldUnkownHandler = NULL;
+handlerFunc_t oldUnknownHandler = NULL;
 
 int sendPElogueStart(Job_t *job, PElogueType_t type, int rounds, env_t *env)
 {
@@ -794,7 +794,7 @@ static void handleUnknownMsg(DDBufferMsg_t *msg)
 	return;
     }
 
-    if (oldUnkownHandler) oldUnkownHandler(msg);
+    if (oldUnknownHandler) oldUnknownHandler(msg);
 }
 
 bool initComm(void)
@@ -802,8 +802,8 @@ bool initComm(void)
     initSerial(0, sendMsg);
     PSID_registerMsg(PSP_PLUG_PELOGUE, (handlerFunc_t) handlePElogueMsg);
     PSID_registerDropper(PSP_PLUG_PELOGUE, (handlerFunc_t) dropPElogueMsg);
-    oldUnkownHandler = PSID_registerMsg(PSP_CD_UNKNOWN,
-					(handlerFunc_t) handleUnknownMsg);
+    oldUnknownHandler = PSID_registerMsg(PSP_CD_UNKNOWN,
+					 (handlerFunc_t) handleUnknownMsg);
 
     return true;
 }
@@ -812,8 +812,8 @@ void finalizeComm(void)
 {
     PSID_clearMsg(PSP_PLUG_PELOGUE);
     PSID_clearDropper(PSP_PLUG_PELOGUE);
-    if (oldUnkownHandler) {
-	PSID_registerMsg(PSP_CD_UNKNOWN, (handlerFunc_t) oldUnkownHandler);
+    if (oldUnknownHandler) {
+	PSID_registerMsg(PSP_CD_UNKNOWN, (handlerFunc_t) oldUnknownHandler);
     } else {
 	PSID_clearMsg(PSP_CD_UNKNOWN);
     }
