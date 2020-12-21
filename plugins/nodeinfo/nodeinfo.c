@@ -37,6 +37,9 @@ int version = 1;
 int requiredAPI = 129;
 plugin_dep_t dependencies[] = { { NULL, 0 } };
 
+/** Backup of handler for PSP_PLUG_NODEINFO messages */
+static handlerFunc_t handlerBackup = NULL;
+
 static void addCPUMapData(PS_SendDB_t *data)
 {
     int16_t numThrds = PSIDnodes_getNumThrds(PSC_getMyID());
@@ -289,9 +292,9 @@ static void checkOtherNodes(void)
     sendFragMsg(&data);
 }
 
-static void handleNodeInfoMsg(DDTypedBufferMsg_t *msg)
+static void handleNodeInfoMsg(DDBufferMsg_t *msg)
 {
-    recvFragMsg(msg, handleNodeInfoData);
+    recvFragMsg((DDTypedBufferMsg_t *)msg, handleNodeInfoData);
 }
 
 /**
@@ -349,7 +352,7 @@ int initialize(void)
 	goto INIT_ERROR;
     }
 
-    PSID_registerMsg(PSP_PLUG_NODEINFO, (handlerFunc_t) handleNodeInfoMsg);
+    handlerBackup = PSID_registerMsg(PSP_PLUG_NODEINFO, handleNodeInfoMsg);
 
     mlog("(%i) successfully started\n", version);
 
@@ -368,7 +371,11 @@ INIT_ERROR:
 
 void cleanup(void)
 {
-    PSID_clearMsg(PSP_PLUG_NODEINFO);
+    if (handlerBackup) {
+	PSID_registerMsg(PSP_PLUG_NODEINFO, handlerBackup);
+    } else {
+	PSID_clearMsg(PSP_PLUG_NODEINFO);
+    }
     unregisterHooks(true);
     finalizeSerial();
     freeConfig(&nodeInfoConfig);

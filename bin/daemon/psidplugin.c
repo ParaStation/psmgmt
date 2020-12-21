@@ -21,6 +21,7 @@
 #include "list.h"
 #include "plugin.h"
 #include "psprotocol.h"
+#include "pspluginprotocol.h"
 #include "pscommon.h"
 #include "config_parsing.h"
 #include "psidutil.h"
@@ -1707,13 +1708,30 @@ static void handlePlugins(void)
 static void handlePluginsGuard(void)
 {}
 
+/**
+ * @brief Dummy handler
+ *
+ * Dummy message handler used to suppress syslog messages while
+ * receiving the message @a inmsg addressing a local plugin that is
+ * intentionally not loaded.
+ *
+ * @param inmsg Message to be ignored
+ *
+ * @return No return value
+ */
+static void ignoreMsg(DDBufferMsg_t *inmsg)
+{}
+
 void initPlugins(void)
 {
-    /* Register msg-handlers for plugin load/unload */
+    /* Register msg-handlers/droppers for plugin load/unload */
     PSID_registerMsg(PSP_CD_PLUGIN, (handlerFunc_t)msg_PLUGIN);
     PSID_registerMsg(PSP_CD_PLUGINRES, frwdMsg);
 
     PSID_registerDropper(PSP_CD_PLUGIN, drop_PLUGIN);
+
+    /* Register dummy handler to suppress syslog for not loaded modules */
+    PSID_registerMsg(PSP_PLUG_NODEINFO, ignoreMsg);
 
     PSID_registerLoopAct(handlePlugins);
     PSID_registerLoopAct(handlePluginsGuard);
