@@ -485,7 +485,7 @@ void PSIADM_SummaryStat(bool *nl, int max)
 
 	for (PSnodes_ID_t i=0; i<PSC_getNrOfNodes(); i++) {
 	    if (confHash[i]) {
-		printf("%i node(s) with config hash %s\n", hashCount[i],
+		printf("%i node(s) with node hash %s\n", hashCount[i],
 		       confHash[i]);
 		free(confHash[i]);
 	    }
@@ -1230,7 +1230,7 @@ void PSIADM_VersionStat(bool *nl)
     if (! getHostStatus()) return;
 
     printf("%4s\t%-36s %s / %s\n", "Node", "psid version", "Protocols",
-	   "config hash");
+	   "node hash");
     for (PSnodes_ID_t node = 0; node < PSC_getNrOfNodes(); node++) {
 	if (nl && !nl[node]) continue;
 
