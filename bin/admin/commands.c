@@ -434,6 +434,17 @@ void PSIADM_SummaryStat(bool *nl, int max)
 
     if (! getHostStatus()) return;
 
+    char **confHash = malloc(PSC_getNrOfNodes() * sizeof(*confHash));
+    int *hashCount = malloc(PSC_getNrOfNodes() * sizeof(*hashCount));
+
+    if (!confHash || !hashCount) {
+	parser_exit(errno, "%s: out of memory for config hash", __func__);
+    }
+    for (PSnodes_ID_t i=0; i<PSC_getNrOfNodes(); i++) {
+	confHash[i] = NULL;
+	hashCount[i] = 0;
+    }
+
     for (PSnodes_ID_t node = 0; node < PSC_getNrOfNodes(); node++) {
 	if (nl && !nl[node]) continue;
 
@@ -443,9 +454,45 @@ void PSIADM_SummaryStat(bool *nl, int max)
 	    nlDown[node] = 1;
 	    downNodes++;
 	}
+
+	PSP_Optval_t optVal[1];
+	PSP_Option_t optType[] = { PSP_OP_CONFIG_HASH };
+	if (PSI_infoOption(node, 1, optType, optVal, true) != -1) {
+	    char hash[64];
+	    if (optType[0] == PSP_OP_CONFIG_HASH) {
+		snprintf(hash, sizeof(hash), "%#010x", optVal[0]);
+	    } else {
+		snprintf(hash, sizeof(hash), "unknown");
+	    }
+	    for (PSnodes_ID_t i=0; i<PSC_getNrOfNodes(); i++) {
+		if (!confHash[i] || !strcmp(hash, confHash[i])) {
+		    if (!confHash[i]) confHash[i] = strdup(hash);
+		    hashCount[i]++;
+		    break;
+		}
+	    }
+	} else {
+	    printf("error getting PSP_OP_CONFIG_HASH\n");
+	}
     }
-    printf("Node status summary:  %d up   %d down  of %d total\n",
-	   upNodes, downNodes, upNodes+downNodes);
+    if (hashCount[0] == PSC_getNrOfNodes()) {
+	printf("Node status summary:  %d up   %d down  of %d total with "
+	       "hash %s\n", upNodes, downNodes, upNodes+downNodes, confHash[0]);
+	free(confHash[0]);
+    } else {
+	printf("Node status summary:  %d up   %d down  of %d total\n",
+	       upNodes, downNodes, upNodes+downNodes);
+
+	for (PSnodes_ID_t i=0; i<PSC_getNrOfNodes(); i++) {
+	    if (confHash[i]) {
+		printf("%i node(s) with config hash %s\n", hashCount[i],
+		       confHash[i]);
+		free(confHash[i]);
+	    }
+	}
+    }
+    free(confHash);
+    free(hashCount);
 
     /* Also print list of down nodes if sufficiently less */
     if (downNodes && (downNodes < max)) {
