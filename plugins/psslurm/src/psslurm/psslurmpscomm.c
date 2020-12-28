@@ -122,7 +122,7 @@ static handlerFunc_t oldSpawnSuccessHandler = NULL;
 static handlerFunc_t oldSpawnReqHandler = NULL;
 
 /** Old handler for PSP_CD_UNKNOWN messages */
-static handlerFunc_t oldUnkownHandler = NULL;
+static handlerFunc_t oldUnknownHandler = NULL;
 
 /** hostname lookup table for PS node IDs */
 static Host_Lookup_t *HostLT = NULL;
@@ -2472,7 +2472,7 @@ static void handleUnknownMsg(DDBufferMsg_t *msg)
 	return;
     }
 
-    if (oldUnkownHandler) oldUnkownHandler(msg);
+    if (oldUnknownHandler) oldUnknownHandler(msg);
 }
 
 static void freeHostLT(void)
@@ -2551,8 +2551,8 @@ void finalizePScomm(bool verbose)
 	PSID_clearMsg(PSP_CD_SPAWNREQ);
     }
 
-    if (oldUnkownHandler) {
-	PSID_registerMsg(PSP_CD_UNKNOWN, oldUnkownHandler);
+    if (oldUnknownHandler) {
+	PSID_registerMsg(PSP_CD_UNKNOWN, oldUnknownHandler);
     } else {
 	PSID_clearMsg(PSP_CD_UNKNOWN);
     }
@@ -2803,8 +2803,8 @@ bool initPScomm(void)
 					  (handlerFunc_t) handleSpawnReq);
 
     /* register to PSP_CD_UNKNOWN message */
-    oldUnkownHandler = PSID_registerMsg(PSP_CD_UNKNOWN,
-					(handlerFunc_t) handleUnknownMsg);
+    oldUnknownHandler = PSID_registerMsg(PSP_CD_UNKNOWN,
+					 (handlerFunc_t) handleUnknownMsg);
 
     /* register handler for dropped msgs */
     PSID_registerDropper(PSP_PLUG_PSSLURM, (handlerFunc_t) handleDroppedMsg);

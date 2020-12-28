@@ -62,7 +62,7 @@ int sendPElogueStart(Job_t *job, PElogueType_t type, int rounds, env_t *env)
 	job->state = JOB_EPILOGUE;
 	msgType = PSP_EPILOGUE_START;
     } else {
-	mlog("%s: unkown pelogue type %d\n", __func__, type);
+	mlog("%s: unknown pelogue type %d\n", __func__, type);
 	return -1;
     }
 

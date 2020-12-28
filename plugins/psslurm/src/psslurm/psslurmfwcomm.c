@@ -408,7 +408,7 @@ void fwCMD_finalize(Forwarder_Data_t *fwdata, PSLog_Msg_t *plMsg)
     PSP_putMsgBuf(bMsg, __func__, "len", &len, sizeof(len));
     PSP_putMsgBuf(bMsg, __func__, "plMsg", plMsg, plMsg->header.len);
 
-    if (msg.header.dest == -1) mlog("%s unkown destination for %s\n", __func__,
+    if (msg.header.dest == -1) mlog("%s unknown destination for %s\n", __func__,
 				    PSC_printTID(plMsg->header.sender));
     sendMsg(&msg);
 }

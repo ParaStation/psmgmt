@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2010-2013 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2010-2020 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -99,9 +99,9 @@ char *__ReadStringEx(ComHandle_t *com, size_t *len, const char *func);
 /**
  * @brief Read a PBS data structure.
  *
- * Read a PBS data structure holding various job information. The filter can
- * include/exclude defined entries and will generate a warning if unkown entries
- * or read.
+ * Read a PBS data structure holding various job information. The
+ * filter can include/exclude defined entries and will generate a
+ * warning if unknown entries or read.
  *
  * @param com The communication handle to use.
  *

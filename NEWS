@@ -834,7 +834,7 @@ Additional changes:
 Version 5.1.5:
 ==============
 Bugfixes:
- - Ensure jobs get released if mother superior is unkown (jrt:#6645)
+ - Ensure jobs get released if mother superior is unknown (jrt:#6645)
  - Catch rare race-condition (jrt:#6680)
  - Ensure srun will get an exit notification for all tasks (#6421)
  - Don't try to pack empty data if slurm message forwarding fails

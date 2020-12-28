@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2011-2019 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2011-2020 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -139,7 +139,7 @@ bool PSIDhook_add(PSIDhook_t hook, PSIDhook_func_t func)
     if (!hookTable) initHookTable(__func__);
 
     if (!checkHook(hook)) {
-	PSID_log(-1, "%s: unkown hook %d\n", __func__, hook);
+	PSID_log(-1, "%s: unknown hook %d\n", __func__, hook);
 	return false;
     }
 
@@ -171,7 +171,7 @@ bool PSIDhook_del(PSIDhook_t hook, PSIDhook_func_t func)
     }
 
     if (!checkHook(hook)) {
-	PSID_log(-1, "%s: unkown hook %d\n", __func__, hook);
+	PSID_log(-1, "%s: unknown hook %d\n", __func__, hook);
 	return false;
     }
 
@@ -197,7 +197,7 @@ int PSIDhook_call(PSIDhook_t hook, void *arg)
     if (!hookTable) return 0;
 
     if (!checkHook(hook)) {
-	PSID_log(-1, "%s: unkown hook %d\n", __func__, hook);
+	PSID_log(-1, "%s: unknown hook %d\n", __func__, hook);
 	return -1;
     }
 
