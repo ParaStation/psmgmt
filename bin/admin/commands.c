@@ -422,51 +422,55 @@ void PSIADM_NodeStat(bool *nl)
 void PSIADM_SummaryStat(bool *nl, int max)
 {
     static bool *nlDown = NULL;
-    int upNodes = 0, downNodes = 0;
-
     if (!nlDown) {
 	nlDown = malloc(PSC_getNrOfNodes() * sizeof(*nlDown));
 	if (!nlDown) {
-	    parser_exit(errno, "%s: unable to initialize nlDown", __func__);
+	    parser_exit(errno, "%s: unable to allocate nlDown", __func__);
 	}
     }
-    memset(nlDown, 0, PSC_getNrOfNodes());
+    memset(nlDown, 0, PSC_getNrOfNodes() * sizeof(*nlDown));
+
+    static char **nodeListHash = NULL;
+    if (!nodeListHash) {
+	nodeListHash = calloc(PSC_getNrOfNodes(), sizeof(*nodeListHash));
+	if (!nodeListHash) {
+	    parser_exit(errno, "%s: unable to allocate nodeListHash", __func__);
+	}
+    }
+    static int *hashCount = NULL;
+    if (!hashCount) {
+	hashCount = calloc(PSC_getNrOfNodes(), sizeof(*hashCount));
+	if (!hashCount) {
+	    parser_exit(errno, "%s: unable to allocate hashCount", __func__);
+	}
+    }
 
     if (! getHostStatus()) return;
 
-    char **confHash = malloc(PSC_getNrOfNodes() * sizeof(*confHash));
-    int *hashCount = malloc(PSC_getNrOfNodes() * sizeof(*hashCount));
-
-    if (!confHash || !hashCount) {
-	parser_exit(errno, "%s: out of memory for config hash", __func__);
-    }
-    for (PSnodes_ID_t i=0; i<PSC_getNrOfNodes(); i++) {
-	confHash[i] = NULL;
-	hashCount[i] = 0;
-    }
-
+    int upNodes = 0, downNodes = 0;
     for (PSnodes_ID_t node = 0; node < PSC_getNrOfNodes(); node++) {
 	if (nl && !nl[node]) continue;
 
 	if (hostStatus.list[node]) {
 	    upNodes++;
 	} else {
-	    nlDown[node] = 1;
+	    nlDown[node] = true;
 	    downNodes++;
+	    continue; // requesting a down node's hash will never be successful
 	}
 
 	PSP_Optval_t optVal[1];
 	PSP_Option_t optType[] = { PSP_OP_NODELISTHASH };
 	if (PSI_infoOption(node, 1, optType, optVal, true) != -1) {
-	    char hash[64];
+	    char hash[16];
 	    if (optType[0] == PSP_OP_NODELISTHASH) {
 		snprintf(hash, sizeof(hash), "%#010x", optVal[0]);
 	    } else {
 		snprintf(hash, sizeof(hash), "unknown");
 	    }
-	    for (PSnodes_ID_t i=0; i<PSC_getNrOfNodes(); i++) {
-		if (!confHash[i] || !strcmp(hash, confHash[i])) {
-		    if (!confHash[i]) confHash[i] = strdup(hash);
+	    for (PSnodes_ID_t i = 0; i <= node; i++) {
+		if (!nodeListHash[i] || !strcmp(hash, nodeListHash[i])) {
+		    if (!nodeListHash[i]) nodeListHash[i] = strdup(hash);
 		    hashCount[i]++;
 		    break;
 		}
@@ -475,24 +479,25 @@ void PSIADM_SummaryStat(bool *nl, int max)
 	    printf("error getting PSP_OP_CONFIG_HASH\n");
 	}
     }
-    if (hashCount[0] == PSC_getNrOfNodes()) {
+    if (hashCount[0] == upNodes) {
 	printf("Node status summary:  %d up   %d down  of %d total with "
-	       "hash %s\n", upNodes, downNodes, upNodes+downNodes, confHash[0]);
-	free(confHash[0]);
+	       "nodelist hash %s\n", upNodes, downNodes, upNodes+downNodes,
+	       nodeListHash[0]);
+	free(nodeListHash[0]);
     } else {
 	printf("Node status summary:  %d up   %d down  of %d total\n",
 	       upNodes, downNodes, upNodes+downNodes);
 
-	for (PSnodes_ID_t i=0; i<PSC_getNrOfNodes(); i++) {
-	    if (confHash[i]) {
-		printf("%i node(s) with nodelist hash %s\n", hashCount[i],
-		       confHash[i]);
-		free(confHash[i]);
-	    }
+	PSnodes_ID_t i = 0;
+	while (nodeListHash[i]) {
+	    printf("%i node(s) with nodelist hash %s\n", hashCount[i],
+		   nodeListHash[i]);
+	    hashCount[i] = 0;
+	    free(nodeListHash[i]);
+	    nodeListHash[i] = NULL;
+	    i++;
 	}
     }
-    free(confHash);
-    free(hashCount);
 
     /* Also print list of down nodes if sufficiently less */
     if (downNodes && (downNodes < max)) {
