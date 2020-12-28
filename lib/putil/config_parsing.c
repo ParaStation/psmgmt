@@ -75,7 +75,7 @@ static config_t config = {
     .startupScript = NULL,
     .nodeUpScript = NULL,
     .nodeDownScript = NULL,
-    .confHash = 0,
+    .nodeListHash = 0,
 };
 
 #define ENV_END 17 /* Some magic value */
@@ -1702,7 +1702,7 @@ static int insertNode(void)
 	return ret;
     }
 
-    parser_confHash(&config.confHash, nodename);
+    parser_updateHash(&config.nodeListHash, nodename);
     g_free(nodename);
 
     if (PSC_isLocalIP(ipaddr)) {

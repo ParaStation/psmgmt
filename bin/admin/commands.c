@@ -456,10 +456,10 @@ void PSIADM_SummaryStat(bool *nl, int max)
 	}
 
 	PSP_Optval_t optVal[1];
-	PSP_Option_t optType[] = { PSP_OP_CONFIG_HASH };
+	PSP_Option_t optType[] = { PSP_OP_NODELISTHASH };
 	if (PSI_infoOption(node, 1, optType, optVal, true) != -1) {
 	    char hash[64];
-	    if (optType[0] == PSP_OP_CONFIG_HASH) {
+	    if (optType[0] == PSP_OP_NODELISTHASH) {
 		snprintf(hash, sizeof(hash), "%#010x", optVal[0]);
 	    } else {
 		snprintf(hash, sizeof(hash), "unknown");
@@ -485,7 +485,7 @@ void PSIADM_SummaryStat(bool *nl, int max)
 
 	for (PSnodes_ID_t i=0; i<PSC_getNrOfNodes(); i++) {
 	    if (confHash[i]) {
-		printf("%i node(s) with node hash %s\n", hashCount[i],
+		printf("%i node(s) with nodelist hash %s\n", hashCount[i],
 		       confHash[i]);
 		free(confHash[i]);
 	    }
@@ -1230,7 +1230,7 @@ void PSIADM_VersionStat(bool *nl)
     if (! getHostStatus()) return;
 
     printf("%4s\t%-36s %s / %s\n", "Node", "psid version", "Protocols",
-	   "node hash");
+	   "nodelist hash");
     for (PSnodes_ID_t node = 0; node < PSC_getNrOfNodes(); node++) {
 	if (nl && !nl[node]) continue;
 
@@ -1240,7 +1240,7 @@ void PSIADM_VersionStat(bool *nl)
 	    PSP_Optval_t optVal[3];
 	    PSP_Option_t optType[] = { PSP_OP_PROTOCOLVERSION,
 				       PSP_OP_DAEMONPROTOVERSION,
-				       PSP_OP_CONFIG_HASH };
+				       PSP_OP_NODELISTHASH };
 	    int err;
 
 	    versionStr[0] = '\0';
@@ -1260,7 +1260,7 @@ void PSIADM_VersionStat(bool *nl)
 		    case PSP_OP_DAEMONPROTOVERSION:
 			printf("%3d", optVal[i]);
 			break;
-		    case PSP_OP_CONFIG_HASH:
+		    case PSP_OP_NODELISTHASH:
 			printf("%#010x", optVal[i]);
 			break;
 		    default:

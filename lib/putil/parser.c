@@ -563,7 +563,7 @@ int parser_parseOn(char *token, parser_t *parser)
     return ret;
 }
 
-void parser_confHash(uint32_t *hashVal, char *line)
+void parser_updateHash(uint32_t *hashVal, char *line)
 {
     if (!hashVal || !line) return;
 

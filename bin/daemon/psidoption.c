@@ -981,8 +981,8 @@ static void msg_GETOPTION(DDOptionMsg_t *msg)
 	    case PSP_OP_OBSOLETE:
 		msg->opt[out].value = PStasklist_count(&obsoleteTasks);
 		break;
-	    case PSP_OP_CONFIG_HASH:
-		msg->opt[out].value = PSID_config->confHash;
+	    case PSP_OP_NODELISTHASH:
+		msg->opt[out].value = PSID_config->nodeListHash;
 		break;
 	    default:
 		PSID_log(-1, "%s: unknown option %d\n", __func__,

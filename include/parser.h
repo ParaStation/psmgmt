@@ -495,12 +495,12 @@ int parser_parseOn(char* line, parser_t* parser);
 void parser_finalize(void);
 
 /**
- * @brief Calculate a configuration hash from a given line
+ * @brief Update hash from a given line
  *
  * @param hashVal receives the updated hash value
  *
  * @param line buffer add to the hash calculation
  */
-void parser_confHash(uint32_t *hashVal, char *line);
+void parser_updateHash(uint32_t *hashVal, char *line);
 
 #endif /* __PARSING_H */
