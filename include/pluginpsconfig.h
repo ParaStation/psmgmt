@@ -165,20 +165,20 @@ bool pluginConfig_traverse(pluginConfig_t conf, pluginConfigVisitor_t visitor,
 			   const void *info);
 
 /**
- * @doctodo check
  * @brief Add entry to configuration
  *
  * Add the key-value pair given by @a key and @a value to the existing
- * configuration @a conf. If an entry with key @a key is already
+ * configuration context @a conf. If an entry with key @a key is already
  * existing in the configuration, the corresponding value is
  * replaced. Otherwise a new key-value pair is added to the
- * configuration.
+ * configuration context.
  *
  * If a definition of the configuration is available, i.e. was
  * registered before via @ref pluginConfig_setDef(), the entry will be
  * verified immediately via @ref pluginConfig_verifyEntry().
  *
- * @todo If definition, entry might be str of num
+ * If @a key is defined to be PLUGINCONFIG_VALUE_NUM and @a value can
+ * be converted to a number the key-value pair will be add accordingly.
  *
  * @param conf Configuration context to be expanded
  *
@@ -194,12 +194,12 @@ bool pluginConfig_traverse(pluginConfig_t conf, pluginConfigVisitor_t visitor,
 bool pluginConfig_addStr(pluginConfig_t conf, char *key, char *value);
 
 /**
- * @doctodo check
  * @brief Add item to list-entry of configuration
  *
  * Add a single list-item @a item to the list identified by @a key in
  * the configuration context @a conf. If no entry with key @a key is
- * existing yet, a new key-value pair is added to the configuration.
+ * existing yet, a new key-value pair is added to the configuration
+ * context with a single-entry-ed list as value.
  *
  * If a definition of the configuration is available, i.e. was
  * registered before via @ref pluginConfig_setDef(), the entry will be

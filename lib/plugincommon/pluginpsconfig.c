@@ -41,10 +41,30 @@ typedef struct {
     pluginConfigVal_t value; /**< Object's value */
 } pluginConfigObj_t;
 
+/**
+ * @brief Check configuration context's integrity
+ *
+ * Check the integrity of the configuration context @a conf. This
+ * basically checks if the context's magic value is valid.
+ *
+ * @param conf Configuration context to check
+ *
+ * @return Return true if the configuration context @a conf is valid;
+ * or false otherwise
+ */
 static inline bool checkConfig(pluginConfig_t conf) {
     return (conf && conf->magic == PLUGIN_PSCONFIG_MAGIC);
 }
 
+/**
+ * @brief Determine length of list
+ *
+ * Determine the number of elements of the list @a lst.
+ *
+ * @param lst Pointer to a NULL-terminated list of strings
+ *
+ * @return Number of elements in @a lst
+ */
 static inline size_t lstLen(char **lst)
 {
     size_t len = 0;
@@ -52,7 +72,7 @@ static inline size_t lstLen(char **lst)
     return len;
 }
 
-/*
+/**
  * @brief Fill value into object
  *
  * Fill the value referred by @a value into the configuration object
@@ -113,7 +133,7 @@ static void cleanupValue(pluginConfigObj_t *obj)
     }
 }
 
-/*
+/**
  * @brief Create configuration object and add it to the context
  *
  * Create a configuration object indexed by key, fill it with the
@@ -246,7 +266,7 @@ bool pluginConfig_setDef(pluginConfig_t conf, const pluginConfigDef_t def[])
 guint psCfgFlags =
     PSCONFIG_FLAG_FOLLOW | PSCONFIG_FLAG_INHERIT | PSCONFIG_FLAG_ANCESTRAL;
 
-/*
+/**
  * Get string value from psconfigobj in the psconfig configuration.
  *
  * On success, *value is set to the string value and 0 is returned.
