@@ -1,8 +1,22 @@
 psmgmt NEWS -- history of user-visible changes.
 
-Copyright (C) 2010-2020 ParTec Cluster Competence Center GmbH, Munich
+Copyright (C) 2010-2021 ParTec Cluster Competence Center GmbH, Munich
 
 Please send bug reports, questions and suggestions to <support@par-tec.com>
+
+
+Version 5.1.35-1:
+=================
+Bugfixes:
+ - Prevent syslog for nodeinfo plugin (#2871)
+ - Do not set GPU pinning variables if no GPUs are assigned
+ - Fix compilation without spank support
+Enhancements:
+ - Print only existing hardware threads in PSID_CPU_PINNING
+ - Add JUSUF GPU (V100 PCIe 16GB) to PCI ID list
+ - Redistribute spank stuff over main, psslurm and spank sub-RPMs
+Additional changes:
+ - Rename -spank sub-RPM to -slurmutils
 
 
 Version 5.1.35:

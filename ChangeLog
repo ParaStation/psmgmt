@@ -1,3 +1,68 @@
+Version psmgmt-5.1.35-1:
+========================
+------------------------------------------------------------------------
+14473429 | Norbert Eicker | Tue, 5 Jan 2021 17:59:32 +0100
+
+Be more specific concerning version dependencies
+------------------------------------------------------------------------
+186d434a | Norbert Eicker | Tue, 5 Jan 2021 17:49:09 +0100
+
+Rename -spank to -slurmutils and add psslurmgetbind
+------------------------------------------------------------------------
+ebc69084 | Norbert Eicker | Tue, 29 Dec 2020 00:47:41 +0100
+
+Fix typos
+------------------------------------------------------------------------
+dc07824a | Norbert Eicker | Mon, 21 Dec 2020 15:04:23 +0100
+
+Bugfix: Prevent syslog for nodeinfo plugin (#2871)
+------------------------------------------------------------------------
+cd065817 | Norbert Eicker | Mon, 21 Dec 2020 15:01:26 +0100
+
+Fix typo
+------------------------------------------------------------------------
+7d7efb9b | Stephan Krempel | Fri, 18 Dec 2020 15:51:04 +0100
+
+Pinning: Do not set GPU pinning variables if no GPUs are assigned
+------------------------------------------------------------------------
+b5cb6c24 | Stephan Krempel | Fri, 18 Dec 2020 14:23:59 +0100
+
+Pinning: Fix debugging output for not by 8 divisible thread counts
+------------------------------------------------------------------------
+65610437 | Stephan Krempel | Thu, 17 Dec 2020 11:25:39 +0100
+
+Add Jusuf GPU (V100 PCIe 16GB) to PCI ID list
+------------------------------------------------------------------------
+2b63d89b | Stephan Krempel | Thu, 17 Dec 2020 11:18:27 +0100
+
+Print only existing hardware threads in PSID_CPU_PINNING
+------------------------------------------------------------------------
+b2b219aa | Norbert Eicker | Wed, 16 Dec 2020 21:18:15 +0100
+
+Also add JUSUF standard node configuration
+------------------------------------------------------------------------
+24b00a42 | Stephan Krempel | Wed, 16 Dec 2020 13:42:38 +0100
+
+Add Jusuf node hardware description (hwloc xml file)
+------------------------------------------------------------------------
+15ca6480 | Michael Rauh | Tue, 15 Dec 2020 15:41:58 +0100
+
+Remove outdated version of psslurm regression tests
+------------------------------------------------------------------------
+6437a4c9 | Norbert Eicker | Mon, 14 Dec 2020 20:50:05 +0100
+
+Redistribute spank stuff over main, psslurm and spank sub-packages
+------------------------------------------------------------------------
+38a765ba | Michael Rauh | Mon, 14 Dec 2020 17:11:20 +0100
+
+Bugfix: fix compilation without spank support
+------------------------------------------------------------------------
+b8bd3ff4 | Stephan Krempel | Mon, 14 Dec 2020 13:42:45 +0100
+
+Add Juropa 3 GPU node hardware description (hwloc xml file)
+------------------------------------------------------------------------
+
+
 Version psmgmt-5.1.35:
 ======================
 ------------------------------------------------------------------------
