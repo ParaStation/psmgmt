@@ -1,7 +1,7 @@
 #                                                       -*- rpm-spec -*-
 # ParaStation
 #
-# Copyright (C) 2005-2020 ParTec Cluster Competence Center GmbH, Munich
+# Copyright (C) 2005-2021 ParTec Cluster Competence Center GmbH, Munich
 #
 # This file may be distributed under the terms of the Q Public License
 # as defined in the file LICENSE.QPL included in the packaging of this
@@ -112,9 +112,7 @@ daemon is necessary to integrate compute nodes into a Torque batch system.
 Summary:   The Slurm plugin of the ParaStation process management
 Group:     Productivity/Clustering/Computing
 Requires:  %{name} = %{version}
-%if !0%{?disable_spank}
-Requires:  %{name}-spank = %{version}
-%endif
+Requires:  %{name}-slurmutils = %{version}
 
 %description psslurm
 The ParaStation Slurm plugin is a complete replacement of the slurmd on
@@ -130,16 +128,15 @@ Requires:  %{name} = %{version}
 The ParaStation PMIx plugin provides support for PMIx based on the libpmix.
 It works standalone or together with psslurm.
 
-%if !0%{?disable_spank}
-%package spank
-Summary:   Spank plugins required for e.g. support of psgw functionality
+%package slurmutils
+Summary:   Utilities improving Slurm support (spank, psslurmgetbind, etc.)
 Group:     Productivity/Clustering/Computing
+Obsoletes: %{name}-spank
 
-%description spank
-Slurm spank plugins required to support e.g. the interplay of psgw
-funktionality and Slurm.
-
-%endif
+%description slurmutils
+Utilities helping to improve Slurm support. This includes spank plugins
+required to support e.g. the interplay of psgw functionality and
+Slurm or the psslurmgetbind tool.
 
 %if 0%{?suse_version}
 %debug_package
@@ -372,7 +369,6 @@ exit 0
 %files psslurm
 %defattr(-,root,root,-)
 %{_bindir}/pspelogue
-%{_bindir}/psslurmgetbind
 %doc plugins/psslurm/doc/psslurm-epilogue.example
 %doc plugins/psslurm/doc/psslurm-epilogue.finalize.example
 %doc plugins/psslurm/doc/psslurm-prologue.example
@@ -399,8 +395,9 @@ exit 0
 %exclude %{_plugindir}/pspmix.la
 %config(noreplace) %{_plugindir}/pspmix.conf
 
+%files slurmutils
+%{_bindir}/psslurmgetbind
 %if !0%{?disable_spank}
-%files spank
 %dir %{_libdir}/slurm
 %{_libdir}/slurm/psgw_spank.so
 %exclude %{_libdir}/slurm/psgw_spank.la
