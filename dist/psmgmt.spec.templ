@@ -83,7 +83,7 @@ The ParaStation Process Management Layer.
 %package devel
 Summary:   Development files for ParaStation process management
 Group:     Productivity/Clustering/Computing
-Requires:  %{name} = %{version}
+Requires:  %{name} = %{version}-%{release}
 
 %description devel
 The psmgmt-devel package includes additional header files necessary
@@ -92,7 +92,7 @@ for developing plugins of the ParaStation Process Management daemon.
 %package mpilegacy
 Summary:   Legacy MPI-starters for ParaStation process management
 Group:     Productivity/Clustering/Computing
-Requires:  %{name} = %{version}
+Requires:  %{name} = %{version}-%{release}
 
 %description mpilegacy
 The psmgmt-mpilegacy package includes additional MPI starters for
@@ -101,7 +101,7 @@ legacy implementations of the MPI version 1 standard.
 %package psmom
 Summary:   The MOM plugin of the ParaStation process management
 Group:     Productivity/Clustering/Computing
-Requires:  %{name} = %{version}
+Requires:  %{name} = %{version}-%{release}
 Obsoletes: psmom <= 5.2.10-20
 
 %description psmom
@@ -111,8 +111,8 @@ daemon is necessary to integrate compute nodes into a Torque batch system.
 %package psslurm
 Summary:   The Slurm plugin of the ParaStation process management
 Group:     Productivity/Clustering/Computing
-Requires:  %{name} = %{version}
-Requires:  %{name}-slurmutils = %{version}
+Requires:  %{name} = %{version}-%{release}
+Requires:  %{name}-slurmutils = %{version}-%{release}
 
 %description psslurm
 The ParaStation Slurm plugin is a complete replacement of the slurmd on
@@ -122,7 +122,7 @@ a Slurm batch system.
 %package pspmix
 Summary:   The PMIx plugin of the ParaStation process management
 Group:     Productivity/Clustering/Computing
-Requires:  %{name} = %{version}
+Requires:  %{name} = %{version}-%{release}
 
 %description pspmix
 The ParaStation PMIx plugin provides support for PMIx based on the libpmix.
