@@ -1,7 +1,7 @@
 #
 # ParaStation
 #
-# Copyright (C) 2012-2020 ParTec Cluster Competence Center GmbH, Munich
+# Copyright (C) 2012-2021 ParTec Cluster Competence Center GmbH, Munich
 #
 # This file may be distributed under the terms of the Q Public License
 # as defined in the file LICENSE.QPL included in the packaging of this
@@ -29,6 +29,8 @@ delaySlurmMsg_la_CPPFLAGS = $(AM_CPPFLAGS)		\
 delegateStat_la_LIBADD = $(libplugincommon) $(libpscommon)
 
 psBlackHole_la_LIBADD = $(libplugincommon) $(libpscommon)
+
+pluginpsconfig_la_LIBADD = $(libplugincommon) $(libpscommon)
 
 if SPANK_ENABLED
 spank_test_la_CPPFLAGS = $(AM_CPPFLAGS) -DSLURMLIBDIR=\"$(slurmlibdir)\"
