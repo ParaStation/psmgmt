@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2002-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2020 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2021 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -70,6 +70,7 @@ typedef enum {
     PSP_OP_MASTER = 0x0008,       /**< current master of the cluster */
     PSP_OP_DAEMONPROTOVERSION,    /**< Node's PSDaemonProtocol version */
     PSP_OP_PLUGINAPIVERSION,      /**< Node's version of the plugin API */
+    PSP_OP_NODELISTHASH,          /**< Hash of nodenames known to a node */
 
     PSP_OP_PLUGINUNLOADTMOUT=0x000c, /**< Timeout before evicting plugins */
 
@@ -149,7 +150,6 @@ typedef enum {
     PSP_OP_MAXSTATTRY,            /**< Maximum stat() tries during spawn */
     PSP_OP_KILLDELAY,             /**< Delay before sending SIGKILL */
     PSP_OP_TRIGGER_DIST,          /**< trigger distribution of options */
-    PSP_OP_NODELISTHASH,
 } PSP_Option_t;
 
 /** Messages used for information retrieval */
