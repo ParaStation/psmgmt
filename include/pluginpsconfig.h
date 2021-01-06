@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2020 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2020-2021 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -77,11 +77,11 @@ typedef struct {
  * @brief Set configuration definition
  *
  * Add the configuration definition @a def to the configuration
- * context @a conf. @a def will be used in order to validate the
+ * context @a conf. @a def will be used in order to validate all
  * values within the configuration loaded from psconfig or set via
- * @ref pluginConfig_set(). Furthermore, @def contains all information
- * required to describe the configuration entries to the outside
- * world.
+ * @ref pluginConfig_add() et al. Furthermore, @a def contains all
+ * information required to describe the configuration entries to the
+ * outside world.
  *
  * @a def must be NULL terminated, i.e. the last entry must be of the
  * form `{ NULL, PLUGINCONFIG_VALUE_NONE, NULL }`.
@@ -103,7 +103,7 @@ bool pluginConfig_setDef(pluginConfig_t conf, const pluginConfigDef_t def[]);
  * @brief Load configuration from psconfig
  *
  * Load the configuration from the branch of psconfig identified by @a
- * configKey and store it to the configration context @a conf. All
+ * configKey and store it to the configuration context @a conf. All
  * configuration is fetched from Psid.PluginCfg.@a configKey of the
  * local host object.
  *
@@ -117,7 +117,7 @@ bool pluginConfig_setDef(pluginConfig_t conf, const pluginConfigDef_t def[]);
  *
  * @return If the configuration was successfully loaded, true is
  * returned; or false if an error occurred, i.e. either no
- * configration was found within the local host object or not all
+ * configuration was found within the local host object or not all
  * configuration elements were validated successfully.
  */
 bool pluginConfig_load(pluginConfig_t conf, char *configKey);
@@ -139,6 +139,16 @@ bool pluginConfig_load(pluginConfig_t conf, char *configKey);
  */
 typedef bool pluginConfigVisitor_t(char *key, pluginConfigVal_t *val,
 				   const void *info);
+
+/**
+ * @brief Visitor to implement plugin's show function
+ *
+ * Special visitor to implement a plugin's show functionality. It will
+ * add all key-value pairs of a given configuration context passed to
+ * @ref pluginConfig_traverse() to the string buffer of type
+ * StrBuffer_t that was passed as the info parameter.
+ */
+pluginConfigVisitor_t pluginConfig_showVisitor;
 
 /**
  * @brief Traverse configuration
@@ -427,15 +437,26 @@ bool pluginConfig_unset(pluginConfig_t conf, char *key);
 bool pluginConfig_remove(pluginConfig_t conf, char *key);
 
 /**
+ * @brief Provide string describing the value type
+ *
+ * Provide a constant string describing the value type @a type.
+ *
+ * @param type Value type that shall be described
+ *
+ * @return Return a pointer to the constant string describing the type
+ */
+const char *pluginConfig_typeStr(pluginConfigValType_t type);
+
+/**
  * @brief Get length of longest key-name
  *
- * Get the length of the longest key-name within the definition of the
- * configuration context @a conf.
+ * Get the length of the longest key-name within the definition and
+ * key-value pairs of the configuration context @a conf.
  *
  * @param conf Configuration context to be analyzed
  *
- * @return The length of the longest key-name or 0 if @a conf does not
- * contain a definition
+ * @return The length of the longest key-name; or 0 if @a conf neither
+ * contains a definition nor a key-value pair
  */
 size_t pluginConfig_maxKeyLen(pluginConfig_t conf);
 

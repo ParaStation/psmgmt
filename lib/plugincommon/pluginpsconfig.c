@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2020 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2020-2021 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -32,6 +32,7 @@ struct pluginConfig {
     long magic;
     list_t config;
     const pluginConfigDef_t *def;
+    size_t maxKeyLen;
 };
 
 /** Single object of a configuration */
@@ -154,31 +155,34 @@ static void cleanupValue(pluginConfigObj_t *obj)
  *
  * @return On success true is returned; or false in case of failure
  */
-static pluginConfigObj_t * addObj(pluginConfig_t conf, const char *key,
-				  pluginConfigVal_t *value)
+static bool addObj(pluginConfig_t conf, const char *key,
+		   pluginConfigVal_t *value)
 {
     if (!checkConfig(conf) || !key || !value) return NULL;
 
     pluginConfigObj_t *obj = umalloc(sizeof(*obj));
     if (!obj) {
 	pluginlog("%s: no memory for %s's obj\n", __func__, key);
-	return NULL;
+	return false;
     }
     obj->key = ustrdup(key);
     if (!obj->key) {
 	pluginlog("%s: no memory for %s's key\n", __func__, key);
 	free(obj);
-	return NULL;
+	return false;
     }
     if (!fillValue(obj, value)) {
 	pluginlog("%s: cannot fill %s's value\n", __func__, key);
 	free(obj->key);
 	free(obj);
-	return NULL;
+	return false;
     }
     list_add_tail(&(obj->next), &conf->config);
 
-    return obj;
+    size_t len = strlen(obj->key);
+    if (len > conf->maxKeyLen) conf->maxKeyLen = len;
+
+    return true;
 }
 
 static void delObj(pluginConfigObj_t *obj)
@@ -199,6 +203,7 @@ static void cleanAllObjs(pluginConfig_t conf)
 	pluginConfigObj_t *obj = list_entry(o, pluginConfigObj_t, next);
 	delObj(obj);
     }
+    conf->maxKeyLen = 0;
 }
 
 static pluginConfigObj_t *findObj(pluginConfig_t conf, const char *key)
@@ -225,6 +230,7 @@ bool pluginConfig_new(pluginConfig_t *conf)
     (*conf)->magic = PLUGIN_PSCONFIG_MAGIC;
     INIT_LIST_HEAD(&((*conf)->config));
     (*conf)->def = NULL;
+    (*conf)->maxKeyLen = 0;
 
     return true;
 }
@@ -234,6 +240,7 @@ void pluginConfig_destroy(pluginConfig_t conf)
     if (!checkConfig(conf)) return;
 
     cleanAllObjs(conf);
+    conf->magic = 0;
     ufree(conf);
 }
 
@@ -241,8 +248,10 @@ bool pluginConfig_setDef(pluginConfig_t conf, const pluginConfigDef_t def[])
 {
     if (!checkConfig(conf) || !def) return false;
 
-    size_t i;
+    size_t i, maxLen = 0;
     for (i = 0; def[i].name; i++) {
+	size_t keyLen = strlen(def[i].name);
+	if (keyLen > maxLen) maxLen = keyLen;
 	switch (def[i].type) {
 	case PLUGINCONFIG_VALUE_NONE:
 	case PLUGINCONFIG_VALUE_NUM:
@@ -254,10 +263,13 @@ bool pluginConfig_setDef(pluginConfig_t conf, const pluginConfigDef_t def[])
 	}
     }
     if (def[i].type != PLUGINCONFIG_VALUE_NONE || def[i].desc) {
+	pluginlog("%s: definition %p is invalid\n", __func__, def);
 	return false;
     }
 
     conf->def = def;
+    if (maxLen > conf->maxKeyLen) conf->maxKeyLen = maxLen;
+
     return true;
 }
 
@@ -328,22 +340,23 @@ static bool handlePSConfigEntry(pluginConfig_t conf, PSConfig *cfg,
 	return false;
     }
 
-    const pluginConfigDef_t *def = pluginConfig_getDef(conf, key);
+    char *sKey = strrchr(key, '.');
+    sKey = sKey ? sKey + 1 : key;
+    const pluginConfigDef_t *def = pluginConfig_getDef(conf, sKey);
     pluginConfigVal_t cVal = { .type = PLUGINCONFIG_VALUE_NONE };
     if (def) cVal.type = def->type;
 
     gchar *val = psconfig_get(cfg, obj, key, psCfgFlags, &err);
-    pluginlog("%s: val is %p '%s'\n", __func__, val, val); // @todo
     if (val) {
 	if (cVal.type == PLUGINCONFIG_VALUE_NUM) {
 	    if (!toLong(val, &cVal.val.num)) {
-		pluginlog("%s: %s value '%s' not number\n", __func__, key, val);
+		pluginlog("%s: %s value '%s' not number\n", __func__, sKey,val);
 		g_free(val);
 		return false;
 	    }
 	    g_free(val);
 	} else if (cVal.type == PLUGINCONFIG_VALUE_LST) {
-	    pluginlog("%s: %s expects list\n", __func__, key);
+	    pluginlog("%s: %s expects list\n", __func__, sKey);
 	    return false;
 	} else {
 	    cVal.type = PLUGINCONFIG_VALUE_STR;
@@ -355,7 +368,7 @@ static bool handlePSConfigEntry(pluginConfig_t conf, PSConfig *cfg,
 
 	if (cVal.type != PLUGINCONFIG_VALUE_NONE
 	    && cVal.type != PLUGINCONFIG_VALUE_LST) {
-	    pluginlog("%s: %s's value of wrong type\n", __func__, key);
+	    pluginlog("%s: %s's value of wrong type\n", __func__, sKey);
 	    return false;
 	}
 
@@ -367,9 +380,10 @@ static bool handlePSConfigEntry(pluginConfig_t conf, PSConfig *cfg,
 	    return false;
 	}
 
+	cVal.type = PLUGINCONFIG_VALUE_LST;
 	cVal.val.lst = umalloc((list->len + 1) * sizeof(*(cVal.val.lst)));
 	if (!cVal.val.lst) {
-	    pluginlog("%s: %s: no memory\n", __func__, key);
+	    pluginlog("%s: %s: no memory\n", __func__, sKey);
 	    g_ptr_array_free(list, TRUE);
 	    return false;
 	}
@@ -379,14 +393,14 @@ static bool handlePSConfigEntry(pluginConfig_t conf, PSConfig *cfg,
 	}
 	cVal.val.lst[list->len] = NULL;
 
-	g_ptr_array_free(list, FALSE);
+	g_ptr_array_free(list, FALSE /* keep array elements */);
     } else {
-	pluginlog("%s: %s(%s): %s\n", __func__, obj, key, err->message);
+	pluginlog("%s: %s(%s): %s\n", __func__, obj, sKey, err->message);
 	g_error_free(err);
 	return false;
     }
 
-    return addObj(conf, key, &cVal);
+    return addObj(conf, sKey, &cVal);
 }
 #endif
 
@@ -435,7 +449,6 @@ bool pluginConfig_load(pluginConfig_t conf, char *configKey)
     gpointer key, obj;
     g_hash_table_iter_init (&iter, configHash);
     while (g_hash_table_iter_next(&iter, &key, &obj)) {
-	pluginlog("%s: key: \"%s\"\n", __func__, (gchar *)key); // @todo
 	if (!handlePSConfigEntry(conf, psCfg, psCfgObj, key)) {
 	    pluginlog("%s: failed to handle '%s'\n", __func__, (gchar *)key);
 	}
@@ -487,11 +500,13 @@ bool pluginConfig_addStr(pluginConfig_t conf, char *key, char *value)
 	return false;
     }
     pluginConfigVal_t val = { .type = def ? def->type:PLUGINCONFIG_VALUE_STR };
-    if (val.type == PLUGINCONFIG_VALUE_NUM && !toLong(value, &val.val.num)) {
-	pluginlog("%s: type mismatch for %s\n", __func__, key);
-	return false;
+    if (val.type == PLUGINCONFIG_VALUE_NUM) {
+	if (!toLong(value, &val.val.num)) {
+	    pluginlog("%s: type mismatch for %s\n", __func__, key);
+	    return false;
+	}
     } else {
-	val.val.str = value;
+	val.val.str = strdup(value);
     }
 
     return pluginConfig_add(conf, key, &val);
@@ -503,6 +518,7 @@ bool pluginConfig_addToLst(pluginConfig_t conf, char *key, char *item)
 
     pluginConfigObj_t *obj = findObj(conf, key);
     if (obj) {
+	/* extend existing object */
 	if (obj->value.type != PLUGINCONFIG_VALUE_LST) {
 	    pluginlog("%s: type mismatch for %s\n", __func__, key);
 	    return false;
@@ -514,19 +530,20 @@ bool pluginConfig_addToLst(pluginConfig_t conf, char *key, char *item)
 	    pluginlog("%s: no memory for %s\n", __func__, key);
 	    return false;
 	}
-	newLst[len] = item;
+	newLst[len] = strdup(item);
 	newLst[len+1] = NULL;
 	obj->value.val.lst = newLst;
 	return true;
     }
 
+    /* create a new object */
     pluginConfigVal_t val = { .type = PLUGINCONFIG_VALUE_LST };
     val.val.lst = umalloc(2 * sizeof(*(val.val.lst)));
     if (!val.val.lst) {
 	pluginlog("%s: no memory for %s\n", __func__, key);
 	return false;
     }
-    val.val.lst[0] = item;
+    val.val.lst[0] = strdup(item);
     val.val.lst[1] = NULL;
 
     return pluginConfig_add(conf, key, &val);
@@ -591,7 +608,7 @@ int pluginConfig_verifyEntry(pluginConfig_t conf,
 			     char *key, pluginConfigVal_t *val)
 {
     if (!checkConfig(conf) || !conf->def) {
-	pluginlog("%s: config not initialzied or no definition'\n", __func__);
+	pluginlog("%s: config not initialized or no definition'\n", __func__);
 	return 1;
     }
 
@@ -617,7 +634,7 @@ int pluginConfig_verifyEntry(pluginConfig_t conf,
 int pluginConfig_verify(pluginConfig_t conf)
 {
     if (!checkConfig(conf) || !conf->def) {
-	pluginlog("%s: config not initialzied or no definition'\n", __func__);
+	pluginlog("%s: config not initialized or no definition'\n", __func__);
 	return 1;
     }
 
@@ -650,10 +667,62 @@ bool pluginConfig_remove(pluginConfig_t conf, char *key)
     return true;
 }
 
+static int maxKeyLen = 0;
+
+bool pluginConfig_showVisitor(char *key, pluginConfigVal_t *val,
+			      const void *info)
+{
+    if (!info) return false;
+
+    StrBuffer_t *strBuf = (StrBuffer_t *)info;
+
+    char keyStr[maxKeyLen + 1];
+    switch (val->type) {
+    case PLUGINCONFIG_VALUE_NONE:
+	snprintf(keyStr, sizeof(keyStr), "%*s", maxKeyLen, key);
+	addStrBuf(keyStr, strBuf);
+	addStrBuf(" has no type\n", strBuf);
+	break;
+    case PLUGINCONFIG_VALUE_NUM:
+	snprintf(keyStr, sizeof(keyStr), "%*s", maxKeyLen, key);
+	addStrBuf(keyStr, strBuf);
+	char valStr[32];
+	snprintf(valStr, sizeof(valStr), " = %ld\n", val->val.num);
+	addStrBuf(valStr, strBuf);
+	break;
+    case PLUGINCONFIG_VALUE_STR:
+	snprintf(keyStr, sizeof(keyStr), "%*s", maxKeyLen, key);
+	addStrBuf(keyStr, strBuf);
+	addStrBuf(" = \"", strBuf);
+	addStrBuf(val->val.str, strBuf);
+	addStrBuf("\"\n", strBuf);
+	break;
+    case PLUGINCONFIG_VALUE_LST:
+	snprintf(keyStr, sizeof(keyStr), "%*s", maxKeyLen, key);
+	addStrBuf(keyStr, strBuf);
+	addStrBuf(" = [", strBuf);
+	for (size_t i = 0; val->val.lst[i]; i++) {
+	    if (i) addStrBuf(" , ", strBuf);
+	    addStrBuf("\"", strBuf);
+	    addStrBuf(val->val.lst[i], strBuf);
+	    addStrBuf("\"", strBuf);
+	}
+	addStrBuf("]\n", strBuf);
+	break;
+    default:
+	snprintf(keyStr, sizeof(keyStr), "%*s", maxKeyLen, key);
+	addStrBuf(keyStr, strBuf);
+	addStrBuf(" has unknown type\n", strBuf);
+    }
+    return true;
+}
+
 bool pluginConfig_traverse(pluginConfig_t conf, pluginConfigVisitor_t visitor,
 			   const void *info)
 {
     if (!checkConfig(conf) || !visitor) return false;
+
+    maxKeyLen = conf->maxKeyLen + 2; // if pluginConfig_showVisitor is visiting
 
     list_t *o;
     list_for_each(o, &(conf->config)) {
@@ -664,15 +733,25 @@ bool pluginConfig_traverse(pluginConfig_t conf, pluginConfigVisitor_t visitor,
     return true;
 }
 
+const char *pluginConfig_typeStr(pluginConfigValType_t type)
+{
+    switch (type) {
+    case PLUGINCONFIG_VALUE_NONE:
+	return "<none>";
+    case PLUGINCONFIG_VALUE_NUM:
+	return "<num>";
+    case PLUGINCONFIG_VALUE_STR:
+	return "<string>";
+    case PLUGINCONFIG_VALUE_LST:
+	return "<list>";
+    default:
+	return "<unknown>";
+    }
+}
+
 size_t pluginConfig_maxKeyLen(pluginConfig_t conf)
 {
     if (!checkConfig(conf) || !conf->def) return 0;
 
-    size_t max = 0;
-    for (size_t i = 0; conf->def[i].name; i++) {
-	size_t len = strlen(conf->def[i].name);
-	if (len > max) max = len;
-    }
-
-    return max;
+    return conf->maxKeyLen;
 }
