@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2020 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2021 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -1932,7 +1932,7 @@ static int newHost(int id, in_addr_t addr)
     }
 
     /* install hostname */
-    if (PSIDnodes_register(id, addr)) {
+    if (!PSIDnodes_register(id, addr)) {
 	parser_comment(-1, "PSIDnodes_register(%d, <%s>) failed\n",
 		       id, inet_ntoa(*(struct in_addr *)&addr));
 	return -1;

@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2003 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2020 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2021 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -92,9 +92,9 @@ PSnodes_ID_t PSIDnodes_getMaxID(void);
  *
  * @param addr IP address of the new node
  *
- * @return On success, 0 is returned; or -1 if an error occurred
+ * @return On success, true is returned; or false if an error occurred
  */
-int PSIDnodes_register(PSnodes_ID_t id, in_addr_t addr);
+bool PSIDnodes_register(PSnodes_ID_t id, in_addr_t addr);
 
 
 /**

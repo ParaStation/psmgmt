@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2003 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2020 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2021 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -211,29 +211,27 @@ static bool validID(PSnodes_ID_t id)
 
 #define GROW_CHUNK 64
 
-int PSIDnodes_register(PSnodes_ID_t id, in_addr_t addr)
+bool PSIDnodes_register(PSnodes_ID_t id, in_addr_t addr)
 {
     unsigned int hostno;
     struct host_t *host;
 
-    if (id < 0) {
-	return -1;
-    }
+    if (id < 0) return false;
 
-    if (PSIDnodes_lookupHost(addr)!=-1) {
+    if (PSIDnodes_lookupHost(addr) != -1) {
 	/* duplicated host */
-	return -1;
+	return false;
     }
 
     if (PSIDnodes_getAddr(id) != INADDR_ANY) { /* duplicated PS-ID */
-	return -1;
+	return false;
     }
 
     if (id >= PSIDnodes_getNum()
 	&& PSIDnodes_grow(GROW_CHUNK*(id/GROW_CHUNK + 1)) == -1) {
 	/* failed to grow nodes */		\
 	PSID_log(-1, "%s(id=%d): failed to grow nodes\n", __func__, id);
-	return -1;
+	return false;
     }
 
     hostno = ntohl(addr) & 0xff;
@@ -241,7 +239,7 @@ int PSIDnodes_register(PSnodes_ID_t id, in_addr_t addr)
     host = (struct host_t*) malloc(sizeof(struct host_t));
     if (!host) {
 	PSID_warn(-1, ENOMEM, "%s", __func__);
-	return -1;
+	return false;
     }
 
     host->addr = addr;
@@ -254,7 +252,7 @@ int PSIDnodes_register(PSnodes_ID_t id, in_addr_t addr)
 
     if (id > PSIDnodes_getMaxID()) maxID = id;
 
-    return 0;
+    return true;
 }
 
 PSnodes_ID_t PSIDnodes_lookupHost(in_addr_t addr)

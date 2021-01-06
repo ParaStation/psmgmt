@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2014-2020 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2014-2021 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -684,7 +684,7 @@ static bool getHW(char *key)
     CHECK_PSCONFIG_ERROR_AND_RETURN(list, key, err, false);
 
     bool ret = true;
-    if (!list->len == 0) {
+    if (!list->len) {
 	setHWType(0);
     } else {
 	unsigned int hwtype = 0;
@@ -1375,7 +1375,7 @@ static bool newHost(int id, in_addr_t addr)
     }
 
     /* install hostname */
-    if (PSIDnodes_register(id, addr) == -1) {
+    if (!PSIDnodes_register(id, addr)) {
 	parser_comment(-1, "PSIDnodes_register(%d, <%s>) failed\n",
 		       id, inet_ntoa(*(struct in_addr *)&addr));
 	return false;
