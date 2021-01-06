@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2020 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2020-2021 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -11,8 +11,9 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "pluginpsconfig.h"
+#include "pluginlog.h"
 #include "pluginmalloc.h"
+#include "pluginpsconfig.h"
 
 #include "psidutil.h"
 #include "psidnodes.h"
@@ -20,8 +21,7 @@
 
 #include "plugin.h"
 
-/* We'll need the psconfig configuration stuff */
-int requiredAPI = 130;
+int requiredAPI = 129;
 
 char name[] = "pluginpsconfig";
 
@@ -36,7 +36,15 @@ pluginConfig_t config;
 const pluginConfigDef_t confDef[] = {
     { "DebugMask", PLUGINCONFIG_VALUE_NUM, "Mask to steer debug output" },
     { "DebugMask2", PLUGINCONFIG_VALUE_NUM, "Mask to steer fine debug output" },
-    { "GPUPCIs", PLUGINCONFIG_VALUE_LST, "Bla" }
+    { "GPUDevices", PLUGINCONFIG_VALUE_LST,
+      "PCIe IDs of NICs (\"vendorID:deviceID[:subVendorID:subDeviceID]\"" },
+    { "GPUSort", PLUGINCONFIG_VALUE_STR,
+      "GPUs' sort order (\"BIOS\"|\"PCI\")" },
+    { "NICDevices", PLUGINCONFIG_VALUE_LST,
+      "PCIe IDs of NICs (\"vendorID:deviceID[:subVendorID:subDeviceID]\"" },
+    { "NICSort", PLUGINCONFIG_VALUE_STR,
+      "NICs' sort order (\"BIOS\"|\"PCI\")" },
+    { NULL, PLUGINCONFIG_VALUE_NONE, NULL }
 };
 
 static void unregisterHooks(void)
@@ -46,6 +54,8 @@ pluginConfig_t config = NULL;
 
 int initialize(void)
 {
+    initPluginLogger(NULL, NULL);
+
     pluginConfig_new(&config);
     pluginConfig_setDef(config, confDef);
 
@@ -69,25 +79,63 @@ void cleanup(void)
 
 char * help(void)
 {
-    char *helpText = "\tSome dummy plugin mimicking psconfig usage.\n";
+    StrBuffer_t strBuf = {
+	.buf = NULL,
+	.bufSize = 0 };
 
-    return strdup(helpText);
+    addStrBuf("\tSome dummy plugin mimicking psconfig usage.\n", &strBuf);
+    addStrBuf("\n# configuration options #\n\n", &strBuf);
+
+    int maxKeyLen = pluginConfig_maxKeyLen(config) + 2;
+    char keyStr[maxKeyLen + 1];
+    for (size_t i = 0; confDef[i].name; i++) {
+	snprintf(keyStr, sizeof(keyStr), "%*s", maxKeyLen, confDef[i].name);
+	addStrBuf(keyStr, &strBuf);
+	char typeStr[16];
+	snprintf(typeStr, sizeof(typeStr), "%10s",
+		 pluginConfig_typeStr(confDef[i].type));
+	addStrBuf(typeStr, &strBuf);
+	addStrBuf("  ", &strBuf);
+	addStrBuf(confDef[i].desc, &strBuf);
+	addStrBuf("\n", &strBuf);
+    }
+
+    return strBuf.buf;
 }
 
 char *set(char *key, char *value)
 {
     const pluginConfigDef_t *thisConfDef = pluginConfig_getDef(config, key);
 
-    if (!thisConfDef) return strdup("\nUnknown option\n");
+    if (!strcmp(key, "config")) {
+	pluginConfig_destroy(config);
 
-    if (pluginConfig_getDef(config, key))
-	return strdup("\nIllegal value\n");
+	pluginConfig_new(&config);
+	pluginConfig_setDef(config, confDef);
+	pluginConfig_load(config, value);
 
-    if (!strcmp(key, "DebugMask") && pluginConfig_addStr(config, key, value)) {
-	long mask = pluginConfig_getNum(config, key);
-	PSID_log(-1, "%s: debugMask now %#lx\n", __func__, mask);
-    } else {
-	return strdup("\nPermission denied\n");
+	return NULL;
+    }
+
+    if (!thisConfDef) return strdup(" Unknown option\n");
+
+    if (!strcmp(key, "DebugMask")) {
+	if (pluginConfig_addStr(config, key, value)) {
+	    long mask = pluginConfig_getNum(config, key);
+	    PSID_log(-1, "%s: debugMask now %#lx\n", __func__, mask);
+	} else {
+	    return strdup(" Illegal value\n");
+	}
+    } else if (thisConfDef->type == PLUGINCONFIG_VALUE_LST) {
+	if (*value == '+') {
+	    value++;
+	    pluginConfig_addToLst(config, key, value);
+	} else {
+	    pluginConfig_remove(config, key);
+	    pluginConfig_addToLst(config, key, value);
+	}
+    } else if (!pluginConfig_addStr(config, key, value)) {
+	return strdup(" Illegal value\n");
     }
 
     return NULL;
@@ -100,52 +148,10 @@ char *unset(char *key)
 	long mask = 0;
 	PSID_log(-1, "%s: debugMask now %#lx\n", __func__, mask);
     } else {
-	return strdup("Permission denied\n");
+	pluginConfig_remove(config, key);
     }
 
     return NULL;
-}
-
-static char *printSets(PSnodes_ID_t node, char *tag, uint16_t numNUMA,
-		       PSCPU_set_t *sets, uint16_t setSize)
-{
-    StrBuffer_t strBuf = {
-	.buf = NULL,
-	.bufSize = 0 };
-    char line[80];
-
-    addStrBuf("\n", &strBuf);
-    addStrBuf(tag, &strBuf);
-    if (node != PSC_getMyID()) {
-	snprintf(line, sizeof(line), " (for node %d)", node);
-	addStrBuf(line, &strBuf);
-    }
-    snprintf(line, sizeof(line), ": %d devices\n", setSize);
-    addStrBuf(line, &strBuf);
-
-    if (!sets) {
-	addStrBuf("\t<none>\n", &strBuf);
-	return strBuf.buf;
-    }
-
-    for (uint16_t dom = 0; dom < numNUMA; dom++) {
-	snprintf(line, sizeof(line), "\t%d\t%s\n", dom,
-		 PSCPU_print_part(sets[dom], PSCPU_bytesForCPUs(setSize)));
-	addStrBuf(line, &strBuf);
-    }
-
-    return strBuf.buf;
-}
-
-static PSnodes_ID_t getNode(char *key)
-{
-    PSnodes_ID_t node = -1;
-    if (strlen(key) > 3 && key[3] == '_') {
-	sscanf(key + 4, "%hd", &node);
-    }
-    if (!PSC_validNode(node)) node = PSC_getMyID();
-
-    return node;
 }
 
 char *show(char *key)
@@ -153,53 +159,15 @@ char *show(char *key)
     StrBuffer_t strBuf = {
 	.buf = NULL,
 	.bufSize = 0 };
-    char *val;
 
     if (!key) {
 	/* Show the whole configuration */
-	int maxKeyLen = pluginConfig_maxKeyLen(config);
-
 	addStrBuf("\n", &strBuf);
-	for (int i = 0; confDef[i].name; i++) {
-	    const char *cName = confDef[i].name;
-	    char line[160];
-	    val = pluginConfig_getStr(config, cName);
-	    snprintf(line, sizeof(line), "%*s = %s\n", maxKeyLen+2, cName, val);
-	    addStrBuf(line, &strBuf);
-	}
-    } else if (!(strncmp(key, "cpu", strlen("cpu")))) {
-	PSnodes_ID_t node = getNode(key);
-	return printSets(node, "HW threads", PSIDnodes_numNUMADoms(node),
-			 PSIDnodes_CPUSets(node), PSIDnodes_getNumThrds(node));
-    } else if (!(strncmp(key, "gpu", strlen("gpu")))) {
-	PSnodes_ID_t node = getNode(key);
-	return printSets(node, "GPUs", PSIDnodes_numNUMADoms(node),
-			 PSIDnodes_GPUSets(node), PSIDnodes_numGPUs(node));
-    } else if (!(strncmp(key, "nic", strlen("nic")))) {
-	PSnodes_ID_t node = getNode(key);
-	return printSets(node, "NICs", PSIDnodes_numNUMADoms(node),
-			 PSIDnodes_NICSets(node), PSIDnodes_numNICs(node));
-    } else if (!(strncmp(key, "all", strlen("all")))) {
-	PSnodes_ID_t node = getNode(key);
-	char *tmp;
-	tmp = printSets(node, "HW threads", PSIDnodes_numNUMADoms(node),
-			PSIDnodes_CPUSets(node), PSIDnodes_getNumThrds(node));
-	addStrBuf(tmp, &strBuf);
-	free(tmp);
-	tmp = printSets(node, "GPUs", PSIDnodes_numNUMADoms(node),
-			PSIDnodes_GPUSets(node), PSIDnodes_numGPUs(node));
-	addStrBuf(tmp, &strBuf);
-	free(tmp);
-	tmp = printSets(node, "NICs", PSIDnodes_numNUMADoms(node),
-			PSIDnodes_NICSets(node), PSIDnodes_numNICs(node));
-	addStrBuf(tmp, &strBuf);
-	free(tmp);
-    } else if ((val = pluginConfig_getStr(config, key))) {
-	addStrBuf("\n", &strBuf);
+	pluginConfig_traverse(config, pluginConfig_showVisitor, &strBuf);
+    } else if (!pluginConfig_showKeyVal(config, key, &strBuf)) {
+	addStrBuf(" ", &strBuf);
 	addStrBuf(key, &strBuf);
-	addStrBuf(" = ", &strBuf);
-	addStrBuf(val, &strBuf);
-	addStrBuf("\n", &strBuf);
+	addStrBuf(" is unknown\n", &strBuf);
     }
 
     return strBuf.buf;
