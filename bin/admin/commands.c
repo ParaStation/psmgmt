@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2020 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2021 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -479,24 +479,20 @@ void PSIADM_SummaryStat(bool *nl, int max)
 	    printf("error getting PSP_OP_CONFIG_HASH\n");
 	}
     }
-    if (hashCount[0] == upNodes) {
-	printf("Node status summary:  %d up   %d down  of %d total with "
-	       "nodelist hash %s\n", upNodes, downNodes, upNodes+downNodes,
-	       nodeListHash[0]);
-	free(nodeListHash[0]);
-    } else {
-	printf("Node status summary:  %d up   %d down  of %d total\n",
-	       upNodes, downNodes, upNodes+downNodes);
-
-	PSnodes_ID_t i = 0;
-	while (nodeListHash[i]) {
-	    printf("%i node(s) with nodelist hash %s\n", hashCount[i],
-		   nodeListHash[i]);
-	    hashCount[i] = 0;
-	    free(nodeListHash[i]);
-	    nodeListHash[i] = NULL;
-	    i++;
+    printf("Node status summary:  %d up   %d down  of %d total\n",
+	   upNodes, downNodes, upNodes+downNodes);
+    PSnodes_ID_t i = 0;
+    while (nodeListHash[i]) {
+	if (!i && hashCount[i] == upNodes) {
+	    printf("all nodes");
+	} else {
+	    printf("%i node%s", hashCount[i], hashCount[i] > 1 ? "s" : "");
 	}
+	printf(" with nodelist hash %s\n", nodeListHash[i]);
+	hashCount[i] = 0;
+	free(nodeListHash[i]);
+	nodeListHash[i] = NULL;
+	i++;
     }
 
     /* Also print list of down nodes if sufficiently less */
