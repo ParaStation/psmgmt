@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2002-2003 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2020 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2021 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -563,21 +563,89 @@ int parser_parseOn(char *token, parser_t *parser)
     return ret;
 }
 
+/*------------------------- Hashing ----------------------------*/
+
+/*
+ * MurmurHash3 was written by Austin Appleby. This code is stolen from
+ * https://github.com/aappleby/smhasher under MIT license with minor
+ * adaptations
+ */
+static inline uint32_t rotl32(uint32_t x, int8_t r)
+{
+    return (x << r) | (x >> (32 - r));
+}
+
+//-----------------------------------------------------------------------------
+// Finalization mix - force all bits of a hash block to avalanche
+
+static inline uint32_t fmix32( uint32_t h)
+{
+    h ^= h >> 16;
+    h *= 0x85ebca6b;
+    h ^= h >> 13;
+    h *= 0xc2b2ae35;
+    h ^= h >> 16;
+
+    return h;
+}
+
+static uint32_t MurmurHash3_x86_32(const void *key, size_t len, uint32_t seed)
+{
+    const uint8_t * data = (const uint8_t*)key;
+    const int nblocks = len / 4;
+
+    uint32_t h1 = seed;
+
+    const uint32_t c1 = 0xcc9e2d51;
+    const uint32_t c2 = 0x1b873593;
+
+    //----------
+    // body
+
+    const uint32_t *blocks = (const uint32_t *)(data + nblocks*4);
+
+    for (int i = -nblocks; i; i++) {
+	uint32_t k1 = blocks[i];
+
+	k1 *= c1;
+	k1 = rotl32(k1,15);
+	k1 *= c2;
+
+	h1 ^= k1;
+	h1 = rotl32(h1,13);
+	h1 = h1*5+0xe6546b64;
+    }
+
+    //----------
+    // tail
+
+    const uint8_t * tail = (const uint8_t*)(data + nblocks*4);
+
+    uint32_t k1 = 0;
+
+    switch(len & 3) {
+    case 3:
+	k1 ^= tail[2] << 16;
+	__attribute__((fallthrough));
+    case 2:
+	k1 ^= tail[1] << 8;
+	__attribute__((fallthrough));
+    case 1:
+	k1 ^= tail[0];
+	k1 *= c1; k1 = rotl32(k1,15); k1 *= c2; h1 ^= k1;
+    };
+
+    //----------
+    // finalization
+
+    h1 ^= len;
+
+    return fmix32(h1);
+}
+
 void parser_updateHash(uint32_t *hashVal, char *line)
 {
     if (!hashVal || !line) return;
 
-    size_t len = strlen(line);
-    for (size_t i = 0; i < len; i++) {
-	*hashVal = *hashVal ^ line[i] << 8;
-
-	for (int j = 0; j < 8; j++) {
-	    if (*hashVal & 0x8000) {
-		*hashVal <<= 1;
-		*hashVal = *hashVal ^ 4129;
-	    } else {
-		*hashVal <<= 1;
-	    }
-	}
-    }
+    *hashVal += MurmurHash3_x86_32(line, strlen(line), 0);
 }
