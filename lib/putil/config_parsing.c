@@ -379,7 +379,7 @@ static bool getCoreDir(char *key)
     static char *usedDir = NULL;
     struct stat fstat;
 
-    char *dname;
+    gchar *dname;
     if (!getString(key, &dname)) return false;
 
     /* test if dir is a valid directory */
@@ -1522,7 +1522,7 @@ static bool getNodes(char *psiddomain)
 
 	/* check psiddomain if set */
 	if (psiddomain) {
-	    char *domain;
+	    gchar *domain;
 	    /* ignore errors */
 	    if (!getString("Psid.Domain", &domain)) continue;
 	    /* ignore nodes with wrong psid domain */
@@ -1624,9 +1624,9 @@ static bool getHardwareOptions(char *name)
 	if (!val) {
 	    if (g_error_matches(err, PSCONFIG_ERROR,
 				PSCONFIG_ERROR_OBJNOTEXIST)) {
-		// it's perfectly ok to have hwtypes without any options
+		// it's perfectly ok to have hwtypes with some options missing
 		g_error_free(err);
-		return true;
+		continue;
 	    } else {
 		parser_comment(-1, "Failed to get %s of hwtype '%s': %s\n", key,
 			       name, err->message);
@@ -1653,7 +1653,7 @@ static bool getHardwareOptions(char *name)
     int env_config_style = 0;
 
     for (guint i = 0; i < env->len; i++) {
-	gchar *key = (gchar*)g_ptr_array_index(env,i);
+	gchar *key = (gchar*)g_ptr_array_index(env, i);
 	gchar *val = strstr(key, "=");
 	if (!val) {
 	    if (!env_config_style) {
@@ -1688,8 +1688,8 @@ static bool getHardwareOptions(char *name)
 	}
 
 	for (guint i = 0; (i+1) < env->len; i+=2) {
-	    gchar *key = (gchar*)g_ptr_array_index(env,i);
-	    gchar *val = (gchar*)g_ptr_array_index(env,i+1);
+	    gchar *key = (gchar*)g_ptr_array_index(env, i);
+	    gchar *val = (gchar*)g_ptr_array_index(env, i+1);
 
 	    if (!setHardwareEnv(key, val)) {
 		g_ptr_array_free(env, TRUE);
@@ -1762,7 +1762,7 @@ static bool getDaemonScript(char *key)
 	return false;
     }
 
-    char *value;
+    gchar *value;
     if (!getString(key, &value)) return false;
 
     if (*value == '\0') {
@@ -1991,7 +1991,7 @@ config_t *parseConfig(FILE* logfile, int logmask, char *configfile)
     psconfigobj[69] = '\0'; //assure object to be null terminated
 
     // check if the host object exists or we have to cut the hostname
-    char *nodename;
+    gchar *nodename;
     if (!getString("NodeName", &nodename)) {
 	// cut hostname
 	parser_comment(PARSER_LOG_VERB, "%s: Cutting hostname \"%s\" for"
@@ -2010,7 +2010,7 @@ config_t *parseConfig(FILE* logfile, int logmask, char *configfile)
     }
 
     // get local psid domain
-    char *psiddomain;
+    gchar *psiddomain;
     if (!getString("Psid.Domain", &psiddomain)) {
 	parser_comment(-1, "INFO: No psid domain configured, using all host"
 		       " objects.\n");
