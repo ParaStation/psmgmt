@@ -460,4 +460,23 @@ const char *pluginConfig_typeStr(pluginConfigValType_t type);
  */
 size_t pluginConfig_maxKeyLen(pluginConfig_t conf);
 
+/**
+ * @brief Provide key-value pair description
+ *
+ * Provide a description of the key-value pair indexed by @a key
+ * within the configuration context @a conf and append it to the
+ * string-buffer @a buf.
+ *
+ * @param conf Configuration context to be used
+ *
+ * @param key Key indexing the requested key-value pair
+ *
+ * @param buf String buffer the description is appended to
+ *
+ * @return If the key-value pair was found and the description was
+ * successfully appended to @a buf, true is returned; or false in case
+ * of failure
+ */
+bool pluginConfig_showKeyVal(pluginConfig_t conf, char *key, StrBuffer_t *buf);
+
 #endif  /* __PLUGIN_LIB_PSCONFIG */
