@@ -570,7 +570,6 @@ static bool getLogDest(char *key)
 {
     gchar *value;
     if (!getString(key, &value)) return false;
-
     if (*value == '\0') {
 	parser_comment(-1, "empty destination\n");
 	g_free(value);
@@ -1610,17 +1609,15 @@ static char* hwtype_scripts[] = {
 
 static bool getHardwareOptions(char *name)
 {
-    GError *err = NULL;
-
     int objlen = strlen(name) + 12;
     gchar obj[objlen];
     gint len = g_snprintf(obj, objlen, "psidhwtype:%s", name);
     if (len < 0 || len >= objlen) return false;
 
     for (guint i = 0; hwtype_scripts[i]; i++) {
+	GError *err = NULL;
 	gchar *key = (gchar*)hwtype_scripts[i];
 	gchar *val = psconfig_get(psconfig, obj, key, psconfig_flags, &err);
-
 	if (!val) {
 	    if (g_error_matches(err, PSCONFIG_ERROR,
 				PSCONFIG_ERROR_OBJNOTEXIST)) {
@@ -1640,6 +1637,7 @@ static bool getHardwareOptions(char *name)
 	if (!ret) return false;
     }
 
+    GError *err = NULL;
     GPtrArray *env = psconfig_getList(psconfig, obj, "Environment",
 				      psconfig_flags, &err);
 
