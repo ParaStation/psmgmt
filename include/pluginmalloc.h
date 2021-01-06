@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2012-2018 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2012-2021 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -109,7 +109,7 @@ char *__ustrdup(const char *s1, const char *func, const int line);
  *
  * @return Returns a pointer to the buffer.
  */
-char *__addStrBuf(char *str, StrBuffer_t *strBuf, const char *func,
+char *__addStrBuf(const char *str, StrBuffer_t *strBuf, const char *func,
 		  const int line);
 #define addStrBuf(str, strBuf) \
     __addStrBuf(str, strBuf, __func__, __LINE__)
@@ -136,8 +136,8 @@ char *__addStrBuf(char *str, StrBuffer_t *strBuf, const char *func,
  *
  * @return Returns a pointer to the buffer.
  */
-char *__str2Buf(char *str, char **buffer, size_t *bufSize, const char *func,
-		const int line);
+char *__str2Buf(const char *str, char **buffer, size_t *bufSize,
+		const char *func, const int line);
 #define str2Buf(str, buffer, bufSize) \
     __str2Buf(str, buffer, bufSize, __func__, __LINE__)
 
@@ -165,7 +165,7 @@ char *__str2Buf(char *str, char **buffer, size_t *bufSize, const char *func,
  *
  * @return Returns a pointer to the buffer.
  */
-char *__strn2Buf(char *str, size_t lenStr, char **buffer, size_t *bufSize,
+char *__strn2Buf(const char *str, size_t lenStr, char **buffer, size_t *bufSize,
 		 const char *func, const int line);
 #define strn2Buf(str, lenStr, buffer, bufSize) \
     __strn2Buf(str, lenStr, buffer, bufSize, __func__, __LINE__)

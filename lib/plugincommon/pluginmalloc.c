@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2012-2018 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2012-2021 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -75,20 +75,20 @@ void __ufree(void *ptr, const char *func, const int line)
     free(ptr);
 }
 
-char *__addStrBuf(char *str, StrBuffer_t *strBuf, const char *func,
+char *__addStrBuf(const char *str, StrBuffer_t *strBuf, const char *func,
 		  const int line)
 {
     return __strn2Buf(str, strlen(str), &strBuf->buf, &strBuf->bufSize,
 		      func, line);
 }
 
-char *__str2Buf(char *str, char **buffer, size_t *bufSize, const char *func,
-		const int line)
+char *__str2Buf(const char *str, char **buffer, size_t *bufSize,
+		const char *func, const int line)
 {
     return __strn2Buf(str, strlen(str), buffer, bufSize, func, line);
 }
 
-char *__strn2Buf(char *str, size_t lenStr, char **buffer, size_t *bufSize,
+char *__strn2Buf(const char *str, size_t lenStr, char **buffer, size_t *bufSize,
 		 const char *func, const int line)
 {
     size_t lenBuf;
