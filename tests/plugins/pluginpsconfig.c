@@ -86,19 +86,7 @@ char * help(void)
     addStrBuf("\tSome dummy plugin mimicking psconfig usage.\n", &strBuf);
     addStrBuf("\n# configuration options #\n\n", &strBuf);
 
-    int maxKeyLen = pluginConfig_maxKeyLen(config) + 2;
-    char keyStr[maxKeyLen + 1];
-    for (size_t i = 0; confDef[i].name; i++) {
-	snprintf(keyStr, sizeof(keyStr), "%*s", maxKeyLen, confDef[i].name);
-	addStrBuf(keyStr, &strBuf);
-	char typeStr[16];
-	snprintf(typeStr, sizeof(typeStr), "%10s",
-		 pluginConfig_typeStr(confDef[i].type));
-	addStrBuf(typeStr, &strBuf);
-	addStrBuf("  ", &strBuf);
-	addStrBuf(confDef[i].desc, &strBuf);
-	addStrBuf("\n", &strBuf);
-    }
+    pluginConfig_helpDesc(config, &strBuf);
 
     return strBuf.buf;
 }
