@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2006-2020 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2006-2021 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -13,6 +13,8 @@
  */
 #ifndef __PSIDHW_H
 #define __PSIDHW_H
+
+#include <stdint.h>
 
 #include "pscpu.h"
 #include "psprotocol.h"
@@ -122,5 +124,69 @@ int PSID_getHWthreads(void);
  * @return On success, the number of physical cores is returned
  */
 int PSID_getPhysCores(void);
+
+/**
+ * Type used to identify PCI devices in checkPCIDev() and callers,
+ * i.e. @ref PSID_getNumPCIDevs() and @ref PSID_getPCISets()
+ */
+typedef struct {
+    uint16_t vendor_id;       /**< PCIe vendor ID */
+    uint16_t device_id;       /**< PCIe device ID */
+    uint16_t subvendor_id;    /**< PCIe subsystem vendor ID */
+    uint16_t subdevice_id;    /**< PCIe subsystem device ID */
+} PCI_ID_t;
+
+/**
+ * @brief Get number of PCI devices of a specific kind
+ *
+ * Determine the number of PCI devices conforming the definition of @a
+ * ID_list. Each PCI devices as reported by hwloc is passed to @ref
+ * checkPCIDev() with @a ID_list as the second argument and will be
+ * counted if this function returns true.
+ *
+ * hwloc is initialized implicitly if this has not happened before.
+ *
+ * If for some reason the hwloc framework cannot be initialized,
+ * exit() is called.
+ *
+ * @param ID_list Zero-terminated array of PCI vendor, device,
+ * subvendor and subdevice IDs identifying the PCI devices to handle
+ *
+ * @return Number of PCI devices of the selected kind
+ */
+uint16_t PSID_getNumPCIDevs(PCI_ID_t ID_list[]);
+
+/**
+ * @brief Get the PCI device sets for all NUMA nodes
+ *
+ * Determine the PCI device sets for devices conforming to @a ID_list
+ * for each NUMA domain and return them as an array. This utilizes the
+ * hwloc framework.
+ *
+ * PCI devices are identified by utilizing @a ID_list. Depending on
+ * the flag @a PCIorder devices are either numbered in PCI device
+ * order or in hwloc order. If @a PCIorder is true, PCI devices order
+ * is used utilizing the map created by @ref getPCIorderMap().
+ *
+ * By using @ref getNUMADoms() and @ref getNumPCIDevs() this
+ * implicitly initializes hwloc if this has not happened before and
+ * could result in an exit().
+ *
+ * The array returned is indexed by NUMA domain numbers. It is
+ * allocated via malloc() and has to be free()ed by the caller once it
+ * is no longer needed. Thus, it is well suited to be registered to
+ * the PSIDnodes facility via PSIDnodes_setGPUSets() or
+ * PSIDnodes_setNICSets().
+ *
+ * @param PCIorder Flag to trigger PCI device order for numbering the
+ * PCI devices to handle
+ *
+ * @param ID_list Zero-terminated array of PCI vendor, device,
+ * subvendor and subdevice IDs identifying the PCI devices to handle
+ *
+ * @return On success, the array of CPU set is returned; on error, NULL
+ * might be returned
+ */
+PSCPU_set_t * PSID_getPCISets(bool PCIorder, PCI_ID_t ID_list[]);
 
 #endif /* __PSIDHW_H */

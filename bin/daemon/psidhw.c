@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2006-2020 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2006-2021 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -201,14 +201,6 @@ static PSCPU_set_t * getCPUSets(void)
     return sets;
 }
 
-/* Type used to identify PCI devices in checkPCIDev() and callers */
-typedef struct {
-    unsigned short vendor_id;
-    unsigned short device_id;
-    unsigned short subvendor_id;
-    unsigned short subdevice_id;
-} PCI_ID_t;
-
 /**
  * @brief Check PCI device
  *
@@ -217,7 +209,8 @@ typedef struct {
  *
  * @param pcidev Description of a PCI devices as provided by hwloc
  *
- * @param ID_list Array of descriptions of "valid" PCI devices
+ * @param ID_list Zero-terminated array of descriptions of "valid" PCI
+ * devices
  *
  * @return If the device is included in @a ID_list, true is returned;
  * or false otherwise
@@ -237,25 +230,7 @@ static bool checkPCIDev(struct hwloc_pcidev_attr_s *pcidev, PCI_ID_t ID_list[])
     return false;
 }
 
-/**
- * @brief Get number of PCI devices of a specific kind
- *
- * Determine the number of PCI devices conforming the definition of @a
- * ID_list. Each PCI devices as reported by hwloc is passed to @ref
- * checkPCIDev() with @a ID_list as the second argument and will be
- * counted if this function returns true.
- *
- * hwloc is initialized implicitly if this has not happened before.
- *
- * If for some reason the hwloc framework cannot be initialized,
- * exit() is called.
- *
- * @param ID_list Array of PCI vendor, device, subvendor and subdevice
- * IDs identifying the PCI devices to handle
- *
- * @return Number of PCI devices of the selected kind
- */
-static uint16_t getNumPCIDevs(PCI_ID_t ID_list[])
+uint16_t PSID_getNumPCIDevs(PCI_ID_t ID_list[])
 {
     if (!hwlocInitialized) initHWloc();
 
@@ -300,8 +275,8 @@ static int comparePCIaddr(const void *a, const void *b, void *pciaddr) {
  * identical to the number of PCI devices on the local node conforming
  * to ID_list
  *
- * @param ID_list Array of PCI vendor, device, subvendor and subdevice
- * IDs identifying the PCI devices to handle
+ * @param ID_list Zero-terminated array of PCI vendor, device,
+ * subvendor and subdevice IDs identifying the PCI devices to handle
  *
  * @return On success, a map translating IDs into PCI address order is
  * returned; or NULL in case of error
@@ -341,40 +316,9 @@ static uint16_t * getPCIorderMap(uint16_t numDevs, PCI_ID_t ID_list[])
     return map;
 }
 
-/**
- * @brief Get the PCI device sets for all NUMA nodes
- *
- * Determine the PCI device sets for devices conforming to @a ID_list
- * for each NUMA domain and return them as an array. This utilizes the
- * hwloc framework.
- *
- * PCI devices are identified by utilizing @a ID_list. Depending on
- * the flag @a PCIorder devices are either numbered in PCI device
- * order or in hwloc order. If @a PCIorder is true, PCI devices order
- * is used utilizing the map created by @ref getPCIorderMap().
- *
- * By using @ref getNUMADoms() and @ref getNumPCIDevs() this
- * implicitly initializes hwloc if this has not happened before and
- * could result in an exit().
- *
- * The array returned is indexed by NUMA domain numbers. It is
- * allocated via malloc() and has to be free()ed by the caller once it
- * is no longer needed. Thus, it is well suited to be registered to
- * the PSIDnodes facility via PSIDnodes_setGPUSets() or
- * PSIDnodes_setNICSets().
- *
- * @param PCIorder Flag to trigger PCI device order for numbering the
- * PCI devices to handle
- *
- * @param ID_list Array of PCI vendor, device, subvendor and subdevice
- * IDs identifying the PCI devices to handle
- *
- * @return On success, the array of CPU set is returned; on error, NULL
- * might be returned
- */
-static PSCPU_set_t * getPCISets(bool PCIorder, PCI_ID_t ID_list[])
+PSCPU_set_t * PSID_getPCISets(bool PCIorder, PCI_ID_t ID_list[])
 {
-    uint16_t numDevs = getNumPCIDevs(ID_list);
+    uint16_t numDevs = PSID_getNumPCIDevs(ID_list);
 
     if (!numDevs) return NULL;
 
@@ -926,7 +870,7 @@ static void msg_HWSTOP(DDBufferMsg_t *msg)
 
 /** List of PCI devices identified as GPUs */
 // @todo make this configurable!!
-static PCI_ID_t GPU_ID_list[] = {
+static PCI_ID_t GPU_IDs[] = {
     { 0x10de, 0x20b0, 0, 0 }, // NVIDIA A100-SXM4 (JUWELS-Booster)
     { 0x10de, 0x1db6, 0, 0 }, // NVIDIA V100 PCIe 32GB (DEEP-EST DAM/ESB)
     { 0x10de, 0x1db4, 0, 0 }, // NVIDIA V100 PCIe 16GB (JUSUF)
@@ -936,7 +880,7 @@ static PCI_ID_t GPU_ID_list[] = {
 
 /** List of PCI devices identified as NICs */
 // @todo make this configurable!!
-static PCI_ID_t NIC_ID_list[] = {
+static PCI_ID_t NIC_IDs[] = {
     { 0x15b3, 0x101b, 0, 0 }, // Mellanox ConnectX-6 (JURECA-DC/JUWELS-Booster)
     { 0x15b3, 0x1017, 0, 0 }, // Mellanox ConnectX-5 (DEEP-EST CM/ESB)
     { 0x15b3, 0x1013, 0, 0 }, // Mellanox ConnectX-4 (JURECA/JUWELS)
@@ -962,19 +906,19 @@ void initHW(void)
     PSCPU_set_t *CPUsets = getCPUSets();
     PSIDnodes_setCPUSets(PSC_getMyID(), CPUsets);
 
-    uint16_t numGPUs = getNumPCIDevs(GPU_ID_list);
+    uint16_t numGPUs = PSID_getNumPCIDevs(GPU_IDs);
     PSIDnodes_setNumGPUs(PSC_getMyID(), numGPUs);
     if (numGPUs) {
 	// @todo make PCIe order configurable!!
-	PSCPU_set_t *GPUsets = getPCISets(true /* PCIe order */, GPU_ID_list);
+	PSCPU_set_t *GPUsets = PSID_getPCISets(true /* PCIe order */, GPU_IDs);
 	PSIDnodes_setGPUSets(PSC_getMyID(), GPUsets);
     }
 
-    uint16_t numNICs = getNumPCIDevs(NIC_ID_list);
+    uint16_t numNICs = PSID_getNumPCIDevs(NIC_IDs);
     PSIDnodes_setNumNICs(PSC_getMyID(), numNICs);
     if (numNICs) {
 	// @todo make PCIe order configurable!!
-	PSCPU_set_t *NICsets = getPCISets(false /* PCIe order */, NIC_ID_list);
+	PSCPU_set_t *NICsets = PSID_getPCISets(false /* PCIe order */, NIC_IDs);
 	PSIDnodes_setNICSets(PSC_getMyID(), NICsets);
     }
 
