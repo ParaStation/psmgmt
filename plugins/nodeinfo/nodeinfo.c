@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2020 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2020-2021 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -119,7 +119,9 @@ static bool handleSetData(char **ptr, PSnodes_ID_t sender,
 /**
  * @brief Send nodeinfo data
  *
- * Send the nodeinfo data of the local node to node @a node.
+ * Send the nodeinfo data of the local node to node @a node. If @a
+ * node is the local node, nodeinfo data will be broadcasted to all
+ * nodes.
  *
  * @param node Destination node
  *
@@ -135,7 +137,15 @@ static void sendNodeInfoData(PSnodes_ID_t node)
     }
 
     initFragBuffer(&data, PSP_PLUG_NODEINFO, 0);
-    setFragDest(&data, PSC_getTID(node, 0));
+    if (node == PSC_getMyID()) {
+	// broadcast to all nodes
+	for (PSnodes_ID_t n = 0; n < PSC_getNrOfNodes(); n++) {
+	    if (n == PSC_getMyID() || !PSIDnodes_isUp(n)) continue;
+	    setFragDest(&data, PSC_getTID(n, 0));
+	}
+    } else {
+	setFragDest(&data, PSC_getTID(node, 0));
+    }
 
     addCPUMapData(&data);
     addSetsData(PSP_NODEINFO_NUMANODES, PSIDnodes_CPUSets(PSC_getMyID()),
@@ -297,6 +307,24 @@ static void handleNodeInfoMsg(DDBufferMsg_t *msg)
     recvFragMsg((DDTypedBufferMsg_t *)msg, handleNodeInfoData);
 }
 
+static bool validateValue(const char *key, const pluginConfigVal_t *val,
+			  const void *info)
+{
+    if (!strcmp(key, "DebugMask")) {
+	uint32_t mask = val ? val->val.num : 0;
+	maskNodeInfoLogger(mask);
+	mdbg(NODEINFO_LOG_VERBOSE, "debugMask set to %#x\n", mask);
+    } else if (!strcmp(key, "GPUDevices")) {
+    } else if (!strcmp(key, "GPUSort")) {
+    } else if (!strcmp(key, "NICDevices")) {
+    } else if (!strcmp(key, "NICSort")) {
+    } else {
+	mlog("%s: unknown key '%s'\n", __func__, key);
+    }
+
+    return true;
+}
+
 /**
  * @brief Unregister all hooks and message handler.
  *
@@ -326,13 +354,11 @@ int initialize(void)
     /* init logging facility */
     initNodeInfoLogger(name);
 
-    /* init default configuration (no config file yet; wait for psconfig?) */
+    /* init configuration (depends on psconfig) */
     initNodeInfoConfig();
 
-    /* adapt the debug mask */
-    int mask = getConfValueI(&nodeInfoConfig, "DEBUG_MASK");
-    maskNodeInfoLogger(mask);
-    mdbg(NODEINFO_LOG_VERBOSE, "%s: debugMask set to %#x\n", __func__, mask);
+    /* Activate configuration values */
+    pluginConfig_traverse(nodeInfoConfig, validateValue, NULL);
 
     if (!PSIDhook_add(PSIDHOOK_NODE_UP, handleNodeUp)) {
 	mlog("%s: register 'PSIDHOOK_NODE_UP' failed\n", __func__);
@@ -356,7 +382,7 @@ int initialize(void)
 
     mlog("(%i) successfully started\n", version);
 
-    /* Test if we were loaded late (far after psid startu) and send/req info */
+    /* Test if we were loaded late (far after psid startup) and send/req info */
     checkOtherNodes();
 
     return 0;
@@ -378,12 +404,12 @@ void cleanup(void)
     }
     unregisterHooks(true);
     finalizeSerial();
-    freeConfig(&nodeInfoConfig);
+    finalizeNodeInfoConfig();
 
     mlog("...Bye.\n");
 
     /* release the logger */
-    logger_finalize(nodeInfoLogger);
+    finalizeNodeInfoLogger();
 }
 
 char *help(void)
@@ -399,36 +425,38 @@ char *help(void)
     addStrBuf("\tNICs are displayed under key 'nic'\n", &strBuf);
     addStrBuf("\tCPU-maps are displayed under key 'map'\n", &strBuf);
     addStrBuf("\tTo display all HW information use key 'all'\n", &strBuf);
-    addStrBuf("\n# configuration options #\n", &strBuf);
+    addStrBuf("\n# configuration options #\n\n", &strBuf);
 
-    int maxKeyLen = getMaxKeyLen(confDef);
-    for (int i = 0; confDef[i].name; i++) {
-	char type[10], line[160];
-	snprintf(type, sizeof(type), "<%s>", confDef[i].type);
-	snprintf(line, sizeof(line), "%*s %10s  %s\n",
-		 maxKeyLen+2, confDef[i].name, type, confDef[i].desc);
-	addStrBuf(line, &strBuf);
-    }
+    pluginConfig_helpDesc(nodeInfoConfig, &strBuf);
 
     return strBuf.buf;
 }
 
 char *set(char *key, char *val)
 {
-    const ConfDef_t *thisConfDef = getConfigDef(key, confDef);
+    const pluginConfigDef_t *thisDef = pluginConfig_getDef(nodeInfoConfig, key);
 
-    if (!thisConfDef) return ustrdup("\nUnknown option\n");
+    if (!strcmp(key, "update")) {
+	// broadcast my info again
+	sendNodeInfoData(PSC_getMyID());
+	return NULL;
+    }
 
-    if (verifyConfigEntry(confDef, key, val))
-	return ustrdup("\nIllegal value\n");
+    if (!thisDef) return strdup(" Unknown option\n");
 
-    if (!strcmp(key, "DEBUG_MASK")) {
-	addConfigEntry(&nodeInfoConfig, key, val);
-	int mask = getConfValueI(&nodeInfoConfig, key);
-	maskNodeInfoLogger(mask);
-	mlog("%s: debugMask now %#x\n", __func__, mask);
-    } else {
-	return ustrdup("\nPermission denied\n");
+    if (thisDef->type == PLUGINCONFIG_VALUE_LST) {
+	if (*val == '+') {
+	    val++;
+	    pluginConfig_addToLst(nodeInfoConfig, key, val);
+	} else {
+	    pluginConfig_remove(nodeInfoConfig, key);
+	    pluginConfig_addToLst(nodeInfoConfig, key, val);
+	}
+    } else if (!pluginConfig_addStr(nodeInfoConfig, key, val)) {
+	return strdup(" Illegal value\n");
+    }
+    if (!validateValue(key, pluginConfig_get(nodeInfoConfig, key), NULL)) {
+	return strdup(" Illegal value\n");
     }
 
     return NULL;
@@ -436,47 +464,36 @@ char *set(char *key, char *val)
 
 char *unset(char *key)
 {
-    if (!strcmp(key, "DEBUG_MASK")) {
-	unsetConfigEntry(&nodeInfoConfig, confDef, key);
-	int mask = getConfValueI(&nodeInfoConfig, key);
-	maskNodeInfoLogger(mask);
-	mlog("%s: debugMask now %#x\n", __func__, mask);
-    } else {
-	return ustrdup("Permission denied\n");
-    }
+    pluginConfig_remove(nodeInfoConfig, key);
+    validateValue(key, NULL, nodeInfoConfig);
 
     return NULL;
 }
 
-static char *printSets(PSnodes_ID_t node, char *tag, uint16_t numNUMA,
-		       PSCPU_set_t *sets, uint16_t setSize)
+static void printSets(PSnodes_ID_t node, char *tag, uint16_t numNUMA,
+		      PSCPU_set_t *sets, uint16_t setSize, StrBuffer_t *strBuf)
 {
-    StrBuffer_t strBuf = {
-	.buf = NULL,
-	.bufSize = 0 };
     char line[80];
 
-    addStrBuf("\n", &strBuf);
-    addStrBuf(tag, &strBuf);
+    addStrBuf("\n", strBuf);
+    addStrBuf(tag, strBuf);
     if (node != PSC_getMyID()) {
 	snprintf(line, sizeof(line), " (for node %d)", node);
-	addStrBuf(line, &strBuf);
+	addStrBuf(line, strBuf);
     }
     snprintf(line, sizeof(line), ": %d devices\n", setSize);
-    addStrBuf(line, &strBuf);
+    addStrBuf(line, strBuf);
 
     if (!sets) {
-	addStrBuf("\t<none>\n", &strBuf);
-	return strBuf.buf;
+	addStrBuf("\t<none>\n", strBuf);
+	return;
     }
 
     for (uint16_t dom = 0; dom < numNUMA; dom++) {
 	snprintf(line, sizeof(line), "\t%d\t%s\n", dom,
 		 PSCPU_print_part(sets[dom], PSCPU_bytesForCPUs(setSize)));
-	addStrBuf(line, &strBuf);
+	addStrBuf(line, strBuf);
     }
-
-    return strBuf.buf;
 }
 
 static PSnodes_ID_t getNode(char *key)
@@ -490,28 +507,23 @@ static PSnodes_ID_t getNode(char *key)
     return node;
 }
 
-static char *showMap(char *key)
+static void showMap(char *key, StrBuffer_t *strBuf)
 {
-    StrBuffer_t strBuf = {
-	.buf = NULL,
-	.bufSize = 0 };
     PSnodes_ID_t node = getNode(key);
     char line[80];
 
-    addStrBuf("\nMap", &strBuf);
+    addStrBuf("\nMap", strBuf);
     if (node != PSC_getMyID()) {
 	snprintf(line, sizeof(line), " (for node %d)", node);
-	addStrBuf(line, &strBuf);
+	addStrBuf(line, strBuf);
     }
-    addStrBuf(":\n\t", &strBuf);
+    addStrBuf(":\n\t", strBuf);
     for (uint16_t thrd = 0; thrd < PSIDnodes_getNumThrds(node); thrd++) {
 	snprintf(line, sizeof(line), " %d->%d", thrd,
 		 PSIDnodes_mapCPU(node, thrd));
-	addStrBuf(line, &strBuf);
+	addStrBuf(line, strBuf);
     }
-    addStrBuf("\n", &strBuf);
-
-    return strBuf.buf;
+    addStrBuf("\n", strBuf);
 }
 
 
@@ -520,57 +532,38 @@ char *show(char *key)
     StrBuffer_t strBuf = {
 	.buf = NULL,
 	.bufSize = 0 };
-    char *val;
 
     if (!key) {
 	/* Show the whole configuration */
-	int maxKeyLen = getMaxKeyLen(confDef);
-
 	addStrBuf("\n", &strBuf);
-	for (int i = 0; confDef[i].name; i++) {
-	    char *cName = confDef[i].name, line[160];
-	    val = getConfValueC(&nodeInfoConfig, cName);
-	    snprintf(line, sizeof(line), "%*s = %s\n", maxKeyLen+2, cName, val);
-	    addStrBuf(line, &strBuf);
-	}
-    } else if (!(strncmp(key, "cpu", strlen("cpu")))) {
+	pluginConfig_traverse(nodeInfoConfig, pluginConfig_showVisitor,&strBuf);
+    } else if (!strncmp(key, "cpu", strlen("cpu"))) {
 	PSnodes_ID_t node = getNode(key);
-	return printSets(node, "HW threads", PSIDnodes_numNUMADoms(node),
-			 PSIDnodes_CPUSets(node), PSIDnodes_getNumThrds(node));
-    } else if (!(strncmp(key, "gpu", strlen("gpu")))) {
+	printSets(node, "HW threads", PSIDnodes_numNUMADoms(node),
+		  PSIDnodes_CPUSets(node), PSIDnodes_getNumThrds(node),&strBuf);
+    } else if (!strncmp(key, "gpu", strlen("gpu"))) {
 	PSnodes_ID_t node = getNode(key);
-	return printSets(node, "GPUs", PSIDnodes_numNUMADoms(node),
-			 PSIDnodes_GPUSets(node), PSIDnodes_numGPUs(node));
-    } else if (!(strncmp(key, "nic", strlen("nic")))) {
+	printSets(node, "GPUs", PSIDnodes_numNUMADoms(node),
+		  PSIDnodes_GPUSets(node), PSIDnodes_numGPUs(node), &strBuf);
+    } else if (!strncmp(key, "nic", strlen("nic"))) {
 	PSnodes_ID_t node = getNode(key);
-	return printSets(node, "NICs", PSIDnodes_numNUMADoms(node),
-			 PSIDnodes_NICSets(node), PSIDnodes_numNICs(node));
-    } else if (!(strncmp(key, "map", strlen("map")))) {
-	return showMap(key);
-    } else if (!(strncmp(key, "all", strlen("all")))) {
+	printSets(node, "NICs", PSIDnodes_numNUMADoms(node),
+		  PSIDnodes_NICSets(node), PSIDnodes_numNICs(node), &strBuf);
+    } else if (!strncmp(key, "map", strlen("map"))) {
+	showMap(key, &strBuf);
+    } else if (!strncmp(key, "all", strlen("all"))) {
 	PSnodes_ID_t node = getNode(key);
-	char *tmp;
-	tmp = printSets(node, "HW threads", PSIDnodes_numNUMADoms(node),
-			PSIDnodes_CPUSets(node), PSIDnodes_getNumThrds(node));
-	addStrBuf(tmp, &strBuf);
-	free(tmp);
-	tmp = showMap(key);
-	addStrBuf(tmp, &strBuf);
-	free(tmp);
-	tmp = printSets(node, "GPUs", PSIDnodes_numNUMADoms(node),
-			PSIDnodes_GPUSets(node), PSIDnodes_numGPUs(node));
-	addStrBuf(tmp, &strBuf);
-	free(tmp);
-	tmp = printSets(node, "NICs", PSIDnodes_numNUMADoms(node),
-			PSIDnodes_NICSets(node), PSIDnodes_numNICs(node));
-	addStrBuf(tmp, &strBuf);
-	free(tmp);
-    } else if ((val = getConfValueC(&nodeInfoConfig, key))) {
-	addStrBuf("\n", &strBuf);
+	printSets(node, "HW threads", PSIDnodes_numNUMADoms(node),
+		  PSIDnodes_CPUSets(node), PSIDnodes_getNumThrds(node),&strBuf);
+	showMap(key, &strBuf);
+	printSets(node, "GPUs", PSIDnodes_numNUMADoms(node),
+		  PSIDnodes_GPUSets(node), PSIDnodes_numGPUs(node), &strBuf);
+	printSets(node, "NICs", PSIDnodes_numNUMADoms(node),
+		  PSIDnodes_NICSets(node), PSIDnodes_numNICs(node), &strBuf);
+    } else if (!pluginConfig_showKeyVal(nodeInfoConfig, key, &strBuf)) {
+	addStrBuf(" '", &strBuf);
 	addStrBuf(key, &strBuf);
-	addStrBuf(" = ", &strBuf);
-	addStrBuf(val, &strBuf);
-	addStrBuf("\n", &strBuf);
+	addStrBuf("' is unknown\n", &strBuf);
     }
 
     return strBuf.buf;
