@@ -1132,23 +1132,6 @@ CLEANUP:
     deleteBCast(bcast);
 }
 
-static void addSlurmPids(PStask_ID_t loggerTID, PS_SendDB_t *data)
-{
-    uint32_t count = 0, i;
-    pid_t *pids = NULL;
-
-    /* node_name */
-    addStringToMsg(getConfValueC(&Config, "SLURM_HOSTNAME"), data);
-
-    psAccountGetPidsByLogger(loggerTID, &pids, &count);
-
-    addUint32ToMsg(count, data);
-    for (i=0; i<count; i++) {
-	addUint32ToMsg((uint32_t)pids[i], data);
-    }
-    ufree(pids);
-}
-
 static int addSlurmAccData(SlurmAccData_t *slurmAccData, PS_SendDB_t *data)
 {
     bool res;
@@ -1215,16 +1198,14 @@ PACK_RESPONSE:
 
 static void handleStepStat(Slurm_Msg_t *sMsg)
 {
-    PS_SendDB_t *msg = &sMsg->reply;
     char **ptr = &sMsg->ptr;
-    uint32_t jobid, stepid, numTasks, numTasksUsed;
-    Step_t *step;
 
-    getUint32(ptr, &jobid);
-    getUint32(ptr, &stepid);
+    Slurm_Step_Head_t head;
+    unpackStepHead(ptr, &head, sMsg->head.version);
 
-    if (!(step = findStepByStepId(jobid, stepid))) {
-	mlog("%s: step %u.%u to signal not found\n", __func__, jobid, stepid);
+    Step_t *step = findStepByStepId(head.jobid, head.stepid);
+    if (!step) {
+	flog("step %u.%u to signal not found\n", head.jobid, head.stepid);
 	sendSlurmRC(sMsg, ESLURM_INVALID_JOB_ID);
 	return;
     }
@@ -1236,10 +1217,12 @@ static void handleStepStat(Slurm_Msg_t *sMsg)
 	return;
     }
 
+    PS_SendDB_t *msg = &sMsg->reply;
+
     /* add return code */
     addUint32ToMsg(SLURM_SUCCESS, msg);
     /* add placeholder for number of tasks */
-    numTasksUsed = msg->bufUsed;
+    uint32_t numTasksUsed = msg->bufUsed;
     addUint32ToMsg(SLURM_SUCCESS, msg);
     /* account data */
     SlurmAccData_t slurmAccData = {
@@ -1251,11 +1234,15 @@ static void handleStepStat(Slurm_Msg_t *sMsg)
 	.tasks = &step->tasks,
 	.remoteTasks = &step->remoteTasks,
 	.childPid = 0 };
-    numTasks = addSlurmAccData(&slurmAccData, msg);
+    uint32_t numTasks = addSlurmAccData(&slurmAccData, msg);
     /* correct number of tasks */
     *(uint32_t *)(msg->buf + numTasksUsed) = htonl(numTasks);
+
     /* add step PIDs */
-    addSlurmPids(step->loggerTID, msg);
+    Slurm_PIDs_t sPID;
+    sPID.hostname = getConfValueC(&Config, "SLURM_HOSTNAME");
+    psAccountGetPidsByLogger(step->loggerTID, &sPID.pid, &sPID.count);
+    packSlurmPIDs(msg, &sPID);
 
     sendSlurmReply(sMsg, RESPONSE_JOB_STEP_STAT);
 }
@@ -1263,14 +1250,13 @@ static void handleStepStat(Slurm_Msg_t *sMsg)
 static void handleStepPids(Slurm_Msg_t *sMsg)
 {
     char **ptr = &sMsg->ptr;
-    Step_t *step;
-    uint32_t jobid, stepid;
 
-    getUint32(ptr, &jobid);
-    getUint32(ptr, &stepid);
+    Slurm_Step_Head_t head;
+    unpackStepHead(ptr, &head, sMsg->head.version);
 
-    if (!(step = findStepByStepId(jobid, stepid))) {
-	mlog("%s: step %u.%u to signal not found\n", __func__, jobid, stepid);
+    Step_t *step = findStepByStepId(head.jobid, head.stepid);
+    if (!step) {
+	flog("step %u.%u to signal not found\n", head.jobid, head.stepid);
 	sendSlurmRC(sMsg, ESLURM_INVALID_JOB_ID);
 	return;
     }
@@ -1282,9 +1268,14 @@ static void handleStepPids(Slurm_Msg_t *sMsg)
 	return;
     }
 
-    /* send step pids */
+    /* send step PIDs */
     PS_SendDB_t *msg = &sMsg->reply;
-    addSlurmPids(step->loggerTID, msg);
+    Slurm_PIDs_t sPID;
+
+    sPID.hostname = getConfValueC(&Config, "SLURM_HOSTNAME");
+    psAccountGetPidsByLogger(step->loggerTID, &sPID.pid, &sPID.count);
+    packSlurmPIDs(msg, &sPID);
+
     sendSlurmReply(sMsg, RESPONSE_JOB_STEP_PIDS);
 }
 
@@ -2409,6 +2400,10 @@ void sendNodeRegStatus(bool startup)
     /* job id infos (count, array (jobid/stepid) */
     getJobInfos(&stat.jobInfoCount, &stat.jobids, &stat.stepids);
     getStepInfos(&stat.jobInfoCount, &stat.jobids, &stat.stepids);
+    stat.stepHetComp = umalloc(sizeof(*stat.stepHetComp) * stat.jobInfoCount);
+    for (uint32_t i=0; i<stat.jobInfoCount; i++) {
+	stat.stepHetComp[i] = NO_VAL;
+    }
 
     /* protocol version */
     stat.protoVersion = version;
@@ -2424,12 +2419,17 @@ void sendNodeRegStatus(bool startup)
     /* fill energy data */
     psAccountGetEnergy(&stat.eData);
 
+    /* dynamic node feature */
+    stat.dynamic = false;
+    stat.dynamicFeat = NULL;
+
     packRespNodeRegStatus(&msg, &stat);
 
     sendSlurmMsg(SLURMCTLD_SOCK, MESSAGE_NODE_REGISTRATION_STATUS, &msg);
 
     ufree(stat.jobids);
     ufree(stat.stepids);
+    ufree(stat.stepHetComp);
 }
 
 int __sendSlurmReply(Slurm_Msg_t *sMsg, slurm_msg_type_t type,
@@ -2487,22 +2487,21 @@ int getSlurmNodeID(PSnodes_ID_t psNodeID, PSnodes_ID_t *nodes,
     return -1;
 }
 
-void sendStepExit(Step_t *step, uint32_t exit_status)
+void sendStepExit(Step_t *step, uint32_t exitStatus)
 {
     PS_SendDB_t body = { .bufUsed = 0, .useFrag = false };
+    Req_Step_Comp_t req = {
+	.jobid = step->jobid,
+	.stepid = step->stepid,
+	.stepHetComp = step->stepHetComp,
+	.firstNode = 0,
+	.lastNode = step->nrOfNodes -1,
+	.exitStatus = exitStatus,
+    };
 
-    /* jobid */
-    addUint32ToMsg(step->jobid, &body);
-    /* stepid */
-    addUint32ToMsg(step->stepid, &body);
-    /* node range (first, last) */
-    addUint32ToMsg(0, &body);
-    addUint32ToMsg(step->nrOfNodes -1, &body);
-    /* exit status */
-    exit_status = (step->timeout) ? 0 : exit_status;
-    addUint32ToMsg(exit_status, &body);
+    packReqStepComplete(&body, &req);
 
-    /* account data */
+    /* add account data to request */
     pid_t childPid = (step->fwdata) ? step->fwdata->cPid : 1;
     step->accType = (step->leader) ? step->accType : 0;
 
@@ -2518,80 +2517,94 @@ void sendStepExit(Step_t *step, uint32_t exit_status)
     addSlurmAccData(&slurmAccData, &body);
 
     flog("REQUEST_STEP_COMPLETE for %u:%u to slurmctld: exit %u\n",
-	 step->jobid, step->stepid, exit_status);
+	 step->jobid, step->stepid, exitStatus);
 
     sendSlurmMsg(SLURMCTLD_SOCK, REQUEST_STEP_COMPLETE, &body);
 }
 
+/**
+ * @brief Pack the given data and send a MESSAGE_TASK_EXIT RPC
+ *
+ * @param step The step to send the message for
+ *
+ * @param exitCode Send all Slurm ranks exited with that code
+ *
+ * @param count Add the number of ranks processed
+ *
+ * @param ctlPort sattach control ports to send the message to
+ * or NULL to send it to the main srun process
+ *
+ * @param ctlAddr sattach control addresses to send the message to or
+ * NULL to send it to the main srun process
+ */
 static void doSendTaskExit(Step_t *step, int exitCode, uint32_t *count,
 			   int *ctlPort, int *ctlAddr)
 {
-    PS_SendDB_t body = { .bufUsed = 0, .useFrag = false };
-    list_t *t;
-    uint32_t exitCount = 0, exitCount2 = 0;
-    int i, sock;
+    Msg_Task_Exit_t msg = { .exitCount = 0 };
 
     /* exit status */
-    if (step->timeout) {
-	addUint32ToMsg(SIGTERM, &body);
-    } else {
-	addUint32ToMsg(exitCode, &body);
-    }
+    msg.exitStatus = step->timeout ? SIGTERM : exitCode;
 
-    /* number of processes exited */
+    /* calculate the number of processes exited with specific exit status */
+    list_t *t;
     list_for_each(t, &step->tasks) {
 	PS_Tasks_t *task = list_entry(t, PS_Tasks_t, next);
 	if (task->sentExit || task->childRank < 0) continue;
 	if (task->exitCode == exitCode) {
-	    exitCount++;
+	    msg.exitCount++;
 	}
     }
-    addUint32ToMsg(exitCount, &body);
 
-    /* task ids of processes (array) */
-    addUint32ToMsg(exitCount, &body);
+    *count += msg.exitCount;
+    if (msg.exitCount < 1) {
+	flog("failed to find tasks for exitCode %i\n", exitCode);
+	return;
+    }
+    msg.taskRanks = umalloc(sizeof(*msg.taskRanks) * msg.exitCount);
 
+    /* add all ranks with the specific exit status */
+    uint32_t exitCount2 = 0;
     list_for_each(t, &step->tasks) {
 	PS_Tasks_t *task = list_entry(t, PS_Tasks_t, next);
 	if (task->sentExit || task->childRank < 0) continue;
 	if (task->exitCode == exitCode) {
-	    addUint32ToMsg(task->childRank, &body);
+	    msg.taskRanks[exitCount2++] = task->childRank;
 	    task->sentExit = 1;
-	    exitCount2++;
 	    /*
 	    mlog("%s: tasks childRank:%i exit:%i exitCount:%i\n", __func__,
-		    task->childRank, task->exitCode, exitCount);
+		    task->childRank, task->exitCode, msg.exitCount);
 	    */
 	}
     }
-    *count += exitCount;
 
-    if (exitCount < 1) {
-	mlog("%s: failed to find tasks for exitCode %i\n", __func__, exitCode);
-	return;
-    }
-
-    if (exitCount != exitCount2) {
-	mlog("%s: mismatching exit count %i:%i\n", __func__,
-	     exitCount, exitCount2);
+    if (msg.exitCount != exitCount2) {
+	flog("mismatching exit count %i:%i\n", msg.exitCount, exitCount2);
+	ufree(msg.taskRanks);
 	return;
     }
 
     /* job/stepid */
-    addUint32ToMsg(step->jobid, &body);
-    addUint32ToMsg(step->stepid, &body);
+    msg.jobid = step->jobid;
+    msg.stepid = step->stepid;
+    msg.stepHetComp = NO_VAL;
+
+    PS_SendDB_t body = { .bufUsed = 0, .useFrag = false };
+    packMsgTaskExit(&body, &msg);
+    ufree(msg.taskRanks);
 
     if (!ctlPort || !ctlAddr) {
+	/* send to step associated srun process */
 	flog("MESSAGE_TASK_EXIT %u of %u tasks, exit %i to srun\n",
-	     exitCount, *count,	(step->timeout ? SIGTERM : exitCode));
+	     msg.exitCount, *count, (step->timeout ? SIGTERM : exitCode));
 
 	srunSendMsg(-1, step, MESSAGE_TASK_EXIT, &body);
     } else {
-	for (i=0; i<MAX_SATTACH_SOCKETS; i++) {
+	/* send to all sattach processes */
+	for (int i=0; i<MAX_SATTACH_SOCKETS; i++) {
 	    if (ctlPort[i] != -1) {
-
-		if ((sock = tcpConnectU(ctlAddr[i], ctlPort[i])) <0) {
-		    mlog("%s: connection to srun %u:%u failed\n", __func__,
+		int sock = tcpConnectU(ctlAddr[i], ctlPort[i]);
+		if (sock <0) {
+		    flog("connection to srun %u:%u failed\n",
 			 ctlAddr[i], ctlPort[i]);
 		} else {
 		    srunSendMsg(sock, step, MESSAGE_TASK_EXIT, &body);
@@ -2741,6 +2754,7 @@ void sendTaskPids(Step_t *step)
 
     resp.jobid = step->jobid;
     resp.stepid = step->stepid;
+    resp.stepHetComp = step->stepHetComp;
     resp.returnCode = SLURM_SUCCESS;
     resp.nodeName = getConfValueC(&Config, "SLURM_HOSTNAME");
 

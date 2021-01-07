@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2016-2020 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2016-2021 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -584,6 +584,7 @@ bool __unpackReqSuspendInt(Slurm_Msg_t *sMsg, Req_Suspend_Int_t **reqPtr,
  */
 bool __packUpdateNode(PS_SendDB_t *data, Req_Update_Node_t *update,
 		      const char *caller, const int line);
+
 #define packUpdateNode(sMsg, update) \
     __packUpdateNode(sMsg, update, __func__, __LINE__)
 
@@ -610,5 +611,99 @@ bool __unpackConfigMsg(Slurm_Msg_t *sMsg, Config_Msg_t **confPtr,
 
 #define unpackConfigMsg(sMsg, respPtr) \
     __unpackConfigMsg(sMsg, respPtr, __func__, __LINE__)
+
+/**
+ * @brief Pack message task exit data
+ *
+ * Pack message task exit data and add it to the provided data
+ * buffer.
+ *
+ * @param data Data buffer to save data to
+ *
+ * @param msg The data to pack
+ *
+ * @param caller Function name of the calling function
+ *
+ * @param line Line number where this function is called
+ *
+ * @return On success true is returned or false in case of an
+ * error. If writing was not successful, @a data might be not updated.
+ */
+bool __packMsgTaskExit(PS_SendDB_t *data, Msg_Task_Exit_t *msg,
+		       const char *caller, const int line);
+
+#define packMsgTaskExit(data, msg) \
+    __packMsgTaskExit(data, msg, __func__, __LINE__)
+
+/**
+ * @brief Pack request step complete
+ *
+ * Pack request step complete and add it to the provided data
+ * buffer.
+ *
+ * @param data Data buffer to save data to
+ *
+ * @param req The data to pack
+ *
+ * @param caller Function name of the calling function
+ *
+ * @param line Line number where this function is called
+ *
+ * @return On success true is returned or false in case of an
+ * error. If writing was not successful, @a data might be not updated.
+ */
+bool __packReqStepComplete(PS_SendDB_t *data, Req_Step_Comp_t *req,
+			   const char *caller, const int line);
+
+#define packReqStepComplete(data, req) \
+    __packReqStepComplete(data, req, __func__, __LINE__)
+
+/**
+ * @brief Unpack a Slurm step header
+ *
+ * Unpack a Slurm step header from the provided message pointer.
+ * The memory is allocated using umalloc(). The caller is responsible
+ * to free the memory using ufree().
+ *
+ * @param ptr The Slurm message to unpack
+ *
+ * @param head The header structure holding the result
+ *
+ * @param msgVer The Slurm protocol version
+ *
+ * @param caller Function name of the calling function
+ *
+ * @param line Line number where this function is called
+ *
+ * @return On success true is returned or false in case of an
+ * error. If reading was not successful, @a sMsg might be not updated.
+ */
+bool __unpackStepHead(char **ptr, void *head, uint16_t msgVer,
+		      const char *caller, const int line);
+
+#define unpackStepHead(ptr, head, msgVer) \
+    __unpackStepHead(ptr, head, msgVer, __func__, __LINE__)
+
+/**
+ * @brief Pack Slurm PIDs
+ *
+ * Pack Slurm PIDs and add it to the provided data buffer.
+ *
+ * @param data Data buffer to save data to
+ *
+ * @param pids The data to pack
+ *
+ * @param caller Function name of the calling function
+ *
+ * @param line Line number where this function is called
+ *
+ * @return On success true is returned or false in case of an
+ * error. If writing was not successful, @a data might be not updated.
+ */
+bool __packSlurmPIDs(PS_SendDB_t *data, Slurm_PIDs_t *pids,
+		     const char *caller, const int line);
+
+#define packSlurmPIDs(data, req) \
+    __packSlurmPIDs(data, req, __func__, __LINE__)
 
 #endif  /* __PS_SLURM_PACK */

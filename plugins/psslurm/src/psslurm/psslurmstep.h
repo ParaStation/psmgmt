@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2017-2020 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2017-2021 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -24,6 +24,12 @@
 #include "psslurmmsg.h"
 
 typedef struct {
+    uint32_t jobid;         /**< unique job identifier */
+    uint32_t stepid;        /**< unique step identifier */
+    uint32_t stepHetComp;   /**< TODO */
+} Slurm_Step_Head_t;
+
+typedef struct {
     char **argv;		    /**< program arguments */
     uint32_t argc;		    /**< number of arguments */
     uint32_t np;		    /**< number of processes */
@@ -42,9 +48,9 @@ typedef struct {
 } X11_Data_t;
 
 typedef struct {
-    list_t next;                /**< used to put into some step-lists */
     uint32_t jobid;		/**< unique job identifier */
     uint32_t stepid;		/**< unique step identifier */
+    uint32_t stepHetComp;       /**< TODO */
     uint32_t np;		/**< number of processes */
     uint16_t tpp;		/**< HW-threads per process (PSI_TPP) */
     char *username;		/**< username of step owner */
@@ -55,6 +61,11 @@ typedef struct {
     list_t gresList;		/**< list of generic resources  */
     PSnodes_ID_t *nodes;	/**< all participating nodes in the step */
     uint32_t nrOfNodes;		/**< number of nodes */
+    uint32_t numTasksPerBoard;  /**< number of tasks per board */
+    uint32_t numTasksPerCore;   /**< number of tasks per core */
+    uint32_t numTasksPerTRes;   /**< number of tasks per TRes */
+    uint32_t numTasksPerSocket; /**< number of tasks per socket */
+    uint16_t threadsPerCore;    /**< threads per core */
     char *slurmHosts;		/**< Slurm compressed host-list (SLURM_NODELIST) */
     uint32_t jobMemLimit;	/**< memory limit of job */
     uint32_t stepMemLimit;	/**< memory limit of step */
@@ -146,18 +157,15 @@ typedef struct {
     uint32_t rcvdPackInfos;	/**< number of received pack infos */
     uint32_t rcvdPackProcs;	/**< number of received pack processes */
     ssize_t lastPackInfoOffset; /**< iterator variable for packInfo*/
+    list_t next;                /**< used to put into some step-lists */
 } Step_t;
 
 /**
  * @brief Add a new step
  *
- * @param jobid The jobid of the step
- *
- * @param stepid The stepid of the step
- *
  * @return Returns the newly created step
  */
-Step_t *addStep(uint32_t jobid, uint32_t stepid);
+Step_t *addStep(void);
 
 /**
  * @brief Delete a step

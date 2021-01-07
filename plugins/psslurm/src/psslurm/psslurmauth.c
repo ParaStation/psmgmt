@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2014-2019 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2014-2021 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -24,12 +24,6 @@
 #include "psslurmpack.h"
 #include "psslurmauth.h"
 
-/** munge plugin string (obsolete since 19.05) */
-#define AUTH_MUNGE_STRING "auth/munge"
-
-/** munge plugin version (obsolete since 19.05) */
-#define AUTH_MUNGE_VERSION 10
-
 /** munge plugin identification */
 #define MUNGE_PLUGIN_ID 101
 
@@ -43,7 +37,6 @@ void freeSlurmAuth(Slurm_Auth_t *auth)
 {
     if (!auth) return;
 
-    ufree(auth->method);
     ufree(auth->cred);
     ufree(auth);
 }
@@ -58,9 +51,7 @@ Slurm_Auth_t *dupSlurmAuth(Slurm_Auth_t *auth)
     }
 
     dupAuth = umalloc(sizeof(*auth));
-    dupAuth->method = strdup(auth->method);
     dupAuth->cred = strdup(auth->cred);
-    dupAuth->version = auth->version;
     dupAuth->pluginID = auth->pluginID;
 
     return dupAuth;
@@ -74,8 +65,6 @@ Slurm_Auth_t *getSlurmAuth(void)
     if (!psMungeEncode(&cred)) return NULL;
 
     auth = umalloc(sizeof(Slurm_Auth_t));
-    auth->method = strdup(AUTH_MUNGE_STRING);
-    auth->version = AUTH_MUNGE_VERSION;
     auth->cred = cred;
     auth->pluginID = MUNGE_PLUGIN_ID;
 
@@ -95,12 +84,6 @@ bool extractSlurmAuth(Slurm_Msg_t *sMsg)
     /* ensure munge is used for authentication */
     if (auth->pluginID && auth->pluginID != MUNGE_PLUGIN_ID) {
 	flog("unsupported authentication plugin %u\n", auth->pluginID);
-	goto ERROR;
-    }
-
-    /* authentication method (obsolete since 19.05) */
-    if (auth->method && !!(strcmp(auth->method, AUTH_MUNGE_STRING))) {
-	flog("invalid authentication munge plugin '%s'\n", auth->method);
 	goto ERROR;
     }
 
@@ -443,14 +426,11 @@ JobCred_t *extractJobCred(list_t *gresList, Slurm_Msg_t *sMsg, bool verify)
 
     if (psslurmlogger->mask & PSSLURM_LOG_AUTH) {
 	flog("cred len %u jobMemLimit %lu stepMemLimit %lu stepHostlist '%s' "
-	     "jobHostlist '%s' ctime %lu sig '%s'\n", credLen,
-	     cred->jobMemLimit, cred->stepMemLimit, cred->stepHL,
-	     cred->jobHostlist, cred->ctime, cred->sig);
-
-	if (sMsg->head.version >= SLURM_19_05_PROTO_VERSION) {
-	    flog("pwGecos '%s' pwDir '%s' pwShell '%s' gidNames '%s'\n",
-		 cred->pwGecos, cred->pwDir, cred->pwShell, cred->gidNames);
-	}
+	     "jobHostlist '%s' ctime %lu sig '%s' pwGecos '%s' pwDir '%s' "
+	     "pwShell '%s' gidNames '%s'\n", credLen, cred->jobMemLimit,
+	     cred->stepMemLimit, cred->stepHL, cred->jobHostlist, cred->ctime,
+	     cred->sig, cred->pwGecos, cred->pwDir, cred->pwShell,
+	     cred->gidNames);
     }
 
     return cred;

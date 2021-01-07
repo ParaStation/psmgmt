@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2014-2019 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2014-2021 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -59,6 +59,7 @@ typedef struct {
     uint64_t gresPerTask;       /**< GRES count per task */
     uint64_t memPerGRes;        /**< memory per GRES */
     uint64_t totalGres;         /**< total GRES count */
+    uint16_t numTasksPerGres;   /**< number of tasks per GRES */
 } Gres_Cred_t;
 
 /**

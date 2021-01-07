@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2014-2020 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2014-2021 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -18,33 +18,38 @@
 #include "psslurmcomm.h"
 #include "psaccounttypes.h"
 
+/** Holding information for RPC REQUEST_TERMINATE_JOB */
 typedef struct {
-    uint32_t jobid;
-    uint32_t packJobid;
-    uint32_t stepid;
-    uint32_t jobstate;
-    uid_t uid;
-    gid_t gid;
-    char *nodes;
-    env_t spankEnv;
-    time_t startTime;
+    uint32_t jobid;		/**< unique job identifier */
+    uint32_t stepid;		/**< unique step identifier */
+    uint32_t stepHetComp;	/**< TODO */
+    uint32_t packJobid;		/**< unique pack job identifier */
+    uint32_t jobstate;		/**< state of the job */
+    uid_t uid;			/**< user ID of request sender */
+    gid_t gid;			/**< group ID of request sender */
+    char *nodes;		/**< participating nodes */
+    env_t spankEnv;		/**< spank environment */
+    time_t startTime;		/**< time the job started */
+    time_t requestTime;		/**< time slurmctld send the request */
 } Req_Terminate_Job_t;
 
-/** structure holding a signal tasks request */
+/** Structure holding a signal tasks request */
 typedef struct {
-    uint32_t jobid;	/**< unique job identifier */
-    uint32_t stepid;	/**< unique step identifier */
-    uint16_t signal;	/**< the signal to send */
-    uint16_t flags;	/**< various signal options */
-    uid_t uid;		/**< user ID of requestor */
+    uint32_t jobid;		/**< unique job identifier */
+    uint32_t stepid;		/**< unique step identifier */
+    uint32_t stepHetComp;	/**< TODO */
+    uint16_t signal;		/**< the signal to send */
+    uint16_t flags;		/**< various signal options */
+    uid_t uid;			/**< user ID of requestor */
 } Req_Signal_Tasks_t;
 
+/** Holding information for RPC RESPONSE_PING_SLURMD */
 typedef struct {
     uint32_t cpuload;
     uint64_t freemem;
 } Resp_Ping_t;
 
-/** structure for registering the node to slurmctld */
+/** Structure for registering the node to slurmctld */
 typedef struct {
     time_t now;			/**< current time */
     time_t startTime;		/**< the time psslurm was loaded */
@@ -59,7 +64,7 @@ typedef struct {
     uint16_t threadsPerCore;	/**< threads per core */
     uint16_t flags;		/**< node flags (e.g. SLURMD_REG_FLAG_RESP) */
     uint64_t realMem;		/**< real node memory */
-    uint32_t tmpDisk;		/**< tmp disc space */
+    uint32_t tmpDisk;		/**< temporary disc space */
     uint32_t uptime;		/**< system uptime */
     uint32_t config;		/**< configuration hash or NO_VAL */
     uint32_t cpuload;		/**< current CPU load */
@@ -67,14 +72,17 @@ typedef struct {
     uint32_t jobInfoCount;	/**< count of following job infos */
     uint32_t *jobids;		/**< running job IDs */
     uint32_t *stepids;		/**< running step IDs */
+    uint32_t *stepHetComp;	/**< TODO */
     int protoVersion;		/**< protocol version */
     char verStr[64];		/**< version string */
     psAccountEnergy_t eData;	/**< energy accounting data */
+    bool dynamic;		/**< dynamic future node */
+    char *dynamicFeat;		/**< dynamic feature */
 } Resp_Node_Reg_Status_t;
 
-/** structure holding all infos to pack Slurm accounting data */
+/** Structure holding all infos to pack Slurm accounting data */
 typedef struct {
-    AccountDataExt_t psAcct;	/**< actual accouting data from psaccount */
+    AccountDataExt_t psAcct;	/**< actual accounting data from psaccount */
     uint8_t type;		/**< type of accounting */
     bool empty;			/**< flag to signal empty accounting data */
     uint32_t nrOfNodes;		/**< number of nodes */
@@ -103,10 +111,12 @@ typedef struct {
     char verStr[64];
 } Resp_Daemon_Status_t;
 
+/** Holding information for RPC RESPONSE_LAUNCH_TASKS */
 typedef struct {
-    const char *nodeName;
     uint32_t jobid;
     uint32_t stepid;
+    uint32_t stepHetComp;
+    const char *nodeName;
     uint32_t returnCode;
     uint32_t countPIDs;
     uint32_t countLocalPIDs;
@@ -124,10 +134,12 @@ typedef struct {
 } Ext_Resp_Node_Reg_Entry_t;
 
 typedef struct {
-    Ext_Resp_Node_Reg_Entry_t *entry;	/* a node registration response entry */
-    uint32_t count;			/* number of entries */
+    Ext_Resp_Node_Reg_Entry_t *entry;	/**< a node registration response entry */
+    uint32_t count;			/**< number of entries */
+    char *nodeName;			/**< node name */
 } Ext_Resp_Node_Reg_t;
 
+/** Holding data for RPC REQUEST_SUSPEND_INT */
 typedef struct {
     uint8_t  indefSus;	    /* indefinitely suspended (switch plugin) */
     uint16_t jobCoreSpec;   /* number of specialized cores */
@@ -148,9 +160,10 @@ typedef struct {
     const char *reason;	    /**< reason for update */
     uint32_t reasonUID;	    /**< user ID of request */
     uint32_t weight;	    /**< new weight */
+    char *comment;	    /**< comment */
 } Req_Update_Node_t;
 
-/** structure holding all received configuration files */
+/** Structure holding all received configuration files */
 typedef struct {
     char *slurm_conf;
     char *acct_gather_conf;
@@ -166,11 +179,40 @@ typedef struct {
     char *slurmd_spooldir;
 } Config_Msg_t;
 
+/** Holding Slurm configuration actions */
 typedef enum {
-    CONF_ACT_STARTUP = 0x20,
-    CONF_ACT_RELOAD,
-    CONF_ACT_NONE
+    CONF_ACT_STARTUP = 0x20,	/**< receive configuration files at startup */
+    CONF_ACT_RELOAD,		/**< reload configuration
+				  (currently unsupported) */
+    CONF_ACT_NONE		/**< no change in configuration */
 } Config_Action_t;
+
+/** Holding all information for RPC MESSAGE_TASK_EXIT */
+typedef struct {
+    uint32_t jobid;		/**< unique job identifier */
+    uint32_t stepid;		/**< unique step identifier */
+    uint32_t stepHetComp;	/**< TODO */
+    uint32_t exitStatus;	/**< exit status */
+    uint32_t exitCount;		/**< exit count */
+    uint32_t *taskRanks;	/**< Slurm process ranks */
+} Msg_Task_Exit_t;
+
+/** Holding all information for RPC REQUEST_STEP_COMPLETE */
+typedef struct {
+    uint32_t jobid;		/**< unique job identifier */
+    uint32_t stepid;		/**< unique step identifier */
+    uint32_t stepHetComp;	/**< TODO */
+    uint32_t firstNode;		/**< first node completed the step */
+    uint32_t lastNode;		/**< last node completed the step */
+    uint32_t exitStatus;	/**< compound step exit status */
+} Req_Step_Comp_t;
+
+/** Holding Slurm PIDs to pack */
+typedef struct {
+    char *hostname;	/**< hostname the processes were executed */
+    uint32_t count;	/**< number of PIDs */
+    pid_t *pid;	/**< the actual PIDs to pack */
+} Slurm_PIDs_t;
 
 /** Slurm protocol version */
 extern uint32_t slurmProto;
@@ -184,7 +226,7 @@ extern char *slurmVerStr;
 /** Flag to measure Slurm RPC execution times */
 extern bool measureRPC;
 
-/** Node registration response data (Tres) */
+/** Node registration response data (TRes) */
 extern Ext_Resp_Node_Reg_t *tresDBconfig;
 
 /**
@@ -258,9 +300,9 @@ int __sendSlurmReply(Slurm_Msg_t *sMsg, slurm_msg_type_t type,
 		    __sendSlurmReply(sMsg, type, __func__, __LINE__)
 
 /**
- * @brief Save the jobscript to disk
+ * @brief Save the job-script to disk
  *
- * @param job The job of the jobscript
+ * @param job The job of the job-script
  *
  * @param return Returns true on success and false on error.
  */
@@ -321,9 +363,9 @@ void sendTaskExit(Step_t *step, int *ctlPort, int *ctlAddr);
  *
  * @param step The step to send the message for
  *
- * @param exit_status The exit status of the step
+ * @param exitStatus The exit status of the step
  */
-void sendStepExit(Step_t *step, uint32_t exit_status);
+void sendStepExit(Step_t *step, uint32_t exitStatus);
 
 /**
  * @brief Send a batch job complete message
@@ -430,7 +472,7 @@ void clearSlurmdProto(void);
 /**
  * @brief Request job information from slurmctld
  *
- * @param jobid The jobid to request information for
+ * @param jobid The job ID to request information for
  *
  * @return Returns the number of bytes written, -1 on error or -2 if
  * the message was stored and will be send out later

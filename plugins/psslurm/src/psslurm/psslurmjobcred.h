@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2017-2020 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2017-2021 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -28,6 +28,7 @@ typedef enum {
 typedef struct {
     uint32_t jobid;             /**< unique job identifier */
     uint32_t stepid;            /**< unique step identifier */
+    uint32_t stepHetComp;       /**< TODO */
     uid_t uid;                  /**< job user ID */
     gid_t gid;			/**< primary group ID */
     char *username;		/**< username */

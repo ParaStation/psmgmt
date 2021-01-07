@@ -58,6 +58,7 @@
 #include "psslurmenv.h"
 #include "psslurm.h"
 #include "psslurmfwcomm.h"
+#include "psslurmpack.h"
 
 #include "psslurmpscomm.h"
 
@@ -1514,9 +1515,8 @@ int forwardSlurmMsg(Slurm_Msg_t *sMsg, uint32_t nrOfNodes, PSnodes_ID_t *nodes)
 
     /* send the message to other nodes */
     initFragBuffer(&msg, PSP_PLUG_PSSLURM, PSP_FORWARD_SMSG);
-    uint32_t i;
-    for (i=0; i<nrOfNodes; i++) {
-	if (!(setFragDest(&msg, PSC_getTID(nodes[i], 0)))) {
+    for (uint32_t i=0; i<nrOfNodes; i++) {
+	if (!setFragDest(&msg, PSC_getTID(nodes[i], 0))) {
 	    return -1;
 	}
     }
@@ -1525,20 +1525,18 @@ int forwardSlurmMsg(Slurm_Msg_t *sMsg, uint32_t nrOfNodes, PSnodes_ID_t *nodes)
     addInt16ToMsg(sMsg->sock, &msg);
     addTimeToMsg(sMsg->recvTime, &msg);
 
-    /* copy header */
-    addUint16ToMsg(sMsg->head.version, &msg);
-    addUint16ToMsg(sMsg->head.flags, &msg);
-    addUint16ToMsg(sMsg->head.index, &msg);
-    addUint16ToMsg(sMsg->head.type, &msg);
-    addUint32ToMsg(sMsg->head.bodyLen, &msg);
+    /* pack modified message header */
+    Slurm_Msg_Header_t dup;
+    dupSlurmMsgHead(&dup, &sMsg->head);
+    /* ensure further forwarding is disabled! */
+    dup.forward = dup.returnList = 0;
 
-    /* add forward */
-    addUint16ToMsg((uint16_t) 0, &msg);
-    /* add return List */
-    addUint16ToMsg((uint16_t) 0, &msg);
-    /* add addr */
-    addUint32ToMsg(sMsg->head.addr, &msg);
-    addUint16ToMsg(sMsg->head.port, &msg);
+    int ret = packSlurmHeader(&msg, &dup);
+    freeSlurmMsgHead(&dup);
+    if (!ret) {
+	flog("packing Slurm message header failed\n");
+	return -1;
+    }
 
     /* add message body */
     uint32_t len = sMsg->data->bufUsed - (sMsg->ptr - sMsg->data->buf);

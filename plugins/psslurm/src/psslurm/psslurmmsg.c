@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2017-2020 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2017-2021 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -151,8 +151,6 @@ void freeSlurmMsg(Slurm_Msg_t *sMsg)
 
 void dupSlurmMsgHead(Slurm_Msg_Header_t *dupHead, Slurm_Msg_Header_t *head)
 {
-    uint32_t i;
-
     if (!dupHead || !head) {
 	mlog("%s: invalid dupHead or head\n", __func__);
 	return;
@@ -161,7 +159,7 @@ void dupSlurmMsgHead(Slurm_Msg_Header_t *dupHead, Slurm_Msg_Header_t *head)
     memcpy(dupHead, head, sizeof(*dupHead));
 
     if (head->fwNodeList) {
-	dupHead->fwNodeList = strdup(head->fwNodeList);
+	dupHead->fwNodeList = ustrdup(head->fwNodeList);
     }
 
     if (head->fwResSize) {
@@ -171,7 +169,7 @@ void dupSlurmMsgHead(Slurm_Msg_Header_t *dupHead, Slurm_Msg_Header_t *head)
 	memcpy(dupHead->fwRes, head->fwRes,
 	       head->fwResSize * sizeof(Slurm_Forward_Res_t));
 
-	for (i=0; i<head->fwResSize; i++) {
+	for (uint32_t i=0; i<head->fwResSize; i++) {
 	    if (head->fwRes[i].body.bufSize) {
 		dupHead->fwRes[i].body.buf =
 		    umalloc(head->fwRes[i].body.bufSize);

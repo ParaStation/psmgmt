@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2017-2020 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2017-2021 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -25,17 +25,10 @@
 /** List of all steps */
 static LIST_HEAD(StepList);
 
-Step_t *addStep(uint32_t jobid, uint32_t stepid)
+Step_t *addStep(void)
 {
     Step_t *step = ucalloc(sizeof(Step_t));
 
-    if (deleteStep(jobid, stepid)) {
-	mlog("%s: warning: deleting old step structure %u:%u\n",
-	     __func__, jobid, stepid);
-    }
-
-    step->jobid = jobid;
-    step->stepid = stepid;
     INIT_LIST_HEAD(&step->gresList);
     step->exitCode = -1;
     step->stdOutRank = -1;
