@@ -667,7 +667,7 @@ bool pluginConfig_remove(pluginConfig_t conf, char *key)
     return true;
 }
 
-static bool doShow(char *key, int keyLen, pluginConfigVal_t *val,
+static bool doShow(const char *key, int keyLen, const pluginConfigVal_t *val,
 		   StrBuffer_t *buf)
 {
     if (!buf) return false;
@@ -726,7 +726,7 @@ bool pluginConfig_showKeyVal(pluginConfig_t conf, char *key, StrBuffer_t *buf)
 
 static int maxKeyLen = 0;
 
-bool pluginConfig_showVisitor(char *key, pluginConfigVal_t *val,
+bool pluginConfig_showVisitor(const char *key, const pluginConfigVal_t *val,
 			      const void *info)
 {
     if (!info) return false;
@@ -734,6 +734,30 @@ bool pluginConfig_showVisitor(char *key, pluginConfigVal_t *val,
     StrBuffer_t *strBuf = (StrBuffer_t *)info;
 
     return doShow(key, maxKeyLen, val, strBuf);
+}
+
+void pluginConfig_helpDesc(pluginConfig_t conf, StrBuffer_t *buf)
+{
+    if (!buf) return;
+
+    if (!checkConfig(conf)) {
+	addStrBuf("\tNo configuration context provided.\n", buf);
+	return;
+    }
+
+    int maxKeyLen = pluginConfig_maxKeyLen(conf) + 2;
+    char keyStr[maxKeyLen + 1];
+    for (size_t i = 0; conf->def[i].name; i++) {
+	snprintf(keyStr, sizeof(keyStr), "%*s", maxKeyLen, conf->def[i].name);
+	addStrBuf(keyStr, buf);
+	char typeStr[16];
+	snprintf(typeStr, sizeof(typeStr), "%10s",
+		 pluginConfig_typeStr(conf->def[i].type));
+	addStrBuf(typeStr, buf);
+	addStrBuf("  ", buf);
+	addStrBuf(conf->def[i].desc, buf);
+	addStrBuf("\n", buf);
+    }
 }
 
 bool pluginConfig_traverse(pluginConfig_t conf, pluginConfigVisitor_t visitor,

@@ -139,7 +139,8 @@ bool pluginConfig_load(pluginConfig_t conf, char *configKey);
  * interrupted and @ref traverseConfig() will return to its calling
  * function.
  */
-typedef bool pluginConfigVisitor_t(char *key, pluginConfigVal_t *val,
+typedef bool pluginConfigVisitor_t(const char *key,
+				   const pluginConfigVal_t *val,
 				   const void *info);
 
 /**
@@ -480,5 +481,21 @@ size_t pluginConfig_maxKeyLen(pluginConfig_t conf);
  * of failure
  */
 bool pluginConfig_showKeyVal(pluginConfig_t conf, char *key, StrBuffer_t *buf);
+
+/**
+ * @brief Provide description for plugin's help function
+ *
+ * Provide a description of the expected parameters within the
+ * configuration context @a conf and append it to the string-buffer @a
+ * buf. The description will be based on the configuration definition
+ * that has to be added via @ref pluginConfig_setDef() before.
+ *
+ * @param conf Configuration context to be described
+ *
+ * @param buf String buffer the description is appended to
+ *
+ * @return No return value
+ */
+void pluginConfig_helpDesc(pluginConfig_t conf, StrBuffer_t *buf);
 
 #endif  /* __PLUGIN_LIB_PSCONFIG */
