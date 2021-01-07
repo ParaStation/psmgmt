@@ -21,6 +21,7 @@
 
 #include "psidcomm.h"
 #include "psidhook.h"
+#include "psidhw.h"
 #include "psidnodes.h"
 #include "psidplugin.h"
 #include "psidutil.h"
@@ -34,7 +35,7 @@
 /** psid plugin requirements */
 char name[] = "nodeinfo";
 int version = 1;
-int requiredAPI = 129;
+int requiredAPI = 130;
 plugin_dep_t dependencies[] = { { NULL, 0 } };
 
 /** Backup of handler for PSP_PLUG_NODEINFO messages */
@@ -307,17 +308,188 @@ static void handleNodeInfoMsg(DDBufferMsg_t *msg)
     recvFragMsg((DDTypedBufferMsg_t *)msg, handleNodeInfoData);
 }
 
-static bool validateValue(const char *key, const pluginConfigVal_t *val,
-			  const void *info)
+static PCI_ID_t *GPU_IDs = NULL;
+
+static bool GPU_PCIeOrder = true;
+
+static void updateGPUInfo(void)
+{
+    uint16_t numGPUs = GPU_IDs ? PSID_getNumPCIDevs(GPU_IDs) : 0;
+    PSIDnodes_setNumGPUs(PSC_getMyID(), numGPUs);
+    if (numGPUs) {
+	PSCPU_set_t *GPUsets = PSID_getPCISets(GPU_PCIeOrder, GPU_IDs);
+	PSIDnodes_setGPUSets(PSC_getMyID(), GPUsets);
+    }
+}
+
+static PCI_ID_t *NIC_IDs = NULL;
+
+static bool NIC_PCIeOrder = false; // Use BIOS order
+
+static void updateNICInfo(void)
+{
+    uint16_t numNICs = NIC_IDs ? PSID_getNumPCIDevs(NIC_IDs) : 0;
+    PSIDnodes_setNumNICs(PSC_getMyID(), numNICs);
+    if (numNICs) {
+	PSCPU_set_t *NICsets = PSID_getPCISets(NIC_PCIeOrder, NIC_IDs);
+	PSIDnodes_setNICSets(PSC_getMyID(), NICsets);
+    }
+}
+
+static inline size_t lstLen(char **lst)
+{
+    size_t len = 0;
+    for (char **l = lst; l && *l; l++) len++;
+    return len;
+}
+
+static bool pairFromStr(char *str, uint16_t *val1, uint16_t *val2)
+{
+    char *end;
+    /* first element */
+    long v1 = strtol(str, &end, 16);
+    if (*end) {
+	mlog("%s: illegal value '%s'\n", __func__, str);
+	return false;
+    }
+    if (v1 > UINT16_MAX) {
+	mlog("%s: value %s too large\n", __func__, str);
+	return false;
+    }
+    /* second element */
+    str = end + 1;
+    long v2 = strtol(str, &end, 16);
+    if (*end) {
+	mlog("%s: illegal value '%s'\n", __func__, str);
+	return false;
+    }
+    if (v2 > UINT16_MAX) {
+	mlog("%s: value %s too large\n", __func__, str);
+	return false;
+    }
+    /* now that both elements are valid do the assignment */
+    *val1 = v1;
+    *val2 = v2;
+
+    return true;
+}
+
+/**
+ * @brief Convert string into PCIe ID
+ *
+ * Convert the character array @a IDStr formatted according to
+ * vendorID:deviceID[:subVendorID:subDeviceID] and into a corresponding
+ * PCIe ID and store the result to @a id.
+ *
+ * @param id Pointer to the PCIe ID to store the result
+ *
+ * @param IDStr Character array to convert
+ *
+ * @return On success return true; or false in case of error
+ */
+static bool IDFromStr(PCI_ID_t *id, char *IDStr)
+{
+    char *myStr = strdup(IDStr);
+    if (!myStr) {
+	mlog("%s: no memory\n", __func__);
+	return false;
+    }
+    /* prepare first pair */
+    char *colon = strchr(myStr, ':');
+    if (!colon) {
+	mlog("%s: wrong format\n", __func__);
+	goto error;
+    }
+    *colon = '\0';
+    colon++;
+    colon = strchr(colon, ':');
+    if (colon) {
+	*colon = '\0';
+	colon++;
+    }
+    if (!pairFromStr(myStr, &id->vendor_id, &id->device_id)) goto error;
+    if (colon) {
+	char *subStr = colon;
+	colon = strchr(subStr, ':');
+	if (!colon) {
+	    mlog("%s: wrong subsystem format\n", __func__);
+	    goto error;
+	}
+	*colon = '\0';
+	if (!pairFromStr(subStr, &id->subvendor_id, &id->subdevice_id)) {
+	    goto error;
+	}
+    }
+
+    free(myStr);
+    return true;
+
+error:
+    free(myStr);
+    return false;
+}
+
+static void PCIIDsFromLst(PCI_ID_t **PCI_IDs, const pluginConfigVal_t *val)
+{
+    if (!PCI_IDs) return;
+    if (!val) {
+	// unset
+	if (*PCI_IDs) free(*PCI_IDs);
+	*PCI_IDs = NULL;
+    }
+    if (val->type != PLUGINCONFIG_VALUE_LST) {
+	mlog("%s: value not list\n", __func__);
+	return;
+    }
+
+    size_t len = lstLen(val->val.lst);
+    PCI_ID_t *newIDs = realloc(*PCI_IDs, (len + 1) * sizeof(**PCI_IDs));
+    if (!newIDs) {
+	mlog("%s: no memory\n", __func__);
+	return;
+    }
+    size_t id = 0;
+    for (char **idStr = val->val.lst; idStr && *idStr; idStr++) {
+	if (IDFromStr(&newIDs[id], *idStr)) id++;
+    }
+    newIDs[id] = (PCI_ID_t){ 0, 0, 0, 0 };
+
+    *PCI_IDs = newIDs;
+}
+
+static bool getOrder(const pluginConfigVal_t *val)
+{
+    if (val->type != PLUGINCONFIG_VALUE_STR) {
+	mlog("%s: value not string\n", __func__);
+	return false;
+    }
+
+    if (!strcasecmp(val->val.str, "PCI")) return true;
+    if (!strcasecmp(val->val.str, "BIOS")) return false;
+
+    mlog("%s: Illegal value '%s'\n", __func__, val->val.str);
+    return false;
+}
+
+static bool evalValue(const char *key, const pluginConfigVal_t *val,
+		      const void *info)
 {
     if (!strcmp(key, "DebugMask")) {
 	uint32_t mask = val ? val->val.num : 0;
 	maskNodeInfoLogger(mask);
 	mdbg(NODEINFO_LOG_VERBOSE, "debugMask set to %#x\n", mask);
     } else if (!strcmp(key, "GPUDevices")) {
+	PCIIDsFromLst(&GPU_IDs, val);
+	updateGPUInfo();
     } else if (!strcmp(key, "GPUSort")) {
+	GPU_PCIeOrder = val ? getOrder(val) : true;
+	updateGPUInfo();
     } else if (!strcmp(key, "NICDevices")) {
+	PCIIDsFromLst(&NIC_IDs, val);
+	updateNICInfo();
     } else if (!strcmp(key, "NICSort")) {
+	NIC_PCIeOrder = val ? getOrder(val) : false;
+	updateNICInfo();
     } else {
 	mlog("%s: unknown key '%s'\n", __func__, key);
     }
@@ -358,7 +530,7 @@ int initialize(void)
     initNodeInfoConfig();
 
     /* Activate configuration values */
-    pluginConfig_traverse(nodeInfoConfig, validateValue, NULL);
+    pluginConfig_traverse(nodeInfoConfig, evalValue, NULL);
 
     if (!PSIDhook_add(PSIDHOOK_NODE_UP, handleNodeUp)) {
 	mlog("%s: register 'PSIDHOOK_NODE_UP' failed\n", __func__);
@@ -391,6 +563,8 @@ INIT_ERROR:
     PSID_clearMsg(PSP_PLUG_NODEINFO);
     unregisterHooks(false);
     finalizeSerial();
+    finalizeNodeInfoConfig();
+    finalizeNodeInfoLogger();
 
     return 1;
 }
@@ -455,7 +629,7 @@ char *set(char *key, char *val)
     } else if (!pluginConfig_addStr(nodeInfoConfig, key, val)) {
 	return strdup(" Illegal value\n");
     }
-    if (!validateValue(key, pluginConfig_get(nodeInfoConfig, key), NULL)) {
+    if (!evalValue(key, pluginConfig_get(nodeInfoConfig, key), NULL)) {
 	return strdup(" Illegal value\n");
     }
 
@@ -465,7 +639,7 @@ char *set(char *key, char *val)
 char *unset(char *key)
 {
     pluginConfig_remove(nodeInfoConfig, key);
-    validateValue(key, NULL, nodeInfoConfig);
+    evalValue(key, NULL, nodeInfoConfig);
 
     return NULL;
 }
@@ -526,6 +700,21 @@ static void showMap(char *key, StrBuffer_t *strBuf)
     addStrBuf("\n", strBuf);
 }
 
+void printPCIIDs(PCI_ID_t *id, StrBuffer_t *strBuf)
+{
+    if (!id) return;
+    for (size_t d = 0; id[d].vendor_id; d++) {
+	char devStr[80];
+	snprintf(devStr, sizeof(devStr),
+		 " %#04x:%#04x", id[d].vendor_id, id[d].device_id);
+	if (id[d].subvendor_id || id[d].subdevice_id) {
+	    snprintf(devStr + strlen(devStr), sizeof(devStr) - strlen(devStr),
+		     ":%#04x:%#04x", id[d].subvendor_id, id[d].subdevice_id);
+	}
+	addStrBuf(devStr, strBuf);
+    }
+    addStrBuf("\n", strBuf);
+}
 
 char *show(char *key)
 {
@@ -560,6 +749,12 @@ char *show(char *key)
 		  PSIDnodes_GPUSets(node), PSIDnodes_numGPUs(node), &strBuf);
 	printSets(node, "NICs", PSIDnodes_numNUMADoms(node),
 		  PSIDnodes_NICSets(node), PSIDnodes_numNICs(node), &strBuf);
+    } else if (!strncmp(key, "pci", strlen("pci"))) {
+	addStrBuf("\n", &strBuf);
+	addStrBuf("PCIe IDs for GPUs:\n", &strBuf);
+	printPCIIDs(GPU_IDs, &strBuf);
+	addStrBuf("PCIe IDs for NICs:\n", &strBuf);
+	printPCIIDs(NIC_IDs, &strBuf);
     } else if (!pluginConfig_showKeyVal(nodeInfoConfig, key, &strBuf)) {
 	addStrBuf(" '", &strBuf);
 	addStrBuf(key, &strBuf);

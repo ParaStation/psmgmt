@@ -869,7 +869,6 @@ static void msg_HWSTOP(DDBufferMsg_t *msg)
 }
 
 /** List of PCI devices identified as GPUs */
-// @todo make this configurable!!
 static PCI_ID_t GPU_IDs[] = {
     { 0x10de, 0x20b0, 0, 0 }, // NVIDIA A100-SXM4 (JUWELS-Booster)
     { 0x10de, 0x1db6, 0, 0 }, // NVIDIA V100 PCIe 32GB (DEEP-EST DAM/ESB)
@@ -879,7 +878,6 @@ static PCI_ID_t GPU_IDs[] = {
     { 0, 0, 0, 0} };
 
 /** List of PCI devices identified as NICs */
-// @todo make this configurable!!
 static PCI_ID_t NIC_IDs[] = {
     { 0x15b3, 0x101b, 0, 0 }, // Mellanox ConnectX-6 (JURECA-DC/JUWELS-Booster)
     { 0x15b3, 0x1017, 0, 0 }, // Mellanox ConnectX-5 (DEEP-EST CM/ESB)
@@ -909,7 +907,6 @@ void initHW(void)
     uint16_t numGPUs = PSID_getNumPCIDevs(GPU_IDs);
     PSIDnodes_setNumGPUs(PSC_getMyID(), numGPUs);
     if (numGPUs) {
-	// @todo make PCIe order configurable!!
 	PSCPU_set_t *GPUsets = PSID_getPCISets(true /* PCIe order */, GPU_IDs);
 	PSIDnodes_setGPUSets(PSC_getMyID(), GPUsets);
     }
@@ -917,7 +914,6 @@ void initHW(void)
     uint16_t numNICs = PSID_getNumPCIDevs(NIC_IDs);
     PSIDnodes_setNumNICs(PSC_getMyID(), numNICs);
     if (numNICs) {
-	// @todo make PCIe order configurable!!
 	PSCPU_set_t *NICsets = PSID_getPCISets(false /* PCIe order */, NIC_IDs);
 	PSIDnodes_setNICSets(PSC_getMyID(), NICsets);
     }
