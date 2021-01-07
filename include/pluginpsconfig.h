@@ -13,6 +13,8 @@
 #include <stdbool.h>
 #include <stddef.h>
 
+#include "pluginmalloc.h"
+
 /** Opaque structure holing the configuration */
 struct pluginConfig;
 
