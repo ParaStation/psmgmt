@@ -73,11 +73,12 @@ static void addSetsData(PSP_NodeInfo_t type, PSCPU_set_t *sets,
 			int16_t setSize, PS_SendDB_t *data)
 {
     uint16_t numNUMA = PSIDnodes_numNUMADoms(PSC_getMyID());
-    if (!numNUMA || setSize <= 0 || !sets) return;
+    if (!numNUMA || setSize < 0 || !sets) return;
 
     addUint8ToMsg(type, data);
     addUint16ToMsg(numNUMA, data);
     addInt16ToMsg(setSize, data);
+    if (!setSize) return;
     uint16_t nBytes = PSCPU_bytesForCPUs(setSize);
     for (uint16_t dom = 0; dom < numNUMA; dom++) {
 	uint8_t setBuf[nBytes];
@@ -103,6 +104,11 @@ static bool handleSetData(char **ptr, PSnodes_ID_t sender,
     int16_t setSize;
     getInt16(ptr, &setSize);
     if (setSetSize) setSetSize(sender, setSize);
+
+    if (!setSize) {
+	setSets(sender, NULL);
+	return true;
+    }
 
     PSCPU_set_t *sets = malloc(numNUMA * sizeof(*sets));
     uint16_t nBytes = PSCPU_bytesForCPUs(setSize);
@@ -419,6 +425,9 @@ static bool IDFromStr(PCI_ID_t *id, char *IDStr)
 	if (!pairFromStr(subStr, &id->subvendor_id, &id->subdevice_id)) {
 	    goto error;
 	}
+    } else {
+	id->subvendor_id = 0;
+	id->subdevice_id = 0;
     }
 
     free(myStr);
@@ -706,10 +715,10 @@ void printPCIIDs(PCI_ID_t *id, StrBuffer_t *strBuf)
     for (size_t d = 0; id[d].vendor_id; d++) {
 	char devStr[80];
 	snprintf(devStr, sizeof(devStr),
-		 " %#04x:%#04x", id[d].vendor_id, id[d].device_id);
+		 " %04x:%04x", id[d].vendor_id, id[d].device_id);
 	if (id[d].subvendor_id || id[d].subdevice_id) {
 	    snprintf(devStr + strlen(devStr), sizeof(devStr) - strlen(devStr),
-		     ":%#04x:%#04x", id[d].subvendor_id, id[d].subdevice_id);
+		     ":%04x:%04x", id[d].subvendor_id, id[d].subdevice_id);
 	}
 	addStrBuf(devStr, strBuf);
     }
