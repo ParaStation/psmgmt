@@ -1,0 +1,30 @@
+#
+# Object "class:nodeinfo"
+#
+psconfig -q -- create 'class:nodeinfo'
+psconfig -q -- setParents 'class:nodeinfo' 'defaults:nodeinfo'
+#
+# Object "class:pluginconfigs"
+#
+psconfig -q -- create 'class:pluginconfigs'
+psconfig -q -- setParents 'class:pluginconfigs' 'defaults:pluginconfigs'
+psconfig -q -- setPointerList 'class:pluginconfigs' 'NodeInfo.' 'class:nodeinfo'
+#
+# Object "class:psid"
+#
+psconfig -q -- setPointerList 'class:psid' 'PluginConfigs.' 'class:pluginconfigs'
+#
+# Object "defaults:nodeinfo"
+#
+psconfig -q -- create 'defaults:nodeinfo'
+psconfig -q -- setParents 'defaults:nodeinfo' # empty #
+psconfig -q -- set 'defaults:nodeinfo' 'DebugMask' '0'
+psconfig -q -- setList 'defaults:nodeinfo' 'GPUDevices' '10de:20b0' '10de:1db6' '10de:1db4' '10de:102d' '10de:1021'
+psconfig -q -- set 'defaults:nodeinfo' 'GPUSort' 'PCI'
+psconfig -q -- setList 'defaults:nodeinfo' 'NICDevices' '15b3:101b' '15b3:1017' '15b3:1013' '15b3:1011' '8086:24f1' '1cad:0011' '1fc1:0010'
+psconfig -q -- set 'defaults:nodeinfo' 'NICSort' 'BIOS'
+#
+# Object "defaults:pluginconfigs"
+#
+psconfig -q -- create 'defaults:pluginconfigs'
+psconfig -q -- setParents 'defaults:pluginconfigs' # empty #
