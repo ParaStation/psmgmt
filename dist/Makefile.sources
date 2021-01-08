@@ -123,6 +123,7 @@ doc/Makefile.am \
 doc/Makefile.in \
 doc/MessageTypes \
 doc/README.cgroup \
+doc/README.nodeinfo \
 doc/README.pspam \
 doc/parastation.conf.tmpl \
 doc/psaccount.conf \

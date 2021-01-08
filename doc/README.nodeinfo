@@ -1,0 +1,180 @@
+psmgmt README.nodeinfo -- Remarks on setup of nodeinfo
+
+Copyright (C) 2021 ParTec Cluster Competence Center GmbH, Munich
+
+Please send bug reports, questions and suggestions to <support@par-tec.com>
+
+
+INTRODUCTION
+
+The nodeinfo plugin of the ParaStation daemon provides the global
+distribution of crucial hardware topology information across all nodes
+of the ParaStation cluster. Each node uses the hwloc library in order
+to gain local hardware topology information.
+
+At the time of writing the provided information includes hardware
+threads, GPUs, and NICs and their distribution across a node's NUMA
+domains.
+
+All information is provided through the PSIDnodes interface. I.e. the
+plugin will use PSIDnodes_setNumNUMADoms(), PSIDnodes_setNumGPUs(),
+PSIDnodes_setNumNICs(), PSIDnodes_setCPUSets(),
+PSIDnodes_setGPUSets(), and PSIDnodes_setNICSets() to push the
+information to PSIDnodes.
+
+In order to distribute standard information like the node's
+hardware-threads or physical cores it is sufficient to just load the
+nodeinfo plugin.
+
+More effort is required if information on GPUs and NICs shall be
+covered. Since these devices are identified by their PCIe IDs the
+corresponding data has to be provided. Furthermore it might be
+required to steer the sort-order of the detected devices depending on
+external requirements. E.g. while CUDA expects GPUs to be sorted in
+PCI order it seems that UCX expects HCAs to be number in BIOS
+order. nodeinfo provides the ability to sort PCIe devices in both
+orders.
+
+Since global information on GPUs is crucial for the correct
+functionality of psslurm a dependency was created psslurm->nodeinfo
+and the nodeinfo plugin is loaded automatically when psslurm is
+loaded.
+
+CONFIGURATION
+
+The nodeinfo plugin is configured via psconfig. The mechanism is as
+follows:
+
+ * A class:nodeinfo object contains all parameters of the nodeinfo
+   module
+ * A class:pluginconfigs object hosts pointers to all classes
+   containing plugin parameters. The pointer to the nodeinfo
+   parameters must be named "NodeInfo"
+ * In class:psid the pointer "PluginConfigs" refers to the
+   class:pluginconfigs object.
+ * For both, class:nodeinfo and class:pluginconfigs defaults are
+   defined in the defaults:nodeinfo and defaults:pluginconfigs objects
+   respectively
+ * Standard inheritance is applied to all objects in
+   class:nodeinfo. E.g. to change to DebugMask for a certain class of
+   hosts it is sufficient to set Psid.PluginConfigs.NodeInfo.DebugMask
+   to the required value in the corresponding class: object
+
+The actual structure of the configuration expected by the nodeinfo
+plugin is described in detail in psconfig/nodeinfo.vipsconfig. As a
+first step it might be cut'n'pasted into the configuration using the
+vipsconfig tool. A better alternative might be to source
+psconfig/nodeinfo.dump to instantiate all required classes and
+defaults.
+
+At the time of writing nodeinfo supports the following configuration
+parameters:
+ * DebugMask Bit-mask (integer) enabling more verbose logging
+ * GPUDevices List of PCIe-ID strings (see below) used to identified
+   PCIe devices assumed to be GPUs
+ * GPUSort String defining the sort order of GPU device ("PCI" or "BIOS")
+ * NICDevices List of PCIe-ID strings (see below) used to identified
+   PCIe devices assumed to be NICs (or HCAs or HFIs or...)
+ * NICSort String defining the sort order of NIC device ("PCI" or "BIOS")
+
+PCIe-IDs have to following structure:
+vendorID:deviceID[:subsystemVendorID:subsystemDeviceID]
+
+Each ID (vendorID, deviceID,...) is a 16-bit hexadecimal number,
+i.e. a 4-character hex-string (0000, abcd, ffff, ...) that might be
+preceded by '0x'. If subsystemVendorID or subsystemDeviceID are not
+given, both are assumed to be 0. In this case all subsystem IDs are
+ignored while identifying devices.
+
+The standard configuration provided by psconfig/nodeinfo.dump
+mentioned above defines the following defaults:
+
+DebugMask = "0"
+GPUDevices = ["10de:20b0", "10de:1db6", "10de:1db4", "10de:102d", "10de:1021"]
+GPUSort = "PCI"
+NICDevices = ["15b3:101b", "15b3:1017", "15b3:1013", "15b3:1011", "8086:24f1", "1cad:0011", "1fc1:0010"]
+NICSort = "BIOS"
+
+The GPU devices identified are:
+  "10de:20b0"	NVIDIA A100-SXM4 as found on e.g. the JUWELS-Booster
+  "10de:1db6"	NVIDIA V100 PCIe 32GB as found on e.g. the DEEP-EST DAM and ESB
+  "10de:1db4"	NVIDIA V100 PCIe 16GB as found on e.g. JUSUF
+  "10de:102d"	NVIDIA K80 PCIe as found on e.g. JURECA's old GPU parition
+  "10de:1021"	NVIDIA K20X PCIe as found on e.g. JUROPA3
+
+GPUs are sorted in PCI-bus order as expected by CUDA
+
+The network devices identified are:
+  "15b3:101b"	Mellanox ConnectX-6 (JURECA-DC/JUWELS-Booster)
+  "15b3:1017"	Mellanox ConnectX-5 (DEEP-EST CM/ESB)
+  "15b3:1013"	Mellanox ConnectX-4 (JURECA/JUWELS)
+  "15b3:1011"	Mellanox Connect-IB (JUROPA3)
+  "8086:24f1"	Omni-Path HFI [integrated] (JURECA Booster)
+  "1cad:0011"	Extoll Tourmalet (rev 01) (DEEP-EST DAM)
+  "1fc1:0010"	QLogic IBA6120 InfiniBand HCA (testcluster)
+
+Network devices are sorted in BIOS order as expected by UCX
+
+The GPUDevices and NICDevices list might be adapted to the actual
+devices existing on a given system. This includes adding PCIe-IDs of
+more recent or more exotic devices.
+
+PSIADMIN INTERFACE
+
+As most plugins nodeinfo is accessible via psiadmin, too. The
+interface provides the following functionality:
+
+> plugin help nodeinfo <node>
+  Present a help message including a brief description of this interface
+
+> plugin show nodeinfo <node>
+  Display the current value of all configuration parameters
+
+> plugin show nodeinfo key cpu <node>
+  Display HW-thread information. If cpu_<n> is used, display
+  information the node <node> has about node <n>
+
+> plugin show nodeinfo key gpu <node>
+  Display GPU information. If gpu_<n> is used, display information the
+  node <node> has about node <n>
+
+> plugin show nodeinfo key nic <node>
+  Display NIC information. If nic_<n> is used, display information the
+  node <node> has about node <n>
+
+> plugin show nodeinfo key map <node>
+  Display information describing the CPU map. If map_<n> is used,
+  display information the node <node> has about node <n>
+
+> plugin show nodeinfo key all <node>
+  Display all information (i.e. cpu, gpu, nic, map). If all_<n> is
+  used, display information the node <node> has about node <n>
+
+> plugin show nodeinfo key pci <node>
+  Display the PCIe-IDs used by the plugin to detect GPU and NIC hardware
+
+> plugin show nodeinfo key <parameter> <node>
+  Display the current value of <parameter>. <parameter> is one of
+  DebugMask, GPUDevices, GPUSort, NICDevices, NICSort
+
+> plugin unset node <parameter> <node?
+  Unset the value of <parameter>, i.e. replacing it with an empty
+  string or list. <parameter> is one of DebugMask, GPUDevices,
+  GPUSort, NICDevices, or NICSort
+
+> plugin set node <parameter> <value> <node>
+
+  Set the value of <parameter> to <value>. <parameter> is one of
+  DebugMask, GPUDevices, GPUSort, NICDevices, NICSort, or
+  update. Changing the value will take action immediately on this
+  local node, but propagating it to a remote might be delayed until
+  'plugin set node update <val> <node>' is used with any <val>.
+
+  For most parameters <value> is the string to be set. For GPUDevices
+  and NICDevices the list will be replaced by a single-valued list
+  with <value> element. If <value> is of the form +<string>, <string>
+  will be appended to the existing list.
+
+  Valid values for GPUSort and NICSort are 'PCI' and 'BIOS'. Each list
+  element of GPUDevices and NICDevices is of the form PCI-ID as
+  describe above.
