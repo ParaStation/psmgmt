@@ -8,9 +8,9 @@ Please send bug reports, questions and suggestions to <support@par-tec.com>
 INTRODUCTION
 
 The nodeinfo plugin of the ParaStation daemon provides the global
-distribution of crucial hardware topology information across all nodes
-of the ParaStation cluster. Each node uses the hwloc library in order
-to gain local hardware topology information.
+distribution of all necessary hardware topology information across all
+nodes of the ParaStation cluster. Each node uses the hwloc library in
+order to gain local hardware topology information.
 
 At the time of writing the provided information includes hardware
 threads, GPUs, and NICs and their distribution across a node's NUMA
@@ -28,10 +28,10 @@ nodeinfo plugin.
 
 More effort is required if information on GPUs and NICs shall be
 covered. Since these devices are identified by their PCIe IDs the
-corresponding data has to be provided. Furthermore it might be
+corresponding data has to be provided. Furthermore, it might be
 required to steer the sort-order of the detected devices depending on
 external requirements. E.g. while CUDA expects GPUs to be sorted in
-PCI order it seems that UCX expects HCAs to be number in BIOS
+PCI order it seems that UCX expects HCAs to be numbered in BIOS
 order. nodeinfo provides the ability to sort PCIe devices in both
 orders.
 
@@ -46,9 +46,9 @@ The nodeinfo plugin is configured via psconfig. The mechanism is as
 follows:
 
  * A class:nodeinfo object contains all parameters of the nodeinfo
-   module
- * A class:pluginconfigs object hosts pointers to all classes
-   containing plugin parameters. The pointer to the nodeinfo
+   plugin
+ * A class:pluginconfigs object hosts pointers to all objects hosting
+   plugin parameters. The pointer to the object hosting the nodeinfo
    parameters must be named "NodeInfo"
  * In class:psid the pointer "PluginConfigs" refers to the
    class:pluginconfigs object.
@@ -69,21 +69,21 @@ defaults.
 
 At the time of writing nodeinfo supports the following configuration
 parameters:
- * DebugMask Bit-mask (integer) enabling more verbose logging
- * GPUDevices List of PCIe-ID strings (see below) used to identified
-   PCIe devices assumed to be GPUs
- * GPUSort String defining the sort order of GPU device ("PCI" or "BIOS")
- * NICDevices List of PCIe-ID strings (see below) used to identified
-   PCIe devices assumed to be NICs (or HCAs or HFIs or...)
- * NICSort String defining the sort order of NIC device ("PCI" or "BIOS")
+ * DebugMask	Bit-mask (integer) enabling more verbose logging
+ * GPUDevices	List of PCIe-ID strings (see below) used to identified
+		PCIe devices assumed to be GPUs
+ * GPUSort	String defining the sort order of GPU device ("PCI" or "BIOS")
+ * NICDevices	List of PCIe-ID strings (see below) used to identified
+		PCIe devices assumed to be NICs (or HCAs or HFIs or...)
+ * NICSort	String defining the sort order of NIC device ("PCI" or "BIOS")
 
-PCIe-IDs have to following structure:
+PCIe-ID strings have to following structure:
 vendorID:deviceID[:subsystemVendorID:subsystemDeviceID]
 
 Each ID (vendorID, deviceID,...) is a 16-bit hexadecimal number,
 i.e. a 4-character hex-string (0000, abcd, ffff, ...) that might be
 preceded by '0x'. If subsystemVendorID or subsystemDeviceID are not
-given, both are assumed to be 0. In this case all subsystem IDs are
+given, each is assumed to be 0000. In this case all subsystem IDs are
 ignored while identifying devices.
 
 The standard configuration provided by psconfig/nodeinfo.dump
@@ -115,7 +115,7 @@ The network devices identified are:
 
 Network devices are sorted in BIOS order as expected by UCX
 
-The GPUDevices and NICDevices list might be adapted to the actual
+The GPUDevices and NICDevices lists might be adapted to the actual
 devices existing on a given system. This includes adding PCIe-IDs of
 more recent or more exotic devices.
 
@@ -125,45 +125,45 @@ As most plugins nodeinfo is accessible via psiadmin, too. The
 interface provides the following functionality:
 
 > plugin help nodeinfo <node>
-  Present a help message including a brief description of this interface
+  Present a help message including a brief description of the plugin's
+  psconfig parameters
 
 > plugin show nodeinfo <node>
   Display the current value of all configuration parameters
 
 > plugin show nodeinfo key cpu <node>
   Display HW-thread information. If cpu_<n> is used, display
-  information the node <node> has about node <n>
+  information the node <node> has about node <n>.
 
 > plugin show nodeinfo key gpu <node>
   Display GPU information. If gpu_<n> is used, display information the
-  node <node> has about node <n>
+  node <node> has about node <n>.
 
 > plugin show nodeinfo key nic <node>
   Display NIC information. If nic_<n> is used, display information the
-  node <node> has about node <n>
+  node <node> has about node <n>.
 
 > plugin show nodeinfo key map <node>
   Display information describing the CPU map. If map_<n> is used,
-  display information the node <node> has about node <n>
+  display information the node <node> has about node <n>.
 
 > plugin show nodeinfo key all <node>
   Display all information (i.e. cpu, gpu, nic, map). If all_<n> is
-  used, display information the node <node> has about node <n>
+  used, display all information the node <node> has about node <n>.
 
 > plugin show nodeinfo key pci <node>
   Display the PCIe-IDs used by the plugin to detect GPU and NIC hardware
 
 > plugin show nodeinfo key <parameter> <node>
   Display the current value of <parameter>. <parameter> is one of
-  DebugMask, GPUDevices, GPUSort, NICDevices, NICSort
+  DebugMask, GPUDevices, GPUSort, NICDevices, or NICSort.
 
 > plugin unset node <parameter> <node?
   Unset the value of <parameter>, i.e. replacing it with an empty
   string or list. <parameter> is one of DebugMask, GPUDevices,
-  GPUSort, NICDevices, or NICSort
+  GPUSort, NICDevices, or NICSort.
 
 > plugin set node <parameter> <value> <node>
-
   Set the value of <parameter> to <value>. <parameter> is one of
   DebugMask, GPUDevices, GPUSort, NICDevices, NICSort, or
   update. Changing the value will take action immediately on this
@@ -173,8 +173,8 @@ interface provides the following functionality:
   For most parameters <value> is the string to be set. For GPUDevices
   and NICDevices the list will be replaced by a single-valued list
   with <value> element. If <value> is of the form +<string>, <string>
-  will be appended to the existing list.
+  will be appended to the existing list.  Each list element of
+  GPUDevices and NICDevices has to be of the form PCI-ID as describe
+  above.
 
-  Valid values for GPUSort and NICSort are 'PCI' and 'BIOS'. Each list
-  element of GPUDevices and NICDevices is of the form PCI-ID as
-  describe above.
+  Valid values for GPUSort and NICSort are 'PCI' and 'BIOS'.
