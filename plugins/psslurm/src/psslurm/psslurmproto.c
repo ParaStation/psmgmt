@@ -2281,8 +2281,8 @@ bool initSlurmdProto(void)
     registerSlurmdMsg(REQUEST_ABORT_JOB, handleTerminateReq);
     registerSlurmdMsg(REQUEST_TERMINATE_JOB, handleTerminateReq);
     registerSlurmdMsg(REQUEST_SUSPEND_INT, handleSuspendInt);
-    registerSlurmdMsg(REQUEST_COMPLETE_BATCH_SCRIPT, handleInvalid);
-    registerSlurmdMsg(REQUEST_UPDATE_JOB_TIME, handleUpdateJobTime);
+    registerSlurmdMsg(REQUEST_COMPLETE_BATCH_SCRIPT, handleInvalid); /* removed in 20.11 */
+    registerSlurmdMsg(REQUEST_UPDATE_JOB_TIME, handleUpdateJobTime); /* removed in 20.11 */
     registerSlurmdMsg(REQUEST_SHUTDOWN, handleShutdown);
     registerSlurmdMsg(REQUEST_RECONFIGURE, handleReconfigure);
     registerSlurmdMsg(REQUEST_RECONFIGURE_WITH_CONFIG, handleConfig);
@@ -2295,15 +2295,15 @@ bool initSlurmdProto(void)
     registerSlurmdMsg(REQUEST_JOB_ID, handleJobId);
     registerSlurmdMsg(REQUEST_FILE_BCAST, handleFileBCast);
     registerSlurmdMsg(REQUEST_STEP_COMPLETE, handleInvalid);
-    registerSlurmdMsg(REQUEST_STEP_COMPLETE_AGGR, handleInvalid);
+    registerSlurmdMsg(REQUEST_STEP_COMPLETE_AGGR, handleInvalid); /* removed in 20.11 */
     registerSlurmdMsg(REQUEST_JOB_STEP_STAT, handleStepStat);
     registerSlurmdMsg(REQUEST_JOB_STEP_PIDS, handleStepPids);
     registerSlurmdMsg(REQUEST_DAEMON_STATUS, handleDaemonStatus);
     registerSlurmdMsg(REQUEST_JOB_NOTIFY, handleJobNotify);
     registerSlurmdMsg(REQUEST_FORWARD_DATA, handleForwardData);
     registerSlurmdMsg(REQUEST_NETWORK_CALLERID, handleNetworkCallerID);
-    registerSlurmdMsg(MESSAGE_COMPOSITE, handleInvalid);
-    registerSlurmdMsg(RESPONSE_MESSAGE_COMPOSITE, handleRespMessageComposite);
+    registerSlurmdMsg(MESSAGE_COMPOSITE, handleInvalid); /* removed in 20.11 */
+    registerSlurmdMsg(RESPONSE_MESSAGE_COMPOSITE, handleRespMessageComposite); /* removed in 20.11 */
     registerSlurmdMsg(RESPONSE_NODE_REGISTRATION, handleRespNodeReg);
 
     return true;
