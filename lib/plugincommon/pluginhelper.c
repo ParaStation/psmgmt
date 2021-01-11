@@ -32,7 +32,7 @@
 #include "pluginhelper.h"
 
 /** time-limit in seconds to warn about a slow name resolver */
-#define RESOLVE_TIME_WARNING 1.0
+#define RESOLVE_TIME_WARNING 1
 
 int removeDir(char *directory, int root)
 {
@@ -49,7 +49,7 @@ int removeDir(char *directory, int root)
 	stat(buf, &sbuf);
 
 	if (S_ISDIR(sbuf.st_mode)) {
-	    /* remove all directories recursive */
+	    /* remove all directories recursively */
 	    removeDir(buf, 1);
 	} else {
 	    remove(buf);
@@ -83,16 +83,15 @@ PSnodes_ID_t getNodeIDbyName(const char *host)
 
     gettimeofday(&time_start, NULL);
 
-    struct addrinfo *result, *rp;
+    struct addrinfo *result;
     int rc = getaddrinfo(host, NULL, &hints, &result);
 
     gettimeofday(&time_now, NULL);
     timersub(&time_now, &time_start, &time_diff);
 
-    float execTime = time_diff.tv_sec + 1e-6 * time_diff.tv_usec;
-    if (execTime >= RESOLVE_TIME_WARNING) {
-	pluginlog("%s: warning: resolving IP for host %s took %.3f seconds\n",
-		  __func__, host, execTime);
+    if (time_diff.tv_sec >= RESOLVE_TIME_WARNING) {
+	pluginlog("%s: warning: slow resolving for host %s (%ld.%06ld)\n",
+		  __func__, host, time_diff.tv_sec, time_diff.tv_usec);
     }
 
     if (rc) {
@@ -104,7 +103,7 @@ PSnodes_ID_t getNodeIDbyName(const char *host)
     /* try each address returned by getaddrinfo() until a node ID is
        successfully resolved */
     PSnodes_ID_t nodeID = -1;
-    for (rp = result; rp != NULL; rp = rp->ai_next) {
+    for (struct addrinfo *rp = result; rp; rp = rp->ai_next) {
 	struct sockaddr_in *saddr;
 	switch (rp->ai_family) {
 	case AF_INET:
