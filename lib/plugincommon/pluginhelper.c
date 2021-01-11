@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2012-2020 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2012-2021 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -21,6 +21,7 @@
 #include <errno.h>
 #include <sys/prctl.h>
 #include <pwd.h>
+#include <sys/time.h>
 
 #include "pscommon.h"
 #include "psidnodes.h"
@@ -29,6 +30,9 @@
 #include "pluginmalloc.h"
 
 #include "pluginhelper.h"
+
+/** time-limit in seconds to warn about a slow name resolver */
+#define RESOLVE_TIME_WARNING 1.0
 
 int removeDir(char *directory, int root)
 {
@@ -45,7 +49,7 @@ int removeDir(char *directory, int root)
 	stat(buf, &sbuf);
 
 	if (S_ISDIR(sbuf.st_mode)) {
-	    /* remove all dirs recursive */
+	    /* remove all directories recursive */
 	    removeDir(buf, 1);
 	} else {
 	    remove(buf);
@@ -63,10 +67,7 @@ int removeDir(char *directory, int root)
 
 PSnodes_ID_t getNodeIDbyName(const char *host)
 {
-    PSnodes_ID_t nodeID = -1;
     struct addrinfo hints;
-    struct addrinfo *result, *rp;
-    int rc;
 
     memset(&hints, 0, sizeof(struct addrinfo));
     hints.ai_family = AF_UNSPEC;    /* Allow IPv4 or IPv6 */
@@ -77,7 +78,23 @@ PSnodes_ID_t getNodeIDbyName(const char *host)
     hints.ai_addr = NULL;
     hints.ai_next = NULL;
 
-    rc = getaddrinfo(host, NULL, &hints, &result);
+    /** timer to measure resolve times */
+    struct timeval time_start, time_diff, time_now;
+
+    gettimeofday(&time_start, NULL);
+
+    struct addrinfo *result, *rp;
+    int rc = getaddrinfo(host, NULL, &hints, &result);
+
+    gettimeofday(&time_now, NULL);
+    timersub(&time_now, &time_start, &time_diff);
+
+    float execTime = time_diff.tv_sec + 1e-6 * time_diff.tv_usec;
+    if (execTime >= RESOLVE_TIME_WARNING) {
+	pluginlog("%s: warning: resolving IP for host %s took %.3f seconds\n",
+		  __func__, host, execTime);
+    }
+
     if (rc) {
 	pluginlog("%s: unknown host %s: %s\n", __func__, host,
 		  gai_strerror(rc));
@@ -86,6 +103,7 @@ PSnodes_ID_t getNodeIDbyName(const char *host)
 
     /* try each address returned by getaddrinfo() until a node ID is
        successfully resolved */
+    PSnodes_ID_t nodeID = -1;
     for (rp = result; rp != NULL; rp = rp->ai_next) {
 	struct sockaddr_in *saddr;
 	switch (rp->ai_family) {
