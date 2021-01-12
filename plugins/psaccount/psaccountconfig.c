@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2012-2020 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2012-2021 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -15,8 +15,6 @@
 
 const ConfDef_t confDef[] =
 {
-    { "SAFE_ACC_UPDATES", true,	"flag", "1",
-      "Obsolete! Was: Constantly forward accounting updates" },
     { "TIME_JOBSTART_POLL", true, "num", "1",
       "Poll interval in seconds at the beginning of a job" },
     { "TIME_JOBSTART_WAIT", true, "num", "1",
