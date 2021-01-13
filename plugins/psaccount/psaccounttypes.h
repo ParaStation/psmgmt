@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2014-2020 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2014-2021 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -316,5 +316,23 @@ typedef int(psAccountSignalSession_t)(pid_t session, int sig);
  * @param eData Will hold the nodes energy consumption data on return
  */
 typedef void(psAccountGetEnergy_t)(psAccountEnergy_t *eData);
+
+/**
+ * @brief Get general poll interval
+ *
+ * @return Current general poll interval
+ */
+typedef int(psAccountGetPoll_t)(void);
+
+/**
+ * @brief Set general poll interval
+ *
+ * Set the plugin's general poll interval to @a poll seconds
+ *
+ * @param poll General poll interval to be set
+ *
+ * @return If @a poll is valid, return true; or false otherwise
+ */
+typedef bool(psAccountSetPoll_t)(int poll);
 
 #endif  /* __PS_ACCOUNT_TYPES */

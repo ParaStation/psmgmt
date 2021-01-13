@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2014-2020 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2014-2021 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -40,5 +40,8 @@ psAccountGetEnergy_t *psAccountGetEnergy;
 
 psAccountFindDaemonProcs_t *psAccountFindDaemonProcs;
 psAccountSignalSession_t *psAccountSignalSession;
+
+psAccountGetPoll_t *psAccountGetPoll;
+psAccountSetPoll_t *psAccountSetPoll;
 
 #endif  /* __PS_ACCOUNT_HANDLES */
