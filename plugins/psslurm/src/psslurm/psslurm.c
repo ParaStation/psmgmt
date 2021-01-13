@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2014-2020 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2014-2021 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -83,7 +83,7 @@ int version = 117;
 int requiredAPI = 128;
 plugin_dep_t dependencies[] = {
     { .name = "psmunge", .version = 4 },
-    { .name = "psaccount", .version = 28 },
+    { .name = "psaccount", .version = 29 },
     { .name = "pelogue", .version = 9 },
     { .name = "pspam", .version = 3 },
     { .name = "psexec", .version = 2 },
@@ -286,6 +286,19 @@ static bool regPsAccountHandles(void)
 	mlog("%s: loading psAccountGetEnergy() failed\n", __func__);
 	return false;
     }
+
+    psAccountGetPoll = dlsym(pluginHandle, "psAccountGetPoll");
+    if (!psAccountGetPoll) {
+	mlog("%s: loading psAccountGetPoll() failed\n", __func__);
+	return false;
+    }
+
+    psAccountSetPoll = dlsym(pluginHandle, "psAccountSetPoll");
+    if (!psAccountSetPoll) {
+	mlog("%s: loading psAccountSetPoll() failed\n", __func__);
+	return false;
+    }
+
     return true;
 }
 
@@ -666,9 +679,7 @@ int initialize(void)
     if (!initEnvFilter()) goto INIT_ERROR;
 
     /* we want to have periodic updates on used resources */
-    if (!PSIDnodes_acctPollI(PSC_getMyID())) {
-	PSIDnodes_setAcctPollI(PSC_getMyID(), 30);
-    }
+    if (!psAccountGetPoll()) psAccountSetPoll(30);
 
     /* set collect mode in psaccount */
     psAccountSetGlobalCollect(true);
@@ -683,9 +694,7 @@ int initialize(void)
     }
 
     /* save default account poll time */
-    if ((confAccPollTime = PSIDnodes_acctPollI(PSC_getMyID())) < 0) {
-	confAccPollTime = 30;
-    }
+    if ((confAccPollTime = psAccountGetPoll()) <= 0) confAccPollTime = 30;
 
     if (confRes == CONFIG_SERVER) {
 	char *confDir = getConfValueC(&Config, "SLURM_CONF_DIR");

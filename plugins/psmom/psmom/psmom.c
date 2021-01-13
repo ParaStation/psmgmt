@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2010-2020 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2010-2021 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -122,7 +122,7 @@ char name[] = "psmom";
 int version = 58;
 int requiredAPI = 109;
 plugin_dep_t dependencies[] = {
-    { .name = "psaccount", .version = 26 },
+    { .name = "psaccount", .version = 29 },
     { .name = "pspam", .version = 5 },
     { .name = NULL, .version = 0 } };
 
@@ -276,10 +276,20 @@ static bool initAccountingFunc(void)
 	return false;
     }
 
-    /* we want to have periodic updates on used resources */
-    if (!PSIDnodes_acctPollI(PSC_getMyID())) {
-	PSIDnodes_setAcctPollI(PSC_getMyID(), 30);
+    psAccountGetPoll = dlsym(accHandle, "psAccountGetPoll");
+    if (!psAccountGetPoll) {
+	mlog("%s: loading psAccountGetPoll() failed\n", __func__);
+	return false;
     }
+
+    psAccountSetPoll = dlsym(accHandle, "psAccountSetPoll");
+    if (!psAccountSetPoll) {
+	mlog("%s: loading psAccountSetPoll() failed\n", __func__);
+	return false;
+    }
+
+    /* we want to have periodic updates on used resources */
+    if (!psAccountGetPoll()) psAccountSetPoll(30);
 
     /* set collect mode in psaccount */
     psAccountSetGlobalCollect(true);

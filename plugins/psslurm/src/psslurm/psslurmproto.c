@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2014-2020 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2014-2021 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -232,7 +232,7 @@ static void setAccOpts(char *freqString, uint16_t *accType)
 
 	if (freq >0) {
 	    mlog("%s: setting acct freq to %i\n", __func__, freq);
-	    PSIDnodes_setAcctPollI(PSC_getMyID(), freq);
+	    psAccountSetPoll(freq);
 	}
     }
 
@@ -1882,7 +1882,7 @@ static void handleTerminateReq(Slurm_Msg_t *sMsg)
 	    msgType2String(sMsg->head.type));
 
     /* restore account freq */
-    PSIDnodes_setAcctPollI(PSC_getMyID(), confAccPollTime);
+    psAccountSetPoll(confAccPollTime);
 
     /* remove all unfinished spawn requests */
     PSIDspawn_cleanupBySpawner(PSC_getMyTID());
