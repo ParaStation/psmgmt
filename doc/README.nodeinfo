@@ -49,8 +49,8 @@ follows:
    plugin
  * A class:pluginconfigs object hosts pointers to all objects hosting
    plugin parameters. The pointer to the object hosting the nodeinfo
-   parameters must be named "NodeInfo"
- * In class:psid the pointer "PluginConfigs" refers to the
+   parameters must be named "NodeInfo."
+ * In class:psid the pointer "PluginConfigs." refers to the
    class:pluginconfigs object.
  * For both, class:nodeinfo and class:pluginconfigs defaults are
    defined in the defaults:nodeinfo and defaults:pluginconfigs objects
