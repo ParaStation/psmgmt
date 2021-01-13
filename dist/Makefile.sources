@@ -312,6 +312,7 @@ plugins/pelogue/peloguetypes.h \
 plugins/psaccount/Makefile.am \
 plugins/psaccount/Makefile.in \
 plugins/psaccount/psaccount.c \
+plugins/psaccount/psaccount.h \
 plugins/psaccount/psaccountclient.c \
 plugins/psaccount/psaccountclient.h \
 plugins/psaccount/psaccountcomm.c \

@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2012-2019 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2012-2021 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -14,6 +14,7 @@
 #include "pluginconfig.h"
 #include "plugin.h"
 
+#include "psaccount.h"
 #include "psaccountclient.h"
 #include "psaccountconfig.h"
 #include "psaccountlog.h"
@@ -145,6 +146,9 @@ char *set(char *key, char *val)
 	    if (!strcmp(key, "DEBUG_MASK")) {
 		int debugMask = getConfValueI(&config, "DEBUG_MASK");
 		maskLogger(debugMask);
+	    } else if (!strcmp(key, "POLL_INTERVAL")) {
+		int poll = getConfValueI(&config, "POLL_INTERVAL");
+		if (poll >= 0) setMainTimer(poll);
 	    }
 	}
     } else if (!strcmp(key, "memdebug")) {
@@ -180,6 +184,14 @@ char *unset(char *key)
     /* search in config for given key */
     if (getConfValueC(&config, key)) {
 	unsetConfigEntry(&config, confDef, key);
+
+	if (!strcmp(key, "DEBUG_MASK")) {
+	    int debugMask = getConfValueI(&config, "DEBUG_MASK");
+	    maskLogger(debugMask);
+	} else if (!strcmp(key, "POLL_INTERVAL")) {
+	    int poll = getConfValueI(&config, "POLL_INTERVAL");
+	    if (poll >= 0) setMainTimer(poll);
+	}
     } else if (!strcmp(key, "memdebug")) {
 	if (memoryDebug) {
 	    finalizePluginLogger();

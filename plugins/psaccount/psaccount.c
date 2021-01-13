@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2010-2020 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2010-2021 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -26,6 +26,7 @@
 
 #include "timer.h"
 #include "plugin.h"
+#include "pluginconfig.h"
 #include "psidnodes.h"
 #include "psidutil.h"
 #include "psidcomm.h"
@@ -43,10 +44,7 @@ plugin_dep_t dependencies[] = {
 static int mainTimerID = -1;
 
 /** the main timer which calls periodicMain() to do all the work */
-static struct timeval mainTimer = {30,0};
-
-/* Forward declaration */
-static void setMainTimer(int sec);
+static struct timeval mainTimer = {-1,0};
 
 /**
  * @brief Main loop doing all the work.
@@ -56,7 +54,6 @@ static void setMainTimer(int sec);
 static void periodicMain(void)
 {
     static int cleanCtr = 0;
-    int poll = PSIDnodes_acctPollI(PSC_getMyID());
 
     /* cleanup old jobs */
     if (cleanCtr++ == 4) {
@@ -65,10 +62,7 @@ static void periodicMain(void)
 	cleanCtr = 0;
     }
 
-    /* check if config changed */
-    if (poll >= 0 && poll != mainTimer.tv_sec) setMainTimer(poll ? poll : 30);
-
-    if (!poll) return;
+    if (!mainTimer.tv_sec) return;
 
     /* update node energy/power consumption */
     energyUpdate();
@@ -82,24 +76,33 @@ static void periodicMain(void)
     }
 }
 
-/**
- * @brief Update the main timer configuration.
- *
- * @param sec The new value of the timer in seconds.
- *
- * @return No return value.
- */
-static void setMainTimer(int sec)
+bool setMainTimer(int poll)
 {
-    if (mainTimerID != -1) Timer_remove(mainTimerID);
+    if (poll < 0) return false;
+    if (poll == mainTimer.tv_sec) return true;
+    if (mainTimerID != -1) {
+	Timer_remove(mainTimerID);
+	mainTimerID = -1;
+    }
 
-    mainTimer.tv_sec = sec;
-    mainTimerID = Timer_register(&mainTimer, periodicMain);
+    mainTimer.tv_sec = poll;
+    if (poll) mainTimerID = Timer_register(&mainTimer, periodicMain);
+
+    /* Also push the timer setting into the configuration */
+    char valStr[32];
+    snprintf(valStr, sizeof(valStr), "%d", poll);
+    addConfigEntry(&config, "POLL_INTERVAL", valStr);
+
+    return true;
+}
+
+int getMainTimer(void)
+{
+    return mainTimer.tv_sec;
 }
 
 int initialize(void)
 {
-    int poll, debugMask;
     struct utsname uts;
     char configfn[200];
 
@@ -114,7 +117,7 @@ int initialize(void)
     if (!initPSAccConfig(configfn)) return 1;
 
     /* init logging facility */
-    debugMask = getConfValueI(&config, "DEBUG_MASK");
+    int debugMask = getConfValueI(&config, "DEBUG_MASK");
     maskLogger(debugMask);
 
     /* init energy facility */
@@ -155,9 +158,8 @@ int initialize(void)
     PSID_adjustLoginUID(getuid());
 
     /* register periodic timer */
-    poll = PSIDnodes_acctPollI(PSC_getMyID());
-    if (poll >= 0) setMainTimer(poll ? poll : 30);
-    if (mainTimerID == -1) {
+    int poll = getConfValueI(&config, "POLL_INTERVAL");
+    if (!setMainTimer(poll)) {
 	mlog("registering main timer for poll = %d failed\n", poll);
 	return 1;
     }
