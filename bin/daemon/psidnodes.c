@@ -66,7 +66,6 @@ typedef struct {
     list_t admuid_list;    /**< AdminUser on this node */
     list_t admgid_list;    /**< AdminGroup on this node */
     int maxProcs;          /**< Number of processes this node will handle */
-    int acctPollInterval;  /**< Interval in sec for polling on accnting info */
     int killDelay;         /**< Seconds between relatives' signal and SIGKILL */
     char supplGrps;        /**< Set supplementary groups for new tasks */
     char maxStatTry;       /**< Number of tries to stat() executable to spawn */
@@ -115,7 +114,6 @@ static void nodeInit(node_t *node)
     INIT_LIST_HEAD(&node->admuid_list);
     INIT_LIST_HEAD(&node->admgid_list);
     node->maxProcs = -1;
-    node->acctPollInterval = 0;
     node->killDelay = 0;
     node->supplGrps = 0;
     node->maxStatTry = 1;
@@ -925,21 +923,6 @@ int PSIDnodes_getProcs(PSnodes_ID_t id)
     if (!validID(id)) return -1;
 
     return nodes[id].maxProcs;
-}
-
-int PSIDnodes_setAcctPollI(PSnodes_ID_t id, int interval)
-{
-    if (!validID(id)) return -1;
-
-    nodes[id].acctPollInterval = interval;
-    return 0;
-}
-
-int PSIDnodes_acctPollI(PSnodes_ID_t id)
-{
-    if (!validID(id)) return -1;
-
-    return nodes[id].acctPollInterval;
 }
 
 int PSIDnodes_setKillDelay(PSnodes_ID_t id, int delay)

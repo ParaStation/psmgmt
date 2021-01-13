@@ -763,32 +763,6 @@ int PSIDnodes_setAllowUserMap(PSnodes_ID_t id, int allowMap);
 int PSIDnodes_allowUserMap(PSnodes_ID_t id);
 
 /**
- * @brief Set node's accounter poll interval
- *
- * Set the accounter poll interval of node @a id to @a interval. If
- * set to 0, no polling at all will take place.
- *
- * @param id ParaStation ID of the node to change
- *
- * @param interval Polling interval in seconds to be set
- *
- * @return On success, 0 is returned; or -1 if an error occurred
- */
-int PSIDnodes_setAcctPollI(PSnodes_ID_t id, int interval);
-
-/**
- * @brief Get node's accounter poll interval
- *
- * Get the accounter poll interval of node @a id.
- *
- * @param id ParaStation ID of the node to look up
- *
- * @return If the node was found, the accounting poll interval is
- * returned; or -1 if an error occurred
- */
-int PSIDnodes_acctPollI(PSnodes_ID_t id);
-
-/**
  * @brief Set node's kill delay
  *
  * Set the kill delay of node @a id to @a delay. This determines the
