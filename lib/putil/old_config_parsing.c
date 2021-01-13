@@ -59,7 +59,6 @@ static config_t config = {
     .logfile = NULL,
     .freeOnSuspend = 0,
     .nodesSort = PART_SORT_PROC,
-    .acctPollInterval = 0,
     .killDelay = 10,
     .startupScript = NULL,
     .nodeUpScript = NULL,
@@ -322,18 +321,6 @@ static int getDeadLmt(char *token)
     if (ret) return ret;
 
     config.deadLimit = temp;
-
-    return ret;
-}
-
-static int getAcctPollInterval(char *token)
-{
-    int temp, ret;
-
-    ret = parser_getNumValue(parser_getString(), &temp, "accnt poll interval");
-    if (ret) return ret;
-
-    config.acctPollInterval = temp;
 
     return ret;
 }
@@ -2718,7 +2705,6 @@ static keylist_t config_list[] = {
     {"statustimeout", getStatTmout, NULL},
     {"statusbroadcasts", getStatBcast, NULL},
     {"deadlimit", getDeadLmt, NULL},
-    {"accountpoll", getAcctPollInterval, NULL},
     {"killdelay", getKillDelay, NULL},
     {"rlimit", getRLimit, NULL},
     {"loglevel", getLogMask, NULL},
