@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2020 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2021 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -254,7 +254,7 @@ static info_t setInfo = {
 	" | bindmem <bool> | bindGPUs <bool> | supplementaryGroups <bool>"
 	" | maxStatTry <num> | cpumap <map> | allowUserMap <bool>"
 	" | nodessort <mode> | adminuser [+|-]{<user>|any}"
-	" | admingroup [+|-]{<group>|any} | accountpoll <interval>"
+	" | admingroup [+|-]{<group>|any}"
 	" | killdelay <delay> | pluginUnloadTmout <timeout> | obsoleteTasks 0"
 	" | {rl_{addressspace|as} | rl_core | rl_cpu | rl_data | rl_fsize"
 	"    | rl_locks | rl_memlock | rl_msgqueue | rl_nofile | rl_nproc"
@@ -405,11 +405,6 @@ static info_t setInfo = {
 	  " name or a numerical GID. If <group> is preceded by a '+' or '-',"
 	  " this group is added to or removed from the list of admingroups"
 	  " respectively." },
-	{ .tag = "set accountpoll <interval>",
-	  .descr = "In order to retrieve more detailed accounting information"
-	  " the forwarders might poll on /proc. This sets the poll interval on"
-	  " the selected nodes to <interval> seconds. If Set to 0, no polling"
-	  " at all will take place." },
 	{ .tag = "set killdelay <delay>",
 	  .descr = "Unexpectedly dying relatives (i.e. the parent process or"
 	  " any child process) will lead to a signal to be sent. The processes"
@@ -478,7 +473,7 @@ static info_t showInfo = {
 	" | mcastdebug | master | {freeonsuspend|fos}"
 	" | starter | runjobs | overbook | exclusive | pinprocs | bindmem"
 	" | bindGPUs | cpumap | allowUserMap | nodessort | supplementaryGroups"
-	" | maxStatTry | adminuser | admingroup | accounters | accountpoll"
+	" | maxStatTry | adminuser | admingroup | accounters"
 	" | killdelay | pluginAPIversion | pluginUnloadTmout | obsoleteTasks"
 	" | rl_{addressspace|as} | rl_core | rl_cpu | rl_data | rl_fsize"
 	" | rl_locks | rl_memlock | rl_msgqueue | rl_nofile | rl_nproc"
@@ -571,9 +566,6 @@ static info_t showInfo = {
 	{ .tag = "show accounters",
 	  .descr = "Show all accounter tasks, i.e. tasks collecting accounting"
 	  " messages." },
-	{ .tag = "show accountpoll",
-	  .descr = "Show polling interval of accounter to retrieve more"
-	  " detailed information. Value is in seconds." },
 	{ .tag = "show killdelay",
 	  .descr = "Show delay before sending SIGKILL from relatives. Value"
 	  " is in seconds."},

@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2020 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2021 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -1129,12 +1129,6 @@ static int setShowAccounter(char *token)
     return 0;
 }
 
-static int setShowAcctPoll(char *token)
-{
-    setShowOpt = PSP_OP_ACCTPOLL;
-    return 0;
-}
-
 static int setShowKillDelay(char *token)
 {
     setShowOpt = PSP_OP_KILLDELAY;
@@ -1284,7 +1278,6 @@ static keylist_t setShowList[] = {
     {"cpumap", setShowCPUMap, NULL},
     {"allowusermap", setShowAllowUserMap, boolList},
     {"accounters", setShowAccounter, NULL},
-    {"accountpoll", setShowAcctPoll, NULL},
     {"killdelay", setShowKillDelay, NULL},
     {"supplementarygroups", setShowSupplGrps, boolList},
     {"maxstattry", setShowMaxStatTry, NULL},
@@ -1426,7 +1419,6 @@ static int setCommand(char *token)
     case PSP_OP_RDPCLSDTMOUT:
     case PSP_OP_RDPRETRANS:
     case PSP_OP_MCASTDEBUG:
-    case PSP_OP_ACCTPOLL:
     case PSP_OP_KILLDELAY:
     case PSP_OP_MASTER:
     case PSP_OP_MAXSTATTRY:
@@ -1560,7 +1552,6 @@ static int setCommand(char *token)
     case PSP_OP_BINDGPUS:
     case PSP_OP_ALLOWUSERMAP:
     case PSP_OP_NODESSORT:
-    case PSP_OP_ACCTPOLL:
     case PSP_OP_KILLDELAY:
     case PSP_OP_SUPPL_GRPS:
     case PSP_OP_MAXSTATTRY:
@@ -1652,7 +1643,6 @@ static int showCommand(char *token)
     case PSP_OP_BINDMEM:
     case PSP_OP_BINDGPUS:
     case PSP_OP_ALLOWUSERMAP:
-    case PSP_OP_ACCTPOLL:
     case PSP_OP_KILLDELAY:
     case PSP_OP_SUPPL_GRPS:
     case PSP_OP_MAXSTATTRY:
