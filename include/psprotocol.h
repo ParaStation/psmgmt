@@ -21,7 +21,7 @@
 #include "pstaskid.h"
 
 /** Unique version number of the high-level protocol */
-#define PSProtocolVersion 342
+#define PSProtocolVersion 343
 
 /** The location of the UNIX socket used to contact the daemon. */
 #define PSmasterSocketName "\0parastation.sock"
@@ -79,7 +79,6 @@ typedef enum {
     PSP_OP_ADD_ACCT = 0x0010,     /**< add a new accounting process */
     PSP_OP_REM_ACCT,              /**< sign off accounting process */
     PSP_OP_ACCT,                  /**< list of accounting processes */
-    PSP_OP_ACCTPOLL,              /**< accounter's poll interval */
 
     PSP_OP_STATUS_TMOUT = 0x0018, /**< status' timeout (in milli-seconds) */
     PSP_OP_STATUS_DEADLMT,        /**< status' dead-limit */

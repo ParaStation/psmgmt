@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2020 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2021 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -708,12 +708,6 @@ static void msg_SETOPTION(DDOptionMsg_t *msg)
 	    case PSP_OP_REM_ACCT:
 		PSID_remAcct(msg->opt[i].value);
 		break;
-	    case PSP_OP_ACCTPOLL:
-		if (PSC_getPID(msg->header.sender)) {
-		    /* Ignore info sent by other daemons for compatibility */
-		    PSIDnodes_setAcctPollI(PSC_getMyID(), msg->opt[i].value);
-		}
-		break;
 	    case PSP_OP_KILLDELAY:
 		if (PSC_getPID(msg->header.sender)) {
 		    /* Ignore info sent by other daemons for compatibility */
@@ -942,9 +936,6 @@ static void msg_GETOPTION(DDOptionMsg_t *msg)
 		send_acct_OPTIONS(msg->header.sender, 1);
 		/* Do not send option again */
 		out--;
-		break;
-	    case PSP_OP_ACCTPOLL:
-		msg->opt[out].value = PSIDnodes_acctPollI(PSC_getMyID());
 		break;
 	    case PSP_OP_KILLDELAY:
 		msg->opt[out].value = PSIDnodes_killDelay(PSC_getMyID());
