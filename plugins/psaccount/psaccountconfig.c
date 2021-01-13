@@ -15,6 +15,8 @@
 
 const ConfDef_t confDef[] =
 {
+    { "POLL_INTERVAL", true, "num", "30",
+      "General poll interval in seconds" },
     { "TIME_JOBSTART_POLL", true, "num", "1",
       "Poll interval in seconds at the beginning of a job" },
     { "TIME_JOBSTART_WAIT", true, "num", "1",
