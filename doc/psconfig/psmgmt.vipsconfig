@@ -3,7 +3,6 @@
 ;
 [+defaults:psid]
 .parents = []
-AccountPollInterval = "0"
 AdminGroups = ["root"]
 AdminUsers = ["root"]
 AllowExclusive = "no"
@@ -68,7 +67,6 @@ AdminUsers = ["root", "+partec"]
 LoadPlugins = ["pspmi", "psaccount", "psresport"]
 ResourceLimits. = ptr(["class:resourcelimits"])
 # Inherited keys:
-# AccountPollInterval = "0"
 # AdminGroups = ["root"]
 # AllowExclusive = "no"
 # AllowOverbooking = "no"

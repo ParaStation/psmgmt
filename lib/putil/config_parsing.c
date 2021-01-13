@@ -70,7 +70,6 @@ static config_t config = {
     .logfile = NULL,
     .freeOnSuspend = 0,
     .nodesSort = PART_SORT_PROC,
-    .acctPollInterval = 0,
     .killDelay = 10,
     .startupScript = NULL,
     .nodeUpScript = NULL,
@@ -540,15 +539,6 @@ static bool getDeadLmt(char *key)
     if (!getNumber(key, &tmp)) return false;
 
     config.deadLimit = tmp;
-    return true;
-}
-
-static bool getAcctPollInterval(char *key)
-{
-    int tmp;
-    if (!getNumber(key, &tmp)) return false;
-
-    config.acctPollInterval = tmp;
     return true;
 }
 
@@ -1815,7 +1805,6 @@ static confkeylist_t local_node_configkey_list[] = {
     {"Psid.RdpStatusTimeout", getStatTmout},
     {"Psid.RdpStatusBroadcasts", getStatBcast},
     {"Psid.RdpStatusDeadLimit", getDeadLmt},
-    {"Psid.AccountPollInterval", getAcctPollInterval},
     {"Psid.KillDelay", getKillDelay},
     {"Psid.ResourceLimits.", getRLimit},
     {"Psid.LogMask", getLogMask},
