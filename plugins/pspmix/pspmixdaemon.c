@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2018-2020 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2018-2021 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -64,7 +64,7 @@ static PspmixJobserver_t* findJobserver(PStask_ID_t loggertid)
 void setTargetToPmixJobserver(DDTypedBufferMsg_t *msg) {
 
     //TODO support more than one jobserver in the list
-    PspmixJobserver_t *server;
+    PspmixJobserver_t *server = NULL;
     list_t *s;
     int count = 0;
     list_for_each(s, &pmixJobservers) {
@@ -72,7 +72,7 @@ void setTargetToPmixJobserver(DDTypedBufferMsg_t *msg) {
 	server = list_entry(s, PspmixJobserver_t, next);
     }
 
-    if (count == 0) {
+    if (!server) {
 	mlog("%s: UNEXPECTED: No PMIx jobserver found.\n", __func__);
 	return;
     }
@@ -83,6 +83,10 @@ void setTargetToPmixJobserver(DDTypedBufferMsg_t *msg) {
 	return;
     }
 
+    if (!server->fwdata) {
+	mlog("%s: fwdata is NULL, PMIx jobserver seems to be dead\n", __func__);
+	return;
+    }
     msg->header.dest = server->fwdata->tid;
 
     mdbg(PSPMIX_LOG_COMM, "%s: setting destination %s\n", __func__,
