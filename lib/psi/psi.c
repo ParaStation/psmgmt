@@ -354,6 +354,9 @@ int PSI_initClient(PStask_group_t taskGroup)
     return 1;
 }
 
+/** Cache of protocol version numbers used by @ref PSI_protocolVersion() */
+static int *protoCache = NULL;
+
 int PSI_exitClient(void)
 {
     PSI_log(PSI_LOG_VERB, "%s()\n", __func__);
@@ -362,11 +365,11 @@ int PSI_exitClient(void)
 	return 1;
     }
 
-    /*
-     * close connection to local PSI daemon
-     */
+    /* close connection to local ParaStation daemon */
     close(daemonSock);
     daemonSock = -1;
+
+    if (protoCache) free(protoCache);
 
     PSI_finalizeLog();
 
@@ -376,6 +379,53 @@ int PSI_exitClient(void)
 bool PSI_mixedProto(void)
 {
     return mixedProto;
+}
+
+int PSI_protocolVersion(PSnodes_ID_t id)
+{
+    if (!PSC_validNode(id)) return -1;
+
+    /* In the homogeneous case the answer is easy */
+    if (!PSI_mixedProto()) return PSProtocolVersion;
+
+    /* we have to handle the heterogeneous case */
+    if (!protoCache) {
+	/* initialize cache */
+	PSnodes_ID_t numNodes = PSC_getNrOfNodes();
+	if (numNodes == -1) {
+	    PSC_log(-1, "%s: unable to determine number of nodes\n", __func__);
+	    return -1;
+	}
+	protoCache = calloc(numNodes, sizeof(*protoCache));
+	if (!protoCache) {
+	    PSI_warn(-1, errno, "%s: calloc()", __func__);
+	    return -1;
+	}
+    }
+
+    if (!protoCache[id]) {
+	PSP_Option_t optType = PSP_OP_PROTOCOLVERSION;
+	PSP_Optval_t optVal;
+
+	if (PSI_infoOption(id, 1, &optType, &optVal, false) == -1) {
+	    PSI_log(-1, "%s: error getting info\n", __func__);
+	    return -1;
+	}
+
+	switch (optType) {
+	case PSP_OP_PROTOCOLVERSION:
+	    protoCache[id] = optVal;
+	    break;
+	case PSP_OP_UNKNOWN:
+	    PSI_log(-1, "%s: PSP_OP_PROTOCOLVERSION unknown\n", __func__);
+	    return -1;
+	default:
+	    PSI_log(-1, "%s: got option type %d\n", __func__, optType);
+	    return -1;
+	}
+    }
+
+    return protoCache[id];
 }
 
 int PSI_sendMsg(void *amsg)

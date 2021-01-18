@@ -72,6 +72,24 @@ int PSI_exitClient(void);
 bool PSI_mixedProto(void);
 
 /**
+ * @brief Get protocol version
+ *
+ * Get the protocol version supported by the ParaStation daemon
+ * running on the node with ParaStation ID @a id.
+ *
+ * This function implements caching and makes use of @ref
+ * PSI_mixedProto() in order to determine if any messages have to be
+ * sent to remote nodes at all.
+ *
+ * @param id ParaStation ID of the node to ask
+ *
+ * @return If @a id is valid and the node's protocol version could be
+ * determined, this version number is returned; or -1 if an error
+ * occurred
+ */
+int PSI_protocolVersion(PSnodes_ID_t id);
+
+/**
  * @brief Send a message.
  *
  * Send the message @a amsg to the destination defined therein. This
