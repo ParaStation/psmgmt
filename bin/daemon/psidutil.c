@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 1999-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2020 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2021 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -204,6 +204,18 @@ void PSID_readConfigFile(FILE* logfile, char *configfile)
 
     PSC_setNrOfNodes(PSIDnodes_getMaxID()+1);
     PSC_setDaemonFlag(true); /* To get the correct result from PSC_getMyTID() */
+}
+
+static bool mixedProto = false;
+
+bool PSID_mixedProto(void)
+{
+    return mixedProto;
+}
+
+void PSID_setMixedProto(void)
+{
+    mixedProto = true;
 }
 
 int PSID_writeall(int fd, const void *buf, size_t count)

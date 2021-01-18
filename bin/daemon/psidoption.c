@@ -650,6 +650,7 @@ static void msg_SETOPTION(DDOptionMsg_t *msg)
 	    case PSP_OP_PROTOCOLVERSION:
 		PSIDnodes_setProtoV(PSC_getID(msg->header.sender),
 				    msg->opt[i].value);
+		if (msg->opt[i].value!=PSProtocolVersion) PSID_setMixedProto();
 		break;
 	    case PSP_OP_DAEMONPROTOVERSION:
 		PSIDnodes_setDmnProtoV(PSC_getID(msg->header.sender),

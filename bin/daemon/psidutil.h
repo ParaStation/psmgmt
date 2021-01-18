@@ -2,19 +2,19 @@
  * ParaStation
  *
  * Copyright (C) 1999-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2020 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2021 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
 /**
- * @file
- * Utilities for the ParaStation daemon
+ * @file Utilities for the ParaStation daemon
  */
 #ifndef __PSIDUTIL_H
 #define __PSIDUTIL_H
 
+#include <stdbool.h>
 #include <stdio.h>
 #include <time.h>
 #include <sys/types.h>
@@ -174,6 +174,30 @@ extern config_t *PSID_config;
  * @return No return value.
  */
 void PSID_readConfigFile(FILE* logfile, char *configfile);
+
+/**
+ * @brief Get global flag on multiple protocol versions
+ *
+ * Read the global flag marking multiple protocol versions in the
+ * cluster.
+ *
+ * @return If more than one protocol version is active in the local
+ * cluster, true is returned. Otherwise all members of the local
+ * cluster will understand the protocol version of the local node.
+ */
+bool PSID_mixedProto(void);
+
+/**
+ * @brief Set global flag on multiple protocol versions
+ *
+ * Set the global flag marking multiple protocol versions in the
+ * cluster. It might trigger additional effort in both -- the local
+ * psid and local client processes -- to gain information on remote
+ * protocol version to ensure backward compatibility of the protocol.
+ *
+ * @return No return value
+ */
+void PSID_setMixedProto(void);
 
 /**
  * @brief Write complete buffer.
