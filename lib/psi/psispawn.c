@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 1999-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2020 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2021 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -142,55 +142,6 @@ static char *mygetwd(const char *ext)
 error:
     errno = ENOMEM;
     return NULL;
-}
-
-/**
- * @brief Get protocol version
- *
- * Get the protocol-version supported by the ParaStation daemon
- * running on node @a node.
- *
- * This function does some simple caching, i.e. consecutive calls
- * asking for the version of the same node will not request this
- * information from the daemon more than once.
- *
- * @param node The node to ask.
- *
- * @return On success, return the protocol-version supported by the
- * node's daemon. Otherwise, -1 is returned.
- */
-static int getProtoVersion(PSnodes_ID_t node)
-{
-    static PSnodes_ID_t lastNode = -2;
-    static int lastProtoVersion = 0;
-    PSP_Option_t opt = PSP_OP_PROTOCOLVERSION;
-    PSP_Optval_t val;
-
-    if (node == lastNode) {
-	return lastProtoVersion;
-    }
-
-    lastNode = node;
-    if (PSI_infoOption(node, 1, &opt, &val, false) == -1) {
-	PSI_log(-1, "%s: error getting info\n", __func__);
-	lastNode = -2;
-    }
-
-    switch (opt) {
-    case PSP_OP_PROTOCOLVERSION:
-	lastProtoVersion = val;
-	return lastProtoVersion;
-	break;
-    case PSP_OP_UNKNOWN:
-	PSI_log(-1, "%s: PSP_OP_PROTOCOLVERSION unknown\n", __func__);
-	break;
-    default:
-	PSI_log(-1, "%s: got option type %d\n", __func__, opt);
-    }
-
-    lastNode = -2;
-
-    return -1;
 }
 
 /**
@@ -674,7 +625,6 @@ static int dospawn(int count, PSnodes_ID_t *dstnodes, char *workingdir,
     unsigned int firstRank = rank;
     char *valgrind;
     char *callgrind;
-    static int *protoVer = NULL;
 
     if (!errors) {
 	PSI_log(-1, "%s: unable to reports errors\n", __func__);
@@ -814,14 +764,6 @@ static int dospawn(int count, PSnodes_ID_t *dstnodes, char *workingdir,
 	goto cleanup;
     }
 
-    if (!protoVer) {
-	protoVer = malloc(PSC_getNrOfNodes() * sizeof(*protoVer));
-	if (!protoVer) {
-	    PSI_log(-1, "%s: cannot determine protocol versions.", __func__);
-	    goto cleanup;
-	}
-    }
-
     for (i = 0; i < count; i++) {
 	/* check if dstnode is ok */
 	if (!PSC_validNode(dstnodes[i])) {
@@ -829,7 +771,6 @@ static int dospawn(int count, PSnodes_ID_t *dstnodes, char *workingdir,
 	    if (tids) tids[i] = -1;
 	    goto cleanup;
 	}
-	protoVer[dstnodes[i]] = getProtoVersion(dstnodes[i]);
     }
 
     if (!initSerial(0, PSI_sendMsg)) {
@@ -837,14 +778,19 @@ static int dospawn(int count, PSnodes_ID_t *dstnodes, char *workingdir,
 	goto cleanup;
     }
 
-
     /* send actual requests */
     i = 0;
     while (i < count && !error) {
 	int num;
 
 	task->rank = rank;
-	if (protoVer[dstnodes[i]] > 340) {
+	int protocolVersion = PSI_protocolVersion(dstnodes[i]);
+
+	if (protocolVersion == -1) {
+	    PSI_log(-1, "%s: unable to get protocol version for node %d\n",
+		    __func__, dstnodes[i]);
+	    goto cleanup;
+	} else if (protocolVersion > 340) {
 	    num = PSI_sendSpawnReq(task, &dstnodes[i], count - i);
 	    if (num < 0) goto cleanup;
 	} else {
