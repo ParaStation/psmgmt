@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2020 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2021 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -780,13 +780,9 @@ static void msg_CLIENTCONNECT(int fd, DDBufferMsg_t *bufmsg)
 {
     DDInitMsg_t *msg = (DDInitMsg_t *)bufmsg;
 
-    PStask_t *task;
-    DDTypedBufferMsg_t outmsg;
-    PSID_NodeStatus_t status;
     pid_t pid;
     uid_t uid;
     gid_t gid;
-    PStask_ID_t tid;
 
 #ifdef SO_PEERCRED
     socklen_t size;
@@ -802,7 +798,7 @@ static void msg_CLIENTCONNECT(int fd, DDBufferMsg_t *bufmsg)
     uid = msg->uid;
     gid = msg->gid;
 #endif
-    tid = PSC_getTID(-1, pid);
+    PStask_ID_t tid = PSC_getTID(-1, pid);
 
     PSID_log(PSID_LOG_CLIENT,
 	     "%s: from %s at fd %d, group=%s, version=%d, uid=%d\n",
@@ -812,7 +808,7 @@ static void msg_CLIENTCONNECT(int fd, DDBufferMsg_t *bufmsg)
      * first check if it is a reconnection
      * this might happen due to an exec() call.
      */
-    task = PStasklist_find(&managedTasks, tid);
+    PStask_t *task = PStasklist_find(&managedTasks, tid);
     if (!task && msg->group != TG_SPAWNER && msg->group != TG_PSCSPAWNER) {
 	PStask_ID_t pgtid = PSC_getTID(-1, getpgid(pid));
 
@@ -953,26 +949,24 @@ static void msg_CLIENTCONNECT(int fd, DDBufferMsg_t *bufmsg)
 
     PSIDclient_register(fd, tid, task);
 
-    /*
-     * Get the number of processes
-     */
-    status = getStatusInfo(PSC_getMyID());
+    /* Get the number of processes */
+    PSID_NodeStatus_t status = getStatusInfo(PSC_getMyID());
 
-    /*
-     * Reject or accept connection
-     */
-    outmsg.header.type = PSP_CD_CLIENTESTABLISHED;
-    outmsg.header.dest = tid;
-    outmsg.header.sender = PSC_getMyTID();
-    outmsg.header.len = sizeof(outmsg.header) + sizeof(outmsg.type);
-
-    outmsg.type = PSP_CONN_ERR_NONE;
+    /* Reject or accept connection */
+    DDTypedBufferMsg_t outmsg = {
+	.header = { .type = PSP_CD_CLIENTESTABLISHED,
+		    .sender = PSC_getMyTID(),
+		    .dest = tid,
+		    .len = sizeof(outmsg.header) + sizeof(outmsg.type) },
+	.type = PSP_CONN_ERR_NONE,
+	.buf = { 0 } };
 
     /* Connection refused answer message */
     if (msg->version < 324 || msg->version > PSProtocolVersion) {
 	outmsg.type = PSP_CONN_ERR_VERSION;
-	*(uint32_t *)outmsg.buf = PSProtocolVersion;
-	outmsg.header.len += sizeof(uint32_t);
+	uint32_t protoV = PSProtocolVersion;
+	PSP_putTypedMsgBuf(&outmsg, __func__, "protoV", &protoV,
+			   sizeof(protoV));
     } else if (!task) {
 	outmsg.type = PSP_CONN_ERR_NOSPACE;
     } else if (uid && !PSIDnodes_testGUID(PSC_getMyID(), PSIDNODES_USER,
@@ -984,25 +978,23 @@ static void msg_CLIENTCONNECT(int fd, DDBufferMsg_t *bufmsg)
     } else if (PSIDnodes_getProcs(PSC_getMyID()) != PSNODES_ANYPROC
 	       && status.jobs.normal > PSIDnodes_getProcs(PSC_getMyID())) {
 	outmsg.type = PSP_CONN_ERR_PROCLIMIT;
-	*(int *)outmsg.buf = PSIDnodes_getProcs(PSC_getMyID());
-	outmsg.header.len += sizeof(int);
+	int maxProcs = PSIDnodes_getProcs(PSC_getMyID());
+	PSP_putTypedMsgBuf(&outmsg, __func__, "maxProcs", &maxProcs,
+			   sizeof(maxProcs));
     } else if (PSID_getDaemonState() & PSID_STATE_NOCONNECT) {
 	outmsg.type = PSP_CONN_ERR_STATENOCONNECT;
 	PSID_log(-1, "%s: daemon state problems: state is %x\n",
 		 __func__, PSID_getDaemonState());
     }
 
-    if ((outmsg.type != PSP_CONN_ERR_NONE) || (msg->group == TG_RESET)) {
+    if (outmsg.type != PSP_CONN_ERR_NONE || msg->group == TG_RESET) {
 	outmsg.header.type = PSP_CD_CLIENTREFUSED;
 
-	PSID_log(PSID_LOG_CLIENT, "%s: connection refused:"
-		 "group %s task %s version %d vs. %d uid %d gid %d"
-		 " jobs %d %d\n",
-		 __func__, PStask_printGrp(msg->group),
-		 PSC_printTID(task->tid), msg->version, PSProtocolVersion,
-		 uid, gid,
-		 status.jobs.normal, PSIDnodes_getProcs(PSC_getMyID()));
-
+	PSID_log(PSID_LOG_CLIENT, "%s: connection refused: group %s task %s"
+		 " version %d vs. %d uid %d gid %d jobs %d %d\n", __func__,
+		 PStask_printGrp(msg->group), PSC_printTID(task->tid),
+		 msg->version, PSProtocolVersion, uid, gid, status.jobs.normal,
+		 PSIDnodes_getProcs(PSC_getMyID()));
 	sendMsg(&outmsg);
 
 	/* clean up */
@@ -1014,7 +1006,16 @@ static void msg_CLIENTCONNECT(int fd, DDBufferMsg_t *bufmsg)
 	PSIDclient_setEstablished(fd, handleClientMsg, NULL);
 	task->protocolVersion = msg->version;
 
-	outmsg.type = PSC_getMyID();
+	if (task->protocolVersion < 344) {
+	    *(uint32_t *)outmsg.buf = PSProtocolVersion;
+	    outmsg.header.len += sizeof(uint32_t);
+	} else {
+	    bool mixedProto = PSID_mixedProto();
+	    PSP_putTypedMsgBuf(&outmsg, __func__, "mixedProto", &mixedProto,
+			       sizeof(mixedProto));
+	    PSnodes_ID_t myID = PSC_getMyID();
+	    PSP_putTypedMsgBuf(&outmsg, __func__, "myID", &myID, sizeof(myID));
+	}
 
 	sendMsg(&outmsg);
 

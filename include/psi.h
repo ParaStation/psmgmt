@@ -8,19 +8,18 @@
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-/**
- * @file
- * User-functions for interaction with the ParaStation system.
- */
+/** @file User-functions for interaction with the ParaStation system */
 #ifndef __PSI_H
 #define __PSI_H
 
+#include <stdbool.h>
 #include <sys/types.h>
+
 #include "pstask.h"
 #include "psprotocol.h"
 
 /**
- * @brief Initialize PSI.
+ * @brief Initialize PSI
  *
  * Initialize the PSI stuff within the current process. This includes
  * to try to connect the local daemon and to register to this
@@ -49,7 +48,7 @@
 int PSI_initClient(PStask_group_t taskGroup);
 
 /**
- * @brief Exit PSI.
+ * @brief Exit PSI
  *
  * Shutdown PSI. This will close the connection to the local daemon
  * and reset everything in a way that the daemon might be connected
@@ -60,6 +59,17 @@ int PSI_initClient(PStask_group_t taskGroup);
  * @return 1 is always returned.
  */
 int PSI_exitClient(void);
+
+/**
+ * @brief Flag heterogeneous protocol versions
+ *
+ * Flag if we live in a cluster with heterogeneous protocol versions
+ *
+ * @return If more than one protocol version is active in the local
+ * cluster, true is returned. Otherwise all members of the local
+ * cluster will understand the protocol version of the local node.
+ */
+bool PSI_mixedProto(void);
 
 /**
  * @brief Send a message.

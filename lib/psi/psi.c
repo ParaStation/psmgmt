@@ -8,19 +8,17 @@
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
+#include <errno.h>
+#include <limits.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <unistd.h>
-#include <errno.h>
 #include <string.h>
-#include <limits.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <sys/socket.h>
-#include <sys/un.h>
+#include <unistd.h>
 #include <netinet/in.h>
-#include <sys/stat.h>
 #include <sys/resource.h>
+#include <sys/socket.h>
+#include <sys/stat.h>
+#include <sys/un.h>
 
 #include "psprotocol.h"
 #include "psprotocolenv.h"
@@ -33,6 +31,8 @@
 #include "psienv.h"
 
 #include "psi.h"
+
+static bool mixedProto = false;
 
 #define RUN_DIR LOCALSTATEDIR "/run"
 
@@ -101,16 +101,15 @@ static int daemonSocket(char *sName)
  * @param tryStart Flag attempt to start the local daemon.
  *
  * @return On success, i.e. if connection and registration to the
- * local daemon worked, 1 is returned. Otherwise 0 is returned.
+ * local daemon worked, true is returned; otherwise false is returned
  */
-static int connectDaemon(PStask_group_t taskGroup, int tryStart)
+static bool connectDaemon(PStask_group_t taskGroup, int tryStart)
 {
     DDInitMsg_t msg;
     DDTypedBufferMsg_t answer;
+    size_t used = 0;
 
-    int connectfailes = 0;
-    int retry_count = 0;
-    int ret;
+    int retryCount = 0;
 
     PSI_log(PSI_LOG_VERB, "%s(%s)\n", __func__, PStask_printGrp(taskGroup));
 
@@ -125,7 +124,8 @@ static int connectDaemon(PStask_group_t taskGroup, int tryStart)
 
     tryStart &= (taskGroup == TG_ADMIN);
 
-    while (daemonSock==-1 && tryStart && connectfailes++ < 5) {
+    int connectFailures = 0;
+    while (daemonSock==-1 && tryStart && connectFailures++ < 5) {
 	/* try to start local ParaStation daemon via inetd */
 	PSC_startDaemon(INADDR_ANY);
 	usleep(100000);
@@ -146,7 +146,7 @@ static int connectDaemon(PStask_group_t taskGroup, int tryStart)
 
     if (daemonSock==-1) {
 	PSI_warn(-1, errno, "%s: failed finally", __func__);
-	return 0;
+	return false;
     }
 
     /* local connect */
@@ -167,10 +167,10 @@ static int connectDaemon(PStask_group_t taskGroup, int tryStart)
 
     if (PSI_sendMsg(&msg)<0) {
 	PSI_warn(-1, errno, "%s: PSI_sendMsg", __func__);
-	return 0;
+	return false;
     }
 
-    ret = PSI_recvMsg((DDMsg_t *)&answer, sizeof(answer));
+    int ret = PSI_recvMsg((DDMsg_t *)&answer, sizeof(answer));
     if (ret<=0) {
 	if (!ret) {
 	    PSI_log(-1, "%s: unexpected message length 0\n", __func__);
@@ -178,25 +178,28 @@ static int connectDaemon(PStask_group_t taskGroup, int tryStart)
 	    PSI_warn(-1, errno, "%s: PSI_recvMsg", __func__);
 	}
 
-	return 0;
+	return false;
     }
 
+    PSP_ConnectError_t type = answer.type;
     switch (answer.header.type) {
     case PSP_CD_CLIENTREFUSED:
-    {
-	PSP_ConnectError_t type = answer.type;
 	switch (type) {
 	case PSP_CONN_ERR_NONE:
-	    if (taskGroup!=TG_RESET) {
+	    if (taskGroup != TG_RESET) {
 		PSI_log(-1, "%s: Daemon refused connection\n", __func__);
 	    }
 	    break;
 	case PSP_CONN_ERR_VERSION :
-	    PSI_log(-1,
-		    "%s: Daemon (%u) does not support library version (%u)."
-		    " Pleases relink program\n",
-		    __func__, *(uint32_t*) answer.buf, PSProtocolVersion);
+	{
+	    uint32_t protoV;
+	    PSP_getTypedMsgBuf(&answer, &used, __func__, "protoV", &protoV,
+			       sizeof(protoV));
+	    PSI_log(-1, "%s: Daemon (%u) does not support library version (%u)."
+		    " Pleases relink program\n", __func__, protoV,
+		    PSProtocolVersion);
 	    break;
+	}
 	case PSP_CONN_ERR_NOSPACE:
 	    PSI_log(-1, "%s: Daemon has no space available\n", __func__);
 	    break;
@@ -208,12 +211,17 @@ static int connectDaemon(PStask_group_t taskGroup, int tryStart)
 		    __func__);
 	    break;
 	case PSP_CONN_ERR_PROCLIMIT :
-	    PSI_log(-1, "%s: Node is limited to %d processes\n",
-		    __func__, *(int*) answer.buf);
+	{
+	    int maxProcs;
+	    PSP_getTypedMsgBuf(&answer, &used, __func__, "maxProcs", &maxProcs,
+			       sizeof(maxProcs));
+	    PSI_log(-1, "%s: Node limited to %d processes\n", __func__,
+		    maxProcs);
 	    break;
+	}
 	case PSP_CONN_ERR_STATENOCONNECT:
-	    retry_count++;
-	    if (retry_count < 10) {
+	    retryCount++;
+	    if (retryCount < 10) {
 		sleep(1);
 		goto RETRY_CONNECT;
 	    }
@@ -229,33 +237,32 @@ static int connectDaemon(PStask_group_t taskGroup, int tryStart)
 	    break;
 	}
 	break;
-    }
     case PSP_CD_CLIENTESTABLISHED:
-    {
+	PSP_getTypedMsgBuf(&answer, &used, __func__, "mixedProto", &mixedProto,
+			   sizeof(mixedProto));
+	PSnodes_ID_t myID;
+	PSP_getTypedMsgBuf(&answer, &used, __func__, "myID", &myID,
+			   sizeof(myID));
+	PSC_setMyID(myID);
+
 	int nrOfNodes;
-	char instdir[PATH_MAX];
-
-	PSC_setMyID(answer.type);
-
 	if (PSI_infoInt(-1, PSP_INFO_NROFNODES, NULL, &nrOfNodes, false)) {
 	    PSI_log(-1, "%s:  Cannot determine # of nodes\n", __func__);
 	    break;
 	} else PSC_setNrOfNodes(nrOfNodes);
 
+	char instdir[PATH_MAX];
 	if (PSI_infoString(-1, PSP_INFO_INSTDIR, NULL,
 			   instdir, sizeof(instdir), false)) {
 	    PSI_log(-1, "%s:  Cannot determine instdir\n", __func__);
 	    break;
-	} else {
-	    if (strcmp(instdir, PSC_lookupInstalldir(instdir))) {
-		PSI_log(-1, "%s: Installation directory '%s' not correct\n",
-			__func__, instdir);
-		break;
-	    }
+	} else if (strcmp(instdir, PSC_lookupInstalldir(instdir))) {
+	    PSI_log(-1, "%s: Installation directory '%s' not correct\n",
+		    __func__, instdir);
+	    break;
 	}
 
-	return 1;
-    }
+	return true;
     default :
 	PSI_log(-1, "%s: unexpected return code %d (%s)\n", __func__,
 		answer.header.type, PSP_printMsg(answer.header.type));
@@ -266,7 +273,7 @@ static int connectDaemon(PStask_group_t taskGroup, int tryStart)
 
     daemonSock = -1;
 
-    return 0;
+    return false;
 }
 
 void PSI_propEnvList(char *listName)
@@ -364,6 +371,11 @@ int PSI_exitClient(void)
     PSI_finalizeLog();
 
     return 1;
+}
+
+bool PSI_mixedProto(void)
+{
+    return mixedProto;
 }
 
 int PSI_sendMsg(void *amsg)
