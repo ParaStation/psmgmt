@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2012-2020 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2012-2021 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -66,8 +66,8 @@ static char *sendBuf = NULL;
 /** the send buffer size */
 static uint32_t sendBufLen = 0;
 
-/** destination nodes for fragmented messages */
-static PStask_ID_t *destNodes = NULL;
+/** destination task IDs for fragmented messages */
+static PStask_ID_t *destTIDs = NULL;
 
 /** message to collect and send fragments */
 static DDTypedBufferMsg_t fragMsg;
@@ -240,8 +240,8 @@ static int clearMem(void *dummy)
     free(sendBuf);
     sendBuf = NULL;
     sendBufLen = 0;
-    free(destNodes);
-    destNodes = NULL;
+    free(destTIDs);
+    destTIDs = NULL;
 
     list_t *r, *tmp;
     list_for_each_safe(r, tmp, &activeRecvBufs) {
@@ -256,6 +256,9 @@ static int clearMem(void *dummy)
 
     return 0;
 }
+
+/** Dynamic linkers handle to the local main program */
+static void *mainHandle = NULL;
 
 /** Function to remove registered hooks later on */
 static int (*hookDel)(PSIDhook_t, PSIDhook_func_t) = NULL;
@@ -277,8 +280,7 @@ static int (*hookDel)(PSIDhook_t, PSIDhook_func_t) = NULL;
 static void initSerialHooks(void)
 {
     /* Determine if PSIDhook_add is available */
-    void *mainHandle = dlopen(NULL, 0);
-
+    if (!mainHandle) mainHandle = dlopen(NULL, 0);
     int (*hookAdd)(PSIDhook_t, PSIDhook_func_t) = dlsym(mainHandle,
 							"PSIDhook_add");
     hookDel = dlsym(mainHandle, "PSIDhook_del");
@@ -336,8 +338,7 @@ static int (*relLoopAct)(PSID_loopAction_t) = NULL;
 static void initLoopAction(void)
 {
     /* Determine if PSID_registerLoopAct is available */
-    void *mainHandle = dlopen(NULL, 0);
-
+    if (!mainHandle) mainHandle = dlopen(NULL, 0);
     int (*regLoopAct)(PSID_loopAction_t) = dlsym(mainHandle,
 						 "PSID_registerLoopAct");
     relLoopAct = dlsym(mainHandle, "PSID_unregisterLoopAct");
@@ -348,6 +349,36 @@ static void initLoopAction(void)
 	    return;
 	}
     }
+}
+
+/**
+ * The protocol version resolver. This might be either @ref
+ * PSIDnodes_getProtoV() (if we are inside psid) or @ref
+ * PSI_protoVersion() (if libpsi is accessible)
+ */
+static int (*getProtoV)(PSnodes_ID_t) = NULL;
+
+/**
+ * @brief Initialize determination of protocol version
+ *
+ * Initialize the protocol version resolver. This will setup @ref
+ * getProtoV() appropriately.
+ *
+ * @return No return value
+ */
+static void initProtoResolver(void)
+{
+    /* Determine if PSIDnodes_getProtoV is available, i.e. we live in psid */
+    if (!mainHandle) mainHandle = dlopen(NULL, 0);
+
+    getProtoV = dlsym(mainHandle, "PSIDnodes_getProtoV");
+    if (getProtoV) return;
+
+    /* Maybe we live inside a client program and libpsi is available */
+    getProtoV = dlsym(mainHandle, "PSI_protocolVersion");
+    if (getProtoV) return;
+
+    PSC_exit(EACCES, "%s: cannot initialize", __func__);
 }
 
 bool initSerialBuf(size_t bufSize)
@@ -384,16 +415,16 @@ bool initSerial(size_t bufSize, Send_Msg_Func_t *func)
 
     if (!initSerialBuf(bufSize)) return false;
 
-    /* allocated space for destination nodes */
-    free(destNodes);
-    destNodes = malloc(sizeof(*destNodes) * numNodes);
+    /* allocated space for destination task IDs */
+    free(destTIDs);
+    destTIDs = malloc(sizeof(*destTIDs) * numNodes);
 
-    if (!sendBuf || !destNodes) {
+    if (!sendBuf || !destTIDs) {
 	PSC_log(-1, "%s: cannot allocate all buffers\n", __func__);
 	free(sendBuf);
 	sendBuf = NULL;
-	free(destNodes);
-	destNodes = NULL;
+	free(destTIDs);
+	destTIDs = NULL;
 
 	return false;
     }
@@ -401,6 +432,7 @@ bool initSerial(size_t bufSize, Send_Msg_Func_t *func)
     sendPSMsg = func;
     if (!hookDel) initSerialHooks();
     if (!relLoopAct) initLoopAction();
+    if (!getProtoV) initProtoResolver();
 
     /* Initialize receive buffer handling */
     PSitems_init(&recvBuffers, sizeof(recvBuf_t), "recvBuffers");
@@ -421,7 +453,8 @@ void finalizeSerial(void)
     if (relLoopAct) relLoopAct(recvBuf_gc);
 }
 
-void initFragBuffer(PS_SendDB_t *buffer, int32_t headType, int32_t msgType)
+void initFragBufferExtra(PS_SendDB_t *buffer, int32_t headType, int32_t msgType,
+			 void *extra, uint8_t extraSize)
 {
     buffer->useFrag = true;
     buffer->bufUsed = 0;
@@ -429,9 +462,11 @@ void initFragBuffer(PS_SendDB_t *buffer, int32_t headType, int32_t msgType)
     buffer->msgType = msgType;
     buffer->fragNum = 0;
     buffer->numDest = 0;
+    buffer->extra = extra;
+    buffer->extraSize = extra ? extraSize : 0;
 }
 
-bool setFragDest(PS_SendDB_t *buffer, PStask_ID_t id)
+bool setFragDest(PS_SendDB_t *buffer, PStask_ID_t tid)
 {
     PSnodes_ID_t numNodes = PSC_getNrOfNodes();
 
@@ -440,31 +475,31 @@ bool setFragDest(PS_SendDB_t *buffer, PStask_ID_t id)
 	return false;
     }
 
-    if (!PSC_validNode(PSC_getID(id))) {
-	PSC_log(-1, "%s: nodeID %i out of range\n", __func__, PSC_getID(id));
+    if (!PSC_validNode(PSC_getID(tid))) {
+	PSC_log(-1, "%s: nodeID %i out of range\n", __func__, PSC_getID(tid));
 	return false;
     }
 
-    destNodes[buffer->numDest++] = id;
+    destTIDs[buffer->numDest++] = tid;
 
     return true;
 }
 
-bool setFragDestUniq(PS_SendDB_t *buffer, PStask_ID_t id)
+bool setFragDestUniq(PS_SendDB_t *buffer, PStask_ID_t tid)
 {
     int i;
 
     for (i = 0; i < buffer->numDest; i++) {
-	if (destNodes[i] == id) return false;
+	if (destTIDs[i] == tid) return false;
     }
 
-    return setFragDest(buffer, id);
+    return setFragDest(buffer, tid);
 }
 
 /**
  * @brief Send a message fragment
  *
- * Send a message fragment to all nodes set in @a destNodes.
+ * Send a message fragment to all nodes set in @a destTIDs.
  *
  * @param buf Buffer to send
  *
@@ -479,8 +514,9 @@ bool setFragDestUniq(PS_SendDB_t *buffer, PStask_ID_t id)
 static bool sendFragment(PS_SendDB_t *buf, const char *caller, const int line)
 {
     bool ret = true;
-    PSnodes_ID_t i;
-    PStask_ID_t localTask = -1;
+    PStask_ID_t localDest = -1;
+    DDTypedBufferMsg_t fragMsgDup;
+    bool dupOK = false;
 
     if (!buf->numDest) {
 	PSC_log(-1, "%s(%s@%d): empty nodelist\n", __func__, caller, line);
@@ -492,18 +528,34 @@ static bool sendFragment(PS_SendDB_t *buf, const char *caller, const int line)
 	return false;
     }
 
-    for (i = 0; i < buf->numDest; i++) {
-	if (PSC_getID(destNodes[i]) == PSC_getMyID()) {
+    for (PSnodes_ID_t i = 0; i < buf->numDest; i++) {
+	if (PSC_getID(destTIDs[i]) == PSC_getMyID()) {
 	    /* local messages might overwrite the shared send message buffer,
 	     * therefore it needs to be the last message send */
-	    localTask = destNodes[i];
+	    localDest = destTIDs[i];
 	    continue;
 	}
-	fragMsg.header.dest = destNodes[i];
+	DDTypedBufferMsg_t *msg;
+	if (getProtoV(PSC_getID(destTIDs[i])) < 344) {
+	    if (!dupOK) {
+		fragMsgDup.header = fragMsg.header;
+		fragMsgDup.type = fragMsg.type;
+		memcpy(fragMsgDup.buf, fragMsg.buf, 3 /* type + num */);
+		memcpy(fragMsgDup.buf + 3, fragMsg.buf + 4 + buf->extraSize,
+		       fragMsg.header.len - offsetof(DDTypedBufferMsg_t, buf)
+		       - buf->extraSize - 4);
+		fragMsgDup.header.len -= buf->extraSize + 1;
+		dupOK = true;
+	    }
+	    msg = &fragMsgDup;
+	} else {
+	    msg = &fragMsg;
+	}
+	msg->header.dest = destTIDs[i];
 	PSC_log(PSC_LOG_COMM, "%s: send fragment %d to %s len %u\n", __func__,
-		buf->fragNum, PSC_printTID(destNodes[i]), fragMsg.header.len);
+		buf->fragNum, PSC_printTID(destTIDs[i]), msg->header.len);
 
-	int res = sendPSMsg(&fragMsg);
+	int res = sendPSMsg(msg);
 
 	if (res == -1 && errno != EWOULDBLOCK) {
 	    ret = false;
@@ -513,10 +565,10 @@ static bool sendFragment(PS_SendDB_t *buf, const char *caller, const int line)
     }
 
     /* send any local messages now */
-    if (localTask != -1) {
-	fragMsg.header.dest = localTask;
+    if (localDest != -1) {
+	fragMsg.header.dest = localDest;
 	PSC_log(PSC_LOG_COMM, "%s: send fragment %d to %s len %u\n", __func__,
-		buf->fragNum, PSC_printTID(localTask), fragMsg.header.len);
+		buf->fragNum, PSC_printTID(localDest), fragMsg.header.len);
 
 	int res = sendPSMsg(&fragMsg);
 
@@ -554,6 +606,14 @@ bool __recvFragMsg(DDTypedBufferMsg_t *msg, PS_DataBuffer_func_t *func,
 	PSC_log(-1, "%s: invalid fragment type %u from %s\n", __func__,
 		fType, PSC_printTID(msg->header.sender));
 	return false;
+    }
+
+    if (getProtoV(PSC_getID(msg->header.sender)) > 343) {
+	/* ignore extra data */
+	uint8_t extraSize;
+	PSP_getTypedMsgBuf(msg, &used, __func__, "extraSize", &extraSize,
+			   sizeof(extraSize));
+	used += extraSize;
     }
 
     if (fType == FRAGMENT_END && fNum == 0) {
@@ -1081,6 +1141,12 @@ static void addFragmentedData(PS_SendDB_t *buffer, const void *data,
 	PSP_putTypedMsgBuf(&fragMsg, __func__, "fragType", &type, sizeof(type));
 	PSP_putTypedMsgBuf(&fragMsg, __func__, "fragNum",
 			   &buffer->fragNum, sizeof(buffer->fragNum));
+	PSP_putTypedMsgBuf(&fragMsg, __func__, "extraSize",
+			   &buffer->extraSize, sizeof(buffer->extraSize));
+	if (buffer->extraSize) {
+	    PSP_putTypedMsgBuf(&fragMsg, __func__, "extra", buffer->extra,
+			       buffer->extraSize);
+	}
     }
 
     while (dataLeft>0) {
@@ -1106,6 +1172,13 @@ static void addFragmentedData(PS_SendDB_t *buffer, const void *data,
 			       sizeof(type));
 	    PSP_putTypedMsgBuf(&fragMsg, __func__, "fragNum",
 			       &buffer->fragNum, sizeof(buffer->fragNum));
+	    PSP_putTypedMsgBuf(&fragMsg, __func__, "extraSize",
+			       &buffer->extraSize, sizeof(buffer->extraSize));
+	    if (buffer->extraSize) {
+		PSP_putTypedMsgBuf(&fragMsg, __func__, "extra", buffer->extra,
+				   buffer->extraSize);
+	    }
+
 	}
     }
 }

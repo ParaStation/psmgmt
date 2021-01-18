@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2012-2019 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2012-2021 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -123,13 +123,49 @@ void finalizeSerial(void);
 /**
  * @brief Initialize a fragmented message buffer
  *
- * @param buffer The buffer to use
+ * Initialize the fragmented message buffer @a buffer. Each message
+ * fragment will be sent in a DDTypedBufferMsg_t message with type @a
+ * headType in the header and the sub-type @a msgType in the body. If
+ * @a extra is different from NULL, data of size @a extraSize is
+ * added to each fragment, too. Since the maximum value of @a extraSize
+ * is 255, this limits to possible size of @a extra by intention.
+ *
+ * Since @a extra will be used until all fragments are sent, the
+ * caller has to ensure that the memory @a extra is pointing to will
+ * be available throughout this whole period.
+ *
+ * The structure of the messages to be sent will be as follows:
+ *     <header>
+ *   type element:
+ *     <msgType (4 byte)>
+ *   buf part:
+ *     <fragType (FRAGMENT_PART|FRAGMENT_END) (1 byte)>
+ *     <fragNum (2 byte)>
+ *     <extraSize (1 byte)>
+ *     <extra (extraSize bytes)>
+ *     <payload>
+ *
+ * If the destination's protocol version is < 344, <extraSize> and
+ * <extra> will be omitted for compatibility reasons.
+ *
+ * @param buffer Buffer to handle
  *
  * @param headType Type of the messages used to send the fragments
  *
  * @param msgType Sub-type of the messages to send
+ *
+ * @param extra Further data to be added to each fragment
+ *
+ * @param extraSize Size of extra info to added to each fragment
+ *
+ * @return No return value
  */
-void initFragBuffer(PS_SendDB_t *buffer, int32_t headType, int32_t msgType);
+void initFragBufferExtra(PS_SendDB_t *buffer, int32_t headType, int32_t msgType,
+			 void *extra, uint8_t extraSize);
+
+/** Backward compatibility, no extra data to be added */
+#define initFragBuffer(buffer, headType, msgType)	\
+    initFragBufferExtra(buffer, headType, msgType, NULL, 0)
 
 /**
  * @brief Set an additional destination for fragmented messages
@@ -141,11 +177,11 @@ void initFragBuffer(PS_SendDB_t *buffer, int32_t headType, int32_t msgType);
  *
  * @param buffer The send buffer to use
  *
- * @param id The Task ID to add
+ * @param tid Destination task ID to add
  *
- * @return Returns true if the destition was added or false on error
+ * @return Returns true if the destination was added or false on error
  */
-bool setFragDest(PS_SendDB_t *buffer, PStask_ID_t id);
+bool setFragDest(PS_SendDB_t *buffer, PStask_ID_t tid);
 
 /**
  * @brief Set an additional unique destination for fragmented messages
@@ -161,13 +197,13 @@ bool setFragDest(PS_SendDB_t *buffer, PStask_ID_t id);
  *
  * @param buffer Send buffer to use
  *
- * @param id Task ID to add
+ * @param tid Destination task ID to add
  *
- * @return Returns true if the destition was added or false on error
+ * @return Returns true if the destination was added or false on error
  * or if the destination was found amongst the already registered
  * destinations
  */
-bool setFragDestUniq(PS_SendDB_t *buffer, PStask_ID_t id);
+bool setFragDestUniq(PS_SendDB_t *buffer, PStask_ID_t tid);
 
 /**
  * @brief Get number of destinations
@@ -220,8 +256,8 @@ bool __recvFragMsg(DDTypedBufferMsg_t *msg, PS_DataBuffer_func_t *func,
  * the task ID(s) registered before using @ref setFragDest() or @ref
  * setFragDestUniq() as a series of fragments put into ParaStation
  * protocol messages of type @ref DDTypedBufferMsg_t. Each message is
- * of RDPType and the sub-type defined previously by @ref
- * initFragBuffer().
+ * of the ParaStation protocol type and the sub-type defined
+ * previously by @ref initFragBuffer().
  *
  * The sender function which was registered before via @ref
  * initSerial() method is used to send the fragments.

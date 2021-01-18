@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2018 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2018-2021 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -31,6 +31,8 @@ typedef struct {
     int32_t msgType;		/**< message (sub-)type */
     uint16_t fragNum;           /**< next fragment number to send */
     int32_t numDest;            /**< number of destinations */
+    void *extra;                /**< Additional data added to each fragment */
+    uint8_t extraSize;          /**< Size of extra */
 } PS_SendDB_t;
 
 #endif  /* __PSSENDDB_T_H */
