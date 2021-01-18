@@ -164,9 +164,8 @@ typedef enum {
 
     PSP_INFO_NROFNODES,           /**< Number of cluster nodes */
     PSP_INFO_INSTDIR,             /**< ParaStation installation directory */
-    PSP_INFO_DAEMONVER,           /**< Version string of the daemon */
 
-    PSP_INFO_HOST,                /**< ParaStation ID from IP */
+    PSP_INFO_HOST = 0x0004,       /**< ParaStation ID from IP */
     PSP_INFO_NODE,                /**< IP from ParaStation ID */
     PSP_INFO_LIST_END = 0x0009,   /**< end of list info replies */
 

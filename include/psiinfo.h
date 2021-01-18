@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2020 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2021 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -184,9 +184,6 @@ int PSI_infoUInt(PSnodes_ID_t node, PSP_Info_t what, const void *param,
  * - PSP_INFO_INSTDIR request the ParaStation installation directory
  * as configured within the configuration file. No further parameters
  * needed.
- *
- * - PSP_INFO_DAEMONVER request the version string of the ParaStation
- * daemon. No further parameters needed.
  *
  * - PSP_INFO_CMDLINE requests the command line of a process running
  * on node @a node under the control of the ParaStation daemon. The

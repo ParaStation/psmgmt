@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2020 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2021 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -76,7 +76,6 @@ recv_retry:
 	    break;
 	case PSP_INFO_NROFNODES:
 	case PSP_INFO_INSTDIR:
-	case PSP_INFO_DAEMONVER:
 	case PSP_INFO_HOST:
 	case PSP_INFO_NODE:
 	case PSP_INFO_RDPSTATUS:
@@ -346,7 +345,6 @@ int PSI_infoString(PSnodes_ID_t node, PSP_Info_t what, const void *param,
 	    return -1;
 	}
 	break;
-    case PSP_INFO_DAEMONVER:
     case PSP_INFO_INSTDIR:
     case PSP_INFO_RPMREV:
     case PSP_INFO_STARTUPSCRIPT:
