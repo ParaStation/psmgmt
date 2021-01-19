@@ -647,7 +647,6 @@ scripts/ps_acc.in \
 scripts/ps_gm.in \
 scripts/ps_gmcounters \
 scripts/psaccview.in \
-scripts/psh \
 scripts/psid2cmustatus.in \
 scripts/psmgmt.csh.in \
 scripts/psmgmt.sh.in \
