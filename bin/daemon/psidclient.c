@@ -957,7 +957,7 @@ static void msg_CLIENTCONNECT(int fd, DDBufferMsg_t *bufmsg)
 	.header = { .type = PSP_CD_CLIENTESTABLISHED,
 		    .sender = PSC_getMyTID(),
 		    .dest = tid,
-		    .len = sizeof(outmsg.header) + sizeof(outmsg.type) },
+		    .len = offsetof(DDTypedBufferMsg_t, buf) },
 	.type = PSP_CONN_ERR_NONE,
 	.buf = { 0 } };
 
@@ -978,7 +978,7 @@ static void msg_CLIENTCONNECT(int fd, DDBufferMsg_t *bufmsg)
     } else if (PSIDnodes_getProcs(PSC_getMyID()) != PSNODES_ANYPROC
 	       && status.jobs.normal > PSIDnodes_getProcs(PSC_getMyID())) {
 	outmsg.type = PSP_CONN_ERR_PROCLIMIT;
-	int maxProcs = PSIDnodes_getProcs(PSC_getMyID());
+	int32_t maxProcs = PSIDnodes_getProcs(PSC_getMyID());
 	PSP_putTypedMsgBuf(&outmsg, __func__, "maxProcs", &maxProcs,
 			   sizeof(maxProcs));
     } else if (PSID_getDaemonState() & PSID_STATE_NOCONNECT) {
@@ -1007,8 +1007,7 @@ static void msg_CLIENTCONNECT(int fd, DDBufferMsg_t *bufmsg)
 	task->protocolVersion = msg->version;
 
 	if (task->protocolVersion < 344) {
-	    *(uint32_t *)outmsg.buf = PSProtocolVersion;
-	    outmsg.header.len += sizeof(uint32_t);
+	    outmsg.type = PSC_getMyID();
 	} else {
 	    bool mixedProto = PSID_mixedProto();
 	    PSP_putTypedMsgBuf(&outmsg, __func__, "mixedProto", &mixedProto,

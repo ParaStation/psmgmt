@@ -183,7 +183,7 @@ void PSID_readConfigFile(FILE* logfile, char *configfile);
  *
  * @return If more than one protocol version is active in the local
  * cluster, true is returned. Otherwise all members of the local
- * cluster will understand the protocol version of the local node.
+ * cluster will run the very same protocol version as the local node.
  */
 bool PSID_mixedProto(void);
 
@@ -191,7 +191,7 @@ bool PSID_mixedProto(void);
  * @brief Set global flag on multiple protocol versions
  *
  * Set the global flag marking multiple protocol versions in the
- * cluster. It might trigger additional effort in both -- the local
+ * cluster. This might trigger additional effort in both -- the local
  * psid and local client processes -- to gain information on remote
  * protocol version to ensure backward compatibility of the protocol.
  *

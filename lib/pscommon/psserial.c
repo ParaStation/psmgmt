@@ -453,7 +453,7 @@ void finalizeSerial(void)
     if (relLoopAct) relLoopAct(recvBuf_gc);
 }
 
-void initFragBufferExtra(PS_SendDB_t *buffer, int32_t headType, int32_t msgType,
+void initFragBufferExtra(PS_SendDB_t *buffer, int16_t headType, int32_t msgType,
 			 void *extra, uint8_t extraSize)
 {
     buffer->useFrag = true;

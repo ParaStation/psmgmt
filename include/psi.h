@@ -67,7 +67,7 @@ int PSI_exitClient(void);
  *
  * @return If more than one protocol version is active in the local
  * cluster, true is returned. Otherwise all members of the local
- * cluster will understand the protocol version of the local node.
+ * cluster will run the very same protocol version as the local node.
  */
 bool PSI_mixedProto(void);
 
@@ -78,8 +78,8 @@ bool PSI_mixedProto(void);
  * running on the node with ParaStation ID @a id.
  *
  * This function implements caching and makes use of @ref
- * PSI_mixedProto() in order to determine if any messages have to be
- * sent to remote nodes at all.
+ * PSI_mixedProto() in order to determine if any version requests have
+ * to be sent to remote nodes at all.
  *
  * @param id ParaStation ID of the node to ask
  *

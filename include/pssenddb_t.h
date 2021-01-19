@@ -27,7 +27,7 @@ typedef struct {
     uint32_t bufUsed;		/**< number of bytes used in the buffer */
     bool useFrag;		/**< if true use fragmentation */
     /* all further members only used for fragmented messages */
-    int32_t headType;		/**< message header type */
+    int16_t headType;		/**< message header type */
     int32_t msgType;		/**< message (sub-)type */
     uint16_t fragNum;           /**< next fragment number to send */
     int32_t numDest;            /**< number of destinations */

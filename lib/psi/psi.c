@@ -125,7 +125,7 @@ static bool connectDaemon(PStask_group_t taskGroup, int tryStart)
     tryStart &= (taskGroup == TG_ADMIN);
 
     int connectFailures = 0;
-    while (daemonSock==-1 && tryStart && connectFailures++ < 5) {
+    while (daemonSock == -1 && tryStart && connectFailures++ < 5) {
 	/* try to start local ParaStation daemon via inetd */
 	PSC_startDaemon(INADDR_ANY);
 	usleep(100000);
@@ -212,7 +212,7 @@ static bool connectDaemon(PStask_group_t taskGroup, int tryStart)
 	    break;
 	case PSP_CONN_ERR_PROCLIMIT :
 	{
-	    int maxProcs;
+	    int32_t maxProcs;
 	    PSP_getTypedMsgBuf(&answer, &used, __func__, "maxProcs", &maxProcs,
 			       sizeof(maxProcs));
 	    PSI_log(-1, "%s: Node limited to %d processes\n", __func__,
