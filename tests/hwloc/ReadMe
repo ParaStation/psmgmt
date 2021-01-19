@@ -14,3 +14,4 @@ topo.jrc0386.xml   JURECA-DC GPU partition
 topo.jrc5001.xml   JURECA-Booster
 topo.jwb0001.xml   JUWELS-Booster
 topo.jwc00n001.xml JUWELS-Cluster CPU partition
+topo.jwc09n003.xml JUWELS-Cluster GPU partition
