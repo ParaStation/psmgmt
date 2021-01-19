@@ -90,7 +90,7 @@ The standard configuration provided by psconfig/nodeinfo.dump
 mentioned above defines the following defaults:
 
 DebugMask = "0"
-GPUDevices = ["10de:20b0", "10de:1db6", "10de:1db4", "10de:102d", "10de:1021"]
+GPUDevices = ["10de:20b0", "10de:1db6", "10de:1db4", "10de:1db1", "10de:102d", "10de:1021"]
 GPUSort = "PCI"
 NICDevices = ["15b3:101b", "15b3:1017", "15b3:1013", "15b3:1011", "8086:24f1", "1cad:0011", "1fc1:0010"]
 NICSort = "BIOS"
@@ -99,6 +99,7 @@ The GPU devices identified are:
   "10de:20b0"	NVIDIA A100-SXM4 as found on e.g. the JUWELS-Booster
   "10de:1db6"	NVIDIA V100 PCIe 32GB as found on e.g. the DEEP-EST DAM and ESB
   "10de:1db4"	NVIDIA V100 PCIe 16GB as found on e.g. JUSUF
+  "10de:1db1"	NVIDIA V100-SXM2 16GB as found on e.g. JUWELS-Cluster
   "10de:102d"	NVIDIA K80 PCIe as found on e.g. JURECA's old GPU parition
   "10de:1021"	NVIDIA K20X PCIe as found on e.g. JUROPA3
 
