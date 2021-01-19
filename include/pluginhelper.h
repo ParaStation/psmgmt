@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2014-2020 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2014-2021 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -158,8 +158,9 @@ void __printBinaryData(char *data, size_t len, char *tag,
  * @brief Change the executing user
  *
  * Switch the executing user including the supplementary groups and
- * optional the current working directory. The capability to create
- * core dumps is re-enabled and the child is chailed via PSIDHOOK_JAIL_CHILD.
+ * optional the current working directory. Furthermore, the capability
+ * to create core dumps is re-enabled and the child is jailed by
+ * PSIDHOOK_JAIL_CHILD.
  *
  * @param username The username of the user to switch
  *
