@@ -5,6 +5,18 @@ Copyright (C) 2010-2021 ParTec Cluster Competence Center GmbH, Munich
 Please send bug reports, questions and suggestions to <support@par-tec.com>
 
 
+*************************************************************************
+*************************************************************************
+**                                                                     **
+**  From psmgmt 5.1.36 on the nodeinfo plugins has to be configured    **
+**  via psconfig. Use 'source psconfig/nodeinfo.dump' to update the    **
+**  psconfig database or refer to README.nodeinfo for details.         **
+**                                                                     **
+*************************************************************************
+*************************************************************************
+
+
+
 Version 5.1.35-1:
 =================
 Bugfixes:
