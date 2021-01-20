@@ -51,12 +51,14 @@ void send_OPTIONS(PSnodes_ID_t destnode)
     msg.opt[(int) msg.count].option = PSP_OP_HWSTATUS;
     msg.opt[(int) msg.count].value = PSIDnodes_getHWStatus(PSC_getMyID());
     msg.count++;
-    msg.opt[(int) msg.count].option = PSP_OP_PROTOCOLVERSION;
-    msg.opt[(int) msg.count].value = PSProtocolVersion;
-    msg.count++;
-    msg.opt[(int) msg.count].option = PSP_OP_DAEMONPROTOVERSION;
-    msg.opt[(int) msg.count].value = PSDaemonProtocolVersion;
-    msg.count++;
+    if (PSIDnodes_getProtoV(destnode) < 344) {
+	msg.opt[(int) msg.count].option = PSP_OP_PROTOCOLVERSION;
+	msg.opt[(int) msg.count].value = PSProtocolVersion;
+	msg.count++;
+	msg.opt[(int) msg.count].option = PSP_OP_DAEMONPROTOVERSION;
+	msg.opt[(int) msg.count].value = PSDaemonProtocolVersion;
+	msg.count++;
+    }
     msg.opt[(int) msg.count].option = PSP_OP_PROCLIMIT;
     msg.opt[(int) msg.count].value = PSIDnodes_getProcs(PSC_getMyID());
     msg.count++;
@@ -650,7 +652,6 @@ static void msg_SETOPTION(DDOptionMsg_t *msg)
 	    case PSP_OP_PROTOCOLVERSION:
 		PSIDnodes_setProtoV(PSC_getID(msg->header.sender),
 				    msg->opt[i].value);
-		if (msg->opt[i].value != PSProtocolVersion)PSID_setMixedProto();
 		break;
 	    case PSP_OP_DAEMONPROTOVERSION:
 		PSIDnodes_setDmnProtoV(PSC_getID(msg->header.sender),

@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2020 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2021 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -571,6 +571,15 @@ bool declareNodeDead(PSnodes_ID_t id, int sendDeadnode, bool silent)
     PSIDnodes_bringDown(id);
     PSIDnodes_setNumCores(id, 0);
     PSIDnodes_setNumThrds(id, 0);
+    if (PSID_mixedProto() && PSIDnodes_getProtoV(id) != PSProtocolVersion) {
+	/* Check if we are still heterogeneous */
+	PSnodes_ID_t n;
+	for (n = 0; n < PSC_getNrOfNodes(); n++) {
+	    if (PSIDnodes_isUp(n)
+		&& PSIDnodes_getProtoV(n) != PSProtocolVersion) break;
+	}
+	if (n == PSC_getNrOfNodes()) PSID_setMixedProto(false);
+    }
 
     if (PSID_config->useMCast) declareNodeDeadMCast(id);
 
@@ -677,7 +686,8 @@ bool declareNodeDead(PSnodes_ID_t id, int sendDeadnode, bool silent)
 /* Prototype forward declaration */
 static int send_ACTIVENODES(PSnodes_ID_t dest);
 
-bool declareNodeAlive(PSnodes_ID_t id, int numCores, int numThrds)
+bool declareNodeAlive(PSnodes_ID_t id, int numCores, int numThrds,
+		      int proto, int dmnProto)
 {
     bool wasUp = PSIDnodes_isUp(id);
 
@@ -692,6 +702,9 @@ bool declareNodeAlive(PSnodes_ID_t id, int numCores, int numThrds)
     PSIDnodes_bringUp(id);
     PSIDnodes_setNumCores(id, numCores);
     PSIDnodes_setNumThrds(id, numThrds);
+    PSIDnodes_setProtoV(id, proto);
+    PSIDnodes_setDmnProtoV(id, dmnProto);
+    if (proto != PSProtocolVersion) PSID_setMixedProto(true);
 
     if (!wasUp) PSIDhook_call(PSIDHOOK_NODE_UP, &id);
 
@@ -760,6 +773,12 @@ int send_DAEMONCONNECT(PSnodes_ID_t id)
     tmp = PSIDnodes_getNumThrds(PSC_getMyID());
     PSP_putMsgBuf(&msg, __func__, "numThrds", &tmp, sizeof(tmp));
 
+    tmp = PSProtocolVersion;
+    PSP_putMsgBuf(&msg, __func__, "proto", &tmp, sizeof(tmp));
+
+    tmp = PSDaemonProtocolVersion;
+    PSP_putMsgBuf(&msg, __func__, "dmnProto", &tmp, sizeof(tmp));
+
     return sendMsg(&msg);
 }
 
@@ -782,16 +801,20 @@ int send_DAEMONCONNECT(PSnodes_ID_t id)
 static void msg_DAEMONCONNECT(DDBufferMsg_t *msg)
 {
     PSnodes_ID_t id = PSC_getID(msg->header.sender);
-    int32_t pCPUs, vCPUs;
     size_t used = 0;
 
     PSID_log(PSID_LOG_STATUS, "%s(%d)\n", __func__, id);
 
+    int32_t pCPUs, vCPUs, proto, dmnProto;
     PSP_getMsgBuf(msg, &used, __func__, "numCores", &pCPUs, sizeof(pCPUs));
     PSP_getMsgBuf(msg, &used, __func__, "numThrds", &vCPUs, sizeof(vCPUs));
+    if (!PSP_tryGetMsgBuf(msg, &used, __func__, "proto",
+			  &proto, sizeof(proto))) proto = 343;
+    if (!PSP_tryGetMsgBuf(msg, &used, __func__, "dmnProto",
+			  &dmnProto, sizeof(dmnProto))) dmnProto = 413;
 
     /* id is out of range -> nothing left to do */
-    if (!declareNodeAlive(id, pCPUs, vCPUs)) return;
+    if (!declareNodeAlive(id, pCPUs, vCPUs, proto, dmnProto)) return;
 
     /* accept this request and send an ESTABLISH msg back to the requester */
     msg->header = (DDMsg_t) {
@@ -805,6 +828,12 @@ static void msg_DAEMONCONNECT(DDBufferMsg_t *msg)
 
     tmp = PSIDnodes_getNumThrds(PSC_getMyID());
     PSP_putMsgBuf(msg, __func__, "numThrds", &tmp, sizeof(tmp));
+
+    tmp = PSProtocolVersion;
+    PSP_putMsgBuf(msg, __func__, "proto", &tmp, sizeof(tmp));
+
+    tmp = PSDaemonProtocolVersion;
+    PSP_putMsgBuf(msg, __func__, "dmnProto", &tmp, sizeof(tmp));
 
     if (sendMsg(msg) == -1 && errno != EWOULDBLOCK) {
 	PSID_warn(PSID_LOG_STATUS, errno, "%s: sendMsg()", __func__);
@@ -862,16 +891,20 @@ static void drop_DAEMONCONNECT(DDBufferMsg_t *msg)
 static void msg_DAEMONESTABLISHED(DDBufferMsg_t *msg)
 {
     PSnodes_ID_t id = PSC_getID(msg->header.sender);
-    int32_t pCPUs, vCPUs;
     size_t used = 0;
 
     PSID_log(PSID_LOG_STATUS, "%s(%d)\n", __func__, id);
 
+    int32_t pCPUs, vCPUs, proto, dmnProto;
     PSP_getMsgBuf(msg, &used, __func__, "numCores", &pCPUs, sizeof(pCPUs));
     PSP_getMsgBuf(msg, &used, __func__, "numThrds", &vCPUs, sizeof(vCPUs));
+    if (!PSP_tryGetMsgBuf(msg, &used, __func__, "proto",
+			  &proto, sizeof(proto))) proto = 343;
+    if (!PSP_tryGetMsgBuf(msg, &used, __func__, "dmnProto",
+			  &dmnProto, sizeof(dmnProto))) dmnProto = 413;
 
     /* id is out of range -> nothing left to do */
-    if (!declareNodeAlive(id, pCPUs, vCPUs)) return;
+    if (!declareNodeAlive(id, pCPUs, vCPUs, proto, dmnProto)) return;
 
     /* Send some info about me to the other node */
     send_OPTIONS(id);

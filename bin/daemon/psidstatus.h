@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2020 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2021 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -366,7 +366,8 @@ bool declareNodeDead(PSnodes_ID_t id, int sendDeadnode, bool silent);
  * numCores physical processor cores. These numbers differ on some
  * platforms due to CPUs implementing multi threading (SMT). An
  * example for the latter case is Intels Hyper-Threading-Technology
- * (HTT).
+ * (HTT). Furthermore, the node is registered to understand protocol
+ * version @a proto and daemon protocol version @a dmnProto.
  *
  * @param id The ParaStation ID of the node declared to be alive
  *
@@ -376,10 +377,15 @@ bool declareNodeDead(PSnodes_ID_t id, int sendDeadnode, bool silent);
  * @param numThrds Number of hardware threads the registered node is
  * claimed to have
  *
+ * @param proto Protocol version the registered node supports
+ *
+ * @param dmnProto Daemon protocol version the registered node supports
+ *
  * @return If successfull, true is returned. Or false if @id is out of
  * range.
  */
-bool declareNodeAlive(PSnodes_ID_t id, int numCores, int numThrds);
+bool declareNodeAlive(PSnodes_ID_t id, int numCores, int numThrds, int proto,
+		      int dmnProto);
 
 /**
  * @brief Send a PSP_DD_DAEMONCONNECT message.

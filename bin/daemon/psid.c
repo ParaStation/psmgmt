@@ -689,13 +689,12 @@ int main(int argc, const char *argv[])
 	}
     }
 
-    PSIDnodes_setProtoV(PSC_getMyID(), PSProtocolVersion);
-    PSIDnodes_setDmnProtoV(PSC_getMyID(), PSDaemonProtocolVersion);
     PSIDnodes_setHWStatus(PSC_getMyID(), 0);
     PSIDnodes_setKillDelay(PSC_getMyID(), PSID_config->killDelay);
 
     /* Bring node up with correct numbers of CPUs */
-    declareNodeAlive(PSC_getMyID(), PSID_getPhysCores(), PSID_getHWthreads());
+    declareNodeAlive(PSC_getMyID(), PSID_getPhysCores(), PSID_getHWthreads(),
+		     PSProtocolVersion, PSDaemonProtocolVersion);
 
     /* Initialize timeouts, etc. */
     PSID_initStarttime();

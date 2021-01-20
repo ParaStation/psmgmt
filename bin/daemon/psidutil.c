@@ -213,9 +213,9 @@ bool PSID_mixedProto(void)
     return mixedProto;
 }
 
-void PSID_setMixedProto(void)
+void PSID_setMixedProto(bool mixed)
 {
-    mixedProto = true;
+    mixedProto = mixed;
 }
 
 int PSID_writeall(int fd, const void *buf, size_t count)

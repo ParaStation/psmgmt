@@ -191,13 +191,16 @@ bool PSID_mixedProto(void);
  * @brief Set global flag on multiple protocol versions
  *
  * Set the global flag marking multiple protocol versions in the
- * cluster. This might trigger additional effort in both -- the local
- * psid and local client processes -- to gain information on remote
- * protocol version to ensure backward compatibility of the protocol.
+ * cluster to @a mixed. Setting this to true might trigger additional
+ * effort in both -- the local psid and local client processes -- to
+ * gain information on remote protocol version to ensure backward
+ * compatibility of the protocol.
+ *
+ * @param mixed Flag to be set
  *
  * @return No return value
  */
-void PSID_setMixedProto(void);
+void PSID_setMixedProto(bool mixed);
 
 /**
  * @brief Write complete buffer.
