@@ -2388,11 +2388,12 @@ static int versionCommand(char *token)
     if (parser_getString()) goto error;
 
     printf("PSIADMIN: ParaStation administration tool\n");
-    printf("Copyright (C) 1996-2004 ParTec AG, Karlsruhe\n");
-    printf("Copyright (C) 2005-2019 ParTec Cluster Competence Center GmbH,"
+    printf(" Copyright (C) 1996-2004 ParTec AG, Karlsruhe\n");
+    printf(" Copyright (C) 2005-2021 ParTec Cluster Competence Center GmbH,"
 	   " Munich\n");
     printf("\n");
-    printf("PSProtocol: %d\n", PSProtocolVersion);
+    printf("PSProtocol: %d\t(with a %sgeneous setup)\n", PSProtocolVersion,
+	   PSI_mixedProto() ? "hetero" : "homo");
     printf("PSIADMIN:   %s-%s\n", VERSION_psmgmt, RELEASE_psmgmt);
 
     err = PSI_infoString(-1, PSP_INFO_RPMREV, NULL, tmp, sizeof(tmp), false);
