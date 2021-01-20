@@ -62,7 +62,7 @@ static bool * getNodeList(char *nl_descr)
 
     memset(nl, 0, sizeof(*nl) * PSC_getNrOfNodes());
     if (!strcasecmp(nl_descr, "all")) {
-	for (int n = 0; n < PSC_getNrOfNodes(); n++) defaultNL[n] = true;
+	for (int n = 0; n < PSC_getNrOfNodes(); n++) nl[n] = true;
 	return nl;
     } else {
 	host = strdup(nl_descr);
