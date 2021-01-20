@@ -481,7 +481,7 @@ void PSIADM_SummaryStat(bool *nl, int max)
     }
     printf("Node status summary:  %d up   %d down  of %d total\n",
 	   upNodes, downNodes, upNodes+downNodes);
-    printf(" Protocol usage is %sgeneous)\n",
+    printf(" Protocol usage is %sgeneous\n",
 	   PSI_mixedProto() ? "hetero" : "homo");
     PSnodes_ID_t i = 0;
     while (nodeListHash[i]) {
@@ -1232,7 +1232,7 @@ void PSIADM_VersionStat(bool *nl)
 {
     if (! getHostStatus()) return;
 
-    printf("Protocol usage is %sgeneous)\n",
+    printf("Protocol usage is %sgeneous\n",
 	   PSI_mixedProto() ? "hetero" : "homo");
     printf("%4s\t%-36s %s / %s\n", "Node", "psid version", "Protocols",
 	   "nodelist hash");
