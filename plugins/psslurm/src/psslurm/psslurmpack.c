@@ -1321,11 +1321,6 @@ bool __unpackReqBatchJobLaunch(Slurm_Msg_t *sMsg, Job_t **jobPtr,
     if (msgVer < SLURM_20_11_PROTO_VERSION) {
 	/* stepid */
 	getUint32(ptr, &tmp);
-	if (tmp != SLURM_BATCH_SCRIPT) {
-	    mlog("%s: batch job should not have stepid '%u'\n", __func__, tmp);
-	    deleteJob(jobid);
-	    return false;
-	}
     }
 
     /* uid */
