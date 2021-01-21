@@ -623,9 +623,14 @@ bool __unpackSlurmHeader(char **ptr, Slurm_Msg_Header_t *head,
 
 #if defined (DEBUG_MSG_HEADER)
     flog("version %u flags %u index %u type %u bodyLen %u forward %u"
-	 " treeWidth %u returnList %u\n", head->version, head->flags,
-	 head->index, head->type, head->bodyLen, head->forward,
-	 head->fwTreeWidth, head->returnList);
+	 " treeWidth %u returnList %u, addrFam %u addr %u.%u.%u.%u port %u\n",
+	 head->version, head->flags, head->index, head->type, head->bodyLen,
+	 head->forward, head->fwTreeWidth, head->returnList, head->addrFamily,
+	 (head->addr & 0x000000ff),
+	 (head->addr & 0x0000ff00) >> 8,
+	 (head->addr & 0x00ff0000) >> 16,
+	 (head->addr & 0xff000000) >> 24,
+	 head->port);
 
     if (head->forward) {
 	flog("forward to nodeList '%s' timeout %u treeWidth %u\n",

@@ -2077,6 +2077,9 @@ void processSlurmMsg(Slurm_Msg_t *sMsg, Msg_Forward_t *fw, Connection_CB_t *cb,
 
     /* verify munge authentication */
     if (!extractSlurmAuth(sMsg)) {
+	flog("extracting slurm auth for msg(%i): %s, version %u failed,"
+	     " message dropped\n", sMsg->head.type,
+	     msgType2String(sMsg->head.type), sMsg->head.version);
 	sendSlurmRC(sMsg, ESLURM_AUTH_CRED_INVALID);
 	return;
     }
