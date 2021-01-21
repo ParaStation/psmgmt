@@ -74,7 +74,6 @@ Slurm_Auth_t *getSlurmAuth(void)
 bool extractSlurmAuth(Slurm_Msg_t *sMsg)
 {
     Slurm_Auth_t *auth = NULL;
-    int ret;
 
     if (!unpackSlurmAuth(sMsg, &auth)) {
 	flog("unpacking Slurm authentication failed\n");
@@ -83,11 +82,18 @@ bool extractSlurmAuth(Slurm_Msg_t *sMsg)
 
     /* ensure munge is used for authentication */
     if (auth->pluginID && auth->pluginID != MUNGE_PLUGIN_ID) {
-	flog("unsupported authentication plugin %u\n", auth->pluginID);
+	flog("unsupported authentication plugin %u should be %u\n",
+	     auth->pluginID, MUNGE_PLUGIN_ID);
 	goto ERROR;
     }
 
-    ret = psMungeDecode(auth->cred, &sMsg->head.uid, &sMsg->head.gid);
+    /* unpack munge credential */
+    if (!unpackMungeCred(sMsg, auth)) {
+	flog("unpacking munge credential failed\n");
+	goto ERROR;
+    }
+
+    int ret = psMungeDecode(auth->cred, &sMsg->head.uid, &sMsg->head.gid);
 
     if (!ret) {
 	flog("decoding munge credential failed\n");

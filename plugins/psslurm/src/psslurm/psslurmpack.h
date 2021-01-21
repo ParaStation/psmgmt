@@ -69,6 +69,30 @@ bool __unpackSlurmAuth(Slurm_Msg_t *sMsg, Slurm_Auth_t **authPtr,
     __unpackSlurmAuth(sMsg, authPtr, __func__, __LINE__)
 
 /**
+ * @brief Unpack a munge credential
+ *
+ * Unpack a munge credential from the provided message pointer.
+ * The memory is allocated using umalloc(). The caller is responsible
+ * to free the memory using ufree().
+ *
+ * @param sMsg The Slurm message to unpack
+ *
+ * @param auth The authentication structure holding the result
+ *
+ * @param caller Function name of the calling function
+ *
+ * @param line Line number where this function is called
+ *
+ * @return On success true is returned or false in case of an
+ * error. If reading was not successful, @a sMsg might be not updated.
+ */
+bool __unpackMungeCred(Slurm_Msg_t *sMsg, Slurm_Auth_t *auth,
+		       const char *caller, const int line);
+
+#define unpackMungeCred(sMsg, authPtr) \
+    __unpackMungeCred(sMsg, authPtr, __func__, __LINE__)
+
+/**
  * @brief Unpack a job credential
  *
  * Unpack a job credential including the embedded gres

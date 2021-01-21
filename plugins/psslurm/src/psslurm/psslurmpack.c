@@ -103,26 +103,42 @@ bool __packSlurmAuth(PS_SendDB_t *data, Slurm_Auth_t *auth,
 bool __unpackSlurmAuth(Slurm_Msg_t *sMsg, Slurm_Auth_t **authPtr,
 		       const char *caller, const int line)
 {
-    Slurm_Auth_t *auth;
-    char **ptr = &sMsg->ptr;
-
     if (!sMsg) {
-	mlog("%s: invalid sMsg from '%s' at %i\n", __func__, caller, line);
+	flog("invalid sMsg from '%s' at %i\n", caller, line);
 	return false;
     }
 
     if (!authPtr) {
-	mlog("%s: invalid auth pointer from '%s' at %i\n",
-		__func__, caller, line);
+	flog("invalid auth pointer from '%s' at %i\n", caller, line);
 	return false;
     }
 
-    auth = umalloc(sizeof(Slurm_Auth_t));
+    char **ptr = &sMsg->ptr;
+    Slurm_Auth_t *auth = umalloc(sizeof(Slurm_Auth_t));
 
     getUint32(ptr, &auth->pluginID);
-    auth->cred = getStringM(ptr);
+    auth->cred = NULL;
 
     *authPtr = auth;
+
+    return true;
+}
+
+bool __unpackMungeCred(Slurm_Msg_t *sMsg, Slurm_Auth_t *auth,
+		       const char *caller, const int line)
+{
+    if (!sMsg) {
+	flog("invalid sMsg from '%s' at %i\n", caller, line);
+	return false;
+    }
+
+    if (!auth) {
+	flog("invalid auth pointer from '%s' at %i\n", caller, line);
+	return false;
+    }
+
+    char **ptr = &sMsg->ptr;
+    auth->cred = getStringM(ptr);
 
     return true;
 }
