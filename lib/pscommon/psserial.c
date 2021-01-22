@@ -584,11 +584,6 @@ static bool sendFragment(PS_SendDB_t *buf, const char *caller, const int line)
 bool __recvFragMsg(DDTypedBufferMsg_t *msg, PS_DataBuffer_func_t *func,
 		   const char *caller, const int line)
 {
-    PS_DataBuffer_t *recvBuf, myRecvBuf;
-    size_t used = 0;
-    uint8_t fType;
-    uint16_t fNum;
-
     if (!msg) {
 	PSC_log(-1, "%s(%s@%d): invalid msg\n", __func__, caller, line);
 	return false;
@@ -599,7 +594,10 @@ bool __recvFragMsg(DDTypedBufferMsg_t *msg, PS_DataBuffer_func_t *func,
 	return false;
     }
 
+    size_t used = 0;
+    uint8_t fType;
     PSP_getTypedMsgBuf(msg, &used, __func__, "fragType", &fType, sizeof(fType));
+    uint16_t fNum;
     PSP_getTypedMsgBuf(msg, &used, __func__, "fragNum", &fNum, sizeof(fNum));
 
     if (fType != FRAGMENT_PART && fType != FRAGMENT_END) {
@@ -610,12 +608,12 @@ bool __recvFragMsg(DDTypedBufferMsg_t *msg, PS_DataBuffer_func_t *func,
 
     if (getProtoV(PSC_getID(msg->header.sender)) > 343) {
 	/* ignore extra data */
-	uint8_t extraSize;
-	PSP_getTypedMsgBuf(msg, &used, __func__, "extraSize", &extraSize,
-			   sizeof(extraSize));
-	used += extraSize;
+	uint8_t eS;
+	PSP_getTypedMsgBuf(msg, &used, __func__, "extraSize", &eS, sizeof(eS));
+	used += eS;
     }
 
+    PS_DataBuffer_t *recvBuf, myRecvBuf;
     if (fType == FRAGMENT_END && fNum == 0) {
 	/* Shortcut: message consists of just one fragment */
 	uint32_t s = msg->header.len - offsetof(DDTypedBufferMsg_t, buf) - used;

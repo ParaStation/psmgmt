@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2016-2020 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2016-2021 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -17,12 +17,14 @@
 #include "pscommon.h"
 #include "psserial.h"
 #include "pspluginprotocol.h"
-#include "psidcomm.h"
-#include "psidscripts.h"
-#include "psidutil.h"
-#include "psidtask.h"
 #include "selector.h"
 #include "pluginmalloc.h"
+
+#include "psidcomm.h"
+#include "psidnodes.h"
+#include "psidscripts.h"
+#include "psidtask.h"
+#include "psidutil.h"
 
 #include "psexeclog.h"
 #include "psexecscripts.h"
@@ -306,19 +308,23 @@ static void dropExecMsg(DDTypedBufferMsg_t *msg)
 {
     size_t used = 0;
     uint8_t fType;
-    uint16_t fNum;
-    uint16_t uID;
-
     PSP_getTypedMsgBuf(msg, &used, __func__, "fragType", &fType, sizeof(fType));
+    uint16_t fNum;
     PSP_getTypedMsgBuf(msg, &used, __func__, "fragNum", &fNum, sizeof(fNum));
 
     /* ignore follow up messages */
     if (fNum) return;
 
     /* skip fragmented message header */
-    char *ptr = msg->buf + used;
+    uint8_t eS = 0;
+    if (PSIDnodes_getProtoV(PSC_getID(msg->header.sender)) > 343) {
+	/* ignore extra data */
+	PSP_getTypedMsgBuf(msg, &used, __func__, "extraSize", &eS, sizeof(eS));
+    }
+    char *ptr = msg->buf + used + eS;
 
     /* uID */
+    uint16_t uID;
     getUint16(&ptr, &uID);
 
     /* return result to callback */

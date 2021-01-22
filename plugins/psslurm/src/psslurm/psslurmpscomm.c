@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2014-2020 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2014-2021 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -27,10 +27,10 @@
 
 #include "psidcomm.h"
 #include "psidhook.h"
-#include "psidspawn.h"
-#include "psidpartition.h"
-#include "psidtask.h"
 #include "psidnodes.h"
+#include "psidpartition.h"
+#include "psidspawn.h"
+#include "psidtask.h"
 #include "psidutil.h"
 
 #include "pluginmalloc.h"
@@ -1836,26 +1836,30 @@ static int handleNodeDown(void *nodeID)
 
 static void saveForwardError(DDTypedBufferMsg_t *msg)
 {
-    Slurm_Msg_t sMsg;
     size_t used = 0;
     uint8_t fType;
-    uint16_t fNum;
-    int16_t socket;
-
     PSP_getTypedMsgBuf(msg, &used, __func__, "fragType", &fType, sizeof(fType));
+    uint16_t fNum;
     PSP_getTypedMsgBuf(msg, &used, __func__, "fragNum", &fNum, sizeof(fNum));
 
     /* ignore follow up messages */
     if (fNum) return;
 
     /* skip fragmented message header */
-    char *ptr = msg->buf + used;
+    uint8_t eS = 0;
+    if (PSIDnodes_getProtoV(PSC_getID(msg->header.sender)) > 343) {
+	/* ignore extra data */
+	PSP_getTypedMsgBuf(msg, &used, __func__, "extraSize", &eS, sizeof(eS));
+    }
+    char *ptr = msg->buf + used + eS;
 
+    Slurm_Msg_t sMsg;
     initSlurmMsg(&sMsg);
     sMsg.source = msg->header.dest;
     sMsg.head.type = RESPONSE_FORWARD_FAILED;
 
     /* socket */
+    int16_t socket;
     getInt16(&ptr, &socket);
     sMsg.sock = socket;
     /* receive time */

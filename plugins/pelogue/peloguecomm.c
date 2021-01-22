@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2013-2020 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2013-2021 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -12,14 +12,16 @@
 #include <errno.h>
 
 #include "pscommon.h"
+#include "psserial.h"
 #include "pspluginprotocol.h"
-#include "psidcomm.h"
-#include "psidutil.h"
-#include "psidtask.h"
-#include "psidhook.h"
 #include "pluginmalloc.h"
 #include "pluginhelper.h"
-#include "psserial.h"
+
+#include "psidcomm.h"
+#include "psidhook.h"
+#include "psidnodes.h"
+#include "psidtask.h"
+#include "psidutil.h"
 
 #include "peloguetypes.h"
 #include "peloguechild.h"
@@ -657,74 +659,50 @@ static char *msg2Str(PSP_PELOGUE_t type)
     }
 }
 
-static void dropPElogueStartMsg(DDTypedBufferMsg_t *msg)
+static void dropMsgAndCancel(DDTypedBufferMsg_t *msg)
 {
-    bool prologue = msg->type == PSP_PROLOGUE_START;
     size_t used = 0;
     uint8_t fType;
-    uint16_t fNum;
-
     PSP_getTypedMsgBuf(msg, &used, __func__, "fragType", &fType, sizeof(fType));
+    uint16_t fNum;
     PSP_getTypedMsgBuf(msg, &used, __func__, "fragNum", &fNum, sizeof(fNum));
 
     /* ignore follow up messages */
     if (fNum) return;
 
     /* skip fragmented message header */
-    char *ptr = msg->buf + used;
+    uint8_t eS = 0;
+    if (PSIDnodes_getProtoV(PSC_getID(msg->header.sender)) > 343) {
+	/* ignore extra data */
+	PSP_getTypedMsgBuf(msg, &used, __func__, "extraSize", &eS, sizeof(eS));
+    }
+    char *ptr = msg->buf + used + eS;
 
     char *plugin = getStringM(&ptr);
     char *jobid = getStringM(&ptr);
 
     Job_t *job = findJobById(plugin, jobid);
-    if (!job) {
-	mlog("%s: plugin '%s' job '%s' not found\n", __func__, plugin, jobid);
-	if (plugin) free(plugin);
-	if (jobid) free(jobid);
-	return;
-    }
     free(plugin);
     free(jobid);
+    if (!job) {
+	char *type;
+	switch (msg->type) {
+	case PSP_PROLOGUE_START:
+	case PSP_EPILOGUE_START:
+	    type = "start";
+	    break;
+	case PSP_PELOGUE_SIGNAL:
+	    type = "signal";
+	    break;
+	default:
+	    type = "unknown";
+	}
+	mlog("%s(%s): plugin '%s' job '%s' not found\n", __func__, type,
+	     plugin, jobid);
+	return;
+    }
 
-    setJobNodeStatus(job, PSC_getID(msg->header.dest), prologue,
-		     PELOGUE_TIMEDOUT);
-
-    /* prevent multiple cancel job attempts */
-    if (job->state == JOB_CANCEL_PROLOGUE
-	|| job->state == JOB_CANCEL_EPILOGUE) return;
-
-    job->state = prologue ? JOB_CANCEL_PROLOGUE : JOB_CANCEL_EPILOGUE;
-    cancelJob(job);
-}
-
-static void dropPElogueSignalMsg(DDTypedBufferMsg_t *msg)
-{
     bool prologue = msg->type == PSP_PROLOGUE_START;
-    size_t used = 0;
-    uint8_t fType;
-    uint16_t fNum;
-
-    PSP_getTypedMsgBuf(msg, &used, __func__, "fragType", &fType, sizeof(fType));
-    PSP_getTypedMsgBuf(msg, &used, __func__, "fragNum", &fNum, sizeof(fNum));
-
-    /* ignore follow up messages */
-    if (fNum) return;
-
-    char *ptr = msg->buf + used;
-
-    char *plugin = getStringM(&ptr);
-    char *jobid = getStringM(&ptr);
-
-    Job_t *job = findJobById(plugin, jobid);
-    if (!job) {
-	mlog("%s: plugin '%s' job '%s' not found\n", __func__, plugin, jobid);
-	if (plugin) free(plugin);
-	if (jobid) free(jobid);
-	return;
-    }
-    free(plugin);
-    free(jobid);
-
     setJobNodeStatus(job, PSC_getID(msg->header.dest), prologue,
 		     PELOGUE_TIMEDOUT);
 
@@ -738,23 +716,21 @@ static void dropPElogueSignalMsg(DDTypedBufferMsg_t *msg)
 
 static void dropPElogueMsg(DDTypedBufferMsg_t *msg)
 {
-    PSnodes_ID_t node = PSC_getID(msg->header.dest);
-    const char *hname = getHostnameByNodeId(node);
-
     size_t used = 0;
     uint8_t fType;
-    uint16_t fNum;
-
     PSP_getTypedMsgBuf(msg, &used, __func__, "fragType", &fType, sizeof(fType));
+    uint16_t fNum;
     PSP_getTypedMsgBuf(msg, &used, __func__, "fragNum", &fNum, sizeof(fNum));
 
+    PSnodes_ID_t node = PSC_getID(msg->header.dest);
+    const char *hname = getHostnameByNodeId(node);
     mlog("%s: drop msg type %s(%i) fragment %hu to host %s(%i)\n", __func__,
 	 msg2Str(msg->type), msg->type, fNum, hname, node);
 
     switch (msg->type) {
     case PSP_PROLOGUE_START:
     case PSP_EPILOGUE_START:
-	dropPElogueStartMsg(msg);
+	dropMsgAndCancel(msg);
 	break;
     case PSP_PROLOGUE_FINISH:
     case PSP_EPILOGUE_FINISH:
@@ -765,7 +741,7 @@ static void dropPElogueMsg(DDTypedBufferMsg_t *msg)
 	/* nothing we can do here */
 	break;
     case PSP_PELOGUE_SIGNAL:
-	dropPElogueSignalMsg(msg);
+	dropMsgAndCancel(msg);
 	break;
     default:
 	mlog("%s: unknown msg type %i\n", __func__, msg->type);

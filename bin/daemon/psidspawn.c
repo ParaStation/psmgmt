@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2002-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2020 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2021 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -2629,13 +2629,13 @@ static void msg_SPAWNREQUEST(DDTypedBufferMsg_t *msg)
 	.request = 0,};
     bool localSender = (PSC_getID(msg->header.sender)==PSC_getMyID());
     size_t used = 0;
-    uint8_t fType;
-    uint16_t fNum;
     uint32_t num, i;
     int32_t rank = -1;
     PStask_group_t group = TG_ANY;
 
+    uint8_t fType;
     PSP_getTypedMsgBuf(msg, &used, __func__, "fragType", &fType, sizeof(fType));
+    uint16_t fNum;
     PSP_getTypedMsgBuf(msg, &used, __func__, "fragNum", &fNum, sizeof(fNum));
 
     PSID_log(PSID_LOG_SPAWN, "%s: fragment %d from %s msglen %d\n", __func__,
@@ -2643,7 +2643,9 @@ static void msg_SPAWNREQUEST(DDTypedBufferMsg_t *msg)
 
     /* First fragment, take a peek if it is from my node */
     if (localSender && fNum == 0) {
-	char *ptr = msg->buf + used;
+	uint8_t eS;
+	PSP_getTypedMsgBuf(msg, &used, __func__, "extraSize", &eS, sizeof(eS));
+	char *ptr = msg->buf + used + eS;
 
 	/* ensure we use the same byteorder as libpsi */
 	bool byteOrder = setByteOrder(true);
@@ -2801,27 +2803,32 @@ static void drop_SPAWNREQUEST(DDTypedBufferMsg_t *msg)
 	    .len = sizeof(errMsg) },
 	.error = EHOSTDOWN,
 	.request = 0,};
-    size_t used = 0;
-    uint8_t fType;
-    uint16_t fNum;
-    uint32_t num, i;
 
     PSID_log(PSID_LOG_SPAWN, "%s: from %s msglen %d\n", __func__,
 	     PSC_printTID(msg->header.sender), msg->header.len);
 
+    size_t used = 0;
+    uint8_t fType;
     PSP_getTypedMsgBuf(msg, &used, __func__, "fragType", &fType, sizeof(fType));
+    uint16_t fNum;
     PSP_getTypedMsgBuf(msg, &used, __func__, "fragNum", &fNum, sizeof(fNum));
 
     /* Ignore trailing fragments */
     if (fNum) return;
 
     /* Extract num and rank from message to drop */
-    char *ptr = msg->buf + used;
+     /* skip fragmented message header */
+    uint8_t eS;
+    if (PSIDnodes_getProtoV(PSC_getID(msg->header.sender)) > 343) {
+	PSP_getTypedMsgBuf(msg, &used, __func__, "extraSize", &eS, sizeof(eS));
+    }
+    char *ptr = msg->buf + used + eS;
 
     /* ensure we use the same byteorder as libpsi */
     bool byteOrder = setByteOrder(true);
 
     /* fetch info from message */
+    uint32_t num;
     getUint32(&ptr, &num);
     PStask_t *task = PStask_new();
     ptr += PStask_decodeTask(ptr, task, false);
@@ -2833,7 +2840,7 @@ static void drop_SPAWNREQUEST(DDTypedBufferMsg_t *msg)
 
     PStask_delete(task);
 
-    for (i = 0; i < num; i++) {
+    for (uint32_t i = 0; i < num; i++) {
 	errMsg.request = rank + i;
 	sendMsg(&errMsg);
     }
