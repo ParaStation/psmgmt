@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2020 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2021 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -64,7 +64,7 @@ static Selector_t **selectors = NULL;
 static int maxSelectorFD = 0;
 
 /** data structure to handle a pool of selectors */
-static PSitems_t selPool = { .initialized = false };
+static PSitems_t selPool = NULL;
 
 /**
  * @brief Get selector from pool
@@ -82,7 +82,7 @@ static PSitems_t selPool = { .initialized = false };
  */
 static Selector_t * getSelector(void)
 {
-    Selector_t *selector = PSitems_getItem(&selPool);
+    Selector_t *selector = PSitems_getItem(selPool);
     if (!selector) return NULL;
 
     INIT_LIST_HEAD(&selector->next);
@@ -123,7 +123,7 @@ static void putSelector(Selector_t *selector)
 	selectors[selector->fd] = NULL;
     }
 
-    PSitems_putItem(&selPool, selector);
+    PSitems_putItem(selPool, selector);
 }
 
 static bool relocSel(void *item)
@@ -153,13 +153,13 @@ static bool relocSel(void *item)
 
 void Selector_gc(void)
 {
-    PSitems_gc(&selPool, relocSel);
+    PSitems_gc(selPool, relocSel);
 }
 
 void Selector_printStat(void)
 {
     logger_print(logger, -1, "%s: epollFD %d  %d/%d (used/avail)\n", __func__,
-		 epollFD, PSitems_getUsed(&selPool),PSitems_getAvail(&selPool));
+		 epollFD, PSitems_getUsed(selPool),PSitems_getAvail(selPool));
 }
 
 int32_t Selector_getDebugMask(void)
@@ -222,7 +222,7 @@ void Selector_init(FILE* logfile)
 	close(epollFD);
     } else {
 	/* first init */
-	PSitems_init(&selPool, sizeof(Selector_t), "selectors");
+	selPool = PSitems_new(sizeof(Selector_t), "selectors");
     }
 
     epollFD = epoll_create1(EPOLL_CLOEXEC);

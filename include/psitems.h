@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2018 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2018-2021 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -20,38 +20,31 @@
  *     int32_t someInt;
  *     ...
  * }
- * For details refer to @ref PSitems_init().
+ * For details refer to @ref PSitems_new().
  */
 #ifndef __PSITEMS_H
 #define __PSITEMS_H
 
 #include <stdbool.h>
 #include <stdint.h>
-#include "list.h"
 
-/** Structure holding all information on a pool of items */
-typedef struct {
-    list_t chunks;     /**< List of actual chunks of items */
-    list_t idleItems;  /**< List of idle items for PSitems_getItem() */
-    char *name;        /**< Name of the items to handle */
-    bool initialized;  /**< Track pool of items initialization */
-    size_t itemSize;   /**< Size of a single item (including its list_t) */
-    uint32_t avail;    /**< Number of items available (used + unused) */
-    uint32_t used;     /**< Number of used items */
-    uint32_t iPC;      /**< Number of items per chunk */
-} PSitems_t;
+/** Opaque structure holding all information on a pool of items */
+struct itemPool;
+
+/** Item pool context to be created via @ref PSitems_new() */
+typedef struct itemPool * PSitems_t;
 
 /** Magic value to mark idle items */
 #define PSITEM_IDLE -1
 
-/** Magic value to mark drained */
+/** Magic value to mark drained items */
 #define PSITEM_DRAINED -2
 
 /**
- * @brief Initialize pool of items
+ * @brief Create pool of items
  *
- * Initialize the pool of items represented by @a items in order to
- * hold items of size @a itemSize. The pool is given the name @a name.
+ * Create a pool of items in order to hold items of size @a
+ * itemSize. The pool is given the name @a name.
  *
  * New items are added to the pool automatically while getting new
  * items via PSitems_getItem(). The item are added in chunks. The
@@ -73,28 +66,27 @@ typedef struct {
  * before. If this happens, the item is removed from the list it was
  * member of via @ref list_del().
  *
- * @param items Structure holding all information on the pool of items
- *
  * @param itemSize Size of the single items to handle
  *
  * @param name Name given to the pool of items
  *
- * @return No return value
+ * @return Handle to the pool of items or NULL if creating the pool
+ * was impossible
  */
-void PSitems_init(PSitems_t *items, size_t itemSize, char *name);
+PSitems_t PSitems_new(size_t itemSize, char *name);
 
 /**
  * @brief Check pool of items for initialization
  *
  * Check if the pool of items represented by @a items is initialized,
- * i.e. if @ref PSitems_init() was called for this pool before.
+ * i.e. if @ref PSitems_new() was called for this pool before.
  *
  * @param items Structure holding all information on the pool of items
  *
- * @return Return true if the pool of items is initialized or false
+ * @return Return true if the pool of items is initialized; or false
  * otherwise
  */
-bool PSitems_isInitialized(PSitems_t *items);
+bool PSitems_isInitialized(PSitems_t items);
 
 /**
  * @brief Get number of available items
@@ -106,19 +98,19 @@ bool PSitems_isInitialized(PSitems_t *items);
  *
  * @return Return the total number of available items
  */
-uint32_t PSitems_getAvail(PSitems_t *items);
+uint32_t PSitems_getAvail(PSitems_t items);
 
 /**
  * @brief Get single item
  *
  * Get a single item from the pool of items @a items. The pool might
- * be extended in the way described in @ref PSitems_init().
+ * be extended in the way described in @ref PSitems_new().
  *
  * @param items Structure holding all information on the pool of items
  *
  * #return Return a pointer to an idle item or NULL if an error occurred
  */
-void * PSitems_getItem(PSitems_t *items);
+void * PSitems_getItem(PSitems_t items);
 
 /**
  * @brief Put single item
@@ -130,7 +122,7 @@ void * PSitems_getItem(PSitems_t *items);
  *
  * #return No return value
  */
-void PSitems_putItem(PSitems_t *items, void *item);
+void PSitems_putItem(PSitems_t items, void *item);
 
 /**
  * @brief Get number of used items
@@ -141,7 +133,7 @@ void PSitems_putItem(PSitems_t *items, void *item);
  *
  * @return Return the number of used items
  */
-uint32_t PSitems_getUsed(PSitems_t *items);
+uint32_t PSitems_getUsed(PSitems_t items);
 
 /**
  * @brief Check if garbage collection is required
@@ -156,10 +148,10 @@ uint32_t PSitems_getUsed(PSitems_t *items);
  *
  * @param items Structure holding all information on the pool of items
  *
- * @return If garbage collection is required, true is returned. Or
- * false otherwise.
+ * @return If garbage collection is required, true is returned; or
+ * false otherwise
  */
-bool PSitems_gcRequired(PSitems_t *items);
+bool PSitems_gcRequired(PSitems_t items);
 
 /**
  * @brief Collect garbage
@@ -186,7 +178,7 @@ bool PSitems_gcRequired(PSitems_t *items);
  *
  * @return No return value
  */
-void PSitems_gc(PSitems_t *items, bool (*relocItem)(void *item));
+void PSitems_gc(PSitems_t items, bool (*relocItem)(void *item));
 
 /**
  * @brief Memory cleanup
@@ -200,8 +192,8 @@ void PSitems_gc(PSitems_t *items, bool (*relocItem)(void *item));
  *
  * @param items Structure holding all information on the pool of items
  *
- * @return No return value.
+ * @return No return value
  */
-void PSitems_clearMem(PSitems_t *items);
+void PSitems_clearMem(PSitems_t items);
 
 #endif /* __PSITEMS_H */

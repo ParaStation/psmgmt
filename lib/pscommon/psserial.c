@@ -116,7 +116,7 @@ typedef struct {
 } recvBuf_t;
 
 /** data structure to handle a pool of receive buffers (of type recvBuf_t) */
-static PSitems_t recvBuffers = { .initialized = false };
+static PSitems_t recvBuffers = NULL;
 
 /** List of active receive buffers */
 static LIST_HEAD(activeRecvBufs);
@@ -131,7 +131,7 @@ static LIST_HEAD(activeRecvBufs);
  */
 static recvBuf_t *getRecvBuf(void)
 {
-    recvBuf_t *r = PSitems_getItem(&recvBuffers);
+    recvBuf_t *r = PSitems_getItem(recvBuffers);
 
     if (!r) {
 	PSC_log(-1, "%s: no receive buffers left\n", __func__);
@@ -158,7 +158,7 @@ static void putRecvBuf(recvBuf_t *recvBuf)
     recvBuf->tid = PSITEM_IDLE;
     resetBuf(&recvBuf->dBuf);
     if (!list_empty(&recvBuf->next)) list_del(&recvBuf->next);
-    PSitems_putItem(&recvBuffers, recvBuf);
+    PSitems_putItem(recvBuffers, recvBuf);
 }
 
 /**
@@ -249,7 +249,8 @@ static int clearMem(void *dummy)
 
 	putRecvBuf(recvBuf);
     }
-    PSitems_clearMem(&recvBuffers);
+    PSitems_clearMem(recvBuffers);
+    recvBuffers = NULL;
 
     activeUsers = 0;
     sendPSMsg = NULL;
@@ -315,7 +316,7 @@ static bool relocRecvBuf(void *item)
 
 static void recvBuf_gc(void)
 {
-    PSitems_gc(&recvBuffers, relocRecvBuf);
+    PSitems_gc(recvBuffers, relocRecvBuf);
 }
 
 /** Function to remove registered hooks later on */
@@ -435,7 +436,15 @@ bool initSerial(size_t bufSize, Send_Msg_Func_t *func)
     if (!getProtoV) initProtoResolver();
 
     /* Initialize receive buffer handling */
-    PSitems_init(&recvBuffers, sizeof(recvBuf_t), "recvBuffers");
+    recvBuffers = PSitems_new(sizeof(recvBuf_t), "recvBuffers");
+    if (!recvBuffers) {
+	PSC_log(-1, "%s: cannot get recvBuffer items\n", __func__);
+	free(sendBuf);
+	sendBuf = NULL;
+	free(destTIDs);
+	destTIDs = NULL;
+	return false;
+    }
 
     return true;
 }

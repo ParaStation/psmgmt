@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2015-2018 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2015-2021 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -14,17 +14,17 @@
 #include "pssignal.h"
 
 /** data structure to handle a pool of signal structures */
-static PSitems_t sigPool = { .initialized = false };
+static PSitems_t sigPool = NULL;
 
 void PSsignal_init(void)
 {
-    if (PSitems_isInitialized(&sigPool)) return;
-    PSitems_init(&sigPool, sizeof(PSsignal_t), "PSsignal");
+    if (PSitems_isInitialized(sigPool)) return;
+    sigPool = PSitems_new(sizeof(PSsignal_t), "PSsignal");
  }
 
 PSsignal_t *PSsignal_get(void)
 {
-    PSsignal_t *sp = PSitems_getItem(&sigPool);
+    PSsignal_t *sp = PSitems_getItem(sigPool);
     if (!sp) return NULL;
 
     sp->tid = 0;
@@ -35,7 +35,7 @@ PSsignal_t *PSsignal_get(void)
 
 void PSsignal_put(PSsignal_t *sp)
 {
-    PSitems_putItem(&sigPool, sp);
+    PSitems_putItem(sigPool, sp);
 }
 
 static bool relocSig(void *item)
@@ -57,11 +57,11 @@ static bool relocSig(void *item)
 
 void PSsignal_gc(void)
 {
-    PSitems_gc(&sigPool, relocSig);
+    PSitems_gc(sigPool, relocSig);
 }
 
 void PSsignal_printStat(void)
 {
     PSC_log(-1, "%s: Signals %d/%d (used/avail)\n", __func__,
-	    PSitems_getUsed(&sigPool), PSitems_getAvail(&sigPool));
+	    PSitems_getUsed(sigPool), PSitems_getAvail(sigPool));
 }

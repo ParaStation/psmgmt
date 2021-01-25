@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2018 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2018-2021 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -11,11 +11,26 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "list.h"
 #include "pscommon.h"
 
 #include "psitems.h"
 
 #define CHUNK_SIZE (128*1024)
+
+#define PSITEMS_MAGIC 0x3141592653589793
+
+/** Structure holding all information on a pool of items */
+struct itemPool {
+    long magic;
+    list_t chunks;     /**< List of actual chunks of items */
+    list_t idleItems;  /**< List of idle items for PSitems_getItem() */
+    char *name;        /**< Name of the items to handle */
+    size_t itemSize;   /**< Size of a single item (including its list_t) */
+    uint32_t avail;    /**< Number of items available (used + unused) */
+    uint32_t used;     /**< Number of used items */
+    uint32_t iPC;      /**< Number of items per chunk */
+};
 
 /** Chunk holding the actual items */
 typedef struct {
@@ -23,31 +38,34 @@ typedef struct {
     char itemBuf[]; /**< Space for actual items */
 } chunk_t;
 
-void PSitems_init(PSitems_t *items, size_t itemSize, char *name)
+PSitems_t PSitems_new(size_t itemSize, char *name)
 {
-    if (!items) return;
+    PSitems_t items = malloc(sizeof(*items));
+    if (!items) return NULL;
 
+    items->magic = PSITEMS_MAGIC;
     INIT_LIST_HEAD(&items->chunks);
     INIT_LIST_HEAD(&items->idleItems);
     items->name = strdup(name);
-    items->initialized = true;
     items->itemSize = itemSize;
     items->avail = 0;
     items->used = 0;
     items->iPC = (CHUNK_SIZE - sizeof(list_t)) / itemSize + 1;
+
+    return items;
 }
 
-bool PSitems_isInitialized(PSitems_t *items)
+bool PSitems_isInitialized(PSitems_t items)
 {
-    return items && items->initialized;
+    return (items && items->magic == PSITEMS_MAGIC);
 }
 
-uint32_t PSitems_getAvail(PSitems_t *items)
+uint32_t PSitems_getAvail(PSitems_t items)
 {
     return PSitems_isInitialized(items) ? items->avail : 0;
 }
 
-uint32_t PSitems_getUsed(PSitems_t *items)
+uint32_t PSitems_getUsed(PSitems_t items)
 {
     return PSitems_isInitialized(items) ? items->used : 0;
 }
@@ -74,11 +92,9 @@ typedef struct {
  * @return If new items were added successfully, the number of new
  * items is returned or 0 in case of error.
  */
-static int growItems(PSitems_t *items)
+static int growItems(PSitems_t items)
 {
     chunk_t *newChunk = malloc(sizeof(list_t) + items->itemSize * items->iPC);
-    uint32_t i;
-
     if (!newChunk) {
 	PSC_warn(-1, errno, "%s(%s)", __func__, items->name);
 	return 0;
@@ -87,7 +103,7 @@ static int growItems(PSitems_t *items)
     list_add_tail(&newChunk->next, &items->chunks);
     memset(&newChunk->itemBuf, 0, items->itemSize * items->iPC);
 
-    for (i = 0; i < items->iPC; i++) {
+    for (uint32_t i = 0; i < items->iPC; i++) {
 	item_t *item = (item_t *)&newChunk->itemBuf[i * items->itemSize];
 	item->state = PSITEM_IDLE;
 	list_add_tail(&item->next, &items->idleItems);
@@ -98,7 +114,7 @@ static int growItems(PSitems_t *items)
     return items->iPC;
 }
 
-void * PSitems_getItem(PSitems_t *items)
+void * PSitems_getItem(PSitems_t items)
 {
     if (!PSitems_isInitialized(items)) {
 	PSC_log(-1, "%s: initialize before!\n", __func__);
@@ -130,22 +146,21 @@ void * PSitems_getItem(PSitems_t *items)
     return item;
 }
 
-void PSitems_putItem(PSitems_t *items, void *item)
+void PSitems_putItem(PSitems_t items, void *item)
 {
-    item_t *i = (item_t *)item;
-
     if (!PSitems_isInitialized(items)) {
 	PSC_log(-1, "%s: initialize before!\n", __func__);
 	return;
     }
 
+    item_t *i = (item_t *)item;
     i->state = PSITEM_IDLE;
     list_add_tail(&i->next, &items->idleItems);
 
     items->used--;
 }
 
-bool PSitems_gcRequired(PSitems_t *items)
+bool PSitems_gcRequired(PSitems_t items)
 {
     if (!PSitems_isInitialized(items)) return false;
     return items->avail > items->iPC
@@ -170,14 +185,12 @@ bool PSitems_gcRequired(PSitems_t *items)
  *
  * @return No return value
  */
-static void freeChunk(PSitems_t *items, chunk_t *chunk, bool(*relocItem)(void*))
+static void freeChunk(PSitems_t items, chunk_t *chunk, bool(*relocItem)(void*))
 {
-    uint32_t i;
-
     if (!items || !chunk) return;
 
     /* First round: remove items from s */
-    for (i = 0; i < items->iPC; i++) {
+    for (uint32_t i = 0; i < items->iPC; i++) {
 	item_t *item = (item_t *)&chunk->itemBuf[i * items->itemSize];
 	if (item->state == PSITEM_IDLE) {
 	    list_del(&item->next);
@@ -186,7 +199,7 @@ static void freeChunk(PSitems_t *items, chunk_t *chunk, bool(*relocItem)(void*))
     }
 
     /* Second round: now relocate and release all used items */
-    for (i = 0; i < items->iPC; i++) {
+    for (uint32_t i = 0; i < items->iPC; i++) {
 	item_t *item = (item_t *)&chunk->itemBuf[i * items->itemSize];
 
 	if (item->state == PSITEM_DRAINED) continue;
@@ -211,17 +224,14 @@ static void freeChunk(PSitems_t *items, chunk_t *chunk, bool(*relocItem)(void*))
     items->avail -= items->iPC;
 }
 
-void PSitems_gc(PSitems_t *items, bool (*relocItem)(void *))
+void PSitems_gc(PSitems_t items, bool (*relocItem)(void *))
 {
-    list_t *c, *tmp;
-    bool first = true;
-    uint32_t i;
-
     if (!PSitems_gcRequired(items)) return;
 
+    bool first = true;
+    list_t *c, *tmp;
     list_for_each_safe(c, tmp, &items->chunks) {
 	chunk_t *chunk = list_entry(c, chunk_t, next);
-	uint32_t unused = 0;
 
 	/* always keep the first one */
 	if (first) {
@@ -229,7 +239,8 @@ void PSitems_gc(PSitems_t *items, bool (*relocItem)(void *))
 	    continue;
 	}
 
-	for (i = 0; i < items->iPC; i++) {
+	uint32_t unused = 0;
+	for (uint32_t i = 0; i < items->iPC; i++) {
 	    item_t *item = (item_t *)&chunk->itemBuf[i * items->itemSize];
 	    if (item->state == PSITEM_IDLE
 		|| item->state == PSITEM_DRAINED) unused++;
@@ -241,7 +252,7 @@ void PSitems_gc(PSitems_t *items, bool (*relocItem)(void *))
     }
 }
 
-void PSitems_clearMem(PSitems_t *items)
+void PSitems_clearMem(PSitems_t items)
 {
     if (!PSitems_isInitialized(items)) return;
 
@@ -255,4 +266,7 @@ void PSitems_clearMem(PSitems_t *items)
 
     INIT_LIST_HEAD(&items->idleItems);
     items->used = items->avail = 0;
+    free(items->name);
+    items->magic = 0;
+    free(items);
 }

@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2014-2018 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2014-2021 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -32,13 +32,13 @@ typedef struct {
 } stopTID_t;
 
 /** data structure to handle a pool of stopTIDs */
-static PSitems_t stopTIDs = { .initialized = false };
+static PSitems_t stopTIDs = NULL;
 
 /* ==================== Pool management for stopTIDs ==================== */
 
 static bool relocStopTID(void *item)
 {
-    stopTID_t *orig = item, *repl = PSitems_getItem(&stopTIDs);
+    stopTID_t *orig = item, *repl = PSitems_getItem(stopTIDs);
 
     if (!repl) return false;
 
@@ -63,7 +63,7 @@ static bool relocStopTID(void *item)
  */
 static void PSIDFlwCntrl_gc(void)
 {
-    PSitems_gc(&stopTIDs, relocStopTID);
+    PSitems_gc(stopTIDs, relocStopTID);
 }
 
 /* ==================== Hash management for stopTIDs ==================== */
@@ -85,7 +85,7 @@ void PSIDFlwCntrl_emptyHash(PSIDFlwCntrl_hash_t hash)
 	    stopTID_t *stop = list_entry(s, stopTID_t, next);
 
 	    list_del(&stop->next);
-	    PSitems_putItem(&stopTIDs, stop);
+	    PSitems_putItem(stopTIDs, stop);
 	}
     }
 }
@@ -99,7 +99,7 @@ int PSIDFlwCntrl_addStop(PSIDFlwCntrl_hash_t table, PStask_ID_t key)
 	if (stid->tid == key) return 0;
     }
 
-    stopTID_t *stop = PSitems_getItem(&stopTIDs);
+    stopTID_t *stop = PSitems_getItem(stopTIDs);
     if (!stop) return -1;
 
     stop->tid = key;
@@ -125,7 +125,7 @@ int PSIDFlwCntrl_sendContMsgs(PSIDFlwCntrl_hash_t stops, PStask_ID_t sender)
 		num++;
 	    }
 	    list_del(&stop->next);
-	    PSitems_putItem(&stopTIDs, stop);
+	    PSitems_putItem(stopTIDs, stop);
 	}
     }
 
@@ -259,20 +259,25 @@ static void msg_SENDCONT(DDMsg_t *msg)
 
 void PSIDFlwCntrl_clearMem(void)
 {
-    PSitems_clearMem(&stopTIDs);
+    PSitems_clearMem(stopTIDs);
+    stopTIDs = NULL;
 }
 
 void PSIDFlwCntrl_printStat(void)
 {
     PSID_log(-1, "%s: Stops %d/%d (used/avail)\n", __func__,
-	     PSitems_getUsed(&stopTIDs), PSitems_getAvail(&stopTIDs));
+	     PSitems_getUsed(stopTIDs), PSitems_getAvail(stopTIDs));
 }
 
 
 void PSIDFlwCntrl_init(void)
 {
-    if (PSitems_isInitialized(&stopTIDs)) return;
-    PSitems_init(&stopTIDs, sizeof(stopTID_t), "stopdTIDs");
+    if (PSitems_isInitialized(stopTIDs)) return;
+    stopTIDs = PSitems_new(sizeof(stopTID_t), "stopdTIDs");
+    if (!stopTIDs) {
+	PSID_log(-1, "%s: cannot get stopTIDs items\n", __func__);
+	return;
+    }
 
     PSID_registerMsg(PSP_DD_SENDSTOP, (handlerFunc_t) msg_SENDSTOP);
     PSID_registerMsg(PSP_DD_SENDCONT, (handlerFunc_t) msg_SENDCONT);

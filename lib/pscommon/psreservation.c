@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2015-2020 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2015-2021 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -16,11 +16,11 @@
 #include "psreservation.h"
 
 /** data structure to handle a pool of reservations */
-static PSitems_t PSrsrvtns = { .initialized = false };
+static PSitems_t rsrvtnPool = NULL;
 
 PSrsrvtn_t *PSrsrvtn_get(void)
 {
-    PSrsrvtn_t *rp = PSitems_getItem(&PSrsrvtns);
+    PSrsrvtn_t *rp = PSitems_getItem(rsrvtnPool);
     if (!rp) return NULL;
 
     rp->state = RES_USED;
@@ -51,7 +51,7 @@ void PSrsrvtn_put(PSrsrvtn_t *rp)
 	free(rp->slots);
     }
 
-    PSitems_putItem(&PSrsrvtns, rp);
+    PSitems_putItem(rsrvtnPool, rp);
 }
 
 static bool relocPSrsrvtn(void *item)
@@ -88,22 +88,23 @@ static bool relocPSrsrvtn(void *item)
 
 void PSrsrvtn_gc(void)
 {
-    PSitems_gc(&PSrsrvtns, relocPSrsrvtn);
+    PSitems_gc(rsrvtnPool, relocPSrsrvtn);
 }
 
 void PSrsrvtn_printStat(void)
 {
     PSC_log(-1, "%s: Reservations %d/%d (used/avail)\n", __func__,
-	    PSitems_getUsed(&PSrsrvtns), PSitems_getAvail(&PSrsrvtns));
+	    PSitems_getUsed(rsrvtnPool), PSitems_getAvail(rsrvtnPool));
 }
 
 void PSrsrvtn_clearMem(void)
 {
-    PSitems_clearMem(&PSrsrvtns);
+    PSitems_clearMem(rsrvtnPool);
+    rsrvtnPool = NULL;
 }
 
 void PSrsrvtn_init(void)
 {
-    if (PSitems_isInitialized(&PSrsrvtns)) return;
-    PSitems_init(&PSrsrvtns, sizeof(PSrsrvtn_t), "PSrsrvtns");
+    if (PSitems_isInitialized(rsrvtnPool)) return;
+    rsrvtnPool = PSitems_new(sizeof(PSrsrvtn_t), "rsrvtnPool");
 }

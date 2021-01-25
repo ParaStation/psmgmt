@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2010-2020 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2010-2021 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -36,11 +36,11 @@
 static LIST_HEAD(procList);
 
 /** data structure to handle a pool of proc snapshot structures */
-static PSitems_t procPool = { .initialized = false };
+static PSitems_t procPool = NULL;
 
 static bool relocProc(void *item)
 {
-    ProcSnapshot_t *orig = item, *repl = PSitems_getItem(&procPool);
+    ProcSnapshot_t *orig = item, *repl = PSitems_getItem(procPool);
     if (!repl) return false;
 
     /* copy proc snapshot struct's content */
@@ -66,15 +66,16 @@ static bool relocProc(void *item)
 
 static void proc_gc(void)
 {
-    if (!PSitems_gcRequired(&procPool)) return;
+    if (!PSitems_gcRequired(procPool)) return;
 
     mdbg(PSACC_LOG_PROC, "%s()\n", __func__);
-    PSitems_gc(&procPool, relocProc);
+    PSitems_gc(procPool, relocProc);
 }
 
 static int clearMem(void *dummy)
 {
-    PSitems_clearMem(&procPool);
+    PSitems_clearMem(procPool);
+    procPool = NULL;
     INIT_LIST_HEAD(&procList);
 
     return 0;
@@ -549,7 +550,7 @@ static bool readProcUID(pid_t pid, ProcStat_t *pS)
  */
 static ProcSnapshot_t *addProc(pid_t pid, ProcStat_t *pS)
 {
-    ProcSnapshot_t *proc = PSitems_getItem(&procPool);
+    ProcSnapshot_t *proc = PSitems_getItem(procPool);
 
     if (!proc) return NULL;
     proc->state = PROC_USED;
@@ -581,7 +582,7 @@ static void clearAllProcSnapshots(void)
     list_for_each_safe(p, tmp, &procList) {
 	ProcSnapshot_t *proc = list_entry(p, ProcSnapshot_t, next);
 	list_del(&proc->next);
-	PSitems_putItem(&procPool, proc);
+	PSitems_putItem(procPool, proc);
     }
 }
 
@@ -711,11 +712,11 @@ void updateProcSnapshot(void)
 
 void initProc(void)
 {
-    if (PSitems_isInitialized(&procPool)) return;
+    if (PSitems_isInitialized(procPool)) return;
 
     cpuCount = getCPUCount();
     if (cpuCount) initCpuFreq();
-    PSitems_init(&procPool, sizeof(ProcSnapshot_t), "procSnapshots");
+    procPool = PSitems_new(sizeof(ProcSnapshot_t), "procSnapshots");
 
     PSID_registerLoopAct(proc_gc);
     PSIDhook_add(PSIDHOOK_CLEARMEM, clearMem);
