@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2014-2020 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2014-2021 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -87,13 +87,13 @@ static PStask_t *fwTask;
 /** Flag to be set to true when first kill phase is started */
 static bool killAllChildren = false;
 
-/** Flag indicating if SIGKTERM was already send */
+/** Flag indicating if SIGTERM was already send */
 static bool sendHardKill = false;
 
 /** Flag indicating SIGCHLD was received */
 static bool sigChild = false;
 
-/** Flag indication child's walltime limit is reached */
+/** Flag indication child's wall-time limit is reached */
 static bool jobTimeout = false;
 
 static struct timeval childStart;
@@ -111,7 +111,17 @@ static void handleGraceTime(Forwarder_Data_t *fw)
     alarm(grace);
 }
 
-static void killForwarderChild(Forwarder_Data_t *fw, int sig, char *reason)
+static void doKillChild(pid_t pid, int sig, bool session)
+{
+    if (session) {
+	fwData->killSession(pid, sig);
+    } else {
+	pskill(sig, pid, 0);
+    }
+}
+
+static void killForwarderChild(Forwarder_Data_t *fw, int sig, char *reason,
+			       bool session)
 {
     if (!fw) fw = fwData;
     int grace = fw->graceTime ? fw->graceTime : DEFAULT_GRACE_TIME;
@@ -125,14 +135,14 @@ static void killForwarderChild(Forwarder_Data_t *fw, int sig, char *reason)
     if (fw->cPid <= 0) return;
 
     if (sig == SIGTERM) {
-	/* let children beeing debugged continue */
-	fwData->killSession(fw->cSid, SIGCONT);
-	if (!fwData->killSession(fw->cSid, sig)) {
-	    killAllChildren = true;
-	    alarm(grace);
-	}
+	/* let children being debugged continue */
+	doKillChild(fw->cSid, SIGCONT, session);
+
+	doKillChild(fw->cSid, sig, session);
+	killAllChildren = true;
+	alarm(grace);
     } else {
-	fwData->killSession(fw->cSid, sig);
+	doKillChild(fw->cSid, sig, session);
     }
 }
 
@@ -142,7 +152,7 @@ static void handleLocalShutdown(Forwarder_Data_t *fw)
 	sigChild = true;
 	Selector_startOver();
     } else {
-	killForwarderChild(fw, SIGTERM, NULL);
+	killForwarderChild(fw, SIGTERM, NULL, true);
     }
 }
 
@@ -245,7 +255,7 @@ static int handleMthrSock(int fd, void *info)
     switch(lmsg->type) {
     case PLGN_SIGNAL_CHLD:
 	PSP_getMsgBuf(&msg, &used, __func__, "signal", &signal, sizeof(signal));
-	killForwarderChild(fw, signal, NULL);
+	killForwarderChild(fw, signal, NULL, true);
 	break;
     case PLGN_START_GRACE:
 	handleGraceTime(fw);
@@ -314,7 +324,7 @@ static void signalHandler(int sig)
 	if (sendHardKill) return;
 
 	/* kill the child */
-	killForwarderChild(fwData, SIGTERM, "received SIGTERM");
+	killForwarderChild(fwData, SIGTERM, "received SIGTERM", false);
 	break;
     case SIGALRM:
 	/* reset possible alarms */
@@ -324,11 +334,13 @@ static void signalHandler(int sig)
 	    /* second kill phase, do it the hard way now */
 	    pluginlog("%s: SIGKILL to sid %i (job %s)\n", __func__,
 		      fwData->cSid, fwData->jobID ? fwData->jobID : "<?>");
-	    fwData->killSession(fwData->cSid, SIGKILL);
+	    /* warning: don't use killSession() in the signal handler.
+	     * Double entry of killSession() can lead to corrupt memory! */
+	    pskill(SIGKILL, fwData->cPid, 0);
 	    sendHardKill = true;
 	} else {
 	    jobTimeout = true;
-	    killForwarderChild(fwData, SIGTERM, "timeout");
+	    killForwarderChild(fwData, SIGTERM, "timeout", false);
 	}
 	break;
     case SIGPIPE:
@@ -440,7 +452,7 @@ static void initChild(int controlFD, Forwarder_Data_t *fw)
 	close(fw->stdErr[0]);
     }
 
-    /* restore sighandler */
+    /* restore signal handler */
     PSC_setSigHandler(SIGALRM, SIG_DFL);
     PSC_setSigHandler(SIGTERM, SIG_DFL);
     PSC_setSigHandler(SIGCHLD, SIG_DFL);
@@ -454,7 +466,7 @@ static void initChild(int controlFD, Forwarder_Data_t *fw)
 /**
  * @brief Forwarder's main loop
  *
- * Main loop to be exectued for the forwarder described by the
+ * Main loop to be executed for the forwarder described by the
  * structure @a fw.
  *
  * @param fw Forwarder structure to be handled
@@ -472,7 +484,7 @@ static void forwarderLoop(Forwarder_Data_t *fw)
     while (!sigChild) {
 	if (Swait(-1) < 0  &&  errno != EINTR) {
 	    pluginwarn(errno, "%s: Swait()", __func__);
-	    killForwarderChild(fw, SIGKILL, "Swait() error");
+	    killForwarderChild(fw, SIGKILL, "Swait() error", true);
 	    break;
 	}
     }
@@ -553,7 +565,7 @@ static void sendAccInfo(Forwarder_Data_t *fw, int32_t status,
     PSP_putTypedMsgBuf(accMsg, __func__, "rusage", rusage, sizeof(*rusage));
     PSP_putTypedMsgBuf(accMsg, __func__, "pagesize", &pSize, sizeof(pSize));
 
-    /* walltime used by child */
+    /* wall-time used by child */
     gettimeofday(&now, NULL);
     timersub(&now, &childStart, &wTime);
     PSP_putTypedMsgBuf(accMsg, __func__, "walltime", &wTime, sizeof(wTime));
