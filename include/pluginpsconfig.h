@@ -15,7 +15,7 @@
 
 #include "pluginmalloc.h"
 
-/** Opaque structure holing the configuration */
+/** Opaque structure holding the configuration */
 struct pluginConfig;
 
 /**
