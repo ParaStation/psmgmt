@@ -2628,24 +2628,20 @@ static void msg_SPAWNREQUEST(DDTypedBufferMsg_t *msg)
 	.error = 0,
 	.request = 0,};
     bool localSender = (PSC_getID(msg->header.sender)==PSC_getMyID());
-    size_t used = 0;
     uint32_t num, i;
     int32_t rank = -1;
     PStask_group_t group = TG_ANY;
 
-    uint8_t fType;
-    PSP_getTypedMsgBuf(msg, &used, __func__, "fragType", &fType, sizeof(fType));
-    uint16_t fNum;
-    PSP_getTypedMsgBuf(msg, &used, __func__, "fragNum", &fNum, sizeof(fNum));
+    size_t used = 0;
+    uint16_t fragNum;
+    fetchFragHeader(msg, &used, NULL, &fragNum, NULL, NULL);
 
     PSID_log(PSID_LOG_SPAWN, "%s: fragment %d from %s msglen %d\n", __func__,
-	     fNum, PSC_printTID(msg->header.sender), msg->header.len);
+	     fragNum, PSC_printTID(msg->header.sender), msg->header.len);
 
     /* First fragment, take a peek if it is from my node */
-    if (localSender && fNum == 0) {
-	uint8_t eS;
-	PSP_getTypedMsgBuf(msg, &used, __func__, "extraSize", &eS, sizeof(eS));
-	char *ptr = msg->buf + used + eS;
+    if (localSender && fragNum == 0) {
+	char *ptr = msg->buf + used;
 
 	/* ensure we use the same byteorder as libpsi */
 	bool byteOrder = setByteOrder(true);
@@ -2694,7 +2690,7 @@ static void msg_SPAWNREQUEST(DDTypedBufferMsg_t *msg)
 
     if (!PSIDnodes_isUp(PSC_getID(msg->header.dest))) {
 	answer.error = EHOSTDOWN;
-	if (fNum == 0) {
+	if (fragNum == 0) {
 	    /* first fragment */
 	    for (i = 0; i < num; i++) {
 		answer.request = rank + i;
@@ -2705,7 +2701,7 @@ static void msg_SPAWNREQUEST(DDTypedBufferMsg_t *msg)
     }
 
     /* Check if we have to and can send a LOC-message */
-    if (localSender && fNum == 0 && !isServiceTask(group)) {
+    if (localSender && fragNum == 0 && !isServiceTask(group)) {
 	PSpart_slot_t *spawnNodes = ptask->spawnNodes;
 	if (!spawnNodes || rank + num - 1 >= ptask->spawnNum) {
 	    PSID_log(-1, "%s: ranks %d-%d  out of range\n", __func__,
@@ -2808,21 +2804,14 @@ static void drop_SPAWNREQUEST(DDTypedBufferMsg_t *msg)
 	     PSC_printTID(msg->header.sender), msg->header.len);
 
     size_t used = 0;
-    uint8_t fType;
-    PSP_getTypedMsgBuf(msg, &used, __func__, "fragType", &fType, sizeof(fType));
-    uint16_t fNum;
-    PSP_getTypedMsgBuf(msg, &used, __func__, "fragNum", &fNum, sizeof(fNum));
+    uint16_t fragNum;
+    fetchFragHeader(msg, &used, NULL, &fragNum, NULL, NULL);
 
     /* Ignore trailing fragments */
-    if (fNum) return;
+    if (fragNum) return;
 
     /* Extract num and rank from message to drop */
-     /* skip fragmented message header */
-    uint8_t eS;
-    if (PSIDnodes_getProtoV(PSC_getID(msg->header.sender)) > 343) {
-	PSP_getTypedMsgBuf(msg, &used, __func__, "extraSize", &eS, sizeof(eS));
-    }
-    char *ptr = msg->buf + used + eS;
+    char *ptr = msg->buf + used;
 
     /* ensure we use the same byteorder as libpsi */
     bool byteOrder = setByteOrder(true);

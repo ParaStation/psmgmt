@@ -662,21 +662,13 @@ static char *msg2Str(PSP_PELOGUE_t type)
 static void dropMsgAndCancel(DDTypedBufferMsg_t *msg)
 {
     size_t used = 0;
-    uint8_t fType;
-    PSP_getTypedMsgBuf(msg, &used, __func__, "fragType", &fType, sizeof(fType));
-    uint16_t fNum;
-    PSP_getTypedMsgBuf(msg, &used, __func__, "fragNum", &fNum, sizeof(fNum));
+    uint16_t fragNum;
+    fetchFragHeader(msg, &used, NULL, &fragNum, NULL, NULL);
 
     /* ignore follow up messages */
-    if (fNum) return;
+    if (fragNum) return;
 
-    /* skip fragmented message header */
-    uint8_t eS = 0;
-    if (PSIDnodes_getProtoV(PSC_getID(msg->header.sender)) > 343) {
-	/* ignore extra data */
-	PSP_getTypedMsgBuf(msg, &used, __func__, "extraSize", &eS, sizeof(eS));
-    }
-    char *ptr = msg->buf + used + eS;
+    char *ptr = msg->buf + used;
 
     char *plugin = getStringM(&ptr);
     char *jobid = getStringM(&ptr);
@@ -717,15 +709,13 @@ static void dropMsgAndCancel(DDTypedBufferMsg_t *msg)
 static void dropPElogueMsg(DDTypedBufferMsg_t *msg)
 {
     size_t used = 0;
-    uint8_t fType;
-    PSP_getTypedMsgBuf(msg, &used, __func__, "fragType", &fType, sizeof(fType));
-    uint16_t fNum;
-    PSP_getTypedMsgBuf(msg, &used, __func__, "fragNum", &fNum, sizeof(fNum));
+    uint16_t fragNum;
+    fetchFragHeader(msg, &used, NULL, &fragNum, NULL, NULL);
 
     PSnodes_ID_t node = PSC_getID(msg->header.dest);
     const char *hname = getHostnameByNodeId(node);
     mlog("%s: drop msg type %s(%i) fragment %hu to host %s(%i)\n", __func__,
-	 msg2Str(msg->type), msg->type, fNum, hname, node);
+	 msg2Str(msg->type), msg->type, fragNum, hname, node);
 
     switch (msg->type) {
     case PSP_PROLOGUE_START:

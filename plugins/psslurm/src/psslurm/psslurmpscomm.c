@@ -1835,21 +1835,13 @@ static int handleNodeDown(void *nodeID)
 static void saveForwardError(DDTypedBufferMsg_t *msg)
 {
     size_t used = 0;
-    uint8_t fType;
-    PSP_getTypedMsgBuf(msg, &used, __func__, "fragType", &fType, sizeof(fType));
-    uint16_t fNum;
-    PSP_getTypedMsgBuf(msg, &used, __func__, "fragNum", &fNum, sizeof(fNum));
+    uint16_t fragNum;
+    fetchFragHeader(msg, &used, NULL, &fragNum, NULL, NULL);
 
     /* ignore follow up messages */
-    if (fNum) return;
+    if (fragNum) return;
 
-    /* skip fragmented message header */
-    uint8_t eS = 0;
-    if (PSIDnodes_getProtoV(PSC_getID(msg->header.sender)) > 343) {
-	/* ignore extra data */
-	PSP_getTypedMsgBuf(msg, &used, __func__, "extraSize", &eS, sizeof(eS));
-    }
-    char *ptr = msg->buf + used + eS;
+    char *ptr = msg->buf + used;
 
     Slurm_Msg_t sMsg;
     initSlurmMsg(&sMsg);

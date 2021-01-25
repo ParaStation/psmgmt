@@ -227,6 +227,42 @@ static inline int32_t getNumFragDest(PS_SendDB_t *buffer)
 }
 
 /**
+ * @brief Fetch header information from fragment
+ *
+ * Fetch header information from the fragment contained in the message
+ * @a msg. The header data is fetched with an offset given by @a used
+ * according to the functionality in @ref PSP_getMsgBuf() et al. Thus,
+ * @a *used shall be set to 0 before calling this function. This
+ * function updates @a used such that it will point to the start of
+ * the fragment's payload.
+ *
+ * Upon return @a fragType, @a fragNum, @a extra and @a extraSize are
+ * updated accordingly in order to represent the fragment's type,
+ * serial number, extra header or the size of the extra header,
+ * respectively. If any of @a fragType, @a fragNum, @a extra or @a
+ * extraSize is NULL, the corresponding information will not be
+ * provided.
+ *
+ * @param msg Message to fetch information from
+ *
+ * @param used Counter used to track the data offset as in @ref
+ * PSP_getMsgBuf() et al.
+ *
+ * @param fragType Fragment's type (FRAGMENT_PART or FRAGMENT_END)
+ *
+ * @param fragNum Fragment's serial number
+ *
+ * @param extra Fragment's extra header (if any)
+ *
+ * @param extraSize Size of fragment's extra header (if any)
+ *
+ * @return If information was fetched, return true; or false in case
+ * of an error
+ */
+bool fetchFragHeader(DDTypedBufferMsg_t *msg, size_t *used, uint8_t *fragType,
+		     uint16_t *fragNum, void **extra, size_t *extraSize);
+
+/**
  * @brief Receive fragmented message
  *
  * Add the fragment contained in the message @a msg to the overall
