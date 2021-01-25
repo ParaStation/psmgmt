@@ -20,6 +20,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 
+#include "list.h"
 #include "pstask.h"
 #include "psidhook.h"
 #include "pscommon.h"
