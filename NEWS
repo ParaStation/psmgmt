@@ -10,11 +10,30 @@ Please send bug reports, questions and suggestions to <support@par-tec.com>
 **                                                                     **
 **  From psmgmt 5.1.36 on the nodeinfo plugins has to be configured    **
 **  via psconfig. Use 'source psconfig/nodeinfo.dump' to update the    **
-**  psconfig database or refer to README.nodeinfo for details.         **
+**  psconfig database and refer to README.nodeinfo for details.        **
 **                                                                     **
 *************************************************************************
 *************************************************************************
 
+Version 5.1.36:
+===============
+Bugfixes:
+ - Ensure fwdata is available to forward PMIx msg (jwt:#7750)
+ - Ensure 'all' nodes are accepted in psiadmin
+ - Lots of minor bugfixes in psid's psconfig parsing
+Enhancements:
+ - Display nodelist hash in psiadmin's "list version" and "list summary" (#2870)
+ - Use POLL_INTERVAL to steers psaccount's polling (#2513)
+ - Warn about a slow name resolver (#2872)
+ - Make PCIe IDs and sort order configurable via nodeinfo plugin
+ - Add NVIDIA V100-SXM2 (JUWELS GPU nodes) to nodeinfo's default
+ - Make mixed protocol usage visible in psiadmin
+Additional changes:
+ - Move pspelogue into main RPM (no direct relation to psslurm plugin)
+ - Get rid of psh (more recent version in pscluster RPM)
+ - Enable psserial to send extra data with each fragment
+ - Implement fully cached PSI_protocolVersion()
+ - Cleanup lots of obsolete code and protocol
 
 
 Version 5.1.35-1:

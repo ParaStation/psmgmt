@@ -1,3 +1,363 @@
+Version psmgmt-5.1.36:
+======================
+------------------------------------------------------------------------
+090a8c26 | Norbert Eicker | Fri, 22 Jan 2021 12:32:23 +0100
+
+Consider fragment's extra header everywhere
+------------------------------------------------------------------------
+778c1954 | Norbert Eicker | Wed, 20 Jan 2021 21:59:34 +0100
+
+Move protocol version info into DAEMON[CONNECT|ESTABLISHED]
+
+ - This is required to ensure compatibility in PSIDHOOK_NODE_UP
+ - Also check if the cluster became homogeneous when node leaves
+------------------------------------------------------------------------
+f1c40641 | Norbert Eicker | Wed, 20 Jan 2021 21:17:38 +0100
+
+Fix typos
+------------------------------------------------------------------------
+3e6f8109 | Norbert Eicker | Wed, 20 Jan 2021 21:16:20 +0100
+
+Bugfix: Ensure 'all' nodes are accepted
+------------------------------------------------------------------------
+c2a9afcb | Norbert Eicker | Wed, 20 Jan 2021 19:39:39 +0100
+
+Pre-preparation for the next release
+------------------------------------------------------------------------
+0e368a4b | Norbert Eicker | Wed, 20 Jan 2021 19:26:02 +0100
+
+Make mixed protocol usage visible in psiadmin
+------------------------------------------------------------------------
+64f387c2 | Norbert Eicker | Tue, 19 Jan 2021 23:32:59 +0100
+
+Minor bugfixes and improvements
+------------------------------------------------------------------------
+08b471b1 | Norbert Eicker | Tue, 19 Jan 2021 00:44:19 +0100
+
+Enable psserial to send extra data with each fragment
+------------------------------------------------------------------------
+2c6d6d7a | Norbert Eicker | Mon, 18 Jan 2021 23:22:25 +0100
+
+Make use of PSI_protocolVersion() during spawn
+------------------------------------------------------------------------
+ca3b1d46 | Norbert Eicker | Mon, 18 Jan 2021 23:18:31 +0100
+
+Implement fully cached PSI_protocolVersion()
+------------------------------------------------------------------------
+f09ae27e | Norbert Eicker | Mon, 18 Jan 2021 20:12:44 +0100
+
+Push info on mixed protocol use to clients
+------------------------------------------------------------------------
+d48477ee | Norbert Eicker | Mon, 18 Jan 2021 19:09:55 +0100
+
+Remove obsolete PSI_getPsidVersion() and PSP_INFO_DAEMONVER
+------------------------------------------------------------------------
+03f7fc9c | Norbert Eicker | Mon, 18 Jan 2021 18:53:12 +0100
+
+Track mixed protocol setup in the cluster
+------------------------------------------------------------------------
+26f6e704 | Norbert Eicker | Tue, 19 Jan 2021 23:38:50 +0100
+
+Fix typo and optimized documentation comment
+------------------------------------------------------------------------
+efec164f | Norbert Eicker | Tue, 19 Jan 2021 23:37:00 +0100
+
+Fix copyright in autoconf generated Makefile.in
+------------------------------------------------------------------------
+0419142d | Norbert Eicker | Wed, 13 Jan 2021 02:30:59 +0100
+
+Drop unused PSIDnodes_[setA|a]cctPollI()
+------------------------------------------------------------------------
+16808859 | Norbert Eicker | Wed, 13 Jan 2021 02:29:45 +0100
+
+Drop support for accountPoll in parastation.conf (#2513)
+------------------------------------------------------------------------
+6c97b8ce | Norbert Eicker | Wed, 13 Jan 2021 02:19:50 +0100
+
+Drop support for AccountPollInterval in psconfig (#2513)
+------------------------------------------------------------------------
+4f073e85 | Norbert Eicker | Wed, 13 Jan 2021 02:38:36 +0100
+
+Drop PSP_OP_ACCTPOLL from protocol. Push version to 343
+------------------------------------------------------------------------
+fc49c100 | Norbert Eicker | Wed, 13 Jan 2021 02:09:27 +0100
+
+Drop support for accountpoll from psiadmin (#2513)
+------------------------------------------------------------------------
+23036d96 | Norbert Eicker | Wed, 13 Jan 2021 02:07:34 +0100
+
+Utilize psaccount's new API for poll from psslurm and psmom
+------------------------------------------------------------------------
+18b65b9e | Norbert Eicker | Wed, 13 Jan 2021 02:04:55 +0100
+
+Provide API to steer psaccount's poll interval from plugins
+
+ - push psaccount's version to 29
+------------------------------------------------------------------------
+e184c197 | Norbert Eicker | Wed, 13 Jan 2021 01:42:21 +0100
+
+Use POLL_INTERVAL to steers psaccount's polling (#2513)
+------------------------------------------------------------------------
+eaacf24a | Norbert Eicker | Wed, 13 Jan 2021 01:14:03 +0100
+
+Add config parameter POLL_INTERVAL to psaccount
+------------------------------------------------------------------------
+21dea359 | Norbert Eicker | Tue, 12 Jan 2021 12:55:39 +0100
+
+Remove obsolete parameter TIME_JOBSTART_POLL from definition
+------------------------------------------------------------------------
+e64b16b2 | Norbert Eicker | Tue, 19 Jan 2021 18:04:57 +0100
+
+Get rid of psh (more recent version in pscluster RPM)
+------------------------------------------------------------------------
+f114ff78 | Norbert Eicker | Tue, 19 Jan 2021 17:12:58 +0100
+
+Add NVIDIA V100-SXM2 (JUWELS GPU nodes) to nodeinfo's default
+------------------------------------------------------------------------
+755dd63c | Stephan Krempel | Tue, 19 Jan 2021 12:04:18 +0100
+
+List new hwloc xml file in ReadMe
+------------------------------------------------------------------------
+b1fb1e1f | Stephan Krempel | Tue, 19 Jan 2021 12:02:27 +0100
+
+Add Juwels Cluster GPU node hardware description (hwloc xml file)
+------------------------------------------------------------------------
+cb2003a8 | Norbert Eicker | Wed, 13 Jan 2021 19:39:39 +0100
+
+Apply improvements suggested by S. Krempel in (#2863 comment:8)
+------------------------------------------------------------------------
+86e24b7a | Norbert Eicker | Mon, 11 Jan 2021 02:06:46 +0100
+
+Improve description of nodeinfo plugin
+------------------------------------------------------------------------
+b4c1dd09 | Norbert Eicker | Fri, 8 Jan 2021 17:52:04 +0100
+
+Add README.nodeinfo to describe nodeinfo plugin's functionality
+------------------------------------------------------------------------
+146a2ab6 | Norbert Eicker | Fri, 8 Jan 2021 03:23:21 +0100
+
+Push automake to 1.16.3
+------------------------------------------------------------------------
+844907f1 | Norbert Eicker | Fri, 8 Jan 2021 02:55:22 +0100
+
+Add psconfig stubs for nodeinfo plugin's configuration
+------------------------------------------------------------------------
+7b88d92c | Norbert Eicker | Fri, 8 Jan 2021 01:49:31 +0100
+
+Ensure PCIe IDs are fully initialized plus minor changes
+------------------------------------------------------------------------
+c6b27633 | Norbert Eicker | Fri, 8 Jan 2021 01:09:49 +0100
+
+Add hint to HWLOC_XMLFILE environment
+------------------------------------------------------------------------
+26cb376e | Norbert Eicker | Fri, 8 Jan 2021 00:11:51 +0100
+
+Make PCIe IDs and sort order configurable via nodeinfo plugin
+------------------------------------------------------------------------
+24cefead | Norbert Eicker | Thu, 7 Jan 2021 21:41:26 +0100
+
+Make PSID_getNumPCIDevs() and PSID_getPCISets() public
+
+ - bump pluginAPIVersion to 130
+------------------------------------------------------------------------
+bc96ae48 | Norbert Eicker | Thu, 7 Jan 2021 20:00:16 +0100
+
+Adapt nodeinfo plugin to pluginpsconfig
+------------------------------------------------------------------------
+9e5e5f0a | Norbert Eicker | Thu, 7 Jan 2021 19:53:36 +0100
+
+Utilize pluginConfig_helpDesc()
+------------------------------------------------------------------------
+0867e892 | Norbert Eicker | Thu, 7 Jan 2021 19:33:04 +0100
+
+Introduce finalizeNodeInfoLogger() and reflect the pluginlogger
+------------------------------------------------------------------------
+34d6c39b | Norbert Eicker | Thu, 7 Jan 2021 19:26:06 +0100
+
+Introduce pluginConfig_helpDesc()
+------------------------------------------------------------------------
+06b35c4c | Norbert Eicker | Thu, 7 Jan 2021 10:13:46 +0100
+
+pluginpsconfig.h needs pluginmalloc.h for StrBuffer_t
+------------------------------------------------------------------------
+24611fea | Norbert Eicker | Wed, 6 Jan 2021 02:30:34 +0100
+
+Adapt to pluginpsconfig changes and bugfixing
+------------------------------------------------------------------------
+cb1e3838 | Norbert Eicker | Wed, 6 Jan 2021 02:29:56 +0100
+
+Add pluginConfig_showKeyVal()
+------------------------------------------------------------------------
+7bb313fa | Norbert Eicker | Wed, 6 Jan 2021 01:57:52 +0100
+
+Lots of bugfixes and extensions
+------------------------------------------------------------------------
+3168946f | Norbert Eicker | Wed, 6 Jan 2021 01:42:41 +0100
+
+Relax demand of addStrBuf() et al. on parameters
+------------------------------------------------------------------------
+48102248 | Norbert Eicker | Tue, 5 Jan 2021 21:01:14 +0100
+
+Fix test-plugins build dependencies
+------------------------------------------------------------------------
+e35dfa86 | Norbert Eicker | Tue, 5 Jan 2021 14:13:39 +0100
+
+Fix typo
+------------------------------------------------------------------------
+649afb68 | Norbert Eicker | Mon, 4 Jan 2021 19:19:10 +0100
+
+Update documentation
+------------------------------------------------------------------------
+8ac103f7 | Norbert Eicker | Fri, 18 Dec 2020 14:16:46 +0100
+
+Further improvments
+
+ - Add pluginConfig_addStr() and pluginConfig_addToLst()
+------------------------------------------------------------------------
+8967b3c1 | Norbert Eicker | Fri, 18 Dec 2020 00:31:12 +0100
+
+Actually implement pluginConfig_load()
+------------------------------------------------------------------------
+138e47b7 | Norbert Eicker | Thu, 17 Dec 2020 16:35:53 +0100
+
+Adapt test-plugin to API changes
+------------------------------------------------------------------------
+3f62d506 | Norbert Eicker | Thu, 17 Dec 2020 16:34:43 +0100
+
+Refine pluginpsconfig's API
+
+ - Get rid of default values since these are handle in psconfig
+ - More refines
+ - Update documentation
+------------------------------------------------------------------------
+7d400ba6 | Norbert Eicker | Tue, 8 Dec 2020 22:25:50 +0100
+
+Start actual integration with psconfig
+------------------------------------------------------------------------
+76f6c675 | Norbert Eicker | Tue, 8 Dec 2020 01:11:19 +0100
+
+Add sketchy test plugin for pluginpsconfig
+------------------------------------------------------------------------
+932ac222 | Norbert Eicker | Tue, 8 Dec 2020 01:10:26 +0100
+
+First sketch of pluginpsconfig -- at least it compiles
+------------------------------------------------------------------------
+4c333c78 | Norbert Eicker | Tue, 8 Dec 2020 00:58:01 +0100
+
+Fix typos in docu comments
+------------------------------------------------------------------------
+e7d3ebef | Norbert Eicker | Wed, 13 Jan 2021 21:06:31 +0100
+
+Bugfix: Ensure fwdata is available to forward PMIx msg (jwt:#7750)
+------------------------------------------------------------------------
+e832f8c6 | Norbert Eicker | Mon, 11 Jan 2021 20:57:43 +0100
+
+Minor improvements
+------------------------------------------------------------------------
+3590bdbb | Michael Rauh | Mon, 11 Jan 2021 12:03:02 +0100
+
+Enhancement: warn about a slow name resolver (#2872)
+
+ - a warning is issued for ever host which takes 1 second or
+   longer to resolve
+ - implemented in getNodeIDbyName() so every plugin using the
+   pluginhelper function will benefit
+------------------------------------------------------------------------
+b46d036d | Norbert Eicker | Fri, 8 Jan 2021 23:30:38 +0100
+
+Move pspelogue into main RPM (no direct relation to psslurm plugin)
+------------------------------------------------------------------------
+94f48565 | Norbert Eicker | Thu, 7 Jan 2021 00:59:20 +0100
+
+Ensure GError *err is reset when calling psconfig
+------------------------------------------------------------------------
+7f278c64 | Norbert Eicker | Wed, 6 Jan 2021 23:29:41 +0100
+
+Minor changes
+------------------------------------------------------------------------
+3224014a | Norbert Eicker | Wed, 6 Jan 2021 22:50:15 +0100
+
+Booleanize PSIDnodes_register()
+------------------------------------------------------------------------
+4909ef96 | Norbert Eicker | Thu, 3 Dec 2020 22:33:28 +0100
+
+Booleanize and streamline RDP
+------------------------------------------------------------------------
+179bb9bc | Norbert Eicker | Thu, 3 Dec 2020 22:23:36 +0100
+
+Remove obsolete test since nodes grow dynamically
+------------------------------------------------------------------------
+d6c77ee1 | Norbert Eicker | Thu, 3 Dec 2020 22:20:27 +0100
+
+clearEnv() not needed since never filled here
+------------------------------------------------------------------------
+064b8208 | Norbert Eicker | Thu, 3 Dec 2020 22:15:03 +0100
+
+Major booleanization of psconfig_parsing
+------------------------------------------------------------------------
+94a9cdfa | Norbert Eicker | Thu, 3 Dec 2020 21:42:18 +0100
+
+Bugfix: fix error handling in psconfig parsing
+------------------------------------------------------------------------
+59afdfbf | Norbert Eicker | Thu, 3 Dec 2020 18:53:14 +0100
+
+Bugfix: Take all HW environment into account
+------------------------------------------------------------------------
+9730e725 | Norbert Eicker | Thu, 3 Dec 2020 17:39:36 +0100
+
+Booleanize getBool()
+------------------------------------------------------------------------
+e1f2cd10 | Norbert Eicker | Thu, 3 Dec 2020 16:38:15 +0100
+
+Fix yet another memory leak and use more stack variables
+------------------------------------------------------------------------
+c0ae68c5 | Norbert Eicker | Thu, 3 Dec 2020 16:29:11 +0100
+
+Switch logic of getString()'s return value and fix more memory leaks
+------------------------------------------------------------------------
+ff3fd88a | Norbert Eicker | Thu, 3 Dec 2020 16:15:17 +0100
+
+Fix memory leak
+------------------------------------------------------------------------
+fe3a5a9d | Norbert Eicker | Wed, 6 Jan 2021 21:41:13 +0100
+
+Make nodelist hash independent of order
+------------------------------------------------------------------------
+d18b0aa0 | Norbert Eicker | Wed, 6 Jan 2021 18:40:54 +0100
+
+Fix summary calculation rework
+------------------------------------------------------------------------
+ad6b6a03 | Norbert Eicker | Wed, 6 Jan 2021 18:40:14 +0100
+
+Add documentation
+------------------------------------------------------------------------
+159738ec | Norbert Eicker | Tue, 29 Dec 2020 00:38:35 +0100
+
+Rework calculation of summary
+------------------------------------------------------------------------
+98799a4e | Norbert Eicker | Tue, 29 Dec 2020 00:11:45 +0100
+
+More rigorous renaming towards nodelist hash
+------------------------------------------------------------------------
+d60d4255 | Michael Rauh | Tue, 22 Dec 2020 15:35:23 +0100
+
+Rename config hash to node hash
+------------------------------------------------------------------------
+628a14fb | Michael Rauh | Tue, 22 Dec 2020 15:33:05 +0100
+
+Display configuration hash in psiadmin "list summary" command
+------------------------------------------------------------------------
+76101900 | Norbert Eicker | Mon, 21 Dec 2020 14:41:47 +0100
+
+Minor improvements
+------------------------------------------------------------------------
+d2d47aee | Michael Rauh | Fri, 18 Dec 2020 17:24:28 +0100
+
+Add PSP_OP_CONFIG_HASH to display configuration hash in
+psiadmin command "list version" (#2870)
+------------------------------------------------------------------------
+
+
 Version psmgmt-5.1.35-1:
 ========================
 ------------------------------------------------------------------------
