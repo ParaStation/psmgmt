@@ -694,7 +694,7 @@ bool PSP_tryPutTypedMsgBuf(DDTypedBufferMsg_t *msg, const char *funcName,
  * Fetch data from the payload-buffer @ref buf of the message @a msg
  * of type @ref DDTypedBufferMsg_t. An amount of data as given by @a size
  * will be stored to @a data. The data is fetched with an offset given
- * by @a used . At the same time @a used is updated to point right
+ * by @a used. At the same time @a used is updated to point right
  * after the fetched data. Thus, subsequent calls will fetch
  * successive data from the payload buffer.
  *
