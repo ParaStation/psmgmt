@@ -89,6 +89,32 @@ PSitems_t PSitems_new(size_t itemSize, char *name);
 bool PSitems_isInitialized(PSitems_t items);
 
 /**
+ * @brief Set chunk size
+ *
+ * Set the chunk size of the pool of items represented by @a items to
+ * @a chunkSize.
+ *
+ * The default chunk size for pools is 128 kB utilizing the mmap()
+ * path of glibc's malloc() implementation. To set a smaller chunk
+ * size might still make sense if the pool usage is less dynamic and a
+ * hard upper bund of the number of items can be established, thus,
+ * reducing the overhead of unused items.
+ *
+ * The chunk size must be set before any chunk is allocated for the
+ * pool of items and must not be changed once a chunk was
+ * allocated. If either of these rules is violated setting the chunk
+ * size for the pool of items will fail.
+ *
+ * @param items Structure holding all information on the pool of items
+ *
+ * @param chunkSize Chunk size to be established
+ *
+ * #return If the chunk size was changed, true is returned; or false
+ * in case of failure
+ */
+bool PSitems_setChunkSize(PSitems_t items, size_t chunkSize);
+
+/**
  * @brief Get number of available items
  *
  * Get the total number of available items within the pool of items

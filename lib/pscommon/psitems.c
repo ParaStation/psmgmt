@@ -16,6 +16,7 @@
 
 #include "psitems.h"
 
+/** Defaul chunk size utilizing the mmap() path of glibc's malloc() */
 #define CHUNK_SIZE (128*1024)
 
 #define PSITEMS_MAGIC 0x3141592653589793
@@ -68,6 +69,14 @@ uint32_t PSitems_getAvail(PSitems_t items)
 uint32_t PSitems_getUsed(PSitems_t items)
 {
     return PSitems_isInitialized(items) ? items->used : 0;
+}
+
+bool PSitems_setChunkSize(PSitems_t items, size_t chunkSize)
+{
+    if (!PSitems_isInitialized(items) || items->avail) return false;
+
+    items->iPC = (chunkSize - sizeof(list_t)) / items->itemSize + 1;
+    return true;
 }
 
 /** Stub of the actual item type */
