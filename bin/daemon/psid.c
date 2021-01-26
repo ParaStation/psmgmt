@@ -39,28 +39,28 @@
 #include "psprotocol.h"
 #include "psdaemonprotocol.h"
 
-#include "psidutil.h"
-#include "psidnodes.h"
-#include "psidtask.h"
-#include "psidtimer.h"
-#include "psidspawn.h"
-#include "psidsignal.h"
+#include "psidaccount.h"
 #include "psidclient.h"
-#include "psidrdp.h"
 #include "psidcomm.h"
+#include "psidenv.h"
+#include "psidflowcontrol.h"
+#include "psidhook.h"
+#include "psidhw.h"
 #include "psidinfo.h"
+#include "psidmsgbuf.h"
+#include "psidnodes.h"
 #include "psidoption.h"
 #include "psidpartition.h"
-#include "psidstatus.h"
-#include "psidhw.h"
-#include "psidaccount.h"
-#include "psidstate.h"
 #include "psidplugin.h"
+#include "psidrdp.h"
 #include "psidscripts.h"
-#include "psidmsgbuf.h"
-#include "psidenv.h"
-#include "psidhook.h"
-#include "psidflowcontrol.h"
+#include "psidsignal.h"
+#include "psidspawn.h"
+#include "psidstate.h"
+#include "psidstatus.h"
+#include "psidtask.h"
+#include "psidtimer.h"
+#include "psidutil.h"
 
 /**
  * @brief MCast callback handler
@@ -459,6 +459,7 @@ void PSID_clearMem(bool aggressive)
 
     /* This one has to wait until PSIDclient is cleaned up */
     PSIDFlwCntrl_clearMem();
+    PSIDcomm_clearMem();
 
     if (aggressive) PSIDnodes_clearMem();
     RDP_clearMem();
@@ -762,7 +763,7 @@ int main(int argc, const char *argv[])
 			     PSID_config->RDPPort, logfile, hostlist,
 			     PSIDRDP_handleMsg, RDPCallBack);
 	if (RDPSocket<0) {
-	    PSID_exit(errno, "Error while trying initRDP");
+	    PSID_exit(errno, "Error while trying to initialize RDP");
 	}
 
 	PSID_log(-1, "RDP (%d) initialized.\n", RDPSocket);
