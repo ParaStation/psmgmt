@@ -2,22 +2,21 @@
  * ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2020 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2021 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-#include <stdbool.h>
-#include <stdio.h>
-#include <stdlib.h>
 #include <errno.h>
+#include <stdio.h>
 #include <string.h>
 
 #include "list.h"
 #include "selector.h"
 
 #include "pscommon.h"
+#include "psitems.h"
 #include "psprotocol.h"
 #include "psdaemonprotocol.h"
 
@@ -36,9 +35,12 @@
 
 typedef struct {
     list_t next;
-    int msgType;
+    int32_t msgType;
     handlerFunc_t handler;
 } msgHandler_t;
+
+/** Pool of handler items */
+static PSitems_t handlerPool = NULL;
 
 /** The actual size of the @ref msgHash */
 #define HASH_SIZE 32
@@ -67,23 +69,19 @@ static bool randomDrop = false;
  */
 static void initMsgHash(void)
 {
-    int h;
-    for (h=0; h<HASH_SIZE; h++) INIT_LIST_HEAD(&msgHash[h]);
-    for (h=0; h<HASH_SIZE; h++) INIT_LIST_HEAD(&dropHash[h]);
+    for (int h = 0; h < HASH_SIZE; h++) INIT_LIST_HEAD(&msgHash[h]);
+    for (int h = 0; h < HASH_SIZE; h++) INIT_LIST_HEAD(&dropHash[h]);
 
     hashesInitialized = true;
 }
 
-handlerFunc_t PSID_registerMsg(int msgType, handlerFunc_t handler)
+handlerFunc_t PSID_registerMsg(int32_t msgType, handlerFunc_t handler)
 {
-    list_t *h;
-    msgHandler_t *newHandler;
-
     if (!hashesInitialized) PSID_exit(EPERM, "%s: not initialized", __func__);
 
+    list_t *h;
     list_for_each (h, &msgHash[msgType%HASH_SIZE]) {
 	msgHandler_t *msgHandler = list_entry(h, msgHandler_t, next);
-
 	if (msgHandler->msgType == msgType) {
 	    /* found old handler */
 	    handlerFunc_t oldHandler = msgHandler->handler;
@@ -92,9 +90,8 @@ handlerFunc_t PSID_registerMsg(int msgType, handlerFunc_t handler)
 	}
     }
 
-    newHandler = malloc(sizeof(*newHandler));
-    if (!newHandler) PSID_exit(ENOMEM, "%s: malloc()", __func__);
-
+    msgHandler_t *newHandler = PSitems_getItem(handlerPool);
+    if (!newHandler) PSID_exit(ENOMEM, "%s: PSitems_getItem()", __func__);
     newHandler->msgType = msgType;
     newHandler->handler = handler;
 
@@ -103,17 +100,14 @@ handlerFunc_t PSID_registerMsg(int msgType, handlerFunc_t handler)
     return NULL;
 }
 
-handlerFunc_t PSID_registerDropper(int msgType, handlerFunc_t dropper)
+handlerFunc_t PSID_registerDropper(int32_t msgType, handlerFunc_t dropper)
 {
-    msgHandler_t *newDropper;
-    handlerFunc_t oldDropper;
-
     if (!hashesInitialized) PSID_exit(EPERM, "%s: not initialized", __func__);
 
-    oldDropper = PSID_clearDropper(msgType);
+    handlerFunc_t oldDropper = PSID_clearDropper(msgType);
 
-    newDropper = malloc(sizeof(*newDropper));
-    if (!newDropper) PSID_exit(ENOMEM, "%s: malloc()", __func__);
+    msgHandler_t *newDropper = PSitems_getItem(handlerPool);
+    if (!newDropper) PSID_exit(ENOMEM, "%s: PSitems_getItem()", __func__);
 
     newDropper->msgType = msgType;
     newDropper->handler = dropper;
@@ -123,12 +117,11 @@ handlerFunc_t PSID_registerDropper(int msgType, handlerFunc_t dropper)
     return oldDropper;
 }
 
-static handlerFunc_t clearHandler(int msgType, msgHandlerHash_t hash)
+static handlerFunc_t clearHandler(int32_t msgType, msgHandlerHash_t hash)
 {
-    list_t *h;
-
     if (!hash) return NULL;
 
+    list_t *h;
     list_for_each (h, &hash[msgType%HASH_SIZE]) {
 	msgHandler_t *msgHandler = list_entry(h, msgHandler_t, next);
 
@@ -136,7 +129,7 @@ static handlerFunc_t clearHandler(int msgType, msgHandlerHash_t hash)
 	    /* found handler */
 	    handlerFunc_t handler = msgHandler->handler;
 	    list_del(&msgHandler->next);
-	    free(msgHandler);
+	    PSitems_putItem(handlerPool, msgHandler);
 	    return handler;
 	}
     }
@@ -144,14 +137,14 @@ static handlerFunc_t clearHandler(int msgType, msgHandlerHash_t hash)
     return NULL;
 }
 
-handlerFunc_t PSID_clearMsg(int msgType)
+handlerFunc_t PSID_clearMsg(int32_t msgType)
 {
     if (!hashesInitialized) PSID_exit(EPERM, "%s: not initialized", __func__);
 
     return clearHandler(msgType, msgHash);
 }
 
-handlerFunc_t PSID_clearDropper(int msgType)
+handlerFunc_t PSID_clearDropper(int32_t msgType)
 {
     if (!hashesInitialized) PSID_exit(EPERM, "%s: not initialized", __func__);
 
@@ -161,7 +154,8 @@ handlerFunc_t PSID_clearDropper(int msgType)
 int sendMsg(void *amsg)
 {
     DDMsg_t *msg = (DDMsg_t *)amsg;
-    int ret, isRDP = 0;
+    int ret;
+    bool isRDP = false;
     char *sender;
 
     if (PSID_getDebugMask() & PSID_LOG_COMM) {
@@ -179,23 +173,23 @@ int sendMsg(void *amsg)
 	return -1;
     }
 
-    if (msg->dest==PSC_getMyTID()) { /* myself */
-	sender="handleMsg";
+    if (msg->dest == PSC_getMyTID()) { /* myself */
+	sender = "handleMsg";
 	ret = PSID_handleMsg((DDBufferMsg_t *) msg) - 1;
 	if (ret) errno = EINVAL;
-    } else if (PSC_getID(msg->dest)==PSC_getMyID()) { /* my own node */
+    } else if (PSC_getID(msg->dest) == PSC_getMyID()) { /* my own node */
 	if (msg->type < 0x0100) {          /* PSP_CD_* message */
-	    sender="PSIDclient_send";
+	    sender = "PSIDclient_send";
 	    ret = PSIDclient_send(amsg);
 	} else {                           /* PSP_DD_* message */
 	    /* Daemon message */
-	    sender="handleMsg";
+	    sender = "handleMsg";
 	    ret = PSID_handleMsg((DDBufferMsg_t *) msg) - 1;
 	    if (ret) errno = EINVAL;
 	}
     } else if (PSC_validNode(PSC_getID(msg->dest))) {
-	sender="sendRDP";
-	isRDP = 1;
+	sender = "sendRDP";
+	isRDP = true;
 	ret = sendRDP(msg);
     } else {
 	sender="undetermined sender";
@@ -203,7 +197,7 @@ int sendMsg(void *amsg)
 	ret = -1;
     }
 
-    if (ret==-1) {
+    if (ret == -1) {
 	int32_t key = -1;
 	int eno = errno;
 
@@ -328,8 +322,6 @@ int broadcastMsg(void *amsg)
 
 int PSID_dropMsg(DDBufferMsg_t *msg)
 {
-    list_t *d;
-
     if (!hashesInitialized) PSID_exit(EPERM, "%s: not initialized", __func__);
 
     if (!msg) {
@@ -351,6 +343,7 @@ int PSID_dropMsg(DDBufferMsg_t *msg)
 	     PSDaemonP_printMsg(msg->header.type));
     if (PSID_getDebugMask() & PSID_LOG_MSGDUMP) PSID_dumpMsg((DDMsg_t *)msg);
 
+    list_t *d;
     list_for_each (d, &dropHash[msg->header.type%HASH_SIZE]) {
 	msgHandler_t *dropHandler = list_entry(d, msgHandler_t, next);
 
@@ -413,6 +406,10 @@ int PSID_handleMsg(DDBufferMsg_t *msg)
 
 void PSIDcomm_init(void)
 {
+    if (!PSitems_isInitialized(handlerPool)) {
+	handlerPool = PSitems_new(sizeof(msgHandler_t), "msgHandlers");
+	PSitems_setChunkSize(handlerPool, 256 * sizeof(msgHandler_t));
+    }
     initMsgHash();
 
     PSIDMsgbuf_init();
@@ -423,6 +420,13 @@ void PSIDcomm_init(void)
     PSID_registerMsg(PSP_CD_SIGRES, condSendMsg);
     PSID_registerMsg(PSP_CC_ERROR, condSendMsg);
     PSID_registerMsg(PSP_CD_UNKNOWN, condSendMsg);
+}
+
+void PSIDcomm_clearMem(void)
+{
+    PSitems_clearMem(handlerPool);
+    handlerPool = NULL;
+    initMsgHash();
 }
 
 bool PSIDcomm_enableDropHook(bool enable)

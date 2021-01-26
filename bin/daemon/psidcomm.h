@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2018 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2021 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -15,20 +15,36 @@
 #define __PSIDCOMM_H
 
 #include <stdbool.h>
-#include <sys/types.h>
+#include <stddef.h>
+#include <stdint.h>
 
 #include "psprotocol.h"
 
 /**
  * @brief Initialize communication stuff
  *
- * Initialize the flow control helper framework. This includes
- * creating an initial message buffer pool and setting up some RDP
- * environment.
+ * Initialize the communication handling framework. This includes
+ * setting hashes for message handling and message dropping, and
+ * initialization of message buffer handling and RDP message
+ * handling. Furthermore, first message handling rules are set up.
  *
  * @return No return value.
  */
 void PSIDcomm_init(void);
+
+/**
+ * @brief Memory cleanup
+ *
+ * Cleanup all memory currently used by the module. It will very
+ * aggressively free all allocated memory and therefore destroy all
+ * rules for message handling and message dropping.
+ *
+ * The purpose of this function is to cleanup before a fork()ed
+ * process is handling other tasks, e.g. becoming a forwarder.
+ *
+ * @return No return value.
+ */
+void PSIDcomm_clearMem(void);
 
 /**
  * @brief Send a message
@@ -145,7 +161,7 @@ typedef void(*handlerFunc_t)(DDBufferMsg_t *);
  *
  * @see PSID_clearMsg(), PSID_handleMsg()
  */
-handlerFunc_t PSID_registerMsg(int msgType, handlerFunc_t handler);
+handlerFunc_t PSID_registerMsg(int32_t msgType, handlerFunc_t handler);
 
 /**
  * @brief Unregister message handler function
@@ -164,7 +180,7 @@ handlerFunc_t PSID_registerMsg(int msgType, handlerFunc_t handler);
  *
  * @see PSID_registerMsg(), PSID_handleMsg()
  */
-handlerFunc_t PSID_clearMsg(int msgType);
+handlerFunc_t PSID_clearMsg(int32_t msgType);
 
 /**
  * @brief Central protocol switch
@@ -205,7 +221,7 @@ int PSID_handleMsg(DDBufferMsg_t *msg);
  *
  * @see PSID_clearDropper(), PSID_dropMsg()
  */
-handlerFunc_t PSID_registerDropper(int msgType, handlerFunc_t dropper);
+handlerFunc_t PSID_registerDropper(int32_t msgType, handlerFunc_t dropper);
 
 /**
  * @brief Unregister message dropper function
@@ -224,7 +240,7 @@ handlerFunc_t PSID_registerDropper(int msgType, handlerFunc_t dropper);
  *
  * @see PSID_registerDropper(), PSID_dropMsg()
  */
-handlerFunc_t PSID_clearDropper(int msgType);
+handlerFunc_t PSID_clearDropper(int32_t msgType);
 
 /**
  * @brief Drop a message
