@@ -876,22 +876,22 @@ int __doWriteEx(int fd, void *buffer, size_t toWrite, size_t *written,
 		const char *func, bool pedantic, bool infinite)
 {
     static time_t lastLog = 0;
-    char *ptr = buffer;
     int retries = 0;
 
     *written = 0;
 
     while ((*written < toWrite) && (infinite || retries++ <= MAX_RETRY)) {
+	char *ptr = buffer;
 	ssize_t ret = write(fd, ptr + *written, toWrite - *written);
 	if (ret == -1) {
 	    int eno = errno;
 	    if (eno == EINTR || eno == EAGAIN) continue;
 
 	    time_t now = time(NULL);
-	    if (lastLog == now) return -1;
-
-	    PSC_warn(-1, eno, "%s(%s): write(%d)", __func__, func, fd);
-	    lastLog = now;
+	    if (lastLog != now) {
+		PSC_warn(-1, eno, "%s(%s): write(%d)", __func__, func, fd);
+		lastLog = now;
+	    }
 	    errno = eno;
 	    return -1;
 	} else if (!ret) {
@@ -919,23 +919,23 @@ int __doReadExt(int fd, void *buffer, size_t toRead, size_t *numRead,
 		const char *func, bool pedantic)
 {
     static time_t lastLog = 0;
-    char *ptr = buffer;
     int retries = 0;
 
     *numRead = 0;
     setFDblock(fd, !pedantic);
 
     while ((*numRead < toRead) && (retries++ <= MAX_RETRY)) {
+	char *ptr = buffer;
 	ssize_t num = read(fd, ptr + *numRead, toRead - *numRead);
 	if (num < 0) {
 	    int eno = errno;
 	    if (eno == EINTR || eno == EAGAIN) continue;
 
 	    time_t now = time(NULL);
-	    if (lastLog == now) return -1;
-
-	    PSC_warn(-1, eno, "%s(%s): read(%d)", __func__, func, fd);
-	    lastLog = now;
+	    if (lastLog != now) {
+		PSC_warn(-1, eno, "%s(%s): read(%d)", __func__, func, fd);
+		lastLog = now;
+	    }
 	    errno = eno;
 	    return -1;
 	} else if (!num) {
