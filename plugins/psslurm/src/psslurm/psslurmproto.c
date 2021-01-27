@@ -2411,7 +2411,7 @@ void sendNodeRegStatus(bool startup)
     Resp_Node_Reg_Status_t stat;
     memset(&stat, 0, sizeof(stat));
 
-    mlog("%s: host '%s' protoVersion %u\n", __func__,
+    flog("answer ping request, host %s protoVersion %u\n",
 	 getConfValueC(&Config, "SLURM_HOSTNAME"), slurmProto);
 
     /* current time */
