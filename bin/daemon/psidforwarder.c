@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2020 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2021 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -26,15 +26,16 @@
 #include <signal.h>
 #include <sys/signalfd.h>
 
-#include "psidutil.h"
 #include "pscommon.h"
+#include "psserial.h"
 #include "pstask.h"
 #include "selector.h"
 #include "kvscommon.h"
 #include "psdaemonprotocol.h"
 #include "pslog.h"
-#include "psidmsgbuf.h"
 #include "psidhook.h"
+#include "psidmsgbuf.h"
+#include "psidutil.h"
 
 #include "psidforwarder.h"
 
@@ -346,40 +347,28 @@ again:
     return ret;
 }
 
-int sendDaemonMsg(DDMsg_t *msg)
+int sendDaemonMsg(void *amsg)
 {
-    char *buf = (void *)msg;
-    size_t c = msg->len;
-    int n;
-
     if (daemonSock < 0) {
 	errno = EBADF;
 	return -1;
     }
+    if (!amsg) {
+	errno = EFAULT;
+	return -1;
+    }
 
-    do {
-	n = send(daemonSock, buf, c, 0);
-	if (n < 0){
-	    if (errno == EAGAIN){
-		continue;
-	    } else {
-		break;             /* error, return < 0 */
-	    }
-	}
-	c -= n;
-	buf += n;
-    } while (c > 0);
+    DDMsg_t *msg = (DDMsg_t *)amsg;
+    int ret = doWriteF(daemonSock, msg, msg->len);
 
-    if (n < 0) {
-	PSID_warn(-1, errno ,"%s: send()", __func__);
+    if (ret < 0) {
+	PSID_warn(-1, errno ,"%s: doWriteF()", __func__);
 	closeDaemonSock();
-
-	return n;
-    } else if (!n) {
+	return ret;
+    } else if (!ret) {
 	PSID_log(-1, "%s: Lost connection to daemon\n", __func__);
 	closeDaemonSock();
-
-	return n;
+	return ret;
     }
 
     if (verbose && loggerTID >= 0) {
@@ -550,7 +539,7 @@ static void releaseLogger(int status)
  * of bytes sent in this and all previous calls is returned. If an
  * error occurs, -1 or 0 is returned and errno is set appropriately.
  */
-static int doWrite(PSLog_Msg_t *msg, int offset)
+static int doClntWrite(PSLog_Msg_t *msg, int offset)
 {
     int n, i;
     int count = msg->header.len - PSLog_headerSize;
@@ -630,7 +619,7 @@ static int flushMsgs(int fd /* dummy */, void *info /* dummy */)
 	PSIDmsgbuf_t *msgbuf = list_entry(m, PSIDmsgbuf_t, next);
 	PSLog_Msg_t *msg = (PSLog_Msg_t *)msgbuf->msg;
 	int len = msg->header.len - PSLog_headerSize;
-	int written = doWrite(msg, msgbuf->offset);
+	int written = doClntWrite(msg, msgbuf->offset);
 
 	if (written<0) return written;
 	if (written != len) {
@@ -659,7 +648,7 @@ static int writeMsg(PSLog_Msg_t *msg)
     if (!list_empty(&oldMsgs)) flushMsgs(0, NULL);
 
     bool emptyList = list_empty(&oldMsgs);
-    if (emptyList) written = doWrite(msg, 0);
+    if (emptyList) written = doClntWrite(msg, 0);
 
     if (written<0) return written;
     if (written != len || !emptyList) {

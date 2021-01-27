@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2019 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2021 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -54,17 +54,18 @@
 void PSID_forwarder(PStask_t *task, int clientFD, int eno);
 
 /**
- * @brief Send a message to the local daemon.
+ * @brief Send a message to the local daemon
  *
  * Send the message @a msg to the local daemon.
  *
- * @param msg The message to send.
+ * @param msg Message to be sent. The format of the message has to
+ * follow DDMsg_t and further deduced message types.
  *
  * @return On success, the number of bytes send is returned,
  * i.e. usually @a msg->header.len. Otherwise -1 is returned and errno
  * is set appropriately.
  */
-int sendDaemonMsg(DDMsg_t *msg);
+int sendDaemonMsg(void *msg);
 
 /**
  * @brief Send string to logger.
