@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2010-2020 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2010-2021 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -17,6 +17,7 @@
 #include "pluginmalloc.h"
 #include "psserial.h"
 #include "psidcomm.h"
+#include "psidforwarder.h"
 #include "psidhook.h"
 
 #include "psaccountlog.h"
@@ -27,9 +28,6 @@
 #include "psaccounthistory.h"
 
 #include "psaccountcomm.h"
-
-/** Socket connected to the local daemon */
-static int daemonSock = -1;
 
 /**
  * Standard handler for accouting msgs (initialized during
@@ -572,21 +570,14 @@ int switchAccounting(PStask_ID_t clientTID, bool enable)
 	    .type = PSP_PLUG_ACCOUNT,
 	    .sender = PSC_getMyTID(),
 	    .dest = PSC_getTID(PSC_getMyID(), 0),
-	    .len = sizeof(msg.header) + sizeof(msg.type)},
+	    .len = offsetof(DDTypedBufferMsg_t, buf) },
 	.type = enable ? PSP_ACCOUNT_ENABLE_UPDATE : PSP_ACCOUNT_DISABLE_UPDATE,
 	.buf = {'\0'} };
 
     /* send the messages */
     PSP_putTypedMsgBuf(&msg, __func__, "client", &clientTID, sizeof(clientTID));
 
-    return doWriteP(daemonSock, &msg, msg.header.len);
-}
-
-static int setDaemonSock(void *dsock)
-{
-    daemonSock = *(int *)dsock;
-
-    return 0;
+    return sendDaemonMsg(&msg);
 }
 
 bool initAccComm(void)
@@ -596,10 +587,6 @@ bool initAccComm(void)
     origHandler = PSID_registerMsg(PSP_CD_ACCOUNT, (handlerFunc_t) handlePSMsg);
     PSID_registerMsg(PSP_PLUG_ACCOUNT, (handlerFunc_t) handleInterAccount);
 
-    if (!PSIDhook_add(PSIDHOOK_FRWRD_DSOCK, setDaemonSock)) {
-	mlog("register 'PSIDHOOK_FRWRD_DSOCK' failed\n");
-	return false;
-    }
     return true;
 }
 
@@ -610,8 +597,5 @@ void finalizeAccComm(void)
 
     PSID_clearMsg(PSP_PLUG_ACCOUNT);
 
-    if (!PSIDhook_del(PSIDHOOK_FRWRD_DSOCK, setDaemonSock)) {
-	mlog("unregister 'PSIDHOOK_FRWRD_DSOCK' failed\n");
-    }
     finalizeSerial();
 }
