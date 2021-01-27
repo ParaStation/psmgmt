@@ -352,7 +352,7 @@ plugins/psgw/Makefile.am \
 plugins/psgw/Makefile.in \
 plugins/psgw/doc/Makefile.am \
 plugins/psgw/doc/Makefile.in \
-plugins/psgw/doc/psgw.conf.template \
+plugins/psgw/doc/psgw.conf \
 plugins/psgw/doc/psgw_error.example \
 plugins/psgw/psgw.c \
 plugins/psgw/psgwcomm.c \

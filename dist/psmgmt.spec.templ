@@ -278,7 +278,7 @@ exit 0
 %exclude %{_plugindir}/psexec.la
 %{_plugindir}/psgw.so
 %exclude %{_plugindir}/psgw.la
-%doc plugins/psgw/doc/psgw.conf.template
+%config(noreplace) %{_plugindir}/psgw.conf
 %doc plugins/psgw/doc/psgw_error.example
 %if !0%{?disable_spank}
 %{_libexecdir}/psgw
