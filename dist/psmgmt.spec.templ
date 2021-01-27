@@ -372,7 +372,7 @@ exit 0
 %doc plugins/psslurm/doc/psslurm-epilogue.example
 %doc plugins/psslurm/doc/psslurm-epilogue.finalize.example
 %doc plugins/psslurm/doc/psslurm-prologue.example
-%doc plugins/psslurm/doc/psslurm.conf.template
+%config(noreplace) %{_plugindir}/psslurm.conf
 %{_plugindir}/psslurm.so
 %exclude %{_plugindir}/psslurm.la
 %dir %{_spooldir}

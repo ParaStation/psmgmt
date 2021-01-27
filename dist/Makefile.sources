@@ -551,7 +551,7 @@ plugins/psslurm/doc/Makefile.in \
 plugins/psslurm/doc/psslurm-epilogue.example \
 plugins/psslurm/doc/psslurm-epilogue.finalize.example \
 plugins/psslurm/doc/psslurm-prologue.example \
-plugins/psslurm/doc/psslurm.conf.template \
+plugins/psslurm/doc/psslurm.conf \
 plugins/psslurm/src/bin/Makefile.am \
 plugins/psslurm/src/bin/Makefile.in \
 plugins/psslurm/src/bin/psslurmgetbind.c \
