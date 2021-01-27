@@ -1399,7 +1399,6 @@ void PSID_forwarder(PStask_t *task, int clientFD, int eno)
 
     /* init plugin client functions */
     PSIDhook_call(PSIDHOOK_FRWRD_INIT, childTask);
-    PSIDhook_call(PSIDHOOK_FRWRD_DSOCK, &daemonSock);
 
     /* set the process title */
     snprintf(pTitle, sizeof(pTitle), "psidfw TID[%d:%d] R%d",

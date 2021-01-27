@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2013-2020 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2013-2021 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -175,7 +175,7 @@ typedef enum {
 				Used by the psslurm plugin. Arg is pointer to
 				PElogue_Global_Res_t */
     PSIDHOOK_FRWRD_DSOCK,     /**< In forwarder's init() function, arg is a
-				pointer to the daemon socket. */
+				pointer to the daemon socket. (obsolete!) */
     PSIDHOOK_JAIL_CHILD,      /**< Jail child into cgroup, arg points to pid */
     PSIDHOOK_CLEARMEM,        /**< Release memory after forking before handling
 				other tasks, e.g. becoming a forwarder.
