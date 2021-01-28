@@ -565,7 +565,7 @@ static void execClient(PStask_t *task)
     int eno = 0, timeout = 30;
     char *executable = NULL, *envStr;
 
-    /* change the gid */
+    /* change the gid; exit() on failure */
     if (setgid(task->gid)<0) {
 	eno = errno;
 	fprintf(stderr, "%s: setgid: %s\n", __func__, get_strerror(eno));
@@ -580,7 +580,7 @@ static void execClient(PStask_t *task)
     /* remove psid's group memberships */
     setgroups(0, NULL);
 
-    /* set supplementary groups if requested */
+    /* try to set supplementary groups if requested; failure is ignored */
     if (PSIDnodes_supplGrps(PSC_getMyID())) {
 	struct passwd *pw;
 	if ((pw = getpwuid(task->uid)) && pw->pw_name) {
@@ -595,7 +595,7 @@ static void execClient(PStask_t *task)
     /* It requires root permissions */
     adaptPriority();
 
-    /* change the uid */
+    /* change the uid; exit() on failure */
     if (setuid(task->uid)<0) {
 	eno = errno;
 	fprintf(stderr, "%s: setuid: %s\n", __func__, get_strerror(eno));
