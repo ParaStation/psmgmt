@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2020 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2021 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -96,9 +96,9 @@ static msgString_t pluginMessages[] = {
 
 static char *printDaemonMsg(int msgtype)
 {
-    int m = 0;
-    while (pluginMessages[m].name && pluginMessages[m].id != msgtype) m++;
-    if (pluginMessages[m].name) return pluginMessages[m].name;
+    for (int m = 0; pluginMessages[m].name; m++) {
+	if (pluginMessages[m].id == msgtype) return pluginMessages[m].name;
+    }
 
     static char txt[30];
     snprintf(txt, sizeof(txt), "msgtype %#x UNKNOWN", msgtype);
@@ -113,9 +113,9 @@ char *PSDaemonP_printMsg(int msgtype)
 	return printDaemonMsg(msgtype);
     }
 
-    int m = 0;
-    while (daemonMessages[m].name && daemonMessages[m].id != msgtype) m++;
-    if (daemonMessages[m].name) return daemonMessages[m].name;
+    for (int m = 0; daemonMessages[m].name; m++) {
+	if (daemonMessages[m].id == msgtype) return daemonMessages[m].name;
+    }
 
     static char txt[30];
     snprintf(txt, sizeof(txt), "msgtype %#x UNKNOWN", msgtype);

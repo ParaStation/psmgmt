@@ -83,19 +83,14 @@ static struct {
 
 char *PSP_printMsg(int msgtype)
 {
+
+    for (int m = 0; messages[m].name; m++) {
+	if (messages[m].id == msgtype) return messages[m].name;
+    }
+
     static char txt[30];
-    int i = 0;
-
-    while (messages[i].name && messages[i].id != msgtype) {
-	i++;
-    }
-
-    if (messages[i].name) {
-	return messages[i].name;
-    } else {
-	snprintf(txt, sizeof(txt), "msgtype 0x%x UNKNOWN", msgtype);
-	return txt;
-    }
+    snprintf(txt, sizeof(txt), "msgtype 0x%x UNKNOWN", msgtype);
+    return txt;
 }
 
 /*
