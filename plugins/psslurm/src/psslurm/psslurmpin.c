@@ -2143,6 +2143,11 @@ void doMemBind(Step_t *step, PStask_t *task)
 
     uint32_t lTID = getLocalRankID(task->rank, step, step->localNodeId);
 
+    if (lTID < 0) {
+	flog("Getting local rank ID failed. Omit custom memory binding.\n");
+	return;
+    }
+
     uint16_t tasksToLaunch = step->tasksToLaunch[step->localNodeId];
 
     struct bitmask *nodemask;
