@@ -216,16 +216,14 @@ static void sendSignal(pid_t dest, int signal)
 static void handleSignalMsg(PSLog_Msg_t *msg)
 {
     char *ptr = msg->buf;
-    pid_t pid;
-    int signal;
 
     /* Get destination */
-    pid = *(int32_t *)ptr;
-    ptr += sizeof(int32_t);
+    pid_t pid;
+    getInt32(&ptr, &pid);
 
     /* Get signal to send */
-    signal = *(int32_t *)ptr;
-    //ptr += sizeof(int32_t);
+    int32_t signal;
+    getInt32(&ptr, &signal);
 
     sendSignal(pid, signal);
 }
@@ -262,7 +260,7 @@ static void handleSignalMsg(PSLog_Msg_t *msg)
  */
 static int recvMsg(PSLog_Msg_t *msg, struct timeval *timeout)
 {
-    int ret, res;
+    int ret;
 
     if (daemonSock < 0) {
 	PSID_log(-1, "%s: not connected\n", __func__);
@@ -323,10 +321,12 @@ again:
 	    }
 	    break;
 	case PSP_CD_RELEASERES:
+	{
 	    /* release the client */
-	    res = 1;
+	    int res = 1;
 	    PSIDhook_call(PSIDHOOK_FRWRD_EXIT, &res);
 	    break;
+	}
 	case PSP_DD_CHILDACK:
 	case PSP_DD_CHILDDEAD:
 	    break;
@@ -439,9 +439,10 @@ again:
 	return -1;
     } else {
 	char *ptr = msg.buf;
+	uint32_t forw_verbose;
 
-	verbose = !!(*(int *)ptr);
-	ptr += sizeof(int);
+	getUint32(&ptr, &forw_verbose);
+	verbose = forw_verbose;
 	PSID_log(PSID_LOG_SPAWN, "%s(%s): Connected\n", __func__,
 		 PSC_printTID(tid));
 
@@ -919,78 +920,58 @@ static int readFromChild(int fd, void *data)
  *
  * @return No return value.
  */
-static void sendAcctData(struct rusage rusage, int status)
+static void sendAcctData(struct rusage rusage, int32_t status)
 {
-    DDTypedBufferMsg_t msg;
-    char *ptr = msg.buf;
-    struct timeval now, walltime;
-    long pagesize;
-
-    msg.header.type = PSP_CD_ACCOUNT;
-    msg.header.dest = PSC_getTID(-1, 0);
-    msg.header.sender = PSC_getMyTID();
-    msg.header.len = sizeof(msg.header);
-
-    msg.type = PSP_ACCOUNT_END;
-    msg.header.len += sizeof(msg.type);
+    DDTypedBufferMsg_t msg = {
+	.header = {
+	    .type = PSP_CD_ACCOUNT,
+	    .sender = PSC_getMyTID(),
+	    .dest = PSC_getTID(-1, 0),
+	    .len = offsetof(DDTypedBufferMsg_t, buf) },
+	.type = PSP_ACCOUNT_END };
 
     /* logger's TID, this identifies a task uniquely */
-    *(PStask_ID_t *)ptr = childTask->loggertid;
-    ptr += sizeof(PStask_ID_t);
-    msg.header.len += sizeof(PStask_ID_t);
+    PSP_putTypedMsgBuf(&msg, __func__, "loggerTID", &childTask->loggertid,
+		       sizeof(childTask->loggertid));
 
     /* current rank */
-    *(int32_t *)ptr = childTask->rank;
-    ptr += sizeof(int32_t);
-    msg.header.len += sizeof(int32_t);
+    PSP_putTypedMsgBuf(&msg, __func__, "rank", &childTask->rank,
+		       sizeof(childTask->rank));
 
     /* child's uid */
-    *(uid_t *)ptr = childTask->uid;
-    ptr += sizeof(uid_t);
-    msg.header.len += sizeof(uid_t);
+    PSP_putTypedMsgBuf(&msg, __func__, "uid", &childTask->uid,
+		       sizeof(childTask->uid));
 
     /* child's gid */
-    *(gid_t *)ptr = childTask->gid;
-    ptr += sizeof(gid_t);
-    msg.header.len += sizeof(gid_t);
+    PSP_putTypedMsgBuf(&msg, __func__, "gid", &childTask->gid,
+		       sizeof(childTask->gid));
 
     /* child's pid */
-    *(pid_t *)ptr = PSC_getPID(childTask->tid);
-    ptr += sizeof(pid_t);
-    msg.header.len += sizeof(pid_t);
+    pid_t pid = PSC_getPID(childTask->tid);
+    PSP_putTypedMsgBuf(&msg, __func__, "pid", &pid, sizeof(pid));
 
     /* actual rusage structure */
-    memcpy(ptr, &rusage, sizeof(rusage));
-    ptr += sizeof(rusage);
-    msg.header.len += sizeof(rusage);
+    PSP_putTypedMsgBuf(&msg, __func__, "rusage", &rusage, sizeof(rusage));
 
     /* pagesize */
-    if ((pagesize = sysconf(_SC_PAGESIZE)) < 1) {
-	pagesize = 0;
-    }
-    *(uint64_t *)ptr = pagesize;
-    ptr += sizeof(uint64_t);
-    msg.header.len += sizeof(uint64_t);
+    uint64_t pagesize = sysconf(_SC_PAGESIZE);
+    if (pagesize < 1) pagesize = 0;
+    PSP_putTypedMsgBuf(&msg, __func__, "pagesize", &pagesize, sizeof(pagesize));
 
     /* walltime used by child */
+    struct timeval now, walltime;
     gettimeofday(&now, NULL);
     timersub(&now, &childTask->started, &walltime);
-    memcpy(ptr, &walltime, sizeof(walltime));
-    ptr += sizeof(walltime);
-    msg.header.len += sizeof(walltime);
+    PSP_putTypedMsgBuf(&msg, __func__, "walltime", &walltime, sizeof(walltime));
 
     /* child's return status */
-    *(int32_t *)ptr = status;
-    ptr += sizeof(int32_t);
-    msg.header.len += sizeof(int32_t);
+    PSP_putTypedMsgBuf(&msg, __func__, "status", &status, sizeof(status));
 
-    /* extended msg flag, will be overwritten
-     * by accounting plugin */
-    *(int32_t *)ptr = 0;
-    //ptr += sizeof(int32_t);
-    msg.header.len += sizeof(int32_t);
+    /* extended msg flag, will be overwritten by accounting plugin */
+    int32_t extend = 0;
+    PSP_putTypedMsgBuf(&msg, __func__, "extend", &extend, sizeof(extend));
 
-    sendDaemonMsg((DDMsg_t *)&msg);
+    sendDaemonMsg(&msg);
 }
 
 /** Contains child's PID after SIGCHLD received */
@@ -1060,36 +1041,30 @@ static void sighandler(int sig)
 
 static void finalizeForwarder(void)
 {
-    int res, clientStat;
+    if (openfds) PSIDfwd_printMsgf(STDERR, "%s: %s: %d open file-descriptors"
+				   " remaining\n", tag, __func__, openfds);
 
-    if (openfds) {
-	PSIDfwd_printMsgf(STDERR,
-			  "%s: %s: %d open file-descriptors remaining\n",
-			  tag, __func__, openfds);
-    }
-
-    if (!gotSIGCHLD) {
-	PSIDfwd_printMsgf(STDERR, "%s: %s: SIGCHLD not yet received\n",
-			  tag, __func__);
-    }
+    if (!gotSIGCHLD) PSIDfwd_printMsgf(STDERR, "%s: %s: SIGCHLD not yet"
+				       " received\n", tag, __func__);
 
     sendMsg(USAGE, (char *) &childRUsage, sizeof(childRUsage));
 
-    clientStat = PSIDhook_call(PSIDHOOK_FRWRD_CLNT_RLS, childTask);
+    int clientStat = PSIDhook_call(PSIDHOOK_FRWRD_CLNT_RLS, childTask);
 
     /* Release, if no error occurred and not already done */
     if ((!clientStat || clientStat == PSIDHOOK_NOFUNC)
 	&& (WIFEXITED(childStatus) && !WEXITSTATUS(childStatus))
 	&& !WIFSIGNALED(childStatus)) {
 	/* release the child */
-	DDSignalMsg_t msg;
-	msg.header.type = PSP_CD_RELEASE;
-	msg.header.sender = PSC_getMyTID();
-	msg.header.dest = childTask->tid;
-	msg.header.len = sizeof(msg);
-	msg.signal = -1;
-	msg.answer = 0;  /* Don't expect answer in this late stage */
-	sendDaemonMsg((DDMsg_t *)&msg);
+	DDSignalMsg_t msg = {
+	    .header = {
+		.type = PSP_CD_RELEASE,
+		.sender = PSC_getMyTID(),
+		.dest = childTask->tid,
+		.len = sizeof(msg) },
+	    .signal = -1,
+	    .answer = 0 };  /* Don't expect answer in this late stage */
+	sendDaemonMsg(&msg);
     }
 
     /* Send ACCOUNT message to daemon; will forward to accounters */
@@ -1107,22 +1082,21 @@ static void finalizeForwarder(void)
     releaseLogger(childStatus);
 
     /* Send CHILDDEAD message to the daemon */
-    {
-	DDErrorMsg_t msg;
-	msg.header.type = PSP_DD_CHILDDEAD;
-	msg.header.dest = PSC_getTID(-1, 0);
-	msg.header.sender = PSC_getMyTID();
-	msg.error = childStatus;
-	msg.request = PSC_getTID(-1, childPID);
-	msg.header.len = sizeof(msg);
-	sendDaemonMsg((DDMsg_t *)&msg);
-    }
+    DDErrorMsg_t msg = {
+	.header = {
+	    .type = PSP_DD_CHILDDEAD,
+	    .sender = PSC_getMyTID(),
+	    .dest = PSC_getTID(-1, 0),
+	    .len = sizeof(msg) },
+	.error = childStatus,
+	.request = PSC_getTID(-1, childPID) };
+    sendDaemonMsg(&msg);
 
     /* Send SIGKILL to process group in order to stop fork()ed children */
     sendSignal(-PSC_getPID(childTask->tid), SIGKILL);
 
     /* Release the client */
-    res = 0;
+    int res = 0;
     PSIDhook_call(PSIDHOOK_FRWRD_EXIT, &res);
 
     /* Release the daemon */
@@ -1143,44 +1117,41 @@ static void finalizeForwarder(void)
  * @param eno Error-number (i.e. errno) describing the problem
  * preventing the child-process from being spawned.
  *
- * @return No return value.
+ * @return No return value
  */
 static void sendSpawnFailed(PStask_t *task, int eno)
 {
-    DDBufferMsg_t answer;
-    DDErrorMsg_t *errMsg = (DDErrorMsg_t *)&answer;
-    char *ptr;
-    size_t bufUsed, bufAvail, read;
-
-    answer.header.type = PSP_CD_SPAWNFAILED;
-    answer.header.dest = task->ptid;
-    answer.header.sender = PSC_getMyTID();
-    answer.header.len = sizeof(*errMsg);
+    DDBufferMsg_t msg = {
+	.header = {
+	    .type = PSP_CD_SPAWNFAILED,
+	    .sender = PSC_getMyTID(),
+	    .dest = task->ptid,
+	    .len = sizeof(DDErrorMsg_t) } };
+    DDErrorMsg_t *errMsg = (DDErrorMsg_t *)&msg;
 
     errMsg->request = task->rank;
     errMsg->error = eno;
 
-    bufUsed = answer.header.len - sizeof(answer.header);
-    ptr = answer.buf + bufUsed;
-    bufAvail = sizeof(answer.buf) - bufUsed;
+    size_t bufUsed = msg.header.len - sizeof(msg.header);
+    char *ptr = msg.buf + bufUsed;
+    size_t bufAvail = sizeof(msg.buf) - bufUsed;
 
+    size_t read;
     do {
 	collectRead(task->stderr_fd, ptr, bufAvail, &read);
 	bufAvail -= read;
-	answer.header.len += read;
+	msg.header.len += read;
 	ptr += read;
     } while (read && bufAvail);
 
     if (!bufAvail) {
-	answer.buf[sizeof(answer.buf) - 5] = '.';
-	answer.buf[sizeof(answer.buf) - 4] = '.';
-	answer.buf[sizeof(answer.buf) - 3] = '.';
-	answer.buf[sizeof(answer.buf) - 2] = '\n';
-	answer.buf[sizeof(answer.buf) - 1] = '\0';
+	msg.buf[sizeof(msg.buf) - 5] = '.';
+	msg.buf[sizeof(msg.buf) - 4] = '.';
+	msg.buf[sizeof(msg.buf) - 3] = '.';
+	msg.buf[sizeof(msg.buf) - 2] = '\n';
+	msg.buf[sizeof(msg.buf) - 1] = '\0';
     }
-    sendDaemonMsg((DDMsg_t *)&answer);
-
-    exit(0);
+    sendDaemonMsg(&msg);
 }
 
 /**
@@ -1204,25 +1175,25 @@ static void sendSpawnFailed(PStask_t *task, int eno)
  */
 static bool sendChildBorn(PStask_t *task, int clientFD)
 {
-    DDErrorMsg_t msg;
-    PSLog_Msg_t answer;
+    if (!task) return false;
+
+    DDErrorMsg_t msg = {
+	.header = {
+	    .type = PSP_DD_CHILDBORN,
+	    .sender = PSC_getMyTID(),
+	    .dest = task->ptid,
+	    .len = sizeof(msg) },
+	.request = task->tid,
+	.error = 0 };
     int ret;
 
-    msg.header.type = PSP_DD_CHILDBORN;
-    msg.header.dest = task->ptid;
-    msg.header.sender = PSC_getMyTID();
-    msg.header.len = sizeof(msg);
-
-    msg.request = task->tid;
-    msg.error = 0;
-
 send_again:
-    sendDaemonMsg((DDMsg_t *)&msg);
+    sendDaemonMsg(&msg);
 
     struct timeval timeout = {10, 0};
+    PSLog_Msg_t answer;
 again:
     ret = recvMsg(&answer, &timeout);
-
     if (ret < 0) {
 	switch (errno) {
 	case EINTR:
@@ -1369,10 +1340,10 @@ void PSID_forwarder(PStask_t *task, int clientFD, int eno)
 
     if (eno) {
 	sendSpawnFailed(childTask, eno);
-	exit(1);
-    } else {
-	if (!sendChildBorn(childTask, clientFD)) waitForChildsDead();
+	exit(0);
     }
+
+    if (!sendChildBorn(childTask, clientFD)) waitForChildsDead();
 
     /* Make stdin non-blocking for us */
     flags = fcntl(childTask->stdin_fd, F_GETFL);
