@@ -93,8 +93,10 @@ void PSrsrvtn_gc(void)
 
 void PSrsrvtn_printStat(void)
 {
-    PSC_log(-1, "%s: Reservations %d/%d (used/avail)\n", __func__,
+    PSC_log(-1, "%s: Reservations %d/%d (used/avail)", __func__,
 	    PSitems_getUsed(rsrvtnPool), PSitems_getAvail(rsrvtnPool));
+    PSC_log(-1, "\t%d/%d (gets/grows)\n", PSitems_getUtilization(rsrvtnPool),
+	    PSitems_getDynamics(rsrvtnPool));
 }
 
 void PSrsrvtn_clearMem(void)

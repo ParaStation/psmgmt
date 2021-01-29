@@ -62,6 +62,8 @@ void PSsignal_gc(void)
 
 void PSsignal_printStat(void)
 {
-    PSC_log(-1, "%s: Signals %d/%d (used/avail)\n", __func__,
+    PSC_log(-1, "%s: Signals %d/%d (used/avail)", __func__,
 	    PSitems_getUsed(sigPool), PSitems_getAvail(sigPool));
+    PSC_log(-1, "\t%d/%d (gets/grows)\n", PSitems_getUtilization(sigPool),
+	    PSitems_getDynamics(sigPool));
 }

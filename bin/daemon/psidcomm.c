@@ -429,6 +429,15 @@ void PSIDcomm_clearMem(void)
     initMsgHash();
 }
 
+void PSIDcomm_printStat(void)
+{
+    PSID_log(-1, "%s: Handlers & Droppers %d/%d (used/avail)", __func__,
+	     PSitems_getUsed(handlerPool), PSitems_getAvail(handlerPool));
+    PSID_log(-1, "\t%d/%d (gets/grows)\n", PSitems_getUtilization(handlerPool),
+	     PSitems_getDynamics(handlerPool));
+}
+
+
 bool PSIDcomm_enableDropHook(bool enable)
 {
     bool ret = randomDrop;

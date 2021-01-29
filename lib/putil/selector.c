@@ -158,8 +158,11 @@ void Selector_gc(void)
 
 void Selector_printStat(void)
 {
-    logger_print(logger, -1, "%s: epollFD %d  %d/%d (used/avail)\n", __func__,
+    logger_print(logger, -1, "%s: epollFD %d  %d/%d (used/avail)", __func__,
 		 epollFD, PSitems_getUsed(selPool),PSitems_getAvail(selPool));
+    logger_print(logger, -1, "\t%d/%d (gets/grows)\n",
+		 PSitems_getUtilization(selPool), PSitems_getDynamics(selPool));
+
 }
 
 int32_t Selector_getDebugMask(void)

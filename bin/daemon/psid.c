@@ -288,6 +288,7 @@ static int handleSIGUSR1(int fd, void *info)
     PStask_printStat();
     RDP_printStat();
     PSIDFlwCntrl_printStat();
+    PSIDcomm_printStat();
     Selector_printStat();
 
     return 0;

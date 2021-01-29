@@ -127,8 +127,11 @@ void PSIDMsgbuf_put(PSIDmsgbuf_t *mp)
 void PSIDMsgbuf_printStat(void)
 {
     PSID_log(-1, "%s: Buffers %d\n", __func__, usedBufs);
-    PSID_log(-1, "%s: Small buffers %d/%d (used/avail)\n", __func__,
+    PSID_log(-1, "%s: Small buffers %d/%d (used/avail)", __func__,
 	     PSitems_getUsed(smallMsgBufs), PSitems_getAvail(smallMsgBufs));
+    PSID_log(-1, "\t%d/%d (gets/grows)\n", PSitems_getUtilization(smallMsgBufs),
+	     PSitems_getDynamics(smallMsgBufs));
+
 }
 
 void PSIDMsgbuf_init(void)

@@ -47,6 +47,16 @@ void PSIDcomm_init(void);
 void PSIDcomm_clearMem(void);
 
 /**
+ * @brief Print statistics
+ *
+ * Print statistics concerning the usage of internal handler/dropper
+ * structures.
+ *
+ * @return No return value
+ */
+void PSIDcomm_printStat(void);
+
+/**
  * @brief Send a message
  *
  * Send the message @a msg to the destination defined within the

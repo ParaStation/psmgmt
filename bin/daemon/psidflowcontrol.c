@@ -265,8 +265,10 @@ void PSIDFlwCntrl_clearMem(void)
 
 void PSIDFlwCntrl_printStat(void)
 {
-    PSID_log(-1, "%s: Stops %d/%d (used/avail)\n", __func__,
+    PSID_log(-1, "%s: Stops %d/%d (used/avail)", __func__,
 	     PSitems_getUsed(stopTIDs), PSitems_getAvail(stopTIDs));
+    PSID_log(-1, "\t%d/%d (gets/grows)\n", PSitems_getUtilization(stopTIDs),
+	     PSitems_getDynamics(stopTIDs));
 }
 
 
