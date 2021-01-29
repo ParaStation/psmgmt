@@ -5,6 +5,13 @@ Copyright (C) 2010-2021 ParTec Cluster Competence Center GmbH, Munich
 Please send bug reports, questions and suggestions to <support@par-tec.com>
 
 
+
+Version 5.1.36-1:
+=================
+Bugfixes:
+ - Avoid segfault when using GRes in combination with job packs (jwt:#7902)
+
+
 *************************************************************************
 *************************************************************************
 **                                                                     **
