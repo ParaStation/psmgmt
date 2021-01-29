@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2014-2020 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2014-2021 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -551,7 +551,7 @@ static void setGresEnv(uint32_t localRankId, Step_t *step)
 void setRankEnv(int32_t rank, Step_t *step)
 {
     char tmp[128], *myGTIDs, *val, *display;
-    uint32_t myNodeId = step->localNodeId, myLocalId, count = 0;
+    uint32_t myNodeId = step->localNodeId, count = 0;
 
     /* remove unwanted variables */
     unsetenv("PSI_INPUTDEST");
@@ -608,9 +608,18 @@ void setRankEnv(int32_t rank, Step_t *step)
 	ufree(myGTIDs);
     }
 
-    myLocalId = getLocalRankID(rank, step, myNodeId);
-    snprintf(tmp, sizeof(tmp), "%u", myLocalId);
-    setenv("SLURM_LOCALID", tmp, 1);
+    uint32_t myLocalId = getLocalRankID(rank - step->packTaskOffset,
+				        step, myNodeId);
+    if (myLocalId == (uint32_t) -1) {
+	flog("failed to find local ID for rank %u nodeID %u\n",
+	     rank, myNodeId);
+    } else {
+	snprintf(tmp, sizeof(tmp), "%u", myLocalId);
+	setenv("SLURM_LOCALID", tmp, 1);
+
+	/* set gres environment */
+	setGresEnv(myLocalId, step);
+    }
 
     /* set cpu/memory bind env vars */
     setBindingEnvVars(step);
@@ -629,9 +638,6 @@ void setRankEnv(int32_t rank, Step_t *step)
     /* set SLURM_TASKS_PER_NODE */
     val = getTasksPerNode(step->tasksToLaunch, step->nrOfNodes);
     setenv("SLURM_TASKS_PER_NODE", val, 1);
-
-    /* set gres environment */
-    setGresEnv(myLocalId, step);
 
     Alloc_t *alloc = findAlloc(step->jobid);
     if (alloc) setPsslurmEnv(&alloc->env);

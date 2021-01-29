@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2014-2020 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2014-2021 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -2142,6 +2142,11 @@ void doMemBind(Step_t *step, PStask_t *task)
     }
 
     uint32_t lTID = getLocalRankID(task->rank, step, step->localNodeId);
+
+    if (lTID == (uint32_t) -1) {
+	flog("Getting local rank ID failed. Omit custom memory binding.\n");
+	return;
+    }
 
     uint16_t tasksToLaunch = step->tasksToLaunch[step->localNodeId];
 
