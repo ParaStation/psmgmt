@@ -162,6 +162,30 @@ void PSitems_putItem(PSitems_t items, void *item);
 uint32_t PSitems_getUsed(PSitems_t items);
 
 /**
+ * @brief Get pool's utilization
+ *
+ * Get the utilization of the pool of items @a items. For this, the
+ * total number of call to @ref PSitems_getItem() is traced.
+ *
+ * @param items Structure holding all information on the pool of items
+ *
+ * @return Return total number calls to @ref PSitems_getItem() for the pool
+ */
+uint32_t PSitems_getUtilization(PSitems_t items);
+
+/**
+ * @brief Get pool's dynamics
+ *
+ * Get the dynamics of the pool of items @a items. For this, the
+ * total number of times the pool is extended is traced.
+ *
+ * @param items Structure holding all information on the pool of items
+ *
+ * @return Return total number extensions of the pool
+ */
+uint32_t PSitems_getDynamics(PSitems_t items);
+
+/**
  * @brief Check if garbage collection is required
  *
  * Check if a call of the garbage collector is required for the pool

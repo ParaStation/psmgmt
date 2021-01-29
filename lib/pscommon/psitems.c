@@ -31,6 +31,8 @@ struct itemPool {
     uint32_t avail;    /**< Number of items available (used + unused) */
     uint32_t used;     /**< Number of used items */
     uint32_t iPC;      /**< Number of items per chunk */
+    uint32_t numGet;   /**< Pool's utilization (number of getItem() calls) */
+    uint32_t numGrow;  /**< Pool's dynamics (number of growItems() calls) */
 };
 
 /** Chunk holding the actual items */
@@ -52,6 +54,8 @@ PSitems_t PSitems_new(size_t itemSize, char *name)
     items->avail = 0;
     items->used = 0;
     items->iPC = (CHUNK_SIZE - sizeof(list_t)) / itemSize + 1;
+    items->numGet = 0;
+    items->numGrow = 0;
 
     return items;
 }
@@ -69,6 +73,16 @@ uint32_t PSitems_getAvail(PSitems_t items)
 uint32_t PSitems_getUsed(PSitems_t items)
 {
     return PSitems_isInitialized(items) ? items->used : 0;
+}
+
+uint32_t PSitems_getUtilization(PSitems_t items)
+{
+    return PSitems_isInitialized(items) ? items->numGet : 0;
+}
+
+uint32_t PSitems_getDynamics(PSitems_t items)
+{
+    return PSitems_isInitialized(items) ? items->numGrow : 0;
 }
 
 bool PSitems_setChunkSize(PSitems_t items, size_t chunkSize)
@@ -108,6 +122,7 @@ static int growItems(PSitems_t items)
 	PSC_warn(-1, errno, "%s(%s)", __func__, items->name);
 	return 0;
     }
+    items->numGrow++;
 
     list_add_tail(&newChunk->next, &items->chunks);
     memset(&newChunk->itemBuf, 0, items->itemSize * items->iPC);
@@ -129,6 +144,7 @@ void * PSitems_getItem(PSitems_t items)
 	PSC_log(-1, "%s: initialize before!\n", __func__);
 	return NULL;
     }
+    items->numGet++;
 
     if (list_empty(&items->idleItems)) {
 	PSC_log(PSC_LOG_VERB, "%s(%s): no more items\n", __func__, items->name);
