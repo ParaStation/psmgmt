@@ -282,8 +282,12 @@ plugins/jail/jaillog.h \
 plugins/nodeinfo/Makefile.am \
 plugins/nodeinfo/Makefile.in \
 plugins/nodeinfo/nodeinfo.c \
+plugins/nodeinfo/nodeinfo.h \
 plugins/nodeinfo/nodeinfoconfig.c \
 plugins/nodeinfo/nodeinfoconfig.h \
+plugins/nodeinfo/nodeinfohandles.h \
+plugins/nodeinfo/nodeinfointer.c \
+plugins/nodeinfo/nodeinfointer.h \
 plugins/nodeinfo/nodeinfolog.c \
 plugins/nodeinfo/nodeinfolog.h \
 plugins/nodeinfo/nodeinfotypes.h \

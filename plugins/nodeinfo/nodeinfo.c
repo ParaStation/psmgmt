@@ -32,9 +32,11 @@
 #include "nodeinfoconfig.h"
 #include "nodeinfotypes.h"
 
+#include "nodeinfo.h"
+
 /** psid plugin requirements */
 char name[] = "nodeinfo";
-int version = 1;
+int version = 2;
 int requiredAPI = 130;
 plugin_dep_t dependencies[] = { { NULL, 0 } };
 
@@ -123,18 +125,7 @@ static bool handleSetData(char **ptr, PSnodes_ID_t sender,
     return true;
 }
 
-/**
- * @brief Send nodeinfo data
- *
- * Send the nodeinfo data of the local node to node @a node. If @a
- * node is the local node, nodeinfo data will be broadcasted to all
- * nodes.
- *
- * @param node Destination node
- *
- * @return No return value
- */
-static void sendNodeInfoData(PSnodes_ID_t node)
+void sendNodeInfoData(PSnodes_ID_t node)
 {
     PS_SendDB_t data;
 
@@ -314,11 +305,12 @@ static void handleNodeInfoMsg(DDBufferMsg_t *msg)
     recvFragMsg((DDTypedBufferMsg_t *)msg, handleNodeInfoData);
 }
 
+/** List of PCIe IDs identifying GPU devices */
 static PCI_ID_t *GPU_IDs = NULL;
 
 static bool GPU_PCIeOrder = true;
 
-static void updateGPUInfo(void)
+void updateGPUInfo(void)
 {
     uint16_t numGPUs = GPU_IDs ? PSIDhw_getNumPCIDevs(GPU_IDs) : 0;
     PSIDnodes_setNumGPUs(PSC_getMyID(), numGPUs);
@@ -328,11 +320,12 @@ static void updateGPUInfo(void)
     }
 }
 
+/** List of PCIe IDs identifying high performance NIC devices */
 static PCI_ID_t *NIC_IDs = NULL;
 
 static bool NIC_PCIeOrder = false; // Use BIOS order
 
-static void updateNICInfo(void)
+void updateNICInfo(void)
 {
     uint16_t numNICs = NIC_IDs ? PSIDhw_getNumPCIDevs(NIC_IDs) : 0;
     PSIDnodes_setNumNICs(PSC_getMyID(), numNICs);

@@ -152,7 +152,8 @@ am__installdirs = "$(DESTDIR)$(plugindir)"
 LTLIBRARIES = $(plugin_LTLIBRARIES)
 nodeinfo_la_DEPENDENCIES = $(libplugincommon) $(libpscommon)
 am_nodeinfo_la_OBJECTS = nodeinfo_la-nodeinfo.lo \
-	nodeinfo_la-nodeinfoconfig.lo nodeinfo_la-nodeinfolog.lo
+	nodeinfo_la-nodeinfoconfig.lo nodeinfo_la-nodeinfointer.lo \
+	nodeinfo_la-nodeinfolog.lo
 nodeinfo_la_OBJECTS = $(am_nodeinfo_la_OBJECTS)
 AM_V_lt = $(am__v_lt_@AM_V@)
 am__v_lt_ = $(am__v_lt_@AM_DEFAULT_V@)
@@ -175,6 +176,7 @@ depcomp = $(SHELL) $(top_srcdir)/scripts/depcomp
 am__maybe_remake_depfiles = depfiles
 am__depfiles_remade = ./$(DEPDIR)/nodeinfo_la-nodeinfo.Plo \
 	./$(DEPDIR)/nodeinfo_la-nodeinfoconfig.Plo \
+	./$(DEPDIR)/nodeinfo_la-nodeinfointer.Plo \
 	./$(DEPDIR)/nodeinfo_la-nodeinfolog.Plo
 am__mv = mv -f
 COMPILE = $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) \
@@ -405,8 +407,9 @@ scriptsdir = $(prefix)/scripts
 plugin_LTLIBRARIES = nodeinfo.la
 libplugincommon = $(top_builddir)/lib/plugincommon/libplugincommon.la
 libpscommon = $(top_builddir)/lib/pscommon/libpscommon.la
-nodeinfo_la_SOURCES = nodeinfo.c nodeinfoconfig.c nodeinfoconfig.h	\
-	nodeinfolog.c nodeinfolog.h
+nodeinfo_la_SOURCES = nodeinfo.c nodeinfo.h nodeinfoconfig.c		\
+	nodeinfoconfig.h nodeinfohandles.h nodeinfointer.c		\
+	nodeinfointer.h nodeinfolog.c nodeinfolog.h nodeinfotypes.h
 
 nodeinfo_la_CPPFLAGS = $(AM_CPPFLAGS)
 nodeinfo_la_LIBADD = $(libplugincommon) $(libpscommon)
@@ -491,6 +494,7 @@ distclean-compile:
 
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/nodeinfo_la-nodeinfo.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/nodeinfo_la-nodeinfoconfig.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/nodeinfo_la-nodeinfointer.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/nodeinfo_la-nodeinfolog.Plo@am__quote@ # am--include-marker
 
 $(am__depfiles_remade):
@@ -536,6 +540,13 @@ nodeinfo_la-nodeinfoconfig.lo: nodeinfoconfig.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='nodeinfoconfig.c' object='nodeinfo_la-nodeinfoconfig.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(nodeinfo_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o nodeinfo_la-nodeinfoconfig.lo `test -f 'nodeinfoconfig.c' || echo '$(srcdir)/'`nodeinfoconfig.c
+
+nodeinfo_la-nodeinfointer.lo: nodeinfointer.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(nodeinfo_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT nodeinfo_la-nodeinfointer.lo -MD -MP -MF $(DEPDIR)/nodeinfo_la-nodeinfointer.Tpo -c -o nodeinfo_la-nodeinfointer.lo `test -f 'nodeinfointer.c' || echo '$(srcdir)/'`nodeinfointer.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/nodeinfo_la-nodeinfointer.Tpo $(DEPDIR)/nodeinfo_la-nodeinfointer.Plo
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='nodeinfointer.c' object='nodeinfo_la-nodeinfointer.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(nodeinfo_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o nodeinfo_la-nodeinfointer.lo `test -f 'nodeinfointer.c' || echo '$(srcdir)/'`nodeinfointer.c
 
 nodeinfo_la-nodeinfolog.lo: nodeinfolog.c
 @am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(nodeinfo_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT nodeinfo_la-nodeinfolog.lo -MD -MP -MF $(DEPDIR)/nodeinfo_la-nodeinfolog.Tpo -c -o nodeinfo_la-nodeinfolog.lo `test -f 'nodeinfolog.c' || echo '$(srcdir)/'`nodeinfolog.c
@@ -680,6 +691,7 @@ clean-am: clean-generic clean-libtool clean-pluginLTLIBRARIES \
 distclean: distclean-am
 		-rm -f ./$(DEPDIR)/nodeinfo_la-nodeinfo.Plo
 	-rm -f ./$(DEPDIR)/nodeinfo_la-nodeinfoconfig.Plo
+	-rm -f ./$(DEPDIR)/nodeinfo_la-nodeinfointer.Plo
 	-rm -f ./$(DEPDIR)/nodeinfo_la-nodeinfolog.Plo
 	-rm -f Makefile
 distclean-am: clean-am distclean-compile distclean-generic \
@@ -728,6 +740,7 @@ installcheck-am:
 maintainer-clean: maintainer-clean-am
 		-rm -f ./$(DEPDIR)/nodeinfo_la-nodeinfo.Plo
 	-rm -f ./$(DEPDIR)/nodeinfo_la-nodeinfoconfig.Plo
+	-rm -f ./$(DEPDIR)/nodeinfo_la-nodeinfointer.Plo
 	-rm -f ./$(DEPDIR)/nodeinfo_la-nodeinfolog.Plo
 	-rm -f Makefile
 maintainer-clean-am: distclean-am maintainer-clean-generic
