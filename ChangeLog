@@ -1,3 +1,24 @@
+Version psmgmt-5.1.36-2:
+========================
+------------------------------------------------------------------------
+1dcf3e00 | Norbert Eicker | Wed, 3 Feb 2021 17:38:29 +0100
+
+Adapt to automake 1.16.3 and fix typos in comments
+------------------------------------------------------------------------
+bf6fd918 | Michael Rauh | Wed, 3 Feb 2021 14:48:26 +0100
+
+Update buildsystem
+------------------------------------------------------------------------
+f1cbe19e | Michael Rauh | Wed, 3 Feb 2021 14:42:32 +0100
+
+Replace name compression/expansion code in gateway
+routing generation
+
+ - removes ClusterShell dependency of psroute
+ - compatible with version python2
+------------------------------------------------------------------------
+
+
 Version psmgmt-5.1.36-1:
 ========================
 ------------------------------------------------------------------------
