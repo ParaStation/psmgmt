@@ -6,6 +6,13 @@ Please send bug reports, questions and suggestions to <support@par-tec.com>
 
 
 
+Version 5.1.36-2:
+=================
+Enhancements:
+ - Removes psroute's dependency on ClusterShell and make it more
+   python2/3 agnostic
+
+
 Version 5.1.36-1:
 =================
 Bugfixes:

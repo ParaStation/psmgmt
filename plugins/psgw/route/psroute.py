@@ -9,9 +9,12 @@ import os
 import sys
 import traceback
 import re
-import ClusterShell.NodeSet
 
 from pypsconfig import PSConfig
+
+sys.path.append(os.path.dirname(__file__))
+from pscompress import compress
+from psexpand import expand_list
 
 VERBOSE = 0
 
@@ -78,15 +81,9 @@ def changeUser(uid, gid, user, home):
     # change to home directory
     os.chdir(home)
 
-def expand(nodelist):
-    return list(ClusterShell.NodeSet.NodeSet(nodelist))
-
-def compress(nodes):
-    return str(ClusterShell.NodeSet.NodeSet(",".join(nodes)))
-
 def writeRouteFile(plugin, rFile, psgwdToPort, nodesA, nodesB):
-    nodesA = sorted(expand(nodesA))
-    nodesB = sorted(expand(nodesB))
+    nodesA = sorted(expand_list(nodesA))
+    nodesB = sorted(expand_list(nodesB))
     gateways = sorted(psgwdToPort.keys())
 
     if not gateways:
@@ -147,7 +144,7 @@ def splitNodes(nodeList):
     cluster = []
     booster = []
 
-    for node in expand(nodeList):
+    for node in expand_list(nodeList):
         data = config.getList("host:%s" % node, "Psid.HardwareTypes",
                               inherit=True, follow=True)
         if any("booster" in s for s in data):
