@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 #
-# expand.py - fold node lists using range syntax
+# psexpand.py - expand node lists using range syntax
 #
 # Copyright (C) 2021 ParTec Cluster Competence Center GmbH, Munich
 #
