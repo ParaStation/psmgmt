@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 #
 # pscompress.py - fold node lists using range syntax
 #

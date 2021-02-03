@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 #
 # psexpand.py - expand node lists using range syntax
 #

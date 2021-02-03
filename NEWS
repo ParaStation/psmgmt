@@ -6,6 +6,12 @@ Please send bug reports, questions and suggestions to <support@par-tec.com>
 
 
 
+Version 5.1.36-3:
+=================
+Bugfixes:
+ - Fix building on CentOS 8
+
+
 Version 5.1.36-2:
 =================
 Enhancements:
