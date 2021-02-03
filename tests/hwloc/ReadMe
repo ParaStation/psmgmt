@@ -11,7 +11,19 @@ topo.j3c053.xml    JUROPA3 GPU node
 topo.jsfc005.xml   JUSUF GPU node
 topo.jsfc070.xml   JUSUF standard node
 topo.jrc0386.xml   JURECA-DC GPU partition
-topo.jrc5001.xml   JURECA-Booster
+topo.jrc5001.xml   JURECA-Booster (Cluster: Quadrant / Memory: Cache)
 topo.jwb0001.xml   JUWELS-Booster
 topo.jwc00n001.xml JUWELS-Cluster CPU partition
 topo.jwc09n003.xml JUWELS-Cluster GPU partition
+
+These were recorded with HWLOC_KNL_NUMA_QUIRK=0 to get distances on KNL.
+All systems have Memory: Flat / Cluster: Quadrant unless otherwise noted
+topo.knl01.xml     DEEP-ER knl01
+   Claims to be "Intel(R) Genuine Intel(R) CPU 0000 @ 1.30GHz" (64 cores)
+topo.knl04.xml     DEEP-ER knl04
+   Claims to be "Intel(R) Xeon Phi(TM) CPU 7250 @ 1.40GHz" (68 cores)
+topo.knl05.xml     DEEP-ER knl05
+   Claims to be "Intel(R) Genuine Intel(R) CPU 0000 @ 1.30GHz" (64 cores)
+   Configured as Cluster: SNC4
+topo.knl06.xml     DEEP-ER knl06
+   Claims to be "Intel(R) Xeon Phi(TM) CPU 7250 @ 1.40GHz" (68 cores)
