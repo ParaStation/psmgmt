@@ -372,6 +372,8 @@ plugins/psgw/route/Makefile.am \
 plugins/psgw/route/Makefile.in \
 plugins/psgw/route/plugin01.py \
 plugins/psgw/route/plugin02.py \
+plugins/psgw/route/pscompress.py \
+plugins/psgw/route/psexpand.py \
 plugins/psgw/route/psgwd_exec \
 plugins/psgw/route/psgwd_start \
 plugins/psgw/route/psgwd_stop \
