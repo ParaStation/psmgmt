@@ -320,10 +320,10 @@ static bool GPU_PCIeOrder = true;
 
 static void updateGPUInfo(void)
 {
-    uint16_t numGPUs = GPU_IDs ? PSID_getNumPCIDevs(GPU_IDs) : 0;
+    uint16_t numGPUs = GPU_IDs ? PSIDhw_getNumPCIDevs(GPU_IDs) : 0;
     PSIDnodes_setNumGPUs(PSC_getMyID(), numGPUs);
     if (numGPUs) {
-	PSCPU_set_t *GPUsets = PSID_getPCISets(GPU_PCIeOrder, GPU_IDs);
+	PSCPU_set_t *GPUsets = PSIDhw_getPCISets(GPU_PCIeOrder, GPU_IDs);
 	PSIDnodes_setGPUSets(PSC_getMyID(), GPUsets);
     }
 }
@@ -334,10 +334,10 @@ static bool NIC_PCIeOrder = false; // Use BIOS order
 
 static void updateNICInfo(void)
 {
-    uint16_t numNICs = NIC_IDs ? PSID_getNumPCIDevs(NIC_IDs) : 0;
+    uint16_t numNICs = NIC_IDs ? PSIDhw_getNumPCIDevs(NIC_IDs) : 0;
     PSIDnodes_setNumNICs(PSC_getMyID(), numNICs);
     if (numNICs) {
-	PSCPU_set_t *NICsets = PSID_getPCISets(NIC_PCIeOrder, NIC_IDs);
+	PSCPU_set_t *NICsets = PSIDhw_getPCISets(NIC_PCIeOrder, NIC_IDs);
 	PSIDnodes_setNICSets(PSC_getMyID(), NICsets);
     }
 }

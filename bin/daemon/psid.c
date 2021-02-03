@@ -9,8 +9,7 @@
  * file.
  */
 /**
- * @file
- * psid: ParaStation Daemon
+ * @file psid: ParaStation Daemon
  */
 #include <stdio.h>
 #include <stdlib.h>
@@ -695,7 +694,7 @@ int main(int argc, const char *argv[])
     PSIDnodes_setKillDelay(PSC_getMyID(), PSID_config->killDelay);
 
     /* Bring node up with correct numbers of CPUs */
-    declareNodeAlive(PSC_getMyID(), PSID_getPhysCores(), PSID_getHWthreads(),
+    declareNodeAlive(PSC_getMyID(), PSIDhw_getCores(), PSIDhw_getHWthreads(),
 		     PSProtocolVersion, PSDaemonProtocolVersion);
 
     /* Initialize timeouts, etc. */
@@ -711,7 +710,7 @@ int main(int argc, const char *argv[])
     initSignal();
     PSIDspawn_init();
     initPartition();
-    initHW();
+    PSIDhw_init();
     initAccount();
     initInfo();
     initEnvironment();

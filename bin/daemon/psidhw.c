@@ -78,7 +78,7 @@ static void initHWloc(void)
     hwlocInitialized = true;
 }
 
-int PSID_getHWthreads(void)
+int PSIDhw_getHWthreads(void)
 {
     static int hwThreads = 0;
 
@@ -105,7 +105,7 @@ int PSID_getHWthreads(void)
     return hwThreads;
 }
 
-int PSID_getPhysCores(void)
+int PSIDhw_getCores(void)
 {
     static int physCores = 0;
 
@@ -187,7 +187,7 @@ static PSCPU_set_t * getCPUSets(void)
 	hwloc_obj_t numanode = hwloc_get_numanode_obj_by_os_index(topology, d);
 	PSCPU_clrAll(sets[d]);
 	if (!numanode) {
-	    for (uint16_t t = 0; t < PSID_getHWthreads(); t++) {
+	    for (uint16_t t = 0; t < PSIDhw_getHWthreads(); t++) {
 		PSCPU_setCPU(sets[d], t);
 	    }
 	} else {
@@ -230,7 +230,7 @@ static bool checkPCIDev(struct hwloc_pcidev_attr_s *pcidev, PCI_ID_t ID_list[])
     return false;
 }
 
-uint16_t PSID_getNumPCIDevs(PCI_ID_t ID_list[])
+uint16_t PSIDhw_getNumPCIDevs(PCI_ID_t ID_list[])
 {
     if (!hwlocInitialized) initHWloc();
 
@@ -316,9 +316,9 @@ static uint16_t * getPCIorderMap(uint16_t numDevs, PCI_ID_t ID_list[])
     return map;
 }
 
-PSCPU_set_t * PSID_getPCISets(bool PCIorder, PCI_ID_t ID_list[])
+PSCPU_set_t * PSIDhw_getPCISets(bool PCIorder, PCI_ID_t ID_list[])
 {
-    uint16_t numDevs = PSID_getNumPCIDevs(ID_list);
+    uint16_t numDevs = PSIDhw_getNumPCIDevs(ID_list);
 
     if (!numDevs) return NULL;
 
@@ -888,10 +888,8 @@ static PCI_ID_t NIC_IDs[] = {
     { 0x1fc1, 0x0010, 0, 0 }, // QLogic IBA6120 InfiniBand HCA (testcluster)
     { 0, 0, 0, 0} };
 
-void initHW(void)
+void PSIDhw_reInit(void)
 {
-    PSID_log(PSID_LOG_VERB, "%s()\n", __func__);
-
     /* Determine various HW parameters and feed them into PSIDnodes */
     uint16_t numNUMA = getNUMADoms();
     if (!numNUMA) {
@@ -904,17 +902,33 @@ void initHW(void)
     PSCPU_set_t *CPUsets = getCPUSets();
     PSIDnodes_setCPUSets(PSC_getMyID(), CPUsets);
 
-    uint16_t numGPUs = PSID_getNumPCIDevs(GPU_IDs);
+    /* @todo determine distances */
+
+    /* invalidate GPU and NIC information */
+    PSIDnodes_setNumGPUs(PSC_getMyID(), 0);
+    PSIDnodes_setGPUSets(PSC_getMyID(), NULL);
+
+    PSIDnodes_setNumNICs(PSC_getMyID(), 0);
+    PSIDnodes_setNICSets(PSC_getMyID(), NULL);
+}
+
+void PSIDhw_init(void)
+{
+    PSID_log(PSID_LOG_VERB, "%s()\n", __func__);
+
+    PSIDhw_reInit();
+
+    uint16_t numGPUs = PSIDhw_getNumPCIDevs(GPU_IDs);
     PSIDnodes_setNumGPUs(PSC_getMyID(), numGPUs);
     if (numGPUs) {
-	PSCPU_set_t *GPUsets = PSID_getPCISets(true /* PCIe order */, GPU_IDs);
+	PSCPU_set_t *GPUsets = PSIDhw_getPCISets(true /* PCIe */, GPU_IDs);
 	PSIDnodes_setGPUSets(PSC_getMyID(), GPUsets);
     }
 
-    uint16_t numNICs = PSID_getNumPCIDevs(NIC_IDs);
+    uint16_t numNICs = PSIDhw_getNumPCIDevs(NIC_IDs);
     PSIDnodes_setNumNICs(PSC_getMyID(), numNICs);
     if (numNICs) {
-	PSCPU_set_t *NICsets = PSID_getPCISets(false /* PCIe order */, NIC_IDs);
+	PSCPU_set_t *NICsets = PSIDhw_getPCISets(false /* BIOS */, NIC_IDs);
 	PSIDnodes_setNICSets(PSC_getMyID(), NICsets);
     }
 

@@ -22,16 +22,39 @@
 /**
  * @brief Initialize hardware stuff
  *
- * Initialize the communication hardware framework. This registers the
- * necessary message handlers and determines various hardware
- * parameters of the local node and pushes them into the PSIDnodes
- * facility. The parameters contain NUMA domains, distribution of
- * hardware threads over NUMA domains, number and distribution over
- * NUMA domains of GPUs and high performance NICs like HCAs or HFIs.
+ * Initialize the hardware framework. This registers the necessary
+ * message handlers and determines various hardware parameters of the
+ * local node and pushes them into the PSIDnodes facility. The
+ * parameters contain NUMA domains, distribution of hardware threads
+ * over NUMA domains, and distances between NUMA domains. Furthermore
+ * number and their distribution over NUMA domains of PCIe devices
+ * like GPUs and high performance NICs like HCAs or HFIs are
+ * determined.
  *
  * @return No return value.
  */
-void initHW(void);
+void PSIDhw_init(void);
+
+/**
+ * @brief Re-initialize hardware stuff
+ *
+ * Re-Initialize core hardware detection. This triggers again the
+ * determination of various hardware parameters of the local node and
+ * pushes them into the PSIDnodes facility. The parameters contain
+ * NUMA domains, distribution of hardware threads over NUMA domains,
+ * and distances between NUMA domains.
+ *
+ * This might be used after the HWLOC_XMLFILE environment variable was
+ * tweaked in order to mimik a different hardware platform.
+ *
+ * Keep in mind that identification of PCIe devices will be
+ * invalidated by tweaking the HWLOC_XMLFILE environment variable,
+ * too. Thus, the corresponding information will be removed from the
+ * PSIDnodes facility.
+ *
+ * @return No return value.
+ */
+void PSIDhw_reInit(void);
 
 /**
  * @brief Init all communication hardware.
@@ -103,7 +126,7 @@ void PSID_getCounter(DDTypedBufferMsg_t *inmsg);
  *
  * @return On success, the number of virtual processors is returned
  */
-int PSID_getHWthreads(void);
+int PSIDhw_getHWthreads(void);
 
 /**
  * @brief Get number of physical cores
@@ -123,7 +146,7 @@ int PSID_getHWthreads(void);
  *
  * @return On success, the number of physical cores is returned
  */
-int PSID_getPhysCores(void);
+int PSIDhw_getCores(void);
 
 /**
  * Type used to identify PCI devices in checkPCIDev() and callers,
@@ -154,7 +177,7 @@ typedef struct {
  *
  * @return Number of PCI devices of the selected kind
  */
-uint16_t PSID_getNumPCIDevs(PCI_ID_t ID_list[]);
+uint16_t PSIDhw_getNumPCIDevs(PCI_ID_t ID_list[]);
 
 /**
  * @brief Get the PCI device sets for all NUMA nodes
@@ -187,6 +210,6 @@ uint16_t PSID_getNumPCIDevs(PCI_ID_t ID_list[]);
  * @return On success, the array of CPU set is returned; on error, NULL
  * might be returned
  */
-PSCPU_set_t * PSID_getPCISets(bool PCIorder, PCI_ID_t ID_list[]);
+PSCPU_set_t * PSIDhw_getPCISets(bool PCIorder, PCI_ID_t ID_list[]);
 
 #endif /* __PSIDHW_H */
