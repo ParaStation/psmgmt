@@ -10,7 +10,7 @@
 
 PKG_NAME=psmgmt
 
-SOURCE_FILES=\
+SOURCE_FILES= \
 ChangeLog \
 LICENSE.QPL \
 Makefile.am \
@@ -105,13 +105,13 @@ bin/startup/cloptions.c \
 bin/startup/cloptions.h \
 bin/startup/common.c \
 bin/startup/common.h \
-bin/startup/mpiexec.c \
 bin/startup/kvsprovider.c \
+bin/startup/mpiexec.c \
 bin/startup/providerloop.c \
 bin/startup/providerloop.h \
 bin/startup/spawner.c \
-bin/testacct.c \
 bin/test_pse.c \
+bin/testacct.c \
 common.am \
 configure \
 configure.ac \
@@ -119,23 +119,24 @@ dist/.gitignore \
 dist/Makefile \
 dist/Makefile.sources \
 dist/psmgmt.spec.templ \
+doc/99-psid.conf \
 doc/Makefile.am \
 doc/Makefile.in \
 doc/MessageTypes \
 doc/README.cgroup \
 doc/README.nodeinfo \
+doc/README.psgw \
 doc/README.pspam \
+doc/cgroup.conf.in \
 doc/parastation.conf.tmpl \
 doc/psaccount.conf \
-doc/99-psid.conf \
-doc/psresport.conf \
-doc/cgroup.conf.in \
 doc/psconfig/nodeinfo.dump \
 doc/psconfig/nodeinfo.vipsconfig \
 doc/psconfig/psmgmt.vipsconfig \
-doc/systemd/psidstarter_socket_d_port.conf \
+doc/psresport.conf \
 doc/systemd/psid_service_d_munge.conf \
 doc/systemd/psid_service_d_nvidia.conf \
+doc/systemd/psidstarter_socket_d_port.conf \
 include/Makefile.am \
 include/Makefile.in \
 include/config_parsing.h \
@@ -158,8 +159,8 @@ include/pluginlog.h \
 include/pluginmalloc.h \
 include/pluginpartition.h \
 include/pluginpsconfig.h \
-include/pluginstrv.h \
 include/pluginpty.h \
+include/pluginstrv.h \
 include/pluginvector.h \
 include/psbyteorder.h \
 include/pscommon.h \
@@ -171,12 +172,12 @@ include/pshostlist.h \
 include/psi.h \
 include/psicomm.h \
 include/psicomm_proto.h \
-include/psitems.h \
 include/psienv.h \
 include/psiinfo.h \
 include/psilog.h \
 include/psipartition.h \
 include/psispawn.h \
+include/psitems.h \
 include/pslog.h \
 include/psnodes.h \
 include/psparamspace.h \
@@ -204,8 +205,8 @@ lib/plugincommon/pluginlog.c \
 lib/plugincommon/pluginmalloc.c \
 lib/plugincommon/pluginpartition.c \
 lib/plugincommon/pluginpsconfig.c \
-lib/plugincommon/pluginstrv.c \
 lib/plugincommon/pluginpty.c \
+lib/plugincommon/pluginstrv.c \
 lib/plugincommon/pluginvector.c \
 lib/pscommon/Makefile.am \
 lib/pscommon/Makefile.in \
@@ -256,6 +257,8 @@ lib/putil/rdp.c \
 lib/putil/selector.c \
 lib/putil/timer.c \
 m4/ax_check_compile_flag.m4 \
+m4/ax_check_link_flag.m4 \
+m4/ax_check_preproc_flag.m4 \
 m4/libtool.m4 \
 m4/ltoptions.m4 \
 m4/ltsugar.m4 \
@@ -392,10 +395,10 @@ plugins/psmom/Makefile.in \
 plugins/psmom/README \
 plugins/psmom/doc/Makefile.am \
 plugins/psmom/doc/Makefile.in \
+plugins/psmom/doc/pam/psmom \
 plugins/psmom/doc/psmom-epilogue-example \
 plugins/psmom/doc/psmom-prologue-example \
 plugins/psmom/doc/psmom-timeout-example \
-plugins/psmom/doc/pam/psmom \
 plugins/psmom/doc/psmom.conf \
 plugins/psmom/include/Makefile.am \
 plugins/psmom/include/Makefile.in \
@@ -408,13 +411,14 @@ plugins/psmom/pbs/Makefile.in \
 plugins/psmom/pbs/pbsrpp.c \
 plugins/psmom/psmom/Makefile.am \
 plugins/psmom/psmom/Makefile.in \
+plugins/psmom/psmom/psmom.c \
+plugins/psmom/psmom/psmom.h \
 plugins/psmom/psmom/psmomacc.c \
 plugins/psmom/psmom/psmomacc.h \
-plugins/psmom/psmom/psmom.c \
-plugins/psmom/psmom/psmomchild.c \
-plugins/psmom/psmom/psmomchild.h \
 plugins/psmom/psmom/psmomauth.c \
 plugins/psmom/psmom/psmomauth.h \
+plugins/psmom/psmom/psmomchild.c \
+plugins/psmom/psmom/psmomchild.h \
 plugins/psmom/psmom/psmomcollect.c \
 plugins/psmom/psmom/psmomcollect.h \
 plugins/psmom/psmom/psmomcomm.c \
@@ -427,7 +431,6 @@ plugins/psmom/psmom/psmomenv.c \
 plugins/psmom/psmom/psmomenv.h \
 plugins/psmom/psmom/psmomforwarder.c \
 plugins/psmom/psmom/psmomforwarder.h \
-plugins/psmom/psmom/psmom.h \
 plugins/psmom/psmom/psmominteractive.c \
 plugins/psmom/psmom/psmominteractive.h \
 plugins/psmom/psmom/psmomjob.c \
@@ -543,6 +546,8 @@ plugins/pspmix/pspmixservice.h \
 plugins/pspmix/pspmixservicespawn.c \
 plugins/pspmix/pspmixservicespawn.h \
 plugins/pspmix/pspmixtypes.h \
+plugins/pspmix/slurm/mpi_pspmix.c \
+plugins/pspmix/tests/pmix_test_putget.c \
 plugins/psresport/Makefile.am \
 plugins/psresport/Makefile.in \
 plugins/psresport/psresport.c \
@@ -554,9 +559,12 @@ plugins/psslurm/Makefile.am \
 plugins/psslurm/Makefile.in \
 plugins/psslurm/doc/Makefile.am \
 plugins/psslurm/doc/Makefile.in \
+plugins/psslurm/doc/pinning.txt \
 plugins/psslurm/doc/psslurm-epilogue.example \
 plugins/psslurm/doc/psslurm-epilogue.finalize.example \
+plugins/psslurm/doc/psslurm-offline.example \
 plugins/psslurm/doc/psslurm-prologue.example \
+plugins/psslurm/doc/psslurm-requeue-job.example \
 plugins/psslurm/doc/psslurm.conf \
 plugins/psslurm/src/bin/Makefile.am \
 plugins/psslurm/src/bin/Makefile.in \
@@ -569,6 +577,7 @@ plugins/psslurm/src/common/slurmmsg.h \
 plugins/psslurm/src/common/slurmnode.h \
 plugins/psslurm/src/psslurm/Makefile.am \
 plugins/psslurm/src/psslurm/Makefile.in \
+plugins/psslurm/src/psslurm/psslurm.c \
 plugins/psslurm/src/psslurm/psslurm.h \
 plugins/psslurm/src/psslurm/psslurmaccount.c \
 plugins/psslurm/src/psslurm/psslurmaccount.h \
@@ -578,7 +587,6 @@ plugins/psslurm/src/psslurm/psslurmauth.c \
 plugins/psslurm/src/psslurm/psslurmauth.h \
 plugins/psslurm/src/psslurm/psslurmbcast.c \
 plugins/psslurm/src/psslurm/psslurmbcast.h \
-plugins/psslurm/src/psslurm/psslurm.c \
 plugins/psslurm/src/psslurm/psslurmcomm.c \
 plugins/psslurm/src/psslurm/psslurmcomm.h \
 plugins/psslurm/src/psslurm/psslurmconfig.c \
@@ -631,7 +639,6 @@ plugins/psslurm/src/spank/Makefile.am \
 plugins/psslurm/src/spank/Makefile.in \
 plugins/psslurm/src/spank/spank_api.c \
 plugins/psslurm/src/spank/spank_api.h \
-scripts/psmgmt.gdb \
 scripts/Makefile.am \
 scripts/Makefile.in \
 scripts/compile \
@@ -656,10 +663,11 @@ scripts/ps_gmcounters \
 scripts/psaccview.in \
 scripts/psid2cmustatus.in \
 scripts/psmgmt.csh.in \
+scripts/psmgmt.gdb \
 scripts/psmgmt.sh.in \
 scripts/systemd/psid.service.in \
-scripts/systemd/psidstarter@.service \
 scripts/systemd/psidstarter.socket \
+scripts/systemd/psidstarter@.service \
 scripts/test-driver \
 scripts/vcversion \
 scripts/xinetd.d/psidstarter.in \
@@ -672,6 +680,11 @@ tests/functional/test_paramspace.c \
 tests/functional/test_psicomm.c \
 tests/plugins/Makefile.am \
 tests/plugins/Makefile.in \
+tests/plugins/delaySlurmMsg.c \
+tests/plugins/delegateStat.c \
+tests/plugins/dyn_resources.c \
+tests/plugins/fixLoginuid.c \
+tests/plugins/no_flowcontrol.c \
 tests/plugins/plugin1.c \
 tests/plugins/plugin2.c \
 tests/plugins/plugin3.c \
@@ -681,11 +694,6 @@ tests/plugins/plugin6.c \
 tests/plugins/plugin7.c \
 tests/plugins/plugin8.c \
 tests/plugins/plugin9.c \
-tests/plugins/delaySlurmMsg.c \
-tests/plugins/delegateStat.c \
-tests/plugins/dyn_resources.c \
-tests/plugins/fixLoginuid.c \
-tests/plugins/no_flowcontrol.c \
 tests/plugins/pluginpsconfig.c \
 tests/plugins/psBlackHole.c \
 tests/plugins/spank_test.c \

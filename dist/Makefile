@@ -2,7 +2,7 @@
 # ParaStation
 #
 # Copyright (C) 2003 ParTec AG, Karlsruhe
-# Copyright (C) 2005-2010 ParTec Cluster Competence Center GmbH, Munich
+# Copyright (C) 2005-2021 ParTec Cluster Competence Center GmbH, Munich
 #
 # This file may be distributed under the terms of the Q Public License
 # as defined in the file LICENSE.QPL included in the packaging of this
@@ -105,29 +105,6 @@ SVN_VERSION = $(shell cd $(TOP_SRCDIR) && svnversion -n | tr -c [:alnum:] "_")
 version:
 	@echo VERSION="$(VERSION)"
 	@echo RELEASE="$(RELEASE)"
-
-.PHONY: tag
-tag:
-	@{									\
-		eval $$(svn info --xml $(TOP_SRCDIR)|xsltproc $(TOP_SRCDIR)/dist/svninfo.xsl -);\
-										\
-		if echo "$(SVN_VERSION)" | grep -vqe '^[0-9]\+$$'; then		\
-			echo "Workingcopy not clean ($(SVN_VERSION))";		\
-			exit 1;							\
-		fi;								\
-										\
-		echo "Tagging r$(SVN_VERSION) as $(DISTNAME)";			\
-										\
-		if svn ls $${SVN_ROOT}/tags/$(PKG_NAME)/$(DISTNAME) > /dev/null 2>&1;then\
-			echo "$${SVN_ROOT}/tags/$(PKG_NAME)/$(DISTNAME) already there";\
-			exit 1;							\
-		fi;								\
-										\
-		msg="Tagging $(DISTNAME).";					\
-		svn copy -r$(SVN_VERSION) $${SVN_URL} $${SVN_ROOT}/tags/$(PKG_NAME)/$(DISTNAME) -m "$${msg}";\
-		svn rm $${SVN_ROOT}/tags/$(PKG_NAME)/latest -m "$${msg}";	\
-		svn copy $${SVN_ROOT}/tags/$(PKG_NAME)/$(DISTNAME) $${SVN_ROOT}/tags/$(PKG_NAME)/latest -m "$${msg}";\
-	}
 
 ######################################################
 # get the latest update from the git@git.ccc:psbuild project
