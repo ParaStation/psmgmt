@@ -684,8 +684,10 @@ tests/plugins/plugin9.c \
 tests/plugins/delaySlurmMsg.c \
 tests/plugins/delegateStat.c \
 tests/plugins/dyn_resources.c \
+tests/plugins/fixLoginuid.c \
 tests/plugins/no_flowcontrol.c \
 tests/plugins/pluginpsconfig.c \
+tests/plugins/psBlackHole.c \
 tests/plugins/spank_test.c \
 tests/psid/Makefile \
 tests/psid/config.tmpl \

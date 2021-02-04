@@ -12,6 +12,7 @@
 %{?_without_munge: %global disable_munge 1}
 %{?_without_pam: %global disable_pam 1}
 %{?_without_spank: %global disable_spank 1}
+%{?_with_testplugins: %global enable_testplugins 1}
 
 %if ( 0%{?rhel} && 0%{?rhel} < 7 ) || %(pkg-config --exists systemd; echo $?) != 0
 %global disable_systemd 1
@@ -138,6 +139,21 @@ Utilities helping to improve Slurm support. This includes spank plugins
 required to support e.g. the interplay of psgw functionality and
 Slurm or the psslurmgetbind tool.
 
+%if 0%{?enable_testplugins}
+%package testplugins
+Summary:   Set of plugins for debug and testing (psBlackHole, etc.)
+Group:     Productivity/Clustering/Computing
+# Requires:  %{name} = %{version}-%{release}
+
+%description testplugins
+Set of psid plugins for debug and testing psmgmt. This includes:
+- psBlackHole to randomly drop ParaStation messages
+- fakenode to mimick more potent hardware via pre-recorded hwloc info
+- no_flowcontrol to disable flow control for testing purposes
+- delaySlurmMsg to delay the arrival of Slurm messags in psslurm
+
+%endif
+
 %if 0%{?suse_version}
 %debug_package
 %endif
@@ -150,7 +166,8 @@ export CFLAGS="%(echo %{optflags}|sed -e 's,-O.,,')"
 %configure --datarootdir=%{_datarootdir} --with-pamdir=%{_pamdir} \
 	   %{?disable_psconfig:--disable-psconfig} \
 	   %{?disable_systemd:--with-unitdir=no} \
-	   %{?disable_spank:--disable-spank}
+	   %{?disable_spank:--disable-spank} \
+	   %{?enable_testplugins:--enable-testplugins}
 make %{?_smp_mflags}
 
 %install
@@ -401,4 +418,17 @@ exit 0
 %dir %{_libdir}/slurm
 %{_libdir}/slurm/psgw_spank.so
 %exclude %{_libdir}/slurm/psgw_spank.la
+%endif
+
+%if 0%{?enable_testplugins}
+%files testplugins
+%defattr(-,root,root,-)
+%exclude %{_plugindir}/delaySlurmMsg.la
+%{_plugindir}/delaySlurmMsg.so
+%exclude %{_plugindir}/delegateStat.la
+%{_plugindir}/delegateStat.so
+%exclude %{_plugindir}/no_flowcontrol.la
+%{_plugindir}/no_flowcontrol.so
+%exclude %{_plugindir}/psBlackHole.la
+%{_plugindir}/psBlackHole.so
 %endif
