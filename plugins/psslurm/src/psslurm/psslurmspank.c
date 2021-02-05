@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2019-2020 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2019-2021 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -590,6 +590,7 @@ static spank_err_t getTaskItem(spank_t spank, spank_item_t item, va_list ap)
 	    if (step && spank->task) {
 		*pInt = getLocalRankID(spank->task->rank, step,
 				       step->localNodeId);
+		if (*pInt == (int32_t) NO_VAL) return -1;
 	    } else {
 		*pInt = -1;
 		return ESPANK_NOT_TASK;
@@ -711,7 +712,7 @@ static spank_err_t getOtherItem(spank_t spank, spank_item_t item, va_list ap)
 	    pUint32 = va_arg(ap, uint32_t *);
 	    if (step) {
 		*pUint32 = getLocalRankID(Uint32Val, step, step->localNodeId);
-		if (*pUint32 == (uint32_t) -1) return ESPANK_NOEXIST;
+		if (*pUint32 == NO_VAL) return ESPANK_NOEXIST;
 	    } else {
 		*pUint32 = 0;
 		return ESPANK_NOT_AVAIL;
@@ -753,7 +754,7 @@ static spank_err_t getOtherItem(spank_t spank, spank_item_t item, va_list ap)
 		if (PSC_getPID(task->tid) == cPID) {
 		    *pUint32 = getLocalRankID(task->rank, step,
 					      step->localNodeId);
-		    if (*pUint32 == (uint32_t) -1) return ESPANK_NOEXIST;
+		    if (*pUint32 == NO_VAL) return ESPANK_NOEXIST;
 		}
 	    } else {
 		*pUint32 = 0;

@@ -1943,11 +1943,9 @@ static void handleDroppedMsg(DDTypedBufferMsg_t *msg)
 static void handleCC_IO_Msg(PSLog_Msg_t *msg)
 {
     Step_t *step = NULL;
-    PStask_t *task;
-    static PStask_ID_t noLoggerDest = -1;
-    int32_t taskid;
 
     if (!(step = findActiveStepByLogger(msg->header.dest))) {
+	PStask_t *task;
 	if (PSC_getMyID() == PSC_getID(msg->header.sender)) {
 	    if ((task = PStasklist_find(&managedTasks, msg->header.sender))) {
 		if (isPSAdminUser(task->uid, task->gid)) goto OLD_MSG_HANDLER;
@@ -1958,6 +1956,8 @@ static void handleCC_IO_Msg(PSLog_Msg_t *msg)
 	    }
 	}
 
+	static PStask_ID_t noLoggerDest = -1;
+
 	if (noLoggerDest == msg->header.dest) return;
 	flog("step for I/O msg (logger %s) not found\n",
 	     PSC_printTID(msg->header.dest));
@@ -1965,7 +1965,8 @@ static void handleCC_IO_Msg(PSLog_Msg_t *msg)
 	noLoggerDest = msg->header.dest;
 	return;
     }
-    taskid = msg->sender - step->packTaskOffset;
+
+    int32_t taskid = msg->sender - step->packTaskOffset;
 
     if (psslurmlogger->mask & PSSLURM_LOG_IO) {
 	flog("sender %s msgLen %i type %i PS-taskid %i Slurm-taskid %i\n",
@@ -1997,7 +1998,7 @@ static void handleCC_IO_Msg(PSLog_Msg_t *msg)
 	goto OLD_MSG_HANDLER;
     }
 
-    fwCMD_msgSrunProxy(step, msg, taskid);
+    fwCMD_msgSrunProxy(step, msg, msg->sender);
 
     return;
 

@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2015-2020 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2015-2021 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -303,9 +303,9 @@ static void handleBufferedMsg(Forwarder_Data_t *fwdata, char *msg, uint32_t len,
     }
 }
 
-void IO_closeChannel(Forwarder_Data_t *fwdata, uint32_t taskid, uint8_t type)
+void IO_closeChannel(Forwarder_Data_t *fwdata, uint32_t gtaskid, uint8_t type)
 {
-    IO_printStepMsg(fwdata, NULL, 0, taskid, type);
+    IO_printStepMsg(fwdata, NULL, 0, gtaskid, type);
 }
 
 void IO_printJobMsg(Forwarder_Data_t *fwdata, char *msg, size_t msgLen,
@@ -328,8 +328,9 @@ void IO_printJobMsg(Forwarder_Data_t *fwdata, char *msg, size_t msgLen,
     }
 }
 
-void IO_printStepMsg(Forwarder_Data_t *fwdata, char *msg, size_t msgLen,
-		     uint32_t rank, uint8_t type)
+void __IO_printStepMsg(Forwarder_Data_t *fwdata, char *msg, size_t msgLen,
+		       uint32_t grank, uint8_t type, const char *caller,
+		       const int line)
 {
     Step_t *step = fwdata->userData;
     uint32_t i;
@@ -337,11 +338,12 @@ void IO_printStepMsg(Forwarder_Data_t *fwdata, char *msg, size_t msgLen,
     int32_t myNodeID = step->localNodeId;
     static int initBuf = 0;
 
-    /* get local rank from rank */
-    uint32_t lrank = getLocalRankID(rank, step, myNodeID);
-    if (lrank == (uint32_t )-1) {
-	mlog("%s: invalid node rank for rank %i myNodeID %i step %u:%u\n",
-		__func__, rank, myNodeID, step->jobid, step->stepid);
+    /* get local rank from global rank */
+    uint32_t lrank = getLocalRankID(grank, step, myNodeID);
+    if (lrank == NO_VAL) {
+	flog("error: local rank for global rank %i myNodeID %i step %u:%u not"
+	     " found, caller %s:%i\n", grank, myNodeID, step->jobid,
+	     step->stepid, caller, line);
 	return;
     }
 
@@ -365,7 +367,7 @@ void IO_printStepMsg(Forwarder_Data_t *fwdata, char *msg, size_t msgLen,
     if (type == STDERR || (!(step->taskFlags & LAUNCH_LABEL_IO)
 	&& !(step->taskFlags & LAUNCH_BUFFERED_IO))
 	|| step->taskFlags & LAUNCH_PTY) {
-	IO_writeMsg(fwdata, msg, msgLen, rank, type, lrank);
+	IO_writeMsg(fwdata, msg, msgLen, grank, type, lrank);
 	return;
     }
 
@@ -383,7 +385,7 @@ void IO_printStepMsg(Forwarder_Data_t *fwdata, char *msg, size_t msgLen,
     handleBufferedMsg(fwdata, msg, msgLen,
 		     (type == STDOUT) ?
 			&lineBuf[lrank].out : &lineBuf[lrank].err,
-		     rank, type, lrank);
+		     grank, type, lrank);
 }
 
 void IO_finalize(Forwarder_Data_t *fwdata)
@@ -393,11 +395,15 @@ void IO_finalize(Forwarder_Data_t *fwdata)
 
     /* make sure to close all leftover I/O channels */
     for (i=0; i<step->globalTaskIdsLen[myNodeID]; i++) {
+	/* use global rank */
+	uint32_t grank = step->globalTaskIds[myNodeID][i] +
+			 step->packTaskOffset;
+
 	if (step->outChannels && step->outChannels[i] != 0) {
-	    IO_closeChannel(fwdata, step->globalTaskIds[myNodeID][i], STDOUT);
+	    IO_closeChannel(fwdata, grank, STDOUT);
 	}
 	if (step->errChannels && step->errChannels[i] != 0) {
-	    IO_closeChannel(fwdata, step->globalTaskIds[myNodeID][i], STDERR);
+	    IO_closeChannel(fwdata, grank, STDERR);
 	}
     }
 

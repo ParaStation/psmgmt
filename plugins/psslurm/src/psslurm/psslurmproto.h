@@ -412,9 +412,17 @@ int getSlurmNodeID(PSnodes_ID_t psNodeID, PSnodes_ID_t *nodes,
  *
  * @param nodeId The node ID of the rank to convert
  *
- * @return Returns the converted node local rank or -1 on error
+ * @param caller Function name of the calling function
+ *
+ * @param line Line number where this function is called
+ *
+ * @return Returns the converted node local rank or NO_VAL on error
  */
-uint32_t getLocalRankID(uint32_t rank, Step_t *step, uint32_t nodeId);
+uint32_t __getLocalRankID(uint32_t rank, Step_t *step, uint32_t nodeId,
+			  const char *caller, const int line);
+
+#define getLocalRankID(rank, step, nodeId) \
+    __getLocalRankID(rank, step, nodeId, __func__, __LINE__)
 
 /**
  * @brief Register message handler function

@@ -608,9 +608,8 @@ void setRankEnv(int32_t rank, Step_t *step)
 	ufree(myGTIDs);
     }
 
-    uint32_t myLocalId = getLocalRankID(rank - step->packTaskOffset,
-				        step, myNodeId);
-    if (myLocalId == (uint32_t) -1) {
+    uint32_t myLocalId = getLocalRankID(rank, step, myNodeId);
+    if (myLocalId == NO_VAL) {
 	flog("failed to find local ID for rank %u nodeID %u\n",
 	     rank, myNodeId);
     } else {

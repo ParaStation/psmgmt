@@ -2143,7 +2143,7 @@ void doMemBind(Step_t *step, PStask_t *task)
 
     uint32_t lTID = getLocalRankID(task->rank, step, step->localNodeId);
 
-    if (lTID == (uint32_t) -1) {
+    if (lTID == NO_VAL) {
 	flog("Getting local rank ID failed. Omit custom memory binding.\n");
 	return;
     }

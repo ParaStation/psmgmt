@@ -58,18 +58,17 @@ static void handleFWfinalize(Forwarder_Data_t *fwdata, char *ptr)
     size_t len;
     PSLog_Msg_t *msg = getDataM(&ptr, &len);
     PStask_ID_t sender = msg->header.sender;
-    PS_Tasks_t *task = findTaskByFwd(&step->tasks, sender);
-    uint32_t taskid = msg->sender - step->packTaskOffset;
-
 
     mdbg(PSSLURM_LOG_IO, "%s from %s\n", __func__, PSC_printTID(sender));
 
     if (!(step->taskFlags & LAUNCH_PTY)) {
 	/* close stdout/stderr */
+	uint32_t taskid = msg->sender;
 	IO_closeChannel(fwdata, taskid, STDOUT);
 	IO_closeChannel(fwdata, taskid, STDERR);
     }
 
+    PS_Tasks_t *task = findTaskByFwd(&step->tasks, sender);
     if (!task) {
 	mlog("%s: no task for forwarder %s\n", __func__, PSC_printTID(sender));
     } else {

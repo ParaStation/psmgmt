@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2015-2020 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2015-2021 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -64,12 +64,16 @@ void IO_finalize(Forwarder_Data_t *fwdata);
  *
  * @param msgLen The length of the message
  *
- * @param rank The rank of the message origin
+ * @param grank The *global* rank of the message origin
  *
  * @param type The message type (stdout or stderr)
  */
-void IO_printStepMsg(Forwarder_Data_t *fwdata, char *msg, size_t msgLen,
-		     uint32_t rank, uint8_t type);
+void __IO_printStepMsg(Forwarder_Data_t *fwdata, char *msg, size_t msgLen,
+		       uint32_t grank, uint8_t type, const char *caller,
+		       const int line);
+
+#define IO_printStepMsg(fwdata, msg, msgLen, rank, type) \
+    __IO_printStepMsg(fwdata, msg, msgLen, rank, type, __func__, __LINE__)
 
 /**
  * @brief Write a stdout or stderr message for a job
@@ -130,11 +134,11 @@ int IO_redirectRank(Step_t *step, int rank);
  *
  * @param fwdata The forwarder associated with the I/O channel
  *
- * @param taskid The taskid of the I/O channel
+ * @param gtaskid The *global* taskid of the I/O channel
  *
  * @param type The I/O type of the channel
  */
-void IO_closeChannel(Forwarder_Data_t *fwdata, uint32_t taskid, uint8_t type);
+void IO_closeChannel(Forwarder_Data_t *fwdata, uint32_t gtaskid, uint8_t type);
 
 /**
  * @brief Open I/O pipes for a step connected to the psilogger
