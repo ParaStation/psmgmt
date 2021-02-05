@@ -163,6 +163,9 @@ delegateStat_la_OBJECTS = delegateStat.lo
 dyn_resources_la_LIBADD =
 dyn_resources_la_SOURCES = dyn_resources.c
 dyn_resources_la_OBJECTS = dyn_resources.lo
+fakenode_la_DEPENDENCIES = $(libplugincommon) $(libpscommon)
+fakenode_la_SOURCES = fakenode.c
+fakenode_la_OBJECTS = fakenode_la-fakenode.lo
 fixLoginuid_la_LIBADD =
 fixLoginuid_la_SOURCES = fixLoginuid.c
 fixLoginuid_la_OBJECTS = fixLoginuid.lo
@@ -222,6 +225,7 @@ depcomp = $(SHELL) $(top_srcdir)/scripts/depcomp
 am__maybe_remake_depfiles = depfiles
 am__depfiles_remade = ./$(DEPDIR)/delaySlurmMsg_la-delaySlurmMsg.Plo \
 	./$(DEPDIR)/delegateStat.Plo ./$(DEPDIR)/dyn_resources.Plo \
+	./$(DEPDIR)/fakenode_la-fakenode.Plo \
 	./$(DEPDIR)/fixLoginuid.Plo ./$(DEPDIR)/no_flowcontrol.Plo \
 	./$(DEPDIR)/plugin1.Plo ./$(DEPDIR)/plugin2.Plo \
 	./$(DEPDIR)/plugin3.Plo ./$(DEPDIR)/plugin4.Plo \
@@ -249,14 +253,14 @@ AM_V_CCLD = $(am__v_CCLD_@AM_V@)
 am__v_CCLD_ = $(am__v_CCLD_@AM_DEFAULT_V@)
 am__v_CCLD_0 = @echo "  CCLD    " $@;
 am__v_CCLD_1 = 
-SOURCES = delaySlurmMsg.c delegateStat.c dyn_resources.c fixLoginuid.c \
-	no_flowcontrol.c plugin1.c plugin2.c plugin3.c plugin4.c \
-	plugin5.c plugin6.c plugin7.c plugin8.c plugin9.c \
-	pluginpsconfig.c psBlackHole.c spank_test.c
-DIST_SOURCES = delaySlurmMsg.c delegateStat.c dyn_resources.c \
+SOURCES = delaySlurmMsg.c delegateStat.c dyn_resources.c fakenode.c \
 	fixLoginuid.c no_flowcontrol.c plugin1.c plugin2.c plugin3.c \
 	plugin4.c plugin5.c plugin6.c plugin7.c plugin8.c plugin9.c \
 	pluginpsconfig.c psBlackHole.c spank_test.c
+DIST_SOURCES = delaySlurmMsg.c delegateStat.c dyn_resources.c \
+	fakenode.c fixLoginuid.c no_flowcontrol.c plugin1.c plugin2.c \
+	plugin3.c plugin4.c plugin5.c plugin6.c plugin7.c plugin8.c \
+	plugin9.c pluginpsconfig.c psBlackHole.c spank_test.c
 am__can_run_installinfo = \
   case $$AM_UPDATE_INFO_DIR in \
     n|no|NO) false;; \
@@ -470,15 +474,19 @@ noinst_LTLIBRARIES = plugin1.la plugin2.la plugin3.la plugin4.la	\
 	pluginpsconfig.la
 
 plugin_LTLIBRARIES = no_flowcontrol.la delaySlurmMsg.la	\
-	delegateStat.la psBlackHole.la
+	delegateStat.la psBlackHole.la fakenode.la
 
 delaySlurmMsg_la_CPPFLAGS = $(AM_CPPFLAGS)		\
 	-I$(top_srcdir)/plugins/psslurm/src/psslurm	\
 	-I$(top_srcdir)/plugins/psslurm/src/common
 
 delegateStat_la_LIBADD = $(libplugincommon) $(libpscommon)
-psBlackHole_la_LIBADD = $(libplugincommon) $(libpscommon)
+fakenode_la_CPPFLAGS = $(AM_CPPFLAGS)		\
+	-I$(top_srcdir)/plugins/nodeinfo
+
+fakenode_la_LIBADD = $(libplugincommon) $(libpscommon)
 pluginpsconfig_la_LIBADD = $(libplugincommon) $(libpscommon)
+psBlackHole_la_LIBADD = $(libplugincommon) $(libpscommon)
 @SPANK_ENABLED_TRUE@spank_test_la_CPPFLAGS = $(AM_CPPFLAGS) -DSLURMLIBDIR=\"$(slurmlibdir)\"
 all: all-am
 
@@ -570,6 +578,9 @@ delegateStat.la: $(delegateStat_la_OBJECTS) $(delegateStat_la_DEPENDENCIES) $(EX
 dyn_resources.la: $(dyn_resources_la_OBJECTS) $(dyn_resources_la_DEPENDENCIES) $(EXTRA_dyn_resources_la_DEPENDENCIES) 
 	$(AM_V_CCLD)$(LINK)  $(dyn_resources_la_OBJECTS) $(dyn_resources_la_LIBADD) $(LIBS)
 
+fakenode.la: $(fakenode_la_OBJECTS) $(fakenode_la_DEPENDENCIES) $(EXTRA_fakenode_la_DEPENDENCIES) 
+	$(AM_V_CCLD)$(LINK) -rpath $(plugindir) $(fakenode_la_OBJECTS) $(fakenode_la_LIBADD) $(LIBS)
+
 fixLoginuid.la: $(fixLoginuid_la_OBJECTS) $(fixLoginuid_la_DEPENDENCIES) $(EXTRA_fixLoginuid_la_DEPENDENCIES) 
 	$(AM_V_CCLD)$(LINK)  $(fixLoginuid_la_OBJECTS) $(fixLoginuid_la_LIBADD) $(LIBS)
 
@@ -621,6 +632,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/delaySlurmMsg_la-delaySlurmMsg.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/delegateStat.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/dyn_resources.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/fakenode_la-fakenode.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/fixLoginuid.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/no_flowcontrol.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/plugin1.Plo@am__quote@ # am--include-marker
@@ -672,6 +684,13 @@ delaySlurmMsg_la-delaySlurmMsg.lo: delaySlurmMsg.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='delaySlurmMsg.c' object='delaySlurmMsg_la-delaySlurmMsg.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(delaySlurmMsg_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o delaySlurmMsg_la-delaySlurmMsg.lo `test -f 'delaySlurmMsg.c' || echo '$(srcdir)/'`delaySlurmMsg.c
+
+fakenode_la-fakenode.lo: fakenode.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(fakenode_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT fakenode_la-fakenode.lo -MD -MP -MF $(DEPDIR)/fakenode_la-fakenode.Tpo -c -o fakenode_la-fakenode.lo `test -f 'fakenode.c' || echo '$(srcdir)/'`fakenode.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/fakenode_la-fakenode.Tpo $(DEPDIR)/fakenode_la-fakenode.Plo
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='fakenode.c' object='fakenode_la-fakenode.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(fakenode_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o fakenode_la-fakenode.lo `test -f 'fakenode.c' || echo '$(srcdir)/'`fakenode.c
 
 spank_test_la-spank_test.lo: spank_test.c
 @am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(spank_test_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT spank_test_la-spank_test.lo -MD -MP -MF $(DEPDIR)/spank_test_la-spank_test.Tpo -c -o spank_test_la-spank_test.lo `test -f 'spank_test.c' || echo '$(srcdir)/'`spank_test.c
@@ -817,6 +836,7 @@ distclean: distclean-am
 		-rm -f ./$(DEPDIR)/delaySlurmMsg_la-delaySlurmMsg.Plo
 	-rm -f ./$(DEPDIR)/delegateStat.Plo
 	-rm -f ./$(DEPDIR)/dyn_resources.Plo
+	-rm -f ./$(DEPDIR)/fakenode_la-fakenode.Plo
 	-rm -f ./$(DEPDIR)/fixLoginuid.Plo
 	-rm -f ./$(DEPDIR)/no_flowcontrol.Plo
 	-rm -f ./$(DEPDIR)/plugin1.Plo
@@ -879,6 +899,7 @@ maintainer-clean: maintainer-clean-am
 		-rm -f ./$(DEPDIR)/delaySlurmMsg_la-delaySlurmMsg.Plo
 	-rm -f ./$(DEPDIR)/delegateStat.Plo
 	-rm -f ./$(DEPDIR)/dyn_resources.Plo
+	-rm -f ./$(DEPDIR)/fakenode_la-fakenode.Plo
 	-rm -f ./$(DEPDIR)/fixLoginuid.Plo
 	-rm -f ./$(DEPDIR)/no_flowcontrol.Plo
 	-rm -f ./$(DEPDIR)/plugin1.Plo

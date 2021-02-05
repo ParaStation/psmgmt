@@ -683,6 +683,7 @@ tests/plugins/Makefile.in \
 tests/plugins/delaySlurmMsg.c \
 tests/plugins/delegateStat.c \
 tests/plugins/dyn_resources.c \
+tests/plugins/fakenode.c \
 tests/plugins/fixLoginuid.c \
 tests/plugins/no_flowcontrol.c \
 tests/plugins/plugin1.c \

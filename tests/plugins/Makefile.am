@@ -22,7 +22,7 @@ noinst_LTLIBRARIES = plugin1.la plugin2.la plugin3.la plugin4.la	\
 	pluginpsconfig.la
 
 plugin_LTLIBRARIES = no_flowcontrol.la delaySlurmMsg.la	\
-	delegateStat.la psBlackHole.la
+	delegateStat.la psBlackHole.la fakenode.la
 
 delaySlurmMsg_la_CPPFLAGS = $(AM_CPPFLAGS)		\
 	-I$(top_srcdir)/plugins/psslurm/src/psslurm	\
@@ -30,9 +30,13 @@ delaySlurmMsg_la_CPPFLAGS = $(AM_CPPFLAGS)		\
 
 delegateStat_la_LIBADD = $(libplugincommon) $(libpscommon)
 
-psBlackHole_la_LIBADD = $(libplugincommon) $(libpscommon)
+fakenode_la_CPPFLAGS = $(AM_CPPFLAGS)		\
+	-I$(top_srcdir)/plugins/nodeinfo
+fakenode_la_LIBADD = $(libplugincommon) $(libpscommon)
 
 pluginpsconfig_la_LIBADD = $(libplugincommon) $(libpscommon)
+
+psBlackHole_la_LIBADD = $(libplugincommon) $(libpscommon)
 
 if SPANK_ENABLED
 spank_test_la_CPPFLAGS = $(AM_CPPFLAGS) -DSLURMLIBDIR=\"$(slurmlibdir)\"
