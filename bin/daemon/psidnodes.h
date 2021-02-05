@@ -885,6 +885,52 @@ int PSIDnodes_setNumNUMADoms(PSnodes_ID_t id, short num);
 short PSIDnodes_numNUMADoms(PSnodes_ID_t id);
 
 /**
+ * @brief Set node's matrix of distances between NUMA domains
+ *
+ * Set the matrix of distances between NUMA domains of the node with
+ * ParaStation ID @a id to @a distances.
+ *
+ * The distance matrix is represented by an one-dimensional array of
+ * of uint32_t elements.  For a node with <numNUMA> NUMA domains
+ * (<numNUMA> might be determined via @ref PSIDnodes_numNUMADoms())
+ * the array is of size <numNUMA>*<numNUMA>. The distance from the
+ * i-th to the j-th domain is stored in element i*<numNUMA>+j.
+ *
+ * @a distances is expected to be allocated with @ref malloc() and
+ * friends and will be freed within @ref PSIDnodes_clearMem(). If a
+ * distance matrix was set before, further calls to this function will
+ * @ref free() the old matrix before setting the new one. If @a
+ * distances is NULL, the old matrix will be freed, too.
+ *
+ * @param id ParaStation ID of the node to be modified
+ *
+ * @param distances Matrix of latency distances between NUMA domains
+ * on the node to be modified
+ *
+ * @return On success, 0 is returned; or -1 if an error occurred
+ */
+int PSIDnodes_setDistances(PSnodes_ID_t id, uint32_t *distances);
+
+/**
+ * @brief Get node's matrix of distances between NUMA domains
+ *
+ * Get the matrix of distances between NUMA domains of the node with
+ * ParaStation ID @a id.
+ *
+ * The distance matrix is represented by an one-dimensional array of
+ * of uint32_t elements.  For a node with <numNUMA> NUMA domains
+ * (<numNUMA> might be determined via @ref PSIDnodes_numNUMADoms())
+ * the array is of size <numNUMA>*<numNUMA>. The distance from the
+ * i-th to the j-th domain is stored in element i*<numNUMA>+j.
+ *
+ * @param id ParaStation ID of the node to look up
+ *
+ * @return If the node was found, a distance matrix is returned; or
+ * NULL if an error occurred or no matrix was set.
+ */
+uint32_t * PSIDnodes_distances(PSnodes_ID_t id);
+
+/**
  * @brief Set node's hardware thread distribution over NUMA domains
  *
  * Set the distribution of hardware threads over NUMA domains of the

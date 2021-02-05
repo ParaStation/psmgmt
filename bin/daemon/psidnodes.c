@@ -70,6 +70,7 @@ typedef struct {
     char supplGrps;        /**< Set supplementary groups for new tasks */
     char maxStatTry;       /**< Number of tries to stat() executable to spawn */
     short numNUMADoms;     /**< Number of NUMA domains */
+    uint32_t *distances;   /**< Distances in between NUMA domains */
     PSCPU_set_t *CPUset;   /**< Distribution of CPUs over NUMA domains */
     short numGPUs;         /**< Number of GPUs */
     PSCPU_set_t *GPUset;   /**< Distribution of GPUs over NUMA domains */
@@ -118,6 +119,7 @@ static void nodeInit(node_t *node)
     node->supplGrps = 0;
     node->maxStatTry = 1;
     node->numNUMADoms = 0;
+    node->distances = NULL;
     node->CPUset = NULL;
     node->numGPUs = 0;
     node->GPUset = NULL;
@@ -985,6 +987,22 @@ short PSIDnodes_numNUMADoms(PSnodes_ID_t id)
     return nodes[id].numNUMADoms;
 }
 
+int PSIDnodes_setDistances(PSnodes_ID_t id, uint32_t *distances)
+{
+    if (!validID(id)) return -1;
+
+    if (nodes[id].distances) free(nodes[id].distances);
+    nodes[id].distances = distances;
+    return 0;
+}
+
+uint32_t * PSIDnodes_distances(PSnodes_ID_t id)
+{
+    if (!validID(id)) return NULL;
+
+    return nodes[id].distances;
+}
+
 int PSIDnodes_setCPUSets(PSnodes_ID_t id, PSCPU_set_t *CPUset)
 {
     if (!validID(id)) return -1;
@@ -1080,6 +1098,7 @@ void PSIDnodes_clearMem(void)
 	clear_GUID_list(&nodes[n].admuid_list);
 	clear_GUID_list(&nodes[n].admgid_list);
 	if (nodes[n].CPUmap) free(nodes[n].CPUmap);
+	if (nodes[n].distances) free(nodes[n].distances);
 	if (nodes[n].CPUset) free(nodes[n].CPUset);
 	if (nodes[n].GPUset) free(nodes[n].GPUset);
 	if (nodes[n].NICset) free(nodes[n].NICset);
