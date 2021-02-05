@@ -9,6 +9,7 @@
  */
 #define _GNU_SOURCE
 #include <hwloc.h>
+#include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -283,7 +284,7 @@ static uint32_t * getDistances(void)
 	for (unsigned j = 0; j < numNUMA; j++) {
 	    hwloc_uint64_t val = hwlocDists[best]->values[i*numNUMA + j];
 	    if (val > UINT32_MAX) {
-		PSID_log(-1, "%s: distance(%d,%d) = %lu exceed capacity\n",
+		PSID_log(-1, "%s: distance(%d,%d) = %lu exceeds capacity\n",
 			 __func__, i, j, val);
 		for (unsigned i = 0; i < nr; i++) {
 		    hwloc_distances_release(topology, hwlocDists[i]);
@@ -299,8 +300,32 @@ static uint32_t * getDistances(void)
     }
     free(distances);
 #else /* hwloc 1.x */
-    #error to be implemented
+    const struct hwloc_distances_s *hwlocDists =
+	hwloc_get_whole_distance_matrix_by_type(topology, HWLOC_OBJ_NUMANODE);
+    if (!hwlocDists) {
+	PSID_log(-1, "%s: no distances found\n", __func__);
+	goto failed;
+    }
+    float base = hwlocDists->latency_base;
+    if (base == 0.0) {
+	PSID_log(-1, "%s: latency base is %2.3f\n", __func__, base);
+	goto failed;
+    }
+    if (base * hwlocDists->latency_max > UINT32_MAX) {
+	PSID_log(-1, "%s: distance %2.3f exceeds capacity\n",
+		 __func__, base * hwlocDists->latency_max);
+	goto failed;
+    }
+
+    /* check and copy data over to our array */
+    for (unsigned i = 0; i < numNUMA; i++) {
+	for (unsigned j = 0; j < numNUMA; j++) {
+	    float val = hwlocDists->latency[i*numNUMA + j];
+	    distances[i*numNUMA + j] = (uint32_t) round(base * val);
+	}
+    }
 #endif
+
     return distances;
 
 failed:
