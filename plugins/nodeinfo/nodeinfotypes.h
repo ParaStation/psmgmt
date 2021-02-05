@@ -18,6 +18,7 @@ typedef enum {
     PSP_NODEINFO_GPU,       /**< GPU affinity info: num + numGPUs + GPUsets */
     PSP_NODEINFO_NIC,       /**< NIC affinity info: num + numNICs + NICsets */
     PSP_NODEINFO_REQ,       /**< Request to get all info (for late loaders) */
+    PSP_NODEINFO_DISTANCES, /**< distances: num + distances */
 } PSP_NodeInfo_t;
 
 /**
