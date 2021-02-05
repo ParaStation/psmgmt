@@ -27,3 +27,8 @@ topo.knl05.xml     DEEP-ER knl05
    Configured as Cluster: SNC4
 topo.knl06.xml     DEEP-ER knl06
    Claims to be "Intel(R) Xeon Phi(TM) CPU 7250 @ 1.40GHz" (68 cores)
+
+These are the same nodes as above but recorded with hwloc v2.4
+topo.knl01_v2_4.xml
+topo.knl04_v2_4.xml
+topo.knl05_v2_4.xml
