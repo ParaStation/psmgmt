@@ -78,10 +78,10 @@ static void initHWloc(void)
     hwlocInitialized = true;
 }
 
+static int hwThreads = 0;
+
 int PSIDhw_getHWthreads(void)
 {
-    static int hwThreads = 0;
-
     if (!hwThreads) {
 	if (!hwlocInitialized) initHWloc();
 
@@ -105,10 +105,10 @@ int PSIDhw_getHWthreads(void)
     return hwThreads;
 }
 
+static int physCores = 0;
+
 int PSIDhw_getCores(void)
 {
-    static int physCores = 0;
-
     if (!physCores) {
 	if (!hwlocInitialized) initHWloc();
 
@@ -131,6 +131,8 @@ int PSIDhw_getCores(void)
     return physCores;
 }
 
+static uint16_t numaDoms = 0;
+
 /**
  * @brief Get number of NUMA domains
  *
@@ -148,8 +150,6 @@ int PSIDhw_getCores(void)
  */
 static uint16_t getNUMADoms(void)
 {
-    static uint16_t numaDoms = 0;
-
     if (!numaDoms) {
 	if (!hwlocInitialized) initHWloc();
 
@@ -890,6 +890,18 @@ static PCI_ID_t NIC_IDs[] = {
 
 void PSIDhw_reInit(void)
 {
+    if (hwlocInitialized) {
+	/* Reset all the basic information */
+	hwThreads = 0;
+	physCores = 0;
+	numaDoms = 0;
+	hwloc_topology_destroy(topology);
+	hwlocInitialized = false;
+
+	PSIDnodes_setNumThrds(PSC_getMyID(), PSIDhw_getHWthreads());
+	PSIDnodes_setNumCores(PSC_getMyID(), PSIDhw_getCores());
+    }
+
     /* Determine various HW parameters and feed them into PSIDnodes */
     uint16_t numNUMA = getNUMADoms();
     if (!numNUMA) {
