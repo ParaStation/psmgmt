@@ -202,6 +202,113 @@ static PSCPU_set_t * getCPUSets(void)
 }
 
 /**
+ * @brief Get distances for all NUMA domains
+ *
+ * Determine the distances in between all NUMA domains and return them
+ * as an array. This utilizes the hwloc framework.
+ *
+ * By using @ref getNUMADoms() this implicitly initializes hwloc if
+ * this has not happened before and could result in an exit().
+ *
+ * @todo
+ * The array returned is indexed by NUMA domain numbers. It is
+ * allocated via malloc() and has to be free()ed by the caller once it
+ * is no longer needed. Thus, it is well suited to be registered to
+ * the PSIDnodes facility via PSIDnodes_setCPUSets().
+ *
+ * @return On success, the array of CPU set is returned; on error, NULL
+ * might be returned
+ */
+static uint32_t * getDistances(void)
+{
+    uint16_t numNUMA = getNUMADoms();
+    if (numNUMA <= 1) return NULL;
+    uint32_t *distances = malloc(numNUMA * numNUMA * sizeof(*distances));
+    if (!distances) PSID_exit(errno, "%s: malloc()", __func__);
+
+#if HWLOC_API_VERSION >= 0x00020000 /* hwloc 2.x */
+    unsigned nr = 0;
+    int err = hwloc_distances_get_by_depth(topology, HWLOC_TYPE_DEPTH_NUMANODE,
+					   &nr, NULL, 0, 0);
+    if (err) {
+	PSID_log(-1, "%s: hwloc_distances_get_by_depth() failed\n", __func__);
+	goto failed;
+    }
+    if (!nr) {
+	PSID_log(-1, "%s: no distances found\n", __func__);
+	goto failed;
+    }
+    struct hwloc_distances_s **hwlocDists = malloc(nr * sizeof(*hwlocDists));
+    err = hwloc_distances_get_by_depth(topology, HWLOC_TYPE_DEPTH_NUMANODE,
+				       &nr, hwlocDists, 0, 0);
+    if (err) {
+	PSID_log(-1, "%s: actual hwloc_distances_get_by_depth() failed\n",
+		 __func__);
+	goto failed;
+    }
+
+    /* find the best matching distances, i.e. OS provided and latency */
+    unsigned best = nr;
+    for (unsigned i = 0; i < nr; i++) {
+	if (hwlocDists[i]->kind & HWLOC_DISTANCES_KIND_FROM_OS
+	    && hwlocDists[i]->kind & HWLOC_DISTANCES_KIND_MEANS_LATENCY) {
+	    best = i;
+	    break;
+	}
+    }
+    if (best == nr) {
+	PSID_log(-1, "%s: try to find other distances...\n", __func__);
+	for (unsigned i = 0; i < nr; i++) {
+	    if (hwlocDists[i]->kind & HWLOC_DISTANCES_KIND_FROM_OS
+		&& hwlocDists[i]->kind & HWLOC_DISTANCES_KIND_MEANS_BANDWIDTH) {
+		best = i;
+		break;
+	    }
+	}
+	if (best != nr) {
+	    PSID_log(-1, "%s: at least we found bandwidth distances...\n",
+		     __func__);
+	}
+    }
+    if (best == nr) {
+	PSID_log(-1, "%s: no matching distances found\n", __func__);
+	for (unsigned i = 0; i < nr; i++) {
+	    hwloc_distances_release(topology, hwlocDists[i]);
+	}
+	goto failed;
+    }
+
+    /* check and copy data over to our array */
+    for (unsigned i = 0; i < numNUMA; i++) {
+	for (unsigned j = 0; j < numNUMA; j++) {
+	    hwloc_uint64_t val = hwlocDists[best]->values[i*numNUMA + j];
+	    if (val > UINT32_MAX) {
+		PSID_log(-1, "%s: distance(%d,%d) = %lu exceed capacity\n",
+			 __func__, i, j, val);
+		for (unsigned i = 0; i < nr; i++) {
+		    hwloc_distances_release(topology, hwlocDists[i]);
+		}
+		goto failed;
+	    }
+	    distances[i*numNUMA + j] = val;
+	}
+    }
+
+    for (unsigned i = 0; i < nr; i++) {
+	hwloc_distances_release(topology, hwlocDists[i]);
+    }
+    free(distances);
+#else /* hwloc 1.x */
+    #error to be implemented
+#endif
+    return distances;
+
+failed:
+    free(distances);
+    return NULL;
+}
+
+/**
  * @brief Check PCI device
  *
  * Check if the PCI device @a pcidev as reported by hwloc is included
@@ -915,6 +1022,8 @@ void PSIDhw_reInit(void)
     PSIDnodes_setCPUSets(PSC_getMyID(), CPUsets);
 
     /* @todo determine distances */
+    uint32_t *distances = getDistances();
+    PSIDnodes_setDistances(PSC_getMyID(), distances);
 
     /* invalidate GPU and NIC information */
     PSIDnodes_setNumGPUs(PSC_getMyID(), 0);
