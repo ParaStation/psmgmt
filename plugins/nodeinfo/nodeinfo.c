@@ -10,6 +10,7 @@
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <errno.h>
 #include <unistd.h>
 
@@ -327,6 +328,7 @@ static void checkOtherNodes(void)
 		PSIDnodes_numGPUs(PSC_getMyID()), &data);
     addSetsData(PSP_NODEINFO_NIC, PSIDnodes_NICSets(PSC_getMyID()),
 		PSIDnodes_numNICs(PSC_getMyID()), &data);
+    addDistanceData(&data);
     addUint8ToMsg(0, &data);  // declare end of message
 
     /* send the messages */
@@ -708,8 +710,9 @@ static void printSets(PSnodes_ID_t node, char *tag, uint16_t numNUMA,
 static PSnodes_ID_t getNode(char *key)
 {
     PSnodes_ID_t node = -1;
-    if (strlen(key) > 3 && key[3] == '_') {
-	sscanf(key + 4, "%hd", &node);
+    char *underline = strchr(key, '_');
+    if (underline) {
+	sscanf(underline + 1, "%hd", &node);
     }
     if (!PSC_validNode(node)) node = PSC_getMyID();
 
@@ -731,6 +734,47 @@ static void showMap(char *key, StrBuffer_t *strBuf)
 	snprintf(line, sizeof(line), " %d->%d", thrd,
 		 PSIDnodes_mapCPU(node, thrd));
 	addStrBuf(line, strBuf);
+    }
+    addStrBuf("\n", strBuf);
+}
+
+static void showDistances(char *key, StrBuffer_t *strBuf)
+{
+    PSnodes_ID_t node = getNode(key);
+    uint16_t numNUMA = PSIDnodes_numNUMADoms(node);
+    uint32_t *distances = PSIDnodes_distances(node);
+    char line[80];
+
+    addStrBuf("\nDistances", strBuf);
+    if (node != PSC_getMyID()) {
+	snprintf(line, sizeof(line), " (for node %d)", node);
+	addStrBuf(line, strBuf);
+    }
+    addStrBuf(":\n\t", strBuf);
+    if (!distances) {
+	addStrBuf("   <none>\n", strBuf);
+	return;
+    }
+
+    /* column header */
+    addStrBuf("\t     ", strBuf);
+    for (uint16_t i = 0; i < numNUMA; i++) {
+	snprintf(line, sizeof(line), " % 5hd", i);
+	addStrBuf(line, strBuf);
+    }
+    addStrBuf("\n", strBuf);
+
+    /* each line */
+    for (uint16_t i = 0; i < numNUMA; i++) {
+	/* row header */
+	snprintf(line, sizeof(line), "\t % 5hd", i);
+	addStrBuf(line, strBuf);
+	/* each value */
+	for (uint16_t j = 0; j < numNUMA; j++) {
+	    snprintf(line, sizeof(line), " % 5hd", distances[i*numNUMA + j]);
+	    addStrBuf(line, strBuf);
+	}
+	addStrBuf("\n", strBuf);
     }
     addStrBuf("\n", strBuf);
 }
@@ -775,6 +819,8 @@ char *show(char *key)
 		  PSIDnodes_NICSets(node), PSIDnodes_numNICs(node), &strBuf);
     } else if (!strncmp(key, "map", strlen("map"))) {
 	showMap(key, &strBuf);
+    } else if (!strncmp(key, "distances", strlen("distances"))) {
+	showDistances(key, &strBuf);
     } else if (!strncmp(key, "all", strlen("all"))) {
 	PSnodes_ID_t node = getNode(key);
 	printSets(node, "HW threads", PSIDnodes_numNUMADoms(node),
@@ -784,6 +830,7 @@ char *show(char *key)
 		  PSIDnodes_GPUSets(node), PSIDnodes_numGPUs(node), &strBuf);
 	printSets(node, "NICs", PSIDnodes_numNUMADoms(node),
 		  PSIDnodes_NICSets(node), PSIDnodes_numNICs(node), &strBuf);
+	showDistances(key, &strBuf);
     } else if (!strncmp(key, "pci", strlen("pci"))) {
 	addStrBuf("\n", &strBuf);
 	addStrBuf("PCIe IDs for GPUs:\n", &strBuf);
