@@ -273,6 +273,15 @@ bool pluginConfig_setDef(pluginConfig_t conf, const pluginConfigDef_t def[])
     return true;
 }
 
+static bool toLong(char *token, long *value)
+{
+    if (!token || !*token) return false;
+
+    char *end;
+    *value = strtol(token, &end, 0);
+    return !*end;
+}
+
 #ifndef BUILD_WITHOUT_PSCONFIG
 
 guint psCfgFlags =
@@ -298,15 +307,6 @@ static bool getString(PSConfig* psconfig, char *obj, char *key, gchar **value)
     }
 
     return true;
-}
-
-static bool toLong(char *token, long *value)
-{
-    if (!token || !*token) return false;
-
-    char *end;
-    *value = strtol(token, &end, 0);
-    return !*end;
 }
 
 /**
