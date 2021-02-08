@@ -26,7 +26,7 @@
 
 int requiredAPI = 129;
 
-char name[] = "pluginpsconfig";
+char name[] = "fakenode";
 
 int version = 100;
 
@@ -111,9 +111,12 @@ char * help(void)
     addStrBuf("  plugin set ", &strBuf);
     addStrBuf(name, &strBuf);
     addStrBuf(" topology <name>\n", &strBuf);
-    addStrBuf("<name> hints to the hwloc topology file to be used\n", &strBuf);
+    addStrBuf("<name> addresses to the hwloc topology file to be used\n",
+	      &strBuf);
     addStrBuf("The file has to be available as\n", &strBuf);
     addStrBuf("  /opt/parastation/plugins/hwloc/topo.<name>.xml\n", &strBuf);
+    addStrBuf("As an alternative the topology file might be addresses by"
+	      "an absolute path\n", &strBuf);
 
     return strBuf.buf;
 }
@@ -129,9 +132,14 @@ char *set(char *key, char *value)
 	    addStrBuf("  No value given", &strBuf);
 	    return strBuf.buf;
 	}
-	char *installDir = PSC_lookupInstalldir(NULL);
-	char *topoFile = PSC_concat(installDir, "plugins/hwloc/topo.",
-				    value, ".xml", 0L);
+	char *topoFile;
+	if (*value == '/') {
+	    topoFile = strdup(value);
+	} else {
+	    char *installDir = PSC_lookupInstalldir(NULL);
+	    topoFile = PSC_concat(installDir, "/plugins/hwloc/topo.",
+				  value, ".xml", 0L);
+	}
 	struct stat fstat;
 	if (stat(name, &fstat)) {
 	    addStrBuf("  Topology file '", &strBuf);
@@ -142,6 +150,7 @@ char *set(char *key, char *value)
 	}
 
 	setenv("HWLOC_XMLFILE", topoFile, 1);
+	free(topoFile);
 	reinitNodeInfo();
 	PSIDnodes_setPinProcs(PSC_getMyID(), 0);
 	PSIDnodes_setBindMem(PSC_getMyID(), 0);
