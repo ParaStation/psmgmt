@@ -99,9 +99,16 @@ static bool handleSetData(char **ptr, PSnodes_ID_t sender,
     if (!PSIDnodes_numNUMADoms(sender)) {
 	PSIDnodes_setNumNUMADoms(sender, numNUMA);
     } else if (PSIDnodes_numNUMADoms(sender) != numNUMA) {
-	mlog("%s: mismatch in numNUMA %d/%d\n", __func__, numNUMA,
-	     PSIDnodes_numNUMADoms(sender));
-	return false;
+	mdbg(NODEINFO_LOG_VERBOSE, "%s: mismatch in numNUMA %d/%d\n", __func__,
+	     numNUMA, PSIDnodes_numNUMADoms(sender));
+	PSIDnodes_setNumNUMADoms(sender, numNUMA);
+
+	/* invalidate NUMA, GPU and NIC information */
+	PSIDnodes_setCPUSets(sender, NULL);
+	PSIDnodes_setNumGPUs(sender, 0);
+	PSIDnodes_setGPUSets(sender, NULL);
+	PSIDnodes_setNumNICs(sender, 0);
+	PSIDnodes_setNICSets(sender, NULL);
     }
 
     int16_t setSize;
@@ -154,6 +161,28 @@ bool handleDistanceData(char **ptr, PSnodes_ID_t sender)
     return true;
 }
 
+static void addCPUData(PS_SendDB_t *data)
+{
+    addUint8ToMsg(PSP_NODEINFO_CPU, data);
+    int16_t numCores = PSIDnodes_getNumCores(PSC_getMyID());
+    addInt16ToMsg(numCores, data);
+    int16_t numThrds = PSIDnodes_getNumThrds(PSC_getMyID());
+    addInt16ToMsg(numThrds, data);
+}
+
+bool handleCPUData(char **ptr, PSnodes_ID_t sender)
+{
+    uint16_t numCores, numThrds;
+    getInt16(ptr, &numCores);
+    getInt16(ptr, &numThrds);
+
+    PSIDnodes_setNumCores(sender, numCores);
+    PSIDnodes_setNumThrds(sender, numThrds);
+
+    return true;
+}
+
+
 void sendNodeInfoData(PSnodes_ID_t node)
 {
     PS_SendDB_t data;
@@ -182,6 +211,7 @@ void sendNodeInfoData(PSnodes_ID_t node)
     addSetsData(PSP_NODEINFO_NIC, PSIDnodes_NICSets(PSC_getMyID()),
 		PSIDnodes_numNICs(PSC_getMyID()), &data);
     addDistanceData(&data);
+    addCPUData(&data);
     addUint8ToMsg(0, &data); // declare end of message
 
     /* send the messages */
@@ -212,6 +242,9 @@ static void handleNodeInfoData(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
     char *ptr = rData->buf;
     PSP_NodeInfo_t type;
 
+    mdbg(NODEINFO_LOG_VERBOSE, "%s: handle update from %s\n", __func__,
+	 PSC_printTID(msg->header.sender));
+
     getUint8(&ptr, &type);
     while (type) {
 	switch (type) {
@@ -235,6 +268,9 @@ static void handleNodeInfoData(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
 	    break;
 	case PSP_NODEINFO_DISTANCES:
 	    if (!handleDistanceData(&ptr, sender)) return;
+	    break;
+	case PSP_NODEINFO_CPU:
+	    if (!handleCPUData(&ptr, sender)) return;
 	    break;
 	default:
 	    mlog("%s: unknown type %d\n", __func__, type);
@@ -329,6 +365,7 @@ static void checkOtherNodes(void)
     addSetsData(PSP_NODEINFO_NIC, PSIDnodes_NICSets(PSC_getMyID()),
 		PSIDnodes_numNICs(PSC_getMyID()), &data);
     addDistanceData(&data);
+    addCPUData(&data);
     addUint8ToMsg(0, &data);  // declare end of message
 
     /* send the messages */
@@ -751,9 +788,9 @@ static void showDistances(char *key, StrBuffer_t *strBuf)
 	snprintf(line, sizeof(line), " (for node %d)", node);
 	addStrBuf(line, strBuf);
     }
-    addStrBuf(":\n\t", strBuf);
+    addStrBuf(":\n", strBuf);
     if (!distances) {
-	addStrBuf("   <none>\n", strBuf);
+	addStrBuf("\t<none>\n", strBuf);
 	return;
     }
 
@@ -768,7 +805,7 @@ static void showDistances(char *key, StrBuffer_t *strBuf)
     /* each line */
     for (uint16_t i = 0; i < numNUMA; i++) {
 	/* row header */
-	snprintf(line, sizeof(line), "\t % 5hd", i);
+	snprintf(line, sizeof(line), "\t% 5hd", i);
 	addStrBuf(line, strBuf);
 	/* each value */
 	for (uint16_t j = 0; j < numNUMA; j++) {
