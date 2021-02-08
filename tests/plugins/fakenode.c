@@ -117,7 +117,7 @@ char * help(void)
     addStrBuf("The file has to be available as\n", &strBuf);
     addStrBuf("  /opt/parastation/plugins/hwloc/topo.<name>.xml\n", &strBuf);
     addStrBuf("As an alternative the topology file might be addresses by"
-	      "an absolute path\n", &strBuf);
+	      " an absolute path\n", &strBuf);
 
     return strBuf.buf;
 }
@@ -142,9 +142,7 @@ char *set(char *key, char *value)
 				  value, ".xml", 0L);
 	}
 	struct stat fstat;
-	//if (stat(topoFile, &fstat)) {
-	int ret = stat(topoFile, &fstat);
-	if (ret) {
+	if (stat(topoFile, &fstat)) {
 	    pluginwarn(errno, "%s: stat(%s)", __func__, topoFile);
 	    addStrBuf("  Topology file '", &strBuf);
 	    addStrBuf(topoFile, &strBuf);
