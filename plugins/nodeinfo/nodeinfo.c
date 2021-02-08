@@ -635,6 +635,7 @@ char *help(void)
     addStrBuf("\tGPUs are displayed under key 'gpu'\n", &strBuf);
     addStrBuf("\tNICs are displayed under key 'nic'\n", &strBuf);
     addStrBuf("\tCPU-maps are displayed under key 'map'\n", &strBuf);
+    addStrBuf("\tDistances are displayed under key 'distances'\n", &strBuf);
     addStrBuf("\tTo display all HW information use key 'all'\n", &strBuf);
     addStrBuf("\n# configuration options #\n\n", &strBuf);
 
