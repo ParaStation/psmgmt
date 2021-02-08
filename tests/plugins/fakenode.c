@@ -8,6 +8,7 @@
  * file.
  */
 #include <dlfcn.h>
+#include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -141,7 +142,10 @@ char *set(char *key, char *value)
 				  value, ".xml", 0L);
 	}
 	struct stat fstat;
-	if (stat(name, &fstat)) {
+	//if (stat(topoFile, &fstat)) {
+	int ret = stat(topoFile, &fstat);
+	if (ret) {
+	    pluginwarn(errno, "%s: stat(%s)", __func__, topoFile);
 	    addStrBuf("  Topology file '", &strBuf);
 	    addStrBuf(topoFile, &strBuf);
 	    addStrBuf("' not found\n", &strBuf);
