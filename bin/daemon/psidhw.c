@@ -1046,7 +1046,7 @@ void PSIDhw_reInit(void)
     PSCPU_set_t *CPUsets = getCPUSets();
     PSIDnodes_setCPUSets(PSC_getMyID(), CPUsets);
 
-    /* @todo determine distances */
+    /* determine distances */
     uint32_t *distances = getDistances();
     PSIDnodes_setDistances(PSC_getMyID(), distances);
 
