@@ -1003,6 +1003,16 @@ uint32_t * PSIDnodes_distances(PSnodes_ID_t id)
     return nodes[id].distances;
 }
 
+uint32_t PSIDnodes_distance(PSnodes_ID_t id, uint16_t from, uint16_t to)
+{
+    if (!validID(id)) return 0;
+    uint16_t numNUMA = PSIDnodes_numNUMADoms(id);
+    uint32_t *distances = PSIDnodes_distances(id);
+    if (from >= numNUMA || to >= numNUMA || !distances) return 0;
+
+    return distances[from * numNUMA + to];
+}
+
 int PSIDnodes_setCPUSets(PSnodes_ID_t id, PSCPU_set_t *CPUset)
 {
     if (!validID(id)) return -1;

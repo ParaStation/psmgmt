@@ -931,6 +931,25 @@ int PSIDnodes_setDistances(PSnodes_ID_t id, uint32_t *distances);
 uint32_t * PSIDnodes_distances(PSnodes_ID_t id);
 
 /**
+ * @brief Get node's distance between NUMA domains
+ *
+ * Provide the distance between the NUMA domains @a from and @a to on
+ * the node with ParaStation ID @a id.
+ *
+ * @param id ParaStation ID of the node to look up
+ *
+ * @param from Source NUMA domain of the distance to lookup
+ *
+ * @param to Destination NUMA domain of the distance to lookup
+ *
+ * @return Return the distances between NUMA domains or 0 in case of
+ * error; the latter hints to the fact that @a id is invalid, @a from
+ * or @a to is out of bound or no distance matrix is stored for the
+ * node
+ */
+uint32_t PSIDnodes_distance(PSnodes_ID_t id, uint16_t from, uint16_t to);
+
+/**
  * @brief Set node's hardware thread distribution over NUMA domains
  *
  * Set the distribution of hardware threads over NUMA domains of the
