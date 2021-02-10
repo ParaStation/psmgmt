@@ -706,7 +706,7 @@ int __sendDataBuffer(int sock, PS_SendDB_t *data, size_t offset,
     ptr = data->buf + offset;
     towrite = data->bufUsed - offset;
 
-    ret = doWriteExP(sock, ptr, towrite, written);
+    ret = PSCio_sendPProg(sock, ptr, towrite, written);
     int eno = errno;
     if (ret == -1) {
 	mlog("%s: writing message of length %i failed, ret %i written %zu "
@@ -1183,7 +1183,7 @@ int handleSrunMsg(int sock, void *data)
 	    }
 
 	    if (pty) {
-		if (step->leader) doWriteP(fd, buffer, ret);
+		if (step->leader) PSCio_sendP(fd, buffer, ret);
 	    } else {
 		switch (ioh->type) {
 		case SLURM_IO_STDIN:
@@ -1355,7 +1355,7 @@ int srunOpenIOConnectionEx(Step_t *step, uint32_t addr, uint16_t port,
     addUint32ToMsg((uint32_t) SLURM_IO_KEY_SIZE, &data);
     addMemToMsg(sig, (uint32_t) SLURM_IO_KEY_SIZE, &data);
 
-    doWriteP(sock, data.buf, data.bufUsed);
+    PSCio_sendP(sock, data.buf, data.bufUsed);
 
     return sock;
 }
@@ -1435,7 +1435,7 @@ int srunSendIOEx(int sock, IO_Slurm_Header_t *iohead, char *buf, int *error)
 	ioh.len = towrite > 1000 ? 1000 : towrite;
 
 	packSlurmIOMsg(&data, &ioh, buf + written);
-	ret = doWriteF(sock, data.buf, data.bufUsed);
+	ret = PSCio_sendF(sock, data.buf, data.bufUsed);
 
 	data.bufUsed = once = 0;
 

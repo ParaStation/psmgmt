@@ -26,6 +26,7 @@
 #include <signal.h>
 #include <sys/signalfd.h>
 
+#include "pscio.h"
 #include "pscommon.h"
 #include "psserial.h"
 #include "pstask.h"
@@ -360,7 +361,7 @@ int sendDaemonMsg(void *amsg)
     }
 
     DDMsg_t *msg = (DDMsg_t *)amsg;
-    int ret = doWriteF(daemonSock, msg, msg->len);
+    int ret = PSCio_sendF(daemonSock, msg, msg->len);
 
     if (ret < 0) {
 	PSID_warn(-1, errno ,"%s: doWriteF()", __func__);

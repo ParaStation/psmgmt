@@ -21,10 +21,11 @@
 #include <sys/un.h>
 #include <sys/wait.h>
 
+#include "pscio.h"
 #include "pscommon.h"
 #include "selector.h"
 #include "timer.h"
-#include "psserial.h"
+#include "psserial.h" // @todo remove once doRead was moved
 #include "pluginhelper.h"
 #include "pluginmalloc.h"
 #include "pluginlog.h"
@@ -100,7 +101,7 @@ static struct timeval childStart;
 
 int sendMsgToMother(PSLog_Msg_t *msg)
 {
-    return doWriteP(fwTask->fd, msg, msg->header.len);
+    return PSCio_sendP(fwTask->fd, msg, msg->header.len);
 }
 
 static void handleGraceTime(Forwarder_Data_t *fw)
@@ -420,7 +421,7 @@ static void initChild(int controlFD, Forwarder_Data_t *fw)
     }
 
     /* send sid to forwarder */
-    written = doWriteF(controlFD, &fw->cSid, sizeof(fw->cSid));
+    written = PSCio_sendF(controlFD, &fw->cSid, sizeof(fw->cSid));
     if (written != sizeof(pid_t)) {
 	pluginlog("%s: failed writing child's sid\n", __func__);
 	exit(1);

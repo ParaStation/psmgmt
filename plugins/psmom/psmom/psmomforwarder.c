@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2010-2020 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2010-2021 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -24,9 +24,10 @@
 #include <syslog.h>
 #include <sys/resource.h>
 
+#include "pscio.h"
+#include "pscommon.h"
 #include "psidutil.h"
 #include "psidhook.h"
-#include "pscommon.h"
 #include "selector.h"
 #include "timer.h"
 #include "psipartition.h"
@@ -188,7 +189,7 @@ static void initChild(void)
     }
 
     /* send sid to forwarder */
-    if (doWrite(controlFDs[1], &forwarder_child_sid, sizeof(pid_t))
+    if (PSCio_send(controlFDs[1], &forwarder_child_sid, sizeof(pid_t))
 	!= sizeof(pid_t)) {
 	mlog("%s: failed writing childs sid\n", __func__);
 	exit(1);
@@ -368,7 +369,7 @@ static void stopForwarderLoop(void)
 {
     int res = 1;
 
-    if (doWrite(signalFD[0], &res, sizeof(res)) != sizeof(res)) {
+    if (PSCio_send(signalFD[0], &res, sizeof(res)) != sizeof(res)) {
 	mlog("%s: writing to signalFD failed : %s\n", __func__,
 		strerror(errno));
 	exit(1);
@@ -1337,7 +1338,7 @@ int execInterForwarder(void *info)
 	forwarderExit();
 	return 0;
     } else {
-	if (doWrite(controlPro[0], &prologue_exit, sizeof(int))
+	if (PSCio_send(controlPro[0], &prologue_exit, sizeof(int))
 	    != sizeof(int)) {
 	    fprintf(stderr, "%s: write to interactive child failed\n",
 		    __func__);
@@ -2020,12 +2021,12 @@ int execJobscriptForwarder(void *info)
     /* write jobname to stdin of login shell */
     close(stdinFD[1]);
     len = strlen(job->jobscript);
-    if (doWrite(stdinFD[0], job->jobscript, len) != len) {
+    if (PSCio_send(stdinFD[0], job->jobscript, len) != len) {
 	fprintf(stderr, "%s: writing job filename(1) failed\n", __func__);
 	kill(SIGKILL, forwarder_child_pid);
 	return 1;
     }
-    if (doWrite(stdinFD[0], "\n", 1) != 1) {
+    if (PSCio_send(stdinFD[0], "\n", 1) != 1) {
 	fprintf(stderr, "%s: writing job filename(2) failed\n", __func__);
 	kill(SIGKILL, forwarder_child_pid);
 	return 1;

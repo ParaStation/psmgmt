@@ -28,7 +28,7 @@
 #include "psslurmproto.h"
 #include "slurmcommon.h"
 
-#include "psserial.h"
+#include "pscio.h"
 #include "pluginmalloc.h"
 #include "pluginforwarder.h"
 #include "pslog.h"
@@ -207,17 +207,17 @@ static void IO_writeMsg(Forwarder_Data_t *fwdata, char *msg, uint32_t msgLen,
 
     if (type == STDOUT) {
 	if (step->stdOutOpt == IO_NODE_FILE) {
-	    doWriteP(fwdata->stdOut[1], msgPtr, msgLen);
+	    PSCio_sendP(fwdata->stdOut[1], msgPtr, msgLen);
 	} else if (step->stdOutOpt == IO_RANK_FILE) {
-	    doWriteP(step->outFDs[lrank], msgPtr, msgLen);
+	    PSCio_sendP(step->outFDs[lrank], msgPtr, msgLen);
 	} else {
 	    srunSendIO(SLURM_IO_STDOUT, grank, step, msgPtr, msgLen);
 	}
     } else if (type == STDERR) {
 	if (step->stdErrOpt == IO_NODE_FILE) {
-	    doWriteP(fwdata->stdErr[1], msgPtr, msgLen);
+	    PSCio_sendP(fwdata->stdErr[1], msgPtr, msgLen);
 	} else if (step->stdErrOpt == IO_RANK_FILE) {
-	    doWriteP(step->errFDs[lrank], msgPtr, msgLen);
+	    PSCio_sendP(step->errFDs[lrank], msgPtr, msgLen);
 	} else if (step->taskFlags & LAUNCH_PTY) {
 	    srunSendIO(SLURM_IO_STDOUT, grank, step, msgPtr, msgLen);
 	} else {
@@ -308,12 +308,12 @@ void IO_printJobMsg(Forwarder_Data_t *fwdata, char *msg, size_t msgLen,
 
     if (type == STDOUT) {
 	/* write to stdout socket */
-	doWriteP(job->stdOutFD, msg, msgLen);
+	PSCio_sendP(job->stdOutFD, msg, msgLen);
 	mdbg(PSSLURM_LOG_IO_VERB, "%s: write job %u sock %u stdout msg %s\n",
 	     __func__, job->jobid, job->stdOutFD, msg);
     } else if (type == STDERR) {
 	/* write to stderr socket */
-	doWriteP(job->stdErrFD, msg, msgLen);
+	PSCio_sendP(job->stdErrFD, msg, msgLen);
 	mdbg(PSSLURM_LOG_IO_VERB, "%s: write job %u sock %u stderr msg %s\n",
 	     __func__, job->jobid, job->stdErrFD, msg);
     } else {
@@ -603,7 +603,7 @@ static char *replaceSymbols(uint32_t jobid, uint32_t stepid, char *hostname,
 		if (jobname) {
 		   str2Buf(jobname, &buf, &bufSize);
 		   saved = 1;
-	        }
+		}
 		break;
 	}
 
@@ -836,12 +836,12 @@ int IO_forwardJobData(int sock, void *data)
 
     if (sock == fwdata->stdOut[0]) {
 	/* write to stdout socket */
-	doWriteP(job->stdOutFD, buf, size);
+	PSCio_sendP(job->stdOutFD, buf, size);
 	mdbg(PSSLURM_LOG_IO_VERB, "%s: write job %u sock %u stdout msg %s\n",
 	     __func__, job->jobid, sock, buf);
     } else if (sock == fwdata->stdErr[0]) {
 	/* write to stderr socket */
-	doWriteP(job->stdErrFD, buf, size);
+	PSCio_sendP(job->stdErrFD, buf, size);
 	mdbg(PSSLURM_LOG_IO_VERB, "%s: write job %u sock %u stderr msg %s\n",
 	     __func__, job->jobid, sock, buf);
     } else {

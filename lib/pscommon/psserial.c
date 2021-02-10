@@ -12,7 +12,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
-#include <fcntl.h>
 #include <errno.h>
 #include <time.h>
 #include <string.h>
@@ -861,49 +860,6 @@ bool __memToDataBuffer(void *mem, size_t len, PS_DataBuffer_t *buffer,
 
 /** Maximum number of retries within @ref __doWrite() and __doRead() */
 #define MAX_RETRY 20
-
-int __doWriteEx(int fd, void *buffer, size_t toWrite, size_t *written,
-		const char *func, bool pedantic, bool infinite)
-{
-    static time_t lastLog = 0;
-    int retries = 0;
-
-    *written = 0;
-
-    while ((*written < toWrite) && (infinite || retries++ <= MAX_RETRY)) {
-	char *ptr = buffer;
-	ssize_t ret = write(fd, ptr + *written, toWrite - *written);
-	if (ret == -1) {
-	    int eno = errno;
-	    if (eno == EINTR || eno == EAGAIN) continue;
-
-	    time_t now = time(NULL);
-	    if (lastLog != now) {
-		PSC_warn(-1, eno, "%s(%s): write(%d)", __func__, func, fd);
-		lastLog = now;
-	    }
-	    errno = eno;
-	    return -1;
-	} else if (!ret) {
-	    return ret;
-	}
-	if (!pedantic) return ret;
-
-	*written += ret;
-    }
-
-    if (*written < toWrite) return -1;
-
-    return *written;
-}
-
-int __doWrite(int fd, void *buffer, size_t toWrite, const char *func,
-	      bool pedantic, bool infinite)
-{
-    size_t written;
-
-    return __doWriteEx(fd, buffer, toWrite, &written, func, pedantic, infinite);
-}
 
 int __doReadExt(int fd, void *buffer, size_t toRead, size_t *numRead,
 		const char *func, bool pedantic)

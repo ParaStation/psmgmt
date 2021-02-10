@@ -25,10 +25,10 @@
 #include <sys/socket.h>
 #include <netdb.h>
 
+#include "pscio.h"
 #include "psmomlog.h"
 #include "psmomconv.h"
 #include "psmomlocalcomm.h"
-#include "psserial.h"
 #include "pluginmalloc.h"
 #include "pluginpty.h"
 #include "selector.h"
@@ -201,7 +201,7 @@ static int handleNewQsubData(int sock, void *data)
 	return 1;
     }
 
-    if ((doWrite(term_stdin, buf, len)) != len) {
+    if (PSCio_send(term_stdin, buf, len) != len) {
 	mlog("%s: not all data could be written : %s\n",
 	    __func__, strerror(errno));
 	terminateQsubSession();

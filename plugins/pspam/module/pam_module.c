@@ -1,7 +1,7 @@
 /*
  *               ParaStation
  *
- * Copyright (C) 2011-2018 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2011-2021 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -20,9 +20,10 @@
 #include <sys/types.h>
 #include <sys/un.h>
 
-#include "pspamcommon.h"
-
+#include "pscio.h"
 #include "psserial.h"
+
+#include "pspamcommon.h"
 
 /* needed for static modules but also recommended for shared modules */
 #define PAM_SM_AUTH
@@ -177,7 +178,7 @@ static int openConnection(char *sockname)
  */
 static int writeToPspam(int sock, void *buf, size_t toWrite)
 {
-    int ret = doWriteP(sock, buf, toWrite);
+    int ret = PSCio_sendP(sock, buf, toWrite);
 
     if (ret < 0) elog("%s(%d): %s", __func__, sock, strerror(errno));
     return ret;
