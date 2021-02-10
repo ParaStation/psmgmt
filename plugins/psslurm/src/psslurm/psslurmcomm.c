@@ -18,6 +18,15 @@
 #include <signal.h>
 #include <ctype.h>
 
+#include "pscio.h"
+#include "psserial.h"
+#include "pluginconfig.h"
+#include "pluginhelper.h"
+#include "pluginmalloc.h"
+#include "psidcomm.h"
+#include "pslog.h"
+#include "selector.h"
+
 #include "slurmcommon.h"
 #include "psslurmproto.h"
 #include "psslurmconfig.h"
@@ -29,14 +38,6 @@
 #include "psslurmpscomm.h"
 #include "psslurmpack.h"
 #include "psslurmfwcomm.h"
-
-#include "psserial.h"
-#include "pluginconfig.h"
-#include "pluginhelper.h"
-#include "pluginmalloc.h"
-#include "selector.h"
-#include "pslog.h"
-#include "psidcomm.h"
 
 #include "psslurmcomm.h"
 
@@ -779,7 +780,7 @@ int __sendSlurmMsgEx(int sock, Slurm_Msg_Header_t *head, PS_SendDB_t *body,
     }
 
     /* non blocking write */
-    setFDblock(sock, false);
+    PSCio_setFDblock(sock, false);
 
     memToDataBuffer(body->buf, body->bufUsed, &payload);
     packSlurmMsg(&data, head, &payload, auth);
@@ -1229,7 +1230,7 @@ int srunOpenControlConnection(Step_t *step)
 	return -1;
     }
 
-    setFDblock(sock, false);
+    PSCio_setFDblock(sock, false);
 
     mdbg(PSSLURM_LOG_IO | PSSLURM_LOG_IO_VERB,
 	 "%s: new srun connection %i\n", __func__, sock);
@@ -1275,7 +1276,7 @@ int srunOpenPTYConnection(Step_t *step)
 	 inet_ntoa(step->srun.sin_addr), port);
     step->srunPTYMsg.sock = sock;
 
-    setFDblock(sock, false);
+    PSCio_setFDblock(sock, false);
 
     if (Selector_register(sock, handleSrunPTYMsg, step) == -1) {
 	mlog("%s: Selector_register(%i) failed\n", __func__, sock);
@@ -1316,7 +1317,7 @@ int srunOpenIOConnectionEx(Step_t *step, uint32_t addr, uint16_t port,
 	}
     }
 
-    setFDblock(sock, false);
+    PSCio_setFDblock(sock, false);
 
     addUint16ToMsg(IO_PROTOCOL_VERSION, &data);
     /* nodeid */

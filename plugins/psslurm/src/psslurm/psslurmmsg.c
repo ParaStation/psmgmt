@@ -8,12 +8,13 @@
  * file.
  */
 #include <stdlib.h>
+#include <errno.h>
 
+#include "pscio.h"
 #include "pluginmalloc.h"
 #include "slurmcommon.h"
-#include "timer.h"
 #include "selector.h"
-#include "errno.h"
+#include "timer.h"
 
 #include "psslurmcomm.h"
 #include "psslurmlog.h"
@@ -408,7 +409,7 @@ static void handleReconTimeout(int timerId, void *data)
     }
 
     /* non blocking write */
-    setFDblock(savedMsg->sock, false);
+    PSCio_setFDblock(savedMsg->sock, false);
 
     /* remove the timer */
     Timer_remove(timerId);

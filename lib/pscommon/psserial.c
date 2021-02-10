@@ -19,6 +19,7 @@
 #include <arpa/inet.h>
 #include <dlfcn.h>
 
+#include "pscio.h"
 #include "pscommon.h"
 #include "psitems.h"
 
@@ -763,17 +764,6 @@ bool setTypeInfo(bool flag)
     return old;
 }
 
-void setFDblock(int fd, bool block)
-{
-    int flags = fcntl(fd, F_GETFL, 0);
-
-    if (block) {
-	fcntl(fd, F_SETFL, flags & (~O_NONBLOCK));
-    } else {
-	fcntl(fd, F_SETFL, flags | O_NONBLOCK);
-    }
-}
-
 /**
  * @brief Grow the data buffer if needed.
  *
@@ -922,7 +912,7 @@ int __doReadExt(int fd, void *buffer, size_t toRead, size_t *numRead,
     int retries = 0;
 
     *numRead = 0;
-    setFDblock(fd, !pedantic);
+    PSCio_setFDblock(fd, !pedantic);
 
     while ((*numRead < toRead) && (retries++ <= MAX_RETRY)) {
 	char *ptr = buffer;

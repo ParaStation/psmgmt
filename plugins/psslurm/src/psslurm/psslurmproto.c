@@ -19,6 +19,7 @@
 #include <pwd.h>
 #include <sys/stat.h>
 
+#include "pscio.h"
 #include "pshostlist.h"
 #include "psserial.h"
 #include "env.h"
@@ -2733,7 +2734,7 @@ static void doSendLaunchTasksFailed(Step_t *step, uint32_t nodeID,
     /* send the message to srun */
     int sock = srunOpenControlConnection(step);
     if (sock != -1) {
-	setFDblock(sock, 1);
+	PSCio_setFDblock(sock, 1);
 	if ((sendSlurmMsg(sock, RESPONSE_LAUNCH_TASKS, &body)) < 1) {
 	    mlog("%s: send RESPONSE_LAUNCH_TASKS failed step %u:%u\n",
 		    __func__, step->jobid, step->stepid);
@@ -2815,7 +2816,7 @@ void sendTaskPids(Step_t *step)
 
     /* send the message to srun */
     if ((sock = srunOpenControlConnection(step)) != -1) {
-	setFDblock(sock, 1);
+	PSCio_setFDblock(sock, 1);
 	if (sendSlurmMsg(sock, RESPONSE_LAUNCH_TASKS, &body) < 1) {
 	    mlog("%s: send RESPONSE_LAUNCH_TASKS failed step %u:%u\n",
 		 __func__, step->jobid, step->stepid);

@@ -163,6 +163,7 @@ include/pluginpty.h \
 include/pluginstrv.h \
 include/pluginvector.h \
 include/psbyteorder.h \
+include/pscio.h \
 include/pscommon.h \
 include/pscpu.h \
 include/psdaemonprotocol.h \
@@ -211,6 +212,7 @@ lib/plugincommon/pluginvector.c \
 lib/pscommon/Makefile.am \
 lib/pscommon/Makefile.in \
 lib/pscommon/logging.c \
+lib/pscommon/pscio.c \
 lib/pscommon/pscommon.c \
 lib/pscommon/pscpu.c \
 lib/pscommon/psenv.c \

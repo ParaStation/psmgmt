@@ -350,21 +350,6 @@ bool setByteOrder(bool flag);
 bool setTypeInfo(bool flag);
 
 /**
- * @brief Switch file-descriptor's blocking mode
- *
- * If the flag @a block is true, the file-descriptor @a fd is brought
- * into blocking mode, i.e. the @ref O_NONBLOCK flag is removed from
- * the file-descriptor. If block is false, the flag is set.
- *
- * @param fd File-descriptor to manipulate
- *
- * @param block Flag the blocking mode
- *
- * @return No return value
- */
-void setFDblock(int fd, bool block);
-
-/**
  * @brief Free data buffer
  *
  * Free the data buffer @a data. For this the actual data buffer is
