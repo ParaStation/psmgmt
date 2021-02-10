@@ -176,10 +176,6 @@ static Gres_Cred_t *unpackGresStep(char **ptr, uint16_t index, uint16_t msgVer)
     getUint64(ptr, &gres->gresPerTask);
     /* memory per GRes */
     getUint64(ptr, &gres->memPerGRes);
-    if (msgVer >= SLURM_20_11_PROTO_VERSION) {
-	/* number of tasks per GRes */
-	getUint16(ptr, &gres->numTasksPerGres);
-    }
     /* total GRes */
     getUint64(ptr, &gres->totalGres);
     /* node count */
@@ -262,6 +258,8 @@ static Gres_Cred_t *unpackGresJob(char **ptr, uint16_t index, uint16_t msgVer)
     /* number of tasks per GRes */
     if (msgVer >= SLURM_20_11_PROTO_VERSION) {
 	getUint16(ptr, &gres->numTasksPerGres);
+    } else {
+	gres->numTasksPerGres = NO_VAL16;
     }
     /* total GRes */
     getUint64(ptr, &gres->totalGres);
