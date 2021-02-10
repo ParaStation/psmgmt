@@ -45,6 +45,7 @@ bool psAccountGetDataByJob(pid_t jobscript, AccountDataExt_t *accData)
 int psAccountSignalSession(pid_t session, int sig)
 {
     mdbg(PSACC_LOG_SIGNAL, "%s(session %d sig %d)\n", __func__, session, sig);
+    initProcPool(); // Just in case we are called within a forwarder
     return signalSession(session, sig);
 }
 

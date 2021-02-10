@@ -710,13 +710,19 @@ void updateProcSnapshot(void)
     closedir(dir);
 }
 
+void initProcPool(void)
+{
+    if (PSitems_isInitialized(procPool)) return;
+    procPool = PSitems_new(sizeof(ProcSnapshot_t), "procSnapshots");
+}
+
 void initProc(void)
 {
     if (PSitems_isInitialized(procPool)) return;
 
     cpuCount = getCPUCount();
     if (cpuCount) initCpuFreq();
-    procPool = PSitems_new(sizeof(ProcSnapshot_t), "procSnapshots");
+    initProcPool();
 
     PSID_registerLoopAct(proc_gc);
     PSIDhook_add(PSIDHOOK_CLEARMEM, clearMem);
