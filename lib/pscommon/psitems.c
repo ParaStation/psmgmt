@@ -16,7 +16,7 @@
 
 #include "psitems.h"
 
-/** Defaul chunk size utilizing the mmap() path of glibc's malloc() */
+/** Default chunk size utilizing the mmap() path of glibc's malloc() */
 #define CHUNK_SIZE (128*1024)
 
 #define PSITEMS_MAGIC 0x3141592653589793
