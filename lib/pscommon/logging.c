@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2005-2020 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2021 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -385,10 +385,9 @@ void logger_write(logger_t* logger, int32_t key, const char *buf, size_t count)
     if (logger->logfile) {
 	size_t n;
 	ssize_t i;
-
-	for (n=0, i=1; (n<count) && (i>0);) {
+	for (n = 0, i = 1; n < count && i > 0; ) {
 	    i = write(fileno(logger->logfile), &buf[n], count-n);
-	    if (i<=0) {
+	    if (i <= 0) {
 		switch (errno) {
 		case EINTR:
 		case EAGAIN:
