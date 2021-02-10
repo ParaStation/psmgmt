@@ -138,10 +138,11 @@ static int growItems(PSitems_t items)
     return items->iPC;
 }
 
-void * PSitems_getItem(PSitems_t items)
+void * __PSitems_getItem(PSitems_t items, const char *caller, const int line)
 {
     if (!PSitems_isInitialized(items)) {
-	PSC_log(-1, "%s: initialize before!\n", __func__);
+	PSC_log(-1, "%s: not initialized and called by %s:%i\n", __func__,
+		caller, line);
 	return NULL;
     }
     items->numGet++;
@@ -149,7 +150,8 @@ void * PSitems_getItem(PSitems_t items)
     if (list_empty(&items->idleItems)) {
 	PSC_log(PSC_LOG_VERB, "%s(%s): no more items\n", __func__, items->name);
 	if (!growItems(items)) {
-	    PSC_log(-1, "%s(%s): no memory\n", __func__, items->name);
+	    PSC_log(-1, "%s(%s): no memory for caller %s:%i\n", __func__,
+		    items->name, caller, line);
 	    return NULL;
 	}
     }
@@ -157,9 +159,10 @@ void * PSitems_getItem(PSitems_t items)
     /* get list's first usable element */
     item_t *item = list_entry(items->idleItems.next, item_t, next);
     if (item->state != PSITEM_IDLE) {
-	PSC_log(-1, "%s(%s): item is %s. Never be here.\n", __func__,
-		items->name,
-		(item->state == PSITEM_DRAINED) ? "DRAINED" : "BUSY");
+	PSC_log(-1, "%s(%s): item is %s. Never be here for caller %s:%i.\n",
+		__func__, items->name,
+		(item->state == PSITEM_DRAINED) ? "DRAINED" : "BUSY",
+		caller, line);
 	return NULL;
     }
 

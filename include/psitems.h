@@ -134,9 +134,16 @@ uint32_t PSitems_getAvail(PSitems_t items);
  *
  * @param items Structure holding all information on the pool of items
  *
+ * @param caller Function name of the calling function
+ *
+ * @param line Line number where this function is called
+ *
  * #return Return a pointer to an idle item or NULL if an error occurred
  */
-void * PSitems_getItem(PSitems_t items);
+void * __PSitems_getItem(PSitems_t items, const char *caller, const int line);
+
+#define PSitems_getItem(items) \
+    __PSitems_getItem(items, __func__, __LINE__)
 
 /**
  * @brief Put single item
