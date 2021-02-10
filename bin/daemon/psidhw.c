@@ -298,7 +298,6 @@ static uint32_t * getDistances(void)
     for (unsigned i = 0; i < nr; i++) {
 	hwloc_distances_release(topology, hwlocDists[i]);
     }
-    free(distances);
 #else /* hwloc 1.x */
     const struct hwloc_distances_s *hwlocDists =
 	hwloc_get_whole_distance_matrix_by_type(topology, HWLOC_OBJ_NUMANODE);
