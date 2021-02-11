@@ -15,6 +15,7 @@
 #include <sys/socket.h>
 #include <errno.h>
 
+#include "pscio.h"
 #include "pscommon.h"
 #include "psilog.h"
 #include "psispawn.h"
@@ -36,7 +37,6 @@
 #include "pmiclient.h"
 
 #define SOCKET int
-#define PMI_RESEND 5
 #define PMI_VERSION 1
 #define PMI_SUBVERSION 1
 #define UPDATE_HEAD sizeof(uint8_t) + sizeof(uint32_t)
@@ -257,56 +257,6 @@ static int critErr(void)
 }
 
 /**
- * @brief Write to the PMI socket
- *
- * Write the message @a msg to the PMI socket file-descriptor,
- * starting at by @a offset of the message. It is expected that the
- * previos parts of the message were sent in earlier calls to this
- * function.
- *
- * @param msg The message to transmit
- *
- * @param offset Number of bytes sent in earlier calls
- *
- * @param len The size of the message to transmit
- *
- * @return On success, the total number of bytes written is returned,
- * i.e. usually this is the length of @a msg. If the @ref stdinSock
- * file-descriptor blocks, this might also be smaller. In this case
- * the total number of bytes sent in this and all previous calls is
- * returned. If an error occurs, -1 or 0 is returned and errno is set
- * appropriately.
- */
-static int do_send(char *msg, int offset, int len)
-{
-    char *errStr;
-    int n, i;
-
-    if (!len || !msg) return 0;
-
-    for (n = offset, i = 1; (n < len) && (i > 0);) {
-	i = send(pmisock, &msg[n], len-n, 0);
-	if (i <= 0) {
-	    switch (errno) {
-	    case EINTR:
-		break;
-	    case EAGAIN:
-		return n;
-		break;
-	    default:
-		errStr = strerror(errno);
-		elog("%s(r%i): got error %d on PMI socket: %s\n", __func__,
-		     rank, errno, errStr ? errStr : "UNKNOWN");
-		return i;
-	    }
-	} else {
-	    n+=i;
-	}
-    }
-    return n;
-}
-
-/**
  * @brief Send a PMI message to the MPI client
  *
  * Send a message to the connected MPI client.
@@ -318,10 +268,12 @@ static int do_send(char *msg, int offset, int len)
 #define PMI_send(msg) __PMI_send(msg, __func__, __LINE__)
 static int __PMI_send(char *msg, const char *caller, const int line)
 {
-    ssize_t len;
-    int i, written = 0;
-
-    len = strlen(msg);
+    if (!msg) {
+	/* assert */
+	elog("%s(r%i): missing msg from %s:%i\n", __func__, rank, caller, line);
+	return critErr();
+    }
+    size_t len = strlen(msg);
     if (!len || msg[len - 1] != '\n') {
 	/* assert */
 	elog("%s(r%i): missing '\\n' in PMI msg '%s' from %s:%i\n",
@@ -331,12 +283,15 @@ static int __PMI_send(char *msg, const char *caller, const int line)
 
     if (debug) elog("%s(r%i): %s", __func__, rank, msg);
 
-    /* try to send msg, repeat it PMI_RESEND times */
-    for (i = 0; (written < len) && (i < PMI_RESEND); i++) {
-	written = do_send(msg, written, len);
+    /* try to send msg */
+    size_t sent;
+    ssize_t ret = PSCio_sendPProg(pmisock, msg, len, &sent);
+    if (ret < 0) {
+	char *errStr = strerror(errno);
+	elog("%s(r%i): got error %d on PMI socket: %s\n", __func__,
+	     rank, errno, errStr ? errStr : "UNKNOWN");
     }
-
-    if (written < len) {
+    if (sent < len) {
 	elog("%s(r%i): failed sending %s from %s:%i\n", __func__, rank, msg,
 	     caller, line);
 	return critErr();

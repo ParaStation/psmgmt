@@ -1,13 +1,12 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2018-2020 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2018-2021 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-
 /**
  * @file Implementation of functions running in the forwarders
  *
@@ -24,10 +23,10 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 
-
+#include "pscio.h"
+#include "pscommon.h"
 #include "pstask.h"
 #include "psidhook.h"
-#include "pscommon.h"
 #include "pluginmalloc.h"
 #include "psidforwarder.h"
 #include "pspluginprotocol.h"
@@ -56,35 +55,18 @@ static int32_t rank;
  */
 static bool sendMsg(int fd, DDTypedBufferMsg_t *msg)
 {
-    char *buf = (void *)msg;
-    size_t c = msg->header.len;
-    int n;
-
     mdbg(PSPMIX_LOG_COMM, "%s(r%d): Sending message for %s to my daemon\n",
 	    __func__, rank, PSC_printTID(msg->header.dest));
 
-    do {
-	n = send(fd, buf, c, 0);
-	if (n < 0){
-	    if (errno == EAGAIN){
-		continue;
-	    } else {
-		break;             /* error, return < 0 */
-	    }
-	}
-	c -= n;
-	buf += n;
-    } while (c > 0);
-
-    if (n < 0) {
+    ssize_t ret = PSCio_sendF(fd, msg, msg->header.len);
+    if (ret < 0) {
 	mwarn(errno, "%s(r%d): Sending msg to %s failed", __func__, rank,
-		PSC_printTID(msg->header.dest));
+	      PSC_printTID(msg->header.dest));
 	return false;
-    } else if (!n) {
+    } else if (!ret) {
 	mlog("%s(r%d): Lost connection to daemon\n", __func__, rank);
 	return false;
     }
-
     return true;
 }
 
