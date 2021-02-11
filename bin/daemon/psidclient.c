@@ -22,6 +22,7 @@
 #include "selector.h"
 #include "rdp.h"
 
+#include "pscio.h"
 #include "pscommon.h"
 #include "psprotocol.h"
 #include "psdaemonprotocol.h"
@@ -105,6 +106,8 @@ void PSIDclient_register(int fd, PStask_ID_t tid, PStask_t *task)
     clients[fd].pendingACKs = 0;
     INIT_LIST_HEAD(&clients[fd].msgs);
     PSIDFlwCntrl_emptyHash(clients[fd].stops);
+
+    PSCio_setFDblock(fd, false);
 
     Selector_register(fd, handleClientConnectMsg, NULL);
 }
@@ -205,43 +208,33 @@ int PSIDclient_isEstablished(int fd)
  * returned. This might be used as an offset for subsequent calls. Or
  * -1 if an error occurred.
  */
-static int do_send(int fd, DDMsg_t *msg, int offset)
+static ssize_t doSend(int fd, DDMsg_t *msg, size_t offset)
 {
-    PStask_t *task;
-    int n, i, eno;
+    char *buf = (char *)msg;
+    size_t sent;
+    ssize_t ret = PSCio_sendProg(fd, buf + offset, msg->len - offset, &sent);
+    if (ret < 0) {
+	int eno = errno;
+	if (eno == EAGAIN || eno == EINTR) {
+	    return offset + sent;
+	}
+	PSID_warn((eno == EPIPE) ? PSID_LOG_CLIENT : -1, eno,
+		  "%s: error on socket %d", __func__, fd);
+	PStask_t *task = PSIDclient_getTask(fd);
+	if (task) {
+	    if (!task->killat) task->killat = time(NULL) + 10;
+	    /* Make sure we get all pending messages */
+	    Selector_enable(fd);
+	} else {
+	    PSID_log(-1, "%s: No task\n", __func__);
+	    PSIDclient_delete(fd);
+	}
+	errno = eno;
 
-    for (n=offset, i=1; (n<msg->len) && (i>0);) {
-	errno = 0;
-	i = send(fd, &(((char*)msg)[n]), msg->len-n, MSG_DONTWAIT);
-	if (i<=0) {
-	    switch (errno) {
-	    case EINTR:
-		break;
-	    case EAGAIN:
-		return n;
-	    default:
-		eno = errno;
-		PSID_warn((eno==EPIPE) ? PSID_LOG_CLIENT : -1, eno,
-			  "%s: error on socket %d", __func__, fd);
-		task = PSIDclient_getTask(fd);
-		if (task) {
-		    if (!task->killat) {
-			task->killat = time(NULL) + 10;
-		    }
-		    /* Make sure we get all pending messages */
-		    Selector_enable(fd);
-		} else {
-		    PSID_log(-1, "%s: No task\n", __func__);
-		    PSIDclient_delete(fd);
-		}
-		errno = eno;
-
-		return i;
-	    }
-	} else
-	    n+=i;
+	return ret;
     }
-    return n;
+
+    return offset + ret;
 }
 
 /**
@@ -300,9 +293,6 @@ static bool storeMsg(int fd, DDMsg_t *msg, size_t offset)
  */
 static int flushClientMsgs(int fd, void *info)
 {
-    list_t *m, *tmp;
-    int blockedRDP;
-
     if (fd < 0 || fd >= maxClientFD) {
 	errno = EINVAL;
 	return -1;
@@ -310,22 +300,20 @@ static int flushClientMsgs(int fd, void *info)
 
     if (clients[fd].flags & (FLUSH | CLOSE)) return 1;
 
-    blockedRDP = RDP_blockTimer(1);
+    int blockedRDP = RDP_blockTimer(1);
 
     clients[fd].flags |= FLUSH;
 
+    list_t *m, *tmp;
     list_for_each_safe(m, tmp, &clients[fd].msgs) {
 	PSIDmsgbuf_t *msgbuf = list_entry(m, PSIDmsgbuf_t, next);
 	DDMsg_t *msg = (DDMsg_t *)msgbuf->msg;
-	int sent = do_send(fd, msg, msgbuf->offset);
 
+	ssize_t sent = doSend(fd, msg, msgbuf->offset);
 	if (sent < 0) {
 	    RDP_blockTimer(blockedRDP);
-
 	    return sent;
-	}
-
-	if (sent != msg->len) {
+	} else if (sent != msg->len) {
 	    msgbuf->offset = sent;
 	    break;
 	}
@@ -354,7 +342,6 @@ static int flushClientMsgs(int fd, void *info)
 int PSIDclient_send(DDMsg_t *msg)
 {
     PStask_t *task = PStasklist_find(&managedTasks, msg->dest);
-    int fd, sent = 0;
 
     if (PSID_getDebugMask() & PSID_LOG_CLIENT) {
 	PSID_log(PSID_LOG_CLIENT, "%s(type %s (len=%d) to %s\n",
@@ -375,48 +362,42 @@ int PSIDclient_send(DDMsg_t *msg)
 	errno = EHOSTUNREACH;
 	return -1;
     }
-    fd = task->fd;
+    int fd = task->fd;
 
     if (!list_empty(&clients[fd].msgs)) flushClientMsgs(fd, NULL);
 
+    ssize_t sent = 0;
     if (list_empty(&clients[fd].msgs)) {
 	PSID_log(PSID_LOG_CLIENT, "%s: use fd %d\n", __func__, fd);
-	sent = do_send(fd, msg, 0);
+	sent = doSend(fd, msg, 0);
     }
 
-    if (sent<0) return sent;
-    if (sent != msg->len) {
-	if (!storeMsg(fd, msg, sent)) {
-	    PSID_warn(-1, errno, "%s: Failed to store message", __func__);
-	    errno = ENOBUFS;
-	} else {
-	    Selector_awaitWrite(fd, flushClientMsgs, NULL);
+    if (sent == msg->len || sent < 0) return sent; // send done or error
 
-	    if (PSIDFlwCntrl_applicable(msg)) {
-		int ret = PSIDFlwCntrl_addStop(clients[fd].stops, msg->sender);
-
-		if (ret < 0) {
-		    PSID_warn(-1, errno, "%s: Failed to store stopTID",
-			      __func__);
-		    errno = ENOBUFS;
-		    return -1;
-		}
-
-		if (!ret) {
-		    errno = 0;
-		    return msg->len; /* suppress sending of SENDSTOP */
-		} else {
-		    /* yet another SENDSTOPACK is pending */
-		    clients[fd].pendingACKs++;
-		}
-
-	    }
-	    errno = EWOULDBLOCK;
-	}
+    /* msg at most partly sent */
+    if (!storeMsg(fd, msg, sent)) {
+	PSID_warn(-1, errno, "%s: Failed to store message", __func__);
+	errno = ENOBUFS;
 	return -1;
     }
+    Selector_awaitWrite(fd, flushClientMsgs, NULL);
 
-    return sent;
+    if (PSIDFlwCntrl_applicable(msg)) {
+	int ret = PSIDFlwCntrl_addStop(clients[fd].stops, msg->sender);
+	if (ret < 0) {
+	    PSID_warn(-1, errno, "%s: Failed to store stopTID", __func__);
+	    errno = ENOBUFS;
+	    return -1;
+	} else if (!ret) {
+	    errno = 0;
+	    return msg->len; /* suppress sending of SENDSTOP */
+	} else {
+	    /* yet another SENDSTOPACK is pending */
+	    clients[fd].pendingACKs++;
+	}
+    }
+    errno = EWOULDBLOCK;
+    return -1;
 }
 
 /* @todo we need to timeout if message is too small */
@@ -474,16 +455,16 @@ int PSIDclient_recv(int fd, DDMsg_t *msg, size_t size)
 		}
 	    }
 	    count+=n;
-	} else if (n<0 && (errno==EINTR)) {
+	} else if (n < 0 && (errno == EINTR || errno == EAGAIN)) {
 	    continue;
-	} else if (n<0 && (errno==ECONNRESET)) {
+	} else if (n < 0 && (errno == ECONNRESET)) {
 	    /* socket is closed unexpectedly */
 	    n = 0;
 	    break;
-	} else break;
+	} else break; // n<=0
     } while (msg->len > count);
 
-    if (count && count==msg->len) {
+    if (count && count == msg->len) {
 	return msg->len;
     } else {
 	return n;
