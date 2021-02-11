@@ -116,7 +116,7 @@ static void doKillChild(pid_t pid, int sig, bool session)
     if (session) {
 	fwData->killSession(pid, sig);
     } else {
-	pskill(sig, pid, 0);
+	pskill(pid, sig, 0);
     }
 }
 
@@ -336,7 +336,7 @@ static void signalHandler(int sig)
 		      fwData->cSid, fwData->jobID ? fwData->jobID : "<?>");
 	    /* warning: don't use killSession() in the signal handler.
 	     * Double entry of killSession() can lead to corrupt memory! */
-	    pskill(SIGKILL, fwData->cPid, 0);
+	    pskill(fwData->cPid, SIGKILL, 0);
 	    sendHardKill = true;
 	} else {
 	    jobTimeout = true;
@@ -754,7 +754,7 @@ static void execForwarder(PStask_t *task)
 		close(controlFDs[0]);
 		if (read != sizeof(pid_t)) {
 		    pluginlog("%s: reading childs sid failed\n", __func__);
-		    pskill(SIGKILL, fw->cPid, 0);
+		    pskill(fw->cPid, SIGKILL, 0);
 		}
 		gettimeofday(&childStart, NULL);
 
