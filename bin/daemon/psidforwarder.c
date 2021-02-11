@@ -107,7 +107,7 @@ static void closeDaemonSock(void)
  *
  * @see PSLog_write()
  */
-static int sendLogMsg(PSLog_msg_t type, char *buf, size_t len)
+static ssize_t sendLogMsg(PSLog_msg_t type, char *buf, size_t len)
 {
     int ret = 0;
     static bool first = true;
@@ -349,7 +349,7 @@ again:
     return ret;
 }
 
-int sendDaemonMsg(void *amsg)
+ssize_t sendDaemonMsg(void *amsg)
 {
     if (daemonSock < 0) {
 	errno = EBADF;
@@ -537,7 +537,7 @@ static void releaseLogger(int status)
  * of bytes sent in this and all previous calls is returned. If an
  * error occurs, -1 or 0 is returned and errno is set appropriately.
  */
-static int doClntWrite(PSLog_Msg_t *msg, int offset)
+static ssize_t doClntWrite(PSLog_Msg_t *msg, size_t offset)
 {
     int n, i;
     int count = msg->header.len - PSLog_headerSize;

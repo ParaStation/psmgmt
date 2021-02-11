@@ -151,10 +151,10 @@ handlerFunc_t PSID_clearDropper(int32_t msgType)
     return clearHandler(msgType, dropHash);
 }
 
-int sendMsg(void *amsg)
+ssize_t sendMsg(void *amsg)
 {
     DDMsg_t *msg = (DDMsg_t *)amsg;
-    int ret;
+    ssize_t ret;
     bool isRDP = false;
     char *sender;
 

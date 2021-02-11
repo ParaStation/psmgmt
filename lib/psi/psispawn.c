@@ -166,7 +166,7 @@ error:
  * occurred
  */
 static bool sendTask(DDTypedBufferMsg_t *msg, PStask_t *task,
-		     int (*sendFunc)(void *))
+		     ssize_t (*sendFunc)(void *))
 {
     /* pack the task information in the msg */
     char *offset = NULL;
@@ -226,7 +226,7 @@ static bool sendTask(DDTypedBufferMsg_t *msg, PStask_t *task,
  * occurred
  */
 static bool sendArgv(DDTypedBufferMsg_t *msg, char **argv,
-		    int (*sendFunc)(void *))
+		     ssize_t (*sendFunc)(void *))
 {
     char *off = NULL;
     int num = 0, len;
@@ -289,7 +289,7 @@ void PSI_registerRankEnvFunc(char **(*func)(int, void *), void *info)
  * message's buffer is given back in @a len.
  */
 static bool sendEnv(DDTypedBufferMsg_t *msg, char **env, size_t *len,
-		    int (*sendFunc)(void *))
+		    ssize_t (*sendFunc)(void *))
 {
     char *off = NULL;
     int num = 0;
@@ -499,7 +499,7 @@ int PSI_sendSpawnReq(PStask_t* task, PSnodes_ID_t *dstnodes, uint32_t max)
 }
 
 bool PSI_sendSpawnMsg(PStask_t* task, bool envClone, PSnodes_ID_t dest,
-		      int (*sendFunc)(void *))
+		      ssize_t (*sendFunc)(void *))
 {
     DDTypedBufferMsg_t msg = {
 	.header = {

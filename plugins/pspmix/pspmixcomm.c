@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2018-2020 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2018-2021 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -301,7 +301,7 @@ static pthread_mutex_t send_lock = PTHREAD_MUTEX_INITIALIZER;
  *
  * @return Returns true on success and false on error
  */
-static int sendMsgToDaemon(DDTypedBufferMsg_t *msg)
+static ssize_t sendMsgToDaemon(DDTypedBufferMsg_t *msg)
 {
     mdbg(PSPMIX_LOG_CALL, "%s() called\n", __func__);
 
@@ -313,7 +313,7 @@ static int sendMsgToDaemon(DDTypedBufferMsg_t *msg)
 	}
 	return msg->header.len;
     }
-   
+
     /* message is for someone else, forward to my daemon */
     mdbg(PSPMIX_LOG_COMM, "%s: Forwarding message for %s to my daemon\n",
 	    __func__, PSC_printTID(msg->header.dest));
@@ -500,7 +500,7 @@ bool pspmix_comm_sendModexDataRequest(PSnodes_ID_t target, pmix_proc_t *proc)
     if (!sendMsgToDaemon(&msg)) {
 	mlog("%s: Sending modex data request to rank %d failed."
 	    " (nspace %s)\n", __func__, proc->rank, proc->nspace);
-        pthread_mutex_unlock(&send_lock);
+	pthread_mutex_unlock(&send_lock);
 	return false;
     }
     pthread_mutex_unlock(&send_lock);
@@ -571,9 +571,7 @@ bool pspmix_comm_init()
     PSID_clearMsg(PSP_PLUG_PSPMIX);
 
     /* initialize fragmentation layer */
-    if (!initSerial(0, (Send_Msg_Func_t *)sendMsgToDaemon)) {
-	return false;
-    }
+    if (!initSerial(0, (Send_Msg_Func_t *)sendMsgToDaemon)) return false;
 
     return true;
 }

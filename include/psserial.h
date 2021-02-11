@@ -27,6 +27,7 @@
 
 #include <stdbool.h>
 #include <stdint.h>
+#include <sys/types.h>
 
 #include "pssenddb_t.h"
 #include "pscommon.h"
@@ -60,7 +61,7 @@ typedef struct {
 } PS_DataBuffer_t;
 
 /** Prototype of custom sender functions used by @ref initSerial() */
-typedef int Send_Msg_Func_t(void *);
+typedef ssize_t Send_Msg_Func_t(void *);
 
 /**
  * @brief Prototype for @ref __recvFragMsg()'s callback

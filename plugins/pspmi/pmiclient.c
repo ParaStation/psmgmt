@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2007-2019 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2007-2021 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -2307,8 +2307,7 @@ static bool tryPMISpawn(SpawnRequest_t *req, int universeSize,
     }
 #endif
 
-    bool ret = PSI_sendSpawnMsg(task, false, PSC_getMyID(),
-				(int (*)(void *))sendDaemonMsg);
+    bool ret = PSI_sendSpawnMsg(task, false, PSC_getMyID(), sendDaemonMsg);
 
     PStask_delete(task);
 

@@ -101,7 +101,7 @@ int PSI_protocolVersion(PSnodes_ID_t id);
  * @return On success, the number of bytes written are returned. On
  * error, -1 is returned, and errno is set appropriately.
  */
-int PSI_sendMsg(void *amsg);
+ssize_t PSI_sendMsg(void *amsg);
 
 /**
  * @brief Test for available message.

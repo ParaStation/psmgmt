@@ -65,7 +65,7 @@ void PSID_forwarder(PStask_t *task, int clientFD, int eno);
  * i.e. usually @a msg->header.len. Otherwise -1 is returned and errno
  * is set appropriately.
  */
-int sendDaemonMsg(void *msg);
+ssize_t sendDaemonMsg(void *msg);
 
 /**
  * @brief Send string to logger.

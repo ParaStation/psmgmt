@@ -17,6 +17,7 @@
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
+#include <sys/types.h>
 
 #include "psprotocol.h"
 
@@ -74,7 +75,7 @@ void PSIDcomm_printStat(void);
  *
  * @see sendRDP(), sendClient()
  */
-int sendMsg(void *msg);
+ssize_t sendMsg(void *msg);
 
 /**
  * @brief Wrapper around @ref sendMsg()

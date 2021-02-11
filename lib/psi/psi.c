@@ -429,7 +429,7 @@ int PSI_protocolVersion(PSnodes_ID_t id)
     return protoCache[id];
 }
 
-int PSI_sendMsg(void *amsg)
+ssize_t PSI_sendMsg(void *amsg)
 {
     DDMsg_t *msg = (DDMsg_t *)amsg;
 
@@ -448,8 +448,7 @@ int PSI_sendMsg(void *amsg)
 	return -1;
     }
 
-    int ret = PSCio_sendF(daemonSock, msg, msg->len);
-
+    ssize_t ret = PSCio_sendF(daemonSock, msg, msg->len);
     if (ret <= 0) {
 	if (!errno) errno = ENOTCONN;
 	PSI_warn(-1, errno, "%s(%s)", __func__, PSP_printMsg(msg->type));
