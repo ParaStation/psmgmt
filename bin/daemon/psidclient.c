@@ -244,14 +244,31 @@ static int do_send(int fd, DDMsg_t *msg, int offset)
     return n;
 }
 
-static int storeMsgClient(int fd, DDMsg_t *msg, int offset)
+/**
+ * brief Store message
+ *
+ * Put the message @a msg into a msgbuf and append it to the list of
+ * undeliverd messages of file descriptor @a fd. The msgbuf's offset
+ * will be set to @a offset and will be used to notice the already
+ * sent bytes of @a msg.
+ *
+ * @param fd File descriptor to store the message to
+ *
+ * @param msg Message to store
+ *
+ * @param offset Amount of bytes of @a msg already sent
+ *
+ * @return If the message was stored, true is returned; or false if no
+ * msgbuf was available
+ */
+static bool storeMsg(int fd, DDMsg_t *msg, size_t offset)
 {
     int blockedRDP;
     PSIDmsgbuf_t *msgbuf = PSIDMsgbuf_get(msg->len);
 
     if (!msgbuf) {
 	errno = ENOMEM;
-	return -1;
+	return false;
     }
 
     memcpy(msgbuf->msg, msg, msg->len);
@@ -261,7 +278,7 @@ static int storeMsgClient(int fd, DDMsg_t *msg, int offset)
     list_add_tail(&msgbuf->next, &clients[fd].msgs);
     RDP_blockTimer(blockedRDP);
 
-    return 0;
+    return true;
 }
 
 /**
@@ -369,7 +386,7 @@ int PSIDclient_send(DDMsg_t *msg)
 
     if (sent<0) return sent;
     if (sent != msg->len) {
-	if (storeMsgClient(fd, msg, sent)) {
+	if (!storeMsg(fd, msg, sent)) {
 	    PSID_warn(-1, errno, "%s: Failed to store message", __func__);
 	    errno = ENOBUFS;
 	} else {
