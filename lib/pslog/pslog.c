@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2003 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2018 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2021 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -16,6 +16,7 @@
 #include <sys/types.h>
 #include <stddef.h>
 
+#include "pscio.h"
 #include "pscommon.h"
 #include "pstask.h"
 
@@ -42,45 +43,6 @@ int PSLog_avail(void)
     return daemonsock != -1;
 }
 
-/**
- * @brief Actually send a message
- *
- * Send message @a msg.
- *
- * @param msg Message to send
- *
- * @return Upon success the number of bytes sent is returned. Or -1 if
- * an error occurred. In the latter case errno is set appropriately.
- */
-static ssize_t doSend(PSLog_Msg_t *msg)
-{
-    char *buf = (char *)msg;
-    size_t cnt = msg->header.len;
-
-    while (cnt > 0) {
-	errno = 0;
-	ssize_t ret = send(daemonsock, buf, cnt, 0);
-
-	if (!ret) {
-	    errno = EIO;
-	    return -1;
-	} else if (ret < 0) {
-	    switch (errno) {
-	    case EAGAIN:
-	    case EINTR:
-		continue;
-	    default:
-		return -1;
-	    }
-	} else {
-	    buf += ret;
-	    cnt -= ret;
-	}
-    }
-
-    return msg->header.len;
-}
-
 ssize_t PSLog_write(PStask_ID_t dest, PSLog_msg_t type, char *buf, size_t cnt)
 {
     PSLog_Msg_t msg = {
@@ -92,22 +54,29 @@ ssize_t PSLog_write(PStask_ID_t dest, PSLog_msg_t type, char *buf, size_t cnt)
 	.version = version,
 	.type = type,
 	.sender = id };
-    size_t rem = cnt;
 
     if (daemonsock < 0) {
 	errno = EBADF;
 	return -1;
     }
+    if (cnt && !buf) {
+	errno = EINVAL;
+	return -1;
+    }
 
+    size_t rem = cnt;
     do { /* allow to send message with empty payload for end of stream */
 	size_t n = (rem > sizeof(msg.buf)) ? sizeof(msg.buf) : rem;
 
 	if (n) memcpy(msg.buf, buf, n);
 	msg.header.len = offsetof(PSLog_Msg_t, buf) + n;
 
-	ssize_t ret = doSend(&msg);
+	ssize_t ret = PSCio_sendF(daemonsock, &msg, msg.header.len);
 	if (ret < 0) return ret;
-
+	if (!ret) {
+	    errno = EIO;
+	    return -1;
+	}
 	rem -= n;
 	buf += n;
     } while (rem > 0);

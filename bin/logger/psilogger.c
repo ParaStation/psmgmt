@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 1999-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2020 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2021 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -27,6 +27,7 @@
 #include <signal.h>
 #include <limits.h>
 
+#include "pscio.h"
 #include "pscommon.h"
 #include "pstask.h"
 #include "psprotocol.h"
@@ -325,31 +326,15 @@ static int recvMsg(PSLog_Msg_t *msg)
  */
 static int sendDaemonMsg(DDMsg_t *msg)
 {
-    char *buf = (void *)msg;
-    size_t c = msg->len;
-    int n;
-
     if (daemonSock < 0) {
 	errno = EBADF;
 	return -1;
     }
 
-    do {
-	n = send(daemonSock, buf, c, 0);
-	if (n < 0){
-	    if (errno == EAGAIN){
-		continue;
-	    } else {
-		break;             /* error, return < 0 */
-	    }
-	}
-	c -= n;
-	buf += n;
-    } while (c > 0);
-
-    if (n < 0) {
-	PSIlog_exit(errno, "%s: send()", __func__);
-    } else if (!n) {
+    ssize_t ret = PSCio_sendF(daemonSock, msg, msg->len);
+    if (ret < 0) {
+	PSIlog_exit(errno, "%s: PSCio_sendF()", __func__);
+    } else if (!ret) {
 	PSIlog_log(-1, "%s(): Daemon connection lost\n", __func__);
 	PSIlog_finalizeLogs();
 	exit(1);
