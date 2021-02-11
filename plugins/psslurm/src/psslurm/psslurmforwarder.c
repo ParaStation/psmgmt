@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2014-2020 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2014-2021 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -52,6 +52,7 @@
 #include "pluginpartition.h"
 #include "pluginforwarder.h"
 #include "pluginstrv.h"
+#include "pscio.h"
 #include "selector.h"
 #include "psprotocolenv.h"
 #include "psaccounthandles.h"
@@ -1273,18 +1274,15 @@ bool execBatchJob(Job_t *job)
 static void fwExecBCast(Forwarder_Data_t *fwdata, int rerun)
 {
     BCast_t *bcast = fwdata->userData;
-    int flags = 0, fd, left, ret, eno;
     struct utimbuf times;
-    char *ptr;
 
     if (!switchUser(bcast->username, bcast->uid, bcast->gid, NULL)) {
 	flog("switching user failed\n");
 	exit(1);
     }
-    errno = eno = 0;
 
     /* open the file */
-    flags = O_WRONLY;
+    int flags = O_WRONLY;
     if (bcast->blockNumber == 1) {
 	flags |= O_CREAT;
 	if (bcast->force) {
@@ -1296,35 +1294,29 @@ static void fwExecBCast(Forwarder_Data_t *fwdata, int rerun)
 	flags |= O_APPEND;
     }
 
-    if ((fd = open(bcast->fileName, flags, 0700)) == -1) {
-	eno = errno;
+    int fd = open(bcast->fileName, flags, 0700);
+    if (fd == -1) {
+	int eno = errno;
 	mwarn(eno, "%s: open '%s' failed :", __func__, bcast->fileName);
 	exit(eno);
     }
 
     /* write the file */
-    left = bcast->blockLen;
-    ptr = bcast->block;
-    while (left > 0) {
-	if ((ret = write(fd, ptr, left)) == -1) {
-	    eno = errno;
-	    if (eno == EINTR || eno == EAGAIN) continue;
-	    mwarn(eno, "%s: write '%s' failed :", __func__, bcast->fileName);
-	    exit(eno);
-	}
-	left -= ret;
-	ptr += ret;
+    if (PSCio_sendF(fd, bcast->block, bcast->blockLen) == -1) {
+	int eno = errno;
+	mwarn(eno, "%s: write '%s' failed :", __func__, bcast->fileName);
+	exit(eno);
     }
 
     /* set permissions */
     if (bcast->lastBlock) {
 	if ((fchmod(fd, (bcast->modes & 0700))) == -1) {
-	    eno = errno;
+	    int eno = errno;
 	    mwarn(eno, "%s: chmod '%s' failed :", __func__, bcast->fileName);
 	    exit(eno);
 	}
 	if ((fchown(fd, bcast->uid, bcast->gid)) == -1) {
-	    eno = errno;
+	    int eno = errno;
 	    mwarn(eno, "%s: chown '%s' failed :", __func__, bcast->fileName);
 	    exit(eno);
 	}
@@ -1332,7 +1324,7 @@ static void fwExecBCast(Forwarder_Data_t *fwdata, int rerun)
 	    times.actime  = bcast->atime;
 	    times.modtime = bcast->mtime;
 	    if (utime(bcast->fileName, &times)) {
-		eno = errno;
+		int eno = errno;
 		mwarn(eno, "%s: utime '%s' failed :", __func__,
 			bcast->fileName);
 		exit(eno);
