@@ -23,6 +23,7 @@
 #include "psprotocol.h"
 #include "psprotocolenv.h"
 
+#include "pscio.h"
 #include "pscommon.h"
 
 #include "psilog.h"
@@ -431,7 +432,6 @@ int PSI_protocolVersion(PSnodes_ID_t id)
 int PSI_sendMsg(void *amsg)
 {
     DDMsg_t *msg = (DDMsg_t *)amsg;
-    int ret = 0;
 
     if (!msg) {
 	PSI_log(-1, "%s: no message\n", __func__);
@@ -448,14 +448,10 @@ int PSI_sendMsg(void *amsg)
 	return -1;
     }
 
- again:
-    ret = write(daemonSock, msg, msg->len);
-
-    if (ret == -1 && errno == EINTR) goto again;
+    int ret = PSCio_sendF(daemonSock, msg, msg->len);
 
     if (ret <= 0) {
 	if (!errno) errno = ENOTCONN;
-
 	PSI_warn(-1, errno, "%s(%s)", __func__, PSP_printMsg(msg->type));
 
 	close(daemonSock);
