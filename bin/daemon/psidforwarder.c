@@ -215,15 +215,16 @@ static void sendSignal(pid_t dest, int signal)
  */
 static void handleSignalMsg(PSLog_Msg_t *msg)
 {
-    char *ptr = msg->buf;
+    DDBufferMsg_t *bMsg = (DDBufferMsg_t *)&msg;
+    size_t used = offsetof(PSLog_Msg_t, buf) - offsetof(DDBufferMsg_t, buf);
 
     /* Get destination */
     pid_t pid;
-    getInt32(&ptr, &pid);
+    PSP_getMsgBuf(bMsg, &used, __func__, "pid", &pid, sizeof(pid));
 
     /* Get signal to send */
     int32_t signal;
-    getInt32(&ptr, &signal);
+    PSP_getMsgBuf(bMsg, &used, __func__, "signal", &signal, sizeof(signal));
 
     sendSignal(pid, signal);
 }
