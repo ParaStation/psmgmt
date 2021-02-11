@@ -90,16 +90,16 @@ static void closeDaemonSock(void)
 }
 
 /**
- * @brief Send message to logger.
+ * @brief Send message to logger
  *
  * Send a message of type @a type and size @a len within @a buf to the
  * logger. This is done via the PSLog facility.
  *
- * @param type The type of the message to send.
+ * @param type The type of the message to send
  *
- * @param buf Buffer holding the message to send.
+ * @param buf Buffer holding the message to send
  *
- * @param len The length of the message to send.
+ * @param len The length of the message to send
  *
  * @return On success, the number of bytes written is returned,
  * i.e. usually this is @a len. On error, -1 is returned, and errno is
@@ -107,7 +107,7 @@ static void closeDaemonSock(void)
  *
  * @see PSLog_write()
  */
-static int sendMsg(PSLog_msg_t type, char *buf, size_t len)
+static int sendLogMsg(PSLog_msg_t type, char *buf, size_t len)
 {
     int ret = 0;
     static bool first = true;
@@ -135,7 +135,7 @@ static int sendMsg(PSLog_msg_t type, char *buf, size_t len)
 
 int PSIDfwd_printMsg(PSLog_msg_t type, char *buf)
 {
-    return sendMsg(type, buf, strlen(buf));
+    return sendLogMsg(type, buf, strlen(buf));
 }
 
 int PSIDfwd_printMsgf(PSLog_msg_t type, const char *format, ...)
@@ -149,13 +149,13 @@ int PSIDfwd_printMsgf(PSLog_msg_t type, const char *format, ...)
     va_end(ap);
 
     if (n >= 0) {
-	n = sendMsg(type, buf, n);
+	n = sendLogMsg(type, buf, n);
     }
     return n;
 }
 
 /**
- * @brief Deliver signal.
+ * @brief Deliver signal
  *
  * Deliver signal @a signal to controlled process. If the child is
  * interactive, the signal is send to the foreground process group of
@@ -166,9 +166,9 @@ int PSIDfwd_printMsgf(PSLog_msg_t type, const char *format, ...)
  * @param dest Process ID of the process to send signal to. Not used
  * for interactive children.
  *
- * @param signal The signal to send.
+ * @param signal The signal to send
  *
- * @return No return value.
+ * @return No return value
  */
 static void sendSignal(pid_t dest, int signal)
 {
@@ -402,9 +402,9 @@ static int connectLogger(PStask_ID_t tid)
     struct timeval timeout = {loggerTimeout, 0};
     int ret;
 
-    loggerTID = tid; /* Only set for the first sendMsg()/recvMsg() pair */
+    loggerTID = tid; /* Only set for the first sendLogMsg()/recvMsg() pair */
 
-    sendMsg(INITIALIZE, (char *) &childTask->group, sizeof(childTask->group));
+    sendLogMsg(INITIALIZE, (char *)&childTask->group, sizeof(childTask->group));
 
 again:
     ret = recvMsg(&msg, &timeout);
@@ -475,7 +475,7 @@ static void releaseLogger(int status)
     if (loggerTID < 0) return;
 
  send_again:
-    sendMsg(FINALIZE, (char *)&status, sizeof(status));
+    sendLogMsg(FINALIZE, (char *)&status, sizeof(status));
 
     timeout = (struct timeval) {10, 0};
  again:
@@ -571,7 +571,7 @@ static int doClntWrite(PSLog_Msg_t *msg, int offset)
 	    case EAGAIN:
 		return n;
 	    case EPIPE:
-		sendMsg(STOP, NULL, 0);
+		sendLogMsg(STOP, NULL, 0);
 		if (Selector_isRegistered(stdinSock))
 		    Selector_vacateWrite(stdinSock);
 		childTask->stdin_fd = -1;
@@ -619,7 +619,7 @@ static int flushMsgs(int fd /* dummy */, void *info /* dummy */)
 	int len = msg->header.len - PSLog_headerSize;
 	int written = doClntWrite(msg, msgbuf->offset);
 
-	if (written<0) return written;
+	if (written < 0) return written;
 	if (written != len) {
 	    msgbuf->offset = written;
 	    break;
@@ -633,7 +633,7 @@ static int flushMsgs(int fd /* dummy */, void *info /* dummy */)
 	return -1;
     } else {
 	if (stdinSock != -1) Selector_vacateWrite(stdinSock);
-	sendMsg(CONT, NULL, 0);
+	sendLogMsg(CONT, NULL, 0);
     }
 
     return 0;
@@ -648,14 +648,14 @@ static int writeMsg(PSLog_Msg_t *msg)
     bool emptyList = list_empty(&oldMsgs);
     if (emptyList) written = doClntWrite(msg, 0);
 
-    if (written<0) return written;
+    if (written < 0) return written;
     if (written != len || !emptyList) {
 	if (!storeMsg(msg, written)) {
 	    errno = EWOULDBLOCK;
 	} else if (emptyList && childTask->stdin_fd != -1) {
 	    Selector_awaitWrite(childTask->stdin_fd, flushMsgs, NULL);
 	}
-	if (len) sendMsg(STOP, NULL, 0);
+	if (len) sendLogMsg(STOP, NULL, 0);
 	return -1;
     }
 
@@ -899,7 +899,7 @@ static int readFromChild(int fd, void *data)
     }
     if (total) {
 	/* forward it to logger */
-	sendMsg(type, buf, total);
+	sendLogMsg(type, buf, total);
     }
 
     return 0;
@@ -1044,7 +1044,7 @@ static void finalizeForwarder(void)
     if (!gotSIGCHLD) PSIDfwd_printMsgf(STDERR, "%s: %s: SIGCHLD not yet"
 				       " received\n", tag, __func__);
 
-    sendMsg(USAGE, (char *) &childRUsage, sizeof(childRUsage));
+    sendLogMsg(USAGE, (char *) &childRUsage, sizeof(childRUsage));
 
     int clientStat = PSIDhook_call(PSIDHOOK_FRWRD_CLNT_RLS, childTask);
 
