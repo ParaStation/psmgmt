@@ -539,56 +539,42 @@ static void releaseLogger(int status)
  */
 static ssize_t doClntWrite(PSLog_Msg_t *msg, size_t offset)
 {
-    int n, i;
-    int count = msg->header.len - PSLog_headerSize;
-    int stdinSock = childTask->stdin_fd;
+    size_t cnt = msg->header.len - PSLog_headerSize;
+    int sock = childTask->stdin_fd;
 
-    if (!count) {
+    if (!cnt) {
 	/* close clients stdin */
-	shutdown(stdinSock, SHUT_WR);
-	if (Selector_isRegistered(stdinSock)) Selector_vacateWrite(stdinSock);
+	shutdown(sock, SHUT_WR);
+	if (Selector_isRegistered(sock)) Selector_vacateWrite(sock);
 
 	/* Interactive jobs might use a single file-descriptor */
-	if (stdinSock != childTask->stdout_fd &&
-	    stdinSock != childTask->stderr_fd) {
-	    close(stdinSock);
+	if (sock != childTask->stdout_fd && sock != childTask->stderr_fd) {
+	    close(sock);
 	}
 
 	childTask->stdin_fd = -1;
 	return 0;
     }
 
-    for (n=offset, i=1; (n<count) && (i>0);) {
-	char *errstr;
-	errno = 0;
-	i = write(stdinSock, &msg->buf[n], count-n);
-	if (i<0) {
-	    int eno = errno;
-	    switch (eno) {
-	    case EINTR:
-		i=1;
-		continue;
-	    case EAGAIN:
-		return n;
-	    case EPIPE:
-		sendLogMsg(STOP, NULL, 0);
-		if (Selector_isRegistered(stdinSock))
-		    Selector_vacateWrite(stdinSock);
-		childTask->stdin_fd = -1;
-		break;
-	    default:
-		errstr = strerror(eno);
-		PSIDfwd_printMsgf(STDERR,
-				  "%s: %s: got error %d on stdinSock: %s\n",
-				  tag, __func__, eno,
-				  errstr ? errstr : "UNKNOWN");
-	    }
-	    errno = eno;
-	    return i;
-	} else
-	    n+=i;
+    size_t sent;
+    ssize_t ret = PSCio_sendProg(sock, &msg->buf[offset], cnt - offset, &sent);
+    if (ret < 0) {
+	int eno = errno;
+	if (eno == EAGAIN) {
+	    return offset + sent;
+	} else if (eno == EPIPE) {
+	    sendLogMsg(STOP, NULL, 0);
+	    if (Selector_isRegistered(sock)) Selector_vacateWrite(sock);
+	    childTask->stdin_fd = -1;
+	} else {
+	    char *errstr = strerror(eno);
+	    PSIDfwd_printMsgf(STDERR, "%s: %s: errno %d on stdinSock: %s\n",
+			      tag, __func__, eno, errstr ? errstr : "UNKNOWN");
+	}
+	errno = eno;
+	return ret;
     }
-    return n;
+    return offset + ret;
 }
 
 static int storeMsg(PSLog_Msg_t *msg, int offset)
