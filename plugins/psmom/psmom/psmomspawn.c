@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2010-2020 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2010-2021 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -24,9 +24,10 @@
 #include <netdb.h>
 #include <sys/wait.h>
 
+#include "pscio.h"
+#include "pscommon.h"
 #include "timer.h"
 #include "psidscripts.h"
-#include "pscommon.h"
 #include "psprotocol.h"
 #include "psnodes.h"
 #include "psidcomm.h"
@@ -832,35 +833,25 @@ void startInteractiveJob(Job_t *job, ComHandle_t *com)
 
 void stopInteractiveJob(Job_t *job)
 {
-    int err = 2, ret;
-    ComHandle_t *forwarder_com;
-    Child_t *child;
-
-    if (!(child = findChildByJobid(job->id, PSMOM_CHILD_INTERACTIVE))) {
+    Child_t *child = findChildByJobid(job->id, PSMOM_CHILD_INTERACTIVE);
+    if (!child) {
 	mlog("%s interactive forwarder not found\n", __func__);
 	return;
     }
 
     /* release waiting forwarder */
-    if (!(forwarder_com = getJobCom(job, JOB_CON_FORWARD))) {
+    ComHandle_t *forwarder_com = getJobCom(job, JOB_CON_FORWARD);
+    if (!forwarder_com) {
 	mlog("%s: invalid forwarder com handle\n", __func__);
 	kill(child->pid, SIGTERM);
     } else {
-	while(1) {
-	    if ((ret = write(forwarder_com->socket, &err,
-			    sizeof(err))) != sizeof(err)) {
-		if (ret == -1 && errno == EINTR) continue;
-
-		mlog("%s: writing error status failed : %s\n", __func__,
-			strerror(errno));
-		kill(child->pid, SIGTERM);
-		break;
-	    } else {
-		break;
-	    }
+	int err = 2;
+	int ret = PSCio_send(forwarder_com->socket, &err, sizeof(err));
+	if (ret != sizeof(err)) {
+	    mwarn(errno, "%s: writing error status failed", __func__);
+	    kill(child->pid, SIGTERM);
 	}
     }
-
     /* remark: the forwarder callback will send the job termination */
 }
 
