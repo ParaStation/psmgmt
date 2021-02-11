@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2020 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2020-2021 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -187,7 +187,7 @@ int fwCMD_handleMthrJobMsg(PSLog_Msg_t *msg, Forwarder_Data_t *fwdata)
 
 static void handleBrokeIOcon(PSLog_Msg_t *msg)
 {
-    DDBufferMsg_t *bMsg = (DDBufferMsg_t *)&msg;
+    DDBufferMsg_t *bMsg = (DDBufferMsg_t *)msg;
     size_t used = offsetof(PSLog_Msg_t, buf) - offsetof(DDBufferMsg_t, buf);
     uint32_t jobID, stepID;
 
@@ -308,7 +308,7 @@ void fwCMD_printJobMsg(Job_t *job, char *plMsg, uint32_t msgLen, uint8_t type)
 }
 
 void fwCMD_printMessage(Step_t *step, char *plMsg, uint32_t msgLen,
-		        uint8_t type, int32_t rank)
+			uint8_t type, int32_t rank)
 {
     PSLog_Msg_t msg = (PSLog_Msg_t) {
 	.header = (DDMsg_t) {
