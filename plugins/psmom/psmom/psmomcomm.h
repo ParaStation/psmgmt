@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2010-2013 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2010-2021 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -345,21 +345,6 @@ int getLocalAddrInfo(int socket, char *Iaddr, size_t addrSize, int *Iport);
  * @returns the string representation or NULL on error.
  */
 char *protocolType2String(int type);
-
-/**
-* @brief The function which actually sends the data.
-*
-* @param sock The socket to use.
-*
-* @param msg The message to send.
-*
-* @param offset The offset to continue.
-*
-* @param len The length of the message.
-*
-* @return The number of bytes sent.
-*/
-int doSend(int sock, char *msg, int offset, int len, const char *func);
 
 /**
  * @brief Convert a connection type to string.

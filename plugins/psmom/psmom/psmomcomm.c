@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2010-2013 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2010-2021 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -489,31 +489,4 @@ int wBind(int port, Protocol_t type)
 	    mlog("%s: unknown protocol\n", __func__);
     }
     return -1;
-}
-
-int doSend(int sock, char *msg, int offset, int len, const char *func)
-{
-    int n, i;
-
-    if (!len || !msg) return 0;
-
-    for (n=offset, i=1; (n<len) && (i>0);) {
-        i = send(sock, &msg[n], len-n, 0);
-        if (i<=0) {
-            switch (errno) {
-            case EINTR:
-                break;
-            case EAGAIN:
-                return n;
-                break;
-            default:
-                {
-                mwarn(errno, "%s (%s): on socket %i ", __func__, func, sock);
-            return i;
-                }
-            }
-        } else
-            n+=i;
-    }
-    return n;
 }

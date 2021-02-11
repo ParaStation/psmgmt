@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2010-2017 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2010-2021 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -22,6 +22,7 @@
 #include <sys/wait.h>
 #include <pwd.h>
 
+#include "pscio.h"
 #include "selector.h"
 #include "pluginmalloc.h"
 #include "pluginpartition.h"
@@ -508,37 +509,31 @@ int localWrite(int sock, void *msg, size_t len, const char *caller)
 
 int localDoSend(int sock, const char *caller)
 {
-    ComHandle_t *com;
-    int i;
-    ssize_t written = 0;
-    ssize_t len;
-
     if (sock < 0) {
-	mlog("%s(%s): invalid socket '%i'\n", __func__, caller, sock);
+	mlog("%s(%s): invalid socket %i\n", __func__, caller, sock);
 	return -1;
     }
 
-    if ((com = findComHandle(sock, UNIX_PROTOCOL)) == NULL) {
-	mlog("%s(%s): com handle not found for socket '%i'\n", __func__, caller,
-		sock);
+    ComHandle_t *com = findComHandle(sock, UNIX_PROTOCOL);
+    if (!com) {
+	mlog("%s(%s): no com handle for socket %i\n", __func__, caller, sock);
 	return -1;
     }
 
     if (!com->outBuf || !com->dataSize) {
-	mlog("%s(%s): socket '%i' output buffer is empty\n", __func__, caller,
-		sock);
+	mlog("%s(%s): empty buffer for socket %i\n", __func__, caller, sock);
 	return -1;
     }
 
-    len = com->dataSize;
+    mdbg(PSMOM_LOG_LOCAL, "%s(%s): socket %i len %zu msg '%s'\n", __func__,
+	 caller, sock, com->dataSize, com->outBuf);
 
-    mdbg(PSMOM_LOG_LOCAL, "%s(%s): socket '%i' len '%zu' msg '%s'\n", __func__,
-	    caller, sock, len, com->outBuf);
-
-    for (i=0; (written < len) && (i < UNIX_RESEND); i++) {
-	if ((written = doSend(sock, com->outBuf, written, len, __func__)) < 0) {
-	    break;
-	}
+    size_t sent;
+    ssize_t ret = PSCio_sendPProg(sock, com->outBuf, com->dataSize, &sent);
+    if (ret < 0) mwarn(errno, "%s: on socket %i", __func__, sock);
+    if (sent != com->dataSize) {
+	mlog("%s(%s): not all data could be sent, written %zu len %zu\n",
+		__func__, caller, sent, com->dataSize);
     }
 
     if (com->outBuf) {
@@ -548,11 +543,5 @@ int localDoSend(int sock, const char *caller)
 	com->dataSize = 0;
     }
 
-    if (written != len) {
-	mlog("%s(%s): not all data could be sent, written '%zu' len '%zu'\n",
-		__func__, caller, written, len);
-	return -1;
-    }
-
-    return written;
+    return ret;
 }
