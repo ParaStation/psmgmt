@@ -35,7 +35,7 @@ ssize_t PSCio_sendFunc(int fd, void *buffer, size_t toSend, size_t *sent,
 
     *sent = 0;
 
-    while ((*sent < toSend) && (infinite || retries++ < PSCIO_MAX_RETRY)) {
+    while (*sent < toSend && (infinite || retries++ < PSCIO_MAX_RETRY)) {
 	char *ptr = buffer;
 	ssize_t ret = write(fd, ptr + *sent, toSend - *sent);
 	if (ret == -1) {

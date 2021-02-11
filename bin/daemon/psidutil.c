@@ -218,27 +218,6 @@ void PSID_setMixedProto(bool mixed)
     mixedProto = mixed;
 }
 
-int PSID_writeall(int fd, const void *buf, size_t count)
-{
-    int len;
-    char *cbuf = (char *)buf;
-    size_t c = count;
-
-    while (c > 0) {
-	len = write(fd, cbuf, c);
-	if (len < 0) {
-	    if ((errno == EINTR) || (errno == EAGAIN))
-		continue;
-	    else
-		return -1;
-	}
-	c -= len;
-	cbuf += len;
-    }
-
-    return count;
-}
-
 int PSID_readall(int fd, void *buf, size_t count)
 {
     int len;
