@@ -215,7 +215,7 @@ static void sendSignal(pid_t dest, int signal)
  */
 static void handleSignalMsg(PSLog_Msg_t *msg)
 {
-    DDBufferMsg_t *bMsg = (DDBufferMsg_t *)&msg;
+    DDBufferMsg_t *bMsg = (DDBufferMsg_t *)msg;
     size_t used = offsetof(PSLog_Msg_t, buf) - offsetof(DDBufferMsg_t, buf);
 
     /* Get destination */
