@@ -439,11 +439,13 @@ again:
 	errno = ECONNREFUSED;
 	return -1;
     } else {
-	char *ptr = msg.buf;
-	uint32_t forw_verbose;
+	DDBufferMsg_t *bMsg = (DDBufferMsg_t *)&msg;
+	size_t used = offsetof(PSLog_Msg_t, buf) - offsetof(DDBufferMsg_t, buf);
 
-	getUint32(&ptr, &forw_verbose);
-	verbose = forw_verbose;
+	/* Get verbosity */
+	uint32_t verb;
+	PSP_getMsgBuf(bMsg, &used, __func__, "verb", &verb, sizeof(verb));
+	verbose = verb;
 	PSID_log(PSID_LOG_SPAWN, "%s(%s): Connected\n", __func__,
 		 PSC_printTID(tid));
 
@@ -955,7 +957,7 @@ static void sendAcctData(struct rusage rusage, int32_t status)
     PSP_putTypedMsgBuf(&msg, __func__, "rusage", &rusage, sizeof(rusage));
 
     /* pagesize */
-    uint64_t pagesize = sysconf(_SC_PAGESIZE);
+    int64_t pagesize = sysconf(_SC_PAGESIZE);
     if (pagesize < 1) pagesize = 0;
     PSP_putTypedMsgBuf(&msg, __func__, "pagesize", &pagesize, sizeof(pagesize));
 
