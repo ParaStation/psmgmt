@@ -1,3 +1,136 @@
+Version psmgmt-5.1.37:
+======================
+------------------------------------------------------------------------
+f3290869 | Michael Rauh | Wed, 10 Feb 2021 15:30:37 +0100
+
+Bugfix: fix GRes step credential unpacking
+------------------------------------------------------------------------
+54ed2a26 | Michael Rauh | Tue, 2 Feb 2021 12:16:17 +0100
+
+Fix reading of packTaskCounts for 20.11
+------------------------------------------------------------------------
+88d46fa0 | Michael Rauh | Fri, 22 Jan 2021 11:41:53 +0100
+
+Add protocol version comment
+------------------------------------------------------------------------
+5157ccd6 | Michael Rauh | Thu, 21 Jan 2021 17:29:43 +0100
+
+Add additional warning if a Slurm RPC has an invalid
+authentication
+------------------------------------------------------------------------
+17d84987 | Michael Rauh | Thu, 21 Jan 2021 13:59:42 +0100
+
+Remove obsolete sanity check in unpackReqBatchJobLaunch()
+------------------------------------------------------------------------
+d7e4e402 | Michael Rauh | Thu, 21 Jan 2021 13:42:27 +0100
+
+Prevent possible segfault if a Slurm RPC has a broken
+authentication
+------------------------------------------------------------------------
+719d36af | Michael Rauh | Mon, 11 Jan 2021 17:01:00 +0100
+
+Mark removed RPCs in Slurm 20.11
+------------------------------------------------------------------------
+8e08dacf | Michael Rauh | Thu, 7 Jan 2021 16:45:44 +0100
+
+Update Slurm 20.11 RPC calls
+------------------------------------------------------------------------
+488f6b3b | Michael Rauh | Mon, 7 Dec 2020 15:47:48 +0100
+
+Move unpacking of Slurm message header to psslurmpack.c
+------------------------------------------------------------------------
+dfee81ee | Michael Rauh | Wed, 25 Nov 2020 17:21:07 +0100
+
+Add documentation to node registration structure
+------------------------------------------------------------------------
+c4e72c81 | Michael Rauh | Wed, 25 Nov 2020 12:42:51 +0100
+
+Add new step ID definitions
+------------------------------------------------------------------------
+fcadb75f | Michael Rauh | Mon, 23 Nov 2020 15:15:34 +0100
+
+Add 20.11 protocol definition and drop 18.08 support
+------------------------------------------------------------------------
+240cdc78 | Norbert Eicker | Thu, 11 Feb 2021 13:13:36 +0100
+
+Bugfix: Remove false indirection
+------------------------------------------------------------------------
+9558fce6 | Michael Rauh | Thu, 11 Feb 2021 12:53:42 +0100
+
+Bugfix: fix invalid call to pskill() in pluginforwarder
+------------------------------------------------------------------------
+4bea3c95 | Norbert Eicker | Sun, 7 Feb 2021 19:37:50 +0000
+
+Merge branch 'fix_implicit_decl' into 'master'
+
+`toLong` is used also when psconfig support is disabled.
+
+See merge request parastation/psmgmt!3
+------------------------------------------------------------------------
+c1fc6ebb | Thomas Moschny | Sat, 6 Feb 2021 13:16:20 +0100
+
+`toLong` is used also when psconfig support is disabled.
+
+Therefore, move it outside of #ifndef BUILD_WITHOUT_PSCONFIG.
+------------------------------------------------------------------------
+a3290ab5 | Norbert Eicker | Wed, 3 Feb 2021 23:32:14 +0100
+
+Merge branch 'psroute' again
+------------------------------------------------------------------------
+3011c61a | Norbert Eicker | Wed, 3 Feb 2021 17:55:26 +0100
+
+Merge branch 'psroute'
+------------------------------------------------------------------------
+242ca835 | Norbert Eicker | Wed, 3 Feb 2021 13:19:58 +0100
+
+Add more hwloc XML files for KNL
+------------------------------------------------------------------------
+c218725e | Norbert Eicker | Fri, 29 Jan 2021 16:18:28 +0100
+
+Merge branch 'ticket-jw-7902'
+------------------------------------------------------------------------
+933a820f | Norbert Eicker | Wed, 27 Jan 2021 19:38:36 +0100
+
+Push all generated files back to automake 1.16.3
+------------------------------------------------------------------------
+74ee0e12 | Michael Rauh | Wed, 27 Jan 2021 18:56:25 +0100
+
+Update buildsystem
+------------------------------------------------------------------------
+04de5a7d | Michael Rauh | Wed, 27 Jan 2021 18:55:44 +0100
+
+Install psgw.conf as config file in rpm
+------------------------------------------------------------------------
+5a686209 | Michael Rauh | Wed, 27 Jan 2021 18:04:48 +0100
+
+Update buildsystem
+------------------------------------------------------------------------
+b7792deb | Michael Rauh | Wed, 27 Jan 2021 18:02:48 +0100
+
+Install psslurm.conf as config file in rpm
+------------------------------------------------------------------------
+fa634022 | Michael Rauh | Wed, 27 Jan 2021 16:11:25 +0100
+
+Improve ping request log message
+------------------------------------------------------------------------
+964c27bb | Michael Rauh | Tue, 26 Jan 2021 13:38:06 +0100
+
+Allow psslurm to start without psslurm.conf
+
+ - since the Slurm protocol version can be detected automatically
+   there is no more reason to have a mandatory psslurm.conf
+------------------------------------------------------------------------
+d8b53e7a | Michael Rauh | Mon, 25 Jan 2021 17:27:38 +0100
+
+Bugfix: prevent double entry of killSession() which can lead to
+ an endless loop in pluginforwarder
+------------------------------------------------------------------------
+63e69414 | Stephan Krempel | Mon, 25 Jan 2021 13:21:19 +0100
+
+pspmix: Add sources of pspmix mpi plugin for Slurm
+------------------------------------------------------------------------
+
+
 Version psmgmt-5.1.36-3:
 ========================
 ------------------------------------------------------------------------

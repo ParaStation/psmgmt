@@ -6,6 +6,25 @@ Please send bug reports, questions and suggestions to <support@par-tec.com>
 
 
 
+Version 5.1.37:
+===============
+Bugfixes:
+ - Prevent recursive entering of killSession()
+ - Fix invalid calls to pskill() in pluginforwarder
+ - Prevent segfault and add warning if Slurm RPC has invalid authentication
+ - Fix GRes step credential unpacking
+ - Remove false indirection when accessing specific message type
+Enhancements:
+ - Add support for Slurm 20.11
+ - Allow psslurm to start without psslurm.conf
+ - Install psslurm.conf and psgw.conf as config file in rpm
+Additional changes:
+ - Drop Slurm 18.08 support
+ - Add documentation to node registration structure
+ - Add sources of pspmix mpi plugin for Slurm
+ - Add more hwloc XML files for KNL
+
+
 Version 5.1.36-3:
 =================
 Bugfixes:
