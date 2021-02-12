@@ -114,7 +114,7 @@ typedef enum {
     PSIDHOOK_FRWRD_CINFO,     /**< When the forwarder is connecting to
 				the logger, arg is a pointer to the loggers
 				response msg buffer. Might be used to get info
-				about pre/succ ranks */
+				about pre/succ ranks (obsolete) */
     PSIDHOOK_FRWRD_KVS,       /**< Handle a KVS/Service messages, arg
 				points to msg */
     PSIDHOOK_FRWRD_EXIT,      /**< Tell attached (PMI-)plugin that the forwarder

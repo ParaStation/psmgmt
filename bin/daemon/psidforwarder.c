@@ -448,13 +448,6 @@ again:
 	verbose = verb;
 	PSID_log(PSID_LOG_SPAWN, "%s(%s): Connected\n", __func__,
 		 PSC_printTID(tid));
-
-	if (msg.header.len >=
-	    PSLog_headerSize + (int)(2*sizeof(int)+2*sizeof(PStask_ID_t))) {
-
-	    /* set info about our pred/suc ranks */
-	    PSIDhook_call(PSIDHOOK_FRWRD_CINFO, ptr);
-	}
     }
 
     return 0;
