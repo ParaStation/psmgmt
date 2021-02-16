@@ -918,7 +918,7 @@ int PSIDnodes_setDistances(PSnodes_ID_t id, uint32_t *distances);
  * ParaStation ID @a id.
  *
  * The distance matrix is represented by an one-dimensional array of
- * of uint32_t elements.  For a node with <numNUMA> NUMA domains
+ * of uint32_t elements. For a node with <numNUMA> NUMA domains
  * (<numNUMA> might be determined via @ref PSIDnodes_numNUMADoms())
  * the array is of size <numNUMA>*<numNUMA>. The distance from the
  * i-th to the j-th domain is stored in element i*<numNUMA>+j.

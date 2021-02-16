@@ -211,14 +211,17 @@ static PSCPU_set_t * getCPUSets(void)
  * By using @ref getNUMADoms() this implicitly initializes hwloc if
  * this has not happened before and could result in an exit().
  *
- * @todo
- * The array returned is indexed by NUMA domain numbers. It is
- * allocated via malloc() and has to be free()ed by the caller once it
- * is no longer needed. Thus, it is well suited to be registered to
- * the PSIDnodes facility via PSIDnodes_setCPUSets().
+ * The distance matrix is represented by an one-dimensional array of
+ * of uint32_t elements. For a node with <numNUMA> NUMA domains (as
+ * determined via getNUMADoms()) the array is of size
+ * <numNUMA>*<numNUMA>. The distance from the i-th to the j-th domain
+ * is stored in element i*<numNUMA>+j. It is allocated via malloc()
+ * and has to be free()ed by the caller once it is no longer
+ * needed. Thus, it is well suited to be registered to the PSIDnodes
+ * facility via PSIDnodes_setDistances().
  *
- * @return On success, the array of CPU set is returned; on error, NULL
- * might be returned
+ * @return On success, the matrix of distances is returned; on error,
+ * NULL might be returned
  */
 static uint32_t * getDistances(void)
 {
