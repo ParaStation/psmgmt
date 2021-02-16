@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2012-2014 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2012-2021 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -32,6 +32,7 @@ typedef struct {
 static LIST_HEAD(paramList);
 
 PSPARM_setFunc_t *PSPARM_intSet;
+PSPARM_setFunc_t *PSPARM_uintSet;
 PSPARM_printFunc_t *PSPARM_intPrint;
 PSPARM_setFunc_t *PSPARM_boolSet;
 PSPARM_printFunc_t *PSPARM_boolPrint;
@@ -52,6 +53,22 @@ static char * intSet(void *data, char *value)
 	return strdup(line);
     }
     *(int *)data = num;
+
+    return NULL;
+}
+
+static char * uintSet(void *data, char *value)
+{
+    int val = 0;
+    char *ret = intSet(&val, value);
+    if (ret) return ret;
+
+    if (val < 0) {
+	char line[80];
+	snprintf(line, sizeof(line), "'%s' is not unsigned", value);
+	return strdup(line);
+    }
+    *(unsigned int *)data = val;
 
     return NULL;
 }
@@ -134,6 +151,7 @@ static char * stringPrint(void *data)
 void PSPARM_init(void)
 {
     PSPARM_intSet = intSet;
+    PSPARM_uintSet = uintSet;
     PSPARM_intPrint = intPrint;
 
     PSPARM_boolSet = boolSet;
