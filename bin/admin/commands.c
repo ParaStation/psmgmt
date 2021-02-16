@@ -260,9 +260,6 @@ static char *nodeString(PSnodes_ID_t node)
 
 /* ---------------------------------------------------------------------- */
 
-/** Delay between starting nodes in msec. @todo Make this configurable. */
-static const int delay = 50;
-
 void PSIADM_AddNode(bool *nl)
 {
     DDBufferMsg_t msg = {
@@ -280,20 +277,18 @@ void PSIADM_AddNode(bool *nl)
 
     if (! getHostStatus()) return;
 
+    bool first = true;
     for (PSnodes_ID_t node = 0; node < PSC_getNrOfNodes(); node++) {
 	if (nl && !nl[node]) continue;
 
-	if (hostStatus.list[node]) {
-	    /* printf("%d already up.\n", node); */
-	} else {
+	if (!hostStatus.list[node]) {
+	    if (first) first = false; else usleep(paramStartDelay * 1000);
 	    printf("starting node %s\n", nodeString(node));
 	    msg.header.len = sizeof(msg.header);
 	    PSP_putMsgBuf(&msg, __func__, "node ID", &node, sizeof(node));
 	    PSI_sendMsg(&msg);
-	    usleep(delay * 1000);
 	}
     }
-    /* @todo check the success and repeat the startup */
 }
 
 void PSIADM_ShutdownNode(int silent, bool *nl)

@@ -2332,6 +2332,14 @@ static char * paramHexFormatHelp(void *data)
     return strdup("Flag to print hexadecimal values on some resource limits");
 }
 
+/** Delay (in ms) between consecutive starts of remote psids */
+int paramStartDelay = 50;
+
+static char * paramStartDelayHelp(void *data)
+{
+    return strdup("Delay (in ms) between consecutive starts of remote psids");
+}
+
 static char * setRange(void *data, char *nl_descr)
 {
     if (!nl_descr) return strdup("value missing");
@@ -2362,6 +2370,8 @@ static void setupParameters(void)
     PSPARM_register("hexformat", &paramHexFormat,
 		    PSPARM_boolSet, PSPARM_boolPrint, paramHexFormatHelp,
 		    PSPARM_boolKeys);
+    PSPARM_register("startdelay", &paramStartDelay,
+		    PSPARM_uintSet, PSPARM_intPrint, paramStartDelayHelp, NULL);
 
     parametersList = PSPARM_getKeylist();
     for (int i = 0; paramList[i].key; i++) paramList[i].next = parametersList;
