@@ -295,7 +295,8 @@ guint psCfgFlags =
  *
  * Note: For psconfig an non existing key and an empty value is the same
  */
-static bool getString(PSConfig* psconfig, char *obj, char *key, gchar **value)
+static bool getString(PSConfig* psconfig, char *obj,
+		      const char *key, gchar **value)
 {
     GError *err = NULL;
 
@@ -404,7 +405,7 @@ static bool handlePSConfigEntry(pluginConfig_t conf, PSConfig *cfg,
 }
 #endif
 
-bool pluginConfig_load(pluginConfig_t conf, char *configKey)
+bool pluginConfig_load(pluginConfig_t conf, const char *configKey)
 {
 #ifdef BUILD_WITHOUT_PSCONFIG
     pluginlog("%s: psconfig is not supported!\n", __func__);
@@ -465,7 +466,8 @@ loadCfgErr:
 #endif
 }
 
-bool pluginConfig_add(pluginConfig_t conf, char *key, pluginConfigVal_t *value)
+bool pluginConfig_add(pluginConfig_t conf,
+		      const char *key, pluginConfigVal_t *value)
 {
     if (!checkConfig(conf) || !key || !value) return false;
 
@@ -489,7 +491,7 @@ bool pluginConfig_add(pluginConfig_t conf, char *key, pluginConfigVal_t *value)
     return addObj(conf, key, value);
 }
 
-bool pluginConfig_addStr(pluginConfig_t conf, char *key, char *value)
+bool pluginConfig_addStr(pluginConfig_t conf, const char *key, char *value)
 {
     if (!checkConfig(conf) || !key || !value) return false;
 
@@ -512,7 +514,7 @@ bool pluginConfig_addStr(pluginConfig_t conf, char *key, char *value)
     return pluginConfig_add(conf, key, &val);
 }
 
-bool pluginConfig_addToLst(pluginConfig_t conf, char *key, char *item)
+bool pluginConfig_addToLst(pluginConfig_t conf, const char *key, char *item)
 {
     if (!checkConfig(conf) || !key || !item) return false;
 
@@ -593,7 +595,8 @@ size_t pluginConfig_getLstLen(pluginConfig_t conf, const char *key)
     return 0;
 }
 
-const pluginConfigDef_t * pluginConfig_getDef(pluginConfig_t conf, char *key)
+const pluginConfigDef_t * pluginConfig_getDef(pluginConfig_t conf,
+					      const char *key)
 {
     if (!checkConfig(conf) || !conf->def) return NULL;
 
@@ -605,7 +608,7 @@ const pluginConfigDef_t * pluginConfig_getDef(pluginConfig_t conf, char *key)
 
 
 int pluginConfig_verifyEntry(pluginConfig_t conf,
-			     char *key, pluginConfigVal_t *val)
+			     const char *key, pluginConfigVal_t *val)
 {
     if (!checkConfig(conf) || !conf->def) {
 	pluginlog("%s: config not initialized or no definition'\n", __func__);
@@ -648,7 +651,7 @@ int pluginConfig_verify(pluginConfig_t conf)
     return 0;
 }
 
-bool pluginConfig_unset(pluginConfig_t conf, char *key)
+bool pluginConfig_unset(pluginConfig_t conf, const char *key)
 {
     pluginConfigObj_t *obj = findObj(conf, key);
     if (!obj) return false;
@@ -658,7 +661,7 @@ bool pluginConfig_unset(pluginConfig_t conf, char *key)
     return true;
 }
 
-bool pluginConfig_remove(pluginConfig_t conf, char *key)
+bool pluginConfig_remove(pluginConfig_t conf, const char *key)
 {
     pluginConfigObj_t *obj = findObj(conf, key);
     if (!obj) return false;
@@ -713,7 +716,8 @@ static bool doShow(const char *key, int keyLen, const pluginConfigVal_t *val,
     return true;
 }
 
-bool pluginConfig_showKeyVal(pluginConfig_t conf, char *key, StrBuffer_t *buf)
+bool pluginConfig_showKeyVal(pluginConfig_t conf,
+			     const char *key, StrBuffer_t *buf)
 {
     if (!checkConfig(conf) || !key || !buf) return false;
 

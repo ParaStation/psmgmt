@@ -122,7 +122,7 @@ bool pluginConfig_setDef(pluginConfig_t conf, const pluginConfigDef_t def[]);
  * configuration was found within the local host object or not all
  * configuration elements were validated successfully.
  */
-bool pluginConfig_load(pluginConfig_t conf, char *configKey);
+bool pluginConfig_load(pluginConfig_t conf, const char *configKey);
 
 /**
  * @brief Visitor function
@@ -204,7 +204,7 @@ bool pluginConfig_traverse(pluginConfig_t conf, pluginConfigVisitor_t visitor,
  * error occurred; the latter might hint to the fact that @a value
  * violates the definition
  */
-bool pluginConfig_addStr(pluginConfig_t conf, char *key, char *value);
+bool pluginConfig_addStr(pluginConfig_t conf, const char *key, char *value);
 
 /**
  * @brief Add item to list-entry of configuration
@@ -228,7 +228,7 @@ bool pluginConfig_addStr(pluginConfig_t conf, char *key, char *value);
  * true is returned; or false if an error occurred; the latter might
  * hint to the fact that it violates the definition
  */
-bool pluginConfig_addToLst(pluginConfig_t conf, char *key, char *item);
+bool pluginConfig_addToLst(pluginConfig_t conf, const char *key, char *item);
 
 /**
  * @brief Add entry to configuration
@@ -260,7 +260,8 @@ bool pluginConfig_addToLst(pluginConfig_t conf, char *key, char *item);
  * error occurred; the latter might hint to the fact that @a value
  * violates the definition
  */
-bool pluginConfig_add(pluginConfig_t conf, char *key, pluginConfigVal_t *value);
+bool pluginConfig_add(pluginConfig_t conf,
+		      const char *key, pluginConfigVal_t *value);
 
 /**
  * @brief Get value
@@ -370,7 +371,7 @@ size_t pluginConfig_getLstLen(pluginConfig_t conf, const char *key);
  * @return 0, 1 or 2 according to discussion above
  */
 int pluginConfig_verifyEntry(pluginConfig_t conf,
-			     char *key, pluginConfigVal_t *val);
+			     const char *key, pluginConfigVal_t *val);
 
 /**
  * @brief Verify a configuration
@@ -405,7 +406,8 @@ int pluginConfig_verify(pluginConfig_t conf);
  * @return If a definition for @a key is found, a pointer to the
  * corresponding definition is returned; or NULL otherwise
  */
-const pluginConfigDef_t *pluginConfig_getDef(pluginConfig_t conf, char *key);
+const pluginConfigDef_t *pluginConfig_getDef(pluginConfig_t conf,
+					     const char *key);
 
 /**
  * @brief Unset configuration entry
@@ -422,7 +424,7 @@ const pluginConfigDef_t *pluginConfig_getDef(pluginConfig_t conf, char *key);
  * @return If a corresponding entry is found and unset, true is
  * returned; or false otherwise
  */
-bool pluginConfig_unset(pluginConfig_t conf, char *key);
+bool pluginConfig_unset(pluginConfig_t conf, const char *key);
 
 /**
  * @brief Remove configuration entry
@@ -437,7 +439,7 @@ bool pluginConfig_unset(pluginConfig_t conf, char *key);
  * @return If a corresponding entry is found and removed, true is
  * returned; or false otherwise
  */
-bool pluginConfig_remove(pluginConfig_t conf, char *key);
+bool pluginConfig_remove(pluginConfig_t conf, const char *key);
 
 /**
  * @brief Provide string describing the value type
@@ -480,7 +482,8 @@ size_t pluginConfig_maxKeyLen(pluginConfig_t conf);
  * successfully appended to @a buf, true is returned; or false in case
  * of failure
  */
-bool pluginConfig_showKeyVal(pluginConfig_t conf, char *key, StrBuffer_t *buf);
+bool pluginConfig_showKeyVal(pluginConfig_t conf,
+			     const char *key, StrBuffer_t *buf);
 
 /**
  * @brief Provide description for plugin's help function
