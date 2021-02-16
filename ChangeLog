@@ -1,3 +1,220 @@
+Version psmgmt-5.1.38:
+======================
+------------------------------------------------------------------------
+686b3b91 | Norbert Eicker | Tue, 16 Feb 2021 22:16:23 +0100
+
+Add psconfig support to fakenode plugin
+------------------------------------------------------------------------
+96c33bd5 | Norbert Eicker | Tue, 16 Feb 2021 22:13:43 +0100
+
+Make key reference const where appropriate in pluginpsconfig
+------------------------------------------------------------------------
+b0d20d3e | Norbert Eicker | Tue, 16 Feb 2021 14:17:08 +0100
+
+Make delay between starting nodes configurable
+------------------------------------------------------------------------
+dae6d2d8 | Norbert Eicker | Tue, 16 Feb 2021 14:15:52 +0100
+
+Introduce PSPARM_uintSet to handle unsigned parameters in psiadmin
+------------------------------------------------------------------------
+9c795a22 | Norbert Eicker | Tue, 16 Feb 2021 13:52:21 +0100
+
+Fix/update documentation comments
+------------------------------------------------------------------------
+bce8676d | Norbert Eicker | Tue, 16 Feb 2021 01:31:55 +0100
+
+Bugfix: nodeinfo message type only contains LSB
+------------------------------------------------------------------------
+1cf74399 | Norbert Eicker | Wed, 10 Feb 2021 20:59:42 +0100
+
+Keep distances allocated when handing them out
+------------------------------------------------------------------------
+541a2664 | Norbert Eicker | Wed, 10 Feb 2021 09:46:24 +0100
+
+Add JURECA-DC standard node topologies
+------------------------------------------------------------------------
+731db3fb | Norbert Eicker | Tue, 9 Feb 2021 21:40:31 +0100
+
+Introduce PSIDnodes_distance()
+------------------------------------------------------------------------
+c24a19f4 | Norbert Eicker | Mon, 8 Feb 2021 23:04:35 +0100
+
+Update core/HW-thread info after loading fake topology
+------------------------------------------------------------------------
+c3696204 | Norbert Eicker | Mon, 8 Feb 2021 23:03:42 +0100
+
+Minor cleanup and improvements
+------------------------------------------------------------------------
+aa2a72b9 | Norbert Eicker | Mon, 8 Feb 2021 23:02:38 +0100
+
+Remove obsolete @todo from comment
+------------------------------------------------------------------------
+5e20db60 | Norbert Eicker | Mon, 8 Feb 2021 21:12:37 +0100
+
+Bugfix: Check for the actual topology file
+------------------------------------------------------------------------
+c127b5c5 | Norbert Eicker | Mon, 8 Feb 2021 20:47:42 +0100
+
+Fix nodeinfo's help message
+------------------------------------------------------------------------
+2cb05039 | Norbert Eicker | Mon, 8 Feb 2021 20:44:00 +0100
+
+Fix naming of topology file and allow absolute path
+------------------------------------------------------------------------
+c2622a2e | Norbert Eicker | Fri, 5 Feb 2021 23:11:14 +0100
+
+Add fakenode plugin and make it available in testplugins
+------------------------------------------------------------------------
+22be70ef | Norbert Eicker | Thu, 4 Feb 2021 14:18:51 +0100
+
+Cleanup Makefile.sources and remove obsolete stuff
+------------------------------------------------------------------------
+b73a4bbd | Norbert Eicker | Thu, 4 Feb 2021 10:28:19 +0100
+
+Create new sub-RPM w/ plugins for test and debug
+------------------------------------------------------------------------
+10d62023 | Norbert Eicker | Fri, 5 Feb 2021 21:38:00 +0100
+
+More distance related stuff for nodeinfo
+------------------------------------------------------------------------
+2e891711 | Norbert Eicker | Fri, 5 Feb 2021 21:07:35 +0100
+
+Add handling of distance data to nodeinfo
+------------------------------------------------------------------------
+41c7f085 | Norbert Eicker | Fri, 5 Feb 2021 17:17:26 +0100
+
+Add v1.11 code to getDistances()
+------------------------------------------------------------------------
+a9a12450 | Norbert Eicker | Fri, 5 Feb 2021 15:46:29 +0100
+
+Implement detection of distances via hwloc (v2.x only)
+------------------------------------------------------------------------
+86806af4 | Norbert Eicker | Fri, 5 Feb 2021 15:40:37 +0100
+
+Enable PSIDnodes to store distance matrices
+------------------------------------------------------------------------
+5b90dc6d | Norbert Eicker | Fri, 5 Feb 2021 02:25:03 +0100
+
+Some more hwloc XML files for KNL now recorded with v2.4
+------------------------------------------------------------------------
+eea55c51 | Norbert Eicker | Fri, 5 Feb 2021 02:19:21 +0100
+
+Actually activate re-initialization in PSIDhw_reInit()
+------------------------------------------------------------------------
+b94ed4f5 | Norbert Eicker | Wed, 3 Feb 2021 16:37:58 +0100
+
+Provide a lever to re-initialize HW detection
+
+ - Push nodeinfo's version to 2
+------------------------------------------------------------------------
+2ac719b1 | Norbert Eicker | Wed, 3 Feb 2021 14:58:35 +0100
+
+Rework psidhw's API and introduce PSIDhw_reInit()
+------------------------------------------------------------------------
+a421352c | Norbert Eicker | Fri, 12 Feb 2021 16:40:52 +0100
+
+Remove obsolete PSIDHOOK_FRWRD_CINFO
+------------------------------------------------------------------------
+ec7c579e | Norbert Eicker | Fri, 12 Feb 2021 16:01:29 +0100
+
+Fix yet another potential byte-order conflict
+------------------------------------------------------------------------
+7e9e6862 | Norbert Eicker | Fri, 12 Feb 2021 15:36:14 +0100
+
+Fix documentation comment
+------------------------------------------------------------------------
+09da42fc | Norbert Eicker | Fri, 12 Feb 2021 15:35:17 +0100
+
+Bugfix: correct just introduced false indirection
+------------------------------------------------------------------------
+fd02ecac | Norbert Eicker | Thu, 11 Feb 2021 13:07:22 +0100
+
+Do not use byte-order aware fetch if sender does not
+------------------------------------------------------------------------
+81913e68 | Norbert Eicker | Wed, 10 Feb 2021 20:34:23 +0100
+
+Ensure psaccount has a proc pool in forwarders
+------------------------------------------------------------------------
+23593c44 | Michael Rauh | Wed, 10 Feb 2021 19:00:03 +0100
+
+Show caller of PSitems_getItem() in error messages
+------------------------------------------------------------------------
+103a7bbe | Michael Rauh | Wed, 10 Feb 2021 16:47:29 +0100
+
+Fix typo
+------------------------------------------------------------------------
+ca92dde5 | Norbert Eicker | Fri, 29 Jan 2021 13:45:08 +0100
+
+Enhance statistics reports for all users of PSitems
+------------------------------------------------------------------------
+41525969 | Norbert Eicker | Fri, 29 Jan 2021 13:18:50 +0100
+
+Introduce basic statistics in PSitems
+------------------------------------------------------------------------
+911e669b | Norbert Eicker | Thu, 28 Jan 2021 22:15:25 +0100
+
+Start refactoring of psidforwarder
+------------------------------------------------------------------------
+10422354 | Norbert Eicker | Thu, 28 Jan 2021 22:04:46 +0100
+
+Minor refactoring
+------------------------------------------------------------------------
+6db440e5 | Norbert Eicker | Thu, 28 Jan 2021 22:00:02 +0100
+
+Improve documentation comments
+------------------------------------------------------------------------
+d2141cab | Norbert Eicker | Wed, 27 Jan 2021 12:24:02 +0100
+
+Remove obsolete PSIDHOOK_FRWRD_DSOCK
+------------------------------------------------------------------------
+2212fde4 | Norbert Eicker | Wed, 27 Jan 2021 12:18:57 +0100
+
+Use sendDaemonMsg() from within psaccount plugin
+
+ - This obsoletes PSIDHOOK_FRWRD_DSOCK
+------------------------------------------------------------------------
+bfb6191e | Norbert Eicker | Wed, 27 Jan 2021 10:59:41 +0100
+
+Utilize doWriteF() in psidforwarder's sendDaemonMsg()
+------------------------------------------------------------------------
+0ad19d99 | Norbert Eicker | Wed, 27 Jan 2021 10:57:40 +0100
+
+Ensure correct errno in doRead()/doWrite() family
+------------------------------------------------------------------------
+6bfc751c | Norbert Eicker | Wed, 27 Jan 2021 00:23:56 +0100
+
+Clear PSIDcomm's memory in PSID_clearMem()
+------------------------------------------------------------------------
+f34e8261 | Norbert Eicker | Wed, 27 Jan 2021 00:23:07 +0100
+
+Refactor PSIDcomm to make use of PSitems
+------------------------------------------------------------------------
+5e570132 | Norbert Eicker | Tue, 26 Jan 2021 13:46:00 +0100
+
+Enable PSitems to use chunks smaller than 128 kB
+------------------------------------------------------------------------
+9f774336 | Norbert Eicker | Mon, 25 Jan 2021 23:39:53 +0100
+
+Rework psitems' API to make it more opaque
+------------------------------------------------------------------------
+bb92952f | Norbert Eicker | Mon, 25 Jan 2021 23:32:14 +0100
+
+Add includes for missing headers
+------------------------------------------------------------------------
+8acbca0d | Norbert Eicker | Mon, 25 Jan 2021 23:20:46 +0100
+
+Fix whitespace
+------------------------------------------------------------------------
+1d4fe241 | Norbert Eicker | Mon, 25 Jan 2021 22:22:27 +0100
+
+Fix typo
+------------------------------------------------------------------------
+d95da52e | Norbert Eicker | Mon, 25 Jan 2021 21:04:58 +0100
+
+Move fragment header fetching into fetchFragHeader()
+------------------------------------------------------------------------
+
+
 Version psmgmt-5.1.37:
 ======================
 ------------------------------------------------------------------------

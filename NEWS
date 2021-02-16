@@ -5,6 +5,26 @@ Copyright (C) 2010-2021 ParTec Cluster Competence Center GmbH, Munich
 Please send bug reports, questions and suggestions to <support@par-tec.com>
 
 
+Version 5.1.38:
+===============
+Bugfixes:
+ - nodeinfo plugin's message type only contains LSB
+ - Fix several potential byte-order conflict
+ - Ensure correct errno in doRead()/doWrite() family
+Enhancements:
+ - Implement distance handling in PSIDhw and nodeinfo plugin
+ - Introduce PSIDnodes_distances() and PSIDnodes_distance()
+ - Enhance statistics reports for all users of PSitems
+ - Move fragment header fetching into fetchFragHeader()
+ - Make psiadmin's delay between starting nodes configurable
+Additional changes:
+ - Create new sub-RPM w/ plugins for test and debug (e.g. fakenode)
+ - Rework psidhw's API and introduce PSIDhw_reInit()
+ - Refactor PSIDcomm to make use of PSitems
+ - Introduce PSPARM_uintSet to handle unsigned parameters in psiadmin
+ - Remove obsolete PSIDHOOK_FRWRD_CINFO and PSIDHOOK_FRWRD_DSOCK
+ - Add more hwloc topologies recorded on different systems
+
 
 Version 5.1.37:
 ===============
