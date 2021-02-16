@@ -149,7 +149,6 @@ bool handleDistanceData(char **ptr, PSnodes_ID_t sender)
 
     uint32_t *distances, len;
     getUint32Array(ptr, &distances, &len);
-    mlog("%s: got len %d\n", __func__, len);
     if (len != numNUMA * numNUMA) {
 	mlog("%s: mismatch in numNUMA %d/%d\n", __func__, numNUMA*numNUMA, len);
 	PSIDnodes_setDistances(sender, NULL);
@@ -240,13 +239,14 @@ static void handleNodeInfoData(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
 {
     PSnodes_ID_t sender = PSC_getID(msg->header.sender);
     char *ptr = rData->buf;
-    PSP_NodeInfo_t type;
+    PSP_NodeInfo_t type = 0; // ensure higher bytes are all 0
 
     mdbg(NODEINFO_LOG_VERBOSE, "%s: handle update from %s\n", __func__,
 	 PSC_printTID(msg->header.sender));
 
     getUint8(&ptr, &type);
     while (type) {
+	mdbg(NODEINFO_LOG_VERBOSE, "%s: update type %d\n", __func__, type);
 	switch (type) {
 	case PSP_NODEINFO_CPUMAP:
 	    if (!handleCPUMapData(&ptr, sender)) return;
