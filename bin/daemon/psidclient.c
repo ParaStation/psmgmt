@@ -250,9 +250,7 @@ static ssize_t doSend(int fd, DDMsg_t *msg, size_t offset)
  */
 static bool storeMsg(int fd, DDMsg_t *msg, size_t offset)
 {
-    int blockedRDP;
     PSIDmsgbuf_t *msgbuf = PSIDMsgbuf_get(msg->len);
-
     if (!msgbuf) {
 	errno = ENOMEM;
 	return false;
@@ -261,7 +259,7 @@ static bool storeMsg(int fd, DDMsg_t *msg, size_t offset)
     memcpy(msgbuf->msg, msg, msg->len);
     msgbuf->offset = offset;
 
-    blockedRDP = RDP_blockTimer(1);
+    int blockedRDP = RDP_blockTimer(1);
     list_add_tail(&msgbuf->next, &clients[fd].msgs);
     RDP_blockTimer(blockedRDP);
 
@@ -335,8 +333,6 @@ static int flushClientMsgs(int fd, void *info)
 
 int PSIDclient_send(DDMsg_t *msg)
 {
-    PStask_t *task = PStasklist_find(&managedTasks, msg->dest);
-
     if (PSID_getDebugMask() & PSID_LOG_CLIENT) {
 	PSID_log(PSID_LOG_CLIENT, "%s(type %s (len=%d) to %s\n",
 		 __func__, PSDaemonP_printMsg(msg->type), msg->len,
@@ -349,6 +345,7 @@ int PSIDclient_send(DDMsg_t *msg)
 	return -1;
     }
 
+    PStask_t *task = PStasklist_find(&managedTasks, msg->dest);
     if (!task || task->fd==-1) {
 	PSID_log(PSID_LOG_CLIENT, "%s: no fd for task %s to send%s\n",
 		 __func__, PSC_printTID(msg->dest), task ? "" : " (no task)");
@@ -503,12 +500,8 @@ ssize_t PSIDclient_recv(int fd, DDBufferMsg_t *msg, size_t size)
  */
 static void closeConnection(int fd)
 {
-    list_t *m, *tmp;
-    PStask_ID_t tid = PSIDclient_getTID(fd);
-    int blockedRDP;
-
-    if (fd<0) {
-	PSID_log(-1, "%s(%d): fd < 0\n", __func__, fd);
+    if (fd < 0 || fd >= maxClientFD) {
+	PSID_log(-1, "%s(%d): file descriptor out of range\n", __func__, fd);
 	return;
     }
 
@@ -518,10 +511,11 @@ static void closeConnection(int fd)
 
     if (clients[fd].flags & CLOSE) return;
 
-    blockedRDP = RDP_blockTimer(1);
+    int blockedRDP = RDP_blockTimer(1);
 
     clients[fd].flags |= CLOSE;
 
+    list_t *m, *tmp;
     list_for_each_safe(m, tmp, &clients[fd].msgs) {
 	PSIDmsgbuf_t *mp = list_entry(m, PSIDmsgbuf_t, next);
 	DDBufferMsg_t *msg = (DDBufferMsg_t *)mp->msg;
@@ -533,6 +527,7 @@ static void closeConnection(int fd)
     Selector_vacateWrite(fd);
 
     /* Now use the stop-hash to actually send SENDCONT msgs */
+    PStask_ID_t tid = PSIDclient_getTID(fd);
     PSIDFlwCntrl_sendContMsgs(clients[fd].stops, tid);
 
     clients[fd].flags &= ~CLOSE;
@@ -564,20 +559,21 @@ void PSIDclient_delete(int fd)
     }
 
     if (task->group == TG_FORWARDER && !task->released) {
-	DDErrorMsg_t msg;
-	PStask_ID_t child;
-	int sig = -1;
 
 	PSID_log(-1, "%s: Unreleased forwarder %s\n",
 		 __func__, PSC_printTID(task->tid));
 
 	/* Tell logger about unreleased forwarders */
-	msg.header.type = PSP_CC_ERROR;
-	msg.header.dest = task->loggertid;
-	msg.header.sender = task->tid;
-	msg.header.len = sizeof(msg.header);
+	DDErrorMsg_t msg = {
+	    .header = {
+		.type = PSP_CC_ERROR,
+		.sender = task->tid,
+		.dest = task->loggertid,
+		.len = sizeof(msg.header) } };
 	sendMsg(&msg);
 
+	PStask_ID_t child;
+	int sig = -1;
 	while ((child = PSID_getSignal(&task->childList, &sig))) {
 	    PStask_t *childTask = PStasklist_find(&managedTasks, child);
 	    PSID_log(-1, "%s: kill child %s\n", __func__, PSC_printTID(child));
@@ -658,51 +654,36 @@ void PSIDclient_delete(int fd)
     /* Send accounting info for logger */
     if (task->group == TG_LOGGER
 	&& (task->request || task->partitionSize > 0)) {
-	DDTypedBufferMsg_t msg;
-	char *ptr = msg.buf;
+	DDTypedBufferMsg_t msg = {
+	    .header = {
+		.type = PSP_CD_ACCOUNT,
+		.sender = task->tid,
+		.dest = PSC_getMyTID(),
+		.len = offsetof(DDTypedBufferMsg_t, buf) },
+	    .type = (task->numChild > 0) ? PSP_ACCOUNT_END:PSP_ACCOUNT_DELETE};
 
-	msg.header.type = PSP_CD_ACCOUNT;
-	msg.header.dest = PSC_getMyTID();
-	msg.header.sender = task->tid;
-	msg.header.len = sizeof(msg.header);
-
-	msg.type = (task->numChild > 0) ? PSP_ACCOUNT_END : PSP_ACCOUNT_DELETE;
-	msg.header.len += sizeof(msg.type);
-
-	/* logger's TID, this identifies a task uniquely */
-	*(PStask_ID_t *)ptr = task->tid;
-	ptr += sizeof(PStask_ID_t);
-	msg.header.len += sizeof(PStask_ID_t);
-
-	/* current rank */
-	*(int32_t *)ptr = task->rank;
-	ptr += sizeof(int32_t);
-	msg.header.len += sizeof(int32_t);
-
-	/* child's uid */
-	*(uid_t *)ptr = task->uid;
-	ptr += sizeof(uid_t);
-	msg.header.len += sizeof(uid_t);
-
-	/* child's gid */
-	*(gid_t *)ptr = task->gid;
-	ptr += sizeof(gid_t);
-	msg.header.len += sizeof(gid_t);
+	/* logger's TID identifies a task uniquely */
+	PSP_putTypedMsgBuf(&msg, __func__, "TID", &task->tid,
+			   sizeof(task->tid));
+	PSP_putTypedMsgBuf(&msg, __func__, "rank", &task->rank,
+			   sizeof(task->rank));
+	PSP_putTypedMsgBuf(&msg, __func__, "UID", &task->uid,
+			   sizeof(task->uid));
+	PSP_putTypedMsgBuf(&msg, __func__, "GID", &task->gid,
+			   sizeof(task->gid));
 
 	if (task->numChild > 0) {
 	    struct timeval now, walltime;
 
 	    /* total number of children */
-	    *(int32_t *)ptr = task->numChild;
-	    ptr += sizeof(int32_t);
-	    msg.header.len += sizeof(int32_t);
+	    PSP_putTypedMsgBuf(&msg, __func__, "numChild", &task->numChild,
+			       sizeof(task->numChild));
 
 	    /* walltime used by logger */
 	    gettimeofday(&now, NULL);
 	    timersub(&now, &task->started, &walltime);
-	    memcpy(ptr, &walltime, sizeof(walltime));
-	    //ptr += sizeof(walltime);
-	    msg.header.len += sizeof(walltime);
+	    PSP_putTypedMsgBuf(&msg, __func__, "walltime", &walltime,
+			       sizeof(walltime));
 	}
 
 	sendMsg((DDMsg_t *)&msg);
@@ -719,12 +700,12 @@ void PSIDclient_delete(int fd)
 
 int PSIDclient_killAll(int sig, int killAdminTasks)
 {
-    list_t *t;
     int ret = 0;
 
     PSID_log(PSID_LOG_CLIENT, "%s(%d, %d)\n", __func__, sig, killAdminTasks);
 
     /* loop over all tasks */
+    list_t *t;
     list_for_each(t, &managedTasks) {
 	PStask_t *task = list_entry(t, PStask_t, next);
 	pid_t pid = PSC_getPID(task->tid);
@@ -1106,12 +1087,11 @@ static void msg_CC_MSG(DDBufferMsg_t *msg)
  */
 static void drop_CC_MSG(DDBufferMsg_t *msg)
 {
-    DDMsg_t errmsg;
-
-    errmsg.type = PSP_CC_ERROR;
-    errmsg.dest = msg->header.sender;
-    errmsg.sender = msg->header.dest;
-    errmsg.len = sizeof(errmsg);
+    DDMsg_t errmsg = {
+	.type = PSP_CC_ERROR,
+	.dest = msg->header.sender,
+	.sender = msg->header.dest,
+	.len = sizeof(errmsg) };
 
     sendMsg(&errmsg);
 }
@@ -1137,8 +1117,6 @@ static void clientInit(client_t *client)
 
 void PSIDclient_init(void)
 {
-    int numFiles;
-
     PSIDFlwCntrl_init();
 
     if (clients) {
@@ -1146,9 +1124,9 @@ void PSIDclient_init(void)
 	return;
     }
 
-    numFiles = sysconf(_SC_OPEN_MAX);
+    long numFiles = sysconf(_SC_OPEN_MAX);
     if (numFiles <= 0) {
-	PSID_exit(errno, "%s: sysconf(_SC_OPEN_MAX) returns %d", __func__,
+	PSID_exit(errno, "%s: sysconf(_SC_OPEN_MAX) returns %ld", __func__,
 		  numFiles);
 	return;
     }
@@ -1179,7 +1157,6 @@ int PSIDclient_setMax(int max)
 {
     int oldMax = maxClientFD;
     client_t *oldClients = clients;
-    int fd;
 
     if (maxClientFD >= max) return 0; /* don't shrink */
 
@@ -1194,17 +1171,16 @@ int PSIDclient_setMax(int max)
 
     /* Restore old lists if necessary */
     if (clients != oldClients) {
-	for (fd=0; fd < oldMax; fd++) {
-	    int h;
+	for (int fd = 0; fd < oldMax; fd++) {
 	    fixList(&clients[fd].msgs, &oldClients[fd].msgs);
-	    for (h=0; h<FLWCNTRL_HASH_SIZE; h++) {
+	    for (int h = 0; h < FLWCNTRL_HASH_SIZE; h++) {
 		fixList(&clients[fd].stops[h], &oldClients[fd].stops[h]);
 	    }
 	}
     }
 
     /* Initialize new clients */
-    for (fd = oldMax; fd < maxClientFD; fd++) {
+    for (int fd = oldMax; fd < maxClientFD; fd++) {
 	clientInit(&clients[fd]);
     }
 
@@ -1213,12 +1189,9 @@ int PSIDclient_setMax(int max)
 
 void PSIDclient_clearMem(void)
 {
-    int fd;
-
     /* Need to put MsgBufs to free() non-small messages */
-    for (fd = 0; fd < maxClientFD; fd++) {
+    for (int fd = 0; fd < maxClientFD; fd++) {
 	list_t *m, *tmp;
-
 	list_for_each_safe(m, tmp, &clients[fd].msgs) {
 	    PSIDmsgbuf_t *mp = list_entry(m, PSIDmsgbuf_t, next);
 
