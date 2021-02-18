@@ -433,7 +433,7 @@ JobCred_t *extractJobCred(list_t *gresList, Slurm_Msg_t *sMsg, bool verify)
     if (psslurmlogger->mask & PSSLURM_LOG_AUTH) {
 	flog("cred len %u jobMemLimit %lu stepMemLimit %lu stepHostlist '%s' "
 	     "jobHostlist '%s' ctime %lu sig '%s' pwGecos '%s' pwDir '%s' "
-	     "pwShell '%s' gidNames '%s'\n", credLen, cred->jobMemLimit,
+	     "pwShell '%s' gidNames %p\n", credLen, cred->jobMemLimit,
 	     cred->stepMemLimit, cred->stepHL, cred->jobHostlist, cred->ctime,
 	     cred->sig, cred->pwGecos, cred->pwDir, cred->pwShell,
 	     cred->gidNames);

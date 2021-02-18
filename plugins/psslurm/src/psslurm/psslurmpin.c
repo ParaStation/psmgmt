@@ -1626,10 +1626,10 @@ bool setStepSlots(Step_t *step)
 	};
 
 	/* check cpu mapping */
-	for (size_t cpu = 0; cpu < nodeinfo.threadCount; cpu++) {
+	for (uint32_t cpu = 0; cpu < nodeinfo.threadCount; cpu++) {
 	    if (PSIDnodes_unmapCPU(nodeinfo.id, cpu) < 0) {
 		flog("CPU %hu not included in CPUmap for node %hu.\n",
-			cpu, nodeinfo.id);
+		     cpu, nodeinfo.id);
 	    }
 	}
 

@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2014-2020 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2014-2021 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -37,7 +37,8 @@ extern FILE *psslurmlogfile;
  * printf() family of functions from the C standard. This string will
  * also define the further parameters to be expected.
  */
-void __flog(const char *func, int32_t key, char *format, ...);
+void __flog(const char *func, int32_t key, char *format, ...)
+    __attribute__((format(printf,3,4)));
 
 #define flog(...) __flog(__func__, -1, __VA_ARGS__)
 #define fdbg(key, ...) __flog(__func__, key, __VA_ARGS__)

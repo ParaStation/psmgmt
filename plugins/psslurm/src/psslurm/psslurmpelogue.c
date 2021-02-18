@@ -327,7 +327,7 @@ int handleLocalPElogueStart(void *data)
     errno = 0;
     uint32_t id = strtol(pedata->jobid, NULL, 10);
     if (packID == 0 && errno == EINVAL) {
-	flog("strol(%s) of pedata->jobid %s failed\n", pedata->jobid);
+	flog("strol(%s) of pedata->jobid failed\n", pedata->jobid);
 	return -1;
     }
 

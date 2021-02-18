@@ -749,7 +749,7 @@ bool parseSlurmPlugLine(char *key, char *value, const void *info)
     if (!strcmp("include", flag)) {
 	const char *path = strtok_r(NULL, delimiters, &toksave);
 	if (!path) {
-	    flog("%s: missing path for include statement\n");
+	    flog("missing path for include statement\n");
 	    goto ERROR;
 	}
 	if (!handleSlurmPlugInc(path)) return true; /* break on error */

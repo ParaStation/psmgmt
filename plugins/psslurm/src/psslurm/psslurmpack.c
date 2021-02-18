@@ -193,9 +193,9 @@ static Gres_Cred_t *unpackGresStep(char **ptr, uint16_t index, uint16_t msgVer)
     /* nodes in use */
     gres->nodeInUse = getBitString(ptr);
 
-    fdbg(PSSLURM_LOG_GRES, "index %i pluginID %u cpusPerGres %u "
-	 "gresPerStep %u gresPerNode %u gresPerSocket %u gresPerTask %u "
-	 "memPerGres %u totalGres %u nodeInUse %s\n", index, gres->id,
+    fdbg(PSSLURM_LOG_GRES, "index %i pluginID %u cpusPerGres %u"
+	 " gresPerStep %lu gresPerNode %lu gresPerSocket %lu gresPerTask %lu"
+	 " memPerGres %lu totalGres %lu nodeInUse %s\n", index, gres->id,
 	 gres->cpusPerGRes, gres->gresPerStep, gres->gresPerNode,
 	 gres->gresPerSocket, gres->gresPerTask, gres->memPerGRes,
 	 gres->totalGres, gres->nodeInUse);
@@ -296,8 +296,8 @@ static Gres_Cred_t *unpackGresJob(char **ptr, uint16_t index, uint16_t msgVer)
     }
 
     fdbg(PSSLURM_LOG_GRES, "index %i pluginID %u cpusPerGres %u "
-	 "gresPerJob %u gresPerNode %u gresPerSocket %u gresPerTask %u "
-	 "memPerGres %u totalGres %u type %s nodeCount %u\n", index,
+	 "gresPerJob %lu gresPerNode %lu gresPerSocket %lu gresPerTask %lu "
+	 "memPerGres %lu totalGres %lu type %s nodeCount %u\n", index,
 	 gres->id, gres->cpusPerGRes, gres->gresPerJob, gres->gresPerNode,
 	 gres->gresPerSocket, gres->gresPerTask, gres->memPerGRes,
 	 gres->totalGres, gres->typeModel, gres->nodeCount);

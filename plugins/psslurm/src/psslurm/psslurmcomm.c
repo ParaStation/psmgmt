@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2014-2020 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2014-2021 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -1571,7 +1571,7 @@ static bool initControlHosts()
 	char *name = (addr) ? addr : host;
 	PSnodes_ID_t id = getNodeIDbyName(name);
 	if (id == -1) {
-	    flog("unable to resolve controller(%i) '%s'\n", name, i);
+	    flog("unable to resolve controller(%i) '%s'\n", i, name);
 	    return false;
 	}
 	ctlHosts[ctlHostsCount].host = host;

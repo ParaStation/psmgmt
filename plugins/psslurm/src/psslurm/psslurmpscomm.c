@@ -1968,15 +1968,11 @@ static void handleCC_IO_Msg(PSLog_Msg_t *msg)
     int32_t taskid = msg->sender - step->packTaskOffset;
 
     if (psslurmlogger->mask & PSSLURM_LOG_IO) {
-	flog("sender %s msgLen %i type %i PS-taskid %i Slurm-taskid %i\n",
+	flog("sender %s msgLen %zi type %i PS-taskid %i Slurm-taskid %i\n",
 	     PSC_printTID(msg->header.sender),
 	     msg->header.len - PSLog_headerSize, msg->type, msg->sender,
 	     taskid);
-
-	char format[64];
-	snprintf(format, sizeof(format), "msg %%.%zus\n",
-		 msg->header.len - PSLog_headerSize);
-	flog(format, msg->buf);
+	flog("msg %.*s\n", (int)(msg->header.len - PSLog_headerSize), msg->buf);
     }
 
     /* filter stdout messages */
@@ -2577,7 +2573,7 @@ static bool saveHost(char *host, void *info)
 
     /* enough space for next host in HostLT? */
     if (numHostLT >= nrOfNodes) {
-	flog("more Slurm host definitions %i than PS nodes %i\n",
+	flog("more Slurm host definitions %zi than PS nodes %i\n",
 	     numHostLT, nrOfNodes);
 	return false;
     }
@@ -2880,7 +2876,7 @@ static void addSlotsToMsg(PSpart_slot_t *slots, uint32_t len, PS_SendDB_t *data)
     size_t CPUbytes;
     CPUbytes = PSCPU_bytesForCPUs(maxCPUs);
     if (!CPUbytes) {
-	flog("maxCPUs (=%zu) out of range\n", maxCPUs);
+	flog("maxCPUs (=%u) out of range\n", maxCPUs);
 	addUint32ToMsg(0, data); /* signal problem to read function */
 	return;
     }

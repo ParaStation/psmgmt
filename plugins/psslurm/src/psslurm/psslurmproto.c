@@ -737,7 +737,7 @@ static void handleSignalTasks(Slurm_Msg_t *sMsg)
 	case SIG_NODE_FAIL:
 	case SIG_FAILURE:
 	    sendSlurmRC(sMsg, SLURM_SUCCESS);
-	    flog("%s: implement signal %u\n", req->signal);
+	    flog("implement signal %u\n", req->signal);
 	    return;
     }
 
@@ -1977,7 +1977,7 @@ static void handleRespNodeReg(Slurm_Msg_t *sMsg)
 
     uint32_t i;
     for (i=0; i<tresDBconfig->count; i++) {
-	fdbg(PSSLURM_LOG_ACC, "alloc %zu count %u id %zu name %s type: %s\n",
+	fdbg(PSSLURM_LOG_ACC, "alloc %zu count %lu id %u name %s type: %s\n",
 	     tresDBconfig->entry[i].allocSec, tresDBconfig->entry[i].count,
 	     tresDBconfig->entry[i].id, tresDBconfig->entry[i].name,
 	     tresDBconfig->entry[i].type);
