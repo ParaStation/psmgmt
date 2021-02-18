@@ -112,28 +112,6 @@ static inline void frwdMsg(DDBufferMsg_t *msg)
 bool PSIDcomm_enableDropHook(bool enable);
 
 /**
- * @brief Receive a message
- *
- * Receive a message from file descriptor @a fd and store it to @a
- * msg. At most @a size bytes are read from @a fd and stored to @a
- * msg.
- *
- * PSIDclient_recv() is used to actually receive the message.
- *
- * @param fd The file descriptor to receive from
- *
- * @param msg Buffer to store the message in
- *
- * @param size Maximum length of the message, i.e. the size of @a msg
- *
- * @return On success, the number of bytes received is returned, or -1
- * if an error occurred; on error errno is set appropriately
- *
- * @see PSIDclient_recv()
- */
-int recvMsg(int fd, DDMsg_t *msg, size_t size);
-
-/**
  * @brief Broadcast a message
  *
  * Broadcast the message @a msg, i.e. send it to all other daemons

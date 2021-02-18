@@ -250,31 +250,6 @@ static void condSendMsg(DDBufferMsg_t *msg)
     if (msg->header.dest != PSC_getMyTID()) sendMsg(msg);
 }
 
-int recvMsg(int fd, DDMsg_t *msg, size_t size)
-{
-    int ret = PSIDclient_recv(fd, msg, size);
-
-    if (ret<0) {
-	PSID_warn(-1, errno, "%s(%d/%s): PSIDclient_recv()",
-		  __func__, fd, PSC_printTID(PSIDclient_getTID(fd)));
-    } else if (ret && ret != msg->len) {
-	PSID_log(-1, "%s(%d/%s) type %s (len=%d) from %s",
-		 __func__, fd, PSC_printTID(PSIDclient_getTID(fd)),
-		 PSDaemonP_printMsg(msg->type), msg->len,
-		 PSC_printTID(msg->sender));
-	PSID_log(-1, " dest %s only %d bytes\n",
-		 PSC_printTID(msg->dest), ret);
-    } else if (PSID_getDebugMask() & PSID_LOG_COMM) {
-	PSID_log(PSID_LOG_COMM, "%s(%d/%s) type %s (len=%d) from %s",
-		 __func__, fd, PSC_printTID(PSIDclient_getTID(fd)),
-		 PSDaemonP_printMsg(msg->type), msg->len,
-		 PSC_printTID(msg->sender));
-	PSID_log(PSID_LOG_COMM, " dest %s\n", PSC_printTID(msg->dest));
-    }
-
-    return ret;
-}
-
 int broadcastMsg(void *amsg)
 {
     DDMsg_t *msg = (DDMsg_t *) amsg;

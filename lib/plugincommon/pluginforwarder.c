@@ -902,7 +902,7 @@ static int handleFwSock(int fd, void *info)
     PStask_t *task = info;
     Forwarder_Data_t *fw = task->info;
 
-    if (!recvMsg(fd, (DDMsg_t*)&msg, sizeof(msg))) {
+    if (!PSIDclient_recv(fd, &msg, sizeof(msg))) {
 	if (!task->sigChldCB) {
 	    /* SIGCHLD already received */
 	    if (fw && fw->callback) fw->callback(fw->fwExitStatus, fw);

@@ -67,23 +67,20 @@ static void msg_CLIENTCONNECT(int fd, DDBufferMsg_t *bufmsg);
 
 static int handleClientConnectMsg(int fd, void *info)
 {
-    DDBufferMsg_t msg;
-
-    int msglen;
-
     PSID_log(PSID_LOG_COMM, "%s(%d)\n", __func__, fd);
 
     /* read the whole msg */
-    msglen = recvMsg(fd, (DDMsg_t*)&msg, sizeof(msg));
+    DDBufferMsg_t msg;
+    ssize_t msglen = PSIDclient_recv(fd, &msg, sizeof(msg));
 
-    if (msglen==0) {
+    if (!msglen) {
 	/* closing connection */
 	PSID_log(PSID_LOG_CLIENT, "%s(%d): close connection\n", __func__, fd);
 	PSIDclient_delete(fd);
-    } else if (msglen==-1) {
+    } else if (msglen == -1) {
 	if (errno != EAGAIN) {
 	    int eno = errno;
-	    PSID_warn(-1, eno, "%s(%d): recvMsg()", __func__, fd);
+	    PSID_warn(-1, eno, "%s(%d): PSIDclient_recv()", __func__, fd);
 	    if (eno == EBADF) PSIDclient_delete(fd);
 	}
     } else {
@@ -134,23 +131,20 @@ PStask_t *PSIDclient_getTask(int fd)
 
 static int handleClientMsg(int fd, void *info)
 {
-    DDBufferMsg_t msg;
-
-    int msglen;
-
     PSID_log(PSID_LOG_COMM, "%s(%d)\n", __func__, fd);
 
     /* read the whole msg */
-    msglen = recvMsg(fd, (DDMsg_t*)&msg, sizeof(msg));
+    DDBufferMsg_t msg;
+    ssize_t msglen = PSIDclient_recv(fd, &msg, sizeof(msg));
 
-    if (msglen==0) {
+    if (!msglen) {
 	/* closing connection */
 	PSID_log(PSID_LOG_CLIENT, "%s(%d): close connection\n", __func__, fd);
 	PSIDclient_delete(fd);
-    } else if (msglen==-1) {
+    } else if (msglen == -1) {
 	if (errno != EAGAIN) {
 	    int eno = errno;
-	    PSID_warn(-1, eno, "%s(%d): recvMsg()", __func__, fd);
+	    PSID_warn(-1, eno, "%s(%d): PSIDclient_recv()", __func__, fd);
 	    if (eno == EBADF) PSIDclient_delete(fd);
 	}
     } else {
@@ -401,7 +395,7 @@ int PSIDclient_send(DDMsg_t *msg)
 }
 
 /* @todo we need to timeout if message is too small */
-int PSIDclient_recv(int fd, DDMsg_t *msg, size_t size)
+static ssize_t doClientRecv(int fd, DDMsg_t *msg, size_t size)
 {
     int n;
     int count = 0;
@@ -471,6 +465,30 @@ int PSIDclient_recv(int fd, DDMsg_t *msg, size_t size)
     }
 }
 
+ssize_t PSIDclient_recv(int fd, DDBufferMsg_t *msg, size_t size)
+{
+    ssize_t ret = doClientRecv(fd, (DDMsg_t *)msg, size);
+
+    if (ret < 0) {
+	PSID_warn(-1, errno, "%s(%d/%s)", __func__, fd,
+		  PSC_printTID(PSIDclient_getTID(fd)));
+    } else if (ret && ret != msg->header.len) {
+	PSID_log(-1, "%s(%d/%s) type %s (len=%d) from %s",
+		 __func__, fd, PSC_printTID(PSIDclient_getTID(fd)),
+		 PSDaemonP_printMsg(msg->header.type), msg->header.len,
+		 PSC_printTID(msg->header.sender));
+	PSID_log(-1, " dest %s only %zd bytes\n",
+		 PSC_printTID(msg->header.dest), ret);
+    } else if (PSID_getDebugMask() & PSID_LOG_COMM) {
+	PSID_log(PSID_LOG_COMM, "%s(%d/%s) type %s (len=%d) from %s",
+		 __func__, fd, PSC_printTID(PSIDclient_getTID(fd)),
+		 PSDaemonP_printMsg(msg->header.type), msg->header.len,
+		 PSC_printTID(msg->header.sender));
+	PSID_log(PSID_LOG_COMM, " dest %s\n", PSC_printTID(msg->header.dest));
+    }
+
+    return ret;
+}
 
 /**
  * @brief Close connection to client.
