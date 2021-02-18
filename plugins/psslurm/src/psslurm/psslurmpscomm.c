@@ -1942,9 +1942,8 @@ static void handleDroppedMsg(DDTypedBufferMsg_t *msg)
 
 static void handleCC_IO_Msg(PSLog_Msg_t *msg)
 {
-    Step_t *step = NULL;
-
-    if (!(step = findActiveStepByLogger(msg->header.dest))) {
+    Step_t *step = findActiveStepByLogger(msg->header.dest);
+    if (!step) {
 	PStask_t *task;
 	if (PSC_getMyID() == PSC_getID(msg->header.sender)) {
 	    if ((task = PStasklist_find(&managedTasks, msg->header.sender))) {

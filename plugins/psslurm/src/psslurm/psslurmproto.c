@@ -133,7 +133,7 @@ static void sendPing(Slurm_Msg_t *sMsg)
     sendSlurmReply(sMsg, RESPONSE_PING_SLURMD);
 }
 
-uint32_t __getLocalRankID(uint32_t rank, Step_t *step, uint32_t nodeId,
+uint32_t __getLocalRankID(uint32_t rank, Step_t *step,
 			  const char *caller, const int line)
 {
     if (rank > 0 && (int32_t)(rank - step->packTaskOffset) < 0) {
@@ -142,16 +142,16 @@ uint32_t __getLocalRankID(uint32_t rank, Step_t *step, uint32_t nodeId,
 	return NO_VAL;
     }
 
-    if (nodeId >= step->nrOfNodes) {
-	flog("invalid nodeId %u greater than nrOfNodes %u\n", nodeId,
-	     step->nrOfNodes);
+    if (step->localNodeId >= step->nrOfNodes) {
+	flog("invalid nodeId %u greater than nrOfNodes %u\n",
+	     step->localNodeId, step->nrOfNodes);
 	return NO_VAL;
     }
 
     uint32_t adjRank = (rank > 0) ? rank - step->packTaskOffset : 0;
 
-    for (uint32_t i=0; i<step->globalTaskIdsLen[nodeId]; i++) {
-	if (step->globalTaskIds[nodeId][i] == adjRank) return i;
+    for (uint32_t i=0; i<step->globalTaskIdsLen[step->localNodeId]; i++) {
+	if (step->globalTaskIds[step->localNodeId][i] == adjRank) return i;
     }
     return NO_VAL;
 }

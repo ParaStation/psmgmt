@@ -551,7 +551,7 @@ static void setGresEnv(uint32_t localRankId, Step_t *step)
 void setRankEnv(int32_t rank, Step_t *step)
 {
     char tmp[128], *myGTIDs, *val, *display;
-    uint32_t myNodeId = step->localNodeId, count = 0;
+    uint32_t count = 0;
 
     /* remove unwanted variables */
     unsetenv("PSI_INPUTDEST");
@@ -600,18 +600,17 @@ void setRankEnv(int32_t rank, Step_t *step)
     sprintf(tmp, "%d", rank);
     setenv("SLURM_PROCID", tmp, 1);
 
-    if (myNodeId < step->nrOfNodes) {
-	snprintf(tmp, sizeof(tmp), "%u", myNodeId);
+    if (step->localNodeId < step->nrOfNodes) {
+	snprintf(tmp, sizeof(tmp), "%u", step->localNodeId);
 	setenv("SLURM_NODEID", tmp, 1);
 	myGTIDs = GTIDsToList(step);
 	setenv("SLURM_GTIDS", myGTIDs, 1);
 	ufree(myGTIDs);
     }
 
-    uint32_t myLocalId = getLocalRankID(rank, step, myNodeId);
+    uint32_t myLocalId = getLocalRankID(rank, step);
     if (myLocalId == NO_VAL) {
-	flog("failed to find local ID for rank %u nodeID %u\n",
-	     rank, myNodeId);
+	flog("failed to find local ID for rank %u\n", rank);
     } else {
 	snprintf(tmp, sizeof(tmp), "%u", myLocalId);
 	setenv("SLURM_LOCALID", tmp, 1);

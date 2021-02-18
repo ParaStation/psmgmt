@@ -591,7 +591,7 @@ void __flog(const char *func, int32_t key, char *format, ...)
 
 typedef void Job_t;
 
-uint32_t __getLocalRankID(uint32_t rank, Step_t *step, uint32_t nodeId,
+uint32_t __getLocalRankID(uint32_t rank, Step_t *step,
 			  const char *caller, const int line)
 {
     return rank;

@@ -1888,8 +1888,7 @@ void verboseCpuPinningOutput(Step_t *step, PS_Tasks_t *task)
 	snprintf(vStr, sizeof(vStr),
 		 "cpu_bind%s=%s - %s, task %2d %2u [%d]: mask %s%s\n", units,
 		 bind_type, getConfValueC(&Config, "SLURM_HOSTNAME"),
-		 task->childRank, getLocalRankID(task->childRank, step,
-						 step->localNodeId),
+		 task->childRank, getLocalRankID(task->childRank, step),
 		 pid, printCpuMask(pid), action);
 
 	fwCMD_printMessage(step, vStr, strlen(vStr), STDERR, task->childRank);
@@ -1929,8 +1928,7 @@ void verboseMemPinningOutput(Step_t *step, PStask_t *task)
 	fprintf(stderr, "mem_bind=%s - "
 		"%s, task %2d %2u [%d]: mask %s%s\n", bind_type,
 		getConfValueC(&Config, "SLURM_HOSTNAME"), // hostname
-		task->rank,
-		getLocalRankID(task->rank, step, step->localNodeId),
+		task->rank, getLocalRankID(task->rank, step),
 		getpid(), printMemMask(), action);
     }
 }
@@ -2141,7 +2139,7 @@ void doMemBind(Step_t *step, PStask_t *task)
 	return;
     }
 
-    uint32_t lTID = getLocalRankID(task->rank, step, step->localNodeId);
+    uint32_t lTID = getLocalRankID(task->rank, step);
 
     if (lTID == NO_VAL) {
 	flog("Getting local rank ID failed. Omit custom memory binding.\n");

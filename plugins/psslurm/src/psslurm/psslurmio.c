@@ -335,15 +335,13 @@ void __IO_printStepMsg(Forwarder_Data_t *fwdata, char *msg, size_t msgLen,
     Step_t *step = fwdata->userData;
     uint32_t i;
     static IO_Msg_Buf_t *lineBuf;
-    int32_t myNodeID = step->localNodeId;
     static int initBuf = 0;
 
     /* get local rank from global rank */
-    uint32_t lrank = getLocalRankID(grank, step, myNodeID);
+    uint32_t lrank = getLocalRankID(grank, step);
     if (lrank == NO_VAL) {
-	flog("error: local rank for global rank %i myNodeID %i step %u:%u not"
-	     " found, caller %s:%i\n", grank, myNodeID, step->jobid,
-	     step->stepid, caller, line);
+	flog("error: local rank for global rank %i step %u:%u not found,"
+	     " caller %s:%i\n", grank, step->jobid, step->stepid, caller, line);
 	return;
     }
 
@@ -374,8 +372,8 @@ void __IO_printStepMsg(Forwarder_Data_t *fwdata, char *msg, size_t msgLen,
     /* handle buffered I/O */
     if (!initBuf) {
 	lineBuf = umalloc(sizeof(IO_Msg_Buf_t)
-			  * step->globalTaskIdsLen[myNodeID]);
-	for (i=0; i<step->globalTaskIdsLen[myNodeID]; i++) {
+			  * step->globalTaskIdsLen[step->localNodeId]);
+	for (i=0; i<step->globalTaskIdsLen[step->localNodeId]; i++) {
 	    lineBuf[i].out.buf = lineBuf[i].err.buf = NULL;
 	    lineBuf[i].out.bufUsed = lineBuf[i].err.bufUsed = 0;
 	}

@@ -588,8 +588,7 @@ static spank_err_t getTaskItem(spank_t spank, spank_item_t item, va_list ap)
 	case S_TASK_ID:
 	    pInt = va_arg(ap, int *);
 	    if (step && spank->task) {
-		*pInt = getLocalRankID(spank->task->rank, step,
-				       step->localNodeId);
+		*pInt = getLocalRankID(spank->task->rank, step);
 		if (*pInt == (int32_t) NO_VAL) return -1;
 	    } else {
 		*pInt = -1;
@@ -711,7 +710,7 @@ static spank_err_t getOtherItem(spank_t spank, spank_item_t item, va_list ap)
 	    Uint32Val = va_arg(ap, uint32_t);
 	    pUint32 = va_arg(ap, uint32_t *);
 	    if (step) {
-		*pUint32 = getLocalRankID(Uint32Val, step, step->localNodeId);
+		*pUint32 = getLocalRankID(Uint32Val, step);
 		if (*pUint32 == NO_VAL) return ESPANK_NOEXIST;
 	    } else {
 		*pUint32 = 0;
@@ -752,8 +751,7 @@ static spank_err_t getOtherItem(spank_t spank, spank_item_t item, va_list ap)
 	    pUint32 = va_arg(ap, uint32_t *);
 	    if (task && step) {
 		if (PSC_getPID(task->tid) == cPID) {
-		    *pUint32 = getLocalRankID(task->rank, step,
-					      step->localNodeId);
+		    *pUint32 = getLocalRankID(task->rank, step);
 		    if (*pUint32 == NO_VAL) return ESPANK_NOEXIST;
 		}
 	    } else {
