@@ -24,8 +24,6 @@
 
 #include "psidrdp.h"
 
-int RDPSocket = -1;
-
 /* possible values of node_bufs.flags */
 #define FLUSH           0x00000001   /* Flush is under way */
 #define CLOSE           0x00000002   /* About to close the connection */
@@ -227,18 +225,34 @@ int sendRDP(DDMsg_t *msg)
     return ret;
 }
 
-int recvRDP(DDMsg_t *msg, size_t size)
+/**
+ * @brief Receive a message from RDP
+ *
+ * Receive a message from RDP and store it to @a msg. At most @a size
+ * bytes are read from RDP and stored to @a msg.
+ *
+ * @param msg Buffer to store the message in
+ *
+ * @param size The maximum length of the message, i.e. the size of @a msg
+ *
+ * @return On success, the number of bytes received is returned, or -1 if
+ * an error occured. In the latter case errno will be set appropiately.
+ *
+ * @see Rrecvfrom()
+ */
+static ssize_t recvRDP(DDBufferMsg_t *msg, size_t size)
 {
     int fromnode = -1;
-    int ret = Rrecvfrom(&fromnode, msg, size);
+    ssize_t ret = Rrecvfrom(&fromnode, msg, size);
 
-    if (ret >= (int)sizeof(*msg)
-	&& (msg->type == PSP_DD_DAEMONCONNECT
-	    || msg->type == PSP_DD_DAEMONESTABLISHED)
-	&& !PSC_getPID(msg->sender) && PSC_getID(msg->sender) != fromnode) {
+    if (ret >= (ssize_t)sizeof(msg->header)
+	&& (msg->header.type == PSP_DD_DAEMONCONNECT
+	    || msg->header.type == PSP_DD_DAEMONESTABLISHED)
+	&& !PSC_getPID(msg->header.sender)
+	&& PSC_getID(msg->header.sender) != fromnode) {
 	PSID_log(-1, "%s: node %d sends type %s len %d as %d\n", __func__,
-		 fromnode, PSDaemonP_printMsg(msg->type), msg->len,
-		 PSC_getID(msg->sender));
+		 fromnode, PSDaemonP_printMsg(msg->header.type),
+		 msg->header.len, PSC_getID(msg->header.sender));
 	errno = ENOTUNIQ;
 	return -1;
     }
@@ -246,28 +260,40 @@ int recvRDP(DDMsg_t *msg, size_t size)
     return ret;
 }
 
-void PSIDRDP_handleMsg(int fd)
+void PSIDRDP_handleMsg(void)
 {
     DDBufferMsg_t msg;
 
-    int msglen;
-
-    PSID_log(PSID_LOG_COMM, "%s(%d)\n", __func__, fd);
-
     /* read the whole msg */
-    msglen = recvMsg(fd, (DDMsg_t*)&msg, sizeof(msg));
+    ssize_t msglen = recvRDP(&msg, sizeof(msg));
 
-    if (msglen==0) {
-	PSID_log(-1, "%s: msglen 0 on RDPsocket\n", __func__);
-    } else if (msglen==-1) {
-	PSID_warn(-1, errno, "%s(%d): recvMsg()", __func__, fd);
-    } else {
-	if (msg.header.type == PSP_CD_CLIENTCONNECT) {
-	    PSID_log(-1, "%s: PSP_CD_CLIENTCONNECT on RDP?\n", __func__);
-	}
-
-	PSID_handleMsg(&msg);
+    if (!msglen) {
+	PSID_log(-1, "%s: msglen 0?!\n", __func__);
+	return;
     }
+    if (msglen == -1) {
+	PSID_warn(-1, errno, "%s: recvRDP()", __func__);
+	return;
+    }
+
+    if (msglen && msglen != msg.header.len) {
+	PSID_log(-1, "%s: type %s (len=%d) from %s",
+		 __func__, PSDaemonP_printMsg(msg.header.type),
+		 msg.header.len, PSC_printTID(msg.header.sender));
+	PSID_log(-1, " dest %s only %zd bytes\n",
+		 PSC_printTID(msg.header.dest), msglen);
+    } else if (PSID_getDebugMask() & PSID_LOG_COMM) {
+	PSID_log(PSID_LOG_COMM, "%s: type %s (len=%d) from %s",
+		 __func__, PSDaemonP_printMsg(msg.header.type),
+		 msg.header.len, PSC_printTID(msg.header.sender));
+	PSID_log(PSID_LOG_COMM, " dest %s\n", PSC_printTID(msg.header.dest));
+    }
+
+    if (msg.header.type == PSP_CD_CLIENTCONNECT) {
+	PSID_log(-1, "%s: PSP_CD_CLIENTCONNECT on RDP?\n", __func__);
+    }
+
+    PSID_handleMsg(&msg);
 }
 
 void PSIDRDP_clearMem(void)

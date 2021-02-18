@@ -118,7 +118,7 @@ static void MCastCallBack(int msgid, void *buf)
  * @brief RDP callback handler
  *
  * Handle a callback from the RDP facility. The callback-type is
- * passed within @a msgid. @a buf might hold additional information
+ * passed within @a type. @a buf might hold additional information
  * related to the callback. Currently four types of callback are
  * handled:
  *
@@ -134,16 +134,16 @@ static void MCastCallBack(int msgid, void *buf)
  * - RDP_CAN_CONTINUE: RDP's flow control signals the possibility to
  *   send further packets to the destination indicated in @a buf.
  *
- * @param msgid Type of callback to handle
+ * @param type Type of callback to handle
  *
  * @param buf Buffer holding extra information related to the
  * callback.
  *
  * @return No return value.
  */
-static void RDPCallBack(int msgid, void *buf)
+static void RDPCallBack(RDP_CB_type_t type, void *buf)
 {
-    switch(msgid) {
+    switch(type) {
     case RDP_NEW_CONNECTION:
 	if (! (PSID_getDaemonState() & PSID_STATE_SHUTDOWN)) {
 	    int node = *(int*)buf;
@@ -184,13 +184,10 @@ static void RDPCallBack(int msgid, void *buf)
 	}
 	break;
     case RDP_CAN_CONTINUE:
-    {
-	int node = *(int*)buf;
-	flushRDPMsgs(node);
+	flushRDPMsgs(*(int*)buf);
 	break;
-    }
     default:
-	PSID_log(-1, "%s(%d,%p). Unhandled message\n", __func__, msgid, buf);
+	PSID_log(-1, "%s(%d,%p): unhandled callback\n", __func__, type, buf);
     }
 }
 
@@ -758,11 +755,11 @@ int main(int argc, const char *argv[])
 	}
 
 	/* Initialize RDP */
-	RDPSocket = RDP_init(PSC_getNrOfNodes(),
-			     PSIDnodes_getAddr(PSC_getMyID()),
-			     PSID_config->RDPPort, logfile, hostlist,
-			     PSIDRDP_handleMsg, RDPCallBack);
-	if (RDPSocket<0) {
+	int RDPSocket = RDP_init(PSC_getNrOfNodes(),
+				 PSIDnodes_getAddr(PSC_getMyID()),
+				 PSID_config->RDPPort, logfile, hostlist,
+				 PSIDRDP_handleMsg, RDPCallBack);
+	if (RDPSocket < 0) {
 	    PSID_exit(errno, "Error while trying to initialize RDP");
 	}
 

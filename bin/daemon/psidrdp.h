@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2020 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2021 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -17,9 +17,6 @@
 #include <stddef.h>
 
 #include "psprotocol.h"
-
-/** The socket used for all RDP communication */
-extern int RDPSocket;
 
 /**
  * @brief Initialize RDP message bufferes.
@@ -82,37 +79,15 @@ int flushRDPMsgs(int node);
 int sendRDP(DDMsg_t *msg);
 
 /**
- * @brief Receive a message from RDP
+ * @brief Handle message from RDP
  *
- * Receive a message from the RDP file descriptor @ref RDPSocket and
- * store it to @a msg. At most @a size bytes are read from RDP and
- * stored to @a msg.
- *
- *
- * @param msg Buffer to store the message in.
- *
- * @param size The maximum length of the message, i.e. the size of @a msg.
- *
- *
- * @return On success, the number of bytes received is returned, or -1 if
- * an error occured. In the latter case errno will be set appropiately.
- *
- * @see Rrecvfrom()
- */
-int recvRDP(DDMsg_t *msg, size_t size);
-
-/**
- * @brief Handle message on RDP's file-descriptor
- *
- * Handle an incoming messages on RDP's file-descriptor @a fd. It is
- * expected that a message is actually available on @a fd, i.e. that
- * Sselect() was called on the descriptor beforehand.
- *
- * @param fd File-descriptor to handle.
+ * Handle an incoming messages from RDP. It is expected that a message
+ * is actually available from RDP, i.e. that Sselect() was called on
+ * RDP's socket descriptor beforehand.
  *
  * @return No return value
  */
-void PSIDRDP_handleMsg(int fd);
+void PSIDRDP_handleMsg(void);
 
 /**
  * @brief Memory cleanup

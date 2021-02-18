@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 1999-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2020 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2021 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -30,31 +30,28 @@ typedef struct {
     int buflen;  /**< The payload's length */
 } RDPDeadbuf;
 
-
-/**
- * Tag for RDPCallback(): New connection detected. The second argument
- * of RDPCallback() will point to an int holding the number of the connecting
- * node.
- */
-#define RDP_NEW_CONNECTION	0x1
-/**
- * Tag for RDPCallback(): Connection lost. The second argument of RDPCallback()
- * will point to an int holding the number of the lost node.
- */
-#define RDP_LOST_CONNECTION	0x2
-/**
- * Tag for RDPCallback(): Cannot deliver packet. The second argument points
- * to a structure of type @ref RDPDeadbuf holding the information about the
- * canceled message. A callback of this type is usually followed by one of
- * type @ref RDP_LOST_CONNECTION.
- */
-#define RDP_PKT_UNDELIVERABLE	0x3
-/**
- * Tag for RDPCallback(): Free space in window available again. The second
- * argument of RDPCallback() will point to an int holding the ID of the
- * node which is reachable again.
- */
-#define RDP_CAN_CONTINUE	0x4
+/** Types of RDP callbacks */
+typedef enum {
+    RDP_NEW_CONNECTION = 0x1,    /**< New connection detected; the
+				  * second argument of RDPCallback()
+				  * will point to an int holding the
+				  * number of the connecting node */
+    RDP_LOST_CONNECTION	= 0x2,   /**< Connection lost; the second
+				  * argument of RDPCallback() will
+				  * point to an int holding the number
+				  * of the lost node */
+    RDP_PKT_UNDELIVERABLE = 0x3, /**< Cannot deliver packet; the
+				  * second argument points to a
+				  * structure of type @ref RDPDeadbuf
+				  * holding the information about the
+				  * canceled message; typically
+				  * followed by @ref RDP_LOST_CONNECTION */
+    RDP_CAN_CONTINUE = 0x4,      /**< Free space in window available
+				  * again; the second argument of
+				  * RDPCallback() will point to an int
+				  * holding the ID of the node which
+				  * is reachable again */
+} RDP_CB_type_t;
 
 /**
  * The default RDP-port number. Magic number defined by Joe long time ago.
@@ -63,40 +60,37 @@ typedef struct {
 #define DEFAULT_RDP_PORT 886
 
 /**
- * @brief Initializes the RDP module.
+ * @brief Initializes the RDP module
  *
  * Initializes the RDP machinery for @a nodes nodes.
  *
+ * @param nodes Number of nodes to handle
  *
- * @param nodes Number of nodes to handle.
- *
- * @param addr The source IP address to bind to.
+ * @param addr The source IP address to bind to
  *
  * @param portno The UDP port number in host byteorder to use for sending and
- * receiving packets. If 0, @ref DEFAULT_RDP_PORT is used.
+ * receiving packets; if 0, @ref DEFAULT_RDP_PORT is used
  *
- * @param logfile File to use for logging. If NULL, syslog(3) is used.
+ * @param logfile File to use for logging. If NULL, syslog(3) is used
  *
  * @param hosts An array of size @a nodes containing the IP-addresses of the
- * participating nodes in network-byteorder.
+ * participating nodes in network-byteorder
  *
  * @param dispatcher Pointer to a dispatcher function. This function
  * will be called each time a new RDP message is available. The
- * function is expected to accept the RDP file-descriptor as an
- * argument and to read the actual message from this descriptor. If
- * NULL, RDP will signal the availability of a new messages to the
- * Selector facility. In this case the calling function of the
- * Selector has to guarantee the proper handling of available RDP
- * messages.
+ * function is expected to read the actual message from RDP via @ref
+ * Rrecvfrom(). If NULL, RDP will signal the availability of a new
+ * messages to the Selector facility. In this case the calling
+ * function of the Selector has to guarantee the proper handling of
+ * available RDP messages.
  *
- * @param callback Pointer to a callback-function. This function is called if
- * something exceptional happens. If NULL, no callbacks will be done.
- * The callback function is expected to accept two arguments. The first one,
- * a int, marks the type of information passed to the calling process.
- * It will be set to one of @ref RDP_NEW_CONNECTION, @ref RDP_LOST_CONNECTION
- * or @ref RDP_PKT_UNDELIVERABLE. The second argument points to further
- * information depending on the type of the callback.
- *
+ * @param callback Pointer to a callback-function. This function is
+ * called if something exceptional happens. If NULL, no callbacks will
+ * be made. The callback function is expected to accept two
+ * arguments. The first one of type RDP_CB_type_t marks the type of
+ * information passed to the calling process. The second argument
+ * points to further information depending on the type of the
+ * callback.
  *
  * @return On success, the filedescriptor of the RDP socket is returned.
  * On error, exit() is called within this function.
@@ -104,8 +98,8 @@ typedef struct {
  * @see syslog()
  */
 int RDP_init(int nodes, in_addr_t addr, unsigned short portno, FILE* logfile,
-	     unsigned int hosts[], void (*dispatcher)(int),
-	     void (*callback)(int, void*));
+	     unsigned int hosts[], void (*dispatcher)(void),
+	     void (*callback)(RDP_CB_type_t, void*));
 
 /**
  * @brief Shutdown the RDP module.

@@ -118,21 +118,18 @@ bool PSIDcomm_enableDropHook(bool enable);
  * msg. At most @a size bytes are read from @a fd and stored to @a
  * msg.
  *
- * If @a fd is the @ref RDPSocket, recvRDP() will be used to actually
- * get the message, otherwise PSIDclient_recv() is used.
+ * PSIDclient_recv() is used to actually receive the message.
  *
+ * @param fd The file descriptor to receive from
  *
- * @param fd The file descriptor to receive from.
+ * @param msg Buffer to store the message in
  *
- * @param msg Buffer to store the message in.
+ * @param size Maximum length of the message, i.e. the size of @a msg
  *
- * @param size The maximum length of the message, i.e. the size of @a msg.
+ * @return On success, the number of bytes received is returned, or -1
+ * if an error occurred; on error errno is set appropriately
  *
- *
- * @return On success, the number of bytes received is returned, or -1 if
- * an error occurred. In the latter case errno is set appropriately.
- *
- * @see recvRDP(), PSIDclient_recv()
+ * @see PSIDclient_recv()
  */
 int recvMsg(int fd, DDMsg_t *msg, size_t size);
 

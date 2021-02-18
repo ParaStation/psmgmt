@@ -64,14 +64,14 @@ static logger_t *logger;
  * The callback function. Will be used to send notifications to the
  * calling process. Set via RDP_init().
  */
-static void (*RDPCallback)(int, void*) = NULL;
+static void (*RDPCallback)(RDP_CB_type_t, void*) = NULL;
 
 /**
  * The message dispatcher function. Will be used to actually read and
  * handle valid RDP messages. To be provided by the calling process
  * within RDP_init().
  */
-static void (*RDPDispatcher)(int) = NULL;
+static void (*RDPDispatcher)(void) = NULL;
 
 /** Possible RDP states of a connection */
 typedef enum {
@@ -1815,7 +1815,7 @@ static int handleRDP(int fd, void *info)
     }
 
     if (RDPDispatcher) {
-	RDPDispatcher(fd);
+	RDPDispatcher();
 	return 0;
     }
 
@@ -1856,8 +1856,8 @@ static char *stateStringRDP(RDPState_t state)
 /* ---------------------------------------------------------------------- */
 
 int RDP_init(int nodes, in_addr_t addr, unsigned short portno, FILE* logfile,
-	     unsigned int hosts[], void (*dispatcher)(int),
-	     void (*callback)(int, void*))
+	     unsigned int hosts[], void (*dispatcher)(void),
+	     void (*callback)(RDP_CB_type_t, void*))
 {
     logger = logger_init("RDP", logfile);
     if (!logger) {
