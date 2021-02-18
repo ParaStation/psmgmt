@@ -443,7 +443,7 @@ int PSI_sendMsg(void *amsg)
 	    PSP_printMsg(msg->type), msg->len, PSC_printTID(msg->dest));
 
     if (daemonSock == -1) {
-	PSI_log(-1, "%s: Not connected to ParaStation daemon", __func__);
+	PSI_log(-1, "%s: Not connected to ParaStation daemon\n", __func__);
 	errno = ENOTCONN;
 	return -1;
     }

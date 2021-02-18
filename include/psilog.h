@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 1999-2002 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2018 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2021 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -23,7 +23,7 @@
 extern logger_t* PSI_logger;
 
 /**
- * @brief Initialize the PSI logging facility.
+ * @brief Initialize the PSI logging facility
  *
  * Initialize the PSI logging facility. This is mainly a wrapper to
  * @ref logger_init().
@@ -47,7 +47,7 @@ extern logger_t* PSI_logger;
 void PSI_initLog(FILE* logfile);
 
 /**
- * @brief Test initialization of PSI logging facility.
+ * @brief Test initialization of PSI logging facility
  *
  * Test, if the PSI logging facility was initialized by calling @ref
  * PSI_initLog().
@@ -60,7 +60,7 @@ void PSI_initLog(FILE* logfile);
 bool PSI_logInitialized(void);
 
 /**
- * @brief Get the log-mask of the PSI logging facility.
+ * @brief Get the log-mask of the PSI logging facility
  *
  * Get the actual log-mask of the PSI logging facility. This is
  * mainly a wrapper to @ref logger_getMask().
@@ -72,7 +72,7 @@ bool PSI_logInitialized(void);
 int32_t PSI_getDebugMask(void);
 
 /**
- * @brief Set the log-mask of the PSI logging facility.
+ * @brief Set the log-mask of the PSI logging facility
  *
  * Set the log-mask of the PSI logging facility to @a mask. @a mask is
  * a bit-wise OR of the different keys defined within @ref
@@ -89,7 +89,7 @@ int32_t PSI_getDebugMask(void);
 void PSI_setDebugMask(int32_t mask);
 
 /**
- * Print a log messages via PSI's logging facility @a PSI_logger .
+ * Print a log messages via PSI's logging facility @a PSI_logger
  *
  * This is a wrapper to @ref logger_print().
  *
@@ -98,7 +98,7 @@ void PSI_setDebugMask(int32_t mask);
 #define PSI_log(...) logger_print(PSI_logger, __VA_ARGS__)
 
 /**
- * Print a warn messages via PSI's logging facility @a PSI_logger .
+ * Print a warn messages via PSI's logging facility @a PSI_logger
  *
  * This is a wrapper to @ref logger_warn().
  *
@@ -107,7 +107,7 @@ void PSI_setDebugMask(int32_t mask);
 #define PSI_warn(...) logger_warn(PSI_logger, __VA_ARGS__)
 
 /**
- * Print a warn messages via PSI's logging facility @a PSI_logger and exit.
+ * Print a warn messages via PSI's logging facility @a PSI_logger and exit
  *
  * This is a wrapper to @ref logger_exit().
  *
@@ -116,7 +116,7 @@ void PSI_setDebugMask(int32_t mask);
 #define PSI_exit(...) logger_exit(PSI_logger, __VA_ARGS__)
 
 /**
- * @brief Finalize PSI's logging facility.
+ * @brief Finalize PSI's logging facility
  *
  * Finalize PSI's logging facility. This is mainly a wrapper to
  * @ref logger_finalize().

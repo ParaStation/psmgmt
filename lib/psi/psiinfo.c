@@ -664,7 +664,7 @@ recv_retry:
     case PSP_CD_SETOPTION:
 	if (msg.count > num) {
 	    PSI_log(verbose ? -1 : PSI_LOG_INFO,
-		    "%s: option-buffer to small.\n", __func__);
+		    "%s: option-buffer to small\n", __func__);
 	    msg.count = num;
 	}
 
@@ -683,7 +683,7 @@ recv_retry:
 		 "%s: error", __func__);
 	break;
     default:
-	PSI_log(-1, "%s: unexpected msgtype '%s'",
+	PSI_log(-1, "%s: unexpected msgtype '%s'\n",
 		__func__, PSP_printMsg(msg.header.type));
     }
 
@@ -726,7 +726,7 @@ recv_retry:
     case PSP_CD_SETOPTION:
 	if (msg.count > num) {
 	    PSI_log(verbose ? -1 : PSI_LOG_INFO,
-		    "%s: option-buffer to small.\n", __func__);
+		    "%s: option-buffer to small\n", __func__);
 	    msg.count = num;
 	}
 
@@ -745,7 +745,7 @@ recv_retry:
 		 "%s: error", __func__);
 	break;
     default:
-	PSI_log(-1, "%s: unexpected msgtype '%s'",
+	PSI_log(-1, "%s: unexpected msgtype '%s'\n",
 		__func__, PSP_printMsg(msg.header.type));
     }
 

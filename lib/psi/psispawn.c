@@ -648,7 +648,7 @@ static int dospawn(int count, PSnodes_ID_t *dstnodes, char *workingdir,
     /* setup task structure */
     task = PStask_new();
     if (!task) {
-	PSI_log(-1, "%s: Cannot create task structure.\n", __func__);
+	PSI_log(-1, "%s: Cannot create task structure\n", __func__);
 	return -1;
     }
 
@@ -760,7 +760,7 @@ static int dospawn(int count, PSnodes_ID_t *dstnodes, char *workingdir,
 
     task->environ = dumpPSIEnv();
     if (!task->environ) {
-	PSI_log(-1, "%s: cannot dump environment.", __func__);
+	PSI_log(-1, "%s: cannot dump environment\n", __func__);
 	goto cleanup;
     }
 
@@ -912,7 +912,7 @@ int PSI_spawnStrictHW(int count, uint32_t hwType, uint16_t tpp,
 	for (i = 0; i < chunk; i++) {
 	    PSI_log(PSI_LOG_SPAWN, " %2d", nodes[i]);
 	}
-	PSI_log(PSI_LOG_SPAWN, ".\n");
+	PSI_log(PSI_LOG_SPAWN, "\n");
 	PSI_log(PSI_LOG_SPAWN, "%s: first rank: %d\n", __func__, rank);
 
 	ret = dospawn(chunk, nodes, workdir, argc, argv, strictArgv, TG_ANY,
@@ -966,7 +966,7 @@ int PSI_spawnRsrvtn(int count, PSrsrvtn_ID_t resID, char *workdir,
 	for (i = 0; i < chunk; i++) {
 	    PSI_log(PSI_LOG_SPAWN, " %2d", nodes[i]);
 	}
-	PSI_log(PSI_LOG_SPAWN, ".\n");
+	PSI_log(PSI_LOG_SPAWN, "\n");
 	PSI_log(PSI_LOG_SPAWN, "%s: first rank: %d\n", __func__, rank);
 
 	num = dospawn(chunk, nodes, workdir, argc, argv, strictArgv, TG_ANY,
