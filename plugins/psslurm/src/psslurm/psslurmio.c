@@ -8,6 +8,7 @@
  * file.
  */
 #define _GNU_SOURCE
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -188,7 +189,7 @@ static void msg2Buffer(char *msg, uint32_t msgLen, uint32_t taskid,
 }
 
 static void IO_writeMsg(Forwarder_Data_t *fwdata, char *msg, uint32_t msgLen,
-		        uint32_t taskid, uint8_t type, uint32_t lrank)
+			uint32_t taskid, uint8_t type, uint32_t lrank)
 {
     Step_t *step = fwdata->userData;
     void *msgPtr = msgLen ? msg : NULL;
@@ -197,11 +198,8 @@ static void IO_writeMsg(Forwarder_Data_t *fwdata, char *msg, uint32_t msgLen,
 	    "sattach %i\n", msgLen, taskid, PSLog_printMsgType(type), type,
 	    lrank, sattachCon);
     /*
-    char format[64];
     if (msgLen>0) {
-	snprintf(format, sizeof(format), "%s: msg: '%%.%is'\n", __func__,
-		msgLen);
-	mdbg(PSSLURM_LOG_IO, format, msg);
+	mdbg(PSSLURM_LOG_IO, "%s: msg: '%.*s'\n", __func__, msgLen, msg);
     }
     */
 
@@ -249,7 +247,7 @@ static void writeLabelIOmsg(Forwarder_Data_t *fwdata, char *msg,
 
 {
     Step_t *step = fwdata->userData;
-    char label[128], format[64];
+    char label[128];
     char *ptr, *nl;
     uint32_t left, len;
 
@@ -263,8 +261,7 @@ static void writeLabelIOmsg(Forwarder_Data_t *fwdata, char *msg,
     }
 
     /* prefix every new line with taskid */
-    snprintf(format, sizeof(format), "%%0%du: ", getWidth(step->np -1));
-    snprintf(label, sizeof(label), format, taskid);
+    snprintf(label, sizeof(label), "%0*u: ", getWidth(step->np -1), taskid);
 
     ptr = msg;
     left = msgLen;
@@ -333,9 +330,8 @@ void __IO_printStepMsg(Forwarder_Data_t *fwdata, char *msg, size_t msgLen,
 		       const int line)
 {
     Step_t *step = fwdata->userData;
-    uint32_t i;
     static IO_Msg_Buf_t *lineBuf;
-    static int initBuf = 0;
+    static bool initBuf = false;
 
     /* get local rank from global rank */
     uint32_t lrank = getLocalRankID(grank, step);
@@ -348,22 +344,18 @@ void __IO_printStepMsg(Forwarder_Data_t *fwdata, char *msg, size_t msgLen,
     /* track I/O channels */
     if (!msgLen) {
 	if (type == STDOUT && step->outChannels) {
-	    if (step->outChannels[lrank] == 0) {
-		return;
-	    }
+	    if (!step->outChannels[lrank]) return;
 	    step->outChannels[lrank] = 0;
 	}
 	if (type == STDERR && step->errChannels) {
-	    if (step->errChannels[lrank] == 0) {
-		return;
-	    }
+	    if (!step->errChannels[lrank]) return;
 	    step->errChannels[lrank] = 0;
 	}
     }
 
     /* handle unbuffered I/O */
     if (type == STDERR || (!(step->taskFlags & LAUNCH_LABEL_IO)
-	&& !(step->taskFlags & LAUNCH_BUFFERED_IO))
+			   && !(step->taskFlags & LAUNCH_BUFFERED_IO))
 	|| step->taskFlags & LAUNCH_PTY) {
 	IO_writeMsg(fwdata, msg, msgLen, grank, type, lrank);
 	return;
@@ -373,17 +365,17 @@ void __IO_printStepMsg(Forwarder_Data_t *fwdata, char *msg, size_t msgLen,
     if (!initBuf) {
 	lineBuf = umalloc(sizeof(IO_Msg_Buf_t)
 			  * step->globalTaskIdsLen[step->localNodeId]);
-	for (i=0; i<step->globalTaskIdsLen[step->localNodeId]; i++) {
+	for (uint32_t i=0; i < step->globalTaskIdsLen[step->localNodeId]; i++) {
 	    lineBuf[i].out.buf = lineBuf[i].err.buf = NULL;
 	    lineBuf[i].out.bufUsed = lineBuf[i].err.bufUsed = 0;
 	}
-	initBuf = 1;
+	initBuf = true;
     }
 
     handleBufferedMsg(fwdata, msg, msgLen,
-		     (type == STDOUT) ?
-			&lineBuf[lrank].out : &lineBuf[lrank].err,
-		     grank, type, lrank);
+		      (type == STDOUT) ?
+		      &lineBuf[lrank].out : &lineBuf[lrank].err,
+		      grank, type, lrank);
 }
 
 void IO_finalize(Forwarder_Data_t *fwdata)

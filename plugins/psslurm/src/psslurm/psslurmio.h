@@ -10,6 +10,8 @@
 #ifndef __PS_SLURM_IO
 #define __PS_SLURM_IO
 
+#include <stdint.h>
+
 #include "pslog.h"
 #include "psslurmjob.h"
 #include "psslurmtasks.h"
