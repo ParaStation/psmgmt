@@ -765,10 +765,17 @@ static int dospawn(int count, PSnodes_ID_t *dstnodes, char *workingdir,
     }
 
     for (i = 0; i < count; i++) {
+	if (i && dstnodes[i] == dstnodes[i-1]) continue; // do not check twice
 	/* check if dstnode is ok */
 	if (!PSC_validNode(dstnodes[i])) {
 	    errors[i] = ENETUNREACH;
 	    if (tids) tids[i] = -1;
+	    goto cleanup;
+	}
+	/* Fill the protocol version cache before sending actual requests */
+	if (PSI_protocolVersion(dstnodes[i]) == -1) {
+	    PSI_log(-1, "%s: unable to get protocol version for node %d\n",
+		    __func__, dstnodes[i]);
 	    goto cleanup;
 	}
     }
