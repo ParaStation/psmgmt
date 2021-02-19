@@ -51,16 +51,12 @@ static void handleRegisterClient(DDTypedBufferMsg_t *msg)
     PspmixClient_t *client;
     client = ucalloc(sizeof(*client));
 
-    PSP_getTypedMsgBuf(msg, &used, __func__, "loggertid", &loggertid,
-	    sizeof(loggertid));
-    PSP_getTypedMsgBuf(msg, &used, __func__, "resID", &client->resID,
-	    sizeof(client->resID));
-    PSP_getTypedMsgBuf(msg, &used, __func__, "rank", &client->rank,
-	    sizeof(client->rank));
-    PSP_getTypedMsgBuf(msg, &used, __func__, "uid", &client->uid,
-	    sizeof(client->uid));
-    PSP_getTypedMsgBuf(msg, &used, __func__, "gid", &client->gid,
-	    sizeof(client->gid));
+    PSP_getTypedMsgBuf(msg, &used, "loggertid", &loggertid, sizeof(loggertid));
+    PSP_getTypedMsgBuf(msg, &used, "resID", &client->resID,
+		       sizeof(client->resID));
+    PSP_getTypedMsgBuf(msg, &used, "rank", &client->rank, sizeof(client->rank));
+    PSP_getTypedMsgBuf(msg, &used, "uid", &client->uid, sizeof(client->uid));
+    PSP_getTypedMsgBuf(msg, &used, "gid", &client->gid, sizeof(client->gid));
 
     mdbg(PSPMIX_LOG_COMM, "%s: received %s (0x%X) from %s for rank %u in"
 	    " reservation %d\n",
@@ -142,19 +138,15 @@ static void handleModexDataRequest(DDTypedBufferMsg_t *msg)
     uint16_t nspacelen;
     pmix_proc_t proc;
 
-    PSP_getTypedMsgBuf(msg, &used, __func__, "rank", &proc.rank,
-	    sizeof(proc.rank));
-
-    PSP_getTypedMsgBuf(msg, &used, __func__, "nspacelen", &nspacelen,
-	    sizeof(nspacelen));
+    PSP_getTypedMsgBuf(msg, &used, "rank", &proc.rank, sizeof(proc.rank));
+    PSP_getTypedMsgBuf(msg, &used, "nspacelen", &nspacelen, sizeof(nspacelen));
     if (nspacelen > sizeof(proc.nspace)) {
 	mlog("%s: ModexDataRequest messed up: nspacelen %hu\n", __func__,
 		nspacelen);
 	return;
     }
 
-    PSP_getTypedMsgBuf(msg, &used, __func__, "nspace", &proc.nspace,
-	    nspacelen);
+    PSP_getTypedMsgBuf(msg, &used, "nspace", &proc.nspace, nspacelen);
     proc.nspace[nspacelen] = '\0';
 
     mdbg(PSPMIX_LOG_COMM, "%s: received %s (0x%X) for namespace %s rank %d\n",

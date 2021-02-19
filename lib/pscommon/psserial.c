@@ -596,11 +596,11 @@ bool fetchFragHeader(DDTypedBufferMsg_t *msg, size_t *used, uint8_t *fragType,
     if (!used) return false;
 
     uint8_t fType;
-    PSP_getTypedMsgBuf(msg, used, __func__, "fragType", &fType, sizeof(fType));
+    PSP_getTypedMsgBuf(msg, used, "fragType", &fType, sizeof(fType));
     if (fragType) *fragType = fType;
 
     uint16_t fNum;
-    PSP_getTypedMsgBuf(msg, used, __func__, "fragNum", &fNum, sizeof(fNum));
+    PSP_getTypedMsgBuf(msg, used, "fragNum", &fNum, sizeof(fNum));
     if (fragNum) *fragNum = fNum;
 
     if (extraSize) *extraSize = 0;
@@ -608,7 +608,7 @@ bool fetchFragHeader(DDTypedBufferMsg_t *msg, size_t *used, uint8_t *fragType,
     if (getProtoV(PSC_getID(msg->header.sender)) > 343) {
 	/* handle extra data */
 	uint8_t eS;
-	PSP_getTypedMsgBuf(msg, used, __func__, "extraSize", &eS, sizeof(eS));
+	PSP_getTypedMsgBuf(msg, used, "extraSize", &eS, sizeof(eS));
 	if (extraSize) *extraSize = eS;
 	if (extra && eS) *extra = msg->buf + *used;
 	*used += eS;
@@ -704,7 +704,7 @@ bool __recvFragMsg(DDTypedBufferMsg_t *msg, PS_DataBuffer_func_t *func,
 	    recvBuf->buf = tmp;
 	}
 	char *ptr = recvBuf->buf + recvBuf->bufUsed;
-	PSP_getTypedMsgBuf(msg, &used, __func__, "payload", ptr, toCopy);
+	PSP_getTypedMsgBuf(msg, &used, "payload", ptr, toCopy);
 	recvBuf->bufUsed += toCopy;
 	recvBuf->nextFrag++;
     }

@@ -295,10 +295,10 @@ bool PSP_getMsgBufF(DDBufferMsg_t *msg, size_t *used, const char *caller,
 		       size, false /* typed */, false /* try */);
 }
 
-bool PSP_getTypedMsgBuf(DDTypedBufferMsg_t *msg, size_t *used,
-			const char *funcName, const char *dataName, void *data,
-			size_t size)
+bool PSP_getTypedMsgBufF(DDTypedBufferMsg_t *msg, size_t *used,
+			 const char *caller, const char *dataName, void *data,
+			 size_t size)
 {
-    return doGetMsgBuf((DDBufferMsg_t *)msg, used, __func__, funcName,
+    return doGetMsgBuf((DDBufferMsg_t *)msg, used, "PSP_getTypedMsgBuf", caller,
 		       dataName, data, size, true /* typed */, false /* try */);
 }

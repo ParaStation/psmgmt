@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2006-2017 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2006-2021 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -38,25 +38,24 @@ static void handleSlotsMsg(DDTypedBufferMsg_t *msg)
     size_t used = 0;
 
     /* logger's TID, this identifies a task uniquely */
-    PSP_getTypedMsgBuf(msg, &used, __func__, "logger", &logger, sizeof(logger));
+    PSP_getTypedMsgBuf(msg, &used, "logger", &logger, sizeof(logger));
 
     /* child's uid */
-    PSP_getTypedMsgBuf(msg, &used, __func__, "uid", &uid, sizeof(uid));
+    PSP_getTypedMsgBuf(msg, &used, "uid", &uid, sizeof(uid));
 
     /* number of slots */
-    PSP_getTypedMsgBuf(msg, &used, __func__, "numSlots", &numSlots,
-		       sizeof(numSlots));
+    PSP_getTypedMsgBuf(msg, &used, "numSlots", &numSlots, sizeof(numSlots));
 
     /* size of CPUset part */
-    PSP_getTypedMsgBuf(msg, &used, __func__, "nBytes", &nBytes, sizeof(nBytes));
+    PSP_getTypedMsgBuf(msg, &used, "nBytes", &nBytes, sizeof(nBytes));
 
     for (slot = 0; slot < numSlots; slot++) {
 	PSnodes_ID_t node;
 	PSCPU_set_t cpus, setBuf;
 
-	PSP_getTypedMsgBuf(msg, &used, __func__, "node", &node, sizeof(node));
+	PSP_getTypedMsgBuf(msg, &used, "node", &node, sizeof(node));
 
-	PSP_getTypedMsgBuf(msg, &used, __func__, "CPUset", setBuf, nBytes);
+	PSP_getTypedMsgBuf(msg, &used, "CPUset", setBuf, nBytes);
 	PSCPU_clrAll(cpus);
 	PSCPU_inject(cpus, setBuf, nBytes);
 
@@ -74,16 +73,16 @@ static size_t handleCommonMsg(DDTypedBufferMsg_t *msg)
     size_t used = 0;
 
     /* logger's TID, this identifies a task uniquely */
-    PSP_getTypedMsgBuf(msg, &used, __func__, "logger", &logger, sizeof(logger));
+    PSP_getTypedMsgBuf(msg, &used, "logger", &logger, sizeof(logger));
 
     /* current rank */
-    PSP_getTypedMsgBuf(msg, &used, __func__, "rank", &rank, sizeof(rank));
+    PSP_getTypedMsgBuf(msg, &used, "rank", &rank, sizeof(rank));
 
     /* child's uid */
-    PSP_getTypedMsgBuf(msg, &used, __func__, "uid", &uid, sizeof(uid));
+    PSP_getTypedMsgBuf(msg, &used, "uid", &uid, sizeof(uid));
 
     /* child's gid */
-    PSP_getTypedMsgBuf(msg, &used, __func__, "gid", &gid, sizeof(gid));
+    PSP_getTypedMsgBuf(msg, &used, "gid", &gid, sizeof(gid));
 
     printf(" rank %d", rank);
     printf(" UID %d GID %d", uid, gid);
@@ -97,7 +96,7 @@ static void handleQueueMsg(DDTypedBufferMsg_t *msg)
     int32_t partReqSize;
 
     /* size of the requested partition */
-    PSP_getTypedMsgBuf(msg, &used, __func__, "partReqSize", &partReqSize,
+    PSP_getTypedMsgBuf(msg, &used, "partReqSize", &partReqSize,
 		       sizeof(partReqSize));
     printf(" req part-size %d", partReqSize);
 }
@@ -117,11 +116,9 @@ static void handleEndMsg(DDTypedBufferMsg_t *msg)
 	int32_t numChild;
 
 	/* total number of children. Only the logger knows this */
-	PSP_getTypedMsgBuf(msg, &used, __func__, "numChild", &numChild,
-			   sizeof(numChild));
+	PSP_getTypedMsgBuf(msg, &used, "numChild", &numChild, sizeof(numChild));
 	/* walltime used by logger */
-	PSP_getTypedMsgBuf(msg, &used, __func__, "wallTm", &wallTm,
-			   sizeof(wallTm));
+	PSP_getTypedMsgBuf(msg, &used, "wallTm", &wallTm, sizeof(wallTm));
 
 	printf(" num children %d", numChild);
 	printf(" wall %.6f", wallTm.tv_sec + 1.0e-6*wallTm.tv_usec);
@@ -129,49 +126,49 @@ static void handleEndMsg(DDTypedBufferMsg_t *msg)
 	return;
     }
 
-    PSP_getTypedMsgBuf(msg, &used, __func__, "pid", &pid, sizeof(pid));
+    PSP_getTypedMsgBuf(msg, &used, "pid", &pid, sizeof(pid));
     printf(" pid %d", pid);
 
-    PSP_getTypedMsgBuf(msg, &used, __func__, "rusage", &rusage, sizeof(rusage));
+    PSP_getTypedMsgBuf(msg, &used, "rusage", &rusage, sizeof(rusage));
     printf(" user %.6f sys %.6f",
 	   rusage.ru_utime.tv_sec + 1.0e-6 * rusage.ru_utime.tv_usec,
 	   rusage.ru_stime.tv_sec + 1.0e-6 * rusage.ru_stime.tv_usec);
 
     /* pagesize */
-    PSP_getTypedMsgBuf(msg, &used, __func__, "pgSize", &pgSize, sizeof(pgSize));
+    PSP_getTypedMsgBuf(msg, &used, "pgSize", &pgSize, sizeof(pgSize));
     printf(" page-size %lu", pgSize);
 
     /* walltime used by child */
-    PSP_getTypedMsgBuf(msg, &used, __func__, "wallTm", &wallTm, sizeof(wallTm));
+    PSP_getTypedMsgBuf(msg, &used, "wallTm", &wallTm, sizeof(wallTm));
     printf(" wall %.6f", wallTm.tv_sec + 1.0e-6*wallTm.tv_usec);
 
     /* child's return status */
-    PSP_getTypedMsgBuf(msg, &used, __func__, "status", &status, sizeof(status));
+    PSP_getTypedMsgBuf(msg, &used, "status", &status, sizeof(status));
     printf(" exit status %d", WEXITSTATUS(status));
     if (WIFSIGNALED(status)) {
 	printf(" on signal %d", WTERMSIG(status));
 	if (WCOREDUMP(status)) printf(" core dumped");
     }
 
-    PSP_getTypedMsgBuf(msg, &used, __func__, "extFlg", &extFlg, sizeof(extFlg));
+    PSP_getTypedMsgBuf(msg, &used, "extFlg", &extFlg, sizeof(extFlg));
     if (!extFlg) {
 	printf(" nothing else");
 	return;
     }
 
-    PSP_getTypedMsgBuf(msg, &used, __func__, "maxRSS", &maxRSS, sizeof(maxRSS));
-    PSP_getTypedMsgBuf(msg, &used, __func__, "maxVM", &maxVM, sizeof(maxVM));
-    PSP_getTypedMsgBuf(msg, &used, __func__, "maxThd", &maxThd, sizeof(maxThd));
+    PSP_getTypedMsgBuf(msg, &used, "maxRSS", &maxRSS, sizeof(maxRSS));
+    PSP_getTypedMsgBuf(msg, &used, "maxVM", &maxVM, sizeof(maxVM));
+    PSP_getTypedMsgBuf(msg, &used, "maxThd", &maxThd, sizeof(maxThd));
 
     /* session id of job */
-    PSP_getTypedMsgBuf(msg, &used, __func__, "sessID", &sessID, sizeof(sessID));
+    PSP_getTypedMsgBuf(msg, &used, "sessID", &sessID, sizeof(sessID));
     printf(" sessID %d", sessID);
 
-    PSP_getTypedMsgBuf(msg, &used, __func__, "avgRSS", &avgRSS, sizeof(avgRSS));
+    PSP_getTypedMsgBuf(msg, &used, "avgRSS", &avgRSS, sizeof(avgRSS));
     printf(" RSS %lu/%lu", maxRSS, avgRSS);
-    PSP_getTypedMsgBuf(msg, &used, __func__, "avgVM", &avgVM, sizeof(avgVM));
+    PSP_getTypedMsgBuf(msg, &used, "avgVM", &avgVM, sizeof(avgVM));
     printf(" VM %lu/%lu", maxVM, avgVM);
-    PSP_getTypedMsgBuf(msg, &used, __func__, "avgThd", &avgThd, sizeof(avgThd));
+    PSP_getTypedMsgBuf(msg, &used, "avgThd", &avgThd, sizeof(avgThd));
     printf(" HW-threads %u/%lu", maxThd, avgThd);
 }
 
@@ -180,7 +177,7 @@ static void handleStartMsg(DDTypedBufferMsg_t *msg)
     size_t used = handleCommonMsg(msg);
     int32_t num;
 
-    PSP_getTypedMsgBuf(msg, &used, __func__, "num", &num, sizeof(num));
+    PSP_getTypedMsgBuf(msg, &used, "num", &num, sizeof(num));
     printf(" number of children %d", num);
 }
 
@@ -197,8 +194,8 @@ static void handleLogMsg(DDTypedBufferMsg_t *msg)
     int32_t maxConnected;
 
     /* total number of children connected to logger */
-    PSP_getTypedMsgBuf(msg, &used, __func__, "maxConnected",
-		       &maxConnected, sizeof(maxConnected));
+    PSP_getTypedMsgBuf(msg, &used, "maxConnected", &maxConnected,
+		       sizeof(maxConnected));
     printf(" logger conn children %d", maxConnected);
 
     if (msg->buf[used]) {
@@ -215,7 +212,7 @@ static void handleAcctMsg(DDTypedBufferMsg_t *msg)
     int ret;
 
     /* logger's TID, this identifies a task uniquely */
-    PSP_getTypedMsgBuf(msg, &used, __func__, "logger", &logger, sizeof(logger));
+    PSP_getTypedMsgBuf(msg, &used, "logger", &logger, sizeof(logger));
 
     logger = *(PStask_ID_t *)msg->buf;
 

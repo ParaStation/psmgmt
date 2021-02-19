@@ -715,7 +715,7 @@ bool PSP_tryPutTypedMsgBufF(DDTypedBufferMsg_t *msg, const char *caller,
  * NULL, 1 is returned. Otherwise, an error-message is put out and 0
  * is returned. In the latter case @a used is not updated.
  *
- * @a funcName and @a dataName are used in order the create the
+ * @a caller and @a dataName are used in order the create the
  * error-message. It shall describe the calling function and the type
  * of content to be fetched from @a msg's buffer.
  *
@@ -723,7 +723,7 @@ bool PSP_tryPutTypedMsgBufF(DDTypedBufferMsg_t *msg, const char *caller,
  *
  * @param used Counter used to track the data offset
  *
- * @param funcName Name of the calling function
+ * @param caller Name of the calling function
  *
  * @param dataName Description of @a data to be fetched from to @a
  * msg.
@@ -735,8 +735,10 @@ bool PSP_tryPutTypedMsgBufF(DDTypedBufferMsg_t *msg, const char *caller,
  * @return Upon success, @a true is returned. Or @a false if an error
  * occurred. This is mainly due to insufficient data available in @a msg.
  */
-bool PSP_getTypedMsgBuf(DDTypedBufferMsg_t *msg, size_t *used,
-			const char *funcName, const char *dataName,
-			void *data, size_t size);
+bool PSP_getTypedMsgBufF(DDTypedBufferMsg_t *msg, size_t *used,
+			 const char *caller, const char *dataName,
+			 void *data, size_t size);
+#define PSP_getTypedMsgBuf(msg, used, dataName, data, size)		\
+    PSP_getTypedMsgBufF(msg, used, __func__, dataName, data, size)
 
 #endif /* __PSPROTOCOL_H */

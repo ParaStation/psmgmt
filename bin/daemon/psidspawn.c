@@ -1843,15 +1843,14 @@ static void msg_SPAWNREQ(DDTypedBufferMsg_t *msg)
 	PSCPU_set_t setBuf;
 	usedBytes = 0;
 
-	PSP_getTypedMsgBuf(msg, &usedBytes, __func__, "nBytes", &nBytes,
-			   sizeof(nBytes));
+	PSP_getTypedMsgBuf(msg, &usedBytes, "nBytes", &nBytes, sizeof(nBytes));
 
 	if (nBytes > myBytes) {
 	    PSID_log(-1, "%s: PSP_SPAWN_LOC from %s: expecting %d CPUs\n",
 		     __func__, PSC_printTID(msg->header.sender), nBytes*8);
 	}
 
-	PSP_getTypedMsgBuf(msg, &usedBytes, __func__, "CPUset", setBuf, nBytes);
+	PSP_getTypedMsgBuf(msg, &usedBytes, "CPUset", setBuf, nBytes);
 	PSCPU_clrAll(task->CPUset);
 	PSCPU_inject(task->CPUset, setBuf, nBytes);
 	break;

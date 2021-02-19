@@ -89,7 +89,7 @@ static void handleAccountEnd(DDTypedBufferMsg_t *msg)
 
     mdbg(PSACC_LOG_ACC_MSG, "%s(%s)\n", __func__, PSC_printTID(sender));
 
-    PSP_getTypedMsgBuf(msg, &used, __func__, "logger", &logger, sizeof(logger));
+    PSP_getTypedMsgBuf(msg, &used, "logger", &logger, sizeof(logger));
 
     /* end msg from logger */
     if (sender == logger) {
@@ -112,13 +112,10 @@ static void handleAccountEnd(DDTypedBufferMsg_t *msg)
 	return;
     }
 
-    PSP_getTypedMsgBuf(msg, &used, __func__, "rank(skipped)", &dummy,
-		       sizeof(int32_t));
-    PSP_getTypedMsgBuf(msg, &used, __func__, "uid(skipped)", &dummy,
-		       sizeof(uid_t));
-    PSP_getTypedMsgBuf(msg, &used, __func__, "gid(skipped)", &dummy,
-		       sizeof(gid_t));
-    PSP_getTypedMsgBuf(msg, &used, __func__, "pid", &child, sizeof(child));
+    PSP_getTypedMsgBuf(msg, &used, "rank(skipped)", &dummy, sizeof(int32_t));
+    PSP_getTypedMsgBuf(msg, &used, "uid(skipped)", &dummy, sizeof(uid_t));
+    PSP_getTypedMsgBuf(msg, &used, "gid(skipped)", &dummy, sizeof(gid_t));
+    PSP_getTypedMsgBuf(msg, &used, "pid", &child, sizeof(child));
 
     /* calculate childs TaskID */
     childNode = PSC_getID(sender);
@@ -141,14 +138,14 @@ static void handleAccountEnd(DDTypedBufferMsg_t *msg)
     client->doAccounting = false;
     client->endTime = time(NULL);
 
-    PSP_getTypedMsgBuf(msg, &used, __func__, "rusage",
-		       &client->data.rusage, sizeof(client->data.rusage));
-    PSP_getTypedMsgBuf(msg, &used, __func__, "pageSize",
-		       &client->data.pageSize, sizeof(client->data.pageSize));
-    PSP_getTypedMsgBuf(msg, &used, __func__, "walltime",
-		       &client->walltime, sizeof(client->walltime));
-    PSP_getTypedMsgBuf(msg, &used, __func__, "status",
-		       &client->status, sizeof(client->status));
+    PSP_getTypedMsgBuf(msg, &used, "rusage", &client->data.rusage,
+		       sizeof(client->data.rusage));
+    PSP_getTypedMsgBuf(msg, &used, "pageSize", &client->data.pageSize,
+		       sizeof(client->data.pageSize));
+    PSP_getTypedMsgBuf(msg, &used, "walltime", &client->walltime,
+		       sizeof(client->walltime));
+    PSP_getTypedMsgBuf(msg, &used, "status", &client->status,
+		       sizeof(client->status));
 
     mdbg(PSACC_LOG_VERBOSE, "%s: child rank %i pid %i logger %s uid %i"
 	 " gid %i msg type %s finished\n", __func__, client->rank, child,
@@ -236,20 +233,17 @@ static void handleAccountLog(DDTypedBufferMsg_t *msg)
     Job_t *job;
     size_t used = 0;
 
-    PSP_getTypedMsgBuf(msg, &used, __func__, "logger", &logger, sizeof(logger));
+    PSP_getTypedMsgBuf(msg, &used, "logger", &logger, sizeof(logger));
 
     /* get job */
     job = findJobByLogger(logger);
     if (!job) job = addJob(logger);
 
     uint64_t dummy;
-    PSP_getTypedMsgBuf(msg, &used, __func__, "rank(skipped)", &dummy,
-		       sizeof(int32_t));
-    PSP_getTypedMsgBuf(msg, &used, __func__, "uid(skipped)", &dummy,
-		       sizeof(uid_t));
-    PSP_getTypedMsgBuf(msg, &used, __func__, "gid(skipped)", &dummy,
-		       sizeof(gid_t));
-    PSP_getTypedMsgBuf(msg, &used, __func__, "total children (skipped)", &dummy,
+    PSP_getTypedMsgBuf(msg, &used, "rank(skipped)", &dummy, sizeof(int32_t));
+    PSP_getTypedMsgBuf(msg, &used, "uid(skipped)", &dummy, sizeof(uid_t));
+    PSP_getTypedMsgBuf(msg, &used, "gid(skipped)", &dummy, sizeof(gid_t));
+    PSP_getTypedMsgBuf(msg, &used, "total children (skipped)", &dummy,
 		       sizeof(int32_t));
 
     /* set the job ID */
@@ -276,15 +270,15 @@ static void handleAccountChild(DDTypedBufferMsg_t *msg)
     size_t used = 0;
 
     /* logger's task ID */
-    PSP_getTypedMsgBuf(msg, &used, __func__, "logger", &logger, sizeof(logger));
+    PSP_getTypedMsgBuf(msg, &used, "logger", &logger, sizeof(logger));
 
     /* get job information */
     job = findJobByLogger(logger);
     if (!job) job = addJob(logger);
 
-    PSP_getTypedMsgBuf(msg, &used, __func__, "rank", &rank, sizeof(rank));
-    PSP_getTypedMsgBuf(msg, &used, __func__, "uid", &uid, sizeof(uid));
-    PSP_getTypedMsgBuf(msg, &used, __func__, "gid", &gid, sizeof(gid));
+    PSP_getTypedMsgBuf(msg, &used, "rank", &rank, sizeof(rank));
+    PSP_getTypedMsgBuf(msg, &used, "uid", &uid, sizeof(uid));
+    PSP_getTypedMsgBuf(msg, &used, "gid", &gid, sizeof(gid));
 
     client = addClient(msg->header.sender, ACC_CHILD_PSIDCHILD);
 
@@ -356,7 +350,7 @@ static void handleSwitchUpdate(DDTypedBufferMsg_t *msg, bool enable)
     PStask_ID_t client;
     size_t used = 0;
 
-    PSP_getTypedMsgBuf(msg, &used, __func__, "client", &client, sizeof(client));
+    PSP_getTypedMsgBuf(msg, &used, "client", &client, sizeof(client));
     switchClientUpdate(client, enable);
 }
 

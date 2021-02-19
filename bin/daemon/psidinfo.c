@@ -481,8 +481,7 @@ static void msg_INFOREQUEST(DDTypedBufferMsg_t *inmsg)
 		PSrsrvtn_ID_t resID;
 		size_t used = 0;
 
-		PSP_getTypedMsgBuf(inmsg, &used, __func__, "resID", &resID,
-				   sizeof(resID));
+		PSP_getTypedMsgBuf(inmsg, &used, "resID", &resID,sizeof(resID));
 
 		PSIDpart_sendResNodes(resID, task, &msg);
 		msg.type = PSP_INFO_LIST_END;

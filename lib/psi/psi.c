@@ -194,7 +194,7 @@ static bool connectDaemon(PStask_group_t taskGroup, int tryStart)
 	case PSP_CONN_ERR_VERSION :
 	{
 	    uint32_t protoV;
-	    PSP_getTypedMsgBuf(&answer, &used, __func__, "protoV", &protoV,
+	    PSP_getTypedMsgBuf(&answer, &used, "protoV", &protoV,
 			       sizeof(protoV));
 	    PSI_log(-1, "%s: Daemon (%u) does not support library version (%u)."
 		    " Pleases relink program\n", __func__, protoV,
@@ -214,7 +214,7 @@ static bool connectDaemon(PStask_group_t taskGroup, int tryStart)
 	case PSP_CONN_ERR_PROCLIMIT :
 	{
 	    int32_t maxProcs;
-	    PSP_getTypedMsgBuf(&answer, &used, __func__, "maxProcs", &maxProcs,
+	    PSP_getTypedMsgBuf(&answer, &used, "maxProcs", &maxProcs,
 			       sizeof(maxProcs));
 	    PSI_log(-1, "%s: Node limited to %d processes\n", __func__,
 		    maxProcs);
@@ -239,11 +239,10 @@ static bool connectDaemon(PStask_group_t taskGroup, int tryStart)
 	}
 	break;
     case PSP_CD_CLIENTESTABLISHED:
-	PSP_getTypedMsgBuf(&answer, &used, __func__, "mixedProto", &mixedProto,
+	PSP_getTypedMsgBuf(&answer, &used, "mixedProto", &mixedProto,
 			   sizeof(mixedProto));
 	PSnodes_ID_t myID;
-	PSP_getTypedMsgBuf(&answer, &used, __func__, "myID", &myID,
-			   sizeof(myID));
+	PSP_getTypedMsgBuf(&answer, &used, "myID", &myID, sizeof(myID));
 	PSC_setMyID(myID);
 
 	int nrOfNodes;

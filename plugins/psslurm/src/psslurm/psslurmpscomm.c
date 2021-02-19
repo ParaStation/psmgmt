@@ -1033,8 +1033,8 @@ static void handle_JobExit(DDTypedBufferMsg_t *msg)
     uint32_t jobid, stepid;
     size_t used = 0;
 
-    PSP_getTypedMsgBuf(msg, &used, __func__, "jobID", &jobid, sizeof(jobid));
-    PSP_getTypedMsgBuf(msg, &used, __func__, "stepID", &stepid, sizeof(stepid));
+    PSP_getTypedMsgBuf(msg, &used, "jobID", &jobid, sizeof(jobid));
+    PSP_getTypedMsgBuf(msg, &used, "stepID", &stepid, sizeof(stepid));
 
     mlog("%s: id %u:%u from %s\n", __func__, jobid, stepid,
 	 PSC_printTID(msg->header.sender));
@@ -1066,7 +1066,7 @@ static void handle_EpilogueLaunch(DDTypedBufferMsg_t *msg)
     uint32_t id;
     size_t used = 0;
 
-    PSP_getTypedMsgBuf(msg, &used, __func__, "id", &id, sizeof(id));
+    PSP_getTypedMsgBuf(msg, &used, "id", &id, sizeof(id));
 
     Alloc_t *alloc = findAlloc(id);
     if (!alloc) {
@@ -1116,8 +1116,8 @@ static void handle_EpilogueStateRes(DDTypedBufferMsg_t *msg)
     uint16_t res;
     size_t used = 0;
 
-    PSP_getTypedMsgBuf(msg, &used, __func__, "id", &id, sizeof(id));
-    PSP_getTypedMsgBuf(msg, &used, __func__, "res", &res, sizeof(res));
+    PSP_getTypedMsgBuf(msg, &used, "id", &id, sizeof(id));
+    PSP_getTypedMsgBuf(msg, &used, "res", &res, sizeof(res));
 
     Alloc_t *alloc = findAlloc(id);
     if (!alloc) {
@@ -1160,7 +1160,7 @@ static void handle_EpilogueStateReq(DDTypedBufferMsg_t *msg)
     uint16_t res;
     size_t used = 0;
 
-    PSP_getTypedMsgBuf(msg, &used, __func__, "id", &id, sizeof(id));
+    PSP_getTypedMsgBuf(msg, &used, "id", &id, sizeof(id));
 
     Alloc_t *alloc = findAlloc(id);
     if (!alloc) {
@@ -1190,8 +1190,8 @@ static void handle_EpilogueRes(DDTypedBufferMsg_t *msg)
     uint16_t res;
     size_t used = 0;
 
-    PSP_getTypedMsgBuf(msg, &used, __func__, "id", &id, sizeof(id));
-    PSP_getTypedMsgBuf(msg, &used, __func__, "res", &res, sizeof(res));
+    PSP_getTypedMsgBuf(msg, &used, "id", &id, sizeof(id));
+    PSP_getTypedMsgBuf(msg, &used, "res", &res, sizeof(res));
 
     mdbg(PSSLURM_LOG_PELOG, "%s: result %i for allocation %u from %s\n",
 	 __func__, res, id, PSC_printTID(msg->header.sender));
@@ -1482,11 +1482,11 @@ static void handleSignalTasks(DDTypedBufferMsg_t *msg)
     uint32_t jobid, stepid, group, sig, packID;
     size_t used = 0;
 
-    PSP_getTypedMsgBuf(msg, &used, __func__, "jobID", &jobid, sizeof(jobid));
-    PSP_getTypedMsgBuf(msg, &used, __func__, "stepID", &stepid, sizeof(stepid));
-    PSP_getTypedMsgBuf(msg, &used, __func__, "group", &group, sizeof(group));
-    PSP_getTypedMsgBuf(msg, &used, __func__, "signal", &sig, sizeof(sig));
-    PSP_getTypedMsgBuf(msg, &used, __func__, "packID", &packID, sizeof(packID));
+    PSP_getTypedMsgBuf(msg, &used, "jobID", &jobid, sizeof(jobid));
+    PSP_getTypedMsgBuf(msg, &used, "stepID", &stepid, sizeof(stepid));
+    PSP_getTypedMsgBuf(msg, &used, "group", &group, sizeof(group));
+    PSP_getTypedMsgBuf(msg, &used, "signal", &sig, sizeof(sig));
+    PSP_getTypedMsgBuf(msg, &used, "packID", &packID, sizeof(packID));
 
     Step_t *step = findStepByStepId(jobid, stepid);
     if (!step) {
@@ -1868,7 +1868,7 @@ static void handleDroppedEpilogue(DDTypedBufferMsg_t *msg)
     size_t used = 0;
     uint32_t id;
 
-    PSP_getTypedMsgBuf(msg, &used, __func__, "id", &id, sizeof(id));
+    PSP_getTypedMsgBuf(msg, &used, "id", &id, sizeof(id));
 
     Alloc_t *alloc = findAlloc(id);
     if (!alloc) {
