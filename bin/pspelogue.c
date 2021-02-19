@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2017-2020 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2017-2021 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -275,10 +275,10 @@ void handleRespUnknown(DDBufferMsg_t *answer)
     int16_t type;
 
     /* original dest */
-    PSP_getMsgBuf(answer, &used, __func__, "dest", &dest, sizeof(dest));
+    PSP_getMsgBuf(answer, &used, "dest", &dest, sizeof(dest));
 
     /* original type */
-    PSP_getMsgBuf(answer, &used, __func__, "type", &type, sizeof(type));
+    PSP_getMsgBuf(answer, &used, "type", &type, sizeof(type));
 
     fprintf(stderr, "%s: delivery of message with type %i to %s job %s "
 	    "failed\n", __func__, type, PSC_printTID(dest), jobID);

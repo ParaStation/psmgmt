@@ -221,11 +221,11 @@ static void handleSignalMsg(PSLog_Msg_t *msg)
 
     /* Get destination */
     pid_t pid;
-    PSP_getMsgBuf(bMsg, &used, __func__, "pid", &pid, sizeof(pid));
+    PSP_getMsgBuf(bMsg, &used, "pid", &pid, sizeof(pid));
 
     /* Get signal to send */
     int32_t signal;
-    PSP_getMsgBuf(bMsg, &used, __func__, "signal", &signal, sizeof(signal));
+    PSP_getMsgBuf(bMsg, &used, "signal", &signal, sizeof(signal));
 
     sendSignal(pid, signal);
 }
@@ -445,7 +445,7 @@ again:
 
 	/* Get verbosity */
 	uint32_t verb;
-	PSP_getMsgBuf(bMsg, &used, __func__, "verb", &verb, sizeof(verb));
+	PSP_getMsgBuf(bMsg, &used, "verb", &verb, sizeof(verb));
 	verbose = verb;
 	PSID_log(PSID_LOG_SPAWN, "%s(%s): Connected\n", __func__,
 		 PSC_printTID(tid));

@@ -806,12 +806,12 @@ static void msg_DAEMONCONNECT(DDBufferMsg_t *msg)
     PSID_log(PSID_LOG_STATUS, "%s(%d)\n", __func__, id);
 
     int32_t pCPUs, vCPUs, proto, dmnProto;
-    PSP_getMsgBuf(msg, &used, __func__, "numCores", &pCPUs, sizeof(pCPUs));
-    PSP_getMsgBuf(msg, &used, __func__, "numThrds", &vCPUs, sizeof(vCPUs));
-    if (!PSP_tryGetMsgBuf(msg, &used, __func__, "proto",
-			  &proto, sizeof(proto))) proto = 343;
-    if (!PSP_tryGetMsgBuf(msg, &used, __func__, "dmnProto",
-			  &dmnProto, sizeof(dmnProto))) dmnProto = 413;
+    PSP_getMsgBuf(msg, &used, "numCores", &pCPUs, sizeof(pCPUs));
+    PSP_getMsgBuf(msg, &used, "numThrds", &vCPUs, sizeof(vCPUs));
+    if (!PSP_tryGetMsgBuf(msg, &used, "proto", &proto, sizeof(proto)))
+	proto = 343;
+    if (!PSP_tryGetMsgBuf(msg, &used, "dmnProto", &dmnProto, sizeof(dmnProto)))
+	dmnProto = 413;
 
     /* id is out of range -> nothing left to do */
     if (!declareNodeAlive(id, pCPUs, vCPUs, proto, dmnProto)) return;
@@ -896,12 +896,12 @@ static void msg_DAEMONESTABLISHED(DDBufferMsg_t *msg)
     PSID_log(PSID_LOG_STATUS, "%s(%d)\n", __func__, id);
 
     int32_t pCPUs, vCPUs, proto, dmnProto;
-    PSP_getMsgBuf(msg, &used, __func__, "numCores", &pCPUs, sizeof(pCPUs));
-    PSP_getMsgBuf(msg, &used, __func__, "numThrds", &vCPUs, sizeof(vCPUs));
-    if (!PSP_tryGetMsgBuf(msg, &used, __func__, "proto",
-			  &proto, sizeof(proto))) proto = 343;
-    if (!PSP_tryGetMsgBuf(msg, &used, __func__, "dmnProto",
-			  &dmnProto, sizeof(dmnProto))) dmnProto = 413;
+    PSP_getMsgBuf(msg, &used, "numCores", &pCPUs, sizeof(pCPUs));
+    PSP_getMsgBuf(msg, &used, "numThrds", &vCPUs, sizeof(vCPUs));
+    if (!PSP_tryGetMsgBuf(msg, &used, "proto", &proto, sizeof(proto)))
+	proto = 343;
+    if (!PSP_tryGetMsgBuf(msg, &used, "dmnProto", &dmnProto, sizeof(dmnProto)))
+	dmnProto = 413;
 
     /* id is out of range -> nothing left to do */
     if (!declareNodeAlive(id, pCPUs, vCPUs, proto, dmnProto)) return;
@@ -998,7 +998,7 @@ static void msg_MASTERIS(DDBufferMsg_t *msg)
     size_t used = 0;
     PSnodes_ID_t newM;
 
-    PSP_getMsgBuf(msg, &used, __func__, "master", &newM, sizeof(newM));
+    PSP_getMsgBuf(msg, &used, "master", &newM, sizeof(newM));
 
     PSID_log(PSID_LOG_STATUS, "%s: %s says master is %d\n", __func__,
 	     PSC_printTID(msg->header.sender), newM);
@@ -1084,7 +1084,7 @@ static void msg_ACTIVENODES(DDBufferMsg_t *msg)
     static PSnodes_ID_t firstUntested = 0;
     size_t used = 0;
 
-    while (PSP_tryGetMsgBuf(msg, &used, __func__, "node", &node, sizeof(node))){
+    while (PSP_tryGetMsgBuf(msg, &used, "node", &node, sizeof(node))) {
 	PSID_log(PSID_LOG_STATUS, "%s: check %d\n", __func__, node);
 	if (node == sender) {
 	    /* Sender is first active node, all previous nodes are down */
@@ -1153,7 +1153,7 @@ static void msg_DEADNODE(DDBufferMsg_t *msg)
     PSnodes_ID_t dead;
     size_t used = 0;
 
-    PSP_getMsgBuf(msg, &used, __func__, "deadNode", &dead, sizeof(dead));
+    PSP_getMsgBuf(msg, &used, "deadNode", &dead, sizeof(dead));
 
     PSID_log(PSID_LOG_STATUS, "%s(%d)\n", __func__, dead);
 
@@ -1187,14 +1187,13 @@ static void msg_LOAD(DDBufferMsg_t *msg)
 	size_t used = 0;
 	int clientNodes;
 
-	PSP_getMsgBuf(msg, &used, __func__, "jobs", &clientStat[client].jobs,
+	PSP_getMsgBuf(msg, &used, "jobs", &clientStat[client].jobs,
 		      sizeof(clientStat[client].jobs));
-	PSP_getMsgBuf(msg, &used, __func__, "load", &clientStat[client].load,
+	PSP_getMsgBuf(msg, &used, "load", &clientStat[client].load,
 		      sizeof(clientStat[client].load));
-	PSP_getMsgBuf(msg, &used, __func__, "mem", &clientStat[client].mem,
+	PSP_getMsgBuf(msg, &used, "mem", &clientStat[client].mem,
 		      sizeof(clientStat[client].mem));
-	PSP_getMsgBuf(msg, &used, __func__, "totNodes", &clientNodes,
-		      sizeof(clientNodes));
+	PSP_getMsgBuf(msg, &used, "totNodes", &clientNodes,sizeof(clientNodes));
 
 	gettimeofday(&clientStat[client].lastPing, NULL);
 	clientStat[client].missCounter = 0;

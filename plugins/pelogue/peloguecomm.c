@@ -745,10 +745,10 @@ static void handleUnknownMsg(DDBufferMsg_t *msg)
     int16_t type;
 
     /* original dest */
-    PSP_getMsgBuf(msg, &used, __func__, "dest", &dest, sizeof(dest));
+    PSP_getMsgBuf(msg, &used, "dest", &dest, sizeof(dest));
 
     /* original type */
-    PSP_getMsgBuf(msg, &used, __func__, "type", &type, sizeof(type));
+    PSP_getMsgBuf(msg, &used, "type", &type, sizeof(type));
 
     if (type == PSP_PLUG_PELOGUE) {
 	/* pelogue message */

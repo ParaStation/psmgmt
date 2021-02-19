@@ -253,14 +253,14 @@ bool PSP_tryPutTypedMsgBufF(DDTypedBufferMsg_t *msg, const char *caller,
 }
 
 static bool doGetMsgBuf(DDBufferMsg_t *msg, size_t *used, const char *callName,
-			const char *funcName, const char *dataName, void *data,
+			const char *caller, const char *dataName, void *data,
 			size_t size, bool typed, bool try)
 {
     size_t avail, u;
 
     if (!msg || !used || !data) {
 	PSC_log(-1, "%s: no '%s' provided for '%s' in %s()\n", callName,
-		msg ? (used ? "data" : "used") : "msg", dataName, funcName);
+		msg ? (used ? "data" : "used") : "msg", dataName, caller);
 	return false;
     }
 
@@ -271,7 +271,7 @@ static bool doGetMsgBuf(DDBufferMsg_t *msg, size_t *used, const char *callName,
     if (size > avail - u) {
 	PSC_log(try ? PSC_LOG_VERB : -1,
 		"%s: insufficient data for '%s' in %s()\n", callName, dataName,
-		funcName);
+		caller);
 	return false;
     }
 
@@ -281,18 +281,18 @@ static bool doGetMsgBuf(DDBufferMsg_t *msg, size_t *used, const char *callName,
     return true;
 }
 
-bool PSP_tryGetMsgBuf(DDBufferMsg_t *msg, size_t *used, const char *funcName,
-		      const char *dataName, void *data, size_t size)
+bool PSP_tryGetMsgBufF(DDBufferMsg_t *msg, size_t *used, const char *caller,
+		       const char *dataName, void *data, size_t size)
 {
-    return doGetMsgBuf(msg, used, __func__, funcName, dataName, data, size,
-		       false /* typed */, true /* try */);
+    return doGetMsgBuf(msg, used, "PSP_tryGetMsgBuf", caller, dataName, data,
+		       size, false /* typed */, true /* try */);
 }
 
-bool PSP_getMsgBuf(DDBufferMsg_t *msg, size_t *used, const char *funcName,
-		   const char *dataName, void *data, size_t size)
+bool PSP_getMsgBufF(DDBufferMsg_t *msg, size_t *used, const char *caller,
+		    const char *dataName, void *data, size_t size)
 {
-    return doGetMsgBuf(msg, used, __func__, funcName, dataName, data, size,
-		       false /* typed */, false /* try */);
+    return doGetMsgBuf(msg, used, "PSP_getMsgBuf", caller, dataName, data,
+		       size, false /* typed */, false /* try */);
 }
 
 bool PSP_getTypedMsgBuf(DDTypedBufferMsg_t *msg, size_t *used,

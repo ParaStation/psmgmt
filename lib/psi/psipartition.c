@@ -1275,12 +1275,12 @@ recv_retry:
     if (got) *got = 0;
     switch (msg.header.type) {
     case PSP_CD_RESERVATIONRES:
-	PSP_getMsgBuf(&msg, &used, __func__, "rid", &rid, sizeof(rid));
+	PSP_getMsgBuf(&msg, &used, "rid", &rid, sizeof(rid));
 	if (rid && got) {
-	    PSP_getMsgBuf(&msg, &used, __func__, "got", got, sizeof(*got));
+	    PSP_getMsgBuf(&msg, &used, "got", got, sizeof(*got));
 	} else {
 	    int32_t eno;
-	    if (PSP_getMsgBuf(&msg, &used, __func__, "eno", &eno, sizeof(eno))){
+	    if (PSP_getMsgBuf(&msg, &used, "eno", &eno, sizeof(eno))){
 		PSI_warn(-1, eno, "%s", __func__);
 		if (got) *got = eno;
 	    } else {
@@ -1346,10 +1346,10 @@ recv_retry:
 
     switch (msg.header.type) {
     case PSP_CD_SLOTSRES:
-	PSP_getMsgBuf(&msg, &used, __func__, "ret", &ret, sizeof(ret));
+	PSP_getMsgBuf(&msg, &used, "ret", &ret, sizeof(ret));
 	if (ret<0) {
 	    int32_t eno;
-	    if (PSP_getMsgBuf(&msg, &used, __func__, "eno", &eno, sizeof(eno))){
+	    if (PSP_getMsgBuf(&msg, &used, "eno", &eno, sizeof(eno))){
 		PSI_warn(-1, eno, "%s: Cannot get %d slots from %#x",
 			 __func__, num, resID);
 	    } else {

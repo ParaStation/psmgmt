@@ -190,8 +190,8 @@ static void handleBrokeIOcon(PSLog_Msg_t *msg)
     size_t used = offsetof(PSLog_Msg_t, buf) - offsetof(DDBufferMsg_t, buf);
     uint32_t jobID, stepID;
 
-    PSP_getMsgBuf(bMsg, &used, __func__, "jobID", &jobID, sizeof(jobID));
-    PSP_getMsgBuf(bMsg, &used, __func__, "stepID", &stepID, sizeof(stepID));
+    PSP_getMsgBuf(bMsg, &used, "jobID", &jobID, sizeof(jobID));
+    PSP_getMsgBuf(bMsg, &used, "stepID", &stepID, sizeof(stepID));
 
     /* step might already be deleted */
     Step_t *step = findStepByStepId(jobID, stepID);

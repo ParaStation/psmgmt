@@ -2092,9 +2092,9 @@ static void msg_SPAWNLOC(DDBufferMsg_t *msg)
     uint16_t nBytes, myBytes = PSCPU_bytesForCPUs(PSCPU_MAX);
     size_t used = 0;
 
-    PSP_getMsgBuf(msg, &used, __func__, "num", &num, sizeof(num));
-    PSP_getMsgBuf(msg, &used, __func__, "rank", &rank, sizeof(rank));
-    PSP_getMsgBuf(msg, &used, __func__, "nBytes", &nBytes, sizeof(nBytes));
+    PSP_getMsgBuf(msg, &used, "num", &num, sizeof(num));
+    PSP_getMsgBuf(msg, &used, "rank", &rank, sizeof(rank));
+    PSP_getMsgBuf(msg, &used, "nBytes", &nBytes, sizeof(nBytes));
 
     PSID_log(PSID_LOG_SPAWN, "%s: got %d from %s for rank %d width %d\n",
 	     __func__, num, PSC_printTID(msg->header.sender), rank, nBytes);
@@ -2124,7 +2124,7 @@ static void msg_SPAWNLOC(DDBufferMsg_t *msg)
     }
 
     PSCPU_set_t setBuf;
-    while (PSP_tryGetMsgBuf(msg, &used, __func__, "CPUset", setBuf, nBytes)) {
+    while (PSP_tryGetMsgBuf(msg, &used, "CPUset", setBuf, nBytes)) {
 	int32_t off = rank - newRes->rank;
 	if (off >= (int32_t)newRes->num) {
 	    PSID_log(-1, "%s: rank %d out of range (%d)\n", __func__, rank,
@@ -2324,8 +2324,8 @@ static void msg_RESRELEASED(DDBufferMsg_t *msg)
     PStask_ID_t logTID;
     size_t used = 0;
 
-    PSP_getMsgBuf(msg, &used, __func__, "resID", &resID, sizeof(resID));
-    PSP_getMsgBuf(msg, &used, __func__, "logger TID", &logTID, sizeof(logTID));
+    PSP_getMsgBuf(msg, &used, "resID", &resID, sizeof(resID));
+    PSP_getMsgBuf(msg, &used, "logger TID", &logTID, sizeof(logTID));
 
     /* try to find corresponding job */
     PSjob_t *job = PSID_findJobByLoggerTID(logTID);

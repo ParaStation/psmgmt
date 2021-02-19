@@ -582,7 +582,7 @@ bool PSP_tryPutMsgBufF(DDBufferMsg_t *msg, const char *caller,
  * NULL, 1 is returned. Otherwise, an error-message is put out and 0
  * is returned. In the latter case @a used is not updated.
  *
- * @a funcName and @a dataName are used in order the create the
+ * @a caller and @a dataName are used in order the create the
  * error-message. It shall describe the calling function and the type
  * of content to be fetched from @a msg's buffer.
  *
@@ -590,7 +590,7 @@ bool PSP_tryPutMsgBufF(DDBufferMsg_t *msg, const char *caller,
  *
  * @param used Counter used to track the data offset
  *
- * @param funcName Name of the calling function
+ * @param caller Name of the calling function
  *
  * @param dataName Description of @a data to be fetched from to @a
  * msg.
@@ -602,8 +602,10 @@ bool PSP_tryPutMsgBufF(DDBufferMsg_t *msg, const char *caller,
  * @return Upon success, @a true is returned. Or @a false if an error
  * occurred. This is mainly due to insufficient data available in @a msg.
  */
-bool PSP_getMsgBuf(DDBufferMsg_t *msg, size_t *used, const char *funcName,
-		   const char *dataName, void *data, size_t size);
+bool PSP_getMsgBufF(DDBufferMsg_t *msg, size_t *used, const char *caller,
+		    const char *dataName, void *data, size_t size);
+#define PSP_getMsgBuf(msg, used, dataName, data, size)		\
+    PSP_getMsgBufF(msg, used, __func__, dataName, data, size)
 
 /**
  * @brief Try to get data from message buffer
@@ -616,7 +618,7 @@ bool PSP_getMsgBuf(DDBufferMsg_t *msg, size_t *used, const char *funcName,
  *
  * @param used Counter used to track the data offset
  *
- * @param funcName Name of the calling function
+ * @param caller Name of the calling function
  *
  * @param dataName Description of @a data to be fetched from to @a
  * msg.
@@ -630,8 +632,10 @@ bool PSP_getMsgBuf(DDBufferMsg_t *msg, size_t *used, const char *funcName,
  *
  * @see PSP_getMsgBuf()
  */
-bool PSP_tryGetMsgBuf(DDBufferMsg_t *msg, size_t *used, const char *funcName,
-		      const char *dataName, void *data, size_t size);
+bool PSP_tryGetMsgBufF(DDBufferMsg_t *msg, size_t *used, const char *caller,
+		       const char *dataName, void *data, size_t size);
+#define PSP_tryGetMsgBuf(msg, used, dataName, data, size)		\
+    PSP_tryGetMsgBufF(msg, used, __func__, dataName, data, size)
 
 /**
  * @brief Put data into message buffer

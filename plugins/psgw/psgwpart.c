@@ -66,10 +66,10 @@ static void handleProvidePart(DDBufferMsg_t *msg)
     }
 
     /* The size of the partition to be received */
-    PSP_getMsgBuf(msg, &used, __func__, "sizeExpected", &partReq->sizeExpected,
+    PSP_getMsgBuf(msg, &used, "sizeExpected", &partReq->sizeExpected,
 		  sizeof(partReq->sizeExpected));
 
-    PSP_getMsgBuf(msg, &used, __func__, "options", &options, sizeof(options));
+    PSP_getMsgBuf(msg, &used, "options", &options, sizeof(options));
     if (partReq->options != options) {
 	flog("options (%d/%d) have changed for %s\n", partReq->options, options,
 	     PSC_printTID(msg->header.dest));
@@ -93,8 +93,8 @@ static void appendToSlotlist(DDBufferMsg_t *msg, PSpart_request_t *request)
 
     PSID_log(PSID_LOG_PART, "%s(%s)\n", __func__, PSC_printTID(request->tid));
 
-    PSP_getMsgBuf(msg, &used, __func__, "chunk", &chunk, sizeof(chunk));
-    PSP_getMsgBuf(msg, &used, __func__, "nBytes", &nBytes, sizeof(nBytes));
+    PSP_getMsgBuf(msg, &used, "chunk", &chunk, sizeof(chunk));
+    PSP_getMsgBuf(msg, &used, "nBytes", &nBytes, sizeof(nBytes));
 
     if (nBytes > myBytes) {
 	PSID_log(-1, "%s(%s): too many CPUs: %d > %d\n", __func__,
@@ -104,10 +104,8 @@ static void appendToSlotlist(DDBufferMsg_t *msg, PSpart_request_t *request)
     for (n = 0; n < chunk; n++) {
 	char cpuBuf[nBytes];
 
-	PSP_getMsgBuf(msg, &used, __func__, "node", &slots[n].node,
-		      sizeof(slots[n].node));
-
-	PSP_getMsgBuf(msg, &used, __func__, "CPUset", cpuBuf, nBytes);
+	PSP_getMsgBuf(msg, &used, "node", &slots[n].node,sizeof(slots[n].node));
+	PSP_getMsgBuf(msg, &used, "CPUset", cpuBuf, nBytes);
 	PSCPU_clrAll(slots[n].CPUset);
 	PSCPU_inject(slots[n].CPUset, cpuBuf, nBytes);
     }

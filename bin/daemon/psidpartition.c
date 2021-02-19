@@ -2165,8 +2165,8 @@ static void appendToSlotlist(DDBufferMsg_t *msg, PSpart_request_t *request)
 
     PSID_log(PSID_LOG_PART, "%s(%s)\n", __func__, PSC_printTID(request->tid));
 
-    PSP_getMsgBuf(msg, &used, __func__, "chunk", &chunk, sizeof(chunk));
-    PSP_getMsgBuf(msg, &used, __func__, "nBytes", &nBytes, sizeof(nBytes));
+    PSP_getMsgBuf(msg, &used, "chunk", &chunk, sizeof(chunk));
+    PSP_getMsgBuf(msg, &used, "nBytes", &nBytes, sizeof(nBytes));
 
     if (nBytes > myBytes) {
 	PSID_log(-1, "%s(%s): too many CPUs: %d > %d\n", __func__,
@@ -2176,10 +2176,8 @@ static void appendToSlotlist(DDBufferMsg_t *msg, PSpart_request_t *request)
     for (n = 0; n < chunk; n++) {
 	char cpuBuf[nBytes];
 
-	PSP_getMsgBuf(msg, &used, __func__, "node", &slots[n].node,
-		      sizeof(slots[n].node));
-
-	PSP_getMsgBuf(msg, &used, __func__, "CPUset", cpuBuf, nBytes);
+	PSP_getMsgBuf(msg, &used, "node", &slots[n].node,sizeof(slots[n].node));
+	PSP_getMsgBuf(msg, &used, "CPUset", cpuBuf, nBytes);
 	PSCPU_clrAll(slots[n].CPUset);
 	PSCPU_inject(slots[n].CPUset, cpuBuf, nBytes);
     }
@@ -2236,10 +2234,10 @@ static void msg_PROVIDEPART(DDBufferMsg_t *msg)
     }
 
     /* The size of the partition to be received */
-    PSP_getMsgBuf(msg, &used, __func__, "sizeExpected", &req->sizeExpected,
+    PSP_getMsgBuf(msg, &used, "sizeExpected", &req->sizeExpected,
 		  sizeof(req->sizeExpected));
 
-    PSP_getMsgBuf(msg, &used, __func__, "options", &options, sizeof(options));
+    PSP_getMsgBuf(msg, &used, "options", &options, sizeof(options));
     if (req->options != options) {
 	PSID_log(-1, "%s: options (%d/%d) have changed for %s\n", __func__,
 		 req->options, options, PSC_printTID(msg->header.dest));
@@ -2466,7 +2464,7 @@ static void msg_PROVIDETASKRP(DDBufferMsg_t *inmsg)
     }
 
     /* get number of ports */
-    PSP_getMsgBuf(inmsg, &used, __func__, "count", &count, sizeof(count));
+    PSP_getMsgBuf(inmsg, &used, "count", &count, sizeof(count));
 
     if (!(req->resPorts = malloc((count + 1) * sizeof(uint16_t)))) {
 	PSID_log(-1, "%s: out of memory\n", __func__);
@@ -2475,8 +2473,8 @@ static void msg_PROVIDETASKRP(DDBufferMsg_t *inmsg)
 
     /* get the actual ports */
     for (i=0; i<count; i++) {
-	PSP_getMsgBuf(inmsg, &used, __func__, "port",
-		      &req->resPorts[i], sizeof(*req->resPorts));
+	PSP_getMsgBuf(inmsg, &used, "port", &req->resPorts[i],
+		      sizeof(*req->resPorts));
     }
     req->resPorts[count] = 0;
 
@@ -2522,7 +2520,7 @@ static void msg_PROVIDEPARTRP(DDBufferMsg_t *inmsg)
     if (task->resPorts) return;
 
     /* get number of ports */
-    PSP_getMsgBuf(inmsg, &used, __func__, "count", &count, sizeof(count));
+    PSP_getMsgBuf(inmsg, &used, "count", &count, sizeof(count));
 
     if (!(task->resPorts = malloc((count +1 ) * sizeof(uint16_t)))) {
 	PSID_log(-1, "%s: out of memory\n", __func__);
@@ -2531,8 +2529,8 @@ static void msg_PROVIDEPARTRP(DDBufferMsg_t *inmsg)
 
     /* get the reserved ports */
     for (i=0; i<count; i++) {
-	PSP_getMsgBuf(inmsg, &used, __func__, "port",
-		      &task->resPorts[i], sizeof(*task->resPorts));
+	PSP_getMsgBuf(inmsg, &used, "port", &task->resPorts[i],
+		      sizeof(*task->resPorts));
     }
     task->resPorts[count] = 0;
 }
@@ -2857,10 +2855,9 @@ static void msg_GETNODES(DDBufferMsg_t *inmsg)
 	goto error;
     }
 
-    PSP_getMsgBuf(inmsg, &used, __func__, "num", &num, sizeof(num));
-    PSP_tryGetMsgBuf(inmsg, &used, __func__, "hwType", &hwType, sizeof(hwType));
-    if (PSP_tryGetMsgBuf(inmsg, &used, __func__, "option", &option,
-			 sizeof(option))) {
+    PSP_getMsgBuf(inmsg, &used, "num", &num, sizeof(num));
+    PSP_tryGetMsgBuf(inmsg, &used, "hwType", &hwType, sizeof(hwType));
+    if (PSP_tryGetMsgBuf(inmsg, &used, "option", &option, sizeof(option))) {
 	PSID_log(PSID_LOG_PART, "%s: Got option %#x", __func__, option);
 	if (option & PART_OPT_DEFAULT) {
 	    option = task->options;
@@ -2873,7 +2870,7 @@ static void msg_GETNODES(DDBufferMsg_t *inmsg)
 		 option);
     }
 
-    if (PSP_tryGetMsgBuf(inmsg, &used, __func__, "tpp", &tpp, sizeof(tpp))) {
+    if (PSP_tryGetMsgBuf(inmsg, &used, "tpp", &tpp, sizeof(tpp))) {
 	PSID_log(PSID_LOG_PART, "%s: Got tpp %d\n", __func__, tpp);
     }
 
@@ -3084,7 +3081,7 @@ static void msg_CHILDRESREL(DDBufferMsg_t *msg)
 	return;
     }
 
-    PSP_getMsgBuf(msg, &used, __func__, "nBytes", &nBytes, sizeof(nBytes));
+    PSP_getMsgBuf(msg, &used, "nBytes", &nBytes, sizeof(nBytes));
 
     if (nBytes > myBytes) {
 	PSID_log(-1,  "%s: from %s: expecting %d CPUs\n",
@@ -3094,7 +3091,7 @@ static void msg_CHILDRESREL(DDBufferMsg_t *msg)
 
     dynRes.rid = 0;
     dynRes.slot.node = PSC_getID(msg->header.sender);
-    PSP_getMsgBuf(msg, &used, __func__, "CPUset", setBuf, nBytes);
+    PSP_getMsgBuf(msg, &used, "CPUset", setBuf, nBytes);
     PSCPU_clrAll(dynRes.slot.CPUset);
     PSCPU_inject(dynRes.slot.CPUset, setBuf, nBytes);
 
@@ -3221,9 +3218,9 @@ static void msg_GETRANKNODE(DDBufferMsg_t *msg)
 	goto error;
     }
 
-    PSP_getMsgBuf(msg, &used, __func__, "rank", &rank, sizeof(rank));
+    PSP_getMsgBuf(msg, &used, "rank", &rank, sizeof(rank));
 
-    if (PSP_tryGetMsgBuf(msg, &used, __func__, "tpp", &tpp, sizeof(tpp))) {
+    if (PSP_tryGetMsgBuf(msg, &used, "tpp", &tpp, sizeof(tpp))) {
 	PSID_log(PSID_LOG_PART, "%s: Got tpp %d\n", __func__, tpp);
     }
 
@@ -3314,10 +3311,9 @@ static void msg_NODESRES(DDBufferMsg_t *msg)
 	    return;
 	}
 
-	PSP_getMsgBuf(msg, &used, __func__, "nextRank", &nextRank,
-		      sizeof(nextRank));
-	PSP_getMsgBuf(msg, &used, __func__, "requested", &rqstd, sizeof(rqstd));
-	PSP_getMsgBuf(msg, &used, __func__, "num", &num, sizeof(num));
+	PSP_getMsgBuf(msg, &used, "nextRank", &nextRank, sizeof(nextRank));
+	PSP_getMsgBuf(msg, &used, "requested", &rqstd, sizeof(rqstd));
+	PSP_getMsgBuf(msg, &used, "num", &num, sizeof(num));
 	if (!rqstd) rqstd = num;
 
 	/* Store assigned slots */
@@ -3339,7 +3335,7 @@ static void msg_NODESRES(DDBufferMsg_t *msg)
 	}
 	slots = task->spawnNodes + task->spawnNum;
 
-	PSP_getMsgBuf(msg, &used, __func__, "nBytes", &nBytes, sizeof(nBytes));
+	PSP_getMsgBuf(msg, &used, "nBytes", &nBytes, sizeof(nBytes));
 	if (nBytes > myBytes) {
 	    PSID_log(-1, "%s(%s): too many CPUs: %d > %d\n", __func__,
 		     PSC_printTID(msg->header.dest), nBytes*8, myBytes*8);
@@ -3347,10 +3343,9 @@ static void msg_NODESRES(DDBufferMsg_t *msg)
 
 	for (n = 0; n < num; n++) {
 	    char cpuBuf[nBytes];
-	    PSP_getMsgBuf(msg, &used, __func__, "node", &slots[n].node,
+	    PSP_getMsgBuf(msg, &used, "node", &slots[n].node,
 			  sizeof(slots[n].node));
-
-	    PSP_getMsgBuf(msg, &used, __func__, "CPUset", cpuBuf, nBytes);
+	    PSP_getMsgBuf(msg, &used, "CPUset", cpuBuf, nBytes);
 	    PSCPU_clrAll(slots[n].CPUset);
 	    PSCPU_inject(slots[n].CPUset, cpuBuf, nBytes);
 	}
@@ -3898,14 +3893,13 @@ static void msg_GETRESERVATION(DDBufferMsg_t *inmsg)
 
     r->task = task->tid;
     r->requester = inmsg->header.sender;
-    PSP_getMsgBuf(inmsg, &used, __func__, "nMin", &r->nMin, sizeof(r->nMin));
-    PSP_getMsgBuf(inmsg, &used, __func__, "nMax", &r->nMax, sizeof(r->nMax));
-    PSP_getMsgBuf(inmsg, &used, __func__, "tpp", &r->tpp, sizeof(r->tpp));
-    PSP_getMsgBuf(inmsg, &used, __func__, "hwType", &r->hwType,
-		  sizeof(r->hwType));
-    ret = PSP_getMsgBuf(inmsg, &used, __func__, "options", &r->options,
+    PSP_getMsgBuf(inmsg, &used, "nMin", &r->nMin, sizeof(r->nMin));
+    PSP_getMsgBuf(inmsg, &used, "nMax", &r->nMax, sizeof(r->nMax));
+    PSP_getMsgBuf(inmsg, &used, "tpp", &r->tpp, sizeof(r->tpp));
+    PSP_getMsgBuf(inmsg, &used, "hwType", &r->hwType, sizeof(r->hwType));
+    ret = PSP_getMsgBuf(inmsg, &used, "options", &r->options,
 			sizeof(r->options));
-    PSP_tryGetMsgBuf(inmsg, &used, __func__, "ppn", &r->ppn, sizeof(r->ppn));
+    PSP_tryGetMsgBuf(inmsg, &used, "ppn", &r->ppn, sizeof(r->ppn));
     if (!ret) {
 	PSID_log(-1, "%s: some information is missing\n", __func__);
 	eno = EINVAL;
@@ -4093,8 +4087,8 @@ static void msg_GETSLOTS(DDBufferMsg_t *inmsg)
 	return;
     }
 
-    PSP_getMsgBuf(inmsg, &used, __func__, "resID", &resID, sizeof(resID));
-    ret = PSP_getMsgBuf(inmsg, &used, __func__, "num", &num, sizeof(num));
+    PSP_getMsgBuf(inmsg, &used, "resID", &resID, sizeof(resID));
+    ret = PSP_getMsgBuf(inmsg, &used, "num", &num, sizeof(num));
     if (!ret) {
 	PSID_log(-1, "%s: some information is missing\n", __func__);
 	eno = EINVAL;
@@ -4181,10 +4175,9 @@ static void msg_SLOTSRES(DDBufferMsg_t *msg)
 	return;
     }
 
-    PSP_getMsgBuf(msg, &used, __func__, "rank", &rank, sizeof(rank));
-    PSP_getMsgBuf(msg, &used, __func__, "requested", &requested,
-		  sizeof(requested));
-    PSP_getMsgBuf(msg, &used, __func__, "num", &num, sizeof(num));
+    PSP_getMsgBuf(msg, &used, "rank", &rank, sizeof(rank));
+    PSP_getMsgBuf(msg, &used, "requested", &requested, sizeof(requested));
+    PSP_getMsgBuf(msg, &used, "num", &num, sizeof(num));
 
     /* Store assigned slots */
     if (!task->spawnNodes || task->spawnNodesSize < rank + requested) {
@@ -4205,7 +4198,7 @@ static void msg_SLOTSRES(DDBufferMsg_t *msg)
     }
     slots = task->spawnNodes + task->spawnNum;
 
-    PSP_getMsgBuf(msg, &used, __func__, "nBytes", &nBytes, sizeof(nBytes));
+    PSP_getMsgBuf(msg, &used, "nBytes", &nBytes, sizeof(nBytes));
     if (nBytes > myBytes) {
 	PSID_log(-1, "%s(%s): too many CPUs: %d > %d\n", __func__,
 		 PSC_printTID(msg->header.dest), nBytes*8, myBytes*8);
@@ -4213,10 +4206,8 @@ static void msg_SLOTSRES(DDBufferMsg_t *msg)
 
     for (n = 0; n < num; n++) {
 	char cpuBuf[nBytes];
-	PSP_getMsgBuf(msg, &used, __func__, "node", &slots[n].node,
-		      sizeof(slots[n].node));
-
-	PSP_getMsgBuf(msg, &used, __func__, "CPUset", cpuBuf, nBytes);
+	PSP_getMsgBuf(msg, &used, "node", &slots[n].node,sizeof(slots[n].node));
+	PSP_getMsgBuf(msg, &used, "CPUset", cpuBuf, nBytes);
 	PSCPU_clrAll(slots[n].CPUset);
 	PSCPU_inject(slots[n].CPUset, cpuBuf, nBytes);
     }
@@ -4568,10 +4559,9 @@ static void msg_PROVIDETASK(DDBufferMsg_t *msg)
 
     req->tid = msg->header.sender;
 
-    PSP_getMsgBuf(msg, &used, __func__, "options",
-		  &req->options, sizeof(req->options));
+    PSP_getMsgBuf(msg, &used, "options", &req->options, sizeof(req->options));
 
-    PSP_getMsgBuf(msg, &used, __func__, "size", &req->size, sizeof(req->size));
+    PSP_getMsgBuf(msg, &used, "size", &req->size, sizeof(req->size));
 
     if (!req->size) {
 	PSID_log(-1, "%s: Task %s without partition\n", __func__,
@@ -4581,17 +4571,17 @@ static void msg_PROVIDETASK(DDBufferMsg_t *msg)
     }
 
     int32_t id;
-    PSP_getMsgBuf(msg, &used, __func__, "uid", &id, sizeof(id));
+    PSP_getMsgBuf(msg, &used, "uid", &id, sizeof(id));
     req->uid = id;
-    PSP_getMsgBuf(msg, &used, __func__, "gid", &id, sizeof(id));
+    PSP_getMsgBuf(msg, &used, "gid", &id, sizeof(id));
     req->gid = id;
 
     uint8_t flag;
-    PSP_getMsgBuf(msg, &used, __func__, "suspended", &flag, sizeof(flag));
+    PSP_getMsgBuf(msg, &used, "suspended", &flag, sizeof(flag));
     req->suspended = flag;
 
     int64_t start;
-    PSP_getMsgBuf(msg, &used, __func__, "start", &start, sizeof(start));
+    PSP_getMsgBuf(msg, &used, "start", &start, sizeof(start));
     req->start = start;
 
     req->slots = malloc(req->size * sizeof(*req->slots));

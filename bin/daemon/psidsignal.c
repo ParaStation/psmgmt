@@ -879,18 +879,18 @@ static void msg_ADOPTCHILDSET(DDBufferMsg_t *msg)
 	return;
     }
 
-    if (!PSP_getMsgBuf(msg, &used, __func__, "child", &child, sizeof(child))) {
+    if (!PSP_getMsgBuf(msg, &used, "child", &child, sizeof(child))) {
 	PSID_log(-1, "%s: %s: truncated\n", __func__, PSC_printTID(task->tid));
 	return;
     }
 
-    while (PSP_tryGetMsgBuf(msg, &used, __func__, "tid", &tid, sizeof(tid))) {
+    while (PSP_tryGetMsgBuf(msg, &used, "tid", &tid, sizeof(tid))) {
 	bool rlsd, deadBefore;
 	if (!tid) {
 	    lastGrandchild = true;
 	    break;
 	}
-	PSP_tryGetMsgBuf(msg, &used, __func__, "released", &rlsd, sizeof(rlsd));
+	PSP_tryGetMsgBuf(msg, &used, "released", &rlsd, sizeof(rlsd));
 	deadBefore = !!PSID_getSignalByTID(&task->deadBefore, tid);
 
 	PSID_log(PSID_LOG_SIGNAL, "%s: %s:", __func__, PSC_printTID(task->tid));
@@ -976,13 +976,13 @@ static void msg_ADOPTFAILED(DDBufferMsg_t *msg)
     PStask_ID_t ptid, tid;
     size_t used = 0;
 
-    if (!PSP_getMsgBuf(msg, &used, __func__, "ptid", &ptid, sizeof(ptid))) {
+    if (!PSP_getMsgBuf(msg, &used, "ptid", &ptid, sizeof(ptid))) {
 	PSID_log(-1, "%s: from %s: truncated\n", __func__,
 		 PSC_printTID(msg->header.sender));
 	return;
     }
 
-    while (PSP_tryGetMsgBuf(msg, &used, __func__, "tid", &tid, sizeof(tid))) {
+    while (PSP_tryGetMsgBuf(msg, &used, "tid", &tid, sizeof(tid))) {
 	PStask_t *task;
 
 	if (!tid) {
@@ -1542,7 +1542,7 @@ static void msg_INHERITDONE(DDBufferMsg_t *msg)
     PStask_t *task = PStasklist_find(&managedTasks, tid);
     size_t used = 0;
 
-    if (!PSP_getMsgBuf(msg, &used, __func__, "kept child", &keptChild,
+    if (!PSP_getMsgBuf(msg, &used, "kept child", &keptChild,
 		       sizeof(keptChild))) {
 	PSID_log(-1, "%s(%s): truncated\n", __func__, PSC_printTID(tid));
 	return;

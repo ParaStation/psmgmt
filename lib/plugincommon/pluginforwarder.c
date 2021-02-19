@@ -255,7 +255,7 @@ static int handleMthrSock(int fd, void *info)
 
     switch(lmsg->type) {
     case PLGN_SIGNAL_CHLD:
-	PSP_getMsgBuf(&msg, &used, __func__, "signal", &signal, sizeof(signal));
+	PSP_getMsgBuf(&msg, &used, "signal", &signal, sizeof(signal));
 	killForwarderChild(fw, signal, NULL, true);
 	break;
     case PLGN_START_GRACE:
@@ -828,10 +828,10 @@ static void handleChildStart(Forwarder_Data_t *fw, PSLog_Msg_t *msg)
 {
     size_t used = PSLog_headerSize - sizeof(msg->header);
 
-    PSP_getMsgBuf((DDBufferMsg_t *)msg, &used, __func__, "childPID",
-		  &fw->cPid, sizeof(fw->cPid));
-    PSP_getMsgBuf((DDBufferMsg_t *)msg, &used, __func__, "childSID",
-		  &fw->cSid, sizeof(fw->cSid));
+    PSP_getMsgBuf((DDBufferMsg_t *)msg, &used, "childPID", &fw->cPid,
+		  sizeof(fw->cPid));
+    PSP_getMsgBuf((DDBufferMsg_t *)msg, &used, "childSID", &fw->cSid,
+		  sizeof(fw->cSid));
 
     if (fw->hookChild) {
 	fw->hookChild(fw, PSC_getPID(msg->header.sender), fw->cPid, fw->cSid);
@@ -845,8 +845,8 @@ static void handleChildCode(Forwarder_Data_t *fw, PSLog_Msg_t *msg)
 {
     size_t used = PSLog_headerSize - sizeof(msg->header);
 
-    PSP_getMsgBuf((DDBufferMsg_t *)msg, &used, __func__, "exit code",
-		  &fw->hookExitCode, sizeof(fw->hookExitCode));
+    PSP_getMsgBuf((DDBufferMsg_t *)msg, &used, "exit code", &fw->hookExitCode,
+		  sizeof(fw->hookExitCode));
     fw->codeRcvd = true;
 
     plugindbg(PLUGIN_LOG_FW, "%s: ecode %i\n", __func__, fw->hookExitCode);
@@ -856,7 +856,7 @@ static void handleChildExit(Forwarder_Data_t *fw, PSLog_Msg_t *msg)
 {
     size_t used = PSLog_headerSize - sizeof(msg->header);
 
-    PSP_getMsgBuf((DDBufferMsg_t *)msg, &used, __func__, "exit status",
+    PSP_getMsgBuf((DDBufferMsg_t *)msg, &used, "exit status",
 		  &fw->chldExitStatus, sizeof(fw->chldExitStatus));
     fw->exitRcvd = true;
 
