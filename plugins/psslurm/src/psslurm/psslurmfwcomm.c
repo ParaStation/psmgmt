@@ -247,8 +247,8 @@ void fwCMD_brokeIOcon(Step_t *step)
     DDBufferMsg_t *bMsg = (DDBufferMsg_t *)&msg;
     uint32_t myJobID = step->jobid, myStepID = step->stepid;
 
-    PSP_putMsgBuf(bMsg, __func__, "jobID", &myJobID, sizeof(myJobID));
-    PSP_putMsgBuf(bMsg, __func__, "stepID", &myStepID, sizeof(myStepID));
+    PSP_putMsgBuf(bMsg, "jobID", &myJobID, sizeof(myJobID));
+    PSP_putMsgBuf(bMsg, "stepID", &myStepID, sizeof(myStepID));
 
     sendMsgToMother(&msg);
 }
@@ -296,10 +296,10 @@ void fwCMD_printJobMsg(Job_t *job, char *plMsg, uint32_t msgLen, uint8_t type)
 	DDBufferMsg_t *bMsg = (DDBufferMsg_t *)&msg;
 	bMsg->header.len = offsetof(PSLog_Msg_t, buf);
 
-	PSP_putMsgBuf(bMsg, __func__, "type", &type, sizeof(type));
+	PSP_putMsgBuf(bMsg, "type", &type, sizeof(type));
 	/* Add data chunk including its length mimicking addData */
-	PSP_putMsgBuf(bMsg, __func__, "len", &len, sizeof(len));
-	PSP_putMsgBuf(bMsg, __func__, "data", plMsg + msgLen - left, chunk);
+	PSP_putMsgBuf(bMsg, "len", &len, sizeof(len));
+	PSP_putMsgBuf(bMsg, "data", plMsg + msgLen - left, chunk);
 
 	sendMsg(&msg);
 	left -= chunk;
@@ -344,11 +344,11 @@ void fwCMD_printMessage(Step_t *step, char *plMsg, uint32_t msgLen,
 	DDBufferMsg_t *bMsg = (DDBufferMsg_t *)&msg;
 	bMsg->header.len = offsetof(PSLog_Msg_t, buf);
 
-	PSP_putMsgBuf(bMsg, __func__, "type", &type, sizeof(type));
-	PSP_putMsgBuf(bMsg, __func__, "rank", &nRank, sizeof(nRank));
+	PSP_putMsgBuf(bMsg, "type", &type, sizeof(type));
+	PSP_putMsgBuf(bMsg, "rank", &nRank, sizeof(nRank));
 	/* Add data chunk including its length mimicking addData */
-	PSP_putMsgBuf(bMsg, __func__, "len", &len, sizeof(len));
-	PSP_putMsgBuf(bMsg, __func__, "data", plMsg + msgLen - left, chunk);
+	PSP_putMsgBuf(bMsg, "len", &len, sizeof(len));
+	PSP_putMsgBuf(bMsg, "data", plMsg + msgLen - left, chunk);
 
 	sendMsg(&msg);
 	left -= chunk;
@@ -375,12 +375,12 @@ void fwCMD_reattachTasks(Forwarder_Data_t *fwdata, uint32_t addr,
     /* might happen that forwarder is already gone */
     if (!fwdata) return;
 
-    PSP_putMsgBuf(bMsg, __func__, "addr", &nAddr, sizeof(nAddr));
-    PSP_putMsgBuf(bMsg, __func__, "ioPort", &nioPort, sizeof(nioPort));
-    PSP_putMsgBuf(bMsg, __func__, "ctlPort", &nctlPort, sizeof(nctlPort));
+    PSP_putMsgBuf(bMsg, "addr", &nAddr, sizeof(nAddr));
+    PSP_putMsgBuf(bMsg, "ioPort", &nioPort, sizeof(nioPort));
+    PSP_putMsgBuf(bMsg, "ctlPort", &nctlPort, sizeof(nctlPort));
     /* Add string including its length mimicking addString */
-    PSP_putMsgBuf(bMsg, __func__, "len", &len, sizeof(len));
-    PSP_putMsgBuf(bMsg, __func__, "sigStr", sig, PSP_strLen(sig));
+    PSP_putMsgBuf(bMsg, "len", &len, sizeof(len));
+    PSP_putMsgBuf(bMsg, "sigStr", sig, PSP_strLen(sig));
 
     sendMsg(&msg);
 }
@@ -404,8 +404,8 @@ void fwCMD_finalize(Forwarder_Data_t *fwdata, PSLog_Msg_t *plMsg)
 
     /* This shall be okay since FINALIZE messages are << PSLog_Msg_t */
     /* Add data including its length mimicking addData */
-    PSP_putMsgBuf(bMsg, __func__, "len", &len, sizeof(len));
-    PSP_putMsgBuf(bMsg, __func__, "plMsg", plMsg, plMsg->header.len);
+    PSP_putMsgBuf(bMsg, "len", &len, sizeof(len));
+    PSP_putMsgBuf(bMsg, "plMsg", plMsg, plMsg->header.len);
 
     if (msg.header.dest == -1) mlog("%s unknown destination for %s\n", __func__,
 				    PSC_printTID(plMsg->header.sender));
@@ -430,8 +430,8 @@ void fwCMD_taskInfo(Forwarder_Data_t *fwdata, PS_Tasks_t *task)
     if (!fwdata) return;
 
     /* Add data including its length mimicking addData */
-    PSP_putMsgBuf(bMsg, __func__, "len", &len, sizeof(len));
-    PSP_putMsgBuf(bMsg, __func__, "task", task, sizeof(*task));
+    PSP_putMsgBuf(bMsg, "len", &len, sizeof(len));
+    PSP_putMsgBuf(bMsg, "task", task, sizeof(*task));
 
     sendMsg(&msg);
 }
@@ -476,11 +476,11 @@ void fwCMD_msgSrunProxy(Step_t *step, PSLog_Msg_t *lmsg, int32_t senderRank)
 	DDBufferMsg_t *bMsg = (DDBufferMsg_t *)&msg;
 	bMsg->header.len = offsetof(PSLog_Msg_t, buf);
 
-	PSP_putMsgBuf(bMsg, __func__, "type", &type, sizeof(type));
-	PSP_putMsgBuf(bMsg, __func__, "rank", &nRank, sizeof(nRank));
+	PSP_putMsgBuf(bMsg, "type", &type, sizeof(type));
+	PSP_putMsgBuf(bMsg, "rank", &nRank, sizeof(nRank));
        /* Add data chunk including its length mimicking addData */
-	PSP_putMsgBuf(bMsg, __func__, "len", &len, sizeof(len));
-	PSP_putMsgBuf(bMsg, __func__, "data", buf + msgLen - left, chunk);
+	PSP_putMsgBuf(bMsg, "len", &len, sizeof(len));
+	PSP_putMsgBuf(bMsg, "data", buf + msgLen - left, chunk);
 
 	sendMsg(&msg);
 	left -= chunk;

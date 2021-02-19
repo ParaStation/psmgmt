@@ -346,10 +346,8 @@ int PSID_handleMsg(DDBufferMsg_t *msg)
 	    .sender = PSC_getMyTID(),
 	    .len = sizeof(err.header) },
 	.buf = { '\0' }};
-    PSP_putMsgBuf(&err, __func__, "dest", &msg->header.dest,
-		  sizeof(msg->header.dest));
-    PSP_putMsgBuf(&err, __func__, "type", &msg->header.type,
-		  sizeof(msg->header.type));
+    PSP_putMsgBuf(&err, "dest", &msg->header.dest, sizeof(msg->header.dest));
+    PSP_putMsgBuf(&err, "type", &msg->header.type, sizeof(msg->header.type));
     if (sendMsg(&err) == -1 && errno != EWOULDBLOCK) {
 	PSID_warn(-1, errno, "%s: sendMsg()", __func__);
     }

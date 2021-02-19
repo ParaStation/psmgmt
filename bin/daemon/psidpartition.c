@@ -1382,8 +1382,8 @@ static int sendNodelist(PSpart_request_t *request, DDBufferMsg_t *msg)
 	uint16_t chunk = (num-off > NODES_CHUNK) ? NODES_CHUNK : num-off;
 	msg->header.len = sizeof(msg->header);
 
-	PSP_putMsgBuf(msg, __func__, "chunk", &chunk, sizeof(chunk));
-	PSP_putMsgBuf(msg, __func__, "nodes", nodes+off, chunk*sizeof(*nodes));
+	PSP_putMsgBuf(msg, "chunk", &chunk, sizeof(chunk));
+	PSP_putMsgBuf(msg, "nodes", nodes+off, chunk*sizeof(*nodes));
 	off += chunk;
 
 	if (sendMsg(msg) == -1 && errno != EWOULDBLOCK) {
@@ -1457,16 +1457,16 @@ static int sendSlotlist(PSpart_slot_t *slots, int num, DDBufferMsg_t *msg)
 	uint16_t chunk = (num-offset > slotsChunk) ? slotsChunk : num-offset;
 	msg->header.len = sizeof(msg->header) + bufOffset;
 
-	PSP_putMsgBuf(msg, __func__, "chunk", &chunk, sizeof(chunk));
-	PSP_putMsgBuf(msg, __func__, "nBytes", &nBytes, sizeof(nBytes));
+	PSP_putMsgBuf(msg, "chunk", &chunk, sizeof(chunk));
+	PSP_putMsgBuf(msg, "nBytes", &nBytes, sizeof(nBytes));
 
 	for (n = 0; n < chunk; n++) {
 	    char cpuBuf[nBytes];
 
-	    PSP_putMsgBuf(msg, __func__, "node", &mySlots[n].node,
+	    PSP_putMsgBuf(msg, "node", &mySlots[n].node,
 			  sizeof(mySlots[n].node));
 	    PSCPU_extract(cpuBuf, mySlots[n].CPUset, nBytes);
-	    PSP_putMsgBuf(msg, __func__, "CPUset", cpuBuf, nBytes);
+	    PSP_putMsgBuf(msg, "CPUset", cpuBuf, nBytes);
 	}
 
 	offset += chunk;
@@ -1503,11 +1503,11 @@ static bool sendResPorts(uint16_t *resPorts, DDBufferMsg_t *msg)
     /* determine number of reserved ports */
     while (resPorts[count]) count++;
 
-    PSP_putMsgBuf(msg, __func__, "count", &count, sizeof(count));
+    PSP_putMsgBuf(msg, "count", &count, sizeof(count));
 
     /* add the ports */
     while (resPorts[i]) {
-	PSP_putMsgBuf(msg, __func__, "port", &resPorts[i], sizeof(*resPorts));
+	PSP_putMsgBuf(msg, "port", &resPorts[i], sizeof(*resPorts));
 	i++;
     }
 
@@ -1545,9 +1545,8 @@ static bool sendPartition(PSpart_request_t *req)
 
     PSID_log(PSID_LOG_PART, "%s(%s)\n", __func__, PSC_printTID(req->tid));
 
-    PSP_putMsgBuf(&msg, __func__, "size", &req->size, sizeof(req->size));
-    PSP_putMsgBuf(&msg, __func__, "options",
-		  &req->options, sizeof(req->options));
+    PSP_putMsgBuf(&msg, "size", &req->size, sizeof(req->size));
+    PSP_putMsgBuf(&msg, "options", &req->options, sizeof(req->options));
 
     if (sendMsg(&msg) == -1 && errno != EWOULDBLOCK) {
 	PSID_warn(-1, errno, "%s: sendMsg()", __func__);
@@ -2907,12 +2906,11 @@ static void msg_GETNODES(DDBufferMsg_t *inmsg)
 	/* double entry bookkeeping on delegation */
 	if (task->delegate) task->usedThreads += got*tpp;
 
-	PSP_putMsgBuf(&msg, __func__, "numChild", &task->numChild,
-		      sizeof(task->numChild));
+	PSP_putMsgBuf(&msg, "numChild", &task->numChild,sizeof(task->numChild));
 	task->numChild += num;
 	task->activeChild += num;
 
-	PSP_putMsgBuf(&msg, __func__, "num", &shortNum, sizeof(shortNum));
+	PSP_putMsgBuf(&msg, "num", &shortNum, sizeof(shortNum));
 
 	sendSlotlist(slots, num, &msg);
 	return;
@@ -3023,8 +3021,8 @@ static bool send_RESRELEASED(PSrsrvtn_t *res)
 	return false;
     }
 
-    PSP_putMsgBuf(&msg, __func__, "resID", &res->rid, sizeof(res->rid));
-    PSP_putMsgBuf(&msg, __func__, "loggertid", &res->task, sizeof(res->task));
+    PSP_putMsgBuf(&msg, "resID", &res->rid, sizeof(res->rid));
+    PSP_putMsgBuf(&msg, "loggertid", &res->task, sizeof(res->task));
 
     for (i = 0; i < res->nSlots; i++) {
 	PSnodes_ID_t node = res->slots[i].node;
@@ -3244,7 +3242,7 @@ static void msg_GETRANKNODE(DDBufferMsg_t *msg)
 	int16_t rqstd = 1;
 	unsigned int t;
 
-	PSP_putMsgBuf(&answer, __func__, "rank", &rank, sizeof(rank));
+	PSP_putMsgBuf(&answer, "rank", &rank, sizeof(rank));
 
 	slot.node = thread[0].node;
 	PSCPU_clrAll(slot.CPUset);
@@ -3260,7 +3258,7 @@ static void msg_GETRANKNODE(DDBufferMsg_t *msg)
 	    thread[t].timesUsed++;
 	}
 
-	PSP_putMsgBuf(&answer, __func__, "requested", &rqstd, sizeof(rqstd));
+	PSP_putMsgBuf(&answer, "requested", &rqstd, sizeof(rqstd));
 
 	sendSlotlist(&slot, 1, &answer);
 
@@ -3712,12 +3710,12 @@ no_task_error:
 	enqRes(&task->reservations, r);
 	send_RESCREATED(task, r);
 
-	PSP_putMsgBuf(&msg, __func__, "rid", &r->rid, sizeof(r->rid));
-	PSP_putMsgBuf(&msg, __func__, "nSlots", &r->nSlots, sizeof(r->nSlots));
+	PSP_putMsgBuf(&msg, "rid", &r->rid, sizeof(r->rid));
+	PSP_putMsgBuf(&msg, "nSlots", &r->nSlots, sizeof(r->nSlots));
     } else {
 	uint32_t null = 0;
-	PSP_putMsgBuf(&msg, __func__, "error", &null, sizeof(null));
-	PSP_putMsgBuf(&msg, __func__, "eno", &eno, sizeof(eno));
+	PSP_putMsgBuf(&msg, "error", &null, sizeof(null));
+	PSP_putMsgBuf(&msg, "eno", &eno, sizeof(eno));
 
 	/* Reservation no longer used */
 	if (r->slots) {
@@ -3790,7 +3788,7 @@ int PSIDpart_extendRes(PStask_ID_t tid, PSrsrvtn_ID_t resID,
 	int32_t eno = ENOSPC;
 	PSID_log(-1, "%s: failed to expand reservation %#x\n", __func__, resID);
 
-	PSP_putMsgBuf(&msg, __func__, "error", &null, sizeof(null));
+	PSP_putMsgBuf(&msg, "error", &null, sizeof(null));
 
 	if (res->slots) {
 	    int released = releaseThreads(res->slots, res->nSlots,
@@ -3804,7 +3802,7 @@ int PSIDpart_extendRes(PStask_ID_t tid, PSrsrvtn_ID_t resID,
 	    if (task->delegate) task->usedThreads -= released;
 	}
 	PSrsrvtn_put(res);
-	PSP_putMsgBuf(&msg, __func__, "eno", &eno, sizeof(eno));
+	PSP_putMsgBuf(&msg, "eno", &eno, sizeof(eno));
 
 	sendMsg(&msg);
 
@@ -3823,8 +3821,8 @@ int PSIDpart_extendRes(PStask_ID_t tid, PSrsrvtn_ID_t resID,
     enqRes(&task->reservations, res);
     send_RESCREATED(task, res);
 
-    PSP_putMsgBuf(&msg, __func__, "rid", &res->rid, sizeof(res->rid));
-    PSP_putMsgBuf(&msg, __func__, "nSlots", &res->nSlots, sizeof(res->nSlots));
+    PSP_putMsgBuf(&msg, "rid", &res->rid, sizeof(res->rid));
+    PSP_putMsgBuf(&msg, "nSlots", &res->nSlots, sizeof(res->nSlots));
 
     if (sendMsg(&msg) == -1 && errno != EWOULDBLOCK) {
 	PSID_warn(-1, errno, "%s: sendMsg()", __func__);
@@ -3963,8 +3961,8 @@ error:
 		.len = offsetof(DDBufferMsg_t, buf) },
 	    .buf = { 0 } };
 	uint32_t null = 0;
-	PSP_putMsgBuf(&msg, __func__, "error", &null, sizeof(null));
-	PSP_putMsgBuf(&msg, __func__, "eno", &eno, sizeof(eno));
+	PSP_putMsgBuf(&msg, "error", &null, sizeof(null));
+	PSP_putMsgBuf(&msg, "eno", &eno, sizeof(eno));
 
 	if (r) {
 	    if (r->slots) {
@@ -4124,8 +4122,8 @@ static void msg_GETSLOTS(DDBufferMsg_t *inmsg)
     }
 
     rank = res->firstRank + res->nextSlot;
-    PSP_putMsgBuf(&msg, __func__, "rank", &rank, sizeof(rank));
-    PSP_putMsgBuf(&msg, __func__, "num", &num, sizeof(num));
+    PSP_putMsgBuf(&msg, "rank", &rank, sizeof(rank));
+    PSP_putMsgBuf(&msg, "num", &num, sizeof(num));
 
     sendSlotlist(res->slots + res->nextSlot, num, &msg);
 
@@ -4137,8 +4135,8 @@ static void msg_GETSLOTS(DDBufferMsg_t *inmsg)
 error:
     msg.header.type = PSP_CD_SLOTSRES;
     rank = -1;
-    PSP_putMsgBuf(&msg, __func__, "error", &rank, sizeof(rank));
-    PSP_putMsgBuf(&msg, __func__, "eno", &eno, sizeof(eno));
+    PSP_putMsgBuf(&msg, "error", &rank, sizeof(rank));
+    PSP_putMsgBuf(&msg, "eno", &eno, sizeof(eno));
 
     sendMsg(&msg);
 }
@@ -4233,7 +4231,7 @@ static void msg_SLOTSRES(DDBufferMsg_t *msg)
 	msg->header.len = sizeof(msg->header) + sizeof(int32_t);
 
 	for (n = 0; n < requested; n++)
-	    PSP_putMsgBuf(msg, __func__, "CPUset", &msgSlots[n].node,
+	    PSP_putMsgBuf(msg, "CPUset", &msgSlots[n].node,
 			  sizeof(msgSlots[n].node));
     } else {
 	return;
@@ -4265,10 +4263,10 @@ void PSIDpart_cleanupSlots(PStask_t *task)
 	relMsg.header.sender = PSC_getTID(rankNode, 0);
 	relMsg.header.len = sizeof(relMsg.header);
 
-	PSP_putMsgBuf(&relMsg, __func__, "nBytes", &nBytes, sizeof(nBytes));
+	PSP_putMsgBuf(&relMsg, "nBytes", &nBytes, sizeof(nBytes));
 
 	PSCPU_extract(setBuf, *rankSet, nBytes);
-	PSP_putMsgBuf(&relMsg, __func__, "CPUset", setBuf, nBytes);
+	PSP_putMsgBuf(&relMsg, "CPUset", setBuf, nBytes);
 
 	PSID_log(PSID_LOG_PART, "%s: CHILDRESREL to %s on node %d (rank %d)\n",
 		 __func__, PSC_printTID(relMsg.header.dest), rankNode, r);
@@ -4424,21 +4422,20 @@ static void sendSinglePart(PStask_ID_t dest, int16_t type, PStask_t *task)
 	    .len = sizeof(msg.header) },
 	.buf = { '\0' }};
 
-    PSP_putMsgBuf(&msg, __func__, "options",
-		  &task->options, sizeof(task->options));
-    PSP_putMsgBuf(&msg, __func__, "partitionSize",
-		  &task->partitionSize, sizeof(task->partitionSize));
+    PSP_putMsgBuf(&msg, "options", &task->options, sizeof(task->options));
+    PSP_putMsgBuf(&msg, "partitionSize", &task->partitionSize,
+		  sizeof(task->partitionSize));
 
     int32_t id = task->uid;
-    PSP_putMsgBuf(&msg, __func__, "uid", &id, sizeof(id));
+    PSP_putMsgBuf(&msg, "uid", &id, sizeof(id));
     id = task->gid;
-    PSP_putMsgBuf(&msg, __func__, "gid", &id, sizeof(id));
+    PSP_putMsgBuf(&msg, "gid", &id, sizeof(id));
 
     uint8_t flag = task->suspended ? 1 : 0;
-    PSP_putMsgBuf(&msg, __func__, "suspended", &flag, sizeof(flag));
+    PSP_putMsgBuf(&msg, "suspended", &flag, sizeof(flag));
 
     int64_t start = task->started.tv_sec;
-    PSP_putMsgBuf(&msg, __func__, "start", &start, sizeof(start));
+    PSP_putMsgBuf(&msg, "start", &start, sizeof(start));
 
     sendMsg(&msg);
 

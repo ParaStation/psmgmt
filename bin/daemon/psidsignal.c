@@ -171,11 +171,9 @@ int PSID_kill(pid_t pid, int sig, uid_t uid)
 	    /* Make sure to listen to the forwarder */
 	    Selector_enable(child->forwarder->fd);
 
-	    PSP_putMsgBuf((DDBufferMsg_t *) &msg, __func__, "pid",
-			  &myPID, sizeof(myPID));
-
-	    PSP_putMsgBuf((DDBufferMsg_t *) &msg, __func__, "signal",
-			  &mySig, sizeof(mySig));
+	    PSP_putMsgBuf((DDBufferMsg_t *) &msg, "pid", &myPID, sizeof(myPID));
+	    PSP_putMsgBuf((DDBufferMsg_t *) &msg, "signal", &mySig,
+			  sizeof(mySig));
 
 	    if (sendMsg(&msg) == msg.header.len) return 0;
 	}
@@ -779,8 +777,8 @@ static void msg_NEWANCESTOR(DDErrorMsg_t *msg)
     bool grandParentOK = PSIDnodes_isUp(PSC_getID(msg->request));
 
     if (grandParentOK) {
-	PSP_putMsgBuf(&answer, __func__, "parent TID",
-		      &msg->header.sender, sizeof(msg->header.sender));
+	PSP_putMsgBuf(&answer, "parent TID", &msg->header.sender,
+		      sizeof(msg->header.sender));
 	emptyLen = answer.header.len;
     }
 
@@ -814,17 +812,15 @@ static void msg_NEWANCESTOR(DDErrorMsg_t *msg)
 	}
 
 	oldLen = answer.header.len;
-	if (!PSP_tryPutMsgBuf(&answer, __func__, "TID",
-			      &task->tid, sizeof(task->tid))
-	    || !PSP_tryPutMsgBuf(&answer, __func__, "released",
-				 &task->released, sizeof(task->released))) {
+	if (!PSP_tryPutMsgBuf(&answer, "TID", &task->tid, sizeof(task->tid))
+	    || !PSP_tryPutMsgBuf(&answer, "released", &task->released,
+				 sizeof(task->released))) {
 	    answer.header.len = oldLen;
 	    sendMsg(&answer);
 	    answer.header.len = emptyLen;
-	    PSP_putMsgBuf(&answer, __func__, "TID",
-			  &task->tid, sizeof(task->tid));
-	    PSP_putMsgBuf(&answer, __func__, "released",
-			  &task->released, sizeof(task->released));
+	    PSP_putMsgBuf(&answer, "TID", &task->tid, sizeof(task->tid));
+	    PSP_putMsgBuf(&answer, "released", &task->released,
+			  sizeof(task->released));
 	}
     }
 
@@ -834,10 +830,10 @@ static void msg_NEWANCESTOR(DDErrorMsg_t *msg)
     }
 
     if (grandParentOK) {
-	if (!PSP_tryPutMsgBuf(&answer, __func__, "end", &nTID, sizeof(nTID))) {
+	if (!PSP_tryPutMsgBuf(&answer, "end", &nTID, sizeof(nTID))) {
 	    sendMsg(&answer);
 	    answer.header.len = emptyLen;
-	    PSP_putMsgBuf(&answer, __func__, "nullTID", &nTID, sizeof(nTID));
+	    PSP_putMsgBuf(&answer, "nullTID", &nTID, sizeof(nTID));
 	}
     } else {
 	answer.header.type = PSP_DD_INHERITFAILED;
@@ -926,7 +922,7 @@ static void msg_ADOPTCHILDSET(DDBufferMsg_t *msg)
 		.len = offsetof(DDBufferMsg_t, buf) },
 	    .buf = { 0 } };
 
-	PSP_putMsgBuf(&answer, __func__, "kept child", &msg->header.sender,
+	PSP_putMsgBuf(&answer, "kept child", &msg->header.sender,
 		      sizeof(msg->header.sender));
 
 	sendMsg(&answer);

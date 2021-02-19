@@ -295,10 +295,10 @@ static void sendRDPPing(void)
 
     PSID_log(PSID_LOG_STATUS, "%s to %d\n", __func__, getMasterID());
 
-    PSP_putMsgBuf(&msg, __func__, "myJobs", &myJobs, sizeof(myJobs));
-    PSP_putMsgBuf(&msg, __func__, "load", &load, sizeof(load));
-    PSP_putMsgBuf(&msg, __func__, "mem", &mem, sizeof(mem));
-    PSP_putMsgBuf(&msg, __func__, "totNodes", &totNodes, sizeof(totNodes));
+    PSP_putMsgBuf(&msg, "myJobs", &myJobs, sizeof(myJobs));
+    PSP_putMsgBuf(&msg, "load", &load, sizeof(load));
+    PSP_putMsgBuf(&msg, "mem", &mem, sizeof(mem));
+    PSP_putMsgBuf(&msg, "totNodes", &totNodes, sizeof(totNodes));
 
     sendMsg(&msg);
     if (getMasterID() == PSC_getMyID()) handleMasterTasks();
@@ -768,16 +768,16 @@ int send_DAEMONCONNECT(PSnodes_ID_t id)
     }
 
     int32_t tmp = PSIDnodes_getNumCores(PSC_getMyID());
-    PSP_putMsgBuf(&msg, __func__, "numCores", &tmp, sizeof(tmp));
+    PSP_putMsgBuf(&msg, "numCores", &tmp, sizeof(tmp));
 
     tmp = PSIDnodes_getNumThrds(PSC_getMyID());
-    PSP_putMsgBuf(&msg, __func__, "numThrds", &tmp, sizeof(tmp));
+    PSP_putMsgBuf(&msg, "numThrds", &tmp, sizeof(tmp));
 
     tmp = PSProtocolVersion;
-    PSP_putMsgBuf(&msg, __func__, "proto", &tmp, sizeof(tmp));
+    PSP_putMsgBuf(&msg, "proto", &tmp, sizeof(tmp));
 
     tmp = PSDaemonProtocolVersion;
-    PSP_putMsgBuf(&msg, __func__, "dmnProto", &tmp, sizeof(tmp));
+    PSP_putMsgBuf(&msg, "dmnProto", &tmp, sizeof(tmp));
 
     return sendMsg(&msg);
 }
@@ -824,16 +824,16 @@ static void msg_DAEMONCONNECT(DDBufferMsg_t *msg)
 	.len = sizeof(msg->header) };
 
     int32_t tmp = PSIDnodes_getNumCores(PSC_getMyID());
-    PSP_putMsgBuf(msg, __func__, "numCores", &tmp, sizeof(tmp));
+    PSP_putMsgBuf(msg, "numCores", &tmp, sizeof(tmp));
 
     tmp = PSIDnodes_getNumThrds(PSC_getMyID());
-    PSP_putMsgBuf(msg, __func__, "numThrds", &tmp, sizeof(tmp));
+    PSP_putMsgBuf(msg, "numThrds", &tmp, sizeof(tmp));
 
     tmp = PSProtocolVersion;
-    PSP_putMsgBuf(msg, __func__, "proto", &tmp, sizeof(tmp));
+    PSP_putMsgBuf(msg, "proto", &tmp, sizeof(tmp));
 
     tmp = PSDaemonProtocolVersion;
-    PSP_putMsgBuf(msg, __func__, "dmnProto", &tmp, sizeof(tmp));
+    PSP_putMsgBuf(msg, "dmnProto", &tmp, sizeof(tmp));
 
     if (sendMsg(msg) == -1 && errno != EWOULDBLOCK) {
 	PSID_warn(PSID_LOG_STATUS, errno, "%s: sendMsg()", __func__);
@@ -965,7 +965,7 @@ int send_MASTERIS(PSnodes_ID_t dest)
 	    .len = sizeof(msg.header) },
 	.buf = {'\0'} };
     PSnodes_ID_t master = getMasterID();
-    PSP_putMsgBuf(&msg, __func__, "master", &master, sizeof(master));
+    PSP_putMsgBuf(&msg, "master", &master, sizeof(master));
 
     PSID_log(PSID_LOG_STATUS, "%s: tell %s master is %d\n",
 	     __func__, PSC_printTID(msg.header.dest), getMasterID());
@@ -1039,7 +1039,7 @@ static int send_ACTIVENODES(PSnodes_ID_t dest)
 
     for (PSnodes_ID_t n = 0; n < PSC_getNrOfNodes(); n++) {
 	if (!PSIDnodes_isUp(n)) continue;
-	if (!PSP_tryPutMsgBuf(&msg, __func__, "node", &n, sizeof(n))) {
+	if (!PSP_tryPutMsgBuf(&msg, "node", &n, sizeof(n))) {
 	    int ret = sendMsg(&msg);
 	    if (ret < 0) {
 		return ret;
@@ -1047,7 +1047,7 @@ static int send_ACTIVENODES(PSnodes_ID_t dest)
 		total += ret;
 	    }
 	    msg.header.len = emptyLen;
-	    PSP_putMsgBuf(&msg, __func__, "node", &n, sizeof(n));
+	    PSP_putMsgBuf(&msg, "node", &n, sizeof(n));
 	}
     }
 
@@ -1121,7 +1121,7 @@ static int send_DEADNODE(PSnodes_ID_t deadnode)
 	    .len = sizeof(msg.header) },
 	.buf = {'\0'} };
 
-    PSP_putMsgBuf(&msg, __func__, "deadnode", &deadnode, sizeof(deadnode));
+    PSP_putMsgBuf(&msg, "deadnode", &deadnode, sizeof(deadnode));
 
     PSID_log(PSID_LOG_STATUS, "%s(%d)\n", __func__, deadnode);
 

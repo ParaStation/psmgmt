@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2017-2020 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2017-2021 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -803,8 +803,8 @@ static void sendPMIFail(void)
 	.sender = -1 };
     DDBufferMsg_t *bmsg = (DDBufferMsg_t *)&msg;
 
-    PSP_putMsgBuf(bmsg, __func__, "cmd", &cmd, sizeof(cmd));
-    PSP_putMsgBuf(bmsg, __func__, "res", &res, sizeof(res));
+    PSP_putMsgBuf(bmsg, "cmd", &cmd, sizeof(cmd));
+    PSP_putMsgBuf(bmsg, "res", &res, sizeof(res));
 
     PSI_sendMsg((DDMsg_t *)bmsg);
 }

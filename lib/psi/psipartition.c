@@ -1111,10 +1111,10 @@ int PSI_getNodes(uint32_t num, uint32_t hwType, uint16_t tpp,
 	return -1;
     }
 
-    PSP_putMsgBuf(&msg, __func__, "num", &num, sizeof(num));
-    PSP_putMsgBuf(&msg, __func__, "hwType", &hwType, sizeof(hwType));
-    PSP_putMsgBuf(&msg, __func__, "options", &options, sizeof(options));
-    PSP_putMsgBuf(&msg, __func__, "tpp", &tpp, sizeof(tpp));
+    PSP_putMsgBuf(&msg, "num", &num, sizeof(num));
+    PSP_putMsgBuf(&msg, "hwType", &hwType, sizeof(hwType));
+    PSP_putMsgBuf(&msg, "options", &options, sizeof(options));
+    PSP_putMsgBuf(&msg, "tpp", &tpp, sizeof(tpp));
 
     if (hwType || tpp != 1 || options) {
 	PSI_log(PSI_LOG_VERB, "%s:", __func__);
@@ -1179,7 +1179,7 @@ int PSI_getRankNode(int32_t rank, PSnodes_ID_t *node)
 	return -1;
     }
 
-    PSP_putMsgBuf(&msg, __func__, "rank", &rank, sizeof(int32_t));
+    PSP_putMsgBuf(&msg, "rank", &rank, sizeof(int32_t));
 
     if (PSI_sendMsg(&msg)<0) {
 	PSI_warn(-1, errno, "%s: PSI_sendMsg", __func__);
@@ -1243,12 +1243,12 @@ PSrsrvtn_ID_t PSI_getReservation(uint32_t nMin, uint32_t nMax, uint16_t ppn,
 	tpp = 1;
     }
 
-    PSP_putMsgBuf(&msg, __func__, "nMin", &nMin, sizeof(nMin));
-    PSP_putMsgBuf(&msg, __func__, "nMax", &nMax, sizeof(nMax));
-    PSP_putMsgBuf(&msg, __func__, "tpp", &tpp, sizeof(tpp));
-    PSP_putMsgBuf(&msg, __func__, "hwType", &hwType, sizeof(hwType));
-    PSP_putMsgBuf(&msg, __func__, "options", &options, sizeof(options));
-    PSP_putMsgBuf(&msg, __func__, "ppn", &ppn, sizeof(ppn));
+    PSP_putMsgBuf(&msg, "nMin", &nMin, sizeof(nMin));
+    PSP_putMsgBuf(&msg, "nMax", &nMax, sizeof(nMax));
+    PSP_putMsgBuf(&msg, "tpp", &tpp, sizeof(tpp));
+    PSP_putMsgBuf(&msg, "hwType", &hwType, sizeof(hwType));
+    PSP_putMsgBuf(&msg, "options", &options, sizeof(options));
+    PSP_putMsgBuf(&msg, "ppn", &ppn, sizeof(ppn));
 
     if (PSI_sendMsg(&msg)<0) {
 	PSI_warn(-1, errno, "%s: PSI_sendMsg", __func__);
@@ -1328,8 +1328,8 @@ int PSI_getSlots(uint16_t num, PSrsrvtn_ID_t resID, PSnodes_ID_t *nodes)
 	return -1;
     }
 
-    PSP_putMsgBuf(&msg, __func__, "resID", &resID, sizeof(resID));
-    PSP_putMsgBuf(&msg, __func__, "num", &num, sizeof(num));
+    PSP_putMsgBuf(&msg, "resID", &resID, sizeof(resID));
+    PSP_putMsgBuf(&msg, "num", &num, sizeof(num));
 
     PSI_log(PSI_LOG_VERB, "%s(%d, %#x)\n", __func__, num, resID);
 

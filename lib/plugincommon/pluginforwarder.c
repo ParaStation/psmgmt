@@ -521,9 +521,9 @@ static void sendChildInfo(Forwarder_Data_t *fw)
 	.type = PLGN_CHILD,
 	.sender = -1};
 
-    PSP_putMsgBuf((DDBufferMsg_t*)&msg, __func__, "childPID",
+    PSP_putMsgBuf((DDBufferMsg_t*)&msg, "childPID",
 		  &fw->cPid, sizeof(fw->cPid));
-    PSP_putMsgBuf((DDBufferMsg_t*)&msg, __func__, "childSID",
+    PSP_putMsgBuf((DDBufferMsg_t*)&msg, "childSID",
 		  &fw->cSid, sizeof(fw->cSid));
 
     sendMsgToMother(&msg);
@@ -589,8 +589,7 @@ static void sendCodeInfo(int32_t ecode)
 	.type = PLGN_CODE,
 	.sender = -1};
 
-    PSP_putMsgBuf((DDBufferMsg_t*)&msg, __func__, "exit code",
-		  &ecode, sizeof(ecode));
+    PSP_putMsgBuf((DDBufferMsg_t*)&msg, "exit code", &ecode, sizeof(ecode));
 
     sendMsgToMother(&msg);
 }
@@ -607,7 +606,7 @@ static void sendExitInfo(int32_t estatus)
 	.type = PLGN_EXIT,
 	.sender = -1};
 
-    PSP_putMsgBuf((DDBufferMsg_t*)&msg, __func__, "exit status",
+    PSP_putMsgBuf((DDBufferMsg_t*)&msg, "exit status",
 		  &estatus, sizeof(estatus));
 
     sendMsgToMother(&msg);
@@ -654,8 +653,8 @@ static int handleChildOE(int fd, void *info)
 
     /* Add data chunk including its length mimicking addString */
     uint32_t len = htonl(size+1);
-    PSP_putMsgBuf((DDBufferMsg_t*)&msg, __func__, "len", &len, sizeof(len));
-    PSP_putMsgBuf((DDBufferMsg_t*)&msg, __func__, "data", buf, size);
+    PSP_putMsgBuf((DDBufferMsg_t*)&msg, "len", &len, sizeof(len));
+    PSP_putMsgBuf((DDBufferMsg_t*)&msg, "data", buf, size);
 
     sendMsgToMother(&msg);
 
@@ -1016,7 +1015,7 @@ bool signalForwarderChild(Forwarder_Data_t *fw, int sig)
 	    .type = PLGN_SIGNAL_CHLD,
 	    .sender = -1};
 
-	PSP_putMsgBuf((DDBufferMsg_t*)&msg, __func__, "sig", &sig, sizeof(sig));
+	PSP_putMsgBuf((DDBufferMsg_t*)&msg, "sig", &sig, sizeof(sig));
 
 	sendMsg(&msg);
 	return true;

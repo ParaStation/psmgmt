@@ -1530,10 +1530,10 @@ void sendCHILDRESREL(PStask_ID_t logger, PSCPU_set_t set, PStask_ID_t sender)
     PSCPU_set_t setBuf;
     uint16_t nBytes = PSCPU_bytesForCPUs(PSIDnodes_getNumThrds(PSC_getMyID()));
 
-    PSP_putMsgBuf(&resRelMsg, __func__, "nBytes", &nBytes, sizeof(nBytes));
+    PSP_putMsgBuf(&resRelMsg, "nBytes", &nBytes, sizeof(nBytes));
 
     PSCPU_extract(setBuf, set, nBytes);
-    PSP_putMsgBuf(&resRelMsg, __func__, "CPUset", setBuf, nBytes);
+    PSP_putMsgBuf(&resRelMsg, "CPUset", setBuf, nBytes);
 
     PSID_log(PSID_LOG_PART, "%s: PSP_DD_CHILDRESREL  to %s with CPUs %s",
 	     __func__, PSC_printTID(logger), PSCPU_print_part(set, nBytes));
@@ -2004,9 +2004,9 @@ static bool send_SPAWNLOC(uint32_t num, int32_t rank, PStask_ID_t sender,
     short numCPUs = PSIDnodes_getNumThrds(destID);
     uint16_t nBytes = PSCPU_bytesForCPUs(numCPUs);
 
-    PSP_putMsgBuf(&locMsg, __func__, "num", &num, sizeof(num));
-    PSP_putMsgBuf(&locMsg, __func__, "rank", &rank, sizeof(rank));
-    PSP_putMsgBuf(&locMsg, __func__, "nBytes", &nBytes, sizeof(nBytes));
+    PSP_putMsgBuf(&locMsg, "num", &num, sizeof(num));
+    PSP_putMsgBuf(&locMsg, "rank", &rank, sizeof(rank));
+    PSP_putMsgBuf(&locMsg, "nBytes", &nBytes, sizeof(nBytes));
 
     for (i = 0; i < num; i++) {
 	PSCPU_set_t setBuf;
@@ -2018,7 +2018,7 @@ static bool send_SPAWNLOC(uint32_t num, int32_t rank, PStask_ID_t sender,
 	/* Invalidate this entry */
 	PSCPU_clrAll(ptask->spawnNodes[rank+i].CPUset);
 
-	if (!PSP_tryPutMsgBuf(&locMsg, __func__, "CPUset", setBuf, nBytes)) {
+	if (!PSP_tryPutMsgBuf(&locMsg, "CPUset", setBuf, nBytes)) {
 	    int32_t myR = rank + i;
 	    if (sendMsg(&locMsg) < 0) {
 		PSID_warn(-1, errno, "%s: send to %d",  __func__, destID);
@@ -2028,10 +2028,10 @@ static bool send_SPAWNLOC(uint32_t num, int32_t rank, PStask_ID_t sender,
 	    PSID_log(PSID_LOG_SPAWN, "%s: next msg...\n", __func__);
 
 	    locMsg.header.len = offsetof(DDBufferMsg_t, buf);
-	    PSP_putMsgBuf(&locMsg, __func__, "num", &num, sizeof(num));
-	    PSP_putMsgBuf(&locMsg, __func__, "rank", &myR, sizeof(myR));
-	    PSP_putMsgBuf(&locMsg, __func__, "nBytes", &nBytes, sizeof(nBytes));
-	    PSP_putMsgBuf(&locMsg, __func__, "CPUset", setBuf, nBytes);
+	    PSP_putMsgBuf(&locMsg, "num", &num, sizeof(num));
+	    PSP_putMsgBuf(&locMsg, "rank", &myR, sizeof(myR));
+	    PSP_putMsgBuf(&locMsg, "nBytes", &nBytes, sizeof(nBytes));
+	    PSP_putMsgBuf(&locMsg, "CPUset", setBuf, nBytes);
 	}
     }
     if (sendMsg(&locMsg) < 0) {

@@ -224,17 +224,17 @@ static bool doPutMsgBuf(DDBufferMsg_t *msg, const char *callName,
     return true;
 }
 
-bool PSP_putMsgBuf(DDBufferMsg_t *msg, const char *funcName,
-		   const char *dataName, const void *data, size_t size)
+bool PSP_putMsgBufF(DDBufferMsg_t *msg, const char *caller,
+		    const char *dataName, const void *data, size_t size)
 {
-    return doPutMsgBuf(msg, __func__, funcName, dataName,
+    return doPutMsgBuf(msg, "PSP_putMsgBuf", caller, dataName,
 		       data, size, false /* typed */, false /* try */);
 }
 
-bool PSP_tryPutMsgBuf(DDBufferMsg_t *msg, const char *funcName,
-		      const char *dataName, const void *data, size_t size)
+bool PSP_tryPutMsgBufF(DDBufferMsg_t *msg, const char *caller,
+		       const char *dataName, const void *data, size_t size)
 {
-    return doPutMsgBuf(msg, __func__, funcName, dataName,
+    return doPutMsgBuf(msg, "PSP_tryPutMsgBuf", caller, dataName,
 		       data, size, false /* typed */, true /* try */);
 }
 

@@ -285,7 +285,7 @@ void PSIADM_AddNode(bool *nl)
 	    if (first) first = false; else usleep(paramStartDelay * 1000);
 	    printf("starting node %s\n", nodeString(node));
 	    msg.header.len = sizeof(msg.header);
-	    PSP_putMsgBuf(&msg, __func__, "node ID", &node, sizeof(node));
+	    PSP_putMsgBuf(&msg, "node ID", &node, sizeof(node));
 	    PSI_sendMsg(&msg);
 	}
     }
@@ -347,7 +347,7 @@ void PSIADM_HWStart(int hw, bool *nl)
     err = PSI_infoInt(-1, PSP_INFO_HWNUM, NULL, &hwnum, true);
     if (err || hw < -1 || hw >= hwnum) return;
 
-    PSP_putMsgBuf(&msg, __func__, "hardware type", &hw32, sizeof(hw32));
+    PSP_putMsgBuf(&msg, "hardware type", &hw32, sizeof(hw32));
 
     if (! getHostStatus()) return;
 
@@ -382,7 +382,7 @@ void PSIADM_HWStop(int hw, bool *nl)
     err = PSI_infoInt(-1, PSP_INFO_HWNUM, NULL, &hwnum, true);
     if (err || hw < -1 || hw >= hwnum) return;
 
-    PSP_putMsgBuf(&msg, __func__, "hardware type", &hw32, sizeof(hw32));
+    PSP_putMsgBuf(&msg, "hardware type", &hw32, sizeof(hw32));
 
     if (! getHostStatus()) return;
 
