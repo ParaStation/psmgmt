@@ -892,8 +892,8 @@ void send_PS_JobExit(uint32_t jobid, uint32_t stepid, uint32_t numDest,
     PStask_ID_t myID = PSC_getMyID();
     uint32_t n;
 
-    PSP_putTypedMsgBuf(&msg, __func__, "jobID", &jobid, sizeof(jobid));
-    PSP_putTypedMsgBuf(&msg, __func__, "stepID", &stepid, sizeof(stepid));
+    PSP_putTypedMsgBuf(&msg, "jobID", &jobid, sizeof(jobid));
+    PSP_putTypedMsgBuf(&msg, "stepID", &stepid, sizeof(stepid));
 
     /* send the messages */
     for (n = 0; n < numDest; n++) {
@@ -920,11 +920,11 @@ void send_PS_SignalTasks(Step_t *step, uint32_t signal, PStask_group_t group)
     uint32_t jobID = step->jobid, stepID = step->stepid, grp = group;
     uint32_t packID = step->packJobid;
 
-    PSP_putTypedMsgBuf(&msg, __func__, "jobID", &jobID, sizeof(jobID));
-    PSP_putTypedMsgBuf(&msg, __func__, "stepID", &stepID, sizeof(stepID));
-    PSP_putTypedMsgBuf(&msg, __func__, "group", &grp, sizeof(grp));
-    PSP_putTypedMsgBuf(&msg, __func__, "signal", &signal, sizeof(signal));
-    PSP_putTypedMsgBuf(&msg, __func__, "packID", &packID, sizeof(packID));
+    PSP_putTypedMsgBuf(&msg, "jobID", &jobID, sizeof(jobID));
+    PSP_putTypedMsgBuf(&msg, "stepID", &stepID, sizeof(stepID));
+    PSP_putTypedMsgBuf(&msg, "group", &grp, sizeof(grp));
+    PSP_putTypedMsgBuf(&msg, "signal", &signal, sizeof(signal));
+    PSP_putTypedMsgBuf(&msg, "packID", &packID, sizeof(packID));
 
     /* send the messages */
     if (step->packNrOfNodes != NO_VAL) {
@@ -965,7 +965,7 @@ void send_PS_EpilogueLaunch(Alloc_t *alloc)
     flog("alloc ID %u\n", alloc->id);
 
     /* add id */
-    PSP_putTypedMsgBuf(&msg, __func__, "ID", &alloc->id, sizeof(alloc->id));
+    PSP_putTypedMsgBuf(&msg, "ID", &alloc->id, sizeof(alloc->id));
 
     /* send the messages */
     uint32_t n;
@@ -990,7 +990,7 @@ void send_PS_EpilogueStateReq(Alloc_t *alloc)
 	.buf = {'\0'} };
 
     /* add id */
-    PSP_putTypedMsgBuf(&msg, __func__, "ID", &alloc->id, sizeof(alloc->id));
+    PSP_putTypedMsgBuf(&msg, "ID", &alloc->id, sizeof(alloc->id));
 
     uint32_t n;
     for (n=0; n<alloc->nrOfNodes; n++) {
@@ -1018,8 +1018,8 @@ void send_PS_EpilogueRes(Alloc_t *alloc, int16_t res)
     mdbg(PSSLURM_LOG_PELOG, "%s: result: %i dest:%u\n",
 	 __func__, res, msg.header.dest);
 
-    PSP_putTypedMsgBuf(&msg, __func__, "ID", &alloc->id, sizeof(alloc->id));
-    PSP_putTypedMsgBuf(&msg, __func__, "res", &res, sizeof(res));
+    PSP_putTypedMsgBuf(&msg, "ID", &alloc->id, sizeof(alloc->id));
+    PSP_putTypedMsgBuf(&msg, "res", &res, sizeof(res));
 
     /* send the messages */
     if (sendMsg(&msg) == -1 && errno != EWOULDBLOCK) {
@@ -1096,8 +1096,8 @@ static void send_PS_EpilogueStateRes(PStask_ID_t dest, uint32_t id,
     flog("alloc ID %u\n", id);
 
     /* add id */
-    PSP_putTypedMsgBuf(&msg, __func__, "ID", &id, sizeof(id));
-    PSP_putTypedMsgBuf(&msg, __func__, "ID", &res, sizeof(res));
+    PSP_putTypedMsgBuf(&msg, "ID", &id, sizeof(id));
+    PSP_putTypedMsgBuf(&msg, "ID", &res, sizeof(res));
 
     if (sendMsg(&msg) == -1 && errno != EWOULDBLOCK) {
 	mwarn(errno, "%s: sending msg to %s failed ", __func__,

@@ -914,45 +914,42 @@ static void sendAcctData(struct rusage rusage, int32_t status)
 	.type = PSP_ACCOUNT_END };
 
     /* logger's TID, this identifies a task uniquely */
-    PSP_putTypedMsgBuf(&msg, __func__, "loggerTID", &childTask->loggertid,
+    PSP_putTypedMsgBuf(&msg, "loggerTID", &childTask->loggertid,
 		       sizeof(childTask->loggertid));
 
     /* current rank */
-    PSP_putTypedMsgBuf(&msg, __func__, "rank", &childTask->rank,
-		       sizeof(childTask->rank));
+    PSP_putTypedMsgBuf(&msg, "rank", &childTask->rank, sizeof(childTask->rank));
 
     /* child's uid */
-    PSP_putTypedMsgBuf(&msg, __func__, "uid", &childTask->uid,
-		       sizeof(childTask->uid));
+    PSP_putTypedMsgBuf(&msg, "uid", &childTask->uid, sizeof(childTask->uid));
 
     /* child's gid */
-    PSP_putTypedMsgBuf(&msg, __func__, "gid", &childTask->gid,
-		       sizeof(childTask->gid));
+    PSP_putTypedMsgBuf(&msg, "gid", &childTask->gid, sizeof(childTask->gid));
 
     /* child's pid */
     pid_t pid = PSC_getPID(childTask->tid);
-    PSP_putTypedMsgBuf(&msg, __func__, "pid", &pid, sizeof(pid));
+    PSP_putTypedMsgBuf(&msg, "pid", &pid, sizeof(pid));
 
     /* actual rusage structure */
-    PSP_putTypedMsgBuf(&msg, __func__, "rusage", &rusage, sizeof(rusage));
+    PSP_putTypedMsgBuf(&msg, "rusage", &rusage, sizeof(rusage));
 
     /* pagesize */
     int64_t pagesize = sysconf(_SC_PAGESIZE);
     if (pagesize < 1) pagesize = 0;
-    PSP_putTypedMsgBuf(&msg, __func__, "pagesize", &pagesize, sizeof(pagesize));
+    PSP_putTypedMsgBuf(&msg, "pagesize", &pagesize, sizeof(pagesize));
 
     /* walltime used by child */
     struct timeval now, walltime;
     gettimeofday(&now, NULL);
     timersub(&now, &childTask->started, &walltime);
-    PSP_putTypedMsgBuf(&msg, __func__, "walltime", &walltime, sizeof(walltime));
+    PSP_putTypedMsgBuf(&msg, "walltime", &walltime, sizeof(walltime));
 
     /* child's return status */
-    PSP_putTypedMsgBuf(&msg, __func__, "status", &status, sizeof(status));
+    PSP_putTypedMsgBuf(&msg, "status", &status, sizeof(status));
 
     /* extended msg flag, will be overwritten by accounting plugin */
     int32_t extend = 0;
-    PSP_putTypedMsgBuf(&msg, __func__, "extend", &extend, sizeof(extend));
+    PSP_putTypedMsgBuf(&msg, "extend", &extend, sizeof(extend));
 
     sendDaemonMsg(&msg);
 }

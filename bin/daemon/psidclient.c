@@ -663,27 +663,22 @@ void PSIDclient_delete(int fd)
 	    .type = (task->numChild > 0) ? PSP_ACCOUNT_END:PSP_ACCOUNT_DELETE};
 
 	/* logger's TID identifies a task uniquely */
-	PSP_putTypedMsgBuf(&msg, __func__, "TID", &task->tid,
-			   sizeof(task->tid));
-	PSP_putTypedMsgBuf(&msg, __func__, "rank", &task->rank,
-			   sizeof(task->rank));
-	PSP_putTypedMsgBuf(&msg, __func__, "UID", &task->uid,
-			   sizeof(task->uid));
-	PSP_putTypedMsgBuf(&msg, __func__, "GID", &task->gid,
-			   sizeof(task->gid));
+	PSP_putTypedMsgBuf(&msg, "TID", &task->tid, sizeof(task->tid));
+	PSP_putTypedMsgBuf(&msg, "rank", &task->rank, sizeof(task->rank));
+	PSP_putTypedMsgBuf(&msg, "UID", &task->uid, sizeof(task->uid));
+	PSP_putTypedMsgBuf(&msg, "GID", &task->gid, sizeof(task->gid));
 
 	if (task->numChild > 0) {
 	    struct timeval now, walltime;
 
 	    /* total number of children */
-	    PSP_putTypedMsgBuf(&msg, __func__, "numChild", &task->numChild,
+	    PSP_putTypedMsgBuf(&msg, "numChild", &task->numChild,
 			       sizeof(task->numChild));
 
 	    /* walltime used by logger */
 	    gettimeofday(&now, NULL);
 	    timersub(&now, &task->started, &walltime);
-	    PSP_putTypedMsgBuf(&msg, __func__, "walltime", &walltime,
-			       sizeof(walltime));
+	    PSP_putTypedMsgBuf(&msg, "walltime", &walltime, sizeof(walltime));
 	}
 
 	sendMsg((DDMsg_t *)&msg);
@@ -962,8 +957,7 @@ static void msg_CLIENTCONNECT(int fd, DDBufferMsg_t *bufmsg)
     if (msg->version < 324 || msg->version > PSProtocolVersion) {
 	outmsg.type = PSP_CONN_ERR_VERSION;
 	uint32_t protoV = PSProtocolVersion;
-	PSP_putTypedMsgBuf(&outmsg, __func__, "protoV", &protoV,
-			   sizeof(protoV));
+	PSP_putTypedMsgBuf(&outmsg, "protoV", &protoV, sizeof(protoV));
     } else if (!task) {
 	outmsg.type = PSP_CONN_ERR_NOSPACE;
     } else if (uid && !PSIDnodes_testGUID(PSC_getMyID(), PSIDNODES_USER,
@@ -976,8 +970,7 @@ static void msg_CLIENTCONNECT(int fd, DDBufferMsg_t *bufmsg)
 	       && status.jobs.normal > PSIDnodes_getProcs(PSC_getMyID())) {
 	outmsg.type = PSP_CONN_ERR_PROCLIMIT;
 	int32_t maxProcs = PSIDnodes_getProcs(PSC_getMyID());
-	PSP_putTypedMsgBuf(&outmsg, __func__, "maxProcs", &maxProcs,
-			   sizeof(maxProcs));
+	PSP_putTypedMsgBuf(&outmsg, "maxProcs", &maxProcs, sizeof(maxProcs));
     } else if (PSID_getDaemonState() & PSID_STATE_NOCONNECT) {
 	outmsg.type = PSP_CONN_ERR_STATENOCONNECT;
 	PSID_log(-1, "%s: daemon state problems: state is %x\n",
@@ -1007,10 +1000,10 @@ static void msg_CLIENTCONNECT(int fd, DDBufferMsg_t *bufmsg)
 	    outmsg.type = PSC_getMyID();
 	} else {
 	    bool mixedProto = PSID_mixedProto();
-	    PSP_putTypedMsgBuf(&outmsg, __func__, "mixedProto", &mixedProto,
+	    PSP_putTypedMsgBuf(&outmsg, "mixedProto", &mixedProto,
 			       sizeof(mixedProto));
 	    PSnodes_ID_t myID = PSC_getMyID();
-	    PSP_putTypedMsgBuf(&outmsg, __func__, "myID", &myID, sizeof(myID));
+	    PSP_putTypedMsgBuf(&outmsg, "myID", &myID, sizeof(myID));
 	}
 
 	sendMsg(&outmsg);

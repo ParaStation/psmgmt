@@ -486,15 +486,12 @@ bool pspmix_comm_sendModexDataRequest(PSnodes_ID_t target, pmix_proc_t *proc)
 	.type = PSPMIX_MODEX_DATA_REQ,
 	.buf = {'\0'} };
 
-    PSP_putTypedMsgBuf(&msg, __func__, "rank", &proc->rank,
-	    sizeof(proc->rank));
+    PSP_putTypedMsgBuf(&msg, "rank", &proc->rank, sizeof(proc->rank));
 
     uint16_t nspacelen;
     nspacelen = strlen(proc->nspace) + 1;
-    PSP_putTypedMsgBuf(&msg, __func__, "nspacelen", &nspacelen,
-	    sizeof(nspacelen));
-    PSP_putTypedMsgBuf(&msg, __func__, "nspace", proc->nspace,
-	    nspacelen);
+    PSP_putTypedMsgBuf(&msg, "nspacelen", &nspacelen, sizeof(nspacelen));
+    PSP_putTypedMsgBuf(&msg, "nspace", proc->nspace, nspacelen);
 
     pthread_mutex_lock(&send_lock);
     if (!sendMsgToDaemon(&msg)) {

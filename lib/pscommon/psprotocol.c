@@ -184,14 +184,14 @@ size_t PSP_strLen(const char *str)
 }
 
 static bool doPutMsgBuf(DDBufferMsg_t *msg, const char *callName,
-			const char *funcName, const char *dataName,
+			const char *caller, const char *dataName,
 			const void *data, size_t size, bool typed, bool try)
 {
     size_t off;
 
     if (!msg) {
 	PSC_log(-1, "%s: no 'msg' provided for '%s' in %s()\n", callName,
-		dataName, funcName);
+		dataName, caller);
 	return false;
     }
 
@@ -210,7 +210,7 @@ static bool doPutMsgBuf(DDBufferMsg_t *msg, const char *callName,
 
     if (!used) {
 	PSC_log(try ? PSC_LOG_VERB : -1, "%s: data '%s' too large in %s()\n",
-		callName, dataName ? dataName : "<empty>", funcName);
+		callName, dataName ? dataName : "<empty>", caller);
 	return false;
     }
 
@@ -238,18 +238,18 @@ bool PSP_tryPutMsgBuf(DDBufferMsg_t *msg, const char *funcName,
 		       data, size, false /* typed */, true /* try */);
 }
 
-bool PSP_putTypedMsgBuf(DDTypedBufferMsg_t *msg, const char *funcName,
-			const char *dataName, const void *data, size_t size)
+bool PSP_putTypedMsgBufF(DDTypedBufferMsg_t *msg, const char *caller,
+			 const char *dataName, const void *data, size_t size)
 {
-    return doPutMsgBuf((DDBufferMsg_t *)msg, __func__, funcName, dataName,
-		       data, size, true /* typed */, false /* try */);
+    return doPutMsgBuf((DDBufferMsg_t *)msg, "PSP_putTypedMsgBuf", caller,
+		       dataName, data, size, true /* typed */, false /* try */);
 }
 
-bool PSP_tryPutTypedMsgBuf(DDTypedBufferMsg_t *msg, const char *funcName,
-			   const char *dataName, const void *data, size_t size)
+bool PSP_tryPutTypedMsgBufF(DDTypedBufferMsg_t *msg, const char *caller,
+			    const char *dataName, const void *data, size_t size)
 {
-    return doPutMsgBuf((DDBufferMsg_t *)msg, __func__, funcName, dataName,
-		       data, size, true /* typed */, true /* try */);
+    return doPutMsgBuf((DDBufferMsg_t *)msg, "PSP_tryPutTypedMsgBufF", caller,
+		       dataName, data, size, true /* typed */, true /* try */);
 }
 
 static bool doGetMsgBuf(DDBufferMsg_t *msg, size_t *used, const char *callName,

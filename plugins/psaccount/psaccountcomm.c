@@ -161,15 +161,14 @@ static void handleAccountEnd(DDTypedBufferMsg_t *msg)
     msg->header.len = offsetof(DDTypedBufferMsg_t, buf) + used;
 
     uint32_t one = 1;
-    PSP_putTypedMsgBuf(msg, __func__, "extended info", &one, sizeof(one));
-    PSP_putTypedMsgBuf(msg, __func__, "maxRss", &client->data.maxRss,
+    PSP_putTypedMsgBuf(msg, "extended info", &one, sizeof(one));
+    PSP_putTypedMsgBuf(msg, "maxRss", &client->data.maxRss,
 		       sizeof(client->data.maxRss));
-    PSP_putTypedMsgBuf(msg, __func__, "maxVsize", &client->data.maxVsize,
+    PSP_putTypedMsgBuf(msg, "maxVsize", &client->data.maxVsize,
 		       sizeof(client->data.maxVsize));
     uint32_t myMaxThreads = client->data.maxThreads;
-    PSP_putTypedMsgBuf(msg, __func__, "maxThreads", &myMaxThreads,
-		       sizeof(myMaxThreads));
-    PSP_putTypedMsgBuf(msg, __func__, "session", &client->data.session,
+    PSP_putTypedMsgBuf(msg, "maxThreads", &myMaxThreads, sizeof(myMaxThreads));
+    PSP_putTypedMsgBuf(msg, "session", &client->data.session,
 		       sizeof(client->data.session));
 
     /* add size of average used mem */
@@ -178,7 +177,7 @@ static void handleAccountEnd(DDTypedBufferMsg_t *msg)
     } else {
 	avgRss = client->data.avgRssTotal / client->data.avgRssCount;
     }
-    PSP_putTypedMsgBuf(msg, __func__, "avgRss", &avgRss, sizeof(avgRss));
+    PSP_putTypedMsgBuf(msg, "avgRss", &avgRss, sizeof(avgRss));
 
     /* add size of average used vmem */
     if (client->data.avgVsizeTotal < 1 || client->data.avgVsizeCount < 1) {
@@ -186,7 +185,7 @@ static void handleAccountEnd(DDTypedBufferMsg_t *msg)
     } else {
 	avgVsize = client->data.avgVsizeTotal / client->data.avgVsizeCount;
     }
-    PSP_putTypedMsgBuf(msg, __func__, "avgVsize", &avgVsize, sizeof(avgVsize));
+    PSP_putTypedMsgBuf(msg, "avgVsize", &avgVsize, sizeof(avgVsize));
 
     /* add number of average threads */
     if (client->data.avgThreadsTotal < 1 || client->data.avgThreadsCount < 1) {
@@ -194,7 +193,7 @@ static void handleAccountEnd(DDTypedBufferMsg_t *msg)
     } else {
 	avgThrds = client->data.avgThreadsTotal / client->data.avgThreadsCount;
     }
-    PSP_putTypedMsgBuf(msg, __func__, "avgThrds", &avgThrds, sizeof(avgThrds));
+    PSP_putTypedMsgBuf(msg, "avgThrds", &avgThrds, sizeof(avgThrds));
 
     /* find the job */
     job = findJobByLogger(client->logger);
@@ -575,7 +574,7 @@ int switchAccounting(PStask_ID_t clientTID, bool enable)
 	.buf = {'\0'} };
 
     /* send the messages */
-    PSP_putTypedMsgBuf(&msg, __func__, "client", &clientTID, sizeof(clientTID));
+    PSP_putTypedMsgBuf(&msg, "client", &clientTID, sizeof(clientTID));
 
     return sendDaemonMsg(&msg);
 }

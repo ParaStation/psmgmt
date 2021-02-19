@@ -1146,18 +1146,12 @@ static void sendAcctChild(PStask_t *task)
 	    .len = offsetof(DDTypedBufferMsg_t, buf) },
 	.type = PSP_ACCOUNT_CHILD };
 
-    /* logger's TID, this identifies a task uniquely */
-    PSP_putTypedMsgBuf(&msg, __func__, "loggertid", &task->loggertid,
+    /* logger's TID identifies a task uniquely */
+    PSP_putTypedMsgBuf(&msg, "loggertid", &task->loggertid,
 		       sizeof(task->loggertid));
-
-    /* current rank */
-    PSP_putTypedMsgBuf(&msg, __func__, "rank", &task->rank, sizeof(task->rank));
-
-    /* child's uid */
-    PSP_putTypedMsgBuf(&msg, __func__, "uid", &task->uid, sizeof(task->uid));
-
-    /* child's gid */
-    PSP_putTypedMsgBuf(&msg, __func__, "gid", &task->gid, sizeof(task->gid));
+    PSP_putTypedMsgBuf(&msg, "rank", &task->rank, sizeof(task->rank));
+    PSP_putTypedMsgBuf(&msg, "uid", &task->uid, sizeof(task->uid));
+    PSP_putTypedMsgBuf(&msg, "gid", &task->gid, sizeof(task->gid));
 
 #define MAXARGV0 128
     /* job's name */
@@ -1166,13 +1160,13 @@ static void sendAcctChild(PStask_t *task)
 
 	if (len > MAXARGV0) {
 	    char dots[]="...";
-	    PSP_putTypedMsgBuf(&msg, __func__, "dots", dots, strlen(dots));
+	    PSP_putTypedMsgBuf(&msg, "dots", dots, strlen(dots));
 	    offset = len-MAXARGV0+3;
 	}
-	PSP_putTypedMsgBuf(&msg, __func__, "name", task->argv[0] + offset,
+	PSP_putTypedMsgBuf(&msg, "name", task->argv[0] + offset,
 			   strlen(task->argv[0] + offset));
     }
-    PSP_putTypedMsgBuf(&msg, __func__, "trailing \\0", NULL, 0);
+    PSP_putTypedMsgBuf(&msg, "trailing \\0", NULL, 0);
 
     sendMsg((DDMsg_t *)&msg);
 }
@@ -1332,20 +1326,12 @@ static void sendAcctStart(PStask_ID_t sender, PStask_t *task)
     int pSize = task->partitionSize;
 
     /* logger's TID, this identifies a task uniquely */
-    PSP_putTypedMsgBuf(&msg, __func__, "loggertid", &task->loggertid,
+    PSP_putTypedMsgBuf(&msg, "loggertid", &task->loggertid,
 		       sizeof(task->loggertid));
-
-    /* current rank */
-    PSP_putTypedMsgBuf(&msg, __func__, "rank", &task->rank, sizeof(task->rank));
-
-    /* child's uid */
-    PSP_putTypedMsgBuf(&msg, __func__, "uid", &task->uid, sizeof(task->uid));
-
-    /* child's gid */
-    PSP_putTypedMsgBuf(&msg, __func__, "gid", &task->gid, sizeof(task->gid));
-
-    /* total number of children */
-    PSP_putTypedMsgBuf(&msg, __func__, "num", &num, sizeof(num));
+    PSP_putTypedMsgBuf(&msg, "rank", &task->rank, sizeof(task->rank));
+    PSP_putTypedMsgBuf(&msg, "uid", &task->uid, sizeof(task->uid));
+    PSP_putTypedMsgBuf(&msg, "gid", &task->gid, sizeof(task->gid));
+    PSP_putTypedMsgBuf(&msg, "num", &num, sizeof(num));
 
     sendMsg((DDMsg_t *)&msg);
 
@@ -1372,20 +1358,18 @@ static void sendAcctStart(PStask_ID_t sender, PStask_t *task)
 
 	    msg.header.len = sizeof(msg.header) + sizeof(msg.type);
 
-	    PSP_putTypedMsgBuf(&msg, __func__, "loggertid", &task->loggertid,
+	    PSP_putTypedMsgBuf(&msg, "loggertid", &task->loggertid,
 			       sizeof(task->loggertid));
-	    PSP_putTypedMsgBuf(&msg, __func__, "uid", &task->uid,
-			       sizeof(task->uid));
-	    PSP_putTypedMsgBuf(&msg, __func__, "chunk", &chunk, sizeof(chunk));
-	    PSP_putTypedMsgBuf(&msg, __func__, "nBytes", &nBytes,
-			       sizeof(nBytes));
+	    PSP_putTypedMsgBuf(&msg, "uid", &task->uid, sizeof(task->uid));
+	    PSP_putTypedMsgBuf(&msg, "chunk", &chunk, sizeof(chunk));
+	    PSP_putTypedMsgBuf(&msg, "nBytes", &nBytes, sizeof(nBytes));
 	}
 
-	PSP_putTypedMsgBuf(&msg, __func__, "node", &task->partition[slot].node,
+	PSP_putTypedMsgBuf(&msg, "node", &task->partition[slot].node,
 			   sizeof(task->partition[slot].node));
 
 	PSCPU_extract(setBuf, task->partition[slot].CPUset, nBytes);
-	PSP_putTypedMsgBuf(&msg, __func__, "CPUset", setBuf, nBytes);
+	PSP_putTypedMsgBuf(&msg, "CPUset", setBuf, nBytes);
     }
 
     sendMsg((DDMsg_t *)&msg);
@@ -1777,11 +1761,10 @@ static void msg_SPAWNREQ(DDTypedBufferMsg_t *msg)
 	    short numCPUs = PSIDnodes_getNumThrds(destID);
 	    uint16_t nBytes = PSCPU_bytesForCPUs(numCPUs);
 
-	    PSP_putTypedMsgBuf(&locMsg, __func__, "nBytes", &nBytes,
-			       sizeof(nBytes));
+	    PSP_putTypedMsgBuf(&locMsg, "nBytes", &nBytes, sizeof(nBytes));
 
 	    PSCPU_extract(setBuf, *rankSet, nBytes);
-	    PSP_putTypedMsgBuf(&locMsg, __func__, "CPUset", setBuf, nBytes);
+	    PSP_putTypedMsgBuf(&locMsg, "CPUset", setBuf, nBytes);
 
 	    /* Invalidate this entry */
 	    PSCPU_clrAll(*rankSet);

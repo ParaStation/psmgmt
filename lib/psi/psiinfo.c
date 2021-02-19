@@ -485,8 +485,7 @@ int PSI_infoList(PSnodes_ID_t node, PSP_Info_t what, const void *param,
 	break;
     case PSP_INFO_LIST_RESNODES:
 	if (param) {
-	    PSP_putTypedMsgBuf(&msg, __func__, "resID", param,
-			       sizeof(PSrsrvtn_ID_t));
+	    PSP_putTypedMsgBuf(&msg, "resID", param, sizeof(PSrsrvtn_ID_t));
 	} else {
 	    PSI_log(-1, "%s: %s request needs a parameter\n", __func__,
 		    PSP_printInfo(what));

@@ -1737,11 +1737,11 @@ static void sendAcctQueueMsg(PStask_t *task)
 	    .len = offsetof(DDTypedBufferMsg_t, buf) },
 	.type = PSP_ACCOUNT_QUEUE };
 
-    PSP_putTypedMsgBuf(&msg, __func__, "TID", &task->tid, sizeof(task->tid));
-    PSP_putTypedMsgBuf(&msg, __func__, "rank", &task->rank, sizeof(task->rank));
-    PSP_putTypedMsgBuf(&msg, __func__, "UID", &task->uid, sizeof(task->uid));
-    PSP_putTypedMsgBuf(&msg, __func__, "GID", &task->gid, sizeof(task->gid));
-    PSP_putTypedMsgBuf(&msg, __func__, "numChild", &task->request->size,
+    PSP_putTypedMsgBuf(&msg, "TID", &task->tid, sizeof(task->tid));
+    PSP_putTypedMsgBuf(&msg, "rank", &task->rank, sizeof(task->rank));
+    PSP_putTypedMsgBuf(&msg, "UID", &task->uid, sizeof(task->uid));
+    PSP_putTypedMsgBuf(&msg, "GID", &task->gid, sizeof(task->gid));
+    PSP_putTypedMsgBuf(&msg, "numChild", &task->request->size,
 		       sizeof(task->request->size));
 
     sendMsg((DDMsg_t *)&msg);
@@ -4712,18 +4712,17 @@ static bool sendReqSlots(DDTypedBufferMsg_t *msg, PSpart_request_t *req)
 	PSpart_slot_t *slots = req->slots+offset;
 
 	if (!offset) {
-	    PSP_putTypedMsgBuf(msg, __func__, "nBytes",
-			       &nBytes, sizeof(nBytes));
+	    PSP_putTypedMsgBuf(msg, "nBytes", &nBytes, sizeof(nBytes));
 	}
 
 	for (n = 0; n < chunk; n++) {
 	    char cpuBuf[nBytes];
 
-	    PSP_putTypedMsgBuf(msg, __func__, "node", &slots[n].node,
+	    PSP_putTypedMsgBuf(msg, "node", &slots[n].node,
 			       sizeof(slots[n].node));
 
 	    PSCPU_extract(cpuBuf, slots[n].CPUset, nBytes);
-	    PSP_putTypedMsgBuf(msg, __func__, "cpuSet", cpuBuf, nBytes);
+	    PSP_putTypedMsgBuf(msg, "cpuSet", cpuBuf, nBytes);
 	}
 	offset += chunk;
 
@@ -4774,8 +4773,8 @@ static void sendReqList(PStask_ID_t dest, list_t *queue, PSpart_list_t opt)
 	msg.type = PSP_INFO_QUEUE_PARTITION;
 	msg.header.len = sizeof(msg.header) + sizeof(msg.type);
 
-	PSP_putTypedMsgBuf(&msg, __func__, "TID", &req->tid, sizeof(req->tid));
-	PSP_putTypedMsgBuf(&msg, __func__, "opt", &opt, sizeof(opt));
+	PSP_putTypedMsgBuf(&msg, "TID", &req->tid, sizeof(req->tid));
+	PSP_putTypedMsgBuf(&msg, "opt", &opt, sizeof(opt));
 
 	tmp = req->num;
 	req->num = (opt & PART_LIST_NODES) ? req->size : 0;
@@ -4929,11 +4928,11 @@ void PSIDpart_sendResNodes(PSrsrvtn_ID_t resID, PStask_t *task,
 	     resID, res->nSlots);
 
     for (s = 0; s < res->nSlots; s++) {
-	if (!PSP_tryPutTypedMsgBuf(msg, __func__, "slot", &res->slots[s].node,
+	if (!PSP_tryPutTypedMsgBuf(msg, "slot", &res->slots[s].node,
 				   sizeof(PSnodes_ID_t))) {
 	    sendMsg(msg);
 	    msg->header.len = emptyLen;
-	    PSP_putTypedMsgBuf(msg, __func__, "slot", &res->slots[s].node,
+	    PSP_putTypedMsgBuf(msg, "slot", &res->slots[s].node,
 			       sizeof(PSnodes_ID_t));
 	}
     }

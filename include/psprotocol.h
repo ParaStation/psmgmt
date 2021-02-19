@@ -641,13 +641,13 @@ bool PSP_tryGetMsgBuf(DDBufferMsg_t *msg, size_t *used, const char *funcName,
  * an error-message is put out and 0 is returned. In the latter case
  * the len member of @a msg is not updated.
  *
- * @a funcName and @a dataName are used in order the create the
+ * @a caller and @a dataName are used in order the create the
  * error-message. It shall describe the calling function and the type
  * of content to be added to @a msg's buffer.
  *
  * @param msg Message to be modified
  *
- * @param funcName Name of the calling function
+ * @param caller Name of the calling function
  *
  * @param dataName Description of the data @a data to be added to @a
  * msg.
@@ -659,8 +659,10 @@ bool PSP_tryGetMsgBuf(DDBufferMsg_t *msg, size_t *used, const char *funcName,
  * @return Upon success, @a true is returned. Or @a false if an error
  * occurred. This is mainly due to insufficient space within @a msg.
  */
-bool PSP_putTypedMsgBuf(DDTypedBufferMsg_t *msg, const char *funcName,
-			const char *dataName, const void *data, size_t size);
+bool PSP_putTypedMsgBufF(DDTypedBufferMsg_t *msg, const char *caller,
+			 const char *dataName, const void *data, size_t size);
+#define PSP_putTypedMsgBuf(msg, dataName, data, size)	\
+    PSP_putTypedMsgBufF(msg, __func__, dataName, data, size)
 
 /**
  * @brief Try to put data into message buffer
@@ -671,7 +673,7 @@ bool PSP_putTypedMsgBuf(DDTypedBufferMsg_t *msg, const char *funcName,
  *
  * @param msg Message to be modified
  *
- * @param funcName Name of the calling function
+ * @param caller Name of the calling function
  *
  * @param dataName Description of the data @a data to be added to @a
  * msg.
@@ -685,8 +687,10 @@ bool PSP_putTypedMsgBuf(DDTypedBufferMsg_t *msg, const char *funcName,
  *
  * @see PSP_putTypedMsgBuf()
  */
-bool PSP_tryPutTypedMsgBuf(DDTypedBufferMsg_t *msg, const char *funcName,
+bool PSP_tryPutTypedMsgBufF(DDTypedBufferMsg_t *msg, const char *caller,
 			   const char *dataName, const void *data, size_t size);
+#define PSP_tryPutTypedMsgBuf(msg, dataName, data, size)		\
+    PSP_tryPutTypedMsgBufF(msg, __func__, dataName, data, size)
 
 /**
  * @brief Get data from message buffer

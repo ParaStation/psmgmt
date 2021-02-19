@@ -189,12 +189,11 @@ static bool sendRegisterClientMsg(int fd, PStask_ID_t loggertid, int32_t resid,
 	.type = PSPMIX_REGISTER_CLIENT,
 	.buf = {'\0'} };
 
-    PSP_putTypedMsgBuf(&msg, __func__, "loggertid", &loggertid,
-	    sizeof(loggertid));
-    PSP_putTypedMsgBuf(&msg, __func__, "resid", &resid, sizeof(resid));
-    PSP_putTypedMsgBuf(&msg, __func__, "rank", &clientRank, sizeof(clientRank));
-    PSP_putTypedMsgBuf(&msg, __func__, "uid", &uid, sizeof(uid));
-    PSP_putTypedMsgBuf(&msg, __func__, "gid", &gid, sizeof(gid));
+    PSP_putTypedMsgBuf(&msg, "loggertid", &loggertid, sizeof(loggertid));
+    PSP_putTypedMsgBuf(&msg, "resid", &resid, sizeof(resid));
+    PSP_putTypedMsgBuf(&msg, "rank", &clientRank, sizeof(clientRank));
+    PSP_putTypedMsgBuf(&msg, "uid", &uid, sizeof(uid));
+    PSP_putTypedMsgBuf(&msg, "gid", &gid, sizeof(gid));
 
     return sendMsg(fd, &msg);
 }

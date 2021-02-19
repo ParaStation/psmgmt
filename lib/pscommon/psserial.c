@@ -1110,13 +1110,13 @@ static void addFragmentedData(PS_SendDB_t *buffer, const void *data,
 	fragMsg.header.sender = PSC_getMyTID();
 	fragMsg.header.type = buffer->headType;
 	fragMsg.type = buffer->msgType;
-	PSP_putTypedMsgBuf(&fragMsg, __func__, "fragType", &type, sizeof(type));
-	PSP_putTypedMsgBuf(&fragMsg, __func__, "fragNum",
-			   &buffer->fragNum, sizeof(buffer->fragNum));
-	PSP_putTypedMsgBuf(&fragMsg, __func__, "extraSize",
-			   &buffer->extraSize, sizeof(buffer->extraSize));
+	PSP_putTypedMsgBuf(&fragMsg, "fragType", &type, sizeof(type));
+	PSP_putTypedMsgBuf(&fragMsg, "fragNum", &buffer->fragNum,
+			   sizeof(buffer->fragNum));
+	PSP_putTypedMsgBuf(&fragMsg, "extraSize", &buffer->extraSize,
+			   sizeof(buffer->extraSize));
 	if (buffer->extraSize) {
-	    PSP_putTypedMsgBuf(&fragMsg, __func__, "extra", buffer->extra,
+	    PSP_putTypedMsgBuf(&fragMsg, "extra", buffer->extra,
 			       buffer->extraSize);
 	}
     }
@@ -1127,7 +1127,7 @@ static void addFragmentedData(PS_SendDB_t *buffer, const void *data,
 
 	/* fill message buffer */
 	size_t tocopy = (dataLeft > chunkLeft) ? chunkLeft : dataLeft;
-	PSP_putTypedMsgBuf(&fragMsg, __func__, "payload",
+	PSP_putTypedMsgBuf(&fragMsg, "payload",
 			   (char *)data + (dataLen - dataLeft), tocopy);
 	dataLeft -= tocopy;
 	chunkLeft -= tocopy;
@@ -1140,14 +1140,13 @@ static void addFragmentedData(PS_SendDB_t *buffer, const void *data,
 	    /* prepare for next fragment */
 	    fragMsg.header.len = offsetof(DDTypedBufferMsg_t, buf);
 	    buffer->fragNum++;
-	    PSP_putTypedMsgBuf(&fragMsg, __func__, "fragType", &type,
-			       sizeof(type));
-	    PSP_putTypedMsgBuf(&fragMsg, __func__, "fragNum",
-			       &buffer->fragNum, sizeof(buffer->fragNum));
-	    PSP_putTypedMsgBuf(&fragMsg, __func__, "extraSize",
-			       &buffer->extraSize, sizeof(buffer->extraSize));
+	    PSP_putTypedMsgBuf(&fragMsg, "fragType", &type, sizeof(type));
+	    PSP_putTypedMsgBuf(&fragMsg, "fragNum", &buffer->fragNum,
+			       sizeof(buffer->fragNum));
+	    PSP_putTypedMsgBuf(&fragMsg, "extraSize", &buffer->extraSize,
+			       sizeof(buffer->extraSize));
 	    if (buffer->extraSize) {
-		PSP_putTypedMsgBuf(&fragMsg, __func__, "extra", buffer->extra,
+		PSP_putTypedMsgBuf(&fragMsg, "extra", buffer->extra,
 				   buffer->extraSize);
 	    }
 

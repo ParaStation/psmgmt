@@ -91,24 +91,24 @@ void signalPElogue(Job_t *job, char *signal, char *reason)
 
     /* Add string including its length mimicking addString */
     uint32_t len = htonl(PSP_strLen(job->id));
-    PSP_putTypedMsgBuf(&msg, __func__, "len", &len, sizeof(len));
-    PSP_putTypedMsgBuf(&msg, __func__, "jobID", job->id, PSP_strLen(job->id));
+    PSP_putTypedMsgBuf(&msg, "len", &len, sizeof(len));
+    PSP_putTypedMsgBuf(&msg, "jobID", job->id, PSP_strLen(job->id));
 
     /* Add string including its length mimicking addString */
     len = htonl(PSP_strLen(signal));
-    PSP_putTypedMsgBuf(&msg, __func__, "len", &len, sizeof(len));
-    PSP_putTypedMsgBuf(&msg, __func__, "signal", signal, PSP_strLen(signal));
+    PSP_putTypedMsgBuf(&msg, "len", &len, sizeof(len));
+    PSP_putTypedMsgBuf(&msg, "signal", signal, PSP_strLen(signal));
 
     /* add space for finish flag */
     finishPtr = (int32_t *)(msg.buf + (msg.header.len
 				       - offsetof(DDTypedBufferMsg_t, buf)));
 
-    PSP_putTypedMsgBuf(&msg, __func__, "<wild-card>", NULL, sizeof(int32_t));
+    PSP_putTypedMsgBuf(&msg, "<wild-card>", NULL, sizeof(int32_t));
 
     /* Add string including its length mimicking addString */
     len = htonl(PSP_strLen(reason));
-    PSP_putTypedMsgBuf(&msg, __func__, "len", &len, sizeof(len));
-    PSP_putTypedMsgBuf(&msg, __func__, "reason", reason, PSP_strLen(reason));
+    PSP_putTypedMsgBuf(&msg, "len", &len, sizeof(len));
+    PSP_putTypedMsgBuf(&msg, "reason", reason, PSP_strLen(reason));
 
     for (i=0; i<job->nrOfUniqueNodes; i++) {
 	PSnodes_ID_t id = job->nodes[i].id;

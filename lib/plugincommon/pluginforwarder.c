@@ -557,21 +557,21 @@ static void sendAccInfo(Forwarder_Data_t *fw, int32_t status,
 	    .len = offsetof(DDTypedBufferMsg_t, buf) },
 	.type = PSP_ACCOUNT_END };
 
-    PSP_putTypedMsgBuf(accMsg, __func__, "loggerTID", &logger, sizeof(logger));
-    PSP_putTypedMsgBuf(accMsg, __func__, "rank", &rank, sizeof(rank));
-    PSP_putTypedMsgBuf(accMsg, __func__, "uid", &uid, sizeof(uid));
-    PSP_putTypedMsgBuf(accMsg, __func__, "gid", &gid, sizeof(gid));
-    PSP_putTypedMsgBuf(accMsg, __func__, "cPID", &fw->cPid, sizeof(fw->cPid));
-    PSP_putTypedMsgBuf(accMsg, __func__, "rusage", rusage, sizeof(*rusage));
-    PSP_putTypedMsgBuf(accMsg, __func__, "pagesize", &pSize, sizeof(pSize));
+    PSP_putTypedMsgBuf(accMsg, "loggerTID", &logger, sizeof(logger));
+    PSP_putTypedMsgBuf(accMsg, "rank", &rank, sizeof(rank));
+    PSP_putTypedMsgBuf(accMsg, "uid", &uid, sizeof(uid));
+    PSP_putTypedMsgBuf(accMsg, "gid", &gid, sizeof(gid));
+    PSP_putTypedMsgBuf(accMsg, "cPID", &fw->cPid, sizeof(fw->cPid));
+    PSP_putTypedMsgBuf(accMsg, "rusage", rusage, sizeof(*rusage));
+    PSP_putTypedMsgBuf(accMsg, "pagesize", &pSize, sizeof(pSize));
 
     /* wall-time used by child */
     gettimeofday(&now, NULL);
     timersub(&now, &childStart, &wTime);
-    PSP_putTypedMsgBuf(accMsg, __func__, "walltime", &wTime, sizeof(wTime));
+    PSP_putTypedMsgBuf(accMsg, "walltime", &wTime, sizeof(wTime));
 
-    PSP_putTypedMsgBuf(accMsg, __func__, "status", &status, sizeof(status));
-    PSP_putTypedMsgBuf(accMsg, __func__, "extended flag", &ext, sizeof(ext));
+    PSP_putTypedMsgBuf(accMsg, "status", &status, sizeof(status));
+    PSP_putTypedMsgBuf(accMsg, "extended flag", &ext, sizeof(ext));
     msg.header.len += accMsg->header.len;
 
     sendMsgToMother(&msg);

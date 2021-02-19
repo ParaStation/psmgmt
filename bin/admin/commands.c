@@ -1796,7 +1796,7 @@ void PSIADM_Plugin(bool *nl, char *name, PSP_Plugin_t action)
 
     msg.type = action;
 
-    if (!PSP_putTypedMsgBuf(&msg, __func__, "plugin", name, PSP_strLen(name)))
+    if (!PSP_putTypedMsgBuf(&msg, "plugin", name, PSP_strLen(name)))
 	return;
 
     if (! getHostStatus()) return;
@@ -1891,11 +1891,11 @@ void PSIADM_PluginKey(bool *nl, char *name, char *key, char *value,
 
     msg.type = action;
 
-    if (!PSP_putTypedMsgBuf(&msg, __func__, "plugin", name, PSP_strLen(name)))
+    if (!PSP_putTypedMsgBuf(&msg, "plugin", name, PSP_strLen(name)))
 	return;
-    if (!PSP_putTypedMsgBuf(&msg, __func__, "key", key, PSP_strLen(key)))
+    if (!PSP_putTypedMsgBuf(&msg, "key", key, PSP_strLen(key)))
 	return;
-    if (!PSP_putTypedMsgBuf(&msg, __func__, "value", value, PSP_strLen(value)))
+    if (!PSP_putTypedMsgBuf(&msg, "value", value, PSP_strLen(value)))
 	return;
 
     if (! getHostStatus()) return;
@@ -1928,8 +1928,7 @@ static int putEnv(DDTypedBufferMsg_t *msg, char *key, char *value)
 
     snprintf(env, sizeof(env), "%s=%s", key, value);
 
-    return PSP_putTypedMsgBuf(msg, __func__, "environment", env,
-			      PSP_strLen(env));
+    return PSP_putTypedMsgBuf(msg, "environment", env, PSP_strLen(env));
 }
 
 
@@ -1950,7 +1949,7 @@ void PSIADM_Environment(bool *nl, char *key, char *value, PSP_Env_t action)
 	if (!putEnv(&msg, key, value)) return;
 	break;
     case PSP_ENV_UNSET:
-	if (!PSP_putTypedMsgBuf(&msg, __func__, "key", key, PSP_strLen(key)))
+	if (!PSP_putTypedMsgBuf(&msg, "key", key, PSP_strLen(key)))
 	    return;
 	break;
     default:
