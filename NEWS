@@ -5,6 +5,14 @@ Copyright (C) 2010-2021 ParTec Cluster Competence Center GmbH, Munich
 Please send bug reports, questions and suggestions to <support@par-tec.com>
 
 
+Version 5.1.38-1:
+=================
+Bugfixes:
+ - Fill proto-version cache prior to spawn requests
+Enhancements:
+ - Fix format of various PSI_log() output
+
+
 Version 5.1.38:
 ===============
 Bugfixes:
