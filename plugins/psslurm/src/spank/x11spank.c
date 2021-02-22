@@ -63,13 +63,13 @@ static int parse_display_env(struct x11display *d)
 {
 	const char *display = getenv("DISPLAY");
 	if (!display) {
-		slurm_error("DISPLAY variable not set");
+		slurm_error("%s: DISPLAY variable not set", __func__);
 		return -1;
 	}
 
 	const char *p = strchr(display, ':');
 	if (!p) {
-		slurm_error("DISPLAY variable is malformed");
+		slurm_error("%s: DISPLAY variable is malformed", __func__);
 		return -2;
 	}
 
@@ -84,7 +84,7 @@ static int parse_display_env(struct x11display *d)
 	char buf[256];
 	size_t n = strlen(p);
 	if (n > sizeof(buf)) {
-		slurm_error("DISPLAY variable is too long");
+		slurm_error("%s: DISPLAY variable is too long", __func__);
 		return -3;
 	}
 
@@ -97,7 +97,7 @@ static int parse_display_env(struct x11display *d)
 		errno = 0;
 		d->screen = strtol(q, NULL, 10);
 		if (errno) {
-			slurm_error("Invalid screen value in DISPLAY");
+			slurm_error("%s: invalid screen value in DISPLAY", __func__);
 			return -4;
 		}
 	} else {
@@ -107,7 +107,7 @@ static int parse_display_env(struct x11display *d)
 	errno = 0;
 	d->display = strtol(buf, NULL, 10);
 	if (errno) {
-		slurm_error("Invalid display value in DISPLAY");
+		slurm_error("%s: invalid display value in DISPLAY", __func__);
 		return -5;
 	}
 
@@ -139,7 +139,7 @@ int get_xauth_proto_and_cookie(struct x11display *d,
 	char str[256];
 
 	if (d->hostlen >= sizeof(str)) {
-		slurm_error("Hostname is too long");
+		slurm_error("%s: hostname is too long", __func__);
 		return -1;
 	}
 
@@ -155,7 +155,7 @@ int get_xauth_proto_and_cookie(struct x11display *d,
 	int k = sizeof(XAUTH) + sizeof(" list ") - 2;
 
 	if ((n + k + sizeof(" 2> /dev/null")) >= sizeof(str)) {
-		slurm_error("Display string is too long");
+		slurm_error("%s: display string is too long", __func__);
 		return -2;
 	}
 
@@ -173,13 +173,13 @@ int get_xauth_proto_and_cookie(struct x11display *d,
 
 	/* Just to be sure */
 	if (strlen(str) > sizeof(str)) {
-		slurm_error("assertion '!(strlen(str) > sizeof(str)))' failed.");
+		slurm_error("%s: assertion '!(strlen(str) > sizeof(str)))' failed.", __func__);
 		return -3;
 	}
 
 	FILE *f = popen(str, "r");
 	if (!f) {
-		slurm_error("xauth execution failed");
+		slurm_error("%s: xauth execution failed", __func__);
 		return -4;
 	}
 
@@ -188,13 +188,13 @@ int get_xauth_proto_and_cookie(struct x11display *d,
 
 	int err = fscanf(f, str, proto, cookie);
 	if (err != 2) {
-		slurm_error("Reading xauth output failed");
+		slurm_error("%s: reading xauth output failed", __func__);
 		return -5;
 	}
 
 	err = pclose(f);
 	if (err) {
-		slurm_error("pclose returned %d", err);
+		slurm_error("%s: pclose returned %d", __func__, err);
 		return -6;
 	}
 
@@ -232,7 +232,7 @@ int connect_x_inet(struct x11display *d)
 	int err;
 
 	if (d->hostlen > sizeof(hostname) - 1) {
-		slurm_error("Hostname is too long");
+		slurm_error("%s: hostname is too long", __func__);
 		return -1;
 	}
 
@@ -246,7 +246,7 @@ int connect_x_inet(struct x11display *d)
 
 	err = getaddrinfo(hostname, NULL, &hints, &ailist);
 	if (err) {
-		slurm_error("getaddrinfo failed");
+		slurm_error("%s: getaddrinfo() failed", __func__);
 		return -3;
 	}
 
@@ -262,20 +262,20 @@ int connect_x_inet(struct x11display *d)
 
 	sock = socket(AF_INET, SOCK_STREAM, 0);
 	if (sock < 0) {
-		slurm_error("Socket creation failed");
+		slurm_error("%s: socket creation failed", __func__);
 		return -4;
 	}
 
 	err = connect(sock, (struct sockaddr *)&sa, sizeof(sa));
 	if (err < 0) {
-		slurm_error("connect failed. errno says '%s'", strerror(errno));
+		slurm_error("%s: connect failed. errno says '%s'", __func__, strerror(errno));
 		close(sock);
 		return -5;
 	}
 
 	err = setsockopt(sock, IPPROTO_TCP, TCP_NODELAY, &one, sizeof(one));
 	if (err) {
-		slurm_error("setsockopt(TCP_NODELAY) failed");
+		slurm_error("%s: setsockopt(TCP_NODELAY) failed", __func__);
 		/* continue anyway */
 	}
 
@@ -288,22 +288,20 @@ int connect_x_inet(struct x11display *d)
 int connect_x_unix(struct x11display *d)
 {
 	struct sockaddr_un sa;
-	int sock;
-	int err;
 
 	memset(&sa, 0, sizeof(sa));
 	sa.sun_family = AF_UNIX;
 	snprintf(sa.sun_path, sizeof(sa.sun_path), "/tmp/.X11-unix/X%d", d->display);
 
-	sock = socket(AF_UNIX, SOCK_STREAM, 0);
+	int sock = socket(AF_UNIX, SOCK_STREAM, 0);
 	if (sock < 0) {
-		slurm_error("Socket creation failed");
+		slurm_error("%s: socket creation failed", __func__);
 		return -4;
 	}
 
-	err = connect(sock, (struct sockaddr *)&sa, sizeof(sa));
+	int err = connect(sock, (struct sockaddr *)&sa, sizeof(sa));
 	if (err < 0) {
-		slurm_error("connect failed. errno says '%s'", strerror(errno));
+		slurm_error("%s: connect failed: '%s'", __func__, strerror(errno));
 		close(sock);
 		return -5;
 	}
@@ -324,22 +322,22 @@ int connect_x(struct x11display *d)
  */
 int copy(int from, int to, void *buf, int bufsize)
 {
-	int n, m;
-
 	errno = 0;
-
-	n = read(from, buf, bufsize);
+	int n = read(from, buf, bufsize);
 	if (n < 1) {
+		slurm_error("%s: read(%i) failed: %s\n", __func__, from, strerror(errno));
 		return -1;
 	}
 
-	m = write(to, buf, n);
+	errno = 0;
+	int m = write(to, buf, n);
 	if (m < 1) {
+		slurm_error("%s: write(%i) failed: %s\n", __func__, to, strerror(errno));
 		return -2;
 	}
 
 	if (n != m) {
-		slurm_error("write size mismatch");
+		slurm_error("%s: write size mismatch", __func__);
 		return -3;
 	}
 
@@ -369,21 +367,19 @@ void remove_list_entry(struct sockpair *head, struct sockpair *sp)
 __attribute__((noreturn))
 void forwarder_loop(struct x11display *d, int sock)
 {
-	int err;
-	int n;
-	struct sockpair head;
-	struct sockpair *sp;
-	fd_set readset;
 	char buf[512];
 
+	struct sockpair head;
 	memset(&head, 0, sizeof(head));
 
 	while (1) {
+		fd_set readset;
 		FD_ZERO(&readset);
 
 		FD_SET(sock, &readset);
-		n = sock;
+		int n = sock;
 
+		struct sockpair *sp;
 		for (sp = head.next; sp; sp = sp->next) {
 			FD_SET(sp->left , &readset);
 			n = MAX(n, sp->left);
@@ -392,7 +388,7 @@ void forwarder_loop(struct x11display *d, int sock)
 			n = MAX(n, sp->right);
 		}
 
-		err = select(n + 1, &readset, NULL, NULL, NULL);
+		int err = select(n + 1, &readset, NULL, NULL, NULL);
 		if ((err < 0) && (EINTR == errno))
 			continue;
 
@@ -457,10 +453,9 @@ void forwarder_loop(struct x11display *d, int sock)
 	}
 
 fail:
-	slurm_error("forwarder failed. Going into infinite loop.");
+	slurm_error("%s: forwarder failed. Going into infinite loop.", __func__);
 	while (1);
 }
-
 
 /*
  * Open a socket for the forwarding of the X11 traffic. We open a port
@@ -469,25 +464,21 @@ fail:
  */
 int open_forwarder_socket()
 {
-	struct sockaddr_in sai;
-	int sock;
-	int err;
-	short p;
+	int sock = -1;
 
-	sock = -1;
-
-	for (p = X11_FIRST_PORT; p <= X11_LAST_PORT; ++p) {
+	for (short p = X11_FIRST_PORT; p <= X11_LAST_PORT; ++p) {
 		sock = socket(AF_INET, SOCK_STREAM, 0);
 		if (sock < 0) {
 			continue;
 		}
 
+		struct sockaddr_in sai;
 		memset(&sai, 0, sizeof(sai));
 		sai.sin_family = AF_INET;
 		sai.sin_addr.s_addr = INADDR_ANY;
 		sai.sin_port = htons(p);
 
-		err = bind(sock, (struct sockaddr *)&sai, sizeof(sai));
+		int err = bind(sock, (struct sockaddr *)&sai, sizeof(sai));
 		if (err < 0) {
 			close(sock);
 			sock = -1;
@@ -502,7 +493,7 @@ int open_forwarder_socket()
 		return -1;
 	}
 
-	err = listen(sock, 6);
+	int err = listen(sock, 6);
 	if (err < 0) {
 		slurm_error("listen failed");
 		return -2;
@@ -511,44 +502,37 @@ int open_forwarder_socket()
 	return sock;
 }
 
-
 /*
  * Fork a forwarder process. Return the pid and the socket address.
  */
 int fork_forwarder(struct x11display *d, pid_t *pid, struct sockaddr_in *sai,
                    socklen_t alen)
 {
-	int err;
-	int sock;
-	pid_t p;
-	socklen_t blen;
-
 	*pid = -1;
 
-	sock = open_forwarder_socket();
-	if (sock < 0)
-		return -1;
+	int sock = open_forwarder_socket();
+	if (sock < 0) return -1;
 
 	memset(sai, 0, alen);
-	blen = alen;
+	socklen_t blen = alen;
 
-	err = getsockname(sock, sai, &blen);
+	int err = getsockname(sock, sai, &blen);
 	if (err < 0) {
-		slurm_error("getsockname failed");
+		slurm_error("%s: getsockname() failed", __func__);
 		return -2;
 	}
 
 	if (alen != blen) {
-		slurm_error("getsockname address size mismatch");
+		slurm_error("%s: getsockname() address size mismatch", __func__);
 		return -3;
 	}
 
-	p = fork();
-	if (0 == p) {
+	pid_t p = fork();
+	if (p == 0) {
 		forwarder_loop(d, sock);
 	} else {
-		if (-1 == p) {
-			slurm_error("fork failed");
+		if (p == -1) {
+			slurm_error("%s: fork() failed", __func__);
 			return -4;
 		}
 
@@ -556,7 +540,7 @@ int fork_forwarder(struct x11display *d, pid_t *pid, struct sockaddr_in *sai,
 
 		*pid = p;
 #ifdef DEBUG
-		slurm_info("Forwarder pid = %d", (int )*pid);
+		slurm_info("%s: forwarder pid = %d", __func__, *pid);
 #endif
 	}
 
@@ -591,9 +575,7 @@ int slurm_spank_slurmd_init(spank_t sp, int ac, char **av)
 int slurm_spank_job_prolog(spank_t sp, int ac, char **av)
 {
 #ifdef DEBUG
-	FILE *f;
-
-	f = fopen("/tmp/x11spank", "w");
+	FILE *f = fopen("/tmp/x11spank", "w");
 	if (!f) {
 		slurm_error("Could not open file '/tmp/x11spank' for writing");
 		return -1;
@@ -618,53 +600,57 @@ int slurm_spank_init_post_opt(spank_t sp, int ac, char **av)
 
 int slurm_spank_local_user_init(spank_t sp, int ac, char **av)
 {
-	struct x11display d;
-	int err;
-	char proto[64], cookie[64];
-	struct sockaddr_in sai;
-	char addr[INET_ADDRSTRLEN];
-	char buf[8];
-
-	if (!enable_forwarding)
-		return 0;
+	if (!enable_forwarding) return 0;
 
 	srun_pid = getpid();
 
 #ifdef DEBUG
-	slurm_info("X11 forwarding enabled");
+	slurm_info("%s: X11 forwarding enabled", __func__);
 #endif
 
-	err = parse_display_env(&d);
-	if (err < 0)
-		return err;
+	struct x11display d;
+	int ret = parse_display_env(&d);
+	if (ret < 0) {
+		slurm_error("%s: parsing display env failed\n", __func__);
+		return ret;
+	}
 
-	err = get_xauth_proto_and_cookie(&d, proto, sizeof(proto),
+	char proto[64], cookie[64];
+	ret = get_xauth_proto_and_cookie(&d, proto, sizeof(proto),
 	                                 cookie, sizeof(cookie));
-	if (err < 0)
-		return err;
+	if (ret < 0) {
+		slurm_error("%s: calling xauth failed\n", __func__);
+		return ret;
+	}
 
-	err = fork_forwarder(&d, &forwarder_pid, &sai, sizeof(sai));
+	struct sockaddr_in sai;
+	ret = fork_forwarder(&d, &forwarder_pid, &sai, sizeof(sai));
+	if (ret <0) {
+		slurm_error("%s: forking forwarder failed\n", __func__);
+		return ret;
+	}
 
+	char addr[INET_ADDRSTRLEN];
 	if (!inet_ntop(AF_INET, &sai.sin_addr, addr, sizeof(addr))) {
-		slurm_error("inet_ntop failed");
+		slurm_error("%s: inet_ntop() failed", __func__);
 		return -1;
 	}
 #ifdef DEBUG
-	slurm_info("SPANK_X11_HOST = %s", addr);
+	slurm_info("%s: SPANK_X11_HOST = %s", __func__, addr);
 #endif
-	err = spank_job_control_setenv(sp, "X11_HOST", addr, 1);
+	spank_job_control_setenv(sp, "X11_HOST", addr, 1);
 
+	char buf[8];
 	snprintf(buf, sizeof(buf), "%d", (int )ntohs(sai.sin_port));
 #ifdef DEBUG
-	slurm_info("SPANK_X11_PORT = %s", buf);
+	slurm_info("%s: SPANK_X11_PORT = %s", __func__, buf);
 #endif
-	err = spank_job_control_setenv(sp, "X11_PORT", buf, 1);
-
-	err = spank_job_control_setenv(sp, "X11_PROTO" , proto, 1);
-	err = spank_job_control_setenv(sp, "X11_COOKIE", cookie, 1);
+	spank_job_control_setenv(sp, "X11_PORT", buf, 1);
+	spank_job_control_setenv(sp, "X11_PROTO" , proto, 1);
+	spank_job_control_setenv(sp, "X11_COOKIE", cookie, 1);
 
 	snprintf(buf, sizeof(buf), "%d", (int )d.screen);
-	err = spank_job_control_setenv(sp, "X11_SCREEN", buf, 1);
+	spank_job_control_setenv(sp, "X11_SCREEN", buf, 1);
 
 	return 0;
 }
@@ -706,21 +692,17 @@ int slurm_spank_slurmd_exit(spank_t sp, int ac, char **av)
 
 int slurm_spank_exit(spank_t sp, int ac, char **av)
 {
-	int status;
-	struct timespec ts;
+	if (S_CTX_LOCAL != spank_context()) return 0;
+	if (getpid() != srun_pid) return 0;
 
-	if (S_CTX_LOCAL != spank_context())
-		return 0;
-
-	if (getpid() != srun_pid)
-		return 0;
-
-	if (-1 != forwarder_pid) {
+	if (forwarder_pid != -1) {
 #ifdef DEBUG
-		slurm_info("Killing forwarder pid %d", (int )forwarder_pid);
+		slurm_info("%s: killing forwarder pid %d", __func__,
+			   forwarder_pid);
 #endif
-
 		kill(forwarder_pid, SIGTERM);
+
+		struct timespec ts;
 
 		ts.tv_sec  = 1;
 		ts.tv_nsec = 0;
@@ -728,9 +710,9 @@ int slurm_spank_exit(spank_t sp, int ac, char **av)
 
 		kill(forwarder_pid, SIGKILL);
 
+		int status;
 		waitpid(forwarder_pid, &status, 0);
 	}
 
 	return 0;
 }
-
