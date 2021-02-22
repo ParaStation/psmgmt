@@ -1,4 +1,3 @@
-
 #define _GNU_SOURCE
 #include <string.h>
 #include <stdlib.h>
@@ -33,9 +32,6 @@ static int   enable_forwarding = 0;
 #define MAX(X, Y)	(((X) >= (Y)) ? (X) : (Y))
 #define MIN(X, Y)	(((X) >= (Y)) ? (Y) : (X))
 
-#define likely(X)	__builtin_expect(!!(X), 1)
-#define unlikely(X)	__builtin_expect(!!(X), 0)
-
 /*
  * An X11 display consisting of the host (may be NULL) without
  * trailing zero, the length of the host string (again without trailing
@@ -44,7 +40,7 @@ static int   enable_forwarding = 0;
 struct x11display
 {
 	const char	*host;
-	int		hostlen;
+	size_t		hostlen;
 	int		display;
 	int		screen;
 };
@@ -65,23 +61,15 @@ struct x11display
  */
 static int parse_display_env(struct x11display *d)
 {
-	const char *display;
-	const char *p;
-	char *q;
-	char buf[256];	/* I prefer to use a static buffer here.
-			 * 256 should be sufficient in any case.
-			 */
-	int n;
-
-	display = getenv("DISPLAY");
-	if (unlikely(!display)) {
+	const char *display = getenv("DISPLAY");
+	if (!display) {
 		slurm_error("DISPLAY variable not set");
 		return -1;
 	}
 
-	p = strchr(display, ':');
-	if (unlikely(!p)) {
-		slurm_error("DISPLAY variable is misformed");
+	const char *p = strchr(display, ':');
+	if (!p) {
+		slurm_error("DISPLAY variable is malformed");
 		return -2;
 	}
 
@@ -90,24 +78,25 @@ static int parse_display_env(struct x11display *d)
 		d->hostlen = 0;
 	} else {
 		d->host	   = display;
-		d->hostlen = (int )(p - display);
+		d->hostlen = p - display;
 	}
 
-	n = strlen(p);
-	if (unlikely(n > sizeof(buf))) {
+	char buf[256];
+	size_t n = strlen(p);
+	if (n > sizeof(buf)) {
 		slurm_error("DISPLAY variable is too long");
 		return -3;
 	}
 
 	memcpy(buf, p + 1, n);
 
-	q = strchr(buf, '.');
+	char *q = strchr(buf, '.');
 	if (q) {
 		*(q++) = 0;
 
 		errno = 0;
 		d->screen = strtol(q, NULL, 10);
-		if (unlikely(errno)) {
+		if (errno) {
 			slurm_error("Invalid screen value in DISPLAY");
 			return -4;
 		}
@@ -117,7 +106,7 @@ static int parse_display_env(struct x11display *d)
 
 	errno = 0;
 	d->display = strtol(buf, NULL, 10);
-	if (unlikely(errno)) {
+	if (errno) {
 		slurm_error("Invalid display value in DISPLAY");
 		return -5;
 	}
@@ -126,7 +115,8 @@ static int parse_display_env(struct x11display *d)
 	slurm_info("DISPLAY:");
 
 	if (d->host) {
-		*(char *)mempcpy(buf, d->host  , MIN(sizeof(buf)-1, d->hostlen)) = 0;
+		*(char *)mempcpy(buf, d->host,
+				 MIN(sizeof(buf)-1, d->hostlen)) = 0;
 	} else {
 		*(char *)mempcpy(buf, "(null)", MIN(sizeof(buf)-1, 6)) = 0;
 	}
@@ -146,17 +136,14 @@ int get_xauth_proto_and_cookie(struct x11display *d,
                                char *proto, int protolen,
                                char *cookie, int cookielen)
 {
-	FILE* f;
 	char str[256];
-	char *p;
-	int i, n, k;
-	int err;
 
-	if (unlikely(d->hostlen >= sizeof(str))) {
+	if (d->hostlen >= sizeof(str)) {
 		slurm_error("Hostname is too long");
 		return -1;
 	}
 
+	char *p;
 	if ((!d->host) || ((9 == d->hostlen) && !strncmp(d->host, "localhost", d->hostlen))) {
 		p = (char *)mempcpy(str, "unix", 4);
 	} else {
@@ -164,17 +151,17 @@ int get_xauth_proto_and_cookie(struct x11display *d,
 	}
 	snprintf(p, sizeof(str) - (p - str), ":%d.%d", d->display, d->screen);
 
-	n = strlen(str);
-	k = sizeof(XAUTH) + sizeof(" list ") - 2;
+	size_t n = strlen(str);
+	int k = sizeof(XAUTH) + sizeof(" list ") - 2;
 
-	if (unlikely((n + k + sizeof(" 2> /dev/null")) >= sizeof(str))) {
+	if ((n + k + sizeof(" 2> /dev/null")) >= sizeof(str)) {
 		slurm_error("Display string is too long");
 		return -2;
 	}
 
 	*(char *)mempcpy(str + n, " 2> /dev/null", sizeof(" 2> /dev/null") - 1) = 0;
 
-	for (i = (n + k); i >= 0; --i)
+	for (int i = (n + k); i >= 0; --i)
 		str[i + k] = str[i];
 
 	mempcpy(mempcpy(str, XAUTH, sizeof(XAUTH) - 1),
@@ -190,8 +177,8 @@ int get_xauth_proto_and_cookie(struct x11display *d,
 		return -3;
 	}
 
-	f = popen(str, "r");
-	if (unlikely(!f)) {
+	FILE *f = popen(str, "r");
+	if (!f) {
 		slurm_error("xauth execution failed");
 		return -4;
 	}
@@ -199,14 +186,14 @@ int get_xauth_proto_and_cookie(struct x11display *d,
 	/* It is safe to reuse str at this point due to COW */
 	snprintf(str, sizeof(str), "%%*s %%%ds %%%ds", protolen, cookielen);
 
-	err = fscanf(f, str, proto, cookie);
-	if (unlikely(2 != err)) {
+	int err = fscanf(f, str, proto, cookie);
+	if (err != 2) {
 		slurm_error("Reading xauth output failed");
 		return -5;
 	}
 
 	err = pclose(f);
-	if (unlikely(err)) {
+	if (err) {
 		slurm_error("pclose returned %d", err);
 		return -6;
 	}
@@ -244,7 +231,7 @@ int connect_x_inet(struct x11display *d)
 	int one = 1;
 	int err;
 
-	if (unlikely((d->hostlen > sizeof(hostname) - 1))) {
+	if (d->hostlen > sizeof(hostname) - 1) {
 		slurm_error("Hostname is too long");
 		return -1;
 	}
@@ -258,7 +245,7 @@ int connect_x_inet(struct x11display *d)
 	hints.ai_protocol = IPPROTO_TCP;
 
 	err = getaddrinfo(hostname, NULL, &hints, &ailist);
-	if (unlikely(err)) {
+	if (err) {
 		slurm_error("getaddrinfo failed");
 		return -3;
 	}
@@ -274,20 +261,20 @@ int connect_x_inet(struct x11display *d)
 	freeaddrinfo(aip);
 
 	sock = socket(AF_INET, SOCK_STREAM, 0);
-	if (unlikely(sock < 0)) {
+	if (sock < 0) {
 		slurm_error("Socket creation failed");
 		return -4;
 	}
 
 	err = connect(sock, (struct sockaddr *)&sa, sizeof(sa));
-	if (unlikely(err < 0)) {
+	if (err < 0) {
 		slurm_error("connect failed. errno says '%s'", strerror(errno));
 		close(sock);
 		return -5;
 	}
 
 	err = setsockopt(sock, IPPROTO_TCP, TCP_NODELAY, &one, sizeof(one));
-	if (unlikely(err)) {
+	if (err) {
 		slurm_error("setsockopt(TCP_NODELAY) failed");
 		/* continue anyway */
 	}
@@ -309,13 +296,13 @@ int connect_x_unix(struct x11display *d)
 	snprintf(sa.sun_path, sizeof(sa.sun_path), "/tmp/.X11-unix/X%d", d->display);
 
 	sock = socket(AF_UNIX, SOCK_STREAM, 0);
-	if (unlikely(sock < 0)) {
+	if (sock < 0) {
 		slurm_error("Socket creation failed");
 		return -4;
 	}
 
 	err = connect(sock, (struct sockaddr *)&sa, sizeof(sa));
-	if (unlikely(err < 0)) {
+	if (err < 0) {
 		slurm_error("connect failed. errno says '%s'", strerror(errno));
 		close(sock);
 		return -5;
@@ -342,16 +329,16 @@ int copy(int from, int to, void *buf, int bufsize)
 	errno = 0;
 
 	n = read(from, buf, bufsize);
-	if (unlikely(n < 1)) {
+	if (n < 1) {
 		return -1;
 	}
 
 	m = write(to, buf, n);
-	if (unlikely(m < 1)) {
+	if (m < 1) {
 		return -2;
 	}
 
-	if (unlikely(n != m)) {
+	if (n != m) {
 		slurm_error("write size mismatch");
 		return -3;
 	}
@@ -406,10 +393,10 @@ void forwarder_loop(struct x11display *d, int sock)
 		}
 
 		err = select(n + 1, &readset, NULL, NULL, NULL);
-		if (unlikely((err < 0) && (EINTR == errno)))
+		if ((err < 0) && (EINTR == errno))
 			continue;
 
-		if (unlikely(err < 0)) {
+		if (err < 0) {
 			slurm_error("select failed");
 		}
 
@@ -420,7 +407,7 @@ void forwarder_loop(struct x11display *d, int sock)
 			}
 
 			sp->next = malloc(sizeof(struct sockpair));
-			if (unlikely(!sp->next)) {
+			if (!sp->next) {
 				slurm_error("malloc failed.");
 				goto fail;
 			}
@@ -429,13 +416,13 @@ void forwarder_loop(struct x11display *d, int sock)
 			memset(sp, 0, sizeof(*sp));
 
 			sp->left = accept(sock, NULL, NULL);
-			if (unlikely(sp->left < 0)) {
+			if (sp->left < 0) {
 				slurm_error("accept failed");
 				goto fail;
 			}
 
 			sp->right = connect_x(d);
-			if (unlikely(sp->right < 0)) {
+			if (sp->right < 0) {
 				slurm_error("Failed to connect to X server");
 				goto fail;
 			}
@@ -491,7 +478,7 @@ int open_forwarder_socket()
 
 	for (p = X11_FIRST_PORT; p <= X11_LAST_PORT; ++p) {
 		sock = socket(AF_INET, SOCK_STREAM, 0);
-		if (unlikely(sock < 0)) {
+		if (sock < 0) {
 			continue;
 		}
 
@@ -510,13 +497,13 @@ int open_forwarder_socket()
 		break;
 	}
 
-	if (unlikely(sock < 0)) {
+	if (sock < 0) {
 		slurm_error("Failed to open socket for forwarding.");
 		return -1;
 	}
 
 	err = listen(sock, 6);
-	if (unlikely(err < 0)) {
+	if (err < 0) {
 		slurm_error("listen failed");
 		return -2;
 	}
@@ -539,19 +526,19 @@ int fork_forwarder(struct x11display *d, pid_t *pid, struct sockaddr_in *sai,
 	*pid = -1;
 
 	sock = open_forwarder_socket();
-	if (unlikely(sock < 0))
+	if (sock < 0)
 		return -1;
 
 	memset(sai, 0, alen);
 	blen = alen;
 
 	err = getsockname(sock, sai, &blen);
-	if (unlikely(err < 0)) {
+	if (err < 0) {
 		slurm_error("getsockname failed");
 		return -2;
 	}
 
-	if (unlikely(alen != blen)) {
+	if (alen != blen) {
 		slurm_error("getsockname address size mismatch");
 		return -3;
 	}
@@ -560,7 +547,7 @@ int fork_forwarder(struct x11display *d, pid_t *pid, struct sockaddr_in *sai,
 	if (0 == p) {
 		forwarder_loop(d, sock);
 	} else {
-		if (unlikely(-1 == p)) {
+		if (-1 == p) {
 			slurm_error("fork failed");
 			return -4;
 		}
@@ -607,7 +594,7 @@ int slurm_spank_job_prolog(spank_t sp, int ac, char **av)
 	FILE *f;
 
 	f = fopen("/tmp/x11spank", "w");
-	if (unlikely(!f)) {
+	if (!f) {
 		slurm_error("Could not open file '/tmp/x11spank' for writing");
 		return -1;
 	}
@@ -648,12 +635,12 @@ int slurm_spank_local_user_init(spank_t sp, int ac, char **av)
 #endif
 
 	err = parse_display_env(&d);
-	if (unlikely(err < 0))
+	if (err < 0)
 		return err;
 
 	err = get_xauth_proto_and_cookie(&d, proto, sizeof(proto),
 	                                 cookie, sizeof(cookie));
-	if (unlikely(err < 0))
+	if (err < 0)
 		return err;
 
 	err = fork_forwarder(&d, &forwarder_pid, &sai, sizeof(sai));
