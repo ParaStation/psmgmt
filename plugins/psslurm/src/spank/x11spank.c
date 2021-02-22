@@ -170,7 +170,8 @@ int get_xauth_proto_and_cookie(struct x11display *d, char *proto, int protolen,
 
     /* Just to be sure */
     if (strlen(str) > sizeof(str)) {
-	slurm_error("%s: assertion '!(strlen(str) > sizeof(str)))' failed.", __func__);
+	slurm_error("%s: assertion '!(strlen(str) > sizeof(str)))' failed.",
+		    __func__);
 	return -3;
     }
 
@@ -217,15 +218,7 @@ struct sockpair {
  */
 int connect_x_inet(struct x11display *d)
 {
-    struct sockaddr_in sa;
-    struct sockaddr_in *sai;
-    struct addrinfo hints;
-    struct addrinfo *ailist;
-    struct addrinfo *aip;
-    int sock;
     char hostname[256];
-    int one = 1;
-    int err;
 
     if (d->hostlen > sizeof(hostname) - 1) {
 	slurm_error("%s: hostname is too long", __func__);
@@ -234,17 +227,22 @@ int connect_x_inet(struct x11display *d)
 
     *(char *)mempcpy(hostname, d->host, d->hostlen) = 0;
 
+    struct addrinfo hints;
     memset(&hints, 0, sizeof(hints));
     hints.ai_flags    = AI_CANONNAME;
     hints.ai_family   = AF_INET;
     hints.ai_socktype = SOCK_STREAM;
     hints.ai_protocol = IPPROTO_TCP;
 
-    err = getaddrinfo(hostname, NULL, &hints, &ailist);
-    if (err) {
+    struct addrinfo *ailist;
+    if (getaddrinfo(hostname, NULL, &hints, &ailist)) {
 	slurm_error("%s: getaddrinfo() failed", __func__);
 	return -3;
     }
+
+    struct sockaddr_in sa;
+    struct sockaddr_in *sai;
+    struct addrinfo *aip;
 
     aip = ailist;
     sai = (struct sockaddr_in *)aip->ai_addr;
@@ -256,21 +254,21 @@ int connect_x_inet(struct x11display *d)
 
     freeaddrinfo(aip);
 
-    sock = socket(AF_INET, SOCK_STREAM, 0);
+    int sock = socket(AF_INET, SOCK_STREAM, 0);
     if (sock < 0) {
 	slurm_error("%s: socket creation failed", __func__);
 	return -4;
     }
 
-    err = connect(sock, (struct sockaddr *)&sa, sizeof(sa));
-    if (err < 0) {
-	slurm_error("%s: connect failed. errno says '%s'", __func__, strerror(errno));
+    if (connect(sock, (struct sockaddr *)&sa, sizeof(sa) < 0)) {
+	slurm_error("%s: connect failed. errno says '%s'", __func__,
+		    strerror(errno));
 	close(sock);
 	return -5;
     }
 
-    err = setsockopt(sock, IPPROTO_TCP, TCP_NODELAY, &one, sizeof(one));
-    if (err) {
+    int one = 1;
+    if (setsockopt(sock, IPPROTO_TCP, TCP_NODELAY, &one, sizeof(one))) {
 	slurm_error("%s: setsockopt(TCP_NODELAY) failed", __func__);
 	/* continue anyway */
     }
@@ -287,7 +285,8 @@ int connect_x_unix(struct x11display *d)
 
     memset(&sa, 0, sizeof(sa));
     sa.sun_family = AF_UNIX;
-    snprintf(sa.sun_path, sizeof(sa.sun_path), "/tmp/.X11-unix/X%d", d->display);
+    snprintf(sa.sun_path, sizeof(sa.sun_path), "/tmp/.X11-unix/X%d",
+	     d->display);
 
     int sock = socket(AF_UNIX, SOCK_STREAM, 0);
     if (sock < 0) {
@@ -648,8 +647,7 @@ int slurm_spank_exit(spank_t sp, int ac, char **av)
 
     if (forwarder_pid != -1) {
 #ifdef DEBUG
-	slurm_info("%s: killing forwarder pid %d", __func__,
-		forwarder_pid);
+	slurm_info("%s: killing forwarder pid %d", __func__, forwarder_pid);
 #endif
 	kill(forwarder_pid, SIGTERM);
 
