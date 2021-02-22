@@ -418,6 +418,8 @@ exit 0
 %dir %{_libdir}/slurm
 %{_libdir}/slurm/psgw_spank.so
 %exclude %{_libdir}/slurm/psgw_spank.la
+%{_libdir}/slurm/x11spank.so
+%exclude %{_libdir}/slurm/x11spank.la
 %endif
 
 %if !0%{?disable_testplugins}
