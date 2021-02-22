@@ -109,7 +109,7 @@ POST_UNINSTALL = :
 build_triplet = @build@
 host_triplet = @host@
 target_triplet = @target@
-@TESTPLUGINS_ENABLED_TRUE@am__append_1 = tests/plugins tests/functional
+@BUILD_WITHOUT_TESTPLUGINS_FALSE@am__append_1 = tests/plugins tests/functional
 subdir = .
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/m4/ax_check_compile_flag.m4 \
@@ -426,11 +426,11 @@ CLEANFILES = VERSION.psmgmt
 # ---- proxy to dist/Makefile
 #
 @BUILD_WITHOUT_PSCONFIG_TRUE@AM_CONFIGARGS := $(AM_CONFIGARGS) -without psconfig
+@BUILD_WITHOUT_TESTPLUGINS_TRUE@AM_CONFIGARGS := $(AM_CONFIGARGS) -without testplugins
 @HAVE_SYSTEMD_FALSE@AM_CONFIGARGS := $(AM_CONFIGARGS) -without systemd
 @MUNGE_ENABLED_FALSE@AM_CONFIGARGS := $(AM_CONFIGARGS) -without munge
 @PAM_ENABLED_FALSE@AM_CONFIGARGS := $(AM_CONFIGARGS) -without pam
 @SPANK_ENABLED_FALSE@AM_CONFIGARGS := $(AM_CONFIGARGS) -without spank
-@TESTPLUGINS_ENABLED_TRUE@AM_CONFIGARGS := $(AM_CONFIGARGS) -with testplugins
 
 # keep "make distcheck" happy
 AM_DISTCHECK_CONFIGURE_FLAGS = \

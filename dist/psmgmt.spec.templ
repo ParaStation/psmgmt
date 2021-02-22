@@ -12,7 +12,7 @@
 %{?_without_munge: %global disable_munge 1}
 %{?_without_pam: %global disable_pam 1}
 %{?_without_spank: %global disable_spank 1}
-%{?_with_testplugins: %global enable_testplugins 1}
+%{?_without_testplugins: %global disable_testplugins 1}
 
 %if ( 0%{?rhel} && 0%{?rhel} < 7 ) || %(pkg-config --exists systemd; echo $?) != 0
 %global disable_systemd 1
@@ -139,7 +139,7 @@ Utilities helping to improve Slurm support. This includes spank plugins
 required to support e.g. the interplay of psgw functionality and
 Slurm or the psslurmgetbind tool.
 
-%if 0%{?enable_testplugins}
+%if !0%{?disable_testplugins}
 %package testplugins
 Summary:   Set of plugins for debug and testing (psBlackHole, etc.)
 Group:     Productivity/Clustering/Computing
@@ -167,7 +167,7 @@ export CFLAGS="%(echo %{optflags}|sed -e 's,-O.,,')"
 	   %{?disable_psconfig:--disable-psconfig} \
 	   %{?disable_systemd:--with-unitdir=no} \
 	   %{?disable_spank:--disable-spank} \
-	   %{?enable_testplugins:--enable-testplugins}
+	   %{?disable_testplugins:--disable-testplugins}
 make %{?_smp_mflags}
 
 %install
@@ -420,7 +420,7 @@ exit 0
 %exclude %{_libdir}/slurm/psgw_spank.la
 %endif
 
-%if 0%{?enable_testplugins}
+%if !0%{?disable_testplugins}
 %files testplugins
 %defattr(-,root,root,-)
 %exclude %{_plugindir}/delaySlurmMsg.la

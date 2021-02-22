@@ -14,7 +14,7 @@ ACLOCAL_AMFLAGS = -I m4
 
 SUBDIRS = include lib bin plugins doc scripts
 
-if TESTPLUGINS_ENABLED
+if !BUILD_WITHOUT_TESTPLUGINS
   SUBDIRS += tests/plugins tests/functional
 endif
 
@@ -57,8 +57,8 @@ endif
 if !HAVE_SYSTEMD
   AM_CONFIGARGS := $(AM_CONFIGARGS) -without systemd
 endif
-if TESTPLUGINS_ENABLED
-  AM_CONFIGARGS := $(AM_CONFIGARGS) -with testplugins
+if BUILD_WITHOUT_TESTPLUGINS
+  AM_CONFIGARGS := $(AM_CONFIGARGS) -without testplugins
 endif
 
 .PHONY: tar rpm srpm tag version
