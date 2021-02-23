@@ -248,7 +248,7 @@ bool PSP_putTypedMsgBufF(DDTypedBufferMsg_t *msg, const char *caller,
 bool PSP_tryPutTypedMsgBufF(DDTypedBufferMsg_t *msg, const char *caller,
 			    const char *dataName, const void *data, size_t size)
 {
-    return doPutMsgBuf((DDBufferMsg_t *)msg, "PSP_tryPutTypedMsgBufF", caller,
+    return doPutMsgBuf((DDBufferMsg_t *)msg, "PSP_tryPutTypedMsgBuf", caller,
 		       dataName, data, size, true /* typed */, true /* try */);
 }
 

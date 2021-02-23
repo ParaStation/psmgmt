@@ -1066,7 +1066,7 @@ static void handle_EpilogueLaunch(DDTypedBufferMsg_t *msg)
     uint32_t id;
     size_t used = 0;
 
-    PSP_getTypedMsgBuf(msg, &used, "id", &id, sizeof(id));
+    PSP_getTypedMsgBuf(msg, &used, "ID", &id, sizeof(id));
 
     Alloc_t *alloc = findAlloc(id);
     if (!alloc) {
@@ -1097,7 +1097,7 @@ static void send_PS_EpilogueStateRes(PStask_ID_t dest, uint32_t id,
 
     /* add id */
     PSP_putTypedMsgBuf(&msg, "ID", &id, sizeof(id));
-    PSP_putTypedMsgBuf(&msg, "ID", &res, sizeof(res));
+    PSP_putTypedMsgBuf(&msg, "res", &res, sizeof(res));
 
     if (sendMsg(&msg) == -1 && errno != EWOULDBLOCK) {
 	mwarn(errno, "%s: sending msg to %s failed ", __func__,
@@ -1116,7 +1116,7 @@ static void handle_EpilogueStateRes(DDTypedBufferMsg_t *msg)
     uint16_t res;
     size_t used = 0;
 
-    PSP_getTypedMsgBuf(msg, &used, "id", &id, sizeof(id));
+    PSP_getTypedMsgBuf(msg, &used, "ID", &id, sizeof(id));
     PSP_getTypedMsgBuf(msg, &used, "res", &res, sizeof(res));
 
     Alloc_t *alloc = findAlloc(id);
@@ -1160,7 +1160,7 @@ static void handle_EpilogueStateReq(DDTypedBufferMsg_t *msg)
     uint16_t res;
     size_t used = 0;
 
-    PSP_getTypedMsgBuf(msg, &used, "id", &id, sizeof(id));
+    PSP_getTypedMsgBuf(msg, &used, "ID", &id, sizeof(id));
 
     Alloc_t *alloc = findAlloc(id);
     if (!alloc) {
@@ -1190,7 +1190,7 @@ static void handle_EpilogueRes(DDTypedBufferMsg_t *msg)
     uint16_t res;
     size_t used = 0;
 
-    PSP_getTypedMsgBuf(msg, &used, "id", &id, sizeof(id));
+    PSP_getTypedMsgBuf(msg, &used, "ID", &id, sizeof(id));
     PSP_getTypedMsgBuf(msg, &used, "res", &res, sizeof(res));
 
     mdbg(PSSLURM_LOG_PELOG, "%s: result %i for allocation %u from %s\n",
@@ -1868,7 +1868,7 @@ static void handleDroppedEpilogue(DDTypedBufferMsg_t *msg)
     size_t used = 0;
     uint32_t id;
 
-    PSP_getTypedMsgBuf(msg, &used, "id", &id, sizeof(id));
+    PSP_getTypedMsgBuf(msg, &used, "ID", &id, sizeof(id));
 
     Alloc_t *alloc = findAlloc(id);
     if (!alloc) {
