@@ -153,7 +153,7 @@ int get_xauth_proto_and_cookie(struct x11display *d, char *proto, int protolen,
     int k = sizeof(XAUTH) + sizeof(" list ") - 2;
 
     if ((n + k + sizeof(" 2> /dev/null")) >= sizeof(str)) {
-	slurm_error("%s: display string is too long", __func__);
+	slurm_error("%s: xauth parameters are too long", __func__);
 	return -2;
     }
 
