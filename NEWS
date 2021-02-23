@@ -5,6 +5,12 @@ Copyright (C) 2010-2021 ParTec Cluster Competence Center GmbH, Munich
 Please send bug reports, questions and suggestions to <support@par-tec.com>
 
 
+Version 5.1.38-2:
+=================
+Bugfixes:
+ - Re-add support for Slurm 18.08 authentication
+
+
 Version 5.1.38-1:
 =================
 Bugfixes:
