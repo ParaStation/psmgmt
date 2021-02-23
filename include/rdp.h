@@ -36,7 +36,7 @@ typedef enum {
 				  * second argument of RDPCallback()
 				  * will point to an int holding the
 				  * number of the connecting node */
-    RDP_LOST_CONNECTION	= 0x2,   /**< Connection lost; the second
+    RDP_LOST_CONNECTION = 0x2,   /**< Connection lost; the second
 				  * argument of RDPCallback() will
 				  * point to an int holding the number
 				  * of the lost node */

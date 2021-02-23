@@ -276,7 +276,7 @@ void PSIDRDP_handleMsg(void)
 	return;
     }
 
-    if (msglen && msglen != msg.header.len) {
+    if (msglen != msg.header.len) {
 	PSID_log(-1, "%s: type %s (len=%d) from %s",
 		 __func__, PSDaemonP_printMsg(msg.header.type),
 		 msg.header.len, PSC_printTID(msg.header.sender));
@@ -291,6 +291,7 @@ void PSIDRDP_handleMsg(void)
 
     if (msg.header.type == PSP_CD_CLIENTCONNECT) {
 	PSID_log(-1, "%s: PSP_CD_CLIENTCONNECT on RDP?\n", __func__);
+	return;
     }
 
     PSID_handleMsg(&msg);
