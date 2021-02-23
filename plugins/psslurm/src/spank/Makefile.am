@@ -19,6 +19,10 @@ AM_CPPFLAGS += -I$(top_srcdir)/bin/daemon		\
 
 slurmlib_LTLIBRARIES = spank_api.la x11spank.la
 
-spank_api_la_SOURCES = spank_api.c spank_api.h x11spank.c
+spank_api_la_SOURCES = spank_api.c spank_api.h
 
 spank_api_la_CPPFLAGS = $(AM_CPPFLAGS) -DSLURMLIBDIR=\"$(slurmlibdir)\"
+
+x11spank_la_SOURCES =  x11spank.c
+
+x11spank_la_CPPFLAGS = $(AM_CPPFLAGS) -DSLURMLIBDIR=\"$(slurmlibdir)\"
