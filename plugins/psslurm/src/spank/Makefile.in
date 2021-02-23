@@ -151,16 +151,15 @@ am__uninstall_files_from_dir = { \
 am__installdirs = "$(DESTDIR)$(slurmlibdir)"
 LTLIBRARIES = $(slurmlib_LTLIBRARIES)
 spank_api_la_LIBADD =
-am_spank_api_la_OBJECTS = spank_api_la-spank_api.lo \
-	spank_api_la-x11spank.lo
+am_spank_api_la_OBJECTS = spank_api_la-spank_api.lo
 spank_api_la_OBJECTS = $(am_spank_api_la_OBJECTS)
 AM_V_lt = $(am__v_lt_@AM_V@)
 am__v_lt_ = $(am__v_lt_@AM_DEFAULT_V@)
 am__v_lt_0 = --silent
 am__v_lt_1 = 
 x11spank_la_LIBADD =
-x11spank_la_SOURCES = x11spank.c
-x11spank_la_OBJECTS = x11spank.lo
+am_x11spank_la_OBJECTS = x11spank_la-x11spank.lo
+x11spank_la_OBJECTS = $(am_x11spank_la_OBJECTS)
 AM_V_P = $(am__v_P_@AM_V@)
 am__v_P_ = $(am__v_P_@AM_DEFAULT_V@)
 am__v_P_0 = false
@@ -177,7 +176,7 @@ DEFAULT_INCLUDES = -I.@am__isrc@
 depcomp = $(SHELL) $(top_srcdir)/scripts/depcomp
 am__maybe_remake_depfiles = depfiles
 am__depfiles_remade = ./$(DEPDIR)/spank_api_la-spank_api.Plo \
-	./$(DEPDIR)/spank_api_la-x11spank.Plo ./$(DEPDIR)/x11spank.Plo
+	./$(DEPDIR)/x11spank_la-x11spank.Plo
 am__mv = mv -f
 COMPILE = $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) \
 	$(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
@@ -197,8 +196,8 @@ AM_V_CCLD = $(am__v_CCLD_@AM_V@)
 am__v_CCLD_ = $(am__v_CCLD_@AM_DEFAULT_V@)
 am__v_CCLD_0 = @echo "  CCLD    " $@;
 am__v_CCLD_1 = 
-SOURCES = $(spank_api_la_SOURCES) x11spank.c
-DIST_SOURCES = $(spank_api_la_SOURCES) x11spank.c
+SOURCES = $(spank_api_la_SOURCES) $(x11spank_la_SOURCES)
+DIST_SOURCES = $(spank_api_la_SOURCES) $(x11spank_la_SOURCES)
 am__can_run_installinfo = \
   case $$AM_UPDATE_INFO_DIR in \
     n|no|NO) false;; \
@@ -351,6 +350,7 @@ program_transform_name = @program_transform_name@
 psconfig_CFLAGS = @psconfig_CFLAGS@
 psconfig_LIBS = @psconfig_LIBS@
 psdir = @psdir@
+runstatedir = @runstatedir@
 sbindir = @sbindir@
 sharedstatedir = @sharedstatedir@
 srcdir = @srcdir@
@@ -408,8 +408,10 @@ scriptsdir = $(prefix)/scripts
 @HAVE_SYSTEMD_TRUE@default_cgroup_name = system.slice/psid.service/descendants
 psslurm_dir := plugins/psslurm/src
 slurmlib_LTLIBRARIES = spank_api.la x11spank.la
-spank_api_la_SOURCES = spank_api.c spank_api.h x11spank.c
+spank_api_la_SOURCES = spank_api.c spank_api.h
 spank_api_la_CPPFLAGS = $(AM_CPPFLAGS) -DSLURMLIBDIR=\"$(slurmlibdir)\"
+x11spank_la_SOURCES = x11spank.c
+x11spank_la_CPPFLAGS = $(AM_CPPFLAGS) -DSLURMLIBDIR=\"$(slurmlibdir)\"
 all: all-am
 
 .SUFFIXES:
@@ -493,8 +495,7 @@ distclean-compile:
 	-rm -f *.tab.c
 
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/spank_api_la-spank_api.Plo@am__quote@ # am--include-marker
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/spank_api_la-x11spank.Plo@am__quote@ # am--include-marker
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/x11spank.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/x11spank_la-x11spank.Plo@am__quote@ # am--include-marker
 
 $(am__depfiles_remade):
 	@$(MKDIR_P) $(@D)
@@ -533,12 +534,12 @@ spank_api_la-spank_api.lo: spank_api.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(spank_api_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o spank_api_la-spank_api.lo `test -f 'spank_api.c' || echo '$(srcdir)/'`spank_api.c
 
-spank_api_la-x11spank.lo: x11spank.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(spank_api_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT spank_api_la-x11spank.lo -MD -MP -MF $(DEPDIR)/spank_api_la-x11spank.Tpo -c -o spank_api_la-x11spank.lo `test -f 'x11spank.c' || echo '$(srcdir)/'`x11spank.c
-@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/spank_api_la-x11spank.Tpo $(DEPDIR)/spank_api_la-x11spank.Plo
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='x11spank.c' object='spank_api_la-x11spank.lo' libtool=yes @AMDEPBACKSLASH@
+x11spank_la-x11spank.lo: x11spank.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(x11spank_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT x11spank_la-x11spank.lo -MD -MP -MF $(DEPDIR)/x11spank_la-x11spank.Tpo -c -o x11spank_la-x11spank.lo `test -f 'x11spank.c' || echo '$(srcdir)/'`x11spank.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/x11spank_la-x11spank.Tpo $(DEPDIR)/x11spank_la-x11spank.Plo
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='x11spank.c' object='x11spank_la-x11spank.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(spank_api_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o spank_api_la-x11spank.lo `test -f 'x11spank.c' || echo '$(srcdir)/'`x11spank.c
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(x11spank_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o x11spank_la-x11spank.lo `test -f 'x11spank.c' || echo '$(srcdir)/'`x11spank.c
 
 mostlyclean-libtool:
 	-rm -f *.lo
@@ -675,8 +676,7 @@ clean-am: clean-generic clean-libtool clean-slurmlibLTLIBRARIES \
 
 distclean: distclean-am
 		-rm -f ./$(DEPDIR)/spank_api_la-spank_api.Plo
-	-rm -f ./$(DEPDIR)/spank_api_la-x11spank.Plo
-	-rm -f ./$(DEPDIR)/x11spank.Plo
+	-rm -f ./$(DEPDIR)/x11spank_la-x11spank.Plo
 	-rm -f Makefile
 distclean-am: clean-am distclean-compile distclean-generic \
 	distclean-tags
@@ -723,8 +723,7 @@ installcheck-am:
 
 maintainer-clean: maintainer-clean-am
 		-rm -f ./$(DEPDIR)/spank_api_la-spank_api.Plo
-	-rm -f ./$(DEPDIR)/spank_api_la-x11spank.Plo
-	-rm -f ./$(DEPDIR)/x11spank.Plo
+	-rm -f ./$(DEPDIR)/x11spank_la-x11spank.Plo
 	-rm -f Makefile
 maintainer-clean-am: distclean-am maintainer-clean-generic
 
