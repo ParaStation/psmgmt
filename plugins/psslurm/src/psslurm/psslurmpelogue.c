@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2015-2020 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2015-2021 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -389,18 +389,21 @@ int handleLocalPElogueStart(void *data)
 	    }
 	    uint32_t localid = getLocalID(nodes, nrOfNodes);
 
+	    Alloc_t *alloc;
 	    if (localid != NO_VAL) {
 		mdbg(PSSLURM_LOG_PELOG, "%s: leader with pack hosts, add "
 		     "allocation %u\n", __func__, id);
-		addAlloc(id, packID, slurmHosts, &pedata->env, pedata->uid,
-			pedata->gid, user);
+		alloc = addAlloc(id, packID, slurmHosts, &pedata->env,
+				 pedata->uid, pedata->gid, user);
+		alloc->state = A_PROLOGUE;
 	    } else {
 		Alloc_t *alloc = findAllocByPackID(packID);
 		if (!alloc) {
 		    mdbg(PSSLURM_LOG_PELOG, "%s: leader with pack hosts, add "
 			 "temporary allocation %u\n", __func__, packID);
-		    addAlloc(id, packID, slurmHosts, &pedata->env, pedata->uid,
-			    pedata->gid, user);
+		    alloc = addAlloc(id, packID, slurmHosts, &pedata->env,
+				     pedata->uid, pedata->gid, user);
+		    alloc->state = A_PROLOGUE;
 		} else {
 		    envDestroy(&alloc->env);
 		    envClone(&pedata->env, &alloc->env, envFilter);
@@ -411,8 +414,9 @@ int handleLocalPElogueStart(void *data)
 	/* prologue for regular (non pack) job */
 	mdbg(PSSLURM_LOG_PELOG, "%s: non pack job, add allocation %u\n",
 	     __func__, id);
-	addAlloc(id, packID, slurmHosts, &pedata->env, pedata->uid,
-		 pedata->gid, user);
+	Alloc_t *alloc = addAlloc(id, packID, slurmHosts, &pedata->env,
+				  pedata->uid, pedata->gid, user);
+	alloc->state = A_PROLOGUE;
     }
 
     if (!userEnv && user) ufree(user);
@@ -634,7 +638,8 @@ int handlePelogueGlobal(void *data)
 
     Alloc_t *alloc = findAlloc(jobid);
     if (alloc) {
-	if (alloc->state == A_INIT || alloc->state == A_PROLOGUE_FINISH) {
+	if (alloc->state == A_INIT || alloc->state == A_PROLOGUE_FINISH ||
+	    alloc->state == A_PROLOGUE) {
 	    handleFailedPrologue(alloc, pedata->res);
 	}
     }

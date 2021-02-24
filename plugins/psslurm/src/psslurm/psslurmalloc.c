@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2018-2020 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2018-2021 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -202,6 +202,8 @@ const char *strAllocState(AllocState_t state)
 	    return "A_EPILOGUE_FINISH";
 	case A_EXIT:
 	    return "A_EXIT";
+	case A_PROLOGUE:
+	    return "A_PROLOGUE";
 	default:
 	    snprintf(buf, sizeof(buf), "<unknown: %i>", state);
 	    return buf;
