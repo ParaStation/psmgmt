@@ -1,5 +1,15 @@
 #!/bin/bash
 
+[ -z "$PSGWD_BINARY" ] && {
+    echo "ERROR: missing PSGWD_BINARY"
+    exit 1
+}
+
+[ -x "$PSGWD_BINARY" ] || {
+    echo "ERROR: $PSGWD_BINARY is not executable"
+    exit 1
+}
+
 [ -n "$SLURM_SPANK_PSGW_ENV" ] && {
   set -a; eval "$SLURM_SPANK_PSGW_ENV"
   unset SLURM_SPANK_PSGW_ENV; set +a

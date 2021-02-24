@@ -1,10 +1,5 @@
 #!/bin/bash
 
-[ -x "$PSGWD_BINARY" ] || {
-    echo "ERROR: missing PSGWD_BINARY"
-    exit 1
-}
-
 [ -z "$PSGWD_UID" ] && {
     echo "ERROR: missing PSGWD_UID"
     exit 1
