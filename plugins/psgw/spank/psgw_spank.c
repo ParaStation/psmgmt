@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2018-2020 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2018-2021 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -42,6 +42,8 @@ static int numPSGWDperNode = 1;
 
 static bool gwQuiet = false;
 
+static bool gwDebug = false;
+
 int setGwNum(int val, const char *optarg, int remote);
 int setGwFile(int val, const char *optarg, int remote);
 int setGwPlugin(int val, const char *optarg, int remote);
@@ -50,6 +52,7 @@ int setGwCleanup(int val, const char *optarg, int remote);
 int setGwBinary(int val, const char *optarg, int remote);
 int setPSGWDperNode(int val, const char *optarg, int remote);
 int setGwQuiet(int val, const char *optarg, int remote);
+int setGwDebug(int val, const char *optarg, int remote);
 
 /*
  * Additional options for salloc/sbatch/srun
@@ -79,6 +82,9 @@ static struct spank_option spank_opt[] =
     { "gw_quiet", NULL,
       "Suppress reporting gateway startup errors in file", 0, 0,
       (spank_opt_cb_f) setGwQuiet },
+    { "gw_debug", NULL,
+      "Set PSP_DEBUG for the psgwd", 0, 0,
+      (spank_opt_cb_f) setGwDebug },
     SPANK_OPTIONS_TABLE_END
 };
 
@@ -156,6 +162,11 @@ int slurm_spank_init_post_opt(spank_t sp, int ac, char **av)
 	spank_job_control_setenv(sp, "SLURM_SPANK_PSGW_QUIET", "1", 1);
         if (writeInfo) slurm_info("psgw: suppress reporting gateway startup "
                                   "errors to file");
+    }
+
+    if (gwDebug) {
+	spank_job_control_setenv(sp, "SLURM_SPANK_PSGWD_DEBUG", "1", 1);
+        if (writeInfo) slurm_info("psgw: set PSP_DEBUG=10 for psgwd");
     }
 
     writeInfo = false;
@@ -271,6 +282,18 @@ int setGwQuiet(int val, const char *optarg, int remote)
     gwQuiet = true;
 
     if (DEBUG) slurm_info("set gw_quiet to true");
+
+    return 0;
+}
+
+/**
+ * @brief Set debug output of psgwd
+ */
+int setGwDebug(int val, const char *optarg, int remote)
+{
+    gwDebug = true;
+
+    if (DEBUG) slurm_info("set gw_debug to true");
 
     return 0;
 }

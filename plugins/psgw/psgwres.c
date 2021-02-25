@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2018-2020 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2018-2021 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -689,6 +689,12 @@ bool startPSGWD(PSGW_Req_t *req)
 
     char *gwBinary = envGet(req->res->env, "SLURM_SPANK_PSGWD_BINARY");
     if (gwBinary) envSet(&env, "PSGWD_BINARY", gwBinary);
+
+    char *gwDebug = envGet(req->res->env, "SLURM_SPANK_PSGWD_DEBUG");
+    if (gwDebug) envSet(&env, "PSGWD_DEBUG", gwDebug);
+
+    char *cwd = envGet(req->res->env, "SLURM_SPANK_PSGW_CWD");
+    envSet(&env, "PSGWD_CWD", cwd);
 
     uint32_t gIdx = 0;
     for (i=0; i<req->numGWnodes; i++) {

@@ -10,6 +10,12 @@
     exit 1
 }
 
+[ -n "$PSGWD_DEBUG" ] && {
+    set -a; export PSP_DEBUG=10;
+    export PSP_DEBUG_OUT="${PSGWD_CWD}/JOB-${SLURM_JOB_ID}-psgwd-debug.out";
+    set +a;
+}
+
 [ -n "$SLURM_SPANK_PSGW_ENV" ] && {
   set -a; eval "$SLURM_SPANK_PSGW_ENV"
   unset SLURM_SPANK_PSGW_ENV; set +a
