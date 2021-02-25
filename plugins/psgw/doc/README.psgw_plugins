@@ -1,0 +1,23 @@
+## plugin02
+This plugin works this way:
+
+- for each node of PartA, each node of PartB is reached via a different gateway
+  node (everytime the PartB node shifts by one, the gateway node shifts by one).
+- when nodeA shifts by one, also the initial node in PartB and the initial
+  gateway node are shifted by one.
+
+This plugin makes the most sense when communication is happens only for some
+specific pairs, according to the node ordering on both sides (e.g., with 4 nodes
+A and 4 nodes B, A0-B0, A1-B1, A2-B2, A3-B3), and when the number of gateway
+nodes is considerably smaller than N{A} * N{B} (probably less or equal
+than min(N{A}, N{B})).
+
+## plugin03
+This plugin works this way:
+
+- a list of pairs of nodes (A{i}, B{i}) from PartA and PartB is created and numbered;
+- each pair of nodes is then assigned to a gateway node in a round-robin fashion.
+
+This plugin is particular useful for all-to-all communcation patterns across
+nodes, and in particular it is well suited to the case of N{GW} = N{A} * N{B}
+(this maximises the overal bandwidth across the gateways).
