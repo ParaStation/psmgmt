@@ -361,6 +361,7 @@ plugins/psgw/Makefile.am \
 plugins/psgw/Makefile.in \
 plugins/psgw/doc/Makefile.am \
 plugins/psgw/doc/Makefile.in \
+plugins/psgw/doc/README.psgw_plugins \
 plugins/psgw/doc/psgw.conf \
 plugins/psgw/doc/psgw_error.example \
 plugins/psgw/psgw.c \
@@ -381,6 +382,7 @@ plugins/psgw/route/Makefile.am \
 plugins/psgw/route/Makefile.in \
 plugins/psgw/route/plugin01.py \
 plugins/psgw/route/plugin02.py \
+plugins/psgw/route/plugin03.py \
 plugins/psgw/route/pscompress.py \
 plugins/psgw/route/psexpand.py \
 plugins/psgw/route/psgwd_exec \

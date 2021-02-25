@@ -11,4 +11,4 @@ include $(top_srcdir)/common.am
 
 dist_plugin_DATA = psgw.conf
 
-dist_noinst_DATA = psgw_error.example
+dist_noinst_DATA = README.psgw_plugins psgw_error.example
