@@ -15,6 +15,12 @@
 
 #include "psidhook.h"
 
+/** List of hooks obsoleted in the meantime; trying to add a function
+ * to one of these hooks will fail. */
+PSIDhook_t obsoleteHooks[] = { PSIDHOOK_FRWRD_CINFO,
+			       PSIDHOOK_FRWRD_DSOCK,
+			       0 /* end of array */ };
+
 /** Structure used to create actual function lists */
 typedef struct {
     PSIDhook_func_t * func; /**< Hook functions to be added to the list */
@@ -22,7 +28,10 @@ typedef struct {
 } hook_ref_t;
 
 /** Array used to store list-heads */
-static list_t hookTab[PSIDHOOK_LAST];
+static struct {
+    list_t list;    /**< list of hook references added to this hook */
+    bool obsolete;  /**< flag obsolete hook; initialized from obsoleteHooks */
+} hookTab[PSIDHOOK_LAST];
 
 /** Flag to mark module's initialization status */
 static bool hookTabInitialized = false;
@@ -114,7 +123,15 @@ static void initHookTable(const char *caller)
 	return;
     }
 
-    for (int h = 0; h < PSIDHOOK_LAST; h++) INIT_LIST_HEAD(&hookTab[h]);
+    for (int h = 0; h < PSIDHOOK_LAST; h++) {
+	INIT_LIST_HEAD(&hookTab[h].list);
+	hookTab[h].obsolete = false;
+    }
+
+    for (int h = 0; obsoleteHooks[h]; h++) {
+	hookTab[obsoleteHooks[h]].obsolete = true;
+    }
+
     hookTabInitialized = true;
 }
 
@@ -133,7 +150,12 @@ bool PSIDhook_add(PSIDhook_t hook, PSIDhook_func_t func)
 	return false;
     }
 
-    if (findRef(&hookTab[hook], func)) {
+    if (hookTab[hook].obsolete) {
+	PSID_log(-1, "%s: hook %d is marked as obsolete\n", __func__, hook);
+	return false;
+    }
+
+    if (findRef(&hookTab[hook].list, func)) {
 	PSID_log(-1, "%s: Function %p already registered on hook %d\n",
 		 __func__, func, hook);
 	return false;
@@ -146,7 +168,7 @@ bool PSIDhook_add(PSIDhook_t hook, PSIDhook_func_t func)
     }
 
     ref->func = func;
-    list_add_tail(&ref->next, &hookTab[hook]);
+    list_add_tail(&ref->next, &hookTab[hook].list);
 
     return true;
 }
@@ -163,7 +185,7 @@ bool PSIDhook_del(PSIDhook_t hook, PSIDhook_func_t func)
 	return false;
     }
 
-    hook_ref_t *ref = findRef(&hookTab[hook], func);
+    hook_ref_t *ref = findRef(&hookTab[hook].list, func);
     if (!ref) {
 	PSID_log(-1, "%s: Function %p not found on hook %d\n",
 		 __func__, func, hook);
@@ -188,7 +210,7 @@ int PSIDhook_call(PSIDhook_t hook, void *arg)
     }
 
     list_t *h, *tmp;
-    list_for_each_safe(h, tmp, &hookTab[hook]) {
+    list_for_each_safe(h, tmp, &hookTab[hook].list) {
 	hook_ref_t *ref = list_entry(h, hook_ref_t, next);
 	if (ref->func) {
 	    int fret = ref->func(arg);

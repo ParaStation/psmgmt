@@ -217,7 +217,9 @@ typedef enum {
  *
  * @param func The function to register to the hook.
  *
- * @return On success, true is returned. Or false if an error occurred.
+ * @return On success, true is returned, or false if an error
+ * occurred. The latter might happen if a function shall be added to an
+ * obsolete hook.
  */
 bool PSIDhook_add(PSIDhook_t hook, PSIDhook_func_t func);
 
