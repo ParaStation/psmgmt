@@ -172,6 +172,9 @@ fixLoginuid_la_OBJECTS = fixLoginuid.lo
 no_flowcontrol_la_LIBADD =
 no_flowcontrol_la_SOURCES = no_flowcontrol.c
 no_flowcontrol_la_OBJECTS = no_flowcontrol.lo
+oldHook_la_LIBADD =
+oldHook_la_SOURCES = oldHook.c
+oldHook_la_OBJECTS = oldHook.lo
 plugin1_la_LIBADD =
 plugin1_la_SOURCES = plugin1.c
 plugin1_la_OBJECTS = plugin1.lo
@@ -227,12 +230,12 @@ am__depfiles_remade = ./$(DEPDIR)/delaySlurmMsg_la-delaySlurmMsg.Plo \
 	./$(DEPDIR)/delegateStat.Plo ./$(DEPDIR)/dyn_resources.Plo \
 	./$(DEPDIR)/fakenode_la-fakenode.Plo \
 	./$(DEPDIR)/fixLoginuid.Plo ./$(DEPDIR)/no_flowcontrol.Plo \
-	./$(DEPDIR)/plugin1.Plo ./$(DEPDIR)/plugin2.Plo \
-	./$(DEPDIR)/plugin3.Plo ./$(DEPDIR)/plugin4.Plo \
-	./$(DEPDIR)/plugin5.Plo ./$(DEPDIR)/plugin6.Plo \
-	./$(DEPDIR)/plugin7.Plo ./$(DEPDIR)/plugin8.Plo \
-	./$(DEPDIR)/plugin9.Plo ./$(DEPDIR)/pluginpsconfig.Plo \
-	./$(DEPDIR)/psBlackHole.Plo \
+	./$(DEPDIR)/oldHook.Plo ./$(DEPDIR)/plugin1.Plo \
+	./$(DEPDIR)/plugin2.Plo ./$(DEPDIR)/plugin3.Plo \
+	./$(DEPDIR)/plugin4.Plo ./$(DEPDIR)/plugin5.Plo \
+	./$(DEPDIR)/plugin6.Plo ./$(DEPDIR)/plugin7.Plo \
+	./$(DEPDIR)/plugin8.Plo ./$(DEPDIR)/plugin9.Plo \
+	./$(DEPDIR)/pluginpsconfig.Plo ./$(DEPDIR)/psBlackHole.Plo \
 	./$(DEPDIR)/spank_test_la-spank_test.Plo
 am__mv = mv -f
 COMPILE = $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) \
@@ -254,13 +257,14 @@ am__v_CCLD_ = $(am__v_CCLD_@AM_DEFAULT_V@)
 am__v_CCLD_0 = @echo "  CCLD    " $@;
 am__v_CCLD_1 = 
 SOURCES = delaySlurmMsg.c delegateStat.c dyn_resources.c fakenode.c \
-	fixLoginuid.c no_flowcontrol.c plugin1.c plugin2.c plugin3.c \
-	plugin4.c plugin5.c plugin6.c plugin7.c plugin8.c plugin9.c \
-	pluginpsconfig.c psBlackHole.c spank_test.c
-DIST_SOURCES = delaySlurmMsg.c delegateStat.c dyn_resources.c \
-	fakenode.c fixLoginuid.c no_flowcontrol.c plugin1.c plugin2.c \
+	fixLoginuid.c no_flowcontrol.c oldHook.c plugin1.c plugin2.c \
 	plugin3.c plugin4.c plugin5.c plugin6.c plugin7.c plugin8.c \
 	plugin9.c pluginpsconfig.c psBlackHole.c spank_test.c
+DIST_SOURCES = delaySlurmMsg.c delegateStat.c dyn_resources.c \
+	fakenode.c fixLoginuid.c no_flowcontrol.c oldHook.c plugin1.c \
+	plugin2.c plugin3.c plugin4.c plugin5.c plugin6.c plugin7.c \
+	plugin8.c plugin9.c pluginpsconfig.c psBlackHole.c \
+	spank_test.c
 am__can_run_installinfo = \
   case $$AM_UPDATE_INFO_DIR in \
     n|no|NO) false;; \
@@ -471,7 +475,7 @@ libpscommon = $(top_builddir)/lib/pscommon/libpscommon.la
 noinst_LTLIBRARIES = plugin1.la plugin2.la plugin3.la plugin4.la	\
 	plugin5.la plugin6.la plugin7.la plugin8.la plugin9.la		\
 	dyn_resources.la fixLoginuid.la spank_test.la			\
-	pluginpsconfig.la
+	pluginpsconfig.la oldHook.la
 
 plugin_LTLIBRARIES = no_flowcontrol.la delaySlurmMsg.la	\
 	delegateStat.la psBlackHole.la fakenode.la
@@ -587,6 +591,9 @@ fixLoginuid.la: $(fixLoginuid_la_OBJECTS) $(fixLoginuid_la_DEPENDENCIES) $(EXTRA
 no_flowcontrol.la: $(no_flowcontrol_la_OBJECTS) $(no_flowcontrol_la_DEPENDENCIES) $(EXTRA_no_flowcontrol_la_DEPENDENCIES) 
 	$(AM_V_CCLD)$(LINK) -rpath $(plugindir) $(no_flowcontrol_la_OBJECTS) $(no_flowcontrol_la_LIBADD) $(LIBS)
 
+oldHook.la: $(oldHook_la_OBJECTS) $(oldHook_la_DEPENDENCIES) $(EXTRA_oldHook_la_DEPENDENCIES) 
+	$(AM_V_CCLD)$(LINK)  $(oldHook_la_OBJECTS) $(oldHook_la_LIBADD) $(LIBS)
+
 plugin1.la: $(plugin1_la_OBJECTS) $(plugin1_la_DEPENDENCIES) $(EXTRA_plugin1_la_DEPENDENCIES) 
 	$(AM_V_CCLD)$(LINK)  $(plugin1_la_OBJECTS) $(plugin1_la_LIBADD) $(LIBS)
 
@@ -635,6 +642,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/fakenode_la-fakenode.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/fixLoginuid.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/no_flowcontrol.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/oldHook.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/plugin1.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/plugin2.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/plugin3.Plo@am__quote@ # am--include-marker
@@ -839,6 +847,7 @@ distclean: distclean-am
 	-rm -f ./$(DEPDIR)/fakenode_la-fakenode.Plo
 	-rm -f ./$(DEPDIR)/fixLoginuid.Plo
 	-rm -f ./$(DEPDIR)/no_flowcontrol.Plo
+	-rm -f ./$(DEPDIR)/oldHook.Plo
 	-rm -f ./$(DEPDIR)/plugin1.Plo
 	-rm -f ./$(DEPDIR)/plugin2.Plo
 	-rm -f ./$(DEPDIR)/plugin3.Plo
@@ -902,6 +911,7 @@ maintainer-clean: maintainer-clean-am
 	-rm -f ./$(DEPDIR)/fakenode_la-fakenode.Plo
 	-rm -f ./$(DEPDIR)/fixLoginuid.Plo
 	-rm -f ./$(DEPDIR)/no_flowcontrol.Plo
+	-rm -f ./$(DEPDIR)/oldHook.Plo
 	-rm -f ./$(DEPDIR)/plugin1.Plo
 	-rm -f ./$(DEPDIR)/plugin2.Plo
 	-rm -f ./$(DEPDIR)/plugin3.Plo
