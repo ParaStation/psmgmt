@@ -34,6 +34,8 @@ fakenode_la_CPPFLAGS = $(AM_CPPFLAGS)		\
 	-I$(top_srcdir)/plugins/nodeinfo
 fakenode_la_LIBADD = $(libplugincommon) $(libpscommon)
 
+oldHook_la_LIBADD = $(libplugincommon) $(libpscommon)
+
 pluginpsconfig_la_LIBADD = $(libplugincommon) $(libpscommon)
 
 psBlackHole_la_LIBADD = $(libplugincommon) $(libpscommon)

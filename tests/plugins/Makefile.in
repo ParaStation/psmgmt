@@ -172,7 +172,7 @@ fixLoginuid_la_OBJECTS = fixLoginuid.lo
 no_flowcontrol_la_LIBADD =
 no_flowcontrol_la_SOURCES = no_flowcontrol.c
 no_flowcontrol_la_OBJECTS = no_flowcontrol.lo
-oldHook_la_LIBADD =
+oldHook_la_DEPENDENCIES = $(libplugincommon) $(libpscommon)
 oldHook_la_SOURCES = oldHook.c
 oldHook_la_OBJECTS = oldHook.lo
 plugin1_la_LIBADD =
@@ -489,6 +489,7 @@ fakenode_la_CPPFLAGS = $(AM_CPPFLAGS)		\
 	-I$(top_srcdir)/plugins/nodeinfo
 
 fakenode_la_LIBADD = $(libplugincommon) $(libpscommon)
+oldHook_la_LIBADD = $(libplugincommon) $(libpscommon)
 pluginpsconfig_la_LIBADD = $(libplugincommon) $(libpscommon)
 psBlackHole_la_LIBADD = $(libplugincommon) $(libpscommon)
 @SPANK_ENABLED_TRUE@spank_test_la_CPPFLAGS = $(AM_CPPFLAGS) -DSLURMLIBDIR=\"$(slurmlibdir)\"
