@@ -47,19 +47,19 @@ int initialize(void)
 
     /* register needed hooks */
     if (!PSIDhook_add(PSIDHOOK_RANDOM_DROP, doRandomDrop)) {
-	pluginlog(-1, "'PSIDHOOK_RANDOM_DROP' registration failed\n");
+	pluginlog("'PSIDHOOK_RANDOM_DROP' registration failed\n");
 	failed = true;
     }
     if (!PSIDhook_add(PSIDHOOK_FRWRD_DSOCK, doDSock)) {
-	pluginlog(-1, "'PSIDHOOK_FRWRD_DSOCK' registration failed\n");
+	pluginlog("'PSIDHOOK_FRWRD_DSOCK' registration failed\n");
 	failed = true;
     }
     if (!PSIDhook_add(PSIDHOOK_FRWRD_CINFO, doCInfo)) {
-	pluginlog(-1, "'PSIDHOOK_FRWRD_CINFO' registration failed\n");
+	pluginlog("'PSIDHOOK_FRWRD_CINFO' registration failed\n");
 	failed = true;
     }
 
-    pluginlog(-1, "(%i)%s started\n", version, failed ? "" : " successfully");
+    pluginlog("(%i)%s started\n", version, failed ? "" : " successfully");
 
     return failed;
 }
@@ -67,14 +67,14 @@ int initialize(void)
 void cleanup(void)
 {
     if (!PSIDhook_del(PSIDHOOK_RANDOM_DROP, doRandomDrop)) {
-	pluginlog(-1, "unregister 'PSIDHOOK_RANDOM_DROP' failed\n");
+	pluginlog("unregister 'PSIDHOOK_RANDOM_DROP' failed\n");
     }
     if (!PSIDhook_del(PSIDHOOK_FRWRD_DSOCK, doDSock)) {
-	pluginlog(-1, "unregister 'PSIDHOOK_FRWRD_DSOCK' failed\n");
+	pluginlog("unregister 'PSIDHOOK_FRWRD_DSOCK' failed\n");
     }
     if (!PSIDhook_del(PSIDHOOK_FRWRD_CINFO, doCInfo)) {
-	pluginlog(-1, "unregister 'PSIDHOOK_FRWRD_CINFO' failed\n");
+	pluginlog("unregister 'PSIDHOOK_FRWRD_CINFO' failed\n");
     }
 
-    pluginlog(-1, "...Bye.\n");
+    pluginlog("...Bye.\n");
 }
