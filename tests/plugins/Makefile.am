@@ -19,7 +19,7 @@ libpscommon = $(top_builddir)/lib/pscommon/libpscommon.la
 noinst_LTLIBRARIES = plugin1.la plugin2.la plugin3.la plugin4.la	\
 	plugin5.la plugin6.la plugin7.la plugin8.la plugin9.la		\
 	dyn_resources.la fixLoginuid.la spank_test.la			\
-	pluginpsconfig.la
+	pluginpsconfig.la oldHook.la
 
 plugin_LTLIBRARIES = no_flowcontrol.la delaySlurmMsg.la	\
 	delegateStat.la psBlackHole.la fakenode.la
