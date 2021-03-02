@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2020 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2021 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -3449,8 +3449,6 @@ static PSrsrvtn_t *findRes(list_t *queue, PSrsrvtn_ID_t rid)
  */
 static PSrsrvtn_t *deqRes(list_t *queue, PSrsrvtn_t *res)
 {
-    PSrsrvtn_t *r;
-
     if (!res) {
 	PSID_log(-1, "%s: no reservation given\n", __func__);
 	return NULL;
@@ -3458,8 +3456,7 @@ static PSrsrvtn_t *deqRes(list_t *queue, PSrsrvtn_t *res)
 
     PSID_log(PSID_LOG_PART, "%s(%p, %#x)\n", __func__, queue, res->rid);
 
-    r = findRes(queue, res->rid);
-
+    PSrsrvtn_t *r = findRes(queue, res->rid);
     if (!r) {
 	PSID_log(-1, "%s: reservation %#x not found\n", __func__, res->rid);
 	return NULL;
@@ -3606,16 +3603,15 @@ static int handleSingleResRequest(PSrsrvtn_t *r)
 	    .len = sizeof(msg.header) },
 	.buf = { 0 } };
     int got = -1, eno = 0, ret;
-    PStask_t *task, *delegate;
 
     if (!r) return -1;  // Omit and handle next request
-    task = PStasklist_find(&managedTasks, r->task);
+    PStask_t *task = PStasklist_find(&managedTasks, r->task);
     if (!task) {
 	PSID_log(-1, "%s: No task associated to %#x\n", __func__, r->rid);
 	eno = EINVAL;
 	goto no_task_error;
     }
-    delegate = task->delegate ? task->delegate : task;
+    PStask_t *delegate = task->delegate ? task->delegate : task;
 
     /* Dynamic requests shall be handled only once */
     if (r->dynSent) return 1; // Handle next request
@@ -3639,7 +3635,7 @@ static int handleSingleResRequest(PSrsrvtn_t *r)
      * compatible to the nThreads and threads in the corresponding task.
      */
     ret = PSIDhook_call(PSIDHOOK_GETRESERVATION, r);
-    if (ret == 0) {
+    if (!ret) {
 	if (task->delegate) {
 	    /* we cannot do the "double entry bookkeeping on delegation"
 	     * since we do not have a clue how many used threads were added.
@@ -3657,7 +3653,6 @@ static int handleSingleResRequest(PSrsrvtn_t *r)
 	got = r->nSlots;
     } else if (ret == 1) {
 	eno = ECANCELED;
-	goto no_task_error;
     } else {
 	/* fall back to normal creation of reservation */
 	got = PSIDpart_getReservation(r);
