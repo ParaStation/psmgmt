@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2015-2020 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2015-2021 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -95,6 +95,11 @@ PSrsrvtn_t *PSrsrvtn_get(void);
  * slot-list @ref slot is removed from the structure and free()ed in
  * order to avoid memory leaks. To signal this cleanup to the function
  * the corresponding entry in the structure must be set to NULL.
+ *
+ * @warning The reservation structure will not be removed from the
+ * list it is stored to. Thus, if @a rp is still registerd to a list
+ * when calling this function, the corresponding list will be messed
+ * up.
  *
  * @param rp Pointer to the reservation structure to be put back into
  * the pool.
