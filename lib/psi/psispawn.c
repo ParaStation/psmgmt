@@ -501,8 +501,8 @@ int PSI_sendSpawnReq(PStask_t* task, PSnodes_ID_t *dstnodes, uint32_t max)
 bool PSI_sendSpawnMsg(PStask_t* task, bool envClone, PSnodes_ID_t dest,
 		      int (*sendFunc)(void *))
 {
-    DDTypedBufferMsg_t msg = (DDTypedBufferMsg_t) {
-	.header = (DDMsg_t) {
+    DDTypedBufferMsg_t msg = {
+	.header = {
 	    .type = PSP_CD_SPAWNREQ,
 	    .dest = PSC_getTID(dest, 0),
 	    .sender = PSC_getMyTID(),

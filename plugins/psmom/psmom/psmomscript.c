@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2010-2020 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2010-2021 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -80,13 +80,13 @@ int checkPELogueFileStats(char *filename, int root)
 
 void signalPElogue(Job_t *job, char *signal, char *reason)
 {
-    DDTypedBufferMsg_t msg = (DDTypedBufferMsg_t) {
-	.header = (DDMsg_t) {
+    DDTypedBufferMsg_t msg = {
+	.header = {
 	    .type = PSP_PLUG_PSMOM,
 	    .sender = PSC_getMyTID(),
 	    .dest = PSC_getMyTID(),
 	    .len = offsetof(DDTypedBufferMsg_t, buf) },
-	.type = PSP_PSMOM_PELOGUE_SIGNAL};
+	.type = PSP_PSMOM_PELOGUE_SIGNAL };
     int32_t *finishPtr, i;
 
     /* Add string including its length mimicking addString */

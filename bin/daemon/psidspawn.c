@@ -1138,12 +1138,12 @@ error:
  */
 static void sendAcctChild(PStask_t *task)
 {
-    DDTypedBufferMsg_t msg = (DDTypedBufferMsg_t) {
-	.header = (DDMsg_t) {
+    DDTypedBufferMsg_t msg = {
+	.header = {
 	    .type = PSP_CD_ACCOUNT,
 	    .dest =  PSC_getMyTID(),
 	    .sender = task->tid,
-	    .len = sizeof(msg.header) + sizeof(msg.type)},
+	    .len = offsetof(DDTypedBufferMsg_t, buf) },
 	.type = PSP_ACCOUNT_CHILD };
 
     /* logger's TID, this identifies a task uniquely */
@@ -1318,12 +1318,12 @@ static int buildSandboxAndStart(PSIDspawn_creator_t *creator, PStask_t *task)
  */
 static void sendAcctStart(PStask_ID_t sender, PStask_t *task)
 {
-    DDTypedBufferMsg_t msg = (DDTypedBufferMsg_t) {
-	.header = (DDMsg_t) {
+    DDTypedBufferMsg_t msg = {
+	.header = {
 	    .type = PSP_CD_ACCOUNT,
 	    .dest =  PSC_getMyTID(),
 	    .sender = sender,
-	    .len = sizeof(msg.header) + sizeof(msg.type)},
+	    .len = offsetof(DDTypedBufferMsg_t, buf) },
 	.type = PSP_ACCOUNT_START };
     PSCPU_set_t setBuf;
     unsigned short maxCPUs = 0;
@@ -1536,12 +1536,12 @@ static int spawnTask(PStask_t *task)
 
 void sendCHILDRESREL(PStask_ID_t logger, PSCPU_set_t set, PStask_ID_t sender)
 {
-    DDBufferMsg_t resRelMsg = (DDBufferMsg_t) {
-	.header = (DDMsg_t) {
+    DDBufferMsg_t resRelMsg = {
+	.header = {
 	    .type = PSP_DD_CHILDRESREL,
 	    .dest = logger,
 	    .sender = sender,
-	    .len = sizeof(resRelMsg.header)},
+	    .len = offsetof(DDBufferMsg_t, buf) },
 	.buf = { 0 } };
     PSCPU_set_t setBuf;
     uint16_t nBytes = PSCPU_bytesForCPUs(PSIDnodes_getNumThrds(PSC_getMyID()));
@@ -1763,12 +1763,12 @@ static void msg_SPAWNREQ(DDTypedBufferMsg_t *msg)
 
 	if (sendLOC) {
 	    /* Create and send PSP_SPAWN_LOC message */
-	    DDTypedBufferMsg_t locMsg = (DDTypedBufferMsg_t) {
-		.header = (DDMsg_t) {
+	    DDTypedBufferMsg_t locMsg = {
+		.header = {
 		    .type = PSP_CD_SPAWNREQ,
 		    .dest = msg->header.dest,
 		    .sender = msg->header.sender,
-		    .len = sizeof(locMsg.header) + sizeof(locMsg.type)},
+		    .len = offsetof(DDTypedBufferMsg_t, buf) },
 		.type = PSP_SPAWN_LOC };
 	    PSCPU_set_t *rankSet = &ptask->spawnNodes[rank].CPUset;
 	    PSnodes_ID_t destID = PSC_getID(locMsg.header.dest);
@@ -2005,8 +2005,8 @@ static void msg_SPAWNREQ(DDTypedBufferMsg_t *msg)
 static bool send_SPAWNLOC(uint32_t num, int32_t rank, PStask_ID_t sender,
 			  PStask_ID_t dest, PStask_t *ptask)
 {
-    DDBufferMsg_t locMsg = (DDBufferMsg_t) {
-	.header = (DDMsg_t) {
+    DDBufferMsg_t locMsg = {
+	.header = {
 	    .type = PSP_DD_SPAWNLOC,
 	    .sender = sender,
 	    .dest = dest,

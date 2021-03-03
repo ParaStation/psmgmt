@@ -180,13 +180,13 @@ static const char *msg2Str(PSP_PSSLURM_t type)
 
 static void grantPartRequest(PStask_t *task)
 {
-    DDTypedMsg_t msg = (DDTypedMsg_t) {
-	.header = (DDMsg_t) {
+    DDTypedMsg_t msg = {
+	.header = {
 	    .type = PSP_CD_PARTITIONRES,
 	    .dest = task ? task->tid : 0,
 	    .sender = PSC_getMyTID(),
 	    .len = sizeof(msg) },
-	.type = 0};
+	.type = 0 };
 
     if (!task || !task->request) return;
 
@@ -205,8 +205,8 @@ static void grantPartRequest(PStask_t *task)
 
 static void rejectPartRequest(PStask_ID_t dest, PStask_t *task)
 {
-    DDTypedMsg_t msg = (DDTypedMsg_t) {
-	.header = (DDMsg_t) {
+    DDTypedMsg_t msg = {
+	.header = {
 	    .type = PSP_CD_PARTITIONRES,
 	    .dest = dest,
 	    .sender = PSC_getMyTID(),

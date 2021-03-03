@@ -969,13 +969,12 @@ int PSI_resolveHWList(char **hwList, uint32_t *hwType)
 
 int PSI_createPartition(unsigned int size, uint32_t hwType)
 {
-    DDBufferMsg_t msg = (DDBufferMsg_t) {
-	.header = (DDMsg_t) {
+    DDBufferMsg_t msg = {
+	.header = {
 	    .type = PSP_CD_CREATEPART,
 	    .dest = PSC_getTID(-1, 0),
 	    .sender = PSC_getMyTID(),
-	    .len = sizeof(msg.header)},
-	.buf = {0}};
+	    .len = offsetof(DDBufferMsg_t, buf) } };
     PSpart_request_t *request = PSpart_newReq();
     nodelist_t *nodelist = NULL;
     uint32_t hwEnv;
@@ -1097,13 +1096,12 @@ end:
 int PSI_getNodes(uint32_t num, uint32_t hwType, uint16_t tpp,
 		 PSpart_option_t options, PSnodes_ID_t *nodes)
 {
-    DDBufferMsg_t msg = (DDBufferMsg_t) {
-	.header = (DDMsg_t) {
+    DDBufferMsg_t msg = {
+	.header = {
 	    .type = PSP_CD_GETNODES,
 	    .dest = PSC_getTID(-1, 0),
 	    .sender = PSC_getMyTID(),
-	    .len = sizeof(DDMsg_t) },
-	.buf = { 0 } };
+	    .len = offsetof(DDBufferMsg_t, buf) } };
     char *ptr = msg.buf;
     int ret = -1;
 
@@ -1166,13 +1164,12 @@ recv_retry:
 
 int PSI_getRankNode(int32_t rank, PSnodes_ID_t *node)
 {
-    DDBufferMsg_t msg = (DDBufferMsg_t) {
-	.header = (DDMsg_t) {
+    DDBufferMsg_t msg = {
+	.header = {
 	    .type = PSP_CD_GETRANKNODE,
 	    .dest = PSC_getTID(-1, 0),
 	    .sender = PSC_getMyTID(),
-	    .len = sizeof(DDMsg_t) },
-	.buf = { 0 } };
+	    .len = offsetof(DDBufferMsg_t, buf) } };
     char *ptr = msg.buf;
     int ret = -1;
 
@@ -1225,13 +1222,12 @@ PSrsrvtn_ID_t PSI_getReservation(uint32_t nMin, uint32_t nMax, uint16_t ppn,
 				 uint16_t tpp, uint32_t hwType,
 				 PSpart_option_t options, uint32_t *got)
 {
-    DDBufferMsg_t msg = (DDBufferMsg_t) {
-	.header = (DDMsg_t) {
+    DDBufferMsg_t msg = {
+	.header = {
 	    .type = PSP_CD_GETRESERVATION,
 	    .dest = PSC_getTID(-1, 0),
 	    .sender = PSC_getMyTID(),
-	    .len = sizeof(DDMsg_t) },
-	.buf = { 0 } };
+	    .len = offsetof(DDBufferMsg_t, buf) } };
     PSrsrvtn_ID_t rid = 0;
     size_t used = 0;
 
@@ -1317,13 +1313,12 @@ recv_retry:
 
 int PSI_getSlots(uint16_t num, PSrsrvtn_ID_t resID, PSnodes_ID_t *nodes)
 {
-    DDBufferMsg_t msg = (DDBufferMsg_t) {
-	.header = (DDMsg_t) {
+    DDBufferMsg_t msg = {
+	.header = {
 	    .type = PSP_CD_GETSLOTS,
 	    .dest = PSC_getTID(-1, 0),
 	    .sender = PSC_getMyTID(),
-	    .len = sizeof(DDMsg_t) },
-	.buf = { 0 } };
+	    .len = offsetof(DDBufferMsg_t, buf) } };
     int32_t ret = -1;
     size_t used = 0;
 

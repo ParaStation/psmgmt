@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2011-2018 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2011-2021 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -190,13 +190,13 @@ static void msg_ENV(DDTypedBufferMsg_t *inmsg)
 
 end:
     {
-	DDTypedMsg_t msg = (DDTypedMsg_t) {
-	    .header = (DDMsg_t) {
+	DDTypedMsg_t msg = {
+	    .header = {
 		.type = PSP_CD_ENVRES,
 		.dest = inmsg->header.sender,
 		.sender = PSC_getMyTID(),
 		.len = sizeof(msg) },
-	    .type = ret};
+	    .type = ret };
 	if (sendMsg(&msg) == -1 && errno != EWOULDBLOCK) {
 	    PSID_warn(-1, errno, "%s: sendMsg()", __func__);
 	}

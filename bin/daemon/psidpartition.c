@@ -1699,15 +1699,14 @@ static void handlePartRequests(void)
 	PSID_log(PSID_LOG_PART, "%s: %s\n", __func__, partStr);
 
 	if ((req->numGot == req->num) && !getPartition(req)) {
-	    DDTypedMsg_t msg;
 	    if ((req->options & PART_OPT_WAIT) && (errno != ENOSPC)) break;
 	    if (!deqPart(&pendReq, req)) {
 		PSID_log(-1, "%s: Unable to dequeue request %s\n",
 			 __func__, PSC_printTID(req->tid));
 		errno = EBUSY;
 	    }
-	    msg = (DDTypedMsg_t) {
-		.header = (DDMsg_t) {
+	    DDTypedMsg_t msg = {
+		.header = {
 		    .type = PSP_CD_PARTITIONRES,
 		    .dest = req->tid,
 		    .sender = PSC_getMyTID(),
@@ -1730,13 +1729,13 @@ static void handlePartRequests(void)
  */
 static void sendAcctQueueMsg(PStask_t *task)
 {
-    DDTypedBufferMsg_t msg = (DDTypedBufferMsg_t) {
-	.header = (DDMsg_t) {
+    DDTypedBufferMsg_t msg = {
+	.header = {
 	    .type = PSP_CD_ACCOUNT,
 	    .dest = PSC_getMyTID(),
 	    .sender = task->tid,
-	    .len = sizeof(msg.header) + sizeof(msg.type) },
-	.type = PSP_ACCOUNT_QUEUE};
+	    .len = offsetof(DDTypedBufferMsg_t, buf) },
+	.type = PSP_ACCOUNT_QUEUE };
 
     PSP_putTypedMsgBuf(&msg, __func__, "TID", &task->tid, sizeof(task->tid));
     PSP_putTypedMsgBuf(&msg, __func__, "rank", &task->rank, sizeof(task->rank));
@@ -1850,8 +1849,8 @@ cleanup:
 
 error:
     {
-	DDTypedMsg_t msg = (DDTypedMsg_t) {
-	    .header = (DDMsg_t) {
+	DDTypedMsg_t msg = {
+	    .header = {
 		.type = PSP_CD_PARTITIONRES,
 		.dest = inmsg->header.sender,
 		.sender = PSC_getMyTID(),
@@ -1930,16 +1929,14 @@ static void msg_GETPART(DDBufferMsg_t *inmsg)
  error:
     deqPart(&pendReq, req);
     PSpart_delReq(req);
-    {
-	DDTypedMsg_t msg = (DDTypedMsg_t) {
-	    .header = (DDMsg_t) {
-		.type = PSP_CD_PARTITIONRES,
-		.dest = inmsg->header.sender,
-		.sender = PSC_getMyTID(),
-		.len = sizeof(msg) },
-	    .type = errno};
-	sendMsg(&msg);
-    }
+    DDTypedMsg_t msg = {
+	.header = {
+	    .type = PSP_CD_PARTITIONRES,
+	    .dest = inmsg->header.sender,
+	    .sender = PSC_getMyTID(),
+	    .len = sizeof(msg) },
+	.type = errno};
+    sendMsg(&msg);
 }
 
 /**
@@ -2050,8 +2047,8 @@ static void msg_CREATEPARTNL(DDBufferMsg_t *inmsg)
     return;
  error:
     {
-	DDTypedMsg_t msg = (DDTypedMsg_t) {
-	    .header = (DDMsg_t) {
+	DDTypedMsg_t msg = {
+	    .header = {
 		.type = PSP_CD_PARTITIONRES,
 		.dest = inmsg->header.sender,
 		.sender = PSC_getMyTID(),
@@ -2114,8 +2111,8 @@ static void msg_GETPARTNL(DDBufferMsg_t *inmsg)
     return;
  error:
     {
-	DDTypedMsg_t msg = (DDTypedMsg_t) {
-	    .header = (DDMsg_t) {
+	DDTypedMsg_t msg = {
+	    .header = {
 		.type = PSP_CD_PARTITIONRES,
 		.dest = inmsg->header.sender,
 		.sender = PSC_getMyTID(),
@@ -2262,8 +2259,8 @@ static void msg_PROVIDEPART(DDBufferMsg_t *msg)
     return;
  error:
     {
-	DDTypedMsg_t answer = (DDTypedMsg_t) {
-	    .header = (DDMsg_t) {
+	DDTypedMsg_t answer = {
+	    .header = {
 		.type = PSP_CD_PARTITIONRES,
 		.dest = msg->header.dest,
 		.sender = PSC_getMyTID(),
@@ -2392,8 +2389,8 @@ static void msg_PROVIDEPARTSL(DDBufferMsg_t *inmsg)
 
     if (req->sizeGot == req->sizeExpected) {
 	/* partition complete, now delete the corresponding request */
-	DDTypedMsg_t msg = (DDTypedMsg_t) {
-	    .header = (DDMsg_t) {
+	DDTypedMsg_t msg = {
+	    .header = {
 		.type = PSP_CD_PARTITIONRES,
 		.dest = inmsg->header.dest,
 		.sender = PSC_getMyTID(),
@@ -2420,8 +2417,8 @@ static void msg_PROVIDEPARTSL(DDBufferMsg_t *inmsg)
     return;
  error:
     {
-	DDTypedMsg_t msg = (DDTypedMsg_t) {
-	    .header = (DDMsg_t) {
+	DDTypedMsg_t msg = {
+	    .header = {
 		.type = PSP_CD_PARTITIONRES,
 		.dest = inmsg->header.dest,
 		.sender = PSC_getMyTID(),
@@ -2887,12 +2884,12 @@ static void msg_GETNODES(DDBufferMsg_t *inmsg)
 
     if (delegate->usedThreads + num * tpp <= delegate->totalThreads
 	|| option & PART_OPT_OVERBOOK) {
-	DDBufferMsg_t msg = (DDBufferMsg_t) {
-	    .header = (DDMsg_t) {
+	DDBufferMsg_t msg = {
+	    .header = {
 		.type = PSP_DD_NODESRES,
 		.dest = inmsg->header.sender,
 		.sender = PSC_getMyTID(),
-		.len = sizeof(msg.header) },
+		.len = offsetof(DDBufferMsg_t, buf) },
 	    .buf = { 0 } };
 	PSpart_slot_t slots[NODES_CHUNK];
 	int16_t shortNum = num;
@@ -2923,8 +2920,8 @@ static void msg_GETNODES(DDBufferMsg_t *inmsg)
 
     error:
     {
-	DDTypedMsg_t msg = (DDTypedMsg_t) {
-	    .header = (DDMsg_t) {
+	DDTypedMsg_t msg = {
+	    .header = {
 		.type = PSP_CD_NODESRES,
 		.dest = inmsg->header.sender,
 		.sender = PSC_getMyTID(),
@@ -3235,12 +3232,12 @@ static void msg_GETRANKNODE(DDBufferMsg_t *msg)
     PSID_log(PSID_LOG_PART, "%s(%d)\n", __func__, rank);
 
     if (rank >=0 && (unsigned)rank * tpp < task->totalThreads) {
-	DDBufferMsg_t answer = (DDBufferMsg_t) {
-	    .header = (DDMsg_t) {
+	DDBufferMsg_t answer = {
+	    .header = {
 		.type = PSP_DD_NODESRES,
 		.dest = msg->header.sender,
 		.sender = PSC_getMyTID(),
-		.len = sizeof(answer.header) },
+		.len = offsetof(DDBufferMsg_t, buf) },
 	    .buf = { 0 } };
 	PSpart_HWThread_t *thread = task->partThrds + rank * tpp;
 	PSpart_slot_t slot;
@@ -3272,8 +3269,8 @@ static void msg_GETRANKNODE(DDBufferMsg_t *msg)
 
     error:
     {
-	DDTypedMsg_t answer = (DDTypedMsg_t) {
-	    .header = (DDMsg_t) {
+	DDTypedMsg_t answer = {
+	    .header = {
 		.type = PSP_CD_NODESRES,
 		.dest = msg->header.sender,
 		.sender = PSC_getMyTID(),
@@ -3595,12 +3592,12 @@ static int PSIDpart_getReservation(PSrsrvtn_t *res)
  */
 static int handleSingleResRequest(PSrsrvtn_t *r)
 {
-    DDBufferMsg_t msg = (DDBufferMsg_t) {
-	.header = (DDMsg_t) {
+    DDBufferMsg_t msg = {
+	.header = {
 	    .type = PSP_CD_RESERVATIONRES,
 	    .dest = r->requester,
 	    .sender = PSC_getMyTID(),
-	    .len = sizeof(msg.header) },
+	    .len = offsetof(DDBufferMsg_t, buf) },
 	.buf = { 0 } };
     int got = -1, eno = 0, ret;
 
@@ -3765,11 +3762,11 @@ int PSIDpart_extendRes(PStask_ID_t tid, PSrsrvtn_ID_t resID,
 {
     PStask_t *task = PStasklist_find(&managedTasks, tid), *delegate;
     PSrsrvtn_t *res;
-    DDBufferMsg_t msg = (DDBufferMsg_t) {
-	.header = (DDMsg_t) {
+    DDBufferMsg_t msg = {
+	.header = {
 	    .type = PSP_CD_RESERVATIONRES,
 	    .sender = PSC_getMyTID(),
-	    .len = sizeof(msg.header) },
+	    .len = offsetof(DDBufferMsg_t, buf) },
 	.buf = { 0 } };
     uint32_t t, null = 0;
 
@@ -3958,12 +3955,12 @@ static void msg_GETRESERVATION(DDBufferMsg_t *inmsg)
 
 error:
     {
-	DDBufferMsg_t msg = (DDBufferMsg_t) {
-	    .header = (DDMsg_t) {
+	DDBufferMsg_t msg = {
+	    .header = {
 		.type = PSP_CD_RESERVATIONRES,
 		.dest = inmsg->header.sender,
 		.sender = PSC_getMyTID(),
-		.len = sizeof(msg.header) },
+		.len = offsetof(DDBufferMsg_t, buf) },
 	    .buf = { 0 } };
 	uint32_t null = 0;
 	PSP_putMsgBuf(&msg, __func__, "error", &null, sizeof(null));
@@ -4060,12 +4057,12 @@ void PSIDpart_cleanupRes(PStask_t *task)
  */
 static void msg_GETSLOTS(DDBufferMsg_t *inmsg)
 {
-    DDBufferMsg_t msg = (DDBufferMsg_t) {
-	.header = (DDMsg_t) {
+    DDBufferMsg_t msg = {
+	.header = {
 	    .type = PSP_DD_SLOTSRES,
 	    .dest = inmsg->header.sender,
 	    .sender = PSC_getMyTID(),
-	    .len = sizeof(msg.header) },
+	    .len = offsetof(DDBufferMsg_t, buf) },
 	.buf = { 0 } };
     PStask_ID_t target = PSC_getPID(inmsg->header.dest) ?
 	inmsg->header.dest : inmsg->header.sender;
@@ -4247,20 +4244,17 @@ static void msg_SLOTSRES(DDBufferMsg_t *msg)
 
 void PSIDpart_cleanupSlots(PStask_t *task)
 {
-    DDBufferMsg_t relMsg;
-    uint32_t r;
-
     if (!task || !task->spawnNodes) return;
 
-    relMsg = (DDBufferMsg_t) {
-	.header = (DDMsg_t) {
+    DDBufferMsg_t relMsg = {
+	.header = {
 	    .type = PSP_DD_CHILDRESREL,
 	    .dest = task->loggertid,
 	    .sender = 0,
-	    .len = sizeof(relMsg.header)},
+	    .len = offsetof(DDBufferMsg_t, buf) },
 	.buf = {0} };
 
-    for (r = 0; r < task->spawnNodesSize; r++) {
+    for (uint32_t r = 0; r < task->spawnNodesSize; r++) {
 	PSnodes_ID_t rankNode = task->spawnNodes[r].node;
 	PSCPU_set_t *rankSet = &task->spawnNodes[r].CPUset;
 	uint16_t nBytes = PSCPU_bytesForCPUs(PSIDnodes_getNumThrds(rankNode));

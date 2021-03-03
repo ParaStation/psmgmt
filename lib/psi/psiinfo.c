@@ -178,9 +178,8 @@ int PSI_infoInt(PSnodes_ID_t node, PSP_Info_t what, const void *param,
 	    .type = PSP_CD_INFOREQUEST,
 	    .dest = PSC_getTID(node, 0),
 	    .sender = PSC_getMyTID(),
-	    .len = sizeof(msg.header)+sizeof(msg.type) },
-	.type = what,
-	.buf = { 0 } };
+	    .len = offsetof(DDTypedBufferMsg_t, buf) },
+	.type = what };
     size_t size = sizeof(*val);
 
     switch (what) {
@@ -227,9 +226,8 @@ int PSI_infoInt64(PSnodes_ID_t node, PSP_Info_t what, const void *param,
 	    .type = PSP_CD_INFOREQUEST,
 	    .dest = PSC_getTID(node, 0),
 	    .sender = PSC_getMyTID(),
-	    .len = sizeof(msg.header)+sizeof(msg.type) },
-	.type = what,
-	.buf = { 0 } };
+	    .len = offsetof(DDTypedBufferMsg_t, buf) },
+	.type = what };
     size_t size = sizeof(*val);
 
     switch (what) {
@@ -261,9 +259,8 @@ int PSI_infoUInt(PSnodes_ID_t node, PSP_Info_t what, const void *param,
 	    .type = PSP_CD_INFOREQUEST,
 	    .dest = PSC_getTID(node, 0),
 	    .sender = PSC_getMyTID(),
-	    .len = sizeof(msg.header)+sizeof(msg.type) },
-	.type = what,
-	.buf = { 0 } };
+	    .len = offsetof(DDTypedBufferMsg_t, buf) },
+	.type = what };
     size_t size = sizeof(*val);
 
     switch (what) {
@@ -299,14 +296,13 @@ int PSI_infoUInt(PSnodes_ID_t node, PSP_Info_t what, const void *param,
 int PSI_infoString(PSnodes_ID_t node, PSP_Info_t what, const void *param,
 		   char *string, size_t size, bool verbose)
 {
-    DDTypedBufferMsg_t msg = (DDTypedBufferMsg_t) {
-	.header = (DDMsg_t) {
+    DDTypedBufferMsg_t msg = {
+	.header = {
 	    .type = PSP_CD_INFOREQUEST,
 	    .dest = PSC_getTID(node, 0),
 	    .sender = PSC_getMyTID(),
-	    .len = sizeof(msg.header)+sizeof(msg.type) },
-	.type = what,
-	.buf = { 0 } };
+	    .len = offsetof(DDTypedBufferMsg_t, buf) },
+	.type = what };
 
     switch (what) {
     case PSP_INFO_COUNTHEADER:
@@ -372,14 +368,13 @@ int PSI_infoString(PSnodes_ID_t node, PSP_Info_t what, const void *param,
 int PSI_infoTaskID(PSnodes_ID_t node, PSP_Info_t what, const void *param,
 		   PStask_ID_t *tid, bool verbose)
 {
-    DDTypedBufferMsg_t msg = (DDTypedBufferMsg_t) {
-	.header = (DDMsg_t) {
+    DDTypedBufferMsg_t msg = {
+	.header = {
 	    .type = PSP_CD_INFOREQUEST,
 	    .dest = PSC_getTID(node, 0),
 	    .sender = PSC_getMyTID(),
-	    .len = sizeof(msg.header)+sizeof(msg.type) },
-	.type = what,
-	.buf = { 0 } };
+	    .len = offsetof(DDTypedBufferMsg_t, buf) },
+	.type = what };
     size_t size = sizeof(*tid);
 
     switch (what) {
@@ -408,14 +403,13 @@ int PSI_infoTaskID(PSnodes_ID_t node, PSP_Info_t what, const void *param,
 int PSI_infoNodeID(PSnodes_ID_t node, PSP_Info_t what, const void *param,
 		   PSnodes_ID_t *nid, bool verbose)
 {
-    DDTypedBufferMsg_t msg = (DDTypedBufferMsg_t) {
-	.header = (DDMsg_t) {
+    DDTypedBufferMsg_t msg = {
+	.header = {
 	    .type = PSP_CD_INFOREQUEST,
 	    .dest = PSC_getTID(node, 0),
 	    .sender = PSC_getMyTID(),
-	    .len = sizeof(msg.header)+sizeof(msg.type) },
-	.type = what,
-	.buf = { 0 } };
+	    .len = offsetof(DDTypedBufferMsg_t, buf) },
+	.type = what };
     size_t size = sizeof(*nid);
 
     switch (what) {
@@ -462,14 +456,13 @@ int PSI_infoNodeID(PSnodes_ID_t node, PSP_Info_t what, const void *param,
 int PSI_infoList(PSnodes_ID_t node, PSP_Info_t what, const void *param,
 		 void *buf, size_t size, bool verbose)
 {
-    DDTypedBufferMsg_t msg = (DDTypedBufferMsg_t) {
-	.header = (DDMsg_t) {
+    DDTypedBufferMsg_t msg = {
+	.header = {
 	    .type = PSP_CD_INFOREQUEST,
 	    .dest = PSC_getTID(node, 0),
 	    .sender = PSC_getMyTID(),
-	    .len = sizeof(msg.header)+sizeof(msg.type) },
-	.type = what,
-	.buf = { 0 } };
+	    .len = offsetof(DDTypedBufferMsg_t, buf) },
+	.type = what };
     PSP_Info_t type;
     size_t recvd = 0;
     char *bufPtr = buf;
@@ -536,14 +529,13 @@ int PSI_infoList(PSnodes_ID_t node, PSP_Info_t what, const void *param,
 
 int PSI_infoQueueReq(PSnodes_ID_t node, PSP_Info_t what, const void *param)
 {
-    DDTypedBufferMsg_t msg = (DDTypedBufferMsg_t) {
-	.header = (DDMsg_t) {
+    DDTypedBufferMsg_t msg = {
+	.header = {
 	    .type = PSP_CD_INFOREQUEST,
 	    .dest = PSC_getTID(node, 0),
 	    .sender = PSC_getMyTID(),
-	    .len = sizeof(msg.header)+sizeof(msg.type) },
-	.type = what,
-	.buf = { 0 } };
+	    .len = offsetof(DDTypedBufferMsg_t, buf) },
+	.type = what };
 
     switch (what) {
     case PSP_INFO_QUEUE_ALLTASK:
@@ -630,24 +622,22 @@ int PSI_infoQueueNext(PSP_Info_t what, void *buf, size_t size, bool verbose)
 int PSI_infoOption(PSnodes_ID_t node, int num, PSP_Option_t option[],
 		   PSP_Optval_t value[], bool verbose)
 {
-    DDOptionMsg_t msg;
-    int i;
-
     if (num > DDOptionMsgMax) {
 	PSI_log(-1, "%s: too many options\n", __func__);
 	return -1;
     }
 
-    msg.header = (DDMsg_t) {
-	.type = PSP_CD_GETOPTION,
-	.dest = PSC_getTID(node, 0),
-	.sender = PSC_getMyTID(),
-	.len = sizeof(msg) };
+    DDOptionMsg_t msg = {
+	.header = {
+	    .type = PSP_CD_GETOPTION,
+	    .dest = PSC_getTID(node, 0),
+	    .sender = PSC_getMyTID(),
+	    .len = sizeof(msg) },
+	.count = num };
 
-    for (i=0; i<num; i++) {
+    for (int i = 0; i < num; i++) {
 	msg.opt[i].option = option[i];
     }
-    msg.count = num;
 
     if (PSI_sendMsg(&msg)<0) {
 	PSI_warn(-1, errno, "%s: PSI_sendMsg", __func__);
@@ -668,7 +658,7 @@ recv_retry:
 	    msg.count = num;
 	}
 
-	for (i=0; i<msg.count; i++) {
+	for (int i = 0; i < msg.count; i++) {
 	    option[i] = msg.opt[i].option;
 	    value[i] = msg.opt[i].value;
 	}
@@ -692,16 +682,14 @@ recv_retry:
 
 int PSI_infoOptionList(PSnodes_ID_t node, PSP_Option_t option)
 {
-    DDOptionMsg_t msg;
-
-    msg.header = (DDMsg_t) {
-	.type = PSP_CD_GETOPTION,
-	.dest = PSC_getTID(node, 0),
-	.sender = PSC_getMyTID(),
-	.len = sizeof(msg) };
-
+    DDOptionMsg_t msg = {
+	.header = {
+	    .type = PSP_CD_GETOPTION,
+	    .dest = PSC_getTID(node, 0),
+	    .sender = PSC_getMyTID(),
+	    .len = sizeof(msg) },
+	.count = 1 };
     msg.opt[0].option = option;
-    msg.count = 1;
 
     if (PSI_sendMsg(&msg)<0) {
 	PSI_warn(-1, errno, "%s: PSI_sendMsg", __func__);
@@ -714,7 +702,6 @@ int PSI_infoOptionList(PSnodes_ID_t node, PSP_Option_t option)
 int PSI_infoOptionListNext(DDOption_t opts[], int num, bool verbose)
 {
     DDOptionMsg_t msg;
-    int i;
 
 recv_retry:
     if (PSI_recvMsg((DDMsg_t *)&msg, sizeof(msg))<0) {
@@ -730,7 +717,7 @@ recv_retry:
 	    msg.count = num;
 	}
 
-	for (i=0; i<msg.count; i++) {
+	for (int i = 0; i < msg.count; i++) {
 	    opts[i].option = msg.opt[i].option;
 	    opts[i].value = msg.opt[i].value;
 	}

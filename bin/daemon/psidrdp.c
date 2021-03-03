@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2020 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2021 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -78,7 +78,7 @@ void clearRDPMsgs(int node)
 	    DDMsg_t contmsg = { .type = PSP_DD_SENDCONT,
 				.sender = msg->header.dest,
 				.dest = msg->header.sender,
-				.len = sizeof(DDMsg_t) };
+				.len = sizeof(contmsg) };
 	    if (PSC_getID(contmsg.dest) != node) sendMsg(&contmsg);
 	}
 	PSID_dropMsg(msg);
@@ -167,7 +167,7 @@ int flushRDPMsgs(int node)
 	    DDMsg_t contmsg = { .type = PSP_DD_SENDCONT,
 				.sender = dest,
 				.dest = sender,
-				.len = sizeof(DDMsg_t) };
+				.len = sizeof(contmsg) };
 	    if (PSC_getID(contmsg.dest) != node) sendMsg(&contmsg);
 	}
     }

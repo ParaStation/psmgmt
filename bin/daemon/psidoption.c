@@ -798,8 +798,8 @@ static void msg_GETOPTION(DDOptionMsg_t *msg)
 	     __func__, id, PSC_printTID(msg->header.sender));
 
     if (id!=PSC_getMyID()) {
-	DDErrorMsg_t errmsg = (DDErrorMsg_t) {
-	    .header = (DDMsg_t) {
+	DDErrorMsg_t errmsg = {
+	    .header = {
 		.type = PSP_CD_ERROR,
 		.dest = msg->header.sender,
 		.sender = PSC_getMyTID(),

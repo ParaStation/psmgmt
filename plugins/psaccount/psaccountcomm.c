@@ -565,8 +565,8 @@ static void handleInterAccount(DDTypedBufferMsg_t *msg)
 
 int switchAccounting(PStask_ID_t clientTID, bool enable)
 {
-    DDTypedBufferMsg_t msg = (DDTypedBufferMsg_t) {
-	.header = (DDMsg_t) {
+    DDTypedBufferMsg_t msg = {
+	.header = {
 	    .type = PSP_PLUG_ACCOUNT,
 	    .sender = PSC_getMyTID(),
 	    .dest = PSC_getTID(PSC_getMyID(), 0),

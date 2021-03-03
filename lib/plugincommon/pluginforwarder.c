@@ -510,8 +510,8 @@ static void forwarderExit(Forwarder_Data_t *fw)
 
 static void sendChildInfo(Forwarder_Data_t *fw)
 {
-    PSLog_Msg_t msg = (PSLog_Msg_t) {
-	.header = (DDMsg_t) {
+    PSLog_Msg_t msg = {
+	.header = {
 	    .type = PSP_CC_MSG,
 	    .dest = PSC_getTID(-1,0),
 	    .sender = PSC_getMyTID(),
@@ -531,8 +531,8 @@ static void sendChildInfo(Forwarder_Data_t *fw)
 static void sendAccInfo(Forwarder_Data_t *fw, int32_t status,
 			struct rusage *rusage)
 {
-    PSLog_Msg_t msg = (PSLog_Msg_t) {
-	.header = (DDMsg_t) {
+    PSLog_Msg_t msg = {
+	.header = {
 	    .type = PSP_CC_MSG,
 	    .dest = PSC_getTID(-1,0),
 	    .sender = PSC_getMyTID(),
@@ -549,13 +549,12 @@ static void sendAccInfo(Forwarder_Data_t *fw, int32_t status,
     uint64_t pSize = sysconf(_SC_PAGESIZE) < 0 ? 0 : sysconf(_SC_PAGESIZE);
 
     *accMsg = (DDTypedBufferMsg_t) {
-	.header = (DDMsg_t) {
+	.header = {
 	    .type = PSP_CD_ACCOUNT,
 	    .sender = PSC_getMyTID(),
 	    .dest = PSC_getTID(-1, 0),
-	    .len = sizeof(msg.header) + sizeof(msg.type)},
-	.type = PSP_ACCOUNT_END,
-	.buf = {'\0'} };
+	    .len = offsetof(DDTypedBufferMsg_t, buf) },
+	.type = PSP_ACCOUNT_END };
 
     PSP_putTypedMsgBuf(accMsg, __func__, "loggerTID", &logger, sizeof(logger));
     PSP_putTypedMsgBuf(accMsg, __func__, "rank", &rank, sizeof(rank));
@@ -579,8 +578,8 @@ static void sendAccInfo(Forwarder_Data_t *fw, int32_t status,
 
 static void sendCodeInfo(int32_t ecode)
 {
-    PSLog_Msg_t msg = (PSLog_Msg_t) {
-	.header = (DDMsg_t) {
+    PSLog_Msg_t msg = {
+	.header = {
 	    .type = PSP_CC_MSG,
 	    .dest = PSC_getTID(-1,0),
 	    .sender = PSC_getMyTID(),
@@ -597,8 +596,8 @@ static void sendCodeInfo(int32_t ecode)
 
 static void sendExitInfo(int32_t estatus)
 {
-    PSLog_Msg_t msg = (PSLog_Msg_t) {
-	.header = (DDMsg_t) {
+    PSLog_Msg_t msg = {
+	.header = {
 	    .type = PSP_CC_MSG,
 	    .dest = PSC_getTID(-1,0),
 	    .sender = PSC_getMyTID(),
@@ -615,8 +614,8 @@ static void sendExitInfo(int32_t estatus)
 
 static void sendFin(void)
 {
-    PSLog_Msg_t msg = (PSLog_Msg_t) {
-	.header = (DDMsg_t) {
+    PSLog_Msg_t msg = {
+	.header = {
 	    .type = PSP_CC_MSG,
 	    .dest = PSC_getTID(-1,0),
 	    .sender = PSC_getMyTID(),
@@ -642,8 +641,8 @@ static int handleChildOE(int fd, void *info)
     }
 
     /* send to mother */
-    PSLog_Msg_t msg = (PSLog_Msg_t) {
-	.header = (DDMsg_t) {
+    PSLog_Msg_t msg = {
+	.header = {
 	    .type = PSP_CC_MSG,
 	    .dest = PSC_getTID(-1,0),
 	    .sender = PSC_getMyTID(),
@@ -866,8 +865,8 @@ static void handleChildExit(Forwarder_Data_t *fw, PSLog_Msg_t *msg)
 
 static void handleChildFin(PStask_ID_t sender)
 {
-    PSLog_Msg_t msg = (PSLog_Msg_t) {
-	.header = (DDMsg_t) {
+    PSLog_Msg_t msg = {
+	.header = {
 	    .type = PSP_CC_MSG,
 	    .dest = sender,
 	    .sender = PSC_getMyTID(),
@@ -1006,8 +1005,8 @@ bool signalForwarderChild(Forwarder_Data_t *fw, int sig)
 	}
 	return true;
     } else if (fw->tid != -1 && PSC_getPID(fw->tid)) {
-	PSLog_Msg_t msg = (PSLog_Msg_t) {
-	    .header = (DDMsg_t) {
+	PSLog_Msg_t msg = {
+	    .header = {
 		.type = PSP_CC_MSG,
 		.dest = fw->tid,
 		.sender = PSC_getMyTID(),
@@ -1028,8 +1027,8 @@ bool signalForwarderChild(Forwarder_Data_t *fw, int sig)
 
 void startGraceTime(Forwarder_Data_t *fw)
 {
-    PSLog_Msg_t msg = (PSLog_Msg_t) {
-	.header = (DDMsg_t) {
+    PSLog_Msg_t msg = {
+	.header = {
 	    .type = PSP_CC_MSG,
 	    .dest = fw->tid,
 	    .sender = PSC_getMyTID(),
@@ -1045,8 +1044,8 @@ void startGraceTime(Forwarder_Data_t *fw)
 
 void shutdownForwarder(Forwarder_Data_t *fw)
 {
-    PSLog_Msg_t msg = (PSLog_Msg_t) {
-	.header = (DDMsg_t) {
+    PSLog_Msg_t msg = {
+	.header = {
 	    .type = PSP_CC_MSG,
 	    .dest = fw->tid,
 	    .sender = PSC_getMyTID(),

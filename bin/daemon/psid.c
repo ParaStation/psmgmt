@@ -169,7 +169,7 @@ static void RDPCallBack(int msgid, void *buf)
 	    DDMsg_t contmsg = { .type = PSP_DD_SENDCONT,
 				.sender = msg->header.dest,
 				.dest = msg->header.sender,
-				.len = sizeof(DDMsg_t) };
+				.len = sizeof(contmsg) };
 	    sendMsg(&contmsg);
 	}
 	PSID_dropMsg(msg);

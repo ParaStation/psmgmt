@@ -761,11 +761,10 @@ void PSIDplugin_sendList(PStask_ID_t dest)
 	    .type = PSP_CD_INFORESPONSE,
 	    .sender = PSC_getMyTID(),
 	    .dest = dest,
-	    .len = sizeof(msg.header) + sizeof(msg.type) },
-	.type = PSP_INFO_QUEUE_PLUGINS,
-	.buf = {0}};
-    list_t *p;
+	    .len = offsetof(DDTypedBufferMsg_t, buf) },
+	.type = PSP_INFO_QUEUE_PLUGINS };
 
+    list_t *p;
     list_for_each(p, &pluginList) {
 	plugin_t *plugin = list_entry(p, plugin_t, next);
 	size_t len;
@@ -1207,13 +1206,13 @@ static void sendStr(DDTypedBufferMsg_t *msg, char *str, const char *caller)
 
 static void sendAvail(PStask_ID_t dest)
 {
-    DDTypedBufferMsg_t msg = (DDTypedBufferMsg_t) {
-	    .header = (DDMsg_t) {
-		.type = PSP_CD_PLUGINRES,
-		.dest = dest,
-		.sender = PSC_getMyTID(),
-		.len = sizeof(msg.header) + sizeof(msg.type) },
-	    .type = PSP_PLUGIN_AVAIL};
+    DDTypedBufferMsg_t msg = {
+	.header = {
+	    .type = PSP_CD_PLUGINRES,
+	    .dest = dest,
+	    .sender = PSC_getMyTID(),
+	    .len = offsetof(DDTypedBufferMsg_t, buf) },
+	.type = PSP_PLUGIN_AVAIL };
     char dirName[PATH_MAX], *instDir, res[256] = { '\0' };
     DIR *dir;
     struct dirent *dent;
@@ -1258,13 +1257,13 @@ end:
 
 static void sendHelp(PStask_ID_t dest, char *pName)
 {
-    DDTypedBufferMsg_t msg = (DDTypedBufferMsg_t) {
-	    .header = (DDMsg_t) {
-		.type = PSP_CD_PLUGINRES,
-		.dest = dest,
-		.sender = PSC_getMyTID(),
-		.len = sizeof(msg.header) + sizeof(msg.type) },
-	    .type = PSP_PLUGIN_HELP};
+    DDTypedBufferMsg_t msg = {
+	.header = {
+	    .type = PSP_CD_PLUGINRES,
+	    .dest = dest,
+	    .sender = PSC_getMyTID(),
+	    .len = offsetof(DDTypedBufferMsg_t, buf) },
+	.type = PSP_PLUGIN_HELP };
     plugin_t *plugin = findPlugin(pName);
 
     if (!plugin) {
@@ -1295,13 +1294,13 @@ static void handleSetKey(PStask_ID_t dest, char *buf)
     char *pName = buf, *key = pName + PSP_strLen(pName);
     char *val = key + PSP_strLen(key);
     plugin_t *plugin = findPlugin(pName);
-    DDTypedBufferMsg_t msg = (DDTypedBufferMsg_t) {
-	    .header = (DDMsg_t) {
-		.type = PSP_CD_PLUGINRES,
-		.dest = dest,
-		.sender = PSC_getMyTID(),
-		.len = sizeof(msg.header) + sizeof(msg.type) },
-	    .type = PSP_PLUGIN_SET};
+    DDTypedBufferMsg_t msg = {
+	.header = {
+	    .type = PSP_CD_PLUGINRES,
+	    .dest = dest,
+	    .sender = PSC_getMyTID(),
+	    .len = offsetof(DDTypedBufferMsg_t, buf) },
+	.type = PSP_PLUGIN_SET };
 
 
     if (!plugin) {
@@ -1331,13 +1330,13 @@ static void handleUnsetKey(PStask_ID_t dest, char *buf)
 {
     char *pName = buf, *key = pName + PSP_strLen(pName);
     plugin_t *plugin = findPlugin(pName);
-    DDTypedBufferMsg_t msg = (DDTypedBufferMsg_t) {
-	    .header = (DDMsg_t) {
-		.type = PSP_CD_PLUGINRES,
-		.dest = dest,
-		.sender = PSC_getMyTID(),
-		.len = sizeof(msg.header) + sizeof(msg.type) },
-	    .type = PSP_PLUGIN_UNSET};
+    DDTypedBufferMsg_t msg = {
+	.header = {
+	    .type = PSP_CD_PLUGINRES,
+	    .dest = dest,
+	    .sender = PSC_getMyTID(),
+	    .len = offsetof(DDTypedBufferMsg_t, buf) },
+	.type = PSP_PLUGIN_UNSET };
 
     if (!plugin) {
 	char mBuf[sizeof(msg.buf)];
@@ -1366,13 +1365,13 @@ static void handleShowKey(PStask_ID_t dest, char *buf)
 {
     char *pName = buf, *key = pName + PSP_strLen(pName);
     plugin_t *plugin = findPlugin(pName);
-    DDTypedBufferMsg_t msg = (DDTypedBufferMsg_t) {
-	    .header = (DDMsg_t) {
-		.type = PSP_CD_PLUGINRES,
-		.dest = dest,
-		.sender = PSC_getMyTID(),
-		.len = sizeof(msg.header) + sizeof(msg.type) },
-	    .type = PSP_PLUGIN_SHOW};
+    DDTypedBufferMsg_t msg = {
+	.header = {
+	    .type = PSP_CD_PLUGINRES,
+	    .dest = dest,
+	    .sender = PSC_getMyTID(),
+	    .len = offsetof(DDTypedBufferMsg_t, buf) },
+	.type = PSP_PLUGIN_SHOW };
 
     if (! *key) key=NULL;
 
@@ -1401,13 +1400,13 @@ static void handleShowKey(PStask_ID_t dest, char *buf)
 
 static void sendLoadTime(PStask_ID_t dest, plugin_t *plugin)
 {
-    DDTypedBufferMsg_t msg = (DDTypedBufferMsg_t) {
-	    .header = (DDMsg_t) {
-		.type = PSP_CD_PLUGINRES,
-		.dest = dest,
-		.sender = PSC_getMyTID(),
-		.len = sizeof(msg.header) + sizeof(msg.type) },
-	    .type = PSP_PLUGIN_LOADTIME};
+    DDTypedBufferMsg_t msg = {
+	.header = {
+	    .type = PSP_CD_PLUGINRES,
+	    .dest = dest,
+	    .sender = PSC_getMyTID(),
+	    .len = offsetof(DDTypedBufferMsg_t, buf) },
+	.type = PSP_PLUGIN_LOADTIME };
     char mBuf[sizeof(msg.buf)];
 
     if (!plugin) return;
@@ -1419,13 +1418,13 @@ static void sendLoadTime(PStask_ID_t dest, plugin_t *plugin)
 
 static void handleLoadTime(PStask_ID_t dest, char *pName)
 {
-    DDTypedBufferMsg_t msg = (DDTypedBufferMsg_t) {
-	    .header = (DDMsg_t) {
-		.type = PSP_CD_PLUGINRES,
-		.dest = dest,
-		.sender = PSC_getMyTID(),
-		.len = sizeof(msg.header) + sizeof(msg.type) },
-	    .type = PSP_PLUGIN_LOADTIME};
+    DDTypedBufferMsg_t msg = {
+	.header = {
+	    .type = PSP_CD_PLUGINRES,
+	    .dest = dest,
+	    .sender = PSC_getMyTID(),
+	    .len = offsetof(DDTypedBufferMsg_t, buf) },
+	.type = PSP_PLUGIN_LOADTIME };
 
     if (!pName) return;
 
@@ -1555,13 +1554,13 @@ static void msg_PLUGIN(DDTypedBufferMsg_t *inmsg)
 
 end:
     {
-	DDTypedMsg_t msg = (DDTypedMsg_t) {
-	    .header = (DDMsg_t) {
+	DDTypedMsg_t msg = {
+	    .header = {
 		.type = PSP_CD_PLUGINRES,
 		.dest = inmsg->header.sender,
 		.sender = PSC_getMyTID(),
 		.len = sizeof(msg) },
-	    .type = ret};
+	    .type = ret };
 	if (sendMsg(&msg) == -1 && errno != EWOULDBLOCK) {
 	    PSID_warn(-1, errno, "%s: sendMsg()", __func__);
 	}

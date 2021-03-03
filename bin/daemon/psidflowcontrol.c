@@ -120,7 +120,7 @@ int PSIDFlwCntrl_sendContMsgs(PSIDFlwCntrl_hash_t stops, PStask_ID_t sender)
 		DDMsg_t contmsg = { .type = PSP_DD_SENDCONT,
 				    .sender = sender,
 				    .dest = stop->tid,
-				    .len = sizeof(DDMsg_t) };
+				    .len = sizeof(contmsg) };
 		sendMsg(&contmsg);
 		num++;
 	    }
@@ -168,7 +168,7 @@ static void msg_SENDSTOP(DDTypedMsg_t *msg)
     DDMsg_t ackmsg = { .type = PSP_DD_SENDSTOPACK,
 		       .sender = msg->header.dest,
 		       .dest = msg->header.sender,
-		       .len = sizeof(DDMsg_t) };
+		       .len = sizeof(ackmsg) };
 
     if (!task) return;
 

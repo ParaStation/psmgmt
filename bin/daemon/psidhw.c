@@ -580,8 +580,8 @@ static int prepSwitchEnv(void *info)
  */
 static void informOtherNodes(void)
 {
-    DDOptionMsg_t msg = (DDOptionMsg_t) {
-	.header = (DDMsg_t) {
+    DDOptionMsg_t msg = {
+	.header = {
 	    .type = PSP_CD_SETOPTION,
 	    .sender = PSC_getMyTID(),
 	    .dest = 0,

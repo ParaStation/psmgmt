@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2010-2017 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2010-2021 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -54,13 +54,13 @@ void handlePSSpawnReq(DDTypedBufferMsg_t *msg)
     }
 
     if (msg->type == PSP_SPAWN_END) {
-	DDTypedBufferMsg_t envMsg = (DDTypedBufferMsg_t) {
-	    .header = (DDMsg_t) {
+	DDTypedBufferMsg_t envMsg = {
+	    .header = {
 		.type = msg->header.type,
 		.dest = msg->header.dest,
 		.sender = msg->header.sender,
-		.len = sizeof(envMsg.header) + sizeof(envMsg.type) },
-	    .type = PSP_SPAWN_ENV};
+		.len = offsetof(DDTypedBufferMsg_t, buf) },
+	    .type = PSP_SPAWN_ENV };
 
 	Job_t *job;
 	JobInfo_t *jinfo;
@@ -118,13 +118,13 @@ done:
 
 static void partitionDone(PStask_t *task)
 {
-    DDTypedMsg_t msg = (DDTypedMsg_t) {
-	.header = (DDMsg_t) {
+    DDTypedMsg_t msg = {
+	.header = {
 	    .type = PSP_CD_PARTITIONRES,
 	    .dest = task ? task->tid : 0,
 	    .sender = PSC_getMyTID(),
 	    .len = sizeof(msg) },
-	.type = 0};
+	.type = 0 };
 
     if (!task || !task->request) return;
 
@@ -195,22 +195,20 @@ int handleCreatePart(void *msg)
     return 0;
 
 error:
-    {
-	if (task && task->request) {
-	    PSpart_delReq(task->request);
-	    task->request = NULL;
-	}
-	DDTypedMsg_t errmsg = (DDTypedMsg_t) {
-	    .header = (DDMsg_t) {
-		.type = PSP_CD_PARTITIONRES,
-		.dest = inmsg->header.sender,
-		.sender = PSC_getMyTID(),
-		.len = sizeof(errmsg) },
-	    .type = errno};
-	sendMsg(&errmsg);
-
-	return 0;
+    if (task && task->request) {
+	PSpart_delReq(task->request);
+	task->request = NULL;
     }
+    DDTypedMsg_t errmsg = {
+	.header = {
+	    .type = PSP_CD_PARTITIONRES,
+	    .dest = inmsg->header.sender,
+	    .sender = PSC_getMyTID(),
+	    .len = sizeof(errmsg) },
+	.type = errno };
+    sendMsg(&errmsg);
+
+    return 0;
 }
 
 int handleCreatePartNL(void *msg)
@@ -247,13 +245,13 @@ int handleCreatePartNL(void *msg)
 
 error:
     {
-	DDTypedMsg_t eMsg = (DDTypedMsg_t) {
-	    .header = (DDMsg_t) {
+	DDTypedMsg_t eMsg = {
+	    .header = {
 		.type = PSP_CD_PARTITIONRES,
 		.dest = inmsg->header.sender,
 		.sender = PSC_getMyTID(),
-		.len = sizeof(eMsg)},
-	    .type = errno};
+		.len = sizeof(eMsg) },
+	    .type = errno };
 	sendMsg(&eMsg);
 
 	return 0;

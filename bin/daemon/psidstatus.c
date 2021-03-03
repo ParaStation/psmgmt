@@ -752,12 +752,12 @@ bool declareNodeAlive(PSnodes_ID_t id, int numCores, int numThrds,
 
 int send_DAEMONCONNECT(PSnodes_ID_t id)
 {
-    DDBufferMsg_t msg = (DDBufferMsg_t) {
-	.header = (DDMsg_t) {
+    DDBufferMsg_t msg = {
+	.header = {
 	    .type = PSP_DD_DAEMONCONNECT,
 	    .sender = PSC_getMyTID(),
 	    .dest = PSC_getTID(id, 0),
-	    .len = sizeof(msg.header) },
+	    .len = offsetof(DDBufferMsg_t, buf) },
 	.buf = {'\0'} };
 
     PSID_log(PSID_LOG_STATUS, "%s(%d)\n", __func__, id);

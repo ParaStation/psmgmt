@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2020 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2021 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -157,8 +157,8 @@ int PSID_kill(pid_t pid, int sig, uid_t uid)
 	if (child->forwarder && child->forwarder->fd != -1
 	    && !child->forwarder->killat) {
 	    /* Try to send signal via forwarder */
-	    PSLog_Msg_t msg = (PSLog_Msg_t) {
-		.header = (DDMsg_t) {
+	    PSLog_Msg_t msg = {
+		.header = {
 		    .type = PSP_CC_MSG,
 		    .sender = PSC_getMyTID(),
 		    .dest = child->forwarder->tid,
@@ -189,8 +189,8 @@ void PSID_sendSignal(PStask_ID_t tid, uid_t uid, PStask_ID_t sender,
 {
     if (PSC_getID(tid) != PSC_getMyID()) {
 	/* receiver is on a remote node, send message */
-	DDSignalMsg_t msg = (DDSignalMsg_t) {
-	    .header = (DDMsg_t) {
+	DDSignalMsg_t msg = {
+	    .header = {
 		.type = PSP_CD_SIGNAL,
 		.sender = sender,
 		.dest = tid,
@@ -211,8 +211,8 @@ void PSID_sendSignal(PStask_ID_t tid, uid_t uid, PStask_ID_t sender,
     /* receiver is on local node, send signal */
     PStask_t *dest = PStasklist_find(&managedTasks, tid);
     pid_t pid = PSC_getPID(tid);
-    DDErrorMsg_t msg = (DDErrorMsg_t) {
-	.header = (DDMsg_t) {
+    DDErrorMsg_t msg = {
+	.header = {
 	    .type = PSP_CD_SIGRES,
 	    .sender = PSC_getMyTID(),
 	    .dest = sender,
@@ -428,8 +428,8 @@ static void msg_SIGNAL(DDSignalMsg_t *msg)
  */
 static void drop_SIGNAL(DDBufferMsg_t *msg)
 {
-    DDErrorMsg_t errmsg = (DDErrorMsg_t) {
-	.header = (DDMsg_t) {
+    DDErrorMsg_t errmsg = {
+	.header = {
 	    .type = PSP_CD_SIGRES,
 	    .dest = msg->header.sender,
 	    .sender = PSC_getMyTID(),
@@ -609,8 +609,8 @@ static void msg_RELEASERES(DDSignalMsg_t *msg);
 static void msg_NEWCHILD(DDErrorMsg_t *msg)
 {
     PStask_t *task = PStasklist_find(&managedTasks, msg->header.dest);
-    DDSignalMsg_t answer = (DDSignalMsg_t) {
-	.header = (DDMsg_t) {
+    DDSignalMsg_t answer = {
+	.header = {
 	    .type = PSP_CD_RELEASERES,
 	    .dest = msg->header.sender,
 	    .sender = msg->header.dest,
@@ -669,8 +669,8 @@ static void msg_NEWCHILD(DDErrorMsg_t *msg)
 static void msg_NEWPARENT(DDErrorMsg_t *msg)
 {
     PStask_t *task = PStasklist_find(&managedTasks, msg->header.dest);
-    DDSignalMsg_t answer = (DDSignalMsg_t) {
-	.header = (DDMsg_t) {
+    DDSignalMsg_t answer = {
+	.header = {
 	    .type = PSP_CD_RELEASERES,
 	    .dest = msg->header.sender,
 	    .sender = msg->header.dest,
@@ -727,8 +727,8 @@ static void msg_NEWPARENT(DDErrorMsg_t *msg)
  */
 static void drop_NEWRELATIVE(DDBufferMsg_t *msg)
 {
-    DDSignalMsg_t sigmsg = (DDSignalMsg_t) {
-	.header = (DDMsg_t) {
+    DDSignalMsg_t sigmsg = {
+	.header = {
 	    .type = PSP_CD_RELEASERES,
 	    .dest = msg->header.sender,
 	    .sender = PSC_getMyTID(),
@@ -765,12 +765,12 @@ static void drop_NEWRELATIVE(DDBufferMsg_t *msg)
  */
 static void msg_NEWANCESTOR(DDErrorMsg_t *msg)
 {
-    DDBufferMsg_t answer = (DDBufferMsg_t) {
-	.header = (DDMsg_t) {
+    DDBufferMsg_t answer = {
+	.header = {
 	    .type = PSP_DD_ADOPTCHILDSET,
 	    .dest = msg->request,
 	    .sender = msg->header.dest,
-	    .len = sizeof(answer.header) },
+	    .len = offsetof(DDBufferMsg_t, buf) },
 	.buf = { 0 } };
     list_t *t;
     size_t emptyLen = answer.header.len, oldLen;
@@ -918,12 +918,12 @@ static void msg_ADOPTCHILDSET(DDBufferMsg_t *msg)
     }
 
     if (lastGrandchild) {
-	DDBufferMsg_t answer = (DDBufferMsg_t) {
-	    .header = (DDMsg_t) {
+	DDBufferMsg_t answer = {
+	    .header = {
 		.type = PSP_DD_INHERITDONE,
 		.sender = msg->header.dest,
 		.dest = child,
-		.len = sizeof(answer.header) },
+		.len = offsetof(DDBufferMsg_t, buf) },
 	    .buf = { 0 } };
 
 	PSP_putMsgBuf(&answer, __func__, "kept child", &msg->header.sender,
@@ -1071,8 +1071,8 @@ static int releaseSignal(PStask_ID_t sigSndr, PStask_ID_t sigRcvr, int sig,
 	if (!PSID_findSignal(&task->childList, sigRcvr, sig)) {
 	    /* No child found. Might already be inherited by parent */
 	    if (task->ptid) {
-		DDSignalMsg_t msg = (DDSignalMsg_t) {
-		    .header = (DDMsg_t) {
+		DDSignalMsg_t msg = {
+		    .header = {
 			.type = PSP_CD_RELEASE,
 			.dest = task->ptid,
 			.sender = sigRcvr,
@@ -1220,8 +1220,8 @@ static int releaseTask(PStask_t *task)
 		    sendMsg(&inheritMsg);
 		} else {
 		    if (!sentToNode[childNode]) {
-			DDErrorMsg_t inheritMsg = (DDErrorMsg_t) {
-			    .header = (DDMsg_t) {
+			DDErrorMsg_t inheritMsg = {
+			    .header = {
 				.type = PSP_DD_NEWANCESTOR,
 				.sender = task->tid,
 				.dest = child,
@@ -1256,8 +1256,8 @@ static int releaseTask(PStask_t *task)
 		ret = releaseSignal(sender, task->tid, sig, answer);
 		if (ret > 0) task->pendingReleaseErr = ret;
 	    } else {
-		DDSignalMsg_t sigMsg = (DDSignalMsg_t) {
-		    .header = (DDMsg_t) {
+		DDSignalMsg_t sigMsg = {
+		    .header = {
 			.type = PSP_CD_RELEASE,
 			.sender = task->tid,
 			.dest = sender,
@@ -1307,8 +1307,8 @@ static bool deregisterFromParent(PStask_t *task)
 	if (ret > 0) task->pendingReleaseErr = ret;
     } else {
 	/* parent task is remote, send a message */
-	DDSignalMsg_t sigMsg = (DDSignalMsg_t) {
-	    .header = (DDMsg_t) {
+	DDSignalMsg_t sigMsg = {
+	    .header = {
 		.type = PSP_CD_RELEASE,
 		.sender = task->tid,
 		.dest = task->ptid,
@@ -1502,8 +1502,8 @@ static void msg_RELEASERES(DDSignalMsg_t *msg)
 
 static void send_RELEASERES(PStask_t *task, PStask_ID_t sender)
 {
-    DDSignalMsg_t msg = (DDSignalMsg_t) {
-	.header = (DDMsg_t) {
+    DDSignalMsg_t msg = {
+	.header = {
 	    .type = PSP_CD_RELEASERES,
 	    .sender = sender,
 	    .dest = task->tid,
