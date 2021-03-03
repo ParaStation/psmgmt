@@ -42,7 +42,7 @@ void PSCio_setFDblock(int fd, bool block);
  * @brief Send data to file descriptor
  *
  * Family of functions to write data from @a buffer to the file
- * descripter @a fd. A total of @a toSend bytes shall be send. The
+ * descriptor @a fd. A total of @a toSend bytes shall be send. The
  * actual number of bytes sent is reported in @a sent. Writing will be
  * retried on minor errors until all data is delivered if the @a
  * pedantic flag is set to true. Otherwise, the function will return
@@ -51,7 +51,7 @@ void PSCio_setFDblock(int fd, bool block);
  *
  * Unless @a infinite flags true a total of @ref PSCIO_MAX_RETRY
  * retries are made in the pedantic case. Otherwise the function will
- * try inifinitely to send the data.
+ * try indefinitely to send the data.
  *
  * @param fd File descriptor to write to
  *
@@ -61,7 +61,7 @@ void PSCio_setFDblock(int fd, bool block);
  *
  * @param sent Total number of bytes sent so far upon return
  *
- * @param func Funtion name of the calling function
+ * @param func Function name of the calling function
  *
  * @param pedantic Flag to be pedantic
  *
