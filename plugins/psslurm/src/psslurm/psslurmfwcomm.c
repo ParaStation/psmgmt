@@ -63,9 +63,9 @@ static void handleFWfinalize(Forwarder_Data_t *fwdata, char *ptr)
 
     if (!(step->taskFlags & LAUNCH_PTY)) {
 	/* close stdout/stderr */
-	uint32_t taskid = msg->sender;
-	IO_closeChannel(fwdata, taskid, STDOUT);
-	IO_closeChannel(fwdata, taskid, STDERR);
+	uint32_t grank = msg->sender;
+	IO_closeChannel(fwdata, grank, STDOUT);
+	IO_closeChannel(fwdata, grank, STDERR);
     }
 
     PS_Tasks_t *task = findTaskByFwd(&step->tasks, sender);

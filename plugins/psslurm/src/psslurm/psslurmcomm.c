@@ -1141,9 +1141,9 @@ int handleSrunMsg(int sock, void *data)
     myTaskIds = step->globalTaskIds[step->localNodeId];
 
     mdbg(PSSLURM_LOG_IO | PSSLURM_LOG_IO_VERB,
-	 "%s: step %u:%u stdin %d type %s length %u gtid %u ltid %u pty %u"
+	 "%s: step %u:%u stdin %d type %s length %u grank %u lrank %u pty %u"
 	 " myTIDsLen %u\n", __func__, step->jobid, step->stepid, fd,
-	 IO_strType(ioh->type), ioh->len, ioh->gtid, ioh->ltid, pty,
+	 IO_strType(ioh->type), ioh->len, ioh->grank, ioh->lrank, pty,
 	 myTaskIdsLen);
 
     if (ioh->type == SLURM_IO_CONNECTION_TEST) {
@@ -1158,7 +1158,7 @@ int handleSrunMsg(int sock, void *data)
 	     step->jobid, step->stepid);
 
 	if (ioh->type == SLURM_IO_STDIN) {
-	    forwardInputMsg(step, ioh->gtid, NULL, 0);
+	    forwardInputMsg(step, ioh->grank, NULL, 0);
 	} else if (ioh->type == SLURM_IO_ALLSTDIN) {
 	    for (i=0; i<myTaskIdsLen; i++) {
 		forwardInputMsg(step, myTaskIds[i], NULL, 0);
@@ -1186,7 +1186,7 @@ int handleSrunMsg(int sock, void *data)
 	    } else {
 		switch (ioh->type) {
 		case SLURM_IO_STDIN:
-		    forwardInputMsg(step, ioh->gtid, buffer, ret);
+		    forwardInputMsg(step, ioh->grank, buffer, ret);
 		    break;
 		case SLURM_IO_ALLSTDIN:
 		    for (i=0; i<myTaskIdsLen; i++) {
@@ -1385,14 +1385,14 @@ void srunEnableIO(Step_t *step)
     enabled = 1;
 }
 
-int srunSendIO(uint16_t type, uint16_t taskid, Step_t *step, char *buf,
+int srunSendIO(uint16_t type, uint16_t grank, Step_t *step, char *buf,
 		uint32_t bufLen)
 {
     int ret, error = 0;
     IO_Slurm_Header_t ioh = {
 	.type = type,
-	.gtid = taskid,
-	.ltid = (uint16_t)NO_VAL,
+	.grank = grank,
+	.lrank = (uint16_t)NO_VAL,
 	.len = bufLen
     };
 
@@ -1448,8 +1448,8 @@ int srunSendIOEx(int sock, IO_Slurm_Header_t *iohead, char *buf, int *error)
 	written += ret;
 	towrite -= ret;
 	fdbg(PSSLURM_LOG_IO | PSSLURM_LOG_IO_VERB, "fd %i ret %i written %i"
-	     " towrite %i type %i gtid %i\n", sock, ret, written, towrite,
-	     iohead->type, iohead->gtid);
+	     " towrite %i type %i grank %i\n", sock, ret, written, towrite,
+	     iohead->type, iohead->grank);
     }
 
     return written;

@@ -741,9 +741,9 @@ bool __packSlurmIOMsg(PS_SendDB_t *data, IO_Slurm_Header_t *ioh, char *body,
 
     /* type (stdout/stderr) */
     addUint16ToMsg(ioh->type, data);
-    /* global taskid */
-    addUint16ToMsg(ioh->gtid, data);
-    /* local taskid (unused) */
+    /* global rank */
+    addUint16ToMsg(ioh->grank, data);
+    /* local rank (unused) */
     addUint16ToMsg((uint16_t)NO_VAL, data);
     /* msg length */
     addUint32ToMsg(ioh->len, data);
@@ -772,10 +772,10 @@ bool __unpackSlurmIOHeader(char **ptr, IO_Slurm_Header_t **iohPtr,
     ioh = umalloc(sizeof(IO_Slurm_Header_t));
     /* type */
     getUint16(ptr, &ioh->type);
-    /* global taskid */
-    getUint16(ptr, &ioh->gtid);
-    /* local taskid */
-    getUint16(ptr, &ioh->ltid);
+    /* global rank */
+    getUint16(ptr, &ioh->grank);
+    /* local rank */
+    getUint16(ptr, &ioh->lrank);
     /* length */
     getUint32(ptr, &ioh->len);
     *iohPtr = ioh;

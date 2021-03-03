@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2014-2020 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2014-2021 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -374,7 +374,7 @@ void srunEnableIO(Step_t *step);
  *
  * @param type The I/O type of the message
  *
- * @param taskid The source task ID
+ * @param grank Source's global rank
  *
  * @param step The step to send the I/O message
  *
@@ -384,21 +384,19 @@ void srunEnableIO(Step_t *step);
  *
  * @return Returns the number of bytes written or -1 on error
  */
-int srunSendIO(uint16_t type, uint16_t taskid, Step_t *step, char *buf,
+int srunSendIO(uint16_t type, uint16_t grank, Step_t *step, char *buf,
 		uint32_t bufLen);
 
 /**
  * @brief Send an I/O message to srun
  *
- * @param type The I/O type of the message
- *
- * @param taskid The source task ID
- *
  * @param sock The socket file descriptor
+ *
+ * @param ioh @doctodo
  *
  * @param buf The buffer to send
  *
- * @param bufLen The length of the buffer
+ * @param error @doctodo
  *
  * @return Returns the number of bytes written or -1 on error
  */

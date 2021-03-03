@@ -47,7 +47,7 @@ typedef struct {
 } IO_Msg_Buf_t;
 
 typedef struct {
-    uint32_t taskid;
+    uint32_t grank;
     uint8_t type;
     char *msg;
     uint32_t msgLen;
@@ -123,21 +123,21 @@ void IO_init()
     }
 
     for (i=0; i<RING_BUFFER_LEN; i++) {
-	ringBuf[i].taskid = -1;
+	ringBuf[i].grank = -1;
 	ringBuf[i].type = -1;
 	ringBuf[i].msg = NULL;
 	ringBuf[i].msgLen = 0;
     }
 }
 
-static void forward2Sattach(char *msg, uint32_t msgLen, uint32_t taskid,
+static void forward2Sattach(char *msg, uint32_t msgLen, uint32_t grank,
 			    uint8_t type)
 {
     int i, ret, error;
     IO_Slurm_Header_t ioh;
 
     ioh.type = (type == STDOUT) ?  SLURM_IO_STDOUT : SLURM_IO_STDERR;
-    ioh.gtid = taskid;
+    ioh.grank = grank;
     ioh.len = msgLen;
 
     for (i=0; i<MAX_SATTACH_SOCKETS; i++) {
@@ -156,8 +156,7 @@ static void forward2Sattach(char *msg, uint32_t msgLen, uint32_t taskid,
     }
 }
 
-static void msg2Buffer(char *msg, uint32_t msgLen, uint32_t taskid,
-		       uint8_t type)
+static void msg2Buffer(char *msg, uint32_t msgLen, uint32_t grank, uint8_t type)
 {
     RingMsgBuffer_t *rBuf;
     int stype;
@@ -172,7 +171,7 @@ static void msg2Buffer(char *msg, uint32_t msgLen, uint32_t taskid,
     stype = (type == STDOUT) ?  SLURM_IO_STDOUT : SLURM_IO_STDERR;
 
     rBuf = &ringBuf[ringBufLast];
-    rBuf->taskid = taskid;
+    rBuf->grank = grank;
     rBuf->type = stype;
     if (rBuf->msgLen < msgLen) {
 	rBuf->msg = urealloc(rBuf->msg, msgLen);
@@ -189,13 +188,13 @@ static void msg2Buffer(char *msg, uint32_t msgLen, uint32_t taskid,
 }
 
 static void IO_writeMsg(Forwarder_Data_t *fwdata, char *msg, uint32_t msgLen,
-			uint32_t taskid, uint8_t type, uint32_t lrank)
+			uint32_t grank, uint8_t type, uint32_t lrank)
 {
     Step_t *step = fwdata->userData;
     void *msgPtr = msgLen ? msg : NULL;
 
-    fdbg(PSSLURM_LOG_IO, "msgLen %u taskid %u type %s(%u) local rank %u "
-	    "sattach %i\n", msgLen, taskid, PSLog_printMsgType(type), type,
+    fdbg(PSSLURM_LOG_IO, "msgLen %u grank %u type %s(%u) local rank %u "
+	    "sattach %i\n", msgLen, grank, PSLog_printMsgType(type), type,
 	    lrank, sattachCon);
     /*
     if (msgLen>0) {
@@ -204,7 +203,7 @@ static void IO_writeMsg(Forwarder_Data_t *fwdata, char *msg, uint32_t msgLen,
     */
 
     /* forward the message to all sattach processes */
-    if (sattachCon > 0) forward2Sattach(msgPtr, msgLen, taskid, type);
+    if (sattachCon > 0) forward2Sattach(msgPtr, msgLen, grank, type);
 
     if (type == STDOUT) {
 	if (step->stdOutOpt == IO_NODE_FILE) {
@@ -212,8 +211,7 @@ static void IO_writeMsg(Forwarder_Data_t *fwdata, char *msg, uint32_t msgLen,
 	} else if (step->stdOutOpt == IO_RANK_FILE) {
 	    doWriteP(step->outFDs[lrank], msgPtr, msgLen);
 	} else {
-	    srunSendIO(SLURM_IO_STDOUT, taskid, step,
-		    msgPtr, msgLen);
+	    srunSendIO(SLURM_IO_STDOUT, grank, step, msgPtr, msgLen);
 	}
     } else if (type == STDERR) {
 	if (step->stdErrOpt == IO_NODE_FILE) {
@@ -221,15 +219,13 @@ static void IO_writeMsg(Forwarder_Data_t *fwdata, char *msg, uint32_t msgLen,
 	} else if (step->stdErrOpt == IO_RANK_FILE) {
 	    doWriteP(step->errFDs[lrank], msgPtr, msgLen);
 	} else if (step->taskFlags & LAUNCH_PTY) {
-	    srunSendIO(SLURM_IO_STDOUT, taskid, step,
-		    msgPtr, msgLen);
+	    srunSendIO(SLURM_IO_STDOUT, grank, step, msgPtr, msgLen);
 	} else {
-	    srunSendIO(SLURM_IO_STDERR, taskid, step,
-		    msgPtr, msgLen);
+	    srunSendIO(SLURM_IO_STDERR, grank, step, msgPtr, msgLen);
 	}
     }
 
-    msg2Buffer(msg, msgLen, taskid, type);
+    msg2Buffer(msg, msgLen, grank, type);
 }
 
 static int getWidth(int32_t num)
@@ -242,7 +238,7 @@ static int getWidth(int32_t num)
 }
 
 static void writeLabelIOmsg(Forwarder_Data_t *fwdata, char *msg,
-			    uint32_t msgLen, uint32_t taskid, uint8_t type,
+			    uint32_t msgLen, uint32_t grank, uint8_t type,
 			    uint32_t lrank)
 
 {
@@ -256,27 +252,27 @@ static void writeLabelIOmsg(Forwarder_Data_t *fwdata, char *msg,
 	(step->stdOutOpt == IO_SRUN || step->stdOutOpt == IO_SRUN_RANK)) ||
 	(type == STDERR &&
 	(step->stdOutOpt == IO_SRUN || step->stdOutOpt == IO_SRUN_RANK))) {
-	IO_writeMsg(fwdata, msg, msgLen, taskid, type, lrank);
+	IO_writeMsg(fwdata, msg, msgLen, grank, type, lrank);
 	return;
     }
 
-    /* prefix every new line with taskid */
-    snprintf(label, sizeof(label), "%0*u: ", getWidth(step->np -1), taskid);
+    /* prefix every new line with grank */
+    snprintf(label, sizeof(label), "%0*u: ", getWidth(step->np -1), grank);
 
     ptr = msg;
     left = msgLen;
 
     while (ptr && left > 0 && (nl = memchr(ptr, '\n', left))) {
 	len = (nl +1) - ptr;
-	IO_writeMsg(fwdata, label, strlen(label), taskid, type, lrank);
-	IO_writeMsg(fwdata, ptr, len, taskid, type, lrank);
+	IO_writeMsg(fwdata, label, strlen(label), grank, type, lrank);
+	IO_writeMsg(fwdata, ptr, len, grank, type, lrank);
 	left -= len;
 	ptr = nl+1;
     }
 }
 
 static void handleBufferedMsg(Forwarder_Data_t *fwdata, char *msg, uint32_t len,
-			      PS_DataBuffer_t *buffer, uint32_t taskid,
+			      PS_DataBuffer_t *buffer, uint32_t grank,
 			      uint8_t type, uint32_t lrank)
 {
     uint32_t nlLen;
@@ -286,12 +282,12 @@ static void handleBufferedMsg(Forwarder_Data_t *fwdata, char *msg, uint32_t len,
 
     if (nl || !len || buffer->bufUsed + len > MAX_LINE_BUF_LENGTH) {
 	if (buffer->bufUsed) {
-	    writeLabelIOmsg(fwdata, buffer->buf, buffer->bufUsed, taskid,
+	    writeLabelIOmsg(fwdata, buffer->buf, buffer->bufUsed, grank,
 			    type, lrank);
 	    buffer->bufUsed = 0;
 	}
 	nlLen = nl ? nl - msg +1: len;
-	writeLabelIOmsg(fwdata, msg, nlLen, taskid, type, lrank);
+	writeLabelIOmsg(fwdata, msg, nlLen, grank, type, lrank);
 	if (len - nlLen > 0) {
 	    memToDataBuffer(msg + nlLen, len - nlLen, buffer);
 	}
@@ -450,7 +446,7 @@ void IO_sattachTasks(Step_t *step, uint32_t ioAddr, uint16_t ioPort,
 
 	IO_Slurm_Header_t ioh;
 	ioh.type = rBuf->type;
-	ioh.gtid = rBuf->taskid;
+	ioh.grank = rBuf->grank;
 	ioh.len = rBuf->msgLen;
 	ret = srunSendIOEx(sattachSockets[sockIndex], &ioh, rBuf->msg, &error);
 

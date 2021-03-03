@@ -25,8 +25,8 @@
 /** Slurm I/O header */
 typedef struct {
     uint16_t type;	/**< I/O type */
-    uint16_t gtid;	/**< global task (global rank) ID */
-    uint16_t ltid;	/**< local task (local rank) ID */
+    uint16_t grank;	/**< global task (global rank) ID */
+    uint16_t lrank;	/**< local task (local rank) ID */
     uint32_t len;	/**< data length */
 } IO_Slurm_Header_t;
 
