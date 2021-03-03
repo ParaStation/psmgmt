@@ -1965,23 +1965,23 @@ static void handleCC_IO_Msg(PSLog_Msg_t *msg)
 	return;
     }
 
-    int32_t taskid = msg->sender - step->packTaskOffset;
+    int32_t rank = msg->sender - step->packTaskOffset;
 
     if (psslurmlogger->mask & PSSLURM_LOG_IO) {
-	flog("sender %s msgLen %zi type %i PS-taskid %i Slurm-taskid %i\n",
+	flog("sender %s msgLen %zi type %i PS-rank %i Slurm-rank %i\n",
 	     PSC_printTID(msg->header.sender),
 	     msg->header.len - PSLog_headerSize, msg->type, msg->sender,
-	     taskid);
+	     rank);
 	flog("msg %.*s\n", (int)(msg->header.len - PSLog_headerSize), msg->buf);
     }
 
     /* filter stdout messages */
     if (msg->type == STDOUT && step->stdOutRank > -1 &&
-	taskid != step->stdOutRank) return;
+	rank != step->stdOutRank) return;
 
     /* filter stderr messages */
     if (msg->type == STDERR && step->stdErrRank > -1 &&
-	taskid != step->stdErrRank) return;
+	rank != step->stdErrRank) return;
 
     /* forward stdout for single file on mother superior */
     if (msg->type == STDOUT && step->stdOutOpt == IO_GLOBAL_FILE) {

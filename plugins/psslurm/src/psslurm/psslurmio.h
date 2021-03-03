@@ -25,8 +25,8 @@
 /** Slurm I/O header */
 typedef struct {
     uint16_t type;	/**< I/O type */
-    uint16_t gtid;	/**< global task ID */
-    uint16_t ltid;	/**< local task ID */
+    uint16_t gtid;	/**< global task (global rank) ID */
+    uint16_t ltid;	/**< local task (local rank) ID */
     uint32_t len;	/**< data length */
 } IO_Slurm_Header_t;
 
@@ -136,11 +136,11 @@ int IO_redirectRank(Step_t *step, int rank);
  *
  * @param fwdata The forwarder associated with the I/O channel
  *
- * @param gtaskid The *global* taskid of the I/O channel
+ * @param grank The *global* rank (taskid) of the I/O channel
  *
  * @param type The I/O type of the channel
  */
-void IO_closeChannel(Forwarder_Data_t *fwdata, uint32_t gtaskid, uint8_t type);
+void IO_closeChannel(Forwarder_Data_t *fwdata, uint32_t grank, uint8_t type);
 
 /**
  * @brief Open I/O pipes for a step connected to the psilogger

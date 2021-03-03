@@ -300,9 +300,9 @@ static void handleBufferedMsg(Forwarder_Data_t *fwdata, char *msg, uint32_t len,
     }
 }
 
-void IO_closeChannel(Forwarder_Data_t *fwdata, uint32_t gtaskid, uint8_t type)
+void IO_closeChannel(Forwarder_Data_t *fwdata, uint32_t grank, uint8_t type)
 {
-    IO_printStepMsg(fwdata, NULL, 0, gtaskid, type);
+    IO_printStepMsg(fwdata, NULL, 0, grank, type);
 }
 
 void IO_printJobMsg(Forwarder_Data_t *fwdata, char *msg, size_t msgLen,
