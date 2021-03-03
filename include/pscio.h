@@ -49,7 +49,7 @@ void PSCio_setFDblock(int fd, bool block);
  * as soon as the first write() fails. In all cases @a sent will
  * reflect the number of bytes written so far.
  *
- * Unless @a infinite flags true a total of @ref PSCIO_MAX_RETRY
+ * Unless @a indefinite flags true a total of @ref PSCIO_MAX_RETRY
  * retries are made in the pedantic case. Otherwise the function will
  * try indefinitely to send the data.
  *
@@ -61,17 +61,17 @@ void PSCio_setFDblock(int fd, bool block);
  *
  * @param sent Total number of bytes sent so far upon return
  *
- * @param func Function name of the calling function
+ * @param func Name of the calling function
  *
  * @param pedantic Flag to be pedantic
  *
- * @param infinite Flag to retry infinitely
+ * @param indefinite Flag to retry indefinitely
  *
  * @return Return the number of bytes sent or -1 on error; in the
  * latter cases the number of bytes already sent is reported in @a sent
  */
 ssize_t PSCio_sendFunc(int fd, void *buffer, size_t toSend, size_t *sent,
-		       const char *func, bool pedantic, bool infinite);
+		       const char *func, bool pedantic, bool indefinite);
 
 /** Standard send with progress returned */
 #define PSCio_sendProg(fd, buffer, toSend, sent)			\

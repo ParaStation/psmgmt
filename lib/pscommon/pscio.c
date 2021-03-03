@@ -28,14 +28,14 @@ void PSCio_setFDblock(int fd, bool block)
 }
 
 ssize_t PSCio_sendFunc(int fd, void *buffer, size_t toSend, size_t *sent,
-		       const char *func, bool pedantic, bool infinite)
+		       const char *func, bool pedantic, bool indefinite)
 {
     static time_t lastLog = 0;
     int retries = 0;
 
     *sent = 0;
 
-    while (*sent < toSend && (infinite || retries++ < PSCIO_MAX_RETRY)) {
+    while (*sent < toSend && (indefinite || retries++ < PSCIO_MAX_RETRY)) {
 	char *ptr = buffer;
 	ssize_t ret = write(fd, ptr + *sent, toSend - *sent);
 	if (ret == -1) {
