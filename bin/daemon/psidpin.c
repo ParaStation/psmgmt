@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2020 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2020-2021 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -80,7 +80,7 @@ static void bindToNodes(cpu_set_t *physSet)
 #endif
 	if (ret) {
 	    if (errno == ERANGE) {
-		fprintf(stderr, "cpumask to small for numa_node_to_cpus():");
+		fprintf(stderr, "cpumask too small for numa_node_to_cpus():");
 	    } else {
 		perror("numa_node_to_cpus()");
 	    }

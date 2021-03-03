@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2001-2003 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2020 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2021 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -158,12 +158,12 @@ int packPSIEnv(char *buffer, size_t size)
 		strcpy(&buffer[msglen], environment[i]);
 		msglen += strlen(environment[i]) + 1;
 	    } else {
-		return -1;  /* buffer to small */
+		return -1;  /* buffer too small */
 	    }
 	}
     }
 
-    if (msglen >= size) return -1;  /* buf to small */
+    if (msglen >= size) return -1;  /* buf too small */
 
     buffer[++msglen] = 0;
     return msglen;

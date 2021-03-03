@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2010-2018 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2010-2021 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -443,7 +443,7 @@ int __ReadString(ComHandle_t *com, char *buffer, size_t len, const char *caller)
     }
 
     if (size >= len) {
-	mlog("%s(%s): string buffer to small: toread '%lu' bufsize '%zu'\n",
+	mlog("%s(%s): string buffer too small: toread '%lu' bufsize '%zu'\n",
 		__func__, caller, size, len);
 	return -1;
     }

@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2002-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2019 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2021 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -524,7 +524,7 @@ size_t PStask_encodeTask(char *buffer, size_t size, PStask_t *task, char **off)
     PSC_log(PSC_LOG_TASK, "%s(%p, %ld, task(%s))\n", __func__, buffer,
 	    (long)size, someStr);
 
-    if (msglen > size) return msglen; /* buffer to small */
+    if (msglen > size) return msglen; /* buffer too small */
 
     tmpTask.tid = task->tid;
     tmpTask.ptid = task->ptid;
@@ -548,7 +548,7 @@ size_t PStask_encodeTask(char *buffer, size_t size, PStask_t *task, char **off)
 	    strcpy(&buffer[msglen], task->workingdir);
 	    msglen += strlen(task->workingdir);
 	} else {
-	    /* buffer to small */
+	    /* buffer too small */
 	    strncpy(&buffer[msglen], task->workingdir, size - msglen - 1);
 	    *off = &task->workingdir[size - msglen - 1];
 	    buffer[size-1] = '\0';
@@ -731,7 +731,7 @@ static size_t encodeStrV(char *buffer, size_t size, char **strV,
 	    } else if (*cur > first) {
 		break;
 	    } else {
-		/* buffer to small */
+		/* buffer too small */
 		*offset = strV[*cur];
 		msglen = size-2;
 		strncpy(buffer, *offset, msglen);

@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2007-2018 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2007-2021 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -104,7 +104,7 @@ bool getpmiv(char *name, char *vbuffer, char *pmivalue, size_t vallen)
 	if (!strncmp(name, cmd, nlen) && cmd[nlen] == '=') {
 	    char *res = cmd + nlen + 1;
 	    if (vallen < strlen(res)) {
-		fprintf(stderr, "%s: buffer to small\n", __func__);
+		fprintf(stderr, "%s: buffer too small\n", __func__);
 	    } else {
 		strncpy(pmivalue, res, vallen);
 		ret = true;
@@ -180,7 +180,7 @@ int getKVSString(char **ptr, char *buf, size_t bufSize)
     len = *(int16_t *) *ptr;
     *ptr += sizeof(int16_t);
 
-    /* buffer to small */
+    /* buffer too small */
     if (len +1 > bufSize) {
 	return -1;
     }

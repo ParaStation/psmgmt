@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2018 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2021 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -187,7 +187,7 @@ int PSpart_delReq(PSpart_request_t *request);
  * @param request The partition request structure to encode
  *
  * @return On success @a true is returned. Or @a false if the buffer
- * is to small in order to encode the whole partition request.
+ * is too small in order to encode the whole partition request.
  *
  * @see PSpart_decodeReq()
  */

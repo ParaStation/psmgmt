@@ -111,7 +111,7 @@ tests which are unsupported by msub:
  * 'work_dir'          unsupported by msub (no -w option)
  * 'inter_cmd'	       unsupported by msub (no -x option)
  * 'x11'	       unsupported by msub (no -X option)
- * 'large_jobscript'   jobscript to big for msub (max 524288 bytes)
+ * 'large_jobscript'   jobscript too big for msub (max 524288 bytes)
  * 'cwd_rel'           msub can not handle relative paths with the -d option
  * 'user_vars'	       msub -v ("name" + value from env) and qsub -v ("name=value") using different syntax
 

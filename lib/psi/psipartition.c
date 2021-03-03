@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2020 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2021 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -989,7 +989,7 @@ int PSI_createPartition(unsigned int size, uint32_t hwType)
     }
 
     if (!size) {
-	PSI_log(-1, "%s: size %d to small\n", __func__, size);
+	PSI_log(-1, "%s: size %d too small\n", __func__, size);
 	goto end;
     }
 

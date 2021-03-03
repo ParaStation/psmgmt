@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2001-2003 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2020 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2021 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -105,7 +105,7 @@ char* getPSIEnv(const char *name);
  *
  *
  * @return On success, the number of used bytes in buffer is returned, or -1
- * if an error occurred (i.e. the buffer is to small).
+ * if an error occurred (i.e. the buffer is too small).
  */
 int packPSIEnv(char *buffer, size_t size);
 

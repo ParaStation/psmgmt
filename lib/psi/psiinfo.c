@@ -123,7 +123,7 @@ recv_retry:
 		break;
 	    }
 	    if (*size < s) {
-		PSI_log(-1, "%s: buffer to small (%ld/%ld/%s)\n", __func__,
+		PSI_log(-1, "%s: buffer too small (%ld/%ld/%s)\n", __func__,
 			(long)*size, (long)s, PSP_printInfo(msg.type));
 		*size = 0;
 		break;
@@ -664,7 +664,7 @@ recv_retry:
     case PSP_CD_SETOPTION:
 	if (msg.count > num) {
 	    PSI_log(verbose ? -1 : PSI_LOG_INFO,
-		    "%s: option-buffer to small\n", __func__);
+		    "%s: option-buffer too small\n", __func__);
 	    msg.count = num;
 	}
 
@@ -726,7 +726,7 @@ recv_retry:
     case PSP_CD_SETOPTION:
 	if (msg.count > num) {
 	    PSI_log(verbose ? -1 : PSI_LOG_INFO,
-		    "%s: option-buffer to small\n", __func__);
+		    "%s: option-buffer too small\n", __func__);
 	    msg.count = num;
 	}
 

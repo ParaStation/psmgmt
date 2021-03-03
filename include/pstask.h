@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2002-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2019 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2021 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -279,7 +279,7 @@ void PStask_snprintf(char *txt, size_t size, PStask_t *task);
  *
  * @return On success, the number of bytes written to the buffer are
  * returned. If the return value is larger than @a size, the buffer is
- * to small in order to encode the task. In this case the task
+ * too small in order to encode the task. In this case the task
  * structure will *not* be encoded, i.e. the buffer remains empty.
  *
  * A value of @a offset different from NULL upon return flags that the

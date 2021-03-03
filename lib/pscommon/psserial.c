@@ -1093,8 +1093,8 @@ void *getMemFromBuf(char **ptr, char *data, size_t dataSize, size_t *len,
 
     if (data) {
 	if (l >= dataSize) {
-	    /* buffer to small */
-	    PSC_log(-1, "%s(%s@%d): buffer (%zu) to small for message (%u)\n",
+	    /* buffer too small */
+	    PSC_log(-1, "%s(%s@%d): buffer (%zu) too small for message (%u)\n",
 		    __func__, caller, line, dataSize, l);
 	    return NULL;
 	}

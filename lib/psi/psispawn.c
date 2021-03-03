@@ -187,7 +187,7 @@ static bool sendTask(DDTypedBufferMsg_t *msg, PStask_t *task,
 	    len = strlen(offset) + 1;
 	    offset = NULL;
 	} else {
-	    /* buffer to small */
+	    /* buffer too small */
 	    strncpy(msg->buf, offset, sizeof(msg->buf) - 1);
 	    msg->buf[sizeof(msg->buf) - 1] = '\0';
 	    len =  sizeof(msg->buf);
