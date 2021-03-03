@@ -217,8 +217,8 @@ int fwCMD_handleFwStepMsg(PSLog_Msg_t *msg, Forwarder_Data_t *fwdata)
 
 void fwCMD_stepTimeout(Forwarder_Data_t *fwdata)
 {
-    PSLog_Msg_t msg = (PSLog_Msg_t) {
-	.header = (DDMsg_t) {
+    PSLog_Msg_t msg = {
+	.header = {
 	    .type = PSP_CC_MSG,
 	    .dest = fwdata ? fwdata->tid : -1,
 	    .sender = PSC_getMyTID(),
@@ -235,8 +235,8 @@ void fwCMD_stepTimeout(Forwarder_Data_t *fwdata)
 
 void fwCMD_brokeIOcon(Step_t *step)
 {
-    PSLog_Msg_t msg = (PSLog_Msg_t) {
-	.header = (DDMsg_t) {
+    PSLog_Msg_t msg = {
+	.header = {
 	    .type = PSP_CC_MSG,
 	    .dest = PSC_getTID(-1,0),
 	    .sender = PSC_getMyTID(),
@@ -255,8 +255,8 @@ void fwCMD_brokeIOcon(Step_t *step)
 
 void fwCMD_enableSrunIO(Step_t *step)
 {
-    PSLog_Msg_t msg = (PSLog_Msg_t) {
-	.header = (DDMsg_t) {
+    PSLog_Msg_t msg = {
+	.header = {
 	    .type = PSP_CC_MSG,
 	    .dest = step->fwdata ? step->fwdata->tid : -1,
 	    .sender = PSC_getMyTID(),
@@ -274,8 +274,8 @@ void fwCMD_enableSrunIO(Step_t *step)
 
 void fwCMD_printJobMsg(Job_t *job, char *plMsg, uint32_t msgLen, uint8_t type)
 {
-    PSLog_Msg_t msg = (PSLog_Msg_t) {
-	.header = (DDMsg_t) {
+    PSLog_Msg_t msg = {
+	.header = {
 	    .type = PSP_CC_MSG,
 	    .dest = job->fwdata ? job->fwdata->tid : -1,
 	    .sender = PSC_getMyTID(),
@@ -309,8 +309,8 @@ void fwCMD_printJobMsg(Job_t *job, char *plMsg, uint32_t msgLen, uint8_t type)
 void fwCMD_printMessage(Step_t *step, char *plMsg, uint32_t msgLen,
 			uint8_t type, int32_t rank)
 {
-    PSLog_Msg_t msg = (PSLog_Msg_t) {
-	.header = (DDMsg_t) {
+    PSLog_Msg_t msg = {
+	.header = {
 	    .type = PSP_CC_MSG,
 	    .dest = step->fwdata ? step->fwdata->tid : -1,
 	    .sender = PSC_getMyTID(),
@@ -358,8 +358,8 @@ void fwCMD_printMessage(Step_t *step, char *plMsg, uint32_t msgLen,
 void fwCMD_reattachTasks(Forwarder_Data_t *fwdata, uint32_t addr,
 			 uint16_t ioPort, uint16_t ctlPort, char *sig)
 {
-    PSLog_Msg_t msg = (PSLog_Msg_t) {
-	.header = (DDMsg_t) {
+    PSLog_Msg_t msg = {
+	.header = {
 	    .type = PSP_CC_MSG,
 	    .dest = fwdata ? fwdata->tid : -1,
 	    .sender = PSC_getMyTID(),
@@ -387,8 +387,8 @@ void fwCMD_reattachTasks(Forwarder_Data_t *fwdata, uint32_t addr,
 
 void fwCMD_finalize(Forwarder_Data_t *fwdata, PSLog_Msg_t *plMsg)
 {
-    PSLog_Msg_t msg = (PSLog_Msg_t) {
-	.header = (DDMsg_t) {
+    PSLog_Msg_t msg = {
+	.header = {
 	    .type = PSP_CC_MSG,
 	    .dest = fwdata ? fwdata->tid : -1,
 	    .sender = PSC_getMyTID(),
@@ -414,8 +414,8 @@ void fwCMD_finalize(Forwarder_Data_t *fwdata, PSLog_Msg_t *plMsg)
 
 void fwCMD_taskInfo(Forwarder_Data_t *fwdata, PS_Tasks_t *task)
 {
-    PSLog_Msg_t msg = (PSLog_Msg_t) {
-	.header = (DDMsg_t) {
+    PSLog_Msg_t msg = {
+	.header = {
 	    .type = PSP_CC_MSG,
 	    .dest = fwdata ? fwdata->tid : -1,
 	    .sender = PSC_getMyTID(),
@@ -438,8 +438,8 @@ void fwCMD_taskInfo(Forwarder_Data_t *fwdata, PS_Tasks_t *task)
 
 void fwCMD_msgSrunProxy(Step_t *step, PSLog_Msg_t *lmsg, int32_t senderRank)
 {
-    PSLog_Msg_t msg = (PSLog_Msg_t) {
-	.header = (DDMsg_t) {
+    PSLog_Msg_t msg = {
+	.header = {
 	    .type = PSP_CC_MSG,
 	    .dest = step->fwdata ? step->fwdata->tid : -1,
 	    .sender = lmsg->header.sender,
