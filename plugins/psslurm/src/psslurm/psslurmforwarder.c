@@ -1187,7 +1187,7 @@ bool execStepLeader(Step_t *step)
 
 	snprintf(msg, sizeof(msg), "starting forwarder for %s failed\n",
 		 strStepID(step));
-	flog(msg);
+	flog("%s", msg);
 	setNodeOffline(&step->env, step->jobid,
 		       getConfValueC(&Config, "SLURM_HOSTNAME"), msg);
 	return false;
@@ -1259,7 +1259,7 @@ bool execBatchJob(Job_t *job)
 
 	snprintf(msg, sizeof(msg), "starting forwarder for job '%u' failed\n",
 		 job->jobid);
-	flog(msg);
+	flog("%s", msg);
 	setNodeOffline(&job->env, job->jobid,
 		       getConfValueC(&Config, "SLURM_HOSTNAME"), msg);
 	return false;
@@ -1359,7 +1359,7 @@ bool execBCast(BCast_t *bcast)
 
 	snprintf(msg, sizeof(msg), "starting forwarder for bcast '%u' failed\n",
 		 bcast->jobid);
-	flog(msg);
+	flog("%s", msg);
 	setNodeOffline(bcast->env, bcast->jobid,
 		       getConfValueC(&Config, "SLURM_HOSTNAME"), msg);
 	return false;
@@ -1466,7 +1466,7 @@ bool execStepFollower(Step_t *step)
 
 	snprintf(msg, sizeof(msg), "starting step forwarder for %s failed\n",
 		 strStepID(step));
-	flog(msg);
+	flog("%s", msg);
 	setNodeOffline(&step->env, step->jobid,
 		       getConfValueC(&Config, "SLURM_HOSTNAME"), msg);
 	return false;
