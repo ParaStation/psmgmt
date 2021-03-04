@@ -689,6 +689,7 @@ tests/plugins/dyn_resources.c \
 tests/plugins/fakenode.c \
 tests/plugins/fixLoginuid.c \
 tests/plugins/no_flowcontrol.c \
+tests/plugins/oldHook.c \
 tests/plugins/plugin1.c \
 tests/plugins/plugin2.c \
 tests/plugins/plugin3.c \
