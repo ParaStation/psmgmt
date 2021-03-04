@@ -82,7 +82,7 @@ typedef enum {
 				resources should be freed. No argument. */
     PSIDHOOK_LOCALJOBCREATED, /**< After creating a new local job triggered by
 				receiving a message of type PSP_DD_RESCREATED,
-				thus informing us about being involed in a new
+				thus informing us about being involved in a new
 				reservation.
 				The argument is the job already containing the
 				new reservation information.
@@ -176,7 +176,7 @@ typedef enum {
 				PElogue_Global_Res_t */
     PSIDHOOK_FRWRD_DSOCK,     /**< In forwarder's init() function, arg is a
 				pointer to the daemon socket. (obsolete!) */
-    PSIDHOOK_JAIL_CHILD,      /**< Jail child into cgroup, arg points to pid */
+    PSIDHOOK_JAIL_CHILD,      /**< Jail child into cgroup, arg points to PID */
     PSIDHOOK_CLEARMEM,        /**< Release memory after forking before handling
 				other tasks, e.g. becoming a forwarder.
 				arg points to aggressive flag of type bool */
@@ -263,7 +263,7 @@ bool PSIDhook_del(PSIDhook_t hook, PSIDhook_func_t func);
  *
  * With that strategy it's possible to detect both, if a hook was
  * executed at all (this is not the case, if @ref PSIDHOOK_NOFUNC is
- * returned) and if at least one error occured (i.e. some value
+ * returned) and if at least one error occurred (i.e. some value
  * smaller than 0 is returned).
  *
  * @param hook The hook reached and to be handled.
@@ -281,8 +281,8 @@ int PSIDhook_call(PSIDhook_t hook, void *arg);
  * Initialize the hook framework. This allocates the structures used
  * to manage the functions registered to the various hooks available.
  *
- * The hook framework is also initialized implicitely on the first
- * call of PSIDhook_add(). Thus, calling this function explicitely is
+ * The hook framework is also initialized implicitly on the first
+ * call of PSIDhook_add(). Thus, calling this function explicitly is
  * not required.
  *
  * @deprecated Not required any longer.
