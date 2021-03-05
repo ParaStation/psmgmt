@@ -670,35 +670,53 @@ static int cbStartPSGWD(uint32_t id, int32_t exit, PSnodes_ID_t dest,
 
 bool startPSGWD(PSGW_Req_t *req)
 {
-    env_t env;
+    env_t psgwdEnv;
     char *dir = getConfValueC(&config, "DIR_ROUTE_SCRIPTS");
     char *psgwd = getConfValueC(&config, "PSGWD_BINARY");
-    uint32_t i, z, id = atoi(req->jobid);
     char buf[1024];
 
-    envInit(&env);
-    envSet(&env, "PSGWD_BINARY", psgwd);
+    /* build clean environment for the psgwd */
+    envInit(&psgwdEnv);
+    envSet(&psgwdEnv, "PSGWD_BINARY", psgwd);
     snprintf(buf, sizeof(buf), "%u", req->uid);
-    envSet(&env, "PSGWD_UID", buf);
+    envSet(&psgwdEnv, "PSGWD_UID", buf);
 
-    envSet(&env, "PSGWD_USER", req->username);
-    envSet(&env, "SLURM_JOB_ID", req->jobid);
+    envSet(&psgwdEnv, "PSGWD_USER", req->username);
+    envSet(&psgwdEnv, "SLURM_JOB_ID", req->jobid);
 
-    char *gwEnv = envGet(req->res->env, "SLURM_SPANK_PSGW_ENV");
-    if (gwEnv) envSet(&env, "SLURM_SPANK_PSGW_ENV", gwEnv);
+    env_t *peEnv = req->res->env;
 
-    char *gwBinary = envGet(req->res->env, "SLURM_SPANK_PSGWD_BINARY");
-    if (gwBinary) envSet(&env, "PSGWD_BINARY", gwBinary);
+    char *gwEnv = envGet(peEnv, "SLURM_SPANK_PSGW_ENV");
+    if (gwEnv) envSet(&psgwdEnv, "SLURM_SPANK_PSGW_ENV", gwEnv);
 
-    char *gwDebug = envGet(req->res->env, "SLURM_SPANK_PSGWD_DEBUG");
-    if (gwDebug) envSet(&env, "PSGWD_DEBUG", gwDebug);
+    char *gwBinary = envGet(peEnv, "SLURM_SPANK_PSGWD_BINARY");
+    if (gwBinary) envSet(&psgwdEnv, "PSGWD_BINARY", gwBinary);
 
-    char *cwd = envGet(req->res->env, "SLURM_SPANK_PSGW_CWD");
-    envSet(&env, "PSGWD_CWD", cwd);
+    char *gwDebug = envGet(peEnv, "SLURM_SPANK_PSGWD_DEBUG");
+    if (gwDebug) envSet(&psgwdEnv, "PSGWD_DEBUG", gwDebug);
+
+    char *cwd = envGet(peEnv, "SLURM_SPANK_PSGW_CWD");
+    envSet(&psgwdEnv, "PSGWD_CWD", cwd);
+
+    char *ld = envGet(peEnv, "SLURM_SPANK_PSGWD_LD_LIB");
+    envSet(&psgwdEnv, "LD_LIBRARY_PATH", ld);
+
+    for (uint32_t i=0; i<peEnv->cnt; i++) {
+	char *next = envGetIndex(peEnv, i);
+	if (!strncmp("SLURM_SPANK_PSGWD_PSP_", next, 22)) {
+	    char *val = strchr(next, '=');
+	    if (val) {
+		char *key = next+18;
+		*val = '\0';
+		envSet(&psgwdEnv, key, val+1);
+		*val = '=';
+	    }
+	}
+    }
 
     uint32_t gIdx = 0;
-    for (i=0; i<req->numGWnodes; i++) {
-	for (z=0; z<req->psgwdPerNode; z++) {
+    for (uint32_t i=0; i<req->numGWnodes; i++) {
+	for (uint32_t z=0; z<req->psgwdPerNode; z++) {
 	    if (gIdx >= req->numPSGWD) {
 		snprintf(msgBuf, sizeof(msgBuf), "invalid psgwd index %u num "
 			 "psgwd %u\n", gIdx, req->numPSGWD);
@@ -710,7 +728,8 @@ bool startPSGWD(PSGW_Req_t *req)
 	    fdbg(PSGW_LOG_PSGWD | PSGW_LOG_DEBUG, "starting psgwd %u on "
 		 "node %i\n", gIdx, req->psgwd[gIdx].node);
 
-	    int ret = psExecStartScriptEx(id, "psgwd_start", dir, &env,
+	    uint32_t id = atoi(req->jobid);
+	    int ret = psExecStartScriptEx(id, "psgwd_start", dir, &psgwdEnv,
 					  req->psgwd[gIdx].node, cbStartPSGWD);
 	    if (ret == -1) {
 		snprintf(msgBuf, sizeof(msgBuf), "starting psgwd %u on node %i "

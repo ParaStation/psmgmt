@@ -44,6 +44,8 @@ static bool gwQuiet = false;
 
 static bool gwDebug = false;
 
+static bool gwInherit = false;
+
 int setGwNum(int val, const char *optarg, int remote);
 int setGwFile(int val, const char *optarg, int remote);
 int setGwPlugin(int val, const char *optarg, int remote);
@@ -53,6 +55,7 @@ int setGwBinary(int val, const char *optarg, int remote);
 int setPSGWDperNode(int val, const char *optarg, int remote);
 int setGwQuiet(int val, const char *optarg, int remote);
 int setGwDebug(int val, const char *optarg, int remote);
+int setGwInherit(int val, const char *optarg, int remote);
 
 /*
  * Additional options for salloc/sbatch/srun
@@ -85,6 +88,9 @@ static struct spank_option spank_opt[] =
     { "gw_debug", NULL,
       "Set PSP_DEBUG for the psgwd", 0, 0,
       (spank_opt_cb_f) setGwDebug },
+    { "gw_inherit", NULL,
+      "Inherit LD_LIBRARY_PATH and PSP_* from current environment", 0, 0,
+      (spank_opt_cb_f) setGwInherit },
     SPANK_OPTIONS_TABLE_END
 };
 
@@ -169,6 +175,29 @@ int slurm_spank_init_post_opt(spank_t sp, int ac, char **av)
         if (writeInfo) slurm_info("psgw: set PSP_DEBUG=10 for psgwd");
     }
 
+    if (gwInherit) {
+        if (writeInfo) slurm_info("psgw: inherit from current environment");
+        char *ld = getenv("LD_LIBRARY_PATH");
+        if (ld) {
+	    spank_job_control_setenv(sp, "SLURM_SPANK_PSGWD_LD_LIB", ld, 1);
+        }
+
+        extern char **environ;
+        char buf[1024];
+        for (int i=0; environ[i] != NULL; i++) {
+            if (!strncmp("PSP_", environ[i], 4)) {
+                char *val = strchr(environ[i], '=');
+                if (val) {
+                    char *key = environ[i];
+                    *val = '\0';
+                    snprintf(buf, sizeof(buf), "SLURM_SPANK_PSGWD_%s", key);
+                    *val = '=';
+                    spank_job_control_setenv(sp, buf, val+1, 1);
+                }
+            }
+        }
+    }
+
     writeInfo = false;
 
     return 0;
@@ -188,7 +217,7 @@ int setGwPlugin(int val, const char *optarg, int remote)
     if (strchr(optarg, '/')) {
         char *path = realpath(optarg, NULL);
         if (!path) {
-            slurm_error("psgw: gw_plugin %s is not a vaild path\n", optarg);
+            slurm_error("psgw: gw_plugin %s is not a valid path\n", optarg);
             return -1;
         }
         routePlugin = strdup(path);
@@ -236,7 +265,7 @@ int setGwNum(int val, const char *optarg, int remote)
 
     int ret = sscanf(optarg, "%i", &gwNum);
     if (ret != 1 || gwNum < 1) {
-        slurm_error ("psgw: gw_num %s is not a vaild number for "
+        slurm_error ("psgw: gw_num %s is not a valid number for "
                      "gateway nodes", optarg);
 	return -1;
     }
@@ -299,6 +328,18 @@ int setGwDebug(int val, const char *optarg, int remote)
 }
 
 /**
+ * @brief Inherit selected variables from environment
+ */
+int setGwInherit(int val, const char *optarg, int remote)
+{
+    gwInherit = true;
+
+    if (DEBUG) slurm_info("set gw_inherit to true");
+
+    return 0;
+}
+
+/**
  * @brief Parse and set path to the psgwd binary
  */
 int setGwBinary(int val, const char *optarg, int remote)
@@ -328,7 +369,7 @@ int setPSGWDperNode(int val, const char *optarg, int remote)
 
     int ret = sscanf(optarg, "%i", &numPSGWDperNode);
     if (ret != 1 || numPSGWDperNode < 1) {
-        slurm_error ("psgw: gw_psgwd_per_node %s is not a vaild number for "
+        slurm_error ("psgw: gw_psgwd_per_node %s is not a valid number for "
                      "psgwd per node", optarg);
 	return -1;
     }
