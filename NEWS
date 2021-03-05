@@ -5,6 +5,24 @@ Copyright (C) 2010-2021 ParTec Cluster Competence Center GmbH, Munich
 Please send bug reports, questions and suggestions to <support@par-tec.com>
 
 
+Version 5.1.39:
+===============
+Bugfixes:
+ - psslurm should not wait for a failed psgw prologue that never fully started
+ - Test psgwd binary as user and not as root
+Enhancements:
+ - Add psgw options --gw_debug and --gw_inherit
+ - Introduce special handling of obsolete hooks (#2883)
+ - Rework global to local rank conversion
+ - Emit more documentation on psgw plugin
+ - Add spank module for Slurm X11 forwarding
+Additional changes:
+ - Put currently unused RPC data fields in the corresponding structures
+ - Introduce PSCio and move setFDblock() there
+ - Replace hand-crafted while() write()/send() loops by PSCio_send*()
+ - Extensive code modernization in PSIDclient, PSIDcomm and PSIDRDP
+
+
 Version 5.1.38-3:
 =================
 Bugfixes:

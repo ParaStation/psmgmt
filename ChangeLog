@@ -1,3 +1,314 @@
+Version psmgmt-5.1.39-0:
+========================
+------------------------------------------------------------------------
+c30ca535 | Norbert Eicker | Fri, 5 Mar 2021 23:07:33 +0100
+
+Fix warning emitted by gcc-11 and booleanize psslurmpin
+------------------------------------------------------------------------
+534e8e64 | Norbert Eicker | Fri, 5 Mar 2021 21:32:38 +0100
+
+Emit more documentation on psgw plugin
+------------------------------------------------------------------------
+0f59c78d | Norbert Eicker | Fri, 5 Mar 2021 20:36:10 +0100
+
+Run automake 1.16.3 again
+------------------------------------------------------------------------
+a1893293 | Michael Rauh | Fri, 5 Mar 2021 17:47:53 +0100
+
+Improve comments
+------------------------------------------------------------------------
+94644a68 | Michael Rauh | Fri, 5 Mar 2021 16:32:01 +0100
+
+Put currently unused RPC data fields in the corresponding structures
+------------------------------------------------------------------------
+99cd9352 | Michael Rauh | Fri, 5 Mar 2021 16:29:33 +0100
+
+Add psgw option --gw_inherit
+
+ - inherit LD_LIBRARY_PATH and every "PSP_*" variable
+   from current environment
+------------------------------------------------------------------------
+582a4e63 | Michael Rauh | Thu, 25 Feb 2021 17:08:22 +0100
+
+Update buildsystem
+------------------------------------------------------------------------
+0a5f019f | Michael Rauh | Thu, 25 Feb 2021 16:52:08 +0100
+
+Add plugin plugin03.py to buildsystem
+------------------------------------------------------------------------
+444648b3 | Michael Rauh | Thu, 25 Feb 2021 16:51:23 +0100
+
+Add psgw route plugin "plugin03.py"
+------------------------------------------------------------------------
+3cf49361 | Michael Rauh | Thu, 25 Feb 2021 11:57:30 +0100
+
+Add psgw spank option --gw_debug
+
+ - the option will execute the psgwd with PSP_DEBUG=10 set
+ - the debug output is written to the submit directory in the
+   form "JOB-$JOBID-psgwd-debug.out"
+------------------------------------------------------------------------
+4d651148 | Michael Rauh | Fri, 5 Mar 2021 12:05:23 +0100
+
+Fix various typos
+------------------------------------------------------------------------
+dae704ff | Norbert Eicker | Tue, 23 Feb 2021 16:24:27 +0100
+
+Minor fixes
+------------------------------------------------------------------------
+6f958881 | Norbert Eicker | Tue, 23 Feb 2021 16:23:59 +0100
+
+Fix typos
+------------------------------------------------------------------------
+a6875543 | Norbert Eicker | Fri, 19 Feb 2021 02:38:52 +0100
+
+Hide caller name from PSP_getTypedMsgBuf() calls
+------------------------------------------------------------------------
+5996ccf4 | Norbert Eicker | Fri, 19 Feb 2021 02:24:37 +0100
+
+Hide caller name from PSP_[tryG|g]etMsgBuf() calls
+------------------------------------------------------------------------
+1447bd97 | Norbert Eicker | Fri, 19 Feb 2021 01:58:35 +0100
+
+Hide caller name from PSP_[tryP|p]utMsgBuf() calls
+------------------------------------------------------------------------
+48ef1738 | Norbert Eicker | Fri, 19 Feb 2021 01:32:38 +0100
+
+Hide caller name from PSP_[tryP|p]utTypedMsgBuf() calls
+------------------------------------------------------------------------
+37173f29 | Norbert Eicker | Fri, 19 Feb 2021 00:57:04 +0100
+
+More code modernization in PSIDclient
+------------------------------------------------------------------------
+db5eb674 | Norbert Eicker | Thu, 18 Feb 2021 23:51:41 +0100
+
+Avoid detour via PSIDcomm when receiving from client
+------------------------------------------------------------------------
+7811316f | Norbert Eicker | Thu, 18 Feb 2021 23:15:33 +0100
+
+Avoid detour via PSIDcomm's recvMsg when receiving from RDP
+------------------------------------------------------------------------
+93bb69ef | Norbert Eicker | Thu, 4 Mar 2021 23:06:21 +0100
+
+Add oldHook.c also to the list of sources
+------------------------------------------------------------------------
+35712475 | Michael Rauh | Thu, 4 Mar 2021 16:57:42 +0100
+
+Fix some typos
+------------------------------------------------------------------------
+7adf03a4 | Norbert Eicker | Mon, 1 Mar 2021 13:52:04 +0100
+
+Fix dependencies of oldHook testplugin
+------------------------------------------------------------------------
+625343dd | Norbert Eicker | Mon, 1 Mar 2021 13:29:45 +0100
+
+Fix usage of pluginlog
+------------------------------------------------------------------------
+f1388701 | Norbert Eicker | Mon, 1 Mar 2021 13:19:53 +0100
+
+Update build system
+------------------------------------------------------------------------
+0b370116 | Norbert Eicker | Mon, 1 Mar 2021 13:18:10 +0100
+
+Add testplugin to check obsolete hook handling
+------------------------------------------------------------------------
+844c1b1e | Norbert Eicker | Thu, 25 Feb 2021 22:35:49 +0100
+
+Introduce special handling of obsolete hooks
+------------------------------------------------------------------------
+2fbd12d8 | Norbert Eicker | Thu, 25 Feb 2021 22:13:29 +0100
+
+Code modernization and streamlining
+------------------------------------------------------------------------
+455d4764 | Norbert Eicker | Thu, 4 Mar 2021 02:10:10 +0100
+
+Make rpmbuild happy
+------------------------------------------------------------------------
+7c9a4102 | Norbert Eicker | Thu, 4 Mar 2021 00:54:12 +0100
+
+Some renaming
+------------------------------------------------------------------------
+07d54556 | Michael Rauh | Wed, 3 Mar 2021 22:08:56 +0100
+
+Fix some typos
+------------------------------------------------------------------------
+7095f067 | Norbert Eicker | Fri, 12 Feb 2021 00:53:52 +0100
+
+Finally replace psidclient's non-blocking send by PSCio_sendProg()
+------------------------------------------------------------------------
+d975afd4 | Norbert Eicker | Thu, 11 Feb 2021 23:15:44 +0100
+
+Booleanize PSIDclient's storeMsg()
+------------------------------------------------------------------------
+66c927b8 | Norbert Eicker | Thu, 11 Feb 2021 21:02:39 +0100
+
+Favor psmom with PSCio_sendPProg(), too
+------------------------------------------------------------------------
+a52799cd | Norbert Eicker | Thu, 11 Feb 2021 20:13:41 +0100
+
+Replace hand-crafted send() loops by PSCio_sendF()
+------------------------------------------------------------------------
+40f824c1 | Norbert Eicker | Thu, 11 Feb 2021 19:41:02 +0100
+
+Some hand-crafted send() loops replaced by PSCio_send()
+------------------------------------------------------------------------
+6675f1ec | Norbert Eicker | Thu, 11 Feb 2021 18:16:43 +0100
+
+Yet another hand-crafter write() loop replaced by PSCio_send()
+------------------------------------------------------------------------
+d0ea316d | Norbert Eicker | Thu, 11 Feb 2021 17:59:47 +0100
+
+Replace another hand-crafter write() loop by PSCio_sendProg()
+------------------------------------------------------------------------
+6bc36082 | Norbert Eicker | Thu, 11 Feb 2021 14:58:34 +0100
+
+Move to ssize_t as return type of send functions
+------------------------------------------------------------------------
+49b8f80d | Norbert Eicker | Thu, 11 Feb 2021 14:50:46 +0100
+
+Replace hand-crafter loop over write() by PSCio_sendF()
+------------------------------------------------------------------------
+04301434 | Norbert Eicker | Thu, 11 Feb 2021 14:45:01 +0100
+
+Replace hand-crafter while() write() loop by PSCio_sendF()
+------------------------------------------------------------------------
+ceb6da74 | Norbert Eicker | Thu, 11 Feb 2021 14:42:07 +0100
+
+Replace PSID_writeall() by PSCio_sendF()
+------------------------------------------------------------------------
+ad7b341f | Norbert Eicker | Thu, 11 Feb 2021 14:32:32 +0100
+
+Rename sendMsg() to sendLogMsg()
+------------------------------------------------------------------------
+0402d7e2 | Norbert Eicker | Thu, 11 Feb 2021 00:25:10 +0100
+
+Fix whitespace
+------------------------------------------------------------------------
+ea08fbd0 | Norbert Eicker | Wed, 10 Feb 2021 23:28:33 +0100
+
+Move doWrite() family to PSCio as PSCio_send()
+------------------------------------------------------------------------
+b288ed3c | Norbert Eicker | Wed, 10 Feb 2021 22:13:40 +0100
+
+Introduce PSCio and move setFDblock() there
+------------------------------------------------------------------------
+366e3a95 | Norbert Eicker | Thu, 4 Mar 2021 00:45:33 +0100
+
+Remove more superfluous typecasts
+------------------------------------------------------------------------
+14615c06 | Norbert Eicker | Wed, 3 Mar 2021 23:19:34 +0100
+
+Remove some superfluous typecasts
+------------------------------------------------------------------------
+5f3dc146 | Norbert Eicker | Wed, 3 Mar 2021 22:34:21 +0100
+
+More use of (g/l)rank instead of taskid
+------------------------------------------------------------------------
+bf63a403 | Michael Rauh | Wed, 3 Mar 2021 18:20:31 +0100
+
+Remove currently unused gidNames from debug print
+------------------------------------------------------------------------
+c65cbe3e | Michael Rauh | Wed, 3 Mar 2021 18:16:30 +0100
+
+Use rank instead of taskid to be more consistent
+------------------------------------------------------------------------
+321a359d | Norbert Eicker | Thu, 18 Feb 2021 20:49:07 +0100
+
+Mark flog() as printf-style and fix all warnings
+------------------------------------------------------------------------
+def81737 | Norbert Eicker | Thu, 18 Feb 2021 20:15:33 +0100
+
+Some coding style improvements
+------------------------------------------------------------------------
+65929521 | Norbert Eicker | Thu, 18 Feb 2021 01:52:44 +0100
+
+Get rid of getLocalRankID()'s nodeID argument
+
+ - It is always step->localNodeId
+------------------------------------------------------------------------
+59afb6eb | Michael Rauh | Fri, 5 Feb 2021 17:07:05 +0100
+
+Rework global to local rank conversion
+------------------------------------------------------------------------
+8a6d8222 | Norbert Eicker | Wed, 3 Mar 2021 10:13:13 +0100
+
+Fix various typos
+------------------------------------------------------------------------
+671a0c5f | Norbert Eicker | Tue, 2 Mar 2021 01:12:23 +0100
+
+Merge branch 'ticket_8344'
+------------------------------------------------------------------------
+75e421e5 | Michael Rauh | Tue, 23 Feb 2021 17:56:03 +0100
+
+Added missing header includes to x11spank
+------------------------------------------------------------------------
+3a0f2154 | Michael Rauh | Tue, 23 Feb 2021 17:52:37 +0100
+
+Reword error message in x11spank
+------------------------------------------------------------------------
+adb6c819 | Michael Rauh | Tue, 23 Feb 2021 17:37:30 +0100
+
+Update buildsystem
+------------------------------------------------------------------------
+ef73b066 | Michael Rauh | Tue, 23 Feb 2021 17:36:13 +0100
+
+Separate spank_api and x11spank
+------------------------------------------------------------------------
+efaf6aff | Norbert Eicker | Mon, 22 Feb 2021 21:56:20 +0100
+
+Rerun autoreconf
+------------------------------------------------------------------------
+53ca238e | Michael Rauh | Mon, 22 Feb 2021 19:08:21 +0100
+
+Minor cleanup of x11spank
+------------------------------------------------------------------------
+4bf15b24 | Michael Rauh | Mon, 22 Feb 2021 18:12:28 +0100
+
+Remove unused spank API calls from x11spank
+------------------------------------------------------------------------
+7ae2cc60 | Michael Rauh | Mon, 22 Feb 2021 18:09:47 +0100
+
+Format x11spank with psmgmt indentation
+------------------------------------------------------------------------
+677dfaca | Michael Rauh | Mon, 22 Feb 2021 17:56:52 +0100
+
+Improve error handling and logging
+------------------------------------------------------------------------
+1166f522 | Michael Rauh | Mon, 22 Feb 2021 16:56:54 +0100
+
+Update buildsystem
+------------------------------------------------------------------------
+d242e08f | Michael Rauh | Mon, 22 Feb 2021 16:56:04 +0100
+
+Add x11spank to buildsystem
+------------------------------------------------------------------------
+1ec9afe9 | Michael Rauh | Mon, 22 Feb 2021 16:38:52 +0100
+
+Fix compiler warnings and minor cleanup
+------------------------------------------------------------------------
+cbe2a8b5 | Michael Rauh | Mon, 22 Feb 2021 16:25:59 +0100
+
+Add spank module for Slurm X11 forwarding
+------------------------------------------------------------------------
+3ca934db | Michael Rauh | Wed, 24 Feb 2021 17:27:41 +0100
+
+Bugfix: test psgwd binary as user not root
+------------------------------------------------------------------------
+88e70742 | Michael Rauh | Wed, 24 Feb 2021 17:05:20 +0100
+
+Bugfix: psslurm should not wait for a failed psgw prologue that never
+fully started
+------------------------------------------------------------------------
+1c9a089b | Norbert Eicker | Tue, 23 Feb 2021 19:42:22 +0100
+
+Merge branch 'psslurmAuth'
+------------------------------------------------------------------------
+833a8ea7 | Norbert Eicker | Mon, 22 Feb 2021 14:04:21 +0100
+
+Revert config logic of test plugin
+------------------------------------------------------------------------
+
+
 Version psmgmt-5.1.38-3:
 ========================
 ------------------------------------------------------------------------
