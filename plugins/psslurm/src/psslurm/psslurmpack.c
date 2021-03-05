@@ -743,7 +743,7 @@ bool __packSlurmIOMsg(PS_SendDB_t *data, IO_Slurm_Header_t *ioh, char *body,
     addUint16ToMsg(ioh->type, data);
     /* global rank */
     addUint16ToMsg(ioh->grank, data);
-    /* local rank (unused) */
+    /* local rank */
     addUint16ToMsg((uint16_t)NO_VAL, data);
     /* msg length */
     addUint32ToMsg(ioh->len, data);
@@ -1147,7 +1147,7 @@ bool __unpackReqLaunchTasks(Slurm_Msg_t *sMsg, Step_t **stepPtr,
 
     /* task distribution */
     getUint32(ptr, &step->taskDist);
-    /* node CPUs (unused) */
+    /* node CPUs */
     getUint16(ptr, &step->nodeCPUs);
     /* count of specialized cores */
     getUint16(ptr, &step->jobCoreSpec);
@@ -1191,7 +1191,7 @@ bool __unpackReqLaunchTasks(Slurm_Msg_t *sMsg, Step_t **stepPtr,
     getUint32(ptr, &step->taskFlags);
     /* I/O options */
     unpackStepIOoptions(step, ptr);
-    /* profile (unused) see srun --profile */
+    /* profile (see srun --profile) */
     getUint32(ptr, &step->profile);
     /* prologue/epilogue */
     step->taskProlog = getStringM(ptr);
@@ -1238,19 +1238,15 @@ bool __unpackReqLaunchTasks(Slurm_Msg_t *sMsg, Step_t **stepPtr,
     getUint8(ptr, &step->appendMode);
     /* accounting frequency */
     step->acctFreq = getStringM(ptr);
-    /* CPU frequency minimal (unused)
-     * see srun --cpu-freq */
+    /* CPU frequency minimal (see srun --cpu-freq) */
     getUint32(ptr, &step->cpuFreqMin);
-    /* CPU frequency maximal (unused)
-     * see srun --cpu-freq */
+    /* CPU frequency maximal (see srun --cpu-freq) */
     getUint32(ptr, &step->cpuFreqMax);
-    /* CPU frequency governor (unused)
-     * see srun --cpu-freq */
+    /* CPU frequency governor (see srun --cpu-freq) */
     getUint32(ptr, &step->cpuFreqGov);
     /* directory for checkpoints */
     step->checkpoint = getStringM(ptr);
-    /* directory for restarting checkpoints (unused)
-     * see srun --restart-dir */
+    /* directory for restarting checkpoints (see srun --restart-dir) */
     step->restartDir = getStringM(ptr);
 
     /* jobinfo plugin id */
@@ -1364,7 +1360,7 @@ bool __unpackReqBatchJobLaunch(Slurm_Msg_t *sMsg, Job_t **jobPtr,
     getUint32(ptr, &job->arrayTaskId);
     /* acctg freq */
     job->acctFreq = getStringM(ptr);
-    /* CPU bind type (unused for jobs) */
+    /* CPU bind type */
     getUint16(ptr, &job->cpuBindType);
     /* CPUs per task */
     getUint16(ptr, &job->tpp);
@@ -1388,8 +1384,7 @@ bool __unpackReqBatchJobLaunch(Slurm_Msg_t *sMsg, Job_t **jobPtr,
     job->cwd = getStringM(ptr);
     /* directory for checkpoints */
     job->checkpoint = getStringM(ptr);
-    /* directory for restarting checkpoints (unused)
-     * see srun --restart-dir */
+    /* directory for restarting checkpoints (sbatch --restart-dir) */
     job->restartDir = getStringM(ptr);
     /* std I/O/E */
     job->stdErr = getStringM(ptr);
@@ -1425,13 +1420,13 @@ bool __unpackReqBatchJobLaunch(Slurm_Msg_t *sMsg, Job_t **jobPtr,
 
     /* jobinfo plugin id */
     getUint32(ptr, &tmp);
-    /* account (unused) */
+    /* account */
     job->account = getStringM(ptr);
-    /* qos (unused) see srun --qos */
+    /* qos (see sbatch --qos) */
     job->qos = getStringM(ptr);
-    /* reservation name (unused) */
+    /* reservation name */
     job->resName = getStringM(ptr);
-    /* profile (unused) see sbatch --profile */
+    /* profile (see sbatch --profile) */
     getUint32(ptr, &job->profile);
 
     job->tresBind = getStringM(ptr);
@@ -1655,7 +1650,7 @@ bool packGresConf(Gres_Conf_t *gres, void *info)
     addUint8ToMsg((gres->file ? 1 : 0), msg);
     addUint32ToMsg(gres->id, msg);
     addStringToMsg(gres->cpus, msg);
-    /* links (unused) */
+    /* links */
     addStringToMsg("", msg);
     addStringToMsg(gres->name, msg);
     addStringToMsg(gres->type, msg);
