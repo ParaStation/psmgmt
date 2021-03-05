@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2014-2020 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2014-2021 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -58,7 +58,9 @@ typedef struct {
     char *jsData;	    /**< jobscript data */
     char *hostname;	    /**< hostname of the jobscript */
     char *checkpoint;	    /**< directory for checkpoints */
+    char *restartDir;       /**< checkpoints directory (unused) */
     char *acctFreq;	    /**< account polling frequency */
+    int16_t cpuBindType;    /**< CPU bind type (unused) */
     int state;		    /**< current state of the job */
     bool signaled;	    /**< true if job received SIGUSR1 */
     uint16_t accType;	    /**< type of accounting */
@@ -83,6 +85,10 @@ typedef struct {
     char *tresBind;         /**< TRes binding (currently env set only) */
     char *tresFreq;         /**< TRes frequency (currently env set only) */
     uint16_t restartCnt;    /**< job restart count */
+    char *account;          /**< account (unused) */
+    char *qos;              /**< qos (unused) */
+    char *resName;          /**< reservation name (unused) */
+    uint32_t profile;       /**< profile (unused) */
 } Job_t;
 
 /**

@@ -70,6 +70,12 @@ typedef struct {
     uint32_t jobMemLimit;	/**< memory limit of job */
     uint32_t stepMemLimit;	/**< memory limit of step */
     task_dist_states_t taskDist;/**< task distribution (e.g. cyclic) */
+    uint16_t nodeCPUs;          /**< node CPUs (unused) */
+    uint32_t profile;           /**< profile (unused) see srun --profile */
+    uint32_t cpuFreqMin;        /**< CPU frequency minimal (unused) */
+    uint32_t cpuFreqMax;        /**< CPU frequency maximal (unused) */
+    uint32_t cpuFreqGov;        /**< CPU frequency governor (unused) */
+    char *restartDir;           /**< checkpoints directory (unused) */
     uint16_t jobCoreSpec;	/**< count of specialized cores */
     uint16_t *tasksToLaunch;	/**< number of tasks to launch (per node) */
     uint32_t **globalTaskIds;	/**< step global Slurm task IDs (per node) */

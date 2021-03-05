@@ -177,6 +177,7 @@ bool deleteStep(uint32_t jobid, uint32_t stepid)
     ufree(step->x11.host);
     ufree(step->x11.magicCookie);
     ufree(step->x11.target);
+    ufree(step->restartDir);
 
     clearTasks(&step->tasks);
     clearTasks(&step->remoteTasks);
