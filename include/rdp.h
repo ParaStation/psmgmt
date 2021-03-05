@@ -92,7 +92,7 @@ typedef enum {
  * points to further information depending on the type of the
  * callback.
  *
- * @return On success, the filedescriptor of the RDP socket is returned.
+ * @return On success, the file descriptor of the RDP socket is returned.
  * On error, exit() is called within this function.
  *
  * @see syslog()
@@ -265,7 +265,7 @@ int getMaxAckPendRDP(void);
  * Explicit ACK messages might also be sent for various reasons e.g.,
  * if a retransmission occurred.
  *
- * Setting this to 1 or smaller forces the RDP module to explicitely
+ * Setting this to 1 or smaller forces the RDP module to explicitly
  * acknowledge each message received.
  *
  * @param count The maximum pending ACK count to be set.
@@ -356,7 +356,7 @@ int getRetransRDP(void);
 /**
  * @brief Set total retransmission count.
  *
- * Set the total number of retransmissionx of the RDP module. This
+ * Set the total number of retransmissions of the RDP module. This
  * should mainly be used to reset the counter. Resetting the total
  * number of retransmissions should show no side-effects.
  *
@@ -434,7 +434,7 @@ int Rsendto(int node, void* buf, size_t len);
  *
  *
  * @return On success, the number of bytes received is returned, or -1
- * if an error occured. At least on Linux extended reliable error
+ * if an error occurred. At least on Linux extended reliable error
  * messages are enabled within RDP and thus 0 is a correct return
  * value without signaling EOF or similar events.
  *
@@ -517,7 +517,7 @@ int RDP_blockTimer(int block);
 /**
  * @brief Print statistics
  *
- * Print some usefull statistics on RDP. Currently this includes:
+ * Print some useful statistics on RDP. Currently this includes:
  * - Some statistics on the UDP-socket used by RDP
  *
  * @return No return value.

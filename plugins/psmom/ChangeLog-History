@@ -160,7 +160,7 @@ psmom version 5.2.10-8:
 	PSMOM_DIS_ACCOUNT via qsub/msub -v option.
      * better debug output of unsupported functions
      * added option to set nodes offline by psmom if a prologue/epilogue
-	timeout occured (default active)
+	timeout occurred (default active)
      * suppress unlogical "child not found" error messages
      * better monitoring of the pelogue phase
      * more detailed error message of pelogue failures
@@ -340,7 +340,7 @@ psmom version 5.2.9-46:
 
     Bugfixes:
      * job cleanup will not be triggered by the PBS server if an
-	error in the copy phase occured
+	error in the copy phase occurred
      * display jobid separated by spaces
      * send correct job-id if fork of PElogue script fails
      * fixed minor memory leak on psmom load/unload

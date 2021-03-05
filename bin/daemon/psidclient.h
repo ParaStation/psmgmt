@@ -91,7 +91,7 @@ PStask_t *PSIDclient_getTask(int fd);
  * The message handler gets the file descriptor as its first argument
  * and might use @ref PSIDclient_getTID() to identify the sending
  * client. @a info will be passed as the second argument to the
- * message handler in order to retrive additional information on this
+ * message handler in order to retrieve additional information on this
  * client.
  *
  * @param fd File descriptor the client is connected through

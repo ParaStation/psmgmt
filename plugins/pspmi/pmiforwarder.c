@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2013-2020 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2013-2021 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -136,9 +136,9 @@ static int readFromPMIClient(int fd, void *data)
 	return 0;
     }
 
-    /* socket error occured */
+    /* socket error occurred */
     if (len < 0) {
-	elog( "%s: error on PMI socket occured\n", __func__);
+	elog( "%s: error on PMI socket occurred\n", __func__);
 	return 0;
     }
 

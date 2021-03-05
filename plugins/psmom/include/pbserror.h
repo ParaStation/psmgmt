@@ -80,7 +80,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2010-2013 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2010-2021 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -185,7 +185,7 @@
 #define PBSE_RMBADPARAM	15202		/* parameter could not be used */
 #define PBSE_RMNOPARAM	15203		/* a parameter needed did not exist */
 #define PBSE_RMEXIST	15204		/* something specified didn't exist */
-#define PBSE_RMSYSTEM	15205		/* a system error occured */
+#define PBSE_RMSYSTEM	15205		/* a system error occurred */
 #define PBSE_RMPART	15206		/* only part of reservation made */
 
 /* RM error numbers */

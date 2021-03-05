@@ -164,7 +164,7 @@ PSID_Mem_t getMemoryInfo(PSnodes_ID_t node);
  * handle partition requests. Otherwise it also controls, if all nodes
  * are still alive and if daemons on further nodes were started.
  *
- * If the local node is declare to be master, @ref alloceMasterSpace
+ * If the local node is declare to be master, @ref allocMasterSpace
  * is called in order to provide the space needed to handle all
  * necessary tasks.
  *
@@ -192,7 +192,7 @@ int knowMaster(void);
  * Get the unique ParaStation ID of the node actually serving as the
  * master node. In case of usage of the MCast facility, the master's
  * only task is the handling of partition requests. Otherwise the
- * master also controll, if all nodes are still alive and if daemons
+ * master also control, if all nodes are still alive and if daemons
  * on further nodes were started.
  *
  * In order to be able to rely on the result of this call, also the
@@ -212,7 +212,7 @@ PSnodes_ID_t getMasterID(void);
  *
  * Release the timer used within the status control mechanism. This
  * should only be done, when status control is no longer needed,
- * i.e. just befor exit.
+ * i.e. just before exit.
  *
  * @return No return value.
  */
@@ -289,7 +289,7 @@ void setDeadLimit(int limit);
  * corresponding counter is reset upon start of the next
  * status-iteration.
  *
- * The lengt of the status-iteration is steered via the @ref
+ * The length of the status-iteration is steered via the @ref
  * setStatusTimeout() function.
  *
  * @return The number of allowed status-broadcast per status-iteration
@@ -312,12 +312,12 @@ int getMaxStatBCast(void);
  * corresponding counter is reset upon start of the next
  * status-iteration.
  *
- * A value of 0 will completly suppress sending of
+ * A value of 0 will completely suppress sending of
  * status-broadcasts. In this case information on dead nodes will be
  * propagated by sending ACTIVENODES messages upon receive of too many
  * wrong LOAD messages, only.
  *
- * The lengt of the status-iteration is steered via the @ref
+ * The length of the status-iteration is steered via the @ref
  * setStatusTimeout() function.
  *
  * @param limit The new limit on the status-broadcasts per
@@ -351,7 +351,7 @@ void setMaxStatBCast(int limit);
  *
  * @param silent Flag triggering log-suppression of lost connection
  *
- * @return If successfull, true is returned. Or false if @id is out of
+ * @return If successful, true is returned. Or false if @id is out of
  * range.
  */
 bool declareNodeDead(PSnodes_ID_t id, int sendDeadnode, bool silent);
@@ -360,7 +360,7 @@ bool declareNodeDead(PSnodes_ID_t id, int sendDeadnode, bool silent);
  * @brief Declare a node alive.
  *
  * Declare the node with ParaStation ID @a id to be alive. Therefore
- * various internal and externel (e.g. within PSnodes or MCast)
+ * various internal and external (e.g. within PSnodes or MCast)
  * indicators are set appropriately. Within this process the node is
  * registered to have @a numThrds hardware threads realized by @a
  * numCores physical processor cores. These numbers differ on some
@@ -381,7 +381,7 @@ bool declareNodeDead(PSnodes_ID_t id, int sendDeadnode, bool silent);
  *
  * @param dmnProto Daemon protocol version the registered node supports
  *
- * @return If successfull, true is returned. Or false if @id is out of
+ * @return If successful, true is returned. Or false if @id is out of
  * range.
  */
 bool declareNodeAlive(PSnodes_ID_t id, int numCores, int numThrds, int proto,
@@ -395,7 +395,7 @@ bool declareNodeAlive(PSnodes_ID_t id, int numCores, int numThrds, int proto,
  * @param id ParaStation ID of the node to send the message to.
  *
  * @return On success, the number of bytes sent within the
- * PSP_DD_DAEMONCONNECT message is returned. If an error occured, -1
+ * PSP_DD_DAEMONCONNECT message is returned. If an error occurred, -1
  * is returned and errno is set appropriately.
  */
 int send_DAEMONCONNECT(PSnodes_ID_t id);
@@ -406,11 +406,11 @@ int send_DAEMONCONNECT(PSnodes_ID_t id);
  * Broadcast a PSP_DD_DAEMONSHUTDOWN message to all active nodes. This
  * message indicates that the sender will go down soon and no longer
  * handles any communication. Thus this function should only be called
- * immediately befor exit.
+ * immediately before exit.
  *
  * @return On success, the number of nodes the PSP_DD_DAEMONSHUTDOWN
  * message is sent to is returned, i.e. the value returned by the @ref
- * broadcastMsg() call. If an error occured, -1 is returned and errno
+ * broadcastMsg() call. If an error occurred, -1 is returned and errno
  * is set appropriately.
  */
 int send_DAEMONSHUTDOWN(void);
@@ -424,7 +424,7 @@ int send_DAEMONSHUTDOWN(void);
  * @param dest ParaStation ID of the node to send the message to.
  *
  * @return On success, the number of bytes sent within the
- * PSP_DD_MASTER_IS message is returned. If an error occured, -1 is
+ * PSP_DD_MASTER_IS message is returned. If an error occurred, -1 is
  * returned and errno is set appropriately.
  */
 int send_MASTERIS(PSnodes_ID_t dest);

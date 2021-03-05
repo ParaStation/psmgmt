@@ -448,12 +448,12 @@ ssize_t localRead(int sock, char *buffer, ssize_t len, const char *caller)
 	return -1;
     }
 
-    /* socket error occured */
+    /* socket error occurred */
     if (read < 0) {
 	if (errno == EINTR) {
 	    return localRead(sock, buffer, len, caller);
 	}
-	mlog("%s(%s): error on unix socket '%i' occured : %s\n", __func__,
+	mlog("%s(%s): error on unix socket '%i' occurred : %s\n", __func__,
 		caller, sock, strerror(errno));
 	mwarn(errno, "%s(%s): local read on socket:%i failed ", __func__,
 		caller, sock);

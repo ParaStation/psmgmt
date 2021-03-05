@@ -19,7 +19,7 @@
 #include "psprotocol.h"
 
 /**
- * @brief Initialize RDP message bufferes.
+ * @brief Initialize RDP message buffers.
  *
  * Initialize some structures used in order to temporarily store RDP
  * messages that could not yet be delivered to their final
@@ -51,7 +51,7 @@ void clearRDPMsgs(int node);
  * with.
  *
  * @return If all pending message were delivered, 0 is returned. Or
- * -1, if a problem occured.
+ * -1, if a problem occurred.
  *
  * @see sendRDP()
  */
@@ -72,7 +72,7 @@ int flushRDPMsgs(int node);
  * this unique node ID will try to deliver this packet.
  *
  * @return On success, the number of bytes sent is returned. If an error
- * occured, -1 is returned and errno is set appropriately.
+ * occurred, -1 is returned and errno is set appropriately.
  *
  * @see Rsendto(), flushRDPMsgs()
  */
@@ -94,7 +94,7 @@ void PSIDRDP_handleMsg(void);
  *
  * Cleanup all dynamic memory currently used by the module. It will
  * very aggressively free() all allocated memory most likely
- * destroying the existing status reqresentation.
+ * destroying the existing status representation.
  *
  * The purpose of this function is to cleanup before a fork()ed
  * process is handling other tasks, e.g. becoming a forwarder.

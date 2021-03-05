@@ -350,7 +350,7 @@ ssize_t tcpRead(int sock, char *buffer, ssize_t size, const char *caller)
 	return -1;
     }
 
-    /* socket error occured */
+    /* socket error occurred */
     if (read < 0) {
 	if (errno == EINTR) {
 	    return tcpRead(sock, buffer, size, caller);

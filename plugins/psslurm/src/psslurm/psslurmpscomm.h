@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2014-2020 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2014-2021 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -118,7 +118,7 @@ void send_PS_EpilogueStateReq(Alloc_t *alloc);
  * @param nodes The nodelist to forward the message to
  *
  * @return The total number of bytes sent is returned or
- * -1 if an error occured.
+ * -1 if an error occurred.
  */
 int forwardSlurmMsg(Slurm_Msg_t *sMsg, uint32_t nrOfNodes, PSnodes_ID_t *nodes);
 

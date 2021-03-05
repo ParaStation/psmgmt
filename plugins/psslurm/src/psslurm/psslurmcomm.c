@@ -243,7 +243,7 @@ void clearSlurmCon(void)
  *
  * @param line Line number where this function is called
  * @return Returns false if the processing should be stopped
- * otherwise true is returned even if errors occured.
+ * otherwise true is returned even if errors occurred.
  */
 static bool saveFrwrdMsgReply(Slurm_Msg_t *sMsg, Msg_Forward_t *fw,
 			      uint32_t error, const char *func, const int line)
