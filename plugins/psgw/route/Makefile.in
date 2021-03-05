@@ -297,7 +297,6 @@ program_transform_name = @program_transform_name@
 psconfig_CFLAGS = @psconfig_CFLAGS@
 psconfig_LIBS = @psconfig_LIBS@
 psdir = @psdir@
-runstatedir = @runstatedir@
 sbindir = @sbindir@
 sharedstatedir = @sharedstatedir@
 srcdir = @srcdir@
