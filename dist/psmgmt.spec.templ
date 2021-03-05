@@ -296,6 +296,8 @@ exit 0
 %{_plugindir}/psgw.so
 %exclude %{_plugindir}/psgw.la
 %config(noreplace) %{_plugindir}/psgw.conf
+%doc doc/README.psgw
+%doc plugins/psgw/doc/README.psgw_plugins
 %doc plugins/psgw/doc/psgw_error.example
 %if !0%{?disable_spank}
 %{_libexecdir}/psgw
