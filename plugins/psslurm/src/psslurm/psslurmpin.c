@@ -83,23 +83,23 @@ typedef struct {
     uint16_t threadsPerCore; /* number of hardware threads per core */
     uint32_t coreCount;      /* number of cores */
     uint32_t threadCount;    /* number of hardware threads */
-    uint8_t *coreMap;         /* map of cores to use in this step on this node */
+    bool *coreMap;           /* map of cores to use in this step on this node */
 } nodeinfo_t;
 
 typedef struct {
-    uint8_t *usedHwThreads;   /* boolean array of hardware threads already assigned */
+    bool *usedHwThreads;      /* array of already assigned hardware threads */
     int64_t lastUsedThread;   /* number of the thread used last */
     enum thread_iter_strategy threadIterStrategy;
     enum next_start_strategy nextStartStrategy;
-    uint16_t* tasksPerSocket;  /* array of number of tasks left for each socket */
-    uint32_t firstThread;      /* first thread assigned for current task */
+    uint16_t* tasksPerSocket; /* array of number of tasks left per socket */
+    uint32_t firstThread;     /* first thread assigned for current task */
 } pininfo_t;
 
 typedef struct {
     enum thread_iter_strategy strategy;
     const nodeinfo_t *nodeinfo;
     uint32_t next;
-    uint8_t valid;    /* is this iterator still valid */
+    bool valid;       /* is this iterator still valid */
     uint32_t count;   /* iteration counter */
 } thread_iterator;
 
@@ -118,7 +118,7 @@ static void thread_iter_init(thread_iterator *iter,
     iter->strategy = strategy;
     iter->nodeinfo = nodeinfo;
     iter->next = start;
-    iter->valid = (iter->next < nodeinfo->threadCount) ? 1 : 0;
+    iter->valid = iter->next < nodeinfo->threadCount;
     iter->count = 0;
 }
 
@@ -147,7 +147,7 @@ static bool thread_iter_next(thread_iterator *iter, uint32_t *result)
 
     if (++iter->count >= iter->nodeinfo->threadCount) {
 	/* iterated through all threads, next call should be last one */
-	iter->valid = 0;
+	iter->valid = false;
 	return true;
     }
 
@@ -246,8 +246,8 @@ static bool thread_iter_next(thread_iterator *iter, uint32_t *result)
  *
  * @return  number of the first thread of the next socket
  */
-static uint32_t getNextSocketStart(uint32_t thread,
-	const nodeinfo_t *nodeinfo, bool respectThread)
+static uint32_t getNextSocketStart(uint32_t thread, const nodeinfo_t *nodeinfo,
+				   bool respectThread)
 {
 
     uint32_t ret;
@@ -287,8 +287,8 @@ static uint32_t getNextCoreStart(uint32_t thread, const nodeinfo_t *nodeinfo)
  * The coreBitmap is a string containing digits or ranges delimited by
  * ',', ' ', or '\n'.
  *
- * The returned coreMap is an array with 1 for all indices contained in
- * the coreBitmap and 0 for all others.
+ * The returned coreMap is an array with true for all indices contained in
+ * the coreBitmap and false for all others.
  *
  * The coreMap is related to the over all job partition (might be multiple
  * nodes), so its indices are the global CPU IDs of the job.
@@ -298,14 +298,13 @@ static uint32_t getNextCoreStart(uint32_t thread, const nodeinfo_t *nodeinfo)
  * @return  coreMap
  *
  */
-static uint8_t *getCPUsForPartition(Step_t *step)
+static bool *getCPUsForPartition(Step_t *step)
 {
-    uint8_t *coreMap;
+    bool *coreMap;
 
     size_t len;
     char *bitstr;
     int count, cur;
-    uint32_t i;
 
     coreMap = ucalloc(step->cred->totalCoreCount * sizeof(*coreMap));
     count = 0;
@@ -333,18 +332,18 @@ static uint8_t *getCPUsForPartition(Step_t *step)
 	    cur -= 'A' - 10;
 	}
 
-	if (cur & 1) coreMap[count] = 1;
+	if (cur & 1) coreMap[count] = true;
 	count++;
-	if (cur & 2) coreMap[count] = 1;
+	if (cur & 2) coreMap[count] = true;
 	count++;
-	if (cur & 4) coreMap[count] = 1;
+	if (cur & 4) coreMap[count] = true;
 	count++;
-	if (cur & 8) coreMap[count] = 1;
+	if (cur & 8) coreMap[count] = true;
 	count++;
     }
 
     mdbg(PSSLURM_LOG_PART, "%s: cores '%s' coreMap '", __func__, bitstr);
-    for (i=0; i < step->cred->totalCoreCount; i++) {
+    for (uint32_t i = 0; i < step->cred->totalCoreCount; i++) {
 	mdbg(PSSLURM_LOG_PART, "%i", coreMap[i]);
     }
     mdbg(PSSLURM_LOG_PART, "'\n");
@@ -722,10 +721,10 @@ static void getRankBinding(PSCPU_set_t *CPUset, const nodeinfo_t *nodeinfo,
 	localCpuCount = 0;
 	// walk through global CPU IDs of the CPUs to use in the local node
 	for (u = 0; u < nodeinfo->coreCount; u++) {
-	    if ((*lastCpu == -1 || *lastCpu < localCpuCount) &&
-		nodeinfo->coreMap[u] == 1) {
+	    if ((*lastCpu == -1 || *lastCpu < localCpuCount)
+		&& nodeinfo->coreMap[u]) {
 		PSCPU_setCPU(*CPUset,
-			localCpuCount + (*thread * nodeinfo->coreCount));
+			     localCpuCount + (*thread * nodeinfo->coreCount));
 		mdbg(PSSLURM_LOG_PART, "%s: (bind_rank) node %i task %i"
 		     " global_cpu %i local_cpu %i last_cpu %i\n", __func__,
 		     nodeinfo->id, lTID, u,
@@ -750,29 +749,30 @@ static void getRankBinding(PSCPU_set_t *CPUset, const nodeinfo_t *nodeinfo,
  * Returns UINT32_MAX if no matching threads exists.
  */
 static uint32_t getNextStartThread(const nodeinfo_t *nodeinfo,
-	const pininfo_t *pininfo)
+				   const pininfo_t *pininfo)
 {
     thread_iterator iter;
-
     switch(pininfo->nextStartStrategy) {
-	case CYCLIC_CYCLIC:
-	    thread_iter_init(&iter, FILLSOCKETS_CYCLECORES, nodeinfo,
-		    getNextSocketStart(pininfo->lastUsedThread, nodeinfo,
-			    false));
-	    break;
-	case BLOCK_BLOCK:
-	    thread_iter_init(&iter, FILLSOCKETS_FILLCORES, nodeinfo,
-		    pininfo->lastUsedThread);
-	    break;
-	case CYCLIC_BLOCK:
-	    thread_iter_init(&iter, FILLSOCKETS_FILLCORES, nodeinfo,
-		    getNextSocketStart(pininfo->lastUsedThread, nodeinfo,
-			    false));
-	    break;
-	case BLOCK_CYCLIC:
-	    thread_iter_init(&iter, FILLSOCKETS_FILLCORES, nodeinfo,
-		    getNextCoreStart(pininfo->lastUsedThread, nodeinfo));
-	    break;
+    case CYCLIC_CYCLIC:
+	thread_iter_init(&iter, FILLSOCKETS_CYCLECORES, nodeinfo,
+			 getNextSocketStart(pininfo->lastUsedThread, nodeinfo,
+					    false));
+	break;
+    case BLOCK_BLOCK:
+	thread_iter_init(&iter, FILLSOCKETS_FILLCORES, nodeinfo,
+			 pininfo->lastUsedThread);
+	break;
+    case CYCLIC_BLOCK:
+	thread_iter_init(&iter, FILLSOCKETS_FILLCORES, nodeinfo,
+			 getNextSocketStart(pininfo->lastUsedThread, nodeinfo,
+					    false));
+	break;
+    case BLOCK_CYCLIC:
+	thread_iter_init(&iter, FILLSOCKETS_FILLCORES, nodeinfo,
+			 getNextCoreStart(pininfo->lastUsedThread, nodeinfo));
+	break;
+    default:
+	return UINT32_MAX;
     }
 
     /* find next unused thread to start from */
@@ -780,14 +780,14 @@ static uint32_t getNextStartThread(const nodeinfo_t *nodeinfo,
     while (thread_iter_next(&iter, &thread)) {
 
 	/* omit cpus not in core map and thus not to use by this job step */
-	if (nodeinfo->coreMap[getCore(thread, nodeinfo)] != 1) {
+	if (!nodeinfo->coreMap[getCore(thread, nodeinfo)]) {
 	    mdbg(PSSLURM_LOG_PART, "%s: thread '%u' not assigned to step (not"
 		    " in core map)\n", __func__, thread);
 	    continue;
 	}
 
 	/* omit cpus already assigned */
-	if (pininfo->usedHwThreads[thread] == 1) {
+	if (pininfo->usedHwThreads[thread]) {
 	    mdbg(PSSLURM_LOG_PART, "%s: thread '%u' already used\n", __func__,
 		    thread);
 	    continue;
@@ -797,7 +797,7 @@ static uint32_t getNextStartThread(const nodeinfo_t *nodeinfo,
 	if (pininfo->tasksPerSocket) {
 	    uint16_t socket = getSocketByThread(thread, nodeinfo);
 	    mdbg(PSSLURM_LOG_PART, "%s: thread '%u' belongs to socket '%u'"
-		    " having %d tasks left\n", __func__, thread, socket,
+		 " having %d tasks left\n", __func__, thread, socket,
 		    pininfo->tasksPerSocket[socket]);
 	    if (pininfo->tasksPerSocket[socket] == 0) {
 		mdbg(PSSLURM_LOG_PART, "%s: omitting thread '%u' since"
@@ -832,7 +832,7 @@ static uint32_t getNextStartThread(const nodeinfo_t *nodeinfo,
  *                                threads and sockets in this node
  * @param thread           <BOTH> current hardware thread to fill
  *                                (currently only used for debugging output)
- * @param threadsPerTask   <IN>   number of hardware threads to assign to each task
+ * @param threadsPerTask   <IN>   # of hardware threads to assign to each task
  * @param local_tid        <IN>   local task id (current task on this node)
  * @param pininfo          <BOTH> Pinning information structure (for this node)
  */
@@ -841,6 +841,7 @@ static void getThreadsBinding(PSCPU_set_t *CPUset, const nodeinfo_t *nodeinfo,
 {
     uint32_t start = 0;
 
+    if (!threadsPerTask) return; // ensure threadsPerTask is > 0
     if (pininfo->lastUsedThread >= 0) {
 	start = getNextStartThread(nodeinfo, pininfo);
 
@@ -854,22 +855,20 @@ static void getThreadsBinding(PSCPU_set_t *CPUset, const nodeinfo_t *nodeinfo,
     }
 
     thread_iterator iter;
-
     thread_iter_init(&iter, pininfo->threadIterStrategy, nodeinfo, start);
 
     mdbg(PSSLURM_LOG_PART, "%s: node '%u' task '%u' lastUsedThread '%ld'"
 	    " start '%u'\n", __func__, nodeinfo->id, local_tid,
 	    pininfo->lastUsedThread, start);
 
-    uint32_t thread, threadsLeft;
-    threadsLeft = threadsPerTask;
+    uint32_t thread, threadsLeft = threadsPerTask;
     while (threadsLeft > 0 && thread_iter_next(&iter, &thread)) {
 
 	/* on which core is this thread? */
 	uint32_t core = getCore(thread, nodeinfo);
 
 	/* omit cpus not in core map and thus not to use by this job step */
-	if (nodeinfo->coreMap[core] != 1) {
+	if (!nodeinfo->coreMap[core]) {
 	    mdbg(PSSLURM_LOG_PART, "%s: thread '%u' core '%u' socket '%hu'"
 		    " not assigned to step (not in core map)\n", __func__,
 		    thread, core, getSocketByCore(core, nodeinfo));
@@ -877,7 +876,7 @@ static void getThreadsBinding(PSCPU_set_t *CPUset, const nodeinfo_t *nodeinfo,
 	}
 
 	/* omit cpus already assigned */
-	if (pininfo->usedHwThreads[thread] == 1) {
+	if (pininfo->usedHwThreads[thread]) {
 	    mdbg(PSSLURM_LOG_PART, "%s: thread '%u' core '%u' socket '%hu'"
 		    " already used\n",
 		    __func__, thread, core, getSocketByCore(core, nodeinfo));
@@ -890,7 +889,7 @@ static void getThreadsBinding(PSCPU_set_t *CPUset, const nodeinfo_t *nodeinfo,
 	uint32_t corethread = getCorethread(thread, nodeinfo);
 	for (uint32_t t = 0; t < corethread; t++) {
 	    uint32_t checkthread = t * nodeinfo->coreCount + core;
-	    if (pininfo->usedHwThreads[checkthread] != 1) {
+	    if (!pininfo->usedHwThreads[checkthread]) {
 		mdbg(PSSLURM_LOG_PART, "%s: thread '%u' core '%u' socket '%hu'"
 		    " unused, take it\n",
 		    __func__, thread, core, getSocketByCore(core, nodeinfo));
@@ -907,7 +906,7 @@ static void getThreadsBinding(PSCPU_set_t *CPUset, const nodeinfo_t *nodeinfo,
 
 	/* assign hardware thread */
 	PSCPU_setCPU(*CPUset, thread);
-	pininfo->usedHwThreads[thread] = 1;
+	pininfo->usedHwThreads[thread] = true;
 	threadsLeft--;
     }
 
@@ -1014,27 +1013,24 @@ static void getSocketRankBinding(PSCPU_set_t *CPUset,
 		const nodeinfo_t *nodeinfo, uint16_t threadsPerTask,
 		uint32_t local_tid, pininfo_t *pininfo)
 {
-    uint32_t thread, start, threadsLeft;
-    thread_iterator iter;
-
     PSCPU_clrAll(*CPUset);
 
     /* handle overbooking */
-    if (threadsPerTask > nodeinfo->threadCount) {
+    if (!threadsPerTask || threadsPerTask > nodeinfo->threadCount) {
 	pinToAllThreads(CPUset, nodeinfo);
 	return;
     }
 
     /* start iteration on the next socket */
-    start = 0;
+    uint32_t start = 0;
     if (pininfo->lastUsedThread >= 0) {
 	start = getNextSocketStart(pininfo->lastUsedThread, nodeinfo, false);
     }
 
+    thread_iterator iter;
     thread_iter_init(&iter, FILLSOCKETS_FILLCORES, nodeinfo, start);
 
-    threadsLeft = threadsPerTask;
-
+    uint32_t thread, threadsLeft = threadsPerTask;
     while (threadsLeft > 0 && thread_iter_next(&iter, &thread)) {
 
 	/* on which core is this thread? */
@@ -1046,14 +1042,13 @@ static void getSocketRankBinding(PSCPU_set_t *CPUset,
 		getSocketByCore(core, nodeinfo), pininfo->lastUsedThread);
 
 	/* omit cpus not to use or already assigned */
-	if (nodeinfo->coreMap[core] != 1
-		|| pininfo->usedHwThreads[thread] == 1) {
+	if (!nodeinfo->coreMap[core] || pininfo->usedHwThreads[thread]) {
 	    continue;
 	}
 
 	/* assign hardware thread */
 	PSCPU_setCPU(*CPUset, thread);
-	pininfo->usedHwThreads[thread] = 1;
+	pininfo->usedHwThreads[thread] = true;
 	threadsLeft--;
     }
 
@@ -1385,18 +1380,18 @@ static void fillTasksPerSocket(pininfo_t *pininfo, env_t *env,
     int tasksPerSocket = atoi(tmp);
 
     if (tasksPerSocket <= 0) {
-        pininfo->tasksPerSocket = NULL;
-        mdbg(PSSLURM_LOG_PART, "%s: tasksPerSocket invalid\n", __func__);
+	pininfo->tasksPerSocket = NULL;
+	mdbg(PSSLURM_LOG_PART, "%s: tasksPerSocket invalid\n", __func__);
 	return;
     }
 
     pininfo->tasksPerSocket = ucalloc(nodeinfo->socketCount
-	    * sizeof(*pininfo->tasksPerSocket));
+				      * sizeof(*pininfo->tasksPerSocket));
     for (int i = 0; i < nodeinfo->socketCount; i++) {
 	pininfo->tasksPerSocket[i] = tasksPerSocket;
     }
     mdbg(PSSLURM_LOG_PART, "%s: tasksPerSocket set to %u\n", __func__,
-	    tasksPerSocket);
+	 tasksPerSocket);
 }
 
 /*
@@ -1522,11 +1517,10 @@ bool getNodeGPUPinning(uint16_t ret[], Step_t *step, uint32_t stepNodeId,
 /* This is the entry point to the whole CPU pinning stuff */
 bool setStepSlots(Step_t *step)
 {
-    uint32_t node, lTID, tid, slotsSize, coreCount;
+    uint32_t lTID, tid, slotsSize, coreCount;
     uint32_t coreMapIndex = 0, coreArrayIndex = 0, coreArrayCount = 0;
-    uint8_t *coreMap = NULL;
     int32_t lastCpu;
-    int threadsPerCore, thread = 0, numThreads;
+    int threadsPerCore, numThreads;
     JobCred_t *cred = step->cred;
     pininfo_t pininfo;
 
@@ -1535,7 +1529,8 @@ bool setStepSlots(Step_t *step)
     PSpart_slot_t *slots = umalloc(slotsSize * sizeof(PSpart_slot_t));
 
     /* get cpus from job credential */
-    if (!(coreMap = getCPUsForPartition(step))) {
+    bool *coreMap = getCPUsForPartition(step);
+    if (!coreMap) {
 	mlog("%s: getting cpus for partition failed\n", __func__);
 	goto error;
     }
@@ -1543,7 +1538,7 @@ bool setStepSlots(Step_t *step)
     /* find start index for this step in core map that is job global */
     Job_t *job = findJobById(step->jobid);
     if (job) {
-	for (node=0; job && node < job->nrOfNodes; node++) {
+	for (uint32_t node = 0; job && node < job->nrOfNodes; node++) {
 
 	    if (job->nodes[node] == step->nodes[0]) {
 		/* we found the first node of our step */
@@ -1588,8 +1583,8 @@ bool setStepSlots(Step_t *step)
     hints_t hints;
     fillHints(&hints, &step->env);
 
-    for (node=0; node < step->nrOfNodes; node++) {
-	thread = 0;
+    for (uint32_t node = 0; node < step->nrOfNodes; node++) {
+	int thread = 0;
 
 	/* get cpu count per node from job credential */
 	if (coreArrayIndex >= cred->coreArraySize) {
@@ -1608,7 +1603,7 @@ bool setStepSlots(Step_t *step)
 
 	/* initialize pininfo struct */
 	pininfo.usedHwThreads = ucalloc(coreCount * threadsPerCore
-		* sizeof(*pininfo.usedHwThreads));
+					* sizeof(*pininfo.usedHwThreads));
 	pininfo.lastUsedThread = -1;
 
 	/* handle --distribution */
@@ -1642,7 +1637,7 @@ bool setStepSlots(Step_t *step)
 	    nodeinfo.threadsPerCore = 1;
 	    nodeinfo.threadCount = nodeinfo.coreCount;
 	    fdbg(PSSLURM_LOG_PART, "hint 'nomultithread' set,"
-		    " setting nodeinfo.threadsPerCore = 1\n");
+		 " setting nodeinfo.threadsPerCore = 1\n");
 	}
 
 	/* set node and cpuset for every task on this node */
@@ -2273,7 +2268,7 @@ char *genMemBindString(Step_t *step)
 }
 
 /*
- * this function in for testing the thread iterator function
+ * this function is for testing the thread iterator function
  */
 void test_thread_iterator(uint16_t socketCount, uint16_t coresPerSocket,
 	uint16_t threadsPerCore, uint8_t strategy, uint32_t start)
@@ -2338,9 +2333,8 @@ void test_pinning(uint16_t socketCount, uint16_t coresPerSocket,
 
     uint32_t threadCount = socketCount * coresPerSocket * threadsPerCore;
 
-    uint8_t *coreMap = NULL;
-    coreMap = malloc(threadCount * sizeof(*coreMap));
-    for (size_t i = 0; i < threadCount; coreMap[i++] = 1);
+    bool *coreMap = malloc(threadCount * sizeof(*coreMap));
+    for (size_t i = 0; i < threadCount; i++) coreMap[i] = true;
 
     nodeinfo_t nodeinfo = {
 	.id = 0, /* for debugging output only */
@@ -2391,7 +2385,7 @@ void test_pinning(uint16_t socketCount, uint16_t coresPerSocket,
     uint32_t local_tid;
     for (local_tid=0; local_tid < tasksPerNode; local_tid++) {
 
-        PSCPU_clrAll(CPUset);
+	PSCPU_clrAll(CPUset);
 
 	/* reset first thread */
 	pininfo.firstThread = UINT32_MAX;

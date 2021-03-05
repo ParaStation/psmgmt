@@ -283,8 +283,8 @@ void fwCMD_printJobMsg(Job_t *job, char *plMsg, uint32_t msgLen, uint8_t type)
 	.version = PLUGINFW_PROTO_VERSION,
 	.type = (PSLog_msg_t)CMD_PRINT_CHILD_MSG,
 	.sender = -1};
-    const size_t chunkSize = sizeof(msg.buf) - sizeof(uint8_t)
-	- sizeof(uint32_t) - sizeof(uint32_t);
+    const size_t chunkSize =
+	sizeof(msg.buf) - sizeof(uint8_t) - sizeof(uint32_t);
     size_t left = msgLen;
 
     /* might happen that forwarder is already gone */
@@ -294,7 +294,7 @@ void fwCMD_printJobMsg(Job_t *job, char *plMsg, uint32_t msgLen, uint8_t type)
 	uint32_t chunk = left > chunkSize ? chunkSize : left;
 	uint32_t len = htonl(chunk);
 	DDBufferMsg_t *bMsg = (DDBufferMsg_t *)&msg;
-	bMsg->header.len = offsetof(PSLog_Msg_t, buf);
+	msg.header.len = offsetof(PSLog_Msg_t, buf);
 
 	PSP_putMsgBuf(bMsg, "type", &type, sizeof(type));
 	/* Add data chunk including its length mimicking addData */
@@ -342,7 +342,7 @@ void fwCMD_printMessage(Step_t *step, char *plMsg, uint32_t msgLen,
 	uint32_t nRank = htonl(rank);
 	uint32_t len = htonl(chunk);
 	DDBufferMsg_t *bMsg = (DDBufferMsg_t *)&msg;
-	bMsg->header.len = offsetof(PSLog_Msg_t, buf);
+	msg.header.len = offsetof(PSLog_Msg_t, buf);
 
 	PSP_putMsgBuf(bMsg, "type", &type, sizeof(type));
 	PSP_putMsgBuf(bMsg, "rank", &nRank, sizeof(nRank));
@@ -474,11 +474,11 @@ void fwCMD_msgSrunProxy(Step_t *step, PSLog_Msg_t *lmsg, int32_t senderRank)
 	uint32_t nRank = htonl(senderRank);
 	uint32_t len = htonl(chunk);
 	DDBufferMsg_t *bMsg = (DDBufferMsg_t *)&msg;
-	bMsg->header.len = offsetof(PSLog_Msg_t, buf);
+	msg.header.len = offsetof(PSLog_Msg_t, buf);
 
 	PSP_putMsgBuf(bMsg, "type", &type, sizeof(type));
 	PSP_putMsgBuf(bMsg, "rank", &nRank, sizeof(nRank));
-       /* Add data chunk including its length mimicking addData */
+	/* Add data chunk including its length mimicking addData */
 	PSP_putMsgBuf(bMsg, "len", &len, sizeof(len));
 	PSP_putMsgBuf(bMsg, "data", buf + msgLen - left, chunk);
 

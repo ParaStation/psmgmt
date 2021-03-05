@@ -541,7 +541,6 @@ static void sendAccInfo(Forwarder_Data_t *fw, int32_t status,
 	.version = PLUGINFW_PROTO_VERSION,
 	.type = PLGN_ACCOUNT,
 	.sender = -1};
-    DDTypedBufferMsg_t *accMsg = (DDTypedBufferMsg_t *)&msg.buf;
     PStask_ID_t logger = -1; /* ignored in psaccount */
     int32_t rank = -1 /* ignored in psaccount */, ext = 0;
     uid_t uid = -1; /* ignored in psaccount */
@@ -549,7 +548,7 @@ static void sendAccInfo(Forwarder_Data_t *fw, int32_t status,
     struct timeval now, wTime;
     uint64_t pSize = sysconf(_SC_PAGESIZE) < 0 ? 0 : sysconf(_SC_PAGESIZE);
 
-    *accMsg = (DDTypedBufferMsg_t) {
+    DDTypedBufferMsg_t accMsg = {
 	.header = {
 	    .type = PSP_CD_ACCOUNT,
 	    .sender = PSC_getMyTID(),
@@ -557,22 +556,28 @@ static void sendAccInfo(Forwarder_Data_t *fw, int32_t status,
 	    .len = offsetof(DDTypedBufferMsg_t, buf) },
 	.type = PSP_ACCOUNT_END };
 
-    PSP_putTypedMsgBuf(accMsg, "loggerTID", &logger, sizeof(logger));
-    PSP_putTypedMsgBuf(accMsg, "rank", &rank, sizeof(rank));
-    PSP_putTypedMsgBuf(accMsg, "uid", &uid, sizeof(uid));
-    PSP_putTypedMsgBuf(accMsg, "gid", &gid, sizeof(gid));
-    PSP_putTypedMsgBuf(accMsg, "cPID", &fw->cPid, sizeof(fw->cPid));
-    PSP_putTypedMsgBuf(accMsg, "rusage", rusage, sizeof(*rusage));
-    PSP_putTypedMsgBuf(accMsg, "pagesize", &pSize, sizeof(pSize));
+    PSP_putTypedMsgBuf(&accMsg, "loggerTID", &logger, sizeof(logger));
+    PSP_putTypedMsgBuf(&accMsg, "rank", &rank, sizeof(rank));
+    PSP_putTypedMsgBuf(&accMsg, "uid", &uid, sizeof(uid));
+    PSP_putTypedMsgBuf(&accMsg, "gid", &gid, sizeof(gid));
+    PSP_putTypedMsgBuf(&accMsg, "cPID", &fw->cPid, sizeof(fw->cPid));
+    PSP_putTypedMsgBuf(&accMsg, "rusage", rusage, sizeof(*rusage));
+    PSP_putTypedMsgBuf(&accMsg, "pagesize", &pSize, sizeof(pSize));
 
     /* wall-time used by child */
     gettimeofday(&now, NULL);
     timersub(&now, &childStart, &wTime);
-    PSP_putTypedMsgBuf(accMsg, "walltime", &wTime, sizeof(wTime));
+    PSP_putTypedMsgBuf(&accMsg, "walltime", &wTime, sizeof(wTime));
 
-    PSP_putTypedMsgBuf(accMsg, "status", &status, sizeof(status));
-    PSP_putTypedMsgBuf(accMsg, "extended flag", &ext, sizeof(ext));
-    msg.header.len += accMsg->header.len;
+    PSP_putTypedMsgBuf(&accMsg, "status", &status, sizeof(status));
+    PSP_putTypedMsgBuf(&accMsg, "extended flag", &ext, sizeof(ext));
+
+    if (accMsg.header.len > sizeof(msg.buf)) {
+	pluginlog("%s: accMsg to large to append\n", __func__);
+    } else {
+	memcpy(msg.buf, &accMsg, accMsg.header.len);
+	msg.header.len += accMsg.header.len;
+    }
 
     sendMsgToMother(&msg);
 }
