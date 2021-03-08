@@ -621,33 +621,28 @@ int handleExecClientUser(void *data)
 
 static void initX11Forward(Step_t *step)
 {
-    char *cookie, *proto, *screen, *port, *host, *home;
-    char display[100];
-    char xauthCmd[200], x11Auth[100];
-    FILE *fp;
-    int iport;
+    char srunIP[INET_ADDRSTRLEN];
+    inet_ntop(AF_INET, &(step->srun.sin_addr.s_addr), srunIP, INET_ADDRSTRLEN);
 
-    cookie = envGet(&step->spankenv, "X11_COOKIE");
-    proto = envGet(&step->spankenv, "X11_PROTO");
-    screen = envGet(&step->spankenv, "X11_SCREEN");
-    port = envGet(&step->spankenv, "X11_PORT");
-    host = envGet(&step->env, "SLURM_SUBMIT_HOST");
-    home = envGet(&step->env, "HOME");
-    iport = atoi(port);
-    iport -= 6000;
+    int port = atoi(envGet(&step->spankenv, "X11_PORT"));
+    port -= 6000;
 
-    snprintf(display, sizeof(display), "%s:%i.%s", host, iport, screen);
-    envSet(&step->env, "DISPLAY", display);
+    char *screen = envGet(&step->spankenv, "X11_SCREEN");
+    char authStr[128], xauthCmd[256];
 
-    snprintf(x11Auth, sizeof(x11Auth), "%s:%i.%s", host, iport, screen);
-    snprintf(xauthCmd, sizeof(xauthCmd), "%s -q -", X11_AUTH_CMD);
+    snprintf(authStr, sizeof(authStr), "%s:%i.%s", srunIP, port, screen);
+    envSet(&step->env, "DISPLAY", authStr);
 
     /* xauth needs the correct HOME */
-    setenv("HOME", home, 1);
+    setenv("HOME", envGet(&step->env, "HOME"), 1);
 
-    if ((fp = popen(xauthCmd, "w")) != NULL) {
-	fprintf(fp, "remove %s\n", x11Auth);
-	fprintf(fp, "add %s %s %s\n", x11Auth, proto, cookie);
+    snprintf(xauthCmd, sizeof(xauthCmd), "%s -q -", X11_AUTH_CMD);
+    FILE *fp = popen(xauthCmd, "w");
+    if (fp != NULL) {
+	char *proto = envGet(&step->spankenv, "X11_PROTO");
+	char *cookie = envGet(&step->spankenv, "X11_COOKIE");
+	fprintf(fp, "remove %s\n", authStr);
+	fprintf(fp, "add %s %s %s\n", authStr, proto, cookie);
 	pclose(fp);
     } else {
 	mlog("%s: open xauth '%s' failed\n", __func__, X11_AUTH_CMD);
