@@ -5,6 +5,13 @@ Copyright (C) 2010-2021 ParTec Cluster Competence Center GmbH, Munich
 Please send bug reports, questions and suggestions to <support@par-tec.com>
 
 
+Version 5.1.39-2:
+=================
+Bugfixes:
+ - Prevent termination of a job/step when sending a non fatal signal (#2885)
+ - Fix resizing of terminal windows via TIOCSWINSZ
+
+
 Version 5.1.39-1:
 =================
 Bugfixes:
