@@ -255,38 +255,21 @@ int signalStep(Step_t *step, int signal, uid_t reqUID)
 	    return 0;
     }
 
-    PStask_group_t group = (signal == SIGTERM || signal == SIGKILL) ? -1 : TG_ANY;
+    bool fatalSig = signal == SIGTERM || signal == SIGKILL;
+    PStask_group_t group = fatalSig ? -1 : TG_ANY;
 
     /* if we are not the mother superior we just signal all our local tasks */
-    int ret = 0;
     if (!step->leader) {
-	ret = signalTasks(step->jobid, step->uid, &step->tasks, signal, group);
+	int ret = signalTasks(step->jobid, step->uid, &step->tasks,
+			      signal, group);
 	if (signal == SIGKILL && step->fwdata) shutdownForwarder(step->fwdata);
 	return ret;
     }
 
-    switch (signal) {
-	case SIGTERM:
-	case SIGKILL:
-	    if (step->fwdata) {
-		startGraceTime(step->fwdata);
-	    }
-	    ret = signalTasks(step->jobid, step->uid, &step->tasks, signal, group);
-	    send_PS_SignalTasks(step, signal, group);
-	    break;
-	case SIGWINCH:
-	case SIGHUP:
-	case SIGTSTP:
-	case SIGCONT:
-	case SIGUSR2:
-	case SIGQUIT:
-	    ret = signalTasks(step->jobid, step->uid, &step->tasks, signal, group);
-	    send_PS_SignalTasks(step, signal, group);
-	    break;
-	default:
-	    ret = signalTasks(step->jobid, step->uid, &step->tasks, signal, group);
-	    send_PS_SignalTasks(step, signal, group);
-    }
+    if (fatalSig && step->fwdata) startGraceTime(step->fwdata);
+
+    int ret = signalTasks(step->jobid, step->uid, &step->tasks, signal, group);
+    send_PS_SignalTasks(step, signal, group);
 
     return ret;
 }
