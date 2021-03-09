@@ -679,7 +679,7 @@ static void setupStepIO(Forwarder_Data_t *fwdata, Step_t *step)
 	if (cols && rows) {
 	    ws.ws_col = atoi(cols);
 	    ws.ws_row = atoi(rows);
-	    if (ioctl(step->stdOut[0], TIOCSWINSZ, &ws)) {
+	    if (ioctl(fwdata->stdOut[0], TIOCSWINSZ, &ws)) {
 		mwarn(errno, "%s: ioctl(TIOCSWINSZ) %s:%s failed: ",
 			__func__, cols, rows);
 		exit(1);

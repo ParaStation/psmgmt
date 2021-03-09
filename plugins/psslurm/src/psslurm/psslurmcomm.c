@@ -1009,16 +1009,13 @@ int openSlurmdSocket(int port)
 static int handleSrunPTYMsg(int sock, void *data)
 {
     Step_t *step = data;
-    char buffer[4];
-    struct winsize ws;
-    uint16_t cols, rows;
-    int ret;
 
-    mlog("%s: got pty message for step %u:%u\n", __func__,
+    mdbg(PSSLURM_LOG_COMM, "%s: got pty message for step %u:%u\n", __func__,
 	 step->jobid, step->stepid);
 
     /* Shall be safe to do first a blocking read() inside a selector */
-    ret = doRead(sock, buffer, sizeof(buffer));
+    char buffer[4];
+    int ret = doRead(sock, buffer, sizeof(buffer));
     if (ret <= 0) {
 	if (ret < 0) mwarn(errno, "%s: doRead()", __func__);
 	mlog("%s: close pty connection\n", __func__);
@@ -1029,12 +1026,17 @@ static int handleSrunPTYMsg(int sock, void *data)
     if (ret != 4) {
 	mlog("%s: update window size error, len %u\n", __func__, ret);
     }
+
+    uint16_t cols, rows;
     memcpy(&cols, buffer, 2);
     memcpy(&rows, buffer+2, 2);
-    ws.ws_col = ntohs(cols);
-    ws.ws_row = ntohs(rows);
 
-    if (ioctl(step->stdOut[1], TIOCSWINSZ, &ws)) {
+    struct winsize ws = {
+	.ws_col = ntohs(cols),
+	.ws_row = ntohs(rows) };
+
+    if (!step->fwdata) return 0;
+    if (ioctl(step->fwdata->stdOut[1], TIOCSWINSZ, &ws)) {
 	mwarn(errno, "%s: ioctl(TIOCSWINSZ)", __func__);
     }
     if (step->fwdata && killChild(step->fwdata->cPid, SIGWINCH, step->uid)) {
