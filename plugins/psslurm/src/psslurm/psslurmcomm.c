@@ -1032,8 +1032,11 @@ static int handleSrunPTYMsg(int sock, void *data)
     memcpy(&rows, buffer+2, 2);
 
     struct winsize ws = {
+	.ws_row = ntohs(rows),
 	.ws_col = ntohs(cols),
-	.ws_row = ntohs(rows) };
+	.ws_xpixel = 0, // unused
+	.ws_ypixel = 0, // unused
+    };
 
     if (!step->fwdata) return 0;
     if (ioctl(step->fwdata->stdOut[1], TIOCSWINSZ, &ws)) {
