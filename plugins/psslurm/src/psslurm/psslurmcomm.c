@@ -1014,8 +1014,8 @@ static int handleSrunPTYMsg(int sock, void *data)
 	 step->jobid, step->stepid);
 
     /* Shall be safe to do first a blocking read() inside a selector */
-    char buffer[4];
-    int ret = doRead(sock, buffer, sizeof(buffer));
+    uint16_t buffer[2];
+    ssize_t ret = doRead(sock, buffer, sizeof(buffer));
     if (ret <= 0) {
 	if (ret < 0) mwarn(errno, "%s: doRead()", __func__);
 	mlog("%s: close pty connection\n", __func__);
@@ -1024,25 +1024,22 @@ static int handleSrunPTYMsg(int sock, void *data)
     }
 
     if (ret != 4) {
-	mlog("%s: update window size error, len %u\n", __func__, ret);
+	mlog("%s: update window size error, len %zu\n", __func__, ret);
     }
 
-    uint16_t cols, rows;
-    memcpy(&cols, buffer, 2);
-    memcpy(&rows, buffer+2, 2);
+    if (!step->fwdata) return 0;
 
     struct winsize ws = {
-	.ws_row = ntohs(rows),
-	.ws_col = ntohs(cols),
+	.ws_row = ntohs(buffer[1]),
+	.ws_col = ntohs(buffer[0]),
 	.ws_xpixel = 0, // unused
 	.ws_ypixel = 0, // unused
     };
-
-    if (!step->fwdata) return 0;
     if (ioctl(step->fwdata->stdOut[1], TIOCSWINSZ, &ws)) {
 	mwarn(errno, "%s: ioctl(TIOCSWINSZ)", __func__);
     }
-    if (step->fwdata && killChild(step->fwdata->cPid, SIGWINCH, step->uid)) {
+
+    if (killChild(step->fwdata->cPid, SIGWINCH, step->uid)) {
 	if (errno == ESRCH) return 0;
 	mwarn(errno, "%s: send SIGWINCH to %i", __func__, step->fwdata->cPid);
     }
