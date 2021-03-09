@@ -229,8 +229,6 @@ bool deleteStep(uint32_t jobid, uint32_t stepid)
 
 int signalStep(Step_t *step, int signal, uid_t reqUID)
 {
-    int ret = 0;
-
     if (!step) return 0;
 
     /* check permissions */
@@ -260,6 +258,7 @@ int signalStep(Step_t *step, int signal, uid_t reqUID)
     PStask_group_t group = (signal == SIGTERM || signal == SIGKILL) ? -1 : TG_ANY;
 
     /* if we are not the mother superior we just signal all our local tasks */
+    int ret = 0;
     if (!step->leader) {
 	ret = signalTasks(step->jobid, step->uid, &step->tasks, signal, group);
 	if (signal == SIGKILL && step->fwdata) shutdownForwarder(step->fwdata);
@@ -281,12 +280,8 @@ int signalStep(Step_t *step, int signal, uid_t reqUID)
 	case SIGCONT:
 	case SIGUSR2:
 	case SIGQUIT:
-	    if (step->fwdata) {
-		ret = signalForwarderChild(step->fwdata, signal);
-	    } else {
-		ret = signalTasks(step->jobid, step->uid, &step->tasks, signal, group);
-		send_PS_SignalTasks(step, signal, group);
-	    }
+	    ret = signalTasks(step->jobid, step->uid, &step->tasks, signal, group);
+	    send_PS_SignalTasks(step, signal, group);
 	    break;
 	default:
 	    ret = signalTasks(step->jobid, step->uid, &step->tasks, signal, group);
