@@ -40,8 +40,25 @@
 
 #include "commands.h"
 
-/* @todo PSI_sendMsg(): Wrapper, control if sendMsg was successful or exit */
+/**
+ * Send message to the local daemon
+ *
+ * Send the message @a amsg to the local daemon utilizing @ref
+ * PSI_sendMsg(). If the connection to the local daemon got lost an
+ * error messsage is printed and @ref exit() is called.
+ *
+ * @return Number of bytes written or -1 in case of error
+ */
+static ssize_t sendDmnMsg(void *amsg)
+{
+    ssize_t ret = PSI_sendMsg(amsg);
+    if (ret == -1 && errno == ENOTCONN) {
+	printf("%s: lost connection to local daemon\nExiting...\n", __func__);
+	exit(1);
+    }
 
+    return ret;
+}
 
 /** Simple array with current size attached */
 typedef struct {
@@ -286,7 +303,7 @@ void PSIADM_AddNode(bool *nl)
 	    printf("starting node %s\n", nodeString(node));
 	    msg.header.len = sizeof(msg.header);
 	    PSP_putMsgBuf(&msg, "node ID", &node, sizeof(node));
-	    PSI_sendMsg(&msg);
+	    sendDmnMsg(&msg);
 	}
     }
 }
@@ -317,14 +334,14 @@ void PSIADM_ShutdownNode(int silent, bool *nl)
 		send_local = true;
 	    } else {
 		msg.dest = PSC_getTID(node, 0);
-		PSI_sendMsg(&msg);
+		sendDmnMsg(&msg);
 	    }
 	}
     }
 
     if (send_local) {
 	msg.dest = PSC_getTID(-1, 0);
-	PSI_sendMsg(&msg);
+	sendDmnMsg(&msg);
     }
 }
 
@@ -356,7 +373,7 @@ void PSIADM_HWStart(int hw, bool *nl)
 
 	if (hostStatus.list[node]) {
 	    msg.header.dest = PSC_getTID(node, 0);
-	    PSI_sendMsg(&msg);
+	    sendDmnMsg(&msg);
 	} else {
 	    printf("%s\tdown\n", nodeString(node));
 	}
@@ -391,7 +408,7 @@ void PSIADM_HWStop(int hw, bool *nl)
 
 	if (hostStatus.list[node]) {
 	    msg.header.dest = PSC_getTID(node, 0);
-	    PSI_sendMsg(&msg);
+	    sendDmnMsg(&msg);
 	} else {
 	    printf("%s\tdown\n", nodeString(node));
 	}
@@ -1404,7 +1421,7 @@ void PSIADM_SetParam(PSP_Option_t type, PSP_Optval_t value, bool *nl)
 
 	if (hostStatus.list[node]) {
 	    msg.header.dest = PSC_getTID(node, 0);
-	    PSI_sendMsg(&msg);
+	    sendDmnMsg(&msg);
 	}
     }
 }
@@ -1444,7 +1461,7 @@ void PSIADM_SetParamList(PSP_Option_t type, PSIADM_valList_t *val, bool *nl)
 
 		    if (hostStatus.list[node]) {
 			msg.header.dest = PSC_getTID(node, 0);
-			PSI_sendMsg(&msg);
+			sendDmnMsg(&msg);
 		    }
 		}
 		msg.count = 0;
@@ -1460,7 +1477,7 @@ void PSIADM_SetParamList(PSP_Option_t type, PSIADM_valList_t *val, bool *nl)
 
 	    if (hostStatus.list[node]) {
 		msg.header.dest = PSC_getTID(node, 0);
-		PSI_sendMsg(&msg);
+		sendDmnMsg(&msg);
 	    }
 	}
 	break;
@@ -1700,14 +1717,14 @@ void PSIADM_Reset(int reset_hw, bool *nl)
 		send_local = true;
 	    } else {
 		msg.header.dest = PSC_getTID(node, 0);
-		PSI_sendMsg(&msg);
+		sendDmnMsg(&msg);
 	    }
 	}
     }
 
     if (send_local) {
 	msg.header.dest = PSC_getTID(-1, 0);
-	PSI_sendMsg(&msg);
+	sendDmnMsg(&msg);
     }
 }
 
@@ -1806,7 +1823,7 @@ void PSIADM_Plugin(bool *nl, char *name, PSP_Plugin_t action)
 
 	if (hostStatus.list[node]) {
 	    msg.header.dest = PSC_getTID(node, 0);
-	    PSI_sendMsg(&msg);
+	    sendDmnMsg(&msg);
 	    if (PSI_recvMsg((DDMsg_t *)&answer, sizeof(answer)) < 0) {
 		printf("%soading plugin '%s' on node %s failed\n",
 		       action ? "Unl" : "L", name, nodeString(node));
@@ -1912,7 +1929,7 @@ void PSIADM_PluginKey(bool *nl, char *name, char *key, char *value,
 	if (hostStatus.list[node]) {
 	    char *nodeStr = nodeString(node);
 	    msg.header.dest = PSC_getTID(node, 0);
-	    PSI_sendMsg(&msg);
+	    sendDmnMsg(&msg);
 
 	    separator = recvPluginKeyAnswers(msg.header.dest, action, nodeStr);
 	} else {
@@ -1964,7 +1981,7 @@ void PSIADM_Environment(bool *nl, char *key, char *value, PSP_Env_t action)
 
 	if (hostStatus.list[node]) {
 	    msg.header.dest = PSC_getTID(node, 0);
-	    PSI_sendMsg(&msg);
+	    sendDmnMsg(&msg);
 	    if (PSI_recvMsg((DDMsg_t *)&answer, sizeof(answer)) < 0) {
 		printf("%ssetting '%s' on node %s failed\n",
 		       action ? "Uns" : "S", key, nodeString(node));
