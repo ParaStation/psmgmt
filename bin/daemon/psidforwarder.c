@@ -670,9 +670,9 @@ static void handleWINCH(PSLog_Msg_t *msg)
     w.ws_xpixel = buf[len++];
     w.ws_ypixel = buf[len++];
 
-    (void) ioctl(childTask->stdin_fd, TIOCSWINSZ, &w);
-
-    /* @todo Maybe we shall send a SIGWINCH to the client ? */
+    if (ioctl(childTask->stdin_fd, TIOCSWINSZ, &w) < 0)
+	PSIDfwd_printMsgf(STDERR, "%s: %s: ioctl(TIOCSWINSZ): %s\n", tag,
+			  __func__, strerror(errno));
 
     if (verbose) {
 	PSIDfwd_printMsgf(STDERR, "%s: %s: WINCH to col %d row %d"
