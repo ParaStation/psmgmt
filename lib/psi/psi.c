@@ -434,7 +434,7 @@ ssize_t PSI_sendMsg(void *amsg)
 
     if (!msg) {
 	PSI_log(-1, "%s: no message\n", __func__);
-	errno = EFAULT;
+	errno = ENOMSG;
 	return -1;
     }
 

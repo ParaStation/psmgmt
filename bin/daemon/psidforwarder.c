@@ -178,7 +178,7 @@ static void sendSignal(pid_t dest, int signal)
     if (childTask->interactive && dest > 0) {
 	pid = tcgetpgrp(childTask->stderr_fd);
 	if (pid == -1) {
-	    PSID_warn((errno==EBADF) ? PSID_LOG_SIGNAL : -1, errno,
+	    PSID_warn((errno == EBADF) ? PSID_LOG_SIGNAL : -1, errno,
 		      "%s: tcgetpgrp()", __func__);
 	    pid = -dest;
 	} else if (pid) {
@@ -352,11 +352,11 @@ again:
 ssize_t sendDaemonMsg(void *amsg)
 {
     if (daemonSock < 0) {
-	errno = EBADF;
+	errno = ENOTCONN;
 	return -1;
     }
     if (!amsg) {
-	errno = EFAULT;
+	errno = ENOMSG;
 	return -1;
     }
 
