@@ -1574,7 +1574,7 @@ static void cloneEnvFromTasks(PStask_t *task)
     list_t *t;
     PStask_t *sibling = NULL;
     int i, envSize = 0;
-    size_t totSize = 0; // @todo
+    size_t totSize = 0;
 
     if (task->environ) return;
 
