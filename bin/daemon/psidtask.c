@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2002-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2020 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2021 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -473,17 +473,14 @@ void PSIDtask_cleanup(PStask_t *task)
 	if (task->request) send_CANCELPART(task->tid);
 	if (task->partition && task->partitionSize) send_TASKDEAD(task->tid);
 
-	if (task->group==TG_FORWARDER && !task->released) {
+	if (task->group == TG_FORWARDER && !task->released) {
 	    /* cleanup children */
+
+	    int blockedRDP = RDP_blockTimer(1);
+
 	    list_t *s, *tmp;
-	    int blockedRDP;
-
-	    blockedRDP = RDP_blockTimer(1);
-
 	    list_for_each_safe(s, tmp, &task->childList) { /* @todo safe req? */
 		PSsignal_t *sig = list_entry(s, PSsignal_t, next);
-		DDErrorMsg_t msg;
-
 		if (sig->deleted) continue;
 
 		PStask_t *child = PStasklist_find(&managedTasks, sig->tid);
@@ -501,21 +498,22 @@ void PSIDtask_cleanup(PStask_t *task)
 			 __func__, PSC_printTID(sig->tid),
 			 !child ? " but child is gone" : "");
 
-		msg.header.type = PSP_DD_CHILDDEAD;
-		msg.header.dest = task->ptid;
-		msg.header.sender = task->tid;
-		msg.error = 0;
-		msg.request = sig->tid;
-		msg.header.len = sizeof(msg);
+		DDErrorMsg_t msg = {
+		    .header = {
+			.type = PSP_DD_CHILDDEAD,
+			.dest = task->ptid,
+			.sender = task->tid,
+			.len = sizeof(msg), },
+		    .error = 0,
+		    .request = sig->tid, };
 		sendMsg(&msg);
 
-		/* Remove from list before PSID_kill(). Might get
-		 * removed therein, too. Save to remove here since
-		 * each forwarder has just a single child, i.e. this
-		 * list is empty afterwards. */
-		/* @todo This is not true. See code in
-		 * msg_CLIENTCONNECT() concerning re-connected
-		 * processes and duplicate tasks */
+		/* Delete from list before PSID_kill(). Do not remove
+		 * here since forwarder might have multiple children
+		 * including re-connected grand-children fork()ed from
+		 * children. See code in msg_CLIENTCONNECT()
+		 * concerning re-connected processes and duplicate
+		 * tasks */
 		sig->deleted = true;
 
 		/* Since forwarder is gone eliminate all references */

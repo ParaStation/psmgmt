@@ -993,11 +993,6 @@ exit:
 int PSI_spawnSingle(char *workdir, int argc, char **argv,
 		    int *error, PStask_ID_t *tid)
 {
-    /* @todo Here we should get the node to spawn to and test if this
-     * is corret */
-    int ret, rank;
-    PSnodes_ID_t node;
-
     PSI_log(PSI_LOG_VERB, "%s()\n", __func__);
 
     if (!error) {
@@ -1005,18 +1000,17 @@ int PSI_spawnSingle(char *workdir, int argc, char **argv,
 	return -1;
     }
 
-    rank = PSI_getNodes(1, 0 /*hwType*/, 1 /*tpp*/, 0/*options*/, &node);
+    PSnodes_ID_t node;
+    int rank = PSI_getNodes(1, 0 /*hwType*/, 1 /*tpp*/, 0 /*options*/, &node);
     if (rank < 0) {
 	*error = ENXIO;
 	return -1;
     }
 
-    PSI_log(PSI_LOG_SPAWN, "%s: will spawn to: %d  rank %d\n",
-	    __func__, node, rank);
+    PSI_log(PSI_LOG_SPAWN, "%s: spawn rank %d to %d\n", __func__, rank, node);
 
-    ret = dospawn(1, &node, workdir, argc, argv, false, TG_ANY, -1, rank,
-		  error, tid);
-    if (ret != 1) return -1;
+    if (dospawn(1, &node, workdir, argc, argv, false, TG_ANY, -1, rank,
+		error, tid) != 1) return -1;
 
     return rank;
 }

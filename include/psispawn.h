@@ -435,7 +435,7 @@ PStask_ID_t PSI_spawnGMSpawner(int np, char *workingdir, int argc, char **argv,
 			       int *error);
 
 /**
- * @brief Spawn a single task within the cluster.
+ * @brief Spawn a single task within the cluster
  *
  * Spawn a single task described by the @a argc arguments within @a
  * argv. The node and rank used will be determined via the
@@ -458,20 +458,19 @@ PStask_ID_t PSI_spawnGMSpawner(int np, char *workingdir, int argc, char **argv,
  * PWD environment variable is taken.
  *
  * @param argc Number of arguments within @a argv used within the
- * resulting execve() call in order to really spawn the tasks.
+ * resulting execve() call in order to really spawn the tasks
  *
  * @param argv Array of argument strings passed to the resulting
- * execve() call in order to finally spawn the task.
+ * execve() call in order to finally spawn the task
  *
  * @param error Error-code displaying if an error occurred within
- * PSI_spawnSingle() while spawning the task.
+ * PSI_spawnSingle() while spawning the task
  *
- * @param tid The task ID of the spawned process.
- *
+ * @param tid The task ID of the spawned process
  *
  * @return On success, the unique rank of the spawned process will be
- * returned, or -1, if an error occurred. Then error is set
- * appropriately.
+ * returned; or -1 if an error occurred; then @a error is set
+ * appropriately
  *
  * @see PSI_createPartition()
  */

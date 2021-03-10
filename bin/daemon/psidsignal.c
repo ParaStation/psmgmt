@@ -216,7 +216,6 @@ void PSID_sendSignal(PStask_ID_t tid, uid_t uid, PStask_ID_t sender,
 	    .dest = sender,
 	    .len = sizeof(msg) },
 	.request = tid };
-    list_t *r;
 
     PSID_log(PSID_LOG_SIGNAL, "%s: sending signal %d to %s\n",
 	     __func__, signal, PSC_printTID(tid));
@@ -242,13 +241,11 @@ void PSID_sendSignal(PStask_ID_t tid, uid_t uid, PStask_ID_t sender,
 		     signal, PSC_printTID(tid));
 	    PSID_log(-1, " sender was %s", PSC_printTID(sender));
 	} else if (pervasive) {
-	    list_t *s, *tmp;
-	    int blockedRDP;
-
 	    answer = 0;
 
-	    blockedRDP = RDP_blockTimer(1);
+	    int blockedRDP = RDP_blockTimer(1);
 
+	    list_t *s, *tmp;
 	    list_for_each_safe(s, tmp, &dest->childList) { /* @todo safe req? */
 		PSsignal_t *sig = list_entry(s, PSsignal_t, next);
 		if (sig->deleted) continue;
@@ -276,12 +273,14 @@ void PSID_sendSignal(PStask_ID_t tid, uid_t uid, PStask_ID_t sender,
 		/* Temporarily free reservations' resources */
 		if (signal == SIGSTOP && !dest->suspended) {
 		    dest->suspended = true;
+		    list_t *r;
 		    list_for_each(r, &dest->reservations) {
 			PSrsrvtn_t *res = list_entry(r, PSrsrvtn_t, next);
 			PSIDpart_suspSlts(res->slots, res->nSlots, dest);
 		    }
 		} else if (signal == SIGCONT && dest->suspended) {
 		    dest->suspended = false;
+		    list_t *r;
 		    list_for_each(r, &dest->reservations) {
 			PSrsrvtn_t *res = list_entry(r, PSrsrvtn_t, next);
 			PSIDpart_contSlts(res->slots, res->nSlots, dest);
@@ -338,9 +337,6 @@ void PSID_sendAllSignals(PStask_t *task)
 
 void PSID_sendSignalsToRelatives(PStask_t *task)
 {
-    list_t *s;
-    int blockedRDP;
-
     if (task->ptid) {
 	PSID_sendSignal(task->ptid, task->uid, task->tid, -1, 0, 0);
 	PSID_log(PSID_LOG_SIGNAL, "%s(%s)", __func__, PSC_printTID(task->tid));
@@ -348,8 +344,9 @@ void PSID_sendSignalsToRelatives(PStask_t *task)
 		 PSC_printTID(task->ptid));
     }
 
-    blockedRDP = RDP_blockTimer(1);
+    int blockedRDP = RDP_blockTimer(1);
 
+    list_t *s;
     list_for_each(s, &task->childList) {
 	PSsignal_t *sig = list_entry(s, PSsignal_t, next);
 	if (sig->deleted) continue;
