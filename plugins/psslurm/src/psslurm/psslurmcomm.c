@@ -1256,14 +1256,13 @@ int srunSendMsg(int sock, Step_t *step, slurm_msg_type_t type,
 
 int srunOpenPTYConnection(Step_t *step)
 {
-    int sock;
     char *port = envGet(&step->env, "SLURM_PTY_PORT");
-
     if (!port) {
 	mlog("%s: missing SLURM_PTY_PORT variable\n", __func__);
 	return -1;
     }
-    sock = tcpConnect(inet_ntoa(step->srun.sin_addr), port);
+
+    int sock = tcpConnect(inet_ntoa(step->srun.sin_addr), port);
     if (sock < 0) {
 	mlog("%s: connection to srun %s:%s failed\n", __func__,
 	     inet_ntoa(step->srun.sin_addr), port);

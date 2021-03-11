@@ -1096,7 +1096,8 @@ static void stepForwarderLoop(Forwarder_Data_t *fwdata)
     if (step->taskFlags & LAUNCH_PTY) {
 	/* open additional PTY connection to srun */
 	if ((srunOpenPTYConnection(step)) < 0) {
-	    /* Not working with current srun 14.03 anyway */
+	    flog("open srun pty connection failed\n");
+	    return;
 	}
 
 	Selector_register(fwdata->stdOut[1], handleUserOE, fwdata);
