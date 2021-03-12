@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2010-2018 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2010-2021 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -66,12 +66,6 @@ void handlePELogueSignal(DDTypedBufferMsg_t *msg);
  * @return No return value.
  */
 void signalPElogue(Job_t *job, char *signal, char *reason);
-
-/**
- * @brief Fetch error msg and exit status from a script callback.
- */
-int getScriptCBData(int fd, PSID_scriptCBInfo_t *info, int32_t *exit,
-    char *errMsg, size_t errMsgLen, size_t *errLen);
 
 /**
  * @brief Verify correct permissions of pelogue scripts.

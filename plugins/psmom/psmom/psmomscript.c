@@ -128,38 +128,6 @@ void signalPElogue(Job_t *job, char *signal, char *reason)
     }
 }
 
-int getScriptCBData(int fd, PSID_scriptCBInfo_t *info, int32_t *exit,
-		    char *errMsg, size_t errMsgLen, size_t *errLen)
-{
-    int iofd = -1;
-
-    /* get exit status */
-    Selector_remove(fd);
-    PSID_readall(fd, exit, sizeof(int32_t));
-    close(fd);
-
-    /* get stdout/stderr output / pid of child */
-    if (info) {
-	if (!info->info) {
-	    mlog("%s: info missing\n", __func__);
-	    return 1;
-	}
-	if ((iofd = info->iofd)) {
-	    if ((*errLen = PSID_readall(iofd, errMsg, errMsgLen)) > 0) {
-		//mlog("got error: '%s'\n", errMsg);
-	    }
-	    close(iofd);
-	} else {
-	    mlog("%s: invalid iofd\n", __func__);
-	    errMsg[0] = '\0';
-	}
-    } else {
-	mlog("%s: invalid info data\n", __func__);
-	return 1;
-    }
-    return 0;
-}
-
 /**
  * @brief Prepare the forwarder environments.
  *
@@ -643,7 +611,7 @@ static int callbackPElogue(int fd, PSID_scriptCBInfo_t *info)
     size_t errLen;
 
     /* fetch error msg and exit status */
-    if (getScriptCBData(fd, info, &exitStat, errMsg, sizeof(errMsg), &errLen)) {
+    if (getScriptCBdata(fd, info, &exitStat, errMsg, sizeof(errMsg), &errLen)) {
 	mlog("%s: invalid cb data\n", __func__);
 	return 0;
     }

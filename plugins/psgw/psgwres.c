@@ -84,39 +84,6 @@ static int prepEnv(void *reqPtr)
 }
 
 /**
- * @brief Fetch error msg and exit status from a script callback
- */
-static bool getScriptCBData(int fd, PSID_scriptCBInfo_t *info, int32_t *exit,
-			    char *errMsg, size_t errMsgLen, size_t *errLen)
-{
-    /* get exit status */
-    PSID_readall(fd, exit, sizeof(*exit));
-    Selector_remove(fd);
-    close(fd);
-
-    /* get stdout/stderr output */
-    if (!info) {
-	mlog("%s: invalid info data\n", __func__);
-	return false;
-    }
-
-    if (!info->iofd) {
-	mlog("%s: invalid iofd\n", __func__);
-	errMsg[0] = '\0';
-    }
-    *errLen = PSID_readall(info->iofd, errMsg, errMsgLen);
-    errMsg[*errLen] = '\0';
-    close(info->iofd);
-
-    if (!info->info) {
-	mlog("%s: info missing\n", __func__);
-	return false;
-    }
-
-    return true;
-}
-
-/**
  * @brief Callback for the psgwd stop script
  *
  * @param id ID of the psgw allocation
@@ -346,7 +313,7 @@ static int cbRouteScript(int fd, PSID_scriptCBInfo_t *info)
     int32_t exit;
     size_t errLen = 0;
 
-    getScriptCBData(fd, info, &exit, errMsg, sizeof(errMsg), &errLen);
+    getScriptCBdata(fd, info, &exit, errMsg, sizeof(errMsg), &errLen);
     fdbg(PSGW_LOG_ROUTE, "routing script exit %i\n", exit);
 
     req = Request_verify(req);

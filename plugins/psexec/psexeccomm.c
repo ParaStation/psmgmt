@@ -25,6 +25,9 @@
 #include "psidscripts.h"
 #include "psidtask.h"
 #include "psidutil.h"
+#include "selector.h"
+#include "pluginmalloc.h"
+#include "pluginhelper.h"
 
 #include "psexeclog.h"
 #include "psexecscripts.h"
@@ -103,37 +106,6 @@ int sendExecScript(Script_t *script, PSnodes_ID_t dest)
     return ret;
 }
 
-static bool getScriptCBData(int fd, PSID_scriptCBInfo_t *info, int32_t *exit,
-			    char *errMsg, size_t errMsgLen, size_t *errLen)
-{
-    /* get exit status */
-    PSID_readall(fd, exit, sizeof(*exit));
-    Selector_remove(fd);
-    close(fd);
-
-    /* get stdout/stderr output */
-    if (!info) {
-	mlog("%s: invalid info data\n", __func__);
-	return false;
-    }
-
-    if (!info->iofd) {
-	mlog("%s: invalid iofd\n", __func__);
-	errMsg[0] = '\0';
-    }
-    *errLen = PSID_readall(info->iofd, errMsg, errMsgLen);
-    // if (*errLen > 0) mlog("got error: '%s'\n", errMsg);
-    errMsg[*errLen] = '\0';
-    close(info->iofd);
-
-    if (!info->info) {
-	mlog("%s: info missing\n", __func__);
-	return false;
-    }
-
-    return true;
-}
-
 static int prepEnv(void *info)
 {
     Script_t *script = info;
@@ -178,7 +150,7 @@ static int callbackLocalScript(int fd, PSID_scriptCBInfo_t *info)
     int32_t exit;
     size_t errLen = 0;
 
-    getScriptCBData(fd, info, &exit, output, sizeof(output), &errLen);
+    getScriptCBdata(fd, info, &exit, output, sizeof(output), &errLen);
     if (!script) return 0;
 
     mlog("%s: id %i uID %u exit %i\n", __func__, script->id, script->uID, exit);
@@ -215,7 +187,7 @@ static int callbackScript(int fd, PSID_scriptCBInfo_t *info)
     int32_t exit;
     size_t errLen = 0;
 
-    getScriptCBData(fd, info, &exit, output, sizeof(output), &errLen);
+    getScriptCBdata(fd, info, &exit, output, sizeof(output), &errLen);
     if (!script) return 0;
 
     mlog("%s: initiator %s id %i exit %i output:%s\n", __func__,

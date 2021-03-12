@@ -551,7 +551,7 @@ static int callbackCopyScript(int fd, PSID_scriptCBInfo_t *info)
     size_t errLen;
 
     /* fetch error msg and exit status */
-    if ((getScriptCBData(fd, info, &exitCode, errMsg, sizeof(errMsg),
+    if ((getScriptCBdata(fd, info, &exitCode, errMsg, sizeof(errMsg),
 	    &errLen))) {
 	mlog("%s: invalid scriptcb data\n", __func__);
 	return 1;
@@ -666,7 +666,7 @@ static int callbackJob(int fd, PSID_scriptCBInfo_t *info)
     size_t errLen;
 
     /* fetch error msg and exit status */
-    if ((getScriptCBData(fd, info, &status, errMsg, sizeof(errMsg), &errLen))) {
+    if ((getScriptCBdata(fd, info, &status, errMsg, sizeof(errMsg), &errLen))) {
 	mlog("%s: invalid cb data\n", __func__);
 	return 1;
     }
