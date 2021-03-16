@@ -748,7 +748,7 @@ static void setupStepIO(Forwarder_Data_t *fwdata, Step_t *step)
 		    exit(1);
 		}
 		if (dup2(fd, STDIN_FILENO) == -1) {
-		    mwarn(errno, "%s: dup2(%i/'/dev/null')", __func__, fd);
+		    mwarn(errno, "%s: dup2(%i=/dev/null)", __func__, fd);
 		    exit(1);
 		}
 	    } else {
