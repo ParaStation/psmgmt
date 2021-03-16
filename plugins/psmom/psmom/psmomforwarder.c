@@ -167,7 +167,7 @@ static void verifyTempDir(void)
     char *dir = getConfValueC(&config, "DIR_TEMP");
 
     if (dir && stat(dir, &st) != 0) {
-	mwarn(errno, "%s: stat for TEMP DIR '%s' failed : ", __func__, dir);
+	mwarn(errno, "%s: stat(TEMP DIR='%s')", __func__, dir);
     }
 }
 
@@ -187,8 +187,9 @@ static void initChild(void)
     close(com->socket);
 
     /* needed or ioctl(TIOCSCTTY) will fail! */
-    if ((forwarder_child_sid = setsid()) == -1) {
-	mlog("%s: setsid() failed\n", __func__);
+    forwarder_child_sid = setsid();
+    if (forwarder_child_sid == -1) {
+	mwarn(errno, "%s: setsid()", __func__);
 	exit(1);
     }
 
@@ -374,8 +375,7 @@ static void stopForwarderLoop(void)
     int res = 1;
 
     if (PSCio_send(signalFD[0], &res, sizeof(res)) != sizeof(res)) {
-	mlog("%s: writing to signalFD failed : %s\n", __func__,
-		strerror(errno));
+	mwarn(errno, "%s: write to signalFD", __func__);
 	exit(1);
     }
 }
@@ -705,7 +705,7 @@ static int copyFile(char *src, char *dest, char *opt)
 
     pid_t pid = fork();
     if (pid == -1) {
-	mwarn(errno, "%s: fork() failed", __func__);
+	mwarn(errno, "%s: fork()", __func__);
 	sendForkFailed();
 	exit(1);
     } else if (pid == 0) {
@@ -765,7 +765,7 @@ int execCopyForwarder(void *info)
 
 	files = data->files;
 
-	/*  become session leader */
+	/* become session leader */
 	initChild();
 
 	/* set PBS environment vars */
@@ -805,8 +805,7 @@ int execCopyForwarder(void *info)
 		    mlog("%s: dest invalid, saving file '%s' in '%s'\n",
 			    __func__, src, tmp);
 		    if (rename(src, tmp) == -1) {
-			mlog("%s: saving output to undelivered failed : %s\n",
-				__func__, strerror(errno));
+			mwarn(errno, "%s: save to undelivered", __func__);
 		    }
 		    continue;
 		}
@@ -826,8 +825,7 @@ int execCopyForwarder(void *info)
 			    src);
 		mlog("%s: save file '%s' in '%s'\n", __func__, src, tmp);
 		if (rename(src, tmp) == -1) {
-		    mlog("%s: saving output to undelivered failed : %s\n",
-			    __func__, strerror(errno));
+		    mwarn(errno, "%s: save to undelivered", __func__);
 		}
 		continue;
 	    }
@@ -845,8 +843,7 @@ int execCopyForwarder(void *info)
 		mlog("%s: copy failed: (%i), saving file '%s' in '%s'\n",
 			__func__, cp_status, src, tmp);
 		if (rename(src, tmp) == -1) {
-		    mlog("%s: saving output to undelivered failed : %s\n",
-			    __func__, strerror(errno));
+		    mwarn(errno, "%s: save to undelivered", __func__);
 		}
 	    }
 	}
@@ -1165,19 +1162,19 @@ static void startPAMSession(const char *user)
 
     if ((ret = pam_start(service_name, user, &conversation, &pamh))
 	    != PAM_SUCCESS) {
-	mlog("%s: starting PAM failed : %s\n", __func__,
-		pam_strerror(pamh, ret));
+	mlog("%s: starting PAM failed: %s\n", __func__,
+	     pam_strerror(pamh, ret));
 	exit(1);
     }
 
     if ((ret = pam_open_session(pamh, PAM_SILENT)) != PAM_SUCCESS) {
-	mlog("%s: open PAM session failed : %s\n", __func__,
+	mlog("%s: open PAM session failed: %s\n", __func__,
 		pam_strerror(pamh, ret));
 	exit(1);
     }
 
     if ((ret = pam_end(pamh, ret)) != PAM_SUCCESS) {
-	mlog("%s: ending PAM failed : %s\n", __func__,
+	mlog("%s: ending PAM failed: %s\n", __func__,
 		pam_strerror(pamh, ret));
 	return;
     }
@@ -1247,7 +1244,7 @@ int execInterForwarder(void *info)
 	tty_name = ttyname(stderrfds[1]);
 	close(stderrfds[0]);
 
-	/*  become session leader */
+	/* become session leader */
 	initChild();
 
 	/* wait till prologue finished */
@@ -1341,8 +1338,8 @@ int execInterForwarder(void *info)
 	forwarderExit();
 	return 0;
     } else {
-	if (PSCio_send(controlPro[0], &prologue_exit, sizeof(int))
-	    != sizeof(int)) {
+	ssize_t ret = PSCio_send(controlPro[0], &prologue_exit, sizeof(int));
+	if (ret != sizeof(int)) {
 	    fprintf(stderr, "%s: write to interactive child failed\n",
 		    __func__);
 	    kill(forwarder_child_pid, SIGKILL);
@@ -1410,7 +1407,7 @@ static void spawnTimeoutScript(char *script, PElogue_Data_t *data,
 
     pid_t pid = fork();
     if (pid == -1) {
-	mwarn(errno, "%s: fork() failed", __func__);
+	mwarn(errno, "%s: fork()", __func__);
 	sendForkFailed();
 	return;
     } else if (pid == 0) {
@@ -1478,7 +1475,7 @@ static int runPElogueScript(PElogue_Data_t *data, char *filename, int root)
 	    sendForkFailed();
 	    return -3;
 	} else if (forwarder_child_pid == 0) {
-	    /*  become session leader */
+	    /* become session leader */
 	    initChild();
 
 	    /* redirect stdout and stderr */
@@ -1834,7 +1831,7 @@ static void backupJob(char *backupScript, Job_t *job, char *outLog,
 
     pid = fork();
     if (pid == -1) {
-	mwarn(errno, "%s: fork() failed", __func__);
+	mwarn(errno, "%s: fork()", __func__);
 	sendForkFailed();
 	return;
     } else if (pid == 0) {
@@ -1853,7 +1850,7 @@ static void backupJob(char *backupScript, Job_t *job, char *outLog,
 
 	if ((backup_pid = fork()) == -1) {
 	    sendForkFailed();
-	    mwarn(errno, "%s: forking backup process failed\n", __func__);
+	    mwarn(errno, "%s: forking backup process failed", __func__);
 	    return;
 	} else if (backup_pid == 0) {
 	    char *argv[1];
@@ -1921,15 +1918,13 @@ int execJobscriptForwarder(void *info)
 
     /* set jobscript permissions */
     if (chown(job->jobscript, job->passwd.pw_uid, job->passwd.pw_gid) == -1) {
-	mlog("%s: chown(%i:%i) '%s' failed : %s\n", __func__,
-	     job->passwd.pw_uid, job->passwd.pw_gid, job->jobscript,
-	     strerror(errno));
+	mwarn(errno, "%s: chown(%s, %i:%i)", __func__,
+	      job->jobscript, job->passwd.pw_uid, job->passwd.pw_gid);
 	return 1;
     }
 
     if (chmod(job->jobscript, 0700) == -1) {
-	mlog("%s: chmod 0700 on '%s' failed : %s\n", __func__,
-	     job->jobscript, strerror(errno));
+	mwarn(errno, "%s: chmod(%s, 0700)", __func__, job->jobscript);
 	return 1;
     }
 
@@ -1960,7 +1955,7 @@ int execJobscriptForwarder(void *info)
 	char *argv[50];
 	char *opt_mask;
 
-	/*  become session leader */
+	/* become session leader */
 	initChild();
 
 	/* start a PAM session */
@@ -2036,7 +2031,6 @@ int execJobscriptForwarder(void *info)
     doForwarderChildStart();
 
     close(controlFDs[0]);
-    close(controlFDs[1]);
 
     /* wait for the jobscript to exit */
     forwarderLoop();
