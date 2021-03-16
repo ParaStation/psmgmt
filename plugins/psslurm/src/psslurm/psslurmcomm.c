@@ -94,10 +94,7 @@ PSnodes_ID_t getCtlHostID(int index)
 
 int getCtlHostIndex(PSnodes_ID_t id)
 {
-    int i;
-    for (i=0; i<ctlHostsCount; i++) {
-	if (ctlHosts[i].id == id) return i;
-    }
+    for (int i = 0; i < ctlHostsCount; i++) if (ctlHosts[i].id == id) return i;
     return -1;
 }
 
@@ -266,8 +263,8 @@ static bool saveFrwrdMsgReply(Slurm_Msg_t *sMsg, Msg_Forward_t *fw,
 	}
     } else {
 	/* save message from other node */
-	uint16_t i, saved = 0;
-	for (i=0; i<fw->head.forward; i++) {
+	bool saved = false;
+	for (uint16_t i = 0; i < fw->head.forward; i++) {
 	    Slurm_Forward_Res_t *fwRes = &fw->head.fwRes[i];
 	    /* test for double replies */
 	    if (fwRes->node == srcNode) {
@@ -291,7 +288,7 @@ static bool saveFrwrdMsgReply(Slurm_Msg_t *sMsg, Msg_Forward_t *fw,
 		    }
 		}
 		fw->head.returnList++;
-		saved = 1;
+		saved = true;
 		break;
 	    }
 	}
@@ -542,6 +539,7 @@ bool registerSlurmSocket(int sock, Connection_CB_t *cb, void *info)
 {
     Connection_t *con = addConnection(sock, cb, info);
 
+    PSCio_setFDblock(sock, false);
     if (Selector_register(sock, readSlurmMsg, con) == -1) {
 	mlog("%s: register socket %i failed\n", __func__, sock);
 	return false;
@@ -890,8 +888,8 @@ int openSlurmctldConEx(Connection_CB_t *cb, void *info)
 {
     char *port = getConfValueC(&SlurmConfig, "SlurmctldPort");
 
-    int i, sock = -1;
-    for (i=0; i<ctlHostsCount; i++) {
+    int sock = -1;
+    for (int i = 0; i < ctlHostsCount; i++) {
 	char *addr = (ctlHosts[i].addr) ? ctlHosts[i].addr : ctlHosts[i].host;
 
 	sock = tcpConnect(addr, port);
@@ -1302,8 +1300,9 @@ static int handleSrunPTYMsg(int sock, void *data)
 	return 0;
     }
 
-    if (ret != 4) {
+    if (ret != sizeof(buffer)) {
 	mlog("%s: update window size error, len %zu\n", __func__, ret);
+	return 0;
     }
 
     if (!step->fwdata) return 0;
@@ -1379,9 +1378,9 @@ int handleSrunMsg(int sock, void *data)
 	goto ERROR;
     }
 
-    /* Shall be safe to do first a blocking read() inside a selector */
+    /* Shall be safe to do first a pedantic receive inside a selector */
     char buffer[1024];
-    ssize_t ret = PSCio_recvBuf(sock, buffer, SLURM_IO_HEAD_SIZE);
+    ssize_t ret = PSCio_recvBufP(sock, buffer, SLURM_IO_HEAD_SIZE);
     if (ret <= 0) {
 	if (ret < 0) mwarn(errno, "%s: PSCio_recvBuf()", __func__);
 	flog("close srun connection %i for %s\n", sock, strStepID(step));
@@ -1439,8 +1438,8 @@ int handleSrunMsg(int sock, void *data)
 	size_t left = ioh->len;
 	while (left > 0) {
 	    size_t readNow = (left > sizeof(buffer)) ? sizeof(buffer) : left;
-	    /* @todo This shall be non-blocking! */
-	    ret = PSCio_recvBuf(sock, buffer, readNow);
+	    /* Assume body follows header swiftly */
+	    ret = PSCio_recvBufP(sock, buffer, readNow);
 	    if (ret <= 0) {
 		mlog("%s: reading body failed\n", __func__);
 		break;
@@ -1477,17 +1476,15 @@ ERROR:
 
 int srunOpenControlConnection(Step_t *step)
 {
-    char port[32];
-    int sock;
-
     if (!step->numSrunPorts) {
 	mlog("%s: sending failed, no srun ports available\n", __func__);
 	return -1;
     }
 
+    char port[32];
     snprintf(port, sizeof(port), "%u",
 	     step->srunPorts[step->localNodeId % step->numSrunPorts]);
-    sock = tcpConnect(inet_ntoa(step->srun.sin_addr), port);
+    int sock = tcpConnect(inet_ntoa(step->srun.sin_addr), port);
     if (sock < 0) {
 	mlog("%s: connection to srun %s:%s failed\n", __func__,
 	     inet_ntoa(step->srun.sin_addr), port);
@@ -1539,8 +1536,6 @@ int srunOpenPTYConnection(Step_t *step)
 	 inet_ntoa(step->srun.sin_addr), port);
     step->srunPTYMsg.sock = sock;
 
-    PSCio_setFDblock(sock, false);
-
     if (Selector_register(sock, handleSrunPTYMsg, step) == -1) {
 	mlog("%s: Selector_register(%i) failed\n", __func__, sock);
 	return -1;
@@ -1553,7 +1548,6 @@ int srunOpenIOConnectionEx(Step_t *step, uint32_t addr, uint16_t port,
 {
     PS_SendDB_t data = { .bufUsed = 0, .useFrag = false };
     PSnodes_ID_t nodeID = step->localNodeId;
-    uint32_t i;
     int sock;
 
     /* open I/O connection to srun */
@@ -1574,7 +1568,8 @@ int srunOpenIOConnectionEx(Step_t *step, uint32_t addr, uint16_t port,
 
 	step->srunIOMsg.sock = sock;
     } else {
-	if ((sock = tcpConnectU(addr, port)) <0) {
+	sock = tcpConnectU(addr, port);
+	if (sock < 0) {
 	    mlog("%s: connection to srun %u:%u failed\n", __func__, addr, port);
 	    return -1;
 	}
@@ -1591,7 +1586,7 @@ int srunOpenIOConnectionEx(Step_t *step, uint32_t addr, uint16_t port,
 	step->taskFlags & LAUNCH_PTY) {
 	step->outChannels =
 		umalloc(sizeof(int32_t) * step->globalTaskIdsLen[nodeID]);
-	for (i=0; i<step->globalTaskIdsLen[nodeID]; i++) {
+	for (uint32_t i = 0; i < step->globalTaskIdsLen[nodeID]; i++) {
 	    step->outChannels[i] = 1;
 	}
 	addUint32ToMsg(step->globalTaskIdsLen[nodeID], &data);
@@ -1608,7 +1603,7 @@ int srunOpenIOConnectionEx(Step_t *step, uint32_t addr, uint16_t port,
     } else {
 	step->errChannels =
 		umalloc(sizeof(int32_t) * step->globalTaskIdsLen[nodeID]);
-	for (i=0; i<step->globalTaskIdsLen[nodeID]; i++) {
+	for (uint32_t i = 0; i < step->globalTaskIdsLen[nodeID]; i++) {
 	    step->errChannels[i] = 1;
 	}
 	addUint32ToMsg(step->globalTaskIdsLen[nodeID], &data);
@@ -1625,18 +1620,15 @@ int srunOpenIOConnectionEx(Step_t *step, uint32_t addr, uint16_t port,
 
 void srunEnableIO(Step_t *step)
 {
-    uint32_t i, myTaskIdsLen;
-    uint32_t *myTaskIds;
-    static int enabled = 0;
-
+    static bool enabled = false;
     if (enabled) return;
 
     if (step->stdInRank != -1) {
 	/* close stdin for all other ranks */
-	myTaskIdsLen = step->globalTaskIdsLen[step->localNodeId];
-	myTaskIds = step->globalTaskIds[step->localNodeId];
+	uint32_t myTaskIdsLen = step->globalTaskIdsLen[step->localNodeId];
+	uint32_t *myTaskIds = step->globalTaskIds[step->localNodeId];
 
-	for (i=0; i<myTaskIdsLen; i++) {
+	for (uint32_t i = 0; i < myTaskIdsLen; i++) {
 	    if ((uint32_t) step->stdInRank == myTaskIds[i]) continue;
 	    forwardInputMsg(step, myTaskIds[i], NULL, 0);
 	}
@@ -1646,7 +1638,7 @@ void srunEnableIO(Step_t *step)
 	mlog("%s: Selector_register(%i) srun I/O socket failed\n", __func__,
 		step->srunIOMsg.sock);
     }
-    enabled = 1;
+    enabled = true;
 }
 
 int srunSendIO(uint16_t type, uint16_t grank, Step_t *step, char *buf,
@@ -1743,26 +1735,25 @@ void handleBrokenConnection(PSnodes_ID_t nodeID)
     list_for_each_safe(c, tmp, &connectionList) {
 	Connection_t *con = list_entry(c, Connection_t, next);
 	Msg_Forward_t *fw = &con->fw;
-	uint32_t i;
 
-	for (i=0; i<fw->nodesCount; i++) {
-	    if (fw->nodes[i] == nodeID) {
-		Slurm_Msg_t sMsg;
-		PS_DataBuffer_t data = { .buf = NULL };
+	for (uint32_t i = 0; i < fw->nodesCount; i++) {
+	    if (fw->nodes[i] != nodeID) continue;
 
-		initSlurmMsg(&sMsg);
-		sMsg.source = PSC_getTID(nodeID, 0);
-		sMsg.head.type = RESPONSE_FORWARD_FAILED;
-		sMsg.sock = con->sock;
-		sMsg.recvTime = con->recvTime;
-		sMsg.data = &data;
+	    Slurm_Msg_t sMsg;
+	    PS_DataBuffer_t data = { .buf = NULL };
 
-		handleFrwrdMsgReply(&sMsg, SLURM_COMMUNICATIONS_CONNECTION_ERROR);
-		mlog("%s: message error for node %i saved\n", __func__, nodeID);
+	    initSlurmMsg(&sMsg);
+	    sMsg.source = PSC_getTID(nodeID, 0);
+	    sMsg.head.type = RESPONSE_FORWARD_FAILED;
+	    sMsg.sock = con->sock;
+	    sMsg.recvTime = con->recvTime;
+	    sMsg.data = &data;
 
-		/* assuming nodes[] contains each node id only once */
-		break;
-	    }
+	    handleFrwrdMsgReply(&sMsg, SLURM_COMMUNICATIONS_CONNECTION_ERROR);
+	    mlog("%s: message error for node %i saved\n", __func__, nodeID);
+
+	    /* assuming nodes[] contains each node id only once */
+	    break;
 	}
     }
 }
@@ -1826,9 +1817,8 @@ static bool resControllerIDs(void)
  */
 static bool initControlHosts()
 {
-    int i, numEntry = getConfValueI(&Config, "SLURM_CTLHOST_ENTRY_COUNT");
-
-    for (i=0; i<numEntry; i++) {
+    int numEntry = getConfValueI(&Config, "SLURM_CTLHOST_ENTRY_COUNT");
+    for (int i = 0; i < numEntry; i++) {
 	char key[64];
 
 	snprintf(key, sizeof(key), "SLURM_CTLHOST_ADDR_%i", i);
