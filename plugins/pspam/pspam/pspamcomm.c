@@ -153,16 +153,10 @@ static void handleCloseRequest(char *msgBuf)
 
 static int handlePamRequest(int sock, void *empty)
 {
-    char *ptr, buf[BUF_SIZE];
     int32_t msgLen;
-    PSPAMCmd_t cmd;
-    PSPAMResult_t res;
-
     ssize_t ret = PSCio_recvBuf(sock, &msgLen, sizeof(msgLen));
     if (ret != sizeof(msgLen)) {
-	if (ret != 0) {
-	    mlog("%s: reading msgLen for request failed\n", __func__);
-	}
+	if (ret != 0) mlog("%s: reading msgLen failed\n", __func__);
 	goto CLEANUP;
     }
 
@@ -171,19 +165,19 @@ static int handlePamRequest(int sock, void *empty)
 	goto CLEANUP;
     }
 
+    char buf[BUF_SIZE];
     if (PSCio_recvBuf(sock, buf, msgLen) != msgLen) {
 	mlog("%s: reading request failed\n" , __func__);
 	goto CLEANUP;
     }
 
-    ptr = buf;
-
+    char *ptr = buf;
     /* get command */
+    PSPAMCmd_t cmd;
     getInt32(&ptr, &cmd);
-
     switch (cmd) {
     case PSPAM_CMD_SESS_OPEN:
-	res = handleOpenRequest(ptr);
+	PSPAMResult_t res = handleOpenRequest(ptr);
 	PSCio_sendP(sock, &res, sizeof(res));
 	break;
     case PSPAM_CMD_SESS_CLOSE:
@@ -205,9 +199,8 @@ static int handleMasterSocket(int sock, void *empty)
     struct sockaddr_in SAddr;
     unsigned int clientlen = sizeof(SAddr);
     int clientSock = accept(sock, (void *)&SAddr, &clientlen);
-
     if (clientSock == -1) {
-	mwarn(errno, "%s accept(%i) failed: ", __func__, sock);
+	mwarn(errno, "%s: accept(%i)", __func__, sock);
 	return 0;
     }
 
@@ -218,24 +211,27 @@ static int handleMasterSocket(int sock, void *empty)
 
 static int setupPAMSock(char *sName)
 {
-    struct sockaddr_un sa;
-    int sock = -1, opt = 1;
-    char *pSName = sName[0] ? sName : sName + 1;
+    int sock = socket(PF_UNIX, SOCK_STREAM, 0);
+    if (sock < 0) {
+	mwarn(errno, "%s: socket()", __func__);
+	return -1;
+    }
 
-    sock = socket(PF_UNIX, SOCK_STREAM, 0);
-
+    int opt = 1;
     if (setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)) < 0 ) {
 	mwarn(errno, "%s: setsockopt(%i)", __func__, sock);
     }
 
     /* bind the socket to the right address */
+    char *pSName = sName[0] ? sName : sName + 1;
+    struct sockaddr_un sa;
     memset(&sa, 0, sizeof(sa));
     sa.sun_family = AF_UNIX;
     if (sName[0] == '\0') {
 	sa.sun_path[0] = '\0';
-	strncpy(sa.sun_path+1, sName+1, sizeof(sa.sun_path)-1);
+	strncpy(sa.sun_path + 1, pSName, sizeof(sa.sun_path) - 1);
     } else {
-	strncpy(sa.sun_path, sName, sizeof(sa.sun_path));
+	strncpy(sa.sun_path, pSName, sizeof(sa.sun_path));
 	unlink(sName);
     }
     if (bind(sock, (struct sockaddr *)&sa, sizeof(sa)) < 0) {

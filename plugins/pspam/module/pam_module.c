@@ -140,16 +140,15 @@ static bool isAuthorizedUser(const char *username)
  */
 static int openConnection(char *sockname)
 {
-    struct sockaddr_un sa;
     int sock = socket(PF_UNIX, SOCK_STREAM, 0);
+    if (sock < 0) return -1;
 
-    if (!sock) return -1;
-
+    struct sockaddr_un sa;
     memset(&sa, 0, sizeof(sa));
     sa.sun_family = AF_UNIX;
     if (sockname[0] == '\0') {
 	sa.sun_path[0] = '\0';
-	strncpy(sa.sun_path+1, sockname+1, sizeof(sa.sun_path)-1);
+	strncpy(sa.sun_path + 1, sockname + 1, sizeof(sa.sun_path) - 1);
     } else {
 	strncpy(sa.sun_path, sockname, sizeof(sa.sun_path));
     }
@@ -204,7 +203,7 @@ static bool readFromPspam(int sock, void *buf, size_t len)
     ssize_t read = PSCio_recvBuf(sock, buf, len);
     if (read != (ssize_t)len) {
 	if (read < 0) {
-	    elog("error while PSCio_recvBuf(buf): %s", strerror(errno));
+	    elog("%s: PSCio_recvBuf(): %s", __func__, strerror(errno));
 	} else {
 	    elog("insufficient data (%zi/%zi)", read, len);
 	}
