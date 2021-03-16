@@ -430,7 +430,7 @@ static int readSlurmMsg(int sock, void *param)
 
 	ptr = dBuf->buf + dBuf->bufUsed;
 	toRead = dBuf->bufSize - dBuf->bufUsed;
-	ret = doReadExtP(sock, ptr, toRead, &size);
+	ret = PSCio_recvBufPProg(sock, ptr, toRead, &size);
 	int eno = errno;
 
 	if (ret < 0) {
@@ -442,8 +442,8 @@ static int readSlurmMsg(int sock, void *param)
 		return 0;
 	    }
 	    /* read error */
-	    mwarn(eno, "%s: doReadExtP(%d, toRead %zd, size %zd)", __func__,
-		  sock, toRead, size);
+	    mwarn(eno, "%s: PSCio_recvBufPProg(%d, toRead %zd, size %zd)",
+		  __func__, sock, toRead, size);
 	    error = true;
 	    goto CALLBACK;
 	} else if (!ret) {
@@ -477,7 +477,7 @@ static int readSlurmMsg(int sock, void *param)
     /* try to read the actual payload (missing data) */
     ptr = dBuf->buf + dBuf->bufUsed;
     toRead = dBuf->bufSize - dBuf->bufUsed;
-    ret = doReadExtP(sock, ptr, toRead, &size);
+    ret = PSCio_recvBufPProg(sock, ptr, toRead, &size);
     int eno = errno;
 
     if (ret < 0) {
@@ -489,8 +489,8 @@ static int readSlurmMsg(int sock, void *param)
 	    return 0;
 	}
 	/* read error */
-	mwarn(eno, "%s: doReadExtP(%d, toRead %zd, size %zd)", __func__, sock,
-	      toRead, size);
+	mwarn(eno, "%s: PSCio_recvBufPProg(%d, toRead %zd, size %zd)",
+	      __func__, sock, toRead, size);
 	error = true;
 	goto CALLBACK;
 
@@ -1294,9 +1294,9 @@ static int handleSrunPTYMsg(int sock, void *data)
 
     /* Shall be safe to do first a blocking read() inside a selector */
     uint16_t buffer[2];
-    ssize_t ret = doRead(sock, buffer, sizeof(buffer));
+    ssize_t ret = PSCio_recvBuf(sock, buffer, sizeof(buffer));
     if (ret <= 0) {
-	if (ret < 0) mwarn(errno, "%s: doRead()", __func__);
+	if (ret < 0) mwarn(errno, "%s: PSCio_recvBuf()", __func__);
 	mlog("%s: close pty connection\n", __func__);
 	closeSlurmCon(sock);
 	return 0;
@@ -1373,13 +1373,6 @@ static int forwardInputMsg(Step_t *step, uint16_t rank, char *buf, int bufLen)
 int handleSrunMsg(int sock, void *data)
 {
     Step_t *step = data;
-    char *ptr, buffer[1024];
-    int ret, fd = -1;
-    IO_Slurm_Header_t *ioh = NULL;
-    uint16_t i;
-    uint32_t myTaskIdsLen, *myTaskIds;
-    bool pty;
-
     if (!verifyStepPtr(step)) {
 	/* late answer from srun, associated step is already gone */
 	fdbg(PSSLURM_LOG_IO, "no step for socket %i found\n", sock);
@@ -1387,16 +1380,16 @@ int handleSrunMsg(int sock, void *data)
     }
 
     /* Shall be safe to do first a blocking read() inside a selector */
-    ret = doRead(sock, buffer, SLURM_IO_HEAD_SIZE);
+    char buffer[1024];
+    ssize_t ret = PSCio_recvBuf(sock, buffer, SLURM_IO_HEAD_SIZE);
     if (ret <= 0) {
-	if (ret < 0) {
-	    mwarn(errno, "%s: doRead()", __func__);
-	}
+	if (ret < 0) mwarn(errno, "%s: PSCio_recvBuf()", __func__);
 	flog("close srun connection %i for %s\n", sock, strStepID(step));
 	goto ERROR;
     }
-    ptr = buffer;
 
+    char *ptr = buffer;
+    IO_Slurm_Header_t *ioh = NULL;
     if (!unpackSlurmIOHeader(&ptr, &ioh)) {
 	flog("unpack Slurm I/O header for %s failed\n", strStepID(step));
 	goto ERROR;
@@ -1409,10 +1402,10 @@ int handleSrunMsg(int sock, void *data)
 	}
 	goto ERROR;
     }
-    pty = step->taskFlags & LAUNCH_PTY;
-    fd = pty ? step->fwdata->stdOut[1] : step->fwdata->stdIn[1];
-    myTaskIdsLen = step->globalTaskIdsLen[step->localNodeId];
-    myTaskIds = step->globalTaskIds[step->localNodeId];
+    bool pty = step->taskFlags & LAUNCH_PTY;
+    int fd = pty ? step->fwdata->stdOut[1] : step->fwdata->stdIn[1];
+    uint32_t myTaskIdsLen = step->globalTaskIdsLen[step->localNodeId];
+    uint32_t *myTaskIds = step->globalTaskIds[step->localNodeId];
 
     fdbg(PSSLURM_LOG_IO | PSSLURM_LOG_IO_VERB,
 	 "%s stdin %d type %s length %u grank %u lrank %u pty %u"
@@ -1432,7 +1425,7 @@ int handleSrunMsg(int sock, void *data)
 	if (ioh->type == SLURM_IO_STDIN) {
 	    forwardInputMsg(step, ioh->grank, NULL, 0);
 	} else if (ioh->type == SLURM_IO_ALLSTDIN) {
-	    for (i=0; i<myTaskIdsLen; i++) {
+	    for (uint16_t i = 0; i < myTaskIdsLen; i++) {
 		forwardInputMsg(step, myTaskIds[i], NULL, 0);
 	    }
 	} else {
@@ -1447,7 +1440,7 @@ int handleSrunMsg(int sock, void *data)
 	while (left > 0) {
 	    size_t readNow = (left > sizeof(buffer)) ? sizeof(buffer) : left;
 	    /* @todo This shall be non-blocking! */
-	    ret = doRead(sock, buffer, readNow);
+	    ret = PSCio_recvBuf(sock, buffer, readNow);
 	    if (ret <= 0) {
 		mlog("%s: reading body failed\n", __func__);
 		break;
@@ -1461,7 +1454,7 @@ int handleSrunMsg(int sock, void *data)
 		    forwardInputMsg(step, ioh->grank, buffer, ret);
 		    break;
 		case SLURM_IO_ALLSTDIN:
-		    for (i=0; i<myTaskIdsLen; i++) {
+		    for (uint16_t i = 0; i < myTaskIdsLen; i++) {
 			forwardInputMsg(step, myTaskIds[i], buffer, ret);
 		    }
 		    break;

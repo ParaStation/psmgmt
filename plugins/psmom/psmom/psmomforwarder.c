@@ -126,8 +126,9 @@ static void doForwarderChildStart(void)
     close(controlFDs[1]);
 
     /* read sid */
-    if (doRead(controlFDs[0], &forwarder_child_sid, sizeof(pid_t))
-	 != sizeof(pid_t)) {
+    ssize_t ret = PSCio_recvBuf(controlFDs[0], &forwarder_child_sid,
+				sizeof(pid_t));
+    if (ret != sizeof(pid_t)) {
 	mlog("%s: reading childs sid failed\n", __func__);
 	kill(SIGKILL, forwarder_child_pid);
     }
@@ -502,8 +503,7 @@ static int handleMainMessage(int fd, void *info)
 static int handleSignalFd(int fd, void *info)
 {
     int res;
-
-    doRead(fd, &res, sizeof(res));
+    PSCio_recvBuf(fd, &res, sizeof(res));
     Selector_startOver();
     return 1;
 }
@@ -557,13 +557,13 @@ static int initForwarder(int forwarderType, char *jobname)
     PSC_setSigHandler(SIGPIPE, signalHandler);
 
     /* open control fds */
-    if (socketpair(PF_UNIX, SOCK_STREAM, 0, controlFDs)<0) {
+    if (socketpair(PF_UNIX, SOCK_STREAM, 0, controlFDs) < 0) {
 	fprintf(stderr, "%s: open control socket failed\n", __func__);
 	return 1;
     }
 
     /* open signal control fds */
-    if (socketpair(PF_UNIX, SOCK_STREAM, 0, signalFD)<0) {
+    if (socketpair(PF_UNIX, SOCK_STREAM, 0, signalFD) < 0) {
 	fprintf(stderr, "%s: open control socket failed\n", __func__);
 	return 1;
     }
@@ -1252,7 +1252,7 @@ int execInterForwarder(void *info)
 
 	/* wait till prologue finished */
 	close(controlPro[0]);
-	doRead(controlPro[1], &prologue_exit, sizeof(int));
+	PSCio_recvBuf(controlPro[1], &prologue_exit, sizeof(int));
 
 	if (prologue_exit != 0) {
 	    mlog("%s: progloue exit not 0: %i\n", __func__, prologue_exit);
@@ -1323,9 +1323,9 @@ int execInterForwarder(void *info)
     doForwarderChildStart();
 
     /* wait till prologue is finished */
-    if (doRead(com->socket, &prologue_exit, sizeof(prologue_exit))
-	!= sizeof(prologue_exit)) {
-
+    ssize_t ret = PSCio_recvBuf(com->socket, &prologue_exit,
+				sizeof(prologue_exit));
+    if (ret != sizeof(prologue_exit)) {
 	kill(forwarder_child_pid, SIGKILL);
 	fprintf(stderr, "%s: reading prologue exit status failed (%i): %s\n",
 		__func__, errno, strerror(errno));

@@ -63,3 +63,40 @@ ssize_t PSCio_sendFunc(int fd, void *buffer, size_t toSend, size_t *sent,
 
     return *sent;
 }
+
+
+ssize_t PSCio_recvBufFunc(int fd, void *buffer, size_t toRecv, size_t *numRcvd,
+			  const char *func, bool pedantic)
+{
+    static time_t lastLog = 0;
+    int retries = 0;
+
+    *numRcvd = 0;
+    PSCio_setFDblock(fd, !pedantic);
+
+    while ((*numRcvd < toRecv) && (retries++ <= PSCIO_MAX_RETRY)) {
+	char *ptr = buffer;
+	ssize_t num = read(fd, ptr + *numRcvd, toRecv - *numRcvd);
+	if (num < 0) {
+	    int eno = errno;
+	    if (eno == EINTR || eno == EAGAIN) continue;
+
+	    time_t now = time(NULL);
+	    if (lastLog != now) {
+		PSC_warn(-1, eno, "%s(%s): recv(%d)", __func__, func, fd);
+		lastLog = now;
+	    }
+	    errno = eno;
+	    return -1;
+	} else if (!num) {
+	    return num;
+	}
+	if (!pedantic) return num;
+
+	*numRcvd += num;
+    }
+
+    if (*numRcvd < toRecv) return -1;
+
+    return *numRcvd;
+}

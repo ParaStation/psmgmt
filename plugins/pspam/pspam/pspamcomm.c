@@ -157,9 +157,8 @@ static int handlePamRequest(int sock, void *empty)
     int32_t msgLen;
     PSPAMCmd_t cmd;
     PSPAMResult_t res;
-    int ret;
 
-    ret = doRead(sock, &msgLen, sizeof(msgLen));
+    ssize_t ret = PSCio_recvBuf(sock, &msgLen, sizeof(msgLen));
     if (ret != sizeof(msgLen)) {
 	if (ret != 0) {
 	    mlog("%s: reading msgLen for request failed\n", __func__);
@@ -172,7 +171,7 @@ static int handlePamRequest(int sock, void *empty)
 	goto CLEANUP;
     }
 
-    if (doRead(sock, buf, msgLen) != msgLen) {
+    if (PSCio_recvBuf(sock, buf, msgLen) != msgLen) {
 	mlog("%s: reading request failed\n" , __func__);
 	goto CLEANUP;
     }

@@ -806,7 +806,7 @@ int IO_forwardJobData(int sock, void *data)
     Job_t *job = fwdata->userData;
 
     /* read from child */
-    int32_t size = doRead(sock, buf, sizeof(buf));
+    ssize_t size = PSCio_recvBuf(sock, buf, sizeof(buf));
     if (size <= 0) {
 	Selector_remove(sock);
 	mdbg(PSSLURM_LOG_IO, "%s: job %u close std[out|err] sock %i\n",
@@ -978,7 +978,6 @@ int handleUserOE(int sock, void *data)
     static char buf[1024];
     Forwarder_Data_t *fwdata = data;
     Step_t *step = fwdata->userData;
-    int32_t size, ret;
     uint16_t type;
 
     if (step->taskFlags & LAUNCH_PTY) {
@@ -987,27 +986,27 @@ int handleUserOE(int sock, void *data)
 	type = (sock == fwdata->stdOut[0]) ? SLURM_IO_STDOUT : SLURM_IO_STDERR;
     }
 
-    if ((size = doRead(sock, buf, sizeof(buf) - 1)) <= 0) {
+    ssize_t size = PSCio_recvBuf(sock, buf, sizeof(buf) - 1);
+    if (size <= 0) {
 	Selector_remove(sock);
 	close(sock);
     }
 
-    mdbg(PSSLURM_LOG_IO, "%s: sock '%i' forward '%s' size '%u'\n", __func__,
-	    sock, type == SLURM_IO_STDOUT ? "stdout" : "stderr", size);
+    mdbg(PSSLURM_LOG_IO, "%s: sock %i forward '%s' size %zi\n", __func__,
+	 sock, type == SLURM_IO_STDOUT ? "stdout" : "stderr", size);
 
     /* EOF to srun */
-    if (size <0) size = 0;
-    if (size >0) buf[size] = '\0';
+    if (size < 0) size = 0;
+    if (size > 0) buf[size] = '\0';
 
     /* disable for now with new I/O architecture */
     return 0;
 
     /* forward data to srun, size of 0 means EOF for stream */
-    if ((ret = srunSendIO(type, 0, step, buf, size)) != (size + 10)) {
-	if (!(step->taskFlags & LAUNCH_LABEL_IO)) {
-	    mwarn(errno, "%s: sending IO failed: size:%i ret:%i error:%i ",
-		    __func__, (size +10), ret, errno);
-	}
+    int32_t ret = srunSendIO(type, 0, step, buf, size);
+    if (ret != (size + 10) && !(step->taskFlags & LAUNCH_LABEL_IO)) {
+	mwarn(errno, "%s: sending IO failed: size:%zi ret:%i error: %i",
+	      __func__, (size + 10), ret, errno);
     }
 
     return 0;

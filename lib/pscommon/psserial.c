@@ -858,53 +858,6 @@ bool __memToDataBuffer(void *mem, size_t len, PS_DataBuffer_t *buffer,
     return true;
 }
 
-/** Maximum number of retries within @ref __doWrite() and __doRead() */
-#define MAX_RETRY 20
-
-int __doReadExt(int fd, void *buffer, size_t toRead, size_t *numRead,
-		const char *func, bool pedantic)
-{
-    static time_t lastLog = 0;
-    int retries = 0;
-
-    *numRead = 0;
-    PSCio_setFDblock(fd, !pedantic);
-
-    while ((*numRead < toRead) && (retries++ <= MAX_RETRY)) {
-	char *ptr = buffer;
-	ssize_t num = read(fd, ptr + *numRead, toRead - *numRead);
-	if (num < 0) {
-	    int eno = errno;
-	    if (eno == EINTR || eno == EAGAIN) continue;
-
-	    time_t now = time(NULL);
-	    if (lastLog != now) {
-		PSC_warn(-1, eno, "%s(%s): read(%d)", __func__, func, fd);
-		lastLog = now;
-	    }
-	    errno = eno;
-	    return -1;
-	} else if (!num) {
-	    return num;
-	}
-	if (!pedantic) return num;
-
-	*numRead += num;
-    }
-
-    if (*numRead < toRead) return -1;
-
-    return *numRead;
-}
-
-int __doRead(int fd, void *buffer, size_t toRead, const char *func,
-	     bool pedantic)
-{
-    size_t read;
-
-    return __doReadExt(fd, buffer, toRead, &read, func, pedantic);
-}
-
 /******************** fetching data  ********************/
 
 /**

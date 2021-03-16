@@ -25,7 +25,6 @@
 #include "pscommon.h"
 #include "selector.h"
 #include "timer.h"
-#include "psserial.h" // @todo remove once doRead was moved
 #include "pluginhelper.h"
 #include "pluginmalloc.h"
 #include "pluginlog.h"
@@ -638,7 +637,7 @@ static int handleChildOE(int fd, void *info)
     static char buf[1024];
 
     /* read from child */
-    int32_t size = doRead(fd, buf, sizeof(buf));
+    ssize_t size = PSCio_recvBuf(fd, buf, sizeof(buf));
     if (size <= 0) {
 	Selector_remove(fd);
 	close(fd);
@@ -657,7 +656,7 @@ static int handleChildOE(int fd, void *info)
 	.sender = -1};
 
     /* Add data chunk including its length mimicking addString */
-    uint32_t len = htonl(size+1);
+    uint32_t len = htonl(size);
     PSP_putMsgBuf((DDBufferMsg_t*)&msg, "len", &len, sizeof(len));
     PSP_putMsgBuf((DDBufferMsg_t*)&msg, "data", buf, size);
 
@@ -668,29 +667,27 @@ static int handleChildOE(int fd, void *info)
 
 static void monitorOEpipes(Forwarder_Data_t *fw)
 {
+    close(fw->stdOut[1]);
     if (Selector_register(fw->stdOut[0], handleChildOE, fw) <0) {
 	pluginlog("%s: register fd %i failed\n", __func__, fw->stdOut[0]);
     }
-    close(fw->stdOut[1]);
 
+    close(fw->stdErr[1]);
     if (Selector_register(fw->stdErr[0], handleChildOE, fw) <0) {
 	pluginlog("%s: register fd %i failed\n", __func__, fw->stdErr[0]);
     }
-    close(fw->stdErr[1]);
 }
 
 static bool openOEpipes(Forwarder_Data_t *fw)
 {
     /* stdout */
     if (pipe(fw->stdOut) == -1) {
-	pluginwarn(errno, "%s: open stdout pipe for job %s failed", __func__,
-		   fw->jobID);
+	pluginwarn(errno, "%s: pipe(stdout) for job %s", __func__, fw->jobID);
 	return false;
     }
     /* stderr */
     if (pipe(fw->stdErr) == -1) {
-	pluginwarn(errno, "%s: create stderr pipe for job %s failed", __func__,
-		   fw->jobID);
+	pluginwarn(errno, "%s: pipe(stderr) for job %s", __func__, fw->jobID);
 	return false;
     }
     return true;
@@ -763,7 +760,8 @@ static void execForwarder(PStask_t *task)
 	    } else {
 		/* read sid of child */
 		close(controlFDs[1]);
-		int read = doRead(controlFDs[0], &fw->cSid, sizeof(pid_t));
+		ssize_t read = PSCio_recvBuf(controlFDs[0], &fw->cSid,
+					     sizeof(pid_t));
 		close(controlFDs[0]);
 		if (read != sizeof(pid_t)) {
 		    pluginlog("%s: reading childs sid failed\n", __func__);

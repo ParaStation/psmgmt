@@ -201,10 +201,10 @@ static ssize_t writeToPspam(int sock, void *buf, size_t toWrite)
  */
 static bool readFromPspam(int sock, void *buf, size_t len)
 {
-    ssize_t read = doRead(sock, buf, len);
+    ssize_t read = PSCio_recvBuf(sock, buf, len);
     if (read != (ssize_t)len) {
 	if (read < 0) {
-	    elog("error while doRead(buf): %s", strerror(errno));
+	    elog("error while PSCio_recvBuf(buf): %s", strerror(errno));
 	} else {
 	    elog("insufficient data (%zi/%zi)", read, len);
 	}
