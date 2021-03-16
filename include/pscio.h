@@ -113,10 +113,8 @@ static inline ssize_t _PSCio_send(int fd, void *buffer, size_t toSend,
  * of received bytes is reported in @a numRcvd. Receiving will be
  * retried up to PSCIO_MAX_RETRY times on minor errors in the @a
  * pedantic case. Otherwise, the function will return as soon as the
- * first recv() fails. Nevertheless, in the latter case recv() will be
- * done in a blocking fashion (@todo is this true?). In all cases @a
- * numRcvd will reflect the number of bytes received from the file
- * descriptor so far.
+ * first recv() fails. In all cases @a numRcvd will reflect the number
+ * of bytes received from the file descriptor so far.
  *
  * @param fd File descriptor to readreceive from
  *
@@ -129,12 +127,11 @@ static inline ssize_t _PSCio_send(int fd, void *buffer, size_t toSend,
  *
  * @param func Funtion name of the calling function
  *
- * @param pedantic Flag to be pedantic; if false, recv() will be
- * called in a blocking fashion (@todo really?)
+ * @param pedantic Flag to be pedantic
  *
  * @return Returns the number of bytes received, 0 if the file
  * descriptor closed or -1 on error; in the latter cases the number of
- * bytes anyhow received and stored to @a buffer is reported in @a
+ * bytes received and stored to @a buffer anyhow is reported in @a
  * numRcvd
  */
 ssize_t PSCio_recvBufFunc(int fd, void *buffer, size_t toRecv, size_t *numRcvd,
@@ -163,7 +160,7 @@ static inline ssize_t _PSCio_recvBuf(int fd, void *buffer, size_t toRecv,
     _PSCio_recvBuf(fd, buffer, toRecv, __func__, false)
 
 /** Pedantic receive */
-/* #define PSCio_recvBufP(fd, buffer, toRecv)		\ */
-/*     _PSCio_recvBuf(fd, buffer, toRecv, __func__, true) */
+#define PSCio_recvBufP(fd, buffer, toRecv)		\
+    _PSCio_recvBuf(fd, buffer, toRecv, __func__, true)
 
 #endif  /* __PSCIO_H */

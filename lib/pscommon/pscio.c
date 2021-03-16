@@ -72,8 +72,6 @@ ssize_t PSCio_recvBufFunc(int fd, void *buffer, size_t toRecv, size_t *numRcvd,
     int retries = 0;
 
     *numRcvd = 0;
-    PSCio_setFDblock(fd, !pedantic);
-
     while ((*numRcvd < toRecv) && (retries++ <= PSCIO_MAX_RETRY)) {
 	char *ptr = buffer;
 	ssize_t num = read(fd, ptr + *numRcvd, toRecv - *numRcvd);
