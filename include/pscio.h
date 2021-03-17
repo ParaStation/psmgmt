@@ -17,6 +17,8 @@
 #include <stdbool.h>
 #include <sys/types.h>
 
+#include "psprotocol.h"
+
 /**
  * @brief Switch file-descriptor's blocking mode
  *
@@ -110,49 +112,56 @@ static inline ssize_t _PSCio_send(int fd, void *buffer, size_t toSend,
  *
  * Receive up to @a toRecv bytes from the file descriptor @a fd and
  * store it to the memory @a buffer is pointing to. The actual number
- * of received bytes is reported in @a numRcvd. Receiving will be
- * retried up to PSCIO_MAX_RETRY times on minor errors in the @a
- * pedantic case. Otherwise, the function will return as soon as the
- * first recv() fails. In all cases @a numRcvd will reflect the number
- * of bytes received from the file descriptor so far.
+ * of received bytes is reported in @a rcvd. @a rcvd will be used as
+ * an offset of @a buffer to store the received data and must be
+ * unchanged between consecutive calls to this function if more data
+ * shall be added to @a buffer.
+ *
+ * Receiving will be retried up to PSCIO_MAX_RETRY times on minor
+ * errors in the @a pedantic case or indefinitely if the @a indefinite
+ * flag is true. Otherwise, the function will return as soon as the
+ * first recv() fails. In all cases @a rcvd will reflect the number of
+ * bytes received from the file descriptor so far.
  *
  * @param fd File descriptor to readreceive from
  *
  * @param buffer Buffer to store data to
  *
  * @param toRecv Number of bytes to receive, i.e. size of memory @a
- * buffer is pointing to.
+ * buffer is pointing to
  *
- * @param numRcvd Total number of bytes received upon return
+ * @param rcvd Total number of bytes received upon return
  *
  * @param func Funtion name of the calling function
  *
  * @param pedantic Flag to be pedantic
  *
+ * @param indefinite Flag to retry indefinitely
+ *
  * @return Returns the number of bytes received, 0 if the file
  * descriptor closed or -1 on error; in the latter cases the number of
  * bytes received and stored to @a buffer anyhow is reported in @a
- * numRcvd
+ * rcvd
  */
-ssize_t PSCio_recvBufFunc(int fd, void *buffer, size_t toRecv, size_t *numRcvd,
-			  const char *func, bool pedantic);
+ssize_t PSCio_recvBufFunc(int fd, void *buffer, size_t toRecv, size_t *rcvd,
+			  const char *func, bool pedantic, bool indefinite);
 
 /* Standard receive with progress */
-/* #define PSCio_recvBufProg(fd, buffer, toRecv, numRcvd)		\ */
-/*     PSCio_recvBufFunc(fd, buffer, toRecv, numRcvd, __func__, false) */
+/* #define PSCio_recvBufProg(fd, buffer, toRecv, rcvd)		\ */
+/*     PSCio_recvBufFunc(fd, buffer, toRecv, rcvd, __func__, false) */
 
 /* Pedantic receive with progress */
-#define PSCio_recvBufPProg(fd, buffer, toRecv, numRcvd)			\
-    PSCio_recvBufFunc(fd, buffer, toRecv, numRcvd, __func__, true)
+#define PSCio_recvBufPProg(fd, buffer, toRecv, rcvd)			\
+    PSCio_recvBufFunc(fd, buffer, toRecv, rcvd, __func__, true, false)
 
 /**
- * Wrapper around @ref PSCio_recvBufFunc() hiding the @a numRcvd parameter
+ * Wrapper around @ref PSCio_recvBufFunc() hiding the @a rcvd parameter
  */
 static inline ssize_t _PSCio_recvBuf(int fd, void *buffer, size_t toRecv,
 				     const char *func, bool pedantic)
 {
-    size_t numRcvd;
-    return PSCio_recvBufFunc(fd, buffer, toRecv, &numRcvd, func, pedantic);
+    size_t rcvd = 0;
+    return PSCio_recvBufFunc(fd, buffer, toRecv, &rcvd, func, pedantic, false);
 }
 
 /** Standard receive */
@@ -162,5 +171,10 @@ static inline ssize_t _PSCio_recvBuf(int fd, void *buffer, size_t toRecv,
 /** Pedantic receive */
 #define PSCio_recvBufP(fd, buffer, toRecv)		\
     _PSCio_recvBuf(fd, buffer, toRecv, __func__, true)
+
+/**
+ * @brief @doctodo
+ */
+ssize_t PSCio_recvMsg(int fd, DDBufferMsg_t *msg, size_t toRecv, size_t *rcvd);
 
 #endif  /* __PSCIO_H */

@@ -54,9 +54,8 @@ ssize_t PSCio_sendFunc(int fd, void *buffer, size_t toSend, size_t *sent,
 	} else if (!ret) {
 	    return ret;
 	}
-	if (!pedantic) return ret;
-
 	*sent += ret;
+	if (!pedantic) return ret;
     }
 
     if (*sent < toSend) return -1;
@@ -64,18 +63,16 @@ ssize_t PSCio_sendFunc(int fd, void *buffer, size_t toSend, size_t *sent,
     return *sent;
 }
 
-
-ssize_t PSCio_recvBufFunc(int fd, void *buffer, size_t toRecv, size_t *numRcvd,
-			  const char *func, bool pedantic)
+ssize_t PSCio_recvBufFunc(int fd, void *buffer, size_t toRecv, size_t *rcvd,
+			  const char *func, bool pedantic, bool indefinite)
 {
     static time_t lastLog = 0;
     int retries = 0;
 
-    *numRcvd = 0;
-    while ((*numRcvd < toRecv) && (retries++ <= PSCIO_MAX_RETRY)) {
+    while (*rcvd < toRecv && (indefinite || retries++ <= PSCIO_MAX_RETRY)) {
 	char *ptr = buffer;
-	ssize_t num = read(fd, ptr + *numRcvd, toRecv - *numRcvd);
-	if (num < 0) {
+	ssize_t ret = recv(fd, ptr + *rcvd, toRecv - *rcvd, 0);
+	if (ret < 0) {
 	    int eno = errno;
 	    if (eno == EINTR || eno == EAGAIN) continue;
 
@@ -86,15 +83,40 @@ ssize_t PSCio_recvBufFunc(int fd, void *buffer, size_t toRecv, size_t *numRcvd,
 	    }
 	    errno = eno;
 	    return -1;
-	} else if (!num) {
-	    return num;
+	} else if (!ret) {
+	    return ret;
 	}
-	if (!pedantic) return num;
-
-	*numRcvd += num;
+	*rcvd += ret;
+	if (!pedantic) return ret;
     }
 
-    if (*numRcvd < toRecv) return -1;
+    if (*rcvd < toRecv) return -1;
 
-    return *numRcvd;
+    return *rcvd;
+}
+
+void dropTail(void)
+{
+    // @todo
+}
+
+ssize_t PSCio_recvMsg(int fd, DDBufferMsg_t *msg, size_t toRecv, size_t *rcvd)
+{
+    size_t received = 0;
+    if (!rcvd) rcvd = &received;
+
+    /* handle toRecv */
+    ssize_t ret = PSCio_recvBufFunc(fd, msg, sizeof(msg->header), rcvd,
+				    __func__, false, true);
+    if (ret <= 0) return ret;
+    if (msg->header.len > sizeof(*msg)) {
+	int eno = EMSGSIZE;
+	PSC_warn(-1, eno, "%s: size %d", __func__, msg->header.len);
+	dropTail();
+	errno = eno;
+	return -1;
+    }
+
+    return PSCio_recvBufFunc(fd, msg, msg->header.len, rcvd,
+			     __func__, false, true);
 }
