@@ -89,37 +89,8 @@ ssize_t PSLog_print(PStask_ID_t dest, PSLog_msg_t type, char *buf)
     return PSLog_write(dest, type, buf, strlen(buf));
 }
 
-static int dorecv(char *buf, size_t count)
-{
-    int total = 0, n;
-
-    while(count > 0) {      /* Complete message */
-	n = recv(daemonsock, buf, count, 0);
-	if (n < 0) {
-	    switch (errno) {
-	    case EINTR:
-	    case EAGAIN:
-		continue;
-		break;
-	    default:
-		return n;             /* error, return < 0 */
-	    }
-	} else if (n == 0) {
-	    return n;
-	}
-	count -= n;
-	total += n;
-	buf += n;
-    }
-
-    return total;
-}
-
 int PSLog_read(PSLog_Msg_t *msg, struct timeval *timeout)
 {
-    int total, n;
-    char *buf=(char *)msg;
-
     if (daemonsock < 0) {
 	errno = EBADF;
 	return -1;
@@ -131,7 +102,7 @@ int PSLog_read(PSLog_Msg_t *msg, struct timeval *timeout)
     restart:
 	FD_ZERO(&rfds);
 	FD_SET(daemonsock, &rfds);
-	n = select(daemonsock+1, &rfds, NULL, NULL, timeout);
+	int n = select(daemonsock+1, &rfds, NULL, NULL, timeout);
 	if (n < 0) {
 	    switch (errno) {
 	    case EINTR:
@@ -145,23 +116,7 @@ int PSLog_read(PSLog_Msg_t *msg, struct timeval *timeout)
 	if (!n) return n;
     }
 
-    /* First only try to read the header */
-    total = n = dorecv(buf, sizeof(msg->header));
-    if (n <= 0) return n;
-
-    /* Test if *msg is large enough */
-    if (msg->header.len > (int) sizeof(*msg)) {
-	errno = ENOMEM;
-	return -1;
-    }
-
-    /* Now read the rest of the message (if necessary) */
-    if (msg->header.len -total) {
-	total += n = dorecv(buf+total, msg->header.len - total);
-	if (n <= 0) return n;
-    }
-
-    return total;
+    return PSCio_recvMsgSize(daemonsock, (DDBufferMsg_t *)msg, sizeof(*msg));
 }
 
 const char *PSLog_printMsgType(PSLog_msg_t type)
