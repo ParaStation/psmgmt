@@ -163,23 +163,19 @@ void dupSlurmMsgHead(Slurm_Msg_Header_t *dupHead, Slurm_Msg_Header_t *head)
 
     memcpy(dupHead, head, sizeof(*dupHead));
 
-    if (head->fwNodeList) {
-	dupHead->fwNodeList = ustrdup(head->fwNodeList);
-    }
+    if (head->fwNodeList) dupHead->fwNodeList = ustrdup(head->fwNodeList);
 
     if (head->fwResSize) {
-	dupHead->fwRes =
-	    umalloc(head->fwResSize * sizeof(Slurm_Forward_Res_t));
+	dupHead->fwRes = umalloc(head->fwResSize * sizeof(Slurm_Forward_Res_t));
 
 	memcpy(dupHead->fwRes, head->fwRes,
 	       head->fwResSize * sizeof(Slurm_Forward_Res_t));
 
 	for (uint32_t i=0; i<head->fwResSize; i++) {
-	    if (head->fwRes[i].body.bufSize) {
-		dupHead->fwRes[i].body.buf =
-		    umalloc(head->fwRes[i].body.bufSize);
+	    if (head->fwRes[i].body.size) {
+		dupHead->fwRes[i].body.buf = umalloc(head->fwRes[i].body.size);
 		memcpy(dupHead->fwRes[i].body.buf, head->fwRes[i].body.buf,
-		       head->fwRes[i].body.bufUsed);
+		       head->fwRes[i].body.used);
 	    } else {
 		memset(&dupHead->fwRes[i].body, 0,
 		       sizeof(dupHead->fwRes[i].body));

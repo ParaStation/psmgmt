@@ -703,9 +703,9 @@ bool __packSlurmHeader(PS_SendDB_t *data, Slurm_Msg_Header_t *head,
 	addStringToMsg(hn, data);
 
 	/* msg body */
-	if (head->fwRes[i].body.bufUsed) {
+	if (head->fwRes[i].body.used) {
 	    addMemToMsg(head->fwRes[i].body.buf,
-			head->fwRes[i].body.bufUsed, data);
+			head->fwRes[i].body.used, data);
 	}
     }
 
@@ -1884,11 +1884,11 @@ bool __packSlurmMsg(PS_SendDB_t *data, Slurm_Msg_Header_t *head,
     addUint32ToMsg(0, data);
 
     /* add message header */
-    head->bodyLen = body->bufUsed;
+    head->bodyLen = body->used;
     __packSlurmHeader(data, head, caller, line);
 
-    mdbg(PSSLURM_LOG_COMM, "%s: added slurm header (%i) : body len :%i\n",
-	    __func__, data->bufUsed, body->bufUsed);
+    mdbg(PSSLURM_LOG_COMM, "%s: added slurm header (%i) : body len :%zi\n",
+	    __func__, data->bufUsed, body->used);
 
     if (logger_getMask(psslurmlogger) & PSSLURM_LOG_IO_VERB) {
 	printBinaryData(data->buf + lastBufLen, data->bufUsed - lastBufLen,
@@ -1908,7 +1908,7 @@ bool __packSlurmMsg(PS_SendDB_t *data, Slurm_Msg_Header_t *head,
     }
 
     /* add the message body */
-    addMemToMsg(body->buf, body->bufUsed, data);
+    addMemToMsg(body->buf, body->used, data);
     mdbg(PSSLURM_LOG_COMM, "%s: added slurm msg body (%i)\n",
 	    __func__, data->bufUsed);
 

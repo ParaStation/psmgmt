@@ -104,8 +104,8 @@ static void resetBuf(PS_DataBuffer_t *b)
 {
     free(b->buf);
     b->buf = NULL;
-    b->bufSize = 0;
-    b->bufUsed = 0;
+    b->size = 0;
+    b->used = 0;
     b->nextFrag = 0;
 }
 
@@ -304,8 +304,8 @@ static bool relocRecvBuf(void *item)
 
     repl->tid = orig->tid;
     repl->dBuf.buf = orig->dBuf.buf;
-    repl->dBuf.bufSize = orig->dBuf.bufSize;
-    repl->dBuf.bufUsed = orig->dBuf.bufUsed;
+    repl->dBuf.size = orig->dBuf.size;
+    repl->dBuf.used = orig->dBuf.used;
     repl->dBuf.nextFrag = orig->dBuf.nextFrag;
 
     /* tweak the list */
@@ -647,7 +647,7 @@ bool __recvFragMsg(DDTypedBufferMsg_t *msg, PS_DataBuffer_func_t *func,
 	uint32_t s = msg->header.len - offsetof(DDTypedBufferMsg_t, buf) - used;
 
 	myRecvBuf.buf = msg->buf + used;
-	myRecvBuf.bufSize = myRecvBuf.bufUsed = s;
+	myRecvBuf.size = myRecvBuf.used = s;
 
 	recvBuf = &myRecvBuf;
     } else {
@@ -682,8 +682,8 @@ bool __recvFragMsg(DDTypedBufferMsg_t *msg, PS_DataBuffer_func_t *func,
 				      PSC_printTID(msg->header.sender));
 
 	    resetBuf(recvBuf);
-	    recvBuf->bufSize = DEFAULT_BUFFER_SIZE;
-	    recvBuf->buf = malloc(recvBuf->bufSize);
+	    recvBuf->size = DEFAULT_BUFFER_SIZE;
+	    recvBuf->buf = malloc(recvBuf->size);
 	    if (!recvBuf->buf) {
 		PSC_log(-1, "%s(%s@%d): no memory\n", __func__, caller, line);
 		putRecvBuf(list_entry(recvBuf, recvBuf_t, dBuf));
@@ -693,19 +693,19 @@ bool __recvFragMsg(DDTypedBufferMsg_t *msg, PS_DataBuffer_func_t *func,
 
 	/* copy payload */
 	size_t toCopy = msg->header.len-offsetof(DDTypedBufferMsg_t, buf)-used;
-	if (recvBuf->bufUsed + toCopy > recvBuf->bufSize) {
+	if (recvBuf->used + toCopy > recvBuf->size) {
 	    /* grow buffer, if necessary */
-	    recvBuf->bufSize *= 2;
-	    char * tmp = realloc(recvBuf->buf, recvBuf->bufSize);
+	    recvBuf->size *= 2;
+	    char * tmp = realloc(recvBuf->buf, recvBuf->size);
 	    if (!tmp) {
 		putRecvBuf(list_entry(recvBuf, recvBuf_t, dBuf));
 		return false;
 	    }
 	    recvBuf->buf = tmp;
 	}
-	char *ptr = recvBuf->buf + recvBuf->bufUsed;
+	char *ptr = recvBuf->buf + recvBuf->used;
 	PSP_getTypedMsgBuf(msg, &used, "payload", ptr, toCopy);
-	recvBuf->bufUsed += toCopy;
+	recvBuf->used += toCopy;
 	recvBuf->nextFrag++;
     }
 
@@ -716,8 +716,8 @@ bool __recvFragMsg(DDTypedBufferMsg_t *msg, PS_DataBuffer_func_t *func,
     if (fragType == FRAGMENT_END) {
 	/* invoke callback */
 
-	PSC_log(PSC_LOG_COMM, "%s: msg of %u bytes from %s complete\n",
-		__func__, recvBuf->bufUsed, PSC_printTID(msg->header.sender));
+	PSC_log(PSC_LOG_COMM, "%s: msg of %zu bytes from %s complete\n",
+		__func__, recvBuf->used, PSC_printTID(msg->header.sender));
 
 	msg->buf[0] = '\0';
 	func(msg, recvBuf);
@@ -786,14 +786,13 @@ bool setTypeInfo(bool flag)
 static bool growDataBuffer(size_t len, PS_DataBuffer_t *data,
 			   const char *caller, const int line)
 {
-    size_t newLen;
-
     if (!data->buf) resetBuf(data);
 
+    size_t newLen;
     if (len) {
-	newLen = ((data->bufUsed+len-1) / BufTypedMsgSize + 1)*BufTypedMsgSize;
+	newLen = ((data->used + len - 1) / BufTypedMsgSize + 1)*BufTypedMsgSize;
     } else {
-	newLen = data->bufSize ? data->bufSize: BufTypedMsgSize;
+	newLen = data->size ? data->size: BufTypedMsgSize;
     }
     if (newLen > UINT32_MAX) return false;
 
@@ -804,7 +803,7 @@ static bool growDataBuffer(size_t len, PS_DataBuffer_t *data,
 	return false;
     }
     data->buf = tmp;
-    data->bufSize = newLen;
+    data->size = newLen;
 
     return true;
 }
@@ -825,16 +824,16 @@ PS_DataBuffer_t *dupDataBuffer(PS_DataBuffer_t *data)
 	return NULL;
     }
 
-    dup->buf = umalloc(data->bufSize);
+    dup->buf = umalloc(data->size);
     if (!dup->buf) {
 	PSC_log(-1, "%s: buffer duplication failed\n", __func__);
 	free(dup);
 	return NULL;
     }
 
-    memcpy(dup->buf, data->buf, data->bufSize);
-    dup->bufSize = data->bufSize;
-    dup->bufUsed = data->bufUsed;
+    memcpy(dup->buf, data->buf, data->size);
+    dup->size = data->size;
+    dup->used = data->used;
 
     return dup;
 }
@@ -852,8 +851,8 @@ bool __memToDataBuffer(void *mem, size_t len, PS_DataBuffer_t *buffer,
 	return false;
     }
 
-    memcpy(buffer->buf + buffer->bufUsed, mem, len);
-    buffer->bufUsed += len;
+    memcpy(buffer->buf + buffer->used, mem, len);
+    buffer->used += len;
 
     return true;
 }

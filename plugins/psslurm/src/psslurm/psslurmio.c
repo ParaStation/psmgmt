@@ -276,18 +276,18 @@ static void handleBufferedMsg(Forwarder_Data_t *fwdata, char *msg, uint32_t len,
 			      uint8_t type, uint32_t lrank)
 {
     char *nl = len ? memrchr(msg, '\n', len) : NULL;
-    if (nl || !len || buffer->bufUsed + len > MAX_LINE_BUF_LENGTH) {
+    if (nl || !len || buffer->used + len > MAX_LINE_BUF_LENGTH) {
 	/* messages with newline or empty */
-	uint32_t nlLen = nl ? nl - msg +1: len;
+	uint32_t nlLen = nl ? nl - msg + 1 : len;
 
-	if (buffer->bufUsed) {
+	if (buffer->used) {
 	    /* add new data to msg buffer so it can be written in one piece */
 	    memToDataBuffer(msg, nlLen, buffer);
 
 	    /* write data saved in the buffer */
-	    writeLabelIOmsg(fwdata, buffer->buf, buffer->bufUsed, grank,
+	    writeLabelIOmsg(fwdata, buffer->buf, buffer->used, grank,
 			    type, lrank);
-	    buffer->bufUsed = 0;
+	    buffer->used = 0;
 	} else {
 	    /* write data including newline */
 	    writeLabelIOmsg(fwdata, msg, nlLen, grank, type, lrank);
@@ -370,7 +370,7 @@ void __IO_printStepMsg(Forwarder_Data_t *fwdata, char *msg, size_t msgLen,
 			  * step->globalTaskIdsLen[step->localNodeId]);
 	for (uint32_t i=0; i < step->globalTaskIdsLen[step->localNodeId]; i++) {
 	    lineBuf[i].out.buf = lineBuf[i].err.buf = NULL;
-	    lineBuf[i].out.bufUsed = lineBuf[i].err.bufUsed = 0;
+	    lineBuf[i].out.used = lineBuf[i].err.used = 0;
 	}
 	initBuf = true;
     }

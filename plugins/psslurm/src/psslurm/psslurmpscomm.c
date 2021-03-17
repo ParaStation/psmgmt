@@ -1545,7 +1545,7 @@ int forwardSlurmMsg(Slurm_Msg_t *sMsg, uint32_t nrOfNodes, PSnodes_ID_t *nodes)
     }
 
     /* add message body */
-    uint32_t len = sMsg->data->bufUsed - (sMsg->ptr - sMsg->data->buf);
+    uint32_t len = sMsg->data->used - (sMsg->ptr - sMsg->data->buf);
     addMemToMsg(sMsg->ptr, len, &msg);
 
     /* send the message(s) */
@@ -1597,9 +1597,9 @@ static void handleFWslurmMsg(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
     sMsg.sock = socket;
     sMsg.ptr = ptr;
 
-    mdbg(PSSLURM_LOG_FWD, "%s: sender %s sock %u time %lu datalen %u\n",
+    mdbg(PSSLURM_LOG_FWD, "%s: sender %s sock %u time %lu datalen %zu\n",
 	 __func__, PSC_printTID(sMsg.source), sMsg.sock, sMsg.recvTime,
-	 data->bufUsed);
+	 data->used);
 
     processSlurmMsg(&sMsg, NULL, handleSlurmdMsg, NULL);
 }
@@ -1621,7 +1621,7 @@ static void handleFWslurmMsgRes(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
     /* message type */
     getUint16(&ptr, &sMsg.head.type);
     /* save payload in data buffer */
-    sMsg.reply.bufUsed = data->bufUsed - (ptr - data->buf);
+    sMsg.reply.bufUsed = data->used - (ptr - data->buf);
     sMsg.reply.buf = ptr;
 
     handleFrwrdMsgReply(&sMsg, SLURM_SUCCESS);

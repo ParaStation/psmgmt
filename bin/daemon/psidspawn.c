@@ -2160,7 +2160,7 @@ static void handleResCreated(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
     entrysize = sizeof(node) + sizeof(firstrank) + sizeof(lastrank);
 
     /* calculate number of entries */
-    nentries = (rData->buf + rData->bufUsed - ptr) / entrysize;
+    nentries = (rData->buf + rData->used - ptr) / entrysize;
 
     /* allocate reservation structure */
     res = malloc(sizeof(*res));

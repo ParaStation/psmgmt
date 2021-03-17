@@ -158,8 +158,8 @@ static bool resetConnection(int socket)
 
     ufree(con->data.buf);
     con->data.buf = NULL;
-    con->data.bufSize = 0;
-    con->data.bufUsed = 0;
+    con->data.size = 0;
+    con->data.used = 0;
     con->redSize = false;
 
     return true;
@@ -339,7 +339,7 @@ void __handleFrwrdMsgReply(Slurm_Msg_t *sMsg, uint32_t error, const char *func,
 	/* disable forwarding for the answer message */
 	fw->head.forward = 0;
 
-	if (!fw->body.buf || !fw->body.bufUsed) {
+	if (!fw->body.buf || !fw->body.used) {
 	    mlog("%s: invalid local data, dropping msg from caller %s at %i\n",
 		 __func__, func, line);
 	    closeSlurmCon(con->sock);
@@ -349,7 +349,7 @@ void __handleFrwrdMsgReply(Slurm_Msg_t *sMsg, uint32_t error, const char *func,
 	/* Answer the original RPC request from Slurm. This reply will hold
 	 * results from all the nodes the RPC was forwarded to. */
 	msg.buf = fw->body.buf;
-	msg.bufUsed = fw->body.bufUsed;
+	msg.bufUsed = fw->body.used;
 	sendSlurmMsgEx(con->sock, &fw->head, &msg);
 	closeSlurmCon(con->sock);
     }
@@ -411,7 +411,7 @@ static int readSlurmMsg(int sock, void *param)
 	return 0;
     }
 
-    if (dBuf->bufSize && dBuf->bufSize == dBuf->bufUsed) {
+    if (dBuf->size && dBuf->size == dBuf->used) {
 	mlog("%s: data buffer for sock %i already in use, resetting\n",
 	     __func__, sock);
 	resetConnection(sock);
@@ -419,21 +419,21 @@ static int readSlurmMsg(int sock, void *param)
 
     /* try to read the message size */
     if (!con->redSize) {
-	if (!dBuf->bufSize) {
+	if (!dBuf->size) {
 	    dBuf->buf = umalloc(sizeof(uint32_t));
-	    dBuf->bufSize = sizeof(uint32_t);
-	    dBuf->bufUsed = 0;
+	    dBuf->size = sizeof(uint32_t);
+	    dBuf->used = 0;
 	}
 
-	ptr = dBuf->buf + dBuf->bufUsed;
-	toRead = dBuf->bufSize - dBuf->bufUsed;
+	ptr = dBuf->buf + dBuf->used;
+	toRead = dBuf->size - dBuf->used;
 	ret = PSCio_recvBufPProg(sock, ptr, toRead, &size);
 	int eno = errno;
 
 	if (ret < 0) {
 	    if (size > 0 || eno == EAGAIN || eno == EINTR) {
 		/* not all data arrived yet, lets try again later */
-		dBuf->bufUsed += size;
+		dBuf->used += size;
 		mdbg(PSSLURM_LOG_COMM, "%s: we try later for sock %u "
 		     "read %zu\n", __func__, sock, size);
 		return 0;
@@ -451,7 +451,7 @@ static int readSlurmMsg(int sock, void *param)
 	    goto CALLBACK;
 	} else {
 	    /* all data red successful */
-	    dBuf->bufUsed += size;
+	    dBuf->used += size;
 	    mdbg(PSSLURM_LOG_COMM,
 		 "%s: msg size read for %u ret %u toread %zu msglen %u size "
 		 "%zu\n", __func__, sock, ret, toRead, msglen, size);
@@ -466,21 +466,21 @@ static int readSlurmMsg(int sock, void *param)
 	}
 
 	dBuf->buf = urealloc(dBuf->buf, msglen);
-	dBuf->bufSize = msglen;
-	dBuf->bufUsed = 0;
+	dBuf->size = msglen;
+	dBuf->used = 0;
 	con->redSize = true;
     }
 
     /* try to read the actual payload (missing data) */
-    ptr = dBuf->buf + dBuf->bufUsed;
-    toRead = dBuf->bufSize - dBuf->bufUsed;
+    ptr = dBuf->buf + dBuf->used;
+    toRead = dBuf->size - dBuf->used;
     ret = PSCio_recvBufPProg(sock, ptr, toRead, &size);
     int eno = errno;
 
     if (ret < 0) {
 	if (size > 0 || eno == EAGAIN || eno == EINTR) {
 	    /* not all data arrived yet, lets try again later */
-	    dBuf->bufUsed += size;
+	    dBuf->used += size;
 	    mdbg(PSSLURM_LOG_COMM, "%s: we try later for sock %u read %zu\n",
 		 __func__, sock, size);
 	    return 0;
@@ -498,7 +498,7 @@ static int readSlurmMsg(int sock, void *param)
 	goto CALLBACK;
     } else {
 	/* all data red successful */
-	dBuf->bufUsed += size;
+	dBuf->used += size;
 	mdbg(PSSLURM_LOG_COMM,
 	     "%s: all data read for %u ret %u toread %zu msglen %u size %zu\n",
 	     __func__, sock, ret, toRead, msglen, size);

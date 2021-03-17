@@ -2030,7 +2030,7 @@ static bool slurmTreeForward(Slurm_Msg_t *sMsg, Msg_Forward_t *fw)
 	fw->head.fwRes[i].type = RESPONSE_FORWARD_FAILED;
 	fw->head.fwRes[i].node = -1;
 	fw->head.fwRes[i].body.buf = NULL;
-	fw->head.fwRes[i].body.bufUsed = 0;
+	fw->head.fwRes[i].body.used = 0;
     }
 
     if (verbose) {
