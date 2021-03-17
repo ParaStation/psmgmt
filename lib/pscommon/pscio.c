@@ -55,7 +55,7 @@ ssize_t PSCio_sendFunc(int fd, void *buffer, size_t toSend, size_t *sent,
 	    return ret;
 	}
 	*sent += ret;
-	if (!pedantic) return ret;
+	if (!pedantic && !indefinite) return ret;
     }
 
     if (*sent < toSend) return -1;
@@ -74,12 +74,14 @@ ssize_t PSCio_recvBufFunc(int fd, void *buffer, size_t toRecv, size_t *rcvd,
 	ssize_t ret = recv(fd, ptr + *rcvd, toRecv - *rcvd, 0);
 	if (ret < 0) {
 	    int eno = errno;
-	    if (eno == EINTR || eno == EAGAIN) continue;
+	    if (eno == EINTR || (eno == EAGAIN && pedantic)) continue;
 
-	    time_t now = time(NULL);
-	    if (lastLog != now) {
-		PSC_warn(-1, eno, "%s(%s): recv(%d)", __func__, func, fd);
-		lastLog = now;
+	    if (eno != EAGAIN) {
+		time_t now = time(NULL);
+		if (lastLog != now) {
+		    PSC_warn(-1, eno, "%s(%s): recv(%d)", __func__, func, fd);
+		    lastLog = now;
+		}
 	    }
 	    errno = eno;
 	    return -1;
@@ -87,7 +89,7 @@ ssize_t PSCio_recvBufFunc(int fd, void *buffer, size_t toRecv, size_t *rcvd,
 	    return ret;
 	}
 	*rcvd += ret;
-	if (!pedantic) return ret;
+	if (!pedantic && !indefinite) return ret;
     }
 
     if (*rcvd < toRecv) return -1;
@@ -95,28 +97,49 @@ ssize_t PSCio_recvBufFunc(int fd, void *buffer, size_t toRecv, size_t *rcvd,
     return *rcvd;
 }
 
-void dropTail(void)
+void dropTail(int fd, size_t tailSize)
 {
-    // @todo
+    char dump[1024];
+
+    while (tailSize) {
+	size_t chunk = tailSize > sizeof(dump) ? sizeof(dump) : tailSize;
+	size_t rcvd = 0;
+	ssize_t ret = PSCio_recvBufFunc(fd, dump, chunk, &rcvd,
+					__func__, true, true);
+	if (ret <= 0) break;
+	tailSize -= rcvd;
+    }
 }
 
-ssize_t PSCio_recvMsg(int fd, DDBufferMsg_t *msg, size_t toRecv, size_t *rcvd)
+ssize_t PSCio_recvMsgFunc(int fd, DDBufferMsg_t *msg, size_t len, size_t *rcvd)
 {
-    size_t received = 0;
-    if (!rcvd) rcvd = &received;
+    if (len < sizeof(msg->header)) {
+	/* we need at least space for the header */
+	errno = EMSGSIZE;
+	return -1;
+    }
 
-    /* handle toRecv */
+    size_t received = 0;
+    bool indefinete = true;
+    if (!rcvd) {
+	rcvd = &received;
+	indefinete = false;
+    }
+
+    /* Try to first read the header only */
     ssize_t ret = PSCio_recvBufFunc(fd, msg, sizeof(msg->header), rcvd,
-				    __func__, false, true);
+				    __func__, true, indefinete);
     if (ret <= 0) return ret;
-    if (msg->header.len > sizeof(*msg)) {
+    if (msg->header.len > len) {
+	/* msg too small, drop tail to clean the file descriptor */
 	int eno = EMSGSIZE;
 	PSC_warn(-1, eno, "%s: size %d", __func__, msg->header.len);
-	dropTail();
+	dropTail(fd, msg->header.len - sizeof(msg->header));
 	errno = eno;
 	return -1;
     }
 
+    /* Read message's tail */
     return PSCio_recvBufFunc(fd, msg, msg->header.len, rcvd,
-			     __func__, false, true);
+			     __func__, true, indefinete);
 }

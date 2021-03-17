@@ -123,7 +123,7 @@ static inline ssize_t _PSCio_send(int fd, void *buffer, size_t toSend,
  * first recv() fails. In all cases @a rcvd will reflect the number of
  * bytes received from the file descriptor so far.
  *
- * @param fd File descriptor to readreceive from
+ * @param fd File descriptor to receive from
  *
  * @param buffer Buffer to store data to
  *
@@ -173,8 +173,52 @@ static inline ssize_t _PSCio_recvBuf(int fd, void *buffer, size_t toRecv,
     _PSCio_recvBuf(fd, buffer, toRecv, __func__, true)
 
 /**
- * @brief @doctodo
+ * @brief Receive message from file descriptor
+ *
+ * Receive data formatted as a DDBufferMsg_t from the file descriptor
+ * @a fd and store it @a to msg. Data is expected to conform to the
+ * ParaStation protocol, i.e. providing a message header of type @ref
+ * DDMsg_t. In a first step only this header is received. Based on the
+ * value of the header's len field further data will be received if it
+ * fits into the message @a msg. If @a msg is of different type than
+ * @ref DDBufferMsg_t, the actual size of the provided message space
+ * might be provided via the @a len argument.
+ *
+ * If @a rcvd provides a pointer to a variable, the actual bytes
+ * received are provided even if the message was not yet fully
+ * received. In this case further calls to this function with @a rcvd
+ * unchanged might be used to completely receive the message. If @a
+ * rcvd is NULL, indefinite retries are made in order to receive the
+ * message or to wait for an error.
+ *
+ * Receiving will be retried up to PSCIO_MAX_RETRY times on minor
+ * errors or indefinitely if no @a rcvd argument is provided (i.e. is
+ * set to NULL).
+ *
+ * @param fd File descriptor to receive from
+ *
+ * @param msg Message to store data to
+ *
+ * @param len Actual size provided by @a msg
+ *
+ * @param rcvd Total number of bytes received upon return
+ *
+ * @return Returns the number of bytes received, 0 if the file
+ * descriptor closed or -1 on error; in the latter cases the number of
+ * bytes received and stored to @a msg anyhow is reported in @a rcvd
  */
-ssize_t PSCio_recvMsg(int fd, DDBufferMsg_t *msg, size_t toRecv, size_t *rcvd);
+ssize_t PSCio_recvMsgFunc(int fd, DDBufferMsg_t *msg, size_t len, size_t *rcvd);
+
+/** Standard message receive */
+#define PSCio_recvMsg(fd, msg)			\
+    PSCio_recvMsgFunc(fd, msg, sizeof(DDBufferMsg_t), NULL)
+
+/** Receive message of size different from DDBufferMsg_t */
+#define PSCio_recvMsgSize(fd, msg, len)		\
+    PSCio_recvMsgFunc(fd, msg, len, NULL)
+
+/** Receive message with progress */
+#define PSCio_recvMsgProg(fd, msg, len, rcvd)	\
+    PSCio_recvMsgFunc(fd, msg, len, rcvd)
 
 #endif  /* __PSCIO_H */
