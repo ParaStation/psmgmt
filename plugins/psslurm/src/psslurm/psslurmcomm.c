@@ -66,7 +66,7 @@ typedef struct {
     void *info;		    /**< additional info passed to callback */
     int sock;		    /**< socket of the connection */
     time_t recvTime;	    /**< time first complete message was received */
-    bool redSize;	    /**< true if the message size was red */
+    bool readSize;	    /**< true if the message size was read */
     Msg_Forward_t fw;	    /**< message forwarding structure */
 } Connection_t;
 
@@ -160,7 +160,7 @@ static bool resetConnection(int socket)
     con->data.buf = NULL;
     con->data.size = 0;
     con->data.used = 0;
-    con->redSize = false;
+    con->readSize = false;
 
     return true;
 }
@@ -382,12 +382,13 @@ static bool getSockInfo(int socket, uint32_t *addr, uint16_t *port)
 /**
  * @brief Read a Slurm message
  *
- * Read a Slurm message from the provided socket. In the first step the size of
- * the message is red. And secondly the actual message payload is red. All
- * reading is done in a non blocking fashion. If reading of the message was
- * successful it will be saved in a new Slurm message and given to the provided
- * callback of the Connection. After the callback handled the message or an
- * error occurred the Connection will be resetted.
+ * Read a Slurm message from the provided socket. In the first step
+ * the size of the message is read. And secondly the actual message
+ * payload is read. All reading is done in a non blocking fashion. If
+ * reading of the message was successful it will be saved in a new
+ * Slurm message and given to the provided callback of the
+ * Connection. After the callback handled the message or an error
+ * occurred the Connection will be resetted.
  *
  * @param sock The socket to read the message from
  *
@@ -418,7 +419,7 @@ static int readSlurmMsg(int sock, void *param)
     }
 
     /* try to read the message size */
-    if (!con->redSize) {
+    if (!con->readSize) {
 	if (!dBuf->size) {
 	    dBuf->buf = umalloc(sizeof(uint32_t));
 	    dBuf->size = sizeof(uint32_t);
@@ -450,7 +451,7 @@ static int readSlurmMsg(int sock, void *param)
 	    error = true;
 	    goto CALLBACK;
 	} else {
-	    /* all data red successful */
+	    /* all data read successful */
 	    dBuf->used += size;
 	    mdbg(PSSLURM_LOG_COMM,
 		 "%s: msg size read for %u ret %u toread %zu msglen %u size "
@@ -468,7 +469,7 @@ static int readSlurmMsg(int sock, void *param)
 	dBuf->buf = urealloc(dBuf->buf, msglen);
 	dBuf->size = msglen;
 	dBuf->used = 0;
-	con->redSize = true;
+	con->readSize = true;
     }
 
     /* try to read the actual payload (missing data) */
@@ -497,7 +498,7 @@ static int readSlurmMsg(int sock, void *param)
 	error = true;
 	goto CALLBACK;
     } else {
-	/* all data red successful */
+	/* all data read successful */
 	dBuf->used += size;
 	mdbg(PSSLURM_LOG_COMM,
 	     "%s: all data read for %u ret %u toread %zu msglen %u size %zu\n",
