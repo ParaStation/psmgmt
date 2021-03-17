@@ -216,11 +216,11 @@ void handleCONTMsg(PSLog_Msg_t *msg);
  * Handle the SENDSTOP messages @a msg. This will generically stop any
  * input-forwarding, etc.
  *
- * @param msg The SENDSTOP message to handle.
+ * @param msg The SENDSTOP message to handle (currently ignored)
  *
- * @return No return value.
+ * @return No return value
  */
-void handleSENDSTOP(DDMsg_t *msg);
+void handleSENDSTOP(DDBufferMsg_t *msg);
 
 /**
  * @brief Handle SENDCONT message
@@ -228,11 +228,11 @@ void handleSENDSTOP(DDMsg_t *msg);
  * Handle the SENDCONT messages @a msg. This will generically continue any
  * input-forwarding, etc.
  *
- * @param msg The SENDCONT message to handle.
+ * @param msg The SENDCONT message to handle (currently ignored)
  *
- * @return No return value.
+ * @return No return value
  */
-void handleSENDCONT(DDMsg_t *msg);
+void handleSENDCONT(DDBufferMsg_t *msg);
 
 /**
  * @brief Create list of destinations

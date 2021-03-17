@@ -249,71 +249,6 @@ int sendMsg(PStask_ID_t tid, PSLog_msg_t type, char *buf, size_t len)
 }
 
 /**
- * @brief Read a PSLog message.
- *
- * Read a PSLog message and store it to @a msg. This function will
- * block until a message is available.
- *
- * This is mainly a wrapper for PSLog_read(). Furthermore PSP_CC_ERROR
- * messages are handled correctly.
- *
- * @param msg Address of a buffer the received message is stored to.
- *
- * @return On success, the number of bytes read are returned. On error,
- * -1 is returned, and errno is set appropriately.
- */
-static int recvMsg(PSLog_Msg_t *msg)
-{
-    int ret = PSLog_read(msg, NULL);
-
-    if (!ret) return ret;
-
-    if (ret < 0) {
-	PSIlog_warn(-1, errno, "%s: error (%d)", __func__, errno);
-	return ret;
-    }
-
-    switch (msg->header.type) {
-    case PSP_CC_ERROR:
-    {
-	/* Try to find the corresponding client */
-	int rank = getClientRank(msg->header.sender);
-
-	if (rank > getMaxRank()) {
-	    PSIlog_log(PSILOG_LOG_VERB, "%s: CC_ERROR from unknown task %s.\n",
-		       __func__, PSC_printTID(msg->header.sender));
-	    errno = EBADMSG;
-	    ret = -1;
-	} else {
-	    PSIlog_log(-1, "%s: forwarder %s (rank %d) disappeared.\n",
-		       __func__, PSC_printTID(msg->header.sender), rank);
-
-	    deregisterClient(rank);
-
-	    errno = EPIPE;
-	    ret = -1;
-	}
-	break;
-    }
-    case PSP_CC_MSG:
-    case PSP_CD_ERROR:
-    case PSP_CD_SENDSTOP:
-    case PSP_CD_SENDCONT:
-	/* Ignore here and handle outside */
-	break;
-    default:
-	PSIlog_log(-1, "%s: Unknown message type %s from %s.\n",
-		   __func__, PSP_printMsg(msg->header.type),
-		   PSC_printTID(msg->header.sender));
-
-	errno = EPROTO;
-	ret = -1;
-    }
-
-    return ret;
-}
-
-/**
  * @brief Send a message to the local daemon.
  *
  * Send the message @a msg to the local daemon.
@@ -348,7 +283,7 @@ static int sendDaemonMsg(DDMsg_t *msg)
 
 void terminateJob(void)
 {
-    PSIlog_log(-1, "Terminating the job.\n");
+    PSIlog_log(-1, "Terminating the job\n");
 
     /* send kill signal to all children */
     {
@@ -410,7 +345,7 @@ static void sighandler(int sig)
 	}
 	break;
     case SIGINT:
-	PSIlog_log(PSILOG_LOG_VERB, "Got SIGINT.\n");
+	PSIlog_log(PSILOG_LOG_VERB, "Got SIGINT\n");
 	if (getenv("PSI_SSH_COMPAT_HOST"))
 	    fprintf(stderr, "Killed by signal 2\n");
 	{
@@ -429,7 +364,7 @@ static void sighandler(int sig)
 	}
 	break;
     case SIGTTIN:
-	PSIlog_log(PSILOG_LOG_VERB, "Got SIGTTIN.\n");
+	PSIlog_log(PSILOG_LOG_VERB, "Got SIGTTIN\n");
 	break;
     case SIGWINCH:
 	for (i=getMinRank(); i <= getMaxRank(); i++) {
@@ -472,7 +407,7 @@ static void sighandler(int sig)
     case SIGCONT:
     case SIGUSR2:
     case SIGQUIT:
-	PSIlog_log(PSILOG_LOG_VERB, "Got signal %d.\n", sig);
+	PSIlog_log(PSILOG_LOG_VERB, "Got signal %d\n", sig);
 	{
 	    DDSignalMsg_t msg;
 
@@ -490,7 +425,7 @@ static void sighandler(int sig)
 	if (sig == SIGTSTP) raise(SIGSTOP);
 	break;
     default:
-	PSIlog_log(-1, "Got signal %d.\n", sig);
+	PSIlog_log(-1, "Got signal %d\n", sig);
     }
 
     fflush(stdout);
@@ -1209,11 +1144,14 @@ static void enableDebugSock(void)
  */
 static int handleDaemonMsg(int fd, void *info)
 {
-    PSLog_Msg_t msg;
-    int ret = recvMsg(&msg);
+    DDBufferMsg_t msg;
+    int ret = PSCio_recvMsg(fd, &msg);
 
     /* Ignore all errors */
-    if (ret < 0) return 0;
+    if (ret < 0) {
+	PSIlog_warn(-1, errno, "%s: PSCio_recvMsg()", __func__);
+	return 0;
+    }
 
     if (!ret) {
 	PSIlog_log(-1, "daemon died. Exiting\n");
@@ -1223,19 +1161,32 @@ static int handleDaemonMsg(int fd, void *info)
 
     switch(msg.header.type) {
     case PSP_CC_MSG:
-	handleCCMsg(&msg);
+	handleCCMsg((PSLog_Msg_t *)&msg);
+	break;
+    case PSP_CC_ERROR:
+	/* Try to find the corresponding client */
+	if (getClientRank(msg.header.sender) > getMaxRank()) {
+	    PSIlog_log(PSILOG_LOG_VERB, "%s: CC_ERROR from unknown task %s.\n",
+		       __func__, PSC_printTID(msg.header.sender));
+	} else {
+	    int rank = getClientRank(msg.header.sender);
+	    PSIlog_log(-1, "%s: forwarder %s (rank %d) disappeared.\n",
+		       __func__, PSC_printTID(msg.header.sender), rank);
+
+	    deregisterClient(rank);
+	}
 	break;
     case PSP_CD_ERROR:
 	/* Ignore */
 	break;
     case PSP_CD_SENDSTOP:
-	handleSENDSTOP((DDMsg_t *)&msg);
+	handleSENDSTOP(&msg);
 	break;
     case PSP_CD_SENDCONT:
-	handleSENDCONT((DDMsg_t *)&msg);
+	handleSENDCONT(&msg);
 	break;
     default:
-	PSIlog_log(-1, "%s: Unknown message type %s from %s.\n", __func__,
+	PSIlog_log(-1, "%s: Unknown message type %s from %s\n", __func__,
 		   PSP_printMsg(msg.header.type),
 		   PSC_printTID(msg.header.sender));
     }

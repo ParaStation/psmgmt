@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2009-2020 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2009-2021 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -450,7 +450,7 @@ void handleCONTMsg(PSLog_Msg_t *msg)
 
 static bool daemonCommStopped = false;
 
-void handleSENDSTOP(DDMsg_t *msg)
+void handleSENDSTOP(DDBufferMsg_t *msg)
 {
     /* some daemon wants pause */
     if (!daemonCommStopped) {
@@ -464,7 +464,7 @@ void handleSENDSTOP(DDMsg_t *msg)
     daemonCommStopped = true;
 }
 
-void handleSENDCONT(DDMsg_t *msg)
+void handleSENDCONT(DDBufferMsg_t *msg)
 {
     /* some daemon wants continue */
     if (daemonCommStopped) {
