@@ -70,47 +70,18 @@ static bool sendMsg(int fd, DDTypedBufferMsg_t *msg)
     return true;
 }
 
-static ssize_t dorecv(int fd, char *buf, size_t count)
-{
-    ssize_t total = 0, n;
-
-    while(count > 0) {      /* Complete message */
-	n = recv(fd, buf, count, 0);
-	if (n < 0) {
-	    switch (errno) {
-	    case EINTR:
-	    case EAGAIN:
-		continue;
-		break;
-	    default:
-		return n;             /* error, return < 0 */
-	    }
-	} else if (n == 0) {
-	    return n;
-	}
-	count -= n;
-	total += n;
-	buf += n;
-    }
-
-    return total;
-}
-
 /*
- * returns the number of bytes read, 0 on timeout and -1 on error (see errno)
+ * returns the number of bytes read, 0 on timeout or closed connection
+ * and -1 on error (see errno)
  */
-static ssize_t recvMsg(int fd, DDTypedBufferMsg_t *msg,
-	struct timeval timeout) {
-
-    ssize_t total, n;
-    char *buf = (char*)msg;
-
+static ssize_t recvMsg(int fd, DDTypedBufferMsg_t *msg, struct timeval timeout)
+{
     fd_set rfds;
 
 restart:
     FD_ZERO(&rfds);
     FD_SET(fd, &rfds);
-    n = select(fd+1, &rfds, NULL, NULL, &timeout);
+    int n = select(fd+1, &rfds, NULL, NULL, &timeout);
     if (n < 0) {
 	switch (errno) {
 	case EINTR:
@@ -123,23 +94,7 @@ restart:
     }
     if (!n) return n;
 
-    /* First only try to read the header */
-    total = n = dorecv(fd, buf, sizeof(msg->header));
-    if (n <= 0) return n;
-
-    /* Test if *msg is large enough */
-    if (msg->header.len > (int) sizeof(*msg)) {
-	errno = ENOMEM;
-	return -1;
-    }
-
-    /* Now read the rest of the message */
-    if (msg->header.len - total) {
-	total += n = dorecv(fd, buf+total, msg->header.len - total);
-	if (n <= 0) return n;
-    }
-
-    return total;
+    return PSCio_recvMsg(fd, (DDBufferMsg_t *)msg);
 }
 
 /**
