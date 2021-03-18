@@ -14,9 +14,11 @@
 #ifndef __PSPROTOCOL_H
 #define __PSPROTOCOL_H
 
-#include <stdint.h>
 #include <stdbool.h>
+#include <stdint.h>
+#include <sys/socket.h>
 #include <sys/types.h>
+
 #include "psnodes.h"
 #include "pstaskid.h"
 
