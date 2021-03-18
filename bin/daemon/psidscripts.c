@@ -177,19 +177,20 @@ static int doExec(char *script, PSID_scriptFunc_t func, PSID_scriptPrep_t prep,
 	cbList[controlfds[0]] = pid;
 	ret = pid;
     } else {
-	int num;
-	char line[128];
-
 	PSID_readall(controlfds[0], &ret, sizeof(ret));
 	close(controlfds[0]);
 
-	num = PSID_readall(iofds[0], line, sizeof(line));
-	line[(size_t)num < sizeof(line) ? (size_t)num : sizeof(line)-1] = '\0';
+	char line[128];
+	ssize_t num = PSID_readall(iofds[0], line, sizeof(line));
 	eno = errno;
+	if (num >= 0) {
+	    size_t last = num;
+	    line[last < sizeof(line) ? last : sizeof(line) -1] = '\0';
+	}
 	close(iofds[0]); /* Discard further output */
 
 	if (num < 0) {
-	    PSID_warn(-1, eno, "%s: read(iofd)", caller);
+	    PSID_warn(-1, eno, "%s: PSID_readall(iofd)", caller);
 	} else if (ret) {
 	    if (func) {
 		PSID_log(-1, "%s: function wrote: %s", caller, line);

@@ -1273,7 +1273,6 @@ static int handleSrunPTYMsg(int sock, void *data)
 
     fdbg(PSSLURM_LOG_COMM, "got pty message for %s\n", strStepID(step));
 
-    /* Shall be safe to do first a blocking read() inside a selector */
     uint16_t buffer[2];
     ssize_t ret = PSCio_recvBuf(sock, buffer, sizeof(buffer));
     if (ret <= 0) {

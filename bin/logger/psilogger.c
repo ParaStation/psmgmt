@@ -560,7 +560,7 @@ static void forwardInput(int std_in)
     char buf[1024];
     ssize_t len;
 
-    len = read(std_in, buf, sizeof(buf)>SSIZE_MAX ? SSIZE_MAX : sizeof(buf));
+    len = read(std_in, buf, sizeof(buf) > SSIZE_MAX ? SSIZE_MAX : sizeof(buf));
     switch (len) {
     case -1:
 	if (errno == EBADF) {

@@ -203,7 +203,7 @@ bool PSID_mixedProto(void);
 void PSID_setMixedProto(bool mixed);
 
 /**
- * @brief Read complete buffer.
+ * @brief Read complete buffer
  *
  * Read the complete buffer @a buf of size @a count from the file
  * descriptor @a fd. Even if one or more trials to read to @a fd fails
@@ -211,17 +211,17 @@ void PSID_setMixedProto(bool mixed);
  * either a fatal error occurred, an EOF is received or the whole
  * buffer is read.
  *
- * @param fd The file descriptor to read the buffer from.
+ * @param fd File descriptor to read the buffer from
  *
- * @param buf The buffer to read.
+ * @param buf Buffer to read
  *
- * @param count The maximum number of bytes to read.
+ * @param count Number of bytes to read
  *
  * @return Upon success the number of bytes read is returned,
- * i.e. usually this is @a count if no EOF occurred. Otherwise -1 is
- * returned.
+ * i.e. usually this is @a count if no EOF occurred; otherwise -1 is
+ * returned
  */
-int PSID_readall(int fd, void *buf, size_t count);
+ssize_t PSID_readall(int fd, void *buf, size_t count);
 
 /**
  * @brief (Un-)Block signal.

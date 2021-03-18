@@ -643,7 +643,7 @@ static int switchHWCB(int fd, PSID_scriptCBInfo_t *info)
 	    int num = PSID_readall(iofd, line, sizeof(line));
 	    int eno = errno;
 	    if (num < 0) {
-		PSID_warn(-1, eno, "%s: read(iofd)", __func__);
+		PSID_warn(-1, eno, "%s: PSID_readall(iofd)", __func__);
 		line[0] = '\0';
 	    } else if (num == sizeof(line)) {
 		strcpy(&line[sizeof(line)-4], "...");
@@ -849,9 +849,9 @@ static int getCounterCB(int fd, PSID_scriptCBInfo_t *info)
 	close(iofd); /* Discard further output */
     }
     if (num < 0) {
-	PSID_warn(-1, eno, "%s: read(iofd)", __func__);
+	PSID_warn(-1, eno, "%s: PSID_readall(iofd)", __func__);
 	num = snprintf(msg.buf, sizeof(msg.buf),
-		       "%s: read(iofd) failed\n", __func__) + 1;
+		       "%s: PSID_readall(iofd) failed\n", __func__) + 1;
     } else if (num == sizeof(msg.buf)) {
 	strcpy(&msg.buf[sizeof(msg.buf)-4], "...");
     } else {

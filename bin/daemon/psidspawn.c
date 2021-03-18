@@ -55,28 +55,6 @@
 
 #include "psidspawn.h"
 
-/**
- * @brief Get error string from errno.
- *
- * Create a error string describing the error marked by @a eno. @a eno
- * is the error number created by a recent failed system call and
- * returned within @a errno.
- *
- * The error string is either created using the strerror()
- * function. If this fails, i.e. the corresponding error number is
- * unknown to this function, the error string is set to "UNKNOWN".
- *
- * @return A pointer to a error description string is returned. This
- * string might also be "UNKNOWN".
- *
- * @see errno(3), strerror(3)
- */
-static char *get_strerror(int eno)
-{
-    char *ret = strerror(eno);
-    return ret ? ret : "UNKNOWN";
-}
-
 /** File-descriptor used by the alarm-handler to write its errno */
 static int alarmFD = -1;
 
@@ -100,14 +78,14 @@ static void alarmHandler(int sig)
     if (!alarmFunc) alarmFunc = "UNKNOWN";
 
     PSID_warn(-1, eno, "%s: %s()", __func__, alarmFunc);
-    fprintf(stderr, "%s: %s(): %s\n", __func__, alarmFunc, get_strerror(eno));
+    fprintf(stderr, "%s: %s(): %s\n", __func__, alarmFunc, strerror(eno));
 
     if (alarmFD >= 0) {
 	int ret = write(alarmFD, &eno, sizeof(eno));
 	if (ret < 0) {
 	    eno = errno;
 	    PSID_warn(-1, eno, "%s: write()", __func__);
-	    fprintf(stderr, "%s: write(): %s\n", __func__, get_strerror(eno));
+	    fprintf(stderr, "%s: write(): %s\n", __func__, strerror(eno));
 	}
     }
 
@@ -309,8 +287,7 @@ static int changeToWorkDir(PStask_t *task)
 
 	if (!rawIO) {
 	    fprintf(stderr, "%s: chdir(%s): %s\n", __func__,
-		    task->workingdir ? task->workingdir : "",
-		    get_strerror(errno));
+		    task->workingdir ? task->workingdir : "", strerror(errno));
 	    fprintf(stderr, "Will use user's home directory\n");
 	}
 
@@ -324,7 +301,7 @@ static int changeToWorkDir(PStask_t *task)
 		} else {
 		    fprintf(stderr, "%s: chdir(%s): %s\n", __func__,
 			    passwd->pw_dir ? passwd->pw_dir : "",
-			    get_strerror(eno));
+			    strerror(eno));
 		}
 		return eno;
 	    }
@@ -365,7 +342,7 @@ static int changeToWorkDir(PStask_t *task)
 static int testExecutable(PStask_t *task, char **executable)
 {
     struct stat sb;
-    int execFound = 0, fd, ret;
+    bool execFound = false;
     char buf[64];
 
     alarmFunc = __func__;
@@ -379,7 +356,7 @@ static int testExecutable(PStask_t *task, char **executable)
 	if (!passwd) {
 	    int eno = errno;
 	    fprintf(stderr, "%s: Unable to determine $SHELL: %s\n", __func__,
-		    get_strerror(eno));
+		    strerror(eno));
 	    return eno;
 	}
 	free(task->argv[0]);
@@ -402,7 +379,7 @@ static int testExecutable(PStask_t *task, char **executable)
 		if (!stat(fn, &sb)) {
 		    free(task->argv[0]);
 		    task->argv[0] = fn;
-		    execFound = 1;
+		    execFound = true;
 		    break;
 		}
 
@@ -418,7 +395,7 @@ static int testExecutable(PStask_t *task, char **executable)
 	if (mystat(task->argv[0], &sb) == -1) {
 	    int eno = errno;
 	    fprintf(stderr, "%s: stat(%s): %s\n", __func__,
-		    task->argv[0] ? task->argv[0] : "", get_strerror(eno));
+		    task->argv[0] ? task->argv[0] : "", strerror(eno));
 	    return eno;
 	}
     }
@@ -431,15 +408,16 @@ static int testExecutable(PStask_t *task, char **executable)
     }
 
     /* Try to read first 64 bytes; on Lustre this might hang */
-    if ((fd = open(task->argv[0],O_RDONLY)) < 0) {
+    int fd = open(task->argv[0],O_RDONLY);
+    if (fd < 0) {
 	int eno = errno;
 	if (eno != EACCES) { /* Might not have to permission to read (#1058) */
-	    fprintf(stderr, "%s: open(): %s\n", __func__, get_strerror(eno));
+	    fprintf(stderr, "%s: open(): %s\n", __func__, strerror(eno));
 	    return eno;
 	}
-    } else if ((ret = read(fd, buf, sizeof(buf))) < 0) {
+    } else if (PSID_readall(fd, buf, sizeof(buf)) < 0) {
 	int eno = errno;
-	fprintf(stderr, "%s: read(): %s\n", __func__, get_strerror(eno));
+	fprintf(stderr, "%s: PSID_readall(): %s\n", __func__, strerror(eno));
 	return eno;
     } else {
 	close(fd);
@@ -539,11 +517,11 @@ static void execClient(PStask_t *task)
     /* change the gid; exit() on failure */
     if (setgid(task->gid)<0) {
 	eno = errno;
-	fprintf(stderr, "%s: setgid: %s\n", __func__, get_strerror(eno));
+	fprintf(stderr, "%s: setgid: %s\n", __func__, strerror(eno));
 	if (write(task->fd, &eno, sizeof(eno)) < 0) {
 	    eno = errno;
 	    fprintf(stderr, "%s: setgid: write(): %s\n", __func__,
-		    get_strerror(eno));
+		    strerror(eno));
 	}
 	exit(1);
     }
@@ -557,7 +535,7 @@ static void execClient(PStask_t *task)
 	if ((pw = getpwuid(task->uid)) && pw->pw_name) {
 	    if (initgroups(pw->pw_name, task->gid) < 0) {
 		fprintf(stderr, "%s: Cannot set supplementary groups: %s\n",
-			__func__,  get_strerror(errno));
+			__func__,  strerror(errno));
 	    }
 	}
     }
@@ -565,11 +543,11 @@ static void execClient(PStask_t *task)
     /* change the uid; exit() on failure */
     if (setuid(task->uid)<0) {
 	eno = errno;
-	fprintf(stderr, "%s: setuid: %s\n", __func__, get_strerror(eno));
+	fprintf(stderr, "%s: setuid: %s\n", __func__, strerror(eno));
 	if (write(task->fd, &eno, sizeof(eno)) < 0) {
 	    eno = errno;
 	    fprintf(stderr, "%s: setuid: write(): %s\n", __func__,
-		    get_strerror(eno));
+		    strerror(eno));
 	}
 	exit(1);
     }
@@ -595,7 +573,7 @@ static void execClient(PStask_t *task)
 	if (write(task->fd, &eno, sizeof(eno)) < 0) {
 	    eno = errno;
 	    fprintf(stderr, "%s: PSIDHOOK_EXEC_CLIENT_PREP: write(): %s\n",
-		    __func__, get_strerror(eno));
+		    __func__, strerror(eno));
 	}
 	exit(1);
     }
@@ -614,7 +592,7 @@ static void execClient(PStask_t *task)
 	if (write(task->fd, &eno, sizeof(eno)) < 0) {
 	    eno = errno;
 	    fprintf(stderr, "%s: changeToWorkDir: write(): %s\n", __func__,
-		    get_strerror(eno));
+		    strerror(eno));
 	}
 	exit(1);
     }
@@ -623,7 +601,7 @@ static void execClient(PStask_t *task)
 	if (write(task->fd, &eno, sizeof(eno)) < 0) {
 	    eno = errno;
 	    fprintf(stderr, "%s: testExecutable: write(): %s\n", __func__,
-		    get_strerror(eno));
+		    strerror(eno));
 	}
 	exit(1);
     }
@@ -637,14 +615,14 @@ static void execClient(PStask_t *task)
     /* Signal forwarder we're ready for execve() */
     if (write(task->fd, &eno, sizeof(eno)) < 0) {
 	eno = errno;
-	fprintf(stderr, "%s: write(): %s\n", __func__, get_strerror(eno));
+	fprintf(stderr, "%s: write(): %s\n", __func__, strerror(eno));
 	PSID_exit(eno, "%s: write()", __func__);
     }
 
-    if (read(task->fd, &eno, sizeof(eno)) < 0) {
+    if (PSID_readall(task->fd, &eno, sizeof(eno)) < 0) {
 	eno = errno;
-	fprintf(stderr, "%s: read(): %s\n", __func__, get_strerror(eno));
-	PSID_exit(eno, "%s: read()", __func__);
+	fprintf(stderr, "%s: PSID_readall(): %s\n", __func__, strerror(eno));
+	PSID_exit(eno, "%s: PSID_readall()", __func__);
     } else {
 	close(task->fd);
     }
@@ -662,7 +640,7 @@ static void execClient(PStask_t *task)
 	if (write(task->fd, &eno, sizeof(eno)) < 0) {
 	    eno = errno;
 	    fprintf(stderr, "%s: PSIDHOOK_EXEC_CLIENT_USER: write(): %s\n",
-		    __func__, get_strerror(eno));
+		    __func__, strerror(eno));
 	}
 	exit(1);
     }
@@ -946,8 +924,7 @@ static void execForwarder(PStask_t *task)
 
 	if (dup2(task->stdin_fd, STDIN_FILENO) < 0) {
 	    eno = errno;
-	    fprintf(stderr, "%s: dup2(stdin): [%d] %s\n", __func__,
-		    eno, get_strerror(eno));
+	    fprintf(stderr, "%s: dup2(stdin): %s\n", __func__, strerror(eno));
 	    if (write(task->fd, &eno, sizeof(eno)) < 0) {
 		PSID_warn(-1, errno, "%s: dup2(stdin): write()", __func__);
 	    }
@@ -955,8 +932,7 @@ static void execForwarder(PStask_t *task)
 	}
 	if (dup2(task->stdout_fd, STDOUT_FILENO) < 0) {
 	    eno = errno;
-	    fprintf(stderr, "%s: dup2(stdout): [%d] %s\n", __func__,
-		    eno, get_strerror(eno));
+	    fprintf(stderr, "%s: dup2(stdout): %s\n", __func__, strerror(eno));
 	    if (write(task->fd, &eno, sizeof(eno)) < 0) {
 		PSID_warn(-1, errno, "%s: dup2(stdout): write()", __func__);
 	    }
@@ -1078,22 +1054,13 @@ static void execForwarder(PStask_t *task)
 	gettimeofday(&start, NULL);  /* get NEW starttime */
     } while (timercmp(&start, &end, <));
 
-    if (eno) goto error;
-
-restart:
-    {
-	int ret = read(controlfds[0], &eno, sizeof(eno));
+    if (!eno) {
+	ssize_t ret = PSID_readall(controlfds[0], &eno, sizeof(eno));
 	if (ret < 0) {
-	    if (errno == EINTR) {
-		goto restart;
-	    }
 	    eno = errno;
-	    PSID_warn(-1, eno, "%s: read() failed. eno is %d", __func__, eno);
-	    goto error;
-	}
-
-	if (!ret) {
-	    PSID_log(-1, "%s: ret is %d\n", __func__, ret);
+	    PSID_warn(-1, eno, "%s: PSID_readall()", __func__);
+	} else if (!ret) {
+	    PSID_log(-1, "%s: ret is %zd\n", __func__, ret);
 	    eno = EBADMSG;
 	}
     }

@@ -17,13 +17,13 @@
 #include <time.h>
 #include <sys/types.h>
 
-#include "selector.h"
-#include "rdp.h"
-
 #include "pscommon.h"
 #include "psreservation.h"
 #include "psprotocol.h"
 #include "psdaemonprotocol.h"
+
+#include "selector.h"
+#include "rdp.h"
 
 #include "psidtask.h"
 #include "psidutil.h"
@@ -106,21 +106,11 @@ int pskill(pid_t pid, int sig, uid_t uid)
 	return -1;
     }
 
-    int ret;
-    while (true) {
-	ret = read(cntrlfds[0], &eno, sizeof(eno));
-	if (ret < 0) {
-	    if (errno == EINTR) continue;
-	    eno = errno;
-	    PSID_warn(-1, eno, "%s: read()", __func__);
-	}
-	break;  // loop just once
-    }
-
+    ssize_t ret = PSID_readall(cntrlfds[0], &eno, sizeof(eno));
     close(cntrlfds[0]);
     if (!ret) {
 	/* assume everything worked well */
-	PSID_log(-1, "%s: read() got no data\n", __func__);
+	PSID_log(-1, "%s: PSID_readall() got no data\n", __func__);
     } else {
 	ret = eno ? -1 : 0;
 	errno = eno;

@@ -533,7 +533,7 @@ static int stateChangeCB(int fd, PSID_scriptCBInfo_t *cbInfo)
 	    int eno = errno;
 	    close(iofd); /* Discard further output */
 	    if (num < 0) {
-		PSID_warn(-1, eno, "%s: read(iofd)", __func__);
+		PSID_warn(-1, eno, "%s: PSID_readall(iofd)", __func__);
 		line[0] = '\0';
 	    } else if (num == sizeof(line)) {
 		strcpy(&line[sizeof(line)-4], "...");
