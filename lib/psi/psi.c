@@ -479,74 +479,33 @@ int PSI_availMsg(void)
 
 int PSI_recvMsg(DDMsg_t *msg, size_t size)
 {
-    char *buf = (char*)msg, dump[8192];
-    int n;
-    int count = 0, expected = sizeof(DDMsg_t);
-
     if (daemonSock == -1) {
 	errno = ENOTCONN;
 	return -1;
     }
-    if (size < sizeof(DDMsg_t)) {
+    if (!msg || size < sizeof(DDMsg_t)) {
 	errno = EINVAL;
 	return -1;
     }
 
-    do {
-	n = read(daemonSock, &buf[count], expected-count);
-	if (n>0) {
-	    count+=n;
-	} else if (n == -1 && errno == EINTR) {
-	    PSI_log(PSI_LOG_COMM, "%s: read() interrupted\n", __func__);
-	    n = 1; // ensure next round is started
-	    continue;
-	} else {
-	    PSI_warn(-1, errno ? errno : ENOTCONN,
-		     "%s: Lost connection to ParaStation daemon", __func__);
-	    if (!errno) {
-		PSI_log(-1, "%s: Possible version mismatch between"
-			" daemon and library\n", __func__);
-		errno = ENOTCONN;
-	    }
-
-	    close(daemonSock);
-	    daemonSock = -1;
+    ssize_t ret = PSCio_recvMsgSize(daemonSock, (DDBufferMsg_t *)msg, size);
+    if (ret <= 0) {
+	int eno = errno ? errno : ENOTCONN;
+	PSI_warn(-1, eno, "%s: Lost connection to ParaStation daemon",__func__);
+	if (eno == ENOTCONN) {
+	    PSI_log(-1, "%s: Possible version mismatch between"
+		    " daemon and library\n", __func__);
 	}
-	if (count == sizeof(DDMsg_t)) {
-	    /* initial header received */
-	    if (msg->len > (int16_t)sizeof(dump)) {
-		/* even dump is too small */
-		errno = ENOBUFS;
-		PSI_warn(-1, errno, "%s: type %s", __func__,
-			 PSP_printMsg(msg->type));
-		n = -1;
-	    } else {
-		expected = (msg->len > (int16_t)size) ? (int)size : msg->len;
-	    }
-	}
-	if (count == (int16_t)size && msg->len > (int16_t)size) {
-	    /* dump message's remainder */
-	    expected = msg->len;
-	    buf = dump;
-	}
-    } while (expected>count && n>0);
-
-    if (count>(int)sizeof(*msg) && count==msg->len) {
-	PSI_log(PSI_LOG_COMM, "%s: type %s (len=%d) from %s\n", __func__,
-		PSP_printMsg(msg->type), msg->len, PSC_printTID(msg->sender));
+	close(daemonSock);
+	daemonSock = -1;
+	errno = eno;
+	return -1;
     }
 
-    if (count >= (int)sizeof(*msg)) {
-	/* At least the header was received and is valid */
-	if (count > (int)size) {
-	    errno = ENOBUFS;
-	    return -1;
-	} else if (count==msg->len) {
-	    return msg->len;
-	}
-    }
+    PSI_log(PSI_LOG_COMM, "%s: type %s (len=%d) from %s\n", __func__,
+	    PSP_printMsg(msg->type), msg->len, PSC_printTID(msg->sender));
 
-    return n;
+    return ret;
 }
 
 

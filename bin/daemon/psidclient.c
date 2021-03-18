@@ -391,75 +391,41 @@ int PSIDclient_send(DDMsg_t *msg)
     return -1;
 }
 
-/* @todo we need to timeout if message is too small */
 static ssize_t doClientRecv(int fd, DDMsg_t *msg, size_t size)
 {
-    int n;
-    int count = 0;
-
     if (!msg || size < sizeof(*msg)) {
 	PSID_log(-1, "%s: invalid msg\n", __func__);
 	errno = EINVAL;
 	return -1;
     }
-
     msg->len = sizeof(*msg);
 
+    ssize_t ret;
     if (!PSIDclient_isEstablished(fd)) {
-	/*
-	 * if this is the first contact of the client, the client may
-	 * use an incompatible msg format
-	 */
+	/* client's first contact => might use an incompatible msg format */
 	if (size < sizeof(DDInitMsg_t)) {
-	    errno = ENOMEM;
+	    errno = EMSGSIZE;
 	    return -1;
 	}
 
-	n = count = read(fd, msg, sizeof(DDInitMsg_t));
-	if (!count) {
+	ret = PSCio_recvBufP(fd, msg, sizeof(DDInitMsg_t));
+	if (!ret) {
 	    /* Socket close before initial message was sent */
 	    PSID_log(PSID_LOG_CLIENT,
 		     "%s(%d) socket already closed\n", __func__, fd);
-	} else if (count!=msg->len) {
+	} else if (ret != msg->len) {
 	    /* if wrong msg format initiate a disconnect */
-	    PSID_log(-1, "%d=%s(%d): initial message with incompatible type\n",
-		     n, __func__, fd);
-	    count=n=0;
+	    PSID_log(-1, "%zd = %s(%d): initial message of incompatible type\n",
+		     ret, __func__, fd);
+	    ret = 0;
 	}
-    } else do {
-	if (!count) {
-	    /* First chunk of data */
-	    n = read(fd, msg, sizeof(*msg));
-	} else {
-	    /* Later on we have msg->len */
-	    n = read(fd, &((char*) msg)[count], msg->len-count);
-	}
-	if (n>0) {
-	    if (!count) {
-		/* Just received first chunk of data */
-		if (msg->len > size) {
-		    /* message will not fit into msg */
-		    errno = EMSGSIZE;
-		    n = -1;
-		    /* @todo we should remove message from fd (with timeout!) */
-		    break;
-		}
-	    }
-	    count+=n;
-	} else if (n < 0 && (errno == EINTR || errno == EAGAIN)) {
-	    continue;
-	} else if (n < 0 && (errno == ECONNRESET)) {
-	    /* socket is closed unexpectedly */
-	    n = 0;
-	    break;
-	} else break; // n<=0
-    } while (msg->len > count);
-
-    if (count && count == msg->len) {
-	return msg->len;
     } else {
-	return n;
+	// @todo think about timeout on messed up protocol
+	ret = PSCio_recvMsgSize(fd, (DDBufferMsg_t *)msg, size);
+	/* socket is closed unexpectedly */
+	if (ret < 0 && errno == ECONNRESET) ret = 0;
     }
+    return ret;
 }
 
 ssize_t PSIDclient_recv(int fd, DDBufferMsg_t *msg, size_t size)
