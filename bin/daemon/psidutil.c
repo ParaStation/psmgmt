@@ -26,6 +26,7 @@
 #include <sys/resource.h>
 #include <sys/wait.h>
 
+#include "pscio.h"
 #include "pscommon.h"
 #include "logging.h"
 #include "selector.h"
@@ -218,27 +219,9 @@ void PSID_setMixedProto(bool mixed)
     mixedProto = mixed;
 }
 
-int PSID_readall(int fd, void *buf, size_t count)
+ssize_t PSID_readall(int fd, void *buf, size_t count)
 {
-    int len;
-    char *cbuf = (char *)buf;
-    size_t c = count;
-
-    while (c > 0) {
-	len = read(fd, cbuf, c);
-	if (len < 0) {
-	    if ((errno == EINTR) || (errno == EAGAIN))
-		continue;
-	    else
-		return -1;
-	} else if (len == 0) {
-	    return count-c;
-	}
-	c -= len;
-	cbuf += len;
-    }
-
-    return count;
+    return PSCio_recvBuf(fd, buf, count);
 }
 
 /**
