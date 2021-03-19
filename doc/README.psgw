@@ -9,13 +9,8 @@ Requirements
 - enabled slurmctld prologue
 - minimal pscom version 5.2.7-1_111 with psgwd support
 - minimal psmgmt version 5.1.17 with psgw support
-- python cluster shell module
 
 Notes
-
-This guide describes the installation and configuration of the PoC
-(proof of concept) implementation of the gateway daemon startup. A
-future release version might require different / additional steps.
 
 The examples in this document using the default psmgmt installation
 path /opt/parastation. For non standard installations please remember
@@ -79,13 +74,17 @@ plugin see:
 
 Configuration of the gateway nodes
 
-The psid plugin psexec and pelogue has to be loaded on all gateway
+The psid plugin psgw has to be loaded on all gateway
 nodes:
 
-Psid.LoadPlugins = ["psexec", "pelogue"]
+Psid.LoadPlugins = ["psgw"]
 
-Ensure that psid will allow to start processes on the gateway nodes.
-This can be done using the psiadmin commands "show starter" and "show runjobs".
+Additional plugin will automatically loaded via dependencies. Ensure that psid
+will allow to start processes on the gateway nodes. This can be done using the
+psiadmin commands "show starter" and "show runjobs".
+
+To set gateway nodes "offline" set "runjobs = 0". This is also the preferred method
+for prologue/epilogue scripts executing on gateway nodes.
 
 Global Slurm configuration
 
@@ -105,6 +104,10 @@ The following options are currently supported:
 --gw_env=string         Additional gateway environment variables
 --gw_cleanup            Automatically cleanup the route file
 --gw_binary=path        debug psgwd
+--gw_psgwd_per_node=n   Number of psgwd per gateway to start
+--gw_quiet              Suppress reporting gateway startup errors in file
+--gw_debug              Set PSP_DEBUG for the psgwd
+--gw_inherit            Inherit LD_LIBRARY_PATH and PSP_* from current environment
 
 These options will be listed in the section "Options provided by
 plugins" in the help output of the commands salloc/srun/sbatch. Refer
@@ -129,7 +132,8 @@ generate the routing file when the slurmctld prologue is executed. An
 environment variable pointing to the routing file will be forwarded by
 psslurm to every compute process of the allocation. After allocation
 is revoke the routing file will be automatically removed if the user
-specified the --gw_cleanup option.
+specified the --gw_cleanup option. An epilogue is executed on every
+gateway node when psslurm terminates the allocation.
 
 A routing file example:
 
