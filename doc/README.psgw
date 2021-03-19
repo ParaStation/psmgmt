@@ -156,3 +156,14 @@ A example connection using the gateway:
 
 <PSP:r0000001:DISCONNECT (192.168.12.42,30714,0xb,r0000001)
 	to (192.168.12.31,3141,0xb,r0000005) via gw>
+
+To set gateway nodes offline a similar ParaStation Healthcheck action may be defined:
+
+#
+# Object "hcaction:gateway_set_offline"
+#
+psconfig -q -- create 'hcaction:gateway_set_offline'
+psconfig -q -- setParents 'hcaction:gateway_set_offline' 'class:hcaction'
+psconfig -q -- set 'hcaction:gateway_set_offline' 'Command' 'bash -c '\''[ "${TS_RESULT:-0}" -lt 2 ] || { hwtype=$(/opt/parastation/bin/psiadmin -d -c "list hw -1"); [[ "$hwtype" =~ gateway ]] && /opt/parastation/bin/psiadmin -d -c "set runjobs false -1";}; exit 0'\'''
+psconfig -q -- setList 'hcaction:gateway_set_offline' 'Hardware' '*'
+psconfig -q -- setList 'hcaction:gateway_set_offline' 'NodeTypes' 'router_booster'
