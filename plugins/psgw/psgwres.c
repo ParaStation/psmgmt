@@ -739,6 +739,8 @@ bool startPSGWD(PSGW_Req_t *req)
 	    fdbg(PSGW_LOG_PSGWD | PSGW_LOG_DEBUG, "starting psgwd %u on "
 		 "node %i\n", gIdx, req->psgwd[gIdx].node);
 
+	    snprintf(buf, sizeof(buf), "%u", i);
+	    envSet(&psgwdEnv, "PSGWD_ID", buf);
 	    uint32_t id = atoi(req->jobid);
 	    int ret = psExecStartScriptEx(id, "psgwd_start", dir, &psgwdEnv,
 					  req->psgwd[gIdx].node, cbStartPSGWD);
