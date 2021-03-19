@@ -527,9 +527,20 @@ static void pelogueCB(char *jobid, int exit, bool timeout,
 
 	if (exit) {
 	    /* prologue failed */
-	    snprintf(msgBuf, sizeof(msgBuf), "prologue on gateway failed, "
-		     "jobid %s exit %i timeout %i\n", jobid, exit, timeout);
+	    StrBuffer_t failNodes = { .buf = NULL, .bufSize = 0 };
+	    for (uint32_t i=0; i<req->numGWnodes; i++) {
+		if (result[i].prologue != PELOGUE_DONE) {
+		    if (failNodes.buf) addStrBuf(",", &failNodes);
+		    addStrBuf(getHostnameByNodeId(result[i].id), &failNodes);
+		}
+	    }
+
+	    snprintf(msgBuf, sizeof(msgBuf), "prologue on gateway(s) %s failed,"
+		     " jobid %s exit %i timeout %i\n",
+		     failNodes.buf ? failNodes.buf : "unknown", jobid, exit,
+		     timeout);
 	    cancelReq(req, msgBuf);
+	    ufree(failNodes.buf);
 	} else {
 	    finalizeRequest(req);
 	}
