@@ -79,8 +79,8 @@ nodes:
 
 Psid.LoadPlugins = ["psgw"]
 
-Additional plugin will automatically loaded via dependencies. Ensure that psid
-will allow to start processes on the gateway nodes. This can be done using the
+Additional plugins will be automatically loaded via dependencies. Ensure that psid
+allows to start processes on the gateway nodes. This can be done using the
 psiadmin commands "show starter" and "show runjobs".
 
 To set gateway nodes "offline" set "runjobs = 0". This is also the preferred method
