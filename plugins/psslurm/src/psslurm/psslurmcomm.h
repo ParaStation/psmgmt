@@ -392,11 +392,11 @@ int srunSendIO(uint16_t type, uint16_t grank, Step_t *step, char *buf,
  *
  * @param sock The socket file descriptor
  *
- * @param ioh @doctodo
+ * @param ioh Slurm I/O header
  *
  * @param buf The buffer to send
  *
- * @param error @doctodo
+ * @param error If an error occurred it will hold the errno
  *
  * @return Returns the number of bytes written or -1 on error
  */

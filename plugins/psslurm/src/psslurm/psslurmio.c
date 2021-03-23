@@ -225,6 +225,7 @@ static void IO_writeMsg(Forwarder_Data_t *fwdata, char *msg, uint32_t msgLen,
 	}
     }
 
+    /* save message to ring buffer for later connecting sattach processes */
     msg2Buffer(msg, msgLen, grank, type);
 }
 
@@ -243,27 +244,26 @@ static void writeLabelIOmsg(Forwarder_Data_t *fwdata, char *msg,
 
 {
     Step_t *step = fwdata->userData;
-    char label[128];
-    char *ptr, *nl;
-    uint32_t left, len;
 
     if (!(step->taskFlags & LAUNCH_LABEL_IO) || !msgLen ||
 	(type == STDOUT &&
 	(step->stdOutOpt == IO_SRUN || step->stdOutOpt == IO_SRUN_RANK)) ||
 	(type == STDERR &&
 	(step->stdOutOpt == IO_SRUN || step->stdOutOpt == IO_SRUN_RANK))) {
+	/* no label necessary or srun will add it */
 	IO_writeMsg(fwdata, msg, msgLen, grank, type, lrank);
 	return;
     }
 
-    /* prefix every new line with grank */
+    /* prefix every new line with grank (IO_RANK_FILE, IO_NODE_FILE) */
+    char label[128];
     snprintf(label, sizeof(label), "%0*u: ", getWidth(step->np -1), grank);
 
-    ptr = msg;
-    left = msgLen;
+    uint32_t left = msgLen;
+    char *nl, *ptr = msg;
 
     while (ptr && left > 0 && (nl = memchr(ptr, '\n', left))) {
-	len = (nl +1) - ptr;
+	uint32_t len = (nl +1) - ptr;
 	IO_writeMsg(fwdata, label, strlen(label), grank, type, lrank);
 	IO_writeMsg(fwdata, ptr, len, grank, type, lrank);
 	left -= len;
@@ -275,23 +275,30 @@ static void handleBufferedMsg(Forwarder_Data_t *fwdata, char *msg, uint32_t len,
 			      PS_DataBuffer_t *buffer, uint32_t grank,
 			      uint8_t type, uint32_t lrank)
 {
-    uint32_t nlLen;
-    char *nl;
-
-    nl = len ? memrchr(msg, '\n', len) : NULL;
-
+    char *nl = len ? memrchr(msg, '\n', len) : NULL;
     if (nl || !len || buffer->bufUsed + len > MAX_LINE_BUF_LENGTH) {
+	/* messages with newline or empty */
+	uint32_t nlLen = nl ? nl - msg +1: len;
+
 	if (buffer->bufUsed) {
+	    /* add new data to msg buffer so it can be written in one piece */
+	    memToDataBuffer(msg, nlLen, buffer);
+
+	    /* write data saved in the buffer */
 	    writeLabelIOmsg(fwdata, buffer->buf, buffer->bufUsed, grank,
 			    type, lrank);
 	    buffer->bufUsed = 0;
+	} else {
+	    /* write data including newline */
+	    writeLabelIOmsg(fwdata, msg, nlLen, grank, type, lrank);
 	}
-	nlLen = nl ? nl - msg +1: len;
-	writeLabelIOmsg(fwdata, msg, nlLen, grank, type, lrank);
+
 	if (len - nlLen > 0) {
+	    /* save data after newline to buffer */
 	    memToDataBuffer(msg + nlLen, len - nlLen, buffer);
 	}
     } else {
+	/* save data without newline to buffer */
 	memToDataBuffer(msg, len, buffer);
     }
 }

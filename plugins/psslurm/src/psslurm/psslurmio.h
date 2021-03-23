@@ -36,8 +36,8 @@ typedef enum {
     IO_SRUN,		/**< I/O via srun */
     IO_SRUN_RANK,	/**< I/O via srun to a single task/rank  */
     IO_GLOBAL_FILE,	/**< I/O to global file */
-    IO_RANK_FILE,	/**< separate I/O file per rank */
-    IO_NODE_FILE,	/**< separate I/O file per node */
+    IO_RANK_FILE,	/**< separate I/O file per rank via psslurm */
+    IO_NODE_FILE,	/**< separate I/O file per node via psslurm */
 } IO_Opt_t;
 
 /** Used to track the state of an I/O connection */

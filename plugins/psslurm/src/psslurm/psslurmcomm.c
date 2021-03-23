@@ -7,6 +7,7 @@
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
+#define _GNU_SOURCE
 #include <stdio.h>
 #include <stdlib.h>
 #include <errno.h>
@@ -17,6 +18,7 @@
 #include <unistd.h>
 #include <signal.h>
 #include <ctype.h>
+#include <string.h>
 
 #include "pscio.h"
 #include "psserial.h"
@@ -44,11 +46,14 @@
 /** default slurmd port psslurm listens for new srun/slurmcltd requests */
 #define PSSLURM_SLURMD_PORT 6818
 
-/** maximal allowed length of a bitstring */
+/** maximal allowed length of a bit-string */
 #define MAX_PACK_STR_LEN (16 * 1024 * 1024)
 
 /** maximal number of parallel supported Slurm control daemons */
 #define MAX_CTL_HOSTS 16
+
+/** maximal length of a Slurm I/O message buffer */
+#define SLURM_IO_MAX_LEN 1024
 
 /** socket to listen for new Slurm connections */
 static int slurmListenSocket = -1;
@@ -1428,8 +1433,12 @@ int srunSendIOEx(int sock, IO_Slurm_Header_t *iohead, char *buf, int *error)
     memcpy(&ioh, iohead, sizeof(IO_Slurm_Header_t));
 
     while (once || towrite > 0) {
-	ioh.len = towrite > 1000 ? 1000 : towrite;
-
+	ioh.len = towrite;
+	if (towrite > SLURM_IO_MAX_LEN) {
+	    /* find newline in the maximal accepted message length */
+	    char *nl = memrchr(buf + written, '\n', SLURM_IO_MAX_LEN);
+	    ioh.len = nl ? (nl +1) - (buf + written) : SLURM_IO_MAX_LEN;
+	}
 	packSlurmIOMsg(&data, &ioh, buf + written);
 	ret = PSCio_sendF(sock, data.buf, data.bufUsed);
 
