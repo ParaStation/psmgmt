@@ -1,14 +1,15 @@
+#include <stdbool.h>
 #include <stdlib.h>
 
 #include <slurm/spank.h>
 
 SPANK_PLUGIN(perfparanoidspank, 1)
 
-static int _enable_nonparanoid = 0;
+static bool _enable_nonparanoid = false;
 
 static int spank_option_cb(int val, const char *optarg, int remote)
 {
-    _enable_nonparanoid = 1;
+    _enable_nonparanoid = true;
 
     return 0;
 }
@@ -31,10 +32,12 @@ int slurm_spank_init_post_opt(spank_t sp, int ac, char **av)
 {
     if (_enable_nonparanoid) {
 	spank_job_control_setenv(sp, "SET_NON_PERF_PARANOID", "1", 1);
-	spank_job_control_setenv(sp, "SLURM_SPANK_SET_NON_PERF_PARANOID", "1", 1);
+	spank_job_control_setenv(sp, "SLURM_SPANK_SET_NON_PERF_PARANOID", "1",
+				 1);
     } else{
 	spank_job_control_setenv(sp, "SET_NON_PERF_PARANOID", "0", 1);
-	spank_job_control_setenv(sp, "SLURM_SPANK_SET_NON_PERF_PARANOID", "0", 1);
+	spank_job_control_setenv(sp, "SLURM_SPANK_SET_NON_PERF_PARANOID", "0",
+				 1);
     }
     return 0;
 }

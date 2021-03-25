@@ -7,8 +7,7 @@ SPANK_PLUGIN(perftoolspank, 1)
 
 static char *_perftool_list = NULL;
 
-/* TODO Read list from spank arguments?
-*/
+/* TODO Read list from spank arguments? */
 static const char *_known_perftools[] = {"likwid", "vtune", NULL};
 
 int validate_perftool_list()

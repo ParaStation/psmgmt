@@ -1,14 +1,15 @@
+#include <stdbool.h>
 #include <stdlib.h>
 
 #include <slurm/spank.h>
 
 SPANK_PLUGIN(noturbospank, 1)
 
-static int _enable_noturbo = 0;
+static bool _enable_noturbo = false;
 
 static int spank_option_cb(int val, const char *optarg, int remote)
 {
-    _enable_noturbo = 1;
+    _enable_noturbo = true;
 
     return 0;
 }

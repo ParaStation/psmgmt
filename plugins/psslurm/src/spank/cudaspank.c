@@ -1,14 +1,15 @@
+#include <stdbool.h>
 #include <stdlib.h>
 
 #include <slurm/spank.h>
 
 SPANK_PLUGIN(cudaspank, 1)
 
-static int _enable_cuda_mps = 0;
+static bool _enable_cuda_mps = false;
 
 static int spank_option_cb(int val, const char *optarg, int remote)
 {
-    _enable_cuda_mps = 1;
+    _enable_cuda_mps = true;
 
     return 0;
 }

@@ -1,3 +1,4 @@
+#include <stdbool.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -22,9 +23,9 @@ static int spank_option_cb(int val, const char *optarg, int remote)
 	_start_xserver = strdup(optarg);
     }
 
-    int ok = 0;
+    bool ok = false;
     for (int i = 0; _supported[i]; ++i) {
-	if (!strcmp(_supported[i], _start_xserver)) ok = 1;
+	if (!strcmp(_supported[i], _start_xserver)) ok = true;
     }
 
     if (!ok) {
