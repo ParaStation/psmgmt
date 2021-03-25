@@ -17,12 +17,44 @@ AM_CPPFLAGS += -I$(top_srcdir)/bin/daemon		\
 	       -I$(top_srcdir)/$(psslurm_dir)/common 	\
 	       -I$(top_srcdir)/$(psslurm_dir)/psslurm
 
-slurmlib_LTLIBRARIES = spank_api.la x11spank.la
+slurmlib_LTLIBRARIES = cudaspank.la globresspank.la nopshcspank.la noturbospank.la perfparanoidspank.la perftoolspank.la showglobresspank.la spank_api.la visspank.la x11spank.la
 
-spank_api_la_SOURCES = spank_api.c spank_api.h
+spank_api_la_SOURCES = spank_api.c
 
 spank_api_la_CPPFLAGS = $(AM_CPPFLAGS) -DSLURMLIBDIR=\"$(slurmlibdir)\"
 
-x11spank_la_SOURCES =  x11spank.c
+cudaspank_la_SOURCES = cudaspank.c
+
+cudaspank_la_CPPFLAGS = $(AM_CPPFLAGS) -DSLURMLIBDIR=\"$(slurmlibdir)\"
+
+globresspank_la_SOURCES = globresspank.c
+
+globresspank_la_CPPFLAGS = $(AM_CPPFLAGS) -DSLURMLIBDIR=\"$(slurmlibdir)\"
+
+nopshcspank_la_SOURCES = nopshcspank.c
+
+nopshcspank_la_CPPFLAGS = $(AM_CPPFLAGS) -DSLURMLIBDIR=\"$(slurmlibdir)\"
+
+noturbospank_la_SOURCES = noturbospank.c
+
+noturbospank_la_CPPFLAGS = $(AM_CPPFLAGS) -DSLURMLIBDIR=\"$(slurmlibdir)\"
+
+perfparanoidspank_la_SOURCES = perfparanoidspank.c
+
+perfparanoidspank_la_CPPFLAGS = $(AM_CPPFLAGS) -DSLURMLIBDIR=\"$(slurmlibdir)\"
+
+perftoolspank_la_SOURCES = perftoolspank.c
+
+perftoolspank_la_CPPFLAGS = $(AM_CPPFLAGS) -DSLURMLIBDIR=\"$(slurmlibdir)\"
+
+showglobresspank_la_SOURCES = showglobresspank.c
+
+showglobresspank_la_CPPFLAGS = $(AM_CPPFLAGS) -DSLURMLIBDIR=\"$(slurmlibdir)\"
+
+visspank_la_SOURCES = visspank.c
+
+visspank_la_CPPFLAGS = $(AM_CPPFLAGS) -DSLURMLIBDIR=\"$(slurmlibdir)\"
+
+x11spank_la_SOURCES = x11spank.c
 
 x11spank_la_CPPFLAGS = $(AM_CPPFLAGS) -DSLURMLIBDIR=\"$(slurmlibdir)\"
