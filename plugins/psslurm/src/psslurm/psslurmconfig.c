@@ -20,6 +20,7 @@
 #include "pshostlist.h"
 
 #include "pluginmalloc.h"
+#include "psidhw.h"
 
 #include "psslurmlog.h"
 #include "psslurmgres.h"
@@ -834,26 +835,61 @@ static bool verifySlurmConf()
 	mlog("%s: could not find my host addr in slurm.conf\n", __func__);
 	return false;
     }
-    if (!getConfValueC(&Config, "SLURM_CPUS")) {
-	mlog("%s: invalid SLURM_CPUS\n", __func__);
-	return false;
+
+    int boards = getConfValueI(&Config, "SLURM_BOARDS");
+    if (boards == -1) {
+	/* set default boards */
+	addConfigEntry(&Config, "SLURM_BOARDS", "1");
+	boards = 1;
     }
-    if (!getConfValueC(&Config, "SLURM_SOCKETS")) {
-	mlog("%s: invalid SLURM_SOCKETS\n", __func__);
-	return false;
+
+    int sockets = getConfValueI(&Config, "SLURM_SOCKETS");
+    if (sockets == -1) {
+	/* set default socket */
+	addConfigEntry(&Config, "SLURM_SOCKETS", "1");
+	sockets = 1;
     }
-    if (!getConfValueC(&Config, "SLURM_CORES_PER_SOCKET")) {
+
+    int cores = getConfValueI(&Config, "SLURM_CORES_PER_SOCKET");
+    if (cores == -1) {
 	mlog("%s: invalid SLURM_CORES_PER_SOCKET\n", __func__);
 	return false;
     }
-    if (!getConfValueC(&Config, "SLURM_THREADS_PER_CORE")) {
+    int threads = getConfValueI(&Config, "SLURM_THREADS_PER_CORE");
+    if (threads == -1) {
 	mlog("%s: invalid SLURM_THREADS_PER_CORE\n", __func__);
 	return false;
     }
-    if (!getConfValueC(&Config, "SLURM_BOARDS")) {
-	/* set default boards */
-	addConfigEntry(&Config, "SLURM_BOARDS", "1");
+
+    int calcCPUs = boards * sockets * cores * threads;
+
+    int slurmCPUs = getConfValueI(&Config, "SLURM_CPUS");
+    if (slurmCPUs == -1) {
+	char CPUs[64];
+	snprintf(CPUs, sizeof(CPUs), "%i", calcCPUs);
+	addConfigEntry(&Config, "SLURM_CPUS", CPUs);
+	slurmCPUs = getConfValueI(&Config, "SLURM_CPUS");
     }
+    /* verify that the Slurm configuration is consistent */
+    if (calcCPUs != slurmCPUs) {
+	flog("mismatching SLURM_CPUS %i calculated by "
+		"sockets/threads/cores %i\n", slurmCPUs, calcCPUs);
+	return false;
+    }
+
+    /* verify psslurm and psid have the same hardware view */
+    if (slurmCPUs != PSIDhw_getHWthreads()) {
+	flog("Slurm CPUs %i mismatching psid CPUs %i\n", slurmCPUs,
+	     PSIDhw_getHWthreads());
+	return false;
+    }
+
+    if (boards * sockets * cores != PSIDhw_getCores()) {
+	flog("Slurm cores %i mismatching psid cores %i\n", sockets * cores,
+	     PSIDhw_getCores());
+	return false;
+    }
+
     return true;
 }
 
