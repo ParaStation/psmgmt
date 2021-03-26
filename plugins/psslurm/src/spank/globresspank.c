@@ -7,6 +7,7 @@
  * Slurm plugin loader.
  */
 SPANK_PLUGIN(globresspank, 1)
+const char psid_plugin[] = "yes";
 
 /*
  * Callbacks for SPANK option

@@ -4,6 +4,7 @@
 #include <slurm/spank.h>
 
 SPANK_PLUGIN(perftoolspank, 1)
+const char psid_plugin[] = "yes";
 
 static char *_perftool_list = NULL;
 

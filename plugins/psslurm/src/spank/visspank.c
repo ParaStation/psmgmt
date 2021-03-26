@@ -5,6 +5,7 @@
 #include <slurm/spank.h>
 
 SPANK_PLUGIN(visspank, 1)
+const char psid_plugin[] = "yes";
 
 static char *_start_xserver = NULL;
 

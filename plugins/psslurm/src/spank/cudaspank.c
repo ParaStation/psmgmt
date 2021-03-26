@@ -4,6 +4,7 @@
 #include <slurm/spank.h>
 
 SPANK_PLUGIN(cudaspank, 1)
+const char psid_plugin[] = "yes";
 
 static bool _enable_cuda_mps = false;
 

@@ -20,6 +20,7 @@
 #include <slurm/spank.h>
 
 SPANK_PLUGIN(x11spank, 1)
+const char psid_plugin[] = "yes";
 
 #define XAUTH		"/usr/bin/xauth"
 #define X11_FIRST_PORT	6010
