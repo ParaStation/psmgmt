@@ -699,7 +699,7 @@ bool startPSGWD(PSGW_Req_t *req)
     envSet(&psgwdEnv, "PSGWD_CWD", cwd);
 
     char *ld = envGet(peEnv, "SLURM_SPANK_PSGWD_LD_LIB");
-    envSet(&psgwdEnv, "LD_LIBRARY_PATH", ld);
+    if (ld) envSet(&psgwdEnv, "LD_LIBRARY_PATH", ld);
 
     for (uint32_t i=0; i<peEnv->cnt; i++) {
 	char *next = envGetIndex(peEnv, i);
