@@ -145,12 +145,14 @@ def splitNodes(nodeList):
     booster = []
 
     for node in expand_list(nodeList):
+        IP = config.get("host:%s" % node, '%s.DevIPAddress' % \
+                        (config.get("host:%s" % node, 'Psid.NetworkName')))
         data = config.getList("host:%s" % node, "Psid.HardwareTypes",
                               inherit=True, follow=True)
         if any("booster" in s for s in data):
-            booster.append(node)
+            booster.append(IP)
         else:
-            cluster.append(node)
+            cluster.append(IP)
 
     nodesA = compress(cluster)
     vlog("Cluster nodes = %s" % nodesA)
