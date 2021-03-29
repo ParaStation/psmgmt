@@ -227,4 +227,34 @@ const char *IO_strOpt(int opt);
  */
 const char *IO_strType(int type);
 
+/**
+ * @brief Replace various symbols for a step path
+ *
+ * This is a wrapper for @ref replaceSymbols().
+ *
+ * @param step The step to replace the symbols for
+ *
+ * @param rank The rank of the step
+ *
+ * @param path The string to replace the symbols in
+ *
+ * @param Returns a string holding the result or NULL on error. The caller
+ * is responsible to free the allocated memory after use.
+ */
+char *IO_replaceStepSymbols(Step_t *step, int rank, char *path);
+
+/**
+ * @brief Replace various symbols for a job path
+ *
+ * This is a wrapper for @ref replaceSymbols().
+ *
+ * @param job The job to replace the symbols for
+ *
+ * @param path The string to replace the symbols in
+ *
+ * @param Returns a string holding the result or NULL on error. The caller
+ * is responsible to free the allocated memory after use.
+ */
+char *IO_replaceJobSymbols(Job_t *job, char *path);
+
 #endif  /* __PS_SLURM_IO */

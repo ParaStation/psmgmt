@@ -53,7 +53,7 @@ const ConfDef_t confDef[] =
     { "SLURM_CONF", 0,
 	"file",
 	"/etc/slurm/slurm.conf",
-	"Configuration file of slurm" },
+	"Configuration file of Slurm" },
     { "SLURM_CONF_SERVER", 0,
 	"ip:port",
 	"none",
@@ -77,7 +77,7 @@ const ConfDef_t confDef[] =
     { "DIR_JOB_FILES", 0,
 	"path",
 	SPOOL_DIR "/jobs",
-	"Directory to store jobscripts" },
+	"Directory to store job-scripts" },
     { "TIMEOUT_PROLOGUE", 1,
 	"sec",
 	"300",
@@ -106,7 +106,7 @@ const ConfDef_t confDef[] =
     { "ENFORCE_BATCH_START", 1,
 	"bool",
 	"1",
-	"Enforce jobs to use the Batchsystem, only admin user may use mpiexec "
+	"Enforce jobs to use the batch-system, only admin user may use mpiexec "
 	    "directly" },
     { "PELOGUE_ENV_FILTER", 0,
 	"list",
@@ -224,7 +224,11 @@ const ConfDef_t confDef[] =
     { "SLURM_UPDATE_CONF_AT_STARTUP", 1,
 	"bool",
 	"1",
-	"Always update Slurm configuration at startup in configless mode" },
+	"Always update Slurm configuration at startup in config-less mode" },
+    { "CWD_PATTERN", 1,
+	"bool",
+	"1",
+	"Apply filename patterns on job/steps current working directory" },
     { NULL, 0, NULL, NULL, NULL },
 };
 

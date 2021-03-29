@@ -628,21 +628,7 @@ static char *replaceSymbols(uint32_t jobid, uint32_t stepid, char *hostname,
     return buf;
 }
 
-/**
- * @brief Replace various symbols for a step path
- *
- * This is a wrapper for @ref replaceSymbols().
- *
- * @param step The step to replace the symbols for
- *
- * @param rank The rank of the step
- *
- * @param path The string to replace the symbols in
- *
- * @param Returns a string holding the result or NULL on error. The caller
- * is responsible to free the allocated memory after use.
- */
-static char *replaceStepSymbols(Step_t *step, int rank, char *path)
+char *IO_replaceStepSymbols(Step_t *step, int rank, char *path)
 {
     Job_t *job;
     uint32_t arrayJobId = 0, arrayTaskId = 0;
@@ -660,19 +646,7 @@ static char *replaceStepSymbols(Step_t *step, int rank, char *path)
 			  arrayTaskId, rank, path, jobname);
 }
 
-/**
- * @brief Replace various symbols for a job path
- *
- * This is a wrapper for @ref replaceSymbols().
- *
- * @param job The job to replace the symbols for
- *
- * @param path The string to replace the symbols in
- *
- * @param Returns a string holding the result or NULL on error. The caller
- * is responsible to free the allocated memory after use.
- */
-static char *replaceJobSymbols(Job_t *job, char *path)
+char *IO_replaceJobSymbols(Job_t *job, char *path)
 {
     char *jobname = envGet(&job->env, "SLURM_JOB_NAME");
 
@@ -725,7 +699,7 @@ void IO_redirectJob(Forwarder_Data_t *fwdata, Job_t *job)
     if (!(strlen(job->stdIn))) {
 	inFile = ustrdup("/dev/null");
     } else {
-	inFile = addCwd(job->cwd, replaceJobSymbols(job, job->stdIn));
+	inFile = addCwd(job->cwd, IO_replaceJobSymbols(job, job->stdIn));
     }
     if ((fd = open(inFile, O_RDONLY)) == -1) {
 	mwarn(errno, "%s: open stdin '%s' failed :", __func__, inFile);
@@ -744,7 +718,7 @@ int IO_redirectRank(Step_t *step, int rank)
 
     /* redirect stdin */
     if (step->stdInOpt == IO_RANK_FILE) {
-	char *ptr = replaceStepSymbols(step, rank, step->stdIn);
+	char *ptr = IO_replaceStepSymbols(step, rank, step->stdIn);
 	char *inFile = addCwd(step->cwd, ptr);
 
 	if ((fd = open(inFile, O_RDONLY)) == -1) {
@@ -874,9 +848,9 @@ void IO_openJobIOfiles(Forwarder_Data_t *fwdata)
     close(STDOUT_FILENO);
 
     if (!(strlen(job->stdOut))) {
-	outFile = addCwd(job->cwd, replaceJobSymbols(job, defOutName));
+	outFile = addCwd(job->cwd, IO_replaceJobSymbols(job, defOutName));
     } else {
-	outFile = addCwd(job->cwd, replaceJobSymbols(job, job->stdOut));
+	outFile = addCwd(job->cwd, IO_replaceJobSymbols(job, job->stdOut));
     }
 
     mdbg(PSSLURM_LOG_IO, "%s: job %u stdout file %s\n", __func__,
@@ -894,7 +868,7 @@ void IO_openJobIOfiles(Forwarder_Data_t *fwdata)
     close(STDERR_FILENO);
 
     if (strlen(job->stdErr)) {
-	char *errFile = addCwd(job->cwd, replaceJobSymbols(job, job->stdErr));
+	char *errFile = addCwd(job->cwd, IO_replaceJobSymbols(job, job->stdErr));
 	mdbg(PSSLURM_LOG_IO, "%s: job %u stderr file %s\n", __func__,
 	     job->jobid, errFile);
 	if ((job->stdErrFD = open(errFile, flags, 0666)) == -1) {
@@ -920,7 +894,8 @@ void IO_redirectStep(Forwarder_Data_t *fwdata, Step_t *step)
     /* stdout */
     if (step->stdOutOpt == IO_NODE_FILE ||
 	(!myNodeID && step->stdOutOpt == IO_GLOBAL_FILE)) {
-	outFile = addCwd(step->cwd, replaceStepSymbols(step, 0, step->stdOut));
+	outFile = addCwd(step->cwd,
+			 IO_replaceStepSymbols(step, 0, step->stdOut));
 
 	fwdata->stdOut[0] = -1;
 	if ((fwdata->stdOut[1] = open(outFile, flags, 0666)) == -1) {
@@ -935,7 +910,7 @@ void IO_redirectStep(Forwarder_Data_t *fwdata, Step_t *step)
 
 	uint32_t i;
 	for (i=0; i<step->globalTaskIdsLen[myNodeID]; i++) {
-	    outFile = addCwd(step->cwd, replaceStepSymbols(step,
+	    outFile = addCwd(step->cwd, IO_replaceStepSymbols(step,
 			     step->globalTaskIds[myNodeID][i],
 			     step->stdOut));
 
@@ -951,7 +926,8 @@ void IO_redirectStep(Forwarder_Data_t *fwdata, Step_t *step)
     /* stderr */
     if (step->stdErrOpt == IO_NODE_FILE ||
 	(!myNodeID && step->stdErrOpt == IO_GLOBAL_FILE)) {
-	errFile = addCwd(step->cwd, replaceStepSymbols(step, 0, step->stdErr));
+	errFile = addCwd(step->cwd,
+			 IO_replaceStepSymbols(step, 0, step->stdErr));
 
 	fwdata->stdErr[0] = -1;
 	if (outFile && !(strcmp(outFile, errFile))) {
@@ -971,7 +947,7 @@ void IO_redirectStep(Forwarder_Data_t *fwdata, Step_t *step)
 
 	uint32_t i;
 	for (i=0; i<step->globalTaskIdsLen[myNodeID]; i++) {
-	    errFile = addCwd(step->cwd, replaceStepSymbols(step,
+	    errFile = addCwd(step->cwd, IO_replaceStepSymbols(step,
 			     step->globalTaskIds[myNodeID][i],
 			     step->stdErr));
 
@@ -986,7 +962,7 @@ void IO_redirectStep(Forwarder_Data_t *fwdata, Step_t *step)
 
     /* stdin */
     if (step->stdInRank == -1 && step->stdIn && strlen(step->stdIn) > 0) {
-	inFile = addCwd(step->cwd, replaceStepSymbols(step, 0, step->stdIn));
+	inFile = addCwd(step->cwd, IO_replaceStepSymbols(step, 0, step->stdIn));
 
 	fwdata->stdIn[1] = -1;
 	if ((fwdata->stdIn[0] = open(inFile, O_RDONLY)) == -1) {

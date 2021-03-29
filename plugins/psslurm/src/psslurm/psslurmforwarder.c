@@ -302,7 +302,11 @@ static void fwExecBatchJob(Forwarder_Data_t *fwdata, int rerun)
     setDefaultRlimits();
 
     /* switch user */
-    if (!switchUser(job->username, job->uid, job->gid, job->cwd)) {
+    char *cwd = job->cwd;
+    if (getConfValueI(&Config, "CWD_PATTERN") == 1) {
+	cwd = IO_replaceJobSymbols(job, job->cwd);
+    }
+    if (!switchUser(job->username, job->uid, job->gid, cwd)) {
 	flog("switching user failed\n");
 	exit(1);
     }
@@ -915,7 +919,11 @@ static void fwExecStep(Forwarder_Data_t *fwdata, int rerun)
     setDefaultRlimits();
 
     /* switch user */
-    if (!switchUser(step->username, step->uid, step->gid, step->cwd)) {
+    char *cwd = step->cwd;
+    if (getConfValueI(&Config, "CWD_PATTERN") == 1) {
+	cwd = IO_replaceStepSymbols(step, 0, step->cwd);
+    }
+    if (!switchUser(step->username, step->uid, step->gid, cwd)) {
 	flog("switching user failed\n");
 	exit(1);
     }
