@@ -5,6 +5,15 @@ Copyright (C) 2010-2021 ParTec Cluster Competence Center GmbH, Munich
 Please send bug reports, questions and suggestions to <support@par-tec.com>
 
 
+Version 5.1.39-3:
+=================
+Bugfixes:
+ - Don't overwrite LD_LIBRARY_PATH on gateway nodes with an empty value (#2893)
+ - Fix unexpected line breaks in output when using srun's label option (#2868)
+Enhancements:
+ - Do not send SIGWINCH again if already sent by ioctl(TIOCSWINSZ)
+
+
 Version 5.1.39-2:
 =================
 Bugfixes:

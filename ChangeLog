@@ -1,3 +1,27 @@
+Version psmgmt-5.1.39-3:
+========================
+------------------------------------------------------------------------
+5507b101 | Michael Rauh | Mon, 29 Mar 2021 10:20:33 +0200
+
+Bugfix: don't overwrite LD_LIBRARY_PATH on gateway nodes with an
+empty value (#2893)
+------------------------------------------------------------------------
+9b26c6b9 | Michael Rauh | Tue, 23 Mar 2021 18:24:29 +0100
+
+Bugfix: fix unexpected line breaks in output when using label option
+of srun (#2868)
+------------------------------------------------------------------------
+eb82d0be | Michael Rauh | Thu, 11 Mar 2021 10:03:43 +0100
+
+Get rid of obsolete comment
+------------------------------------------------------------------------
+dfd46f9f | Michael Rauh | Wed, 10 Mar 2021 20:52:32 +0100
+
+Remove unneeded sending of SIGWINCH. This is already done
+by ioctl(TIOCSWINSZ)
+------------------------------------------------------------------------
+
+
 Version psmgmt-5.1.39-2:
 ========================
 ------------------------------------------------------------------------
