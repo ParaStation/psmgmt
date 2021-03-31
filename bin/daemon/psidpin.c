@@ -159,52 +159,44 @@ static void pinToCPUs(cpu_set_t *physSet)
  */
 static void bindToGPUs(PSCPU_set_t *cpuSet)
 {
-    uint16_t numNUMA = PSIDnodes_numNUMADoms(PSC_getMyID());
+    uint16_t *gpulist = NULL;
+    size_t gpucount;
 
-    uint16_t *closelist = NULL;
-    size_t closecount;
-    if (!PSIDpin_getCloseGPUs(PSC_getMyID(), &closelist, &closecount, cpuSet)) {
-	return;
-    }
+    uint16_t numGPUs = PSIDnodes_numGPUs(PSC_getMyID());
 
     /* build list of usable GPUs */
-    uint16_t usablelist[numNUMA];
-    size_t usablecount = 0;
+    PSCPU_set_t gpuSet;
     char *usable = getenv("__PSID_USE_GPUS");
     if (usable) {
 	char *tmp = strdup(usable);
 	char *tok;
 	for (char *ptr = tmp; (tok = strtok(ptr, ",")); ptr = NULL) {
 	    char *end;
-	    usablelist[usablecount] = strtol(tok, &end, 0);
-	    if (!*end) usablecount++;
+	    uint16_t gpu = strtol(tok, &end, 0);
+	    if (gpu >= numGPUs) continue;
+	    PSCPU_setCPU(gpuSet, gpu);
 	}
 	free(tmp);
     }
+    else {
+	PSCPU_setAll(gpuSet);
+    }
 
-    if (usable && !usablecount) {
+    if (!PSIDpin_getClosestGPUs(PSC_getMyID(), &gpulist, &gpucount, cpuSet,
+		&gpuSet)) {
 	return;
     }
 
-    char val[3*numNUMA];
+    char val[3*numGPUs];
     size_t len = 0;
 
-    /* build string listing the usable GPUs connected to those NUMA nodes */
-    for (size_t i = 0; i < closecount; i++) {
-	bool add = false;
-	for (size_t j = 0; j < usablecount; j++) {
-	    if (usablelist[j] == closelist[i]) {
-		add = true;
-		break;
-	    }
-	}
-	if (usable && !add) continue;
-	len += snprintf(val+len, 4, "%hu,", closelist[i]);
+    /* build string listing the closest GPUs */
+    for (size_t i = 0; i < gpucount; i++) {
+	len += snprintf(val+len, 4, "%hu,", gpulist[i]);
     }
-
     val[len ? len-1 : len] = '\0';
 
-    free(closelist);
+    free(gpulist);
 
     PSID_log(PSID_LOG_SPAWN, "%s: Setup to use GPUs '%s'\n", __func__, val);
 
@@ -234,6 +226,25 @@ static void bindToGPUs(PSCPU_set_t *cpuSet)
     }
 
     /* always set PSID version */
+    setenv("PSID_CLOSEST_GPUS", val, 1);
+
+    /* set variable with real close GPUs, connected directly to one of the
+     * NUMA domains our CPUs are also connected to */
+    if (!PSIDpin_getCloseGPUs(PSC_getMyID(), &gpulist, &gpucount, cpuSet,
+		&gpuSet)) {
+	return;
+    }
+
+    /* build string listing the closest GPUs */
+    len = 0;
+    for (size_t i = 0; i < gpucount; i++) {
+	len += snprintf(val+len, 4, "%hu,", gpulist[i]);
+    }
+    val[len ? len-1 : len] = '\0';
+
+    free(gpulist);
+
+    PSID_log(PSID_LOG_SPAWN, "%s: Set PSID_CLOSE_GPUS='%s'\n", __func__, val);
     setenv("PSID_CLOSE_GPUS", val, 1);
 }
 
@@ -481,8 +492,60 @@ void PSIDpin_doClamps(PStask_t *task)
 }
 
 bool PSIDpin_getCloseGPUs(PSnodes_ID_t id, uint16_t **closelist,
-			  size_t *closecount, PSCPU_set_t *cpuSet)
+			  size_t *closecount, PSCPU_set_t *cpuSet,
+			  PSCPU_set_t *gpuSet)
 {
+    uint16_t numNUMA = PSIDnodes_numNUMADoms(id);
+    int numThrds = PSIDnodes_getNumThrds(id);
+    PSCPU_set_t *CPUSets = PSIDnodes_CPUSets(id);
+    /* get mapped CPUs regarding __PSI_CPUMAP if set */
+    cpu_set_t *tmpMappedSet = PSIDpin_mapCPUs(*cpuSet);
+    /* tranform into PSCPU_set_t */
+    PSCPU_set_t mappedSet;
+    PSCPU_clrAll(mappedSet);
+    for (uint16_t t = 0; t < numThrds; t++) {
+	if (CPU_ISSET(t, tmpMappedSet)) PSCPU_setCPU(mappedSet, t);
+    }
+    bool used[numNUMA];
+    memset(used, 0, sizeof(used));
+
+    /* identify NUMA domains this process will run on */
+    for (uint16_t d = 0; d < numNUMA; d++) {
+	if (PSCPU_overlap(mappedSet, CPUSets[d], numThrds)) {
+	    used[d] = true;
+	}
+    }
+    uint16_t numGPUs = PSIDnodes_numGPUs(id);
+    PSCPU_set_t *GPUsets = PSIDnodes_GPUSets(id);
+    if (!GPUsets) {
+	PSID_log(PSID_LOG_SPAWN, "%s(%d): No GPU sets found.\n", __func__, id);
+	return false;
+    }
+    /* create ascending list with no double entries */
+    *closelist = malloc(numGPUs * sizeof(**closelist));
+    *closecount = 0;
+    for (uint16_t gpu = 0; gpu < numGPUs; gpu++) {
+	if (!PSCPU_isSet(*gpuSet, gpu)) continue;
+	for (uint16_t d = 0; d < numNUMA; d++) {
+	    if (!used[d]) continue;
+	    if (PSCPU_isSet(GPUsets[d], gpu)) {
+		(*closelist)[(*closecount)++] = gpu;
+		break;
+	    }
+	}
+    }
+    return true;
+}
+
+bool PSIDpin_getClosestGPUs(PSnodes_ID_t id,
+			  uint16_t **closestlist, size_t *closestcount,
+			  PSCPU_set_t *cpuSet, PSCPU_set_t *gpuSet)
+{
+    if (!PSCPU_any(*gpuSet, MAX_GPUS)) {
+	PSID_log(PSID_LOG_SPAWN, "%s(%d): No GPUs passed.\n", __func__, id);
+	return false;
+    }
+
     uint16_t numNUMA = PSIDnodes_numNUMADoms(id);
     int numThrds = PSIDnodes_getNumThrds(id);
 
@@ -507,7 +570,7 @@ bool PSIDpin_getCloseGPUs(PSnodes_ID_t id, uint16_t **closelist,
     /* identify NUMA domains this process will run on */
     for (uint16_t d = 0; d < numNUMA; d++) {
 	if (PSCPU_overlap(mappedSet, CPUSets[d], numThrds)) {
-	    PSID_log(PSID_LOG_SPAWN, "%s(%d): Using numa domain %hu\n",
+	    PSID_log(PSID_LOG_SPAWN, "%s(%d): CPUset matches NUMA domain %hu\n",
 		    __func__, id, d);
 	    used[d] = true;
 	}
@@ -520,25 +583,71 @@ bool PSIDpin_getCloseGPUs(PSnodes_ID_t id, uint16_t **closelist,
 	return false;
     }
 
-    /* create ascending list with no double entries */
-    *closelist = malloc(numGPUs * sizeof(**closelist));
-    *closecount = 0;
-    for (uint16_t gpu = 0; gpu < numGPUs; gpu++) {
+    if (PSID_getDebugMask() & PSID_LOG_SPAWN) {
 	for (uint16_t d = 0; d < numNUMA; d++) {
-	    if (!used[d]) continue;
-	    if (gpu == 0) {
-		/* print only oncy */
+	    if (used[d]) {
 		PSID_log(PSID_LOG_SPAWN, "%s(%d): GPU mask of NUMA domain"
 			 " %hu: %s\n", __func__, id, d,
-			 PSCPU_print_part(GPUsets[d],2));
-	    }
-	    if (PSCPU_isSet(GPUsets[d], gpu)) {
-		(*closelist)[(*closecount)++] = gpu;
-		PSID_log(PSID_LOG_SPAWN, "%s(%d): Using GPU %hu\n",
-			__func__, id, gpu);
-		break;
+			 PSCPU_print_part(GPUsets[d], MAX_GPUS/8));
 	    }
 	}
+    }
+
+    /* get distance to each GPU and lowest distance */
+    uint32_t *dists = malloc(numGPUs * sizeof(*dists));
+    uint32_t lowest = UINT32_MAX;
+    for (uint16_t gpu = 0; gpu < numGPUs; gpu++) {
+	dists[gpu] = UINT32_MAX;
+	if (!PSCPU_isSet(*gpuSet, gpu)) {
+	    /* do not include this GPU */
+	    continue;
+	}
+	for (uint16_t d = 0; d < numNUMA; d++) {
+	    if (PSCPU_isSet(GPUsets[d], gpu)) {
+		/* d is a NUMA domain gpu is connected to */
+		for (uint16_t n = 0; n < numNUMA; n++) {
+		    if (!used[n]) continue;
+		    /* n is a NUMA domain used by cpuSet */
+		    uint32_t dist = PSIDnodes_distance(id, n, d);
+		    if (dist < dists[gpu]) dists[gpu] = dist;
+		    if (dist < lowest) lowest = dist;
+		}
+	    }
+	}
+    }
+
+    if (lowest == UINT32_MAX) {
+	PSID_log(PSID_LOG_SPAWN, "%s(%d): No valid distances found.\n",
+		__func__, id);
+	free(dists);
+	return false;
+    }
+
+    if (PSID_getDebugMask() & PSID_LOG_SPAWN) {
+	PSID_log(-1, "%s(%d): Lowest GPU distances:", __func__, id);
+	for (uint16_t gpu = 0; gpu < numGPUs; gpu++) {
+	    if (!PSCPU_isSet(*gpuSet, gpu)) continue;
+	    PSID_log(-1, " %hu=%u", gpu, dists[gpu]);
+	}
+	PSID_log(-1, "\n");
+    }
+
+    /* create ascending list with no double entries */
+    *closestlist = malloc(numGPUs * sizeof(**closestlist));
+    *closestcount = 0;
+    for (uint16_t gpu = 0; gpu < numGPUs; gpu++) {
+	if (dists[gpu] == lowest) {
+	    (*closestlist)[(*closestcount)++] = gpu;
+	}
+    }
+    free(dists);
+
+    if (PSID_getDebugMask() & PSID_LOG_SPAWN) {
+	PSID_log(-1, "%s(%d): Closest GPUs:", __func__, id);
+	for (size_t i = 0; i < *closestcount; i++) {
+	    PSID_log(-1, " %hu", (*closestlist)[i]);
+	}
+	PSID_log(-1, "\n");
     }
 
     return true;

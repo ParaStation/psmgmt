@@ -1414,34 +1414,14 @@ static size_t getIndexOfLowestFromSubset(uint32_t *array, uint16_t *subset,
     size_t ret = 0;
     uint32_t least = UINT16_MAX;
     for (size_t i = 0; i < len; i++) {
+	fdbg(PSSLURM_LOG_PART, "%hu already used %hu times\n", subset[i],
+		array[subset[i]]);
 	if (array[subset[i]] < least) {
 	    ret = subset[i];
 	    least = array[subset[i]];
 	}
     }
     return ret;
-}
-
-/* filter closeList to not contain elements not also included in assignedList
- * assumes both lists to be ordered and do not contain doubles */
-static void filterCloselist(uint16_t **closeList, size_t *closeCount,
-	int * assignedList, size_t assignedCount)
-{
-    uint16_t *newcloseList = umalloc(*closeCount * sizeof(**closeList));
-    size_t newcloseCount = 0;
-
-    size_t assigned = 0;
-    for (size_t close = 0; close < *closeCount; close++) {
-	for (; assigned < assignedCount; assigned++) {
-	    if ((*closeList)[close] == assignedList[assigned]) {
-		newcloseList[newcloseCount++] = (*closeList)[close];
-		break;
-	    }
-	}
-    }
-    ufree(*closeList);
-    *closeList = newcloseList;
-    *closeCount = newcloseCount;
 }
 
 bool getNodeGPUPinning(uint16_t ret[], Step_t *step, uint32_t stepNodeId,
@@ -1454,61 +1434,41 @@ bool getNodeGPUPinning(uint16_t ret[], Step_t *step, uint32_t stepNodeId,
     uint32_t used[numGPUs];
     memset(used, 0, sizeof(used));
 
-    uint32_t nogpu_tasks[ltnum];
-    uint32_t nogpu_tasks_count = 0;
-
     for (uint32_t lTID = 0; lTID < ltnum; lTID++) {
 
 	uint32_t tid = step->globalTaskIds[stepNodeId][lTID];
 
-	uint16_t *closeList = NULL;
-	size_t closeCount = 0;
-	if (!PSIDpin_getCloseGPUs(step->nodes[stepNodeId], &closeList,
-				  &closeCount, &step->slots[tid].CPUset)) {
+	PSCPU_set_t gpuSet;
+	for (size_t i = 0; i < numGPUsAssigned; i++) {
+	    PSCPU_setCPU(gpuSet, gpusAssigned[i]);
+	}
+
+	uint16_t *gpuList = NULL;
+	size_t gpuCount = 0;
+	if (!PSIDpin_getClosestGPUs(step->nodes[stepNodeId], &gpuList,
+				  &gpuCount, &step->slots[tid].CPUset,
+				  &gpuSet)) {
 	    return false;
 	}
 
-	/* remove gpus not assigned from list of close GPUs */
-	filterCloselist(&closeList, &closeCount, gpusAssigned,
-		numGPUsAssigned);
-
-	switch (closeCount) {
-	    case 0:
-		/* if there is no close gpu, handle later */
-		nogpu_tasks[nogpu_tasks_count++] = lTID;
-		ufree(closeList);
-		continue;
-	    case 1:
-		/* only one close GPU, done for this task if assigned */
-		ret[lTID] = closeList[0];
-		used[ret[lTID]]++;
-		ufree(closeList);
-		continue;
-	    default:
-		break;
+	if (gpuCount == 1) {
+	    /* only one closest GPU, done for this task if assigned */
+	    fdbg(PSSLURM_LOG_PART, "Found only one closest GPU for local task"
+		    " %u: %hu\n", lTID, gpuList[0]);
+	    ret[lTID] = gpuList[0];
+	    used[ret[lTID]]++;
+	    ufree(gpuList);
+	    continue;
 	}
 
 	/* find least used assigned close GPU */
 	uint16_t leastused_gpu;
-	leastused_gpu = getIndexOfLowestFromSubset(used, closeList,
-		closeCount);
+	leastused_gpu = getIndexOfLowestFromSubset(used, gpuList, gpuCount);
+	fdbg(PSSLURM_LOG_PART, "Select least used of closest GPU for local task"
+		    " %u: %hu\n", lTID, leastused_gpu);
 	ret[lTID] = leastused_gpu;
-	used[leastused_gpu]++;
-	ufree(closeList);
-    }
-
-    /* distribute tasks with no close GPUs to the least used GPUs */
-    for (size_t t = 0; t < nogpu_tasks_count; t++) {
-	uint16_t leastused_gpu = 0;
-	uint32_t least = UINT32_MAX;
-	for (size_t gpu = 0; gpu < numGPUsAssigned; gpu++) {
-	    if (used[gpusAssigned[gpu]] < least) {
-		leastused_gpu = gpu;
-		least = used[gpusAssigned[gpu]];
-	    }
-	}
-	ret[nogpu_tasks[t]] = leastused_gpu;
-	used[leastused_gpu]++;
+	used[ret[lTID]]++;
+	ufree(gpuList);
     }
 
     return true;
