@@ -171,6 +171,10 @@ static int stepFollowerCB(int32_t exit_status, Forwarder_Data_t *fw)
 	startEpilogue(alloc);
     }
 
+    if (step->stepid == SLURM_INTERACTIVE_STEP) {
+	deleteStep(step->jobid, step->stepid);
+    }
+
     return 0;
 }
 
@@ -240,7 +244,7 @@ static int stepCallback(int32_t exit_status, Forwarder_Data_t *fw)
 	startEpilogue(alloc);
     }
 
-    if (!alloc) {
+    if (!alloc || step->stepid == SLURM_INTERACTIVE_STEP) {
 	deleteStep(step->jobid, step->stepid);
     } else {
 	step->fwdata = NULL;
