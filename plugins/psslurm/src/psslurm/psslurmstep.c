@@ -396,9 +396,19 @@ const char *strStepID(Step_t *step)
     static char buf[128];
 
     if (step) {
-	snprintf(buf, sizeof(buf), "step %u:%u", step->jobid, step->stepid);
+	if (step->stepid == SLURM_INTERACTIVE_STEP) {
+	    snprintf(buf, sizeof(buf), "interactive step %u", step->jobid);
+	} else if (step->stepid == SLURM_PENDING_STEP) {
+	    snprintf(buf, sizeof(buf), "pending step %u", step->jobid);
+	} else if (step->stepid == SLURM_EXTERN_CONT) {
+	    snprintf(buf, sizeof(buf), "extern step %u", step->jobid);
+	} else if (step->stepid == SLURM_BATCH_SCRIPT) {
+	    snprintf(buf, sizeof(buf), "batchscript %u", step->jobid);
+	} else {
+	    snprintf(buf, sizeof(buf), "step %u:%u", step->jobid, step->stepid);
+	}
     } else {
-	snprintf(buf, sizeof(buf), "step NULL");
+	snprintf(buf, sizeof(buf), "step (NULL)");
     }
     return buf;
 }
