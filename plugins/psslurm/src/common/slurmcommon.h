@@ -39,7 +39,7 @@
 #define SLURM_20_02_PROTO_VERSION ((35 << 8) | 0) /* 8960 */
 #define SLURM_19_05_PROTO_VERSION ((34 << 8) | 0) /* 8704 */
 
-/* step ID of normal step */
+/* maximal step ID of normal step */
 #define SLURM_MAX_NORMAL_STEP_ID (0xfffffff0)
 /* step ID of pending step */
 #define SLURM_PENDING_STEP (0xfffffffd)

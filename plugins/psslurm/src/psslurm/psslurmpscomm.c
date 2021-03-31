@@ -361,8 +361,8 @@ static bool genNodeSlotsArray(PSpart_slot_t **nodeslots, uint32_t *nrOfNodes,
 
 	    uint32_t index;
 	    if (!findPackIndex(step, last, &offset, &index)) {
-		flog("calculating task index %zu for step %u:%u failed\n", i,
-		     step->jobid, step->stepid);
+		flog("calculating task index %zu for %s failed\n", i,
+		     strStepID(step));
 		errno = EACCES;
 		ufree(nodeslots);
 		return false;
@@ -420,7 +420,7 @@ static int handleCreatePart(void *msg)
     }
 
     if (!step->slots) {
-	flog("invalid slots in step %u:%u\n", step->jobid, step->stepid);
+	flog("invalid slots in %s\n", strStepID(step));
 	errno = EACCES;
 	goto error;
     }
@@ -597,8 +597,7 @@ static int handleGetReservation(void *res) {
 
 	uint32_t index;
 	if (!findPackIndex(step, last, &step->lastPackInfoOffset, &index)) {
-	    flog("calculating next task index for step %u:%u failed\n",
-		    step->jobid, step->stepid);
+	    flog("calculating next task index for %s failed\n", strStepID(step));
 	    errno = EACCES;
 	    return 1;
 	}
@@ -1048,11 +1047,11 @@ static void handle_JobExit(DDTypedBufferMsg_t *msg)
 
     Step_t *step = findStepByStepId(jobid, stepid);
     if (!step) {
-	mlog("%s: step %u:%u not found\n", __func__, jobid, stepid);
+	flog("step %u:%u not found\n", jobid, stepid);
     } else {
 	step->state = JOB_EXIT;
-	mdbg(PSSLURM_LOG_JOB, "%s: step %u:%u in %s\n", __func__,
-	     step->jobid, step->stepid, strAllocState(step->state));
+	fdbg(PSSLURM_LOG_JOB, "%s in %s\n", strStepID(step),
+	     strAllocState(step->state));
     }
 }
 
@@ -1371,8 +1370,8 @@ static void handlePackExit(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
     if (step) {
 	sendStepExit(step, exitStatus);
     } else {
-	flog("no step %u:%u to set exitStatus %i found\n",
-	     packJobid, stepid, exitStatus);
+	flog("no step %u:%u to set exitStatus %i found\n", packJobid,
+	     stepid, exitStatus);
     }
 }
 
@@ -1446,9 +1445,9 @@ static void handlePackInfo(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
 
     /* debug print what we have right now, slots are printed
      *  inside the loop in getSlotsFromMsg() */
-    fdbg(PSSLURM_LOG_PACK, "from %s for step %u:%u: pack info %u (now %u/%u"
+    fdbg(PSSLURM_LOG_PACK, "from %s for %s: pack info %u (now %u/%u"
 	    " pack procs): np %u tpp %hu argc %d slots:\n",
-	    PSC_printTID(msg->header.sender), packJobid, stepid,
+	    PSC_printTID(msg->header.sender), strStepID(step),
 	    step->rcvdPackInfos, step->rcvdPackProcs, step->packNtasks,
 	    rInfo->np, rInfo->tpp, rInfo->argc);
 
@@ -1492,7 +1491,7 @@ static void handleSignalTasks(DDTypedBufferMsg_t *msg)
     if (!step) {
 	if (packID != NO_VAL) step = findStepByStepId(packID, stepid);
 	if (!step) {
-	  mlog("%s: step %u:%u pack %u to signal not found\n", __func__, jobid,
+	  flog("step %u:%u pack %u to signal not found\n", jobid,
 	       stepid, packID);
 	  return;
 	}
@@ -1504,8 +1503,7 @@ static void handleSignalTasks(DDTypedBufferMsg_t *msg)
     }
 
     /* signal tasks */
-    mlog("%s: step %u:%u signal %u group %i\n", __func__, jobid,
-	 stepid, sig, group);
+    flog("%s signal %u group %i\n", strStepID(step), sig, group);
     signalTasks(step->jobid, step->uid, &step->tasks, sig, group);
 }
 
@@ -1777,9 +1775,8 @@ static bool nodeDownAlloc(Alloc_t *alloc, const void *info)
 	if (!step) step = findStepByJobid(alloc->packID);
 	if (step && step->leader) {
 	    char buf[512];
-	    snprintf(buf, sizeof(buf), "step %u:%u terminated due to "
-		     "failure of node %s\n", step->jobid, step->stepid,
-		     getSlurmHostbyNodeID(node));
+	    snprintf(buf, sizeof(buf), "%s terminated due to failure of node "
+		     "%s\n", strStepID(step), getSlurmHostbyNodeID(node));
 	    fwCMD_printMessage(step, buf, strlen(buf), STDERR, 0);
 	}
 
@@ -2341,8 +2338,8 @@ static void handleSpawnReq(DDTypedBufferMsg_t *msg)
 	    goto FORWARD_SPAWN_REQ_MSG;
 	}
 
-	mlog("%s: delay spawnee from %s due to missing step %u:%u\n",
-	     __func__, PSC_printTID(msg->header.sender), jobid, stepid);
+	flog("delay spawnee from %s due to missing step %u:%u\n",
+	     PSC_printTID(msg->header.sender), jobid, stepid);
 
 	PSIDspawn_delayTask(spawnee);
 	return;
@@ -2415,7 +2412,7 @@ static void handleChildBornMsg(DDErrorMsg_t *msg)
     } else {
 	Step_t *step = findStepByStepId(jobid, stepid);
 	if (!step) {
-	    mlog("%s: step %u:%u not found\n", __func__, jobid, stepid);
+	    flog("step %u:%u not found\n", jobid, stepid);
 	    goto FORWARD_CHILD_BORN;
 	}
 	task = addTask(&step->tasks, msg->request, forwarder->tid, forwarder,
@@ -2426,8 +2423,8 @@ static void handleChildBornMsg(DDErrorMsg_t *msg)
 	if (step->fwdata) {
 	    fwCMD_taskInfo(step->fwdata, task);
 	} else {
-	    mlog("%s: no forwarder for step %u:%u rank %i\n", __func__,
-		 jobid, stepid, forwarder->rank - step->packTaskOffset);
+	    flog("no forwarder for %s rank %i\n", strStepID(step),
+		 forwarder->rank - step->packTaskOffset);
 	}
     }
 
@@ -2926,10 +2923,9 @@ int send_PS_PackInfo(Step_t *step)
     /* slots */
     addSlotsToMsg(step->slots, step->np, &data);
 
-    fdbg(PSSLURM_LOG_PACK, "step %u:%u offset %i argc %u np %u tpp %hu to"
-	    " leader %s\n", step->packJobid, step->stepid, step->packNodeOffset,
-	    step->argc, step->np, step->tpp,
-	    PSC_printTID(PSC_getTID(step->packNodes[0], 0)));
+    fdbg(PSSLURM_LOG_PACK, "%s offset %i argc %u np %u tpp %hu to leader %s\n",
+	    strStepID(step), step->packNodeOffset, step->argc, step->np,
+	    step->tpp, PSC_printTID(PSC_getTID(step->packNodes[0], 0)));
 
     /* send msg to pack group leader */
     return sendFragMsg(&data);

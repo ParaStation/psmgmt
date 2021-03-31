@@ -41,9 +41,9 @@ static void handleInfoTasks(Forwarder_Data_t *fwdata, char *ptr)
     task = getDataM(&ptr, &len);
     list_add_tail(&task->next, &step->tasks);
 
-    fdbg(PSSLURM_LOG_PROCESS, "step %u:%u child %s rank %i task %u from %u\n",
-	 step->jobid, step->stepid, PSC_printTID(task->childTID),
-	 task->childRank, countRegTasks(step->tasks.next),
+    fdbg(PSSLURM_LOG_PROCESS, "%s child %s rank %i task %u from %u\n",
+	 strStepID(step), PSC_printTID(task->childTID), task->childRank,
+	 countRegTasks(step->tasks.next),
 	 step->globalTaskIdsLen[step->localNodeId]);
 
     if (step->globalTaskIdsLen[step->localNodeId] ==
@@ -460,8 +460,7 @@ void fwCMD_msgSrunProxy(Step_t *step, PSLog_Msg_t *lmsg, int32_t senderRank)
     if (step->ioCon == IO_CON_BROKE) return;
 
     if (step->ioCon == IO_CON_ERROR) {
-	mlog("%s: I/O connection for step %u:%u is broken\n", __func__,
-	     step->jobid, step->stepid);
+	flog("I/O connection for %s is broken\n", strStepID(step));
 	step->ioCon = IO_CON_BROKE;
     }
 

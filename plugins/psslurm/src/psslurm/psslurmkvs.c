@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2016-2020 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2016-2021 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -189,14 +189,13 @@ static bool addTaskInfo(Step_t *step, const void *info)
     if (step->state == JOB_COMPLETE) return false;
 
     if (!countTasks(tasks)) {
-	snprintf(line, sizeof(line), "\nno tasks for step %u:%u\n",
-		 step->jobid, step->stepid);
+	snprintf(line, sizeof(line), "\nno tasks for %s\n", strStepID(step));
 	addStrBuf(line, strBuf);
 	return false;
     }
 
-    snprintf(line, sizeof(line), "\n%u tasks for step %u:%u\n",
-	     countTasks(tasks), step->jobid, step->stepid);
+    snprintf(line, sizeof(line), "\n%u tasks for %s\n", countTasks(tasks),
+	     strStepID(step));
     addStrBuf(line, strBuf);
 
     list_t *t;

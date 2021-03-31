@@ -293,8 +293,8 @@ static void printLaunchTasksInfos(Step_t *step)
     }
 
     /* job state */
-    mdbg(PSSLURM_LOG_JOB, "%s: step %u:%u in %s\n", __func__,
-	 step->jobid, step->stepid, strJobState(step->state));
+    mdbg(PSSLURM_LOG_JOB, "%s: %s in %s\n", __func__, strStepID(step),
+	 strJobState(step->state));
 
     /* pinning */
     mdbg(PSSLURM_LOG_PART, "%s: taskDist 0x%x\n", __func__, step->taskDist);
@@ -468,8 +468,7 @@ static void handleLaunchTasks(Slurm_Msg_t *sMsg)
 
     /* unpack request */
     if (!(unpackReqLaunchTasks(sMsg, &step))) {
-	mlog("%s: unpacking launch request (%u) failed\n", __func__,
-	     sMsg->head.version);
+	flog("unpacking launch request (%u) failed\n", sMsg->head.version);
 	sendSlurmRC(sMsg, SLURM_ERROR);
 	return;
     }
@@ -511,15 +510,14 @@ static void handleLaunchTasks(Slurm_Msg_t *sMsg)
     /* convert slurm hostlist to PSnodes */
     if (!convHLtoPSnodes(step->slurmHosts, getNodeIDbySlurmHost,
 			 &step->nodes, &count)) {
-	mlog("%s: resolving PS nodeIDs from %s failed\n", __func__,
-	     step->slurmHosts);
+	flog("resolving PS nodeIDs from %s failed\n", step->slurmHosts);
 	sendSlurmRC(sMsg, ESLURMD_INVALID_JOB_CREDENTIAL);
 	goto ERROR;
     }
 
     if (count != step->nrOfNodes) {
-	mlog("%s: mismatching number of nodes %u:%u for step %u:%u\n",
-	     __func__, count, step->nrOfNodes, step->jobid, step->stepid);
+	flog("mismatching number of nodes %u:%u for %s\n",
+	     count, step->nrOfNodes, strStepID(step));
 	step->nrOfNodes = count;
 	sendSlurmRC(sMsg, ESLURMD_INVALID_JOB_CREDENTIAL);
 	goto ERROR;
@@ -527,9 +525,8 @@ static void handleLaunchTasks(Slurm_Msg_t *sMsg)
 
     step->localNodeId = getLocalID(step->nodes, step->nrOfNodes);
     if (step->localNodeId == NO_VAL) {
-	flog("local node ID %i for step %u:%u in %s num nodes %i not found\n",
-	     PSC_getMyID(), step->jobid, step->stepid, step->slurmHosts,
-	     step->nrOfNodes);
+	flog("local node ID %i for %s in %s num nodes %i not found\n",
+	     PSC_getMyID(), strStepID(step), step->slurmHosts, step->nrOfNodes);
 	sendSlurmRC(sMsg, ESLURMD_INVALID_JOB_CREDENTIAL);
 	goto ERROR;
     }
@@ -537,7 +534,7 @@ static void handleLaunchTasks(Slurm_Msg_t *sMsg)
     /* pack info */
     if (step->packNrOfNodes != NO_VAL) {
 	if (!extractStepPackInfos(step)) {
-	    mlog("%s: extracting pack information failed\n", __func__);
+	    flog("extracting pack information failed\n");
 	    sendSlurmRC(sMsg, ESLURMD_INVALID_JOB_CREDENTIAL);
 	    goto ERROR;
 	}
@@ -551,11 +548,11 @@ static void handleLaunchTasks(Slurm_Msg_t *sMsg)
 	if (step->nodes[0] == PSC_getMyID()) step->leader = true;
     }
 
-    mlog("%s: step %u:%u user '%s' np %u nodes '%s' N %u tpp %u pack size %u"
-	 " leader %i exe '%s' packJobid %u\n", __func__, step->jobid,
-	 step->stepid, step->username, step->np, step->slurmHosts,
-	 step->nrOfNodes, step->tpp, step->packSize, step->leader,
-	 step->argv[0], step->packJobid == NO_VAL ? 0 : step->packJobid);
+    flog("%s user '%s' np %u nodes '%s' N %u tpp %u pack size %u"
+	 " leader %i exe '%s' packJobid %u hetComp %u\n", strStepID(step),
+	 step->username, step->np, step->slurmHosts, step->nrOfNodes, step->tpp,
+	 step->packSize, step->leader, step->argv[0],
+	 step->packJobid == NO_VAL ? 0 : step->packJobid, step->stepHetComp);
 
     /* ensure an allocation exists for the new step */
     if (!findAlloc(step->jobid)) {
@@ -566,17 +563,15 @@ static void handleLaunchTasks(Slurm_Msg_t *sMsg)
 
     /* set slots for the step (and number of hardware threads) */
     if (!(setStepSlots(step))) {
-	mlog("%s: setting hardware threads for step %u:%u failed\n", __func__,
-	     step->jobid, step->stepid);
+	flog("setting hardware threads for %s failed\n", strStepID(step));
 	sendSlurmRC(sMsg, ESLURMD_INVALID_JOB_CREDENTIAL);
 	goto ERROR;
     }
 
     /* sanity check nrOfNodes */
     if (step->nrOfNodes > (uint16_t) PSC_getNrOfNodes()) {
-	mlog("%s: invalid nrOfNodes %u known Nodes %u for step %u:%u\n",
-	     __func__, step->nrOfNodes, PSC_getNrOfNodes(), step->jobid,
-	     step->stepid);
+	flog("invalid nrOfNodes %u known Nodes %u for %s\n",
+	     step->nrOfNodes, PSC_getNrOfNodes(), strStepID(step));
 	sendSlurmRC(sMsg, ESLURMD_INVALID_JOB_CREDENTIAL);
 	goto ERROR;
     }
@@ -598,8 +593,8 @@ static void handleLaunchTasks(Slurm_Msg_t *sMsg)
 	/* start mpiexec to spawn the parallel processes,
 	 * intercept createPart call to overwrite the nodelist */
 	step->state = JOB_PRESTART;
-	mdbg(PSSLURM_LOG_JOB, "%s: step %u:%u in '%s'\n", __func__,
-		step->jobid, step->stepid, strJobState(step->state));
+	mdbg(PSSLURM_LOG_JOB, "%s: %s in '%s'\n", __func__,
+	     strStepID(step), strJobState(step->state));
 	if (step->packJobid == NO_VAL) {
 	    if (!(execStepLeader(step))) {
 		sendSlurmRC(sMsg, ESLURMD_FORK_FAILED);
@@ -655,7 +650,7 @@ static int doSignalTasks(Req_Signal_Tasks_t *req)
 	    ret = signalJobscript(req->jobid, req->signal, req->uid);
 	} else {
 	    /* signal a single step */
-	    mlog("%s: sending step %u:%u signal %u\n", __func__, req->jobid,
+	    flog("sending step %u:%u signal %u\n", req->jobid,
 		 req->stepid, req->signal);
 	    Step_t *step = findStepByStepId(req->jobid, req->stepid);
 	    if (step) ret = signalStep(step, req->signal, req->uid);
@@ -820,16 +815,15 @@ static void handleReattachTasks(Slurm_Msg_t *sMsg)
 
     /* check permissions */
     if (!(verifyUserId(sMsg->head.uid, step->uid))) {
-	mlog("%s: request from invalid user %u step %u:%u\n", __func__,
-		sMsg->head.uid, jobid, stepid);
+	flog("request from invalid user %u %s\n", sMsg->head.uid,
+	     strStepID(step));
 	rc = ESLURM_USER_ID_MISSING;
 	goto SEND_REPLY;
     }
 
     if (!step->fwdata) {
 	/* no forwarder to attach to */
-	mlog("%s: forwarder for step %u:%u to reattach not found\n", __func__,
-		jobid, stepid);
+	flog("forwarder for %s to reattach not found\n", strStepID(step));
 	rc = ESLURM_INVALID_JOB_ID;
 	goto SEND_REPLY;
     }
@@ -863,8 +857,7 @@ static void handleReattachTasks(Slurm_Msg_t *sMsg)
     /* job credential including I/O key */
     cred = extractJobCred(&gresList, sMsg, 0);
     if (!cred) {
-	mlog("%s: invalid credential for step %u:%u\n", __func__,
-		jobid, stepid);
+	flog("invalid credential for %s\n", strStepID(step));
 	rc = ESLURM_INVALID_JOB_CREDENTIAL;
 	goto SEND_REPLY;
     }
@@ -1748,7 +1741,7 @@ static void handleAbortReq(Slurm_Msg_t *sMsg, uint32_t jobid, uint32_t stepid)
     if (stepid != NO_VAL) {
 	Step_t *step = findStepByStepId(jobid, stepid);
 	if (!step) {
-	    mlog("%s: step %u:%u not found\n", __func__, jobid, stepid);
+	    flog("step %u:%u not found\n", jobid, stepid);
 	    return;
 	}
 	signalStep(step, SIGKILL, sMsg->head.uid);
@@ -1797,16 +1790,16 @@ static bool killSelectedSteps(Step_t *step, const void *killInfo)
 
     if (info->timeout) {
 	if (!step->localNodeId) {
-	    snprintf(buf, sizeof(buf), "error: *** step %u:%u CANCELLED DUE TO"
-		" TIME LIMIT ***\n", step->jobid, step->stepid);
+	    snprintf(buf, sizeof(buf), "error: *** %s CANCELLED DUE TO"
+		" TIME LIMIT ***\n", strStepID(step));
 	    fwCMD_printMessage(step, buf, strlen(buf), STDERR, 0);
 	}
 	fwCMD_stepTimeout(step->fwdata);
 	step->timeout = true;
     } else {
 	if (!step->localNodeId) {
-	    snprintf(buf, sizeof(buf), "error: *** PREEMPTION for step "
-		    "%u:%u ***\n", step->jobid, step->stepid);
+	    snprintf(buf, sizeof(buf), "error: *** PREEMPTION for %s ***\n",
+		     strStepID(step));
 	    fwCMD_printMessage(step, buf, strlen(buf), STDERR, 0);
 	}
     }
@@ -2736,18 +2729,15 @@ static void doSendLaunchTasksFailed(Step_t *step, uint32_t nodeID,
     if (sock != -1) {
 	PSCio_setFDblock(sock, 1);
 	if ((sendSlurmMsg(sock, RESPONSE_LAUNCH_TASKS, &body)) < 1) {
-	    mlog("%s: send RESPONSE_LAUNCH_TASKS failed step %u:%u\n",
-		    __func__, step->jobid, step->stepid);
+	    flog("send RESPONSE_LAUNCH_TASKS failed %s\n", strStepID(step));
 	}
 	close(sock);
     } else {
-	mlog("%s: open control connection failed, step %u:%u\n",
-		__func__, step->jobid, step->stepid);
+	flog("open control connection failed, %s\n", strStepID(step));
     }
 
-    mlog("%s: send RESPONSE_LAUNCH_TASKS step %u:%u pids %u for '%s'\n",
-	    __func__, step->jobid, step->stepid, step->globalTaskIdsLen[nodeID],
-	    resp.nodeName);
+    flog("send RESPONSE_LAUNCH_TASKS %s pids %u for '%s'\n",
+	 strStepID(step), step->globalTaskIdsLen[nodeID], resp.nodeName);
 }
 
 void sendLaunchTasksFailed(Step_t *step, uint32_t nodeID, uint32_t error)
@@ -2818,17 +2808,14 @@ void sendTaskPids(Step_t *step)
     if ((sock = srunOpenControlConnection(step)) != -1) {
 	PSCio_setFDblock(sock, 1);
 	if (sendSlurmMsg(sock, RESPONSE_LAUNCH_TASKS, &body) < 1) {
-	    mlog("%s: send RESPONSE_LAUNCH_TASKS failed step %u:%u\n",
-		 __func__, step->jobid, step->stepid);
+	    flog("send RESPONSE_LAUNCH_TASKS failed %s\n", strStepID(step));
 	}
 	close(sock);
     } else {
-	mlog("%s: open control connection failed, step %u:%u\n",
-	     __func__, step->jobid, step->stepid);
+	flog("open control connection failed, %s\n", strStepID(step));
     }
 
-    mlog("%s: send RESPONSE_LAUNCH_TASKS step %u:%u pids %u\n",
-	 __func__, step->jobid, step->stepid, countPIDs);
+    flog("send RESPONSE_LAUNCH_TASKS %s pids %u\n", strStepID(step), countPIDs);
 
 CLEANUP:
     ufree(resp.localPIDs);

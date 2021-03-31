@@ -543,8 +543,8 @@ static void setGresEnv(uint32_t localRankId, Step_t *step)
 	    }
 	}
     } else {
-	flog("unable to set gres: invalid job node ID for step %u:%u\n",
-	     step->jobid, step->stepid);
+	flog("unable to set gres: invalid job node ID for %s\n",
+	     strStepID(step));
     }
 }
 

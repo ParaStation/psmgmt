@@ -386,8 +386,7 @@ void getStepInfos(uint32_t *infoCount, uint32_t **jobids, uint32_t **stepids)
 	(*jobids)[*infoCount] = step->jobid;
 	(*stepids)[*infoCount] = step->stepid;
 	(*infoCount)++;
-	mdbg(PSSLURM_LOG_DEBUG, "%s: add step %u:%u\n", __func__,
-	     step->jobid, step->stepid);
+	fdbg(PSSLURM_LOG_DEBUG, "add %s\n", strStepID(step));
     }
 }
 

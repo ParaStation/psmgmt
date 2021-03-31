@@ -1015,8 +1015,7 @@ static int handleSrunPTYMsg(int sock, void *data)
 {
     Step_t *step = data;
 
-    mdbg(PSSLURM_LOG_COMM, "%s: got pty message for step %u:%u\n", __func__,
-	 step->jobid, step->stepid);
+    fdbg(PSSLURM_LOG_COMM, "got pty message for %s\n", strStepID(step));
 
     /* Shall be safe to do first a blocking read() inside a selector */
     uint16_t buffer[2];
@@ -1075,8 +1074,8 @@ static int forwardInputMsg(Step_t *step, uint16_t rank, char *buf, int bufLen)
        .sender = -1};
 
     if (!task) {
-	mlog("%s: task for rank %u of step %u:%u local ID %i not found\n",
-	     __func__, rank, step->jobid, step->stepid, step->localNodeId);
+	flog("task for rank %u of %s local ID %i not found\n", rank,
+	     strStepID(step), step->localNodeId);
 	return -1;
     }
 
@@ -1118,23 +1117,20 @@ int handleSrunMsg(int sock, void *data)
 	if (ret < 0) {
 	    mwarn(errno, "%s: doRead()", __func__);
 	}
-	flog("close srun connection %i for step %u:%u\n", sock,
-	     step->jobid, step->stepid);
+	flog("close srun connection %i for %s\n", sock, strStepID(step));
 	goto ERROR;
     }
     ptr = buffer;
 
     if (!unpackSlurmIOHeader(&ptr, &ioh)) {
-	flog("unpack Slurm I/O header for step %u:%u failed\n",
-	     step->jobid, step->stepid);
+	flog("unpack Slurm I/O header for %s failed\n", strStepID(step));
 	goto ERROR;
     }
 
     if (!step->fwdata) {
 	if (ioh->len) {
-	    fdbg(PSSLURM_LOG_IO, "no forwarder for step %u:%u I/O"
-		 " type %s len %u\n", step->jobid, step->stepid,
-		 IO_strType(ioh->type), ioh->len);
+	    fdbg(PSSLURM_LOG_IO, "no forwarder for %s I/O type %s len %u\n",
+		 strStepID(step), IO_strType(ioh->type), ioh->len);
 	}
 	goto ERROR;
     }
@@ -1143,22 +1139,20 @@ int handleSrunMsg(int sock, void *data)
     myTaskIdsLen = step->globalTaskIdsLen[step->localNodeId];
     myTaskIds = step->globalTaskIds[step->localNodeId];
 
-    mdbg(PSSLURM_LOG_IO | PSSLURM_LOG_IO_VERB,
-	 "%s: step %u:%u stdin %d type %s length %u grank %u lrank %u pty %u"
-	 " myTIDsLen %u\n", __func__, step->jobid, step->stepid, fd,
-	 IO_strType(ioh->type), ioh->len, ioh->grank, ioh->lrank, pty,
-	 myTaskIdsLen);
+    fdbg(PSSLURM_LOG_IO | PSSLURM_LOG_IO_VERB,
+	 "%s stdin %d type %s length %u grank %u lrank %u pty %u"
+	 " myTIDsLen %u\n", strStepID(step), fd, IO_strType(ioh->type),
+	 ioh->len, ioh->grank, ioh->lrank, pty, myTaskIdsLen);
 
     if (ioh->type == SLURM_IO_CONNECTION_TEST) {
 	if (ioh->len != 0) {
-	    flog("invalid connection test for step %u:%u len %u\n",
-		 step->jobid, step->stepid, ioh->len);
+	    flog("invalid connection test for %s len %u\n",
+		 strStepID(step), ioh->len);
 	}
 	srunSendIO(SLURM_IO_CONNECTION_TEST, 0, step, NULL, 0);
     } else if (!ioh->len) {
 	/* forward eof to all forwarders */
-	flog("got eof of stdin %d for step %u:%u\n", fd,
-	     step->jobid, step->stepid);
+	flog("got eof of stdin %d for %s\n", fd, strStepID(step));
 
 	if (ioh->type == SLURM_IO_STDIN) {
 	    forwardInputMsg(step, ioh->grank, NULL, 0);

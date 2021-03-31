@@ -302,8 +302,7 @@ static bool startStepFollowerFW(Step_t *step, const void *info)
     if (step->jobid == jobid ||
 	(step->packJobid != NO_VAL && step->packJobid == jobid)) {
 
-	mlog("%s: pelogue exit, starting step follower fw for step %u:%u \n",
-	     __func__, step->jobid, step->stepid);
+	flog("pelogue exit, starting step follower fw, %s\n", strStepID(step));
 	execStepFollower(step);
     }
 
