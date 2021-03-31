@@ -1445,9 +1445,9 @@ bool getNodeGPUPinning(uint16_t ret[], Step_t *step, uint32_t stepNodeId,
 
 	uint16_t *gpuList = NULL;
 	size_t gpuCount = 0;
-	if (!PSIDpin_getClosestGPUs(step->nodes[stepNodeId], &gpuList,
-				  &gpuCount, &step->slots[tid].CPUset,
-				  &gpuSet)) {
+	if (!PSIDpin_getClosestGPUs(step->nodes[stepNodeId],
+		    &gpuList, &gpuCount, NULL, NULL,
+		    &step->slots[tid].CPUset, &gpuSet)) {
 	    return false;
 	}
 

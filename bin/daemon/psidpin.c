@@ -161,6 +161,8 @@ static void bindToGPUs(PSCPU_set_t *cpuSet)
 {
     uint16_t *gpulist = NULL;
     size_t gpucount;
+    uint16_t *closelist = NULL;
+    size_t closecount;
 
     uint16_t numGPUs = PSIDnodes_numGPUs(PSC_getMyID());
 
@@ -182,8 +184,8 @@ static void bindToGPUs(PSCPU_set_t *cpuSet)
 	PSCPU_setAll(gpuSet);
     }
 
-    if (!PSIDpin_getClosestGPUs(PSC_getMyID(), &gpulist, &gpucount, cpuSet,
-		&gpuSet)) {
+    if (!PSIDpin_getClosestGPUs(PSC_getMyID(), &gpulist, &gpucount,
+		&closelist, &closecount, cpuSet, &gpuSet)) {
 	return;
     }
 
@@ -228,22 +230,17 @@ static void bindToGPUs(PSCPU_set_t *cpuSet)
     /* always set PSID version */
     setenv("PSID_CLOSEST_GPUS", val, 1);
 
-    /* set variable with real close GPUs, connected directly to one of the
-     * NUMA domains our CPUs are also connected to */
-    if (!PSIDpin_getCloseGPUs(PSC_getMyID(), &gpulist, &gpucount, cpuSet,
-		&gpuSet)) {
-	return;
-    }
-
     /* build string listing the closest GPUs */
     len = 0;
-    for (size_t i = 0; i < gpucount; i++) {
-	len += snprintf(val+len, 4, "%hu,", gpulist[i]);
+    for (size_t i = 0; i < closecount; i++) {
+	len += snprintf(val+len, 4, "%hu,", closelist[i]);
     }
     val[len ? len-1 : len] = '\0';
 
-    free(gpulist);
+    free(closelist);
 
+    /* set variable with real close GPUs, connected directly to one of the
+     * NUMA domains our CPUs are also connected to */
     PSID_log(PSID_LOG_SPAWN, "%s: Set PSID_CLOSE_GPUS='%s'\n", __func__, val);
     setenv("PSID_CLOSE_GPUS", val, 1);
 }
@@ -491,54 +488,9 @@ void PSIDpin_doClamps(PStask_t *task)
     }
 }
 
-bool PSIDpin_getCloseGPUs(PSnodes_ID_t id, uint16_t **closelist,
-			  size_t *closecount, PSCPU_set_t *cpuSet,
-			  PSCPU_set_t *gpuSet)
-{
-    uint16_t numNUMA = PSIDnodes_numNUMADoms(id);
-    int numThrds = PSIDnodes_getNumThrds(id);
-    PSCPU_set_t *CPUSets = PSIDnodes_CPUSets(id);
-    /* get mapped CPUs regarding __PSI_CPUMAP if set */
-    cpu_set_t *tmpMappedSet = PSIDpin_mapCPUs(*cpuSet);
-    /* tranform into PSCPU_set_t */
-    PSCPU_set_t mappedSet;
-    PSCPU_clrAll(mappedSet);
-    for (uint16_t t = 0; t < numThrds; t++) {
-	if (CPU_ISSET(t, tmpMappedSet)) PSCPU_setCPU(mappedSet, t);
-    }
-    bool used[numNUMA];
-    memset(used, 0, sizeof(used));
-
-    /* identify NUMA domains this process will run on */
-    for (uint16_t d = 0; d < numNUMA; d++) {
-	if (PSCPU_overlap(mappedSet, CPUSets[d], numThrds)) {
-	    used[d] = true;
-	}
-    }
-    uint16_t numGPUs = PSIDnodes_numGPUs(id);
-    PSCPU_set_t *GPUsets = PSIDnodes_GPUSets(id);
-    if (!GPUsets) {
-	PSID_log(PSID_LOG_SPAWN, "%s(%d): No GPU sets found.\n", __func__, id);
-	return false;
-    }
-    /* create ascending list with no double entries */
-    *closelist = malloc(numGPUs * sizeof(**closelist));
-    *closecount = 0;
-    for (uint16_t gpu = 0; gpu < numGPUs; gpu++) {
-	if (!PSCPU_isSet(*gpuSet, gpu)) continue;
-	for (uint16_t d = 0; d < numNUMA; d++) {
-	    if (!used[d]) continue;
-	    if (PSCPU_isSet(GPUsets[d], gpu)) {
-		(*closelist)[(*closecount)++] = gpu;
-		break;
-	    }
-	}
-    }
-    return true;
-}
-
 bool PSIDpin_getClosestGPUs(PSnodes_ID_t id,
 			  uint16_t **closestlist, size_t *closestcount,
+			  uint16_t **closelist, size_t *closecount,
 			  PSCPU_set_t *cpuSet, PSCPU_set_t *gpuSet)
 {
     if (!PSCPU_any(*gpuSet, MAX_GPUS)) {
@@ -589,6 +541,26 @@ bool PSIDpin_getClosestGPUs(PSnodes_ID_t id,
 		PSID_log(PSID_LOG_SPAWN, "%s(%d): GPU mask of NUMA domain"
 			 " %hu: %s\n", __func__, id, d,
 			 PSCPU_print_part(GPUsets[d], MAX_GPUS/8));
+	    }
+	}
+    }
+
+    /* Fill closelist if requested */
+    if (closelist) {
+	/* create ascending list with no double entries */
+	*closelist = malloc(numGPUs * sizeof(**closelist));
+	*closecount = 0;
+	for (uint16_t gpu = 0; gpu < numGPUs; gpu++) {
+	    if (!PSCPU_isSet(*gpuSet, gpu)) continue;
+	    for (uint16_t d = 0; d < numNUMA; d++) {
+		if (!used[d]) continue;
+		if (PSCPU_isSet(GPUsets[d], gpu)) {
+		    (*closelist)[(*closecount)++] = gpu;
+		    PSID_log(PSID_LOG_SPAWN, "%s(%d): GPU %hu directly"
+			    " connected to NUMA domain %hu\n", __func__, id,
+			   gpu, d);
+		    break;
+		}
 	    }
 	}
     }

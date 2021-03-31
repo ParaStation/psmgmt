@@ -62,17 +62,31 @@ void PSIDpin_doClamps(PStask_t *task);
 /**
  * @brief Get a node's list of GPUs close to the CPUs in @a thisSet
  *
- * This returns a list of all GPUs contained in @a gpuSet and connected
- * directly to NUMA domains that contain CPUs set in @a thisSet on the
- * node with ParaStation ID @a id. The list will be ordered ascending and
- * will not contain double entries.
+ * This returns a list of all GPUs included in @a gpuSet that have
+ * the minimal distance available to NUMA domains that contain CPUs set
+ * in @a thisSet on the node with ParaStation ID @a id. The list will be
+ * ordered ascending and will not contain double entries.
  *
- * This function is only used to set PSID_CLOSE_GPUS.
+ * If there is any GPU set in @a gpuSet, the returned @a closestlist will
+ * never be empty.
  *
- * The list returned via @a closelist when true is returned has to be
- * free()ed by the caller.
+ * If @a closelist is not NULL, there will be returned a second list in
+ * addition, containing all GPUs in @a gpuSet that are connected directly
+ * to NUMA domains that contain CPUs set in @a thisSet on the node with
+ * ParaStation ID @a id. The list will be ordered ascending and will not
+ * contain double entries.
+ *
+ * This function is used by the psid's default GPU pinning mechanism as
+ * well as by psslurm to do enhanced GPU pinning.
+ *
+ * The list(s) returned via @a closestlist and @a closelist when true is
+ * returned has to be free()ed by the caller.
  *
  * @param id ParaStation ID of the node to look up
+ *
+ * @param closestlist Return pointer for the requested list
+ *
+ * @param closestcount Return pointer for the length of the list
  *
  * @param closelist Return pointer for the requested list
  *
@@ -84,41 +98,9 @@ void PSIDpin_doClamps(PStask_t *task);
  *
  * @return True if GPU sets are found and @a closelist is set, else false
  */
-bool PSIDpin_getCloseGPUs(PSnodes_ID_t id,
-			  uint16_t **closelist, size_t *closecount,
-			  PSCPU_set_t *cpuSet, PSCPU_set_t *gpuSet);
-
-/**
- * @brief Get a node's list of GPUs closest to the CPUs in @a thisSet
- *
- * This returns a list of all GPUs included in @a gpuSet that have
- * the minimal distance available to NUMA domains that contain CPUs set
- * in @a thisSet on the node with ParaStation ID @a id. The list will be
- * ordered ascending and will not contain double entries.
- *
- * If there is any GPU set in @a gpuSet, the returned list will
- * never be empty.
- *
- * This function is used by the psid's default GPU pinning mechanism as
- * well as by psslurm to do enhanced GPU pinning.
- *
- * The list returned via @a closestlist when true is returned has to be
- * free()ed by the caller.
- *
- * @param id ParaStation ID of the node to look up
- *
- * @param closestlist Return pointer for the requested list
- *
- * @param closestcount Return pointer for the length of the list
- *
- * @param cpuSet The unmapped set of CPUs to which the list will be created
- *
- * @param gpuSet The set of GPUs to include in the list
- *
- * @return True if GPU sets are found and @a closelist is set, else false
- */
 bool PSIDpin_getClosestGPUs(PSnodes_ID_t id,
 			  uint16_t **closestlist, size_t *closestcount,
+			  uint16_t **closelist, size_t *closecount,
 			  PSCPU_set_t *cpuSet, PSCPU_set_t *gpuSet);
 
 #endif /* __PSIDPIN_H */
