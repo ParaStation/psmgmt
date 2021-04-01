@@ -336,7 +336,7 @@ int PSI_initClient(PStask_group_t taskGroup)
     PSI_log(PSI_LOG_VERB, "%s(%s)\n", __func__, PStask_printGrp(taskGroup));
 
     if (daemonSock != -1) {
-	/* Allready connected */
+	/* Already connected */
 	return 1;
     }
 
@@ -770,7 +770,7 @@ void PSI_execLogger(const char *command)
     int i, maxFD = sysconf(_SC_OPEN_MAX);
     char* argv[5], *envStr;
     /*
-     * close all open filedesciptor except my std* and the daemonSock
+     * close all open file-descriptor except my std* and the daemonSock
      */
     for (i = 1; i < maxFD; i++) {
 	if (i != daemonSock && i != STDOUT_FILENO && i != STDERR_FILENO) {

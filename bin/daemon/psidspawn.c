@@ -1473,7 +1473,7 @@ static int checkRequest(PStask_ID_t sender, PStask_t *task)
  *
  * Build a new sandbox and spawn the process described by @a client
  * within. In order to do this, first of all a forwarder is created
- * that sets up a sandbox for the client process to run in. The the
+ * that sets up a sandbox for the client process to run in. The
  * actual client process is started within this sandbox.
  *
  * All necessary information determined during start up of the
@@ -2048,7 +2048,7 @@ typedef struct {
     PStask_ID_t sender;   /**< initiator of the spawn */
     int32_t rank;         /**< first rank */
     uint32_t num;         /**< number of entries */
-    PSCPU_set_t *CPUsets; /**< CPU set buffers for adressed ranks */
+    PSCPU_set_t *CPUsets; /**< CPU set buffers for addressed ranks */
 } PendingRes_t;
 
 static inline PendingRes_t *findPendingRes(PStask_ID_t sender, int32_t rank)

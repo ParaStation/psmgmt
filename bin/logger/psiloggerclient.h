@@ -238,7 +238,7 @@ void handleSENDCONT(DDMsg_t *msg);
  * @brief Create list of destinations
  *
  * Create the list of clients that are destinations of input from the
- * descrining string @a input. This will setup all internal structures
+ * describing string @a input. This will setup all internal structures
  * necessary to handle input-forwarding.
  *
  * @a input is a comma-separated list of ranges or the literal string

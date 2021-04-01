@@ -45,7 +45,7 @@
  *
  * Send the message @a amsg to the local daemon utilizing @ref
  * PSI_sendMsg(). If the connection to the local daemon got lost an
- * error messsage is printed and @ref exit() is called.
+ * error message is printed and @ref exit() is called.
  *
  * @return Number of bytes written or -1 in case of error
  */

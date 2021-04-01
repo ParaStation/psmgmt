@@ -36,7 +36,7 @@
 
 int pskill(pid_t pid, int sig, uid_t uid)
 {
-    int cntrlfds[2];  /* pipe fds to control the actuall kill(2) */
+    int cntrlfds[2];  /* pipe fds to control the actual kill(2) */
 
     /* create a control channel */
     if (pipe(cntrlfds)<0) {
@@ -45,7 +45,7 @@ int pskill(pid_t pid, int sig, uid_t uid)
     }
 
     int blockedTERM = PSID_blockSig(1, SIGTERM);
-    /* fork to a new process to change the userid and get the right errors */
+    /* fork to a new process to change the user ID and get the right errors */
     errno = 0;
     pid_t forkPid = fork();
     /* save errno in case of error */
@@ -1570,7 +1570,7 @@ static void msg_INHERITDONE(DDBufferMsg_t *msg)
  * Handle the message @a msg of type PSP_DD_INHERITFAILED.
  *
  * This kind of message is sent whenever passing children to their
- * grandparent process fails. It is sent to the passingp process in
+ * grandparent process fails. It is sent to the passing process in
  * order to tell that the children processes are finally orphaned and
  * correspondingly killed.
  *

@@ -160,7 +160,7 @@ error:
  *
  * @param task The task to send
  *
- * @param sendFunc Actual function used to send out the messsage(s)
+ * @param sendFunc Actual function used to send out the message(s)
  *
  * @return On success this function returns true; or false if an error
  * occurred
@@ -220,7 +220,7 @@ static bool sendTask(DDTypedBufferMsg_t *msg, PStask_t *task,
  *
  * @param argv The argument-vector to send
  *
- * @param sendFunc Actual function used to send out the messsage(s)
+ * @param sendFunc Actual function used to send out the message(s)
  *
  * @return On success this function returns true; or false if an error
  * occurred
@@ -281,7 +281,7 @@ void PSI_registerRankEnvFunc(char **(*func)(int, void *), void *info)
  *
  * @param len Pointer to current length of @a msg's buffer.
  *
- * @param sendFunc Actual function used to send out the messsage(s)
+ * @param sendFunc Actual function used to send out the message(s)
  *
  * @return On success this function returns true; or false if an error
  * occurred. In the latter case, @a msg will point to the last message
@@ -595,7 +595,7 @@ bool PSI_sendSpawnMsg(PStask_t* task, bool envClone, PSnodes_ID_t dest,
  * be started. At the time, TG_ANY and TG_ADMINTASK are good
  * values. The latter is used for admin-tasks, i.e. unaccounted tasks.
  *
- * @param resID The ID of the reservation to spwan the task into. -1 if none.
+ * @param resID The ID of the reservation to spawn the task into. -1 if none.
  *
  * @param rank The rank of the first process spawned.
  *
@@ -605,7 +605,7 @@ bool PSI_sendSpawnMsg(PStask_t* task, bool envClone, PSnodes_ID_t dest,
  * NULL, no such information will be stored.
  *
  * @return Upon success, the number of processes spawned is returned,
- * i.e. usually this is @a count. Otherwise a negativ value is
+ * i.e. usually this is @a count. Otherwise a negative value is
  * returned which indicates the number of answer got from spawn
  * requests.
  */

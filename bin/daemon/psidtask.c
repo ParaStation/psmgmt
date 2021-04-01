@@ -392,7 +392,7 @@ PStask_t *PStasklist_find(list_t *list, PStask_ID_t tid)
 	PStask_t *tt = list_entry(t, PStask_t, next);
 	if (tt->tid == tid) {
 	    if (tt->deleted) {
-		/* continue to search since we migth have duplicates
+		/* continue to search since we might have duplicates
 		 * of PID due to some problems in flow-control */
 		PSID_log(PSID_LOG_TASK, " found but deleted\n");
 		foundDeleted = true;

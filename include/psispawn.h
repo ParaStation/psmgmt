@@ -62,7 +62,7 @@ void PSI_RemoteArgs(int Argc,char **Argv,int *RArgc,char ***RArgv);
 /**
  * @brief Register per rank environment creator
  *
- * Register a the function that is called during spawning of processes
+ * Register the function that is called during spawning of processes
  * in order to create a per rank environment. This environment is
  * appended to the default environment propagated to each process
  * spawned.
@@ -91,7 +91,7 @@ void PSI_registerRankEnvFunc(char **(*func)(int, void *), void *info);
  * process as described in the task structure @a task. Messages are
  * actually sent via @a sendFunc. @a envClone flags the use of
  * environment cloning on the receiving side in order to reduce the
- * total size of byte to be transfered.
+ * total size of byte to be transferred.
  *
  * @param task Task structure describing the process to be spawned
  *
@@ -100,7 +100,7 @@ void PSI_registerRankEnvFunc(char **(*func)(int, void *), void *info);
  *
  * @param dest Destination node of the messages to be sent
  *
- * @param sendFunc Actual function used to send out the messsage(s)
+ * @param sendFunc Actual function used to send out the message(s)
  *
  * @return On success true is returned; or false in case of error
  */
@@ -649,7 +649,7 @@ char *PSI_createMPIhosts(int num, int local);
  * be sent to all child tasks of the current task.
  *
  * @param async Flag to prevent waiting for a corresponding answer
- * message. The answer message has to be handled explicitely within
+ * message. The answer message has to be handled explicitly within
  * the calling function.
  *
  * @return On success 0 is returned. If some problem occurred, a value

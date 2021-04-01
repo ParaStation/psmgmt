@@ -45,7 +45,7 @@ typedef enum {
 typedef struct {
     PStask_ID_t tid;	    /**< PStask ID of the forwarder */
     Clients_Flags_t flags;  /**< Track the client state */
-    int init;		    /**< Flag to mark the successfull PMI init */
+    int init;		    /**< Flag to mark the successful PMI init */
     int rank;		    /**< The parastation rank of the PMI client */
     int pmiRank;	    /**< The PMI (MPI WORLD) rank of the PMI client */
 } PMI_Clients_t;
@@ -89,7 +89,7 @@ static int kvsIndexSize;
 /** The maximal size of PMI clients we will handle */
 static int maxClients;
 
-/** The job uniq KVS name */
+/** The job unique KVS name */
 static char kvsname[PMI_KVSNAME_MAX];
 
 /** Total count of all KVS clients we know */
@@ -116,7 +116,7 @@ static char buffer[1024];
 /** The count of the received kvs_put messages */
 static int putCount = 0;
 
-/** Flag to indicate that we need to wait for late arrving kvs_put messages */
+/** Flag to indicate that we need to wait for late arriving kvs_put messages */
 static int waitForPuts = 0;
 
 /** Flag to enable measurement output */
@@ -744,7 +744,7 @@ static void setInitTimeout(void)
  *
  * The init process is monitored to make sure all MPI clients are
  * started successfully in time. The KVS init message is send when
- * the correspoding MPI client calls PMI init.
+ * the corresponding MPI client calls PMI init.
  *
  * @param msg The message to handle.
  *
