@@ -98,8 +98,7 @@ static int jobCallback(int32_t exit_status, Forwarder_Data_t *fw)
     killForwarderByJobid(job->jobid);
 
     job->state = JOB_COMPLETE;
-    mdbg(PSSLURM_LOG_JOB, "%s: job '%u' in '%s'\n", __func__,
-	    job->jobid, strJobState(job->state));
+    fdbg(PSSLURM_LOG_JOB, "job %u in %s\n", job->jobid,strJobState(job->state));
 
     /* get exit status of child */
     int eStatus = fw->exitRcvd ? fw->chldExitStatus : fw->hookExitCode;
@@ -125,9 +124,9 @@ static int jobCallback(int32_t exit_status, Forwarder_Data_t *fw)
 	deleteAlloc(alloc->id);
     } else if (alloc->terminate) {
 	/* run epilogue now */
-	mlog("%s: starting epilogue for allocation %u\n", __func__, alloc->id);
-	mdbg(PSSLURM_LOG_JOB, "%s: job '%u' in '%s'\n", __func__,
-		job->jobid, strJobState(job->state));
+	flog("starting epilogue for allocation %u\n", alloc->id);
+	fdbg(PSSLURM_LOG_JOB, "job %u in %s\n", job->jobid,
+	     strJobState(job->state));
 	startEpilogue(alloc);
     }
 
@@ -159,7 +158,7 @@ static int stepFollowerCB(int32_t exit_status, Forwarder_Data_t *fw)
     flog("%s tid %s finished\n", strStepID(step), PSC_printTID(fw->tid));
 
     step->state = JOB_COMPLETE;
-    fdbg(PSSLURM_LOG_JOB, "%s in state %s\n", strStepID(step),
+    fdbg(PSSLURM_LOG_JOB, "%s in %s\n", strStepID(step),
 	 strJobState(step->state));
 
     /* test if we were waiting only for this step to finish */
@@ -189,7 +188,7 @@ static int stepCallback(int32_t exit_status, Forwarder_Data_t *fw)
 	return 0;
     }
 
-    flog("%s state %s finished, exit %i / %i\n", strStepID(step),
+    flog("%s in %s finished, exit %i / %i\n", strStepID(step),
 	 strJobState(step->state), exit_status, fw->chldExitStatus);
 
     /* make sure all processes are gone */
@@ -232,7 +231,7 @@ static int stepCallback(int32_t exit_status, Forwarder_Data_t *fw)
     }
 
     step->state = JOB_COMPLETE;
-    fdbg(PSSLURM_LOG_JOB, "%s in state %s\n", strStepID(step),
+    fdbg(PSSLURM_LOG_JOB, "%s in %s\n", strStepID(step),
 	 strJobState(step->state));
     psAccountDelJob(PSC_getTID(-1, fw->cPid));
 

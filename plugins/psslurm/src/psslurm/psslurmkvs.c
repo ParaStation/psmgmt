@@ -471,19 +471,18 @@ static bool addStepInfo(Step_t *step, const void *info)
     }
 
     snprintf(line, sizeof(line), "user: '%s' uid: %u gid: %u\n",
-	    step->username, step->uid, step->gid);
+	     step->username, step->uid, step->gid);
     addStrBuf(line, strBuf);
 
     snprintf(line, sizeof(line), "%u hosts: '%s'\n", step->nrOfNodes,
-	    step->slurmHosts);
+	     step->slurmHosts);
     addStrBuf(line, strBuf);
 
-    snprintf(line, sizeof(line), "step state: '%s'\n",
-	    strJobState(step->state));
+    snprintf(line, sizeof(line), "state: %s\n", strJobState(step->state));
     addStrBuf(line, strBuf);
 
     snprintf(line, sizeof(line), "tpp: %u numHwThreads: %u\n",
-	    step->tpp, step->numHwThreads);
+	     step->tpp, step->numHwThreads);
     addStrBuf(line, strBuf);
 
     if (step->fwdata) {

@@ -127,8 +127,8 @@ static void handleEpilogueCB(Alloc_t *alloc, PElogueResList_t *resList)
 
     if (job) {
 	job->state = JOB_EXIT;
-	mdbg(PSSLURM_LOG_JOB, "%s: job '%u' in '%s'\n", __func__,
-		job->jobid, strJobState(job->state));
+	fdbg(PSSLURM_LOG_JOB, "job %u in %s\n", job->jobid,
+	     strJobState(job->state));
     } else {
 	traverseSteps(stepEpilogue, &alloc->id);
     }

@@ -591,8 +591,8 @@ static void handleLaunchTasks(Slurm_Msg_t *sMsg)
 	/* start mpiexec to spawn the parallel processes,
 	 * intercept createPart call to overwrite the nodelist */
 	step->state = JOB_PRESTART;
-	mdbg(PSSLURM_LOG_JOB, "%s: %s in '%s'\n", __func__,
-	     strStepID(step), strJobState(step->state));
+	fdbg(PSSLURM_LOG_JOB, "%s in %s\n", strStepID(step),
+	     strJobState(step->state));
 	if (step->packJobid == NO_VAL) {
 	    if (!(execStepLeader(step))) {
 		sendSlurmRC(sMsg, ESLURMD_FORK_FAILED);
@@ -1506,14 +1506,11 @@ static bool extractJobPackInfos(Job_t *job)
  */
 static void printJobLaunchInfos(Job_t *job)
 {
-    uint32_t i;
-
-    mdbg(PSSLURM_LOG_JOB, "%s: job %u in '%s'\n", __func__,
-	    job->jobid, strJobState(job->state));
+    fdbg(PSSLURM_LOG_JOB, "job %u in %s\n", job->jobid,strJobState(job->state));
 
     /* log cpu options */
     if (job->cpusPerNode && job->cpuCountReps) {
-	for (i=0; i<job->cpuGroupCount; i++) {
+	for (uint32_t i = 0; i < job->cpuGroupCount; i++) {
 	    mdbg(PSSLURM_LOG_PART, "cpusPerNode %u cpuCountReps %u\n",
 		 job->cpusPerNode[i], job->cpuCountReps[i]);
 	}
@@ -1521,16 +1518,16 @@ static void printJobLaunchInfos(Job_t *job)
 
     /* job env */
     job->env.size = job->env.cnt;
-    for (i=0; i<job->env.cnt; i++) {
+    for (uint32_t i = 0; i < job->env.cnt; i++) {
 	mdbg(PSSLURM_LOG_ENV, "%s: env%i: '%s'\n", __func__, i,
-		job->env.vars[i]);
+	     job->env.vars[i]);
     }
 
     /* spank env */
     job->spankenv.size = job->spankenv.cnt;
-    for (i=0; i<job->spankenv.cnt; i++) {
+    for (uint32_t i = 0; i < job->spankenv.cnt; i++) {
 	mdbg(PSSLURM_LOG_ENV, "%s: spankenv%i: '%s'\n", __func__, i,
-		job->spankenv.vars[i]);
+	     job->spankenv.vars[i]);
     }
 }
 
@@ -1645,8 +1642,7 @@ static void handleBatchJobLaunch(Slurm_Msg_t *sMsg)
     flog("start job\n");
     alloc->state = A_RUNNING;
     bool ret = execBatchJob(job);
-    mdbg(PSSLURM_LOG_JOB, "%s: job %u in '%s'\n", __func__,
-	 job->jobid, strJobState(job->state));
+    fdbg(PSSLURM_LOG_JOB, "job %u in %s\n", job->jobid,strJobState(job->state));
 
     /* return result to slurmctld */
     if (ret) {
