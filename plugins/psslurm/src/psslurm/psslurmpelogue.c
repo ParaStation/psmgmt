@@ -108,8 +108,8 @@ static bool stepEpilogue(Step_t *step, const void *info)
 	(step->packJobid != NO_VAL && step->packJobid == jobid)) {
 
 	step->state = JOB_EXIT;
-	mdbg(PSSLURM_LOG_JOB, "%s: step '%u:%u' in '%s'\n", __func__,
-		step->jobid, step->stepid, strJobState(step->state));
+	fdbg(PSSLURM_LOG_JOB, "%s in %s\n", strStepID(step),
+	     strJobState(step->state));
     }
     return false;
 }

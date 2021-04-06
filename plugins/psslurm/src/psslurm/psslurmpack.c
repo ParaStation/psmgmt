@@ -70,10 +70,10 @@ bool __unpackStepHead(char **ptr, void *head, uint16_t msgVer,
 	stepH->stepHetComp = NO_VAL;
 
 	/* convert step ID */
-        if (stepH->stepid == NO_VAL) {
-            stepH->stepid = SLURM_BATCH_SCRIPT;
+	if (stepH->stepid == NO_VAL) {
+	    stepH->stepid = SLURM_BATCH_SCRIPT;
 	} else if (stepH->stepid == INFINITE) {
-            stepH->stepid = SLURM_EXTERN_CONT;
+	    stepH->stepid = SLURM_EXTERN_CONT;
 	}
     }
     return true;

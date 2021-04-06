@@ -395,15 +395,20 @@ const char *strStepID(Step_t *step)
     static char buf[128];
 
     if (step) {
-	if (step->stepid == SLURM_INTERACTIVE_STEP) {
+	switch (step->stepid) {
+	case SLURM_INTERACTIVE_STEP:
 	    snprintf(buf, sizeof(buf), "interactive step %u", step->jobid);
-	} else if (step->stepid == SLURM_PENDING_STEP) {
+	    break;
+	case SLURM_PENDING_STEP:
 	    snprintf(buf, sizeof(buf), "pending step %u", step->jobid);
-	} else if (step->stepid == SLURM_EXTERN_CONT) {
+	    break;
+	case SLURM_EXTERN_CONT:
 	    snprintf(buf, sizeof(buf), "extern step %u", step->jobid);
-	} else if (step->stepid == SLURM_BATCH_SCRIPT) {
+	    break;
+	case SLURM_BATCH_SCRIPT:
 	    snprintf(buf, sizeof(buf), "batchscript %u", step->jobid);
-	} else {
+	    break;
+	default:
 	    snprintf(buf, sizeof(buf), "step %u:%u", step->jobid, step->stepid);
 	}
     } else {

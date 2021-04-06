@@ -912,7 +912,7 @@ static void fwExecStep(Forwarder_Data_t *fwdata, int rerun)
 
     /* reopen syslog */
     openlog("psid", LOG_PID|LOG_CONS, LOG_DAEMON);
-    snprintf(buf, sizeof(buf), "psslurm-step:%u.%u", step->jobid, step->stepid);
+    snprintf(buf, sizeof(buf), "psslurm-%s", strStepID(step));
     initLogger(buf, NULL);
     maskLogger(oldMask);
 
@@ -965,7 +965,7 @@ static void fwExecStep(Forwarder_Data_t *fwdata, int rerun)
     fprintf(stderr, "%s: execve %s failed: %s\n", __func__, argV.strings[0],
 	    strerror(err));
     openlog("psid", LOG_PID|LOG_CONS, LOG_DAEMON);
-    snprintf(buf, sizeof(buf), "psslurm-step:%u.%u", step->jobid, step->stepid);
+    snprintf(buf, sizeof(buf), "psslurm-%s", strStepID(step));
     initLogger(buf, NULL);
     mwarn(err, "%s: execve %s failed: ", __func__, argV.strings[0]);
     exit(err);

@@ -117,27 +117,27 @@ bool verifyStepData(Step_t *step)
     uint32_t i;
 
     if (!(cred = step->cred)) {
-	flog("no credential for step '%u:%u'\n", step->jobid, step->stepid);
+	flog("no credential for %s\n", strStepID(step));
 	return false;
     }
     /* job ID */
     if (step->jobid != cred->jobid) {
-	flog("mismatching jobid '%u:%u'\n", step->jobid, cred->jobid);
+	flog("mismatching jobid %u vs %u\n", step->jobid, cred->jobid);
 	return false;
     }
     /* step ID */
     if (step->stepid != cred->stepid) {
-	flog("mismatching stepid '%u:%u'\n", step->stepid, cred->stepid);
+	flog("mismatching stepid %u vs %u\n", step->stepid, cred->stepid);
 	return false;
     }
     /* user ID */
     if (step->uid != cred->uid) {
-	flog("mismatching uid '%u:%u'\n", step->uid, cred->uid);
+	flog("mismatching uid %u vs %u\n", step->uid, cred->uid);
 	return false;
     }
     /* group ID */
     if (step->gid != cred->gid) {
-	flog("mismatching gid '%u:%u'\n", step->gid, cred->gid);
+	flog("mismatching gid %u vs %u\n", step->gid, cred->gid);
 	return false;
     }
     /* resolve empty username (needed since 17.11) */
@@ -188,8 +188,7 @@ bool verifyStepData(Step_t *step)
 	return false;
     }
 
-    mdbg(PSSLURM_LOG_AUTH, "%s: step '%u:%u' success\n", __func__,
-	    step->jobid, step->stepid);
+    fdbg(PSSLURM_LOG_AUTH, "%s success\n", strStepID(step));
     return true;
 }
 
@@ -199,41 +198,39 @@ bool verifyJobData(Job_t *job)
     uint32_t i;
 
     if (!(cred = job->cred)) {
-	mlog("%s: no cred for job '%u'\n", __func__, job->jobid);
+	flog("no cred for job %u\n", job->jobid);
 	return false;
     }
     /* job ID */
     if (job->jobid != cred->jobid) {
-	mlog("%s: mismatching jobid '%u:%u'\n", __func__, job->jobid,
-		cred->jobid);
+	flog("mismatching jobid %u vs %u\n", job->jobid, cred->jobid);
 	return false;
     }
     /* step ID */
     if (SLURM_BATCH_SCRIPT != cred->stepid) {
-	mlog("%s: mismatching stepid '%u:%u'\n", __func__, SLURM_BATCH_SCRIPT,
-		cred->stepid);
+	flog("mismatching stepid %u vs %u\n", SLURM_BATCH_SCRIPT, cred->stepid);
 	return false;
     }
     /* user ID */
     if (job->uid != cred->uid) {
-	mlog("%s: mismatching uid '%u:%u'\n", __func__, job->uid, cred->uid);
+	flog("mismatching uid %u vs %u\n", job->uid, cred->uid);
 	return false;
     }
     /* number of nodes */
     if (job->nrOfNodes != cred->jobNumHosts) {
-	mlog("%s: mismatching node count '%u:%u'\n", __func__, job->nrOfNodes,
-		cred->jobNumHosts);
+	flog("mismatching node count %u vs %u\n", job->nrOfNodes,
+	     cred->jobNumHosts);
 	return false;
     }
     /* host-list */
     if (!!(strcmp(job->slurmHosts, cred->jobHostlist))) {
-	mlog("%s: mismatching host-list '%s' - '%s'\n", __func__,
-		job->slurmHosts, cred->jobHostlist);
+	flog("mismatching host-list '%s' vs '%s'\n",
+	     job->slurmHosts, cred->jobHostlist);
 	return false;
     }
     /* group ID */
     if (job->gid != cred->gid) {
-	mlog("%s: mismatching gid '%u:%u'\n", __func__, job->gid, cred->gid);
+	flog("mismatching gid %u vs %u\n", job->gid, cred->gid);
 	return false;
     }
     /* resolve empty username (needed since 17.11) */
@@ -241,15 +238,15 @@ bool verifyJobData(Job_t *job)
 	ufree(job->username);
 	job->username = uid2String(job->uid);
 	if (!job->username) {
-	    mlog("%s: unable to resolve user ID %i\n", __func__, job->uid);
+	    flog("unable to resolve user ID %i\n", job->uid);
 	    return false;
 	}
     }
     /* username */
     if (cred->username && cred->username[0] != '\0' &&
 	!!(strcmp(job->username, cred->username))) {
-	mlog("%s: mismatching username '%s' - '%s'\n", __func__,
-		job->username, cred->username);
+	flog("mismatching username '%s' vs '%s'\n",
+	     job->username, cred->username);
 	return false;
     }
     /* group IDs */
@@ -270,14 +267,14 @@ bool verifyJobData(Job_t *job)
 	}
 	for (i=0; i<cred->gidsLen; i++) {
 	    if (cred->gids[i] != job->gids[i]) {
-		mlog("%s: mismatching gid[%i] %u : %u\n", __func__,
-			i, job->gids[i], cred->gids[i]);
+		flog("mismatching gid[%i] %u vs %u\n",
+		     i, job->gids[i], cred->gids[i]);
 		return false;
 	    }
 	}
     }
 
-    mdbg(PSSLURM_LOG_AUTH, "%s: job '%u' success\n", __func__, job->jobid);
+    fdbg(PSSLURM_LOG_AUTH, "job %u success\n", job->jobid);
     return true;
 }
 

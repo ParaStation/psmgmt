@@ -293,16 +293,14 @@ static void printLaunchTasksInfos(Step_t *step)
     }
 
     /* job state */
-    mdbg(PSSLURM_LOG_JOB, "%s: %s in %s\n", __func__, strStepID(step),
+    fdbg(PSSLURM_LOG_JOB, "%s in %s\n", strStepID(step),
 	 strJobState(step->state));
 
     /* pinning */
-    mdbg(PSSLURM_LOG_PART, "%s: taskDist 0x%x\n", __func__, step->taskDist);
-
-    mdbg(PSSLURM_LOG_PART, "%s: cpuBindType 0x%hx, cpuBind '%s'\n", __func__,
+    fdbg(PSSLURM_LOG_PART, "taskDist 0x%x\n", step->taskDist);
+    fdbg(PSSLURM_LOG_PART, "cpuBindType 0x%hx, cpuBind '%s'\n",
 	 step->cpuBindType, step->cpuBind);
-
-    mdbg(PSSLURM_LOG_PART, "%s: memBindType 0x%hx, memBind '%s'\n", __func__,
+    fdbg(PSSLURM_LOG_PART, "memBindType 0x%hx, memBind '%s'\n",
 	 step->memBindType, step->memBind);
 }
 
@@ -1212,7 +1210,10 @@ static void handleStepStat(Slurm_Msg_t *sMsg)
 
     Step_t *step = findStepByStepId(head.jobid, head.stepid);
     if (!step) {
-	flog("step %u.%u to signal not found\n", head.jobid, head.stepid);
+	Step_t s = {
+	    .jobid = head.jobid,
+	    .stepid = head.stepid };
+	flog("%s to signal not found\n", strStepID(&s));
 	sendSlurmRC(sMsg, ESLURM_INVALID_JOB_ID);
 	return;
     }
@@ -1263,7 +1264,10 @@ static void handleStepPids(Slurm_Msg_t *sMsg)
 
     Step_t *step = findStepByStepId(head.jobid, head.stepid);
     if (!step) {
-	flog("step %u.%u to signal not found\n", head.jobid, head.stepid);
+	Step_t s = {
+	    .jobid = head.jobid,
+	    .stepid = head.stepid };
+	flog("%s to signal not found\n", strStepID(&s));
 	sendSlurmRC(sMsg, ESLURM_INVALID_JOB_ID);
 	return;
     }
@@ -2527,8 +2531,8 @@ void sendStepExit(Step_t *step, uint32_t exitStatus)
 	.childPid = 0 };
     addSlurmAccData(&slurmAccData, &body);
 
-    flog("REQUEST_STEP_COMPLETE for %u:%u to slurmctld: exit %u\n",
-	 step->jobid, step->stepid, exitStatus);
+    flog("REQUEST_STEP_COMPLETE for %s to slurmctld: exit %u\n",
+	 strStepID(step), exitStatus);
 
     sendSlurmMsg(SLURMCTLD_SOCK, REQUEST_STEP_COMPLETE, &body);
 }

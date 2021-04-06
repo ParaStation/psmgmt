@@ -329,8 +329,7 @@ void fwCMD_printMessage(Step_t *step, char *plMsg, uint32_t msgLen,
     if (step->ioCon == IO_CON_BROKE) return;
 
     if (step->ioCon == IO_CON_ERROR) {
-	mlog("%s: I/O connection for step '%u:%u' is broken\n", __func__,
-	     step->jobid, step->stepid);
+	flog("I/O connection for %s is broken\n", strStepID(step));
 	step->ioCon = IO_CON_BROKE;
     }
 
