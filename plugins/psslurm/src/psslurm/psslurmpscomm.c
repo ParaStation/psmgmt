@@ -1047,7 +1047,11 @@ static void handle_JobExit(DDTypedBufferMsg_t *msg)
 
     Step_t *step = findStepByStepId(jobid, stepid);
     if (!step) {
-	flog("step %u:%u not found\n", jobid, stepid);
+	Step_t s = {
+	    .jobid = jobid,
+	    .stepid = stepid };
+	flog("%s not found\n", strStepID(&s));
+	return;
     } else {
 	step->state = JOB_EXIT;
 	fdbg(PSSLURM_LOG_JOB, "%s in %s\n", strStepID(step),
@@ -1367,11 +1371,13 @@ static void handlePackExit(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
 	 packJobid, stepid, exitStatus);
 
     Step_t *step = findStepByStepId(packJobid, stepid);
-    if (step) {
-	sendStepExit(step, exitStatus);
+    if (!step) {
+	Step_t s = {
+	    .jobid = packJobid,
+	    .stepid = stepid };
+	flog("no %s found to set exitStatus %i\n", strStepID(&s), exitStatus);
     } else {
-	flog("no step %u:%u to set exitStatus %i found\n", packJobid,
-	     stepid, exitStatus);
+	sendStepExit(step, exitStatus);
     }
 }
 
@@ -1391,7 +1397,6 @@ static void handlePackInfo(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
 {
     char *ptr = data->buf;
     uint32_t packJobid, stepid, packAllocID, len;
-    Step_t *step;
     PackInfos_t *rInfo;
     Alloc_t *alloc;
 
@@ -1407,7 +1412,8 @@ static void handlePackInfo(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
 	return;
     }
 
-    if (!(step = findStepByStepId(packJobid, stepid))) {
+    Step_t *step = findStepByStepId(packJobid, stepid);
+    if (!step) {
 	Msg_Cache_t *cache = umalloc(sizeof(*cache));
 
 	/* cache pack info */
@@ -1491,8 +1497,10 @@ static void handleSignalTasks(DDTypedBufferMsg_t *msg)
     if (!step) {
 	if (packID != NO_VAL) step = findStepByStepId(packID, stepid);
 	if (!step) {
-	  flog("step %u:%u pack %u to signal not found\n", jobid,
-	       stepid, packID);
+	    Step_t s = {
+		.jobid = jobid,
+		.stepid = stepid };
+	    flog("%s pack %u to signal not found\n", strStepID(&s), packID);
 	  return;
 	}
     }
@@ -1775,8 +1783,8 @@ static bool nodeDownAlloc(Alloc_t *alloc, const void *info)
 	if (!step) step = findStepByJobid(alloc->packID);
 	if (step && step->leader) {
 	    char buf[512];
-	    snprintf(buf, sizeof(buf), "%s terminated due to failure of node "
-		     "%s\n", strStepID(step), getSlurmHostbyNodeID(node));
+	    snprintf(buf, sizeof(buf), "%s terminated due to failed node %s\n",
+		     strStepID(step), getSlurmHostbyNodeID(node));
 	    fwCMD_printMessage(step, buf, strlen(buf), STDERR, 0);
 	}
 
@@ -2334,12 +2342,13 @@ static void handleSpawnReq(DDTypedBufferMsg_t *msg)
     Step_t *step = findStepByEnv(spawnee->environ, &jobid, &stepid, isAdmin);
     if (!step) {
 	/* admin users may start jobs directly via mpiexec */
-	if (isAdmin) {
-	    goto FORWARD_SPAWN_REQ_MSG;
-	}
+	if (isAdmin) goto FORWARD_SPAWN_REQ_MSG;
 
-	flog("delay spawnee from %s due to missing step %u:%u\n",
-	     PSC_printTID(msg->header.sender), jobid, stepid);
+	Step_t s = {
+	    .jobid = jobid,
+	    .stepid = stepid };
+	flog("delay spawnee from %s due to missing %s\n",
+	     PSC_printTID(msg->header.sender), strStepID(&s));
 
 	PSIDspawn_delayTask(spawnee);
 	return;
@@ -2412,7 +2421,10 @@ static void handleChildBornMsg(DDErrorMsg_t *msg)
     } else {
 	Step_t *step = findStepByStepId(jobid, stepid);
 	if (!step) {
-	    flog("step %u:%u not found\n", jobid, stepid);
+	    Step_t s = {
+		.jobid = jobid,
+		.stepid = stepid };
+	    flog("%s not found\n", strStepID(&s));
 	    goto FORWARD_CHILD_BORN;
 	}
 	task = addTask(&step->tasks, msg->request, forwarder->tid, forwarder,

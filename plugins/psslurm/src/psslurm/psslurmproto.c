@@ -514,7 +514,7 @@ static void handleLaunchTasks(Slurm_Msg_t *sMsg)
     }
 
     if (count != step->nrOfNodes) {
-	flog("mismatching number of nodes %u:%u for %s\n",
+	flog("mismatching number of nodes %u vs %u for %s\n",
 	     count, step->nrOfNodes, strStepID(step));
 	step->nrOfNodes = count;
 	sendSlurmRC(sMsg, ESLURMD_INVALID_JOB_CREDENTIAL);
@@ -805,8 +805,10 @@ static void handleReattachTasks(Slurm_Msg_t *sMsg)
     getUint32(ptr, &stepid);
 
     if (!(step = findStepByStepId(jobid, stepid))) {
-	mlog("%s: step %u:%u to reattach not found\n", __func__,
-		jobid, stepid);
+	Step_t s = {
+	    .jobid = jobid,
+	    .stepid = stepid };
+	flog("%s to reattach not found\n", strStepID(&s));
 	rc = ESLURM_INVALID_JOB_ID;
 	goto SEND_REPLY;
     }
@@ -1741,7 +1743,10 @@ static void handleAbortReq(Slurm_Msg_t *sMsg, uint32_t jobid, uint32_t stepid)
     if (stepid != NO_VAL) {
 	Step_t *step = findStepByStepId(jobid, stepid);
 	if (!step) {
-	    flog("step %u:%u not found\n", jobid, stepid);
+	    Step_t s = {
+		.jobid = jobid,
+		.stepid = stepid };
+	    flog("%s not found\n", strStepID(&s));
 	    return;
 	}
 	signalStep(step, SIGKILL, sMsg->head.uid);
