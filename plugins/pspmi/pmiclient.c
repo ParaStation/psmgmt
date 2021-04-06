@@ -1085,7 +1085,7 @@ static int p_InitAck(char *msg)
 	return critErr();
     }
 
-    if (!!strcmp(pmi_id, client_id)) {
+    if (strcmp(pmi_id, client_id)) {
 	elog("%s(r%i): invalid pmi_id '%s' from MPI client should be '%s'\n",
 	     __func__, rank, client_id, pmi_id);
 	return critErr();
@@ -2125,8 +2125,6 @@ static int fillWithMpiexec(SpawnRequest_t *req, int usize, PStask_t *task)
 static bool tryPMISpawn(SpawnRequest_t *req, int universeSize,
 			int serviceRank, int *totalProcs)
 {
-    int i;
-
     if (!req) {
 	mlog("%s: no spawn request (THIS SHOULD NEVER HAPPEN!!!)\n", __func__);
 	return false;
@@ -2164,7 +2162,7 @@ static bool tryPMISpawn(SpawnRequest_t *req, int universeSize,
     /* build environment */
     strv_t env;
     strvInit(&env, NULL, 0);
-    for (i = 0; cTask->environ[i]; i++) {
+    for (int i = 0; cTask->environ[i]; i++) {
 	char *cur = cTask->environ[i];
 
 	/* skip troublesome old env vars */
@@ -2189,7 +2187,7 @@ static bool tryPMISpawn(SpawnRequest_t *req, int universeSize,
 
     /* calc totalProcs */
     *totalProcs = 0;
-    for (i = 0; i < req->num; i++) {
+    for (int i = 0; i < req->num; i++) {
 	*totalProcs += req->spawns[i].np;
     }
 
@@ -2241,19 +2239,18 @@ static bool tryPMISpawn(SpawnRequest_t *req, int universeSize,
     task->environ = env.strings;
     task->envSize = env.count;
 
-    uint32_t j;
     if (debug) {
 	elog("%s(r%i): Executing '", __func__, rank);
-	for (j = 0; j < task->argc; j++) elog(" %s", task->argv[j]);
+	for (uint32_t j = 0; j < task->argc; j++) elog(" %s", task->argv[j]);
 	elog("'\n");
     }
     mlog("%s(r%i): Executing '", __func__, rank);
-    for (j = 0; j < task->argc; j++) mlog(" %s", task->argv[j]);
+    for (uint32_t j = 0; j < task->argc; j++) mlog(" %s", task->argv[j]);
     mlog("'\n");
 
 #if 0
     mlog("Task environment:\n");
-    for (i = 0; i < task->envSize; i++) {
+    for (int i = 0; i < task->envSize; i++) {
 	if (task->environ[i] == NULL) {
 	    mlog("!!! NULL pointer in task environment !!!\n");
 	    continue;

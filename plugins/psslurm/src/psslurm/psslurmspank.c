@@ -131,7 +131,7 @@ bool SpankInitPlugins(void)
 	fdbg(PSSLURM_LOG_SPANK, "plugin=%s type=%s version=%u\n", sp->name,
 	     sp->type, sp->version);
 
-	if (!!strcmp(sp->type, "spank")) {
+	if (strcmp(sp->type, "spank")) {
 	    /* drop non spank plugins */
 	    fdbg(PSSLURM_LOG_SPANK, "Dropping plugin=%s type=%s\n",
 		 sp->name, sp->type);
@@ -197,9 +197,9 @@ bool SpankInitGlobalSym(void)
 static void doCallHook(Spank_Plugin_t *plugin, spank_t spank, char *hook)
 {
     struct timeval time_start, time_now, time_diff;
-    spank_f *hSym;
 
-    if (!(hSym = dlsym(plugin->handle, hook))) {
+    spank_f *hSym = dlsym(plugin->handle, hook);
+    if (!hSym) {
 	fdbg(PSSLURM_LOG_SPANK, "no symbol %s in plugin %s\n", hook,
 	     plugin->name);
 	return;

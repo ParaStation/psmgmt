@@ -233,14 +233,13 @@ static void terminateJob(const char *func)
  */
 static void initKVS(void)
 {
-    int i;
-
-    if (!(clients = malloc(sizeof(*clients) * maxClients))) {
+    clients = malloc(sizeof(*clients) * maxClients);
+    if (!clients) {
 	mwarn(errno, "%s", __func__);
 	terminateJob(__func__);
     }
 
-    for (i=0; i<maxClients; i++) {
+    for (int i = 0; i < maxClients; i++) {
 	clients[i].tid = -1;
 	clients[i].flags = 0;
 	clients[i].rank = -1;
@@ -249,14 +248,12 @@ static void initKVS(void)
 
     kvsIndexSize = maxClients + 10;
 
-    if (!(kvsUpdateIndex = malloc(sizeof(*kvsUpdateIndex) * kvsIndexSize))) {
+    kvsUpdateIndex = malloc(sizeof(*kvsUpdateIndex) * kvsIndexSize);
+    if (!kvsUpdateIndex) {
 	mwarn(errno, "%s", __func__);
 	terminateJob(__func__);
     }
-
-    for (i=0; i<kvsIndexSize; i++) {
-	kvsUpdateIndex[i] = 0;
-    }
+    for (int i = 0; i < kvsIndexSize; i++) kvsUpdateIndex[i] = 0;
 
     memset(kvsUpdateTrack, 0, sizeof(kvsUpdateTrack));
 }
@@ -514,7 +511,7 @@ static void handleKVS_Put(PSLog_Msg_t *msg, char *ptr)
     if ((valLen = getKVSString(&ptr, value, sizeof(value))) < 1) goto PUT_ERROR;
 
     /* save in global KVS */
-    if (!(kvs_putIdx(kvsname, key, value, &index))) {
+    if (!kvs_putIdx(kvsname, key, value, &index)) {
 
 	putCount++;
 
@@ -802,7 +799,7 @@ static void handleKVS_Join(PSLog_Msg_t *msg, char *ptr)
 
     /* verify that the client has the same kvsname */
     getKVSString(&ptr, client_kvs, sizeof(client_kvs));
-    if (!!(strcmp(client_kvs, kvsname))) {
+    if (strcmp(client_kvs, kvsname)) {
 	mlog("%s: got invalid default KVS name '%s' from rank %i\n", __func__,
 	     client_kvs, rank);
 	terminateJob(__func__);
@@ -1082,10 +1079,7 @@ static void sighandler(int sig)
  */
 static void initKvsProvider(void)
 {
-    char *envstr;
-    int debug_kvs = 0;
     char tmp[100];
-
     snprintf(tmp, sizeof(tmp), "kvsprovider[%i]", getpid());
     initKVSLogger(tmp, stderr);
 
@@ -1093,17 +1087,17 @@ static void initKvsProvider(void)
     PSC_setSigHandler(SIGTERM, sighandler);
 
     /* set KVS debug mode */
-    if ((envstr = getenv("PMI_DEBUG"))) {
-	debug_kvs = atoi(envstr);
-    } else if ((envstr = getenv("PMI_DEBUG_KVS"))) {
-	debug_kvs = atoi(envstr);
+    char *envstr = getenv("PMI_DEBUG");
+    if (!envstr) envstr = getenv("PMI_DEBUG_KVS");
+    if (envstr && atoi(envstr)) {
+	maskKVSLogger(getKVSLoggerMask() | KVS_LOG_PROVIDER);
     }
 
-    if (debug_kvs) maskKVSLogger(getKVSLoggerMask() | KVS_LOG_PROVIDER);
-
     /* set the starting size of the job */
-    if ((envstr = getenv("PMI_SIZE"))) {
-	if ((maxClients = atoi(envstr)) < 1) {
+    envstr = getenv("PMI_SIZE");
+    if (envstr) {
+	maxClients = atoi(envstr);
+	if (maxClients < 1) {
 	    mlog("%s: PMI_SIZE %i is invalid\n", __func__, maxClients);
 	    terminateJob(__func__);
 	}
@@ -1114,10 +1108,11 @@ static void initKvsProvider(void)
     initKVS();
 
     /* set the name of the KVS */
-    if (!(envstr = getenv("PMI_KVS_TMP"))) {
-	strncpy(kvsname,"kvs_localhost_0",sizeof(kvsname) -1);
+    envstr = getenv("PMI_KVS_TMP");
+    if (!envstr) {
+	strncpy(kvsname, "kvs_localhost_0", sizeof(kvsname) - 1);
     } else {
-	snprintf(kvsname,sizeof(kvsname),"kvs_%s_0", envstr);
+	snprintf(kvsname, sizeof(kvsname), "kvs_%s_0", envstr);
     }
 
     /* create global KVS */
@@ -1126,7 +1121,8 @@ static void initKvsProvider(void)
 	terminateJob(__func__);
     }
 
-    if (!(envstr = getenv("__PSI_LOGGER_TID"))) {
+    envstr = getenv("__PSI_LOGGER_TID");
+    if (!envstr) {
 	mlog("%s: cannot find logger tid\n", __func__);
 	terminateJob(__func__);
     }
@@ -1139,7 +1135,8 @@ static void initKvsProvider(void)
     if (!Timer_isInitialized()) Timer_init(stderr);
 
     /* set the timeout for client init phase */
-    if ((envstr = getenv("PMI_BARRIER_TMOUT"))) {
+    envstr = getenv("PMI_BARRIER_TMOUT");
+    if (envstr) {
 	initTimeout = atoi(envstr);
 	mdbg(KVS_LOG_VERBOSE, "PMI init timeout");
 	if (initTimeout == -1) {
@@ -1150,25 +1147,28 @@ static void initKvsProvider(void)
     }
 
     /* identify number of rounds for the init timeout */
-    if ((envstr = getenv("PMI_BARRIER_ROUNDS"))) {
+    envstr = getenv("PMI_BARRIER_ROUNDS");
+    if (envstr) {
 	initRounds = atoi(envstr);
 	if (initRounds < 1) initRounds = 1;
 	mdbg(KVS_LOG_VERBOSE, "PMI init rounds: %i\n", initRounds);
     }
 
-    if (!(Selector_isInitialized())) Selector_init(NULL);
+    if (!Selector_isInitialized()) Selector_init(NULL);
 
-    if ((daemonFD = PSI_getDaemonFD()) == -1) {
+    daemonFD = PSI_getDaemonFD();
+    if (daemonFD == -1) {
 	mlog("%s: Connection to local daemon is broken\n", __func__);
 	terminateJob(__func__);
     }
     Selector_register(daemonFD, handlePSIMessage, NULL);
 
     /* listen to message of my forwarder */
-    if (!(envstr = getenv("__PMI_PROVIDER_FD"))) {
+    envstr = getenv("__PMI_PROVIDER_FD");
+    if (!envstr) {
 	if (verbose) {
 	    mlog("%s: Failed to init connection to my forwarder, "
-		    "pspmi plugin loaded?\n", __func__);
+		 "pspmi plugin loaded?\n", __func__);
 	}
 	releaseMySelf(__func__);
 	exit(0);
@@ -1176,9 +1176,8 @@ static void initKvsProvider(void)
     forwarderFD = atoi(envstr);
     Selector_register(forwarderFD, handleFWMessage, NULL);
 
-    if ((envstr = getenv("MEASURE_KVS_PROVIDER"))) {
-	measure = atoi(envstr);
-    }
+    envstr = getenv("MEASURE_KVS_PROVIDER");
+    if (envstr) measure = atoi(envstr);
 }
 
 void kvsProviderLoop(bool kvsverbose)

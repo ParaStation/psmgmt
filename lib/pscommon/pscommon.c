@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2002-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2020 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2021 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -50,9 +50,9 @@ void PSC_initLog(FILE* logfile)
     }
 }
 
-int PSC_logInitialized(void)
+bool PSC_logInitialized(void)
 {
-    return !!PSC_logger;
+    return PSC_logger;
 }
 
 void PSC_finalizeLog(void)

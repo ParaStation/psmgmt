@@ -130,7 +130,7 @@ int initialize(void)
     if (uname(&uts)) {
 	mwarn(errno, "%s: uname()", __func__);
 	return 1;
-    } else if (!!strcmp(uts.sysname, "Linux")) {
+    } else if (strcmp(uts.sysname, "Linux")) {
 	mlog("%s: accounting will only work on Linux platforms\n", __func__);
 	return 1;
     }

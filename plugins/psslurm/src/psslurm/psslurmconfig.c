@@ -247,29 +247,29 @@ static bool addHostOptions(char *options)
 
     next = strtok_r(options, delimiters, &toksave);
     while (next) {
-	if (!(strncasecmp(next, "Sockets=", 8))) {
+	if (!strncasecmp(next, "Sockets=", 8)) {
 	    addConfigEntry(&Config, "SLURM_SOCKETS", next+8);
-	} else if (!(strncasecmp(next, "CoresPerSocket=", 15))) {
+	} else if (!strncasecmp(next, "CoresPerSocket=", 15)) {
 	    addConfigEntry(&Config, "SLURM_CORES_PER_SOCKET", next+15);
-	} else if (!(strncasecmp(next, "ThreadsPerCore=", 15))) {
+	} else if (!strncasecmp(next, "ThreadsPerCore=", 15)) {
 	    addConfigEntry(&Config, "SLURM_THREADS_PER_CORE", next+15);
-	} else if (!(strncasecmp(next, "CPUs=", 5))) {
+	} else if (!strncasecmp(next, "CPUs=", 5)) {
 	    addConfigEntry(&Config, "SLURM_CPUS", next+5);
-	} else if (!(strncasecmp(next, "Feature=", 8))) {
+	} else if (!strncasecmp(next, "Feature=", 8)) {
 	    addConfigEntry(&Config, "SLURM_FEATURE", next+8);
-	} else if (!(strncasecmp(next, "Gres=", 5))) {
+	} else if (!strncasecmp(next, "Gres=", 5)) {
 	    addConfigEntry(&Config, "SLURM_GRES", next+5);
-	} else if (!(strncasecmp(next, "State=", 6))) {
+	} else if (!strncasecmp(next, "State=", 6)) {
 	    addConfigEntry(&Config, "SLURM_STATE", next+6);
-	} else if (!(strncasecmp(next, "Procs=", 6))) {
+	} else if (!strncasecmp(next, "Procs=", 6)) {
 	    addConfigEntry(&Config, "SLURM_PROCS", next+6);
-	} else if (!(strncasecmp(next, "Weight=", 7))) {
+	} else if (!strncasecmp(next, "Weight=", 7)) {
 	    addConfigEntry(&Config, "SLURM_WEIGHT", next+7);
-	} else if (!(strncasecmp(next, "RealMemory=", 11))) {
+	} else if (!strncasecmp(next, "RealMemory=", 11)) {
 	    addConfigEntry(&Config, "SLURM_REAL_MEMORY", next+11);
-	} else if (!(strncasecmp(next, "Boards=", 7))) {
+	} else if (!strncasecmp(next, "Boards=", 7)) {
 	    addConfigEntry(&Config, "SLURM_BOARDS", next+7);
-	} else if (!(strncasecmp(next, "NodeAddr=", 9))) {
+	} else if (!strncasecmp(next, "NodeAddr=", 9)) {
 	    /* already set before */
 	} else {
 	    mlog("%s: unknown node option '%s'\n", __func__, next);
@@ -295,19 +295,19 @@ static bool parseGresOptions(char *options)
 
     next = strtok_r(options, delimiters, &toksave);
     while (next) {
-	if (!(strncasecmp(next, "Name=", 5))) {
+	if (!strncasecmp(next, "Name=", 5)) {
 	    gres->name = ustrdup(next+5);
-	} else if (!(strncasecmp(next, "Count=", 6))) {
+	} else if (!strncasecmp(next, "Count=", 6)) {
 	    count = ustrdup(next+6);
-	} else if (!(strncasecmp(next, "File=", 5))) {
+	} else if (!strncasecmp(next, "File=", 5)) {
 	    gres->file = ustrdup(next+5);
-	} else if (!(strncasecmp(next, "CPUs=", 5))) {
+	} else if (!strncasecmp(next, "CPUs=", 5)) {
 	    gres->cpus = ustrdup(next+5);
-	} else if (!(strncasecmp(next, "Cores=", 6))) {
+	} else if (!strncasecmp(next, "Cores=", 6)) {
 	    gres->cores = ustrdup(next+6);
-	} else if (!(strncasecmp(next, "Type=", 5))) {
+	} else if (!strncasecmp(next, "Type=", 5)) {
 	    gres->type = ustrdup(next+5);
-	} else if (!(strncasecmp(next, "Flags=", 6))) {
+	} else if (!strncasecmp(next, "Flags=", 6)) {
 	    gres->flags = ustrdup(next+6);
 	} else {
 	    flog("unknown gres option '%s'\n", next);
@@ -391,7 +391,7 @@ static bool parseHost(char *host, void *info)
 	    res = parseGresOptions(hInfo->options);
 	}
     } else {
-	if (!(strcmp(host, "DEFAULT"))) {
+	if (!strcmp(host, "DEFAULT")) {
 	    flog("saved default host definition\n");
 	    res = addHostOptions(hInfo->options);
 	} else if (isLocalAddr(host)) {
@@ -481,7 +481,7 @@ static char *findNodeAddr(char *hostopt)
     /* find optional node address */
     next = strtok_r(options, delimiters, &toksave);
     while (next) {
-	if (!(strncasecmp(next, "NodeAddr=", 9))) {
+	if (!strncasecmp(next, "NodeAddr=", 9)) {
 	    nodeAddr = next+9;
 	    break;
 	}
@@ -535,25 +535,23 @@ static void saveNodeNameEntry(char *NodeName, char *nodeAddr)
  */
 static bool parseNodeNameEntry(char *line, int gres)
 {
-    char *hostopt, *nodeAddr;
-    bool res;
-
-    if (!(hostopt = strchr(line, ' '))) {
+    char *hostopt = strchr(line, ' ');
+    if (!hostopt) {
 	mlog("%s: invalid node definition '%s'\n", __func__, line);
 	return false;
     }
 
     hostopt[0] = '\0';
     hostopt++;
-    nodeAddr = findNodeAddr(hostopt);
+    char *nodeAddr = findNodeAddr(hostopt);
 
     /* save all host definitions except for gres and the default host */
-    if (!gres && !!strcmp(line, "DEFAULT")) {
+    if (!gres && strcmp(line, "DEFAULT")) {
 	saveNodeNameEntry(line, nodeAddr);
     }
 
     /* search for definition of the current host */
-    res = setMyHostDef(line, hostopt, nodeAddr, gres);
+    bool res = setMyHostDef(line, hostopt, nodeAddr, gres);
 
     ufree(nodeAddr);
 
@@ -638,7 +636,7 @@ static bool parseSlurmConf(char *key, char *value, const void *info)
 	    return true; /* an error occurred, return true to stop parsing */
 	}
 	ufree(hostline);
-    } else if (*gres && !(strcmp(key, "Name"))) {
+    } else if (*gres && !strcmp(key, "Name")) {
 	char *tmp = umalloc(strlen(value) +6 + 1);
 	snprintf(tmp, strlen(value) +6, "Name=%s", value);
 	//mlog("%s: Gres single name '%s'\n", __func__, tmp);
@@ -895,23 +893,25 @@ static bool verifySlurmConf()
 
 int parseSlurmConfigFiles(uint32_t *hash)
 {
-    char *confFile;
     struct stat sbuf;
     int gres = 0;
 
     /* parse Slurm config file */
-    if (!(confFile = getConfValueC(&Config, "SLURM_CONF"))) return 0;
+    char *confFile = getConfValueC(&Config, "SLURM_CONF");
+    if (!confFile) return 0;
+
     registerConfigHashAccumulator(hash);
     if (parseConfigFile(confFile, &SlurmConfig, true /*trimQuotes*/) < 0)
 	return 0;
     registerConfigHashAccumulator(NULL);
     if (traverseConfig(&SlurmConfig, parseSlurmConf, &gres)) return 0;
-    if (!(verifySlurmConf())) return 0;
+    if (!verifySlurmConf()) return 0;
 
     /* parse optional Slurm GRes config file */
     INIT_LIST_HEAD(&SlurmGresConfig);
     gres = 1;
-    if (!(confFile = getConfValueC(&Config, "SLURM_GRES_CONF"))) return 0;
+    confFile = getConfValueC(&Config, "SLURM_GRES_CONF");
+    if (!confFile) return 0;
     if (stat(confFile, &sbuf) != -1) {
 	Config_t SlurmGresTmp;
 	if (parseConfigFile(confFile, &SlurmGresTmp, true /*trimQuotes*/) < 0)
@@ -925,8 +925,10 @@ int parseSlurmConfigFiles(uint32_t *hash)
     Config_t SlurmPlugConf;
 
     /* parse optional plugstack.conf holding spank plugins */
-    if (!(confFile = getConfValueC(&SlurmConfig, "PlugStackConfig"))) {
-	if (!(confFile = getConfValueC(&Config, "SLURM_SPANK_CONF"))) return 0;
+    confFile = getConfValueC(&SlurmConfig, "PlugStackConfig");
+    if (!confFile) {
+	confFile = getConfValueC(&Config, "SLURM_SPANK_CONF");
+	if (!confFile) return 0;
     }
     int disabled = getConfValueU(&Config, "DISABLE_SPANK");
     if (!disabled && stat(confFile, &sbuf) != -1) {
@@ -969,7 +971,7 @@ int initPSSlurmConfig(char *filename, uint32_t *hash)
     }
 
     char *confServer = getConfValueC(&Config, "SLURM_CONF_SERVER");
-    if (confServer && !!strcmp(confServer, "none")) {
+    if (confServer && strcmp(confServer, "none")) {
 	/* request Slurm configuration files */
 	return CONFIG_SERVER;
     }

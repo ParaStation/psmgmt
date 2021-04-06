@@ -882,13 +882,13 @@ static void msg_ADOPTCHILDSET(DDBufferMsg_t *msg)
     }
 
     while (PSP_tryGetMsgBuf(msg, &used, "tid", &tid, sizeof(tid))) {
-	bool rlsd, deadBefore;
 	if (!tid) {
 	    lastGrandchild = true;
 	    break;
 	}
+	bool rlsd;
 	PSP_tryGetMsgBuf(msg, &used, "released", &rlsd, sizeof(rlsd));
-	deadBefore = !!PSID_getSignalByTID(&task->deadBefore, tid);
+	bool deadBefore = PSID_getSignalByTID(&task->deadBefore, tid);
 
 	PSID_log(PSID_LOG_SIGNAL, "%s: %s:", __func__, PSC_printTID(task->tid));
 	PSID_log(PSID_LOG_SIGNAL, " new child %s", PSC_printTID(tid));
@@ -1382,7 +1382,7 @@ static void msg_RELEASE(DDSignalMsg_t *msg)
 		msg->param = 0;
 	    } else {
 		/* Find out if answer is required */
-		task->releaseAnswer = !!(msg->answer);
+		task->releaseAnswer = msg->answer;
 
 		msg->param = releaseTask(task);
 

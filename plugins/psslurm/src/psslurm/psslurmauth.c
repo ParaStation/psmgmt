@@ -113,10 +113,8 @@ ERROR:
 
 bool verifyStepData(Step_t *step)
 {
-    JobCred_t *cred;
-    uint32_t i;
-
-    if (!(cred = step->cred)) {
+    JobCred_t *cred = step->cred;
+    if (!cred) {
 	flog("no credential for %s\n", strStepID(step));
 	return false;
     }
@@ -151,7 +149,7 @@ bool verifyStepData(Step_t *step)
     }
     /* username */
     if (cred->username && cred->username[0] != '\0' &&
-	!!(strcmp(step->username, cred->username))) {
+	strcmp(step->username, cred->username)) {
 	flog("mismatching username '%s' - '%s'\n", step->username,
 	     cred->username);
 	return false;
@@ -162,7 +160,7 @@ bool verifyStepData(Step_t *step)
 	 * has be set from credential */
 	ufree(step->gids);
 	step->gids = umalloc(sizeof(*step->gids) * cred->gidsLen);
-	for (i=0; i<cred->gidsLen; i++) {
+	for (uint32_t i = 0; i < cred->gidsLen; i++) {
 	    step->gids[i] = cred->gids[i];
 	}
 	step->gidsLen = cred->gidsLen;
@@ -172,7 +170,7 @@ bool verifyStepData(Step_t *step)
 		 cred->gidsLen);
 	    return false;
 	}
-	for (i=0; i<cred->gidsLen; i++) {
+	for (uint32_t i = 0; i < cred->gidsLen; i++) {
 	    if (cred->gids[i] != step->gids[i]) {
 		flog("mismatching gid[%i] %u : %u\n", i, step->gids[i],
 		     cred->gids[i]);
@@ -182,7 +180,7 @@ bool verifyStepData(Step_t *step)
     }
 
     /* host-list */
-    if (!!(strcmp(step->slurmHosts, cred->stepHL))) {
+    if (strcmp(step->slurmHosts, cred->stepHL)) {
 	flog("mismatching host-list '%s' - '%s'\n", step->slurmHosts,
 	     cred->stepHL);
 	return false;
@@ -194,10 +192,8 @@ bool verifyStepData(Step_t *step)
 
 bool verifyJobData(Job_t *job)
 {
-    JobCred_t *cred;
-    uint32_t i;
-
-    if (!(cred = job->cred)) {
+    JobCred_t *cred = job->cred;
+    if (!cred) {
 	flog("no cred for job %u\n", job->jobid);
 	return false;
     }
@@ -223,7 +219,7 @@ bool verifyJobData(Job_t *job)
 	return false;
     }
     /* host-list */
-    if (!!(strcmp(job->slurmHosts, cred->jobHostlist))) {
+    if (strcmp(job->slurmHosts, cred->jobHostlist)) {
 	flog("mismatching host-list '%s' vs '%s'\n",
 	     job->slurmHosts, cred->jobHostlist);
 	return false;
@@ -244,7 +240,7 @@ bool verifyJobData(Job_t *job)
     }
     /* username */
     if (cred->username && cred->username[0] != '\0' &&
-	!!(strcmp(job->username, cred->username))) {
+	strcmp(job->username, cred->username)) {
 	flog("mismatching username '%s' vs '%s'\n",
 	     job->username, cred->username);
 	return false;
@@ -255,7 +251,7 @@ bool verifyJobData(Job_t *job)
 	 * has be set from credential */
 	ufree(job->gids);
 	job->gids = umalloc(sizeof(*job->gids) * cred->gidsLen);
-	for (i=0; i<cred->gidsLen; i++) {
+	for (uint32_t i = 0; i < cred->gidsLen; i++) {
 	    job->gids[i] = cred->gids[i];
 	}
 	job->gidsLen = cred->gidsLen;
@@ -265,7 +261,7 @@ bool verifyJobData(Job_t *job)
 		    job->gidsLen, cred->gidsLen);
 	    return false;
 	}
-	for (i=0; i<cred->gidsLen; i++) {
+	for (uint32_t i = 0; i < cred->gidsLen; i++) {
 	    if (cred->gids[i] != job->gids[i]) {
 		flog("mismatching gid[%i] %u vs %u\n",
 		     i, job->gids[i], cred->gids[i]);
@@ -286,7 +282,7 @@ bool extractBCastCred(Slurm_Msg_t *sMsg, BCast_t *bcast)
 
     errno = 0;
     if (!unpackBCastCred(sMsg, &cred)) {
-	mlog("%s: unpacking bcast credential failed\n", __func__);
+	flog("unpacking bcast credential failed\n");
 	goto ERROR;
     }
 
@@ -296,46 +292,42 @@ bool extractBCastCred(Slurm_Msg_t *sMsg, BCast_t *bcast)
 	uid_t sigUid;
 	gid_t sigGid;
 
-	if (!(psMungeDecodeBuf(cred.sig, (void **) &sigBuf, &sigBufLen,
-		&sigUid, &sigGid))) {
-	    mlog("%s: decoding creditial failed\n", __func__);
+	if (!psMungeDecodeBuf(cred.sig, (void **) &sigBuf, &sigBufLen,
+			      &sigUid, &sigGid)) {
+	    flog("decoding creditial failed\n");
 	    goto ERROR;
 	}
 
 	if (credLen != sigBufLen) {
-	    mlog("%s: mismatching creditial len %u : %u\n", __func__,
-		    credLen, sigBufLen);
+	    flog("mismatching creditial len %u : %u\n", credLen, sigBufLen);
 	    goto ERROR;
 	}
 
-	if (!!(memcmp(sigBuf, credStart, sigBufLen))) {
-	    mlog("%s: manipulated data\n", __func__);
+	if (memcmp(sigBuf, credStart, sigBufLen)) {
+	    flog("manipulated data\n");
 	    goto ERROR;
 	}
 
-	if (!(verifyUserId(sigUid, 0))) {
-	    mlog("%s: unauthorized request\n", __func__);
+	if (!verifyUserId(sigUid, 0)) {
+	    flog("unauthorized request\n");
 	    errno = ESLURM_USER_ID_MISSING;
 	    goto ERROR;
 	}
     } else {
-	BCast_t *firstBCast;
-
-	if (!(firstBCast = findBCast(bcast->jobid, bcast->fileName, 1))) {
-	    mlog("%s: no matching bcast for jobid '%u' fileName '%s' "
-		    "blockNum '%u'\n", __func__, bcast->jobid, bcast->fileName,
-		    bcast->blockNumber);
+	BCast_t *firstBCast = findBCast(bcast->jobid, bcast->fileName, 1);
+	if (!firstBCast) {
+	    flog("no matching bcast for jobid %u fileName '%s' blockNum %u\n",
+		 bcast->jobid, bcast->fileName, bcast->blockNumber);
 	    goto ERROR;
 	}
 
-	if (!!(memcmp(bcast->sig, firstBCast->sig, firstBCast->sigLen))) {
-	    mlog("%s: manipulated data\n", __func__);
+	if (memcmp(bcast->sig, firstBCast->sig, firstBCast->sigLen)) {
+	    flog("manipulated data\n");
 	    goto ERROR;
 	}
 
 	if (cred.etime < time(NULL)) {
-	    mlog("%s: credential expired: %zu : %zu\n", __func__,
-		 cred.etime, time(NULL));
+	    flog("credential expired: %zu : %zu\n", cred.etime, time(NULL));
 	    goto ERROR;
 	}
     }
@@ -405,8 +397,8 @@ JobCred_t *extractJobCred(list_t *gresList, Slurm_Msg_t *sMsg, bool verify)
     if (verify) {
 	uid_t sigUid;
 	gid_t sigGid;
-	if (!(psMungeDecodeBuf(cred->sig, (void **) &sigBuf, &sigBufLen,
-		&sigUid, &sigGid))) {
+	if (!psMungeDecodeBuf(cred->sig, (void **) &sigBuf, &sigBufLen,
+			      &sigUid, &sigGid)) {
 	    flog("decoding munge credential failed\n");
 	    goto ERROR;
 	}
@@ -418,7 +410,7 @@ JobCred_t *extractJobCred(list_t *gresList, Slurm_Msg_t *sMsg, bool verify)
 	    goto ERROR;
 	}
 
-	if (!!(memcmp(sigBuf, credStart, sigBufLen))) {
+	if (memcmp(sigBuf, credStart, sigBufLen)) {
 	    flog("manipulated data\n");
 	    printBinaryData(sigBuf, sigBufLen, "sigBuf");
 	    printBinaryData(credStart, credLen, "jobData");

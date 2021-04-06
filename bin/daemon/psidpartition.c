@@ -900,8 +900,8 @@ static bool nodeFree(PSnodes_ID_t node, PSpart_request_t *req, int threads)
     if (req->options & PART_OPT_OVERBOOK
 	&& !(PSIDnodes_overbook(node)==OVERBOOK_FALSE
 	     && PSIDnodes_getNumThrds(node) > threads)
-	&& !(PSIDnodes_overbook(node)==OVERBOOK_AUTO)
-	&& !(PSIDnodes_overbook(node)==OVERBOOK_TRUE)) {
+	&& PSIDnodes_overbook(node) != OVERBOOK_AUTO
+	&& PSIDnodes_overbook(node) != OVERBOOK_TRUE) {
 	reason = "overbook";
 	goto used;
     }
@@ -956,7 +956,7 @@ typedef struct {
 static sortlist_t *getCandidateList(PSpart_request_t *request)
 {
     static sortlist_t list;
-    bool canOverbook = false, exactPart = !!(request->options & PART_OPT_EXACT);
+    bool canOverbook = false, exactPart = request->options & PART_OPT_EXACT;
     int i;
 
     unsigned int totHWTs = 0, nextSet = 0;
@@ -991,7 +991,7 @@ static sortlist_t *getCandidateList(PSpart_request_t *request)
 
 	int HWThreads = PSIDnodes_getNumThrds(node);
 	int assgndThreads = getAssignedThreads(node);
-	bool canPin = !!PSIDnodes_pinProcs(node);
+	bool canPin = PSIDnodes_pinProcs(node);
 	PSID_NodeStatus_t status = getStatusInfo(node);
 
 	if (nodeOK(node, request)) {
@@ -2441,15 +2441,13 @@ static void msg_PROVIDEPARTSL(DDBufferMsg_t *inmsg)
  */
 static void msg_PROVIDETASKRP(DDBufferMsg_t *inmsg)
 {
-    PSpart_request_t *req;
     uint16_t count, i;
     size_t used = 0;
 
     /* Handle running and suspended request only. Pending requests will get a
      * new reservation in @ref getPartition(). */
-    if (!(req = findPart(&runReq, inmsg->header.sender))) {
-	req = findPart(&suspReq, inmsg->header.sender);
-    }
+    PSpart_request_t *req = findPart(&runReq, inmsg->header.sender);
+    if (!req) req = findPart(&suspReq, inmsg->header.sender);
 
     if (!req) {
 	PSID_log(-1, "%s: Unable to find request '%s'\n",
@@ -2466,7 +2464,8 @@ static void msg_PROVIDETASKRP(DDBufferMsg_t *inmsg)
     /* get number of ports */
     PSP_getMsgBuf(inmsg, &used, "count", &count, sizeof(count));
 
-    if (!(req->resPorts = malloc((count + 1) * sizeof(uint16_t)))) {
+    req->resPorts = malloc((count + 1) * sizeof(uint16_t));
+    if (!req->resPorts) {
 	PSID_log(-1, "%s: out of memory\n", __func__);
 	exit(1);
     }
@@ -2522,7 +2521,8 @@ static void msg_PROVIDEPARTRP(DDBufferMsg_t *inmsg)
     /* get number of ports */
     PSP_getMsgBuf(inmsg, &used, "count", &count, sizeof(count));
 
-    if (!(task->resPorts = malloc((count +1 ) * sizeof(uint16_t)))) {
+    task->resPorts = malloc((count + 1) * sizeof(uint16_t));
+    if (!task->resPorts) {
 	PSID_log(-1, "%s: out of memory\n", __func__);
 	exit(1);
     }

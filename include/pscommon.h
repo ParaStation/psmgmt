@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2002-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2020 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2021 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -226,17 +226,17 @@ void PSC_startDaemon(in_addr_t hostaddr);
 void PSC_initLog(FILE *logfile);
 
 /**
- * @brief Test initialization of PSC logging facility.
+ * @brief Test initialization of PSC logging facility
  *
- * Test, if the PSC logging facility was initialized by calling @ref
+ * Test if the PSC logging facility was initialized by calling @ref
  * PSC_initLog().
  *
- * @return If PSC_initLog() was called before, 1 is
- * returned. Otherwise 0 is returned.
+ * @return If PSC_initLog() was called before, true is returned; or
+ * false otherwise
  *
  * @see PSC_initLog()
  */
-int PSC_logInitialized(void);
+bool PSC_logInitialized(void);
 
 /**
  * @brief Get the log-mask of the PSC logging facility.

@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2017-2018 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2017-2021 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -80,7 +80,7 @@ int main(int argc, const char *argv[], char** envp)
     Conf_t *conf;
     int error, ret, sRank = -3;
     char tmp[PATH_MAX], *envPtr;
-    bool distStart = !!getenv("__MPIEXEC_DIST_START");
+    bool distStart = getenv("__MPIEXEC_DIST_START");
 
     setlinebuf(stdout);
 

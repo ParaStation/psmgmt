@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2006-2020 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2006-2021 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -190,7 +190,7 @@ static bool blockSig(int sig, bool block)
 	awarn("%s: sigprocmask()", __func__);
     }
 
-    return !!sigismember(&oldset, sig);
+    return sigismember(&oldset, sig);
 }
 
 /**
@@ -522,10 +522,10 @@ static Job_t *handleComHeader(char **newptr, const char *func, int *rank)
     /* set uid and username of job */
     if (job->user[0] == '\0') {
 	int maxlen = MAX_USERNAME_LEN - 1;
-	struct passwd *spasswd;
 
 	job->uid = uid;
-	if (!(spasswd = getpwuid(job->uid))) {
+	struct passwd *spasswd = getpwuid(job->uid);
+	if (!spasswd) {
 	    alog("%s (%s): getting username failed, invalid user id:%i\n",
 		__func__, func, job->uid);
 	    snprintf(job->user, maxlen, "%i", job->uid);
@@ -542,10 +542,10 @@ static Job_t *handleComHeader(char **newptr, const char *func, int *rank)
     /* set gid and groupname of job*/
     if (job->group[0] == '\0') {
 	int maxlen = MAX_GROUPNAME_LEN - 1;
-	struct group *sgroup;
 
 	job->gid = gid;
-	if (!(sgroup = getgrgid(job->gid))) {
+	struct group *sgroup = getgrgid(job->gid);
+	if (!sgroup) {
 	    alog("%s (%s): getting groupname failed, invalid group id:%i\n",
 		 __func__, func, job->gid);
 	    snprintf(job->group, maxlen, "%i", job->gid);
@@ -1436,7 +1436,7 @@ static void openAccLogFile(char *arg_logdir)
 	exit(EXIT_FAILURE);
     }
 
-    if (!(strftime(filename, sizeof(filename), "%Y%m%d", tmp))) {
+    if (!strftime(filename, sizeof(filename), "%Y%m%d", tmp)) {
 	alog("%s: getting time failed\n", __func__);
 	strncpy(filename, "unknown", sizeof(filename));
     }
@@ -1447,7 +1447,7 @@ static void openAccLogFile(char *arg_logdir)
     }
 
     /* next day, open new log file */
-    if (fp && !!strcmp(filename, oldfilename)) {
+    if (fp && strcmp(filename, oldfilename)) {
 	fclose(fp);
 	/* postprocess the old log file */
 	if (logPostProcessing) {
@@ -1811,7 +1811,7 @@ int main(int argc, char *argv[])
     }
 
     /* logging */
-    if (arg_logfile && !!strcmp(arg_logfile, "-")) {
+    if (arg_logfile && strcmp(arg_logfile, "-")) {
 	logfile = fopen(arg_logfile, "a+");
 	if (!logfile) {
 	    awarn("%s: fopen(%s)", __func__, arg_logfile);

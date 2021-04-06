@@ -1155,7 +1155,8 @@ bool __unpackReqLaunchTasks(Slurm_Msg_t *sMsg, Step_t **stepPtr,
     getUint16(ptr, &step->accelBindType);
 
     /* job credentials */
-    if (!(step->cred = extractJobCred(&step->gresList, sMsg, 1))) {
+    step->cred = extractJobCred(&step->gresList, sMsg, 1);
+    if (!step->cred) {
 	mlog("%s: extracting job credential failed\n", __func__);
 	goto ERROR;
     }
@@ -1205,7 +1206,7 @@ bool __unpackReqLaunchTasks(Slurm_Msg_t *sMsg, Step_t **stepPtr,
 
     /* spank options magic tag */
     char *jobOptTag = getStringM(ptr);
-    if (!!(strcmp(jobOptTag, JOB_OPTIONS_TAG))) {
+    if (strcmp(jobOptTag, JOB_OPTIONS_TAG)) {
 	flog("invalid spank job options tag '%s'\n", jobOptTag);
 	ufree(jobOptTag);
 	goto ERROR;
@@ -1410,7 +1411,8 @@ bool __unpackReqBatchJobLaunch(Slurm_Msg_t *sMsg, Job_t **jobPtr,
     getUint64(ptr, &job->memLimit);
 
     /* job credential */
-    if (!(job->cred = extractJobCred(&job->gresList, sMsg, 1))) {
+    job->cred = extractJobCred(&job->gresList, sMsg, 1);
+    if (!job->cred) {
 	mlog("%s: extracting job credentail failed\n", __func__);
 	goto ERROR;
     }
