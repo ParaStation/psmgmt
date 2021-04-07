@@ -448,30 +448,40 @@ void setPsslurmEnv(env_t *env)
 static void setGPUEnv(Gres_Cred_t *gres, uint32_t jobNodeId, Step_t *step,
 	uint32_t localRankId)
 {
-    uint32_t stepNodeId = step->localNodeId;
+    uint32_t stepNId = step->localNodeId;
 
     if (!gres->bitAlloc[jobNodeId]) {
 	flog("invalid gpu gres bitAlloc for job node id %u\n", jobNodeId);
 	return;
     }
 
-    /* get assigned GPUs from GRES info */
-    int *assGPUs;
-    size_t numGPUs = 0;
-    hexBitstr2Array(gres->bitAlloc[jobNodeId], &assGPUs, &numGPUs);
+    uint32_t ltnum = step->globalTaskIdsLen[stepNId];
 
-    uint16_t gpus[step->globalTaskIdsLen[stepNodeId]];
+    /* if there is only one local rank, bind all assigned GPUs to it */
+    if (ltnum == 1) {
+	/* nothing to do, gpu_variables[*] should already be set that way */
+	flog("Only one task on this node, bind all assigned GPUs to it.\n");
+	/* always set our own variable */
+	setenv("PSSLURM_BIND_GPUS", getenv("SLURM_STEP_GPUS"), 1);
+    } else {
+	/* get assigned GPUs from GRES info */
+	int *assGPUs;
+	size_t numGPUs = 0;
+	hexBitstr2Array(gres->bitAlloc[jobNodeId], &assGPUs, &numGPUs);
 
-    bool success = getNodeGPUPinning(gpus, step, stepNodeId, assGPUs, numGPUs);
-    ufree(assGPUs);
+	uint16_t gpus[ltnum];
 
-    if (!success) return;
+	bool success = getNodeGPUPinning(gpus, step, stepNId, assGPUs, numGPUs);
+	ufree(assGPUs);
 
-    char tmp[10];
-    snprintf(tmp, sizeof(tmp), "%i", gpus[localRankId]);
+	if (!success) return;
 
-    /* always set our own variable */
-    setenv("PSSLURM_BIND_GPU", tmp, 1);
+	char tmp[10];
+	snprintf(tmp, sizeof(tmp), "%i", gpus[localRankId]);
+
+	/* always set our own variable */
+	setenv("PSSLURM_BIND_GPUS", tmp, 1);
+    }
 
     char *prefix = "__AUTO_";
     char name[GPU_VARIABLE_MAXLEN+strlen(prefix)+1];
@@ -483,7 +493,7 @@ static void setGPUEnv(Gres_Cred_t *gres, uint32_t jobNodeId, Step_t *step,
 	    /* variable is not set at all
 	     * or it had been set automatically and not changed in the meantime,
 	     * so set it */
-	    setenv(gpu_variables[i], tmp, 1);
+	    setenv(gpu_variables[i], getenv("PSSLURM_BIND_GPUS"), 1);
 	}
 
 	/* automation detection is no longer needed */
