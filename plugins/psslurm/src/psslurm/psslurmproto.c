@@ -534,11 +534,11 @@ static void handleLaunchTasks(Slurm_Msg_t *sMsg)
 	goto ERROR;
     }
 
-    StrBuffer_t jobCoreList;
+    StrBuffer_t jobCoreList = { .buf = NULL };
     hexBitstr2ListEx(step->cred->jobCoreBitmap, &jobCoreList, true, convCPU);
     step->jobCoreMap = jobCoreList.buf;
 
-    StrBuffer_t stepCoreList;
+    StrBuffer_t stepCoreList = { .buf = NULL };
     hexBitstr2ListEx(step->cred->stepCoreBitmap, &stepCoreList, true, convCPU);
     step->stepCoreMap = stepCoreList.buf;
 
@@ -1607,7 +1607,7 @@ static void handleBatchJobLaunch(Slurm_Msg_t *sMsg)
 	return;
     }
 
-    StrBuffer_t jobCoreList;
+    StrBuffer_t jobCoreList = { .buf = NULL };
     hexBitstr2ListEx(job->cred->jobCoreBitmap, &jobCoreList, true, convCPU);
     job->jobCoreMap = jobCoreList.buf;
 
