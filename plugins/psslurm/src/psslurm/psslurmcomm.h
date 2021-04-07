@@ -279,13 +279,14 @@ bool hexBitstr2Array(char *bitstr, int **array, size_t *arraySize);
 /**
  * @brief Converter function of hexBitstr2List()
  *
- * A converter function for @ref hexBitstr2List() can be defined. The function
- * will be called for every value of the list. It is currently used to map the
- * logical CPU representation from Slurm to a physical CPU of the node.
+ * A converter function for @ref hexBitstr2List(). The function will
+ * be called for every value to be added to the list. It is currently
+ * used to map the logical CPU representation from Slurm to a physical
+ * CPU of the node.
  *
- * If the converter function returns -1 the current value is skipped and will
- * not be added to the list. The conversion process will continue with the next
- * value of the bitstring.
+ * If the converter function returns -1 the current value is skipped
+ * and will not be added to the list. The conversion process will
+ * continue with the next value of the bitstring.
  *
  * @return Returns the converted value or -1 on error.
  */
@@ -295,7 +296,7 @@ typedef int32_t hexBitStrConv_func_t(int32_t);
  * @brief Convert a hex bitstring to a comma separated list.
  *
  * This function is a wrapper for @ref hexBitstr2ListEx(). See
- * this documentation for further information.
+ * documentation there for further information.
  *
  * @param bitstr The bitstring to convert
  *
@@ -310,13 +311,16 @@ bool hexBitstr2List(char *bitstr, StrBuffer_t *strBuf, bool range);
 /**
  * @brief Convert a hex bitstring to a comma separated list.
  *
- * The provided bitstring is converted to a comma seperated list.
- * The list is initialized at start. If the range option is set to true
- * the values are compacted into range syntax. Otherwise every single value will
- * lead to an entry in the list. The convert function will be called for every
- * value before it is added. The list is grown using @ref __umalloc()
- * and @ref __urealloc. The caller is responsible to free the memory
- * using @ref ufree().
+ * The provided bitstring @a bitstr is converted to a comma seperated
+ * list to be stored in @a strBuf. The list is initialized at
+ * start. If the @a range option is set to true the values are
+ * compacted into range syntax. Otherwise every single value will lead
+ * to an entry in the list. The convert function @a conv will be
+ * called for every value before it is added.
+ *
+ * The list @a strBuf is grown using @ref __umalloc() and @ref
+ * __urealloc(). The caller is responsible to free the memory using
+ * @ref ufree().
  *
  * @param bitstr The bitstring to convert
  *

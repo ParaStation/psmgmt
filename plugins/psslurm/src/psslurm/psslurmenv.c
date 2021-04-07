@@ -759,7 +759,7 @@ void setStepEnv(Step_t *step)
 		hexBitstr2List(gres->bitAlloc[jobNodeId], &strList, false);
 
 		/* always set informational variable */
-		envSet(&step->env, "SLURM_STEP_GPUS",  strList.buf);
+		envSet(&step->env, "SLURM_STEP_GPUS", strList.buf);
 
 		/* tell doClamps() which gpus to use */
 		envSet(&step->env, "__PSID_USE_GPUS", strList.buf);

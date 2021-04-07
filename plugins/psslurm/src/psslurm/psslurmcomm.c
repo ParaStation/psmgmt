@@ -899,7 +899,7 @@ static void addVal2List(StrBuffer_t *strBuf, int32_t val, bool range, bool fin,
     static int32_t lastVal, rangeVal;
 
     if (fin) {
-	/* add end range of compected list */
+	/* add end range of compacted list */
 	if (range && rangeVal != -1) {
 	    snprintf(tmp, sizeof(tmp), "-%i", rangeVal);
 	    addStrBuf(tmp, strBuf);
@@ -970,7 +970,7 @@ bool hexBitstr2ListEx(char *bitstr, StrBuffer_t *strBuf, bool range,
 	}
 
 	for (int32_t i = 1; i <= 8; i *= 2) {
-	    if (next & i) addVal2List(strBuf, count, range, false, conv);;
+	    if (next & i) addVal2List(strBuf, count, range, false, conv);
 	    count++;
 	}
     }
