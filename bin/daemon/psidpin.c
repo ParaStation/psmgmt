@@ -230,7 +230,7 @@ static void bindToGPUs(PSCPU_set_t *cpuSet)
     /* always set PSID version */
     setenv("PSID_CLOSEST_GPUS", val, 1);
 
-    /* build string listing the closest GPUs */
+    /* build string listing the close GPUs */
     len = 0;
     for (size_t i = 0; i < closecount; i++) {
 	len += snprintf(val+len, 4, "%hu,", closelist[i]);
