@@ -1425,7 +1425,7 @@ static size_t getIndexOfLowestFromSubset(uint32_t *array, uint16_t *subset,
 }
 
 bool getNodeGPUPinning(uint16_t ret[], Step_t *step, uint32_t stepNodeId,
-	int *gpusAssigned, size_t numGPUsAssigned)
+		       int *gpusAssigned, size_t numGPUsAssigned)
 {
     /* number of local tasks */
     uint32_t ltnum = step->globalTaskIdsLen[stepNodeId];
@@ -1439,6 +1439,7 @@ bool getNodeGPUPinning(uint16_t ret[], Step_t *step, uint32_t stepNodeId,
 	uint32_t tid = step->globalTaskIds[stepNodeId][lTID];
 
 	PSCPU_set_t gpuSet;
+	PSCPU_clrAll(gpuSet);
 	for (size_t i = 0; i < numGPUsAssigned; i++) {
 	    PSCPU_setCPU(gpuSet, gpusAssigned[i]);
 	}
@@ -1446,8 +1447,8 @@ bool getNodeGPUPinning(uint16_t ret[], Step_t *step, uint32_t stepNodeId,
 	uint16_t *gpuList = NULL;
 	size_t gpuCount = 0;
 	if (!PSIDpin_getClosestGPUs(step->nodes[stepNodeId],
-		    &gpuList, &gpuCount, NULL, NULL,
-		    &step->slots[tid].CPUset, &gpuSet)) {
+				    &gpuList, &gpuCount, NULL, NULL,
+				    &step->slots[tid].CPUset, &gpuSet)) {
 	    return false;
 	}
 

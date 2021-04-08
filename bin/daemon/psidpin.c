@@ -170,6 +170,7 @@ static void bindToGPUs(PSCPU_set_t *cpuSet)
     PSCPU_set_t gpuSet;
     char *usable = getenv("__PSID_USE_GPUS");
     if (usable) {
+	PSCPU_clrAll(gpuSet);
 	char *tmp = strdup(usable);
 	char *tok;
 	for (char *ptr = tmp; (tok = strtok(ptr, ",")); ptr = NULL) {
@@ -179,13 +180,12 @@ static void bindToGPUs(PSCPU_set_t *cpuSet)
 	    PSCPU_setCPU(gpuSet, gpu);
 	}
 	free(tmp);
-    }
-    else {
+    } else {
 	PSCPU_setAll(gpuSet);
     }
 
     if (!PSIDpin_getClosestGPUs(PSC_getMyID(), &gpulist, &gpucount,
-		&closelist, &closecount, cpuSet, &gpuSet)) {
+				&closelist, &closecount, cpuSet, &gpuSet)) {
 	return;
     }
 
