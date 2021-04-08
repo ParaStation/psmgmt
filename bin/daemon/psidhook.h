@@ -181,8 +181,6 @@ typedef enum {
     PSIDHOOK_JAIL_CHILD,      /**< Jail child into cgroup, arg points to PID.
 				Return -1 if jailing failed and the child
 				will be terminated. */
-    PSIDHOOK_JAIL_TERM,	      /**< Terminate all jailed children of a cgroup,
-				arg points to PID */
     PSIDHOOK_CLEARMEM,        /**< Release memory after forking before handling
 				other tasks, e.g. becoming a forwarder.
 				arg points to aggressive flag of type bool */
@@ -210,6 +208,8 @@ typedef enum {
 				information is updated. Shall trigger
 				distribution of option updates. Arg is
 				type of info to be updated. */
+    PSIDHOOK_JAIL_TERM,	      /**< Terminate all jailed children of a cgroup,
+				arg points to PID identifying the cgroup */
     PSIDHOOK_LAST,            /**< This has to be the last one */
 } PSIDhook_t;
 

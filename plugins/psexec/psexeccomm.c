@@ -17,7 +17,7 @@
 #include "pscommon.h"
 #include "psserial.h"
 #include "pspluginprotocol.h"
-#include "selector.h"
+#include "pluginhelper.h"
 #include "pluginmalloc.h"
 
 #include "psidcomm.h"
@@ -25,9 +25,6 @@
 #include "psidscripts.h"
 #include "psidtask.h"
 #include "psidutil.h"
-#include "selector.h"
-#include "pluginmalloc.h"
-#include "pluginhelper.h"
 
 #include "psexeclog.h"
 #include "psexecscripts.h"

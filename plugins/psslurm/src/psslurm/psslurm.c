@@ -80,7 +80,7 @@ uint32_t configHash;
 /** psid plugin requirements */
 char name[] = "psslurm";
 int version = 117;
-int requiredAPI = 129;
+int requiredAPI = 131;
 plugin_dep_t dependencies[] = {
     { .name = "psmunge", .version = 4 },
     { .name = "psaccount", .version = 29 },

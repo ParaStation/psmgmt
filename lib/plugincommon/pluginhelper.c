@@ -29,6 +29,7 @@
 #include "psidutil.h"
 #include "pluginlog.h"
 #include "pluginmalloc.h"
+#include "selector.h"
 
 #include "pluginhelper.h"
 

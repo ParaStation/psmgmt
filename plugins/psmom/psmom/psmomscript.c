@@ -22,8 +22,6 @@
 
 #include "pscommon.h"
 #include "timer.h"
-#include "selector.h"
-#include "psidutil.h"
 #include "psidtask.h"
 #include "psidpartition.h"
 #include "pluginhelper.h"
