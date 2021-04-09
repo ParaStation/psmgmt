@@ -716,10 +716,10 @@ short PSIDnodes_numGPUs(PSnodes_ID_t id) {
     return 0;
 }
 
-void PSIDpin_getClosestGPUs(PSnodes_ID_t id, uint16_t **closelist,
-			  size_t *closecount, PSCPU_set_t *thisSet,
-			  PSCPU_set_t *gpuSet) {
-    return;
+bool PSIDpin_getCloseGPUs(PSnodes_ID_t id, PSCPU_set_t *CPUs, PSCPU_set_t *GPUs,
+			  uint16_t closeGPUs[], size_t *closeCnt,
+			  uint16_t localGPUs[], size_t *localCnt) {
+    return true;
 }
 
 /* vim: set ts=8 sw=4 tw=0 sts=4 noet :*/

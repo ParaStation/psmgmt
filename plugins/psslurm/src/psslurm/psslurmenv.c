@@ -455,16 +455,15 @@ static void setGPUEnv(Gres_Cred_t *gres, uint32_t jobNodeId, Step_t *step,
 	return;
     }
 
-    /* get assigned GPUs */
-    int *gpusAssigned;
-    size_t numGPUsAssigned = 0;
-    hexBitstr2Array(gres->bitAlloc[jobNodeId], &gpusAssigned, &numGPUsAssigned);
+    /* get assigned GPUs from GRES info */
+    int *assGPUs;
+    size_t numGPUs = 0;
+    hexBitstr2Array(gres->bitAlloc[jobNodeId], &assGPUs, &numGPUs);
 
     uint16_t gpus[step->globalTaskIdsLen[stepNodeId]];
 
-    bool success = getNodeGPUPinning(gpus, step, stepNodeId, gpusAssigned,
-		numGPUsAssigned);
-    ufree(gpusAssigned);
+    bool success = getNodeGPUPinning(gpus, step, stepNodeId, assGPUs, numGPUs);
+    ufree(assGPUs);
 
     if (!success) return;
 

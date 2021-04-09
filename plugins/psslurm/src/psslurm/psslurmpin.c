@@ -1394,38 +1394,38 @@ static void fillTasksPerSocket(pininfo_t *pininfo, env_t *env,
 	 tasksPerSocket);
 }
 
-/*
- * Get the index of the lowest value from a subset of an array
+/**
+ * @brief Get the index of the minimum value in a subset of an array
  *
- * For example if @a array is indexed with GPU IDs and contains how often this
- * GPU is already assigned to a task and @a subset contains the close GPUs for
- * one task, then this function return the ID of the GPU that is least used of
- * all GPUs close to the task.
+ * Get the index of the minimum of the array of values @a val under
+ * the constraint to take only the @a num indeces given by @a subset
+ * into account.
  *
- * @param array   Array of values
- * @param subset  Array of valid indices of @a array
- * @param len     length of @a subset
+ * @param array Array of values
  *
- * @return The index contained in subset with the lowes value in array
+ * @param subset Valid indices of @a array to be taken into account
+ *
+ * @param num Length of @a subset
+ *
+ * @return Index contained in subset with minimum value in array or -1
+ * on error
  */
-static size_t getIndexOfLowestFromSubset(uint32_t *array, uint16_t *subset,
-	size_t len)
+static ssize_t getMinimumIndex(uint32_t *val, uint16_t *subset, size_t num)
 {
-    size_t ret = 0;
-    uint32_t least = UINT16_MAX;
-    for (size_t i = 0; i < len; i++) {
-	fdbg(PSSLURM_LOG_PART, "%hu already used %hu times\n", subset[i],
-		array[subset[i]]);
-	if (array[subset[i]] < least) {
+    if (!val || !subset || !num) return -1;
+    size_t ret = subset[0];
+    uint32_t minVal = val[subset[0]];
+    for (size_t i = 1; i < num; i++) {
+	if (val[subset[i]] < minVal) {
 	    ret = subset[i];
-	    least = array[subset[i]];
+	    minVal = val[subset[i]];
 	}
     }
     return ret;
 }
 
 bool getNodeGPUPinning(uint16_t ret[], Step_t *step, uint32_t stepNodeId,
-		       int *gpusAssigned, size_t numGPUsAssigned)
+		       int *assGPUs, size_t numAsgnd)
 {
     /* number of local tasks */
     uint32_t ltnum = step->globalTaskIdsLen[stepNodeId];
@@ -1434,42 +1434,27 @@ bool getNodeGPUPinning(uint16_t ret[], Step_t *step, uint32_t stepNodeId,
     uint32_t used[numGPUs];
     memset(used, 0, sizeof(used));
 
-    for (uint32_t lTID = 0; lTID < ltnum; lTID++) {
+    PSCPU_set_t GPUs;
+    PSCPU_clrAll(GPUs);
+    for (size_t i = 0; i < numAsgnd; i++) PSCPU_setCPU(GPUs, assGPUs[i]);
 
+    for (uint32_t lTID = 0; lTID < ltnum; lTID++) {
 	uint32_t tid = step->globalTaskIds[stepNodeId][lTID];
 
-	PSCPU_set_t gpuSet;
-	PSCPU_clrAll(gpuSet);
-	for (size_t i = 0; i < numGPUsAssigned; i++) {
-	    PSCPU_setCPU(gpuSet, gpusAssigned[i]);
-	}
-
-	uint16_t *gpuList = NULL;
-	size_t gpuCount = 0;
-	if (!PSIDpin_getClosestGPUs(step->nodes[stepNodeId],
-				    &gpuList, &gpuCount, NULL, NULL,
-				    &step->slots[tid].CPUset, &gpuSet)) {
+	uint16_t closeList[numAsgnd];
+	size_t closeCnt = 0;
+	if (!PSIDpin_getCloseGPUs(step->nodes[stepNodeId],
+				  &step->slots[tid].CPUset, &GPUs,
+				  closeList, &closeCnt, NULL, NULL)) {
 	    return false;
 	}
 
-	if (gpuCount == 1) {
-	    /* only one closest GPU, done for this task if assigned */
-	    fdbg(PSSLURM_LOG_PART, "Found only one closest GPU for local task"
-		    " %u: %hu\n", lTID, gpuList[0]);
-	    ret[lTID] = gpuList[0];
-	    used[ret[lTID]]++;
-	    ufree(gpuList);
-	    continue;
-	}
-
 	/* find least used assigned close GPU */
-	uint16_t leastused_gpu;
-	leastused_gpu = getIndexOfLowestFromSubset(used, gpuList, gpuCount);
+	uint16_t lstUsedGPU = getMinimumIndex(used, closeList, closeCnt);
 	fdbg(PSSLURM_LOG_PART, "Select least used of closest GPU for local task"
-		    " %u: %hu\n", lTID, leastused_gpu);
-	ret[lTID] = leastused_gpu;
+		    " %u: %hu\n", lTID, lstUsedGPU);
+	ret[lTID] = lstUsedGPU;
 	used[ret[lTID]]++;
-	ufree(gpuList);
     }
 
     return true;
