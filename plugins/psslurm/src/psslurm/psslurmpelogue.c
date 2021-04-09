@@ -615,6 +615,99 @@ void startTaskPrologue(Step_t *step, PStask_t *task)
     }
 }
 
+int execTaskEpilogue(Step_t *step, PStask_t *task, char *taskEpilogue)
+{
+    /* handle relative paths */
+    if (taskEpilogue[0] != '/') {
+	char buffer[4096];
+	snprintf(buffer, 4096, "%s/%s", step->cwd, taskEpilogue);
+	taskEpilogue = buffer;
+    }
+
+    pid_t childpid = fork();
+    if (childpid < 0) {
+	flog("fork failed\n");
+	return 0;
+    }
+
+    if (!childpid) {
+	/* This is the child */
+
+	setpgrp();
+
+	setDefaultRlimits();
+
+	setStepEnv(step);
+
+	errno = 0;
+
+	if (access(taskEpilogue, R_OK | X_OK) < 0) {
+	    mwarn(errno, "task epilogue '%s' not accessable", taskEpilogue);
+	    exit(-1);
+	}
+
+	size_t i;
+	for (i = 0; i < step->env.cnt; i++) {
+	    putenv(step->env.vars[i]);
+	}
+
+	setRankEnv(task->rank, step);
+
+	if (chdir(step->cwd) != 0) {
+	    mwarn(errno, "cannot change to working direktory '%s'", step->cwd);
+	}
+
+	char *argv[2];
+	argv[0] = taskEpilogue;
+	argv[1] = NULL;
+
+	/* execute task epilogue */
+	flog("starting task epilogue '%s' for rank %u of job %u\n",
+	     taskEpilogue, task->rank, step->jobid);
+
+	execvp(argv[0], argv);
+	mwarn(errno, "%s: exec for task epilogue '%s' failed for rank %u of job"
+	      " %u", __func__, taskEpilogue, task->rank, step->jobid);
+	exit(-1);
+    }
+
+    /* This is the parent */
+
+    time_t t = time(NULL);
+    int grace = getConfValueI(&SlurmConfig, "KillWait");
+
+    while(1) {
+	if ((time(NULL) - t) > 5) pskill(-childpid, SIGTERM, task->uid);
+	if ((time(NULL) - t) > (5 + grace)) {
+	    pskill(-childpid, SIGKILL, task->uid);
+	}
+	usleep(100000);
+	int status;
+	if(waitpid(childpid, &status, WNOHANG) < 0) {
+	    if (errno == EINTR) continue;
+	    pskill(-childpid, SIGKILL, task->uid);
+	    break;
+	}
+    }
+
+    return 0;
+}
+
+void startTaskEpilogue(Step_t *step, PStask_t *task)
+{
+    /* exec task epilogue from slurm.conf */
+    char *script = getConfValueC(&SlurmConfig, "TaskEpilog");
+    if (script && script[0] != '\0') {
+	execTaskEpilogue(step, task, script);
+    }
+
+    /* exec task epilogue from srun option --task-epilog */
+    script = step->taskEpilog;
+    if (script && script[0] != '\0') {
+	execTaskEpilogue(step, task, script);
+    }
+}
+
 int handlePelogueOE(void *data)
 {
     PElogue_OEdata_t *oeData = data;

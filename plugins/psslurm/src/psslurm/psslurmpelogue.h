@@ -75,6 +75,21 @@ int handlePEloguePrepare(void *data);
 void startTaskPrologue(Step_t *step, PStask_t *task);
 
 /**
+ * @brief Start a task epilogue in PSIDHOOK_FRWRD_CLNT_RLS
+ *
+ * This function is called right after the users executable exited. Thus
+ * the task epilogue is spawned directly without the use of a pluginforwarder.
+ * First a task epilogue defined in slurm.conf by the TaskEpilog option is
+ * executed. Afterwards a task epilogue defined by the srun option --task-epilog
+ * is started.
+ *
+ * @param step The step to start a task epilogue for
+ *
+ * @param task The PS task structure
+ */
+void startTaskEpilogue(Step_t *step, PStask_t *task);
+
+/**
  * @brief Finalize an epilogue on the allocation leader node
  *
  * If all sister nodes send the result of their epilogue
