@@ -21,8 +21,6 @@
 #include "pscpu.h"
 #include "pstask.h"
 
-#define MAX_GPUS 16
-
 /**
  * @brief Map CPUs
  *

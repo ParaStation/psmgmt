@@ -486,8 +486,8 @@ bool PSIDpin_getCloseGPUs(PSnodes_ID_t id, PSCPU_set_t *CPUs, PSCPU_set_t *GPUs,
 {
     uint16_t numGPUs = PSIDnodes_numGPUs(id);
 
-    if (!PSCPU_any(*GPUs, MAX_GPUS)) {
-	PSID_log(PSID_LOG_SPAWN, "%s(%d): No GPUs passed.\n", __func__, id);
+    if (!PSCPU_any(*GPUs, numGPUs)) {
+	PSID_log(PSID_LOG_SPAWN, "%s(%d): no GPUs provided\n", __func__, id);
 	return false;
     }
 
@@ -531,7 +531,7 @@ bool PSIDpin_getCloseGPUs(PSnodes_ID_t id, PSCPU_set_t *CPUs, PSCPU_set_t *GPUs,
 	    if (used[d]) {
 		PSID_log(PSID_LOG_SPAWN, "%s(%d): GPU mask of NUMA domain"
 			 " %hu: %s\n", __func__, id, d,
-			 PSCPU_print_part(GPUsets[d], MAX_GPUS/8));
+			 PSCPU_print_part(GPUsets[d], (numGPUs + 7)/8));
 	    }
 	}
     }
