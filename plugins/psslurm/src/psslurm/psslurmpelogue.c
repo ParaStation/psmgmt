@@ -493,15 +493,13 @@ int handleLocalPElogueFinish(void *data)
     return 0;
 }
 
-int startTaskPrologue(Step_t *step, PStask_t *task)
+static int execTaskPrologue(Step_t *step, PStask_t *task, char *taskPrologue)
 {
-    char envstr[21], line[4096], buffer[4096];
 
-    char *taskPrologue = step->taskProlog;
-    if (!taskPrologue || *taskPrologue == '\0') return 0;
+    char line[4096], buffer[4096];
 
-    mlog("%s: starting task prologue '%s' for rank '%u' of job '%u'\n",
-	    __func__, taskPrologue, task->rank, step->jobid);
+    flog("starting task prologue '%s' for rank '%u' of job '%u'\n",
+	 taskPrologue, task->rank, step->jobid);
 
     /* handle relative paths */
     if (taskPrologue[0] != '/') {
@@ -516,7 +514,7 @@ int startTaskPrologue(Step_t *step, PStask_t *task)
 
     int pipe_fd[2];
     if (pipe(pipe_fd) < 0) {
-        mlog("%s: open pipe failed\n", __func__);
+        flog("open pipe failed\n");
 	return -1;
     }
 
@@ -526,7 +524,7 @@ int startTaskPrologue(Step_t *step, PStask_t *task)
 
     pid_t child;
     if ((child = fork()) < 0) {
-        mlog("%s: fork failed\n", __func__);
+        flog("fork failed\n");
 	return -1;
     }
 
@@ -540,13 +538,14 @@ int startTaskPrologue(Step_t *step, PStask_t *task)
 	setpgrp();
 
 	/* Set SLURM_TASK_PID variable in environment */
+	char envstr[32];
 	sprintf(envstr, "%d", PSC_getPID(task->tid));
 	setenv("SLURM_TASK_PID", envstr, 1);
 
         /* Execute task prologue */
 	execvp (child_argv[0], child_argv);
-        mlog("%s: exec for task prologue '%s' failed in rank %d of job %d\n",
-		__func__, taskPrologue, task->rank, step->jobid);
+        flog("exec task prologue '%s' failed in rank %d of job %d\n",
+	     taskPrologue, task->rank, step->jobid);
 	return -1;
     }
 
@@ -555,7 +554,7 @@ int startTaskPrologue(Step_t *step, PStask_t *task)
 
     FILE *output = fdopen(pipe_fd[0], "r");
     if (!output) {
-        mlog("%s: cannot open pipe output\n", __func__);
+        flog("cannot open pipe output\n");
 	return -1;
     }
 
@@ -598,6 +597,21 @@ int startTaskPrologue(Step_t *step, PStask_t *task)
 	    return status;
 	}
 	return 0;
+    }
+}
+
+void startTaskPrologue(Step_t *step, PStask_t *task)
+{
+    /* exec task prologue from slurm.conf */
+    char *script = getConfValueC(&SlurmConfig, "TaskProlog");
+    if (script && script[0] != '\0') {
+	execTaskPrologue(step, task, script);
+    }
+
+    /* exec task prologue from srun option --task-prolog */
+    script = step->taskProlog;
+    if (script && script[0] != '\0') {
+	execTaskPrologue(step, task, script);
     }
 }
 

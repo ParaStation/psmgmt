@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2015-2020 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2015-2021 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -64,14 +64,15 @@ int handlePEloguePrepare(void *data);
  *
  * This function is called right before starting the users executable. Thus
  * the task prologue is spawned directly without the use of a pluginforwarder.
+ * First a task prologue defined in slurm.conf by the TaskProlog option is
+ * executed. Afterwards a task prologue defined by the srun option --task-prolog
+ * is started.
  *
  * @param step The step to start a task prologue for
  *
  * @param task The PS task structure
- *
- * @return Returns 0 on success or -1 otherwise
  */
-int startTaskPrologue(Step_t *step, PStask_t *task);
+void startTaskPrologue(Step_t *step, PStask_t *task);
 
 /**
  * @brief Finalize an epilogue on the allocation leader node
