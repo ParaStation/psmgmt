@@ -495,26 +495,25 @@ int handleLocalPElogueFinish(void *data)
 
 static int execTaskPrologue(Step_t *step, PStask_t *task, char *taskPrologue)
 {
-
     char line[4096], buffer[4096];
 
-    flog("starting task prologue '%s' for rank '%u' of job '%u'\n",
+    flog("starting task prologue '%s' for rank %u of job %u\n",
 	 taskPrologue, task->rank, step->jobid);
 
     /* handle relative paths */
     if (taskPrologue[0] != '/') {
-        snprintf(buffer, 4096, "%s/%s", step->cwd, taskPrologue);
+	snprintf(buffer, 4096, "%s/%s", step->cwd, taskPrologue);
 	taskPrologue = buffer;
     }
 
     if (access(taskPrologue, R_OK | X_OK) < 0) {
-        mwarn(errno, "task prologue '%s' not accessable", taskPrologue);
+	mwarn(errno, "task prologue '%s' not accessable", taskPrologue);
 	return -1;
     }
 
     int pipe_fd[2];
     if (pipe(pipe_fd) < 0) {
-        flog("open pipe failed\n");
+	mwarn(errno, "%s: pipe()", __func__);
 	return -1;
     }
 
@@ -522,17 +521,17 @@ static int execTaskPrologue(Step_t *step, PStask_t *task, char *taskPrologue)
     child_argv[0] = taskPrologue;
     child_argv[1] = NULL;
 
-    pid_t child;
-    if ((child = fork()) < 0) {
-        flog("fork failed\n");
+    pid_t child = fork();
+    if (child < 0) {
+	mwarn(errno, "%s: fork()", __func__);
 	return -1;
     }
 
     if (child == 0) {
 	/* This is the child */
-	close (pipe_fd[0]);
-	dup2 (pipe_fd[1], 1);
-	close (pipe_fd[1]);
+	close(pipe_fd[0]);
+	dup2(pipe_fd[1], 1);
+	close(pipe_fd[1]);
 	close(0);
 	close(2);
 	setpgrp();
@@ -542,10 +541,10 @@ static int execTaskPrologue(Step_t *step, PStask_t *task, char *taskPrologue)
 	sprintf(envstr, "%d", PSC_getPID(task->tid));
 	setenv("SLURM_TASK_PID", envstr, 1);
 
-        /* Execute task prologue */
-	execvp (child_argv[0], child_argv);
-        flog("exec task prologue '%s' failed in rank %d of job %d\n",
-	     taskPrologue, task->rank, step->jobid);
+	/* Execute task prologue */
+	execvp(child_argv[0], child_argv);
+	mwarn(errno, "%s: exec task prologue '%s' failed in rank %d of job %d",
+	      __func__, taskPrologue, task->rank, step->jobid);
 	return -1;
     }
 
@@ -554,7 +553,7 @@ static int execTaskPrologue(Step_t *step, PStask_t *task, char *taskPrologue)
 
     FILE *output = fdopen(pipe_fd[0], "r");
     if (!output) {
-        flog("cannot open pipe output\n");
+	mwarn(errno, "%s: fdopen()", __func__);
 	return -1;
     }
 
@@ -572,8 +571,7 @@ static int execTaskPrologue(Step_t *step, PStask_t *task, char *taskPrologue)
 
 	    char *env = ustrdup(saveptr);
 	    if (putenv(env) != 0) {
-		mwarn(errno, "Failed to set '%s' task prologue "
-		      "requested environment", env);
+		mwarn(errno, "Failed to set '%s' prologue environment", env);
 		ufree(env);
 	    }
 	} else if (!strcmp(key, "print")) {
@@ -626,7 +624,7 @@ int execTaskEpilogue(Step_t *step, PStask_t *task, char *taskEpilogue)
 
     pid_t childpid = fork();
     if (childpid < 0) {
-	flog("fork failed\n");
+	mwarn(errno, "%s: fork()", __func__);
 	return 0;
     }
 
@@ -646,8 +644,7 @@ int execTaskEpilogue(Step_t *step, PStask_t *task, char *taskEpilogue)
 	    exit(-1);
 	}
 
-	size_t i;
-	for (i = 0; i < step->env.cnt; i++) {
+	for (size_t i = 0; i < step->env.cnt; i++) {
 	    putenv(step->env.vars[i]);
 	}
 
@@ -666,13 +663,12 @@ int execTaskEpilogue(Step_t *step, PStask_t *task, char *taskEpilogue)
 	     taskEpilogue, task->rank, step->jobid);
 
 	execvp(argv[0], argv);
-	mwarn(errno, "%s: exec for task epilogue '%s' failed for rank %u of job"
-	      " %u", __func__, taskEpilogue, task->rank, step->jobid);
+	mwarn(errno, "%s: exec task epilogue '%s' failed for rank %u of job %u",
+	      __func__, taskEpilogue, task->rank, step->jobid);
 	exit(-1);
     }
 
     /* This is the parent */
-
     time_t t = time(NULL);
     int grace = getConfValueI(&SlurmConfig, "KillWait");
 

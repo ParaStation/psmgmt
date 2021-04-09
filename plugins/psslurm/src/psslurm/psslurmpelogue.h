@@ -62,30 +62,38 @@ int handlePEloguePrepare(void *data);
 /**
  * @brief Start a task prologue in PSIDHOOK_EXEC_CLIENT_USER
  *
- * This function is called right before starting the users executable. Thus
- * the task prologue is spawned directly without the use of a pluginforwarder.
- * First a task prologue defined in slurm.conf by the TaskProlog option is
- * executed. Afterwards a task prologue defined by the srun option --task-prolog
- * is started.
+ * This function is called right before starting the users
+ * executable. Thus, the task prologue is executed directly without
+ * the use of an additional pluginforwarder.
+ *
+ * First a task prologue defined in slurm.conf utilizing the
+ * TaskProlog option is executed. Then a task prologue defined via
+ * srun's --task-prolog option is started.
  *
  * @param step The step to start a task prologue for
  *
  * @param task The PS task structure
+ *
+ * @return No return value
  */
 void startTaskPrologue(Step_t *step, PStask_t *task);
 
 /**
  * @brief Start a task epilogue in PSIDHOOK_FRWRD_CLNT_RLS
  *
- * This function is called right after the users executable exited. Thus
- * the task epilogue is spawned directly without the use of a pluginforwarder.
- * First a task epilogue defined in slurm.conf by the TaskEpilog option is
- * executed. Afterwards a task epilogue defined by the srun option --task-epilog
- * is started.
+ * This function is called right after the users executable
+ * exited. Thus, the task epilogue is executed directly without the use
+ * of a pluginforwarder.
+ *
+ * First a task epilogue defined in slurm.conf utilizing the
+ * TaskEpilog option is executed. Then a task epilogue defined via
+ * srun's --task-epilog option is started.
  *
  * @param step The step to start a task epilogue for
  *
  * @param task The PS task structure
+ *
+ * @return No return value
  */
 void startTaskEpilogue(Step_t *step, PStask_t *task);
 
