@@ -18,6 +18,7 @@
 #include <numa.h>
 #endif
 
+#include "psidpin.h"
 #include "psslurmpin.h"
 
 #include "slurmcommon.h" /* bind type constants */
@@ -716,10 +717,14 @@ short PSIDnodes_numGPUs(PSnodes_ID_t id) {
     return 0;
 }
 
-bool PSIDpin_getCloseGPUs(PSnodes_ID_t id, PSCPU_set_t *CPUs, PSCPU_set_t *GPUs,
+bool PSIDpin_getCloseGPUs(PSnodes_ID_t id, cpu_set_t *CPUs, PSCPU_set_t *GPUs,
 			  uint16_t closeGPUs[], size_t *closeCnt,
 			  uint16_t localGPUs[], size_t *localCnt) {
     return true;
+}
+
+cpu_set_t *PSIDpin_mapCPUs(PSnodes_ID_t id, PSCPU_set_t set) {
+    return NULL;
 }
 
 /* vim: set ts=8 sw=4 tw=0 sts=4 noet :*/

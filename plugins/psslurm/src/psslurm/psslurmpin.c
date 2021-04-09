@@ -1443,8 +1443,9 @@ bool getNodeGPUPinning(uint16_t ret[], Step_t *step, uint32_t stepNodeId,
 
 	uint16_t closeList[numAsgnd];
 	size_t closeCnt = 0;
-	if (!PSIDpin_getCloseGPUs(step->nodes[stepNodeId],
-				  &step->slots[tid].CPUset, &GPUs,
+	cpu_set_t *physSet = PSIDpin_mapCPUs(step->nodes[stepNodeId],
+					     step->slots[tid].CPUset);
+	if (!PSIDpin_getCloseGPUs(step->nodes[stepNodeId], physSet, &GPUs,
 				  closeList, &closeCnt, NULL, NULL)) {
 	    return false;
 	}

@@ -67,12 +67,16 @@ cpu_set_t *PSIDpin_mapCPUs(PSnodes_ID_t id, PSCPU_set_t set);
 void PSIDpin_doClamps(PStask_t *task);
 
 /**
- * @brief Get info on node's list of GPUs close to the CPUs in @a cpuSet
+ * @brief Get info on node's list of GPUs close to the CPUs in @a CPUs
  *
  * Create lists of GPUs included in the set @a GPUs that have minimum
  * distance to those NUMA domains hosting CPUs contained in the set @a
- * cpuSet on the node with ParaStation ID @a id. The lists will be
- * in ascending order and free of double entries.
+ * CPUs on the node with ParaStation ID @a id. The lists will be
+ * in ascending order and contain only unique.
+ *
+ * @a CPUs is expected to be a mapped set, i.e. the result of a call
+ * to @ref PSIDpin_mapCPUs(). This means it contains references to
+ * physical HW-threads directly associated to NUMA domains.
  *
  * If @a closeGPUs is different from NULL, it will be filled with one
  * or multiple entries describing the GPUs with minimum distance
@@ -96,12 +100,9 @@ void PSIDpin_doClamps(PStask_t *task);
  * This function is currently used by the psid's default GPU pinning
  * mechanism as well as by psslurm to do enhanced GPU pinning.
  *
- * @doctodo comment on "mapped set"
- *
- *
  * @param id ParaStation ID of the node to look up
  *
- * @param cpuSet The unmapped set of CPUs to which the list will be created
+ * @param CPUs A set of mapped CPUs to which the list will be created
  *
  * @param GPUs Set of GPUs to be taken into account
  *
@@ -113,9 +114,9 @@ void PSIDpin_doClamps(PStask_t *task);
  *
  * @param localCnt Number of valid entries in @a localGPUs upon return
  *
- * @return True if GPU sets are found and @a closelist is set, else false
+ * @return True if GPU sets are found and @a closeGPUs is set, else false
  */
-bool PSIDpin_getCloseGPUs(PSnodes_ID_t id, PSCPU_set_t *CPUs, PSCPU_set_t *GPUs,
+bool PSIDpin_getCloseGPUs(PSnodes_ID_t id, cpu_set_t *CPUs, PSCPU_set_t *GPUs,
 			  uint16_t closeGPUs[], size_t *closeCnt,
 			  uint16_t localGPUs[], size_t *localCnt);
 

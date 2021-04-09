@@ -153,11 +153,11 @@ static void pinToCPUs(cpu_set_t *physSet)
  * AUTO_GPU_DEVICE_ORDINAL and only overrides the functional variables if the
  * old value matches the corresponding AUTO_* variable.
  *
- * @param cpuSet    The CPUs the process is running on
+ * @param cpuSet Physical HW-threads the process is expected to run
  *
  * @return No return value
  */
-static void bindToGPUs(PSCPU_set_t *cpuSet)
+static void bindToGPUs(cpu_set_t *cpuSet)
 {
     uint16_t numGPUs = PSIDnodes_numGPUs(PSC_getMyID());
 
@@ -471,7 +471,7 @@ void PSIDpin_doClamps(PStask_t *task)
 	    if (getenv("__PSI_NO_GPUBIND")) {
 		fprintf(stderr, "No GPU-binding for rank %d\n", task->rank);
 	    } else {
-		bindToGPUs(&(task->CPUset));
+		bindToGPUs(physSet);
 	    }
 	}
 #else
@@ -480,7 +480,7 @@ void PSIDpin_doClamps(PStask_t *task)
     }
 }
 
-bool PSIDpin_getCloseGPUs(PSnodes_ID_t id, PSCPU_set_t *CPUs, PSCPU_set_t *GPUs,
+bool PSIDpin_getCloseGPUs(PSnodes_ID_t id, cpu_set_t *CPUs, PSCPU_set_t *GPUs,
 			  uint16_t closeGPUs[], size_t *closeCnt,
 			  uint16_t localGPUs[], size_t *localCnt)
 {
@@ -494,14 +494,11 @@ bool PSIDpin_getCloseGPUs(PSnodes_ID_t id, PSCPU_set_t *CPUs, PSCPU_set_t *GPUs,
     uint16_t numNUMA = PSIDnodes_numNUMADoms(id);
     int numThrds = PSIDnodes_getNumThrds(id);
 
-    /* get mapped CPUs regarding __PSI_CPUMAP if set */
-    cpu_set_t *tmpMappedSet = PSIDpin_mapCPUs(id, *CPUs);
-
-    /* tranform into PSCPU_set_t */
+    /* tranform CPUs into PSCPU_set_t */
     PSCPU_set_t mappedSet;
     PSCPU_clrAll(mappedSet);
     for (uint16_t t = 0; t < numThrds; t++) {
-	if (CPU_ISSET(t, tmpMappedSet)) PSCPU_setCPU(mappedSet, t);
+	if (CPU_ISSET(t, CPUs)) PSCPU_setCPU(mappedSet, t);
     }
 
     bool used[numNUMA];
