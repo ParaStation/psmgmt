@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2020 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2020-2021 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -28,18 +28,27 @@
  *
  * Map the logical CPUs of the CPU-set @a set to physical HW-threads
  * and store them into the returned cpu_set_t as used by @ref
- * sched_setaffinity(), etc.
+ * sched_setaffinity(), etc. The result will be according to
+ * circumstances on node @a id. If @a id points to a remote node, the
+ * according information has to be provided. This might require the
+ * utilization of the nodeinfo plugin.
  *
- * This function might take a user-defined mapping provided via the
- * __PSI_CPUMAP environment variable into account.
+ * This function will take a user-defined mapping into account that
+ * might be provided via the __PSI_CPUMAP environment variable. This
+ * functionality might collide with getting mappings for remote nodes.
+ *
+ * @warning Subsequent calls to this function will modify the returned
+ * set!
+ *
+ * @param id ParaStation ID of the node to get the mapping for
  *
  * @param set Set of logical CPUs to map
  *
  * @return A set of physical HW-threads is returned as a static set of
  * type cpu_set_t. Subsequent calls to @ref PSIDpin_mapCPUs will
- * modify this set.
+ * modify this set!
  */
-cpu_set_t *PSIDpin_mapCPUs(PSCPU_set_t set);
+cpu_set_t *PSIDpin_mapCPUs(PSnodes_ID_t id, PSCPU_set_t set);
 
 /**
  * @brief Do various process clamps.
@@ -60,11 +69,11 @@ cpu_set_t *PSIDpin_mapCPUs(PSCPU_set_t set);
 void PSIDpin_doClamps(PStask_t *task);
 
 /**
- * @brief Get a node's list of GPUs close to the CPUs in @a thisSet
+ * @brief Get a node's list of GPUs close to the CPUs in @a cpuSet
  *
  * This returns a list of all GPUs included in @a gpuSet that have
  * the minimal distance available to NUMA domains that contain CPUs set
- * in @a thisSet on the node with ParaStation ID @a id. The list will be
+ * in @a cpuSet on the node with ParaStation ID @a id. The list will be
  * ordered ascending and will not contain double entries.
  *
  * If there is any GPU set in @a gpuSet, the returned @a closestlist will
@@ -81,6 +90,8 @@ void PSIDpin_doClamps(PStask_t *task);
  *
  * The list(s) returned via @a closestlist and @a closelist when true is
  * returned has to be free()ed by the caller.
+ *
+ * @doctodo comment on "mapped set"
  *
  * @param id ParaStation ID of the node to look up
  *

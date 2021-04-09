@@ -248,7 +248,7 @@ static void bindToGPUs(PSCPU_set_t *cpuSet)
 typedef struct{
     size_t maxSize;
     size_t size;
-    short *map;
+    uint16_t *map;
 } CPUmap_t;
 
 /**
@@ -264,7 +264,7 @@ typedef struct{
  *
  * @return No return value.
  */
-static void appendToMap(short cpu, CPUmap_t *map)
+static void appendToMap(uint16_t cpu, CPUmap_t *map)
 {
     if (map->size == map->maxSize) {
 	if (map->maxSize) {
@@ -298,21 +298,20 @@ static void appendToMap(short cpu, CPUmap_t *map)
  */
 static bool appendRange(CPUmap_t *map, char *range)
 {
-    long first, last;
     char *start = strsep(&range, "-"), *end;
-
     if (*start == '\0') {
 	fprintf(stderr, "core -%s out of range\n", range);
 	return false;
     }
 
-    first = strtol(start, &end, 0);
+    long first = strtol(start, &end, 0);
     if (*end != '\0') return false;
     if (first < 0 || first >= PSIDnodes_getNumThrds(PSC_getMyID())) {
 	fprintf(stderr, "core %ld out of range\n", first);
 	return false;
     }
 
+    long last;
     if (range) {
 	if (*range == '\0') return false;
 	last = strtol(range, &end, 0);
@@ -343,18 +342,18 @@ static bool appendRange(CPUmap_t *map, char *range)
  * 'first' and 'last' are valid (logical) core-numbers on the local
  * node.
  *
- * The array @a map is pointing to upon successful return is a static
- * member of this function. Thus, consecutive calls of this function
- * will invalidate older results.
+ * @warning The array @a map is pointing to upon successful return is
+ * a static member of this function. Thus, consecutive calls of this
+ * function will invalidate older results.
  *
- * @param envStr The character string to parse the CPU-map from.
+ * @param envStr Character string to parse the CPU-map from
  *
- * @param map The parsed CPU-map.
+ * @param map The parsed CPU-map
  *
  * @return On success, the length of the parsed CPU-map is
- * returned. If an error occurred, -1 is returned.
+ * returned; or -1 if an error occurred
  */
-static int getMap(char *envStr, short **map)
+static ssize_t getMap(char *envStr, uint16_t **map)
 {
     static CPUmap_t myMap = { .maxSize = 0, .size = 0, .map = NULL };
     char *range, *work = NULL, *myEnv;
@@ -390,14 +389,14 @@ static int getMap(char *envStr, short **map)
     return myMap.size;
 }
 
-cpu_set_t *PSIDpin_mapCPUs(PSCPU_set_t set)
+cpu_set_t *PSIDpin_mapCPUs(PSnodes_ID_t id, PSCPU_set_t set)
 {
     static cpu_set_t physSet;
-    short *localMap = NULL;
-    int localMapSize = 0;
+    uint16_t *localMap = NULL;
+    ssize_t localMapSize = 0;
     char *envStr = getenv("__PSI_CPUMAP");
 
-    if (envStr && PSIDnodes_allowUserMap(PSC_getMyID())) {
+    if (envStr && PSIDnodes_allowUserMap(id)) {
 	localMapSize = getMap(envStr, &localMap);
 	if (localMapSize < 0) {
 	    fprintf(stderr, "%s: falling back to system default\n", __func__);
@@ -406,16 +405,16 @@ cpu_set_t *PSIDpin_mapCPUs(PSCPU_set_t set)
     }
 
     CPU_ZERO(&physSet);
-    short maxHWThrd = PSIDnodes_getNumThrds(PSC_getMyID());
-    for (short thrd = 0; thrd < maxHWThrd; thrd++) {
+    uint16_t numThrd = PSIDnodes_getNumThrds(id);
+    for (uint16_t thrd = 0; thrd < numThrd; thrd++) {
 	if (PSCPU_isSet(set, thrd)) {
-	    short physThrd = -1;
+	    int16_t physThrd = -1;
 	    if (localMapSize) {
 		if (thrd < localMapSize) physThrd = localMap[thrd];
 	    } else {
-		physThrd = PSIDnodes_mapCPU(PSC_getMyID(), thrd);
+		physThrd = PSIDnodes_mapCPU(id, thrd);
 	    }
-	    if (physThrd < 0 || physThrd >= maxHWThrd) {
+	    if (physThrd < 0 || physThrd >= numThrd) {
 		fprintf(stderr,
 			"Mapping CPU %d->%d out of range. No pinning\n",
 			thrd, physThrd);
@@ -425,16 +424,6 @@ cpu_set_t *PSIDpin_mapCPUs(PSCPU_set_t set)
 	}
     }
 
-    {
-	char txt[PSCPU_MAX+2] = { '\0' };
-	for (short thrd = maxHWThrd - 1; thrd >= 0; thrd--) {
-	    if (CPU_ISSET(thrd, &physSet))
-		snprintf(txt+strlen(txt), sizeof(txt)-strlen(txt), "1");
-	    else
-		snprintf(txt+strlen(txt), sizeof(txt)-strlen(txt), "0");
-	}
-	setenv("__PINNING__", txt, 1);
-    }
     return &physSet;
 }
 
@@ -442,21 +431,31 @@ cpu_set_t *PSIDpin_mapCPUs(PSCPU_set_t set)
 
 void PSIDpin_doClamps(PStask_t *task)
 {
-    int16_t lastBit = PSIDnodes_getNumThrds(PSC_getMyID());
+    int16_t numThrd = PSIDnodes_getNumThrds(PSC_getMyID());
 
     setenv("PSID_CPU_PINNING",
-	    PSCPU_print_part(task->CPUset, PSCPU_bytesForCPUs(lastBit)), 1);
+	    PSCPU_print_part(task->CPUset, PSCPU_bytesForCPUs(numThrd)), 1);
 
-    if (!PSCPU_any(task->CPUset, lastBit)) {
+    if (!PSCPU_any(task->CPUset, numThrd)) {
 	fprintf(stderr, "CPU slots not set. Old executable? "
 		"You might want to relink your program.\n");
-    } else if (PSCPU_all(task->CPUset, lastBit)) {
+    } else if (PSCPU_all(task->CPUset, numThrd)) {
 	/* No mapping */
     } else if (PSIDnodes_pinProcs(PSC_getMyID())
 	       || PSIDnodes_bindMem(PSC_getMyID())
 	       || PSIDnodes_bindGPUs(PSC_getMyID())) {
 #ifdef CPU_ZERO
-	cpu_set_t *physSet = PSIDpin_mapCPUs(task->CPUset);
+	cpu_set_t *physSet = PSIDpin_mapCPUs(PSC_getMyID(), task->CPUset);
+
+	/* Drop info on pinning into the environment */
+	char txt[PSCPU_MAX+2] = { '\0' };
+	for (int16_t thrd = numThrd - 1; thrd >= 0; thrd--) {
+	    if (CPU_ISSET(thrd, physSet))
+		snprintf(txt+strlen(txt), sizeof(txt)-strlen(txt), "1");
+	    else
+		snprintf(txt+strlen(txt), sizeof(txt)-strlen(txt), "0");
+	}
+	setenv("__PINNING__", txt, 1);
 
 	if (PSIDnodes_pinProcs(PSC_getMyID())) {
 	    if (getenv("__PSI_NO_PINPROC")) {
@@ -504,7 +503,7 @@ bool PSIDpin_getClosestGPUs(PSnodes_ID_t id,
     PSCPU_set_t *CPUSets = PSIDnodes_CPUSets(id);
 
     /* get mapped CPUs regarding __PSI_CPUMAP if set */
-    cpu_set_t *tmpMappedSet = PSIDpin_mapCPUs(*cpuSet);
+    cpu_set_t *tmpMappedSet = PSIDpin_mapCPUs(id, *cpuSet);
 
     /* tranform into PSCPU_set_t */
     PSCPU_set_t mappedSet;
