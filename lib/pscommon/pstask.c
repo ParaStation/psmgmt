@@ -249,7 +249,8 @@ bool PStask_delete(PStask_t* task)
  * Create an exact clone of the signal list @a origList and store it
  * to the new list @a cloneList.
  *
- * @warn This function may fail silently when running out of memory.
+ * @warning This function may fail silently when running out of
+ * memory.
  *
  * @param cloneList The list-head of the cloned list to be created.
  *

@@ -483,7 +483,7 @@ int PSID_registerLoopAct(PSID_loopAction_t action);
  * This function might be called from within the actual main-loop
  * action. Thus, a action is allowed to un-register itself.
  *
- * @warn It is disallowed to unregister any other main-loop action
+ * @warning It is disallowed to unregister any other main-loop action
  * besides the action currently executed from within a main-loop
  * action.
  *
@@ -524,8 +524,8 @@ void PSID_handleLoopActions(void);
  * The purpose of this function is cleanup before a fork()ed process
  * is handling other tasks, e.g. becoming a forwarder.
  *
- * @warn This one is currently only partially implemented, thus, leaving
- * some memory allocated.
+ * @warning This one is currently only partially implemented, thus,
+ * leaving some memory allocated.
  *
  * @param aggressive Flag to even more aggressively free memory
  *
