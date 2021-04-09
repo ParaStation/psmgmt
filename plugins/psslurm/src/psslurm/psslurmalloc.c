@@ -147,7 +147,7 @@ static int cbTermJail(int fd, PSID_scriptCBInfo_t *info)
 	return 0;
     }
 
-    if (exit != 0) {
+    if (exit != PSIDHOOK_NOFUNC && exit != 0) {
 	mlog("%s: jail script failed with exit status %i\n", __func__, exit);
 	mlog("%s: %s\n", __func__, errMsg);
     }
