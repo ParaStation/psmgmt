@@ -806,21 +806,20 @@ static void sendReattchReply(Step_t *step, Slurm_Msg_t *sMsg, uint32_t rc)
 
 static void handleReattachTasks(Slurm_Msg_t *sMsg)
 {
-    char **ptr = &sMsg->ptr;
-    Step_t *step;
-    uint32_t i, jobid, stepid, rc = SLURM_SUCCESS;
-    uint16_t numIOports, numCtlPorts;
-    uint16_t *ioPorts = NULL, *ctlPorts = NULL;
-    JobCred_t *cred = NULL;
-    LIST_HEAD(gresList);
+    uint32_t rc = SLURM_SUCCESS;
 
-    getUint32(ptr, &jobid);
-    getUint32(ptr, &stepid);
+    Req_Reattach_Tasks_t *req = NULL;
+    if (!unpackReqReattachTasks(sMsg, &req)) {
+	flog("unpacking request reattach tasks failed\n");
+	rc = ESLURM_INVALID_JOB_ID;
+	goto SEND_REPLY;
+    }
 
-    if (!(step = findStepByStepId(jobid, stepid))) {
+    Step_t *step = findStepByStepId(req->jobid, req->stepid);
+    if (!step) {
 	Step_t s = {
-	    .jobid = jobid,
-	    .stepid = stepid };
+	    .jobid = req->jobid,
+	    .stepid = req->stepid };
 	flog("%s to reattach not found\n", strStepID(&s));
 	rc = ESLURM_INVALID_JOB_ID;
 	goto SEND_REPLY;
@@ -841,60 +840,46 @@ static void handleReattachTasks(Slurm_Msg_t *sMsg)
 	goto SEND_REPLY;
     }
 
-    /* srun control ports */
-    getUint16(ptr, &numCtlPorts);
-    if (numCtlPorts >0) {
-	ctlPorts = umalloc(numCtlPorts * sizeof(uint16_t));
-	for (i=0; i<numCtlPorts; i++) {
-	    getUint16(ptr, &ctlPorts[i]);
-	}
-    } else {
-	mlog("%s: invalid request, no control ports\n", __func__);
+    if (req->numCtlPorts < 1) {
+	flog("invalid request, no control ports for %s\n", strStepID(step));
 	rc = ESLURM_PORTS_INVALID;
 	goto SEND_REPLY;
     }
 
-    /* get I/O ports */
-    getUint16(ptr, &numIOports);
-    if (numIOports >0) {
-	ioPorts = umalloc(numIOports * sizeof(uint16_t));
-	for (i=0; i<numIOports; i++) {
-	    getUint16(ptr, &ioPorts[i]);
-	}
-    } else {
-	mlog("%s: invalid request, no I/O ports\n", __func__);
+    if (req->numIOports < 1) {
+	flog("invalid request, no I/O ports for %s\n", strStepID(step));
 	rc = ESLURM_PORTS_INVALID;
 	goto SEND_REPLY;
     }
 
-    /* job credential including I/O key */
-    cred = extractJobCred(&gresList, sMsg, 0);
-    if (!cred) {
+    if (!req->cred) {
 	flog("invalid credential for %s\n", strStepID(step));
 	rc = ESLURM_INVALID_JOB_CREDENTIAL;
 	goto SEND_REPLY;
     }
-    freeGresCred(&gresList);
 
-    if (strlen(cred->sig) +1 != SLURM_IO_KEY_SIZE) {
-	mlog("%s: invalid I/O key size %zu\n", __func__,
-		strlen(cred->sig) +1);
+    if (strlen(req->cred->sig) +1 != SLURM_IO_KEY_SIZE) {
+	flog("invalid I/O key size %zu for %s\n", strlen(req->cred->sig) +1,
+	     strStepID(step));
 	rc = ESLURM_INVALID_JOB_CREDENTIAL;
 	goto SEND_REPLY;
     }
 
     /* send message to forwarder */
     fwCMD_reattachTasks(step->fwdata, sMsg->head.addr,
-			ioPorts[step->localNodeId % numIOports],
-			ctlPorts[step->localNodeId % numCtlPorts],
-			cred->sig);
+			req->ioPorts[step->localNodeId % req->numIOports],
+			req->ctlPorts[step->localNodeId % req->numCtlPorts],
+			req->cred->sig);
 SEND_REPLY:
 
     sendReattchReply(step, sMsg, rc);
 
-    freeJobCred(cred);
-    ufree(ioPorts);
-    ufree(ctlPorts);
+    if (req) {
+	freeJobCred(req->cred);
+	ufree(req->ioPorts);
+	ufree(req->ctlPorts);
+	ufree(req);
+    }
 }
 
 static void handleSuspendInt(Slurm_Msg_t *sMsg)

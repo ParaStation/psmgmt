@@ -2061,7 +2061,7 @@ bool __unpackExtRespNodeReg(Slurm_Msg_t *sMsg, Ext_Resp_Node_Reg_t **respPtr,
 }
 
 bool __unpackReqSuspendInt(Slurm_Msg_t *sMsg, Req_Suspend_Int_t **reqPtr,
-			const char *caller, const int line)
+			   const char *caller, const int line)
 {
     if (!sMsg) {
 	mlog("%s: invalid ptr from '%s' at %i\n", __func__, caller, line);
@@ -2230,6 +2230,49 @@ bool __packSlurmPIDs(PS_SendDB_t *data, Slurm_PIDs_t *pids,
     for (uint32_t i=0; i<pids->count; i++) {
 	addUint32ToMsg(pids->pid[i], data);
     }
+
+    return true;
+}
+
+bool __unpackReqReattachTasks(Slurm_Msg_t *sMsg, Req_Reattach_Tasks_t **reqPtr,
+			      const char *caller, const int line)
+{
+    if (!sMsg) {
+	flog("invalid ptr from '%s' at %i\n", caller, line);
+	return false;
+    }
+
+    char **ptr = &sMsg->ptr;
+    uint16_t msgVer = sMsg->head.version;
+    Req_Reattach_Tasks_t *req = ucalloc(sizeof(*req));
+
+    /* unpack jobid/stepid */
+    unpackStepHead(ptr, req, msgVer);
+
+    /* srun control ports */
+    getUint16(ptr, &req->numCtlPorts);
+    if (req->numCtlPorts >0) {
+	req->ctlPorts = umalloc(req->numCtlPorts * sizeof(uint16_t));
+	for (uint16_t i=0; i<req->numCtlPorts; i++) {
+	    getUint16(ptr, &req->ctlPorts[i]);
+	}
+    }
+
+    /* I/O ports */
+    getUint16(ptr, &req->numIOports);
+    if (req->numIOports >0) {
+	req->ioPorts = umalloc(req->numIOports * sizeof(uint16_t));
+	for (uint16_t i=0; i<req->numIOports; i++) {
+	    getUint16(ptr, &req->ioPorts[i]);
+	}
+    }
+
+    /* job credential including I/O key */
+    LIST_HEAD(gresList);
+    req->cred = extractJobCred(&gresList, sMsg, 0);
+    freeGresCred(&gresList);
+
+    *reqPtr = req;
 
     return true;
 }

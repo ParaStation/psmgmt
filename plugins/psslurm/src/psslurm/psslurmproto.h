@@ -214,6 +214,18 @@ typedef struct {
     pid_t *pid;	/**< the actual PIDs to pack */
 } Slurm_PIDs_t;
 
+/** Holding all information for RPC REQUEST_REATTACH_TASKS */
+typedef struct {
+    uint32_t jobid;	    /**< unique job identifier */
+    uint32_t stepid;	    /**< unique step identifier */
+    uint32_t stepHetComp;   /**< TODO */
+    uint16_t numCtlPorts;   /**< number of control ports */
+    uint16_t *ctlPorts;	    /**< control ports */
+    uint16_t numIOports;    /**< number of I/O ports */
+    uint16_t *ioPorts;	    /**< I/O ports */
+    JobCred_t *cred;	    /**< job credential */
+} Req_Reattach_Tasks_t;
+
 /** Slurm protocol version */
 extern uint32_t slurmProto;
 
