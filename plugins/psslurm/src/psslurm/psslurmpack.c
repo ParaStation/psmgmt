@@ -1155,7 +1155,7 @@ bool __unpackReqLaunchTasks(Slurm_Msg_t *sMsg, Step_t **stepPtr,
     getUint16(ptr, &step->accelBindType);
 
     /* job credentials */
-    step->cred = extractJobCred(&step->gresList, sMsg, 1);
+    step->cred = extractJobCred(&step->gresList, sMsg, true);
     if (!step->cred) {
 	mlog("%s: extracting job credential failed\n", __func__);
 	goto ERROR;
@@ -1411,7 +1411,7 @@ bool __unpackReqBatchJobLaunch(Slurm_Msg_t *sMsg, Job_t **jobPtr,
     getUint64(ptr, &job->memLimit);
 
     /* job credential */
-    job->cred = extractJobCred(&job->gresList, sMsg, 1);
+    job->cred = extractJobCred(&job->gresList, sMsg, true);
     if (!job->cred) {
 	mlog("%s: extracting job credentail failed\n", __func__);
 	goto ERROR;
@@ -2269,7 +2269,7 @@ bool __unpackReqReattachTasks(Slurm_Msg_t *sMsg, Req_Reattach_Tasks_t **reqPtr,
 
     /* job credential including I/O key */
     LIST_HEAD(gresList);
-    req->cred = extractJobCred(&gresList, sMsg, 0);
+    req->cred = extractJobCred(&gresList, sMsg, false);
     freeGresCred(&gresList);
 
     *reqPtr = req;
