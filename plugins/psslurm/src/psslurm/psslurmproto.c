@@ -3065,11 +3065,11 @@ static int handleSlurmConf(Slurm_Msg_t *sMsg, void *info)
 	return 0;
     }
 
-    flog("successful unpacked config msg\n");
+    flog("successfully unpacked config msg\n");
 
     char *confDir = getConfValueC(&Config, "SLURM_CONF_DIR");
     if (!writeSlurmConfigFiles(config, confDir)) {
-	flog("failed to write slurm configuration files\n");
+	flog("failed to write Slurm configuration files to %s\n", confDir);
 	return 0;
     }
 
@@ -3081,13 +3081,8 @@ static int handleSlurmConf(Slurm_Msg_t *sMsg, void *info)
 	    /* parse updated configuration files */
 	    parseSlurmConfigFiles(&configHash);
 
-	    if (!initSlurmOpt()) {
-		flog("initialize Slurm configuration failed\n");
-	    } else {
-		isInit = true;
-		mlog("(%i) successfully started, protocol '%s (%i)'\n", version,
-		     slurmProtoStr, slurmProto);
-	    }
+	    /* finalize the startup of psslurm */
+	    finalizeInit();
 	    break;
 	case CONF_ACT_RELOAD:
 	    break;

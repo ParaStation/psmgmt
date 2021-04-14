@@ -560,6 +560,57 @@ static void enableFPEexceptions(void)
     }
 }
 
+static bool needConfUpdate(char *confDir)
+{
+    int forceUpdate = getConfValueI(&Config, "SLURM_UPDATE_CONF_AT_STARTUP");
+    if (!forceUpdate) {
+	char buf[1024];
+
+	snprintf(buf, sizeof(buf), "%s/slurm.conf", confDir);
+	struct stat sbuf;
+	if (stat(buf, &sbuf) != -1) {
+	    flog("Using available configuration cache\n");
+	    return false;
+	}
+    }
+
+    return true;
+}
+
+static bool requestConfig(void)
+{
+    /* request Slurm configuration files from slurmctld */
+    char *server = getConfValueC(&Config, "SLURM_CONF_SERVER");
+    if (!server) return false;
+
+    if (!sendConfigReq(server, CONF_ACT_STARTUP)) {
+	server = getConfValueC(&Config, "SLURM_CONF_BACKUP_SERVER");
+	if (server) {
+	    flog("requesting config from backup server %s\n", server);
+	    if (!sendConfigReq(server, CONF_ACT_STARTUP)) {
+		flog("requesting Slurm configuration from %s failed\n", server);
+		return false;
+	    }
+	} else {
+	    flog("requesting Slurm configuration failed\n");
+	    return false;
+	}
+    }
+    flog("waiting for Slurm configuration from %s\n", server);
+
+    return true;
+}
+
+/**
+ * @brief Initialize Slurm options
+ *
+ * Initialize Slurm options from various configuration files. On
+ * success the communication facility is started and the node
+ * is registered to the slurmctld. Additional.y all spank are
+ * initialized and the global spank API is loaded.
+ *
+ * @return Returns true on success or false otherwise
+ */
 bool initSlurmOpt(void)
 {
     struct passwd *pw;
@@ -573,7 +624,7 @@ bool initSlurmOpt(void)
 	if ((pw = getpwnam(slurmUser))) {
 	    slurmUserID = pw->pw_uid;
 	} else {
-	    mwarn(errno, "%s: getting userid of Slurm user '%s' failed: ",
+	    mwarn(errno, "%s: getting user ID of Slurm user '%s' failed: ",
 		    __func__, slurmUser);
 	    goto INIT_ERROR;
 	}
@@ -605,43 +656,17 @@ INIT_ERROR:
     return false;
 }
 
-static bool needConfUpdate(char *confDir)
+bool finalizeInit(void)
 {
-    int forceUpdate = getConfValueI(&Config, "SLURM_UPDATE_CONF_AT_STARTUP");
-    if (!forceUpdate) {
-	char buf[1024];
+    if (!initSlurmOpt()) return false;
 
-	snprintf(buf, sizeof(buf), "%s/slurm.conf", confDir);
-	struct stat sbuf;
-	if (stat(buf, &sbuf) != -1) {
-	    flog("Using available configuration cache\n");
-	    return false;
-	}
-    }
+    /* initialize pinning defaults */
+    if (!initPinning()) return false;
 
-    return true;
-}
+    isInit = true;
 
-static bool requestConfig(void)
-{
-    /* request Slurm configuration files from slurmctld */
-    char *server = getConfValueC(&Config, "SLURM_CONF_SERVER");
-    if (!server) return false;
-
-    if (!sendConfigReq(server, CONF_ACT_STARTUP)) {
-	server = getConfValueC(&Config, "SLURM_CONF_BACKUP_SERVER");
-	if (server) {
-	    flog("requesting config from backup server\n");
-	    if (!sendConfigReq(server, CONF_ACT_STARTUP)) {
-		flog("requesting Slurm configuration failed\n");
-		return false;
-	    }
-	} else {
-	    flog("requesting Slurm configuration failed\n");
-	    return false;
-	}
-    }
-    flog("waiting to receive Slurm configuration from server\n");
+    mlog("(%i) successfully started, protocol '%s (%i)'\n", version,
+	 slurmProtoStr, slurmProto);
 
     return true;
 }
@@ -720,15 +745,9 @@ int initialize(void)
 	parseSlurmConfigFiles(&configHash);
     }
 
-    if (!initSlurmOpt()) goto INIT_ERROR;
-
-    /* initialize pinning defaults */
-    if (!initPinning()) goto INIT_ERROR;
-
-    isInit = true;
-
-    mlog("(%i) successfully started, protocol '%s (%i)'\n", version,
-	 slurmProtoStr, slurmProto);
+    /* all further initialisation which requires Slurm configuration files *has*
+     * to be done in finalizeInit() */
+    if (!finalizeInit()) goto INIT_ERROR;
 
     return 0;
 

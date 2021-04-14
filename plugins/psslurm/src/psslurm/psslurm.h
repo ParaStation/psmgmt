@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2014-2020 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2014-2021 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -34,15 +34,10 @@ extern uint32_t configHash;
 extern bool isInit;
 
 /**
- * @brief Initialize Slurm options
+ * @brief Finalize the initialisation of psslurm
  *
- * Initialize Slurm options from various configuration files. On
- * success the communication facility is started and the node
- * is registered to the slurmctld. Additional.y all spank are
- * initialized and the global spank API is loaded.
- *
- * @return Returns true on success or false otherwise
+ * @return Return on success otherwise false is returned
  */
-bool initSlurmOpt(void);
+bool finalizeInit(void);
 
 #endif
