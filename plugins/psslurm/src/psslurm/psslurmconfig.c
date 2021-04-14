@@ -891,33 +891,33 @@ static bool verifySlurmConf()
     return true;
 }
 
-int parseSlurmConfigFiles(uint32_t *hash)
+bool parseSlurmConfigFiles(uint32_t *hash)
 {
     struct stat sbuf;
     int gres = 0;
 
     /* parse Slurm config file */
     char *confFile = getConfValueC(&Config, "SLURM_CONF");
-    if (!confFile) return 0;
+    if (!confFile) return false;
 
     registerConfigHashAccumulator(hash);
     if (parseConfigFile(confFile, &SlurmConfig, true /*trimQuotes*/) < 0)
-	return 0;
+	return false;
     registerConfigHashAccumulator(NULL);
-    if (traverseConfig(&SlurmConfig, parseSlurmConf, &gres)) return 0;
-    if (!verifySlurmConf()) return 0;
+    if (traverseConfig(&SlurmConfig, parseSlurmConf, &gres)) return false;
+    if (!verifySlurmConf()) return false;
 
     /* parse optional Slurm GRes config file */
     INIT_LIST_HEAD(&SlurmGresConfig);
     gres = 1;
     confFile = getConfValueC(&Config, "SLURM_GRES_CONF");
-    if (!confFile) return 0;
+    if (!confFile) return false;
     if (stat(confFile, &sbuf) != -1) {
 	Config_t SlurmGresTmp;
 	if (parseConfigFile(confFile, &SlurmGresTmp, true /*trimQuotes*/) < 0)
-	    return 0;
+	    return false;
 
-	if (traverseConfig(&SlurmGresTmp, parseSlurmConf, &gres)) return 0;
+	if (traverseConfig(&SlurmGresTmp, parseSlurmConf, &gres)) return false;
 	freeConfig(&SlurmGresTmp);
     }
 
@@ -928,19 +928,20 @@ int parseSlurmConfigFiles(uint32_t *hash)
     confFile = getConfValueC(&SlurmConfig, "PlugStackConfig");
     if (!confFile) {
 	confFile = getConfValueC(&Config, "SLURM_SPANK_CONF");
-	if (!confFile) return 0;
+	if (!confFile) return false;
     }
     int disabled = getConfValueU(&Config, "DISABLE_SPANK");
     if (!disabled && stat(confFile, &sbuf) != -1) {
 	if (parseConfigFile(confFile, &SlurmPlugConf, true /*trimQuotes*/) < 0)
-	    return 0;
+	    return false;
 
-	if (traverseConfig(&SlurmPlugConf, parseSlurmPlugLine, NULL)) return 0;
+	if (traverseConfig(&SlurmPlugConf, parseSlurmPlugLine, NULL))
+	    return false;
 	freeConfig(&SlurmPlugConf);
     }
 #endif
 
-    return 1;
+    return true;
 }
 
 int initPSSlurmConfig(char *filename, uint32_t *hash)
@@ -978,5 +979,7 @@ int initPSSlurmConfig(char *filename, uint32_t *hash)
 
     /* parse various Slurm configuration files if we start
      * with a local configuration */
-    return parseSlurmConfigFiles(hash);
+    if (!parseSlurmConfigFiles(hash)) return CONFIG_ERROR;
+
+    return CONFIG_SUCCESS;
 }
