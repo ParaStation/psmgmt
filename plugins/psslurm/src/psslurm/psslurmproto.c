@@ -3053,15 +3053,9 @@ static int handleSlurmConf(Slurm_Msg_t *sMsg, void *info)
 	    return 0;
     }
 
-    /* check permissions */
-    if (sMsg->head.uid != 0 && sMsg->head.uid != slurmUserID) {
-	mlog("%s: request from invalid user %u\n", __func__, sMsg->head.uid);
-	return 0;
-    }
-
-    /* unpack request */
+    /* unpack config response */
     if (!(unpackConfigMsg(sMsg, &config))) {
-	mlog("%s: unpacking job launch request failed\n", __func__);
+	flog("unpacking config response failed\n");
 	return 0;
     }
 
@@ -3079,7 +3073,10 @@ static int handleSlurmConf(Slurm_Msg_t *sMsg, void *info)
     switch (*action) {
 	case CONF_ACT_STARTUP:
 	    /* parse updated configuration files */
-	    parseSlurmConfigFiles(&configHash);
+	    if (!parseSlurmConfigFiles(&configHash)) {
+		flog("fatal: failed to parse configuration\n");
+		return 0;
+	    }
 
 	    /* finalize the startup of psslurm */
 	    finalizeInit();
