@@ -3085,6 +3085,7 @@ static int handleSlurmConf(Slurm_Msg_t *sMsg, void *info)
 	    finalizeInit();
 	    break;
 	case CONF_ACT_RELOAD:
+	    flog("ignoring configuration reload request\n");
 	    break;
 	case CONF_ACT_NONE:
 	    break;

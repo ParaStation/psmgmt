@@ -563,15 +563,15 @@ static void enableFPEexceptions(void)
 static bool needConfUpdate(char *confDir)
 {
     int forceUpdate = getConfValueI(&Config, "SLURM_UPDATE_CONF_AT_STARTUP");
-    if (!forceUpdate) {
-	char buf[1024];
+    if (forceUpdate) return true;
 
-	snprintf(buf, sizeof(buf), "%s/slurm.conf", confDir);
-	struct stat sbuf;
-	if (stat(buf, &sbuf) != -1) {
-	    flog("Using available configuration cache\n");
-	    return false;
-	}
+    char buf[1024];
+    snprintf(buf, sizeof(buf), "%s/slurm.conf", confDir);
+
+    struct stat sbuf;
+    if (stat(buf, &sbuf) != -1) {
+	flog("Using available configuration cache\n");
+	return false;
     }
 
     return true;
@@ -742,7 +742,7 @@ int initialize(void)
 	activateConfigCache(confDir);
 
 	/* parse configuration files */
-	parseSlurmConfigFiles(&configHash);
+	if (!parseSlurmConfigFiles(&configHash)) goto INIT_ERROR;
     }
 
     /* all further initialisation which requires Slurm configuration files *has*
