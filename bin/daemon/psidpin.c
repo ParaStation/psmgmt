@@ -138,8 +138,9 @@ static void pinToCPUs(cpu_set_t *physSet)
  * list containing the numbers of all GPUs that are connected to the same
  * NUMA locality domain as any of the threads set in @a cpuSet.
  *
- * Sets the informational environment variable
- * - PSID_CLOSE_GPUS
+ * Sets the informational environment variables
+ * - PSID_LOCAL_GPUS   (GPUs local to the NUMA domains matching cpuSet)
+ * - PSID_CLOSE_GPUS   (GPUs closest to the NUMA domains matching cpuSet)
  *
  * Sets the functional environment variables
  * - CUDA_VISIBLE_DEVICES (for Nvidia GPUs)
@@ -223,7 +224,7 @@ static void bindToGPUs(cpu_set_t *cpuSet)
     }
 
     /* always set PSID version */
-    setenv("PSID_CLOSEST_GPUS", val, 1);
+    setenv("PSID_CLOSE_GPUS", val, 1);
 
     /* build string listing the close GPUs */
     len = 0;
@@ -234,8 +235,8 @@ static void bindToGPUs(cpu_set_t *cpuSet)
 
     /* set variable with real close GPUs, connected directly to one of the
      * NUMA domains our CPUs are also connected to */
-    PSID_log(PSID_LOG_SPAWN, "%s: Set PSID_CLOSE_GPUS='%s'\n", __func__, val);
-    setenv("PSID_CLOSE_GPUS", val, 1);
+    PSID_log(PSID_LOG_SPAWN, "%s: Set PSID_LOCAL_GPUS='%s'\n", __func__, val);
+    setenv("PSID_LOCAL_GPUS", val, 1);
 }
 
 typedef struct{
