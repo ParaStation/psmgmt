@@ -560,6 +560,9 @@ static void enableFPEexceptions(void)
     }
 }
 
+/**
+ * @doctodo
+ */
 static bool needConfUpdate(char *confDir)
 {
     int forceUpdate = getConfValueI(&Config, "SLURM_UPDATE_CONF_AT_STARTUP");
@@ -577,6 +580,9 @@ static bool needConfUpdate(char *confDir)
     return true;
 }
 
+/**
+ * @doctodo
+ */
 static bool requestConfig(void)
 {
     /* request Slurm configuration files from slurmctld */
@@ -605,13 +611,13 @@ static bool requestConfig(void)
  * @brief Initialize Slurm options
  *
  * Initialize Slurm options from various configuration files. On
- * success the communication facility is started and the node
- * is registered to the slurmctld. Additional.y all spank are
+ * success the communication facility is started and the node is
+ * registered to the slurmctld. Additionally all spank plugins are
  * initialized and the global spank API is loaded.
  *
  * @return Returns true on success or false otherwise
  */
-bool initSlurmOpt(void)
+static bool initSlurmOpt(void)
 {
     struct passwd *pw;
 

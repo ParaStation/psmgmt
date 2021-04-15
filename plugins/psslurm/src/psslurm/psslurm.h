@@ -36,6 +36,8 @@ extern bool isInit;
 /**
  * @brief Finalize the initialisation of psslurm
  *
+ * @doctodo briefly describe what's done inside
+ *
  * @return Return on success otherwise false is returned
  */
 bool finalizeInit(void);
