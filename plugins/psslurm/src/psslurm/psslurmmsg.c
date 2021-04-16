@@ -126,7 +126,11 @@ const char *msgType2String(int type)
 	case RESPONSE_NODE_REGISTRATION:
 	    return "RESPONSE_NODE_REGISTRATION";
     }
-    return "unknown";
+
+    static char buf[64];
+    snprintf(buf, sizeof(buf), "unkown %u", type);
+
+    return buf;
 }
 
 void initSlurmMsg(Slurm_Msg_t *sMsg)

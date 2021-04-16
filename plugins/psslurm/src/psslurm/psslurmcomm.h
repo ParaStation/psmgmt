@@ -533,4 +533,13 @@ int openSlurmctldConEx(Connection_CB_t *cb, void *info);
  */
 bool registerSlurmSocket(int sock, Connection_CB_t *cb, void *info);
 
+/**
+ * @brief Convert a Slurm return code to string
+ *
+ * @param rc The Slurm return code to convert
+ *
+ * @return Returns the requested return code as string
+ */
+const char *slurmRC2String(int rc);
+
 #endif  /* __PSSLURM_COMM */

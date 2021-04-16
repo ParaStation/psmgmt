@@ -398,7 +398,7 @@ static int handleJobInfoResp(Slurm_Msg_t *msg, void *info)
     if (msg->head.type == RESPONSE_SLURM_RC) {
 	uint32_t rc;
 	getUint32(ptr, &rc);
-	flog("got error return code %u\n", rc);
+	flog("error rc %s\n", slurmRC2String(rc));
 	return 0;
     }
 
@@ -3043,8 +3043,9 @@ static int handleSlurmConf(Slurm_Msg_t *sMsg, void *info)
 	case RESPONSE_SLURM_RC:
 	    /* return code */
 	    getUint32(&sMsg->ptr, &rc);
-	    flog("configuration request error: reply %s rc %u sock %i\n",
-		 msgType2String(sMsg->head.type), rc, sMsg->sock);
+	    flog("configuration request error: reply %s rc %s sock %i\n",
+		 msgType2String(sMsg->head.type), slurmRC2String(rc),
+		 sMsg->sock);
 	    return 0;
 	case RESPONSE_CONFIG:
 	    break;
