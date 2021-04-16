@@ -5,6 +5,32 @@ Copyright (C) 2010-2021 ParTec Cluster Competence Center GmbH, Munich
 Please send bug reports, questions and suggestions to <support@par-tec.com>
 
 
+Version 5.1.40:
+===============
+Bugfixes:
+ - Remove interactive steps immediately after completion (pct:389)
+ - Bugfixes in psslurm's handling of configless mode
+ - Set default GRes count to 1 if unspecified
+ - Use psconfig DevIPAddress to generate the routing file
+ - Ensure StrBuffers are correctly initialized
+Enhancements:
+ - Apply filename pattern on job/step current working directory (pct:#387)
+ - Use NUMA domain distances for pinning to close GPUs
+ - Bind lone task to all GPUs in psslurm pinning
+ - Make RPC REQUEST_REATTACH_TASKS compatible with Slurm 20.11
+ - Add support for TaskProlog/TaskEpilog option of slurm.conf
+ - Enhance jail plugin for more sophisticated cgroups (prepare for shared nodes)
+ - Ensure psid and psslurm have the same hardware view
+Additional changes:
+ - Change psgw --gw_debug filename to JOB-$JOBID-psgwd_$PSGW_ID-$HOSTNAME.debug
+ - Add hook PSIDHOOK_JAIL_TERM and bump plugin API version to 129
+ - Add JSC's spank plugins
+ - Improve psslurm's kvs output on hardware threads
+ - Improve error logging of Slurm return codes
+ - Improve error messages of psmunge
+ - Add new step states to strStepID()
+
+
 Version 5.1.39-3:
 =================
 Bugfixes:

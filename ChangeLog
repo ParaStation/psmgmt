@@ -1,3 +1,390 @@
+Version psmgmt-5.1.40:
+======================
+------------------------------------------------------------------------
+0c9e0a76 | Michael Rauh | Fri, 16 Apr 2021 15:59:49 +0200
+
+Improve error messages of psmunge
+------------------------------------------------------------------------
+81b3172d | Michael Rauh | Fri, 16 Apr 2021 15:15:36 +0200
+
+Improve error logging of Slurm return codes
+------------------------------------------------------------------------
+ab1c634d | Michael Rauh | Fri, 16 Apr 2021 15:14:02 +0200
+
+Bugfix: set default GRes count to 1 if unspecified
+------------------------------------------------------------------------
+5f0b66f8 | Stephan Krempel | Wed, 7 Apr 2021 15:13:34 +0200
+
+psslurm GPU pinning: Bind lone task to all GPUs
+
+If a step has only one task on a node, this task is bound
+to all GPUs assigned to the step.
+
+This also renames PSSLURM_BIND_GPU to PSSLURM_BIND_GPUS.
+------------------------------------------------------------------------
+a95dd19d | Stephan Krempel | Thu, 15 Apr 2021 17:04:14 +0200
+
+Rename GPU informational environment variables
+
+Rename PSID_CLOSE_GPUS to PSID_LOCAL_GPUS
+Rename PSID_CLOSEST_GPUS back to PSID_CLOSE_GPUS
+------------------------------------------------------------------------
+57992fde | Norbert Eicker | Fri, 9 Apr 2021 17:32:24 +0200
+
+Rework PSIDpin_getCloseGPUs() interface
+------------------------------------------------------------------------
+5a6e303e | Norbert Eicker | Fri, 9 Apr 2021 17:14:54 +0200
+
+Avoid artifical restrictions on number of GPUs
+------------------------------------------------------------------------
+ff5cd1ec | Norbert Eicker | Fri, 9 Apr 2021 17:10:13 +0200
+
+Rework PSIDpin_getClosestGPUs() and more
+
+ - Rename to PSIDpin_getCloseGPUs()
+------------------------------------------------------------------------
+0de4d831 | Norbert Eicker | Fri, 9 Apr 2021 14:19:45 +0200
+
+Bugfix: Take mapping of correct node into account
+------------------------------------------------------------------------
+377b525e | Norbert Eicker | Fri, 9 Apr 2021 13:20:11 +0200
+
+Fix doxygen syntax
+------------------------------------------------------------------------
+f10d199a | Stephan Krempel | Wed, 7 Apr 2021 15:11:25 +0200
+
+Fix typo
+------------------------------------------------------------------------
+dde6c376 | Norbert Eicker | Fri, 9 Apr 2021 01:11:33 +0200
+
+Bugfix: Ensure gpuSet is properly initialized
+------------------------------------------------------------------------
+af2c1fda | Stephan Krempel | Wed, 31 Mar 2021 05:30:12 +0200
+
+Include PSIDpin_getCloseGPUs() into PSIDpin_getClosestGPUs()
+
+PSIDpin_getClosestGPUs() now can optionally return a second
+list of directly connected GPUs as PSIDpin_getCloseGPUs() did.
+------------------------------------------------------------------------
+ac819108 | Stephan Krempel | Wed, 31 Mar 2021 02:11:25 +0200
+
+Use NUMA domain distances for closest GPU pinning
+------------------------------------------------------------------------
+5949eda5 | Norbert Eicker | Thu, 15 Apr 2021 22:06:41 +0200
+
+Hide initSlurmOpt() and add @doctodos
+------------------------------------------------------------------------
+af027b05 | Michael Rauh | Wed, 14 Apr 2021 17:15:26 +0200
+
+Remove unnecessary user ID check in config
+response handling
+------------------------------------------------------------------------
+5cab85dd | Michael Rauh | Wed, 14 Apr 2021 16:45:16 +0200
+
+Ensure to request configuration at least once in configless mode
+------------------------------------------------------------------------
+c5673bec | Michael Rauh | Wed, 14 Apr 2021 16:25:28 +0200
+
+booleanize parseSlurmConfigFiles()
+------------------------------------------------------------------------
+be0abf51 | Michael Rauh | Wed, 14 Apr 2021 15:58:55 +0200
+
+Ensure the initialisation is consistent when using
+configless mode
+------------------------------------------------------------------------
+ed159f67 | Norbert Eicker | Tue, 13 Apr 2021 00:48:25 +0200
+
+Booleanize and minor streamlining
+------------------------------------------------------------------------
+f4dbfff6 | Michael Rauh | Mon, 12 Apr 2021 19:26:40 +0200
+
+Make RPC REQUEST_REATTACH_TASKS compatible with Slurm 20.11
+------------------------------------------------------------------------
+7b68f6c7 | Norbert Eicker | Fri, 9 Apr 2021 22:07:05 +0200
+
+Minor refinements, mostly whitespace, log, docu, etc.
+------------------------------------------------------------------------
+0e652899 | Michael Rauh | Fri, 9 Apr 2021 15:33:34 +0200
+
+Add support for TaskEpilog option of slurm.conf
+------------------------------------------------------------------------
+9447f738 | Michael Rauh | Fri, 9 Apr 2021 15:17:16 +0200
+
+Add support for TaskProlog option of slurm.conf
+------------------------------------------------------------------------
+79a39dad | Michael Rauh | Fri, 9 Apr 2021 16:18:02 +0200
+
+Suppress error in psslurm if no jail plugin is used
+------------------------------------------------------------------------
+f0e1780f | Norbert Eicker | Thu, 8 Apr 2021 02:08:00 +0200
+
+Ensure PSIDHOOK_JAIL_TERM is available
+
+ - At the same time do not break compatibility by mixing up hook numbers
+------------------------------------------------------------------------
+b8b8483a | Norbert Eicker | Thu, 8 Apr 2021 00:54:04 +0200
+
+Fix documentation, copyright data, whitespace, etc.
+------------------------------------------------------------------------
+bf9e4a82 | Norbert Eicker | Thu, 8 Apr 2021 00:53:23 +0200
+
+Ensure StrBuffers are correctly initialized
+------------------------------------------------------------------------
+b6796189 | Michael Rauh | Fri, 13 Nov 2020 14:36:46 +0100
+
+Update buildsystem
+------------------------------------------------------------------------
+46b863d0 | Michael Rauh | Fri, 13 Nov 2020 14:31:14 +0100
+
+Add new jail scripts to buildsystem
+------------------------------------------------------------------------
+9aaea244 | Michael Rauh | Fri, 13 Nov 2020 14:20:41 +0100
+
+Update documentation of PSIDHOOK_JAIL_CHILD and PSIDHOOK_EXEC_FORWARDER
+------------------------------------------------------------------------
+dfd1a24e | Michael Rauh | Fri, 13 Nov 2020 14:10:16 +0100
+
+Stop psid spawn process if jailing fails
+------------------------------------------------------------------------
+4aa2eaf6 | Michael Rauh | Fri, 13 Nov 2020 13:56:29 +0100
+
+Set correct default memory nodes for cpuset controller
+------------------------------------------------------------------------
+0811dfa6 | Michael Rauh | Fri, 13 Nov 2020 13:37:12 +0100
+
+Add support for cpuacct cgroup controller
+------------------------------------------------------------------------
+b88ee27e | Michael Rauh | Fri, 13 Nov 2020 13:30:55 +0100
+
+Rework jail.sh to use modules for cgroup controllers
+
+ - introduce jail-main.sh to replace jail.sh and jail-term.sh
+------------------------------------------------------------------------
+dc1f908f | Michael Rauh | Tue, 10 Nov 2020 12:55:42 +0100
+
+Update buildsystem
+------------------------------------------------------------------------
+db8ac692 | Michael Rauh | Tue, 10 Nov 2020 12:47:55 +0100
+
+Add scripts to jail children in the cpuset cgroup
+------------------------------------------------------------------------
+55001070 | Michael Rauh | Tue, 10 Nov 2020 12:31:41 +0100
+
+Add JAIL_TERM_SCRIPT example to jail.conf
+------------------------------------------------------------------------
+6485aec4 | Michael Rauh | Mon, 9 Nov 2020 15:13:14 +0100
+
+Cancel a job or step if jailing its process fails
+------------------------------------------------------------------------
+976d072c | Michael Rauh | Fri, 6 Nov 2020 14:48:43 +0100
+
+Use freeStrBuf() in psslurm
+------------------------------------------------------------------------
+81e230fd | Michael Rauh | Fri, 6 Nov 2020 14:47:40 +0100
+
+Add freeStrBuf() and improve documentation of string buffer functions
+------------------------------------------------------------------------
+b3f552b3 | Michael Rauh | Tue, 20 Oct 2020 16:02:17 +0200
+
+Use hook PSIDHOOK_JAIL_TERM in psslurm to
+terminate expired cgroups
+------------------------------------------------------------------------
+ce2055d5 | Michael Rauh | Tue, 20 Oct 2020 15:25:29 +0200
+
+Let hook PSIDHOOK_JAIL_CHILD called in pspam
+execute in child process
+------------------------------------------------------------------------
+24335b89 | Michael Rauh | Fri, 12 Mar 2021 13:50:17 +0100
+
+Use getScriptCBdata() from plugin helper to replace
+duplicates in plugins
+------------------------------------------------------------------------
+c2b71911 | Michael Rauh | Mon, 19 Oct 2020 14:49:23 +0200
+
+Add getScriptCBdata() to plugin helper library
+------------------------------------------------------------------------
+899c15df | Michael Rauh | Tue, 13 Oct 2020 16:14:55 +0200
+
+Use PSID_sigBlock() instead of sigprocmask()
+------------------------------------------------------------------------
+de52555b | Michael Rauh | Tue, 13 Oct 2020 15:59:41 +0200
+
+Improve documentation of hexBitStrConv_func_t
+------------------------------------------------------------------------
+5bbf035f | Michael Rauh | Wed, 7 Oct 2020 15:06:32 +0200
+
+Use hook PSIDHOOK_JAIL_TERM in jail plugin to call a
+cgroup terminate script
+------------------------------------------------------------------------
+624b4b27 | Michael Rauh | Wed, 7 Oct 2020 11:33:02 +0200
+
+Add hook PSIDHOOK_JAIL_TERM and bump plugin
+API version to 129
+------------------------------------------------------------------------
+c5558c1a | Norbert Eicker | Tue, 13 Oct 2020 00:58:36 +0200
+
+Fix typo
+------------------------------------------------------------------------
+95eb46bd | Michael Rauh | Tue, 6 Oct 2020 12:24:09 +0200
+
+Let jail-plugin set cgroups for SSH processes via pspam
+------------------------------------------------------------------------
+1a775dec | Michael Rauh | Tue, 6 Oct 2020 12:21:27 +0200
+
+Let jail-plugin set cgroups for psidforwarder
+ - this fixes race with doClamps() cpusets
+------------------------------------------------------------------------
+6a54688d | Michael Rauh | Tue, 6 Oct 2020 12:17:21 +0200
+
+Jail all psslurm children including its forwarders
+ - add option jailChild to pluginforwarder
+------------------------------------------------------------------------
+3579ad47 | Michael Rauh | Thu, 1 Oct 2020 16:34:12 +0200
+
+Ensure the jail plugin is able to catch SIGCHLD
+------------------------------------------------------------------------
+2a4cee60 | Michael Rauh | Tue, 29 Sep 2020 11:24:46 +0200
+
+Improve psslurm kvs output of hardware threads
+------------------------------------------------------------------------
+46b54aea | Michael Rauh | Tue, 29 Sep 2020 11:17:55 +0200
+
+Export job and step core map to psidforwarder
+------------------------------------------------------------------------
+351dd620 | Michael Rauh | Tue, 29 Sep 2020 11:03:59 +0200
+
+Rework hexBitstr2List() and introduce hexBitstr2ListEx()
+ - add support for range syntax
+ - a convert function may alter the list data
+------------------------------------------------------------------------
+c773c88b | Michael Rauh | Mon, 28 Sep 2020 14:54:35 +0200
+
+Improve addStrBuf() function
+------------------------------------------------------------------------
+54261202 | Norbert Eicker | Wed, 7 Apr 2021 01:15:19 +0200
+
+Streamlining
+------------------------------------------------------------------------
+9c3389a2 | Michael Rauh | Mon, 29 Mar 2021 16:11:39 +0200
+
+Use psconfig DevIPAddress to generate the routing file
+------------------------------------------------------------------------
+6baecce5 | Michael Rauh | Mon, 22 Mar 2021 13:52:42 +0100
+
+Fix typos
+------------------------------------------------------------------------
+df9e73fa | Michael Rauh | Fri, 19 Mar 2021 17:06:47 +0100
+
+Change psgw --gw_debug output filename to
+JOB-$JOBID-psgwd_$PSGW_ID-$HOSTNAME.debug
+------------------------------------------------------------------------
+f3c706fe | Michael Rauh | Fri, 19 Mar 2021 16:28:07 +0100
+
+Add PSHC example to psgw README
+------------------------------------------------------------------------
+06e83333 | Michael Rauh | Fri, 19 Mar 2021 16:22:05 +0100
+
+Log hostname if a prologue on a gateway node fails
+------------------------------------------------------------------------
+2e714c34 | Michael Rauh | Fri, 19 Mar 2021 13:46:12 +0100
+
+Update psgw README
+------------------------------------------------------------------------
+98617da1 | Norbert Eicker | Tue, 6 Apr 2021 23:53:48 +0200
+
+More log improvements
+------------------------------------------------------------------------
+63b52fd5 | Norbert Eicker | Tue, 6 Apr 2021 12:58:56 +0200
+
+Log message improvements
+------------------------------------------------------------------------
+2573a47a | Norbert Eicker | Tue, 6 Apr 2021 12:00:27 +0200
+
+Use strStepID() more often
+------------------------------------------------------------------------
+6b05d6ca | Norbert Eicker | Tue, 6 Apr 2021 10:23:45 +0200
+
+Fix typo
+------------------------------------------------------------------------
+43c66525 | Michael Rauh | Wed, 31 Mar 2021 18:41:51 +0200
+
+Remove interactive steps immediately after completion (pct:389)
+
+ - necessary since Slurm protocol 20.11
+------------------------------------------------------------------------
+2fcc35e8 | Michael Rauh | Wed, 31 Mar 2021 17:56:36 +0200
+
+Use strStepID() in most cases
+------------------------------------------------------------------------
+c537fe3b | Michael Rauh | Wed, 31 Mar 2021 17:53:47 +0200
+
+Add new step states to strStepID()
+------------------------------------------------------------------------
+663bf3cf | Michael Rauh | Thu, 1 Apr 2021 17:15:24 +0200
+
+Fix some typos
+------------------------------------------------------------------------
+c5921465 | Norbert Eicker | Wed, 10 Mar 2021 01:18:53 +0100
+
+Remove obsolete @todos and do streamlining
+------------------------------------------------------------------------
+d366fa3d | Norbert Eicker | Wed, 10 Mar 2021 01:16:16 +0100
+
+Remove obsolete @todo
+------------------------------------------------------------------------
+2daa68f2 | Norbert Eicker | Tue, 9 Mar 2021 23:49:31 +0100
+
+Fix todo: SIGWINCH is sent by ioctl(TIOCSWINSZ)
+------------------------------------------------------------------------
+1aa32e80 | Norbert Eicker | Tue, 9 Mar 2021 23:02:45 +0100
+
+psiadmin tracks connection to psid and exits on failure
+------------------------------------------------------------------------
+74b758be | Norbert Eicker | Tue, 9 Mar 2021 22:48:53 +0100
+
+Fix some doctodos
+------------------------------------------------------------------------
+7264afc3 | Norbert Eicker | Tue, 9 Mar 2021 22:31:30 +0100
+
+Use more appropriate errnos
+------------------------------------------------------------------------
+659ba0ce | Michael Rauh | Fri, 26 Mar 2021 16:45:38 +0100
+
+Ensure psid and psslurm have the same hardware view
+------------------------------------------------------------------------
+2762f560 | Michael Rauh | Mon, 29 Mar 2021 19:07:07 +0200
+
+Apply filename pattern on job/step current working directory (pct:#387)
+
+ - Introduce psslurm configuration option CWD_PATTERN.
+   This option allows to disable the new pattern matching.
+------------------------------------------------------------------------
+689df1c6 | Michael Rauh | Fri, 26 Mar 2021 16:12:35 +0100
+
+Prevent spank plugins from tainting the psid
+------------------------------------------------------------------------
+67af6773 | Norbert Eicker | Thu, 25 Mar 2021 19:04:54 +0100
+
+Booleanize and push to automake 1.16.3
+------------------------------------------------------------------------
+dd3224b4 | Michael Rauh | Thu, 25 Mar 2021 15:21:35 +0100
+
+Update buildsystem
+------------------------------------------------------------------------
+575ff895 | Michael Rauh | Thu, 25 Mar 2021 15:18:45 +0100
+
+Add spank plugins to buildsystem
+------------------------------------------------------------------------
+56cb86c9 | Michael Rauh | Thu, 25 Mar 2021 15:11:06 +0100
+
+Cleanup of spank plugins
+------------------------------------------------------------------------
+7cdd374d | Michael Rauh | Wed, 24 Mar 2021 16:27:57 +0100
+
+Add JSC spank plugins
+------------------------------------------------------------------------
+
+
 Version psmgmt-5.1.39-3:
 ========================
 ------------------------------------------------------------------------
