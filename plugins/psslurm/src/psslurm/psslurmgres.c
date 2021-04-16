@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2014-2019 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2014-2021 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -42,13 +42,15 @@ static uint32_t getGresId(char *name)
 
 static int setGresCount(Gres_Conf_t *gres, char *count)
 {
+    if (!count) {
+	gres->count = 1;
+	return 1;
+    }
+
     char *end;
-    long gCount;
-
-    if (!count) return 1;
-
     errno = 0;
-    gCount = strtol(count, &end, 10);
+
+    long gCount = strtol(count, &end, 10);
     if (!gCount && errno != 0) {
 	mwarn(errno, "%s: invalid count '%s' for '%s'", __func__,
 	      count, gres->name);
