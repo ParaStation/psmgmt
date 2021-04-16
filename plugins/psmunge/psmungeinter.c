@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2016-2018 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2016-2021 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -48,6 +48,7 @@ static int mungeEncCtx(char **cred, munge_ctx_t ctx, const void *buf, int len)
 
     if (err != EMUNGE_SUCCESS) {
 	mlog("%s: encode failed: %s\n", __func__, munge_strerror(err));
+	mlog("%s: ctx error: %s\n", __func__, munge_ctx_strerror(ctx));
 	return 0;
     }
 
@@ -103,7 +104,9 @@ static int mungeDecCtx(const char *cred, munge_ctx_t ctx, void **buf, int *len,
 
     if (err != EMUNGE_SUCCESS) {
 	mlog("%s: decode failed: %s\n", __func__, munge_strerror(err));
+	mlog("%s: ctx error: %s\n", __func__, munge_ctx_strerror(ctx));
 	if (err == EMUNGE_CRED_EXPIRED) mungeLogCredTime(ctx);
+	if (err == EMUNGE_BAD_ARG) mlog("%s: bad arg %s\n", __func__, cred);
 	return 0;
     }
 
