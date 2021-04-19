@@ -591,7 +591,7 @@ bool __unpackSlurmHeader(char **ptr, Slurm_Msg_Header_t *head,
     }
     getUint16(ptr, &head->returnList);
 
-    if (slurmProto >= SLURM_20_11_PROTO_VERSION) {
+    if (head->version >= SLURM_20_11_PROTO_VERSION) {
 	getUint16(ptr, &head->addrFamily);
 
 	if(head->addrFamily == AF_INET) {
