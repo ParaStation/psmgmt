@@ -5,6 +5,12 @@ Copyright (C) 2010-2021 ParTec Cluster Competence Center GmbH, Munich
 Please send bug reports, questions and suggestions to <support@par-tec.com>
 
 
+Version 5.1.40-1:
+=================
+Bugfixes:
+ - Fix tree forwarding with mixed protocol versions and main protocol 20.11
+
+
 Version 5.1.40:
 ===============
 Bugfixes:
