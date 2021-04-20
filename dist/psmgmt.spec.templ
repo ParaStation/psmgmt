@@ -248,30 +248,13 @@ exit 0
 %{_bindir}/psid
 %{_bindir}/psilogger
 %{_bindir}/pspelogue
-%{_bindir}/pssh
 %{_bindir}/test_config
 %{_bindir}/test_pse
 %{_libexecdir}/psmgmt
 %{_configdir}
 %{_scriptsdir}
-%{_includedir}/list_t.h
-%{_includedir}/logging.h
-%{_includedir}/pscommon.h
-%{_includedir}/pscpu.h
 %{_includedir}/pse.h
-%{_includedir}/psenv.h
-%{_includedir}/pshostlist.h
 %{_includedir}/psi.h
-%{_includedir}/psicomm.h
-%{_includedir}/psienv.h
-%{_includedir}/psiinfo.h
-%{_includedir}/psispawn.h
-%{_includedir}/psnodes.h
-%{_includedir}/pspartition.h
-%{_includedir}/psprotocol.h
-%{_includedir}/pstask.h
-%{_includedir}/pstaskid.h
-%{_includedir}/psreservation.h
 %{_libdir}/libpse.so*
 %exclude %{_libdir}/libpse.la
 %{_libdir}/libpsi.so*
@@ -345,11 +328,15 @@ exit 0
 %defattr(-,root,root,-)
 %{_includedir}/config_parsing.h
 %{_includedir}/list.h
+%{_includedir}/list_t.h
+%{_includedir}/logging.h
 %{_includedir}/plugin.h
+%{_includedir}/pscommon.h
+%{_includedir}/pscpu.h
 %{_includedir}/psdaemonprotocol.h
-%{_includedir}/selector.h
-%{_includedir}/timer.h
-%{_includedir}/pssignal.h
+%{_includedir}/psenv.h
+%{_includedir}/pshostlist.h
+%{_includedir}/psicomm.h
 %{_includedir}/psicomm_proto.h
 %{_includedir}/psidcomm.h
 %{_includedir}/psidhook.h
@@ -359,15 +346,28 @@ exit 0
 %{_includedir}/psidstatus.h
 %{_includedir}/psidtask.h
 %{_includedir}/psidutil.h
+%{_includedir}/psienv.h
+%{_includedir}/psiinfo.h
+%{_includedir}/psispawn.h
+%{_includedir}/psnodes.h
+%{_includedir}/pspartition.h
+%{_includedir}/psprotocol.h
+%{_includedir}/psreservation.h
+%{_includedir}/pssignal.h
+%{_includedir}/pstask.h
+%{_includedir}/pstaskid.h
+%{_includedir}/selector.h
+%{_includedir}/timer.h
 
 %files mpilegacy
 %defattr(-,root,root,-)
-%{_bindir}/mpirun_chgm
 %{_bindir}/gmspawner
+%{_bindir}/mpirun_chgm
 %{_bindir}/mpirun_chp4
-%{_bindir}/psispawn
 %{_bindir}/mpirun_openib
+%{_bindir}/psispawn
 %{_bindir}/psmstart
+%{_bindir}/pssh
 
 %files psmom
 %defattr(-,root,root,-)
