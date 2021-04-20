@@ -564,7 +564,8 @@ static void handleLaunchTasks(Slurm_Msg_t *sMsg)
 	 " leader %i exe '%s' packJobid %u hetComp %u\n", strStepID(step),
 	 step->username, step->np, step->slurmHosts, step->nrOfNodes, step->tpp,
 	 step->packSize, step->leader, step->argv[0],
-	 step->packJobid == NO_VAL ? 0 : step->packJobid, step->stepHetComp);
+	 step->packJobid == NO_VAL ? 0 : step->packJobid,
+	 step->stepHetComp == NO_VAL ? 0 : step->stepHetComp);
 
     /* ensure an allocation exists for the new step */
     if (!findAlloc(step->jobid)) {
