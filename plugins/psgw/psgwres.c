@@ -736,7 +736,7 @@ int handleFinAlloc(void *data)
     if (!req) {
 	snprintf(jobid, sizeof(jobid), "%u", alloc->packID);
 	if (!(req = Request_find(jobid))) {
-	    flog("no request for jobid %s found\n", jobid);
+	    fdbg(PSGW_LOG_DEBUG, "no request for jobid %u found\n", alloc->id);
 	    return 1;
 	}
     }
