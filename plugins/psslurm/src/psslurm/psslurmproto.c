@@ -1865,29 +1865,28 @@ static void handleKillReq(Slurm_Msg_t *sMsg, Alloc_t *alloc, Kill_Info_t *info)
 
 static void handleTerminateReq(Slurm_Msg_t *sMsg)
 {
-    Req_Terminate_Job_t *req = NULL;
-    Kill_Info_t info;
-
     /* unpack request */
-    if (!(unpackReqTerminate(sMsg, &req))) {
-	mlog("%s: unpack terminate request failed\n", __func__);
+    Req_Terminate_Job_t *req = NULL;
+    if (!unpackReqTerminate(sMsg, &req)) {
+	flog("unpacking terminate request failed\n");
 	sendSlurmRC(sMsg, SLURM_ERROR);
 	return;
     }
-    info.jobid = req->jobid;
-    info.stepid = req->stepid;
-    info.uid = sMsg->head.uid;
+
+    Step_t s = {
+	.jobid = req->jobid,
+	.stepid = req->stepid };
 
     /* check permissions */
     if (sMsg->head.uid != 0 && sMsg->head.uid != slurmUserID) {
-	mlog("%s: request from invalid user %u\n", __func__, sMsg->head.uid);
+	flog("request from invalid user %u for %s\n", sMsg->head.uid,
+	     strStepID(&s));
 	sendSlurmRC(sMsg, ESLURM_USER_ID_MISSING);
 	goto CLEANUP;
     }
 
-    mlog("%s: jobid %u:%u state %u uid %u type '%s'\n", __func__,
-	    req->jobid, req->stepid, req->jobstate, req->uid,
-	    msgType2String(sMsg->head.type));
+    flog("%s Slurm-state %u uid %u type %s\n", strStepID(&s),
+	 req->jobstate, req->uid, msgType2String(sMsg->head.type));
 
     /* restore account freq */
     psAccountSetPoll(confAccPollTime);
@@ -1902,8 +1901,7 @@ static void handleTerminateReq(Slurm_Msg_t *sMsg)
     if (!alloc) {
 	deleteJob(req->jobid);
 	clearStepList(req->jobid);
-	mlog("%s: allocation %u:%u not found\n", __func__,
-	     req->jobid, req->stepid);
+	flog("allocation %s not found\n", strStepID(&s));
 	if (sMsg->head.type == REQUEST_TERMINATE_JOB) {
 	    sendSlurmRC(sMsg, ESLURMD_KILL_JOB_ALREADY_COMPLETE);
 	} else {
@@ -1912,6 +1910,11 @@ static void handleTerminateReq(Slurm_Msg_t *sMsg)
 	}
 	goto CLEANUP;
     }
+
+    Kill_Info_t info = {
+	.jobid = req->jobid,
+	.stepid = req->stepid,
+	.uid = sMsg->head.uid };
 
     switch (sMsg->head.type) {
 	case REQUEST_KILL_PREEMPTED:
@@ -1930,7 +1933,7 @@ static void handleTerminateReq(Slurm_Msg_t *sMsg)
 	    break;
 	default:
 	    sendSlurmRC(sMsg, ESLURMD_KILL_JOB_ALREADY_COMPLETE);
-	    mlog("%s: unknown terminate request\n", __func__);
+	    flog("unknown terminate request for %s\n", strStepID(&s));
     }
 
 CLEANUP:

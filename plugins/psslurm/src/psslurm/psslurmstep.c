@@ -415,6 +415,9 @@ const char *strStepID(Step_t *step)
 	case SLURM_BATCH_SCRIPT:
 	    snprintf(buf, sizeof(buf), "batchscript %u", step->jobid);
 	    break;
+	case NO_VAL:
+	    snprintf(buf, sizeof(buf), "job %u", step->jobid);
+	    break;
 	default:
 	    snprintf(buf, sizeof(buf), "step %u:%u", step->jobid, step->stepid);
 	}
