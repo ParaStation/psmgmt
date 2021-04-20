@@ -568,7 +568,8 @@ static void handleLaunchTasks(Slurm_Msg_t *sMsg)
 
     /* ensure an allocation exists for the new step */
     if (!findAlloc(step->jobid)) {
-	flog("no allocation for jobid %u found\n", step->jobid);
+	flog("error: no allocation for jobid %u found\n", step->jobid);
+	flog("** ensure slurmctld prologue is setup correctly **\n");
 	sendSlurmRC(sMsg, ESLURMD_INVALID_JOB_CREDENTIAL);
 	goto ERROR;
     }
@@ -1625,7 +1626,8 @@ static void handleBatchJobLaunch(Slurm_Msg_t *sMsg)
 
     Alloc_t *alloc = findAlloc(job->jobid);
     if (!alloc) {
-	flog("no allocation for job %u found\n", job->jobid);
+	flog("error: no allocation for job %u found\n", job->jobid);
+	flog("** ensure slurmctld prologue is setup correctly **\n");
 	sendSlurmRC(sMsg, ESLURMD_INVALID_JOB_CREDENTIAL);
 	deleteJob(job->jobid);
 	return;
