@@ -5,6 +5,15 @@ Copyright (C) 2010-2021 ParTec Cluster Competence Center GmbH, Munich
 Please send bug reports, questions and suggestions to <support@par-tec.com>
 
 
+Version 5.1.40-2:
+=================
+Bugfixes:
+ - Accept option "Features" in the Slurm host configuration
+ - Accept empty directories in spank include directive
+Additional changes:
+ - RPMs reorganized
+
+
 Version 5.1.40-1:
 =================
 Bugfixes:
