@@ -843,6 +843,13 @@ ERROR:
  */
 static bool verifySlurmConf()
 {
+    char *prologue = getConfValueC(&SlurmConfig, "PrologSlurmctld");
+    if (!prologue || prologue[0] == '\0') {
+	flog("error: PrologSlurmctld is not set in slurm.conf. "
+	     "A working slurmctld prologue is mandatory for psslurm\n");
+	return false;
+    }
+
     if (!getConfValueC(&Config, "SLURM_HOSTNAME")) {
 	mlog("%s: could not find my host addr in slurm.conf\n", __func__);
 	return false;
