@@ -707,9 +707,19 @@ static bool handleSlurmPlugInc(const char *path)
     /* expand shell patterns  */
     glob_t pglob;
     int ret = glob(path, 0, NULL, &pglob);
-    if (ret) {
-	flog("glob(%s) failed with error %i\n", path, ret);
-	goto ERROR;
+
+    switch (ret) {
+	case GLOB_NOSPACE:
+	    flog("glob(%s) failed: out of memory\n", path);
+	    goto ERROR;
+	case GLOB_NOMATCH:
+	    fdbg(PSSLURM_LOG_DEBUG, "no match for %s\n", path);
+	    globfree(&pglob);
+	    return true;
+	case GLOB_ABORTED:
+	    fdbg(PSSLURM_LOG_WARN, "could not include %s\n", path);
+	    globfree(&pglob);
+	    return true;
     }
 
     /* parse all files */
