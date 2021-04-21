@@ -257,6 +257,8 @@ static bool addHostOptions(char *options)
 	    addConfigEntry(&Config, "SLURM_CPUS", next+5);
 	} else if (!strncasecmp(next, "Feature=", 8)) {
 	    addConfigEntry(&Config, "SLURM_FEATURE", next+8);
+	} else if (!strncasecmp(next, "Features=", 9)) {
+	    addConfigEntry(&Config, "SLURM_FEATURE", next+8);
 	} else if (!strncasecmp(next, "Gres=", 5)) {
 	    addConfigEntry(&Config, "SLURM_GRES", next+5);
 	} else if (!strncasecmp(next, "State=", 6)) {
