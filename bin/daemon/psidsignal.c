@@ -53,23 +53,16 @@ int pskill(pid_t pid, int sig, uid_t uid)
 
     if (!forkPid) {
 	/* the killing process */
-	int error, fd, maxFD = sysconf(_SC_OPEN_MAX);
-
 	PSID_resetSigs();
 	PSID_blockSig(0, SIGTERM);
 	PSID_blockSig(0, SIGCHLD);
 
 	/* close all fds except the control channel and stdin/stdout/stderr */
-	for (fd=0; fd<maxFD; fd++) {
-	    if (fd!=STDIN_FILENO && fd!=STDOUT_FILENO && fd!=STDERR_FILENO
-		&& fd!=cntrlfds[1]) {
-		close(fd);
-	    }
-	}
+	long maxFD = sysconf(_SC_OPEN_MAX);
+	for (int fd = STDERR_FILENO + 1; fd < maxFD; fd++) close(fd);
 
-	errno = 0;
 	/* change user id to appropriate user */
-	if (setuid(uid)<0) {
+	if (setuid(uid) < 0) {
 	    eno = errno;
 	    if (write(cntrlfds[1], &eno, sizeof(eno)) < 0) {
 		PSID_warn(-1, errno,
@@ -80,7 +73,7 @@ int pskill(pid_t pid, int sig, uid_t uid)
 
 	/* Send signal */
 	if (sig == SIGKILL) kill(pid, SIGCONT);
-	error = kill(pid, sig);
+	int error = kill(pid, sig);
 	eno = errno;
 	if (write(cntrlfds[1], &eno, sizeof(eno)) < 0) {
 	    PSID_warn(-1, errno,

@@ -439,14 +439,14 @@ static void initChild(int controlFD, Forwarder_Data_t *fw)
     if (fw->fwChildOE) {
 	/* redirect stdout */
 	close(STDOUT_FILENO);
-	if ((dup2(fw->stdOut[1], STDOUT_FILENO)) == -1) {
+	if (dup2(fw->stdOut[1], STDOUT_FILENO) == -1) {
 	    pluginwarn(errno, "%s: dup2(%i) failed :", __func__, fw->stdOut[1]);
 	    exit(1);
 	}
 	close(fw->stdOut[0]);
 	/* redirect stderr */
 	close(STDERR_FILENO);
-	if ((dup2(fw->stdErr[1], STDERR_FILENO)) == -1) {
+	if (dup2(fw->stdErr[1], STDERR_FILENO) == -1) {
 	    pluginwarn(errno, "%s: dup2(%i) failed :", __func__, fw->stdErr[1]);
 	    exit(1);
 	}
@@ -682,13 +682,13 @@ static void monitorOEpipes(Forwarder_Data_t *fw)
 static bool openOEpipes(Forwarder_Data_t *fw)
 {
     /* stdout */
-    if ((pipe(fw->stdOut)) == -1) {
+    if (pipe(fw->stdOut) == -1) {
 	pluginwarn(errno, "%s: open stdout pipe for job %s failed", __func__,
 		   fw->jobID);
 	return false;
     }
     /* stderr */
-    if ((pipe(fw->stdErr)) == -1) {
+    if (pipe(fw->stdErr) == -1) {
 	pluginwarn(errno, "%s: create stderr pipe for job %s failed", __func__,
 		   fw->jobID);
 	return false;

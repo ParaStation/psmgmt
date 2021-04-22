@@ -767,18 +767,14 @@ static int myexecv( const char *path, char *const argv[])
 
 void PSI_execLogger(const char *command)
 {
-    int i, maxFD = sysconf(_SC_OPEN_MAX);
-    char* argv[5], *envStr;
-    /*
-     * close all open file-descriptor except my std* and the daemonSock
-     */
-    for (i = 1; i < maxFD; i++) {
-	if (i != daemonSock && i != STDOUT_FILENO && i != STDERR_FILENO) {
-	    close(i);
-	}
+    /* close all open file-descriptor except my std* and the daemonSock */
+    long maxFD = sysconf(_SC_OPEN_MAX);
+    for (int fd = STDERR_FILENO + 1; fd < maxFD; fd++) {
+	if (fd != daemonSock) close(fd);
     }
 
-    envStr = getenv("__PSI_LOGGERPATH");
+    char* argv[5];
+    char *envStr = getenv("__PSI_LOGGERPATH");
     if (envStr) {
 	argv[0] = strdup(envStr);
     } else {

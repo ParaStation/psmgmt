@@ -176,7 +176,6 @@ char* PSC_printTID(PStask_ID_t tid)
 
 void PSC_startDaemon(in_addr_t hostaddr)
 {
-    int sock, fd, maxFD = sysconf(_SC_OPEN_MAX);
     struct sockaddr_in sa;
 
     PSC_log(PSC_LOG_VERB, "%s(%s)\n",
@@ -194,16 +193,13 @@ void PSC_startDaemon(in_addr_t hostaddr)
     }
 
     /* close all fds except the control channel and stdin/stdout/stderr */
-    for (fd=0; fd<maxFD; fd++) {
-	if (fd!=STDIN_FILENO && fd!=STDOUT_FILENO && fd!=STDERR_FILENO) {
-	    close(fd);
-	}
-    }
+    long maxFD = sysconf(_SC_OPEN_MAX);
+    for (int fd = STDERR_FILENO + 1; fd < maxFD; fd++) close(fd);
 
     /*
      * start the PSI Daemon via inetd
      */
-    sock = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP);
+    int sock = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP);
 
  again:
     memset(&sa, 0, sizeof(sa));

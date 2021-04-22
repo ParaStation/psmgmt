@@ -1478,8 +1478,6 @@ static int runPElogueScript(PElogue_Data_t *data, char *filename, int root)
 	    sendForkFailed();
 	    return -3;
 	} else if (forwarder_child_pid == 0) {
-	    int fd;
-
 	    /*  become session leader */
 	    initChild();
 
@@ -1487,11 +1485,9 @@ static int runPElogueScript(PElogue_Data_t *data, char *filename, int root)
 	    dup2(open("/dev/null", 0), STDOUT_FILENO);
 	    dup2(open("/dev/null", 0), STDERR_FILENO);
 
-	    /* close all fd */
-	    for (fd=0; fd<getdtablesize(); fd++) {
-		if (fd == STDOUT_FILENO || fd == STDERR_FILENO) continue;
-		close(fd);
-	    }
+	    /* close all other fd */
+	    long maxFD = sysconf(_SC_OPEN_MAX);
+	    for (int fd = STDERR_FILENO + 1; fd < maxFD; fd++) close(fd);
 
 	    /* reset signals */
 	    PSC_setSigHandler(SIGALRM, SIG_DFL);
