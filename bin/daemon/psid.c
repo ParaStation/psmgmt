@@ -583,14 +583,12 @@ int main(int argc, const char *argv[])
 
 #define _PATH_TTY "/dev/tty"
     /* First disconnect from the old controlling tty. */
-    {
-	int fd = open(_PATH_TTY, O_RDWR | O_NOCTTY);
-	if (fd >= 0) {
-	    if (ioctl(fd, TIOCNOTTY, NULL)) {
-		PSID_warn(-1, errno, "%s: ioctl(TIOCNOTTY)", __func__);
-	    }
-	    close(fd);
+    int fd = open(_PATH_TTY, O_RDWR | O_NOCTTY);
+    if (fd >= 0) {
+	if (ioctl(fd, TIOCNOTTY, NULL)) {
+	    PSID_warn(-1, errno, "%s: ioctl(TIOCNOTTY)", __func__);
 	}
+	close(fd);
     }
 
 
@@ -598,15 +596,11 @@ int main(int argc, const char *argv[])
      * Disable stdin,stdout,stderr and install dummy replacement
      * Take care if stdout/stderr is used for logging
      */
-    {
-	int dummy_fd;
-
-	dummy_fd=open("/dev/null", O_WRONLY , 0);
-	dup2(dummy_fd, STDIN_FILENO);
-	if (logfile!=stdout) dup2(dummy_fd, STDOUT_FILENO);
-	if (logfile!=stderr) dup2(dummy_fd, STDERR_FILENO);
-	close(dummy_fd);
-    }
+    int dummy_fd = open("/dev/null", O_WRONLY , 0);
+    dup2(dummy_fd, STDIN_FILENO);
+    if (logfile != stdout) dup2(dummy_fd, STDOUT_FILENO);
+    if (logfile != stderr) dup2(dummy_fd, STDERR_FILENO);
+    close(dummy_fd);
 
     /* Forget about inherited window sizes */
     unsetenv("LINES");

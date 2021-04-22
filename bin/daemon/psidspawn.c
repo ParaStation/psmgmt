@@ -1205,8 +1205,6 @@ static void sendAcctChild(PStask_t *task)
 static int buildSandboxAndStart(PSIDspawn_creator_t *creator, PStask_t *task)
 {
     int socketfds[2];     /* sockets for communication with forwarder */
-    pid_t pid;            /* forwarder's pid */
-    int i, eno;
 
     if (!creator) {
 	PSID_warn(-1, EINVAL, "%s: no creator", __func__);
@@ -1221,20 +1219,19 @@ static int buildSandboxAndStart(PSIDspawn_creator_t *creator, PStask_t *task)
 
     /* create a socketpair for communication between daemon and forwarder */
     if (socketpair(PF_UNIX, SOCK_STREAM, 0, socketfds)<0) {
-	eno = errno;
+	int eno = errno;
 	PSID_warn(-1, eno, "%s: socketpair()", __func__);
 	return eno;
     }
 
     PSID_blockSig(1, SIGTERM);
     /* fork the forwarder */
-    pid = fork();
+    pid_t pid = fork();
     /* save errno in case of error */
-    eno = errno;
+    int eno = errno;
 
     if (!pid) {
 	/* this is the forwarder process */
-	int maxFD = sysconf(_SC_OPEN_MAX);
 
 	PSID_resetSigs();
 	PSID_blockSig(0, SIGTERM);
@@ -1252,11 +1249,9 @@ static int buildSandboxAndStart(PSIDspawn_creator_t *creator, PStask_t *task)
 	/* Start with connection to syslog */
 	closelog();
 	/* Then all the rest */
-	for (i=0; i<maxFD; i++) {
-	    if (i!=STDIN_FILENO && i!=STDOUT_FILENO && i!=STDERR_FILENO
-		&& i!=socketfds[1]) {
-		close(i);
-	    }
+	int maxFD = sysconf(_SC_OPEN_MAX);
+	for (int fd = STDERR_FILENO + 1; fd < maxFD; fd++) {
+	    if (fd != socketfds[1]) close(fd);
 	}
 	/* Reopen the syslog and rename the tag */
 	openlog("psidforwarder", LOG_PID|LOG_CONS, PSID_config->logDest);
