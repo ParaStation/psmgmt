@@ -416,9 +416,8 @@ void IO_finalize(Forwarder_Data_t *fwdata)
 void IO_sattachTasks(Step_t *step, uint32_t ioAddr, uint16_t ioPort,
 		     uint16_t ctlPort, char *sig)
 {
-    int sock, i, sockIndex = 0;
-
-    if ((sock = srunOpenIOConnectionEx(step, ioAddr, ioPort, sig)) == -1) {
+    int sock = srunOpenIOConnectionEx(step, ioAddr, ioPort, sig);
+    if (sock == -1) {
 	mlog("%s: I/O connection to srun '%u:%u' failed\n", __func__,
 		ioAddr, ioPort);
 	return;
@@ -427,7 +426,8 @@ void IO_sattachTasks(Step_t *step, uint32_t ioAddr, uint16_t ioPort,
     mdbg(PSSLURM_LOG_IO, "%s: opened connection to '%u:%u' ctlPort '%u'\n",
 	    __func__, ioAddr, ioPort, ctlPort);
 
-    for (i=0; i<MAX_SATTACH_SOCKETS; i++) {
+    int sockIndex = -1;
+    for (int i = 0; i < MAX_SATTACH_SOCKETS; i++) {
 	if (sattachSockets[i] == -1) {
 	    sattachSockets[i] = sock;
 	    sattachCtlSock[i] = ctlPort;
@@ -438,7 +438,7 @@ void IO_sattachTasks(Step_t *step, uint32_t ioAddr, uint16_t ioPort,
 	}
     }
 
-    if (i==MAX_SATTACH_SOCKETS) {
+    if (sockIndex < 0) {
 	mlog("%s: no more free sattach sockets available\n", __func__);
 	close(sock);
 	return;
@@ -446,7 +446,7 @@ void IO_sattachTasks(Step_t *step, uint32_t ioAddr, uint16_t ioPort,
 
     /* send previous buffered output */
     uint32_t index = ringBufStart;
-    for (i=0; i<RING_BUFFER_LEN; i++) {
+    for (int i = 0; i < RING_BUFFER_LEN; i++) {
 	int ret, error;
 	RingMsgBuffer_t *rBuf = &ringBuf[index];
 	if (!rBuf->msg) break;
@@ -470,7 +470,7 @@ void IO_sattachTasks(Step_t *step, uint32_t ioAddr, uint16_t ioPort,
 	if (index == ringBufLast) break;
     }
 
-    if ((Selector_register(sock, handleSrunMsg, step)) == -1) {
+    if (Selector_register(sock, handleSrunMsg, step) == -1) {
 	mlog("%s: Selector_register(%i) srun I/O socket failed\n",
 		__func__, sock);
     }
@@ -630,11 +630,11 @@ static char *replaceSymbols(uint32_t jobid, uint32_t stepid, char *hostname,
 
 char *IO_replaceStepSymbols(Step_t *step, int rank, char *path)
 {
-    Job_t *job;
     uint32_t arrayJobId = 0, arrayTaskId = 0;
 
     char *hostname = getConfValueC(&Config, "SLURM_HOSTNAME");
-    if ((job = findJobById(step->jobid))) {
+    Job_t *job = findJobById(step->jobid);
+    if (job) {
 	arrayJobId = job->arrayJobId;
 	arrayTaskId = job->arrayTaskId;
     }
@@ -675,22 +675,21 @@ static char *addCwd(char *cwd, char *path)
 void IO_redirectJob(Forwarder_Data_t *fwdata, Job_t *job)
 {
     char *inFile;
-    int fd;
 
     close(STDOUT_FILENO);
     close(STDERR_FILENO);
     close(STDIN_FILENO);
 
     /* stdout */
-    if ((dup2(fwdata->stdOut[1], STDOUT_FILENO)) == -1) {
-	mwarn(errno, "%s: dup2(%i) failed :", __func__, fwdata->stdOut[1]);
+    if (dup2(fwdata->stdOut[1], STDOUT_FILENO) == -1) {
+	mwarn(errno, "%s: dup2(%i)", __func__, fwdata->stdOut[1]);
 	exit(1);
     }
     close(fwdata->stdOut[0]);
 
     /* stderr */
-    if ((dup2(fwdata->stdErr[1], STDERR_FILENO)) == -1) {
-	mwarn(errno, "%s: dup2(%i) failed :", __func__, fwdata->stdErr[1]);
+    if (dup2(fwdata->stdErr[1], STDERR_FILENO) == -1) {
+	mwarn(errno, "%s: dup2(%i)", __func__, fwdata->stdErr[1]);
 	exit(1);
     }
     close(fwdata->stdErr[0]);
@@ -701,12 +700,13 @@ void IO_redirectJob(Forwarder_Data_t *fwdata, Job_t *job)
     } else {
 	inFile = addCwd(job->cwd, IO_replaceJobSymbols(job, job->stdIn));
     }
-    if ((fd = open(inFile, O_RDONLY)) == -1) {
-	mwarn(errno, "%s: open stdin '%s' failed :", __func__, inFile);
+    int fd = open(inFile, O_RDONLY);
+    if (fd == -1) {
+	mwarn(errno, "%s: open stdin '%s' failed", __func__, inFile);
 	exit(1);
     }
-    if ((dup2(fd, STDIN_FILENO)) == -1) {
-	mwarn(errno, "%s: dup2(%i) '%s' failed :", __func__, fd, inFile);
+    if (dup2(fd, STDIN_FILENO) == -1) {
+	mwarn(errno, "%s: dup2(%i) '%s' failed", __func__, fd, inFile);
 	exit(1);
     }
     ufree(inFile);
@@ -721,13 +721,14 @@ int IO_redirectRank(Step_t *step, int rank)
 	char *ptr = IO_replaceStepSymbols(step, rank, step->stdIn);
 	char *inFile = addCwd(step->cwd, ptr);
 
-	if ((fd = open(inFile, O_RDONLY)) == -1) {
-	    mwarn(errno, "%s: open stdin '%s' failed: ", __func__, inFile);
+	fd = open(inFile, O_RDONLY);
+	if (fd == -1) {
+	    mwarn(errno, "%s: open stdin '%s' failed", __func__, inFile);
 	    return 0;
 	}
 	close(STDIN_FILENO);
-	if ((dup2(fd, STDIN_FILENO)) == -1) {
-	    mwarn(errno, "%s: stdin dup2(%u) failed: ", __func__, fd);
+	if (dup2(fd, STDIN_FILENO) == -1) {
+	    mwarn(errno, "%s: stdin dup2(%u) failed", __func__, fd);
 	    return 0;
 	}
     }
@@ -746,7 +747,7 @@ int IO_openJobPipes(Forwarder_Data_t *fwdata)
     Job_t *job = fwdata->userData;
 
     /* stdout */
-    if ((pipe(fwdata->stdOut)) == -1) {
+    if (pipe(fwdata->stdOut) == -1) {
 	mwarn(errno, "%s: open stdout pipe for job %u failed", __func__,
 	      job->jobid);
 	return 0;
@@ -755,7 +756,7 @@ int IO_openJobPipes(Forwarder_Data_t *fwdata)
 	 fwdata->stdOut[0], fwdata->stdOut[1], job->jobid);
 
     /* stderr */
-    if ((pipe(fwdata->stdErr)) == -1) {
+    if (pipe(fwdata->stdErr) == -1) {
 	mwarn(errno, "%s: create stderr pipe for job %u failed", __func__,
 	      job->jobid);
 	return 0;
@@ -770,7 +771,7 @@ void IO_openStepPipes(Forwarder_Data_t *fwdata, Step_t *step)
 {
     /* stdout */
     if (step->stdOutOpt != IO_NODE_FILE && step->stdOutOpt != IO_GLOBAL_FILE) {
-	if ((pipe(fwdata->stdOut)) == -1) {
+	if (pipe(fwdata->stdOut) == -1) {
 	    mwarn(errno, "%s: create stdout pipe failed", __func__);
 	    return;
 	}
@@ -780,7 +781,7 @@ void IO_openStepPipes(Forwarder_Data_t *fwdata, Step_t *step)
 
     /* stderr */
     if (step->stdErrOpt != IO_NODE_FILE && step->stdErrOpt != IO_GLOBAL_FILE) {
-	if ((pipe(fwdata->stdErr)) == -1) {
+	if (pipe(fwdata->stdErr) == -1) {
 	    mwarn(errno, "%s: create stderr pipe failed", __func__);
 	    return;
 	}
@@ -790,7 +791,7 @@ void IO_openStepPipes(Forwarder_Data_t *fwdata, Step_t *step)
 
     /* stdin */
     if (!(step->stdInRank == -1 && step->stdIn && strlen(step->stdIn) > 0)) {
-	if ((pipe(fwdata->stdIn)) == -1) {
+	if (pipe(fwdata->stdIn) == -1) {
 	    mwarn(errno, "%s: create stdin pipe failed", __func__);
 	    return;
 	}
@@ -855,8 +856,9 @@ void IO_openJobIOfiles(Forwarder_Data_t *fwdata)
 
     mdbg(PSSLURM_LOG_IO, "%s: job %u stdout file %s\n", __func__,
 	 job->jobid, outFile);
-    if ((job->stdOutFD = open(outFile, flags, 0666)) == -1) {
-	mwarn(errno, "%s: open stdout '%s' failed :", __func__, outFile);
+    job->stdOutFD = open(outFile, flags, 0666);
+    if (job->stdOutFD == -1) {
+	mwarn(errno, "%s: open stdout '%s' failed", __func__, outFile);
 	exit(1);
     }
     ufree(outFile);
@@ -871,8 +873,9 @@ void IO_openJobIOfiles(Forwarder_Data_t *fwdata)
 	char *errFile = addCwd(job->cwd, IO_replaceJobSymbols(job, job->stdErr));
 	mdbg(PSSLURM_LOG_IO, "%s: job %u stderr file %s\n", __func__,
 	     job->jobid, errFile);
-	if ((job->stdErrFD = open(errFile, flags, 0666)) == -1) {
-	    mwarn(errno, "%s: open stderr '%s' failed for job %u: ", __func__,
+	job->stdErrFD = open(errFile, flags, 0666);
+	if (job->stdErrFD == -1) {
+	    mwarn(errno, "%s: open stderr '%s' failed for job %u", __func__,
 		  errFile, job->jobid);
 	    exit(1);
 	}
@@ -898,8 +901,9 @@ void IO_redirectStep(Forwarder_Data_t *fwdata, Step_t *step)
 			 IO_replaceStepSymbols(step, 0, step->stdOut));
 
 	fwdata->stdOut[0] = -1;
-	if ((fwdata->stdOut[1] = open(outFile, flags, 0666)) == -1) {
-	    mwarn(errno, "%s: open stdout '%s' failed :", __func__, outFile);
+	fwdata->stdOut[1] = open(outFile, flags, 0666);
+	if (fwdata->stdOut[1] == -1) {
+	    mwarn(errno, "%s: open stdout '%s' failed", __func__, outFile);
 	}
 	mdbg(PSSLURM_LOG_IO, "%s: opt '%u' outfile: '%s' fd '%i'\n", __func__,
 	     step->stdOutOpt, outFile, fwdata->stdOut[1]);
@@ -908,15 +912,14 @@ void IO_redirectStep(Forwarder_Data_t *fwdata, Step_t *step)
 	/* open separate files for all ranks */
 	step->outFDs = umalloc(step->globalTaskIdsLen[myNodeID] * sizeof(int));
 
-	uint32_t i;
-	for (i=0; i<step->globalTaskIdsLen[myNodeID]; i++) {
+	for (uint32_t i = 0; i < step->globalTaskIdsLen[myNodeID]; i++) {
 	    outFile = addCwd(step->cwd, IO_replaceStepSymbols(step,
 			     step->globalTaskIds[myNodeID][i],
 			     step->stdOut));
 
-	    if ((step->outFDs[i] = open(outFile, flags, 0666)) == -1) {
-		mwarn(errno, "%s: open stdout '%s' failed :",
-			__func__, outFile);
+	    step->outFDs[i] = open(outFile, flags, 0666);
+	    if (step->outFDs[i] == -1) {
+		mwarn(errno, "%s: open stdout '%s' failed", __func__, outFile);
 	    }
 	    mdbg(PSSLURM_LOG_IO, "%s: outfile: '%s' fd '%i'\n", __func__,
 		 outFile, fwdata->stdOut[1]);
@@ -933,9 +936,9 @@ void IO_redirectStep(Forwarder_Data_t *fwdata, Step_t *step)
 	if (outFile && !(strcmp(outFile, errFile))) {
 	    fwdata->stdErr[1] = fwdata->stdOut[1];
 	} else {
-	    if ((fwdata->stdErr[1] = open(errFile, flags, 0666)) == -1) {
-		mwarn(errno, "%s: open stderr '%s' failed :",
-		      __func__, errFile);
+	    fwdata->stdErr[1] = open(errFile, flags, 0666);
+	    if (fwdata->stdErr[1] == -1) {
+		mwarn(errno, "%s: open stderr '%s' failed", __func__, errFile);
 	    }
 	}
 	mdbg(PSSLURM_LOG_IO, "%s: errfile: '%s' fd '%i'\n", __func__, errFile,
@@ -945,15 +948,14 @@ void IO_redirectStep(Forwarder_Data_t *fwdata, Step_t *step)
 	/* open separate files for all ranks */
 	step->errFDs = umalloc(step->globalTaskIdsLen[myNodeID] * sizeof(int));
 
-	uint32_t i;
-	for (i=0; i<step->globalTaskIdsLen[myNodeID]; i++) {
+	for (uint32_t i = 0; i < step->globalTaskIdsLen[myNodeID]; i++) {
 	    errFile = addCwd(step->cwd, IO_replaceStepSymbols(step,
 			     step->globalTaskIds[myNodeID][i],
 			     step->stdErr));
 
-	    if ((step->errFDs[i] = open(errFile, flags, 0666)) == -1) {
-		mwarn(errno, "%s: open stderr '%s' failed :",
-		      __func__, errFile);
+	    step->errFDs[i] = open(errFile, flags, 0666);
+	    if (step->errFDs[i] == -1) {
+		mwarn(errno, "%s: open stderr '%s' failed", __func__, errFile);
 	    }
 	    mdbg(PSSLURM_LOG_IO, "%s: errfile: '%s' fd '%i'\n", __func__,
 		 errFile, fwdata->stdErr[1]);
@@ -965,8 +967,9 @@ void IO_redirectStep(Forwarder_Data_t *fwdata, Step_t *step)
 	inFile = addCwd(step->cwd, IO_replaceStepSymbols(step, 0, step->stdIn));
 
 	fwdata->stdIn[1] = -1;
-	if ((fwdata->stdIn[0] = open(inFile, O_RDONLY)) == -1) {
-	    mwarn(errno, "%s: open stdin '%s' failed :", __func__, inFile);
+	fwdata->stdIn[0] = open(inFile, O_RDONLY);
+	if (fwdata->stdIn[0] == -1) {
+	    mwarn(errno, "%s: open stdin '%s' failed", __func__, inFile);
 	}
 	mdbg(PSSLURM_LOG_IO, "%s: infile: '%s' fd '%i'\n", __func__, inFile,
 	     fwdata->stdIn[0]);
