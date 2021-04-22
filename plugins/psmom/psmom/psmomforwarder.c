@@ -1239,7 +1239,7 @@ int execInterForwarder(void *info)
 	/* the interactive child */
 	char *argv[50], tmp[QSUB_DATA_SIZE], dis[100];
 	char *tty_name;
-	int argc = 0, fd;
+	int argc = 0;
 
 	tty_name = ttyname(stderrfds[1]);
 	close(stderrfds[0]);
@@ -1279,16 +1279,14 @@ int execInterForwarder(void *info)
 	addEnv(tmp);
 
 	/* close all fd */
-	for (fd=0; fd<getdtablesize(); fd++) {
+	long maxFD = sysconf(_SC_OPEN_MAX);
+	for (int fd = 0; fd < maxFD; fd++) {
 	    if (fd == stderrfds[1]) continue;
 	    if (com->socket == fd) continue;
 	    close(fd);
 	}
 
 	/* setup stdin/stdout/stderr */
-	close(STDIN_FILENO);
-	close(STDOUT_FILENO);
-	close(STDERR_FILENO);
 	dup2(stderrfds[1], STDIN_FILENO);
 	dup2(stderrfds[1], STDOUT_FILENO);
 	dup2(stderrfds[1], STDERR_FILENO);
@@ -1411,16 +1409,13 @@ static void spawnTimeoutScript(char *script, PElogue_Data_t *data,
 	sendForkFailed();
 	return;
     } else if (pid == 0) {
-	int fd;
-
 	/* redirect stdout and stderr */
 	dup2(open("/dev/null", 0), STDOUT_FILENO);
 	dup2(open("/dev/null", 0), STDERR_FILENO);
 
 	/* close all fd */
-	for (fd=0; fd<getdtablesize(); fd++) {
-	    close(fd);
-	}
+	long maxFD = sysconf(_SC_OPEN_MAX);
+	for (int fd = STDERR_FILENO + 1; fd < maxFD; fd++) close(fd);
 
 	/* reset signals */
 	PSC_setSigHandler(SIGALRM, SIG_DFL);
@@ -1835,12 +1830,9 @@ static void backupJob(char *backupScript, Job_t *job, char *outLog,
 	sendForkFailed();
 	return;
     } else if (pid == 0) {
-	int fd;
-
 	/* close all fd */
-	for (fd=0; fd<getdtablesize(); fd++) {
-	    close(fd);
-	}
+	long maxFD = sysconf(_SC_OPEN_MAX);
+	for (int fd = 0; fd < maxFD; fd++) close(fd);
 
 	/* reset signals */
 	PSC_setSigHandler(SIGALRM, SIG_DFL);
