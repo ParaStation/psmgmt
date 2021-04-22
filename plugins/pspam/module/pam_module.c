@@ -176,9 +176,9 @@ static int openConnection(char *sockname)
  *
  * @return Number of bytes written or -1 on error
  */
-static int writeToPspam(int sock, void *buf, size_t toWrite)
+static ssize_t writeToPspam(int sock, void *buf, size_t toWrite)
 {
-    int ret = PSCio_sendP(sock, buf, toWrite);
+    ssize_t ret = PSCio_sendP(sock, buf, toWrite);
 
     if (ret < 0) elog("%s(%d): %s", __func__, sock, strerror(errno));
     return ret;
@@ -240,7 +240,6 @@ static PSPAMResult_t checkPsPamAllowance(const char *uName, const char *rhost)
     int sock = openConnection(pspamSocketName);
     PSPAMResult_t res;
     PS_SendDB_t data = { .bufUsed = 0, .useFrag = false };
-    int written;
 
     if (sock == -1) {
 	elog("connection to local plugin failed: %s", strerror(errno));
@@ -265,7 +264,7 @@ static PSPAMResult_t checkPsPamAllowance(const char *uName, const char *rhost)
     /* add correct msg len (without length) at placeholder */
     *(int32_t *)data.buf = data.bufUsed - sizeof(int32_t);
 
-    written = writeToPspam(sock, data.buf, data.bufUsed);
+    ssize_t written = writeToPspam(sock, data.buf, data.bufUsed);
 
     finalizeSerial();
 
@@ -376,7 +375,6 @@ static void informPlugin(const char *uName, const char *rhost)
 {
     int sock = openConnection(pspamSocketName);
     PS_SendDB_t data = { .bufUsed = 0, .useFrag = false };
-    int written;
 
     if (sock == -1) {
 	elog("connection to local plugin failed: %s", strerror(errno));
@@ -397,7 +395,7 @@ static void informPlugin(const char *uName, const char *rhost)
     /* add correct msg len (without length) at placeholder */
     *(int32_t *)data.buf = data.bufUsed - sizeof(int32_t);
 
-    written = writeToPspam(sock, data.buf, data.bufUsed);
+    ssize_t written = writeToPspam(sock, data.buf, data.bufUsed);
 
     finalizeSerial();
 

@@ -85,8 +85,8 @@ ssize_t PSCio_sendFunc(int fd, void *buffer, size_t toSend, size_t *sent,
 /**
  * Wrapper around @ref PSCio_sendFunc() hiding the @a sent parameter
  */
-static inline int _PSCio_send(int fd, void *buffer, size_t toSend,
-			      const char *func, bool pedantic, bool infinite)
+static inline ssize_t _PSCio_send(int fd, void *buffer, size_t toSend,
+				  const char *func, bool pedantic,bool infinite)
 {
     size_t sent;
     return PSCio_sendFunc(fd, buffer, toSend, &sent, func, pedantic, infinite);

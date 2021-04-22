@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2014-2020 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2014-2021 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -89,7 +89,7 @@ typedef struct __fwData__ {
  *
  * @return The number of bytes sent or -1 on error
  */
-int sendMsgToMother(PSLog_Msg_t *msg);
+ssize_t sendMsgToMother(PSLog_Msg_t *msg);
 
 /* --------------- Functions to be executed in mother ------------------- */
 

@@ -846,7 +846,7 @@ void stopInteractiveJob(Job_t *job)
 	kill(child->pid, SIGTERM);
     } else {
 	int err = 2;
-	int ret = PSCio_send(forwarder_com->socket, &err, sizeof(err));
+	ssize_t ret = PSCio_send(forwarder_com->socket, &err, sizeof(err));
 	if (ret != sizeof(err)) {
 	    mwarn(errno, "%s: writing error status failed", __func__);
 	    kill(child->pid, SIGTERM);

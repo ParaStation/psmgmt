@@ -361,7 +361,7 @@ ssize_t sendDaemonMsg(void *amsg)
     }
 
     DDMsg_t *msg = (DDMsg_t *)amsg;
-    int ret = PSCio_sendF(daemonSock, msg, msg->len);
+    ssize_t ret = PSCio_sendF(daemonSock, msg, msg->len);
 
     if (ret < 0) {
 	PSID_warn(-1, errno ,"%s: doWriteF()", __func__);

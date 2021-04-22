@@ -101,7 +101,7 @@ static bool jobTimeout = false;
 
 static struct timeval childStart;
 
-int sendMsgToMother(PSLog_Msg_t *msg)
+ssize_t sendMsgToMother(PSLog_Msg_t *msg)
 {
     return PSCio_sendP(fwTask->fd, msg, msg->header.len);
 }

@@ -915,17 +915,12 @@ int openSlurmctldConEx(Connection_CB_t *cb, void *info)
 int __sendDataBuffer(int sock, PS_SendDB_t *data, size_t offset,
 		     size_t *written, const char *caller, const int line)
 {
-    int ret;
-    char *ptr;
-    size_t towrite;
-
-    ptr = data->buf + offset;
-    towrite = data->bufUsed - offset;
-
-    ret = PSCio_sendPProg(sock, ptr, towrite, written);
+    char *ptr = data->buf + offset;
+    size_t towrite = data->bufUsed - offset;
+    ssize_t ret = PSCio_sendPProg(sock, ptr, towrite, written);
     int eno = errno;
     if (ret == -1) {
-	mlog("%s: writing message of length %i failed, ret %i written %zu "
+	mlog("%s: writing message of length %i failed, ret %zi written %zu "
 	     "caller %s " "line %i\n", __func__, data->bufUsed, ret, *written,
 	     caller, line);
 	errno = eno;
@@ -1691,7 +1686,7 @@ int srunSendIO(uint16_t type, uint16_t grank, Step_t *step, char *buf,
 int srunSendIOEx(int sock, IO_Slurm_Header_t *iohead, char *buf, int *error)
 {
     PS_SendDB_t data = { .bufUsed = 0, .useFrag = false };
-    int ret = 0, once = 1;
+    bool once = true;
     int32_t towrite, written = 0;
     IO_Slurm_Header_t ioh;
 
@@ -1714,9 +1709,10 @@ int srunSendIOEx(int sock, IO_Slurm_Header_t *iohead, char *buf, int *error)
 	    ioh.len = nl ? (nl +1) - (buf + written) : SLURM_IO_MAX_LEN;
 	}
 	packSlurmIOMsg(&data, &ioh, buf + written);
-	ret = PSCio_sendF(sock, data.buf, data.bufUsed);
+	ssize_t ret = PSCio_sendF(sock, data.buf, data.bufUsed);
 
-	data.bufUsed = once = 0;
+	data.bufUsed = 0;
+	once = false;
 
 	if (ret < 0) {
 	    *error = errno;
@@ -1727,7 +1723,7 @@ int srunSendIOEx(int sock, IO_Slurm_Header_t *iohead, char *buf, int *error)
 	ret -= SLURM_IO_HEAD_SIZE;
 	written += ret;
 	towrite -= ret;
-	fdbg(PSSLURM_LOG_IO | PSSLURM_LOG_IO_VERB, "fd %i ret %i written %i"
+	fdbg(PSSLURM_LOG_IO | PSSLURM_LOG_IO_VERB, "fd %i ret %zi written %i"
 	     " towrite %i type %i grank %i\n", sock, ret, written, towrite,
 	     iohead->type, iohead->grank);
     }
