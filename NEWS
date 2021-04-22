@@ -5,6 +5,14 @@ Copyright (C) 2010-2021 ParTec Cluster Competence Center GmbH, Munich
 Please send bug reports, questions and suggestions to <support@par-tec.com>
 
 
+Version 5.1.40-3:
+=================
+Bugfixes:
+ - Ensure STDIN_FILENO stays open after fork()
+Additional changes:
+ - Move pse.h and psi.h into psmgmt-devel, too
+
+
 Version 5.1.40-2:
 =================
 Bugfixes:
