@@ -413,8 +413,6 @@ static bool initForwarder(int motherFD, Forwarder_Data_t *fw)
  */
 static void initChild(int controlFD, Forwarder_Data_t *fw)
 {
-    int written, fd, maxFD = sysconf(_SC_OPEN_MAX);
-
     /* needed or ioctl(TIOCSCTTY) will fail! */
     fw->cSid = setsid();
     if (fw->cSid == -1) {
@@ -423,18 +421,18 @@ static void initChild(int controlFD, Forwarder_Data_t *fw)
     }
 
     /* send sid to forwarder */
-    written = PSCio_sendF(controlFD, &fw->cSid, sizeof(fw->cSid));
+    ssize_t written = PSCio_sendF(controlFD, &fw->cSid, sizeof(fw->cSid));
     if (written != sizeof(pid_t)) {
 	pluginlog("%s: failed writing child's sid\n", __func__);
 	exit(1);
     }
 
-    /* close all fd, except for stdout, stderr */
-    for (fd=0; fd<maxFD; fd++) {
-	if (fd == fw->stdIn[0] || fd == fw->stdOut[0] ||
-	    fd == fw->stdErr[0] || fd == fw->stdOut[1] ||
-	    fd == fw->stdErr[1] || fd == fw->stdIn[1]) continue;
-	if (fd == STDOUT_FILENO || fd == STDERR_FILENO) continue;
+    /* close all fd, except the ones we still require */
+    long maxFD = sysconf(_SC_OPEN_MAX);
+    for (int fd = STDERR_FILENO + 1; fd < maxFD; fd++) {
+	if (fd == fw->stdIn[0] || fd == fw->stdIn[1]
+	    || fd == fw->stdOut[0] || fd == fw->stdOut[1]
+	    || fd == fw->stdErr[0] || fd == fw->stdErr[1] ) continue;
 	close(fd);
     }
 
