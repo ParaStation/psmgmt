@@ -1883,7 +1883,7 @@ static void handleTerminateReq(Slurm_Msg_t *sMsg)
     }
 
     flog("%s Slurm-state %u uid %u type %s\n", strStepID(&s),
-	 req->jobstate, req->uid, msgType2String(sMsg->head.type));
+	 req->jobstate, sMsg->head.uid, msgType2String(sMsg->head.type));
 
     /* restore account freq */
     psAccountSetPoll(confAccPollTime);
