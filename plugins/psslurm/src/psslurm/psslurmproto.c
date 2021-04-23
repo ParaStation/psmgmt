@@ -1400,45 +1400,39 @@ static void handleJobNotify(Slurm_Msg_t *sMsg)
     getUint32(ptr, &jobid);
     getUint32(ptr, &stepid);
 
-    flog("notify jobid %u stepid %u\n", jobid, stepid);
-
     Job_t *job = findJobById(jobid);
     Step_t *step = findStepByStepId(jobid, stepid);
+    char *msg = getStringM(ptr);
 
-    if (job) {
-	/* check permissions */
-	if (!(verifyUserId(sMsg->head.uid, job->uid))) {
-	    flog("request from invalid user %u for job %u\n", sMsg->head.uid,
-		 jobid);
-	    sendSlurmRC(sMsg, ESLURM_USER_ID_MISSING);
-	    return;
-	}
-
-	char *msg = getStringM(ptr);
-	fwCMD_printJobMsg(job, "psslurm: ", strlen("psslurm: "), STDERR);
-	fwCMD_printJobMsg(job, msg, strlen(msg), STDERR);
-	fwCMD_printJobMsg(job, "\n", strlen("\n"), STDERR);
-	ufree(msg);
-    } else if (step) {
-	/* check permissions */
-	if (!(verifyUserId(sMsg->head.uid, step->uid))) {
-	    flog("request from invalid user %u %s\n", sMsg->head.uid,
-		 strStepID(step));
-	    sendSlurmRC(sMsg, ESLURM_USER_ID_MISSING);
-	    return;
-	}
-
-	char *msg = getStringM(ptr);
-	fwCMD_printMessage(step, "psslurm: ", strlen("psslurm: "), STDERR, 0);
-	fwCMD_printMessage(step, msg, strlen(msg), STDERR, 0);
-	fwCMD_printMessage(step, "\n", strlen("\n"), STDERR, 0);
-	ufree(msg);
-    } else {
-	flog("job/step %u.%u to notify not found\n", jobid, stepid);
+    if (!job && !step) {
+	flog("job/step %u.%u to notify not found, msg %s\n", jobid,
+	     stepid, msg);
 	sendSlurmRC(sMsg, ESLURM_INVALID_JOB_ID);
+	ufree(msg);
 	return;
     }
 
+    /* check permissions */
+    if (!(verifyUserId(sMsg->head.uid, job ? job->uid : step->uid))) {
+	flog("request from invalid user %u for job %u\n", sMsg->head.uid,
+	     jobid);
+	sendSlurmRC(sMsg, ESLURM_USER_ID_MISSING);
+	ufree(msg);
+	return;
+    }
+
+    flog("notify jobid %u stepid %u msg %s\n", jobid, stepid, msg);
+    if (job) {
+	fwCMD_printJobMsg(job, "psslurm: ", strlen("psslurm: "), STDERR);
+	fwCMD_printJobMsg(job, msg, strlen(msg), STDERR);
+	fwCMD_printJobMsg(job, "\n", strlen("\n"), STDERR);
+    } else {
+	fwCMD_printMessage(step, "psslurm: ", strlen("psslurm: "), STDERR, 0);
+	fwCMD_printMessage(step, msg, strlen(msg), STDERR, 0);
+	fwCMD_printMessage(step, "\n", strlen("\n"), STDERR, 0);
+    }
+
+    ufree(msg);
     sendSlurmRC(sMsg, SLURM_SUCCESS);
 }
 
