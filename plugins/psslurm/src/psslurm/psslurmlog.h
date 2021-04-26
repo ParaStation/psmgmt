@@ -69,6 +69,7 @@ typedef enum {
     PSSLURM_LOG_IO_VERB  =      0x080000, /**< more verbose I/O */
     PSSLURM_LOG_PACK	 =	0x100000, /**< job pack */
     PSSLURM_LOG_SPANK	 =	0x200000, /**< spank */
+    PSSLURM_LOG_SPLUGIN  =      0x400000, /**< slurm plugins */
 } PSSLURM_log_types_t;
 
 #endif  /* __PSSLURM_LOG */

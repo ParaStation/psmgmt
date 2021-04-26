@@ -944,11 +944,49 @@ bool confHasOpt(Config_t *conf, char *key, char *option)
 }
 
 /**
+ * @brief Verify psslurm supports loaded Slurm plugins in slurm.conf
+ *
+ * @return Returns true on success otherwise false is returned
+ **/
+static bool verifySlurmPlugins(void)
+{
+    /* AcctGatherInterconnectType */
+    char *val = getConfValueC(&SlurmConfig, "AcctGatherInterconnectType");
+    if (val) {
+	if (!strcasecmp(val, "acct_gather_interconnect/ofed")) {
+	    fdbg(PSSLURM_LOG_SPLUGIN, "gather interconnect: ofed\n");
+	} else if (!strcasecmp(val, "acct_gather_interconnect/none")) {
+	    fdbg(PSSLURM_LOG_SPLUGIN, "gather interconnect: none\n");
+	} else {
+	    flog("unsupported AcctGatherInterconnectType %s in "
+		 "slurm.conf\n", val);
+	    return false;
+	}
+    }
+
+    /* AcctGatherFilesystemType */
+    val = getConfValueC(&SlurmConfig, "AcctGatherFilesystemType");
+    if (val) {
+	if (!strcasecmp(val, "acct_gather_filesystem/none")) {
+	    fdbg(PSSLURM_LOG_SPLUGIN, "gather filesystem: none\n");
+	} else if (!strcasecmp(val, "acct_gather_filesystem/lustre")) {
+	    fdbg(PSSLURM_LOG_SPLUGIN, "gather filesystem: lustre\n");
+	} else {
+	    flog("unsupported AcctGatherFilesystemType %s in "
+		 "slurm.conf\n", val);
+	    return false;
+	}
+    }
+
+    return true;
+}
+
+/**
  * @brief Do various sanity checks for a Slurm configuration
  *
  * @return Returns true on success or false on error
  */
-static bool verifySlurmConf()
+static bool verifySlurmConf(void)
 {
     /* ensure mandatory prologue is configured */
     char *prologue = getConfValueC(&SlurmConfig, "Prolog");
@@ -1066,6 +1104,7 @@ bool parseSlurmConfigFiles(void)
 	return false;
     }
     if (!verifySlurmConf()) return false;
+    if (!verifySlurmPlugins()) return false;
 
     /* parse optional Slurm GRes config file */
     gres = 1;
