@@ -2543,7 +2543,7 @@ static void handleRespMessageComposite(Slurm_Msg_t *sMsg)
 /**
  * @brief Handle response to node registration request
  *
- * Currently used to receive TRes accounting fields from slurmctld.
+ * Currently used to receive TRes accounting fields from slurmctld
  *
  * @param sMsg The Slurm message to handle
  */
@@ -2566,6 +2566,22 @@ static void handleRespNodeReg(Slurm_Msg_t *sMsg)
 	     tresDBconfig->entry[i].allocSec, tresDBconfig->entry[i].count,
 	     tresDBconfig->entry[i].id, tresDBconfig->entry[i].name,
 	     tresDBconfig->entry[i].type);
+    }
+
+    char *val = getConfValueC(&SlurmConfig, "AcctGatherInterconnectType");
+    if (val && !strcasecmp(val, "acct_gather_interconnect/ofed")) {
+	if (TRes_getID("ic", "ofed") == NO_VAL) {
+	    flog("warning: missing ic/ofed in AccountingStorageTRES\n");
+	    flog("warning: ofed accounting is disabled\n");
+	}
+    }
+
+    val = getConfValueC(&SlurmConfig, "AcctGatherFilesystemType");
+    if (val && !strcasecmp(val, "acct_gather_filesystem/lustre")) {
+	if (TRes_getID("fs", "lustre") == NO_VAL) {
+	    flog("warning: missing fs/lustre in AccountingStorageTRES\n");
+	    flog("warning: lustre accounting is disabled\n");
+	}
     }
 }
 

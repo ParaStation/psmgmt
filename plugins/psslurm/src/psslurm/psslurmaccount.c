@@ -49,8 +49,7 @@ TRes_t *TRes_new(void)
     tres->out_min_taskid = umalloc(sizeof(uint64_t) * tres->count);
     tres->out_tot = umalloc(sizeof(uint64_t) * tres->count);
 
-    uint32_t i;
-    for (i=0; i<tres->count; i++) {
+    for (uint32_t i=0; i<tres->count; i++) {
 	if (tresDBconfig && tresDBconfig->count>i) {
 	    tres->ids[i] = tresDBconfig->entry[i].id;
 	} else {
@@ -96,15 +95,34 @@ void TRes_reset_entry(TRes_Entry_t *entry)
     entry->out_tot = INFINITE64;
 }
 
+uint32_t TRes_getID(const char *type, const char *name)
+{
+    if (!type) return NO_VAL;
+
+    if (tresDBconfig) {
+	for (uint32_t i=0; i<tresDBconfig->count; i++) {
+	    if (!strcmp(tresDBconfig->entry[i].type, type)) {
+		if (name) {
+		    if (!strcmp(tresDBconfig->entry[i].name, name)) {
+			return tresDBconfig->entry[i].id;
+		    }
+		} else {
+		    return tresDBconfig->entry[i].id;
+		}
+	    }
+	}
+    }
+
+    return NO_VAL;
+}
+
 bool TRes_set(TRes_t *tres, uint32_t id, TRes_Entry_t *entry)
 {
-    uint32_t i;
-
-    if (tresDBconfig && tresDBconfig->count>id) {
+    if (tresDBconfig && tresDBconfig->count > id) {
 	id = tresDBconfig->entry[id].id;
     }
 
-    for (i=0; i<tres->count; i++) {
+    for (uint32_t i=0; i<tres->count; i++) {
 	if (tres->ids[i] == id) {
 	    tres->in_max[i] = entry->in_max;
 	    tres->in_max_nodeid[i] = entry->in_max_nodeid;
@@ -133,8 +151,7 @@ static const char *TRes_ID2Str(uint16_t ID)
     static char buf[64];
 
     if (tresDBconfig) {
-	uint32_t i;
-	for (i=0; i<tresDBconfig->count; i++) {
+	for (uint32_t i=0; i<tresDBconfig->count; i++) {
 	    if (tresDBconfig->entry[i].id == ID) {
 		return tresDBconfig->entry[i].type;
 	    }

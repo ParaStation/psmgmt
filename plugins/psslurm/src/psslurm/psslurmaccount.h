@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2019 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2019-2021 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -108,5 +108,16 @@ void TRes_destroy(TRes_t *tres);
  * @param tres The TRes structure to print
  */
 void TRes_print(TRes_t *tres);
+
+/**
+ * @brief Find a TRes ID from type/name
+ *
+ * @param type The type of the TRes ID
+ *
+ * @param name The optional name of the TRes ID
+ *
+ * @return Returns the TRes ID or NO_VAL on error
+ */
+uint32_t TRes_getID(const char *type, const char *name);
 
 #endif  /* __PSSLURM_ACCOUNT */
