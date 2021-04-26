@@ -1396,8 +1396,12 @@ static void handleAcctGatherUpdate(Slurm_Msg_t *sMsg)
 	return;
     }
 
-    /* pack dummy data */
-    packEnergyData(msg);
+    /* pack energy data */
+    psAccountEnergy_t eData;
+    psAccountGetEnergy(&eData);
+
+    /* we need at least 1 sensor to prevent segfaults in slurmctld */
+    packEnergySensor(msg, &eData);
 
     sendSlurmReply(sMsg, RESPONSE_ACCT_GATHER_UPDATE);
 }
@@ -1413,8 +1417,12 @@ static void handleAcctGatherEnergy(Slurm_Msg_t *sMsg)
 	return;
     }
 
-    /* pack dummy data */
-    packEnergyData(msg);
+    /* pack energy data */
+    psAccountEnergy_t eData;
+    psAccountGetEnergy(&eData);
+
+    /* we need at least 1 sensor to prevent segfaults in slurmctld */
+    packEnergySensor(msg, &eData);
 
     sendSlurmReply(sMsg, RESPONSE_ACCT_GATHER_ENERGY);
 }

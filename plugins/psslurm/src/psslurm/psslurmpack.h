@@ -364,12 +364,14 @@ bool __packRespLaunchTasks(PS_SendDB_t *data, Resp_Launch_Tasks_t *ltasks,
     __packRespLaunchTasks(data, ltasks, __func__, __LINE__)
 
 /**
- * @brief Pack dummy energy data
+ * @brief Pack energy data
  *
- * Pack dummy energy data and add it to the provided data
+ * Pack energy data and add it to the provided data
  * buffer.
  *
  * @param data Data buffer to save data to
+ *
+ * @param eData The energy data to pack
  *
  * @param caller Function name of the calling function
  *
@@ -378,10 +380,34 @@ bool __packRespLaunchTasks(PS_SendDB_t *data, Resp_Launch_Tasks_t *ltasks,
  * @return On success true is returned or false in case of an
  * error. If writing was not successful, @a data might be not updated.
  */
-bool __packEnergyData(PS_SendDB_t *data, const char *caller,
-		      const int line);
+bool __packEnergyData(PS_SendDB_t *data, psAccountEnergy_t *eData,
+		      const char *caller, const int line);
 
-#define packEnergyData(data) __packEnergyData(data, __func__, __LINE__)
+#define packEnergyData(data, eData) \
+    __packEnergyData(data, eData, __func__, __LINE__)
+
+/**
+ * @brief Pack energy sensor
+ *
+ * Pack energy sensor and add it to the provided data
+ * buffer.
+ *
+ * @param data Data buffer to save data to
+ *
+ * @param sensor The energy sensor to pack
+ *
+ * @param caller Function name of the calling function
+ *
+ * @param line Line number where this function is called
+ *
+ * @return On success true is returned or false in case of an
+ * error. If writing was not successful, @a data might be not updated.
+ */
+bool __packEnergySensor(PS_SendDB_t *data, psAccountEnergy_t *sensor,
+		        const char *caller, const int line);
+
+#define packEnergySensor(data, eData) \
+    __packEnergySensor(data, eData, __func__, __LINE__)
 
 /**
  * @brief Pack TRes (trackable resources) data

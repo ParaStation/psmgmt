@@ -2007,18 +2007,9 @@ static bool packRespNodeRegStatus(PS_SendDB_t *data,
     /* add GRes configuration */
     addGresData(data, slurmProto);
 
-    /* base energy (joules) */
-    addUint64ToMsg(stat->eData.energyBase, data);
-    /* average power (watt) */
-    addUint32ToMsg(stat->eData.powerAvg, data);
-    /* total energy consumed */
-    addUint64ToMsg(stat->eData.energyCur - stat->eData.energyBase, data);
-    /* current power consumed */
-    addUint32ToMsg(stat->eData.powerCur, data);
-    /* previous energy consumed */
-    addUint64ToMsg(stat->eData.energyCur, data);
-    /* time of the last energy update */
-    addTimeToMsg(stat->eData.lastUpdate, data);
+    /* add energy data */
+    __packEnergyData(data, &stat->eData, caller, line);
+
     /* protocol version */
     addStringToMsg(stat->verStr, data);
 
@@ -2249,27 +2240,56 @@ bool __packRespLaunchTasks(PS_SendDB_t *data, Resp_Launch_Tasks_t *ltasks,
     return true;
 }
 
-bool __packEnergyData(PS_SendDB_t *data, const char *caller, const int line)
+bool __packEnergySensor(PS_SendDB_t *data, psAccountEnergy_t *sensor,
+		        const char *caller, const int line)
 {
     if (!data) {
-	mlog("%s: invalid data pointer from '%s' at %i\n", __func__,
-		caller, line);
+	flog("invalid data pointer from '%s' at %i\n", caller, line);
+	return false;
+    }
+
+    if (!sensor) {
+	flog("invalid sensor pointer from '%s' at %i\n", caller, line);
 	return false;
     }
 
     /* node name */
     addStringToMsg(getConfValueC(&Config, "SLURM_HOSTNAME"), data);
 
-    /* we need at least 1 dummy sensor to prevent segfaults in slurmctld */
+    /* we need at least 1 sensor to prevent segfaults in slurmctld */
     addUint16ToMsg(1, data);
 
-    /* dummy sensor data */
-    addUint64ToMsg(0, data);
-    addUint32ToMsg(0, data);
-    addUint64ToMsg(0, data);
-    addUint32ToMsg(0, data);
-    addUint64ToMsg(0, data);
-    addTimeToMsg(0, data);
+    /* pack sensor */
+    __packEnergyData(data, sensor, caller, line);
+
+    return true;
+}
+
+bool __packEnergyData(PS_SendDB_t *data, psAccountEnergy_t *eData,
+		      const char *caller, const int line)
+{
+    if (!data) {
+	flog("invalid data pointer from '%s' at %i\n", caller, line);
+	return false;
+    }
+
+    if (!eData) {
+	flog("invalid eData pointer from '%s' at %i\n", caller, line);
+	return false;
+    }
+
+    /* base energy (joules) */
+    addUint64ToMsg(eData->energyBase, data);
+    /* average power (watt) */
+    addUint32ToMsg(eData->powerAvg, data);
+    /* total energy consumed */
+    addUint64ToMsg(eData->energyCur - eData->energyBase, data);
+    /* current power consumed */
+    addUint32ToMsg(eData->powerCur, data);
+    /* previous energy consumed */
+    addUint64ToMsg(eData->energyCur, data);
+    /* time of the last energy update */
+    addTimeToMsg(eData->lastUpdate, data);
 
     return true;
 }
