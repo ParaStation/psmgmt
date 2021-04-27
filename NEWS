@@ -5,6 +5,12 @@ Copyright (C) 2010-2021 ParTec Cluster Competence Center GmbH, Munich
 Please send bug reports, questions and suggestions to <support@par-tec.com>
 
 
+Version 5.1.40-4:
+=================
+Enhancements:
+ - Forward special slurmctld prologue environment variables to job environment
+
+
 Version 5.1.40-3:
 =================
 Bugfixes:
