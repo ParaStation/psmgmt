@@ -432,15 +432,20 @@ static void setBindingEnvVars(Step_t *step)
     setenv("SLURM_MEM_BIND_TYPE", val, 1);
 }
 
-void setPsslurmEnv(env_t *env)
+static void setPsslurmEnv(env_t *alloc_env, env_t *dest_env)
 {
-    uint32_t i;
-
-    for (i=0; i<env->cnt; i++) {
-	if (env->vars[i] && !(strncmp("_PSSLURM_ENV_", env->vars[i], 13))) {
-	    char *ptr = env->vars[i] + 13;
+    for (uint32_t i=0; i<alloc_env->cnt; i++) {
+	if (alloc_env->vars[i] &&
+	    !(strncmp("_PSSLURM_ENV_", alloc_env->vars[i], 13))) {
+	    char *ptr = alloc_env->vars[i] + 13;
 	    fdbg(PSSLURM_LOG_ENV, "set %s\n", ptr);
-	    if (ptr) putenv(ptr);
+	    if (ptr) {
+		if (dest_env) {
+		    envPut(dest_env, ptr);
+		} else {
+		    putenv(ptr);
+		}
+	    }
 	}
     }
 }
@@ -636,7 +641,7 @@ void setRankEnv(int32_t rank, Step_t *step)
     setenv("SLURM_TASKS_PER_NODE", val, 1);
 
     Alloc_t *alloc = findAlloc(step->jobid);
-    if (alloc) setPsslurmEnv(&alloc->env);
+    if (alloc) setPsslurmEnv(&alloc->env, NULL);
 }
 
 /**
@@ -824,5 +829,5 @@ void setJobEnv(Job_t *job)
     removeSpankOptions(&job->env);
 
     Alloc_t *alloc = findAlloc(job->jobid);
-    if (alloc) setPsslurmEnv(&alloc->env);
+    if (alloc) setPsslurmEnv(&alloc->env, &job->env);
 }
