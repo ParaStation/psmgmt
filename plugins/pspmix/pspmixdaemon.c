@@ -328,7 +328,11 @@ static int hookRecvSpawnReq(void *data)
 	/* copy stuff from job */
 	server->resInfos = job->resInfos;
 
-	startJobserver(server);
+	if (!startJobserver(server)) {
+	    mlog("%s: Failed to start PMIx jobserver for job with logger %s\n",
+		    __func__, PSC_printTID(server->loggertid));
+	    return -1;
+	}
 
 	mdbg(PSPMIX_LOG_VERBOSE, "%s: New PMIx jobserver started for job with"
 	     " loggertid %s", __func__, PSC_printTID(server->loggertid));
