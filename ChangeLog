@@ -1,3 +1,50 @@
+Version psmgmt-5.1.40-5:
+========================
+------------------------------------------------------------------------
+b5814f49 | Norbert Eicker | Wed, 28 Apr 2021 14:58:13 +0200
+
+Hide pmixJobservers
+------------------------------------------------------------------------
+4bb7a37b | Norbert Eicker | Wed, 28 Apr 2021 14:33:02 +0200
+
+Call PSIDclient_send() explicitly due to sendMsg() deficiencies
+------------------------------------------------------------------------
+02824c8e | Stephan Krempel | Wed, 28 Apr 2021 12:04:00 +0200
+
+pspmix: Report if message target could not be set
+------------------------------------------------------------------------
+01182b4f | Stephan Krempel | Wed, 28 Apr 2021 00:51:21 +0200
+
+pspmix: Add missing return value check
+------------------------------------------------------------------------
+f1848ca1 | Norbert Eicker | Wed, 28 Apr 2021 14:13:27 +0200
+
+Prevent goto
+------------------------------------------------------------------------
+8229c6bd | Norbert Eicker | Wed, 28 Apr 2021 13:14:26 +0200
+
+Add loggertid to frag msg's extra header where required
+
+ - Further streamlining and optimization
+------------------------------------------------------------------------
+0f0eb843 | Norbert Eicker | Wed, 28 Apr 2021 12:19:55 +0200
+
+Rework pspmixcomm and switch PSPMIX_MODEX_DATA_REQ to frag message
+------------------------------------------------------------------------
+83df1299 | Norbert Eicker | Wed, 28 Apr 2021 12:19:09 +0200
+
+Minor rework and fix typos
+------------------------------------------------------------------------
+5f4b3144 | Norbert Eicker | Wed, 28 Apr 2021 09:43:37 +0200
+
+Daemon side of PMIx protocol extension
+------------------------------------------------------------------------
+dfdc0fe8 | Norbert Eicker | Wed, 28 Apr 2021 09:14:30 +0200
+
+Streamlining
+------------------------------------------------------------------------
+
+
 Version psmgmt-5.1.40-4:
 ========================
 ------------------------------------------------------------------------
