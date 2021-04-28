@@ -41,7 +41,7 @@
 #include "pspmixdaemon.h"
 
 /** The list of running PMIx jobservers on this node */
-LIST_HEAD(pmixJobservers);
+static LIST_HEAD(pmixJobservers);
 
 /**
  * @brief Find local PMIx jobserver for job with logger tid
