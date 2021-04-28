@@ -60,31 +60,30 @@ static PspmixJobserver_t* findJobserver(PStask_ID_t loggertid)
     return NULL;
 }
 
-static bool setTargetToPmixJobserver(DDTypedBufferMsg_t *msg)
+static void setTargetToPmixJobserver(DDTypedBufferMsg_t *msg)
 {
     size_t used = 0, eS;
     PStask_ID_t *loggerTID;
     if (!fetchFragHeader(msg, &used, NULL, NULL, (void **)&loggerTID, &eS)
 	|| eS != sizeof(*loggerTID)) {
 	mlog("%s: UNEXPECTED: Fetching header information failed\n", __func__);
-	return false;
+	return;
     }
 
     PspmixJobserver_t *server = findJobserver(*loggerTID);
     if (!server) {
 	mlog("%s: UNEXPECTED: No PMIx jobserver found.\n", __func__);
-	return false;
+	return;
     }
 
     if (!server->fwdata) {
 	mlog("%s: fwdata is NULL, PMIx jobserver seems to be dead\n", __func__);
-	return false;
+	return;
     }
     msg->header.dest = server->fwdata->tid;
 
     mdbg(PSPMIX_LOG_COMM, "%s: setting destination %s\n", __func__,
 	    PSC_printTID(msg->header.dest));
-    return true;
 }
 
 /*
@@ -109,24 +108,25 @@ static void forwardPspmixMsg(DDMsg_t *vmsg)
 	    msg->header.len, PSC_printTID(msg->header.sender));
     mdbg(PSPMIX_LOG_COMM, "->%s]\n", PSC_printTID(msg->header.dest));
 
-    if (PSC_getID(msg->header.dest) == PSC_getMyID()) {
-	/* destination is local, we have to tweak dest */
-	switch(msg->type) {
-	    case PSPMIX_FENCE_IN:
-	    case PSPMIX_MODEX_DATA_REQ:
-		if (!setTargetToPmixJobserver(msg)) {
-		    mlog("%s: Could not set PMIx server as target for"
-			    " PSPMIX_MODEX_DATA_REQ message, dropping\n",
-			    __func__);
-		    return;
-		}
-		break;
-	    default:
-		break;
-	}
+    /* destination is remote, just forward */
+    if (PSC_getID(msg->header.dest) != PSC_getMyID()) {
+	sendMsg(vmsg);
+	return;
     }
 
-    sendMsg(vmsg);
+    /* destination is local, we might have to tweak dest */
+    switch(msg->type) {
+    case PSPMIX_FENCE_IN:
+    case PSPMIX_MODEX_DATA_REQ:
+	setTargetToPmixJobserver(msg);
+    }
+    if (!PSC_getPID(msg->header.dest)) {
+	mlog("%s: no dest (sender %s type  %s)\n", __func__,
+	     PSC_printTID(msg->header.sender),
+	     pspmix_getMsgTypeString(msg->type));
+	return;
+    }
+    PSIDclient_send(vmsg);
 }
 
 /**
