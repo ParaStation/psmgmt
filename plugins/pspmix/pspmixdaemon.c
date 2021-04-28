@@ -51,13 +51,10 @@ LIST_HEAD(pmixJobservers);
  */
 static PspmixJobserver_t* findJobserver(PStask_ID_t loggertid)
 {
-    PspmixJobserver_t *jobserver;
     list_t *j;
     list_for_each(j, &pmixJobservers) {
-	jobserver = list_entry(j, PspmixJobserver_t, next);
-	if (jobserver->loggertid == loggertid) {
-	    return jobserver;
-	}
+	PspmixJobserver_t *jobserver = list_entry(j, PspmixJobserver_t, next);
+	if (jobserver->loggertid == loggertid) return jobserver;
     }
     return NULL;
 }
@@ -107,18 +104,14 @@ void setTargetToPmixJobserver(DDTypedBufferMsg_t *msg) {
  */
 static void forwardPspmixMsg(DDMsg_t *vmsg)
 {
-    char sender[40], dest[40];
-
     mdbg(PSPMIX_LOG_CALL, "%s() called\n", __func__);
 
     DDTypedBufferMsg_t *msg = (DDTypedBufferMsg_t *)vmsg;
 
-    strcpy(sender, PSC_printTID(msg->header.sender));
-    strcpy(dest, PSC_printTID(msg->header.dest));
-
-    mdbg(PSPMIX_LOG_COMM, "%s: msg: type %s (%i) length %hu [%s->%s]\n",
+    mdbg(PSPMIX_LOG_COMM, "%s: msg: type %s (%i) length %hu [%s",
 	    __func__, pspmix_getMsgTypeString(msg->type), msg->type,
-	    msg->header.len, sender, dest);
+	    msg->header.len, PSC_printTID(msg->header.sender));
+    mdbg(PSPMIX_LOG_COMM, "->%s]\n", PSC_printTID(msg->header.dest));
 
     if (PSC_getID(msg->header.dest) == PSC_getMyID()) {
 	/* destination is local */
@@ -293,8 +286,6 @@ static void stopJobserver(PspmixJobserver_t *server)
  */
 static int hookRecvSpawnReq(void *data)
 {
-    char buf[40];
-
     PStask_t *prototask = data;
 
     /* leave all special task groups alone */
@@ -331,10 +322,9 @@ static int hookRecvSpawnReq(void *data)
     server = findJobserver(job->loggertid);
 
     if (server != NULL) {
-	strcpy(buf, PSC_printTID(server->loggertid));
 	mdbg(PSPMIX_LOG_VERBOSE, "%s: Existing PMIx jobserver found for job"
-		" with loggertid %s: %s\n", __func__, buf,
-		PSC_printTID(server->fwdata->tid));
+	     " with loggertid %s", __func__, PSC_printTID(server->loggertid));
+	mdbg(PSPMIX_LOG_VERBOSE, ": %s\n", PSC_printTID(server->fwdata->tid));
 
 	//TODO do we need to inform the existing job server about the new
 	//     task and resinfo ??? think we need to so it can resolve
@@ -357,10 +347,9 @@ static int hookRecvSpawnReq(void *data)
 
     startJobserver(server);
 
-    strcpy(buf, PSC_printTID(server->loggertid));
     mdbg(PSPMIX_LOG_VERBOSE, "%s: New PMIx jobserver started for job with"
-		" loggertid %s: %s\n", __func__, buf,
-		PSC_printTID(server->fwdata->tid));
+	 " loggertid %s", __func__, PSC_printTID(server->loggertid));
+    mdbg(PSPMIX_LOG_VERBOSE, ": %s\n", PSC_printTID(server->fwdata->tid));
 
     list_add_tail(&server->next, &pmixJobservers);
 
@@ -370,6 +359,7 @@ static int hookRecvSpawnReq(void *data)
 setenv:
 
     /* set jobserver tid in environment for the spawn forwarder */
+    char buf[40];
     snprintf(buf, sizeof(buf), "%d", server->fwdata->tid);
     setenv("__PSPMIX_LOCAL_JOBSERVER_TID", buf, 1);
 
