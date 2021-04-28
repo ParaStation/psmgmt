@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2018-2019 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2018-2021 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -50,40 +50,41 @@ bool pspmix_comm_sendClientPMIxEnvironment(PStask_ID_t targetTID,
 /**
  * @brief Compose and send a fence in message
  *
- * @param target     node id of the node to send the message to
  * @param loggertid  tid of the logger, used as jobid
+ * @param target     node id of the node to send the message to
  * @param fenceid    id of the fence
  * @param data       data blob to share with all participating nodes
  * @param ndata      size of the data blob to share
  *
  * @return Returns true on success, false on error
  */
-bool pspmix_comm_sendFenceIn(PSnodes_ID_t target, PStask_ID_t loggertid,
-	uint64_t fenceid, char *data, size_t ndata);
+bool pspmix_comm_sendFenceIn(PStask_ID_t loggertid, PSnodes_ID_t target,
+			     uint64_t fenceid, char *data, size_t ndata);
 
 /**
  * @brief Compose and send a fence out message
  *
  * @param targetTID  task id of the pmix server to send the message to
- * @param loggertid  tid of the logger, used as jobid
  * @param fenceid    id of the fence
  * @param data       cumulated data blob to share with all participating nodes
  * @param ndata      size of the cumulated data blob
  *
  * @return Returns true on success, false on error
  */
-bool pspmix_comm_sendFenceOut(PStask_ID_t targetTID, PStask_ID_t loggertid,
-	uint64_t fenceid, char *data, size_t ndata);
+bool pspmix_comm_sendFenceOut(PStask_ID_t targetTID, uint64_t fenceid,
+			      char *data, size_t ndata);
 
 /**
  * @brief Compose and send a modex data request message
  *
+ * @param loggertid  tid of the logger, used as jobid
  * @param target     node id of the psid to send the message to
  * @param proc       process information the message shall contain
  *
  * @return Returns true on success, false on error
  */
-bool pspmix_comm_sendModexDataRequest(PSnodes_ID_t target, pmix_proc_t *proc);
+bool pspmix_comm_sendModexDataRequest(PStask_ID_t loggertid,
+				      PSnodes_ID_t target, pmix_proc_t *proc);
 
 /**
  * @brief Compose and send a modex data response message

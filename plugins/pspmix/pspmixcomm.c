@@ -78,8 +78,6 @@ static void handleFenceIn(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
 
     char *ptr = data->buf;
 
-    PStask_ID_t loggertid;
-    getInt32(&ptr, &loggertid);
     uint64_t fenceid;
     getUint64(&ptr, &fenceid);
     size_t len;
@@ -105,8 +103,6 @@ static void handleFenceOut(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
 
     char *ptr = data->buf;
 
-    PStask_ID_t loggertid;
-    getInt32(&ptr, &loggertid);
     uint64_t fenceid;
     getUint64(&ptr, &fenceid);
     size_t len;
@@ -266,7 +262,7 @@ static pthread_mutex_t send_lock = PTHREAD_MUTEX_INITIALIZER;
  *
  * This function sends a message and descide how to send it by the destination.
  * This function is compatible to Send_Msg_Func_t and can be used as send
- *  function for psserial.
+ * function for psserial.
  *
  * @param msg  the ready to send message
  *
@@ -335,19 +331,8 @@ bool pspmix_comm_sendClientPMIxEnvironment(PStask_ID_t targetTID,
     return true;
 }
 
-/**
- * @brief Compose and send a fence in message
- *
- * @param target     node id of the node to send the message to
- * @param loggertid  tid of the logger, used as jobid
- * @param fenceid    id of the fence
- * @param data       data blob to share with all participating nodes
- * @param ndata      size of the data blob to share
- *
- * @return Returns true on success, false on error
- */
-bool pspmix_comm_sendFenceIn(PSnodes_ID_t target, PStask_ID_t loggertid,
-	uint64_t fenceid, char *data, size_t ndata)
+bool pspmix_comm_sendFenceIn(PStask_ID_t loggertid, PSnodes_ID_t target,
+			     uint64_t fenceid, char *data, size_t ndata)
 {
     mdbg(PSPMIX_LOG_CALL, "%s() called with target %hd loggertid %s"
 	    " fenceid 0x%04lX ndata %lu\n", __func__, target,
@@ -357,11 +342,10 @@ bool pspmix_comm_sendFenceIn(PSnodes_ID_t target, PStask_ID_t loggertid,
 	    " ndata %lu)\n", __func__, target, fenceid, ndata);
 
     PS_SendDB_t msg;
-    /* @todo needs to be initFragBufferExtra() */
-    initFragBuffer(&msg, PSP_PLUG_PSPMIX, PSPMIX_FENCE_IN);
+    initFragBufferExtra(&msg, PSP_PLUG_PSPMIX, PSPMIX_FENCE_IN,
+			&loggertid, sizeof(loggertid));
     setFragDest(&msg, PSC_getTID(target, 0));
 
-    addInt32ToMsg(loggertid, &msg);
     addUint64ToMsg(fenceid, &msg);
     addDataToMsg(data, ndata, &msg);
 
@@ -369,31 +353,19 @@ bool pspmix_comm_sendFenceIn(PSnodes_ID_t target, PStask_ID_t loggertid,
     int ret = sendFragMsg(&msg);
     pthread_mutex_unlock(&send_lock);
     if (!ret) {
-	mlog("%s: Sending fence_in to node %hd failed. (fenceid 0x%04lX"
-	    " ndata %lu)\n", __func__, target, fenceid, ndata);
+	mlog("%s: Sending (fenceid 0x%04lX ndata %lu) to node %hd failed\n",
+	     __func__, fenceid, ndata, target);
 	return false;
     }
     return true;
 }
 
-/**
- * @brief Compose and send a fence out message
- *
- * @param targetTID  task id of the pmix server to send the message to
- * @param loggertid  tid of the logger, used as jobid
- * @param fenceid    id of the fence
- * @param data       cumulated data blob to share with all participating nodes
- * @param ndata      size of the cumulated data blob
- *
- * @return Returns true on success, false on error
- */
-bool pspmix_comm_sendFenceOut(PStask_ID_t targetTID, PStask_ID_t loggertid,
-	uint64_t fenceid, char *data, size_t ndata)
+bool pspmix_comm_sendFenceOut(PStask_ID_t targetTID, uint64_t fenceid,
+			      char *data, size_t ndata)
 {
     if (mset(PSPMIX_LOG_CALL)) {
-	mlog("%s() called with target %s", __func__, PSC_printTID(targetTID));
-	mlog(" loggertid %s fenceid 0x%04lX ndata %lu\n",
-	     PSC_printTID(loggertid), fenceid, ndata);
+	mlog("%s() called with target %s fenceid 0x%04lX ndata %lu\n",
+	     __func__, PSC_printTID(targetTID), fenceid, ndata);
     }
 
     mdbg(PSPMIX_LOG_COMM, "%s: Sending fence_out to %s (fenceid 0x%04lX"
@@ -403,7 +375,6 @@ bool pspmix_comm_sendFenceOut(PStask_ID_t targetTID, PStask_ID_t loggertid,
     initFragBuffer(&msg, PSP_PLUG_PSPMIX, PSPMIX_FENCE_OUT);
     setFragDest(&msg, targetTID);
 
-    addInt32ToMsg(loggertid, &msg);
     addUint64ToMsg(fenceid, &msg);
     addDataToMsg(data, ndata, &msg);
 
@@ -411,22 +382,15 @@ bool pspmix_comm_sendFenceOut(PStask_ID_t targetTID, PStask_ID_t loggertid,
     int ret = sendFragMsg(&msg);
     pthread_mutex_unlock(&send_lock);
     if (!ret) {
-	mlog("%s: Sending fence_out to %s failed. (fenceid 0x%04lX"
-	    " ndata %lu)\n", __func__, PSC_printTID(targetTID), fenceid, ndata);
+	mlog("%s: Sending (fenceid 0x%04lX ndata %lu) to %s failed\n",
+	     __func__, fenceid, ndata, PSC_printTID(targetTID));
 	return false;
     }
     return true;
 }
 
-/**
- * @brief Compose and send a modex data request message
- *
- * @param target     node id of the psid to send the message to
- * @param proc       process information the message shall contain
- *
- * @return Returns true on success, false on error
- */
-bool pspmix_comm_sendModexDataRequest(PSnodes_ID_t target, pmix_proc_t *proc)
+bool pspmix_comm_sendModexDataRequest(PStask_ID_t loggertid,
+				      PSnodes_ID_t target, pmix_proc_t *proc)
 {
 
     mdbg(PSPMIX_LOG_CALL, "%s() called\n", __func__);
@@ -435,8 +399,8 @@ bool pspmix_comm_sendModexDataRequest(PSnodes_ID_t target, pmix_proc_t *proc)
 	    " (nspace %s)\n", __func__, proc->rank, proc->nspace);
 
     PS_SendDB_t msg;
-    /* @todo needs to be initFragBufferExtra() */
-    initFragBuffer(&msg, PSP_PLUG_PSPMIX, PSPMIX_MODEX_DATA_REQ);
+    initFragBufferExtra(&msg, PSP_PLUG_PSPMIX, PSPMIX_MODEX_DATA_REQ,
+			&loggertid, sizeof(loggertid));
     setFragDest(&msg, PSC_getTID(target, 0));
 
     addUint32ToMsg(proc->rank, &msg);
@@ -446,24 +410,13 @@ bool pspmix_comm_sendModexDataRequest(PSnodes_ID_t target, pmix_proc_t *proc)
     int ret = sendFragMsg(&msg);
     pthread_mutex_unlock(&send_lock);
     if (!ret) {
-	mlog("%s: Sending modex data request to rank %d failed."
-	    " (nspace %s)\n", __func__, proc->rank, proc->nspace);
+	mlog("%s: Sending (nspace %s) to rank %d failed\n", __func__,
+	     proc->nspace, proc->rank);
 	return false;
     }
     return true;
 }
 
-/**
- * @brief Compose and send a modex data response message
- *
- * @param targetTID  task id of the pmix server to send the message to
- * @param status     status information the message shall contain
- * @param proc       process information the message shall contain
- * @param data       data the message shall contain
- * @param ndata      size of data the message shall contain
- *
- * @return Returns true on success, false on error
- */
 bool pspmix_comm_sendModexDataResponse(PStask_ID_t targetTID, bool status,
 	pmix_proc_t *proc, void *data, size_t ndata)
 {
@@ -488,9 +441,8 @@ bool pspmix_comm_sendModexDataResponse(PStask_ID_t targetTID, bool status,
     int ret = sendFragMsg(&msg);
     pthread_mutex_unlock(&send_lock);
     if (!ret) {
-	mlog("%s: Sending modex data response to rank %u failed. (status %d"
-	     " nspace %s ndata %zu\n", __func__, proc->rank, status,
-	     proc->nspace, ndata);
+	mlog("%s: Sending (status %d nspace %s ndata %zu) to rank %u failed\n",
+	     __func__, status, proc->nspace, ndata, proc->rank);
 	return false;
     }
     return true;
@@ -511,7 +463,7 @@ bool pspmix_comm_init()
 {
     mdbg(PSPMIX_LOG_CALL, "%s() called\n", __func__);
 
-    /* unregister PSP_PLUG_PSPMIX messages XXX why does this harm??? */
+    /* @todo unregister PSP_PLUG_PSPMIX messages XXX why does this harm??? */
     PSID_clearMsg(PSP_PLUG_PSPMIX);
 
     /* initialize fragmentation layer */

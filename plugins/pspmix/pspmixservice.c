@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2018-2020 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2018-2021 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -755,8 +755,8 @@ void checkFence(PspmixFence_t *fence) {
 		    " fence id 0x%04lX with %lu nodes.\n", __func__, fence->id,
 		    fence->nnodes);
 
-	    pspmix_comm_sendFenceOut(fence->precursor, loggertid, fence->id,
-		    fence->rdata, fence->nrdata);
+	    pspmix_comm_sendFenceOut(fence->precursor, fence->id, fence->rdata,
+				     fence->nrdata);
 	}
 	else {
 	    /* we are not the last in the chain */
@@ -778,8 +778,8 @@ void checkFence(PspmixFence_t *fence) {
 		    " for fence id 0x%04lX with %lu nodes to node %hd.\n",
 		    __func__, fence->id, fence->nnodes, fence->nodes[i]);
 
-	    pspmix_comm_sendFenceIn(fence->nodes[i], loggertid, fence->id,
-		    fence->rdata, fence->nrdata);
+	    pspmix_comm_sendFenceIn(loggertid, fence->nodes[i], fence->id,
+				    fence->rdata, fence->nrdata);
 	}
     }
 }
@@ -988,8 +988,8 @@ int pspmix_service_fenceIn(const pmix_proc_t procs[], size_t nprocs,
 	mdbg(PSPMIX_LOG_FENCE, "%s: Starting fence in daisy chain for fence id"
 		" 0x%04lX\n", __func__, fenceid);
 
-	pspmix_comm_sendFenceIn(sortednodes[1], loggertid, fence->id,
-		data, ndata);
+	pspmix_comm_sendFenceIn(loggertid, sortednodes[1], fence->id,
+				data, ndata);
 	fence->started = true;
     } else {
 	if (found) checkFence(fence);
@@ -1110,8 +1110,7 @@ void pspmix_service_handleFenceOut(uint64_t fenceid, void *data, size_t len)
 	mdbg(PSPMIX_LOG_FENCE, "%s: Forwarding fence_out for fence id 0x%04lX"
 	     " with %lu nodes to node %d.\n", __func__, fence->id,
 	     fence->nnodes, fence->precursor);
-	pspmix_comm_sendFenceOut(fence->precursor, loggertid, fence->id,
-				 data, len);
+	pspmix_comm_sendFenceOut(fence->precursor, fence->id, data, len);
     }
     else {
 	mdbg(PSPMIX_LOG_FENCE, "%s: Fence out daisy chain for fence id 0x%04lX"
@@ -1169,7 +1168,7 @@ bool pspmix_service_sendModexDataRequest(modexdata_t *mdata)
 
     GET_LOCK(modexRequestList);
 
-    if (!pspmix_comm_sendModexDataRequest(nodeid, &mdata->proc)) {
+    if (!pspmix_comm_sendModexDataRequest(loggertid, nodeid, &mdata->proc)) {
 	mlog("%s: Failed to send modex data request for %s:%d to node %hd.\n",
 		__func__, mdata->proc.nspace, mdata->proc.rank, nodeid);
 	RELEASE_LOCK(modexRequestList);
@@ -1233,7 +1232,7 @@ void pspmix_service_sendModexDataResponse(bool status, modexdata_t *mdata)
 #endif
 
     pspmix_comm_sendModexDataResponse(mdata->requester, status, &mdata->proc,
-	    mdata->data, mdata->ndata);
+				      mdata->data, mdata->ndata);
     ufree(mdata);
 }
 
