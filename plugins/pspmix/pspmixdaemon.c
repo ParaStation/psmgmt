@@ -21,9 +21,10 @@
 #include <unistd.h>
 
 #include "list.h"
+#include "pscommon.h"
+#include "psserial.h"
 #include "pstask.h"
 #include "psidhook.h"
-#include "pscommon.h"
 #include "pluginmalloc.h"
 #include "psidcomm.h"
 #include "psidclient.h"
@@ -59,25 +60,19 @@ static PspmixJobserver_t* findJobserver(PStask_ID_t loggertid)
     return NULL;
 }
 
-void setTargetToPmixJobserver(DDTypedBufferMsg_t *msg) {
-
-    //TODO support more than one jobserver in the list
-    PspmixJobserver_t *server = NULL;
-    list_t *s;
-    int count = 0;
-    list_for_each(s, &pmixJobservers) {
-	count++;
-	server = list_entry(s, PspmixJobserver_t, next);
-    }
-
-    if (!server) {
-	mlog("%s: UNEXPECTED: No PMIx jobserver found.\n", __func__);
+void setTargetToPmixJobserver(DDTypedBufferMsg_t *msg)
+{
+    size_t used = 0, eS;
+    PStask_ID_t *loggerTID;
+    if (!fetchFragHeader(msg, &used, NULL, NULL, (void **)&loggerTID, &eS)
+	|| eS != sizeof(*loggerTID)) {
+	mlog("%s: UNEXPECTED: Fetching header information failed\n", __func__);
 	return;
     }
 
-    if (count != 1) {
-	mlog("%s: Currently there is only one PMIx jobserver per node supported"
-		" (found %d).\n", __func__, count);
+    PspmixJobserver_t *server = findJobserver(*loggerTID);
+    if (!server) {
+	mlog("%s: UNEXPECTED: No PMIx jobserver found.\n", __func__);
 	return;
     }
 
