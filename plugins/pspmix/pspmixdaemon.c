@@ -314,42 +314,39 @@ static int hookRecvSpawnReq(void *data)
     PspmixJobserver_t *server;
     server = findJobserver(job->loggertid);
 
-    if (server != NULL) {
+    if (!server) {
+	/* No jobserver found, start one */
+	server = ucalloc(sizeof(*server));
+	server->loggertid = prototask->loggertid;
+
+	// @todo what needs to be copied when cleanup daemon stuff
+	// in jobserver_init?
+
+	/* set prototask to access it in the forked jobserver process */
+	server->prototask = prototask;
+
+	/* copy stuff from job */
+	server->resInfos = job->resInfos;
+
+	startJobserver(server);
+
+	mdbg(PSPMIX_LOG_VERBOSE, "%s: New PMIx jobserver started for job with"
+	     " loggertid %s", __func__, PSC_printTID(server->loggertid));
+	mdbg(PSPMIX_LOG_VERBOSE, ": %s\n", PSC_printTID(server->fwdata->tid));
+
+	list_add_tail(&server->next, &pmixJobservers);
+
+	// unset prototask, becomes invalid in the daemon once the hook returned
+	server->prototask = NULL;
+    } else {
 	mdbg(PSPMIX_LOG_VERBOSE, "%s: Existing PMIx jobserver found for job"
 	     " with loggertid %s", __func__, PSC_printTID(server->loggertid));
 	mdbg(PSPMIX_LOG_VERBOSE, ": %s\n", PSC_printTID(server->fwdata->tid));
 
-	//TODO do we need to inform the existing job server about the new
+	// @todo do we need to inform the existing job server about the new
 	//     task and resinfo ??? think we need to so it can resolve
 	//     rank to node for each reservation
-
-	goto setenv;
     }
-
-    /* No jobserver found, start one */
-    server = ucalloc(sizeof(*server));
-    server->loggertid = prototask->loggertid;
-
-    // XXX what needs to be copied when cleanup daemon stuff in jobserver_init?
-
-    /* set prototask to access it in the forked jobserver process */
-    server->prototask = prototask;
-
-    /* copy stuff from job */
-    server->resInfos = job->resInfos;
-
-    startJobserver(server);
-
-    mdbg(PSPMIX_LOG_VERBOSE, "%s: New PMIx jobserver started for job with"
-	 " loggertid %s", __func__, PSC_printTID(server->loggertid));
-    mdbg(PSPMIX_LOG_VERBOSE, ": %s\n", PSC_printTID(server->fwdata->tid));
-
-    list_add_tail(&server->next, &pmixJobservers);
-
-    /* unset prototask, becomes invalid in the daemon once the hook returned */
-    server->prototask = NULL;
-
-setenv:
 
     /* set jobserver tid in environment for the spawn forwarder */
     char buf[40];
