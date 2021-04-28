@@ -89,7 +89,7 @@ void setTargetToPmixJobserver(DDTypedBufferMsg_t *msg)
 /*
  * @brief Forward messages of type PSP_PLUG_PSPMIX in the main daemon.
  *
- * This function is registered in the daemon and used for messages comming
+ * This function is registered in the daemon and used for messages coming
  * from the client forwarder and from other deamons and thus from PMIx
  * jobservers running there.
  *
@@ -109,7 +109,7 @@ static void forwardPspmixMsg(DDMsg_t *vmsg)
     mdbg(PSPMIX_LOG_COMM, "->%s]\n", PSC_printTID(msg->header.dest));
 
     if (PSC_getID(msg->header.dest) == PSC_getMyID()) {
-	/* destination is local */
+	/* destination is local, we have to tweak dest */
 	switch(msg->type) {
 	    case PSPMIX_FENCE_IN:
 	    case PSPMIX_MODEX_DATA_REQ:
@@ -118,11 +118,9 @@ static void forwardPspmixMsg(DDMsg_t *vmsg)
 	    default:
 		break;
 	}
-	PSIDclient_send(vmsg);
-    } else {
-	/* destination is remote host */
-	sendMsg(vmsg);
     }
+
+    sendMsg(vmsg);
 }
 
 /**
