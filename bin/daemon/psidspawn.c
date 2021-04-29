@@ -525,11 +525,17 @@ static void restoreLimits(void)
  *
  * @see fork(), errno
  */
+__attribute__ ((noreturn))
 static void execClient(PStask_t *task)
 {
     /* logging is done via the forwarder thru stderr! */
     int eno = 0, timeout = 30;
     char *executable = NULL, *envStr;
+
+    /* Give the client some hint where we are running (#2911) */
+    char nodeIDStr[16];
+    snprintf(nodeIDStr, sizeof(nodeIDStr), "%hd", PSC_getMyID());
+    setenv("PSP_SMP_NODE_ID", nodeIDStr, 1);
 
     /* change the gid; exit() on failure */
     if (setgid(task->gid)<0) {
