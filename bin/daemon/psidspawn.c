@@ -638,8 +638,6 @@ static void execClient(PStask_t *task)
     }
 
     /* used by psslurm to modify default pinning; thus after doClamps() */
-    /* used by pspmix to set the environment, needed to be after child born
-     * not to create a deadlock */
     if (PSIDhook_call(PSIDHOOK_EXEC_CLIENT_USER, task) < 0) {
 	eno = EPERM;
 	fprintf(stderr, "%s: PSIDHOOK_EXEC_CLIENT_USER failed\n", __func__);
