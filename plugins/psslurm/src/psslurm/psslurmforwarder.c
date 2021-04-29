@@ -334,16 +334,14 @@ static int setFilePermissions(Job_t *job)
 {
     if (!job->jobscript) return 1;
 
-    if ((chown(job->jobscript, job->uid, job->gid)) == -1) {
-	mlog("%s: chown(%i:%i) '%s' failed : %s\n", __func__,
-		job->uid, job->gid, job->jobscript,
-		strerror(errno));
+    if (chown(job->jobscript, job->uid, job->gid) == -1) {
+	mwarn(errno, "%s: chown(%s, %i, %i)", __func__,
+	      job->jobscript, job->uid, job->gid);
 	return 1;
     }
 
-    if ((chmod(job->jobscript, 0700)) == -1) {
-	mlog("%s: chmod 0700 on '%s' failed : %s\n", __func__,
-		job->jobscript, strerror(errno));
+    if (chmod(job->jobscript, 0700) == -1) {
+	mwarn(errno, "%s: chmod(%s, 0700)", __func__, job->jobscript);
 	return 1;
     }
 
@@ -392,12 +390,12 @@ static void fwExecBatchJob(Forwarder_Data_t *fwdata, int rerun)
     int err = errno;
 
     /* execve() failed */
-    fprintf(stderr, "%s: execve %s failed: %s\n", __func__, job->argv[0],
+    fprintf(stderr, "%s: execve(%s): %s\n", __func__, job->argv[0],
 	    strerror(err));
     openlog("psid", LOG_PID|LOG_CONS, LOG_DAEMON);
     snprintf(buf, sizeof(buf), "psslurm-job:%u", job->jobid);
     initLogger(buf, NULL);
-    mwarn(err, "%s: execve %s failed: ", __func__, job->argv[0]);
+    mwarn(err, "%s: execve(%s)", __func__, job->argv[0]);
     exit(err);
 }
 
@@ -416,10 +414,10 @@ Step_t * __findStepByEnv(char **environ, uint32_t *jobid_out,
     int count = 0;
     char *ptr = environ[count++];
     while (ptr) {
-	if (!(strncmp(ptr, "SLURM_STEPID=", 13))) {
+	if (!strncmp(ptr, "SLURM_STEPID=", 13)) {
 	    sscanf(ptr+13, "%u", &stepid);
 	}
-	if (!(strncmp(ptr, "SLURM_JOBID=", 12))) {
+	if (!strncmp(ptr, "SLURM_JOBID=", 12)) {
 	    sscanf(ptr+12, "%u", &jobid);
 	}
 	ptr = environ[count++];
@@ -473,12 +471,11 @@ int handleForwarderInit(void * data)
 	    if (!WIFSTOPPED(status)) {
 		mlog("%s: child '%i' not stopped\n", __func__, child);
 	    } else {
-		if ((killChild(child, SIGSTOP, task->uid)) == -1) {
-		    mwarn(errno, "%s: kill(%i) failed: ", __func__, child);
+		if (killChild(child, SIGSTOP, task->uid) == -1) {
+		    mwarn(errno, "%s: kill(%i)", __func__, child);
 		}
-		if ((ptrace(PTRACE_DETACH, child, 0, 0)) == -1) {
-		    mwarn(errno, "%s: ptrace(PTRACE_DETACH) failed: ",
-			    __func__);
+		if (ptrace(PTRACE_DETACH, child, 0, 0) == -1) {
+		    mwarn(errno, "%s: ptrace(PTRACE_DETACH)", __func__);
 		}
 	    }
 	}
@@ -578,12 +575,12 @@ int handleExecClientUser(void *data)
 	    setgroups(fwStep->gidsLen, fwStep->gids);
 	}
 
-	if (!(IO_redirectRank(fwStep, task->rank))) return -1;
+	if (!IO_redirectRank(fwStep, task->rank)) return -1;
 
 	/* stop child after exec */
 	if (fwStep->taskFlags & LAUNCH_PARALLEL_DEBUG) {
-	    if ((ptrace(PTRACE_TRACEME, 0, 0, 0)) == -1) {
-		mwarn(errno, "%s: ptrace() failed: ", __func__);
+	    if (ptrace(PTRACE_TRACEME, 0, 0, 0) == -1) {
+		mwarn(errno, "%s: ptrace()", __func__);
 		return -1;
 	    }
 	}
@@ -599,8 +596,7 @@ int handleExecClientUser(void *data)
     }
 
     /* clean up environment */
-    int i;
-    for (i=0; PSP_rlimitEnv[i].envName; i++) {
+    for (int i = 0; PSP_rlimitEnv[i].envName; i++) {
 	unsetenv(PSP_rlimitEnv[i].envName);
     }
 
@@ -691,58 +687,54 @@ static void setupStepIO(Forwarder_Data_t *fwdata, Step_t *step)
 	    ws.ws_col = atoi(cols);
 	    ws.ws_row = atoi(rows);
 	    if (ioctl(fwdata->stdOut[0], TIOCSWINSZ, &ws)) {
-		mwarn(errno, "%s: ioctl(TIOCSWINSZ) %s:%s failed: ",
-			__func__, cols, rows);
+		mwarn(errno, "%s: ioctl(TIOCSWINSZ, %s:%s)",
+		      __func__, cols, rows);
 		exit(1);
 	    }
 	}
 
 	/* redirect stdout/stderr/stdin to PTY */
-	if ((dup2(fwdata->stdOut[0], STDOUT_FILENO)) == -1) {
-	    mwarn(errno, "%s: stdout dup2(%u) failed: ",
-		    __func__, fwdata->stdOut[0]);
+	if (dup2(fwdata->stdOut[0], STDOUT_FILENO) == -1) {
+	    mwarn(errno, "%s: dup2(%u/stdout)", __func__, fwdata->stdOut[0]);
 	    exit(1);
 	}
-	if ((dup2(fwdata->stdOut[0], STDERR_FILENO)) == -1) {
-	    mwarn(errno, "%s: stderr dup2(%u) failed: ",
-		    __func__, fwdata->stdOut[0]);
+	if (dup2(fwdata->stdOut[0], STDERR_FILENO) == -1) {
+	    mwarn(errno, "%s: dup2(%u/stderr)", __func__, fwdata->stdOut[0]);
 	    exit(1);
 	}
-	if ((dup2(fwdata->stdOut[0], STDIN_FILENO)) == -1) {
-	    mwarn(errno, "%s: stdin dup2(%u) failed: ",
-		    __func__, fwdata->stdOut[0]);
+	if (dup2(fwdata->stdOut[0], STDIN_FILENO) == -1) {
+	    mwarn(errno, "%s: dup2(%u/stdin)", __func__, fwdata->stdOut[0]);
 	    exit(1);
 	}
     } else {
 	if (!(step->taskFlags & LAUNCH_USER_MANAGED_IO)) {
-	    if ((dup2(fwdata->stdOut[1], STDOUT_FILENO)) == -1) {
-		mwarn(errno, "%s: stdout dup2(%u) failed: ",
-			__func__, fwdata->stdOut[0]);
+	    if (dup2(fwdata->stdOut[1], STDOUT_FILENO) == -1) {
+		mwarn(errno, "%s: dup2(%u/stdout)",
+		      __func__, fwdata->stdOut[0]);
 		exit(1);
 	    }
-	    if ((dup2(fwdata->stdErr[1], STDERR_FILENO)) == -1) {
-		mwarn(errno, "%s: stderr dup2(%u) failed: ",
-			__func__, fwdata->stdErr[0]);
+	    if (dup2(fwdata->stdErr[1], STDERR_FILENO) == -1) {
+		mwarn(errno, "%s: dup2(%u/stderr)",
+		      __func__, fwdata->stdErr[0]);
 		exit(1);
 	    }
 	    if (step->stdInRank == -1 && step->stdIn &&
 	       strlen(step->stdIn) > 0) {
 		/* input is redirected from file and not connected to psidfw! */
 
-		int fd;
-		if ((fd = open("/dev/null", O_RDONLY)) == -1) {
-		    mwarn(errno, "%s: open /dev/null failed :", __func__);
+		int fd = open("/dev/null", O_RDONLY);
+		if (fd == -1) {
+		    mwarn(errno, "%s: open(/dev/null)", __func__);
 		    exit(1);
 		}
-		if ((dup2(fd, STDIN_FILENO)) == -1) {
-		    mwarn(errno, "%s: dup2(%i) '/dev/null' failed :",
-			    __func__, fd);
+		if (dup2(fd, STDIN_FILENO) == -1) {
+		    mwarn(errno, "%s: dup2(%i/'/dev/null')", __func__, fd);
 		    exit(1);
 		}
 	    } else {
-		if ((dup2(fwdata->stdIn[0], STDIN_FILENO)) == -1) {
-		    mwarn(errno, "%s: stdin dup2(%u) failed: ",
-			    __func__, fwdata->stdIn[0]);
+		if (dup2(fwdata->stdIn[0], STDIN_FILENO) == -1) {
+		    mwarn(errno, "%s: dup2(%u/stdin)",
+			  __func__, fwdata->stdIn[0]);
 		    exit(1);
 		}
 	    }
@@ -784,15 +776,11 @@ static pmi_type_t getPMIType(Step_t *step)
 
 static void debugMpiexecStart(char **argv, char **env)
 {
-    int i = 0;
-
     mlog("%s:", __func__);
-    do {
-	mlog(" %s", argv[i++]);
-    } while (argv[i]);
+    for (int i = 0; argv[i]; i++) mlog(" %s", argv[i]);
     mlog("\n");
 
-    for (i=0; env[i]; i++) {
+    for (int i = 0; env[i]; i++) {
 	mlog("%s: env[%i] '%s'\n", __func__, i, env[i]);
     }
 }
@@ -811,7 +799,6 @@ static void buildMpiexecArgs(Forwarder_Data_t *fwdata, strv_t *argV,
 {
     Step_t *step = fwdata->userData;
     char buf[128];
-    uint32_t i;
 
     strvInit(argV, NULL, 0);
 
@@ -864,14 +851,14 @@ static void buildMpiexecArgs(Forwarder_Data_t *fwdata, strv_t *argV,
 	    strvAdd(argV, ustrdup(buf));
 
 	    /* executable and arguments */
-	    for (i=0; i<step->argc; i++) {
+	    for (uint32_t i = 0; i < step->argc; i++) {
 		strvAdd(argV, step->argv[i]);
 	    }
 	} else {
 	    /* executables from job pack */
 	    int64_t last, offset = -1;
 	    uint32_t index = -1;
-	    for (i=0; i<step->numPackInfo; i++) {
+	    for (uint32_t i = 0; i < step->numPackInfo; i++) {
 		/* find next pack task array index */
 		last = offset;
 		if (!findPackIndex(step, last, &offset, &index)) {
@@ -896,9 +883,8 @@ static void buildMpiexecArgs(Forwarder_Data_t *fwdata, strv_t *argV,
 		strvAdd(argV, ustrdup(buf));
 
 		/* executable and arguments */
-		uint32_t z;
-		for (z=0; z<step->packInfo[index].argc; z++) {
-		    strvAdd(argV, step->packInfo[index].argv[z]);
+		for (uint32_t j = 0; j < step->packInfo[index].argc; j++) {
+		    strvAdd(argV, step->packInfo[index].argv[j]);
 		}
 	    }
 	}
@@ -965,12 +951,12 @@ static void fwExecStep(Forwarder_Data_t *fwdata, int rerun)
     int err = errno;
 
     /* execve() failed */
-    fprintf(stderr, "%s: execve %s failed: %s\n", __func__, argV.strings[0],
+    fprintf(stderr, "%s: execve %s: %s\n", __func__, argV.strings[0],
 	    strerror(err));
     openlog("psid", LOG_PID|LOG_CONS, LOG_DAEMON);
     snprintf(buf, sizeof(buf), "psslurm-%s", strStepID(step));
     initLogger(buf, NULL);
-    mwarn(err, "%s: execve %s failed: ", __func__, argV.strings[0]);
+    mwarn(err, "%s: execve(%s)", __func__, argV.strings[0]);
     exit(err);
 }
 
@@ -979,47 +965,47 @@ static int switchEffectiveUser(char *username, uid_t uid, gid_t gid)
     if (uid) {
 	/* current user is root, change groups before switching to user */
 	/* remove group memberships */
-	if ((setgroups(0, NULL)) == -1) {
-	    mlog("%s: setgroups(0) failed : %s\n", __func__, strerror(errno));
+	if (setgroups(0, NULL) == -1) {
+	    mwarn(errno, "%s: setgroups(0)", __func__);
 	    return -1;
 	}
 
 	/* set supplementary groups */
-	if ((initgroups(username, gid)) < 0) {
-	    mlog("%s: initgroups() failed : %s\n", __func__, strerror(errno));
+	if (initgroups(username, gid) < 0) {
+	    mwarn(errno, "%s: initgroups()", __func__);
 	    return -1;
 	}
     }
 
     /* change effective GID */
-    if ((setegid(gid)) < 0) {
-	mlog("%s: setgid(%i) failed : %s\n", __func__, gid, strerror(errno));
+    if (setegid(gid) < 0) {
+	mwarn(errno, "%s: setgid(%i)", __func__, gid);
 	return -1;
     }
 
     /* change effective UID */
-    if ((seteuid(uid)) < 0) {
-	mlog("%s: setuid(%i) failed : %s\n", __func__, uid, strerror(errno));
+    if (seteuid(uid) < 0) {
+	mwarn(errno, "%s: setuid(%i)", __func__, uid);
 	return -1;
     }
 
     if (!uid) {
 	/* current user was not root, change groups after switching UID */
 	/* remove group memberships */
-	if ((setgroups(0, NULL)) == -1) {
-	    mlog("%s: setgroups(0) failed : %s\n", __func__, strerror(errno));
+	if (setgroups(0, NULL) == -1) {
+	    mwarn(errno, "%s: setgroups(0)", __func__);
 	    return -1;
 	}
 
 	/* set supplementary groups */
-	if ((initgroups(username, gid)) < 0) {
-	    mlog("%s: initgroups() failed : %s\n", __func__, strerror(errno));
+	if (initgroups(username, gid) < 0) {
+	    mwarn(errno, "%s: initgroups()", __func__);
 	    return -1;
 	}
     }
 
     if (prctl(PR_SET_DUMPABLE, 1) == -1) {
-	mwarn(errno, "%s: prctl(PR_SET_DUMPABLE) failed: ", __func__);
+	mwarn(errno, "%s: prctl(PR_SET_DUMPABLE)", __func__);
     }
 
     return 1;
@@ -1054,17 +1040,16 @@ static int stepForwarderInit(Forwarder_Data_t *fwdata)
 
     /* check if we can change working directory */
     if (step->cwd && chdir(step->cwd) == -1) {
-	mlog("%s: chdir for uid %u gid %u to '%s' failed : %s\n",
-	     __func__, step->uid, step->gid, step->cwd, strerror(errno));
+	mwarn(errno, "%s: chdir(%s) for uid %u gid %u", __func__,
+	      step->cwd, step->uid, step->gid);
 	return - ESCRIPT_CHDIR_FAILED;
     }
 
     /* redirect stdout/stderr/stdin */
-    if (!(step->taskFlags & LAUNCH_PTY)) {
-	if (!(step->taskFlags & LAUNCH_USER_MANAGED_IO)) {
-	    IO_redirectStep(fwdata, step);
-	    IO_openStepPipes(fwdata, step);
-	}
+    if (!(step->taskFlags & LAUNCH_PTY)
+	&& !(step->taskFlags & LAUNCH_USER_MANAGED_IO)) {
+	IO_redirectStep(fwdata, step);
+	IO_openStepPipes(fwdata, step);
     }
 
 #ifdef HAVE_SPANK
@@ -1080,9 +1065,9 @@ static int stepForwarderInit(Forwarder_Data_t *fwdata)
     /* open stderr/stdout/stdin fds */
     if (step->taskFlags & LAUNCH_PTY) {
 	/* open PTY */
-	if ((openpty(&fwdata->stdOut[1], &fwdata->stdOut[0],
-			NULL, NULL, NULL)) == -1) {
-	    mlog("%s: openpty() failed\n", __func__);
+	if (openpty(&fwdata->stdOut[1], &fwdata->stdOut[0],
+		    NULL, NULL, NULL) == -1) {
+	    mwarn(errno, "%s: openpty()", __func__);
 	    return -1;
 	}
     }
@@ -1111,7 +1096,7 @@ static void stepForwarderLoop(Forwarder_Data_t *fwdata)
 
     if (step->taskFlags & LAUNCH_PTY) {
 	/* open additional PTY connection to srun */
-	if ((srunOpenPTYConnection(step)) < 0) {
+	if (srunOpenPTYConnection(step) < 0) {
 	    flog("open srun pty connection failed\n");
 	    return;
 	}
@@ -1313,27 +1298,27 @@ static void fwExecBCast(Forwarder_Data_t *fwdata, int rerun)
     int fd = open(bcast->fileName, flags, 0700);
     if (fd == -1) {
 	int eno = errno;
-	mwarn(eno, "%s: open '%s' failed :", __func__, bcast->fileName);
+	mwarn(eno, "%s: open(%s)", __func__, bcast->fileName);
 	exit(eno);
     }
 
     /* write the file */
     if (PSCio_sendF(fd, bcast->block, bcast->blockLen) == -1) {
 	int eno = errno;
-	mwarn(eno, "%s: write '%s' failed :", __func__, bcast->fileName);
+	mwarn(eno, "%s: write(%s)", __func__, bcast->fileName);
 	exit(eno);
     }
 
     /* set permissions */
     if (bcast->lastBlock) {
-	if ((fchmod(fd, (bcast->modes & 0700))) == -1) {
+	if (fchmod(fd, bcast->modes & 0700) == -1) {
 	    int eno = errno;
-	    mwarn(eno, "%s: chmod '%s' failed :", __func__, bcast->fileName);
+	    mwarn(eno, "%s: chmod(%s)", __func__, bcast->fileName);
 	    exit(eno);
 	}
-	if ((fchown(fd, bcast->uid, bcast->gid)) == -1) {
+	if (fchown(fd, bcast->uid, bcast->gid) == -1) {
 	    int eno = errno;
-	    mwarn(eno, "%s: chown '%s' failed :", __func__, bcast->fileName);
+	    mwarn(eno, "%s: chown(%s)", __func__, bcast->fileName);
 	    exit(eno);
 	}
 	if (bcast->atime) {
@@ -1341,8 +1326,7 @@ static void fwExecBCast(Forwarder_Data_t *fwdata, int rerun)
 	    times.modtime = bcast->mtime;
 	    if (utime(bcast->fileName, &times)) {
 		int eno = errno;
-		mwarn(eno, "%s: utime '%s' failed :", __func__,
-			bcast->fileName);
+		mwarn(eno, "%s: utime(%s)", __func__, bcast->fileName);
 		exit(eno);
 	    }
 	}
@@ -1542,12 +1526,11 @@ static void fwExecEpiFin(Forwarder_Data_t *fwdata, int rerun)
     int err = errno;
 
     /* execve() failed */
-    fprintf(stderr, "%s: execve %s failed: %s\n", __func__, buf,
-	    strerror(err));
+    fprintf(stderr, "%s: execve(%s): %s\n", __func__, buf, strerror(err));
     openlog("psid", LOG_PID|LOG_CONS, LOG_DAEMON);
     snprintf(buf, sizeof(buf), "psslurm-epifin:%u", alloc->id);
     initLogger(buf, NULL);
-    mwarn(err, "%s: execve %s failed: ", __func__, script);
+    mwarn(err, "%s: execve(%s)", __func__, script);
     exit(err);
 }
 
