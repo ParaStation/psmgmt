@@ -31,6 +31,7 @@
 #include "psaccountconfig.h"
 #include "psaccountlog.h"
 #include "psaccountproc.h"
+#include "psaccountscript.h"
 
 #define NO_VAL64   (0xfffffffffffffffe)
 
@@ -38,8 +39,8 @@ static float powerMult = 0;
 
 static psAccountEnergy_t eData;
 
-/** forwarder data of the energy monitor script */
-static Forwarder_Data_t *eScriptFw = NULL;
+/** energy monitor script */
+static Collect_Script_t *eScript = NULL;
 
 static uint64_t readEnergyFile(char *path)
 {
@@ -89,122 +90,18 @@ static void updatePower(uint64_t power)
     eData.lastUpdate = time(0);
 }
 
-static void parseEnergy(char *ptr)
+static void parseEnergy(char *data)
 {
     unsigned long long power, energy;
-
-    /* read message */
-    char *data = getStringM(&ptr);
 
     if (sscanf(data, "power:%llu energy:%llu", &power, &energy) != 2) {
 	mlog("%s: parsing energy data '%s' from script failed\n",
 	     __func__, data);
-	ufree(data);
 	return;
     }
-    ufree(data);
 
     updateEnergy(energy);
     updatePower(power);
-}
-
-static bool handleFwMsg(DDTypedBufferMsg_t *msg, Forwarder_Data_t *fwdata)
-{
-    if (msg->header.type != PSP_PF_MSG) return false;
-
-    switch (msg->type) {
-    case PLGN_STDOUT:
-	parseEnergy(msg->buf);
-	break;
-    case PLGN_STDERR:
-	mlog("%s: error from energy script: %s\n", __func__, msg->buf);
-	break;
-    default:
-	mlog("%s: unhandled msg type %d\n", __func__, msg->type);
-	return false;
-    }
-
-    return true;
-}
-
-static void execEnergyScript(Forwarder_Data_t *fwdata, int rerun)
-{
-    /* start forwarder to execute energy collect script */
-    char *energyScript = getConfValueC(&config, "ENERGY_SCRIPT");
-    int poll = getConfValueU(&config, "ENERGY_SCRIPT_POLL");
-
-    while(true) {
-	pid_t child = fork();
-	if (child < 0) {
-	    mlog("%s: fork() failed\n", __func__);
-	    exit(1);
-	}
-
-	if (!child) {
-	    /* This is the child */
-	    char *argv[2] = { energyScript, NULL };
-	    execvp(argv[0], argv);
-	    /* never be here */
-	    exit(1);
-	}
-
-	while (true) {
-	    int status;
-	    if (waitpid(child, &status, 0) < 0) {
-		if (errno == EINTR) continue;
-		mlog("%s: parent kill() errno: %i\n", __func__, errno);
-		killpg(child, SIGKILL);
-		exit(1);
-	    }
-	    break;
-	}
-
-	sleep(poll);
-    }
-}
-
-static bool execEnergyFw(void)
-{
-    char jobid[] = "energy", fname[] = "psacc-energy";
-
-    if (eScriptFw) {
-	mlog("%s: error forwarder already running?\n", __func__);
-    }
-
-    Forwarder_Data_t *fwdata = ForwarderData_new();
-    fwdata->pTitle = ustrdup(fname);
-    fwdata->jobID = ustrdup(jobid);
-    fwdata->graceTime = 1;
-    fwdata->killSession = signalSession;
-    fwdata->handleFwMsg = handleFwMsg;
-    fwdata->childFunc = execEnergyScript;
-    fwdata->fwChildOE = true;
-
-    if (!startForwarder(fwdata)) {
-	mlog("%s: starting energy script forwarder failed\n", __func__);
-	return false;
-    }
-    eScriptFw = fwdata;
-    return true;
-}
-
-static bool testEnergyScript(char *energyScript)
-{
-    if (energyScript) {
-	struct stat sbuf;
-	if (stat(energyScript, &sbuf) == -1) {
-	    mwarn(errno, "%s: energy script %s not found:",
-		  __func__, energyScript);
-	    return false;
-	}
-	if (!(sbuf.st_mode & S_IFREG) || !(sbuf.st_mode & S_IXUSR)) {
-	    mlog("%s: energy script %s is not a valid executable script\n",
-		 __func__, energyScript);
-	    return false;
-	}
-	return true;
-    }
-    return false;
 }
 
 static bool initPowerUnit(void)
@@ -254,9 +151,9 @@ bool energyInit(void)
 	    return false;
 	}
 
-	if (testEnergyScript(energyScript)) {
-	    if (!execEnergyFw()) return false;
-	} else {
+	int poll = getConfValueU(&config, "ENERGY_SCRIPT_POLL");
+	eScript = Script_start("energy", energyScript, parseEnergy, poll);
+	if (!eScript) {
 	    mlog("%s: invalid energy script, cannot continue\n", __func__);
 	    return false;
 	}
@@ -270,8 +167,8 @@ bool energyInit(void)
 
 void energyFinalize(void)
 {
-    if (eScriptFw) {
-	shutdownForwarder(eScriptFw);
+    if (eScript) {
+	Script_finalize(eScript);
     }
 }
 
@@ -280,7 +177,7 @@ bool energyUpdate(void)
     bool ret = true;
 
     /* using energy script to update */
-    if (eScriptFw) return true;
+    if (eScript) return true;
 
     /* update energy */
     char *energyPath = getConfValueC(&config, "ENERGY_PATH");
