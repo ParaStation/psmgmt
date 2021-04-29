@@ -287,40 +287,6 @@ static void pty_make_controlling_tty(int *ttyfd, const char *tty)
 }
 
 /**
- * @brief Setup RT-priority
- *
- * Setup realtime-priorities for the client process.
- *
- * This is a temporary fix for St. Graf (s.graf@fz-juelich.de).
- *
- * @return No return value
- */
-static void adaptPriority(void)
-{
-    char *prioStr;
-    int policy;
-
-    if ((prioStr = getenv("__SCHED_FIFO"))) {
-	policy = SCHED_FIFO;
-    } else if ((prioStr = getenv("__SCHED_RR"))) {
-	policy = SCHED_RR;
-    }
-    if (prioStr) {
-	char *end;
-	int priority = strtol(prioStr, &end, 0);
-
-	if (end && !*end) {
-	    struct sched_param params;
-
-	    params.sched_priority = priority;
-	    sched_setscheduler(0, policy, &params);
-	} else {
-	    fprintf(stderr, "%s: unknown priority '%s'\n", __func__, prioStr);
-	}
-    }
-}
-
-/**
  * @brief Change into working directory
  *
  * Try to change into the client-task's @a task working directory. If
@@ -590,10 +556,6 @@ static void execClient(PStask_t *task)
 	    }
 	}
     }
-
-    /* This is a temporary fix for St. Graf (s.graf@fz-juelich.de). */
-    /* It requires root permissions */
-    adaptPriority();
 
     /* change the uid; exit() on failure */
     if (setuid(task->uid)<0) {
