@@ -26,7 +26,8 @@ psaccount_la_SOURCES = psaccount.c psaccount.h psaccountclient.c	\
 	psaccountlog.h psaccountproc.c psaccountproc.h			\
 	psaccountconfig.c psaccountconfig.h psaccounthistory.h		\
 	psaccounthistory.c psaccounthandles.h psaccounttypes.h		\
-	psaccountenergy.c psaccountenergy.h
+	psaccountenergy.c psaccountenergy.h psaccountscript.c 		\
+	psaccountscript.h
 
 psaccount_la_CPPFLAGS = $(AM_CPPFLAGS) -DPLUGINDIR=\"$(plugindir)\"
 psaccount_la_LIBADD = $(libplugincommon) $(libpscommon)

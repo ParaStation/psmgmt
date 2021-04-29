@@ -351,6 +351,8 @@ plugins/psaccount/psaccountlog.c \
 plugins/psaccount/psaccountlog.h \
 plugins/psaccount/psaccountproc.c \
 plugins/psaccount/psaccountproc.h \
+plugins/psaccount/psaccountscript.c \
+plugins/psaccount/psaccountscript.h \
 plugins/psaccount/psaccounttypes.h \
 plugins/psexec/Makefile.am \
 plugins/psexec/Makefile.in \
