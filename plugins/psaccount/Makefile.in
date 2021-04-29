@@ -158,7 +158,8 @@ am_psaccount_la_OBJECTS = psaccount_la-psaccount.lo \
 	psaccount_la-psaccountkvs.lo psaccount_la-psaccountlog.lo \
 	psaccount_la-psaccountproc.lo psaccount_la-psaccountconfig.lo \
 	psaccount_la-psaccounthistory.lo \
-	psaccount_la-psaccountenergy.lo
+	psaccount_la-psaccountenergy.lo \
+	psaccount_la-psaccountscript.lo
 psaccount_la_OBJECTS = $(am_psaccount_la_OBJECTS)
 AM_V_lt = $(am__v_lt_@AM_V@)
 am__v_lt_ = $(am__v_lt_@AM_DEFAULT_V@)
@@ -189,7 +190,8 @@ am__depfiles_remade = ./$(DEPDIR)/psaccount_la-psaccount.Plo \
 	./$(DEPDIR)/psaccount_la-psaccountjob.Plo \
 	./$(DEPDIR)/psaccount_la-psaccountkvs.Plo \
 	./$(DEPDIR)/psaccount_la-psaccountlog.Plo \
-	./$(DEPDIR)/psaccount_la-psaccountproc.Plo
+	./$(DEPDIR)/psaccount_la-psaccountproc.Plo \
+	./$(DEPDIR)/psaccount_la-psaccountscript.Plo
 am__mv = mv -f
 COMPILE = $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) \
 	$(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
@@ -364,6 +366,7 @@ program_transform_name = @program_transform_name@
 psconfig_CFLAGS = @psconfig_CFLAGS@
 psconfig_LIBS = @psconfig_LIBS@
 psdir = @psdir@
+runstatedir = @runstatedir@
 sbindir = @sbindir@
 sharedstatedir = @sharedstatedir@
 srcdir = @srcdir@
@@ -428,7 +431,8 @@ psaccount_la_SOURCES = psaccount.c psaccount.h psaccountclient.c	\
 	psaccountlog.h psaccountproc.c psaccountproc.h			\
 	psaccountconfig.c psaccountconfig.h psaccounthistory.h		\
 	psaccounthistory.c psaccounthandles.h psaccounttypes.h		\
-	psaccountenergy.c psaccountenergy.h
+	psaccountenergy.c psaccountenergy.h psaccountscript.c 		\
+	psaccountscript.h
 
 psaccount_la_CPPFLAGS = $(AM_CPPFLAGS) -DPLUGINDIR=\"$(plugindir)\"
 psaccount_la_LIBADD = $(libplugincommon) $(libpscommon)
@@ -522,6 +526,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/psaccount_la-psaccountkvs.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/psaccount_la-psaccountlog.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/psaccount_la-psaccountproc.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/psaccount_la-psaccountscript.Plo@am__quote@ # am--include-marker
 
 $(am__depfiles_remade):
 	@$(MKDIR_P) $(@D)
@@ -629,6 +634,13 @@ psaccount_la-psaccountenergy.lo: psaccountenergy.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='psaccountenergy.c' object='psaccount_la-psaccountenergy.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(psaccount_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o psaccount_la-psaccountenergy.lo `test -f 'psaccountenergy.c' || echo '$(srcdir)/'`psaccountenergy.c
+
+psaccount_la-psaccountscript.lo: psaccountscript.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(psaccount_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT psaccount_la-psaccountscript.lo -MD -MP -MF $(DEPDIR)/psaccount_la-psaccountscript.Tpo -c -o psaccount_la-psaccountscript.lo `test -f 'psaccountscript.c' || echo '$(srcdir)/'`psaccountscript.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/psaccount_la-psaccountscript.Tpo $(DEPDIR)/psaccount_la-psaccountscript.Plo
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='psaccountscript.c' object='psaccount_la-psaccountscript.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(psaccount_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o psaccount_la-psaccountscript.lo `test -f 'psaccountscript.c' || echo '$(srcdir)/'`psaccountscript.c
 
 mostlyclean-libtool:
 	-rm -f *.lo
@@ -774,6 +786,7 @@ distclean: distclean-am
 	-rm -f ./$(DEPDIR)/psaccount_la-psaccountkvs.Plo
 	-rm -f ./$(DEPDIR)/psaccount_la-psaccountlog.Plo
 	-rm -f ./$(DEPDIR)/psaccount_la-psaccountproc.Plo
+	-rm -f ./$(DEPDIR)/psaccount_la-psaccountscript.Plo
 	-rm -f Makefile
 distclean-am: clean-am distclean-compile distclean-generic \
 	distclean-tags
@@ -830,6 +843,7 @@ maintainer-clean: maintainer-clean-am
 	-rm -f ./$(DEPDIR)/psaccount_la-psaccountkvs.Plo
 	-rm -f ./$(DEPDIR)/psaccount_la-psaccountlog.Plo
 	-rm -f ./$(DEPDIR)/psaccount_la-psaccountproc.Plo
+	-rm -f ./$(DEPDIR)/psaccount_la-psaccountscript.Plo
 	-rm -f Makefile
 maintainer-clean-am: distclean-am maintainer-clean-generic
 
