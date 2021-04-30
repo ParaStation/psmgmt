@@ -59,7 +59,9 @@ int pskill(pid_t pid, int sig, uid_t uid)
 
 	/* close all fds except the control channel and stdin/stdout/stderr */
 	long maxFD = sysconf(_SC_OPEN_MAX);
-	for (int fd = STDERR_FILENO + 1; fd < maxFD; fd++) close(fd);
+	for (int fd = STDERR_FILENO + 1; fd < maxFD; fd++) {
+	    if (fd != cntrlfds[1]) close(fd);
+	}
 
 	/* change user id to appropriate user */
 	if (setuid(uid) < 0) {
@@ -118,12 +120,11 @@ int pskill(pid_t pid, int sig, uid_t uid)
     if (!ret) {
 	/* assume everything worked well */
 	PSID_log(-1, "%s: read() got no data\n", __func__);
-	ret = 0;
     } else {
-	close(cntrlfds[0]);
 	ret = eno ? -1 : 0;
 	errno = eno;
     }
+    close(cntrlfds[0]);
 
     return ret;
 }
