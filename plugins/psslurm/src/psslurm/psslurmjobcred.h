@@ -48,10 +48,15 @@ typedef struct {
                                      (MSB first) */
     char *stepCoreBitmap;       /**< reserved core bitmap for step
                                      (MSB first)*/
-    uint16_t coreArraySize;     /**< size of the following core arrays */
+    uint16_t nodeArraySize;     /**< size of the following node arrays */
     uint16_t *coresPerSocket;   /**< # of cores per socket (node indexed) */
-    uint16_t *socketsPerNode;   /**< number of sockets per node */
-    uint32_t *sockCoreRepCount; /**< repetition count of cores per socket */
+    uint16_t *socketsPerNode;   /**< # of sockets per node (node indexed) */
+    uint32_t *nodeRepCount;     /**< repetitions of nodes (node indexed)
+                                     Specifies how ofter each node index has
+                                     to be used. If multiple successing nodes
+                                     do have the same cores and sockets, they
+                                     get one common index and this array holds
+                                     how many nodes are on the same index */
     uint32_t jobNumHosts;       /**< number of nodes in the job */
     char *jobHostlist;		/**< Slurm compressed job host-list */
     char *sig;                  /**< munge signature */

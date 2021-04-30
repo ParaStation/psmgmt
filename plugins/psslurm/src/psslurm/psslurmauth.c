@@ -357,7 +357,7 @@ void freeJobCred(JobCred_t *cred)
     ufree(cred->gids);
     ufree(cred->coresPerSocket);
     ufree(cred->socketsPerNode);
-    ufree(cred->sockCoreRepCount);
+    ufree(cred->nodeRepCount);
     ufree(cred->stepHL);
     ufree(cred->jobCoreBitmap);
     ufree(cred->stepCoreBitmap);
@@ -384,15 +384,15 @@ JobCred_t *extractJobCred(list_t *gresList, Slurm_Msg_t *sMsg, bool verify)
     }
 
     mdbg(PSSLURM_LOG_PART, "%s:", __func__);
-    for (i=0; i<cred->coreArraySize; i++) {
+    for (i=0; i<cred->nodeArraySize; i++) {
 	mdbg(PSSLURM_LOG_PART, " coresPerSocket '%u'", cred->coresPerSocket[i]);
     }
-    for (i=0; i<cred->coreArraySize; i++) {
+    for (i=0; i<cred->nodeArraySize; i++) {
 	mdbg(PSSLURM_LOG_PART, " socketsPerNode '%u'", cred->socketsPerNode[i]);
     }
-    for (i=0; i<cred->coreArraySize; i++) {
-	mdbg(PSSLURM_LOG_PART, " sockCoreRepCount '%u'",
-		cred->sockCoreRepCount[i]);
+    for (i=0; i<cred->nodeArraySize; i++) {
+	mdbg(PSSLURM_LOG_PART, " nodeRepCount '%u'",
+		cred->nodeRepCount[i]);
     }
     mdbg(PSSLURM_LOG_PART, "\n");
 

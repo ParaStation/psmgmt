@@ -1466,7 +1466,8 @@ bool getNodeGPUPinning(uint16_t ret[], Step_t *step, uint32_t stepNodeId,
 bool setStepSlots(Step_t *step)
 {
     uint32_t lTID, tid, slotsSize, coreCount;
-    uint32_t coreMapIndex = 0, coreArrayIndex = 0, coreArrayCount = 0;
+    uint32_t coreMapIndex = 0;
+    uint32_t nodeArrayIndex = 0, nodeArrayCount = 0;
     int32_t lastCpu;
     int threadsPerCore, numThreads;
     JobCred_t *cred = step->cred;
@@ -1491,28 +1492,28 @@ bool setStepSlots(Step_t *step)
 	    if (job->nodes[node] == step->nodes[0]) {
 		/* we found the first node of our step */
 		mdbg(PSSLURM_LOG_PART, "%s: step start found: job node %u"
-		     " nodeid %u coreMapIndex %u coreArrayCount %u"
-		     " coreArrayIndex %u\n", __func__, node, job->nodes[node],
-		     coreMapIndex, coreArrayCount, coreArrayIndex);
+		     " nodeid %u coreMapIndex %u nodeArrayCount %u"
+		     " nodeArrayIndex %u\n", __func__, node, job->nodes[node],
+		     coreMapIndex, nodeArrayCount, nodeArrayIndex);
 		break;
 	    }
 
 	    /* get cpu count per node from job credential */
-	    if (coreArrayIndex >= cred->coreArraySize) {
+	    if (nodeArrayIndex >= cred->nodeArraySize) {
 		mlog("%s: invalid job core array index %i, size %i\n",
-		     __func__, coreArrayIndex, cred->coreArraySize);
+		     __func__, nodeArrayIndex, cred->nodeArraySize);
 		goto error;
 	    }
-	    coreCount = cred->coresPerSocket[coreArrayIndex]
-			* cred->socketsPerNode[coreArrayIndex];
+	    coreCount = cred->coresPerSocket[nodeArrayIndex]
+			* cred->socketsPerNode[nodeArrayIndex];
 
 	    /* update global core map index to first core of the next node */
 	    coreMapIndex += coreCount;
 
-	    coreArrayCount++;
-	    if (coreArrayCount >= cred->sockCoreRepCount[coreArrayIndex]) {
-		coreArrayIndex++;
-		coreArrayCount = 0;
+	    nodeArrayCount++;
+	    if (nodeArrayCount >= cred->nodeRepCount[nodeArrayIndex]) {
+		nodeArrayIndex++;
+		nodeArrayCount = 0;
 	    }
 	}
     }
@@ -1535,14 +1536,14 @@ bool setStepSlots(Step_t *step)
 	int thread = 0;
 
 	/* get cpu count per node from job credential */
-	if (coreArrayIndex >= cred->coreArraySize) {
+	if (nodeArrayIndex >= cred->nodeArraySize) {
 	    mlog("%s: invalid step core array index %i, size %i\n",
-		 __func__, coreArrayIndex, cred->coreArraySize);
+		 __func__, nodeArrayIndex, cred->nodeArraySize);
 	    goto error;
 	}
 
-	coreCount = cred->coresPerSocket[coreArrayIndex]
-		    * cred->socketsPerNode[coreArrayIndex];
+	coreCount = cred->coresPerSocket[nodeArrayIndex]
+		    * cred->socketsPerNode[nodeArrayIndex];
 
 	threadsPerCore = PSIDnodes_getNumThrds(step->nodes[node]) / coreCount;
 	if (threadsPerCore < 1) threadsPerCore = 1;
@@ -1560,8 +1561,8 @@ bool setStepSlots(Step_t *step)
 	/* current node's parameters */
 	nodeinfo_t nodeinfo = {
 	    .id = step->nodes[node],
-	    .socketCount = cred->socketsPerNode[coreArrayIndex],
-	    .coresPerSocket = cred->coresPerSocket[coreArrayIndex],
+	    .socketCount = cred->socketsPerNode[nodeArrayIndex],
+	    .coresPerSocket = cred->coresPerSocket[nodeArrayIndex],
 	    .threadsPerCore = threadsPerCore,
 	    .coreCount = coreCount,
 	    .threadCount = coreCount * threadsPerCore,
@@ -1594,9 +1595,9 @@ bool setStepSlots(Step_t *step)
 	    tid = step->globalTaskIds[node][lTID];
 
 	    mdbg(PSSLURM_LOG_PART, "%s: node %u nodeid %u task %u tid"
-		 " %u coreMapIndex %u coreArrayCount %u"
-		 " coreArrayIndex %u\n", __func__, node, step->nodes[node],
-		 lTID, tid, coreMapIndex, coreArrayCount, coreArrayIndex);
+		 " %u coreMapIndex %u nodeArrayCount %u"
+		 " nodeArrayIndex %u\n", __func__, node, step->nodes[node],
+		 lTID, tid, coreMapIndex, nodeArrayCount, nodeArrayIndex);
 
 	    /* sanity check */
 	    if (tid > slotsSize) {
@@ -1629,10 +1630,10 @@ bool setStepSlots(Step_t *step)
 	/* update global core map index to first core of the next node */
 	coreMapIndex += coreCount;
 
-	coreArrayCount++;
-	if (coreArrayCount >= cred->sockCoreRepCount[coreArrayIndex]) {
-	    coreArrayIndex++;
-	    coreArrayCount = 0;
+	nodeArrayCount++;
+	if (nodeArrayCount >= cred->nodeRepCount[nodeArrayIndex]) {
+	    nodeArrayIndex++;
+	    nodeArrayCount = 0;
 	}
     }
 
