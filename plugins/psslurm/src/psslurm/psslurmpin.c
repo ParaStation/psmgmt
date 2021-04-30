@@ -1458,29 +1458,11 @@ bool getNodeGPUPinning(uint16_t ret[], Step_t *step, uint32_t stepNodeId,
     return true;
 }
 
-/* This is the entry point to the whole CPU pinning stuff */
-bool setStepSlots(Step_t *step)
+/* find start indices for step in core map and node arrays that are job global */
+static bool findStepStartIndices(Step_t *step, uint32_t *coreMapIndex,
+	uint32_t *nodeArrayIndex, uint32_t *nodeArrayCount)
 {
-    uint32_t lTID, tid, slotsSize, coreCount;
-    uint32_t coreMapIndex = 0;
-    uint32_t nodeArrayIndex = 0, nodeArrayCount = 0;
-    int32_t lastCpu;
-    int threadsPerCore, numThreads;
     JobCred_t *cred = step->cred;
-    pininfo_t pininfo;
-
-    /* generate slotlist */
-    slotsSize = step->np;
-    PSpart_slot_t *slots = umalloc(slotsSize * sizeof(PSpart_slot_t));
-
-    /* get cpus from job credential */
-    bool *coreMap = getCPUsForPartition(step);
-    if (!coreMap) {
-	mlog("%s: getting cpus for partition failed\n", __func__);
-	goto error;
-    }
-
-    /* find start index for this step in core map that is job global */
     Job_t *job = findJobById(step->jobid);
     if (job) {
 	for (uint32_t node = 0; job && node < job->nrOfNodes; node++) {
@@ -1490,28 +1472,64 @@ bool setStepSlots(Step_t *step)
 		mdbg(PSSLURM_LOG_PART, "%s: step start found: job node %u"
 		     " nodeid %u coreMapIndex %u nodeArrayCount %u"
 		     " nodeArrayIndex %u\n", __func__, node, job->nodes[node],
-		     coreMapIndex, nodeArrayCount, nodeArrayIndex);
+		     *coreMapIndex, *nodeArrayCount, *nodeArrayIndex);
 		break;
 	    }
 
 	    /* get cpu count per node from job credential */
-	    if (nodeArrayIndex >= cred->nodeArraySize) {
+	    if (*nodeArrayIndex >= cred->nodeArraySize) {
 		mlog("%s: invalid job core array index %i, size %i\n",
-		     __func__, nodeArrayIndex, cred->nodeArraySize);
-		goto error;
+		     __func__, *nodeArrayIndex, cred->nodeArraySize);
+		return false;
 	    }
-	    coreCount = cred->coresPerSocket[nodeArrayIndex]
-			* cred->socketsPerNode[nodeArrayIndex];
+	    uint32_t coreCount;
+	    coreCount = cred->coresPerSocket[*nodeArrayIndex]
+			* cred->socketsPerNode[*nodeArrayIndex];
 
 	    /* update global core map index to first core of the next node */
-	    coreMapIndex += coreCount;
+	    *coreMapIndex += coreCount;
 
-	    nodeArrayCount++;
-	    if (nodeArrayCount >= cred->nodeRepCount[nodeArrayIndex]) {
-		nodeArrayIndex++;
-		nodeArrayCount = 0;
+	    (*nodeArrayCount)++;
+	    if (*nodeArrayCount >= cred->nodeRepCount[*nodeArrayIndex]) {
+		(*nodeArrayIndex)++;
+		*nodeArrayCount = 0;
 	    }
 	}
+	return true;
+    }
+
+    /* if there is only a step, all indices are 0 */
+    *coreMapIndex = 0;
+    *nodeArrayIndex = 0;
+    *nodeArrayCount = 0;
+
+    return true;
+}
+
+/* This is the entry point to the whole CPU pinning stuff */
+bool setStepSlots(Step_t *step)
+{
+    JobCred_t *cred = step->cred;
+    pininfo_t pininfo;
+
+    /* generate slotlist */
+    uint32_t slotsSize = step->np;
+    PSpart_slot_t *slots = umalloc(slotsSize * sizeof(PSpart_slot_t));
+
+    /* get cpus from job credential */
+    bool *coreMap = getCPUsForPartition(step);
+    if (!coreMap) {
+	mlog("%s: getting cpus for partition failed\n", __func__);
+	goto error;
+    }
+
+    /* find start indices of step is job global arrays */
+    uint32_t coreMapIndex = 0;
+    uint32_t nodeArrayIndex = 0;
+    uint32_t nodeArrayCount = 0;
+    if (!findStepStartIndices(step, &coreMapIndex, &nodeArrayIndex,
+		&nodeArrayCount)) {
+	goto error;
     }
 
     /* set configured defaults for bind type and distributions */
@@ -1538,13 +1556,16 @@ bool setStepSlots(Step_t *step)
 	    goto error;
 	}
 
+	uint32_t coreCount;
 	coreCount = cred->coresPerSocket[nodeArrayIndex]
 		    * cred->socketsPerNode[nodeArrayIndex];
 
+	uint32_t threadsPerCore;
 	threadsPerCore = PSIDnodes_getNumThrds(step->nodes[node]) / coreCount;
 	if (threadsPerCore < 1) threadsPerCore = 1;
 
-	lastCpu = -1; /* no cpu assigned yet */
+	/* no cpu assigned yet */
+	int32_t lastCpu = -1;
 
 	/* initialize pininfo struct */
 	pininfo.usedHwThreads = ucalloc(coreCount * threadsPerCore
@@ -1586,9 +1607,9 @@ bool setStepSlots(Step_t *step)
 	}
 
 	/* set node and cpuset for every task on this node */
-	for (lTID=0; lTID < step->globalTaskIdsLen[node]; lTID++) {
+	for (uint32_t lTID=0; lTID < step->globalTaskIdsLen[node]; lTID++) {
 
-	    tid = step->globalTaskIds[node][lTID];
+	    uint32_t tid = step->globalTaskIds[node][lTID];
 
 	    mdbg(PSSLURM_LOG_PART, "%s: node %u nodeid %u task %u tid"
 		 " %u coreMapIndex %u nodeArrayCount %u"
@@ -1634,7 +1655,7 @@ bool setStepSlots(Step_t *step)
     }
 
     /* count threads */
-    numThreads = 0;
+    uint32_t numThreads = 0;
     for (size_t s = 0; s < slotsSize; s++) {
 	numThreads += PSCPU_getCPUs(slots[s].CPUset, NULL, PSCPU_MAX);
     }
