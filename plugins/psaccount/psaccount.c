@@ -29,6 +29,7 @@
 #include "psaccountconfig.h"
 #include "psaccountkvs.h"
 #include "psaccountenergy.h"
+#include "psaccountinterconnect.h"
 
 #define PSACCOUNT_CONFIG "psaccount.conf"
 
@@ -125,6 +126,12 @@ int initialize(FILE *logfile)
 	return 1;
     }
 
+    /* init interconnect facility */
+    if (!InterconnInit()) {
+	mlog("%s: failed to initialize interconnect monitoring\n", __func__);
+	return 1;
+    }
+
     /* read plattform version */
     if (uname(&uts)) {
 	mwarn(errno, "%s: uname()", __func__);
@@ -176,6 +183,7 @@ void cleanup(void)
     if (mainTimerID != -1) Timer_remove(mainTimerID);
 
     energyFinalize();
+    InterconnFinalize();
     finalizeAccComm();
 
     if (memoryDebug) fclose(memoryDebug);

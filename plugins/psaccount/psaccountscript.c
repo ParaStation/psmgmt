@@ -114,18 +114,17 @@ static void execCollectScript(Forwarder_Data_t *fwdata, int rerun)
  *
  * @path The absolute path to the script
  */
-static bool testCollectScript(char *spath)
+static bool testCollectScript(char *spath, char *title)
 {
     if (spath) {
 	struct stat sbuf;
 	if (stat(spath, &sbuf) == -1) {
-	    mwarn(errno, "%s: energy script %s not found:",
-		  __func__, spath);
+	    mwarn(errno, "%s: %s script %s not found:", __func__, title, spath);
 	    return false;
 	}
 	if (!(sbuf.st_mode & S_IFREG) || !(sbuf.st_mode & S_IXUSR)) {
-	    mlog("%s: energy script %s is not a valid executable script\n",
-		 __func__, spath);
+	    mlog("%s: %s script %s is not a valid executable script\n",
+		 __func__, title, spath);
 	    return false;
 	}
 	return true;
@@ -136,7 +135,7 @@ static bool testCollectScript(char *spath)
 Collect_Script_t *Script_start(char *title, char *path,
 			       scriptDataHandler_t *func, int poll)
 {
-    if (!testCollectScript(path)) return false;
+    if (!testCollectScript(path, title)) return false;
 
     Collect_Script_t *script = umalloc(sizeof(*script));
     script->path = ustrdup(path);
