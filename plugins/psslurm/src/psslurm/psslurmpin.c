@@ -282,10 +282,10 @@ static uint32_t getNextCoreStart(uint32_t thread, const nodeinfo_t *nodeinfo)
 }
 
 /*
- * Parse the threadBitmap of @a step and generate a coreMap.
+ * Parse the coreBitmap of @a step and generate a coreMap.
  *
- * The coreBitmap is a string containing digits or ranges delimited by
- * ',', ' ', or '\n'.
+ * The coreBitmap is a hexadecimal string representation of the filed in
+ * which each bit represents one core of the job partition.
  *
  * The returned coreMap is an array with true for all indices contained in
  * the coreBitmap and false for all others.
@@ -314,7 +314,7 @@ static bool *getCPUsForPartition(Step_t *step)
     if (!strncmp(bitstr, "0x", 2)) bitstr += 2;
     len = strlen(bitstr);
 
-    /* parse slurm bit string in MSB first order */
+    /* parse slurm bit string in LSB first order */
     while (len--) {
 	cur = (int)bitstr[len];
 
