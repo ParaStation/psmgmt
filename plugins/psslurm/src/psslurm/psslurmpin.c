@@ -333,14 +333,10 @@ static bool *getCPUsForPartition(Step_t *step)
 	    cur -= 'A' - 10;
 	}
 
-	if (cur & 1) coreMap[count] = true;
-	count++;
-	if (cur & 2) coreMap[count] = true;
-	count++;
-	if (cur & 4) coreMap[count] = true;
-	count++;
-	if (cur & 8) coreMap[count] = true;
-	count++;
+	for (int32_t i = 1; i <= 8; i *= 2) {
+	    if (cur & i) coreMap[count] = true;
+	    count++;
+	}
     }
 
     mdbg(PSSLURM_LOG_PART, "%s: cores '%s' coreMap '", __func__, bitstr);
