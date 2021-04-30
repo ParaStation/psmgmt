@@ -175,9 +175,11 @@ static int handlePamRequest(int sock, void *empty)
     /* get command */
     PSPAMCmd_t cmd;
     getInt32(&ptr, &cmd);
+
+    PSPAMResult_t res;
     switch (cmd) {
     case PSPAM_CMD_SESS_OPEN:
-	PSPAMResult_t res = handleOpenRequest(ptr);
+	res = handleOpenRequest(ptr);
 	PSCio_sendP(sock, &res, sizeof(res));
 	break;
     case PSPAM_CMD_SESS_CLOSE:
