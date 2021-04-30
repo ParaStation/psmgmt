@@ -123,6 +123,10 @@ static inline ssize_t _PSCio_send(int fd, void *buffer, size_t toSend,
  * first recv() fails. In all cases @a rcvd will reflect the number of
  * bytes received from the file descriptor so far.
  *
+ * @warning Since @ref read(2) is used for the actual receive, special
+ * care has to be taken if a file descriptor @a fd of type SOCK_DGRAM
+ * is passed to this function.
+ *
  * @param fd File descriptor to receive from
  *
  * @param buffer Buffer to store data to
@@ -194,6 +198,10 @@ static inline ssize_t _PSCio_recvBuf(int fd, void *buffer, size_t toRecv,
  * Receiving will be retried up to PSCIO_MAX_RETRY times on minor
  * errors or indefinitely if no @a rcvd argument is provided (i.e. is
  * set to NULL).
+ *
+ * @warning Since at the very bottom @ref read(2) is used for the
+ * actual receive, special care has to be taken if a file descriptor
+ * @a fd of type SOCK_DGRAM is passed to this function.
  *
  * @param fd File descriptor to receive from
  *

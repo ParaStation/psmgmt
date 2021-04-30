@@ -71,7 +71,7 @@ ssize_t PSCio_recvBufFunc(int fd, void *buffer, size_t toRecv, size_t *rcvd,
 
     while (*rcvd < toRecv && (indefinite || retries++ <= PSCIO_MAX_RETRY)) {
 	char *ptr = buffer;
-	ssize_t ret = recv(fd, ptr + *rcvd, toRecv - *rcvd, 0);
+	ssize_t ret = read(fd, ptr + *rcvd, toRecv - *rcvd);
 	if (ret < 0) {
 	    int eno = errno;
 	    if (eno == EINTR || (eno == EAGAIN && pedantic)) continue;
@@ -79,7 +79,7 @@ ssize_t PSCio_recvBufFunc(int fd, void *buffer, size_t toRecv, size_t *rcvd,
 	    if (eno != EAGAIN) {
 		time_t now = time(NULL);
 		if (lastLog != now) {
-		    PSC_warn(-1, eno, "%s(%s): recv(%d)", __func__, func, fd);
+		    PSC_warn(-1, eno, "%s(%s): read(%d)", __func__, func, fd);
 		    lastLog = now;
 		}
 	    }
