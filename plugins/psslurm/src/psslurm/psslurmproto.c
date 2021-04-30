@@ -363,21 +363,21 @@ static bool extractStepPackInfos(Step_t *step)
     return true;
 }
 
-static int testSlurmVersion(uint32_t pVer, uint32_t cmd)
+static bool testSlurmVersion(uint32_t pVer, uint32_t cmd)
 {
     /* allow ping and node registration RPC to pass since they don't
      * contain any body to extract */
     if (cmd == REQUEST_PING || cmd == REQUEST_NODE_REGISTRATION_STATUS) {
-	return 1;
+	return true;
     }
 
     if (pVer < SLURM_MIN_PROTO_VERSION ||
 	pVer > SLURM_MAX_PROTO_VERSION) {
 	flog("slurm protocol version %u not supported, cmd(%i) %s\n",
 	     pVer, cmd, msgType2String(cmd));
-	return 0;
+	return false;
     }
-    return 1;
+    return true;
 }
 
 /**
