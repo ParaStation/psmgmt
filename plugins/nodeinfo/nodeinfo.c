@@ -807,7 +807,7 @@ static void showDistances(char *key, StrBuffer_t *strBuf)
 	addStrBuf(line, strBuf);
 	/* each value */
 	for (uint16_t j = 0; j < numNUMA; j++) {
-	    snprintf(line, sizeof(line), " % 5hd", distances[i*numNUMA + j]);
+	    snprintf(line, sizeof(line), " %5u", distances[i*numNUMA + j]);
 	    addStrBuf(line, strBuf);
 	}
 	addStrBuf("\n", strBuf);
