@@ -309,6 +309,7 @@ bool pspmix_comm_sendClientPMIxEnvironment(PStask_ID_t targetTID,
     mdbg(PSPMIX_LOG_CALL, "%s() called\n", __func__);
 
     PS_SendDB_t msg;
+    pthread_mutex_lock(&send_lock);
     initFragBuffer(&msg, PSP_PLUG_PSPMIX, PSPMIX_CLIENT_PMIX_ENV);
     setFragDest(&msg, targetTID);
 
@@ -320,7 +321,6 @@ bool pspmix_comm_sendClientPMIxEnvironment(PStask_ID_t targetTID,
 	mdbg(PSPMIX_LOG_COMM, "%s: %d %s\n", __func__, i, environ[i]);
     }
 
-    pthread_mutex_lock(&send_lock);
     int ret = sendFragMsg(&msg);
     pthread_mutex_unlock(&send_lock);
     if (!ret) {
@@ -342,6 +342,7 @@ bool pspmix_comm_sendFenceIn(PStask_ID_t loggertid, PSnodes_ID_t target,
 	    " ndata %lu)\n", __func__, target, fenceid, ndata);
 
     PS_SendDB_t msg;
+    pthread_mutex_lock(&send_lock);
     initFragBufferExtra(&msg, PSP_PLUG_PSPMIX, PSPMIX_FENCE_IN,
 			&loggertid, sizeof(loggertid));
     setFragDest(&msg, PSC_getTID(target, 0));
@@ -349,7 +350,6 @@ bool pspmix_comm_sendFenceIn(PStask_ID_t loggertid, PSnodes_ID_t target,
     addUint64ToMsg(fenceid, &msg);
     addDataToMsg(data, ndata, &msg);
 
-    pthread_mutex_lock(&send_lock);
     int ret = sendFragMsg(&msg);
     pthread_mutex_unlock(&send_lock);
     if (!ret) {
@@ -372,13 +372,13 @@ bool pspmix_comm_sendFenceOut(PStask_ID_t targetTID, uint64_t fenceid,
 	    " ndata %lu)\n", __func__, PSC_printTID(targetTID), fenceid, ndata);
 
     PS_SendDB_t msg;
+    pthread_mutex_lock(&send_lock);
     initFragBuffer(&msg, PSP_PLUG_PSPMIX, PSPMIX_FENCE_OUT);
     setFragDest(&msg, targetTID);
 
     addUint64ToMsg(fenceid, &msg);
     addDataToMsg(data, ndata, &msg);
 
-    pthread_mutex_lock(&send_lock);
     int ret = sendFragMsg(&msg);
     pthread_mutex_unlock(&send_lock);
     if (!ret) {
@@ -399,6 +399,7 @@ bool pspmix_comm_sendModexDataRequest(PStask_ID_t loggertid,
 	    " (nspace %s)\n", __func__, proc->rank, proc->nspace);
 
     PS_SendDB_t msg;
+    pthread_mutex_lock(&send_lock);
     initFragBufferExtra(&msg, PSP_PLUG_PSPMIX, PSPMIX_MODEX_DATA_REQ,
 			&loggertid, sizeof(loggertid));
     setFragDest(&msg, PSC_getTID(target, 0));
@@ -406,7 +407,6 @@ bool pspmix_comm_sendModexDataRequest(PStask_ID_t loggertid,
     addUint32ToMsg(proc->rank, &msg);
     addStringToMsg(proc->nspace, &msg);
 
-    pthread_mutex_lock(&send_lock);
     int ret = sendFragMsg(&msg);
     pthread_mutex_unlock(&send_lock);
     if (!ret) {
@@ -429,6 +429,7 @@ bool pspmix_comm_sendModexDataResponse(PStask_ID_t targetTID, bool status,
 	    proc->nspace, ndata);
 
     PS_SendDB_t msg;
+    pthread_mutex_lock(&send_lock);
     initFragBuffer(&msg, PSP_PLUG_PSPMIX, PSPMIX_MODEX_DATA_RES);
     setFragDest(&msg, targetTID);
 
@@ -437,7 +438,6 @@ bool pspmix_comm_sendModexDataResponse(PStask_ID_t targetTID, bool status,
     addStringToMsg(proc->nspace, &msg);
     addDataToMsg(data, ndata, &msg);
 
-    pthread_mutex_lock(&send_lock);
     int ret = sendFragMsg(&msg);
     pthread_mutex_unlock(&send_lock);
     if (!ret) {
