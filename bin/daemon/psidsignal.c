@@ -117,6 +117,7 @@ int pskill(pid_t pid, int sig, uid_t uid)
 	break;  // loop just once
     }
 
+    close(cntrlfds[0]);
     if (!ret) {
 	/* assume everything worked well */
 	PSID_log(-1, "%s: read() got no data\n", __func__);
@@ -124,7 +125,6 @@ int pskill(pid_t pid, int sig, uid_t uid)
 	ret = eno ? -1 : 0;
 	errno = eno;
     }
-    close(cntrlfds[0]);
 
     return ret;
 }
