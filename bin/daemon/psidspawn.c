@@ -32,6 +32,7 @@
 #include <limits.h>
 #include <sys/select.h>
 
+#include "pscio.h"
 #include "pscommon.h"
 #include "psprotocol.h"
 #include "psprotocolenv.h"
@@ -415,9 +416,9 @@ static int testExecutable(PStask_t *task, char **executable)
 	    fprintf(stderr, "%s: open(): %s\n", __func__, strerror(eno));
 	    return eno;
 	}
-    } else if (PSID_readall(fd, buf, sizeof(buf)) < 0) {
+    } else if (PSCio_recvBuf(fd, buf, sizeof(buf)) < 0) {
 	int eno = errno;
-	fprintf(stderr, "%s: PSID_readall(): %s\n", __func__, strerror(eno));
+	fprintf(stderr, "%s: PSCio_recvBuf(): %s\n", __func__, strerror(eno));
 	return eno;
     } else {
 	close(fd);
@@ -619,10 +620,10 @@ static void execClient(PStask_t *task)
 	PSID_exit(eno, "%s: write()", __func__);
     }
 
-    if (PSID_readall(task->fd, &eno, sizeof(eno)) < 0) {
+    if (PSCio_recvBuf(task->fd, &eno, sizeof(eno)) < 0) {
 	eno = errno;
-	fprintf(stderr, "%s: PSID_readall(): %s\n", __func__, strerror(eno));
-	PSID_exit(eno, "%s: PSID_readall()", __func__);
+	fprintf(stderr, "%s: PSCio_recvBuf: %s\n", __func__, strerror(eno));
+	PSID_exit(eno, "%s: PSCio_recvBuf", __func__);
     } else {
 	close(task->fd);
     }
@@ -1055,10 +1056,10 @@ static void execForwarder(PStask_t *task)
     } while (timercmp(&start, &end, <));
 
     if (!eno) {
-	ssize_t ret = PSID_readall(controlfds[0], &eno, sizeof(eno));
+	ssize_t ret = PSCio_recvBuf(controlfds[0], &eno, sizeof(eno));
 	if (ret < 0) {
 	    eno = errno;
-	    PSID_warn(-1, eno, "%s: PSID_readall()", __func__);
+	    PSID_warn(-1, eno, "%s: PSCio_recvBuf()", __func__);
 	} else if (!ret) {
 	    PSID_log(-1, "%s: ret is %zd\n", __func__, ret);
 	    eno = EBADMSG;

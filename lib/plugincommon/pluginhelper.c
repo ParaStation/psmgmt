@@ -23,10 +23,10 @@
 #include <pwd.h>
 #include <sys/time.h>
 
+#include "pscio.h"
 #include "pscommon.h"
 #include "psidnodes.h"
 #include "psidhook.h"
-#include "psidutil.h"
 #include "pluginlog.h"
 #include "pluginmalloc.h"
 #include "selector.h"
@@ -340,7 +340,7 @@ bool __getScriptCBdata(int fd, PSID_scriptCBInfo_t *info, int32_t *exit,
 		       const char *func, const int line)
 {
     /* get exit status */
-    PSID_readall(fd, exit, sizeof(*exit));
+    PSCio_recvBuf(fd, exit, sizeof(*exit));
     Selector_remove(fd);
     close(fd);
 
@@ -355,7 +355,7 @@ bool __getScriptCBdata(int fd, PSID_scriptCBInfo_t *info, int32_t *exit,
 	pluginlog("%s: invalid iofd from caller %s:%i\n", __func__, func, line);
 	errMsg[0] = '\0';
     }
-    *errLen = PSID_readall(info->iofd, errMsg, errMsgLen);
+    *errLen = PSCio_recvBuf(info->iofd, errMsg, errMsgLen);
     errMsg[*errLen] = '\0';
     close(info->iofd);
 

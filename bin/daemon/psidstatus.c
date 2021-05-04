@@ -19,6 +19,7 @@
 /* Extra includes for load-determination */
 #include <sys/sysinfo.h>
 
+#include "pscio.h"
 #include "pscommon.h"
 #include "psprotocol.h"
 #include "psdaemonprotocol.h"
@@ -524,16 +525,16 @@ static int stateChangeCB(int fd, PSID_scriptCBInfo_t *cbInfo)
     }
 
     Selector_remove(fd);
-    PSID_readall(fd, &result, sizeof(result));
+    PSCio_recvBuf(fd, &result, sizeof(result));
     close(fd);
     if (result) {
 	char line[128] = { '\0' };
 	if (iofd > -1) {
-	    int num = PSID_readall(iofd, line, sizeof(line));
+	    int num = PSCio_recvBuf(iofd, line, sizeof(line));
 	    int eno = errno;
 	    close(iofd); /* Discard further output */
 	    if (num < 0) {
-		PSID_warn(-1, eno, "%s: PSID_readall(iofd)", __func__);
+		PSID_warn(-1, eno, "%s: PSCio_recvBuf(iofd)", __func__);
 		line[0] = '\0';
 	    } else if (num == sizeof(line)) {
 		strcpy(&line[sizeof(line)-4], "...");

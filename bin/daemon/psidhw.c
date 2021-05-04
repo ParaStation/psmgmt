@@ -21,6 +21,7 @@
 #include "hardware.h"
 #include "selector.h"
 
+#include "pscio.h"
 #include "pscommon.h"
 #include "psprotocol.h"
 
@@ -635,15 +636,15 @@ static int switchHWCB(int fd, PSID_scriptCBInfo_t *info)
     }
 
     Selector_remove(fd);
-    PSID_readall(fd, &result, sizeof(result));
+    PSCio_recvBuf(fd, &result, sizeof(result));
     close(fd);
     if (result) {
 	char line[128] = "<not connected>";
 	if (iofd > -1) {
-	    int num = PSID_readall(iofd, line, sizeof(line));
+	    int num = PSCio_recvBuf(iofd, line, sizeof(line));
 	    int eno = errno;
 	    if (num < 0) {
-		PSID_warn(-1, eno, "%s: PSID_readall(iofd)", __func__);
+		PSID_warn(-1, eno, "%s: PSCio_recvBuf(iofd)", __func__);
 		line[0] = '\0';
 	    } else if (num == sizeof(line)) {
 		strcpy(&line[sizeof(line)-4], "...");
@@ -838,20 +839,20 @@ static int getCounterCB(int fd, PSID_scriptCBInfo_t *info)
 	.buf = { 0 } };
 
     Selector_remove(fd);
-    PSID_readall(fd, &result, sizeof(result));
+    PSCio_recvBuf(fd, &result, sizeof(result));
     close(fd);
     if (iofd == -1) {
 	PSID_log(-1, "%s: %s\n", __func__, msg.buf);
 	num = snprintf(msg.buf, sizeof(msg.buf), "<not connected>");
     } else {
-	num = PSID_readall(iofd, msg.buf, sizeof(msg.buf));
+	num = PSCio_recvBuf(iofd, msg.buf, sizeof(msg.buf));
 	eno = errno;
 	close(iofd); /* Discard further output */
     }
     if (num < 0) {
-	PSID_warn(-1, eno, "%s: PSID_readall(iofd)", __func__);
+	PSID_warn(-1, eno, "%s: PSCio_recvBuf(iofd)", __func__);
 	num = snprintf(msg.buf, sizeof(msg.buf),
-		       "%s: PSID_readall(iofd) failed\n", __func__) + 1;
+		       "%s: PSCio_recvBuf(iofd) failed\n", __func__) + 1;
     } else if (num == sizeof(msg.buf)) {
 	strcpy(&msg.buf[sizeof(msg.buf)-4], "...");
     } else {

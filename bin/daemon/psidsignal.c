@@ -17,6 +17,7 @@
 #include <time.h>
 #include <sys/types.h>
 
+#include "pscio.h"
 #include "pscommon.h"
 #include "psreservation.h"
 #include "psprotocol.h"
@@ -106,11 +107,11 @@ int pskill(pid_t pid, int sig, uid_t uid)
 	return -1;
     }
 
-    ssize_t ret = PSID_readall(cntrlfds[0], &eno, sizeof(eno));
+    ssize_t ret = PSCio_recvBuf(cntrlfds[0], &eno, sizeof(eno));
     close(cntrlfds[0]);
     if (!ret) {
 	/* assume everything worked well */
-	PSID_log(-1, "%s: PSID_readall() got no data\n", __func__);
+	PSID_log(-1, "%s: PSCio_recvBuf() got no data\n", __func__);
     } else {
 	ret = eno ? -1 : 0;
 	errno = eno;

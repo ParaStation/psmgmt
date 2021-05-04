@@ -26,7 +26,7 @@
 #include <sys/resource.h>
 #include <sys/wait.h>
 
-#include "pscio.h"
+//#include "pscio.h"
 #include "pscommon.h"
 #include "logging.h"
 #include "selector.h"
@@ -217,11 +217,6 @@ bool PSID_mixedProto(void)
 void PSID_setMixedProto(bool mixed)
 {
     mixedProto = mixed;
-}
-
-ssize_t PSID_readall(int fd, void *buf, size_t count)
-{
-    return PSCio_recvBuf(fd, buf, count);
 }
 
 /**
