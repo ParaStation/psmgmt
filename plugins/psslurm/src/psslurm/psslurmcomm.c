@@ -418,8 +418,8 @@ static int readSlurmMsg(int sock, void *param)
     /* try to read the message size */
     if (!con->readSize) {
 	if (!dBuf->size) {
-	    dBuf->buf = umalloc(sizeof(uint32_t));
 	    dBuf->size = sizeof(uint32_t);
+	    dBuf->buf = umalloc(dBuf->size);
 	    dBuf->used = 0;
 	}
 
@@ -458,8 +458,8 @@ static int readSlurmMsg(int sock, void *param)
 	    goto CALLBACK;
 	}
 
-	dBuf->buf = urealloc(dBuf->buf, msglen);
 	dBuf->size = msglen;
+	dBuf->buf = urealloc(dBuf->buf, dBuf->size);
 	con->readSize = true;
     }
 
