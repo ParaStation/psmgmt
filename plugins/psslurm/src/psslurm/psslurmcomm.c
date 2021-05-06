@@ -460,6 +460,7 @@ static int readSlurmMsg(int sock, void *param)
 
 	dBuf->size = msglen;
 	dBuf->buf = urealloc(dBuf->buf, dBuf->size);
+	dBuf->used = 0;   /* drop the length read so far */
 	con->readSize = true;
     }
 
