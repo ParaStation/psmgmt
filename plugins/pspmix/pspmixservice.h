@@ -53,12 +53,10 @@ bool pspmix_service_registerNamespace(PStask_t *spawnTask, list_t resInfo);
  * @brief Register the client and send its environment to its forwarder
  *
  * @param client     client to register
- * @param clienttid  TID of the client forwarder
  *
  * @return Returns true on success and false on errors
  */
-bool pspmix_service_registerClientAndSendEnv(PspmixClient_t *client,
-	PStask_ID_t clienttid);
+bool pspmix_service_registerClientAndSendEnv(PspmixClient_t *client);
 
 /**
  * @brief Finalize the PMIX service

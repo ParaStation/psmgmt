@@ -84,6 +84,7 @@ typedef struct {
     gid_t gid;                 /**< group id */
     PSrsrvtn_ID_t resID;       /**< reservation ID */
     PspmixNamespace_t *nspace; /**< namespace of the client */
+    PStask_ID_t fwtid;	       /**< TID of the clients forwarder */
 } PspmixClient_t;
 
 /** Structure holding all information on a single spawn */

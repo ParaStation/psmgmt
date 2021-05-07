@@ -59,12 +59,14 @@ static void handleRegisterClient(DDTypedBufferMsg_t *msg)
     PSP_getTypedMsgBuf(msg, &used, "uid", &client->uid, sizeof(client->uid));
     PSP_getTypedMsgBuf(msg, &used, "gid", &client->gid, sizeof(client->gid));
 
+    client->fwtid = msg->header.sender;
+
     mdbg(PSPMIX_LOG_COMM, "%s: received %s (0x%X) from %s for rank %u in"
 	    " reservation %d\n",
 	    __func__, pspmix_getMsgTypeString(msg->type), msg->type,
 	    PSC_printTID(msg->header.sender), client->rank, client->resID);
 
-    pspmix_service_registerClientAndSendEnv(client, msg->header.sender);
+    pspmix_service_registerClientAndSendEnv(client);
 }
 
 /**

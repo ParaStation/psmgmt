@@ -520,12 +520,10 @@ static PSnodes_ID_t getNodeFromRank(int32_t rank, PspmixNamespace_t *ns)
  * @brief Register the client and send its environment to its forwarder
  *
  * @param client     client to register (takes ownership)
- * @param clienttid  TID of the client forwarder
  *
  * @return Returns true on success and false on errors
  */
-bool pspmix_service_registerClientAndSendEnv(PspmixClient_t *client,
-	PStask_ID_t clienttid)
+bool pspmix_service_registerClientAndSendEnv(PspmixClient_t *client)
 {
     mdbg(PSPMIX_LOG_CALL, "%s() called for rank %d in reservation %d\n",
 	    __func__, client->rank, client->resID);
@@ -632,9 +630,9 @@ bool pspmix_service_registerClientAndSendEnv(PspmixClient_t *client,
     RELEASE_LOCK(namespaceList);
 
     /* send message */
-    if (!pspmix_comm_sendClientPMIxEnvironment(clienttid, envp, count)) {
+    if (!pspmix_comm_sendClientPMIxEnvironment(client->fwtid, envp, count)) {
 	mlog("%s(r%d): failed to send the environment to client forwarder %s\n",
-		__func__, client->rank, PSC_printTID(clienttid));
+		__func__, client->rank, PSC_printTID(client->fwtid));
 	return false;
     }
 
