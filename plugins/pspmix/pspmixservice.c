@@ -466,10 +466,8 @@ bool pspmix_service_registerNamespace(PStask_t *prototask, list_t resInfos)
 	goto nscreate_error;
     }
 
-#if 0
     /* initialize list of clients */
     INIT_LIST_HEAD(&ns->clientList);
-#endif
 
     /* add to list of namespaces */
     GET_LOCK(namespaceList);
@@ -549,10 +547,8 @@ bool pspmix_service_registerClientAndSendEnv(PspmixClient_t *client,
 
     client->nspace = ns;
 
-#if 0
     /* add to list of clients of namespace */
     list_add_tail(&client->next, &ns->clientList);
-#endif
 
     RELEASE_LOCK(namespaceList);
 
@@ -701,9 +697,7 @@ void pspmix_service_clientFinalized(void *clientObject)
     client = clientObject;
 
     mlog("%s called for rank %d\n", __func__, client->rank);
-#if 0
     list_del(&client->next);
-#endif
     ufree(client);
 }
 

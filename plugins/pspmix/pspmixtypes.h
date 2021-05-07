@@ -73,16 +73,12 @@ typedef struct {
     PspmixApp_t *apps;          /**< applications in this namespace */
     size_t appsCount;           /**< number of applications, length of apps */
     list_t procMap;             /**< nodes to process map */
-#if 0
     list_t clientList;          /**< list of clients on this node in this ns */
-#endif
 } PspmixNamespace_t;
 
 /** Information about one client */
 typedef struct {
-#if 0
     list_t next;               /**< used to put into clientList in namespace */
-#endif
     pmix_rank_t rank;          /**< PMIx rank of the client in the namespace */
     uid_t uid;                 /**< user id */
     gid_t gid;                 /**< group id */
