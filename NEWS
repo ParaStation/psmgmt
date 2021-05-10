@@ -5,6 +5,15 @@ Copyright (C) 2010-2021 ParTec Cluster Competence Center GmbH, Munich
 Please send bug reports, questions and suggestions to <support@par-tec.com>
 
 
+Version 5.1.40-8:
+=================
+Bugfixes:
+ - Fix setting of slurm node info file flag value (jwt:#9188)
+ - Fix potential segfault in GPU pinning code
+Enhancements:
+ - Ensure close() does not spoil errno in pskill()
+
+
 Version 5.1.40-7:
 =================
 Bugfixes:

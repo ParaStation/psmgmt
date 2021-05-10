@@ -1,3 +1,32 @@
+Version psmgmt-5.1.40-8:
+========================
+------------------------------------------------------------------------
+52cfeebc | Stephan Krempel | Mon, 10 May 2021 23:10:42 +0200
+
+psslurm: Always set PSSLURM_BIND_GPUS during GPU pinning
+------------------------------------------------------------------------
+a98c267a | Stephan Krempel | Mon, 10 May 2021 17:31:05 +0200
+
+psslurm: Fix setting of slurm node info file flag value
+
+At initial contact of a node to slurmctld, some node infos are
+submitted by psslurm and those are stored forever in Slurm's
+node record. One flag was formerly set with a wrong value.
+------------------------------------------------------------------------
+3de8599e | Stephan Krempel | Mon, 10 May 2021 14:36:19 +0200
+
+psslurm: Fix potential segfault in GPU pinning code
+------------------------------------------------------------------------
+eda685b4 | Thomas Moschny | Tue, 4 May 2021 21:28:15 +0200
+
+Fix two format warnings shown by clang12.
+------------------------------------------------------------------------
+116170c4 | Norbert Eicker | Tue, 4 May 2021 19:41:36 +0200
+
+Ensure close() does not spoil errno in pskill()
+------------------------------------------------------------------------
+
+
 Version psmgmt-5.1.40-7:
 ========================
 ------------------------------------------------------------------------
