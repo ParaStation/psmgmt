@@ -467,7 +467,8 @@ static void setGPUEnv(Gres_Cred_t *gres, uint32_t jobNodeId, Step_t *step,
 	/* nothing to do, gpu_variables[*] should already be set that way */
 	flog("Only one task on this node, bind all assigned GPUs to it.\n");
 	/* always set our own variable */
-	setenv("PSSLURM_BIND_GPUS", getenv("SLURM_STEP_GPUS"), 1);
+	char *value = getenv("SLURM_STEP_GPUS");
+	if (value) setenv("PSSLURM_BIND_GPUS", value, 1);
     } else {
 	/* get assigned GPUs from GRES info */
 	int *assGPUs;
