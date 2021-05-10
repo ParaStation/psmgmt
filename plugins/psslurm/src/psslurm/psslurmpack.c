@@ -1649,7 +1649,7 @@ bool packGresConf(Gres_Conf_t *gres, void *info)
     addUint32ToMsg(GRES_MAGIC, msg);
     addUint64ToMsg(gres->count, msg);
     addUint32ToMsg(getConfValueI(&Config, "SLURM_CPUS"), msg);
-    addUint8ToMsg((gres->file ? 1 : 0), msg);
+    addUint8ToMsg((gres->file ? 0x02 : 0), msg);
     addUint32ToMsg(gres->id, msg);
     addStringToMsg(gres->cpus, msg);
     /* links */
