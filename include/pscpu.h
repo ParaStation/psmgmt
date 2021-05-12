@@ -84,7 +84,7 @@ static inline void PSCPU_setAll(PSCPU_set_t set)
  *
  * @return No return value
  */
-static inline void PSCPU_addCPUs(PSCPU_set_t set, PSCPU_set_t add)
+static inline void PSCPU_addCPUs(PSCPU_set_t set, const PSCPU_set_t add)
 {
     unsigned i;
     for (i=0; i < sizeof(PSCPU_set_t)/sizeof(PSCPU_mask_t); i++)
@@ -138,7 +138,7 @@ static inline void PSCPU_clrAll(PSCPU_set_t set)
  *
  * @return No return value
  */
-static inline void PSCPU_remCPUs(PSCPU_set_t set, PSCPU_set_t rem)
+static inline void PSCPU_remCPUs(PSCPU_set_t set, const PSCPU_set_t rem)
 {
     unsigned i;
     for (i=0; i < sizeof(PSCPU_set_t)/sizeof(PSCPU_mask_t); i++)
@@ -157,7 +157,7 @@ static inline void PSCPU_remCPUs(PSCPU_set_t set, PSCPU_set_t rem)
  *
  * @return If the tested bit is set, true is returned. Or false otherwise.
  */
-static inline bool PSCPU_isSet(PSCPU_set_t set, uint16_t cpu)
+static inline bool PSCPU_isSet(const PSCPU_set_t set, uint16_t cpu)
 {
     return (cpu < PSCPU_MAX) && (set[cpu/CPUmask_s] & 1<<cpu%CPUmask_s);
 }
@@ -175,7 +175,7 @@ static inline bool PSCPU_isSet(PSCPU_set_t set, uint16_t cpu)
  *
  * @return If any CPU is set, true is returned. Otherwise false is returned
  */
-bool PSCPU_any(PSCPU_set_t set, uint16_t numBits);
+bool PSCPU_any(const PSCPU_set_t set, uint16_t numBits);
 
 /**
  * @brief Test for CPUs
@@ -191,7 +191,7 @@ bool PSCPU_any(PSCPU_set_t set, uint16_t numBits);
  *
  * @return If all CPU are set, true is returned. Otherwise false is returned
  */
-bool PSCPU_all(PSCPU_set_t set, uint16_t numBits);
+bool PSCPU_all(const PSCPU_set_t set, uint16_t numBits);
 
 /**
  * @brief Check for overlap between CPU-sets
@@ -208,7 +208,8 @@ bool PSCPU_all(PSCPU_set_t set, uint16_t numBits);
  * @return If any bit is set in both sets amongst the first @a
  * numBits bits, true is returned; or false otherwise
  */
-bool PSCPU_overlap(PSCPU_set_t set1, PSCPU_set_t set2, uint16_t numBits);
+bool PSCPU_overlap(const PSCPU_set_t set1, const PSCPU_set_t set2,
+	           uint16_t numBits);
 
 /**
  * @brief Check for disjointedness between CPU-sets
@@ -225,8 +226,8 @@ bool PSCPU_overlap(PSCPU_set_t set1, PSCPU_set_t set2, uint16_t numBits);
  * @return If both sets are disjoint amongst the first @a numBits
  * bits, true is returned; or false otherwise
  */
-static inline bool PSCPU_disjoint(PSCPU_set_t set1, PSCPU_set_t set2,
-				  uint16_t numBits)
+static inline bool PSCPU_disjoint(const PSCPU_set_t set1,
+				  const PSCPU_set_t set2, uint16_t numBits)
 {
     return ! PSCPU_overlap(set1, set2, numBits);
 }
@@ -248,7 +249,7 @@ static inline bool PSCPU_disjoint(PSCPU_set_t set1, PSCPU_set_t set2,
  * returned. If no bit is set within the first @a numBits, -1 is
  * returned.
  */
-int16_t PSCPU_first(PSCPU_set_t set, uint16_t numBits);
+int16_t PSCPU_first(const PSCPU_set_t set, uint16_t numBits);
 
 /**
  * @brief Get CPUs from CPU-set
@@ -266,7 +267,7 @@ int16_t PSCPU_first(PSCPU_set_t set, uint16_t numBits);
  * @return The number of CPUs got from @a origSet. This might be less
  * than what was requested via @a num.
  */
-int PSCPU_getCPUs(PSCPU_set_t origSet, PSCPU_set_t newSet, int16_t num);
+int PSCPU_getCPUs(const PSCPU_set_t origSet, PSCPU_set_t newSet, int16_t num);
 
 /**
  * @brief Get CPU-set with unset CPUs
@@ -315,7 +316,7 @@ int PSCPU_getUnset(PSCPU_set_t set, uint16_t numBits,
  * @return A pointer to a static character array containing task ID's
  * description. Do not try to free(2) this array.
  */
-char *PSCPU_print(PSCPU_set_t set);
+char *PSCPU_print(const PSCPU_set_t set);
 
 /**
  * @brief Print parts of CPU-set
@@ -338,7 +339,7 @@ char *PSCPU_print(PSCPU_set_t set);
  * @return A pointer to a static character array containing task ID's
  * description. Do not try to free(2) this array.
  */
-char *PSCPU_print_part(PSCPU_set_t set, size_t num);
+char *PSCPU_print_part(const PSCPU_set_t set, size_t num);
 
 /**
  * @brief Copy CPU-set
@@ -351,7 +352,7 @@ char *PSCPU_print_part(PSCPU_set_t set, size_t num);
  *
  * @return No return value
  */
-static inline void PSCPU_copy(PSCPU_set_t dest, PSCPU_set_t src)
+static inline void PSCPU_copy(PSCPU_set_t dest, const PSCPU_set_t src)
 {
     if (src && dest) memcpy(dest, src, sizeof(PSCPU_set_t));
 }
@@ -404,7 +405,7 @@ static inline size_t PSCPU_bytesForCPUs(unsigned short num)
  *
  * @see PSCPU_bytesForCPUs()
  */
-static inline void PSCPU_extract(void *dest, PSCPU_set_t src, size_t num)
+static inline void PSCPU_extract(void *dest, const PSCPU_set_t src, size_t num)
 {
     if (num && src && dest) memcpy(dest, src, num);
 }
@@ -429,7 +430,7 @@ static inline void PSCPU_extract(void *dest, PSCPU_set_t src, size_t num)
  *
  * @see PSCPU_bytesForCPUs()
  */
-static inline void PSCPU_inject(PSCPU_set_t dest, void *src, size_t num)
+static inline void PSCPU_inject(PSCPU_set_t dest, const void *src, size_t num)
 {
     if (num && src && dest) memcpy(dest, src,
 				   (num > PSCPU_MAX/8) ? PSCPU_MAX/8 : num);
@@ -448,7 +449,7 @@ static inline void PSCPU_inject(PSCPU_set_t dest, void *src, size_t num)
  * greater than zero depending on in which set the first CPU is found
  * to be set. I.e. 0 is returned if both CPU-sets found to be equal.
  */
-static inline int PSCPU_cmp(PSCPU_set_t s1, PSCPU_set_t s2)
+static inline int PSCPU_cmp(const PSCPU_set_t s1, const PSCPU_set_t s2)
 {
     if (s1 && s2) return memcmp(s1, s2, sizeof(PSCPU_set_t));
 

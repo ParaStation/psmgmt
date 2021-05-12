@@ -17,7 +17,7 @@
 /** Number of bits (i.e. CPUs) encoded within @ref PSCPU_mask_t. */
 #define CPUmask_s (int16_t)(8*sizeof(PSCPU_mask_t))
 
-bool PSCPU_any(PSCPU_set_t set, uint16_t numBits)
+bool PSCPU_any(const PSCPU_set_t set, uint16_t numBits)
 {
     unsigned int i;
     int16_t pCPUs = (numBits > PSCPU_MAX) ? PSCPU_MAX : numBits;
@@ -31,7 +31,7 @@ bool PSCPU_any(PSCPU_set_t set, uint16_t numBits)
     return false;
 }
 
-bool PSCPU_all(PSCPU_set_t set, uint16_t numBits)
+bool PSCPU_all(const PSCPU_set_t set, uint16_t numBits)
 {
     unsigned int i;
     int16_t pCPUs = (numBits > PSCPU_MAX) ? PSCPU_MAX : numBits;
@@ -45,7 +45,8 @@ bool PSCPU_all(PSCPU_set_t set, uint16_t numBits)
     return true;
 }
 
-bool PSCPU_overlap(PSCPU_set_t set1, PSCPU_set_t set2, uint16_t numBits)
+bool PSCPU_overlap(const PSCPU_set_t set1, const PSCPU_set_t set2,
+		   uint16_t numBits)
 {
     int16_t pCPUs = (numBits > PSCPU_MAX) ? PSCPU_MAX : numBits;
     for (uint16_t i = 0;
@@ -61,7 +62,7 @@ bool PSCPU_overlap(PSCPU_set_t set1, PSCPU_set_t set2, uint16_t numBits)
     return false;
 }
 
-int16_t PSCPU_first(PSCPU_set_t set, uint16_t numBits)
+int16_t PSCPU_first(const PSCPU_set_t set, uint16_t numBits)
 {
     PSCPU_mask_t m=0;
     unsigned int i;
@@ -84,7 +85,7 @@ int16_t PSCPU_first(PSCPU_set_t set, uint16_t numBits)
     return cpu;
 }
 
-int PSCPU_getCPUs(PSCPU_set_t origSet, PSCPU_set_t newSet, int16_t num)
+int PSCPU_getCPUs(const PSCPU_set_t origSet, PSCPU_set_t newSet, int16_t num)
 {
     unsigned int cpu;
     int found=0;
@@ -126,7 +127,7 @@ int PSCPU_getUnset(PSCPU_set_t set, uint16_t numBits,
     return found;
 }
 
-char *PSCPU_print_part(PSCPU_set_t set, size_t num)
+char *PSCPU_print_part(const PSCPU_set_t set, size_t num)
 {
     static char setStr[PSCPU_MAX/4+10];
     unsigned int i;
@@ -141,7 +142,7 @@ char *PSCPU_print_part(PSCPU_set_t set, size_t num)
     return setStr;
 }
 
-char *PSCPU_print(PSCPU_set_t set)
+char *PSCPU_print(const PSCPU_set_t set)
 {
     return PSCPU_print_part(set, PSCPU_MAX/CPUmask_s);
 }
