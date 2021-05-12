@@ -1344,6 +1344,8 @@ static int forwardInputMsg(Step_t *step, uint16_t rank, char *buf, int bufLen)
 
 int handleSrunMsg(int sock, void *data)
 {
+    IO_Slurm_Header_t *ioh = NULL;
+
     Step_t *step = data;
     if (!verifyStepPtr(step)) {
 	/* late answer from srun, associated step is already gone */
@@ -1361,7 +1363,6 @@ int handleSrunMsg(int sock, void *data)
     }
 
     char *ptr = buffer;
-    IO_Slurm_Header_t *ioh = NULL;
     if (!unpackSlurmIOHeader(&ptr, &ioh)) {
 	flog("unpack Slurm I/O header for %s failed\n", strStepID(step));
 	goto ERROR;
