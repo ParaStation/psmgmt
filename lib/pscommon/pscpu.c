@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2007-2020 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2007-2021 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -102,7 +102,7 @@ int PSCPU_getCPUs(const PSCPU_set_t origSet, PSCPU_set_t newSet, int16_t num)
 }
 
 
-int PSCPU_getUnset(PSCPU_set_t set, uint16_t numBits,
+int PSCPU_getUnset(const PSCPU_set_t set, uint16_t numBits,
 		   PSCPU_set_t free, uint16_t tpp)
 {
     int found=0;
