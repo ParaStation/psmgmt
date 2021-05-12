@@ -1355,10 +1355,12 @@ int handleSrunMsg(int sock, void *data)
 
     /* Shall be safe to do first a pedantic receive inside a selector */
     char buffer[1024];
-    ssize_t ret = PSCio_recvBufP(sock, buffer, SLURM_IO_HEAD_SIZE);
+    size_t rcvd;
+    ssize_t ret = PSCio_recvBufPProg(sock, buffer, SLURM_IO_HEAD_SIZE, &rcvd);
     if (ret <= 0) {
-	if (ret < 0) mwarn(errno, "%s: PSCio_recvBuf()", __func__);
-	flog("close srun connection %i for %s\n", sock, strStepID(step));
+	if (ret < 0) mwarn(errno, "%s: PSCio_recvBufPProg()", __func__);
+	flog("close srun connection %i for %s (rcvd %zd)\n", sock,
+	     strStepID(step), rcvd);
 	goto ERROR;
     }
 
