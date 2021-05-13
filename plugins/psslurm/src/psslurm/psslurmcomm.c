@@ -1355,7 +1355,7 @@ int handleSrunMsg(int sock, void *data)
 
     /* Shall be safe to do first a pedantic receive inside a selector */
     char buffer[1024];
-    size_t rcvd;
+    size_t rcvd = 0;
     ssize_t ret = PSCio_recvBufPProg(sock, buffer, SLURM_IO_HEAD_SIZE, &rcvd);
     if (ret <= 0) {
 	if (ret < 0) mwarn(errno, "%s: PSCio_recvBufPProg()", __func__);
