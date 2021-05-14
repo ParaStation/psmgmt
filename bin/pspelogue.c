@@ -527,6 +527,16 @@ int main(const int argc, const char *argv[], char *envp[])
     envSet(&clone, "SLURM_USER", getenv("SLURM_JOB_USER"));
     envSet(&clone, "SLURM_UID", getenv("SLURM_JOB_UID"));
 
+    /* remove new "SPANK_" prefix from already prefixed variables
+     * pspelogue needs to forward (juwels:#9228) */
+    envc = 0;
+    while (envp[envc]) {
+	if (!strncmp("SPANK_SLURM_SPANK_", envp[envc], 18)) {
+	    envPut(&clone, envp[envc] + 6);
+	}
+	envc++;
+    }
+
     /* convert Slurm hostlist into PS IDs */
     bool resolved = false;
     #ifndef BUILD_WITHOUT_PSCONFIG
