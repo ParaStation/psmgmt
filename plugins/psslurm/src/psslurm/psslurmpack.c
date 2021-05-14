@@ -1214,20 +1214,19 @@ bool __unpackReqLaunchTasks(Slurm_Msg_t *sMsg, Step_t **stepPtr,
     ufree(jobOptTag);
 
     /* spank cmdline options */
-    uint32_t count, i;
-    getUint32(ptr, &count);
-    for (i=0; i<count; i++) {
+    getUint32(ptr, &step->spankOptCount);
+    step->spankOpt = umalloc(sizeof(*step->spankOpt) * step->spankOptCount);
+    for (uint32_t i=0; i<step->spankOptCount; i++) {
 	/* type */
-	getUint32(ptr, &tmp);
+	getUint32(ptr, &step->spankOpt[i].type);
 	/* name */
-	char *optName = getStringM(ptr);
+	step->spankOpt[i].name = getStringM(ptr);
 	/* value */
-	char *optVal = getStringM(ptr);
+	step->spankOpt[i].val = getStringM(ptr);
 
 	fdbg(PSSLURM_LOG_SPANK, "spank option(%i): type %u name %s val %s\n",
-	     i, tmp, optName, optVal);
-	ufree(optName);
-	ufree(optVal);
+	     i, step->spankOpt[i].type, step->spankOpt[i].name,
+	     step->spankOpt[i].val);
     }
 
     /* node alias */

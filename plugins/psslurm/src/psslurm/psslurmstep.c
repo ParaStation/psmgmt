@@ -124,7 +124,6 @@ void clearStepList(uint32_t jobid)
 bool deleteStep(uint32_t jobid, uint32_t stepid)
 {
     Step_t *step = findStepByStepId(jobid, stepid);
-    uint32_t i;
 
     if (!step) return false;
 
@@ -187,7 +186,7 @@ bool deleteStep(uint32_t jobid, uint32_t stepid)
     freeJobCred(step->cred);
 
     if (step->globalTaskIds) {
-	for (i=0; i<step->nrOfNodes; i++) {
+	for (uint32_t i=0; i<step->nrOfNodes; i++) {
 	    if (step->globalTaskIdsLen[i] > 0) {
 		ufree(step->globalTaskIds[i]);
 	    }
@@ -197,27 +196,32 @@ bool deleteStep(uint32_t jobid, uint32_t stepid)
     ufree(step->globalTaskIdsLen);
 
     if (step->packTIDs) {
-	for (i=0; i<step->packNrOfNodes; i++) {
+	for (uint32_t i=0; i<step->packNrOfNodes; i++) {
 	    ufree(step->packTIDs[i]);
 	}
 	ufree(step->packTIDs);
     }
     ufree(step->packTIDsOffset);
 
-    for (i=0; i<step->argc; i++) {
+    for (uint32_t i=0; i<step->argc; i++) {
 	ufree(step->argv[i]);
     }
     ufree(step->argv);
 
-    for (i=0; i<step->numPackInfo; i++) {
-	uint32_t x;
-	for (x=0; x<step->packInfo[i].argc; x++) {
+    for (uint32_t i=0; i<step->numPackInfo; i++) {
+	for (uint32_t x=0; x<step->packInfo[i].argc; x++) {
 	    ufree(step->packInfo[i].argv[x]);
 	}
 	ufree(step->packInfo[i].slots);
     }
     ufree(step->packInfo);
     ufree(step->packFollower);
+
+    for (uint32_t i=0; i<step->spankOptCount; i++) {
+	ufree(step->spankOpt[i].name);
+	ufree(step->spankOpt[i].val);
+    }
+    ufree(step->spankOpt);
 
     envDestroy(&step->env);
     envDestroy(&step->spankenv);

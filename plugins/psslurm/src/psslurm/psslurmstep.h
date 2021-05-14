@@ -48,6 +48,12 @@ typedef struct {
 } X11_Data_t;
 
 typedef struct {
+    uint32_t type;              /**< option type */
+    char *name;                 /**< option name */
+    char *val;                  /**< option value */
+} Spank_Opt_t;
+
+typedef struct {
     uint32_t jobid;		/**< unique job identifier */
     uint32_t stepid;		/**< unique step identifier */
     uint32_t stepHetComp;       /**< TODO */
@@ -99,6 +105,8 @@ typedef struct {
     env_t env;			/**< environment variables */
     env_t spankenv;		/**< spank environment variables */
     env_t pelogueEnv;		/**< prologue/epilogue environment */
+    uint32_t spankOptCount;     /**< number of spank plugin options */
+    Spank_Opt_t *spankOpt;      /**< spank plugin options */
     char *taskProlog;		/**< path to task prologue script */
     char *taskEpilog;		/**< path to task epilogue script */
     char *cwd;			/**< working directory of the step */
