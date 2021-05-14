@@ -1880,7 +1880,10 @@ bool initSlurmCon(void)
     /* listening on slurmd port */
     int ctlPort = getConfValueI(&SlurmConfig, "SlurmdPort");
     if (ctlPort < 0) ctlPort = PSSLURM_SLURMD_PORT;
-    if ((openSlurmdSocket(ctlPort)) < 0) return false;
+    if ((openSlurmdSocket(ctlPort)) < 0) {
+	flog("open slurmd socket failed");
+	return false;
+    }
 
     /* register to slurmctld */
     ctlPort = getConfValueI(&SlurmConfig, "SlurmctldPort");

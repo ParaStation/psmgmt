@@ -912,26 +912,42 @@ bool parseSlurmConfigFiles(uint32_t *hash)
 
     /* parse Slurm config file */
     char *confFile = getConfValueC(&Config, "SLURM_CONF");
-    if (!confFile) return false;
+    if (!confFile) {
+	flog("Configuration value SLURM_CONF not found\n");
+	return false;
+    }
 
     registerConfigHashAccumulator(hash);
-    if (parseConfigFile(confFile, &SlurmConfig, true /*trimQuotes*/) < 0)
+    if (parseConfigFile(confFile, &SlurmConfig, true /*trimQuotes*/) < 0) {
+	flog("Parsing Slurm configuration file %s failed\n", confFile);
 	return false;
+    }
     registerConfigHashAccumulator(NULL);
-    if (traverseConfig(&SlurmConfig, parseSlurmConf, &gres)) return false;
+    if (traverseConfig(&SlurmConfig, parseSlurmConf, &gres)) {
+	flog("Traversing Slurm configuration failed\n");
+	return false;
+    }
     if (!verifySlurmConf()) return false;
 
     /* parse optional Slurm GRes config file */
     INIT_LIST_HEAD(&SlurmGresConfig);
     gres = 1;
     confFile = getConfValueC(&Config, "SLURM_GRES_CONF");
-    if (!confFile) return false;
+    if (!confFile) {
+	flog("Configuration value SLURM_GRES_CONF not found\n");
+	return false;
+    }
     if (stat(confFile, &sbuf) != -1) {
 	Config_t SlurmGresTmp;
-	if (parseConfigFile(confFile, &SlurmGresTmp, true /*trimQuotes*/) < 0)
+	if (parseConfigFile(confFile, &SlurmGresTmp, true /*trimQuotes*/) < 0) {
+	    flog("Parsing GRes configuration file %s failed\n", confFile);
 	    return false;
+	}
 
-	if (traverseConfig(&SlurmGresTmp, parseSlurmConf, &gres)) return false;
+	if (traverseConfig(&SlurmGresTmp, parseSlurmConf, &gres)) {
+	    flog("Traversing GRes configuration failed\n");
+	    return false;
+	}
 	freeConfig(&SlurmGresTmp);
     }
 
@@ -942,15 +958,22 @@ bool parseSlurmConfigFiles(uint32_t *hash)
     confFile = getConfValueC(&SlurmConfig, "PlugStackConfig");
     if (!confFile) {
 	confFile = getConfValueC(&Config, "SLURM_SPANK_CONF");
-	if (!confFile) return false;
+	if (!confFile) {
+	    flog("Configuration value SLURM_SPANK_CONF not found\n");
+	    return false;
+	}
     }
     int disabled = getConfValueU(&Config, "DISABLE_SPANK");
     if (!disabled && stat(confFile, &sbuf) != -1) {
-	if (parseConfigFile(confFile, &SlurmPlugConf, true /*trimQuotes*/) < 0)
+	if (parseConfigFile(confFile, &SlurmPlugConf, true /*trimQuotes*/) < 0) {
+	    flog("Parsing Spank configuration file %s failed\n", confFile);
 	    return false;
+	}
 
-	if (traverseConfig(&SlurmPlugConf, parseSlurmPlugLine, NULL))
+	if (traverseConfig(&SlurmPlugConf, parseSlurmPlugLine, NULL)) {
+	    flog("Traversing Spank configuration failed\n");
 	    return false;
+	}
 	freeConfig(&SlurmPlugConf);
     }
 #endif
