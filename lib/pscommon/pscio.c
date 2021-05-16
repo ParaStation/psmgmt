@@ -92,10 +92,7 @@ ssize_t PSCio_recvBufFunc(int fd, void *buffer, size_t toRecv, size_t *rcvd,
 	if (!pedantic && !indefinite) return ret;
     }
 
-    if (*rcvd < toRecv) {
-	errno = ENOMSG;
-	return -1;
-    }
+    if (*rcvd < toRecv) return -1;
 
     return *rcvd;
 }

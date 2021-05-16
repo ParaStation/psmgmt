@@ -165,7 +165,14 @@ static inline ssize_t _PSCio_recvBuf(int fd, void *buffer, size_t toRecv,
 				     const char *func, bool pedantic)
 {
     size_t rcvd = 0;
-    return PSCio_recvBufFunc(fd, buffer, toRecv, &rcvd, func, pedantic, false);
+    ssize_t ret = PSCio_recvBufFunc(fd, buffer, toRecv, &rcvd, func,
+				    pedantic, false);
+    if ((ret == -1 && (!errno || errno == EINTR || errno == EAGAIN))
+	|| rcvd < toRecv) {
+	errno = ENOMSG;
+	return -1;
+    }
+    return ret;
 }
 
 /** Standard receive */
