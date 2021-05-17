@@ -2,7 +2,8 @@
 #
 # ParaStation
 #
-# Copyright (C) 2018-2020 ParTec Cluster Competence Center GmbH, Munich
+# Copyright (C) 2018-2021 ParTec Cluster Competence Center GmbH, Munich
+# Copyright (C) 2021 ParTec AG, Munich
 #
 # This file may be distributed under the terms of the Q Public License
 # as defined in the file LICENSE.QPL included in the packaging of this
@@ -24,7 +25,7 @@ CommandName=${0##*/}
 CommandPath=${0%/*}
 CHILD=${1}
 SCRIPT=${CommandName%%.*}
-JOB_CPUS="$__PSSLURM_JOB_CORE_BITMAP"
+JOB_CPUS="$__PSSLURM_JOB_CPU_MAP"
 PSPAM_USER="$__PSPAM_ADD_USER"
 
 unset LANGUAGE

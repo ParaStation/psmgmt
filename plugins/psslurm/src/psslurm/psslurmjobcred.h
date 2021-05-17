@@ -2,6 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2017-2021 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2021 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -11,6 +12,7 @@
 #define __PS_PSSLURM_JOB_CRED
 
 #include <stdint.h>
+#include <stdbool.h>
 #include <sys/types.h>
 
 /** all possible job states */
@@ -63,5 +65,25 @@ typedef struct {
     char *jobConstraints;       /**< job constraints */
     uint16_t x11;		/**< X11 flags for job */
 } JobCred_t;
+
+/*
+ * Parse the coreBitmap of @a job and generate a coreMap.
+ *
+ * The coreBitmap is a hexadecimal string representation of the filed in
+ * which each bit represents one core of the job partition.
+ *
+ * The returned coreMap is an array with true for all indices contained in
+ * the coreBitmap and false for all others.
+ *
+ * The coreMap is related to the over all job partition (might be multiple
+ * nodes), so its indices are the global CPU IDs of the job.
+ *
+ * @param total      number of total cores
+ * @param bitmap     core bitmap to parse
+ *
+ * @return  coreMap
+ *
+ */
+bool *getCPUsetFromCoreBitmap(uint32_t total, const char *bitmap);
 
 #endif  /* __PS_PSSLURM_JOB_CRED */

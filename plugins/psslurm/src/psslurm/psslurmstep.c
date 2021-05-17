@@ -149,6 +149,7 @@ bool deleteStep(uint32_t jobid, uint32_t stepid)
     ufree(step->slurmHosts);
     ufree(step->nodeAlias);
     ufree(step->nodes);
+    ufree(step->nodeinfos);
     ufree(step->cpuBind);
     ufree(step->memBind);
     ufree(step->IOPort);
@@ -177,8 +178,6 @@ bool deleteStep(uint32_t jobid, uint32_t stepid)
     ufree(step->x11.magicCookie);
     ufree(step->x11.target);
     ufree(step->restartDir);
-    ufree(step->jobCoreMap);
-    ufree(step->stepCoreMap);
 
     clearTasks(&step->tasks);
     clearTasks(&step->remoteTasks);

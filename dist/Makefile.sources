@@ -617,6 +617,7 @@ plugins/psslurm/src/psslurm/psslurmio.c \
 plugins/psslurm/src/psslurm/psslurmio.h \
 plugins/psslurm/src/psslurm/psslurmjob.c \
 plugins/psslurm/src/psslurm/psslurmjob.h \
+plugins/psslurm/src/psslurm/psslurmjobcred.c \
 plugins/psslurm/src/psslurm/psslurmjobcred.h \
 plugins/psslurm/src/psslurm/psslurmkvs.c \
 plugins/psslurm/src/psslurm/psslurmlimits.c \
@@ -627,6 +628,9 @@ plugins/psslurm/src/psslurm/psslurmmsg.c \
 plugins/psslurm/src/psslurm/psslurmmsg.h \
 plugins/psslurm/src/psslurm/psslurmmultiprog.c \
 plugins/psslurm/src/psslurm/psslurmmultiprog.h \
+plugins/psslurm/src/psslurm/psslurmnodeinfo.c \
+plugins/psslurm/src/psslurm/psslurmnodeinfo.h \
+plugins/psslurm/src/psslurm/psslurmnodeinfotype.h \
 plugins/psslurm/src/psslurm/psslurmpack.c \
 plugins/psslurm/src/psslurm/psslurmpack.h \
 plugins/psslurm/src/psslurm/psslurmpelogue.c \

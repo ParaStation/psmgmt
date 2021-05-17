@@ -36,6 +36,7 @@
 #include "psslurmio.h"
 #include "psslurmfwcomm.h"
 #include "psslurmgres.h"
+#include "psslurmnodeinfo.h"
 
 #include "psenv.h"
 
@@ -76,16 +77,6 @@ enum next_start_strategy {
 static char* nextStartStrategyString[] = {
     "CYCLIC_CYCLIC", "BLOCK_BLOCK", "CYCLIC_BLOCK", "BLOCK_CYCLIC"
 };
-
-typedef struct {
-    PSnodes_ID_t id;         /* parastation node id */
-    uint16_t socketCount;    /* number of sockets */
-    uint16_t coresPerSocket; /* number of cores per socket */
-    uint16_t threadsPerCore; /* number of hardware threads per core */
-    uint32_t coreCount;      /* number of cores */
-    uint32_t threadCount;    /* number of hardware threads */
-    bool *coreMap;           /* map of cores to use in this step on this node */
-} nodeinfo_t;
 
 typedef struct {
     bool *usedHwThreads;      /* array of already assigned hardware threads */
@@ -280,72 +271,6 @@ static uint32_t getNextCoreStart(uint32_t thread, const nodeinfo_t *nodeinfo)
     ret %= nodeinfo->coreCount;
 
     return ret;
-}
-
-/*
- * Parse the coreBitmap of @a step and generate a coreMap.
- *
- * The coreBitmap is a hexadecimal string representation of the filed in
- * which each bit represents one core of the job partition.
- *
- * The returned coreMap is an array with true for all indices contained in
- * the coreBitmap and false for all others.
- *
- * The coreMap is related to the over all job partition (might be multiple
- * nodes), so its indices are the global CPU IDs of the job.
- *
- * @param step    Step structure of the job step
- *
- * @return  coreMap
- *
- */
-static bool *getCPUsForPartition(Step_t *step)
-{
-    bool *coreMap;
-
-    size_t len;
-    char *bitstr;
-    int count, cur;
-
-    coreMap = ucalloc(step->cred->totalCoreCount * sizeof(*coreMap));
-    count = 0;
-
-    bitstr = step->cred->stepCoreBitmap;
-
-    if (!strncmp(bitstr, "0x", 2)) bitstr += 2;
-    len = strlen(bitstr);
-
-    /* parse slurm bit string in LSB first order */
-    while (len--) {
-	cur = (int)bitstr[len];
-
-	if (!isxdigit(cur)) {
-	    mlog("%s: invalid character in core map sting '%c'\n", __func__,
-		    cur);
-	    ufree(coreMap);
-	    return NULL;
-	}
-
-	if (isdigit(cur)) {
-	    cur -= '0';
-	} else {
-	    cur = toupper(cur);
-	    cur -= 'A' - 10;
-	}
-
-	for (int32_t i = 1; i <= 8; i *= 2) {
-	    if (cur & i) coreMap[count] = true;
-	    count++;
-	}
-    }
-
-    mdbg(PSSLURM_LOG_PART, "%s: cores '%s' coreMap '", __func__, bitstr);
-    for (uint32_t i = 0; i < step->cred->totalCoreCount; i++) {
-	mdbg(PSSLURM_LOG_PART, "%i", coreMap[i]);
-    }
-    mdbg(PSSLURM_LOG_PART, "'\n");
-
-    return coreMap;
 }
 
 /*
@@ -719,7 +644,7 @@ static void getRankBinding(PSCPU_set_t *CPUset, const nodeinfo_t *nodeinfo,
 	// walk through global CPU IDs of the CPUs to use in the local node
 	for (u = 0; u < nodeinfo->coreCount; u++) {
 	    if ((*lastCpu == -1 || *lastCpu < localCpuCount)
-		&& nodeinfo->coreMap[u]) {
+		&& PSCPU_isSet(nodeinfo->stepHWthreads, u)) {
 		PSCPU_setCPU(*CPUset,
 			     localCpuCount + (*thread * nodeinfo->coreCount));
 		mdbg(PSSLURM_LOG_PART, "%s: (bind_rank) node %i task %i"
@@ -777,7 +702,7 @@ static uint32_t getNextStartThread(const nodeinfo_t *nodeinfo,
     while (thread_iter_next(&iter, &thread)) {
 
 	/* omit cpus not in core map and thus not to use by this job step */
-	if (!nodeinfo->coreMap[getCore(thread, nodeinfo)]) {
+	if (!PSCPU_isSet(nodeinfo->stepHWthreads, getCore(thread, nodeinfo))) {
 	    mdbg(PSSLURM_LOG_PART, "%s: thread '%u' not assigned to step (not"
 		    " in core map)\n", __func__, thread);
 	    continue;
@@ -865,7 +790,7 @@ static void getThreadsBinding(PSCPU_set_t *CPUset, const nodeinfo_t *nodeinfo,
 	uint32_t core = getCore(thread, nodeinfo);
 
 	/* omit cpus not in core map and thus not to use by this job step */
-	if (!nodeinfo->coreMap[core]) {
+	if (!PSCPU_isSet(nodeinfo->stepHWthreads, core)) {
 	    mdbg(PSSLURM_LOG_PART, "%s: thread '%u' core '%u' socket '%hu'"
 		    " not assigned to step (not in core map)\n", __func__,
 		    thread, core, getSocketByCore(core, nodeinfo));
@@ -1039,7 +964,8 @@ static void getSocketRankBinding(PSCPU_set_t *CPUset,
 		getSocketByCore(core, nodeinfo), pininfo->lastUsedThread);
 
 	/* omit cpus not to use or already assigned */
-	if (!nodeinfo->coreMap[core] || pininfo->usedHwThreads[thread]) {
+	if (!PSCPU_isSet(nodeinfo->stepHWthreads, core)
+		|| pininfo->usedHwThreads[thread]) {
 	    continue;
 	}
 
@@ -1458,79 +1384,15 @@ bool getNodeGPUPinning(uint16_t ret[], Step_t *step, uint32_t stepNodeId,
     return true;
 }
 
-/* find start indices for step in core map and node arrays that are job global */
-static bool findStepStartIndices(Step_t *step, uint32_t *coreMapIndex,
-	uint32_t *nodeArrayIndex, uint32_t *nodeArrayCount)
-{
-    JobCred_t *cred = step->cred;
-    Job_t *job = findJobById(step->jobid);
-    if (job) {
-	for (uint32_t node = 0; job && node < job->nrOfNodes; node++) {
-
-	    if (job->nodes[node] == step->nodes[0]) {
-		/* we found the first node of our step */
-		mdbg(PSSLURM_LOG_PART, "%s: step start found: job node %u"
-		     " nodeid %u coreMapIndex %u nodeArrayCount %u"
-		     " nodeArrayIndex %u\n", __func__, node, job->nodes[node],
-		     *coreMapIndex, *nodeArrayCount, *nodeArrayIndex);
-		break;
-	    }
-
-	    /* get cpu count per node from job credential */
-	    if (*nodeArrayIndex >= cred->nodeArraySize) {
-		mlog("%s: invalid job core array index %i, size %i\n",
-		     __func__, *nodeArrayIndex, cred->nodeArraySize);
-		return false;
-	    }
-	    uint32_t coreCount;
-	    coreCount = cred->coresPerSocket[*nodeArrayIndex]
-			* cred->socketsPerNode[*nodeArrayIndex];
-
-	    /* update global core map index to first core of the next node */
-	    *coreMapIndex += coreCount;
-
-	    (*nodeArrayCount)++;
-	    if (*nodeArrayCount >= cred->nodeRepCount[*nodeArrayIndex]) {
-		(*nodeArrayIndex)++;
-		*nodeArrayCount = 0;
-	    }
-	}
-	return true;
-    }
-
-    /* if there is only a step, all indices are 0 */
-    *coreMapIndex = 0;
-    *nodeArrayIndex = 0;
-    *nodeArrayCount = 0;
-
-    return true;
-}
 
 /* This is the entry point to the whole CPU pinning stuff */
 bool setStepSlots(Step_t *step)
 {
-    JobCred_t *cred = step->cred;
     pininfo_t pininfo;
 
     /* generate slotlist */
     uint32_t slotsSize = step->np;
     PSpart_slot_t *slots = umalloc(slotsSize * sizeof(PSpart_slot_t));
-
-    /* get cpus from job credential */
-    bool *coreMap = getCPUsForPartition(step);
-    if (!coreMap) {
-	mlog("%s: getting cpus for partition failed\n", __func__);
-	goto error;
-    }
-
-    /* find start indices of step is job global arrays */
-    uint32_t coreMapIndex = 0;
-    uint32_t nodeArrayIndex = 0;
-    uint32_t nodeArrayCount = 0;
-    if (!findStepStartIndices(step, &coreMapIndex, &nodeArrayIndex,
-		&nodeArrayCount)) {
-	goto error;
-    }
 
     /* set configured defaults for bind type and distributions */
     fdbg(PSSLURM_LOG_PART, "Masks before assigning defaults:"
@@ -1547,61 +1409,39 @@ bool setStepSlots(Step_t *step)
     fillHints(&hints, &step->env);
 
     for (uint32_t node = 0; node < step->nrOfNodes; node++) {
+
+	nodeinfo_t *nodeinfo = &(step->nodeinfos[node]);
+
 	int thread = 0;
-
-	/* get cpu count per node from job credential */
-	if (nodeArrayIndex >= cred->nodeArraySize) {
-	    mlog("%s: invalid step core array index %i, size %i\n",
-		 __func__, nodeArrayIndex, cred->nodeArraySize);
-	    goto error;
-	}
-
-	uint32_t coreCount;
-	coreCount = cred->coresPerSocket[nodeArrayIndex]
-		    * cred->socketsPerNode[nodeArrayIndex];
-
-	uint32_t threadsPerCore;
-	threadsPerCore = PSIDnodes_getNumThrds(step->nodes[node]) / coreCount;
-	if (threadsPerCore < 1) threadsPerCore = 1;
 
 	/* no cpu assigned yet */
 	int32_t lastCpu = -1;
 
 	/* initialize pininfo struct */
-	pininfo.usedHwThreads = ucalloc(coreCount * threadsPerCore
+	pininfo.usedHwThreads = ucalloc(nodeinfo->coreCount
+					* nodeinfo->threadsPerCore
 					* sizeof(*pininfo.usedHwThreads));
 	pininfo.lastUsedThread = -1;
 
 	/* handle --distribution */
 	fillDistributionStrategies(step->taskDist, &pininfo);
 
-	/* current node's parameters */
-	nodeinfo_t nodeinfo = {
-	    .id = step->nodes[node],
-	    .socketCount = cred->socketsPerNode[nodeArrayIndex],
-	    .coresPerSocket = cred->coresPerSocket[nodeArrayIndex],
-	    .threadsPerCore = threadsPerCore,
-	    .coreCount = coreCount,
-	    .threadCount = coreCount * threadsPerCore,
-	    .coreMap = coreMap + coreMapIndex
-	};
-
 	/* check cpu mapping */
-	for (uint32_t cpu = 0; cpu < nodeinfo.threadCount; cpu++) {
-	    if (PSIDnodes_unmapCPU(nodeinfo.id, cpu) < 0) {
+	for (uint32_t cpu = 0; cpu < nodeinfo->threadCount; cpu++) {
+	    if (PSIDnodes_unmapCPU(nodeinfo->id, cpu) < 0) {
 		flog("CPU %u not included in CPUmap for node %hu.\n",
-		     cpu, nodeinfo.id);
+		     cpu, nodeinfo->id);
 	    }
 	}
 
 	/* handle --ntasks-per-socket option
 	 * With node sharing enabled, this option is handled by the scheduler */
-	fillTasksPerSocket(&pininfo, &step->env, &nodeinfo);
+	fillTasksPerSocket(&pininfo, &step->env, nodeinfo);
 
 	/* handle hint "nomultithreads" */
 	if (hints.nomultithread) {
-	    nodeinfo.threadsPerCore = 1;
-	    nodeinfo.threadCount = nodeinfo.coreCount;
+	    nodeinfo->threadsPerCore = 1;
+	    nodeinfo->threadCount = nodeinfo->coreCount;
 	    fdbg(PSSLURM_LOG_PART, "hint 'nomultithread' set,"
 		 " setting nodeinfo.threadsPerCore = 1\n");
 	}
@@ -1611,10 +1451,8 @@ bool setStepSlots(Step_t *step)
 
 	    uint32_t tid = step->globalTaskIds[node][lTID];
 
-	    mdbg(PSSLURM_LOG_PART, "%s: node %u nodeid %u task %u tid"
-		 " %u coreMapIndex %u nodeArrayCount %u"
-		 " nodeArrayIndex %u\n", __func__, node, step->nodes[node],
-		 lTID, tid, coreMapIndex, nodeArrayCount, nodeArrayIndex);
+	    mdbg(PSSLURM_LOG_PART, "%s: node %u nodeid %u task %u tid %u\n",
+		    __func__, node, nodeinfo->id, lTID, tid);
 
 	    /* sanity check */
 	    if (tid > slotsSize) {
@@ -1632,26 +1470,17 @@ bool setStepSlots(Step_t *step)
 
 	    /* calc CPUset */
 	    setCPUset(&slots[tid].CPUset, step->cpuBindType, step->cpuBind,
-		    &nodeinfo, &lastCpu, &thread, step->globalTaskIdsLen[node],
+		    nodeinfo, &lastCpu, &thread, step->globalTaskIdsLen[node],
 		    threadsPerTask, lTID, &pininfo);
 
 	    mdbg(PSSLURM_LOG_PART, "%s: CPUset for task %u: %s\n", __func__,
 		    tid, PSCPU_print_part(slots[tid].CPUset,
-			    PSCPU_bytesForCPUs(nodeinfo.threadCount)));
+			    PSCPU_bytesForCPUs(nodeinfo->threadCount)));
 
 	    slots[tid].node = step->nodes[node];
 	}
 
 	ufree(pininfo.usedHwThreads);
-
-	/* update global core map index to first core of the next node */
-	coreMapIndex += coreCount;
-
-	nodeArrayCount++;
-	if (nodeArrayCount >= cred->nodeRepCount[nodeArrayIndex]) {
-	    nodeArrayIndex++;
-	    nodeArrayCount = 0;
-	}
     }
 
     /* count threads */
@@ -1666,12 +1495,9 @@ bool setStepSlots(Step_t *step)
     step->numHwThreads = numThreads;
     step->slots = slots;
 
-    ufree(coreMap);
-
     return true;
 
 error:
-    ufree(coreMap);
     ufree(slots);
     return false;
 
@@ -2299,9 +2125,6 @@ void test_pinning(uint16_t socketCount, uint16_t coresPerSocket,
 
     uint32_t threadCount = socketCount * coresPerSocket * threadsPerCore;
 
-    bool *coreMap = malloc(threadCount * sizeof(*coreMap));
-    for (size_t i = 0; i < threadCount; i++) coreMap[i] = true;
-
     nodeinfo_t nodeinfo = {
 	.id = 0, /* for debugging output only */
 	.socketCount = socketCount,
@@ -2309,8 +2132,10 @@ void test_pinning(uint16_t socketCount, uint16_t coresPerSocket,
 	.threadsPerCore = threadsPerCore,
 	.coreCount = socketCount * coresPerSocket,
 	.threadCount = threadCount,
-	.coreMap = coreMap
     };
+
+    PSCPU_setAll(nodeinfo.stepHWthreads);
+    PSCPU_setAll(nodeinfo.jobHWthreads);
 
     if(!initPinning()) {
 	flog("Pinning initialization failed!");
@@ -2419,7 +2244,5 @@ void test_pinning(uint16_t socketCount, uint16_t coresPerSocket,
 	printf("\n");
 
     }
-
-    free(coreMap);
 }
 /* vim: set ts=8 sw=4 tw=0 sts=4 noet :*/

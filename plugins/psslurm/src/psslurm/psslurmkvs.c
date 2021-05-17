@@ -2,6 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2016-2021 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2021 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -355,8 +356,11 @@ static bool addHwthreadsInfo(Step_t *step, const void *info)
 
     if (step->state == JOB_COMPLETE && !stepInfo->all) return false;
 
+    PSCPU_set_t *cpuset = &(step->nodeinfos[step->localNodeId].stepHWthreads);
+    short numCPUs = step->nodeinfos[step->localNodeId].threadCount;
     snprintf(line, sizeof(line), "- %s threads %u coremap '%s'-\n",
-	     strStepID(step), step->numHwThreads, step->stepCoreMap);
+	    strStepID(step), step->numHwThreads,
+	    PSCPU_print_part(*cpuset, PSCPU_bytesForCPUs(numCPUs)));
     addStrBuf(line, strBuf);
 
     if (!step->slots) {

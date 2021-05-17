@@ -2,6 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2017-2021 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2021 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -59,7 +60,7 @@ typedef struct {
     gid_t gid;			/**< group id of the BCast requestor */
     env_t *env;                 /**< environment of the BCast requestor */
     Forwarder_Data_t *fwdata;	/**< forwarder executing the request */
-    char *jobCoreMap;           /**< reserved cores for job as string list */
+    PSCPU_set_t hwthreads;      /**< hwthreads for the job on current node */
     char *sig;			/**< credential signature */
     size_t sigLen;		/**< signature length */
 } BCast_t;

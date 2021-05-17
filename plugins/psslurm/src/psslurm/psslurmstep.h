@@ -22,6 +22,7 @@
 #include "psslurmjobcred.h"
 #include "psslurmgres.h"
 #include "psslurmmsg.h"
+#include "psslurmnodeinfotype.h"
 
 typedef struct {
     uint32_t jobid;         /**< unique job identifier */
@@ -66,7 +67,8 @@ typedef struct {
     char *partition;		/**< name of the Slurm partition */
     JobCred_t *cred;		/**< job/step credentials */
     list_t gresList;		/**< list of generic resources  */
-    PSnodes_ID_t *nodes;	/**< all participating nodes in the step */
+    PSnodes_ID_t *nodes;	/**< IDs of all participating nodes in the step */
+    nodeinfo_t *nodeinfos;      /**< infos on all participating nodes in the step */
     uint32_t nrOfNodes;		/**< number of nodes */
     uint32_t numTasksPerBoard;  /**< number of tasks per board */
     uint32_t numTasksPerCore;   /**< number of tasks per core */
@@ -168,8 +170,6 @@ typedef struct {
     X11_Data_t x11;             /**< (vanilla) X11 support */
     char *tresBind;             /**< TRes binding (currently env set only) */
     char *tresFreq;             /**< TRes frequency (currently env set only) */
-    char *jobCoreMap;           /**< reserved cores for job as string list */
-    char *stepCoreMap;          /**< reserved cores for step as string list */
 /* helper variables, only used temporarily by specific functions */
     uint32_t rcvdPackInfos;	/**< number of received pack infos */
     uint32_t rcvdPackProcs;	/**< number of received pack processes */

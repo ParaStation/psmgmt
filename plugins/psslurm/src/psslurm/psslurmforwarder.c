@@ -70,9 +70,8 @@
 
 #define MPIEXEC_BINARY BINDIR "/mpiexec"
 
-#define STEP_CORE_BITMAP "__PSSLURM_STEP_CORE_BITMAP"
-
-#define JOB_CORE_BITMAP "__PSSLURM_JOB_CORE_BITMAP"
+#define STEP_CPU_MAP_ENVVAR "__PSSLURM_STEP_CPU_MAP"
+#define JOB_CPU_MAP_ENVVAR "__PSSLURM_JOB_CPU_MAP"
 
 /** Allocation structure of the forwarder */
 Alloc_t *fwAlloc = NULL;
@@ -86,11 +85,65 @@ Step_t *fwStep = NULL;
 /** Task structure of the forwarder */
 PStask_t *fwTask = NULL;
 
-static void setJailEnv(env_t *env, char *user, char *stepCoreMap,
-		       char *jobCoreMap)
+static void getCompactThreadList(StrBuffer_t *strBuf,
+	const PSCPU_set_t stepcpus)
 {
-    if (stepCoreMap) setenv(STEP_CORE_BITMAP, stepCoreMap, 1);
-    if (jobCoreMap) setenv(JOB_CORE_BITMAP, jobCoreMap, 1);
+    short numThreads = PSIDnodes_getNumThrds(PSC_getMyID());
+    bool mapped[numThreads];
+    for (short t = 0; t < numThreads; t++) {
+	short m = PSIDnodes_mapCPU(PSC_getMyID(), t);
+	if (m < 0 || m > numThreads) continue;
+	mapped[m] = PSCPU_isSet(stepcpus, t);
+    }
+
+    strBuf->buf = NULL;
+    char tmp[32];
+    int last = -1;
+    bool range = false;
+    for (short m = 0; m < numThreads; m++) {
+	if (mapped[m]) {
+	    if (range) {
+		if (last == m - 1) {
+		    /* range continues */
+		    last = m;
+		    continue;
+		}
+		// last was last value of a range
+		snprintf(tmp, sizeof(tmp), "-%i", last);
+		addStrBuf(tmp, strBuf);
+		range = false;
+	    }
+
+	    snprintf(tmp, sizeof(tmp), "%i", last);
+	    addStrBuf(tmp, strBuf);
+
+	    if (last == m - 1) range = true; /* last is starting a range */
+	}
+	if (!range && m != numThreads - 1) addStrBuf(",", strBuf);
+    }
+}
+
+static void setThreadsBitmapsEnv(const PSCPU_set_t *stepcpus,
+	const PSCPU_set_t *jobcpus)
+{
+    StrBuffer_t strBuf;
+    if (stepcpus) {
+	getCompactThreadList(&strBuf, *stepcpus);
+        setenv(STEP_CPU_MAP_ENVVAR, strBuf.buf, 1);
+	freeStrBuf(&strBuf);
+    }
+
+    if (jobcpus) {
+	getCompactThreadList(&strBuf, *jobcpus);
+        setenv(JOB_CPU_MAP_ENVVAR, strBuf.buf, 1);
+	freeStrBuf(&strBuf);
+    }
+}
+
+static void setJailEnv(env_t *env, const char *user,
+	const PSCPU_set_t *stepcpus, const PSCPU_set_t *jobcpus)
+{
+    setThreadsBitmapsEnv(stepcpus, jobcpus);
 
     char *id = envGet(env, "SLURM_JOBID");
     if (id) setenv("SLURM_JOBID", id, 1);
@@ -103,7 +156,7 @@ static int termJobJail(void *info)
 {
     Job_t *job = info;
 
-    setJailEnv(&job->env, job->username, NULL, job->jobCoreMap);
+    setJailEnv(&job->env, job->username, NULL, &(job->hwthreads));
     return PSIDhook_call(PSIDHOOK_JAIL_TERM, &job->fwdata->cPid);
 }
 
@@ -190,7 +243,9 @@ static int termStepJail(void *info)
 {
     Step_t *step = info;
 
-    setJailEnv(&step->env, step->username, step->stepCoreMap, step->jobCoreMap);
+    setJailEnv(&step->env, step->username,
+	    &(step->nodeinfos[step->localNodeId].stepHWthreads),
+	    &(step->nodeinfos[step->localNodeId].jobHWthreads));
     return PSIDhook_call(PSIDHOOK_JAIL_TERM, &step->fwdata->cPid);
 }
 
@@ -531,8 +586,9 @@ int handleHookExecFW(void *data)
     initFwPtr(task);
 
     if (fwStep) {
-	setenv(STEP_CORE_BITMAP, fwStep->stepCoreMap, 1);
-	setenv(JOB_CORE_BITMAP, fwStep->jobCoreMap, 1);
+	setThreadsBitmapsEnv(
+		&(fwStep->nodeinfos[fwStep->localNodeId].stepHWthreads),
+		&(fwStep->nodeinfos[fwStep->localNodeId].jobHWthreads));
     }
 
     return 0;
@@ -640,8 +696,8 @@ int handleExecClientUser(void *data)
     unsetenv("__PSI_LOGGER_UNBUFFERED");
     unsetenv("__MPIEXEC_DIST_START");
     unsetenv("MPIEXEC_VERBOSE");
-    unsetenv(STEP_CORE_BITMAP);
-    unsetenv(JOB_CORE_BITMAP);
+    unsetenv(STEP_CPU_MAP_ENVVAR);
+    unsetenv(JOB_CPU_MAP_ENVVAR);
 
     if (fwStep) startTaskPrologue(fwStep, task);
 
@@ -1039,7 +1095,9 @@ static int stepForwarderInit(Forwarder_Data_t *fwdata)
     step->fwdata = fwdata;
 
     initSerial(0, sendMsg);
-    setJailEnv(&step->env, step->username, step->stepCoreMap, step->jobCoreMap);
+    setJailEnv(&step->env, step->username,
+	    &(step->nodeinfos[step->localNodeId].stepHWthreads),
+	    &(step->nodeinfos[step->localNodeId].jobHWthreads));
 
 #ifdef HAVE_SPANK
     struct spank_handle spank = {
@@ -1248,7 +1306,7 @@ static int jobForwarderInit(Forwarder_Data_t *fwdata)
 
     PSIDhook_call(PSIDHOOK_PSSLURM_JOB_FWINIT, job->username);
 
-    setJailEnv(&job->env, job->username, NULL, job->jobCoreMap);
+    setJailEnv(&job->env, job->username, NULL, &(job->hwthreads));
 
     return IO_openJobPipes(fwdata);
 }
@@ -1369,7 +1427,7 @@ static int initBCastFW(Forwarder_Data_t *fwdata)
 {
     BCast_t *bcast = fwdata->userData;
 
-    setJailEnv(bcast->env, bcast->username, NULL, bcast->jobCoreMap);
+    setJailEnv(bcast->env, bcast->username, NULL, &(bcast->hwthreads));
 
     return 0;
 }
@@ -1447,7 +1505,9 @@ static int stepFollowerFWinit(Forwarder_Data_t *fwdata)
     initSerial(0, sendMsg);
 
     Step_t *step = fwdata->userData;
-    setJailEnv(&step->env, step->username, step->stepCoreMap, step->jobCoreMap);
+    setJailEnv(&step->env, step->username,
+	    &(step->nodeinfos[step->localNodeId].stepHWthreads),
+	    &(step->nodeinfos[step->localNodeId].jobHWthreads));
 
 #ifdef HAVE_SPANK
 

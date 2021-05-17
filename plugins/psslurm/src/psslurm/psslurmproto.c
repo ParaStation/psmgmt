@@ -56,6 +56,7 @@
 #include "psslurmpack.h"
 #include "psslurm.h"
 #include "psslurmfwcomm.h"
+#include "psslurmnodeinfo.h"
 
 #include "psslurmproto.h"
 
@@ -454,11 +455,6 @@ uint32_t getLocalID(PSnodes_ID_t *nodes, uint32_t nrOfNodes)
     return id;
 }
 
-static int32_t convCPU(int32_t cpu)
-{
-    return PSIDnodes_mapCPU(PSC_getMyID(), cpu);
-}
-
 static void handleLaunchTasks(Slurm_Msg_t *sMsg)
 {
     Step_t *step = NULL;
@@ -535,13 +531,12 @@ static void handleLaunchTasks(Slurm_Msg_t *sMsg)
 	goto ERROR;
     }
 
-    StrBuffer_t jobCoreList = { .buf = NULL };
-    hexBitstr2ListEx(step->cred->jobCoreBitmap, &jobCoreList, true, convCPU);
-    step->jobCoreMap = jobCoreList.buf;
-
-    StrBuffer_t stepCoreList = { .buf = NULL };
-    hexBitstr2ListEx(step->cred->stepCoreBitmap, &stepCoreList, true, convCPU);
-    step->stepCoreMap = stepCoreList.buf;
+    step->nodeinfos = getStepNodeinfoArray(step);
+    if (!step->nodeinfos) {
+	flog("failed to fill nodeinfos of step %s\n", strStepID(step));
+	sendSlurmRC(sMsg, ESLURMD_INVALID_JOB_CREDENTIAL);
+	goto ERROR;
+    }
 
     /* pack info */
     if (step->packNrOfNodes != NO_VAL) {
@@ -1110,13 +1105,14 @@ static void handleFileBCast(Slurm_Msg_t *sMsg)
 	    ufree(bcast->username);
 	    bcast->username = ustrdup(alloc->username);
 	    Step_t *step = findStepByJobid(bcast->jobid);
-	    if (step) bcast->jobCoreMap = ustrdup(step->jobCoreMap);
+	    if (step) PSCPU_copy(bcast->hwthreads,
+		    step->nodeinfos[step->localNodeId].stepHWthreads);
 	}
     } else {
 	bcast->uid = job->uid;
 	bcast->gid = job->gid;
 	bcast->env = &job->env;
-	bcast->jobCoreMap = ustrdup(job->jobCoreMap);
+	PSCPU_copy(bcast->hwthreads, job->hwthreads);
 	ufree(bcast->username);
 	bcast->username = ustrdup(job->username);
     }
@@ -1592,9 +1588,16 @@ static void handleBatchJobLaunch(Slurm_Msg_t *sMsg)
 	return;
     }
 
-    StrBuffer_t jobCoreList = { .buf = NULL };
-    hexBitstr2ListEx(job->cred->jobCoreBitmap, &jobCoreList, true, convCPU);
-    job->jobCoreMap = jobCoreList.buf;
+    /* set mask of hardware threads to use */
+    nodeinfo_t *nodeinfo;
+    nodeinfo = getNodeinfo(PSC_getMyID(), job, NULL);
+    if (!nodeinfo) {
+	mlog("%s: could not extract nodeinfo from credentials\n", __func__);
+	sendSlurmRC(sMsg, ESLURMD_INVALID_JOB_CREDENTIAL);
+	return;
+    }
+    PSCPU_copy(job->hwthreads, nodeinfo->jobHWthreads);
+    ufree(nodeinfo);
 
     job->hostname = ustrdup(getConfValueC(&Config, "SLURM_HOSTNAME"));
 

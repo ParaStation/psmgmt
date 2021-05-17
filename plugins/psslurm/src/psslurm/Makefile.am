@@ -1,7 +1,8 @@
 #
 # ParaStation
 #
-# Copyright (C) 2014-2020 ParTec Cluster Competence Center GmbH, Munich
+# Copyright (C) 2014-2021 ParTec Cluster Competence Center GmbH, Munich
+# Copyright (C) 2021 ParTec AG, Munich
 #
 # This file may be distributed under the terms of the Q Public License
 # as defined in the file LICENSE.QPL included in the packaging of this
@@ -50,7 +51,8 @@ psslurm_la_SOURCES = psslurm.c psslurm.h psslurmlog.c psslurmlog.h	\
 	psslurmmsg.h psslurmmsg.c psslurmtasks.h psslurmtasks.c		\
 	psslurmjobcred.h psslurmstep.c psslurmstep.h psslurmbcast.c	\
 	psslurmbcast.h psslurmalloc.c psslurmalloc.h psslurmaccount.h   \
-	psslurmaccount.c psslurmfwcomm.c psslurmfwcomm.h
+	psslurmaccount.c psslurmfwcomm.c psslurmfwcomm.h                \
+	psslurmnodeinfo.c psslurmnodeinfo.h psslurmjobcred.c
 
 if SPANK_ENABLED
 AM_CPPFLAGS += -I$(top_srcdir)/$(psslurm_dir)/spank

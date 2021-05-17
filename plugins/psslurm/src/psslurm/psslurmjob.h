@@ -2,6 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2014-2021 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2021 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -89,7 +90,7 @@ typedef struct {
     char *qos;              /**< qos (unused) */
     char *resName;          /**< reservation name (unused) */
     uint32_t profile;       /**< profile (unused) */
-    char *jobCoreMap;       /**< reserved cores for job as string list */
+    PSCPU_set_t hwthreads;  /**< hwthreads to use for job on current node */
 } Job_t;
 
 /**
