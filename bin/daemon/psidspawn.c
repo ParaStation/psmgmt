@@ -532,12 +532,10 @@ static void execClient(PStask_t *task)
 
     /* try to set supplementary groups if requested; failure is ignored */
     if (PSIDnodes_supplGrps(PSC_getMyID())) {
-	struct passwd *pw;
-	if ((pw = getpwuid(task->uid)) && pw->pw_name) {
-	    if (initgroups(pw->pw_name, task->gid) < 0) {
-		fprintf(stderr, "%s: Cannot set supplementary groups: %s\n",
-			__func__,  strerror(errno));
-	    }
+	struct passwd *pw = getpwuid(task->uid);
+	if (pw && pw->pw_name && initgroups(pw->pw_name, task->gid) < 0) {
+	    fprintf(stderr, "%s: Cannot set supplementary groups: %s\n",
+		    __func__,  strerror(errno));
 	}
     }
 
@@ -695,7 +693,7 @@ static int openChannel(PStask_t *task, int *fds, int fileNo)
 	}
     } else {
 	/* need to create as user to grant permission to access /dev/stdX */
-	if ((seteuid(task->uid)) == -1) {
+	if (seteuid(task->uid) == -1) {
 	    int eno = errno;
 	    PSID_warn(-1, eno, "%s: seteiud(%i)", __func__, task->uid);
 	    return eno;
@@ -705,7 +703,7 @@ static int openChannel(PStask_t *task, int *fds, int fileNo)
 	    PSID_warn(-1, errno, "%s: pipe(%s)", __func__, fdName);
 	    return eno;
 	}
-	if ((seteuid(0)) == -1) {
+	if (seteuid(0) == -1) {
 	    int eno = errno;
 	    PSID_warn(-1, eno, "%s: seteiud(0)", __func__);
 	    return eno;
