@@ -1,7 +1,8 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2009-2016 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2009-2021 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2021 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -14,6 +15,8 @@
 #ifndef __PSIDPLUGIN_H
 #define __PSIDPLUGIN_H
 
+#include <stdio.h>
+
 #include "pstask.h"
 
 /**
@@ -22,11 +25,17 @@
  * Initialize the plugin handling framework. This also registers the
  * necessary message handlers and loads the plugins as defined in the
  * configuration. Once the plugins are loaded the structures
- * describing the plugins to load is cleared.
+ * describing the plugins to load are cleared.
+ *
+ * The @a logfile parameter will be passed to all plugins in order to
+ * define the logging destiation. Plugins are expected to use this
+ * file for logging or to use syslog when NULL.
+ *
+ * @param logfile Logging destination to be used by plugins
  *
  * @return No return value.
  */
-void initPlugins(void);
+void initPlugins(FILE *logfile);
 
 /**
  * @brief Get unload-timeout for plugins

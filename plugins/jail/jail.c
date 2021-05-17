@@ -119,13 +119,13 @@ static int jailTerminate(void *info)
     return execScript(pid, termScript);
 }
 
-int initialize(void)
+int initialize(FILE *logfile)
 {
     int debugMask;
     char configFile[PATH_MAX];
 
     /* init logging facility */
-    initLogger(NULL);
+    initLogger(name, logfile);
 
     /* init the config facility */
     snprintf(configFile, sizeof(configFile), "%s/%s", PLUGINDIR, JAIL_CONFIG);

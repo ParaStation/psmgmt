@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2018-2020 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2018-2021 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -38,13 +38,13 @@ plugin_dep_t dependencies[] = {
 #endif
     { .name = NULL, .version = 0 } };
 
-int initialize(void)
+int initialize(FILE *logfile)
 {
     int debugMask;
     char configFile[PATH_MAX];
 
     /* init logging facility */
-    pspmix_initLogger(NULL);
+    pspmix_initLogger(name, logfile);
 
     /* init the config facility */
     snprintf(configFile, sizeof(configFile), "%s/%s", PLUGINDIR, PSPMIX_CONFIG);

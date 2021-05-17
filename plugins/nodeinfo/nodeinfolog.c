@@ -14,10 +14,10 @@
 
 logger_t *nodeInfoLogger = NULL;
 
-void initNodeInfoLogger(char *name)
+void initNodeInfoLogger(char *name, FILE *logfile)
 {
-    nodeInfoLogger = logger_init(name, NULL);
-    initPluginLogger(name, NULL);
+    nodeInfoLogger = logger_init(name, logfile);
+    initPluginLogger(name, logfile);
 }
 
 void maskNodeInfoLogger(uint32_t mask)

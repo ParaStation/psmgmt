@@ -39,11 +39,11 @@ int doCInfo(void *amsg)
 }
 
 
-int initialize(void)
+int initialize(FILE *logfile)
 {
     bool failed = false;
 
-    initPluginLogger(name, NULL);
+    initPluginLogger(name, logfile);
 
     /* register needed hooks */
     if (!PSIDhook_add(PSIDHOOK_RANDOM_DROP, doRandomDrop)) {

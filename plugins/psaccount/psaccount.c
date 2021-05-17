@@ -101,13 +101,13 @@ int getMainTimer(void)
     return mainTimer.tv_sec;
 }
 
-int initialize(void)
+int initialize(FILE *logfile)
 {
     struct utsname uts;
     char configfn[200];
 
     /* init logging facility */
-    initLogger(false);
+    initLogger(name, logfile);
 
     /* init all lists */
     initProc();

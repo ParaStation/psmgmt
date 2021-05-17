@@ -690,7 +690,7 @@ bool finalizeInit(void)
     return true;
 }
 
-int initialize(void)
+int initialize(FILE *logfile)
 {
     start_time = time(NULL);
 
@@ -702,7 +702,7 @@ int initialize(void)
 	initPluginLogger(NULL, lfile);
 	maskPluginLogger(PLUGIN_LOG_MALLOC);
     } else {
-	initPluginLogger("psslurm", NULL);
+	initPluginLogger("psslurm", logfile);
     }
 
     /* we need to have root privileges */

@@ -42,7 +42,7 @@ typedef enum {
  *
  * @return No return value
  */
-void initNodeInfoLogger(char *name);
+void initNodeInfoLogger(char *name, FILE *logfile);
 
 /**
  * @brief Set the debug mask of the logger

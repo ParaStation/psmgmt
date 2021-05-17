@@ -52,9 +52,9 @@ static void unregisterHooks(void)
 
 pluginConfig_t config = NULL;
 
-int initialize(void)
+int initialize(FILE *logfile)
 {
-    initPluginLogger(NULL, NULL);
+    initPluginLogger(name, logfile);
 
     pluginConfig_new(&config);
     pluginConfig_setDef(config, confDef);

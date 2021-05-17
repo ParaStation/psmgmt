@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2014-2016 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2014-2021 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -23,10 +23,10 @@ int requiredAPI = 109;
 plugin_dep_t dependencies[] = {
     { .name = NULL, .version = 0 } };
 
-int initialize(void)
+int initialize(FILE *logfile)
 {
     /* init the logger (log to syslog) */
-    initLogger(NULL);
+    initLogger(name, logfile);
 
     /* we need to have root privileges */
     if (getuid() != 0) {

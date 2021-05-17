@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2012-2014 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2012-2021 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -38,7 +38,7 @@ static void dummy_handler(DDBufferMsg_t *msg)
 }
 
 
-int initialize(void)
+int initialize(FILE *logfile)
 {
     oldStopHandler = PSID_registerMsg(PSP_DD_SENDSTOP, dummy_handler);
     oldContHandler = PSID_registerMsg(PSP_DD_SENDCONT, dummy_handler);

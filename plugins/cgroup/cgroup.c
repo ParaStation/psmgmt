@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2016-2020 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2016-2021 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -207,14 +207,13 @@ static void unregisterHooks(bool verbose)
     }
 }
 
-int initialize(void)
+int initialize(FILE *logfile)
 {
     int debugMask;
     char configFile[PATH_MAX];
 
     /* init logging facility */
-    initCgLogger(NULL);
-    initPluginLogger(NULL, NULL);
+    initCgLogger(name, logfile);
 
     /* init the config facility */
     snprintf(configFile, sizeof(configFile), "%s/%s", PLUGINDIR, CGROUP_CONFIG);

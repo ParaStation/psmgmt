@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2018-2020 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2018-2021 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -19,7 +19,6 @@
 #include "pspmixtypes.h"
 
 extern logger_t *pmixlogger;
-extern FILE *pmixlogfile;
 
 extern pthread_mutex_t __mlock;
 
@@ -80,11 +79,13 @@ const char *pspmix_getMsgTypeString(PSP_PSPMIX_t type);
  * logfile is different from NULL, the corresponding file will be used
  * for logging. Otherwise the syslog facility is used.
  *
+ * @param name Tag used for logging
+ *
  * @param logfile File to use for logging
  *
  * @return No return value
  */
-void pspmix_initLogger(FILE *logfile);
+void pspmix_initLogger(char *name, FILE *logfile);
 
 /**
  * @brief Set logger's debug mask

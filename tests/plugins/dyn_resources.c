@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2015-2020 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2015-2021 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -212,33 +212,31 @@ int handleDynRelease(void *dynResPtr)
 static void unregisterHooks(void)
 {
     /* unregister hooks */
-    if (!(PSIDhook_del(PSIDHOOK_XTND_PART_DYNAMIC, handleDynReservation))) {
+    if (!PSIDhook_del(PSIDHOOK_XTND_PART_DYNAMIC, handleDynReservation)) {
 	PSID_log(-1, "unregister 'PSIDHOOK_XTND_PART_DYNAMIC' failed\n");
     }
 
-    if (!(PSIDhook_del(PSIDHOOK_RELS_PART_DYNAMIC, handleDynRelease))) {
+    if (!PSIDhook_del(PSIDHOOK_RELS_PART_DYNAMIC, handleDynRelease)) {
 	PSID_log(-1, "unregister 'PSIDHOOK_RELS_PART_DYNAMIC' failed\n");
     }
 }
 
-int initialize(void)
+int initialize(FILE *logfile)
 {
-    int t;
-
     /* register needed hooks */
-    if (!(PSIDhook_add(PSIDHOOK_XTND_PART_DYNAMIC, handleDynReservation))) {
+    if (!PSIDhook_add(PSIDHOOK_XTND_PART_DYNAMIC, handleDynReservation)) {
 	PSID_log(-1, "%s: 'PSIDHOOK_XTND_PART_DYNAMIC' registration failed\n",
 		 name);
 	goto INIT_ERROR;
     }
 
-    if (!(PSIDhook_add(PSIDHOOK_RELS_PART_DYNAMIC, handleDynRelease))) {
+    if (!PSIDhook_add(PSIDHOOK_RELS_PART_DYNAMIC, handleDynRelease)) {
 	PSID_log(-1, "%s: 'PSIDHOOK_RELS_PART_DYNAMIC' registration failed\n",
 		 name);
 	goto INIT_ERROR;
     }
 
-    for (t=0; t<MAXTHREADS; t++) usedThreads[t] = 0;
+    for (int t = 0; t < MAXTHREADS; t++) usedThreads[t] = 0;
 
     PSID_log(-1, "%s: (%i) successfully started\n", name, version);
     return 0;

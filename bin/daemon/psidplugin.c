@@ -32,7 +32,7 @@
 
 #include "psidplugin.h"
 
-typedef int intFunc_t(void);
+typedef int initFunc_t(FILE *logfile);
 
 typedef void voidFunc_t(void);
 
@@ -49,7 +49,7 @@ typedef struct {
     list_t depends;          /**< List of plugins this one depends on */
     void *handle;            /**< Handle created by dlopen() */
     char *name;              /**< Actual name */
-    intFunc_t *initialize;   /**< Initializer (after dependencies resolved) */
+    initFunc_t *initialize;  /**< Initializer (after dependencies resolved) */
     voidFunc_t *finalize;    /**< Finalize (trigger plugin's stop) */
     voidFunc_t *cleanup;     /**< Cleanup (immediately before unload) */
     helpFunc_t *help;        /**< Some help message from the plugin */
@@ -161,6 +161,9 @@ static int pluginAPIVersion = 132;
 
 /** Grace period between finalize and unload on forcefully unloads */
 static int unloadTimeout = 4;
+
+/** logfile to be used by all plugins (unless they decide otherwise) */
+static FILE *pluginLogfile = NULL;
 
 static int finalizePlugin(plugin_t * plugin);
 static int unloadPlugin(plugin_t * plugin);
@@ -611,11 +614,15 @@ int PSIDplugin_getNum(void)
  *
  * @param trigger Plugin triggering the current plugin to be loaded
  *
+ * @param logfile Logging destination to be used by the plugin and all
+ * dependent plugins unless they decide otherwise
+ *
  * @return Upon success, i.e. if the plugin is loaded afterward, the
  * structure describing the plugin is given back. Or NULL, if the
  * plugin could not be loaded.
  */
-static plugin_t * loadPlugin(char *pName, int minVer, plugin_t * trigger)
+static plugin_t * loadPlugin(char *pName, int minVer, plugin_t * trigger,
+			     FILE *logfile)
 {
     char filename[PATH_MAX], *instDir;
     void *handle = NULL;
@@ -728,7 +735,7 @@ static plugin_t * loadPlugin(char *pName, int minVer, plugin_t * trigger)
 	    plugin_t *d;
 	    PSID_log(PSID_LOG_PLUGIN, "%s:   requires '%s' version %d\n",
 		     __func__, deps->name, deps->version);
-	    d = loadPlugin(deps->name, deps->version, plugin);
+	    d = loadPlugin(deps->name, deps->version, plugin, logfile);
 	    if (!d || addRef(&plugin->depends, d) < 0) {
 		plugin->finalized = true;
 		unloadPlugin(plugin);
@@ -739,7 +746,7 @@ static plugin_t * loadPlugin(char *pName, int minVer, plugin_t * trigger)
     }
 
     if (plugin->initialize) {
-	int ret = plugin->initialize();
+	int ret = plugin->initialize(logfile);
 
 	if (ret) {
 	    plugin->finalized = true;
@@ -1517,7 +1524,7 @@ static void msg_PLUGIN(DDTypedBufferMsg_t *inmsg)
     } else {
 	switch (inmsg->type) {
 	case PSP_PLUGIN_LOAD:
-	    if (!loadPlugin(inmsg->buf, 0, NULL)) ret = -1;
+	    if (!loadPlugin(inmsg->buf, 0, NULL, pluginLogfile)) ret = -1;
 	    break;
 	case PSP_PLUGIN_REMOVE:
 	    if (PSIDplugin_finalize(inmsg->buf) < 0) ret = ENODEV;
@@ -1728,7 +1735,7 @@ static void handlePluginsGuard(void)
 static void ignoreMsg(DDBufferMsg_t *inmsg)
 {}
 
-void initPlugins(void)
+void initPlugins(FILE *logfile)
 {
     /* Register msg-handlers/droppers for plugin load/unload */
     PSID_registerMsg(PSP_CD_PLUGIN, (handlerFunc_t)msg_PLUGIN);
@@ -1743,25 +1750,25 @@ void initPlugins(void)
     PSID_registerLoopAct(handlePluginsGuard);
 
     /* Handle list of plugins found in the configuration file */
-    if (!list_empty(&PSID_config->plugins)) {
-	list_t *p, *tmp;
+    list_t *p, *tmp;
+    list_for_each_safe(p, tmp, &PSID_config->plugins) {
+	nameList_t *ent = list_entry(p, nameList_t, next);
 
-	list_for_each_safe(p, tmp, &PSID_config->plugins) {
-	    nameList_t *ent = list_entry(p, nameList_t, next);
-
-	    list_del(&ent->next);
-	    if (!ent->name || ! *ent->name) {
-		PSID_log(-1, "%s: No name given\n", __func__);
-		free(ent);
-		continue;
-	    }
-
-	    PSID_log(PSID_LOG_PLUGIN, "%s: load '%s'\n", __func__, ent->name);
-	    if (!loadPlugin(ent->name, 0, NULL)) {
-		PSID_log(-1, "%s: loading '%s' failed.\n", __func__, ent->name);
-	    }
-	    if (ent->name) free(ent->name);
+	list_del(&ent->next);
+	if (!ent->name || ! *ent->name) {
+	    PSID_log(-1, "%s: No name given\n", __func__);
 	    free(ent);
+	    continue;
 	}
+
+	PSID_log(PSID_LOG_PLUGIN, "%s: load '%s'\n", __func__, ent->name);
+	if (!loadPlugin(ent->name, 0, NULL, logfile)) {
+	    PSID_log(-1, "%s: loading '%s' failed.\n", __func__, ent->name);
+	}
+	if (ent->name) free(ent->name);
+	free(ent);
     }
+
+    /* Store logfile for plugins loaded during runtime, too */
+    pluginLogfile = logfile;
 }

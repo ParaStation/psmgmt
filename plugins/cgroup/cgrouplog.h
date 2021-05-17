@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2016 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2016-2021 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -29,7 +29,7 @@ typedef enum {
  *
  * @return No return value.
  */
-void initCgLogger(FILE *logfile);
+void initCgLogger(char *name, FILE *logfile);
 
 /**
  * @brief Set the debug mask of the logger.

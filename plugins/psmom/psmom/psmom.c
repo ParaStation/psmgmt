@@ -583,7 +583,7 @@ static void unregisterHooks(int verbose)
     }
 }
 
-int initialize(void)
+int initialize(FILE *logfile)
 {
     static struct timeval time_now;
 
@@ -591,7 +591,7 @@ int initialize(void)
     isMaster = 1;
 
     /* init the logger (log to syslog) */
-    initLogger("psmom", NULL);
+    initLogger(name, logfile);
 
     /* we need to have root privileges, or the pbs_server will refuse our
      * connection attempt.

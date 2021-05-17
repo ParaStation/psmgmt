@@ -141,9 +141,9 @@ static bool evalValue(const char *key, const pluginConfigVal_t *val,
     return true;
 }
 
-int initialize(void)
+int initialize(FILE *logfile)
 {
-    initPluginLogger(name, NULL);
+    initPluginLogger(name, logfile);
 
     void *nodeInfoHandle = PSIDplugin_getHandle("nodeinfo");
     if (!nodeInfoHandle) {

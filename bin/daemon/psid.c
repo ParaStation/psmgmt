@@ -3,6 +3,7 @@
  *
  * Copyright (C) 1999-2004 ParTec AG, Karlsruhe
  * Copyright (C) 2005-2021 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2021 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -556,7 +557,7 @@ int main(int argc, const char *argv[])
     /* Save some space in order to modify the cmdline later on */
     PSC_saveTitleSpace(PSID_argc, PSID_argv, 1);
 
-    if (logfile!=stderr && logfile!=stdout) {
+    if (logfile != stderr && logfile != stdout) {
 	/* Daemonize only if neither stdout nor stderr is used for logging */
 	if (pipe(pipeFD) < 0) {
 	    PSID_exit(errno, "unable to create pipe");
@@ -706,7 +707,7 @@ int main(int argc, const char *argv[])
     initInfo();
     initEnvironment();
     /* Plugins shall be last since they use most of the ones before */
-    initPlugins();
+    initPlugins(logfile);
 
     /* Now we start all the hardware -- this might include the accounter */
     PSID_log(PSID_LOG_HW, "%s: starting up the hardware\n", __func__);

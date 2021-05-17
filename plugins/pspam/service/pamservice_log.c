@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2020 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2020-2021 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -13,10 +13,10 @@
 
 logger_t *pamservice_logger = NULL;
 
-void initLogger(FILE *logfile)
+void initLogger(char *name, FILE *logfile)
 {
-    pamservice_logger = logger_init("pamservice", logfile);
-    initPluginLogger(NULL, logfile);
+    pamservice_logger = logger_init(name, logfile);
+    initPluginLogger(name, logfile);
 }
 
 void setLoggerMask(int32_t mask)

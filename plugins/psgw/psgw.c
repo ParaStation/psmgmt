@@ -218,10 +218,10 @@ static bool initPluginHandles(void)
     return true;
 }
 
-int initialize(void)
+int initialize(FILE *logfile)
 {
-    /* init the logger (log to syslog) */
-    initLogger(NULL);
+    /* init the logger */
+    initLogger(name, logfile);
 
     /* we need to have root privileges */
     if (getuid()) {

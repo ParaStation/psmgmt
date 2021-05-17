@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2012 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2012-2021 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -45,7 +45,7 @@ static void handleMsg(DDBufferMsg_t *msg)
     PSID_log(-1, "%s: %s()\n", name, __func__);
 }
 
-int initialize(void)
+int initialize(FILE *logfile)
 {
     if (!silent && !quiet) PSID_log(-1, "%s: %s()\n", name, __func__);
 

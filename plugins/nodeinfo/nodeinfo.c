@@ -595,10 +595,10 @@ static void unregisterHooks(bool verbose)
     }
 }
 
-int initialize(void)
+int initialize(FILE *logfile)
 {
     /* init logging facility */
-    initNodeInfoLogger(name);
+    initNodeInfoLogger(name, logfile);
 
     /* init configuration (depends on psconfig) */
     initNodeInfoConfig();

@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2013-2016 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2013-2021 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -29,12 +29,10 @@ plugin_dep_t dependencies[] = {
     { .name = "psaccount", .version = 24 },
     { .name = NULL, .version = 0 } };
 
-int initialize(void)
+int initialize(FILE *logfile)
 {
-    void *handle = PSIDplugin_getHandle("psaccount");
-
     /* init the logger */
-    initLogger(NULL);
+    initLogger(name, logfile);
 
     /* set debug mask */
     // maskLogger(PSPMI_LOG_RECV | PSPMI_LOG_VERBOSE);
@@ -45,6 +43,7 @@ int initialize(void)
     initClient();
 
     /* get psaccount function handles */
+    void *handle = PSIDplugin_getHandle("psaccount");
     if (!handle) {
 	psAccountSwitchAccounting = NULL;
 	mlog("%s: getting psaccount handle failed\n", __func__);
