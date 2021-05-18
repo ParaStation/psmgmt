@@ -470,9 +470,7 @@ static int testExecutable(PStask_t *task, char **executable)
 
 static void restoreLimits(void)
 {
-    int i;
-
-    for (i=0; PSP_rlimitEnv[i].envName; i++) {
+    for (int i = 0; PSP_rlimitEnv[i].envName; i++) {
 	struct rlimit rlim;
 	char *envStr = getenv(PSP_rlimitEnv[i].envName);
 
