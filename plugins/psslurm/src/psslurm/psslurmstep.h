@@ -2,6 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2017-2021 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2021 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -67,15 +68,15 @@ typedef struct {
     char *partition;		/**< name of the Slurm partition */
     JobCred_t *cred;		/**< job/step credentials */
     list_t gresList;		/**< list of generic resources  */
-    PSnodes_ID_t *nodes;	/**< IDs of all participating nodes in the step */
-    nodeinfo_t *nodeinfos;      /**< infos on all participating nodes in the step */
+    PSnodes_ID_t *nodes;	/**< IDs of step's participating nodes */
+    nodeinfo_t *nodeinfos;      /**< infos on step's participating nodes */
     uint32_t nrOfNodes;		/**< number of nodes */
     uint32_t numTasksPerBoard;  /**< number of tasks per board */
     uint32_t numTasksPerCore;   /**< number of tasks per core */
     uint32_t numTasksPerTRes;   /**< number of tasks per TRes */
     uint32_t numTasksPerSocket; /**< number of tasks per socket */
     uint16_t threadsPerCore;    /**< threads per core */
-    char *slurmHosts;		/**< Slurm compressed host-list (SLURM_NODELIST) */
+    char *slurmHosts;		/**< Compressed host-list (SLURM_NODELIST) */
     uint32_t jobMemLimit;	/**< memory limit of job */
     uint32_t stepMemLimit;	/**< memory limit of step */
     task_dist_states_t taskDist;/**< task distribution (e.g. cyclic) */
@@ -129,7 +130,7 @@ typedef struct {
     Slurm_Msg_t srunIOMsg;      /**< socket for I/O messages to srun */
     Slurm_Msg_t srunControlMsg; /**< socket for control messages to srun */
     Slurm_Msg_t srunPTYMsg;     /**< socket for PTY message to srun */
-    uint8_t appendMode;	        /**< truncate(=0) or append(=1) stdout/stderr */
+    uint8_t appendMode;         /**< truncate(=0) or append(=1) stdout/stderr */
     uint16_t accType;		/**< type of accounting */
     char *nodeAlias;		/**< node alias */
     char *checkpoint;		/**< directory for checkpoints */
