@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2017-2020 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2017-2021 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -122,6 +122,10 @@ typedef spank_err_t psSpankGetItem_t(spank_t, spank_item_t, va_list);
 typedef int psSpankSymbolSup_t(const char *);
 
 typedef int psSpankGetContext_t(spank_t);
+
+typedef int psSpankOptRegister_t(spank_t, struct spank_option *);
+
+typedef int psSpankOptGet_t(spank_t, struct spank_option *, char **);
 
 #endif
 

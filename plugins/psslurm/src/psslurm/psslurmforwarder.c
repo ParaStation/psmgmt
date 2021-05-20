@@ -1029,6 +1029,8 @@ static int stepForwarderInit(Forwarder_Data_t *fwdata)
     };
     SpankCallHook(&spank);
 
+    SpankInitOpt(&spank);
+
     spank.hook = SPANK_INIT_POST_OPT;
     SpankCallHook(&spank);
 #endif
@@ -1430,6 +1432,8 @@ static int stepFollowerFWinit(Forwarder_Data_t *fwdata)
 	.hook = SPANK_INIT
     };
     SpankCallHook(&spank);
+
+    SpankInitOpt(&spank);
 
     spank.hook = SPANK_INIT_POST_OPT;
     SpankCallHook(&spank);

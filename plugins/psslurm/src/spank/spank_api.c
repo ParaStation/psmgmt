@@ -81,6 +81,18 @@ bool psSpank_Init(bool verbose)
 	return false;
     }
 
+    psSpankOptGet = dlsym(pluginHandle, "psSpankOptGet");
+    if (!psSpankOptGet) {
+	mlog("%s: loading psSpankOptGet() failed\n", __func__);
+	return false;
+    }
+
+    psSpankOptRegister = dlsym(pluginHandle, "psSpankOptRegister");
+    if (!psSpankOptRegister) {
+	mlog("%s: loading psSpankOptRegister() failed\n", __func__);
+	return false;
+    }
+
     if (verbose) mlog("spank api successfully started\n");
 
     return true;
@@ -218,7 +230,8 @@ spank_context_t spank_context (void)
  */
 spank_err_t spank_option_register (spank_t spank, struct spank_option *opt)
 {
-    return ESPANK_BAD_ARG;
+    if (!spank || !opt) return ESPANK_BAD_ARG;
+    return psSpankOptRegister(spank, opt);
 }
 
 /*
@@ -242,7 +255,7 @@ spank_err_t spank_option_getopt (spank_t spank, struct spank_option *opt,
 	                         char **optarg)
 {
     if (!spank || !opt) return ESPANK_BAD_ARG;
-    return ESPANK_NOT_AVAIL;
+    return psSpankOptGet(spank, opt, optarg);
 }
 
 /*  Get the value for the current job or task item specified,

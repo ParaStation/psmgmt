@@ -1219,13 +1219,25 @@ bool __unpackReqLaunchTasks(Slurm_Msg_t *sMsg, Step_t **stepPtr,
     for (uint32_t i=0; i<step->spankOptCount; i++) {
 	/* type */
 	getUint32(ptr, &step->spankOpt[i].type);
-	/* name */
-	step->spankOpt[i].name = getStringM(ptr);
+
+	/* option and plugin name */
+	step->spankOpt[i].optName = getStringM(ptr);
+
+	char *plug = strchr(step->spankOpt[i].optName, ':');
+	if (!plug) {
+	    flog("invalid spank plugin option %s\n", step->spankOpt[i].optName);
+	    step->spankOpt[i].pluginName = NULL;
+	} else {
+	    *(plug++) = '\0';
+	    step->spankOpt[i].pluginName = ustrdup(plug);
+	}
+
 	/* value */
 	step->spankOpt[i].val = getStringM(ptr);
 
-	fdbg(PSSLURM_LOG_SPANK, "spank option(%i): type %u name %s val %s\n",
-	     i, step->spankOpt[i].type, step->spankOpt[i].name,
+	fdbg(PSSLURM_LOG_SPANK, "spank option(%i): type %u opt-name %s "
+	     "plugin-name %s val %s\n", i, step->spankOpt[i].type,
+	     step->spankOpt[i].optName, step->spankOpt[i].pluginName,
 	     step->spankOpt[i].val);
     }
 

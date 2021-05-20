@@ -20,6 +20,7 @@
 #define GRES_MAGIC 0x438a34d4
 #define JOB_OPTIONS_TAG "job_options"
 #define KILL_JOB_BATCH 0x0001
+#define OPT_TYPE_SPANK 0x4400
 
 #define MAX_GOVERNOR_LEN 24
 #define MAX_STR_LEN	 (16 * 1024 * 1024)

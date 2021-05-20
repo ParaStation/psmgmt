@@ -76,6 +76,9 @@ void SpankSavePlugin(Spank_Plugin_t *def)
     def->name = NULL;
     def->type = NULL;
     def->version = 0;
+    def->opt = NULL;
+    def->optCount = 0;
+    def->optSize = 0;
     list_add_tail(&def->next, &SpankList);
 }
 
@@ -232,6 +235,70 @@ static void doCallHook(Spank_Plugin_t *plugin, spank_t spank, char *hook)
     if (res != SLURM_SUCCESS) {
 	flog("warning: hook %s from spank plugin %s returned %i\n", hook,
 	     plugin->name, res);
+    }
+}
+
+static Spank_Plugin_t *findPlugin(char *name)
+{
+    if (!name) return NULL;
+
+    list_t *s;
+    list_for_each(s, &SpankList) {
+	Spank_Plugin_t *plugin = list_entry(s, Spank_Plugin_t, next);
+	if (!strcmp(plugin->name, name)) return plugin;
+    }
+    return NULL;
+}
+
+static struct spank_option *findPluginOpt(Spank_Plugin_t *plugin, char *name)
+{
+    /* find option in spank_options table */
+    struct spank_option *opt = dlsym(plugin->handle, "spank_options");
+    for (int i=0; opt && opt[i].name; i++) {
+	if (!strcmp(opt[i].name, name)) {
+	    return opt;
+	}
+    }
+
+    /* find option in plugin table */
+    for (uint32_t i=0; i<plugin->optCount; i++) {
+	struct spank_option *opt = plugin->opt;
+	if (!strcmp(opt[i].name, name)) {
+	    return opt;
+	}
+    }
+
+    return NULL;
+}
+
+void __SpankInitOpt(spank_t spank, const char *func, const int line)
+{
+    Step_t *step = spank->step;
+    if (!step) {
+	flog("invalid step from %s:%i\n", func, line);
+	return;
+    }
+
+    for (uint32_t i=0; i<step->spankOptCount; i++) {
+	Spank_Opt_t stepOpt = step->spankOpt[i];
+
+	if (stepOpt.type != OPT_TYPE_SPANK) continue;
+
+	Spank_Plugin_t *plugin = findPlugin(stepOpt.pluginName);
+	if (!plugin) {
+	    flog("no plugin %s for option %s found\n", stepOpt.pluginName,
+		 stepOpt.optName);
+	    continue;
+	}
+
+	struct spank_option *opt = findPluginOpt(plugin, stepOpt.optName);
+	if (!opt) {
+	    flog("no option %s for plugin %s found\n", stepOpt.optName,
+		 stepOpt.pluginName);
+	}
+
+	/* execute option callback */
+	if (opt && opt[i].cb) opt[i].cb(opt[i].val, stepOpt.val, 1);
     }
 }
 
@@ -817,10 +884,9 @@ spank_err_t psSpankGetItem(spank_t spank, spank_item_t item, va_list ap)
 
 int psSpankSymbolSup(const char *symbol)
 {
-    int i;
     if (!symbol) return -1;
 
-    for (i=0; Spank_Hook_Table[i].strName; i++) {
+    for (int i=0; Spank_Hook_Table[i].strName; i++) {
 	if (!strcmp(symbol, Spank_Hook_Table[i].strName)) {
 	    return Spank_Hook_Table[i].sup;
 	}
@@ -833,6 +899,76 @@ int psSpankGetContext(spank_t spank)
     if (spank) return spank->context;
     if (current_spank) return current_spank->context;
     return S_CTX_ERROR;
+}
+
+int psSpankOptRegister(spank_t spank, struct spank_option *opt)
+{
+    if (spank->hook == SPANK_SLURMD_INIT) return ESPANK_SUCCESS;
+    if (spank->hook != SPANK_INIT) {
+	fdbg(PSSLURM_LOG_SPANK, "invalid call in hook %s from %s\n",
+	     Spank_Hook_Table[spank->hook].strName, spank->plugin->name);
+	return ESPANK_BAD_ARG;
+    }
+
+    Spank_Plugin_t *plugin = spank->plugin;
+    if (plugin->optCount+1 > plugin->optSize) {
+	plugin->optSize += 20;
+	plugin->opt = urealloc(plugin->opt,
+			       sizeof(*plugin->opt) * plugin->optSize);
+    }
+
+    struct spank_option *new = &plugin->opt[plugin->optCount];
+    new->name = ustrdup(opt->name);
+    new->arginfo = ustrdup(opt->arginfo);
+    new->usage = ustrdup(opt->usage);
+    new->has_arg = opt->has_arg;
+    new->val = opt->val;
+    new->cb = opt->cb;
+
+    plugin->optCount++;
+
+    fdbg(PSSLURM_LOG_SPANK, "save option %s val %i count %u\n", new->name,
+	 new->val, plugin->optCount);
+
+    return ESPANK_SUCCESS;
+}
+
+int psSpankOptGet(spank_t spank, struct spank_option *opt, char **retval)
+{
+    *retval = NULL;
+
+    switch (spank->hook) {
+	case SPANK_INIT:
+	case SPANK_SLURMD_INIT:
+	case SPANK_INIT_POST_OPT:
+	case SPANK_TASK_POST_FORK:
+	case SPANK_SLURMD_EXIT:
+	case SPANK_EXIT:
+	    fdbg(PSSLURM_LOG_SPANK, "invalid call in hook %s from %s\n",
+		Spank_Hook_Table[spank->hook].strName, spank->plugin->name);
+	    return ESPANK_NOT_AVAIL;
+    }
+
+    Step_t *step = spank->step;
+    if (!step) {
+	flog("invalid step from for opt %s\n", opt->name);
+	return ESPANK_NOEXIST;
+    }
+
+    for (uint32_t i=0; i<step->spankOptCount; i++) {
+	Spank_Opt_t stepOpt = step->spankOpt[i];
+
+	if (stepOpt.type != OPT_TYPE_SPANK) continue;
+
+	if (!strcmp(stepOpt.optName, opt->name)) {
+	    *retval = stepOpt.val;
+	    fdbg(PSSLURM_LOG_SPANK, "get option %s val %s\n",
+		 stepOpt.optName, stepOpt.val);
+	    return ESPANK_SUCCESS;
+	}
+    }
+
+    return ESPANK_NOEXIST;
 }
 
 /**

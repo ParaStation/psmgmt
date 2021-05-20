@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2017-2020 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2017-2021 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -34,6 +34,8 @@ psSpankUnsetenv_t *psSpankUnsetenv;
 psSpankGetItem_t *psSpankGetItem;
 psSpankSymbolSup_t *psSpankSymbolSup;
 psSpankGetContext_t *psSpankGetContext;
+psSpankOptRegister_t *psSpankOptRegister;
+psSpankOptGet_t *psSpankOptGet;
 #endif
 
 #endif /* __PSSLURM_HANDLES */

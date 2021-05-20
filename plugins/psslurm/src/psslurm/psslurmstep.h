@@ -49,7 +49,8 @@ typedef struct {
 
 typedef struct {
     uint32_t type;              /**< option type */
-    char *name;                 /**< option name */
+    char *optName;              /**< option name */
+    char *pluginName;           /**< plugin name */
     char *val;                  /**< option value */
 } Spank_Opt_t;
 

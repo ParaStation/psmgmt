@@ -218,7 +218,8 @@ bool deleteStep(uint32_t jobid, uint32_t stepid)
     ufree(step->packFollower);
 
     for (uint32_t i=0; i<step->spankOptCount; i++) {
-	ufree(step->spankOpt[i].name);
+	ufree(step->spankOpt[i].optName);
+	ufree(step->spankOpt[i].pluginName);
 	ufree(step->spankOpt[i].val);
     }
     ufree(step->spankOpt);

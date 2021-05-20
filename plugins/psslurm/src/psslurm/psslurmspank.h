@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2019-2020 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2019-2021 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -28,11 +28,14 @@ typedef struct {
     uint32_t version;           /**< plugin version */
     strv_t argV;                /**< argument vector from plugstack config */
     void *handle;               /**< handle returned by dlopen() */
+    struct spank_option *opt;   /**< registered spank options for plugin */
+    uint32_t optCount;          /**< number of registered spank options */
+    uint32_t optSize;           /**< the actual size of opt */
 } Spank_Plugin_t;
 
 typedef enum {
     SPANK_INIT = 0,             /**< called in forwarder initialize */
-    SPANK_SLURMD_INIT,          /**< unsupported, prevent changes to main psid*/
+    SPANK_SLURMD_INIT,          /**< called in main psid at psslurm init  */
     SPANK_JOB_PROLOG,           /**< called before prologue is started */
     SPANK_INIT_POST_OPT,        /**< unsupported, because of missing options */
     SPANK_LOCAL_USER_INIT,      /**< called in local (srun) context only */
@@ -42,7 +45,7 @@ typedef enum {
     SPANK_TASK_POST_FORK,       /**< called in parent after fork */
     SPANK_TASK_EXIT,            /**< exec when task exit status is available */
     SPANK_JOB_EPILOG,           /**< called before epilogue is started */
-    SPANK_SLURMD_EXIT,          /**< unsupported, prevent changes to main psid*/
+    SPANK_SLURMD_EXIT,          /**< called in main psid at psslurm finalize */
     SPANK_EXIT,                 /**< called before step forwarder exits */
     SPANK_END                   /**< mark end of hook table */
 } Spank_Hook_Calls_t;
@@ -100,6 +103,14 @@ void __SpankCallHook(spank_t spank, const char *func, const int line);
 #define SpankCallHook(spank) __SpankCallHook(spank, __func__, __LINE__)
 
 /**
+ * @brief Initialize Spank options in all registered Spank plugins
+ *
+ * @param spank Pointer to the spank handle
+ */
+void __SpankInitOpt(spank_t spank, const char *func, const int line);
+#define SpankInitOpt(spank) __SpankInitOpt(spank, __func__, __LINE__)
+
+/**
  * @brief Visitor function
  *
  * Visitor function used by @ref SpankTraversePlugins() in order to visit
@@ -155,6 +166,10 @@ spank_err_t psSpankGetItem(spank_t spank, spank_item_t item, va_list ap);
 int psSpankSymbolSup(const char *symbol);
 
 int psSpankGetContext(spank_t spank);
+
+int psSpankOptRegister(spank_t spank, struct spank_option *opt);
+
+int psSpankOptGet(spank_t spank, struct spank_option *opt, char **retval);
 
 /**
  * End of wrapper Spank functions
