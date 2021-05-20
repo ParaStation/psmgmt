@@ -475,7 +475,7 @@ void sendPElogueReq(char *jobid, char *sUid, char *sGid, uint32_t nrOfNodes,
 
 int main(const int argc, const char *argv[], char *envp[])
 {
-    uint32_t nrOfNodes = 0, envc = 0;
+    uint32_t nrOfNodes = 0;
     PSnodes_ID_t *nodes = NULL;
     env_t env, clone;
     char *filter[] = { "SLURM_SPANK_*", "_SLURM_SPANK_OPTION_*", "SLURM_JOBID",
@@ -520,21 +520,20 @@ int main(const int argc, const char *argv[], char *envp[])
     }
 
     /* build and filter environment */
-    while (envp[envc]) envc++;
     env.vars = envp;
-    env.cnt = env.size = envc;
+    env.cnt = 0;
+    for (uint32_t i = 0; envp[i]; i++) env.cnt++;
+    env.size = env.cnt;
     envClone(&env, &clone, filter);
     envSet(&clone, "SLURM_USER", getenv("SLURM_JOB_USER"));
     envSet(&clone, "SLURM_UID", getenv("SLURM_JOB_UID"));
 
     /* remove new "SPANK_" prefix from already prefixed variables
      * pspelogue needs to forward (juwels:#9228) */
-    envc = 0;
-    while (envp[envc]) {
-	if (!strncmp("SPANK_SLURM_SPANK_", envp[envc], 18)) {
-	    envPut(&clone, envp[envc] + 6);
+    for (uint32_t i = 0; envp[i]; i++) {
+	if (!strncmp("SPANK_SLURM_SPANK_", envp[i], 18)) {
+	    envPut(&clone, envp[i] + 6);
 	}
-	envc++;
     }
 
     /* convert Slurm hostlist into PS IDs */
