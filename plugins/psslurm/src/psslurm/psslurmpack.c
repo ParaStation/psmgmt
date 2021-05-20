@@ -460,8 +460,8 @@ bool __unpackJobCred(Slurm_Msg_t *sMsg, JobCred_t **credPtr,
     /* core array size */
     getUint16(ptr, &cred->nodeArraySize);
 
-    mdbg(PSSLURM_LOG_PART, "%s: totalCoreCount '%u' nodeArraySize '%u' "
-	 "stepCoreBitmap '%s'\n", __func__, cred->totalCoreCount,
+    mdbg(PSSLURM_LOG_PART, "%s: totalCoreCount %u nodeArraySize %u"
+	 " stepCoreBitmap '%s'\n", __func__, cred->totalCoreCount,
 	 cred->nodeArraySize, cred->stepCoreBitmap);
 
     if (cred->nodeArraySize) {

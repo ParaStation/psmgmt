@@ -376,7 +376,6 @@ JobCred_t *extractJobCred(list_t *gresList, Slurm_Msg_t *sMsg, bool verify)
     char *credStart = sMsg->ptr, *credEnd, *sigBuf = NULL;
     JobCred_t *cred = NULL;
     int sigBufLen, credLen;
-    uint32_t i;
 
     if (!unpackJobCred(sMsg, &cred, gresList, &credEnd)) {
 	flog("unpacking job credential failed\n");
@@ -384,15 +383,14 @@ JobCred_t *extractJobCred(list_t *gresList, Slurm_Msg_t *sMsg, bool verify)
     }
 
     mdbg(PSSLURM_LOG_PART, "%s:", __func__);
-    for (i=0; i<cred->nodeArraySize; i++) {
-	mdbg(PSSLURM_LOG_PART, " coresPerSocket '%u'", cred->coresPerSocket[i]);
+    for (uint32_t i = 0; i < cred->nodeArraySize; i++) {
+	mdbg(PSSLURM_LOG_PART, " coresPerSocket %u", cred->coresPerSocket[i]);
     }
-    for (i=0; i<cred->nodeArraySize; i++) {
-	mdbg(PSSLURM_LOG_PART, " socketsPerNode '%u'", cred->socketsPerNode[i]);
+    for (uint32_t i = 0; i < cred->nodeArraySize; i++) {
+	mdbg(PSSLURM_LOG_PART, " socketsPerNode %u", cred->socketsPerNode[i]);
     }
-    for (i=0; i<cred->nodeArraySize; i++) {
-	mdbg(PSSLURM_LOG_PART, " nodeRepCount '%u'",
-		cred->nodeRepCount[i]);
+    for (uint32_t i = 0; i < cred->nodeArraySize; i++) {
+	mdbg(PSSLURM_LOG_PART, " nodeRepCount %u", cred->nodeRepCount[i]);
     }
     mdbg(PSSLURM_LOG_PART, "\n");
 
