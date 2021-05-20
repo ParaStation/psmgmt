@@ -1,3 +1,52 @@
+Version psmgmt-5.1.41:
+======================
+------------------------------------------------------------------------
+45447105 | Michael Rauh | Thu, 20 May 2021 20:41:18 +0200
+
+Add support for slurm_spank_log()
+------------------------------------------------------------------------
+5fe03ac5 | Michael Rauh | Thu, 20 May 2021 20:32:44 +0200
+
+Add support for spank options
+
+ - includes the functions spank_option_register() and spank_option_getopt()
+ - additionally the symbol spank_options is supported
+------------------------------------------------------------------------
+5ee8efa8 | Michael Rauh | Thu, 20 May 2021 20:25:46 +0200
+
+Add spank options to test plugin
+------------------------------------------------------------------------
+2f4312ac | Michael Rauh | Fri, 14 May 2021 16:50:03 +0200
+
+Save spank options in step structure
+------------------------------------------------------------------------
+2736c6e9 | Norbert Eicker | Thu, 20 May 2021 18:38:51 +0200
+
+Better go to for() loops
+------------------------------------------------------------------------
+307d3cf0 | Norbert Eicker | Tue, 18 May 2021 15:34:16 +0200
+
+Ensure PSP_SMP_NODE_ID is kept (#2911, meluxina:#92)
+------------------------------------------------------------------------
+dda2805a | Norbert Eicker | Tue, 18 May 2021 15:33:56 +0200
+
+Streamlining
+------------------------------------------------------------------------
+9f4939d3 | Michael Rauh | Fri, 14 May 2021 15:53:17 +0200
+
+Let pspelogue remove new "SPANK_" prefix from already prefixed variables
+(juwels:#9228)
+------------------------------------------------------------------------
+69a3736e | Norbert Eicker | Wed, 12 May 2021 21:13:53 +0200
+
+Use const qualifier in PSCPU_getUnset(), too
+------------------------------------------------------------------------
+54ecbdfc | Stephan Krempel | Wed, 12 May 2021 18:36:34 +0200
+
+Use const qualifier in PSCPU functions
+------------------------------------------------------------------------
+
+
 Version psmgmt-5.1.40-8:
 ========================
 ------------------------------------------------------------------------

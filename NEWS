@@ -1,8 +1,20 @@
 psmgmt NEWS -- history of user-visible changes.
 
 Copyright (C) 2010-2021 ParTec Cluster Competence Center GmbH, Munich
+Copyright (C) 2021 ParTec AG, Munich
 
 Please send bug reports, questions and suggestions to <support@par-tec.com>
+
+
+Version 5.1.41:
+===============
+Bugfixes:
+ - pspelogue removes "SPANK_" prefix from already prefixed variables (jwt:#9228)
+ - Ensure PSP_SMP_NODE_ID is kept (#2911, meluxina:#92)
+Enhancements:
+ - Add support for spank options (spank_option_register(),
+   spank_option_getopt(), and spank_options symbol)
+ - Add support for slurm_spank_log()
 
 
 Version 5.1.40-8:
