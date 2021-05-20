@@ -2,6 +2,7 @@
 #include <sys/types.h>
 #include <stdint.h>
 #include <unistd.h>
+#include <string.h>
 
 #include <slurm/spank.h>
 
@@ -49,6 +50,15 @@ static const struct {
     { SPANK_END,                    NULL			       }
 };
 
+static int hookCount = 0;
+
+static int optArg = -1;
+
+static int optArgAdd = -1;
+
+static int opt_process(int val, const char *optarg, int remote);
+static int opt_process_add(int val, const char *optarg, int remote);
+
 static void getAllEnv(spank_t sp, const char *func)
 {
     char buf[1024];
@@ -64,17 +74,78 @@ static void getAllEnv(spank_t sp, const char *func)
     }
 }
 
+/*
+Spank options structure:
+
+    name
+	is the name of the option. Its length is limited to
+	SPANK_OPTION_MAXLEN defined in <slurm/spank.h>
+    arginfo
+	is a description of the argument to the option,
+	if the option does take an argument.
+    usage
+	is a short description of the option suitable for --help output.
+    has_arg
+	0 if option takes no argument, 1 if option takes an argument,
+	and 2 if the option takes an optional argument. (See getopt_long (3)).
+    val
+	A plugin-local value to return to the option callback function.
+    cb
+	A callback function that is invoked when the plugin option is
+	registered with Slurm. spank_opt_cb_f is typedef'd in <slurm/spank.h>
+*/
+struct spank_option spank_options[] =
+{
+    { "testopt",
+      "[yes|no]",
+      "Forward a test option to spank.",
+      2,
+      1,
+      opt_process },
+    { "testopt2",
+      "[yes|no]",
+      "Forward a second test option to spank.",
+      2,
+      2,
+      opt_process },
+    SPANK_OPTIONS_TABLE_END
+};
+
+struct spank_option additional_options[] =
+{
+    { "testaddopt",
+      "[yes|no]",
+      "Forward additional options to spank.",
+      2,
+      3,
+      NULL },
+    { "testaddopt2",
+      "[yes|no]",
+      "Forward second additional options to spank.",
+      2,
+      4,
+      opt_process_add },
+    { "testaddopt3",
+      "[yes|no]",
+      "Forward second additional options to spank.",
+      2,
+      5,
+      opt_process_add },
+    SPANK_OPTIONS_TABLE_END
+};
+
 static int testHook(spank_t sp, int ac, char **av, const char *func)
 {
     spank_err_t ret;
     int i;
+    hookCount++;
 
-    slurm_info("%s: local uid %i gid %i pid %i isremote %i", func,
-	       getuid(), getgid(), getpid(), spank_remote(sp));
+    slurm_info("%s: hook-count %u static-opt: %i local uid %i gid %i pid %i "
+	       "isremote %i", func, hookCount, optArg, getuid(), getgid(),
+	       getpid(), spank_remote(sp));
 
     /* set environment */
-    ret = spank_setenv(sp, func, "psslurm-test", 1);
-    if (ret != ESPANK_SUCCESS) {
+    ret = spank_setenv(sp, func, "psslurm-test", 1); if (ret != ESPANK_SUCCESS) {
 	slurm_info("%s: spank_setenv failed: %i, %s", func, ret,
 		   spank_strerror(ret));
     }
@@ -314,80 +385,133 @@ static int testHook(spank_t sp, int ac, char **av, const char *func)
     return ESPANK_SUCCESS;
 }
 
+static int opt_process(int val, const char *optarg, int remote)
+{
+    slurm_info("%s: val: %i optarg: %s remote: %i", __func__, val, optarg,
+	       remote);
+
+    if (!optarg) {
+	optArg = -2;
+    } else if (!strcmp(optarg, "yes")) {
+	optArg = 1;
+    } else if (!strcmp(optarg, "no")) {
+	optArg = 0;
+    }
+
+    return ESPANK_SUCCESS;
+}
+
+static int opt_process_add(int val, const char *optarg, int remote)
+{
+    slurm_info("%s: val: %i optarg: %s remote: %i", __func__, val, optarg,
+	       remote);
+
+    if (!optarg) {
+	optArgAdd = -2;
+    } else if (!strcmp(optarg, "yes")) {
+	optArgAdd = 1;
+    } else if (!strcmp(optarg, "no")) {
+	optArgAdd = 0;
+    }
+
+    return ESPANK_SUCCESS;
+}
+
+static void printOpt(spank_t sp, const char *func)
+{
+    /* spank options */
+    char *optGet;
+    spank_err_t ret = spank_option_getopt(sp, &spank_options[0], &optGet);
+    slurm_info("%s: get option: testopt=%s ret: %s\n", func, optGet,
+	       spank_strerror(ret));
+
+    optGet = NULL;
+    ret = spank_option_getopt(sp, &additional_options[0], &optGet);
+    slurm_info("%s: get option: testaddopt=%s ret: %s\n", func, optGet,
+	       spank_strerror(ret));
+
+    optGet = NULL;
+    ret = spank_option_getopt(sp, &additional_options[1], &optGet);
+    slurm_info("%s: get option: testaddopt2=%s ret: %s\n", func, optGet,
+	       spank_strerror(ret));
+
+    optGet = NULL;
+    ret = spank_option_getopt(sp, &additional_options[2], &optGet);
+    slurm_info("%s: get option: testaddopt3=%s ret: %s\n", func, optGet,
+	       spank_strerror(ret));
+}
+
 int slurm_spank_init(spank_t sp, int ac, char **av)
 {
-    testHook(sp, ac, av, __func__);
-    return ESPANK_SUCCESS;
+    for (int i=0; additional_options[i].name != NULL; i++) {
+	slurm_info("register option %i\n", i);
+	spank_option_register(sp, &additional_options[i]);
+    }
+
+    return testHook(sp, ac, av, __func__);
 }
 
 int slurm_spank_slurmd_init(spank_t sp, int ac, char **av)
 {
-    testHook(sp, ac, av, __func__);
-    return ESPANK_SUCCESS;
+    slurm_info("%s: never be here!\n", __func__);
+    return testHook(sp, ac, av, __func__);
 }
 
 int slurm_spank_job_prolog(spank_t sp, int ac, char **av)
 {
-    testHook(sp, ac, av, __func__);
-    return ESPANK_SUCCESS;
+    return testHook(sp, ac, av, __func__);
 }
 
 int slurm_spank_init_post_opt(spank_t sp, int ac, char **av)
 {
-    testHook(sp, ac, av, __func__);
-    return ESPANK_SUCCESS;
+    return testHook(sp, ac, av, __func__);
 }
 
 int slurm_spank_local_user_init(spank_t sp, int ac, char **av)
 {
-    testHook(sp, ac, av, __func__);
-    return ESPANK_SUCCESS;
+    return testHook(sp, ac, av, __func__);
 }
 
 int slurm_spank_user_init(spank_t sp, int ac, char **av)
 {
-    testHook(sp, ac, av, __func__);
-    return ESPANK_SUCCESS;
+    printOpt(sp, __func__);
+    return testHook(sp, ac, av, __func__);
 }
 
 int slurm_spank_task_init_privileged(spank_t sp, int ac, char **av)
 {
-    testHook(sp, ac, av, __func__);
-    return ESPANK_SUCCESS;
+    printOpt(sp, __func__);
+    return testHook(sp, ac, av, __func__);
 }
 
 int slurm_spank_task_init(spank_t sp, int ac, char **av)
 {
-    testHook(sp, ac, av, __func__);
-    return ESPANK_SUCCESS;
+    printOpt(sp, __func__);
+    return testHook(sp, ac, av, __func__);
 }
 
 int slurm_spank_task_post_fork(spank_t sp, int ac, char **av)
 {
-    testHook(sp, ac, av, __func__);
-    return ESPANK_SUCCESS;
+    return testHook(sp, ac, av, __func__);
 }
 
 int slurm_spank_task_exit(spank_t sp, int ac, char **av)
 {
-    testHook(sp, ac, av, __func__);
-    return ESPANK_SUCCESS;
+    printOpt(sp, __func__);
+    return testHook(sp, ac, av, __func__);
 }
 
 int slurm_spank_job_epilog(spank_t sp, int ac, char **av)
 {
-    testHook(sp, ac, av, __func__);
-    return ESPANK_SUCCESS;
+    return testHook(sp, ac, av, __func__);
 }
 
 int slurm_spank_slurmd_exit(spank_t sp, int ac, char **av)
 {
-    testHook(sp, ac, av, __func__);
-    return ESPANK_SUCCESS;
+    return testHook(sp, ac, av, __func__);
 }
 
 int slurm_spank_exit(spank_t sp, int ac, char **av)
 {
-    testHook(sp, ac, av, __func__);
-    return ESPANK_SUCCESS;
+    return testHook(sp, ac, av, __func__);
 }
