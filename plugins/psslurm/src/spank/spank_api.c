@@ -102,6 +102,12 @@ bool psSpank_Init(bool verbose)
  ** The following functions are directly called by Spank plugins
  ***/
 
+void slurm_spank_log(const char *, ...) __attribute__ ((format (printf, 1, 2)));
+void slurm_spank_log(const char *fmt, ...)
+{
+    PSLOG(SPANK_LOG_ERROR, psSpank_logger, fmt);
+}
+
 void slurm_info(const char *, ...) __attribute__ ((format (printf, 1, 2)));
 void slurm_info(const char *fmt, ...)
 {
