@@ -695,7 +695,7 @@ void IO_redirectJob(Forwarder_Data_t *fwdata, Job_t *job)
     close(fwdata->stdErr[0]);
 
     /* stdin */
-    if (!(strlen(job->stdIn))) {
+    if (!strlen(job->stdIn)) {
 	inFile = ustrdup("/dev/null");
     } else {
 	inFile = addCwd(job->cwd, IO_replaceJobSymbols(job, job->stdIn));
