@@ -54,8 +54,8 @@ typedef struct {
     uint16_t *coresPerSocket;   /**< # of cores per socket (node indexed) */
     uint16_t *socketsPerNode;   /**< # of sockets per node (node indexed) */
     uint32_t *nodeRepCount;     /**< repetitions of nodes (node indexed)
-                                     Specifies how ofter each node index has
-                                     to be used. If multiple successing nodes
+                                     Specifies how often each node index has
+                                     to be used. If multiple succeeding nodes
                                      do have the same cores and sockets, they
                                      get one common index and this array holds
                                      how many nodes are on the same index */

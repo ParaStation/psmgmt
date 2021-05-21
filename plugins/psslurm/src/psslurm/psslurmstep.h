@@ -136,7 +136,7 @@ typedef struct {
     char *checkpoint;		/**< directory for checkpoints */
     uint8_t x11forward;		/**< X11 forwarding */
     uint32_t fwInitCount;	/**< track INIT messages from logger to fw */
-    uint32_t fwFinCount;	/**< track FINALZE message from fw to logger */
+    uint32_t fwFinCount;	/**< track FINALIZE message from fw to logger */
     bool timeout;		/**< set to true if step ran into a timeout */
     uint8_t ioCon;		/**< track srun I/O connection state */
     uint32_t localNodeId;	/**< local node ID for this step */
