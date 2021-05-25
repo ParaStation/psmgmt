@@ -63,13 +63,16 @@ static bool node_iter_init(node_iterator *iter, const Job_t *job,
 	return false;
     }
 
+    JobCred_t *cred;
     if (job) {
 	iter->nrOfNodes = job->nrOfNodes;
 	iter->nodes = job->nodes;
+	cred = job->cred;
     }
     else {
 	iter->nrOfNodes = step->nrOfNodes;
 	iter->nodes = step->nodes;
+	cred = step->cred;
     }
 
     iter->coreMapIndex = 0;
@@ -77,15 +80,15 @@ static bool node_iter_init(node_iterator *iter, const Job_t *job,
     iter->nodeArrayCount = 0;
 
     /* get cpus from job credential */
-    iter->stepCoreMap = getCPUsetFromCoreBitmap(step->cred->totalCoreCount,
-						step->cred->stepCoreBitmap);
+    iter->stepCoreMap = getCPUsetFromCoreBitmap(cred->totalCoreCount,
+						cred->stepCoreBitmap);
     if (!iter->stepCoreMap) {
 	mlog("%s: getting CPU set for step failed\n", __func__);
 	return false;
     }
 
-    iter->jobCoreMap = getCPUsetFromCoreBitmap(step->cred->totalCoreCount,
-					       step->cred->jobCoreBitmap);
+    iter->jobCoreMap = getCPUsetFromCoreBitmap(cred->totalCoreCount,
+					       cred->jobCoreBitmap);
     if (!iter->jobCoreMap) {
 	mlog("%s: getting CPU set for job failed\n", __func__);
 	ufree(iter->stepCoreMap);
@@ -94,10 +97,10 @@ static bool node_iter_init(node_iterator *iter, const Job_t *job,
 
     iter->index = -1;
 
-    iter->nodeArraySize = step->cred->nodeArraySize;
-    iter->coresPerSocket = step->cred->coresPerSocket;
-    iter->socketsPerNode = step->cred->socketsPerNode;
-    iter->nodeRepCount = step->cred->nodeRepCount;
+    iter->nodeArraySize = cred->nodeArraySize;
+    iter->coresPerSocket = cred->coresPerSocket;
+    iter->socketsPerNode = cred->socketsPerNode;
+    iter->nodeRepCount = cred->nodeRepCount;
 
     iter->initialized = true;
 
