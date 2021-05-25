@@ -52,7 +52,7 @@ void envDestroy(env_t *env)
  * @return If an entry with key @a name exists, its index is
  * returned. Otherwise -1 is returned.
  */
-static int getIndex(env_t *env, const char *name)
+static int getIndex(const env_t *env, const char *name)
 {
     size_t len;
     uint32_t i;
@@ -105,7 +105,7 @@ static bool envDoSet(env_t *env, char *envstring)
     return true;
 }
 
-char *envGet(env_t *env, const char *name)
+char *envGet(const env_t *env, const char *name)
 {
     int idx = getIndex(env, name);
 
@@ -113,13 +113,13 @@ char *envGet(env_t *env, const char *name)
     return strchr(env->vars[idx], '=') + 1;
 }
 
-char *envGetIndex(env_t *env, uint32_t idx)
+char *envGetIndex(const env_t *env, uint32_t idx)
 {
     if (idx >= env->cnt) return NULL;
     return env->vars[idx];
 }
 
-bool envGetUint32(env_t *env, const char *name, uint32_t *val)
+bool envGetUint32(const env_t *env, const char *name, uint32_t *val)
 {
     char *valc = envGet(env, name);
 
@@ -186,7 +186,7 @@ static bool envSetFilter(env_t *env, const char *envstring, char **filter)
     return true;
 }
 
-bool envClone(env_t *env, env_t *clone, char **filter)
+bool envClone(const env_t *env, env_t *clone, char **filter)
 {
     uint32_t i;
 
@@ -201,7 +201,7 @@ bool envClone(env_t *env, env_t *clone, char **filter)
     return true;
 }
 
-bool envCat(env_t *env1, env_t *env2, char **filter)
+bool envCat(env_t *env1, const env_t *env2, char **filter)
 {
     uint32_t i, count = env1->cnt + env2->cnt + 1;
 

@@ -43,7 +43,7 @@ void envInit(env_t *env);
  * @return If an entry with key @a name is found, the corresponding
  * value is returned. Otherwise NULL is returned.
  */
-char *envGet(env_t *env, const char *name);
+char *envGet(const env_t *env, const char *name);
 
 /**
  * @brief Get entry from environment
@@ -57,7 +57,7 @@ char *envGet(env_t *env, const char *name);
  * @return If the index is value the full entry of the form
  * <key>=<value> is returned. Otherwise NULL is returned.
  */
-char *envGetIndex(env_t *env, uint32_t idx);
+char *envGetIndex(const env_t *env, uint32_t idx);
 
 /**
  * @brief Add to environment
@@ -136,7 +136,7 @@ bool envPut(env_t *env, const char *envString);
  * value could be converted to an unsigned integer true is
  * returned. Otherwise false is returned.
  */
-bool envGetUint32(env_t *env, const char *name, uint32_t *val);
+bool envGetUint32(const env_t *env, const char *name, uint32_t *val);
 
 /**
  * @brief Remove from environment
@@ -176,7 +176,7 @@ void envUnsetIndex(env_t *env, uint32_t idx);
  * returned. Or false in case of error. In the latter case @a clone
  * might be incomplete upon return and contain only parts of @a env.
  */
-bool envClone(env_t *env, env_t *clone, char **filter);
+bool envClone(const env_t *env, env_t *clone, char **filter);
 
 /**
  * @brief Concatenate two environments
@@ -203,6 +203,6 @@ bool envClone(env_t *env, env_t *clone, char **filter);
  * is returned. Or false in case of error. In the latter case @a env1
  * might be modified upon return and contain parts of @a env2.
  */
-bool envCat(env_t *env1, env_t *env2, char **filter);
+bool envCat(env_t *env1, const env_t *env2, char **filter);
 
 #endif  /* __PSENV_H */
