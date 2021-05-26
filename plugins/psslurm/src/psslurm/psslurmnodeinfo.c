@@ -197,7 +197,7 @@ flog("node id %hu threadsPerCore %hu\n", nodeid, threadsPerCore);
 
     PSCPU_clrAll(iter->info.jobHWthreads);
     coreMapToHWthreads(&(iter->info.jobHWthreads),
-	    iter->stepCoreMap + iter->coreMapIndex, coreCount, threadsPerCore);
+	    iter->jobCoreMap + iter->coreMapIndex, coreCount, threadsPerCore);
 
     /* update global core map index to first core of the next node */
     iter->coreMapIndex += coreCount;
