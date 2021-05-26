@@ -197,6 +197,7 @@ static void getCompactThreadList(StrBuffer_t *strBuf,
 {
     short numThreads = PSIDnodes_getNumThrds(PSC_getMyID());
     bool mapped[numThreads];
+    memset(mapped, 0, sizeof(mapped));
     for (short t = 0; t < numThreads; t++) {
 	short m = PSIDnodes_mapCPU(PSC_getMyID(), t);
 	if (m < 0 || m > numThreads) continue;
@@ -204,30 +205,50 @@ static void getCompactThreadList(StrBuffer_t *strBuf,
     }
 
     strBuf->buf = NULL;
+    strBuf->strLen = 0;
     char tmp[32];
     int last = -1;
     bool range = false;
     for (short m = 0; m < numThreads; m++) {
-	if (mapped[m]) {
-	    if (range) {
-		if (last == m - 1) {
-		    /* range continues */
-		    last = m;
-		    continue;
-		}
-		// last was last value of a range
-		snprintf(tmp, sizeof(tmp), "-%i", last);
-		addStrBuf(tmp, strBuf);
-		range = false;
-	    }
+	if (!mapped[m]) continue;
 
-	    snprintf(tmp, sizeof(tmp), "%i", last);
-	    addStrBuf(tmp, strBuf);
-
-	    if (last == m - 1) range = true; /* last is starting a range */
+	if (last < 0) {
+	    /* found first CPU */
+	    last = m;
+	    continue;
 	}
-	if (!range && m != numThreads - 1) addStrBuf(",", strBuf);
+
+	if (!range) {
+	    /* if we are not in a range, last is solo or started a range */
+	    snprintf(tmp, sizeof(tmp), "%s%i", strBuf->strLen ? "," : "", last);
+	    addStrBuf(tmp, strBuf);
+	}
+
+	/* check if m continues a range */
+	if (last == m - 1) {
+	    range = true;
+	    last = m;
+	    continue;
+	}
+
+	/* last is solo or finalized a range */
+	if (range) {
+	    /* last finalized a range */
+	    snprintf(tmp, sizeof(tmp), "-%i", last);
+	    addStrBuf(tmp, strBuf);
+	    range = false;
+	}
+
+	last = m;
     }
+
+    /* write last assigned thread */
+    if (range) {
+	snprintf(tmp, sizeof(tmp), "-%d", last);
+    } else {
+	snprintf(tmp, sizeof(tmp), "%s%i", strBuf->strLen ? "," : "", last);
+    }
+    addStrBuf(tmp, strBuf);
 }
 
 static void setThreadsBitmapsEnv(const PSCPU_set_t *stepcpus,
