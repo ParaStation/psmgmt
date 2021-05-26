@@ -52,11 +52,11 @@ bool *getCPUsetFromCoreBitmap(uint32_t total, const char *bitmap)
 	}
     }
 
-    mdbg(PSSLURM_LOG_PART, "%s: cores '%s' coreMap '", __func__, bitstr);
-    for (uint32_t i = 0; i < total; i++) {
-	mdbg(PSSLURM_LOG_PART, "%i", coreMap[i]);
+    if (psslurmlogger->mask & PSSLURM_LOG_PART) {
+	flog("cores '%s' coreMap '", bitstr);
+	for (uint32_t i = 0; i < total; i++) mlog("%i", coreMap[i]);
+        mdbg(PSSLURM_LOG_PART, "'\n");
     }
-    mdbg(PSSLURM_LOG_PART, "'\n");
 
     return coreMap;
 }
