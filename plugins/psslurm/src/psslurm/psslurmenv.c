@@ -192,6 +192,76 @@ static char *getTasksPerNode(uint16_t tasksPerNode[], uint32_t nrOfNodes)
     return buffer;
 }
 
+static void getCompactThreadList(StrBuffer_t *strBuf,
+	const PSCPU_set_t stepcpus)
+{
+    short numThreads = PSIDnodes_getNumThrds(PSC_getMyID());
+    bool mapped[numThreads];
+    for (short t = 0; t < numThreads; t++) {
+	short m = PSIDnodes_mapCPU(PSC_getMyID(), t);
+	if (m < 0 || m > numThreads) continue;
+	mapped[m] = PSCPU_isSet(stepcpus, t);
+    }
+
+    strBuf->buf = NULL;
+    char tmp[32];
+    int last = -1;
+    bool range = false;
+    for (short m = 0; m < numThreads; m++) {
+	if (mapped[m]) {
+	    if (range) {
+		if (last == m - 1) {
+		    /* range continues */
+		    last = m;
+		    continue;
+		}
+		// last was last value of a range
+		snprintf(tmp, sizeof(tmp), "-%i", last);
+		addStrBuf(tmp, strBuf);
+		range = false;
+	    }
+
+	    snprintf(tmp, sizeof(tmp), "%i", last);
+	    addStrBuf(tmp, strBuf);
+
+	    if (last == m - 1) range = true; /* last is starting a range */
+	}
+	if (!range && m != numThreads - 1) addStrBuf(",", strBuf);
+    }
+}
+
+static void setThreadsBitmapsEnv(const PSCPU_set_t *stepcpus,
+	const PSCPU_set_t *jobcpus)
+{
+    StrBuffer_t strBuf;
+    if (stepcpus) {
+	getCompactThreadList(&strBuf, *stepcpus);
+        setenv("PSSLURM_STEP_CPUS", strBuf.buf, 1);
+	freeStrBuf(&strBuf);
+    }
+
+    if (jobcpus) {
+	getCompactThreadList(&strBuf, *jobcpus);
+        setenv("PSSLURM_JOB_CPUS", strBuf.buf, 1);
+	freeStrBuf(&strBuf);
+    }
+}
+
+void setJailEnv(const env_t *env, const char *user,
+	const PSCPU_set_t *stepcpus, const PSCPU_set_t *jobcpus)
+{
+    setThreadsBitmapsEnv(stepcpus, jobcpus);
+
+    if (env) {
+	char *id = envGet(env, "SLURM_JOBID");
+	if (id) setenv("SLURM_JOBID", id, 1);
+	id = envGet(env, "SLURM_STEPID");
+	if (id) setenv("SLURM_STEPID", id, 1);
+    }
+
+    if (user) setenv("SLURM_USER", user, 1);
+}
+
 void initJobEnv(Job_t *job)
 {
     char tmp[1024], *cpus = NULL;

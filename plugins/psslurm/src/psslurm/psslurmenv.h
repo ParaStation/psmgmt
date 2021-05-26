@@ -11,6 +11,7 @@
 #define __PS_SLURM_ENV
 
 #include "psenv.h"
+#include "pscpu.h"
 
 #include "psslurmjob.h"
 
@@ -39,6 +40,20 @@ bool initEnvFilter(void);
  * @brief Free all memory used by the environment filter
  */
 void freeEnvFilter(void);
+
+/**
+ * @brief Initialize the jail environment
+ *
+ * Set variables used by the jail scripts.
+ * This function is used by the psslurm forwarder.
+ *
+ * @param env       The job environment
+ * @param user      The user running the job
+ * @param stepcpus  CPUs to be used by the step
+ * @param jobcpus   CPUs to be used by the job
+ */
+void setJailEnv(const env_t *env, const char *user,
+	const PSCPU_set_t *stepcpus, const PSCPU_set_t *jobcpus);
 
 /**
  * @brief Initialize a job environment
