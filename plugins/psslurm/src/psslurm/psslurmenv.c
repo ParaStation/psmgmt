@@ -193,15 +193,23 @@ static char *getTasksPerNode(uint16_t tasksPerNode[], uint32_t nrOfNodes)
 }
 
 static void getCompactThreadList(StrBuffer_t *strBuf,
-	const PSCPU_set_t stepcpus)
+	const PSCPU_set_t threads)
 {
     short numThreads = PSIDnodes_getNumThrds(PSC_getMyID());
+
     bool mapped[numThreads];
     memset(mapped, 0, sizeof(mapped));
     for (short t = 0; t < numThreads; t++) {
 	short m = PSIDnodes_mapCPU(PSC_getMyID(), t);
 	if (m < 0 || m > numThreads) continue;
-	mapped[m] = PSCPU_isSet(stepcpus, t);
+	mapped[m] = PSCPU_isSet(threads, t);
+    }
+
+    if (psslurmlogger->mask & PSSLURM_LOG_ENV) {
+	flog("handling threads set %s, mapped ",
+	    PSCPU_print_part(threads, PSCPU_bytesForCPUs(numThreads)));
+	for (short m = 0; m < numThreads; m++) mlog("%d", mapped[m]);
+	mlog("\n");
     }
 
     strBuf->buf = NULL;
