@@ -130,7 +130,7 @@ static void coreMapToHWthreads(PSCPU_set_t *hwthreads, const bool *coreMap,
     for (uint16_t core = 0; core < coreCount; core++) {
 	if (coreMap[core]) {
 	    for (size_t thread = 0; thread < threadsPerCore; thread++) {
-		PSCPU_setCPU(*hwthreads, threadsPerCore * thread + core);
+		PSCPU_setCPU(*hwthreads, coreCount * thread + core);
 	    }
 	}
     }
