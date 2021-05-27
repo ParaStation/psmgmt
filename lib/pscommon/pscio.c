@@ -120,15 +120,15 @@ ssize_t PSCio_recvMsgFunc(int fd, DDBufferMsg_t *msg, size_t len, size_t *rcvd)
     }
 
     size_t received = 0;
-    bool indefinete = true;
+    bool indefinite = true;
     if (!rcvd) {
 	rcvd = &received;
-	indefinete = false;
+	indefinite = false;
     }
 
     /* Try to first read the header only */
     ssize_t ret = PSCio_recvBufFunc(fd, msg, sizeof(msg->header), rcvd,
-				    __func__, true, indefinete);
+				    __func__, true, indefinite);
     if (ret <= 0) return ret;
     if (msg->header.len > len) {
 	/* msg too small, drop tail to clean the file descriptor */
@@ -141,5 +141,5 @@ ssize_t PSCio_recvMsgFunc(int fd, DDBufferMsg_t *msg, size_t len, size_t *rcvd)
 
     /* Read message's tail */
     return PSCio_recvBufFunc(fd, msg, msg->header.len, rcvd,
-			     __func__, true, indefinete);
+			     __func__, true, indefinite);
 }
