@@ -15,7 +15,6 @@
 #include <unistd.h>
 #include <ctype.h>
 #include <errno.h>
-#include <fcntl.h>
 #include <sys/ioctl.h>
 #include <sys/prctl.h>
 #include <sys/resource.h>
@@ -1267,7 +1266,6 @@ void PSID_forwarder(PStask_t *task, int clientFD, int eno)
     static PSLog_msg_t stdoutType = STDOUT, stderrType = STDERR;
     char pTitle[50];
     char *envStr, *timeoutStr;
-    long flags, val;
 
     /* Ensure that PSLog can handle file descriptor to daemon via select() */
     if (task->fd >= FD_SETSIZE) {
@@ -1310,7 +1308,7 @@ void PSID_forwarder(PStask_t *task, int clientFD, int eno)
 	if (np > 0) loggerTimeout += np / 200; /* add 5 millisec per client */
     }
 
-    val = loggerTimeout;
+    long val = loggerTimeout;
     timeoutStr = getenv("__PSI_LOGGER_TIMEOUT");
     if (timeoutStr) {
 	char *end;
@@ -1326,9 +1324,7 @@ void PSID_forwarder(PStask_t *task, int clientFD, int eno)
     if (!sendChildBorn(childTask, clientFD)) waitForChildsDead();
 
     /* Make stdin non-blocking for us */
-    flags = fcntl(childTask->stdin_fd, F_GETFL);
-    flags |= O_NONBLOCK;
-    fcntl(childTask->stdin_fd, F_SETFL, flags);
+    PSCio_setFDblock(childTask->stdin_fd, false);
 
     if (connectLogger(childTask->loggertid)) waitForChildsDead();
 
