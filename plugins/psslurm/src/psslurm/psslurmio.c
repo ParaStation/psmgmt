@@ -418,13 +418,13 @@ void IO_sattachTasks(Step_t *step, uint32_t ioAddr, uint16_t ioPort,
 {
     int sock = srunOpenIOConnectionEx(step, ioAddr, ioPort, sig);
     if (sock == -1) {
-	mlog("%s: I/O connection to srun '%u:%u' failed\n", __func__,
-		ioAddr, ioPort);
+	mlog("%s: I/O connection to srun %u:%u failed\n", __func__,
+	     ioAddr, ioPort);
 	return;
     }
 
-    mdbg(PSSLURM_LOG_IO, "%s: opened connection to '%u:%u' ctlPort '%u'\n",
-	    __func__, ioAddr, ioPort, ctlPort);
+    mdbg(PSSLURM_LOG_IO, "%s: opened connection to %u:%u ctlPort %u\n",
+	 __func__, ioAddr, ioPort, ctlPort);
 
     int sockIndex = -1;
     for (int i = 0; i < MAX_SATTACH_SOCKETS; i++) {
@@ -534,91 +534,77 @@ static char *replaceSymbols(uint32_t jobid, uint32_t stepid, char *hostname,
 			    uint32_t arrayTaskId, int rank, char *path,
 			    char *jobname)
 {
-    char *next, *ptr, *symbol, *symNum, *buf = NULL;
-    char tmp[1024], symLen[64], symLen2[256];
-    size_t symNumLen, len, bufSize = 0;
-    int saved = 0;
+    char *buf = NULL;
+    size_t bufSize = 0;
 
-    ptr = path;
-    if (!(next = strchr(ptr, '%'))) {
-	return ustrdup(path);
-    }
+    char *ptr = path;
+    char *next = strchr(ptr, '%');
+    if (!next) return ustrdup(path);
 
     while (next) {
-	symbol = symNum = next+1;
-	len = next - ptr;
+	char tmp[1024], symLen[64], symLen2[256];
+	char *symNum = next + 1;
+	char *symbol = symNum;
+	size_t len = next - ptr;
 	strn2Buf(ptr, len, &buf, &bufSize);
 
 	/* zero padding */
 	snprintf(symLen, sizeof(symLen), "%%u");
 	while (symNum[0] >= 48 && symNum[0] <=57) symNum++;
-	if ((symNumLen = symNum - symbol) >0) {
-	    if (symNumLen <= sizeof(symLen) -3) {
-		strcpy(symLen, "%0");
-		strncat(symLen, symbol, symNumLen);
-		strcat(symLen, "u");
-		symbol += symNumLen;
-	    }
+	size_t symNumLen = symNum - symbol;
+	if (symNumLen > 0 && symNumLen <= sizeof(symLen) - 3) {
+	    strcpy(symLen, "%0");
+	    strncat(symLen, symbol, symNumLen);
+	    strcat(symLen, "u");
+	    symbol += symNumLen;
 	}
 
 	switch (symbol[0]) {
-	    case 'A':
-		snprintf(tmp, sizeof(tmp), symLen, arrayJobId);
-		str2Buf(tmp, &buf, &bufSize);
-		saved = 1;
+	case 'A':
+	    snprintf(tmp, sizeof(tmp), symLen, arrayJobId);
+	    str2Buf(tmp, &buf, &bufSize);
+	    break;
+	case 'a':
+	    snprintf(tmp, sizeof(tmp), symLen, arrayTaskId);
+	    str2Buf(tmp, &buf, &bufSize);
+	    break;
+	case 'J':
+	    snprintf(symLen2, sizeof(symLen2), "%s.%s", symLen, symLen);
+	    snprintf(tmp, sizeof(tmp), symLen2, jobid, stepid);
+	    str2Buf(tmp, &buf, &bufSize);
+	    break;
+	case 'j':
+	    snprintf(tmp, sizeof(tmp), symLen, jobid);
+	    str2Buf(tmp, &buf, &bufSize);
+	    break;
+	case 's':
+	    snprintf(tmp, sizeof(tmp), symLen, stepid);
+	    str2Buf(tmp, &buf, &bufSize);
+	    break;
+	case 'N':
+	    str2Buf(hostname, &buf, &bufSize);
+	    break;
+	case 'n':
+	    snprintf(tmp, sizeof(tmp), symLen, nodeid);
+	    str2Buf(tmp, &buf, &bufSize);
+	    break;
+	case 't':
+	    snprintf(tmp, sizeof(tmp), symLen, rank);
+	    str2Buf(tmp, &buf, &bufSize);
+	    break;
+	case 'u':
+	    str2Buf(username, &buf, &bufSize);
+	    break;
+	case 'x':
+	    if (jobname) {
+		str2Buf(jobname, &buf, &bufSize);
 		break;
-	    case 'a':
-		snprintf(tmp, sizeof(tmp), symLen, arrayTaskId);
-		str2Buf(tmp, &buf, &bufSize);
-		saved = 1;
-		break;
-	    case 'J':
-		snprintf(symLen2, sizeof(symLen2), "%s.%s", symLen, symLen);
-		snprintf(tmp, sizeof(tmp), symLen2, jobid, stepid);
-		str2Buf(tmp, &buf, &bufSize);
-		saved = 1;
-		break;
-	    case 'j':
-		snprintf(tmp, sizeof(tmp), symLen, jobid);
-		str2Buf(tmp, &buf, &bufSize);
-		saved = 1;
-		break;
-	    case 's':
-		snprintf(tmp, sizeof(tmp), symLen, stepid);
-		str2Buf(tmp, &buf, &bufSize);
-		saved = 1;
-		break;
-	    case 'N':
-		str2Buf(hostname, &buf, &bufSize);
-		saved = 1;
-		break;
-	    case 'n':
-		snprintf(tmp, sizeof(tmp), symLen, nodeid);
-		str2Buf(tmp, &buf, &bufSize);
-		saved = 1;
-		break;
-	    case 't':
-		snprintf(tmp, sizeof(tmp), symLen, rank);
-		str2Buf(tmp, &buf, &bufSize);
-		saved = 1;
-		break;
-	    case 'u':
-		str2Buf(username, &buf, &bufSize);
-		saved = 1;
-		break;
-	    case 'x':
-		if (jobname) {
-		   str2Buf(jobname, &buf, &bufSize);
-		   saved = 1;
-		}
-		break;
-	}
-
-	if (!saved) {
+	    }
+	    __attribute__((fallthrough));
+	default:
 	    strn2Buf(next, 2 + symNumLen, &buf, &bufSize);
 	}
 
-	saved = 0;
 	ptr = next + 2 + symNumLen;
 	next = strchr(ptr, '%');
     }
@@ -775,7 +761,7 @@ void IO_openStepPipes(Forwarder_Data_t *fwdata, Step_t *step)
 	    mwarn(errno, "%s: create stdout pipe failed", __func__);
 	    return;
 	}
-	mdbg(PSSLURM_LOG_IO, "%s: stdout pipe '%i:%i'\n", __func__,
+	mdbg(PSSLURM_LOG_IO, "%s: stdout pipe %i:%i\n", __func__,
 		fwdata->stdOut[0], fwdata->stdOut[1]);
     }
 
@@ -785,7 +771,7 @@ void IO_openStepPipes(Forwarder_Data_t *fwdata, Step_t *step)
 	    mwarn(errno, "%s: create stderr pipe failed", __func__);
 	    return;
 	}
-	mdbg(PSSLURM_LOG_IO, "%s: stderr pipe '%i:%i'\n", __func__,
+	mdbg(PSSLURM_LOG_IO, "%s: stderr pipe %i:%i\n", __func__,
 		fwdata->stdErr[0], fwdata->stdErr[1]);
     }
 
@@ -795,7 +781,7 @@ void IO_openStepPipes(Forwarder_Data_t *fwdata, Step_t *step)
 	    mwarn(errno, "%s: create stdin pipe failed", __func__);
 	    return;
 	}
-	mdbg(PSSLURM_LOG_IO, "%s: stdin pipe '%i:%i'\n", __func__,
+	mdbg(PSSLURM_LOG_IO, "%s: stdin pipe %i:%i\n", __func__,
 		fwdata->stdIn[0], fwdata->stdIn[1]);
     }
 }
@@ -848,10 +834,10 @@ void IO_openJobIOfiles(Forwarder_Data_t *fwdata)
     /* stdout */
     close(STDOUT_FILENO);
 
-    if (!(strlen(job->stdOut))) {
-	outFile = addCwd(job->cwd, IO_replaceJobSymbols(job, defOutName));
-    } else {
+    if (strlen(job->stdOut)) {
 	outFile = addCwd(job->cwd, IO_replaceJobSymbols(job, job->stdOut));
+    } else {
+	outFile = addCwd(job->cwd, IO_replaceJobSymbols(job, defOutName));
     }
 
     mdbg(PSSLURM_LOG_IO, "%s: job %u stdout file %s\n", __func__,
@@ -870,7 +856,7 @@ void IO_openJobIOfiles(Forwarder_Data_t *fwdata)
     close(STDERR_FILENO);
 
     if (strlen(job->stdErr)) {
-	char *errFile = addCwd(job->cwd, IO_replaceJobSymbols(job, job->stdErr));
+	char *errFile = addCwd(job->cwd, IO_replaceJobSymbols(job,job->stdErr));
 	mdbg(PSSLURM_LOG_IO, "%s: job %u stderr file %s\n", __func__,
 	     job->jobid, errFile);
 	job->stdErrFD = open(errFile, flags, 0666);
@@ -905,7 +891,7 @@ void IO_redirectStep(Forwarder_Data_t *fwdata, Step_t *step)
 	if (fwdata->stdOut[1] == -1) {
 	    mwarn(errno, "%s: open stdout '%s' failed", __func__, outFile);
 	}
-	mdbg(PSSLURM_LOG_IO, "%s: opt '%u' outfile: '%s' fd '%i'\n", __func__,
+	mdbg(PSSLURM_LOG_IO, "%s: opt %u outfile: '%s' fd %i\n", __func__,
 	     step->stdOutOpt, outFile, fwdata->stdOut[1]);
 
     } else if (step->stdOutOpt == IO_RANK_FILE) {
@@ -921,7 +907,7 @@ void IO_redirectStep(Forwarder_Data_t *fwdata, Step_t *step)
 	    if (step->outFDs[i] == -1) {
 		mwarn(errno, "%s: open stdout '%s' failed", __func__, outFile);
 	    }
-	    mdbg(PSSLURM_LOG_IO, "%s: outfile: '%s' fd '%i'\n", __func__,
+	    mdbg(PSSLURM_LOG_IO, "%s: outfile: '%s' fd %i\n", __func__,
 		 outFile, fwdata->stdOut[1]);
 	}
     }
@@ -941,7 +927,7 @@ void IO_redirectStep(Forwarder_Data_t *fwdata, Step_t *step)
 		mwarn(errno, "%s: open stderr '%s' failed", __func__, errFile);
 	    }
 	}
-	mdbg(PSSLURM_LOG_IO, "%s: errfile: '%s' fd '%i'\n", __func__, errFile,
+	mdbg(PSSLURM_LOG_IO, "%s: errfile: '%s' fd %i\n", __func__, errFile,
 	     fwdata->stdErr[1]);
 
     } else if (step->stdErrOpt == IO_RANK_FILE) {
@@ -957,7 +943,7 @@ void IO_redirectStep(Forwarder_Data_t *fwdata, Step_t *step)
 	    if (step->errFDs[i] == -1) {
 		mwarn(errno, "%s: open stderr '%s' failed", __func__, errFile);
 	    }
-	    mdbg(PSSLURM_LOG_IO, "%s: errfile: '%s' fd '%i'\n", __func__,
+	    mdbg(PSSLURM_LOG_IO, "%s: errfile: '%s' fd %i\n", __func__,
 		 errFile, fwdata->stdErr[1]);
 	}
     }
@@ -971,7 +957,7 @@ void IO_redirectStep(Forwarder_Data_t *fwdata, Step_t *step)
 	if (fwdata->stdIn[0] == -1) {
 	    mwarn(errno, "%s: open stdin '%s' failed", __func__, inFile);
 	}
-	mdbg(PSSLURM_LOG_IO, "%s: infile: '%s' fd '%i'\n", __func__, inFile,
+	mdbg(PSSLURM_LOG_IO, "%s: infile: '%s' fd %i\n", __func__, inFile,
 	     fwdata->stdIn[0]);
     }
 }
@@ -995,7 +981,7 @@ int handleUserOE(int sock, void *data)
 	close(sock);
     }
 
-    mdbg(PSSLURM_LOG_IO, "%s: sock %i forward '%s' size %zi\n", __func__,
+    mdbg(PSSLURM_LOG_IO, "%s: sock %i forward %s size %zi\n", __func__,
 	 sock, type == SLURM_IO_STDOUT ? "stdout" : "stderr", size);
 
     /* EOF to srun */
