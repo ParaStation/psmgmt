@@ -1152,6 +1152,11 @@ static void stepFinalize(Forwarder_Data_t *fwdata)
 	.step = step,
 	.hook = SPANK_EXIT
     };
+
+    /* set environment variables from user */
+    for (uint32_t i = 0; i < step->env.cnt; i++) {
+	putenv(step->env.vars[i]);
+    }
     SpankCallHook(&spank);
 #endif
 }
