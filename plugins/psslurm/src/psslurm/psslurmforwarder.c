@@ -568,7 +568,24 @@ int handleExecClientPrep(void *data)
     if (!task) return -1;
     if (task->rank <0 || task->group != TG_ANY) return 0;
 
+    /* unset MALLOC_CHECK_ set by psslurm */
+    unsetenv("MALLOC_CHECK_");
+
     initFwPtr(task);
+    if (fwStep) {
+	/* set supplementary groups */
+	if (fwStep->gidsLen) {
+	    setgroups(fwStep->gidsLen, fwStep->gids);
+	}
+
+	if (!IO_redirectRank(fwStep, task->rank)) return -1;
+
+	setRankEnv(task->rank, fwStep);
+    } else {
+	if (!isPSAdminUser(task->uid, task->gid)) {
+	    flog("rank %i failed to find my step\n", task->rank);
+	}
+    }
 
 #ifdef HAVE_SPANK
     struct spank_handle spank = {
@@ -591,18 +608,8 @@ int handleExecClientUser(void *data)
     if (!task) return -1;
     if (task->rank <0 || task->group != TG_ANY) return 0;
 
-    /* unset MALLOC_CHECK_ set by psslurm */
-    unsetenv("MALLOC_CHECK_");
-
     initFwPtr(task);
     if (fwStep) {
-	/* set supplementary groups */
-	if (fwStep->gidsLen) {
-	    setgroups(fwStep->gidsLen, fwStep->gids);
-	}
-
-	if (!IO_redirectRank(fwStep, task->rank)) return -1;
-
 	/* stop child after exec */
 	if (fwStep->taskFlags & LAUNCH_PARALLEL_DEBUG) {
 	    if (ptrace(PTRACE_TRACEME, 0, 0, 0) == -1) {
@@ -610,8 +617,6 @@ int handleExecClientUser(void *data)
 		return -1;
 	    }
 	}
-
-	setRankEnv(task->rank, fwStep);
 
 	doMemBind(fwStep, task);
 	verboseMemPinningOutput(fwStep, task);
