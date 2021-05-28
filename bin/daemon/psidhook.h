@@ -210,6 +210,10 @@ typedef enum {
 				type of info to be updated. */
     PSIDHOOK_JAIL_TERM,	      /**< Terminate all jailed children of a cgroup,
 				arg points to PID identifying the cgroup */
+    PSIDHOOK_EXEC_CLIENT_PREP,/**< Before testing the executable of the child,
+				arg is a pointer to the child's task structure.
+				This hook is used by Spank in psslurm to change
+				the namespace of the child */
     PSIDHOOK_LAST,            /**< This has to be the last one */
 } PSIDhook_t;
 
