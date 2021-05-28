@@ -6,6 +6,18 @@ Copyright (C) 2021 ParTec AG, Munich
 Please send bug reports, questions and suggestions to <support@par-tec.com>
 
 
+Version 5.1.41-1:
+=================
+Bugfixes:
+ - Ensure the environment is setup properly for Spank
+ - Forward runtime variables to spank_exit hook
+Enhancements:
+ - Use PSIDHOOK_EXEC_CLIENT_PREP in psslurm to call Spank hook SPANK_TASK_INIT
+ - Make psslurm plugin init never fail without message
+Additional changes:
+ - Add hook PSIDHOOK_EXEC_CLIENT_PREP and bump plugin API version to 132
+
+
 Version 5.1.41:
 ===============
 Bugfixes:

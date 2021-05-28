@@ -1,3 +1,42 @@
+Version psmgmt-5.1.41-1:
+========================
+------------------------------------------------------------------------
+f4315df7 | Michael Rauh | Fri, 28 May 2021 17:34:31 +0200
+
+Forward runtime variables to spank_exit hook
+------------------------------------------------------------------------
+2612aa77 | Michael Rauh | Fri, 28 May 2021 15:05:30 +0200
+
+Ensure the environment is setup properly for Spank
+------------------------------------------------------------------------
+2f850859 | Norbert Eicker | Fri, 28 May 2021 13:46:43 +0200
+
+Improve docu and fix Copyright
+------------------------------------------------------------------------
+94dd10f3 | Michael Rauh | Fri, 28 May 2021 12:06:37 +0200
+
+Use hook PSIDHOOK_EXEC_CLIENT_PREP in psslurm to call
+the Spank hook SPANK_TASK_INIT
+------------------------------------------------------------------------
+4367db6b | Michael Rauh | Fri, 28 May 2021 11:56:02 +0200
+
+Call hook PSIDHOOK_EXEC_CLIENT_PREP in psidforwarder child
+------------------------------------------------------------------------
+3ad65620 | Michael Rauh | Fri, 28 May 2021 11:48:44 +0200
+
+Add hook PSIDHOOK_EXEC_CLIENT_PREP and bump
+plugin API version to 132
+------------------------------------------------------------------------
+55000a6a | Norbert Eicker | Fri, 21 May 2021 18:24:25 +0200
+
+Streamline
+------------------------------------------------------------------------
+19c0afd9 | Stephan Krempel | Fri, 14 May 2021 08:22:09 +0200
+
+psslurm: Make plugin init never fail without message
+------------------------------------------------------------------------
+
+
 Version psmgmt-5.1.41:
 ======================
 ------------------------------------------------------------------------
