@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2014-2020 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2014-2021 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -168,5 +168,16 @@ Step_t * __findStepByEnv(char **environ, uint32_t *jobid_out,
  * @return Always returns 0
  */
 int handleFwRes(void * data);
+
+/**
+ * @brief Handle hook PSIDHOOK_EXEC_CLIENT_PREP
+ *
+ * Used to call Spank hook SPANK_TASK_INIT.
+ *
+ * @param data Task structure of the client
+ *
+ * @return Returns 0 on success or -1 otherwise
+ */
+int handleExecClientPrep(void *data);
 
 #endif

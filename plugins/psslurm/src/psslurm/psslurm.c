@@ -80,7 +80,7 @@ uint32_t configHash;
 /** psid plugin requirements */
 char name[] = "psslurm";
 int version = 117;
-int requiredAPI = 131;
+int requiredAPI = 132;
 plugin_dep_t dependencies[] = {
     { .name = "psmunge", .version = 4 },
     { .name = "psaccount", .version = 29 },
@@ -167,6 +167,10 @@ static void unregisterHooks(bool verbose)
     if (!PSIDhook_del(PSIDHOOK_EXEC_FORWARDER, handleHookExecFW)) {
 	if (verbose) mlog("unregister 'PSIDHOOK_EXEC_FORWARDER' failed\n");
     }
+
+    if (!PSIDhook_del(PSIDHOOK_EXEC_CLIENT_PREP, handleExecClientPrep)) {
+	if (verbose) mlog("unregister 'PSIDHOOK_EXEC_CLIENT_PREP' failed\n");
+    }
 }
 
 /**
@@ -226,6 +230,11 @@ static bool registerHooks(void)
 
     if (!PSIDhook_add(PSIDHOOK_EXEC_FORWARDER, handleHookExecFW)) {
 	mlog("register 'PSIDHOOK_EXEC_FORWARDER' failed\n");
+	return false;
+    }
+
+    if (!PSIDhook_add(PSIDHOOK_EXEC_CLIENT_PREP, handleExecClientPrep)) {
+	mlog("register 'PSIDHOOK_EXEC_CLIENT_PREP' failed\n");
 	return false;
     }
 

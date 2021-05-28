@@ -559,6 +559,28 @@ int handleExecClient(void *data)
     return 0;
 }
 
+int handleExecClientPrep(void *data)
+{
+    PStask_t *task = data;
+
+    if (task->rank <0 || task->group != TG_ANY) return 0;
+
+    initFwPtr(task);
+
+#ifdef HAVE_SPANK
+    struct spank_handle spank = {
+	.task = fwTask,
+	.alloc = fwAlloc,
+	.job = fwJob,
+	.step = fwStep,
+	.hook = SPANK_TASK_INIT
+    };
+    SpankCallHook(&spank);
+#endif
+
+    return 0;
+}
+
 int handleExecClientUser(void *data)
 {
     PStask_t *task = data;
@@ -609,17 +631,6 @@ int handleExecClientUser(void *data)
     unsetenv("MPIEXEC_VERBOSE");
     unsetenv(STEP_CORE_BITMAP);
     unsetenv(JOB_CORE_BITMAP);
-
-#ifdef HAVE_SPANK
-    struct spank_handle spank = {
-	.task = fwTask,
-	.alloc = fwAlloc,
-	.job = fwJob,
-	.step = fwStep,
-	.hook = SPANK_TASK_INIT
-    };
-    SpankCallHook(&spank);
-#endif
 
     if (fwStep) startTaskPrologue(fwStep, task);
 
