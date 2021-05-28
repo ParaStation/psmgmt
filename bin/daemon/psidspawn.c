@@ -3,6 +3,7 @@
  *
  * Copyright (C) 2002-2004 ParTec AG, Karlsruhe
  * Copyright (C) 2005-2021 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2021 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -857,7 +858,7 @@ static void execForwarder(PStask_t *task)
     PSID_adjustLoginUID(task->uid);
 
     /* init the process manager sockets */
-    if ((PSIDhook_call(PSIDHOOK_EXEC_FORWARDER, task)) == -1) {
+    if (PSIDhook_call(PSIDHOOK_EXEC_FORWARDER, task) == -1) {
 	eno = EINVAL;
 	goto error;
     }
@@ -969,7 +970,7 @@ static void execForwarder(PStask_t *task)
 	    close(task->stdout_fd);
 	}
 
-	/* close forwarder socket */
+	/* counterpart to PSIDHOOK_EXEC_FORWARDER */
 	PSIDhook_call(PSIDHOOK_EXEC_CLIENT, task);
 
 	/* try to start the client */

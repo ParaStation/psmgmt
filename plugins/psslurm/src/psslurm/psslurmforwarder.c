@@ -2,6 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2014-2021 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2021 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -539,6 +540,7 @@ int handleExecClient(void *data)
 {
     PStask_t *task = data;
 
+    if (!task) return -1;
     /* skip service tasks */
     if (task->rank <0) return 0;
 
@@ -563,6 +565,7 @@ int handleExecClientPrep(void *data)
 {
     PStask_t *task = data;
 
+    if (!task) return -1;
     if (task->rank <0 || task->group != TG_ANY) return 0;
 
     initFwPtr(task);
@@ -585,6 +588,7 @@ int handleExecClientUser(void *data)
 {
     PStask_t *task = data;
 
+    if (!task) return -1;
     if (task->rank <0 || task->group != TG_ANY) return 0;
 
     /* unset MALLOC_CHECK_ set by psslurm */
