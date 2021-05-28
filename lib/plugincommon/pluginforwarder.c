@@ -2,6 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2014-2021 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2021 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -857,7 +858,7 @@ static int handleFwSock(int fd, void *info)
     PStask_t *task = info;
     Forwarder_Data_t *fw = task->info;
 
-    if (!PSIDclient_recv(fd, &msg, sizeof(msg))) {
+    if (!PSIDclient_recv(fd, &msg)) {
 	if (!task->sigChldCB) {
 	    /* SIGCHLD already received */
 	    if (fw && fw->callback) fw->callback(fw->fwExitStatus, fw);

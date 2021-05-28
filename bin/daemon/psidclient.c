@@ -3,6 +3,7 @@
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
  * Copyright (C) 2005-2021 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2021 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -71,7 +72,7 @@ static int handleClientConnectMsg(int fd, void *info)
 
     /* read the whole msg */
     DDBufferMsg_t msg;
-    ssize_t msglen = PSIDclient_recv(fd, &msg, sizeof(msg));
+    ssize_t msglen = PSIDclient_recv(fd, &msg);
 
     if (!msglen) {
 	/* closing connection */
@@ -135,7 +136,7 @@ static int handleClientMsg(int fd, void *info)
 
     /* read the whole msg */
     DDBufferMsg_t msg;
-    ssize_t msglen = PSIDclient_recv(fd, &msg, sizeof(msg));
+    ssize_t msglen = PSIDclient_recv(fd, &msg);
 
     if (!msglen) {
 	/* closing connection */
@@ -391,29 +392,24 @@ int PSIDclient_send(DDMsg_t *msg)
     return -1;
 }
 
-static ssize_t doClientRecv(int fd, DDMsg_t *msg, size_t size)
+static ssize_t doClientRecv(int fd, DDBufferMsg_t *msg)
 {
-    if (!msg || size < sizeof(*msg)) {
+    if (!msg) {
 	PSID_log(-1, "%s: invalid msg\n", __func__);
 	errno = EINVAL;
 	return -1;
     }
-    msg->len = sizeof(*msg);
+    msg->header.len = sizeof(msg->header);
 
     ssize_t ret;
     if (!PSIDclient_isEstablished(fd)) {
 	/* client's first contact => might use an incompatible msg format */
-	if (size < sizeof(DDInitMsg_t)) {
-	    errno = EMSGSIZE;
-	    return -1;
-	}
-
 	ret = PSCio_recvBufP(fd, msg, sizeof(DDInitMsg_t));
 	if (!ret) {
 	    /* Socket close before initial message was sent */
 	    PSID_log(PSID_LOG_CLIENT,
 		     "%s(%d) socket already closed\n", __func__, fd);
-	} else if (ret != msg->len) {
+	} else if (ret != msg->header.len) {
 	    /* if wrong msg format initiate a disconnect */
 	    PSID_log(-1, "%zd = %s(%d): initial message of incompatible type\n",
 		     ret, __func__, fd);
@@ -421,16 +417,16 @@ static ssize_t doClientRecv(int fd, DDMsg_t *msg, size_t size)
 	}
     } else {
 	// @todo think about timeout on messed up protocol
-	ret = PSCio_recvMsgSize(fd, (DDBufferMsg_t *)msg, size);
+	ret = PSCio_recvMsg(fd, msg);
 	/* socket is closed unexpectedly */
 	if (ret < 0 && errno == ECONNRESET) ret = 0;
     }
     return ret;
 }
 
-ssize_t PSIDclient_recv(int fd, DDBufferMsg_t *msg, size_t size)
+ssize_t PSIDclient_recv(int fd, DDBufferMsg_t *msg)
 {
-    ssize_t ret = doClientRecv(fd, (DDMsg_t *)msg, size);
+    ssize_t ret = doClientRecv(fd, msg);
 
     if (ret < 0) {
 	PSID_warn(-1, errno, "%s(%d/%s)", __func__, fd,

@@ -3,6 +3,7 @@
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
  * Copyright (C) 2005-2021 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2021 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -182,21 +183,20 @@ static inline void PSIDclient_frwd(DDBufferMsg_t *msg)
  * @brief Receive message from client
  *
  * Receive a message from the client connected to file descriptor @a
- * fd and store it to @a msg. At most @a size bytes are read from the
- * file descriptor and stored to @a msg.
+ * fd and store it to @a msg. The number of bytes read is limited to
+ * the size of DDBufferMsg_t. Thus, it has to be guaranteed that @a
+ * msg points to a sufficiently large buffer.
  *
  * @param fd The file descriptor to receive from
  *
  * @param msg Buffer to store the message in
- *
- * @param size Maximum length of the message, i.e. the size of @a msg
  *
  * @return On success, the number of bytes received is returned, or -1
  * if an error occurred; in case of error errno will be set appropriately
  *
  * @see errno(3)
  */
-ssize_t PSIDclient_recv(int fd, DDBufferMsg_t *msg, size_t size);
+ssize_t PSIDclient_recv(int fd, DDBufferMsg_t *msg);
 
 /**
  * @brief Delete client.
