@@ -6,6 +6,12 @@ Copyright (C) 2021 ParTec AG, Munich
 Please send bug reports, questions and suggestions to <support@par-tec.com>
 
 
+Version 5.1.41-2:
+=================
+Bugfixes:
+ - Ensure to call the correct callback for spank options
+
+
 Version 5.1.41-1:
 =================
 Bugfixes:
