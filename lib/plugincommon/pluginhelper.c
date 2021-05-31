@@ -2,6 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2012-2021 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2021 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -340,8 +341,8 @@ bool __getScriptCBdata(int fd, PSID_scriptCBInfo_t *info, int32_t *exit,
 		       const char *func, const int line)
 {
     /* get exit status */
-    PSCio_recvBuf(fd, exit, sizeof(*exit));
     Selector_remove(fd);
+    PSCio_recvBuf(fd, exit, sizeof(*exit));
     close(fd);
 
     /* get stdout/stderr output */
