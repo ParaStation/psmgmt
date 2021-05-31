@@ -2,6 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2021 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2021 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -64,7 +65,8 @@ ssize_t PSCio_sendFunc(int fd, void *buffer, size_t toSend, size_t *sent,
 }
 
 ssize_t PSCio_recvBufFunc(int fd, void *buffer, size_t toRecv, size_t *rcvd,
-			  const char *func, bool pedantic, bool indefinite)
+			  const char *func, bool pedantic, bool indefinite,
+			  bool silent)
 {
     static time_t lastLog = 0;
     int retries = 0;
@@ -76,7 +78,7 @@ ssize_t PSCio_recvBufFunc(int fd, void *buffer, size_t toRecv, size_t *rcvd,
 	    int eno = errno;
 	    if (eno == EINTR || (eno == EAGAIN && pedantic)) continue;
 
-	    if (eno != EAGAIN) {
+	    if (eno != EAGAIN && !silent) {
 		time_t now = time(NULL);
 		if (lastLog != now) {
 		    PSC_warn(-1, eno, "%s(%s): read(%d)", __func__, func, fd);
@@ -105,7 +107,7 @@ void dropTail(int fd, size_t tailSize)
 	size_t chunk = tailSize > sizeof(dump) ? sizeof(dump) : tailSize;
 	size_t rcvd = 0;
 	ssize_t ret = PSCio_recvBufFunc(fd, dump, chunk, &rcvd,
-					__func__, true, true);
+					__func__, true, true, true);
 	if (ret <= 0) break;
 	tailSize -= rcvd;
     }
@@ -120,16 +122,23 @@ ssize_t PSCio_recvMsgFunc(int fd, DDBufferMsg_t *msg, size_t len, size_t *rcvd)
     }
 
     size_t received = 0;
-    bool indefinite = true;
+    bool indefinite = false;
     if (!rcvd) {
+	/* receive without progress feedback => try indefinitely */
 	rcvd = &received;
-	indefinite = false;
+	indefinite = true;
     }
 
     /* Try to first read the header only */
     ssize_t ret = PSCio_recvBufFunc(fd, msg, sizeof(msg->header), rcvd,
-				    __func__, true, indefinite);
-    if (ret <= 0) return ret;
+				    __func__, true, indefinite, true);
+    if (ret < 0) {
+	if (errno != ECONNRESET) {
+	    PSC_warn(-1, errno, "%s: PSCio_recvBufFunc(header)", __func__);
+	}
+	return ret;
+    } else if (!ret) return ret;
+
     if (msg->header.len > len) {
 	/* msg too small, drop tail to clean the file descriptor */
 	int eno = EMSGSIZE;
@@ -140,6 +149,11 @@ ssize_t PSCio_recvMsgFunc(int fd, DDBufferMsg_t *msg, size_t len, size_t *rcvd)
     }
 
     /* Read message's tail */
-    return PSCio_recvBufFunc(fd, msg, msg->header.len, rcvd,
-			     __func__, true, indefinite);
+    ret = PSCio_recvBufFunc(fd, msg, msg->header.len, rcvd,
+			    __func__, true, indefinite, true);
+    if (ret < 0) {
+	PSC_warn(-1, errno, "%s: PSCio_recvBufFunc(body)", __func__);
+    }
+
+    return ret;
 }

@@ -37,7 +37,7 @@ void PSCio_setFDblock(int fd, bool block);
 
 /**
  * Maximum number of retries within @ref PSCio_sendFunc(), @ref
- * PSCio_recvBufFunc() and @ref recvMsgFunc() //@todo Check names
+ * PSCio_recvBufFunc() and @ref PSCio_recvMsgFunc()
  */
 #define PSCIO_MAX_RETRY 20
 
@@ -149,7 +149,8 @@ static inline ssize_t _PSCio_send(int fd, void *buffer, size_t toSend,
  * rcvd
  */
 ssize_t PSCio_recvBufFunc(int fd, void *buffer, size_t toRecv, size_t *rcvd,
-			  const char *func, bool pedantic, bool indefinite);
+			  const char *func, bool pedantic, bool indefinite,
+			  bool silent);
 
 /* Standard receive with progress */
 /* #define PSCio_recvBufProg(fd, buffer, toRecv, rcvd)		\ */
@@ -157,7 +158,7 @@ ssize_t PSCio_recvBufFunc(int fd, void *buffer, size_t toRecv, size_t *rcvd,
 
 /* Pedantic receive with progress */
 #define PSCio_recvBufPProg(fd, buffer, toRecv, rcvd)			\
-    PSCio_recvBufFunc(fd, buffer, toRecv, rcvd, __func__, true, false)
+    PSCio_recvBufFunc(fd, buffer, toRecv, rcvd, __func__, true, false, false)
 
 /**
  * Wrapper around @ref PSCio_recvBufFunc() hiding the @a rcvd parameter
@@ -167,9 +168,10 @@ static inline ssize_t _PSCio_recvBuf(int fd, void *buffer, size_t toRecv,
 {
     size_t rcvd = 0;
     ssize_t ret = PSCio_recvBufFunc(fd, buffer, toRecv, &rcvd, func,
-				    pedantic, false);
-    if ((ret == -1 && (!errno || errno == EINTR || errno == EAGAIN))
-	|| (ret && rcvd < toRecv)) {
+				    pedantic, false, false);
+    if (pedantic
+	&& ((ret == -1 && (!errno || errno == EINTR || errno == EAGAIN))
+	    || (ret && rcvd < toRecv))) {
 	/* incomplete msg */
 	errno = ENOMSG;
 	return -1;
