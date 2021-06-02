@@ -1980,8 +1980,7 @@ static void handleRespNodeReg(Slurm_Msg_t *sMsg)
 	return;
     }
 
-    uint32_t i;
-    for (i=0; i<tresDBconfig->count; i++) {
+    for (uint32_t i=0; i<tresDBconfig->count; i++) {
 	fdbg(PSSLURM_LOG_ACC, "alloc %zu count %lu id %u name %s type: %s\n",
 	     tresDBconfig->entry[i].allocSec, tresDBconfig->entry[i].count,
 	     tresDBconfig->entry[i].id, tresDBconfig->entry[i].name,
@@ -2370,6 +2369,18 @@ void clearSlurmdProto(void)
 
     ufree(slurmProtoStr);
     ufree(slurmVerStr);
+
+    if (tresDBconfig) {
+	for (uint32_t i=0; i<tresDBconfig->count; i++) {
+	    ufree(tresDBconfig->entry[i].name);
+	    ufree(tresDBconfig->entry[i].type);
+	}
+
+	ufree(tresDBconfig->entry);
+	ufree(tresDBconfig->nodeName);
+	ufree(tresDBconfig);
+	tresDBconfig = NULL;
+    }
 }
 
 void sendNodeRegStatus(bool startup)
