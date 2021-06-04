@@ -137,51 +137,28 @@ static int parse_display_env(struct x11display *d)
 int get_xauth_proto_and_cookie(struct x11display *d, char *proto, int protolen,
                                char *cookie, int cookielen)
 {
-    char str[256];
+    char str[2048];
 
     if (d->hostlen >= sizeof(str)) {
 	slurm_error("%s: hostname is too long", __func__);
 	return -1;
     }
 
-    char *p;
-    if ((!d->host) || ((9 == d->hostlen) &&
-	!strncmp(d->host, "localhost", d->hostlen))) {
-	p = (char *)mempcpy(str, "unix", 4);
-    } else {
-	p = str;
-    }
-    snprintf(p, sizeof(str) - (p - str), ":%d.%d", d->display, d->screen);
-
-    size_t n = strlen(str);
-    int k = sizeof(XAUTH) + sizeof(" list ") - 2;
-
-    if ((n + k + sizeof(" 2> /dev/null")) >= sizeof(str)) {
-	slurm_error("%s: xauth parameters are too long", __func__);
-	return -2;
+    const char *display = getenv("DISPLAY");
+    if (!display) {
+	slurm_error("%s: DISPLAY variable not set", __func__);
+	return -1;
     }
 
-    *(char *)mempcpy(str + n, " 2> /dev/null", sizeof(" 2> /dev/null") - 1) = 0;
-
-    for (int i = (n + k); i >= 0; --i) str[i + k] = str[i];
-
-    mempcpy(mempcpy(str, XAUTH, sizeof(XAUTH) - 1),
-	    " list ", sizeof(" list ") - 1);
+    snprintf(str, sizeof(str), "%s list %s", XAUTH, display);
 
 #ifdef DEBUG
     slurm_info("Executing '%s'", str);
 #endif
 
-    /* Just to be sure */
-    if (strlen(str) > sizeof(str)) {
-	slurm_error("%s: assertion '!(strlen(str) > sizeof(str)))' failed.",
-		    __func__);
-	return -3;
-    }
-
     FILE *f = popen(str, "r");
     if (!f) {
-	slurm_error("%s: xauth execution failed", __func__);
+	slurm_error("%s: execution %s failed", __func__, str);
 	return -4;
     }
 
