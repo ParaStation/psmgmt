@@ -99,7 +99,7 @@ static int jailProcess(void *info)
     jlog(J_LOG_VERBOSE, "%s: called for %d\n", __func__, pid);
 
     if (!jailScript) {
-	jlog(-1, "%s: no jail script provided\n", __func__);
+	jlog(J_LOG_VERBOSE, "%s: no jail script provided\n", __func__);
 	return 0;
     }
     return execScript(pid, jailScript);
@@ -112,7 +112,7 @@ static int jailTerminate(void *info)
     jlog(J_LOG_VERBOSE, "%s: called for %d\n", __func__, pid);
 
     if (!termScript) {
-	jlog(-1, "%s: no terminate script provided\n", __func__);
+	jlog(J_LOG_VERBOSE, "%s: no terminate script provided\n", __func__);
 	return 0;
     }
 
