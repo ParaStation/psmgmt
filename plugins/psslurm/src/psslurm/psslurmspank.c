@@ -293,14 +293,16 @@ void __SpankInitOpt(spank_t spank, const char *func, const int line)
 
 	struct spank_option *opt = findPluginOpt(plugin, stepOpt.optName);
 	if (!opt) {
-	    flog("no option %s for plugin %s found\n", stepOpt.optName,
-		 stepOpt.pluginName);
+	    /* a spank plugin may choose to register options only in
+	     * local context */
+	    fdbg(PSSLURM_LOG_SPANK, "no option %s for plugin %s found\n",
+		 stepOpt.optName, stepOpt.pluginName);
+	} else {
+	    /* execute option callback */
+	    fdbg(PSSLURM_LOG_SPANK, "exec callback for name %s val %s"
+		 " callback %p\n", stepOpt.optName, stepOpt.val, opt->cb);
+	    if (opt && opt->cb) opt->cb(opt->val, stepOpt.val, 1);
 	}
-
-	/* execute option callback */
-	fdbg(PSSLURM_LOG_SPANK, "exec callback for name %s val %s"
-	     " callback %p\n", stepOpt.optName, stepOpt.val, opt->cb);
-	if (opt && opt->cb) opt->cb(opt->val, stepOpt.val, 1);
     }
 }
 
