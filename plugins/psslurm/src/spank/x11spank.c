@@ -241,8 +241,9 @@ int connect_x_inet(struct x11display *d)
 	return -4;
     }
 
-    if (connect(sock, (struct sockaddr *)&sa, sizeof(sa) < 0)) {
-	slurm_error("%s: connect failed. errno says '%s'", __func__,
+    if (connect(sock, (struct sockaddr *)&sa, sizeof(sa)) < 0) {
+	slurm_error("%s: connect to %s:%d failed: %s", __func__,
+		    inet_ntoa(sa.sin_addr), ntohs(sa.sin_port),
 		    strerror(errno));
 	close(sock);
 	return -5;
@@ -301,16 +302,20 @@ int copy(int from, int to, void *buf, int bufsize)
     errno = 0;
     int n = read(from, buf, bufsize);
     if (n < 1) {
+#ifdef DEBUG
 	slurm_error("%s: read(%i) failed: %s\n", __func__, from,
 		    strerror(errno));
+#endif
 	return -1;
     }
 
     errno = 0;
     int m = write(to, buf, n);
     if (m < 1) {
+#ifdef DEBUG
 	slurm_error("%s: write(%i) failed: %s\n", __func__, to,
 		    strerror(errno));
+#endif
 	return -2;
     }
 
