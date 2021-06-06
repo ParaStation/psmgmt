@@ -135,7 +135,7 @@ static int parse_display_env(struct x11display *d)
  * Retrieve the protocol and cookie using the xauth program.
  */
 int get_xauth_proto_and_cookie(struct x11display *d, char *proto, int protolen,
-                               char *cookie, int cookielen)
+			       char *cookie, int cookielen)
 {
     char str[2048];
 
@@ -158,7 +158,7 @@ int get_xauth_proto_and_cookie(struct x11display *d, char *proto, int protolen,
 
     FILE *f = popen(str, "r");
     if (!f) {
-	slurm_error("%s: execution %s failed", __func__, str);
+	slurm_error("%s: executing '%s' failed", __func__, str);
 	return -4;
     }
 

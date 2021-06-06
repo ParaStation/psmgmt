@@ -2,6 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2019-2021 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2021 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -254,18 +255,14 @@ static struct spank_option *findPluginOpt(Spank_Plugin_t *plugin, char *name)
 {
     /* find option in spank_options table */
     struct spank_option *opt = dlsym(plugin->handle, "spank_options");
-    for (int i=0; opt && opt[i].name; i++) {
-	if (!strcmp(opt[i].name, name)) {
-	    return &opt[i];
-	}
+    for (int i = 0; opt && opt[i].name; i++) {
+	if (!strcmp(opt[i].name, name)) return &opt[i];
     }
 
     /* find option in plugin table */
-    for (uint32_t i=0; i<plugin->optCount; i++) {
-	struct spank_option *opt = plugin->opt;
-	if (!strcmp(opt[i].name, name)) {
-	    return &opt[i];
-	}
+    opt = plugin->opt;
+    for (uint32_t i = 0; i < plugin->optCount; i++) {
+	if (!strcmp(opt[i].name, name)) return &opt[i];
     }
 
     return NULL;
@@ -301,7 +298,7 @@ void __SpankInitOpt(spank_t spank, const char *func, const int line)
 	    /* execute option callback */
 	    fdbg(PSSLURM_LOG_SPANK, "exec callback for name %s val %s"
 		 " callback %p\n", stepOpt.optName, stepOpt.val, opt->cb);
-	    if (opt && opt->cb) opt->cb(opt->val, stepOpt.val, 1);
+	    if (opt->cb) opt->cb(opt->val, stepOpt.val, 1);
 	}
     }
 }
