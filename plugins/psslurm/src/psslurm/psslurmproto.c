@@ -2332,40 +2332,12 @@ bool initSlurmdProto(void)
 
 void clearSlurmdProto(void)
 {
-    clearSlurmdMsg(REQUEST_LAUNCH_PROLOG);
-    clearSlurmdMsg(REQUEST_BATCH_JOB_LAUNCH);
-    clearSlurmdMsg(REQUEST_LAUNCH_TASKS);
-    clearSlurmdMsg(REQUEST_SIGNAL_TASKS);
-    clearSlurmdMsg(REQUEST_TERMINATE_TASKS);
-    clearSlurmdMsg(REQUEST_REATTACH_TASKS);
-    clearSlurmdMsg(REQUEST_KILL_PREEMPTED);
-    clearSlurmdMsg(REQUEST_KILL_TIMELIMIT);
-    clearSlurmdMsg(REQUEST_ABORT_JOB);
-    clearSlurmdMsg(REQUEST_TERMINATE_JOB);
-    clearSlurmdMsg(REQUEST_SUSPEND_INT);
-    clearSlurmdMsg(REQUEST_COMPLETE_BATCH_SCRIPT);
-    clearSlurmdMsg(REQUEST_UPDATE_JOB_TIME);
-    clearSlurmdMsg(REQUEST_SHUTDOWN);
-    clearSlurmdMsg(REQUEST_RECONFIGURE);
-    clearSlurmdMsg(REQUEST_REBOOT_NODES);
-    clearSlurmdMsg(REQUEST_NODE_REGISTRATION_STATUS);
-    clearSlurmdMsg(REQUEST_PING);
-    clearSlurmdMsg(REQUEST_HEALTH_CHECK);
-    clearSlurmdMsg(REQUEST_ACCT_GATHER_UPDATE);
-    clearSlurmdMsg(REQUEST_ACCT_GATHER_ENERGY);
-    clearSlurmdMsg(REQUEST_JOB_ID);
-    clearSlurmdMsg(REQUEST_FILE_BCAST);
-    clearSlurmdMsg(REQUEST_STEP_COMPLETE);
-    clearSlurmdMsg(REQUEST_STEP_COMPLETE_AGGR);
-    clearSlurmdMsg(REQUEST_JOB_STEP_STAT);
-    clearSlurmdMsg(REQUEST_JOB_STEP_PIDS);
-    clearSlurmdMsg(REQUEST_DAEMON_STATUS);
-    clearSlurmdMsg(REQUEST_JOB_NOTIFY);
-    clearSlurmdMsg(REQUEST_FORWARD_DATA);
-    clearSlurmdMsg(REQUEST_NETWORK_CALLERID);
-    clearSlurmdMsg(MESSAGE_COMPOSITE);
-    clearSlurmdMsg(RESPONSE_MESSAGE_COMPOSITE);
-    clearSlurmdMsg(RESPONSE_NODE_REGISTRATION);
+    list_t *h, *tmp;
+    list_for_each_safe (h, tmp, &msgList) {
+	msgHandler_t *msgHandler = list_entry(h, msgHandler_t, next);
+	list_del(&msgHandler->next);
+	ufree(msgHandler);
+    }
 
     ufree(slurmProtoStr);
     ufree(slurmVerStr);
