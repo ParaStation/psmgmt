@@ -364,6 +364,10 @@ void freeJobCred(JobCred_t *cred)
     ufree(cred->jobHostlist);
     ufree(cred->jobConstraints);
     ufree(cred->sig);
+    ufree(cred->pwGecos);
+    ufree(cred->pwShell);
+    ufree(cred->pwDir);
+    ufree(cred->gidNames);
     ufree(cred);
 }
 

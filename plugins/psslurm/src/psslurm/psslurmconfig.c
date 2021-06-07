@@ -359,7 +359,10 @@ bool isLocalAddr(char *addr)
 	switch (rp->ai_family) {
 	case AF_INET:
 	    saddr = (struct sockaddr_in *)rp->ai_addr;
-	    if (PSC_isLocalIP(saddr->sin_addr.s_addr)) return true;
+	    if (PSC_isLocalIP(saddr->sin_addr.s_addr)) {
+		freeaddrinfo(result);
+		return true;
+	    }
 	    break;
 	case AF_INET6:
 	    /* ignore -- don't handle IPv6 yet */
