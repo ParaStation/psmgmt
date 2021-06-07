@@ -286,15 +286,9 @@ ERROR:
 static void handlePElogueReq(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
 {
     char *ptr = rData->buf;
-    uint16_t version;
-    uint32_t nrOfNodes;
-    uid_t uid;
-    gid_t gid;
-    PSnodes_ID_t *nodes;
-    env_t *env = umalloc(sizeof(*env));
-    RPC_Info_t *info = umalloc(sizeof(*info));
 
     /* verify protocol version */
+    uint16_t version;
     getUint16(&ptr, &version);
     if (version != PELOGUE_REQUEST_VERSION) {
 	mlog("%s: invalid protocol version %u from %s expect %u\n", __func__,
@@ -305,15 +299,22 @@ static void handlePElogueReq(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
     }
     /* fetch info from message */
     char *requestor = getStringM(&ptr);
+    RPC_Info_t *info = umalloc(sizeof(*info));
     getUint8(&ptr, &info->type);
     getUint32(&ptr, &info->timeout);
     getUint32(&ptr, &info->grace);
     char *jobid = getStringM(&ptr);
+    /* uid/gid */
+    uid_t uid;
     getUint32(&ptr, &uid);
+    gid_t gid;
     getUint32(&ptr, &gid);
     /* nodelist */
+    PSnodes_ID_t *nodes;
+    uint32_t nrOfNodes;
     getInt16Array(&ptr, &nodes, &nrOfNodes);
     /* environment */
+    env_t *env = umalloc(sizeof(*env));
     getStringArrayM(&ptr, &env->vars, &env->cnt);
     env->size = env->cnt;
     /* fwPrologueOE */
@@ -333,6 +334,7 @@ static void handlePElogueReq(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
     /* add job */
     Job_t *job = addJob(requestor, jobid, uid, gid, nrOfNodes, nodes,
 			CBprologueResp, info, fwPrologueOE);
+    ufree(nodes);
     if (!job) {
 	mlog("%s: failed to add job %s for %s\n", __func__, jobid, requestor);
 	goto ERROR;
