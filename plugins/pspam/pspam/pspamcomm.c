@@ -56,6 +56,7 @@ static int cbJailChild(int fd, PSID_scriptCBInfo_t *info)
     bool ret = getScriptCBdata(fd, info, &exit, errMsg, sizeof(errMsg), &errLen);
     if (!ret) {
 	mlog("%s: getting jail script callback data failed\n", __func__);
+	ufree(info);
 	return 0;
     }
 
@@ -73,6 +74,7 @@ static int cbJailChild(int fd, PSID_scriptCBInfo_t *info)
 	}
     }
 
+    ufree(info);
     return 0;
 }
 
