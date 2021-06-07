@@ -182,10 +182,11 @@ bool initMunge(void)
 
     /* test munge functionality */
     if (!psMungeEncode(&cred) || !psMungeDecode(cred, &uid, &gid)) {
-	if (cred) free(cred);
+	free(cred);
 	return false;
     }
 
+    free(cred);
     return true;
 }
 
