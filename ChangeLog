@@ -1,3 +1,25 @@
+Version psmgmt-5.1.41-3:
+========================
+------------------------------------------------------------------------
+0c53e89a | Norbert Eicker | Sun, 6 Jun 2021 23:17:01 +0200
+
+Fix copyright and streamlining
+------------------------------------------------------------------------
+8b9ef76f | Michael Rauh | Fri, 4 Jun 2021 15:30:25 +0200
+
+Bugfix: fix handling of connect() return code
+------------------------------------------------------------------------
+ed4804e4 | Michael Rauh | Fri, 4 Jun 2021 14:22:55 +0200
+
+Bugfix: use correct display string for xauth in x11spank
+------------------------------------------------------------------------
+6b7d60ae | Michael Rauh | Fri, 4 Jun 2021 11:05:09 +0200
+
+Bugfix: a spank plugin may choose to register spank options only
+to srun and not psslurm. This should not lead to an error.
+------------------------------------------------------------------------
+
+
 Version psmgmt-5.1.41-2:
 ========================
 ------------------------------------------------------------------------

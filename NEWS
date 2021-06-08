@@ -6,6 +6,14 @@ Copyright (C) 2021 ParTec AG, Munich
 Please send bug reports, questions and suggestions to <support@par-tec.com>
 
 
+Version 5.1.41-3:
+=================
+Bugfixes:
+ - Ignore if a spank plugin registers spank options only to srun
+ - x11spank: fix handling of connect() return code
+ - x11spank: use correct display string for xauth
+
+
 Version 5.1.41-2:
 =================
 Bugfixes:
