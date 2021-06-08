@@ -2504,6 +2504,7 @@ static void handleSpawnReq(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
 
     /* cleanup res if any */
     if (res) {
+	free(res->CPUsets);
 	list_del(&res->next);
 	free(res);
     }
