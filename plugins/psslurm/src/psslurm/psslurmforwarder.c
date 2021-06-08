@@ -243,7 +243,6 @@ static int stepFollowerCB(int32_t exit_status, Forwarder_Data_t *fw)
 static int stepCallback(int32_t exit_status, Forwarder_Data_t *fw)
 {
     Step_t *step = fw->userData;
-    Alloc_t *alloc = findAlloc(step->jobid);
 
     /* validate step pointer */
     if (!verifyStepPtr(step)) {
@@ -251,6 +250,7 @@ static int stepCallback(int32_t exit_status, Forwarder_Data_t *fw)
 	return 0;
     }
 
+    Alloc_t *alloc = findAlloc(step->jobid);
     flog("%s in %s finished, exit %i / %i\n", strStepID(step),
 	 strJobState(step->state), exit_status, fw->chldExitStatus);
 
