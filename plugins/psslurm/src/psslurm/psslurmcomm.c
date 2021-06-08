@@ -975,7 +975,6 @@ int __sendSlurmMsgEx(int sock, Slurm_Msg_Header_t *head, PS_SendDB_t *body,
     if (ret == -1) {
 	if (!written) {
 	    flog("sending msg type %s failed\n", msgType2String(head->type));
-	    return -1;
 	} else {
 	    /* msg was fractionally written, retry later */
 	    Slurm_Msg_Buf_t *savedMsg;

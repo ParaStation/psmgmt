@@ -2,6 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2015-2021 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2021 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -377,7 +378,7 @@ int handleLocalPElogueStart(void *data)
 	    /* pack leader prologue, execute prologue and add allocation
 	     * only for leader job */
 	    uint32_t nrOfNodes;
-	    PSnodes_ID_t *nodes;
+	    PSnodes_ID_t *nodes = NULL;
 
 	    fdbg(PSSLURM_LOG_PACK, "add allocation with pack-ID %s "
 		 "pack-nodes %s\n", sPackID, packHosts);
@@ -387,6 +388,7 @@ int handleLocalPElogueStart(void *data)
 		flog("converting %s to PS node IDs failed\n", slurmHosts);
 	    }
 	    uint32_t localid = getLocalID(nodes, nrOfNodes);
+	    ufree(nodes);
 
 	    Alloc_t *alloc;
 	    if (localid != NO_VAL) {
