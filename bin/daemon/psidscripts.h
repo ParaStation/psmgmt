@@ -2,6 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2009-2020 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2021 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -45,6 +46,9 @@ typedef struct {
  * the second argument is pointing to. Otherwise calling @ref
  * PSID_execScript() or @ref PSID_execFunc() with a callback
  * repeatedly might eat up the daemon's available file-descriptors.
+ *
+ * Furthermore, the callback is responsible to free() the structure
+ * the second argument is pointing to in order to avoid a memory leak.
  */
 typedef int PSID_scriptCB_t(int, PSID_scriptCBInfo_t *);
 

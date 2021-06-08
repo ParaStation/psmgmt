@@ -2,6 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2018-2021 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2021 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -141,7 +142,7 @@ static int cbTermJail(int fd, PSID_scriptCBInfo_t *info)
     char errMsg[1024];
     size_t errLen;
 
-    bool ret = getScriptCBdata(fd, info, &exit, errMsg, sizeof(errMsg), &errLen);
+    bool ret = getScriptCBdata(fd, info, &exit, errMsg, sizeof(errMsg),&errLen);
     if (!ret) {
 	mlog("%s: getting jail term script callback data failed\n", __func__);
 	ufree(info);

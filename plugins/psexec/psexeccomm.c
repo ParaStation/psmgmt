@@ -2,6 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2016-2021 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2021 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -148,6 +149,7 @@ static int callbackLocalScript(int fd, PSID_scriptCBInfo_t *info)
     size_t errLen = 0;
 
     getScriptCBdata(fd, info, &exit, output, sizeof(output), &errLen);
+    ufree(info);
     if (!script) return 0;
 
     mlog("%s: id %i uID %u exit %i\n", __func__, script->id, script->uID, exit);
@@ -185,6 +187,7 @@ static int callbackScript(int fd, PSID_scriptCBInfo_t *info)
     size_t errLen = 0;
 
     getScriptCBdata(fd, info, &exit, output, sizeof(output), &errLen);
+    ufree(info);
     if (!script) return 0;
 
     mlog("%s: initiator %s id %i exit %i output:%s\n", __func__,

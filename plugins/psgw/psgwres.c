@@ -2,6 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2018-2021 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2021 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -310,10 +311,11 @@ static int cbRouteScript(int fd, PSID_scriptCBInfo_t *info)
 {
     PSGW_Req_t *req = info ? info->info : NULL;
     char errMsg[1024];
-    int32_t exit;
+    int32_t exit = 0;
     size_t errLen = 0;
 
     getScriptCBdata(fd, info, &exit, errMsg, sizeof(errMsg), &errLen);
+    ufree(info);
     fdbg(PSGW_LOG_ROUTE, "routing script exit %i\n", exit);
 
     req = Request_verify(req);
@@ -332,17 +334,13 @@ static int cbRouteScript(int fd, PSID_scriptCBInfo_t *info)
     req->routePID = -1;
 
     if (exit != 0) {
-	if (info && errMsg[0] != '\0') {
-	    cancelReq(req, errMsg);
-	} else {
+	if (errMsg[0] == '\0') {
 	    snprintf(msgBuf, sizeof(msgBuf), "routing script failed with exit "
 		     "code %i\n", exit);
-	    cancelReq(req, errMsg);
 	}
+	cancelReq(req, errMsg);
     } else {
-	if (info && errMsg[0] != '\0') {
-	    mlog("%s: %s\n", __func__, errMsg);
-	}
+	if (errMsg[0] != '\0') mlog("%s: %s\n", __func__, errMsg);
 	finalizeRequest(req);
     }
     return 0;

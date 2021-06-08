@@ -2,6 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2010-2021 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2021 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -551,8 +552,10 @@ static int callbackCopyScript(int fd, PSID_scriptCBInfo_t *info)
     size_t errLen;
 
     /* fetch error msg and exit status */
-    if ((getScriptCBdata(fd, info, &exitCode, errMsg, sizeof(errMsg),
-	    &errLen))) {
+    bool ret = getScriptCBdata(fd, info, &exitCode,
+			       errMsg, sizeof(errMsg), &errLen);
+    ufree(info);
+    if (!ret) {
 	mlog("%s: invalid scriptcb data\n", __func__);
 	return 1;
     }
@@ -596,8 +599,6 @@ static int callbackCopyScript(int fd, PSID_scriptCBInfo_t *info)
 	mlog("%s: finding job '%s' for copy data failed\n", __func__,
 		data->jobid);
     }
-    /* malloced by psid */
-    ufree(info);
 
     if (!exitCode) {
 	/* copy ok */
@@ -640,10 +641,9 @@ void afterJobCleanup(char *user)
 
 int spawnCopyScript(Copy_Data_t *data)
 {
-    pid_t pid;
-
-    if ((pid = PSID_execFunc(execCopyForwarder, NULL, callbackCopyScript,
-			     data)) == -1) {
+    pid_t pid  = PSID_execFunc(execCopyForwarder, NULL, callbackCopyScript,
+			       data);
+    if (pid == -1) {
 	mlog("%s: exec copy script failed\n", __func__);
 	handleFailedSpawn();
 	return 1;
@@ -660,13 +660,16 @@ static int callbackJob(int fd, PSID_scriptCBInfo_t *info)
 {
     char errMsg[300] = { '\0' };
     int32_t status = -1;
-    Job_t *job_info, *job;
+    Job_t *job_info = info ? info->info : NULL;
     Child_t *child;
     int childType;
     size_t errLen;
 
     /* fetch error msg and exit status */
-    if ((getScriptCBdata(fd, info, &status, errMsg, sizeof(errMsg), &errLen))) {
+    bool ret = getScriptCBdata(fd, info, &status,
+			       errMsg, sizeof(errMsg), &errLen);
+    ufree(info);
+    if (!ret) {
 	mlog("%s: invalid cb data\n", __func__);
 	return 1;
     }
@@ -675,13 +678,11 @@ static int callbackJob(int fd, PSID_scriptCBInfo_t *info)
 	mlog("%s", errMsg);
     }
 
-    job_info = (Job_t *) info->info;
-    if (!(job = findJobById(job_info->id))) {
+    Job_t *job = job_info ? findJobById(job_info->id) : NULL;
+    if (!job) {
 	mlog("%s job not found\n", __func__);
 	return 1;
     }
-    /* malloced by psid */
-    ufree(info);
 
     if (status != 0) {
 	mlog("%s: forwarder exit '%i', child exit '%i'\n", __func__, status,
@@ -857,11 +858,10 @@ void stopInteractiveJob(Job_t *job)
 
 int spawnInteractiveJob(Job_t *job)
 {
-    pid_t pid;
-
     /* do the actual spawn */
-    if ((pid = PSID_execFunc(execInterForwarder, NULL, callbackJob,
-	    job)) == -1) {
+    pid_t pid = PSID_execFunc(execInterForwarder, NULL, callbackJob, job);
+
+    if (pid == -1) {
 	mlog("%s: exec interactive job script failed\n", __func__);
 	handleFailedSpawn();
 	return 1;

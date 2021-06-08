@@ -2,6 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2010-2021 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2021 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -604,16 +605,18 @@ static void PElogueTimeoutAction(char *server, char *jobid, int prologue,
 static int callbackPElogue(int fd, PSID_scriptCBInfo_t *info)
 {
     int32_t exitStat, signalFlag = 0;
-    PElogue_Data_t *data;
+    PElogue_Data_t *data = info ? info->info : NULL;
     char errMsg[300] = {'\0'};
     size_t errLen;
 
     /* fetch error msg and exit status */
-    if (getScriptCBdata(fd, info, &exitStat, errMsg, sizeof(errMsg), &errLen)) {
+    bool ret = getScriptCBdata(fd, info, &exitStat,
+			       errMsg, sizeof(errMsg), &errLen);
+    ufree(info);
+    if (!ret) {
 	mlog("%s: invalid cb data\n", __func__);
 	return 0;
     }
-    data = (PElogue_Data_t *) info->info;
 
     /* log error locally and forward to mother superior */
     if (errMsg[0] != '\0' && strlen(errMsg) > 0) {
@@ -712,9 +715,6 @@ static int callbackPElogue(int fd, PSID_scriptCBInfo_t *info)
     ufree(data->server);
     ufree(data->tmpDir);
     ufree(data);
-
-    /* malloced by psid */
-    ufree(info);
 
     return 0;
 }

@@ -113,7 +113,7 @@ static int cbTermJail(int fd, PSID_scriptCBInfo_t *info)
     char errMsg[1024];
     size_t errLen;
 
-    bool ret = getScriptCBdata(fd, info, &exit, errMsg, sizeof(errMsg), &errLen);
+    bool ret = getScriptCBdata(fd, info, &exit, errMsg, sizeof(errMsg),&errLen);
     if (!ret) {
 	mlog("%s: getting jail term script callback data failed\n", __func__);
 	ufree(info);
