@@ -444,9 +444,10 @@ static int handleCreatePart(void *msg)
     logHWthreads(__func__, task->partThrds, task->totalThreads);
 
     /* further preparations of the task structure */
+    ufree(task->partition);
+    task->partition = NULL;
     task->options = task->request->options;
     task->options |= PART_OPT_EXACT;
-    task->partition = NULL;
     task->usedThreads = 0;
     task->activeChild = 0;
     task->partitionSize = 0;

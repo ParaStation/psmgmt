@@ -2,12 +2,14 @@
  * ParaStation
  *
  * Copyright (C) 2013-2020 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2021 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
 #include "pscommon.h"
+#include "pluginmalloc.h"
 
 #include "pelogueconfig.h"
 #include "peloguejob.h"
@@ -18,7 +20,42 @@
 
 bool psPelogueAddPluginConfig(char *name, Config_t *configList)
 {
-    return addPluginConfig(name, configList);
+    Config_t *config = umalloc(sizeof(*config));
+    INIT_LIST_HEAD(config);
+
+    char *val = getConfValueC(configList, "TIMEOUT_PROLOGUE");
+    if (!val) {
+	mlog("%s: invalid prologue timeout\n", __func__);
+	goto ERROR;
+    }
+    addConfigEntry(config, "TIMEOUT_PROLOGUE", val);
+
+    val = getConfValueC(configList, "TIMEOUT_EPILOGUE");
+    if (!val) {
+	mlog("%s: invalid epilogue timeout\n", __func__);
+	goto ERROR;
+    }
+    addConfigEntry(config, "TIMEOUT_EPILOGUE", val);
+
+    val = getConfValueC(configList, "TIMEOUT_PE_GRACE");
+    if (!val) {
+	mlog("%s: invalid grace timeout\n", __func__);
+	goto ERROR;
+    }
+    addConfigEntry(config, "TIMEOUT_PE_GRACE", val);
+
+    char *scriptDir = getConfValueC(configList, "DIR_SCRIPTS");
+    if (!scriptDir) {
+	mlog("%s: invalid scripts directory\n", __func__);
+	goto ERROR;
+    }
+    addConfigEntry(config, "DIR_SCRIPTS", scriptDir);
+
+    return addPluginConfig(name, config);
+
+ERROR:
+    ufree(config);
+    return false;
 }
 
 bool psPelogueDelPluginConfig(char *name)

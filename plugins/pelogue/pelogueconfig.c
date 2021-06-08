@@ -2,6 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2013-2019 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2021 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -172,23 +173,24 @@ static bool checkPluginConfig(Config_t *config)
 
 bool addPluginConfig(const char *name, Config_t *config)
 {
-    int i;
-
     if (!name || !config) return false;
     if (!checkPluginConfig(config)) {
 	mlog("%s: plugin '%s' provides invalid config\n", __func__, name);
 	return false;
     }
 
-    for (i=0; i<MAX_SUPPORTED_PLUGINS; i++) {
+    for (int i=0; i<MAX_SUPPORTED_PLUGINS; i++) {
 	if (pluginConfList[i].name && !strcmp(pluginConfList[i].name, name)) {
 	    /* update existing plugin configuration */
+	    freeConfig(pluginConfList[i].conf);
+	    ufree(pluginConfList[i].conf);
+
 	    pluginConfList[i].conf = config;
 	    return true;
 	}
     }
 
-    for (i=0; i<MAX_SUPPORTED_PLUGINS; i++) {
+    for (int i=0; i<MAX_SUPPORTED_PLUGINS; i++) {
 	if (!pluginConfList[i].name) {
 	    pluginConfList[i].name = ustrdup(name);
 	    pluginConfList[i].conf = config;
@@ -202,8 +204,11 @@ bool addPluginConfig(const char *name, Config_t *config)
 
 static void clearConfigEntry(int i)
 {
-    if (pluginConfList[i].name) free(pluginConfList[i].name);
+    ufree(pluginConfList[i].name);
     pluginConfList[i].name = NULL;
+
+    freeConfig(pluginConfList[i].conf);
+    ufree(pluginConfList[i].conf);
     pluginConfList[i].conf = NULL;
 }
 
