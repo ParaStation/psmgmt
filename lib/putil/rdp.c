@@ -3,6 +3,7 @@
  *
  * Copyright (C) 1999-2004 ParTec AG, Karlsruhe
  * Copyright (C) 2005-2021 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2021 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -345,17 +346,13 @@ static Smsg_t *SMsgFreeList;
  */
 static void initSMsgList(int nodes)
 {
-    int i, count;
-
     if (SmsgPool) return;
 
-    count = nodes * MAX_WINDOW_SIZE;
+    size_t count = nodes * MAX_WINDOW_SIZE;
     SmsgPool = malloc(count * sizeof(*SmsgPool));
     if (!SmsgPool) RDP_exit(errno, "%s", __func__);
 
-    for (i=0; i<count; i++) {
-	SmsgPool[i].next = &SmsgPool[i+1];
-    }
+    for (uint32_t i = 0; i < count-1; i++) SmsgPool[i].next = &SmsgPool[i+1];
     SmsgPool[count - 1].next = NULL;
     SMsgFreeList = SmsgPool;
 }
@@ -443,15 +440,13 @@ static LIST_HEAD(MsgFreeList);
  */
 static void initMsgList(int nodes)
 {
-    int i, count;
-
     if (MsgPool) return;
 
-    count = nodes * MAX_WINDOW_SIZE;
+    size_t count = nodes * MAX_WINDOW_SIZE;
     MsgPool = malloc(count * sizeof(*MsgPool));
     if (!MsgPool) RDP_exit(errno, "%s", __func__);
 
-    for (i=0; i<count; i++) {
+    for (uint32_t i = 0; i < count; i++) {
 	MsgPool[i].node = -1;
 	MsgPool[i].len = -1;
 	INIT_LIST_HEAD(&MsgPool[i].nxtACK);
@@ -2405,8 +2400,8 @@ void RDP_clearMem(void)
 	}
 	free(MsgPool);
     }
-    if (SmsgPool) free(SmsgPool);
+    free(SmsgPool);
     cleanupIPTable();
-    if (conntable) free(conntable);
+    free(conntable);
     timerID = -1;
 }
