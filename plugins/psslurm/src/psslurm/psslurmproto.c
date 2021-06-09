@@ -738,7 +738,7 @@ static void handleSignalTasks(Slurm_Msg_t *sMsg)
 	case SIG_TERM_KILL:
 	    doSendTermKill(req);
 	    sendSlurmRC(sMsg, SLURM_SUCCESS);
-	    goto ERROR;
+	    goto cleanup;
 	case SIG_UME:
 	case SIG_REQUEUED:
 	case SIG_PREEMPTED:
@@ -748,17 +748,17 @@ static void handleSignalTasks(Slurm_Msg_t *sMsg)
 	case SIG_FAILURE:
 	    sendSlurmRC(sMsg, SLURM_SUCCESS);
 	    flog("implement signal %u\n", req->signal);
-	    goto ERROR;
+	    goto cleanup;
     }
 
     if (!doSignalTasks(req)) {
 	sendSlurmRC(sMsg, ESLURM_INVALID_JOB_ID);
-	goto ERROR;
+	goto cleanup;
     }
 
     sendSlurmRC(sMsg, SLURM_SUCCESS);
 
-ERROR:
+cleanup:
     ufree(req);
 }
 
