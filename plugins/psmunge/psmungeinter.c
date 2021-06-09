@@ -2,6 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2016-2021 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2021 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -181,13 +182,10 @@ bool initMunge(void)
     if (!initDefaultContext()) return false;
 
     /* test munge functionality */
-    if (!psMungeEncode(&cred) || !psMungeDecode(cred, &uid, &gid)) {
-	free(cred);
-	return false;
-    }
-
+    bool ret = true;
+    if (!psMungeEncode(&cred) || !psMungeDecode(cred, &uid, &gid)) ret = false;
     free(cred);
-    return true;
+    return ret;
 }
 
 void finalizeMunge(void)
