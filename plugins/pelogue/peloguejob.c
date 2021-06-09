@@ -2,6 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2014-2020 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2021 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -129,7 +130,6 @@ Job_t *addJob(const char *plugin, const char *jobid, uid_t uid, gid_t gid,
 
     job = umalloc(sizeof(*job));
     if (job) {
-	int i;
 	job->plugin = ustrdup(plugin);
 	job->id = ustrdup(jobid);
 	job->uid = uid;
@@ -148,7 +148,7 @@ Job_t *addJob(const char *plugin, const char *jobid, uid_t uid, gid_t gid,
 
 	job->nodes =umalloc(sizeof(*job->nodes) * numNodes);
 	if (job->nodes) {
-	    for (i=0; i<job->numNodes; i++) {
+	    for (int i = 0; i < job->numNodes; i++) {
 		job->nodes[i].id = nodes[i];
 		job->nodes[i].prologue = PELOGUE_PENDING;
 		job->nodes[i].epilogue = PELOGUE_PENDING;

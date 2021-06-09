@@ -2,6 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2013-2021 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2021 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -356,21 +357,16 @@ static void handlePElogueReq(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
     if (ret == 1) {
 	/* pause and wait for plugin execute callback */
 	return;
-    } else if (ret == PSIDHOOK_NOFUNC || !ret) {
-	/* no plugin registered or no special resources needed */
-	ufree(res->plugin);
-	ufree(res);
-	info->res = NULL;
-    } else {
-	/* error in plugin */
+    }
+    ufree(res->plugin);
+    ufree(res);
+    info->res = NULL;
+    if (ret != PSIDHOOK_NOFUNC && ret) {
 	mlog("%s: hook PSIDHOOK_PELOGUE_RES failed\n", __func__);
-	ufree(res->plugin);
-	ufree(res);
-	info->res = NULL;
 	goto ERROR;
     }
 
-    if (startPElogueReq(job, info->type, info->timeout, info->grace, env) <0) {
+    if (startPElogueReq(job, info->type, info->timeout, info->grace, env) < 0) {
 	goto ERROR;
     }
 
