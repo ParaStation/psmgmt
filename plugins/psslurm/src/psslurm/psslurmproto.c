@@ -1414,8 +1414,8 @@ static void handleJobNotify(Slurm_Msg_t *sMsg)
 
     /* check permissions */
     if (!(verifyUserId(sMsg->head.uid, job ? job->uid : step->uid))) {
-	flog("request from invalid user %u for job %u\n", sMsg->head.uid,
-	     jobid);
+	flog("request from invalid user %u for job %u stepid %u\n",
+	     sMsg->head.uid, jobid, step->stepid);
 	sendSlurmRC(sMsg, ESLURM_USER_ID_MISSING);
 	ufree(msg);
 	return;
