@@ -3,6 +3,7 @@
 # ParaStation
 #
 # Copyright (C) 2020 ParTec Cluster Competence Center GmbH, Munich
+# Copyright (C) 2021 ParTec AG, Munich
 #
 # This file may be distributed under the terms of the Q Public License
 # as defined in the file LICENSE.QPL included in the packaging of this
@@ -21,4 +22,4 @@
 # the process ID of the process to be jailed as an argument.
 
 # adjust oom killer score for child
-echo 0> /proc/$CHILD/oom_score_adj
+echo 0 > /proc/$CHILD/oom_score_adj
