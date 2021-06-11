@@ -1,3 +1,7 @@
+; host class object
+;
+[+class:host]
+
 ; psid defaults object
 ; not to be changed by the administrator
 ;
@@ -74,6 +78,7 @@ ResourceLimits. = ptr(["class:resourcelimits"])
 # AllowedGroups = ["any"]
 # AllowedUsers = ["any"]
 # AvailableHardwareTypes = ["booster", "ethernet", "p4sock", "gm", "accounter", "mvapi", "openib", "ipath"]
+# BindGpus = "yes"
 # BindMemory = "yes"
 # CoreDirectory = "/tmp"
 # CpuMap = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15"]
@@ -176,12 +181,14 @@ StopScript = "config/ps_p4sock stop"
 # Inherited keys:
 
 ; host object of the master node
-; keys "NodeName" and "NodeNo" have to be set in each host object
+; keys "NodeName" and "Psid.NodeId" have to be set in each host object
 ; override Psid.* parameters as needed
 ;
 [+host:master]
+.parents = ["class:host"]
+MngtNet.DevIPAddress = "192.168.100.100"
 NodeName = "master"
-NodeNo = "0"
+Psid.NodeId = "0"
 Psid.HardwareTypes = ["accounter"]
 Psid.IsStarter = "no"
 Psid.RunJobs = "no"
@@ -203,8 +210,9 @@ Psid.LoadPlugins = ["pspmi", "psaccount", "psslurm", "psresport"]
 ;
 [+host:node01]
 .parents = ["nodetype:psslurm", "class:host"]
+MngtNet.DevIPAddress = "192.168.100.101"
 NodeName = "node01"
-NodeNo = "16"
+Psid.NodeId = "1"
 # Inherited keys:
 # Psid. = ptr(["class:psid"])
 # Psid.LoadPlugins = ["pspmi", "psaccount", "psslurm", "psresport"]
