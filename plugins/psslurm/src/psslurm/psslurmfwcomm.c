@@ -276,7 +276,7 @@ void fwCMD_enableSrunIO(Step_t *step)
 void fwCMD_printMsg(Job_t *job, Step_t *step, char *plMsg, uint32_t msgLen,
 		    uint8_t type, int32_t rank)
 {
-    Forwarder_Data_t *fwdata = job ? job->fwdata : step->fwdata;
+    Forwarder_Data_t *fwdata = job ? job->fwdata : step ? step->fwdata : NULL;
 
     if (job && step) {
 	flog("error: job and step are mutually exclusive\n");
@@ -289,7 +289,7 @@ void fwCMD_printMsg(Job_t *job, Step_t *step, char *plMsg, uint32_t msgLen,
     PSLog_Msg_t msg = {
 	.header = {
 	    .type = PSP_CC_MSG,
-	    .dest = fwdata ? fwdata->tid : -1,
+	    .dest = fwdata->tid,
 	    .sender = PSC_getMyTID(),
 	    .len = offsetof(PSLog_Msg_t, buf) },
 	.version = PLUGINFW_PROTO_VERSION,
@@ -310,7 +310,7 @@ void fwCMD_printMsg(Job_t *job, Step_t *step, char *plMsg, uint32_t msgLen,
 	    step->ioCon = IO_CON_BROKE;
 	}
 
-	/* if msg from service rank, let it seem like it comes from first task */
+	/* msg from service rank, make believe it comes from first task */
 	if (rank < 0) rank = step->globalTaskIds[step->localNodeId][0];
     }
 
