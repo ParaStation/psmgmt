@@ -2,6 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2020-2021 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2021 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -272,79 +273,58 @@ void fwCMD_enableSrunIO(Step_t *step)
     sendMsg(&msg);
 }
 
-void fwCMD_printJobMsg(Job_t *job, char *plMsg, uint32_t msgLen, uint8_t type)
+void fwCMD_printMsg(Job_t *job, Step_t *step, char *plMsg, uint32_t msgLen,
+		    uint8_t type, int32_t rank)
 {
-    PSLog_Msg_t msg = {
-	.header = {
-	    .type = PSP_CC_MSG,
-	    .dest = job->fwdata ? job->fwdata->tid : -1,
-	    .sender = PSC_getMyTID(),
-	    .len = offsetof(PSLog_Msg_t, buf) },
-	.version = PLUGINFW_PROTO_VERSION,
-	.type = (PSLog_msg_t)CMD_PRINT_CHILD_MSG,
-	.sender = -1};
-    const size_t chunkSize =
-	sizeof(msg.buf) - sizeof(uint8_t) - sizeof(uint32_t);
-    size_t left = msgLen;
+    Forwarder_Data_t *fwdata = job ? job->fwdata : step->fwdata;
 
-    /* might happen that forwarder is already gone */
-    if (!job->fwdata) return;
-
-    do {
-	uint32_t chunk = left > chunkSize ? chunkSize : left;
-	uint32_t len = htonl(chunk);
-	DDBufferMsg_t *bMsg = (DDBufferMsg_t *)&msg;
-	msg.header.len = offsetof(PSLog_Msg_t, buf);
-
-	PSP_putMsgBuf(bMsg, "type", &type, sizeof(type));
-	/* Add data chunk including its length mimicking addData */
-	PSP_putMsgBuf(bMsg, "len", &len, sizeof(len));
-	PSP_putMsgBuf(bMsg, "data", plMsg + msgLen - left, chunk);
-
-	sendMsg(&msg);
-	left -= chunk;
-    } while (left);
-}
-
-void fwCMD_printMessage(Step_t *step, char *plMsg, uint32_t msgLen,
-			uint8_t type, int32_t rank)
-{
-    PSLog_Msg_t msg = {
-	.header = {
-	    .type = PSP_CC_MSG,
-	    .dest = step->fwdata ? step->fwdata->tid : -1,
-	    .sender = PSC_getMyTID(),
-	    .len = offsetof(PSLog_Msg_t, buf) },
-	.version = PLUGINFW_PROTO_VERSION,
-	.type = (PSLog_msg_t)CMD_PRINT_CHILD_MSG,
-	.sender = -1};
-    const size_t chunkSize = sizeof(msg.buf) - sizeof(uint8_t)
-	- sizeof(uint32_t) - sizeof(uint32_t);
-    size_t left = msgLen;
-
-    /* might happen that forwarder is already gone */
-    if (!step->fwdata) return;
-
-    /* connection to srun broke */
-    if (step->ioCon == IO_CON_BROKE) return;
-
-    if (step->ioCon == IO_CON_ERROR) {
-	flog("I/O connection for %s is broken\n", strStepID(step));
-	step->ioCon = IO_CON_BROKE;
+    if (job && step) {
+	flog("error: job and step are mutually exclusive\n");
+	return;
     }
 
-    /* if msg from service rank, let it seem like it comes from first task */
-    if (rank < 0) rank = step->globalTaskIds[step->localNodeId][0];
+    /* might happen that forwarder is already gone */
+    if (!fwdata) return;
+
+    PSLog_Msg_t msg = {
+	.header = {
+	    .type = PSP_CC_MSG,
+	    .dest = fwdata ? fwdata->tid : -1,
+	    .sender = PSC_getMyTID(),
+	    .len = offsetof(PSLog_Msg_t, buf) },
+	.version = PLUGINFW_PROTO_VERSION,
+	.type = (PSLog_msg_t)CMD_PRINT_CHILD_MSG,
+	.sender = -1};
+    size_t left = msgLen;
+    size_t chunkSize = sizeof(msg.buf) - sizeof(uint8_t) - sizeof(uint32_t);
+
+    if (step) {
+	/* reserved for additional rank */
+	chunkSize -= sizeof(uint32_t);
+
+	/* connection to srun broke */
+	if (step->ioCon == IO_CON_BROKE) return;
+
+	if (step->ioCon == IO_CON_ERROR) {
+	    flog("I/O connection for %s is broken\n", strStepID(step));
+	    step->ioCon = IO_CON_BROKE;
+	}
+
+	/* if msg from service rank, let it seem like it comes from first task */
+	if (rank < 0) rank = step->globalTaskIds[step->localNodeId][0];
+    }
 
     do {
 	uint32_t chunk = left > chunkSize ? chunkSize : left;
-	uint32_t nRank = htonl(rank);
 	uint32_t len = htonl(chunk);
 	DDBufferMsg_t *bMsg = (DDBufferMsg_t *)&msg;
 	msg.header.len = offsetof(PSLog_Msg_t, buf);
 
 	PSP_putMsgBuf(bMsg, "type", &type, sizeof(type));
-	PSP_putMsgBuf(bMsg, "rank", &nRank, sizeof(nRank));
+	if (step) {
+	    uint32_t nRank = htonl(rank);
+	    PSP_putMsgBuf(bMsg, "rank", &nRank, sizeof(nRank));
+	}
 	/* Add data chunk including its length mimicking addData */
 	PSP_putMsgBuf(bMsg, "len", &len, sizeof(len));
 	PSP_putMsgBuf(bMsg, "data", plMsg + msgLen - left, chunk);

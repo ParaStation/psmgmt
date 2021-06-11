@@ -1786,7 +1786,7 @@ static bool nodeDownAlloc(Alloc_t *alloc, const void *info)
 	    char buf[512];
 	    snprintf(buf, sizeof(buf), "%s terminated due to failed node %s\n",
 		     strStepID(step), getSlurmHostbyNodeID(node));
-	    fwCMD_printMessage(step, buf, strlen(buf), STDERR, 0);
+	    fwCMD_printMsg(NULL, step, buf, strlen(buf), STDERR, 0);
 	}
 
 	if (!alloc->nodeFail) {
@@ -1797,7 +1797,7 @@ static bool nodeDownAlloc(Alloc_t *alloc, const void *info)
 		snprintf(buf, sizeof(buf), "job %u terminated due to "
 			 "failure of node %s\n", job->jobid,
 			 getSlurmHostbyNodeID(node));
-		fwCMD_printJobMsg(job, buf, strlen(buf), STDERR);
+		fwCMD_printMsg(job, NULL, buf, strlen(buf), STDERR, 0);
 	    }
 	}
 

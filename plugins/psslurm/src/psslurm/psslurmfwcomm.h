@@ -2,6 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2020 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2021 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -73,7 +74,12 @@ void fwCMD_brokeIOcon(Step_t *step);
 void fwCMD_finalize(Forwarder_Data_t *fwdata, PSLog_Msg_t *msg);
 
 /**
- * @brief Send CMD_PRINT_CHILD_MSG to a step forwarder
+ * @brief Send CMD_PRINT_CHILD_MSG to a forwarder
+ *
+ * Print a message for a job or a step using the forwarder. The parameters
+ * @ref job and @ref step are mutually exclusive.
+ *
+ * @param job The job to print the message for
  *
  * @param step The step to print the message for
  *
@@ -83,23 +89,11 @@ void fwCMD_finalize(Forwarder_Data_t *fwdata, PSLog_Msg_t *msg);
  *
  * @param type The message type (stdout or stderr)
  *
- * @param rank The rank of the message origin
+ * @param rank The rank of the message origin (only
+ * used for a step)
  */
-void fwCMD_printMessage(Step_t *step, char *plMsg, uint32_t msgLen,
-		        uint8_t type, int32_t rank);
-
-/**
- * @brief Send CMD_PRINT_CHILD_MSG to a job forwarder
- *
- * @param job The job to print the message for
- *
- * @param plMsg The message to print
- *
- * @param msgLen The length of the message
- *
- * @param type The message type (stdout or stderr)
- */
-void fwCMD_printJobMsg(Job_t *job, char *plMsg, uint32_t msgLen, uint8_t type);
+void fwCMD_printMsg(Job_t *job, Step_t *step, char *plMsg, uint32_t msgLen,
+		    uint8_t type, int32_t rank);
 
 /**
  * @brief Send CMD_REATTACH_TASKS to a forwarder

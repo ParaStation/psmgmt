@@ -2,6 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2014-2021 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2021 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -1833,7 +1834,7 @@ void verboseCpuPinningOutput(Step_t *step, PS_Tasks_t *task)
 		 task->childRank, getLocalRankID(task->childRank, step),
 		 pid, printCpuMask(pid), action);
 
-	fwCMD_printMessage(step, vStr, strlen(vStr), STDERR, task->childRank);
+	fwCMD_printMsg(NULL, step, vStr, strlen(vStr), STDERR, task->childRank);
     }
 }
 

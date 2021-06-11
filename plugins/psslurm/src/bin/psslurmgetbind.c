@@ -2,6 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2020-2021 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2021 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -635,8 +636,8 @@ PSnodes_ID_t PSC_getMyID(void) {
     return 0;
 }
 
-void fwCMD_printMessage(Step_t *step, char *plMsg, uint32_t msgLen,
-		        uint8_t type, int32_t rank) {
+void fwCMD_printMsg(Job_t *job, Step_t *step, char *plMsg, uint32_t msgLen,
+		    uint8_t type, int32_t rank) {
     return;
 }
 

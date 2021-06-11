@@ -1423,13 +1423,13 @@ static void handleJobNotify(Slurm_Msg_t *sMsg)
 
     flog("notify jobid %u stepid %u msg %s\n", jobid, stepid, msg);
     if (job) {
-	fwCMD_printJobMsg(job, "psslurm: ", strlen("psslurm: "), STDERR);
-	fwCMD_printJobMsg(job, msg, strlen(msg), STDERR);
-	fwCMD_printJobMsg(job, "\n", strlen("\n"), STDERR);
+	fwCMD_printMsg(job, NULL, "psslurm: ", strlen("psslurm: "), STDERR, 0);
+	fwCMD_printMsg(job, NULL, msg, strlen(msg), STDERR, 0);
+	fwCMD_printMsg(job, NULL, "\n", strlen("\n"), STDERR, 0);
     } else {
-	fwCMD_printMessage(step, "psslurm: ", strlen("psslurm: "), STDERR, 0);
-	fwCMD_printMessage(step, msg, strlen(msg), STDERR, 0);
-	fwCMD_printMessage(step, "\n", strlen("\n"), STDERR, 0);
+	fwCMD_printMsg(NULL, step, "psslurm: ", strlen("psslurm: "), STDERR, 0);
+	fwCMD_printMsg(NULL, step, msg, strlen(msg), STDERR, 0);
+	fwCMD_printMsg(NULL, step, "\n", strlen("\n"), STDERR, 0);
     }
 
     ufree(msg);
@@ -1800,7 +1800,7 @@ static bool killSelectedSteps(Step_t *step, const void *killInfo)
 	if (!step->localNodeId) {
 	    snprintf(buf, sizeof(buf), "error: *** %s CANCELLED DUE TO"
 		" TIME LIMIT ***\n", strStepID(step));
-	    fwCMD_printMessage(step, buf, strlen(buf), STDERR, 0);
+	    fwCMD_printMsg(NULL, step, buf, strlen(buf), STDERR, 0);
 	}
 	fwCMD_stepTimeout(step->fwdata);
 	step->timeout = true;
@@ -1808,7 +1808,7 @@ static bool killSelectedSteps(Step_t *step, const void *killInfo)
 	if (!step->localNodeId) {
 	    snprintf(buf, sizeof(buf), "error: *** PREEMPTION for %s ***\n",
 		     strStepID(step));
-	    fwCMD_printMessage(step, buf, strlen(buf), STDERR, 0);
+	    fwCMD_printMsg(NULL, step, buf, strlen(buf), STDERR, 0);
 	}
     }
 
@@ -1839,11 +1839,11 @@ static void handleKillReq(Slurm_Msg_t *sMsg, Alloc_t *alloc, Kill_Info_t *info)
 		job->timeout = 1;
 		snprintf(buf, sizeof(buf), "error: *** job %u CANCELLED DUE "
 			 "TO TIME LIMIT ***\n", info->jobid);
-		fwCMD_printJobMsg(job, buf, strlen(buf), STDERR);
+		fwCMD_printMsg(job, NULL, buf, strlen(buf), STDERR, 0);
 	    } else {
 		snprintf(buf, sizeof(buf), "error: *** PREEMPTION for "
 			 "job %u ***\n", info->jobid);
-		fwCMD_printJobMsg(job, buf, strlen(buf), STDERR);
+		fwCMD_printMsg(job, NULL, buf, strlen(buf), STDERR, 0);
 	    }
 	}
     }
