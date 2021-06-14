@@ -3,6 +3,7 @@
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
  * Copyright (C) 2005-2021 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2021 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -131,7 +132,8 @@ static bool getFullList(sizedList_t *list, PSP_Info_t what, size_t itemSize)
     hosts = recv/itemSize;
 
     if (hosts != PSC_getNrOfNodes()) {
-	printf("%s: failed.\n", funcStr);
+	printf("%s: failed (recv %d, itemSize %zd, hosts %d, NoN %d).\n",
+	       funcStr, recv, itemSize, hosts, PSC_getNrOfNodes());
 	return false;
     }
 
