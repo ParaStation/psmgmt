@@ -526,6 +526,16 @@ void *getMemFromBuf(char **ptr, char *data, size_t dataSize, size_t *len,
 #define getString(ptr, buf, buflen)					\
     getMemFromBuf(ptr, buf, buflen, NULL, PSDATA_STRING, __func__, __LINE__)
 
+#define getEnviron(ptr, envsize, environ)                               \
+    do {                                                                \
+	char buf[1024];                                                 \
+	getUint32(ptr, &envsize);                                       \
+	environ = umalloc(envsize * sizeof(*environ));                  \
+	for (uint32_t i = 0; i < envsize; i++) {                        \
+	    getString(ptr, buf, sizeof(buf));                           \
+	    (environ)[i] = ustrdup(buf);                                \
+	}                                                               \
+    } while(0)
 
 /**
  * @brief Read data array from buffer
@@ -716,6 +726,14 @@ bool addToBuf(const void *val, const uint32_t size, PS_SendDB_t *data,
 #define addStringToMsg(string, data)				\
     addToBuf(string, PSP_strLen(string), data, PSDATA_STRING,	\
 		   __func__, __LINE__)
+
+#define addEnvironToMsg(envsize, environ, msg)                  \
+    do {                                                        \
+	addUint32ToMsg(envsize, msg);                           \
+	for (uint32_t i = 0; i < envsize; i++) {                \
+	   addStringToMsg((environ)[i], msg);                   \
+	}                                                       \
+    } while(0)
 
 /**
  * @brief Add array of elements to buffer

@@ -313,13 +313,11 @@ bool pspmix_comm_sendClientPMIxEnvironment(PStask_ID_t targetTID,
     initFragBuffer(&msg, PSP_PLUG_PSPMIX, PSPMIX_CLIENT_PMIX_ENV);
     setFragDest(&msg, targetTID);
 
-    addUint32ToMsg(envsize, &msg);
-
     mdbg(PSPMIX_LOG_COMM, "%s: Adding environment to message:\n", __func__);
     for (uint32_t i = 0; i < envsize; i++) {
-	addStringToMsg(environ[i], &msg);
-	mdbg(PSPMIX_LOG_COMM, "%s: %d %s\n", __func__, i, environ[i]);
+        mdbg(PSPMIX_LOG_COMM, "%s: %d %s\n", __func__, i, (environ)[i]);
     }
+    addEnvironToMsg(envsize, environ, &msg);
 
     int ret = sendFragMsg(&msg);
     pthread_mutex_unlock(&send_lock);

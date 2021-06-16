@@ -164,23 +164,23 @@ static volatile bool environmentReady = false;
 */
 static void handleClientPMIxEnv(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
 {
-    char buf[1024];
     char *ptr = data->buf;
 
-    uint32_t i, envsize;
+    uint32_t envsize;
+    char **environ;
 
-    getUint32(&ptr, &envsize);
+    getEnviron(&ptr, envsize, environ);
 
     mdbg(PSPMIX_LOG_COMM, "%s(r%d): Setting environment:\n", __func__, rank);
-    for (i = 0; i < envsize; i++) {
-	getString(&ptr, buf, sizeof(buf));
-	char *tmp = ustrdup(buf);
-	if (putenv(tmp) != 0) {
+    for (uint32_t i = 0; i < envsize; i++) {
+	if (putenv(environ[i]) != 0) {
 	    mwarn(errno, "%s(r%d): Failed to set environment '%s'", __func__,
-		    rank, tmp);
-	    ufree(tmp);
+		    rank, environ[i]);
+	    ufree(environ[i]);
+	    continue;
 	}
-	mdbg(PSPMIX_LOG_COMM, "%s(r%d): %d %s\n", __func__, rank, i, buf);
+	mdbg(PSPMIX_LOG_COMM, "%s(r%d): %d %s\n", __func__, rank, i,
+		environ[i]);
     }
 
     environmentReady = true;
