@@ -2,6 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2014-2021 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2021 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -1029,4 +1030,34 @@ int initPSSlurmConfig(char *filename, uint32_t *hash)
     if (!parseSlurmConfigFiles(hash)) return CONFIG_ERROR;
 
     return CONFIG_SUCCESS;
+}
+
+bool updateSlurmConf(uint32_t *configHash)
+{
+    char *confFile = getConfValueC(&Config, "SLURM_CONF");
+    if (!confFile) {
+	flog("Configuration value SLURM_CONF not found\n");
+	return false;
+    }
+
+    /* dry run to parse new configuration */
+    uint32_t newHash;
+    Config_t newConf;
+
+    registerConfigHashAccumulator(&newHash);
+    if (parseConfigFile(confFile, &newConf, true /*trimQuotes*/) < 0) {
+	flog("Parsing updated Slurm configuration file %s failed\n", confFile);
+	return false;
+    }
+    freeConfig(&newConf);
+
+    /* update the original configuration now */
+    freeConfig(&SlurmConfig);
+    registerConfigHashAccumulator(configHash);
+    if (parseConfigFile(confFile, &SlurmConfig, true /*trimQuotes*/) < 0) {
+	flog("Parsing updated Slurm configuration file %s failed\n", confFile);
+	return false;
+    }
+
+    return true;
 }

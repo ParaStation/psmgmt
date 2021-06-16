@@ -957,31 +957,170 @@ static void handleReconfigure(Slurm_Msg_t *sMsg)
 	return;
     }
 
+    /* activate the new configuration */
+    updateSlurmConf(&configHash);
+
     /* protocol version SLURM_20_02 and above don't expect an answer */
     if (slurmProto <= SLURM_19_05_PROTO_VERSION) {
 	sendSlurmRC(sMsg, SLURM_SUCCESS);
     }
 }
 
+/**
+ * @brief Free a Slurm configuration message
+ *
+ * @param config The message to free
+ */
+static void freeSlurmConfigMsg(Config_Msg_t *config)
+{
+    ufree(config->slurm_conf);
+    ufree(config->acct_gather_conf);
+    ufree(config->cgroup_conf);
+    ufree(config->cgroup_allowed_dev_conf);
+    ufree(config->ext_sensor_conf);
+    ufree(config->gres_conf);
+    ufree(config->knl_cray_conf);
+    ufree(config->knl_generic_conf);
+    ufree(config->plugstack_conf);
+    ufree(config->topology_conf);
+    ufree(config->xtra_conf);
+    ufree(config->slurmd_spooldir);
+    ufree(config);
+}
+
+static bool writeFile(const char *name, const char *dir, const char *data)
+{
+    char path[1024];
+
+    /* skip empty files */
+    if (!data || strlen(data) < 1) return true;
+
+    snprintf(path, sizeof(path), "%s/%s", dir, name);
+
+    FILE *fp = fopen(path, "w+");
+    if (!fp) {
+	mwarn(errno, "%s: open %s failed: ", __func__, path);
+	return false;
+    }
+
+    if (data) {
+	errno = 0;
+	fwrite(data, strlen(data), 1, fp);
+	if (errno) {
+	    mwarn(errno, "%s: writing to %s failed: ", __func__, path);
+	    return false;
+	}
+    }
+
+    fclose(fp);
+    return true;
+}
+
+/**
+ * @brief Write various Slurm configuration files
+ *
+ * @param config The configuration message holding the payload to write
+ *
+ * @param confDir The directory to write configuration files to
+ *
+ * @return Returns true on success or false on error
+ */
+static bool writeSlurmConfigFiles(Config_Msg_t *config, char *confDir)
+{
+    if (mkdir(confDir, 0755) == -1) {
+	if (errno != EEXIST) {
+	    mwarn(errno, "%s: mkdir(%s) failed: ", __func__, confDir);
+	    return false;
+	}
+    }
+
+    /* write various Slurm configuration files */
+    if (!writeFile("slurm.conf", confDir, config->slurm_conf)) return false;
+    if (!writeFile("acct_gather.conf", confDir, config->acct_gather_conf)) {
+	return false;
+    }
+    if (!writeFile("cgroup.conf", confDir, config->cgroup_conf)) return false;
+    if (!writeFile("cgroup_allowd_dev.conf", confDir,
+		   config->cgroup_allowed_dev_conf)) {
+	return false;
+    }
+    if (!writeFile("ext_sensor.conf", confDir, config->ext_sensor_conf)) {
+	return false;
+    }
+    if (!writeFile("gres.conf", confDir, config->gres_conf)) return false;
+    if (!writeFile("knl_cray.conf", confDir, config->knl_cray_conf)) {
+	return false;
+    }
+    if (!writeFile("knl_generic.conf", confDir, config->knl_generic_conf)) {
+	return false;
+    }
+    if (!writeFile("plugstack.conf", confDir, config->plugstack_conf)) {
+	return false;
+    }
+    if (!writeFile("topology.conf", confDir, config->topology_conf)) {
+	return false;
+    }
+
+    /* link configuration to Slurm /run-directory so Slurm commands (e.g.
+     * scontrol, sbatch) can use them */
+    char *runDir = getConfValueC(&Config, "SLURM_RUN_DIR");
+    if (mkdir(runDir, 0755) == -1) {
+	if (errno != EEXIST) {
+	    mwarn(errno, "%s: mkdir(%s) failed: ", __func__, runDir);
+	    return false;
+	}
+    }
+
+    char destLink[1024];
+    snprintf(destLink, sizeof(destLink), "%s/conf", runDir);
+
+    unlink(destLink);
+    if (symlink(confDir, destLink) == -1) {
+	flog("symlink to %s -> %s failed\n", destLink, confDir);
+	return false;
+    }
+
+    return true;
+}
+
+/**
+ * @brief Handle a REQUEST_RECONFIGURE_WITH_CONFIG RPC
+ *
+ * Update all Slurm configuration cache files and activate the new
+ * configuration.
+ *
+ * @param sMsg The message holding the RPC to handle
+ */
 static void handleConfig(Slurm_Msg_t *sMsg)
 {
     Config_Msg_t *config;
 
     /* check permissions */
     if (sMsg->head.uid != 0 && sMsg->head.uid != slurmUserID) {
-	mlog("%s: request from invalid user %u\n", __func__, sMsg->head.uid);
+	flog("request from invalid user %u\n", sMsg->head.uid);
 	return;
     }
-
-    /* disable for now */
-    return;
 
     /* unpack request */
     if (!(unpackConfigMsg(sMsg, &config))) {
-	mlog("%s: unpacking job launch request failed\n", __func__);
+	flog("unpacking job launch request failed\n");
 	return;
     }
 
+    /* update all configuration files */
+    char *confDir = getConfValueC(&Config, "SLURM_CONF_DIR");
+    bool ret = writeSlurmConfigFiles(config, confDir);
+    freeSlurmConfigMsg(config);
+
+    if (!ret) {
+	flog("failed to write Slurm configuration files to %s\n", confDir);
+	return;
+    }
+
+    /* activate the new configuration */
+    updateSlurmConf(&configHash);
+
+    /* slurmctld does not expect an answer */
 }
 
 static void handleRebootNodes(Slurm_Msg_t *sMsg)
@@ -2905,101 +3044,6 @@ void sendDrainNode(const char *nodeList, const char *reason)
     sendSlurmMsg(SLURMCTLD_SOCK, REQUEST_UPDATE_NODE, &msg);
 }
 
-static bool writeFile(const char *name, const char *dir, const char *data)
-{
-    char path[1024];
-
-    /* skip empty files */
-    if (!data || strlen(data) < 1) return true;
-
-    snprintf(path, sizeof(path), "%s/%s", dir, name);
-
-    FILE *fp = fopen(path, "w+");
-    if (!fp) {
-	mwarn(errno, "%s: open %s failed: ", __func__, path);
-	return false;
-    }
-
-    if (data) {
-	errno = 0;
-	fwrite(data, strlen(data), 1, fp);
-	if (errno) {
-	    mwarn(errno, "%s: writing to %s failed: ", __func__, path);
-	    return false;
-	}
-    }
-
-    fclose(fp);
-    return true;
-}
-
-/**
- * @brief Write various Slurm configuration files
- *
- * @param config The configuration message holding the payload to write
- *
- * @param confDir The directory to write configuration files to
- *
- * @return Returns true on success or false on error
- */
-static bool writeSlurmConfigFiles(Config_Msg_t *config, char *confDir)
-{
-    if (mkdir(confDir, 0755) == -1) {
-	if (errno != EEXIST) {
-	    mwarn(errno, "%s: mkdir(%s) failed: ", __func__, confDir);
-	    return false;
-	}
-    }
-
-    /* write various Slurm configuration files */
-    if (!writeFile("slurm.conf", confDir, config->slurm_conf)) return false;
-    if (!writeFile("acct_gather.conf", confDir, config->acct_gather_conf)) {
-	return false;
-    }
-    if (!writeFile("cgroup.conf", confDir, config->cgroup_conf)) return false;
-    if (!writeFile("cgroup_allowd_dev.conf", confDir,
-		   config->cgroup_allowed_dev_conf)) {
-	return false;
-    }
-    if (!writeFile("ext_sensor.conf", confDir, config->ext_sensor_conf)) {
-	return false;
-    }
-    if (!writeFile("gres.conf", confDir, config->gres_conf)) return false;
-    if (!writeFile("knl_cray.conf", confDir, config->knl_cray_conf)) {
-	return false;
-    }
-    if (!writeFile("knl_generic.conf", confDir, config->knl_generic_conf)) {
-	return false;
-    }
-    if (!writeFile("plugstack.conf", confDir, config->plugstack_conf)) {
-	return false;
-    }
-    if (!writeFile("topology.conf", confDir, config->topology_conf)) {
-	return false;
-    }
-
-    /* link configuration to Slurm /run-directory so Slurm commands (e.g.
-     * scontrol, sbatch) can use them */
-    char *runDir = getConfValueC(&Config, "SLURM_RUN_DIR");
-    if (mkdir(runDir, 0755) == -1) {
-	if (errno != EEXIST) {
-	    mwarn(errno, "%s: mkdir(%s) failed: ", __func__, runDir);
-	    return false;
-	}
-    }
-
-    char destLink[1024];
-    snprintf(destLink, sizeof(destLink), "%s/conf", runDir);
-
-    unlink(destLink);
-    if (symlink(confDir, destLink) == -1) {
-	flog("symlink to %s -> %s failed\n", destLink, confDir);
-	return false;
-    }
-
-    return true;
-}
-
 void activateConfigCache(char *confDir)
 {
     char path[1024];
@@ -3025,7 +3069,6 @@ void activateConfigCache(char *confDir)
  */
 static int handleSlurmConf(Slurm_Msg_t *sMsg, void *info)
 {
-    Config_Msg_t *config;
     uint32_t rc;
     int *action = info;
 
@@ -3045,6 +3088,7 @@ static int handleSlurmConf(Slurm_Msg_t *sMsg, void *info)
     }
 
     /* unpack config response */
+    Config_Msg_t *config;
     if (!(unpackConfigMsg(sMsg, &config))) {
 	flog("unpacking config response failed\n");
 	return 0;
@@ -3053,7 +3097,10 @@ static int handleSlurmConf(Slurm_Msg_t *sMsg, void *info)
     flog("successfully unpacked config msg\n");
 
     char *confDir = getConfValueC(&Config, "SLURM_CONF_DIR");
-    if (!writeSlurmConfigFiles(config, confDir)) {
+    bool ret = writeSlurmConfigFiles(config, confDir);
+    freeSlurmConfigMsg(config);
+
+    if (!ret) {
 	flog("failed to write Slurm configuration files to %s\n", confDir);
 	return 0;
     }

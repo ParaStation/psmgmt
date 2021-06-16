@@ -2,6 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2014-2021 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2021 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -71,5 +72,13 @@ bool parseSlurmPlugLine(char *key, char *value, const void *info);
  * @return Returns true on success or false otherwise
  */
 bool parseSlurmConfigFiles(uint32_t *hash);
+
+/**
+ * @brief Parse and re-read the slurm.conf
+ *
+ * @param hash Will receive the hash of the slurm.conf file
+ *  if not running in configless mode
+ */
+bool updateSlurmConf(uint32_t *configHash);
 
 #endif
