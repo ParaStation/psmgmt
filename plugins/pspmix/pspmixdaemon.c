@@ -60,6 +60,19 @@ static PspmixJobserver_t* findJobserver(PStask_ID_t loggertid)
     return NULL;
 }
 
+/* ****************************************************** *
+ *                 Send/Receive functions                 *
+ * ****************************************************** */
+
+/*
+ * @brief Set the target of the message to the TID of the right jobserver.
+ *
+ * This function looks into the message fragment header, reads the logger TID
+ * from there and find the right jobserver for the job. It's TID is then set
+ * as target for @a msg.
+ *
+ * @param msg    message fragment to manipulate
+ */
 static void setTargetToPmixJobserver(DDTypedBufferMsg_t *msg)
 {
     size_t used = 0, eS;
@@ -153,6 +166,10 @@ static int forwardPspmixFwMsg(PSLog_Msg_t *tmpmsg, ForwarderData_t *fw)
 
     return 1;
 }
+
+/* ****************************************************** *
+ *              hook and helper functions                 *
+ * ****************************************************** */
 
 /**
  * Kill the PMIx jobserver
