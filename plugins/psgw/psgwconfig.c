@@ -2,6 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2018-2020 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2021 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -74,6 +75,10 @@ const ConfDef_t confDef[] =
 	"bool",
 	"0",
 	"Log stdout/stderr of gateway prologue and epilogue scripts" },
+    { "GATEWAY_ENV", 0,
+	"string",
+	"",
+	"Additional environment for the psgwd" },
     { NULL, 0, NULL, NULL, NULL },
 };
 

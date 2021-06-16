@@ -644,38 +644,43 @@ static int cbStartPSGWD(uint32_t id, int32_t exit, PSnodes_ID_t dest,
     return 0;
 }
 
-bool startPSGWD(PSGW_Req_t *req)
+/**
+ * @brief Initialize the psgwd environment
+ *
+ * @param psgwdEnv The psgwd environment holding the result
+ *
+ * @param req The request management structure
+ */
+static void initPSGWDEnv(env_t *psgwdEnv, PSGW_Req_t *req)
 {
-    env_t psgwdEnv;
-    char *dir = getConfValueC(&config, "DIR_ROUTE_SCRIPTS");
-    char *psgwd = getConfValueC(&config, "PSGWD_BINARY");
     char buf[1024];
 
     /* build clean environment for the psgwd */
-    envInit(&psgwdEnv);
-    envSet(&psgwdEnv, "PSGWD_BINARY", psgwd);
+    envInit(psgwdEnv);
+    char *psgwd = getConfValueC(&config, "PSGWD_BINARY");
+    envSet(psgwdEnv, "PSGWD_BINARY", psgwd);
     snprintf(buf, sizeof(buf), "%u", req->uid);
-    envSet(&psgwdEnv, "PSGWD_UID", buf);
+    envSet(psgwdEnv, "PSGWD_UID", buf);
 
-    envSet(&psgwdEnv, "PSGWD_USER", req->username);
-    envSet(&psgwdEnv, "SLURM_JOB_ID", req->jobid);
+    envSet(psgwdEnv, "PSGWD_USER", req->username);
+    envSet(psgwdEnv, "SLURM_JOB_ID", req->jobid);
 
     env_t *peEnv = req->res->env;
 
     char *gwEnv = envGet(peEnv, "SLURM_SPANK_PSGW_ENV");
-    if (gwEnv) envSet(&psgwdEnv, "SLURM_SPANK_PSGW_ENV", gwEnv);
+    if (gwEnv) envSet(psgwdEnv, "SLURM_SPANK_PSGW_ENV", gwEnv);
 
     char *gwBinary = envGet(peEnv, "SLURM_SPANK_PSGWD_BINARY");
-    if (gwBinary) envSet(&psgwdEnv, "PSGWD_BINARY", gwBinary);
+    if (gwBinary) envSet(psgwdEnv, "PSGWD_BINARY", gwBinary);
 
     char *gwDebug = envGet(peEnv, "SLURM_SPANK_PSGWD_DEBUG");
-    if (gwDebug) envSet(&psgwdEnv, "PSGWD_DEBUG", gwDebug);
+    if (gwDebug) envSet(psgwdEnv, "PSGWD_DEBUG", gwDebug);
 
     char *cwd = envGet(peEnv, "SLURM_SPANK_PSGW_CWD");
-    envSet(&psgwdEnv, "PSGWD_CWD", cwd);
+    envSet(psgwdEnv, "PSGWD_CWD", cwd);
 
     char *ld = envGet(peEnv, "SLURM_SPANK_PSGWD_LD_LIB");
-    if (ld) envSet(&psgwdEnv, "LD_LIBRARY_PATH", ld);
+    if (ld) envSet(psgwdEnv, "LD_LIBRARY_PATH", ld);
 
     for (uint32_t i=0; i<peEnv->cnt; i++) {
 	char *next = envGetIndex(peEnv, i);
@@ -684,11 +689,33 @@ bool startPSGWD(PSGW_Req_t *req)
 	    if (val) {
 		char *key = next+18;
 		*val = '\0';
-		envSet(&psgwdEnv, key, val+1);
+		envSet(psgwdEnv, key, val+1);
 		*val = '=';
 	    }
 	}
     }
+
+    char *addEnv = getConfValueC(&config, "GATEWAY_ENV");
+    if (strlen(addEnv) >0) {
+	const char delimiters[] = " ";
+	char *toksave, *next, *envCopy = ustrdup(addEnv);
+
+	next = strtok_r(envCopy, delimiters, &toksave);
+	while (next) {
+	    envPut(psgwdEnv, next);
+	    next = strtok_r(NULL, delimiters, &toksave);
+	}
+	ufree(envCopy);
+    }
+}
+
+bool startPSGWD(PSGW_Req_t *req)
+{
+    env_t psgwdEnv;
+    char *dir = getConfValueC(&config, "DIR_ROUTE_SCRIPTS");
+    char buf[1024];
+
+    initPSGWDEnv(&psgwdEnv, req);
 
     uint32_t gIdx = 0;
     for (uint32_t i=0; i<req->numGWnodes; i++) {
