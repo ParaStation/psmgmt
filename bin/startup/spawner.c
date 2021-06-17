@@ -622,12 +622,14 @@ static char **setupRankEnv(int psRank, void *info)
 	exit(1);
     }
 
-    /* set additional process placement information for PSM */
-    snprintf(buf, sizeof(buf), "MPI_LOCALRANKID=%i", nodeLocalProcIDs[rank]);
-    env[cur++] = strdup(buf);
-    snprintf(buf, sizeof(buf), "MPI_LOCALNRANKS=%i",
-	    numProcPerNode[jobLocalNodeIDs[rank]]);
-    env[cur++] = strdup(buf);
+    if (conf->pmiTCP || conf->pmiSock || conf->PMIx) {
+	/* set additional process placement information for PSM */
+	snprintf(buf, sizeof(buf), "MPI_LOCALRANKID=%i", nodeLocalProcIDs[rank]);
+	env[cur++] = strdup(buf);
+	snprintf(buf, sizeof(buf), "MPI_LOCALNRANKS=%i",
+		numProcPerNode[jobLocalNodeIDs[rank]]);
+	env[cur++] = strdup(buf);
+    }
 
     /* setup OpenMPI support */
     if (conf->openMPI) {
