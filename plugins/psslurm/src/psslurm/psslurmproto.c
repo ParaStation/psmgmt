@@ -999,7 +999,7 @@ static bool writeFile(const char *name, const char *dir, const char *data)
 
     FILE *fp = fopen(path, "w+");
     if (!fp) {
-	mwarn(errno, "%s: open %s failed: ", __func__, path);
+	mwarn(errno, "%s: fopen(%s)", __func__, path);
 	return false;
     }
 
@@ -1007,7 +1007,7 @@ static bool writeFile(const char *name, const char *dir, const char *data)
 	errno = 0;
 	fwrite(data, strlen(data), 1, fp);
 	if (errno) {
-	    mwarn(errno, "%s: writing to %s failed: ", __func__, path);
+	    mwarn(errno, "%s: fwrite() to '%s'", __func__, path);
 	    return false;
 	}
     }
@@ -1066,7 +1066,7 @@ static bool writeSlurmConfigFiles(Config_Msg_t *config, char *confDir)
     char *runDir = getConfValueC(&Config, "SLURM_RUN_DIR");
     if (mkdir(runDir, 0755) == -1) {
 	if (errno != EEXIST) {
-	    mwarn(errno, "%s: mkdir(%s) failed: ", __func__, runDir);
+	    mwarn(errno, "%s: mkdir(%s)", __func__, runDir);
 	    return false;
 	}
     }
@@ -1076,7 +1076,7 @@ static bool writeSlurmConfigFiles(Config_Msg_t *config, char *confDir)
 
     unlink(destLink);
     if (symlink(confDir, destLink) == -1) {
-	flog("symlink to %s -> %s failed\n", destLink, confDir);
+	mwarn(errno, "%s: symlink(%s, %s)", __func__, confDir, destLink);
 	return false;
     }
 
