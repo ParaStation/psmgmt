@@ -1109,6 +1109,8 @@ static void handleConfig(Slurm_Msg_t *sMsg)
 
     /* update all configuration files */
     char *confDir = getConfValueC(&Config, "SLURM_CONF_DIR");
+    flog("updating Slurm configuration files in %s\n", confDir);
+
     bool ret = writeSlurmConfigFiles(config, confDir);
     freeSlurmConfigMsg(config);
 

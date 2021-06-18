@@ -231,6 +231,11 @@ void clearSlurmCon(void)
 	Connection_t *con = list_entry(c, Connection_t, next);
 	closeSlurmCon(con->sock);
     }
+
+    for (int i=0; i<ctlHostsCount; i++) {
+	ufree(ctlHosts[i].host);
+	ufree(ctlHosts[i].addr);
+    }
 }
 
 /**
@@ -1754,8 +1759,8 @@ static bool resControllerIDs(void)
 	return false;
     }
 
-    ctlHosts[ctlHostsCount].host = host;
-    ctlHosts[ctlHostsCount].addr = addr;
+    ctlHosts[ctlHostsCount].host = ustrdup(host);
+    ctlHosts[ctlHostsCount].addr = ustrdup(addr);
     ctlHosts[ctlHostsCount].id = slurmCtl;
     ctlHostsCount++;
 
@@ -1773,8 +1778,8 @@ static bool resControllerIDs(void)
 	return false;
     }
 
-    ctlHosts[ctlHostsCount].host = host;
-    ctlHosts[ctlHostsCount].addr = addr;
+    ctlHosts[ctlHostsCount].host = ustrdup(host);
+    ctlHosts[ctlHostsCount].addr = ustrdup(addr);
     ctlHosts[ctlHostsCount].id = slurmBackupCtl;
     ctlHostsCount++;
 
@@ -1808,8 +1813,8 @@ static bool initControlHosts()
 	    flog("unable to resolve controller(%i) '%s'\n", i, name);
 	    return false;
 	}
-	ctlHosts[ctlHostsCount].host = host;
-	ctlHosts[ctlHostsCount].addr = addr;
+	ctlHosts[ctlHostsCount].host = ustrdup(host);
+	ctlHosts[ctlHostsCount].addr = ustrdup(addr);
 	ctlHosts[ctlHostsCount].id = id;
 	ctlHostsCount++;
     }
