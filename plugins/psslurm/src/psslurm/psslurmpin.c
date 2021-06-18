@@ -453,6 +453,88 @@ static void parseCPUmask(PSCPU_set_t *CPUset, const nodeinfo_t *nodeinfo,
     ufree(mask);
 }
 
+/**
+ * @brief Parse a map string and return expanded values in an array
+ *
+ * @param mapstr   map string to parse
+ * @param count    pointer to return value count (= array length)
+ * @param last     stop after @a last values (= max array length)
+ *                 if 0 then all values are parsed and returned
+ *
+ * @return gres_bind string or NULL if none included
+ */
+static long * parseMapString(const char *mapstr, size_t *count, size_t last)
+{
+    size_t max = 20;
+    long *ret = umalloc(max * sizeof(*ret));
+
+    *count = 0;
+
+    const char *ptr = mapstr;
+    char *endptr;
+    while (ptr) {
+	if (*count == max) {
+	    max *= 2;
+	    ret = urealloc(ret, max * sizeof(*ret));
+	}
+
+	long val = strtoul (ptr, &endptr, 0);
+	ret[(*count)++] = val;
+
+	if (endptr == ptr) {
+	    /* invalid string */
+	    flog("Invalid bind map string \"%s\"\n", mapstr);
+	    goto error;
+	}
+
+	if (*endptr == '*') {
+	    /* add this value multiple times */
+	    ptr = endptr + 1;
+	    long mult = strtoul (ptr, &endptr, 10);
+	    if (endptr == ptr) {
+		/* invalid string */
+		flog("Invalid bind map string \"%s\"\n", mapstr);
+		goto error;
+	    }
+	    if (*count + mult - 1 > max) {
+		max = *count + mult;
+		ret = urealloc(ret, max * sizeof(*ret));
+	    }
+
+	    for (long i = 1; i < mult; i++) {
+		ret[(*count)++] = val;
+		if (*count == last) break;
+	    }
+	}
+
+	if (*endptr == '\0') {
+	    /* end of string */
+	    break;
+	}
+
+	if (*endptr != ',') {
+	    flog("Invalid bind map string \"%s\"\n", mapstr);
+	    goto error;
+	}
+
+	if (*count == last) break;
+
+	/* another number to come or end of string */
+	ptr = endptr + 1;
+    }
+
+    if (*count == 0) goto error;
+
+    ret = urealloc(ret, *count * sizeof(*ret));
+
+    return ret;
+
+error:
+    ufree(ret);
+    return NULL;
+
+}
+
 /*
  * Parse the socket mask string @a maskStr containing a hex number (with or
  * without leading "0x") and set @a CPUset accordingly.
@@ -519,17 +601,16 @@ static void getBindMapFromString(PSCPU_set_t *CPUset, uint16_t cpuBindType,
 				 const nodeinfo_t *nodeinfo, uint32_t lTID)
 {
     const char delimiters[] = ",";
-    char *next, *saveptr, *ents, *myent, *endptr;
-    char *entarray[PSCPU_MAX];
-    unsigned int numents;
-    uint16_t mycpu, mysock;
 
-    ents = ustrdup(cpuBindString);
-    numents = 0;
-    myent = NULL;
+    char *ents = ustrdup(cpuBindString);
+    unsigned int numents = 0;
+
+    char *entarray[PSCPU_MAX];
     entarray[0] = NULL;
 
-    next = strtok_r(ents, delimiters, &saveptr);
+    char *myent = NULL;
+    char *saveptr;
+    char *next = strtok_r(ents, delimiters, &saveptr);
     while (next && (numents < PSCPU_MAX)) {
 	entarray[numents++] = next;
 	if (numents == lTID + 1) {
@@ -545,71 +626,86 @@ static void getBindMapFromString(PSCPU_set_t *CPUset, uint16_t cpuBindType,
 
     if (!myent) {
 	if (cpuBindType & CPU_BIND_MASK) {
-	    mlog("%s: invalid cpu mask string '%s'\n", __func__, ents);
-	} else if (cpuBindType & CPU_BIND_MAP) {
-	    mlog("%s: invalid cpu map string '%s'\n", __func__, ents);
+	    flog("invalid cpu mask string '%s'\n", ents);
 	} else if (cpuBindType & CPU_BIND_LDMASK) {
-	    mlog("%s: invalid socket mask string '%s'\n", __func__, ents);
-	} else if (cpuBindType & CPU_BIND_LDMAP) {
-	    mlog("%s: invalid socket map string '%s'\n", __func__, ents);
+	    flog("invalid socket mask string '%s'\n", ents);
 	}
-	PSCPU_setAll(*CPUset); //XXX other result in error case?
-	goto cleanup;
+	goto error;
+    }
+
+    if (cpuBindType & (CPU_BIND_MAP | CPU_BIND_LDMAP)) {
+	myent = NULL; /* not used any more in this cases */
     }
 
     PSCPU_clrAll(*CPUset);
 
     if (cpuBindType & CPU_BIND_MASK) {
 	parseCPUmask(CPUset, nodeinfo, myent);
-	mdbg(PSSLURM_LOG_PART, "%s: (bind_mask) node %i local task %i "
-	     "cpumaskstr '%s' cpumask '%s'\n", __func__, nodeinfo->id, lTID,
-	     myent, PSCPU_print(*CPUset));
-    } else if (cpuBindType & CPU_BIND_MAP) {
-	if (strncmp(myent, "0x", 2) == 0) {
-	    mycpu = strtoul (myent+2, &endptr, 16);
-	} else {
-	    mycpu = strtoul (myent, &endptr, 10);
-	}
-	if (*endptr == '\0') {
-	    if (mycpu < nodeinfo->threadCount) {
-		/* this is the regular case, mycpu is valid */
-		PSCPU_setCPU(*CPUset, PSIDnodes_unmapCPU(nodeinfo->id, mycpu));
-	    } else {
-		mlog("%s: invalid cpu id %hu in cpu map '%s'\n", __func__,
-		     mycpu, myent);
-		PSCPU_setAll(*CPUset); //XXX other result in error case?
-	    }
-	} else {
-	    mlog("%s: invalid cpu map '%s'\n", __func__, myent);
-	    PSCPU_setAll(*CPUset); //XXX other result in error case?
-	}
-	mdbg(PSSLURM_LOG_PART, "%s: (bind_map) node %i local task %i"
-	     " cpustr '%s' cpu %i\n", __func__, nodeinfo->id, lTID, myent,
-	     mycpu);
-    } else if (cpuBindType & CPU_BIND_LDMASK) {
-	parseSocketMask(CPUset, nodeinfo, myent);
-	mdbg(PSSLURM_LOG_PART, "%s: (bind_ldmask) node %i local task %i "
-	     "socketmaskstr '%s' cpumask '%s'\n", __func__, nodeinfo->id,
-	     lTID, myent, PSCPU_print(*CPUset));
-    } else if (cpuBindType & CPU_BIND_LDMAP) {
-	if (strncmp(myent, "0x", 2) == 0) {
-	    mysock = strtoul (myent+2, &endptr, 16);
-	} else {
-	    mysock = strtoul (myent, &endptr, 10);
-	}
-	if (*endptr == '\0') {
-	    pinToSocket(CPUset, nodeinfo, mysock, true);
-	} else {
-	    mlog("%s: invalid socket map '%s'\n", __func__, myent);
-	    PSCPU_setAll(*CPUset); //XXX other result in error case?
-	}
-	mdbg(PSSLURM_LOG_PART, "%s: (bind_ldmap) node %i local task %i"
-	     " socketstr '%s' socket %i\n", __func__, nodeinfo->id, lTID,
-	     myent, mysock);
+	fdbg(PSSLURM_LOG_PART, "(bind_mask) node %d local task %d "
+		"cpumaskstr '%s' cpumask '%s'\n", nodeinfo->id, lTID, myent,
+		PSCPU_print(*CPUset));
+	goto cleanup;
     }
 
-    cleanup:
+    if (cpuBindType & CPU_BIND_MAP) {
+	size_t count;
+	long *cpus = parseMapString(cpuBindString, &count, lTID + 1);
+	if (!cpus) {
+	    flog("invalid cpu map string '%s'\n", cpuBindString);
+	    goto error;
+	}
 
+	long mycpu = cpus[lTID % count];
+	ufree(cpus);
+	if (mycpu >= nodeinfo->threadCount) {
+	   flog("invalid cpu id %ld in cpu map '%s'\n", mycpu, cpuBindString);
+	    goto error;
+	}
+
+	/* mycpu is valid */
+	PSCPU_setCPU(*CPUset, PSIDnodes_unmapCPU(nodeinfo->id, mycpu));
+	fdbg(PSSLURM_LOG_PART, "(bind_map) node %i local task %d"
+		" cpuBindstr '%s' cpu %ld\n", nodeinfo->id, lTID, cpuBindString,
+		mycpu);
+	goto cleanup;
+    }
+
+    if (cpuBindType & CPU_BIND_LDMASK) {
+	parseSocketMask(CPUset, nodeinfo, myent);
+	mdbg(PSSLURM_LOG_PART, "%s: (bind_ldmask) node %d local task %d "
+	     "ldommaskstr '%s' cpumask '%s'\n", __func__, nodeinfo->id,
+	     lTID, myent, PSCPU_print(*CPUset));
+	goto cleanup;
+    }
+
+    if (cpuBindType & CPU_BIND_LDMAP) {
+	size_t count;
+	long *ldoms = parseMapString(cpuBindString, &count, lTID + 1);
+	if (!ldoms) {
+	    flog("invalid ldom map string '%s'\n", cpuBindString);
+	    goto error;
+	}
+
+	long myldom = ldoms[lTID % count];
+	ufree(ldoms);
+	if (myldom >= nodeinfo->socketCount) {
+	   flog("invalid ldom id %ld in ldom map string '%s'\n", myldom,
+		   cpuBindString);
+	    goto error;
+	}
+
+	/* mysock is valid */
+	pinToSocket(CPUset, nodeinfo, myldom, true);
+	fdbg(PSSLURM_LOG_PART, "(bind_ldmap) node %d local task %d"
+	     " bindstr '%s' ldom %ld\n", nodeinfo->id, lTID, cpuBindString,
+	     myldom);
+	goto cleanup;
+    }
+
+error:
+    PSCPU_setAll(*CPUset); //XXX other result in error case?
+
+cleanup:
     ufree(ents);
     return;
 }
