@@ -1,3 +1,308 @@
+Version psmgmt-5.1.42:
+======================
+------------------------------------------------------------------------
+34d3baaf | Norbert Eicker | Thu, 17 Jun 2021 00:08:21 +0200
+
+Minor streamlining
+------------------------------------------------------------------------
+7e0c43a3 | Michael Rauh | Wed, 16 Jun 2021 10:22:51 +0200
+
+Add new psgw configuration option GATEWAY_ENV
+
+ - Allows to set additional environment variables for the psgwd
+ - Supports multiple variables separated by space
+------------------------------------------------------------------------
+39793280 | Norbert Eicker | Mon, 14 Jun 2021 12:06:50 +0200
+
+Be more verbose on failed getFullList() attempts
+------------------------------------------------------------------------
+e7eaff89 | Norbert Eicker | Wed, 9 Jun 2021 12:29:09 +0200
+
+Improve naming of label
+------------------------------------------------------------------------
+391fd518 | Norbert Eicker | Wed, 9 Jun 2021 12:11:59 +0200
+
+Simplify logic
+------------------------------------------------------------------------
+b2a4b054 | Norbert Eicker | Wed, 9 Jun 2021 12:08:53 +0200
+
+Simplify and streamline
+------------------------------------------------------------------------
+6ef6133a | Norbert Eicker | Wed, 9 Jun 2021 11:49:49 +0200
+
+Fix irrelevant of by one error and streamline
+------------------------------------------------------------------------
+f7663d58 | Norbert Eicker | Wed, 9 Jun 2021 01:44:16 +0200
+
+Fix memory leak PSID_execScript() callback
+
+ - Adapt copyright statements
+------------------------------------------------------------------------
+fa6277f0 | Michael Rauh | Tue, 8 Jun 2021 14:03:17 +0200
+
+Bugfix: fix memory leak in psid spawn request
+------------------------------------------------------------------------
+f8cf5dd1 | Michael Rauh | Tue, 8 Jun 2021 14:01:40 +0200
+
+Bugfix: fix possible invalid memory access in step callback
+------------------------------------------------------------------------
+59fa4af4 | Michael Rauh | Tue, 8 Jun 2021 13:11:08 +0200
+
+Fix memory leaks in psslurm message handling
+------------------------------------------------------------------------
+227acd6b | Michael Rauh | Tue, 8 Jun 2021 12:20:09 +0200
+
+Fix memory leak in pelogue configuration handling
+------------------------------------------------------------------------
+3b48de40 | Michael Rauh | Mon, 7 Jun 2021 18:54:10 +0200
+
+Fix memory leak in psmunge startup
+------------------------------------------------------------------------
+5a4fedbc | Michael Rauh | Mon, 7 Jun 2021 18:49:05 +0200
+
+Fix memory leaks in psslurm credential and config
+------------------------------------------------------------------------
+7f2906ac | Michael Rauh | Mon, 7 Jun 2021 18:27:39 +0200
+
+Fix memory leak in pspelogue RPC
+------------------------------------------------------------------------
+6852d8dc | Michael Rauh | Mon, 7 Jun 2021 18:12:40 +0200
+
+Fix memory leak in psslurm message registration
+------------------------------------------------------------------------
+9be213b1 | Michael Rauh | Mon, 7 Jun 2021 17:49:43 +0200
+
+Fix memory leak in PSID_execFunc() callback
+------------------------------------------------------------------------
+08b617cc | Michael Rauh | Wed, 2 Jun 2021 15:56:05 +0200
+
+Fix minor memory leak in psslurm
+------------------------------------------------------------------------
+51095197 | Norbert Eicker | Fri, 11 Jun 2021 16:44:24 +0200
+
+Prevent NULL pointer dereference
+------------------------------------------------------------------------
+653059fa | Michael Rauh | Fri, 11 Jun 2021 11:31:54 +0200
+
+Merge fwCMD_printMessage() and fwCMD_printJobMsg() in new
+function fwCMD_printMsg()
+------------------------------------------------------------------------
+1963ed70 | Michael Rauh | Thu, 10 Jun 2021 15:55:21 +0200
+
+Show stepid in notify job error message
+------------------------------------------------------------------------
+3c4f1345 | Michael Rauh | Fri, 23 Apr 2021 14:11:59 +0200
+
+Show uid of request sender in handleTerminateReq()
+------------------------------------------------------------------------
+7b1377aa | Michael Rauh | Fri, 23 Apr 2021 14:05:18 +0200
+
+Improve logging of handleJobNotify()
+------------------------------------------------------------------------
+d5c0ed1c | Michael Rauh | Wed, 21 Apr 2021 14:45:32 +0200
+
+Let psslurm check if PrologSlurmctld is set in slurm.conf
+------------------------------------------------------------------------
+9ad453fc | Michael Rauh | Tue, 20 Apr 2021 17:25:32 +0200
+
+Improve launch step log message
+------------------------------------------------------------------------
+0e9b2241 | Michael Rauh | Tue, 20 Apr 2021 17:14:28 +0200
+
+Fix psgw log message
+------------------------------------------------------------------------
+cdb21971 | Michael Rauh | Tue, 20 Apr 2021 17:04:53 +0200
+
+Give hint if a typical error in the setup of the slurmctld prologue
+is encountered
+------------------------------------------------------------------------
+06b56fbc | Michael Rauh | Tue, 20 Apr 2021 17:01:46 +0200
+
+Improve log messages for psslurm job termination
+------------------------------------------------------------------------
+f867106b | Stephan Krempel | Fri, 11 Jun 2021 12:18:31 +0200
+
+Update psconfig example
+
+Closes #2
+------------------------------------------------------------------------
+9e3bd1ed | Michael Rauh | Thu, 10 Jun 2021 11:03:53 +0200
+
+Bugfix: fix bug in jail script to set the oom score
+------------------------------------------------------------------------
+1317756c | Norbert Eicker | Mon, 31 May 2021 17:26:32 +0200
+
+Fix Copyright
+------------------------------------------------------------------------
+6eb6f8b9 | Norbert Eicker | Mon, 31 May 2021 12:10:01 +0200
+
+PSCio improvements
+
+ - Fix PSCio_recvBufFunc() return value when not pedantic
+ - Add silent flag to PSCio_recvBufFunc() and make it silent from PSCio_recvMsgFunc()
+ - Switch indefinite logic in PSCio_recvMsgFunc()
+------------------------------------------------------------------------
+90fd8efc | Norbert Eicker | Mon, 31 May 2021 12:09:04 +0200
+
+Change according to other places
+------------------------------------------------------------------------
+61a17818 | Norbert Eicker | Fri, 28 May 2021 16:34:42 +0200
+
+Simplify PSIDclient_recv() prototype
+------------------------------------------------------------------------
+358e08a9 | Norbert Eicker | Fri, 28 May 2021 01:58:49 +0200
+
+Improve log messages and streamlining
+------------------------------------------------------------------------
+88d60095 | Norbert Eicker | Fri, 28 May 2021 01:31:12 +0200
+
+Fix typo
+------------------------------------------------------------------------
+4e9ba89b | Norbert Eicker | Fri, 28 May 2021 01:25:27 +0200
+
+Use PSCio_setFDblock() instead of fcntl()
+------------------------------------------------------------------------
+bd75df56 | Norbert Eicker | Fri, 21 May 2021 16:12:28 +0200
+
+Streamlining and booleanization
+------------------------------------------------------------------------
+d7b5437d | Norbert Eicker | Mon, 17 May 2021 23:13:45 +0200
+
+Do not suppress info on closed descriptor in PSCio_recvBuf()
+------------------------------------------------------------------------
+227f48b4 | Norbert Eicker | Mon, 17 May 2021 23:13:01 +0200
+
+Minor streamlining
+------------------------------------------------------------------------
+384d0472 | Norbert Eicker | Mon, 17 May 2021 00:43:38 +0200
+
+Do not spoil PSCio_recvBuf() errno if progress is considered
+------------------------------------------------------------------------
+af1eef5d | Norbert Eicker | Thu, 13 May 2021 21:40:31 +0200
+
+Bugfix: PSCio_recvBufPProg()'s rcvd parameter must be initialized
+------------------------------------------------------------------------
+07ebc272 | Norbert Eicker | Wed, 12 May 2021 17:14:40 +0200
+
+Improve handleSrunMsg()'s error log
+------------------------------------------------------------------------
+3645a891 | Norbert Eicker | Wed, 12 May 2021 17:13:36 +0200
+
+Ensure PSCio_recvBufFunc()'s errno is always meaningful
+------------------------------------------------------------------------
+bce4f82b | Norbert Eicker | Wed, 12 May 2021 16:14:04 +0200
+
+Bugfix: Ensure ioh is always initialized
+------------------------------------------------------------------------
+0c1c70ae | Norbert Eicker | Thu, 6 May 2021 22:14:09 +0200
+
+Simplify logging
+------------------------------------------------------------------------
+da63b304 | Norbert Eicker | Thu, 6 May 2021 22:12:05 +0200
+
+Bugfix: drop unexpected message length from receive buffer
+------------------------------------------------------------------------
+8c5df1e6 | Norbert Eicker | Thu, 6 May 2021 22:11:44 +0200
+
+Refine allocation
+------------------------------------------------------------------------
+a1760ea7 | Norbert Eicker | Tue, 4 May 2021 20:13:16 +0200
+
+Call PSCio_recvBuf() directly instead via PSID_readall()
+------------------------------------------------------------------------
+24c3e977 | Norbert Eicker | Fri, 30 Apr 2021 16:55:24 +0200
+
+Bugfix: recv() not applicable to pipes
+
+ - Since recv()'s flag argument is 0 and we do not pass SOCK_DGRAM
+   sockets to PSCio_recvBufFunc() it shall be safe to use read()
+------------------------------------------------------------------------
+6fd92a94 | Norbert Eicker | Fri, 30 Apr 2021 16:55:04 +0200
+
+Booleanize
+------------------------------------------------------------------------
+fe233ccf | Michael Rauh | Fri, 30 Apr 2021 10:29:57 +0200
+
+Fix declaration of PSPAMResult_t
+------------------------------------------------------------------------
+ab3cc113 | Norbert Eicker | Fri, 23 Apr 2021 01:35:48 +0200
+
+Replace getdtablesize() by sysconf(_SC_OPEN_MAX) in psmom, too
+------------------------------------------------------------------------
+4ab54308 | Norbert Eicker | Fri, 23 Apr 2021 01:21:34 +0200
+
+Streamlining
+------------------------------------------------------------------------
+cf778899 | Norbert Eicker | Thu, 18 Mar 2021 02:53:04 +0100
+
+Utilize PSCio_recvMsg() all over the place
+------------------------------------------------------------------------
+0db0075d | Norbert Eicker | Thu, 18 Mar 2021 02:51:43 +0100
+
+Utilize PSCio_recvBuf() within PSID_readall()
+------------------------------------------------------------------------
+9297a3dd | Norbert Eicker | Thu, 18 Mar 2021 02:50:51 +0100
+
+Move from read() to PSID_readall() and fix tons of debug and comments
+------------------------------------------------------------------------
+015dd2cc | Norbert Eicker | Thu, 18 Mar 2021 02:31:18 +0100
+
+Ensure SO_PEERCRED is defined
+------------------------------------------------------------------------
+58585e43 | Norbert Eicker | Wed, 17 Mar 2021 18:40:40 +0100
+
+Utilize PSCio_recvMsg() in pspmix plugin
+------------------------------------------------------------------------
+4303ea6a | Norbert Eicker | Wed, 17 Mar 2021 18:26:51 +0100
+
+Let psilogger use PSCio_recvMsg()
+------------------------------------------------------------------------
+268ccd76 | Norbert Eicker | Wed, 17 Mar 2021 18:01:44 +0100
+
+Let PSLog_read() use PSCio_recvMsgSize()
+------------------------------------------------------------------------
+d7a9e472 | Norbert Eicker | Wed, 17 Mar 2021 18:22:49 +0100
+
+Introduce PSCio_recvMsg() family of functions
+------------------------------------------------------------------------
+bd513ef9 | Norbert Eicker | Wed, 17 Mar 2021 02:35:23 +0100
+
+Move offset handling into PSCio_recvBufProg()
+------------------------------------------------------------------------
+e3a2823e | Norbert Eicker | Wed, 17 Mar 2021 02:12:53 +0100
+
+Fix typos
+------------------------------------------------------------------------
+c1f5bd25 | Norbert Eicker | Wed, 17 Mar 2021 02:10:15 +0100
+
+Rename PS_DataBuffer_t members
+------------------------------------------------------------------------
+10e3fdda | Norbert Eicker | Tue, 16 Mar 2021 23:54:14 +0100
+
+Setup file descriptors in the correct blocking mode
+------------------------------------------------------------------------
+1a5f529f | Norbert Eicker | Tue, 16 Mar 2021 23:53:57 +0100
+
+Don't mess with blocking within PSCio_recvBufFunc()
+------------------------------------------------------------------------
+1e940301 | Norbert Eicker | Tue, 16 Mar 2021 23:34:50 +0100
+
+Improve logging and streamlining
+------------------------------------------------------------------------
+4caaf9d6 | Norbert Eicker | Tue, 16 Mar 2021 22:25:19 +0100
+
+Improve logging
+------------------------------------------------------------------------
+876c8145 | Norbert Eicker | Tue, 16 Mar 2021 22:18:51 +0100
+
+Check for socket() success and streamlining
+------------------------------------------------------------------------
+473eb66a | Norbert Eicker | Tue, 16 Mar 2021 12:05:17 +0100
+
+Move doRead() et al. from psserial to PSCio_recvBuf()
+------------------------------------------------------------------------
+
+
 Version psmgmt-5.1.41-3:
 ========================
 ------------------------------------------------------------------------

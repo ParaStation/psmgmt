@@ -6,6 +6,24 @@ Copyright (C) 2021 ParTec AG, Munich
 Please send bug reports, questions and suggestions to <support@par-tec.com>
 
 
+Version 5.1.42:
+===============
+Bugfixes:
+ - Fix bug in jail script to set the oom score
+ - Fix various memory leaks
+Enhancements:
+ - Add new psgw configuration option GATEWAY_ENV to set environment for psgwd
+ - psslurm checks if PrologSlurmctld is set in slurm.conf
+ - Improved syslog messages
+ - Replace getdtablesize() by sysconf(_SC_OPEN_MAX) in psmom, too
+Additional changes:
+ - Merge fwCMD_printMessage() and fwCMD_printJobMsg() into fwCMD_printMsg()
+ - Move doRead() et al. from psserial to PSCio_recvBuf()
+   * Call PSCio_recvBuf() directly instead via PSID_readall()
+ - Introduce PSCio_recvMsg() family of functions
+ - Use PSCio_setFDblock() instead of fcntl()
+
+
 Version 5.1.41-3:
 =================
 Bugfixes:
