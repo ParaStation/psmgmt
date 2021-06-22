@@ -13,6 +13,7 @@
 #include <stdint.h>
 
 #include "psnodes.h"
+#include "pscpu.h"
 
 typedef struct {
     PSnodes_ID_t id;           /**< parastation node id */
@@ -21,8 +22,8 @@ typedef struct {
     uint16_t threadsPerCore;   /**< number of hardware threads per core */
     uint32_t coreCount;        /**< number of cores */
     uint32_t threadCount;      /**< number of hardware threads */
-    PSCPU_set_t stepHWthreads; /**< hw threads to use in this step on this node */
-    PSCPU_set_t jobHWthreads;  /**< hw threads to use in this job on this node */
+    PSCPU_set_t stepHWthreads; /**< hw threads to use in step on this node */
+    PSCPU_set_t jobHWthreads;  /**< hw threads to use in job on this node */
 } nodeinfo_t;
 
 #endif  /* __PS_SLURM_NODEINFOTYPE */

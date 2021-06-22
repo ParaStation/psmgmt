@@ -55,7 +55,7 @@ bool *getCPUsetFromCoreBitmap(uint32_t total, const char *bitmap)
     if (psslurmlogger->mask & PSSLURM_LOG_PART) {
 	flog("cores '%s' coreMap '", bitstr);
 	for (uint32_t i = 0; i < total; i++) mlog("%i", coreMap[i]);
-        mdbg(PSSLURM_LOG_PART, "'\n");
+	mlog("'\n");
     }
 
     return coreMap;

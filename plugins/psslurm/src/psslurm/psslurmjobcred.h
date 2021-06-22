@@ -46,19 +46,17 @@ typedef struct {
     char *stepHL;		/**< Slurm compressed step host-list */
     time_t ctime;               /**< creation time of credential */
     uint32_t totalCoreCount;    /**< number of total reserved cores */
-    char *jobCoreBitmap;        /**< reserved core bitmap for job
-                                     (MSB first) */
-    char *stepCoreBitmap;       /**< reserved core bitmap for step
-                                     (MSB first)*/
+    char *jobCoreBitmap;        /**< job's reserved core bitmap (MSB first) */
+    char *stepCoreBitmap;       /**< step's reserved core bitmap (MSB first)*/
     uint16_t nodeArraySize;     /**< size of the following node arrays */
     uint16_t *coresPerSocket;   /**< # of cores per socket (node indexed) */
     uint16_t *socketsPerNode;   /**< # of sockets per node (node indexed) */
     uint32_t *nodeRepCount;     /**< repetitions of nodes (node indexed)
-                                     Specifies how often each node index has
-                                     to be used. If multiple succeeding nodes
-                                     do have the same cores and sockets, they
-                                     get one common index and this array holds
-                                     how many nodes are on the same index */
+				   Specifies how often each node index has
+				   to be used. If multiple succeeding nodes
+				   do have the same cores and sockets, they
+				   get one common index and this array holds
+				   how many nodes are on the same index */
     uint32_t jobNumHosts;       /**< number of nodes in the job */
     char *jobHostlist;		/**< Slurm compressed job host-list */
     char *sig;                  /**< munge signature */
@@ -66,7 +64,7 @@ typedef struct {
     uint16_t x11;		/**< X11 flags for job */
 } JobCred_t;
 
-/*
+/**
  * Parse the coreBitmap of @a job and generate a coreMap.
  *
  * The coreBitmap is a hexadecimal string representation of the filed in
@@ -82,7 +80,6 @@ typedef struct {
  * @param bitmap     core bitmap to parse
  *
  * @return  coreMap
- *
  */
 bool *getCPUsetFromCoreBitmap(uint32_t total, const char *bitmap);
 

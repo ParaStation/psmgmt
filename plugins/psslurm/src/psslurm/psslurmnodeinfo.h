@@ -10,7 +10,9 @@
 #ifndef __PS_SLURM_NODEINFO
 #define __PS_SLURM_NODEINFO
 
+#include "psnodes.h"
 #include "psslurmnodeinfotype.h"
+#include "psslurmjob.h"
 #include "psslurmstep.h"
 
 /**
@@ -19,7 +21,8 @@
  * Get a nodeinfo struct containing information on a node that are
  * usually hidden in the job or step struct.
  *
- * Either a job or a step can be given, if both are given, job takes preference.
+ * Either a job or a step can be given; if both are given, job takes
+ * precedence.
  *
  * The returned nodeinfo struct needs to be freed using ufree.
  *
