@@ -296,11 +296,11 @@ static void finalizeRequest(PSGW_Req_t *req)
     char *addEnv = getConfValueC(&config, "GATEWAY_ENV");
     PElogueResource_t *res = req->res;
 
-    if (strlen(addEnv) > 0) {
+    if (addEnv && strlen(addEnv) > 0) {
 	const char delimiters[] = " ";
 	char *envCopy = ustrdup(addEnv), *toksave;
 	char *next = strtok_r(envCopy, delimiters, &toksave);
-	char prefix[] = "_PSSLURM_ENV_";
+	char prefix[] = "_PSSLURM_ENV_"; // @see constant in setPsslurmEnv()
 
 	while (next) {
 	    size_t len = strlen(prefix) + strlen(next) + 1;
