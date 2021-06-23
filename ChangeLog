@@ -1,3 +1,25 @@
+Version psmgmt-5.1.42-1:
+========================
+------------------------------------------------------------------------
+c113a48d | Norbert Eicker | Wed, 23 Jun 2021 14:57:59 +0200
+
+Discussion follow-ups
+------------------------------------------------------------------------
+03503273 | Michael Rauh | Wed, 23 Jun 2021 13:54:01 +0200
+
+Change psgw configuration option GATEWAY_ENV
+
+     - Allows to set additional environment variables for
+       the compute processes
+     - Supports multiple variables separated by space
+     - The environment of the psgwd will *not be changed*
+------------------------------------------------------------------------
+e44d42d2 | Norbert Eicker | Wed, 23 Jun 2021 13:51:40 +0200
+
+Bugfix: fix segmentation fault in x11spank
+------------------------------------------------------------------------
+
+
 Version psmgmt-5.1.42:
 ======================
 ------------------------------------------------------------------------

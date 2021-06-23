@@ -6,6 +6,14 @@ Copyright (C) 2021 ParTec AG, Munich
 Please send bug reports, questions and suggestions to <support@par-tec.com>
 
 
+Version 5.1.42-1:
+=================
+Bugfix:
+ - Fix possible segmentation fault in x11spank
+ - Change psgw configuration option GATEWAY_ENV to change compute
+   process' environment instead of psgwd
+
+
 Version 5.1.42:
 ===============
 Bugfixes:
