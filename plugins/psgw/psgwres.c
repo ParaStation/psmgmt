@@ -292,8 +292,29 @@ static void finalizeRequest(PSGW_Req_t *req)
 	return;
     }
 
-    /* let pelogue execute prologue */
+    /* set additional environment variables */
+    char *addEnv = getConfValueC(&config, "GATEWAY_ENV");
     PElogueResource_t *res = req->res;
+
+    if (strlen(addEnv) > 0) {
+	const char delimiters[] = " ";
+	char *envCopy = ustrdup(addEnv), *toksave;
+	char *next = strtok_r(envCopy, delimiters, &toksave);
+	char prefix[] = "_PSSLURM_ENV_";
+
+	while (next) {
+	    size_t len = strlen(prefix) + strlen(next) + 1;
+	    char *new = umalloc(len);
+	    snprintf(new, len, "%s%s", prefix, next);
+	    envPut(res->env, new);
+	    ufree(new);
+	    next = strtok_r(NULL, delimiters, &toksave);
+	}
+	ufree(envCopy);
+    }
+
+
+    /* let pelogue execute prologue */
     res->cb(res->plugin, res->jobid, ret);
     req->res = NULL;
 }
@@ -694,17 +715,6 @@ static void initPSGWDEnv(env_t *psgwdEnv, PSGW_Req_t *req)
 	}
     }
 
-    char *addEnv = getConfValueC(&config, "GATEWAY_ENV");
-    if (strlen(addEnv) > 0) {
-	const char delimiters[] = " ";
-	char *envCopy = ustrdup(addEnv), *toksave;
-	char *next = strtok_r(envCopy, delimiters, &toksave);
-	while (next) {
-	    envPut(psgwdEnv, next);
-	    next = strtok_r(NULL, delimiters, &toksave);
-	}
-	ufree(envCopy);
-    }
 }
 
 bool startPSGWD(PSGW_Req_t *req)
