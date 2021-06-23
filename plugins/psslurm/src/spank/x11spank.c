@@ -407,7 +407,10 @@ void forwarder_loop(struct x11display *d, int sock)
 	    }
 	}
 
-	for (sp = head.next; sp; sp = sp->next) {
+	/* interate safely so we can remove list entries on the fly */
+	struct sockpair *nxt;
+	for (sp = head.next, nxt = sp ? sp->next : sp; sp;
+	     sp = nxt, nxt = sp ? sp->next : sp) {
 	    if (FD_ISSET(sp->left , &readset)) {
 		err = copy(sp->left, sp->right, buf, sizeof(buf));
 		if (err < 0) {
