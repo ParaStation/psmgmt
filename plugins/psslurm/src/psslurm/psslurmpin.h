@@ -46,14 +46,12 @@ bool initPinning(void);
 bool setStepSlots(Step_t *step);
 
 /**
- * @brief Calculate the GPU pinning for all local ranks.
+ * @brief Calculate the GPU pinning for the local rank.
  *
- * The returned array @a ret needs to have space for one entry per local rank
- * in @a step on node @a stepNodeId (len = step->globalTaskIdsLen[stepNodeId]).
- * Each entry in the filled array is the ID of the GPU to be bound to the
- * corrensponding rank. Only GPUs in @a gpusAssigned will be used.
+ * The number returned is the ID of the GPU to be bound to rank @a localRankId.
+ * Only GPUs in @a gpusAssigned will be used.
  *
- * @param ret              Array to be filled
+ * @param localRankId      The local rank ID of the rank to get the GPU for
  *
  * @param step             The step to use
  *
@@ -63,10 +61,10 @@ bool setStepSlots(Step_t *step);
  *
  * @param numGPUsAssigned  Length of @a gpusAssigned
  *
- * @return True if GPUs are found and @a ret is filled, else false.
+ * @return ID of a GPUs if successful, -1 in error.
  */
-bool getNodeGPUPinning(uint16_t ret[], Step_t *step, uint32_t stepNodeId,
-	int *gpusAssigned, size_t numGPUsAssigned);
+int32_t getRankGpuPinning(uint32_t localRankId, Step_t *step,
+	uint32_t stepNodeId, int *gpusAssigned, size_t numGPUsAssigned);
 
 /**
  * @doctodo

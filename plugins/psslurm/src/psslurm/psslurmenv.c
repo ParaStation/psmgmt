@@ -574,15 +574,14 @@ static void setGPUEnv(Gres_Cred_t *gres, uint32_t jobNodeId, Step_t *step,
 	size_t numGPUs = 0;
 	hexBitstr2Array(gres->bitAlloc[jobNodeId], &assGPUs, &numGPUs);
 
-	uint16_t gpus[ltnum];
-
-	bool success = getNodeGPUPinning(gpus, step, stepNId, assGPUs, numGPUs);
+	int32_t gpu = getRankGpuPinning(localRankId, step, stepNId, assGPUs,
+		numGPUs);
 	ufree(assGPUs);
 
-	if (!success) return;
+	if (gpu < 0) return;
 
 	char tmp[10];
-	snprintf(tmp, sizeof(tmp), "%i", gpus[localRankId]);
+	snprintf(tmp, sizeof(tmp), "%hd", (uint16_t)gpu);
 
 	/* always set our own variable */
 	setenv("PSSLURM_BIND_GPUS", tmp, 1);
