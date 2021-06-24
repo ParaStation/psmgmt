@@ -436,7 +436,7 @@ static int handleCreatePart(void *msg)
 
     /* generate hardware threads array */
     if (!genThreadsArray(&task->partThrds, &task->totalThreads,
-	    task->partition, task->partitionSize)) {
+	    step->slots, step->np)) {
 	flog("generation of hardware threads array failed\n");
 	goto error;
     }
