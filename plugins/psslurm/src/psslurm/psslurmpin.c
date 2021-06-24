@@ -351,6 +351,9 @@ static void fillDistributionStrategies(uint32_t taskDist, pininfo_t *pininfo)
 
 /*
  * Pin to all hardware threads
+ *
+ * Using this instead of PSCPU_setAll() avoids unnessary large partition
+ * threads arrays (*partThrds) in the task structure.
  */
 static void pinToAllThreads(PSCPU_set_t *CPUset, const nodeinfo_t *nodeinfo)
 {
@@ -436,7 +439,7 @@ static void parseCPUmask(PSCPU_set_t *CPUset, const nodeinfo_t *nodeinfo,
 	digit = strtol(curchar, &endptr, 16);
 	if (*endptr != '\0') {
 	    mlog("%s: invalid digit in cpu mask '%s'\n", __func__, maskStr);
-	    PSCPU_setAll(*CPUset); //XXX other result in error case?
+	    pinToAllThreads(CPUset, nodeinfo); //XXX other result in error case?
 	    break;
 	}
 
@@ -565,7 +568,7 @@ static void parseSocketMask(PSCPU_set_t *CPUset, const nodeinfo_t *nodeinfo,
 	digit = strtol(curchar, &endptr, 16);
 	if (*endptr != '\0') {
 	    mlog("%s: invalid digit in cpu mask '%s'\n", __func__, maskStr);
-	    PSCPU_setAll(*CPUset); //XXX other result in error case?
+	    pinToAllThreads(CPUset, nodeinfo); //XXX other result in error case?
 	    break;
 	}
 
@@ -703,7 +706,7 @@ static void getBindMapFromString(PSCPU_set_t *CPUset, uint16_t cpuBindType,
     }
 
 error:
-    PSCPU_setAll(*CPUset); //XXX other result in error case?
+    pinToAllThreads(CPUset, nodeinfo); //XXX other result in error case?
 
 cleanup:
     ufree(ents);
