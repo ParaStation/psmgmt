@@ -354,7 +354,16 @@ bool pspmix_service_registerNamespace(PStask_t *prototask, PSresinfo_t *resInfo)
 	ns->jobSize = 1;
     }
 
-    ns->appsCount = 1; /* XXX change for colon support */
+    for (int i = 0; i < e.cnt; i++) {
+	mlog("%s: %s\n", __func__, e.vars[i]);
+    }
+
+    env = envGet(&e, "PMIX_APPCOUNT");
+    if (env) {
+	ns->appsCount = atoi(env);
+    } else {
+	ns->appsCount = 1;
+    }
     ns->apps = umalloc(ns->appsCount * sizeof(*ns->apps));
 
     uint32_t procCount = 0;
