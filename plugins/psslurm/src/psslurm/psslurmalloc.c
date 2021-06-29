@@ -35,19 +35,15 @@ Alloc_t *addAlloc(uint32_t id, uint32_t packID, char *slurmHosts, env_t *env,
 
     if (alloc) return alloc;
 
-    alloc = umalloc(sizeof(Alloc_t));
+    alloc = ucalloc(sizeof(Alloc_t));
     alloc->id = id;
     alloc->packID = packID;
     alloc->state = A_INIT;
     alloc->uid = uid;
     alloc->gid = gid;
-    alloc->terminate = 0;
     alloc->slurmHosts = ustrdup(slurmHosts);
     alloc->username = ustrdup(username);
-    alloc->firstKillReq = 0;
     alloc->startTime = time(0);
-    alloc->epilogCnt = 0;
-    alloc->nodeFail = false;
 
     /* init node-list */
     if (!convHLtoPSnodes(slurmHosts, getNodeIDbySlurmHost,
@@ -191,6 +187,10 @@ bool deleteAlloc(uint32_t id)
     ufree(alloc->username);
     ufree(alloc->epilogRes);
     envDestroy(&alloc->env);
+
+    freeJobCred(alloc->cred);
+    freeGresJobAlloc(alloc->gresList);
+    ufree(alloc->gresList);
 
     list_del(&alloc->next);
     ufree(alloc);

@@ -1581,10 +1581,81 @@ static void handleForwardData(Slurm_Msg_t *sMsg)
     sendSlurmRC(sMsg, ESLURM_NOT_SUPPORTED);
 }
 
+static void sendPrologComplete(uint32_t jobid, uint32_t rc)
+{
+    PS_SendDB_t msg = { .bufUsed = 0, .useFrag = false };
+    Req_Prolog_Comp_t req = {
+	.jobid = jobid,
+	.rc = rc
+    };
+
+    packReqPrologComplete(&msg, &req);
+
+    sendSlurmMsg(SLURMCTLD_SOCK, REQUEST_COMPLETE_PROLOG, &msg);
+}
+
 static void handleLaunchProlog(Slurm_Msg_t *sMsg)
 {
-    flog("unsupported request, please use the slurmctld prologue\n");
-    sendSlurmRC(sMsg, ESLURM_NOT_SUPPORTED);
+    Req_Launch_Prolog_t *req;
+
+    /* unpack request */
+    if (!(unpackReqLaunchProlog(sMsg, &req))) {
+	flog("unpacking launch prolog request failed\n");
+	sendSlurmRC(sMsg, SLURM_ERROR);
+	return;
+    }
+
+    fdbg(PSSLURM_LOG_PELOG, "jobid %u het-jobid %u uid %u gid %u alias %s"
+	 " nodes=%s partition=%s stdErr='%s' stdOut='%s' work-dir=%s user=%s\n",
+	 req->jobid, req->hetJobid, req->uid, req->gid, req->aliasList,
+	 req->nodes, req->partition, req->stdErr, req->stdOut, req->workDir,
+	 req->userName);
+
+    fdbg(PSSLURM_LOG_DEBUG, "x11 %u allocHost='%s' allocPort %u cookie='%s'"
+	 "target=%s targetPort %u\n", req->x11, req->x11AllocHost,
+	 req->x11AllocPort, req->x11MagicCookie, req->x11Target,
+	 req->x11TargetPort);
+
+    /* let the slurmctld know we got the request */
+    sendSlurmRC(sMsg, SLURM_SUCCESS);
+
+    /* add an allocation if slurmctld prologue did not */
+    Alloc_t *alloc = findAlloc(req->jobid);
+    if (!alloc) alloc = findAllocByPackID(req->hetJobid);
+    if (!alloc) {
+	alloc = addAlloc(req->jobid, req->hetJobid, req->nodes, &req->spankEnv,
+			 req->uid, req->gid, req->userName);
+    } else {
+	envCat(&alloc->env, &req->spankEnv, envFilter);
+    }
+
+    /* save job credential and GRes in allocation */
+    alloc->cred = req->cred;
+    alloc->gresList = req->gresList;
+
+    if (alloc->state == A_INIT) {
+	flog("starting prologue now\n");
+    } else {
+	flog("prologue already started by slurmctld prologue\n");
+    }
+
+    /* let the slurmctld know the prologue has finished */
+    sendPrologComplete(req->jobid, SLURM_SUCCESS);
+
+    /* free request with the exception of the job credential and gres list
+     * saved in the allocation */
+    ufree(req->aliasList);
+    ufree(req->nodes);
+    ufree(req->partition);
+    ufree(req->stdErr);
+    ufree(req->stdOut);
+    ufree(req->workDir);
+    ufree(req->x11AllocHost);
+    ufree(req->x11MagicCookie);
+    ufree(req->x11Target);
+    ufree(req->userName);
+    envDestroy(&req->spankEnv);
+    ufree(req);
 }
 
 /**
@@ -2080,6 +2151,7 @@ static void handleTerminateReq(Slurm_Msg_t *sMsg)
 
 CLEANUP:
     envDestroy(&req->spankEnv);
+    freeGresJobAlloc(&req->gresList);
     ufree(req->nodes);
     ufree(req);
 }

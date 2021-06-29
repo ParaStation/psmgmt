@@ -2,6 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2014-2021 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2021 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -182,7 +183,6 @@ Gres_Cred_t *findGresCred(list_t *gresList, uint32_t id, int credType)
 
 void releaseGresCred(Gres_Cred_t *gres)
 {
-
     if (!gres) return;
 
     if (gres->bitAlloc) {
@@ -205,10 +205,9 @@ void releaseGresCred(Gres_Cred_t *gres)
 
 void freeGresCred(list_t *gresList)
 {
-    list_t *g, *tmp;
-
     if (!gresList) return;
 
+    list_t *g, *tmp;
     list_for_each_safe(g, tmp, gresList) {
 	Gres_Cred_t *gres = list_entry(g, Gres_Cred_t, next);
 
@@ -227,4 +226,19 @@ bool traverseGresConf(GresConfVisitor_t visitor, void *info)
     }
 
     return false;
+}
+
+void freeGresJobAlloc(list_t *gresList)
+{
+    if (!gresList) return;
+
+    list_t *g, *tmp;
+    list_for_each_safe(g, tmp, gresList) {
+	Gres_Job_Alloc_t *gres = list_entry(g, Gres_Job_Alloc_t, next);
+
+	list_del(&gres->next);
+	ufree(gres->nodeAlloc);
+	ufree(gres->bitAlloc);
+	ufree(gres);
+    }
 }

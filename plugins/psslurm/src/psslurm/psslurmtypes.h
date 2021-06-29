@@ -2,6 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2017-2021 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2021 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -11,6 +12,7 @@
 #define __PSSLURM_TYPES
 
 #include "psslurmmsg.h"
+#include "psslurmjobcred.h"
 #include "psenv.h"
 
 #ifdef HAVE_SPANK
@@ -36,6 +38,8 @@ typedef struct {
     bool *epilogRes;	    /**< track epilogue results per node */
     uint32_t epilogCnt;     /**< number of nodes finished epilogue */
     bool nodeFail;	    /**< flag to save node failure */
+    JobCred_t *cred;	    /**< job credentials */
+    list_t *gresList;	    /**< list of allocated generic resources */
 } Alloc_t;
 
 /** Handler type for SLURMd messages */

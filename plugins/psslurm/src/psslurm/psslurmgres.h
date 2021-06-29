@@ -2,6 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2014-2021 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2021 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -27,6 +28,7 @@ typedef enum {
     GRES_CRED_JOB,              /**< GRES job credential */
 } GRes_Cred_type_t;
 
+/** Structure holding a GRes configuration */
 typedef struct {
     list_t next;                /**< used to put into some gres-conf-lists */
     char *name;                 /**< name of the GRES resource (e.g. gpu) */
@@ -39,6 +41,7 @@ typedef struct {
     uint32_t id;                /**< GRES plugin ID */
 } Gres_Conf_t;
 
+/** Structure holding a GRes credential */
 typedef struct {
     list_t next;                /**< used to put into some gres-cred-lists */
     uint32_t id;                /**< GRES plugin ID */
@@ -61,6 +64,15 @@ typedef struct {
     uint64_t totalGres;         /**< total GRES count */
     uint16_t numTasksPerGres;   /**< number of tasks per GRES */
 } Gres_Cred_t;
+
+/** Structure holding a GRes job allocation used in prologue/epilogue */
+typedef struct {
+    list_t next;                /**< used to put into some gres-alloc-lists */
+    uint32_t pluginID;          /**< plugin identifier */
+    uint32_t nodeCount;         /**< node count */
+    uint64_t *nodeAlloc;        /**< node allocation */
+    char **bitAlloc;            /**< bit-string allocation */
+} Gres_Job_Alloc_t;
 
 /**
  * @brief Save a GRES configuration
@@ -157,5 +169,12 @@ typedef bool GresConfVisitor_t(Gres_Conf_t *gres , void *info);
  * false is returned.
  */
 bool traverseGresConf(GresConfVisitor_t visitor, void *info);
+
+/**
+ * @brief Free GRES job allocation list
+ *
+ * @param gresList The GRES job allocation list to free
+ */
+void freeGresJobAlloc(list_t *gresList);
 
 #endif /* __PS_SLURM_GRES */
