@@ -2,6 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2016-2021 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2021 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -776,5 +777,51 @@ bool __unpackReqJobNotify(Slurm_Msg_t *sMsg, Req_Job_Notify_t **reqPtr,
 			  const char *caller, const int line);
 #define unpackReqJobNotify(sMsg, reqPtr) \
     __unpackReqJobNotify(sMsg, reqPtr, __func__, __LINE__)
+
+/**
+ * @brief Unpack a launch prolog request
+ *
+ * Unpack a launch prolog request from the provided message pointer.
+ * The memory is allocated using umalloc(). The caller is responsible
+ * to free the memory using ufree().
+ *
+ * @param sMsg The message to unpack
+ *
+ * @param reqPtr The launch prolog structure holding the result
+ *
+ * @param caller Function name of the calling function
+ *
+ * @param line Line number where this function is called
+ *
+ * @return On success true is returned or false in case of an
+ * error. If reading was not successful, @a sMsg might be not updated.
+ */
+bool __unpackReqLaunchProlog(Slurm_Msg_t *sMsg, Req_Launch_Prolog_t **reqPtr,
+			     const char *caller, const int line);
+#define unpackReqLaunchProlog(sMsg, reqPtr) \
+    __unpackReqLaunchProlog(sMsg, reqPtr, __func__, __LINE__)
+
+/**
+ * @brief Pack a prolog complete request
+ *
+ * Pack request prolog complete and add it to the provided data
+ * buffer.
+ *
+ * @param data Data buffer to save data to
+ *
+ * @param req The data to pack
+ *
+ * @param caller Function name of the calling function
+ *
+ * @param line Line number where this function is called
+ *
+ * @return On success true is returned or false in case of an
+ * error. If writing was not successful, @a data might be not updated.
+ */
+bool __packReqPrologComplete(PS_SendDB_t *data, Req_Prolog_Comp_t *req,
+			     const char *caller, const int line);
+
+#define packReqPrologComplete(data, req) \
+    __packReqPrologComplete(data, req, __func__, __LINE__)
 
 #endif  /* __PS_SLURM_PACK */

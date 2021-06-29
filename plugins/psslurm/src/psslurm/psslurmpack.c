@@ -234,14 +234,11 @@ static Gres_Cred_t *unpackGresStep(char **ptr, uint16_t index, uint16_t msgVer)
 
 static Gres_Cred_t *unpackGresJob(char **ptr, uint16_t index, uint16_t msgVer)
 {
-    uint32_t magic;
-    uint8_t more;
-    unsigned int i;
-
     Gres_Cred_t *gres = getGresCred();
     gres->credType = GRES_CRED_JOB;
 
     /* GRes magic */
+    uint32_t magic;
     getUint32(ptr, &magic);
 
     if (magic != GRES_MAGIC) {
@@ -280,6 +277,7 @@ static Gres_Cred_t *unpackGresJob(char **ptr, uint16_t index, uint16_t msgVer)
     getUint32(ptr, &gres->nodeCount);
 
     /* additional node allocation */
+    uint8_t more;
     getUint8(ptr, &more);
     if (more) {
 	uint64_t *nodeAlloc;
@@ -287,7 +285,7 @@ static Gres_Cred_t *unpackGresJob(char **ptr, uint16_t index, uint16_t msgVer)
 	getUint64Array(ptr, &nodeAlloc, &gresNodeAllocCount);
 	if (psslurmlogger->mask & PSSLURM_LOG_GRES) {
 	    flog("gres node alloc: ");
-	    for (i=0; i<gresNodeAllocCount; i++) {
+	    for (uint32_t i=0; i<gresNodeAllocCount; i++) {
 		if (i) mlog(", ");
 		mlog("N%u:%zu", i, nodeAlloc[i]);
 	    }
@@ -307,11 +305,10 @@ static Gres_Cred_t *unpackGresJob(char **ptr, uint16_t index, uint16_t msgVer)
     getUint8(ptr, &more);
     if (more) {
 	gres->bitAlloc = umalloc(sizeof(char *) * gres->nodeCount);
-	for (i=0; i<gres->nodeCount; i++) {
+	for (uint32_t i=0; i<gres->nodeCount; i++) {
 	    gres->bitAlloc[i] = getBitString(ptr);
-	    mdbg(PSSLURM_LOG_GRES, "%s: node '%u' bit_alloc "
-		    "'%s'\n", __func__, i,
-		    gres->bitAlloc[i]);
+	    fdbg(PSSLURM_LOG_GRES, "node '%u' bit_alloc '%s'\n", i,
+		 gres->bitAlloc[i]);
 	}
     }
 
@@ -319,10 +316,10 @@ static Gres_Cred_t *unpackGresJob(char **ptr, uint16_t index, uint16_t msgVer)
     getUint8(ptr, &more);
     if (more) {
 	gres->bitStepAlloc = umalloc(sizeof(char *) * gres->nodeCount);
-	for (i=0; i<gres->nodeCount; i++) {
+	for (uint32_t i=0; i<gres->nodeCount; i++) {
 	    gres->bitStepAlloc[i] = getBitString(ptr);
-	    mdbg(PSSLURM_LOG_GRES, "%s: node '%u' bit_step_alloc '%s'\n",
-		    __func__, i, gres->bitStepAlloc[i]);
+	    fdbg(PSSLURM_LOG_GRES, "node '%u' bit_step_alloc '%s'\n",
+		 i, gres->bitStepAlloc[i]);
 	}
     }
 
@@ -330,10 +327,10 @@ static Gres_Cred_t *unpackGresJob(char **ptr, uint16_t index, uint16_t msgVer)
     getUint8(ptr, &more);
     if (more) {
 	gres->countStepAlloc = umalloc(sizeof(uint64_t) * gres->nodeCount);
-	for (i=0; i<gres->nodeCount; i++) {
+	for (uint32_t i=0; i<gres->nodeCount; i++) {
 	    getUint64(ptr, &(gres->countStepAlloc)[i]);
-	    mdbg(PSSLURM_LOG_GRES, "%s: node '%u' gres_cnt_step_alloc "
-		    "'%lu'\n", __func__, i, gres->countStepAlloc[i]);
+	    fdbg(PSSLURM_LOG_GRES, "node '%u' gres_cnt_step_alloc '%lu'\n",
+		 i, gres->countStepAlloc[i]);
 	}
     }
 
@@ -785,52 +782,63 @@ bool __unpackSlurmIOHeader(char **ptr, IO_Slurm_Header_t **iohPtr,
 }
 
 /**
- * @brief Unpack GRes job allocation
+ * @brief Unpack a GRes job allocation
+ *
+ * Used for prologue and epilogue
  *
  * @param ptr Pointer holding data to unpack
+ *
+ * @param gresList A list to receive the unpacked data
  */
-static bool unpackGresJobAlloc(char **ptr)
+static bool unpackGresJobAlloc(char **ptr, list_t *gresList)
 {
-    uint16_t count, i;
-
+    uint16_t count;
     getUint16(ptr, &count);
 
-    for (i=0; i<count; i++) {
-	uint32_t magic;
+    for (uint16_t i=0; i<count; i++) {
+	Gres_Job_Alloc_t *gres = ucalloc(sizeof(Gres_Job_Alloc_t));
+	INIT_LIST_HEAD(&gres->next);
+
 	/* gres magic */
+	uint32_t magic;
 	getUint32(ptr, &magic);
 	if (magic != GRES_MAGIC) {
 	    flog("invalid gres magic %u : %u\n", magic, GRES_MAGIC);
+	    ufree(gres);
 	    return false;
 	}
 	/* plugin ID */
-	uint32_t pluginID;
-	getUint32(ptr, &pluginID);
+	getUint32(ptr, &gres->pluginID);
 	/* node count */
-	uint32_t nodeCount;
-	getUint32(ptr, &nodeCount);
-	if (nodeCount > NO_VAL) {
-	    flog("invalid node count %u\n", nodeCount);
+	getUint32(ptr, &gres->nodeCount);
+	if (gres->nodeCount > NO_VAL) {
+	    flog("invalid node count %u\n", gres->nodeCount);
+	    ufree(gres);
 	    return false;
 	}
 	/* node allocation */
 	uint8_t filled;
 	getUint8(ptr, &filled);
 	if (filled) {
-	    uint64_t *nodeAlloc;
-	    uint32_t gresNodeAllocCount;
-	    getUint64Array(ptr, &nodeAlloc, &gresNodeAllocCount);
-	    ufree(nodeAlloc);
+	    uint32_t nodeAllocCount;
+	    getUint64Array(ptr, &gres->nodeAlloc, &nodeAllocCount);
+	    if (nodeAllocCount != gres->nodeCount) {
+		flog("mismatching gresNodeAllocCount %u and nodeCount %u\n",
+		     nodeAllocCount, gres->nodeCount);
+	    }
 	}
 	/* bit allocation */
 	getUint8(ptr, &filled);
 	if (filled) {
-	    uint32_t u;
-	    for (u=0; u<nodeCount; u++) {
-		char *tmp = getBitString(ptr);
-		ufree(tmp);
+	    gres->bitAlloc = umalloc(sizeof(char *) * gres->nodeCount);
+	    for (uint32_t j=0; j<gres->nodeCount; j++) {
+		gres->bitAlloc[i] = getBitString(ptr);
+		fdbg(PSSLURM_LOG_GRES, "node %u bit_alloc %s\n", j,
+		     gres->bitAlloc[j]);
 	    }
 	}
+
+	list_add_tail(&gres->next, gresList);
     }
 
     return true;
@@ -854,8 +862,10 @@ bool __unpackReqTerminate(Slurm_Msg_t *sMsg, Req_Terminate_Job_t **reqPtr,
     uint16_t msgVer = sMsg->head.version;
     char **ptr = &sMsg->ptr;
 
-    if (!unpackGresJobAlloc(ptr)) {
+    INIT_LIST_HEAD(&req->gresList);
+    if (!unpackGresJobAlloc(ptr, &req->gresList)) {
 	flog("unpacking gres job allocation info failed\n");
+	ufree(req);
 	return false;
     }
 
@@ -2290,6 +2300,7 @@ bool __unpackReqReattachTasks(Slurm_Msg_t *sMsg, Req_Reattach_Tasks_t **reqPtr,
 bool __unpackReqJobNotify(Slurm_Msg_t *sMsg, Req_Job_Notify_t **reqPtr,
 			  const char *caller, const int line)
 {
+
     if (!sMsg) {
 	flog("invalid ptr from '%s' at %i\n", caller, line);
 	return false;
@@ -2305,6 +2316,82 @@ bool __unpackReqJobNotify(Slurm_Msg_t *sMsg, Req_Job_Notify_t **reqPtr,
     req->msg = getStringM(ptr);
 
     *reqPtr = req;
+
+    return true;
+}
+
+bool __unpackReqLaunchProlog(Slurm_Msg_t *sMsg, Req_Launch_Prolog_t **reqPtr,
+			     const char *caller, const int line)
+{
+    if (!sMsg) {
+	flog("invalid ptr from '%s' at %i\n", caller, line);
+	return false;
+    }
+
+    Req_Launch_Prolog_t *req = ucalloc(sizeof(*req));
+    char **ptr = &sMsg->ptr;
+
+    req->gresList = umalloc(sizeof(*req->gresList));
+    INIT_LIST_HEAD(req->gresList);
+    if (!unpackGresJobAlloc(ptr, req->gresList)) {
+	flog("unpacking gres job allocation info failed\n");
+	ufree(req);
+	return false;
+    }
+
+    /* jobid */
+    getUint32(ptr, &req->jobid);
+    getUint32(ptr, &req->hetJobid);
+    /* uid/gid */
+    getUint32(ptr, &req->uid);
+    getUint32(ptr, &req->gid);
+    /* alias list */
+    req->aliasList = getStringM(ptr);
+    /* nodes */
+    req->nodes = getStringM(ptr);
+    /* partition */
+    req->partition = getStringM(ptr);
+    /* stdout/stderr */
+    req->stdErr = getStringM(ptr);
+    req->stdOut = getStringM(ptr);
+    /* work directory */
+    req->workDir = getStringM(ptr);
+    /* x11 variables */
+    getUint16(ptr, &req->x11);
+    req->x11AllocHost = getStringM(ptr);
+    getUint16(ptr, &req->x11AllocPort);
+    req->x11MagicCookie = getStringM(ptr);
+    req->x11Target = getStringM(ptr);
+    getUint16(ptr, &req->x11TargetPort);
+    /* spank environment */
+    getStringArrayM(ptr, &req->spankEnv.vars, &req->spankEnv.cnt);
+    /* job credential */
+    req->cred = extractJobCred(req->gresList, sMsg, true);
+    /* user name */
+    req->userName = getStringM(ptr);
+
+    *reqPtr = req;
+
+    return true;
+}
+
+bool __packReqPrologComplete(PS_SendDB_t *data, Req_Prolog_Comp_t *req,
+			     const char *caller, const int line)
+{
+    if (!data) {
+	flog("invalid data pointer from '%s' at %i\n", caller, line);
+	return false;
+    }
+
+    if (!req) {
+	flog("invalid req pointer from '%s' at %i\n", caller, line);
+	return false;
+    }
+
+    /* jobid */
+    addUint32ToMsg(req->jobid, data);
+    /* prolog return code */
+    addUint32ToMsg(req->rc, data);
 
     return true;
 }

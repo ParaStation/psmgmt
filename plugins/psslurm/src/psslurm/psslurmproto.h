@@ -2,6 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2014-2021 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2021 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -31,6 +32,7 @@ typedef struct {
     env_t spankEnv;		/**< spank environment */
     time_t startTime;		/**< time the job started */
     time_t requestTime;		/**< time slurmctld send the request */
+    list_t gresList;		/**< list of allocated generic resources */
 } Req_Terminate_Job_t;
 
 /** Structure holding a signal tasks request */
@@ -233,6 +235,36 @@ typedef struct {
     uint32_t stepHetComp;   /**< TODO */
     char *msg;		    /**< the message to send to the job */
 } Req_Job_Notify_t;
+
+/** Holding all information for RPC REQUEST_LAUNCH_PROLOG */
+typedef struct {
+    uint32_t jobid;		/**< unique job identifier */
+    uint32_t hetJobid;		/**< TODO */
+    uid_t uid;			/**< unique user identifier */
+    gid_t gid;			/**< unique group identifier */
+    char *aliasList;		/**< alias list */
+    char *nodes;		/**< node string */
+    char *partition;		/**< partition */
+    char *stdErr;		/**< stderr */
+    char *stdOut;		/**< stdout */
+    char *workDir;		/**< working directory */
+    uint16_t x11;		/**< x11 flag */
+    char *x11AllocHost;		/**< X11 allocated host */
+    uint16_t x11AllocPort;	/**< X11 allocated port */
+    char *x11MagicCookie;	/**< X11 magic cookie */
+    char *x11Target;		/**< X11 target */
+    uint16_t x11TargetPort;	/**< X11 target port */
+    env_t spankEnv;		/**< spank environment */
+    char *userName;		/**< username */
+    JobCred_t *cred;		/**< job credentials */
+    list_t *gresList;	    	/**< list of allocated generic resources */
+} Req_Launch_Prolog_t;
+
+/** Holding all information for RPC REQUEST_COMPLETE_PROLOG */
+typedef struct {
+    uint32_t jobid;		/**< unique job identifier */
+    uint32_t rc;		/**< prolog return code */
+} Req_Prolog_Comp_t;
 
 /** Slurm protocol version */
 extern uint32_t slurmProto;
