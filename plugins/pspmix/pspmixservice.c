@@ -354,8 +354,10 @@ bool pspmix_service_registerNamespace(PStask_t *prototask, PSresinfo_t *resInfo)
 	ns->jobSize = 1;
     }
 
-    for (int i = 0; i < e.cnt; i++) {
-	mlog("%s: %s\n", __func__, e.vars[i]);
+    if (mset(PSPMIX_LOG_ENV)) {
+	for (size_t i = 0; i < e.cnt; i++) {
+	    mlog("%s: %02zd: %s\n", __func__, i, e.vars[i]);
+	}
     }
 
     env = envGet(&e, "PMIX_APPCOUNT");
