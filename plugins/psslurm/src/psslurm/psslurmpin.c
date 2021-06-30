@@ -527,9 +527,7 @@ static long * parseMapString(const char *mapstr, size_t *count, size_t last)
 	ptr = endptr + 1;
     }
 
-    if (*count == 0) goto error;
-
-    ret = urealloc(ret, *count * sizeof(*ret));
+    if (! *count) goto error;
 
     return ret;
 
