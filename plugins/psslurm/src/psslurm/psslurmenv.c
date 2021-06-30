@@ -2,11 +2,13 @@
  * ParaStation
  *
  * Copyright (C) 2014-2021 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2021 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
+#include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -549,6 +551,53 @@ static void setPsslurmEnv(env_t *alloc_env, env_t *dest_env)
     }
 }
 
+/**
+ * @brief Convert a hex bitstring to a PSCPU_set_t
+ *
+ * @param bitstr The bitstring to convert
+ *
+ * @param set The set to store the hex bitstring to
+ *
+ * @return Returns true on success otherwise false
+ */
+static bool hexBitstr2Set(char *bitstr, PSCPU_set_t set)
+{
+    if (!set) {
+	flog("invalid set\n");
+	return false;
+    }
+    PSCPU_clrAll(set);
+
+    if (!bitstr) {
+	flog("invalid bitstring\n");
+	return false;
+    }
+    if (!strncmp(bitstr, "0x", 2)) bitstr += 2;
+    size_t len = strlen(bitstr);
+
+    uint16_t count = 0;
+    while (len--) {
+	uint8_t next = bitstr[len];
+
+	if (!isxdigit(next)) return false;
+
+	if (isdigit(next)) {
+	    next -= '0';
+	} else {
+	    next = toupper(next);
+	    next -= 'A' - 10;
+	}
+
+	for (uint8_t i = 1; i <= 8; i *= 2) {
+	    if (next & i) PSCPU_setCPU(set, count);
+	    count++;
+	}
+    }
+
+    return true;
+}
+
+
 static void setGPUEnv(Gres_Cred_t *gres, uint32_t jobNodeId, Step_t *step,
 	uint32_t localRankId)
 {
@@ -570,18 +619,14 @@ static void setGPUEnv(Gres_Cred_t *gres, uint32_t jobNodeId, Step_t *step,
 	setenv("PSSLURM_BIND_GPUS", value ? value : "", 1);
     } else {
 	/* get assigned GPUs from GRES info */
-	int *assGPUs;
-	size_t numGPUs = 0;
-	hexBitstr2Array(gres->bitAlloc[jobNodeId], &assGPUs, &numGPUs);
+	PSCPU_set_t assGPUs;
+	hexBitstr2Set(gres->bitAlloc[jobNodeId], assGPUs);
 
-	int32_t gpu = getRankGpuPinning(localRankId, step, stepNId, assGPUs,
-		numGPUs);
-	ufree(assGPUs);
-
+	int16_t gpu = getRankGpuPinning(localRankId, step, stepNId, &assGPUs);
 	if (gpu < 0) return;
 
 	char tmp[10];
-	snprintf(tmp, sizeof(tmp), "%hd", (uint16_t)gpu);
+	snprintf(tmp, sizeof(tmp), "%hd", gpu);
 
 	/* always set our own variable */
 	setenv("PSSLURM_BIND_GPUS", tmp, 1);

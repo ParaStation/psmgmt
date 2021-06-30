@@ -2,6 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2014-2021 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2021 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -257,24 +258,6 @@ void closeSlurmdSocket(void);
 char *__getBitString(char **ptr, const char *func, const int line);
 
 #define getBitString(ptr) __getBitString(ptr, __func__, __LINE__)
-
-
-/**
- * @brief Convert a hex bitstring to an array of integers.
- *
- * Existing values of @a list and @a listSize are ignored and overridden.
- * The caller is responsible to free @a list using @ref ufree() if true is
- * returned.
- *
- * @param bitstr The bitstring to convert
- *
- * @param array The list holding the result
- *
- * @param arraySize The size of the list
- *
- * @return Returns true on success otherwise false
- */
-bool hexBitstr2Array(char *bitstr, int **array, size_t *arraySize);
 
 /**
  * @brief Converter function of hexBitstr2List()

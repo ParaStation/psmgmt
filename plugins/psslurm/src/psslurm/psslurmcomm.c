@@ -1034,48 +1034,6 @@ char *__getBitString(char **ptr, const char *func, const int line)
     return bitStr;
 }
 
-bool hexBitstr2Array(char *bitstr, int **array, size_t *arraySize)
-{
-    size_t len;
-    int32_t next, count = 0;
-
-    if (!bitstr) {
-	flog("invalid bitstring\n");
-	return false;
-    }
-
-    if (!strncmp(bitstr, "0x", 2)) bitstr += 2;
-    len = strlen(bitstr);
-
-    *array = umalloc(len * 4 * sizeof(**array));
-    *arraySize = 0;
-
-    while (len--) {
-	next = (int32_t) bitstr[len];
-
-	if (!isxdigit(next)) {
-	    ufree(*array);
-	    return false;
-	}
-
-	if (isdigit(next)) {
-	    next -= '0';
-	} else {
-	    next = toupper(next);
-	    next -= 'A' - 10;
-	}
-
-	for (int32_t i = 1; i <= 8; i *= 2) {
-	    if (next & i) (*array)[(*arraySize)++] = count;
-	    count++;
-	}
-    }
-
-    *array = urealloc(*array, *arraySize * sizeof(**array));
-
-    return true;
-}
-
 static void addVal2List(StrBuffer_t *strBuf, int32_t val, bool range, bool fin,
 			hexBitStrConv_func_t *conv)
 {
