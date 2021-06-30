@@ -1935,14 +1935,15 @@ bool pspmix_server_registerClient(const char *nspace, int rank, int uid,
 
     /* setup process struct */
     pmix_proc_t proc;
-    strncpy(proc.nspace, nspace, PMIX_MAX_NSLEN);
-    proc.rank = rank;
+    PMIX_PROC_CONSTRUCT(&proc);
+    PMIX_PROC_LOAD(&proc, nspace, rank);
 
     /* register clients uid and gid as well as ident object */
     mycbdata_t cbdata;
     INIT_CBDATA(cbdata);
     status = PMIx_server_register_client(&proc, uid, gid, clientObject,
 	    registerClient_cb, &cbdata);
+    PMIX_PROC_DESTRUCT(&proc);
     if (status != PMIX_SUCCESS) {
 	mlog("%s: Registering client failed: %s\n", __func__,
 		PMIx_Error_string(status));
@@ -1969,11 +1970,12 @@ bool pspmix_server_setupFork(const char *nspace, int rank, char ***childEnv)
 
     /* setup process struct */
     pmix_proc_t proc;
-    strncpy(proc.nspace, nspace, PMIX_MAX_NSLEN);
-    proc.rank = rank;
+    PMIX_PROC_CONSTRUCT(&proc);
+    PMIX_PROC_LOAD(&proc, nspace, rank);
 
     /* setup environment */
     status = PMIx_server_setup_fork(&proc, childEnv);
+    PMIX_PROC_DESTRUCT(&proc);
     if (status != PMIX_SUCCESS) {
 	mlog("%s: Setting up environment for fork failed: %s\n",
 		__func__, PMIx_Error_string(status));

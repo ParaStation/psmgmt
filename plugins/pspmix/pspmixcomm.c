@@ -128,6 +128,7 @@ static void handleModexDataReq(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
     char *ptr = data->buf;
 
     pmix_proc_t proc;
+    PMIX_PROC_CONSTRUCT(&proc);
     getUint32(&ptr, &proc.rank);
     getString(&ptr, proc.nspace, sizeof(proc.nspace));
 
@@ -136,6 +137,8 @@ static void handleModexDataReq(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
 	    proc.nspace, proc.rank);
 
     pspmix_service_handleModexDataRequest(msg->header.sender, &proc);
+
+    PMIX_PROC_DESTRUCT(&proc);
 }
 
 /**
@@ -153,6 +156,7 @@ static void handleModexDataResp(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
     uint8_t success;
     getUint8(&ptr, &success);
     pmix_proc_t proc;
+    PMIX_PROC_CONSTRUCT(&proc);
     getUint32(&ptr, &proc.rank);
     getString(&ptr, proc.nspace, sizeof(proc.nspace));
     size_t len;
@@ -164,6 +168,8 @@ static void handleModexDataResp(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
 
     /* transfers ownership of blob */
     pspmix_service_handleModexDataResponse(success, &proc, blob, len);
+
+    PMIX_PROC_DESTRUCT(&proc);
 }
 
 /**
