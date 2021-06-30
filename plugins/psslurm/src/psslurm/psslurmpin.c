@@ -604,54 +604,57 @@ static void getBindMapFromString(PSCPU_set_t *CPUset, uint16_t cpuBindType,
 				 char *cpuBindString,
 				 const nodeinfo_t *nodeinfo, uint32_t lTID)
 {
-    const char delimiters[] = ",";
-
-    char *ents = ustrdup(cpuBindString);
-    unsigned int numents = 0;
-
-    char *entarray[PSCPU_MAX];
-    entarray[0] = NULL;
-
-    char *myent = NULL;
-    char *saveptr;
-    char *next = strtok_r(ents, delimiters, &saveptr);
-    while (next && (numents < PSCPU_MAX)) {
-	entarray[numents++] = next;
-	if (numents == lTID + 1) {
-	    myent = next;
-	    break;
-	}
-	next = strtok_r(NULL, delimiters, &saveptr);
-    }
-
-    if (!myent && numents) {
-	myent = entarray[lTID % numents];
-    }
-
-    if (!myent) {
-	if (cpuBindType & CPU_BIND_MASK) {
-	    flog("invalid cpu mask string '%s'\n", ents);
-	} else if (cpuBindType & CPU_BIND_LDMASK) {
-	    flog("invalid socket mask string '%s'\n", ents);
-	}
-	goto error;
-    }
-
-    if (cpuBindType & (CPU_BIND_MAP | CPU_BIND_LDMAP)) {
-	myent = NULL; /* not used any more in this cases */
-    }
-
     PSCPU_clrAll(*CPUset);
 
-    if (cpuBindType & CPU_BIND_MASK) {
-	parseCPUmask(CPUset, nodeinfo, myent);
-	fdbg(PSSLURM_LOG_PART, "(bind_mask) node %d local task %d "
-		"cpumaskstr '%s' cpumask '%s'\n", nodeinfo->id, lTID, myent,
-		PSCPU_print(*CPUset));
-	goto cleanup;
-    }
+    if (cpuBindType & (CPU_BIND_MASK | CPU_BIND_LDMASK)) {
+	const char delimiters[] = ",";
+	char *ents = ustrdup(cpuBindString);
+	unsigned int numents = 0;
 
-    if (cpuBindType & CPU_BIND_MAP) {
+	char *entarray[PSCPU_MAX];
+	entarray[0] = NULL;
+
+	char *myent = NULL, *saveptr;
+	char *next = strtok_r(ents, delimiters, &saveptr);
+	while (next && (numents < PSCPU_MAX)) {
+	    entarray[numents++] = next;
+	    if (numents == lTID + 1) {
+		myent = strdup(next);
+		break;
+	    }
+	    next = strtok_r(NULL, delimiters, &saveptr);
+	}
+
+	if (!myent && numents && entarray[lTID % numents]) {
+	    myent = strdup(entarray[lTID % numents]);
+	}
+	ufree(ents);
+
+
+	if (cpuBindType & CPU_BIND_MASK) {
+	    if (!myent) {
+		flog("invalid cpu mask string '%s'\n", cpuBindString);
+		goto error;
+	    }
+	    parseCPUmask(CPUset, nodeinfo, myent);
+	    fdbg(PSSLURM_LOG_PART, "(bind_mask) node %d local task %d "
+		 "cpumaskstr '%s' cpumask '%s'\n", nodeinfo->id, lTID, myent,
+		 PSCPU_print(*CPUset));
+	    free(myent);
+	    return;
+	} else if (cpuBindType & CPU_BIND_LDMASK) {
+	    if (!myent) {
+		flog("invalid socket mask string '%s'\n", cpuBindString);
+		goto error;
+	    }
+	    parseSocketMask(CPUset, nodeinfo, myent);
+	    mdbg(PSSLURM_LOG_PART, "%s: (bind_ldmask) node %d local task %d "
+		 "ldommaskstr '%s' cpumask '%s'\n", __func__, nodeinfo->id,
+		 lTID, myent, PSCPU_print(*CPUset));
+	    free(myent);
+	    return;
+	}
+    } else if (cpuBindType & CPU_BIND_MAP) {
 	size_t count;
 	long *cpus = parseMapString(cpuBindString, &count, lTID + 1);
 	if (!cpus) {
@@ -662,27 +665,16 @@ static void getBindMapFromString(PSCPU_set_t *CPUset, uint16_t cpuBindType,
 	long mycpu = cpus[lTID % count];
 	ufree(cpus);
 	if (mycpu >= nodeinfo->threadCount) {
-	   flog("invalid cpu id %ld in cpu map '%s'\n", mycpu, cpuBindString);
+	    flog("invalid cpu id %ld in cpu map '%s'\n", mycpu, cpuBindString);
 	    goto error;
 	}
 
 	/* mycpu is valid */
 	PSCPU_setCPU(*CPUset, PSIDnodes_unmapCPU(nodeinfo->id, mycpu));
-	fdbg(PSSLURM_LOG_PART, "(bind_map) node %i local task %d"
-		" cpuBindstr '%s' cpu %ld\n", nodeinfo->id, lTID, cpuBindString,
-		mycpu);
-	goto cleanup;
-    }
-
-    if (cpuBindType & CPU_BIND_LDMASK) {
-	parseSocketMask(CPUset, nodeinfo, myent);
-	mdbg(PSSLURM_LOG_PART, "%s: (bind_ldmask) node %d local task %d "
-	     "ldommaskstr '%s' cpumask '%s'\n", __func__, nodeinfo->id,
-	     lTID, myent, PSCPU_print(*CPUset));
-	goto cleanup;
-    }
-
-    if (cpuBindType & CPU_BIND_LDMAP) {
+	fdbg(PSSLURM_LOG_PART, "(bind_map) node %d local task %d bindstr '%s'"
+	     " cpu %ld\n", nodeinfo->id, lTID, cpuBindString, mycpu);
+	return;
+    } else if (cpuBindType & CPU_BIND_LDMAP) {
 	size_t count;
 	long *ldoms = parseMapString(cpuBindString, &count, lTID + 1);
 	if (!ldoms) {
@@ -700,17 +692,14 @@ static void getBindMapFromString(PSCPU_set_t *CPUset, uint16_t cpuBindType,
 
 	/* mysock is valid */
 	pinToSocket(CPUset, nodeinfo, myldom, true);
-	fdbg(PSSLURM_LOG_PART, "(bind_ldmap) node %d local task %d"
-	     " bindstr '%s' ldom %ld\n", nodeinfo->id, lTID, cpuBindString,
-	     myldom);
-	goto cleanup;
+	fdbg(PSSLURM_LOG_PART, "(bind_ldmap) node %d local task %d bindstr '%s'"
+	     " ldom %ld\n", nodeinfo->id, lTID, cpuBindString, myldom);
+	return;
     }
 
 error:
     pinToAllThreads(CPUset, nodeinfo); //XXX other result in error case?
 
-cleanup:
-    ufree(ents);
     return;
 }
 
@@ -732,17 +721,13 @@ static void getRankBinding(PSCPU_set_t *CPUset, const nodeinfo_t *nodeinfo,
 		int32_t *lastCpu, int *thread, uint16_t threadsPerTask,
 		uint32_t lTID)
 {
-    int found;
-    int32_t localCpuCount;
-    uint32_t u;
-
     PSCPU_clrAll(*CPUset);
-    found = 0;
 
+    int found = 0;
     while (found <= threadsPerTask) {
-	localCpuCount = 0;
+	int32_t localCpuCount = 0;
 	// walk through global CPU IDs of the CPUs to use in the local node
-	for (u = 0; u < nodeinfo->coreCount; u++) {
+	for (uint32_t u = 0; u < nodeinfo->coreCount; u++) {
 	    if ((*lastCpu == -1 || *lastCpu < localCpuCount)
 		&& PSCPU_isSet(nodeinfo->stepHWthreads, u)) {
 		PSCPU_setCPU(*CPUset,
