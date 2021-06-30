@@ -33,6 +33,8 @@
 
 char **envFilter = NULL;
 
+extern char **environ;
+
 #define GPU_VARIABLE_MAXLEN 20
 static char * gpu_variables[] = {
     "CUDA_VISIBLE_DEVICES", /* Nvidia GPUs */
@@ -695,7 +697,59 @@ static void setGresEnv(uint32_t localRankId, Step_t *step)
     }
 }
 
-void setRankEnv(int32_t rank, Step_t *step)
+static void doUnset(char *env)
+{
+    char *name = strchr(env, '=');
+    if (!name) return;
+    name[0] = '\0';
+    unsetenv(env);
+}
+
+/**
+ * @brief Set additional environment for an interactive step
+ *
+ * @param step The step to set the environment for
+ */
+static void setInterActiveStepEnv(Step_t *step)
+{
+    char **env = environ;
+    while (*env) {
+	if (!(strncmp(*env, "PMI_", 4))) {
+	    doUnset(*env);
+	}
+	if (!(strncmp(*env, "MPI_", 4))) {
+	    doUnset(*env);
+	}
+	if (!strncmp(*env, "OLDPWD", 6)) {
+	    doUnset(*env);
+	}
+	env++;
+    }
+}
+
+/**
+ * @brief Set additional environment for a normal step
+ *
+ * @param step The step to set the environment for
+ */
+static void setNormalStepEnv(Step_t *step)
+{
+    /* set cpu/memory bind env vars */
+    setBindingEnvVars(step);
+
+    char tmp[128];
+    snprintf(tmp, sizeof(tmp), "%u", step->tpp);
+    setenv("SLURM_CPUS_PER_TASK", tmp, 1);
+}
+
+/**
+ * @brief Set common environment for steps
+ *
+ * @param rank The rank to set the environment for
+ *
+ * @param step The step to set the environment for
+ */
+static void setCommonStepEnv(int32_t rank, Step_t *step)
 {
     /* remove unwanted variables */
     unsetenv("PSI_INPUTDEST");
@@ -758,26 +812,32 @@ void setRankEnv(int32_t rank, Step_t *step)
 	setGresEnv(myLocalId, step);
     }
 
-    /* set cpu/memory bind env vars */
-    setBindingEnvVars(step);
-
-    snprintf(tmp, sizeof(tmp), "%u", step->tpp);
-    setenv("SLURM_CPUS_PER_TASK", tmp, 1);
-
-    setenv("SLURM_CHECKPOINT_IMAGE_DIR", step->checkpoint, 1);
     setenv("SLURM_LAUNCH_NODE_IPADDR", inet_ntoa(step->srun.sin_addr), 1);
     setenv("SLURM_SRUN_COMM_HOST", inet_ntoa(step->srun.sin_addr), 1);
 
     setenv("SLURM_JOB_USER", step->username, 1);
     snprintf(tmp, sizeof(tmp), "%u", step->uid);
     setenv("SLURM_JOB_UID", tmp, 1);
+    snprintf(tmp, sizeof(tmp), "%u", step->gid);
+    setenv("SLURM_JOB_GID", tmp, 1);
 
     /* set SLURM_TASKS_PER_NODE */
     char *val = getTasksPerNode(step->tasksToLaunch, step->nrOfNodes);
     setenv("SLURM_TASKS_PER_NODE", val, 1);
+}
+
+void setRankEnv(int32_t rank, Step_t *step)
+{
+    setCommonStepEnv(rank, step);
 
     Alloc_t *alloc = findAlloc(step->jobid);
     if (alloc) setPsslurmEnv(&alloc->env, NULL);
+
+    if (step->stepid == SLURM_INTERACTIVE_STEP) {
+	return setInterActiveStepEnv(step);
+    } else {
+	return setNormalStepEnv(step);
+    }
 }
 
 /**
