@@ -865,7 +865,7 @@ int pspmix_service_fenceIn(const pmix_proc_t procs[], size_t nprocs,
 
     for (size_t i = 0; i < nprocs; i++) {
 
-	if (strcmp(procs[i].nspace, procs[0].nspace) != 0) {
+	if (!PMIX_CHECK_NSPACE(procs[i].nspace, procs[0].nspace)) {
 	    mlog("%s: UNEXPECTED: Multiple namespaces in one fence operation:"
 		    "'%s' != '%s'\n", __func__, procs[i].nspace,
 		    procs[0].nspace);
@@ -1270,7 +1270,7 @@ void pspmix_service_handleModexDataResponse(bool success, pmix_proc_t *proc,
     list_for_each_safe(s, tmp, &modexRequestList) {
 	modexdata_t *cur = list_entry(s, modexdata_t, next);
 	if (cur->proc.rank == proc->rank
-		&& strcmp(cur->proc.nspace, proc->nspace) == 0) {
+		&& PMIX_CHECK_NSPACE(cur->proc.nspace, proc->nspace)) {
 	    mdata = cur;
 	    list_del(&cur->next);
 	    break;

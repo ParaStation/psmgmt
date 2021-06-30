@@ -261,7 +261,8 @@ static pmix_status_t server_abort_cb(const pmix_proc_t *proc,
 
     mlog("Got notification of abort request by %s:%d for ", proc->nspace,
 	    proc->rank);
-    if (!procs || (nprocs == 1 && strcmp(procs[0].nspace, proc->nspace) == 0
+    if (!procs || (nprocs == 1
+		    && PMIX_CHECK_NSPACE(procs[0].nspace, proc->nspace)
 		    && procs[0].rank == PMIX_RANK_WILDCARD)) {
 	mlog("the whole namespace\n");
     }
@@ -374,7 +375,7 @@ static pmix_status_t server_fencenb_cb(
 	    }
 
 	    /* i > 0 */
-	    if (strcmp(procs[i].nspace, procs[i-1].nspace) == 0) {
+	    if (PMIX_CHECK_NSPACE(procs[i].nspace, procs[i-1].nspace) == 0) {
 		mlog(",%s", rankstr);
 	    }
 	    else {
@@ -386,7 +387,7 @@ static pmix_status_t server_fencenb_cb(
 
     /* handle command directives */
     for (size_t i = 0; i < ninfo; i++) {
-	if (strcmp(info[i].key, PMIX_COLLECT_DATA) == 0) {
+	if (PMIX_CHECK_KEY(info+i, PMIX_COLLECT_DATA)) {
 	    mlog("%s: Found %s info [key '%s' value '%s']\n",
 		    __func__, info[i].key,
 		    (info[i].flags & PMIX_INFO_REQD) ? "required" : "optional",
