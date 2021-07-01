@@ -29,7 +29,8 @@ void PSCio_setFDblock(int fd, bool block)
 }
 
 ssize_t PSCio_sendFunc(int fd, void *buffer, size_t toSend, size_t *sent,
-		       const char *func, bool pedantic, bool indefinite)
+		       const char *func, bool pedantic, bool indefinite,
+		       bool silent)
 {
     static time_t lastLog = 0;
     int retries = 0;
@@ -43,7 +44,7 @@ ssize_t PSCio_sendFunc(int fd, void *buffer, size_t toSend, size_t *sent,
 	    int eno = errno;
 	    if (eno == EINTR || (eno == EAGAIN && pedantic)) continue;
 
-	    if (eno != EAGAIN) {
+	    if (eno != EAGAIN && !silent) {
 		time_t now = time(NULL);
 		if (lastLog != now) {
 		    PSC_warn(-1, eno, "%s(%s): write(%d)", __func__, func, fd);

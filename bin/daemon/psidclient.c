@@ -207,7 +207,7 @@ static ssize_t doSend(int fd, DDMsg_t *msg, size_t offset)
 {
     char *buf = (char *)msg;
     size_t sent;
-    ssize_t ret = PSCio_sendProg(fd, buf + offset, msg->len - offset, &sent);
+    ssize_t ret = PSCio_sendSProg(fd, buf + offset, msg->len - offset, &sent);
     if (ret < 0) {
 	int eno = errno;
 	if (eno == EAGAIN || eno == EINTR) {

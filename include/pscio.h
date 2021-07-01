@@ -56,6 +56,8 @@ void PSCio_setFDblock(int fd, bool block);
  * retries are made in the @a pedantic case. Otherwise the function will
  * attempt indefinitely to send the data.
  *
+ * If the @a silent flag is set, all log messages are suppressed.
+ *
  * @param fd File descriptor to write to
  *
  * @param buffer Buffer holding data to send
@@ -70,19 +72,26 @@ void PSCio_setFDblock(int fd, bool block);
  *
  * @param indefinite Flag to retry indefinitely
  *
+ * @param silent Flag to operate silently, i.e. suppress log messages
+ *
  * @return Return the number of bytes sent or -1 on error; in the
  * latter cases the number of bytes already sent is reported in @a sent
  */
 ssize_t PSCio_sendFunc(int fd, void *buffer, size_t toSend, size_t *sent,
-		       const char *func, bool pedantic, bool indefinite);
+		       const char *func, bool pedantic, bool indefinite,
+		       bool silent);
 
 /** Standard send with progress returned */
 #define PSCio_sendProg(fd, buffer, toSend, sent)			\
-    PSCio_sendFunc(fd, buffer, toSend, sent, __func__, false, false)
+    PSCio_sendFunc(fd, buffer, toSend, sent, __func__, false, false, false)
+
+/** Silent send with progress returned */
+#define PSCio_sendSProg(fd, buffer, toSend, sent)			\
+    PSCio_sendFunc(fd, buffer, toSend, sent, __func__, false, false, true)
 
 /** Pedantic send with progress returned */
 #define PSCio_sendPProg(fd, buffer, toSend, sent)			\
-    PSCio_sendFunc(fd, buffer, toSend, sent, __func__, true, false)
+    PSCio_sendFunc(fd, buffer, toSend, sent, __func__, true, false, false)
 
 
 /**
@@ -93,7 +102,8 @@ static inline ssize_t _PSCio_send(int fd, void *buffer, size_t toSend,
 				  bool infinite)
 {
     size_t sent;
-    return PSCio_sendFunc(fd, buffer, toSend, &sent, func, pedantic, infinite);
+    return PSCio_sendFunc(fd, buffer, toSend, &sent, func, pedantic, infinite,
+			  false /* don't be silent */);
 }
 
 /** Standard send */
@@ -128,6 +138,8 @@ static inline ssize_t _PSCio_send(int fd, void *buffer, size_t toSend,
  * care has to be taken if a file descriptor @a fd of type SOCK_DGRAM
  * is passed to this function.
  *
+ * If the @a silent flag is set, all log messages are suppressed.
+ *
  * @param fd File descriptor to receive from
  *
  * @param buffer Buffer to store data to
@@ -142,6 +154,8 @@ static inline ssize_t _PSCio_send(int fd, void *buffer, size_t toSend,
  * @param pedantic Flag to be pedantic
  *
  * @param indefinite Flag to retry indefinitely
+ *
+ * @param silent Flag to operate silently, i.e. suppress log messages
  *
  * @return Returns the number of bytes received, 0 if the file
  * descriptor closed or -1 on error; in the latter cases the number of
@@ -183,7 +197,7 @@ static inline ssize_t _PSCio_recvBuf(int fd, void *buffer, size_t toRecv,
 #define PSCio_recvBuf(fd, buffer, toRecv)		\
     _PSCio_recvBuf(fd, buffer, toRecv, __func__, false)
 
-/** Pedantic receive */
+/** Pedantic (and silent) receive */
 #define PSCio_recvBufP(fd, buffer, toRecv)		\
     _PSCio_recvBuf(fd, buffer, toRecv, __func__, true)
 
