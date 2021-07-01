@@ -717,6 +717,7 @@ static void setInterActiveStepEnv(Step_t *step)
 	if (!strncmp(*env, "PMI_", 4)) doUnset(*env);
 	if (!strncmp(*env, "MPI_", 4)) doUnset(*env);
 	if (!strncmp(*env, "OLDPWD", 6)) doUnset(*env);
+	if (!strncmp(*env, "PMIX_", 5)) doUnset(*env);
 	env++;
     }
 }
