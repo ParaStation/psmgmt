@@ -761,6 +761,12 @@ static void setupStepIO(Forwarder_Data_t *fwdata, Step_t *step)
 /* choose PMI layer, default is MPICH's Simple PMI */
 static pmi_type_t getPMIType(Step_t *step)
 {
+    /* for interactive steps, ignore pmi type and use none */
+    if (step->stepid == SLURM_INTERACTIVE_STEP) {
+	flog("interactive step detected, using PMI type 'none'\n");
+	return PMI_TYPE_NONE;
+    }
+
     /* PSSLURM_PMI_TYPE can be used to choose PMI environment to be set up */
     char *pmi = envGet(&step->env, "PSSLURM_PMI_TYPE");
     if (!pmi) {
