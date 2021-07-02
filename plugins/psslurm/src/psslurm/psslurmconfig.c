@@ -37,9 +37,6 @@ Config_t Config;
 /** The Slurm configuration list. */
 Config_t SlurmConfig;
 
-/** The Slurm GRes configuration list. */
-Config_t SlurmGresConfig;
-
 /** used to forward information to host visitor */
 typedef struct {
     int count;		/**< number of hosts parsed */
@@ -941,7 +938,6 @@ bool parseSlurmConfigFiles(uint32_t *hash)
     if (!verifySlurmConf()) return false;
 
     /* parse optional Slurm GRes config file */
-    INIT_LIST_HEAD(&SlurmGresConfig);
     gres = 1;
     confFile = getConfValueC(&Config, "SLURM_GRES_CONF");
     if (!confFile) {

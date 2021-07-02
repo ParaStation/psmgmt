@@ -28,9 +28,6 @@ extern Config_t Config;
 /** The Slurm configuration list. */
 extern Config_t SlurmConfig;
 
-/** The Slurm GRes configuration list. */
-extern Config_t SlurmGresConfig;
-
 /** Psslurm configuration options */
 extern const ConfDef_t confDef[];
 

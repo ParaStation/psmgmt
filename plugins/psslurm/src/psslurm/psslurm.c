@@ -840,7 +840,6 @@ void cleanup(void)
     clearMsgBuf();
     freeConfig(&Config);
     freeConfig(&SlurmConfig);
-    freeConfig(&SlurmGresConfig);
     freeEnvFilter();
 #ifdef HAVE_SPANK
     SpankFinalize();
