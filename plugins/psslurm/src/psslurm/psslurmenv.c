@@ -717,7 +717,7 @@ static void doUnset(char *env)
  *
  * @param step The step to set the environment for
  */
-static void setInterActiveStepEnv(Step_t *step)
+static void setInteractiveStepEnv(Step_t *step)
 {
     char **env = environ;
     while (*env) {
@@ -836,7 +836,7 @@ void setRankEnv(int32_t rank, Step_t *step)
     if (alloc) setPsslurmEnv(&alloc->env, NULL);
 
     if (step->stepid == SLURM_INTERACTIVE_STEP) {
-	return setInterActiveStepEnv(step);
+	return setInteractiveStepEnv(step);
     } else {
 	return setNormalStepEnv(step);
     }
