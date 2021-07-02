@@ -1055,5 +1055,29 @@ bool updateSlurmConf(uint32_t *configHash)
 	return false;
     }
 
+    /* parse optional Slurm GRes config file */
+    confFile = getConfValueC(&Config, "SLURM_GRES_CONF");
+    if (!confFile) {
+	flog("Configuration value SLURM_GRES_CONF not found\n");
+	return false;
+    }
+    struct stat sbuf;
+    if (stat(confFile, &sbuf) != -1) {
+	Config_t SlurmGresTmp;
+	if (parseConfigFile(confFile, &SlurmGresTmp, true /*trimQuotes*/) < 0) {
+	    flog("Parsing GRes configuration file %s failed\n", confFile);
+	    return false;
+	}
+
+	/* remove old GRes configuration and rebuild it */
+	clearGresConf();
+	int gres = 1;
+	if (traverseConfig(&SlurmGresTmp, parseSlurmConf, &gres)) {
+	    flog("Traversing GRes configuration failed\n");
+	    return false;
+	}
+	freeConfig(&SlurmGresTmp);
+    }
+
     return true;
 }
