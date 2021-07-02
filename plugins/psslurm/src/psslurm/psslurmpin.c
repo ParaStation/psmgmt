@@ -1594,6 +1594,12 @@ bool setStepSlots(Step_t *step)
 {
     pininfo_t pininfo;
 
+    /* on interactive steps, always deactivate pinning */
+    if (step->stepid == SLURM_INTERACTIVE_STEP) {
+	flog("interactive step detected, using CPU pinning style 'none'\n");
+	step->cpuBindType = CPU_BIND_NONE;
+    }
+
     /* generate slotlist */
     uint32_t slotsSize = step->np;
     PSpart_slot_t *slots = umalloc(slotsSize * sizeof(PSpart_slot_t));
