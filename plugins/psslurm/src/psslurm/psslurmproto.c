@@ -960,6 +960,9 @@ static void handleReconfigure(Slurm_Msg_t *sMsg)
     /* activate the new configuration */
     updateSlurmConf(&configHash);
 
+    /* send new configuration hash to slurmctld */
+    sendNodeRegStatus(false);
+
     /* protocol version SLURM_20_02 and above don't expect an answer */
     if (slurmProto <= SLURM_19_05_PROTO_VERSION) {
 	sendSlurmRC(sMsg, SLURM_SUCCESS);
@@ -1122,7 +1125,10 @@ static void handleConfig(Slurm_Msg_t *sMsg)
     /* activate the new configuration */
     updateSlurmConf(&configHash);
 
-    /* slurmctld does not expect an answer */
+    /* send new configuration hash to slurmctld */
+    sendNodeRegStatus(false);
+
+    /* slurmctld does not expect an answer for RPC */
 }
 
 static void handleRebootNodes(Slurm_Msg_t *sMsg)
