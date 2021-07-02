@@ -851,15 +851,43 @@ ERROR:
  */
 static bool verifySlurmConf()
 {
-    char *prologue = getConfValueC(&SlurmConfig, "PrologSlurmctld");
+    /* ensure mandatory prologue is configured */
+    char *prologue = getConfValueC(&SlurmConfig, "Prolog");
     if (!prologue || prologue[0] == '\0') {
-	flog("error: PrologSlurmctld is not set in slurm.conf. "
-	     "A working slurmctld prologue is mandatory for psslurm\n");
-	return false;
+
+	prologue = getConfValueC(&SlurmConfig, "PrologSlurmctld");
+	if (!prologue || prologue[0] == '\0') {
+	    flog("error: Neither Prolog nor PrologSlurmctld is set "
+		 "in slurm.conf. A prolog is mandatory for psslurm\n");
+	    return false;
+	}
+    } else {
+	/* ensure the prologue is run at job allocation */
+	char *prologFlags = getConfValueC(&SlurmConfig, "PrologFlags");
+	if (!prologFlags || prologFlags[0] == '\0') {
+	    flog("error: option PrologFlags has Alloc not set in slurm.conf\n");
+	    return false;
+	}
+	char *toksave, *next;
+	const char delimiters[] =" ,";
+	bool alloc = false;
+
+	next = strtok_r(prologFlags, delimiters, &toksave);
+	while (next) {
+	    if (!strcasecmp(next, "Alloc")) {
+		alloc = true;
+		break;
+	    }
+	    next = strtok_r(NULL, delimiters, &toksave);
+	}
+	if (!alloc) {
+	    flog("error: option PrologFlags has Alloc not set in slurm.conf\n");
+	    return false;
+	}
     }
 
     if (!getConfValueC(&Config, "SLURM_HOSTNAME")) {
-	mlog("%s: could not find my host addr in slurm.conf\n", __func__);
+	flog("could not find my host address in slurm.conf\n");
 	return false;
     }
 
