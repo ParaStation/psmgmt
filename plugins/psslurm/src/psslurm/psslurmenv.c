@@ -619,6 +619,13 @@ static void setGPUEnv(Gres_Cred_t *gres, uint32_t jobNodeId, Step_t *step,
 	/* always set our own variable */
 	char *value = getenv("SLURM_STEP_GPUS");
 	setenv("PSSLURM_BIND_GPUS", value ? value : "", 1);
+    /* if this is an interactive step, bind all assigned GPUs to it, too */
+    } else if (step->stepid == SLURM_INTERACTIVE_STEP) {
+	/* nothing to do, gpu_variables[*] should already be set that way */
+	flog("interactive step detected, using CPU pinning style 'none'\n");
+	/* always set our own variable */
+	char *value = getenv("SLURM_STEP_GPUS");
+	setenv("PSSLURM_BIND_GPUS", value ? value : "", 1);
     } else {
 	/* get assigned GPUs from GRES info */
 	PSCPU_set_t assGPUs;
