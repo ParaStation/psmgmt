@@ -2093,6 +2093,51 @@ PSjob_t* PSID_findJobByLoggerTID(PStask_ID_t loggerTID)
 }
 
 /**
+ * @brief Try to insert reservation to job's list of reservations
+ *
+ * Insert the reservation into the list of reservations managed for a job,
+ * which is sorted by reservation id.
+ *
+ * If the reservation already exists and is identically it is
+ * simply ignored, if it is not the same, it is ignored and a warning is logged.
+ *
+ * @param job   job to add the reservation to
+ * @param res   reservation to add
+ *
+ * @return Returns true if the reservation is added to the list, false if not
+ */
+static bool addReservationToJob(PSjob_t *job, PSresinfo_t *res)
+{
+    if (list_empty(&job->resInfos)) {
+	list_add(&res->next, &job->resInfos);
+	return true;
+    }
+
+    list_t *r;
+    list_for_each(r, &job->resInfos) {
+	PSresinfo_t *cur = list_entry(r, PSresinfo_t, next);
+	if (cur->resID > res->resID) {
+	    /* insert into list before current */
+	    list_add_tail(&res->next, r);
+	    return true;
+	}
+	if (cur->resID == res->resID) {
+	    if (cur->nEntries != res->nEntries) {
+		PSID_log(-1, "%s: Reservation %d for job with logger %s already"
+			" known but differs, this should never happen.\n",
+			__func__, res->resID, PSC_printTID(job->loggertid));
+	    }
+	    /* Note: Could also check all entries, but that may be overkill? */
+	    return false;
+	}
+    }
+
+    list_add_tail(&res->next, &job->resInfos);
+
+    return true;
+}
+
+/**
  * @brief Store reservation information
  *
  * Actually stores the reservation information described on the data
@@ -2176,8 +2221,15 @@ static void handleResCreated(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
 		 __func__, PSC_printTID(loggertid));
     }
 
-    /* add reservation to the corresponing job */
-    list_add(&res->next, &job->resInfos);
+    /* try to add reservation to job */
+    if (!addReservationToJob(job, res)) {
+	free(res->entries);
+	free(res);
+	return;
+    } else {
+	PSID_log(PSID_LOG_SPAWN, "%s: Reservation %d added to job with"
+		" loggertid %s\n", __func__, resID, PSC_printTID(loggertid));
+    }
 
     if (jobCreated) {
 	/* Give plugins the option to react on job creation */

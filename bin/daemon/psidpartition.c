@@ -2930,12 +2930,13 @@ static void handleResRequests(PStask_t *task);
 static PSrsrvtn_t *deqRes(list_t *queue, PSrsrvtn_t *res);
 
 /**
- * @brief Distribute reservation information to involved nodes
+ * @brief Distribute reservation information to nodes involved in partition
  *
  * Provide information on process distribution inside of a reservation to
- * all nodes that are part of that reservation. For this, one or more messages
- * of type PSP_DD_RESCREATED are emitted. The collection of messages will
- * contain the distribution information (which rank will run on which node).
+ * all nodes that are part of the partition the reservation is created in.
+ * For this, one or more messages of type PSP_DD_RESCREATED are emitted.
+ * The collection of messages will contain the distribution information
+ * (which rank will run on which node).
  *
  * @param res The reservation to distribute
  *
@@ -2943,19 +2944,17 @@ static PSrsrvtn_t *deqRes(list_t *queue, PSrsrvtn_t *res);
  */
 static bool send_RESCREATED(PStask_t *task, PSrsrvtn_t *res)
 {
-    PS_SendDB_t msg;
-    int i;
-
     if (res->nSlots < 1) {
 	PSID_log(-1, "%s: No slots in reservation %#x\n", __func__, res->rid);
 	return false;
     }
 
-    /* send message to each involved node */
+    /* send message to each node in the partition used */
+    PS_SendDB_t msg;
     initFragBuffer(&msg, PSP_DD_RESCREATED, -1);
-    for (i = 0; i < res->nSlots; i++) {
-	PSnodes_ID_t node = res->slots[i].node;
-	if (i > 0 && node == res->slots[i-1].node) continue; // don't send twice
+    for (uint32_t i = 0; i < task->partitionSize; i++) {
+	PSnodes_ID_t node = task->partition[i].node;
+	if (i > 0 && node == task->partition[i-1].node) continue; // don't send twice
 
 	if (setFragDestUniq(&msg, PSC_getTID(node, 0))) {
 	    PSID_log(PSID_LOG_PART, "%s: send PSP_DD_RESCREATED to node %d\n",
@@ -2968,7 +2967,7 @@ static bool send_RESCREATED(PStask_t *task, PSrsrvtn_t *res)
 
     /* compress information into message, optimized for pack nodes first */
     int32_t firstrank = res->firstRank;
-    for (i = 0; i < res->nSlots; i++) {
+    for (int i = 0; i < res->nSlots; i++) {
 	PSnodes_ID_t node = res->slots[i].node;
 
 	// wait for the last slot per node
