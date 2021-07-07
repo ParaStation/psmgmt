@@ -74,7 +74,7 @@ void __vectorAddCount(vector_t *vector, void *new, size_t count,
  * @brief Add entry to the end of the vector
  *
  * @param v     pointer to an initialized vector object
- * @param n     pointer to the new entrie to add (will be copied)
+ * @param n     pointer to the new entry to add (will be copied)
  */
 #define vectorAdd(v, n) __vectorAddCount(v, n, 1, __func__, __LINE__)
 
