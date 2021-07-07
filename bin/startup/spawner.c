@@ -431,6 +431,19 @@ static void setupCommonEnv(Conf_t *conf)
 
 	snprintf(tmp, sizeof(tmp), "%d", conf->execCount);
 	setPSIEnv("PMIX_APPCOUNT", tmp, 1);
+
+	char var[32];
+	for (int i = 0; i < conf->execCount; i++) {
+	    snprintf(var, sizeof(var), "PMIX_APPSIZE_%d", i);
+	    snprintf(tmp, sizeof(tmp), "%d", conf->exec[i].np);
+	    setPSIEnv(var, tmp, 1);
+	}
+
+	for (int i = 0; i < conf->execCount; i++) {
+	    snprintf(var, sizeof(var), "__PMIX_RESID_%d", i);
+	    snprintf(tmp, sizeof(tmp), "%d", conf->exec[i].resID);
+	    setPSIEnv(var, tmp, 1);
+	}
     }
 
     /* unset PSI_LOOP_NODES_FIRST in PSI env which is only needed for OpenMPI */
