@@ -2105,11 +2105,6 @@ PSjob_t* PSID_findJobByLoggerTID(PStask_ID_t loggerTID)
  */
 static bool addReservationToJob(PSjob_t *job, PSresinfo_t *res)
 {
-    if (list_empty(&job->resInfos)) {
-	list_add(&res->next, &job->resInfos);
-	return true;
-    }
-
     list_t *r;
     list_for_each(r, &job->resInfos) {
 	PSresinfo_t *cur = list_entry(r, PSresinfo_t, next);
