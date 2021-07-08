@@ -1,7 +1,8 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2017-2020 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2017-2021 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2021 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -148,11 +149,12 @@ int signalTasks(uint32_t jobid, uid_t uid, list_t *taskList, int signal,
 	    if (group > -1 && child->group != (PStask_group_t) group) continue;
 	    if (child->rank < 0 && signal != SIGKILL) continue;
 
-	    if (child->rank == task->childRank && child->forwarder &&
-		child->forwarder->tid == task->forwarderTID &&
-		child->uid == uid) {
-		mdbg(PSSLURM_LOG_PROCESS, "%s: rank %i kill(%i) signal %i "
-		     "group %i job %u \n", __func__, child->rank,
+	    if (child->forwarder
+		&& child->forwarder->tid == task->forwarderTID
+		&& child->uid == uid) {
+		mdbg(PSSLURM_LOG_PROCESS, "%s: rank %i/%i kill(%i) signal %i "
+		     "group %i job %u \n", __func__,
+		     task->childRank, child->rank,
 		     PSC_getPID(child->tid), signal, child->group, jobid);
 		PSID_kill(PSC_getPID(child->tid), signal, child->uid);
 		count++;
