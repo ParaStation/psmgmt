@@ -255,18 +255,23 @@ static const char* generateNamespaceName(PSrsrvtn_ID_t resID)
     return buf;
 }
 
-#if PRINT_PROCMAP
+/* helper for debuggin function printProcMap() */
 static char * printProcess(PspmixProcess_t *proc) {
     static char buffer[64];
 
-    sprintf(buffer, "(%u,%u,%u,%u,%hu,%hu)", proc->rank, proc->app->num,
-	    proc->grank, proc->arank, proc->lrank, proc->nrank);
+    sprintf(buffer, "(%u,%u,[%u:%u,%hu],%hu)", proc->grank, proc->rank,
+	    proc->app->num, proc->arank, proc->lrank, proc->nrank);
 
     return buffer;
 }
 
+/* debugging function to print process mapping */
 static void printProcMap(list_t *map)
 {
+    mlog("%s: Printing process mapping in format: (global session rank (psid"
+	    " rank), job/nspace rank, [app num: app rank, local app rank],"
+	    " node rank)\n", __func__);
+
     PspmixNode_t *node;
     list_t *n;
     list_for_each(n, map) {
@@ -280,7 +285,6 @@ static void printProcMap(list_t *map)
 	mlog("]\n");
     }
 }
-#endif
 
 static void freeProcMap(list_t *map)
 {
@@ -425,9 +429,7 @@ bool pspmix_service_registerNamespace(PStask_t *prototask, PSresinfo_t *resInfo)
 	}
     }
 
-#if PRINT_PROCMAP
-    printProcMap(&ns->procMap);
-#endif
+    if (mset(PSPMIX_LOG_PROCMAP)) printProcMap(&ns->procMap);
 
     /* register namespace */
     if (!pspmix_server_registerNamespace(ns->name, sessionId, ns->universeSize,

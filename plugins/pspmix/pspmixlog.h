@@ -60,6 +60,7 @@ typedef enum {
     PSPMIX_LOG_COMM    = 0x000004, /**< Log communication */
     PSPMIX_LOG_LOCK    = 0x000008, /**< Log service locking */
     PSPMIX_LOG_FENCE   = 0x000010, /**< Log fence stuff */
+    PSPMIX_LOG_PROCMAP = 0x000020, /**< Log process mappings */
     PSPMIX_LOG_VERBOSE = 0x000100, /**< Other verbose stuff */
 } PSPMIX_log_types_t;
 
