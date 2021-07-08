@@ -42,12 +42,12 @@ bool pspmix_service_init(PStask_ID_t loggerTID, uid_t uid, gid_t gid);
  * @brief Register a new namespace
  *
  * @param spawnTask  task prototype for the tasks to be spawned into the new ns
- * @param resInfo    information of the reservation the ns belongs to
+ * @param resInfos   complete list of all reservations belonging to the ns
+ *                   sorted by ID
  *
  * @return Returns true on success and false on errors
  */
-bool pspmix_service_registerNamespace(PStask_t *spawnTask,
-	PSresinfo_t *resInfo);
+bool pspmix_service_registerNamespace(PStask_t *spawnTask, list_t resInfo);
 
 /**
  * @brief Register the client and send its environment to its forwarder

@@ -43,7 +43,7 @@ typedef struct {
 
 /* Process information */
 typedef struct {
-    pmix_rank_t rank;        /**< rank in the job */
+    pmix_rank_t rank;        /**< rank in the job/namespace */
     pmix_rank_t grank;       /**< global rank in the session (== psid rank) */
     pmix_rank_t arank;       /**< rank in the application */
     PspmixApp_t *app;        /**< application this process belongs to */
@@ -64,7 +64,7 @@ typedef struct {
 typedef struct {
     list_t next;
     char name[MAX_NSLEN+1];     /**< space for the name of the namespace ;) */
-    PSresinfo_t *resInfo;       /**< the reservation matching the namespace */
+    list_t resInfos;            /**< the reservations matching the namespace */
     uint32_t universeSize;      /**< size of the MPI universe (from mpiexec) */
     uint32_t jobSize;           /**< size of the job (from mpiexec) */
     bool spawned;               /**< flag if result of an MPI_Spawn call */

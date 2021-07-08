@@ -326,14 +326,6 @@ static int hookRecvSpawnReq(void *data)
 	     PSC_printTID(prototask->loggertid));
     }
 
-    if (job->resInfos.next->next != &job->resInfos) {
-	// more than one reservation
-	//TODO implement respawn
-	mlog("%s: SORRY: Respawning tasks not yet implemented in pspmix.\n",
-		__func__);
-	return -1;
-    }
-
     /* is there already a PMIx jobserver running for this job? */
     PspmixJobserver_t *server;
     server = findJobserver(job->loggertid);

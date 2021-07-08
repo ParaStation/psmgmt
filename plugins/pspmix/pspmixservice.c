@@ -242,15 +242,13 @@ bool pspmix_service_init(PStask_ID_t loggerTID, uid_t uid, gid_t gid)
 /**
  * @brief Generate namespace name
  *
- * @param resID      reservation id of the task the client is part of
- *
  * @return Returns buffer containing the generated name
  */
-static const char* generateNamespaceName(PSrsrvtn_ID_t resID)
+static const char* generateNamespaceName()
 {
     static char buf[MAX_NSLEN];
 
-    snprintf(buf, MAX_NSLEN, "pspmix_%s_%d", PSC_printTID(loggertid), resID);
+    snprintf(buf, MAX_NSLEN, "pspmix_%s", PSC_printTID(loggertid));
 
     return buf;
 }
@@ -302,20 +300,14 @@ static void freeProcMap(list_t *map)
  * @brief Register a new namespace
  *
  * @param prototask  task prototype for the tasks to be spawned into the new ns
- * @param resInfo    information of the reservation the ns belongs to
+ * @param resInfos   complete list of all reservations belonging to the ns
+ *                   sorted by ID
  *
  * @return Returns true on success and false on errors
  */
-bool pspmix_service_registerNamespace(PStask_t *prototask, PSresinfo_t *resInfo)
+bool pspmix_service_registerNamespace(PStask_t *prototask, list_t resInfos)
 {
-    mdbg(PSPMIX_LOG_CALL, "%s() called with reservation %d\n", __func__,
-	    resInfo->resID);
-
-    if (resInfo->nEntries < 1) {
-	mlog("%s: Bad parameter: empty reservation %d\n", __func__,
-	     resInfo->resID);
-	return false;
-    }
+    mdbg(PSPMIX_LOG_CALL, "%s() called.\n", __func__);
 
     /* session id is not really used for now, could be set to slurm job id */
     uint32_t sessionId = 0;
@@ -326,9 +318,9 @@ bool pspmix_service_registerNamespace(PStask_t *prototask, PSresinfo_t *resInfo)
     INIT_LIST_HEAD(&ns->procMap); /* now we can safely call freeProcMap() */
 
     /* generate my namespace name */
-    strcpy(ns->name, generateNamespaceName(resInfo->resID));
+    strcpy(ns->name, generateNamespaceName());
 
-    ns->resInfo = resInfo;
+    ns->resInfos = resInfos;
 
     /* get information from spawner set environment */
     env_t e = { prototask->environ, prototask->envSize, prototask->envSize };
@@ -367,13 +359,17 @@ bool pspmix_service_registerNamespace(PStask_t *prototask, PSresinfo_t *resInfo)
     uint32_t procCount = 0;
     for(size_t i = 0; i < ns->appsCount; i++) {
 
-	/* set the application number from environment set by the spawner */
-	env = envGet(&e, "PMI_APPNUM");
-	ns->apps[i].num = env ? atoi(env) : 0;
+	ns->apps[i].num = i;
 
 	/* set the application size from environment set by the spawner */
-	env = envGet(&e, "PMIX_APPSIZE");
-	ns->apps[i].size = env ? atoi(env) : 1;
+	char var[32];
+	snprintf(var, sizeof(var), "PMIX_APPSIZE_%zu", i);
+	env = envGet(&e, var);
+	if (!env) {
+	    mlog("%s: broken environment: '%s' missing\n", __func__, var);
+	    goto nscreate_error;
+	}
+	ns->apps[i].size = atoi(env);
 
 	/* set first job rank of the application to counted value */
 	ns->apps[i].firstRank = procCount;
@@ -398,29 +394,54 @@ bool pspmix_service_registerNamespace(PStask_t *prototask, PSresinfo_t *resInfo)
 	ns->nodelist_s = "";
     }
 
-    PspmixNode_t *node;
-    for (size_t i = 0; i < resInfo->nEntries; i++) {
-	PSresinfoentry_t *entry = &resInfo->entries[i];
-	node = findNodeInList(entry->node, &ns->procMap);
-	PspmixProcess_t proc;
-	if (node == NULL) {
-	    node = umalloc(sizeof(*node));
-	    node->id = entry->node;
-	    vectorInit(&node->procs, 10, 10, PspmixProcess_t);
-	    list_add_tail(&node->next, &ns->procMap);
+    /* add process information and mapping to namespace */
+    for(size_t app = 0; app < ns->appsCount; app++) {
+
+	/* get used reservation from environment set by the spawner */
+	char var[32];
+	snprintf(var, sizeof(var), "__PMIX_RESID_%zu", app);
+	env = envGet(&e, var);
+	if (!env) {
+	    mlog("%s: broken environment: '%s' missing\n", __func__, var);
+	    goto nscreate_error;
 	}
-	for(int32_t rank = entry->firstrank; rank <= entry->lastrank; rank++) {
-	    proc.rank = rank;
-	    proc.app = ns->apps + 0; /* XXX change for colon support */
-	    proc.grank = rank; /* XXX change for spawn support */
-	    proc.arank = rank; /* XXX change for colon support */
-	    vectorAdd(&node->procs, &proc);
+	PSrsrvtn_ID_t resID = atoi(env);
+
+	PSresinfo_t *resInfo = findReservationInList(resID, &resInfos);
+	if (!resInfo) {
+	    mlog("%s: reservation %d for app %zu not found.\n", __func__, resID,
+		    app);
+	    goto nscreate_error;
+	}
+
+	pmix_rank_t apprank = 0;
+	for (size_t i = 0; i < resInfo->nEntries; i++) {
+	    PSresinfoentry_t *entry = &resInfo->entries[i];
+	    PspmixNode_t *node = findNodeInList(entry->node, &ns->procMap);
+	    if (node == NULL) {
+		/* add new node to process map */
+		node = umalloc(sizeof(*node));
+		node->id = entry->node;
+		vectorInit(&node->procs, 10, 10, PspmixProcess_t);
+		list_add_tail(&node->next, &ns->procMap);
+	    }
+	    for(int32_t rank = entry->firstrank;
+		    rank <= entry->lastrank; rank++) {
+		/* fill process information */
+		PspmixProcess_t proc;
+		proc.rank = rank;
+		proc.app = ns->apps + app;
+		proc.grank = rank; /* XXX change for spawn support */
+		proc.arank = apprank++;
+		vectorAdd(&node->procs, &proc);
+	    }
 	}
     }
 
+    /* add node specific ranks to process information */
     list_t *n;
     list_for_each(n, &ns->procMap) {
-	node = list_entry(n, PspmixNode_t, next);
+	PspmixNode_t *node = list_entry(n, PspmixNode_t, next);
 	for(pmix_rank_t rank = 0; rank < node->procs.len; rank++) {
 	    PspmixProcess_t *proc;
 	    proc = vectorGet(&node->procs, rank, PspmixProcess_t);
@@ -470,26 +491,31 @@ nscreate_error:
  * @brief Get the node containing a specific rank in a given reservation
  *
  * @param rank     rank in reservation
- * @param resInfo  reservation info
+ * @param ns       namespace
  *
- * @return Returns node id or -1 if reservation not found and -2 if rank not
+ * @return Returns node id or -1 if no reservation found and -2 if rank not
  *         found.
  */
-static PSnodes_ID_t getNodeFromRank(int32_t rank, PSresinfo_t *resInfo)
+static PSnodes_ID_t getNodeFromRank(int32_t rank, PspmixNamespace_t *ns)
 {
 
     //TODO: translate namespace rank to parastation rank ?!?
 
-    uint32_t i;
-    for (i = 0; i < resInfo->nEntries; i++) {
-	PSresinfoentry_t *entry = &resInfo->entries[i];
-	if (rank >= entry->firstrank && rank <= entry->lastrank) {
-	    return entry->node;
+    if (list_empty(&ns->resInfos)) return -1;
+
+    list_t *r;
+    list_for_each(r, &ns->resInfos) {
+	PSresinfo_t *resInfo = list_entry(r, PSresinfo_t, next);
+	for (uint32_t i = 0; i < resInfo->nEntries; i++) {
+	    PSresinfoentry_t *entry = &resInfo->entries[i];
+	    if (rank >= entry->firstrank && rank <= entry->lastrank) {
+		return entry->node;
+	    }
 	}
     }
 
-    mlog("%s: Rank %d not found in reservation with ID %d.\n", __func__, rank,
-	 resInfo->resID);
+    mlog("%s: Rank %d not found in any reservation of namespace '%s'.\n",
+	    __func__, rank, ns->name);
     return -2;
 
 }
@@ -573,8 +599,16 @@ bool pspmix_service_registerClientAndSendEnv(PspmixClient_t *client,
     snprintf(tmp, 256, "OMPI_UNIVERSE_SIZE=%u", client->nspace->universeSize);
     envp[count++] = strdup(tmp);
 
-    PSresinfo_t *resInfo = client->nspace->resInfo;
-    PSnodes_ID_t nodeId = getNodeFromRank(client->rank, resInfo);
+    PSresinfo_t *resInfo = findReservationInList(client->resID,
+	    &client->nspace->resInfos);
+    if (!resInfo) {
+	mlog("%s(r%d): Client's reservation %d not found in client's namespace"
+		" %s\n", __func__, client->rank, client->resID,
+		client->nspace->name);
+	return false;
+
+    }
+    PSnodes_ID_t nodeId = getNodeFromRank(client->rank, ns);
     bool found = false;
     int lrank = -1;
     int lsize = 0;
@@ -884,7 +918,7 @@ int pspmix_service_fenceIn(const pmix_proc_t procs[], size_t nprocs,
 	}
 
 	PSnodes_ID_t nodeid;
-	nodeid = getNodeFromRank(procs[i].rank, ns->resInfo);
+	nodeid = getNodeFromRank(procs[i].rank, ns);
 	if (nodeid < 0) {
 	    mlog("%s: Failed to get node for rank %d in namespace '%s'.\n",
 		    __func__, procs[i].rank, procs[i].nspace);
@@ -1156,10 +1190,10 @@ bool pspmix_service_sendModexDataRequest(modexdata_t *mdata)
     }
 
     PSnodes_ID_t nodeid;
-    nodeid = getNodeFromRank(mdata->proc.rank, ns->resInfo);
+    nodeid = getNodeFromRank(mdata->proc.rank, ns);
     if (nodeid < 0) {
-	mlog("%s: UNEXPECTED: getNodeFromRank(%d, %d) failed.\n", __func__,
-		mdata->proc.rank, ns->resInfo->resID);
+	mlog("%s: UNEXPECTED: getNodeFromRank(%d, %s) failed.\n", __func__,
+		mdata->proc.rank, ns->name);
 	RELEASE_LOCK(namespaceList);
 	return false;
     }

@@ -45,6 +45,12 @@ static PSresinfo_t* findReservation(PSrsrvtn_ID_t resID)
 
 /**
  * @brief Function called to initialize the plugin forwarder
+ *
+ * This function assumes, that all reservation notifications for one job
+ * (in PMIx meaning) have been received before the first spawn request for this
+ * job. This is needed to create the complete namespace.
+ *
+ * @param fwdata  the forwarders user data containing the server struct
  */
 int pspmix_jobserver_initialize(Forwarder_Data_t *fwdata)
 {
@@ -70,13 +76,21 @@ int pspmix_jobserver_initialize(Forwarder_Data_t *fwdata)
 	return -1;
     }
 
-    mdbg(PSPMIX_LOG_VERBOSE, "%s: Initial reservation: resID %d nEntries %u"
-	    " entries [", __func__, resInfo->resID, resInfo->nEntries);
-    for (unsigned int i = 0; i < resInfo->nEntries; i++) {
-	mdbg(PSPMIX_LOG_VERBOSE, "(%hd:%d-%d)", resInfo->entries[i].node,
-		resInfo->entries[i].firstrank, resInfo->entries[i].lastrank);
+
+    if (mset(PSPMIX_LOG_VERBOSE)) {
+	list_t *r;
+	list_for_each(r, &server->resInfos) {
+	    PSresinfo_t *res = list_entry(r, PSresinfo_t, next);
+	    mlog("%s: Reservation: resID %d nEntries %u entries [",
+		    __func__, res->resID, res->nEntries);
+	    for (unsigned int i = 0; i < res->nEntries; i++) {
+		mlog("(%hd:%d-%d)", res->entries[i].node,
+			res->entries[i].firstrank,
+			res->entries[i].lastrank);
+	    }
+	    mlog("]\n");
+	}
     }
-    mdbg(PSPMIX_LOG_VERBOSE, "]\n");
 
     /* initialize service modules */
     if (!pspmix_service_init(prototask->loggertid, prototask->uid,
@@ -86,7 +100,7 @@ int pspmix_jobserver_initialize(Forwarder_Data_t *fwdata)
     }
 
     /* register initial namespace */
-    if (!pspmix_service_registerNamespace(prototask, resInfo)) {
+    if (!pspmix_service_registerNamespace(prototask, server->resInfos)) {
 	mlog("%s: Failed to register initial namespace\n", __func__);
 	return -1;
     }
