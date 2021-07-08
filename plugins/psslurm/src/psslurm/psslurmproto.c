@@ -648,8 +648,8 @@ static int doSignalTasks(Req_Signal_Tasks_t *req)
 	signalStepsByJobid(req->jobid, req->signal, req->uid);
     } else if (req->flags & KILL_STEPS_ONLY) {
 	/* send signal to all steps excluding the jobscript */
-	mlog("%s: send steps %u signal %u\n", __func__,
-	     req->jobid, req->signal);
+	flog("send steps %u:%u (stepHetComp %u) signal %u\n",
+	     req->jobid, req->stepid, req->stepHetComp, req->signal);
 	signalStepsByJobid(req->jobid, req->signal, req->uid);
     } else {
 	if (req->stepid == SLURM_BATCH_SCRIPT) {
@@ -657,8 +657,8 @@ static int doSignalTasks(Req_Signal_Tasks_t *req)
 	    return signalJobscript(req->jobid, req->signal, req->uid);
 	} else {
 	    /* signal a single step */
-	    flog("sending step %u:%u signal %u\n", req->jobid,
-		 req->stepid, req->signal);
+	    flog("send step %u:%u (stepHetComp %u) signal %u\n",
+		 req->jobid, req->stepid, req->stepHetComp, req->signal);
 	    Step_t *step = findStepByStepId(req->jobid, req->stepid);
 	    if (step) return signalStep(step, req->signal, req->uid);
 	}
