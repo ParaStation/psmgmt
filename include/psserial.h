@@ -487,7 +487,7 @@ bool getFromBuf(char **ptr, void *val, PS_DataType_t type,
  * If @a data is NULL and @a dataSize is 0, a buffer is dynamically
  * allocated. It will be big enough to hold all the data-items
  * announced in the length item within the memory region addressed by
- * @a ptr. A pointer to the buffer is returned. The caller has to
+ * @a ptr. A pointer to this buffer is returned. The caller has to
  * ensure that this buffer is released if it is no longer needed.
  *
  * If reading is successful, @a ptr will be updated to point behind
@@ -526,15 +526,11 @@ void *getMemFromBuf(char **ptr, char *data, size_t dataSize, size_t *len,
 #define getString(ptr, buf, buflen)					\
     getMemFromBuf(ptr, buf, buflen, NULL, PSDATA_STRING, __func__, __LINE__)
 
-#define getEnviron(ptr, envsize, environ)                               \
-    do {                                                                \
-	char buf[1024];                                                 \
-	getUint32(ptr, &envsize);                                       \
-	environ = umalloc(envsize * sizeof(*environ));                  \
-	for (uint32_t i = 0; i < envsize; i++) {                        \
-	    getString(ptr, buf, sizeof(buf));                           \
-	    (environ)[i] = ustrdup(buf);                                \
-	}                                                               \
+#define getEnviron(ptr, envsize, env)					\
+    do {								\
+	getUint32(ptr, &envsize);					\
+	env = umalloc(envsize * sizeof(*env));				\
+	for (uint32_t i = 0; i < envsize; i++) (env)[i] = getStringM(ptr); \
     } while(0)
 
 /**
