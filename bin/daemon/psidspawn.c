@@ -2095,11 +2095,8 @@ PSjob_t* PSID_findJobByLoggerTID(PStask_ID_t loggerTID)
 /**
  * @brief Try to insert reservation to job's list of reservations
  *
- * Insert the reservation into the list of reservations managed for a job,
- * which is sorted by reservation id.
- *
- * If the reservation already exists and is identically it is
- * simply ignored, if it is not the same, it is ignored and a warning is logged.
+ * If the reservation already exists and is identical it is simply ignored,
+ * if it is not the same, it is ignored and a warning is logged.
  *
  * @param job   job to add the reservation to
  * @param res   reservation to add
@@ -2116,11 +2113,6 @@ static bool addReservationToJob(PSjob_t *job, PSresinfo_t *res)
     list_t *r;
     list_for_each(r, &job->resInfos) {
 	PSresinfo_t *cur = list_entry(r, PSresinfo_t, next);
-	if (cur->resID > res->resID) {
-	    /* insert into list before current */
-	    list_add_tail(&res->next, r);
-	    return true;
-	}
 	if (cur->resID == res->resID) {
 	    if (cur->nEntries != res->nEntries) {
 		PSID_log(-1, "%s: Reservation %d for job with logger %s already"
