@@ -135,14 +135,6 @@ static PspmixNamespace_t* findNamespace(const char *nsname)
     return NULL;
 }
 
-/* generates findNodeInList(PSnodes_ID_t id, list_t *list) */
-FIND_IN_LIST_FUNC(Node, PspmixNode_t, PSnodes_ID_t, id)
-
-#if 0
-/* generates findClientInList(PSpmixClient_t id, list_t *list) */
-FIND_IN_LIST_FUNC(Client, PspmixClient_t, pmix_rank_t, rank)
-#endif
-
 /**
  * @brief Find first matching fence in fence list
  *

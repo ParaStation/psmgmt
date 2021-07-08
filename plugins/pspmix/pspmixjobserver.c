@@ -40,15 +40,7 @@ static PSresinfo_t* findReservation(PSrsrvtn_ID_t resID)
 {
     if (!server) return NULL;
 
-    PSresinfo_t *res;
-    list_t *r;
-    list_for_each(r, &server->resInfos) {
-	res = list_entry(r, PSresinfo_t, next);
-	if (res->resID == resID) {
-	    return res;
-	}
-    }
-    return NULL;
+    return findReservationInList(resID, &server->resInfos);
 }
 
 /**

@@ -13,7 +13,7 @@
 
 #include <pmix_common.h>
 
-#include "list_t.h"
+#include "list.h"
 #include "pluginvector.h"
 #include "pluginforwarder.h"
 #include "psidspawn.h"  /* for PSresinfo_t */
@@ -112,7 +112,8 @@ typedef struct {
 } SpawnRequest_t;
 
 #define FIND_IN_LIST_FUNC(name, objtype, keytype, key) \
-static objtype* find ## name ## InList(keytype key, list_t *list) { \
+static inline objtype* find ## name ## InList(keytype key, list_t *list) { \
+    if (!list || list_empty(list)) return NULL; \
     objtype *obj; \
     list_t *x; \
     list_for_each(x, list) { \
@@ -123,6 +124,18 @@ static objtype* find ## name ## InList(keytype key, list_t *list) { \
     } \
     return NULL; \
 }
+
+/* generates findNodeInList(PSnodes_ID_t id, list_t *list) */
+FIND_IN_LIST_FUNC(Node, PspmixNode_t, PSnodes_ID_t, id)
+
+/* generates findReservationInList(PSrsrvtn_ID_t resID, list_t *list) */
+FIND_IN_LIST_FUNC(Reservation, PSresinfo_t, PSrsrvtn_ID_t, resID)
+
+#if 0
+/* generates findClientInList(PSpmixClient_t id, list_t *list) */
+FIND_IN_LIST_FUNC(Client, PspmixClient_t, pmix_rank_t, rank)
+#endif
+
 
 /**
  * Prepare task structure for actual spawn

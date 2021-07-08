@@ -60,9 +60,6 @@ typedef struct {
 /** Setting up data for callback routines */
 #define DESTROY_CBDATA(d) PMIX_INFO_FREE((d).info, (d).ninfo)
 
-/* generates findNodeInList(PSnodes_ID_t id, list_t *list) */
-FIND_IN_LIST_FUNC(Node, PspmixNode_t, PSnodes_ID_t, id)
-
 #if 0
 /* Create a string representation of a typed pmix value */
 static const char * encodeValue(const pmix_value_t *val, pmix_rank_t rank)
