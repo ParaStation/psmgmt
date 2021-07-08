@@ -2,6 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2014-2021 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2021 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -39,20 +40,6 @@ void releaseDelayedSpawns(uint32_t jobid, uint32_t stepid);
  * @param  stepid  StepID
  */
 void cleanupDelayedSpawns(uint32_t jobid, uint32_t stepid);
-
-/**
- * @brief Send a signal tasks request
- *
- * Send a request to signal all tasks of a chosen step. The request is usually
- * send from the mother superior to all sister nodes of the step.
- *
- * @param step The step to send the signal for
- *
- * @param signal The signal to send
- *
- * @param group The PS task group to signal
- */
-void send_PS_SignalTasks(Step_t *step, uint32_t signal, PStask_group_t group);
 
 /**
  * @brief Send a job exit message

@@ -2,6 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2017-2021 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2021 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -263,19 +264,15 @@ int signalStep(Step_t *step, int signal, uid_t reqUID)
 
     bool fatalSig = signal == SIGTERM || signal == SIGKILL;
     PStask_group_t group = fatalSig ? -1 : TG_ANY;
-
-    /* if we are not the mother superior we just signal all our local tasks */
-    if (!step->leader) {
-	int ret = signalTasks(step->jobid, step->uid, &step->tasks,
-			      signal, group);
-	if (signal == SIGKILL && step->fwdata) shutdownForwarder(step->fwdata);
-	return ret;
-    }
-
-    if (fatalSig && step->fwdata) startGraceTime(step->fwdata);
-
     int ret = signalTasks(step->jobid, step->uid, &step->tasks, signal, group);
-    send_PS_SignalTasks(step, signal, group);
+
+    if (fatalSig && step->fwdata) {
+	if (step->leader) {
+	    startGraceTime(step->fwdata);
+	} else {
+	    shutdownForwarder(step->fwdata);
+	}
+    }
 
     return ret;
 }

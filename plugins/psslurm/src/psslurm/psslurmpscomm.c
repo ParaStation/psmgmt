@@ -90,8 +90,7 @@ typedef struct {
 static LIST_HEAD(msgCache);
 
 typedef enum {
-    PSP_SIGNAL_TASKS = 17,  /**< request to signal all tasks of a step */
-    PSP_JOB_EXIT,
+    PSP_JOB_EXIT = 18,      /**< @doctodo */
     PSP_JOB_LAUNCH,	    /**< inform sister nodes about a new job */
     PSP_JOB_STATE_REQ,	    /**< defunct, tbr */
     PSP_JOB_STATE_RES,	    /**< defunct, tbr */
@@ -140,8 +139,6 @@ static const char *msg2Str(PSP_PSSLURM_t type)
     static char buf[64];
 
     switch(type) {
-	case PSP_SIGNAL_TASKS:
-	    return "PSP_SIGNAL_TASKS";
 	case PSP_JOB_EXIT:
 	    return "PSP_JOB_EXIT";
 	case PSP_JOB_LAUNCH:
@@ -908,51 +905,6 @@ void send_PS_JobExit(uint32_t jobid, uint32_t stepid, uint32_t numDest,
     }
 }
 
-void send_PS_SignalTasks(Step_t *step, uint32_t signal, PStask_group_t group)
-{
-    DDTypedBufferMsg_t msg = {
-	.header = {
-	    .type = PSP_PLUG_PSSLURM,
-	    .sender = PSC_getMyTID(),
-	    .len = offsetof(DDTypedBufferMsg_t, buf) },
-	.type = PSP_SIGNAL_TASKS,
-	.buf = {'\0'} };
-    PSnodes_ID_t myID = PSC_getMyID();
-    uint32_t jobID = step->jobid, stepID = step->stepid, grp = group;
-    uint32_t packID = step->packJobid;
-
-    PSP_putTypedMsgBuf(&msg, "jobID", &jobID, sizeof(jobID));
-    PSP_putTypedMsgBuf(&msg, "stepID", &stepID, sizeof(stepID));
-    PSP_putTypedMsgBuf(&msg, "group", &grp, sizeof(grp));
-    PSP_putTypedMsgBuf(&msg, "signal", &signal, sizeof(signal));
-    PSP_putTypedMsgBuf(&msg, "packID", &packID, sizeof(packID));
-
-    /* send the messages */
-    if (step->packNrOfNodes != NO_VAL) {
-	uint32_t n;
-	for (n = 0; n < step->packNrOfNodes; n++) {
-	    if (step->packNodes[n] == myID) continue;
-
-	    msg.header.dest = PSC_getTID(step->packNodes[n], 0);
-	    if (sendMsg(&msg) == -1 && errno != EWOULDBLOCK) {
-		mwarn(errno, "%s: sending msg to %s failed ", __func__,
-		      PSC_printTID(msg.header.dest));
-	    }
-	}
-    } else {
-	uint32_t n;
-	for (n = 0; n < step->nrOfNodes; n++) {
-	    if (step->nodes[n] == myID) continue;
-
-	    msg.header.dest = PSC_getTID(step->nodes[n], 0);
-	    if (sendMsg(&msg) == -1 && errno != EWOULDBLOCK) {
-		mwarn(errno, "%s: sending msg to %s failed ", __func__,
-		      PSC_printTID(msg.header.dest));
-	    }
-	}
-    }
-}
-
 void send_PS_EpilogueLaunch(Alloc_t *alloc)
 {
     DDTypedBufferMsg_t msg = {
@@ -1476,47 +1428,6 @@ static void handlePackInfo(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
     }
 }
 
-/**
- * @brief Handle a signal tasks request
- *
- * Handle a request to signal all tasks of a chosen step. The request is usually
- * send from the mother superior to all sister nodes of the step.
- *
- * @param msg The message to handle
- */
-static void handleSignalTasks(DDTypedBufferMsg_t *msg)
-{
-    uint32_t jobid, stepid, group, sig, packID;
-    size_t used = 0;
-
-    PSP_getTypedMsgBuf(msg, &used, "jobID", &jobid, sizeof(jobid));
-    PSP_getTypedMsgBuf(msg, &used, "stepID", &stepid, sizeof(stepid));
-    PSP_getTypedMsgBuf(msg, &used, "group", &group, sizeof(group));
-    PSP_getTypedMsgBuf(msg, &used, "signal", &sig, sizeof(sig));
-    PSP_getTypedMsgBuf(msg, &used, "packID", &packID, sizeof(packID));
-
-    Step_t *step = findStepByStepId(jobid, stepid);
-    if (!step) {
-	if (packID != NO_VAL) step = findStepByStepId(packID, stepid);
-	if (!step) {
-	    Step_t s = {
-		.jobid = jobid,
-		.stepid = stepid };
-	    flog("%s pack %u to signal not found\n", strStepID(&s), packID);
-	  return;
-	}
-    }
-
-    /* shutdown (I/O) forwarder */
-    if (sig == SIGTERM || sig == SIGKILL) {
-	if (step->fwdata) shutdownForwarder(step->fwdata);
-    }
-
-    /* signal tasks */
-    flog("%s signal %u group %i\n", strStepID(step), sig, group);
-    signalTasks(step->jobid, step->uid, &step->tasks, sig, group);
-}
-
 int forwardSlurmMsg(Slurm_Msg_t *sMsg, uint32_t nrOfNodes, PSnodes_ID_t *nodes)
 {
     PS_SendDB_t msg;
@@ -1706,9 +1617,6 @@ static void handlePsslurmMsg(DDTypedBufferMsg_t *msg)
 	 msg2Str(msg->type), msg->type, sender, dest);
 
     switch (msg->type) {
-	case PSP_SIGNAL_TASKS:
-	    handleSignalTasks(msg);
-	    break;
 	case PSP_JOB_EXIT:
 	    handle_JobExit(msg);
 	    break;
@@ -1933,7 +1841,6 @@ static void handleDroppedMsg(DDTypedBufferMsg_t *msg)
     case PSP_JOB_LAUNCH:
     case PSP_JOB_EXIT:
     case PSP_JOB_STATE_RES:
-    case PSP_SIGNAL_TASKS:
     case PSP_ALLOC_LAUNCH:
     case PSP_ALLOC_STATE:
     case PSP_EPILOGUE_RES:

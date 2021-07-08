@@ -652,21 +652,19 @@ static int doSignalTasks(Req_Signal_Tasks_t *req)
 	     req->jobid, req->signal);
 	signalStepsByJobid(req->jobid, req->signal, req->uid);
     } else {
-	int ret = 0;
-
 	if (req->stepid == SLURM_BATCH_SCRIPT) {
 	    /* signal jobscript only, not all corresponding steps */
-	    ret = signalJobscript(req->jobid, req->signal, req->uid);
+	    return signalJobscript(req->jobid, req->signal, req->uid);
 	} else {
 	    /* signal a single step */
 	    flog("sending step %u:%u signal %u\n", req->jobid,
 		 req->stepid, req->signal);
 	    Step_t *step = findStepByStepId(req->jobid, req->stepid);
-	    if (step) ret = signalStep(step, req->signal, req->uid);
+	    if (step) return signalStep(step, req->signal, req->uid);
 	}
 
 	/* we only return an error if we signal a specific jobscript/step */
-	return ret;
+	return 0;
     }
 
     return 1;
