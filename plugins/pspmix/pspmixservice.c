@@ -2,6 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2018-2021 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2021 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -313,12 +314,11 @@ bool pspmix_service_registerNamespace(PStask_t *prototask, list_t resInfos)
     uint32_t sessionId = 0;
 
     /* create and initialize namespace object */
-    PspmixNamespace_t *ns;
-    ns = ucalloc(sizeof(*ns));
+    PspmixNamespace_t *ns = ucalloc(sizeof(*ns));
     INIT_LIST_HEAD(&ns->procMap); /* now we can safely call freeProcMap() */
 
     /* generate my namespace name */
-    strcpy(ns->name, generateNamespaceName());
+    strncpy(ns->name, generateNamespaceName(), sizeof(ns->name));
 
     ns->resInfos = resInfos;
 
@@ -535,14 +535,12 @@ bool pspmix_service_registerClientAndSendEnv(PspmixClient_t *client,
 	    __func__, client->rank, client->resID);
 
     /* get namespace name */
-    const char* nsname;
-    nsname = generateNamespaceName(client->resID);
+    const char *nsname = generateNamespaceName(client->resID);
 
     GET_LOCK(namespaceList);
 
     /* find namespace in list */
-    PspmixNamespace_t *ns;
-    ns = findNamespace(nsname);
+    PspmixNamespace_t *ns = findNamespace(nsname);
 
     if (ns == NULL) {
 	mlog("%s: namespace '%s' not found\n", __func__, nsname);
