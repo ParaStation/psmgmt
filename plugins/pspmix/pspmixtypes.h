@@ -2,6 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2018-2020 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2021 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -111,19 +112,16 @@ typedef struct {
     KVP_t *pmienvv;        /**< array of pmi environment variables */
 } SpawnRequest_t;
 
-#define FIND_IN_LIST_FUNC(name, objtype, keytype, key) \
-static inline objtype* find ## name ## InList(keytype key, list_t *list) { \
-    if (!list || list_empty(list)) return NULL; \
-    objtype *obj; \
-    list_t *x; \
-    list_for_each(x, list) { \
-	obj = list_entry(x, objtype, next); \
-	if (obj->key == key) { \
-	    return obj; \
-	} \
-    } \
-    return NULL; \
-}
+#define FIND_IN_LIST_FUNC(name, objtype, keytype, key)			\
+    static inline objtype* find ## name ## InList(keytype key, list_t *list) { \
+	if (!list) return NULL;						\
+	list_t *x;							\
+	list_for_each(x, list) {					\
+	    objtype *obj = list_entry(x, objtype, next);		\
+	    if (obj->key == key) return obj;				\
+	}								\
+	return NULL;							\
+    }
 
 /* generates findNodeInList(PSnodes_ID_t id, list_t *list) */
 FIND_IN_LIST_FUNC(Node, PspmixNode_t, PSnodes_ID_t, id)

@@ -2,6 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2018-2021 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2021 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -1926,31 +1927,30 @@ bool pspmix_server_registerClient(const char *nspace, int rank, int uid,
 	int gid, void *clientObject)
 {
     mdbg(PSPMIX_LOG_CALL, "%s called with nspace '%s' rank %d uid %d gid %d\n",
-	    __func__, nspace, rank, uid, gid);
+	 __func__, nspace, rank, uid, gid);
 
     pmix_status_t status;
 
     /* setup process struct */
     pmix_proc_t proc;
-    PMIX_PROC_CONSTRUCT(&proc);
     PMIX_PROC_LOAD(&proc, nspace, rank);
 
     /* register clients uid and gid as well as ident object */
     mycbdata_t cbdata;
     INIT_CBDATA(cbdata);
     status = PMIx_server_register_client(&proc, uid, gid, clientObject,
-	    registerClient_cb, &cbdata);
+					 registerClient_cb, &cbdata);
     PMIX_PROC_DESTRUCT(&proc);
     if (status != PMIX_SUCCESS) {
 	mlog("%s: Registering client failed: %s\n", __func__,
-		PMIx_Error_string(status));
+	     PMIx_Error_string(status));
 	return false;
     }
     WAIT_FOR_CBDATA(cbdata);
 
     if (cbdata.status != PMIX_SUCCESS) {
-        mlog("%s: Callback from register client failed: %s\n", __func__,
-		PMIx_Error_string(cbdata.status));
+	mlog("%s: Callback from register client failed: %s\n", __func__,
+	     PMIx_Error_string(cbdata.status));
 	return false;
     }
     DESTROY_CBDATA(cbdata);
@@ -1967,7 +1967,6 @@ bool pspmix_server_setupFork(const char *nspace, int rank, char ***childEnv)
 
     /* setup process struct */
     pmix_proc_t proc;
-    PMIX_PROC_CONSTRUCT(&proc);
     PMIX_PROC_LOAD(&proc, nspace, rank);
 
     /* setup environment */
