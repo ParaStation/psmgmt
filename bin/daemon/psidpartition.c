@@ -3,6 +3,7 @@
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
  * Copyright (C) 2005-2021 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2021 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -1522,9 +1523,9 @@ static bool sendResPorts(uint16_t *resPorts, DDBufferMsg_t *msg)
 /**
  * @brief Send partition.
  *
- * Send the newly created partition @a part conforming to the request
- * @a req to the initiating instance. This function is usually called
- * from within @ref getPartition().
+ * Send the newly created partition conforming to the request @a req
+ * and stored therein to the initiating instance. This function is
+ * usually called from within @ref getPartition().
  *
  * @param req The request describing the partition. This contains all
  * necessary information in order to contact the initiating instance.
@@ -2932,13 +2933,15 @@ static PSrsrvtn_t *deqRes(list_t *queue, PSrsrvtn_t *res);
 /**
  * @brief Distribute reservation information to nodes involved in partition
  *
- * Provide information on process distribution inside of a reservation to
- * all nodes that are part of the partition the reservation is created in.
- * For this, one or more messages of type PSP_DD_RESCREATED are emitted.
- * The collection of messages will contain the distribution information
- * (which rank will run on which node).
+ * Provide information on rank distribution within the reservation @a
+ * res to all nodes that are part of the partition the reservation is
+ * belonging to. This partition is expected to be associated to the
+ * task @a task. To actually provide the information, one or more
+ * messages of type PSP_DD_RESCREATED are emitted.
  *
- * @param res The reservation to distribute
+ * @param task Task holding the partition the reservation belong
+ *
+ * @param res Reservation to distribute
  *
  * @return On success, true is returned, or false if an error occurred.
  */
