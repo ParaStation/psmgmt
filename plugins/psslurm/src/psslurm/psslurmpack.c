@@ -2288,3 +2288,25 @@ bool __unpackReqReattachTasks(Slurm_Msg_t *sMsg, Req_Reattach_Tasks_t **reqPtr,
 
     return true;
 }
+
+bool __unpackReqJobNotify(Slurm_Msg_t *sMsg, Req_Job_Notify_t **reqPtr,
+			  const char *caller, const int line)
+{
+    if (!sMsg) {
+	flog("invalid ptr from '%s' at %i\n", caller, line);
+	return false;
+    }
+
+    char **ptr = &sMsg->ptr;
+    uint16_t msgVer = sMsg->head.version;
+    Req_Job_Notify_t *req = ucalloc(sizeof(*req));
+
+    /* unpack jobid/stepid */
+    unpackStepHead(ptr, req, msgVer);
+    /* msg */
+    req->msg = getStringM(ptr);
+
+    *reqPtr = req;
+
+    return true;
+}

@@ -226,6 +226,14 @@ typedef struct {
     JobCred_t *cred;	    /**< job credential */
 } Req_Reattach_Tasks_t;
 
+/** Holding all information for RPC REQUEST_JOB_NOTIFY */
+typedef struct {
+    uint32_t jobid;	    /**< unique job identifier */
+    uint32_t stepid;	    /**< unique step identifier */
+    uint32_t stepHetComp;   /**< TODO */
+    char *msg;		    /**< the message to send to the job */
+} Req_Job_Notify_t;
+
 /** Slurm protocol version */
 extern uint32_t slurmProto;
 

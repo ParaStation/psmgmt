@@ -1540,46 +1540,52 @@ static void handleDaemonStatus(Slurm_Msg_t *sMsg)
 
 static void handleJobNotify(Slurm_Msg_t *sMsg)
 {
-    char **ptr = &sMsg->ptr;
-    uint32_t jobid, stepid;
+    Req_Job_Notify_t *req;
 
-    getUint32(ptr, &jobid);
-    getUint32(ptr, &stepid);
+    /* unpack request */
+    if (!(unpackReqJobNotify(sMsg, &req))) {
+	flog("unpacking job notify request failed\n");
+	sendSlurmRC(sMsg, SLURM_ERROR);
+	return;
+    }
 
-    Job_t *job = findJobById(jobid);
-    Step_t *step = findStepByStepId(jobid, stepid);
-    char *msg = getStringM(ptr);
+    Job_t *job = findJobById(req->jobid);
+    Step_t *step = findStepByStepId(req->jobid, req->stepid);
 
     if (!job && !step) {
-	flog("job/step %u.%u to notify not found, msg %s\n", jobid,
-	     stepid, msg);
+	flog("job/step %u.%u to notify not found, msg %s\n", req->jobid,
+	     req->stepid, req->msg);
 	sendSlurmRC(sMsg, ESLURM_INVALID_JOB_ID);
-	ufree(msg);
-	return;
+	goto CLEANUP;
     }
 
     /* check permissions */
     if (!(verifyUserId(sMsg->head.uid, job ? job->uid : step->uid))) {
 	flog("request from invalid user %u for job %u stepid %u\n",
-	     sMsg->head.uid, jobid, step->stepid);
+	     sMsg->head.uid, req->jobid, req->stepid);
 	sendSlurmRC(sMsg, ESLURM_USER_ID_MISSING);
-	ufree(msg);
-	return;
+	goto CLEANUP;
     }
 
-    flog("notify jobid %u stepid %u msg %s\n", jobid, stepid, msg);
+    flog("notify jobid %u stepid %u msg %s\n", req->jobid, req->stepid,
+	 req->msg);
     if (job) {
 	fwCMD_printMsg(job, NULL, "psslurm: ", strlen("psslurm: "), STDERR, 0);
-	fwCMD_printMsg(job, NULL, msg, strlen(msg), STDERR, 0);
+	fwCMD_printMsg(job, NULL, req->msg, strlen(req->msg), STDERR, 0);
 	fwCMD_printMsg(job, NULL, "\n", strlen("\n"), STDERR, 0);
     } else {
 	fwCMD_printMsg(NULL, step, "psslurm: ", strlen("psslurm: "), STDERR, 0);
-	fwCMD_printMsg(NULL, step, msg, strlen(msg), STDERR, 0);
+	fwCMD_printMsg(NULL, step, req->msg, strlen(req->msg), STDERR, 0);
 	fwCMD_printMsg(NULL, step, "\n", strlen("\n"), STDERR, 0);
     }
 
-    ufree(msg);
     sendSlurmRC(sMsg, SLURM_SUCCESS);
+
+CLEANUP:
+    if (req) {
+	ufree(req->msg);
+	ufree(req);
+    }
 }
 
 static void handleForwardData(Slurm_Msg_t *sMsg)
