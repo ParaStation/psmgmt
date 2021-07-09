@@ -425,14 +425,13 @@ bool pspmix_service_registerNamespace(PStask_t *prototask, list_t resInfos)
 		vectorInit(&node->procs, 10, 10, PspmixProcess_t);
 		list_add_tail(&node->next, &ns->procMap);
 	    }
-	    for(int32_t rank = entry->firstrank;
-		    rank <= entry->lastrank; rank++) {
+	    for (int32_t r = entry->firstrank; r <= entry->lastrank; r++) {
 		/* fill process information */
-		PspmixProcess_t proc;
-		proc.rank = rank;
-		proc.app = ns->apps + app;
-		proc.grank = rank; /* XXX change for spawn support */
-		proc.arank = apprank++;
+		PspmixProcess_t proc = {
+		    .rank = r,
+		    .grank = r,   /* XXX change for spawn support */
+		    .arank = apprank++,
+		    .app = ns->apps + app };
 		vectorAdd(&node->procs, &proc);
 	    }
 	}
@@ -442,11 +441,10 @@ bool pspmix_service_registerNamespace(PStask_t *prototask, list_t resInfos)
     list_t *n;
     list_for_each(n, &ns->procMap) {
 	PspmixNode_t *node = list_entry(n, PspmixNode_t, next);
-	for(pmix_rank_t rank = 0; rank < node->procs.len; rank++) {
-	    PspmixProcess_t *proc;
-	    proc = vectorGet(&node->procs, rank, PspmixProcess_t);
-	    proc->lrank = rank;
-	    proc->nrank = rank; /* XXX change for spawn support */
+	for (uint16_t r = 0; r < node->procs.len; r++) {
+	    PspmixProcess_t *proc = vectorGet(&node->procs, r, PspmixProcess_t);
+	    proc->lrank = r;
+	    proc->nrank = r; /* XXX change for spawn support */
 	}
     }
 
