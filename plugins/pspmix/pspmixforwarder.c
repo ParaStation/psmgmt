@@ -166,22 +166,20 @@ static void handleClientPMIxEnv(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
 {
     char *ptr = data->buf;
 
-    uint32_t envsize;
-    char **environ;
-
-    getEnviron(&ptr, envsize, environ);
+    uint32_t envSize;
+    char **env;
+    getEnviron(&ptr, envSize, env);
 
     mdbg(PSPMIX_LOG_COMM, "%s(r%d): Setting environment:\n", __func__, rank);
-    for (uint32_t i = 0; i < envsize; i++) {
-	if (putenv(environ[i]) != 0) {
-	    mwarn(errno, "%s(r%d): Failed to set environment '%s'", __func__,
-		    rank, environ[i]);
-	    ufree(environ[i]);
+    for (uint32_t i = 0; i < envSize; i++) {
+	if (putenv(env[i]) != 0) {
+	    mwarn(errno, "%s(r%d): set env '%s'", __func__, rank, env[i]);
+	    ufree(env[i]);
 	    continue;
 	}
-	mdbg(PSPMIX_LOG_COMM, "%s(r%d): %d %s\n", __func__, rank, i,
-		environ[i]);
+	mdbg(PSPMIX_LOG_COMM, "%s(r%d): %d %s\n", __func__, rank, i, env[i]);
     }
+    ufree(env);
 
     environmentReady = true;
 }
