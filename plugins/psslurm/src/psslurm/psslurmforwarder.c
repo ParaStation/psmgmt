@@ -162,7 +162,7 @@ static int jobCallback(int32_t exit_status, Forwarder_Data_t *fw)
 	flog("starting epilogue for allocation %u\n", alloc->id);
 	fdbg(PSSLURM_LOG_JOB, "job %u in %s\n", job->jobid,
 	     strJobState(job->state));
-	startEpilogue(alloc);
+	startPElogue(alloc, PELOGUE_EPILOGUE);
     }
 
     job->fwdata = NULL;
@@ -230,7 +230,7 @@ static int stepFollowerCB(int32_t exit_status, Forwarder_Data_t *fw)
 	&& alloc->terminate) {
 	/* run epilogue now */
 	flog("starting epilogue for %s\n", strStepID(step));
-	startEpilogue(alloc);
+	startPElogue(alloc, PELOGUE_EPILOGUE);
     }
 
     if (step->stepid == SLURM_INTERACTIVE_STEP) {
@@ -307,7 +307,7 @@ static int stepCallback(int32_t exit_status, Forwarder_Data_t *fw)
 	&& alloc->terminate) {
 	/* run epilogue now */
 	flog("starting epilogue for %s\n", strStepID(step));
-	startEpilogue(alloc);
+	startPElogue(alloc, PELOGUE_EPILOGUE);
     }
 
     if (!alloc || step->stepid == SLURM_INTERACTIVE_STEP) {

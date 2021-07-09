@@ -100,7 +100,7 @@ typedef enum {
     PSP_ALLOC_LAUNCH = 25,  /**< defunct, tbr */
     PSP_ALLOC_STATE,	    /**< allocation state change */
     PSP_PACK_INFO,	    /**< send pack information to mother superior */
-    PSP_EPILOGUE_LAUNCH,    /**< start local epilogue */
+    PSP_EPILOGUE_LAUNCH,    /**< defunct, tbr */
     PSP_EPILOGUE_RES,	    /**< result of local epilogue */
     PSP_EPILOGUE_STATE_REQ, /**< request delayed epilogue status */
     PSP_EPILOGUE_STATE_RES, /**< response to epilogue status request */
@@ -828,33 +828,6 @@ void send_PS_JobExit(uint32_t jobid, uint32_t stepid, uint32_t numDest,
     }
 }
 
-void send_PS_EpilogueLaunch(Alloc_t *alloc)
-{
-    DDTypedBufferMsg_t msg = {
-	.header = {
-	    .type = PSP_PLUG_PSSLURM,
-	    .sender = PSC_getMyTID(),
-	    .len = offsetof(DDTypedBufferMsg_t, buf) },
-	.type = PSP_EPILOGUE_LAUNCH,
-	.buf = {'\0'} };
-
-    flog("alloc ID %u\n", alloc->id);
-
-    /* add id */
-    PSP_putTypedMsgBuf(&msg, "ID", &alloc->id, sizeof(alloc->id));
-
-    /* send the messages */
-    uint32_t n;
-    for (n=0; n<alloc->nrOfNodes; n++) {
-
-	msg.header.dest = PSC_getTID(alloc->nodes[n], 0);
-	if (sendMsg(&msg) == -1 && errno != EWOULDBLOCK) {
-	    mwarn(errno, "%s: sendMsg(%s)", __func__,
-		  PSC_printTID(msg.header.dest));
-	}
-    }
-}
-
 void send_PS_EpilogueStateReq(Alloc_t *alloc)
 {
     DDTypedBufferMsg_t msg = {
@@ -933,31 +906,6 @@ static void handle_JobExit(DDTypedBufferMsg_t *msg)
 	step->state = JOB_EXIT;
 	fdbg(PSSLURM_LOG_JOB, "%s in %s\n", strStepID(step),
 	     strAllocState(step->state));
-    }
-}
-
-/**
- * @brief Handle a local epilogue launch request
- *
- * @param msg The message to handle
- */
-static void handle_EpilogueLaunch(DDTypedBufferMsg_t *msg)
-{
-    uint32_t id;
-    size_t used = 0;
-
-    PSP_getTypedMsgBuf(msg, &used, "ID", &id, sizeof(id));
-
-    Alloc_t *alloc = findAlloc(id);
-    if (!alloc) {
-	flog("allocation with ID %u not found\n", id);
-    } else {
-	if (alloc->state != A_EPILOGUE &&
-	    alloc->state != A_EPILOGUE_FINISH &&
-	    alloc->state != A_EXIT) {
-	    flog("id %u\n", id);
-	    startEpilogue(alloc);
-	}
     }
 }
 
@@ -1083,7 +1031,7 @@ static void handle_EpilogueStateReq(DDTypedBufferMsg_t *msg)
 	    alloc->state != A_EXIT) {
 	    flog("starting epilogue for allocation %u state %s\n", id,
 		 strAllocState(alloc->state));
-	    startEpilogue(alloc);
+	    startPElogue(alloc, PELOGUE_EPILOGUE);
 	}
     }
     send_PS_EpilogueStateRes(msg->header.sender, id, res);
@@ -1631,9 +1579,6 @@ static bool handlePsslurmMsg(DDTypedBufferMsg_t *msg)
 	case PSP_PACK_EXIT:
 	    recvFragMsg(msg, handlePackExit);
 	    break;
-	case PSP_EPILOGUE_LAUNCH:
-	    handle_EpilogueLaunch(msg);
-	    break;
 	case PSP_EPILOGUE_RES:
 	    handle_EpilogueRes(msg);
 	    break;
@@ -1649,6 +1594,7 @@ static bool handlePsslurmMsg(DDTypedBufferMsg_t *msg)
 	case PSP_STOP_STEP_FW:
 	    handleStopStepFW(msg);
 	    break;
+	case PSP_EPILOGUE_LAUNCH:
 	case PSP_ALLOC_LAUNCH:
 	case PSP_JOB_STATE_REQ:
 	case PSP_JOB_STATE_RES:

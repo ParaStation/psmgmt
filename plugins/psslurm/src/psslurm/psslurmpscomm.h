@@ -70,15 +70,6 @@ void send_PS_JobExit(uint32_t jobid, uint32_t stepid, uint32_t nrOfNodes,
 void send_PS_JobLaunch(Job_t *job);
 
 /**
- * @brief Send local epilogue launch
- *
- * Start a local epilogue on all nodes of the allocation.
- *
- * @param alloc The allocation to start the epilogue for
- */
-void send_PS_EpilogueLaunch(Alloc_t *alloc);
-
-/**
  * @brief Send result of local epilogue
  *
  * Send result of a local epilogue to allocation leader.

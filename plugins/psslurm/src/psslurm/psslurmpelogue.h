@@ -2,6 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2015-2021 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2021 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -14,13 +15,16 @@
 #include "peloguetypes.h"
 
 /**
- * @brief Start a local epilogue for an allocation
+ * @brief Start a local prologue or epilogue for an allocation
  *
  * @param alloc The allocation to start the pelogue for
  *
+ * @param type If true a prologue is started otherwise
+ * an epilogue is started
+ *
  * @return Returns true on success and false otherwise
  */
-bool startEpilogue(Alloc_t *alloc);
+bool startPElogue(Alloc_t *alloc, PElogueType_t type);
 
 /**
  * @brief Handle hook PSIDHOOK_PELOGUE_START

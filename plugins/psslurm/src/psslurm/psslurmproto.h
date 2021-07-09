@@ -585,4 +585,17 @@ bool sendConfigReq(const char *server, const int action);
  */
 void activateConfigCache(char *confDir);
 
+/**
+ * @brief Send a prologue complete request
+ *
+ * If rc is SLURM_ERROR the node will be drained and
+ * the job gets requeued if possbile (steps started
+ * without a job will be cancelled).
+ *
+ * @param jobid The jobid of the prologue completed
+ *
+ * @param rc The return code of the prologue script
+ */
+void sendPrologComplete(uint32_t jobid, uint32_t rc);
+
 #endif /* __PSSLURM_PROTO */

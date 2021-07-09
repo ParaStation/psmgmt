@@ -1581,7 +1581,7 @@ static void handleForwardData(Slurm_Msg_t *sMsg)
     sendSlurmRC(sMsg, ESLURM_NOT_SUPPORTED);
 }
 
-static void sendPrologComplete(uint32_t jobid, uint32_t rc)
+void sendPrologComplete(uint32_t jobid, uint32_t rc)
 {
     PS_SendDB_t msg = { .bufUsed = 0, .useFrag = false };
     Req_Prolog_Comp_t req = {
@@ -1635,12 +1635,12 @@ static void handleLaunchProlog(Slurm_Msg_t *sMsg)
 
     if (alloc->state == A_INIT) {
 	flog("starting prologue now\n");
+	startPElogue(alloc, PELOGUE_PROLOGUE);
     } else {
 	flog("prologue already started by slurmctld prologue\n");
+	/* let the slurmctld know the prologue has finished */
+	sendPrologComplete(req->jobid, SLURM_SUCCESS);
     }
-
-    /* let the slurmctld know the prologue has finished */
-    sendPrologComplete(req->jobid, SLURM_SUCCESS);
 
     /* free request with the exception of the job credential and gres list
      * saved in the allocation */
@@ -1951,7 +1951,7 @@ static void doTerminateAlloc(Slurm_Msg_t *sMsg, Alloc_t *alloc)
     sendSlurmRC(sMsg, SLURM_SUCCESS);
     mlog("%s: starting epilogue for allocation %u state %s\n", __func__,
 	 alloc->id, strAllocState(alloc->state));
-    startEpilogue(alloc);
+    startPElogue(alloc, PELOGUE_EPILOGUE);
 }
 
 static void handleAbortReq(Slurm_Msg_t *sMsg, uint32_t jobid, uint32_t stepid)
