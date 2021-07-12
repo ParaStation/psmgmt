@@ -231,6 +231,51 @@ static void handleSignalMsg(PSLog_Msg_t *msg)
 }
 
 /**
+ * @brief Receive message from local daemon
+ *
+ * Receive a message from the local daemon and store it to @a msg. If
+ * @a timeout is given, it is tried to receive a message for the
+ * period defined therein. Otherwise this function will block until a
+ * message is available.
+ *
+ * If the receive times out, i.e. the period defined in @a timeout
+ * elapsed without receiving a complete message, 0 is returned.
+ *
+ * If a message was received during the period to wait, upon return @a
+ * timeout will get updated and hold the remaining time of the
+ * original timeout.
+ *
+ * @param msg Buffer to store the message to.
+ *
+ * @param timeout The timeout after which the function returns. If this
+ * is NULL, this function will block indefinitely. Upon return this
+ * value will get updated and hold the remnant of the original
+ * timeout.
+ *
+ * @return On success, the number of bytes read are returned. On
+ * error, -1 is returned, and errno is set appropriately.
+ *
+ * @see PSLog_read()
+ */
+static ssize_t recvDaemonMsg(DDBufferMsg_t *msg, struct timeval *timeout)
+{
+    if (daemonSock < 0) {
+	PSID_log(-1, "%s: not connected\n", __func__);
+	errno = EPIPE;
+	return -1;
+    }
+
+    // setitimer()
+    // PSCio_recvMsg()
+    // cancel itimer
+    // error handling (closeDaemonSock())
+    // check on timeout
+    // msg handling? Better in the caller?
+
+    return 0;
+}
+
+/**
  * @brief Receive message from logger.
  *
  * Receive a message from the logger and store it to @a msg. If @a
