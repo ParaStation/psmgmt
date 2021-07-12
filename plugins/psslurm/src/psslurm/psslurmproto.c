@@ -1616,6 +1616,12 @@ static void handleLaunchProlog(Slurm_Msg_t *sMsg)
 	 req->x11AllocPort, req->x11MagicCookie, req->x11Target,
 	 req->x11TargetPort);
 
+    /* spank env */
+    for (uint32_t i = 0; i < req->spankEnv.cnt; i++) {
+	mdbg(PSSLURM_LOG_PELOG, "%s: spankEnv%i: '%s'\n", __func__, i,
+	     req->spankEnv.vars[i]);
+    }
+
     /* let the slurmctld know we got the request */
     sendSlurmRC(sMsg, SLURM_SUCCESS);
 
