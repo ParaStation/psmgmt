@@ -695,7 +695,7 @@ int initialize(FILE *logfile)
     start_time = time(NULL);
 
     /* init the logger (log to syslog) */
-    initLogger("psslurm", NULL);
+    initLogger("psslurm", logfile);
 
     if (MEMORY_DEBUG) {
 	FILE *lfile = fopen("/tmp/malloc", "w+");
