@@ -248,31 +248,23 @@ static void logHWthreads(const char* prefix,
 }
 
 /**
- * @brief Generate hardware threads array from slots array
+ * @brief Add all threads of slots array to threads array
  *
- * This just concatenates the threads of each slot, so iff there are threads
- * used in multiple slots, they will be multiple times in the resulting array.
+ * This appends the threads of each slot to the end of the threads array.
  *
- * @param threads    OUT generated array (use ufree() to free)
+ * @param threads    IN/OUT array to extend (resized using urealloc())
  * @param numThreads OUT Number of entries in threads
  * @param slots      IN  Slots array to use
  * @param num        IN  Number of entries in slots
- *
- * @return true on success and false on error with errno set
  */
-static bool genThreadsArray(PSpart_HWThread_t **threads, uint32_t *numThreads,
+static void addThreadsToArray(PSpart_HWThread_t **threads, uint32_t *numThreads,
 	PSpart_slot_t *slots, uint32_t num)
 {
-    *numThreads = 0;
     for (size_t s = 0; s < num; s++) {
 	*numThreads += PSCPU_getCPUs(slots[s].CPUset, NULL, PSCPU_MAX);
     }
 
-    *threads = umalloc(*numThreads * sizeof(**threads));
-    if (*threads == NULL) {
-	errno = ENOMEM;
-	return false;
-    }
+    *threads = urealloc(*threads, *numThreads * sizeof(**threads));
 
     size_t t = 0;
     for (size_t s = 0; s < num; s++) {
@@ -285,82 +277,39 @@ static bool genThreadsArray(PSpart_HWThread_t **threads, uint32_t *numThreads,
 	    }
 	}
     }
-    return true;
 }
 
 /**
- * @brief Add CPUs set in slots to a combined node slots array.
+ * @brief Generate hardware threads array from slots in step
  *
- * @param nodeslots  I/O initialized node slot array with node IDs set
- * @param numNodes   IN  number of entries in nodeslots
- * @param slots      IN  slots array to add
- * @param numSlots   IN  number of entries in slots
- */
-static void addCPUsToSlotsArray(PSpart_slot_t *nodeslots, uint32_t numNodes,
-				PSpart_slot_t *slots, uint32_t numSlots)
-{
-    for (size_t s = 0; s < numSlots; s++) {
-	for (size_t n = 0; n < numNodes; n++) {
-	    if (slots[s].node == nodeslots[n].node) {
-		PSCPU_addCPUs(nodeslots[n].CPUset, slots[s].CPUset);
-		break;
-	    }
-	}
-    }
-}
-
-/**
- * @brief Generate an array of slots with one slot per node
+ * This just concatenates the threads of each slot, so iff there are threads
+ * used in multiple slots, they will be multiple times in the resulting array.
  *
- * Combines all slots of each node so we have a compressed list of
- * hardware threads used on each node. The length of the array will
- * be slots->nrOfNodes.
+ * This function distinguish between single job step and job pack step
  *
- * @param nodeslots  OUT generated array (use ufree() to free)
- * @param nrOfNodes  OUT length of the generated array
+ * @param threads    OUT generated array (use ufree() to free)
+ * @param numThreads OUT Number of entries in threads
  * @param step       IN  Step to use
- *
- * @return true on success, false on error (errno set)
  */
-static bool genNodeSlotsArray(PSpart_slot_t **nodeslots, uint32_t *nrOfNodes,
+static void genThreadsArray(PSpart_HWThread_t **threads, uint32_t *numThreads,
 	Step_t *step)
 {
-    PSnodes_ID_t *nodes;
+    *numThreads = 0;
+    *threads = NULL;
 
     if (step->packJobid == NO_VAL) {
-	*nrOfNodes = step->nrOfNodes;
-	nodes = step->nodes;
-    } else {
-	*nrOfNodes = step->packNrOfNodes;
-	nodes = step->packNodes;
+	addThreadsToArray(threads, numThreads, step->slots, step->np);
+	return;
     }
 
-    *nodeslots = umalloc(*nrOfNodes * sizeof(**nodeslots));
-    if (!*nodeslots) {
-	errno = ENOMEM;
-	return false;
+    /* add slots from each sister pack job
+     * since the list is sorted, the threads will be in correct order */
+    list_t *r;
+    list_for_each(r, &step->jobCompInfos) {
+	JobCompInfo_t *cur = list_entry(r, JobCompInfo_t, next);
+	addThreadsToArray(threads, numThreads, cur->slots, cur->np);
     }
-
-    /* initialize node slots array */
-    for (size_t n = 0; n < *nrOfNodes; n++) {
-	(*nodeslots)[n].node = nodes[n];
-	PSCPU_clrAll((*nodeslots)[n].CPUset);
-    }
-
-    /* fill node slots array */
-    if (step->packJobid == NO_VAL) {
-
-	addCPUsToSlotsArray(*nodeslots, *nrOfNodes, step->slots, step->np);
-    } else {
-	list_t *r;
-	list_for_each(r, &step->jobCompInfos) {
-	    JobCompInfo_t *cur = list_entry(r, JobCompInfo_t, next);
-	    addCPUsToSlotsArray(*nodeslots, *nrOfNodes, cur->slots, cur->np);
-	    logSlots(__func__, cur->slots, cur->np);
-	}
-    }
-
-    return true;
+    return;
 }
 
 /**
@@ -408,20 +357,8 @@ static int handleCreatePart(void *msg)
 	goto error;
     }
 
-    /* generate node slots array forming the partition */
-    if (!genNodeSlotsArray(&task->partition, &task->partitionSize, step)) {
-	flog("generation of node slots array failed\n");
-	goto error;
-    }
-
-    logSlots(__func__, task->partition, task->partitionSize);
-
     /* generate hardware threads array */
-    if (!genThreadsArray(&task->partThrds, &task->totalThreads,
-	    task->partition, task->partitionSize)) {
-	flog("generation of hardware threads array failed\n");
-	goto error;
-    }
+    genThreadsArray(&task->partThrds, &task->totalThreads, step);
 
     logHWthreads(__func__, task->partThrds, task->totalThreads);
 
@@ -1335,7 +1272,7 @@ static void handlePackExit(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
  *
  * JobInfo list is sorted by `firstRank`. This is needed later for putting
  * together the mpiexec call in the correct order so each job will get the
- * right rank range.
+ * right rank range and the same later for the threads in the partition.
  *
  * @param step  Step to insert to
  * @param info  info object to insert
