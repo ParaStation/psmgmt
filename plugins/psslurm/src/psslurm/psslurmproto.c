@@ -110,9 +110,9 @@ static void getSysInfo(uint32_t *cpuload, uint64_t *freemem, uint32_t *uptime)
 	return;
     }
 
-    float div = (float)(1 << SI_LOAD_SHIFT);
-    *cpuload = (info.loads[0]/div) * 100.0;
-    *freemem = (((uint64_t )info.freeram)*info.mem_unit)/(1024*1024);
+    float div = (float) (1 << SI_LOAD_SHIFT);
+    *cpuload = (info.loads[0] / div) * 100.0;
+    *freemem = (((uint64_t) info.freeram) * info.mem_unit) / (1024*1024);
     *uptime = info.uptime;
 }
 
@@ -1463,31 +1463,32 @@ static uint64_t getNodeMem(void)
     return (uint64_t)((float) pages * (pageSize / 1048576.0));
 }
 
+/**
+ * @brief Calculate the size of the temporary filesystem
+ * in megabytes
+ */
 static uint32_t getTmpDisk(void)
 {
-    struct statfs sbuf;
-    float pageSize;
-    char tmpDef[] = "/tmp";
-    char *fs;
-    static int report = 1;
-
-    if ((pageSize = sysconf(_SC_PAGE_SIZE)) < 0) {
+    float pageSize = sysconf(_SC_PAGE_SIZE);
+    if (pageSize < 0) {
 	mwarn(errno, "%s: getting _SC_PAGE_SIZE failed: ", __func__);
 	return 1;
     }
 
-    if (!(fs = getConfValueC(&SlurmConfig, "TmpFS"))) {
-	fs = tmpDef;
-    }
+    char tmpDef[] = "/tmp";
+    char *fs = getConfValueC(&SlurmConfig, "TmpFS");
+    if (!fs) fs = tmpDef;
 
+    struct statfs sbuf;
     if ((statfs(fs, &sbuf)) == -1) {
+	static int report = 1;
 	if (report) {
 	    mwarn(errno, "%s: statfs(%s) failed: ", __func__, fs);
 	    report = 0;
 	}
 	return 1;
     }
-    return (uint32_t)((long)sbuf.f_blocks * (pageSize / 1048576.0));
+    return (uint32_t)((long) sbuf.f_blocks * (pageSize / 1048576.0));
 }
 
 /**
