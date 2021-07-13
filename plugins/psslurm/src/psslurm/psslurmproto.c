@@ -104,16 +104,16 @@ enum {
 static void getSysInfo(uint32_t *cpuload, uint64_t *freemem, uint32_t *uptime)
 {
     struct sysinfo info;
-    float div;
-
     if (sysinfo(&info) < 0) {
+	mwarn(errno, "%s: sysinfo()", __func__);
 	*cpuload = *freemem = *uptime = 0;
-    } else {
-	div = (float)(1 << SI_LOAD_SHIFT);
-	*cpuload = (info.loads[0]/div) * 100.0;
-	*freemem = (((uint64_t )info.freeram)*info.mem_unit)/(1024*1024);
-	*uptime = info.uptime;
+	return;
     }
+
+    float div = (float)(1 << SI_LOAD_SHIFT);
+    *cpuload = (info.loads[0]/div) * 100.0;
+    *freemem = (((uint64_t )info.freeram)*info.mem_unit)/(1024*1024);
+    *uptime = info.uptime;
 }
 
 /**
@@ -1442,18 +1442,25 @@ static void handleStepPids(Slurm_Msg_t *sMsg)
     sendSlurmReply(sMsg, RESPONSE_JOB_STEP_PIDS);
 }
 
-static uint32_t getNodeMem(void)
+/**
+ * @brief Calculate the real memory of the local node
+ * in megabytes
+ */
+static uint64_t getNodeMem(void)
 {
-    long pages, pageSize;
-
-    if ((pages = sysconf(_SC_PHYS_PAGES))< 0) {
-	return 1;
-    }
-    if ((pageSize = sysconf(_SC_PAGE_SIZE)) < 0) {
+    long pages = sysconf(_SC_PHYS_PAGES);
+    if (pages < 0) {
+	mwarn(errno, "%s: sysconf(_SC_PHYS_PAGES)", __func__);
 	return 1;
     }
 
-    return (uint32_t)((float) pages * (pageSize / 1024 * 1024));
+    long pageSize = sysconf(_SC_PAGE_SIZE);
+    if (pageSize < 0) {
+	mwarn(errno, "%s: sysconf(_SC_PAGE_SIZE)", __func__);
+	return 1;
+    }
+
+    return (uint64_t)((float) pages * (pageSize / 1048576.0));
 }
 
 static uint32_t getTmpDisk(void)
