@@ -1481,10 +1481,10 @@ static uint32_t getTmpDisk(void)
 
     struct statfs sbuf;
     if ((statfs(fs, &sbuf)) == -1) {
-	static int report = 1;
+	static bool report = true;
 	if (report) {
-	    mwarn(errno, "%s: statfs(%s) failed: ", __func__, fs);
-	    report = 0;
+	    mwarn(errno, "%s: statfs(%s)", __func__, fs);
+	    report = false;
 	}
 	return 1;
     }
