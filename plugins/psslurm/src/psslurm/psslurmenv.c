@@ -295,13 +295,80 @@ void setJailEnv(const env_t *env, const char *user,
     if (user) setenv("SLURM_USER", user, 1);
 }
 
+/**
+ * @brief Set GRes job environment
+ *
+ * @param gresList The GRes list of the job
+ *
+ * @param env The environment of the job to change
+ */
+void setGResJobEnv(list_t *gresList, env_t *env)
+{
+    /* GRes "gpu" plugin */
+    Gres_Cred_t *gres = findGresCred(gresList, GRES_PLUGIN_GPU, GRES_CRED_JOB);
+    if (gres && gres->bitAlloc) {
+	if (gres->bitAlloc[0]) {
+	    StrBuffer_t strList = { .buf = NULL };
+	    hexBitstr2List(gres->bitAlloc[0], &strList, false);
+
+	    /* always set informational variable */
+	    envSet(env, "SLURM_JOB_GPUS", strList.buf);
+
+	    /* tell doClamps() which gpus to use */
+	    envSet(env, "__PSID_USE_GPUS", strList.buf);
+
+	    char *prefix = "__AUTO_";
+	    char name[GPU_VARIABLE_MAXLEN+strlen(prefix)+1];
+	    for (size_t i = 0; gpu_variables[i]; i++) {
+		/* set variable if not already set by the user */
+		if (!envGet(env, gpu_variables[i])) {
+		    snprintf(name, sizeof(name), "%s%s", prefix,
+			    gpu_variables[i]);
+		    /* append some spaces to help step code to detect whether
+		     * the user has changed the variable in his job script */
+		    char *val = umalloc(strList.strLen + 6);
+		    sprintf(val, "%s     ", strList.buf);
+		    envSet(env, gpu_variables[i], val);
+		    envSet(env, name, val);
+		    ufree(val);
+		}
+	    }
+
+	    freeStrBuf(&strList);
+	} else {
+	    flog("invalid gpu gres bitAlloc for local nodeID 0\n");
+	}
+    }
+
+    /* GRes "mic" plugin */
+    gres = findGresCred(gresList, GRES_PLUGIN_MIC, GRES_CRED_JOB);
+    if (gres && gres->bitAlloc) {
+	if (gres->bitAlloc[0]) {
+	    StrBuffer_t strList = { .buf = NULL };
+	    hexBitstr2List(gres->bitAlloc[0], &strList, false);
+	    envSet(env, "OFFLOAD_DEVICES", strList.buf);
+	    freeStrBuf(&strList);
+	} else {
+	    flog("invalid mic gres bitAlloc for local nodeID 0\n");
+	}
+    }
+
+    /* set JOB_GRES */
+    gres = findGresCred(gresList, NO_VAL, GRES_CRED_JOB);
+    if (gres && gres->bitAlloc) {
+	if (gres->bitAlloc[0]) {
+	    StrBuffer_t strList = { .buf = NULL };
+	    hexBitstr2List(gres->bitAlloc[0], &strList, false);
+	    envSet(env, "SLURM_JOB_GRES", strList.buf);
+	    freeStrBuf(&strList);
+	} else {
+	    flog("invalid job gres bitAlloc for local nodeID 0\n");
+	}
+    }
+}
+
 void initJobEnv(Job_t *job)
 {
-    char tmp[1024], *cpus = NULL;
-    Gres_Cred_t *gres;
-    uint16_t *tasksPerNode;
-    StrBuffer_t strList = { .buf = NULL };
-
     /* MISSING BATCH VARS:
      *
      * from topology plugin
@@ -315,11 +382,12 @@ void initJobEnv(Job_t *job)
     }
 
     envSet(&job->env, "SLURMD_NODENAME",
-		getConfValueC(&Config, "SLURM_HOSTNAME"));
+	   getConfValueC(&Config, "SLURM_HOSTNAME"));
 
     envSet(&job->env, "SLURM_JOBID", strJobID(job->jobid));
     envSet(&job->env, "SLURM_JOB_ID", strJobID(job->jobid));
 
+    char tmp[1024];
     snprintf(tmp, sizeof(tmp), "%u", job->nrOfNodes);
     envSet(&job->env, "SLURM_JOB_NUM_NODES", tmp);
     envSet(&job->env, "SLURM_NNODES", tmp);
@@ -328,14 +396,14 @@ void initJobEnv(Job_t *job)
     snprintf(tmp, sizeof(tmp), "%u", job->uid);
     envSet(&job->env, "SLURM_JOB_UID", tmp);
     envSet(&job->env, "SLURM_CPUS_ON_NODE",
-		getConfValueC(&Config, "SLURM_CPUS"));
+	   getConfValueC(&Config, "SLURM_CPUS"));
 
-    cpus = getCPUsPerNode(job);
+    char *cpus = getCPUsPerNode(job);
     envSet(&job->env, "SLURM_JOB_CPUS_PER_NODE", cpus);
     ufree(cpus);
 
     /* set SLURM_TASKS_PER_NODE for intel mpi */
-    tasksPerNode = calcTasksPerNode(job);
+    uint16_t *tasksPerNode = calcTasksPerNode(job);
     if (tasksPerNode) {
 	cpus = getTasksPerNode(tasksPerNode, job->nrOfNodes);
 	ufree(tasksPerNode);
@@ -363,68 +431,10 @@ void initJobEnv(Job_t *job)
 	envSet(&job->env, "SLURM_NODE_ALIASES", job->nodeAlias);
     }
 
-    if (job->hostname) {
-	envSet(&job->env, "HOSTNAME", job->hostname);
-    }
+    if (job->hostname) envSet(&job->env, "HOSTNAME", job->hostname);
 
-    /* GRes "gpu" plugin */
-    gres = findGresCred(&job->gresList, GRES_PLUGIN_GPU, GRES_CRED_JOB);
-    if (gres && gres->bitAlloc) {
-	if (gres->bitAlloc[0]) {
-	    hexBitstr2List(gres->bitAlloc[0], &strList, false);
-
-	    /* always set informational variable */
-	    envSet(&job->env, "SLURM_JOB_GPUS", strList.buf);
-
-	    /* tell doClamps() which gpus to use */
-	    envSet(&job->env, "__PSID_USE_GPUS", strList.buf);
-
-	    char *prefix = "__AUTO_";
-	    char name[GPU_VARIABLE_MAXLEN+strlen(prefix)+1];
-	    for (size_t i = 0; gpu_variables[i]; i++) {
-		/* set variable if not already set by the user */
-		if (!envGet(&job->env, gpu_variables[i])) {
-		    snprintf(name, sizeof(name), "%s%s", prefix,
-			    gpu_variables[i]);
-		    /* append some spaces to help step code to detect whether
-		     * the user has changed the variable in his job script */
-		    char *val = umalloc(strList.strLen + 6);
-		    sprintf(val, "%s     ", strList.buf);
-		    envSet(&job->env, gpu_variables[i], val);
-		    envSet(&job->env, name, val);
-		    ufree(val);
-		}
-	    }
-
-	    freeStrBuf(&strList);
-	} else {
-	    flog("invalid gpu gres bitAlloc for local nodeID 0\n");
-	}
-    }
-
-    /* GRes "mic" plugin */
-    gres = findGresCred(&job->gresList, GRES_PLUGIN_MIC, GRES_CRED_JOB);
-    if (gres && gres->bitAlloc) {
-	if (gres->bitAlloc[0]) {
-	    hexBitstr2List(gres->bitAlloc[0], &strList, false);
-	    envSet(&job->env, "OFFLOAD_DEVICES", strList.buf);
-	    freeStrBuf(&strList);
-	} else {
-	    flog("invalid mic gres bitAlloc for local nodeID 0\n");
-	}
-    }
-
-    /* set JOB_GRES */
-    gres = findGresCred(&job->gresList, NO_VAL, GRES_CRED_JOB);
-    if (gres && gres->bitAlloc) {
-	if (gres->bitAlloc[0]) {
-	    hexBitstr2List(gres->bitAlloc[0], &strList, false);
-	    envSet(&job->env, "SLURM_JOB_GRES", strList.buf);
-	    freeStrBuf(&strList);
-	} else {
-	    flog("invalid job gres bitAlloc for local nodeID 0\n");
-	}
-    }
+    /* set GRes environment */
+    setGResJobEnv(&job->gresList, &job->env);
 }
 
 /**
@@ -726,14 +736,30 @@ static void setInteractiveStepEnv(Step_t *step)
 	if (!strncmp(*env, "OLDPWD", 6)) doUnset(*env);
 	env++;
     }
+
+    /* we need to set the GRes job environment variables
+     * for the interactive step */
+    env_t gresEnv;
+    envInit(&gresEnv);
+    setGResJobEnv(&step->gresList, &gresEnv);
+    for (uint32_t i = 0; i < gresEnv.cnt; i++) {
+	char *val = strchr(gresEnv.vars[i], '=');
+	if (val) {
+	    val[0]='\0';
+	    setenv(gresEnv.vars[i], ++val, 1);
+	}
+    }
+    envDestroy(&gresEnv);
 }
 
 /**
  * @brief Set additional environment for a normal step
  *
+ * @param rank The rank to set the environment for
+ *
  * @param step The step to set the environment for
  */
-static void setNormalStepEnv(Step_t *step)
+static void setNormalStepEnv(uint32_t rank, Step_t *step)
 {
     /* set cpu/memory bind env vars */
     setBindingEnvVars(step);
@@ -741,6 +767,17 @@ static void setNormalStepEnv(Step_t *step)
     char tmp[128];
     snprintf(tmp, sizeof(tmp), "%u", step->tpp);
     setenv("SLURM_CPUS_PER_TASK", tmp, 1);
+
+    uint32_t myLocalId = getLocalRankID(rank, step);
+    if (myLocalId == NO_VAL) {
+	flog("failed to find local ID for rank %u\n", rank);
+    } else {
+	snprintf(tmp, sizeof(tmp), "%u", myLocalId);
+	setenv("SLURM_LOCALID", tmp, 1);
+
+	/* set GRes environment */
+	setGresEnv(myLocalId, step);
+    }
 }
 
 /**
@@ -802,17 +839,6 @@ static void setCommonStepEnv(int32_t rank, Step_t *step)
 	ufree(myGTIDs);
     }
 
-    uint32_t myLocalId = getLocalRankID(rank, step);
-    if (myLocalId == NO_VAL) {
-	flog("failed to find local ID for rank %u\n", rank);
-    } else {
-	snprintf(tmp, sizeof(tmp), "%u", myLocalId);
-	setenv("SLURM_LOCALID", tmp, 1);
-
-	/* set gres environment */
-	setGresEnv(myLocalId, step);
-    }
-
     setenv("SLURM_LAUNCH_NODE_IPADDR", inet_ntoa(step->srun.sin_addr), 1);
     setenv("SLURM_SRUN_COMM_HOST", inet_ntoa(step->srun.sin_addr), 1);
 
@@ -837,7 +863,7 @@ void setRankEnv(int32_t rank, Step_t *step)
     if (step->stepid == SLURM_INTERACTIVE_STEP) {
 	return setInteractiveStepEnv(step);
     } else {
-	return setNormalStepEnv(step);
+	return setNormalStepEnv(rank, step);
     }
 }
 
