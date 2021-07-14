@@ -224,23 +224,6 @@ const char *getSlurmHostbyNodeID(PSnodes_ID_t nodeID);
 PSnodes_ID_t getNodeIDbySlurmHost(const char *host);
 
 /**
- * @brief Find the next index in a combined pack task array
- *
- * @param step The step to search
- *
- * @param last Shall be set to the last offset or -1 for the first
- * call
- *
- * @param offset Holds the array offset of the next index
- *
- * @param idx Holds the result (the next index)
- *
- * @return Returns true if the next index was found otherwise
- * false is returned. On error offset and idx might not be updated.
- */
-bool findPackIndex(Step_t *step, int64_t last, int64_t *offset, uint32_t *idx);
-
-/**
  * @brief Send pelogue stdout/stderr data
  *
  * @para alloc The allocation of the pelogue
