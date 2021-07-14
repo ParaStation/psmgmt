@@ -32,13 +32,15 @@ typedef struct {
 } Slurm_Step_Head_t;
 
 typedef struct {
+    list_t next;
     char **argv;		    /**< program arguments */
     uint32_t argc;		    /**< number of arguments */
     uint32_t np;		    /**< number of processes */
     uint16_t tpp;                   /**< threads per process */
     PSpart_slot_t *slots;           /**< CPUs to use (length is np) */
-    uint32_t packTaskOffset;	    /**< pack task offset */
-} PackInfos_t;
+    uint32_t firstRank;             /**< first global task rank */
+    PSnodes_ID_t followerID;        /**< pack follower mother superior node */
+} JobInfo_t;
 
 typedef struct {
     uint16_t x11;               /**< flag to use (vanilla) X11 forwarding */
@@ -164,9 +166,8 @@ typedef struct {
     uint32_t *packTIDsOffset;   /**< pack task offset */
     char *packHostlist;		/**< pack host-list (Slurm compressed) */
     PSnodes_ID_t *packNodes;	/**< all participating nodes in the pack */
-    PackInfos_t *packInfo;	/**< remote pack infos */
-    PSnodes_ID_t *packFollower; /**< pack follower mother superior nodes */
     uint32_t numPackInfo;	/**< number of pack infos */
+    list_t packJobInfos;        /**< job infos of job pack (JobInfo_t) */
     bool leader;		/**< true if node is pack leader */
     X11_Data_t x11;             /**< (vanilla) X11 support */
     char *tresBind;             /**< TRes binding (currently env set only) */
@@ -174,7 +175,7 @@ typedef struct {
 /* helper variables, only used temporarily by specific functions */
     uint32_t rcvdPackInfos;	/**< number of received pack infos */
     uint32_t rcvdPackProcs;	/**< number of received pack processes */
-    ssize_t lastPackInfoOffset; /**< iterator variable for packInfo*/
+    list_t *jobInfoIter;        /**< iterator variable for packInfo*/
     list_t next;                /**< used to put into some step-lists */
 } Step_t;
 

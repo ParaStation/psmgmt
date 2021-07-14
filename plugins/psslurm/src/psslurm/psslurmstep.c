@@ -45,6 +45,7 @@ Step_t *addStep(void)
 
     INIT_LIST_HEAD(&step->tasks);
     INIT_LIST_HEAD(&step->remoteTasks);
+    INIT_LIST_HEAD(&step->packJobInfos);
     envInit(&step->env);
     envInit(&step->spankenv);
     envInit(&step->pelogueEnv);
@@ -208,14 +209,16 @@ bool deleteStep(uint32_t jobid, uint32_t stepid)
     }
     ufree(step->argv);
 
-    for (uint32_t i=0; i<step->numPackInfo; i++) {
-	for (uint32_t x=0; x<step->packInfo[i].argc; x++) {
-	    ufree(step->packInfo[i].argv[x]);
+    list_t *r, *tmp;
+    list_for_each_safe(r, tmp, &step->packJobInfos) {
+	JobInfo_t *cur = list_entry(r, JobInfo_t, next);
+	for (uint32_t x=0; x<cur->argc; x++) {
+	    ufree(cur->argv[x]);
 	}
-	ufree(step->packInfo[i].slots);
+	ufree(cur->slots);
+	list_del(&cur->next);
+	ufree(cur);
     }
-    ufree(step->packInfo);
-    ufree(step->packFollower);
 
     for (uint32_t i=0; i<step->spankOptCount; i++) {
 	ufree(step->spankOpt[i].optName);

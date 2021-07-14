@@ -587,13 +587,6 @@ static void handleLaunchTasks(Slurm_Msg_t *sMsg)
 
     if (step->leader) {
 	/* mother superior (pack leader) */
-	if (step->packJobid != NO_VAL) {
-	    /* allocate memory for pack infos from other mother superiors */
-	    step->packInfo = ucalloc(sizeof(*step->packInfo) *
-				    (step->packSize));
-	    step->packFollower = ucalloc(sizeof(PSnodes_ID_t) *
-					(step->packSize));
-	}
 
 	step->srunControlMsg.sock = sMsg->sock;
 	step->srunControlMsg.head.forward = sMsg->head.forward;

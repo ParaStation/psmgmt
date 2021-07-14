@@ -870,35 +870,30 @@ static void buildMpiexecArgs(Forwarder_Data_t *fwdata, strv_t *argV,
 	    }
 	} else {
 	    /* executables from job pack */
-	    int64_t last, offset = -1;
-	    uint32_t index = -1;
-	    for (uint32_t i = 0; i < step->numPackInfo; i++) {
-		/* find next pack task array index */
-		last = offset;
-		if (!findPackIndex(step, last, &offset, &index)) {
-		    flog("calculating task index %u for %s failed\n", i,
-			 strStepID(step));
-		    exit(1);
-		}
+	    list_t *r;
+	    bool first = true;
+	    list_for_each(r, &step->packJobInfos) {
+		JobInfo_t *cur = list_entry(r, JobInfo_t, next);
 
-		if (i) strvAdd(argV, ":");
+		if (!first) strvAdd(argV, ":");
+		first = false;
 
 		/* number of processes */
 		strvAdd(argV, ustrdup("-np"));
-		snprintf(buf, sizeof(buf), "%u", step->packInfo[index].np);
+		snprintf(buf, sizeof(buf), "%u", cur->np);
 		strvAdd(argV, ustrdup(buf));
 
 		/* threads per processes */
 		/* NOTE: Actually it is unnecessary to pass tpp since it is
 		 * ignored by psslurm reservation generation replacement code */
-		uint16_t tpp = step->packInfo[index].tpp;
+		uint16_t tpp = cur->tpp;
 		strvAdd(argV, ustrdup("-tpp"));
 		snprintf(buf, sizeof(buf), "%u", tpp);
 		strvAdd(argV, ustrdup(buf));
 
 		/* executable and arguments */
-		for (uint32_t j = 0; j < step->packInfo[index].argc; j++) {
-		    strvAdd(argV, step->packInfo[index].argv[j]);
+		for (uint32_t j = 0; j < cur->argc; j++) {
+		    strvAdd(argV, cur->argv[j]);
 		}
 	    }
 	}

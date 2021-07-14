@@ -33,6 +33,7 @@
 #include "psidspawn.h"
 #include "psidtask.h"
 #include "psidutil.h"
+#include "list.h"
 
 #include "pluginmalloc.h"
 #include "pluginhelper.h"
@@ -351,27 +352,11 @@ static bool genNodeSlotsArray(PSpart_slot_t **nodeslots, uint32_t *nrOfNodes,
 
 	addCPUsToSlotsArray(*nodeslots, *nrOfNodes, step->slots, step->np);
     } else {
-
-	int64_t last, offset = -1;
-
-	for (size_t i = 0; i < step->numPackInfo; i++) {
-	    last = offset;
-
-	    uint32_t index;
-	    if (!findPackIndex(step, last, &offset, &index)) {
-		flog("calculating task index %zu for %s failed\n", i,
-		     strStepID(step));
-		errno = EACCES;
-		ufree(nodeslots);
-		return false;
-	    }
-
-	    /* fill node slots array */
-	    addCPUsToSlotsArray(*nodeslots, *nrOfNodes,
-				step->packInfo[index].slots,
-				step->packInfo[index].np);
-	    logSlots(__func__,
-		    step->packInfo[index].slots, step->packInfo[index].np);
+	list_t *r;
+	list_for_each(r, &step->packJobInfos) {
+	    JobInfo_t *cur = list_entry(r, JobInfo_t, next);
+	    addCPUsToSlotsArray(*nodeslots, *nrOfNodes, cur->slots, cur->np);
+	    logSlots(__func__, cur->slots, cur->np);
 	}
     }
 
@@ -582,27 +567,24 @@ static int handleGetReservation(void *res) {
 	slots = step->slots + step->usedSlots;
 	step->usedSlots += nSlots;
     } else {
-	int64_t last;
-
 	/* start iteration if this is the first reservation for this job pack */
 	if (task->usedThreads == 0) {
-	    step->lastPackInfoOffset = -1;
+	    step->jobInfoIter = &step->packJobInfos;
 	}
 
-	fdbg(PSSLURM_LOG_PART, "usedThreads %d lastPackInfoOffset %zd\n",
-		task->usedThreads, step->lastPackInfoOffset);
-
-	last = step->lastPackInfoOffset;
-
-	uint32_t index;
-	if (!findPackIndex(step, last, &step->lastPackInfoOffset, &index)) {
-	    flog("calculating next task index for %s failed\n", strStepID(step));
-	    errno = EACCES;
+	step->jobInfoIter = step->jobInfoIter->next;
+	if (step->jobInfoIter == &step->packJobInfos) {
+	    flog("No jobinfo left for reservation %#x\n", r->rid);
 	    return 1;
 	}
 
-	nSlots = step->packInfo[index].np;
-	slots = step->packInfo[index].slots;
+	JobInfo_t *jobinfo = list_entry(step->jobInfoIter, JobInfo_t, next);
+
+	fdbg(PSSLURM_LOG_PART, "usedThreads %d firstRank %u\n",
+		task->usedThreads, jobinfo->firstRank);
+
+	nSlots = jobinfo->np;
+	slots = jobinfo->slots;
     }
 
     /* copy slots into reservation */
@@ -1336,6 +1318,29 @@ static void handlePackExit(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
 }
 
 /**
+ * @brief Insert pack job info into sorted list of infos in step
+ *
+ * JobInfo list is sorted by `firstRank`
+ *
+ * @param step  Step to insert to
+ * @param info  info object to insert
+ */
+void insertJobInfoToStep(Step_t *step, JobInfo_t *info)
+{
+    list_t *r;
+
+    list_for_each(r, &step->packJobInfos) {
+	JobInfo_t *cur = list_entry(r, JobInfo_t, next);
+	if (cur->firstRank > info->firstRank) {
+	    /* insert into list before current */
+	    list_add_tail(&info->next, r);
+	    return;
+	}
+    }
+    list_add_tail(&info->next, &step->packJobInfos);
+}
+
+/**
  * @brief Handle a pack info message
  *
  * This message is send from every pack follower (MS) nodes to the
@@ -1351,7 +1356,6 @@ static void handlePackInfo(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
 {
     char *ptr = data->buf;
     uint32_t packJobid, stepid, packAllocID, len;
-    PackInfos_t *rInfo;
     Alloc_t *alloc;
 
     /* packJobid  */
@@ -1388,11 +1392,12 @@ static void handlePackInfo(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
 	     step->numPackInfo, step->packSize, packJobid, stepid);
 	return;
     }
-    step->packFollower[step->numPackInfo] = PSC_getID(msg->header.sender);
-    rInfo = &step->packInfo[step->numPackInfo++];
 
-    /* pack task offset */
-    getUint32(&ptr, &rInfo->packTaskOffset);
+    JobInfo_t *rInfo = ucalloc(sizeof(*rInfo));
+    rInfo->followerID = PSC_getID(msg->header.sender);
+
+    /* pack task offset = first global rank of pack job */
+    getUint32(&ptr, &rInfo->firstRank);
     /* np */
     getUint32(&ptr, &rInfo->np);
     step->rcvdPackProcs += rInfo->np;
@@ -1401,10 +1406,12 @@ static void handlePackInfo(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
     /* argc/argv */
     getStringArrayM(&ptr, &rInfo->argv, &rInfo->argc);
 
-    step->rcvdPackInfos++;
+
+    insertJobInfoToStep(step, rInfo);
 
     /* debug print what we have right now, slots are printed
      *  inside the loop in getSlotsFromMsg() */
+    step->rcvdPackInfos++;
     fdbg(PSSLURM_LOG_PACK, "from %s for %s: pack info %u (now %u/%u"
 	    " pack procs): np %u tpp %hu argc %d slots:\n",
 	    PSC_printTID(msg->header.sender), strStepID(step),
@@ -2757,11 +2764,12 @@ int send_PS_PackExit(Step_t *step, int32_t exitStatus)
     PS_SendDB_t data;
     initFragBuffer(&data, PSP_PLUG_PSSLURM, PSP_PACK_EXIT);
 
-    uint32_t i;
     PStask_ID_t myID = PSC_getMyID();
-    for (i=0; i<step->numPackInfo; i++) {
-	if (step->packFollower[i] == myID) continue;
-	setFragDest(&data, PSC_getTID(step->packFollower[i], 0));
+    list_t *r;
+    list_for_each(r, &step->packJobInfos) {
+	JobInfo_t *cur = list_entry(r, JobInfo_t, next);
+	if (cur->followerID == myID) continue;
+	setFragDest(&data, PSC_getTID(cur->followerID, 0));
     }
 
     /* pack jobid */
@@ -2887,24 +2895,6 @@ void handleCachedMsg(Step_t *step)
 	}
     }
     deleteCachedMsg(step->jobid, step->stepid);
-}
-
-bool findPackIndex(Step_t *step, int64_t last, int64_t *offset, uint32_t *idx)
-{
-    uint32_t i;
-    bool found = false;
-
-    *offset = -1;
-    for (i=0; i<step->numPackInfo; i++) {
-	uint32_t off = step->packInfo[i].packTaskOffset;
-	if (off <= last) continue;
-	if (*offset == -1 || off < *offset) {
-	    *offset = off;
-	    *idx = i;
-	    found = true;
-	}
-    }
-    return found;
 }
 
 void sendPElogueOE(Alloc_t *alloc, PElogue_OEdata_t *oeData)
