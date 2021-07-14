@@ -3,6 +3,7 @@
  *
  * Copyright (C) 2002-2004 ParTec AG, Karlsruhe
  * Copyright (C) 2005-2021 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2021 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -20,6 +21,7 @@
 
 #include "list.h"
 #include "logging.h"
+#include "pscommon.h"
 
 #include "timer.h"
 
@@ -158,17 +160,12 @@ static int deleteTimer(Timer_t *timer)
 
     if (list_empty(&timerList)) {
 	/* list empty, i.e. last timer removed */
-	struct timeval timeout = { .tv_sec = 0, .tv_usec = 0 };
-	struct sigaction sa;
-
 	/* Set sigaction to default */
-	sa.sa_handler = SIG_DFL;
-	sigemptyset(&sa.sa_mask);
-	sa.sa_flags = 0;
-	if (sigaction(SIGALRM, &sa, 0)==-1) {
+	if (PSC_setSigHandler(SIGALRM, SIG_DFL) == SIG_ERR) {
 	    logger_exit(logger, errno, "%s: unable to set SIG_DFL", __func__);
 	}
 
+	struct timeval timeout = { .tv_sec = 0, .tv_usec = 0 };
 	rescaleActPeriods(&timeout);
     } else if (timercmp(&timer->timeout, &actPeriod, ==)) {
 	/* timer with actPeriod removed, search and set new one */
@@ -249,11 +246,6 @@ void Timer_setDebugMask(int32_t mask)
 
 void Timer_init(FILE* logfile)
 {
-    list_t *t, *tmp;
-
-    struct timeval timeout = { .tv_sec = 0, .tv_usec = 0 };
-    struct sigaction sa;
-
     logger = logger_init("Timer", logfile);
     if (!logger) {
 	if (logfile) {
@@ -265,20 +257,19 @@ void Timer_init(FILE* logfile)
     }
 
     /* (Re)set sigaction to default */
-    sa.sa_handler = SIG_DFL;
-    sigemptyset(&sa.sa_mask);
-    sa.sa_flags = 0;
-    if (sigaction(SIGALRM, &sa, 0)==-1) {
+    if (PSC_setSigHandler(SIGALRM, SIG_DFL) == SIG_ERR) {
 	logger_exit(logger, errno, "%s: unable to reset sigHandler", __func__);
     }
 
     /* Free all old timers, if any */
+    list_t *t, *tmp;
     list_for_each_safe(t, tmp, &timerList) {
 	Timer_t *timer = list_entry(t, Timer_t, next);
 	list_del(&timer->next);
 	free(timer);
     }
 
+    struct timeval timeout = { .tv_sec = 0, .tv_usec = 0 };
     rescaleActPeriods(&timeout);
 
     nextID = 1;
@@ -326,13 +317,7 @@ static int Timer_doRegister(struct timeval *timeout, handler_t handler,
 
     if (list_empty(&timerList)) {
 	/* first timer to register */
-	struct sigaction sa;
-
-	/* Set sigaction */
-	sa.sa_handler = sigHandler;
-	sigemptyset(&sa.sa_mask);
-	sa.sa_flags = 0;
-	if (sigaction(SIGALRM, &sa, 0)==-1) {
+	if (PSC_setSigHandler(SIGALRM, sigHandler) == SIG_ERR) {
 	    logger_exit(logger, errno,
 			"%s: unable to set sigHandler", __func__);
 	}
