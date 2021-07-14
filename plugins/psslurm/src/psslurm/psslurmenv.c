@@ -724,11 +724,11 @@ static void doUnset(char *env)
 }
 
 /**
- * @brief Set additional environment for an interactive step
+ * @brief Set additional environment for an interactive rank
  *
  * @param step The step to set the environment for
  */
-static void setInteractiveStepEnv(Step_t *step)
+static void setInteractiveRankEnv(Step_t *step)
 {
     char **env = environ;
     while (*env) {
@@ -753,13 +753,13 @@ static void setInteractiveStepEnv(Step_t *step)
 }
 
 /**
- * @brief Set additional environment for a normal step
+ * @brief Set additional environment for an ordinary rank
  *
  * @param rank The rank to set the environment for
  *
  * @param step The step to set the environment for
  */
-static void setNormalStepEnv(uint32_t rank, Step_t *step)
+static void setOrdinaryRankEnv(uint32_t rank, Step_t *step)
 {
     /* set cpu/memory bind env vars */
     setBindingEnvVars(step);
@@ -781,13 +781,13 @@ static void setNormalStepEnv(uint32_t rank, Step_t *step)
 }
 
 /**
- * @brief Set common environment for steps
+ * @brief Set common environment for a rank
  *
  * @param rank The rank to set the environment for
  *
  * @param step The step to set the environment for
  */
-static void setCommonStepEnv(int32_t rank, Step_t *step)
+static void setCommonRankEnv(int32_t rank, Step_t *step)
 {
     /* remove unwanted variables */
     unsetenv("PSI_INPUTDEST");
@@ -855,15 +855,15 @@ static void setCommonStepEnv(int32_t rank, Step_t *step)
 
 void setRankEnv(int32_t rank, Step_t *step)
 {
-    setCommonStepEnv(rank, step);
+    setCommonRankEnv(rank, step);
 
     Alloc_t *alloc = findAlloc(step->jobid);
     if (alloc) setPsslurmEnv(&alloc->env, NULL);
 
     if (step->stepid == SLURM_INTERACTIVE_STEP) {
-	return setInteractiveStepEnv(step);
+	return setInteractiveRankEnv(step);
     } else {
-	return setNormalStepEnv(rank, step);
+	return setOrdinaryRankEnv(rank, step);
     }
 }
 
