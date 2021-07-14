@@ -567,18 +567,22 @@ static int handleGetReservation(void *res) {
 	slots = step->slots + step->usedSlots;
 	step->usedSlots += nSlots;
     } else {
-	/* start iteration if this is the first reservation for this job pack */
-	if (task->usedThreads == 0) {
-	    step->jobInfoIter = &step->packJobInfos;
+	/* find jobinfo by reservation's first rank */
+	JobInfo_t *jobinfo = NULL;
+	list_t *l;
+	list_for_each(l, &step->packJobInfos) {
+	    JobInfo_t *cur = list_entry(l, JobInfo_t, next);
+	    if (cur->firstRank == r->firstRank) {
+		jobinfo = cur;
+		break;
+	    }
 	}
 
-	step->jobInfoIter = step->jobInfoIter->next;
-	if (step->jobInfoIter == &step->packJobInfos) {
-	    flog("No jobinfo left for reservation %#x\n", r->rid);
+	if (!jobinfo) {
+	    flog("No matching job info found for reservation %#x"
+		    " (firstRank %u)\n", r->rid, r->firstRank);
 	    return 1;
 	}
-
-	JobInfo_t *jobinfo = list_entry(step->jobInfoIter, JobInfo_t, next);
 
 	fdbg(PSSLURM_LOG_PART, "usedThreads %d firstRank %u\n",
 		task->usedThreads, jobinfo->firstRank);
@@ -1320,7 +1324,9 @@ static void handlePackExit(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
 /**
  * @brief Insert pack job info into sorted list of infos in step
  *
- * JobInfo list is sorted by `firstRank`
+ * JobInfo list is sorted by `firstRank`. This is needed later for putting
+ * together the mpiexec call in the correct order so each job will get the
+ * right rank range.
  *
  * @param step  Step to insert to
  * @param info  info object to insert
@@ -1405,7 +1411,6 @@ static void handlePackInfo(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
     getUint16(&ptr, &rInfo->tpp);
     /* argc/argv */
     getStringArrayM(&ptr, &rInfo->argv, &rInfo->argc);
-
 
     insertJobInfoToStep(step, rInfo);
 

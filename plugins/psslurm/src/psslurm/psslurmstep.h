@@ -175,7 +175,6 @@ typedef struct {
 /* helper variables, only used temporarily by specific functions */
     uint32_t rcvdPackInfos;	/**< number of received pack infos */
     uint32_t rcvdPackProcs;	/**< number of received pack processes */
-    list_t *jobInfoIter;        /**< iterator variable for packInfo*/
     list_t next;                /**< used to put into some step-lists */
 } Step_t;
 
