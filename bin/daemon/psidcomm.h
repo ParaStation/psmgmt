@@ -3,6 +3,7 @@
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
  * Copyright (C) 2005-2021 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2021 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -25,13 +26,20 @@
  * @brief Initialize communication stuff
  *
  * Initialize the communication handling framework. This includes
- * setting hashes for message handling and message dropping, and
- * initialization of message buffer handling and RDP message
- * handling. Furthermore, first message handling rules are set up.
+ * setting hashes for message handling and message
+ * dropping.
  *
- * @return No return value.
+ * Furthermore, if the flag @a registerMsgHandlers is true, first
+ * message handling rules are set up. These cover messages of types
+ * PSP_CD_ERROR, PSP_CD_INFORESPONSE, PSP_CD_SIGRES, PSP_CC_ERROR, and
+ * PSP_CD_UNKNOWN.
+ *
+ * @param registerMsgHandlers Flag to register a first set of message
+ * handlers
+ *
+ * @return No return value
  */
-void PSIDcomm_init(void);
+void PSIDcomm_init(bool registerMsgHandlers);
 
 /**
  * @brief Memory cleanup

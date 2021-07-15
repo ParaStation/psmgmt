@@ -1073,6 +1073,7 @@ static void clientInit(client_t *client)
 void PSIDclient_init(void)
 {
     PSIDFlwCntrl_init();
+    PSIDMsgbuf_init();
 
     if (clients) {
 	PSID_log(-1, "%s: already initialized\n", __func__);

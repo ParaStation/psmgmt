@@ -3,6 +3,7 @@
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
  * Copyright (C) 2005-2021 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2021 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -355,7 +356,7 @@ int PSID_handleMsg(DDBufferMsg_t *msg)
     return 0;
 }
 
-void PSIDcomm_init(void)
+void PSIDcomm_init(bool registerMsgHandlers)
 {
     if (!PSitems_isInitialized(handlerPool)) {
 	handlerPool = PSitems_new(sizeof(msgHandler_t), "msgHandlers");
@@ -363,14 +364,13 @@ void PSIDcomm_init(void)
     }
     initMsgHash();
 
-    PSIDMsgbuf_init();
-    initRDPMsgs();
-
-    PSID_registerMsg(PSP_CD_ERROR, NULL); /* silently ignore message */
-    PSID_registerMsg(PSP_CD_INFORESPONSE, condSendMsg);
-    PSID_registerMsg(PSP_CD_SIGRES, condSendMsg);
-    PSID_registerMsg(PSP_CC_ERROR, condSendMsg);
-    PSID_registerMsg(PSP_CD_UNKNOWN, condSendMsg);
+    if (registerMsgHandlers) {
+	PSID_registerMsg(PSP_CD_ERROR, NULL); /* silently ignore message */
+	PSID_registerMsg(PSP_CD_INFORESPONSE, condSendMsg);
+	PSID_registerMsg(PSP_CD_SIGRES, condSendMsg);
+	PSID_registerMsg(PSP_CC_ERROR, condSendMsg);
+	PSID_registerMsg(PSP_CD_UNKNOWN, condSendMsg);
+    }
 }
 
 void PSIDcomm_clearMem(void)

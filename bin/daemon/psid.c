@@ -705,8 +705,9 @@ int main(int argc, const char *argv[])
     PSID_initStarttime();
 
     /* initialize various modules */
-    PSIDcomm_init();  /* This has to be first since it gives msgHandler hash */
-
+    PSIDcomm_init(true);  /* Must be first since it enables message
+			   * handlers and droppers */
+    initRDPMsgs();
     PSIDclient_init();
     initState();
     initOptions();
