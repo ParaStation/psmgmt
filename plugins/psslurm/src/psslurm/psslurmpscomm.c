@@ -1254,15 +1254,16 @@ static void handleAllocState(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
 	 PSC_printTID(msg->header.sender));
 }
 
-static void getSlotsFromMsg(char **ptr, PSpart_slot_t **slots, uint32_t *len)
+static bool getSlotsFromMsg(char **ptr, PSpart_slot_t **slots, uint32_t *len)
 {
     uint16_t CPUbytes;
 
     getUint32(ptr, len);
 
     if (*len == 0) {
-	flog("No slots in message");
+	flog("No slots in message\n");
 	*slots = NULL;
+	return true;
     }
 
     getUint16(ptr, &CPUbytes);
@@ -1275,11 +1276,19 @@ static void getSlotsFromMsg(char **ptr, PSpart_slot_t **slots, uint32_t *len)
 
 	PSCPU_clrAll((*slots)[s].CPUset);
 	PSCPU_inject((*slots)[s].CPUset, *ptr, CPUbytes);
+
+	if (!PSCPU_any((*slots)[s].CPUset, CPUbytes * 8)) {
+	    flog("invalid message: empty slot found\n");
+	    ufree(*slots);
+	    return false;
+	}
+
 	*ptr += CPUbytes;
 	fdbg(PSSLURM_LOG_PACK, "slot %zu node %hd cpuset %s\n", s,
 		(*slots)[s].node,
 		PSCPU_print_part((*slots)[s].CPUset, CPUbytes));
     }
+    return true;
 }
 
 /**
@@ -1424,11 +1433,19 @@ static void handlePackInfo(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
 	    jobcomp->np, jobcomp->tpp, jobcomp->argc);
 
     /* slots */
-    getSlotsFromMsg(&ptr, &jobcomp->slots, &len);
+    if (!getSlotsFromMsg(&ptr, &jobcomp->slots, &len)) {
+	flog("Error getting slots from message\n");
+	ufree(jobcomp);
+	return;
+    }
     if (len != jobcomp->np) {
 	flog("length of slots list does not match number of processes"
 		" (%u != %u)\n", len, jobcomp->np);
+	ufree(jobcomp);
+	return;
     }
+
+    insertJobCompInfoToStep(step, jobcomp);
 
     /* test if we have all infos to start */
     if (step->rcvdPackProcs == step->packNtasks) {
