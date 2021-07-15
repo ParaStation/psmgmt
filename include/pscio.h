@@ -224,6 +224,15 @@ static inline ssize_t _PSCio_recvBuf(int fd, void *buffer, size_t toRecv,
  * errors or indefinitely if no @a rcvd argument is provided (i.e. is
  * set to NULL).
  *
+ * If @a timeout is given, it is passed to @ref select() in order to
+ * wait for a finite time. Once it expires this function will return
+ * to the caller regardless of the state of the message to be
+ * received. In this case errno will be set to ETIME.
+ *
+ * @warning Since @ref select() is used if @a timeout is given the
+ * caller must ensure that @a fd fits into the corresponding file
+ * descriptor sets, i.e. that @a fd < FD_SETSIZE holds.
+ *
  * @warning Since at the very bottom @ref read(2) is used for the
  * actual receive, special care has to be taken if a file descriptor
  * @a fd of type SOCK_DGRAM is passed to this function.
@@ -234,24 +243,34 @@ static inline ssize_t _PSCio_recvBuf(int fd, void *buffer, size_t toRecv,
  *
  * @param len Actual size provided by @a msg
  *
+ * @param timeout Time after which this functions returns regardless
+ * if a messsage was completely received. If @a timeout is NULL, this
+ * function might block indefinitely. Upon return this value will get
+ * updated and hold the remnant of the original timeout.
+ *
  * @param rcvd Total number of bytes received upon return
  *
  * @return Returns the number of bytes received, 0 if the file
  * descriptor closed or -1 on error; in the latter cases the number of
  * bytes received and stored to @a msg anyhow is reported in @a rcvd
  */
-ssize_t PSCio_recvMsgFunc(int fd, DDBufferMsg_t *msg, size_t len, size_t *rcvd);
+ssize_t PSCio_recvMsgFunc(int fd, DDBufferMsg_t *msg, size_t len,
+			  struct timeval *timeout, size_t *rcvd);
 
 /** Standard message receive */
 #define PSCio_recvMsg(fd, msg)			\
-    PSCio_recvMsgFunc(fd, msg, sizeof(DDBufferMsg_t), NULL)
+    PSCio_recvMsgFunc(fd, msg, sizeof(DDBufferMsg_t), NULL, NULL)
 
 /** Receive message of size different from DDBufferMsg_t */
 #define PSCio_recvMsgSize(fd, msg, len)		\
-    PSCio_recvMsgFunc(fd, msg, len, NULL)
+    PSCio_recvMsgFunc(fd, msg, len, NULL, NULL)
 
 /** Receive message with progress */
 #define PSCio_recvMsgProg(fd, msg, len, rcvd)	\
-    PSCio_recvMsgFunc(fd, msg, len, rcvd)
+    PSCio_recvMsgFunc(fd, msg, len, NULL, rcvd)
+
+/** Receive message with timeout */
+#define PSCio_recvMsgT(fd, msg, tmout)				\
+    PSCio_recvMsgFunc(fd, (DDBufferMsg_t *)msg, sizeof(*msg), tmout, NULL)
 
 #endif  /* __PSCIO_H */

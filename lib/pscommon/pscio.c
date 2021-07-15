@@ -8,10 +8,11 @@
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-#include <unistd.h>
 #include <errno.h>
 #include <fcntl.h>
+#include <sys/select.h>
 #include <time.h>
+#include <unistd.h>
 
 #include "pscommon.h"
 
@@ -114,7 +115,8 @@ void dropTail(int fd, size_t tailSize)
     }
 }
 
-ssize_t PSCio_recvMsgFunc(int fd, DDBufferMsg_t *msg, size_t len, size_t *rcvd)
+ssize_t PSCio_recvMsgFunc(int fd, DDBufferMsg_t *msg, size_t len,
+			  struct timeval *timeout, size_t *rcvd)
 {
     if (len < sizeof(msg->header)) {
 	/* we need at least space for the header */
@@ -130,13 +132,38 @@ ssize_t PSCio_recvMsgFunc(int fd, DDBufferMsg_t *msg, size_t len, size_t *rcvd)
 	indefinite = true;
     }
 
+    if (timeout) {
+	fd_set rfds;
+
+    restart:
+	FD_ZERO(&rfds);
+	FD_SET(fd, &rfds);
+	int n = select(fd + 1, &rfds, NULL, NULL, timeout);
+	if (n < 0) {
+	    switch (errno) {
+	    case EINTR:
+		/* Interrupted syscall, just start again */
+		goto restart;
+		break;
+	    default:
+		return n;
+	    }
+	}
+	if (!n) {
+	    errno = ETIME;
+	    return -1;
+	}
+    }
+
     /* Try to first read the header only */
     ssize_t ret = PSCio_recvBufFunc(fd, msg, sizeof(msg->header), rcvd,
 				    __func__, true, indefinite, true);
     if (ret < 0) {
-	if (errno != ECONNRESET) {
-	    PSC_warn(-1, errno, "%s: PSCio_recvBufFunc(header)", __func__);
+	int eno = errno;
+	if (eno != ECONNRESET) {
+	    PSC_warn(-1, eno, "%s: PSCio_recvBufFunc(header)", __func__);
 	}
+	errno = eno;
 	return ret;
     } else if (!ret) return ret;
 
@@ -153,7 +180,9 @@ ssize_t PSCio_recvMsgFunc(int fd, DDBufferMsg_t *msg, size_t len, size_t *rcvd)
     ret = PSCio_recvBufFunc(fd, msg, msg->header.len, rcvd,
 			    __func__, true, indefinite, true);
     if (ret < 0) {
-	PSC_warn(-1, errno, "%s: PSCio_recvBufFunc(body)", __func__);
+	int eno = errno;
+	PSC_warn(-1, eno, "%s: PSCio_recvBufFunc(body)", __func__);
+	errno = eno;
     }
 
     return ret;
