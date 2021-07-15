@@ -252,19 +252,26 @@ static void logHWthreads(const char* prefix,
  *
  * This appends the threads of each slot to the end of the threads array.
  *
- * @param threads    IN/OUT array to extend (resized using urealloc())
+ * @param threads    IN/OUT array to extend (resized using realloc())
  * @param numThreads OUT Number of entries in threads
  * @param slots      IN  Slots array to use
  * @param num        IN  Number of entries in slots
+ *
+ * @return True on success, false else and errno set
  */
-static void addThreadsToArray(PSpart_HWThread_t **threads, uint32_t *numThreads,
+static bool addThreadsToArray(PSpart_HWThread_t **threads, uint32_t *numThreads,
 	PSpart_slot_t *slots, uint32_t num)
 {
     for (size_t s = 0; s < num; s++) {
 	*numThreads += PSCPU_getCPUs(slots[s].CPUset, NULL, PSCPU_MAX);
     }
 
-    *threads = urealloc(*threads, *numThreads * sizeof(**threads));
+    PSpart_HWThread_t *tmp = realloc(*threads, *numThreads * sizeof(**threads));
+    if (!tmp) {
+	errno = ENOMEM;
+	return false;
+    }
+    *threads = tmp;
 
     size_t t = 0;
     for (size_t s = 0; s < num; s++) {
@@ -277,6 +284,7 @@ static void addThreadsToArray(PSpart_HWThread_t **threads, uint32_t *numThreads,
 	    }
 	}
     }
+    return true;
 }
 
 /**
@@ -290,16 +298,17 @@ static void addThreadsToArray(PSpart_HWThread_t **threads, uint32_t *numThreads,
  * @param threads    OUT generated array (use ufree() to free)
  * @param numThreads OUT Number of entries in threads
  * @param step       IN  Step to use
+ *
+ * @return True on success, false else and errno set
  */
-static void genThreadsArray(PSpart_HWThread_t **threads, uint32_t *numThreads,
+static bool genThreadsArray(PSpart_HWThread_t **threads, uint32_t *numThreads,
 	Step_t *step)
 {
     *numThreads = 0;
     *threads = NULL;
 
     if (step->packJobid == NO_VAL) {
-	addThreadsToArray(threads, numThreads, step->slots, step->np);
-	return;
+	return addThreadsToArray(threads, numThreads, step->slots, step->np);
     }
 
     /* add slots from each sister pack job
@@ -309,7 +318,7 @@ static void genThreadsArray(PSpart_HWThread_t **threads, uint32_t *numThreads,
 	JobCompInfo_t *cur = list_entry(r, JobCompInfo_t, next);
 	addThreadsToArray(threads, numThreads, cur->slots, cur->np);
     }
-    return;
+    return true;
 }
 
 /**
@@ -358,7 +367,10 @@ static int handleCreatePart(void *msg)
     }
 
     /* generate hardware threads array */
-    genThreadsArray(&task->partThrds, &task->totalThreads, step);
+    if (!genThreadsArray(&task->partThrds, &task->totalThreads, step)) {
+	mwarn(errno, "%s: Could not generate threads array: ", __func__);
+	goto error;
+    }
 
     logHWthreads(__func__, task->partThrds, task->totalThreads);
 
