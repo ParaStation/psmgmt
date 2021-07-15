@@ -310,6 +310,8 @@ int PSID_dropMsg(DDBufferMsg_t *msg)
     return 0;
 }
 
+static ssize_t(*sendMsgFunc)(void *) = &sendMsg;
+
 int PSID_handleMsg(DDBufferMsg_t *msg)
 {
     list_t *h;
@@ -340,6 +342,9 @@ int PSID_handleMsg(DDBufferMsg_t *msg)
     PSID_log(-1, "%s: no handler for type %#x (%s)\n", __func__,
 	     msg->header.type, PSDaemonP_printMsg(msg->header.type));
 
+    /* Check if CD_UNKNOWN messages shall be emitted */
+    if (!sendMsgFunc) return 0;
+
     DDBufferMsg_t err = {
 	.header = {
 	    .type = PSP_CD_UNKNOWN,
@@ -349,7 +354,7 @@ int PSID_handleMsg(DDBufferMsg_t *msg)
 	.buf = { '\0' }};
     PSP_putMsgBuf(&err, "dest", &msg->header.dest, sizeof(msg->header.dest));
     PSP_putMsgBuf(&err, "type", &msg->header.type, sizeof(msg->header.type));
-    if (sendMsg(&err) == -1 && errno != EWOULDBLOCK) {
+    if (sendMsgFunc(&err) == -1 && errno != EWOULDBLOCK) {
 	PSID_warn(-1, errno, "%s: sendMsg()", __func__);
     }
 
@@ -371,6 +376,11 @@ void PSIDcomm_init(bool registerMsgHandlers)
 	PSID_registerMsg(PSP_CC_ERROR, condSendMsg);
 	PSID_registerMsg(PSP_CD_UNKNOWN, condSendMsg);
     }
+}
+
+void PSIDcomm_registerSendMsgFunc(ssize_t sendFunc(void *))
+{
+    sendMsgFunc = sendFunc;
 }
 
 void PSIDcomm_clearMem(void)

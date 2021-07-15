@@ -198,6 +198,23 @@ handlerFunc_t PSID_clearMsg(int32_t msgType);
 int PSID_handleMsg(DDBufferMsg_t *msg);
 
 /**
+ * @brief Set function to send PSP_CD_UNKNOWN messages
+ *
+ * The central protocol switch @ref PSID_handleMsg() might try to emit
+ * error messages of type PSP_CD_UNKNOWN in order to signal the sender
+ * that the messages could not be handled. The default is to use @ref
+ * sendMsg() for that. If @ref PSID_handleMsg() is used outside the
+ * daemon, this will be unsuitable. Therefore, a non-standard send
+ * function can be registered or NULL in order to suppress such
+ * messages at all.
+ *
+ * @param sendFunc The function used to send PSP_CD_UNKNOWN messages
+ *
+ * @return No return value
+ */
+void PSIDcomm_registerSendMsgFunc(ssize_t sendFunc(void *));
+
+/**
  * @brief Register message dropper function
  *
  * Register the function @a dropper to handle dropping of messages of
