@@ -1,3 +1,380 @@
+Version psmgmt-5.1.43:
+======================
+------------------------------------------------------------------------
+37d2fe49 | Norbert Eicker | Wed, 14 Jul 2021 21:57:55 +0200
+
+Remove obsolete function prototype (and docu)
+------------------------------------------------------------------------
+fcb9e55a | Stephan Krempel | Wed, 14 Jul 2021 18:26:54 +0200
+
+psslurm: Avoid global interation over job infos
+------------------------------------------------------------------------
+175fb802 | Stephan Krempel | Wed, 14 Jul 2021 15:09:09 +0200
+
+psslurm: Manage job infos in list but array
+------------------------------------------------------------------------
+6d97e0c8 | Michael Rauh | Wed, 14 Jul 2021 16:23:56 +0200
+
+Improve function names
+------------------------------------------------------------------------
+97eaba55 | Michael Rauh | Wed, 14 Jul 2021 15:46:42 +0200
+
+Set GRes job environment for interactive steps
+------------------------------------------------------------------------
+518ff308 | Stephan Krempel | Mon, 5 Jul 2021 11:46:32 +0200
+
+psslurm: Correct logging for GPU bind with interactive jobs
+------------------------------------------------------------------------
+7c0ca9d9 | Michael Rauh | Mon, 5 Jul 2021 11:30:32 +0200
+
+With disabled PMI layer there is no need to filter
+PMI and PMIX environment variables for interactive steps
+------------------------------------------------------------------------
+436f6f56 | Stephan Krempel | Fri, 2 Jul 2021 12:55:05 +0200
+
+psslurm: Ignore PMI type for interactive steps and use "none"
+------------------------------------------------------------------------
+9337a107 | Stephan Krempel | Fri, 2 Jul 2021 10:49:39 +0200
+
+Fix typo in function name
+------------------------------------------------------------------------
+de8eacc6 | Stephan Krempel | Fri, 2 Jul 2021 10:44:08 +0200
+
+psslurm: Assign all GPUs allocated to interactive steps
+
+This might be redundant, since Slurm seems never to assign GRES to
+interactive steps, but it does no harm to double check.
+------------------------------------------------------------------------
+036fc524 | Stephan Krempel | Fri, 2 Jul 2021 10:43:36 +0200
+
+psslurm: Set CPU pinning for interactive steps to "none"
+------------------------------------------------------------------------
+e75f87cd | Michael Rauh | Thu, 1 Jul 2021 14:32:06 +0200
+
+Add PMIX variables to filter for interactive steps
+------------------------------------------------------------------------
+001012d1 | Norbert Eicker | Thu, 1 Jul 2021 00:05:19 +0200
+
+Streamlining
+------------------------------------------------------------------------
+b499ddef | Michael Rauh | Wed, 30 Jun 2021 16:49:35 +0200
+
+Cleanup environment for interactive steps (#16)
+
+ * also remove obsolete SLURM_CHECKPOINT_IMAGE_DIR
+------------------------------------------------------------------------
+636497a7 | Norbert Eicker | Fri, 9 Jul 2021 00:21:41 +0200
+
+Bugfix: Do not prevent signal delivery in hetjobs
+------------------------------------------------------------------------
+3ce97143 | Norbert Eicker | Thu, 8 Jul 2021 22:26:50 +0200
+
+Improve logging
+------------------------------------------------------------------------
+4f645332 | Norbert Eicker | Thu, 8 Jul 2021 22:03:15 +0200
+
+Bugfix: Don't send signal twice on scancel
+------------------------------------------------------------------------
+832fb0b7 | Michael Rauh | Wed, 14 Jul 2021 17:52:28 +0200
+
+Bugfix: make psgw option --gw_debug work with --gw_psgwd_per_node
+------------------------------------------------------------------------
+7b384712 | Norbert Eicker | Tue, 13 Jul 2021 14:14:27 +0200
+
+Booleanize and fix log message
+------------------------------------------------------------------------
+805975eb | Michael Rauh | Tue, 13 Jul 2021 10:19:06 +0200
+
+Minor streamlining
+------------------------------------------------------------------------
+498e5edd | Michael Rauh | Tue, 13 Jul 2021 10:04:55 +0200
+
+Bugfix: let psslurm report the real memory of the
+local node in Megabytes
+------------------------------------------------------------------------
+348ff620 | Stephan Krempel | Tue, 13 Jul 2021 01:48:26 +0200
+
+psslurm: Fix partition creation for job packs
+------------------------------------------------------------------------
+b14bbcac | Stephan Krempel | Tue, 13 Jul 2021 01:40:57 +0200
+
+psslurm: Replace meaningless value in partition logging
+------------------------------------------------------------------------
+96aa9660 | Norbert Eicker | Mon, 12 Jul 2021 15:22:26 +0200
+
+Let psslurm's own logger log to psid's logfile, too
+------------------------------------------------------------------------
+88ee1637 | Norbert Eicker | Tue, 18 May 2021 00:39:47 +0200
+
+Pass psid's log destination to plugins
+------------------------------------------------------------------------
+cb6311e8 | Norbert Eicker | Fri, 9 Jul 2021 23:53:33 +0200
+
+Streamlining
+------------------------------------------------------------------------
+3195acbb | Norbert Eicker | Fri, 9 Jul 2021 22:47:31 +0200
+
+Remove useless checks and inits + streamlining
+------------------------------------------------------------------------
+e2f39285 | Norbert Eicker | Fri, 9 Jul 2021 22:46:35 +0200
+
+Use strncpy() instead of strcpy() + streamlining
+------------------------------------------------------------------------
+0fb0ab32 | Norbert Eicker | Fri, 9 Jul 2021 22:42:52 +0200
+
+Fix memory leak + streamlining
+------------------------------------------------------------------------
+55ca7a3a | Norbert Eicker | Fri, 9 Jul 2021 22:40:39 +0200
+
+Improve documentation comments
+------------------------------------------------------------------------
+cdd45499 | Norbert Eicker | Fri, 9 Jul 2021 00:55:08 +0200
+
+Get rid of static buffer
+------------------------------------------------------------------------
+f2713cc3 | Norbert Eicker | Fri, 9 Jul 2021 00:54:32 +0200
+
+Get rid of useless optimization
+------------------------------------------------------------------------
+44a4dfeb | Stephan Krempel | Thu, 8 Jul 2021 13:00:28 +0200
+
+Remove sorting of reservation list in job struct
+
+We do not really need this sorting.
+------------------------------------------------------------------------
+73a7cd94 | Stephan Krempel | Thu, 8 Jul 2021 12:49:17 +0200
+
+pspmix: Support start of jobs with multiple apps
+
+This enables support for mpiexec's colon-notation used to
+start multiple executables in one allocation.
+
+Multiple reservations can now be handled by one namespace. Thus the
+namespace name changed and no longer includes the reservation id.
+------------------------------------------------------------------------
+79da3583 | Stephan Krempel | Thu, 8 Jul 2021 12:37:00 +0200
+
+pspmix: Introduce log mask for process mapping and rework format
+------------------------------------------------------------------------
+cb047ce7 | Stephan Krempel | Thu, 8 Jul 2021 12:31:18 +0200
+
+pspmix: Rework FIND_IN_LIST_FUNC macro and use more widely
+------------------------------------------------------------------------
+ca99f92c | Stephan Krempel | Wed, 7 Jul 2021 02:18:37 +0200
+
+Let spawner set PMIX_APPSIZE_n and __PMIX_RESID_n for each app
+
+We do need these information to setup the namespace on
+PMIx server startup as soon as the first spawn request
+is handled on each node.
+------------------------------------------------------------------------
+539495af | Stephan Krempel | Wed, 7 Jul 2021 02:07:18 +0200
+
+Fix typo
+------------------------------------------------------------------------
+edc93d88 | Stephan Krempel | Mon, 5 Jul 2021 15:17:42 +0200
+
+Distribute reservations to all nodes in partition
+
+Distribute reservation at creation time to all nodes inwolved in
+the related partition. On each node, the reservations are stored
+in the related job as list sorted by reservation id.
+------------------------------------------------------------------------
+d9199f0f | Stephan Krempel | Wed, 30 Jun 2021 13:13:55 +0200
+
+pspmix: Use PMIX_PROC_[CONSTRUCT,LOAD,DESTRUCT] macros
+------------------------------------------------------------------------
+206e07cf | Stephan Krempel | Wed, 30 Jun 2021 12:49:11 +0200
+
+pspmix: Use PMIX_CHECK_NSPACE and PMIX_CHECK_KEY macros
+------------------------------------------------------------------------
+0143c728 | Stephan Krempel | Wed, 30 Jun 2021 12:46:23 +0200
+
+pspmix: Only print env in registerNamespace with PSPMIX_LOG_ENV
+------------------------------------------------------------------------
+feec8aab | Stephan Krempel | Fri, 25 Jun 2021 16:01:54 +0200
+
+pspmix: Support multiple apps for colon notation support
+------------------------------------------------------------------------
+013c7ec5 | Stephan Krempel | Wed, 16 Jun 2021 15:32:32 +0200
+
+pspmix: Add some commenting
+------------------------------------------------------------------------
+2f30a0a1 | Stephan Krempel | Wed, 16 Jun 2021 14:43:08 +0200
+
+Add convenience macros for serialization of environment
+------------------------------------------------------------------------
+55f8d092 | Michael Rauh | Fri, 9 Jul 2021 17:16:52 +0200
+
+Bugfix: make RPC REQUEST_JOB_NOTIFY compatible with Slurm 20.11
+------------------------------------------------------------------------
+6d391472 | Norbert Eicker | Wed, 30 Jun 2021 23:55:58 +0200
+
+Save unnecessary realloc()
+------------------------------------------------------------------------
+536c8b93 | Norbert Eicker | Wed, 30 Jun 2021 22:51:50 +0200
+
+Simplify getBindMapFromString()'s logic
+------------------------------------------------------------------------
+b13bcb66 | Norbert Eicker | Wed, 30 Jun 2021 09:44:05 +0200
+
+Avoid a few detours
+------------------------------------------------------------------------
+fd535e59 | Stephan Krempel | Thu, 24 Jun 2021 13:48:08 +0200
+
+psslurm: Add support for --gpu-bind=map_gpu
+------------------------------------------------------------------------
+867a519e | Stephan Krempel | Thu, 24 Jun 2021 13:29:00 +0200
+
+psslurm: Fix using the same hw thread multiple times
+
+By using pre node compressed partition slots instead of the original
+step slots created by the pinning to generate the partition threads
+it was not possible to put multiple processes to the same hardware
+threads using explicite pinning with --cpu-bind=map_cpu. Fixes that.
+------------------------------------------------------------------------
+5a23622c | Stephan Krempel | Thu, 24 Jun 2021 12:05:16 +0200
+
+psslurm: Avoid very large threads arrays in pinning  error case
+------------------------------------------------------------------------
+c4a03f7d | Stephan Krempel | Fri, 18 Jun 2021 12:52:01 +0200
+
+psslurm: Rework map string parsing and support multiplying '*'
+------------------------------------------------------------------------
+95ff036c | Norbert Eicker | Tue, 6 Jul 2021 18:59:17 +0200
+
+Add NVIDIA Tesla V100 SXM2 32GB to nodeinfo config
+------------------------------------------------------------------------
+489cb1cd | Norbert Eicker | Thu, 1 Jul 2021 23:13:04 +0200
+
+Introduce PSCio_sendSProg() for send in PSIDclient
+
+ - This shall help with parastation/psmgmt#18
+------------------------------------------------------------------------
+1b7331eb | Michael Rauh | Fri, 2 Jul 2021 15:26:06 +0200
+
+Allow to change the GRes options via reconfigure
+------------------------------------------------------------------------
+cd322ba4 | Michael Rauh | Fri, 2 Jul 2021 15:25:27 +0200
+
+Resend the node status to slurmctld after reconfigure
+------------------------------------------------------------------------
+3a135101 | Michael Rauh | Fri, 2 Jul 2021 15:06:03 +0200
+
+Remove unused SlurmGresConfig list
+------------------------------------------------------------------------
+e87eb56c | Norbert Eicker | Fri, 18 Jun 2021 15:09:29 +0200
+
+Improve log messages
+------------------------------------------------------------------------
+a5a1c7d7 | Michael Rauh | Fri, 18 Jun 2021 10:12:04 +0200
+
+Ensure the slurmctld address does not get spoiled by a
+configuration update
+
+ - to change the slurmctld address a psslurm restart is required
+------------------------------------------------------------------------
+d8c9fdd9 | Michael Rauh | Wed, 16 Jun 2021 14:39:19 +0200
+
+Add support for RPC REQUEST_RECONFIGURE_WITH_CONFIG and
+REQUEST_RECONFIGURE
+------------------------------------------------------------------------
+bac3b164 | Norbert Eicker | Wed, 23 Jun 2021 00:06:14 +0200
+
+Fix #include and whitespace
+------------------------------------------------------------------------
+8bed5a52 | Michael Rauh | Fri, 4 Jun 2021 16:51:59 +0200
+
+Bugfix: allow PAM SSH connections when cpuacc module is loaded
+------------------------------------------------------------------------
+4a161d70 | Michael Rauh | Fri, 4 Jun 2021 16:19:54 +0200
+
+Prevent jail plugin from spamming the log
+------------------------------------------------------------------------
+7fb851a5 | Stephan Krempel | Wed, 26 May 2021 14:36:05 +0200
+
+psslurm: Fix creation of HWthreads for jobs and steps
+------------------------------------------------------------------------
+5bf457e9 | Stephan Krempel | Wed, 26 May 2021 14:20:19 +0200
+
+psslurm: Streamlining
+------------------------------------------------------------------------
+cf9510ce | Stephan Krempel | Wed, 26 May 2021 14:13:48 +0200
+
+psslurm: Add debugging output in getCompactThreadList()
+------------------------------------------------------------------------
+5e692aa2 | Stephan Krempel | Wed, 26 May 2021 13:57:42 +0200
+
+psslurm: Fix creation of compact thread list
+------------------------------------------------------------------------
+e1c925ad | Stephan Krempel | Wed, 26 May 2021 11:51:39 +0200
+
+psslurm: Rename CPU env variables and leave in user env
+
+* Rename __PSSLURM_STEP_CPU_MAP to PSSLURM_STEP_CPUS
+* Rename __PSSLURM_JOB_CPU_MAP to PSSLURM_JOB_CPUS
+* Leave the variables in users environment
+------------------------------------------------------------------------
+54fb22ba | Stephan Krempel | Wed, 26 May 2021 11:09:23 +0200
+
+psslurm: Fix setting jobHWthreads
+------------------------------------------------------------------------
+d9837a46 | Stephan Krempel | Tue, 25 May 2021 16:18:28 +0200
+
+Use const qualifier in psenv functions
+------------------------------------------------------------------------
+d655bb3a | Stephan Krempel | Tue, 25 May 2021 12:03:19 +0200
+
+psslurm: Fix nodeinfo init with missing step
+------------------------------------------------------------------------
+7974f76d | Michael Rauh | Fri, 21 May 2021 16:27:27 +0200
+
+Fix typos
+------------------------------------------------------------------------
+726bfe29 | Norbert Eicker | Thu, 20 May 2021 22:28:01 +0200
+
+Enhance comments
+------------------------------------------------------------------------
+92cf7886 | Norbert Eicker | Thu, 20 May 2021 22:19:20 +0200
+
+Push to automake 1.16.3
+------------------------------------------------------------------------
+2b374dd5 | Norbert Eicker | Thu, 20 May 2021 22:11:14 +0200
+
+Streamlining
+------------------------------------------------------------------------
+a58fc337 | Stephan Krempel | Thu, 20 May 2021 11:19:57 +0200
+
+psslurm: Add STEP_CPUS to main jail script
+------------------------------------------------------------------------
+c4e569e2 | Stephan Krempel | Mon, 17 May 2021 15:00:41 +0200
+
+psslurm: Refactor node information handling
+
+- Extract nodeinfo from psslurmpin to psslurmnodeinfo
+- Add array of nodeinfos to job and step structs
+- Set cgroups environment variables correctly using nodeinfos
+- Rename __PSSLURM_JOB_CORE_BITMAP to __PSSLURM_JOB_CPU_MAP
+- Rename __PSSLURM_STEP_CORE_BITMAP to __PSSLURM_STEP_CPU_MAP
+- Remove now obsolete core bitmaps from job and step structs
+------------------------------------------------------------------------
+064c3f86 | Stephan Krempel | Fri, 30 Apr 2021 04:21:20 +0200
+
+psslurm: Streamlining pinning code
+------------------------------------------------------------------------
+3007e2a4 | Stephan Krempel | Fri, 30 Apr 2021 03:57:18 +0200
+
+psslurm: Streamlining
+------------------------------------------------------------------------
+9abe5e63 | Stephan Krempel | Fri, 30 Apr 2021 03:53:59 +0200
+
+psslurm: Use some clearer variable names in JobCred_t
+
+coreArraySize -> nodeArraySize
+sockCoreRepCount -> nodeRepCount
+------------------------------------------------------------------------
+
+
 Version psmgmt-5.1.42-1:
 ========================
 ------------------------------------------------------------------------

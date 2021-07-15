@@ -6,6 +6,35 @@ Copyright (C) 2021 ParTec AG, Munich
 Please send bug reports, questions and suggestions to <support@par-tec.com>
 
 
+Version 5.1.43:
+===============
+Bugfixes:
+ - Let psslurm report the real memory of the local node in Megabytes
+ - Fix partition creation for job packs in psslurm
+ - Allow PAM SSH connections when cpuacc module is loaded
+ - Make RPC REQUEST_JOB_NOTIFY compatible with Slurm 20.11
+ - Make psgw option --gw_debug work with --gw_psgwd_per_node
+ - Don't send signal twice on scancel
+ - Do not prevent signal delivery in hetjobs
+Enhancements:
+ - Support interactive steps (#16)
+ - Add support for --gpu-bind=map_gpu in psslurm
+ - Add support for RPC REQUEST_RECONFIGURE_WITH_CONFIG and REQUEST_RECONFIGURE
+ - Support hetjobs in pspmix
+   * For this, distribute reservations to all nodes in partition
+ - Rework map string parsing and support multiplying '*' in psslurm
+ - Rename CPU env variables and leave in user env
+   * Rename __PSSLURM_STEP_CORE_BITMAP to PSSLURM_STEP_CPUS
+   * Rename __PSSLURM_JOB_CORE_BITMAP to PSSLURM_JOB_CPUS
+ - Pass psid's log destination to plugins
+Additional changes:
+ - Add STEP_CPUS to main jail script
+ - Prevent jail plugin from spamming the log
+ - psslurm now manages job infos in list but array
+ - Utilize different PMIX-macros within the code
+ - Add NVIDIA Tesla V100 SXM2 32GB to nodeinfo config
+
+
 Version 5.1.42-1:
 =================
 Bugfix:
