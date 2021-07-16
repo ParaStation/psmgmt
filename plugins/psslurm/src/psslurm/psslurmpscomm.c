@@ -353,8 +353,8 @@ static bool genNodeSlotsArray(PSpart_slot_t **nodeslots, uint32_t *nrOfNodes,
 	addCPUsToSlotsArray(*nodeslots, *nrOfNodes, step->slots, step->np);
     } else {
 	list_t *r;
-	list_for_each(r, &step->packJobInfos) {
-	    JobInfo_t *cur = list_entry(r, JobInfo_t, next);
+	list_for_each(r, &step->jobCompInfos) {
+	    JobCompInfo_t *cur = list_entry(r, JobCompInfo_t, next);
 	    addCPUsToSlotsArray(*nodeslots, *nrOfNodes, cur->slots, cur->np);
 	    logSlots(__func__, cur->slots, cur->np);
 	}
@@ -567,28 +567,28 @@ static int handleGetReservation(void *res) {
 	slots = step->slots + step->usedSlots;
 	step->usedSlots += nSlots;
     } else {
-	/* find jobinfo by reservation's first rank */
-	JobInfo_t *jobinfo = NULL;
-	list_t *l;
-	list_for_each(l, &step->packJobInfos) {
-	    JobInfo_t *cur = list_entry(l, JobInfo_t, next);
+	/* find job component info by reservation's first rank */
+	JobCompInfo_t *compinfo = NULL;
+	list_t *c;
+	list_for_each(c, &step->jobCompInfos) {
+	    JobCompInfo_t *cur = list_entry(c, JobCompInfo_t, next);
 	    if (cur->firstRank == r->firstRank) {
-		jobinfo = cur;
+		compinfo = cur;
 		break;
 	    }
 	}
 
-	if (!jobinfo) {
-	    flog("No matching job info found for reservation %#x"
+	if (!compinfo) {
+	    flog("No matching job component info found for reservation %#x"
 		    " (firstRank %u)\n", r->rid, r->firstRank);
 	    return 1;
 	}
 
 	fdbg(PSSLURM_LOG_PART, "usedThreads %d firstRank %u\n",
-		task->usedThreads, jobinfo->firstRank);
+		task->usedThreads, compinfo->firstRank);
 
-	nSlots = jobinfo->np;
-	slots = jobinfo->slots;
+	nSlots = compinfo->np;
+	slots = compinfo->slots;
     }
 
     /* copy slots into reservation */
@@ -1331,19 +1331,19 @@ static void handlePackExit(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
  * @param step  Step to insert to
  * @param info  info object to insert
  */
-void insertJobInfoToStep(Step_t *step, JobInfo_t *info)
+void insertJobCompInfoToStep(Step_t *step, JobCompInfo_t *info)
 {
-    list_t *r;
+    list_t *c;
 
-    list_for_each(r, &step->packJobInfos) {
-	JobInfo_t *cur = list_entry(r, JobInfo_t, next);
+    list_for_each(c, &step->jobCompInfos) {
+	JobCompInfo_t *cur = list_entry(c, JobCompInfo_t, next);
 	if (cur->firstRank > info->firstRank) {
 	    /* insert into list before current */
-	    list_add_tail(&info->next, r);
+	    list_add_tail(&info->next, c);
 	    return;
 	}
     }
-    list_add_tail(&info->next, &step->packJobInfos);
+    list_add_tail(&info->next, &step->jobCompInfos);
 }
 
 /**
@@ -1399,20 +1399,20 @@ static void handlePackInfo(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
 	return;
     }
 
-    JobInfo_t *rInfo = ucalloc(sizeof(*rInfo));
-    rInfo->followerID = PSC_getID(msg->header.sender);
+    JobCompInfo_t *jobcomp = ucalloc(sizeof(*jobcomp));
+    jobcomp->followerID = PSC_getID(msg->header.sender);
 
-    /* pack task offset = first global rank of pack job */
-    getUint32(&ptr, &rInfo->firstRank);
+    /* job component task offset = first global rank of pack job */
+    getUint32(&ptr, &jobcomp->firstRank);
     /* np */
-    getUint32(&ptr, &rInfo->np);
-    step->rcvdPackProcs += rInfo->np;
+    getUint32(&ptr, &jobcomp->np);
+    step->rcvdPackProcs += jobcomp->np;
     /* tpp */
-    getUint16(&ptr, &rInfo->tpp);
+    getUint16(&ptr, &jobcomp->tpp);
     /* argc/argv */
-    getStringArrayM(&ptr, &rInfo->argv, &rInfo->argc);
+    getStringArrayM(&ptr, &jobcomp->argv, &jobcomp->argc);
 
-    insertJobInfoToStep(step, rInfo);
+    insertJobCompInfoToStep(step, jobcomp);
 
     /* debug print what we have right now, slots are printed
      *  inside the loop in getSlotsFromMsg() */
@@ -1421,13 +1421,13 @@ static void handlePackInfo(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
 	    " pack procs): np %u tpp %hu argc %d slots:\n",
 	    PSC_printTID(msg->header.sender), strStepID(step),
 	    step->rcvdPackInfos, step->rcvdPackProcs, step->packNtasks,
-	    rInfo->np, rInfo->tpp, rInfo->argc);
+	    jobcomp->np, jobcomp->tpp, jobcomp->argc);
 
     /* slots */
-    getSlotsFromMsg(&ptr, &rInfo->slots, &len);
-    if (len != rInfo->np) {
+    getSlotsFromMsg(&ptr, &jobcomp->slots, &len);
+    if (len != jobcomp->np) {
 	flog("length of slots list does not match number of processes"
-		" (%u != %u)\n", len, rInfo->np);
+		" (%u != %u)\n", len, jobcomp->np);
     }
 
     /* test if we have all infos to start */
@@ -2770,9 +2770,9 @@ int send_PS_PackExit(Step_t *step, int32_t exitStatus)
     initFragBuffer(&data, PSP_PLUG_PSSLURM, PSP_PACK_EXIT);
 
     PStask_ID_t myID = PSC_getMyID();
-    list_t *r;
-    list_for_each(r, &step->packJobInfos) {
-	JobInfo_t *cur = list_entry(r, JobInfo_t, next);
+    list_t *c;
+    list_for_each(c, &step->jobCompInfos) {
+	JobCompInfo_t *cur = list_entry(c, JobCompInfo_t, next);
 	if (cur->followerID == myID) continue;
 	setFragDest(&data, PSC_getTID(cur->followerID, 0));
     }

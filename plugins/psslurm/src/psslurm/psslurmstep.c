@@ -45,7 +45,7 @@ Step_t *addStep(void)
 
     INIT_LIST_HEAD(&step->tasks);
     INIT_LIST_HEAD(&step->remoteTasks);
-    INIT_LIST_HEAD(&step->packJobInfos);
+    INIT_LIST_HEAD(&step->jobCompInfos);
     envInit(&step->env);
     envInit(&step->spankenv);
     envInit(&step->pelogueEnv);
@@ -209,9 +209,9 @@ bool deleteStep(uint32_t jobid, uint32_t stepid)
     }
     ufree(step->argv);
 
-    list_t *r, *tmp;
-    list_for_each_safe(r, tmp, &step->packJobInfos) {
-	JobInfo_t *cur = list_entry(r, JobInfo_t, next);
+    list_t *c, *tmp;
+    list_for_each_safe(c, tmp, &step->jobCompInfos) {
+	JobCompInfo_t *cur = list_entry(c, JobCompInfo_t, next);
 	for (uint32_t x=0; x<cur->argc; x++) {
 	    ufree(cur->argv[x]);
 	}

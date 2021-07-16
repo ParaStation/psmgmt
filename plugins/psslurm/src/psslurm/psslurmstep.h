@@ -40,7 +40,7 @@ typedef struct {
     PSpart_slot_t *slots;           /**< CPUs to use (length is np) */
     uint32_t firstRank;             /**< first global task rank */
     PSnodes_ID_t followerID;        /**< pack follower mother superior node */
-} JobInfo_t;
+} JobCompInfo_t;
 
 typedef struct {
     uint16_t x11;               /**< flag to use (vanilla) X11 forwarding */
@@ -167,7 +167,7 @@ typedef struct {
     char *packHostlist;		/**< pack host-list (Slurm compressed) */
     PSnodes_ID_t *packNodes;	/**< all participating nodes in the pack */
     uint32_t numPackInfo;	/**< number of pack infos */
-    list_t packJobInfos;        /**< job infos of job pack (JobInfo_t) */
+    list_t jobCompInfos;        /**< job infos of job pack (JobCompInfo_t) */
     bool leader;		/**< true if node is pack leader */
     X11_Data_t x11;             /**< (vanilla) X11 support */
     char *tresBind;             /**< TRes binding (currently env set only) */
@@ -175,6 +175,7 @@ typedef struct {
 /* helper variables, only used temporarily by specific functions */
     uint32_t rcvdPackInfos;	/**< number of received pack infos */
     uint32_t rcvdPackProcs;	/**< number of received pack processes */
+    list_t *jobCompInfoIter;    /**< iterator variable for packJobInfo*/
     list_t next;                /**< used to put into some step-lists */
 } Step_t;
 

@@ -870,10 +870,10 @@ static void buildMpiexecArgs(Forwarder_Data_t *fwdata, strv_t *argV,
 	    }
 	} else {
 	    /* executables from job pack */
-	    list_t *r;
+	    list_t *c;
 	    bool first = true;
-	    list_for_each(r, &step->packJobInfos) {
-		JobInfo_t *cur = list_entry(r, JobInfo_t, next);
+	    list_for_each(c, &step->jobCompInfos) {
+		JobCompInfo_t *cur = list_entry(c, JobCompInfo_t, next);
 
 		if (!first) strvAdd(argV, ":");
 		first = false;
