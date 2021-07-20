@@ -368,7 +368,7 @@ static int handleCreatePart(void *msg)
 
     /* generate hardware threads array */
     if (!genThreadsArray(&task->partThrds, &task->totalThreads, step)) {
-	mwarn(errno, "%s: Could not generate threads array: ", __func__);
+	mwarn(errno, "%s: Could not generate threads array", __func__);
 	goto error;
     }
 
@@ -834,7 +834,7 @@ void send_PS_JobExit(uint32_t jobid, uint32_t stepid, uint32_t numDest,
 
 	msg.header.dest = PSC_getTID(nodes[n], 0);
 	if (sendMsg(&msg) == -1 && errno != EWOULDBLOCK) {
-	    mwarn(errno, "%s: sending msg to %s failed ", __func__,
+	    mwarn(errno, "%s: sendMsg(%s)", __func__,
 		  PSC_printTID(msg.header.dest));
 	}
     }
@@ -861,7 +861,7 @@ void send_PS_EpilogueLaunch(Alloc_t *alloc)
 
 	msg.header.dest = PSC_getTID(alloc->nodes[n], 0);
 	if (sendMsg(&msg) == -1 && errno != EWOULDBLOCK) {
-	    mwarn(errno, "%s: sending msg to %s failed ", __func__,
+	    mwarn(errno, "%s: sendMsg(%s)", __func__,
 		  PSC_printTID(msg.header.dest));
 	}
     }
@@ -885,7 +885,7 @@ void send_PS_EpilogueStateReq(Alloc_t *alloc)
 	if (!alloc->epilogRes[n]) {
 	    msg.header.dest = PSC_getTID(alloc->nodes[n], 0);
 	    if (sendMsg(&msg) == -1 && errno != EWOULDBLOCK) {
-		mwarn(errno, "%s: sending msg to %s failed ", __func__,
+		mwarn(errno, "%s: sendMsg(%s)", __func__,
 		      PSC_printTID(msg.header.dest));
 	    }
 	}
@@ -911,7 +911,7 @@ void send_PS_EpilogueRes(Alloc_t *alloc, int16_t res)
 
     /* send the messages */
     if (sendMsg(&msg) == -1 && errno != EWOULDBLOCK) {
-	mwarn(errno, "%s: sending msg to %s failed ", __func__,
+	mwarn(errno, "%s: sendMsg(%s)", __func__,
 	      PSC_printTID(msg.header.dest));
     }
 }
@@ -992,7 +992,7 @@ static void send_PS_EpilogueStateRes(PStask_ID_t dest, uint32_t id,
     PSP_putTypedMsgBuf(&msg, "res", &res, sizeof(res));
 
     if (sendMsg(&msg) == -1 && errno != EWOULDBLOCK) {
-	mwarn(errno, "%s: sending msg to %s failed ", __func__,
+	mwarn(errno, "%s: sendMsg(%s)", __func__,
 	      PSC_printTID(msg.header.dest));
     }
 }
@@ -1539,7 +1539,7 @@ static void handlePElogueOE(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
     if (stat(buf, &st) == -1) {
 	if (mkdir(buf, S_IRWXU) == -1) {
 	    if (errno != EEXIST) {
-		mwarn(errno, "mkdir(%s) failed: ", buf);
+		mwarn(errno, "mkdir(%s)", buf);
 		return;
 	    }
 	}
@@ -2089,9 +2089,8 @@ static void handleSpawnFailed(DDErrorMsg_t *msg)
     PStask_t *forwarder = NULL;
     uint32_t jobid, stepid;
 
-    mwarn(msg->error, "%s: spawn failed: forwarder %s rank %i errno %i",
-	  __func__, PSC_printTID(msg->header.sender),
-	  msg->request, msg->error);
+    mwarn(msg->error, "%s: spawn (forwarder %s rank %i errno %i)", __func__,
+	  PSC_printTID(msg->header.sender), msg->request, msg->error);
 
     if (!getJobIDbyForwarder(msg->header.sender, &forwarder, &jobid, &stepid)) {
 	goto FORWARD_SPAWN_FAILED_MSG;
@@ -2638,7 +2637,7 @@ static bool initHostLT(void)
     /* create hash table to search for hostnames */
     size_t hsize = numHostLT + (int)ceil((numHostLT/100.0)*30);
     if (!hcreate_r(hsize, &HostHash)) {
-	mwarn(errno, "%s: hcreate(%zu) failed: ", __func__, hsize);
+	mwarn(errno, "%s: hcreate(%zu)", __func__, hsize);
 	goto ERROR;
     }
     ENTRY e, *f;
@@ -2647,8 +2646,7 @@ static bool initHostLT(void)
 	e.key = HostLT[z].hostname;
 	e.data = &HostLT[z].nodeID;
 	if (!hsearch_r(e, ENTER, &f, &HostHash)) {
-	    mwarn(errno, "%s: hsearch(%s, ENTER) failed: ", __func__,
-		  HostLT[z].hostname);
+	    mwarn(errno, "%s: hsearch(%s, ENTER)", __func__,HostLT[z].hostname);
 	    hdestroy_r(&HostHash);
 	    goto ERROR;
 	}
