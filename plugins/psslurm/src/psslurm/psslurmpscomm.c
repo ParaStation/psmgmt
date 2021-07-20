@@ -1370,8 +1370,6 @@ static void handlePackInfo(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
     /* argc/argv */
     getStringArrayM(&ptr, &jobcomp->argv, &jobcomp->argc);
 
-    insertJobCompInfoToStep(step, jobcomp);
-
     /* debug print what we have right now, slots are printed
      *  inside the loop in getSlotsFromMsg() */
     step->rcvdPackInfos++;
