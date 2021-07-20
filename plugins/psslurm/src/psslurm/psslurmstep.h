@@ -42,6 +42,20 @@ typedef struct {
     PSnodes_ID_t followerID;        /**< pack follower mother superior node */
 } JobCompInfo_t;
 
+/**
+ * @brief Delete job component
+ *
+ * Delete the job component @a jobComp and clean all memory allocated
+ * by it. Ensure that @a jobComp is not part of any list any longer
+ * when passing it to this function. Otherwise this list will be
+ * broken.
+ *
+ * @param jobComp Pointer to the job component to delete
+ *
+ * @return No return value
+ */
+void deleteJobComp(JobCompInfo_t *jobComp);
+
 typedef struct {
     uint16_t x11;               /**< flag to use (vanilla) X11 forwarding */
     char *magicCookie;          /**< magic auth cookie */

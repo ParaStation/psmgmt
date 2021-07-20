@@ -1229,6 +1229,7 @@ static bool getSlotsFromMsg(char **ptr, PSpart_slot_t **slots, uint32_t *len)
 	if (!PSCPU_any((*slots)[s].CPUset, CPUbytes * 8)) {
 	    flog("invalid message: empty slot found\n");
 	    ufree(*slots);
+	    *slots = NULL;
 	    return false;
 	}
 
@@ -1382,13 +1383,13 @@ static void handlePackInfo(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
     /* slots */
     if (!getSlotsFromMsg(&ptr, &jobcomp->slots, &len)) {
 	flog("Error getting slots from message\n");
-	ufree(jobcomp);
+	deleteJobComp(jobcomp);
 	return;
     }
     if (len != jobcomp->np) {
 	flog("length of slots list does not match number of processes"
-		" (%u != %u)\n", len, jobcomp->np);
-	ufree(jobcomp);
+	     " (%u != %u)\n", len, jobcomp->np);
+	deleteJobComp(jobcomp);
 	return;
     }
 
