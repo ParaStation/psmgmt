@@ -257,7 +257,7 @@ static void logHWthreads(const char* prefix,
  * @param slots      IN  Slots array to use
  * @param num        IN  Number of entries in slots
  *
- * @return True on success, false else and errno set
+ * @return true on success and false on error with errno set
  */
 static bool addThreadsToArray(PSpart_HWThread_t **threads, uint32_t *numThreads,
 	PSpart_slot_t *slots, uint32_t num)
@@ -299,7 +299,7 @@ static bool addThreadsToArray(PSpart_HWThread_t **threads, uint32_t *numThreads,
  * @param numThreads OUT Number of entries in threads
  * @param step       IN  Step to use
  *
- * @return True on success, false else and errno set
+ * @return true on success and false on error with errno set
  */
 static bool genThreadsArray(PSpart_HWThread_t **threads, uint32_t *numThreads,
 	Step_t *step)
