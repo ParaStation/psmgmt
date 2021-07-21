@@ -155,7 +155,7 @@ handlerFunc_t PSID_clearDropper(int32_t msgType)
 ssize_t sendMsg(void *amsg)
 {
     DDMsg_t *msg = (DDMsg_t *)amsg;
-    ssize_t ret;
+    ssize_t ret = 0;
     bool isRDP = false;
     char *sender;
 
@@ -176,8 +176,10 @@ ssize_t sendMsg(void *amsg)
 
     if (msg->dest == PSC_getMyTID()) { /* myself */
 	sender = "handleMsg";
-	ret = PSID_handleMsg((DDBufferMsg_t *) msg) - 1;
-	if (ret) errno = EINVAL;
+	if (!PSID_handleMsg((DDBufferMsg_t *) msg)) {
+	    ret = -1;
+	    errno = EINVAL;
+	}
     } else if (PSC_getID(msg->dest) == PSC_getMyID()) { /* my own node */
 	if (msg->type < 0x0100) {          /* PSP_CD_* message */
 	    sender = "PSIDclient_send";
@@ -185,8 +187,10 @@ ssize_t sendMsg(void *amsg)
 	} else {                           /* PSP_DD_* message */
 	    /* Daemon message */
 	    sender = "handleMsg";
-	    ret = PSID_handleMsg((DDBufferMsg_t *) msg) - 1;
-	    if (ret) errno = EINVAL;
+	    if (!PSID_handleMsg((DDBufferMsg_t *) msg)) {
+		ret = -1;
+		errno = EINVAL;
+	    }
 	}
     } else if (PSC_validNode(PSC_getID(msg->dest))) {
 	sender = "sendRDP";
@@ -312,53 +316,54 @@ int PSID_dropMsg(DDBufferMsg_t *msg)
 
 static ssize_t(*sendMsgFunc)(void *) = &sendMsg;
 
-int PSID_handleMsg(DDBufferMsg_t *msg)
+bool PSID_handleMsg(DDBufferMsg_t *msg)
 {
-    list_t *h;
-
     if (!hashesInitialized) PSID_exit(EPERM, "%s: not initialized", __func__);
 
     if (!msg) {
 	PSID_log(-1, "%s: msg is NULL\n", __func__);
 	errno = EINVAL;
-	return 0;
+	return false;
     }
 
     if (msg->header.type < 0) {
 	PSID_log(-1, "%s: Illegal msgtype %d\n", __func__, msg->header.type);
 	errno = EINVAL;
-	return 0;
+	return false;
     }
 
+    list_t *h;
     list_for_each (h, &msgHash[msg->header.type%HASH_SIZE]) {
 	msgHandler_t *msgHandler = list_entry(h, msgHandler_t, next);
 
 	if (msgHandler->msgType == msg->header.type) {
 	    if (msgHandler->handler) msgHandler->handler(msg);
-	    return 1;
+	    return true;
 	}
     }
 
     PSID_log(-1, "%s: no handler for type %#x (%s)\n", __func__,
 	     msg->header.type, PSDaemonP_printMsg(msg->header.type));
 
-    /* Check if CD_UNKNOWN messages shall be emitted */
-    if (!sendMsgFunc) return 0;
-
-    DDBufferMsg_t err = {
-	.header = {
-	    .type = PSP_CD_UNKNOWN,
-	    .dest = msg->header.sender,
-	    .sender = PSC_getMyTID(),
-	    .len = sizeof(err.header) },
-	.buf = { '\0' }};
-    PSP_putMsgBuf(&err, "dest", &msg->header.dest, sizeof(msg->header.dest));
-    PSP_putMsgBuf(&err, "type", &msg->header.type, sizeof(msg->header.type));
-    if (sendMsgFunc(&err) == -1 && errno != EWOULDBLOCK) {
-	PSID_warn(-1, errno, "%s: sendMsg()", __func__);
+    /* Emit CD_UNKNOWN messages if not suppressed */
+    if (sendMsgFunc) {
+	DDBufferMsg_t errMsg = {
+	    .header = {
+		.type = PSP_CD_UNKNOWN,
+		.dest = msg->header.sender,
+		.sender = PSC_getMyTID(),
+		.len = sizeof(errMsg.header) },
+	    .buf = { '\0' }};
+	PSP_putMsgBuf(&errMsg, "dest", &msg->header.dest,
+		      sizeof(msg->header.dest));
+	PSP_putMsgBuf(&errMsg, "type", &msg->header.type,
+		      sizeof(msg->header.type));
+	if (sendMsgFunc(&errMsg) == -1 && errno != EWOULDBLOCK) {
+	    PSID_warn(-1, errno, "%s: sendMsg()", __func__);
+	}
     }
 
-    return 0;
+    return false;
 }
 
 void PSIDcomm_init(bool registerMsgHandlers)

@@ -195,7 +195,7 @@ handlerFunc_t PSID_clearMsg(int32_t msgType);
  *
  * @see PSID_registerMsg(), PSID_clearMsg()
  */
-int PSID_handleMsg(DDBufferMsg_t *msg);
+bool PSID_handleMsg(DDBufferMsg_t *msg);
 
 /**
  * @brief Set function to send PSP_CD_UNKNOWN messages
