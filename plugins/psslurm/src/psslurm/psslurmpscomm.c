@@ -262,6 +262,8 @@ static void logHWthreads(const char* prefix,
 static bool addThreadsToArray(PSpart_HWThread_t **threads, uint32_t *numThreads,
 	PSpart_slot_t *slots, uint32_t num)
 {
+    size_t t = *numThreads; /* index variable */
+
     for (size_t s = 0; s < num; s++) {
 	*numThreads += PSCPU_getCPUs(slots[s].CPUset, NULL, PSCPU_MAX);
     }
@@ -273,7 +275,6 @@ static bool addThreadsToArray(PSpart_HWThread_t **threads, uint32_t *numThreads,
     }
     *threads = tmp;
 
-    size_t t = 0;
     for (size_t s = 0; s < num; s++) {
 	for (size_t cpu = 0; cpu < PSCPU_MAX; cpu++) {
 	    if (PSCPU_isSet(slots[s].CPUset, cpu)) {
