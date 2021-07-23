@@ -40,6 +40,9 @@
 /** comma-sep. list of users always allowed to connect; set via PAM options*/
 static char *authUsers = NULL;
 
+/** comma-sep. list of grouops always allowed to connect; set via PAM options*/
+static char *authGroups = NULL;
+
 /** verbosity level of this module; set via PAM options*/
 static int verbose = 0;
 
@@ -104,6 +107,12 @@ static int parseModuleOptions(int argc, const char **argv)
 	    if (sscanf(value, "%i", &quiet) != 1) {
 		elog("invalid quiet option: '%s'", value);
 	    }
+	} else if (!strcmp(key, "auth_groups")) {
+	    authGroups = strdup(value);
+	    if (!authGroups) {
+		free(key);
+		return PAM_BUF_ERR;
+	    }
 	} else {
 	    elog("ignore unknown module option: '%s' - '%s'", key, value);
 	}
@@ -114,16 +123,66 @@ static int parseModuleOptions(int argc, const char **argv)
 
 static bool isAuthorizedUser(const char *username)
 {
-    char *next, *toksave;
-    const char delimiter[] = ",";
+    if (!username) {
+	elog("%s: invalid username given\n", __func__);
+	return false;
+    }
 
-    if (!username || !authUsers) return false;
+    /* check authorized users */
+    if (authUsers) {
+	const char delimiter[] = ",";
+	char *toksave;
+	char *next = strtok_r(authUsers, delimiter, &toksave);
 
-    next = strtok_r(authUsers, delimiter, &toksave);
+	while (next) {
+	    if (!strcmp(username, next)) return true;
+	    next = strtok_r(NULL, delimiter, &toksave);
+	}
+    }
 
-    while (next) {
-	if (!strcmp(username, next)) return true;
-	next = strtok_r(NULL, delimiter, &toksave);
+    /* check authorized groups */
+    if (authGroups) {
+	/* first retrieve all groups the user is a member in */
+	struct passwd *pw = getpwnam(username);
+	if (!pw) {
+	    elog("%s: getpwnam(%s) failed: %s\n", __func__, username,
+		 strerror(errno));
+	    return false;
+	}
+
+	int ngroups = NGROUPS_MAX;
+	gid_t *groups = malloc(sizeof(*groups) * ngroups);
+	if (!groups) {
+	    elog("%s: out of memory for groups\n", __func__);
+	    return false;
+	}
+
+	if (getgrouplist(username, pw->pw_gid, groups, &ngroups) == -1) {
+	    elog("%s: getgrouplist(%s) failed: ngroups = %d\n", __func__,
+		 username, ngroups);
+	    return false;
+	}
+
+	/* loop over all authorized groups and check if the user is a member
+	 * in it */
+	const char delimiter[] = ",";
+	char *toksave;
+	char *next = strtok_r(authGroups, delimiter, &toksave);
+
+	while (next) {
+	    struct group *gr = getgrnam(next);
+
+	    for (int i=0; i<ngroups; i++) {
+		if (gr->gr_gid == groups[i]) {
+		    if (verbose >2) {
+			ilog("%s: user %s in group %s", __func__, username,
+			     next);
+		    }
+		    return true;
+		}
+	    }
+	    next = strtok_r(NULL, delimiter, &toksave);
+	}
     }
 
     return false;
@@ -440,7 +499,8 @@ pam_sm_open_session(pam_handle_t *pamh, int flags, int argc, const char **argv)
     ret = checkAllowance(uName, rhost);
 
     /* free allocated memory */
-    if (authUsers) free(authUsers);
+    free(authUsers);
+    free(authGroups);
 
     return ret;
 }
@@ -465,7 +525,8 @@ pam_sm_close_session(pam_handle_t *pamh, int flags, int argc, const char **argv)
     if (!isAuthorizedUser(uName)) informPlugin(uName, rhost);
 
     /* free allocated memory */
-    if (authUsers) free(authUsers);
+    free(authUsers);
+    free(authGroups);
 
     return PAM_SUCCESS;
 }
