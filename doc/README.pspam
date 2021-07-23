@@ -56,7 +56,8 @@ Each line in a service's configuration file consists of four tokens:
 An example line for the pspam module looks as follows:
 
 session [module_unknown=ignore success=ok new_authtok_reqd=ok \
-	ignore=ignore default=bad]  pam_pspam.so auth_users=root,partec
+	ignore=ignore default=bad]  pam_pspam.so auth_users=root,partec \
+	auth_groups=admin
 
 Let's discuss the single tokens:
 
@@ -86,7 +87,7 @@ Since the pam_pspam module is installed in the system's default module
 location it is sufficient to use just its filename here.
 
 
-<module-arguments>=auth_users=root,partec
+<module-arguments>=auth_users=root,partec auth_groups=admin
 
 module-arguments are passed to the PAM module and will be evaluated
 there. the pam_pspam module can handle the following arguments:
@@ -94,6 +95,10 @@ there. the pam_pspam module can handle the following arguments:
  - auth_users: The argument holds a comma-separated list of
    usernames. Users listed here are allowed to access the node
    independently of running jobs.
+
+ - auth_groups: The argument holds a comma-separated list of
+   groups. Users which are members of the groups listed here are
+   allowed to access the node independently of running jobs.
 
  - verbose: Make pam_pspam more verbose. Only values up to 4 are
    meaningful. Default is 0.
