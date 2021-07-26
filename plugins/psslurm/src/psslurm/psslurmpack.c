@@ -2048,7 +2048,7 @@ bool __unpackExtRespNodeReg(Slurm_Msg_t *sMsg, Ext_Resp_Node_Reg_t **respPtr,
 
     char **ptr = &sMsg->ptr;
 
-    Ext_Resp_Node_Reg_t *resp = umalloc(sizeof(*resp));
+    Ext_Resp_Node_Reg_t *resp = ucalloc(sizeof(*resp));
 
     getUint32(ptr, &resp->count);
     resp->entry = umalloc(sizeof(*resp->entry) * resp->count);
