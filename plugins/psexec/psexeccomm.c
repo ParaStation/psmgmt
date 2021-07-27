@@ -368,6 +368,6 @@ bool initComm(void)
 void finalizeComm(void)
 {
     PSID_clearMsg(PSP_PLUG_PSEXEC);
-    PSID_clearDropper(PSP_PLUG_PSSLURM);
+    PSID_clearDropper(PSP_PLUG_PSEXEC);
     finalizeSerial();
 }
