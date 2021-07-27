@@ -160,6 +160,7 @@ static bool isAuthorizedUser(const char *username)
 	if (getgrouplist(username, pw->pw_gid, groups, &ngroups) == -1) {
 	    elog("%s: getgrouplist(%s) failed: ngroups = %d\n", __func__,
 		 username, ngroups);
+	    free(groups);
 	    return false;
 	}
 
@@ -178,11 +179,13 @@ static bool isAuthorizedUser(const char *username)
 			ilog("%s: user %s in group %s", __func__, username,
 			     next);
 		    }
+		    free(groups);
 		    return true;
 		}
 	    }
 	    next = strtok_r(NULL, delimiter, &toksave);
 	}
+	free(groups);
     }
 
     return false;
