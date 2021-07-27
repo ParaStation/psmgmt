@@ -296,6 +296,8 @@ void cleanup(void)
     /* unregister psgw msg */
     PSID_clearMsg(PSP_PLUG_PSGW);
 
+    clrPartMsg();
+
     Request_clear();
 
     psPelogueDelPluginConfig("psgw");
