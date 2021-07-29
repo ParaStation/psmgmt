@@ -2,6 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2010-2021 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2021 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -30,18 +31,11 @@
 #include "psaccountcomm.h"
 
 /**
- * Standard handler for accouting msgs (initialized during
- * registration of our private handler)
- */
-static handlerFunc_t origHandler = NULL;
-
-/**
- * @brief Convert the int acc msg type to string.
+ * @brief Convert the int acc msg type to string
  *
  * @param type The int msg type to convert.
  *
- * @return Returns the found string msg type or
-     * NULL on error.
+ * @return Returns the found string msg type or "UNKNOWN" on error
  */
 static const char *getAccountMsgType(int type)
 {
@@ -296,7 +290,7 @@ static void handleAccountChild(DDTypedBufferMsg_t *msg)
     client->rank = rank;
 }
 
-static void handlePSMsg(DDTypedBufferMsg_t *msg)
+static bool handlePSMsg(DDTypedBufferMsg_t *msg)
 {
     if (msg->header.dest == PSC_getMyTID()) {
 	/* message for me, let's get infos and forward to all accounters */
@@ -329,7 +323,7 @@ static void handlePSMsg(DDTypedBufferMsg_t *msg)
     }
 
     /* forward msg to accounting daemons */
-    if (origHandler) origHandler((DDBufferMsg_t *) msg);
+    return false;
 }
 
 /*************** Messages between psaccount plugins ***************/
@@ -529,7 +523,7 @@ static void handleAggDataFinish(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
     finishAggData(msg->header.sender, logger);
 }
 
-static void handleInterAccount(DDTypedBufferMsg_t *msg)
+static bool handleInterAccount(DDTypedBufferMsg_t *msg)
 {
     switch (msg->type) {
     case PSP_ACCOUNT_ENABLE_UPDATE:
@@ -554,6 +548,7 @@ static void handleInterAccount(DDTypedBufferMsg_t *msg)
 	mlog("%s: unknown msg type %i received form %s\n", __func__, msg->type,
 	     PSC_printTID(msg->header.sender));
     }
+    return true;
 }
 
 int switchAccounting(PStask_ID_t clientTID, bool enable)
@@ -577,18 +572,16 @@ bool initAccComm(void)
 {
     initSerial(0, sendMsg);
 
-    origHandler = PSID_registerMsg(PSP_CD_ACCOUNT, (handlerFunc_t) handlePSMsg);
-    PSID_registerMsg(PSP_PLUG_ACCOUNT, (handlerFunc_t) handleInterAccount);
+    PSID_registerMsg(PSP_CD_ACCOUNT, (handlerFunc_t)handlePSMsg);
+    PSID_registerMsg(PSP_PLUG_ACCOUNT, (handlerFunc_t)handleInterAccount);
 
     return true;
 }
 
 void finalizeAccComm(void)
 {
-    PSID_clearMsg(PSP_CD_ACCOUNT);
-    if (origHandler) PSID_registerMsg(PSP_CD_ACCOUNT, origHandler);
-
-    PSID_clearMsg(PSP_PLUG_ACCOUNT);
+    PSID_clearMsg(PSP_CD_ACCOUNT, (handlerFunc_t)handlePSMsg);
+    PSID_clearMsg(PSP_PLUG_ACCOUNT, (handlerFunc_t)handleInterAccount);
 
     finalizeSerial();
 }

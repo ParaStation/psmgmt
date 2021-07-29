@@ -42,9 +42,6 @@ int version = 2;
 int requiredAPI = 130;
 plugin_dep_t dependencies[] = { { NULL, 0 } };
 
-/** Backup of handler for PSP_PLUG_NODEINFO messages */
-static handlerFunc_t handlerBackup = NULL;
-
 static void addCPUMapData(PS_SendDB_t *data)
 {
     int16_t numThrds = PSIDnodes_getNumThrds(PSC_getMyID());
@@ -373,9 +370,10 @@ static void checkOtherNodes(void)
     sendFragMsg(&data);
 }
 
-static void handleNodeInfoMsg(DDBufferMsg_t *msg)
+static bool handleNodeInfoMsg(DDBufferMsg_t *msg)
 {
     recvFragMsg((DDTypedBufferMsg_t *)msg, handleNodeInfoData);
+    return true;
 }
 
 /** List of PCIe IDs identifying GPU devices */
@@ -626,7 +624,10 @@ int initialize(FILE *logfile)
 	goto INIT_ERROR;
     }
 
-    handlerBackup = PSID_registerMsg(PSP_PLUG_NODEINFO, handleNodeInfoMsg);
+    if (!PSID_registerMsg(PSP_PLUG_NODEINFO, handleNodeInfoMsg)) {
+	mlog("%s: register 'PSP_PLUG_NODEINFO' handler failed\n", __func__);
+	goto INIT_ERROR;
+    }
 
     mlog("(%i) successfully started\n", version);
 
@@ -636,7 +637,7 @@ int initialize(FILE *logfile)
     return 0;
 
 INIT_ERROR:
-    PSID_clearMsg(PSP_PLUG_NODEINFO);
+    PSID_clearMsg(PSP_PLUG_NODEINFO, handleNodeInfoMsg);
     unregisterHooks(false);
     finalizeSerial();
     finalizeNodeInfoConfig();
@@ -647,11 +648,7 @@ INIT_ERROR:
 
 void cleanup(void)
 {
-    if (handlerBackup) {
-	PSID_registerMsg(PSP_PLUG_NODEINFO, handlerBackup);
-    } else {
-	PSID_clearMsg(PSP_PLUG_NODEINFO);
-    }
+    PSID_clearMsg(PSP_PLUG_NODEINFO, handleNodeInfoMsg);
     unregisterHooks(true);
     finalizeSerial();
     finalizeNodeInfoConfig();

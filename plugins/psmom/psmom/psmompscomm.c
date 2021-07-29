@@ -2,6 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2010-2020 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2021 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -153,13 +154,13 @@ static char *pspMsgType2Str(PSP_PSMOM_t type)
 }
 
 /**
- * @brief Drop a message.
+ * @brief Drop a message
  *
  * @param msg The message to drop
  *
  * @return No return value.
  */
-static void dropPSMsg(DDTypedBufferMsg_t *msg)
+static bool dropPSMsg(DDTypedBufferMsg_t *msg)
 {
     PSnodes_ID_t nodeId = PSC_getID(msg->header.dest);
     const char *hname = getHostnameByNodeId(nodeId);
@@ -232,6 +233,7 @@ static void dropPSMsg(DDTypedBufferMsg_t *msg)
     default:
 	mlog("%s: unknown msg type %i\n", __func__, msg->type);
     }
+    return true;
 }
 
 void sendJobUpdate(Job_t *job)
@@ -345,15 +347,15 @@ static void handleJobInfo(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
 }
 
 /**
- * @brief Handle a received PS DDTypedBuffer message.
+ * @brief Handle a received PS DDTypedBuffer message
  *
  * This is the main message switch for PS messages.
  *
- * @param msg The message to handle.
+ * @param msg Pointer to message to handle
  *
- * @return No return value.
+ * @return Always return true
  */
-static void handlePSMsg(DDTypedBufferMsg_t *msg)
+static bool handlePSMsg(DDTypedBufferMsg_t *msg)
 {
     char cover[128];
 
@@ -367,7 +369,7 @@ static void handlePSMsg(DDTypedBufferMsg_t *msg)
 	mlog("%s: access violation: dropping message uid %i type %i "
 	     "sender %s\n", __func__, (task ? task->uid : 0), msg->type,
 	     PSC_printTID(msg->header.sender));
-	return;
+	return true;
     }
 
     mdbg(PSMOM_LOG_PSCOM, "%s(%i) %s\n", __func__, msg->type, cover);
@@ -399,6 +401,7 @@ static void handlePSMsg(DDTypedBufferMsg_t *msg)
 	default:
 	    mlog("%s: unknown msg type %i %s\n", __func__, msg->type, cover);
     }
+    return true;
 }
 
 void initPSComm(void)
@@ -406,19 +409,19 @@ void initPSComm(void)
     initSerial(0, sendMsg);
 
     /* register inter psmom msg */
-    PSID_registerMsg(PSP_PLUG_PSMOM, (handlerFunc_t) handlePSMsg);
+    PSID_registerMsg(PSP_PLUG_PSMOM, (handlerFunc_t)handlePSMsg);
 
     /* register handler for dropped msgs */
-    PSID_registerDropper(PSP_PLUG_PSMOM, (handlerFunc_t) dropPSMsg);
+    PSID_registerDropper(PSP_PLUG_PSMOM, (handlerFunc_t)dropPSMsg);
 }
 
 void finalizePSComm(void)
 {
     /* unregister psmom msg */
-    PSID_clearMsg(PSP_PLUG_PSMOM);
+    PSID_clearMsg(PSP_PLUG_PSMOM, (handlerFunc_t)handlePSMsg);
 
     /* unregister msg drop handler */
-    PSID_clearDropper(PSP_PLUG_PSMOM);
+    PSID_clearDropper(PSP_PLUG_PSMOM, (handlerFunc_t)dropPSMsg);
 
     finalizeSerial();
 }

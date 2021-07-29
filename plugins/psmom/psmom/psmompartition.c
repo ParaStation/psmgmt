@@ -2,6 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2010-2021 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2021 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -36,21 +37,18 @@
 
 #include "psmompartition.h"
 
-void handlePSSpawnReq(DDTypedBufferMsg_t *msg)
+bool handlePSSpawnReq(DDTypedBufferMsg_t *msg)
 {
-    PStask_t *task;
-
-    if (!msg || !oldSpawnReqHandler) return;
+    if (!msg) return false;
 
     /* don't mess with messages from other nodes */
-    if (PSC_getID(msg->header.sender) != PSC_getMyID()) goto done;
+    if (PSC_getID(msg->header.sender) != PSC_getMyID()) return false;
 
-    task = PStasklist_find(&managedTasks, msg->header.sender);
-
+    PStask_t *task = PStasklist_find(&managedTasks, msg->header.sender);
     if (!task) {
 	mlog("%s: task %s not found\n", __func__,
 	     PSC_printTID(msg->header.sender));
-	goto done;
+	return false;
     }
 
     if (msg->type == PSP_SPAWN_END) {
@@ -88,7 +86,7 @@ void handlePSSpawnReq(DDTypedBufferMsg_t *msg)
 	    jobcookie = jinfo->cookie;
 	}
 
-	if (!jobid || !jobcookie) goto done;
+	if (!jobid || !jobcookie) return false;
 
 	/* send additional environment variables */
 	memset(envMsg.buf, 0, BufTypedMsgSize);
@@ -107,13 +105,14 @@ void handlePSSpawnReq(DDTypedBufferMsg_t *msg)
 	/* end of encoding */
 	envMsg.header.len++;
 
-	/* send additional message */
-	oldSpawnReqHandler((DDBufferMsg_t *) &envMsg);
+	/* indirectly send additional message: since type is
+	 * PSP_SPAWN_ENV this handler will call the old message
+	 * handler almost immediately */
+	PSID_handleMsg((DDBufferMsg_t *)&envMsg);
     }
 
-done:
     /* call old message handler to forward the original message */
-    oldSpawnReqHandler((DDBufferMsg_t *)msg);
+    return false;
 }
 
 static void partitionDone(PStask_t *task)

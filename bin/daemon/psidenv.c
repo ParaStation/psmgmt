@@ -2,6 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2011-2021 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2021 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -101,7 +102,7 @@ void PSID_sendEnvList(PStask_ID_t dest, char *key)
 }
 
 /**
- * @brief Handle a PSP_CD_ENV message.
+ * @brief Handle a PSP_CD_ENV message
  *
  * Handle the message @a inmsg of type PSP_CD_ENV.
  *
@@ -113,14 +114,13 @@ void PSID_sendEnvList(PStask_ID_t dest, char *key)
  *
  * An answer will be sent as an PSP_CD_ENVRES message.
  *
- * @param inmsg Pointer to the message to handle.
+ * @param inmsg Pointer to message to handle
  *
- * @return No return value.
+ * @return Always return true
  */
-static void msg_ENV(DDTypedBufferMsg_t *inmsg)
+static bool msg_ENV(DDTypedBufferMsg_t *inmsg)
 {
-    int destID = PSC_getID(inmsg->header.dest), ret = 0;
-
+    int ret = 0;
     PSID_log(PSID_LOG_ENV, "%s(%s, %s)\n", __func__,
 	     PSC_printTID(inmsg->header.sender), inmsg->buf);
 
@@ -128,79 +128,71 @@ static void msg_ENV(DDTypedBufferMsg_t *inmsg)
 	PSID_log(-1, "%s: task %s not allowed to modify environments\n",
 		 __func__, PSC_printTID(inmsg->header.sender));
 	ret = EACCES;
-	goto end;
-    }
-
-    if (destID != PSC_getMyID()) {
-	if (!PSIDnodes_isUp(destID)) {
-	    ret = EHOSTDOWN;
-	    goto end;
-	}
-	if (sendMsg(inmsg) == -1 && errno != EWOULDBLOCK) {
-	    ret = errno;
-	    PSID_warn(-1, errno, "%s: sendMsg()", __func__);
-	    goto end;
-	}
-	return; /* destination node will send ENVRES message */
     } else {
-	switch (inmsg->type) {
-	case PSP_ENV_SET:
-	{
-	    char *key = inmsg->buf, *val = strchr(key, '=');
-
-	    *val = '\0';
-	    val++;
-
-	    if (!*key) {
-		PSID_warn(-1, errno, "%s: No key given to set", __func__);
-		ret = EINVAL;
-		goto end;
-	    }
-
-	    ret = setenv(key, val, 1);
-	    if (ret) {
+	PSnodes_ID_t destID = PSC_getID(inmsg->header.dest);
+	if (destID != PSC_getMyID()) {
+	    if (!PSIDnodes_isUp(destID)) {
+		ret = EHOSTDOWN;
+	    } else if (sendMsg(inmsg) == -1 && errno != EWOULDBLOCK) {
 		ret = errno;
-		PSID_warn(-1, errno, "%s: setenv(%s)", __func__, key);
-		goto end;
+		PSID_warn(-1, errno, "%s: sendMsg()", __func__);
+	    } else {
+		return true; /* destination node will send ENVRES message */
 	    }
-	    break;
-	}
-	case PSP_ENV_UNSET:
+	} else {
+	    switch (inmsg->type) {
+	    case PSP_ENV_SET:
+	    {
+		char *key = inmsg->buf, *val = strchr(key, '=');
 
-	    if (!*inmsg->buf) {
-		PSID_warn(-1, errno, "%s: No key given to unset", __func__);
-		ret = EINVAL;
-		goto end;
-	    }
+		*val = '\0';
+		val++;
 
-	    ret = unsetenv(inmsg->buf);
-	    if (ret) {
-		ret = errno;
-		PSID_warn(-1, errno, "%s: unsetenv(%s)", __func__, inmsg->buf);
-		goto end;
+		if (!*key) {
+		    PSID_warn(-1, errno, "%s: No key given to set", __func__);
+		    ret = EINVAL;
+		} else {
+		    ret = setenv(key, val, 1);
+		    if (ret) {
+			ret = errno;
+			PSID_warn(-1, errno, "%s: setenv(%s)", __func__, key);
+		    }
+		}
+		break;
 	    }
-	    break;
-	default:
-	    PSID_log(-1, "%s: Unknown message type %d\n", __func__,
-		     inmsg->type);
-	    ret = -1;
-	    goto end;
+	    case PSP_ENV_UNSET:
+		if (!*inmsg->buf) {
+		    PSID_warn(-1, errno, "%s: No key given to unset", __func__);
+		    ret = EINVAL;
+		} else {
+		    ret = unsetenv(inmsg->buf);
+		    if (ret) {
+			ret = errno;
+			PSID_warn(-1, errno, "%s: unsetenv(%s)", __func__,
+				  inmsg->buf);
+		    }
+		}
+		break;
+	    default:
+		PSID_log(-1, "%s: Unknown message type %d\n", __func__,
+			 inmsg->type);
+		ret = -1;
+	    }
 	}
     }
 
-end:
-    {
-	DDTypedMsg_t msg = {
-	    .header = {
-		.type = PSP_CD_ENVRES,
-		.dest = inmsg->header.sender,
-		.sender = PSC_getMyTID(),
-		.len = sizeof(msg) },
-	    .type = ret };
-	if (sendMsg(&msg) == -1 && errno != EWOULDBLOCK) {
-	    PSID_warn(-1, errno, "%s: sendMsg()", __func__);
-	}
+    DDTypedMsg_t msg = {
+	.header = {
+	    .type = PSP_CD_ENVRES,
+	    .dest = inmsg->header.sender,
+	    .sender = PSC_getMyTID(),
+	    .len = sizeof(msg) },
+	.type = ret };
+    if (sendMsg(&msg) == -1 && errno != EWOULDBLOCK) {
+	PSID_warn(-1, errno, "%s: sendMsg()", __func__);
     }
+
+    return true;
 }
 
 void initEnvironment(void)

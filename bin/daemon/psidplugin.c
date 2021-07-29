@@ -1486,9 +1486,9 @@ int PSIDplugin_getAPIversion(void)
  *
  * @param inmsg Pointer to the message to handle
  *
- * @return No return value.
+ * @return Always return true
  */
-static void msg_PLUGIN(DDTypedBufferMsg_t *inmsg)
+static bool msg_PLUGIN(DDTypedBufferMsg_t *inmsg)
 {
     int destID = PSC_getID(inmsg->header.dest), ret = 0;
 
@@ -1520,7 +1520,7 @@ static void msg_PLUGIN(DDTypedBufferMsg_t *inmsg)
 	    PSID_warn(-1, errno, "%s: sendMsg()", __func__);
 	    goto end;
 	}
-	return; /* destination node will send PLUGINRES message */
+	return true; /* destination node will send PLUGINRES message */
     } else {
 	switch (inmsg->type) {
 	case PSP_PLUGIN_LOAD:
@@ -1534,28 +1534,22 @@ static void msg_PLUGIN(DDTypedBufferMsg_t *inmsg)
 	    break;
 	case PSP_PLUGIN_AVAIL:
 	    sendAvail(inmsg->header.sender);
-	    return;
-	    break;
+	    return true;
 	case PSP_PLUGIN_HELP:
 	    sendHelp(inmsg->header.sender, inmsg->buf);
-	    return;
-	    break;
+	    return true;
 	case PSP_PLUGIN_SET:
 	    handleSetKey(inmsg->header.sender, inmsg->buf);
-	    return;
-	    break;
+	    return true;
 	case PSP_PLUGIN_UNSET:
 	    handleUnsetKey(inmsg->header.sender, inmsg->buf);
-	    return;
-	    break;
+	    return true;
 	case PSP_PLUGIN_SHOW:
 	    handleShowKey(inmsg->header.sender, inmsg->buf);
-	    return;
-	    break;
+	    return true;
 	case PSP_PLUGIN_LOADTIME:
 	    handleLoadTime(inmsg->header.sender, inmsg->buf);
-	    return;
-	    break;
+	    return true;
 	default:
 	    PSID_log(-1, "%s: Unknown message type %d\n", __func__,
 		     inmsg->type);
@@ -1577,10 +1571,11 @@ end:
 	    PSID_warn(-1, errno, "%s: sendMsg()", __func__);
 	}
     }
+    return true;
 }
 
 /**
- * @brief Drop a PSP_CD_PLUGIN message.
+ * @brief Drop a PSP_CD_PLUGIN message
  *
  * Drop the message @a msg of type PSP_CD_PLUGIN.
  *
@@ -1589,9 +1584,9 @@ end:
  *
  * @param msg Pointer to the message to drop
  *
- * @return No return value.
+ * @return Always return true
  */
-static void drop_PLUGIN(DDBufferMsg_t *msg)
+static bool drop_PLUGIN(DDBufferMsg_t *msg)
 {
     DDTypedMsg_t typmsg;
 
@@ -1602,6 +1597,7 @@ static void drop_PLUGIN(DDBufferMsg_t *msg)
     typmsg.type = -1;
 
     sendMsg(&typmsg);
+    return true;
 }
 
 /**
@@ -1721,20 +1717,6 @@ static void handlePlugins(void)
 static void handlePluginsGuard(void)
 {}
 
-/**
- * @brief Dummy handler
- *
- * Dummy message handler used to suppress syslog messages while
- * receiving the message @a inmsg addressing a local plugin that is
- * intentionally not loaded.
- *
- * @param inmsg Message to be ignored
- *
- * @return No return value
- */
-static void ignoreMsg(DDBufferMsg_t *inmsg)
-{}
-
 void initPlugins(FILE *logfile)
 {
     /* Register msg-handlers/droppers for plugin load/unload */
@@ -1744,7 +1726,7 @@ void initPlugins(FILE *logfile)
     PSID_registerDropper(PSP_CD_PLUGIN, drop_PLUGIN);
 
     /* Register dummy handler to suppress syslog for not loaded modules */
-    PSID_registerMsg(PSP_PLUG_NODEINFO, ignoreMsg);
+    PSID_registerMsg(PSP_PLUG_NODEINFO, NULL);
 
     PSID_registerLoopAct(handlePlugins);
     PSID_registerLoopAct(handlePluginsGuard);

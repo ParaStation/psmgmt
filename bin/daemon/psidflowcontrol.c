@@ -2,6 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2014-2021 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2021 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -158,19 +159,18 @@ int PSIDFlwCntrl_applicable(DDMsg_t *msg)
  * communication path between client processes or a client process and
  * a remote daemon process.
  *
- * @param msg The message to handle.
+ * @param msg Pointer to message to handle
  *
- * @return No return value.
+ * @return Always return true
  */
-static void msg_SENDSTOP(DDTypedMsg_t *msg)
+static bool msg_SENDSTOP(DDTypedMsg_t *msg)
 {
     PStask_t *task = PStasklist_find(&managedTasks, msg->header.dest);
     DDMsg_t ackmsg = { .type = PSP_DD_SENDSTOPACK,
 		       .sender = msg->header.dest,
 		       .dest = msg->header.sender,
 		       .len = sizeof(ackmsg) };
-
-    if (!task) return;
+    if (!task) return true;
 
     PSID_log(PSID_LOG_FLWCNTRL, "%s: from %s\n",
 	     __func__, PSC_printTID(msg->header.sender));
@@ -187,6 +187,7 @@ static void msg_SENDSTOP(DDTypedMsg_t *msg)
 	task->activeStops++;
     }
     if (msg->header.len > sizeof(DDMsg_t) && msg->type) sendMsg(&ackmsg);
+    return true;
 }
 
 /**
@@ -202,20 +203,20 @@ static void msg_SENDSTOP(DDTypedMsg_t *msg)
  * communication path between client processes or a client process and
  * a remote daemon process.
  *
- * @param msg The message to handle.
+ * @param msg Pointer to message to handle
  *
- * @return No return value.
+ * @return Always return true
  */
-static void msg_SENDSTOPACK(DDMsg_t *msg)
+static bool msg_SENDSTOPACK(DDMsg_t *msg)
 {
     PStask_t *task = PStasklist_find(&managedTasks, msg->dest);
-
-    if (!task) return;
+    if (!task) return true;
 
     PSID_log(PSID_LOG_FLWCNTRL, "%s: from %s\n",
 	     __func__, PSC_printTID(msg->sender));
 
     if (task->fd != -1) PSIDclient_releaseACK(task->fd);
+    return true;
 }
 
 /**
@@ -230,15 +231,14 @@ static void msg_SENDSTOPACK(DDMsg_t *msg)
  * communication path between client processes or a client process and
  * a remote daemon process.
  *
- * @param msg The message to handle.
+ * @param msg Pointer to message to handle
  *
- * @return No return value.
+ * @return Always return true
  */
-static void msg_SENDCONT(DDMsg_t *msg)
+static bool msg_SENDCONT(DDMsg_t *msg)
 {
     PStask_t *task = PStasklist_find(&managedTasks, msg->dest);
-
-    if (!task) return;
+    if (!task) return true;
 
     PSID_log(PSID_LOG_FLWCNTRL, "%s: from %s\n",
 	     __func__, PSC_printTID(msg->sender));
@@ -255,6 +255,7 @@ static void msg_SENDCONT(DDMsg_t *msg)
 	if (!task->activeStops) Selector_enable(task->fd);
 
     }
+    return true;
 }
 
 void PSIDFlwCntrl_clearMem(void)

@@ -271,7 +271,7 @@ int initialize(FILE *logfile)
     }
 
     /* register to psgw PSP_PLUG_PSGW message */
-    PSID_registerMsg(PSP_PLUG_PSGW, (handlerFunc_t) handlePSGWmsg);
+    PSID_registerMsg(PSP_PLUG_PSGW, (handlerFunc_t)handlePSGWmsg);
 
     regPartMsg();
 
@@ -294,7 +294,7 @@ void cleanup(void)
     }
 
     /* unregister psgw msg */
-    PSID_clearMsg(PSP_PLUG_PSGW);
+    PSID_clearMsg(PSP_PLUG_PSGW, (handlerFunc_t)handlePSGWmsg);
 
     clrPartMsg();
 

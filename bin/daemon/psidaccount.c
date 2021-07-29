@@ -2,6 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2006-2020 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2021 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -175,7 +176,7 @@ static void localForward_ACCOUNT(DDTypedBufferMsg_t *msg)
 }
 
 /**
- * @brief Handle PSP_CD_ACCOUNT message.
+ * @brief Handle PSP_CD_ACCOUNT message
  *
  * Handle the message @a msg of type PSP_CD_ACCOUNT. If the message is
  * destined to the local daemon, it will be forwarded to all registered
@@ -186,11 +187,11 @@ static void localForward_ACCOUNT(DDTypedBufferMsg_t *msg)
  * Delivery of messages to local accounters will be filtered by @ref
  * localForward_ACCOUNT().
  *
- * @param msg Pointer to the message to handle.
+ * @param msg Pointer to the message to handle
  *
- * @return No return value.
+ * @return Always return true
  */
-static void msg_ACCOUNT(DDTypedBufferMsg_t *msg)
+static bool msg_ACCOUNT(DDTypedBufferMsg_t *msg)
 {
     PSID_log(PSID_LOG_VERB, "%s: from %s\n", __func__,
 	     PSC_printTID(msg->header.sender));
@@ -218,6 +219,7 @@ static void msg_ACCOUNT(DDTypedBufferMsg_t *msg)
 	/* forward to accounter */
 	localForward_ACCOUNT(msg);
     }
+    return true;
 }
 
 int PSID_getNumAcct(void)

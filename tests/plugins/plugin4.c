@@ -2,6 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2012-2021 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2021 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -40,9 +41,10 @@ char *silent = NULL;
 char *quiet = NULL;
 
 #ifdef EXTENDED_API
-static void handleMsg(DDBufferMsg_t *msg)
+static bool handleMsg(DDBufferMsg_t *msg)
 {
     PSID_log(-1, "%s: %s()\n", name, __func__);
+    return true;
 }
 
 int initialize(FILE *logfile)
@@ -70,7 +72,7 @@ void finalize(void)
     myTimer = Timer_register(&timeout, unload);
     if (!silent||!quiet) PSID_log(-1, "%s: timer %d\n", name, myTimer);
 
-    PSID_clearMsg(0x00FE);
+    PSID_clearMsg(0x00FE, handleMsg);
 }
 
 void cleanup(void)

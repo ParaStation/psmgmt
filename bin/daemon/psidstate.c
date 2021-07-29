@@ -2,6 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2008-2018 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2021 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -191,18 +192,18 @@ void PSID_reset(void)
 }
 
 /**
- * @brief Handle a PSP_CD_DAEMONSTART message.
+ * @brief Handle a PSP_CD_DAEMONSTART message
  *
  * Handle the message @a msg of type PSP_CD_DAEMONSTART.
  *
  * This message type is used in order to trigger the startup of a
  * remote daemon via (x)inetd.
  *
- * @param msg Pointer to the message to handle.
+ * @param msg Pointer to message to handle
  *
- * @return No return value.
+ * @return Always return true
  */
-static void msg_DAEMONSTART(DDBufferMsg_t *msg)
+static bool msg_DAEMONSTART(DDBufferMsg_t *msg)
 {
     PSnodes_ID_t starter = PSC_getID(msg->header.dest);
     PSnodes_ID_t node = *(PSnodes_ID_t *) msg->buf;
@@ -213,11 +214,7 @@ static void msg_DAEMONSTART(DDBufferMsg_t *msg)
     if (!PSID_checkPrivilege(msg->header.sender)) {
 	PSID_log(-1, "%s: task %s not allowed to start daemons\n", __func__,
 		 PSC_printTID(msg->header.sender));
-
-	return;
-    }
-
-    if (starter==PSC_getMyID()) {
+    } else if (starter==PSC_getMyID()) {
 	if (PSC_validNode(node)) {
 	    if (!PSIDnodes_isUp(node)) {
 		in_addr_t addr = PSIDnodes_getAddr(node);
@@ -234,10 +231,11 @@ static void msg_DAEMONSTART(DDBufferMsg_t *msg)
 	    PSID_log(-1, "%s: starter %d is down\n", __func__, starter);
 	}
     }
+    return true;
 }
 
 /**
- * @brief Handle a PSP_CD_DAEMONSTOP message.
+ * @brief Handle a PSP_CD_DAEMONSTOP message
  *
  * Handle the message @a msg of type PSP_CD_DAEMONSTOP.
  *
@@ -245,28 +243,25 @@ static void msg_DAEMONSTART(DDBufferMsg_t *msg)
  * be stopped using @ref shutdownNode(). Otherwise @a msg will be
  * forwarded to the correct destination.
  *
- * @param msg Pointer to the message to handle.
+ * @param msg Pointer to message to handle
  *
- * @return No return value.
+ * @return Always return true
  */
-static void msg_DAEMONSTOP(DDMsg_t *msg)
+static bool msg_DAEMONSTOP(DDMsg_t *msg)
 {
     if (!PSID_checkPrivilege(msg->sender)) {
 	PSID_log(-1, "%s: task %s not allowed to stop daemons\n", __func__,
 		 PSC_printTID(msg->sender));
-
-	return;
-    }
-
-    if (PSC_getID(msg->dest) == PSC_getMyID()) {
+    } else if (PSC_getID(msg->dest) == PSC_getMyID()) {
 	PSID_shutdown();
     } else {
 	sendMsg(msg);
     }
+    return true;
 }
 
 /**
- * @brief Handle a PSP_CD_DAEMONRESET message.
+ * @brief Handle a PSP_CD_DAEMONRESET message
  *
  * Handle the message @a msg of type PSP_CD_DAEMONRESET.
  *
@@ -274,26 +269,23 @@ static void msg_DAEMONSTOP(DDMsg_t *msg)
  * be reseted using @ref doReset(). Otherwise @a msg will be forwarded
  * to the correct destination.
  *
- * @param msg Pointer to the message to handle.
+ * @param msg Pointer to message to handle
  *
- * @return No return value.
+ * @return Always return true
  */
-static void msg_DAEMONRESET(DDBufferMsg_t *msg)
+static bool msg_DAEMONRESET(DDBufferMsg_t *msg)
 {
     if (!PSID_checkPrivilege(msg->header.sender)) {
 	PSID_log(-1, "%s: task %s not allowed to reset daemons\n", __func__,
 		 PSC_printTID(msg->header.sender));
-
-	return;
-    }
-
-    if (PSC_getID(msg->header.dest) == PSC_getMyID()) {
+    } else if (PSC_getID(msg->header.dest) == PSC_getMyID()) {
 	if (*(int *)msg->buf & PSP_RESET_HW) daemonState |= PSID_STATE_RESET_HW;
 	/* Resetting my node */
 	PSID_reset();
     } else {
 	sendMsg(msg);
     }
+    return true;
 }
 
 void initState(void)

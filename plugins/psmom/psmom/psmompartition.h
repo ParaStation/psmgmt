@@ -2,6 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2010-2017 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2021 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -30,15 +31,15 @@ int handleCreatePart(void *msg);
 int handleCreatePartNL(void *msg);
 
 /**
- * @brief Handle a PS spawn request message.
+ * @brief Handle a PS spawn request message
  *
  * Catch all new spawn requests and inject the PBS_JOBCOOKIE and PBS_JOBID into
  * the environment of the new spawned processes.
  *
- * @param msg The message to handle.
+ * @param msg Pointer to message to handle
  *
- * @return No return value.
+ * @return true if the message was fully handled; or false otherwise
  */
-void handlePSSpawnReq(DDTypedBufferMsg_t *msg);
+bool handlePSSpawnReq(DDTypedBufferMsg_t *msg);
 
 #endif

@@ -2,6 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2020 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2021 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -79,7 +80,7 @@ static void handlePElogueOE(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
     char *cwd = envGet(&req->env, "SLURM_SPANK_PSGW_CWD");
     char path[1024];
     snprintf(path, sizeof(path), "%s/JOB-%s-psgwd-n%i.%s", cwd, req->jobid,
-	     PSC_getID(msg->header.sender), (msgType == STDOUT ? "out" : "err"));
+	     PSC_getID(msg->header.sender), msgType == STDOUT ? "out" : "err");
 
     writeErrorFile(req, msgData, path, false);
 
@@ -87,7 +88,7 @@ static void handlePElogueOE(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
     ufree(jobid);
 }
 
-void handlePSGWmsg(DDTypedBufferMsg_t *msg)
+bool handlePSGWmsg(DDTypedBufferMsg_t *msg)
 {
     char sender[32], dest[32];
 
@@ -102,6 +103,7 @@ void handlePSGWmsg(DDTypedBufferMsg_t *msg)
 	    break;
 	default:
 	    flog("received unknown msg type: %i [%s -> %s]\n",
-		msg->type, sender, dest);
+		 msg->type, sender, dest);
     }
+    return true;
 }

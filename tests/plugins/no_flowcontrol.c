@@ -2,6 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2012-2021 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2021 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -26,23 +27,20 @@ int version = 100;
 plugin_dep_t dependencies[] = {
     { NULL, 0 } };
 
-static handlerFunc_t oldStopHandler = NULL;
-static handlerFunc_t oldContHandler = NULL;
-static handlerFunc_t oldAckHandler = NULL;
-
-static void dummy_handler(DDBufferMsg_t *msg)
+static bool dummy_handler(DDBufferMsg_t *msg)
 {
     PSID_log(PSID_LOG_COMM, "%s from %s\n",
 	     PSDaemonP_printMsg(msg->header.type),
 	     PSC_printTID(msg->header.sender));
+    return true; // no further handling of msg
 }
 
 
 int initialize(FILE *logfile)
 {
-    oldStopHandler = PSID_registerMsg(PSP_DD_SENDSTOP, dummy_handler);
-    oldContHandler = PSID_registerMsg(PSP_DD_SENDCONT, dummy_handler);
-    oldAckHandler = PSID_registerMsg(PSP_DD_SENDSTOPACK, dummy_handler);
+    PSID_registerMsg(PSP_DD_SENDSTOP, dummy_handler);
+    PSID_registerMsg(PSP_DD_SENDCONT, dummy_handler);
+    PSID_registerMsg(PSP_DD_SENDSTOPACK, dummy_handler);
 
     return 0;
 }
@@ -50,19 +48,9 @@ int initialize(FILE *logfile)
 
 void finalize(void)
 {
-    if (oldStopHandler) {
-	PSID_registerMsg(PSP_DD_SENDSTOP, oldStopHandler);
-	oldStopHandler = NULL;
-    }
-    if (oldContHandler) {
-	PSID_registerMsg(PSP_DD_SENDCONT, oldContHandler);
-	oldContHandler = NULL;
-    }
-
-    if (oldAckHandler) {
-	PSID_registerMsg(PSP_DD_SENDSTOPACK, oldAckHandler);
-	oldAckHandler = NULL;
-    }
+    PSID_clearMsg(PSP_DD_SENDSTOP, dummy_handler);
+    PSID_clearMsg(PSP_DD_SENDCONT, dummy_handler);
+    PSID_clearMsg(PSP_DD_SENDSTOPACK, dummy_handler);
 
     PSIDplugin_unload(name);
 }

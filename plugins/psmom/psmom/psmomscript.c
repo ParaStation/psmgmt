@@ -23,6 +23,7 @@
 
 #include "pscommon.h"
 #include "timer.h"
+#include "psidcomm.h"
 #include "psidtask.h"
 #include "psidpartition.h"
 #include "pluginhelper.h"

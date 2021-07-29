@@ -2,6 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2018-2021 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2021 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -28,7 +29,7 @@
 #include "psdaemonprotocol.h"
 #include "pspluginprotocol.h"
 #include "psserial.h"
-#include "psidcomm.h"  /* only for PSID_clearMsg */
+//#include "psidcomm.h"  /* only for PSID_clearMsg */ // @todo
 
 #include "pspmixlog.h"
 #include "pspmixservice.h"
@@ -468,7 +469,7 @@ bool pspmix_comm_init()
     mdbg(PSPMIX_LOG_CALL, "%s() called\n", __func__);
 
     /* @todo unregister PSP_PLUG_PSPMIX messages XXX why does this harm??? */
-    PSID_clearMsg(PSP_PLUG_PSPMIX);
+    // PSID_clearMsg(PSP_PLUG_PSPMIX); // @todo I doubt this did anything
 
     /* initialize fragmentation layer */
     if (!initSerial(0, (Send_Msg_Func_t *)sendMsgToDaemon)) return false;

@@ -2,6 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2010-2016 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2021 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -10,8 +11,6 @@
 
 #ifndef __PS_MOM_MAIN
 #define __PS_MOM_MAIN
-
-#include "psidcomm.h"
 
 /* generic torque version support */
 extern int torqueVer;
@@ -48,7 +47,5 @@ extern long pwBufferSize;
 
 /** set to the home directory of root */
 extern char rootHome[100];
-
-extern handlerFunc_t oldSpawnReqHandler;
 
 #endif  /* __PS_MOM_MAIN */

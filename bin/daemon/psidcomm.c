@@ -76,80 +76,68 @@ static void initMsgHash(void)
     hashesInitialized = true;
 }
 
-handlerFunc_t PSID_registerMsg(int32_t msgType, handlerFunc_t handler)
+static bool registerHandler(int32_t msgType, handlerFunc_t handler,
+			    msgHandlerHash_t hash, const char *caller)
 {
-    if (!hashesInitialized) PSID_exit(EPERM, "%s: not initialized", __func__);
-
-    list_t *h;
-    list_for_each (h, &msgHash[msgType%HASH_SIZE]) {
-	msgHandler_t *msgHandler = list_entry(h, msgHandler_t, next);
-	if (msgHandler->msgType == msgType) {
-	    /* found old handler */
-	    handlerFunc_t oldHandler = msgHandler->handler;
-	    msgHandler->handler = handler;
-	    return oldHandler;
-	}
-    }
+    if (!hashesInitialized) PSID_exit(EPERM, "%s: not initialized", caller);
+    if (!hash) return false;
 
     msgHandler_t *newHandler = PSitems_getItem(handlerPool);
-    if (!newHandler) PSID_exit(ENOMEM, "%s: PSitems_getItem()", __func__);
-    newHandler->msgType = msgType;
-    newHandler->handler = handler;
+    if (!newHandler) {
+	PSID_warn(-1, ENOMEM, "%s: PSitems_getItem()", caller);
+	return false;
+    }
 
-    list_add_tail(&newHandler->next, &msgHash[msgType%HASH_SIZE]);
+    *newHandler = (msgHandler_t) {
+	.msgType = msgType,
+	.handler = handler };
+    list_add(&newHandler->next, &hash[msgType%HASH_SIZE]);
 
-    return NULL;
+    return true;
 }
 
-handlerFunc_t PSID_registerDropper(int32_t msgType, handlerFunc_t dropper)
+bool PSID_registerMsg(int32_t msgType, handlerFunc_t handler)
 {
-    if (!hashesInitialized) PSID_exit(EPERM, "%s: not initialized", __func__);
-
-    handlerFunc_t oldDropper = PSID_clearDropper(msgType);
-
-    msgHandler_t *newDropper = PSitems_getItem(handlerPool);
-    if (!newDropper) PSID_exit(ENOMEM, "%s: PSitems_getItem()", __func__);
-
-    newDropper->msgType = msgType;
-    newDropper->handler = dropper;
-
-    list_add_tail(&newDropper->next, &dropHash[msgType%HASH_SIZE]);
-
-    return oldDropper;
+    return registerHandler(msgType, handler, msgHash, __func__);
 }
 
-static handlerFunc_t clearHandler(int32_t msgType, msgHandlerHash_t hash)
+bool PSID_registerDropper(int32_t msgType, handlerFunc_t dropper)
 {
-    if (!hash) return NULL;
+    return registerHandler(msgType, dropper, dropHash, __func__);
+}
+
+static bool clearHandler(int32_t msgType, handlerFunc_t handler,
+			 msgHandlerHash_t hash, const char *caller)
+{
+    if (!hashesInitialized) {
+	PSID_warn(-1, EPERM, "%s: not initialized", caller);
+	return false;
+    }
+    if (!hash) return false;
 
     list_t *h;
     list_for_each (h, &hash[msgType%HASH_SIZE]) {
 	msgHandler_t *msgHandler = list_entry(h, msgHandler_t, next);
 
-	if (msgHandler->msgType == msgType) {
+	if (msgHandler->msgType == msgType && msgHandler->handler == handler) {
 	    /* found handler */
-	    handlerFunc_t handler = msgHandler->handler;
 	    list_del(&msgHandler->next);
 	    PSitems_putItem(handlerPool, msgHandler);
-	    return handler;
+	    return true;
 	}
     }
 
-    return NULL;
+    return false;
 }
 
-handlerFunc_t PSID_clearMsg(int32_t msgType)
+bool PSID_clearMsg(int32_t msgType, handlerFunc_t handler)
 {
-    if (!hashesInitialized) PSID_exit(EPERM, "%s: not initialized", __func__);
-
-    return clearHandler(msgType, msgHash);
+    return clearHandler(msgType, handler, msgHash, __func__);
 }
 
-handlerFunc_t PSID_clearDropper(int32_t msgType)
+bool PSID_clearDropper(int32_t msgType, handlerFunc_t dropper)
 {
-    if (!hashesInitialized) PSID_exit(EPERM, "%s: not initialized", __func__);
-
-    return clearHandler(msgType, dropHash);
+    return clearHandler(msgType, dropper, dropHash, __func__);
 }
 
 ssize_t sendMsg(void *amsg)
@@ -248,50 +236,46 @@ ssize_t sendMsg(void *amsg)
  * PSP_CD_SIGRES, PSP_CC_ERROR and PSP_CD_UNKNOWN to their final
  * destination.
  *
- * @return No return value.
+ * @return Always return true
  */
-static void condSendMsg(DDBufferMsg_t *msg)
+static bool condSendMsg(DDBufferMsg_t *msg)
 {
     if (msg->header.dest != PSC_getMyTID()) sendMsg(msg);
+    return true;
 }
 
 int broadcastMsg(void *amsg)
 {
     DDMsg_t *msg = (DDMsg_t *) amsg;
-    int count=1;
-    int i;
     if (PSID_getDebugMask() & PSID_LOG_COMM) {
 	PSID_log(PSID_LOG_COMM, "%s(type %s len=%d)\n",
 		 __func__, PSDaemonP_printMsg(msg->type), msg->len);
     }
 
     /* broadcast to every daemon except the sender */
-    for (i=0; i<PSC_getNrOfNodes(); i++) {
-	if (PSIDnodes_isUp(i) && i != PSC_getMyID()) {
-	    msg->dest = PSC_getTID(i, 0);
-	    if (sendMsg(msg)>=0) {
-		count++;
-	    }
+    int count=1;
+    for (int n = 0; n < PSC_getNrOfNodes(); n++) {
+	if (PSIDnodes_isUp(n) && n != PSC_getMyID()) {
+	    msg->dest = PSC_getTID(n, 0);
+	    if (sendMsg(msg) >= 0) count++;
 	}
     }
 
     return count;
 }
 
-int PSID_dropMsg(DDBufferMsg_t *msg)
+bool PSID_dropMsg(DDBufferMsg_t *msg)
 {
     if (!hashesInitialized) PSID_exit(EPERM, "%s: not initialized", __func__);
 
     if (!msg) {
 	PSID_log(-1, "%s: msg is NULL\n", __func__);
-	errno = EINVAL;
-	return -1;
+	return false;
     }
 
     if (msg->header.type < 0) {
 	PSID_log(-1, "%s: illegal msgtype %d\n", __func__, msg->header.type);
-	errno = EINVAL;
-	return -1;
+	return false;
     }
 
     PSID_log(PSID_LOG_COMM, "%s: dest %s", __func__,
@@ -305,13 +289,12 @@ int PSID_dropMsg(DDBufferMsg_t *msg)
     list_for_each (d, &dropHash[msg->header.type%HASH_SIZE]) {
 	msgHandler_t *dropHandler = list_entry(d, msgHandler_t, next);
 
-	if (dropHandler->msgType == msg->header.type) {
-	    if (dropHandler->handler) dropHandler->handler(msg);
-	    break;
-	}
+	if (dropHandler->msgType != msg->header.type) continue;
+	if (dropHandler->handler) dropHandler->handler(msg);
+	break;
     }
 
-    return 0;
+    return true;
 }
 
 static ssize_t(*sendMsgFunc)(void *) = &sendMsg;
@@ -322,13 +305,12 @@ bool PSID_handleMsg(DDBufferMsg_t *msg)
 
     if (!msg) {
 	PSID_log(-1, "%s: msg is NULL\n", __func__);
-	errno = EINVAL;
 	return false;
     }
 
     if (msg->header.type < 0) {
-	PSID_log(-1, "%s: Illegal msgtype %d\n", __func__, msg->header.type);
-	errno = EINVAL;
+	PSID_log(-1, "%s: Illegal msgtype %d from %s\n", __func__,
+		 msg->header.type, PSC_printTID(msg->header.sender));
 	return false;
     }
 
@@ -336,14 +318,13 @@ bool PSID_handleMsg(DDBufferMsg_t *msg)
     list_for_each (h, &msgHash[msg->header.type%HASH_SIZE]) {
 	msgHandler_t *msgHandler = list_entry(h, msgHandler_t, next);
 
-	if (msgHandler->msgType == msg->header.type) {
-	    if (msgHandler->handler) msgHandler->handler(msg);
-	    return true;
-	}
+	if (msgHandler->msgType != msg->header.type) continue;
+	if (!msgHandler->handler || msgHandler->handler(msg)) return true;
     }
 
-    PSID_log(-1, "%s: no handler for type %#x (%s)\n", __func__,
-	     msg->header.type, PSDaemonP_printMsg(msg->header.type));
+    PSID_log(-1, "%s: no handler for type %#x (%s) from %s\n", __func__,
+	     msg->header.type, PSDaemonP_printMsg(msg->header.type),
+	     PSC_printTID(msg->header.sender));
 
     /* Emit CD_UNKNOWN messages if not suppressed */
     if (sendMsgFunc) {

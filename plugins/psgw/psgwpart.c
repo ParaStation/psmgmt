@@ -31,18 +31,12 @@
 
 #include "psgwpart.h"
 
-static handlerFunc_t oldProvidePart = NULL;
-static handlerFunc_t oldProvidePartSL = NULL;
-
 static char msgBuf[1024];
 
-static void handleProvidePart(DDBufferMsg_t *msg)
+static bool handleProvidePart(DDBufferMsg_t *msg)
 {
     PSGW_Req_t *req = Request_findByFW(msg->header.dest);
-    if (!req) {
-	if (oldProvidePart) oldProvidePart(msg);
-	return;
-    }
+    if (!req) return false; // fallback to original handler if any
 
     if (req->timerPartReq != -1) {
 	Timer_remove(req->timerPartReq);
@@ -52,44 +46,44 @@ static void handleProvidePart(DDBufferMsg_t *msg)
     fdbg(PSGW_LOG_PART, "handle psgw partition slots\n");
 
     PStask_t *task = PStasklist_find(&managedTasks, msg->header.dest);
-    PSpart_option_t options;
-    size_t used = 0;
-
     if (!task) {
 	flog("Task %s not found\n", PSC_printTID(msg->header.dest));
-	return;
+	return true;
     }
 
     PSpart_request_t *partReq = task->request;
     if (!partReq) {
 	flog("No partRequest for task %s\n", PSC_printTID(msg->header.dest));
-	return;
+	return true;
     }
 
     /* The size of the partition to be received */
+    size_t used = 0;
     PSP_getMsgBuf(msg, &used, "sizeExpected", &partReq->sizeExpected,
 		  sizeof(partReq->sizeExpected));
 
+    PSpart_option_t options;
     PSP_getMsgBuf(msg, &used, "options", &options, sizeof(options));
     if (partReq->options != options) {
 	flog("options (%d/%d) have changed for %s\n", partReq->options, options,
 	     PSC_printTID(msg->header.dest));
-	return;
+	return true;
     }
 
     partReq->slots = malloc(partReq->sizeExpected * sizeof(*partReq->slots));
     if (!partReq->slots) {
 	flog("no memory\n");
-	return;
+	return true;
     }
 
     partReq->sizeGot = 0;
+    return true;
 }
 
 static void appendToSlotlist(DDBufferMsg_t *msg, PSpart_request_t *request)
 {
     PSpart_slot_t *slots = request->slots + request->sizeGot;
-    int16_t n, chunk, nBytes, myBytes = PSCPU_bytesForCPUs(PSCPU_MAX);
+    int16_t chunk, nBytes, myBytes = PSCPU_bytesForCPUs(PSCPU_MAX);
     size_t used = 0;
 
     PSID_log(PSID_LOG_PART, "%s(%s)\n", __func__, PSC_printTID(request->tid));
@@ -102,7 +96,7 @@ static void appendToSlotlist(DDBufferMsg_t *msg, PSpart_request_t *request)
 		 PSC_printTID(request->tid), nBytes*8, myBytes*8);
     }
 
-    for (n = 0; n < chunk; n++) {
+    for (int16_t n = 0; n < chunk; n++) {
 	char cpuBuf[nBytes];
 
 	PSP_getMsgBuf(msg, &used, "node", &slots[n].node,sizeof(slots[n].node));
@@ -116,34 +110,33 @@ static void appendToSlotlist(DDBufferMsg_t *msg, PSpart_request_t *request)
 static int getHWThreads(PSpart_slot_t *slots, uint32_t num,
 			PSpart_HWThread_t **threads)
 {
-    unsigned int s, t = 0, totThreads = 0;
-    PSpart_HWThread_t *HWThreads;
-
-    for (s=0; s<num; s++) {
+    unsigned int totThreads = 0;
+    for (uint32_t s = 0; s < num; s++) {
 	totThreads += PSCPU_getCPUs(slots[s].CPUset, NULL, PSCPU_MAX);
     }
 
     if (totThreads < 1) {
 	PSID_log(-1, "%s: No HW-threads in slots\n", __func__);
-	if (*threads) free(*threads);
-	*threads = NULL;
-
+	if (threads) {
+	    free(*threads);
+	    *threads = NULL;
+	}
 	return 0;
     }
 
     PSID_log(PSID_LOG_PART, "%s: slots %d threads %d\n", __func__, num,
 	     totThreads);
-    HWThreads = malloc(totThreads * sizeof(*HWThreads));
 
+    PSpart_HWThread_t *HWThreads = malloc(totThreads * sizeof(*HWThreads));
     if (!HWThreads) {
 	PSID_log(-1, "%s: No memory\n", __func__);
 	errno = ENOMEM;
 	return -1;
     }
 
-    for (s=0; s<num; s++) {
-	unsigned int cpu;
-	for (cpu=0; cpu<PSCPU_MAX; cpu++) {
+    uint32_t t = 0;
+    for (uint32_t s = 0; s < num; s++) {
+	for (uint16_t cpu = 0; cpu < PSCPU_MAX; cpu++) {
 	    if (PSCPU_isSet(slots[s].CPUset, cpu)) {
 		HWThreads[t].node = slots[s].node;
 		HWThreads[t].id = cpu;
@@ -153,41 +146,36 @@ static int getHWThreads(PSpart_slot_t *slots, uint32_t num,
 	}
     }
 
-    if (*threads) free(*threads);
-    *threads = HWThreads;
+    if (threads) {
+	free(*threads);
+	*threads = HWThreads;
+    }
 
     return totThreads;
 }
 
-static void handleProvidePartSL(DDBufferMsg_t *msg)
+static bool handleProvidePartSL(DDBufferMsg_t *msg)
 {
-
     PSGW_Req_t *req = Request_findByFW(msg->header.dest);
-    if (!req) {
-	if (oldProvidePartSL) oldProvidePartSL(msg);
-	return;
-    }
+    if (!req) return false; // fallback to original handler if any
 
     fdbg(PSGW_LOG_PART, "handle psgw partition slots\n");
 
     PStask_t *task = PStasklist_find(&managedTasks, msg->header.dest);
-    PSpart_request_t *partReq;
-
     if (!task) {
 	flog("Task %s not found\n", PSC_printTID(msg->header.dest));
-	return;
+	return true;
     }
 
-    partReq = task->request;
+    PSpart_request_t *partReq = task->request;
     if (!partReq) {
 	flog("No partRequest for task %s\n", PSC_printTID(msg->header.dest));
-	return;
+	return true;
     }
 
     if (!partReq->slots) {
-	flog("No slotlist created for task %s\n",
-	     PSC_printTID(msg->header.dest));
-	return;
+	flog("No slotlist for task %s\n", PSC_printTID(msg->header.dest));
+	return true;
     }
 
     appendToSlotlist(msg, partReq);
@@ -201,7 +189,7 @@ static void handleProvidePartSL(DDBufferMsg_t *msg)
 	task->request->slots = NULL;
 	thrds = getHWThreads(task->partition, task->partitionSize,
 			     &task->partThrds);
-	if (thrds < 0) return;
+	if (thrds < 0) return true;
 	task->totalThreads = thrds;
 	task->usedThreads = 0;
 	task->activeChild = 0;
@@ -210,12 +198,10 @@ static void handleProvidePartSL(DDBufferMsg_t *msg)
 	PSpart_delReq(task->request);
 	task->request = NULL;
 
-	uint32_t i;
 	PSnodes_ID_t *nodes = umalloc(sizeof(*nodes) * task->partitionSize);
-
-	for (i=0; i<task->partitionSize; i++) {
+	for (uint32_t i = 0; i < task->partitionSize; i++) {
 	    fdbg(PSGW_LOG_PART, "part %i slot %i size %i\n", i,
-		  task->partition[i].node, task->partitionSize);
+		 task->partition[i].node, task->partitionSize);
 	    nodes[i] = task->partition[i].node;
 	}
 
@@ -224,33 +210,23 @@ static void handleProvidePartSL(DDBufferMsg_t *msg)
 	/* start prologue on psgwd nodes using pelogue */
 	if (!startPElogue(req, PELOGUE_PROLOGUE)) {
 	    flog("starting prologue failed\n");
-	    return;
-	}
-
-	/* start psgw daemon using psexec */
-	if (!startPSGWD(req)) {
+	} else if (!startPSGWD(req)) { /* start psgw daemon using psexec */
 	    flog("starting psgwd failed\n");
-	    return;
 	}
     }
+    return true;
 }
 
 void regPartMsg(void)
 {
-    oldProvidePart = PSID_registerMsg(PSP_DD_PROVIDEPART, handleProvidePart);
-    oldProvidePartSL = PSID_registerMsg(PSP_DD_PROVIDEPARTSL,
-					handleProvidePartSL);
+    PSID_registerMsg(PSP_DD_PROVIDEPART, handleProvidePart);
+    PSID_registerMsg(PSP_DD_PROVIDEPARTSL, handleProvidePartSL);
 }
 
 void clrPartMsg(void)
 {
-    PSID_clearMsg(PSP_DD_PROVIDEPART);
-    if (oldProvidePart) PSID_registerMsg(PSP_DD_PROVIDEPART, oldProvidePart);
-    oldProvidePart = NULL;
-    PSID_clearMsg(PSP_DD_PROVIDEPARTSL);
-    if (oldProvidePartSL) PSID_registerMsg(PSP_DD_PROVIDEPARTSL,
-					   oldProvidePartSL);
-    oldProvidePartSL = NULL;
+    PSID_clearMsg(PSP_DD_PROVIDEPARTSL, handleProvidePartSL);
+    PSID_clearMsg(PSP_DD_PROVIDEPART, handleProvidePart);
 }
 
 static void partTimeout(int timerId, void *data)

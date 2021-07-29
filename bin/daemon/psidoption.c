@@ -3,6 +3,7 @@
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
  * Copyright (C) 2005-2021 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2021 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -323,7 +324,7 @@ static void set_rlimit(PSP_Option_t option, PSP_Optval_t value)
 
 
 /**
- * @brief Handle a PSP_CD_SETOPTION message.
+ * @brief Handle a PSP_CD_SETOPTION message
  *
  * Handle the message @a inmsg of type PSP_CD_SETOPTION.
  *
@@ -335,26 +336,24 @@ static void set_rlimit(PSP_Option_t option, PSP_Optval_t value)
  * PSP_CD_SETOPTION messages to client processes are usually responses
  * to PSP_CD_GETOPTION request of this processes.
  *
- * @param inmsg Pointer to the message to handle.
+ * @param inmsg Pointer to message to handle
  *
- * @return No return value.
+ * @return Always return true
  */
-static void msg_SETOPTION(DDOptionMsg_t *msg)
+static bool msg_SETOPTION(DDOptionMsg_t *msg)
 {
-    int i;
-
     PSID_log(PSID_LOG_OPTION, "%s: from requester %s\n",
 	     __func__, PSC_printTID(msg->header.sender));
 
     if (!PSID_checkPrivilege(msg->header.sender)) {
 	PSID_log(-1, "%s: task %s not allowed to modify options\n",
 		 __func__, PSC_printTID(msg->header.sender));
-	return;
+	return true;
     }
 
     if (msg->header.dest == PSC_getMyTID()) {
 	/* Message is for me */
-	for (i=0; i<msg->count; i++) {
+	for (int i = 0; i < msg->count; i++) {
 	    PSIDnodes_gu_t guType;
 	    PSIDnodes_guid_t guid;
 
@@ -773,11 +772,11 @@ static void msg_SETOPTION(DDOptionMsg_t *msg)
 	/* Message is for a remote node */
 	sendMsg(msg);
     }
-
+    return true;
 }
 
 /**
- * @brief Handle a PSP_CD_GETOPTION message.
+ * @brief Handle a PSP_CD_GETOPTION message
  *
  * Handle the message @a inmsg of type PSP_CD_GETOPTION.
  *
@@ -786,11 +785,11 @@ static void msg_SETOPTION(DDOptionMsg_t *msg)
  * within a PSP_CD_SETOPTION to the requester. Otherwise this message
  * es forwarded to the corresponding remote daemon.
  *
- * @param inmsg Pointer to the message to handle.
+ * @param inmsg Pointer to message to handle
  *
- * @return No return value.
+ * @return Always return true
  */
-static void msg_GETOPTION(DDOptionMsg_t *msg)
+static bool msg_GETOPTION(DDOptionMsg_t *msg)
 {
     int id = PSC_getID(msg->header.dest);
 
@@ -995,33 +994,33 @@ static void msg_GETOPTION(DDOptionMsg_t *msg)
 
 	if (msg->count) sendMsg(msg);
     }
+    return true;
 }
 
 /**
- * @brief Drop a PSP_CD_GETOPTION message.
+ * @brief Drop a PSP_CD_GETOPTION message
  *
  * Drop the message @a msg of type PSP_CD_GETOPTION.
  *
  * Since the requesting process waits for a reaction to its request a
  * corresponding answer is created.
  *
- * @param msg Pointer to the message to drop.
+ * @param msg Pointer to message to drop
  *
- * @return No return value.
+ * @return Always return true
  */
-static void drop_GETOPTION(DDBufferMsg_t *msg)
+static bool drop_GETOPTION(DDBufferMsg_t *msg)
 {
-    DDErrorMsg_t errmsg;
-
-    errmsg.header.type = PSP_CD_ERROR;
-    errmsg.header.dest = msg->header.sender;
-    errmsg.header.sender = PSC_getMyTID();
-    errmsg.header.len = sizeof(errmsg);
-
-    errmsg.error = EHOSTUNREACH;
-    errmsg.request = msg->header.type;
-
+    DDErrorMsg_t errmsg = {
+	.header = {
+	    .type = PSP_CD_ERROR,
+	    .dest = msg->header.sender,
+	    .sender = PSC_getMyTID(),
+	    .len = sizeof(errmsg) },
+	.error = EHOSTUNREACH,
+	.request = msg->header.type };
     sendMsg(&errmsg);
+    return true;
 }
 
 void initOptions(void)

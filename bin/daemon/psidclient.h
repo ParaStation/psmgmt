@@ -172,11 +172,12 @@ int PSIDclient_send(DDMsg_t *msg);
  *
  * @param msg Message to handle, i.e. to be sent
  *
- * @return No return value
+ * @return Always return true
  */
-static inline void PSIDclient_frwd(DDBufferMsg_t *msg)
+static inline bool PSIDclient_frwd(DDBufferMsg_t *msg)
 {
     PSIDclient_send((DDMsg_t *)msg);
+    return true;
 }
 
 /**

@@ -1579,7 +1579,7 @@ static void cloneEnvFromTasks(PStask_t *task)
 }
 
 /**
- * @brief Handle a PSP_CD_SPAWNREQ message.
+ * @brief Handle a PSP_CD_SPAWNREQ message
  *
  * Handle the message @a msg of type PSP_CD_SPAWNREQ.
  *
@@ -1595,11 +1595,11 @@ static void cloneEnvFromTasks(PStask_t *task)
  * allowed. If all tests pass, the message is forwarded to the
  * target-node where the process to spawn is created.
  *
- * @param msg Pointer to the message to handle.
+ * @param msg Pointer to message to handle
  *
- * @return No return value.
+ * @return Always return true
  */
-static void msg_SPAWNREQ(DDTypedBufferMsg_t *msg)
+static bool msg_SPAWNREQ(DDTypedBufferMsg_t *msg)
 {
     PStask_t *task, *ptask = NULL;
     DDErrorMsg_t answer = {
@@ -1630,7 +1630,7 @@ static void msg_SPAWNREQ(DDTypedBufferMsg_t *msg)
 	    PStask_delete(task);
 	    sendMsg(&answer);
 
-	    return;
+	    return true;
 	}
 	/* Store some info from task for latter usage */
 	group = task->group;
@@ -1642,7 +1642,7 @@ static void msg_SPAWNREQ(DDTypedBufferMsg_t *msg)
 	ptask = PStasklist_find(&managedTasks, msg->header.sender);
 	if (!ptask) {
 	    PSID_log(-1, "%s: no parent task?!\n", __func__);
-	    return;
+	    return true;
 	}
     }
 
@@ -1655,7 +1655,7 @@ static void msg_SPAWNREQ(DDTypedBufferMsg_t *msg)
 	    answer.error = EHOSTDOWN;
 	    sendMsg(&answer);
 
-	    return;
+	    return true;
 	}
 
 	/* Check if we have to and can send a LOC-message */
@@ -1675,7 +1675,7 @@ static void msg_SPAWNREQ(DDTypedBufferMsg_t *msg)
 
 	    if (!sendLOC) {
 		sendMsg(&answer);
-		return;
+		return true;
 	    }
 	}
 
@@ -1685,7 +1685,7 @@ static void msg_SPAWNREQ(DDTypedBufferMsg_t *msg)
 	    answer.error = errno;
 	    sendMsg(&answer);
 
-	    return;
+	    return true;
 	}
 
 	if (sendLOC) {
@@ -1721,7 +1721,7 @@ static void msg_SPAWNREQ(DDTypedBufferMsg_t *msg)
 	    }
 	}
 
-	return;
+	return true;
     }
 
     task = PSIDspawn_findSpawnee(msg->header.sender);
@@ -1733,7 +1733,7 @@ static void msg_SPAWNREQ(DDTypedBufferMsg_t *msg)
 	    PStask_snprintf(tasktxt, sizeof(tasktxt), task);
 	    PSID_log(-1, "%s: from %s task %s already there\n",
 		     __func__, PSC_printTID(msg->header.sender), tasktxt);
-	    return;
+	    return true;
 	}
 	task = PStask_new();
 	PStask_decodeTask(msg->buf, task, true);
@@ -1764,7 +1764,7 @@ static void msg_SPAWNREQ(DDTypedBufferMsg_t *msg)
 
 		PStask_delete(task);
 
-		return;
+		return true;
 	    }
 	}
 
@@ -1773,13 +1773,12 @@ static void msg_SPAWNREQ(DDTypedBufferMsg_t *msg)
 
 	PStasklist_enqueue(&spawnTasks, task);
 
-	return;
-	break;
+	return true;
     case PSP_SPAWN_LOC:
 	if (!task) {
 	    PSID_log(-1, "%s: PSP_SPAWN_LOC from %s: task not found\n",
 		     __func__, PSC_printTID(msg->header.sender));
-	    return;
+	    return true;
 	}
 
 	uint16_t nBytes, myBytes = PSCPU_bytesForCPUs(PSCPU_MAX);
@@ -1801,7 +1800,7 @@ static void msg_SPAWNREQ(DDTypedBufferMsg_t *msg)
 	if (!task) {
 	    PSID_log(-1, "%s: PSP_SPAWN_WDIRCNTD from %s: task not found\n",
 		     __func__, PSC_printTID(msg->header.sender));
-	    return;
+	    return true;
 	}
 
 	size_t newLen = task->workingdir ? strlen(task->workingdir) : 0;
@@ -1810,7 +1809,7 @@ static void msg_SPAWNREQ(DDTypedBufferMsg_t *msg)
 	task->workingdir = realloc(task->workingdir, newLen);
 	if (!task->workingdir) {
 	    PSID_warn(-1, errno, "%s: realloc(task->workingdir)", __func__);
-	    return;
+	    return true;
 	}
 	strcpy(task->workingdir + strlen(task->workingdir), msg->buf);
 
@@ -1820,7 +1819,7 @@ static void msg_SPAWNREQ(DDTypedBufferMsg_t *msg)
 	if (!task) {
 	    PSID_log(-1, "%s: PSP_SPAWN_ARG from %s: task not found\n",
 		     __func__, PSC_printTID(msg->header.sender));
-	    return;
+	    return true;
 	}
 	usedBytes = PStask_decodeArgv(msg->buf, task);
 	break;
@@ -1828,7 +1827,7 @@ static void msg_SPAWNREQ(DDTypedBufferMsg_t *msg)
 	if (!task) {
 	    PSID_log(-1, "%s: PSP_SPAWN_ARGCTND from %s: task not found\n",
 		     __func__, PSC_printTID(msg->header.sender));
-	    return;
+	    return true;
 	}
 	usedBytes = PStask_decodeArgvAppend(msg->buf, task);
 	break;
@@ -1841,7 +1840,7 @@ static void msg_SPAWNREQ(DDTypedBufferMsg_t *msg)
 		answer.error = ECHILD;
 		sendMsg(&answer);
 	    }
-	    return;
+	    return true;
 	}
 	if (msg->header.len > sizeof(msg->header) + sizeof(msg->type)) {
 	    usedBytes = PStask_decodeEnv(msg->buf, task);
@@ -1853,7 +1852,7 @@ static void msg_SPAWNREQ(DDTypedBufferMsg_t *msg)
 	if (!task) {
 	    PSID_log(-1, "%s: PSP_SPAWN_ENVCTND from %s: task not found\n",
 		     __func__, PSC_printTID(msg->header.sender));
-	    return;
+	    return true;
 	}
 	usedBytes = PStask_decodeEnvAppend(msg->buf, task);
 	break;
@@ -1861,14 +1860,14 @@ static void msg_SPAWNREQ(DDTypedBufferMsg_t *msg)
 	if (!task) {
 	    PSID_log(-1, "%s: PSP_SPAWN_ENV_CLONE from %s: task not found\n",
 		     __func__, PSC_printTID(msg->header.sender));
-	    return;
+	    return true;
 	}
 	cloneEnvFromTasks(task);
 	usedBytes = 0;
 	break;
     default:
 	PSID_log(-1, "%s: Unknown type '%d'\n", __func__, msg->type);
-	return;
+	return true;
     }
 
     if (msg->header.len-sizeof(msg->header)-sizeof(msg->type) != usedBytes) {
@@ -1876,7 +1875,7 @@ static void msg_SPAWNREQ(DDTypedBufferMsg_t *msg)
 		 __func__, PSC_printTID(msg->header.sender), msg->type,
 		 (long) usedBytes,
 		 (long) msg->header.len-sizeof(msg->header)-sizeof(msg->type));
-	return;
+	return true;
     }
 
     if (msg->type == PSP_SPAWN_END) {
@@ -1900,6 +1899,7 @@ static void msg_SPAWNREQ(DDTypedBufferMsg_t *msg)
 	    sendCHILDRESREL(loggerTID, CPUset, PSC_getMyTID());
 	}
     }
+    return true;
 }
 
 /**
@@ -2023,11 +2023,11 @@ static inline PendingRes_t *findPendingRes(PStask_ID_t sender, int32_t rank)
  * message might be appended to structure holding information of
  * previous messages.
  *
- * @param msg Pointer to the message to handle.
+ * @param msg Pointer to message to handle
  *
- * @return No return value.
+ * @return Always return true
  */
-static void msg_SPAWNLOC(DDBufferMsg_t *msg)
+static bool msg_SPAWNLOC(DDBufferMsg_t *msg)
 {
     uint32_t num;
     int32_t rank;
@@ -2051,7 +2051,7 @@ static void msg_SPAWNLOC(DDBufferMsg_t *msg)
 	newRes = malloc(sizeof(*newRes));
 	if (!newRes) {
 	    PSID_warn(-1, errno, "%s", __func__);
-	    return;
+	    return true;
 	}
 	newRes->sender = msg->header.sender;
 	newRes->rank = rank;
@@ -2060,7 +2060,7 @@ static void msg_SPAWNLOC(DDBufferMsg_t *msg)
 	if (!newRes->CPUsets) {
 	    PSID_warn(-1, errno, "%s: CPUsets", __func__);
 	    free(newRes);
-	    return;
+	    return true;
 	}
 	list_add_tail(&newRes->next, &pendingResources);
     }
@@ -2077,6 +2077,7 @@ static void msg_SPAWNLOC(DDBufferMsg_t *msg)
 	PSCPU_inject(newRes->CPUsets[off], setBuf, nBytes);
 	rank++;
     }
+    return true;
 }
 
 /** The list of reservations this node is part of. */
@@ -2225,7 +2226,7 @@ static void handleResCreated(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
 }
 
 /**
- * @brief Handle a PSP_DD_RESCREATED message.
+ * @brief Handle a PSP_DD_RESCREATED message
  *
  * Handle the message @a msg of type PSP_DD_RESCREATED.
  *
@@ -2241,23 +2242,23 @@ static void handleResCreated(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
  * The actual handling of the spawn request once all fragments are
  * received is done within @ref handleResCreated().
  *
- * @param msg Pointer to the message holding the fragment to handle
+ * @param msg Pointer to message holding the fragment to handle
  *
- * @return No return value.
+ * @return Always return true
  */
-static void msg_RESCREATED(DDTypedBufferMsg_t *msg)
+static bool msg_RESCREATED(DDTypedBufferMsg_t *msg)
 {
     if (PSC_getID(msg->header.dest) == PSC_getMyID()) {
 	/* destination is here */
 	recvFragMsg(msg, handleResCreated);
-	return;
+	return true;
     }
 
     /* destination is remote */
     if (!PSIDnodes_isUp(PSC_getID(msg->header.dest))) {
 	PSID_log(-1, "%s: unable to forward fragment to %s (node down)\n",
 		 __func__, PSC_printTID(msg->header.dest));
-	return;
+	return true;
     }
 
     PSID_log(PSID_LOG_SPAWN, "%s: forward to node %d\n", __func__,
@@ -2266,6 +2267,7 @@ static void msg_RESCREATED(DDTypedBufferMsg_t *msg)
 	PSID_log(-1, "%s: unable to forward fragment to %s (sendMsg failed)\n",
 		 __func__, PSC_printTID(msg->header.dest));
     }
+    return true;
 }
 
 /**
@@ -2288,18 +2290,18 @@ PSresinfo_t* PSID_findReservationInJob(PSjob_t *job, PSrsrvtn_ID_t resID)
 }
 
 /**
- * @brief Handle a PSP_DD_RESRELEASED message.
+ * @brief Handle a PSP_DD_RESRELEASED message
  *
  * Handle the message @a msg of type PSP_DD_RESRELEASED.
  *
  * This will stop all services connected to the reservation being
  * released and remove all information about it.
  *
- * @param msg Pointer to the message to handle
+ * @param msg Pointer to message to handle
  *
- * @return No return value.
+ * @return Always return true
  */
-static void msg_RESRELEASED(DDBufferMsg_t *msg)
+static bool msg_RESRELEASED(DDBufferMsg_t *msg)
 {
     PSrsrvtn_ID_t resID;
     PStask_ID_t logTID;
@@ -2313,7 +2315,7 @@ static void msg_RESRELEASED(DDBufferMsg_t *msg)
     if (!job) {
 	PSID_log(-1, "%s: No job with loggertid %s expected to hold resID %d"
 		 " to be released\n", __func__, PSC_printTID(logTID), resID);
-	return;
+	return true;
     }
 
     /* try to find reservation within the job */
@@ -2321,7 +2323,7 @@ static void msg_RESRELEASED(DDBufferMsg_t *msg)
     if (!res) {
 	PSID_log(-1, "%s: No reservation with ID %d in job with logger %s\n",
 		 __func__, resID, PSC_printTID(logTID));
-	return;
+	return true;
     }
 
     list_del(&res->next);
@@ -2337,6 +2339,7 @@ static void msg_RESRELEASED(DDBufferMsg_t *msg)
 	list_del(&job->next);
 	free(job);
     }
+    return true;
 }
 
 /**
@@ -2554,7 +2557,7 @@ static void handleSpawnReq(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
 }
 
 /**
- * @brief Handle a PSP_CD_SPAWNREQUEST message.
+ * @brief Handle a PSP_CD_SPAWNREQUEST message
  *
  * Handle the message @a msg of type PSP_CD_SPAWNREQUEST.
  *
@@ -2577,13 +2580,13 @@ static void handleSpawnReq(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
  * The actual handling of the spawn request once all fragments are
  * received is done within @ref handleSpawnReq().
  *
- * @param msg Pointer to the message holding the fragment to handle
+ * @param msg Pointer to message holding the fragment to handle
  *
- * @return No return value.
+ * @return Always return true
  */
-static void msg_SPAWNREQUEST(DDTypedBufferMsg_t *msg)
+static bool msg_SPAWNREQUEST(DDTypedBufferMsg_t *msg)
 {
-    PStask_t *task, *ptask = NULL;
+    PStask_t *ptask = NULL;
     DDErrorMsg_t answer = {
 	.header = {
 	    .type = PSP_CD_SPAWNFAILED,
@@ -2592,8 +2595,8 @@ static void msg_SPAWNREQUEST(DDTypedBufferMsg_t *msg)
 	    .len = sizeof(answer) },
 	.error = 0,
 	.request = 0,};
-    bool localSender = (PSC_getID(msg->header.sender)==PSC_getMyID());
-    uint32_t num, i;
+    bool localSender = (PSC_getID(msg->header.sender) == PSC_getMyID());
+    uint32_t num;
     int32_t rank = -1;
     PStask_group_t group = TG_ANY;
 
@@ -2613,7 +2616,7 @@ static void msg_SPAWNREQUEST(DDTypedBufferMsg_t *msg)
 
 	/* fetch info from message */
 	getUint32(&ptr, &num);
-	task = PStask_new();
+	PStask_t *task = PStask_new();
 	ptr += PStask_decodeTask(ptr, task, false);
 
 	/* reset psserial's byteorder */
@@ -2629,26 +2632,26 @@ static void msg_SPAWNREQUEST(DDTypedBufferMsg_t *msg)
 	PStask_delete(task);
 
 	if (answer.error) {
-	    for (i = 0; i < num; i++) {
-		answer.request = rank + i;
+	    for (uint32_t r = 0; r < num; r++) {
+		answer.request = rank + r;
 		sendMsg(&answer);
 	    }
 
-	    return;
+	    return true;
 	}
 
 	/* Since checkRequest() did not fail, we will find ptask */
 	ptask = PStasklist_find(&managedTasks, msg->header.sender);
 	if (!ptask) {
 	    PSID_log(-1, "%s: no parent task?!\n", __func__);
-	    return;
+	    return true;
 	}
     }
 
     if (PSC_getID(msg->header.dest) == PSC_getMyID()) {
 	/* destination is here */
 	recvFragMsg(msg, handleSpawnReq);
-	return;
+	return true;
     }
 
     /* destination is remote */
@@ -2657,12 +2660,12 @@ static void msg_SPAWNREQUEST(DDTypedBufferMsg_t *msg)
 	answer.error = EHOSTDOWN;
 	if (fragNum == 0) {
 	    /* first fragment */
-	    for (i = 0; i < num; i++) {
-		answer.request = rank + i;
+	    for (uint32_t r = 0; r < num; r++) {
+		answer.request = rank + r;
 		sendMsg(&answer);
 	    }
 	} /* ignore follow-up fragments */
-	return;
+	return true;
     }
 
     /* Check if we have to and can send a LOC-message */
@@ -2674,9 +2677,9 @@ static void msg_SPAWNREQUEST(DDTypedBufferMsg_t *msg)
 	    answer.error = EADDRNOTAVAIL;
 	} else {
 	    bool notAvail = false;
-	    for (i = 0; i < num; i++) {
+	    for (uint32_t r = 0; r < num; r++) {
 		notAvail = notAvail
-		    || !PSCPU_any(spawnNodes[rank+i].CPUset, PSCPU_MAX);
+		    || !PSCPU_any(spawnNodes[rank+r].CPUset, PSCPU_MAX);
 	    }
 	    if (notAvail) {
 		PSID_log(-1, "%s: node exhausted\n", __func__);
@@ -2685,20 +2688,20 @@ static void msg_SPAWNREQUEST(DDTypedBufferMsg_t *msg)
 	}
 
 	if (answer.error) {
-	    for (i = 0; i < num; i++) {
-		answer.request = rank + i;
+	    for (uint32_t r = 0; r < num; r++) {
+		answer.request = rank + r;
 		sendMsg(&answer);
 	    }
-	    return;
+	    return true;
 	} else {
 	    if (!send_SPAWNLOC(num, rank, msg->header.sender,
 			       msg->header.dest, ptask)) {
 		answer.error = EHOSTDOWN;
-		for (i = 0; i < num; i++) {
-		    answer.request = rank + i;
+		for (uint32_t r = 0; r < num; r++) {
+		    answer.request = rank + r;
 		    sendMsg(&answer);
 		}
-		return;
+		return true;
 	    }
 	}
     }
@@ -2707,11 +2710,12 @@ static void msg_SPAWNREQUEST(DDTypedBufferMsg_t *msg)
 	     PSC_getID(msg->header.dest));
     if (sendMsg(msg) < 0) {
 	answer.error = errno;
-	for (i = 0; i < num; i++) {
-	    answer.request = rank + i;
+	for (uint32_t r = 0; r < num; r++) {
+	    answer.request = rank + r;
 	    sendMsg(&answer);
 	}
     }
+    return true;
 }
 
 /**
@@ -2722,11 +2726,11 @@ static void msg_SPAWNREQUEST(DDTypedBufferMsg_t *msg)
  * Since the spawning process waits for a reaction to its request a
  * corresponding answer is created.
  *
- * @param msg Pointer to the message to drop.
+ * @param msg Pointer to message to drop
  *
- * @return No return value
+ * @return Always return true
  */
-static void drop_SPAWNREQ(DDBufferMsg_t *msg)
+static bool drop_SPAWNREQ(DDBufferMsg_t *msg)
 {
     DDErrorMsg_t errMsg = {
 	.header = {
@@ -2738,6 +2742,7 @@ static void drop_SPAWNREQ(DDBufferMsg_t *msg)
 	.request = 0,};
 
     sendMsg(&errMsg);
+    return true;
 }
 
 /**
@@ -2750,11 +2755,11 @@ static void drop_SPAWNREQ(DDBufferMsg_t *msg)
  * information is only contained in the first fragment, all further
  * fragments are ignored.
  *
- * @param msg Pointer to the message to drop.
+ * @param msg Pointer to message to drop
  *
- * @return No return value
+ * @return Always return true
  */
-static void drop_SPAWNREQUEST(DDTypedBufferMsg_t *msg)
+static bool drop_SPAWNREQUEST(DDTypedBufferMsg_t *msg)
 {
     DDErrorMsg_t errMsg = {
 	.header = {
@@ -2773,7 +2778,7 @@ static void drop_SPAWNREQUEST(DDTypedBufferMsg_t *msg)
     fetchFragHeader(msg, &used, NULL, &fragNum, NULL, NULL);
 
     /* Ignore trailing fragments */
-    if (fragNum) return;
+    if (fragNum) return true;
 
     /* Extract num and rank from message to drop */
     char *ptr = msg->buf + used;
@@ -2798,6 +2803,7 @@ static void drop_SPAWNREQUEST(DDTypedBufferMsg_t *msg)
 	errMsg.request = rank + i;
 	sendMsg(&errMsg);
     }
+    return true;
 }
 
 void PSIDspawn_delayTask(PStask_t *task)
@@ -2935,18 +2941,18 @@ static void cleanupSpawnTasks(void)
 }
 
 /**
- * @brief Handle a PSP_CD_SPAWNSUCCESS message.
+ * @brief Handle a PSP_CD_SPAWNSUCCESS message
  *
  * Handle the message @a msg of type PSP_CD_SPAWNSUCCESS.
  *
  * Register the spawned process to its parent task and forward the
  * message to the initiating process.
  *
- * @param msg Pointer to the message to handle.
+ * @param msg Pointer to message to handle
  *
- * @return No return value.
+ * @return Always return true
  */
-static void msg_SPAWNSUCCESS(DDErrorMsg_t *msg)
+static bool msg_SPAWNSUCCESS(DDErrorMsg_t *msg)
 {
     PStask_ID_t tid = msg->header.sender;
     PStask_ID_t ptid = msg->header.dest;
@@ -2967,7 +2973,7 @@ static void msg_SPAWNSUCCESS(DDErrorMsg_t *msg)
 	PSID_log(-1, " with parent(%s) already dead\n", PSC_printTID(ptid));
 	PSID_sendSignal(tid, 0, ptid, -1, 0, 0);
 
-	return;
+	return true;
     }
 
     /*
@@ -2981,21 +2987,22 @@ static void msg_SPAWNSUCCESS(DDErrorMsg_t *msg)
 	msg->header.dest = task->forwarder->tid;
     }
     sendMsg(msg);
+    return true;
 }
 
 /**
- * @brief Handle a PSP_CD_SPAWNFAILED message.
+ * @brief Handle a PSP_CD_SPAWNFAILED message
  *
  * Handle the message @a msg of type PSP_CD_SPAWNFAILED.
  *
  * This might have been created by a local forwarder. Thus, release
  * this forwarder and forwards the message to the initiating process.
  *
- * @param msg Pointer to the message to handle.
+ * @param msg Pointer to message to handle
  *
- * @return No return value.
+ * @return Always return true
  */
-static void msg_SPAWNFAILED(DDErrorMsg_t *msg)
+static bool msg_SPAWNFAILED(DDErrorMsg_t *msg)
 {
     PSID_log(PSID_LOG_SPAWN, "%s: %s reports on rank %d", __func__,
 	     PSC_printTID(msg->header.sender), msg->request);
@@ -3018,30 +3025,32 @@ static void msg_SPAWNFAILED(DDErrorMsg_t *msg)
 
     /* send failure msg to initiator */
     sendMsg(msg);
+    return true;
 }
 
 /**
- * @brief Handle a PSP_CD_SPAWNFINISH message.
+ * @brief Handle a PSP_CD_SPAWNFINISH message
  *
  * Handle the message @a msg of type PSP_CD_SPAWNFINISH.
  *
  * This just forwards the message to the initiating process.
  *
- * @param msg Pointer to the message to handle.
+ * @param msg Pointer to message to handle
  *
- * @return No return value.
+ * @return Always return true
  */
-static void msg_SPAWNFINISH(DDMsg_t *msg)
+static bool msg_SPAWNFINISH(DDMsg_t *msg)
 {
     PSID_log(PSID_LOG_SPAWN, "%s: sending to local parent %s\n",
 	     __func__, PSC_printTID(msg->dest));
 
     /* send the initiator a finish msg */
     sendMsg(msg);
+    return true;
 }
 
 /**
- * @brief Handle a PSP_DD_CHILDBORN message.
+ * @brief Handle a PSP_DD_CHILDBORN message
  *
  * Handle the message @a msg of type PSP_DD_CHILDBORN.
  *
@@ -3052,11 +3061,11 @@ static void msg_SPAWNFINISH(DDMsg_t *msg)
  * will be forwarded to the parent task in order to take according
  * measures.
  *
- * @param msg Pointer to the message to handle.
+ * @param msg Pointer to message to handle
  *
- * @return No return value.
+ * @return Always return true
  */
-static void msg_CHILDBORN(DDErrorMsg_t *msg)
+static bool msg_CHILDBORN(DDErrorMsg_t *msg)
 {
     PStask_t *forwarder = PStasklist_find(&managedTasks, msg->header.sender);
     PStask_t *child = PStasklist_find(&managedTasks, msg->request);
@@ -3067,7 +3076,7 @@ static void msg_CHILDBORN(DDErrorMsg_t *msg)
     if (!forwarder) {
 	PSID_log(-1, "%s: forwarder %s not found.\n", __func__,
 		 PSC_printTID(msg->header.sender));
-	return;
+	return true;
     }
 
     if (child) {
@@ -3079,7 +3088,7 @@ static void msg_CHILDBORN(DDErrorMsg_t *msg)
 	msg->header.sender = PSC_getMyTID();
 	sendMsg(msg);
 
-	return;
+	return true;
     }
 
     /* prepare child task */
@@ -3102,7 +3111,7 @@ static void msg_CHILDBORN(DDErrorMsg_t *msg)
 	sendMsg(msg);
 	sendCHILDRESREL(forwarder->loggertid, forwarder->CPUset,PSC_getMyTID());
 
-	return;
+	return true;
     }
 
     if (forwarder->argv) {
@@ -3195,10 +3204,11 @@ static void msg_CHILDBORN(DDErrorMsg_t *msg)
     msg->error = 0;
 
     sendMsg(msg);
+    return true;
 }
 
 /**
- * @brief Handle a PSP_DD_CHILDDEAD message.
+ * @brief Handle a PSP_DD_CHILDDEAD message
  *
  * Handle the message @a msg of type PSP_DD_CHILDDEAD.
  *
@@ -3208,20 +3218,18 @@ static void msg_CHILDBORN(DDErrorMsg_t *msg)
  * etc. Additionally the message will be forwarded to the daemon
  * controlling the parent task in order to take according measures.
  *
- * @param msg Pointer to the message to handle.
+ * @param msg Pointer to message to handle
  *
- * @return No return value.
+ * @return Always return true
  */
-static void msg_CHILDDEAD(DDErrorMsg_t *msg)
+static bool msg_CHILDDEAD(DDErrorMsg_t *msg)
 {
-    PStask_t *task, *forwarder;
-    bool obsoleteSndr = false;
-
     PSID_log(PSID_LOG_SPAWN, "%s: from %s", __func__,
 	     PSC_printTID(msg->header.sender));
     PSID_log(PSID_LOG_SPAWN, " to %s", PSC_printTID(msg->header.dest));
     PSID_log(PSID_LOG_SPAWN, " concerning %s\n", PSC_printTID(msg->request));
 
+    bool obsoleteSndr = false;
     if (PSC_getID(msg->header.sender) == -2) {
 	obsoleteSndr = true;
 	msg->header.sender = PSC_getTID(-1, PSC_getPID(msg->header.sender));
@@ -3233,11 +3241,11 @@ static void msg_CHILDDEAD(DDErrorMsg_t *msg)
 	if (PSC_getID(msg->header.dest) != PSC_getMyID()) {
 	    /* Destination on foreign node. Forward */
 	    sendMsg(msg);
-	    return;
+	    return true;
 	}
 	/* Destination on my node, let's take a peek */
-	task = PStasklist_find(&managedTasks, msg->header.dest);
-	if (!task) return;
+	PStask_t *task = PStasklist_find(&managedTasks, msg->header.dest);
+	if (!task) return true;
 
 	if (PSID_removeSignal(&task->assignedSigs, msg->request, -1)) {
 	    /* Neither release nor sig received, send sig now */
@@ -3273,7 +3281,7 @@ static void msg_CHILDDEAD(DDErrorMsg_t *msg)
 	if (task->removeIt && PSID_emptySigList(&task->childList)) {
 	    PSID_log(PSID_LOG_TASK, "%s: PSIDtask_cleanup()\n", __func__);
 	    PSIDtask_cleanup(task);
-	    return;
+	    return true;
 	}
 
 	/* Release a TG_(PSC)SPAWNER if child died in a fine way */
@@ -3300,14 +3308,14 @@ static void msg_CHILDDEAD(DDErrorMsg_t *msg)
 	    /* Do nothing */
 	    break;
 	}
-	return;
+	return true;
     }
 
     /****** This part handles original messages from a local forwarder ******/
 
     /* Release the corresponding forwarder */
-    forwarder = PStasklist_find(obsoleteSndr ? &obsoleteTasks : &managedTasks,
-				msg->header.sender);
+    PStask_t *forwarder = PStasklist_find(
+	obsoleteSndr ? &obsoleteTasks : &managedTasks, msg->header.sender);
     if (forwarder) {
 	if (PSID_removeSignal(&forwarder->childList, msg->request, -1)) {
 	    forwarder->released = true;
@@ -3322,7 +3330,7 @@ static void msg_CHILDDEAD(DDErrorMsg_t *msg)
     }
 
     /* Try to find the task */
-    task = PStasklist_find(&managedTasks, msg->request);
+    PStask_t *task = PStasklist_find(&managedTasks, msg->request);
     if (!task || task->forwarder != forwarder) {
 	/* Maybe the task was obsoleted */
 	task = PStasklist_find(&obsoleteTasks, msg->request);
@@ -3364,6 +3372,7 @@ static void msg_CHILDDEAD(DDErrorMsg_t *msg)
 	/* Send CHILDDEAD to parent */
 	if (msg->header.dest != PSC_getMyTID()) msg_CHILDDEAD(msg);
     }
+    return true;
 }
 
 /**

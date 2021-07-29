@@ -785,7 +785,7 @@ int send_DAEMONCONNECT(PSnodes_ID_t id)
 }
 
 /**
- * @brief Handle a PSP_DD_DAEMONCONNECT message.
+ * @brief Handle a PSP_DD_DAEMONCONNECT message
  *
  * Handle the message @a msg of type PSP_DD_DAEMONCONNECT.
  *
@@ -796,11 +796,11 @@ int send_DAEMONCONNECT(PSnodes_ID_t id)
  * This message is answered by a PSP_DD_DAEMONESTABLISHED message
  * providing the corresponding information to the connecting node.
  *
- * @param msg Pointer to the message to handle.
+ * @param msg Pointer to message to handle
  *
- * @return No return value.
+ * @return Always return true
  */
-static void msg_DAEMONCONNECT(DDBufferMsg_t *msg)
+static bool msg_DAEMONCONNECT(DDBufferMsg_t *msg)
 {
     PSnodes_ID_t id = PSC_getID(msg->header.sender);
     size_t used = 0;
@@ -816,7 +816,7 @@ static void msg_DAEMONCONNECT(DDBufferMsg_t *msg)
 	dmnProto = 413;
 
     /* id is out of range -> nothing left to do */
-    if (!declareNodeAlive(id, pCPUs, vCPUs, proto, dmnProto)) return;
+    if (!declareNodeAlive(id, pCPUs, vCPUs, proto, dmnProto)) return true;
 
     /* accept this request and send an ESTABLISH msg back to the requester */
     msg->header = (DDMsg_t) {
@@ -842,21 +842,22 @@ static void msg_DAEMONCONNECT(DDBufferMsg_t *msg)
     } else {
 	send_OPTIONS(id);
     }
+    return true;
 }
 
 /**
- * @brief Drop a PSP_DD_DAEMONCONNECT message.
+ * @brief Drop a PSP_DD_DAEMONCONNECT message
  *
  * Drop the message @a msg of type PSP_DD_DAEMONCONNECT.
  *
  * Since the connecting daemon waits for a reaction to its request a
  * corresponding answer is created.
  *
- * @param msg Pointer to the message to drop.
+ * @param msg Pointer to message to drop
  *
- * @return No return value.
+ * @return Always return true
  */
-static void drop_DAEMONCONNECT(DDBufferMsg_t *msg)
+static bool drop_DAEMONCONNECT(DDBufferMsg_t *msg)
 {
     static bool block = false;
 
@@ -872,10 +873,11 @@ static void drop_DAEMONCONNECT(DDBufferMsg_t *msg)
 	block = false;
 	if (next == PSC_getMyID()) declareMaster(next);
     }
+    return true;
 }
 
 /**
- * @brief Handle a PSP_DD_DAEMONESTABLISHED message.
+ * @brief Handle a PSP_DD_DAEMONESTABLISHED message
  *
  * Handle the message @a msg of type PSP_DD_DAEMONESTABLISHED.
  *
@@ -886,11 +888,11 @@ static void drop_DAEMONCONNECT(DDBufferMsg_t *msg)
  * With the receive of this message the setup of the daemon-daemon
  * connection is finished and the other node is marked to be up now.
  *
- * @param msg Pointer to the message to handle.
+ * @param msg Pointer to message to handle
  *
- * @return No return value.
+ * @return Always return true
  */
-static void msg_DAEMONESTABLISHED(DDBufferMsg_t *msg)
+static bool msg_DAEMONESTABLISHED(DDBufferMsg_t *msg)
 {
     PSnodes_ID_t id = PSC_getID(msg->header.sender);
     size_t used = 0;
@@ -906,10 +908,11 @@ static void msg_DAEMONESTABLISHED(DDBufferMsg_t *msg)
 	dmnProto = 413;
 
     /* id is out of range -> nothing left to do */
-    if (!declareNodeAlive(id, pCPUs, vCPUs, proto, dmnProto)) return;
+    if (!declareNodeAlive(id, pCPUs, vCPUs, proto, dmnProto)) return true;
 
     /* Send some info about me to the other node */
     send_OPTIONS(id);
+    return true;
 }
 
 int send_DAEMONSHUTDOWN(void)
@@ -935,7 +938,7 @@ int send_DAEMONSHUTDOWN(void)
 }
 
 /**
- * @brief Handle a PSP_DD_DAEMONSHUTDOWN message.
+ * @brief Handle a PSP_DD_DAEMONSHUTDOWN message
  *
  * Handle the message @a msg of type PSP_DD_DAEMONSHUTDOWN.
  *
@@ -943,11 +946,11 @@ int send_DAEMONSHUTDOWN(void)
  * go down soon and no longer accepts messages for receive. Thus this
  * node should be marked to be down now.
  *
- * @param msg Pointer to the message to handle.
+ * @param msg Pointer to message to handle
  *
- * @return No return value.
+ * @return Always return true
  */
-static void msg_DAEMONSHUTDOWN(DDMsg_t *msg)
+static bool msg_DAEMONSHUTDOWN(DDMsg_t *msg)
 {
     PSnodes_ID_t id = PSC_getID(msg->sender);
 
@@ -955,6 +958,7 @@ static void msg_DAEMONSHUTDOWN(DDMsg_t *msg)
 	     "%s(%d)\n", __func__, id);
     declareNodeDead(id, 0, 1);
     closeConnRDP(id);
+    return true;
 }
 
 int send_MASTERIS(PSnodes_ID_t dest)
@@ -976,7 +980,7 @@ int send_MASTERIS(PSnodes_ID_t dest)
 }
 
 /**
- * @brief Handle a PSP_DD_MASTER_IS message.
+ * @brief Handle a PSP_DD_MASTER_IS message
  *
  * Handle the message @a msg of type PSP_DD_MASTER_IS.
  *
@@ -991,11 +995,11 @@ int send_MASTERIS(PSnodes_ID_t dest)
  * - Otherwise a PSP_DD_MASTER_IS message is sent to the sender in
  * order to inform on the actual master node.
  *
- * @param msg Pointer to the message to handle.
+ * @param msg Pointer to message to handle
  *
- * @return No return value.
+ * @return Always return true
  */
-static void msg_MASTERIS(DDBufferMsg_t *msg)
+static bool msg_MASTERIS(DDBufferMsg_t *msg)
 {
     size_t used = 0;
     PSnodes_ID_t newM;
@@ -1012,6 +1016,7 @@ static void msg_MASTERIS(DDBufferMsg_t *msg)
 	    send_MASTERIS(PSC_getID(msg->header.sender));
 	}
     }
+    return true;
 }
 
 /**
@@ -1066,7 +1071,7 @@ static int send_ACTIVENODES(PSnodes_ID_t dest)
 }
 
 /**
- * @brief Handle a PSP_DD_ACTIVE_NODES message.
+ * @brief Handle a PSP_DD_ACTIVE_NODES message
  *
  * Handle the message @a msg of type PSP_DD_ACTIVE_NODES.
  *
@@ -1076,11 +1081,11 @@ static int send_ACTIVENODES(PSnodes_ID_t dest)
  * receiving node will try to contact each of this nodes provided in
  * order to setup a working connection.
  *
- * @param msg Pointer to the message to handle.
+ * @param msg Pointer to message to handle
  *
- * @return No return value.
+ * @return Always return true
  */
-static void msg_ACTIVENODES(DDBufferMsg_t *msg)
+static bool msg_ACTIVENODES(DDBufferMsg_t *msg)
 {
     PSnodes_ID_t sender = PSC_getID(msg->header.sender), node;
     static PSnodes_ID_t firstUntested = 0;
@@ -1101,10 +1106,11 @@ static void msg_ACTIVENODES(DDBufferMsg_t *msg)
 	if (!PSIDnodes_isUp(node)) send_DAEMONCONNECT(node);
 	firstUntested = node + 1;
     }
+    return true;
 }
 
 /**
- * @brief Broadcast a PSP_DD_DEAD_NODE message.
+ * @brief Broadcast a PSP_DD_DEAD_NODE message
  *
  * Broadcast a PSP_DD_DEAD_NODE message to all active nodes.
  *
@@ -1136,7 +1142,7 @@ static int send_DEADNODE(PSnodes_ID_t deadnode)
 }
 
 /**
- * @brief Handle a PSP_DD_DEAD_NODE message.
+ * @brief Handle a PSP_DD_DEAD_NODE message
  *
  * Handle the message @a msg of type PSP_DD_DEAD_NODE.
  *
@@ -1146,11 +1152,11 @@ static int send_DEADNODE(PSnodes_ID_t deadnode)
  * the according node and usually mark this node as dead via a
  * callback from daemon's the RDP facility.
  *
- * @param msg Pointer to the message to handle.
+ * @param msg Pointer to message to handle
  *
- * @return No return value.
+ * @return Always return true
  */
-static void msg_DEADNODE(DDBufferMsg_t *msg)
+static bool msg_DEADNODE(DDBufferMsg_t *msg)
 {
     PSnodes_ID_t dead;
     size_t used = 0;
@@ -1160,10 +1166,11 @@ static void msg_DEADNODE(DDBufferMsg_t *msg)
     PSID_log(PSID_LOG_STATUS, "%s(%d)\n", __func__, dead);
 
     send_DAEMONCONNECT(dead);
+    return true;
 }
 
 /**
- * @brief Handle a PSP_DD_LOAD message.
+ * @brief Handle a PSP_DD_LOAD message
  *
  * Handle the message @a msg of type PSP_DD_LOAD.
  *
@@ -1176,11 +1183,11 @@ static void msg_DEADNODE(DDBufferMsg_t *msg)
  * The master process will handle this message by storing the
  * information contained to the local status arrays.
  *
- * @param msg Pointer to the message to handle.
+ * @param msg Pointer to message to handle
  *
- * @return No return value.
+ * @return Always return true
  */
-static void msg_LOAD(DDBufferMsg_t *msg)
+static bool msg_LOAD(DDBufferMsg_t *msg)
 {
     if (PSC_getMyID() != getMasterID()) {
 	send_MASTERIS(PSC_getID(msg->header.sender));
@@ -1212,6 +1219,7 @@ static void msg_LOAD(DDBufferMsg_t *msg)
 	    clientStat[client].wrongClients = 0;
 	}
     }
+    return true;
 }
 
 void initStatus(void)

@@ -360,15 +360,15 @@ void PSID_sendSignalsToRelatives(PStask_t *task)
  * signal is also forwarded to all child processes of the receiving
  * process, local or remote.
  *
- * @param msg Pointer to the message to handle
+ * @param msg Pointer to message to handle
  *
- * @return No return value
+ * @return Always return true
  */
-static void msg_SIGNAL(DDSignalMsg_t *msg)
+static bool msg_SIGNAL(DDSignalMsg_t *msg)
 {
     if (msg->header.dest == -1) {
 	PSID_log(-1, "%s: no broadcast\n", __func__);
-	return;
+	return true;
     }
 
     if (PSC_getID(msg->header.sender) == PSC_getMyID()
@@ -393,6 +393,7 @@ static void msg_SIGNAL(DDSignalMsg_t *msg)
 		 __func__, PSC_getID(msg->header.dest));
 	sendMsg(msg);
     }
+    return true;
 }
 
 /**
@@ -403,24 +404,24 @@ static void msg_SIGNAL(DDSignalMsg_t *msg)
  * Since the sending process waits for a reaction to its request a
  * corresponding answer is created.
  *
- * @param msg Pointer to the message to drop
+ * @param msg Pointer to message to drop
  *
- * @return No return value
+ * @return Always return true
  */
-static void drop_SIGNAL(DDBufferMsg_t *msg)
+static bool drop_SIGNAL(DDBufferMsg_t *msg)
 {
-    DDErrorMsg_t errmsg = {
-	.header = {
-	    .type = PSP_CD_SIGRES,
-	    .dest = msg->header.sender,
-	    .sender = PSC_getMyTID(),
-	    .len = sizeof(errmsg) },
-	.error = ESRCH,
-	.request = msg->header.dest };
-
-    if (!((DDSignalMsg_t *)msg)->answer) return;
-
-    sendMsg(&errmsg);
+    if (((DDSignalMsg_t *)msg)->answer) {
+	DDErrorMsg_t errmsg = {
+	    .header = {
+		.type = PSP_CD_SIGRES,
+		.dest = msg->header.sender,
+		.sender = PSC_getMyTID(),
+		.len = sizeof(errmsg) },
+	    .error = ESRCH,
+	    .request = msg->header.dest };
+	sendMsg(&errmsg);
+    }
+    return true;
 }
 
 /**
@@ -438,11 +439,11 @@ static void drop_SIGNAL(DDBufferMsg_t *msg)
  * back to the requester within a answering PSP_CD_NOTIFYDEADRES
  * message.
  *
- * @param msg Pointer to the message to handle
+ * @param msg Pointer to message to handle
  *
- * @return No return value
+ * @return Always return true
  */
-static void msg_NOTIFYDEAD(DDSignalMsg_t *msg)
+static bool msg_NOTIFYDEAD(DDSignalMsg_t *msg)
 {
     PStask_ID_t registrarTid = msg->header.sender;
     PStask_ID_t tid = msg->header.dest;
@@ -518,6 +519,7 @@ static void msg_NOTIFYDEAD(DDSignalMsg_t *msg)
     }
 
     sendMsg(msg);
+    return true;
 }
 
 /**
@@ -531,18 +533,18 @@ static void msg_NOTIFYDEAD(DDSignalMsg_t *msg)
  * Furthermore this client task will be marked to expect the
  * corresponding signal.
  *
- * @param msg Pointer to the message to handle
+ * @param msg Pointer to message to handle
  *
- * @return No return value
+ * @return Always return true
  */
-static void msg_NOTIFYDEADRES(DDSignalMsg_t *msg)
+static bool msg_NOTIFYDEADRES(DDSignalMsg_t *msg)
 {
     PStask_ID_t controlledTid = msg->header.sender;
     PStask_ID_t registrarTid = msg->header.dest;
 
     if (PSC_getID(registrarTid) != PSC_getMyID()) {
 	sendMsg(msg);
-	return;
+	return true;
     }
 
     if (msg->param) {
@@ -566,9 +568,10 @@ static void msg_NOTIFYDEADRES(DDSignalMsg_t *msg)
 
     /* send the registrar a result msg */
     sendMsg(msg);
+    return true;
 }
 
-static void msg_RELEASERES(DDSignalMsg_t *msg);
+static bool msg_RELEASERES(DDSignalMsg_t *msg);
 
 /**
  * @brief Handle PSP_DD_NEWCHILD message
@@ -583,11 +586,11 @@ static void msg_RELEASERES(DDSignalMsg_t *msg);
  * In all cases adequate PSP_CD_RELEASERES message are send to the
  * task requesting passing over their child.
  *
- * @param msg Pointer to the message to handle
+ * @param msg Pointer to message to handle
  *
- * @return No return value
+ * @return Always return true
  */
-static void msg_NEWCHILD(DDErrorMsg_t *msg)
+static bool msg_NEWCHILD(DDErrorMsg_t *msg)
 {
     PStask_t *task = PStasklist_find(&managedTasks, msg->header.dest);
     DDSignalMsg_t answer = {
@@ -626,7 +629,7 @@ static void msg_NEWCHILD(DDErrorMsg_t *msg)
 
 	answer.param = 0;
     }
-    msg_RELEASERES(&answer);
+    return msg_RELEASERES(&answer);
 }
 
 /**
@@ -643,11 +646,11 @@ static void msg_NEWCHILD(DDErrorMsg_t *msg)
  * In all cases adequate PSP_CD_RELEASERES message are send to the
  * task requesting passing over their child.
  *
- * @param msg Pointer to the message to handle
+ * @param msg Pointer to message to handle
  *
- * @return No return value
+ * @return Always return true
  */
-static void msg_NEWPARENT(DDErrorMsg_t *msg)
+static bool msg_NEWPARENT(DDErrorMsg_t *msg)
 {
     PStask_t *task = PStasklist_find(&managedTasks, msg->header.dest);
     DDSignalMsg_t answer = {
@@ -691,7 +694,7 @@ static void msg_NEWPARENT(DDErrorMsg_t *msg)
 
 	answer.param = 0;
     }
-    msg_RELEASERES(&answer);
+    return msg_RELEASERES(&answer);
 }
 
 /**
@@ -702,11 +705,11 @@ static void msg_NEWPARENT(DDErrorMsg_t *msg)
  * Since the requesting daemon waits for a reaction to its request a
  * corresponding answer is created.
  *
- * @param msg Pointer to the message to drop
+ * @param msg Pointer to message to drop
  *
- * @return No return value
+ * @return Always return true
  */
-static void drop_NEWRELATIVE(DDBufferMsg_t *msg)
+static bool drop_NEWRELATIVE(DDBufferMsg_t *msg)
 {
     DDSignalMsg_t sigmsg = {
 	.header = {
@@ -719,6 +722,7 @@ static void drop_NEWRELATIVE(DDBufferMsg_t *msg)
 	.pervasive = 0 };
 
     sendMsg(&sigmsg);
+    return true;
 }
 
 /**
@@ -740,11 +744,11 @@ static void drop_NEWRELATIVE(DDBufferMsg_t *msg)
  * information has to be forwarded, too (as the sender of the new
  * message).
  *
- * @param msg Pointer to the message to handle
+ * @param msg Pointer to message to handle
  *
- * @return No return value
+ * @return Always return true
  */
-static void msg_NEWANCESTOR(DDErrorMsg_t *msg)
+static bool msg_NEWANCESTOR(DDErrorMsg_t *msg)
 {
     DDBufferMsg_t answer = {
 	.header = {
@@ -753,10 +757,8 @@ static void msg_NEWANCESTOR(DDErrorMsg_t *msg)
 	    .sender = msg->header.dest,
 	    .len = offsetof(DDBufferMsg_t, buf) },
 	.buf = { 0 } };
-    list_t *t;
     size_t emptyLen = answer.header.len, oldLen;
     PStask_ID_t nTID = 0;
-    int found = 0;
     bool grandParentOK = PSIDnodes_isUp(PSC_getID(msg->request));
 
     if (grandParentOK) {
@@ -765,6 +767,8 @@ static void msg_NEWANCESTOR(DDErrorMsg_t *msg)
 	emptyLen = answer.header.len;
     }
 
+    int found = 0;
+    list_t *t;
     list_for_each(t, &managedTasks) {
 	PStask_t *task = list_entry(t, PStask_t, next);
 
@@ -825,6 +829,7 @@ static void msg_NEWANCESTOR(DDErrorMsg_t *msg)
     }
 
     sendMsg(&answer);
+    return true;
 }
 
 /**
@@ -844,11 +849,11 @@ static void msg_NEWANCESTOR(DDErrorMsg_t *msg)
  * receiving grandparent process and the parent process of the
  * inherited grandchildren.
  *
- * @param msg Pointer to the message to handle
+ * @param msg Pointer to message to handle
  *
- * @return No return value
+ * @return Always return true
  */
-static void msg_ADOPTCHILDSET(DDBufferMsg_t *msg)
+static bool msg_ADOPTCHILDSET(DDBufferMsg_t *msg)
 {
     PStask_t *task = PStasklist_find(&managedTasks, msg->header.dest);
     PStask_ID_t child, tid;
@@ -859,12 +864,12 @@ static void msg_ADOPTCHILDSET(DDBufferMsg_t *msg)
 	PSID_log(PSID_LOG_SIGNAL, "%s(%s): no task\n", __func__,
 		 PSC_printTID(msg->header.dest));
 	PSID_dropMsg(msg);
-	return;
+	return true;
     }
 
     if (!PSP_getMsgBuf(msg, &used, "child", &child, sizeof(child))) {
 	PSID_log(-1, "%s: %s: truncated\n", __func__, PSC_printTID(task->tid));
-	return;
+	return true;
     }
 
     while (PSP_tryGetMsgBuf(msg, &used, "tid", &tid, sizeof(tid))) {
@@ -910,6 +915,7 @@ static void msg_ADOPTCHILDSET(DDBufferMsg_t *msg)
 
 	sendMsg(&answer);
     }
+    return true;
 }
 
 /**
@@ -921,11 +927,11 @@ static void msg_ADOPTCHILDSET(DDBufferMsg_t *msg)
  * information to the originally passing process a corresponding
  * answer is created.
  *
- * @param msg Pointer to the message to drop
+ * @param msg Pointer to message to drop
  *
- * @return No return value
+ * @return Always return true
  */
-static void drop_ADOPTCHILDSET(DDBufferMsg_t *msg)
+static bool drop_ADOPTCHILDSET(DDBufferMsg_t *msg)
 {
     PStask_ID_t temp = msg->header.dest;
 
@@ -934,6 +940,7 @@ static void drop_ADOPTCHILDSET(DDBufferMsg_t *msg)
     msg->header.sender = temp;
 
     sendMsg(msg);
+    return true;
 }
 
 /**
@@ -950,11 +957,11 @@ static void drop_ADOPTCHILDSET(DDBufferMsg_t *msg)
  * children to its parent process is updated by a corresponding
  * message of type PSP_DD_INHERITFAILED.
  *
- * @param msg Pointer to the message to handle
+ * @param msg Pointer to message to handle
  *
- * @return No return value
+ * @return Always return true
  */
-static void msg_ADOPTFAILED(DDBufferMsg_t *msg)
+static bool msg_ADOPTFAILED(DDBufferMsg_t *msg)
 {
     PStask_ID_t ptid, tid;
     size_t used = 0;
@@ -962,7 +969,7 @@ static void msg_ADOPTFAILED(DDBufferMsg_t *msg)
     if (!PSP_getMsgBuf(msg, &used, "ptid", &ptid, sizeof(ptid))) {
 	PSID_log(-1, "%s: from %s: truncated\n", __func__,
 		 PSC_printTID(msg->header.sender));
-	return;
+	return true;
     }
 
     while (PSP_tryGetMsgBuf(msg, &used, "tid", &tid, sizeof(tid))) {
@@ -996,9 +1003,10 @@ static void msg_ADOPTFAILED(DDBufferMsg_t *msg)
 	/* Also change back forwarder's ptid */
 	if (task->forwarder) task->forwarder->ptid = ptid;
     }
+    return true;
 }
 
-static void msg_RELEASE(DDSignalMsg_t *msg);
+static bool msg_RELEASE(DDSignalMsg_t *msg);
 
 /**
  * @brief Remove signal from task
@@ -1331,11 +1339,11 @@ static bool deregisterFromParent(PStask_t *task)
  * task requesting the release if the answer flag withing the message
  * @a msg is set.
  *
- * @param msg Pointer to the message to handle
+ * @param msg Pointer to message to handle
  *
- * @return No return value
+ * @return Always return true
  */
-static void msg_RELEASE(DDSignalMsg_t *msg)
+static bool msg_RELEASE(DDSignalMsg_t *msg)
 {
     PStask_ID_t registrarTid = msg->header.sender;
     PStask_ID_t tid = msg->header.dest;
@@ -1375,7 +1383,7 @@ static void msg_RELEASE(DDSignalMsg_t *msg)
 		if (task->pendingReleaseRes || !deregisterFromParent(task)) {
 		    /* RELEASERES message pending, RELEASERES to initiatior
 		     * will be sent by msg_RELEASERES() */
-		    return;
+		    return true;
 		}
 	    }
 	} else if (task->forwarder && registrarTid == task->forwarder->tid
@@ -1390,15 +1398,16 @@ static void msg_RELEASE(DDSignalMsg_t *msg)
 	    if (msg->param < 0) {
 		/* RELEASE message was forwarded to new
 		 * parent. RELEASERES message will be created there */
-		return;
+		return true;
 	    }
-	    if (msg->answer) msg_RELEASERES(msg);
+	    if (msg->answer) return msg_RELEASERES(msg);
 
-	    return;
+	    return true;
 	}
-	if (!task || !msg->answer) return;
+	if (!task || !msg->answer) return true;
     }
     sendMsg(msg);
+    return true;
 }
 
 /**
@@ -1416,11 +1425,11 @@ static void msg_RELEASE(DDSignalMsg_t *msg)
  * Furthermore this client task will be marked to not expect the
  * corresponding signal any longer.
  *
- * @param msg Pointer to the message to handle
+ * @param msg Pointer to message to handle
  *
- * @return No return value
+ * @return Always return true
  */
-static void msg_RELEASERES(DDSignalMsg_t *msg)
+static bool msg_RELEASERES(DDSignalMsg_t *msg)
 {
     PStask_ID_t tid = msg->header.dest;
     int dbgMask = (msg->param == ESRCH) ? PSID_LOG_SIGNAL : -1;
@@ -1433,14 +1442,14 @@ static void msg_RELEASERES(DDSignalMsg_t *msg)
 
     if (PSC_getID(tid) != PSC_getMyID()) {
 	sendMsg(msg);
-	return;
+	return true;
     }
 
     PStask_t *task = PStasklist_find(&managedTasks, tid);
     if (!task) {
 	PSID_log(-1, "%s(%s) from ", __func__, PSC_printTID(tid));
 	PSID_log(-1, " %s: no task\n", PSC_printTID(msg->header.sender));
-	return;
+	return true;
     }
 
     if (msg->param) {
@@ -1458,7 +1467,7 @@ static void msg_RELEASERES(DDSignalMsg_t *msg)
 	PSID_log(PSID_LOG_SIGNAL, "%s(%s) sig %d: still %d pending\n",
 		 __func__, PSC_printTID(tid), msg->signal,
 		 task->pendingReleaseRes);
-	return;
+	return true;
     } else if (task->pendingReleaseErr) {
 	msg->param = task->pendingReleaseErr;
 	PSID_log(-1, "%s: sig %d: error = %d from %s", __func__,
@@ -1477,6 +1486,7 @@ static void msg_RELEASERES(DDSignalMsg_t *msg)
 
     /* send the initiator a result msg */
     if (task->releaseAnswer) sendMsg(msg);
+    return true;
 }
 
 static void send_RELEASERES(PStask_t *task, PStask_ID_t sender)
@@ -1515,11 +1525,11 @@ static void send_RELEASERES(PStask_t *task, PStask_ID_t sender)
  * This kind of message is sent in order to tell the passing
  * process about the successful adoption of children processes.
  *
- * @param msg Pointer to the message to handle
+ * @param msg Pointer to message to handle
  *
- * @return No return value
+ * @return Always return true
  */
-static void msg_INHERITDONE(DDBufferMsg_t *msg)
+static bool msg_INHERITDONE(DDBufferMsg_t *msg)
 {
     PStask_ID_t tid = msg->header.dest, keptChild;
     PStask_t *task = PStasklist_find(&managedTasks, tid);
@@ -1528,13 +1538,13 @@ static void msg_INHERITDONE(DDBufferMsg_t *msg)
     if (!PSP_getMsgBuf(msg, &used, "kept child", &keptChild,
 		       sizeof(keptChild))) {
 	PSID_log(-1, "%s(%s): truncated\n", __func__, PSC_printTID(tid));
-	return;
+	return true;
     }
 
     if (!task) {
 	PSID_log(-1, "%s(%s) for %d: no task\n", __func__, PSC_printTID(tid),
 		 PSC_getID(keptChild));
-	return;
+	return true;
     }
 
     /* remove kept back signal */
@@ -1548,6 +1558,7 @@ static void msg_INHERITDONE(DDBufferMsg_t *msg)
     } else {
 	send_RELEASERES(task, msg->header.sender);
     }
+    return true;
 }
 
 /**
@@ -1560,11 +1571,11 @@ static void msg_INHERITDONE(DDBufferMsg_t *msg)
  * order to tell that the children processes are finally orphaned and
  * correspondingly killed.
  *
- * @param msg Pointer to the message to handle
+ * @param msg Pointer to message to handle
  *
- * @return No return value
+ * @return Always return true
  */
-static void msg_INHERITFAILED(DDBufferMsg_t *msg)
+static bool msg_INHERITFAILED(DDBufferMsg_t *msg)
 {
     PStask_ID_t tid = msg->header.dest, keptChild = msg->header.sender;
     PStask_t *task = PStasklist_find(&managedTasks, tid);
@@ -1572,7 +1583,7 @@ static void msg_INHERITFAILED(DDBufferMsg_t *msg)
     if (!task) {
 	PSID_log(-1, "%s(%s) for %d: no task\n", __func__, PSC_printTID(tid),
 		 PSC_getID(keptChild));
-	return;
+	return true;
     }
 
     /* remove kept back signal */
@@ -1587,10 +1598,10 @@ static void msg_INHERITFAILED(DDBufferMsg_t *msg)
 	|| (!task->parentReleased && !deregisterFromParent(task))) {
 	PSID_log(PSID_LOG_SIGNAL, "%s(%s) still %d pending\n",
 		 __func__, PSC_printTID(tid), task->pendingReleaseRes);
-	return;
     } else {
 	send_RELEASERES(task, msg->header.sender);
     }
+    return true;
 }
 
 /**
@@ -1604,11 +1615,11 @@ static void msg_INHERITFAILED(DDBufferMsg_t *msg)
  * up within this function. The result is sent back to the requester
  * within a answering PSP_CD_WHODIED message.
  *
- * @param msg Pointer to the message to handle
+ * @param msg Pointer to message to handle
  *
- * @return No return value
+ * @return Always return true
  */
-static void msg_WHODIED(DDSignalMsg_t *msg)
+static bool msg_WHODIED(DDSignalMsg_t *msg)
 {
     PStask_t *task = PStasklist_find(&managedTasks, msg->header.sender);
 
@@ -1630,6 +1641,7 @@ static void msg_WHODIED(DDSignalMsg_t *msg)
     }
 
     sendMsg(msg);
+    return true;
 }
 
 /**
@@ -1640,11 +1652,11 @@ static void msg_WHODIED(DDSignalMsg_t *msg)
  * Since the requesting process waits for a reaction to its request a
  * corresponding answer is created.
  *
- * @param msg Pointer to the message to drop
+ * @param msg Pointer to message to drop
  *
- * @return No return value
+ * @return Always return true
  */
-static void drop_RELEASE(DDBufferMsg_t *msg)
+static bool drop_RELEASE(DDBufferMsg_t *msg)
 {
     DDSignalMsg_t sigmsg;
 
@@ -1666,6 +1678,7 @@ static void drop_RELEASE(DDBufferMsg_t *msg)
 	    msg_NOTIFYDEADRES(&sigmsg);
 	}
     }
+    return true;
 }
 
 static void signalGC(void)

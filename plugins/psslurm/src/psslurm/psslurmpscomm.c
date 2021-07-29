@@ -108,24 +108,6 @@ typedef enum {
     PSP_PELOGUE_OE,	    /**< forward pelogue script stdout/stderr */
 } PSP_PSSLURM_t;
 
-/** Old handler for PSP_DD_CHILDBORN messages */
-static handlerFunc_t oldChildBornHandler = NULL;
-
-/** Old handler for PSP_CC_MSG messages */
-static handlerFunc_t oldCCMsgHandler = NULL;
-
-/** Old handler for PSP_CD_SPAWNFAILED  messages */
-static handlerFunc_t oldSpawnFailedHandler = NULL;
-
-/** Old handler for PSP_CD_SPAWNSUCCESS  messages */
-static handlerFunc_t oldSpawnSuccessHandler = NULL;
-
-/** Old handler for PSP_CD_SPAWNREQ messages */
-static handlerFunc_t oldSpawnReqHandler = NULL;
-
-/** Old handler for PSP_CD_UNKNOWN messages */
-static handlerFunc_t oldUnknownHandler = NULL;
-
 /** hostname lookup table for PS node IDs */
 static Host_Lookup_t *HostLT = NULL;
 
@@ -1575,7 +1557,7 @@ static void handlePElogueOE(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
 *
 * @param msg The message to handle
 */
-static void handlePsslurmMsg(DDTypedBufferMsg_t *msg)
+static bool handlePsslurmMsg(DDTypedBufferMsg_t *msg)
 {
     char sender[32], dest[32];
 
@@ -1588,7 +1570,7 @@ static void handlePsslurmMsg(DDTypedBufferMsg_t *msg)
 	mlog("%s: access violation: dropping message uid %i type %i "
 	     "sender %s\n", __func__, (task ? task->uid : 0), msg->type,
 	     PSC_printTID(msg->header.sender));
-	return;
+	return true;
     }
 
     mdbg(PSSLURM_LOG_COMM, "%s: new msg type: %s (%i) [%s->%s]\n", __func__,
@@ -1640,6 +1622,7 @@ static void handlePsslurmMsg(DDTypedBufferMsg_t *msg)
 	    mlog("%s: received unknown msg type: %i [%s -> %s]\n", __func__,
 		msg->type, sender, dest);
     }
+    return true;
 }
 
 /**
@@ -1795,7 +1778,7 @@ static void handleDroppedEpilogue(DDTypedBufferMsg_t *msg)
 *
 * @param msg The message to handle
 */
-static void handleDroppedMsg(DDTypedBufferMsg_t *msg)
+static bool handleDroppedMsg(DDTypedBufferMsg_t *msg)
 {
     const char *hname;
     PSnodes_ID_t nodeId;
@@ -1830,31 +1813,35 @@ static void handleDroppedMsg(DDTypedBufferMsg_t *msg)
     default:
 	mlog("%s: unknown msg type %i\n", __func__, msg->type);
     }
+    return true;
 }
 
-static void handleCC_IO_Msg(PSLog_Msg_t *msg)
+static bool handleCC_IO_Msg(PSLog_Msg_t *msg)
 {
     Step_t *step = findActiveStepByLogger(msg->header.dest);
     if (!step) {
 	PStask_t *task;
 	if (PSC_getMyID() == PSC_getID(msg->header.sender)) {
 	    if ((task = PStasklist_find(&managedTasks, msg->header.sender))) {
-		if (isPSAdminUser(task->uid, task->gid)) goto OLD_MSG_HANDLER;
+		if (isPSAdminUser(task->uid, task->gid)) {
+		    return false; // call the old handler if any
+		}
 	    }
 	} else {
 	    if ((task = PStasklist_find(&managedTasks, msg->header.dest))) {
-		if (isPSAdminUser(task->uid, task->gid)) goto OLD_MSG_HANDLER;
+		if (isPSAdminUser(task->uid, task->gid)) {
+		    return false; // call the old handler if any
+		}
 	    }
 	}
 
 	static PStask_ID_t noLoggerDest = -1;
-
-	if (noLoggerDest == msg->header.dest) return;
-	flog("step for I/O msg (logger %s) not found\n",
-	     PSC_printTID(msg->header.dest));
-
-	noLoggerDest = msg->header.dest;
-	return;
+	if (msg->header.dest != noLoggerDest) {
+	    flog("step for I/O msg (logger %s) not found\n",
+		 PSC_printTID(msg->header.dest));
+	    noLoggerDest = msg->header.dest;
+	}
+	return true; // drop message
     }
 
     int32_t rank = msg->sender - step->packTaskOffset;
@@ -1862,36 +1849,27 @@ static void handleCC_IO_Msg(PSLog_Msg_t *msg)
     if (psslurmlogger->mask & PSSLURM_LOG_IO) {
 	flog("sender %s msgLen %zi type %i PS-rank %i Slurm-rank %i\n",
 	     PSC_printTID(msg->header.sender),
-	     msg->header.len - PSLog_headerSize, msg->type, msg->sender,
-	     rank);
+	     msg->header.len - PSLog_headerSize, msg->type, msg->sender, rank);
 	flog("msg %.*s\n", (int)(msg->header.len - PSLog_headerSize), msg->buf);
     }
 
-    /* filter stdout messages */
-    if (msg->type == STDOUT && step->stdOutRank > -1 &&
-	rank != step->stdOutRank) return;
-
-    /* filter stderr messages */
-    if (msg->type == STDERR && step->stdErrRank > -1 &&
-	rank != step->stdErrRank) return;
-
-    /* forward stdout for single file on mother superior */
-    if (msg->type == STDOUT && step->stdOutOpt == IO_GLOBAL_FILE) {
-	goto OLD_MSG_HANDLER;
+    /* filter stdout/stderr messages */
+    if ((msg->type == STDOUT && step->stdOutRank > -1
+	 && rank != step->stdOutRank)
+	|| (msg->type == STDERR && step->stdErrRank > -1
+	    && rank != step->stdErrRank)) {
+	return true; // drop message
     }
 
-    /* forward stderr for single file on mother superior */
-    if (msg->type == STDERR && step->stdErrOpt == IO_GLOBAL_FILE) {
-	goto OLD_MSG_HANDLER;
+    /* forward stdout/stderr for single file on mother superior */
+    if ((msg->type == STDOUT && step->stdOutOpt == IO_GLOBAL_FILE)
+	|| (msg->type == STDERR && step->stdErrOpt == IO_GLOBAL_FILE)) {
+	return false; // call the old handler if any
     }
 
     fwCMD_msgSrunProxy(step, msg, msg->sender);
 
-    return;
-
-OLD_MSG_HANDLER:
-
-    if (oldCCMsgHandler) oldCCMsgHandler((DDBufferMsg_t *) msg);
+    return true; // message is fully handled
 }
 
 static void handleCC_INIT_Msg(PSLog_Msg_t *msg)
@@ -1932,7 +1910,7 @@ static void handleCC_INIT_Msg(PSLog_Msg_t *msg)
     }
 }
 
-static void handleCC_STDIN_Msg(PSLog_Msg_t *msg)
+static bool handleCC_STDIN_Msg(PSLog_Msg_t *msg)
 {
     int msgLen = msg->header.len - offsetof(PSLog_Msg_t, buf);
 
@@ -1944,60 +1922,53 @@ static void handleCC_STDIN_Msg(PSLog_Msg_t *msg)
     Step_t *step = findActiveStepByLogger(msg->header.sender);
     if (!step) {
 	PStask_t *task = PStasklist_find(&managedTasks, msg->header.sender);
-	if (task) {
-	    /* allow mpiexec jobs from admin users to pass */
-	    if (isPSAdminUser(task->uid, task->gid)) goto OLD_MSG_HANDLER;
+	if (!task || !isPSAdminUser(task->uid, task->gid)) {
+	    /* no admin task => complain */
+	    mlog("%s: step for stdin msg from logger %s not found\n", __func__,
+		 PSC_printTID(msg->header.sender));
 	}
-
-	mlog("%s: step for stdin msg from logger %s not found\n", __func__,
-	     PSC_printTID(msg->header.sender));
-	goto OLD_MSG_HANDLER;
+	return false; // call the old handler if any
     }
 
     /* don't let the logger close stdin of the psidfw */
-    if (!msgLen) return;
+    if (!msgLen) return true; // drop message
 
     if (step->stdInRank == -1 && step->stdIn && strlen(step->stdIn) > 0) {
 	/* input is redirected from file and not connected to psidfw! */
-	return;
+	return true; // drop message
     }
 
-OLD_MSG_HANDLER:
-
-    if (oldCCMsgHandler) oldCCMsgHandler((DDBufferMsg_t *) msg);
+    return false; // call the old handler if any
 }
 
-static void handleCC_Finalize_Msg(PSLog_Msg_t *msg)
+static bool handleCC_Finalize_Msg(PSLog_Msg_t *msg)
 {
-    Step_t *step = NULL;
-    PS_Tasks_t *task;
-    PStask_t *psidTask;
-    static PStask_ID_t lastDest = -1;
-
     if (PSC_getMyID() != PSC_getID(msg->header.sender) || msg->sender < 0) {
-	goto FORWARD;
+	return false; // call the old handler if any
     }
 
-    if (!(step = findActiveStepByLogger(msg->header.dest))) {
-
-	if ((psidTask = PStasklist_find(&managedTasks, msg->header.sender))) {
-	    if (isPSAdminUser(psidTask->uid, psidTask->gid)) goto FORWARD;
+    Step_t *step = findActiveStepByLogger(msg->header.dest);
+    if (!step) {
+	PStask_t *task = PStasklist_find(&managedTasks, msg->header.sender);
+	if (!task || !isPSAdminUser(task->uid, task->gid)) {
+	    /* no admin task => complain */
+	    static PStask_ID_t lastDest = -1;
+	    if (msg->header.dest != lastDest) {
+		mlog("%s: step for CC msg with logger %s not found."
+		     " Suppressing further msgs\n", __func__,
+		     PSC_printTID(msg->header.dest));
+		lastDest = msg->header.dest;
+	    }
 	}
-
-	if (msg->header.dest != lastDest) {
-	    mlog("%s: step for CC msg with logger %s not found. Suppressing"
-		 " further msgs\n", __func__, PSC_printTID(msg->header.dest));
-	    lastDest = msg->header.dest;
-	}
-	goto FORWARD;
+	return false; // call the old handler if any
     }
 
     /* save exit code */
-    task = findTaskByFwd(&step->tasks, msg->header.sender);
+    PS_Tasks_t *task = findTaskByFwd(&step->tasks, msg->header.sender);
     if (!task) {
 	mlog("%s: task for forwarder %s not found\n", __func__,
 	     PSC_printTID(msg->header.sender));
-	goto FORWARD;
+	return false; // call the old handler if any
     }
     task->exitCode = *(int *) msg->buf;
 
@@ -2011,11 +1982,10 @@ static void handleCC_Finalize_Msg(PSLog_Msg_t *msg)
 	    mlog("%s: shutdown I/O forwarder\n", __func__);
 	    shutdownForwarder(step->fwdata);
 	}
-	return;
+	return true; // message is fully handled
     }
 
-FORWARD:
-    if (oldCCMsgHandler) oldCCMsgHandler((DDBufferMsg_t *) msg);
+    return false; // call the old handler if any
 }
 
 /**
@@ -2062,13 +2032,15 @@ static bool getJobIDbyForwarder(PStask_ID_t fwTID, PStask_t **fwPtr,
 /**
 * @brief Handle a PSP_CD_SPAWNSUCCESS message
 *
+* Peek into a PSP_CD_SPAWNSUCCESS message and extract information
+* before handing it over to the original handler (if any).
+*
 * @param msg The message to handle
 */
-static void handleSpawnSuccess(DDErrorMsg_t *msg)
+static bool handleSpawnSuccess(DDErrorMsg_t *msg)
 {
     PStask_t *forwarder = NULL;
     uint32_t jobid, stepid;
-
     if (getJobIDbyForwarder(msg->header.dest, &forwarder, &jobid, &stepid)) {
 	Step_t *step = findStepByStepId(jobid, stepid);
 	if (step) {
@@ -2076,25 +2048,27 @@ static void handleSpawnSuccess(DDErrorMsg_t *msg)
 		    forwarder, forwarder->childGroup, msg->request);
 	}
     }
-
-    if (oldSpawnSuccessHandler) oldSpawnSuccessHandler((DDBufferMsg_t *) msg);
+    return false; // call the old handler if any
 }
 
 /**
 * @brief Handle a PSP_CD_SPAWNFAILED message
 *
-* @param msg The message to handle
+* Peek into a PSP_CD_SPAWNFAILED message and extract information
+* before handing it over to the original handler (if any).
+*
+* @param msg Pointer to message to handle
 */
-static void handleSpawnFailed(DDErrorMsg_t *msg)
+static bool handleSpawnFailed(DDErrorMsg_t *msg)
 {
+    mwarn(msg->error, "%s: spawn failed: forwarder %s rank %i errno %i",
+	  __func__, PSC_printTID(msg->header.sender),
+	  msg->request, msg->error);
+
     PStask_t *forwarder = NULL;
     uint32_t jobid, stepid;
-
-    mwarn(msg->error, "%s: spawn (forwarder %s rank %i errno %i)", __func__,
-	  PSC_printTID(msg->header.sender), msg->request, msg->error);
-
     if (!getJobIDbyForwarder(msg->header.sender, &forwarder, &jobid, &stepid)) {
-	goto FORWARD_SPAWN_FAILED_MSG;
+	return false; // call the old handler if any
     }
 
     Step_t *step = findStepByStepId(jobid, stepid);
@@ -2125,8 +2099,7 @@ static void handleSpawnFailed(DDErrorMsg_t *msg)
 	step->exitCode = 0x200;
     }
 
-FORWARD_SPAWN_FAILED_MSG:
-    if (oldSpawnFailedHandler) oldSpawnFailedHandler((DDBufferMsg_t *) msg);
+    return false; // call the old handler if any
 }
 
 typedef struct {
@@ -2189,46 +2162,42 @@ void cleanupDelayedSpawns(uint32_t jobid, uint32_t stepid) {
 *
 * @param msg The message to handle
 */
-static void handleSpawnReq(DDTypedBufferMsg_t *msg)
+static bool handleSpawnReq(DDTypedBufferMsg_t *msg)
 {
-    PStask_t *spawnee;
-    uint32_t jobid, stepid;
-    size_t usedBytes;
-
-    fdbg(PSSLURM_LOG_PSCOMM, "from sender %s\n",
-	 PSC_printTID(msg->header.sender));
+    fdbg(PSSLURM_LOG_PSCOMM, "from %s\n", PSC_printTID(msg->header.sender));
 
     /* only handle message subtype PSP_SPAWN_END meant for us */
-    if (msg->type != PSP_SPAWN_END ||
-	   PSC_getID(msg->header.dest) != PSC_getMyID()) {
-	goto FORWARD_SPAWN_REQ_MSG;
+    if (msg->type != PSP_SPAWN_END
+	|| PSC_getID(msg->header.dest) != PSC_getMyID()) {
+	return false; // call the old handler if any
     }
 
     /* try to find task structure */
-    spawnee = PSIDspawn_findSpawnee(msg->header.sender);
+    PStask_t *spawnee = PSIDspawn_findSpawnee(msg->header.sender);
     if (!spawnee) {
 	mlog("%s: cannot find spawnee for sender %s\n", __func__,
 	     PSC_printTID(msg->header.sender));
-	goto FORWARD_SPAWN_REQ_MSG;
+	return false; // call the old handler if any
     }
 
     /* PSP_SPAWN_END message can contain parts of the environment */
-    usedBytes = PStask_decodeEnv(msg->buf, spawnee);
+    size_t usedBytes = PStask_decodeEnv(msg->buf, spawnee);
     msg->header.len -= usedBytes; /* HACK: Don't apply env-tail twice */
 
     if (msg->header.len - sizeof(msg->header) - sizeof(msg->type)) {
 	mlog("%s: problem decoding task %s type %d used %zd remain %zd\n",
 	     __func__, PSC_printTID(spawnee->tid), msg->type,
 	     usedBytes, msg->header.len-sizeof(msg->header)-sizeof(msg->type));
-	goto FORWARD_SPAWN_REQ_MSG;
+	return false; // call the old handler if any
     }
 
     /* get jobid and stepid from received environment */
     bool isAdmin = isPSAdminUser(spawnee->uid, spawnee->gid);
+    uint32_t jobid, stepid;
     Step_t *step = findStepByEnv(spawnee->environ, &jobid, &stepid, isAdmin);
     if (!step) {
 	/* admin users may start jobs directly via mpiexec */
-	if (isAdmin) goto FORWARD_SPAWN_REQ_MSG;
+	if (isAdmin) return false; // call the old handler if any
 
 	Step_t s = {
 	    .jobid = jobid,
@@ -2237,11 +2206,9 @@ static void handleSpawnReq(DDTypedBufferMsg_t *msg)
 	     PSC_printTID(msg->header.sender), strStepID(&s));
 
 	PSIDspawn_delayTask(spawnee);
-	return;
+	return true; // message is fully handled
     }
-
-FORWARD_SPAWN_REQ_MSG:
-    if (oldSpawnReqHandler) oldSpawnReqHandler((DDBufferMsg_t *) msg);
+    return false; // call the old handler if any
 }
 
 /**
@@ -2249,7 +2216,7 @@ FORWARD_SPAWN_REQ_MSG:
 *
 * @param msg The message to handle
 */
-static void handleCCMsg(PSLog_Msg_t *msg)
+static bool handleCCMsg(PSLog_Msg_t *msg)
 {
     fdbg(PSSLURM_LOG_PSCOMM, "sender %s type %s\n",
 	 PSC_printTID(msg->header.sender), PSLog_printMsgType(msg->type));
@@ -2257,23 +2224,20 @@ static void handleCCMsg(PSLog_Msg_t *msg)
     switch (msg->type) {
 	case STDOUT:
 	case STDERR:
-	    handleCC_IO_Msg(msg);
-	    return;
+	    return handleCC_IO_Msg(msg);
 	case INITIALIZE:
 	    handleCC_INIT_Msg(msg);
 	    break;
 	case STDIN:
-	    handleCC_STDIN_Msg(msg);
-	    return;
+	    return handleCC_STDIN_Msg(msg);
 	case FINALIZE:
-	    handleCC_Finalize_Msg(msg);
-	    return;
+	    return handleCC_Finalize_Msg(msg);
 	default:
 	    /* let original handler take care of the msg */
 	    break;
     }
 
-    if (oldCCMsgHandler) oldCCMsgHandler((DDBufferMsg_t *) msg);
+    return false; // call the old handler if any
 }
 
 /**
@@ -2281,16 +2245,14 @@ static void handleCCMsg(PSLog_Msg_t *msg)
 *
 * @param msg The message to handle
 */
-static void handleChildBornMsg(DDErrorMsg_t *msg)
+static bool handleChildBornMsg(DDErrorMsg_t *msg)
 {
     PStask_t *forwarder = NULL;
     uint32_t jobid = 0, stepid = 0;
-    PS_Tasks_t *task = NULL;
-
     if (!getJobIDbyForwarder(msg->header.sender, &forwarder, &jobid, &stepid)) {
 	flog("forwarder for sender %s not found\n",
 	     PSC_printTID(msg->header.sender));
-	goto FORWARD_CHILD_BORN;
+	return false; // fallback to old handler
     }
 
     fdbg(PSSLURM_LOG_PSCOMM, "from sender %s for jobid %u:%u\n",
@@ -2300,7 +2262,7 @@ static void handleChildBornMsg(DDErrorMsg_t *msg)
 	Job_t *job = findJobById(jobid);
 	if (!job) {
 	    mlog("%s: job %u not found\n", __func__, jobid);
-	    goto FORWARD_CHILD_BORN;
+	    return false; // fallback to old handler
 	}
 	addTask(&job->tasks, msg->request, forwarder->tid, forwarder,
 		forwarder->childGroup, forwarder->rank);
@@ -2311,11 +2273,11 @@ static void handleChildBornMsg(DDErrorMsg_t *msg)
 		.jobid = jobid,
 		.stepid = stepid };
 	    flog("%s not found\n", strStepID(&s));
-	    goto FORWARD_CHILD_BORN;
+	    return false; // fallback to old handler
 	}
-	task = addTask(&step->tasks, msg->request, forwarder->tid, forwarder,
-		       forwarder->childGroup,
-		       forwarder->rank - step->packTaskOffset);
+	PS_Tasks_t *task = addTask(&step->tasks, msg->request, forwarder->tid,
+				   forwarder, forwarder->childGroup,
+				   forwarder->rank - step->packTaskOffset);
 
 	if (!step->loggerTID) step->loggerTID = forwarder->loggertid;
 	if (step->fwdata) {
@@ -2326,8 +2288,7 @@ static void handleChildBornMsg(DDErrorMsg_t *msg)
 	}
     }
 
-FORWARD_CHILD_BORN:
-    if (oldChildBornHandler) oldChildBornHandler((DDBufferMsg_t *) msg);
+    return false; // call the old handler if any
 }
 
 /**
@@ -2335,16 +2296,16 @@ FORWARD_CHILD_BORN:
 *
 * @param msg The message to handle
 */
-static void handleUnknownMsg(DDBufferMsg_t *msg)
+static bool handleUnknownMsg(DDBufferMsg_t *msg)
 {
     size_t used = 0;
-    PStask_ID_t dest;
-    int16_t type;
 
     /* original dest */
+    PStask_ID_t dest;
     PSP_getMsgBuf(msg, &used, "dest", &dest, sizeof(dest));
 
     /* original type */
+    int16_t type;
     PSP_getMsgBuf(msg, &used, "type", &type, sizeof(type));
 
     if (type == PSP_PLUG_PSSLURM) {
@@ -2354,10 +2315,10 @@ static void handleUnknownMsg(DDBufferMsg_t *msg)
 
 	mlog("%s: please make sure the plugin 'psslurm' is loaded on"
 		" node %i\n", __func__, PSC_getID(msg->header.sender));
-	return;
+	return true; // message is fully handled
     }
 
-    if (oldUnknownHandler) oldUnknownHandler(msg);
+    return false; // fallback to old handler
 }
 
 static void freeHostLT(void)
@@ -2377,7 +2338,7 @@ static void freeHostLT(void)
 void finalizePScomm(bool verbose)
 {
     /* unregister psslurm msg */
-    PSID_clearMsg(PSP_PLUG_PSSLURM);
+    PSID_clearMsg(PSP_PLUG_PSSLURM, (handlerFunc_t) handlePsslurmMsg);
 
     /* unregister different hooks */
     if (!PSIDhook_del(PSIDHOOK_NODE_DOWN, handleNodeDown)) {
@@ -2406,44 +2367,15 @@ void finalizePScomm(bool verbose)
     }
 
     /* unregister from various messages types */
-    if (oldChildBornHandler) {
-	PSID_registerMsg(PSP_DD_CHILDBORN, oldChildBornHandler);
-    } else {
-	PSID_clearMsg(PSP_DD_CHILDBORN);
-    }
-
-    if (oldCCMsgHandler) {
-	PSID_registerMsg(PSP_CC_MSG, oldCCMsgHandler);
-    } else {
-	PSID_clearMsg(PSP_CC_MSG);
-    }
-
-    if (oldSpawnFailedHandler) {
-	PSID_registerMsg(PSP_CD_SPAWNFAILED, oldSpawnFailedHandler);
-    } else {
-	PSID_clearMsg(PSP_CD_SPAWNFAILED);
-    }
-
-    if (oldSpawnSuccessHandler) {
-	PSID_registerMsg(PSP_CD_SPAWNSUCCESS, oldSpawnSuccessHandler);
-    } else {
-	PSID_clearMsg(PSP_CD_SPAWNSUCCESS);
-    }
-
-    if (oldSpawnReqHandler) {
-	PSID_registerMsg(PSP_CD_SPAWNREQ, oldSpawnReqHandler);
-    } else {
-	PSID_clearMsg(PSP_CD_SPAWNREQ);
-    }
-
-    if (oldUnknownHandler) {
-	PSID_registerMsg(PSP_CD_UNKNOWN, oldUnknownHandler);
-    } else {
-	PSID_clearMsg(PSP_CD_UNKNOWN);
-    }
+    PSID_clearMsg(PSP_DD_CHILDBORN, (handlerFunc_t) handleChildBornMsg);
+    PSID_clearMsg(PSP_CC_MSG, (handlerFunc_t) handleCCMsg);
+    PSID_clearMsg(PSP_CD_SPAWNFAILED, (handlerFunc_t) handleSpawnFailed);
+    PSID_clearMsg(PSP_CD_SPAWNSUCCESS, (handlerFunc_t) handleSpawnSuccess);
+    PSID_clearMsg(PSP_CD_SPAWNREQ, (handlerFunc_t) handleSpawnReq);
+    PSID_clearMsg(PSP_CD_UNKNOWN, handleUnknownMsg);
 
     /* unregister msg drop handler */
-    PSID_clearDropper(PSP_PLUG_PSSLURM);
+    PSID_clearDropper(PSP_PLUG_PSSLURM, (handlerFunc_t) handleDroppedMsg);
 
     finalizeSerial();
 
@@ -2668,27 +2600,22 @@ bool initPScomm(void)
     PSID_registerMsg(PSP_PLUG_PSSLURM, (handlerFunc_t) handlePsslurmMsg);
 
     /* register to PSP_DD_CHILDBORN message */
-    oldChildBornHandler = PSID_registerMsg(PSP_DD_CHILDBORN,
-					   (handlerFunc_t) handleChildBornMsg);
+    PSID_registerMsg(PSP_DD_CHILDBORN, (handlerFunc_t) handleChildBornMsg);
 
     /* register to PSP_CC_MSG message */
-    oldCCMsgHandler = PSID_registerMsg(PSP_CC_MSG, (handlerFunc_t) handleCCMsg);
+    PSID_registerMsg(PSP_CC_MSG, (handlerFunc_t) handleCCMsg);
 
     /* register to PSP_CD_SPAWNFAILED message */
-    oldSpawnFailedHandler = PSID_registerMsg(PSP_CD_SPAWNFAILED,
-					     (handlerFunc_t) handleSpawnFailed);
+    PSID_registerMsg(PSP_CD_SPAWNFAILED, (handlerFunc_t) handleSpawnFailed);
 
     /* register to PSP_CD_SPAWNSUCCESS message */
-    oldSpawnSuccessHandler = PSID_registerMsg(PSP_CD_SPAWNSUCCESS,
-					      (handlerFunc_t) handleSpawnSuccess);
+    PSID_registerMsg(PSP_CD_SPAWNSUCCESS, (handlerFunc_t) handleSpawnSuccess);
 
     /* register to *obsolete* PSP_CD_SPAWNREQ message */
-    oldSpawnReqHandler = PSID_registerMsg(PSP_CD_SPAWNREQ,
-					  (handlerFunc_t) handleSpawnReq);
+    PSID_registerMsg(PSP_CD_SPAWNREQ, (handlerFunc_t) handleSpawnReq);
 
     /* register to PSP_CD_UNKNOWN message */
-    oldUnknownHandler = PSID_registerMsg(PSP_CD_UNKNOWN,
-					 (handlerFunc_t) handleUnknownMsg);
+    PSID_registerMsg(PSP_CD_UNKNOWN, handleUnknownMsg);
 
     /* register handler for dropped msgs */
     PSID_registerDropper(PSP_PLUG_PSSLURM, (handlerFunc_t) handleDroppedMsg);

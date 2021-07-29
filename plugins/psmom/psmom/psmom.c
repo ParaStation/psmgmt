@@ -2,6 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2010-2021 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2021 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -28,11 +29,12 @@
 
 #include "timer.h"
 #include "pbsdef.h"
-#include "psidplugin.h"
-#include "psidhook.h"
-#include "psidnodes.h"
 #include "plugin.h"
 #include "pluginhelper.h"
+#include "psidcomm.h"
+#include "psidhook.h"
+#include "psidnodes.h"
+#include "psidplugin.h"
 #include "psserial.h"
 
 #include "psaccounthandles.h"
@@ -114,8 +116,6 @@ long pwBufferSize = 0;
 
 /** set to the home directory of root */
 char rootHome[100];
-
-handlerFunc_t oldSpawnReqHandler = NULL;
 
 /** psid plugin requirements */
 char name[] = "psmom";
@@ -551,19 +551,17 @@ static int setRootHome(void)
 }
 
 /**
- * @brief Unregister all hooks and message handler.
+ * @brief Unregister all hooks and message handlers
  *
  * @param verbose If set to true an error message will be displayed
  * when unregistering a hook or a message handle fails.
  *
- * @return No return value.
+ * @return No return value
  */
 static void unregisterHooks(int verbose)
 {
     /* restore old SPAWNREQ handler */
-    if (oldSpawnReqHandler) {
-	PSID_registerMsg(PSP_CD_SPAWNREQ, (handlerFunc_t) oldSpawnReqHandler);
-    }
+    PSID_clearMsg(PSP_CD_SPAWNREQ, (handlerFunc_t)handlePSSpawnReq);
 
     /* unregister hooks */
     if (!PSIDhook_del(PSIDHOOK_NODE_DOWN, handleNodeDown)) {
@@ -680,8 +678,7 @@ int initialize(FILE *logfile)
     /* We'll use fragmented messages between different psmoms */
     initPSComm();
 
-    oldSpawnReqHandler = PSID_registerMsg(PSP_CD_SPAWNREQ,
-					  (handlerFunc_t) handlePSSpawnReq);
+    PSID_registerMsg(PSP_CD_SPAWNREQ, (handlerFunc_t)handlePSSpawnReq);
 
     /* register needed hooks */
     if (!PSIDhook_add(PSIDHOOK_NODE_DOWN, handleNodeDown)) {

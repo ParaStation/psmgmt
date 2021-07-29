@@ -48,18 +48,18 @@ static LIST_HEAD(suspReq);
 static LIST_HEAD(regisReq);
 
 /**
- * @brief Enqueue partition.
+ * @brief Enqueue partition
  *
  * Enqueue the partition @a part to the queue @a queue. The partition
  * might be incomplete while appending and can be found within this
  * queue later on via @ref findPart(). It shall be removed from it
  * using the @ref deqPart() function.
  *
- * @param queue The queue the partition shall be appended to.
+ * @param queue The queue the partition shall be appended to
  *
- * @param req The partition to be appended to the queue.
+ * @param req The partition to be appended to the queue
  *
- * @return No return value.
+ * @return No return value
  *
  * @see findPart(), deqPart()
  */
@@ -72,7 +72,7 @@ static void enqPart(list_t *queue, PSpart_request_t *part)
 }
 
 /**
- * @brief Find partition.
+ * @brief Find partition
  *
  * Find the partition associated to the task with taskID @a tid within
  * the queue @a queue.
@@ -100,15 +100,15 @@ static PSpart_request_t *findPart(list_t *queue, PStask_ID_t tid)
 }
 
 /**
- * @brief Dequeue partition.
+ * @brief Dequeue partition
  *
  * Remove the partition @a part from the queue @a queue. The partition
  * has to be created using @ref PSpart_newReq() and added to the list
  * of requests via @ref enqPart().
  *
- * @param queue The queue the partition shall be removed from.
+ * @param queue The queue the partition shall be removed from
  *
- * @param part The partition to be removed from the queue.
+ * @param part The partition to be removed from the queue
  *
  * @return If the partition was found within the queue and could be
  * removed, a pointer to it will be returned. Otherwise NULL will be
@@ -147,14 +147,14 @@ static PSpart_request_t *deqPart(list_t *queue, PSpart_request_t *part)
 }
 
 /**
- * @brief Clear queue.
+ * @brief Clear queue
  *
  * Remove all partitions from the queue @a queue and delete the
  * dequeued partitions.
  *
- * @param queue The queue to clean up.
+ * @param queue The queue to clean up
  *
- * @return No return value.
+ * @return No return value
  */
 static void clrPartQueue(list_t *queue)
 {
@@ -290,14 +290,14 @@ static inline int getFreeCPUs(PSnodes_ID_t node, PSCPU_set_t free, int tpp)
 }
 
 /**
- * @brief Register a request.
+ * @brief Register a request
  *
  * Register the running request @a req, i.e. store the resources used
  * by the corresponding task to the @ref nodeStat structure.
  *
- * @param req The partition request to register.
+ * @param req The partition request to register
  *
- * @return No return value.
+ * @return No return value
  */
 static void registerReq(PSpart_request_t *req)
 {
@@ -540,24 +540,25 @@ int send_TASKDEAD(PStask_ID_t tid)
 }
 
 /**
- * @brief Drop a PSP_DD_TASKDEAD message.
+ * @brief Drop a PSP_DD_TASKDEAD message
  *
  * Drop the message @a msg of type PSP_DD_TASKDEAD.
  *
  * If this type of message is dropped, most probably the master-daemon
  * has changed. Thus, inform the new master about the dead task, too.
  *
- * @param msg Pointer to the message to drop.
+ * @param msg Pointer to message to drop
  *
- * @return No return value.
+ * @return Always return true
  */
-static void drop_TASKDEAD(DDBufferMsg_t *msg)
+static bool drop_TASKDEAD(DDBufferMsg_t *msg)
 {
     send_TASKDEAD(msg->header.sender);
+    return true;
 }
 
 /**
- * @brief Handle a PSP_DD_TASKDEAD message.
+ * @brief Handle a PSP_DD_TASKDEAD message
  *
  * Handle the message @a msg of type PSP_DD_TASKDEAD.
  *
@@ -565,17 +566,17 @@ static void drop_TASKDEAD(DDBufferMsg_t *msg)
  * the tasks root process. This enables the master to free the
  * resources allocated by the corresponding task.
  *
- * @param inmsg Pointer to the message to handle.
+ * @param inmsg Pointer to message to handle
  *
- * @return No return value.
+ * @return Always return true
  */
-static void msg_TASKDEAD(DDMsg_t *msg)
+static bool msg_TASKDEAD(DDMsg_t *msg)
 {
     PSpart_request_t *req = findPart(&runReq, msg->sender);
 
     if (!nodeStat) {
 	PSID_log(-1, "%s: not master\n", __func__);
-	return;
+	return true;
     }
 
     if (!req) {
@@ -588,10 +589,11 @@ static void msg_TASKDEAD(DDMsg_t *msg)
     if (!req) {
 	PSID_log(-1, "%s: request %s not found\n",
 		 __func__, PSC_printTID(msg->sender));
-	return;
+	return true;
     }
 
     jobFinished(req);
+    return true;
 }
 
 int send_TASKSUSPEND(PStask_ID_t tid)
@@ -611,7 +613,7 @@ int send_TASKSUSPEND(PStask_ID_t tid)
 }
 
 /**
- * @brief Handle a PSP_DD_TASKSUSPEND message.
+ * @brief Handle a PSP_DD_TASKSUSPEND message
  *
  * Handle the message @a msg of type PSP_DD_TASKSUSPEND.
  *
@@ -627,26 +629,27 @@ int send_TASKSUSPEND(PStask_ID_t tid)
  * on the other hand during run-time by the 'set freeOnSuspend'
  * directive of the ParaStation administration tool psiadmin.
  *
- * @param inmsg Pointer to the message to handle.
+ * @param inmsg Pointer to message to handle
  *
- * @return No return value.
+ * @return Always return true
  */
-static void msg_TASKSUSPEND(DDMsg_t *msg)
+static bool msg_TASKSUSPEND(DDMsg_t *msg)
 {
     PSpart_request_t *req = findPart(&runReq, msg->sender);
 
     if (!nodeStat) {
 	PSID_log(-1, "%s: not master\n", __func__);
-	return;
+	return true;
     }
 
     if (!req) {
 	PSID_log(-1, "%s: request %s not found\n",
 		 __func__, PSC_printTID(msg->sender));
-	return;
+	return true;
     }
 
     jobSuspended(req);
+    return true;
 }
 
 int send_TASKRESUME(PStask_ID_t tid)
@@ -666,7 +669,7 @@ int send_TASKRESUME(PStask_ID_t tid)
 }
 
 /**
- * @brief Handle a PSP_DD_TASKRESUME message.
+ * @brief Handle a PSP_DD_TASKRESUME message
  *
  * Handle the message @a msg of type PSP_DD_TASKRESUME.
  *
@@ -682,26 +685,27 @@ int send_TASKRESUME(PStask_ID_t tid)
  * on the other hand during run-time by the 'set freeOnSuspend'
  * directive of the ParaStation administration tool psiadmin.
  *
- * @param inmsg Pointer to the message to handle.
+ * @param inmsg Pointer to message to handle
  *
- * @return No return value.
+ * @return Always return true
  */
-static void msg_TASKRESUME(DDMsg_t *msg)
+static bool msg_TASKRESUME(DDMsg_t *msg)
 {
     PSpart_request_t *req = findPart(&suspReq, msg->sender);
 
     if (!nodeStat) {
 	PSID_log(-1, "%s: not master\n", __func__);
-	return;
+	return true;
     }
 
     if (!req) {
 	PSID_log(-1, "%s: request %s not found\n",
 		 __func__, PSC_printTID(msg->sender));
-	return;
+	return true;
     }
 
     jobResumed(req);
+    return true;
 }
 
 int send_CANCELPART(PStask_ID_t tid)
@@ -721,7 +725,7 @@ int send_CANCELPART(PStask_ID_t tid)
 }
 
 /**
- * @brief Handle a PSP_CD_CANCELPART message.
+ * @brief Handle a PSP_CD_CANCELPART message
  *
  * Handle the message @a inmsg of type PSP_CD_CANCELPART.
  *
@@ -730,23 +734,23 @@ int send_CANCELPART(PStask_ID_t tid)
  * requests sent from this task from the queue of pending partition
  * requests.
  *
- * @param inmsg Pointer to the message to handle.
+ * @param inmsg Pointer to message to handle
  *
- * @return No return value.
+ * @return Always return true
  */
-static void msg_CANCELPART(DDBufferMsg_t *inmsg)
+static bool msg_CANCELPART(DDBufferMsg_t *inmsg)
 {
     PSpart_request_t *req = findPart(&pendReq, inmsg->header.sender);
 
     if (!nodeStat) {
 	PSID_log(-1, "%s: not master\n", __func__);
-	return;
+	return true;
     }
 
     if (!req) {
 	PSID_log(-1, "%s: request %s not found\n",
 		 __func__, PSC_printTID(inmsg->header.sender));
-	return;
+	return true;
     }
 
     if (!deqPart(&pendReq, req)) {
@@ -754,6 +758,7 @@ static void msg_CANCELPART(DDBufferMsg_t *inmsg)
 		 __func__, PSC_printTID(req->tid));
     }
     PSpart_delReq(req);
+    return true;
 }
 
 unsigned short getAssignedThreads(PSnodes_ID_t node)
@@ -1482,7 +1487,7 @@ static int sendSlotlist(PSpart_slot_t *slots, int num, DDBufferMsg_t *msg)
 }
 
 /**
- * @brief Send reserved ports.
+ * @brief Send reserved ports
  *
  * Send the reserved ports used by the OpenMPI startup mechanism. This
  * function is used to send new created reservations and to restore
@@ -1491,7 +1496,7 @@ static int sendSlotlist(PSpart_slot_t *slots, int num, DDBufferMsg_t *msg)
  *
  * @param resPorts The reserved ports to send.
  *
- * @param msg Pointer to the message to use.
+ * @param msg Pointer to  message to use
  *
  * @return Returns true on success and false in case of an error. In
  * the latter case errno is set appropriately.
@@ -1748,7 +1753,7 @@ static void sendAcctQueueMsg(PStask_t *task)
 }
 
 /**
- * @brief Handle a PSP_CD_CREATEPART message.
+ * @brief Handle a PSP_CD_CREATEPART message
  *
  * Handle the message @a inmsg of type PSP_CD_CREATEPART.
  *
@@ -1760,11 +1765,11 @@ static void sendAcctQueueMsg(PStask_t *task)
  * Depending on the actual request, a PSP_CD_CREATEPART message might
  * be followed by one or more PSP_CD_CREATEPARTNL messages.
  *
- * @param inmsg Pointer to the message to handle.
+ * @param inmsg Pointer to message to handle
  *
- * @return No return value.
+ * @return Always return true
  */
-static void msg_CREATEPART(DDBufferMsg_t *inmsg)
+static bool msg_CREATEPART(DDBufferMsg_t *inmsg)
 {
     PStask_t *task = PStasklist_find(&managedTasks, inmsg->header.sender);
 
@@ -1825,9 +1830,9 @@ static void msg_CREATEPART(DDBufferMsg_t *inmsg)
      * will return 1. If no plugin is registered, the return code will
      * be PSIDHOOK_NOFUNC and, thus, inmsg will be handled here.
      */
-    if ((PSIDhook_call(PSIDHOOK_CREATEPART, inmsg)) == 0) return;
+    if (PSIDhook_call(PSIDHOOK_CREATEPART, inmsg) == 0) return true;
 
-    if (!knowMaster()) return; /* Automatic pull in initPartHandler() */
+    if (!knowMaster()) return true; /* Automatic pull in initPartHandler() */
 
     /* Re-use inmsg to send answer */
     inmsg->header.type = PSP_DD_GETPART;
@@ -1839,7 +1844,7 @@ static void msg_CREATEPART(DDBufferMsg_t *inmsg)
 	PSID_warn(-1, errno, "%s: sendMsg()", __func__);
 	goto cleanup;
     }
-    return;
+    return true;
 
 cleanup:
     if (task->request) {
@@ -1858,10 +1863,11 @@ error:
 	    .type = errno};
 	sendMsg(&msg);
     }
+    return true;
 }
 
 /**
- * @brief Handle a PSP_DD_GETPART message.
+ * @brief Handle a PSP_DD_GETPART message
  *
  * Handle the message @a inmsg of type PSP_DD_GETPART.
  *
@@ -1880,15 +1886,15 @@ error:
  * Depending on the actual request, a PSP_DD_GETPART message might
  * be followed by one or more PSP_DD_GETPARTNL messages.
  *
- * @param inmsg Pointer to the message to handle.
+ * @param inmsg Pointer to message to handle
  *
- * @return No return value.
+ * @return Always return true
  */
-static void msg_GETPART(DDBufferMsg_t *inmsg)
+static bool msg_GETPART(DDBufferMsg_t *inmsg)
 {
     PSpart_request_t *req = PSpart_newReq();
 
-    if (!knowMaster() || PSC_getMyID() != getMasterID()) return;
+    if (!knowMaster() || PSC_getMyID() != getMasterID()) return true;
 
     PSID_log(PSID_LOG_PART, "%s(%s)\n",
 	     __func__, PSC_printTID(inmsg->header.sender));
@@ -1925,7 +1931,7 @@ static void msg_GETPART(DDBufferMsg_t *inmsg)
 	    doHandle = true;
 	} else if (!getPartition(req)) goto error;
     }
-    return;
+    return true;
  error:
     deqPart(&pendReq, req);
     PSpart_delReq(req);
@@ -1937,10 +1943,11 @@ static void msg_GETPART(DDBufferMsg_t *inmsg)
 	    .len = sizeof(msg) },
 	.type = errno};
     sendMsg(&msg);
+    return true;
 }
 
 /**
- * @brief Append nodes to a nodelist.
+ * @brief Append nodes to a nodelist
  *
  * Append the nodes within the buffer @a buf to the node-list contained
  * in the partition request @a request.
@@ -1953,12 +1960,12 @@ static void msg_GETPART(DDBufferMsg_t *inmsg)
  * The structure of the data in @a buf is identical to the one used
  * within PSP_CD_CREATEPARTNL or PSP_DD_GETPARTNL messages.
  *
- * @param buf Buffer containing the nodes to add to the node-list.
+ * @param buf Buffer containing the nodes to add to the node-list
  *
  * @param request Partition request containing the node-list used in
- * order to store the nodes.
+ * order to store the nodes
  *
- * @return No return value.
+ * @return No return value
  */
 static void appendToNodelist(char *buf, PSpart_request_t *request)
 {
@@ -1986,7 +1993,7 @@ static void appendToNodelist(char *buf, PSpart_request_t *request)
 }
 
 /**
- * @brief Handle a PSP_CD_CREATEPARTNL message.
+ * @brief Handle a PSP_CD_CREATEPARTNL message
  *
  * Handle the message @a inmsg of type PSP_CD_CREATEPARTNL.
  *
@@ -1996,15 +2003,15 @@ static void appendToNodelist(char *buf, PSpart_request_t *request)
  * Depending on the actual request, a PSP_CD_CREATEPART message might
  * be followed by further PSP_CD_CREATEPARTNL messages.
  *
- * @param inmsg Pointer to the message to handle.
+ * @param inmsg Pointer to message to handle
  *
- * @return No return value.
+ * @return Always return true
  */
-static void msg_CREATEPARTNL(DDBufferMsg_t *inmsg)
+static bool msg_CREATEPARTNL(DDBufferMsg_t *inmsg)
 {
     PStask_t *task = PStasklist_find(&managedTasks, inmsg->header.sender);
 
-    if (!PSIDnodes_isStarter(PSC_getMyID())) return; /* drop silently */
+    if (!PSIDnodes_isStarter(PSC_getMyID())) return true; /* drop silently */
 
     if (!task || task->ptid) {
 	PSID_log(-1, "%s: task %s not root process\n",
@@ -2031,11 +2038,11 @@ static void msg_CREATEPARTNL(DDBufferMsg_t *inmsg)
      * will return 1. If no plugin is registered, the return code will
      * be PSIDHOOK_NOFUNC and, thus, inmsg will be handled here.
      */
-    if ((PSIDhook_call(PSIDHOOK_CREATEPARTNL, inmsg)) == 0) return;
+    if (PSIDhook_call(PSIDHOOK_CREATEPARTNL, inmsg) == 0) return true;
 
     appendToNodelist(inmsg->buf, task->request);
 
-    if (!knowMaster()) return; /* Automatic send/handle from declareMaster() */
+    if (!knowMaster()) return true; // Automatic send/handle in declareMaster()
 
     inmsg->header.type = PSP_DD_GETPARTNL;
     inmsg->header.dest = PSC_getTID(getMasterID(), 0);
@@ -2044,7 +2051,7 @@ static void msg_CREATEPARTNL(DDBufferMsg_t *inmsg)
 	PSID_warn(-1, errno, "%s: sendMsg()", __func__);
 	goto error;
     }
-    return;
+    return true;
  error:
     {
 	DDTypedMsg_t msg = {
@@ -2056,10 +2063,11 @@ static void msg_CREATEPARTNL(DDBufferMsg_t *inmsg)
 	    .type = errno};
 	sendMsg(&msg);
     }
+    return true;
 }
 
 /**
- * @brief Handle a PSP_DD_GETPARTNL message.
+ * @brief Handle a PSP_DD_GETPARTNL message
  *
  * Handle the message @a inmsg of type PSP_DD_GETPARTNL.
  *
@@ -2078,15 +2086,15 @@ static void msg_CREATEPARTNL(DDBufferMsg_t *inmsg)
  * Depending on the actual request, a PSP_DD_GETPARTNL message might
  * be followed by further PSP_DD_GETPARTNL messages.
  *
- * @param inmsg Pointer to the message to handle.
+ * @param inmsg Pointer to message to handle
  *
- * @return No return value.
+ * @return Always return true
  */
-static void msg_GETPARTNL(DDBufferMsg_t *inmsg)
+static bool msg_GETPARTNL(DDBufferMsg_t *inmsg)
 {
     PSpart_request_t *req = findPart(&pendReq, inmsg->header.sender);
 
-    if (!knowMaster() || PSC_getMyID() != getMasterID()) return;
+    if (!knowMaster() || PSC_getMyID() != getMasterID()) return true;
 
     PSID_log(PSID_LOG_PART, "%s(%s)\n",
 	     __func__, PSC_printTID(inmsg->header.sender));
@@ -2108,7 +2116,7 @@ static void msg_GETPARTNL(DDBufferMsg_t *inmsg)
 	    goto error;
 	}
     }
-    return;
+    return true;
  error:
     {
 	DDTypedMsg_t msg = {
@@ -2120,10 +2128,11 @@ static void msg_GETPARTNL(DDBufferMsg_t *inmsg)
 	    .type = errno};
 	sendMsg(&msg);
     }
+    return true;
 }
 
 /**
- * @brief Append slots to a slot-list.
+ * @brief Append slots to a slot-list
  *
  * Append the slots within the message @a msg to the slot-list contained
  * in the partition request @a request.
@@ -2151,12 +2160,12 @@ static void msg_GETPARTNL(DDBufferMsg_t *inmsg)
  * PSP_DD_PROVIDEPARTSL, PSP_DD_PROVIDETASKSL or PSP_DD_REGISTERPARTSL
  * messages.
  *
- * @param msg Message with buffer containing slots to add to the slot-list.
+ * @param msg Message with buffer containing slots to add to the slot-list
  *
  * @param request Partition request containing the slot-list used in
- * order to store the slots.
+ * order to store the slots
  *
- * @return No return value.
+ * @return No return value
  */
 static void appendToSlotlist(DDBufferMsg_t *msg, PSpart_request_t *request)
 {
@@ -2186,7 +2195,7 @@ static void appendToSlotlist(DDBufferMsg_t *msg, PSpart_request_t *request)
 }
 
 /**
- * @brief Handle a PSP_DD_PROVIDEPART message.
+ * @brief Handle a PSP_DD_PROVIDEPART message
  *
  * Handle the message @a msg of type PSP_DD_PROVIDEPART.
  *
@@ -2205,11 +2214,11 @@ static void appendToSlotlist(DDBufferMsg_t *msg, PSpart_request_t *request)
  * case a PSP_CD_PARTITIONRES message reporting this error to the
  * requesting client is generated.
  *
- * @param msg Pointer to the message to handle.
+ * @param msg Pointer to message to handle
  *
- * @return No return value.
+ * @return Always return true
  */
-static void msg_PROVIDEPART(DDBufferMsg_t *msg)
+static bool msg_PROVIDEPART(DDBufferMsg_t *msg)
 {
     PStask_t *task = PStasklist_find(&managedTasks, msg->header.dest);
     PSpart_request_t *req;
@@ -2254,7 +2263,7 @@ static void msg_PROVIDEPART(DDBufferMsg_t *msg)
     }
 
     req->sizeGot = 0;
-    return;
+    return true;
  error:
     {
 	DDTypedMsg_t answer = {
@@ -2271,6 +2280,7 @@ static void msg_PROVIDEPART(DDBufferMsg_t *msg)
 	send_TASKDEAD(msg->header.dest);
 	sendMsg(&answer);
     }
+    return true;
 }
 
 /**
@@ -2339,7 +2349,7 @@ static int getHWThreads(PSpart_slot_t *slots, uint32_t num,
 }
 
 /**
- * @brief Handle a PSP_DD_PROVIDEPARTSL message.
+ * @brief Handle a PSP_DD_PROVIDEPARTSL message
  *
  * Handle the message @a inmsg of type PSP_DD_PROVIDEPARTSL.
  *
@@ -2349,11 +2359,11 @@ static int getHWThreads(PSpart_slot_t *slots, uint32_t num,
  * partition's last slot a PSP_CD_PARTITIONRES message is send to the
  * requesting client.
  *
- * @param inmsg Pointer to the message to handle.
+ * @param inmsg Pointer to message to handle
  *
- * @return No return value.
+ * @return Always return true
  */
-static void msg_PROVIDEPARTSL(DDBufferMsg_t *inmsg)
+static bool msg_PROVIDEPARTSL(DDBufferMsg_t *inmsg)
 {
     PStask_t *task = PStasklist_find(&managedTasks, inmsg->header.dest);
     PSpart_request_t *req;
@@ -2412,7 +2422,7 @@ static void msg_PROVIDEPARTSL(DDBufferMsg_t *inmsg)
 
 	sendMsg(&msg);
     }
-    return;
+    return true;
  error:
     {
 	DDTypedMsg_t msg = {
@@ -2429,20 +2439,21 @@ static void msg_PROVIDEPARTSL(DDBufferMsg_t *inmsg)
 	send_TASKDEAD(inmsg->header.dest);
 	sendMsg(&msg);
     }
+    return true;
 }
 
 /**
- * @brief Handle a PSP_DD_PROVIDERESPORTS message.
+ * @brief Handle a PSP_DD_PROVIDERESPORTS message
  *
  * Handle the message @a inmsg of type PSP_DD_PROVIDERESPORTS.
  *
- * @param inmsg Pointer to the message to handle.
+ * @param inmsg Pointer to message to handle
  *
- * @return No return value.
+ * @return Always return true
  */
-static void msg_PROVIDETASKRP(DDBufferMsg_t *inmsg)
+static bool msg_PROVIDETASKRP(DDBufferMsg_t *inmsg)
 {
-    uint16_t count, i;
+    uint16_t count;
     size_t used = 0;
 
     /* Handle running and suspended request only. Pending requests will get a
@@ -2453,13 +2464,13 @@ static void msg_PROVIDETASKRP(DDBufferMsg_t *inmsg)
     if (!req) {
 	PSID_log(-1, "%s: Unable to find request '%s'\n",
 		 __func__, PSC_printTID(inmsg->header.sender));
-	return;
+	return true;
     }
 
     if (req->resPorts) {
 	PSID_log(-1, "%s: reserved ports already saved in request '%s'\n",
 		 __func__, PSC_printTID(inmsg->header.sender));
-	return;
+	return true;
     }
 
     /* get number of ports */
@@ -2472,7 +2483,7 @@ static void msg_PROVIDETASKRP(DDBufferMsg_t *inmsg)
     }
 
     /* get the actual ports */
-    for (i=0; i<count; i++) {
+    for (int i = 0; i < count; i++) {
 	PSP_getMsgBuf(inmsg, &used, "port", &req->resPorts[i],
 		      sizeof(*req->resPorts));
     }
@@ -2483,25 +2494,23 @@ static void msg_PROVIDETASKRP(DDBufferMsg_t *inmsg)
 	PSID_log(-1, "%s: tried to recover reserved ports for '%s', but "
 		    "I am not the master!\n", __func__,
 		    PSC_printTID(inmsg->header.sender));
-	return;
-    }
-
-    if ((PSIDhook_call(PSIDHOOK_MASTER_RECPART, req)) < 0) {
+    } else if (PSIDhook_call(PSIDHOOK_MASTER_RECPART, req) < 0) {
 	PSID_log(-1, "%s: re-constructing reserved ports for '%s' failed\n",
-		__func__, PSC_printTID(inmsg->header.sender));
+		 __func__, PSC_printTID(inmsg->header.sender));
     }
+    return true;
 }
 
 /**
- * @brief Handle a PSP_DD_PROVIDERESPORTS message.
+ * @brief Handle a PSP_DD_PROVIDERESPORTS message
  *
  * Handle the message @a inmsg of type PSP_DD_PROVIDERESPORTS.
  *
- * @param inmsg Pointer to the message to handle.
+ * @param inmsg Pointer to message to handle
  *
- * @return No return value.
+ * @return Always return true
  */
-static void msg_PROVIDEPARTRP(DDBufferMsg_t *inmsg)
+static bool msg_PROVIDEPARTRP(DDBufferMsg_t *inmsg)
 {
     PStask_t *task = PStasklist_find(&managedTasks, inmsg->header.dest);
     PStask_ID_t tid = inmsg->header.dest;
@@ -2514,10 +2523,10 @@ static void msg_PROVIDEPARTRP(DDBufferMsg_t *inmsg)
     if (!task) {
 	PSID_log(-1, "%s: task '%s' to restore reserved ports not found\n",
 		    __func__, PSC_printTID(tid));
-	return;
+	return true;
     }
 
-    if (task->resPorts) return;
+    if (task->resPorts) return true;
 
     /* get number of ports */
     PSP_getMsgBuf(inmsg, &used, "count", &count, sizeof(count));
@@ -2534,6 +2543,7 @@ static void msg_PROVIDEPARTRP(DDBufferMsg_t *inmsg)
 		      sizeof(*task->resPorts));
     }
     task->resPorts[count] = 0;
+    return true;
 }
 
 /**
@@ -2808,7 +2818,7 @@ exit:
 }
 
 /**
- * @brief Handle a PSP_CD_GETNODES/PSP_DD_GETNODES message.
+ * @brief Handle a PSP_CD_GETNODES/PSP_DD_GETNODES message
  *
  * Handle the message @a inmsg of type PSP_CD_GETNODES or
  * PSP_DD_GETNODES.
@@ -2817,11 +2827,11 @@ exit:
  * nodes from the pool of nodes stored within the partition requested
  * from the master node.
  *
- * @param inmsg Pointer to the message to handle.
+ * @param inmsg Pointer to message to handle
  *
- * @return No return value.
+ * @return Always return true
  */
-static void msg_GETNODES(DDBufferMsg_t *inmsg)
+static bool msg_GETNODES(DDBufferMsg_t *inmsg)
 {
     PStask_ID_t target = PSC_getPID(inmsg->header.dest) ?
 	inmsg->header.dest : inmsg->header.sender;
@@ -2846,7 +2856,7 @@ static void msg_GETNODES(DDBufferMsg_t *inmsg)
 	    PSID_warn(-1, errno, "%s: sendMsg()", __func__);
 	    goto error;
 	}
-	return;
+	return true;
     }
 
     delegate = task->delegate ? task->delegate : task;
@@ -2911,7 +2921,7 @@ static void msg_GETNODES(DDBufferMsg_t *inmsg)
 	PSP_putMsgBuf(&msg, "num", &shortNum, sizeof(shortNum));
 
 	sendSlotlist(slots, num, &msg);
-	return;
+	return true;
     }
 
     error:
@@ -2925,6 +2935,7 @@ static void msg_GETNODES(DDBufferMsg_t *inmsg)
 	    .type = -1 };
 	sendMsg(&msg);
     }
+    return true;
 }
 
 static void handleResRequests(PStask_t *task);
@@ -3043,7 +3054,7 @@ static bool send_RESRELEASED(PSrsrvtn_t *res)
 }
 
 /**
- * @brief Handle a PSP_DD_CHILDRESREL message.
+ * @brief Handle a PSP_DD_CHILDRESREL message
  *
  * Handle the message @a msg of type PSP_DD_CHILDRESREL.
  *
@@ -3052,11 +3063,11 @@ static bool send_RESRELEASED(PSrsrvtn_t *res)
  * resources they might be reused by further child processes to be
  * spawned later on.
  *
- * @param msg Pointer to the message to handle.
+ * @param msg Pointer to message to handle
  *
- * @return No return value.
+ * @return Always return true
  */
-static void msg_CHILDRESREL(DDBufferMsg_t *msg)
+static bool msg_CHILDRESREL(DDBufferMsg_t *msg)
 {
     PStask_ID_t target = msg->header.dest;
     PStask_t *task = PStasklist_find(&managedTasks, target), *delegate;
@@ -3072,7 +3083,7 @@ static void msg_CHILDRESREL(DDBufferMsg_t *msg)
     if (!task) {
 	PSID_log(-1, "%s: Task %s not found", __func__, PSC_printTID(target));
 	PSID_log(-1, " from %s\n", PSC_printTID(msg->header.sender));
-	return;
+	return true;
     }
 
     delegate = task->delegate ? task->delegate : task;
@@ -3080,7 +3091,7 @@ static void msg_CHILDRESREL(DDBufferMsg_t *msg)
     if (!delegate->totalThreads || !delegate->partThrds) {
 	PSID_log(-1, "%s: Task %s has no partition\n", __func__,
 		 PSC_printTID(target));
-	return;
+	return true;
     }
 
     PSP_getMsgBuf(msg, &used, "nBytes", &nBytes, sizeof(nBytes));
@@ -3088,7 +3099,7 @@ static void msg_CHILDRESREL(DDBufferMsg_t *msg)
     if (nBytes > myBytes) {
 	PSID_log(-1,  "%s: from %s: expecting %d CPUs\n",
 		 __func__, PSC_printTID(msg->header.sender), nBytes*8);
-	return;
+	return true;
     }
 
     dynRes.rid = 0;
@@ -3165,11 +3176,11 @@ static void msg_CHILDRESREL(DDBufferMsg_t *msg)
 
     handleResRequests(delegate);
 
-    return;
+    return true;
 }
 
 /**
- * @brief Handle a PSP_CD_GETRANKNODE/PSP_DD_GETRANKNODE message.
+ * @brief Handle a PSP_CD_GETRANKNODE/PSP_DD_GETRANKNODE message
  *
  * Handle the message @a msg of type PSP_CD_GETRANKNODE or
  * PSP_DD_GETRANKNODE.
@@ -3179,11 +3190,11 @@ static void msg_CHILDRESREL(DDBufferMsg_t *msg)
  * the job from the pool of nodes stored within the partition
  * requested from the master node.
  *
- * @param msg Pointer to the message to handle.
+ * @param msg Pointer to message to handle
  *
- * @return No return value.
+ * @return Always return true
  */
-static void msg_GETRANKNODE(DDBufferMsg_t *msg)
+static bool msg_GETRANKNODE(DDBufferMsg_t *msg)
 {
     PStask_ID_t target = PSC_getPID(msg->header.dest) ?
 	msg->header.dest : msg->header.sender;
@@ -3207,7 +3218,7 @@ static void msg_GETRANKNODE(DDBufferMsg_t *msg)
 	    PSID_warn(-1, errno, "%s: sendMsg()", __func__);
 	    goto error;
 	}
-	return;
+	return true;
     }
 
     if (!task->totalThreads || !task->partThrds) {
@@ -3261,7 +3272,7 @@ static void msg_GETRANKNODE(DDBufferMsg_t *msg)
 
 	sendSlotlist(&slot, 1, &answer);
 
-	return;
+	return true;
     }
 
     error:
@@ -3275,10 +3286,11 @@ static void msg_GETRANKNODE(DDBufferMsg_t *msg)
 	    .type = -1 };
 	sendMsg(&answer);
     }
+    return true;
 }
 
 /**
- * @brief Handle a PSP_DD_NODESRES message.
+ * @brief Handle a PSP_DD_NODESRES message
  *
  * Handle the message @a msg of type PSP_DD_NODESRES.
  *
@@ -3289,11 +3301,11 @@ static void msg_GETRANKNODE(DDBufferMsg_t *msg)
  *
  * This is needed for transparent process-pinning.
  *
- * @param msg Pointer to the message to handle.
+ * @param msg Pointer to message to handle
  *
- * @return No return value.
+ * @return Always return true
  */
-static void msg_NODESRES(DDBufferMsg_t *msg)
+static bool msg_NODESRES(DDBufferMsg_t *msg)
 {
     if (PSC_getID(msg->header.dest) == PSC_getMyID()) {
 	PStask_t *task = PStasklist_find(&managedTasks, msg->header.dest);
@@ -3310,7 +3322,7 @@ static void msg_NODESRES(DDBufferMsg_t *msg)
 	if (!task) {
 	    PSID_log(-1, "%s: Task %s not found\n", __func__,
 		     PSC_printTID(msg->header.dest));
-	    return;
+	    return true;
 	}
 
 	PSP_getMsgBuf(msg, &used, "nextRank", &nextRank, sizeof(nextRank));
@@ -3364,11 +3376,12 @@ static void msg_NODESRES(DDBufferMsg_t *msg)
 	    for (n = 0; n < rqstd; n++) nodeBuf[n] = msgSlots[n].node;
 	    msg->header.len += rqstd * sizeof(*nodeBuf);
 	} else {
-	    return;
+	    return true;
 	}
     }
 
     sendMsg(msg);
+    return true;
 }
 
 /* ---------------------------------------------------------------------- */
@@ -3832,7 +3845,7 @@ int PSIDpart_extendRes(PStask_ID_t tid, PSrsrvtn_ID_t resID,
 }
 
 /**
- * @brief Handle a PSP_CD_GETRESERVATION/PSP_DD_GETRESERVATION message.
+ * @brief Handle a PSP_CD_GETRESERVATION/PSP_DD_GETRESERVATION message
  *
  * Handle the message @a inmsg of type PSP_CD_GETRESERVATION or
  * PSP_CD_GETRESERVATION.
@@ -3844,11 +3857,11 @@ int PSIDpart_extendRes(PStask_ID_t tid, PSrsrvtn_ID_t resID,
  * sending subsequent PSP_CD_GETSLOTS messages the actual slots can be
  * retrieved from the reservation.
  *
- * @param inmsg Pointer to the message to handle.
+ * @param inmsg Pointer to message to handle
  *
- * @return No return value.
+ * @return Always return true
  */
-static void msg_GETRESERVATION(DDBufferMsg_t *inmsg)
+static bool msg_GETRESERVATION(DDBufferMsg_t *inmsg)
 {
     PStask_ID_t target = PSC_getPID(inmsg->header.dest) ?
 	inmsg->header.dest : inmsg->header.sender;
@@ -3882,7 +3895,7 @@ static void msg_GETRESERVATION(DDBufferMsg_t *inmsg)
 	    goto error;
 	}
 	PSrsrvtn_put(r);
-	return;
+	return true;
     }
 
     delegate = task->delegate ? task->delegate : task;
@@ -3925,7 +3938,7 @@ static void msg_GETRESERVATION(DDBufferMsg_t *inmsg)
 	    enqRes(&delegate->resRequests, r);
 
 	    /* Answer will be sent once reservation is established */
-	    return;
+	    return true;
 	} else {
 	    PSID_log(-1, "%s: queued reservations without PART_OPT_WAIT"
 		     " for %#x\n", __func__, r->rid);
@@ -3941,10 +3954,9 @@ static void msg_GETRESERVATION(DDBufferMsg_t *inmsg)
 	handleSingleResRequest(r);
 
 	/* Answer is already sent if possible. Otherwise we'll wait anyhow */
-	return;
+	return true;
     } else {
 	eno = ENOSPC;
-	goto error;
     }
 
 error:
@@ -3970,6 +3982,7 @@ error:
 
 	sendMsg(&msg);
     }
+    return true;
 }
 
 void PSIDpart_cleanupRes(PStask_t *task)
@@ -4036,7 +4049,7 @@ void PSIDpart_cleanupRes(PStask_t *task)
 }
 
 /**
- * @brief Handle a PSP_CD_GETSLOTS/PSP_DD_GETSLOTS message.
+ * @brief Handle a PSP_CD_GETSLOTS/PSP_DD_GETSLOTS message
  *
  * Handle the message @a inmsg of type PSP_CD_GETSLOTS or
  * PSP_DD_GETSLOTS.
@@ -4045,11 +4058,11 @@ void PSIDpart_cleanupRes(PStask_t *task)
  * slots from the pool of slots stored within a reservation. It is
  * answered by a PSP_DD_SLOTSRES message containing the slots.
  *
- * @param inmsg Pointer to the message to handle.
+ * @param inmsg Pointer to message to handle
  *
- * @return No return value.
+ * @return Always return true
  */
-static void msg_GETSLOTS(DDBufferMsg_t *inmsg)
+static bool msg_GETSLOTS(DDBufferMsg_t *inmsg)
 {
     DDBufferMsg_t msg = {
 	.header = {
@@ -4086,7 +4099,7 @@ static void msg_GETSLOTS(DDBufferMsg_t *inmsg)
 	    eno = errno;
 	    goto error;
 	}
-	return;
+	return true;
     }
 
     PSP_getMsgBuf(inmsg, &used, "resID", &resID, sizeof(resID));
@@ -4126,7 +4139,7 @@ static void msg_GETSLOTS(DDBufferMsg_t *inmsg)
     task->activeChild += num;
     res->nextSlot += num;
 
-    return;
+    return true;
 
 error:
     msg.header.type = PSP_CD_SLOTSRES;
@@ -4135,10 +4148,11 @@ error:
     PSP_putMsgBuf(&msg, "eno", &eno, sizeof(eno));
 
     sendMsg(&msg);
+    return true;
 }
 
 /**
- * @brief Handle a PSP_DD_SLOTSRES message.
+ * @brief Handle a PSP_DD_SLOTSRES message
  *
  * Handle the message @a msg of type PSP_DD_SLOTSRES.
  *
@@ -4148,11 +4162,11 @@ error:
  * requesting process. It will be morphed into a PSP_CD_SLOTSRES
  * message and sent to the requesting process.
  *
- * @param msg Pointer to the message to handle.
+ * @param msg Pointer to message to handle
  *
- * @return No return value.
+ * @return Always return true
  */
-static void msg_SLOTSRES(DDBufferMsg_t *msg)
+static bool msg_SLOTSRES(DDBufferMsg_t *msg)
 {
     PStask_t *task = PStasklist_find(&managedTasks, msg->header.dest);
     size_t used = 0;
@@ -4168,13 +4182,13 @@ static void msg_SLOTSRES(DDBufferMsg_t *msg)
     if (PSC_getID(msg->header.dest) != PSC_getMyID()) {
 	/* just forward the message */
 	sendMsg(msg);
-	return;
+	return true;
     }
 
     if (!task) {
 	PSID_log(-1, "%s: Task %s not found\n", __func__,
 		 PSC_printTID(msg->header.dest));
-	return;
+	return true;
     }
 
     PSP_getMsgBuf(msg, &used, "rank", &rank, sizeof(rank));
@@ -4227,10 +4241,11 @@ static void msg_SLOTSRES(DDBufferMsg_t *msg)
 	    PSP_putMsgBuf(msg, "CPUset", &msgSlots[n].node,
 			  sizeof(msgSlots[n].node));
     } else {
-	return;
+	return true;
     }
 
     sendMsg(msg);
+    return true;
 }
 
 void PSIDpart_cleanupSlots(PStask_t *task)
@@ -4466,7 +4481,7 @@ static void sendExistingPartitions(PStask_ID_t dest)
 }
 
 /**
- * @brief Handle a PSP_DD_GETTASKS message.
+ * @brief Handle a PSP_DD_GETTASKS message
  *
  * Handle the message @a msg of type PSP_DD_GETTASKS.
  *
@@ -4479,11 +4494,11 @@ static void sendExistingPartitions(PStask_ID_t dest)
  * message is directly from the requesting client or if it was
  * buffered within the client's local daemon.
  *
- * @param msg Pointer to the message to handle.
+ * @param msg Pointer to message to handle
  *
- * @return No return value.
+ * @return Always return true
  */
-static void msg_GETTASKS(DDBufferMsg_t *msg)
+static bool msg_GETTASKS(DDBufferMsg_t *msg)
 {
     DDMsg_t answer = {
 	.type = PSP_DD_PROVIDETASK,
@@ -4503,10 +4518,11 @@ static void msg_GETTASKS(DDBufferMsg_t *msg)
 
     /* Send 'end of tasks' message */
     sendMsg(&answer);
+    return true;
 }
 
 /**
- * @brief Handle a PSP_DD_PROVIDETASK / PSP_DD_REGISTERPART message.
+ * @brief Handle a PSP_DD_PROVIDETASK / PSP_DD_REGISTERPART message
  *
  * Handle the message @a msg of type PSP_DD_PROVIDETASK or
  * PSP_DD_REGISTERPART.
@@ -4532,17 +4548,17 @@ static void msg_GETTASKS(DDBufferMsg_t *msg)
  * corresponding partition request structure and wait for following
  * PSP_DD_PROVIDETASKSL or PSP_DD_REGISTERPARTSL messages.
  *
- * @param msg Pointer to the message to handle.
+ * @param msg Pointer to message to handle
  *
- * @return No return value.
+ * @return Always return true
  */
-static void msg_PROVIDETASK(DDBufferMsg_t *msg)
+static bool msg_PROVIDETASK(DDBufferMsg_t *msg)
 {
     PSpart_request_t *req;
     int16_t type = msg->header.type;
     size_t used = 0;
 
-    if (!knowMaster() || PSC_getMyID() != getMasterID()) return;
+    if (!knowMaster() || PSC_getMyID() != getMasterID()) return true;
 
     if (type == PSP_DD_PROVIDETASK && !PSC_getPID(msg->header.sender)) {
 	/* End of tasks */
@@ -4550,13 +4566,13 @@ static void msg_PROVIDETASK(DDBufferMsg_t *msg)
 	pendingTaskReq -= nodeStat[node].taskReqPending;
 	nodeStat[node].taskReqPending = 0;
 	if (!pendingTaskReq) doHandle = true;
-	return;
+	return true;
     }
 
     req = PSpart_newReq();
     if (!req) {
 	PSID_log(-1, "%s: No memory\n", __func__);
-	return;
+	return true;
     }
 
     req->tid = msg->header.sender;
@@ -4569,7 +4585,7 @@ static void msg_PROVIDETASK(DDBufferMsg_t *msg)
 	PSID_log(-1, "%s: Task %s without partition\n", __func__,
 		 PSC_printTID(req->tid));
 	PSpart_delReq(req);
-	return;
+	return true;
     }
 
     int32_t id;
@@ -4590,14 +4606,15 @@ static void msg_PROVIDETASK(DDBufferMsg_t *msg)
     if (!req->slots) {
 	PSID_log(-1, "%s: No memory\n", __func__);
 	PSpart_delReq(req);
-	return;
+	return true;
     }
     req->sizeGot = 0;
     enqPart(&regisReq, req);
+    return true;
 }
 
 /**
- * @brief Handle a PSP_DD_PROVIDETASKSL message.
+ * @brief Handle a PSP_DD_PROVIDETASKSL message
  *
  * Handle the message @a msg of type PSP_DD_PROVIDETASKSL or
  * PSP_DD_REGISTERPARTSL.
@@ -4606,21 +4623,21 @@ static void msg_PROVIDETASK(DDBufferMsg_t *msg)
  * containing the partition's actual slots. These slots will be stored
  * to the client's partition request structure.
  *
- * @param msg Pointer to the message to handle.
+ * @param msg Pointer to message to handle
  *
- * @return No return value.
+ * @return Always return true
  */
-static void msg_PROVIDETASKSL(DDBufferMsg_t *msg)
+static bool msg_PROVIDETASKSL(DDBufferMsg_t *msg)
 {
     PSpart_request_t *req = findPart(&regisReq, msg->header.sender);
 
-    if (!knowMaster() || PSC_getMyID() != getMasterID()) return;
+    if (!knowMaster() || PSC_getMyID() != getMasterID()) return true;
 
     if (!req) {
 	PSID_log(-1, "%s(%s): Unable to find request %s\n", __func__,
 		 PSDaemonP_printMsg(msg->header.type),
 		 PSC_printTID(msg->header.sender));
-	return;
+	return true;
     }
     appendToSlotlist(msg, req);
 
@@ -4629,9 +4646,7 @@ static void msg_PROVIDETASKSL(DDBufferMsg_t *msg)
 	    PSID_log(-1, "%s: Unable to dequeue request %s\n",
 		     __func__, PSC_printTID(req->tid));
 	    PSpart_delReq(req);
-	    return;
-	}
-	if (req->suspended) {
+	} else if (req->suspended) {
 	    if (PSID_config->freeOnSuspend) {
 		req->freed = true;
 	    } else {
@@ -4643,6 +4658,7 @@ static void msg_PROVIDETASKSL(DDBufferMsg_t *msg)
 	    enqPart(&runReq, req);
 	}
     }
+    return true;
 }
 
 /**

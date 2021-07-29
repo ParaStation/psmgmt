@@ -2,6 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2018-2021 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2021 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -99,18 +100,18 @@ static void setTargetToPmixJobserver(DDTypedBufferMsg_t *msg)
 	    PSC_printTID(msg->header.dest));
 }
 
-/*
- * @brief Forward messages of type PSP_PLUG_PSPMIX in the main daemon.
+/**
+ * @brief Forward messages of type PSP_PLUG_PSPMIX in the main daemon
  *
  * This function is registered in the daemon and used for messages coming
  * from the client forwarder and from other deamons and thus from PMIx
  * jobservers running there.
  *
- * @param fw     forwarder data
+ * @param vmsg Pointer to message to handle
  *
- * @return Returns 1 if the type is known, 0 if not
+ * @return Always return true
  */
-static void forwardPspmixMsg(DDMsg_t *vmsg)
+static bool forwardPspmixMsg(DDBufferMsg_t *vmsg)
 {
     mdbg(PSPMIX_LOG_CALL, "%s() called\n", __func__);
 
@@ -124,7 +125,7 @@ static void forwardPspmixMsg(DDMsg_t *vmsg)
     /* destination is remote, just forward */
     if (PSC_getID(msg->header.dest) != PSC_getMyID()) {
 	sendMsg(vmsg);
-	return;
+	return true;
     }
 
     /* destination is local, we might have to tweak dest */
@@ -133,13 +134,14 @@ static void forwardPspmixMsg(DDMsg_t *vmsg)
     case PSPMIX_MODEX_DATA_REQ:
 	setTargetToPmixJobserver(msg);
     }
-    if (!PSC_getPID(msg->header.dest)) {
+    if (PSC_getPID(msg->header.dest)) {
+	PSIDclient_send((DDMsg_t *)vmsg);
+    } else {
 	mlog("%s: no dest (sender %s type  %s)\n", __func__,
 	     PSC_printTID(msg->header.sender),
 	     pspmix_getMsgTypeString(msg->type));
-	return;
     }
-    PSIDclient_send(vmsg);
+    return true;
 }
 
 /**
@@ -158,9 +160,9 @@ static int forwardPspmixFwMsg(PSLog_Msg_t *tmpmsg, ForwarderData_t *fw)
 
     mdbg(PSPMIX_LOG_CALL, "%s() called\n", __func__);
 
-    DDMsg_t *vmsg = (DDMsg_t *)tmpmsg; /* HACK */
+    DDBufferMsg_t *vmsg = (DDBufferMsg_t *)tmpmsg; /* HACK */
 
-    if (vmsg->type != PSP_PLUG_PSPMIX) return 0;
+    if (vmsg->header.type != PSP_PLUG_PSPMIX) return 0;
 
     forwardPspmixMsg(vmsg);
 
@@ -447,7 +449,7 @@ void pspmix_initDaemonModule(void)
     PSIDhook_add(PSIDHOOK_RECV_SPAWNREQ, hookRecvSpawnReq);
     PSIDhook_add(PSIDHOOK_LOCALJOBREMOVED, hookLocalJobRemoved);
     PSIDhook_add(PSIDHOOK_NODE_DOWN, hookNodeDown);
-    PSID_registerMsg(PSP_PLUG_PSPMIX, (handlerFunc_t) forwardPspmixMsg);
+    PSID_registerMsg(PSP_PLUG_PSPMIX, forwardPspmixMsg);
 }
 
 void pspmix_finalizeDaemonModule(void)
@@ -455,7 +457,7 @@ void pspmix_finalizeDaemonModule(void)
     PSIDhook_del(PSIDHOOK_RECV_SPAWNREQ, hookRecvSpawnReq);
     PSIDhook_del(PSIDHOOK_LOCALJOBREMOVED, hookLocalJobRemoved);
     PSIDhook_del(PSIDHOOK_NODE_DOWN, hookNodeDown);
-    PSID_clearMsg(PSP_PLUG_PSPMIX);
+    PSID_clearMsg(PSP_PLUG_PSPMIX, forwardPspmixMsg);
 }
 
 /* vim: set ts=8 sw=4 tw=0 sts=4 noet :*/

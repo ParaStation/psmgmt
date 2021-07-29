@@ -993,7 +993,7 @@ static void msg_CLIENTCONNECT(int fd, DDBufferMsg_t *bufmsg)
 }
 
 /**
- * @brief Handle a PSP_CC_MSG message.
+ * @brief Handle a PSP_CC_MSG message
  *
  * Handle the message @a msg of type PSP_CC_MSG.
  *
@@ -1003,11 +1003,11 @@ static void msg_CLIENTCONNECT(int fd, DDBufferMsg_t *bufmsg)
  * original sender, if something went wrong during passing the
  * original message towards its final destination.
  *
- * @param msg Pointer to the message to handle.
+ * @param msg Pointer to the message to handle
  *
- * @return No return value.
+ * @return Always return true
  */
-static void msg_CC_MSG(DDBufferMsg_t *msg)
+static bool msg_CC_MSG(DDBufferMsg_t *msg)
 {
     PSID_log(PSID_LOG_CLIENT, "%s: from %s", __func__,
 	     PSC_printTID(msg->header.sender));
@@ -1017,7 +1017,7 @@ static void msg_CC_MSG(DDBufferMsg_t *msg)
 	PSID_log(-1, "%s: from %s to me?! Dropping...\n", __func__,
 		 PSC_printTID(msg->header.sender));
 	PSID_dropMsg(msg);
-	return;
+	return true;
     }
 
     /* Forward this message. If this fails, send an error message. */
@@ -1025,10 +1025,11 @@ static void msg_CC_MSG(DDBufferMsg_t *msg)
 	PSID_log(PSID_LOG_CLIENT, "%s: sending failed\n", __func__);
 	PSID_dropMsg(msg);
     }
+    return true;
 }
 
 /**
- * @brief Drop a PSP_CC_MSG message.
+ * @brief Drop a PSP_CC_MSG message
  *
  * Drop the message @a msg of type PSP_CC_MSG.
  *
@@ -1036,11 +1037,11 @@ static void msg_CC_MSG(DDBufferMsg_t *msg)
  * protocol a corresponding answer is created on this lower level to
  * send a hint that the original messages is dropped.
  *
- * @param msg Pointer to the message to drop.
+ * @param msg Pointer to the message to drop
  *
- * @return No return value.
+ * @return Always return true
  */
-static void drop_CC_MSG(DDBufferMsg_t *msg)
+static bool drop_CC_MSG(DDBufferMsg_t *msg)
 {
     DDMsg_t errmsg = {
 	.type = PSP_CC_ERROR,
@@ -1049,6 +1050,7 @@ static void drop_CC_MSG(DDBufferMsg_t *msg)
 	.len = sizeof(errmsg) };
 
     sendMsg(&errmsg);
+    return true;
 }
 
 /**
@@ -1056,9 +1058,9 @@ static void drop_CC_MSG(DDBufferMsg_t *msg)
  *
  * Initialize the client structure @a client.
  *
- * @param client The client to initialize.
+ * @param client The client to initialize
  *
- * @return No return value.
+ * @return No return value
  */
 static void clientInit(client_t *client)
 {

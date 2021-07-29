@@ -2,6 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2006-2021 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2021 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -14,6 +15,7 @@
 #ifndef __PSIDHW_H
 #define __PSIDHW_H
 
+#include <stdbool.h>
 #include <stdint.h>
 
 #include "pscpu.h"
@@ -93,7 +95,7 @@ void PSID_startAllHW(void);
 void PSID_stopAllHW(void);
 
 /**
- * @brief Get hardware counters.
+ * @brief Send hardware counters
  *
  * Read out the hardware counters of the hardware corresponding to the
  * information in the requesting message @a inmsg. The value of the
@@ -109,9 +111,9 @@ void PSID_stopAllHW(void);
  * @param insmsg The requesting message containing the hardware, the
  * actual type of information, the requester, etc.
  *
- * @return No return value.
+ * @return No return value
  */
-void PSID_getCounter(DDTypedBufferMsg_t *inmsg);
+void PSID_sendCounter(DDTypedBufferMsg_t *inmsg);
 
 /**
  * @brief Get number of hardware threads

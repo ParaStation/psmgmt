@@ -308,7 +308,7 @@ static void dropExecMsg(DDTypedBufferMsg_t *msg)
     deleteScript(script);
 }
 
-static void handlePsExecMsg(DDTypedBufferMsg_t *msg)
+static bool handlePsExecMsg(DDTypedBufferMsg_t *msg)
 {
     char cover[128];
 
@@ -318,7 +318,7 @@ static void handlePsExecMsg(DDTypedBufferMsg_t *msg)
 	mlog("%s: access violation: dropping message uid %i type %i "
 	     "sender %s\n", __func__, (task ? task->uid : 0), msg->type,
 	     PSC_printTID(msg->header.sender));
-	return;
+	return true;
     }
 
     snprintf(cover, sizeof(cover), "[%s->", PSC_printTID(msg->header.sender));
@@ -337,9 +337,10 @@ static void handlePsExecMsg(DDTypedBufferMsg_t *msg)
     default:
 	mlog("%s: unknown type %i %s\n", __func__, msg->type, cover);
     }
+    return true;
 }
 
-static void dropPsExecMsg(DDTypedBufferMsg_t *msg)
+static bool dropPsExecMsg(DDTypedBufferMsg_t *msg)
 {
     mlog("%s: type %i to %s\n", __func__, msg->type,
 	 PSC_printTID(msg->header.dest));
@@ -354,20 +355,21 @@ static void dropPsExecMsg(DDTypedBufferMsg_t *msg)
     default:
 	mlog("%s: unknown msg type %i\n", __func__, msg->type);
     }
+    return true;
 }
 
 bool initComm(void)
 {
     initSerial(0, sendMsg);
-    PSID_registerMsg(PSP_PLUG_PSEXEC, (handlerFunc_t) handlePsExecMsg);
-    PSID_registerDropper(PSP_PLUG_PSEXEC, (handlerFunc_t) dropPsExecMsg);
+    PSID_registerMsg(PSP_PLUG_PSEXEC, (handlerFunc_t)handlePsExecMsg);
+    PSID_registerDropper(PSP_PLUG_PSEXEC, (handlerFunc_t)dropPsExecMsg);
 
     return true;
 }
 
 void finalizeComm(void)
 {
-    PSID_clearMsg(PSP_PLUG_PSEXEC);
-    PSID_clearDropper(PSP_PLUG_PSEXEC);
+    PSID_clearMsg(PSP_PLUG_PSEXEC, (handlerFunc_t)handlePsExecMsg);
+    PSID_clearDropper(PSP_PLUG_PSEXEC, (handlerFunc_t)dropPsExecMsg);
     finalizeSerial();
 }

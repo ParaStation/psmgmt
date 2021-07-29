@@ -15,6 +15,7 @@
 #include "pscommon.h"
 #include "psserial.h"
 #include "pspluginprotocol.h"
+#include "plugin.h"
 #include "pluginmalloc.h"
 #include "pluginhelper.h"
 
@@ -45,9 +46,6 @@ typedef struct {
     uint32_t timeout;	    /**< Timeout of pelogue to run */
     uint32_t grace;	    /**< Additional grace to of pelogue */
 } RPC_Info_t;
-
-/** Old handler for PSP_CD_UNKNOWN messages */
-handlerFunc_t oldUnknownHandler = NULL;
 
 int sendPElogueStart(Job_t *job, PElogueType_t type, int rounds, env_t *env)
 {
@@ -580,7 +578,7 @@ static void handlePElogueFinish(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
     finishJobPElogue(job, res, prologue);
 }
 
-static void handlePElogueMsg(DDTypedBufferMsg_t *msg)
+static bool handlePElogueMsg(DDTypedBufferMsg_t *msg)
 {
     char cover[128];
 
@@ -590,13 +588,13 @@ static void handlePElogueMsg(DDTypedBufferMsg_t *msg)
 	mlog("%s: access violation: dropping message uid %i type %i "
 	     "sender %s\n", __func__, (task ? task->uid : 0), msg->type,
 	     PSC_printTID(msg->header.sender));
-	return;
+	return true;
     }
 
     if (PSC_getID(msg->header.dest) != PSC_getMyID()) {
 	/* forward messages to other nodes */
 	sendMsg(msg);
-	return;
+	return true;
     }
 
     snprintf(cover, sizeof(cover), "[%s->", PSC_printTID(msg->header.sender));
@@ -629,6 +627,7 @@ static void handlePElogueMsg(DDTypedBufferMsg_t *msg)
     default:
 	mlog("%s: unknown type %i %s\n", __func__, msg->type, cover);
     }
+    return true;
 }
 
 static char *msg2Str(PSP_PELOGUE_t type)
@@ -706,7 +705,7 @@ static void dropMsgAndCancel(DDTypedBufferMsg_t *msg)
     cancelJob(job);
 }
 
-static void dropPElogueMsg(DDTypedBufferMsg_t *msg)
+static bool dropPElogueMsg(DDTypedBufferMsg_t *msg)
 {
     size_t used = 0;
     uint16_t fragNum;
@@ -736,9 +735,10 @@ static void dropPElogueMsg(DDTypedBufferMsg_t *msg)
     default:
 	mlog("%s: unknown msg type %i\n", __func__, msg->type);
     }
+    return true;
 }
 
-static void handleUnknownMsg(DDBufferMsg_t *msg)
+static bool handleUnknownMsg(DDBufferMsg_t *msg)
 {
     size_t used = 0;
     PStask_ID_t dest;
@@ -755,33 +755,28 @@ static void handleUnknownMsg(DDBufferMsg_t *msg)
 	mlog("%s: delivery of pelogue message type %i to %s failed\n",
 		__func__, type, PSC_printTID(dest));
 
-	mlog("%s: please make sure the plugin 'pelogue' is loaded on"
-		" node %i\n", __func__, PSC_getID(msg->header.sender));
-	return;
+	mlog("%s: make sure the plugin '%s' is loaded on node %i\n", __func__,
+	     name, PSC_getID(msg->header.sender));
+	return true;
     }
 
-    if (oldUnknownHandler) oldUnknownHandler(msg);
+    return false; // fallback to old handler
 }
 
 bool initComm(void)
 {
     initSerial(0, sendMsg);
-    PSID_registerMsg(PSP_PLUG_PELOGUE, (handlerFunc_t) handlePElogueMsg);
-    PSID_registerDropper(PSP_PLUG_PELOGUE, (handlerFunc_t) dropPElogueMsg);
-    oldUnknownHandler = PSID_registerMsg(PSP_CD_UNKNOWN,
-					 (handlerFunc_t) handleUnknownMsg);
+    PSID_registerMsg(PSP_PLUG_PELOGUE, (handlerFunc_t)handlePElogueMsg);
+    PSID_registerDropper(PSP_PLUG_PELOGUE, (handlerFunc_t)dropPElogueMsg);
+    PSID_registerMsg(PSP_CD_UNKNOWN, handleUnknownMsg);
 
     return true;
 }
 
 void finalizeComm(void)
 {
-    PSID_clearMsg(PSP_PLUG_PELOGUE);
-    PSID_clearDropper(PSP_PLUG_PELOGUE);
-    if (oldUnknownHandler) {
-	PSID_registerMsg(PSP_CD_UNKNOWN, (handlerFunc_t) oldUnknownHandler);
-    } else {
-	PSID_clearMsg(PSP_CD_UNKNOWN);
-    }
+    PSID_clearMsg(PSP_PLUG_PELOGUE, (handlerFunc_t)handlePElogueMsg);
+    PSID_clearDropper(PSP_PLUG_PELOGUE, (handlerFunc_t)dropPElogueMsg);
+    PSID_clearMsg(PSP_CD_UNKNOWN, handleUnknownMsg);
     finalizeSerial();
 }

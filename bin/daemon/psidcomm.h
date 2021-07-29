@@ -30,7 +30,7 @@
  * dropping.
  *
  * Furthermore, if the flag @a registerMsgHandlers is true, first
- * message handling rules are set up. These cover messages of types
+ * message handling rules are setup. These cover messages of types
  * PSP_CD_ERROR, PSP_CD_INFORESPONSE, PSP_CD_SIGRES, PSP_CC_ERROR, and
  * PSP_CD_UNKNOWN.
  *
@@ -88,17 +88,18 @@ ssize_t sendMsg(void *msg);
 /**
  * @brief Wrapper around @ref sendMsg()
  *
- * Wrapper around @ref sendMsg() basically dropping its return
+ * Wrapper around @ref sendMsg() basically replacing its return
  * value. This enables @ref sendMsg() to be used as a message handler
  * that simply forwards the corresponding message type.
  *
  * @param msg Message to handle, i.e. to be sent
  *
- * @return No return value
+ * @return Always return true
  */
-static inline void frwdMsg(DDBufferMsg_t *msg)
+static inline bool frwdMsg(DDBufferMsg_t *msg)
 {
     sendMsg(msg);
+    return true;
 }
 
 /**
@@ -134,8 +135,8 @@ bool PSIDcomm_enableDropHook(bool enable);
  */
 int broadcastMsg(void *msg);
 
-/** Handler type for ParaStation messages. */
-typedef void(*handlerFunc_t)(DDBufferMsg_t *);
+/** @brief Handler type for ParaStation messages */
+typedef bool(*handlerFunc_t)(DDBufferMsg_t *);
 
 /**
  * @brief Register message handler function
@@ -144,54 +145,66 @@ typedef void(*handlerFunc_t)(DDBufferMsg_t *);
  * msgType sent to the local daemon. If @a handler is NULL, all
  * messages of type @a msgType will be silently ignored in the future.
  *
- * @param msgType The message-type to handle.
+ * Multiple handlers might be registered to a specific message type @a
+ * msgType. For a given message they will be called in reverse order
+ * of registration (i.e. latest registered called first) until a
+ * handler returns true. At this point message handling will be
+ * terminated for this message and the message is expected to be fully
+ * handled.
  *
- * @param handler The function to call whenever a message of type @a
- * msgType has to be handled.
+ * @param msgType The message-type to handle
  *
- * @return If a handler for this message-type was registered before,
- * the corresponding function pointer is returned. If this is the
- * first handler registered for this message-type, NULL is returned.
+ * @param handler Function to call whenever a message of type @a
+ * msgType has to be handled or NULL to silently ignore messages of
+ * this type
+ *
+ * @return Return true if registration was successful or false otherwise
  *
  * @see PSID_clearMsg(), PSID_handleMsg()
  */
-handlerFunc_t PSID_registerMsg(int32_t msgType, handlerFunc_t handler);
+bool PSID_registerMsg(int32_t msgType, handlerFunc_t handler);
 
 /**
  * @brief Unregister message handler function
  *
- * Unregister the message-type @a msgType such that it will not be
- * handled in the future. This includes end of silent ignore of this
- * message-type. In the future, @ref PSID_handleMsg() will lament on
- * on unknown messages.
+ * Unregister the function @a handler from handling messages of
+ * message-type @a msgType. This includes end of silently ignoring of
+ * this message-type if handler is NULL. In the future, @ref
+ * PSID_handleMsg() will lament on an unknown messages if this was the
+ * last handler registered to this message-type.
  *
- * @param msgType The message-type not to handle any longer.
+ * @param msgType The message-type not to handle any longer
  *
- * @return If a handler for this message-type was registered before,
- * the corresponding function pointer is returned. If no handler was
- * registered or the message-type was unknown before, NULL is
- * returned.
+ * @param handler Message handler to be unregistered
+ *
+ * @return If @a handler was registered for this message-type, true
+ * is returned; otherwise false is returned
  *
  * @see PSID_registerMsg(), PSID_handleMsg()
  */
-handlerFunc_t PSID_clearMsg(int32_t msgType);
+bool PSID_clearMsg(int32_t msgType, handlerFunc_t handler);
 
 /**
  * @brief Central protocol switch
  *
- * Handle the message @a msg corresponding to its message-type. The
+ * Handle the message @a msg according to its message-type. The
  * handler associated to the message-type might be registered via @ref
  * PSID_registerMsg() and unregistered via @ref PSID_clearMsg().
  *
- * If no handler is found for the given message-type an error-message
- * of type PSP_CD_UNKNOWN is sent to the original sender of @a
- * msg. This message will contain the task ID of the destination and
- * the type of the unhandled message.
+ * If no handler is found for the given message-type or all handlers
+ * have marked the message as not handled by returning false, an
+ * error-message of type PSP_CD_UNKNOWN is sent to the original sender
+ * of @a msg. This message will contain the task ID of the destination
+ * and the type of the not handled message. Sending such message is
+ * done via the function registered through @ref
+ * PSIDcomm_registerSendMsgFunc(). Thus, registering NULL there will
+ * suppress sending these messages. Nevertheless, this function will
+ * still lament on an unknown message type in the logs.
  *
  * @param msg The message to handle
  *
  * @return On success, i.e. if it was possible to handle the message,
- * true is returned, or false otherwise.
+ * true is returned; or false otherwise
  *
  * @see PSID_registerMsg(), PSID_clearMsg()
  */
@@ -221,55 +234,71 @@ void PSIDcomm_registerSendMsgFunc(ssize_t sendFunc(void *));
  * type @a msgType in the local daemon. If @a dropper is NULL, all
  * messages of type @a msgType will be silently dropped in the future.
  *
- * @param msgType The message-type to handle.
+ * Multiple droppers might be registered for a given message
+ * type. Nevertheless, only the dropper function registered latest
+ * will be called. At the same time the return value of the dropper
+ * function is ignored and has no effect.
+ *
+ * @param msgType The message-type to handle, i.e. to drop
  *
  * @param dropper The function to call whenever a message of type @a
- * msgType has to be dropped.
+ * msgType has to be dropped
  *
- * @return If a dropper for this message-type was registered before,
- * the corresponding function pointer is returned. If this is the
- * first dropper registered for this message-type, NULL is returned.
+ * @return Return true if registration was successful or false otherwise
  *
  * @see PSID_clearDropper(), PSID_dropMsg()
  */
-handlerFunc_t PSID_registerDropper(int32_t msgType, handlerFunc_t dropper);
+bool PSID_registerDropper(int32_t msgType, handlerFunc_t dropper);
 
 /**
  * @brief Unregister message dropper function
  *
- * Unregister the message-type @a msgType such that dropping this type
- * of message with be done silently in the future. This is identical
- * in registering the NULL dropper to this message-type.
+ * Unregister the dropper function @a dropper from the message-type @a
+ * msgType such that dropping this type of message will be done
+ * silently in the future unless further droppers are still registered
+ * to this message-type.
+ *
+ * If the last dropper function is removed from @a msgType, such
+ * messages are dropped silently in the future. This is identical in
+ * registering the NULL dropper to this message-type.
  *
  * @param msgType The message-type not to give any special treatment
- * in the future.
+ * in the future
  *
- * @return If a dropper for this message-type was registered before,
- * the corresponding function pointer is returned. If no dropper was
- * registered or the message-type was unknown before, NULL is
- * returned.
+ * @param dropper Message dropper to be unregistered
+ *
+ * @return If @a dropper was registered to the message-type @a
+ * msgType, true is returned; otherwise false is returned
  *
  * @see PSID_registerDropper(), PSID_dropMsg()
  */
-handlerFunc_t PSID_clearDropper(int32_t msgType);
+bool PSID_clearDropper(int32_t msgType, handlerFunc_t dropper);
 
 /**
  * @brief Drop a message
  *
- * Handle the dropped message @a msg. This is a service function for
- * the various transport layers each of which might be forced to drop
- * messages. Depending on the type of message dropped additional
- * answer messages might be required to be created to satisfy the
- * sender of the original message waiting for an answer.
+ * Drop the message @a msg. This is a service function for the various
+ * transport layers each of which might be forced to drop
+ * messages. Depending on the type of message to drop one or multiple
+ * answer messages might be required to be generated in order to
+ * satisfy the sender of the original message waiting for an answer.
  *
- * @param msg Dropped message to handle
+ * If multiple dropper functions are registered for a given
+ * message-type, only the one registered latest will be called. All
+ * other dropper will be ignored.
  *
- * @return After normal execution, 0 is returned. If an error
- * occurred, -1 is returned and errno is set appropriately. Silently
- * dropping messages is *not* assumed to be an error.
+ * If no dropper function is registered for @a msg, it will be dropped
+ * silently, i.e. neither a message is created nor a message is
+ * written to the log.
+ *
+ * @param msg Message to drop
+ *
+ * @return After normal execution true is returned; or false in case
+ * of error. Silently dropping messages is *not* assumed to be an
+ * error.
  *
  * @see PSID_registerDropper(), PSID_clearDropper()
  */
-int PSID_dropMsg(DDBufferMsg_t *msg);
+bool PSID_dropMsg(DDBufferMsg_t *msg);
 
 #endif /* __PSIDCOMM_H */

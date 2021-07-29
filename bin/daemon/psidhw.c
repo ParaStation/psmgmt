@@ -881,7 +881,7 @@ static int getCounterCB(int fd, PSID_scriptCBInfo_t *info)
     return 0;
 }
 
-void PSID_getCounter(DDTypedBufferMsg_t *inmsg)
+void PSID_sendCounter(DDTypedBufferMsg_t *inmsg)
 {
     int hw = *(int *) inmsg->buf;
     DDTypedBufferMsg_t msg = {
@@ -942,11 +942,11 @@ void PSID_getCounter(DDTypedBufferMsg_t *inmsg)
  *
  * Start the communication hardware as described within @a msg.
  *
- * @param msg Pointer to message to handle.
+ * @param msg Pointer to message to handle
  *
- * @return No return value.
+ * @return Always return true
  */
-static void msg_HWSTART(DDBufferMsg_t *msg)
+static bool msg_HWSTART(DDBufferMsg_t *msg)
 {
     PSID_log(PSID_LOG_HW, "%s: requester %s\n",
 	     __func__, PSC_printTID(msg->header.sender));
@@ -954,11 +954,7 @@ static void msg_HWSTART(DDBufferMsg_t *msg)
     if (!PSID_checkPrivilege(msg->header.sender)) {
 	PSID_log(-1, "%s: task %s not allowed to start HW\n",
 		 __func__, PSC_printTID(msg->header.sender));
-
-	return;
-    }
-
-    if (msg->header.dest == PSC_getMyTID()) {
+    } else if (msg->header.dest == PSC_getMyTID()) {
 	int hw = *(int *)msg->buf;
 
 	if (hw == -1) {
@@ -969,6 +965,7 @@ static void msg_HWSTART(DDBufferMsg_t *msg)
     } else {
 	sendMsg(msg);
     }
+    return true;
 }
 
 /**
@@ -981,11 +978,11 @@ static void msg_HWSTART(DDBufferMsg_t *msg)
  * all other nodes are informed on the change hardware situation on
  * the local node.
  *
- * @param msg Pointer to message to handle.
+ * @param msg Pointer to message to handle
  *
- * @return No return value.
+ * @return Always return true
  */
-static void msg_HWSTOP(DDBufferMsg_t *msg)
+static bool msg_HWSTOP(DDBufferMsg_t *msg)
 {
     PSID_log(PSID_LOG_HW, "%s: requester %s\n",
 	     __func__, PSC_printTID(msg->header.sender));
@@ -993,11 +990,7 @@ static void msg_HWSTOP(DDBufferMsg_t *msg)
     if (!PSID_checkPrivilege(msg->header.sender)) {
 	PSID_log(-1, "%s: task %s not allowed to stop HW\n", __func__,
 		 PSC_printTID(msg->header.sender));
-
-	return;
-    }
-
-    if (msg->header.dest == PSC_getMyTID()) {
+    } else if (msg->header.dest == PSC_getMyTID()) {
 	int hw = *(int *)msg->buf;
 
 	if (hw == -1) {
@@ -1008,6 +1001,7 @@ static void msg_HWSTOP(DDBufferMsg_t *msg)
     } else {
 	sendMsg(msg);
     }
+    return true;
 }
 
 /** List of PCI devices identified as GPUs */
