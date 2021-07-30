@@ -308,29 +308,28 @@ static void printLaunchTasksInfos(Step_t *step)
 
 static bool extractStepPackInfos(Step_t *step)
 {
-    uint32_t nrOfNodes, i;
-
     fdbg(PSSLURM_LOG_PACK, "packNodeOffset %u  packJobid %u packNtasks %u "
 	 "packOffset %u packTaskOffset %u packHostlist '%s' packNrOfNodes %u\n",
 	 step->packNodeOffset, step->packJobid, step->packNtasks,
 	 step->packOffset, step->packTaskOffset, step->packHostlist,
 	 step->packNrOfNodes);
 
+    uint32_t nrOfNodes;
     if (!convHLtoPSnodes(step->packHostlist, getNodeIDbySlurmHost,
 			 &step->packNodes, &nrOfNodes)) {
-	mlog("%s: resolving PS nodeIDs from %s failed\n", __func__,
-	     step->packHostlist);
+	flog("resolving PS nodeIDs from %s failed\n", step->packHostlist);
 	return false;
     }
 
     if (step->packNrOfNodes != nrOfNodes) {
-	if (step->packNrOfNodes == step->nrOfNodes && !step->packNodeOffset) {
+	if ((step->packNrOfNodes == step->nrOfNodes && !step->packNodeOffset) ||
+	    step->stepid == SLURM_INTERACTIVE_STEP) {
 	    /* correct invalid pack host-list */
 	    fdbg(PSSLURM_LOG_PACK, "correct pack nodes using %s\n",
 		 step->slurmHosts);
 	    ufree(step->packNodes);
 	    step->packNodes = umalloc(sizeof(*step->packNodes) * step->nrOfNodes);
-	    for (i=0; i<step->nrOfNodes; i++) {
+	    for (uint32_t i=0; i<step->nrOfNodes; i++) {
 		step->packNodes[i] = step->nodes[i];
 	    }
 	} else {
@@ -341,18 +340,24 @@ static bool extractStepPackInfos(Step_t *step)
 	}
     }
 
-    for (i=0; i<step->packNrOfNodes; i++) {
+    for (uint32_t i=0; i<step->packNrOfNodes; i++) {
 	mdbg(PSSLURM_LOG_PACK, "%s: packTaskCount[%u]: %u\n", __func__, i,
 		step->packTaskCounts[i]);
     }
 
     /* extract pack size */
-    char *sPackSize;
-    if (!(sPackSize = envGet(&step->env, "SLURM_PACK_SIZE"))) {
-	mlog("%s: missing SLURM_PACK_SIZE environment\n", __func__);
-	return false;
+    if (step->stepid == SLURM_INTERACTIVE_STEP) {
+	/* overwrite pack size and tasks for interactive steps */
+	step->packSize = 1;
+	step->packNtasks = 1;
+    } else {
+	char *sPackSize;
+	if (!(sPackSize = envGet(&step->env, "SLURM_PACK_SIZE"))) {
+	    mlog("%s: missing SLURM_PACK_SIZE environment\n", __func__);
+	    return false;
+	}
+	step->packSize = atoi(sPackSize);
     }
-    step->packSize = atoi(sPackSize);
 
     /* extract allocation ID */
     char *sPackID;
