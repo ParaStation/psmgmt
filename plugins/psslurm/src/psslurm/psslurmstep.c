@@ -192,13 +192,15 @@ bool deleteStep(uint32_t jobid, uint32_t stepid)
 		ufree(step->globalTaskIds[i]);
 	    }
 	}
+	ufree(step->globalTaskIds);
     }
-    ufree(step->globalTaskIds);
     ufree(step->globalTaskIdsLen);
 
     if (step->packTIDs) {
 	for (uint32_t i=0; i<step->packNrOfNodes; i++) {
-	    ufree(step->packTIDs[i]);
+	    if (step->packTaskCounts[i] > 0) {
+		ufree(step->packTIDs[i]);
+	    }
 	}
 	ufree(step->packTIDs);
     }

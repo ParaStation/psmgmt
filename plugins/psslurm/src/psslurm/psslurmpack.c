@@ -1063,13 +1063,13 @@ bool __unpackReqLaunchTasks(Slurm_Msg_t *sMsg, Step_t **stepPtr,
 	    umalloc(sizeof(*step->packTIDs) * step->packNrOfNodes);
 
 	for (uint32_t i=0; i<step->packNrOfNodes; i++) {
-	    uint16_t tcount;
+	    uint16_t tcount = 0;
 	    if (msgVer < SLURM_20_11_PROTO_VERSION) {
 		getUint16(ptr, &tcount);
 	    }
 
 	    /* pack TIDs per node */
-	    getUint32Array(ptr, &(step->packTIDs)[i], &step->packTaskCounts[i]);
+	    getUint32Array(ptr, &(step->packTIDs)[i], &(step->packTaskCounts)[i]);
 	    if (msgVer < SLURM_20_11_PROTO_VERSION) {
 		if (tcount != step->packTaskCounts[i]) {
 		    flog("mismatching task count %u : %u\n", tcount,
@@ -1080,7 +1080,7 @@ bool __unpackReqLaunchTasks(Slurm_Msg_t *sMsg, Step_t **stepPtr,
 	    if (psslurmlogger->mask & PSSLURM_LOG_PACK) {
 		flog("pack node %u task count %u", i,
 			step->packTaskCounts[i]);
-		for (uint32_t n=0; n<tcount; n++) {
+		for (uint32_t n=0; n<step->packTaskCounts[i]; n++) {
 		    if (!n) {
 			mlog(" TIDs %u", step->packTIDs[i][n]);
 		    } else {
