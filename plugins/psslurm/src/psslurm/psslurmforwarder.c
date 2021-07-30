@@ -201,6 +201,21 @@ static int stepFollowerCB(int32_t exit_status, Forwarder_Data_t *fw)
     /* send task exit to srun processes */
     sendTaskExit(step, NULL, NULL);
 
+    if (step->nodes[0] == PSC_getMyID()) {;
+	/* send step exit to slurmctld */
+	int eStatus = step->exitCode;
+	if (eStatus == -1) {
+	    eStatus = WIFSIGNALED(fw->chldExitStatus) ?
+			WTERMSIG(fw->chldExitStatus) : fw->chldExitStatus;
+	}
+
+	/* step aborted due to node failure */
+	Alloc_t *alloc = findAlloc(step->jobid);
+	if (alloc && alloc->nodeFail) eStatus = 9;
+
+	sendStepExit(step, eStatus);
+    }
+
     step->fwdata = NULL;
 
     flog("%s tid %s finished\n", strStepID(step), PSC_printTID(fw->tid));
