@@ -3,6 +3,7 @@
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
  * Copyright (C) 2005-2021 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2021 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -94,7 +95,7 @@ static msgString_t pluginMessages[] = {
     { 0, NULL }
 };
 
-static char *printDaemonMsg(int msgtype)
+static char *printPluginMsg(int msgtype)
 {
     for (int m = 0; pluginMessages[m].name; m++) {
 	if (pluginMessages[m].id == msgtype) return pluginMessages[m].name;
@@ -110,7 +111,7 @@ char *PSDaemonP_printMsg(int msgtype)
     if (msgtype < 0x0100) {
 	return PSP_printMsg(msgtype);
     } else if (msgtype >= 0x0200) {
-	return printDaemonMsg(msgtype);
+	return printPluginMsg(msgtype);
     }
 
     for (int m = 0; daemonMessages[m].name; m++) {
