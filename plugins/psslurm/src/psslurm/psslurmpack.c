@@ -710,7 +710,7 @@ bool __packSlurmHeader(PS_SendDB_t *data, Slurm_Msg_Header_t *head,
 	}
     }
 
-    if (slurmProto >= SLURM_20_11_PROTO_VERSION) {
+    if (head->version >= SLURM_20_11_PROTO_VERSION) {
 	/* address family to IPv4 for now */
 	addUint16ToMsg(AF_INET, data);
 	/* addr/port */
