@@ -6,6 +6,21 @@ Copyright (C) 2021 ParTec AG, Munich
 Please send bug reports, questions and suggestions to <support@par-tec.com>
 
 
+Version 5.1.44:
+===============
+Bugfixes:
+ - Use correct pack size for interactive steps
+ - step follower need to send step complete messages for pack jobs
+ - Prevent possible segfault when a pack job is aborted at startup
+ - Ensure nodes with different Slurm protocols can use tree forwarding
+ - Prevent segfault when psslurm gets unloaded and protocol < 20.11
+Enhancements:
+ - pspam: add option auth_groups to pam module
+ - Optimize partition creation in psslurm
+Additional changes:
+ - psslurm: Rename some variables to better reflect their meaning
+
+
 Version 5.1.43:
 ===============
 Bugfixes:
