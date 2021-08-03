@@ -1064,17 +1064,15 @@ bool __unpackReqLaunchTasks(Slurm_Msg_t *sMsg, Step_t **stepPtr,
 
 	for (uint32_t i=0; i<step->packNrOfNodes; i++) {
 	    uint16_t tcount = 0;
-	    if (msgVer < SLURM_20_11_PROTO_VERSION) {
-		getUint16(ptr, &tcount);
-	    }
+	    if (msgVer < SLURM_20_11_PROTO_VERSION) getUint16(ptr, &tcount);
 
 	    /* pack TIDs per node */
-	    getUint32Array(ptr, &(step->packTIDs)[i], &(step->packTaskCounts)[i]);
-	    if (msgVer < SLURM_20_11_PROTO_VERSION) {
-		if (tcount != step->packTaskCounts[i]) {
-		    flog("mismatching task count %u : %u\n", tcount,
-			    step->packTaskCounts[i]);
-		}
+	    getUint32Array(ptr, &(step->packTIDs)[i],
+			   &(step->packTaskCounts)[i]);
+	    if (msgVer < SLURM_20_11_PROTO_VERSION
+		&& tcount != step->packTaskCounts[i]) {
+		flog("mismatching task count %u : %u\n", tcount,
+		     step->packTaskCounts[i]);
 	    }
 
 	    if (psslurmlogger->mask & PSSLURM_LOG_PACK) {

@@ -351,8 +351,8 @@ static bool extractStepPackInfos(Step_t *step)
 	step->packSize = 1;
 	step->packNtasks = 1;
     } else {
-	char *sPackSize;
-	if (!(sPackSize = envGet(&step->env, "SLURM_PACK_SIZE"))) {
+	char *sPackSize = envGet(&step->env, "SLURM_PACK_SIZE");
+	if (!sPackSize) {
 	    mlog("%s: missing SLURM_PACK_SIZE environment\n", __func__);
 	    return false;
 	}

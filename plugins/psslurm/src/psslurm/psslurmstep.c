@@ -188,9 +188,7 @@ bool deleteStep(uint32_t jobid, uint32_t stepid)
 
     if (step->globalTaskIds) {
 	for (uint32_t i=0; i<step->nrOfNodes; i++) {
-	    if (step->globalTaskIdsLen[i] > 0) {
-		ufree(step->globalTaskIds[i]);
-	    }
+	    if (step->globalTaskIdsLen[i] > 0) ufree(step->globalTaskIds[i]);
 	}
 	ufree(step->globalTaskIds);
     }
