@@ -717,15 +717,6 @@ static bool msgRELEASERES(DDBufferMsg_t *msg)
     return true;
 }
 
-static bool msgSPAWNRES(DDBufferMsg_t *msg)
-{
-    // @todo obsolete this hook
-    // pspmi (the only user) should directly register to
-    // PSP_CD_SPAWNFAILED and PSP_CD_SPAWNSUCCESS in PSIDHOOK_FRWRD_INIT
-    PSIDhook_call(PSIDHOOK_FRWRD_SPAWNRES, &msg);
-    return true;
-}
-
 static bool msgCC(DDBufferMsg_t *msg)
 {
     PSLog_Msg_t *lmsg = (PSLog_Msg_t *)msg;
@@ -1328,8 +1319,6 @@ void PSID_forwarder(PStask_t *task, int clientFD, int eno)
     PSID_registerMsg(PSP_DD_CHILDDEAD, NULL);
     /* register message types to be always handled */
     PSID_registerMsg(PSP_CD_RELEASERES, msgRELEASERES);
-    PSID_registerMsg(PSP_CD_SPAWNFAILED, msgSPAWNRES);
-    PSID_registerMsg(PSP_CD_SPAWNSUCCESS, msgSPAWNRES);
     PSID_registerMsg(PSP_CC_MSG, msgCC);
     PSID_registerMsg(PSP_CC_ERROR, msgCC_ERROR);
 

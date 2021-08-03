@@ -305,35 +305,30 @@ static int __PMI_send(char *msg, const char *caller, const int line)
 /**
  * @brief Handle spawn result message
  *
- * Handle the spawn results message contained in @a vmsg. Such message
+ * Handle the spawn results message contained in @a msg. Such message
  * is expected upon the creation of a new service process used to
  * actually realize the PMI spawn that was triggered by the PMI
  * client.
  *
- * @param vmsg Message to handle
+ * @param msg Message to handle
  *
- * @return Always returns 0
+ * @return Return true if the message was fully handled or false otherwise
  */
-static int handleSpawnRes(void *vmsg)
+static bool msgSPAWNRES(DDBufferMsg_t *msg)
 {
-    DDBufferMsg_t *answer = vmsg;
-
-    switch (answer->header.type) {
-	case PSP_CD_SPAWNFAILED:
-	    elog("%s(r%i): spawning service proccess failed\n", __func__, rank);
-	    PMI_send("cmd=spawn_result rc=-1\n");
-	    break;
-	case PSP_CD_SPAWNSUCCESS:
-	    /* wait for result of the spawner process */
-	    if (debug) elog("%s(r%i): spawning service process successful\n",
-			    __func__, rank);
-	    break;
-	default:
-	    elog("%s(r%i): unexpect answer %s\n", __func__, rank,
-		 PSP_printMsg(answer->header.type));
+    switch (msg->header.type) {
+    case PSP_CD_SPAWNFAILED:
+	elog("%s(r%i): spawning service proccess failed\n", __func__, rank);
+	PMI_send("cmd=spawn_result rc=-1\n");
+	return true;
+    case PSP_CD_SPAWNSUCCESS:
+	/* wait for result of the spawner process */
+	if (debug) elog("%s(r%i): spawning service process successful\n",
+			__func__, rank);
+	return true;
+    default:
+	return false;
     }
-
-    return 0;
 }
 
 /**
@@ -2570,12 +2565,19 @@ static int setupMsgHandlers(void *data)
 {
     if (!PSID_registerMsg(PSP_CC_MSG, psPmiMsgCC))
 	elog("%s: register 'PSP_CC_MSG' handler failed\n", __func__);
+    if (!PSID_registerMsg(PSP_CD_SPAWNSUCCESS, msgSPAWNRES))
+	elog("%s: register 'PSP_CD_SPAWNSUCCESS' handler failed\n", __func__);
+    if (!PSID_registerMsg(PSP_CD_SPAWNFAILED, msgSPAWNRES))
+	elog("%s: register 'PSP_CD_SPAWNFAILED' handler failed\n", __func__);
+
     return 0;
 }
 
 static int clearMsgHandlers(void *data)
 {
     PSID_clearMsg(PSP_CC_MSG, psPmiMsgCC);
+    PSID_clearMsg(PSP_CD_SPAWNSUCCESS, msgSPAWNRES);
+    PSID_clearMsg(PSP_CD_SPAWNFAILED, msgSPAWNRES);
     return 0;
 }
 
@@ -2584,7 +2586,6 @@ void initClient(void)
     PSIDhook_add(PSIDHOOK_FRWRD_INIT, setupMsgHandlers);
     PSIDhook_add(PSIDHOOK_FRWRD_EXIT, clearMsgHandlers);
 
-    PSIDhook_add(PSIDHOOK_FRWRD_SPAWNRES, handleSpawnRes);
     PSIDhook_add(PSIDHOOK_FRWRD_CC_ERROR, handleCCError);
 }
 
@@ -2593,6 +2594,5 @@ void finalizeClient(void)
     PSIDhook_del(PSIDHOOK_FRWRD_INIT, setupMsgHandlers);
     PSIDhook_del(PSIDHOOK_FRWRD_EXIT, clearMsgHandlers);
 
-    PSIDhook_del(PSIDHOOK_FRWRD_SPAWNRES, handleSpawnRes);
     PSIDhook_del(PSIDHOOK_FRWRD_CC_ERROR, handleCCError);
 }
