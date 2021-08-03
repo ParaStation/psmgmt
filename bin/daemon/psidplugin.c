@@ -155,8 +155,10 @@ static LIST_HEAD(pluginList);
  * 131: new hook PSIDHOOK_JAIL_TERM
  *
  * 132: new hook PSIDHOOK_EXEC_CLIENT_PREP
+ *
+ * 133: Message handling via registered handlers in psidforwarder
  */
-static int pluginAPIVersion = 132;
+static int pluginAPIVersion = 133;
 
 
 /** Grace period between finalize and unload on forcefully unloads */
