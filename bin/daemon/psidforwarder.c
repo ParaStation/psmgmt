@@ -774,12 +774,6 @@ static bool msgCC_ERROR(DDBufferMsg_t *msg)
 		 PSC_printTID(loggerTID));
 	loggerTID = -1;
 	return true;
-    } else {
-	/* the pspmi plugin may spawn children and therefore
-	 * we need to handle PSP_CC_ERROR for them  */
-	// @todo obsolete this hook
-	// plugins should directly register to PSP_CC_ERROR
-	if (PSIDhook_call(PSIDHOOK_FRWRD_CC_ERROR, msg) == 1) return true;
     }
     return false;
 }

@@ -1503,24 +1503,18 @@ static void handleSuccReady(char *mbuf)
  *
  * Since the actual KVS lives within its own service process, sending
  * changes to the key-value store might fail. This function handles
- * the resulting CC_ERROR messages to be passed in @a data.
+ * the resulting CC_ERROR messages to be passed in @a msg.
  *
- * @param data Message to handle
+ * @param msg Message to handle
  *
- * @return Always returns 0
+ * @return Return true if the message was fully handled, i.e. was sent
+ * by the KVS provider, or false otherwise
  */
-static int handleCCError(void *data)
+static bool msgCCError(DDBufferMsg_t *msg)
 {
-    PSLog_Msg_t *msg = data;
+    if (msg->header.sender == kvsProvTID) return true;
 
-    if (msg->header.sender == kvsProvTID) return 1;
-
-    /*
-    mlog("%s(r%i): got cc error message from %s type %s\n", __func__, rank,
-	    PSC_printTID(msg->header.sender), PSLog_printMsgType(msg->type));
-    */
-
-    return 0;
+    return false;
 }
 
 void setKVSProviderTID(PStask_ID_t tid)
@@ -2530,7 +2524,7 @@ static void handleServiceExit(PSLog_Msg_t *msg)
  * @return If the message is fully handled, true is returned; or false
  * if further handlers shall inspect this message
  */
-static bool psPmiMsgCC(DDBufferMsg_t *msg)
+static bool msgCC(DDBufferMsg_t *msg)
 {
     PSLog_Msg_t *lmsg = (PSLog_Msg_t *)msg;
     switch (lmsg->type) {
@@ -2563,21 +2557,24 @@ void psPmiResetFillSpawnTaskFunction(void)
 
 static int setupMsgHandlers(void *data)
 {
-    if (!PSID_registerMsg(PSP_CC_MSG, psPmiMsgCC))
+    if (!PSID_registerMsg(PSP_CC_MSG, msgCC))
 	elog("%s: register 'PSP_CC_MSG' handler failed\n", __func__);
     if (!PSID_registerMsg(PSP_CD_SPAWNSUCCESS, msgSPAWNRES))
 	elog("%s: register 'PSP_CD_SPAWNSUCCESS' handler failed\n", __func__);
     if (!PSID_registerMsg(PSP_CD_SPAWNFAILED, msgSPAWNRES))
 	elog("%s: register 'PSP_CD_SPAWNFAILED' handler failed\n", __func__);
+    if (!PSID_registerMsg(PSP_CC_ERROR, msgCCError))
+	elog("%s: register 'PSP_CC_ERROR' handler failed\n", __func__);
 
     return 0;
 }
 
 static int clearMsgHandlers(void *data)
 {
-    PSID_clearMsg(PSP_CC_MSG, psPmiMsgCC);
+    PSID_clearMsg(PSP_CC_MSG, msgCC);
     PSID_clearMsg(PSP_CD_SPAWNSUCCESS, msgSPAWNRES);
     PSID_clearMsg(PSP_CD_SPAWNFAILED, msgSPAWNRES);
+    PSID_clearMsg(PSP_CC_ERROR, msgCCError);
     return 0;
 }
 
@@ -2585,14 +2582,10 @@ void initClient(void)
 {
     PSIDhook_add(PSIDHOOK_FRWRD_INIT, setupMsgHandlers);
     PSIDhook_add(PSIDHOOK_FRWRD_EXIT, clearMsgHandlers);
-
-    PSIDhook_add(PSIDHOOK_FRWRD_CC_ERROR, handleCCError);
 }
 
 void finalizeClient(void)
 {
     PSIDhook_del(PSIDHOOK_FRWRD_INIT, setupMsgHandlers);
     PSIDhook_del(PSIDHOOK_FRWRD_EXIT, clearMsgHandlers);
-
-    PSIDhook_del(PSIDHOOK_FRWRD_CC_ERROR, handleCCError);
 }
