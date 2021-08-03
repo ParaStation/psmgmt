@@ -2,6 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2007-2021 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2021 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -26,6 +27,7 @@
 #include "pslog.h"
 #include "list.h"
 #include "selector.h"
+#include "psidcomm.h"
 #include "psidforwarder.h"
 #include "psidhook.h"
 #include "psaccounthandles.h"
@@ -2522,35 +2524,35 @@ static void handleServiceExit(PSLog_Msg_t *msg)
 }
 
 /**
- * @brief Handle a KVS message from logger
+ * @brief Handle a KVS message
  *
- * Handle the KVS message @a vmsg. The message is received from the
- * job's logger within a pslog message.
+ * Handle the KVS message @a msg within the forwarder. The message is
+ * received from the job's logger within a (pslog) message of type
+ * PSP_CC_MSG.
  *
- * @param vmsg KVS message to handle in a pslog container
+ * @param msg KVS message to handle in a pslog container
  *
- * @return Always returns 0
+ * @return If the message is fully handled, true is returned; or false
+ * if further handlers shall inspect this message
  */
-static int handlePSlogMessage(void *vmsg)
+static bool psPmiMsgCC(DDBufferMsg_t *msg)
 {
-    PSLog_Msg_t *msg = vmsg;
-
-    switch (msg->type) {
+    PSLog_Msg_t *lmsg = (PSLog_Msg_t *)msg;
+    switch (lmsg->type) {
 	case KVS:
-	    handleKVSMessage(msg);
-	    break;
+	    handleKVSMessage(lmsg);
+	    return true;
 	case SERV_TID:
-	    handleServiceInfo(msg);
-	    break;
+	    handleServiceInfo(lmsg);
+	    return true;
 	case SERV_EXT:
-	    handleServiceExit(msg);
-	    break;
+	    handleServiceExit(lmsg);
+	    return true;
 	default:
-	    elog("%s(r%i): got unexpected PSLog message %s\n", __func__, rank,
-		 PSLog_printMsgType(msg->type));
+	    return false; // pass message to next handler if any
     }
-    return 0;
 }
+
 
 void psPmiSetFillSpawnTaskFunction(fillerFunc_t spawnFunc)
 {
@@ -2564,16 +2566,33 @@ void psPmiResetFillSpawnTaskFunction(void)
     fillTaskFunction = fillWithMpiexec;
 }
 
+static int setupMsgHandlers(void *data)
+{
+    if (!PSID_registerMsg(PSP_CC_MSG, psPmiMsgCC))
+	elog("%s: register 'PSP_CC_MSG' handler failed\n", __func__);
+    return 0;
+}
+
+static int clearMsgHandlers(void *data)
+{
+    PSID_clearMsg(PSP_CC_MSG, psPmiMsgCC);
+    return 0;
+}
+
 void initClient(void)
 {
-    PSIDhook_add(PSIDHOOK_FRWRD_KVS, handlePSlogMessage);
+    PSIDhook_add(PSIDHOOK_FRWRD_INIT, setupMsgHandlers);
+    PSIDhook_add(PSIDHOOK_FRWRD_EXIT, clearMsgHandlers);
+
     PSIDhook_add(PSIDHOOK_FRWRD_SPAWNRES, handleSpawnRes);
     PSIDhook_add(PSIDHOOK_FRWRD_CC_ERROR, handleCCError);
 }
 
 void finalizeClient(void)
 {
-    PSIDhook_del(PSIDHOOK_FRWRD_KVS, handlePSlogMessage);
+    PSIDhook_del(PSIDHOOK_FRWRD_INIT, setupMsgHandlers);
+    PSIDhook_del(PSIDHOOK_FRWRD_EXIT, clearMsgHandlers);
+
     PSIDhook_del(PSIDHOOK_FRWRD_SPAWNRES, handleSpawnRes);
     PSIDhook_del(PSIDHOOK_FRWRD_CC_ERROR, handleCCError);
 }

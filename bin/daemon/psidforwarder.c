@@ -761,14 +761,6 @@ static bool msgCC(DDBufferMsg_t *msg)
 	sendSignal(PSC_getPID(childTask->tid), SIGKILL);
 	exit(0);
 	break;
-    case KVS:
-    case SERV_TID:
-    case SERV_EXT:
-	// @todo obsolete this hook
-	// pspmi (the only user) should directly register to
-	// PSP_CC_MSG and pass unhandled message further
-	PSIDhook_call(PSIDHOOK_FRWRD_KVS, msg);
-	break;
     case WINCH:
 	/* Logger detected change in window-size */
 	handleWINCH(lmsg);
