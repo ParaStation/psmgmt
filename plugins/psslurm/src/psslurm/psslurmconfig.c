@@ -844,6 +844,33 @@ ERROR:
 }
 #endif
 
+bool confHasOpt(Config_t *conf, char *key, char *option)
+{
+    if (!conf || !key || !option) {
+	flog("called with empty parameters\n");
+	return false;
+    }
+
+    char *value = getConfValueC(conf, key);
+    if (!value || value[0] == '\0') return false;
+
+    char *toksave, *next, *dup = ustrdup(value);
+    const char delimiters[] =" ,";
+    bool res = false;
+
+    next = strtok_r(dup, delimiters, &toksave);
+    while (next) {
+	if (!strcasecmp(next, option)) {
+	    res = true;
+	    break;
+	}
+	next = strtok_r(NULL, delimiters, &toksave);
+    }
+
+    ufree(dup);
+    return res;
+}
+
 /**
  * @brief Do various sanity checks for a Slurm configuration
  *
@@ -863,24 +890,7 @@ static bool verifySlurmConf()
 	}
     } else {
 	/* ensure the prologue is run at job allocation */
-	char *prologFlags = getConfValueC(&SlurmConfig, "PrologFlags");
-	if (!prologFlags || prologFlags[0] == '\0') {
-	    flog("error: option PrologFlags has Alloc not set in slurm.conf\n");
-	    return false;
-	}
-	char *toksave, *next;
-	const char delimiters[] =" ,";
-	bool alloc = false;
-
-	next = strtok_r(prologFlags, delimiters, &toksave);
-	while (next) {
-	    if (!strcasecmp(next, "Alloc")) {
-		alloc = true;
-		break;
-	    }
-	    next = strtok_r(NULL, delimiters, &toksave);
-	}
-	if (!alloc) {
+	if (!confHasOpt(&SlurmConfig, "PrologFlags", "Alloc")) {
 	    flog("error: option PrologFlags has Alloc not set in slurm.conf\n");
 	    return false;
 	}

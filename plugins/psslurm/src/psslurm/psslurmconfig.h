@@ -98,4 +98,15 @@ uint32_t getSlurmConfHash(void);
  */
 char *getSlurmUpdateTime(void);
 
+/**
+ * @brief Test if an option is set in a configuration key
+ *
+ * @param conf The configuration holding the key
+ *
+ * @param key The key holding different options
+ *
+ * @param option The option to test
+ */
+bool confHasOpt(Config_t *conf, char *key, char *option);
+
 #endif
