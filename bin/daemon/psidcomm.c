@@ -24,12 +24,8 @@
 #include "psidclient.h"
 #include "psidflowcontrol.h"
 #include "psidhook.h"
-#include "psidmsgbuf.h"
 #include "psidnodes.h"
 #include "psidrdp.h"
-#include "psidstatus.h"
-#include "psidstate.h"
-#include "psidtask.h"
 #include "psidutil.h"
 
 #include "psidcomm.h"
