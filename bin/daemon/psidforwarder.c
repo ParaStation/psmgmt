@@ -618,7 +618,7 @@ static int flushMsgs(int fd /* dummy */, void *info /* dummy */)
 	errno = EWOULDBLOCK;
 	return -1;
     } else {
-	if (stdinSock != -1) Selector_vacateWrite(stdinSock);
+	if (Selector_isRegistered(stdinSock)) Selector_vacateWrite(stdinSock);
 	sendLogMsg(CONT, NULL, 0);
     }
 
