@@ -2,6 +2,7 @@
 # ParaStation
 #
 # Copyright (C) 2012-2021 ParTec Cluster Competence Center GmbH, Munich
+# Copyright (C) 2021 ParTec AG, Munich
 #
 # This file may be distributed under the terms of the Q Public License
 # as defined in the file LICENSE.QPL included in the packaging of this
@@ -35,6 +36,8 @@ AC_PROG_CC
 AM_PROG_CC_C_O
 
 LT_INIT([dlopen disable-static])
+
+AC_CHECK_FUNCS_ONCE([mallinfo2])
 
 AC_CHECK_LIB([numa], [numa_available],
   [AC_SUBST([NUMA_LIBS], [-lnuma])
