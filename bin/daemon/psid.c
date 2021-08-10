@@ -293,9 +293,20 @@ static int handleSIGUSR1(int fd, void *info)
 
 static void printMallocInfo(void)
 {
-    struct mallinfo mi;
+#ifdef HAVE_MALLINFO2
+    struct mallinfo2 mi = mallinfo2();
 
-    mi = mallinfo();
+    PSID_log(PSID_LOG_RESET, "%s:\n", __func__);
+    PSID_log(PSID_LOG_RESET, "arena    %zu\n", mi.arena);
+    PSID_log(PSID_LOG_RESET, "ordblks  %zu\n", mi.ordblks);
+    PSID_log(PSID_LOG_RESET, "hblks    %zu\n", mi.hblks);
+    PSID_log(PSID_LOG_RESET, "hblkhd   %zu\n", mi.hblkhd);
+    PSID_log(PSID_LOG_RESET, "uordblks %zu\n", mi.uordblks);
+    PSID_log(PSID_LOG_RESET, "fordblks %zu\n", mi.fordblks);
+    PSID_log(PSID_LOG_RESET, "keepcost %zu\n", mi.keepcost);
+    PSID_log(PSID_LOG_RESET, "====================\n");
+#else
+    struct mallinfo mi = mallinfo();
 
     PSID_log(PSID_LOG_RESET, "%s:\n", __func__);
     PSID_log(PSID_LOG_RESET, "arena    %d\n", mi.arena);
@@ -306,6 +317,7 @@ static void printMallocInfo(void)
     PSID_log(PSID_LOG_RESET, "fordblks %d\n", mi.fordblks);
     PSID_log(PSID_LOG_RESET, "keepcost %d\n", mi.keepcost);
     PSID_log(PSID_LOG_RESET, "====================\n");
+#endif
 }
 
 /**
