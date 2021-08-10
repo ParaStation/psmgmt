@@ -1300,6 +1300,8 @@ void PSID_forwarder(PStask_t *task, int clientFD, int eno)
 
     PSLog_init(daemonSock, childTask->rank, 3);
 
+    PSIDMsgbuf_init();
+
     /* Enable handling of daemon messages */
     Selector_register(daemonSock, readFromDaemon, NULL);
 
