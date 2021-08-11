@@ -522,25 +522,31 @@ static void releaseLogger(int status)
 /**
  * @brief Write to client's stdin
  *
- * Write the message @a msg to the file-descriptor connected to the
+ * Write the message @a msg to the file descriptor connected to the
  * clients stdin starting at an offset of @a offset bytes. It is
  * expected that the previous parts of the message were sent in
  * earlier calls to this function.
  *
- * @param msg The message to transmit.
+ * @param msg Message to transmit
  *
- * @param offset Number of bytes sent in earlier calls.
+ * @param offset Number of bytes sent in earlier calls
  *
  * @return On success, the total number of bytes written is returned,
- * i.e. usually this is the length of @a msg. If the file-descriptor
+ * i.e. usually this is the length of @a msg. If the file descriptor
  * blocks, this might also be smaller. In this case the total number
- * of bytes sent in this and all previous calls is returned. If an
- * error occurs, -1 or 0 is returned and errno is set appropriately.
+ * of bytes sent in this and all previous calls is returned. 0 will be
+ * returned if due to the payload of @a msg the file descriptor is
+ * closed. If an error occurs, e.g. the stdin file descriptor is
+ * already closed, -1 is returned and errno is set appropriately.
  */
 static ssize_t doClntWrite(PSLog_Msg_t *msg, size_t offset)
 {
     size_t cnt = msg->header.len - PSLog_headerSize;
     int sock = childTask->stdin_fd;
+    if (sock < 0) {
+	errno = ENOTCONN;
+	return -1;
+    }
 
     if (!cnt) {
 	/* close clients stdin */
@@ -577,35 +583,81 @@ static ssize_t doClntWrite(PSLog_Msg_t *msg, size_t offset)
     return offset + ret;
 }
 
-static int storeMsg(PSLog_Msg_t *msg, int offset)
+/**
+ * @brief Store message in oldMsgs list
+ *
+ * Store the message @a msg to be transmitted to the child's stdin
+ * file descriptor to the @ref oldMsgs list. @a offset contains the
+ * number of bytes already transmitted to the child's stdin file
+ * descriptor.
+ *
+ * @param msg Message to store
+ *
+ * @param offset Number of bytes already transmitted
+ *
+ * @return Upon successful storing @a msg true is returned; or
+ * false otherwise
+ */
+static bool storeMsg(PSLog_Msg_t *msg, int offset)
 {
-    PSIDmsgbuf_t *msgbuf =  PSIDMsgbuf_get(msg->header.len);
-
-    if (!msgbuf) {
-	errno = ENOMEM;
-	return -1;
-    }
+    PSIDmsgbuf_t *msgbuf = PSIDMsgbuf_get(msg->header.len);
+    if (!msgbuf) return false;
 
     memcpy(msgbuf->msg, msg, msg->header.len);
     msgbuf->offset = offset;
 
     list_add_tail(&msgbuf->next, &oldMsgs);
-
-    return 0;
+    return true;
 }
 
+/**
+ * @brief Drop all messages stored to oldMsgs list
+ *
+ * Drop all messages stored to the @ref oldMsgs list waiting to be
+ * transmitted to the child's stdin file descriptor. This function
+ * shall be called once the corresponding file descriptor is closed,
+ * especially if this happens unexpectedly.
+ *
+ * @return No return value
+ */
+static void dropAllMsgs(void)
+{
+    list_t *m, *tmp;
+    list_for_each_safe(m, tmp, &oldMsgs) {
+	PSIDmsgbuf_t *msgbuf = list_entry(m, PSIDmsgbuf_t, next);
+	list_del(&msgbuf->next);
+	PSIDMsgbuf_put(msgbuf);
+    }
+}
+
+/**
+ * @brief Flush messages stored in oldMsgs list
+ *
+ * Flush messages stored in the @ref oldMsgs list to be transmitted to
+ * child's stdin file descriptor. All arguments of this function are
+ * ignored and only present to act as a writeHandler for the Selector
+ * facility.
+ *
+ * @param fd Ignored
+ *
+ * @param info Ignored
+ *
+ * @return According to the Selector facility's expectations -1, 0, or
+ * 1 is returned
+ */
 static int flushMsgs(int fd /* dummy */, void *info /* dummy */)
 {
     list_t *m, *tmp;
-    int stdinSock = childTask->stdin_fd;
-
     list_for_each_safe(m, tmp, &oldMsgs) {
 	PSIDmsgbuf_t *msgbuf = list_entry(m, PSIDmsgbuf_t, next);
 	PSLog_Msg_t *msg = (PSLog_Msg_t *)msgbuf->msg;
 	int len = msg->header.len - PSLog_headerSize;
-	int written = doClntWrite(msg, msgbuf->offset);
 
-	if (written < 0) return written;
+	ssize_t written = doClntWrite(msg, msgbuf->offset);
+	if (written < 0) {
+	    if (errno == EPIPE || errno == ENOTCONN) dropAllMsgs();
+	    return written;
+	}
 	if (written != len) {
 	    msgbuf->offset = written;
 	    break;
@@ -614,38 +666,46 @@ static int flushMsgs(int fd /* dummy */, void *info /* dummy */)
 	PSIDMsgbuf_put(msgbuf);
     }
 
-    if (!list_empty(&oldMsgs)) {
-	errno = EWOULDBLOCK;
-	return -1;
-    } else {
-	if (Selector_isRegistered(stdinSock)) Selector_vacateWrite(stdinSock);
-	sendLogMsg(CONT, NULL, 0);
-    }
+    if (!list_empty(&oldMsgs)) return 1;
+
+    int stdinSock = childTask->stdin_fd;
+    if (Selector_isRegistered(stdinSock)) Selector_vacateWrite(stdinSock);
+    sendLogMsg(CONT, NULL, 0);
 
     return 0;
 }
 
-static int writeMsg(PSLog_Msg_t *msg)
+/**
+ * @brief Transmit message to child's stdin file descriptor
+ *
+ * Transmit the payload of the STDIN message @a msg to the child's
+ * stdin file descriptor. For this, first messages queued in the @ref
+ * oldMsgs list are flushed before the payload of @a msg is
+ * transmitted. If the payload can not or only partially be
+ * transmitted, @a msg will be queued via @ref storeMsg() to @ref
+ * oldMsgs, too.
+ *
+ * @param msg Message to be written
+ *
+ * @return No return value
+ */
+static void writeMsg(PSLog_Msg_t *msg)
 {
-    int len = msg->header.len - PSLog_headerSize, written = 0;
-
     if (!list_empty(&oldMsgs)) flushMsgs(0, NULL);
 
     bool emptyList = list_empty(&oldMsgs);
+    ssize_t written = 0;
     if (emptyList) written = doClntWrite(msg, 0);
+    if (written < 0) return;
 
-    if (written < 0) return written;
+    int len = msg->header.len - PSLog_headerSize;
     if (written != len || !emptyList) {
-	if (!storeMsg(msg, written)) {
-	    errno = EWOULDBLOCK;
-	} else if (emptyList && childTask->stdin_fd != -1) {
+	if (!storeMsg(msg, written)) return;
+	if (emptyList && childTask->stdin_fd != -1) {
 	    Selector_awaitWrite(childTask->stdin_fd, flushMsgs, NULL);
+	    if (len) sendLogMsg(STOP, NULL, 0);
 	}
-	if (len) sendLogMsg(STOP, NULL, 0);
-	return -1;
     }
-
-    return written;
 }
 
 static void handleWINCH(PSLog_Msg_t *msg)
