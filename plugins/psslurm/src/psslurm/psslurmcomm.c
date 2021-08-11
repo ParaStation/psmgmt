@@ -1317,7 +1317,7 @@ int handleSrunMsg(int sock, void *data)
     }
 
     /* Shall be safe to do first a pedantic receive inside a selector */
-    char buffer[1024];
+    char buffer[SLURM_IO_MAX_LEN];
     size_t rcvd = 0;
     ssize_t ret = PSCio_recvBufPProg(sock, buffer, SLURM_IO_HEAD_SIZE, &rcvd);
     if (ret <= 0) {
@@ -1380,7 +1380,8 @@ int handleSrunMsg(int sock, void *data)
 	    /* Assume body follows header swiftly */
 	    ret = PSCio_recvBufP(sock, buffer, readNow);
 	    if (ret <= 0) {
-		mlog("%s: reading body failed\n", __func__);
+		mwarn(ret < 0 ? errno : 0, "%s: read body (size %zd/%zd)",
+		      __func__, readNow, left);
 		break;
 	    }
 
@@ -1512,8 +1513,6 @@ int srunOpenIOConnectionEx(Step_t *step, uint32_t addr, uint16_t port,
 	    return -1;
 	}
     }
-
-    PSCio_setFDblock(sock, false);
 
     addUint16ToMsg(IO_PROTOCOL_VERSION, &data);
     /* nodeid */
