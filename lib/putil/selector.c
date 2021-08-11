@@ -178,14 +178,14 @@ void Selector_setDebugMask(int32_t mask)
 
 int Selector_setMax(int max)
 {
-    int oldMax = maxSelectorFD, fd;
-    Selector_t **newSelectors;
+    int oldMax = maxSelectorFD;
 
     if (maxSelectorFD >= max) return 0; /* don't shrink */
 
     maxSelectorFD = max;
 
-    newSelectors = realloc(selectors, sizeof(*selectors) * maxSelectorFD);
+    Selector_t **newSelectors = realloc(selectors,
+					sizeof(*selectors) * maxSelectorFD);
     if (!newSelectors) {
 	logger_warn(logger, -1, ENOMEM, "%s", __func__);
 	errno = ENOMEM;
@@ -195,16 +195,13 @@ int Selector_setMax(int max)
     selectors = newSelectors;
 
     /* Initialize new selector pointers */
-    for (fd = oldMax; fd < maxSelectorFD; fd++) selectors[fd] = NULL;
+    for (int fd = oldMax; fd < maxSelectorFD; fd++) selectors[fd] = NULL;
 
     return 0;
 }
 
 void Selector_init(FILE* logfile)
 {
-    list_t *s, *tmp;
-    int numFiles;
-
     logger = logger_init("Selector", logfile);
     if (!logger) {
 	if (logfile) {
@@ -216,6 +213,7 @@ void Selector_init(FILE* logfile)
     }
 
     /* Free all old selectors if any */
+    list_t *s, *tmp;
     list_for_each_safe(s, tmp, &selectorList) {
 	Selector_t *selector = list_entry(s, Selector_t, next);
 	putSelector(selector);
@@ -237,7 +235,7 @@ void Selector_init(FILE* logfile)
     logger_print(logger, SELECTOR_LOG_VERB, "%s: epollFD is %d\n",
 		 __func__, epollFD);
 
-    numFiles = sysconf(_SC_OPEN_MAX);
+    int numFiles = sysconf(_SC_OPEN_MAX);
     if (numFiles <= 0) {
 	logger_exit(logger, errno, "%s: sysconf(_SC_OPEN_MAX) returns %d",
 		    __func__, numFiles);
@@ -602,9 +600,7 @@ int Sselect(int n, fd_set  *readfds,  fd_set  *writefds, fd_set *exceptfds,
     }
 
     if (readfds) {
-	int fd;
-
-	for (fd = 0; fd < n; fd++) {
+	for (int fd = 0; fd < n; fd++) {
 	    Selector_t *selector = findSelector(fd);
 	    if (selector) selector->reqRead = false;
 
@@ -624,9 +620,7 @@ int Sselect(int n, fd_set  *readfds,  fd_set  *writefds, fd_set *exceptfds,
    }
 
     if (writefds) {
-	int fd;
-
-	for (fd = 0; fd < n; fd++) {
+	for (int fd = 0; fd < n; fd++) {
 	    Selector_t *selector = findSelector(fd);
 	    if (selector) selector->reqWrite = false;
 
@@ -649,7 +643,7 @@ int Sselect(int n, fd_set  *readfds,  fd_set  *writefds, fd_set *exceptfds,
     }
 
     do {
-	int tmout, ev;
+	int tmout;
 	struct epoll_event events[NUM_EVENTS];
 
 	list_for_each_safe(s, tmp, &selectorList) {
@@ -680,7 +674,7 @@ int Sselect(int n, fd_set  *readfds,  fd_set  *writefds, fd_set *exceptfds,
 	    }
 	}
 
-	for (ev = 0; ev < retval; ev++) {
+	for (int ev = 0; ev < retval; ev++) {
 	    Selector_t *selector = findSelector(events[ev].data.fd);
 
 	    if (!selector) {
@@ -853,7 +847,6 @@ int Swait(int timeout)
 {
     int retval, eno = 0;
     struct timeval start, end = { .tv_sec = 0, .tv_usec = 0 };
-    list_t *s, *tmp;
 
     if (!(timeout < 0)) {
 	struct timeval delta = { .tv_sec = timeout/1000,
@@ -863,9 +856,10 @@ int Swait(int timeout)
     }
 
     do {
-	int tmout, ev;
+	int tmout;
 	struct epoll_event events[NUM_EVENTS];
 
+	list_t *s, *tmp;
 	list_for_each_safe(s, tmp, &selectorList) {
 	    Selector_t *selector = list_entry(s, Selector_t, next);
 	    if (selector->deleted) doRemove(selector);
@@ -896,7 +890,7 @@ int Swait(int timeout)
 	    }
 	}
 
-	for (ev = 0; ev < retval; ev++) {
+	for (int ev = 0; ev < retval; ev++) {
 	    Selector_t *selector = findSelector(events[ev].data.fd);
 
 	    if (!selector) {
