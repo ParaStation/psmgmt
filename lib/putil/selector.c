@@ -3,6 +3,7 @@
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
  * Copyright (C) 2005-2021 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2021 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -85,7 +86,6 @@ static Selector_t * getSelector(void)
     Selector_t *selector = PSitems_getItem(selPool);
     if (!selector) return NULL;
 
-    INIT_LIST_HEAD(&selector->next);
     *selector = (Selector_t) {
 	.state = SEL_USED,
 	.readHandler = NULL,
@@ -98,6 +98,7 @@ static Selector_t * getSelector(void)
 	.disabled = false,
 	.deleted = false,
     };
+    INIT_LIST_HEAD(&selector->next);
 
     return selector;
 }
