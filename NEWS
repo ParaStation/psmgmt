@@ -6,6 +6,15 @@ Copyright (C) 2021 ParTec AG, Munich
 Please send bug reports, questions and suggestions to <support@par-tec.com>
 
 
+Version 5.1.44-1:
+=================
+Bugfixes:
+ - Various fixes on input forwarding in psidforwarder
+ - Fix various warning emitted by rpmbuild
+Enhancements:
+ - Use mallinfo2() if available (#19)
+
+
 Version 5.1.44:
 ===============
 Bugfixes:

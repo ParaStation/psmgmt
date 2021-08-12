@@ -1,3 +1,44 @@
+Version psmgmt-5.1.44-1:
+========================
+------------------------------------------------------------------------
+b063fc79 | Norbert Eicker | Thu, 12 Aug 2021 16:15:22 +0200
+
+Fix various warning emitted by rpmbuild
+------------------------------------------------------------------------
+03924673 | Norbert Eicker | Tue, 10 Aug 2021 13:16:54 +0200
+
+Use mallinfo2() if available (#19)
+------------------------------------------------------------------------
+54c5b313 | Norbert Eicker | Tue, 10 Aug 2021 13:15:11 +0200
+
+Add configure check for availability of mallinfo2()
+------------------------------------------------------------------------
+41df4f0e | Norbert Eicker | Thu, 12 Aug 2021 00:27:54 +0200
+
+IO messages in IO-forwarder processes might be handled blocking
+------------------------------------------------------------------------
+eaf92341 | Norbert Eicker | Thu, 12 Aug 2021 00:24:31 +0200
+
+Bugfix: Ensure Selector for stdin forwarding actually works
+------------------------------------------------------------------------
+8ade6381 | Norbert Eicker | Wed, 11 Aug 2021 23:23:35 +0200
+
+Streamlining
+------------------------------------------------------------------------
+571701bb | Norbert Eicker | Wed, 11 Aug 2021 23:15:19 +0200
+
+Bugfix: Ensure selector is properly initialized for list_add_tail
+------------------------------------------------------------------------
+8a4a144a | Norbert Eicker | Wed, 11 Aug 2021 01:12:16 +0200
+
+Bugfix: Forwarder needs to re-init PSIDMsgbuf
+------------------------------------------------------------------------
+946a7ce0 | Norbert Eicker | Wed, 11 Aug 2021 00:50:10 +0200
+
+Bugfix: Ensure there is a selector to vacate
+------------------------------------------------------------------------
+
+
 Version psmgmt-5.1.44:
 ======================
 ------------------------------------------------------------------------
