@@ -2,6 +2,7 @@
 # ParaStation
 #
 # Copyright (C) 2005-2021 ParTec Cluster Competence Center GmbH, Munich
+# Copyright (C) 2021 ParTec AG, Munich
 #
 # This file may be distributed under the terms of the Q Public License
 # as defined in the file LICENSE.QPL included in the packaging of this
@@ -53,7 +54,7 @@ BuildRequires:  systemd
 Requires(post): systemd
 Requires(preun): systemd
 Requires(postun): systemd
-%endif # with_systemd
+%endif
 %if !0%{?disable_munge}
 BuildRequires: munge-devel
 %endif
@@ -132,7 +133,7 @@ It works standalone or together with psslurm.
 %package slurmutils
 Summary:   Utilities improving Slurm support (spank, psslurmgetbind, etc.)
 Group:     Productivity/Clustering/Computing
-Obsoletes: %{name}-spank
+Obsoletes: %{name}-spank <= 5.1.35-0
 
 %description slurmutils
 Utilities helping to improve Slurm support. This includes spank plugins
@@ -143,7 +144,7 @@ Slurm or the psslurmgetbind tool.
 %package testplugins
 Summary:   Set of plugins for debug and testing (psBlackHole, etc.)
 Group:     Productivity/Clustering/Computing
-# Requires:  %{name} = %{version}-%{release}
+Requires:  %{name} = %{version}-%{release}
 
 %description testplugins
 Set of psid plugins for debug and testing psmgmt. This includes:
