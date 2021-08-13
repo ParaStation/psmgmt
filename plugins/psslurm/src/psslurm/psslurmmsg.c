@@ -386,7 +386,7 @@ static void handleReconTimeout(int timerId, void *data)
 
     if (savedMsg->sock == -1) {
 	/* try to connect to slurmctld */
-	savedMsg->sock = openSlurmctldCon();
+	savedMsg->sock = openSlurmctldCon(savedMsg->info);
 
 	if (savedMsg->sock < 0) {
 	    mlog("%s: connection attempt %u of %u to slurmctld failed\n",

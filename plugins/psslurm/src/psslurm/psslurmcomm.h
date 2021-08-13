@@ -37,6 +37,18 @@ typedef struct {
 				    each forwarded node */
 } Msg_Forward_t;
 
+/** structure to make information available about the message request
+ * when handling a corresponding response */
+typedef struct {
+    uint16_t type;
+    uint16_t expRespType;
+    uint32_t jobid;
+    uint32_t stepid;
+    uint32_t stepHetComp;
+    time_t time;
+    Connection_CB_t *cb;
+} Req_Info_t;
+
 /**
  * @brief Initialize the Slurm communication facility
  *
@@ -101,6 +113,8 @@ void closeSlurmCon(int socket);
  *
  * @param body The message body to send
  *
+ * @param info Info parameter forwarded to response handler
+ *
  * @param caller Function name of the calling function
  *
  * @param line Line number where this function is called
@@ -108,10 +122,10 @@ void closeSlurmCon(int socket);
  * @return Returns the number of bytes written or -1 on error
  */
 int __sendSlurmMsg(int sock, slurm_msg_type_t type, PS_SendDB_t *body,
-		    const char *caller, const int line);
+		   void *info, const char *caller, const int line);
 
 #define sendSlurmMsg(sock, type, body) \
-    __sendSlurmMsg(sock, type, body, __func__, __LINE__)
+    __sendSlurmMsg(sock, type, body, NULL, __func__, __LINE__)
 
 /**
  * @brief Send a Slurm message
@@ -128,6 +142,8 @@ int __sendSlurmMsg(int sock, slurm_msg_type_t type, PS_SendDB_t *body,
  *
  * @param body The message body to send
  *
+ * @param info Info parameter forwarded to response handler
+ *
  * @param caller Function name of the calling function
  *
  * @param line Line number where this function is called
@@ -136,21 +152,26 @@ int __sendSlurmMsg(int sock, slurm_msg_type_t type, PS_SendDB_t *body,
  * the message was stored and will be send out later
  */
 int __sendSlurmMsgEx(int sock, Slurm_Msg_Header_t *head, PS_SendDB_t *body,
-		     const char *caller, const int line);
+		     void *info, const char *caller, const int line);
 
 #define sendSlurmMsgEx(sock, head, body) \
-    __sendSlurmMsgEx(sock, head, body, __func__, __LINE__)
+    __sendSlurmMsgEx(sock, head, body, NULL, __func__, __LINE__)
 
 /**
  * @brief Send a RPC request to the slurmctld
  *
- * @param type The RPC type to send
+ * Sends a request to the slurmctld and let the default
+ * handler @ref handleSlurmctldReply() process the response.
+ * An additional callback req->cb can be specified in the request structure
+ * @req to handle expected response message type specified by
+ * req->expRespType.
+ *
+ * The request has to be allocated using ucalloc() and will be freed
+ * automatically after use.
+ *
+ * @param req The request to send
  *
  * @param body The message body
- *
- * @param cb The callback to handle a response
- *
- * @param info Additional information passed to the callback
  *
  * @param caller Function name of the calling function
  *
@@ -159,12 +180,11 @@ int __sendSlurmMsgEx(int sock, Slurm_Msg_Header_t *head, PS_SendDB_t *body,
  * @return Returns the number of bytes written, -1 on error or -2 if
  * the message was stored and will be send out later
  */
-int __sendSlurmReq(slurm_msg_type_t type, PS_SendDB_t *body,
-		   Connection_CB_t *cb, void *info, const char *caller,
-		   const int line);
+int __sendSlurmReq(Req_Info_t *req, PS_SendDB_t *body,
+		   const char *caller, const int line);
 
-#define sendSlurmReq(type, body, cb, info) \
-    __sendSlurmReq(type, body, cb, info, __func__, __LINE__)
+#define sendSlurmReq(req, body) \
+    __sendSlurmReq(req, body, __func__, __LINE__)
 
 /**
  * @brief Send a PS data buffer
@@ -477,9 +497,11 @@ void closeAllStepConnections(Step_t *step);
  *
  * This is basically a wrapper for @ref openSlurmctldConEx().
  *
+ * @param info Additional info passed to the callback
+ *
  * @return Returns the connected socket or -1 on error.
  */
-int openSlurmctldCon(void);
+int openSlurmctldCon(void *info);
 
 /**
  * @brief Open a new connection to slurmctld

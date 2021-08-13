@@ -749,37 +749,53 @@ const char *slurmRC2String(int rc)
  *
  * @param sMsg The reply message to handle
  *
- * @param info Additional info currently unused
+ * @param info Holding optional information about the original request
  *
  * @return Always returns 0.
  */
 static int handleSlurmctldReply(Slurm_Msg_t *sMsg, void *info)
 {
+    Req_Info_t *req = info;
+
+    /* let the callback handle expected responses */
+    if (req && req->cb && sMsg->head.type == req->expRespType) {
+	req->cb(sMsg, info);
+	goto CLEANUP;
+    }
+
+    /* we expect to handle RESPONSE_SLURM_RC only */
+    if (sMsg->head.type != RESPONSE_SLURM_RC) {
+	flog("unexpected slurmctld reply %s(%i)",
+	     msgType2String(sMsg->head.type), sMsg->head.type);
+	if (req) {
+	    mlog(" for request %s jobid %u",
+		 msgType2String(req->type), req->jobid);
+	}
+	mlog("\n");
+	goto CLEANUP;
+    }
+
+    /* inspect return code */
     char **ptr = &sMsg->ptr;
     uint32_t rc;
-
-    switch (sMsg->head.type) {
-	case RESPONSE_SLURM_RC:
-	    break;
-	case RESPONSE_NODE_REGISTRATION:
-	    handleSlurmdMsg(sMsg, info);
-	    return 0;
-	default:
-	    flog("unexpected slurmctld reply %s(%i)\n",
-		 msgType2String(sMsg->head.type), sMsg->head.type);
-	    return 0;
-    }
-
-    /* return code */
     getUint32(ptr, &rc);
+
     if (rc != SLURM_SUCCESS) {
-	flog("error: msg %s rc %s sock %i\n",
+	flog("error: response %s rc %s sock %i",
 	     msgType2String(sMsg->head.type), slurmRC2String(rc), sMsg->sock);
+	if (req) {
+	    mlog(" for request %s jobid %u",
+		 msgType2String(req->type), req->jobid);
+	}
+	mlog("\n");
+    } else {
+	fdbg(PSSLURM_LOG_COMM, "got SLURM_SUCCESS for req %s jobid %u\n",
+	     msgType2String(req->type), req->jobid);
     }
 
-    if (sMsg->source == -1) {
-	closeSlurmCon(sMsg->sock);
-    }
+CLEANUP:
+    if (sMsg->source == -1) closeSlurmCon(sMsg->sock);
+    ufree(info);
     return 0;
 }
 
@@ -862,9 +878,9 @@ TCP_RECONNECT:
     return sock;
 }
 
-int openSlurmctldCon(void)
+int openSlurmctldCon(void *info)
 {
-    return openSlurmctldConEx(handleSlurmctldReply, NULL);
+    return openSlurmctldConEx(handleSlurmctldReply, info);
 }
 
 int openSlurmctldConEx(Connection_CB_t *cb, void *info)
@@ -913,18 +929,18 @@ int __sendDataBuffer(int sock, PS_SendDB_t *data, size_t offset,
 }
 
 int __sendSlurmMsg(int sock, slurm_msg_type_t type, PS_SendDB_t *body,
-		    const char *caller, const int line)
+		   void *info, const char *caller, const int line)
 {
     Slurm_Msg_Header_t head;
 
     initSlurmMsgHead(&head);
     head.type = type;
 
-    return __sendSlurmMsgEx(sock, &head, body, caller, line);
+    return __sendSlurmMsgEx(sock, &head, body, NULL, caller, line);
 }
 
 int __sendSlurmMsgEx(int sock, Slurm_Msg_Header_t *head, PS_SendDB_t *body,
-		     const char *caller, const int line)
+		     void *info, const char *caller, const int line)
 {
     PS_SendDB_t data = { .bufUsed = 0, .useFrag = false };
     PS_DataBuffer_t payload = { .buf = NULL };
@@ -952,7 +968,7 @@ int __sendSlurmMsgEx(int sock, Slurm_Msg_Header_t *head, PS_SendDB_t *body,
 
     /* connect to slurmctld */
     if (sock < 0) {
-	sock = openSlurmctldCon();
+	sock = openSlurmctldCon(info);
 	if (sock < 0) {
 	    freeSlurmAuth(auth);
 	    if (needMsgResend(head->type)) {
@@ -996,18 +1012,21 @@ int __sendSlurmMsgEx(int sock, Slurm_Msg_Header_t *head, PS_SendDB_t *body,
     return ret;
 }
 
-int __sendSlurmReq(slurm_msg_type_t type, PS_SendDB_t *body,
-		   Connection_CB_t *cb, void *info, const char *caller,
-		   const int line)
+int __sendSlurmReq(Req_Info_t *req, PS_SendDB_t *body,
+		   const char *caller, const int line)
 {
-    int sock = openSlurmctldConEx(cb, info);
+    req->time = time(NULL);
 
+    int sock = openSlurmctldCon(req);
     if (sock < 0) {
 	flog("connection to slurmctld failed\n");
+	ufree(req);
 	return -1;
     }
 
-    return __sendSlurmMsg(sock, type, body, caller, line);
+    int ret = __sendSlurmMsg(sock, req->type, body, req, caller, line);
+    if (ret == -1) ufree(req);
+    return ret;
 }
 
 char *__getBitString(char **ptr, const char *func, const int line)

@@ -400,19 +400,6 @@ static int handleJobInfoResp(Slurm_Msg_t *msg, void *info)
     uint32_t count;
     time_t last;
 
-    if (msg->head.type == RESPONSE_SLURM_RC) {
-	uint32_t rc;
-	getUint32(ptr, &rc);
-	flog("error rc %s\n", slurmRC2String(rc));
-	return 0;
-    }
-
-    if (msg->head.type != RESPONSE_JOB_INFO) {
-	flog("unexpected message type %s(%i)\n", msgType2String(msg->head.type),
-	     msg->head.type);
-	return 0;
-    }
-
     /* number of job records */
     getUint32(ptr, &count);
     /* last update */
@@ -446,7 +433,13 @@ int requestJobInfo(uint32_t jobid)
     addUint32ToMsg(jobid, &msg);
     addUint16ToMsg(flags, &msg);
 
-    return sendSlurmReq(REQUEST_JOB_INFO_SINGLE, &msg, &handleJobInfoResp, NULL);
+    Req_Info_t *req = ucalloc(sizeof(*req));
+    req->type = REQUEST_JOB_INFO_SINGLE;
+    req->expRespType = RESPONSE_JOB_INFO;
+    req->jobid = jobid;
+    req->cb = &handleJobInfoResp;
+
+    return sendSlurmReq(req, &msg);
 }
 
 uint32_t getLocalID(PSnodes_ID_t *nodes, uint32_t nrOfNodes)
@@ -2652,11 +2645,17 @@ void sendNodeRegStatus(bool startup)
 
     packRespNodeRegStatus(&msg, &stat);
 
-    sendSlurmMsg(SLURMCTLD_SOCK, MESSAGE_NODE_REGISTRATION_STATUS, &msg);
-
     ufree(stat.jobids);
     ufree(stat.stepids);
     ufree(stat.stepHetComp);
+
+    /* send request to slurmctld */
+    Req_Info_t *req = ucalloc(sizeof(*req));
+    req->type = MESSAGE_NODE_REGISTRATION_STATUS;
+    req->expRespType = RESPONSE_NODE_REGISTRATION;
+    req->cb = &handleSlurmdMsg;
+
+    sendSlurmReq(req, &msg);
 }
 
 int __sendSlurmReply(Slurm_Msg_t *sMsg, slurm_msg_type_t type,
