@@ -2,6 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2018-2021 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2021 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -50,7 +51,7 @@ typedef struct itemPool * PSitems_t;
  * items via PSitems_getItem(). The item are added in chunks. The
  * number of items to be added is determined by @a itemSize in a way
  * that at least 128 kB of memory is allocated per chunk. This ensures
- * that memory is provided via mmap() avoiding to pollute of the
+ * that memory is allocated via mmap() avoiding to pollute the
  * process' address space.
  *
  * Each item is expected to be of the form:
@@ -97,7 +98,7 @@ bool PSitems_isInitialized(PSitems_t items);
  * The default chunk size for pools is 128 kB utilizing the mmap()
  * path of glibc's malloc() implementation. To set a smaller chunk
  * size might still make sense if the pool usage is less dynamic and a
- * hard upper bund of the number of items can be established, thus,
+ * hard upper bound of the number of items can be established, thus,
  * reducing the overhead of unused items.
  *
  * The chunk size must be set before any chunk is allocated for the
