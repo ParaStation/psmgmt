@@ -426,20 +426,14 @@ static int handleJobInfoResp(Slurm_Msg_t *msg, void *info)
 
 int requestJobInfo(uint32_t jobid)
 {
-    uint16_t flags = 16;
-
-    PS_SendDB_t msg = { .bufUsed = 0, .useFrag = false };
-
-    addUint32ToMsg(jobid, &msg);
-    addUint16ToMsg(flags, &msg);
+    Req_Job_Info_Single_t jobInfo = { .jobid = jobid, .flags = 16 };
 
     Req_Info_t *req = ucalloc(sizeof(*req));
     req->type = REQUEST_JOB_INFO_SINGLE;
-    req->expRespType = RESPONSE_JOB_INFO;
     req->jobid = jobid;
     req->cb = &handleJobInfoResp;
 
-    return sendSlurmReq(req, &msg);
+    return sendSlurmReq(req, &jobInfo);
 }
 
 uint32_t getLocalID(PSnodes_ID_t *nodes, uint32_t nrOfNodes)
@@ -1576,15 +1570,13 @@ static void handleForwardData(Slurm_Msg_t *sMsg)
 
 void sendPrologComplete(uint32_t jobid, uint32_t rc)
 {
-    PS_SendDB_t msg = { .bufUsed = 0, .useFrag = false };
-    Req_Prolog_Comp_t req = {
-	.jobid = jobid,
-	.rc = rc
-    };
+    Req_Prolog_Comp_t data = { .jobid = jobid, .rc = rc };
 
-    packReqPrologComplete(&msg, &req);
+    Req_Info_t *req = ucalloc(sizeof(*req));
+    req->type = REQUEST_COMPLETE_PROLOG;
+    req->jobid = jobid;
 
-    sendSlurmMsg(SLURMCTLD_SOCK, REQUEST_COMPLETE_PROLOG, &msg);
+    sendSlurmReq(req, &data);
 }
 
 static void handleLaunchProlog(Slurm_Msg_t *sMsg)
@@ -2572,7 +2564,6 @@ void clearSlurmdProto(void)
 
 void sendNodeRegStatus(bool startup)
 {
-    PS_SendDB_t msg = { .bufUsed = 0, .useFrag = false };
     struct utsname sys;
 
     Resp_Node_Reg_Status_t stat;
@@ -2643,19 +2634,17 @@ void sendNodeRegStatus(bool startup)
     stat.dynamic = false;
     stat.dynamicFeat = NULL;
 
-    packRespNodeRegStatus(&msg, &stat);
-
-    ufree(stat.jobids);
-    ufree(stat.stepids);
-    ufree(stat.stepHetComp);
-
     /* send request to slurmctld */
     Req_Info_t *req = ucalloc(sizeof(*req));
     req->type = MESSAGE_NODE_REGISTRATION_STATUS;
-    req->expRespType = RESPONSE_NODE_REGISTRATION;
     req->cb = &handleSlurmdMsg;
 
-    sendSlurmReq(req, &msg);
+    sendSlurmReq(req, &stat);
+
+    /* free data */
+    ufree(stat.jobids);
+    ufree(stat.stepids);
+    ufree(stat.stepHetComp);
 }
 
 int __sendSlurmReply(Slurm_Msg_t *sMsg, slurm_msg_type_t type,

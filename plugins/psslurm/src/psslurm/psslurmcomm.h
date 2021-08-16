@@ -166,12 +166,17 @@ int __sendSlurmMsgEx(int sock, Slurm_Msg_Header_t *head, PS_SendDB_t *body,
  * @req to handle expected response message type specified by
  * req->expRespType.
  *
+ * The data is packed by calling the corresponding pack function for the
+ * message type specified in the request information. The caller is responsible
+ * to ensure the message type matches with the data to pack.
+ * Also see @ref packSlurmReq().
+ *
  * The request has to be allocated using ucalloc() and will be freed
  * automatically after use.
  *
- * @param req The request to send
+ * @param req The request meta information
  *
- * @param body The message body
+ * @param data The request data to pack
  *
  * @param caller Function name of the calling function
  *
@@ -180,11 +185,11 @@ int __sendSlurmMsgEx(int sock, Slurm_Msg_Header_t *head, PS_SendDB_t *body,
  * @return Returns the number of bytes written, -1 on error or -2 if
  * the message was stored and will be send out later
  */
-int __sendSlurmReq(Req_Info_t *req, PS_SendDB_t *body,
+int __sendSlurmReq(Req_Info_t *req, void *data,
 		   const char *caller, const int line);
 
-#define sendSlurmReq(req, body) \
-    __sendSlurmReq(req, body, __func__, __LINE__)
+#define sendSlurmReq(req, data) \
+    __sendSlurmReq(req, data, __func__, __LINE__)
 
 /**
  * @brief Send a PS data buffer

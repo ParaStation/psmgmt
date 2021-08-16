@@ -1709,23 +1709,26 @@ void addGresData(PS_SendDB_t *msg, int version)
     *(uint32_t *)ptr = htonl(len);
 }
 
-bool __packRespNodeRegStatus(PS_SendDB_t *data, Resp_Node_Reg_Status_t *stat,
-			     const char *caller, const int line)
+/**
+ * @brief Pack a node status response
+ *
+ * Pack a node status response and add it to the provided data
+ * buffer.
+ *
+ * @param data Data buffer to save data to
+ *
+ * @param stat The status structure to pack
+ *
+ * @param caller Function name of the calling function
+ *
+ * @param line Line number where this function is called
+ *
+ * @return On success true is returned or false in case of an
+ * error. If writing was not successful, @a data might be not updated.
+ */
+static bool packRespNodeRegStatus(PS_SendDB_t *data, Resp_Node_Reg_Status_t *stat,
+				  const char *caller, const int line)
 {
-    uint32_t i;
-
-    if (!data) {
-	mlog("%s: invalid data pointer from '%s' at %i\n", __func__,
-		caller, line);
-	return false;
-    }
-
-    if (!stat) {
-	mlog("%s: invalid stat pointer from '%s' at %i\n", __func__,
-		caller, line);
-	return false;
-    }
-
     /* time-stamp */
     addTimeToMsg(stat->now, data);
     /* slurmd_start_time */
@@ -1769,16 +1772,16 @@ bool __packRespNodeRegStatus(PS_SendDB_t *data, Resp_Node_Reg_Status_t *stat,
     addUint32ToMsg(stat->jobInfoCount, data);
 
     if (slurmProto >= SLURM_20_11_PROTO_VERSION) {
-	for (i=0; i<stat->jobInfoCount; i++) {
+	for (uint32_t i=0; i<stat->jobInfoCount; i++) {
 	    addUint32ToMsg(stat->jobids[i], data);
 	    addUint32ToMsg(stat->stepids[i], data);
 	    addUint32ToMsg(stat->stepHetComp[i], data);
 	}
     } else {
-	for (i=0; i<stat->jobInfoCount; i++) {
+	for (uint32_t i=0; i<stat->jobInfoCount; i++) {
 	    addUint32ToMsg(stat->jobids[i], data);
 	}
-	for (i=0; i<stat->jobInfoCount; i++) {
+	for (uint32_t i=0; i<stat->jobInfoCount; i++) {
 	    packOldStepID(stat->stepids[i], data);
 	}
     }
@@ -2375,23 +2378,93 @@ bool __unpackReqLaunchProlog(Slurm_Msg_t *sMsg, Req_Launch_Prolog_t **reqPtr,
     return true;
 }
 
-bool __packReqPrologComplete(PS_SendDB_t *data, Req_Prolog_Comp_t *req,
-			     const char *caller, const int line)
+/**
+ * @brief Pack a prolog complete request
+ *
+ * Pack request prolog complete and add it to the provided data
+ * buffer.
+ *
+ * @param data Data buffer to save data to
+ *
+ * @param req The data to pack
+ *
+ * @param caller Function name of the calling function
+ *
+ * @param line Line number where this function is called
+ *
+ * @return On success true is returned or false in case of an
+ * error. If writing was not successful, @a data might be not updated.
+ */
+static bool packReqPrologComplete(PS_SendDB_t *data, Req_Prolog_Comp_t *req,
+				  const char *caller, const int line)
 {
-    if (!data) {
-	flog("invalid data pointer from '%s' at %i\n", caller, line);
-	return false;
-    }
-
-    if (!req) {
-	flog("invalid req pointer from '%s' at %i\n", caller, line);
-	return false;
-    }
-
     /* jobid */
     addUint32ToMsg(req->jobid, data);
     /* prolog return code */
     addUint32ToMsg(req->rc, data);
 
     return true;
+}
+
+/**
+ * @brief Pack a job info single request
+ *
+ * Pack request job info single and add it to the provided data
+ * buffer.
+ *
+ * @param data Data buffer to save data to
+ *
+ * @param req The data to pack
+ *
+ * @param caller Function name of the calling function
+ *
+ * @param line Line number where this function is called
+ *
+ * @return On success true is returned or false in case of an
+ * error. If writing was not successful, @a data might be not updated.
+ */
+static bool packReqJobInfoSingle(PS_SendDB_t *data, Req_Job_Info_Single_t *req,
+				 const char *caller, const int line)
+{
+    /* jobid */
+    addUint32ToMsg(req->jobid, data);
+    /* job flags */
+    addUint32ToMsg(req->flags, data);
+
+    return true;
+}
+
+bool packSlurmReq(Req_Info_t *reqInfo, PS_SendDB_t *msg, void *reqData,
+		  const char *caller, const int line)
+{
+    if (!reqInfo) {
+	flog("invalid reqInfo pointer from %s:%i\n", caller, line);
+	return false;
+    }
+
+    if (!msg) {
+	flog("invalid msg pointer from %s:%i\n", caller, line);
+	return false;
+    }
+
+    if (!reqData) {
+	flog("invalid reqData pointer from %s:%i\n", caller, line);
+	return false;
+    }
+
+    switch (reqInfo->type) {
+	case  MESSAGE_NODE_REGISTRATION_STATUS:
+	    reqInfo->expRespType = RESPONSE_NODE_REGISTRATION;
+	    return packRespNodeRegStatus(msg, reqData, caller, line);
+	case REQUEST_JOB_INFO_SINGLE:
+	    reqInfo->expRespType = RESPONSE_JOB_INFO;
+	    return packReqJobInfoSingle(msg, reqData, caller, line);
+	case REQUEST_COMPLETE_PROLOG:
+	    return packReqPrologComplete(msg, reqData, caller, line);
+	default:
+	    flog("request %s pack function not found, caller %s:%i\n",
+		 msgType2String(reqInfo->type), caller, line);
+    }
+
+    return false;
 }

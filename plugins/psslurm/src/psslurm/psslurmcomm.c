@@ -745,7 +745,9 @@ const char *slurmRC2String(int rc)
  * @brief Handle a reply from slurmctld
  *
  * Report errors for failed requests send to slurmctld and close
- * the corresponding connection.
+ * the corresponding connection. If a callback and an expected
+ * response message type is specified, the response is passed
+ * to that callback for further handling.
  *
  * @param sMsg The reply message to handle
  *
@@ -759,11 +761,15 @@ static int handleSlurmctldReply(Slurm_Msg_t *sMsg, void *info)
 
     /* let the callback handle expected responses */
     if (req && req->cb && sMsg->head.type == req->expRespType) {
+	fdbg(PSSLURM_LOG_COMM, "req %s -> resp %s jobid %u handled by cb\n",
+	     msgType2String(req->type), msgType2String(sMsg->head.type),
+	     req->jobid);
 	req->cb(sMsg, info);
 	goto CLEANUP;
     }
 
-    /* we expect to handle RESPONSE_SLURM_RC only */
+    /* we expect to handle RESPONSE_SLURM_RC only, every other response
+     * has to be handled by the callback of the request */
     if (sMsg->head.type != RESPONSE_SLURM_RC) {
 	flog("unexpected slurmctld reply %s(%i)",
 	     msgType2String(sMsg->head.type), sMsg->head.type);
@@ -1012,19 +1018,28 @@ int __sendSlurmMsgEx(int sock, Slurm_Msg_Header_t *head, PS_SendDB_t *body,
     return ret;
 }
 
-int __sendSlurmReq(Req_Info_t *req, PS_SendDB_t *body,
+int __sendSlurmReq(Req_Info_t *req, void *data,
 		   const char *caller, const int line)
 {
-    req->time = time(NULL);
+    int ret = -1;
+
+    PS_SendDB_t msg = { .bufUsed = 0, .useFrag = false };
+    if (!packSlurmReq(req, &msg, data, caller, line)) {
+	flog("packing request %s for %s:%i failed\n", msgType2String(req->type),
+	     caller, line);
+	goto FINALIZE;
+    }
 
     int sock = openSlurmctldCon(req);
     if (sock < 0) {
-	flog("connection to slurmctld failed\n");
-	ufree(req);
-	return -1;
+	flog("open connection to slurmctld failed\n");
+	goto FINALIZE;
     }
 
-    int ret = __sendSlurmMsg(sock, req->type, body, req, caller, line);
+    req->time = time(NULL);
+    ret = __sendSlurmMsg(sock, req->type, &msg, req, caller, line);
+
+FINALIZE:
     if (ret == -1) ufree(req);
     return ret;
 }

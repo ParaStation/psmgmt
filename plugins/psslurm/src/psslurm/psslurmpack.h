@@ -382,29 +382,6 @@ bool __packSlurmAccData(PS_SendDB_t *data, SlurmAccData_t *slurmAccData,
     __packSlurmAccData(data, slurmAccData, __func__, __LINE__)
 
 /**
- * @brief Pack a node status response
- *
- * Pack a node status response and add it to the provided data
- * buffer.
- *
- * @param data Data buffer to save data to
- *
- * @param stat The status structure to pack
- *
- * @param caller Function name of the calling function
- *
- * @param line Line number where this function is called
- *
- * @return On success true is returned or false in case of an
- * error. If writing was not successful, @a data might be not updated.
- */
-bool __packRespNodeRegStatus(PS_SendDB_t *data, Resp_Node_Reg_Status_t *stat,
-			     const char *caller, const int line);
-
-#define packRespNodeRegStatus(data, stat) \
-    __packRespNodeRegStatus(data, stat, __func__, __LINE__)
-
-/**
  * @brief Unpack a file bcast request
  *
  * Unpack a file bcast request from the provided message pointer.
@@ -802,26 +779,22 @@ bool __unpackReqLaunchProlog(Slurm_Msg_t *sMsg, Req_Launch_Prolog_t **reqPtr,
     __unpackReqLaunchProlog(sMsg, reqPtr, __func__, __LINE__)
 
 /**
- * @brief Pack a prolog complete request
+ * @brief Pack a Slurm request
  *
- * Pack request prolog complete and add it to the provided data
- * buffer.
+ * @param req The request meta information
  *
- * @param data Data buffer to save data to
+ * @param msg Message buffer which holds the result
  *
- * @param req The data to pack
+ * @param reqData The data to pack
  *
  * @param caller Function name of the calling function
  *
  * @param line Line number where this function is called
  *
  * @return On success true is returned or false in case of an
- * error. If writing was not successful, @a data might be not updated.
+ * error. If writing was not successful, @a msg might be not updated.
  */
-bool __packReqPrologComplete(PS_SendDB_t *data, Req_Prolog_Comp_t *req,
-			     const char *caller, const int line);
-
-#define packReqPrologComplete(data, req) \
-    __packReqPrologComplete(data, req, __func__, __LINE__)
+bool packSlurmReq(Req_Info_t *reqInfo, PS_SendDB_t *msg, void *reqData,
+		  const char *caller, const int line);
 
 #endif  /* __PS_SLURM_PACK */
