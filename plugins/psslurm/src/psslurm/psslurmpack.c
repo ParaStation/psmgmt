@@ -1719,15 +1719,11 @@ void addGresData(PS_SendDB_t *msg, int version)
  *
  * @param stat The status structure to pack
  *
- * @param caller Function name of the calling function
- *
- * @param line Line number where this function is called
- *
  * @return On success true is returned or false in case of an
  * error. If writing was not successful, @a data might be not updated.
  */
-static bool packRespNodeRegStatus(PS_SendDB_t *data, Resp_Node_Reg_Status_t *stat,
-				  const char *caller, const int line)
+static bool packRespNodeRegStatus(PS_SendDB_t *data,
+				  Resp_Node_Reg_Status_t *stat)
 {
     /* time-stamp */
     addTimeToMsg(stat->now, data);
@@ -2343,15 +2339,10 @@ bool __unpackReqLaunchProlog(Slurm_Msg_t *sMsg, Req_Launch_Prolog_t **reqPtr,
  *
  * @param req The data to pack
  *
- * @param caller Function name of the calling function
- *
- * @param line Line number where this function is called
- *
  * @return On success true is returned or false in case of an
  * error. If writing was not successful, @a data might be not updated.
  */
-static bool packReqPrologComplete(PS_SendDB_t *data, Req_Prolog_Comp_t *req,
-				  const char *caller, const int line)
+static bool packReqPrologComplete(PS_SendDB_t *data, Req_Prolog_Comp_t *req)
 {
     /* jobid */
     addUint32ToMsg(req->jobid, data);
@@ -2371,15 +2362,10 @@ static bool packReqPrologComplete(PS_SendDB_t *data, Req_Prolog_Comp_t *req,
  *
  * @param req The data to pack
  *
- * @param caller Function name of the calling function
- *
- * @param line Line number where this function is called
- *
  * @return On success true is returned or false in case of an
  * error. If writing was not successful, @a data might be not updated.
  */
-static bool packReqJobInfoSingle(PS_SendDB_t *data, Req_Job_Info_Single_t *req,
-				 const char *caller, const int line)
+static bool packReqJobInfoSingle(PS_SendDB_t *data, Req_Job_Info_Single_t *req)
 {
     /* jobid */
     addUint32ToMsg(req->jobid, data);
@@ -2399,15 +2385,10 @@ static bool packReqJobInfoSingle(PS_SendDB_t *data, Req_Job_Info_Single_t *req,
  *
  * @param req The data to pack
  *
- * @param caller Function name of the calling function
- *
- * @param line Line number where this function is called
- *
  * @return On success true is returned or false in case of an
  * error. If writing was not successful, @a data might be not updated.
  */
-bool packReqJobRequeue(PS_SendDB_t *data, Req_Job_Requeue_t *req,
-		       const char *caller, const int line)
+bool packReqJobRequeue(PS_SendDB_t *data, Req_Job_Requeue_t *req)
 {
     /* jobid */
     addUint32ToMsg(req->jobid, data);
@@ -2431,15 +2412,10 @@ bool packReqJobRequeue(PS_SendDB_t *data, Req_Job_Requeue_t *req,
  *
  * @param req The data to pack
  *
- * @param caller Function name of the calling function
- *
- * @param line Line number where this function is called
- *
  * @return On success true is returned or false in case of an
  * error. If writing was not successful, @a data might be not updated.
  */
-static bool packReqKillJob(PS_SendDB_t *data, Req_Job_Kill_t *req,
-			   const char *caller, const int line)
+static bool packReqKillJob(PS_SendDB_t *data, Req_Job_Kill_t *req)
 {
     char sjobid[1024];
 
@@ -2468,8 +2444,7 @@ static bool packReqKillJob(PS_SendDB_t *data, Req_Job_Kill_t *req,
     return true;
 }
 
-static bool packReqEpilogComplete(PS_SendDB_t *data, Req_Epilog_Complete_t *req,
-				  const char *caller, const int line)
+static bool packReqEpilogComplete(PS_SendDB_t *data, Req_Epilog_Complete_t *req)
 {
     /* jobid */
     addUint32ToMsg(req->jobid, data);
@@ -2491,15 +2466,10 @@ static bool packReqEpilogComplete(PS_SendDB_t *data, Req_Epilog_Complete_t *req,
  *
  * @param update The data to pack into the message
  *
- * @param caller Function name of the calling function
- *
- * @param line Line number where this function is called
- *
  * @return On success true is returned or false in case of an
  * error. If writing was not successful, @a data might be not updated.
  */
-bool packUpdateNode(PS_SendDB_t *data, Req_Update_Node_t *update,
-		    const char *caller, const int line)
+bool packUpdateNode(PS_SendDB_t *data, Req_Update_Node_t *update)
 {
     if (slurmProto >= SLURM_20_11_PROTO_VERSION) {
 	/* comment */
@@ -2552,21 +2522,21 @@ bool packSlurmReq(Req_Info_t *reqInfo, PS_SendDB_t *msg, void *reqData,
     switch (reqInfo->type) {
 	case  MESSAGE_NODE_REGISTRATION_STATUS:
 	    reqInfo->expRespType = RESPONSE_NODE_REGISTRATION;
-	    return packRespNodeRegStatus(msg, reqData, caller, line);
+	    return packRespNodeRegStatus(msg, reqData);
 	case REQUEST_JOB_INFO_SINGLE:
 	    reqInfo->expRespType = RESPONSE_JOB_INFO;
-	    return packReqJobInfoSingle(msg, reqData, caller, line);
+	    return packReqJobInfoSingle(msg, reqData);
 	case REQUEST_COMPLETE_PROLOG:
-	    return packReqPrologComplete(msg, reqData, caller, line);
+	    return packReqPrologComplete(msg, reqData);
 	case REQUEST_JOB_REQUEUE:
 	    reqInfo->expRespType = RESPONSE_SLURM_RC;
-	    return packReqJobRequeue(msg, reqData, caller, line);
+	    return packReqJobRequeue(msg, reqData);
 	case REQUEST_KILL_JOB:
-	    return packReqKillJob(msg, reqData, caller, line);
+	    return packReqKillJob(msg, reqData);
 	case MESSAGE_EPILOG_COMPLETE:
-	    return packReqEpilogComplete(msg, reqData, caller, line);
+	    return packReqEpilogComplete(msg, reqData);
 	case REQUEST_UPDATE_NODE:
-	    return packUpdateNode(msg, reqData, caller, line);
+	    return packUpdateNode(msg, reqData);
 	default:
 	    flog("request %s pack function not found, caller %s:%i\n",
 		 msgType2String(reqInfo->type), caller, line);
