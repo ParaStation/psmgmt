@@ -2513,6 +2513,19 @@ static bool packReqKillJob(PS_SendDB_t *data, Req_Job_Kill_t *req,
     return true;
 }
 
+static bool packReqEpilogComplete(PS_SendDB_t *data, Req_Epilog_Complete_t *req,
+				  const char *caller, const int line)
+{
+    /* jobid */
+    addUint32ToMsg(req->jobid, data);
+    /* return code */
+    addUint32ToMsg(req->rc, data);
+    /* node_name */
+    addStringToMsg(req->nodeName, data);
+
+    return true;
+}
+
 bool packSlurmReq(Req_Info_t *reqInfo, PS_SendDB_t *msg, void *reqData,
 		  const char *caller, const int line)
 {
@@ -2545,6 +2558,8 @@ bool packSlurmReq(Req_Info_t *reqInfo, PS_SendDB_t *msg, void *reqData,
 	    return packReqJobRequeue(msg, reqData, caller, line);
 	case REQUEST_KILL_JOB:
 	    return packReqKillJob(msg, reqData, caller, line);
+	case MESSAGE_EPILOG_COMPLETE:
+	    return packReqEpilogComplete(msg, reqData, caller, line);
 	default:
 	    flog("request %s pack function not found, caller %s:%i\n",
 		 msgType2String(reqInfo->type), caller, line);

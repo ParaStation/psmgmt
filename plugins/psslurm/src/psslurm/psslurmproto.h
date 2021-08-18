@@ -289,6 +289,13 @@ typedef struct {
     uint16_t flags;		/**< flags e.g. KILL_JOB_BATCH */
 } Req_Job_Kill_t;
 
+/** Holding all information for RPC MESSAGE_EPILOG_COMPLETE */
+typedef struct {
+    uint32_t jobid;		/**< unique job identifier */
+    uint32_t rc;		/**< epilogue return code */
+    char *nodeName;		/**< local hostname */
+} Req_Epilog_Complete_t;
+
 /** Slurm protocol version */
 extern uint32_t slurmProto;
 

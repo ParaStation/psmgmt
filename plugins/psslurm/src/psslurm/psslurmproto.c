@@ -3144,19 +3144,19 @@ void sendJobExit(Job_t *job, uint32_t exit_status)
 
 void sendEpilogueComplete(uint32_t jobid, uint32_t rc)
 {
-    PS_SendDB_t body = { .bufUsed = 0, .useFrag = false };
+    fdbg(PSSLURM_LOG_PELOG, "allocation %u to slurmctld\n", jobid);
 
-    mdbg(PSSLURM_LOG_PELOG, "%s: allocation %u to slurmctld\n",
-	 __func__, jobid);
+    Req_Epilog_Complete_t msg = {
+	.jobid = jobid,
+	.rc = rc,
+	.nodeName = getConfValueC(&Config, "SLURM_HOSTNAME")
+    };
 
-    /* jobid */
-    addUint32ToMsg(jobid, &body);
-    /* return code */
-    addUint32ToMsg(rc, &body);
-    /* node_name */
-    addStringToMsg(getConfValueC(&Config, "SLURM_HOSTNAME"), &body);
+    Req_Info_t *req = ucalloc(sizeof(*req));
+    req->type = MESSAGE_EPILOG_COMPLETE;
+    req->jobid = jobid;
 
-    sendSlurmMsg(SLURMCTLD_SOCK, MESSAGE_EPILOG_COMPLETE, &body);
+    sendSlurmReq(req, &msg);
 }
 
 void sendDrainNode(const char *nodeList, const char *reason)
