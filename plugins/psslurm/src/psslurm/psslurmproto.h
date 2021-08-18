@@ -23,7 +23,7 @@
 typedef struct {
     uint32_t jobid;		/**< unique job identifier */
     uint32_t stepid;		/**< unique step identifier */
-    uint32_t stepHetComp;	/**< TODO */
+    uint32_t stepHetComp;	/**< step het component identifier */
     uint32_t packJobid;		/**< unique pack job identifier */
     uint32_t jobstate;		/**< state of the job */
     uid_t uid;			/**< user ID of request sender */
@@ -39,7 +39,7 @@ typedef struct {
 typedef struct {
     uint32_t jobid;		/**< unique job identifier */
     uint32_t stepid;		/**< unique step identifier */
-    uint32_t stepHetComp;	/**< TODO */
+    uint32_t stepHetComp;	/**< step het component identifier */
     uint16_t signal;		/**< the signal to send */
     uint16_t flags;		/**< various signal options */
     uid_t uid;			/**< user ID of requestor */
@@ -74,7 +74,7 @@ typedef struct {
     uint32_t jobInfoCount;	/**< count of following job infos */
     uint32_t *jobids;		/**< running job IDs */
     uint32_t *stepids;		/**< running step IDs */
-    uint32_t *stepHetComp;	/**< TODO */
+    uint32_t *stepHetComp;	/**< step het component identifier */
     int protoVersion;		/**< protocol version */
     char verStr[64];		/**< version string */
     psAccountEnergy_t eData;	/**< energy accounting data */
@@ -95,6 +95,7 @@ typedef struct {
     list_t *remoteTasks;
 } SlurmAccData_t;
 
+/** Holding information for RPC RESPONSE_SLURMD_STATUS */
 typedef struct {
     time_t startTime;
     time_t now;
@@ -115,11 +116,11 @@ typedef struct {
 
 /** Holding information for RPC RESPONSE_LAUNCH_TASKS */
 typedef struct {
-    uint32_t jobid;
-    uint32_t stepid;
-    uint32_t stepHetComp;
-    const char *nodeName;
-    uint32_t returnCode;
+    uint32_t jobid;		/**< unique job identifier */
+    uint32_t stepid;		/**< unique step identifiert */
+    uint32_t stepHetComp;	/**< step het component identifier */
+    const char *nodeName;	/**< hostname */
+    uint32_t returnCode;	/**< return code signaling success/failure */
     uint32_t countPIDs;
     uint32_t countLocalPIDs;
     uint32_t *localPIDs;
@@ -193,7 +194,7 @@ typedef enum {
 typedef struct {
     uint32_t jobid;		/**< unique job identifier */
     uint32_t stepid;		/**< unique step identifier */
-    uint32_t stepHetComp;	/**< TODO */
+    uint32_t stepHetComp;	/**< step het component identifier */
     uint32_t exitStatus;	/**< exit status */
     uint32_t exitCount;		/**< exit count */
     uint32_t *taskRanks;	/**< Slurm process ranks */
@@ -203,7 +204,7 @@ typedef struct {
 typedef struct {
     uint32_t jobid;		/**< unique job identifier */
     uint32_t stepid;		/**< unique step identifier */
-    uint32_t stepHetComp;	/**< TODO */
+    uint32_t stepHetComp;	/**< step het component identifier */
     uint32_t firstNode;		/**< first node completed the step */
     uint32_t lastNode;		/**< last node completed the step */
     uint32_t exitStatus;	/**< compound step exit status */
@@ -220,7 +221,7 @@ typedef struct {
 typedef struct {
     uint32_t jobid;	    /**< unique job identifier */
     uint32_t stepid;	    /**< unique step identifier */
-    uint32_t stepHetComp;   /**< TODO */
+    uint32_t stepHetComp;   /**< step het component identifier */
     uint16_t numCtlPorts;   /**< number of control ports */
     uint16_t *ctlPorts;	    /**< control ports */
     uint16_t numIOports;    /**< number of I/O ports */
@@ -232,14 +233,14 @@ typedef struct {
 typedef struct {
     uint32_t jobid;	    /**< unique job identifier */
     uint32_t stepid;	    /**< unique step identifier */
-    uint32_t stepHetComp;   /**< TODO */
+    uint32_t stepHetComp;   /**< step het component identifier */
     char *msg;		    /**< the message to send to the job */
 } Req_Job_Notify_t;
 
 /** Holding all information for RPC REQUEST_LAUNCH_PROLOG */
 typedef struct {
     uint32_t jobid;		/**< unique job identifier */
-    uint32_t hetJobid;		/**< TODO */
+    uint32_t hetJobid;		/**< step het component identifier */
     uid_t uid;			/**< unique user identifier */
     gid_t gid;			/**< unique group identifier */
     char *aliasList;		/**< alias list */
