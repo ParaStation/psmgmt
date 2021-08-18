@@ -2135,51 +2135,6 @@ bool __unpackConfigMsg(Slurm_Msg_t *sMsg, Config_Msg_t **confPtr,
     return true;
 }
 
-bool __packUpdateNode(PS_SendDB_t *data, Req_Update_Node_t *update,
-		      const char *caller, const int line)
-{
-    if (!data) {
-	mlog("%s: invalid data pointer from '%s' at %i\n", __func__,
-		caller, line);
-	return false;
-    }
-
-    if (!update) {
-	mlog("%s: invalid update pointer from '%s' at %i\n", __func__,
-		caller, line);
-	return false;
-    }
-
-    if (slurmProto >= SLURM_20_11_PROTO_VERSION) {
-	/* comment */
-	addStringToMsg(update->comment, data);
-    }
-    /* default cpu bind type */
-    addUint32ToMsg(update->cpuBind, data);
-    /* new features */
-    addStringToMsg(update->features, data);
-    /* new active features */
-    addStringToMsg(update->activeFeat, data);
-    /* new generic resources */
-    addStringToMsg(update->gres, data);
-    /* node address */
-    addStringToMsg(update->nodeAddr, data);
-    /* node hostname */
-    addStringToMsg(update->hostname, data);
-    /* nodelist */
-    addStringToMsg(update->nodeList, data);
-    /* node state */
-    addUint32ToMsg(update->nodeState, data);
-    /* reason */
-    addStringToMsg(update->reason, data);
-    /* reason user ID */
-    addUint32ToMsg(update->reasonUID, data);
-    /* new weight */
-    addUint32ToMsg(update->weight, data);
-
-    return true;
-}
-
 bool __packMsgTaskExit(PS_SendDB_t *data, Msg_Task_Exit_t *msg,
 		       const char *caller, const int line)
 {
@@ -2526,6 +2481,56 @@ static bool packReqEpilogComplete(PS_SendDB_t *data, Req_Epilog_Complete_t *req,
     return true;
 }
 
+/**
+ * @brief Pack node update request data
+ *
+ * Pack node update request data and add it to the provided data
+ * buffer.
+ *
+ * @param data Data buffer to save data to
+ *
+ * @param update The data to pack into the message
+ *
+ * @param caller Function name of the calling function
+ *
+ * @param line Line number where this function is called
+ *
+ * @return On success true is returned or false in case of an
+ * error. If writing was not successful, @a data might be not updated.
+ */
+bool packUpdateNode(PS_SendDB_t *data, Req_Update_Node_t *update,
+		    const char *caller, const int line)
+{
+    if (slurmProto >= SLURM_20_11_PROTO_VERSION) {
+	/* comment */
+	addStringToMsg(update->comment, data);
+    }
+    /* default cpu bind type */
+    addUint32ToMsg(update->cpuBind, data);
+    /* new features */
+    addStringToMsg(update->features, data);
+    /* new active features */
+    addStringToMsg(update->activeFeat, data);
+    /* new generic resources */
+    addStringToMsg(update->gres, data);
+    /* node address */
+    addStringToMsg(update->nodeAddr, data);
+    /* node hostname */
+    addStringToMsg(update->hostname, data);
+    /* nodelist */
+    addStringToMsg(update->nodeList, data);
+    /* node state */
+    addUint32ToMsg(update->nodeState, data);
+    /* reason */
+    addStringToMsg(update->reason, data);
+    /* reason user ID */
+    addUint32ToMsg(update->reasonUID, data);
+    /* new weight */
+    addUint32ToMsg(update->weight, data);
+
+    return true;
+}
+
 bool packSlurmReq(Req_Info_t *reqInfo, PS_SendDB_t *msg, void *reqData,
 		  const char *caller, const int line)
 {
@@ -2560,6 +2565,8 @@ bool packSlurmReq(Req_Info_t *reqInfo, PS_SendDB_t *msg, void *reqData,
 	    return packReqKillJob(msg, reqData, caller, line);
 	case MESSAGE_EPILOG_COMPLETE:
 	    return packReqEpilogComplete(msg, reqData, caller, line);
+	case REQUEST_UPDATE_NODE:
+	    return packUpdateNode(msg, reqData, caller, line);
 	default:
 	    flog("request %s pack function not found, caller %s:%i\n",
 		 msgType2String(reqInfo->type), caller, line);

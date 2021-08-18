@@ -3161,19 +3161,19 @@ void sendEpilogueComplete(uint32_t jobid, uint32_t rc)
 
 void sendDrainNode(const char *nodeList, const char *reason)
 {
-    PS_SendDB_t msg = { .bufUsed = 0, .useFrag = false };
+    Req_Update_Node_t update;
+    memset(&update, 0, sizeof(update));
 
-    Req_Update_Node_t req;
-    memset(&req, 0, sizeof(req));
+    update.weight = NO_VAL;
+    update.nodeList = nodeList;
+    update.reason = reason;
+    update.reasonUID = getuid();
+    update.nodeState = NODE_STATE_DRAIN;
 
-    req.weight = NO_VAL;
-    req.nodeList = nodeList;
-    req.reason = reason;
-    req.reasonUID = getuid();
-    req.nodeState = NODE_STATE_DRAIN;
+    Req_Info_t *req = ucalloc(sizeof(*req));
+    req->type = REQUEST_UPDATE_NODE;
 
-    packUpdateNode(&msg, &req);
-    sendSlurmMsg(SLURMCTLD_SOCK, REQUEST_UPDATE_NODE, &msg);
+    sendSlurmReq(req, &update);
 }
 
 void activateConfigCache(char *confDir)
