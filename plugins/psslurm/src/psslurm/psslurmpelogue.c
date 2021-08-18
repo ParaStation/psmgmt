@@ -217,7 +217,6 @@ bool startPElogue(Alloc_t *alloc, PElogueType_t type)
     env_t clone;
 
     PSnodes_ID_t myNode = PSC_getMyID();
-
     /* TODO: if slurmctld prologue is removed, only the prologue
      * should add a new job */
 

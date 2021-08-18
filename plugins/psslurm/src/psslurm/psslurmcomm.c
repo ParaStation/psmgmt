@@ -795,8 +795,10 @@ static int handleSlurmctldReply(Slurm_Msg_t *sMsg, void *info)
 	}
 	mlog("\n");
     } else {
-	fdbg(PSSLURM_LOG_COMM, "got SLURM_SUCCESS for req %s jobid %u\n",
-	     msgType2String(req->type), req->jobid);
+	if (req) {
+	    fdbg(PSSLURM_LOG_COMM, "got SLURM_SUCCESS for req %s jobid %u\n",
+		 msgType2String(req->type), req->jobid);
+	}
     }
 
 CLEANUP:

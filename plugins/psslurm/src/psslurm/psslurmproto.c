@@ -1568,6 +1568,67 @@ static void handleForwardData(Slurm_Msg_t *sMsg)
     sendSlurmRC(sMsg, ESLURM_NOT_SUPPORTED);
 }
 
+static void sendJobKill(uint32_t jobid, uint32_t stepid, uint16_t signal)
+{
+    Req_Job_Kill_t kill = {
+	.jobid = jobid,
+	.stepid = stepid,
+	.stepHetComp = NO_VAL,
+	.signal = signal,
+	.flags = 0,
+	.sibling = NULL
+    };
+
+    /* send request to slurmctld */
+    Req_Info_t *req = ucalloc(sizeof(*req));
+    req->type = REQUEST_KILL_JOB;
+    req->jobid = jobid;
+
+    sendSlurmReq(req, &kill);
+}
+
+static int handleRespJobRequeue(Slurm_Msg_t *sMsg, void *info)
+{
+    Req_Info_t *req = info;
+    char **ptr = &sMsg->ptr;
+    uint32_t rc;
+    getUint32(ptr, &rc);
+
+    if (rc == ESLURM_DISABLED || rc == ESLURM_BATCH_ONLY) {
+	flog("cancel job %u\n", req->jobid);
+	sendJobKill(req->jobid, req->stepid, SIGKILL);
+    } else if (rc != SLURM_SUCCESS) {
+	flog("error: response %s rc %s sock %i for request %s jobid %u\n",
+	     msgType2String(sMsg->head.type), slurmRC2String(rc), sMsg->sock,
+	     msgType2String(req->type), req->jobid);
+    }
+
+    return 0;
+}
+
+static void sendJobRequeue(uint32_t jobid)
+{
+    Req_Job_Requeue_t requeue = { .jobid = jobid };
+
+    /* cancel or requeue the job on error */
+    bool nohold = confHasOpt(&SlurmConfig, "SchedulerParameters",
+			     "nohold_on_prolog_fail");
+
+    requeue.flags = nohold ? SLURM_JOB_PENDING :
+		(SLURM_JOB_REQUEUE_HOLD | SLURM_JOB_LAUNCH_FAILED);
+
+    /* send request to slurmctld */
+    Req_Info_t *req = ucalloc(sizeof(*req));
+    req->type = REQUEST_JOB_REQUEUE;
+    req->jobid = jobid;
+    req->stepid = NO_VAL; /* kill complete job */
+    req->cb = &handleRespJobRequeue;
+
+    flog("%u\n", jobid);
+
+    sendSlurmReq(req, &requeue);
+}
+
 void sendPrologComplete(uint32_t jobid, uint32_t rc)
 {
     Req_Prolog_Comp_t data = { .jobid = jobid, .rc = rc };
@@ -1577,6 +1638,13 @@ void sendPrologComplete(uint32_t jobid, uint32_t rc)
     req->jobid = jobid;
 
     sendSlurmReq(req, &data);
+
+    if (rc != SLURM_SUCCESS) {
+	flog("prologue failed, requeuing job %u\n", jobid);
+
+	/* psslurm needs to re-queue the job */
+	sendJobRequeue(jobid);
+     }
 }
 
 static void handleLaunchProlog(Slurm_Msg_t *sMsg)
@@ -1625,10 +1693,10 @@ static void handleLaunchProlog(Slurm_Msg_t *sMsg)
     alloc->gresList = req->gresList;
 
     if (alloc->state == A_INIT) {
-	flog("starting prologue now\n");
+	flog("starting local prologue for allocation %u\n", req->jobid);
 	startPElogue(alloc, PELOGUE_PROLOGUE);
     } else {
-	flog("prologue already started by slurmctld prologue\n");
+	flog("prologue for allocation %u already executed\n", req->jobid);
 	/* let the slurmctld know the prologue has finished */
 	sendPrologComplete(req->jobid, SLURM_SUCCESS);
     }
@@ -2564,8 +2632,6 @@ void clearSlurmdProto(void)
 
 void sendNodeRegStatus(bool startup)
 {
-    struct utsname sys;
-
     Resp_Node_Reg_Status_t stat;
     memset(&stat, 0, sizeof(stat));
 
@@ -2581,6 +2647,7 @@ void sendNodeRegStatus(bool startup)
     /* node_name */
     stat.nodeName = getConfValueC(&Config, "SLURM_HOSTNAME");
     /* architecture */
+    struct utsname sys;
     uname(&sys);
     stat.arch = sys.machine;
     /* os */

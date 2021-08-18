@@ -2434,6 +2434,85 @@ static bool packReqJobInfoSingle(PS_SendDB_t *data, Req_Job_Info_Single_t *req,
     return true;
 }
 
+/**
+ * @brief Pack a job requeue request
+ *
+ * Pack request job requeue and add it to the provided data
+ * buffer.
+ *
+ * @param data Data buffer to save data to
+ *
+ * @param req The data to pack
+ *
+ * @param caller Function name of the calling function
+ *
+ * @param line Line number where this function is called
+ *
+ * @return On success true is returned or false in case of an
+ * error. If writing was not successful, @a data might be not updated.
+ */
+bool packReqJobRequeue(PS_SendDB_t *data, Req_Job_Requeue_t *req,
+		       const char *caller, const int line)
+{
+    /* jobid */
+    addUint32ToMsg(req->jobid, data);
+    /* jobid as string*/
+    char sjobid[1024];
+    snprintf(sjobid, sizeof(sjobid), "%u", req->jobid);
+    addStringToMsg(sjobid, data);
+    /* flags */
+    addUint32ToMsg(req->flags, data);
+
+    return true;
+}
+
+/**
+ * @brief Pack a kill job request
+ *
+ * Pack request kill job and add it to the provided data
+ * buffer.
+ *
+ * @param data Data buffer to save data to
+ *
+ * @param req The data to pack
+ *
+ * @param caller Function name of the calling function
+ *
+ * @param line Line number where this function is called
+ *
+ * @return On success true is returned or false in case of an
+ * error. If writing was not successful, @a data might be not updated.
+ */
+static bool packReqKillJob(PS_SendDB_t *data, Req_Job_Kill_t *req,
+			   const char *caller, const int line)
+{
+    char sjobid[1024];
+
+    if (slurmProto >= SLURM_20_11_PROTO_VERSION) {
+	/* step header */
+	packStepHead(req, data);
+	/* jobid as string*/
+	snprintf(sjobid, sizeof(sjobid), "%u", req->jobid);
+	addStringToMsg(sjobid, data);
+    } else {
+	/* jobid as string*/
+	snprintf(sjobid, sizeof(sjobid), "%u", req->jobid);
+	addStringToMsg(sjobid, data);
+	/* jobid / stepid */
+	addUint32ToMsg(req->jobid, data);
+	addUint32ToMsg(req->stepid, data);
+    }
+
+    /* sibling */
+    addStringToMsg(req->sibling, data);
+    /* signal */
+    addUint16ToMsg(req->signal, data);
+    /* flags */
+    addUint16ToMsg(req->flags, data);
+
+    return true;
+}
+
 bool packSlurmReq(Req_Info_t *reqInfo, PS_SendDB_t *msg, void *reqData,
 		  const char *caller, const int line)
 {
@@ -2461,6 +2540,11 @@ bool packSlurmReq(Req_Info_t *reqInfo, PS_SendDB_t *msg, void *reqData,
 	    return packReqJobInfoSingle(msg, reqData, caller, line);
 	case REQUEST_COMPLETE_PROLOG:
 	    return packReqPrologComplete(msg, reqData, caller, line);
+	case REQUEST_JOB_REQUEUE:
+	    reqInfo->expRespType = RESPONSE_SLURM_RC;
+	    return packReqJobRequeue(msg, reqData, caller, line);
+	case REQUEST_KILL_JOB:
+	    return packReqKillJob(msg, reqData, caller, line);
 	default:
 	    flog("request %s pack function not found, caller %s:%i\n",
 		 msgType2String(reqInfo->type), caller, line);

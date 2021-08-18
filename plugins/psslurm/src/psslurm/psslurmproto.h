@@ -272,6 +272,23 @@ typedef struct {
     uint16_t flags;		/**< job flags */
 } Req_Job_Info_Single_t;
 
+/** Holding all information for RPC REQUEST_JOB_REQUEUE */
+typedef struct {
+    uint32_t jobid;		/**< unique job identifier */
+    uint32_t flags;		/**< flags including pending, hold, failed */
+} Req_Job_Requeue_t;
+
+/** Holding all information for RPC REQUEST_KILL_JOB */
+typedef struct {
+    uint32_t jobid;		/**< unique job identifier */
+    uint32_t stepid;		/**< unique step identifier */
+    uint32_t stepHetComp;	/**< step het component identifier */
+    char *sJobId;		/**< jobid as string */
+    char *sibling;		/**< kill job siblings */
+    uint16_t signal;		/**< signal to send */
+    uint16_t flags;		/**< flags e.g. KILL_JOB_BATCH */
+} Req_Job_Kill_t;
+
 /** Slurm protocol version */
 extern uint32_t slurmProto;
 
