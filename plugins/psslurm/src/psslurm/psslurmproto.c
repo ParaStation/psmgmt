@@ -433,7 +433,7 @@ int requestJobInfo(uint32_t jobid)
     req->jobid = jobid;
     req->cb = &handleJobInfoResp;
 
-    return sendSlurmReq(req, &jobInfo);
+    return sendSlurmctldReq(req, &jobInfo);
 }
 
 uint32_t getLocalID(PSnodes_ID_t *nodes, uint32_t nrOfNodes)
@@ -1584,7 +1584,7 @@ static void sendJobKill(uint32_t jobid, uint32_t stepid, uint16_t signal)
     req->type = REQUEST_KILL_JOB;
     req->jobid = jobid;
 
-    sendSlurmReq(req, &kill);
+    sendSlurmctldReq(req, &kill);
 }
 
 static int handleRespJobRequeue(Slurm_Msg_t *sMsg, void *info)
@@ -1626,7 +1626,7 @@ static void sendJobRequeue(uint32_t jobid)
 
     flog("%u\n", jobid);
 
-    sendSlurmReq(req, &requeue);
+    sendSlurmctldReq(req, &requeue);
 }
 
 void sendPrologComplete(uint32_t jobid, uint32_t rc)
@@ -1637,7 +1637,7 @@ void sendPrologComplete(uint32_t jobid, uint32_t rc)
     req->type = REQUEST_COMPLETE_PROLOG;
     req->jobid = jobid;
 
-    sendSlurmReq(req, &data);
+    sendSlurmctldReq(req, &data);
 
     if (rc != SLURM_SUCCESS) {
 	flog("prologue failed, requeuing job %u\n", jobid);
@@ -2706,7 +2706,7 @@ void sendNodeRegStatus(bool startup)
     req->type = MESSAGE_NODE_REGISTRATION_STATUS;
     req->cb = &handleSlurmdMsg;
 
-    sendSlurmReq(req, &stat);
+    sendSlurmctldReq(req, &stat);
 
     /* free data */
     ufree(stat.jobids);
@@ -3156,7 +3156,7 @@ void sendEpilogueComplete(uint32_t jobid, uint32_t rc)
     req->type = MESSAGE_EPILOG_COMPLETE;
     req->jobid = jobid;
 
-    sendSlurmReq(req, &msg);
+    sendSlurmctldReq(req, &msg);
 }
 
 void sendDrainNode(const char *nodeList, const char *reason)
@@ -3173,7 +3173,7 @@ void sendDrainNode(const char *nodeList, const char *reason)
     Req_Info_t *req = ucalloc(sizeof(*req));
     req->type = REQUEST_UPDATE_NODE;
 
-    sendSlurmReq(req, &update);
+    sendSlurmctldReq(req, &update);
 }
 
 void activateConfigCache(char *confDir)

@@ -1020,8 +1020,8 @@ int __sendSlurmMsgEx(int sock, Slurm_Msg_Header_t *head, PS_SendDB_t *body,
     return ret;
 }
 
-int __sendSlurmReq(Req_Info_t *req, void *data,
-		   const char *caller, const int line)
+int __sendSlurmctldReq(Req_Info_t *req, void *data,
+		       const char *caller, const int line)
 {
     int ret = -1;
 

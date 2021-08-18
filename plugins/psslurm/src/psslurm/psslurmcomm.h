@@ -185,11 +185,11 @@ int __sendSlurmMsgEx(int sock, Slurm_Msg_Header_t *head, PS_SendDB_t *body,
  * @return Returns the number of bytes written, -1 on error or -2 if
  * the message was stored and will be send out later
  */
-int __sendSlurmReq(Req_Info_t *req, void *data,
-		   const char *caller, const int line);
+int __sendSlurmctldReq(Req_Info_t *req, void *data,
+		       const char *caller, const int line);
 
-#define sendSlurmReq(req, data) \
-    __sendSlurmReq(req, data, __func__, __LINE__)
+#define sendSlurmctldReq(req, data) \
+    __sendSlurmctldReq(req, data, __func__, __LINE__)
 
 /**
  * @brief Send a PS data buffer
