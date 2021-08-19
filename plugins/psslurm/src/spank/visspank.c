@@ -18,7 +18,7 @@ static char *_supported[] = {
 
 static int spank_option_cb(int val, const char *optarg, int remote)
 {
-    if (NULL == optarg) {
+    if (NULL == optarg || !strcmp(optarg, "(null)")) {
 	_start_xserver = strdup("0,1");
     } else {
 	_start_xserver = strdup(optarg);
