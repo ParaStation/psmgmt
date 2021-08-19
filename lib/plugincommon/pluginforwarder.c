@@ -769,7 +769,7 @@ static void sigChldCB(int estatus, PStask_t *task)
     plugindbg(PLUGIN_LOG_FW, " TID %s returns %d\n",
 	      PSC_printTID(task->tid), estatus);
 
-    fw->fwExitStatus = estatus;
+    if (fw) fw->fwExitStatus = estatus;
 
     if (task->fd == -1) {
 	if (fw && fw->callback) fw->callback(fw->fwExitStatus, fw);

@@ -2,6 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2014-2017 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2021 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -48,10 +49,9 @@ bool addUser(char *username, char *jobID, PSPAMState_t state)
 
 User_t *findUser(char *username, char *jobID)
 {
-    list_t *u;
-
     if (!username) return NULL;
 
+    list_t *u;
     list_for_each(u, &userList) {
 	User_t *user = list_entry(u, User_t, next);
 	if (jobID && strcmp(user->jobID, jobID)) continue;

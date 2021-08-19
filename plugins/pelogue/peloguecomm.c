@@ -672,8 +672,6 @@ static void dropMsgAndCancel(DDTypedBufferMsg_t *msg)
     char *jobid = getStringM(&ptr);
 
     Job_t *job = findJobById(plugin, jobid);
-    free(plugin);
-    free(jobid);
     if (!job) {
 	char *type;
 	switch (msg->type) {
@@ -689,8 +687,12 @@ static void dropMsgAndCancel(DDTypedBufferMsg_t *msg)
 	}
 	mlog("%s(%s): plugin '%s' job '%s' not found\n", __func__, type,
 	     plugin, jobid);
+	free(plugin);
+	free(jobid);
 	return;
     }
+    free(plugin);
+    free(jobid);
 
     bool prologue = msg->type == PSP_PROLOGUE_START;
     setJobNodeStatus(job, PSC_getID(msg->header.dest), prologue,

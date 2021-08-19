@@ -618,6 +618,11 @@ static int callbackPElogue(int fd, PSID_scriptCBInfo_t *info)
 	return 0;
     }
 
+    if (!data) {
+	mlog("%s: no data\n", __func__);
+	return 0;
+    }
+
     /* log error locally and forward to mother superior */
     if (errMsg[0] != '\0' && strlen(errMsg) > 0) {
 	mlog("job '%s': %s", data->jobid, errMsg);

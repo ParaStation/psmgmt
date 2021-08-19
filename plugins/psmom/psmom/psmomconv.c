@@ -2,6 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2010-2021 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2021 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -291,9 +292,7 @@ int ReadDigitUL(ComHandle_t *com, unsigned long *digit)
  */
 static int filterDataEntry(const Data_Filter_t *filter, char *name, char *value)
 {
-    int i;
-
-    for (i=0; i<DataFilterCount; i++) {
+    for (int i = 0; i < DataFilterCount; i++) {
 	if (!(strcmp(name, DataFilterJob[i].name))) {
 	    if (DataFilterJob[i].ignore) return 0;
 	    return 1;
@@ -306,56 +305,57 @@ static int filterDataEntry(const Data_Filter_t *filter, char *name, char *value)
 int ReadDataStruct(ComHandle_t *com, size_t len, list_t *list,
 		   const Data_Filter_t *filter)
 {
-    char *name = NULL;
-    char *resource = NULL;
-    char *value = NULL;
-    size_t vlen, value_len, name_len;
-    unsigned int i;
-    unsigned int end;
-    unsigned int nlen;
-    unsigned int resname;
+    for (unsigned int i = 0; i < len; i++) {
+	size_t dummy;
 
-    for (i=0; i<len; i++) {
-	if ((ReadDigitUI(com, &nlen)) == -1) {
-	    mlog("%s: protocol error while reading data struct level 1\n", __func__);
+	unsigned int nlen = 0;
+	if (ReadDigitUI(com, &nlen) == -1) {
+	    mlog("%s: protocol error while reading data struct level 1\n",
+		 __func__);
 	    return -1;
 	}
 
 	/* read name */
-	if (!(name = ReadStringEx(com, &name_len))) {
+	size_t name_len;
+	char *name = ReadStringEx(com, &name_len);
+	if (!name) {
 	    mlog("%s: invalid name entry\n", __func__);
 	    continue;
 	}
 
-	if ((ReadDigitUI(com, &resname)) == -1) {
-	    mlog("%s: protocol error while reading data struct level 2, name '%s'\n",
-		__func__, name);
+	unsigned int resname = 0;
+	if (ReadDigitUI(com, &resname) == -1) {
+	    mlog("%s: protocol error while reading data struct level 2,"
+		 " name '%s'\n", __func__, name);
 	    ufree(name);
 	    return -1;
 	}
+	char *resource = NULL;
 	if (resname) {
 	    /* read value */
-	    if (!(resource = ReadStringEx(com, &vlen))) {
+	    resource = ReadStringEx(com, &dummy);
+	    if (!resource) {
 		mlog("%s: invalid resource entry\n", __func__);
 		ufree(name);
 		continue;
 	    }
-	} else {
-	    resource = NULL;
 	}
 
 	/* read value */
-	if (!(value = ReadStringEx(com, &value_len))) {
+	size_t value_len;
+	char *value = ReadStringEx(com, &value_len);
+	if (!value) {
 	    mlog("%s: invalid value entry\n", __func__);
 	    ufree(name);
 	    ufree(resource);
 	    continue;
 	}
 
-	if ((ReadDigitUI(com, &end)) == -1) {
+	unsigned int end = 0;
+	if (ReadDigitUI(com, &end) == -1) {
 	    mlog("%s: protocol error while reading data struct level 3"
-		", name(%zu) '%s' value(%zu) '%s'\n", __func__, name_len,
-		name, value_len, value);
+		 ", name(%zu) '%s' value(%zu) '%s'\n", __func__, name_len,
+		 name, value_len, value);
 	    ufree(name);
 	    ufree(resource);
 	    return -1;
@@ -365,11 +365,12 @@ int ReadDataStruct(ComHandle_t *com, size_t len, list_t *list,
 	    //mlog("%s: invalid data end '%i'\n", __func__, end);
 	}
 
-	mdbg(PSMOM_LOG_STRUCT, "%s: (%i/%zu): len:%u name:%s resource:%s value:%s "
-	    "end:%i\n", __func__, i+1, len, nlen, name, resource, value, end);
+	mdbg(PSMOM_LOG_STRUCT, "%s: (%i/%zu): len:%u name:%s resource:%s"
+	     " value:%s end:%i\n", __func__, i+1, len, nlen, name, resource,
+	     value, end);
 
 	if (filter) {
-	    if ((filterDataEntry(filter, name, value))) {
+	    if (filterDataEntry(filter, name, value)) {
 		setEntry(list, name, resource, value);
 	    }
 	} else {
@@ -463,25 +464,20 @@ int __ReadString(ComHandle_t *com, char *buffer, size_t len, const char *caller)
 
 char *__ReadStringEx(ComHandle_t *com, size_t *len, const char *func)
 {
-    int ret;
-    ssize_t read;
-    char *data = NULL;
-
     *len = 0;
-    if ((ret = ReadDigitUL(com, (unsigned long *) len)) < 0) {
+    if (ReadDigitUL(com, (unsigned long *) len) < 0) {
 	mlog("%s: reading string len for '%s' failed\n", __func__, func);
 	return NULL;
     }
 
-    data = umalloc(*len + 1);
-
+    char *data = umalloc(*len + 1);
     mdbg(PSMOM_LOG_CONVERT, "%s: reading len:%zu for '%s'\n", __func__, *len,
-	func);
+	 func);
 
-    if ((read = wReadT(com, data, *len + 1, *len)) != (ssize_t) *len) {
+    ssize_t read = wReadT(com, data, *len + 1, *len);
+    if (read != (ssize_t)*len) {
 	mlog("%s: reading string for '%s' failed : read '%zi' len '%zu' str"
-		" '%s'\n", __func__, func,
-	    read, *len, data);
+	     " '%s'\n", __func__, func, read, *len, data);
 	ufree(data);
 	return NULL;
     }

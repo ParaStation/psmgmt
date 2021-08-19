@@ -2,6 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2010-2018 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2021 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -29,8 +30,7 @@ void recoverJobInfo()
     struct dirent *d;
     DIR *dir;
     char accFile[400], value[100] = {'\0'}, buf[101] = {'\0'};
-    char *jobid, *servername, *tmp;
-    int ret;
+    char *jobid, *servername;
     Job_t *job;
     struct passwd *result;
 
@@ -85,10 +85,10 @@ void recoverJobInfo()
 	job->user = ustrdup(buf);
 
 	/* read saved accounting data */
-	while ((ret = fscanf(fp, "%100s\n", buf)) == 1) {
-	    if (!(tmp = strchr(buf, '='))) {
-		mlog("%s: ignore invalid account entry '%s'\n", __func__,
-			buf);
+	while (fscanf(fp, "%100s\n", buf) == 1) {
+	    char *tmp = strchr(buf, '=');
+	    if (!tmp) {
+		mlog("%s: ignore invalid account entry '%s'\n", __func__, buf);
 		continue;
 	    }
 	    snprintf(value, sizeof(value), "%s", tmp + 1);

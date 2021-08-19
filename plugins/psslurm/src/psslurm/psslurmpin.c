@@ -640,7 +640,8 @@ static void getBindMapFromString(PSCPU_set_t *CPUset, uint16_t cpuBindType,
 		 PSCPU_print(*CPUset));
 	    free(myent);
 	    return;
-	} else if (cpuBindType & CPU_BIND_LDMASK) {
+	} else {
+	    // cpuBindType & CPU_BIND_LDMASK
 	    if (!myent) {
 		flog("invalid socket mask string '%s'\n", cpuBindString);
 		goto error;

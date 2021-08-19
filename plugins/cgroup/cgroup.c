@@ -2,6 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2016-2021 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2021 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -403,8 +404,7 @@ static void showLimit(char *lName, char **buf, size_t *bufSize)
 	str2Buf("<unknown limit>\n", buf, bufSize);
 	return;
     }
-    int ret;
-    if ((ret=fscanf(fp, "%zu", &limit)) != 1) {
+    if (fscanf(fp, "%zu", &limit) != 1) {
 	str2Buf("<unknown>", buf, bufSize);
     } else {
 	char limitStr[32];

@@ -444,7 +444,7 @@ void setResourceLimits(Job_t *job)
 
 int sendPElogueStart(Job_t *job, bool prologue)
 {
-    char *jobUserName, *group, *limits, *queue, *jobtype;
+    char *group, *limits, *queue, *jobtype;
     char buf[300], *res_used = NULL, *gpu = NULL;
     PS_SendDB_t data;
     int32_t timeout, type, i;
@@ -476,11 +476,12 @@ int sendPElogueStart(Job_t *job, bool prologue)
     addTimeToMsg(job->start_time, &data);
 
     /* add users job name */
-    if (!(jobUserName = getJobDetail(&job->data, "Job_Name", NULL))) {
+    char *jobUserName = getJobDetail(&job->data, "Job_Name", NULL);
+    if (!jobUserName) {
 	mlog("%s: can't find job_name for job '%s'\n", __func__, job->id);
 	return 0;
     }
-    addStringToMsg(getJobDetail(&job->data, "Job_Name", NULL), &data);
+    addStringToMsg(jobUserName, &data);
 
     /* add user name */
     addStringToMsg(job->user, &data);

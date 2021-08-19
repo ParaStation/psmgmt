@@ -2,6 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2010-2018 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2021 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -702,7 +703,6 @@ int findJobCookie(char *cookie, pid_t pid)
     char buf[200];
     char *ptr, *line = NULL;
     FILE *fd;
-    ssize_t read;
     size_t len = 0;
     int found = 0;
 
@@ -718,7 +718,7 @@ int findJobCookie(char *cookie, pid_t pid)
 	return 0;
     }
 
-    while ((read = getdelim(&line, &len, '\0', fd)) != -1) {
+    while (getdelim(&line, &len, '\0', fd) != -1) {
 	if (!strncmp("PBS_JOBCOOKIE=", line, 14)) {
 	    ptr = line + 14;
 	    if (!strcmp(ptr, cookie)) {

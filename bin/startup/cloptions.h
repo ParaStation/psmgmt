@@ -2,6 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2017-2018 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2021 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -37,6 +38,7 @@ typedef struct {
     int np;             /**< Total number of processes to start */
     Executable_t *exec; /**< Array w/ description of executables to start */
     int execCount;      /**< Number of valid entries in @ref exec */
+    int execMax;        /**< Total number of entries in @ref exec */
     int maxTPP;         /**< Maximum @ref tpp entry in @ref exec */
     int envTPP;         /**< Thread per process requested via environment */
     bool dryrun;        /**< Flag dryrun, i.e. do not spawn processes */

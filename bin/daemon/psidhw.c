@@ -234,6 +234,7 @@ static uint32_t * getDistances(void)
 
 #if HWLOC_API_VERSION >= 0x00020000 /* hwloc 2.x */
     unsigned nr = 0;
+    struct hwloc_distances_s **hwlocDists = NULL;
     int err = hwloc_distances_get_by_depth(topology, HWLOC_TYPE_DEPTH_NUMANODE,
 					   &nr, NULL, 0, 0);
     if (err) {
@@ -244,7 +245,8 @@ static uint32_t * getDistances(void)
 	PSID_log(-1, "%s: no distances found\n", __func__);
 	goto failed;
     }
-    struct hwloc_distances_s **hwlocDists = malloc(nr * sizeof(*hwlocDists));
+    hwlocDists = malloc(nr * sizeof(*hwlocDists));
+    if (!hwlocDists) goto failed;
     err = hwloc_distances_get_by_depth(topology, HWLOC_TYPE_DEPTH_NUMANODE,
 				       &nr, hwlocDists, 0, 0);
     if (err) {
@@ -303,6 +305,7 @@ static uint32_t * getDistances(void)
     for (unsigned i = 0; i < nr; i++) {
 	hwloc_distances_release(topology, hwlocDists[i]);
     }
+    free(hwlocDists);
 #else /* hwloc 1.x */
     const struct hwloc_distances_s *hwlocDists =
 	hwloc_get_whole_distance_matrix_by_type(topology, HWLOC_OBJ_NUMANODE);
@@ -334,6 +337,9 @@ static uint32_t * getDistances(void)
 
 failed:
     free(distances);
+#if HWLOC_API_VERSION >= 0x00020000 /* hwloc 2.x */
+    free(hwlocDists);
+#endif
     return NULL;
 }
 

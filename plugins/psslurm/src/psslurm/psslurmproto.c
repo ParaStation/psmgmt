@@ -163,7 +163,6 @@ bool writeJobscript(Job_t *job)
 {
     FILE *fp;
     char *jobdir, buf[PATH_BUFFER_LEN];
-    int written;
 
     if (!job->jsData) {
 	mlog("%s: invalid jobscript data\n", __func__);
@@ -180,8 +179,7 @@ bool writeJobscript(Job_t *job)
 	return false;
     }
 
-    while ((written = fprintf(fp, "%s", job->jsData)) !=
-	    (int) strlen(job->jsData)) {
+    while (fprintf(fp, "%s", job->jsData) != (int)strlen(job->jsData)) {
 	if (errno == EINTR) continue;
 	mlog("%s: writing jobscript '%s' failed : %s\n", __func__,
 		job->jobscript, strerror(errno));
@@ -2387,7 +2385,6 @@ static const char *autoDetectSlurmVer(void)
     char *line = NULL;
     static char autoVer[32];
     size_t len = 0;
-    ssize_t read;
     bool ret = false;
 
     FILE *fp = fopen(sinfo, "r");
@@ -2400,7 +2397,7 @@ static const char *autoDetectSlurmVer(void)
 	return NULL;
     }
 
-    while ((read = getdelim(&line, &len, '\0', fp)) != -1) {
+    while (getdelim(&line, &len, '\0', fp) != -1) {
 	if (!strncmp(line, "SLURM_VERSION_STRING", 20)) {
 	    if (sscanf(line, "SLURM_VERSION_STRING \"%31s\"", autoVer) == 1) {
 		char *quote = strchr(autoVer, '"');

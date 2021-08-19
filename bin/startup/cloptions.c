@@ -2,6 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2017-2019 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2021 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -18,9 +19,6 @@
 #include "psipartition.h"
 
 #include "cloptions.h"
-
-/** Maximum number of executables currently fitting to conf's exec member */
-static int execMax;
 
 /** set debugging mode and np * gdb to control child processes */
 static int gdb = 0;
@@ -762,10 +760,10 @@ static void saveNextExecutable(Conf_t *conf, int argc, const char **argv)
     char *hwTypeStr, msgStr[128];
     Executable_t *exec;
 
-    if (conf->execCount >= execMax) {
+    if (conf->execCount >= conf->execMax) {
 	Executable_t *newExec;
-	execMax += 16;
-	newExec = realloc(conf->exec, execMax * sizeof(*conf->exec));
+	conf->execMax += 16;
+	newExec = realloc(conf->exec, conf->execMax * sizeof(*conf->exec));
 	if (!newExec) {
 	    fprintf(stderr, "%s: realloc(): %m\n", __func__);
 	    exit(EXIT_FAILURE);
@@ -1099,7 +1097,6 @@ Conf_t * parseCmdOptions(int argc, const char *argv[])
     const char **dup_argv;
     int leftArgc, dup_argc, rc = 0;
     Conf_t *conf = calloc(1, sizeof(*conf));
-    execMax = 0;
 
     /** Set TPP from environment -- if any -- before any command-line parsing */
     char *envStr = getenv("PSI_TPP");

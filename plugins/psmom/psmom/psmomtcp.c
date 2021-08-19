@@ -2,6 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2010-2021 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2021 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -160,7 +161,7 @@ static int tcpAcceptClient(int asocket, void *data)
 
 int tcpBind(int port)
 {
-    int res, sock;
+    int sock;
     int opt = 1;
     struct sockaddr_in saClient;
 
@@ -182,19 +183,17 @@ int tcpBind(int port)
     bzero(&(saClient.sin_zero), 8);
 
     /* bind the socket */
-    res = bind(sock, (struct sockaddr *)&saClient, sizeof(saClient));
-
-    if (res == -1) {
-        mwarn(errno, "%s: bind failed, socket:%i port:%i ", __func__,
-	    sock, port);
+    if (bind(sock, (struct sockaddr *)&saClient, sizeof(saClient)) == -1) {
+	mwarn(errno, "%s: bind failed, socket:%i port:%i ", __func__,
+	      sock, port);
 	return -1;
     }
 
     /* set socket to listen state */
-    if ((res = listen(sock, 5)) == -1) {
-        mwarn(errno, "%s: listen failed, socket:%i port:%i ", __func__,
-	    sock, port);
-        return -1;
+    if (listen(sock, 5) == -1) {
+	mwarn(errno, "%s: listen failed, socket:%i port:%i ", __func__,
+	      sock, port);
+	return -1;
     }
 
     /* add socket to psid selector */

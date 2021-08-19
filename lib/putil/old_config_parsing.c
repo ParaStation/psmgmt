@@ -3,6 +3,7 @@
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
  * Copyright (C) 2005-2021 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2021 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -2076,42 +2077,45 @@ static parser_t nodeline_parser = {" \t\n", nodeline_list};
 
 static int getNodeLine(char *token)
 {
-    in_addr_t ipaddr;
-    int nodenum, ret;
-    char *hostname;
-
-    ipaddr = parser_getHostname(token);
+    in_addr_t ipaddr = parser_getHostname(token);
     if (!ipaddr) return -1;
 
-    hostname = strdup(token);
+    char *hostname = strdup(token);
 
-    ret = parser_getNumValue(parser_getString(), &nodenum, "node number");
+    int nodenum;
+    int ret = parser_getNumValue(parser_getString(), &nodenum, "node number");
     if (ret) {
-	if (hostname) free(hostname);
+	free(hostname);
 	return ret;
     }
 
     ret = setupNodeFromDefault();
     if (ret) {
-	if (hostname) free(hostname);
+	free(hostname);
 	return ret;
     }
 
     parser_comment(PARSER_LOG_NODE, "Register '%s' as %d", hostname, nodenum);
-    free(hostname);
 
     currentID = nodenum;
 
     ret = parser_parseString(parser_getString(), &nodeline_parser);
     parser_comment(PARSER_LOG_NODE, "\n");
-    if (ret) return ret;
+    if (ret) {
+	free(hostname);
+	return ret;
+    }
 
     currentID = DEFAULT_ID;
 
     ret = newHost(nodenum, ipaddr);
-    if (ret) return ret;
+    if (ret) {
+	free(hostname);
+	return ret;
+    }
 
     parser_updateHash(&config.nodeListHash, hostname);
+    free(hostname);
 
     if (PSC_isLocalIP(ipaddr)) {
 	pushAndClearEnv();

@@ -2,6 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2020-2021 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2021 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -511,7 +512,9 @@ bool pluginConfig_addStr(pluginConfig_t conf, const char *key, char *value)
 	val.val.str = strdup(value);
     }
 
-    return pluginConfig_add(conf, key, &val);
+    bool ret = pluginConfig_add(conf, key, &val);
+    if (!ret && val.type == PLUGINCONFIG_VALUE_STR) free(val.val.str);
+    return ret;
 }
 
 bool pluginConfig_addToLst(pluginConfig_t conf, const char *key, char *item)

@@ -2,6 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2017-2021 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2021 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -207,9 +208,8 @@ static char *getUniqueHostnamesString(Conf_t *conf)
 {
     char *buf = NULL;
     size_t bufSize = 0;
-    int i;
 
-    for (i=0; i < numUniqNodes; i++) {
+    for (int i = 0; i < numUniqNodes; i++) {
 	if (i) buf = str2Buf(",", buf, &bufSize);
 
 	buf = str2Buf(getHostByNodeID(jobLocalUniqNodeIDs[i]), buf, &bufSize);
@@ -713,8 +713,6 @@ static void setRankInfos(int np, PSnodes_ID_t node, PSnodes_ID_t *uniqNodeIDs,
  */
 static void extractNodeInformation(PSnodes_ID_t *nodeList, int np)
 {
-    int i;
-
     if (!nodeList) {
 	fprintf(stderr, "%s: invalid nodeList\n", __func__);
 	exit(1);
@@ -726,8 +724,14 @@ static void extractNodeInformation(PSnodes_ID_t *nodeList, int np)
     jobLocalNodeIDs = umalloc(sizeof(*jobLocalNodeIDs) * np);
     nodeLocalProcIDs = umalloc(sizeof(*nodeLocalProcIDs) * np);
 
+    if (!jobLocalUniqNodeIDs || !numProcPerNode || !jobLocalNodeIDs
+	|| !nodeLocalProcIDs) {
+	fprintf(stderr, "%s: invalid nodeList\n", __func__);
+	exit(1);
+    }
+
     /* save the information */
-    for (i=0; i< np; i++) {
+    for (int i = 0; i < np; i++) {
 	setRankInfos(np, nodeList[i], jobLocalUniqNodeIDs, numProcPerNode,
 		     &jobLocalNodeIDs[i], &nodeLocalProcIDs[i]);
     }
@@ -842,11 +846,11 @@ static void sendPMIFail(void)
  */
 static int startProcs(Conf_t *conf)
 {
-    int i, ret = 0, off = 0;
+    int ret = 0, off = 0;
     Executable_t *exec = conf->exec;
 
     /* Create the reservations required later on */
-    for (i=0; i < conf->execCount; i++) {
+    for (int i = 0; i < conf->execCount; i++) {
 	unsigned int got;
 	PSpart_option_t options = (conf->overbook ? PART_OPT_OVERBOOK : 0)
 	    | (conf->loopnodesfirst ? PART_OPT_NODEFIRST : 0)
@@ -873,7 +877,7 @@ static int startProcs(Conf_t *conf)
     /* Collect info on reservations */
     PSnodes_ID_t *nodeList = umalloc(conf->np * sizeof(*nodeList));
 
-    for (i=0; i < conf->execCount; i++) {
+    for (int i = 0; i < conf->execCount; i++) {
 	int got = PSI_infoList(-1, PSP_INFO_LIST_RESNODES, &exec[i].resID,
 			       nodeList+off, (conf->np-off)*sizeof(*nodeList),
 			       false);
@@ -901,7 +905,7 @@ static int startProcs(Conf_t *conf)
     extractNodeInformation(nodeList, conf->np);
 
     if (conf->openMPI && conf->ompiDbg) {
-	for (i=0; i< conf->np; i++) {
+	for (int i = 0; i < conf->np; i++) {
 	    fprintf(stderr, "%s: rank '%i' opmi-nodeID '%i' ps-nodeID '%i'"
 		    " node '%s'\n", __func__, i, jobLocalNodeIDs[i],
 		    nodeList[i], getHostByNodeID(nodeList[i]));
@@ -913,7 +917,7 @@ static int startProcs(Conf_t *conf)
 
     PSI_registerRankEnvFunc(setupRankEnv, conf);
 
-    for (i = 0; i < conf->execCount; i++) {
+    for (int i = 0; i < conf->execCount; i++) {
 	setupExecEnv(conf, i);
 
 	ret = spawnSingleExecutable(exec[i].np, exec[i].argc, exec[i].argv,

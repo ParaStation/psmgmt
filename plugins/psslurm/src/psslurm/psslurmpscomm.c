@@ -317,7 +317,9 @@ static bool genThreadsArray(PSpart_HWThread_t **threads, uint32_t *numThreads,
     list_t *r;
     list_for_each(r, &step->jobCompInfos) {
 	JobCompInfo_t *cur = list_entry(r, JobCompInfo_t, next);
-	addThreadsToArray(threads, numThreads, cur->slots, cur->np);
+	if (!addThreadsToArray(threads, numThreads, cur->slots, cur->np)) {
+	    return false;
+	}
     }
     return true;
 }
@@ -1206,20 +1208,22 @@ static void handleAllocState(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
 
 static bool getSlotsFromMsg(char **ptr, PSpart_slot_t **slots, uint32_t *len)
 {
-    uint16_t CPUbytes;
-
     getUint32(ptr, len);
-
     if (*len == 0) {
 	flog("No slots in message\n");
 	*slots = NULL;
 	return true;
     }
+    *slots = malloc(*len * sizeof(**slots));
+    if (!*slots) {
+	flog("malloc() failed\n");
+	return false;
+    }
 
+    uint16_t CPUbytes;
     getUint16(ptr, &CPUbytes);
-    *slots = umalloc(*len * sizeof(**slots));
-
     fdbg(PSSLURM_LOG_PACK, "len %u CPUbytes %hd\n", *len, CPUbytes);
+
 
     for (size_t s = 0; s < *len; s++) {
 	getUint16(ptr, &((*slots)[s].node));
@@ -1236,8 +1240,7 @@ static bool getSlotsFromMsg(char **ptr, PSpart_slot_t **slots, uint32_t *len)
 
 	*ptr += CPUbytes;
 	fdbg(PSSLURM_LOG_PACK, "slot %zu node %hd cpuset %s\n", s,
-		(*slots)[s].node,
-		PSCPU_print_part((*slots)[s].CPUset, CPUbytes));
+	     (*slots)[s].node, PSCPU_print_part((*slots)[s].CPUset, CPUbytes));
     }
     return true;
 }
@@ -1322,7 +1325,6 @@ static void handlePackInfo(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
 {
     char *ptr = data->buf;
     uint32_t packJobid, stepid, packAllocID, len;
-    Alloc_t *alloc;
 
     /* packJobid  */
     getUint32(&ptr, &packJobid);
@@ -1331,7 +1333,7 @@ static void handlePackInfo(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
     /* pack allocation ID */
     getUint32(&ptr, &packAllocID);
 
-    if (!(alloc = findAllocByPackID(packAllocID))) {
+    if (!findAllocByPackID(packAllocID)) {
 	flog("allocation %u not found\n", packAllocID);
 	return;
     }
@@ -1558,9 +1560,7 @@ static void handlePElogueOE(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
 	return;
     }
 
-    int written;
-    while ((written = fprintf(fp, "%s", msgData)) !=
-	    (int) strlen(msgData)) {
+    while (fprintf(fp, "%s", msgData) != (int)strlen(msgData)) {
 	if (errno == EINTR) continue;
 	flog("writing pelogue log for allocation %u failed : %s\n",
 	     allocID, strerror(errno));

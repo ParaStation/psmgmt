@@ -2,6 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2013-2021 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2021 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -47,7 +48,6 @@ int PSIcomm_init(void)
 
 static int do_send(char *buf, size_t count)
 {
-    int n;
     size_t c = count;
 
     if (PSIcomm_sock == -1) {
@@ -55,7 +55,8 @@ static int do_send(char *buf, size_t count)
 	return -1;
     }
 
-    c = n = count; /*@todo */
+    //int n;
+    //c = n = count; /*@todo */
     return c; /*@todo */
     /* do { */
     /* 	n = (c>sizeof(msg.buf)) ? sizeof(msg.buf) : c; */

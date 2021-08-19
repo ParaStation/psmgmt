@@ -2,6 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2014-2021 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2021 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -1256,6 +1257,9 @@ static bool setEnv(char *key, char *val)
     envent->value = strdup(val);
     if (!envent->name || !envent->value) {
 	parser_comment(-1, "%s: No memory\n", __func__);
+	free(envent->name);
+	free(envent->value);
+	free(envent);
 	return false;
     }
 

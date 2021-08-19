@@ -274,18 +274,18 @@ static bool readMemBindType(char *ptr, uint16_t *memBindType,
     return true;
 }
 
-static void handleExtraNodeInfo(char *value, uint16_t *cpuBindType) {
-    char *cur = value;
-
+static void handleExtraNodeInfo(char *value, uint16_t *cpuBindType)
+{
     /* never override settings from --cpu-bind */
     if (*cpuBindType) return;
 
     /* sockets given */
     *cpuBindType = CPU_BIND_TO_SOCKETS;
-    if ((cur = strstr(cur, ":"))) {
+    char *cur = strstr(value, ":");
+    if (cur) {
 	/* cores given */
 	*cpuBindType = CPU_BIND_TO_CORES;
-	if ((cur = strstr(cur+1, ":"))) {
+	if (strstr(cur+1, ":")) {
 	    /* threads given */
 	    *cpuBindType = CPU_BIND_TO_THREADS;
 	}

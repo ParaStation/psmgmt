@@ -2,6 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2020-2021 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2021 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -508,8 +509,9 @@ static void PCIIDsFromLst(PCI_ID_t **PCI_IDs, const pluginConfigVal_t *val)
     if (!PCI_IDs) return;
     if (!val) {
 	// unset
-	if (*PCI_IDs) free(*PCI_IDs);
+	free(*PCI_IDs);
 	*PCI_IDs = NULL;
+	return;
     }
     if (val->type != PLUGINCONFIG_VALUE_LST) {
 	mlog("%s: value not list\n", __func__);

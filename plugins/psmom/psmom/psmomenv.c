@@ -2,6 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2011-2018 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2021 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -107,16 +108,10 @@ char *getEnvValue(char *name)
  */
 static int countEnv(void)
 {
-    Env_t *env;
-    struct list_head *pos;
     int count = 0;
+    struct list_head *pos;
+    list_for_each(pos, &EnvList.list) count++;
 
-    if (list_empty(&EnvList.list)) return count;
-
-    list_for_each(pos, &EnvList.list) {
-	if ((env = list_entry(pos, Env_t, list)) == NULL) break;
-	count++;
-    }
     return count;
 }
 

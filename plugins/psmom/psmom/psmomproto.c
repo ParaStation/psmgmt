@@ -2,6 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2010-2018 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2021 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -425,9 +426,7 @@ void setPBSNodeOffline(char *server, const char *host, char *note)
 
 Data_Entry_t *getPBSNodeState(char *server, const char *host)
 {
-    ComHandle_t *com;
     int serverPort, cmd, tmp, len;
-    Server_t *serv;
     char hname[HOST_NAME_LEN];
     const char *hostname;
     Data_Entry_t *data;
@@ -444,17 +443,16 @@ Data_Entry_t *getPBSNodeState(char *server, const char *host)
 
     serverPort = getConfValueI(&config, "PORT_SERVER");
 
-    if (!(serv = findServerByrAddr(server))) {
-	mlog("%s: server object for addr '%s' not found\n", __func__,
-		server);
+    if (!findServerByrAddr(server)) {
+	mlog("%s: server object for addr '%s' not found\n", __func__, server);
 	return NULL;
     }
 
     /* open a new connection to pbs_server */
-    if (!(com = wConnect(serverPort, server, TCP_PROTOCOL))) {
+    ComHandle_t *com = wConnect(serverPort, server, TCP_PROTOCOL);
+    if (!com) {
 	mlog("%s: connecting to PBS server addr '%s:%i' failed\n", __func__,
 		server, serverPort);
-
 	return NULL;
     }
 
@@ -504,9 +502,7 @@ static void writePBSNodeStateHeader(ComHandle_t *com, const char *host)
 
 int setPBSNodeState(char *server, char *note, char *state, const char *host)
 {
-    ComHandle_t *com;
     int serverPort, cmd;
-    Server_t *serv;
     Data_Entry_t data;
     char hname[HOST_NAME_LEN];
     const char *hostname;
@@ -523,17 +519,16 @@ int setPBSNodeState(char *server, char *note, char *state, const char *host)
 
     serverPort = getConfValueI(&config, "PORT_SERVER");
 
-    if (!(serv = findServerByrAddr(server))) {
-	mlog("%s: server object for addr '%s' not found\n", __func__,
-		server);
+    if (!findServerByrAddr(server)) {
+	mlog("%s: server object for addr '%s' not found\n", __func__, server);
 	return 1;
     }
 
     /* open a new connection to pbs_server */
-    if (!(com = wConnect(serverPort, server, TCP_PROTOCOL))) {
+    ComHandle_t *com = wConnect(serverPort, server, TCP_PROTOCOL);
+    if (!com) {
 	mlog("%s: connecting to PBS server addr '%s:%i' failed\n", __func__,
-		server, serverPort);
-
+	     server, serverPort);
 	return 1;
     }
 
@@ -974,7 +969,6 @@ static int handle_TM_Bjobscript(ComHandle_t *com)
     size_t jlen, size;
     char jobid[JOB_NAME_LEN];
     unsigned int block, file, end;
-    int jsWritten;
     Job_t *job;
 
     ReadDigitUI(com, &block);
@@ -1027,8 +1021,7 @@ static int handle_TM_Bjobscript(ComHandle_t *com)
 	return send_TM_Error(com, PBSE_UNKJOBID, "Writing Jobscript failed", 1);
     }
 
-    while ((jsWritten = fprintf(fp, "%s", jobscript)) !=
-	    (int) strlen(jobscript)) {
+    while (fprintf(fp, "%s", jobscript) != (int)strlen(jobscript)) {
 	if (errno == EINTR) continue;
 	mlog("%s: writing (%i) jobscript '%s' failed : %s\n", __func__, block,
 		jobscript, strerror(errno));

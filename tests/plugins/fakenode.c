@@ -2,6 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2021 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2021 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -83,8 +84,9 @@ static char * doEval(const char *key, const pluginConfigVal_t *val,
 	// uint32_t mask = val ? val->val.num : 0;
 	// currently ignored
     } else if (!strcmp(key, "Topology")) {
-	if (!val && curTopology) { // unset
-	    resetFakeTopology();
+	if (!val) {
+	    // unset
+	    if (curTopology) resetFakeTopology();
 	    free(curTopology);
 	    curTopology = NULL;
 	    return NULL;
