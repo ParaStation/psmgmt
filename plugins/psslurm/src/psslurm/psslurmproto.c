@@ -1255,13 +1255,13 @@ CLEANUP:
     deleteBCast(bcast);
 }
 
-static int addSlurmAccData(SlurmAccData_t *slurmAccData, PS_SendDB_t *data)
+static int addSlurmAccData(SlurmAccData_t *slurmAccData)
 {
     bool res;
     AccountDataExt_t *accData = &slurmAccData->psAcct;
 
     /* no accounting data */
-    if (!slurmAccData->type) goto PACK_RESPONSE;
+    if (!slurmAccData->type) return accData->numTasks;
 
     if (slurmAccData->childPid) {
 	res = psAccountGetDataByJob(slurmAccData->childPid, accData);
@@ -1275,7 +1275,7 @@ static int addSlurmAccData(SlurmAccData_t *slurmAccData, PS_SendDB_t *data)
 	/* getting account data failed */
 	flog("getting account data for pid %u logger '%s' failed\n",
 	     slurmAccData->childPid, PSC_printTID(slurmAccData->loggerTID));
-	goto PACK_RESPONSE;
+	return accData->numTasks;
     }
 
     uint64_t avgVsize = accData->avgVsizeCount ?
@@ -1312,9 +1312,6 @@ static int addSlurmAccData(SlurmAccData_t *slurmAccData, PS_SendDB_t *data)
 	mlog("%s: warning: total RSS is not sum of #tasks values (%lu!=%u)\n",
 		__func__, accData->avgRssCount, accData->numTasks);
     }
-
-PACK_RESPONSE:
-    packSlurmAccData(data, slurmAccData);
 
     return accData->numTasks;
 }
@@ -1360,7 +1357,8 @@ static void handleStepStat(Slurm_Msg_t *sMsg)
 	.tasks = &step->tasks,
 	.remoteTasks = &step->remoteTasks,
 	.childPid = 0 };
-    uint32_t numTasks = addSlurmAccData(&slurmAccData, msg);
+    uint32_t numTasks = addSlurmAccData(&slurmAccData);
+    packSlurmAccData(msg, &slurmAccData);
     /* correct number of tasks */
     *(uint32_t *)(msg->buf + numTasksUsed) = htonl(numTasks);
 
@@ -1638,6 +1636,8 @@ void sendPrologComplete(uint32_t jobid, uint32_t rc)
     req->jobid = jobid;
 
     sendSlurmctldReq(req, &data);
+
+    flog("job %u return code %s\n", jobid, slurmRC2String(rc));
 
     if (rc != SLURM_SUCCESS) {
 	flog("prologue failed, requeuing job %u\n", jobid);
@@ -2759,11 +2759,9 @@ int __sendSlurmRC(Slurm_Msg_t *sMsg, uint32_t rc, const char *func,
 }
 
 int getSlurmNodeID(PSnodes_ID_t psNodeID, PSnodes_ID_t *nodes,
-		    uint32_t nrOfNodes)
+		   uint32_t nrOfNodes)
 {
-    uint32_t i;
-
-    for (i=0; i<nrOfNodes; i++) {
+    for (uint32_t i=0; i<nrOfNodes; i++) {
 	if (nodes[i] == psNodeID) return i;
     }
     return -1;
@@ -2796,7 +2794,8 @@ void sendStepExit(Step_t *step, uint32_t exitStatus)
 	.tasks = &step->tasks,
 	.remoteTasks = &step->remoteTasks,
 	.childPid = 0 };
-    addSlurmAccData(&slurmAccData, &body);
+    addSlurmAccData(&slurmAccData);
+    packSlurmAccData(&body, &slurmAccData);
 
     flog("REQUEST_STEP_COMPLETE for %s to slurmctld: exit %u\n",
 	 strStepID(step), exitStatus);
@@ -3093,53 +3092,44 @@ CLEANUP:
     ufree(resp.globalTIDs);
 }
 
-void sendJobExit(Job_t *job, uint32_t exit_status)
+void sendJobExit(Job_t *job, uint32_t exitStatus)
 {
-    PS_SendDB_t body = { .bufUsed = 0, .useFrag = false };
+    if (job->signaled) exitStatus = 0;
+    if (job->timeout) exitStatus = SIGTERM;
 
-    if (job->signaled) exit_status = 0;
-    if (job->timeout) exit_status = SIGTERM;
+    flog("REQUEST_COMPLETE_BATCH_SCRIPT: jobid %u exit %u\n",
+	 job->jobid, exitStatus);
 
-    mlog("%s: REQUEST_COMPLETE_BATCH_SCRIPT: jobid %u exit %u\n",
-	 __func__, job->jobid, exit_status);
+    /* save account data */
+    SlurmAccData_t slurmAccData;
+    memset(&slurmAccData, 0, sizeof(slurmAccData));
 
-    /* batch job */
-    if (!job->fwdata) {
-	/* No data available */
-	SlurmAccData_t slurmAccData = {
-	    .psAcct = { .numTasks = 0 },
-	    .type = 0,
-	    .nodes = job->nodes,
-	    .nrOfNodes = job->nrOfNodes,
-	    .loggerTID = 0,
-	    .tasks = NULL,
-	    .remoteTasks = NULL,
-	    .childPid = 0 };
-	addSlurmAccData(&slurmAccData, &body);
-    } else {
-	SlurmAccData_t slurmAccData = {
-	    .psAcct = { .numTasks = 0 },
-	    .type = job->accType,
-	    .nodes = job->nodes,
-	    .nrOfNodes = job->nrOfNodes,
-	    .loggerTID = 0,
-	    .tasks = &job->tasks,
-	    .remoteTasks = NULL,
-	    .childPid = job->fwdata->cPid };
-	addSlurmAccData(&slurmAccData, &body);
+    slurmAccData.nodes = job->nodes;
+    slurmAccData.nrOfNodes = job->nrOfNodes;
+
+    if (job->fwdata) {
+	/* add information from forwarder */
+	slurmAccData.type = job->accType;
+	slurmAccData.tasks = &job->tasks;
+	slurmAccData.childPid = job->fwdata->cPid;
     }
-    /* jobid */
-    addUint32ToMsg(job->jobid, &body);
-    /* jobscript exit code */
-    addUint32ToMsg(exit_status, &body);
-    /* slurm return code, other than 0 the node goes offline */
-    addUint32ToMsg(0, &body);
-    /* uid of job */
-    addUint32ToMsg((uint32_t) job->uid, &body);
-    /* mother superior hostname */
-    addStringToMsg(job->hostname, &body);
+    addSlurmAccData(&slurmAccData);
 
-    sendSlurmMsg(SLURMCTLD_SOCK, REQUEST_COMPLETE_BATCH_SCRIPT, &body);
+    /* send request */
+    Req_Comp_Batch_Script_t comp = {
+	.sAccData = &slurmAccData,
+	.jobid = job->jobid,
+	.exitStatus = exitStatus,
+	.uid = job->uid,
+	.hostname = job->hostname,
+	.rc = 0,
+    };
+
+    Req_Info_t *req = ucalloc(sizeof(*req));
+    req->type = REQUEST_COMPLETE_BATCH_SCRIPT;
+    req->jobid = job->jobid;
+
+    sendSlurmctldReq(req, &comp);
 }
 
 void sendEpilogueComplete(uint32_t jobid, uint32_t rc)

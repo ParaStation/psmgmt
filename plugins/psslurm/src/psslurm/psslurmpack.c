@@ -2469,7 +2469,7 @@ static bool packReqEpilogComplete(PS_SendDB_t *data, Req_Epilog_Complete_t *req)
  * @return On success true is returned or false in case of an
  * error. If writing was not successful, @a data might be not updated.
  */
-bool packUpdateNode(PS_SendDB_t *data, Req_Update_Node_t *update)
+bool packReqUpdateNode(PS_SendDB_t *data, Req_Update_Node_t *update)
 {
     if (slurmProto >= SLURM_20_11_PROTO_VERSION) {
 	/* comment */
@@ -2497,6 +2497,37 @@ bool packUpdateNode(PS_SendDB_t *data, Req_Update_Node_t *update)
     addUint32ToMsg(update->reasonUID, data);
     /* new weight */
     addUint32ToMsg(update->weight, data);
+
+    return true;
+}
+
+/**
+ * @brief Pack complete batch script request data
+ *
+ * Pack complete batch script request data and add it to the provided data
+ * buffer.
+ *
+ * @param data Data buffer to save data to
+ *
+ * @param req The data to pack into the message
+ *
+ * @return On success true is returned or false in case of an
+ * error. If writing was not successful, @a data might be not updated.
+ */
+bool packReqCompBatchScript(PS_SendDB_t *data, Req_Comp_Batch_Script_t *req)
+{
+    /* account data */
+    packSlurmAccData(data, req->sAccData);
+    /* jobid */
+    addUint32ToMsg(req->jobid, data);
+    /* jobscript exit code */
+    addUint32ToMsg(req->exitStatus, data);
+    /* slurm return code, other than 0 the node goes offline */
+    addUint32ToMsg(req->rc, data);
+    /* uid of job */
+    addUint32ToMsg(req->uid, data);
+    /* mother superior hostname */
+    addStringToMsg(req->hostname, data);
 
     return true;
 }
@@ -2536,7 +2567,9 @@ bool packSlurmReq(Req_Info_t *reqInfo, PS_SendDB_t *msg, void *reqData,
 	case MESSAGE_EPILOG_COMPLETE:
 	    return packReqEpilogComplete(msg, reqData);
 	case REQUEST_UPDATE_NODE:
-	    return packUpdateNode(msg, reqData);
+	    return packReqUpdateNode(msg, reqData);
+	case REQUEST_COMPLETE_BATCH_SCRIPT:
+	    return packReqCompBatchScript(msg, reqData);
 	default:
 	    flog("request %s pack function not found, caller %s:%i\n",
 		 msgType2String(reqInfo->type), caller, line);

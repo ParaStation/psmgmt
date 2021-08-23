@@ -297,6 +297,16 @@ typedef struct {
     char *nodeName;		/**< local hostname */
 } Req_Epilog_Complete_t;
 
+/** Holding all information for RPC REQUEST_COMPLETE_BATCH_SCRIPT */
+typedef struct {
+    SlurmAccData_t *sAccData;	/**< Slurm account data */
+    uint32_t jobid;		/**< unique job identifier */
+    uint32_t exitStatus;	/**< exit code of the job-script */
+    uint32_t rc;		/**< return code (drains node when != 0) */
+    uint32_t uid;		/**< user ID */
+    char *hostname;		/**< local hostname */
+} Req_Comp_Batch_Script_t;
+
 /** Slurm protocol version */
 extern uint32_t slurmProto;
 
@@ -459,7 +469,7 @@ void sendStepExit(Step_t *step, uint32_t exitStatus);
  *
  * @param exit_status The exit status of the job
  */
-void sendJobExit(Job_t *job, uint32_t exit_status);
+void sendJobExit(Job_t *job, uint32_t exitStatus);
 
 /**
  * @brief Send a epilogue complete message
