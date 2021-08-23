@@ -2159,19 +2159,21 @@ bool __packMsgTaskExit(PS_SendDB_t *data, Msg_Task_Exit_t *msg,
     return true;
 }
 
-bool __packReqStepComplete(PS_SendDB_t *data, Req_Step_Comp_t *req,
-			   const char *caller, const int line)
+/**
+ * @brief Pack request step complete
+ *
+ * Pack request step complete and add it to the provided data
+ * buffer.
+ *
+ * @param data Data buffer to save data to
+ *
+ * @param req The data to pack
+ *
+ * @return On success true is returned or false in case of an
+ * error. If writing was not successful, @a data might be not updated.
+ */
+bool packReqStepComplete(PS_SendDB_t *data, Req_Step_Comp_t *req)
 {
-    if (!data) {
-	flog("invalid data pointer from '%s' at %i\n", caller, line);
-	return false;
-    }
-
-    if (!req) {
-	flog("invalid req pointer from '%s' at %i\n", caller, line);
-	return false;
-    }
-
     /* job/stepid */
     packStepHead(req, data);
     /* node range (first, last) */
@@ -2179,6 +2181,8 @@ bool __packReqStepComplete(PS_SendDB_t *data, Req_Step_Comp_t *req,
     addUint32ToMsg(req->lastNode, data);
     /* exit status */
     addUint32ToMsg(req->exitStatus, data);
+    /* account data */
+    packSlurmAccData(data, req->sAccData);
 
     return true;
 }
@@ -2570,6 +2574,8 @@ bool packSlurmReq(Req_Info_t *reqInfo, PS_SendDB_t *msg, void *reqData,
 	    return packReqUpdateNode(msg, reqData);
 	case REQUEST_COMPLETE_BATCH_SCRIPT:
 	    return packReqCompBatchScript(msg, reqData);
+	case REQUEST_STEP_COMPLETE:
+	    return packReqStepComplete(msg, reqData);
 	default:
 	    flog("request %s pack function not found, caller %s:%i\n",
 		 msgType2String(reqInfo->type), caller, line);

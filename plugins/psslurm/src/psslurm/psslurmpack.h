@@ -615,29 +615,6 @@ bool __packMsgTaskExit(PS_SendDB_t *data, Msg_Task_Exit_t *msg,
     __packMsgTaskExit(data, msg, __func__, __LINE__)
 
 /**
- * @brief Pack request step complete
- *
- * Pack request step complete and add it to the provided data
- * buffer.
- *
- * @param data Data buffer to save data to
- *
- * @param req The data to pack
- *
- * @param caller Function name of the calling function
- *
- * @param line Line number where this function is called
- *
- * @return On success true is returned or false in case of an
- * error. If writing was not successful, @a data might be not updated.
- */
-bool __packReqStepComplete(PS_SendDB_t *data, Req_Step_Comp_t *req,
-			   const char *caller, const int line);
-
-#define packReqStepComplete(data, req) \
-    __packReqStepComplete(data, req, __func__, __LINE__)
-
-/**
  * @brief Unpack a Slurm step header
  *
  * Unpack a Slurm step header from the provided message pointer.

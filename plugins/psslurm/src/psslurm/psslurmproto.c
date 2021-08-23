@@ -2769,17 +2769,8 @@ int getSlurmNodeID(PSnodes_ID_t psNodeID, PSnodes_ID_t *nodes,
 
 void sendStepExit(Step_t *step, uint32_t exitStatus)
 {
-    PS_SendDB_t body = { .bufUsed = 0, .useFrag = false };
-    Req_Step_Comp_t req = {
-	.jobid = step->jobid,
-	.stepid = step->stepid,
-	.stepHetComp = step->stepHetComp,
-	.firstNode = 0,
-	.lastNode = step->nrOfNodes -1,
-	.exitStatus = exitStatus,
-    };
-
-    packReqStepComplete(&body, &req);
+    flog("REQUEST_STEP_COMPLETE for %s to slurmctld: exit %u\n",
+	 strStepID(step), exitStatus);
 
     /* add account data to request */
     pid_t childPid = (step->fwdata) ? step->fwdata->cPid : 1;
@@ -2795,12 +2786,23 @@ void sendStepExit(Step_t *step, uint32_t exitStatus)
 	.remoteTasks = &step->remoteTasks,
 	.childPid = 0 };
     addSlurmAccData(&slurmAccData);
-    packSlurmAccData(&body, &slurmAccData);
 
-    flog("REQUEST_STEP_COMPLETE for %s to slurmctld: exit %u\n",
-	 strStepID(step), exitStatus);
+    Req_Step_Comp_t comp = {
+	.jobid = step->jobid,
+	.stepid = step->stepid,
+	.stepHetComp = step->stepHetComp,
+	.firstNode = 0,
+	.lastNode = step->nrOfNodes -1,
+	.exitStatus = exitStatus,
+	.sAccData = &slurmAccData };
 
-    sendSlurmMsg(SLURMCTLD_SOCK, REQUEST_STEP_COMPLETE, &body);
+    Req_Info_t *req = ucalloc(sizeof(*req));
+    req->type = REQUEST_STEP_COMPLETE;
+    req->jobid = step->jobid;
+    req->stepid = step->stepid;
+    req->stepHetComp = step->stepHetComp;
+
+    sendSlurmctldReq(req, &comp);
 }
 
 /**

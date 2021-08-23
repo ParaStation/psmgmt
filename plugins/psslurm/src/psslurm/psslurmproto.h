@@ -208,6 +208,7 @@ typedef struct {
     uint32_t firstNode;		/**< first node completed the step */
     uint32_t lastNode;		/**< last node completed the step */
     uint32_t exitStatus;	/**< compound step exit status */
+    SlurmAccData_t *sAccData;	/**< Slurm account data */
 } Req_Step_Comp_t;
 
 /** Holding Slurm PIDs to pack */
