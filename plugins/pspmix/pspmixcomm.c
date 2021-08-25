@@ -413,7 +413,7 @@ bool pspmix_comm_sendModexDataResponse(PStask_ID_t targetTID, bool status,
 	    proc->nspace, proc->rank, ndata);
 
     mdbg(PSPMIX_LOG_COMM, "%s: Sending modex data response to rank %u"
-	    " (status %d nspace %s ndata %zu\n", __func__, proc->rank, status,
+	    " (status %d nspace %s ndata %zu)\n", __func__, proc->rank, status,
 	    proc->nspace, ndata);
 
     PS_SendDB_t msg;
