@@ -221,7 +221,7 @@ static void handlePspmixMsg(DDTypedBufferMsg_t *msg)
  *
  * @return Returns 1 if the type is known, 0 if not
  */
-static int pspmix_comm_handleMsg(DDMsg_t *msg)
+static int handleMsg(DDMsg_t *msg)
 {
     mdbg(PSPMIX_LOG_CALL, "%s() called\n", __func__);
 
@@ -256,7 +256,7 @@ int pspmix_comm_handleMthrMsg(PSLog_Msg_t *tmpmsg, ForwarderData_t *fw)
 
     DDMsg_t *msg = (DDMsg_t *)tmpmsg;
 
-    return pspmix_comm_handleMsg(msg);
+    return handleMsg(msg);
 }
 
 /**********************************************************
@@ -283,7 +283,7 @@ static ssize_t sendMsgToDaemon(DDTypedBufferMsg_t *msg)
 
     if (msg->header.dest == PSC_getMyTID()) {
 	/* message is for myself, directly handle it */
-	if (!pspmix_comm_handleMsg((DDMsg_t *)msg)) {
+	if (!handleMsg((DDMsg_t *)msg)) {
 	    errno = EINVAL;
 	    return -1;
 	}
