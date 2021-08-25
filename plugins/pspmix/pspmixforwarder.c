@@ -281,12 +281,37 @@ static int hookExecForwarder(void *data)
     timeout.tv_sec = 3;
     timeout.tv_usec = 0;
     if (!readClientPMIxEnvironment(childTask->fd, timeout)) {
-	finalizeSerial();
 	return -1;
     }
 
-    finalizeSerial();
+    return 0;
+}
 
+/**
+ * @brief Hook function for PSIDHOOK_FRWRD_EXIT
+ *
+ * Finalize the serialization layer.
+ * This is mostly needless since the forwarder will exit anyway and done only
+ * for symmetry reasons.
+ *
+ * @todo What exactly means the flag passed to this function and do we have to
+ *       take it into account somehow?
+ *
+ * @param data Pointer to an int flag indicating wether to release the client.
+ *
+ * @return Always returns 0.
+ */
+static int hookForwarderExit(void *data)
+{
+    int rel = *((int*)data);
+
+    mdbg(PSPMIX_LOG_CALL, "%s() called with rel %d\n", __func__, rel);
+
+    /* break if this is not a PMIx job */
+    if (!childTask) return 0;
+
+    /* fragmentation layer only used for receiving */
+    finalizeSerial();
 
     return 0;
 }
@@ -294,11 +319,13 @@ static int hookExecForwarder(void *data)
 void pspmix_initForwarderModule(void)
 {
     PSIDhook_add(PSIDHOOK_EXEC_FORWARDER, hookExecForwarder);
+    PSIDhook_add(PSIDHOOK_FRWRD_EXIT, hookForwarderExit);
 }
 
 void pspmix_finalizeForwarderModule(void)
 {
     PSIDhook_del(PSIDHOOK_EXEC_FORWARDER, hookExecForwarder);
+    PSIDhook_del(PSIDHOOK_FRWRD_EXIT, hookForwarderExit);
 }
 
 /* vim: set ts=8 sw=4 tw=0 sts=4 noet :*/
