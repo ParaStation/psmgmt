@@ -13,8 +13,14 @@
 
 #include "pspmixtypes.h"
 
+/**
+ * @todo document
+ */
 void pspmix_setFillSpawnTaskFunction(fillerFunc_t spawnFunc);
 
+/**
+ * @todo document
+ */
 void pspmix_resetFillSpawnTaskFunction(void);
 
 fillerFunc_t * pspmix_getFillTaskFunction(void);

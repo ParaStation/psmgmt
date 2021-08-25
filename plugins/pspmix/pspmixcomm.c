@@ -240,16 +240,6 @@ static int handleMsg(DDMsg_t *msg)
     return 1;
 }
 
-/**
- * @brief Handle messages from our mother psid
- *
- * This needs to take PSLog_Msg_t until the plugin forwarder is generalized.
- *
- * @param msg Message to handle
- * @param fw  Forwarder struct (ignored)
- *
- * @return Returns 1 if the type is known, 0 if not
- */
 int pspmix_comm_handleMthrMsg(PSLog_Msg_t *tmpmsg, ForwarderData_t *fw)
 {
     mdbg(PSPMIX_LOG_CALL, "%s() called\n", __func__);
@@ -303,15 +293,6 @@ static ssize_t sendMsgToDaemon(DDTypedBufferMsg_t *msg)
     return ret;
 }
 
-/**
- * @brief Compose and send a client PMIx environment message
- *
- * @param targetTID  task id of the forwarder to send the message to
- * @param environ    environment variables
- * @param envsize    size of environ
- *
- * @return Returns true on success, false on error
- */
 bool pspmix_comm_sendClientPMIxEnvironment(PStask_ID_t targetTID,
 					   char **environ, uint32_t envsize)
 {
@@ -459,13 +440,6 @@ bool pspmix_comm_sendModexDataResponse(PStask_ID_t targetTID, bool status,
  *               Initialization function                  *
  **********************************************************/
 
-/**
- * @brief Initialize communication
- *
- * Setup fragmentation layer.
- *
- * @return Returns true on success, false on errors
- */
 bool pspmix_comm_init()
 {
     mdbg(PSPMIX_LOG_CALL, "%s() called\n", __func__);
@@ -479,13 +453,6 @@ bool pspmix_comm_init()
     return true;
 }
 
-/**
- * @brief Finalize communication
- *
- * Finalize fragmentation layer.
- *
- * @return No return value
- */
 void pspmix_comm_finalize()
 {
     mdbg(PSPMIX_LOG_CALL, "%s() called\n", __func__);

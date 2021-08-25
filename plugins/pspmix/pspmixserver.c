@@ -1540,7 +1540,7 @@ static void registerNamespace_cb(pmix_status_t status, void *cbdata)
     SET_CBDATA_AVAIL(data);
 }
 
-/**
+/*
  * @param nspace     name of the namespace to register
  * @param sessionId  id of the session
  * @param univSize   number of slots in this session
@@ -1835,7 +1835,7 @@ static void deregisterNamespace_cb(pmix_status_t status, void *cbdata)
     SET_CBDATA_AVAIL(data);
 }
 
-/**
+/*
  * @param nspace     name of the namespace to register
  */
 bool pspmix_server_deregisterNamespace(const char *nspace)

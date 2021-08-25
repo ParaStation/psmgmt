@@ -43,15 +43,6 @@ static PSresinfo_t* findReservation(PSrsrvtn_ID_t resID)
     return findReservationInList(resID, &server->resInfos);
 }
 
-/**
- * @brief Function called to initialize the plugin forwarder
- *
- * This function assumes, that all reservation notifications for one job
- * (in PMIx meaning) have been received before the first spawn request for this
- * job. This is needed to create the complete namespace.
- *
- * @param fwdata  the forwarders user data containing the server struct
- */
 int pspmix_jobserver_initialize(Forwarder_Data_t *fwdata)
 {
     server = fwdata->userData;
@@ -108,17 +99,11 @@ int pspmix_jobserver_initialize(Forwarder_Data_t *fwdata)
     return 1;
 }
 
-/**
- * @brief Function called to prepare the plugin forwarder loop
- */
 void pspmix_jobserver_prepareLoop(Forwarder_Data_t *fwdata)
 {
     mdbg(PSPMIX_LOG_CALL, "%s called\n", __func__);
 }
 
-/**
- * @brief Function called to finalize the plugin forwarder
- */
 void pspmix_jobserver_finalize(Forwarder_Data_t *fwdata)
 {
     pspmix_service_finalize();

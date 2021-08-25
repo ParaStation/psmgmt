@@ -59,18 +59,20 @@ bool pspmix_service_registerNamespace(PStask_t *spawnTask, list_t resInfo);
 bool pspmix_service_registerClientAndSendEnv(PspmixClient_t *client);
 
 /**
- * @brief Finalize the PMIX service
+ * @brief Finalize the PMIx service
  *
- * This leaves the KVS space.
+ * @todo This leaves the KVS space.
  *
  * @return Returns true on success and false on errors
  */
 bool pspmix_service_finalize(void);
 
 /**
- * @brief Handle if a client connects
+ * @brief Handle that a client connected
  *
- * This reads the environment and joins the client to the KVS provider.
+ * Notify the client's forwarder about the initialization of the client.
+ *
+ * @todo This reads the environment and joins the client to the KVS provider.
  *
  * @param clientObject  client object of type PspmixClient_t
  *
@@ -79,9 +81,10 @@ bool pspmix_service_finalize(void);
 bool pspmix_service_clientConnected(void *clientObject);
 
 /**
- * @brief Finalize all PMI stuff
+ * @brief Handle that a client finalized
  *
- * Leave the KVS and release the child and allow it to exit.
+ *
+ * @todo Leave the KVS and release the child and allow it to exit.
  *
  * @param clientObject  client object of type PspmixClient_t
  *
@@ -139,15 +142,17 @@ void pspmix_service_handleFenceIn(uint64_t fenceid, PStask_ID_t sender,
 	void *data, size_t len);
 
 /**
-* @brief Handle a fence out
-*
-* Put the data to the buffer list
-*
-* @param proc      from which rank and namespace are the data
-* @param data      cumulated data blob to share with all participating nodes
-*                  (takes ownership)
-* @param len       size of the cumulated data blob
-*/
+ * @brief Handle a fence out
+ *
+ * Put the data to the buffer list
+ *
+ * @see checkFence for an overall description of fence handling logic
+ *
+ * @param fenceid   ID of the fence
+ * @param data      cumulated data blob to share with all participating nodes
+ *                  (takes ownership)
+ * @param len       size of the cumulated data blob
+ */
 void pspmix_service_handleFenceOut(uint64_t fenceid, void *data, size_t len);
 
 /* TODO document */
@@ -164,7 +169,12 @@ bool pspmix_service_sendModexDataRequest(modexdata_t *mdata);
 void pspmix_service_handleModexDataRequest(PStask_ID_t senderTID,
 	pmix_proc_t *proc);
 
-/* TODO document */
+/**
+ * @brief Send direct modex data response
+ *
+ * @param status  Request succeeded (true) or failed (false)
+ * @param mdata   modex data (takes back ownership of mdata (not mdata->data))
+ */
 void pspmix_service_sendModexDataResponse(bool status, modexdata_t *mdata);
 
 /**

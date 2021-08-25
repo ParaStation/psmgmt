@@ -40,6 +40,7 @@
 
 #include "pspmixforwarder.h"
 
+/* psid rank of this forwarder and child */
 static int32_t rank;
 
 /* ****************************************************** *
@@ -185,7 +186,7 @@ static void handleClientPMIxEnv(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
 }
 
 /**
- * @brief Block untill the PMIx enviroment is set
+ * @brief Block until the PMIx enviroment is set
  *
  * @param timeout  maximum time in microseconds to wait
  *
