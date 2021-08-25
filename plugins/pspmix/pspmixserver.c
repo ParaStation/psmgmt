@@ -49,6 +49,12 @@ typedef struct {
     size_t ninfo;
 } mycbdata_t;
 
+/** Generic type for callback function */
+typedef struct {
+    pmix_op_cbfunc_t cbfunc;
+    void *cbdata;
+} mycbfunc_t;
+
 /** Setting up data for callback routines */
 #define INIT_CBDATA(d) memset(&(d), 0, sizeof(d))
 
@@ -218,13 +224,16 @@ static pmix_status_t server_client_connected_cb(const pmix_proc_t *proc,
 {
     mdbg(PSPMIX_LOG_CALL, "%s() called\n", __func__);
 
-    bool ret;
+    mycbfunc_t *cb = umalloc(sizeof(*cb));
+    cb->cbfunc = cbfunc;
+    cb->cbdata = cbdata;
 
-    ret = pspmix_service_clientConnected(clientObject);
+    if (!pspmix_service_clientConnected(clientObject, cb)) {
+	return PMIX_ERROR;
+    }
 
-    if (ret) return PMIX_OPERATION_SUCCEEDED;
-
-    return PMIX_ERROR;
+    /* tell the server library to wait for the callback call */
+    return PMIX_SUCCESS;
 }
 
 /* Notify the host server that a client called PMIx_Finalize - note
@@ -240,9 +249,22 @@ static pmix_status_t server_client_finalized_cb(const pmix_proc_t *proc,
     mlog("Got notification of finalization of %s:%d\n", proc->nspace,
 	    proc->rank);
 
-    pspmix_service_clientFinalized(clientObject);
+    mycbfunc_t *cb = umalloc(sizeof(*cb));
+    cb->cbfunc = cbfunc;
+    cb->cbdata = cbdata;
 
-    return PMIX_OPERATION_SUCCEEDED;
+    if (!pspmix_service_clientFinalized(clientObject, cb)) {
+	return PMIX_ERROR;
+    }
+
+    /* tell the server library to wait for the callback call */
+    return PMIX_SUCCESS;
+}
+
+void pspmix_server_operationFinished(bool success, void* cb)
+{
+    mycbfunc_t *callback = cb;
+    callback->cbfunc(success ? PMIX_SUCCESS : PMIX_ERROR, callback->cbdata);
 }
 
 /* A local client called PMIx_Abort - note that the client will be in a blocked

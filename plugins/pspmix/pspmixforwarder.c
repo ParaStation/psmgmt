@@ -9,11 +9,16 @@
  * file.
  */
 /**
- * @file Implementation of functions running in the forwarders
+ * @file Implementation of all functions running in the forwarders
  *
- * Only one job is done in the forwarders:
- * Before forking the client, wait for the environment sent by the
- * PMIx Jobserver and set it for the client.
+ * Two jobs are done in the forwarders:
+ * - Before forking the client, wait for the environment sent by the
+ *   PMIx Jobserver and set it for the client.
+ * - Manage the initialization state (in PMIx sense) of the client to correctly
+ *   do the client release and thus failure handling.
+ *   (This task is historically done in the psid forwarder and actually means
+ *    an unnecessary indirection (PMIx Jobsever <-> PSID Forwarder <-> PSID).
+ *    @todo Think about getting rid of that.)
  */
 
 #include <stdio.h>
@@ -46,6 +51,13 @@ static int32_t rank;
 
 /* task structure of this forwarders child */
 static PStask_t *childTask;
+
+/* PMIx initialization status of the child */
+static enum {
+    IDLE = 0,       /* child has not yet called PMIx_Initialize */
+    INITIALIZED,    /* child has called PMIx_Initialize but not PMIx_Finalize */
+    FINALIZED,      /* child has called PMIx_Finalize */
+} pmixStatus = IDLE;
 
 /* ****************************************************** *
  *                 Send/Receive functions                 *
@@ -228,6 +240,152 @@ static bool readClientPMIxEnvironment(int daemonfd, struct timeval timeout) {
     return true;
 }
 
+static bool sendNotificationResp(PStask_ID_t targetTID,
+	PSP_PSPMIX_t type, pmix_rank_t rank, const char *nspace)
+{
+    mdbg(PSPMIX_LOG_CALL, "%s() called with targetTID %s type %s nspace %s"
+	    " rank %u\n", __func__, PSC_printTID(targetTID),
+		pspmix_getMsgTypeString(type), nspace, rank);
+
+    mdbg(PSPMIX_LOG_COMM, "%s: Sending %s for rank %u (nspace %s)\n", __func__,
+		pspmix_getMsgTypeString(type), rank, nspace);
+
+    PS_SendDB_t msg;
+    initFragBuffer(&msg, PSP_PLUG_PSPMIX, type);
+    setFragDest(&msg, targetTID);
+
+    addUint32ToMsg(rank, &msg);
+    addStringToMsg(nspace, &msg);
+
+    int ret = sendFragMsg(&msg);
+    if (!ret) {
+	mlog("%s: Sending %s (rank %u nspace %s) to %s failed.\n", __func__,
+		pspmix_getMsgTypeString(type), rank, nspace,
+		PSC_printTID(targetTID));
+	return false;
+    }
+    return true;
+}
+
+/**
+ * @brief Handle messages of type PSPMIX_CLIENT_INITED
+ *
+ * @param msg  The last fragment of the message to handle
+ * @param data The defragmented data received
+ */
+static void handleClientInit(DDTypedBufferMsg_t *msg,
+	PS_DataBuffer_t *data) {
+    
+    mdbg(PSPMIX_LOG_CALL, "%s() called\n", __func__);
+
+    char *ptr = data->buf;
+
+    pmix_proc_t proc;
+    PMIX_PROC_CONSTRUCT(&proc);
+    getUint32(&ptr, &proc.rank);
+    getString(&ptr, proc.nspace, sizeof(proc.nspace));
+
+    mdbg(PSPMIX_LOG_COMM, "%s(r%d): Handling client initialized message for"
+	    " %s:%d\n", __func__, rank, proc.nspace, proc.rank);
+
+    pmixStatus = INITIALIZED;
+
+    /* send response */
+    sendNotificationResp(msg->header.sender, PSPMIX_CLIENT_INIT_RES, proc.rank,
+	   proc.nspace);
+}
+
+/**
+ * @brief Send PSP_CD_RELEASE message for our client to the local daemon
+ */
+static void sendChildReleaseMsg() {
+    
+    DDSignalMsg_t msg;
+
+    msg.header.type = PSP_CD_RELEASE;
+    msg.header.sender = PSC_getMyTID();
+    msg.header.dest = childTask->tid;
+    msg.header.len = sizeof(msg);
+    msg.signal = -1;
+    msg.answer = 1;
+
+    sendDaemonMsg((DDMsg_t *)&msg);
+}
+
+/**
+ * @brief Handle messages of type PSPMIX_CLIENT_FINALIZED
+ *
+ * Handle notification about finalization of forwarders client. This marks the
+ * client as released so exiting becomes non erroneous.
+ *
+ * @param msg  The last fragment of the message to handle
+ * @param data The defragmented data received
+ *
+ * @return No return value
+ */
+static void handleClientFinalize(DDTypedBufferMsg_t *msg,
+	PS_DataBuffer_t *data) {
+
+    mdbg(PSPMIX_LOG_CALL, "%s() called\n", __func__);
+
+    char *ptr = data->buf;
+
+    pmix_proc_t proc;
+    PMIX_PROC_CONSTRUCT(&proc);
+    getUint32(&ptr, &proc.rank);
+    getString(&ptr, proc.nspace, sizeof(proc.nspace));
+
+    mdbg(PSPMIX_LOG_COMM, "%s: received %s (0x%X) from namespace %s rank %d\n",
+	    __func__, pspmix_getMsgTypeString(msg->type), msg->type,
+	    proc.nspace, proc.rank);
+
+    /* release the child */
+    sendChildReleaseMsg();
+
+    pmixStatus = FINALIZED;
+
+    /* send response */
+    sendNotificationResp(msg->header.sender, PSPMIX_CLIENT_FINALIZE_RES,
+	    proc.rank, proc.nspace);
+}
+
+/**
+ * @brief Handle messages of type PSP_PLUG_PSPMIX
+ *
+ * This function is registered in the forwarder and used for messages coming
+ * from the PMIx jobserver.
+ *
+ * @param vmsg Pointer to message to handle
+ *
+ * @return Always return true
+ */
+static bool handlePspmixMsg(DDBufferMsg_t *vmsg) {
+
+    mdbg(PSPMIX_LOG_CALL, "%s() called\n", __func__);
+
+    DDTypedBufferMsg_t *msg = (DDTypedBufferMsg_t *)vmsg;
+
+    mdbg(PSPMIX_LOG_COMM, "%s: msg: type %s (%i) length %hu [%s",
+	    __func__, pspmix_getMsgTypeString(msg->type), msg->type,
+	    msg->header.len, PSC_printTID(msg->header.sender));
+    mdbg(PSPMIX_LOG_COMM, "->%s]\n", PSC_printTID(msg->header.dest));
+
+    switch(msg->type) {
+    case PSPMIX_CLIENT_INIT:
+	recvFragMsg(msg, handleClientInit);
+	break;
+    case PSPMIX_CLIENT_FINALIZE:
+	recvFragMsg(msg, handleClientFinalize);
+	break;
+    default:
+	mlog("%s: unexpected message (sender %s type %s)\n", __func__,
+	     PSC_printTID(msg->header.sender),
+	     pspmix_getMsgTypeString(msg->type));
+    }
+    return true;
+}
+
+
 /* ****************************************************** *
  *                     Hook functions                     *
  * ****************************************************** */
@@ -267,6 +425,12 @@ static int hookExecForwarder(void *data)
     /* fragmentation layer only used for receiving */
     initSerial(0, NULL);
 
+    /* register handler for notification messages from the PMIx jobserver */
+    if (!PSID_registerMsg(PSP_PLUG_PSPMIX, handlePspmixMsg)) {
+	mlog("%s(r%d): Failed to register message handler.", __func__, rank);
+	return -1;
+    }
+
     /* Send client registration request to the PMIx server */
     if (!sendRegisterClientMsg(childTask->fd, childTask->loggertid,
 		childTask->resID, childTask->rank,
@@ -288,9 +452,30 @@ static int hookExecForwarder(void *data)
 }
 
 /**
+ * @brief Return PMIx initialization status
+ *
+ * This is meant to decide the child release strategy to be used in
+ * forwarder finalization. If this returns 0 the child will not be released
+ * automatically, independent of its exit status.
+ *
+ * @param data Unsed parameter.
+ *
+ * @return Returns the PMIx initialization status of the child.
+ */
+static int hookForwarderClientRelease(void *data)
+{
+    mdbg(PSPMIX_LOG_CALL, "%s() called\n", __func__);
+
+    /* break if this is not a PMIx job */
+    if (!childTask) return 0;
+
+    return pmixStatus;
+}
+
+/**
  * @brief Hook function for PSIDHOOK_FRWRD_EXIT
  *
- * Finalize the serialization layer.
+ * Remove message registration and finalize the serialization layer.
  * This is mostly needless since the forwarder will exit anyway and done only
  * for symmetry reasons.
  *
@@ -310,6 +495,9 @@ static int hookForwarderExit(void *data)
     /* break if this is not a PMIx job */
     if (!childTask) return 0;
 
+    /* register handler for notification messages from the PMIx jobserver */
+    PSID_clearMsg(PSP_PLUG_PSPMIX, handlePspmixMsg);
+
     /* fragmentation layer only used for receiving */
     finalizeSerial();
 
@@ -319,12 +507,14 @@ static int hookForwarderExit(void *data)
 void pspmix_initForwarderModule(void)
 {
     PSIDhook_add(PSIDHOOK_EXEC_FORWARDER, hookExecForwarder);
+    PSIDhook_add(PSIDHOOK_FRWRD_CLNT_RLS, hookForwarderClientRelease);
     PSIDhook_add(PSIDHOOK_FRWRD_EXIT, hookForwarderExit);
 }
 
 void pspmix_finalizeForwarderModule(void)
 {
     PSIDhook_del(PSIDHOOK_EXEC_FORWARDER, hookExecForwarder);
+    PSIDhook_del(PSIDHOOK_FRWRD_CLNT_RLS, hookForwarderClientRelease);
     PSIDhook_del(PSIDHOOK_FRWRD_EXIT, hookForwarderExit);
 }
 

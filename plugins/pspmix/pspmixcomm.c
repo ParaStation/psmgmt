@@ -175,6 +175,50 @@ static void handleModexDataResp(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
     PMIX_PROC_DESTRUCT(&proc);
 }
 
+static void handleClientInitResp(DDTypedBufferMsg_t *msg,
+	PS_DataBuffer_t *data)
+{
+    mdbg(PSPMIX_LOG_CALL, "%s() called\n", __func__);
+
+    char *ptr = data->buf;
+
+    uint8_t success;
+    getUint8(&ptr, &success);
+    pmix_proc_t proc;
+    getUint32(&ptr, &proc.rank);
+    getString(&ptr, proc.nspace, sizeof(proc.nspace));
+
+    mdbg(PSPMIX_LOG_COMM, "%s: received %s (0x%X) from %s with status %d for"
+	    " namespace %s rank %d\n", __func__,
+	    pspmix_getMsgTypeString(msg->type), msg->type,
+	    PSC_printTID(msg->header.sender), success, proc.nspace, proc.rank);
+
+    pspmix_service_handleClientInitResp(success, proc.rank, proc.nspace,
+	    msg->header.sender);
+}
+
+static void handleClientFinalResp(DDTypedBufferMsg_t *msg,
+	PS_DataBuffer_t *data)
+{
+    mdbg(PSPMIX_LOG_CALL, "%s() called\n", __func__);
+
+    char *ptr = data->buf;
+
+    uint8_t success;
+    getUint8(&ptr, &success);
+    pmix_proc_t proc;
+    getUint32(&ptr, &proc.rank);
+    getString(&ptr, proc.nspace, sizeof(proc.nspace));
+
+    mdbg(PSPMIX_LOG_COMM, "%s: received %s (0x%X) from %s with status %d for"
+	    " namespace %s rank %d\n", __func__,
+	    pspmix_getMsgTypeString(msg->type), msg->type,
+	    PSC_printTID(msg->header.sender), success, proc.nspace, proc.rank);
+
+    pspmix_service_handleClientFinalizeResp(success, proc.rank, proc.nspace,
+	    msg->header.sender);
+}
+
 /**
 * @brief Handle a PSP_PLUG_PSPMIX message
 *
@@ -204,6 +248,12 @@ static void handlePspmixMsg(DDTypedBufferMsg_t *msg)
 	break;
     case PSPMIX_MODEX_DATA_RES:
 	recvFragMsg(msg, handleModexDataResp);
+	break;
+    case PSPMIX_CLIENT_INIT_RES:
+	recvFragMsg(msg, handleClientInitResp);
+	break;
+    case PSPMIX_CLIENT_FINALIZE_RES:
+	recvFragMsg(msg, handleClientFinalResp);
 	break;
     default:
 	mlog("%s: received unknown msg type: 0x%X [%s",
@@ -434,6 +484,53 @@ bool pspmix_comm_sendModexDataResponse(PStask_ID_t targetTID, bool status,
 	return false;
     }
     return true;
+}
+
+static bool sendForwarderNotification(PStask_ID_t targetTID,
+	PSP_PSPMIX_t type, pmix_rank_t rank, const char *nspace)
+{
+    PS_SendDB_t msg;
+    pthread_mutex_lock(&send_lock);
+    initFragBuffer(&msg, PSP_PLUG_PSPMIX, type);
+    setFragDest(&msg, targetTID);
+
+    addUint32ToMsg(rank, &msg);
+    addStringToMsg(nspace, &msg);
+
+    int ret = sendFragMsg(&msg);
+    pthread_mutex_unlock(&send_lock);
+    if (!ret) {
+	mlog("%s: Sending (rank %u nspace %s) to %s failed.\n", __func__,
+		rank, nspace, PSC_printTID(targetTID));
+	return false;
+    }
+    return true;
+}
+
+bool pspmix_comm_sendInitNotification(PStask_ID_t targetTID,
+	pmix_rank_t rank, const char *nspace)
+{
+    mdbg(PSPMIX_LOG_CALL, "%s() called with targetTID %s nspace %s rank %u\n",
+	    __func__, PSC_printTID(targetTID), nspace, rank);
+
+    mdbg(PSPMIX_LOG_COMM, "%s: Sending client initialization notification"
+	    " response for rank %u (nspace %s)\n", __func__, rank, nspace);
+
+    return sendForwarderNotification(targetTID, PSPMIX_CLIENT_INIT,
+	    rank, nspace);
+}
+
+bool pspmix_comm_sendFinalizeNotification(PStask_ID_t targetTID,
+	pmix_rank_t rank, const char *nspace)
+{
+    mdbg(PSPMIX_LOG_CALL, "%s() called with targetTID %s nspace %s rank %u\n",
+	    __func__, PSC_printTID(targetTID), nspace, rank);
+
+    mdbg(PSPMIX_LOG_COMM, "%s: Sending client finalization notification"
+	    " response for rank %u (nspace %s)\n", __func__, rank, nspace);
+
+    return sendForwarderNotification(targetTID, PSPMIX_CLIENT_FINALIZE,
+	    rank, nspace);
 }
 
 /**********************************************************

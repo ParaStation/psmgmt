@@ -39,6 +39,20 @@ typedef struct {
 bool pspmix_server_init(uint32_t uid, uint32_t gid);
 
 /**
+ * @brief Initiate calling a callback function of the server library
+ *
+ * Many functions called by the server library provide another callback
+ * function and data to inform the server library about the finishing of
+ * the operation asynchronously. In such cases the pmix_server module
+ * provides an opaque pointer that can be given back as @a cb to this
+ * function to call the underlying callback function of the server library
+ *
+ * @param success    True if the operation succeeded, false else
+ * @param cb         Callback pointer passed by another pspmix_server_* func
+ */
+void pspmix_server_operationFinished(bool success, void* cb);
+
+/**
  * @brief Register namespace at the server library
  *
  * @param nspace     name of the namespace to register

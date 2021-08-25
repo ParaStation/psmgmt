@@ -34,6 +34,14 @@ const char *pspmix_getMsgTypeString(PSP_PSPMIX_t type)
 	    return "PSPMIX_MODEX_DATA_REQ";
 	case PSPMIX_MODEX_DATA_RES:
 	    return "PSPMIX_MODEX_DATA_RES";
+	case PSPMIX_CLIENT_INIT:
+	    return "PSPMIX_CLIENT_INIT";
+	case PSPMIX_CLIENT_INIT_RES:
+	    return "PSPMIX_CLIENT_INIT_RES";
+	case PSPMIX_CLIENT_FINALIZE:
+	    return "PSPMIX_CLIENT_FINALIZE";
+	case PSPMIX_CLIENT_FINALIZE_RES:
+	    return "PSPMIX_CLIENT_FINALIZE_RES";
 	default:
 	    return "<unknown>";
     }

@@ -85,6 +85,8 @@ typedef struct {
     PSrsrvtn_ID_t resID;       /**< reservation ID */
     PspmixNamespace_t *nspace; /**< namespace of the client */
     PStask_ID_t fwtid;	       /**< TID of the clients forwarder */
+    void *notifiedFwCb;        /**< callback object for forwarder notification
+				    about init/finalize */
 } PspmixClient_t;
 
 /** Structure holding all information on a single spawn */
@@ -126,10 +128,8 @@ FIND_IN_LIST_FUNC(Node, PspmixNode_t, PSnodes_ID_t, id)
 /* generates findReservationInList(PSrsrvtn_ID_t resID, list_t *list) */
 FIND_IN_LIST_FUNC(Reservation, PSresinfo_t, PSrsrvtn_ID_t, resID)
 
-#if 0
 /* generates findClientInList(PSpmixClient_t id, list_t *list) */
 FIND_IN_LIST_FUNC(Client, PspmixClient_t, pmix_rank_t, rank)
-#endif
 
 
 /**
@@ -178,12 +178,16 @@ typedef void(psPmixResetFillSpawnTaskFunction_t)(void);
 
 /** Sub-types of message type PSP_PLUG_PSPMIX */
 typedef enum {
-    PSPMIX_REGISTER_CLIENT,  /**< Request to register a new client */
-    PSPMIX_CLIENT_PMIX_ENV,  /**< Client's environment addition */
-    PSPMIX_FENCE_IN,         /**< Enter fence request */
-    PSPMIX_FENCE_OUT,        /**< Leave fence permission */
-    PSPMIX_MODEX_DATA_REQ,   /**< Request direct modex */
-    PSPMIX_MODEX_DATA_RES,   /**< Submit direct modex as response */
+    PSPMIX_REGISTER_CLIENT,    /**< Request to register a new client */
+    PSPMIX_CLIENT_PMIX_ENV,    /**< Client's environment addition */
+    PSPMIX_FENCE_IN,           /**< Enter fence request */
+    PSPMIX_FENCE_OUT,          /**< Leave fence permission */
+    PSPMIX_MODEX_DATA_REQ,     /**< Request direct modex */
+    PSPMIX_MODEX_DATA_RES,     /**< Submit direct modex as response */
+    PSPMIX_CLIENT_INIT,        /**< Notification of client's initialization */
+    PSPMIX_CLIENT_INIT_RES,    /**< Response to initialization notification */
+    PSPMIX_CLIENT_FINALIZE,    /**< Notification of client's finalization */
+    PSPMIX_CLIENT_FINALIZE_RES /**< Response to finalization notification */
 } PSP_PSPMIX_t;
 
 

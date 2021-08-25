@@ -75,22 +75,53 @@ bool pspmix_service_finalize(void);
  * @todo This reads the environment and joins the client to the KVS provider.
  *
  * @param clientObject  client object of type PspmixClient_t
+ * @param cb            callback object to pass back to return callback
  *
  * @return Returns true on success, false on fail
  */
-bool pspmix_service_clientConnected(void *clientObject);
+bool pspmix_service_clientConnected(void *clientObject, void *cb);
+
+/**
+ * @brief Handle the response of a client's forwarder about connection
+ *
+ * Triggers calling the callback function to report the result of the client
+ * initialization to the PMIx server library.
+ *
+ * @param success  Result reported by the forwarder
+ * @param rank     namespace rank of the client
+ * @param nspace   namespace of the client
+ * @param fwtid    TID of the client's forwarder
+ */
+void pspmix_service_handleClientInitResp(bool success, pmix_rank_t  rank,
+	const char *nspace, PStask_ID_t fwtid);
 
 /**
  * @brief Handle that a client finalized
  *
+ * Notify the client's forwarder about the finalization of the client.
  *
  * @todo Leave the KVS and release the child and allow it to exit.
  *
  * @param clientObject  client object of type PspmixClient_t
+ * @param cb            callback object to pass back to return callback
  *
- * @return No return value
+ * @return Returns true on success, false on fail
  * */
-void pspmix_service_clientFinalized(void *clientObject);
+bool pspmix_service_clientFinalized(void *clientObject, void *cb);
+
+/**
+ * @brief Handle the response of a client's forwarder about finalization
+ *
+ * Triggers calling the callback function to report the result of the client
+ * finalization to the PMIx server library.
+ *
+ * @param success  Result reported by the forwarder
+ * @param rank     namespace rank of the client
+ * @param nspace   namespace of the client
+ * @param fwtid    TID of the client's forwarder
+ */
+void pspmix_service_handleClientFinalizeResp(bool success, pmix_rank_t  rank,
+	const char *nspace, PStask_ID_t fwtid);
 
 /**
  * @brief Abort the job

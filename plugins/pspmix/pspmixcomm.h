@@ -101,6 +101,30 @@ bool pspmix_comm_sendModexDataResponse(PStask_ID_t targetTID, bool status,
 	pmix_proc_t *proc, void *data, size_t ndata);
 
 /**
+ * @brief Compose and send a client init notification message
+ *
+ * @param targetTID  task id of the forwarder to send the message to
+ * @param rank       rank of the client
+ * @param nspace     namespace name
+ *
+ * @return Returns true on success, false on error
+ */
+bool pspmix_comm_sendInitNotification(PStask_ID_t targetTID,
+	pmix_rank_t rank, const char *nspace);
+
+/**
+ * @brief Compose and send a client finalization notification message
+ *
+ * @param targetTID  task id of the forwarder to send the message to
+ * @param rank       rank of the client
+ * @param nspace     namespace name
+ *
+ * @return Returns true on success, false on error
+ */
+bool pspmix_comm_sendFinalizeNotification(PStask_ID_t targetTID,
+	pmix_rank_t rank, const char *nspace);
+
+/**
  * @brief Initialize communication
  *
  * Setup fragmentation layer.
