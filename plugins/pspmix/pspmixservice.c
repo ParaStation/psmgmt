@@ -533,7 +533,7 @@ bool pspmix_service_registerClientAndSendEnv(PspmixClient_t *client,
 	    __func__, client->rank, client->resID);
 
     /* get namespace name */
-    const char *nsname = generateNamespaceName(client->resID);
+    const char *nsname = generateNamespaceName();
 
     GET_LOCK(namespaceList);
 
