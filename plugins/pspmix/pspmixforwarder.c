@@ -44,6 +44,9 @@
 /* psid rank of this forwarder and child */
 static int32_t rank;
 
+/* task structure of this forwarders child */
+static PStask_t *childTask;
+
 /* ****************************************************** *
  *                 Send/Receive functions                 *
  * ****************************************************** */
@@ -244,15 +247,19 @@ static bool readClientPMIxEnvironment(int daemonfd, struct timeval timeout) {
  */
 static int hookExecForwarder(void *data)
 {
-    PStask_t *childTask = data;
-
     /* Return for all special task groups */
-    if (childTask->group != TG_ANY) return 0;
+    if (((PStask_t *)data)->group != TG_ANY) return 0;
 
-    mdbg(PSPMIX_LOG_CALL, "%s() called for task group TG_ANY\n", __func__);
+    mdbg(PSPMIX_LOG_CALL, "%s() called with task group TG_ANY\n", __func__);
+
+    /* pointer is assumed to be valid for the life time of the forwarder */
+    childTask = data;
 
     /* descide if this job wants to use PMIx */
-    if (!pspmix_common_usePMIx(childTask)) return 0;
+    if (!pspmix_common_usePMIx(childTask)) {
+	childTask = NULL;
+	return 0;
+    }
 
     /* Remember my rank for debugging and error output */
     rank = childTask->rank;
