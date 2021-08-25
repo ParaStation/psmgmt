@@ -28,6 +28,7 @@
 #include "pscommon.h"
 #include "pstask.h"
 #include "psidhook.h"
+#include "psidcomm.h"
 #include "pluginmalloc.h"
 #include "psidforwarder.h"
 #include "pspluginprotocol.h"
@@ -55,7 +56,7 @@ static int32_t rank;
  *
  * @return Returns true on success and false on error
  */
-static bool sendMsg(int fd, DDTypedBufferMsg_t *msg)
+static bool fwSendMsg(int fd, DDTypedBufferMsg_t *msg)
 {
     mdbg(PSPMIX_LOG_COMM, "%s(r%d): Sending message for %s to my daemon\n",
 	    __func__, rank, PSC_printTID(msg->header.dest));
@@ -76,7 +77,7 @@ static bool sendMsg(int fd, DDTypedBufferMsg_t *msg)
  * returns the number of bytes read, 0 on timeout or closed connection
  * and -1 on error (see errno)
  */
-static ssize_t recvMsg(int fd, DDTypedBufferMsg_t *msg, struct timeval timeout)
+static ssize_t fwRecvMsg(int fd, DDTypedBufferMsg_t *msg, struct timeval timeout)
 {
     fd_set rfds;
 
@@ -152,7 +153,7 @@ static bool sendRegisterClientMsg(int fd, PStask_ID_t loggertid, int32_t resid,
     PSP_putTypedMsgBuf(&msg, "uid", &uid, sizeof(uid));
     PSP_putTypedMsgBuf(&msg, "gid", &gid, sizeof(gid));
 
-    return sendMsg(fd, &msg);
+    return fwSendMsg(fd, &msg);
 }
 
 static volatile bool environmentReady = false;
@@ -201,7 +202,7 @@ static bool readClientPMIxEnvironment(int daemonfd, struct timeval timeout) {
     ssize_t ret;
 
     while (!environmentReady) {
-	ret = recvMsg(daemonfd, &msg, timeout);
+	ret = fwRecvMsg(daemonfd, &msg, timeout);
 	if (ret < 0) {
 	    mwarn(errno, "%s(r%d): Error receiving environment message\n",
 		    __func__, rank);
