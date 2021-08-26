@@ -1268,6 +1268,17 @@ static void jobForwarderFin(Forwarder_Data_t *fwdata)
 
 bool execBatchJob(Job_t *job)
 {
+    if (job->state == JOB_RUNNING) {
+	flog("error: job %u has already been started\n", job->jobid);
+	return false;
+    }
+
+    if (!job->mother) {
+	flog("error: job %u has to be executed on the mother superior node %i\n",
+	     job->jobid, PSC_getID(job->mother));
+	return false;
+    }
+
     int grace = getConfValueI(&SlurmConfig, "KillWait");
     if (grace < 3) grace = 30;
 
