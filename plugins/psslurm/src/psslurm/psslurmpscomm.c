@@ -93,15 +93,11 @@ static LIST_HEAD(msgCache);
 typedef enum {
     PSP_JOB_EXIT = 18,      /**< @doctodo */
     PSP_JOB_LAUNCH,	    /**< inform sister nodes about a new job */
-    PSP_JOB_STATE_REQ,	    /**< defunct, tbr */
-    PSP_JOB_STATE_RES,	    /**< defunct, tbr */
-    PSP_FORWARD_SMSG,	    /**< forward a Slurm message */
+    PSP_FORWARD_SMSG = 22,  /**< forward a Slurm message */
     PSP_FORWARD_SMSG_RES,   /**< result of forwarding a Slurm message */
-    PSP_ALLOC_LAUNCH = 25,  /**< defunct, tbr */
-    PSP_ALLOC_STATE,	    /**< allocation state change */
+    PSP_ALLOC_STATE =26,    /**< allocation state change */
     PSP_PACK_INFO,	    /**< send pack information to mother superior */
-    PSP_EPILOGUE_LAUNCH,    /**< defunct, tbr */
-    PSP_EPILOGUE_RES,	    /**< result of local epilogue */
+    PSP_EPILOGUE_RES = 29,  /**< result of local epilogue */
     PSP_EPILOGUE_STATE_REQ, /**< request delayed epilogue status */
     PSP_EPILOGUE_STATE_RES, /**< response to epilogue status request */
     PSP_PACK_EXIT,	    /**< forward exit status to all pack follower */
@@ -127,22 +123,14 @@ static const char *msg2Str(PSP_PSSLURM_t type)
 	    return "PSP_JOB_EXIT";
 	case PSP_JOB_LAUNCH:
 	    return "PSP_JOB_LAUNCH";
-	case PSP_JOB_STATE_REQ:
-	    return "PSP_JOB_STATE_REQ";
-	case PSP_JOB_STATE_RES:
-	    return "PSP_JOB_STATE_RES";
 	case PSP_FORWARD_SMSG:
 	    return "PSP_FORWARD_SMSG";
 	case PSP_FORWARD_SMSG_RES:
 	    return "PSP_FORWARD_SMSG_RES";
-	case PSP_ALLOC_LAUNCH:
-	    return "PSP_ALLOC_LAUNCH";
 	case PSP_ALLOC_STATE:
 	    return "PSP_ALLOC_STATE";
 	case PSP_PACK_INFO:
 	    return "PSP_PACK_INFO";
-	case PSP_EPILOGUE_LAUNCH:
-	    return "PSP_EPILOGUE_LAUNCH";
 	case PSP_EPILOGUE_RES:
 	    return "PSP_EPILOGUE_RES";
 	case PSP_EPILOGUE_STATE_REQ:
@@ -841,8 +829,7 @@ void send_PS_EpilogueStateReq(Alloc_t *alloc)
     /* add id */
     PSP_putTypedMsgBuf(&msg, "ID", &alloc->id, sizeof(alloc->id));
 
-    uint32_t n;
-    for (n=0; n<alloc->nrOfNodes; n++) {
+    for (uint32_t n=0; n<alloc->nrOfNodes; n++) {
 	if (!alloc->epilogRes[n]) {
 	    msg.header.dest = PSC_getTID(alloc->nodes[n], 0);
 	    if (sendMsg(&msg) == -1 && errno != EWOULDBLOCK) {
@@ -1594,12 +1581,6 @@ static bool handlePsslurmMsg(DDTypedBufferMsg_t *msg)
 	case PSP_STOP_STEP_FW:
 	    handleStopStepFW(msg);
 	    break;
-	case PSP_EPILOGUE_LAUNCH:
-	case PSP_ALLOC_LAUNCH:
-	case PSP_JOB_STATE_REQ:
-	case PSP_JOB_STATE_RES:
-	    flog("defunct msg type %i [%s -> %s]\n", msg->type, sender, dest);
-	    break;
 	default:
 	    mlog("%s: received unknown msg type: %i [%s -> %s]\n", __func__,
 		msg->type, sender, dest);
@@ -1773,7 +1754,6 @@ static bool handleDroppedMsg(DDTypedBufferMsg_t *msg)
 	 msg2Str(msg->type), msg->type, hname, nodeId);
 
     switch (msg->type) {
-    case PSP_EPILOGUE_LAUNCH:
     case PSP_EPILOGUE_STATE_REQ:
 	handleDroppedEpilogue(msg);
 	break;
@@ -1783,8 +1763,6 @@ static bool handleDroppedMsg(DDTypedBufferMsg_t *msg)
     case PSP_FORWARD_SMSG_RES:
     case PSP_JOB_LAUNCH:
     case PSP_JOB_EXIT:
-    case PSP_JOB_STATE_RES:
-    case PSP_ALLOC_LAUNCH:
     case PSP_ALLOC_STATE:
     case PSP_EPILOGUE_RES:
     case PSP_EPILOGUE_STATE_RES:
