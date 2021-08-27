@@ -1273,7 +1273,7 @@ bool execBatchJob(Job_t *job)
 	return false;
     }
 
-    if (!job->mother) {
+    if (job->mother) {
 	flog("error: job %u has to be executed on the mother superior node %i\n",
 	     job->jobid, PSC_getID(job->mother));
 	return false;

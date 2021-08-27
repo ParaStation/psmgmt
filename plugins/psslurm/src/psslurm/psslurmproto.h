@@ -640,4 +640,14 @@ void activateConfigCache(char *confDir);
  */
 void sendPrologComplete(uint32_t jobid, uint32_t rc);
 
+/**
+ * @brief Send a job requeue request
+ *
+ * Tries to requeue a job. If requeuing fails the job
+ * will get cancelled.
+ *
+ * @param jobid The ID of the job to requeue
+ */
+void sendJobRequeue(uint32_t jobid);
+
 #endif /* __PSSLURM_PROTO */

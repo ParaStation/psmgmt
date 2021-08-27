@@ -82,11 +82,12 @@ static void handleFailedPrologue(Alloc_t *alloc, PElogueResList_t *resList)
  *
  * @param exitStatus The exit status of the pelogue script
  */
-static void handlePrologueCB(Alloc_t *alloc, int exitStatus)
+static void handlePrologueCB(Alloc_t *alloc, int exitStatus, int16_t res)
 {
     /* inform the slurmctld */
     int rc = exitStatus ? SLURM_ERROR : SLURM_SUCCESS;
     sendPrologComplete(alloc->id, rc);
+    send_PS_PElogueRes(alloc, res, PELOGUE_PROLOGUE);
 
     if (alloc->terminate) {
 	/* received terminate request for this allocation
@@ -141,7 +142,7 @@ static void handleEpilogueCB(Alloc_t *alloc, PElogueResList_t *resList)
 	/* Inform allocation leader the epilogue is finished. The leader
 	 * will wait for all epilogue scripts to complete and offline nodes
 	 * which are not responding */
-	send_PS_EpilogueRes(alloc, resList[0].epilogue);
+       send_PS_PElogueRes(alloc, resList[0].epilogue, PELOGUE_EPILOGUE);
        /* inform slurmctld */
        sendEpilogueComplete(alloc->id, SLURM_SUCCESS);
        /* delete allocation */
@@ -150,7 +151,7 @@ static void handleEpilogueCB(Alloc_t *alloc, PElogueResList_t *resList)
 	/* Warning: the msg handler function may delete the allocation
 	 * on the leader in finalizeEpilogue(). Don't use the
 	 * allocation after sending the result. */
-	send_PS_EpilogueRes(alloc, resList[0].epilogue);
+	send_PS_PElogueRes(alloc, resList[0].epilogue, PELOGUE_EPILOGUE);
     }
 }
 
@@ -197,7 +198,7 @@ static void cbPElogue(char *sID, int exitStatus, bool timeout,
     if (alloc->state == A_PROLOGUE_FINISH) {
 	/* try to set failed node(s) offline */
 	if (exitStatus != 0) handleFailedPrologue(alloc, resList);
-	handlePrologueCB(alloc, exitStatus);
+	handlePrologueCB(alloc, exitStatus, resList[0].prologue);
     } else if (alloc->state == A_EPILOGUE || alloc->state == A_EPILOGUE_FINISH) {
 	handleEpilogueCB(alloc, resList);
     } else {

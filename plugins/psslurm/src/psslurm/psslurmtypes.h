@@ -35,6 +35,7 @@ typedef struct {
     time_t firstKillReq;    /**< time the first kill request was received */
     time_t startTime;       /**< time the allocation started */
     uint32_t localNodeId;   /**< local node ID for this allocation */
+    uint32_t prologCnt;     /**< number of nodes finished prologue */
     bool *epilogRes;	    /**< track epilogue results per node */
     uint32_t epilogCnt;     /**< number of nodes finished epilogue */
     bool nodeFail;	    /**< flag to save node failure */

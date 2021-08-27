@@ -1604,7 +1604,7 @@ static int handleRespJobRequeue(Slurm_Msg_t *sMsg, void *info)
     return 0;
 }
 
-static void sendJobRequeue(uint32_t jobid)
+void sendJobRequeue(uint32_t jobid)
 {
     Req_Job_Requeue_t requeue = { .jobid = jobid };
 
@@ -1680,7 +1680,9 @@ static void handleLaunchProlog(Slurm_Msg_t *sMsg)
 
     /* add an allocation if slurmctld prologue did not */
     Alloc_t *alloc = findAlloc(req->jobid);
-    if (!alloc) alloc = findAllocByPackID(req->hetJobid);
+    if (!alloc && req->hetJobid != 0 && req->hetJobid != NO_VAL) {
+	alloc = findAllocByPackID(req->hetJobid);
+    }
     if (!alloc) {
 	alloc = addAlloc(req->jobid, req->hetJobid, req->nodes, &req->spankEnv,
 			 req->uid, req->gid, req->userName);
@@ -1696,7 +1698,9 @@ static void handleLaunchProlog(Slurm_Msg_t *sMsg)
 	flog("starting local prologue for allocation %u\n", req->jobid);
 	startPElogue(alloc, PELOGUE_PROLOGUE);
     } else {
-	flog("prologue for allocation %u already executed\n", req->jobid);
+       flog("prologue for allocation %u in state %s already executed\n",
+            req->jobid, strAllocState(alloc->state));
+
 	/* let the slurmctld know the prologue has finished */
 	sendPrologComplete(req->jobid, SLURM_SUCCESS);
     }
@@ -1802,8 +1806,6 @@ static void printJobLaunchInfos(Job_t *job)
 
 static void handleBatchJobLaunch(Slurm_Msg_t *sMsg)
 {
-    Job_t *job;
-
     if (pluginShutdown) {
 	/* don't accept new jobs if a shutdown is in progress */
 	sendSlurmRC(sMsg, SLURM_ERROR);
@@ -1814,8 +1816,9 @@ static void handleBatchJobLaunch(Slurm_Msg_t *sMsg)
     malloc_trim(200);
 
     /* unpack request */
+    Job_t *job;
     if (!(unpackReqBatchJobLaunch(sMsg, &job))) {
-	mlog("%s: unpacking job launch request failed\n", __func__);
+	flog("unpacking job launch request failed\n");
 	sendSlurmRC(sMsg, SLURM_ERROR);
 	return;
     }
@@ -1823,28 +1826,20 @@ static void handleBatchJobLaunch(Slurm_Msg_t *sMsg)
     /* convert slurm hostlist to PSnodes   */
     if (!convHLtoPSnodes(job->slurmHosts, getNodeIDbySlurmHost,
 			 &job->nodes, &job->nrOfNodes)) {
-	mlog("%s: resolving PS nodeIDs from %s failed\n", __func__,
-	     job->slurmHosts);
-	sendSlurmRC(sMsg, ESLURMD_INVALID_JOB_CREDENTIAL);
-	deleteJob(job->jobid);
-	return;
+	flog("resolving PS nodeIDs from %s for job %u failed\n",
+	     job->slurmHosts, job->jobid);
+	goto ERROR;
     }
 
     job->localNodeId = getLocalID(job->nodes, job->nrOfNodes);
     if (job->localNodeId == NO_VAL) {
 	flog("could not find my local ID for job %u in %s\n",
 	     job->jobid, job->slurmHosts);
-	sendSlurmRC(sMsg, ESLURMD_INVALID_JOB_CREDENTIAL);
-	deleteJob(job->jobid);
-	return;
+	goto ERROR;
     }
 
     /* verify job credential */
-    if (!(verifyJobData(job))) {
-	sendSlurmRC(sMsg, ESLURMD_INVALID_JOB_CREDENTIAL);
-	deleteJob(job->jobid);
-	return;
-    }
+    if (!(verifyJobData(job))) goto ERROR;
     job->state = JOB_QUEUED;
 
     printJobLaunchInfos(job);
@@ -1853,17 +1848,16 @@ static void handleBatchJobLaunch(Slurm_Msg_t *sMsg)
     setAccOpts(job->acctFreq, &job->accType);
 
     if (!(extractJobPackInfos(job))) {
-	mlog("%s: invalid job pack information\n", __func__);
-	sendSlurmRC(sMsg, ESLURMD_INVALID_JOB_CREDENTIAL);
-	return;
+	flog("invalid job pack information for job %u\n", job->jobid);
+	goto ERROR;
     }
 
     /* set mask of hardware threads to use */
     nodeinfo_t *nodeinfo = getJobNodeinfo(PSC_getMyID(), job);
     if (!nodeinfo) {
-	mlog("%s: could not extract nodeinfo from credentials\n", __func__);
-	sendSlurmRC(sMsg, ESLURMD_INVALID_JOB_CREDENTIAL);
-	return;
+	flog("could not extract nodeinfo from credentials for job %u\n",
+	     job->jobid);
+	goto ERROR;
     }
     PSCPU_copy(job->hwthreads, nodeinfo->jobHWthreads);
     ufree(nodeinfo);
@@ -1878,38 +1872,19 @@ static void handleBatchJobLaunch(Slurm_Msg_t *sMsg)
 			"psslurm: writing jobscript failed");
 	/* need to return success to be able to requeue the job */
 	sendSlurmRC(sMsg, SLURM_SUCCESS);
+	deleteJob(job->jobid);
 	return;
     }
 
-    mlog("%s: job %u user '%s' np %u nodes '%s' N %u tpp %u pack size %u"
-	 " script '%s'\n", __func__, job->jobid, job->username, job->np,
-	 job->slurmHosts, job->nrOfNodes, job->tpp, job->packSize,
-	 job->jobscript);
+    flog("job %u user '%s' np %u nodes '%s' N %u tpp %u pack size %u"
+	 " script '%s'\n", job->jobid, job->username, job->np, job->slurmHosts,
+	 job->nrOfNodes, job->tpp, job->packSize, job->jobscript);
 
     /* sanity check nrOfNodes */
     if (job->nrOfNodes > (uint16_t) PSC_getNrOfNodes()) {
 	mlog("%s: invalid nrOfNodes %u known Nodes %u\n", __func__,
 	     job->nrOfNodes, PSC_getNrOfNodes());
-	sendSlurmRC(sMsg, ESLURMD_INVALID_JOB_CREDENTIAL);
-	return;
-    }
-
-    Alloc_t *alloc = findAlloc(job->jobid);
-    if (!alloc) {
-	flog("error: no allocation for job %u found\n", job->jobid);
-	flog("** ensure slurmctld prologue is setup correctly **\n");
-	sendSlurmRC(sMsg, ESLURMD_INVALID_JOB_CREDENTIAL);
-	deleteJob(job->jobid);
-	return;
-    }
-
-    /* santy check allocation state */
-    if (alloc->state != A_PROLOGUE_FINISH) {
-	flog("allocation %u in invalid state %s\n", alloc->id,
-	     strAllocState(alloc->state));
-	sendSlurmRC(sMsg, ESLURMD_INVALID_JOB_CREDENTIAL);
-	deleteJob(job->jobid);
-	return;
+	goto ERROR;
     }
 
     /* forward job info to other nodes in the job */
@@ -1918,19 +1893,54 @@ static void handleBatchJobLaunch(Slurm_Msg_t *sMsg)
     /* setup job environment */
     initJobEnv(job);
 
-    /* pspelogue already ran parallel prologue, start job */
-    flog("start job\n");
-    alloc->state = A_RUNNING;
-    bool ret = execBatchJob(job);
-    fdbg(PSSLURM_LOG_JOB, "job %u in %s\n", job->jobid,strJobState(job->state));
+    Alloc_t *alloc = findAlloc(job->jobid);
+    bool ret = false;
+    char *prologue = getConfValueC(&SlurmConfig, "Prolog");
+    if (!prologue || prologue[0] == '\0') {
+	/* pspelogue should have added a allocation */
+	if (!alloc) {
+	    flog("error: no allocation for job %u found\n", job->jobid);
+	    flog("** ensure slurmctld prologue is setup correctly **\n");
+	    goto ERROR;
+	}
+
+	/* santy check allocation state */
+	if (alloc->state != A_PROLOGUE_FINISH) {
+	    flog("allocation %u in invalid state %s\n", alloc->id,
+		 strAllocState(alloc->state));
+	    goto ERROR;
+	}
+
+	/* pspelogue already ran parallel prologue, start job */
+	alloc->state = A_RUNNING;
+	ret = execBatchJob(job);
+	fdbg(PSSLURM_LOG_JOB, "job %u in %s\n", job->jobid,
+	     strJobState(job->state));
+    } else {
+	if (alloc && alloc->state == A_PROLOGUE_FINISH) {
+	    /* pspelogue already executed the prologue */
+	    alloc->state = A_RUNNING;
+	    ret = execBatchJob(job);
+	    fdbg(PSSLURM_LOG_JOB, "job %u in %s\n", job->jobid,
+		 strJobState(job->state));
+	} else {
+	    /* slurmctld will start the "slurmd_prolog" and the batch
+	     * job in parallel. psslurm has to wait until the prologue
+	     * is completed before the batch job is started */
+	    ret = true;
+	    flog("job %u is waiting for prologue to complete\n", job->jobid);
+	}
+    }
 
     /* return result to slurmctld */
     if (ret) {
 	sendSlurmRC(sMsg, SLURM_SUCCESS);
-    } else {
-	sendSlurmRC(sMsg, ESLURMD_INVALID_JOB_CREDENTIAL);
-	deleteJob(job->jobid);
+	return;
     }
+
+ERROR:
+    sendSlurmRC(sMsg, ESLURMD_INVALID_JOB_CREDENTIAL);
+    deleteJob(job->jobid);
 }
 
 static void doTerminateAlloc(Slurm_Msg_t *sMsg, Alloc_t *alloc)

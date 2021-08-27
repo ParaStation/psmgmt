@@ -97,12 +97,13 @@ typedef enum {
     PSP_FORWARD_SMSG_RES,   /**< result of forwarding a Slurm message */
     PSP_ALLOC_STATE =26,    /**< allocation state change */
     PSP_PACK_INFO,	    /**< send pack information to mother superior */
-    PSP_EPILOGUE_RES = 29,  /**< result of local epilogue */
+    PSP_EPILOGUE_RES = 29,  /**< defunct, tbr */
     PSP_EPILOGUE_STATE_REQ, /**< request delayed epilogue status */
     PSP_EPILOGUE_STATE_RES, /**< response to epilogue status request */
     PSP_PACK_EXIT,	    /**< forward exit status to all pack follower */
     PSP_PELOGUE_OE,	    /**< forward pelogue script stdout/stderr */
     PSP_STOP_STEP_FW,	    /**< shutdown step follower on all relevant nodes */
+    PSP_PELOGUE_RES,	    /**< result of a non-parallel prologue/epilogue */
 } PSP_PSSLURM_t;
 
 /** hostname lookup table for PS node IDs */
@@ -143,6 +144,8 @@ static const char *msg2Str(PSP_PSSLURM_t type)
 	    return "PSP_PELOGUE_OE";
 	case PSP_STOP_STEP_FW:
 	    return "PSP_STOP_STEP_FW";
+	case PSP_PELOGUE_RES:
+	    return "PSP_PELOGUE_RES";
 	default:
 	    snprintf(buf, sizeof(buf), "%i <Unknown>", type);
 	    return buf;
@@ -840,7 +843,7 @@ void send_PS_EpilogueStateReq(Alloc_t *alloc)
     }
 }
 
-void send_PS_EpilogueRes(Alloc_t *alloc, int16_t res)
+void send_PS_PElogueRes(Alloc_t *alloc, int16_t res, int16_t type)
 {
     DDTypedBufferMsg_t msg = {
 	.header = {
@@ -848,14 +851,16 @@ void send_PS_EpilogueRes(Alloc_t *alloc, int16_t res)
 	    .sender = PSC_getMyTID(),
 	    .dest = PSC_getTID(alloc->nodes[0], 0),
 	    .len = offsetof(DDTypedBufferMsg_t, buf) },
-	.type = PSP_EPILOGUE_RES,
+	.type = PSP_PELOGUE_RES,
 	.buf = {'\0'} };
 
-    mdbg(PSSLURM_LOG_PELOG, "%s: result: %i dest:%u\n",
-	 __func__, res, msg.header.dest);
+    fdbg(PSSLURM_LOG_PELOG, "type %s result: %i dest:%u\n",
+	 type == PELOGUE_PROLOGUE ? "prologue" : "epilogue",
+	 res, msg.header.dest);
 
     PSP_putTypedMsgBuf(&msg, "ID", &alloc->id, sizeof(alloc->id));
     PSP_putTypedMsgBuf(&msg, "res", &res, sizeof(res));
+    PSP_putTypedMsgBuf(&msg, "type", &type, sizeof(type));
 
     /* send the messages */
     if (sendMsg(&msg) == -1 && errno != EWOULDBLOCK) {
@@ -1024,65 +1029,99 @@ static void handle_EpilogueStateReq(DDTypedBufferMsg_t *msg)
     send_PS_EpilogueStateRes(msg->header.sender, id, res);
 }
 
+static bool startWaitingJobs(Job_t *job, const void *info)
+{
+    /* skip jobs where mother superior is on another node */
+    if (job->mother) return false;
+
+    uint32_t jobid = *(uint32_t *) info;
+
+    if (job->jobid == jobid && job->state == JOB_QUEUED) {
+	    bool ret = execBatchJob(job);
+	    fdbg(PSSLURM_LOG_JOB, "job %u in %s\n", job->jobid,
+		 strJobState(job->state));
+	    if (!ret) {
+		sendJobRequeue(jobid);
+		return true;
+	    }
+    }
+    return false;
+}
+
 /**
- * @brief Handle a local epilogue result
+ * @brief Handle a non-parallel prologue/epilogue result
  *
  * @param msg The message to handle
  */
-static void handle_EpilogueRes(DDTypedBufferMsg_t *msg)
+static void handle_PElogueRes(DDTypedBufferMsg_t *msg)
 {
-    uint32_t id;
-    uint16_t res;
     size_t used = 0;
 
+    uint32_t id;
     PSP_getTypedMsgBuf(msg, &used, "ID", &id, sizeof(id));
+    uint16_t res;
     PSP_getTypedMsgBuf(msg, &used, "res", &res, sizeof(res));
+    uint16_t type;
+    PSP_getTypedMsgBuf(msg, &used, "type", &type, sizeof(type));
 
-    mdbg(PSSLURM_LOG_PELOG, "%s: result %i for allocation %u from %s\n",
-	 __func__, res, id, PSC_printTID(msg->header.sender));
+    char *sType = (type == PELOGUE_PROLOGUE) ? "prologue" : "epilogue";
+
+    fdbg(PSSLURM_LOG_PELOG, "%s result %i for allocation %u from %s\n",
+	 sType, res, id, PSC_printTID(msg->header.sender));
 
     Alloc_t *alloc = findAlloc(id);
     if (!alloc) {
 	flog("allocation with ID %u not found\n", id);
+	return;
+    }
+
+    PSnodes_ID_t sender = PSC_getID(msg->header.sender);
+    int localID = getSlurmNodeID(sender, alloc->nodes, alloc->nrOfNodes);
+
+    if (localID < 0) {
+	flog("sender node %i in allocation %u not found\n", sender, alloc->id);
+	return;
+    }
+    if (res == PELOGUE_PENDING) {
+	/* should not happen */
+	flog("%s still running on %u\n", sType, sender);
+	return;
+    }
+
+    if (res != PELOGUE_DONE) {
+	/* pelogue failed, set node offline */
+	char reason[256];
+
+	if (res == PELOGUE_FAILED) {
+	    snprintf(reason, sizeof(reason), "psslurm: %s failed\n", sType);
+	} else if (res == PELOGUE_TIMEDOUT) {
+	    snprintf(reason, sizeof(reason), "psslurm: %s timed out\n", sType);
+	} else {
+	    snprintf(reason, sizeof(reason),
+		     "psslurm: %s failed with unknown result %i\n", sType, res);
+	}
+	setNodeOffline(&alloc->env, alloc->id,
+		       getSlurmHostbyNodeID(sender), reason);
     } else {
-	PSnodes_ID_t sender = PSC_getID(msg->header.sender);
-	int localID = getSlurmNodeID(sender, alloc->nodes, alloc->nrOfNodes);
+	fdbg(PSSLURM_LOG_PELOG, "%s success for allocation %u on "
+	     "node %i\n", sType, id, sender);
+    }
 
-	if (localID < 0) {
-	    flog("sender node %i in allocation %u not found\n",
-		 sender, alloc->id);
-	    return;
-	}
-	if (res == PELOGUE_PENDING) {
-	    /* should not happen */
-	    flog("epilogue still running on %u\n", sender);
-	    return;
-	}
+    if (type == PELOGUE_PROLOGUE) {
+	    if (alloc->nrOfNodes == ++alloc->prologCnt) {
+		flog("prologue for allocation %u on %u node(s) finished \n",
+		     alloc->id, alloc->nrOfNodes);
 
+		char *prologue = getConfValueC(&SlurmConfig, "Prolog");
+		if (prologue && prologue[0] != '\0') {
+		    /* let waiting jobs start */
+		    traverseJobs(startWaitingJobs, &alloc->id);
+		}
+	    }
+    } else {
 	if (alloc->epilogRes[localID] == false) {
 	    alloc->epilogRes[localID] = true;
 	    alloc->epilogCnt++;
-	}
-
-	if (res != PELOGUE_DONE) {
-	    /* epilogue failed, set node offline */
-	    char reason[256];
-
-	    if (res == PELOGUE_FAILED) {
-		snprintf(reason, sizeof(reason), "psslurm: epilogue failed\n");
-	    } else if (res == PELOGUE_TIMEDOUT) {
-		snprintf(reason, sizeof(reason),
-			 "psslurm: epilogue timed out\n");
-	    } else {
-		snprintf(reason, sizeof(reason),
-			 "psslurm: epilogue failed with unknown result %i\n",
-			 res);
-	    }
-	    setNodeOffline(&alloc->env, alloc->id,
-			   getSlurmHostbyNodeID(sender), reason);
-	} else {
-	    mdbg(PSSLURM_LOG_PELOG, "%s: success for allocation %u on "
-		 "node %i\n", __func__, id, sender);
 	}
 	finalizeEpilogue(alloc);
     }
@@ -1566,8 +1605,8 @@ static bool handlePsslurmMsg(DDTypedBufferMsg_t *msg)
 	case PSP_PACK_EXIT:
 	    recvFragMsg(msg, handlePackExit);
 	    break;
-	case PSP_EPILOGUE_RES:
-	    handle_EpilogueRes(msg);
+	case PSP_PELOGUE_RES:
+	    handle_PElogueRes(msg);
 	    break;
 	case PSP_EPILOGUE_STATE_REQ:
 	    handle_EpilogueStateReq(msg);
@@ -1581,9 +1620,13 @@ static bool handlePsslurmMsg(DDTypedBufferMsg_t *msg)
 	case PSP_STOP_STEP_FW:
 	    handleStopStepFW(msg);
 	    break;
+	case PSP_EPILOGUE_RES:
+	    flog("received defunct msg type: %i [%s -> %s]\n", msg->type,
+		 sender, dest);
+	    break;
 	default:
-	    mlog("%s: received unknown msg type: %i [%s -> %s]\n", __func__,
-		msg->type, sender, dest);
+	    flog("received unknown msg type: %i [%s -> %s]\n", msg->type,
+		 sender, dest);
     }
     return true;
 }

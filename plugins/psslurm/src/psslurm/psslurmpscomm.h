@@ -70,15 +70,17 @@ void send_PS_JobExit(uint32_t jobid, uint32_t stepid, uint32_t nrOfNodes,
 void send_PS_JobLaunch(Job_t *job);
 
 /**
- * @brief Send result of local epilogue
+ * @brief Send result of a non-parallel pelogue
  *
- * Send result of a local epilogue to allocation leader.
+ * Send result of a non-parallel prologue or epilogue to allocation leader.
  *
- * @param alloc The allocation of the completed epilogue
+ * @param alloc The allocation of the completed pelogue
  *
- * @param res The result of the epilogue
+ * @param res The result of the pelogue
+ *
+ * @param type The type (prologue or epilogue)
  */
-void send_PS_EpilogueRes(Alloc_t *alloc, int16_t res);
+void send_PS_PElogueRes(Alloc_t *alloc, int16_t res, int16_t type);
 
 /**
  * @brief Request the status of an epilogue
