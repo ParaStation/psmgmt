@@ -1,5 +1,4 @@
 #!/bin/sh
-test "$HOME" = ~ || exec ksh $0 "$@"    # try ksh if sh too old (not yet POSIX)
 
 # Copyright (C) 2001, 2002, 2003 Marc Vertes
 
@@ -18,7 +17,7 @@ test "$HOME" = ~ || exec ksh $0 "$@"    # try ksh if sh too old (not yet POSIX)
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA
 # 02111-1307, USA.
 
-# release 1.5.6
+# release 1.7.1
 
 usage()
 {
@@ -154,7 +153,7 @@ do
 	(I) itxt="$OPTARG§$itxt";;
 	(B) btxt="$OPTARG§$btxt";;
 	(T) post="groff -mandoc -Tlatin1 | ${PAGER:-more}";;
-	(X) post="groff -mandoc -X";;
+	(X) post="groff -mandoc -TX100-12 -rS12";;
 	(*) usage; exit;;
 	esac
 done
@@ -215,7 +214,7 @@ BEGIN {
 	# remove spaces in empty lines
 	sub(/^ +$/,"")
 }
-/^[[:upper:][:space:]]+$/ {
+/^[:space:]*[[:upper:][:digit:]]+[[:upper:][:space:][:digit:][:punct:]]+$/ {
 	# Section header
 	if ((in_bd + 0) == 1) {
 		in_bd = 0
@@ -250,7 +249,7 @@ BEGIN {
 		pnzls = ls
 	match($0, /[^ ]/)
 	ls = RSTART
-	if (pls == 0 && pnzls > 0 && ls > pnzls && $1 !~ /^[0-9\-\*o]\.*$/) {
+	if (in_bd == 0 && pls == 0 && pnzls > 0 && ls > pnzls && $1 !~ /^[\-\*o]$|^[0-9]+\.$/) {
 		# example display block
 		if (prevblankline == 1) {
 			print ".PP"
