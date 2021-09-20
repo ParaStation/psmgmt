@@ -171,7 +171,8 @@ static nodeinfo_t *node_iter_next(node_iterator *iter)
     uint16_t threadsPerCore = numThreads / coreCount;
     if (threadsPerCore < 1) threadsPerCore = 1;
 
-    flog("node id %hu threadsPerCore %hu\n", nodeid, threadsPerCore);
+    fdbg(PSSLURM_LOG_PART, "node id %hu threadsPerCore %hu\n", nodeid,
+	    threadsPerCore);
 
     iter->info = (nodeinfo_t){
 	.id = nodeid,
