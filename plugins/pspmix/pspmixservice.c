@@ -600,8 +600,6 @@ bool pspmix_service_registerClientAndSendEnv(PspmixClient_t *client)
     snprintf(tmp, 256, "OMPI_COMM_WORLD_NODE_RANK=%d", found ? nrank : -1 );
     envp[count++] = strdup(tmp);
 
-    RELEASE_LOCK(namespaceList);
-
     /* send message */
     if (!pspmix_comm_sendClientPMIxEnvironment(client->fwtid, envp, count)) {
 	mlog("%s(r%d): failed to send the environment to client forwarder %s\n",
