@@ -425,12 +425,6 @@ static int hookExecForwarder(void *data)
     /* fragmentation layer only used for receiving */
     initSerial(0, NULL);
 
-    /* register handler for notification messages from the PMIx jobserver */
-    if (!PSID_registerMsg(PSP_PLUG_PSPMIX, handlePspmixMsg)) {
-	mlog("%s(r%d): Failed to register message handler.", __func__, rank);
-	return -1;
-    }
-
     /* Send client registration request to the PMIx server */
     if (!sendRegisterClientMsg(childTask->fd, childTask->loggertid,
 		childTask->resID, childTask->rank,
@@ -451,6 +445,38 @@ static int hookExecForwarder(void *data)
     return 0;
 }
 
+/**
+ * @brief Hook function for PSIDHOOK_FRWRD_INIT
+ *
+ * Register PSP_PLUG_PSPMIX messages.
+ *
+ * @param data Pointer to an int flag indicating wether to release the client.
+ *
+ * @return Always returns 0.
+ */
+static int hookForwarderInit(void *data)
+{
+    if (((PStask_t *)data)->group != TG_ANY) return 0;
+
+    mdbg(PSPMIX_LOG_CALL, "%s() called with task group TG_ANY\n", __func__);
+
+    /* break if this is not a PMIx job */
+    if (!childTask) return 0;
+
+    /* pointer is assumed to be valid for the life time of the forwarder */
+    if (childTask != data) {
+	mlog("%s: Unexpected child task.", __func__);
+	return -1;
+    }
+
+    /* register handler for notification messages from the PMIx jobserver */
+    if (!PSID_registerMsg(PSP_PLUG_PSPMIX, handlePspmixMsg)) {
+	mlog("%s(r%d): Failed to register message handler.", __func__, rank);
+	return -1;
+    }
+
+    return 0;
+}
 /**
  * @brief Return PMIx initialization status
  *
@@ -507,6 +533,7 @@ static int hookForwarderExit(void *data)
 void pspmix_initForwarderModule(void)
 {
     PSIDhook_add(PSIDHOOK_EXEC_FORWARDER, hookExecForwarder);
+    PSIDhook_add(PSIDHOOK_FRWRD_INIT, hookForwarderInit);
     PSIDhook_add(PSIDHOOK_FRWRD_CLNT_RLS, hookForwarderClientRelease);
     PSIDhook_add(PSIDHOOK_FRWRD_EXIT, hookForwarderExit);
 }
@@ -514,6 +541,7 @@ void pspmix_initForwarderModule(void)
 void pspmix_finalizeForwarderModule(void)
 {
     PSIDhook_del(PSIDHOOK_EXEC_FORWARDER, hookExecForwarder);
+    PSIDhook_del(PSIDHOOK_FRWRD_INIT, hookForwarderInit);
     PSIDhook_del(PSIDHOOK_FRWRD_CLNT_RLS, hookForwarderClientRelease);
     PSIDhook_del(PSIDHOOK_FRWRD_EXIT, hookForwarderExit);
 }

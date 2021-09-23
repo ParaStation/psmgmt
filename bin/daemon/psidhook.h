@@ -119,7 +119,8 @@ typedef enum {
 				hook might be used to prepare the child's env */
     PSIDHOOK_FRWRD_INIT,      /**< In forwarder's init() function, arg is a
 				pointer to the child's task structure. Might be
-				used to register additional sockets. */
+				used to register additional sockets and message
+				types. */
     PSIDHOOK_FRWRD_CINFO,     /**< When the forwarder is connecting to
 				the logger, arg is a pointer to the loggers
 				response msg buffer. Might be used to get info
