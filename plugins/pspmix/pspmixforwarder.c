@@ -209,26 +209,29 @@ static bool readClientPMIxEnvironment(int daemonfd, struct timeval timeout) {
     return true;
 }
 
-static bool sendNotificationResp(PStask_ID_t targetTID,
+static bool sendNotificationResp(bool success, PStask_ID_t targetTID,
 	PSP_PSPMIX_t type, pmix_rank_t rank, const char *nspace)
 {
     mdbg(PSPMIX_LOG_CALL, "%s() called with targetTID %s type %s nspace %s"
 	    " rank %u\n", __func__, PSC_printTID(targetTID),
 		pspmix_getMsgTypeString(type), nspace, rank);
 
-    mdbg(PSPMIX_LOG_COMM, "%s: Sending %s for rank %u (nspace %s)\n", __func__,
-		pspmix_getMsgTypeString(type), rank, nspace);
+    mdbg(PSPMIX_LOG_COMM, "%s: Sending %s for rank %u (success %s nspace %s)\n",
+	    __func__, pspmix_getMsgTypeString(type), rank,
+	    success ? "true" : "false", nspace);
 
     PS_SendDB_t msg;
     initFragBuffer(&msg, PSP_PLUG_PSPMIX, type);
     setFragDest(&msg, targetTID);
 
+    addUint8ToMsg(success, &msg);
     addUint32ToMsg(rank, &msg);
     addStringToMsg(nspace, &msg);
 
     if (sendFragMsg(&msg) < 0) {
-	mlog("%s: Sending %s (rank %u nspace %s) to %s failed.\n", __func__,
-		pspmix_getMsgTypeString(type), rank, nspace,
+	mlog("%s: Sending %s (success %s rank %u nspace %s) to %s failed.\n",
+		__func__, pspmix_getMsgTypeString(type),
+		success ? "true" : "false", rank, nspace,
 		PSC_printTID(targetTID));
 	return false;
     }
@@ -259,8 +262,8 @@ static void handleClientInit(DDTypedBufferMsg_t *msg,
     pmixStatus = INITIALIZED;
 
     /* send response */
-    sendNotificationResp(msg->header.sender, PSPMIX_CLIENT_INIT_RES, proc.rank,
-	   proc.nspace);
+    sendNotificationResp(true, msg->header.sender, PSPMIX_CLIENT_INIT_RES,
+	    proc.rank, proc.nspace);
 }
 
 /**
@@ -313,7 +316,7 @@ static void handleClientFinalize(DDTypedBufferMsg_t *msg,
     pmixStatus = FINALIZED;
 
     /* send response */
-    sendNotificationResp(msg->header.sender, PSPMIX_CLIENT_FINALIZE_RES,
+    sendNotificationResp(true, msg->header.sender, PSPMIX_CLIENT_FINALIZE_RES,
 	    proc.rank, proc.nspace);
 }
 

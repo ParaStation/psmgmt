@@ -175,7 +175,7 @@ static void handleModexDataResp(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
     PMIX_PROC_DESTRUCT(&proc);
 }
 
-static void handleClientInitResp(DDTypedBufferMsg_t *msg,
+static void handleClientNotifyResp(DDTypedBufferMsg_t *msg,
 	PS_DataBuffer_t *data)
 {
     mdbg(PSPMIX_LOG_CALL, "%s() called\n", __func__);
@@ -185,38 +185,29 @@ static void handleClientInitResp(DDTypedBufferMsg_t *msg,
     uint8_t success;
     getUint8(&ptr, &success);
     pmix_proc_t proc;
+    PMIX_PROC_CONSTRUCT(&proc);
     getUint32(&ptr, &proc.rank);
     getString(&ptr, proc.nspace, sizeof(proc.nspace));
 
-    mdbg(PSPMIX_LOG_COMM, "%s: received %s (0x%X) from %s with status %d for"
+    mdbg(PSPMIX_LOG_COMM, "%s: received %s (0x%X) from %s (success %s"
 	    " namespace %s rank %d\n", __func__,
 	    pspmix_getMsgTypeString(msg->type), msg->type,
-	    PSC_printTID(msg->header.sender), success, proc.nspace, proc.rank);
+	    PSC_printTID(msg->header.sender), success ? "true" : "false",
+	    proc.nspace, proc.rank);
 
-    pspmix_service_handleClientInitResp(success, proc.rank, proc.nspace,
-	    msg->header.sender);
-}
-
-static void handleClientFinalResp(DDTypedBufferMsg_t *msg,
-	PS_DataBuffer_t *data)
-{
-    mdbg(PSPMIX_LOG_CALL, "%s() called\n", __func__);
-
-    char *ptr = data->buf;
-
-    uint8_t success;
-    getUint8(&ptr, &success);
-    pmix_proc_t proc;
-    getUint32(&ptr, &proc.rank);
-    getString(&ptr, proc.nspace, sizeof(proc.nspace));
-
-    mdbg(PSPMIX_LOG_COMM, "%s: received %s (0x%X) from %s with status %d for"
-	    " namespace %s rank %d\n", __func__,
-	    pspmix_getMsgTypeString(msg->type), msg->type,
-	    PSC_printTID(msg->header.sender), success, proc.nspace, proc.rank);
-
-    pspmix_service_handleClientFinalizeResp(success, proc.rank, proc.nspace,
-	    msg->header.sender);
+    switch(msg->type) {
+	case PSPMIX_CLIENT_INIT_RES:
+	    pspmix_service_handleClientInitResp(success, proc.rank, proc.nspace,
+		    msg->header.sender);
+	    break;
+	case PSPMIX_CLIENT_FINALIZE_RES:
+	    pspmix_service_handleClientFinalizeResp(success, proc.rank,
+		    proc.nspace, msg->header.sender);
+	    break;
+	default:
+	    mlog("%s: Unexpected message type %s\n", __func__,
+		    pspmix_getMsgTypeString(msg->type));
+    }
 }
 
 /**
@@ -250,10 +241,10 @@ static void handlePspmixMsg(DDTypedBufferMsg_t *msg)
 	recvFragMsg(msg, handleModexDataResp);
 	break;
     case PSPMIX_CLIENT_INIT_RES:
-	recvFragMsg(msg, handleClientInitResp);
+	recvFragMsg(msg, handleClientNotifyResp);
 	break;
     case PSPMIX_CLIENT_FINALIZE_RES:
-	recvFragMsg(msg, handleClientFinalResp);
+	recvFragMsg(msg, handleClientNotifyResp);
 	break;
     default:
 	mlog("%s: received unknown msg type: 0x%X [%s",
