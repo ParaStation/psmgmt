@@ -230,8 +230,7 @@ static bool sendNotificationResp(PStask_ID_t targetTID,
     addUint32ToMsg(rank, &msg);
     addStringToMsg(nspace, &msg);
 
-    int ret = sendFragMsg(&msg);
-    if (!ret) {
+    if (sendFragMsg(&msg) < 0) {
 	mlog("%s: Sending %s (rank %u nspace %s) to %s failed.\n", __func__,
 		pspmix_getMsgTypeString(type), rank, nspace,
 		PSC_printTID(targetTID));

@@ -361,7 +361,7 @@ bool pspmix_comm_sendClientPMIxEnvironment(PStask_ID_t targetTID,
 
     int ret = sendFragMsg(&msg);
     pthread_mutex_unlock(&send_lock);
-    if (!ret) {
+    if (ret < 0) {
 	mlog("%s: Sending client PMIx environment to %s failed.\n", __func__,
 	     PSC_printTID(targetTID));
 	return false;
@@ -390,7 +390,7 @@ bool pspmix_comm_sendFenceIn(PStask_ID_t loggertid, PSnodes_ID_t target,
 
     int ret = sendFragMsg(&msg);
     pthread_mutex_unlock(&send_lock);
-    if (!ret) {
+    if (ret < 0) {
 	mlog("%s: Sending (fenceid 0x%04lX ndata %lu) to node %hd failed\n",
 	     __func__, fenceid, ndata, target);
 	return false;
@@ -419,7 +419,7 @@ bool pspmix_comm_sendFenceOut(PStask_ID_t targetTID, uint64_t fenceid,
 
     int ret = sendFragMsg(&msg);
     pthread_mutex_unlock(&send_lock);
-    if (!ret) {
+    if (ret < 0) {
 	mlog("%s: Sending (fenceid 0x%04lX ndata %lu) to %s failed\n",
 	     __func__, fenceid, ndata, PSC_printTID(targetTID));
 	return false;
@@ -447,7 +447,7 @@ bool pspmix_comm_sendModexDataRequest(PStask_ID_t loggertid,
 
     int ret = sendFragMsg(&msg);
     pthread_mutex_unlock(&send_lock);
-    if (!ret) {
+    if (ret < 0) {
 	mlog("%s: Sending (nspace %s) to rank %d failed\n", __func__,
 	     proc->nspace, proc->rank);
 	return false;
@@ -478,7 +478,7 @@ bool pspmix_comm_sendModexDataResponse(PStask_ID_t targetTID, bool status,
 
     int ret = sendFragMsg(&msg);
     pthread_mutex_unlock(&send_lock);
-    if (!ret) {
+    if (ret < 0) {
 	mlog("%s: Sending (status %d nspace %s ndata %zu) to rank %u failed\n",
 	     __func__, status, proc->nspace, ndata, proc->rank);
 	return false;
@@ -499,7 +499,7 @@ static bool sendForwarderNotification(PStask_ID_t targetTID,
 
     int ret = sendFragMsg(&msg);
     pthread_mutex_unlock(&send_lock);
-    if (!ret) {
+    if (ret < 0) {
 	mlog("%s: Sending (rank %u nspace %s) to %s failed.\n", __func__,
 		rank, nspace, PSC_printTID(targetTID));
 	return false;
