@@ -514,7 +514,7 @@ bool pspmix_comm_sendInitNotification(PStask_ID_t targetTID,
 	    __func__, PSC_printTID(targetTID), nspace, rank);
 
     mdbg(PSPMIX_LOG_COMM, "%s: Sending client initialization notification"
-	    " response for rank %u (nspace %s)\n", __func__, rank, nspace);
+	    " for rank %u (nspace %s)\n", __func__, rank, nspace);
 
     return sendForwarderNotification(targetTID, PSPMIX_CLIENT_INIT,
 	    rank, nspace);
@@ -527,7 +527,7 @@ bool pspmix_comm_sendFinalizeNotification(PStask_ID_t targetTID,
 	    __func__, PSC_printTID(targetTID), nspace, rank);
 
     mdbg(PSPMIX_LOG_COMM, "%s: Sending client finalization notification"
-	    " response for rank %u (nspace %s)\n", __func__, rank, nspace);
+	    " for rank %u (nspace %s)\n", __func__, rank, nspace);
 
     return sendForwarderNotification(targetTID, PSPMIX_CLIENT_FINALIZE,
 	    rank, nspace);

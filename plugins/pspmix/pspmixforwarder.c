@@ -430,10 +430,11 @@ static int hookForwarderInit(void *data)
 {
     if (((PStask_t *)data)->group != TG_ANY) return 0;
 
-    mdbg(PSPMIX_LOG_CALL, "%s() called with task group TG_ANY\n", __func__);
-
     /* break if this is not a PMIx job */
     if (!childTask) return 0;
+
+    mdbg(PSPMIX_LOG_CALL, "%s() called with task group TG_ANY and childTask"
+	    " set.\n", __func__);
 
     /* pointer is assumed to be valid for the life time of the forwarder */
     if (childTask != data) {
@@ -462,10 +463,10 @@ static int hookForwarderInit(void *data)
  */
 static int hookForwarderClientRelease(void *data)
 {
-    mdbg(PSPMIX_LOG_CALL, "%s() called\n", __func__);
-
     /* break if this is not a PMIx job */
     if (!childTask) return 0;
+
+    mdbg(PSPMIX_LOG_CALL, "%s() called with childTask set.\n", __func__);
 
     return pmixStatus;
 }
@@ -488,10 +489,11 @@ static int hookForwarderExit(void *data)
 {
     int rel = *((int*)data);
 
-    mdbg(PSPMIX_LOG_CALL, "%s() called with rel %d\n", __func__, rel);
-
     /* break if this is not a PMIx job */
     if (!childTask) return 0;
+
+    mdbg(PSPMIX_LOG_CALL, "%s() called with childTask set (rel %d).\n",
+	    __func__, rel);
 
     /* register handler for notification messages from the PMIx jobserver */
     PSID_clearMsg(PSP_PLUG_PSPMIX, handlePspmixMsg);
