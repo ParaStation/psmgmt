@@ -66,32 +66,28 @@ static enum {
 /**
  * @brief Send a message via the daemon
  *
- * @param fd   socket to the daemon
  * @param msg  the ready to send message
  *
- * @return Returns true on success and false on error
+ * @return Return value of @see PSCio_sendF()
  */
-static bool fwSendMsg(int fd, DDTypedBufferMsg_t *msg)
+static ssize_t fwSendMsg(DDTypedBufferMsg_t *msg)
 {
     mdbg(PSPMIX_LOG_COMM, "%s(r%d): Sending message for %s to my daemon\n",
 	    __func__, rank, PSC_printTID(msg->header.dest));
 
-    ssize_t ret = PSCio_sendF(fd, msg, msg->header.len);
+    ssize_t ret = PSCio_sendF(childTask->fd, msg, msg->header.len);
     if (ret < 0) {
 	mwarn(errno, "%s(r%d): Sending msg to %s failed", __func__, rank,
 	      PSC_printTID(msg->header.dest));
-	return false;
     } else if (!ret) {
 	mlog("%s(r%d): Lost connection to daemon\n", __func__, rank);
-	return false;
     }
-    return true;
+    return ret;
 }
 
 /**
  * @brief Compose and send a client registration message to the PMIx server
  *
- * @param fd         socket to sent the message to
  * @param loggertid  TID of the tasks logger identifying the job it belongs to
  * @param resid      reservation id of the task the client is part of
  * @param clientRank the rank of the client task
@@ -100,7 +96,7 @@ static bool fwSendMsg(int fd, DDTypedBufferMsg_t *msg)
  *
  * @return Returns true on success, false on error
  */
-static bool sendRegisterClientMsg(int fd, PStask_ID_t loggertid, int32_t resid,
+static bool sendRegisterClientMsg(PStask_ID_t loggertid, int32_t resid,
 	uint32_t clientRank, uid_t uid, gid_t gid)
 {
     char *tmp;
@@ -141,7 +137,7 @@ static bool sendRegisterClientMsg(int fd, PStask_ID_t loggertid, int32_t resid,
     PSP_putTypedMsgBuf(&msg, "uid", &uid, sizeof(uid));
     PSP_putTypedMsgBuf(&msg, "gid", &gid, sizeof(gid));
 
-    return fwSendMsg(fd, &msg);
+    return fwSendMsg(&msg) > 0 ? true : false;
 }
 
 static volatile bool environmentReady = false;
@@ -394,13 +390,12 @@ static int hookExecForwarder(void *data)
     /* Remember my rank for debugging and error output */
     rank = childTask->rank;
 
-    /* fragmentation layer only used for receiving */
+    /* initialize fragmentation layer only to receive environment */
     initSerial(0, NULL);
 
     /* Send client registration request to the PMIx server */
-    if (!sendRegisterClientMsg(childTask->fd, childTask->loggertid,
-		childTask->resID, childTask->rank,
-		childTask->uid, childTask->gid)) {
+    if (!sendRegisterClientMsg(childTask->loggertid, childTask->resID,
+		childTask->rank, childTask->uid, childTask->gid)) {
 	mlog("%s(r%d): Failed to send register client message.", __func__,
 		rank);
 	return -1;
@@ -413,6 +408,8 @@ static int hookExecForwarder(void *data)
     if (!readClientPMIxEnvironment(childTask->fd, timeout)) {
 	return -1;
     }
+
+    finalizeSerial();
 
     return 0;
 }
@@ -441,6 +438,9 @@ static int hookForwarderInit(void *data)
 	mlog("%s: Unexpected child task.", __func__);
 	return -1;
     }
+
+    /* initialize fragmentation layer */
+    initSerial(0, (Send_Msg_Func_t *)fwSendMsg);
 
     /* register handler for notification messages from the PMIx jobserver */
     if (!PSID_registerMsg(PSP_PLUG_PSPMIX, handlePspmixMsg)) {
@@ -498,7 +498,6 @@ static int hookForwarderExit(void *data)
     /* register handler for notification messages from the PMIx jobserver */
     PSID_clearMsg(PSP_PLUG_PSPMIX, handlePspmixMsg);
 
-    /* fragmentation layer only used for receiving */
     finalizeSerial();
 
     return 0;
