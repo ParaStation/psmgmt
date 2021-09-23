@@ -88,33 +88,6 @@ static bool fwSendMsg(int fd, DDTypedBufferMsg_t *msg)
     return true;
 }
 
-/*
- * returns the number of bytes read, 0 on timeout or closed connection
- * and -1 on error (see errno)
- */
-static ssize_t fwRecvMsg(int fd, DDTypedBufferMsg_t *msg, struct timeval timeout)
-{
-    fd_set rfds;
-
-restart:
-    FD_ZERO(&rfds);
-    FD_SET(fd, &rfds);
-    int n = select(fd+1, &rfds, NULL, NULL, &timeout);
-    if (n < 0) {
-	switch (errno) {
-	case EINTR:
-	    /* Interrupted syscall, just start again */
-	    goto restart;
-	    break;
-	default:
-	    return n;
-	}
-    }
-    if (!n) return n;
-
-    return PSCio_recvMsg(fd, (DDBufferMsg_t *)msg);
-}
-
 /**
  * @brief Compose and send a client registration message to the PMIx server
  *
@@ -217,7 +190,7 @@ static bool readClientPMIxEnvironment(int daemonfd, struct timeval timeout) {
     ssize_t ret;
 
     while (!environmentReady) {
-	ret = fwRecvMsg(daemonfd, &msg, timeout);
+	ret = PSCio_recvMsgT(daemonfd, &msg, &timeout);
 	if (ret < 0) {
 	    mwarn(errno, "%s(r%d): Error receiving environment message\n",
 		    __func__, rank);
