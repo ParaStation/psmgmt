@@ -190,7 +190,7 @@ static void handleClientNotifyResp(DDTypedBufferMsg_t *msg,
     getString(&ptr, proc.nspace, sizeof(proc.nspace));
 
     mdbg(PSPMIX_LOG_COMM, "%s: received %s (0x%X) from %s (success %s"
-	    " namespace %s rank %d\n", __func__,
+	    " namespace %s rank %d)\n", __func__,
 	    pspmix_getMsgTypeString(msg->type), msg->type,
 	    PSC_printTID(msg->header.sender), success ? "true" : "false",
 	    proc.nspace, proc.rank);
