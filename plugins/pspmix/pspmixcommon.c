@@ -2,6 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2019 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2021 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -22,7 +23,7 @@
 
 #include "pspmixcommon.h"
 
-/* descide if this job wants to use PMIx */
+/* decide if this job wants to use PMIx */
 bool __pspmix_common_usePMIx(PStask_t *task, const char* func) {
     for (uint32_t i = 0; i < task->envSize; i++) {
 	if (strncmp(task->environ[i], "__PMIX_NODELIST=", 16) == 0) {

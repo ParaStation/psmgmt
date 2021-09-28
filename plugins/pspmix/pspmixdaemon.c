@@ -312,7 +312,7 @@ static int hookRecvSpawnReq(void *data)
 
     mdbg(PSPMIX_LOG_CALL, "%s() called with task group TG_ANY\n", __func__);
 
-    /* descide if this job wants to use PMIx */
+    /* decide if this job wants to use PMIx */
     if (!pspmix_common_usePMIx(prototask)) return 0;
 
     /* find job */

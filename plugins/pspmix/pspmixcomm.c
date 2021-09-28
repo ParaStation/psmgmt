@@ -300,7 +300,7 @@ static pthread_mutex_t send_lock = PTHREAD_MUTEX_INITIALIZER;
 /**
  * @brief Send a message via our daemon
  *
- * This function sends a message and descide how to send it by the destination.
+ * This function sends a message and decide how to send it by the destination.
  * This function is compatible to Send_Msg_Func_t and can be used as send
  * function for psserial.
  *

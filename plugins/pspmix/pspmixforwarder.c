@@ -380,7 +380,7 @@ static int hookExecForwarder(void *data)
     /* pointer is assumed to be valid for the life time of the forwarder */
     childTask = data;
 
-    /* descide if this job wants to use PMIx */
+    /* decide if this job wants to use PMIx */
     if (!pspmix_common_usePMIx(childTask)) {
 	childTask = NULL;
 	return 0;
