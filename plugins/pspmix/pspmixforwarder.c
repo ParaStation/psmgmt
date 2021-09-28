@@ -53,11 +53,7 @@ static int32_t rank;
 static PStask_t *childTask;
 
 /* PMIx initialization status of the child */
-static enum {
-    IDLE = 0,       /* child has not yet called PMIx_Initialize */
-    INITIALIZED,    /* child has called PMIx_Initialize but not PMIx_Finalize */
-    FINALIZED,      /* child has called PMIx_Finalize */
-} pmixStatus = IDLE;
+PSIDhook_ClntRls_t pmixStatus = IDLE;
 
 /* ****************************************************** *
  *                 Send/Receive functions                 *
@@ -259,7 +255,7 @@ static void handleClientInit(DDTypedBufferMsg_t *msg,
     mdbg(PSPMIX_LOG_COMM, "%s(r%d): Handling client initialized message for"
 	    " %s:%d\n", __func__, rank, proc.nspace, proc.rank);
 
-    pmixStatus = INITIALIZED;
+    pmixStatus = CONNECTED;
 
     /* send response */
     sendNotificationResp(true, msg->header.sender, PSPMIX_CLIENT_INIT_RES,
@@ -313,7 +309,7 @@ static void handleClientFinalize(DDTypedBufferMsg_t *msg,
     /* release the child */
     sendChildReleaseMsg();
 
-    pmixStatus = FINALIZED;
+    pmixStatus = RELEASED;
 
     /* send response */
     sendNotificationResp(true, msg->header.sender, PSPMIX_CLIENT_FINALIZE_RES,
@@ -453,6 +449,7 @@ static int hookForwarderInit(void *data)
 
     return 0;
 }
+
 /**
  * @brief Return PMIx initialization status
  *
