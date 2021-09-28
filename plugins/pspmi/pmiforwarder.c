@@ -2,6 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2013-2021 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2021 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -49,12 +50,8 @@ static size_t mmBufferSize = 0;
 /** Used part of the buffer to concatenate multiple PMI messages */
 static size_t mmBufferUsed = 0;
 
-static enum {
-    IDLE = 0,
-    CONNECTED,
-    CLOSED,
-} pmiStatus = IDLE;
-
+/** Connection status of the client to serve */
+PSIDhook_ClntRls_t clientStatus = IDLE;
 
 /**
  * @brief Close the socket which is connected to the MPI client.
@@ -149,7 +146,7 @@ static int readFromPMIClient(int fd, void *data)
     msgBufUsed += len;
     if (mmBuffer) mmBufferUsed += len;
 
-    pmiStatus = CONNECTED;
+    clientStatus = CONNECTED;
 
     mdbg(PSPMI_LOG_RECV, "%s: PMI message received: {%s}\n",
 	 __func__, recvBuf);
@@ -217,18 +214,17 @@ static int readFromPMIClient(int fd, void *data)
     if (ret == PMI_FINALIZED) {
 
 	/* release the child */
-	DDSignalMsg_t msg;
-
-	msg.header.type = PSP_CD_RELEASE;
-	msg.header.sender = PSC_getMyTID();
-	msg.header.dest = childTask->tid;
-	msg.header.len = sizeof(msg);
-	msg.signal = -1;
-	msg.answer = 1;
-
+	DDSignalMsg_t msg = {
+	    .header = {
+		.type = PSP_CD_RELEASE,
+		.sender = PSC_getMyTID(),
+		.dest = childTask->tid,
+		.len = sizeof(msg) },
+	    .signal = -1,
+	    .answer = 1 };
 	sendDaemonMsg((DDMsg_t *)&msg);
 
-	pmiStatus = CLOSED;
+	clientStatus = RELEASED;
     }
 
     return 0;
@@ -298,7 +294,7 @@ static int acceptPMIClient(int fd, void *data)
  */
 static int getClientStatus(void *data)
 {
-    return pmiStatus;
+    return clientStatus;
 }
 
 void setConnectionInfo(PMItype_t type, int sock)

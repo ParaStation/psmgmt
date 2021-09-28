@@ -18,6 +18,13 @@
 
 #include "pstask.h"
 
+/** Return type expected from functions registered to PSIDHOOK_FRWRD_CLNT_RLS */
+typedef enum {
+    RELEASED = 0,   /**< Client was released by plugin */
+    CONNECTED,      /**< Client still connected to plugin, don't release */
+    IDLE,           /**< Client ignored the plugin (so far) */
+} PSIDhook_ClntRls_t;
+
 /**
  * @brief Hook function to execute.
  *
@@ -33,7 +40,6 @@
  * hook.
  */
 typedef int PSIDhook_func_t(void *);
-
 
 /**
  * The hook-types currently known by the daemon. Some of them pass a
@@ -126,9 +132,11 @@ typedef enum {
 				release its client. */
     PSIDHOOK_FRWRD_CLNT_RLS,  /**< Tell attached plugins that the client is
 				ready for release. The client is described by
-				the task structure passed in arg. If 0 is
-				returned, a PSP_CD_RELEASE message might be
-				sent. */
+				the task structure passed in arg. The plugin
+				is expected to return a value of type
+				PSIDhook_ClntRls_t. If IDLE is returned,
+				a PSP_CD_RELEASE message might be sent
+				according to some heuristics. */
     PSIDHOOK_FRWRD_SPAWNRES,  /**< A result msg to a spawn request. Arg is a
 				pointer to the msg. Used by pspmi to handle the
 				result of spawning new service processes.

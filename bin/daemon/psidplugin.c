@@ -157,8 +157,10 @@ static LIST_HEAD(pluginList);
  * 132: new hook PSIDHOOK_EXEC_CLIENT_PREP
  *
  * 133: Message handling via registered handlers in psidforwarder
+ *
+ * 134: Reworked hook PSIDHOOK_FRWRD_CLNT_RLS to support multiple plugins
  */
-static int pluginAPIVersion = 133;
+static int pluginAPIVersion = 134;
 
 
 /** Grace period between finalize and unload on forcefully unloads */

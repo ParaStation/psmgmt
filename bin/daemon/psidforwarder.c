@@ -1027,10 +1027,10 @@ static void finalizeForwarder(void)
 
     sendLogMsg(USAGE, (char *) &childRUsage, sizeof(childRUsage));
 
-    int clientStat = PSIDhook_call(PSIDHOOK_FRWRD_CLNT_RLS, childTask);
+    PSIDhook_ClntRls_t ret = PSIDhook_call(PSIDHOOK_FRWRD_CLNT_RLS, childTask);
 
     /* Release, if no error occurred and not already done */
-    if ((!clientStat || clientStat == PSIDHOOK_NOFUNC)
+    if ((ret == IDLE || ret == PSIDHOOK_NOFUNC)
 	&& (WIFEXITED(childStatus) && !WEXITSTATUS(childStatus))
 	&& !WIFSIGNALED(childStatus)) {
 	/* release the child */

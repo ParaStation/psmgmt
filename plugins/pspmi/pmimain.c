@@ -25,7 +25,7 @@
 /** psid plugin requirements */
 char name[] = "pspmi";
 int version = 4;
-int requiredAPI = 113;
+int requiredAPI = 134;
 plugin_dep_t dependencies[] = {
     { .name = "psaccount", .version = 24 },
     { .name = NULL, .version = 0 } };
