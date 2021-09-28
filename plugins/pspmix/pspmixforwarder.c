@@ -471,6 +471,12 @@ static int hookForwarderClientRelease(void *data)
 
     mdbg(PSPMIX_LOG_CALL, "%s() called with childTask set.\n", __func__);
 
+    /* pointer is assumed to be valid for the life time of the forwarder */
+    if (childTask != data) {
+	mlog("%s: Unexpected child task.", __func__);
+	return -1;
+    }
+
     return pmixStatus;
 }
 
