@@ -606,13 +606,12 @@ static char **setupRankEnv(int psRank, void *info)
 {
     Conf_t *conf = info;
     static char *env[8];
-    char buf[200];
     int cur = 0;
     static int rank = 0;
-    static char pmiRankItem[32];
 
     /* setup PMI env */
     if (conf->pmiTCP || conf->pmiSock) {
+	static char pmiRankItem[32];
 	snprintf(pmiRankItem, sizeof(pmiRankItem), "PMI_RANK=%d", rank);
 	env[cur++] = pmiRankItem;
     }
@@ -624,31 +623,36 @@ static char **setupRankEnv(int psRank, void *info)
 
     if (conf->pmiTCP || conf->pmiSock || conf->PMIx) {
 	/* set additional process placement information for PSM */
-	snprintf(buf, sizeof(buf), "MPI_LOCALRANKID=%i", nodeLocalProcIDs[rank]);
-	env[cur++] = strdup(buf);
-	snprintf(buf, sizeof(buf), "MPI_LOCALNRANKS=%i",
-		numProcPerNode[jobLocalNodeIDs[rank]]);
-	env[cur++] = strdup(buf);
+	static char locRank[32], locNum[32];
+	snprintf(locRank, sizeof(locRank), "MPI_LOCALRANKID=%i",
+		 nodeLocalProcIDs[rank]);
+	env[cur++] = locRank;
+	snprintf(locNum, sizeof(locNum), "MPI_LOCALNRANKS=%i",
+		 numProcPerNode[jobLocalNodeIDs[rank]]);
+	env[cur++] = locNum;
     }
 
-    /* setup OpenMPI support */
     if (conf->openMPI) {
+	/* setup OpenMPI support */
+	static char nodeID[32], procID[32], locID[32];
 
 	/* Node ID relative to other  nodes  in  the  job  step.
 	 * Counting begins at zero. */
-	snprintf(buf, sizeof(buf), "SLURM_NODEID=%i", jobLocalNodeIDs[rank]);
-	env[cur++] = strdup(buf);
+	snprintf(nodeID, sizeof(nodeID), "SLURM_NODEID=%i",
+		 jobLocalNodeIDs[rank]);
+	env[cur++] = nodeID;
 
 	/* Task ID  relative to the other tasks in the job step.
 	 * Counting begins at zero. */
-	snprintf(buf, sizeof(buf), "SLURM_PROCID=%i", rank);
-	env[cur++] = strdup(buf);
+	snprintf(procID, sizeof(procID), "SLURM_PROCID=%i", rank);
+	env[cur++] = procID;
 
 	/* Task ID relative to the other tasks on the same node which
 	 * belong to the same job step. Counting begins at zero.
 	 * */
-	snprintf(buf, sizeof(buf), "SLURM_LOCALID=%i", nodeLocalProcIDs[rank]);
-	env[cur++] = strdup(buf);
+	snprintf(locID, sizeof(locID), "SLURM_LOCALID=%i",
+		 nodeLocalProcIDs[rank]);
+	env[cur++] = locID;
     }
 
 
