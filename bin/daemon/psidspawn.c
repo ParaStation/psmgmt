@@ -1168,7 +1168,7 @@ static int buildSandboxAndStart(PSIDspawn_creator_t *creator, PStask_t *task)
 	return eno;
     }
 
-    PSID_blockSig(1, SIGTERM);
+    int blocked = PSID_blockSig(1, SIGTERM);
     /* fork the forwarder */
     pid_t pid = fork();
     /* save errno in case of error */
@@ -1214,7 +1214,7 @@ static int buildSandboxAndStart(PSIDspawn_creator_t *creator, PStask_t *task)
     }
 
     /* this is the parent process */
-    PSID_blockSig(0, SIGTERM);
+    PSID_blockSig(blocked, SIGTERM);
 
     /* close forwarders end of the socketpair */
     close(socketfds[1]);

@@ -46,7 +46,7 @@ int pskill(pid_t pid, int sig, uid_t uid)
 	return -1;
     }
 
-    int blockedTERM = PSID_blockSig(1, SIGTERM);
+    int blocked = PSID_blockSig(1, SIGTERM);
     /* fork to a new process to change the user ID and get the right errors */
     errno = 0;
     pid_t forkPid = fork();
@@ -98,7 +98,7 @@ int pskill(pid_t pid, int sig, uid_t uid)
     /* close the writing pipe */
     close(cntrlfds[1]);
 
-    PSID_blockSig(blockedTERM, SIGTERM);
+    PSID_blockSig(blocked, SIGTERM);
 
     /* check if fork() was successful */
     if (forkPid == -1) {

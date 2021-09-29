@@ -39,7 +39,6 @@ static int doExec(char *script, PSID_scriptFunc_t func, PSID_scriptPrep_t prep,
 {
     PSID_scriptCBInfo_t *cbInfo = NULL;
     int controlfds[2], iofds[2], eno, ret = 0;
-    pid_t pid;
 
     if (!script && !func) {
 	PSID_log(-1, "%s: both, script and func are NULL\n", __func__);
@@ -82,8 +81,8 @@ static int doExec(char *script, PSID_scriptFunc_t func, PSID_scriptPrep_t prep,
 	return -1;
     }
 
-    PSID_blockSig(1, SIGTERM);
-    pid = fork();
+    int blocked = PSID_blockSig(1, SIGTERM);
+    pid_t pid = fork();
     /* save errno in case of error */
     eno = errno;
 
@@ -156,7 +155,7 @@ static int doExec(char *script, PSID_scriptFunc_t func, PSID_scriptPrep_t prep,
 	exit(0);
     }
 
-    PSID_blockSig(0, SIGTERM);
+    PSID_blockSig(blocked, SIGTERM);
 
     close(controlfds[1]);
     close(iofds[1]);
