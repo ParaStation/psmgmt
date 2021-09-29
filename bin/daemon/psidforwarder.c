@@ -429,7 +429,12 @@ static void releaseLogger(int status)
 		    PSID_log(-1, "%s: receive timeout. Send again\n", __func__);
 		    goto send_again;
 		default:
-		    PSID_warn(-1, errno, "%s: recvMsg()", __func__);
+		    PSID_warn(-1, errno, "%s: recvDaemonMsg()", __func__);
+		    if (daemonSock < 0) {
+			PSID_log(-1, "%s: connection lost\n", __func__);
+			return;
+		    }
+		    continue;
 		}
 	    }
 	    if (lmsg->header.type == PSP_CC_MSG && lmsg->type == EXIT) {
@@ -860,7 +865,7 @@ static int readFromChild(int fd, void *data)
 	PSIDfwd_printMsgf(STDERR, "%s: %s: got %ld bytes on sock %d\n",
 			  tag, __func__, (long) total, fd);
     }
-    if (n==0 || (n<0 && errno==EIO)) {
+    if (!n || (n < 0 && errno == EIO)) {
 	/* socket closed */
 	if (verbose) {
 	    PSIDfwd_printMsgf(STDERR, "%s: %s: closing %d\n",
@@ -876,7 +881,7 @@ static int readFromChild(int fd, void *data)
 			      tag, __func__);
 	}
 	if (!openfds) Selector_startOver();
-    } else if (n<0 && errno!=ETIME && errno!=ECONNRESET) {
+    } else if (n < 0 && errno != ETIME && errno != ECONNRESET) {
 	/* ignore the error */
 	PSIDfwd_printMsgf(STDERR, "%s: %s: collectRead(): %s\n",
 			  tag, __func__, strerror(errno));
@@ -985,16 +990,14 @@ static struct rusage childRUsage;
  */
 static void sighandler(int sig)
 {
-    int i, maxFD;
-
     char txt[80];
 
     switch (sig) {
     case SIGUSR1:
-	maxFD = sysconf(_SC_OPEN_MAX);
 	snprintf(txt, sizeof(txt),
 		 "[%d] %s: open sockets left:", childTask->rank, tag);
-	for (i = 0; i < maxFD; i++) {
+	int maxFD = sysconf(_SC_OPEN_MAX);
+	for (int i = 0; i < maxFD; i++) {
 	    if (Selector_isRegistered(i)) {
 		snprintf(txt+strlen(txt), sizeof(txt)-strlen(txt), " %d", i);
 	    }
