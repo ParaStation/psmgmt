@@ -147,6 +147,9 @@ void pspmix_service_abort(void *clientObject);
  * If we are the node with the first client in the chain we have to start the
  * daisy chain.
  *
+ * @see checkFence() in pspmixservice.c for an overall description of
+ * fence handling logic
+ *
  * @param procs Processes that need to participate
  * @param ndata Size of @a procs
  * @param data  Data to be collected
@@ -164,6 +167,9 @@ int pspmix_service_fenceIn(const pmix_proc_t procs[], size_t nprocs,
  * @brief Handle messages of type PSPMIX_FENCE_IN comming from PMIx Jobservers
  *        on other nodes
  *
+ * @see checkFence() in pspmixservice.c for an overall description of
+ * fence handling logic
+ *
  * @param fenceid  ID of the fence
  * @param sender   task ID of the sending jobserver
  * @param data     data blob to share with all participating nodes
@@ -178,7 +184,8 @@ void pspmix_service_handleFenceIn(uint64_t fenceid, PStask_ID_t sender,
  *
  * Put the data to the buffer list
  *
- * @see checkFence for an overall description of fence handling logic
+ * @see checkFence() in pspmixservice.c for an overall description of
+ * fence handling logic
  *
  * @param fenceid   ID of the fence
  * @param data      cumulated data blob to share with all participating nodes
