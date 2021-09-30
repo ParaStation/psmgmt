@@ -717,16 +717,13 @@ static int readFromDaemon(int fd, void *data)
 static bool msgRELEASERES(DDBufferMsg_t *msg)
 {
     /* release the client */
-    int res = 1;
-    PSIDhook_call(PSIDHOOK_FRWRD_EXIT, &res);
+    PSIDhook_call(PSIDHOOK_FRWRD_EXIT, &msg->header.sender);
     return true;
 }
 
 static bool msgCC(DDBufferMsg_t *msg)
 {
     PSLog_Msg_t *lmsg = (PSLog_Msg_t *)msg;
-    int res = 0;
-
     switch (lmsg->type) {
     case SIGNAL:
 	handleSignalMsg(msg);
@@ -750,7 +747,7 @@ static bool msgCC(DDBufferMsg_t *msg)
     case EXIT:
 	/* Logger is going to die */
 	/* Release the client */
-	PSIDhook_call(PSIDHOOK_FRWRD_EXIT, &res);
+	PSIDhook_call(PSIDHOOK_FRWRD_EXIT, NULL);
 	/* Release the daemon */
 	closeDaemonSock();
 	/* Cleanup child */
@@ -1077,8 +1074,7 @@ static void finalizeForwarder(void)
     sendSignal(-PSC_getPID(childTask->tid), SIGKILL);
 
     /* Release the client */
-    int res = 0;
-    PSIDhook_call(PSIDHOOK_FRWRD_EXIT, &res);
+    PSIDhook_call(PSIDHOOK_FRWRD_EXIT, NULL);
 
     /* Release the daemon */
     closeDaemonSock();

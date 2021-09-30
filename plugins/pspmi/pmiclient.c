@@ -2569,7 +2569,7 @@ static int setupMsgHandlers(void *data)
     return 0;
 }
 
-static int clearMsgHandlers(void *data)
+static int clearMsgHandlers(void *unused)
 {
     PSID_clearMsg(PSP_CC_MSG, msgCC);
     PSID_clearMsg(PSP_CD_SPAWNSUCCESS, msgSPAWNRES);

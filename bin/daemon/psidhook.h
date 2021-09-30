@@ -128,9 +128,10 @@ typedef enum {
     PSIDHOOK_FRWRD_KVS,       /**< Handle a KVS/Service messages, arg
 				points to msg (obsolete) */
     PSIDHOOK_FRWRD_EXIT,      /**< Tell attached (PMI-)plugin that the forwarder
-				is going to exit. The arg is a pointer to int.
-				If the int is 1, PMI is expected to release its
-				client, i.e. to send a "finalize_ack" */
+				is going to exit. arg is a pointer to the task
+				ID of the child process that was released or
+				NULL. If not NULL, PMI is expected to release
+				its client, i.e. to send a "finalize_ack" */
     PSIDHOOK_FRWRD_CLNT_RLS,  /**< Tell attached plugins that the client is
 				ready for release. The client is described by
 				the task structure passed in arg. The plugin

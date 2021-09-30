@@ -383,11 +383,11 @@ static int setupPMIsockets(void *data)
  */
 static int releasePMIClient(void *data)
 {
-    int *res = data;
+    PStask_ID_t *tid = data;
 
     /* release the MPI client */
     if (pmiType != PMI_DISABLED) {
-	if (*res == 1) {
+	if (tid) {
 	    pmi_finalize();
 	} else {
 	    leaveKVS(1);
