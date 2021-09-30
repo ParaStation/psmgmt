@@ -50,7 +50,7 @@
 static int32_t rank;
 
 /* task structure of this forwarders child */
-static PStask_t *childTask;
+static PStask_t *childTask = NULL;
 
 /* PMIx initialization status of the child */
 PSIDhook_ClntRls_t pmixStatus = IDLE;
@@ -70,28 +70,22 @@ PSIDhook_ClntRls_t pmixStatus = IDLE;
  *
  * @return Returns true on success, false on error
  */
-static bool sendRegisterClientMsg(PStask_ID_t loggertid, int32_t resid,
-	uint32_t clientRank, uid_t uid, gid_t gid)
+static bool sendRegisterClientMsg(PStask_t *clientTask)
 {
-    char *tmp;
+    mdbg(PSPMIX_LOG_COMM, "%s(r%d): Send register client message for rank %d\n",
+	 __func__, rank, clientTask->rank);
 
-    PStask_ID_t myTID, serverTID;
+    PStask_ID_t myTID = PSC_getMyTID();
 
-    mdbg(PSPMIX_LOG_COMM, "%s(r%d): Sending register client message for rank"
-	    " %d\n", __func__, rank, clientRank);
-
-    myTID = PSC_getMyTID();
-
-    tmp = getenv("__PSPMIX_LOCAL_JOBSERVER_TID");
-    if (tmp == NULL) {
-	mlog("%s(r%d): TID of the local PMIx job server not found.", __func__,
-		rank);
+    char *tmp = getenv("__PSPMIX_LOCAL_JOBSERVER_TID");
+    if (!tmp) {
+	mlog("%s(r%d): No TID of local PMIx job server\n", __func__, rank);
 	return false;
     }
 
+    PStask_ID_t serverTID;
     if (sscanf(tmp, "%d", &serverTID) != 1) {
-	mlog("%s(r%d): Cannot parse TID of the local PMIx job server.",
-		__func__, rank);
+	mlog("%s(r%d): Failed to parse TID from '%s'\n", __func__, rank, tmp);
 	return false;
     }
     unsetenv("__PSPMIX_LOCAL_JOBSERVER_TID");
@@ -101,23 +95,26 @@ static bool sendRegisterClientMsg(PStask_ID_t loggertid, int32_t resid,
 	    .type = PSP_PLUG_PSPMIX,
 	    .sender = myTID,
 	    .dest = serverTID,
-	    .len = offsetof(DDTypedBufferMsg_t, buf) },
+	    .len = 0, /* to be set by PSP_putTypedMsgBuf */ },
 	.type = PSPMIX_REGISTER_CLIENT,
 	.buf = {'\0'} };
 
-    PSP_putTypedMsgBuf(&msg, "loggertid", &loggertid, sizeof(loggertid));
-    PSP_putTypedMsgBuf(&msg, "resid", &resid, sizeof(resid));
-    PSP_putTypedMsgBuf(&msg, "rank", &clientRank, sizeof(clientRank));
-    PSP_putTypedMsgBuf(&msg, "uid", &uid, sizeof(uid));
-    PSP_putTypedMsgBuf(&msg, "gid", &gid, sizeof(gid));
+    PSP_putTypedMsgBuf(&msg, "loggertid",
+		       &clientTask->loggertid, sizeof(clientTask->loggertid));
+    PSP_putTypedMsgBuf(&msg, "resid",
+		       &clientTask->resID, sizeof(clientTask->resID));
+    PSP_putTypedMsgBuf(&msg, "rank",
+		       &clientTask->rank, sizeof(clientTask->rank));
+    PSP_putTypedMsgBuf(&msg, "uid", &clientTask->uid, sizeof(clientTask->uid));
+    PSP_putTypedMsgBuf(&msg, "gid", &clientTask->gid, sizeof(clientTask->gid));
 
-    mdbg(PSPMIX_LOG_COMM, "%s(r%d): Sending message for %s to my daemon\n",
-	    __func__, rank, PSC_printTID(serverTID));
+    mdbg(PSPMIX_LOG_COMM, "%s(r%d): Send message for %s\n", __func__, rank,
+	 PSC_printTID(serverTID));
 
     /* Do not use sendDaemonMsg() here since forwarder is not yet initialized */
-    ssize_t ret = PSCio_sendF(childTask->fd, &msg, msg.header.len);
+    ssize_t ret = PSCio_sendF(clientTask->fd, &msg, msg.header.len);
     if (ret < 0) {
-	mwarn(errno, "%s(r%d): Sending msg to %s failed", __func__, rank,
+	mwarn(errno, "%s(r%d): Send msg to %s", __func__, rank,
 	      PSC_printTID(serverTID));
     } else if (!ret) {
 	mlog("%s(r%d): Lost connection to daemon\n", __func__, rank);
@@ -162,27 +159,27 @@ static void handleClientPMIxEnv(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
  *
  * @return Returns true on success, false on timeout
  */
-static bool readClientPMIxEnvironment(int daemonfd, struct timeval timeout) {
-
-    mdbg(PSPMIX_LOG_CALL, "%s() called (rank %d, timeout %lu us)\n", __func__,
-	    rank, (unsigned long)(timeout.tv_sec * 1000 + timeout.tv_usec));
+static bool readClientPMIxEnvironment(int daemonfd, struct timeval timeout)
+{
+    mdbg(PSPMIX_LOG_CALL, "%s(r%d) called (timeout %lu us)\n", __func__, rank,
+	 (unsigned long)(timeout.tv_sec * 1000 * 1000 + timeout.tv_usec));
 
     while (!environmentReady) {
 	DDTypedBufferMsg_t msg;
 	ssize_t ret = PSCio_recvMsgT(daemonfd, &msg, &timeout);
 	if (ret < 0) {
-	    mwarn(errno, "%s(r%d): Error receiving environment message\n",
-		    __func__, rank);
+	    mwarn(errno, "%s(r%d): Error receiving environment message",
+		  __func__, rank);
 	    return false;
 	}
 	else if (ret == 0) {
-	    mlog("%s(r%d): Timeout while receiving environment message.\n",
-		    __func__, rank);
+	    mlog("%s(r%d): Timeout while receiving environment message\n",
+		 __func__, rank);
 	    return false;
 	}
 	else if (ret != msg.header.len) {
 	    mlog("%s(r%d): Unknown error receiving environment message: read"
-		    " %ld len %hu.\n", __func__, rank, ret, msg.header.len);
+		    " %ld len %hu\n", __func__, rank, ret, msg.header.len);
 	    return false;
 	}
 
@@ -193,26 +190,26 @@ static bool readClientPMIxEnvironment(int daemonfd, struct timeval timeout) {
 }
 
 static bool sendNotificationResp(PStask_ID_t targetTID, PSP_PSPMIX_t type,
-				 pmix_rank_t rank, const char *nspace)
+				 pmix_rank_t pmirank, const char *nspace)
 {
-    mdbg(PSPMIX_LOG_CALL, "%s() called with targetTID %s type %s nspace %s"
-	 " rank %u\n", __func__, PSC_printTID(targetTID),
-	 pspmix_getMsgTypeString(type), nspace, rank);
+    mdbg(PSPMIX_LOG_CALL, "%s(r%d) targetTID %s type %s nspace %s pmirank %u\n",
+	 __func__, rank, PSC_printTID(targetTID),
+	 pspmix_getMsgTypeString(type), nspace, pmirank);
 
-    mdbg(PSPMIX_LOG_COMM, "%s: Sending %s for rank %u (nspace %s)\n",
-	 __func__, pspmix_getMsgTypeString(type), rank, nspace);
+    mdbg(PSPMIX_LOG_COMM, "%s: Sending %s for pmirank %u (nspace %s)\n",
+	 __func__, pspmix_getMsgTypeString(type), pmirank, nspace);
 
     PS_SendDB_t msg;
     initFragBuffer(&msg, PSP_PLUG_PSPMIX, type);
     setFragDest(&msg, targetTID);
 
     addUint8ToMsg(1, &msg);
-    addUint32ToMsg(rank, &msg);
+    addUint32ToMsg(pmirank, &msg);
     addStringToMsg(nspace, &msg);
 
     if (sendFragMsg(&msg) < 0) {
-	mlog("%s: Sending %s (rank %u nspace %s) to %s failed.\n", __func__,
-	     pspmix_getMsgTypeString(type), rank, nspace,
+	mlog("%s: Sending %s (pmirank %u nspace %s) to %s failed\n", __func__,
+	     pspmix_getMsgTypeString(type), pmirank, nspace,
 	     PSC_printTID(targetTID));
 	return false;
     }
@@ -273,8 +270,7 @@ static void sendChildReleaseMsg(void)
  *
  * @return No return value
  */
-static void handleClientFinalize(DDTypedBufferMsg_t *msg,
-				 PS_DataBuffer_t *data)
+static void handleClientFinalize(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
 {
     mdbg(PSPMIX_LOG_CALL, "%s() called\n", __func__);
 
@@ -349,22 +345,19 @@ static bool handlePspmixMsg(DDBufferMsg_t *vmsg) {
  * - Wait for the environment sent by the PMIx jobserver
  * - Set the environment in the childs task structure
  *
- * @param data Pointer to the task structure of the child.
+ * @param data Pointer to the child's task structure
  *
  * @return Returns 0 on success and -1 on error.
  */
 static int hookExecForwarder(void *data)
 {
-    /* Return for all special task groups */
-    if (((PStask_t *)data)->group != TG_ANY) return 0;
-
-    mdbg(PSPMIX_LOG_CALL, "%s() called with task group TG_ANY\n", __func__);
+    mdbg(PSPMIX_LOG_CALL, "%s() called\n", __func__);
 
     /* pointer is assumed to be valid for the life time of the forwarder */
     childTask = data;
 
     /* decide if this job wants to use PMIx */
-    if (!pspmix_common_usePMIx(childTask)) {
+    if (childTask->group != TG_ANY || !pspmix_common_usePMIx(childTask)) {
 	childTask = NULL;
 	return 0;
     }
@@ -376,10 +369,8 @@ static int hookExecForwarder(void *data)
     initSerial(0, NULL);
 
     /* Send client registration request to the PMIx server */
-    if (!sendRegisterClientMsg(childTask->loggertid, childTask->resID,
-		childTask->rank, childTask->uid, childTask->gid)) {
-	mlog("%s(r%d): Failed to send register client message.", __func__,
-		rank);
+    if (!sendRegisterClientMsg(childTask)) {
+	mlog("%s(r%d): Failed to send register message\n", __func__, rank);
 	return -1;
     }
 
@@ -387,37 +378,31 @@ static int hookExecForwarder(void *data)
     struct timeval timeout;
     timeout.tv_sec = 3;
     timeout.tv_usec = 0;
-    if (!readClientPMIxEnvironment(childTask->fd, timeout)) {
-	return -1;
-    }
+    if (!readClientPMIxEnvironment(childTask->fd, timeout)) return -1;
 
     finalizeSerial();
-
     return 0;
 }
 
 /**
  * @brief Hook function for PSIDHOOK_FRWRD_INIT
  *
- * Register PSP_PLUG_PSPMIX messages.
+ * Register handler for PSP_PLUG_PSPMIX messages.
  *
- * @param data Pointer to an int flag indicating wether to release the client.
+ * @param data Pointer to the child's task structure
  *
- * @return Always returns 0.
+ * @return Return 0 or -1 in case of error
  */
 static int hookForwarderInit(void *data)
 {
-    if (((PStask_t *)data)->group != TG_ANY) return 0;
-
     /* break if this is not a PMIx job */
     if (!childTask) return 0;
 
-    mdbg(PSPMIX_LOG_CALL, "%s() called with task group TG_ANY and childTask"
-	    " set.\n", __func__);
+    mdbg(PSPMIX_LOG_CALL, "%s() called\n", __func__);
 
     /* pointer is assumed to be valid for the life time of the forwarder */
     if (childTask != data) {
-	mlog("%s: Unexpected child task.", __func__);
+	mlog("%s: Unexpected child task", __func__);
 	return -1;
     }
 
@@ -426,7 +411,7 @@ static int hookForwarderInit(void *data)
 
     /* register handler for notification messages from the PMIx jobserver */
     if (!PSID_registerMsg(PSP_PLUG_PSPMIX, handlePspmixMsg)) {
-	mlog("%s(r%d): Failed to register message handler.", __func__, rank);
+	mlog("%s(r%d): Failed to register message handler\n", __func__, rank);
 	return -1;
     }
 
@@ -440,21 +425,21 @@ static int hookForwarderInit(void *data)
  * forwarder finalization. If this returns 0 the child will not be released
  * automatically, independent of its exit status.
  *
- * @param data Unsed parameter.
+ * @param data Pointer to the child's task structure
  *
- * @return Returns the PMIx initialization status of the child.
+ * @return Returns the PMIx initialization status of the child
  */
 static int hookForwarderClientRelease(void *data)
 {
     /* break if this is not a PMIx job */
-    if (!childTask) return 0;
+    if (!childTask) return IDLE;
 
     mdbg(PSPMIX_LOG_CALL, "%s() called with childTask set.\n", __func__);
 
     /* pointer is assumed to be valid for the life time of the forwarder */
     if (childTask != data) {
 	mlog("%s: Unexpected child task.", __func__);
-	return -1;
+	return IDLE;
     }
 
     return pmixStatus;
@@ -470,9 +455,9 @@ static int hookForwarderClientRelease(void *data)
  * @todo What exactly means the flag passed to this function and do we have to
  *       take it into account somehow?
  *
- * @param data Pointer to an int flag indicating wether to release the client.
+ * @param data Pointer to an int flag indicating wether to release the client
  *
- * @return Always returns 0.
+ * @return Always returns 0
  */
 static int hookForwarderExit(void *data)
 {
@@ -481,8 +466,7 @@ static int hookForwarderExit(void *data)
     /* break if this is not a PMIx job */
     if (!childTask) return 0;
 
-    mdbg(PSPMIX_LOG_CALL, "%s() called with childTask set (rel %d).\n",
-	    __func__, rel);
+    mdbg(PSPMIX_LOG_CALL, "%s(rel %d)\n", __func__, rel);
 
     /* register handler for notification messages from the PMIx jobserver */
     PSID_clearMsg(PSP_PLUG_PSPMIX, handlePspmixMsg);
