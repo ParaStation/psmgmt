@@ -205,44 +205,41 @@ static bool readClientPMIxEnvironment(int daemonfd, struct timeval timeout) {
     return true;
 }
 
-static bool sendNotificationResp(bool success, PStask_ID_t targetTID,
-	PSP_PSPMIX_t type, pmix_rank_t rank, const char *nspace)
+static bool sendNotificationResp(PStask_ID_t targetTID, PSP_PSPMIX_t type,
+				 pmix_rank_t rank, const char *nspace)
 {
     mdbg(PSPMIX_LOG_CALL, "%s() called with targetTID %s type %s nspace %s"
-	    " rank %u\n", __func__, PSC_printTID(targetTID),
-		pspmix_getMsgTypeString(type), nspace, rank);
+	 " rank %u\n", __func__, PSC_printTID(targetTID),
+	 pspmix_getMsgTypeString(type), nspace, rank);
 
-    mdbg(PSPMIX_LOG_COMM, "%s: Sending %s for rank %u (success %s nspace %s)\n",
-	    __func__, pspmix_getMsgTypeString(type), rank,
-	    success ? "true" : "false", nspace);
+    mdbg(PSPMIX_LOG_COMM, "%s: Sending %s for rank %u (nspace %s)\n",
+	 __func__, pspmix_getMsgTypeString(type), rank, nspace);
 
     PS_SendDB_t msg;
     initFragBuffer(&msg, PSP_PLUG_PSPMIX, type);
     setFragDest(&msg, targetTID);
 
-    addUint8ToMsg(success, &msg);
+    addUint8ToMsg(1, &msg);
     addUint32ToMsg(rank, &msg);
     addStringToMsg(nspace, &msg);
 
     if (sendFragMsg(&msg) < 0) {
-	mlog("%s: Sending %s (success %s rank %u nspace %s) to %s failed.\n",
-		__func__, pspmix_getMsgTypeString(type),
-		success ? "true" : "false", rank, nspace,
-		PSC_printTID(targetTID));
+	mlog("%s: Sending %s (rank %u nspace %s) to %s failed.\n", __func__,
+	     pspmix_getMsgTypeString(type), rank, nspace,
+	     PSC_printTID(targetTID));
 	return false;
     }
     return true;
 }
 
 /**
- * @brief Handle messages of type PSPMIX_CLIENT_INITED
+ * @brief Handle messages of type PSPMIX_CLIENT_INIT
  *
  * @param msg  The last fragment of the message to handle
  * @param data The defragmented data received
  */
-static void handleClientInit(DDTypedBufferMsg_t *msg,
-	PS_DataBuffer_t *data) {
-    
+static void handleClientInit(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
+{
     mdbg(PSPMIX_LOG_CALL, "%s() called\n", __func__);
 
     char *ptr = data->buf;
@@ -253,34 +250,33 @@ static void handleClientInit(DDTypedBufferMsg_t *msg,
     getString(&ptr, proc.nspace, sizeof(proc.nspace));
 
     mdbg(PSPMIX_LOG_COMM, "%s(r%d): Handling client initialized message for"
-	    " %s:%d\n", __func__, rank, proc.nspace, proc.rank);
+	 " %s:%d\n", __func__, rank, proc.nspace, proc.rank);
 
     pmixStatus = CONNECTED;
 
     /* send response */
-    sendNotificationResp(true, msg->header.sender, PSPMIX_CLIENT_INIT_RES,
-	    proc.rank, proc.nspace);
+    sendNotificationResp(msg->header.sender, PSPMIX_CLIENT_INIT_RES,
+			 proc.rank, proc.nspace);
 }
 
 /**
  * @brief Send PSP_CD_RELEASE message for our client to the local daemon
  */
-static void sendChildReleaseMsg() {
-    
-    DDSignalMsg_t msg;
-
-    msg.header.type = PSP_CD_RELEASE;
-    msg.header.sender = PSC_getMyTID();
-    msg.header.dest = childTask->tid;
-    msg.header.len = sizeof(msg);
-    msg.signal = -1;
-    msg.answer = 1;
-
+static void sendChildReleaseMsg(void)
+{
+    DDSignalMsg_t msg = {
+	.header = {
+	    .type = PSP_CD_RELEASE,
+	    .sender = PSC_getMyTID(),
+	    .dest = childTask->tid,
+	    .len = sizeof(msg) },
+	.signal = -1,
+	.answer = 1 };
     sendDaemonMsg((DDMsg_t *)&msg);
 }
 
 /**
- * @brief Handle messages of type PSPMIX_CLIENT_FINALIZED
+ * @brief Handle messages of type PSPMIX_CLIENT_FINALIZE
  *
  * Handle notification about finalization of forwarders client. This marks the
  * client as released so exiting becomes non erroneous.
@@ -291,8 +287,8 @@ static void sendChildReleaseMsg() {
  * @return No return value
  */
 static void handleClientFinalize(DDTypedBufferMsg_t *msg,
-	PS_DataBuffer_t *data) {
-
+				 PS_DataBuffer_t *data)
+{
     mdbg(PSPMIX_LOG_CALL, "%s() called\n", __func__);
 
     char *ptr = data->buf;
@@ -303,8 +299,8 @@ static void handleClientFinalize(DDTypedBufferMsg_t *msg,
     getString(&ptr, proc.nspace, sizeof(proc.nspace));
 
     mdbg(PSPMIX_LOG_COMM, "%s: received %s (0x%X) from namespace %s rank %d\n",
-	    __func__, pspmix_getMsgTypeString(msg->type), msg->type,
-	    proc.nspace, proc.rank);
+	 __func__, pspmix_getMsgTypeString(msg->type), msg->type,
+	 proc.nspace, proc.rank);
 
     /* release the child */
     sendChildReleaseMsg();
@@ -312,8 +308,8 @@ static void handleClientFinalize(DDTypedBufferMsg_t *msg,
     pmixStatus = RELEASED;
 
     /* send response */
-    sendNotificationResp(true, msg->header.sender, PSPMIX_CLIENT_FINALIZE_RES,
-	    proc.rank, proc.nspace);
+    sendNotificationResp(msg->header.sender, PSPMIX_CLIENT_FINALIZE_RES,
+			 proc.rank, proc.nspace);
 }
 
 /**
@@ -332,9 +328,9 @@ static bool handlePspmixMsg(DDBufferMsg_t *vmsg) {
 
     DDTypedBufferMsg_t *msg = (DDTypedBufferMsg_t *)vmsg;
 
-    mdbg(PSPMIX_LOG_COMM, "%s: msg: type %s (%i) length %hu [%s",
-	    __func__, pspmix_getMsgTypeString(msg->type), msg->type,
-	    msg->header.len, PSC_printTID(msg->header.sender));
+    mdbg(PSPMIX_LOG_COMM, "%s: msg: type %s (%i) length %hu [%s", __func__,
+	 pspmix_getMsgTypeString(msg->type), msg->type, msg->header.len,
+	 PSC_printTID(msg->header.sender));
     mdbg(PSPMIX_LOG_COMM, "->%s]\n", PSC_printTID(msg->header.dest));
 
     switch(msg->type) {
