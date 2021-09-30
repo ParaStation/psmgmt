@@ -677,6 +677,7 @@ void pspmix_service_handleClientInitResp(bool success, pmix_rank_t rank,
     }
 
     pspmix_server_operationFinished(success, client->notifiedFwCb);
+    ufree(client->notifiedFwCb);
     client->notifiedFwCb = NULL;
 }
 
@@ -731,6 +732,7 @@ void pspmix_service_handleClientFinalizeResp(bool success, pmix_rank_t rank,
     }
 
     pspmix_server_operationFinished(success, client->notifiedFwCb);
+    ufree(client->notifiedFwCb);
     client->notifiedFwCb = NULL;
 
     /* remove client from namespace */
