@@ -222,9 +222,9 @@ static void decodeValue(const char *encval, pmix_value_t *val,
 static pmix_status_t server_client_connected_cb(const pmix_proc_t *proc,
 	void *clientObject, pmix_op_cbfunc_t cbfunc, void *cbdata)
 {
-    mdbg(PSPMIX_LOG_CALL, "%s() called with rank %d nspace %s clientObject %p"
-	    " cbfunc %p cbdata %p\n", __func__, proc->rank, proc->nspace,
-	    clientObject, cbfunc, cbdata);
+    mdbg(PSPMIX_LOG_CALL,
+	 "%s(proc(%d, '%s', clientObject %p cbfunc %p cbdata %p)\n", __func__,
+	 proc->rank, proc->nspace, clientObject, cbfunc, cbdata);
 
     mycbfunc_t *cb = NULL;
     if (cbfunc) {
@@ -233,9 +233,7 @@ static pmix_status_t server_client_connected_cb(const pmix_proc_t *proc,
 	cb->cbdata = cbdata;
     }
 
-    if (!pspmix_service_clientConnected(clientObject, cb)) {
-	return PMIX_ERROR;
-    }
+    if (!pspmix_service_clientConnected(clientObject, cb)) return PMIX_ERROR;
 
     /* tell the server library to wait for the callback call */
     return PMIX_SUCCESS;
@@ -249,12 +247,11 @@ static pmix_status_t server_client_connected_cb(const pmix_proc_t *proc,
 static pmix_status_t server_client_finalized_cb(const pmix_proc_t *proc,
 	void* clientObject, pmix_op_cbfunc_t cbfunc, void *cbdata)
 {
-    mdbg(PSPMIX_LOG_CALL, "%s() called with rank %d nspace %s clientObject %p"
-	    " cbfunc %p cbdata %p\n", __func__, proc->rank, proc->nspace,
-	    clientObject, cbfunc, cbdata);
+    mdbg(PSPMIX_LOG_CALL,
+	 "%s(proc(%d, '%s') clientObject %p cbfunc %p cbdata %p)\n", __func__,
+	 proc->rank, proc->nspace, clientObject, cbfunc, cbdata);
 
-    mlog("Got notification of finalization of %s:%d\n", proc->nspace,
-	 proc->rank);
+    mlog("Finalization of %s:%d nnotified\n", proc->nspace, proc->rank);
 
     mycbfunc_t *cb = NULL;
     if (cbfunc) {
@@ -263,9 +260,7 @@ static pmix_status_t server_client_finalized_cb(const pmix_proc_t *proc,
 	cb->cbdata = cbdata;
     }
 
-    if (!pspmix_service_clientFinalized(clientObject, cb)) {
-	return PMIX_ERROR;
-    }
+    if (!pspmix_service_clientFinalized(clientObject, cb)) return PMIX_ERROR;
 
     /* tell the server library to wait for the callback call */
     return PMIX_SUCCESS;
@@ -278,9 +273,8 @@ void pspmix_server_operationFinished(bool success, void* cb)
 
     mycbfunc_t *callback = cb;
 
-    mdbg(PSPMIX_LOG_CALL, "%s() called with success %s cbfunc %p cbdata %p\n",
-	    __func__, success ? "true" : "false", callback->cbfunc,
-	    callback->cbdata);
+    mdbg(PSPMIX_LOG_CALL, "%s(success %s cbfunc %p cbdata %p)\n", __func__,
+	 success ? "true" : "false", callback->cbfunc, callback->cbdata);
 
     callback->cbfunc(success ? PMIX_SUCCESS : PMIX_ERROR, callback->cbdata);
 }

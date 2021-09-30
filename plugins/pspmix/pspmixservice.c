@@ -624,8 +624,7 @@ bool pspmix_service_finalize(void)
 
 bool pspmix_service_clientConnected(void *clientObject, void *cb)
 {
-    PspmixClient_t *client;
-    client = clientObject;
+    PspmixClient_t *client = clientObject;
 
     mlog("%s called for rank %d\n", __func__, client->rank);
 
@@ -633,7 +632,7 @@ bool pspmix_service_clientConnected(void *clientObject, void *cb)
      * for answer handling */
 
     pspmix_comm_sendInitNotification(client->fwtid, client->rank,
-	    client->nspace->name);
+				     client->nspace->name);
 
     if (client->notifiedFwCb) {
 	mlog("%s: ERROR: client->notifiedFwCb set unexpected\n", __func__);
@@ -654,34 +653,28 @@ void pspmix_service_handleClientInitResp(bool success, pmix_rank_t rank,
     GET_LOCK(namespaceList);
 
     /* find namespace in list */
-    PspmixNamespace_t *ns;
-    ns = findNamespace(nspace);
-
-    if (ns == NULL) {
+    PspmixNamespace_t *ns = findNamespace(nspace);
+    if (!ns) {
 	mlog("%s: namespace '%s' not found\n", __func__, nspace);
 	RELEASE_LOCK(namespaceList);
 	return;
     }
 
-    PspmixClient_t *client;
-    client = findClientInList(rank, &ns->clientList);
-    if (client == NULL) {
+    PspmixClient_t *client = findClientInList(rank, &ns->clientList);
+    RELEASE_LOCK(namespaceList);
+    if (!client) {
 	mlog("%s: client with rank %d not found in namespace '%s'\n", __func__,
-		rank, nspace);
-	RELEASE_LOCK(namespaceList);
+	     rank, nspace);
 	return;
     }
 
     /* check fwtid */
     if (client->fwtid != fwtid) {
 	mlog("%s: got client finalization notification response from unexpected"
-		"TID %s", __func__, PSC_printTID(fwtid));
+	     "TID %s", __func__, PSC_printTID(fwtid));
 	mlog(" (expected %s)\n", PSC_printTID(client->fwtid));
-	RELEASE_LOCK(namespaceList);
 	return;
     }
-
-    RELEASE_LOCK(namespaceList);
 
     pspmix_server_operationFinished(success, client->notifiedFwCb);
     client->notifiedFwCb = NULL;
@@ -689,8 +682,7 @@ void pspmix_service_handleClientInitResp(bool success, pmix_rank_t rank,
 
 bool pspmix_service_clientFinalized(void *clientObject, void *cb)
 {
-    PspmixClient_t *client;
-    client = clientObject;
+    PspmixClient_t *client = clientObject;
 
     mlog("%s called for rank %d\n", __func__, client->rank);
 
@@ -698,7 +690,7 @@ bool pspmix_service_clientFinalized(void *clientObject, void *cb)
      * for answer handling */
 
     pspmix_comm_sendFinalizeNotification(client->fwtid, client->rank,
-	    client->nspace->name);
+					 client->nspace->name);
 
     if (client->notifiedFwCb) {
 	mlog("%s: ERROR: client->notifiedFwCb set unexpected\n", __func__);
@@ -709,42 +701,37 @@ bool pspmix_service_clientFinalized(void *clientObject, void *cb)
     return true;
 }
 
-void pspmix_service_handleClientFinalizeResp(bool success, pmix_rank_t  rank,
+void pspmix_service_handleClientFinalizeResp(bool success, pmix_rank_t rank,
 	const char *nspace, PStask_ID_t fwtid)
 {
     GET_LOCK(namespaceList);
 
     /* find namespace in list */
-    PspmixNamespace_t *ns;
-    ns = findNamespace(nspace);
-
-    if (ns == NULL) {
-	mlog("%s: namespace '%s' not found\n", __func__, nspace);
+    PspmixNamespace_t *ns = findNamespace(nspace);
+    if (!ns) {
+	mlog("%s: no namespace '%s'\n", __func__, nspace);
 	RELEASE_LOCK(namespaceList);
 	return;
     }
 
-    PspmixClient_t *client;
-    client = findClientInList(rank, &ns->clientList);
-    if (client == NULL) {
-	mlog("%s: client with rank %d not found in namespace '%s'\n", __func__,
-		rank, nspace);
-	RELEASE_LOCK(namespaceList);
+    PspmixClient_t *client = findClientInList(rank, &ns->clientList);
+    RELEASE_LOCK(namespaceList);
+    if (!client) {
+	mlog("%s: no client for rank %d in namespace '%s'\n", __func__,
+	     rank, nspace);
 	return;
     }
 
     /* check fwtid */
     if (client->fwtid != fwtid) {
-	mlog("%s: got client finalization notification response from unexpected"
-		"TID %s", __func__, PSC_printTID(fwtid));
+	mlog("%s: client finalize notification response from unexpected TID %s",
+	     __func__, PSC_printTID(fwtid));
 	mlog(" (expected %s)\n", PSC_printTID(client->fwtid));
-	RELEASE_LOCK(namespaceList);
 	return;
     }
 
-    RELEASE_LOCK(namespaceList);
-
     pspmix_server_operationFinished(success, client->notifiedFwCb);
+    client->notifiedFwCb = NULL;
 
     /* remove client from namespace */
     GET_LOCK(namespaceList);
@@ -1207,7 +1194,7 @@ bool pspmix_service_sendModexDataRequest(modexdata_t *mdata)
 }
 
 void pspmix_service_handleModexDataRequest(PStask_ID_t senderTID,
-	pmix_proc_t *proc)
+					   pmix_proc_t *proc)
 {
     modexdata_t *mdata = NULL;
     mdata = umalloc(sizeof(*mdata));
