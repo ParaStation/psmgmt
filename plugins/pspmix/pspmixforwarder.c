@@ -60,28 +60,6 @@ PSIDhook_ClntRls_t pmixStatus = IDLE;
  * ****************************************************** */
 
 /**
- * @brief Send a message via the daemon
- *
- * @param msg  the ready to send message
- *
- * @return Return value of @see PSCio_sendF()
- */
-static ssize_t fwSendMsg(DDTypedBufferMsg_t *msg)
-{
-    mdbg(PSPMIX_LOG_COMM, "%s(r%d): Sending message for %s to my daemon\n",
-	    __func__, rank, PSC_printTID(msg->header.dest));
-
-    ssize_t ret = PSCio_sendF(childTask->fd, msg, msg->header.len);
-    if (ret < 0) {
-	mwarn(errno, "%s(r%d): Sending msg to %s failed", __func__, rank,
-	      PSC_printTID(msg->header.dest));
-    } else if (!ret) {
-	mlog("%s(r%d): Lost connection to daemon\n", __func__, rank);
-    }
-    return ret;
-}
-
-/**
  * @brief Compose and send a client registration message to the PMIx server
  *
  * @param loggertid  TID of the tasks logger identifying the job it belongs to
@@ -133,10 +111,21 @@ static bool sendRegisterClientMsg(PStask_ID_t loggertid, int32_t resid,
     PSP_putTypedMsgBuf(&msg, "uid", &uid, sizeof(uid));
     PSP_putTypedMsgBuf(&msg, "gid", &gid, sizeof(gid));
 
-    return fwSendMsg(&msg) > 0 ? true : false;
+    mdbg(PSPMIX_LOG_COMM, "%s(r%d): Sending message for %s to my daemon\n",
+	    __func__, rank, PSC_printTID(serverTID));
+
+    /* Do not use sendDaemonMsg() here since forwarder is not yet initialized */
+    ssize_t ret = PSCio_sendF(childTask->fd, &msg, msg.header.len);
+    if (ret < 0) {
+	mwarn(errno, "%s(r%d): Sending msg to %s failed", __func__, rank,
+	      PSC_printTID(serverTID));
+    } else if (!ret) {
+	mlog("%s(r%d): Lost connection to daemon\n", __func__, rank);
+    }
+    return ret > 0;
 }
 
-static volatile bool environmentReady = false;
+static bool environmentReady = false;
 
 /**
 * @brief Handle PSPMIX_CLIENT_PMIX_ENV message
@@ -178,11 +167,9 @@ static bool readClientPMIxEnvironment(int daemonfd, struct timeval timeout) {
     mdbg(PSPMIX_LOG_CALL, "%s() called (rank %d, timeout %lu us)\n", __func__,
 	    rank, (unsigned long)(timeout.tv_sec * 1000 + timeout.tv_usec));
 
-    DDTypedBufferMsg_t msg;
-    ssize_t ret;
-
     while (!environmentReady) {
-	ret = PSCio_recvMsgT(daemonfd, &msg, &timeout);
+	DDTypedBufferMsg_t msg;
+	ssize_t ret = PSCio_recvMsgT(daemonfd, &msg, &timeout);
 	if (ret < 0) {
 	    mwarn(errno, "%s(r%d): Error receiving environment message\n",
 		    __func__, rank);
@@ -435,7 +422,7 @@ static int hookForwarderInit(void *data)
     }
 
     /* initialize fragmentation layer */
-    initSerial(0, (Send_Msg_Func_t *)fwSendMsg);
+    initSerial(0, sendDaemonMsg);
 
     /* register handler for notification messages from the PMIx jobserver */
     if (!PSID_registerMsg(PSP_PLUG_PSPMIX, handlePspmixMsg)) {
