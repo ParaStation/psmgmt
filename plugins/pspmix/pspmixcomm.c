@@ -8,12 +8,10 @@
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-
 /**
  * @file Implementations of the pspmix communication functions called in the
- *       plugin forwarders working as PMIx Jobserver.
+ *       plugin forwarders working as PMIx Jobserver
  */
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
@@ -29,7 +27,6 @@
 #include "psdaemonprotocol.h"
 #include "pspluginprotocol.h"
 #include "psserial.h"
-//#include "psidcomm.h"  /* only for PSID_clearMsg */ // @todo
 
 #include "pspmixlog.h"
 #include "pspmixservice.h"
@@ -346,7 +343,7 @@ bool pspmix_comm_sendClientPMIxEnvironment(PStask_ID_t targetTID,
 
     mdbg(PSPMIX_LOG_COMM, "%s: Adding environment to message:\n", __func__);
     for (uint32_t i = 0; i < envsize; i++) {
-        mdbg(PSPMIX_LOG_COMM, "%s: %d %s\n", __func__, i, (environ)[i]);
+	mdbg(PSPMIX_LOG_COMM, "%s: %d %s\n", __func__, i, (environ)[i]);
     }
     addEnvironToMsg(envsize, environ, &msg);
 
@@ -421,7 +418,6 @@ bool pspmix_comm_sendFenceOut(PStask_ID_t targetTID, uint64_t fenceid,
 bool pspmix_comm_sendModexDataRequest(PStask_ID_t loggertid,
 				      PSnodes_ID_t target, pmix_proc_t *proc)
 {
-
     mdbg(PSPMIX_LOG_CALL, "%s() called\n", __func__);
 
     mdbg(PSPMIX_LOG_COMM, "%s: Sending modex data request to rank %d"
@@ -447,11 +443,12 @@ bool pspmix_comm_sendModexDataRequest(PStask_ID_t loggertid,
 }
 
 bool pspmix_comm_sendModexDataResponse(PStask_ID_t targetTID, bool status,
-	pmix_proc_t *proc, void *data, size_t ndata)
+				       pmix_proc_t *proc, void *data,
+				       size_t ndata)
 {
-    mdbg(PSPMIX_LOG_CALL, "%s() called with targetTID %s status %d nspace %s"
-	    " rank %u ndata %zu\n", __func__, PSC_printTID(targetTID), status,
-	    proc->nspace, proc->rank, ndata);
+    mdbg(PSPMIX_LOG_CALL,
+	 "%s(targetTID %s status %d nspace %s rank %u ndata %zu)\n", __func__,
+	 PSC_printTID(targetTID), status, proc->nspace, proc->rank, ndata);
 
     mdbg(PSPMIX_LOG_COMM, "%s: Sending modex data response to rank %u"
 	    " (status %d nspace %s ndata %zu)\n", __func__, proc->rank, status,
@@ -477,8 +474,8 @@ bool pspmix_comm_sendModexDataResponse(PStask_ID_t targetTID, bool status,
     return true;
 }
 
-static bool sendForwarderNotification(PStask_ID_t targetTID,
-	PSP_PSPMIX_t type, pmix_rank_t rank, const char *nspace)
+static bool sendForwarderNotification(PStask_ID_t targetTID, PSP_PSPMIX_t type,
+				      pmix_rank_t rank, const char *nspace)
 {
     PS_SendDB_t msg;
     pthread_mutex_lock(&send_lock);
@@ -492,36 +489,36 @@ static bool sendForwarderNotification(PStask_ID_t targetTID,
     pthread_mutex_unlock(&send_lock);
     if (ret < 0) {
 	mlog("%s: Sending (rank %u nspace %s) to %s failed.\n", __func__,
-		rank, nspace, PSC_printTID(targetTID));
+	     rank, nspace, PSC_printTID(targetTID));
 	return false;
     }
     return true;
 }
 
 bool pspmix_comm_sendInitNotification(PStask_ID_t targetTID,
-	pmix_rank_t rank, const char *nspace)
+				      pmix_rank_t rank, const char *nspace)
 {
-    mdbg(PSPMIX_LOG_CALL, "%s() called with targetTID %s nspace %s rank %u\n",
-	    __func__, PSC_printTID(targetTID), nspace, rank);
+    mdbg(PSPMIX_LOG_CALL, "%s(targetTID %s nspace %s rank %u)\n", __func__,
+	 PSC_printTID(targetTID), nspace, rank);
 
     mdbg(PSPMIX_LOG_COMM, "%s: Sending client initialization notification"
-	    " for rank %u (nspace %s)\n", __func__, rank, nspace);
+	 " for rank %u (nspace %s)\n", __func__, rank, nspace);
 
     return sendForwarderNotification(targetTID, PSPMIX_CLIENT_INIT,
-	    rank, nspace);
+				     rank, nspace);
 }
 
 bool pspmix_comm_sendFinalizeNotification(PStask_ID_t targetTID,
-	pmix_rank_t rank, const char *nspace)
+					  pmix_rank_t rank, const char *nspace)
 {
-    mdbg(PSPMIX_LOG_CALL, "%s() called with targetTID %s nspace %s rank %u\n",
-	    __func__, PSC_printTID(targetTID), nspace, rank);
+    mdbg(PSPMIX_LOG_CALL, "%s(targetTID %s nspace %s rank %u)\n", __func__,
+	 PSC_printTID(targetTID), nspace, rank);
 
     mdbg(PSPMIX_LOG_COMM, "%s: Sending client finalization notification"
-	    " for rank %u (nspace %s)\n", __func__, rank, nspace);
+	 " for rank %u (nspace %s)\n", __func__, rank, nspace);
 
     return sendForwarderNotification(targetTID, PSPMIX_CLIENT_FINALIZE,
-	    rank, nspace);
+				     rank, nspace);
 }
 
 /**********************************************************
@@ -531,9 +528,6 @@ bool pspmix_comm_sendFinalizeNotification(PStask_ID_t targetTID,
 bool pspmix_comm_init()
 {
     mdbg(PSPMIX_LOG_CALL, "%s() called\n", __func__);
-
-    /* @todo unregister PSP_PLUG_PSPMIX messages XXX why does this harm??? */
-    // PSID_clearMsg(PSP_PLUG_PSPMIX); // @todo I doubt this did anything
 
     /* initialize fragmentation layer */
     if (!initSerial(0, (Send_Msg_Func_t *)sendMsgToDaemon)) return false;
@@ -547,6 +541,5 @@ void pspmix_comm_finalize()
 
     finalizeSerial();
 }
-
 
 /* vim: set ts=8 sw=4 tw=0 sts=4 noet :*/
