@@ -55,6 +55,13 @@ static PStask_t *childTask = NULL;
 /* PMIx initialization status of the child */
 PSIDhook_ClntRls_t pmixStatus = IDLE;
 
+/** Various info on client waiting for PSP_CD_RELEASERES message */
+static struct {
+    PStask_ID_t client;     /**< Task ID of client to be released */
+    pmix_proc_t proc;       /**< PMIX info identifying client to be released */
+    PStask_ID_t jobServer;  /**< Job server of client to be released */
+} clntInfo;
+
 /* ****************************************************** *
  *                 Send/Receive functions                 *
  * ****************************************************** */
@@ -276,23 +283,20 @@ static void handleClientFinalize(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
 
     char *ptr = data->buf;
 
-    pmix_proc_t proc;
-    PMIX_PROC_CONSTRUCT(&proc);
-    getUint32(&ptr, &proc.rank);
-    getString(&ptr, proc.nspace, sizeof(proc.nspace));
+    clntInfo.client = childTask->tid;
+    PMIX_PROC_CONSTRUCT(&clntInfo.proc);
+    getUint32(&ptr, &clntInfo.proc.rank);
+    getString(&ptr, clntInfo.proc.nspace, sizeof(clntInfo.proc.nspace));
+    clntInfo.jobServer = msg->header.sender;
 
     mdbg(PSPMIX_LOG_COMM, "%s: received %s (0x%X) from namespace %s rank %d\n",
 	 __func__, pspmix_getMsgTypeString(msg->type), msg->type,
-	 proc.nspace, proc.rank);
+	 clntInfo.proc.nspace, clntInfo.proc.rank);
 
     /* release the child */
     sendChildReleaseMsg();
 
     pmixStatus = RELEASED;
-
-    /* send response */
-    sendNotificationResp(msg->header.sender, PSPMIX_CLIENT_FINALIZE_RES,
-			 proc.rank, proc.nspace);
 }
 
 /**
@@ -461,14 +465,24 @@ static int hookForwarderClientRelease(void *data)
  */
 static int hookForwarderExit(void *data)
 {
-    int rel = *((int*)data);
+    mdbg(PSPMIX_LOG_CALL, "%s(%p)\n", __func__, data);
 
     /* break if this is not a PMIx job */
     if (!childTask) return 0;
 
-    mdbg(PSPMIX_LOG_CALL, "%s(rel %d)\n", __func__, rel);
+    /* Release child task if needed */
+    PStask_ID_t *cTID = data;
+    if (cTID) {
+	if (clntInfo.client == *cTID) {
+	    /* send response */
+	    sendNotificationResp(clntInfo.jobServer, PSPMIX_CLIENT_FINALIZE_RES,
+				 clntInfo.proc.rank, clntInfo.proc.nspace);
+	} else {
+	    mlog("%s(r%d): Unknown %s\n", __func__, rank, PSC_printTID(*cTID));
+	}
+    }
 
-    /* register handler for notification messages from the PMIx jobserver */
+    /* un-register handler for notification messages from the PMIx jobserver */
     PSID_clearMsg(PSP_PLUG_PSPMIX, handlePspmixMsg);
 
     finalizeSerial();
