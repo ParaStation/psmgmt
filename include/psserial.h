@@ -528,9 +528,9 @@ void *getMemFromBuf(char **ptr, char *data, size_t dataSize, size_t *len,
 
 #define getEnviron(ptr, envsize, env)					\
     do {								\
-	getUint32(ptr, &envsize);					\
-	env = umalloc(envsize * sizeof(*env));				\
-	for (uint32_t i = 0; i < envsize; i++) (env)[i] = getStringM(ptr); \
+	getUint32(ptr, envsize);					\
+	env = umalloc(*envsize * sizeof(*env));				\
+	for (uint32_t i = 0; i < *envsize; i++) (env)[i] = getStringM(ptr); \
     } while(0)
 
 /**

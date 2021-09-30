@@ -139,7 +139,7 @@ static void handleClientPMIxEnv(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
 
     uint32_t envSize;
     char **env;
-    getEnviron(&ptr, envSize, env);
+    getEnviron(&ptr, &envSize, env);
 
     mdbg(PSPMIX_LOG_COMM, "%s(r%d): Setting environment:\n", __func__, rank);
     for (uint32_t i = 0; i < envSize; i++) {
