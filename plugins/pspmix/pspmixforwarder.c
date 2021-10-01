@@ -406,7 +406,7 @@ static int hookForwarderInit(void *data)
 
     /* pointer is assumed to be valid for the life time of the forwarder */
     if (childTask != data) {
-	mlog("%s: Unexpected child task", __func__);
+	mlog("%s: Unexpected child task\n", __func__);
 	return -1;
     }
 
