@@ -2662,7 +2662,7 @@ static bool msg_SPAWNREQUEST(DDTypedBufferMsg_t *msg)
 
     if (!PSIDnodes_isUp(PSC_getID(msg->header.dest))) {
 	answer.error = EHOSTDOWN;
-	if (fragNum == 0) {
+	if (localSender && fragNum == 0) {
 	    /* first fragment */
 	    for (uint32_t r = 0; r < num; r++) {
 		answer.request = rank + r;
@@ -2672,8 +2672,15 @@ static bool msg_SPAWNREQUEST(DDTypedBufferMsg_t *msg)
 	return true;
     }
 
+    if (!localSender) {
+	PSID_log(-1, "%s: won't relay %s", __func__,
+		 PSC_printTID(msg->header.sender));
+	PSID_log(-1, "->%s\n", PSC_printTID(msg->header.dest));
+	return false;
+    }
+
     /* Check if we have to and can send a LOC-message */
-    if (localSender && fragNum == 0 && !isServiceTask(group)) {
+    if (fragNum == 0 && !isServiceTask(group)) {
 	PSpart_slot_t *spawnNodes = ptask->spawnNodes;
 	if (!spawnNodes || rank + num - 1 >= ptask->spawnNum) {
 	    PSID_log(-1, "%s: ranks %d-%d  out of range\n", __func__,
@@ -2712,7 +2719,7 @@ static bool msg_SPAWNREQUEST(DDTypedBufferMsg_t *msg)
 
     PSID_log(PSID_LOG_SPAWN, "%s: forward to node %d\n", __func__,
 	     PSC_getID(msg->header.dest));
-    if (sendMsg(msg) < 0) {
+    if (sendMsg(msg) < 0 && fragNum == 0) {
 	answer.error = errno;
 	for (uint32_t r = 0; r < num; r++) {
 	    answer.request = rank + r;
