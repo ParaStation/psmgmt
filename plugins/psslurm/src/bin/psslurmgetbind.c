@@ -110,56 +110,40 @@ static unsigned int atoui(char* in) {
 */
 
 static bool readCpuBindType(char *ptr, uint16_t *cpuBindType,
-	char **cpuBindString) {
-    if (strcmp(ptr, "none") == 0 || strcmp(ptr, "no") == 0) {
+			    char **cpuBindString)
+{
+    free(*cpuBindString);
+    *cpuBindString = NULL;
+
+    if (!strcmp(ptr, "none") || !strcmp(ptr, "no")) {
 	*cpuBindType = CPU_BIND_NONE;
-	*cpuBindString = NULL;
-    }
-    else if (strncmp(ptr, "map_cpu:", 8) == 0) {
+    } else if (!strncmp(ptr, "map_cpu:", 8)) {
 	*cpuBindType = CPU_BIND_MAP;
 	*cpuBindString = strdup(ptr+8);
-    }
-    else if (strncmp(ptr, "mask_cpu:", 9) == 0) {
+    } else if (!strncmp(ptr, "mask_cpu:", 9)) {
 	*cpuBindType = CPU_BIND_MASK;
 	*cpuBindString = strdup(ptr+9);
-    }
-    else if (strncmp(ptr, "map_ldom:", 9) == 0) {
+    } else if (!strncmp(ptr, "map_ldom:", 9)) {
 	*cpuBindType = CPU_BIND_LDMAP;
 	*cpuBindString = strdup(ptr+9);
-    }
-    else if (strncmp(ptr, "mask_ldom:", 10) == 0) {
+    } else if (!strncmp(ptr, "mask_ldom:", 10)) {
 	*cpuBindType = CPU_BIND_LDMASK;
 	*cpuBindString = strdup(ptr+10);
-    }
-    else if (strcmp(ptr, "boards") == 0) {
+    } else if (!strcmp(ptr, "boards")) {
 	*cpuBindType = CPU_BIND_TO_BOARDS;
-	*cpuBindString = NULL;
-    }
-    else if (strcmp(ptr, "sockets") == 0) {
+    } else if (!strcmp(ptr, "sockets")) {
 	*cpuBindType = CPU_BIND_TO_SOCKETS;
-	*cpuBindString = NULL;
-    }
-    else if (strcmp(ptr, "ldoms") == 0) {
+    } else if (!strcmp(ptr, "ldoms")) {
 	*cpuBindType = CPU_BIND_TO_LDOMS;
-	*cpuBindString = NULL;
-    }
-    else if (strcmp(ptr, "cores") == 0) {
+    } else if (!strcmp(ptr, "cores")) {
 	*cpuBindType = CPU_BIND_TO_CORES;
-	*cpuBindString = NULL;
-    }
-    else if (strcmp(ptr, "threads") == 0) {
+    } else if (!strcmp(ptr, "threads")) {
 	*cpuBindType = CPU_BIND_TO_THREADS;
-	*cpuBindString = NULL;
-    }
-    else if (strcmp(ptr, "rank") == 0) {
+    } else if (!strcmp(ptr, "rank")) {
 	*cpuBindType = CPU_BIND_RANK;
-	*cpuBindString = NULL;
-    }
-    else if (strcmp(ptr, "rank_ldom") == 0) {
+    } else if (!strcmp(ptr, "rank_ldom")) {
 	*cpuBindType = CPU_BIND_LDRANK;
-	*cpuBindString = NULL;
-    }
-    else {
+    } else {
 	return false;
     }
     return true;
@@ -174,72 +158,53 @@ static bool readDistribution(char *ptr, uint32_t *taskDist) {
 
     ptr++;
 
-    if (strncmp(ptr, "cyclic", 6) == 0 || *ptr == '*') {
+    if (!strncmp(ptr, "cyclic", 6) || *ptr == '*') {
 	if (*ptr == '*') {
 	    ptr += 1;
-	}
-	else {
+	} else {
 	    ptr += 6;
 	}
 
-	if (strncmp(ptr, ":cyclic", 7) == 0
-		|| strncmp(ptr, ":*", 2) == 0) {
+	if (!strncmp(ptr, ":cyclic", 7) || !strncmp(ptr, ":*", 2)) {
 	    *taskDist = SLURM_DIST_BLOCK_CYCLIC_CYCLIC;
-        }
-	else if (strncmp(ptr, ":block", 6) == 0) {
+	} else if (!strncmp(ptr, ":block", 6)) {
 	    *taskDist = SLURM_DIST_BLOCK_CYCLIC_BLOCK;
-        }
-	else if (strncmp(ptr, ":fcyclic", 8) == 0) {
+	} else if (!strncmp(ptr, ":fcyclic", 8)) {
 	    *taskDist = SLURM_DIST_BLOCK_CYCLIC_CFULL;
-        }
-	else if (*ptr == '\0' || *ptr == ',') {
+	} else if (*ptr == '\0' || *ptr == ',') {
 	    *taskDist = SLURM_DIST_BLOCK_CYCLIC;
-	}
-	else {
+	} else {
 	    return false;
 	}
-    }
-    else if (strncmp(ptr, "block", 5) == 0) {
+    } else if (!strncmp(ptr, "block", 5)) {
 	ptr += 5;
 
-	if (strncmp(ptr, ":cyclic", 7) == 0) {
+	if (!strncmp(ptr, ":cyclic", 7)) {
 	    *taskDist = SLURM_DIST_BLOCK_BLOCK_CYCLIC;
-        }
-	else if (strncmp(ptr, ":block", 6) == 0
-		|| strncmp(ptr, ":*", 2) == 0) {
+	} else if (!strncmp(ptr, ":block", 6) || !strncmp(ptr, ":*", 2)) {
 	    *taskDist = SLURM_DIST_BLOCK_BLOCK_BLOCK;
-        }
-	else if (strncmp(ptr, ":fcyclic", 8) == 0) {
+	} else if (!strncmp(ptr, ":fcyclic", 8)) {
 	    *taskDist = SLURM_DIST_BLOCK_BLOCK_CFULL;
-        }
-	else if (*ptr == '\0' || *ptr == ',') {
+	} else if (*ptr == '\0' || *ptr == ',') {
 	    *taskDist = SLURM_DIST_BLOCK_BLOCK;
-	}
-	else {
+	} else {
 	    return false;
 	}
-    }
-    else if (strncmp(ptr, "fcyclic", 7) == 0) {
+    } else if (!strncmp(ptr, "fcyclic", 7)) {
 	ptr += 7;
 
-	if (strncmp(ptr, ":cyclic", 7) == 0) {
+	if (!strncmp(ptr, ":cyclic", 7)) {
 	    *taskDist = SLURM_DIST_BLOCK_CFULL_CYCLIC;
-        }
-	else if (strncmp(ptr, ":block", 6) == 0) {
+	} else if (!strncmp(ptr, ":block", 6)) {
 	    *taskDist = SLURM_DIST_BLOCK_CFULL_BLOCK;
-        }
-	else if (strncmp(ptr, ":fcyclic", 8) == 0
-		|| strncmp(ptr, ":*", 2) == 0) {
+	} else if (!strncmp(ptr, ":fcyclic", 8) || !strncmp(ptr, ":*", 2)) {
 	    *taskDist = SLURM_DIST_BLOCK_CFULL_CFULL;
-        }
-	else if (*ptr == '\0' || *ptr == ',') {
+	} else if (*ptr == '\0' || *ptr == ',') {
 	    *taskDist = SLURM_DIST_BLOCK_CFULL;
-	}
-	else {
+	} else {
 	    return false;
 	}
-    }
-    else {
+    } else {
 	return false;
     }
 
@@ -247,28 +212,24 @@ static bool readDistribution(char *ptr, uint32_t *taskDist) {
 }
 
 static bool readMemBindType(char *ptr, uint16_t *memBindType,
-	char **memBindString) {
-    if (strcmp(ptr, "none") == 0 || strcmp(ptr, "no") == 0) {
+			    char **memBindString)
+{
+    free(*memBindString);
+    *memBindString = NULL;
+
+    if (!strcmp(ptr, "none") || !strcmp(ptr, "no")) {
 	*memBindType = MEM_BIND_NONE;
-	*memBindString = NULL;
-    }
-    else if (strncmp(ptr, "map_mem:", 8) == 0) {
+    } else if (!strncmp(ptr, "map_mem:", 8)) {
 	*memBindType = MEM_BIND_MAP;
 	*memBindString = strdup(ptr+8);
-    }
-    else if (strncmp(ptr, "mask_mem:", 9) == 0) {
+    } else if (!strncmp(ptr, "mask_mem:", 9)) {
 	*memBindType = MEM_BIND_MASK;
 	*memBindString = strdup(ptr+9);
-    }
-    else if (strcmp(ptr, "local") == 0) {
+    } else if (!strcmp(ptr, "local")) {
 	*memBindType = MEM_BIND_LOCAL;
-	*memBindString = NULL;
-    }
-    else if (strcmp(ptr, "rank") == 0) {
+    } else if (!strcmp(ptr, "rank")) {
 	*memBindType = MEM_BIND_RANK;
-	*memBindString = NULL;
-    }
-    else {
+    } else {
 	return false;
     }
     return true;
@@ -342,17 +303,17 @@ int main(int argc, char *argv[])
     coresPerSocket = atoui(argv[2]);
     threadsPerCore = atoui(argv[3]);
 
-    if (socketCount == 0) {
+    if (!socketCount) {
 	outline(ERROROUT, "Invalid number of sockets.");
 	return -1;
     }
 
-    if (coresPerSocket == 0) {
+    if (!coresPerSocket) {
 	outline(ERROROUT, "Invalid number of cores per socket.");
 	return -1;
     }
 
-    if (threadsPerCore == 0) {
+    if (!threadsPerCore) {
 	outline(ERROROUT, "Invalid number of threads per Core.");
 	return -1;
     }
@@ -367,24 +328,24 @@ int main(int argc, char *argv[])
     for (; i < argc; i++) {
 	char *cur = argv[i];
 
-	if (strcmp(cur, "--help") == 0) {
+	if (!strcmp(cur, "--help")) {
 	    print_help();
 	    return 0;
 	}
 
-	if (strcmp(cur, "--verbose") == 0 || strcmp(cur, "-v") == 0) {
+	if (!strcmp(cur, "--verbose") || !strcmp(cur, "-v")) {
 	    verbosity++;
 	}
 
-	if (strcmp(cur, "--human-readable") == 0 || strcmp(cur, "-h") == 0) {
+	if (!strcmp(cur, "--human-readable") || !strcmp(cur, "-h")) {
 	    humanreadable = true;
 	}
 
-	if (strcmp(cur, "--membind") == 0 || strcmp(cur, "-m") == 0) {
+	if (!strcmp(cur, "--membind") || !strcmp(cur, "-m")) {
 	    printmembind = true;
 	}
 
-	if (strcmp(cur, ":") == 0) {
+	if (!strcmp(cur, ":")) {
 	    break;
 	}
     }
@@ -404,24 +365,24 @@ int main(int argc, char *argv[])
 
     /* pinning info */
     uint16_t cpuBindType = 0;
-    char *cpuBindString = "";
+    char *cpuBindString = NULL;
     uint32_t taskDist = 0;
     bool nomultithread = false;
 
     /* membind info */
     uint16_t memBindType = 0;
-    char *memBindString = "";
+    char *memBindString = NULL;
 
     /* parse srun options */
     for (i++; i < argc; i++) {
 	char *cur = argv[i];
 	char *val;
 
-	if (strncmp(cur, "-N", 2) == 0) {
+	if (!strncmp(cur, "-N", 2)) {
 	    if (*(cur+2) == '\0') {
 		if (++i == argc) {
 		    outline(ERROROUT, "Syntax error reading value for -N.");
-		    return -1;
+		    exit(-1);
 		}
 		val = argv[i];
 	    } else {
@@ -430,14 +391,13 @@ int main(int argc, char *argv[])
 	    outline(DEBUGOUT, "Reading -N value: \"%s\"", val);
 	    if (atoi(val) != 1) {
 		outline(ERROROUT, "Only supported value for -N option is 1.");
-		return -1;
+		exit(-1);
 	    }
-	}
-	else if (strncmp(cur, "-n", 2) == 0) {
+	} else if (!strncmp(cur, "-n", 2)) {
 	    if (*(cur+2) == '\0') {
 		if (++i == argc) {
 		    outline(ERROROUT, "Syntax error reading value for -n.");
-		    return -1;
+		    exit(-1);
 		}
 		val = argv[i];
 	    } else {
@@ -445,16 +405,15 @@ int main(int argc, char *argv[])
 	    }
 	    outline(DEBUGOUT, "Reading -n value: \"%s\"", val);
 	    tasksPerNode = atoui(val);
-	    if (tasksPerNode == 0) {
+	    if (!tasksPerNode) {
 		outline(ERROROUT, "Invalid number of tasks.");
-		return -1;
+		exit(-1);
 	    }
-	}
-	else if (strncmp(cur, "-c", 2) == 0) {
+	} else if (!strncmp(cur, "-c", 2)) {
 	    if (*(cur+2) == '\0') {
 		if (++i == argc) {
 		    outline(ERROROUT, "Syntax error reading value for -c.");
-		    return -1;
+		    exit(-1);
 		}
 		val = argv[i];
 	    } else {
@@ -462,79 +421,74 @@ int main(int argc, char *argv[])
 	    }
 	    outline(DEBUGOUT, "Reading -c value: \"%s\"", val);
 	    threadsPerTask = atoui(val);
-	    if (threadsPerTask == 0) {
+	    if (!threadsPerTask) {
 		outline(ERROROUT, "Invalid number of threads per task.");
-		return -1;
+		exit(-1);
 	    }
-	}
-	else if (strncmp(cur, "--cpu-bind=", 11) == 0) {
+	} else if (!strncmp(cur, "--cpu-bind=", 11)) {
 	    outline(DEBUGOUT, "Reading --cpu-bind value: \"%s\"", cur+11);
 	    if (!readCpuBindType(cur+11, &cpuBindType, &cpuBindString)) {
 		outline(ERROROUT, "Invalid cpu bind type.");
-		return -1;
+		exit(-1);
 	    }
-	}
-	else if (strncmp(cur, "--distribution=", 15) == 0) {
+	} else if (!strncmp(cur, "--distribution=", 15)) {
 	    outline(DEBUGOUT, "Reading --distribution value: \"%s\"", cur+15);
 	    if (!readDistribution(cur+15, &taskDist)) {
 		outline(ERROROUT, "Invalid distribution type.");
-		return -1;
+		exit(-1);
 	    }
-	}
-	else if (strcmp(cur, "-m") == 0) {
+	} else if (!strcmp(cur, "-m")) {
 	    if (++i == argc) {
 		outline(ERROROUT, "Syntax error reading value for -m.");
-		return -1;
+		exit(-1);
 	    }
 	    outline(DEBUGOUT, "Reading -m value: \"%s\"", argv[i]);
 	    if (!readDistribution(argv[i], &taskDist)) {
 		outline(ERROROUT, "Invalid distribution type.");
-		return -1;
+		exit(-1);
 	    }
-	}
-	else if (strncmp(cur, "--extra-node-info=", 18) == 0) {
+	} else if (!strncmp(cur, "--extra-node-info=", 18)) {
 	    outline(DEBUGOUT, "Reading --extra-node-info value: \"%s\"",
 		    cur+18);
 	    handleExtraNodeInfo(cur+18, &cpuBindType);
-	}
-	else if (strcmp(cur, "-B") == 0) {
+	} else if (!strcmp(cur, "-B")) {
 	    if (++i == argc) {
 		outline(ERROROUT, "Syntax error reading value for -B.");
-		return -1;
+		exit(-1);
 	    }
 	    outline(DEBUGOUT, "Reading -B value: \"%s\"", argv[i]);
 	    handleExtraNodeInfo(argv[i], &cpuBindType);
-	}
-	else if (strcmp(cur, "--hint=nomultithread") == 0) {
+	} else if (!strcmp(cur, "--hint=nomultithread")) {
 	    outline(DEBUGOUT, "Read hint \"nomultithread\"");
 	    nomultithread = true;
-	}
-	else if (strncmp(cur, "--mem-bind=", 11) == 0) {
+	} else if (!strncmp(cur, "--mem-bind=", 11)) {
 	    outline(DEBUGOUT, "Reading --mem-bind value: \"%s\"", cur+11);
 	    if (!readMemBindType(cur+11, &memBindType, &memBindString)) {
 		outline(ERROROUT, "Invalid memory bind type.");
-		return -1;
+		exit(-1);
 	    }
-	}
-	else {
+	} else {
 	    outline(ERROROUT, "Invalid argument: \"%s\"", cur);
-	    return -1;
+	    exit(-1);
 	}
     }
+
+    if (!cpuBindString) cpuBindString = "";
+    if (!memBindString) memBindString = "";
 
     /* creating env containing hints */
     env_t env;
     envInit(&env);
     if (nomultithread) envSet(&env, "PSSLURM_HINT", "nomultithread");
 
-    if (tasksPerNode == 0) {
+    if (!tasksPerNode) {
 	outline(ERROROUT, "Invalid number of tasks per node.");
-	return -1;
+	exit(-1);
     }
 
-    if (threadsPerTask == 0) {
+    if (!threadsPerTask) {
 	outline(ERROROUT, "Invalid number of threads per task.");
-	return -1;
+	exit(-1);
     }
 
     outline(INFOOUT, "job: %u tasks, %hu threads per task", tasksPerNode,
@@ -546,12 +500,12 @@ int main(int argc, char *argv[])
 
     if (!readConfigFile()) {
 	outline(ERROROUT, "Error reading psslurm.conf.");
-	return -1;
+	exit(-1);
     }
 
     test_pinning(socketCount, coresPerSocket, threadsPerCore, tasksPerNode,
-	    threadsPerTask, cpuBindType, cpuBindString, taskDist, memBindType,
-	    memBindString, &env, humanreadable, printmembind);
+		 threadsPerTask, cpuBindType, cpuBindString, taskDist,
+		 memBindType, memBindString, &env, humanreadable, printmembind);
 }
 
 
