@@ -328,9 +328,7 @@ static int bcastCallback(int32_t exit_status, Forwarder_Data_t *fw)
     sendSlurmRC(&bcast->msg, WEXITSTATUS(fw->chldExitStatus));
 
     bcast->fwdata = NULL;
-    if (bcast->lastBlock) {
-	clearBCastByJobid(bcast->jobid);
-    }
+    if (bcast->flags & BCAST_LAST_BLOCK) clearBCastByJobid(bcast->jobid);
 
     return 0;
 }
@@ -1330,19 +1328,19 @@ static void fwExecBCast(Forwarder_Data_t *fwdata, int rerun)
     }
 
     /* open the file */
-    int flags = O_WRONLY;
+    int wFlags = O_WRONLY;
     if (bcast->blockNumber == 1) {
-	flags |= O_CREAT;
-	if (bcast->force) {
-	    flags |= O_TRUNC;
+	wFlags |= O_CREAT;
+	if (bcast->flags & BCAST_FORCE) {
+	    wFlags |= O_TRUNC;
 	} else {
-	    flags |= O_EXCL;
+	    wFlags |= O_EXCL;
 	}
     } else {
-	flags |= O_APPEND;
+	wFlags |= O_APPEND;
     }
 
-    int fd = open(bcast->fileName, flags, 0700);
+    int fd = open(bcast->fileName, wFlags, 0700);
     if (fd == -1) {
 	int eno = errno;
 	mwarn(eno, "%s: open(%s)", __func__, bcast->fileName);
@@ -1357,7 +1355,7 @@ static void fwExecBCast(Forwarder_Data_t *fwdata, int rerun)
     }
 
     /* set permissions */
-    if (bcast->lastBlock) {
+    if (bcast->flags & BCAST_LAST_BLOCK) {
 	if (fchmod(fd, bcast->modes & 0700) == -1) {
 	    int eno = errno;
 	    mwarn(eno, "%s: chmod(%s)", __func__, bcast->fileName);

@@ -33,6 +33,7 @@ typedef struct {
     time_t startTime;		/**< time the job started */
     time_t requestTime;		/**< time slurmctld send the request */
     list_t gresList;		/**< list of allocated generic resources */
+    char * workDir;		/**< working directory */
 } Req_Terminate_Job_t;
 
 /** Structure holding a signal tasks request */
@@ -163,7 +164,8 @@ typedef struct {
     const char *reason;	    /**< reason for update */
     uint32_t reasonUID;	    /**< user ID of request */
     uint32_t weight;	    /**< new weight */
-    char *comment;	    /**< comment */
+    char *comment;	    /**< comment (arbitrary string) */
+    char *extra;	    /**< extra (arbitrary string) */
 } Req_Update_Node_t;
 
 /** Structure holding all received configuration files */

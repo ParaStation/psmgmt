@@ -62,6 +62,13 @@ typedef struct {
     char *sig;                  /**< munge signature */
     char *jobConstraints;       /**< job constraints */
     uint16_t x11;		/**< X11 flags for job */
+    uint32_t jobMemAllocSize;
+    uint64_t *jobMemAlloc;
+    uint32_t *jobMemAllocRepCount;
+    uint32_t stepMemAllocSize;
+    uint64_t *stepMemAlloc;
+    uint32_t *stepMemAllocRepCount;
+    char *SELinuxContext;
 } JobCred_t;
 
 /**

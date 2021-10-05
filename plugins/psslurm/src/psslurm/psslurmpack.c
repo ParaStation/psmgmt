@@ -458,9 +458,13 @@ bool __unpackJobCred(Slurm_Msg_t *sMsg, JobCred_t **credPtr,
 
     /* count of specialized cores */
     getUint16(ptr, &cred->jobCoreSpec);
-    /* job/step memory limit */
-    getUint64(ptr, &cred->jobMemLimit);
-    getUint64(ptr, &cred->stepMemLimit);
+
+    if (msgVer < SLURM_21_08_PROTO_VERSION) {
+	/* job/step memory limit */
+	getUint64(ptr, &cred->jobMemLimit);
+	getUint64(ptr, &cred->stepMemLimit);
+    }
+
     /* job constraints */
     cred->jobConstraints = getStringM(ptr);
     /* step hostlist */
@@ -512,6 +516,50 @@ bool __unpackJobCred(Slurm_Msg_t *sMsg, JobCred_t **credPtr,
     getUint32(ptr, &cred->jobNumHosts);
     /* job hostlist */
     cred->jobHostlist = getStringM(ptr);
+
+    if (msgVer >= SLURM_21_08_PROTO_VERSION) {
+	/* job memory allocation size */
+	getUint32(ptr, &cred->jobMemAllocSize);
+
+	if (cred->jobMemAllocSize) {
+	    uint32_t allocLen;
+	    getUint64Array(ptr, &cred->jobMemAlloc, &allocLen);
+	    if (allocLen != cred->jobMemAllocSize) {
+		flog("mismatching allocLen %u and cred->jobMemAllocSize %u\n",
+		     allocLen, cred->jobMemAllocSize);
+		goto ERROR;
+	    }
+	    getUint32Array(ptr, &cred->jobMemAllocRepCount, &allocLen);
+	    if (allocLen != cred->jobMemAllocSize) {
+		flog("mismatching allocLen %u and cred->jobMemAllocRepCount %u\n",
+		     allocLen, cred->jobMemAllocSize);
+		goto ERROR;
+	    }
+	}
+
+	/* step memory allocation size */
+	getUint32(ptr, &cred->stepMemAllocSize);
+
+	if (cred->stepMemAllocSize) {
+	    uint32_t allocLen;
+	    getUint64Array(ptr, &cred->stepMemAlloc, &allocLen);
+	    if (allocLen != cred->stepMemAllocSize) {
+		flog("mismatching allocLen %u and cred->stepMemAllocSize %u\n",
+		     allocLen, cred->stepMemAllocSize);
+		goto ERROR;
+	    }
+	    getUint32Array(ptr, &cred->stepMemAllocRepCount, &allocLen);
+	    if (allocLen != cred->stepMemAllocSize) {
+		flog("mismatching allocLen %u and cred->stepMemAllocRepCount %u\n",
+		     allocLen, cred->stepMemAllocSize);
+		goto ERROR;
+	    }
+	}
+
+	/* SELinux context */
+	cred->SELinuxContext = getStringM(ptr);
+    }
+
     /* munge signature */
     *credEnd = *ptr;
     cred->sig = getStringM(ptr);
@@ -927,7 +975,12 @@ static bool unpackReqTerminate(Slurm_Msg_t *sMsg)
 	getUint32(ptr, &req->stepid);
     }
     /* slurmctld request time */
-    getTime(ptr, &req->startTime);
+    getTime(ptr, &req->requestTime);
+
+    if (msgVer >= SLURM_21_08_PROTO_VERSION) {
+	/* job working directory */
+	req->workDir = getStringM(ptr);
+    }
 
     sMsg->unpData = req;
     return true;
@@ -1182,6 +1235,11 @@ static bool unpackReqLaunchTasks(Slurm_Msg_t *sMsg)
     /* CPUs per tasks */
     getUint16(ptr, &step->tpp);
 
+    if (msgVer >= SLURM_21_08_PROTO_VERSION) {
+	/* TRes per task */
+	step->tresPerTask = getStringM(ptr);
+    }
+
     if (msgVer >= SLURM_20_11_PROTO_VERSION) {
 	/* threads per core */
 	getUint16(ptr, &step->threadsPerCore);
@@ -1220,6 +1278,12 @@ static bool unpackReqLaunchTasks(Slurm_Msg_t *sMsg)
     getStringArrayM(ptr, &step->env.vars, &step->env.cnt);
     /* spank env */
     getStringArrayM(ptr, &step->spankenv.vars, &step->spankenv.cnt);
+
+    if (msgVer >= SLURM_21_08_PROTO_VERSION) {
+	/* container path */
+	step->container = getStringM(ptr);
+    }
+
     /* cwd */
     step->cwd = getStringM(ptr);
     /* cpu bind */
@@ -1298,10 +1362,14 @@ static bool unpackReqLaunchTasks(Slurm_Msg_t *sMsg)
     getUint32(ptr, &step->cpuFreqMax);
     /* CPU frequency governor (see srun --cpu-freq) */
     getUint32(ptr, &step->cpuFreqGov);
-    /* directory for checkpoints */
-    step->checkpoint = getStringM(ptr);
-    /* directory for restarting checkpoints (see srun --restart-dir) */
-    step->restartDir = getStringM(ptr);
+
+    if (msgVer < SLURM_21_08_PROTO_VERSION) {
+	/* removed in 21.08 */
+	/* directory for checkpoints */
+	step->checkpoint = getStringM(ptr);
+	/* directory for restarting checkpoints (see srun --restart-dir) */
+	step->restartDir = getStringM(ptr);
+    }
 
     /* jobinfo plugin id */
     getUint32(ptr, &tmp);
@@ -1419,6 +1487,12 @@ static bool unpackReqBatchJobLaunch(Slurm_Msg_t *sMsg)
     getUint32(ptr, &job->arrayTaskId);
     /* acctg freq */
     job->acctFreq = getStringM(ptr);
+
+    if (msgVer >= SLURM_21_08_PROTO_VERSION) {
+	/* container */
+	job->container = getStringM(ptr);
+    }
+
     /* CPU bind type */
     getUint16(ptr, &job->cpuBindType);
     /* CPUs per task */
@@ -1441,10 +1515,14 @@ static bool unpackReqBatchJobLaunch(Slurm_Msg_t *sMsg)
     job->jsData = getStringM(ptr);
     /* work dir */
     job->cwd = getStringM(ptr);
-    /* directory for checkpoints */
-    job->checkpoint = getStringM(ptr);
-    /* directory for restarting checkpoints (sbatch --restart-dir) */
-    job->restartDir = getStringM(ptr);
+
+    if (msgVer < SLURM_21_08_PROTO_VERSION) {
+	/* directory for checkpoints */
+	job->checkpoint = getStringM(ptr);
+	/* directory for restarting checkpoints (sbatch --restart-dir) */
+	job->restartDir = getStringM(ptr);
+    }
+
     /* std I/O/E */
     job->stdErr = getStringM(ptr);
     job->stdIn = getStringM(ptr);
@@ -1676,11 +1754,27 @@ bool __packSlurmAccData(PS_SendDB_t *data, SlurmAccData_t *slurmAccData,
     AccountDataExt_t *accData = &slurmAccData->psAcct;
 
     /* user cpu sec/usec */
-    addUint32ToMsg(accData->rusage.ru_utime.tv_sec, data);
+    if (slurmProto >= SLURM_21_08_PROTO_VERSION) {
+	addUint64ToMsg(accData->rusage.ru_utime.tv_sec, data);
+    } else {
+	if (accData->rusage.ru_utime.tv_sec > NO_VAL) {
+	    addUint32ToMsg(NO_VAL, data);
+	} else {
+	    addUint32ToMsg(accData->rusage.ru_utime.tv_sec, data);
+	}
+    }
     addUint32ToMsg(accData->rusage.ru_utime.tv_usec, data);
 
     /* system cpu sec/usec */
-    addUint32ToMsg(accData->rusage.ru_stime.tv_sec, data);
+    if (slurmProto >= SLURM_21_08_PROTO_VERSION) {
+	addUint64ToMsg(accData->rusage.ru_stime.tv_sec, data);
+    } else {
+	if (accData->rusage.ru_stime.tv_sec > NO_VAL) {
+	    addUint32ToMsg(NO_VAL, data);
+	} else {
+	    addUint32ToMsg(accData->rusage.ru_stime.tv_sec, data);
+	}
+    }
     addUint32ToMsg(accData->rusage.ru_stime.tv_usec, data);
 
     /* act cpufreq */
@@ -1707,13 +1801,25 @@ bool packGresConf(Gres_Conf_t *gres, void *info)
     addUint32ToMsg(GRES_MAGIC, msg);
     addUint64ToMsg(gres->count, msg);
     addUint32ToMsg(getConfValueI(&Config, "SLURM_CPUS"), msg);
-    addUint8ToMsg((gres->file ? 0x02 : 0), msg);
+
+    /* GRES flags (e.g. GRES_CONF_HAS_FILE) */
+    if (slurmProto >= SLURM_21_08_PROTO_VERSION) {
+	addUint32ToMsg(gres->flags, msg);
+    } else {
+	addUint8ToMsg(gres->flags, msg);
+    }
+
     addUint32ToMsg(gres->id, msg);
     addStringToMsg(gres->cpus, msg);
     /* links */
     addStringToMsg("", msg);
     addStringToMsg(gres->name, msg);
     addStringToMsg(gres->type, msg);
+
+    if (slurmProto >= SLURM_21_08_PROTO_VERSION) {
+	/* unique ID (GPU binding with MICs) */
+	addStringToMsg("", msg);
+    }
 
     return false;
 }
@@ -1871,15 +1977,25 @@ static bool unpackReqFileBcast(Slurm_Msg_t *sMsg)
 {
     char **ptr = &sMsg->ptr;
     BCast_t *bcast = addBCast();
+    uint16_t msgVer = sMsg->head.version;
 
     /* block number */
     getUint32(ptr, &bcast->blockNumber);
     /* compression */
     getUint16(ptr, &bcast->compress);
-    /* last block */
-    getUint16(ptr, &bcast->lastBlock);
-    /* force */
-    getUint16(ptr, &bcast->force);
+
+    if (msgVer < SLURM_21_08_PROTO_VERSION) {
+	uint16_t lastBlock, force;
+	/* last block */
+	getUint16(ptr, &lastBlock);
+	if (lastBlock) bcast->flags |= BCAST_LAST_BLOCK;
+	/* force */
+	getUint16(ptr, &force);
+	if (force) bcast->flags |= BCAST_FORCE;
+    } else {
+	/* flags (bcast_flags_t) */
+	getUint16(ptr, &bcast->flags);
+    }
     /* modes */
     getUint16(ptr, &bcast->modes);
     /* uid | not always the owner of the bcast!  */
@@ -2674,6 +2790,11 @@ bool packReqUpdateNode(PS_SendDB_t *data, Req_Update_Node_t *update)
     }
     /* default cpu bind type */
     addUint32ToMsg(update->cpuBind, data);
+
+    if (slurmProto >= SLURM_20_11_PROTO_VERSION) {
+	/* arbitrary */
+	addStringToMsg(update->extra, data);
+    }
     /* new features */
     addStringToMsg(update->features, data);
     /* new active features */

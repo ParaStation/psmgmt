@@ -188,10 +188,12 @@ bool deleteStep(uint32_t jobid, uint32_t stepid)
     ufree(step->packNodes);
     ufree(step->tresBind);
     ufree(step->tresFreq);
+    ufree(step->tresPerTask);
     ufree(step->x11.host);
     ufree(step->x11.magicCookie);
     ufree(step->x11.target);
     ufree(step->restartDir);
+    ufree(step->container);
 
     clearTasks(&step->tasks);
     clearTasks(&step->remoteTasks);

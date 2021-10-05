@@ -420,7 +420,11 @@ void initJobEnv(Job_t *job)
 
     envSet(&job->env, "SLURM_NODELIST", job->slurmHosts);
     envSet(&job->env, "SLURM_JOB_NODELIST", job->slurmHosts);
-    envSet(&job->env, "SLURM_CHECKPOINT_IMAGE_DIR", job->checkpoint);
+
+    if (job->checkpoint) {
+	/* removed in 21.08 */
+	envSet(&job->env, "SLURM_CHECKPOINT_IMAGE_DIR", job->checkpoint);
+    }
 
     if (!job->nodeAlias || !strlen(job->nodeAlias)) {
 	envSet(&job->env, "SLURM_NODE_ALIASES", "(null)");

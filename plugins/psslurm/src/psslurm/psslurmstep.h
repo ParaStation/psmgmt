@@ -102,7 +102,6 @@ typedef struct {
     uint32_t cpuFreqMin;        /**< CPU frequency minimal (unused) */
     uint32_t cpuFreqMax;        /**< CPU frequency maximal (unused) */
     uint32_t cpuFreqGov;        /**< CPU frequency governor (unused) */
-    char *restartDir;           /**< checkpoints directory (unused) */
     uint16_t jobCoreSpec;	/**< count of specialized cores */
     uint16_t *tasksToLaunch;	/**< number of tasks to launch (per node) */
     uint32_t **globalTaskIds;	/**< step global Slurm task IDs (per node) */
@@ -150,7 +149,8 @@ typedef struct {
     uint8_t appendMode;         /**< truncate(=0) or append(=1) stdout/stderr */
     uint16_t accType;		/**< type of accounting */
     char *nodeAlias;		/**< node alias */
-    char *checkpoint;		/**< directory for checkpoints */
+    char *checkpoint;		/**< checkpoint directory (removed in 21.08) */
+    char *restartDir;           /**< restart directory (removed in 21.08) */
     uint8_t x11forward;		/**< X11 forwarding */
     uint32_t fwInitCount;	/**< track INIT messages from logger to fw */
     uint32_t fwFinCount;	/**< track FINALIZE message from fw to logger */
@@ -187,9 +187,11 @@ typedef struct {
     X11_Data_t x11;             /**< (vanilla) X11 support */
     char *tresBind;             /**< TRes binding (currently env set only) */
     char *tresFreq;             /**< TRes frequency (currently env set only) */
+    char *tresPerTask;          /**< TRes per task */
 /* helper variables, only used temporarily by specific functions */
     uint32_t rcvdPackInfos;	/**< number of received pack infos */
     uint32_t rcvdPackProcs;	/**< number of received pack processes */
+    char *container;            /**< container path */
     list_t next;                /**< used to put into some step-lists */
 } Step_t;
 

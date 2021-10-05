@@ -1234,10 +1234,12 @@ static void handleFileBCast(Slurm_Msg_t *sMsg)
 	bcast->username = ustrdup(job->username);
     }
 
-    mdbg(PSSLURM_LOG_PROTO, "%s: jobid %u blockNum %u lastBlock %u force %u"
+    fdbg(PSSLURM_LOG_PROTO, "jobid %u blockNum %u lastBlock %u force %u"
 	 " modes %u, user '%s' uid %u gid %u fileName '%s' blockLen %u\n",
-	 __func__, bcast->jobid, bcast->blockNumber, bcast->lastBlock,
-	 bcast->force, bcast->modes, bcast->username, bcast->uid, bcast->gid,
+	 bcast->jobid, bcast->blockNumber,
+	 (bcast->flags & BCAST_LAST_BLOCK) ? 1 : 0,
+	 (bcast->flags & BCAST_FORCE) ? 1 : 0,
+	 bcast->modes, bcast->username, bcast->uid, bcast->gid,
 	 bcast->fileName, bcast->blockLen);
     if (logger_getMask(psslurmlogger) & PSSLURM_LOG_PROTO) {
 	printBinaryData(bcast->block, bcast->blockLen, "bcast->block");
@@ -2150,6 +2152,12 @@ static void handleKillReq(Slurm_Msg_t *sMsg, Alloc_t *alloc, Kill_Info_t *info)
     }
 }
 
+/**
+ * @brief Handles RPCs REQUEST_KILL_PREEMPTED, REQUEST_KILL_TIMELIMIT,
+ * REQUEST_ABORT_JOB and  REQUEST_TERMINATE_JOB
+ *
+ * @param sMsg The message containing the RPC to handle
+ */
 static void handleTerminateReq(Slurm_Msg_t *sMsg)
 {
     Req_Terminate_Job_t *req = sMsg->unpData;
@@ -2226,6 +2234,7 @@ CLEANUP:
     envDestroy(&req->spankEnv);
     freeGresJobAlloc(&req->gresList);
     ufree(req->nodes);
+    ufree(req->workDir);
     ufree(req);
 }
 
@@ -2572,7 +2581,12 @@ bool initSlurmdProto(void)
 	pver = autoVer;
     }
 
-    if (!strncmp(pver, "20.11", 5) || !strncmp(pver, "2011", 4)) {
+    // TODO  :  make a function which converts protocol version in int to string
+
+    if (!strncmp(pver, "21.08", 5) || !strncmp(pver, "2108", 4)) {
+	slurmProto = SLURM_21_08_PROTO_VERSION;
+	slurmProtoStr = ustrdup("21.08");
+    } else if (!strncmp(pver, "20.11", 5) || !strncmp(pver, "2011", 4)) {
 	slurmProto = SLURM_20_11_PROTO_VERSION;
 	slurmProtoStr = ustrdup("20.11");
     } else if (!strncmp(pver, "20.02", 5) || !strncmp(pver, "2002", 4)) {
@@ -2582,7 +2596,7 @@ bool initSlurmdProto(void)
 	slurmProto = SLURM_19_05_PROTO_VERSION;
 	slurmProtoStr = ustrdup("19.05");
     } else {
-	mlog("%s: unsupported Slurm protocol version %s\n", __func__, pver);
+	flog("unsupported Slurm protocol version %s\n", pver);
 	return false;
     }
 

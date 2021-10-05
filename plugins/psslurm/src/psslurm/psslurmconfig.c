@@ -309,6 +309,8 @@ static bool parseGresOptions(char *options)
 	    count = ustrdup(next+6);
 	} else if (!strncasecmp(next, "File=", 5)) {
 	    gres->file = ustrdup(next+5);
+	} else if (!strncasecmp(next, "Files=", 6)) {
+	    gres->file = ustrdup(next+6);
 	} else if (!strncasecmp(next, "CPUs=", 5)) {
 	    gres->cpus = ustrdup(next+5);
 	} else if (!strncasecmp(next, "Cores=", 6)) {
@@ -316,7 +318,7 @@ static bool parseGresOptions(char *options)
 	} else if (!strncasecmp(next, "Type=", 5)) {
 	    gres->type = ustrdup(next+5);
 	} else if (!strncasecmp(next, "Flags=", 6)) {
-	    gres->flags = ustrdup(next+6);
+	    gres->strFlags = ustrdup(next+6);
 	} else {
 	    flog("unknown gres option '%s'\n", next);
 	    return false;

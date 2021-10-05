@@ -58,8 +58,8 @@ typedef struct {
     char *jobscript;	    /**< absolute path of the jobscript */
     char *jsData;	    /**< jobscript data */
     char *hostname;	    /**< hostname of the jobscript */
-    char *checkpoint;	    /**< directory for checkpoints */
-    char *restartDir;       /**< checkpoints directory (unused) */
+    char *checkpoint;	    /**< directory for checkpoints (removed in 21.08) */
+    char *restartDir;       /**< restart directory (removed in 21.08) */
     char *acctFreq;	    /**< account polling frequency */
     int16_t cpuBindType;    /**< CPU bind type (unused) */
     int state;		    /**< current state of the job */
@@ -91,6 +91,7 @@ typedef struct {
     char *resName;          /**< reservation name (unused) */
     uint32_t profile;       /**< profile (unused) */
     PSCPU_set_t hwthreads;  /**< hwthreads to use for job on current node */
+    char *container;        /**< container path */
 } Job_t;
 
 /**

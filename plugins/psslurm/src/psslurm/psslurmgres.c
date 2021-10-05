@@ -109,6 +109,7 @@ static void freeGresConf(Gres_Conf_t *gres)
     ufree(gres->file);
     ufree(gres->type);
     ufree(gres->cores);
+    ufree(gres->strFlags);
     ufree(gres);
 }
 
@@ -119,10 +120,13 @@ Gres_Conf_t *saveGresConf(Gres_Conf_t *gres, char *count)
     /* parse file */
     if (gres->file) {
 	if (!parseGresFile(gres)) goto GRES_ERROR;
+	gres->flags |= GRES_CONF_HAS_FILE;
     } else {
 	/* parse count */
 	if (!setGresCount(gres, count)) goto GRES_ERROR;
     }
+
+    if (gres->type) gres->flags |= GRES_CONF_HAS_TYPE;
 
     if (gres->cores) {
 	flog("GRES cores feature currently unsupported, ignoring it\n");

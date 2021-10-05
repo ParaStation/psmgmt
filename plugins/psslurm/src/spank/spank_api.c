@@ -151,9 +151,9 @@ void slurm_debug3(const char *fmt, ...)
  */
 const char *spank_strerror (spank_err_t err)
 {
+    if (err == ESPANK_SUCCESS) return "Success";
+
     switch (err) {
-	case ESPANK_SUCCESS:
-	    return "Success";
 	case ESPANK_ERROR:
 	    return "Generic error";
 	case ESPANK_BAD_ARG:
@@ -176,6 +176,8 @@ const char *spank_strerror (spank_err_t err)
 	    return "Item not available from this callback";
 	case ESPANK_NOT_LOCAL:
 	    return "Valid only in local or allocator context";
+	default:
+	    return "Unknown";
     }
     return "Unknown";
 }

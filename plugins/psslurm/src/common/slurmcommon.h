@@ -5,8 +5,6 @@
 
 #define JOB_BATCH 0
 #define JOB_TASKS 1
-#define SLURM_SUCCESS 0
-#define SLURM_ERROR -1
 
 #define INFINITE8  (0xff)
 #define INFINITE16 (0xffff)
@@ -21,6 +19,7 @@
 #define JOB_OPTIONS_TAG "job_options"
 #define KILL_JOB_BATCH 0x0001
 #define OPT_TYPE_SPANK 0x4400
+#define SLURM_BIT(offset) ((uint64_t)1 << offset)
 
 #define MAX_GOVERNOR_LEN 24
 #define MAX_STR_LEN	 (16 * 1024 * 1024)
@@ -33,9 +32,10 @@
 #define SLURM_GLOBAL_AUTH_KEY   0x0001
 
 /* protocol versions */
-#define SLURM_MAX_PROTO_VERSION SLURM_20_11_PROTO_VERSION
+#define SLURM_MAX_PROTO_VERSION SLURM_21_08_PROTO_VERSION
 #define SLURM_MIN_PROTO_VERSION SLURM_19_05_PROTO_VERSION
 
+#define SLURM_21_08_PROTO_VERSION ((37 << 8) | 0) /* 9472 */
 #define SLURM_20_11_PROTO_VERSION ((36 << 8) | 0) /* 9216 */
 #define SLURM_20_02_PROTO_VERSION ((35 << 8) | 0) /* 8960 */
 #define SLURM_19_05_PROTO_VERSION ((34 << 8) | 0) /* 8704 */
@@ -266,5 +266,24 @@ enum slurm_job_states {
 #define SHOW_SIBLING    0x0020
 #define SHOW_FEDERATION 0x0040
 #define SHOW_FUTURE     0x0080
+
+typedef enum {
+        BCAST_NONE =	    0,
+        BCAST_FORCE =	    1 << 0,
+        BCAST_LAST_BLOCK =  1 << 1,
+        BCAST_SO =	    1 << 2,
+        BCAST_EXE =	    1 << 3,
+} bcast_flags_t;
+
+#define GRES_CONF_HAS_MULT   SLURM_BIT(0) /* multiple files */
+#define GRES_CONF_HAS_FILE   SLURM_BIT(1) /* file/multiple files */
+#define GRES_CONF_HAS_TYPE   SLURM_BIT(2) /* has type */
+#define GRES_CONF_COUNT_ONLY SLURM_BIT(3) /* no plugin to load */
+#define GRES_CONF_LOADED     SLURM_BIT(4) /* avoid loading plugin more
+					     than once */
+#define GRES_CONF_ENV_NVML   SLURM_BIT(5) /* CUDA_VISIBLE_DEVICES */
+#define GRES_CONF_ENV_RSMI   SLURM_BIT(6) /* ROCR_VISIBLE_DEVICES */
+#define GRES_CONF_ENV_OPENCL SLURM_BIT(7) /* GPU_DEVICE_ORDINAL */
+#define GRES_CONF_ENV_DEF    SLURM_BIT(8) /* default env */
 
 #endif

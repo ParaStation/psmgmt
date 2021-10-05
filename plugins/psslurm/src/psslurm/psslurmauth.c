@@ -368,6 +368,10 @@ void freeJobCred(JobCred_t *cred)
     ufree(cred->pwShell);
     ufree(cred->pwDir);
     ufree(cred->gidNames);
+    ufree(cred->jobMemAlloc);
+    ufree(cred->jobMemAllocRepCount);
+    ufree(cred->stepMemAlloc);
+    ufree(cred->stepMemAllocRepCount);
     ufree(cred);
 }
 

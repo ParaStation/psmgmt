@@ -1,5 +1,8 @@
-#ifndef __PS_SLURM_ERRNO
-#define __PS_SLURM_ERRNO
+#ifndef _SLURM_ERRNO_H
+#define _SLURM_ERRNO_H
+
+#define SLURM_SUCCESS 0
+#define SLURM_ERROR -1
 
 typedef enum {
 	/* General Message error codes */
@@ -179,6 +182,6 @@ typedef enum {
 
 	/* plugin and custom errors */
 	ESLURM_MISSING_TIME_LIMIT       = 8000
-} Slurm_Errno_t;
+} slurm_err_t;
 
 #endif

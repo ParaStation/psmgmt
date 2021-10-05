@@ -44,8 +44,7 @@ typedef struct {
     uint32_t blockNumber;	/**< block number of this part */
     uint64_t blockOffset;	/**< offset of this part */
     uint16_t compress;		/**< compression algorithm used */
-    uint16_t lastBlock;		/**< flag to signal the transfer is complete */
-    uint16_t force;		/**< overwrite destination file */
+    uint16_t flags;             /**< various flags (see bcast_flags_t) */
     uint16_t modes;		/**< access rights */
     uint32_t blockLen;		/**< length of this part */
     uint32_t uncompLen;		/**< uncompressed length of this data part */
