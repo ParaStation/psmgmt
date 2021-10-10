@@ -2444,6 +2444,8 @@ static void handleSpawnReq(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
 	    sendMsg(&answer);
 	}
 	PStask_delete(task);
+	/* cleanup psserial's byteorder */
+	setByteOrder(byteOrder);
 	return;
     }
 
