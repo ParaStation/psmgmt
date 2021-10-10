@@ -3,6 +3,7 @@
  *
  * Copyright (C) 2002-2004 ParTec AG, Karlsruhe
  * Copyright (C) 2005-2021 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2021 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -464,7 +465,7 @@ static void snprintfStruct(char *txt, size_t size, PStask_t *task)
 	     " childGroup %s rank %d cpus ...%s loggertid %08x fd %d argc %u",
 	     task->tid, task->ptid, task->uid, task->gid,
 	     PStask_printGrp(task->group), PStask_printGrp(task->childGroup),
-	     task->rank, PSCPU_print_part(task->CPUset, 16), task->loggertid,
+	     task->rank, PSCPU_print_part(task->CPUset, 8), task->loggertid,
 	     task->fd, task->argc);
 }
 

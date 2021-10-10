@@ -402,7 +402,8 @@ static int testExecutable(PStask_t *task, char **executable)
     }
 
     if (!S_ISREG(sb.st_mode) || !(sb.st_mode & S_IXUSR)) {
-	fprintf(stderr, "%s: stat(): %s\n", __func__,
+	fprintf(stderr, "%s: stat(%s): %s\n", __func__,
+		task->argv[0] ? task->argv[0] : "",
 		(!S_ISREG(sb.st_mode)) ? "S_ISREG error" :
 		(sb.st_mode & S_IXUSR) ? "" : "S_IXUSR error");
 	return EACCES;
@@ -2522,7 +2523,7 @@ static void handleSpawnReq(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
 	PStask_ID_t loggerTID = clone->loggertid;
 	PSCPU_set_t CPUset;
 	PSCPU_copy(CPUset, clone->CPUset);
-	char tasktxt[192];
+	char tasktxt[256];
 
 	PStask_snprintf(tasktxt, sizeof(tasktxt), clone);
 	PSID_log(PSID_LOG_SPAWN, "%s: Spawning %s\n", __func__, tasktxt);
