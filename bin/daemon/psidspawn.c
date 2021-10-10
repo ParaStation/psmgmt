@@ -377,7 +377,8 @@ static int testExecutable(PStask_t *task, char **executable)
 	    while (p) {
 		char *fn = PSC_concat(p, "/", task->argv[0], NULL);
 
-		if (!stat(fn, &sb)) {
+		if (!stat(fn, &sb) && (sb.st_mode & S_IXUSR)
+		    && !S_ISDIR(sb.st_mode) ) {
 		    free(task->argv[0]);
 		    task->argv[0] = fn;
 		    execFound = true;
