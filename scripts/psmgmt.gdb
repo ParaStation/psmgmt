@@ -1,7 +1,8 @@
 #
 # ParaStation
 #
-# Copyright (C) 2011-2020 ParTec Cluster Competence Center GmbH, Munich
+# Copyright (C) 2011-2021 ParTec Cluster Competence Center GmbH, Munich
+# Copyright (C) 2021 ParTec AG, Munich
 #
 # This file may be distributed under the terms of the Q Public License
 # as defined in the file LICENSE.QPL included in the packaging of this
@@ -358,6 +359,21 @@ displayed. Otherwise only the first entry of the list will be printed.
 
 end
 
+define list_item
+
+  if $argc < 2
+    echo list_item LISTPOINTER TYPE\n
+  else
+    echo ($arg1\ *)
+    output ((char *)($arg0)-(unsigned long)(&(($arg1 *)0)->next))
+  end
+end
+
+document list_item
+Syntax: list_item LISTPOINTER TYPE
+
+LISTPOINTER points to the list anchor of the element. It is assumed that the
+element is of type TYPE. A pointer to the actual element is returned.
 
 ### Local Variables:
 ### mode: gdb-script
