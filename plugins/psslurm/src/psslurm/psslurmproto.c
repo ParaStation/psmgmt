@@ -3037,15 +3037,9 @@ static void doSendLaunchTasksFailed(Step_t *step, uint32_t nodeID,
     packRespLaunchTasks(&body, &resp);
 
     /* send the message to srun */
-    int sock = srunOpenControlConnection(step);
-    if (sock != -1) {
-	PSCio_setFDblock(sock, true);
-	if ((sendSlurmMsg(sock, RESPONSE_LAUNCH_TASKS, &body)) < 1) {
-	    flog("send RESPONSE_LAUNCH_TASKS failed %s\n", strStepID(step));
-	}
-	close(sock);
-    } else {
-	flog("open control connection failed, %s\n", strStepID(step));
+
+    if (srunSendMsg(-1, step, RESPONSE_LAUNCH_TASKS, &body) < 1) {
+	flog("send RESPONSE_LAUNCH_TASKS failed %s\n", strStepID(step));
     }
 
     flog("send RESPONSE_LAUNCH_TASKS %s pids %u for '%s'\n",
@@ -3068,7 +3062,6 @@ void sendTaskPids(Step_t *step)
 {
     PS_SendDB_t body = { .bufUsed = 0, .useFrag = false };
     uint32_t countPIDs = 0, countLocalPIDs = 0, countGTIDs = 0;
-    int sock = -1;
     list_t *t;
     Resp_Launch_Tasks_t resp;
 
@@ -3117,14 +3110,8 @@ void sendTaskPids(Step_t *step)
     packRespLaunchTasks(&body, &resp);
 
     /* send the message to srun */
-    if ((sock = srunOpenControlConnection(step)) != -1) {
-	PSCio_setFDblock(sock, true);
-	if (sendSlurmMsg(sock, RESPONSE_LAUNCH_TASKS, &body) < 1) {
-	    flog("send RESPONSE_LAUNCH_TASKS failed %s\n", strStepID(step));
-	}
-	close(sock);
-    } else {
-	flog("open control connection failed, %s\n", strStepID(step));
+    if (srunSendMsg(-1, step, RESPONSE_LAUNCH_TASKS, &body) < 1) {
+	flog("send RESPONSE_LAUNCH_TASKS failed %s\n", strStepID(step));
     }
 
     flog("send RESPONSE_LAUNCH_TASKS %s pids %u\n", strStepID(step), countPIDs);

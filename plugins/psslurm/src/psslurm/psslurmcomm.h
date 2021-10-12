@@ -458,7 +458,7 @@ int srunSendIOEx(int sock, IO_Slurm_Header_t *ioh, char *buf, int *error);
  * Open a new control connection to srun if the sock argument is
  * smaller than 0 or use the already connected socket otherwise.
  * Send a message with the provided type and message body.
- * The response from srun will be handled by handleSrunMsg().
+ * The response from srun will be handled by @ref handleSrunMsg().
  *
  * @param sock The socket file descriptor
  *
@@ -474,7 +474,7 @@ int srunSendMsg(int sock, Step_t *step, slurm_msg_type_t type,
 		PS_SendDB_t *body);
 
 /**
- * @brief Handle a message from srun
+ * @brief Handle an I/O message from srun
  *
  * @param sock The socket file descriptor
  *
@@ -482,7 +482,7 @@ int srunSendMsg(int sock, Step_t *step, slurm_msg_type_t type,
  *
  * @return Always returns 0
  */
-int handleSrunMsg(int sock, void *data);
+int handleSrunIOMsg(int sock, void *data);
 
 /**
  * @brief Close all connections associated

@@ -1342,7 +1342,7 @@ static int forwardInputMsg(Step_t *step, uint16_t rank, char *buf, int bufLen)
     return bufLen;
 }
 
-int handleSrunMsg(int sock, void *data)
+int handleSrunIOMsg(int sock, void *data)
 {
     IO_Slurm_Header_t *ioh = NULL;
 
@@ -1475,6 +1475,39 @@ int srunOpenControlConnection(Step_t *step)
     return sock;
 }
 
+static int handleSrunMsg(Slurm_Msg_t *sMsg, void *info)
+{
+    Req_Info_t *req = info;
+    Step_t step = { .jobid = req->jobid,
+		    .stepid = req->stepid };
+
+    if (sMsg->head.type != RESPONSE_SLURM_RC) {
+	flog("unexpected srun response %s for request %s %s\n",
+	     msgType2String(sMsg->head.type), msgType2String(req->type),
+	     strStepID(&step));
+	goto CLEANUP;
+    }
+
+    /* inspect return code */
+    char **ptr = &sMsg->ptr;
+    uint32_t rc;
+    getUint32(ptr, &rc);
+
+    if (rc != SLURM_SUCCESS) {
+	flog("error: srun response %s rc %s sock %i for request %s %s\n",
+	     msgType2String(sMsg->head.type), slurmRC2String(rc), sMsg->sock,
+	     msgType2String(req->type), strStepID(&step));
+    } else {
+	fdbg(PSSLURM_LOG_COMM, "got SLURM_SUCCESS for srun req %s %s\n",
+	     msgType2String(req->type), strStepID(&step));
+    }
+
+CLEANUP:
+    closeSlurmCon(sMsg->sock);
+    ufree(info);
+    return 0;
+}
+
 int srunSendMsg(int sock, Step_t *step, slurm_msg_type_t type,
 		PS_SendDB_t *body)
 {
@@ -1483,15 +1516,25 @@ int srunSendMsg(int sock, Step_t *step, slurm_msg_type_t type,
 	if (sock < 0) return -1;
     }
 
-    if (Selector_register(sock, handleSrunMsg, step) == -1) {
-	flog("Selector_register(%i) failed\n", sock);
+    Req_Info_t *req = ucalloc(sizeof(*req));
+    req->type = type;
+    req->jobid = step->jobid;
+    req->stepid = step->stepid;
+    req->time = time(NULL);
+
+    if (!registerSlurmSocket(sock, handleSrunMsg, req)) {
+	flog("register Slurm socket %i failed\n", sock);
+	ufree(req);
 	return -1;
     }
 
     fdbg(PSSLURM_LOG_IO | PSSLURM_LOG_IO_VERB,
 	 "sock %u, len: body.bufUsed %u\n", sock, body->bufUsed);
 
-    return sendSlurmMsg(sock, type, body);
+    int ret = sendSlurmMsg(sock, type, body);
+    if (ret < 0) ufree(req);
+
+    return ret;
 }
 
 int srunOpenPTYConnection(Step_t *step)
@@ -1623,7 +1666,7 @@ void srunEnableIO(Step_t *step)
 	}
     }
 
-    if (Selector_register(step->srunIOMsg.sock, handleSrunMsg, step) == -1) {
+    if (Selector_register(step->srunIOMsg.sock, handleSrunIOMsg, step) == -1) {
 	flog("Selector_register(%i) srun I/O socket failed\n",
 	     step->srunIOMsg.sock);
     }

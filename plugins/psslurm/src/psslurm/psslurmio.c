@@ -471,9 +471,8 @@ void IO_sattachTasks(Step_t *step, uint32_t ioAddr, uint16_t ioPort,
 	if (index == ringBufLast) break;
     }
 
-    if (Selector_register(sock, handleSrunMsg, step) == -1) {
-	mlog("%s: Selector_register(%i) srun I/O socket failed\n",
-		__func__, sock);
+    if (Selector_register(sock, handleSrunIOMsg, step) == -1) {
+	flog("Selector_register(%i) srun I/O socket failed\n", sock);
     }
 }
 
