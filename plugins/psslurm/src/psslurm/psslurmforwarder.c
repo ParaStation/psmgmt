@@ -509,19 +509,19 @@ int handleForwarderClientStatus(void * data)
 {
     PStask_t *task = data;
 
-    if (task->rank <0 || task->group != TG_ANY) return 0;
+    if (task->rank <0 || task->group != TG_ANY) return IDLE;
 
     initFwPtr(task);
     if (!fwStep) {
 	if (!isPSAdminUser(task->uid, task->gid)) {
 	    flog("rank %i failed to find my step\n", task->rank);
 	}
-	return 0;
+	return IDLE;
     }
 
     startTaskEpilogue(fwStep, task);
 
-    return 0;
+    return IDLE;
 }
 
 int handleHookExecFW(void *data)
