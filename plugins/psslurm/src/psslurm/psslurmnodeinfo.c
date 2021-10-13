@@ -294,8 +294,7 @@ nodeinfo_t *getJobNodeinfo(PSnodes_ID_t id, const Job_t *job)
 	return NULL;
     }
 
-    nodeinfo_t *nodeinfo;
-    nodeinfo = node_iter_to_node(&iter, id);
+    nodeinfo_t *nodeinfo = node_iter_to_node(&iter, id);
 
     if (!nodeinfo) {
 	flog("Node id %hu not found in %s\n", id, job ? "job" : "step");
@@ -303,9 +302,7 @@ nodeinfo_t *getJobNodeinfo(PSnodes_ID_t id, const Job_t *job)
     }
 
     /* validate credential info against hwloc info from nodeinfo plugin */
-    if (!validate_nodeinfo(iter.index, nodeinfo)) {
-	return NULL;
-    }
+    if (!validate_nodeinfo(iter.index, nodeinfo)) return NULL;
 
     void *ret = malloc(sizeof(*nodeinfo));
     memcpy(ret, nodeinfo, sizeof(*nodeinfo));
