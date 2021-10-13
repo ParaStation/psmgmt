@@ -51,8 +51,6 @@ int sendPElogueStart(Job_t *job, PElogueType_t type, int rounds, env_t *env)
 {
     PS_SendDB_t data;
     int32_t timeout, msgType;
-    uint32_t i;
-    PSnodes_ID_t n;
 
     if (type == PELOGUE_PROLOGUE) {
 	timeout = getPluginConfValueI(job->plugin, "TIMEOUT_PROLOGUE");
@@ -68,7 +66,7 @@ int sendPElogueStart(Job_t *job, PElogueType_t type, int rounds, env_t *env)
     }
 
     initFragBuffer(&data, PSP_PLUG_PELOGUE, msgType);
-    for (n=0; n<job->numNodes; n++) {
+    for (PSnodes_ID_t n = 0; n < job->numNodes; n++) {
 	setFragDest(&data, PSC_getTID(job->nodes[n].id, 0));
     }
 
@@ -83,7 +81,7 @@ int sendPElogueStart(Job_t *job, PElogueType_t type, int rounds, env_t *env)
     addTimeToMsg(job->start_time, &data);
 
     addInt32ToMsg(env->cnt, &data);
-    for (i=0; i<env->cnt; i++) {
+    for (uint32_t i = 0; i < env->cnt; i++) {
 	addStringToMsg(env->vars[i], &data);
     }
     addUint8ToMsg(job->fwStdOE, &data);
@@ -391,7 +389,6 @@ static void handlePElogueStart(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
     bool prlg = msg->type == PSP_PROLOGUE_START;
     PElogueChild_t *child;
     int32_t envSize;
-    int i;
 
     plugin = getStringM(&ptr);
     jobid = getStringM(&ptr);
@@ -413,7 +410,7 @@ static void handlePElogueStart(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
     /* get environment */
     envInit(&child->env);
     getInt32(&ptr, &envSize);
-    for (i=0; i<envSize; i++) {
+    for (int i = 0; i < envSize; i++) {
 	char *tmp = getStringM(&ptr);
 	envPut(&child->env, tmp);
 	ufree(tmp);
@@ -434,7 +431,7 @@ static void handlePElogueStart(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
 
     int ret = PSIDhook_call(PSIDHOOK_PELOGUE_START, child);
 
-    if (ret <0) {
+    if (ret < 0) {
 	if (ret == -2) {
 	    child->exit = 0;
 	} else {
