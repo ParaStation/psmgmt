@@ -1745,7 +1745,7 @@ static void handleBatchJobLaunch(Slurm_Msg_t *sMsg)
 
     /* set mask of hardware threads to use */
     nodeinfo_t *nodeinfo;
-    nodeinfo = getNodeinfo(PSC_getMyID(), job, NULL);
+    nodeinfo = getJobNodeinfo(PSC_getMyID(), job);
     if (!nodeinfo) {
 	mlog("%s: could not extract nodeinfo from credentials\n", __func__);
 	sendSlurmRC(sMsg, ESLURMD_INVALID_JOB_CREDENTIAL);

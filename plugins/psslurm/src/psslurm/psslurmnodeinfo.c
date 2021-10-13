@@ -51,25 +51,15 @@ typedef struct {
  * srun in sbatch: job and step
  *
  * @param iter      iterator to be initialized
- * @param job       Job to iterate through or NULL
- * @param step      Step to iterate through or NULL
+ * @param nodes     node list to iterate
+ * @param nrOfNodes size of @a nodes
+ * @param cred      associate credentials
  */
-static bool node_iter_init(node_iterator *iter, const Job_t *job,
-			   const Step_t *step)
+static bool node_iter_init(node_iterator *iter, PSnodes_ID_t *nodes,
+			   uint32_t nrOfNodes, JobCred_t *cred)
 {
-    JobCred_t *cred;
-    if (job) {
-	iter->nrOfNodes = job->nrOfNodes;
-	iter->nodes = job->nodes;
-	cred = job->cred;
-    } else if (step) {
-	iter->nrOfNodes = step->nrOfNodes;
-	iter->nodes = step->nodes;
-	cred = step->cred;
-    } else {
-	flog("Passed neither job nor step\n");
-	return false;
-    }
+    iter->nrOfNodes = nrOfNodes;
+    iter->nodes = nodes;
 
     iter->coreMapIndex = 0;
     iter->nodeArrayIndex = 0;
@@ -291,7 +281,7 @@ static bool __validate_nodeinfo(size_t node, const nodeinfo_t *nodeinfo,
     return true;
 }
 
-nodeinfo_t *getNodeinfo(PSnodes_ID_t id, const Job_t *job, const Step_t *step)
+nodeinfo_t *getJobNodeinfo(PSnodes_ID_t id, const Job_t *job)
 {
     if (!PSIDnodes_isUp(id)) {
 	flog("Node id %hu is down.\n", id);
@@ -299,7 +289,7 @@ nodeinfo_t *getNodeinfo(PSnodes_ID_t id, const Job_t *job, const Step_t *step)
     }
 
     node_iterator iter;
-    if (!node_iter_init(&iter, job, step)) {
+    if (!node_iter_init(&iter, job->nodes, job->nrOfNodes, job->cred)) {
 	flog("Initialization of node iteration failed.\n");
 	return NULL;
     }
@@ -328,7 +318,7 @@ nodeinfo_t *getNodeinfo(PSnodes_ID_t id, const Job_t *job, const Step_t *step)
 nodeinfo_t *getStepNodeinfoArray(const Step_t *step)
 {
     node_iterator iter;
-    if (!node_iter_init(&iter, NULL, step)) {
+    if (!node_iter_init(&iter, step->nodes, step->nrOfNodes, step->cred)) {
 	flog("Initialization of node iteration failed.\n");
 	return NULL;
     }

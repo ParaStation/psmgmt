@@ -16,21 +16,17 @@
 #include "psslurmstep.h"
 
 /**
- * @brief Get all basic hardware information of a node
+ * @brief Get all basic hardware information of a node in a job
  *
  * Get a nodeinfo struct containing information on a node that are
- * usually hidden in the job or step struct.
- *
- * Either a job or a step can be given; if both are given, job takes
- * precedence.
+ * usually hidden in the job struct.
  *
  * The returned nodeinfo struct needs to be freed using ufree.
  *
  * @param id    ParaStation ID of the requested node
- * @param job   Job or NULL
- * @param step  Step or NULL
+ * @param job   Job
  */
-nodeinfo_t *getNodeinfo(PSnodes_ID_t id, const Job_t *job, const Step_t *step);
+nodeinfo_t *getJobNodeinfo(PSnodes_ID_t id, const Job_t *job);
 
 /**
  * @brief Creates a nodeinfo array for the step
