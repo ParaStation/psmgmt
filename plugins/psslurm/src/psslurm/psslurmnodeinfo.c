@@ -293,6 +293,11 @@ static bool __validate_nodeinfo(size_t node, const nodeinfo_t *nodeinfo,
 
 nodeinfo_t *getNodeinfo(PSnodes_ID_t id, const Job_t *job, const Step_t *step)
 {
+    if (!PSIDnodes_isUp(id)) {
+	flog("Node id %hu is down.\n", id);
+	return NULL;
+    }
+
     node_iterator iter;
     if (!node_iter_init(&iter, job, step)) {
 	flog("Initialization of node iteration failed.\n");
@@ -334,6 +339,15 @@ nodeinfo_t *getStepNodeinfoArray(const Step_t *step)
     nodeinfo_t *nodeinfo;
     nodeinfo_t *ptr = array;
     while ((nodeinfo = node_iter_next(&iter))) {
+
+	PSnodes_ID_t id = step->nodes[iter.index];
+	if (!PSIDnodes_isUp(id)) {
+	    flog("Node id %hu is down.\n", id);
+	    node_iter_cleanup(&iter);
+	    ufree(array);
+	    return NULL;
+	}
+
 	/* validate credential info against hwloc info from nodeinfo plugin */
 	if (!validate_nodeinfo(iter.index, nodeinfo)) {
 	    node_iter_cleanup(&iter);
