@@ -1,9 +1,7 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python3
 
 # pylint: disable=invalid-name
 # pylint: disable=missing-docstring
-
-from __future__ import print_function
 
 import os
 import sys
