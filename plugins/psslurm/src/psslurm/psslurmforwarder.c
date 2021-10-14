@@ -643,6 +643,7 @@ int handleExecClientUser(void *data)
     unsetenv("__PSI_LOGGER_UNBUFFERED");
     unsetenv("__MPIEXEC_DIST_START");
     unsetenv("MPIEXEC_VERBOSE");
+    unsetenv("__PSI_NO_MEMBIND");
 
     if (fwStep) startTaskPrologue(fwStep, task);
 
