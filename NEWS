@@ -6,6 +6,43 @@ Copyright (C) 2021 ParTec AG, Munich
 Please send bug reports, questions and suggestions to <support@par-tec.com>
 
 
+Version 5.1.45:
+===============
+Bugfixes:
+ - Ensure PATH resolution ignores non-executable files (jwt:#11381)
+ - Check for valid protocol version before tweaking fragment (jwt:#11068)
+ - Prevent inherited __PSI_NO_MEMBIND interfering with memory pinning (#20)
+ - Ensure psserial's byteorder is never messed up
+ - Ensure SIGTERM is not unblocked in main daemon
+ - Ensure forwarder ignores ghost messages
+ - psgw must unregister all message handlers on unload
+ - psexec shall not clear psslurm's dropper
+ - Fix buildsystem when slurm-devel is not installed
+ - Fix various bugs unveiled by scan-build
+Enhancements:
+ - Trace PMIx initialization state to improve client release (#24)
+ - Catch down nodes early in psslurm's nodeinfo handling
+ - Update psroute.py to python3
+ - Hide psslurm's output of node_iter_next behind PSSLURM_LOG_PART
+Additional changes:
+ - Rework psid's message handling
+   * Multiple handler might be registered for a given type
+   * Handlers called in reverse order of registration (latest registered first)
+   * Steer further handling by their return value (true => fully handled)
+   * PSID_clearMsg() now unregisters a specific handler
+ - Refactor psidforwarder to utilize PSID_handleMsg() and
+   bump plugin API version to 133
+ - Cleanup psslurm's nodeinfo interfaces
+ - Rework PSIDHOOK_FRWRD_CLNT_RLS to support for multiple plugins and
+   bump plugin API version to 134
+ - Rework PSIDHOOK_FRWRD_EXIT's interface
+ - Obsolete PSIDHOOK_FRWRD_KVS, PSIDHOOK_FRWRD_SPAWNRES, PSIDHOOK_FRWRD_CC_ERROR
+ - Introduce PSCio_recvMsgT(), i.e. receive message with timeout
+ - Introduce PSIDcomm_registerSendMsgFunc()
+ - Introduce recvDaemonMsg() to replace recvMsg()
+ - Add list_item macro to gdbinit definitions
+
+
 Version 5.1.44-2:
 =================
 Bugfixes:

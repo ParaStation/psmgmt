@@ -1,3 +1,325 @@
+Version psmgmt-5.1.45:
+======================
+------------------------------------------------------------------------
+8da7b8ede | Norbert Eicker | Thu, 14 Oct 2021 18:59:39 +0200
+
+Bugfix: Check for valid protocol version before tweaking fragment (jwt:#11068)
+------------------------------------------------------------------------
+edfc5dd3a | Michael Rauh | Thu, 14 Oct 2021 17:36:10 +0200
+
+Prevent inherited __PSI_NO_MEMBIND environment variables from
+interfering with the memory pinning (#20)
+------------------------------------------------------------------------
+09b69cb1e | Michael Rauh | Thu, 14 Oct 2021 15:15:47 +0200
+
+Update psroute.py to python3
+
+ - Set minimal psconfig dependency to version 5.2.0-0
+------------------------------------------------------------------------
+dc5eac1af | Norbert Eicker | Wed, 13 Oct 2021 22:50:50 +0200
+
+More streamlining
+------------------------------------------------------------------------
+546b5b52e | Norbert Eicker | Wed, 13 Oct 2021 20:44:12 +0200
+
+Minor streamlining
+------------------------------------------------------------------------
+85006ae49 | Stephan Krempel | Wed, 13 Oct 2021 17:17:21 +0200
+
+psslurm: Cleanup nodeinfo interfaces
+------------------------------------------------------------------------
+574e7ee36 | Stephan Krempel | Wed, 13 Oct 2021 15:56:14 +0200
+
+psslurm: Catch down nodes early in nodeinfo handling
+------------------------------------------------------------------------
+578fa5371 | Norbert Eicker | Tue, 5 Oct 2021 21:22:15 +0200
+
+Fix scanbuild warnings
+------------------------------------------------------------------------
+137a060ee | Norbert Eicker | Tue, 5 Oct 2021 21:07:09 +0200
+
+Fix scanbuild warnings plus streamlining
+------------------------------------------------------------------------
+256c301af | Michael Rauh | Tue, 12 Oct 2021 10:47:09 +0200
+
+Adopt psslurm to changes in PSIDHOOK_FRWRD_CLNT_RLS done
+in 3237a10f
+
+ - Bump plugin API version to 134
+------------------------------------------------------------------------
+d34572b4c | Norbert Eicker | Mon, 11 Oct 2021 00:42:04 +0200
+
+Add list_item macro to gdbinit definitions
+------------------------------------------------------------------------
+be16c155b | Norbert Eicker | Mon, 11 Oct 2021 00:20:49 +0200
+
+Bugfix: Ensure psserial's byteorder is never messed up
+------------------------------------------------------------------------
+f7fed97f3 | Norbert Eicker | Mon, 11 Oct 2021 00:16:45 +0200
+
+Bugfix: Ensure PATH resolution ignores non-executable files (jwt:#11381)
+------------------------------------------------------------------------
+1bebc5051 | Norbert Eicker | Sun, 10 Oct 2021 22:45:55 +0200
+
+Improve debug log while spawn
+------------------------------------------------------------------------
+34c304f32 | Stephan Krempel | Fri, 1 Oct 2021 11:12:24 +0200
+
+pspmix: Fix typo in debugging output
+------------------------------------------------------------------------
+e92057f1a | Norbert Eicker | Thu, 30 Sep 2021 21:42:21 +0200
+
+Send PSPMIX_CLIENT_FINALIZE_RES only after PSP_CD_RELEASERES
+------------------------------------------------------------------------
+40a73d6c2 | Norbert Eicker | Thu, 30 Sep 2021 21:40:43 +0200
+
+Require API 134 to use PSIDHOOK_FRWRD_CLNT_RLS
+------------------------------------------------------------------------
+65df601ca | Norbert Eicker | Thu, 30 Sep 2021 20:23:37 +0200
+
+Rework PSIDHOOK_FRWRD_EXIT's interface
+------------------------------------------------------------------------
+a91a199d2 | Norbert Eicker | Thu, 30 Sep 2021 19:07:19 +0200
+
+Streamlining
+------------------------------------------------------------------------
+a465374f3 | Norbert Eicker | Thu, 30 Sep 2021 18:40:03 +0200
+
+Fix memory leak
+------------------------------------------------------------------------
+9d8ea0261 | Norbert Eicker | Thu, 30 Sep 2021 18:27:39 +0200
+
+Streamlining
+------------------------------------------------------------------------
+3b7201583 | Norbert Eicker | Thu, 30 Sep 2021 15:17:36 +0200
+
+Streamlining, fix return warnings, etc.
+------------------------------------------------------------------------
+01c59ac64 | Norbert Eicker | Thu, 30 Sep 2021 15:14:06 +0200
+
+Clarify the meaning of PSIDHOOK_FRWRD_EXIT's parameter
+------------------------------------------------------------------------
+ff3f34b93 | Norbert Eicker | Thu, 30 Sep 2021 13:09:37 +0200
+
+Make interface of getEnviron() more distinct
+------------------------------------------------------------------------
+688365142 | Norbert Eicker | Thu, 30 Sep 2021 13:06:26 +0200
+
+Use sendDaemonMsg in pspmixforwarder where possible
+------------------------------------------------------------------------
+7c295c54a | Norbert Eicker | Thu, 30 Sep 2021 12:41:03 +0200
+
+Streamlining
+------------------------------------------------------------------------
+5ece86848 | Norbert Eicker | Wed, 29 Sep 2021 22:02:21 +0200
+
+Clean obsolete comments and whitespace
+------------------------------------------------------------------------
+6f98dae8d | Norbert Eicker | Wed, 29 Sep 2021 12:49:33 +0200
+
+Improve documentation comments
+------------------------------------------------------------------------
+59e45507e | Norbert Eicker | Wed, 29 Sep 2021 09:49:44 +0200
+
+Fix copyrights
+------------------------------------------------------------------------
+9ec48baea | Norbert Eicker | Tue, 28 Sep 2021 23:23:11 +0200
+
+Fix typos in docu comments
+------------------------------------------------------------------------
+7e0981270 | Stephan Krempel | Tue, 28 Sep 2021 15:01:10 +0200
+
+pspmix: Support new return type of PSIDHOOK_FRWRD_CLNT_RES
+
+Use PSIDhook_ClntRls_t as PMIx client status and return type
+of hookForwarderClientRelease() to support more than one
+plugin registeredi to the hook at the same time.
+------------------------------------------------------------------------
+80d76a05b | Stephan Krempel | Tue, 28 Sep 2021 14:47:54 +0200
+
+pspmix: Add missing pointer check in forwarder
+------------------------------------------------------------------------
+4b7cb71ff | Stephan Krempel | Fri, 24 Sep 2021 10:11:35 +0200
+
+pspmix: Fix typo in debugging output
+------------------------------------------------------------------------
+fa6fdd441 | Stephan Krempel | Thu, 23 Sep 2021 15:19:59 +0200
+
+pspmix: Allow empty callback function from server library
+------------------------------------------------------------------------
+b9232d06d | Stephan Krempel | Thu, 23 Sep 2021 15:17:17 +0200
+
+pspmix: Fix client notify responses and unify handler
+------------------------------------------------------------------------
+ba77a9e2e | Stephan Krempel | Thu, 23 Sep 2021 12:05:47 +0200
+
+pspmix: Fix initialization of serialization layer in forwarder
+------------------------------------------------------------------------
+b36d5c912 | Stephan Krempel | Thu, 23 Sep 2021 11:10:09 +0200
+
+pspmix: Fix and enhance debugging output
+------------------------------------------------------------------------
+16626e2b4 | Stephan Krempel | Thu, 23 Sep 2021 09:53:14 +0200
+
+pspmix: Fix checking of sendFragMsg() return value
+------------------------------------------------------------------------
+70f31b59b | Stephan Krempel | Thu, 23 Sep 2021 09:32:31 +0200
+
+pspmix: Remove double lock release
+------------------------------------------------------------------------
+d3538ad22 | Stephan Krempel | Thu, 23 Sep 2021 09:11:37 +0200
+
+pspmix: Use PSCio_recvMsgT() instead of self written function
+------------------------------------------------------------------------
+85d589584 | Stephan Krempel | Thu, 23 Sep 2021 09:10:44 +0200
+
+pspmix: Use PSIDHOOK_FRWRD_INIT to register message type in forwarder
+------------------------------------------------------------------------
+9f616640b | Stephan Krempel | Thu, 26 Aug 2021 01:46:44 +0200
+
+pspmix: Manage PMIx initialization state in forwarder
+
+This enables the forwarder to release to client correctly
+thus let the psid know if a client disappeared while still
+PMIx initialized.
+
+Not working yet, would close #24
+------------------------------------------------------------------------
+41b13c2fe | Stephan Krempel | Thu, 26 Aug 2021 01:21:10 +0200
+
+pspmix: Use PSIDHOOK_FRWRD_EXIT to finalize fragmentation layer
+------------------------------------------------------------------------
+829c2a019 | Stephan Krempel | Thu, 26 Aug 2021 01:12:45 +0200
+
+pspmix: Make childTask a global forwarder attribute
+------------------------------------------------------------------------
+d75258ada | Stephan Krempel | Thu, 26 Aug 2021 01:08:22 +0200
+
+pspmix: Include psidcomm.h and rename local static functions
+------------------------------------------------------------------------
+5306eeb0d | Stephan Krempel | Wed, 25 Aug 2021 12:04:20 +0200
+
+pspmix: Fix typo in log message
+------------------------------------------------------------------------
+13449f531 | Stephan Krempel | Wed, 25 Aug 2021 12:03:30 +0200
+
+pspmix: Fix documentation
+------------------------------------------------------------------------
+a0c826a2e | Stephan Krempel | Wed, 25 Aug 2021 11:39:21 +0200
+
+pspmix: Remove module prefix from static function
+------------------------------------------------------------------------
+ba243faf5 | Stephan Krempel | Fri, 7 May 2021 13:48:29 +0200
+
+pspmix: Remember client forwarder tid in client struct
+------------------------------------------------------------------------
+37c4a449d | Stephan Krempel | Fri, 7 May 2021 13:46:20 +0200
+
+pspmix: Enable client list in namespace
+------------------------------------------------------------------------
+adc38f9aa | Stephan Krempel | Wed, 25 Aug 2021 13:13:31 +0200
+
+pspmix: Fix call of function generateNamespaceName()
+------------------------------------------------------------------------
+ea974d2bf | Norbert Eicker | Wed, 29 Sep 2021 15:43:36 +0200
+
+Bugfix: Ensure forwarder ignores ghost messages
+------------------------------------------------------------------------
+87c744b5a | Norbert Eicker | Wed, 29 Sep 2021 15:34:16 +0200
+
+Bugfix: Ensure SIGTERM is not unblocked in main daemon
+------------------------------------------------------------------------
+3237a10f1 | Norbert Eicker | Tue, 28 Sep 2021 13:55:42 +0200
+
+Rework PSIDHOOK_FRWRD_CLNT_RLS to support multiple plugins
+
+ - Bump plugin API version to 134
+------------------------------------------------------------------------
+61647a149 | Norbert Eicker | Tue, 28 Sep 2021 23:17:21 +0200
+
+Fix buildsystem when slurm-devel is not installed
+------------------------------------------------------------------------
+88ff62b02 | Norbert Eicker | Wed, 11 Aug 2021 01:09:04 +0200
+
+Do not include unused headers
+------------------------------------------------------------------------
+1f7ef7f59 | Norbert Eicker | Wed, 4 Aug 2021 00:39:15 +0200
+
+Obsolete PSIDHOOK_FRWRD_KVS, PSIDHOOK_FRWRD_SPAWNRES, PSIDHOOK_FRWRD_CC_ERROR
+------------------------------------------------------------------------
+c6eb2f95d | Norbert Eicker | Wed, 4 Aug 2021 00:25:51 +0200
+
+Move handling of KVS provider's CC_ERROR msg in forwarder from hook to handler
+------------------------------------------------------------------------
+1d18f2064 | Norbert Eicker | Wed, 4 Aug 2021 00:14:33 +0200
+
+Move handling of SPAWNRES msg in forwarder from hook to handler
+------------------------------------------------------------------------
+89fd3c517 | Norbert Eicker | Tue, 3 Aug 2021 17:55:51 +0200
+
+Move handling of KVS msg in forwarder from hook to handler
+------------------------------------------------------------------------
+b8cb905cd | Norbert Eicker | Tue, 3 Aug 2021 03:05:19 +0200
+
+Refactor psidforwarder to utilize PSID_handleMsg()
+
+ - Bump plugin API version to 133
+------------------------------------------------------------------------
+e2e4565d8 | Norbert Eicker | Mon, 2 Aug 2021 23:42:34 +0200
+
+Improve function naming
+------------------------------------------------------------------------
+72b125242 | Norbert Eicker | Thu, 29 Jul 2021 16:44:56 +0200
+
+Rework psid's message handling
+
+ - Multiple handler might be registered for a given type
+ - Handlers called in reverse order of registration (latest registered first)
+ - Steer further handling by their return value (true => fully handled)
+ - PSID_clearMsg() now unregisters a specific handler
+------------------------------------------------------------------------
+64d0696bb | Norbert Eicker | Tue, 27 Jul 2021 22:10:34 +0200
+
+Bugfix: psgw must unregister all message handlers on unload
+------------------------------------------------------------------------
+54e4ec3a2 | Norbert Eicker | Tue, 27 Jul 2021 21:17:30 +0200
+
+Bugfix: psexec shall not clear psslurm's dropper
+------------------------------------------------------------------------
+a7978003e | Norbert Eicker | Thu, 22 Jul 2021 01:19:50 +0200
+
+Booleanize PSID_handleMsg()
+------------------------------------------------------------------------
+b4be3b0ea | Norbert Eicker | Thu, 15 Jul 2021 18:35:03 +0200
+
+Introduce PSCio_recvMsgT(), i.e. receive message with timeout
+------------------------------------------------------------------------
+b1c09dd52 | Norbert Eicker | Thu, 15 Jul 2021 18:30:35 +0200
+
+Introduce PSIDcomm_registerSendMsgFunc()
+------------------------------------------------------------------------
+32a1c8823 | Norbert Eicker | Thu, 15 Jul 2021 02:10:57 +0200
+
+Reorganize psid's module initialization
+------------------------------------------------------------------------
+0e9699036 | Norbert Eicker | Thu, 15 Jul 2021 01:53:45 +0200
+
+Use PSC_setSigHandler() more often
+------------------------------------------------------------------------
+c1cba69f1 | Norbert Eicker | Tue, 13 Jul 2021 00:40:08 +0200
+
+Introduce recvDaemonMsg() to replace recvMsg()
+------------------------------------------------------------------------
+60324893f | Norbert Eicker | Fri, 20 Aug 2021 00:44:45 +0200
+
+Fix various bugs unveiled by scan-build
+------------------------------------------------------------------------
+3807cbdeb | Stephan Krempel | Mon, 20 Sep 2021 11:35:17 +0200
+
+psslurm: Hide output of node_iter_next behind PSSLURM_LOG_PART
+------------------------------------------------------------------------
+
+
 Version psmgmt-5.1.44-2:
 ========================
 ------------------------------------------------------------------------
