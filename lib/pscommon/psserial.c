@@ -546,7 +546,8 @@ static bool sendFragment(PS_SendDB_t *buf, const char *caller, const int line)
 	    continue;
 	}
 	DDTypedBufferMsg_t *msg;
-	if (getProtoV(PSC_getID(destTIDs[i])) < 344) {
+	int protoVer = getProtoV(PSC_getID(destTIDs[i]));
+	if (protoVer > 0 /* is valid */ && protoVer < 344) {
 	    if (!dupOK) {
 		fragMsgDup.header = fragMsg.header;
 		fragMsgDup.type = fragMsg.type;
