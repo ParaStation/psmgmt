@@ -587,6 +587,9 @@ static void handleLaunchTasks(Slurm_Msg_t *sMsg)
 	step->state = JOB_PRESTART;
 	fdbg(PSSLURM_LOG_JOB, "%s in %s\n", strStepID(step),
 	     strJobState(step->state));
+	/* non pack jobs can be started right away.
+	 * However for pack jobs the pack leader has to wait for
+	 * the pack follower to send hw threads */
 	if (step->packJobid == NO_VAL) {
 	    if (!(execStepLeader(step))) {
 		sendSlurmRC(sMsg, ESLURMD_FORK_FAILED);
@@ -1897,14 +1900,15 @@ static void handleBatchJobLaunch(Slurm_Msg_t *sMsg)
     bool ret = false;
     char *prologue = getConfValueC(&SlurmConfig, "Prolog");
     if (!prologue || prologue[0] == '\0') {
-	/* pspelogue should have added a allocation */
+	/* no slurmd prologue configured,
+	 * pspelogue should have added an allocation */
 	if (!alloc) {
 	    flog("error: no allocation for job %u found\n", job->jobid);
 	    flog("** ensure slurmctld prologue is setup correctly **\n");
 	    goto ERROR;
 	}
 
-	/* santy check allocation state */
+	/* sanity check allocation state */
 	if (alloc->state != A_PROLOGUE_FINISH) {
 	    flog("allocation %u in invalid state %s\n", alloc->id,
 		 strAllocState(alloc->state));
@@ -1917,6 +1921,7 @@ static void handleBatchJobLaunch(Slurm_Msg_t *sMsg)
 	fdbg(PSSLURM_LOG_JOB, "job %u in %s\n", job->jobid,
 	     strJobState(job->state));
     } else {
+	/* slurmd prologue is configured */
 	if (alloc && alloc->state == A_PROLOGUE_FINISH) {
 	    /* pspelogue already executed the prologue */
 	    alloc->state = A_RUNNING;
@@ -1924,7 +1929,8 @@ static void handleBatchJobLaunch(Slurm_Msg_t *sMsg)
 	    fdbg(PSSLURM_LOG_JOB, "job %u in %s\n", job->jobid,
 		 strJobState(job->state));
 	} else {
-	    /* slurmctld will start the "slurmd_prolog" and the batch
+	    /* slurmctld will start the "slurmd_prolog"
+	     * (see @ref handleLaunchProlog) and the batch
 	     * job in parallel. psslurm has to wait until the prologue
 	     * is completed before the batch job is started */
 	    ret = true;

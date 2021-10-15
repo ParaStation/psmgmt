@@ -78,6 +78,9 @@ static void handleFailedPrologue(Alloc_t *alloc, PElogueResList_t *resList)
 /**
  * @brief Handle a local prologue callback
  *
+ * This function is only called if the slurmd_prolog is used. It is
+ * *not* called for a slurmctld prologue which is started by pspelogue.
+ *
  * @param alloc The allocation of the prologue to handle
  *
  * @param exitStatus The exit status of the pelogue script
@@ -87,6 +90,7 @@ static void handlePrologueCB(Alloc_t *alloc, int exitStatus, int16_t res)
     /* inform the slurmctld */
     int rc = exitStatus ? SLURM_ERROR : SLURM_SUCCESS;
     sendPrologComplete(alloc->id, rc);
+    /* inform the MS to start waiting jobs */
     send_PS_PElogueRes(alloc, res, PELOGUE_PROLOGUE);
 
     if (alloc->terminate) {

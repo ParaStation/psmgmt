@@ -628,10 +628,10 @@ bool sendConfigReq(const char *server, const int action);
 void activateConfigCache(char *confDir);
 
 /**
- * @brief Send a prologue complete request
+ * @brief Send a prologue complete request to slurmctld
  *
  * If rc is SLURM_ERROR the node will be drained and
- * the job gets requeued if possbile (steps started
+ * the job gets requeued if possible (steps started
  * without a job will be cancelled).
  *
  * @param jobid The jobid of the prologue completed
