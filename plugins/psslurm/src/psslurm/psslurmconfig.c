@@ -38,7 +38,7 @@ Config_t Config;
 Config_t SlurmConfig;
 
 /** hash value of the current Slurm configuration */
-static uint32_t configHash;
+static uint32_t configHash = -1;
 
 /** used to forward information to host visitor */
 typedef struct {
@@ -929,6 +929,7 @@ bool parseSlurmConfigFiles(void)
     }
 
     registerConfigHashAccumulator(&configHash);
+    configHash = 0;
     if (parseConfigFile(confFile, &SlurmConfig, true /*trimQuotes*/) < 0) {
 	flog("Parsing Slurm configuration file %s failed\n", confFile);
 	return false;
@@ -1051,10 +1052,12 @@ bool updateSlurmConf(void)
     /* update the original configuration now */
     freeConfig(&SlurmConfig);
     registerConfigHashAccumulator(&configHash);
+    configHash = 0;
     if (parseConfigFile(confFile, &SlurmConfig, true /*trimQuotes*/) < 0) {
 	flog("Parsing updated Slurm configuration file %s failed\n", confFile);
 	return false;
     }
+    registerConfigHashAccumulator(NULL);
 
     /* parse optional Slurm GRes config file */
     confFile = getConfValueC(&Config, "SLURM_GRES_CONF");
