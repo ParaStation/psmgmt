@@ -279,7 +279,23 @@ static char *showSpank(void)
 }
 
 /**
- * @brief Show current allocations.
+ * @brief Show slurm.conf configuration hash and its read time
+ *
+ * @return Returns the buffer with the updated configuration information
+ */
+static char *showConfHash(void)
+{
+    StrBuffer_t strBuf = { .buf = NULL };
+
+    snprintf(line, sizeof(line), "\nslurm.conf hash: %#.08x updated %s\n",
+	     getSlurmConfHash(), getSlurmUpdateTime());
+    addStrBuf(line, &strBuf);
+
+    return strBuf.buf;
+}
+
+/**
+ * @brief Show current allocations
  *
  * @return Returns the buffer with the updated allocation information.
  */
@@ -582,6 +598,7 @@ static char *showVirtualKeys(char *buf, size_t *bufSize, bool example)
     str2Buf(" resolveIDs\tresolve a Slurm host-list\n", &buf, bufSize);
     str2Buf("      spank\tshow active spank plugins\n", &buf, bufSize);
     str2Buf("    tainted\tshow if a spank plugin taints psid\n", &buf, bufSize);
+    str2Buf("  slurmHash\tshow slurm.conf hash and read time\n", &buf, bufSize);
 
     if (example) {
 	str2Buf("\nExamples:\n * Use 'plugin show psslurm key jobs' "
@@ -746,6 +763,9 @@ char *show(char *key)
 
     /* show spank plugins */
     if (!strcmp(key, "spank")) return showSpank();
+
+    /* show config hash */
+    if (!strcmp(key, "slurmHash")) return showConfHash();
 
 #ifdef HAVE_SPANK
     /* show spank plugins */

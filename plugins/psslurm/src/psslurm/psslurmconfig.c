@@ -8,15 +8,16 @@
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-#include <stdlib.h>
-#include <unistd.h>
-#include <string.h>
-#include <sys/stat.h>
-#include <sys/socket.h>
-#include <netdb.h>
 #include <dirent.h>
 #include <errno.h>
 #include <glob.h>
+#include <netdb.h>
+#include <stdlib.h>
+#include <string.h>
+#include <sys/stat.h>
+#include <sys/socket.h>
+#include <time.h>
+#include <unistd.h>
 
 #include "pshostlist.h"
 
@@ -31,14 +32,17 @@
 
 #include "psslurmconfig.h"
 
-/** The psslurm plugin configuration list */
+/** psslurm plugin configuration list */
 Config_t Config;
 
-/** The Slurm configuration list */
+/** Slurm configuration list */
 Config_t SlurmConfig;
 
-/** hash value of the current Slurm configuration */
+/** Hash value of the current Slurm configuration */
 static uint32_t configHash = -1;
+
+/** Time of Slurm configuration's last update */
+static time_t configUpdateTime;
 
 /** used to forward information to host visitor */
 typedef struct {
@@ -934,7 +938,9 @@ bool parseSlurmConfigFiles(void)
 	flog("Parsing Slurm configuration file %s failed\n", confFile);
 	return false;
     }
+    configUpdateTime = time(NULL);
     registerConfigHashAccumulator(NULL);
+
     if (traverseConfig(&SlurmConfig, parseSlurmConf, &gres)) {
 	flog("Traversing Slurm configuration failed\n");
 	return false;
@@ -1057,6 +1063,7 @@ bool updateSlurmConf(void)
 	flog("Parsing updated Slurm configuration file %s failed\n", confFile);
 	return false;
     }
+    configUpdateTime = time(NULL);
     registerConfigHashAccumulator(NULL);
 
     /* parse optional Slurm GRes config file */
@@ -1089,4 +1096,13 @@ bool updateSlurmConf(void)
 uint32_t getSlurmConfHash(void)
 {
     return configHash;
+}
+
+char *getSlurmUpdateTime(void)
+{
+    static char timeStr[32];
+    strftime(timeStr, sizeof(timeStr), "%Y-%m-%d %H:%M:%S",
+	     localtime(&configUpdateTime));
+
+    return timeStr;
 }
