@@ -8,9 +8,10 @@
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-
 #ifndef __PS_SLURM_CONFIG
 #define __PS_SLURM_CONFIG
+
+#include <stdint.h>
 
 #include "pluginconfig.h"
 
@@ -40,14 +41,11 @@ extern const ConfDef_t confDef[];
  *
  * @param filename The path to the psslurm configuration file
  *
- * @param hash Will receive the hash of the slurm.conf file
- *  if not running in configless mode
- *
  *  @return Returns CONFIG_SUCCESS on success. CONFIG_SERVER is returned
  *  when running in configless mode. On error in both cases
  *  CONFIG_ERROR will be returned.
  */
-int initPSSlurmConfig(char *filename, uint32_t *hash);
+int initPSSlurmConfig(char *filename);
 
 /**
  * @brief Parse a Slurm plugstack configuration line
@@ -64,18 +62,25 @@ bool parseSlurmPlugLine(char *key, char *value, const void *info);
 /**
  * @brief Parse Slurm configuration files
  *
- * @param hash Will receive the hash of the slurm.conf file
- *
- * @return Returns true on success or false otherwise
+ * @return Return true on success or false otherwise
  */
-bool parseSlurmConfigFiles(uint32_t *hash);
+bool parseSlurmConfigFiles(void);
 
 /**
  * @brief Parse and re-read the slurm.conf
  *
- * @param hash Will receive the hash of the slurm.conf file
- *  if not running in configless mode
+ * @return Return true on success or false otherwise
  */
-bool updateSlurmConf(uint32_t *configHash);
+bool updateSlurmConf(void);
+
+/**
+ * @brief Get hash of latest Slurm configuration read
+ *
+ * While reading slurm.conf a hash is generated that might be sent to
+ * the slurmctld. This function provides access to this hash.
+ *
+ * @return Hash of the latest slurm.conf read
+ */
+uint32_t getSlurmConfHash(void);
 
 #endif

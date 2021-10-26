@@ -75,9 +75,6 @@ time_t start_time;
 
 bool pluginShutdown = false;
 
-/** hash value of the SLURM config file */
-uint32_t configHash;
-
 /** psid plugin requirements */
 char name[] = "psslurm";
 int version = 117;
@@ -712,7 +709,7 @@ int initialize(FILE *logfile)
     }
 
     /* init the configuration */
-    int confRes = initPSSlurmConfig(PSSLURM_CONFIG_FILE, &configHash);
+    int confRes = initPSSlurmConfig(PSSLURM_CONFIG_FILE);
     if (confRes == CONFIG_ERROR) {
 	mlog("%s: init of the configuration failed\n", __func__);
 	return 1;
@@ -761,7 +758,7 @@ int initialize(FILE *logfile)
 	activateConfigCache(confDir);
 
 	/* parse configuration files */
-	if (!parseSlurmConfigFiles(&configHash)) goto INIT_ERROR;
+	if (!parseSlurmConfigFiles()) goto INIT_ERROR;
     }
 
     /* all further initialisation which requires Slurm configuration files *has*

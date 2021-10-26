@@ -31,11 +31,14 @@
 
 #include "psslurmconfig.h"
 
-/** The psslurm plugin configuration list. */
+/** The psslurm plugin configuration list */
 Config_t Config;
 
-/** The Slurm configuration list. */
+/** The Slurm configuration list */
 Config_t SlurmConfig;
+
+/** hash value of the current Slurm configuration */
+static uint32_t configHash;
 
 /** used to forward information to host visitor */
 typedef struct {
@@ -913,7 +916,7 @@ static bool verifySlurmConf()
     return true;
 }
 
-bool parseSlurmConfigFiles(uint32_t *hash)
+bool parseSlurmConfigFiles(void)
 {
     struct stat sbuf;
     int gres = 0;
@@ -925,7 +928,7 @@ bool parseSlurmConfigFiles(uint32_t *hash)
 	return false;
     }
 
-    registerConfigHashAccumulator(hash);
+    registerConfigHashAccumulator(&configHash);
     if (parseConfigFile(confFile, &SlurmConfig, true /*trimQuotes*/) < 0) {
 	flog("Parsing Slurm configuration file %s failed\n", confFile);
 	return false;
@@ -972,7 +975,7 @@ bool parseSlurmConfigFiles(uint32_t *hash)
     }
     int disabled = getConfValueU(&Config, "DISABLE_SPANK");
     if (!disabled && stat(confFile, &sbuf) != -1) {
-	if (parseConfigFile(confFile, &SlurmPlugConf, true /*trimQuotes*/) < 0) {
+	if (parseConfigFile(confFile, &SlurmPlugConf, true/*trimQuotes*/) < 0) {
 	    flog("Parsing Spank configuration file %s failed\n", confFile);
 	    return false;
 	}
@@ -988,7 +991,7 @@ bool parseSlurmConfigFiles(uint32_t *hash)
     return true;
 }
 
-int initPSSlurmConfig(char *filename, uint32_t *hash)
+int initPSSlurmConfig(char *filename)
 {
     struct stat sbuf;
 
@@ -1023,12 +1026,12 @@ int initPSSlurmConfig(char *filename, uint32_t *hash)
 
     /* parse various Slurm configuration files if we start
      * with a local configuration */
-    if (!parseSlurmConfigFiles(hash)) return CONFIG_ERROR;
+    if (!parseSlurmConfigFiles()) return CONFIG_ERROR;
 
     return CONFIG_SUCCESS;
 }
 
-bool updateSlurmConf(uint32_t *configHash)
+bool updateSlurmConf(void)
 {
     char *confFile = getConfValueC(&Config, "SLURM_CONF");
     if (!confFile) {
@@ -1037,10 +1040,8 @@ bool updateSlurmConf(uint32_t *configHash)
     }
 
     /* dry run to parse new configuration */
-    uint32_t newHash;
     Config_t newConf;
-
-    registerConfigHashAccumulator(&newHash);
+    registerConfigHashAccumulator(NULL);
     if (parseConfigFile(confFile, &newConf, true /*trimQuotes*/) < 0) {
 	flog("Parsing updated Slurm configuration file %s failed\n", confFile);
 	return false;
@@ -1049,7 +1050,7 @@ bool updateSlurmConf(uint32_t *configHash)
 
     /* update the original configuration now */
     freeConfig(&SlurmConfig);
-    registerConfigHashAccumulator(configHash);
+    registerConfigHashAccumulator(&configHash);
     if (parseConfigFile(confFile, &SlurmConfig, true /*trimQuotes*/) < 0) {
 	flog("Parsing updated Slurm configuration file %s failed\n", confFile);
 	return false;
@@ -1080,4 +1081,9 @@ bool updateSlurmConf(uint32_t *configHash)
     }
 
     return true;
+}
+
+uint32_t getSlurmConfHash(void)
+{
+    return configHash;
 }

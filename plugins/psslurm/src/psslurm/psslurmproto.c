@@ -952,7 +952,7 @@ static void handleReconfigure(Slurm_Msg_t *sMsg)
     }
 
     /* activate the new configuration */
-    updateSlurmConf(&configHash);
+    updateSlurmConf();
 
     /* send new configuration hash to slurmctld */
     sendNodeRegStatus(false);
@@ -1117,7 +1117,7 @@ static void handleConfig(Slurm_Msg_t *sMsg)
     }
 
     /* activate the new configuration */
-    updateSlurmConf(&configHash);
+    updateSlurmConf();
 
     /* send new configuration hash to slurmctld */
     sendNodeRegStatus(false);
@@ -2558,7 +2558,7 @@ void sendNodeRegStatus(bool startup)
     if (getConfValueI(&Config, "DISABLE_CONFIG_HASH") == 1) {
 	stat.config = NO_VAL;
     } else {
-	stat.config = configHash;
+	stat.config = getSlurmConfHash();
     }
 
     /* job id infos (count, array (jobid/stepid) */
@@ -3125,7 +3125,7 @@ static int handleSlurmConf(Slurm_Msg_t *sMsg, void *info)
     switch (*action) {
 	case CONF_ACT_STARTUP:
 	    /* parse updated configuration files */
-	    if (!parseSlurmConfigFiles(&configHash)) {
+	    if (!parseSlurmConfigFiles()) {
 		flog("fatal: failed to parse configuration\n");
 		return 0;
 	    }

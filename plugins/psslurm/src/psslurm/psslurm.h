@@ -2,6 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2014-2021 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2021 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -26,9 +27,6 @@ extern uid_t slurmUserID;
 
 /** default account poll time */
 extern int confAccPollTime;
-
-/** hash value of the SLURM config file */
-extern uint32_t configHash;
 
 /** flag set to true if psslurm was successfully init */
 extern bool isInit;
