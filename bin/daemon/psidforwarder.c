@@ -405,10 +405,8 @@ static bool connectLogger(PStask_ID_t tid)
  */
 static void releaseLogger(int status)
 {
-    if (loggerTID < 0) return;
-
     send_again:
-    while (true) {
+    while (loggerTID >= 0) {
 	sendLogMsg(FINALIZE, (char *)&status, sizeof(status));
 
 	struct timeval timeout = {10, 0};
