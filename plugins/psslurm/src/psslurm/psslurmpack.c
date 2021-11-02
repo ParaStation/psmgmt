@@ -2374,7 +2374,7 @@ static bool packReqJobInfoSingle(PS_SendDB_t *data, Req_Job_Info_Single_t *req)
     /* jobid */
     addUint32ToMsg(req->jobid, data);
     /* job flags */
-    addUint32ToMsg(req->flags, data);
+    addUint16ToMsg(req->flags, data);
 
     return true;
 }
