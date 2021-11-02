@@ -2397,9 +2397,7 @@ bool packReqJobRequeue(PS_SendDB_t *data, Req_Job_Requeue_t *req)
     /* jobid */
     addUint32ToMsg(req->jobid, data);
     /* jobid as string*/
-    char sjobid[1024];
-    snprintf(sjobid, sizeof(sjobid), "%u", req->jobid);
-    addStringToMsg(sjobid, data);
+    addStringToMsg(strJobID(req->jobid), data);
     /* flags */
     addUint32ToMsg(req->flags, data);
 
@@ -2421,18 +2419,14 @@ bool packReqJobRequeue(PS_SendDB_t *data, Req_Job_Requeue_t *req)
  */
 static bool packReqKillJob(PS_SendDB_t *data, Req_Job_Kill_t *req)
 {
-    char sjobid[1024];
-
     if (slurmProto >= SLURM_20_11_PROTO_VERSION) {
 	/* step header */
 	packStepHead(req, data);
 	/* jobid as string*/
-	snprintf(sjobid, sizeof(sjobid), "%u", req->jobid);
-	addStringToMsg(sjobid, data);
+	addStringToMsg(strJobID(req->jobid), data);
     } else {
 	/* jobid as string*/
-	snprintf(sjobid, sizeof(sjobid), "%u", req->jobid);
-	addStringToMsg(sjobid, data);
+	addStringToMsg(strJobID(req->jobid), data);
 	/* jobid / stepid */
 	addUint32ToMsg(req->jobid, data);
 	addUint32ToMsg(req->stepid, data);
