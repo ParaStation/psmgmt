@@ -259,4 +259,12 @@ enum slurm_job_states {
 #define SLURM_JOB_REQUEUE       0x00000400
 #define SLURM_JOB_REQUEUE_HOLD  0x00000800
 
+#define SHOW_ALL        0x0001
+#define SHOW_DETAIL     0x0002
+#define SHOW_MIXED      0x0008
+#define SHOW_LOCAL      0x0010
+#define SHOW_SIBLING    0x0020
+#define SHOW_FEDERATION 0x0040
+#define SHOW_FUTURE     0x0080
+
 #endif

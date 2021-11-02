@@ -426,7 +426,7 @@ static int handleJobInfoResp(Slurm_Msg_t *msg, void *info)
 
 int requestJobInfo(uint32_t jobid)
 {
-    Req_Job_Info_Single_t jobInfo = { .jobid = jobid, .flags = 16 };
+    Req_Job_Info_Single_t jobInfo = { .jobid = jobid, .flags = SHOW_LOCAL };
 
     Req_Info_t *req = ucalloc(sizeof(*req));
     req->type = REQUEST_JOB_INFO_SINGLE;
