@@ -944,7 +944,7 @@ int __sendSlurmMsg(int sock, slurm_msg_type_t type, PS_SendDB_t *body,
     initSlurmMsgHead(&head);
     head.type = type;
 
-    return __sendSlurmMsgEx(sock, &head, body, NULL, caller, line);
+    return __sendSlurmMsgEx(sock, &head, body, info, caller, line);
 }
 
 int __sendSlurmMsgEx(int sock, Slurm_Msg_Header_t *head, PS_SendDB_t *body,
