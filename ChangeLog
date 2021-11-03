@@ -1,3 +1,32 @@
+Version psmgmt-5.1.45-1:
+========================
+------------------------------------------------------------------------
+7f3d67f2 | Norbert Eicker | Tue, 2 Nov 2021 16:41:56 +0100
+
+Bugfix: ensure psidforwarder isn't caught in releaseLogger
+------------------------------------------------------------------------
+234cb48c | Norbert Eicker | Wed, 27 Oct 2021 01:19:56 +0200
+
+Make slurm.conf hash and update time accessible via psiadmin
+------------------------------------------------------------------------
+b614c05d | Norbert Eicker | Tue, 26 Oct 2021 21:12:30 +0200
+
+Bugfix: Ensure slurm.conf's hash is defined and correct
+------------------------------------------------------------------------
+3c8f44e9 | Norbert Eicker | Tue, 26 Oct 2021 16:40:08 +0200
+
+Hide slurm.conf's hash inside psslurmconfig.c
+------------------------------------------------------------------------
+3a860389 | Norbert Eicker | Tue, 28 Sep 2021 22:58:44 +0200
+
+Fix memory leak
+------------------------------------------------------------------------
+74ed3807 | Stephan Krempel | Thu, 17 Jun 2021 11:19:29 +0200
+
+Set MPI_* envvars only when PMI or PMIx is to be used
+------------------------------------------------------------------------
+
+
 Version psmgmt-5.1.45:
 ======================
 ------------------------------------------------------------------------

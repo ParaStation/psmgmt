@@ -6,6 +6,17 @@ Copyright (C) 2021 ParTec AG, Munich
 Please send bug reports, questions and suggestions to <support@par-tec.com>
 
 
+Version 5.1.45-1:
+=================
+Bugfixes:
+ - Ensure slurm.conf's hash is defined and correct (#34)
+ - Ensure psidforwarder isn't caught in releaseLogger
+ - Fix memory leak
+Enhancements:
+ - Expose MPI_* envvars only when PMI or PMIx is to be used
+ - Make slurm.conf hash and update time accessible via psiadmin
+
+
 Version 5.1.45:
 ===============
 Bugfixes:
