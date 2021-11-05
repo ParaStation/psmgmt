@@ -46,6 +46,26 @@ static void packStepHead(void *head, PS_SendDB_t *data)
     }
 }
 
+/**
+ * @brief Unpack a Slurm step header
+ *
+ * Unpack a Slurm step header from the provided message pointer.
+ * The memory is allocated using umalloc(). The caller is responsible
+ * to free the memory using ufree().
+ *
+ * @param ptr The Slurm message to unpack
+ *
+ * @param head The header structure holding the result
+ *
+ * @param msgVer The Slurm protocol version
+ *
+ * @param caller Function name of the calling function
+ *
+ * @param line Line number where this function is called
+ *
+ * @return On success true is returned or false in case of an
+ * error. If reading was not successful, @a sMsg might be not updated.
+ */
 bool __unpackStepHead(char **ptr, void *head, uint16_t msgVer,
 		      const char *caller, const int line)
 {
@@ -79,6 +99,10 @@ bool __unpackStepHead(char **ptr, void *head, uint16_t msgVer,
     }
     return true;
 }
+
+#define unpackStepHead(ptr, head, msgVer) \
+    __unpackStepHead(ptr, head, msgVer, __func__, __LINE__)
+
 
 bool __packSlurmAuth(PS_SendDB_t *data, Slurm_Auth_t *auth,
 		     const char *caller, const int line)
@@ -844,19 +868,20 @@ static bool unpackGresJobAlloc(char **ptr, list_t *gresList)
     return true;
 }
 
-bool __unpackReqTerminate(Slurm_Msg_t *sMsg, Req_Terminate_Job_t **reqPtr,
-			  const char *caller, const int line)
+/**
+ * @brief Unpack a terminate request
+ *
+ * Unpack a terminate request from the provided message pointer.
+ * The memory is allocated using umalloc(). The caller is responsible
+ * to free the memory using ufree().
+ *
+ * @param sMsg The message to unpack
+ *
+ * @return On success true is returned or false in case of an
+ * error. If reading was not successful, @a sMsg might be not updated.
+ */
+static bool unpackReqTerminate(Slurm_Msg_t *sMsg)
 {
-    if (!sMsg) {
-	mlog("%s: invalid sMsg from '%s' at %i\n", __func__, caller, line);
-	return false;
-    }
-
-    if (!reqPtr) {
-	mlog("%s: invalid reqPtr from '%s' at %i\n", __func__, caller, line);
-	return false;
-    }
-
     Req_Terminate_Job_t *req = ucalloc(sizeof(Req_Terminate_Job_t));
 
     uint16_t msgVer = sMsg->head.version;
@@ -903,23 +928,24 @@ bool __unpackReqTerminate(Slurm_Msg_t *sMsg, Req_Terminate_Job_t **reqPtr,
     /* slurmctld request time */
     getTime(ptr, &req->startTime);
 
-    *reqPtr = req;
+    sMsg->unpData = req;
     return true;
 }
 
-bool __unpackReqSignalTasks(Slurm_Msg_t *sMsg, Req_Signal_Tasks_t **reqPtr,
-			    const char *caller, const int line)
+/**
+ * @brief Unpack a signal tasks request
+ *
+ * Unpack a signal tasks request from the provided message pointer.
+ * The memory is allocated using umalloc(). The caller is responsible
+ * to free the memory using ufree().
+ *
+ * @param sMsg The message to unpack
+ *
+ * @return On success true is returned or false in case of an
+ * error. If reading was not successful, @a sMsg might be not updated.
+ */
+bool unpackReqSignalTasks(Slurm_Msg_t *sMsg)
 {
-    if (!sMsg) {
-	mlog("%s: invalid sMsg from '%s' at %i\n", __func__, caller, line);
-	return false;
-    }
-
-    if (!reqPtr) {
-	mlog("%s: invalid reqPtr from '%s' at %i\n", __func__, caller, line);
-	return false;
-    }
-
     Req_Signal_Tasks_t *req = ucalloc(sizeof(Req_Terminate_Job_t));
 
     char **ptr = &sMsg->ptr;
@@ -941,7 +967,7 @@ bool __unpackReqSignalTasks(Slurm_Msg_t *sMsg, Req_Signal_Tasks_t **reqPtr,
     /* signal */
     getUint16(ptr, &req->signal);
 
-    *reqPtr = req;
+    sMsg->unpData = req;
     return true;
 }
 
@@ -1030,14 +1056,20 @@ static void unpackStepIOoptions(Step_t *step, char **ptr)
     }
 }
 
-bool __unpackReqLaunchTasks(Slurm_Msg_t *sMsg, Step_t **stepPtr,
-			    const char *caller, const int line)
+/**
+ * @brief Unpack a task launch request
+ *
+ * Unpack a task launch request from the provided message pointer.
+ * The memory is allocated using umalloc(). The caller is responsible
+ * to free the memory using ufree().
+ *
+ * @param sMsg The message to unpack
+ *
+ * @return On success true is returned or false in case of an
+ * error. If reading was not successful, @a sMsg might be not updated.
+ */
+static bool unpackReqLaunchTasks(Slurm_Msg_t *sMsg)
 {
-    if (!sMsg) {
-	mlog("%s: invalid sMsg from '%s' at %i\n", __func__, caller, line);
-	return false;
-    }
-
     char **ptr = &sMsg->ptr;
     uint16_t msgVer = sMsg->head.version, debug;
     uint32_t tmp;
@@ -1289,7 +1321,7 @@ bool __unpackReqLaunchTasks(Slurm_Msg_t *sMsg, Step_t **stepPtr,
     /* x11 target port */
     getUint16(ptr, &step->x11.targetPort);
 
-    *stepPtr = step;
+    sMsg->unpData = step;
     return true;
 
 ERROR:
@@ -1325,17 +1357,22 @@ static void readJobCpuOptions(Job_t *job, char **ptr)
     }
 }
 
-bool __unpackReqBatchJobLaunch(Slurm_Msg_t *sMsg, Job_t **jobPtr,
-			       const char *caller, const int line)
+/**
+ * @brief Unpack a job launch request
+ *
+ * Unpack a job launch request from the provided message pointer.
+ * The memory is allocated using umalloc(). The caller is responsible
+ * to free the memory using ufree().
+ *
+ * @param sMsg The message to unpack
+ *
+ * @return On success true is returned or false in case of an
+ * error. If reading was not successful, @a sMsg might be not updated.
+ */
+static bool unpackReqBatchJobLaunch(Slurm_Msg_t *sMsg)
 {
     uint32_t jobid, tmp, count;
     char buf[1024];
-
-    if (!sMsg) {
-	mlog("%s: invalid sMsg from '%s' at %i\n", __func__, caller, line);
-	return false;
-    }
-
     char **ptr = &sMsg->ptr;
 
     /* jobid */
@@ -1454,7 +1491,7 @@ bool __unpackReqBatchJobLaunch(Slurm_Msg_t *sMsg, Job_t **jobPtr,
     job->tresBind = getStringM(ptr);
     job->tresFreq = getStringM(ptr);
 
-    *jobPtr = job;
+    sMsg->unpData = job;
     return true;
 
 ERROR:
@@ -1817,19 +1854,22 @@ static bool packRespNodeRegStatus(PS_SendDB_t *data,
     return true;
 }
 
-bool __unpackReqFileBcast(Slurm_Msg_t *sMsg, BCast_t **bcastPtr,
-			  const char *caller, const int line)
+/**
+ * @brief Unpack a file bcast request
+ *
+ * Unpack a file bcast request from the provided message pointer.
+ * The memory is allocated using umalloc(). The caller is responsible
+ * to free the memory using ufree().
+ *
+ * @param sMsg The message to unpack
+ *
+ * @return On success true is returned or false in case of an
+ * error. If reading was not successful, @a sMsg might be not updated.
+ */
+static bool unpackReqFileBcast(Slurm_Msg_t *sMsg)
 {
     char **ptr = &sMsg->ptr;
-    BCast_t *bcast;
-    size_t len;
-
-    if (!sMsg) {
-	mlog("%s: invalid ptr from '%s' at %i\n", __func__, caller, line);
-	return false;
-    }
-
-    bcast = addBCast();
+    BCast_t *bcast = addBCast();
 
     /* block number */
     getUint32(ptr, &bcast->blockNumber);
@@ -1862,6 +1902,7 @@ bool __unpackReqFileBcast(Slurm_Msg_t *sMsg, BCast_t **bcastPtr,
     /* file size */
     getUint64(ptr, &bcast->fileSize);
     /* data block */
+    size_t len;
     bcast->block = getDataM(ptr, &len);
     if (bcast->blockLen != len) {
 	mlog("%s: blockLen mismatch: %d/%zd\n", __func__, bcast->blockLen, len);
@@ -1869,7 +1910,7 @@ bool __unpackReqFileBcast(Slurm_Msg_t *sMsg, BCast_t **bcastPtr,
 	return false;
     }
 
-    *bcastPtr = bcast;
+    sMsg->unpData = bcast;
 
     return true;
 }
@@ -2045,16 +2086,21 @@ bool __packEnergyData(PS_SendDB_t *data, const char *caller, const int line)
     return true;
 }
 
-bool __unpackExtRespNodeReg(Slurm_Msg_t *sMsg, Ext_Resp_Node_Reg_t **respPtr,
-			    const char *caller, const int line)
+/**
+ * @brief Unpack an extended node registration response
+ *
+ * Unpack an extended node registration response from the provided
+ * message pointer. The memory is allocated using umalloc().
+ * The caller is responsible to free the memory using ufree().
+ *
+ * @param sMsg The message to unpack
+ *
+ * @return On success true is returned or false in case of an
+ * error. If reading was not successful, @a sMsg might be not updated.
+ */
+static bool unpackExtRespNodeReg(Slurm_Msg_t *sMsg)
 {
-    if (!sMsg) {
-	mlog("%s: invalid sMsg from '%s' at %i\n", __func__, caller, line);
-	return false;
-    }
-
     char **ptr = &sMsg->ptr;
-
     Ext_Resp_Node_Reg_t *resp = ucalloc(sizeof(*resp));
 
     getUint32(ptr, &resp->count);
@@ -2074,19 +2120,25 @@ bool __unpackExtRespNodeReg(Slurm_Msg_t *sMsg, Ext_Resp_Node_Reg_t **respPtr,
 	resp->nodeName = getStringM(ptr);
     }
 
-    *respPtr = resp;
+    sMsg->unpData = resp;
 
     return true;
 }
 
-bool __unpackReqSuspendInt(Slurm_Msg_t *sMsg, Req_Suspend_Int_t **reqPtr,
-			   const char *caller, const int line)
+/**
+ * @brief Unpack a suspend job request
+ *
+ * Unpack a suspend job request from the provided message pointer.
+ * The memory is allocated using umalloc(). The caller is responsible
+ * to free the memory using ufree().
+ *
+ * @param sMsg The message to unpack
+ *
+ * @return On success true is returned or false in case of an
+ * error. If reading was not successful, @a sMsg might be not updated.
+ */
+static bool unpackReqSuspendInt(Slurm_Msg_t *sMsg)
 {
-    if (!sMsg) {
-	mlog("%s: invalid ptr from '%s' at %i\n", __func__, caller, line);
-	return false;
-    }
-
     char **ptr = &sMsg->ptr;
 
     Req_Suspend_Int_t *req = umalloc(sizeof(*req));
@@ -2096,19 +2148,25 @@ bool __unpackReqSuspendInt(Slurm_Msg_t *sMsg, Req_Suspend_Int_t **reqPtr,
     getUint32(ptr, &req->jobid);
     getUint16(ptr, &req->op);
 
-    *reqPtr = req;
+    sMsg->unpData = req;
 
     return true;
 }
 
-bool __unpackConfigMsg(Slurm_Msg_t *sMsg, Config_Msg_t **confPtr,
-		       const char *caller, const int line)
+/**
+ * @brief Unpack a node configuration message
+ *
+ * Unpack a node configuration message from the provided
+ * message pointer. The memory is allocated using umalloc().
+ * The caller is responsible to free the memory using ufree().
+ *
+ * @param sMsg The message to unpack
+ *
+ * @return On success true is returned or false in case of an
+ * error. If reading was not successful, @a sMsg might be not updated.
+ */
+static bool unpackConfigMsg(Slurm_Msg_t *sMsg)
 {
-    if (!sMsg) {
-	mlog("%s: invalid sMsg from '%s' at %i\n", __func__, caller, line);
-	return false;
-    }
-
     char **ptr = &sMsg->ptr;
 
     Config_Msg_t *req = umalloc(sizeof(*req));
@@ -2126,7 +2184,7 @@ bool __unpackConfigMsg(Slurm_Msg_t *sMsg, Config_Msg_t **confPtr,
     req->xtra_conf = getStringM(ptr);
     req->slurmd_spooldir = getStringM(ptr);
 
-    *confPtr = req;
+    sMsg->unpData = req;
 
     return true;
 }
@@ -2212,14 +2270,20 @@ bool __packSlurmPIDs(PS_SendDB_t *data, Slurm_PIDs_t *pids,
     return true;
 }
 
-bool __unpackReqReattachTasks(Slurm_Msg_t *sMsg, Req_Reattach_Tasks_t **reqPtr,
-			      const char *caller, const int line)
+/**
+ * @brief Unpack a reattach tasks request
+ *
+ * Unpack a reattach tasks request from the provided message pointer.
+ * The memory is allocated using umalloc(). The caller is responsible
+ * to free the memory using ufree().
+ *
+ * @param sMsg The message to unpack
+ *
+ * @return On success true is returned or false in case of an
+ * error. If reading was not successful, @a sMsg might be not updated.
+ */
+static bool unpackReqReattachTasks(Slurm_Msg_t *sMsg)
 {
-    if (!sMsg) {
-	flog("invalid ptr from '%s' at %i\n", caller, line);
-	return false;
-    }
-
     char **ptr = &sMsg->ptr;
     uint16_t msgVer = sMsg->head.version;
     Req_Reattach_Tasks_t *req = ucalloc(sizeof(*req));
@@ -2250,20 +2314,25 @@ bool __unpackReqReattachTasks(Slurm_Msg_t *sMsg, Req_Reattach_Tasks_t **reqPtr,
     req->cred = extractJobCred(&gresList, sMsg, false);
     freeGresCred(&gresList);
 
-    *reqPtr = req;
+    sMsg->unpData = req;
 
     return true;
 }
 
-bool __unpackReqJobNotify(Slurm_Msg_t *sMsg, Req_Job_Notify_t **reqPtr,
-			  const char *caller, const int line)
+/**
+ * @brief Unpack a job notify request
+ *
+ * Unpack a job notify request from the provided message pointer.
+ * The memory is allocated using umalloc(). The caller is responsible
+ * to free the memory using ufree().
+ *
+ * @param sMsg The message to unpack
+ *
+ * @return On success true is returned or false in case of an
+ * error. If reading was not successful, @a sMsg might be not updated.
+ */
+static bool unpackReqJobNotify(Slurm_Msg_t *sMsg)
 {
-
-    if (!sMsg) {
-	flog("invalid ptr from '%s' at %i\n", caller, line);
-	return false;
-    }
-
     char **ptr = &sMsg->ptr;
     uint16_t msgVer = sMsg->head.version;
     Req_Job_Notify_t *req = ucalloc(sizeof(*req));
@@ -2273,19 +2342,25 @@ bool __unpackReqJobNotify(Slurm_Msg_t *sMsg, Req_Job_Notify_t **reqPtr,
     /* msg */
     req->msg = getStringM(ptr);
 
-    *reqPtr = req;
+    sMsg->unpData = req;
 
     return true;
 }
 
-bool __unpackReqLaunchProlog(Slurm_Msg_t *sMsg, Req_Launch_Prolog_t **reqPtr,
-			     const char *caller, const int line)
+/**
+ * @brief Unpack a launch prolog request
+ *
+ * Unpack a launch prolog request from the provided message pointer.
+ * The memory is allocated using umalloc(). The caller is responsible
+ * to free the memory using ufree().
+ *
+ * @param sMsg The message to unpack
+ *
+ * @return On success true is returned or false in case of an
+ * error. If reading was not successful, @a sMsg might be not updated.
+ */
+static bool unpackReqLaunchProlog(Slurm_Msg_t *sMsg)
 {
-    if (!sMsg) {
-	flog("invalid ptr from '%s' at %i\n", caller, line);
-	return false;
-    }
-
     Req_Launch_Prolog_t *req = ucalloc(sizeof(*req));
     char **ptr = &sMsg->ptr;
 
@@ -2328,9 +2403,85 @@ bool __unpackReqLaunchProlog(Slurm_Msg_t *sMsg, Req_Launch_Prolog_t **reqPtr,
     /* user name */
     req->userName = getStringM(ptr);
 
-    *reqPtr = req;
+    /* save in sMsg */
+    sMsg->unpData = req;
 
     return true;
+}
+
+bool __unpackSlurmMsg(Slurm_Msg_t *sMsg, const char *caller, const int line)
+{
+    if (!sMsg) {
+	flog("invalid sMsg pointer from %s:%i\n", caller, line);
+	return false;
+    }
+
+    sMsg->unpData = NULL;
+
+    if (sMsg->head.type == REQUEST_JOB_STEP_STAT ||
+	sMsg->head.type == REQUEST_JOB_STEP_PIDS) {
+	sMsg->unpData = ucalloc(sizeof(Slurm_Step_Head_t));
+	if (!unpackStepHead(&sMsg->ptr, sMsg->unpData, sMsg->head.version)) {
+	    ufree(sMsg->unpData);
+	    sMsg->unpData = NULL;
+	    return false;
+	}
+	return true;
+    }
+
+    switch (sMsg->head.type) {
+	case REQUEST_LAUNCH_PROLOG:
+	    return unpackReqLaunchProlog(sMsg);
+	case REQUEST_LAUNCH_TASKS:
+	    return unpackReqLaunchTasks(sMsg);
+	case REQUEST_BATCH_JOB_LAUNCH:
+	    return unpackReqBatchJobLaunch(sMsg);
+	case REQUEST_SIGNAL_TASKS:
+	case REQUEST_TERMINATE_TASKS:
+	    return unpackReqSignalTasks(sMsg);
+	case REQUEST_REATTACH_TASKS:
+	    return unpackReqReattachTasks(sMsg);
+	case REQUEST_KILL_PREEMPTED:
+	case REQUEST_KILL_TIMELIMIT:
+	case REQUEST_ABORT_JOB:
+	case REQUEST_TERMINATE_JOB:
+	    return unpackReqTerminate(sMsg);
+	case REQUEST_SUSPEND_INT:
+	    return unpackReqSuspendInt(sMsg);
+	case REQUEST_RECONFIGURE_WITH_CONFIG:
+	    return unpackConfigMsg(sMsg);
+	case REQUEST_FILE_BCAST:
+	    return unpackReqFileBcast(sMsg);
+	case REQUEST_JOB_NOTIFY:
+	    return unpackReqJobNotify(sMsg);
+	case RESPONSE_NODE_REGISTRATION:
+	    return unpackExtRespNodeReg(sMsg);
+	    /* nothing to unpack */
+	case REQUEST_COMPLETE_BATCH_SCRIPT:
+	case REQUEST_UPDATE_JOB_TIME:
+	case REQUEST_SHUTDOWN:
+	case REQUEST_RECONFIGURE:
+	case REQUEST_REBOOT_NODES:
+	case REQUEST_NODE_REGISTRATION_STATUS:
+	case REQUEST_PING:
+	case REQUEST_HEALTH_CHECK:
+	case REQUEST_ACCT_GATHER_UPDATE:
+	case REQUEST_ACCT_GATHER_ENERGY:
+	case REQUEST_JOB_ID:
+	case REQUEST_STEP_COMPLETE:
+	case REQUEST_STEP_COMPLETE_AGGR:
+	case REQUEST_DAEMON_STATUS:
+	case REQUEST_FORWARD_DATA:
+	case REQUEST_NETWORK_CALLERID:
+	case MESSAGE_COMPOSITE:
+	case RESPONSE_MESSAGE_COMPOSITE:
+	    return true;
+    }
+
+    flog("unpack function for message %s not found\n",
+	 msgType2String(sMsg->head.type));
+
+    return false;
 }
 
 /**

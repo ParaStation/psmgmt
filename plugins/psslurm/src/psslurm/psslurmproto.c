@@ -447,21 +447,13 @@ uint32_t getLocalID(PSnodes_ID_t *nodes, uint32_t nrOfNodes)
 
 static void handleLaunchTasks(Slurm_Msg_t *sMsg)
 {
-    Step_t *step = NULL;
-    uint32_t count, i;
-
     if (pluginShutdown) {
 	/* don't accept new steps if a shutdown is in progress */
 	sendSlurmRC(sMsg, SLURM_ERROR);
 	return;
     }
 
-    /* unpack request */
-    if (!(unpackReqLaunchTasks(sMsg, &step))) {
-	flog("unpacking launch request (%u) failed\n", sMsg->head.version);
-	sendSlurmRC(sMsg, SLURM_ERROR);
-	return;
-    }
+    Step_t *step = sMsg->unpData;
 
     /* verify job credential */
     if (!(verifyStepData(step))) {
@@ -483,7 +475,7 @@ static void handleLaunchTasks(Slurm_Msg_t *sMsg)
     /* env / spank env */
     step->env.size = step->env.cnt;
     step->spankenv.size = step->spankenv.cnt;
-    for (i=0; i<step->spankenv.cnt; i++) {
+    for (uint32_t i=0; i<step->spankenv.cnt; i++) {
 	if (!(strncmp("_SLURM_SPANK_OPTION_x11spank_forward_x",
 		step->spankenv.vars[i], 38))) {
 	    step->x11forward = 1;
@@ -498,6 +490,7 @@ static void handleLaunchTasks(Slurm_Msg_t *sMsg)
     }
 
     /* convert slurm hostlist to PSnodes */
+    uint32_t count;
     if (!convHLtoPSnodes(step->slurmHosts, getNodeIDbySlurmHost,
 			 &step->nodes, &count)) {
 	flog("resolving PS nodeIDs from %s failed\n", step->slurmHosts);
@@ -702,14 +695,8 @@ static void doSendTermKill(Req_Signal_Tasks_t *req)
  */
 static void handleSignalTasks(Slurm_Msg_t *sMsg)
 {
-    Req_Signal_Tasks_t *req = NULL;
+    Req_Signal_Tasks_t *req = sMsg->unpData;
 
-    /* unpack request */
-    if (!unpackReqSignalTasks(sMsg, &req)) {
-	mlog("%s: unpacking request signal tasks failed\n", __func__);
-	sendSlurmRC(sMsg, SLURM_ERROR);
-	return;
-    }
     req->uid = sMsg->head.uid;
 
     /* handle magic Slurm signals */
@@ -799,8 +786,8 @@ static void sendReattchReply(Step_t *step, Slurm_Msg_t *sMsg)
 
 static void handleReattachTasks(Slurm_Msg_t *sMsg)
 {
-    Req_Reattach_Tasks_t *req;
-    if (!unpackReqReattachTasks(sMsg, &req)) {
+    Req_Reattach_Tasks_t *req = sMsg->unpData;
+    if (!req) {
 	flog("unpacking request reattach tasks failed\n");
 	sendReattachFail(sMsg, ESLURM_INVALID_JOB_ID);
 	return;
@@ -854,14 +841,7 @@ static void handleReattachTasks(Slurm_Msg_t *sMsg)
 
 static void handleSuspendInt(Slurm_Msg_t *sMsg)
 {
-    Req_Suspend_Int_t *req;
-
-    /* unpack request */
-    if (!unpackReqSuspendInt(sMsg, &req)) {
-	flog("unpacking request suspend_int failed\n");
-	sendSlurmRC(sMsg, SLURM_ERROR);
-	return;
-    }
+    Req_Suspend_Int_t *req = sMsg->unpData;
 
     switch (req->op) {
 	case SUSPEND_JOB:
@@ -1065,17 +1045,11 @@ static bool writeSlurmConfigFiles(Config_Msg_t *config, char *confDir)
  */
 static void handleConfig(Slurm_Msg_t *sMsg)
 {
-    Config_Msg_t *config;
+    Config_Msg_t *config = sMsg->unpData;
 
     /* check permissions */
     if (sMsg->head.uid != 0 && sMsg->head.uid != slurmUserID) {
 	flog("request from invalid user %u\n", sMsg->head.uid);
-	return;
-    }
-
-    /* unpack request */
-    if (!(unpackConfigMsg(sMsg, &config))) {
-	flog("unpacking job launch request failed\n");
 	return;
     }
 
@@ -1179,16 +1153,7 @@ static void handleJobId(Slurm_Msg_t *sMsg)
 
 static void handleFileBCast(Slurm_Msg_t *sMsg)
 {
-    BCast_t *bcast = NULL;
-    Job_t *job;
-    Alloc_t *alloc;
-
-    /* unpack request */
-    if (!unpackReqFileBcast(sMsg, &bcast)) {
-	mlog("%s: unpacking request file bcast failed\n", __func__);
-	sendSlurmRC(sMsg, SLURM_ERROR);
-	return;
-    }
+    BCast_t *bcast = sMsg->unpData;
     bcast->msg.sock = sMsg->sock;
 
     /* unpack credential */
@@ -1209,7 +1174,9 @@ static void handleFileBCast(Slurm_Msg_t *sMsg)
     }
 
     /* assign to job/allocation */
+    Job_t *job;
     if (!(job = findJobById(bcast->jobid))) {
+	Alloc_t *alloc;
 	if (!(alloc = findAlloc(bcast->jobid))) {
 	    mlog("%s: job %u not found\n", __func__, bcast->jobid);
 	    sendSlurmRC(sMsg, ESLURM_INVALID_JOB_ID);
@@ -1321,16 +1288,13 @@ static int addSlurmAccData(SlurmAccData_t *slurmAccData)
 
 static void handleStepStat(Slurm_Msg_t *sMsg)
 {
-    char **ptr = &sMsg->ptr;
+    Slurm_Step_Head_t *head = sMsg->unpData;
 
-    Slurm_Step_Head_t head;
-    unpackStepHead(ptr, &head, sMsg->head.version);
-
-    Step_t *step = findStepByStepId(head.jobid, head.stepid);
+    Step_t *step = findStepByStepId(head->jobid, head->stepid);
     if (!step) {
 	Step_t s = {
-	    .jobid = head.jobid,
-	    .stepid = head.stepid };
+	    .jobid = head->jobid,
+	    .stepid = head->stepid };
 	flog("%s to signal not found\n", strStepID(&s));
 	sendSlurmRC(sMsg, ESLURM_INVALID_JOB_ID);
 	return;
@@ -1338,7 +1302,7 @@ static void handleStepStat(Slurm_Msg_t *sMsg)
 
     /* check permissions */
     if (!(verifyUserId(sMsg->head.uid, step->uid))) {
-	mlog("%s: request from invalid user %u\n", __func__, sMsg->head.uid);
+	flog("request from invalid user %u\n", sMsg->head.uid);
 	sendSlurmRC(sMsg, ESLURM_USER_ID_MISSING);
 	return;
     }
@@ -1376,16 +1340,13 @@ static void handleStepStat(Slurm_Msg_t *sMsg)
 
 static void handleStepPids(Slurm_Msg_t *sMsg)
 {
-    char **ptr = &sMsg->ptr;
+    Slurm_Step_Head_t *head = sMsg->unpData;
 
-    Slurm_Step_Head_t head;
-    unpackStepHead(ptr, &head, sMsg->head.version);
-
-    Step_t *step = findStepByStepId(head.jobid, head.stepid);
+    Step_t *step = findStepByStepId(head->jobid, head->stepid);
     if (!step) {
 	Step_t s = {
-	    .jobid = head.jobid,
-	    .stepid = head.stepid };
+	    .jobid = head->jobid,
+	    .stepid = head->stepid };
 	flog("%s to signal not found\n", strStepID(&s));
 	sendSlurmRC(sMsg, ESLURM_INVALID_JOB_ID);
 	return;
@@ -1393,7 +1354,7 @@ static void handleStepPids(Slurm_Msg_t *sMsg)
 
     /* check permissions */
     if (!(verifyUserId(sMsg->head.uid, step->uid))) {
-	mlog("%s: request from invalid user %u\n", __func__, sMsg->head.uid);
+	flog("request from invalid user %u\n", sMsg->head.uid);
 	sendSlurmRC(sMsg, ESLURM_USER_ID_MISSING);
 	return;
     }
@@ -1515,15 +1476,7 @@ static void handleDaemonStatus(Slurm_Msg_t *sMsg)
 
 static void handleJobNotify(Slurm_Msg_t *sMsg)
 {
-    Req_Job_Notify_t *req;
-
-    /* unpack request */
-    if (!(unpackReqJobNotify(sMsg, &req))) {
-	flog("unpacking job notify request failed\n");
-	sendSlurmRC(sMsg, SLURM_ERROR);
-	return;
-    }
-
+    Req_Job_Notify_t *req = sMsg->unpData;
     Job_t *job = findJobById(req->jobid);
     Step_t *step = findStepByStepId(req->jobid, req->stepid);
 
@@ -1652,14 +1605,7 @@ void sendPrologComplete(uint32_t jobid, uint32_t rc)
 
 static void handleLaunchProlog(Slurm_Msg_t *sMsg)
 {
-    Req_Launch_Prolog_t *req;
-
-    /* unpack request */
-    if (!(unpackReqLaunchProlog(sMsg, &req))) {
-	flog("unpacking launch prolog request failed\n");
-	sendSlurmRC(sMsg, SLURM_ERROR);
-	return;
-    }
+    Req_Launch_Prolog_t *req = sMsg->unpData;
 
     fdbg(PSSLURM_LOG_PELOG, "jobid %u het-jobid %u uid %u gid %u alias %s"
 	 " nodes=%s partition=%s stdErr='%s' stdOut='%s' work-dir=%s user=%s\n",
@@ -1818,13 +1764,7 @@ static void handleBatchJobLaunch(Slurm_Msg_t *sMsg)
     /* memory cleanup  */
     malloc_trim(200);
 
-    /* unpack request */
-    Job_t *job;
-    if (!(unpackReqBatchJobLaunch(sMsg, &job))) {
-	flog("unpacking job launch request failed\n");
-	sendSlurmRC(sMsg, SLURM_ERROR);
-	return;
-    }
+    Job_t *job = sMsg->unpData;
 
     /* convert slurm hostlist to PSnodes   */
     if (!convHLtoPSnodes(job->slurmHosts, getNodeIDbySlurmHost,
@@ -2153,13 +2093,7 @@ static void handleKillReq(Slurm_Msg_t *sMsg, Alloc_t *alloc, Kill_Info_t *info)
 
 static void handleTerminateReq(Slurm_Msg_t *sMsg)
 {
-    /* unpack request */
-    Req_Terminate_Job_t *req = NULL;
-    if (!unpackReqTerminate(sMsg, &req)) {
-	flog("unpacking terminate request failed\n");
-	sendSlurmRC(sMsg, SLURM_ERROR);
-	return;
-    }
+    Req_Terminate_Job_t *req = sMsg->unpData;
 
     Step_t s = {
 	.jobid = req->jobid,
@@ -2267,10 +2201,10 @@ static void handleRespNodeReg(Slurm_Msg_t *sMsg)
     /* don't request the additional info again */
     needNodeRegResp = false;
 
-    if (!unpackExtRespNodeReg(sMsg, &tresDBconfig)) {
-	flog("unpack slurmctld node registration response failed\n");
-	return;
-    }
+    tresDBconfig = sMsg->unpData;
+
+    /* don't free the data after this function */
+    sMsg->unpData = NULL;
 
     for (uint32_t i=0; i<tresDBconfig->count; i++) {
 	fdbg(PSSLURM_LOG_ACC, "alloc %zu count %lu id %u name %s type: %s\n",
@@ -2444,6 +2378,14 @@ int handleSlurmdMsg(Slurm_Msg_t *sMsg, void *info)
 		mlog("%s: exec RPC %s at %.4f\n", __func__,
 		     msgType2String(msgHandler->msgType),
 		     time_start.tv_sec + 1e-6 * time_start.tv_usec);
+	    }
+
+	    /* unpack request */
+	    if (!unpackSlurmMsg(sMsg)) {
+		flog("unpacking message %s (%u) failed\n",
+		     msgType2String(sMsg->head.type), sMsg->head.version);
+		sendSlurmRC(sMsg, SLURM_ERROR);
+		return 0;
 	    }
 
 	    if (msgHandler->handler) msgHandler->handler(sMsg);
@@ -3228,11 +3170,11 @@ static int handleSlurmConf(Slurm_Msg_t *sMsg, void *info)
     }
 
     /* unpack config response */
-    Config_Msg_t *config;
-    if (!(unpackConfigMsg(sMsg, &config))) {
+    if (!unpackSlurmMsg(sMsg)) {
 	flog("unpacking config response failed\n");
 	return 0;
     }
+    Config_Msg_t *config = sMsg->unpData;
 
     flog("successfully unpacked config msg\n");
 

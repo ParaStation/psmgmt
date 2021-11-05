@@ -20,6 +20,7 @@
 #include "psserial.h"
 #include "slurmmsg.h"
 
+/** structure holding a Slurm authentication */
 typedef struct {
     char *cred;		/**< authentication credential */
     uint32_t pluginID;	/**< plugin used for authentication */
@@ -42,7 +43,7 @@ typedef struct {
     uint32_t bodyLen;		/**< length of the message payload */
     uint32_t addr;		/**< sender address */
     uint16_t port;		/**< sender port */
-    uint16_t addrFamily;	/**< wether to use IPv4 or IPv6 */
+    uint16_t addrFamily;	/**< whether to use IPv4 or IPv6 */
     uint16_t forward;		/**< message forwarding */
     uint16_t returnList;	/**< number of returned results */
     uint32_t fwTimeout;		/**< forward timeout */
@@ -58,9 +59,12 @@ typedef struct {
     Slurm_Msg_Header_t head;	/**< Slurm message header */
     int sock;			/**< socket the message was red from */
     PStask_ID_t source;		/**< root TID of the forwarding tree or -1 */
-    PS_DataBuffer_t *data;
-    PS_SendDB_t reply;
-    char *ptr;
+    PS_DataBuffer_t *data;	/**< buffer holding the received (packed)
+				     message */
+    PS_SendDB_t reply;		/**< send data buffer used to save a response */
+    char *ptr;			/**< tracking top of unpacked bytes in
+				     @ref data buffer */
+    void *unpData;		/**< holding the unpacked message payload */
     time_t recvTime;		/**< time the message was received */
 } Slurm_Msg_t;
 
