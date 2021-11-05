@@ -821,7 +821,7 @@ static void handleReattachTasks(Slurm_Msg_t *sMsg)
 	flog("%s to reattach not found\n", strStepID(&s));
 	sendReattachFail(sMsg, ESLURM_INVALID_JOB_ID);
 	/* check permissions */
-    } else if (!(verifyUserId(sMsg->head.uid, step->uid))) {
+    } else if (!verifyUserId(sMsg->head.uid, step->uid)) {
 	flog("request from invalid user %u %s\n", sMsg->head.uid,
 	     strStepID(step));
 	sendReattachFail(sMsg, ESLURM_USER_ID_MISSING);
