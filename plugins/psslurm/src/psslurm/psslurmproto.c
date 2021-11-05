@@ -161,7 +161,6 @@ uint32_t __getLocalRankID(uint32_t rank, Step_t *step,
 
 bool writeJobscript(Job_t *job)
 {
-    FILE *fp;
     char *jobdir, buf[PATH_BUFFER_LEN];
 
     if (!job->jsData) {
@@ -174,7 +173,8 @@ bool writeJobscript(Job_t *job)
     snprintf(buf, sizeof(buf), "%s/%s", jobdir, strJobID(job->jobid));
     job->jobscript = ustrdup(buf);
 
-    if (!(fp = fopen(job->jobscript, "a"))) {
+    FILE *fp = fopen(job->jobscript, "a");
+    if (!fp) {
 	mlog("%s: open file '%s' failed\n", __func__, job->jobscript);
 	return false;
     }
@@ -237,9 +237,8 @@ static void setIOoptions(char *ioString, int *Opt, int32_t *rank)
 static void setAccOpts(char *freqString, uint16_t *accType)
 {
     int freq;
-    char *strAcctType;
 
-    if (!(strncmp("task=", freqString, 5))) {
+    if (!strncmp("task=", freqString, 5)) {
 	freq = atoi(freqString+5);
 
 	if (freq >0) {
@@ -248,8 +247,9 @@ static void setAccOpts(char *freqString, uint16_t *accType)
 	}
     }
 
-    if ((strAcctType = getConfValueC(&SlurmConfig, "JobAcctGatherType"))) {
-	*accType = (!(strcmp(strAcctType, "jobacct_gather/none"))) ? 0 : 1;
+    char *strAcctType = getConfValueC(&SlurmConfig, "JobAcctGatherType");
+    if (strAcctType) {
+	*accType = !strcmp(strAcctType, "jobacct_gather/none") ? 0 : 1;
     } else {
 	*accType = 0;
     }
@@ -358,8 +358,8 @@ static bool extractStepPackInfos(Step_t *step)
     }
 
     /* extract allocation ID */
-    char *sPackID;
-    if (!(sPackID = envGet(&step->env, "SLURM_JOB_ID_PACK_GROUP_0"))) {
+    char *sPackID = envGet(&step->env, "SLURM_JOB_ID_PACK_GROUP_0");
+    if (!sPackID) {
 	mlog("%s: missing SLURM_JOB_ID_PACK_GROUP_0 environment\n", __func__);
 	return false;
     }
@@ -456,7 +456,7 @@ static void handleLaunchTasks(Slurm_Msg_t *sMsg)
     Step_t *step = sMsg->unpData;
 
     /* verify job credential */
-    if (!(verifyStepData(step))) {
+    if (!verifyStepData(step)) {
 	flog("invalid data for %s\n", strStepID(step));
 	sendSlurmRC(sMsg, ESLURMD_INVALID_JOB_CREDENTIAL);
 	goto ERROR;
@@ -476,8 +476,8 @@ static void handleLaunchTasks(Slurm_Msg_t *sMsg)
     step->env.size = step->env.cnt;
     step->spankenv.size = step->spankenv.cnt;
     for (uint32_t i=0; i<step->spankenv.cnt; i++) {
-	if (!(strncmp("_SLURM_SPANK_OPTION_x11spank_forward_x",
-		step->spankenv.vars[i], 38))) {
+	if (!strncmp("_SLURM_SPANK_OPTION_x11spank_forward_x",
+		     step->spankenv.vars[i], 38)) {
 	    step->x11forward = 1;
 	}
     }
@@ -554,7 +554,7 @@ static void handleLaunchTasks(Slurm_Msg_t *sMsg)
     }
 
     /* set slots for the step (and number of hardware threads) */
-    if (!(setStepSlots(step))) {
+    if (!setStepSlots(step)) {
 	flog("setting hardware threads for %s failed\n", strStepID(step));
 	sendSlurmRC(sMsg, ESLURMD_INVALID_JOB_CREDENTIAL);
 	goto ERROR;
@@ -584,7 +584,7 @@ static void handleLaunchTasks(Slurm_Msg_t *sMsg)
 	 * However for pack jobs the pack leader has to wait for
 	 * the pack follower to send hw threads */
 	if (step->packJobid == NO_VAL) {
-	    if (!(execStepLeader(step))) {
+	    if (!execStepLeader(step)) {
 		sendSlurmRC(sMsg, ESLURMD_FORK_FAILED);
 		goto ERROR;
 	    }
@@ -1174,10 +1174,10 @@ static void handleFileBCast(Slurm_Msg_t *sMsg)
     }
 
     /* assign to job/allocation */
-    Job_t *job;
-    if (!(job = findJobById(bcast->jobid))) {
-	Alloc_t *alloc;
-	if (!(alloc = findAlloc(bcast->jobid))) {
+    Job_t *job = findJobById(bcast->jobid);
+    if (!job) {
+	Alloc_t *alloc = findAlloc(bcast->jobid);
+	if (!alloc) {
 	    mlog("%s: job %u not found\n", __func__, bcast->jobid);
 	    sendSlurmRC(sMsg, ESLURM_INVALID_JOB_ID);
 	    goto CLEANUP;
@@ -1301,7 +1301,7 @@ static void handleStepStat(Slurm_Msg_t *sMsg)
     }
 
     /* check permissions */
-    if (!(verifyUserId(sMsg->head.uid, step->uid))) {
+    if (!verifyUserId(sMsg->head.uid, step->uid)) {
 	flog("request from invalid user %u\n", sMsg->head.uid);
 	sendSlurmRC(sMsg, ESLURM_USER_ID_MISSING);
 	return;
@@ -1353,7 +1353,7 @@ static void handleStepPids(Slurm_Msg_t *sMsg)
     }
 
     /* check permissions */
-    if (!(verifyUserId(sMsg->head.uid, step->uid))) {
+    if (!verifyUserId(sMsg->head.uid, step->uid)) {
 	flog("request from invalid user %u\n", sMsg->head.uid);
 	sendSlurmRC(sMsg, ESLURM_USER_ID_MISSING);
 	return;
@@ -1488,7 +1488,7 @@ static void handleJobNotify(Slurm_Msg_t *sMsg)
     }
 
     /* check permissions */
-    if (!(verifyUserId(sMsg->head.uid, job ? job->uid : step->uid))) {
+    if (!verifyUserId(sMsg->head.uid, job ? job->uid : step->uid)) {
 	flog("request from invalid user %u for job %u stepid %u\n",
 	     sMsg->head.uid, req->jobid, req->stepid);
 	sendSlurmRC(sMsg, ESLURM_USER_ID_MISSING);
@@ -1679,24 +1679,23 @@ static void handleLaunchProlog(Slurm_Msg_t *sMsg)
  */
 static bool extractJobPackInfos(Job_t *job)
 {
-    char *sPackSize;
-    uint32_t i;
     size_t nlSize = 0;
 
     /* extract pack size */
-    if (!(sPackSize = envGet(&job->env, "SLURM_PACK_SIZE"))) {
-	return true;
-    }
+    char *sPackSize = envGet(&job->env, "SLURM_PACK_SIZE");
+    if (!sPackSize) return true;
+
     job->packSize = atoi(sPackSize);
 
     /* extract pack nodes */
-    for (i=0; i<job->packSize; i++) {
-	char *next, nodeListName[256];
+    for (uint32_t i=0; i<job->packSize; i++) {
+	char nodeListName[256];
 
 	snprintf(nodeListName, sizeof(nodeListName),
 		 "SLURM_JOB_NODELIST_PACK_GROUP_%u", i);
 
-	if (!(next = envGet(&job->env, nodeListName))) {
+	char *next = envGet(&job->env, nodeListName);
+	if (!next) {
 	    mlog("%s: %s not found in job environment\n", __func__,
 		 nodeListName);
 	    ufree(job->packHostlist);
@@ -1782,7 +1781,7 @@ static void handleBatchJobLaunch(Slurm_Msg_t *sMsg)
     }
 
     /* verify job credential */
-    if (!(verifyJobData(job))) goto ERROR;
+    if (!verifyJobData(job)) goto ERROR;
     job->state = JOB_QUEUED;
 
     printJobLaunchInfos(job);
@@ -1790,7 +1789,7 @@ static void handleBatchJobLaunch(Slurm_Msg_t *sMsg)
     /* set accounting options */
     setAccOpts(job->acctFreq, &job->accType);
 
-    if (!(extractJobPackInfos(job))) {
+    if (!extractJobPackInfos(job)) {
 	flog("invalid job pack information for job %u\n", job->jobid);
 	goto ERROR;
     }
@@ -1808,7 +1807,7 @@ static void handleBatchJobLaunch(Slurm_Msg_t *sMsg)
     job->hostname = ustrdup(getConfValueC(&Config, "SLURM_HOSTNAME"));
 
     /* write the jobscript */
-    if (!(writeJobscript(job))) {
+    if (!writeJobscript(job)) {
 	/* set myself offline and requeue the job */
 	setNodeOffline(&job->env, job->jobid,
 			getConfValueC(&Config, "SLURM_HOSTNAME"),

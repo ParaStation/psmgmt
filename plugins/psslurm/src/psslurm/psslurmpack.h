@@ -441,9 +441,7 @@ bool __packMsgTaskExit(PS_SendDB_t *data, Msg_Task_Exit_t *msg,
  */
 bool __packSlurmPIDs(PS_SendDB_t *data, Slurm_PIDs_t *pids,
 		     const char *caller, const int line);
-
-#define packSlurmPIDs(data, req) \
-    __packSlurmPIDs(data, req, __func__, __LINE__)
+#define packSlurmPIDs(data, req) __packSlurmPIDs(data, req, __func__, __LINE__)
 
 /**
  * @brief Unpack a Slurm message

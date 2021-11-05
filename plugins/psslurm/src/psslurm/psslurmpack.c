@@ -66,8 +66,8 @@ static void packStepHead(void *head, PS_SendDB_t *data)
  * @return On success true is returned or false in case of an
  * error. If reading was not successful, @a sMsg might be not updated.
  */
-bool __unpackStepHead(char **ptr, void *head, uint16_t msgVer,
-		      const char *caller, const int line)
+static bool __unpackStepHead(char **ptr, void *head, uint16_t msgVer,
+			     const char *caller, const int line)
 {
     Slurm_Step_Head_t *stepH = head;
 
