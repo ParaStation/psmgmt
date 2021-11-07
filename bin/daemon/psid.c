@@ -450,8 +450,7 @@ static void printWelcome(void)
     PSID_log(-1, "RPM Version %s-%s\n", VERSION_psmgmt, RELEASE_psmgmt);
     PSID_log(-1, "Protocol Version %d\n", PSProtocolVersion);
     PSID_log(-1, "Daemon-Protocol Version %d\n", PSDaemonProtocolVersion);
-    PSID_log(-1, " (c) ParTec Cluster Competence Center GmbH "
-	     "(www.par-tec.com)\n");
+    PSID_log(-1, " (c) ParTec AG, Munich (www.par-tec.com)\n");
 
     return;
 }
