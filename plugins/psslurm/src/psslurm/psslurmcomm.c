@@ -48,9 +48,6 @@
 /** default slurmd port psslurm listens for new srun/slurmcltd requests */
 #define PSSLURM_SLURMD_PORT 6818
 
-/** maximal allowed length of a bit-string */
-#define MAX_PACK_STR_LEN (16 * 1024 * 1024)
-
 /** maximal number of parallel supported Slurm control daemons */
 #define MAX_CTL_HOSTS 16
 
@@ -1045,30 +1042,6 @@ int __sendSlurmctldReq(Req_Info_t *req, void *data,
 FINALIZE:
     if (ret == -1) ufree(req);
     return ret;
-}
-
-char *__getBitString(char **ptr, const char *func, const int line)
-{
-    uint32_t len;
-    char *bitStr = NULL;
-
-    getUint32(ptr, &len);
-
-    if (len == NO_VAL) return NULL;
-
-    getUint32(ptr, &len);
-
-    if (len > MAX_PACK_STR_LEN) {
-	mlog("%s(%s:%i): invalid str len %i\n", __func__, func, line, len);
-	return NULL;
-    }
-
-    if (len > 0) {
-	bitStr = umalloc(len);
-	memcpy(bitStr, *ptr, len);
-	*ptr += len;
-    }
-    return bitStr;
 }
 
 static void addVal2List(StrBuffer_t *strBuf, int32_t val, bool range, bool fin,

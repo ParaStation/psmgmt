@@ -266,25 +266,6 @@ int openSlurmdSocket(int port);
 void closeSlurmdSocket(void);
 
 /**
- * @brief Read a bitstring from buffer
- *
- * Read a bit string from the provided data buffer.
- * The memory is allocated using umalloc(). The caller is responsible
- * to free the memory using ufree().
- *
- * @param ptr Data buffer to read from
- *
- * @param func Function name of the calling function
- *
- * @param line Line number where this function is called
- *
- * @return Returns the result or NULL on error.
- */
-char *__getBitString(char **ptr, const char *func, const int line);
-
-#define getBitString(ptr) __getBitString(ptr, __func__, __LINE__)
-
-/**
  * @brief Converter function of hexBitstr2List()
  *
  * A converter function for @ref hexBitstr2List(). The function will

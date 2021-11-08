@@ -22,6 +22,50 @@
 
 #undef DEBUG_MSG_HEADER
 
+/** maximal allowed length of a bit-string */
+#define MAX_PACK_STR_LEN (16 * 1024 * 1024)
+
+/**
+ * @brief Read a bitstring from buffer
+ *
+ * Read a bit string from the provided data buffer.
+ * The memory is allocated using umalloc(). The caller is responsible
+ * to free the memory using ufree().
+ *
+ * @param ptr Data buffer to read from
+ *
+ * @param func Function name of the calling function
+ *
+ * @param line Line number where this function is called
+ *
+ * @return Returns the result or NULL on error.
+ */
+static char *__getBitString(char **ptr, const char *func, const int line)
+{
+    uint32_t len;
+    char *bitStr = NULL;
+
+    getUint32(ptr, &len);
+
+    if (len == NO_VAL) return NULL;
+
+    getUint32(ptr, &len);
+
+    if (len > MAX_PACK_STR_LEN) {
+	mlog("%s(%s:%i): invalid str len %i\n", __func__, func, line, len);
+	return NULL;
+    }
+
+    if (len > 0) {
+	bitStr = umalloc(len);
+	memcpy(bitStr, *ptr, len);
+	*ptr += len;
+    }
+    return bitStr;
+}
+
+#define getBitString(ptr) __getBitString(ptr, __func__, __LINE__)
+
 static void packOldStepID(uint32_t stepid, PS_SendDB_t *data)
 {
     if (stepid == SLURM_BATCH_SCRIPT) {
