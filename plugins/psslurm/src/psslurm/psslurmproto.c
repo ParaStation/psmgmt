@@ -950,6 +950,14 @@ static void handleReconfigure(Slurm_Msg_t *sMsg)
  */
 static void freeSlurmConfigMsg(Config_Msg_t *config)
 {
+    /* new configuration message since 21.08 */
+    for (uint32_t i=0; i<config->numFiles; i++) {
+	ufree(config->files[i].name);
+	ufree(config->files[i].data);
+    }
+    ufree(config->files);
+
+    /* old configuration message */
     ufree(config->slurm_conf);
     ufree(config->acct_gather_conf);
     ufree(config->cgroup_conf);
@@ -1011,31 +1019,51 @@ static bool writeSlurmConfigFiles(Config_Msg_t *config, char *confDir)
 	}
     }
 
-    /* write various Slurm configuration files */
-    if (!writeFile("slurm.conf", confDir, config->slurm_conf)) return false;
-    if (!writeFile("acct_gather.conf", confDir, config->acct_gather_conf)) {
-	return false;
-    }
-    if (!writeFile("cgroup.conf", confDir, config->cgroup_conf)) return false;
-    if (!writeFile("cgroup_allowd_dev.conf", confDir,
-		   config->cgroup_allowed_dev_conf)) {
-	return false;
-    }
-    if (!writeFile("ext_sensor.conf", confDir, config->ext_sensor_conf)) {
-	return false;
-    }
-    if (!writeFile("gres.conf", confDir, config->gres_conf)) return false;
-    if (!writeFile("knl_cray.conf", confDir, config->knl_cray_conf)) {
-	return false;
-    }
-    if (!writeFile("knl_generic.conf", confDir, config->knl_generic_conf)) {
-	return false;
-    }
-    if (!writeFile("plugstack.conf", confDir, config->plugstack_conf)) {
-	return false;
-    }
-    if (!writeFile("topology.conf", confDir, config->topology_conf)) {
-	return false;
+    if (config->numFiles) {
+	/* new Slurm configuration format since Slurm 21.08 */
+	for (uint32_t i=0; i<config->numFiles; i++) {
+	    Config_File_t *file = &config->files[i];
+
+	    if (!file->create) {
+		/* file should be deleted if possbile */
+		char path[1024];
+
+		snprintf(path, sizeof(path), "%s/%s", confDir, file->name);
+		unlink(path);
+		continue;
+	    }
+
+	    if (!writeFile(file->name, confDir, file->data)) {
+		return false;
+	    }
+	}
+    } else {
+	/* old format to write various Slurm configuration files */
+	if (!writeFile("slurm.conf", confDir, config->slurm_conf)) return false;
+	if (!writeFile("acct_gather.conf", confDir, config->acct_gather_conf)) {
+	    return false;
+	}
+	if (!writeFile("cgroup.conf", confDir, config->cgroup_conf)) return false;
+	if (!writeFile("cgroup_allowd_dev.conf", confDir,
+		       config->cgroup_allowed_dev_conf)) {
+	    return false;
+	}
+	if (!writeFile("ext_sensor.conf", confDir, config->ext_sensor_conf)) {
+	    return false;
+	}
+	if (!writeFile("gres.conf", confDir, config->gres_conf)) return false;
+	if (!writeFile("knl_cray.conf", confDir, config->knl_cray_conf)) {
+	    return false;
+	}
+	if (!writeFile("knl_generic.conf", confDir, config->knl_generic_conf)) {
+	    return false;
+	}
+	if (!writeFile("plugstack.conf", confDir, config->plugstack_conf)) {
+	    return false;
+	}
+	if (!writeFile("topology.conf", confDir, config->topology_conf)) {
+	    return false;
+	}
     }
 
     /* link configuration to Slurm /run-directory so Slurm commands (e.g.

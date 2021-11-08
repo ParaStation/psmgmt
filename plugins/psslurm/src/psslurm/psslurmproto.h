@@ -168,8 +168,17 @@ typedef struct {
     char *extra;	    /**< extra (arbitrary string) */
 } Req_Update_Node_t;
 
+/** Structure holding a Slurm config file */
+typedef struct {
+    bool create;    /**< flag to create/delete the file */
+    char *name;	    /**< file name */
+    char *data;	    /**< file content */
+} Config_File_t;
+
 /** Structure holding all received configuration files */
 typedef struct {
+    Config_File_t *files;	    /**< holding config files (since 21.08) */
+    uint32_t numFiles;		    /**< number of config files (since 21.08) */
     char *slurm_conf;
     char *acct_gather_conf;
     char *cgroup_conf;

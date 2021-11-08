@@ -2339,21 +2339,42 @@ static bool unpackReqSuspendInt(Slurm_Msg_t *sMsg)
 static bool unpackConfigMsg(Slurm_Msg_t *sMsg)
 {
     char **ptr = &sMsg->ptr;
+    uint16_t msgVer = sMsg->head.version;
+    Config_Msg_t *req = ucalloc(sizeof(*req));
 
-    Config_Msg_t *req = umalloc(sizeof(*req));
+    if (msgVer >= SLURM_21_08_PROTO_VERSION) {
+	getUint32(ptr, &req->numFiles);
 
-    req->slurm_conf = getStringM(ptr);
-    req->acct_gather_conf = getStringM(ptr);
-    req->cgroup_conf = getStringM(ptr);
-    req->cgroup_allowed_dev_conf = getStringM(ptr);
-    req->ext_sensor_conf = getStringM(ptr);
-    req->gres_conf = getStringM(ptr);
-    req->knl_cray_conf = getStringM(ptr);
-    req->knl_generic_conf = getStringM(ptr);
-    req->plugstack_conf = getStringM(ptr);
-    req->topology_conf = getStringM(ptr);
-    req->xtra_conf = getStringM(ptr);
-    req->slurmd_spooldir = getStringM(ptr);
+	if (req->numFiles == NO_VAL) {
+	    flog("error receiving config files\n");
+	    req->numFiles = 0;
+	    ufree(req);
+	    return false;
+	}
+
+	req->files = ucalloc(sizeof(*req->files) * req->numFiles);
+
+	for (uint32_t i=0; i<req->numFiles; i++) {
+	    Config_File_t *file = &req->files[i];
+
+	    getBool(ptr, &file->create);
+	    file->name = getStringM(ptr);
+	    file->data = getStringM(ptr);
+	}
+    } else {
+	req->slurm_conf = getStringM(ptr);
+	req->acct_gather_conf = getStringM(ptr);
+	req->cgroup_conf = getStringM(ptr);
+	req->cgroup_allowed_dev_conf = getStringM(ptr);
+	req->ext_sensor_conf = getStringM(ptr);
+	req->gres_conf = getStringM(ptr);
+	req->knl_cray_conf = getStringM(ptr);
+	req->knl_generic_conf = getStringM(ptr);
+	req->plugstack_conf = getStringM(ptr);
+	req->topology_conf = getStringM(ptr);
+	req->xtra_conf = getStringM(ptr);
+	req->slurmd_spooldir = getStringM(ptr);
+    }
 
     sMsg->unpData = req;
 
@@ -2665,6 +2686,7 @@ bool __unpackSlurmMsg(Slurm_Msg_t *sMsg, const char *caller, const int line)
 	case REQUEST_SUSPEND_INT:
 	    return unpackReqSuspendInt(sMsg);
 	case REQUEST_RECONFIGURE_WITH_CONFIG:
+	case RESPONSE_CONFIG:
 	    return unpackConfigMsg(sMsg);
 	case REQUEST_FILE_BCAST:
 	    return unpackReqFileBcast(sMsg);
