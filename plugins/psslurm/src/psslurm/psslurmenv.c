@@ -821,6 +821,12 @@ static void setCommonRankEnv(int32_t rank, Step_t *step)
 	putenv(step->env.vars[i]);
     }
 
+    char *confServer = getConfValueC(&Config, "SLURM_CONF_SERVER");
+    if (confServer && strcmp(confServer, "none")) {
+	/* ensure the configuration cache is used */
+	unsetenv("SLURM_CONF");
+    }
+
     setenv("SLURMD_NODENAME", getConfValueC(&Config, "SLURM_HOSTNAME"), 1);
     char tmp[128];
     gethostname(tmp, sizeof(tmp));
@@ -1051,6 +1057,12 @@ void setJobEnv(Job_t *job)
     if (job->tresFreq) envSet(&job->env, "SLURMD_TRES_FREQ", job->tresFreq);
 
     removeSpankOptions(&job->env);
+
+    char *confServer = getConfValueC(&Config, "SLURM_CONF_SERVER");
+    if (confServer && strcmp(confServer, "none")) {
+	/* ensure the configuration cache is used */
+	envUnset(&job->env, "SLURM_CONF");
+    }
 
     Alloc_t *alloc = findAlloc(job->jobid);
     if (alloc) setPsslurmEnv(&alloc->env, &job->env);
