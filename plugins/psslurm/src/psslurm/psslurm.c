@@ -594,14 +594,14 @@ static bool requestConfig(void)
 {
     /* request Slurm configuration files from slurmctld */
     char *server = getConfValueC(&Config, "SLURM_CONF_SERVER");
-    if (!server) {
+    if (!server || !strcmp(server, "none")) {
 	flog("SLURM_CONF_SERVER not set\n");
 	return false;
     }
 
     if (!sendConfigReq(server, CONF_ACT_STARTUP)) {
 	server = getConfValueC(&Config, "SLURM_CONF_BACKUP_SERVER");
-	if (server) {
+	if (server && strcmp(server, "none")) {
 	    flog("requesting config from backup server %s\n", server);
 	    if (!sendConfigReq(server, CONF_ACT_STARTUP)) {
 		flog("requesting Slurm configuration from %s failed\n", server);
