@@ -265,7 +265,7 @@ static bool __validate_nodeinfo(size_t node, const nodeinfo_t *nodeinfo,
     uint32_t coreCount = (unsigned) PSIDnodes_getNumCores(nodeinfo->id);
     if (coreCount != nodeinfo->coreCount) {
 	flog("Credential core count for node id %hu does not match local"
-	     " information: %u != %hu\n", nodeinfo->id, nodeinfo->coreCount,
+	     " information: %u != %u\n", nodeinfo->id, nodeinfo->coreCount,
 	     coreCount);
 	return false;
     }
@@ -273,7 +273,7 @@ static bool __validate_nodeinfo(size_t node, const nodeinfo_t *nodeinfo,
     uint32_t threadCount = (unsigned) PSIDnodes_getNumThrds(nodeinfo->id);
     if (threadCount != nodeinfo->threadCount) {
 	flog("Credential thread count for node id %hu does not match local"
-	     " information: %u != %hu\n", nodeinfo->id, nodeinfo->threadCount,
+	     " information: %u != %u\n", nodeinfo->id, nodeinfo->threadCount,
 	     threadCount);
 	return false;
     }

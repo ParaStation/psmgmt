@@ -751,49 +751,58 @@ cleanup:
     ufree(req);
 }
 
-static void sendReattchReply(Step_t *step, Slurm_Msg_t *sMsg, uint32_t rc)
+static void sendReattachFail(Slurm_Msg_t *sMsg, uint32_t rc)
 {
     PS_SendDB_t *reply = &sMsg->reply;
-    uint32_t i, numTasks, countPIDS = 0, countPos;
 
     /* hostname */
     addStringToMsg(getConfValueC(&Config, "SLURM_HOSTNAME"), reply);
     /* return code */
     addUint32ToMsg(rc, reply);
+    /* number of tasks */
+    addUint32ToMsg(0, reply);
+    /* gtids */
+    addUint32ToMsg(0, reply);
+    /* local pids */
+    addUint32ToMsg(0, reply);
+    /* no executable names */
 
-    if (rc == SLURM_SUCCESS) {
-	list_t *t;
-	numTasks = step->globalTaskIdsLen[step->localNodeId];
-	/* number of tasks */
-	addUint32ToMsg(numTasks, reply);
-	/* gtids */
-	addUint32ArrayToMsg(step->globalTaskIds[step->localNodeId],
-			    numTasks, reply);
-	/* local pids */
-	countPos = reply->bufUsed;
-	addUint32ToMsg(0, reply);
+    sendSlurmReply(sMsg, RESPONSE_REATTACH_TASKS);
+}
 
-	list_for_each(t, &step->tasks) {
-	    PS_Tasks_t *task = list_entry(t, PS_Tasks_t, next);
-	    if (task->childRank >= 0) {
-		countPIDS++;
-		addUint32ToMsg(PSC_getPID(task->childTID), reply);
-	    }
+static void sendReattchReply(Step_t *step, Slurm_Msg_t *sMsg)
+{
+    PS_SendDB_t *reply = &sMsg->reply;
+
+    /* hostname */
+    addStringToMsg(getConfValueC(&Config, "SLURM_HOSTNAME"), reply);
+    /* return code */
+    addUint32ToMsg(SLURM_SUCCESS, reply);
+
+    list_t *t;
+    uint32_t numTasks = step->globalTaskIdsLen[step->localNodeId];
+    /* number of tasks */
+    addUint32ToMsg(numTasks, reply);
+    /* gtids */
+    addUint32ArrayToMsg(step->globalTaskIds[step->localNodeId],
+			numTasks, reply);
+    /* local pids */
+    uint32_t countPos = reply->bufUsed;
+    addUint32ToMsg(0, reply);
+
+    uint32_t countPIDS = 0;
+    list_for_each(t, &step->tasks) {
+	PS_Tasks_t *task = list_entry(t, PS_Tasks_t, next);
+	if (task->childRank >= 0) {
+	    countPIDS++;
+	    addUint32ToMsg(PSC_getPID(task->childTID), reply);
 	}
-	*(uint32_t *) (reply->buf + countPos) = htonl(countPIDS);
+    }
+    *(uint32_t *) (reply->buf + countPos) = htonl(countPIDS);
 
-	/* executable names */
-	for (i=0; i<numTasks; i++) {
-	    addStringToMsg(step->argv[0], reply);
-	}
-    } else {
-	/* number of tasks */
-	addUint32ToMsg(0, reply);
-	/* gtids */
-	addUint32ToMsg(0, reply);
-	/* local pids */
-	addUint32ToMsg(0, reply);
-	/* no executable names */
+    /* executable names */
+    for (uint32_t i = 0; i < numTasks; i++) {
+	addStringToMsg(step->argv[0], reply);
     }
 
     sendSlurmReply(sMsg, RESPONSE_REATTACH_TASKS);
@@ -801,13 +810,11 @@ static void sendReattchReply(Step_t *step, Slurm_Msg_t *sMsg, uint32_t rc)
 
 static void handleReattachTasks(Slurm_Msg_t *sMsg)
 {
-    uint32_t rc = SLURM_SUCCESS;
-
-    Req_Reattach_Tasks_t *req = NULL;
+    Req_Reattach_Tasks_t *req;
     if (!unpackReqReattachTasks(sMsg, &req)) {
 	flog("unpacking request reattach tasks failed\n");
-	rc = ESLURM_INVALID_JOB_ID;
-	goto SEND_REPLY;
+	sendReattachFail(sMsg, ESLURM_INVALID_JOB_ID);
+	return;
     }
 
     Step_t *step = findStepByStepId(req->jobid, req->stepid);
@@ -816,58 +823,37 @@ static void handleReattachTasks(Slurm_Msg_t *sMsg)
 	    .jobid = req->jobid,
 	    .stepid = req->stepid };
 	flog("%s to reattach not found\n", strStepID(&s));
-	rc = ESLURM_INVALID_JOB_ID;
-	goto SEND_REPLY;
-    }
-
-    /* check permissions */
-    if (!(verifyUserId(sMsg->head.uid, step->uid))) {
+	sendReattachFail(sMsg, ESLURM_INVALID_JOB_ID);
+	/* check permissions */
+    } else if (!(verifyUserId(sMsg->head.uid, step->uid))) {
 	flog("request from invalid user %u %s\n", sMsg->head.uid,
 	     strStepID(step));
-	rc = ESLURM_USER_ID_MISSING;
-	goto SEND_REPLY;
-    }
-
-    if (!step->fwdata) {
+	sendReattachFail(sMsg, ESLURM_USER_ID_MISSING);
+    } else if (!step->fwdata) {
 	/* no forwarder to attach to */
 	flog("forwarder for %s to reattach not found\n", strStepID(step));
-	rc = ESLURM_INVALID_JOB_ID;
-	goto SEND_REPLY;
-    }
-
-    if (req->numCtlPorts < 1) {
+	sendReattachFail(sMsg, ESLURM_INVALID_JOB_ID);
+    } else if (req->numCtlPorts < 1) {
 	flog("invalid request, no control ports for %s\n", strStepID(step));
-	rc = ESLURM_PORTS_INVALID;
-	goto SEND_REPLY;
-    }
-
-    if (req->numIOports < 1) {
+	sendReattachFail(sMsg, ESLURM_PORTS_INVALID);
+    } else if (req->numIOports < 1) {
 	flog("invalid request, no I/O ports for %s\n", strStepID(step));
-	rc = ESLURM_PORTS_INVALID;
-	goto SEND_REPLY;
-    }
-
-    if (!req->cred) {
+	sendReattachFail(sMsg, ESLURM_PORTS_INVALID);
+    } else if (!req->cred) {
 	flog("invalid credential for %s\n", strStepID(step));
-	rc = ESLURM_INVALID_JOB_CREDENTIAL;
-	goto SEND_REPLY;
-    }
-
-    if (strlen(req->cred->sig) + 1 != SLURM_IO_KEY_SIZE) {
+	sendReattachFail(sMsg, ESLURM_INVALID_JOB_CREDENTIAL);
+    } else if (strlen(req->cred->sig) + 1 != SLURM_IO_KEY_SIZE) {
 	flog("invalid I/O key size %zu for %s\n", strlen(req->cred->sig) + 1,
 	     strStepID(step));
-	rc = ESLURM_INVALID_JOB_CREDENTIAL;
-	goto SEND_REPLY;
+	sendReattachFail(sMsg, ESLURM_INVALID_JOB_CREDENTIAL);
+    } else {
+	/* send message to forwarder */
+	fwCMD_reattachTasks(step->fwdata, sMsg->head.addr,
+			    req->ioPorts[step->localNodeId % req->numIOports],
+			    req->ctlPorts[step->localNodeId % req->numCtlPorts],
+			    req->cred->sig);
+	sendReattchReply(step, sMsg);
     }
-
-    /* send message to forwarder */
-    fwCMD_reattachTasks(step->fwdata, sMsg->head.addr,
-			req->ioPorts[step->localNodeId % req->numIOports],
-			req->ctlPorts[step->localNodeId % req->numCtlPorts],
-			req->cred->sig);
-SEND_REPLY:
-
-    sendReattchReply(step, sMsg, rc);
 
     if (req) {
 	freeJobCred(req->cred);
