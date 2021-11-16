@@ -250,9 +250,19 @@ bool initPScomm(void);
  * is true, different problems when doing so are reported.
  *
  * @param verbose More verbose reports on problems
- *
- * @return No return value
  */
 void finalizePScomm(bool verbose);
+
+/**
+ * @brief Stop step follower
+ *
+ * Only the step leader should call this function.
+ * It wil send a message to all step follower to ensure the forwarder
+ * will shutdown after mpiexec has exited. It is a safety net for normal
+ * steps, but mandatory for heterogeneous steps.
+ *
+ * @param step The step to signal the follower
+ */
+void stopStepFollower(Step_t *step);
 
 #endif

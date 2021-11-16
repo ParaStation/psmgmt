@@ -106,6 +106,7 @@ typedef enum {
     PSP_EPILOGUE_STATE_RES, /**< response to epilogue status request */
     PSP_PACK_EXIT,	    /**< forward exit status to all pack follower */
     PSP_PELOGUE_OE,	    /**< forward pelogue script stdout/stderr */
+    PSP_STOP_STEP_FW,	    /**< shutdown step follower on all relevant nodes */
 } PSP_PSSLURM_t;
 
 /** hostname lookup table for PS node IDs */
@@ -152,6 +153,8 @@ static const char *msg2Str(PSP_PSSLURM_t type)
 	    return "PSP_PACK_EXIT";
 	case PSP_PELOGUE_OE:
 	    return "PSP_PELOGUE_OE";
+	case PSP_STOP_STEP_FW:
+	    return "PSP_STOP_STEP_FW";
 	default:
 	    snprintf(buf, sizeof(buf), "%i <Unknown>", type);
 	    return buf;
@@ -983,6 +986,36 @@ static void send_PS_EpilogueStateRes(PStask_ID_t dest, uint32_t id,
 }
 
 /**
+ * @brief Handle a step shutdown message
+ *
+ * The mother superior step forwarder sends this message to
+ * step follower to ensure the forwarder will shutdown after
+ * mpiexec has exited. This is needed for heterogeneous steps.
+ *
+ * @param msg The message to handle
+ */
+static void handleStopStepFW(DDTypedBufferMsg_t *msg)
+{
+    size_t used = 0;
+    uint32_t stepid, jobid;
+
+    PSP_getTypedMsgBuf(msg, &used, "jobid", &jobid, sizeof(jobid));
+    PSP_getTypedMsgBuf(msg, &used, "stepid", &stepid, sizeof(stepid));
+
+    Step_t *step = findStepByStepId(jobid, stepid);
+    if (!step) {
+	fdbg(PSSLURM_LOG_DEBUG, "step %u:%u not found\n", jobid, stepid);
+	return;
+    }
+
+    if (step->fwdata) {
+	fdbg(PSSLURM_LOG_DEBUG, "shutdown forwarder for step %u:%u\n",
+	     jobid, stepid);
+	shutdownForwarder(step->fwdata);
+    }
+}
+
+/**
  * @brief Handle a local epilogue state response
  *
  * @param msg The message to handle
@@ -1612,6 +1645,9 @@ static bool handlePsslurmMsg(DDTypedBufferMsg_t *msg)
 	    break;
 	case PSP_PELOGUE_OE:
 	    recvFragMsg(msg, handlePElogueOE);
+	    break;
+	case PSP_STOP_STEP_FW:
+	    handleStopStepFW(msg);
 	    break;
 	case PSP_ALLOC_LAUNCH:
 	case PSP_JOB_STATE_REQ:
@@ -2799,6 +2835,37 @@ void handleCachedMsg(Step_t *step)
 	}
     }
     deleteCachedMsg(step->jobid, step->stepid);
+}
+
+void stopStepFollower(Step_t *step)
+{
+    DDTypedBufferMsg_t msg = {
+	.header = {
+	    .type = PSP_PLUG_PSSLURM,
+	    .sender = PSC_getMyTID(),
+	    .len = offsetof(DDTypedBufferMsg_t, buf) },
+	.type = PSP_STOP_STEP_FW,
+	.buf = {'\0'} };
+
+    PSP_putTypedMsgBuf(&msg, "jobid", &step->jobid, sizeof(step->jobid));
+    PSP_putTypedMsgBuf(&msg, "stepid", &step->stepid, sizeof(step->stepid));
+
+    /* send the messages */
+    PSnodes_ID_t *nodes = step->nodes;
+    uint32_t nrOfNodes = step->nrOfNodes;
+    if (step->packNrOfNodes) {
+	nodes = step->packNodes;
+	nrOfNodes = step->packNrOfNodes;
+    }
+
+    for (uint32_t i=0; i<nrOfNodes; i++) {
+	msg.header.dest = PSC_getTID(nodes[i], 0);
+	if (msg.header.dest == msg.header.sender) continue;
+	if (sendMsg(&msg) == -1 && errno != EWOULDBLOCK) {
+	    mwarn(errno, "%s: sendMsg(%s)", __func__,
+		  PSC_printTID(msg.header.dest));
+	}
+    }
 }
 
 void sendPElogueOE(Alloc_t *alloc, PElogue_OEdata_t *oeData)
