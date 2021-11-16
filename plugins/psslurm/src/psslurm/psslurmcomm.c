@@ -183,10 +183,10 @@ static Connection_t *addConnection(int socket, Connection_CB_t *cb, void *info)
     Connection_t *con = findConnection(socket);
 
     if (con) {
-	mlog("%s: socket(%i) already has a connection, resetting it\n",
-		__func__, socket);
+	flog("socket(%i) already has a connection, resetting it\n", socket);
 	resetConnection(socket);
 	con->cb = cb;
+	con->info = info;
 	return con;
     }
 
