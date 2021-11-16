@@ -2097,6 +2097,14 @@ static bool handleSpawnFailed(DDErrorMsg_t *msg)
 
 	step->state = JOB_RUNNING;
 	step->exitCode = 0x200;
+
+	/* don't expect a finalize message */
+	step->fwFinCount++;
+	if (!step->leader &&
+		step->tasksToLaunch[step->localNodeId] == step->fwFinCount) {
+	    mlog("%s: shutdown I/O forwarder\n", __func__);
+	    shutdownForwarder(step->fwdata);
+	}
     }
 
     return false; // call the old handler if any

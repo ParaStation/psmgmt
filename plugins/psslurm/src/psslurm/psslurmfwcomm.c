@@ -49,6 +49,7 @@ static void handleInfoTasks(Forwarder_Data_t *fwdata, char *ptr)
 
     if (step->globalTaskIdsLen[step->localNodeId] ==
 	countRegTasks(&step->tasks)) {
+	/* all local tasks finished spawning */
 	sendTaskPids(step);
     }
 }
