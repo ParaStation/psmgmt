@@ -318,15 +318,12 @@ int main(int argc, char *argv[])
 	return -1;
     }
 
-    outline(INFOOUT, "node: %hu sockets, %hu cores per socket,"
-	    " %hu threads per core, %hu threads in total",
-	    socketCount, coresPerSocket, threadsPerCore,
-	    socketCount * coresPerSocket * threadsPerCore);
+    size_t threadCount = socketCount * coresPerSocket * threadsPerCore;
 
     /* parse programm options */
-    int i = 1;
-    for (; i < argc; i++) {
-	char *cur = argv[i];
+    int i = 4;
+    while (i < argc) {
+	char *cur = argv[i++];
 
 	if (!strcmp(cur, "--help")) {
 	    print_help();
@@ -335,20 +332,27 @@ int main(int argc, char *argv[])
 
 	if (!strcmp(cur, "--verbose") || !strcmp(cur, "-v")) {
 	    verbosity++;
+	    continue;
 	}
 
 	if (!strcmp(cur, "--human-readable") || !strcmp(cur, "-h")) {
 	    humanreadable = true;
+	    continue;
 	}
 
 	if (!strcmp(cur, "--membind") || !strcmp(cur, "-m")) {
 	    printmembind = true;
+	    continue;
 	}
 
 	if (!strcmp(cur, ":")) {
 	    break;
 	}
     }
+
+    outline(INFOOUT, "node: %hu sockets, %hu cores per socket,"
+	    " %hu threads per core, %zu threads in total",
+	    socketCount, coresPerSocket, threadsPerCore, threadCount);
 
     if (printmembind) {
 	int maxnodes = sizeof(*((struct bitmask *)0)->maskp) * 8;
@@ -374,17 +378,17 @@ int main(int argc, char *argv[])
     char *memBindString = NULL;
 
     /* parse srun options */
-    for (i++; i < argc; i++) {
-	char *cur = argv[i];
+    while (i < argc) {
+	char *cur = argv[i++];
 	char *val;
 
 	if (!strncmp(cur, "-N", 2)) {
 	    if (*(cur+2) == '\0') {
-		if (++i == argc) {
+		if (i == argc) {
 		    outline(ERROROUT, "Syntax error reading value for -N.");
 		    exit(-1);
 		}
-		val = argv[i];
+		val = argv[i++];
 	    } else {
 		val = cur + 2;
 	    }
@@ -395,11 +399,11 @@ int main(int argc, char *argv[])
 	    }
 	} else if (!strncmp(cur, "-n", 2)) {
 	    if (*(cur+2) == '\0') {
-		if (++i == argc) {
+		if (i == argc) {
 		    outline(ERROROUT, "Syntax error reading value for -n.");
 		    exit(-1);
 		}
-		val = argv[i];
+		val = argv[i++];
 	    } else {
 		val = cur + 2;
 	    }
@@ -411,11 +415,11 @@ int main(int argc, char *argv[])
 	    }
 	} else if (!strncmp(cur, "-c", 2)) {
 	    if (*(cur+2) == '\0') {
-		if (++i == argc) {
+		if (i == argc) {
 		    outline(ERROROUT, "Syntax error reading value for -c.");
 		    exit(-1);
 		}
-		val = argv[i];
+		val = argv[i++];
 	    } else {
 		val = cur + 2;
 	    }
@@ -438,12 +442,12 @@ int main(int argc, char *argv[])
 		exit(-1);
 	    }
 	} else if (!strcmp(cur, "-m")) {
-	    if (++i == argc) {
+	    if (i == argc) {
 		outline(ERROROUT, "Syntax error reading value for -m.");
 		exit(-1);
 	    }
 	    outline(DEBUGOUT, "Reading -m value: \"%s\"", argv[i]);
-	    if (!readDistribution(argv[i], &taskDist)) {
+	    if (!readDistribution(argv[i++], &taskDist)) {
 		outline(ERROROUT, "Invalid distribution type.");
 		exit(-1);
 	    }
@@ -452,12 +456,12 @@ int main(int argc, char *argv[])
 		    cur+18);
 	    handleExtraNodeInfo(cur+18, &cpuBindType);
 	} else if (!strcmp(cur, "-B")) {
-	    if (++i == argc) {
+	    if (i == argc) {
 		outline(ERROROUT, "Syntax error reading value for -B.");
 		exit(-1);
 	    }
 	    outline(DEBUGOUT, "Reading -B value: \"%s\"", argv[i]);
-	    handleExtraNodeInfo(argv[i], &cpuBindType);
+	    handleExtraNodeInfo(argv[i++], &cpuBindType);
 	} else if (!strcmp(cur, "--hint=nomultithread")) {
 	    outline(DEBUGOUT, "Read hint \"nomultithread\"");
 	    nomultithread = true;
