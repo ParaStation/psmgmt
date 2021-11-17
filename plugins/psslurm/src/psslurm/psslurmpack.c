@@ -2465,18 +2465,16 @@ bool __unpackSlurmMsg(Slurm_Msg_t *sMsg, const char *caller, const int line)
 
     sMsg->unpData = NULL;
 
-    if (sMsg->head.type == REQUEST_JOB_STEP_STAT ||
-	sMsg->head.type == REQUEST_JOB_STEP_PIDS) {
-	sMsg->unpData = ucalloc(sizeof(Slurm_Step_Head_t));
-	if (!unpackStepHead(&sMsg->ptr, sMsg->unpData, sMsg->head.version)) {
-	    ufree(sMsg->unpData);
-	    sMsg->unpData = NULL;
-	    return false;
-	}
-	return true;
-    }
-
     switch (sMsg->head.type) {
+	case REQUEST_JOB_STEP_STAT:
+	case REQUEST_JOB_STEP_PIDS:
+	    sMsg->unpData = ucalloc(sizeof(Slurm_Step_Head_t));
+	    if (!unpackStepHead(&sMsg->ptr, sMsg->unpData, sMsg->head.version)){
+		ufree(sMsg->unpData);
+		sMsg->unpData = NULL;
+		return false;
+	    }
+	    return true;
 	case REQUEST_LAUNCH_PROLOG:
 	    return unpackReqLaunchProlog(sMsg);
 	case REQUEST_LAUNCH_TASKS:
