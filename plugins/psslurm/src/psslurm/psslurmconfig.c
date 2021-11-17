@@ -884,16 +884,26 @@ static bool verifySlurmConf()
 
 	prologue = getConfValueC(&SlurmConfig, "PrologSlurmctld");
 	if (!prologue || prologue[0] == '\0') {
+	    flog("error: PrologSlurmctld is mandatory for psslurm\n");
+	    /*
 	    flog("error: Neither Prolog nor PrologSlurmctld is set "
 		 "in slurm.conf. A prolog is mandatory for psslurm\n");
+	    */
 	    return false;
 	}
     } else {
+	/* disable slurmd prologue for now, remove to activate it later */
+	flog("error: please use the PrologSlurmctld and disable Prolog in"
+	     " slurm.conf\n");
+	return false;
+
 	/* ensure the prologue is run at job allocation */
+	/*
 	if (!confHasOpt(&SlurmConfig, "PrologFlags", "Alloc")) {
 	    flog("error: option PrologFlags has Alloc not set in slurm.conf\n");
 	    return false;
 	}
+	*/
     }
 
     if (!getConfValueC(&Config, "SLURM_HOSTNAME")) {
