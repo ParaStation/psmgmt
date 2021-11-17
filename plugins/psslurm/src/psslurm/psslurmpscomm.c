@@ -2853,7 +2853,7 @@ void stopStepFollower(Step_t *step)
     /* send the messages */
     PSnodes_ID_t *nodes = step->nodes;
     uint32_t nrOfNodes = step->nrOfNodes;
-    if (step->packNrOfNodes) {
+    if (step->packNrOfNodes != NO_VAL) {
 	nodes = step->packNodes;
 	nrOfNodes = step->packNrOfNodes;
     }
