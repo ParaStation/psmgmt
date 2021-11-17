@@ -463,6 +463,11 @@ static void handleLaunchTasks(Slurm_Msg_t *sMsg)
     }
 
     Step_t *step = sMsg->unpData;
+    if (!step) {
+	flog("unpacking step failed\n");
+	sendSlurmRC(sMsg, ESLURMD_INVALID_JOB_CREDENTIAL);
+	return;
+    }
 
     /* verify job credential */
     if (!verifyStepData(step)) {
@@ -705,6 +710,11 @@ static void doSendTermKill(Req_Signal_Tasks_t *req)
 static void handleSignalTasks(Slurm_Msg_t *sMsg)
 {
     Req_Signal_Tasks_t *req = sMsg->unpData;
+    if (!req) {
+	flog("unpacking request signal tasks failed\n");
+	sendSlurmRC(sMsg, ESLURM_INVALID_JOB_ID);
+	return;
+    }
 
     req->uid = sMsg->head.uid;
 
@@ -851,6 +861,11 @@ static void handleReattachTasks(Slurm_Msg_t *sMsg)
 static void handleSuspendInt(Slurm_Msg_t *sMsg)
 {
     Req_Suspend_Int_t *req = sMsg->unpData;
+    if (!req) {
+	flog("unpacking request suspend int failed\n");
+	sendSlurmRC(sMsg, ESLURM_NOT_SUPPORTED);
+	return;
+    }
 
     switch (req->op) {
 	case SUSPEND_JOB:
@@ -1055,6 +1070,10 @@ static bool writeSlurmConfigFiles(Config_Msg_t *config, char *confDir)
 static void handleConfig(Slurm_Msg_t *sMsg)
 {
     Config_Msg_t *config = sMsg->unpData;
+    if (!config) {
+	flog("unpacking new conifguration failed\n");
+	return;
+    }
 
     /* check permissions */
     if (sMsg->head.uid != 0 && sMsg->head.uid != slurmUserID) {
@@ -1163,6 +1182,11 @@ static void handleJobId(Slurm_Msg_t *sMsg)
 static void handleFileBCast(Slurm_Msg_t *sMsg)
 {
     BCast_t *bcast = sMsg->unpData;
+    if (!bcast) {
+	flog("unpacking file bcast request failed\n");
+	sendSlurmRC(sMsg, ESLURM_INVALID_JOB_ID);
+	return;
+    }
     bcast->msg.sock = sMsg->sock;
 
     /* unpack credential */
@@ -1298,6 +1322,11 @@ static int addSlurmAccData(SlurmAccData_t *slurmAccData)
 static void handleStepStat(Slurm_Msg_t *sMsg)
 {
     Slurm_Step_Head_t *head = sMsg->unpData;
+    if (!head) {
+	flog("unpacking step stat request failed\n");
+	sendSlurmRC(sMsg, ESLURM_INVALID_JOB_ID);
+	return;
+    }
 
     Step_t *step = findStepByStepId(head->jobid, head->stepid);
     if (!step) {
@@ -1350,6 +1379,11 @@ static void handleStepStat(Slurm_Msg_t *sMsg)
 static void handleStepPids(Slurm_Msg_t *sMsg)
 {
     Slurm_Step_Head_t *head = sMsg->unpData;
+    if (!head) {
+	flog("unpacking step pids request failed\n");
+	sendSlurmRC(sMsg, ESLURM_INVALID_JOB_ID);
+	return;
+    }
 
     Step_t *step = findStepByStepId(head->jobid, head->stepid);
     if (!step) {
@@ -1486,6 +1520,12 @@ static void handleDaemonStatus(Slurm_Msg_t *sMsg)
 static void handleJobNotify(Slurm_Msg_t *sMsg)
 {
     Req_Job_Notify_t *req = sMsg->unpData;
+    if (!req) {
+	flog("unpacking job notify request failed\n");
+	sendSlurmRC(sMsg, ESLURM_INVALID_JOB_ID);
+	return;
+    }
+
     Job_t *job = findJobById(req->jobid);
     Step_t *step = findStepByStepId(req->jobid, req->stepid);
 
@@ -1615,6 +1655,11 @@ void sendPrologComplete(uint32_t jobid, uint32_t rc)
 static void handleLaunchProlog(Slurm_Msg_t *sMsg)
 {
     Req_Launch_Prolog_t *req = sMsg->unpData;
+    if (!req) {
+	flog("unpacking launch prolog request failed\n");
+	sendSlurmRC(sMsg, ESLURM_INVALID_JOB_ID);
+	return;
+    }
 
     fdbg(PSSLURM_LOG_PELOG, "jobid %u het-jobid %u uid %u gid %u alias %s"
 	 " nodes=%s partition=%s stdErr='%s' stdOut='%s' work-dir=%s user=%s\n",
@@ -1773,6 +1818,11 @@ static void handleBatchJobLaunch(Slurm_Msg_t *sMsg)
     malloc_trim(200);
 
     Job_t *job = sMsg->unpData;
+    if (!job) {
+	flog("unpacking batch job launch request failed\n");
+	sendSlurmRC(sMsg, ESLURMD_INVALID_JOB_CREDENTIAL);
+	return;
+    }
 
     /* convert slurm hostlist to PSnodes   */
     if (!convHLtoPSnodes(job->slurmHosts, getNodeIDbySlurmHost,
@@ -2102,6 +2152,11 @@ static void handleKillReq(Slurm_Msg_t *sMsg, Alloc_t *alloc, Kill_Info_t *info)
 static void handleTerminateReq(Slurm_Msg_t *sMsg)
 {
     Req_Terminate_Job_t *req = sMsg->unpData;
+    if (!req) {
+	flog("unpacking terminate request failed\n");
+	sendSlurmRC(sMsg, ESLURM_USER_ID_MISSING);
+	return;
+    }
 
     Step_t s = {
 	.jobid = req->jobid,
@@ -2210,6 +2265,10 @@ static void handleRespNodeReg(Slurm_Msg_t *sMsg)
     needNodeRegResp = false;
 
     tresDBconfig = sMsg->unpData;
+    if (!tresDBconfig) {
+	flog("unpacking response node reg failed\n");
+	return;
+    }
 
     /* don't free the data after this function */
     sMsg->unpData = NULL;
@@ -3183,6 +3242,10 @@ static int handleSlurmConf(Slurm_Msg_t *sMsg, void *info)
 	return 0;
     }
     Config_Msg_t *config = sMsg->unpData;
+    if (!config) {
+	flog("unpacking new configuration failed\n");
+	return 0;
+    }
 
     flog("successfully unpacked config msg\n");
 
