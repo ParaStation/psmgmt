@@ -3,6 +3,7 @@
  *
  * Copyright (C) 1999-2004 ParTec AG, Karlsruhe
  * Copyright (C) 2005-2021 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2021 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -431,9 +432,17 @@ static int handleAnswer(unsigned int firstRank, int count,
 	    }
 	}
 
-	if ((size_t)answer.header.len > sizeof(*errMsg)) {
+	if (answer.header.len > sizeof(*errMsg)) {
 	    size_t bufUsed = sizeof(*errMsg) - sizeof(answer.header);
 	    char *note = answer.buf + bufUsed;
+
+	    /* Ensure to only use valid buffer data as string */
+	    if (answer.header.len == sizeof(answer)) {
+		answer.buf[sizeof(answer.buf) - 1] = '\0';
+	    } else {
+		answer.buf[answer.header.len
+			   - offsetof(DDBufferMsg_t, buf)] = '\0';
+	    }
 
 	    if (note[strlen(note)-1] == '\n') note[strlen(note)-1] = '\0';
 	    if (note[strlen(note)-1] == '\r') note[strlen(note)-1] = '\0';
