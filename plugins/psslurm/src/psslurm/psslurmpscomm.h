@@ -12,6 +12,7 @@
 #define __PS_SLURM_PSCOMM
 
 #include <stdbool.h>
+#include <stdint.h>
 
 #include "list.h"
 
