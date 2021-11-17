@@ -6,6 +6,18 @@ Copyright (C) 2021 ParTec AG, Munich
 Please send bug reports, questions and suggestions to <support@par-tec.com>
 
 
+Version 5.1.45-2:
+=================
+Bugfixes:
+ - Don't wait for finalize message for tasks that could not be spawned (#45)
+ - Ensure heterogeneous steps will shutdown correctly if executable is missing
+ - Fix possbile segmentation fault if psslurm connections get re-used
+ - Ensure correct termination of error message
+Enhancements:
+ - Adapt visible copyright messages to ParTec AG
+ - Fix warnings emitted by clang13
+
+
 Version 5.1.45-1:
 =================
 Bugfixes:

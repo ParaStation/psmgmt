@@ -1,3 +1,43 @@
+Version psmgmt-5.1.45-2:
+========================
+------------------------------------------------------------------------
+12755bd7 | Norbert Eicker | Wed, 17 Nov 2021 10:37:41 +0100
+
+Prevent use of uninitialized buffer data
+------------------------------------------------------------------------
+f299b11d | Norbert Eicker | Wed, 17 Nov 2021 09:38:39 +0100
+
+Bugfix: ensure correct termination of error message
+------------------------------------------------------------------------
+96e08f50 | Norbert Eicker | Wed, 17 Nov 2021 09:38:22 +0100
+
+Fix includes
+------------------------------------------------------------------------
+25069d99 | Michael Rauh | Tue, 16 Nov 2021 18:01:12 +0100
+
+Bugfix: ensure heterogeneous steps will shutdown correctly in
+case of a missing executable error
+------------------------------------------------------------------------
+c5e98578 | Michael Rauh | Tue, 16 Nov 2021 16:51:26 +0100
+
+Bugfix: don't expect a finalize message for tasks that could
+not be spawned (#45)
+------------------------------------------------------------------------
+4e1e7f33 | Michael Rauh | Tue, 16 Nov 2021 15:55:56 +0100
+
+Bugfix: fix possbile segmentation fault if psslurm
+connections get re-used
+------------------------------------------------------------------------
+2edd5c51 | Norbert Eicker | Sun, 14 Nov 2021 23:04:16 +0100
+
+Fix warnings emitted by clang13
+------------------------------------------------------------------------
+7707c8f7 | Norbert Eicker | Sun, 7 Nov 2021 21:43:11 +0100
+
+Adapt visible copyright messages to ParTec AG
+------------------------------------------------------------------------
+
+
 Version psmgmt-5.1.45-1:
 ========================
 ------------------------------------------------------------------------
