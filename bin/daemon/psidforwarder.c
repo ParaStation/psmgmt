@@ -1119,7 +1119,11 @@ static void sendSpawnFailed(PStask_t *task, int eno)
 	ptr += read;
     } while (read && bufAvail);
 
-    if (!bufAvail) {
+    /* ensure error message is correctly terminated */
+    if (bufAvail) {
+	*ptr = '\0';
+	msg.header.len++;
+    } else {
 	msg.buf[sizeof(msg.buf) - 5] = '.';
 	msg.buf[sizeof(msg.buf) - 4] = '.';
 	msg.buf[sizeof(msg.buf) - 3] = '.';
