@@ -1071,7 +1071,7 @@ static void handleConfig(Slurm_Msg_t *sMsg)
 {
     Config_Msg_t *config = sMsg->unpData;
     if (!config) {
-	flog("unpacking new conifguration failed\n");
+	flog("unpacking new configuration failed\n");
 	return;
     }
 
