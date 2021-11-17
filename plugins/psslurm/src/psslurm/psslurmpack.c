@@ -2409,6 +2409,53 @@ static bool unpackReqLaunchProlog(Slurm_Msg_t *sMsg)
     return true;
 }
 
+/**
+ * @brief Unpack a job info response
+ *
+ * Unpack a job info response from the provided message pointer.
+ * The memory is allocated using umalloc(). The caller is responsible
+ * to free the memory using ufree().
+ *
+ * @param sMsg The message to unpack
+ *
+ * @return On success true is returned or false in case of an
+ * error. If reading was not successful, @a sMsg might be not updated.
+ */
+static bool unpackRespJobInfo(Slurm_Msg_t *sMsg)
+{
+    Resp_Job_Info_t *resp = ucalloc(sizeof(*resp));
+    char **ptr = &sMsg->ptr;
+
+    getUint32(ptr, &resp->numJobs);
+    getTime(ptr, &resp->lastUpdate);
+
+    resp->jobs = umalloc(sizeof(*(resp->jobs)) * resp->numJobs);
+
+    for (uint32_t i=0; i<resp->numJobs; i++) {
+	Slurm_Job_Rec_t *rec = &resp->jobs[i];
+
+	getUint32(ptr, &rec->arrayJobID);
+	getUint32(ptr, &rec->arrayTaskID);
+	rec->arrayTaskStr = getStringM(ptr);
+	getUint32(ptr, &rec->arrayMaxTasks);
+	getUint32(ptr, &rec->assocID);
+	getUint32(ptr, &rec->delayBoot);
+	getUint32(ptr, &rec->jobid);
+	getUint32(ptr, &rec->userID);
+	getUint32(ptr, &rec->groupID);
+	rec->hetJobIDset = getStringM(ptr);
+	getUint32(ptr, &rec->hetJobOffset);
+	getUint32(ptr, &rec->profile);
+	getUint32(ptr, &rec->jobState);
+	getUint16(ptr, &rec->batchFlag);
+    }
+
+    /* save in sMsg */
+    sMsg->unpData = resp;
+
+    return true;
+}
+
 bool __unpackSlurmMsg(Slurm_Msg_t *sMsg, const char *caller, const int line)
 {
     if (!sMsg) {
@@ -2456,6 +2503,8 @@ bool __unpackSlurmMsg(Slurm_Msg_t *sMsg, const char *caller, const int line)
 	    return unpackReqJobNotify(sMsg);
 	case RESPONSE_NODE_REGISTRATION:
 	    return unpackExtRespNodeReg(sMsg);
+	case RESPONSE_JOB_INFO:
+	    return unpackRespJobInfo(sMsg);
 	    /* nothing to unpack */
 	case REQUEST_COMPLETE_BATCH_SCRIPT:
 	case REQUEST_UPDATE_JOB_TIME:

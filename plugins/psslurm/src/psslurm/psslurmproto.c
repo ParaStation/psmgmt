@@ -385,6 +385,18 @@ static bool testSlurmVersion(uint32_t pVer, uint32_t cmd)
     return true;
 }
 
+static void freeRespJobInfo(Resp_Job_Info_t *resp)
+{
+    for (uint32_t i=0; i<resp->numJobs; i++) {
+	Slurm_Job_Rec_t *rec = &resp->jobs[i];
+
+	ufree(rec->arrayTaskStr);
+	ufree(rec->hetJobIDset);
+    }
+
+    ufree(resp);
+}
+
 /**
  * @brief Handle a job info response from slurmctld
  *
@@ -394,32 +406,29 @@ static bool testSlurmVersion(uint32_t pVer, uint32_t cmd)
  *
  * @return Always return 0
  */
-static int handleJobInfoResp(Slurm_Msg_t *msg, void *info)
+static int handleJobInfoResp(Slurm_Msg_t *sMsg, void *info)
 {
-    char **ptr = &msg->ptr;
-    uint32_t count;
-    time_t last;
+    Req_Info_t *req = info;
 
-    /* number of job records */
-    getUint32(ptr, &count);
-    /* last update */
-    getTime(ptr, &last);
+    if (!unpackSlurmMsg(sMsg)) {
+	flog("unpacking message %s (%u) for jobid %u failed\n",
+	     msgType2String(sMsg->head.type), sMsg->head.version, req->jobid);
+	return 0;
+    }
 
-    flog("received count: %u time %zu\n", count, last);
-    /* skip */
-    uint32_t tmp;
-    getUint32(ptr, &tmp);
-    getUint32(ptr, &tmp);
-    getStringM(ptr);
-    getUint32(ptr, &tmp);
-    getUint32(ptr, &tmp);
-    getUint32(ptr, &tmp);
+    Resp_Job_Info_t *resp = sMsg->unpData;
+    if (!resp) {
+	flog("invalid resp data\n");
+	return 0;
+    }
+    flog("received count: %u time %zu\n", resp->numJobs, resp->lastUpdate);
 
-    uint32_t jobid, userid;
-    getUint32(ptr, &jobid);
-    getUint32(ptr, &userid);
+    for (uint32_t i=0; i<resp->numJobs; i++) {
+	Slurm_Job_Rec_t *rec = &resp->jobs[i];
+	flog("jobid: %u userid %u\n", rec->jobid, rec->userID);
+    }
 
-    flog("jobid: %u userid %u\n", jobid, userid);
+    freeRespJobInfo(resp);
 
     return 0;
 }

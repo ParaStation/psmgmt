@@ -308,6 +308,31 @@ typedef struct {
     char *hostname;		/**< local hostname */
 } Req_Comp_Batch_Script_t;
 
+/** Holding information of a single Slurm job record */
+typedef struct {
+    uint32_t arrayJobID;
+    uint32_t arrayTaskID;
+    char *arrayTaskStr;
+    uint32_t arrayMaxTasks;
+    uint32_t assocID;
+    uint32_t delayBoot;
+    uint32_t jobid;
+    uint32_t userID;
+    uint32_t groupID;
+    char *hetJobIDset;
+    uint32_t hetJobOffset;
+    uint32_t profile;
+    uint32_t jobState;
+    uint16_t batchFlag;
+} Slurm_Job_Rec_t;
+
+/** Holding all information for RPC RESPONSE_JOB_INFO */
+typedef struct {
+    uint32_t numJobs;	    /** number of job records */
+    time_t lastUpdate;	    /** last time the data was updated */
+    Slurm_Job_Rec_t *jobs;  /** the job infos */
+} Resp_Job_Info_t;
+
 /** Slurm protocol version */
 extern uint32_t slurmProto;
 
