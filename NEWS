@@ -6,6 +6,12 @@ Copyright (C) 2021 ParTec AG, Munich
 Please send bug reports, questions and suggestions to <support@par-tec.com>
 
 
+Version 5.1.45-3:
+=================
+Bugfixes:
+ - Ensure to use the correct nodelist for shutting down step forwarders
+
+
 Version 5.1.45-2:
 =================
 Bugfixes:
