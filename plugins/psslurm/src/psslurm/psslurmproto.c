@@ -778,19 +778,18 @@ static void sendReattchReply(Step_t *step, Slurm_Msg_t *sMsg)
     addStringToMsg(getConfValueC(&Config, "SLURM_HOSTNAME"), reply);
     /* return code */
     addUint32ToMsg(SLURM_SUCCESS, reply);
-
-    list_t *t;
-    uint32_t numTasks = step->globalTaskIdsLen[step->localNodeId];
     /* number of tasks */
+    uint32_t numTasks = step->globalTaskIdsLen[step->localNodeId];
     addUint32ToMsg(numTasks, reply);
     /* gtids */
     addUint32ArrayToMsg(step->globalTaskIds[step->localNodeId],
 			numTasks, reply);
     /* local pids */
     uint32_t countPos = reply->bufUsed;
-    addUint32ToMsg(0, reply);
+    addUint32ToMsg(0, reply); /* placeholder -- to be filled later */
 
     uint32_t countPIDS = 0;
+    list_t *t;
     list_for_each(t, &step->tasks) {
 	PS_Tasks_t *task = list_entry(t, PS_Tasks_t, next);
 	if (task->childRank >= 0) {
