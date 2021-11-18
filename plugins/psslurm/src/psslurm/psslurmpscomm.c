@@ -2847,6 +2847,11 @@ void stopStepFollower(Step_t *step)
 	.type = PSP_STOP_STEP_FW,
 	.buf = {'\0'} };
 
+    if (!step) {
+	flog("no step provided\n");
+	return;
+    }
+
     PSP_putTypedMsgBuf(&msg, "jobid", &step->jobid, sizeof(step->jobid));
     PSP_putTypedMsgBuf(&msg, "stepid", &step->stepid, sizeof(step->stepid));
 
