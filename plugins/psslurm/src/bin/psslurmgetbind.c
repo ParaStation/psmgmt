@@ -291,6 +291,49 @@ uint16_t socketCount = 0;
 uint16_t coresPerSocket = 0;
 uint16_t threadsPerCore = 0;
 
+short *cpumap = NULL;
+size_t cpumap_size;
+size_t cpumap_maxsize;
+
+static bool addCPUmapEnt(char *token)
+{
+    char *end;
+    int val = (int)strtol(token, &end, 0);
+    if (*end) {
+	outline(ERROROUT, "Invalid cpumap entry.");
+	return false;
+    }
+
+    if (cpumap == NULL) {
+	cpumap_maxsize = 16;
+	cpumap = malloc(cpumap_maxsize * sizeof(*cpumap));
+    } else if (cpumap_size == cpumap_maxsize) {
+	cpumap_maxsize *= 2;
+	cpumap = realloc(cpumap, cpumap_maxsize * sizeof(*cpumap));
+    }
+    if (cpumap == NULL) {
+	outline(ERROROUT, "No memory for cpumap.");
+	return false;
+    }
+    cpumap[cpumap_size] = val;
+    cpumap_size++;
+
+    return true;
+}
+
+static bool parse_cpumap(char *mapStr, size_t threadCount)
+{
+    char *delim = "\n ,";
+    for (char *tok = strtok(mapStr, delim); tok; tok = strtok(NULL, delim)) {
+	if (!addCPUmapEnt(tok)) return false;
+    }
+    if (cpumap_size != threadCount) {
+	outline(ERROROUT, "Length of cpumap does not match total threads.");
+	return false;
+    }
+    return true;
+}
+
 int main(int argc, char *argv[])
 {
 
@@ -345,14 +388,36 @@ int main(int argc, char *argv[])
 	    continue;
 	}
 
+	if (!strcmp(cur, "--cpumap") || !strcmp(cur, "-M")) {
+	    if (i == argc) {
+		outline(ERROROUT, "Missing argument");
+		return -1;
+	    }
+	    if (!parse_cpumap(argv[i++], threadCount)) return -1;
+	    continue;
+	}
+
 	if (!strcmp(cur, ":")) {
 	    break;
+	}
+    }
+
+    if (!cpumap) {
+	char *mapStr = getenv("__PSI_CPUMAP");
+	if (mapStr) {
+	    outline(INFOOUT, "Environment sets cpumap (__PSI_CPUMAP).");
+	    if (!parse_cpumap(mapStr, threadCount)) return -1;
 	}
     }
 
     outline(INFOOUT, "node: %hu sockets, %hu cores per socket,"
 	    " %hu threads per core, %zu threads in total",
 	    socketCount, coresPerSocket, threadsPerCore, threadCount);
+
+    if (humanreadable && cpumap) {
+	outline(ERROROUT, "Warning: --human-readable and --cpumap used together"
+		" probably makes no sense.");
+    }
 
     if (printmembind) {
 	int maxnodes = sizeof(*((struct bitmask *)0)->maskp) * 8;
@@ -500,6 +565,16 @@ int main(int argc, char *argv[])
     outline(INFOOUT, "cpuBindType = 0x%X - cpuBindString = \"%s\"", cpuBindType,
 	    cpuBindString);
     outline(INFOOUT, "taskDist = 0x%X", taskDist);
+    if (cpumap) {
+	    size_t maxout = threadCount * 4;
+	    char out[maxout];
+	    char *ptr = out;
+	    ptr += snprintf(ptr, maxout, "cpumap: ");
+	    for (size_t i = 0; i < cpumap_size; i++) {
+		ptr += snprintf(ptr, maxout - (out - ptr), "%d ", cpumap[i]);
+	    }
+	    outline(INFOOUT, out);
+    }
     outline(INFOOUT, "");
 
     if (!readConfigFile()) {
@@ -509,7 +584,8 @@ int main(int argc, char *argv[])
 
     test_pinning(socketCount, coresPerSocket, threadsPerCore, tasksPerNode,
 		 threadsPerTask, cpuBindType, cpuBindString, taskDist,
-		 memBindType, memBindString, &env, humanreadable, printmembind);
+		 memBindType, memBindString, &env, humanreadable, printmembind,
+		 cpumap);
 }
 
 

@@ -2331,7 +2331,7 @@ void test_pinning(uint16_t socketCount, uint16_t coresPerSocket,
 	uint16_t threadsPerCore, uint32_t tasksPerNode, uint16_t threadsPerTask,
 	uint16_t cpuBindType, char *cpuBindString, uint32_t taskDist,
 	uint16_t memBindType, char *memBindString, env_t *env,
-	bool humanreadable, bool printmembind)
+	bool humanreadable, bool printmembind, short cpumap[])
 {
 
     uint32_t threadCount = socketCount * coresPerSocket * threadsPerCore;
@@ -2394,6 +2394,24 @@ void test_pinning(uint16_t socketCount, uint16_t coresPerSocket,
 
 	setCPUset(&CPUset, cpuBindType, cpuBindString, &nodeinfo, &lastCpu,
 		&thread, tasksPerNode, threadsPerTask, local_tid, &pininfo);
+
+	if (cpumap) {
+	    PSCPU_set_t mappedSet;
+	    PSCPU_clrAll(mappedSet);
+	    for (uint16_t thrd = 0; thrd < threadCount; thrd++) {
+		if (PSCPU_isSet(CPUset, thrd)) {
+		    int16_t mappedThrd = -1;
+		    mappedThrd = cpumap[thrd];
+		    if (mappedThrd < 0 || (size_t)mappedThrd >= threadCount) {
+			flog("Mapping CPU %d->%d out of range. No pinning\n",
+				thrd, mappedThrd);
+			continue;
+		    }
+		    PSCPU_setCPU(mappedSet, mappedThrd);
+		}
+	    }
+	    PSCPU_copy(CPUset, mappedSet);
+	}
 
 	printf("%2u: ", local_tid);
 	if (humanreadable) {
