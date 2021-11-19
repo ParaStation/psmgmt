@@ -2602,6 +2602,40 @@ static bool unpackReqLaunchProlog(Slurm_Msg_t *sMsg)
 }
 
 /**
+ * @brief Unpack a reboot nodes request
+ *
+ * Unpack a reboot nodes request from the provided message pointer.
+ * The memory is allocated using umalloc(). The caller is responsible
+ * to free the memory using ufree().
+ *
+ * @param sMsg The message to unpack
+ *
+ * @return On success true is returned or false in case of an
+ * error. If reading was not successful, @a sMsg might be not updated.
+ */
+static bool unpackRebootNodes(Slurm_Msg_t *sMsg)
+{
+    Req_Reboot_Nodes_t *req = ucalloc(sizeof(*req));
+    char **ptr = &sMsg->ptr;
+
+    /* features */
+    req->features = getStringM(ptr);
+    /* flags */
+    getUint16(ptr, &req->flags);
+    /* next state */
+    getUint32(ptr, &req->nextState);
+    /* node-list */
+    req->nodeList = getStringM(ptr);
+    /* reason */
+    req->reason = getStringM(ptr);
+
+    /* save in sMsg */
+    sMsg->unpData = req;
+
+    return true;
+}
+
+/**
  * @brief Unpack a job info response
  *
  * Unpack a job info response from the provided message pointer.
@@ -2696,12 +2730,13 @@ bool __unpackSlurmMsg(Slurm_Msg_t *sMsg, const char *caller, const int line)
 	    return unpackExtRespNodeReg(sMsg);
 	case RESPONSE_JOB_INFO:
 	    return unpackRespJobInfo(sMsg);
+	case REQUEST_REBOOT_NODES:
+	    return unpackRebootNodes(sMsg);
 	    /* nothing to unpack */
 	case REQUEST_COMPLETE_BATCH_SCRIPT:
 	case REQUEST_UPDATE_JOB_TIME:
 	case REQUEST_SHUTDOWN:
 	case REQUEST_RECONFIGURE:
-	case REQUEST_REBOOT_NODES:
 	case REQUEST_NODE_REGISTRATION_STATUS:
 	case REQUEST_PING:
 	case REQUEST_HEALTH_CHECK:

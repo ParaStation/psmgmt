@@ -1131,16 +1131,82 @@ static void handleConfig(Slurm_Msg_t *sMsg)
     /* slurmctld does not expect an answer for RPC */
 }
 
+/**
+ * @brief Callback of the reboot program
+ *
+ * @param fd The file descriptor to read the result
+ *
+ * @param info cmdline of the reboot program called
+ *
+ * @return Always returns 0
+ */
+static int cbRebootProgram(int fd, PSID_scriptCBInfo_t *info)
+{
+    StrBuffer_t *cmdline = info->info;
+    char errMsg[1024];
+    int32_t exit = 0;
+    size_t errLen = 0;
+
+    getScriptCBdata(fd, info, &exit, errMsg, sizeof(errMsg), &errLen);
+
+    flog("'%s' returned exit status %i\n",
+	 (cmdline ? cmdline->buf : "reboot program"), exit);
+
+    if (errMsg[0] != '\0') flog("reboot error message: %s\n", errMsg);
+
+    if (cmdline) {
+	freeStrBuf(cmdline);
+    }
+    ufree(info);
+
+    /* TODO: should psslurm shutdown in case the reboot fails?
+     * vanilla does this to draw the attention to the offline node.
+     * Alternative psslurm could set the node offline with a
+     * reason that the reboot failed */
+
+    return 0;
+}
+
 static void handleRebootNodes(Slurm_Msg_t *sMsg)
 {
     /* check permissions */
     if (sMsg->head.uid != 0 && sMsg->head.uid != slurmUserID) {
-	mlog("%s: request from invalid user %u\n", __func__, sMsg->head.uid);
+	flog("request from invalid user %u\n", sMsg->head.uid);
 	sendSlurmRC(sMsg, ESLURM_USER_ID_MISSING);
 	return;
     }
 
-    sendSlurmRC(sMsg, ESLURM_NOT_SUPPORTED);
+    char *prog = getConfValueC(&SlurmConfig, "RebootProgram");
+    if (!prog) {
+	flog("error: RebootProgram is not set in slurm.conf\n");
+	return;
+    }
+
+    Req_Reboot_Nodes_t *req = sMsg->unpData;
+    if (!req) {
+	flog("unpacking node reboot request failed\n");
+	return;
+    }
+
+    /* execute reboot program */
+    StrBuffer_t cmdline = { .buf = NULL };
+    addStrBuf(trim(prog), &cmdline);
+
+    if (access(cmdline.buf, R_OK | X_OK) < 0) {
+	flog("invalid permissions for reboot program %s\n", cmdline.buf);
+	freeStrBuf(&cmdline);
+	return;
+    }
+
+    if (req->features && req->features[0]) {
+	addStrBuf(" ", &cmdline);
+	addStrBuf(req->features, &cmdline);
+    }
+
+    flog("calling reboot program '%s'\n", cmdline.buf);
+    PSID_execScript(cmdline.buf, NULL, &cbRebootProgram, &cmdline);
+
+    /* slurmctld does not expect an answer for RPC */
 }
 
 static void handleHealthCheck(Slurm_Msg_t *sMsg)

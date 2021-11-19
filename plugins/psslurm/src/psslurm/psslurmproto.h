@@ -339,10 +339,20 @@ typedef struct {
 
 /** Holding all information for RPC RESPONSE_JOB_INFO */
 typedef struct {
-    uint32_t numJobs;	    /** number of job records */
-    time_t lastUpdate;	    /** last time the data was updated */
-    Slurm_Job_Rec_t *jobs;  /** the job infos */
+    uint32_t numJobs;	    /**< number of job records */
+    time_t lastUpdate;	    /**< last time the data was updated */
+    Slurm_Job_Rec_t *jobs;  /**< the job infos */
 } Resp_Job_Info_t;
+
+/** Holding all information for RPC REQUEST_REBOOT_NODES */
+typedef struct {
+    uint16_t flags;	    /**< ignored in psslurm */
+    uint32_t nextState;	    /**< ignored in psslurm */
+    char *nodeList;	    /**< ignored in psslurm */
+    char *reason;	    /**< ignored in psslurm */
+    char *features;	    /**< node features also used for cmdline
+				 arguments of reboot program */
+} Req_Reboot_Nodes_t;
 
 /** Slurm protocol version */
 extern uint32_t slurmProto;
