@@ -2400,8 +2400,7 @@ void test_pinning(uint16_t socketCount, uint16_t coresPerSocket,
 	    PSCPU_clrAll(mappedSet);
 	    for (uint16_t thrd = 0; thrd < threadCount; thrd++) {
 		if (PSCPU_isSet(CPUset, thrd)) {
-		    int16_t mappedThrd = -1;
-		    mappedThrd = cpumap[thrd];
+		    int16_t mappedThrd = cpumap[thrd];
 		    if (mappedThrd < 0 || (size_t)mappedThrd >= threadCount) {
 			flog("Mapping CPU %d->%d out of range. No pinning\n",
 				thrd, mappedThrd);

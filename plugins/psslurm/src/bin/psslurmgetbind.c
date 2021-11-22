@@ -566,7 +566,7 @@ int main(int argc, char *argv[])
 	    cpuBindString);
     outline(INFOOUT, "taskDist = 0x%X", taskDist);
     if (cpumap) {
-	    size_t maxout = threadCount * 4;
+	    size_t maxout = 8 + threadCount * 4;
 	    char out[maxout];
 	    char *ptr = out;
 	    ptr += snprintf(ptr, maxout, "cpumap: ");
