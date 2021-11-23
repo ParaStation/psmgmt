@@ -625,6 +625,26 @@ static bool saveCtldHost(char *confVal)
     return true;
 }
 
+static void parseSlurmdParam(char *param)
+{
+    char *toksave, *next;
+    const char delimiters[] =" \t\n";
+
+    next = strtok_r(param, delimiters, &toksave);
+    while (next) {
+	if (!strcasecmp(next, "config_overrides")) {
+	    addConfigEntry(&Config, "SLURMD_CONF_OVERRIDES", "true");
+	}
+	if (!strcasecmp(next, "l3cache_as_socket")) {
+	    addConfigEntry(&Config, "SLURMD_L3CACHE_AS_SOCK", "true");
+	}
+	if (!strcasecmp(next, "shutdown_on_reboot")) {
+	    addConfigEntry(&Config, "SLURMD_SHUTDOWN_ON_REBOOT", "true");
+	}
+	next = strtok_r(NULL, delimiters, &toksave);
+    }
+}
+
 /**
  * @brief Parse a Slurm configuration pair
  *
@@ -659,6 +679,8 @@ static bool parseSlurmConf(char *key, char *value, const void *info)
 	if (!saveCtldHost(value)) {
 	    return true; /* an error occurred, return true to stop parsing */
 	}
+    } else if (!strcmp(key, "SlurmdParameters")) {
+	parseSlurmdParam(value);
     }
     /* parsing was successful, continue with next line */
     return false;
