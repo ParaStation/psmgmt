@@ -1159,10 +1159,11 @@ static int cbRebootProgram(int fd, PSID_scriptCBInfo_t *info)
     }
     ufree(info);
 
-    /* TODO: should psslurm shutdown in case the reboot fails?
-     * vanilla does this to draw the attention to the offline node.
-     * Alternative psslurm could set the node offline with a
-     * reason that the reboot failed */
+    char *shutdown = getConfValueC(&Config, "SLURMD_SHUTDOWN_ON_REBOOT");
+    if (shutdown) {
+	flog("unloading psslurm after reboot program\n");
+	PSIDplugin_finalize("psslurm");
+    }
 
     return 0;
 }
