@@ -70,6 +70,18 @@ typedef struct {
 BCast_t *addBCast(void);
 
 /**
+ * @brief Extract and verify a BCast credential
+ *
+ * @param sMsg The message to unpack
+ *
+ * @param bcast The BCast structure holding the result
+ *
+ * @return On success true is returned or false in case of an
+ * error.
+ */
+bool extractBCastCred(Slurm_Msg_t *sMsg, BCast_t *bcast);
+
+/**
  * @brief Find a BCast request
  *
  * @param jobid The jobid of the request to find

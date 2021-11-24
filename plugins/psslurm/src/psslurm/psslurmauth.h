@@ -89,18 +89,6 @@ bool verifyStepData(Step_t *step);
 bool verifyJobData(Job_t *job);
 
 /**
- * @brief Extract and verify a BCast credential
- *
- * @param sMsg The message to unpack
- *
- * @param bcast The BCast structure holding the result
- *
- * @return On success true is returned or false in case of an
- * error.
- */
-bool extractBCastCred(Slurm_Msg_t *sMsg, BCast_t *bcast);
-
-/**
  * @brief Test if the user ID is authorized
  *
  * @param userID The user ID to verify
