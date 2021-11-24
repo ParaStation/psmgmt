@@ -12,18 +12,18 @@
 #define __PS_PSSLURM_JOB
 
 #include <stdbool.h>
+#include <stdint.h>
+#include <sys/types.h>
 
 #include "list.h"
 #include "psenv.h"
 #include "psnodes.h"
 #include "pstask.h"
 
-#include "psslurmgres.h"
-#include "psslurmmsg.h"
+#include "pluginforwarder.h"
+
 #include "psslurmjobcred.h"
 #include "psslurmstep.h"
-
-#include "pluginforwarder.h"
 
 typedef struct {
     list_t next;            /**< used to put into some job-lists */
@@ -107,6 +107,19 @@ void clearJobList(void);
  * @return Returns the newly created job
  */
 Job_t *addJob(uint32_t jobid);
+
+/**
+ * @brief Verify job information
+ *
+ * Perform various tests to verify the job information is
+ * valid.
+ *
+ * @param job Pointer to the job
+ *
+ * @return On success true is returned or false in case of an
+ * error.
+ */
+bool verifyJobData(Job_t *job);
 
 /**
  * @brief Find a job identified by its job id

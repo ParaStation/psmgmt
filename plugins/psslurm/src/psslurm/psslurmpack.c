@@ -16,9 +16,10 @@
 #include "psidtask.h"
 
 #include "psslurmlog.h"
-#include "psslurmpack.h"
 #include "psslurmpscomm.h"
 #include "psslurmconfig.h"
+
+#include "psslurmpack.h"
 
 #undef DEBUG_MSG_HEADER
 

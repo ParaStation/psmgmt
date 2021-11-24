@@ -8,9 +8,12 @@
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
+#include "psslurmstep.h"
+
 #include <signal.h>
 
 #include "pscommon.h"
+#include "pluginhelper.h"
 #include "pluginmalloc.h"
 #include "psidsignal.h"
 
@@ -19,12 +22,11 @@
 
 #include "psslurmio.h"
 #include "psslurmlog.h"
+#include "psslurmbcast.h"
 #include "psslurmcomm.h"
 #include "psslurmpscomm.h"
 #include "psslurmproto.h"
 #include "psslurmenv.h"
-
-#include "psslurmstep.h"
 
 /** List of all steps */
 static LIST_HEAD(StepList);
@@ -59,6 +61,85 @@ Step_t *addStep(void)
     list_add_tail(&step->next, &StepList);
 
     return step;
+}
+
+bool verifyStepData(Step_t *step)
+{
+    JobCred_t *cred = step->cred;
+    if (!cred) {
+	flog("no credential for %s\n", strStepID(step));
+	return false;
+    }
+    /* job ID */
+    if (step->jobid != cred->jobid) {
+	flog("mismatching jobid %u vs %u\n", step->jobid, cred->jobid);
+	return false;
+    }
+    /* step ID */
+    if (step->stepid != cred->stepid) {
+	flog("mismatching stepid %u vs %u\n", step->stepid, cred->stepid);
+	return false;
+    }
+    /* user ID */
+    if (step->uid != cred->uid) {
+	flog("mismatching uid %u vs %u\n", step->uid, cred->uid);
+	return false;
+    }
+    /* group ID */
+    if (step->gid != cred->gid) {
+	flog("mismatching gid %u vs %u\n", step->gid, cred->gid);
+	return false;
+    }
+    /* resolve empty username (needed since 17.11) */
+    if (!step->username || step->username[0] == '\0') {
+	ufree(step->username);
+	step->username = uid2String(step->uid);
+	if (!step->username) {
+	    flog("unable to resolve user ID %i\n", step->uid);
+	    return false;
+	}
+    }
+    /* username */
+    if (cred->username && cred->username[0] != '\0' &&
+	strcmp(step->username, cred->username)) {
+	flog("mismatching username '%s' - '%s'\n", step->username,
+	     cred->username);
+	return false;
+    }
+    /* group IDs */
+    if (!step->gidsLen && cred->gidsLen) {
+	/* 19.05: group IDs are not transmitted via launch request anymore,
+	 * has be set from credential */
+	ufree(step->gids);
+	step->gids = umalloc(sizeof(*step->gids) * cred->gidsLen);
+	for (uint32_t i = 0; i < cred->gidsLen; i++) {
+	    step->gids[i] = cred->gids[i];
+	}
+	step->gidsLen = cred->gidsLen;
+    } else {
+	if (step->gidsLen != cred->gidsLen) {
+	    flog("mismatching gids length %u : %u\n", step->gidsLen,
+		 cred->gidsLen);
+	    return false;
+	}
+	for (uint32_t i = 0; i < cred->gidsLen; i++) {
+	    if (cred->gids[i] != step->gids[i]) {
+		flog("mismatching gid[%i] %u : %u\n", i, step->gids[i],
+		     cred->gids[i]);
+		return false;
+	    }
+	}
+    }
+
+    /* host-list */
+    if (strcmp(step->slurmHosts, cred->stepHL)) {
+	flog("mismatching host-list '%s' - '%s'\n", step->slurmHosts,
+	     cred->stepHL);
+	return false;
+    }
+
+    fdbg(PSSLURM_LOG_AUTH, "%s success\n", strStepID(step));
+    return true;
 }
 
 Step_t *findStepByStepId(uint32_t jobid, uint32_t stepid)

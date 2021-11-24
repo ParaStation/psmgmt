@@ -203,6 +203,19 @@ typedef struct {
 Step_t *addStep(void);
 
 /**
+ * @brief Verify step information
+ *
+ * Perform various tests to verify the step information is
+ * valid.
+ *
+ * @param step Pointer to the step
+ *
+ * @return On success true is returned or false in case of an
+ * error.
+ */
+bool verifyStepData(Step_t *step);
+
+/**
  * @brief Delete a step
  *
  * @param jobid The jobid of the step to delete

@@ -8,6 +8,8 @@
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
+#include "psslurmalloc.h"
+
 #include <time.h>
 #include <stdlib.h>
 
@@ -22,11 +24,10 @@
 #include "peloguehandles.h"
 
 #include "psslurmlog.h"
+#include "psslurmbcast.h"
 #include "psslurmenv.h"
 #include "psslurmpscomm.h"
 #include "psslurmproto.h"
-
-#include "psslurmalloc.h"
 
 /** List of all allocations */
 static LIST_HEAD(AllocList);

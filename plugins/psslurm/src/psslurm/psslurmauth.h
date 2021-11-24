@@ -14,10 +14,7 @@
 #include <stdbool.h>
 #include <sys/types.h>
 
-#include "psslurmjob.h"
-#include "psserial.h"
-#include "psslurmcomm.h"
-#include "psslurmbcast.h"
+#include "psslurmmsg.h"
 
 /**
  * @brief Generate a Slurm authentication
@@ -61,32 +58,6 @@ Slurm_Auth_t *dupSlurmAuth(Slurm_Auth_t *auth);
  * error.
  */
 bool extractSlurmAuth(Slurm_Msg_t *sMsg);
-
-/**
- * @brief Verify step information
- *
- * Perform various tests to verify the step information is
- * valid.
- *
- * @param step Pointer to the step
- *
- * @return On success true is returned or false in case of an
- * error.
- */
-bool verifyStepData(Step_t *step);
-
-/**
- * @brief Verify job information
- *
- * Perform various tests to verify the job information is
- * valid.
- *
- * @param job Pointer to the job
- *
- * @return On success true is returned or false in case of an
- * error.
- */
-bool verifyJobData(Job_t *job);
 
 /**
  * @brief Test if the user ID is authorized

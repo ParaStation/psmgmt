@@ -16,6 +16,7 @@
 
 #include "psserial.h"
 #include "psslurmauth.h"
+#include "psslurmbcast.h"
 #include "psslurmio.h"
 #include "psslurmproto.h"
 #include "psslurmjob.h"
