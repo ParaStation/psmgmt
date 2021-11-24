@@ -16,6 +16,12 @@
 
 #include "psslurmmsg.h"
 
+/** structure holding a Slurm authentication */
+typedef struct {
+    char *cred;		/**< authentication credential */
+    uint32_t pluginID;	/**< plugin used for authentication */
+} Slurm_Auth_t;
+
 /**
  * @brief Generate a Slurm authentication
  *

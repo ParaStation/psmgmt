@@ -22,12 +22,6 @@
 #include "psserial.h"
 #include "slurmmsg.h"
 
-/** structure holding a Slurm authentication */
-typedef struct {
-    char *cred;		/**< authentication credential */
-    uint32_t pluginID;	/**< plugin used for authentication */
-} Slurm_Auth_t;
-
 /** holding Slurm forward tree results */
 typedef struct {
     uint32_t error;		/**< possible forward error */
@@ -69,6 +63,8 @@ typedef struct {
     void *unpData;		/**< holding the unpacked message payload */
     time_t recvTime;		/**< time the message was received */
 } Slurm_Msg_t;
+
+#include "psslurmauth.h"
 
 typedef struct {
     Slurm_Auth_t *auth;		/**< Slurm authentication */

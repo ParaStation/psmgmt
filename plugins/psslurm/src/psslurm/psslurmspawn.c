@@ -22,10 +22,10 @@
 
 #include "slurmcommon.h"
 #include "psslurmlog.h"
-#include "psslurmauth.h"
 #include "psslurmcomm.h"
-#include "psslurmspawn.h"
 #include "psslurmlog.h"
+
+#include "psslurmspawn.h"
 
 #define SRUN_BINARY "/usr/bin/srun"
 

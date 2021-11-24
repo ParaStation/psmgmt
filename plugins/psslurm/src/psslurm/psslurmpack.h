@@ -15,13 +15,15 @@
 #include <stdbool.h>
 
 #include "psserial.h"
+
+#include "psslurmmsg.h"
 #include "psslurmauth.h"
+#include "psslurmjobcred.h"
 #include "psslurmbcast.h"
 #include "psslurmio.h"
+#include "psslurmcomm.h"
 #include "psslurmproto.h"
-#include "psslurmjob.h"
 #include "psslurmaccount.h"
-#include "psaccounttypes.h"
 
 /**
  * @brief Pack a Slurm authentication
