@@ -7,7 +7,6 @@
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-
 #include <ctype.h>
 #include <stdlib.h>
 #include <string.h>
@@ -44,6 +43,7 @@ void freeJobCred(JobCred_t *cred)
     ufree(cred->jobMemAllocRepCount);
     ufree(cred->stepMemAlloc);
     ufree(cred->stepMemAllocRepCount);
+    ufree(cred->SELinuxContext);
     ufree(cred);
 }
 
