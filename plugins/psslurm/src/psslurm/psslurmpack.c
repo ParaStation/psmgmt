@@ -64,17 +64,17 @@ static char *__getBitString(char **ptr, const char *func, const int line)
     }
     return bitStr;
 }
-
 #define getBitString(ptr) __getBitString(ptr, __func__, __LINE__)
 
 static bool __getBool(char **ptr, bool *val, const char *func, const int line)
 {
     uint8_t tmp;
-    bool ret = getFromBuf(ptr, &tmp, PSDATA_UINT8, sizeof(tmp), func, line);
-    *val = tmp;
-    return ret;
+    if (getFromBuf(ptr, &tmp, PSDATA_UINT8, sizeof(tmp), func, line) && val) {
+	*val = tmp;
+	return true;
+    }
+    return false;
 }
-
 #define getBool(ptr, val) __getBool(ptr, val, __func__, __LINE__)
 
 static void packOldStepID(uint32_t stepid, PS_SendDB_t *data)
