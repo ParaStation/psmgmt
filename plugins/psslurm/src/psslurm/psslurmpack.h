@@ -11,7 +11,6 @@
 #ifndef __PS_SLURM_PACK
 #define __PS_SLURM_PACK
 
-#include <netinet/in.h>
 #include <stdbool.h>
 
 #include "psserial.h"

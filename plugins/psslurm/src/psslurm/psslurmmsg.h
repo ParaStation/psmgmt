@@ -11,6 +11,7 @@
 #ifndef __PSSLURM_MESSAGE
 #define __PSSLURM_MESSAGE
 
+#include <stdbool.h>
 #include <stdint.h>
 #include <time.h>
 #include <sys/types.h>
