@@ -2,6 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2014-2019 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2021 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -11,8 +12,8 @@
 #define __PS_SLURM_AUTH
 
 #include <stdbool.h>
+#include <sys/types.h>
 
-#include "list.h"
 #include "psslurmjob.h"
 #include "psserial.h"
 #include "psslurmcomm.h"
@@ -86,31 +87,6 @@ bool verifyStepData(Step_t *step);
  * error.
  */
 bool verifyJobData(Job_t *job);
-
-/**
- * @brief Extract and verify a job credential
- *
- * Extract and verify a job credential including the embedded
- * GRes credential from the provided message pointer and add it
- * to the list of credentials @a gresList.
- *
- * @param gresList List of GRes credential structures the included
- * GRes credential will be appended to
- *
- * @param sMsg The message to unpack
- *
- * @param verify If true verify the data using psmunge
- *
- * @return Returns the extracted job credential or NULL on error
- */
-JobCred_t *extractJobCred(list_t *gresList, Slurm_Msg_t *sMsg, bool verify);
-
-/**
- * @brief Free a job credential
- *
- * @param Pointer to the job credential
- */
-void freeJobCred(JobCred_t *cred);
 
 /**
  * @brief Extract and verify a BCast credential

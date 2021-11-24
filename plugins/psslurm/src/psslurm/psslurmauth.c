@@ -2,6 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2014-2021 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2021 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -11,9 +12,9 @@
 #include <stdlib.h>
 #include <errno.h>
 
-#include "psmungehandles.h"
-#include "pluginmalloc.h"
 #include "pluginhelper.h"
+#include "pluginmalloc.h"
+#include "psmungehandles.h"
 #include "slurmcommon.h"
 
 #include "psslurm.h"
@@ -347,96 +348,4 @@ ERROR:
     free(sigBuf);
     errno = eno;
     return false;
-}
-
-void freeJobCred(JobCred_t *cred)
-{
-    if (!cred) return;
-
-    ufree(cred->username);
-    ufree(cred->gids);
-    ufree(cred->coresPerSocket);
-    ufree(cred->socketsPerNode);
-    ufree(cred->nodeRepCount);
-    ufree(cred->stepHL);
-    ufree(cred->jobCoreBitmap);
-    ufree(cred->stepCoreBitmap);
-    ufree(cred->jobHostlist);
-    ufree(cred->jobConstraints);
-    ufree(cred->sig);
-    ufree(cred->pwGecos);
-    ufree(cred->pwShell);
-    ufree(cred->pwDir);
-    ufree(cred->gidNames);
-    ufree(cred->jobMemAlloc);
-    ufree(cred->jobMemAllocRepCount);
-    ufree(cred->stepMemAlloc);
-    ufree(cred->stepMemAllocRepCount);
-    ufree(cred);
-}
-
-JobCred_t *extractJobCred(list_t *gresList, Slurm_Msg_t *sMsg, bool verify)
-{
-    char *credStart = sMsg->ptr, *credEnd, *sigBuf = NULL;
-    JobCred_t *cred = NULL;
-    int sigBufLen, credLen;
-
-    if (!unpackJobCred(sMsg, &cred, gresList, &credEnd)) {
-	flog("unpacking job credential failed\n");
-	goto ERROR;
-    }
-
-    mdbg(PSSLURM_LOG_PART, "%s:", __func__);
-    for (uint32_t i = 0; i < cred->nodeArraySize; i++) {
-	mdbg(PSSLURM_LOG_PART, " coresPerSocket %u", cred->coresPerSocket[i]);
-    }
-    for (uint32_t i = 0; i < cred->nodeArraySize; i++) {
-	mdbg(PSSLURM_LOG_PART, " socketsPerNode %u", cred->socketsPerNode[i]);
-    }
-    for (uint32_t i = 0; i < cred->nodeArraySize; i++) {
-	mdbg(PSSLURM_LOG_PART, " nodeRepCount %u", cred->nodeRepCount[i]);
-    }
-    mdbg(PSSLURM_LOG_PART, "\n");
-
-    credLen = credEnd - credStart;
-
-    if (verify) {
-	uid_t sigUid;
-	gid_t sigGid;
-	if (!psMungeDecodeBuf(cred->sig, (void **) &sigBuf, &sigBufLen,
-			      &sigUid, &sigGid)) {
-	    flog("decoding munge credential failed\n");
-	    goto ERROR;
-	}
-
-	if (credLen != sigBufLen) {
-	    flog("mismatching credential, len %u : %u\n", credLen, sigBufLen);
-	    printBinaryData(sigBuf, sigBufLen, "sigBuf");
-	    printBinaryData(credStart, credLen, "jobData");
-	    goto ERROR;
-	}
-
-	if (memcmp(sigBuf, credStart, sigBufLen)) {
-	    flog("manipulated data\n");
-	    printBinaryData(sigBuf, sigBufLen, "sigBuf");
-	    printBinaryData(credStart, credLen, "jobData");
-	    goto ERROR;
-	}
-	free(sigBuf);
-    }
-
-    if (psslurmlogger->mask & PSSLURM_LOG_AUTH) {
-	flog("cred len %u jobMemLimit %lu stepMemLimit %lu stepHostlist '%s' "
-	     "jobHostlist '%s' ctime %lu sig '%s' pwGecos '%s' pwDir '%s' "
-	     "pwShell '%s'\n", credLen, cred->jobMemLimit, cred->stepMemLimit,
-	     cred->stepHL, cred->jobHostlist, cred->ctime, cred->sig,
-	     cred->pwGecos, cred->pwDir, cred->pwShell);
-    }
-
-    return cred;
-
-ERROR:
-    free(sigBuf);
-    ufree(cred);
-    return NULL;
 }

@@ -11,9 +11,12 @@
 #ifndef __PS_PSSLURM_JOB_CRED
 #define __PS_PSSLURM_JOB_CRED
 
-#include <stdint.h>
 #include <stdbool.h>
+#include <stdint.h>
 #include <sys/types.h>
+
+#include "list.h"
+#include "psslurmmsg.h"
 
 /** all possible job states */
 typedef enum {
@@ -70,6 +73,31 @@ typedef struct {
     uint32_t *stepMemAllocRepCount;
     char *SELinuxContext;
 } JobCred_t;
+
+/**
+ * @brief Extract and verify a job credential
+ *
+ * Extract and verify a job credential including the embedded
+ * GRes credential from the provided message pointer and add it
+ * to the list of credentials @a gresList.
+ *
+ * @param gresList List of GRes credential structures the included
+ * GRes credential will be appended to
+ *
+ * @param sMsg The message to unpack
+ *
+ * @param verify If true verify the data using psmunge
+ *
+ * @return Returns the extracted job credential or NULL on error
+ */
+JobCred_t *extractJobCred(list_t *gresList, Slurm_Msg_t *sMsg, bool verify);
+
+/**
+ * @brief Free a job credential
+ *
+ * @param Pointer to the job credential
+ */
+void freeJobCred(JobCred_t *cred);
 
 /**
  * Parse the coreBitmap of @a job and generate a coreMap.
