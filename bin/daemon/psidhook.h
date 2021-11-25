@@ -16,8 +16,6 @@
 
 #include <stdbool.h>
 
-#include "pstask.h"
-
 /** Return type expected from functions registered to PSIDHOOK_FRWRD_CLNT_RLS */
 typedef enum {
     RELEASED = 0,   /**< Client was released by plugin */

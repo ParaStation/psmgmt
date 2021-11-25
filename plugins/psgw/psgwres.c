@@ -17,6 +17,7 @@
 #include <sys/stat.h>
 #include <timer.h>
 
+#include "pscommon.h"
 #include "peloguetypes.h"
 #include "peloguehandles.h"
 #include "psexechandles.h"

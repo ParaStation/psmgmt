@@ -12,6 +12,7 @@
 
 #include "psdaemonprotocol.h"
 
+#include "pscommon.h"
 #include "psidutil.h"
 #include "psidcomm.h"
 #include "psidplugin.h"

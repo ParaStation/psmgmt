@@ -16,15 +16,16 @@
 #define __PSIDUTIL_H
 
 #include <stdbool.h>
+#include <stdint.h>
 #include <stdio.h>
-#include <time.h>
+#include <signal.h>
 #include <sys/types.h>
 
+#include "pstask.h"
 #include "psprotocol.h"
 #include "logging.h"
 #include "config_parsing.h"
 #include "selector.h"
-#include "pscommon.h"
 
 /** The logger we use inside PSID */
 extern logger_t *PSID_logger;

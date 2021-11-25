@@ -3,6 +3,7 @@
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
  * Copyright (C) 2005-2017 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2021 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -15,9 +16,13 @@
 #ifndef __PSIDPARTITION_H
 #define __PSIDPARTITION_H
 
+#include <stdbool.h>
+#include <stdint.h>
+
 #include "psprotocol.h"
 #include "psnodes.h"
 #include "pstask.h"
+#include "pspartition.h"
 #include "psreservation.h"
 
 /**

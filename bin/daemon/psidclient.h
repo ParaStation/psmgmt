@@ -16,6 +16,9 @@
 #ifndef __PSIDCLIENT_H
 #define __PSIDCLIENT_H
 
+#include <stdbool.h>
+#include <sys/types.h>
+
 #include "psprotocol.h"
 #include "pstask.h"
 #include "selector.h"
