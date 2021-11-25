@@ -9,10 +9,10 @@
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-#include <stdio.h>
-#include <unistd.h>
+#include "psidoption.h"
+
+#include <stdbool.h>
 #include <errno.h>
-#include <sys/time.h>
 #include <sys/resource.h>
 
 #include "rdp.h"
@@ -20,9 +20,10 @@
 #include "selector.h"
 
 #include "pscommon.h"
-#include "psprotocol.h"
+#include "pstask.h"
 #include "psdaemonprotocol.h"
-#include "hardware.h"
+
+#include "config_parsing.h"
 
 #include "psidutil.h"
 #include "psidcomm.h"
@@ -30,13 +31,10 @@
 #include "psidtask.h"
 #include "psidstatus.h"
 #include "psidhook.h"
-#include "psidhw.h"
 #include "psidaccount.h"
 #include "psidplugin.h"
 #include "psidclient.h"
 #include "psidscripts.h"
-
-#include "psidoption.h"
 
 void send_OPTIONS(PSnodes_ID_t destnode)
 {

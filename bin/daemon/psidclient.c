@@ -9,29 +9,30 @@
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-#include <stdio.h>
+#define _GNU_SOURCE
+#include "psidclient.h"
+
+#include <stddef.h>
+#include <stdint.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
 #include <errno.h>
 #include <signal.h>
-#include <sys/types.h>
-#define __USE_GNU
 #include <sys/socket.h>
-#undef __USE_GNU
+#include <sys/time.h>
+#include <time.h>
 
-#include "selector.h"
-#include "rdp.h"
-
+#include "list.h"
 #include "pscio.h"
 #include "pscommon.h"
-#include "psprotocol.h"
 #include "psdaemonprotocol.h"
-#include "pstask.h"
+#include "psnodes.h"
+
+#include "rdp.h"
 
 #include "psidutil.h"
 #include "psidtask.h"
-#include "psidtimer.h"
 #include "psidmsgbuf.h"
 #include "psidcomm.h"
 #include "psidaccount.h"
@@ -40,8 +41,6 @@
 #include "psidsignal.h"
 #include "psidstate.h"
 #include "psidflowcontrol.h"
-
-#include "psidclient.h"
 
 /* possible values of clients.flags */
 #define INITIALCONTACT  0x00000001   /* No message yet (only accept()ed) */

@@ -9,21 +9,26 @@
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-#include <stdio.h>
+#include "psidrdp.h"
+
+#include <stdint.h>
 #include <stdlib.h>
-#include <string.h>
 #include <errno.h>
+#include <netinet/in.h>
+#include <string.h>
+#include <sys/types.h>
+
+#include "list.h"
+#include "pstask.h"
+#include "pscommon.h"
+#include "psdaemonprotocol.h"
 
 #include "rdp.h"
-#include "psdaemonprotocol.h"
-#include "pscommon.h"
 
 #include "psidutil.h"
 #include "psidmsgbuf.h"
 #include "psidcomm.h"
 #include "psidnodes.h"
-
-#include "psidrdp.h"
 
 /* possible values of node_bufs.flags */
 #define FLUSH           0x00000001   /* Flush is under way */

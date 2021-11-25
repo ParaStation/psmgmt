@@ -21,6 +21,7 @@
 #include <signal.h>
 #include <sys/types.h>
 
+#include "pscommon.h"
 #include "pstask.h"
 #include "psprotocol.h"
 #include "logging.h"

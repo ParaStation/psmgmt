@@ -8,16 +8,19 @@
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
+#include "psidplugin.h"
+
 #include <stdbool.h>
-#include <stdio.h>
+#include <stddef.h>
+#include <stdint.h>
 #include <stdlib.h>
-#include <unistd.h>
-#include <string.h>
-#include <limits.h>
 #include <errno.h>
-#include <dlfcn.h>
 #include <dirent.h>
-#include <sys/types.h>
+#include <dlfcn.h>
+#include <limits.h>
+#include <string.h>
+#include <sys/time.h>
+#include <time.h>
 
 #include "list.h"
 #include "plugin.h"
@@ -27,10 +30,7 @@
 #include "config_parsing.h"
 #include "psidutil.h"
 #include "psidcomm.h"
-#include "psidtask.h"
 #include "psidnodes.h"
-
-#include "psidplugin.h"
 
 typedef int initFunc_t(FILE *logfile);
 

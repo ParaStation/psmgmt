@@ -31,7 +31,7 @@
 #include <stdint.h>
 #include <sys/types.h>
 
-#include "pssenddb_t.h"
+#include "pssenddb_t.h"  // IWYU pragma: export
 #include "psprotocol.h"
 #include "pstaskid.h"
 

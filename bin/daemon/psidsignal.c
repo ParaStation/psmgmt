@@ -9,20 +9,25 @@
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-#include <stdio.h>
+#include "psidsignal.h"
+
+#include <stdbool.h>
+#include <stddef.h>
+#include <stdint.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include <errno.h>
 #include <string.h>
 #include <signal.h>
 #include <time.h>
-#include <sys/types.h>
 
+#include "list.h"
 #include "pscio.h"
 #include "pscommon.h"
-#include "psreservation.h"
-#include "psprotocol.h"
 #include "psdaemonprotocol.h"
+#include "psnodes.h"
+#include "psreservation.h"
+#include "pssignal.h"
 
 #include "selector.h"
 #include "rdp.h"
@@ -33,7 +38,6 @@
 #include "psidnodes.h"
 #include "psidpartition.h"
 
-#include "psidsignal.h"
 #include "pslog.h"
 
 int pskill(pid_t pid, int sig, uid_t uid)

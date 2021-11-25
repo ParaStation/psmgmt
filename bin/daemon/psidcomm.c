@@ -9,17 +9,17 @@
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
+#include "psidcomm.h"
+
 #include <errno.h>
 #include <stdio.h>
-#include <string.h>
 
 #include "list.h"
-#include "selector.h"
 
 #include "pscommon.h"
-#include "psitems.h"
-#include "psprotocol.h"
 #include "psdaemonprotocol.h"
+#include "psitems.h"
+#include "pstask.h"
 
 #include "psidclient.h"
 #include "psidflowcontrol.h"
@@ -27,8 +27,6 @@
 #include "psidnodes.h"
 #include "psidrdp.h"
 #include "psidutil.h"
-
-#include "psidcomm.h"
 
 typedef struct {
     list_t next;

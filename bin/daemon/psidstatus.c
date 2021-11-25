@@ -9,26 +9,35 @@
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
+#include "psidstatus.h"
+
+#include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include <errno.h>
-#include <string.h>
 #include <netdb.h>
+#include <netinet/in.h>
+#include <string.h>
 #include <sys/socket.h>
+#include <sys/time.h>
 
 /* Extra includes for load-determination */
+#include <linux/sysinfo.h>
 #include <sys/sysinfo.h>
+#include <asm/posix_types.h>
 
+#include "list.h"
 #include "pscio.h"
 #include "pscommon.h"
-#include "psprotocol.h"
+#include "pstask.h"
 #include "psdaemonprotocol.h"
 
+#include "config_parsing.h"
 #include "mcast.h"
 #include "rdp.h"
-#include "timer.h"
 #include "selector.h"
+#include "timer.h"
 
 #include "psidutil.h"
 #include "psidnodes.h"
@@ -44,8 +53,6 @@
 #include "psidspawn.h"
 #include "psidscripts.h"
 #include "psidhook.h"
-
-#include "psidstatus.h"
 
 /** The jobs of the local node node */
 static PSID_Jobs_t myJobs = { .normal = 0, .total = 0 };

@@ -9,38 +9,28 @@
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-#include <stdio.h>
+#include "psidutil.h"
+
 #include <stdlib.h>
-#include <unistd.h>
 #include <string.h>
 #include <errno.h>
 #include <syslog.h>
 #include <sys/socket.h>
 #include <sys/un.h>
-#include <signal.h>
-#include <sys/types.h>
 #include <sys/stat.h>
-#include <sys/file.h>
 #include <sys/signalfd.h>
-#include <sys/stat.h>
-#include <sys/time.h>
 #include <sys/resource.h>
-#include <sys/wait.h>
+#include <time.h>
+#include <unistd.h>
 
-//#include "pscio.h"
+#include "list.h"
 #include "pscommon.h"
-#include "logging.h"
-#include "selector.h"
-#include "config_parsing.h"
 #include "psdaemonprotocol.h"
 #include "pslog.h"
 
 #include "psidnodes.h"
-#include "psidcomm.h"
 #include "psidclient.h"
 #include "psidtask.h"
-
-#include "psidutil.h"
 
 config_t *PSID_config = NULL;
 

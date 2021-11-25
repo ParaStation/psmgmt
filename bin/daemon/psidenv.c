@@ -8,19 +8,22 @@
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
+#include "psidenv.h"
+
+#include <stdbool.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <errno.h>
 
-#include "psprotocol.h"
 #include "pscommon.h"
+#include "psnodes.h"
+#include "psprotocol.h"
+
 #include "psidutil.h"
 #include "psidcomm.h"
-#include "psidtask.h"
 #include "psidnodes.h"
-
-#include "psidenv.h"
 
 /**
  * @brief Send info on environment

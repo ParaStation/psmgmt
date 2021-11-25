@@ -9,29 +9,26 @@
  * file.
  */
 #define _GNU_SOURCE
+#include "psidhw.h"
+
 #include <hwloc.h>
-#include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
-#include <string.h>
 #include <errno.h>
-#include <sys/types.h>
-#include <sys/wait.h>
+#include <string.h>
+
+#include "pscommon.h"
+#include "pscio.h"
+#include "pstask.h"
 
 #include "hardware.h"
 #include "selector.h"
-
-#include "pscio.h"
-#include "pscommon.h"
-#include "psprotocol.h"
 
 #include "psidutil.h"
 #include "psidnodes.h"
 #include "psidcomm.h"
 #include "psidscripts.h"
-
-#include "psidhw.h"
 
 /**
  * hwloc topology of the local system. This shall be initialized and

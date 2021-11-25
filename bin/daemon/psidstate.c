@@ -8,32 +8,31 @@
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
+#include "psidstate.h"
+
+#include <stdbool.h>
 #include <stdlib.h>
-#include <unistd.h>
-#include <errno.h>
+#include <netinet/in.h>
 #include <signal.h>
 #include <sys/time.h>
 
 #include "pscommon.h"
+#include "psnodes.h"
 #include "psprotocol.h"
-#include "psdaemonprotocol.h"
 
+#include "config_parsing.h"
 #include "mcast.h"
 #include "rdp.h"
 
 #include "psidutil.h"
 #include "psidtimer.h"
 #include "psidcomm.h"
-#include "psidrdp.h"
 #include "psidclient.h"
 #include "psidstatus.h"
 #include "psidhw.h"
 #include "psidnodes.h"
-#include "psidtask.h"
 #include "psidplugin.h"
 #include "psidhook.h"
-
-#include "psidstate.h"
 
 /**
  * The internal status of the ParaStation daemon. This is used for the

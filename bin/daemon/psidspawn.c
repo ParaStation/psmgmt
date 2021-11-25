@@ -9,7 +9,9 @@
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-#include <stdbool.h>
+#include "psidspawn.h"
+
+#include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -18,28 +20,28 @@
 #include <fcntl.h>
 #include <pwd.h>
 #include <grp.h>
-#include <sys/prctl.h>
-#include <sys/resource.h>
-#include <sys/stat.h>
-#include <sys/socket.h>
-#include <sys/time.h>
-#include <sys/types.h>
-#include <sys/wait.h>
 #include <pty.h>
 #include <signal.h>
 #include <syslog.h>
-#include <sched.h>
-#include <limits.h>
+#include <sys/ioctl.h>
+#include <sys/prctl.h>
+#include <sys/resource.h>
 #include <sys/select.h>
+#include <sys/socket.h>
+#include <sys/stat.h>
+#include <sys/time.h>
+#include <sys/types.h>
+#include <termios.h>
+#include <time.h>
 
 #include "pscio.h"
 #include "pscommon.h"
-#include "psprotocol.h"
 #include "psprotocolenv.h"
 #include "psdaemonprotocol.h"
-#include "pscpu.h"
+#include "pspartition.h"
 #include "psserial.h"
-#include "selector.h"
+
+#include "config_parsing.h"
 #include "timer.h"
 
 #include "psidutil.h"
@@ -50,11 +52,8 @@
 #include "psidclient.h"
 #include "psidstatus.h"
 #include "psidsignal.h"
-#include "psidaccount.h"
 #include "psidhook.h"
 #include "psidpin.h"
-
-#include "psidspawn.h"
 
 /** File-descriptor used by the alarm-handler to write its errno */
 static int alarmFD = -1;

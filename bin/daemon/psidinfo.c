@@ -9,18 +9,25 @@
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
+#include <stdbool.h>
+#include <stdint.h>
 #include <stdio.h>
-#include <stdlib.h>
 #include <string.h>
 #include <errno.h>
 #include <netinet/in.h>
 
+#include "list.h"
+#include "pscommon.h"
+#include "psnodes.h"
+#include "pstask.h"
+#include "psprotocol.h"
+#include "pspartition.h"
+#include "psreservation.h"
+
+#include "config_parsing.h"
+#include "hardware.h"
 #include "mcast.h"
 #include "rdp.h"
-
-#include "pscommon.h"
-#include "psprotocol.h"
-#include "hardware.h"
 
 #include "psidutil.h"
 #include "psidcomm.h"

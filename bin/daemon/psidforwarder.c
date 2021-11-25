@@ -9,37 +9,42 @@
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
+#include "psidforwarder.h"
+
+#include <stdbool.h>
+#include <stddef.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <stdbool.h>
+#include <stdarg.h>
 #include <string.h>
 #include <unistd.h>
-#include <ctype.h>
 #include <errno.h>
+#include <signal.h>
 #include <sys/ioctl.h>
 #include <sys/prctl.h>
-#include <sys/resource.h>
 #include <sys/socket.h>
 #include <sys/time.h>
+struct timeval;       // Make IWYU happy
 #include <sys/types.h>
 #include <sys/wait.h>
-#include <signal.h>
+#include <sys/select.h>
 #include <sys/signalfd.h>
+#include <bits/types/struct_rusage.h>
 
+#include "list.h"
 #include "pscio.h"
 #include "pscommon.h"
-#include "psserial.h"
-#include "pstask.h"
-#include "selector.h"
-#include "kvscommon.h"
 #include "psdaemonprotocol.h"
 #include "pslog.h"
+#include "pstask.h"
+
+#include "selector.h"
+
 #include "psidcomm.h"
 #include "psidhook.h"
 #include "psidmsgbuf.h"
 #include "psidutil.h"
-
-#include "psidforwarder.h"
 
 static char tag[] = "PSID_forwarder";
 /** Forwarder's verbosity. Set in connectLogger() on behalf of logger's info. */

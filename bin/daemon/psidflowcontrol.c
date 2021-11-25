@@ -8,9 +8,10 @@
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
+#include "psidflowcontrol.h"
+
 #include <stdbool.h>
 #include <stdlib.h>
-#include <errno.h>
 
 #include "selector.h"
 
@@ -23,8 +24,6 @@
 #include "psidutil.h"
 #include "psidtask.h"
 #include "psidclient.h"
-
-#include "psidflowcontrol.h"
 
 /** StopTID structure */
 typedef struct {

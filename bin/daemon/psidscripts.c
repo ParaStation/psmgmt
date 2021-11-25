@@ -8,13 +8,18 @@
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
+#include "psidscripts.h"
+
+#include <stdbool.h>
 #include <stdlib.h>
+#include <stdio.h>
 #include <unistd.h>
 #include <string.h>
+#include <strings.h>
 #include <errno.h>
+#include <signal.h>
 #include <syslog.h>
 #include <sys/stat.h>
-#include <sys/wait.h>
 
 #include "pscio.h"
 #include "pscommon.h"
@@ -22,8 +27,6 @@
 #include "timer.h"
 
 #include "psidutil.h"
-
-#include "psidscripts.h"
 
 /** Array of registered callbacks PIDs (indexed by file-descriptor) */
 static pid_t *cbList = NULL;

@@ -12,18 +12,22 @@
 /**
  * @file psid: ParaStation Daemon
  */
+#include <stdbool.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
-#include <string.h>
 #include <errno.h>
-#include <signal.h>
-#include <syslog.h>
 #include <fcntl.h>
 #include <malloc.h>
-#include <sys/wait.h>
+#include <signal.h>
+#include <string.h>
+#include <strings.h>
+#include <syslog.h>
+#include <time.h>
+#include <sys/ioctl.h>
 #include <sys/signalfd.h>
-#include <sys/socket.h>
+#include <sys/wait.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
 
@@ -36,8 +40,10 @@
 #include "config_parsing.h"
 
 #include "pscommon.h"
-#include "psprotocol.h"
 #include "psdaemonprotocol.h"
+#include "psreservation.h"
+#include "pssignal.h"
+#include "pstask.h"
 
 #include "psidaccount.h"
 #include "psidclient.h"
@@ -59,7 +65,6 @@
 #include "psidstate.h"
 #include "psidstatus.h"
 #include "psidtask.h"
-#include "psidtimer.h"
 #include "psidutil.h"
 
 /**
