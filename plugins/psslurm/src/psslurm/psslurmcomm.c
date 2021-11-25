@@ -21,6 +21,7 @@
 #include <ctype.h>
 #include <string.h>
 
+#include "pscommon.h"
 #include "pscio.h"
 #include "psserial.h"
 #include "pluginconfig.h"

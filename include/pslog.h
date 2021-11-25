@@ -3,6 +3,7 @@
  *
  * Copyright (C) 2003 ParTec AG, Karlsruhe
  * Copyright (C) 2005-2021 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2021 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -15,8 +16,12 @@
 #ifndef __PSLOGMSG_H
 #define __PSLOGMSG_H
 
-#include <sys/time.h>
+#include <stddef.h>
+#include <sys/time.h> // IWYU pragma: keep
+struct timeval;       // Make IWYU happy
+#include <sys/types.h>
 
+#include "pstask.h"
 #include "psprotocol.h"
 
 /** Type of the message. */

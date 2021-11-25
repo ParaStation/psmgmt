@@ -15,7 +15,11 @@
 #ifndef __PSCIO_H
 #define __PSCIO_H
 
+#include <errno.h>
 #include <stdbool.h>
+#include <stddef.h>
+#include <sys/time.h> // IWYU pragma: keep
+struct timeval;       // Make IWYU happy
 #include <sys/types.h>
 
 #include "psprotocol.h"

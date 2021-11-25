@@ -22,7 +22,7 @@
  * using the generic single-entry routines.
  */
 
-#include "list_t.h" /* IWYU pragma: export */
+#include "list_t.h"   // IWYU pragma: export
 
 #define LIST_HEAD_INIT(name) { &(name), &(name) }
 

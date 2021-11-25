@@ -15,6 +15,7 @@
 #include <signal.h>
 #include <malloc.h>
 
+#include "pscommon.h"
 #include "psserial.h"
 
 #include "psidtask.h"

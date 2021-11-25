@@ -17,6 +17,17 @@
 #include <signal.h>
 #include <sys/stat.h>
 
+#include "pscommon.h"
+#include "peloguehandles.h"
+#include "pspamhandles.h"
+#include "pluginmalloc.h"
+#include "pluginhelper.h"
+#include "psaccounthandles.h"
+#include "pshostlist.h"
+#include "psidsignal.h"
+
+#include "slurmcommon.h"
+
 #include "psslurm.h"
 #include "psslurmlog.h"
 #include "psslurmjob.h"
@@ -29,15 +40,6 @@
 #ifdef HAVE_SPANK
 #include "psslurmspank.h"
 #endif
-
-#include "slurmcommon.h"
-#include "peloguehandles.h"
-#include "pspamhandles.h"
-#include "pluginmalloc.h"
-#include "pluginhelper.h"
-#include "psaccounthandles.h"
-#include "pshostlist.h"
-#include "psidsignal.h"
 
 #include "psslurmpelogue.h"
 

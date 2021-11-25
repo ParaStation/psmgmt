@@ -20,6 +20,7 @@
 #include <unistd.h>
 
 #include "pshostlist.h"
+#include "pscommon.h"
 
 #include "pluginmalloc.h"
 #include "psidhw.h"

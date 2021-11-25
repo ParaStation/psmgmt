@@ -8,11 +8,12 @@
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
+#include "pscommon.h"
+#include "pluginmalloc.h"
+#include "psidcomm.h"
+
 #include "psslurmlog.h"
 #include "psslurmproto.h"
-
-#include "psidcomm.h"
-#include "pluginmalloc.h"
 
 #include "psslurmfwcomm.h"
 

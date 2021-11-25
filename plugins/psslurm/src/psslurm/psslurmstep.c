@@ -10,7 +10,13 @@
  */
 #include <signal.h>
 
-#include "psslurmstep.h"
+#include "pscommon.h"
+#include "pluginmalloc.h"
+#include "psidsignal.h"
+
+#include "pspamhandles.h"
+#include "peloguehandles.h"
+
 #include "psslurmio.h"
 #include "psslurmlog.h"
 #include "psslurmcomm.h"
@@ -18,10 +24,7 @@
 #include "psslurmproto.h"
 #include "psslurmenv.h"
 
-#include "psidsignal.h"
-#include "pluginmalloc.h"
-#include "pspamhandles.h"
-#include "peloguehandles.h"
+#include "psslurmstep.h"
 
 /** List of all steps */
 static LIST_HEAD(StepList);

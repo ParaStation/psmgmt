@@ -10,6 +10,8 @@
  */
 #include <signal.h>
 
+#include "pscommon.h"
+
 #include "psslurmtasks.h"
 #include "pluginmalloc.h"
 

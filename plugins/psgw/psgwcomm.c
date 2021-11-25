@@ -10,10 +10,12 @@
  */
 #include <stdlib.h>
 
-#include "peloguetypes.h"
+#include "pscommon.h"
 #include "pspluginprotocol.h"
 #include "psserial.h"
 #include "pluginmalloc.h"
+
+#include "peloguetypes.h"
 
 #include "psgwlog.h"
 #include "psgwrequest.h"

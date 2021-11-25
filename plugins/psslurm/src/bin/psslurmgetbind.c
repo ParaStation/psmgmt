@@ -14,11 +14,13 @@
 #include <sys/types.h>
 #include <unistd.h>
 #include <string.h>
+#include <stdarg.h>
 
 #ifdef HAVE_LIBNUMA
 #include <numa.h>
 #endif
 
+#include "logging.h"
 #include "psidpin.h"
 #include "psslurmpin.h"
 

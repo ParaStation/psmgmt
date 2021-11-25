@@ -16,11 +16,11 @@
 #define __PSPROTOCOL_H
 
 #include <stdbool.h>
+#include <stddef.h>
 #include <stdint.h>
 #include <sys/socket.h>
 #include <sys/types.h>
 
-#include "psnodes.h"
 #include "pstaskid.h"
 
 /** Unique version number of the high-level protocol */

@@ -2,6 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2018 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2021 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -11,11 +12,12 @@
  * This small library is a collection of functions for easy handling of dynamic
  * vectors.
  */
-
 #ifndef __PLUGIN_LIB_VECTOR
 #define __PLUGIN_LIB_VECTOR
 
-#include <unistd.h>
+#include <stdbool.h>
+#include <stddef.h>
+#include <stdint.h>
 
 typedef struct {
     uint16_t chunksize;  /**< size of chunks in byte */

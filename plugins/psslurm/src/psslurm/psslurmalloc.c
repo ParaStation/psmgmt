@@ -11,19 +11,22 @@
 #include <time.h>
 #include <stdlib.h>
 
+#include "pscommon.h"
 #include "pluginmalloc.h"
 #include "pluginhelper.h"
-#include "pspamhandles.h"
-#include "peloguehandles.h"
 #include "psidhook.h"
 #include "psidscripts.h"
 #include "pshostlist.h"
 
-#include "psslurmalloc.h"
+#include "pspamhandles.h"
+#include "peloguehandles.h"
+
 #include "psslurmlog.h"
 #include "psslurmenv.h"
 #include "psslurmpscomm.h"
 #include "psslurmproto.h"
+
+#include "psslurmalloc.h"
 
 /** List of all allocations */
 static LIST_HEAD(AllocList);

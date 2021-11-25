@@ -3,6 +3,7 @@
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
  * Copyright (C) 2005-2019 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2021 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -14,7 +15,7 @@
 #ifndef __PSDAEMONPROTOCOL_H
 #define __PSDAEMONPROTOCOL_H
 
-#include "psprotocol.h"
+#include "psprotocol.h" // IWYU pragma: export
 
 /** Unique version number of the high-level protocol */
 #define PSDaemonProtocolVersion  413

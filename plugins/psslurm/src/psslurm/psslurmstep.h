@@ -14,6 +14,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <sys/types.h>
+#include <netinet/in.h>
 
 #include "psenv.h"
 #include "psnodes.h"

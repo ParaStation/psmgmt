@@ -27,6 +27,9 @@
 #include <sys/wait.h>
 #include <utime.h>
 
+#include "psaccounthandles.h"
+#include "pspmihandles.h"
+
 #include "psslurm.h"
 #include "psslurmalloc.h"
 #include "psslurmlog.h"
@@ -47,6 +50,7 @@
 #include "psslurmspank.h"
 #endif
 
+#include "pscommon.h"
 #include "pluginpty.h"
 #include "pluginmalloc.h"
 #include "pluginhelper.h"
@@ -56,14 +60,11 @@
 #include "pscio.h"
 #include "selector.h"
 #include "psprotocolenv.h"
-#include "psaccounthandles.h"
-#include "pspmihandles.h"
 #include "pslog.h"
 #include "psidhook.h"
 #include "psidsignal.h"
 #include "psipartition.h"
 #include "psidnodes.h"
-
 #include "psslurmforwarder.h"
 
 #define X11_AUTH_CMD "/usr/bin/xauth"

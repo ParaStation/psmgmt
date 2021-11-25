@@ -3,6 +3,7 @@
  *
  * Copyright (C) 2002-2003 ParTec AG, Karlsruhe
  * Copyright (C) 2005-2018 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2021 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -21,7 +22,8 @@
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdint.h>
-#include <sys/time.h>
+#include <sys/time.h> // IWYU pragma: keep
+struct timeval;       // Make IWYU happy
 
 /**
  * The minimum timeout handled by this module in milli-seconds.

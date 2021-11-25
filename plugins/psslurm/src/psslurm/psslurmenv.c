@@ -17,10 +17,11 @@
 #include <arpa/inet.h>
 #include <sys/stat.h>
 
+#include "pscommon.h"
+#include "pluginmalloc.h"
+
 #include "psidnodes.h"
 #include "psipartition.h"
-
-#include "pluginmalloc.h"
 
 #include "slurmcommon.h"
 #include "psslurmconfig.h"

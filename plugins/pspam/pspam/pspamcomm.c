@@ -18,6 +18,7 @@
 #include <sys/un.h>
 #include <pwd.h>
 #include <stdlib.h>
+#include <netinet/in.h>
 
 #include "pscio.h"
 #include "psserial.h"

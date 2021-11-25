@@ -20,6 +20,7 @@
 #include <pwd.h>
 #include <sys/stat.h>
 
+#include "pscommon.h"
 #include "pscio.h"
 #include "pshostlist.h"
 #include "psserial.h"

@@ -3,6 +3,7 @@
  *
  * Copyright (C) 2002-2004 ParTec AG, Karlsruhe
  * Copyright (C) 2005-2021 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2021 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -14,18 +15,17 @@
 #ifndef __PSTASK_H
 #define __PSTASK_H
 
-#include <stdint.h>
 #include <stdbool.h>
+#include <stdint.h>
+#include <sys/ioctl.h>
+#include <sys/time.h>
 #include <sys/types.h>
 #include <termios.h>
-#include <sys/ioctl.h>
 #include <time.h>
-#include <sys/time.h>
 
 #include "list_t.h"
-#include "pstaskid.h" /* IWYU pragma: export */
+#include "pstaskid.h" // IWYU pragma: export
 
-#include "psnodes.h"
 #include "pscpu.h"
 #include "pssenddb_t.h"
 
@@ -54,6 +54,7 @@ void PStask_printStat(void);
 #include "psreservation.h"
 
 /* forward declaration */
+struct __task__;      // Make IWYU happy
 typedef struct __task__ PStask_t;
 
 /**

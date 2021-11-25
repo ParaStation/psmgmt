@@ -24,14 +24,15 @@
 #define __USE_GNU
 #include <sched.h>
 
-#include "psslurmjob.h"
-#include "psslurmlog.h"
-
+#include "pscommon.h"
+#include "pluginmalloc.h"
 #include "psidnodes.h"
 #include "psidpin.h"
-#include "pluginmalloc.h"
+
 #include "slurmcommon.h"
 
+#include "psslurmjob.h"
+#include "psslurmlog.h"
 #include "psslurmconfig.h"
 #include "psslurmproto.h"
 #include "psslurmio.h"

@@ -3,6 +3,7 @@
  *
  * Copyright (C) 1999-2003 ParTec AG, Karlsruhe
  * Copyright (C) 2005-2021 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2021 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -15,10 +16,13 @@
 #define __PSISPAWN_H__
 
 #include <stdbool.h>
+#include <stdint.h>
 #include <sys/types.h>
 
-#include "pstask.h"
 #include "psnodes.h"
+#include "pstask.h"
+#include "pspartition.h"
+#include "psreservation.h"
 
 /**
  * @brief Set UID for spawns

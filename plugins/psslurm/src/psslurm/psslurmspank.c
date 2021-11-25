@@ -13,6 +13,9 @@
 #include <dlfcn.h>
 #include <sys/stat.h>
 
+#include "pscommon.h"
+#include "pluginmalloc.h"
+
 #include "psslurmalloc.h"
 #include "psslurmjob.h"
 #include "psslurmstep.h"
@@ -21,8 +24,6 @@
 #include "psslurmproto.h"
 
 #include "spank_api.h"
-
-#include "pluginmalloc.h"
 
 /** symbols every spank plugin has to implement */
 #define PLUGIN_NAME     "plugin_name"

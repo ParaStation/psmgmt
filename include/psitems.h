@@ -27,10 +27,8 @@
 #define __PSITEMS_H
 
 #include <stdbool.h>
+#include <stddef.h>
 #include <stdint.h>
-
-/** Opaque structure holding all information on a pool of items */
-struct itemPool;
 
 /** Item pool context to be created via @ref PSitems_new() */
 typedef struct itemPool * PSitems_t;

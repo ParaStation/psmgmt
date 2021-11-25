@@ -11,6 +11,8 @@
 #ifndef __PSSLURM_TYPES
 #define __PSSLURM_TYPES
 
+#include <stdarg.h>
+
 #include "psslurmmsg.h"
 #include "psslurmjobcred.h"
 #include "psenv.h"

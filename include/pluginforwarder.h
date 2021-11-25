@@ -2,6 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2014-2021 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2021 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -20,6 +21,7 @@
 #define PLUGINFW_PROTO_VERSION 2
 
 /* forward declaration */
+struct __fwData__;    // Make IWYU happy
 typedef struct __fwData__ Forwarder_Data_t;
 
 /** Structure defining all parameter's of a forwarder */

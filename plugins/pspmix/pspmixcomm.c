@@ -22,6 +22,7 @@
 
 #include <pmix_common.h>
 
+#include "pscommon.h"
 #include "pluginmalloc.h"
 #include "pluginforwarder.h"
 #include "psdaemonprotocol.h"

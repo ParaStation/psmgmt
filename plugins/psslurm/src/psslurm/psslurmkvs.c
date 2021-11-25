@@ -13,9 +13,10 @@
 #include <stdio.h>
 #include <string.h>
 
+#include "pscommon.h"
+#include "pshostlist.h"
 #include "pluginmalloc.h"
 #include "pluginhelper.h"
-#include "pshostlist.h"
 
 #include "psidnodes.h"
 

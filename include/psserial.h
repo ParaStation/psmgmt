@@ -27,11 +27,11 @@
 #define __PSSERIAL_H
 
 #include <stdbool.h>
+#include <stddef.h>
 #include <stdint.h>
 #include <sys/types.h>
 
 #include "pssenddb_t.h"
-#include "pscommon.h"
 #include "psprotocol.h"
 #include "pstaskid.h"
 

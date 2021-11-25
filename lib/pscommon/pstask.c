@@ -9,21 +9,20 @@
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-#include <stdlib.h>
+#include "pstask.h"
+
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <errno.h>
 #include <termios.h>
 #include <signal.h>
-#include <sys/ioctl.h>
 
 #include "pscommon.h"
 #include "list.h"
 #include "pssignal.h"
 #include "psreservation.h"
 #include "psserial.h"
-
-#include "pstask.h"
 
 void PStask_printStat(void)
 {

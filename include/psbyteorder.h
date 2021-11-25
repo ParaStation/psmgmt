@@ -2,6 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2009-2020 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2021 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -23,9 +24,9 @@
 #define _PSBYTEORDER_H_
 
 #include <endian.h>
-#include <byteswap.h>
 
 #if __BYTE_ORDER == __BIG_ENDIAN
+#include <byteswap.h>
 /** Convert the 64 bit value @a x to host-byteorder */
 #  define psntoh64(x)   __bswap_64 (x)
 /** Convert the 32 bit value @a x to host-byteorder */

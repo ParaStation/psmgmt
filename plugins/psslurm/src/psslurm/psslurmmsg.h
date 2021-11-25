@@ -15,6 +15,8 @@
 #include <time.h>
 #include <sys/types.h>
 
+#include "list.h"
+
 #include "psnodes.h"
 #include "pstaskid.h"
 #include "psserial.h"
