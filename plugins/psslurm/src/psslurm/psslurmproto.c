@@ -1106,21 +1106,22 @@ static bool writeSlurmConfigFiles(Config_Msg_t *config, char *confDir)
  */
 static void handleConfig(Slurm_Msg_t *sMsg)
 {
+    Config_Msg_t *config = sMsg->unpData;
+    if (!config) {
+	flog("unpacking new configuration failed\n");
+	return;
+    }
+
     /* check permissions */
     if (sMsg->head.uid != 0 && sMsg->head.uid != slurmUserID) {
 	flog("request from invalid user %u\n", sMsg->head.uid);
+	freeSlurmConfigMsg(config);
 	return;
     }
 
     /* update all configuration files */
     char *confDir = getConfValueC(&Config, "SLURM_CONF_DIR");
     flog("updating Slurm configuration files in %s\n", confDir);
-
-    Config_Msg_t *config = sMsg->unpData;
-    if (!config) {
-	flog("unpacking new configuration failed\n");
-	return;
-    }
 
     bool ret = writeSlurmConfigFiles(config, confDir);
     freeSlurmConfigMsg(config);
@@ -1446,15 +1447,14 @@ static void handleStepStat(Slurm_Msg_t *sMsg)
 	ufree(head);
 	return;
     }
+    ufree(head);
 
     /* check permissions */
     if (!verifyUserId(sMsg->head.uid, step->uid)) {
 	flog("request from invalid user %u\n", sMsg->head.uid);
 	sendSlurmRC(sMsg, ESLURM_USER_ID_MISSING);
-	ufree(head);
 	return;
     }
-    ufree(head);
 
     PS_SendDB_t *msg = &sMsg->reply;
 
@@ -1506,15 +1506,14 @@ static void handleStepPids(Slurm_Msg_t *sMsg)
 	ufree(head);
 	return;
     }
+    ufree(head);
 
     /* check permissions */
     if (!verifyUserId(sMsg->head.uid, step->uid)) {
 	flog("request from invalid user %u\n", sMsg->head.uid);
 	sendSlurmRC(sMsg, ESLURM_USER_ID_MISSING);
-	ufree(head);
 	return;
     }
-    ufree(head);
 
     /* send step PIDs */
     PS_SendDB_t *msg = &sMsg->reply;
@@ -1922,21 +1921,23 @@ static void printJobLaunchInfos(Job_t *job)
 
 static void handleBatchJobLaunch(Slurm_Msg_t *sMsg)
 {
-    if (pluginShutdown) {
-	/* don't accept new jobs if a shutdown is in progress */
-	sendSlurmRC(sMsg, SLURM_ERROR);
-	return;
-    }
-
-    /* memory cleanup  */
-    malloc_trim(200);
-
     Job_t *job = sMsg->unpData;
     if (!job) {
 	flog("unpacking batch job launch request failed\n");
 	sendSlurmRC(sMsg, ESLURMD_INVALID_JOB_CREDENTIAL);
 	return;
     }
+
+    if (pluginShutdown) {
+	/* don't accept new jobs if a shutdown is in progress */
+	sendSlurmRC(sMsg, SLURM_ERROR);
+	deleteJob(job->jobid);
+	return;
+    }
+
+    /* memory cleanup  */
+    malloc_trim(200);
+
 
     /* convert slurm hostlist to PSnodes   */
     if (!convHLtoPSnodes(job->slurmHosts, getNodeIDbySlurmHost,
