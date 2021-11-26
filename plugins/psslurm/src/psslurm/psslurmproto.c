@@ -1180,44 +1180,36 @@ static void freeReqRebootNodes(Req_Reboot_Nodes_t *req)
 
 static void handleRebootNodes(Slurm_Msg_t *sMsg)
 {
-    /* check permissions */
-    if (sMsg->head.uid != 0 && sMsg->head.uid != slurmUserID) {
-	flog("request from invalid user %u\n", sMsg->head.uid);
-	sendSlurmRC(sMsg, ESLURM_USER_ID_MISSING);
-	return;
-    }
-
-    char *prog = getConfValueC(&SlurmConfig, "RebootProgram");
-    if (!prog) {
-	flog("error: RebootProgram is not set in slurm.conf\n");
-	return;
-    }
-
     Req_Reboot_Nodes_t *req = sMsg->unpData;
     if (!req) {
 	flog("unpacking node reboot request failed\n");
 	return;
     }
 
-    /* execute reboot program */
-    StrBuffer_t cmdline = { .buf = NULL };
-    addStrBuf(trim(prog), &cmdline);
+    char *prog = getConfValueC(&SlurmConfig, "RebootProgram");
+    if (!prog) {
+	flog("error: RebootProgram is not set in slurm.conf\n");
+    } else if (sMsg->head.uid != 0 && sMsg->head.uid != slurmUserID) {
+	flog("request from invalid user %u\n", sMsg->head.uid);
+	sendSlurmRC(sMsg, ESLURM_USER_ID_MISSING);
+    } else {
+	/* try to execute reboot program */
+	StrBuffer_t cmdline = { .buf = NULL };
+	addStrBuf(trim(prog), &cmdline);
 
-    if (access(cmdline.buf, R_OK | X_OK) < 0) {
-	flog("invalid permissions for reboot program %s\n", cmdline.buf);
+	if (access(cmdline.buf, R_OK | X_OK) < 0) {
+	    flog("invalid permissions for reboot program %s\n", cmdline.buf);
+	} else {
+	    if (req->features && req->features[0]) {
+		addStrBuf(" ", &cmdline);
+		addStrBuf(req->features, &cmdline);
+	    }
+	    flog("calling reboot program '%s'\n", cmdline.buf);
+	    PSID_execScript(cmdline.buf, NULL, &cbRebootProgram, &cmdline);
+	}
 	freeStrBuf(&cmdline);
-	freeReqRebootNodes(req);
-	return;
-    }
-
-    if (req->features && req->features[0]) {
-	addStrBuf(" ", &cmdline);
-	addStrBuf(req->features, &cmdline);
     }
     freeReqRebootNodes(req);
-
-    flog("calling reboot program '%s'\n", cmdline.buf);
-    PSID_execScript(cmdline.buf, NULL, &cbRebootProgram, &cmdline);
 
     /* slurmctld does not expect an answer for RPC */
 }
