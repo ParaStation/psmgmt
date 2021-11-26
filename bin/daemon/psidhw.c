@@ -12,6 +12,7 @@
 #include "psidhw.h"
 
 #include <hwloc.h>
+#include <math.h>  // IWYU pragma: keep
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
