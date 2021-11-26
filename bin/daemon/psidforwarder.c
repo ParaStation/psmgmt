@@ -26,11 +26,11 @@
 #include <sys/socket.h>
 #include <sys/time.h>
 struct timeval;       // Make IWYU happy
-#include <sys/types.h>
-#include <sys/wait.h>
+#include <sys/resource.h>
 #include <sys/select.h>
 #include <sys/signalfd.h>
-#include <bits/types/struct_rusage.h>
+#include <sys/types.h>
+#include <sys/wait.h>
 
 #include "list.h"
 #include "pscio.h"
