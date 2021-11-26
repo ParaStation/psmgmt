@@ -2,6 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2014-2021 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2021 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -10,7 +11,10 @@
 #ifndef __PSSLURM_LOG
 #define __PSSLURM_LOG
 
-#include "logging.h"
+#include <stdint.h>
+#include <stdio.h>
+
+#include "logging.h"  // IWYU pragma: export
 
 extern logger_t *psslurmlogger;
 extern FILE *psslurmlogfile;

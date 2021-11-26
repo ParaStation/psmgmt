@@ -11,7 +11,8 @@
 #define __PS_SLURM_NODEINFO
 
 #include "psnodes.h"
-#include "psslurmnodeinfotype.h"
+
+#include "psslurmnodeinfotype.h"  // IWYU pragma: export
 #include "psslurmjob.h"
 #include "psslurmstep.h"
 

@@ -8,58 +8,64 @@
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
+#include "psslurmproto.h"
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <errno.h>
-#include <unistd.h>
-#include <sys/sysinfo.h>
-#include <sys/utsname.h>
-#include <signal.h>
-#include <sys/vfs.h>
 #include <malloc.h>
-#include <pwd.h>
+#include <netinet/in.h>
+#include <signal.h>
+#include <string.h>
+#include <sys/resource.h>
 #include <sys/stat.h>
+#include <sys/statfs.h>
+#include <sys/sysinfo.h>
+#include <sys/time.h>
+#include <sys/utsname.h>
+#include <time.h>
+#include <unistd.h>
 
 #include "pscommon.h"
-#include "pscio.h"
+#include "pscpu.h"
 #include "pshostlist.h"
+#include "pslog.h"
 #include "psserial.h"
-#include "env.h"
-#include "selector.h"
 #include "timer.h"
 
-#include "psidnodes.h"
 #include "psidspawn.h"
 #include "psidplugin.h"
+#include "psidscripts.h"
 
-#include "pluginmalloc.h"
-#include "pluginhelper.h"
 #include "pluginconfig.h"
+#include "pluginforwarder.h"
+#include "pluginhelper.h"
+#include "pluginmalloc.h"
 
 #include "psaccounthandles.h"
 #include "peloguehandles.h"
-#include "pspamhandles.h"
 
 #include "slurmcommon.h"
+#include "slurmerrno.h"
 #include "slurmnode.h"
-#include "psslurmjob.h"
-#include "psslurmgres.h"
-#include "psslurmlog.h"
-#include "psslurmcomm.h"
+#include "psslurmalloc.h"
 #include "psslurmauth.h"
+#include "psslurmbcast.h"
+#include "psslurmcomm.h"
 #include "psslurmconfig.h"
-#include "psslurmio.h"
-#include "psslurmforwarder.h"
-#include "psslurmpscomm.h"
 #include "psslurmenv.h"
-#include "psslurmpin.h"
-#include "psslurmpelogue.h"
-#include "psslurmpack.h"
-#include "psslurm.h"
+#include "psslurmforwarder.h"
 #include "psslurmfwcomm.h"
+#include "psslurmgres.h"
+#include "psslurmio.h"
+#include "psslurmlog.h"
 #include "psslurmnodeinfo.h"
-
-#include "psslurmproto.h"
+#include "psslurmpack.h"
+#include "psslurmpelogue.h"
+#include "psslurmpin.h"
+#include "psslurmpscomm.h"
+#include "psslurmtasks.h"
+#include "psslurm.h"
 
 /** Slurm protocol version */
 uint32_t slurmProto;

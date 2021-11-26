@@ -13,11 +13,22 @@
 
 #include <stdbool.h>
 #include <stdint.h>
+#include <sys/types.h>
 
-#include "psslurmtypes.h"
-#include "psslurmjob.h"
-#include "psslurmcomm.h"
+#include "list.h"
+#include "psenv.h"
+#include "psnodes.h"
+#include "pstask.h"
+
 #include "psaccounttypes.h"
+
+#include "slurmmsg.h"
+#include "psslurmcomm.h"
+#include "psslurmjob.h"
+#include "psslurmjobcred.h"
+#include "psslurmmsg.h"
+#include "psslurmstep.h"
+#include "psslurmtypes.h"
 
 /** Holding information for RPC REQUEST_TERMINATE_JOB */
 typedef struct {
