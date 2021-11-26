@@ -880,9 +880,11 @@ static void handleSuspendInt(Slurm_Msg_t *sMsg)
 	default:
 	    flog("unknown suspend_int operation %u\n", req->op);
 	    sendSlurmRC(sMsg, ESLURM_NOT_SUPPORTED);
+	    ufree(req);
 	    return;
     }
 
+    ufree(req);
     sendSlurmRC(sMsg, SLURM_SUCCESS);
 }
 
@@ -1098,12 +1100,6 @@ static bool writeSlurmConfigFiles(Config_Msg_t *config, char *confDir)
  */
 static void handleConfig(Slurm_Msg_t *sMsg)
 {
-    Config_Msg_t *config = sMsg->unpData;
-    if (!config) {
-	flog("unpacking new configuration failed\n");
-	return;
-    }
-
     /* check permissions */
     if (sMsg->head.uid != 0 && sMsg->head.uid != slurmUserID) {
 	flog("request from invalid user %u\n", sMsg->head.uid);
@@ -1113,6 +1109,12 @@ static void handleConfig(Slurm_Msg_t *sMsg)
     /* update all configuration files */
     char *confDir = getConfValueC(&Config, "SLURM_CONF_DIR");
     flog("updating Slurm configuration files in %s\n", confDir);
+
+    Config_Msg_t *config = sMsg->unpData;
+    if (!config) {
+	flog("unpacking new configuration failed\n");
+	return;
+    }
 
     bool ret = writeSlurmConfigFiles(config, confDir);
     freeSlurmConfigMsg(config);
@@ -1168,6 +1170,14 @@ static int cbRebootProgram(int fd, PSID_scriptCBInfo_t *info)
     return 0;
 }
 
+static void freeReqRebootNodes(Req_Reboot_Nodes_t *req)
+{
+    ufree(req->nodeList);
+    ufree(req->reason);
+    ufree(req->features);
+    ufree(req);
+}
+
 static void handleRebootNodes(Slurm_Msg_t *sMsg)
 {
     /* check permissions */
@@ -1196,6 +1206,7 @@ static void handleRebootNodes(Slurm_Msg_t *sMsg)
     if (access(cmdline.buf, R_OK | X_OK) < 0) {
 	flog("invalid permissions for reboot program %s\n", cmdline.buf);
 	freeStrBuf(&cmdline);
+	freeReqRebootNodes(req);
 	return;
     }
 
@@ -1203,6 +1214,7 @@ static void handleRebootNodes(Slurm_Msg_t *sMsg)
 	addStrBuf(" ", &cmdline);
 	addStrBuf(req->features, &cmdline);
     }
+    freeReqRebootNodes(req);
 
     flog("calling reboot program '%s'\n", cmdline.buf);
     PSID_execScript(cmdline.buf, NULL, &cbRebootProgram, &cmdline);
@@ -1433,6 +1445,7 @@ static void handleStepStat(Slurm_Msg_t *sMsg)
 	    .stepid = head->stepid };
 	flog("%s to signal not found\n", strStepID(&s));
 	sendSlurmRC(sMsg, ESLURM_INVALID_JOB_ID);
+	ufree(head);
 	return;
     }
 
@@ -1440,8 +1453,10 @@ static void handleStepStat(Slurm_Msg_t *sMsg)
     if (!verifyUserId(sMsg->head.uid, step->uid)) {
 	flog("request from invalid user %u\n", sMsg->head.uid);
 	sendSlurmRC(sMsg, ESLURM_USER_ID_MISSING);
+	ufree(head);
 	return;
     }
+    ufree(head);
 
     PS_SendDB_t *msg = &sMsg->reply;
 
@@ -1490,6 +1505,7 @@ static void handleStepPids(Slurm_Msg_t *sMsg)
 	    .stepid = head->stepid };
 	flog("%s to signal not found\n", strStepID(&s));
 	sendSlurmRC(sMsg, ESLURM_INVALID_JOB_ID);
+	ufree(head);
 	return;
     }
 
@@ -1497,8 +1513,10 @@ static void handleStepPids(Slurm_Msg_t *sMsg)
     if (!verifyUserId(sMsg->head.uid, step->uid)) {
 	flog("request from invalid user %u\n", sMsg->head.uid);
 	sendSlurmRC(sMsg, ESLURM_USER_ID_MISSING);
+	ufree(head);
 	return;
     }
+    ufree(head);
 
     /* send step PIDs */
     PS_SendDB_t *msg = &sMsg->reply;
