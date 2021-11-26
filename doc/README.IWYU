@@ -1,7 +1,25 @@
 Running include-what-you-use sporadically over the sources might be helpful
 
 To check all files within an directory start with:
-for f in <dir>/*.[ch]; do include-what-you-use -I include -I bin/daemon -I <dir> $f; if [ $? -ne 2 ]; then echo $f >> unresolved; fi; done
+
+dir=bin/daemon
+rm -f unresolved
+for f in ${dir}/*.[ch]; do \
+   include-what-you-use -Xiwyu --mapping_file=scripts/psmgmt.imp \
+      -DVERSION_psmgmt=\"5.1.45\" -DRELEASE_psmgmt=\"42\" \
+      -I include -I bin/daemon -I ${dir} $f
+   if [ $? -ne 2 ]; then
+      echo $f >> unresolved
+   fi;
+done
 
 Further iterations might be made via:
-mv -f unresolved checks; for f in `cat checks`; do include-what-you-use -I include -I bin/daemon -I <dir> $f; if [ $? -ne 2 ]; then echo $f >> unresolved; fi; done
+mv -f unresolved checks
+for f in `cat checks`; do
+   include-what-you-use -Xiwyu --mapping_file=scripts/psmgmt.imp \
+      -DVERSION_psmgmt=\"5.1.45\" -DRELEASE_psmgmt=\"42\" \
+      -I include -I bin/daemon -I ${dir} $f
+   if [ $? -ne 2 ]; then
+      echo $f >> unresolved
+   fi
+done
