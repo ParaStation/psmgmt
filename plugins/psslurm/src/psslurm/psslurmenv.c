@@ -824,7 +824,7 @@ static void setCommonRankEnv(int32_t rank, Step_t *step)
     char *confServer = getConfValueC(&Config, "SLURM_CONF_SERVER");
     if (confServer && strcmp(confServer, "none")) {
 	/* ensure the configuration cache is used */
-	unsetenv("SLURM_CONF");
+	setenv("SLURM_CONF", getConfValueC(&Config, "SLURM_CONF"), 1);
     }
 
     setenv("SLURMD_NODENAME", getConfValueC(&Config, "SLURM_HOSTNAME"), 1);
@@ -1061,7 +1061,7 @@ void setJobEnv(Job_t *job)
     char *confServer = getConfValueC(&Config, "SLURM_CONF_SERVER");
     if (confServer && strcmp(confServer, "none")) {
 	/* ensure the configuration cache is used */
-	envUnset(&job->env, "SLURM_CONF");
+	envSet(&job->env, "SLURM_CONF", getConfValueC(&Config, "SLURM_CONF"));
     }
 
     Alloc_t *alloc = findAlloc(job->jobid);
