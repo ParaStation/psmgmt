@@ -150,6 +150,7 @@ static int doExec(char *script, PSID_scriptFunc_t func, PSID_scriptPrep_t prep,
 		    ret = WEXITSTATUS(ret);
 		}
 	    }
+	    free(command);
 	}
 
 	/* Send results to controlling daemon */

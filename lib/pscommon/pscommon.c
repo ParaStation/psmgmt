@@ -232,6 +232,7 @@ char* PSC_lookupInstalldir(char *hint)
     if (hint || !installdir) {
 	char *name = PSC_concat(hint ? hint : DEFAULT_INSTDIR, LOGGER, 0L);
 
+	free(installdir);
 	installdir = NULL;
 
 	if (stat(name, &fstat)) {
