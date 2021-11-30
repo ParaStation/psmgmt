@@ -71,7 +71,7 @@ void PSID_finalizeLogs(void)
     PSID_logger = NULL;
 }
 
-int PSID_blockSig(int block, int sig)
+bool PSID_blockSig(int sig, bool block)
 {
     sigset_t set, oldset;
 

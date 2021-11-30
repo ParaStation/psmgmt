@@ -206,20 +206,20 @@ bool PSID_mixedProto(void);
 void PSID_setMixedProto(bool mixed);
 
 /**
- * @brief (Un-)Block signal.
+ * @brief (Un-)Block signal
  *
- * Block or unblock the signal @a sig depending on the value of @a
- * block. If block is 1, the signal will be blocked. Otherwise it will
- * be unblocked.
+ * Block or unblock the signal @a sig depending on flag @a block. If
+ * block is true, the signal will be blocked. Otherwise it will be
+ * unblocked.
  *
- * @param block Flag steering the (un-)blocking of the signal.
+ * @param block Flag steering the (un-)blocking of the signal
  *
- * @param sig The signal to block or unblock.
+ * @param sig Signal to block or unblock
  *
- * @return Flag, if signal was blocked before. I.e. return 1, if
- * signal was blocked or 0 otherwise.
+ * @return Flag if signal was blocked before; i.e. return true if
+ * signal was blocked or false otherwise
  */
-int PSID_blockSig(int block, int sig);
+bool PSID_blockSig(int sig, bool block);
 
 /**
  * @brief Create file descriptor for accepting signals
@@ -274,7 +274,7 @@ void PSID_prepareSigs(Selector_CB_t handler);
  * SIG_DFL. SIGCHLD needs special handling here in order to catch
  * corresponding signals while setting up forwarder's sand-box. Thus,
  * SIGCHLD will not be touched within this function and has to be
- * handled explicitely outside this function.
+ * handled explicitly outside this function.
  *
  * @return No return value.
  */

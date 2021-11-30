@@ -2,6 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2010-2021 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2021 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -297,8 +298,8 @@ int signalSession(pid_t session, int sig)
     if (session < 1) return 0;
 
     /* block signals to prevent asynchronous call via sighandler */
-    int blockedTERM = PSID_blockSig(1, SIGTERM);
-    int blockedALRM = PSID_blockSig(1, SIGALRM);
+    bool blockedTERM = PSID_blockSig(SIGTERM, true);
+    bool blockedALRM = PSID_blockSig(SIGALRM, true);
 
     /* we need up2date information */
     updateProcSnapshot();
@@ -317,8 +318,8 @@ int signalSession(pid_t session, int sig)
 	}
     }
 
-    PSID_blockSig(blockedALRM, SIGALRM);
-    PSID_blockSig(blockedTERM, SIGTERM);
+    PSID_blockSig(SIGALRM, blockedALRM);
+    PSID_blockSig(SIGTERM, blockedTERM);
 
     return sendCount;
 }

@@ -84,7 +84,7 @@ static int doExec(char *script, PSID_scriptFunc_t func, PSID_scriptPrep_t prep,
 	return -1;
     }
 
-    int blocked = PSID_blockSig(1, SIGTERM);
+    bool blocked = PSID_blockSig(SIGTERM, true);
     pid_t pid = fork();
     /* save errno in case of error */
     eno = errno;
@@ -94,8 +94,8 @@ static int doExec(char *script, PSID_scriptFunc_t func, PSID_scriptPrep_t prep,
 	int fd, maxFD = sysconf(_SC_OPEN_MAX);
 
 	PSID_resetSigs();
-	PSID_blockSig(0, SIGTERM);
-	PSID_blockSig(0, SIGCHLD);
+	PSID_blockSig(SIGTERM, false);
+	PSID_blockSig(SIGCHLD, false);
 
 	/* close all fds except control channel and connecting socket */
 	/* Start with connection to syslog */
@@ -158,7 +158,7 @@ static int doExec(char *script, PSID_scriptFunc_t func, PSID_scriptPrep_t prep,
 	exit(0);
     }
 
-    PSID_blockSig(blocked, SIGTERM);
+    PSID_blockSig(SIGTERM, blocked);
 
     close(controlfds[1]);
     close(iofds[1]);

@@ -50,7 +50,7 @@ int pskill(pid_t pid, int sig, uid_t uid)
 	return -1;
     }
 
-    int blocked = PSID_blockSig(1, SIGTERM);
+    bool blocked = PSID_blockSig(SIGTERM, true);
     /* fork to a new process to change the user ID and get the right errors */
     errno = 0;
     pid_t forkPid = fork();
@@ -60,8 +60,8 @@ int pskill(pid_t pid, int sig, uid_t uid)
     if (!forkPid) {
 	/* the killing process */
 	PSID_resetSigs();
-	PSID_blockSig(0, SIGTERM);
-	PSID_blockSig(0, SIGCHLD);
+	PSID_blockSig(SIGTERM, false);
+	PSID_blockSig(SIGCHLD, false);
 
 	/* close all fds except the control channel and stdin/stdout/stderr */
 	long maxFD = sysconf(_SC_OPEN_MAX);
@@ -102,7 +102,7 @@ int pskill(pid_t pid, int sig, uid_t uid)
     /* close the writing pipe */
     close(cntrlfds[1]);
 
-    PSID_blockSig(blocked, SIGTERM);
+    PSID_blockSig(SIGTERM, blocked);
 
     /* check if fork() was successful */
     if (forkPid == -1) {
