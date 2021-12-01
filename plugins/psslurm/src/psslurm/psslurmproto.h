@@ -707,4 +707,18 @@ void sendPrologComplete(uint32_t jobid, uint32_t rc);
  */
 void sendJobRequeue(uint32_t jobid);
 
+/**
+ * @brief Execute a Slurm health-check
+ *
+ * @return Returns true on success otherwise false is returned
+ */
+bool runHealthCheck(void);
+
+/**
+ * @brief Get Slurm health-check runs
+ *
+ * @return Returns the number of times the health-check was executed
+ */
+uint64_t getSlurmHCRuns(void);
+
 #endif /* __PSSLURM_PROTO */

@@ -679,6 +679,9 @@ bool finalizeInit(void)
     /* initialize pinning defaults */
     if (!initPinning()) return false;
 
+    /* start health-check script */
+    if (!runHealthCheck()) return false;
+
     isInit = true;
 
     mlog("(%i) successfully started, protocol '%s (%i)'\n", version,

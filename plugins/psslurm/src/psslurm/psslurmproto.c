@@ -79,6 +79,9 @@ char *slurmVerStr = NULL;
 /** Flag to measure Slurm RPC execution times */
 bool measureRPC = false;
 
+/** Counter to track how often a Slurm Healthcheck was executed */
+uint64_t slurmHCRuns = 0;
+
 /** Flag to request additional info in node registration */
 static bool needNodeRegResp = true;
 
@@ -1218,10 +1221,86 @@ static void handleRebootNodes(Slurm_Msg_t *sMsg)
     /* slurmctld does not expect an answer for RPC */
 }
 
+uint64_t getSlurmHCRuns(void)
+{
+    return slurmHCRuns;
+}
+
+/**
+ * @brief Callback of a health-check script
+ *
+ * @param fd The file descriptor to read the result
+ *
+ * @param info cmdline of the reboot program called
+ *
+ * @return Always returns 0
+ */
+static int cbHealthcheck(int fd, PSID_scriptCBInfo_t *info)
+{
+    char errMsg[1024];
+    int32_t exit = 0;
+    size_t errLen = 0;
+
+    getScriptCBdata(fd, info, &exit, errMsg, sizeof(errMsg), &errLen);
+
+    char *script = getConfValueC(&SlurmConfig, "HealthCheckProgram");
+    if (exit != 0) {
+	flog("'%s' returned exit status %i\n", script, exit);
+    }
+
+    if (errMsg[0] != '\0') flog("health-check script message: %s\n", errMsg);
+    return 0;
+}
+
+static int prepHCenv(void *reqPtr)
+{
+    setenv("SLURMD_NODENAME", getConfValueC(&Config, "SLURM_HOSTNAME"), 1);
+    return 0;
+}
+
+bool runHealthCheck(void)
+{
+    /* run health-check script */
+    char *script = getConfValueC(&SlurmConfig, "HealthCheckProgram");
+    char *interval = getConfValueC(&SlurmConfig, "HealthCheckInterval");
+
+    if (script && interval) {
+	if (access(script, R_OK | X_OK) < 0) {
+	    flog("invalid permissions for health-check script %s\n", script);
+	    return false;
+	}
+
+	int pid = PSID_execScript(script, &prepHCenv, &cbHealthcheck, NULL);
+	if (pid == -1) {
+	    flog("error spawning health-check script %s\n", script);
+	    return false;
+	}
+	flog("(%zu) execute health-check script %s\n", ++slurmHCRuns, script);
+
+	/* TODO: add timeout monitoring. Should PSID_execScript be extended
+	 * to support timeouts? */
+    }
+
+    return true;
+}
+
+/**
+ * @brief Handle a REQUEST_HEALTH_CHECK RPC
+ *
+ * @param sMsg The message holding the RPC to handle
+ */
 static void handleHealthCheck(Slurm_Msg_t *sMsg)
 {
-    mlog("%s: implement me!\n", __func__);
-    sendSlurmRC(sMsg, ESLURM_NOT_SUPPORTED);
+    /* check permissions */
+    if (sMsg->head.uid != 0 && sMsg->head.uid != slurmUserID) {
+	flog("request from invalid user %u\n", sMsg->head.uid);
+	sendSlurmRC(sMsg, ESLURM_USER_ID_MISSING);
+	return;
+    }
+
+    sendSlurmRC(sMsg, SLURM_SUCCESS);
+
+    runHealthCheck();
 }
 
 static void handleAcctGatherUpdate(Slurm_Msg_t *sMsg)
