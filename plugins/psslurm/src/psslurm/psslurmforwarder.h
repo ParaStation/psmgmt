@@ -2,18 +2,22 @@
  * ParaStation
  *
  * Copyright (C) 2014-2021 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2021 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-
 #ifndef __PS_SLURM_FORWARDER
 #define __PS_SLURM_FORWARDER
 
-#include "psslurmalloc.h"
-#include "psslurmjob.h"
+#include <stdbool.h>
+#include <stdint.h>
+
 #include "psslurmbcast.h"
+#include "psslurmjob.h"
+#include "psslurmstep.h"
+#include "psslurmtypes.h"
 
 /**
  * @brief Execute a step leader forwarder
