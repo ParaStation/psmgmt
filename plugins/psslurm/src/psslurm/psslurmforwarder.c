@@ -103,26 +103,21 @@ static int termJobJail(void *info)
     return PSIDhook_call(PSIDHOOK_JAIL_TERM, &job->fwdata->cPid);
 }
 
-static int cbTermJail(int fd, PSID_scriptCBInfo_t *info)
+static void cbTermJail(int exit, bool tmdOut, int iofd, void *info)
 {
-    int32_t exit = 0;
     char errMsg[1024];
     size_t errLen;
 
-    bool ret = getScriptCBdata(fd, info, &exit, errMsg, sizeof(errMsg),&errLen);
+    bool ret = getScriptCBdata(iofd, errMsg, sizeof(errMsg),&errLen);
     if (!ret) {
-	mlog("%s: getting jail term script callback data failed\n", __func__);
-	ufree(info);
-	return 0;
+	flog("%s: getting jail term script callback data failed\n", __func__);
+	return;
     }
 
     if (exit != PSIDHOOK_NOFUNC && exit != 0) {
-	mlog("%s: jail script failed with exit status %i\n", __func__, exit);
-	mlog("%s: %s\n", __func__, errMsg);
+	flog("jail script failed with exit status %i\n", exit);
+	flog("%s\n", errMsg);
     }
-
-    ufree(info);
-    return 0;
 }
 
 static int jobCallback(int32_t exit_status, Forwarder_Data_t *fw)
@@ -138,7 +133,7 @@ static int jobCallback(int32_t exit_status, Forwarder_Data_t *fw)
     }
 
     /* terminate cgroup */
-    PSID_execFunc(termJobJail, NULL, cbTermJail, job);
+    PSID_execFunc(termJobJail, NULL, cbTermJail, NULL, job);
 
     /* make sure all processes are gone */
     signalStepsByJobid(job->jobid, SIGKILL, 0);
@@ -203,7 +198,7 @@ static int stepFollowerCB(int32_t exit_status, Forwarder_Data_t *fw)
     }
 
     /* terminate cgroup */
-    PSID_execFunc(termStepJail, NULL, cbTermJail, step);
+    PSID_execFunc(termStepJail, NULL, cbTermJail, NULL, step);
 
     /* send launch error if local processes failed to start */
     unsigned int taskCount = countRegTasks(&step->tasks);
@@ -269,7 +264,7 @@ static int stepCallback(int32_t exit_status, Forwarder_Data_t *fw)
 	 strJobState(step->state), exit_status, fw->chldExitStatus);
 
     /* terminate cgroup */
-    PSID_execFunc(termStepJail, NULL, cbTermJail, step);
+    PSID_execFunc(termStepJail, NULL, cbTermJail, NULL, step);
 
     /* make sure all processes are gone */
     signalStep(step, SIGKILL, 0);

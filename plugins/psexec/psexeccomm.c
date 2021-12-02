@@ -131,7 +131,7 @@ static bool execScript(Script_t *script, PSID_scriptCB_t cb)
 	mlog(" envc %u initiator %s", script->env.cnt, PSC_printTID(initiator));
     }
     mlog("\n");
-    ret = PSID_execScript(exePath, prepEnv, cb, script);
+    ret = PSID_execScript(exePath, prepEnv, cb, NULL, script);
     if (ret == -1) return false;
 
     script->pid = ret;
@@ -139,28 +139,24 @@ static bool execScript(Script_t *script, PSID_scriptCB_t cb)
     return true;
 }
 
-static int callbackLocalScript(int fd, PSID_scriptCBInfo_t *info)
+static void callbackLocalScript(int exit, bool tmdOut, int iofd, void *info)
 {
-    Script_t *script = info ? info->info : NULL;
+    Script_t *script = info;
     char output[MAX_SCRIPT_OUTPUT];
-    int32_t exit;
     size_t errLen = 0;
 
-    getScriptCBdata(fd, info, &exit, output, sizeof(output), &errLen);
-    ufree(info);
-    if (!script) return 0;
+    getScriptCBdata(iofd, output, sizeof(output), &errLen);
+    if (!script) return;
 
     mlog("%s: id %i uID %u exit %i\n", __func__, script->id, script->uID, exit);
 
     if (script->cb) {
 	int rc = script->cb(script->id, exit, PSC_getMyID(), script->uID,
 			    output);
-	if (rc == PSEXEC_CONT) return 0;
+	if (rc == PSEXEC_CONT) return;
     }
     script->pid = 0;
     deleteScript(script);
-
-    return 0;
 }
 
 int startLocalScript(Script_t *script)
@@ -177,16 +173,14 @@ int startLocalScript(Script_t *script)
     return -1;
 }
 
-static int callbackScript(int fd, PSID_scriptCBInfo_t *info)
+static void callbackScript(int exit, bool tmdOut, int iofd, void *info)
 {
-    Script_t *script = info ? info->info : NULL;
+    Script_t *script = info;
     char output[MAX_SCRIPT_OUTPUT];
-    int32_t exit;
     size_t errLen = 0;
 
-    getScriptCBdata(fd, info, &exit, output, sizeof(output), &errLen);
-    ufree(info);
-    if (!script) return 0;
+    getScriptCBdata(iofd, output, sizeof(output), &errLen);
+    if (!script) return;
 
     mlog("%s: initiator %s id %i exit %i output:%s\n", __func__,
 	 PSC_printTID(script->initiator), script->id, exit, output);
@@ -197,8 +191,6 @@ static int callbackScript(int fd, PSID_scriptCBInfo_t *info)
     /* cleanup */
     script->pid = 0;
     deleteScript(script);
-
-    return 0;
 }
 
 static void handleExecScript(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)

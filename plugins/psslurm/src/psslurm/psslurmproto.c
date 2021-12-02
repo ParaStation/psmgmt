@@ -1143,38 +1143,35 @@ static void handleConfig(Slurm_Msg_t *sMsg)
 /**
  * @brief Callback of the reboot program
  *
- * @param fd The file descriptor to read the result
+ * @param exit Reboot program's exit-status
  *
- * @param info cmdline of the reboot program called
+ * @param tmdOut Ignored flag of timeout
  *
- * @return Always returns 0
+ * @param iofd File descriptor providing reboot program's output
+ *
+ * @param info Extra information pointing to @ref StrBuffer_t
+ *
+ * @return No return value
  */
-static int cbRebootProgram(int fd, PSID_scriptCBInfo_t *info)
+static void cbRebootProgram(int exit, bool tmdOut, int iofd, void *info)
 {
-    StrBuffer_t *cmdline = info->info;
     char errMsg[1024];
-    int32_t exit = 0;
     size_t errLen = 0;
+    getScriptCBdata(iofd, errMsg, sizeof(errMsg), &errLen);
 
-    getScriptCBdata(fd, info, &exit, errMsg, sizeof(errMsg), &errLen);
-
+    StrBuffer_t *cmdline = info;
     flog("'%s' returned exit status %i\n",
 	 (cmdline ? cmdline->buf : "reboot program"), exit);
 
     if (errMsg[0] != '\0') flog("reboot error message: %s\n", errMsg);
 
-    if (cmdline) {
-	freeStrBuf(cmdline);
-    }
-    ufree(info);
+    if (cmdline) freeStrBuf(cmdline);
 
     char *shutdown = getConfValueC(&Config, "SLURMD_SHUTDOWN_ON_REBOOT");
     if (shutdown) {
 	flog("unloading psslurm after reboot program\n");
 	PSIDplugin_finalize("psslurm");
     }
-
-    return 0;
 }
 
 static void freeReqRebootNodes(Req_Reboot_Nodes_t *req)
@@ -1212,7 +1209,7 @@ static void handleRebootNodes(Slurm_Msg_t *sMsg)
 		addStrBuf(req->features, &cmdline);
 	    }
 	    flog("calling reboot program '%s'\n", cmdline.buf);
-	    PSID_execScript(cmdline.buf, NULL, &cbRebootProgram, &cmdline);
+	    PSID_execScript(cmdline.buf, NULL, &cbRebootProgram, NULL,&cmdline);
 	}
 	freeStrBuf(&cmdline);
     }

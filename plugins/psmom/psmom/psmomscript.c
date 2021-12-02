@@ -599,27 +599,33 @@ static void PElogueTimeoutAction(char *server, char *jobid, int prologue,
 /**
  * @brief Callback for Pro/Epilogue scripts.
  *
- * @return Always returns 0.
+ * @param exit Script's exit-status
+ *
+ * @param tmdOut Ignored flag of timeout
+ *
+ * @param iofd File descriptor providing script's output
+ *
+ * @param info Extra information pointing to @ref PElogue_Data_t
+ *
+ * @return No return value
  */
-static int callbackPElogue(int fd, PSID_scriptCBInfo_t *info)
+static void callbackPElogue(int exitStat, bool tmdOut, int iofd, void *info)
 {
-    int32_t exitStat, signalFlag = 0;
-    PElogue_Data_t *data = info ? info->info : NULL;
+    int32_t signalFlag = 0;
     char errMsg[300] = {'\0'};
     size_t errLen;
 
     /* fetch error msg and exit status */
-    bool ret = getScriptCBdata(fd, info, &exitStat,
-			       errMsg, sizeof(errMsg), &errLen);
-    ufree(info);
+    bool ret = getScriptCBdata(iofd, errMsg, sizeof(errMsg), &errLen);
     if (!ret) {
 	mlog("%s: invalid cb data\n", __func__);
-	return 0;
+	return;
     }
 
+    PElogue_Data_t *data = info;
     if (!data) {
 	mlog("%s: no data\n", __func__);
-	return 0;
+	return;
     }
 
     /* log error locally and forward to mother superior */
@@ -719,8 +725,6 @@ static int callbackPElogue(int fd, PSID_scriptCBInfo_t *info)
     ufree(data->server);
     ufree(data->tmpDir);
     ufree(data);
-
-    return 0;
 }
 
 /**
@@ -984,7 +988,7 @@ void handlePELogueStart(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *msgData)
     /* spawn child to prevent the pelogue script from blocking
      * the psmom/psid */
     pid_t pid = PSID_execFunc(execPElogueForwarder, prepScriptEnv,
-			      callbackPElogue, data);
+			      callbackPElogue, NULL, data);
     if (pid == -1) {
 	mlog("%s: exec '%s'-script failed\n", __func__, ctype);
 

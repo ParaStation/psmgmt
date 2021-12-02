@@ -32,7 +32,6 @@
 #include "config_parsing.h"
 #include "mcast.h"
 #include "rdp.h"
-#include "selector.h"
 #include "timer.h"
 
 #include "psidutil.h"
@@ -509,32 +508,20 @@ static void stateChangeEnv(void *info)
     setenv("NODE_NAME", nName, 1);
 }
 
-static int stateChangeCB(int fd, PSID_scriptCBInfo_t *cbInfo)
+static void stateChangeCB(int result, bool tmdOut, int iofd, void *info)
 {
-    int result = -13, iofd = -1;
     char *sName = "<unknown>";
-
-    if (!cbInfo) {
-	PSID_log(-1, "%s: No extra info\n", __func__);
-    } else {
-	if (cbInfo->info) {
-	    stateChangeInfo_t *i = cbInfo->info;
-	    sName = i->script;
-	    free(i);
-	}
-	iofd = cbInfo->iofd;
-	free(cbInfo);
+    if (info) {
+	stateChangeInfo_t *i = info;
+	sName = i->script;
+	free(i);
     }
 
-    Selector_remove(fd);
-    PSCio_recvBuf(fd, &result, sizeof(result));
-    close(fd);
     if (result) {
 	char line[128] = { '\0' };
 	if (iofd > -1) {
 	    int num = PSCio_recvBuf(iofd, line, sizeof(line));
 	    int eno = errno;
-	    close(iofd); /* Discard further output */
 	    if (num < 0) {
 		PSID_warn(-1, eno, "%s: PSCio_recvBuf(iofd)", __func__);
 		line[0] = '\0';
@@ -548,8 +535,6 @@ static int stateChangeCB(int fd, PSID_scriptCBInfo_t *cbInfo)
 		 sName, result, line);
     }
     if (iofd > -1) close(iofd); /* Discard further output */
-
-    return 0;
 }
 
 bool declareNodeDead(PSnodes_ID_t id, int sendDeadnode, bool silent)
@@ -672,7 +657,7 @@ bool declareNodeDead(PSnodes_ID_t id, int sendDeadnode, bool silent)
 		info->script = PSID_config->nodeDownScript;
 	    }
 	    PSID_execScript(PSID_config->nodeDownScript, stateChangeEnv,
-			    stateChangeCB, info);
+			    stateChangeCB, NULL, info);
 	}
     }
 
@@ -745,7 +730,7 @@ bool declareNodeAlive(PSnodes_ID_t id, int numCores, int numThrds,
 		info->script = PSID_config->nodeUpScript;
 	    }
 	    PSID_execScript(PSID_config->nodeUpScript, stateChangeEnv,
-			    stateChangeCB, info);
+			    stateChangeCB, NULL, info);
 	}
 
 	send_GETTASKS(id);

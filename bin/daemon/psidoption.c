@@ -303,9 +303,6 @@ static void set_rlimit(PSP_Option_t option, PSP_Optval_t value)
 		PSID_log(-1, "%s: cannot handle unlimited files\n", __func__);
 		break;
 	    }
-	    if (PSIDscripts_setMax(value) < 0) {
-		PSID_exit(errno, "%s: Failed to adapt PSIDscripts", __func__);
-	    }
 	    if (PSIDclient_setMax(value) < 0) {
 		PSID_exit(errno, "%s: Failed to adapt PSIDclient", __func__);
 	    }

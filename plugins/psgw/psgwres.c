@@ -165,7 +165,7 @@ static bool stopPSGWD(PSGW_Req_t *req)
  * @return Always returns 0
  */
 static int cbPSGWDerror(uint32_t id, int32_t exit, PSnodes_ID_t dest,
-		        uint16_t uid, char *output)
+			uint16_t uid, char *output)
 {
     if (exit != 0) flog(" failed: id %u exit %u output %s\n", id, exit, output);
     return 0;
@@ -325,27 +325,29 @@ static void finalizeRequest(PSGW_Req_t *req)
 /**
  * @brief Callback of the routing script
  *
- * @param fd The file descriptor to read the result
+ * @param exit Routing script's exit-status
  *
- * @param info Info structure holding the request of the routing script
+ * @param tmdOut Ignored flag of timeout
  *
- * @return Always returns 0
+ * @param iofd File descriptor providing routing script's output
+ *
+ * @param info Extra information pointing to @ref PSGW_Req_t
+ *
+ * @return No return value
  */
-static int cbRouteScript(int fd, PSID_scriptCBInfo_t *info)
+static void cbRouteScript(int exit, bool tmdOut, int iofd, void *info)
 {
-    PSGW_Req_t *req = info ? info->info : NULL;
     char errMsg[1024];
-    int32_t exit = 0;
     size_t errLen = 0;
 
-    getScriptCBdata(fd, info, &exit, errMsg, sizeof(errMsg), &errLen);
-    ufree(info);
+    getScriptCBdata(iofd, errMsg, sizeof(errMsg), &errLen);
     fdbg(PSGW_LOG_ROUTE, "routing script exit %i\n", exit);
 
+    PSGW_Req_t *req = info;
     req = Request_verify(req);
     if (!req) {
-	mlog("%s: no request found for script\n", __func__);
-	return 0;
+	flog("no request found for script\n");
+	return;
     }
     /* remove the timer */
     if (req->timerRouteScript != -1) {
@@ -364,10 +366,9 @@ static int cbRouteScript(int fd, PSID_scriptCBInfo_t *info)
 	}
 	cancelReq(req, errMsg);
     } else {
-	if (errMsg[0] != '\0') mlog("%s: %s\n", __func__, errMsg);
+	if (errMsg[0] != '\0') flog("%s\n", errMsg);
 	finalizeRequest(req);
     }
-    return 0;
 }
 
 /**
@@ -466,7 +467,7 @@ static bool execRoutingScript(PSGW_Req_t *req)
 	return false;
     }
 
-    req->routePID = PSID_execScript(exePath, prepEnv, cbRouteScript, req);
+    req->routePID = PSID_execScript(exePath, prepEnv, cbRouteScript, NULL, req);
     if (req->routePID == -1) return false;
 
     if (tmRouteScript >0) {

@@ -48,21 +48,19 @@ static int jailChild(void *info)
     return PSIDhook_call(PSIDHOOK_JAIL_CHILD, &session->pid);
 }
 
-static int cbJailChild(int fd, PSID_scriptCBInfo_t *info)
+static void cbJailChild(int exit, bool tmdOut, int iofd, void *info)
 {
-    int32_t exit = 0;
     char errMsg[1024];
     size_t errLen;
 
-    bool ret = getScriptCBdata(fd, info, &exit, errMsg, sizeof(errMsg),&errLen);
+    bool ret = getScriptCBdata(iofd, errMsg, sizeof(errMsg),&errLen);
     if (!ret) {
 	mlog("%s: getting jail script callback data failed\n", __func__);
-	ufree(info);
-	return 0;
+	return;
     }
 
     if (exit < 0) {
-	Session_t *session = info->info;
+	Session_t *session = info;
 
 	mlog("%s: jail script failed with exit status %i\n", __func__, exit);
 	mlog("%s: %s\n", __func__, errMsg);
@@ -74,9 +72,6 @@ static int cbJailChild(int fd, PSID_scriptCBInfo_t *info)
 		 __func__);
 	}
     }
-
-    ufree(info);
-    return 0;
 }
 
 static PSPAMResult_t handleOpenRequest(char *msgBuf)
@@ -123,7 +118,7 @@ static PSPAMResult_t handleOpenRequest(char *msgBuf)
 	    Session_t *session = addSession(user, rhost, pid, sid);
 	    if (session) {
 		/* Jail allowed ssh processes */
-		PSID_execFunc(jailChild, NULL, cbJailChild, session);
+		PSID_execFunc(jailChild, NULL, cbJailChild, NULL, session);
 	    } else {
 		mlog("%s: saving session for user %s failed\n", __func__, user);
 		res = PSPAM_RES_DENY;

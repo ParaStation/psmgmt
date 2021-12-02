@@ -146,26 +146,21 @@ static int termJail(void *info)
     return PSIDhook_call(PSIDHOOK_JAIL_TERM, &pid);
 }
 
-static int cbTermJail(int fd, PSID_scriptCBInfo_t *info)
+static void cbTermJail(int exit, bool tmdOut, int iofd, void *info)
 {
-    int32_t exit = 0;
     char errMsg[1024];
     size_t errLen;
 
-    bool ret = getScriptCBdata(fd, info, &exit, errMsg, sizeof(errMsg),&errLen);
+    bool ret = getScriptCBdata(iofd, errMsg, sizeof(errMsg),&errLen);
     if (!ret) {
-	mlog("%s: getting jail term script callback data failed\n", __func__);
-	ufree(info);
-	return 0;
+	flog("getting jail term script callback data failed\n");
+	return;
     }
 
     if (exit != PSIDHOOK_NOFUNC && exit != 0) {
-	mlog("%s: jail script failed with exit status %i\n", __func__, exit);
-	mlog("%s: %s\n", __func__, errMsg);
+	flog("jail script failed with exit status %i\n", exit);
+	flog("%s\n", errMsg);
     }
-
-    ufree(info);
-    return 0;
 }
 
 bool deleteAlloc(uint32_t id)
@@ -180,7 +175,7 @@ bool deleteAlloc(uint32_t id)
     if (!(alloc = findAlloc(id))) return false;
 
     /* terminate cgroup */
-    PSID_execFunc(termJail, NULL, cbTermJail, alloc);
+    PSID_execFunc(termJail, NULL, cbTermJail, NULL, alloc);
 
     PSIDhook_call(PSIDHOOK_PSSLURM_FINALLOC, alloc);
 

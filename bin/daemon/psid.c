@@ -292,6 +292,7 @@ static int handleSIGUSR1(int fd, void *info)
     PSIDFlwCntrl_printStat();
     PSIDcomm_printStat();
     Selector_printStat();
+    PSIDscripts_printStat();
 
     return 0;
 }
@@ -678,7 +679,8 @@ int main(int argc, const char *argv[])
 
     /* call startupScript, if any */
     if (PSID_config->startupScript && *PSID_config->startupScript) {
-	int ret = PSID_execScript(PSID_config->startupScript, NULL, NULL, NULL);
+	int ret = PSID_execScript(PSID_config->startupScript, NULL, NULL,
+				  NULL, NULL);
 
 	if (ret > 1) {
 	    PSID_log(-1, "startup script '%s' failed. Exiting...\n",
@@ -720,6 +722,7 @@ int main(int argc, const char *argv[])
     PSIDspawn_init();
     initPartition();
     PSIDhw_init();
+    PSIDscripts_init();
     initAccount();
     initInfo();
     initEnvironment();

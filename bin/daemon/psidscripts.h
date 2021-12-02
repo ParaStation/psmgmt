@@ -14,43 +14,42 @@
 #ifndef __PSIDSCRIPTS_H
 #define __PSIDSCRIPTS_H
 
+#include <stdbool.h>
+#include <sys/time.h> // IWYU pragma: keep
+struct timeval;       // Make IWYU happy
 #include <sys/types.h>
 
 #include "config_parsing.h"
-
-/** Information passed to script's callback function. */
-typedef struct {
-    int iofd;      /**< File-descriptor serving script's stdout/stderr. */
-    void *info;    /**< Extra information to be passed to callback. */
-} PSID_scriptCBInfo_t;
 
 /**
  * @brief Script callback
  *
  * Callback used by @ref PSID_execScript() and @ref PSID_execFunc() to
- * handle the file-descriptor registered into the Selector. This
- * file-descriptor will deliver information concerning the result of
- * the script, i.e. the int return value of the system() call
- * executing the script.
+ * handle the return-value and output of the script or function.
  *
- * The first argument is the file-descriptor to handle. The second
- * argument will on the one hand contain the file-descriptor of the
- * stdout and stderr streams of the script. On the other hand some
- * optional pointer to extra information is included. This information
- * has to be provided to @ref PSID_execScript() or @ref
- * PSID_execFunc() as the last argument.
+ * The first argument is the returned int value of the executed
+ * function or from the @ref system() function executing the script.
  *
- * The callback is responsible for cleaning up both file-descriptors
- * passed, i.e. the one passed as the first argument *and* the one
- * serving stdout/stderr within the @ref PSID_scriptCBInfo_t structure
- * the second argument is pointing to. Otherwise calling @ref
- * PSID_execScript() or @ref PSID_execFunc() with a callback
- * repeatedly might eat up the daemon's available file-descriptors.
+ * The second argument flags that executing the script or function ran
+ * into a timeout, thus, invalidating the first argument. The output
+ * provided via the file-descriptor in the third argument might be
+ * incomplete or spoiled by error messages due to the SIGKILL sent to
+ * the corresponding process before calling the callback.
  *
- * Furthermore, the callback is responsible to free() the structure
- * the second argument is pointing to in order to avoid a memory leak.
+ * The third argument provides the file-descriptor of the stdout and
+ * stderr streams of the script or function.
+ *
+ * The fourth argument points to the optional extra information that
+ * can be provided to @ref PSID_execScript() or @ref PSID_execFunc()
+ * as the last argument
+ *
+ * The callback is responsible for cleaning the file-descriptor
+ * serving stdout/stderr provided as the third argument. Otherwise
+ * calling @ref PSID_execScript(), or @ref PSID_execFunc() with a
+ * callback repeatedly might eat up the daemon's available
+ * file-descriptors.
  */
-typedef int PSID_scriptCB_t(int, PSID_scriptCBInfo_t *);
+typedef void PSID_scriptCB_t(int, bool, int, void *);
 
 /**
  * @brief Script environment preparation
@@ -64,7 +63,7 @@ typedef int PSID_scriptCB_t(int, PSID_scriptCBInfo_t *);
 typedef void PSID_scriptPrep_t(void *);
 
 /**
- * @brief Execute a script and register for result.
+ * @brief Execute a script and register for result
  *
  * Execute a script defined by @a script and register the
  * callback-function @a cb to handle the output results
@@ -76,31 +75,38 @@ typedef void PSID_scriptPrep_t(void *);
  * Before executing @a script via @ref system(), the function @a prep
  * is called in order to setup some environment. If @a prep is NULL,
  * this step will be skipped. @a info might be used to pass extra
- * information to both, the callback-function @a cb within the @a info
- * field of the @ref PSID_scriptCBInfo_t argument and the
+ * information to both, the callback-function @a cb and the
  * preparation-function @a prep.
+ *
+ * If a @a timeout is provided, the allowed time for @a script to
+ * execute is limited to the committed time. When the timeout expires
+ * the callback @a cb is called with the @ref timedOut flag set.
  *
  * Calling this function without callback lets it act in a blocked
  * fashion. I.e. it will not return until @a script has finished
- * execution. In this case the script's exit-value is returned.
+ * execution. The timeout functionality is not available! In this case
+ * the script's exit-value is returned.
  *
- * @param script The script to be executed.
+ * @param script The script to be executed
  *
- * @param prep Hook-function to setup the scripts environment.
+ * @param prep Hook-function to setup the scripts environment
  *
  * @param cb Callback to be registered within the Selector
- * facility. This will handle information passed back from the script.
+ * facility; this will handle information passed back from the script
+ *
+ * @param timeout Amount of time committed to execute @a script
  *
  * @param info Extra information to be passed to the environment setup
- * and callback functions.
+ * and callback functions
  *
  * @return Upon failure -1 is returned. This function might fail due
- * to insufficient resources. If a callback @a cb is given, the pid of
- * the new process is returned upon success. Otherwise the exit-value
- * of @a script is returned.
+ * to insufficient resources. If a callback @a cb is provided, the pid
+ * of the new process is returned upon success. It might be used to
+ * cancel the callback via @ref PSID_cancelCB(). Otherwise the
+ * exit-value of @a script is returned.
  */
 int PSID_execScript(char *script, PSID_scriptPrep_t prep, PSID_scriptCB_t cb,
-		    void *info);
+		    struct timeval *timeout, void *info);
 
 /**
  * @brief Register a script
@@ -128,11 +134,11 @@ int PSID_execScript(char *script, PSID_scriptPrep_t prep, PSID_scriptCB_t cb,
  * latter case the script is searched relative to ParaStation's
  * installation-directory.
  *
- * @param config The configuration-structure used to store the script.
+ * @param config The configuration-structure used to store the script
  *
- * @param type String describing the suggested role of the script.
+ * @param type String describing the suggested role of the script
  *
- * @param script Name of the script to register.
+ * @param script Name of the script to register
  *
  * @return If the script was registered successfully, 0 is
  * returned. Or -1 in case of failure.
@@ -149,9 +155,8 @@ int PSID_registerScript(config_t *config, char *type, char *script);
  */
 typedef int PSID_scriptFunc_t(void *);
 
-
 /**
- * @brief Execute a function and register for result.
+ * @brief Execute a function and register for result
  *
  * Execute the function @a func and register the callback-function @a
  * cb to handle the output results asynchronously. If no callback is
@@ -161,32 +166,39 @@ typedef int PSID_scriptFunc_t(void *);
  *
  * Before actually calling @a func, the function @a prep is called in
  * order to setup some environment. If @a prep is NULL, this step will
- * be skipped. @a info might be used to pass extra information to
- * all, the callback-function @a cb within the @a info field of the
- * @ref PSID_scriptCBInfo_t argument, the preparation-function @a
- * prep and the actual function @a func.
+ * be skipped. @a info might be used to pass extra information to all,
+ * the callback-function @a cb, the preparation-function @a prep, and
+ * the actual function @a func.
+ *
+ * If a @a timeout is provided, the allowed time for @a func to
+ * execute is limited to the committed time. When the timeout expires
+ * the callback @a cb is called with the @ref timedOut flag set.
  *
  * Calling this function without callback lets it act in a blocked
  * fashion. I.e. it will not return until @a func has finished
- * execution. In this case the function's exit-value is returned.
+ * execution. The timeout functionality is not available! In this case
+ * the function's exit-value is returned.
  *
- * @param func The function to be executed.
+ * @param func The function to be executed
  *
- * @param prep Hook-function to setup the scripts environment.
+ * @param prep Hook-function to setup the scripts environment
  *
  * @param cb Callback to be registered within the Selector
- * facility. This will handle information passed back from the script.
+ * facility; this will handle information passed back from the function
+ *
+ * @param timeout Amount of time committed to execute @a func
  *
  * @param info Extra information to be passed to the environment setup
- * and callback functions.
+ * and callback functions
  *
  * @return Upon failure -1 is returned. This function might fail due
- * to insufficient resources. If a callback @a cb is given, the pid of
- * the new process is returned upon success. Otherwise the
+ * to insufficient resources. If a callback @a cb is provided, the pid
+ * of the new process is returned upon success. It might be used to
+ * cancel the callback via @ref PSID_cancelCB(). Otherwise the
  * return-value of @a func is returned.
  */
 int PSID_execFunc(PSID_scriptFunc_t func, PSID_scriptPrep_t prep,
-		  PSID_scriptCB_t cb, void *info);
+		  PSID_scriptCB_t cb, struct timeval *timeout, void *info);
 
 /**
  * @brief Cancel a registered callback
@@ -196,36 +208,36 @@ int PSID_execFunc(PSID_scriptFunc_t func, PSID_scriptPrep_t prep,
  * returned by the corresponding function.
  *
  * This might become necessary if the callback is located within a
- * module to be unloaded. If the callback is not cancelled before
+ * module to be unloaded. If the callback is not canceled before
  * unloading the module, a segmentation fault might be triggered as
  * soon as input is received on the corresponding file-descriptor and
  * the callback-function -- now located outside the valid address
  * range -- is called.
  *
- * @param pid The process ID to identify the callback to cancel.
+ * @param pid Process ID to identify the callback to cancel
  *
- * @return On success 0 is returned. Or -1 if an error occurred.
+ * @return On success 0 is returned; or -1 if an error occurred
  */
 int PSID_cancelCB(pid_t pid);
 
 /**
- * @brief Set the number of callbacks to handle
+ * @brief Initialize script handling
  *
- * Set the number of callbacks the modules can handle to @a max. Since
- * registered callbacks are addressed by their file-descriptor, the
- * maximum has to be adapted each time RLIMIT_NOFILE is adapted.
- * Nevertheless, since old file-descriptor keep staying alive, only a
- * value of @a max larger than the previous maximum will have an
- * effect.
+ * Initialize the asynchronous script / function handling
+ * framework. This includes setting up the pool for callback info
+ * blobs and its corresponding helpers.
  *
- * The initial value is determined during the first registration of a
- * callback via sysconf(_SC_OPEN_MAX).
- *
- * @param max New maximum number of callbacks to handle
- *
- * @return On success 0 is returned. In case of failure -1 is returned
- * and errno is set appropriately.
+ * @return On success true is returned; or false in case of error
  */
-int PSIDscripts_setMax(int max);
+bool PSIDscripts_init(void);
+
+/**
+ * @brief Print statistics
+ *
+ * Print statistics concerning the usage of internal callback info blobs.
+ *
+ * @return No return value
+ */
+void PSIDscripts_printStat(void);
 
 #endif  /* __PSIDSCRIPTS_H */

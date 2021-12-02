@@ -24,7 +24,6 @@
 #include "pstask.h"
 
 #include "hardware.h"
-#include "selector.h"
 
 #include "psidutil.h"
 #include "psidnodes.h"
@@ -608,39 +607,33 @@ static void informOtherNodes(void)
  * containing the exit-status of the script. @a info contains
  * extra-information packed into a @ref switchInfo_t structure.
  *
- * @param fd File-descriptor containing script's exit-status.
+ * @param result Script's exit-status
  *
- * @param info Extra information within a @ref switchInfo_t structure.
+ * @param tmdOut Ignored flag of timeout
  *
- * @return Always return 0.
+ * @param iofd File descriptor providing script's output
+ *
+ * @param info Extra information pointing to @ref switchInfo_t structure
+ *
+ * @return No return value
  */
-static int switchHWCB(int fd, PSID_scriptCBInfo_t *info)
+static void switchHWCB(int result, bool tmdOut, int iofd, void *info)
 {
-    int result, hw = -1, iofd = -1, on = 0;
-    char *hwName, *hwScript;
+    int hw = -1, on = 0;
+    char *hwName = "unknown";
+    char *hwScript = "unknown";
 
-    if (!info) {
-	PSID_log(-1, "%s: No extra info\n", __func__);
-    } else {
-	if (info->info) {
-	    switchInfo_t *i = (switchInfo_t *)info->info;
-	    hw = i->hw;
-	    on = i->on;
-	    free(info->info);
-	}
-	iofd = info->iofd;
+    if (info) {
+	switchInfo_t *i = (switchInfo_t *)info;
+	hw = i->hw;
+	on = i->on;
 	free(info);
     }
     if (hw > -1) {
 	hwName = HW_name(hw);
 	hwScript = HW_getScript(hw, on ? HW_STARTER : HW_STOPPER);
-    } else {
-	hwName = hwScript = "unknown";
     }
 
-    Selector_remove(fd);
-    PSCio_recvBuf(fd, &result, sizeof(result));
-    close(fd);
     if (result) {
 	char line[128] = "<not connected>";
 	if (iofd > -1) {
@@ -672,8 +665,6 @@ static int switchHWCB(int fd, PSID_scriptCBInfo_t *info)
 	}
     }
     if (iofd > -1) close(iofd); /* Discard further output */
-
-    return 0;
 }
 
 /**
@@ -713,7 +704,7 @@ static void switchHW(int hw, int on)
 	info->hw = hw;
 	info->on = on;
 
-	if (PSID_execScript(script, prepSwitchEnv, switchHWCB, info) < 0) {
+	if (PSID_execScript(script, prepSwitchEnv, switchHWCB, NULL,info) < 0) {
 	    PSID_log(-1, "%s: Failed to execute '%s' for hw '%s'\n",
 		     __func__, script, HW_name(hw));
 	}
@@ -789,37 +780,34 @@ static void prepCounterEnv(void *info)
 /**
  * @brief Callback for counter-scripts
  *
- * Callback used by getCounter scripts. @a fd is the file-descriptor
- * containing the exit-status of the script. @a info contains
- * extra-information in a @ref DDTypedBufferMsg_t structure, actually
- * the original message requesting counter information.
+ * Callback used by getCounter scripts. @a result contains the
+ * exit-status of the script. @a iofd provides its output. @a info
+ * contains extra-information in a @ref DDTypedBufferMsg_t structure,
+ * actually the original message requesting counter information.
  *
- * @param fd File-descriptor containing script's exit-status.
+ * @param result Script's exit-status
  *
- * @param info Extra information within a @ref DDTypedBufferMsg_t
- * structure.
+ * @param tmdOut Ignored flag of timeout
  *
- * @return Always return 0.
+ * @param iofd File descriptor providing script's output
+ *
+ * @param info Extra information pointing to @ref DDTypedBufferMsg_t
+ *
+ * @return No return value
  */
-static int getCounterCB(int fd, PSID_scriptCBInfo_t *info)
+static void getCounterCB(int result, bool tmdOut, int iofd, void *info)
 {
     PStask_ID_t dest = 0;
     PSP_Info_t type = 0;
-    int result, hw = -1, iofd = -1, num, eno = 0;
+    int hw = -1, num, eno = 0;
     char *hwName, *hwScript;
     DDTypedBufferMsg_t msg;
 
-    if (!info) {
-	PSID_log(-1, "%s: No extra info\n", __func__);
-    } else {
-	if (info->info) {
-	    DDTypedBufferMsg_t *inmsg = info->info;
-	    hw = *(int *) inmsg->buf;
-	    dest = inmsg->header.sender;
-	    type = inmsg->type;
-	    free(info->info);
-	}
-	iofd = info->iofd;
+    if (info) {
+	DDTypedBufferMsg_t *inmsg = info;
+	hw = *(int *) inmsg->buf;
+	dest = inmsg->header.sender;
+	type = inmsg->type;
 	free(info);
     }
     if (hw > -1) {
@@ -839,9 +827,6 @@ static int getCounterCB(int fd, PSID_scriptCBInfo_t *info)
 	.type = type,
 	.buf = { 0 } };
 
-    Selector_remove(fd);
-    PSCio_recvBuf(fd, &result, sizeof(result));
-    close(fd);
     if (iofd == -1) {
 	PSID_log(-1, "%s: %s\n", __func__, msg.buf);
 	num = snprintf(msg.buf, sizeof(msg.buf), "<not connected>");
@@ -871,8 +856,6 @@ static int getCounterCB(int fd, PSID_scriptCBInfo_t *info)
     }
 
     if (dest) sendMsg(&msg);
-
-    return 0;
 }
 
 void PSID_sendCounter(DDTypedBufferMsg_t *inmsg)
@@ -900,7 +883,8 @@ void PSID_sendCounter(DDTypedBufferMsg_t *inmsg)
 	    }
 	    memcpy(info, inmsg, inmsg->header.len);
 
-	    if (PSID_execScript(script, prepCounterEnv, getCounterCB, info)<0) {
+	    if (PSID_execScript(script, prepCounterEnv, getCounterCB,
+				NULL, info)<0) {
 		PSID_log(PSID_LOG_HW,
 			 "%s: Failed to execute '%s' for hw '%s'\n",
 			 __func__, script, HW_name(hw));

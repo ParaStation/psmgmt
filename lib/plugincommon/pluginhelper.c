@@ -31,7 +31,6 @@
 #include "psidhook.h"
 #include "pluginlog.h"
 #include "pluginmalloc.h"
-#include "selector.h"
 
 /** time-limit in seconds to warn about a slow name resolver */
 #define RESOLVE_TIME_WARNING 1
@@ -335,34 +334,16 @@ char *uid2String(uid_t uid)
     return ustrdup(pwd->pw_name);
 }
 
-bool __getScriptCBdata(int fd, PSID_scriptCBInfo_t *info, int32_t *exit,
-		       char *errMsg, size_t errMsgLen, size_t *errLen,
+bool __getScriptCBdata(int fd, char *errMsg, size_t errMsgLen, size_t *errLen,
 		       const char *func, const int line)
 {
-    /* get exit status */
-    Selector_remove(fd);
-    PSCio_recvBuf(fd, exit, sizeof(*exit));
-    close(fd);
-
-    /* get stdout/stderr output */
-    if (!info) {
-	pluginlog("%s: invalid info data from caller %s:%i\n",
-		  __func__, func, line);
-	return false;
-    }
-
-    if (!info->iofd) {
+    if (!fd) {
 	pluginlog("%s: invalid iofd from caller %s:%i\n", __func__, func, line);
 	errMsg[0] = '\0';
     }
-    *errLen = PSCio_recvBuf(info->iofd, errMsg, errMsgLen);
+    *errLen = PSCio_recvBuf(fd, errMsg, errMsgLen);
     errMsg[*errLen] = '\0';
-    close(info->iofd);
-
-    if (!info->info) {
-	pluginlog("%s: info missing from caller %s:%i\n", __func__, func, line);
-	return false;
-    }
+    close(fd);
 
     return true;
 }

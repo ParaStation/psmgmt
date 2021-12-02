@@ -21,9 +21,10 @@
 #include "list.h"
 #include "pstask.h"
 
-#include "psidtask.h"
 #include "psidclient.h"
 #include "psidcomm.h"
+#include "psidhook.h"
+#include "psidtask.h"
 #include "psidutil.h"
 
 #include "logging.h"
@@ -35,8 +36,10 @@ extern logger_t *PSID_logger;
 ssize_t sendMsg(void *amsg) {return 0;}
 /* stubs required to link against psidutil.o */
 void PSIDclient_register(int fd, PStask_ID_t tid, PStask_t *task) {}
-/* stub required to link against psidscripts.o */
+/* stubs required to link against psidscripts.o */
+int pskill(pid_t pid, int sig, uid_t uid) {return 0;}
 void PSID_clearMem(bool aggressive) {}
+bool PSIDhook_add(PSIDhook_t hook, PSIDhook_func_t func) { return true; }
 /* stub required to link against psidutil.o */
 list_t managedTasks;
 /* stub required to link against psidtask.o */

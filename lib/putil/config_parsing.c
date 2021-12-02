@@ -282,9 +282,6 @@ static void setLimit(int limit, rlim_t value)
 			    __func__);
 		break;
 	    }
-	    if (PSIDscripts_setMax(value) < 0) {
-		parser_exit(errno, "%s: Failed to adapt PSIDscripts", __func__);
-	    }
 	    if (Selector_setMax(value) < 0) {
 		parser_exit(errno, "%s: Failed to adapt Selector", __func__);
 	    }

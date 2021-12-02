@@ -542,45 +542,37 @@ int sendPElogueStart(Job_t *job, bool prologue)
     return 1;
 }
 
-static int callbackCopyScript(int fd, PSID_scriptCBInfo_t *info)
+static void callbackCopyScript(int exitCode, bool tmdOut, int iofd, void *info)
 {
-    int32_t exitCode;
     char errMsg[300] = { '\0' };
-    Copy_Data_t *data;
-    Job_t *job;
-    Child_t *child;
-    ComHandle_t *com;
     size_t errLen;
-
     /* fetch error msg and exit status */
-    bool ret = getScriptCBdata(fd, info, &exitCode,
-			       errMsg, sizeof(errMsg), &errLen);
-    ufree(info);
+    bool ret = getScriptCBdata(iofd, errMsg, sizeof(errMsg), &errLen);
     if (!ret) {
 	mlog("%s: invalid scriptcb data\n", __func__);
-	return 1;
+	return;
     }
 
-    data = (Copy_Data_t *) info->info;
-    com = data->com;
+    Copy_Data_t *data = info;
+    ComHandle_t *com = data->com;
 
     if (errMsg[0] != '\0' && strlen(errMsg) > 0) {
 	mlog("%s", errMsg);
     }
 
-    if ((job = findJobById(data->jobid))) {
-	int i;
-
-	if (!(child = findChildByJobid(job->id, PSMOM_CHILD_COPY))) {
+    Job_t *job = findJobById(data->jobid);
+    if (job) {
+	Child_t *child = findChildByJobid(job->id, PSMOM_CHILD_COPY);
+	if (!child) {
 	    mlog("%s: finding child '%s' failed\n", __func__, job->id);
 	} else {
-	    if (!(deleteChild(child->pid))) {
+	    if (!deleteChild(child->pid)) {
 		mlog("%s: deleting child '%s' failed\n", __func__, job->id);
 	    }
 	}
 
 	/* ufree memory */
-	for (i=0; i<data->count; i++) {
+	for (int i = 0; i < data->count; i++) {
 	    ufree(data->files[i]->local);
 	    ufree(data->files[i]->remote);
 	    ufree(data->files[i]);
@@ -607,8 +599,6 @@ static int callbackCopyScript(int fd, PSID_scriptCBInfo_t *info)
 	WriteDigit(com, 0);
 	WriteDigit(com, 1);
 	wDoSend(com);
-
-	return 0;
     } else {
 	/* copy failed */
 	mlog("%s: copy forwarder exit '%i'\n", __func__, exitCode);
@@ -618,7 +608,6 @@ static int callbackCopyScript(int fd, PSID_scriptCBInfo_t *info)
 	 * our own. */
 	if (job) jobCleanup(job, 1);
     }
-    return 0;
 }
 
 void afterJobCleanup(char *user)
@@ -643,7 +632,7 @@ void afterJobCleanup(char *user)
 int spawnCopyScript(Copy_Data_t *data)
 {
     pid_t pid  = PSID_execFunc(execCopyForwarder, NULL, callbackCopyScript,
-			       data);
+			       NULL, data);
     if (pid == -1) {
 	mlog("%s: exec copy script failed\n", __func__);
 	handleFailedSpawn();
@@ -657,32 +646,27 @@ int spawnCopyScript(Copy_Data_t *data)
     return 0;
 }
 
-static int callbackJob(int fd, PSID_scriptCBInfo_t *info)
+static void callbackJob(int status, bool tmdOut, int iofd, void *info)
 {
     char errMsg[300] = { '\0' };
-    int32_t status = -1;
-    Job_t *job_info = info ? info->info : NULL;
-    Child_t *child;
-    int childType;
     size_t errLen;
 
     /* fetch error msg and exit status */
-    bool ret = getScriptCBdata(fd, info, &status,
-			       errMsg, sizeof(errMsg), &errLen);
-    ufree(info);
+    bool ret = getScriptCBdata(iofd, errMsg, sizeof(errMsg), &errLen);
     if (!ret) {
 	mlog("%s: invalid cb data\n", __func__);
-	return 1;
+	return;
     }
 
     if (errMsg[0] != '\0' && strlen(errMsg) > 0) {
 	mlog("%s", errMsg);
     }
 
+    Job_t *job_info = info;
     Job_t *job = job_info ? findJobById(job_info->id) : NULL;
     if (!job) {
 	mlog("%s job not found\n", __func__);
-	return 1;
+	return;
     }
 
     if (status != 0) {
@@ -712,13 +696,13 @@ static int callbackJob(int fd, PSID_scriptCBInfo_t *info)
     }
 
     /* un-register the forwarder child */
-    childType = (job->qsubPort) ? PSMOM_CHILD_INTERACTIVE :
+    int childType = (job->qsubPort) ? PSMOM_CHILD_INTERACTIVE :
 		 PSMOM_CHILD_JOBSCRIPT;
-
-    if (!(child = findChildByJobid(job->id, childType))) {
+    Child_t *child = findChildByJobid(job->id, childType);
+    if (!child) {
 	mlog("%s: finding child '%s' failed\n", __func__, job->id);
     } else {
-	if (!(deleteChild(child->pid))) {
+	if (!deleteChild(child->pid)) {
 	    mlog("%s: deleting child '%s' failed\n", __func__, job->id);
 	}
     }
@@ -727,7 +711,7 @@ static int callbackJob(int fd, PSID_scriptCBInfo_t *info)
      * we abort here */
     if (job->qsubPort && job->state == JOB_CANCEL_PROLOGUE) {
 	sendTMJobTermination(job);
-	return 0;
+	return;
     }
 
     /* get accounting info from the psaccount plugin */
@@ -752,7 +736,7 @@ static int callbackJob(int fd, PSID_scriptCBInfo_t *info)
 	job->state = JOB_EXIT;
 
 	sendTMJobTermination(job);
-	return 0;
+	return;
     }
 
     /* if the prologue is still running but connection to qsub failed,
@@ -762,7 +746,7 @@ static int callbackJob(int fd, PSID_scriptCBInfo_t *info)
 
 	/* cancel the prologue scripts */
 	signalPElogue(job, "SIGTERM", "qsub connection failed");
-	return 0;
+	return;
     }
 
     /* start the epilogue script(s) */
@@ -770,13 +754,12 @@ static int callbackJob(int fd, PSID_scriptCBInfo_t *info)
     job->state = JOB_EPILOGUE;
     sendPElogueStart(job, false);
     monitorPELogueTimeout(job);
-
-    return 0;
 }
 
 void spawnJobScript(Job_t *job)
 {
-    pid_t pid = PSID_execFunc(execJobscriptForwarder, NULL, callbackJob, job);
+    pid_t pid = PSID_execFunc(execJobscriptForwarder, NULL, callbackJob,
+			      NULL, job);
 
     if (pid == -1) {
 	mlog("%s: exec jobscript script failed\n", __func__);
@@ -860,7 +843,7 @@ void stopInteractiveJob(Job_t *job)
 int spawnInteractiveJob(Job_t *job)
 {
     /* do the actual spawn */
-    pid_t pid = PSID_execFunc(execInterForwarder, NULL, callbackJob, job);
+    pid_t pid = PSID_execFunc(execInterForwarder, NULL, callbackJob, NULL, job);
 
     if (pid == -1) {
 	mlog("%s: exec interactive job script failed\n", __func__);

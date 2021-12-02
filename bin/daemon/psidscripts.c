@@ -22,77 +22,174 @@
 #include <syslog.h>
 #include <sys/stat.h>
 
+#include "list.h"
 #include "pscio.h"
 #include "pscommon.h"
+#include "psitems.h"
 #include "selector.h"
 #include "timer.h"
 
+#include "psidhook.h"
+#include "psidsignal.h"
 #include "psidutil.h"
 
-/** Array of registered callbacks PIDs (indexed by file-descriptor) */
-static pid_t *cbList = NULL;
+/** Information associated to script/func in execution */
+typedef struct {
+    list_t next;         /**< used to put into @ref cbInfoList, etc. */
+    int cntrlfd;         /**< controlling file descriptor of script process */
+    int iofd;            /**< file-descriptor serving script's stdout/stderr */
+    pid_t pid;           /**< process ID of process running script/func */
+    int timerID;         /**< timer associated with the script -- if any */
+    PSID_scriptCB_t *cb; /**< callback to call on script/func exit */
+    void *info;          /**< extra information to be passed to callback */
+} CBInfo_t;
 
-/** Maximum number of callbacks capable to store in @ref cbList */
-static int maxCBFD = 0;
+/** Pool of callback information blobs (of type CBInfo_t) */
+static PSitems_t cbInfoPool = NULL;
+
+/** List of active callback information blobs */
+static LIST_HEAD(cbInfoList);
+
+/**
+ * @brief Timeout handler
+ *
+ * Handler called upon expiration of the timeout associated to the
+ * script or function to execute identified by @a info. This will try
+ * to cleanup all used resources and call the callback accordingly.
+ *
+ * @param timerID ID of the expired timer
+ *
+ * @param info Information blob identifying the associated script/func
+ *
+ * @return No return value
+ */
+void tmOutHandler(int timerID, void *info)
+{
+    Timer_remove(timerID);
+
+    CBInfo_t *cbInfo = info;
+    if (!cbInfo) {
+	PSID_log(-1, "%s: no cbInfo for %d\n", __func__, timerID);
+	return;
+    }
+    if (cbInfo->timerID != timerID) {
+	PSID_log(-1, "%s: timerID mismatch: %d vs %d cleanup anyhow\n",
+		 __func__, cbInfo->timerID, timerID);
+    }
+
+    Selector_remove(cbInfo->cntrlfd);
+    close(cbInfo->cntrlfd);
+    pskill(cbInfo->pid, SIGKILL, 0);
+
+    if (cbInfo->cb) cbInfo->cb(0, true, cbInfo->iofd, cbInfo->info);
+
+    if (!list_empty(&cbInfo->next)) list_del(&cbInfo->next);
+    PSitems_putItem(cbInfoPool, cbInfo);
+}
+
+/**
+ * @brief Callback wrapper
+ *
+ * Handler registered to the Selector facility handling the exit-value
+ * to be received via the controlling file descriptor @a fd of the
+ * script or function to execute. The actual script/func is identified
+ * by @a info.
+ *
+ * This will receive the script/func's return code, cleanup the
+ * controlling file descriptor and cancel the associated timer if any.
+ * Then the callback is called accordingly.
+ *
+ * @param fd Controlling file descriptor of the script/func
+ *
+ * @param info Information blob identifying the associated script/func
+ *
+ * @return Always return 0
+ */
+static int cbWrapper(int fd, void *info)
+{
+    if (fd <= 0) {
+	PSID_log(-1, "%s: illegal fd %d\n", __func__, fd);
+	/* cleanup via info if any */
+	CBInfo_t *cbInfo = info;
+	if (!cbInfo) return 0;
+
+	/* try to use cbInfo's file descriptor */
+	if (cbInfo->cntrlfd != fd) {
+	    return cbWrapper(cbInfo->cntrlfd, info);
+	}
+	/* try to cleanup anyhow */
+	if (cbInfo->timerID > 0) Timer_remove(cbInfo->timerID);
+	if (!list_empty(&cbInfo->next)) list_del(&cbInfo->next);
+	PSitems_putItem(cbInfoPool, cbInfo);
+	return 0;
+    }
+
+    CBInfo_t *cbInfo = info;
+    if (!cbInfo) {
+	PSID_log(-1, "%s: no cbInfo for %d\n", __func__, fd);
+	Selector_remove(fd);
+	close(fd);
+	return 0;
+    }
+    if (cbInfo->cntrlfd != fd) {
+	PSID_log(-1, "%s: fd mismatch: %d vs %d cleanup anyhow\n",
+		 __func__, cbInfo->cntrlfd, fd);
+    }
+
+    Selector_remove(fd);
+    int32_t exit;
+    ssize_t num = PSCio_recvBuf(fd, &exit, sizeof(exit));
+    close(fd);
+    if (num != sizeof(exit)) {
+	PSID_log(-1, "%s: incomplete exit (just %zd bytes)\n", __func__, num);
+    }
+
+    if (cbInfo->timerID > 0) Timer_remove(cbInfo->timerID);
+
+    if (cbInfo->cb) cbInfo->cb(exit, false, cbInfo->iofd, cbInfo->info);
+
+    if (!list_empty(&cbInfo->next)) list_del(&cbInfo->next);
+    PSitems_putItem(cbInfoPool, cbInfo);
+
+    return 0;
+}
 
 /*
- * For documentation see PSID_execScript() and PSID_execFunc in psidscripts.h
+ * For documentation see PSID_execScript() and PSID_execFunc() in
+ * psidscripts.h
  */
 static int doExec(char *script, PSID_scriptFunc_t func, PSID_scriptPrep_t prep,
-		  PSID_scriptCB_t cb, void *info, const char *caller)
+		  PSID_scriptCB_t cb, struct timeval *timeout, void *info,
+		  const char *caller)
 {
-    PSID_scriptCBInfo_t *cbInfo = NULL;
-    int controlfds[2], iofds[2], eno, ret = 0;
-
     if (!script && !func) {
 	PSID_log(-1, "%s: both, script and func are NULL\n", __func__);
 	return -1;
     }
 
-    if (cb) {
-	if (!maxCBFD || !cbList) {
-	    int numFiles = sysconf(_SC_OPEN_MAX);
-	    if (PSIDscripts_setMax(numFiles) < 0) {
-		PSID_warn(1, errno, "%s: failed to init cbList\n", __func__);
-		return -1;
-	    }
-	}
-	if (!Selector_isInitialized()) {
-	    PSID_log(-1, "%s(%s): needs running Selector\n", caller,
-		     script ? script : "");
-	    return -1;
-	}
-	cbInfo = malloc(sizeof(*cbInfo));
-	if (!cbInfo) {
-	    PSID_warn(-1, errno, "%s: malloc()", caller);
-	    return -1;
-	}
-    }
-
     /* create a control channel in order to observe the forked process */
-    if (pipe(controlfds)<0) {
+    int controlfds[2];
+    if (pipe(controlfds) < 0) {
 	PSID_warn(-1, errno, "%s: pipe(controlfds)", caller);
-	if (cbInfo) free(cbInfo);
 	return -1;
     }
 
-    /* create a io channel in order to get forked process' output */
-    if (pipe(iofds)<0) {
+    /* create an io channel in order to get forked process' output */
+    int iofds[2];
+    if (pipe(iofds) < 0) {
 	PSID_warn(-1, errno, "%s: pipe(iofds)", caller);
 	close(controlfds[0]);
 	close(controlfds[1]);
-	if (cbInfo) free(cbInfo);
 	return -1;
     }
 
     bool blocked = PSID_blockSig(SIGTERM, true);
     pid_t pid = fork();
     /* save errno in case of error */
-    eno = errno;
+    int eno = errno;
 
     if (!pid) {
 	/* This part calls the script/func and returns results to the parent */
-	int fd, maxFD = sysconf(_SC_OPEN_MAX);
 
 	PSID_resetSigs();
 	PSID_blockSig(SIGTERM, false);
@@ -101,7 +198,8 @@ static int doExec(char *script, PSID_scriptFunc_t func, PSID_scriptPrep_t prep,
 	/* close all fds except control channel and connecting socket */
 	/* Start with connection to syslog */
 	closelog();
-	for (fd=0; fd<maxFD; fd++) {
+	int maxFD = sysconf(_SC_OPEN_MAX);
+	for (int fd = 0; fd < maxFD; fd++) {
 	    if (fd != controlfds[1] && fd != iofds[1]) close(fd);
 	}
 	/* Reopen the syslog and rename the tag */
@@ -120,8 +218,9 @@ static int doExec(char *script, PSID_scriptFunc_t func, PSID_scriptPrep_t prep,
 	dup2(iofds[1], STDERR_FILENO);
 	close(iofds[1]);
 
+	int32_t ret = 0;
 	if (func) {
-	    /* Cleanup all unneeded memory. */
+	    /* Cleanup all unneeded memory */
 	    PSID_clearMem(false);
 
 	    ret = func(info);
@@ -141,9 +240,7 @@ static int doExec(char *script, PSID_scriptFunc_t func, PSID_scriptPrep_t prep,
 		fprintf(stderr, "%s: cannot change to directory '%s'",
 			caller, dir);
 		ret = -1;
-	    }
-
-	    if (!ret) {
+	    } else {
 		ret = system(command);
 		if (ret < 0) {
 		    PSID_warn(-1, errno, "%s: system(%s)", caller, command);
@@ -169,17 +266,38 @@ static int doExec(char *script, PSID_scriptFunc_t func, PSID_scriptPrep_t prep,
     if (pid == -1) {
 	close(controlfds[0]);
 	close(iofds[0]);
-	if (cbInfo) free(cbInfo);
 
 	PSID_warn(-1, eno, "%s: fork()", caller);
 	return -1;
     }
 
+    int32_t ret = 0;
     if (cb) {
-	cbInfo->iofd = iofds[0];
-	cbInfo->info = info;
-	Selector_register(controlfds[0], (Selector_CB_t *) cb, cbInfo);
-	cbList[controlfds[0]] = pid;
+	CBInfo_t *cbInfo = PSitems_getItem(cbInfoPool);
+	if (!cbInfo) {
+	    // catch forked process
+	    pskill(pid, SIGKILL, 0);
+	    close(controlfds[0]);
+	    close(iofds[0]);
+
+	    PSID_warn(-1, errno, "%s: no cbInfo available, canceled", caller);
+	    return -1;
+	}
+
+	*cbInfo = (CBInfo_t) {
+	    .cntrlfd = controlfds[0],
+	    .iofd = iofds[0],
+	    .pid = pid,
+	    .timerID = 0,
+	    .cb = cb,
+	    .info = info };
+	Selector_register(controlfds[0], cbWrapper, cbInfo);
+	if (timeout) {
+	    cbInfo->timerID =
+		Timer_registerEnhanced(timeout, tmOutHandler, cbInfo);
+	}
+	list_add_tail(&cbInfo->next, &cbInfoList);
+
 	ret = pid;
     } else {
 	PSCio_recvBuf(controlfds[0], &ret, sizeof(ret));
@@ -211,9 +329,9 @@ static int doExec(char *script, PSID_scriptFunc_t func, PSID_scriptPrep_t prep,
 }
 
 int PSID_execScript(char *script, PSID_scriptPrep_t prep, PSID_scriptCB_t cb,
-		    void *info)
+		    struct timeval *timeout, void *info)
 {
-    return doExec(script, NULL, prep, cb, info, __func__);
+    return doExec(script, NULL, prep, cb, timeout, info, __func__);
 }
 
 int PSID_registerScript(config_t *config, char *type, char *script)
@@ -274,52 +392,95 @@ int PSID_registerScript(config_t *config, char *type, char *script)
 }
 
 int PSID_execFunc(PSID_scriptFunc_t func, PSID_scriptPrep_t prep,
-		  PSID_scriptCB_t cb, void *info)
+		  PSID_scriptCB_t cb, struct timeval *timeout, void *info)
 {
-    return doExec(NULL, func, prep, cb, info, __func__);
+    return doExec(NULL, func, prep, cb, timeout, info, __func__);
 }
 
-int PSIDscripts_setMax(int max)
+static int clearMem(void *dummy)
 {
-    int oldMax = maxCBFD;
-    int fd;
-
-    if (maxCBFD >= max) return 0; /* don't shrink */
-
-    maxCBFD = max;
-
-    pid_t *oldList = cbList;
-    cbList = realloc(cbList, sizeof(*cbList) * maxCBFD);
-    if (!cbList) {
-	free(oldList);
-	PSID_warn(-1, ENOMEM, "%s", __func__);
-	errno = ENOMEM;
-	return -1;
-    }
-
-    /* Initialize new cbs */
-    for (fd = oldMax; fd < maxCBFD; fd++) cbList[fd] = 0;
+    PSitems_clearMem(cbInfoPool);
+    cbInfoPool = NULL;
 
     return 0;
 }
 
+static bool relocCBInfo(void *item)
+{
+    CBInfo_t *orig = item, *repl = PSitems_getItem(cbInfoPool);
+
+    if (!repl) return false;
+
+    /* copy content */
+    repl->cntrlfd = orig->cntrlfd;
+    repl->iofd = orig->iofd;
+    repl->pid = orig->pid;
+    repl->timerID = orig->timerID;
+    repl->cb = orig->cb;
+    repl->info = orig->info;
+
+    /* tweak the list */
+    __list_add(&repl->next, orig->next.prev, orig->next.next);
+
+    return true;
+}
+
+static void cbInfoPool_gc(void)
+{
+    if (!PSitems_gcRequired(cbInfoPool)) PSitems_gc(cbInfoPool, relocCBInfo);
+}
+
+bool PSIDscripts_init(void)
+{
+    if (!Selector_isInitialized()) {
+	PSID_log(-1, "%s: needs running Selector\n", __func__);
+	return false;
+    }
+    if (!Timer_isInitialized()) {
+	PSID_log(-1, "%s: needs running Timer\n", __func__);
+	return false;
+    }
+    if (!PSIDhook_add(PSIDHOOK_CLEARMEM, clearMem)) {
+	PSID_log(-1, "%s: cannot register to PSIDHOOK_CLEARMEM\n", __func__);
+	return false;
+    }
+    cbInfoPool = PSitems_new(sizeof(CBInfo_t), "cbInfoPool");
+    if (!cbInfoPool) {
+	PSID_log(-1, "%s: cannot get cbInfo items\n", __func__);
+	return false;
+    }
+    PSID_registerLoopAct(cbInfoPool_gc);
+
+    return true;
+}
+
+void PSIDscripts_printStat(void)
+{
+    PSID_log(-1, "%s: info blobs %d/%d (used/avail)", __func__,
+	     PSitems_getUsed(cbInfoPool), PSitems_getAvail(cbInfoPool));
+    PSID_log(-1, "\t%d/%d (gets/grows)\n", PSitems_getUtilization(cbInfoPool),
+	     PSitems_getDynamics(cbInfoPool));
+}
+
 int PSID_cancelCB(pid_t pid)
 {
-    int fd;
+    list_t *c;
+    list_for_each(c, &cbInfoList) {
+	CBInfo_t *cbInfo = list_entry(c, CBInfo_t, next);
 
-    if (!maxCBFD || !cbList) {
-	PSID_log(-1, "%s: cbList not initialized.\n", __func__);
-	return -1;
+	if (cbInfo->pid == pid) {
+	    if (cbInfo->timerID > 0) Timer_remove(cbInfo->timerID);
+	    int ret = Selector_remove(cbInfo->cntrlfd);
+	    close(cbInfo->cntrlfd);
+	    close(cbInfo->iofd);
+	    pskill(cbInfo->pid, SIGKILL, 0);
+	    cbInfo->pid = 0;
+	    list_del(&cbInfo->next);
+	    PSitems_putItem(cbInfoPool, cbInfo);
+	    return ret;
+	}
     }
 
-    for (fd = 0; fd < maxCBFD; fd++) {
-	if (cbList[fd] == pid) break;
-    }
-
-    if (fd == maxCBFD) {
-	PSID_log(-1, "%s: pid %d not found.\n", __func__, pid);
-	return -1;
-    }
-
-    return Selector_remove(fd);
+    PSID_log(-1, "%s: pid %d not found.\n", __func__, pid);
+    return -1;
 }
