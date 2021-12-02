@@ -2383,7 +2383,7 @@ static void handleTerminateReq(Slurm_Msg_t *sMsg)
 
     if (!alloc) {
 	deleteJob(req->jobid);
-	clearStepList(req->jobid);
+	clearStepsByJobid(req->jobid);
 	flog("allocation %s not found\n", strStepID(&s));
 	if (sMsg->head.type == REQUEST_TERMINATE_JOB) {
 	    sendSlurmRC(sMsg, ESLURMD_KILL_JOB_ALREADY_COMPLETE);

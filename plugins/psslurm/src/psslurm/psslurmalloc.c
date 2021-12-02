@@ -169,7 +169,7 @@ bool deleteAlloc(uint32_t id)
 
     /* free corresponding resources */
     deleteJob(id);
-    clearStepList(id);
+    clearStepsByJobid(id);
     clearBCastByJobid(id);
 
     if (!(alloc = findAlloc(id))) return false;

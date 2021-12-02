@@ -1048,6 +1048,9 @@ static int stepForwarderInit(Forwarder_Data_t *fwdata)
     Step_t *step = fwdata->userData;
     step->fwdata = fwdata;
 
+    /* free unused memory */
+    clearStepList(step);
+
     initSerial(0, sendMsg);
     setJailEnv(&step->env, step->username,
 	    &(step->nodeinfos[step->localNodeId].stepHWthreads),
@@ -1257,6 +1260,8 @@ void handleJobLoop(Forwarder_Data_t *fwdata)
 static int jobForwarderInit(Forwarder_Data_t *fwdata)
 {
     Job_t *job = fwdata->userData;
+    clearJobList(job);
+    clearStepList(NULL);
 
     PSIDhook_call(PSIDHOOK_PSSLURM_JOB_FWINIT, job->username);
 
@@ -1470,6 +1475,8 @@ static int stepFollowerFWinit(Forwarder_Data_t *fwdata)
     initSerial(0, sendMsg);
 
     Step_t *step = fwdata->userData;
+    clearStepList(step);
+
     setJailEnv(&step->env, step->username,
 	    &(step->nodeinfos[step->localNodeId].stepHWthreads),
 	    &(step->nodeinfos[step->localNodeId].jobHWthreads));

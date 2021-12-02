@@ -50,7 +50,7 @@ static void doDeleteJob(Job_t *job)
     mdbg(PSSLURM_LOG_JOB, "%s: '%u'\n", __func__, job->jobid);
 
     /* cleanup all corresponding resources */
-    clearStepList(job->jobid);
+    clearStepsByJobid(job->jobid);
     clearBCastByJobid(job->jobid);
     freeGresCred(&job->gresList);
 
@@ -249,7 +249,7 @@ PSnodes_ID_t *findJobNodeEntry(Job_t *job, PSnodes_ID_t id)
     return NULL;
 }
 
-void clearJobList(void)
+void clearJobList(Job_t *preserve)
 {
     list_t *j, *tmp;
 
@@ -257,7 +257,7 @@ void clearJobList(void)
 
     list_for_each_safe(j, tmp, &JobList) {
 	Job_t *job = list_entry(j, Job_t, next);
-	doDeleteJob(job);
+	if (job && job != preserve) doDeleteJob(job);
     }
 }
 

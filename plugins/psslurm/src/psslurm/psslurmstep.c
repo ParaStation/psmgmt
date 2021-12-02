@@ -198,7 +198,16 @@ Step_t *findStepByPsidTask(pid_t pid)
     return NULL;
 }
 
-void clearStepList(uint32_t jobid)
+void clearStepList(Step_t *preserve)
+{
+    list_t *s, *tmp;
+    list_for_each_safe(s, tmp, &StepList) {
+	Step_t *step = list_entry(s, Step_t, next);
+	if (step && step != preserve) deleteStep(step->jobid, step->stepid);
+    }
+}
+
+void clearStepsByJobid(uint32_t jobid)
 {
     list_t *s, *tmp;
     list_for_each_safe(s, tmp, &StepList) {

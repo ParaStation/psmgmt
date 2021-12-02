@@ -834,7 +834,8 @@ void cleanup(void)
     if (psAccountSetGlobalCollect) psAccountSetGlobalCollect(false);
 
     /* free all malloced memory */
-    clearJobList();
+    clearJobList(NULL);
+    clearStepList(NULL);
     clearGresConf();
     clearSlurmdProto();
     clearMsgBuf();

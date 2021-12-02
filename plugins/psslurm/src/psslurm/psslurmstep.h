@@ -226,12 +226,22 @@ bool verifyStepData(Step_t *step);
  */
 bool deleteStep(uint32_t jobid, uint32_t stepid);
 
+
+/**
+ * @brief Delete steps
+ *
+ * Use NULL for @ref preserve to delete all steps.
+ *
+ * @param preserve Preserve the specified step
+ */
+void clearStepList(Step_t *preserve);
+
 /**
  * @brief Delete all steps of a specific job
  *
  * @param jobid The jobid to identify the steps to delete
  */
-void clearStepList(uint32_t jobid);
+void clearStepsByJobid(uint32_t jobid);
 
 /**
  * @brief Find a step identified by a jobid

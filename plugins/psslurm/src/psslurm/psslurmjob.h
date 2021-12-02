@@ -95,9 +95,13 @@ typedef struct {
 } Job_t;
 
 /**
- * @brief Delete all jobs
+ * @brief Delete jobs
+ *
+ * Use NULL for @ref preserveID to delete all jobs.
+ *
+ * @param preserve Preserve the specified job
  */
-void clearJobList(void);
+void clearJobList(Job_t *preserve);
 
 /**
  * @brief Add a new job
