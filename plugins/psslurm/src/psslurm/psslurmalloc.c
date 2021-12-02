@@ -10,24 +10,34 @@
  */
 #include "psslurmalloc.h"
 
-#include <time.h>
+#include <stdio.h>
 #include <stdlib.h>
+#include <time.h>
 
+#include "list.h"
 #include "pscommon.h"
+#include "psnodes.h"
+#include "pshostlist.h"
+
 #include "pluginmalloc.h"
 #include "pluginhelper.h"
+
 #include "psidhook.h"
 #include "psidscripts.h"
-#include "pshostlist.h"
 
 #include "pspamhandles.h"
 #include "peloguehandles.h"
 
-#include "psslurmlog.h"
+#include "slurmcommon.h"
 #include "psslurmbcast.h"
 #include "psslurmenv.h"
+#include "psslurmgres.h"
+#include "psslurmjob.h"
+#include "psslurmjobcred.h"
+#include "psslurmlog.h"
 #include "psslurmpscomm.h"
 #include "psslurmproto.h"
+#include "psslurmstep.h"
 
 /** List of all allocations */
 static LIST_HEAD(AllocList);

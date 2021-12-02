@@ -8,21 +8,22 @@
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-#include <stdlib.h>
+#include "pluginhelper.h"
+
 #include <stdio.h>
-#include <sys/stat.h>
 #include <dirent.h>
-#include <string.h>
-#include <signal.h>
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <netdb.h>
-#include <unistd.h>
-#include <grp.h>
 #include <errno.h>
-#include <sys/prctl.h>
+#include <grp.h>
+#include <netdb.h>
+#include <netinet/in.h>
 #include <pwd.h>
+#include <string.h>
+#include <sys/prctl.h>
+#include <sys/socket.h>
+#include <sys/stat.h>
 #include <sys/time.h>
+#include <sys/types.h>
+#include <unistd.h>
 
 #include "pscio.h"
 #include "pscommon.h"
@@ -31,8 +32,6 @@
 #include "pluginlog.h"
 #include "pluginmalloc.h"
 #include "selector.h"
-
-#include "pluginhelper.h"
 
 /** time-limit in seconds to warn about a slow name resolver */
 #define RESOLVE_TIME_WARNING 1

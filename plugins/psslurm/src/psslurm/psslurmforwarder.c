@@ -8,64 +8,76 @@
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
+#include "psslurmforwarder.h"
+
 #include <stdio.h>
 #include <stdlib.h>
-#include <unistd.h>
 #include <errno.h>
-#include <sys/stat.h>
+#include <fcntl.h>
 #include <grp.h>
-#include <sys/prctl.h>
-#include <sys/resource.h>
-#include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <pty.h>
-#include <fcntl.h>
-#include <syslog.h>
 #include <signal.h>
+#include <string.h>
+#include <syslog.h>
+#include <sys/ioctl.h>
 #include <sys/ptrace.h>
+#include <sys/prctl.h>
+#include <sys/socket.h>
+#include <sys/stat.h>
 #include <sys/wait.h>
+#include <unistd.h>
 #include <utime.h>
 
+#include "list.h"
+#include "pscommon.h"
+#include "pscio.h"
+#include "psenv.h"
+#include "psnodes.h"
+#include "psprotocolenv.h"
+#include "psserial.h"
+#include "pstask.h"
+#include "selector.h"
+#include "psidcomm.h"
+#include "psidhook.h"
+#include "psidscripts.h"
+#include "pluginconfig.h"
+#include "pluginforwarder.h"
+#include "pluginhelper.h"
+#include "pluginmalloc.h"
+#include "pluginpartition.h"
+#include "pluginpty.h"
+#include "pluginstrv.h"
+
+#include "peloguehandles.h"
 #include "psaccounthandles.h"
 #include "pspmihandles.h"
 
 #include "psslurm.h"
 #include "psslurmalloc.h"
-#include "psslurmlog.h"
-#include "psslurmlimits.h"
 #include "psslurmcomm.h"
-#include "psslurmproto.h"
 #include "psslurmconfig.h"
 #include "psslurmenv.h"
-#include "psslurmmultiprog.h"
+#include "psslurmfwcomm.h"
 #include "psslurmio.h"
+#include "psslurmjobcred.h"
+#include "psslurmlimits.h"
+#include "psslurmlog.h"
+#include "psslurmmsg.h"
+#include "psslurmmultiprog.h"
+#include "psslurmnodeinfo.h"
 #include "psslurmpelogue.h"
 #include "psslurmpin.h"
-#include "psslurmspawn.h"
+#include "psslurmproto.h"
 #include "psslurmpscomm.h"
+#include "psslurmspawn.h"
+#include "psslurmtasks.h"
 #include "slurmcommon.h"
-#include "psslurmfwcomm.h"
+#include "slurmerrno.h"
 #ifdef HAVE_SPANK
 #include "psslurmspank.h"
 #endif
-
-#include "pscommon.h"
-#include "pluginpty.h"
-#include "pluginmalloc.h"
-#include "pluginhelper.h"
-#include "pluginpartition.h"
-#include "pluginforwarder.h"
-#include "pluginstrv.h"
-#include "pscio.h"
-#include "selector.h"
-#include "psprotocolenv.h"
-#include "pslog.h"
-#include "psidhook.h"
-#include "psidsignal.h"
-#include "psipartition.h"
-#include "psidnodes.h"
-#include "psslurmforwarder.h"
 
 #define X11_AUTH_CMD "/usr/bin/xauth"
 

@@ -20,12 +20,8 @@
 #include <netinet/in.h>
 #include <string.h>
 #include <sys/socket.h>
-#include <sys/time.h>
-
-/* Extra includes for load-determination */
-#include <linux/sysinfo.h>
 #include <sys/sysinfo.h>
-#include <asm/posix_types.h>
+#include <sys/time.h>
 
 #include "list.h"
 #include "pscio.h"
