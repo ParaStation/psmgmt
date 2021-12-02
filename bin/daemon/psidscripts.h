@@ -61,7 +61,7 @@ typedef int PSID_scriptCB_t(int, PSID_scriptCBInfo_t *);
  * has to be provided to @ref PSID_execScript() or @ref
  * PSID_execFunc() as the last argument.
  */
-typedef int PSID_scriptPrep_t(void *);
+typedef void PSID_scriptPrep_t(void *);
 
 /**
  * @brief Execute a script and register for result.

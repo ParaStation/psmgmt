@@ -131,16 +131,14 @@ void signalPElogue(Job_t *job, char *signal, char *reason)
 /**
  * @brief Prepare the forwarder environments.
  *
- * @param info Not used.
+ * @param info Not used
  *
- * @return Always returns 0.
+ * @return No return value
  */
-static int prepScriptEnv(void *info)
+static void prepScriptEnv(void *info)
 {
     /* just make sure we don't call any main cleanup routines on exit */
     isMaster = 0;
-
-    return 0;
 }
 
 void stopPElogueExecution(Job_t *job)

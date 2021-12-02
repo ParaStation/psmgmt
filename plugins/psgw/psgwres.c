@@ -45,22 +45,18 @@ static char msgBuf[1024];
  *
  * @param reqPtr Pointer to the request management structure
  *
- * @return Always return 0
+ * @return No return value
  */
-static int prepEnv(void *reqPtr)
+static void prepEnv(void *reqPtr)
 {
     PSGW_Req_t *req = Request_verify(reqPtr);
-    env_t *env;
-    uint32_t i;
-    char buf[1024];
-
     if (!req) {
 	flog("invalid request\n");
-	return 0;
+	return;
     }
-    env = req->res->env;
 
-    for (i=0; i<env->cnt; i++) {
+    env_t *env = req->res->env;
+    for (uint32_t i = 0; i < env->cnt; i++) {
 	fdbg(PSGW_LOG_DEBUG, "%i: %s\n", i, envGetIndex(env, i));
 	putenv(envGetIndex(env, i));
     }
@@ -71,9 +67,10 @@ static int prepEnv(void *reqPtr)
 	setenv("SLURM_SPANK_PSGW_PLUGIN", script, 1);
     }
 
+    char buf[1024];
     snprintf(buf, sizeof(buf), "%u", req->numGWstarted);
     setenv("NUM_GATEWAYS", buf, 1);
-    for (i=0; i<req->numGWstarted; i++) {
+    for (uint32_t i = 0; i < req->numGWstarted; i++) {
 	snprintf(buf, sizeof(buf), "GATEWAY_ADDR_%u", i);
 	setenv(buf, req->psgwd[i].addr, 1);
     }
@@ -81,8 +78,6 @@ static int prepEnv(void *reqPtr)
     if (psgwlogger->mask & PSGW_LOG_ROUTE) {
 	setenv("PSGW_VERBOSE", "1", 1);
     }
-
-    return 0;
 }
 
 /**

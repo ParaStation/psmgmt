@@ -477,7 +477,7 @@ typedef struct {
     char *script;
 } stateChangeInfo_t;
 
-static int stateChangeEnv(void *info)
+static void stateChangeEnv(void *info)
 {
     int nID = -1;
     in_addr_t nAddr;
@@ -492,7 +492,7 @@ static int stateChangeEnv(void *info)
     snprintf(buf, sizeof(buf), "%d", nID);
     setenv("NODE_ID", buf, 1);
 
-    if (nID < 0) return 0;
+    if (nID < 0) return;
 
     /* identify and set hostname */
     nAddr = PSIDnodes_getAddr(nID);
@@ -511,8 +511,6 @@ static int stateChangeEnv(void *info)
 	}
     }
     setenv("NODE_NAME", nName, 1);
-
-    return 0;
 }
 
 static int stateChangeCB(int fd, PSID_scriptCBInfo_t *cbInfo)

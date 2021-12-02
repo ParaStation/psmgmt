@@ -547,11 +547,11 @@ typedef struct {
  * contains extra-information packed into a @ref switchInfo_t
  * structure.
  *
- * @param info Extra information within a @ref switchInfo_t structure.
+ * @param info Extra information within a @ref switchInfo_t structure
  *
- * @return Always return 0.
+ * @return No return value
  */
-static int prepSwitchEnv(void *info)
+static void prepSwitchEnv(void *info)
 {
     int hw = -1;
     char buf[20];
@@ -570,8 +570,6 @@ static int prepSwitchEnv(void *info)
     setenv("PS_ID", buf, 1);
 
     setenv("PS_INSTALLDIR", PSC_lookupInstalldir(NULL), 1);
-
-    return 0;
 }
 
 /**
@@ -763,9 +761,9 @@ void PSID_stopAllHW(void)
  * @param info Extra information within a @ref DDTypedBufferMsg_t
  * structure.
  *
- * @return Always return 0.
+ * @return No return value
  */
-static int prepCounterEnv(void *info)
+static void prepCounterEnv(void *info)
 {
     int hw = -1;
 
@@ -786,8 +784,6 @@ static int prepCounterEnv(void *info)
 
 	setenv("PS_INSTALLDIR", PSC_lookupInstalldir(NULL), 1);
     }
-
-    return 0;
 }
 
 /**

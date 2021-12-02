@@ -104,18 +104,16 @@ int sendExecScript(Script_t *script, PSnodes_ID_t dest)
     return ret;
 }
 
-static int prepEnv(void *info)
+static void prepEnv(void *info)
 {
     Script_t *script = info;
     env_t *env = &script->env;
-    uint32_t i;
 
     mlog("%s: setting env %i\n", __func__, env->cnt);
 
-    for (i=0; i<env->cnt; i++) {
+    for (uint32_t i = 0; i < env->cnt; i++) {
 	putenv(envGetIndex(env, i));
     }
-    return 0;
 }
 
 static bool execScript(Script_t *script, PSID_scriptCB_t cb)
