@@ -15,8 +15,34 @@
 #include <stdint.h>
 #include <sys/types.h>
 
+#include "list.h"
 #include "psenv.h"
-#include "psslurmtypes.h"
+#include "psnodes.h"
+#include "psslurmjobcred.h"
+
+typedef struct {
+    list_t next;            /**< used to put into some allocation-lists */
+    uint32_t id;	    /**< unique allocation identifier */
+    uint32_t packID;	    /**< unique pack identifier */
+    uid_t uid;		    /**< user ID of the allocation owner */
+    gid_t gid;		    /**< group of the allocation owner */
+    uint32_t nrOfNodes;	    /**< number of nodes */
+    PSnodes_ID_t *nodes;    /**< all participating nodes in the allocation */
+    char *slurmHosts;	    /**< Slurm compressed host-list (SLURM_NODELIST) */
+    env_t env;		    /**< environment variables */
+    uint8_t terminate;	    /**< track number of terminate requests */
+    int state;		    /**< current state of the allocation */
+    char *username;	    /**< username of allocation owner */
+    time_t firstKillReq;    /**< time the first kill request was received */
+    time_t startTime;       /**< time the allocation started */
+    uint32_t localNodeId;   /**< local node ID for this allocation */
+    uint32_t prologCnt;     /**< number of nodes finished prologue */
+    bool *epilogRes;	    /**< track epilogue results per node */
+    uint32_t epilogCnt;     /**< number of nodes finished epilogue */
+    bool nodeFail;	    /**< flag to save node failure */
+    JobCred_t *cred;	    /**< job credentials */
+    list_t *gresList;	    /**< list of allocated generic resources */
+} Alloc_t;
 
 typedef enum {
     A_INIT = 0x020,

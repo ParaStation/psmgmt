@@ -35,7 +35,7 @@
 
 #include "peloguehandles.h"
 #include "psexechandles.h"
-#include "psslurmtypes.h"
+#include "psslurmalloc.h"
 
 #include "psgwlog.h"
 #include "psgwrequest.h"

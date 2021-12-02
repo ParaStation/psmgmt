@@ -14,10 +14,10 @@
 #include <stdbool.h>
 #include <stdint.h>
 
+#include "psslurmalloc.h"
 #include "psslurmbcast.h"
 #include "psslurmjob.h"
 #include "psslurmstep.h"
-#include "psslurmtypes.h"
 
 /**
  * @brief Execute a step leader forwarder
