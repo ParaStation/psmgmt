@@ -46,7 +46,7 @@ typedef struct itemPool * PSitems_t;
  * itemSize. The pool is given the name @a name.
  *
  * New items are added to the pool automatically while getting new
- * items via PSitems_getItem(). The item are added in chunks. The
+ * items via PSitems_getItem(). The items are added in chunks. The
  * number of items to be added is determined by @a itemSize in a way
  * that at least 128 kB of memory is allocated per chunk. This ensures
  * that memory is allocated via mmap() avoiding to pollute the
@@ -108,7 +108,7 @@ bool PSitems_isInitialized(PSitems_t items);
  *
  * @param chunkSize Chunk size to be established
  *
- * #return If the chunk size was changed, true is returned; or false
+ * @return If the chunk size was changed, true is returned; or false
  * in case of failure
  */
 bool PSitems_setChunkSize(PSitems_t items, size_t chunkSize);
@@ -137,7 +137,7 @@ uint32_t PSitems_getAvail(PSitems_t items);
  *
  * @param line Line number where this function is called
  *
- * #return Return a pointer to an idle item or NULL if an error occurred
+ * @return Return a pointer to an idle item or NULL if an error occurred
  */
 void * __PSitems_getItem(PSitems_t items, const char *caller, const int line);
 
@@ -152,7 +152,7 @@ void * __PSitems_getItem(PSitems_t items, const char *caller, const int line);
  *
  * @param items Structure holding all information on the pool of items
  *
- * #return No return value
+ * @return No return value
  */
 void PSitems_putItem(PSitems_t items, void *item);
 
