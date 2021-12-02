@@ -1229,19 +1229,21 @@ uint64_t getSlurmHCRuns(void)
 /**
  * @brief Callback of a health-check script
  *
- * @param fd The file descriptor to read the result
+ * @param exit health-check script's exit-status
  *
- * @param info cmdline of the reboot program called
+ * @param tmdOut Ignored flag of timeout
  *
- * @return Always returns 0
+ * @param iofd File descriptor providing health-check script's output
+ *
+ * @param info No extra info
+ *
+ * @return No return value
  */
-static int cbHealthcheck(int fd, PSID_scriptCBInfo_t *info)
+static void cbHealthcheck(int exit, bool tmdOut, int iofd, void *info)
 {
     char errMsg[1024];
-    int32_t exit = 0;
     size_t errLen = 0;
-
-    getScriptCBdata(fd, info, &exit, errMsg, sizeof(errMsg), &errLen);
+    getScriptCBdata(iofd, errMsg, sizeof(errMsg), &errLen);
 
     char *script = getConfValueC(&SlurmConfig, "HealthCheckProgram");
     if (exit != 0) {
@@ -1249,13 +1251,11 @@ static int cbHealthcheck(int fd, PSID_scriptCBInfo_t *info)
     }
 
     if (errMsg[0] != '\0') flog("health-check script message: %s\n", errMsg);
-    return 0;
 }
 
-static int prepHCenv(void *reqPtr)
+static void prepHCenv(void *info)
 {
     setenv("SLURMD_NODENAME", getConfValueC(&Config, "SLURM_HOSTNAME"), 1);
-    return 0;
 }
 
 bool runHealthCheck(void)
@@ -1270,7 +1270,8 @@ bool runHealthCheck(void)
 	    return false;
 	}
 
-	int pid = PSID_execScript(script, &prepHCenv, &cbHealthcheck, NULL);
+	pid_t pid = PSID_execScript(script, &prepHCenv, &cbHealthcheck,
+				    NULL, NULL);
 	if (pid == -1) {
 	    flog("error spawning health-check script %s\n", script);
 	    return false;
