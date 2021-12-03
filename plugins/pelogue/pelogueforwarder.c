@@ -95,10 +95,9 @@ void execPElogueScript(Forwarder_Data_t *fwData, int rerun)
 	if (child->env.vars[i]) putenv(child->env.vars[i]);
     }
 
-    snprintf(fName, sizeof(fName), "%s/%s%s%s", child->scriptDir,
+    snprintf(fName, sizeof(fName), "%s/%s%s", child->scriptDir,
 	     child->type == PELOGUE_PROLOGUE ? "prologue" : "epilogue",
-	     root ? "" : ".user",
-	     child->mainPElogue == PSC_getMyID() ? "" : ".parallel");
+	     root ? "" : ".user");
 
     switch (checkPELogueFileStats(fName, root)) {
     case -1:
