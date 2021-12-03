@@ -203,7 +203,8 @@ void clearStepList(Step_t *preserve)
     list_t *s, *tmp;
     list_for_each_safe(s, tmp, &StepList) {
 	Step_t *step = list_entry(s, Step_t, next);
-	if (step && step != preserve) deleteStep(step->jobid, step->stepid);
+	if (step == preserve) continue;
+	deleteStep(step->jobid, step->stepid);
     }
 }
 
