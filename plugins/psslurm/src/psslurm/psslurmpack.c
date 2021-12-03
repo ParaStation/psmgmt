@@ -1449,7 +1449,7 @@ static bool unpackReqLaunchTasks(Slurm_Msg_t *sMsg)
     return true;
 
 ERROR:
-    deleteStep(step->jobid, step->stepid);
+    deleteStep(step);
     return false;
 }
 

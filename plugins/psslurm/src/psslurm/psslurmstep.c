@@ -204,7 +204,7 @@ void clearStepList(Step_t *preserve)
     list_for_each_safe(s, tmp, &StepList) {
 	Step_t *step = list_entry(s, Step_t, next);
 	if (step == preserve) continue;
-	deleteStep(step->jobid, step->stepid);
+	deleteStep(step);
     }
 }
 
@@ -213,7 +213,7 @@ void clearStepsByJobid(uint32_t jobid)
     list_t *s, *tmp;
     list_for_each_safe(s, tmp, &StepList) {
 	Step_t *step = list_entry(s, Step_t, next);
-	if (step->jobid == jobid) deleteStep(step->jobid, step->stepid);
+	if (step->jobid == jobid) deleteStep(step);
     }
 }
 
@@ -226,21 +226,19 @@ void deleteJobComp(JobCompInfo_t *jobComp)
     ufree(jobComp);
 }
 
-bool deleteStep(uint32_t jobid, uint32_t stepid)
+bool deleteStep(Step_t *step)
 {
-    Step_t *step = findStepByStepId(jobid, stepid);
-
     if (!step) return false;
 
-    mdbg(PSSLURM_LOG_JOB, "%s: '%u:%u'\n", __func__, jobid, stepid);
+    mdbg(PSSLURM_LOG_JOB, "%s: '%u:%u'\n", __func__, step->jobid, step->stepid);
 
     /* make sure all connections for the step are closed */
     closeAllStepConnections(step);
-    clearBCastByJobid(jobid);
-    deleteCachedMsg(jobid, stepid);
+    clearBCastByJobid(step->jobid);
+    deleteCachedMsg(step->jobid, step->stepid);
 
     if (step->fwdata) {
-	signalTasks(jobid, step->uid, &step->tasks, SIGKILL, -1);
+	signalTasks(step->jobid, step->uid, &step->tasks, SIGKILL, -1);
 	if (step->fwdata->cPid) {
 	    killChild(step->fwdata->cPid, SIGKILL, step->uid);
 	}

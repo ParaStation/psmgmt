@@ -218,14 +218,11 @@ bool verifyStepData(Step_t *step);
 /**
  * @brief Delete a step
  *
- * @param jobid The jobid of the step to delete
- *
- * @param stepid The stepid of the step to delete
+ * @param step Step to delete
  *
  * @return Returns true on success or false otherwise
  */
-bool deleteStep(uint32_t jobid, uint32_t stepid);
-
+bool deleteStep(Step_t *step);
 
 /**
  * @brief Delete all steps

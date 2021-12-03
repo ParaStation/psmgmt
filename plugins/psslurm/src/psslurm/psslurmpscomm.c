@@ -1392,7 +1392,7 @@ static void handlePackInfo(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
 	if (!(execStepLeader(step))) {
 	    flog("starting user step failed\n");
 	    sendSlurmRC(&step->srunControlMsg, ESLURMD_FORK_FAILED);
-	    deleteStep(step->jobid, step->stepid);
+	    deleteStep(step);
 	}
     }
 }
