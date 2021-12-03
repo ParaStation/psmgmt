@@ -101,9 +101,9 @@ typedef void PSID_scriptPrep_t(void *);
  *
  * @return Upon failure -1 is returned. This function might fail due
  * to insufficient resources. If a callback @a cb is provided, the pid
- * of the new process is returned upon success. It might be used to
- * cancel the callback via @ref PSID_cancelCB(). Otherwise the
- * exit-value of @a script is returned.
+ * of the observer process executing @ref system() is returned upon
+ * success. It might be used to cancel the callback via @ref
+ * PSID_cancelCB(). Otherwise the exit-value of @a script is returned.
  */
 int PSID_execScript(char *script, PSID_scriptPrep_t prep, PSID_scriptCB_t cb,
 		    struct timeval *timeout, void *info);
