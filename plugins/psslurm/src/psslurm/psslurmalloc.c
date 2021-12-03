@@ -168,7 +168,7 @@ bool deleteAlloc(uint32_t id)
     Alloc_t *alloc;
 
     /* free corresponding resources */
-    deleteJob(id);
+    deleteJobById(id);
     clearStepsByJobid(id);
     clearBCastByJobid(id);
 

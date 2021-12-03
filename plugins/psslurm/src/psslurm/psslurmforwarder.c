@@ -157,7 +157,7 @@ static int jobCallback(int32_t exit_status, Forwarder_Data_t *fw)
 
     if (!alloc) {
 	flog("allocation for job %u not found\n", job->jobid);
-	deleteJob(job->jobid);
+	deleteJob(job);
 	return 0;
     }
 

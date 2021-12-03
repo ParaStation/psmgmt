@@ -8,6 +8,8 @@
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
+#include "psslurmpack.h"
+
 #include "pscommon.h"
 #include "psserial.h"
 #include "pluginhelper.h"
@@ -18,8 +20,6 @@
 #include "psslurmlog.h"
 #include "psslurmpscomm.h"
 #include "psslurmconfig.h"
-
-#include "psslurmpack.h"
 
 #undef DEBUG_MSG_HEADER
 
@@ -1629,7 +1629,7 @@ static bool unpackReqBatchJobLaunch(Slurm_Msg_t *sMsg)
     return true;
 
 ERROR:
-    deleteJob(job->jobid);
+    deleteJob(job);
     return false;
 }
 

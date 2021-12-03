@@ -95,11 +95,12 @@ typedef struct {
 } Job_t;
 
 /**
- * @brief Delete jobs
+ * @brief Delete all jobs
  *
- * Use NULL for @ref preserveID to delete all jobs.
+ * Delete jobs steps but the one @a preserve points to. If @a preserve
+ * is NULL, all jobs will be deleted.
  *
- * @param preserve Preserve the specified job
+ * @param preserve Job to preserve
  */
 void clearJobList(Job_t *preserve);
 
@@ -156,13 +157,22 @@ Job_t *findJobByIdC(char *id);
 PSnodes_ID_t *findJobNodeEntry(Job_t *job, PSnodes_ID_t id);
 
 /**
- * @brief Delete a single job.
+ * @brief Delete a job
  *
- * @param jobid The jobid to identify the job
+ * @param job Job to delete
  *
  * @return Returns true on success and false on error
  */
-bool deleteJob(uint32_t jobid);
+bool deleteJob(Job_t *job);
+
+/**
+ * @brief Delete a job
+ *
+ * @param jobid Job ID to identify the job
+ *
+ * @return Returns true on success and false on error
+ */
+bool deleteJobById(uint32_t jobid);
 
 /**
  * @brief Convert a job state to its string representation

@@ -2034,7 +2034,7 @@ static void handleBatchJobLaunch(Slurm_Msg_t *sMsg)
     if (pluginShutdown) {
 	/* don't accept new jobs if a shutdown is in progress */
 	sendSlurmRC(sMsg, SLURM_ERROR);
-	deleteJob(job->jobid);
+	deleteJob(job);
 	return;
     }
 
@@ -2091,7 +2091,7 @@ static void handleBatchJobLaunch(Slurm_Msg_t *sMsg)
 			"psslurm: writing jobscript failed");
 	/* need to return success to be able to requeue the job */
 	sendSlurmRC(sMsg, SLURM_SUCCESS);
-	deleteJob(job->jobid);
+	deleteJob(job);
 	return;
     }
 
@@ -2162,7 +2162,7 @@ static void handleBatchJobLaunch(Slurm_Msg_t *sMsg)
 
 ERROR:
     sendSlurmRC(sMsg, ESLURMD_INVALID_JOB_CREDENTIAL);
-    deleteJob(job->jobid);
+    deleteJob(job);
 }
 
 static void doTerminateAlloc(Slurm_Msg_t *sMsg, Alloc_t *alloc)
@@ -2272,7 +2272,7 @@ static void handleAbortReq(Slurm_Msg_t *sMsg, uint32_t jobid, uint32_t stepid)
 	    send_PS_JobExit(job->jobid, SLURM_BATCH_SCRIPT,
 		    job->nrOfNodes, job->nodes);
 	}
-	deleteJob(jobid);
+	deleteJob(job);
     } else {
 	Alloc_t *alloc = findAlloc(jobid);
 	if (alloc && isAllocLeader(alloc)) {
@@ -2408,7 +2408,7 @@ static void handleTerminateReq(Slurm_Msg_t *sMsg)
     Alloc_t *alloc = findAlloc(req->jobid);
 
     if (!alloc) {
-	deleteJob(req->jobid);
+	deleteJobById(req->jobid);
 	clearStepsByJobid(req->jobid);
 	flog("allocation %s not found\n", strStepID(&s));
 	if (sMsg->head.type == REQUEST_TERMINATE_JOB) {

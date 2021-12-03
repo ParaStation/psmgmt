@@ -8,6 +8,8 @@
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
+#include "psslurmjob.h"
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -36,16 +38,14 @@
 #include "psslurmenv.h"
 #include "psslurmproto.h"
 
-#include "psslurmjob.h"
-
 #define MAX_JOBID_LENGTH 128
 
 /** List of all jobs */
 static LIST_HEAD(JobList);
 
-static void doDeleteJob(Job_t *job)
+bool deleteJob(Job_t *job)
 {
-    unsigned int i;
+    if (!job) return false;
 
     mdbg(PSSLURM_LOG_JOB, "%s: '%u'\n", __func__, job->jobid);
 
@@ -98,9 +98,7 @@ static void doDeleteJob(Job_t *job)
     ufree(job->resName);
     ufree(job->container);
 
-    for (i=0; i<job->argc; i++) {
-	ufree(job->argv[i]);
-    }
+    for (unsigned int i=0; i<job->argc; i++) ufree(job->argv[i]);
     ufree(job->argv);
 
     clearTasks(&job->tasks);
@@ -113,13 +111,14 @@ static void doDeleteJob(Job_t *job)
     ufree(job);
 
     malloc_trim(200);
+    return true;
 }
 
 Job_t *addJob(uint32_t jobid)
 {
     Job_t *job = ucalloc(sizeof(Job_t));
 
-    deleteJob(jobid);
+    deleteJobById(jobid);
 
     job->jobid = jobid;
     job->stdOutFD = job->stdErrFD = -1;
@@ -251,25 +250,22 @@ PSnodes_ID_t *findJobNodeEntry(Job_t *job, PSnodes_ID_t id)
 
 void clearJobList(Job_t *preserve)
 {
-    list_t *j, *tmp;
-
     clearBCastList();
 
+    list_t *j, *tmp;
     list_for_each_safe(j, tmp, &JobList) {
 	Job_t *job = list_entry(j, Job_t, next);
-	if (job && job != preserve) doDeleteJob(job);
+	if (job == preserve) continue;
+	deleteJob(job);
     }
 }
 
-bool deleteJob(uint32_t jobid)
+bool deleteJobById(uint32_t jobid)
 {
     Job_t *job = findJobById(jobid);
-
     if (!job) return false;
 
-    doDeleteJob(job);
-
-    return true;
+    return deleteJob(job);
 }
 
 int killForwarderByJobid(uint32_t jobid)
