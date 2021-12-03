@@ -236,6 +236,10 @@ const ConfDef_t confDef[] =
 	"bool",
 	"1",
 	"Apply filename patterns on job/steps current working directory" },
+    { "SLURM_HC_TIMEOUT", 1,
+	"int",
+	"60",
+	"Timeout in seconds for a Slurm health-check script" },
     { NULL, 0, NULL, NULL, NULL },
 };
 

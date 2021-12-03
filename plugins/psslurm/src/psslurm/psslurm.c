@@ -93,11 +93,12 @@ static void cleanupJobs(void)
 {
     static int obitTimeCounter = 0;
     int jcount = countJobs() + countAllocs();
+    bool stopHC = stopHealthCheck(SIGTERM);
 
     /* check if we are waiting for jobs to exit */
     obitTimeCounter++;
 
-    if (!jcount) {
+    if (!jcount && stopHC) {
 	/* all jobs and allocs are gone */
 	Timer_remove(cleanupTimerID);
 	cleanupTimerID = -1;
@@ -108,9 +109,12 @@ static void cleanupJobs(void)
 	return;
     }
 
-    if (obitTimeCounter >= obitTime) {
+    if (obitTimeCounter >= obitTime && jcount) {
 	mlog("sending SIGKILL to %i remaining jobs\n", jcount);
 	signalJobs(SIGKILL);
+    }
+    if (obitTimeCounter >= obitTime && !stopHC) {
+	stopHealthCheck(SIGKILL);
     }
 }
 
@@ -779,11 +783,12 @@ INIT_ERROR:
 
 void finalize(void)
 {
-    int jcount = countJobs() + countAllocs();
-
     pluginShutdown = true;
 
-    if (jcount) {
+    bool stopHC = stopHealthCheck(SIGTERM);
+
+    int jcount = countJobs() + countAllocs();
+    if (jcount || !stopHC) {
 	struct timeval cleanupTimer = {1,0};
 
 	mlog("sending SIGTERM to %i remaining jobs\n", jcount);

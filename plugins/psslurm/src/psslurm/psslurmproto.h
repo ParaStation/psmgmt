@@ -715,6 +715,15 @@ void sendJobRequeue(uint32_t jobid);
 bool runHealthCheck(void);
 
 /**
+ * @brief Stop a running Slurm health-check
+ *
+ * @param signal The signal to send
+ *
+ * @return Returns true if no script is running or false otherwise
+ */
+bool stopHealthCheck(int signal);
+
+/**
  * @brief Get Slurm health-check runs
  *
  * @return Returns the number of times the health-check was executed

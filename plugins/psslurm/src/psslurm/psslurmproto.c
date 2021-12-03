@@ -87,6 +87,9 @@ static bool needNodeRegResp = true;
 
 static int confAction = 0;
 
+/** PID of a running Slurm health-check script */
+static pid_t slurmHCpid = -1;
+
 Ext_Resp_Node_Reg_t *tresDBconfig = NULL;
 
 typedef struct {
@@ -1231,22 +1234,25 @@ uint64_t getSlurmHCRuns(void)
  *
  * @param exit health-check script's exit-status
  *
- * @param tmdOut Ignored flag of timeout
+ * @param tmdOut flag of timeout
  *
  * @param iofd File descriptor providing health-check script's output
  *
  * @param info No extra info
- *
- * @return No return value
  */
 static void cbHealthcheck(int exit, bool tmdOut, int iofd, void *info)
 {
     char errMsg[1024];
     size_t errLen = 0;
     getScriptCBdata(iofd, errMsg, sizeof(errMsg), &errLen);
+    slurmHCpid = -1;
 
     char *script = getConfValueC(&SlurmConfig, "HealthCheckProgram");
-    if (exit != 0) {
+    if (tmdOut) {
+	int seconds = getConfValueU(&Config, "SLURM_HC_TIMEOUT");
+	flog("'%s' was terminated because it exceeded the time-limit"
+	     " of %u seconds\n", script, seconds);
+    } else if (exit != 0) {
 	flog("'%s' returned exit status %i\n", script, exit);
     }
 
@@ -1256,6 +1262,21 @@ static void cbHealthcheck(int exit, bool tmdOut, int iofd, void *info)
 static void prepHCenv(void *info)
 {
     setenv("SLURMD_NODENAME", getConfValueC(&Config, "SLURM_HOSTNAME"), 1);
+}
+
+bool stopHealthCheck(int signal)
+{
+    static pid_t lastpid = -1;
+
+    if (slurmHCpid != -1) {
+	if (lastpid != slurmHCpid) {
+	    flog("stopping Slurm health-check script %u\n", slurmHCpid);
+	    killChild(-slurmHCpid, signal, 0);
+	}
+	lastpid = slurmHCpid;
+	return false;
+    }
+    return true;
 }
 
 bool runHealthCheck(void)
@@ -1269,17 +1290,22 @@ bool runHealthCheck(void)
 	    flog("invalid permissions for health-check script %s\n", script);
 	    return false;
 	}
+	if (slurmHCpid != -1) {
+	    flog("error: another Slurm health-check script with PID %u is"
+		 " already running\n", slurmHCpid);
+	    return false;
+	}
 
-	pid_t pid = PSID_execScript(script, &prepHCenv, &cbHealthcheck,
-				    NULL, NULL);
-	if (pid == -1) {
+	int seconds = getConfValueU(&Config, "SLURM_HC_TIMEOUT");
+	struct timeval timeout = {seconds, 0};
+	slurmHCpid = PSID_execScript(script, &prepHCenv, &cbHealthcheck,
+				     &timeout, NULL);
+	if (slurmHCpid == -1) {
 	    flog("error spawning health-check script %s\n", script);
 	    return false;
 	}
-	flog("(%zu) execute health-check script %s\n", ++slurmHCRuns, script);
-
-	/* TODO: add timeout monitoring. Should PSID_execScript be extended
-	 * to support timeouts? */
+	flog("(#%zu) execute health-check script %s pid %u\n", ++slurmHCRuns,
+	     script, slurmHCpid);
     }
 
     return true;
