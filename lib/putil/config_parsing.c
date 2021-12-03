@@ -22,15 +22,13 @@ config_t *parseConfig(FILE* logfile, int logmask, char *configfile)
 #include <errno.h>
 #include <string.h>
 #include <strings.h>
+#include <syslog.h>
 #include <sys/stat.h>
 #include <sys/resource.h>
-#include <syslog.h>
 #include <sys/socket.h>
 #include <unistd.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
-#include <pwd.h>
-#include <grp.h>
 #include <glib.h>
 #include <psconfig.h>
 #include <psconfig-types.h>
@@ -682,59 +680,6 @@ static bool getHW(char *key)
 
 /* ---------------------------------------------------------------------- */
 
-/**
- * @brief Create user-string.
- *
- * Create a string describing the user identified by the user ID @a uid.
- *
- * @param uid User ID of the user to describe.
- *
- * @return Pointer to a new string describing the user. Memory for the
- * new string is obtained with malloc(3), and can be freed with
- * free(3).
- */
-static char* userFromUID(uid_t uid)
-{
-    if ((int)uid >= 0) {
-	struct passwd *pwd = getpwuid(uid);
-	if (pwd) {
-	    return strdup(pwd->pw_name);
-	} else {
-	    return strdup("unknown");
-	}
-    } else {
-	return strdup("ANY");
-    }
-
-}
-
-/**
- * @brief Create group-string.
- *
- * Create a string describing the group identified by the group ID @a gid.
- *
- * @param gid Group ID of the group to describe.
- *
- * @return Pointer to a new string describing the group. Memory for the
- * new string is obtained with malloc(3), and can be freed with
- * free(3).
- */
-static char* groupFromGID(gid_t gid)
-{
-    if ((int)gid >= 0) {
-	struct group *grp = getgrgid(gid);
-	if (grp) {
-	    return strdup(grp->gr_name);
-	} else {
-	    return strdup("unknown");
-	}
-    } else {
-	return strdup("ANY");
-    }
-}
-
-/* ---------------------------------------------------------------------- */
-
 /** List type to store group/user entries */
 typedef struct {
     struct list_head next;
@@ -908,7 +853,7 @@ static bool getSingleUser(char *user)
 	return false;
     }
 
-    char *uStr = userFromUID(uid);
+    char *uStr = PSC_userFromUID(uid);
     parser_comment(PARSER_LOG_NODE, " user '%s%s'\n", actStr, uStr);
     GUIDaction(&nodeUID, uid);
 
@@ -937,7 +882,7 @@ static bool getSingleGroup(char *group)
 	return false;
     }
 
-    char *gStr = groupFromGID(gid);
+    char *gStr = PSC_groupFromGID(gid);
     parser_comment(PARSER_LOG_NODE, " group '%s%s'\n", actStr, gStr);
     GUIDaction(&nodeGID, gid);
 
@@ -966,7 +911,7 @@ static bool getSingleAdminUser(char *user)
 	return false;
     }
 
-    char *uStr = userFromUID(uid);
+    char *uStr = PSC_userFromUID(uid);
     parser_comment(PARSER_LOG_NODE, " adminuser '%s%s'\n", actStr, uStr);
     GUIDaction(&nodeAdmUID, uid);
 
@@ -995,7 +940,7 @@ static bool getSingleAdminGroup(char *group)
 	return false;
     }
 
-    char *gStr = groupFromGID(gid);
+    char *gStr = PSC_groupFromGID(gid);
     parser_comment(PARSER_LOG_NODE, " admingroup '%s%s'\n", actStr, gStr);
     GUIDaction(&nodeAdmGID, gid);
 

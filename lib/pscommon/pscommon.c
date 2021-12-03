@@ -16,6 +16,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <errno.h>
+#include <grp.h>
 #include <pwd.h>
 #include <signal.h>
 #include <string.h>
@@ -672,4 +673,30 @@ uid_t PSC_gidFromString(char *user)
 
     PSC_log(-1, "%s: unknown user '%s'\n", __func__, user);
     return -2;
+}
+
+char* PSC_userFromUID(int uid)
+{
+    if (uid >= 0) {
+	struct passwd *pwd = getpwuid(uid);
+	if (pwd) {
+	    return strdup(pwd->pw_name);
+	} else {
+	    return strdup("unknown");
+	}
+    }
+    return strdup("ANY");
+}
+
+char* PSC_groupFromGID(int gid)
+{
+    if (gid >= 0) {
+	struct group *grp = getgrgid(gid);
+	if (grp) {
+	    return strdup(grp->gr_name);
+	} else {
+	    return strdup("unknown");
+	}
+    }
+    return strdup("ANY");
 }

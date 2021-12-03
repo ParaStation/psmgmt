@@ -585,6 +585,34 @@ uid_t PSC_uidFromString(char *user);
  */
 gid_t PSC_gidFromString(char *group);
 
+/**
+ * @brief Create user-string
+ *
+ * Create a string describing the user identified by the user ID @a
+ * uid. This takes the special value -1 into account, for which "ANY"
+ * is returned.
+ *
+ * @param uid User ID of the user to describe
+ *
+ * @return Pointer to a new string describing the user; memory for the
+ * new string is obtained via @ref malloc(), and must be freed with
+ * @ref free()
+ */
+char* PSC_userFromUID(int uid);
 
+/**
+ * @brief Create group-string
+ *
+ * Create a string describing the group identified by the group ID @a
+ * gid. This takes the special value -1 into account, for which "ANY"
+ * is returned.
+ *
+ * @param gid Group ID of the group to describe
+ *
+ * @return Pointer to a new string describing the group; memory for
+ * the new string is obtained via @ref malloc(), and must be freed
+ * with @ref free()
+ */
+char* PSC_groupFromGID(int gid);
 
 #endif  /* __PSCOMMON_H */

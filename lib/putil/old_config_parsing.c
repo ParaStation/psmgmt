@@ -21,8 +21,6 @@
 #include <syslog.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
-#include <pwd.h>
-#include <grp.h>
 
 #include "parser.h"
 #include "psnodes.h"
@@ -813,63 +811,6 @@ static int getRJ(char *token)
 
 /* ---------------------------------------------------------------------- */
 
-/**
- * @brief Create user-string.
- *
- * Create a string describing the user identified by the user ID @a uid.
- *
- * @param uid User ID of the user to describe.
- *
- * @return Pointer to a new string describing the user. Memory for the
- * new string is obtained with malloc(3), and can be freed with
- * free(3).
- */
-static char* userFromUID(uid_t uid)
-{
-    struct passwd *pwd;
-
-    if ((int)uid >= 0) {
-	pwd = getpwuid(uid);
-	if (pwd) {
-	    return strdup(pwd->pw_name);
-	} else {
-	    return strdup("unknown");
-	}
-    } else {
-	return strdup("ANY");
-    }
-
-}
-
-/**
- * @brief Create group-string.
- *
- * Create a string describing the group identified by the group ID @a gid.
- *
- * @param gid Group ID of the group to describe.
- *
- * @return Pointer to a new string describing the group. Memory for the
- * new string is obtained with malloc(3), and can be freed with
- * free(3).
- */
-static char* groupFromGID(gid_t gid)
-{
-    struct group *grp;
-
-    if ((int)gid >= 0) {
-	grp = getgrgid(gid);
-	if (grp) {
-	    return strdup(grp->gr_name);
-	} else {
-	    return strdup("unknown");
-	}
-    } else {
-	return strdup("ANY");
-    }
-}
-
-/* ---------------------------------------------------------------------- */
-
 /** List type to store group/user entries */
 typedef struct {
     struct list_head next;
@@ -1085,7 +1026,7 @@ static int getSingleUser(char *user)
 	return -1;
     }
 
-    uStr = userFromUID(uid);
+    uStr = PSC_userFromUID(uid);
     if (currentID == DEFAULT_ID) {
 	parser_comment(PARSER_LOG_NODE,
 		       "setting default 'User' to '%s%s'\n", actStr, uStr);
@@ -1151,7 +1092,7 @@ static int getSingleGroup(char *group)
 	return -1;
     }
 
-    gStr = groupFromGID(gid);
+    gStr = PSC_groupFromGID(gid);
     if (currentID == DEFAULT_ID) {
 	parser_comment(PARSER_LOG_NODE,
 		       "setting default 'Group' to '%s%s'\n", actStr, gStr);
@@ -1217,7 +1158,7 @@ static int getSingleAdminUser(char *user)
 	return -1;
     }
 
-    uStr = userFromUID(uid);
+    uStr = PSC_userFromUID(uid);
     if (currentID == DEFAULT_ID) {
 	parser_comment(PARSER_LOG_NODE,
 		       "setting default 'AdminUser' to '%s%s'\n", actStr, uStr);
@@ -1283,7 +1224,7 @@ static int getSingleAdminGroup(char *group)
 	return -1;
     }
 
-    gStr = groupFromGID(gid);
+    gStr = PSC_groupFromGID(gid);
     if (currentID == DEFAULT_ID) {
 	parser_comment(PARSER_LOG_NODE,
 		       "setting default 'AdminGroup' to '%s%s'\n", actStr,gStr);
