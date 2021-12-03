@@ -2,6 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2014-2021 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2021 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -11,7 +12,7 @@
 #ifndef __PS_ACCOUNT_HANDLES
 #define __PS_ACCOUNT_HANDLES
 
-#include "psaccounttypes.h"
+#include "psaccounttypes.h"  // IWYU pragma: export
 
 /*
  * This file contains definitions of function pointer for each of the

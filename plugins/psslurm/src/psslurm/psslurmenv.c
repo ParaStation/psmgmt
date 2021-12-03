@@ -8,29 +8,33 @@
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
+#include "psslurmenv.h"
+
 #include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <unistd.h>
-#include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <sys/stat.h>
 
+#include "list.h"
 #include "pscommon.h"
-#include "pluginmalloc.h"
-
-#include "psidnodes.h"
 #include "psipartition.h"
+#include "pluginconfig.h"
+#include "pluginmalloc.h"
+#include "psidnodes.h"
 
 #include "slurmcommon.h"
-#include "psslurmconfig.h"
-#include "psslurmlog.h"
-#include "psslurmproto.h"
-#include "psslurmpin.h"
-#include "psslurmalloc.h"
 
-#include "psslurmenv.h"
+#include "psslurmalloc.h"
+#include "psslurmcomm.h"
+#include "psslurmconfig.h"
+#include "psslurmgres.h"
+#include "psslurmlog.h"
+#include "psslurmpin.h"
+#include "psslurmproto.h"
 
 char **envFilter = NULL;
 

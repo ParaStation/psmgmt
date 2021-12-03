@@ -14,15 +14,15 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-#include "list.h"
+#include "psenv.h"
+#include "psnodes.h"
 
-#include "psprotocol.h"
-#include "pslog.h"
+#include "peloguehandles.h"
+
 #include "psslurmjob.h"
 #include "psslurmalloc.h"
-#include "peloguetypes.h"
-
-#include "psslurmcomm.h"
+#include "psslurmmsg.h"
+#include "psslurmstep.h"
 
 /**
  * Release delayed spawns buffered for a specific jobstep. This is

@@ -13,6 +13,7 @@
 
 #include <stdbool.h>
 
+#include "list.h"
 #include "psserial.h"
 
 #include "psslurmmsg.h"

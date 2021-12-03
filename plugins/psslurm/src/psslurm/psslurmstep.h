@@ -16,13 +16,16 @@
 #include <sys/types.h>
 #include <netinet/in.h>
 
+#include "list.h"
 #include "psenv.h"
 #include "psnodes.h"
+#include "pspartition.h"
+#include "pstask.h"
 
 #include "pluginforwarder.h"
 
+#include "slurmcommon.h"
 #include "psslurmjobcred.h"
-#include "psslurmgres.h"
 #include "psslurmmsg.h"
 #include "psslurmnodeinfotype.h"
 

@@ -16,6 +16,7 @@
 #include <sys/types.h>
 
 #include "list.h"
+#include "pscpu.h"
 #include "psenv.h"
 #include "psnodes.h"
 #include "pstask.h"
@@ -23,7 +24,6 @@
 #include "pluginforwarder.h"
 
 #include "psslurmjobcred.h"
-#include "psslurmstep.h"
 
 typedef struct {
     list_t next;            /**< used to put into some job-lists */

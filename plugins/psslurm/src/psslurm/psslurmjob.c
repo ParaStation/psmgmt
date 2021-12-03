@@ -10,33 +10,29 @@
  */
 #include "psslurmjob.h"
 
-#include <stdlib.h>
+#include <malloc.h>
+#include <signal.h>
 #include <stdio.h>
 #include <string.h>
+#include <time.h>
 #include <unistd.h>
-#include <signal.h>
-#include <malloc.h>
 
 #include "pscommon.h"
-#include "psserial.h"
 
-#include "psidtask.h"
 #include "psidsignal.h"
 
 #include "pluginhelper.h"
 #include "pluginmalloc.h"
 
-#include "pspamhandles.h"
-#include "peloguehandles.h"
-
 #include "slurmcommon.h"
-#include "psslurmlog.h"
-#include "psslurmpscomm.h"
+#include "psslurmalloc.h"
 #include "psslurmauth.h"
 #include "psslurmbcast.h"
-#include "psslurmcomm.h"
-#include "psslurmenv.h"
-#include "psslurmproto.h"
+#include "psslurmgres.h"
+#include "psslurmlog.h"
+#include "psslurmpscomm.h"
+#include "psslurmstep.h"
+#include "psslurmtasks.h"
 
 #define MAX_JOBID_LENGTH 128
 

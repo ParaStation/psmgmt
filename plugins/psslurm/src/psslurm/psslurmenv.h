@@ -2,6 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2014-2018 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2021 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -10,10 +11,14 @@
 #ifndef __PS_SLURM_ENV
 #define __PS_SLURM_ENV
 
+#include <stdbool.h>
+#include <stdint.h>
+
 #include "psenv.h"
 #include "pscpu.h"
 
 #include "psslurmjob.h"
+#include "psslurmstep.h"
 
 /** Type to distinguish between different PMI environments */
 typedef enum pmi_type {

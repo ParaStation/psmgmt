@@ -10,16 +10,35 @@
  */
 #include "psslurmpack.h"
 
+#include <netinet/in.h>
+#include <stdint.h>
+#include <string.h>
+#include <sys/resource.h>
+#include <sys/socket.h>
+#include <sys/time.h>
+#include <sys/types.h>
+
 #include "pscommon.h"
+#include "psenv.h"
+#include "psnodes.h"
 #include "psserial.h"
+#include "pstask.h"
+
+#include "pluginconfig.h"
 #include "pluginhelper.h"
 #include "pluginmalloc.h"
-#include "slurmcommon.h"
-#include "psidtask.h"
 
+#include "psaccounthandles.h"
+
+#include "slurmcommon.h"
+#include "slurmmsg.h"
+#include "psslurmconfig.h"
+#include "psslurmgres.h"
+#include "psslurmjob.h"
 #include "psslurmlog.h"
 #include "psslurmpscomm.h"
-#include "psslurmconfig.h"
+#include "psslurmstep.h"
+#include "psslurmtasks.h"
 
 #undef DEBUG_MSG_HEADER
 

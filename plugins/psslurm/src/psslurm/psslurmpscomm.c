@@ -8,23 +8,32 @@
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
+#include "psslurmpscomm.h"
+
+#include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <errno.h>
-#include <stdbool.h>
-#include <signal.h>
-#include <arpa/inet.h>
+#include <math.h>
 #define __USE_GNU
 #include <search.h>
 #undef __USE_GNU
-#include <math.h>
+#include <signal.h>
+#include <string.h>
 #include <sys/stat.h>
+#include <sys/types.h>
 
+#include "list.h"
 #include "pscommon.h"
+#include "pscpu.h"
 #include "psdaemonprotocol.h"
 #include "psenv.h"
+#include "pslog.h"
+#include "pspartition.h"
 #include "pspluginprotocol.h"
+#include "psreservation.h"
 #include "psserial.h"
+#include "pstask.h"
 
 #include "psidcomm.h"
 #include "psidhook.h"
@@ -33,36 +42,36 @@
 #include "psidspawn.h"
 #include "psidtask.h"
 #include "psidutil.h"
-#include "list.h"
 
+#include "pluginconfig.h"
+#include "pluginforwarder.h"
 #include "pluginmalloc.h"
 #include "pluginhelper.h"
 #include "pluginpartition.h"
 
-#include "peloguehandles.h"
 #include "psexechandles.h"
-#include "psaccounthandles.h"
-#include "psexectypes.h"
 #include "pshostlist.h"
 
 #include "slurmcommon.h"
-#include "psslurmforwarder.h"
-#include "psslurmmsg.h"
-#include "psslurmproto.h"
-#include "psslurmlog.h"
-#include "psslurmjob.h"
+#include "slurmerrno.h"
+#include "slurmmsg.h"
+
 #include "psslurmcomm.h"
 #include "psslurmconfig.h"
-#include "psslurmjob.h"
-#include "psslurmpin.h"
-#include "psslurmio.h"
-#include "psslurmpelogue.h"
 #include "psslurmenv.h"
-#include "psslurm.h"
+#include "psslurmforwarder.h"
 #include "psslurmfwcomm.h"
+#include "psslurmio.h"
+#include "psslurmjob.h"
+#include "psslurmjobcred.h"
+#include "psslurmlog.h"
+#include "psslurmmsg.h"
 #include "psslurmpack.h"
+#include "psslurmpelogue.h"
+#include "psslurmpin.h"
+#include "psslurmproto.h"
+#include "psslurmtasks.h"
 
-#include "psslurmpscomm.h"
 
 /** Used to cache RDP messages */
 typedef struct {

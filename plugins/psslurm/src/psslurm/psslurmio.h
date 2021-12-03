@@ -2,6 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2015-2021 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2021 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -10,11 +11,13 @@
 #ifndef __PS_SLURM_IO
 #define __PS_SLURM_IO
 
+#include <stddef.h>
 #include <stdint.h>
 
-#include "pslog.h"
+#include "pluginforwarder.h"
+
 #include "psslurmjob.h"
-#include "psslurmtasks.h"
+#include "psslurmstep.h"
 
 /** Maximal number of concurrent sattach connections */
 #define MAX_SATTACH_SOCKETS 30

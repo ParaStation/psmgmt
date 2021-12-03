@@ -10,23 +10,24 @@
  */
 #include "psslurmstep.h"
 
+#include <stdio.h>
 #include <signal.h>
+#include <string.h>
+#include <time.h>
 
 #include "pscommon.h"
 #include "pluginhelper.h"
 #include "pluginmalloc.h"
 #include "psidsignal.h"
 
-#include "pspamhandles.h"
-#include "peloguehandles.h"
-
-#include "psslurmio.h"
-#include "psslurmlog.h"
+#include "psslurmauth.h"
 #include "psslurmbcast.h"
 #include "psslurmcomm.h"
+#include "psslurmgres.h"
+#include "psslurmio.h"
+#include "psslurmlog.h"
 #include "psslurmpscomm.h"
-#include "psslurmproto.h"
-#include "psslurmenv.h"
+#include "psslurmtasks.h"
 
 /** List of all steps */
 static LIST_HEAD(StepList);
