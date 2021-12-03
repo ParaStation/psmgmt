@@ -30,7 +30,6 @@
 #include "timer.h"
 
 #include "psidhook.h"
-#include "psidsignal.h"
 #include "psidutil.h"
 
 /** Information associated to script/func in execution */
@@ -79,7 +78,7 @@ void tmOutHandler(int timerID, void *info)
 
     Selector_remove(cbInfo->cntrlfd);
     close(cbInfo->cntrlfd);
-    pskill(cbInfo->pid, SIGKILL, 0);
+    kill(-cbInfo->pid, SIGKILL);
 
     if (cbInfo->cb) cbInfo->cb(0, true, cbInfo->iofd, cbInfo->info);
 
@@ -195,6 +194,9 @@ static int doExec(char *script, PSID_scriptFunc_t func, PSID_scriptPrep_t prep,
 	PSID_blockSig(SIGTERM, false);
 	PSID_blockSig(SIGCHLD, false);
 
+	/* Create a new process group for easier cleanup */
+	setpgid(0, 0);
+
 	/* close all fds except control channel and connecting socket */
 	/* Start with connection to syslog */
 	closelog();
@@ -218,11 +220,11 @@ static int doExec(char *script, PSID_scriptFunc_t func, PSID_scriptPrep_t prep,
 	dup2(iofds[1], STDERR_FILENO);
 	close(iofds[1]);
 
+	/* Cleanup all unneeded memory */
+	PSID_clearMem(false);
+
 	int32_t ret = 0;
 	if (func) {
-	    /* Cleanup all unneeded memory */
-	    PSID_clearMem(false);
-
 	    ret = func(info);
 	} else {
 	    char *command, *dir = PSC_lookupInstalldir(NULL);
@@ -276,7 +278,8 @@ static int doExec(char *script, PSID_scriptFunc_t func, PSID_scriptPrep_t prep,
 	CBInfo_t *cbInfo = PSitems_getItem(cbInfoPool);
 	if (!cbInfo) {
 	    // catch forked process
-	    pskill(pid, SIGKILL, 0);
+	    kill(-pid, SIGKILL);
+	    kill(pid, SIGKILL);
 	    close(controlfds[0]);
 	    close(iofds[0]);
 
@@ -473,7 +476,7 @@ int PSID_cancelCB(pid_t pid)
 	    int ret = Selector_remove(cbInfo->cntrlfd);
 	    close(cbInfo->cntrlfd);
 	    close(cbInfo->iofd);
-	    pskill(cbInfo->pid, SIGKILL, 0);
+	    kill(-cbInfo->pid, SIGKILL);
 	    cbInfo->pid = 0;
 	    list_del(&cbInfo->next);
 	    PSitems_putItem(cbInfoPool, cbInfo);

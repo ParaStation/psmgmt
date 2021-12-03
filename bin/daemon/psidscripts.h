@@ -34,7 +34,7 @@ struct timeval;       // Make IWYU happy
  * into a timeout, thus, invalidating the first argument. The output
  * provided via the file-descriptor in the third argument might be
  * incomplete or spoiled by error messages due to the SIGKILL sent to
- * the corresponding process before calling the callback.
+ * the corresponding process group before calling the callback.
  *
  * The third argument provides the file-descriptor of the stdout and
  * stderr streams of the script or function.
@@ -80,7 +80,10 @@ typedef void PSID_scriptPrep_t(void *);
  *
  * If a @a timeout is provided, the allowed time for @a script to
  * execute is limited to the committed time. When the timeout expires
- * the callback @a cb is called with the @ref timedOut flag set.
+ * the process group of the controlling process, i.e. the script
+ * process itself and the controlling process are killed with SIGKILL.
+ * After this the callback @a cb is called with the @ref timedOut flag
+ * set.
  *
  * Calling this function without callback lets it act in a blocked
  * fashion. I.e. it will not return until @a script has finished
@@ -172,7 +175,8 @@ typedef int PSID_scriptFunc_t(void *);
  *
  * If a @a timeout is provided, the allowed time for @a func to
  * execute is limited to the committed time. When the timeout expires
- * the callback @a cb is called with the @ref timedOut flag set.
+ * the process executing the function is killed with SIGKILL. After
+ * this the callback @a cb is called with the @ref timedOut flag set.
  *
  * Calling this function without callback lets it act in a blocked
  * fashion. I.e. it will not return until @a func has finished
