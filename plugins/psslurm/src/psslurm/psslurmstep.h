@@ -228,11 +228,12 @@ bool deleteStep(uint32_t jobid, uint32_t stepid);
 
 
 /**
- * @brief Delete steps
+ * @brief Delete all steps
  *
- * Use NULL for @ref preserve to delete all steps.
+ * Delete all steps but the one @a preserve points to. If @a preserve
+ * is NULL, all steps will be deleted.
  *
- * @param preserve Preserve the specified step
+ * @param preserve Step to preserve
  */
 void clearStepList(Step_t *preserve);
 
