@@ -3,17 +3,23 @@
  *
  * Copyright (C) 2002-2004 ParTec AG, Karlsruhe
  * Copyright (C) 2005-2021 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2021 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
+#include "pscommon.h"
+
+#include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
-#include <string.h>
 #include <errno.h>
+#include <pwd.h>
 #include <signal.h>
+#include <string.h>
+#include <strings.h>
 #include <syslog.h>
 #include <sys/ioctl.h>
 #include <sys/types.h>
@@ -27,7 +33,6 @@
 #include "logging.h"
 #include "list.h"
 
-#include "pscommon.h"
 
 logger_t* PSC_logger = NULL;
 
@@ -626,4 +631,45 @@ bool PSC_isLocalIP(in_addr_t ipaddr)
     }
 
     return false;
+}
+
+int PSC_numFromString(char *numStr, long *val)
+{
+    if (!numStr) return -1;
+
+    char *end;
+    long num = strtol(numStr, &end, 0);
+    if (*end != '\0') return -1;
+
+    *val = num;
+
+    return 0;
+}
+
+uid_t PSC_uidFromString(char *user)
+{
+    long uid;
+    struct passwd *passwd = getpwnam(user);
+
+    if (!user) return -2;
+    if (!strcasecmp(user, "any")) return -1;
+    if (!PSC_numFromString(user, &uid) && uid > -1) return uid;
+    if (passwd) return passwd->pw_uid;
+
+    PSC_log(-1, "%s: unknown user '%s'\n", __func__, user);
+    return -2;
+}
+
+uid_t PSC_gidFromString(char *user)
+{
+    long uid;
+    struct passwd *passwd = getpwnam(user);
+
+    if (!user) return -2;
+    if (!strcasecmp(user, "any")) return -1;
+    if (!PSC_numFromString(user, &uid) && uid > -1) return uid;
+    if (passwd) return passwd->pw_uid;
+
+    PSC_log(-1, "%s: unknown user '%s'\n", __func__, user);
+    return -2;
 }

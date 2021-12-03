@@ -9,27 +9,27 @@
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
+#include "adminparser.h"
+
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
 #include <ctype.h>
-#include <pwd.h>
-#include <grp.h>
-#include <sys/types.h>
+#include <string.h>
+#include <strings.h>
 #include <sys/resource.h>
+#include <unistd.h>
 
 #include "pscommon.h"
-#include "pstask.h"
+#include "psnodes.h"
+#include "pspartition.h"
 #include "psprotocol.h"
+#include "pstask.h"
 #include "psi.h"
 #include "psiinfo.h"
 #include "parser.h"
 #include "psparamspace.h"
 
 #include "commands.h"
-
-#include "adminparser.h"
-#include "psiadmin.h"
 
 #include "helpmsgs.c"
 
@@ -808,34 +808,6 @@ static long procsFromString(char *procStr)
     return -2;
 }
 
-static uid_t uidFromString(char *user)
-{
-    long uid;
-    struct passwd *passwd = getpwnam(user);
-
-    if (!user) return -2;
-    if (!strcasecmp(user, "any")) return -1;
-    if (!parser_getNumber(user, &uid) && uid > -1) return uid;
-    if (passwd) return passwd->pw_uid;
-
-    printf("Unknown user '%s'\n", user);
-    return -2;
-}
-
-static gid_t gidFromString(char *group)
-{
-    long gid;
-    struct group *grp = getgrnam(group);
-
-    if (!group) return -2;
-    if (!strcasecmp(group, "any")) return -1;
-    if (!parser_getNumber(group, &gid) && gid > -1) return gid;
-    if (grp) return grp->gr_gid;
-
-    printf("Unknown group '%s'\n", group);
-    return -2;
-}
-
 static long sortMode;
 
 static int sortLoad1(char *token)
@@ -1381,7 +1353,7 @@ static int setCommand(char *token)
 	    value = nl_descr;
 	    nl_descr = parser_getString();
 	}
-	val = uidFromString(value);
+	val = PSC_uidFromString(value);
 	if (val == -2) goto printError;
 	break;
     }
@@ -1402,7 +1374,7 @@ static int setCommand(char *token)
 	    value = nl_descr;
 	    nl_descr = parser_getString();
 	}
-	val = gidFromString(value);
+	val = PSC_gidFromString(value);
 	if (val == -2) goto printError;
 	break;
     }

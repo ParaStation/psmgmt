@@ -9,21 +9,18 @@
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
+#include "config_parsing.h" // IWYU pragma: associated
+
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
 #include <errno.h>
-#include <ctype.h>
-#include <sys/types.h>
+#include <string.h>
+#include <strings.h>
 #include <sys/stat.h>
 #include <sys/resource.h>
-#include <unistd.h>
-#include <netdb.h>
 #include <syslog.h>
-#include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
-#include <libgen.h>
 #include <pwd.h>
 #include <grp.h>
 
@@ -38,10 +35,7 @@
 #include "selector.h"
 
 #include "psidnodes.h"
-#include "psidstatus.h"
 #include "psidscripts.h"
-
-#include "config_parsing.h"
 
 static config_t config = {
     .coreDir = "/tmp",
@@ -819,32 +813,6 @@ static int getRJ(char *token)
 
 /* ---------------------------------------------------------------------- */
 
-/* from bin/admin/adminparser.c */
-static uid_t uidFromString(char *user)
-{
-    long uid;
-    struct passwd *passwd = getpwnam(user);
-
-    if (strcasecmp(user, "any") == 0) return -1;
-    if (!parser_getNumber(user, &uid) && uid > -1) return uid;
-    if (passwd) return passwd->pw_uid;
-
-    return -2;
-}
-
-/* from bin/admin/adminparser.c */
-static gid_t gidFromString(char *group)
-{
-    long gid;
-    struct group *grp = getgrnam(group);
-
-    if (strcasecmp(group, "any") == 0) return -1;
-    if (!parser_getNumber(group, &gid) && gid > -1) return gid;
-    if (grp) return grp->gr_gid;
-
-    return -2;
-}
-
 /**
  * @brief Create user-string.
  *
@@ -1111,7 +1079,7 @@ static int getSingleUser(char *user)
 
     setAction(&user, &actStr);
 
-    uid = uidFromString(user);
+    uid = PSC_uidFromString(user);
     if ((int)uid < -1) {
 	parser_comment(-1, "Unknown user '%s'\n", user);
 	return -1;
@@ -1177,7 +1145,7 @@ static int getSingleGroup(char *group)
 
     setAction(&group, &actStr);
 
-    gid = gidFromString(group);
+    gid = PSC_gidFromString(group);
     if ((int)gid < -1) {
 	parser_comment(-1, "Unknown group '%s'\n", group);
 	return -1;
@@ -1243,7 +1211,7 @@ static int getSingleAdminUser(char *user)
 
     setAction(&user, &actStr);
 
-    uid = uidFromString(user);
+    uid = PSC_uidFromString(user);
     if ((int)uid < -1) {
 	parser_comment(-1, "Unknown user '%s'\n", user);
 	return -1;
@@ -1309,7 +1277,7 @@ static int getSingleAdminGroup(char *group)
 
     setAction(&group, &actStr);
 
-    gid = gidFromString(group);
+    gid = PSC_gidFromString(group);
     if ((int)gid < -1) {
 	parser_comment(-1, "Unknown group '%s'\n", group);
 	return -1;

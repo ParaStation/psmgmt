@@ -542,4 +542,49 @@ int PSC_getWidth(void);
  */
 void (*PSC_setSigHandler(int signum, void handler(int)))(int);
 
+/**
+ * @brief Number from string
+ *
+ * Get a number from the character array @a numStr and assign it to @a
+ * val. If @a numStr does not contain a valid number, @a val remains
+ * unchanged.
+ *
+ * @param numStr String containing the number
+ *
+ * @param val Pointer to the value to get
+ *
+ * @return On success 0 is returned, or -1 otherwise.
+ */
+int PSC_numFromString(char *numStr, long *val);
+
+/**
+ * @brief User ID from string
+ *
+ * Resolve the user ID from the string @a user. This takes also the
+ * string "any" into account which is resolved to -1.
+ *
+ * @param user String describing the user to resolve
+ *
+ * @return If the string @a user hints to a known user, its user ID is
+ * returned; if @a user is "any", -2 is returned; or -1 in case of an
+ * unknown user
+ */
+uid_t PSC_uidFromString(char *user);
+
+/**
+ * @brief Group ID from string
+ *
+ * Resolve the group ID from the string @a group. This takes also the
+ * string "any" into account which is resolved to -1.
+ *
+ * @param user String describing the group to resolve
+ *
+ * @return If the string @a group hints to a known group, its group ID
+ * is returned; if @a group is "any", -2 is returned; or -1 in case of
+ * an unknown group
+ */
+gid_t PSC_gidFromString(char *group);
+
+
+
 #endif  /* __PSCOMMON_H */

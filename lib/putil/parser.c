@@ -3,26 +3,27 @@
  *
  * Copyright (C) 2002-2003 ParTec AG, Karlsruhe
  * Copyright (C) 2005-2021 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2021 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-#include <stdio.h>
+#include "parser.h"
+
+#include <stdarg.h>
 #include <stdlib.h>
-#include <string.h>
 #include <ctype.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <unistd.h>
+#include <string.h>
+#include <strings.h>
 #include <syslog.h>
 #include <sys/socket.h>
+#include <sys/stat.h>
 #include <netdb.h>
 #include <arpa/inet.h>
 
 #include "logging.h"
-
-#include "parser.h"
+#include "pscommon.h"
 
 /** logger used for error- and progress-messages */
 static logger_t *logger = NULL;
@@ -375,18 +376,7 @@ int parser_getComment(char *token)
 
 int parser_getNumber(char *token, long *val)
 {
-    char *end;
-    long num;
-
-    if (!token) return -1;
-
-    num = strtol(token, &end, 0);
-    if (*end != '\0') {
-	return -1;
-    }
-    *val = num;
-
-    return 0;
+    return PSC_numFromString(token, val);
 }
 
 char *parser_getFilename(char *token, char *prefix, char *extradir)
