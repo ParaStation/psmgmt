@@ -13,6 +13,8 @@
 #include <dlfcn.h>
 #include <sys/stat.h>
 
+#include "slurm/spank.h"
+
 #include "pscommon.h"
 #include "pluginmalloc.h"
 
