@@ -647,15 +647,49 @@ int PSC_numFromString(char *numStr, long *val)
     return 0;
 }
 
+struct passwd *getpwnamBuf(char *user, char **pwBuf)
+{
+    long pwMax = sysconf(_SC_GETPW_R_SIZE_MAX);
+    size_t pwBufSize = (pwMax < 1) ? 1024 : pwMax;
+
+    *pwBuf = malloc(pwBufSize);
+    static struct passwd result;
+    struct passwd *passwd = NULL;
+    int ret = -1;
+
+    while ((ret = getpwnam_r(user, &result, *pwBuf, pwBufSize, &passwd)) != 0) {
+	if (errno == EINTR) continue;
+	if (errno == ERANGE) {
+	    size_t newLen = 2 * pwBufSize;
+	    char *newBuf = realloc(*pwBuf, newLen);
+	    if (newBuf) {
+		*pwBuf = newBuf;
+		continue;
+	    }
+	}
+	PSC_warn(-1, errno, "%s: unable to query user database", __func__);
+	free(*pwBuf);
+	*pwBuf = NULL;
+	return NULL;
+    }
+
+    return passwd;
+}
+
 uid_t PSC_uidFromString(char *user)
 {
     long uid;
-    struct passwd *passwd = getpwnam(user);
-
     if (!user) return -2;
     if (!strcasecmp(user, "any")) return -1;
     if (!PSC_numFromString(user, &uid) && uid > -1) return uid;
-    if (passwd) return passwd->pw_uid;
+
+    char *pwBuf = NULL;
+    struct passwd *passwd = getpwnamBuf(user, &pwBuf);
+    if (passwd) {
+	uid = passwd->pw_uid;
+	free(pwBuf);
+	return uid;
+    }
 
     PSC_log(-1, "%s: unknown user '%s'\n", __func__, user);
     return -2;
@@ -664,23 +698,60 @@ uid_t PSC_uidFromString(char *user)
 gid_t PSC_gidFromString(char *group)
 {
     long gid;
-    struct passwd *passwd = getpwnam(group);
-
     if (!group) return -2;
     if (!strcasecmp(group, "any")) return -1;
     if (!PSC_numFromString(group, &gid) && gid > -1) return gid;
-    if (passwd) return passwd->pw_gid;
+
+    char *pwBuf = NULL;
+    struct passwd *passwd = getpwnamBuf(group, &pwBuf);
+    if (passwd) {
+	gid = passwd->pw_gid;
+	free(pwBuf);
+	return gid;
+    }
 
     PSC_log(-1, "%s: unknown group '%s'\n", __func__, group);
     return -2;
 }
 
+static struct passwd *getpwuidBuf(uid_t uid, char **pwBuf)
+{
+    long pwMax = sysconf(_SC_GETPW_R_SIZE_MAX);
+    size_t pwBufSize = (pwMax < 1) ? 1024 : pwMax;
+
+    *pwBuf = malloc(pwBufSize);
+    static struct passwd result;
+    struct passwd *passwd = NULL;
+    int ret = -1;
+
+    while ((ret = getpwuid_r(uid, &result, *pwBuf, pwBufSize, &passwd)) != 0) {
+	if (errno == EINTR) continue;
+	if (errno == ERANGE) {
+	    size_t newLen = 2 * pwBufSize;
+	    char *newBuf = realloc(*pwBuf, newLen);
+	    if (newBuf) {
+		*pwBuf = newBuf;
+		continue;
+	    }
+	}
+	PSC_warn(-1, errno, "%s: unable to query user database", __func__);
+	free(*pwBuf);
+	*pwBuf = NULL;
+	return NULL;
+    }
+
+    return passwd;
+}
+
 char* PSC_userFromUID(int uid)
 {
     if (uid >= 0) {
-	struct passwd *pwd = getpwuid(uid);
+	char *pwBuf = NULL;
+	struct passwd *pwd = getpwuidBuf(uid, &pwBuf);
 	if (pwd) {
-	    return strdup(pwd->pw_name);
+	    char *name = strdup(pwd->pw_name);
+	    free(pwBuf);
+	    return name;
 	} else {
 	    return strdup("unknown");
 	}
@@ -688,12 +759,44 @@ char* PSC_userFromUID(int uid)
     return strdup("ANY");
 }
 
+static struct group *getgrgidBuf(gid_t gid, char **grBuf)
+{
+    long grMax = sysconf(_SC_GETPW_R_SIZE_MAX);
+    size_t grBufSize = (grMax < 1) ? 1024 : grMax;
+
+    *grBuf = malloc(grBufSize);
+    static struct group result;
+    struct group *grp = NULL;
+    int ret = -1;
+
+    while ((ret = getgrgid_r(gid, &result, *grBuf, grBufSize, &grp)) != 0) {
+	if (errno == EINTR) continue;
+	if (errno == ERANGE) {
+	    size_t newLen = 2 * grBufSize;
+	    char *newBuf = realloc(*grBuf, newLen);
+	    if (newBuf) {
+		*grBuf = newBuf;
+		continue;
+	    }
+	}
+	PSC_warn(-1, errno, "%s: unable to query group database", __func__);
+	free(*grBuf);
+	*grBuf = NULL;
+	return NULL;
+    }
+
+    return grp;
+}
+
 char* PSC_groupFromGID(int gid)
 {
     if (gid >= 0) {
-	struct group *grp = getgrgid(gid);
+	char *grBuf = NULL;
+	struct group *grp = getgrgidBuf(gid, &grBuf);
 	if (grp) {
-	    return strdup(grp->gr_name);
+	    char *group = strdup(grp->gr_name);
+	    free(grBuf);
+	    return group;
 	} else {
 	    return strdup("unknown");
 	}

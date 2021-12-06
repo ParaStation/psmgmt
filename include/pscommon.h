@@ -21,6 +21,7 @@
 #include <stdio.h>
 #include <sys/types.h>
 #include <netinet/in.h>
+#include <pwd.h>
 
 #include "logging.h"
 #include "psnodes.h"
@@ -614,5 +615,22 @@ char* PSC_userFromUID(int uid);
  * with @ref free()
  */
 char* PSC_groupFromGID(int gid);
+
+/**
+ * @brief Search the user database for a name
+ *
+ * Search the user database for a name and use the provided buffer
+ * t0 store the data. The memory for the buffer is allocated using
+ * @ref malloc() and the caller is responsible to free it
+ * using @ref free().
+ *
+ * @param user The user to search
+ *
+ * @param pwBuf The buffer to store the database entries
+ *
+ * @return Returns the requested passwd structure holding the
+ * user information or NULL on error.
+ */
+struct passwd *getpwnamBuf(char *user, char **pwBuf);
 
 #endif  /* __PSCOMMON_H */
