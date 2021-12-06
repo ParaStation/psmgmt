@@ -28,6 +28,7 @@
 #include "selector.h"
 #include "psidhook.h"
 #include "psidscripts.h"
+#include "pscommon.h"
 
 #include "pspamcommon.h"
 #include "pspamlog.h"
@@ -78,7 +79,6 @@ static PSPAMResult_t handleOpenRequest(char *msgBuf)
 {
     char user[USERNAME_LEN], rhost[HOSTNAME_LEN];
     pid_t pid, sid;
-    struct passwd *spasswd;
     User_t *pamUser;
     PSPAMResult_t res = PSPAM_RES_DENY;
     char *ptr = msgBuf;
@@ -102,13 +102,15 @@ static PSPAMResult_t handleOpenRequest(char *msgBuf)
 	 " rhost: '%s'\n", __func__, user, pid, sid, rhost);
 
     errno = 0;
-    spasswd = getpwnam(user);
-    if (!spasswd && errno) mwarn(errno, "%s: getpwnam(%s)", __func__, user);
+    uid_t uid = PSC_uidFromString(user);
+    if ((int) uid < 0 && errno) mwarn(errno, "%s: getpwnam(%s)", __func__, user);
+    gid_t gid = PSC_gidFromString(user);
+    if ((int) gid < 0 && errno) mwarn(errno, "%s: getpwnam(%s)", __func__, user);
 
     pamUser = findUser(user, NULL);
 
     /* Determine user's allowance */
-    if (spasswd && isPSAdminUser(spasswd->pw_uid, spasswd->pw_gid)) {
+    if ((int) uid > 0 && (int) gid > 0 && isPSAdminUser(uid, gid)) {
 	res = PSPAM_RES_ADMIN_USER;
     } else if (pamUser) {
 	if (pamUser->state == PSPAM_STATE_PROLOGUE) {

@@ -94,7 +94,7 @@ bool verifyStepData(Step_t *step)
     /* resolve empty username (needed since 17.11) */
     if (!step->username || step->username[0] == '\0') {
 	ufree(step->username);
-	step->username = uid2String(step->uid);
+	step->username = PSC_userFromUID(step->uid);
 	if (!step->username) {
 	    flog("unable to resolve user ID %i\n", step->uid);
 	    return false;

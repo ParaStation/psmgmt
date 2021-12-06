@@ -176,17 +176,6 @@ void __printBinaryData(char *data, size_t len, char *tag,
 bool switchUser(char *username, uid_t uid, gid_t gid, char *cwd);
 
 /**
- * @brief Convert user ID to string
- *
- * @param uid The user ID to convert
- *
- * @return Returns the converted username or NULL if the user ID could
- * not be resolved. The caller is responsible to release the memory for
- * the username calling @ref ufree().
- */
-char *uid2String(uid_t uid);
-
-/**
  * @brief Fetch error message and from a script callback
  *
  * @param fd The given file descriptor in the callback

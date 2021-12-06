@@ -313,27 +313,6 @@ bool switchUser(char *username, uid_t uid, gid_t gid, char *cwd)
     return true;
 }
 
-char *uid2String(uid_t uid)
-{
-    struct passwd *pwd;
-
-    if (!uid) return ustrdup("root");
-
-    do {
-	errno = 0;
-	pwd = getpwuid(uid);
-	if (!pwd) {
-	    if (errno == EINTR) continue;
-	    pluginwarn(errno, "%s: getpwuid for %i failed\n", __func__, uid);
-	    break;
-	}
-    } while (!pwd);
-
-    if (!pwd) return NULL;
-
-    return ustrdup(pwd->pw_name);
-}
-
 bool __getScriptCBdata(int fd, char *errMsg, size_t errMsgLen, size_t *errLen,
 		       const char *func, const int line)
 {

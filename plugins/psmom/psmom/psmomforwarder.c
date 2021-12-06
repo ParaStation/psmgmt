@@ -1022,13 +1022,15 @@ static void startPElogue(int prologue, PElogue_Data_t *data, char *filename,
 
     /* switch to user */
     if (!root) {
-	struct passwd *spasswd;
-
-	if (!(spasswd = getpwnam(data->user))) {
+	char *pwBuf = NULL;
+	struct passwd *spasswd = getpwnamBuf(data->user, &pwBuf);
+	if (!spasswd) {
 	    mlog("%s: getpwnam(%s) failed\n", __func__, data->user);
 	    exit(1);
 	}
+
 	psmomSwitchUser(data->user, spasswd, 0);
+	free(spasswd);
     } else {
 	setenv("USER", "root", 1);
 	setenv("USERNAME", "root", 1);

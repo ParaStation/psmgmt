@@ -539,7 +539,8 @@ static int validateDirs(void)
 
 static int setRootHome(void)
 {
-    struct passwd *spasswd = getpwnam("root");
+    char *pwBuf;
+    struct passwd *spasswd = getpwnamBuf("root", &pwBuf);
 
     if (!spasswd) {
 	mlog("%s: getpwnam(root) failed\n", __func__);
@@ -547,6 +548,7 @@ static int setRootHome(void)
     }
 
     snprintf(rootHome, sizeof(rootHome), "%s", spasswd->pw_dir);
+    free(pwBuf);
     return 1;
 }
 

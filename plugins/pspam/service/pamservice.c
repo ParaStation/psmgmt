@@ -19,7 +19,7 @@
 #include "psidplugin.h"
 #include "psidhook.h"
 #include "pluginmalloc.h"
-#include "pluginhelper.h"
+#include "pscommon.h"
 
 #include "pamservice_log.h"
 
@@ -91,7 +91,7 @@ static int finishPAMservice(void *unused)
 static int handleExecForwarder(void *data)
 {
     PStask_t *task = data;
-    char *user = uid2String(task->uid);
+    char *user = PSC_userFromUID(task->uid);
     if (!user) {
 	mlog("getting username for uid %i failed\n", task->uid);
 	return 0;
@@ -112,7 +112,7 @@ static int handlePsslurmFWinit(void *data)
 static int handleExecClient(void *data)
 {
     PStask_t *task = data;
-    char *user = uid2String(task->uid);
+    char *user = PSC_userFromUID(task->uid);
     if (!user) {
 	mlog("getting username for uid %i failed\n", task->uid);
 	return 0;

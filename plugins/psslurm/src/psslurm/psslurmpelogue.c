@@ -355,7 +355,7 @@ int handleLocalPElogueStart(void *data)
     }
 
     char *userEnv = envGet(&pedata->env, "SLURM_JOB_USER");
-    char *user = userEnv ? userEnv : uid2String(pedata->uid);
+    char *user = userEnv ? userEnv : PSC_userFromUID(pedata->uid);
     if (!user) {
 	flog("resolve username for uid %i failed\n", pedata->uid);
 	/* set my node offline */

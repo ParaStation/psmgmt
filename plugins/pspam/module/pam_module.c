@@ -23,6 +23,7 @@
 
 #include "pscio.h"
 #include "psserial.h"
+#include "pscommon.h"
 
 #include "pspamcommon.h"
 
@@ -143,8 +144,8 @@ static bool isAuthorizedUser(const char *username)
     /* check authorized groups */
     if (authGroups) {
 	/* first retrieve all groups the user is a member in */
-	struct passwd *pw = getpwnam(username);
-	if (!pw) {
+	gid_t gid = PSC_gidFromString(username);
+	if ((int) gid == -1) {
 	    elog("%s: getpwnam(%s) failed: %s\n", __func__, username,
 		 strerror(errno));
 	    return false;
@@ -157,7 +158,7 @@ static bool isAuthorizedUser(const char *username)
 	    return false;
 	}
 
-	if (getgrouplist(username, pw->pw_gid, groups, &ngroups) == -1) {
+	if (getgrouplist(username, gid, groups, &ngroups) == -1) {
 	    elog("%s: getgrouplist(%s) failed: ngroups = %d\n", __func__,
 		 username, ngroups);
 	    free(groups);

@@ -53,6 +53,7 @@
 #include "pspamhandles.h"
 #include "psexechandles.h"
 #include "pspmihandles.h"
+#include "pscommon.h"
 
 #include "psslurm.h"
 
@@ -633,21 +634,19 @@ static bool requestConfig(void)
  */
 static bool initSlurmOpt(void)
 {
-    struct passwd *pw;
-
     if (!initPScomm()) goto INIT_ERROR;
     if (!initLimits()) goto INIT_ERROR;
 
     /* save the Slurm user ID */
     char *slurmUser = getConfValueC(&SlurmConfig, "SlurmUser");
     if (slurmUser) {
-	if ((pw = getpwnam(slurmUser))) {
-	    slurmUserID = pw->pw_uid;
-	} else {
+	uid_t uid = PSC_uidFromString(slurmUser);
+	if ((int) uid < 0) {
 	    mwarn(errno, "%s: getting user ID of Slurm user '%s' failed: ",
 		    __func__, slurmUser);
 	    goto INIT_ERROR;
 	}
+	slurmUserID = uid;
     }
 
 #ifdef HAVE_SPANK

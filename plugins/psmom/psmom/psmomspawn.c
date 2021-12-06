@@ -32,6 +32,7 @@
 #include "psprotocol.h"
 #include "psnodes.h"
 #include "psidcomm.h"
+#include "pscommon.h"
 
 #include "pluginhelper.h"
 #include "pluginmalloc.h"
@@ -616,14 +617,13 @@ void afterJobCleanup(char *user)
 	/* find all leftover user daemons and warn/kill them */
 	int killDaemons = getConfValueI(&config, "KILL_USER_DAEMONS");
 	int warnDaemons = getConfValueI(&config, "WARN_USER_DAEMONS");
-	struct passwd *spasswd;
 
 	if (killDaemons || warnDaemons) {
-	    if (!(spasswd = getpwnam(user))) {
+	    uid_t uid = PSC_uidFromString(user);
+	    if ((int) uid < 0) {
 		mlog("%s: getpwnam failed for '%s' failed\n", __func__, user);
 	    } else {
-		psAccountFindDaemonProcs(spasswd->pw_uid, killDaemons,
-		    warnDaemons);
+		psAccountFindDaemonProcs(uid, killDaemons, warnDaemons);
 	    }
 	}
     }

@@ -172,7 +172,7 @@ bool verifyJobData(Job_t *job)
     /* resolve empty username (needed since 17.11) */
     if (!job->username || job->username[0] == '\0') {
 	ufree(job->username);
-	job->username = uid2String(job->uid);
+	job->username = PSC_userFromUID(job->uid);
 	if (!job->username) {
 	    flog("unable to resolve user ID %i\n", job->uid);
 	    return false;

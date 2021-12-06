@@ -60,13 +60,15 @@ static char *rootHome = NULL;
 
 static bool setRootHome(void)
 {
-    struct passwd *spasswd = getpwnam("root");
-
+    char *pwBuf = NULL;
+    struct passwd *spasswd = getpwnamBuf("root", &pwBuf);
     if (!spasswd) {
 	mwarn(errno, "%s: getpwnam(root)", __func__);
 	return false;
     }
+
     rootHome = ustrdup(spasswd->pw_dir);
+    free(pwBuf);
     return true;
 }
 

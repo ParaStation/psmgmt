@@ -883,7 +883,8 @@ void handlePELogueStart(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *msgData)
 		mdbg(PSMOM_LOG_WARN, "%s: mkdir (%s) failed : %s\n", __func__,
 		     tmpDir, strerror(errno));
 	    } else {
-		struct passwd *spasswd = getpwnam(buf);
+		char *pwBuf = NULL;
+		struct passwd *spasswd = getpwnamBuf(buf, &pwBuf);
 
 		if (!spasswd) {
 		    mlog("%s: getpwnam(%s) failed\n", __func__, buf);
@@ -892,6 +893,7 @@ void handlePELogueStart(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *msgData)
 			mlog("%s: chown(%s) failed : %s\n", __func__, tmpDir,
 			     strerror(errno));
 		    }
+		    free(pwBuf);
 		}
 	    }
 	}

@@ -391,7 +391,8 @@ static bool initRoutingEnv(PSGW_Req_t *req)
     envSet(env, "SLURM_JOB_GID", buf);
     envSet(env, "SLURM_JOB_USER", req->username);
 
-    struct passwd *passwd = getpwnam(req->username);
+    char *pwBuf = NULL;
+    struct passwd *passwd = getpwnamBuf(req->username, &pwBuf);
     if (!passwd) {
 	mwarn(errno, "%s: getpwnam for user %s failed", __func__,
 	      req->username);
@@ -408,6 +409,8 @@ static bool initRoutingEnv(PSGW_Req_t *req)
 		 req->jobid);
 	routeFile = buf;
     }
+    free(pwBuf);
+
     req->routeFile = ustrdup(routeFile);
     envSet(env, "_PSSLURM_ENV_PSP_GW_SERVER", routeFile);
 
