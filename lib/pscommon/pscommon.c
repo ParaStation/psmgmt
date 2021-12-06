@@ -661,17 +661,17 @@ uid_t PSC_uidFromString(char *user)
     return -2;
 }
 
-uid_t PSC_gidFromString(char *user)
+gid_t PSC_gidFromString(char *group)
 {
-    long uid;
-    struct passwd *passwd = getpwnam(user);
+    long gid;
+    struct passwd *passwd = getpwnam(group);
 
-    if (!user) return -2;
-    if (!strcasecmp(user, "any")) return -1;
-    if (!PSC_numFromString(user, &uid) && uid > -1) return uid;
-    if (passwd) return passwd->pw_uid;
+    if (!group) return -2;
+    if (!strcasecmp(group, "any")) return -1;
+    if (!PSC_numFromString(group, &gid) && gid > -1) return gid;
+    if (passwd) return passwd->pw_gid;
 
-    PSC_log(-1, "%s: unknown user '%s'\n", __func__, user);
+    PSC_log(-1, "%s: unknown group '%s'\n", __func__, group);
     return -2;
 }
 
