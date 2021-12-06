@@ -634,7 +634,7 @@ bool PSC_isLocalIP(in_addr_t ipaddr)
     return false;
 }
 
-int PSC_numFromString(char *numStr, long *val)
+int PSC_numFromString(const char *numStr, long *val)
 {
     if (!numStr) return -1;
 
@@ -647,7 +647,7 @@ int PSC_numFromString(char *numStr, long *val)
     return 0;
 }
 
-struct passwd *getpwnamBuf(char *user, char **pwBuf)
+struct passwd *getpwnamBuf(const char *user, char **pwBuf)
 {
     long pwMax = sysconf(_SC_GETPW_R_SIZE_MAX);
     size_t pwBufSize = (pwMax < 1) ? 1024 : pwMax;
@@ -676,7 +676,7 @@ struct passwd *getpwnamBuf(char *user, char **pwBuf)
     return passwd;
 }
 
-uid_t PSC_uidFromString(char *user)
+uid_t PSC_uidFromString(const char *user)
 {
     long uid;
     if (!user) return -2;
@@ -695,7 +695,7 @@ uid_t PSC_uidFromString(char *user)
     return -2;
 }
 
-gid_t PSC_gidFromString(char *group)
+gid_t PSC_gidFromString(const char *group)
 {
     long gid;
     if (!group) return -2;

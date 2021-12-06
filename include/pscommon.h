@@ -556,7 +556,7 @@ void (*PSC_setSigHandler(int signum, void handler(int)))(int);
  *
  * @return On success 0 is returned, or -1 otherwise.
  */
-int PSC_numFromString(char *numStr, long *val);
+int PSC_numFromString(const char *numStr, long *val);
 
 /**
  * @brief User ID from string
@@ -570,7 +570,7 @@ int PSC_numFromString(char *numStr, long *val);
  * returned; if @a user is "any", -2 is returned; or -1 in case of an
  * unknown user
  */
-uid_t PSC_uidFromString(char *user);
+uid_t PSC_uidFromString(const char *user);
 
 /**
  * @brief Group ID from string
@@ -584,7 +584,7 @@ uid_t PSC_uidFromString(char *user);
  * is returned; if @a group is "any", -2 is returned; or -1 in case of
  * an unknown group
  */
-gid_t PSC_gidFromString(char *group);
+gid_t PSC_gidFromString(const char *group);
 
 /**
  * @brief Create user-string
@@ -631,6 +631,6 @@ char* PSC_groupFromGID(int gid);
  * @return Returns the requested passwd structure holding the
  * user information or NULL on error.
  */
-struct passwd *getpwnamBuf(char *user, char **pwBuf);
+struct passwd *getpwnamBuf(const char *user, char **pwBuf);
 
 #endif  /* __PSCOMMON_H */
