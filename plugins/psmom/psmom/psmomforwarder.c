@@ -1023,7 +1023,7 @@ static void startPElogue(int prologue, PElogue_Data_t *data, char *filename,
     /* switch to user */
     if (!root) {
 	char *pwBuf = NULL;
-	struct passwd *spasswd = getpwnamBuf(data->user, &pwBuf);
+	struct passwd *spasswd = PSC_getpwnamBuf(data->user, &pwBuf);
 	if (!spasswd) {
 	    mlog("%s: getpwnam(%s) failed\n", __func__, data->user);
 	    exit(1);

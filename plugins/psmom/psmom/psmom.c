@@ -540,7 +540,7 @@ static int validateDirs(void)
 static int setRootHome(void)
 {
     char *pwBuf;
-    struct passwd *spasswd = getpwnamBuf("root", &pwBuf);
+    struct passwd *spasswd = PSC_getpwnamBuf("root", &pwBuf);
 
     if (!spasswd) {
 	mlog("%s: getpwnam(root) failed\n", __func__);

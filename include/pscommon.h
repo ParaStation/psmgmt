@@ -619,10 +619,10 @@ char* PSC_groupFromGID(int gid);
 /**
  * @brief Search the user database for a name
  *
- * Search the user database for a name and use the provided buffer
- * t0 store the data. The memory for the buffer is allocated using
- * @ref malloc() and the caller is responsible to free it
- * using @ref free().
+ * Search the user database for a name and use the provided buffer to
+ * store the data. The memory for the buffer is allocated using @ref
+ * malloc() and the caller is responsible to free it using @ref
+ * free().
  *
  * @param user The user to search
  *
@@ -631,6 +631,6 @@ char* PSC_groupFromGID(int gid);
  * @return Returns the requested passwd structure holding the
  * user information or NULL on error.
  */
-struct passwd *getpwnamBuf(const char *user, char **pwBuf);
+struct passwd *PSC_getpwnamBuf(const char *user, char **pwBuf);
 
 #endif  /* __PSCOMMON_H */

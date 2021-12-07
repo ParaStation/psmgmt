@@ -884,7 +884,7 @@ void handlePELogueStart(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *msgData)
 		     tmpDir, strerror(errno));
 	    } else {
 		char *pwBuf = NULL;
-		struct passwd *spasswd = getpwnamBuf(buf, &pwBuf);
+		struct passwd *spasswd = PSC_getpwnamBuf(buf, &pwBuf);
 
 		if (!spasswd) {
 		    mlog("%s: getpwnam(%s) failed\n", __func__, buf);

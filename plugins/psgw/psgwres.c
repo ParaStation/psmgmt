@@ -392,7 +392,7 @@ static bool initRoutingEnv(PSGW_Req_t *req)
     envSet(env, "SLURM_JOB_USER", req->username);
 
     char *pwBuf = NULL;
-    struct passwd *passwd = getpwnamBuf(req->username, &pwBuf);
+    struct passwd *passwd = PSC_getpwnamBuf(req->username, &pwBuf);
     if (!passwd) {
 	mwarn(errno, "%s: getpwnam for user %s failed", __func__,
 	      req->username);

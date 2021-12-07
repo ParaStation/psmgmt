@@ -2,6 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2013-2020 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2021 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -61,7 +62,7 @@ static char *rootHome = NULL;
 static bool setRootHome(void)
 {
     char *pwBuf = NULL;
-    struct passwd *spasswd = getpwnamBuf("root", &pwBuf);
+    struct passwd *spasswd = PSC_getpwnamBuf("root", &pwBuf);
     if (!spasswd) {
 	mwarn(errno, "%s: getpwnam(root)", __func__);
 	return false;
