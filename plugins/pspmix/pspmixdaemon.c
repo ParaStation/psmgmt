@@ -77,30 +77,32 @@ static PspmixJobserver_t* findJobserver(PStask_ID_t loggertid)
  *
  * @param msg    message fragment to manipulate
  */
-static void setTargetToPmixJobserver(DDTypedBufferMsg_t *msg)
+static bool setTargetToPmixJobserver(DDTypedBufferMsg_t *msg)
 {
     size_t used = 0, eS;
     PStask_ID_t *loggerTID;
     if (!fetchFragHeader(msg, &used, NULL, NULL, (void **)&loggerTID, &eS)
 	|| eS != sizeof(*loggerTID)) {
 	mlog("%s: UNEXPECTED: Fetching header information failed\n", __func__);
-	return;
+	return false;
     }
 
     PspmixJobserver_t *server = findJobserver(*loggerTID);
     if (!server) {
 	mlog("%s: UNEXPECTED: No PMIx jobserver found.\n", __func__);
-	return;
+	return false;
     }
 
     if (!server->fwdata) {
 	mlog("%s: fwdata is NULL, PMIx jobserver seems to be dead\n", __func__);
-	return;
+	return false;
     }
     msg->header.dest = server->fwdata->tid;
 
     mdbg(PSPMIX_LOG_COMM, "%s: setting destination %s\n", __func__,
 	    PSC_printTID(msg->header.dest));
+
+    return true;
 }
 
 /**
@@ -135,7 +137,12 @@ static bool forwardPspmixMsg(DDBufferMsg_t *vmsg)
     switch(msg->type) {
     case PSPMIX_FENCE_IN:
     case PSPMIX_MODEX_DATA_REQ:
-	setTargetToPmixJobserver(msg);
+	if (!setTargetToPmixJobserver(msg)) {
+	    mlog("%s: Could not set PMIx server as target for"
+		    " PSPMIX_MODEX_DATA_REQ message, dropping\n",
+		    __func__);
+	    return false;
+	}
     }
     if (PSC_getPID(msg->header.dest)) {
 	PSIDclient_send((DDMsg_t *)vmsg);
