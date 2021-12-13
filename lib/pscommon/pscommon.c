@@ -664,6 +664,7 @@ struct passwd *PSC_getpwnamBuf(const char *user, char **pwBuf)
 	    char *newBuf = realloc(*pwBuf, newLen);
 	    if (newBuf) {
 		*pwBuf = newBuf;
+		pwBufSize = newLen;
 		continue;
 	    }
 	}
