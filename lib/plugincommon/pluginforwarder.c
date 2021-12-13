@@ -582,7 +582,7 @@ static int handleChildOE(int fd, void *info)
     static char buf[1024];
 
     /* read from child */
-    ssize_t size = PSCio_recvBuf(fd, buf, sizeof(buf-1));
+    ssize_t size = PSCio_recvBuf(fd, buf, sizeof(buf)-1);
     if (size <= 0) {
 	Selector_remove(fd);
 	close(fd);
