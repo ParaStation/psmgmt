@@ -582,12 +582,13 @@ static int handleChildOE(int fd, void *info)
     static char buf[1024];
 
     /* read from child */
-    ssize_t size = PSCio_recvBuf(fd, buf, sizeof(buf));
+    ssize_t size = PSCio_recvBuf(fd, buf, sizeof(buf-1));
     if (size <= 0) {
 	Selector_remove(fd);
 	close(fd);
 	return 0;
     }
+    buf[size] = '\0';
 
     /* send to mother */
     PSLog_Msg_t msg = {
@@ -601,7 +602,7 @@ static int handleChildOE(int fd, void *info)
 	.sender = -1};
 
     /* Add data chunk including its length mimicking addString */
-    uint32_t len = htonl(size);
+    uint32_t len = htonl(PSP_strLen(buf));
     PSP_putMsgBuf((DDBufferMsg_t*)&msg, "len", &len, sizeof(len));
     PSP_putMsgBuf((DDBufferMsg_t*)&msg, "data", buf, size);
 
