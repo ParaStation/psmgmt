@@ -1030,7 +1030,7 @@ static void startPElogue(int prologue, PElogue_Data_t *data, char *filename,
 	}
 
 	psmomSwitchUser(data->user, spasswd, 0);
-	free(spasswd);
+	free(pwBuf);
     } else {
 	setenv("USER", "root", 1);
 	setenv("USERNAME", "root", 1);
