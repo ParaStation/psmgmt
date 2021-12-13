@@ -164,7 +164,7 @@ PStask_ID_t PSC_getMyTID(void);
  *
  * MyTID, i.e. the value returned by PSC_getMyTID() is cashed withing
  * that function. Thus, whenever a fork happened, this cashed value
- * has to be reseted. This is done by calling this function.
+ * has to be reset. This is done by calling this function.
  *
  * Afterwards the cashed value is deleted and will be renewed with the
  * now correct values during the next call of PSC_getMyTID().
@@ -180,7 +180,7 @@ void PSC_resetMyTID(void);
  *
  * Get a string describing the task ID @a tid. The returned pointer
  * leads to a static character array that contains the
- * description. Sequent calls to @ref PSC_printTID() will change the
+ * description. Subsequent calls to @ref PSC_printTID() will change the
  * content of this array. Therefore the result is not what you expect
  * if more than one call of this function is made within a single
  * argument-list of printf(3) and friends.
@@ -196,7 +196,7 @@ char *PSC_printTID(PStask_ID_t tid);
  * @brief Start a ParaStation daemon.
  *
  * Try to start the ParaStation daemon on the host with IP address @a
- * hostaddr. The IP address has to be given in network byteorder.
+ * hostaddr. The IP address has to be given in network byte order.
  *
  * The (x)inetd(8) has to be configured appropriately and must run on
  * the destination node.
