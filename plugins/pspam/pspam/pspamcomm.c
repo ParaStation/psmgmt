@@ -101,11 +101,8 @@ static PSPAMResult_t handleOpenRequest(char *msgBuf)
     mdbg(PSPAM_LOG_DEBUG, "%s: got pam request user: '%s' pid: %i sid: %i"
 	 " rhost: '%s'\n", __func__, user, pid, sid, rhost);
 
-    errno = 0;
     uid_t uid = PSC_uidFromString(user);
-    if ((int) uid < 0 && errno) mwarn(errno, "%s: getpwnam(%s)", __func__, user);
     gid_t gid = PSC_gidFromString(user);
-    if ((int) gid < 0 && errno) mwarn(errno, "%s: getpwnam(%s)", __func__, user);
 
     pamUser = findUser(user, NULL);
 
