@@ -890,8 +890,7 @@ void handlePELogueStart(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *msgData)
 		    mlog("%s: getpwnam(%s) failed\n", __func__, buf);
 		} else {
 		    if (chown(tmpDir, spasswd->pw_uid, spasswd->pw_gid) == -1) {
-			mlog("%s: chown(%s) failed : %s\n", __func__, tmpDir,
-			     strerror(errno));
+			mwarn(errno, "%s: chown(%s)", __func__, tmpDir);
 		    }
 		    free(pwBuf);
 		}
