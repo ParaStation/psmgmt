@@ -95,8 +95,24 @@ static int handleClientConnectMsg(int fd, void *info)
     return 0;
 }
 
+static bool doCheckClient(int fd, const char *caller)
+{
+    if (!clients) {
+	PSID_log(-1, "%s(%d): not initialized\n", caller, fd);
+	return false;
+    }  else if (fd < 0 || fd >= maxClientFD) {
+	PSID_log(-1, "%s(%d): file descriptor out of range\n", caller, fd);
+	return false;
+    }
+    return true;
+}
+
+#define checkClient(fd) doCheckClient(fd, __func__)
+
 void PSIDclient_register(int fd, PStask_ID_t tid, PStask_t *task)
 {
+    if (!checkClient(fd)) return;
+
     clients[fd].tid = tid;
     clients[fd].task = task;
     clients[fd].flags |= INITIALCONTACT;
@@ -111,20 +127,14 @@ void PSIDclient_register(int fd, PStask_ID_t tid, PStask_t *task)
 
 PStask_ID_t PSIDclient_getTID(int fd)
 {
-    if (fd < 0 || fd >= maxClientFD) {
-	PSID_log(-1, "%s(%d): file descriptor out of range\n", __func__, fd);
-	return PSC_getMyTID();
-    }
+    if (!checkClient(fd)) return PSC_getMyTID();
 
     return clients[fd].tid;
 }
 
 PStask_t *PSIDclient_getTask(int fd)
 {
-    if (fd < 0 || fd >= maxClientFD) {
-	PSID_log(-1, "%s(%d): file descriptor out of range\n", __func__, fd);
-	return NULL;
-    }
+    if (!checkClient(fd)) return NULL;
 
     return clients[fd].task;
 }
@@ -180,8 +190,9 @@ void PSIDclient_setEstablished(int fd, Selector_CB_t handler, void *info)
     clients[fd].flags &= ~INITIALCONTACT;
 }
 
-int PSIDclient_isEstablished(int fd)
+bool PSIDclient_isEstablished(int fd)
 {
+    if (!checkClient(fd)) return false;
     return !(clients[fd].flags & INITIALCONTACT);
 }
 
@@ -250,6 +261,8 @@ static ssize_t doSend(int fd, DDMsg_t *msg, size_t offset)
  */
 static bool storeMsg(int fd, DDMsg_t *msg, size_t offset)
 {
+    if (!checkClient(fd)) return false;
+
     PSIDmsgbuf_t *msgbuf = PSIDMsgbuf_get(msg->len);
     if (!msgbuf) {
 	errno = ENOMEM;
@@ -285,7 +298,7 @@ static bool storeMsg(int fd, DDMsg_t *msg, size_t offset)
  */
 static int flushClientMsgs(int fd, void *info)
 {
-    if (fd < 0 || fd >= maxClientFD) {
+    if (!checkClient(fd)) {
 	errno = EINVAL;
 	return -1;
     }
@@ -339,14 +352,14 @@ int PSIDclient_send(DDMsg_t *msg)
 		 PSC_printTID(msg->dest));
     }
 
-    if (PSC_getID(msg->dest)!=PSC_getMyID()) {
+    if (PSC_getID(msg->dest) != PSC_getMyID()) {
 	errno = EHOSTUNREACH;
 	PSID_log(-1, "%s: dest not found\n", __func__);
 	return -1;
     }
 
     PStask_t *task = PStasklist_find(&managedTasks, msg->dest);
-    if (!task || task->fd==-1) {
+    if (!task || task->fd == -1) {
 	PSID_log(PSID_LOG_CLIENT, "%s: no fd for task %s to send%s\n",
 		 __func__, PSC_printTID(msg->dest), task ? "" : " (no task)");
 	if (PSID_getDebugMask() & PSID_LOG_MSGDUMP) PSID_dumpMsg(msg);
@@ -354,6 +367,10 @@ int PSIDclient_send(DDMsg_t *msg)
 	return -1;
     }
     int fd = task->fd;
+    if (!checkClient(fd)) {
+	errno = EHOSTUNREACH;
+	return -1;
+    }
 
     if (!list_empty(&clients[fd].msgs)) flushClientMsgs(fd, NULL);
 
@@ -461,10 +478,7 @@ ssize_t PSIDclient_recv(int fd, DDBufferMsg_t *msg)
  */
 static void closeConnection(int fd)
 {
-    if (fd < 0 || fd >= maxClientFD) {
-	PSID_log(-1, "%s(%d): file descriptor out of range\n", __func__, fd);
-	return;
-    }
+    if (!checkClient(fd)) return;
 
     clients[fd].tid = -1;
     if (clients[fd].task) clients[fd].task->fd = -1;
@@ -691,10 +705,7 @@ int PSIDclient_killAll(int sig, int killAdminTasks)
 
 void PSIDclient_releaseACK(int fd)
 {
-    if (fd < 0 || fd >= maxClientFD) {
-	PSID_log(-1, "%s(%d): file descriptor out of range\n", __func__, fd);
-	return;
-    }
+    if (!checkClient(fd)) return;
 
     clients[fd].pendingACKs--;
 

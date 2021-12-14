@@ -40,7 +40,7 @@ void PSIDclient_init(void);
  * task structure @a task to be connected via the file descriptor @a
  * fd. Usually the clients connection is not actually established when
  * this function is called , i.e. the protocol is not set up correctly
- * yet. Thus, PSID_client_isEstablished() will return 0 for this @a
+ * yet. Thus, PSID_client_isEstablished() will return false for this @a
  * fd. In order to change this, use PSIDclient_setEstablished().
  *
  * @param fd File descriptor the client is connected through
@@ -120,12 +120,12 @@ void PSIDclient_setEstablished(int fd, Selector_CB_t handler, void *info);
  *
  * @param fd File descriptor the client is connected through
  *
- * @return If the client's connection is already established, 1 is
- * returned, or otherwise 0.
+ * @return If the client's connection is already established, true is
+ * returned; or false otherwise
  *
  * @see PSIDclient_setEstablished()
  */
-int PSIDclient_isEstablished(int fd);
+bool PSIDclient_isEstablished(int fd);
 
 /**
  * @brief Signal a received SENDSTOPACK
