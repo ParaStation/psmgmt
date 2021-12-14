@@ -283,15 +283,14 @@ static int changeToWorkDir(PStask_t *task)
     alarmFunc = __func__;
 
     if (chdir(task->workingdir)<0) {
-	struct passwd *passwd;
-
 	if (!rawIO) {
 	    fprintf(stderr, "%s: chdir(%s): %s\n", __func__,
 		    task->workingdir ? task->workingdir : "", strerror(errno));
 	    fprintf(stderr, "Will use user's home directory\n");
 	}
 
-	passwd = getpwuid(getuid());
+	char *pwBuf = NULL;
+	struct passwd *passwd = PSC_getpwuidBuf(task->uid, &pwBuf);
 	if (passwd) {
 	    if (chdir(passwd->pw_dir)<0) {
 		int eno = errno;
@@ -303,8 +302,10 @@ static int changeToWorkDir(PStask_t *task)
 			    passwd->pw_dir ? passwd->pw_dir : "",
 			    strerror(eno));
 		}
+		free(pwBuf);
 		return eno;
 	    }
+	    free(pwBuf);
 	} else {
 	    if (rawIO) {
 		PSID_log(-1, "Cannot determine home directory\n");
@@ -352,7 +353,8 @@ static int testExecutable(PStask_t *task, char **executable)
     }
 
     if (!strcmp(task->argv[0], "$SHELL")) {
-	struct passwd *passwd = getpwuid(getuid());
+	char *pwBuf = NULL;
+	struct passwd *passwd = PSC_getpwuidBuf(task->uid, &pwBuf);
 	if (!passwd) {
 	    int eno = errno;
 	    fprintf(stderr, "%s: Unable to determine $SHELL: %s\n", __func__,
@@ -361,6 +363,7 @@ static int testExecutable(PStask_t *task, char **executable)
 	}
 	free(task->argv[0]);
 	task->argv[0] = strdup(passwd->pw_shell);
+	free(pwBuf);
     }
 
     /* Test if executable is there */
@@ -533,11 +536,12 @@ static void execClient(PStask_t *task)
 
     /* try to set supplementary groups if requested; failure is ignored */
     if (PSIDnodes_supplGrps(PSC_getMyID())) {
-	struct passwd *pw = getpwuid(task->uid);
-	if (pw && pw->pw_name && initgroups(pw->pw_name, task->gid) < 0) {
-	    fprintf(stderr, "%s: Cannot set supplementary groups: %s\n",
-		    __func__,  strerror(errno));
+	char *name = PSC_userFromUID(task->uid);
+	if (name && initgroups(name, task->gid) < 0) {
+	    fprintf(stderr, "%s: initgroups(): %s\n", __func__,
+		    strerror(errno));
 	}
+	free(name);
     }
 
     /* change the uid; exit() on failure */
@@ -1000,10 +1004,11 @@ static void execForwarder(PStask_t *task)
 
     /* try to set supplementary groups if requested; failure is ignored */
     if (PSIDnodes_supplGrps(PSC_getMyID())) {
-	struct passwd *pw = getpwuid(task->uid);
-	if (pw && pw->pw_name && initgroups(pw->pw_name, task->gid) < 0) {
+	char *name = PSC_userFromUID(task->uid);
+	if (name && initgroups(name, task->gid) < 0) {
 	    PSID_warn(-1, errno, "%s: initgroups()", __func__);
 	}
+	free(name);
     }
 
     /* change the uid */
