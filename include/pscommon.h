@@ -633,4 +633,21 @@ char* PSC_groupFromGID(int gid);
  */
 struct passwd *PSC_getpwnamBuf(const char *user, char **pwBuf);
 
+/**
+ * @brief Search the user database for a uid
+ *
+ * Search the user database for a user ID and use the provided buffer to
+ * store the data. The memory for the buffer is allocated using @ref
+ * malloc() and the caller is responsible to free it using @ref
+ * free().
+ *
+ * @param uid The user ID to search
+ *
+ * @param pwBuf The buffer to store the database entries
+ *
+ * @return Returns the requested passwd structure holding the
+ * user information or NULL on error.
+ */
+struct passwd *PSC_getpwuidBuf(uid_t uid, char **pwBuf);
+
 #endif  /* __PSCOMMON_H */

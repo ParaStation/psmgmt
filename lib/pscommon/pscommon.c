@@ -713,7 +713,7 @@ gid_t PSC_gidFromString(const char *group)
     return -2;
 }
 
-static struct passwd *getpwuidBuf(uid_t uid, char **pwBuf)
+struct passwd *PSC_getpwuidBuf(uid_t uid, char **pwBuf)
 {
     long pwMax = sysconf(_SC_GETPW_R_SIZE_MAX);
     size_t pwBufSize = (pwMax < 1) ? 1024 : pwMax;
@@ -745,7 +745,7 @@ char* PSC_userFromUID(int uid)
 {
     if (uid >= 0) {
 	char *pwBuf = NULL;
-	struct passwd *pwd = getpwuidBuf(uid, &pwBuf);
+	struct passwd *pwd = PSC_getpwuidBuf(uid, &pwBuf);
 	if (pwd) {
 	    char *name = strdup(pwd->pw_name);
 	    free(pwBuf);
