@@ -24,43 +24,43 @@
 #include "selector.h"
 
 /**
- * @brief Initialize clients structures.
+ * @brief Initialize clients structures
  *
  * Initialize the client structures. This has to be called before any
  * function within this module is used.
  *
- * @return No return value.
+ * @return No return value
  */
 void PSIDclient_init(void);
 
 /**
- * @brief Register a new client.
+ * @brief Register a new client
  *
  * Register the client with unique task ID @a tid described by the
  * task structure @a task to be connected via the file descriptor @a
  * fd. Usually the clients connection is not actually established when
  * this function is called , i.e. the protocol is not set up correctly
- * yet. Thus PSID_client_isEstablished() will return 0 for this @a
+ * yet. Thus, PSID_client_isEstablished() will return 0 for this @a
  * fd. In order to change this, use PSIDclient_setEstablished().
  *
- * @param fd The file descriptor the client is connected through.
+ * @param fd File descriptor the client is connected through
  *
- * @param tid The client's unique task ID.
+ * @param tid Client's unique task ID
  *
- * @param task The task structure describing the client to register.
+ * @param task The task structure describing the client to register
  *
- * @return No return value.
+ * @return No return value
  *
  * @see PSIDclient_isEstablished(), PSIDclient_setEstablished()
  */
 void PSIDclient_register(int fd, PStask_ID_t tid, PStask_t *task);
 
 /**
- * @brief Get a clients task ID.
+ * @brief Get a clients task ID
  *
  * Get the unique task ID of the client connected to file descriptor @a fd.
  *
- * @param fd The file descriptor the requested client is connected to.
+ * @param fd File descriptor the requested client is connected to
  *
  * @return On success, i.e. if a client is connected to @a fd, the
  * clients task ID is given. Otherwise -1 is returned.
@@ -68,11 +68,11 @@ void PSIDclient_register(int fd, PStask_ID_t tid, PStask_t *task);
 PStask_ID_t PSIDclient_getTID(int fd);
 
 /**
- * @brief Get a clients task structure.
+ * @brief Get a clients task structure
  *
  * Get the task structure of the client connected to file descriptor @a fd.
  *
- * @param fd The file descriptor the requested client is connected to.
+ * @param fd File descriptor the requested client is connected to
  *
  * @return On success, i.e. if a client is connected to @a fd, the
  * clients task structure is given. Otherwise NULL is returned.
@@ -80,7 +80,7 @@ PStask_ID_t PSIDclient_getTID(int fd);
 PStask_t *PSIDclient_getTask(int fd);
 
 /**
- * @brief Establish client's connection.
+ * @brief Establish client's connection
  *
  * Declare the client's connection via file descriptor @a fd to be
  * established. This function is typically called after the client has
@@ -105,20 +105,20 @@ PStask_t *PSIDclient_getTask(int fd);
  * @param info Extra information to be passed to @a handler in order
  * to identify the source of incoming data
  *
- * @return No return value.
+ * @return No return value
  *
  * @see PSIDclient_isEstablished()
  */
 void PSIDclient_setEstablished(int fd, Selector_CB_t handler, void *info);
 
 /**
- * @brief Test if client's connection is established.
+ * @brief Test if client's connection is established
  *
  * Test if the client's connection via file descriptor @a fd is
- * already established, i.e. the setEstablished function was called
- * for this @a fd.
+ * already established, i.e. the @ref PSIDclient_setEstablished() was
+ * called for this @a fd.
  *
- * @param fd The file descriptor the client is connected through.
+ * @param fd File descriptor the client is connected through
  *
  * @return If the client's connection is already established, 1 is
  * returned, or otherwise 0.
@@ -139,7 +139,7 @@ int PSIDclient_isEstablished(int fd);
  * @param fd The file-descriptor used to identify the receiving
  * client.
  *
- * @return No return value.
+ * @return No return value
  */
 void PSIDclient_releaseACK(int fd);
 
