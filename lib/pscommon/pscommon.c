@@ -732,6 +732,7 @@ static struct passwd *getpwuidBuf(uid_t uid, char **pwBuf)
 	    char *newBuf = realloc(*pwBuf, newLen);
 	    if (newBuf) {
 		*pwBuf = newBuf;
+		pwBufSize = newLen;
 		continue;
 	    }
 	}
@@ -777,6 +778,7 @@ static struct group *getgrgidBuf(gid_t gid, char **grBuf)
 	    char *newBuf = realloc(*grBuf, newLen);
 	    if (newBuf) {
 		*grBuf = newBuf;
+		grBufSize = newLen;
 		continue;
 	    }
 	}
