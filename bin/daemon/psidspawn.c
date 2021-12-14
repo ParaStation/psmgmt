@@ -995,6 +995,18 @@ static void execForwarder(PStask_t *task)
 	PSID_warn(-1, eno, "%s: setgid()", __func__);
 	goto error;
     }
+
+    /* remove psid's group memberships */
+    setgroups(0, NULL);
+
+    /* try to set supplementary groups if requested; failure is ignored */
+    if (PSIDnodes_supplGrps(PSC_getMyID())) {
+	struct passwd *pw = getpwuid(task->uid);
+	if (pw && pw->pw_name && initgroups(pw->pw_name, task->gid) < 0) {
+	    PSID_warn(-1, errno, "%s: initgroups()", __func__);
+	}
+    }
+
     /* change the uid */
     if (setuid(task->uid)<0) {
 	eno = errno;
