@@ -6,6 +6,12 @@ Copyright (C) 2021 ParTec AG, Munich
 Please send bug reports, questions and suggestions to <support@par-tec.com>
 
 
+Version 5.1.45-4:
+=================
+Bugfixes:
+ - Set users supplementary groups in psidforwarder (j3:#1382)
+
+
 Version 5.1.45-3:
 =================
 Bugfixes:
