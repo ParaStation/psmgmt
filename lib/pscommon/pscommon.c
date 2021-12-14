@@ -655,9 +655,7 @@ struct passwd *PSC_getpwnamBuf(const char *user, char **pwBuf)
     *pwBuf = malloc(pwBufSize);
     static struct passwd result;
     struct passwd *passwd = NULL;
-    int ret = -1;
-
-    while ((ret = getpwnam_r(user, &result, *pwBuf, pwBufSize, &passwd)) != 0) {
+    while (getpwnam_r(user, &result, *pwBuf, pwBufSize, &passwd)) {
 	if (errno == EINTR) continue;
 	if (errno == ERANGE) {
 	    size_t newLen = 2 * pwBufSize;
@@ -673,7 +671,6 @@ struct passwd *PSC_getpwnamBuf(const char *user, char **pwBuf)
 	*pwBuf = NULL;
 	return NULL;
     }
-
     return passwd;
 }
 
@@ -710,6 +707,7 @@ gid_t PSC_gidFromString(const char *group)
 	free(pwBuf);
 	return gid;
     }
+    free(pwBuf); // Useless but silences scanbuild
 
     PSC_log(-1, "%s: unknown group '%s'\n", __func__, group);
     return -2;
@@ -723,9 +721,7 @@ static struct passwd *getpwuidBuf(uid_t uid, char **pwBuf)
     *pwBuf = malloc(pwBufSize);
     static struct passwd result;
     struct passwd *passwd = NULL;
-    int ret = -1;
-
-    while ((ret = getpwuid_r(uid, &result, *pwBuf, pwBufSize, &passwd)) != 0) {
+    while (getpwuid_r(uid, &result, *pwBuf, pwBufSize, &passwd)) {
 	if (errno == EINTR) continue;
 	if (errno == ERANGE) {
 	    size_t newLen = 2 * pwBufSize;
@@ -754,9 +750,9 @@ char* PSC_userFromUID(int uid)
 	    char *name = strdup(pwd->pw_name);
 	    free(pwBuf);
 	    return name;
-	} else {
-	    return strdup("unknown");
 	}
+	free(pwBuf); // Useless but silences scanbuild
+	return strdup("unknown");
     }
     return strdup("ANY");
 }
@@ -769,9 +765,7 @@ static struct group *getgrgidBuf(gid_t gid, char **grBuf)
     *grBuf = malloc(grBufSize);
     static struct group result;
     struct group *grp = NULL;
-    int ret = -1;
-
-    while ((ret = getgrgid_r(gid, &result, *grBuf, grBufSize, &grp)) != 0) {
+    while (getgrgid_r(gid, &result, *grBuf, grBufSize, &grp)) {
 	if (errno == EINTR) continue;
 	if (errno == ERANGE) {
 	    size_t newLen = 2 * grBufSize;
@@ -800,9 +794,9 @@ char* PSC_groupFromGID(int gid)
 	    char *group = strdup(grp->gr_name);
 	    free(grBuf);
 	    return group;
-	} else {
-	    return strdup("unknown");
 	}
+	free(grBuf); // Useless but silences scanbuild
+	return strdup("unknown");
     }
     return strdup("ANY");
 }
