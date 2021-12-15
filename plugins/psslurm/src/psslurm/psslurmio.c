@@ -341,7 +341,7 @@ void __IO_printStepMsg(Forwarder_Data_t *fwdata, char *msg, size_t msgLen,
     uint32_t lrank = getLocalRankID(grank, step);
     if (lrank == NO_VAL) {
 	flog("error: local rank for global rank %i %s not found,"
-	     " caller %s:%i\n", grank, strStepID(step), caller, line);
+	     " caller %s:%i\n", grank, Step_strID(step), caller, line);
 	return;
     }
 

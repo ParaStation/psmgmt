@@ -32,7 +32,7 @@
 /** List of all steps */
 static LIST_HEAD(StepList);
 
-Step_t *addStep(void)
+Step_t *Step_add(void)
 {
     Step_t *step = ucalloc(sizeof(Step_t));
 
@@ -64,11 +64,11 @@ Step_t *addStep(void)
     return step;
 }
 
-bool verifyStepData(Step_t *step)
+bool Step_verifyData(Step_t *step)
 {
     JobCred_t *cred = step->cred;
     if (!cred) {
-	flog("no credential for %s\n", strStepID(step));
+	flog("no credential for %s\n", Step_strID(step));
 	return false;
     }
     /* job ID */
@@ -139,11 +139,11 @@ bool verifyStepData(Step_t *step)
 	return false;
     }
 
-    fdbg(PSSLURM_LOG_AUTH, "%s success\n", strStepID(step));
+    fdbg(PSSLURM_LOG_AUTH, "%s success\n", Step_strID(step));
     return true;
 }
 
-Step_t *findStepByStepId(uint32_t jobid, uint32_t stepid)
+Step_t *Step_findByStepId(uint32_t jobid, uint32_t stepid)
 {
     list_t *s;
     list_for_each(s, &StepList) {
@@ -157,7 +157,7 @@ Step_t *findStepByStepId(uint32_t jobid, uint32_t stepid)
     return NULL;
 }
 
-Step_t *findStepByJobid(uint32_t jobid)
+Step_t *Step_findByJobid(uint32_t jobid)
 {
     list_t *s;
     list_for_each(s, &StepList) {
@@ -167,7 +167,7 @@ Step_t *findStepByJobid(uint32_t jobid)
     return NULL;
 }
 
-Step_t *findActiveStepByLogger(PStask_ID_t loggerTID)
+Step_t *Step_findStepByLogger(PStask_ID_t loggerTID)
 {
     list_t *s;
     list_for_each(s, &StepList) {
@@ -178,7 +178,7 @@ Step_t *findActiveStepByLogger(PStask_ID_t loggerTID)
     return NULL;
 }
 
-Step_t *findStepByPsslurmChild(pid_t pid)
+Step_t *Step_findByPsslurmChild(pid_t pid)
 {
     list_t *s;
     list_for_each(s, &StepList) {
@@ -188,7 +188,7 @@ Step_t *findStepByPsslurmChild(pid_t pid)
     return NULL;
 }
 
-Step_t *findStepByPsidTask(pid_t pid)
+Step_t *Step_findByPsidTask(pid_t pid)
 {
     list_t *s;
     list_for_each(s, &StepList) {
@@ -199,22 +199,22 @@ Step_t *findStepByPsidTask(pid_t pid)
     return NULL;
 }
 
-void clearStepList(Step_t *preserve)
+void Step_clearList(Step_t *preserve)
 {
     list_t *s, *tmp;
     list_for_each_safe(s, tmp, &StepList) {
 	Step_t *step = list_entry(s, Step_t, next);
 	if (step == preserve) continue;
-	deleteStep(step);
+	Step_delete(step);
     }
 }
 
-void clearStepsByJobid(uint32_t jobid)
+void Step_clearByJobid(uint32_t jobid)
 {
     list_t *s, *tmp;
     list_for_each_safe(s, tmp, &StepList) {
 	Step_t *step = list_entry(s, Step_t, next);
-	if (step->jobid == jobid) deleteStep(step);
+	if (step->jobid == jobid) Step_delete(step);
     }
 }
 
@@ -227,7 +227,7 @@ void deleteJobComp(JobCompInfo_t *jobComp)
     ufree(jobComp);
 }
 
-bool deleteStep(Step_t *step)
+bool Step_delete(Step_t *step)
 {
     if (!step) return false;
 
@@ -337,7 +337,7 @@ bool deleteStep(Step_t *step)
     return true;
 }
 
-int signalStep(Step_t *step, int signal, uid_t reqUID)
+int Step_signal(Step_t *step, int signal, uid_t reqUID)
 {
     if (!step) return 0;
 
@@ -380,7 +380,7 @@ int signalStep(Step_t *step, int signal, uid_t reqUID)
     return ret;
 }
 
-void shutdownStepForwarder(uint32_t jobid)
+void Step_shutdownForwarders(uint32_t jobid)
 {
     list_t *s, *tmp;
     list_for_each_safe(s, tmp, &StepList) {
@@ -390,7 +390,7 @@ void shutdownStepForwarder(uint32_t jobid)
     }
 }
 
-int signalStepsByJobid(uint32_t jobid, int signal, uid_t reqUID)
+int Step_signalByJobid(uint32_t jobid, int signal, uid_t reqUID)
 {
     list_t *s, *tmp;
     int ret = 0, count = 0;
@@ -398,14 +398,14 @@ int signalStepsByJobid(uint32_t jobid, int signal, uid_t reqUID)
     list_for_each_safe(s, tmp, &StepList) {
 	Step_t *step = list_entry(s, Step_t, next);
 	if (step->jobid == jobid && step->state != JOB_COMPLETE) {
-	    ret = signalStep(step, signal, reqUID);
+	    ret = Step_signal(step, signal, reqUID);
 	    if (ret != -1) count += ret;
 	}
     }
     return (ret == -1) ? -1 : count;
 }
 
-int countSteps(void)
+int Step_count(void)
 {
     int count=0;
     list_t *s;
@@ -414,7 +414,7 @@ int countSteps(void)
     return count;
 }
 
-bool haveRunningSteps(uint32_t jobid)
+bool Step_partOfJob(uint32_t jobid)
 {
     list_t *s;
     list_for_each(s, &StepList) {
@@ -428,7 +428,7 @@ bool haveRunningSteps(uint32_t jobid)
     return false;
 }
 
-char *getActiveStepList()
+char *Step_getActiveList()
 {
     list_t *s;
     char strStep[128];
@@ -448,7 +448,7 @@ char *getActiveStepList()
     return strBuf.buf;
 }
 
-bool traverseSteps(StepVisitor_t visitor, const void *info)
+bool Step_traverse(StepVisitor_t visitor, const void *info)
 {
     list_t *s, *tmp;
     list_for_each_safe(s, tmp, &StepList) {
@@ -460,7 +460,7 @@ bool traverseSteps(StepVisitor_t visitor, const void *info)
     return false;
 }
 
-int killStepFWbyJobid(uint32_t jobid)
+int Step_killFWbyJobid(uint32_t jobid)
 {
     list_t *s, *tmp;
     int count = 0;
@@ -477,10 +477,10 @@ int killStepFWbyJobid(uint32_t jobid)
     return count;
 }
 
-void getStepInfos(uint32_t *infoCount, uint32_t **jobids, uint32_t **stepids)
+void Step_getInfos(uint32_t *infoCount, uint32_t **jobids, uint32_t **stepids)
 {
     list_t *s, *tmp;
-    uint32_t max = countSteps() + *infoCount;
+    uint32_t max = Step_count() + *infoCount;
 
     *jobids = urealloc(*jobids, sizeof(uint32_t) * max);
     *stepids = urealloc(*stepids, sizeof(uint32_t) * max);
@@ -492,11 +492,11 @@ void getStepInfos(uint32_t *infoCount, uint32_t **jobids, uint32_t **stepids)
 	(*jobids)[*infoCount] = step->jobid;
 	(*stepids)[*infoCount] = step->stepid;
 	(*infoCount)++;
-	fdbg(PSSLURM_LOG_DEBUG, "add %s\n", strStepID(step));
+	fdbg(PSSLURM_LOG_DEBUG, "add %s\n", Step_strID(step));
     }
 }
 
-const char *strStepID(Step_t *step)
+const char *Step_strID(Step_t *step)
 {
     static char buf[128];
 
@@ -526,7 +526,7 @@ const char *strStepID(Step_t *step)
     return buf;
 }
 
-bool verifyStepPtr(Step_t *stepPtr)
+bool Step_verifyPtr(Step_t *stepPtr)
 {
     list_t *s;
     list_for_each(s, &StepList) {

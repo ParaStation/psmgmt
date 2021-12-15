@@ -203,7 +203,7 @@ typedef struct {
  *
  * @return Returns the newly created step
  */
-Step_t *addStep(void);
+Step_t *Step_add(void);
 
 /**
  * @brief Verify step information
@@ -216,7 +216,7 @@ Step_t *addStep(void);
  * @return On success true is returned or false in case of an
  * error.
  */
-bool verifyStepData(Step_t *step);
+bool Step_verifyData(Step_t *step);
 
 /**
  * @brief Delete a step
@@ -225,7 +225,7 @@ bool verifyStepData(Step_t *step);
  *
  * @return Returns true on success or false otherwise
  */
-bool deleteStep(Step_t *step);
+bool Step_delete(Step_t *step);
 
 /**
  * @brief Delete all steps
@@ -235,14 +235,14 @@ bool deleteStep(Step_t *step);
  *
  * @param preserve Step to preserve
  */
-void clearStepList(Step_t *preserve);
+void Step_clearList(Step_t *preserve);
 
 /**
  * @brief Delete all steps of a specific job
  *
  * @param jobid The jobid to identify the steps to delete
  */
-void clearStepsByJobid(uint32_t jobid);
+void Step_clearByJobid(uint32_t jobid);
 
 /**
  * @brief Find a step identified by a jobid
@@ -250,13 +250,13 @@ void clearStepsByJobid(uint32_t jobid);
  * Find a step by its jobid. If multiple steps exists
  * with the same jobid the first step in the list is
  * returned. To select a step with a specific stepid use
- * @ref findStepByStepId().
+ * @ref Step_findByStepId().
  *
  * @param jobid The jobid of the step
  *
  * @return Returns the requested step or NULL on error
  */
-Step_t *findStepByJobid(uint32_t jobid);
+Step_t *Step_findByJobid(uint32_t jobid);
 
 /**
  * @brief Find an active step identified by the logger TID
@@ -267,13 +267,13 @@ Step_t *findStepByJobid(uint32_t jobid);
  * Warning: The logger TID will be set by catching
  * the message PSP_DD_CHILDBORN in @ref handleChildBornMsg().
  * Before any user processes are spawned step->loggerTID will be
- * 0 and therefore findActiveStepByLogger() will return NULL.
+ * 0 and therefore Step_findStepByLogger() will return NULL.
  *
  * @param loggerTID The task ID of the psilogger
  *
  * @return Returns the requested step or NULL on error
  */
-Step_t *findActiveStepByLogger(PStask_ID_t loggerTID);
+Step_t *Step_findStepByLogger(PStask_ID_t loggerTID);
 
 /**
  * @brief Find a step identified by a jobid and stepid
@@ -284,7 +284,7 @@ Step_t *findActiveStepByLogger(PStask_ID_t loggerTID);
  *
  * @return Returns the requested step or NULL on error
  */
-Step_t *findStepByStepId(uint32_t jobid, uint32_t stepid);
+Step_t *Step_findByStepId(uint32_t jobid, uint32_t stepid);
 
 /**
  * @brief Find a step identified by the PID of a psslurm child
@@ -298,7 +298,7 @@ Step_t *findStepByStepId(uint32_t jobid, uint32_t stepid);
  *
  * @return Returns the requested step or NULL on error
  */
-Step_t *findStepByPsslurmChild(pid_t pid);
+Step_t *Step_findByPsslurmChild(pid_t pid);
 
 /**
  * @brief Find a step identified by one of its psid tasks
@@ -309,21 +309,21 @@ Step_t *findStepByPsslurmChild(pid_t pid);
  * Warning: The tasklist of the step will be filled by catching
  * the message PSP_DD_CHILDBORN in @ref handleChildBornMsg().
  * Before any user processes are spawned on the local node
- * the tasklist of the step will be empty and @ref findStepByPsidTask()
+ * the tasklist of the step will be empty and @ref Step_findByPsidTask()
  * will return NULL.
  *
  * @param pid The PID of a psid task from the step to find
  *
  * @return Returns the requested step or NULL on error
  */
-Step_t *findStepByPsidTask(pid_t pid);
+Step_t *Step_findByPsidTask(pid_t pid);
 
 /**
  * @brief Get the number of steps
  *
  * Returns the number of steps
  */
-int countSteps(void);
+int Step_count(void);
 
 /**
  * @brief Send a signal to all steps of a job
@@ -342,7 +342,7 @@ int countSteps(void);
  * @return Returns the number of tasks which were signaled or -1
  *  if the @a reqUID is not permitted to signal the tasks
  */
-int signalStepsByJobid(uint32_t jobid, int signal, uid_t reqUID);
+int Step_signalByJobid(uint32_t jobid, int signal, uid_t reqUID);
 
 /**
  * @brief Send a signal to all tasks of a step
@@ -360,7 +360,7 @@ int signalStepsByJobid(uint32_t jobid, int signal, uid_t reqUID);
  * @return Returns the number of tasks which were signaled or -1
  *  if the @a reqUID is not permitted to signal the tasks
  */
-int signalStep(Step_t *step, int signal, uid_t reqUID);
+int Step_signal(Step_t *step, int signal, uid_t reqUID);
 
 /**
  * @brief Test if a job has active steps
@@ -370,27 +370,27 @@ int signalStep(Step_t *step, int signal, uid_t reqUID);
  * @return Returns true if the job has active steps or
  * false otherwise
  */
-bool haveRunningSteps(uint32_t jobid);
+bool Step_partOfJob(uint32_t jobid);
 
 /**
  * @brief Shutdown all step forwarders of a job
  *
  * @param jobid The jobid of the job
  */
-void shutdownStepForwarder(uint32_t jobid);
+void Step_shutdownForwarders(uint32_t jobid);
 
 /**
  * @brief Visitor function
  *
- * Visitor function used by @ref traverseSteps() in order to visit
+ * Visitor function used by @ref Step_traverse() in order to visit
  * each step currently registered.
  *
  * The parameters are as follows: @a step points to the step to
  * visit. @a info points to the additional information passed to @ref
- * traverseSteps() in order to be forwarded to each step.
+ * Step_traverse() in order to be forwarded to each step.
  *
  * If the visitor function returns true the traversal will be
- * interrupted and @ref traverseSteps() will return to its calling
+ * interrupted and @ref Step_traverse() will return to its calling
  * function.
  */
 typedef bool StepVisitor_t(Step_t *step, const void *info);
@@ -414,7 +414,7 @@ typedef bool StepVisitor_t(Step_t *step, const void *info);
  * true is returned. If no visitor returned true during the traversal
  * false is returned.
  */
-bool traverseSteps(StepVisitor_t visitor, const void *info);
+bool Step_traverse(StepVisitor_t visitor, const void *info);
 
 /**
  * @brief Get active steps as string
@@ -422,7 +422,7 @@ bool traverseSteps(StepVisitor_t visitor, const void *info);
  * @return Returns a string holding all active steps. The caller is
  * responsible to free the string using @ref ufree().
  */
-char *getActiveStepList();
+char *Step_getActiveList();
 
 /**
  * @brief Send SIGKILL to all step forwarders of a job
@@ -431,7 +431,7 @@ char *getActiveStepList();
  *
  * @return Returns the number of steps SIGKILL was sent to
  */
-int killStepFWbyJobid(uint32_t jobid);
+int Step_killFWbyJobid(uint32_t jobid);
 
 /**
  * @brief Get a list of all known steps on the local node
@@ -442,7 +442,7 @@ int killStepFWbyJobid(uint32_t jobid);
  *
  * @param stepids The stepids of all known steps
  */
-void getStepInfos(uint32_t *infoCount, uint32_t **jobids, uint32_t **stepids);
+void Step_getInfos(uint32_t *infoCount, uint32_t **jobids, uint32_t **stepids);
 
 /**
  * @brief Get jobid and stepid as string
@@ -452,7 +452,7 @@ void getStepInfos(uint32_t *infoCount, uint32_t **jobids, uint32_t **stepids);
  * @return Returns a string holding the step ID
  * infos.
  */
-const char *strStepID(Step_t *step);
+const char *Step_strID(Step_t *step);
 
 /**
  * @brief Verify a step pointer
@@ -462,6 +462,6 @@ const char *strStepID(Step_t *step);
  * @return Returns true if the pointer is valid otherwise
  * false
  */
-bool verifyStepPtr(Step_t *stepPtr);
+bool Step_verifyPtr(Step_t *stepPtr);
 
 #endif  /* __PS_PSSLURM_STEP */

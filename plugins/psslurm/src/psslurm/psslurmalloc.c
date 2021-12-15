@@ -169,7 +169,7 @@ bool deleteAlloc(uint32_t id)
 
     /* free corresponding resources */
     deleteJobById(id);
-    clearStepsByJobid(id);
+    Step_clearByJobid(id);
     clearBCastByJobid(id);
 
     if (!(alloc = findAlloc(id))) return false;
@@ -213,7 +213,7 @@ int signalAllocs(int signal)
     list_t *a, *tmp;
     list_for_each_safe(a, tmp, &AllocList) {
 	Alloc_t *alloc = list_entry(a, Alloc_t, next);
-	count += signalStepsByJobid(alloc->id, signal, 0);
+	count += Step_signalByJobid(alloc->id, signal, 0);
     }
 
     return count;
@@ -230,7 +230,7 @@ int signalAlloc(uint32_t id, int signal, uid_t reqUID)
     if (job) {
 	count = signalJob(job, signal, reqUID);
     } else {
-	count = signalStepsByJobid(id, signal, reqUID);
+	count = Step_signalByJobid(id, signal, reqUID);
     }
 
     return count;

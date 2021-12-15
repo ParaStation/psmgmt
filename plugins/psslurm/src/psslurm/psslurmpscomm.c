@@ -337,7 +337,7 @@ static int handleCreatePart(void *msg)
     }
 
     /* find step */
-    if (!(step = findStepByPsslurmChild(PSC_getPID(inmsg->header.sender)))) {
+    if (!(step = Step_findByPsslurmChild(PSC_getPID(inmsg->header.sender)))) {
 	/* admin user can always pass */
 	if (isPSAdminUser(task->uid, task->gid)) return 1;
 
@@ -349,7 +349,7 @@ static int handleCreatePart(void *msg)
     }
 
     if (!step->slots) {
-	flog("invalid slots in %s\n", strStepID(step));
+	flog("invalid slots in %s\n", Step_strID(step));
 	errno = EACCES;
 	goto error;
     }
@@ -416,7 +416,7 @@ static int handleCreatePartNL(void *msg)
     }
 
     /* find step */
-    if (!findStepByPsslurmChild(PSC_getPID(inmsg->header.sender))) {
+    if (!Step_findByPsslurmChild(PSC_getPID(inmsg->header.sender))) {
 	/* admin users can start mpiexec direct */
 	if (isPSAdminUser(task->uid, task->gid)) return 1;
 	errno = EACCES;
@@ -478,7 +478,7 @@ static int handleGetReservation(void *res) {
     }
 
     /* find step */
-    Step_t *step = findStepByPsslurmChild(PSC_getPID(task->tid));
+    Step_t *step = Step_findByPsslurmChild(PSC_getPID(task->tid));
     if (!step) {
 	/* admin users might be allowed => fall back to normal mechanism */
 	if (isPSAdminUser(task->uid, task->gid)) return 2;
@@ -896,16 +896,16 @@ static void handle_JobExit(DDTypedBufferMsg_t *msg)
 	return;
     }
 
-    Step_t *step = findStepByStepId(jobid, stepid);
+    Step_t *step = Step_findByStepId(jobid, stepid);
     if (!step) {
 	Step_t s = {
 	    .jobid = jobid,
 	    .stepid = stepid };
-	flog("%s not found\n", strStepID(&s));
+	flog("%s not found\n", Step_strID(&s));
 	return;
     } else {
 	step->state = JOB_EXIT;
-	fdbg(PSSLURM_LOG_JOB, "%s in %s\n", strStepID(step),
+	fdbg(PSSLURM_LOG_JOB, "%s in %s\n", Step_strID(step),
 	     strAllocState(step->state));
     }
 }
@@ -951,7 +951,7 @@ static void handleStopStepFW(DDTypedBufferMsg_t *msg)
     PSP_getTypedMsgBuf(msg, &used, "jobid", &jobid, sizeof(jobid));
     PSP_getTypedMsgBuf(msg, &used, "stepid", &stepid, sizeof(stepid));
 
-    Step_t *step = findStepByStepId(jobid, stepid);
+    Step_t *step = Step_findByStepId(jobid, stepid);
     if (!step) {
 	fdbg(PSSLURM_LOG_DEBUG, "step %u:%u not found\n", jobid, stepid);
 	return;
@@ -1271,12 +1271,12 @@ static void handlePackExit(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
     fdbg(PSSLURM_LOG_PACK, "packJobid %u stepid %u exitStatus %i\n",
 	 packJobid, stepid, exitStatus);
 
-    Step_t *step = findStepByStepId(packJobid, stepid);
+    Step_t *step = Step_findByStepId(packJobid, stepid);
     if (!step) {
 	Step_t s = {
 	    .jobid = packJobid,
 	    .stepid = stepid };
-	flog("no %s found to set exitStatus %i\n", strStepID(&s), exitStatus);
+	flog("no %s found to set exitStatus %i\n", Step_strID(&s), exitStatus);
     } else {
 	sendStepExit(step, exitStatus);
     }
@@ -1336,7 +1336,7 @@ static void handlePackInfo(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
 	return;
     }
 
-    Step_t *step = findStepByStepId(packJobid, stepid);
+    Step_t *step = Step_findByStepId(packJobid, stepid);
     if (!step) {
 	Msg_Cache_t *cache = umalloc(sizeof(*cache));
 
@@ -1377,7 +1377,7 @@ static void handlePackInfo(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
     step->rcvdPackInfos++;
     fdbg(PSSLURM_LOG_PACK, "from %s for %s: pack info %u (now %u/%u"
 	    " pack procs): np %u tpp %hu argc %d slots:\n",
-	    PSC_printTID(msg->header.sender), strStepID(step),
+	    PSC_printTID(msg->header.sender), Step_strID(step),
 	    step->rcvdPackInfos, step->rcvdPackProcs, step->packNtasks,
 	    jobcomp->np, jobcomp->tpp, jobcomp->argc);
 
@@ -1401,7 +1401,7 @@ static void handlePackInfo(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
 	if (!(execStepLeader(step))) {
 	    flog("starting user step failed\n");
 	    sendSlurmRC(&step->srunControlMsg, ESLURMD_FORK_FAILED);
-	    deleteStep(step);
+	    Step_delete(step);
 	}
     }
 }
@@ -1665,12 +1665,12 @@ static bool nodeDownAlloc(Alloc_t *alloc, const void *info)
 	flog("node %i in allocation %u state %s is down\n",
 	     node, alloc->id, strAllocState(alloc->state));
 
-	Step_t *step = findStepByJobid(alloc->id);
-	if (!step) step = findStepByJobid(alloc->packID);
+	Step_t *step = Step_findByJobid(alloc->id);
+	if (!step) step = Step_findByJobid(alloc->packID);
 	if (step && step->leader) {
 	    char buf[512];
 	    snprintf(buf, sizeof(buf), "%s terminated due to failed node %s\n",
-		     strStepID(step), getSlurmHostbyNodeID(node));
+		     Step_strID(step), getSlurmHostbyNodeID(node));
 	    fwCMD_printMsg(NULL, step, buf, strlen(buf), STDERR, 0);
 	}
 
@@ -1830,7 +1830,7 @@ static bool handleDroppedMsg(DDTypedBufferMsg_t *msg)
 
 static bool handleCC_IO_Msg(PSLog_Msg_t *msg)
 {
-    Step_t *step = findActiveStepByLogger(msg->header.dest);
+    Step_t *step = Step_findStepByLogger(msg->header.dest);
     if (!step) {
 	PStask_t *task;
 	if (PSC_getMyID() == PSC_getID(msg->header.sender)) {
@@ -1890,7 +1890,7 @@ static void handleCC_INIT_Msg(PSLog_Msg_t *msg)
     if (msg->sender == -1) {
 	/* message from psilogger to psidforwarder */
 	if (PSC_getID(msg->header.dest) != PSC_getMyID()) return;
-	Step_t *step = findActiveStepByLogger(msg->header.sender);
+	Step_t *step = Step_findStepByLogger(msg->header.sender);
 	if (step) {
 	    PS_Tasks_t *task = findTaskByFwd(&step->tasks, msg->header.dest);
 	    if (task) {
@@ -1911,7 +1911,7 @@ static void handleCC_INIT_Msg(PSLog_Msg_t *msg)
 	}
     } else if (msg->sender >= 0) {
 	/* message from psidforwarder to psilogger */
-	Step_t *step = findActiveStepByLogger(msg->header.dest);
+	Step_t *step = Step_findStepByLogger(msg->header.dest);
 	if (step) {
 	    if (PSC_getMyID() == PSC_getID(msg->header.sender)) {
 		PS_Tasks_t *task = findTaskByFwd(&step->tasks,
@@ -1931,7 +1931,7 @@ static bool handleCC_STDIN_Msg(PSLog_Msg_t *msg)
     mdbg(PSSLURM_LOG_IO, "dest %s data len %u\n",
 	 PSC_printTID(msg->header.dest), msgLen);
 
-    Step_t *step = findActiveStepByLogger(msg->header.sender);
+    Step_t *step = Step_findStepByLogger(msg->header.sender);
     if (!step) {
 	PStask_t *task = PStasklist_find(&managedTasks, msg->header.sender);
 	if (!task || !isPSAdminUser(task->uid, task->gid)) {
@@ -1959,7 +1959,7 @@ static bool handleCC_Finalize_Msg(PSLog_Msg_t *msg)
 	return false; // call the old handler if any
     }
 
-    Step_t *step = findActiveStepByLogger(msg->header.dest);
+    Step_t *step = Step_findStepByLogger(msg->header.dest);
     if (!step) {
 	PStask_t *task = PStasklist_find(&managedTasks, msg->header.sender);
 	if (!task || !isPSAdminUser(task->uid, task->gid)) {
@@ -2054,7 +2054,7 @@ static bool handleSpawnSuccess(DDErrorMsg_t *msg)
     PStask_t *forwarder = NULL;
     uint32_t jobid, stepid;
     if (getJobIDbyForwarder(msg->header.dest, &forwarder, &jobid, &stepid)) {
-	Step_t *step = findStepByStepId(jobid, stepid);
+	Step_t *step = Step_findByStepId(jobid, stepid);
 	if (step) {
 	    addTask(&step->remoteTasks, msg->header.sender, forwarder->tid,
 		    forwarder, forwarder->childGroup, msg->request);
@@ -2083,7 +2083,7 @@ static bool handleSpawnFailed(DDErrorMsg_t *msg)
 	return false; // call the old handler if any
     }
 
-    Step_t *step = findStepByStepId(jobid, stepid);
+    Step_t *step = Step_findByStepId(jobid, stepid);
     if (step) {
 	PS_Tasks_t *task = addTask(&step->tasks, msg->request, forwarder->tid,
 				   forwarder, forwarder->childGroup,
@@ -2152,7 +2152,7 @@ void releaseDelayedSpawns(uint32_t jobid, uint32_t stepid) {
 	.stepid = stepid, };
 
     /* double check if the step is ready now */
-    if (!findStepByStepId(jobid, stepid)) {
+    if (!Step_findByStepId(jobid, stepid)) {
 	/* this is a serious problem and should never happen */
 	mlog("%s: SERIOUS: Called for step %d:%d that cannot be found.\n",
 	     __func__, jobid, stepid);
@@ -2223,7 +2223,7 @@ static bool handleSpawnReq(DDTypedBufferMsg_t *msg)
 	    .jobid = jobid,
 	    .stepid = stepid };
 	flog("delay spawnee from %s due to missing %s\n",
-	     PSC_printTID(msg->header.sender), strStepID(&s));
+	     PSC_printTID(msg->header.sender), Step_strID(&s));
 
 	PSIDspawn_delayTask(spawnee);
 	return true; // message is fully handled
@@ -2287,12 +2287,12 @@ static bool handleChildBornMsg(DDErrorMsg_t *msg)
 	addTask(&job->tasks, msg->request, forwarder->tid, forwarder,
 		forwarder->childGroup, forwarder->rank);
     } else {
-	Step_t *step = findStepByStepId(jobid, stepid);
+	Step_t *step = Step_findByStepId(jobid, stepid);
 	if (!step) {
 	    Step_t s = {
 		.jobid = jobid,
 		.stepid = stepid };
-	    flog("%s not found\n", strStepID(&s));
+	    flog("%s not found\n", Step_strID(&s));
 	    return false; // fallback to old handler
 	}
 	PS_Tasks_t *task = addTask(&step->tasks, msg->request, forwarder->tid,
@@ -2303,7 +2303,7 @@ static bool handleChildBornMsg(DDErrorMsg_t *msg)
 	if (step->fwdata) {
 	    fwCMD_taskInfo(step->fwdata, task);
 	} else {
-	    flog("no forwarder for %s rank %i\n", strStepID(step),
+	    flog("no forwarder for %s rank %i\n", Step_strID(step),
 		 forwarder->rank - step->packTaskOffset);
 	}
     }
@@ -2695,7 +2695,7 @@ int send_PS_PackExit(Step_t *step, int32_t exitStatus)
     /* exit status */
     addInt32ToMsg(exitStatus, &data);
 
-    fdbg(PSSLURM_LOG_PACK, "%s pack jobid %u exit %i\n", strStepID(step),
+    fdbg(PSSLURM_LOG_PACK, "%s pack jobid %u exit %i\n", Step_strID(step),
 	 step->packJobid, exitStatus);
 
     return sendFragMsg(&data);
@@ -2769,7 +2769,7 @@ int send_PS_PackInfo(Step_t *step)
     addSlotsToMsg(step->slots, step->np, &data);
 
     fdbg(PSSLURM_LOG_PACK, "%s offset %i argc %u np %u tpp %hu to leader %s\n",
-	    strStepID(step), step->packNodeOffset, step->argc, step->np,
+	    Step_strID(step), step->packNodeOffset, step->argc, step->np,
 	    step->tpp, PSC_printTID(PSC_getTID(step->packNodes[0], 0)));
 
     /* send msg to pack group leader */

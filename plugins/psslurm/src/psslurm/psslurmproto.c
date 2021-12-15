@@ -306,7 +306,7 @@ static void printLaunchTasksInfos(Step_t *step)
     }
 
     /* job state */
-    fdbg(PSSLURM_LOG_JOB, "%s in %s\n", strStepID(step),
+    fdbg(PSSLURM_LOG_JOB, "%s in %s\n", Step_strID(step),
 	 strJobState(step->state));
 
     /* pinning */
@@ -483,8 +483,8 @@ static void handleLaunchTasks(Slurm_Msg_t *sMsg)
     }
 
     /* verify job credential */
-    if (!verifyStepData(step)) {
-	flog("invalid data for %s\n", strStepID(step));
+    if (!Step_verifyData(step)) {
+	flog("invalid data for %s\n", Step_strID(step));
 	sendSlurmRC(sMsg, ESLURMD_INVALID_JOB_CREDENTIAL);
 	goto ERROR;
     }
@@ -527,7 +527,7 @@ static void handleLaunchTasks(Slurm_Msg_t *sMsg)
 
     if (count != step->nrOfNodes) {
 	flog("mismatching number of nodes %u vs %u for %s\n",
-	     count, step->nrOfNodes, strStepID(step));
+	     count, step->nrOfNodes, Step_strID(step));
 	step->nrOfNodes = count;
 	sendSlurmRC(sMsg, ESLURMD_INVALID_JOB_CREDENTIAL);
 	goto ERROR;
@@ -536,14 +536,14 @@ static void handleLaunchTasks(Slurm_Msg_t *sMsg)
     step->localNodeId = getLocalID(step->nodes, step->nrOfNodes);
     if (step->localNodeId == NO_VAL) {
 	flog("local node ID %i for %s in %s num nodes %i not found\n",
-	     PSC_getMyID(), strStepID(step), step->slurmHosts, step->nrOfNodes);
+	     PSC_getMyID(), Step_strID(step), step->slurmHosts, step->nrOfNodes);
 	sendSlurmRC(sMsg, ESLURMD_INVALID_JOB_CREDENTIAL);
 	goto ERROR;
     }
 
     step->nodeinfos = getStepNodeinfoArray(step);
     if (!step->nodeinfos) {
-	flog("failed to fill nodeinfos of step %s\n", strStepID(step));
+	flog("failed to fill nodeinfos of step %s\n", Step_strID(step));
 	sendSlurmRC(sMsg, ESLURMD_INVALID_JOB_CREDENTIAL);
 	goto ERROR;
     }
@@ -566,7 +566,7 @@ static void handleLaunchTasks(Slurm_Msg_t *sMsg)
     }
 
     flog("%s user '%s' np %u nodes '%s' N %u tpp %u pack size %u"
-	 " leader %i exe '%s' packJobid %u hetComp %u\n", strStepID(step),
+	 " leader %i exe '%s' packJobid %u hetComp %u\n", Step_strID(step),
 	 step->username, step->np, step->slurmHosts, step->nrOfNodes, step->tpp,
 	 step->packSize, step->leader, step->argv[0],
 	 step->packJobid == NO_VAL ? 0 : step->packJobid,
@@ -582,7 +582,7 @@ static void handleLaunchTasks(Slurm_Msg_t *sMsg)
 
     /* set slots for the step (and number of hardware threads) */
     if (!setStepSlots(step)) {
-	flog("setting hardware threads for %s failed\n", strStepID(step));
+	flog("setting hardware threads for %s failed\n", Step_strID(step));
 	sendSlurmRC(sMsg, ESLURMD_INVALID_JOB_CREDENTIAL);
 	goto ERROR;
     }
@@ -590,7 +590,7 @@ static void handleLaunchTasks(Slurm_Msg_t *sMsg)
     /* sanity check nrOfNodes */
     if (step->nrOfNodes > (uint16_t) PSC_getNrOfNodes()) {
 	flog("invalid nrOfNodes %u known Nodes %u for %s\n",
-	     step->nrOfNodes, PSC_getNrOfNodes(), strStepID(step));
+	     step->nrOfNodes, PSC_getNrOfNodes(), Step_strID(step));
 	sendSlurmRC(sMsg, ESLURMD_INVALID_JOB_CREDENTIAL);
 	goto ERROR;
     }
@@ -605,7 +605,7 @@ static void handleLaunchTasks(Slurm_Msg_t *sMsg)
 	/* start mpiexec to spawn the parallel processes,
 	 * intercept createPart call to overwrite the nodelist */
 	step->state = JOB_PRESTART;
-	fdbg(PSSLURM_LOG_JOB, "%s in %s\n", strStepID(step),
+	fdbg(PSSLURM_LOG_JOB, "%s in %s\n", Step_strID(step),
 	     strJobState(step->state));
 	/* non pack jobs can be started right away.
 	 * However for pack jobs the pack leader has to wait for
@@ -641,7 +641,7 @@ static void handleLaunchTasks(Slurm_Msg_t *sMsg)
     return;
 
 ERROR:
-    if (step) deleteStep(step);
+    if (step) Step_delete(step);
 }
 
 static int doSignalTasks(Req_Signal_Tasks_t *req)
@@ -651,12 +651,12 @@ static int doSignalTasks(Req_Signal_Tasks_t *req)
 	mlog("%s: sending all processes of job %u signal %u\n", __func__,
 	     req->jobid, req->signal);
 	signalJobscript(req->jobid, req->signal, req->uid);
-	signalStepsByJobid(req->jobid, req->signal, req->uid);
+	Step_signalByJobid(req->jobid, req->signal, req->uid);
     } else if (req->flags & KILL_STEPS_ONLY) {
 	/* send signal to all steps excluding the jobscript */
 	flog("send steps %u:%u (stepHetComp %u) signal %u\n",
 	     req->jobid, req->stepid, req->stepHetComp, req->signal);
-	signalStepsByJobid(req->jobid, req->signal, req->uid);
+	Step_signalByJobid(req->jobid, req->signal, req->uid);
     } else {
 	if (req->stepid == SLURM_BATCH_SCRIPT) {
 	    /* signal jobscript only, not all corresponding steps */
@@ -665,8 +665,8 @@ static int doSignalTasks(Req_Signal_Tasks_t *req)
 	    /* signal a single step */
 	    flog("send step %u:%u (stepHetComp %u) signal %u\n",
 		 req->jobid, req->stepid, req->stepHetComp, req->signal);
-	    Step_t *step = findStepByStepId(req->jobid, req->stepid);
-	    if (step) return signalStep(step, req->signal, req->uid);
+	    Step_t *step = Step_findByStepId(req->jobid, req->stepid);
+	    if (step) return Step_signal(step, req->signal, req->uid);
 	}
 
 	/* we only return an error if we signal a specific jobscript/step */
@@ -825,34 +825,34 @@ static void handleReattachTasks(Slurm_Msg_t *sMsg)
 	return;
     }
 
-    Step_t *step = findStepByStepId(req->jobid, req->stepid);
+    Step_t *step = Step_findByStepId(req->jobid, req->stepid);
     if (!step) {
 	Step_t s = {
 	    .jobid = req->jobid,
 	    .stepid = req->stepid };
-	flog("%s to reattach not found\n", strStepID(&s));
+	flog("%s to reattach not found\n", Step_strID(&s));
 	sendReattachFail(sMsg, ESLURM_INVALID_JOB_ID);
 	/* check permissions */
     } else if (!verifyUserId(sMsg->head.uid, step->uid)) {
 	flog("request from invalid user %u %s\n", sMsg->head.uid,
-	     strStepID(step));
+	     Step_strID(step));
 	sendReattachFail(sMsg, ESLURM_USER_ID_MISSING);
     } else if (!step->fwdata) {
 	/* no forwarder to attach to */
-	flog("forwarder for %s to reattach not found\n", strStepID(step));
+	flog("forwarder for %s to reattach not found\n", Step_strID(step));
 	sendReattachFail(sMsg, ESLURM_INVALID_JOB_ID);
     } else if (req->numCtlPorts < 1) {
-	flog("invalid request, no control ports for %s\n", strStepID(step));
+	flog("invalid request, no control ports for %s\n", Step_strID(step));
 	sendReattachFail(sMsg, ESLURM_PORTS_INVALID);
     } else if (req->numIOports < 1) {
-	flog("invalid request, no I/O ports for %s\n", strStepID(step));
+	flog("invalid request, no I/O ports for %s\n", Step_strID(step));
 	sendReattachFail(sMsg, ESLURM_PORTS_INVALID);
     } else if (!req->cred) {
-	flog("invalid credential for %s\n", strStepID(step));
+	flog("invalid credential for %s\n", Step_strID(step));
 	sendReattachFail(sMsg, ESLURM_INVALID_JOB_CREDENTIAL);
     } else if (strlen(req->cred->sig) + 1 != SLURM_IO_KEY_SIZE) {
 	flog("invalid I/O key size %zu for %s\n", strlen(req->cred->sig) + 1,
-	     strStepID(step));
+	     Step_strID(step));
 	sendReattachFail(sMsg, ESLURM_INVALID_JOB_CREDENTIAL);
     } else {
 	/* send message to forwarder */
@@ -883,11 +883,11 @@ static void handleSuspendInt(Slurm_Msg_t *sMsg)
     switch (req->op) {
 	case SUSPEND_JOB:
 	    flog("suspend job %u\n",req->jobid);
-	    signalStepsByJobid(req->jobid, SIGSTOP, sMsg->head.uid);
+	    Step_signalByJobid(req->jobid, SIGSTOP, sMsg->head.uid);
 	    break;
 	case RESUME_JOB:
 	    flog("resume job %u\n",req->jobid);
-	    signalStepsByJobid(req->jobid, SIGCONT, sMsg->head.uid);
+	    Step_signalByJobid(req->jobid, SIGCONT, sMsg->head.uid);
 	    break;
 	default:
 	    flog("unknown suspend_int operation %u\n", req->op);
@@ -1376,7 +1376,7 @@ static void handleJobId(Slurm_Msg_t *sMsg)
 
     getUint32(ptr, &pid);
 
-    Step_t *step = findStepByPsidTask(pid);
+    Step_t *step = Step_findByPsidTask(pid);
     if (step) {
 	PS_SendDB_t *msg = &sMsg->reply;
 
@@ -1430,7 +1430,7 @@ static void handleFileBCast(Slurm_Msg_t *sMsg)
 	    bcast->env = &alloc->env;
 	    ufree(bcast->username);
 	    bcast->username = ustrdup(alloc->username);
-	    Step_t *step = findStepByJobid(bcast->jobid);
+	    Step_t *step = Step_findByJobid(bcast->jobid);
 	    if (step) PSCPU_copy(bcast->hwthreads,
 		    step->nodeinfos[step->localNodeId].stepHWthreads);
 	}
@@ -1540,12 +1540,12 @@ static void handleStepStat(Slurm_Msg_t *sMsg)
 	return;
     }
 
-    Step_t *step = findStepByStepId(head->jobid, head->stepid);
+    Step_t *step = Step_findByStepId(head->jobid, head->stepid);
     if (!step) {
 	Step_t s = {
 	    .jobid = head->jobid,
 	    .stepid = head->stepid };
-	flog("%s to signal not found\n", strStepID(&s));
+	flog("%s to signal not found\n", Step_strID(&s));
 	sendSlurmRC(sMsg, ESLURM_INVALID_JOB_ID);
 	ufree(head);
 	return;
@@ -1599,12 +1599,12 @@ static void handleStepPids(Slurm_Msg_t *sMsg)
 	return;
     }
 
-    Step_t *step = findStepByStepId(head->jobid, head->stepid);
+    Step_t *step = Step_findByStepId(head->jobid, head->stepid);
     if (!step) {
 	Step_t s = {
 	    .jobid = head->jobid,
 	    .stepid = head->stepid };
-	flog("%s to signal not found\n", strStepID(&s));
+	flog("%s to signal not found\n", Step_strID(&s));
 	sendSlurmRC(sMsg, ESLURM_INVALID_JOB_ID);
 	ufree(head);
 	return;
@@ -1718,10 +1718,10 @@ static void handleDaemonStatus(Slurm_Msg_t *sMsg)
     /* logfile */
     stat.logfile = "syslog";
     /* step list */
-    if (!countSteps()) {
+    if (!Step_count()) {
 	stat.stepList = strdup("NONE");
     } else {
-	stat.stepList = getActiveStepList();
+	stat.stepList = Step_getActiveList();
     }
     /* version string */
     snprintf(stat.verStr, sizeof(stat.verStr), "psslurm-%i-p%s", version,
@@ -1743,7 +1743,7 @@ static void handleJobNotify(Slurm_Msg_t *sMsg)
     }
 
     Job_t *job = findJobById(req->jobid);
-    Step_t *step = findStepByStepId(req->jobid, req->stepid);
+    Step_t *step = Step_findByStepId(req->jobid, req->stepid);
 
     if (!job && !step) {
 	flog("job/step %u.%u to notify not found, msg %s\n", req->jobid,
@@ -2251,16 +2251,16 @@ static void handleAbortReq(Slurm_Msg_t *sMsg, uint32_t jobid, uint32_t stepid)
     sendSlurmRC(sMsg, SLURM_SUCCESS);
 
     if (stepid != NO_VAL) {
-	Step_t *step = findStepByStepId(jobid, stepid);
+	Step_t *step = Step_findByStepId(jobid, stepid);
 	if (!step) {
 	    Step_t s = {
 		.jobid = jobid,
 		.stepid = stepid };
-	    flog("%s not found\n", strStepID(&s));
+	    flog("%s not found\n", Step_strID(&s));
 	    return;
 	}
-	signalStep(step, SIGKILL, sMsg->head.uid);
-	deleteStep(step);
+	Step_signal(step, SIGKILL, sMsg->head.uid);
+	Step_delete(step);
 	return;
     }
 
@@ -2276,7 +2276,7 @@ static void handleAbortReq(Slurm_Msg_t *sMsg, uint32_t jobid, uint32_t stepid)
     } else {
 	Alloc_t *alloc = findAlloc(jobid);
 	if (alloc && isAllocLeader(alloc)) {
-	    signalStepsByJobid(alloc->id, SIGKILL, sMsg->head.uid);
+	    Step_signalByJobid(alloc->id, SIGKILL, sMsg->head.uid);
 	    send_PS_JobExit(alloc->id, SLURM_BATCH_SCRIPT,
 		    alloc->nrOfNodes, alloc->nodes);
 	}
@@ -2306,7 +2306,7 @@ static bool killSelectedSteps(Step_t *step, const void *killInfo)
     if (info->timeout) {
 	if (!step->localNodeId) {
 	    snprintf(buf, sizeof(buf), "error: *** %s CANCELLED DUE TO"
-		" TIME LIMIT ***\n", strStepID(step));
+		" TIME LIMIT ***\n", Step_strID(step));
 	    fwCMD_printMsg(NULL, step, buf, strlen(buf), STDERR, 0);
 	}
 	fwCMD_stepTimeout(step->fwdata);
@@ -2314,19 +2314,19 @@ static bool killSelectedSteps(Step_t *step, const void *killInfo)
     } else {
 	if (!step->localNodeId) {
 	    snprintf(buf, sizeof(buf), "error: *** PREEMPTION for %s ***\n",
-		     strStepID(step));
+		     Step_strID(step));
 	    fwCMD_printMsg(NULL, step, buf, strlen(buf), STDERR, 0);
 	}
     }
 
-    if (step->stepid != NO_VAL) signalStep(step, SIGTERM, info->uid);
+    if (step->stepid != NO_VAL) Step_signal(step, SIGTERM, info->uid);
 
     return false;
 }
 
 static void handleKillReq(Slurm_Msg_t *sMsg, Alloc_t *alloc, Kill_Info_t *info)
 {
-    traverseSteps(killSelectedSteps, info);
+    Step_traverse(killSelectedSteps, info);
 
     /* if we only kill one selected step, we are done */
     if (info->stepid != NO_VAL) {
@@ -2389,12 +2389,12 @@ static void handleTerminateReq(Slurm_Msg_t *sMsg)
     /* check permissions */
     if (sMsg->head.uid != 0 && sMsg->head.uid != slurmUserID) {
 	flog("request from invalid user %u for %s\n", sMsg->head.uid,
-	     strStepID(&s));
+	     Step_strID(&s));
 	sendSlurmRC(sMsg, ESLURM_USER_ID_MISSING);
 	goto CLEANUP;
     }
 
-    flog("%s Slurm-state %u uid %u type %s\n", strStepID(&s),
+    flog("%s Slurm-state %u uid %u type %s\n", Step_strID(&s),
 	 req->jobstate, sMsg->head.uid, msgType2String(sMsg->head.type));
 
     /* restore account freq */
@@ -2409,8 +2409,8 @@ static void handleTerminateReq(Slurm_Msg_t *sMsg)
 
     if (!alloc) {
 	deleteJobById(req->jobid);
-	clearStepsByJobid(req->jobid);
-	flog("allocation %s not found\n", strStepID(&s));
+	Step_clearByJobid(req->jobid);
+	flog("allocation %s not found\n", Step_strID(&s));
 	if (sMsg->head.type == REQUEST_TERMINATE_JOB) {
 	    sendSlurmRC(sMsg, ESLURMD_KILL_JOB_ALREADY_COMPLETE);
 	} else {
@@ -2442,7 +2442,7 @@ static void handleTerminateReq(Slurm_Msg_t *sMsg)
 	    break;
 	default:
 	    sendSlurmRC(sMsg, ESLURMD_KILL_JOB_ALREADY_COMPLETE);
-	    flog("unknown terminate request for %s\n", strStepID(&s));
+	    flog("unknown terminate request for %s\n", Step_strID(&s));
     }
 
 CLEANUP:
@@ -2932,7 +2932,7 @@ void sendNodeRegStatus(bool startup)
 
     /* job id infos (count, array (jobid/stepid) */
     getJobInfos(&stat.jobInfoCount, &stat.jobids, &stat.stepids);
-    getStepInfos(&stat.jobInfoCount, &stat.jobids, &stat.stepids);
+    Step_getInfos(&stat.jobInfoCount, &stat.jobids, &stat.stepids);
     stat.stepHetComp = umalloc(sizeof(*stat.stepHetComp) * stat.jobInfoCount);
     for (uint32_t i=0; i<stat.jobInfoCount; i++) {
 	stat.stepHetComp[i] = NO_VAL;
@@ -3025,7 +3025,7 @@ int getSlurmNodeID(PSnodes_ID_t psNodeID, PSnodes_ID_t *nodes,
 void sendStepExit(Step_t *step, uint32_t exitStatus)
 {
     flog("REQUEST_STEP_COMPLETE for %s to slurmctld: exit %u\n",
-	 strStepID(step), exitStatus);
+	 Step_strID(step), exitStatus);
 
     /* add account data to request */
     pid_t childPid = (step->fwdata) ? step->fwdata->cPid : 1;
@@ -3254,11 +3254,11 @@ static void doSendLaunchTasksFailed(Step_t *step, uint32_t nodeID,
     /* send the message to srun */
 
     if (srunSendMsg(-1, step, RESPONSE_LAUNCH_TASKS, &body) < 1) {
-	flog("send RESPONSE_LAUNCH_TASKS failed %s\n", strStepID(step));
+	flog("send RESPONSE_LAUNCH_TASKS failed %s\n", Step_strID(step));
     }
 
     flog("send RESPONSE_LAUNCH_TASKS %s pids %u for '%s'\n",
-	 strStepID(step), step->globalTaskIdsLen[nodeID], resp.nodeName);
+	 Step_strID(step), step->globalTaskIdsLen[nodeID], resp.nodeName);
 }
 
 void sendLaunchTasksFailed(Step_t *step, uint32_t nodeID, uint32_t error)
@@ -3326,10 +3326,10 @@ void sendTaskPids(Step_t *step)
 
     /* send the message to srun */
     if (srunSendMsg(-1, step, RESPONSE_LAUNCH_TASKS, &body) < 1) {
-	flog("send RESPONSE_LAUNCH_TASKS failed %s\n", strStepID(step));
+	flog("send RESPONSE_LAUNCH_TASKS failed %s\n", Step_strID(step));
     }
 
-    flog("send RESPONSE_LAUNCH_TASKS %s pids %u\n", strStepID(step), countPIDs);
+    flog("send RESPONSE_LAUNCH_TASKS %s pids %u\n", Step_strID(step), countPIDs);
 
 CLEANUP:
     ufree(resp.localPIDs);

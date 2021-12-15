@@ -119,7 +119,7 @@ static bool stepEpilogue(Step_t *step, const void *info)
 	(step->packJobid != NO_VAL && step->packJobid == jobid)) {
 
 	step->state = JOB_EXIT;
-	fdbg(PSSLURM_LOG_JOB, "%s in %s\n", strStepID(step),
+	fdbg(PSSLURM_LOG_JOB, "%s in %s\n", Step_strID(step),
 	     strJobState(step->state));
     }
     return false;
@@ -141,7 +141,7 @@ static void handleEpilogueCB(Alloc_t *alloc, PElogueResList_t *resList)
 	fdbg(PSSLURM_LOG_JOB, "job %u in %s\n", job->jobid,
 	     strJobState(job->state));
     } else {
-	traverseSteps(stepEpilogue, &alloc->id);
+	Step_traverse(stepEpilogue, &alloc->id);
     }
 
     if (!isAllocLeader(alloc)) {
@@ -315,7 +315,7 @@ static bool startStepFollowerFW(Step_t *step, const void *info)
     if (step->jobid == jobid ||
 	(step->packJobid != NO_VAL && step->packJobid == jobid)) {
 
-	flog("pelogue exit, starting step follower fw, %s\n", strStepID(step));
+	flog("pelogue exit, starting step follower fw, %s\n", Step_strID(step));
 	execStepFollower(step);
     }
 
@@ -491,7 +491,7 @@ int handleLocalPElogueFinish(void *data)
 
     /* start step forwarder for all waiting steps */
     if (!pedata->exit && pedata->type == PELOGUE_PROLOGUE) {
-	traverseSteps(startStepFollowerFW, &jobid);
+	Step_traverse(startStepFollowerFW, &jobid);
     }
 
     /* set myself offline */

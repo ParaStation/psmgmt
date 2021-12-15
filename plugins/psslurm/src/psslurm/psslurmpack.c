@@ -1202,7 +1202,7 @@ static bool unpackReqLaunchTasks(Slurm_Msg_t *sMsg)
     uint16_t msgVer = sMsg->head.version, debug;
     uint32_t tmp;
 
-    Step_t *step = addStep();
+    Step_t *step = Step_add();
 
     /* step header */
     unpackStepHead(ptr, step, msgVer);
@@ -1468,7 +1468,7 @@ static bool unpackReqLaunchTasks(Slurm_Msg_t *sMsg)
     return true;
 
 ERROR:
-    deleteStep(step);
+    Step_delete(step);
     return false;
 }
 

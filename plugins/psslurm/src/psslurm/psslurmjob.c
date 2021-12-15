@@ -46,7 +46,7 @@ bool deleteJob(Job_t *job)
     mdbg(PSSLURM_LOG_JOB, "%s: '%u'\n", __func__, job->jobid);
 
     /* cleanup all corresponding resources */
-    clearStepsByJobid(job->jobid);
+    Step_clearByJobid(job->jobid);
     clearBCastByJobid(job->jobid);
     freeGresCred(&job->gresList);
 
@@ -269,7 +269,7 @@ int killForwarderByJobid(uint32_t jobid)
     list_t *j, *tmp;
     int count = 0;
 
-    count += killStepFWbyJobid(jobid);
+    count += Step_killFWbyJobid(jobid);
 
     list_for_each_safe(j, tmp, &JobList) {
 	Job_t *job = list_entry(j, Job_t, next);
@@ -342,7 +342,7 @@ int signalJob(Job_t *job, int signal, uid_t reqUID)
 	return -1;
     }
 
-    count = signalStepsByJobid(job->jobid, signal, reqUID);
+    count = Step_signalByJobid(job->jobid, signal, reqUID);
 
     if (!job->fwdata) return count;
 

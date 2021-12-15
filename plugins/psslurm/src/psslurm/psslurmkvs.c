@@ -189,13 +189,13 @@ static bool addTaskInfo(Step_t *step, const void *info)
     if (step->state == JOB_COMPLETE) return false;
 
     if (!countTasks(tasks)) {
-	snprintf(line, sizeof(line), "\nno tasks for %s\n", strStepID(step));
+	snprintf(line, sizeof(line), "\nno tasks for %s\n", Step_strID(step));
 	addStrBuf(line, strBuf);
 	return false;
     }
 
     snprintf(line, sizeof(line), "\n%u tasks for %s\n", countTasks(tasks),
-	     strStepID(step));
+	     Step_strID(step));
     addStrBuf(line, strBuf);
 
     list_t *t;
@@ -225,12 +225,12 @@ static char *showTasks(void)
 {
     StrBuffer_t strBuf = { .buf = NULL };
 
-    if (!countSteps()) {
+    if (!Step_count()) {
 	return addStrBuf("\nNo current tasks.\n", &strBuf);
     }
 
     addStrBuf("\ntasks for all steps:\n", &strBuf);
-    traverseSteps(addTaskInfo, &strBuf);
+    Step_traverse(addTaskInfo, &strBuf);
 
     return strBuf.buf;
 }
@@ -392,7 +392,7 @@ static bool addHwthreadsInfo(Step_t *step, const void *info)
     PSCPU_set_t *cpuset = &(step->nodeinfos[step->localNodeId].stepHWthreads);
     short numCPUs = step->nodeinfos[step->localNodeId].threadCount;
     snprintf(line, sizeof(line), "- %s threads %u coremap '%s'-\n",
-	    strStepID(step), step->numHwThreads,
+	    Step_strID(step), step->numHwThreads,
 	    PSCPU_print_part(*cpuset, PSCPU_bytesForCPUs(numCPUs)));
     addStrBuf(line, strBuf);
 
@@ -459,12 +459,12 @@ static char *showHWthreads(bool all)
 	.all = all,
 	.strBuf.buf = NULL };
 
-    if (!countSteps()) {
+    if (!Step_count()) {
 	return addStrBuf("\nNo current HW threads.\n", &stepInfo.strBuf);
     }
 
     addStrBuf("\nHW threads:\n\n", &stepInfo.strBuf);
-    traverseSteps(addHwthreadsInfo, &stepInfo);
+    Step_traverse(addHwthreadsInfo, &stepInfo);
 
     return stepInfo.strBuf.buf;
 }
@@ -487,7 +487,7 @@ static bool addStepInfo(Step_t *step, const void *info)
 
     if (step->state == JOB_COMPLETE && !stepInfo->all) return false;
 
-    snprintf(line, sizeof(line), "- %s -\n", strStepID(step));
+    snprintf(line, sizeof(line), "- %s -\n", Step_strID(step));
     addStrBuf(line, strBuf);
 
     if (step->packJobid != NO_VAL) {
@@ -558,12 +558,12 @@ static char *showSteps(bool all)
 	.all = all,
 	.strBuf.buf = NULL };
 
-    if (!countSteps()) {
+    if (!Step_count()) {
 	return addStrBuf("\nNo current steps.\n", &stepInfo.strBuf);
     }
 
     addStrBuf("\nsteps:\n\n", &stepInfo.strBuf);
-    traverseSteps(addStepInfo, &stepInfo);
+    Step_traverse(addStepInfo, &stepInfo);
 
     return stepInfo.strBuf.buf;
 }

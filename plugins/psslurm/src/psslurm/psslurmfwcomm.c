@@ -44,7 +44,7 @@ static void handleInfoTasks(Forwarder_Data_t *fwdata, char *ptr)
     list_add_tail(&task->next, &step->tasks);
 
     fdbg(PSSLURM_LOG_PROCESS, "%s child %s rank %i task %u from %u\n",
-	 strStepID(step), PSC_printTID(task->childTID), task->childRank,
+	 Step_strID(step), PSC_printTID(task->childTID), task->childRank,
 	 countRegTasks(step->tasks.next),
 	 step->globalTaskIdsLen[step->localNodeId]);
 
@@ -197,7 +197,7 @@ static void handleBrokeIOcon(PSLog_Msg_t *msg)
     PSP_getMsgBuf(bMsg, &used, "stepID", &stepID, sizeof(stepID));
 
     /* step might already be deleted */
-    Step_t *step = findStepByStepId(jobID, stepID);
+    Step_t *step = Step_findByStepId(jobID, stepID);
     if (!step) return;
 
     if (step->ioCon == IO_CON_NORM) step->ioCon = IO_CON_ERROR;
@@ -308,7 +308,7 @@ void fwCMD_printMsg(Job_t *job, Step_t *step, char *plMsg, uint32_t msgLen,
 	if (step->ioCon == IO_CON_BROKE) return;
 
 	if (step->ioCon == IO_CON_ERROR) {
-	    flog("I/O connection for %s is broken\n", strStepID(step));
+	    flog("I/O connection for %s is broken\n", Step_strID(step));
 	    step->ioCon = IO_CON_BROKE;
 	}
 
@@ -441,7 +441,7 @@ void fwCMD_msgSrunProxy(Step_t *step, PSLog_Msg_t *lmsg, int32_t senderRank)
     if (step->ioCon == IO_CON_BROKE) return;
 
     if (step->ioCon == IO_CON_ERROR) {
-	flog("I/O connection for %s is broken\n", strStepID(step));
+	flog("I/O connection for %s is broken\n", Step_strID(step));
 	step->ioCon = IO_CON_BROKE;
     }
 
