@@ -219,13 +219,22 @@ Step_t *Step_add(void);
 bool Step_verifyData(Step_t *step);
 
 /**
- * @brief Delete a step
+ * @brief Delete a step and free used memory
  *
  * @param step Step to delete
  *
  * @return Returns true on success or false otherwise
  */
 bool Step_delete(Step_t *step);
+
+/**
+ * @brief Destroy a step
+ *
+ * Delete a step and free used memory. Additionally all
+ * remaining processes are killed and associated connections
+ * closed.
+ */
+bool Step_destroy(Step_t *step);
 
 /**
  * @brief Delete all steps
@@ -235,7 +244,16 @@ bool Step_delete(Step_t *step);
  *
  * @param preserve Step to preserve
  */
-void Step_clearList(Step_t *preserve);
+void Step_deleteAll(Step_t *preserve);
+
+/**
+ * @brief Destroy all steps
+ *
+ * Delete all steps and free used memory. Additionally all
+ * remaining processes are killed and associated connections
+ * closed.
+ */
+void Step_destroyAll();
 
 /**
  * @brief Delete all steps of a specific job

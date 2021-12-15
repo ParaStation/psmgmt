@@ -839,7 +839,7 @@ void cleanup(void)
 
     /* free all malloced memory */
     clearJobList(NULL);
-    Step_clearList(NULL);
+    Step_destroyAll();
     clearGresConf();
     clearSlurmdProto();
     clearMsgBuf();

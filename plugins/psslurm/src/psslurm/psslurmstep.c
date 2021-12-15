@@ -199,13 +199,22 @@ Step_t *Step_findByPsidTask(pid_t pid)
     return NULL;
 }
 
-void Step_clearList(Step_t *preserve)
+void Step_deleteAll(Step_t *preserve)
 {
     list_t *s, *tmp;
     list_for_each_safe(s, tmp, &StepList) {
 	Step_t *step = list_entry(s, Step_t, next);
 	if (step == preserve) continue;
 	Step_delete(step);
+    }
+}
+
+void Step_destroyAll()
+{
+    list_t *s, *tmp;
+    list_for_each_safe(s, tmp, &StepList) {
+	Step_t *step = list_entry(s, Step_t, next);
+	Step_destroy(step);
     }
 }
 
@@ -231,22 +240,9 @@ bool Step_delete(Step_t *step)
 {
     if (!step) return false;
 
-    mdbg(PSSLURM_LOG_JOB, "%s: '%u:%u'\n", __func__, step->jobid, step->stepid);
+    fdbg(PSSLURM_LOG_JOB, "%s\n", Step_strID(step));
 
-    /* make sure all connections for the step are closed */
-    closeAllStepConnections(step);
-    clearBCastByJobid(step->jobid);
     deleteCachedMsg(step->jobid, step->stepid);
-
-    if (step->fwdata) {
-	signalTasks(step->jobid, step->uid, &step->tasks, SIGKILL, -1);
-	if (step->fwdata->cPid) {
-	    killChild(step->fwdata->cPid, SIGKILL, step->uid);
-	}
-	if (step->fwdata->tid != -1) {
-	    killChild(PSC_getPID(step->fwdata->tid), SIGKILL, 0);
-	}
-    }
 
     ufree(step->srunPorts);
     ufree(step->tasksToLaunch);
@@ -335,6 +331,30 @@ bool Step_delete(Step_t *step)
     ufree(step);
 
     return true;
+}
+
+bool Step_destroy(Step_t *step)
+{
+    if (!step) return false;
+
+    fdbg(PSSLURM_LOG_JOB, "%s\n", Step_strID(step));
+
+    /* make sure all connections for the step are closed */
+    closeAllStepConnections(step);
+    clearBCastByJobid(step->jobid);
+
+    if (step->fwdata) {
+	signalTasks(step->jobid, step->uid, &step->tasks, SIGKILL, -1);
+	if (step->fwdata->cPid) {
+	    killChild(step->fwdata->cPid, SIGKILL, step->uid);
+	}
+	if (step->fwdata->tid != -1) {
+	    killChild(PSC_getPID(step->fwdata->tid), SIGKILL, 0);
+	}
+    }
+
+    /* free used memory */
+    return Step_delete(step);
 }
 
 int Step_signal(Step_t *step, int signal, uid_t reqUID)
