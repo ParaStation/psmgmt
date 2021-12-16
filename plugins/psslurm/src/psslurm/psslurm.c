@@ -843,6 +843,7 @@ void cleanup(void)
     clearGresConf();
     clearSlurmdProto();
     clearMsgBuf();
+    clearBCastList();
     freeConfig(&Config);
     freeConfig(&SlurmConfig);
     freeEnvFilter();

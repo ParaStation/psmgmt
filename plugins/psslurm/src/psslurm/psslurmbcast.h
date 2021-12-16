@@ -109,6 +109,15 @@ void deleteBCast(BCast_t *bcast);
 void clearBCastByJobid(uint32_t jobid);
 
 /**
+ * @brief Destroy all BCast requests for a job
+ *
+ * If a BCast has an active forwarder it will be killed.
+ *
+ * @param jobid The jobid to destroy all requests for
+ */
+void destroyBCastByJobid(uint32_t jobid);
+
+/**
  * @brief Free all lingering BCast requests
  */
 void clearBCastList(void);

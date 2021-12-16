@@ -121,7 +121,7 @@ ERROR:
     return false;
 }
 
-void clearBCastByJobid(uint32_t jobid)
+void destroyBCastByJobid(uint32_t jobid)
 {
     list_t *b, *tmp;
     list_for_each_safe(b, tmp, &BCastList) {
@@ -133,6 +133,15 @@ void clearBCastByJobid(uint32_t jobid)
 		deleteBCast(bcast);
 	    }
 	}
+    }
+}
+
+void clearBCastByJobid(uint32_t jobid)
+{
+    list_t *b, *tmp;
+    list_for_each_safe(b, tmp, &BCastList) {
+	BCast_t *bcast = list_entry(b, BCast_t, next);
+	if (bcast->jobid == jobid) deleteBCast(bcast);
     }
 }
 

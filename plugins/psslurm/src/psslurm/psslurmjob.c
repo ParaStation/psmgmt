@@ -43,6 +43,8 @@ bool Job_destroy(Job_t *job)
 {
     if (!job) return false;
 
+    destroyBCastByJobid(job->jobid);
+
     mdbg(PSSLURM_LOG_JOB, "%s: '%u'\n", __func__, job->jobid);
 
     /* cleanup local job */
@@ -254,8 +256,6 @@ PSnodes_ID_t *Job_findNodeEntry(Job_t *job, PSnodes_ID_t id)
 
 void Job_destroyAll(void)
 {
-    clearBCastList();
-
     list_t *j, *tmp;
     list_for_each_safe(j, tmp, &JobList) {
 	Job_t *job = list_entry(j, Job_t, next);
