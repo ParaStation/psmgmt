@@ -93,7 +93,7 @@ plugin_dep_t dependencies[] = {
 static void cleanupJobs(void)
 {
     static int obitTimeCounter = 0;
-    int jcount = Job_count() + countAllocs();
+    int jcount = Job_count() + Alloc_count();
     bool stopHC = stopHealthCheck(SIGTERM);
 
     /* check if we are waiting for jobs to exit */
@@ -786,7 +786,7 @@ void finalize(void)
 
     bool stopHC = stopHealthCheck(SIGTERM);
 
-    int jcount = Job_count() + countAllocs();
+    int jcount = Job_count() + Alloc_count();
     if (jcount || !stopHC) {
 	struct timeval cleanupTimer = {1,0};
 

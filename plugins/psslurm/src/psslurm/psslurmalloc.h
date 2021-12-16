@@ -74,21 +74,21 @@ typedef enum {
  * @return Returns the newly created allocation or a existing allocation
  * with the given @a id
  */
-Alloc_t *addAlloc(uint32_t id, uint32_t packID, char *slurmHosts, env_t *env,
-		  uid_t uid, gid_t gid, char *username);
+Alloc_t *Alloc_add(uint32_t id, uint32_t packID, char *slurmHosts, env_t *env,
+		   uid_t uid, gid_t gid, char *username);
 
 /**
  * @brief Visitor function
  *
- * Visitor function used by @ref traverseAllocs() in order to visit
+ * Visitor function used by @ref Alloc_traverse() in order to visit
  * each allocation currently registered.
  *
  * The parameters are as follows: @a allocation points to the allocation to
  * visit. @a info points to the additional information passed to @ref
- * traverseAllocs() in order to be forwarded to each allocation.
+ * Alloc_traverse() in order to be forwarded to each allocation.
  *
  * If the visitor function returns true the traversal will be
- * interrupted and @ref traverseAllocs() will return to its calling
+ * interrupted and @ref Alloc_traverse() will return to its calling
  * function.
  */
 typedef bool AllocVisitor_t(Alloc_t *alloc, const void *info);
@@ -112,7 +112,7 @@ typedef bool AllocVisitor_t(Alloc_t *alloc, const void *info);
  * true is returned. If no visitor returned true during the traversal
  * false is returned.
  */
-bool traverseAllocs(AllocVisitor_t visitor, const void *info);
+bool Alloc_traverse(AllocVisitor_t visitor, const void *info);
 
 /**
  * @brief Find an allocation
@@ -121,7 +121,7 @@ bool traverseAllocs(AllocVisitor_t visitor, const void *info);
  *
  * @return Returns the requested allocation or NULL on error
  */
-Alloc_t *findAlloc(uint32_t id);
+Alloc_t *Alloc_find(uint32_t id);
 
 /**
  * @brief Find an allocation by pack ID
@@ -130,7 +130,7 @@ Alloc_t *findAlloc(uint32_t id);
  *
  * @return Returns the requested allocation or NULL on error
  */
-Alloc_t *findAllocByPackID(uint32_t id);
+Alloc_t *Alloc_findByPackID(uint32_t id);
 
 /**
  * @brief Delete an allocation
@@ -141,19 +141,19 @@ Alloc_t *findAllocByPackID(uint32_t id);
  *
  * @return Returns true on success or false on error
  */
-bool deleteAlloc(uint32_t id);
+bool Alloc_delete(uint32_t id);
 
 /**
  * @brief Delete all remaining allocations
  */
-void clearAllocList(void);
+void Alloc_clearList(void);
 
 /**
  * @brief Count all allocations
  *
  * @return Returns the number of allocations
  */
-int countAllocs(void);
+int Alloc_count(void);
 
 /**
  * @brief Send a signal to all allocations
@@ -166,7 +166,7 @@ int countAllocs(void);
  *
  * @return Returns the number of tasks signaled.
  */
-int signalAllocs(int signal);
+int Alloc_signalAll(int signal);
 
 /**
  * @brief Signal an allocation
@@ -185,7 +185,7 @@ int signalAllocs(int signal);
  * @return Returns the number of tasks which were signaled or -1
  *  if the @a reqUID is not permitted to signal the tasks
  */
-int signalAlloc(uint32_t id, int signal, uid_t reqUID);
+int Alloc_signal(uint32_t id, int signal, uid_t reqUID);
 
 /**
  * @brief Convert an allocation state to string
@@ -194,7 +194,7 @@ int signalAlloc(uint32_t id, int signal, uid_t reqUID);
  *
  * @return Returns the state as string representation
  */
-const char *strAllocState(AllocState_t state);
+const char *Alloc_strState(AllocState_t state);
 
 /**
  * @brief Test if local node is the leader of an allocation
@@ -204,6 +204,6 @@ const char *strAllocState(AllocState_t state);
  * @return Returns true if the local node is the leader otherwise
  * false
  */
-bool isAllocLeader(Alloc_t *alloc);
+bool Alloc_isLeader(Alloc_t *alloc);
 
 #endif  /* __PS_PSSLURM_ALLOC */

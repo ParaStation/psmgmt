@@ -475,7 +475,7 @@ static char *GTIDsToList(Step_t *step)
  */
 static uint32_t getJobNodeId(Step_t *step)
 {
-    Alloc_t *alloc = findAlloc(step->jobid);
+    Alloc_t *alloc = Alloc_find(step->jobid);
     Job_t *job = Job_findById(step->jobid);
 
     uint32_t jobNodeId = NO_VAL;
@@ -868,7 +868,7 @@ void setRankEnv(int32_t rank, Step_t *step)
 {
     setCommonRankEnv(rank, step);
 
-    Alloc_t *alloc = findAlloc(step->jobid);
+    Alloc_t *alloc = Alloc_find(step->jobid);
     if (alloc) setPsslurmEnv(&alloc->env, NULL);
 
     if (step->stepid == SLURM_INTERACTIVE_STEP) {
@@ -1068,6 +1068,6 @@ void setJobEnv(Job_t *job)
 	envSet(&job->env, "SLURM_CONF", getConfValueC(&Config, "SLURM_CONF"));
     }
 
-    Alloc_t *alloc = findAlloc(job->jobid);
+    Alloc_t *alloc = Alloc_find(job->jobid);
     if (alloc) setPsslurmEnv(&alloc->env, &job->env);
 }

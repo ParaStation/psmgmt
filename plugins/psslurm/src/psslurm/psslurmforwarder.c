@@ -123,7 +123,7 @@ static void cbTermJail(int exit, bool tmdOut, int iofd, void *info)
 static int jobCallback(int32_t exit_status, Forwarder_Data_t *fw)
 {
     Job_t *job = fw->userData;
-    Alloc_t *alloc = findAlloc(job->jobid);
+    Alloc_t *alloc = Alloc_find(job->jobid);
 
     mlog("%s: job '%u' finished, exit %i / %i\n", __func__, job->jobid,
 	 exit_status, fw->chldExitStatus);
@@ -164,7 +164,7 @@ static int jobCallback(int32_t exit_status, Forwarder_Data_t *fw)
     if (pluginShutdown) {
 	/* shutdown in progress, hence we skip the epilogue */
 	sendEpilogueComplete(alloc->id, SLURM_SUCCESS);
-	deleteAlloc(alloc->id);
+	Alloc_delete(alloc->id);
     } else if (alloc->terminate) {
 	/* run epilogue now */
 	flog("starting epilogue for allocation %u\n", alloc->id);
@@ -218,7 +218,7 @@ static int stepFollowerCB(int32_t exit_status, Forwarder_Data_t *fw)
 	}
 
 	/* step aborted due to node failure */
-	Alloc_t *alloc = findAlloc(step->jobid);
+	Alloc_t *alloc = Alloc_find(step->jobid);
 	if (alloc && alloc->nodeFail) eStatus = 9;
 
 	sendStepExit(step, eStatus);
@@ -233,7 +233,7 @@ static int stepFollowerCB(int32_t exit_status, Forwarder_Data_t *fw)
 	 Job_strState(step->state));
 
     /* test if we were waiting only for this step to finish */
-    Alloc_t *alloc = findAlloc(step->jobid);
+    Alloc_t *alloc = Alloc_find(step->jobid);
     if (!Job_findById(step->jobid) && alloc && alloc->state == A_RUNNING
 	&& alloc->terminate) {
 	/* run epilogue now */
@@ -257,7 +257,7 @@ static int stepCallback(int32_t exit_status, Forwarder_Data_t *fw)
     }
     stopStepFollower(step);
 
-    Alloc_t *alloc = findAlloc(step->jobid);
+    Alloc_t *alloc = Alloc_find(step->jobid);
     flog("%s in %s finished, exit %i / %i\n", Step_strID(step),
 	 Job_strState(step->state), exit_status, fw->chldExitStatus);
 
@@ -456,7 +456,7 @@ static void initFwPtr(PStask_t *task)
     if (step) {
 	fwStep = step;
 	fwJob = Job_findById(jobid);
-	fwAlloc = findAlloc(jobid);
+	fwAlloc = Alloc_find(jobid);
     }
     fwTask = task;
 }
@@ -1057,7 +1057,7 @@ static int stepForwarderInit(Forwarder_Data_t *fwdata)
 #ifdef HAVE_SPANK
     struct spank_handle spank = {
 	.task = NULL,
-	.alloc = findAlloc(step->jobid),
+	.alloc = Alloc_find(step->jobid),
 	.job = Job_findById(step->jobid),
 	.step = step,
 	.hook = SPANK_INIT
@@ -1162,7 +1162,7 @@ static void stepFinalize(Forwarder_Data_t *fwdata)
     Step_t *step = fwdata->userData;
     struct spank_handle spank = {
 	.task = NULL,
-	.alloc = findAlloc(step->jobid),
+	.alloc = Alloc_find(step->jobid),
 	.job = Job_findById(step->jobid),
 	.step = step,
 	.hook = SPANK_EXIT
@@ -1483,7 +1483,7 @@ static int stepFollowerFWinit(Forwarder_Data_t *fwdata)
 
     struct spank_handle spank = {
 	.task = NULL,
-	.alloc = findAlloc(step->jobid),
+	.alloc = Alloc_find(step->jobid),
 	.job = Job_findById(step->jobid),
 	.step = step,
 	.hook = SPANK_INIT
@@ -1604,7 +1604,7 @@ static int epiFinCallback(int32_t exit_status, Forwarder_Data_t *fwdata)
 
     if (alloc->terminate) {
 	sendEpilogueComplete(alloc->id, 0);
-	deleteAlloc(alloc->id);
+	Alloc_delete(alloc->id);
     }
 
     return 0;

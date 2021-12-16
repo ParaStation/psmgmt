@@ -42,10 +42,10 @@
 /** List of all allocations */
 static LIST_HEAD(AllocList);
 
-Alloc_t *addAlloc(uint32_t id, uint32_t packID, char *slurmHosts, env_t *env,
-		  uid_t uid, gid_t gid, char *username)
+Alloc_t *Alloc_add(uint32_t id, uint32_t packID, char *slurmHosts, env_t *env,
+		   uid_t uid, gid_t gid, char *username)
 {
-    Alloc_t *alloc = findAlloc(id);
+    Alloc_t *alloc = Alloc_find(id);
 
     if (alloc) return alloc;
 
@@ -83,7 +83,7 @@ Alloc_t *addAlloc(uint32_t id, uint32_t packID, char *slurmHosts, env_t *env,
     return alloc;
 }
 
-bool traverseAllocs(AllocVisitor_t visitor, const void *info)
+bool Alloc_traverse(AllocVisitor_t visitor, const void *info)
 {
     list_t *a, *tmp;
     list_for_each_safe(a, tmp, &AllocList) {
@@ -95,7 +95,7 @@ bool traverseAllocs(AllocVisitor_t visitor, const void *info)
     return false;
 }
 
-int countAllocs(void)
+int Alloc_count(void)
 {
     int count=0;
     list_t *a;
@@ -104,16 +104,16 @@ int countAllocs(void)
     return count;
 }
 
-void clearAllocList(void)
+void Alloc_clearList(void)
 {
     list_t *a, *tmp;
     list_for_each_safe(a, tmp, &AllocList) {
 	Alloc_t *alloc = list_entry(a, Alloc_t, next);
-	deleteAlloc(alloc->id);
+	Alloc_delete(alloc->id);
     }
 }
 
-Alloc_t *findAlloc(uint32_t id)
+Alloc_t *Alloc_find(uint32_t id)
 {
     list_t *a;
     list_for_each(a, &AllocList) {
@@ -123,7 +123,7 @@ Alloc_t *findAlloc(uint32_t id)
     return NULL;
 }
 
-Alloc_t *findAllocByPackID(uint32_t packID)
+Alloc_t *Alloc_findByPackID(uint32_t packID)
 {
     list_t *a;
     list_for_each(a, &AllocList) {
@@ -163,7 +163,7 @@ static void cbTermJail(int exit, bool tmdOut, int iofd, void *info)
     }
 }
 
-bool deleteAlloc(uint32_t id)
+bool Alloc_delete(uint32_t id)
 {
     Alloc_t *alloc;
 
@@ -172,7 +172,7 @@ bool deleteAlloc(uint32_t id)
     Step_clearByJobid(id);
     clearBCastByJobid(id);
 
-    if (!(alloc = findAlloc(id))) return false;
+    if (!(alloc = Alloc_find(id))) return false;
 
     /* terminate cgroup */
     PSID_execFunc(termJail, NULL, cbTermJail, NULL, alloc);
@@ -183,7 +183,7 @@ bool deleteAlloc(uint32_t id)
     psPelogueDeleteJob("psslurm", Job_strID(alloc->id));
 
     /* tell sisters the allocation is revoked */
-    if (isAllocLeader(alloc)) {
+    if (Alloc_isLeader(alloc)) {
 	send_PS_JobExit(alloc->id, SLURM_BATCH_SCRIPT,
 		alloc->nrOfNodes, alloc->nodes);
     }
@@ -207,7 +207,7 @@ bool deleteAlloc(uint32_t id)
     return true;
 }
 
-int signalAllocs(int signal)
+int Alloc_signalAll(int signal)
 {
     int count = 0;
     list_t *a, *tmp;
@@ -219,9 +219,9 @@ int signalAllocs(int signal)
     return count;
 }
 
-int signalAlloc(uint32_t id, int signal, uid_t reqUID)
+int Alloc_signal(uint32_t id, int signal, uid_t reqUID)
 {
-    Alloc_t *alloc = findAlloc(id);
+    Alloc_t *alloc = Alloc_find(id);
     Job_t *job = Job_findById(id);
     int count = 0;
 
@@ -236,7 +236,7 @@ int signalAlloc(uint32_t id, int signal, uid_t reqUID)
     return count;
 }
 
-const char *strAllocState(AllocState_t state)
+const char *Alloc_strState(AllocState_t state)
 {
     static char buf[128];
 
@@ -261,7 +261,7 @@ const char *strAllocState(AllocState_t state)
     }
 }
 
-bool isAllocLeader(Alloc_t *alloc)
+bool Alloc_isLeader(Alloc_t *alloc)
 {
     if (!alloc || !alloc->nodes) return false;
     if (alloc->nodes[0] == PSC_getMyID()) return true;

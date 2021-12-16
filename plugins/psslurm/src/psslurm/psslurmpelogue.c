@@ -144,7 +144,7 @@ static void handleEpilogueCB(Alloc_t *alloc, PElogueResList_t *resList)
 	Step_traverse(stepEpilogue, &alloc->id);
     }
 
-    if (!isAllocLeader(alloc)) {
+    if (!Alloc_isLeader(alloc)) {
 	/* Inform allocation leader the epilogue is finished. The leader
 	 * will wait for all epilogue scripts to complete and offline nodes
 	 * which are not responding */
@@ -152,7 +152,7 @@ static void handleEpilogueCB(Alloc_t *alloc, PElogueResList_t *resList)
        /* inform slurmctld */
        sendEpilogueComplete(alloc->id, SLURM_SUCCESS);
        /* delete allocation */
-       if (alloc->terminate) deleteAlloc(alloc->id);
+       if (alloc->terminate) Alloc_delete(alloc->id);
     } else {
 	/* Warning: the msg handler function may delete the allocation
 	 * on the leader in finalizeEpilogue(). Don't use the
@@ -185,19 +185,19 @@ static void cbPElogue(char *sID, int exitStatus, bool timeout,
 	goto CLEANUP;
     }
 
-    if (!(alloc = findAlloc(id))) {
+    if (!(alloc = Alloc_find(id))) {
 	flog("allocation with ID %u not found\n", id);
 	goto CLEANUP;
     }
 
     flog("allocation ID '%s' state '%s' exit %i timeout %i\n",
-	 sID, strAllocState(alloc->state), exitStatus, timeout);
+	 sID, Alloc_strState(alloc->state), exitStatus, timeout);
 
     if (pluginShutdown) {
 	flog("shutdown in progress, deleting allocation %u\n", alloc->id);
 	alloc->state = A_EXIT;
 	send_PS_AllocState(alloc);
-	deleteAlloc(alloc->id);
+	Alloc_delete(alloc->id);
 	goto CLEANUP;
     }
 
@@ -288,7 +288,7 @@ bool finalizeEpilogue(Alloc_t *alloc)
 	if (!epilogueFinScript(alloc)) {
 	    if (alloc->terminate) {
 		sendEpilogueComplete(alloc->id, 0);
-		deleteAlloc(alloc->id);
+		Alloc_delete(alloc->id);
 		return true;
 	    }
 	}
@@ -373,17 +373,17 @@ int handleLocalPElogueStart(void *data)
 	if (!packHosts) {
 	    /* non leader prologue for pack,
 	     * add allocation but skip the execution of prologue */
-	    Alloc_t *old = findAllocByPackID(packID);
+	    Alloc_t *old = Alloc_findByPackID(packID);
 	    env_t *env = old ? &old->env : &pedata->env;
 	    mdbg(PSSLURM_LOG_PELOG, "%s: no pack hosts, add allocation %u skip "
 		 "prologue\n", __func__, id);
-	    Alloc_t *alloc = addAlloc(id, packID, slurmHosts, env,
+	    Alloc_t *alloc = Alloc_add(id, packID, slurmHosts, env,
 				      pedata->uid, pedata->gid, user);
 	    if (old) {
 		mdbg(PSSLURM_LOG_PELOG, "%s: removing old allocation %u\n",
 		     __func__, packID);
 		alloc->state = old->state;
-		deleteAlloc(old->id);
+		Alloc_delete(old->id);
 	    }
 	    ret = -2;
 	} else {
@@ -406,15 +406,15 @@ int handleLocalPElogueStart(void *data)
 	    if (localid != NO_VAL) {
 		mdbg(PSSLURM_LOG_PELOG, "%s: leader with pack hosts, add "
 		     "allocation %u\n", __func__, id);
-		alloc = addAlloc(id, packID, slurmHosts, &pedata->env,
+		alloc = Alloc_add(id, packID, slurmHosts, &pedata->env,
 				 pedata->uid, pedata->gid, user);
 		alloc->state = A_PROLOGUE;
 	    } else {
-		Alloc_t *alloc = findAllocByPackID(packID);
+		Alloc_t *alloc = Alloc_findByPackID(packID);
 		if (!alloc) {
 		    mdbg(PSSLURM_LOG_PELOG, "%s: leader with pack hosts, add "
 			 "temporary allocation %u\n", __func__, packID);
-		    alloc = addAlloc(id, packID, slurmHosts, &pedata->env,
+		    alloc = Alloc_add(id, packID, slurmHosts, &pedata->env,
 				     pedata->uid, pedata->gid, user);
 		    alloc->state = A_PROLOGUE;
 		} else {
@@ -427,7 +427,7 @@ int handleLocalPElogueStart(void *data)
 	/* prologue for regular (non pack) job */
 	mdbg(PSSLURM_LOG_PELOG, "%s: non pack job, add allocation %u\n",
 	     __func__, id);
-	Alloc_t *alloc = addAlloc(id, packID, slurmHosts, &pedata->env,
+	Alloc_t *alloc = Alloc_add(id, packID, slurmHosts, &pedata->env,
 				  pedata->uid, pedata->gid, user);
 	alloc->state = A_PROLOGUE;
     }
@@ -445,7 +445,7 @@ int handlePEloguePrepare(void *data)
 
     struct spank_handle spank = {
 	.task = NULL,
-	.alloc = findAlloc(jobid),
+	.alloc = Alloc_find(jobid),
 	.job = Job_findById(jobid),
 	.step = NULL,
 	.hook = SPANK_JOB_PROLOG
@@ -464,10 +464,10 @@ int handleLocalPElogueFinish(void *data)
     PElogueChild_t *pedata = data;
     uint32_t jobid = atoi(pedata->jobid);
     char msg[256];
-    Alloc_t *alloc = findAlloc(jobid);
+    Alloc_t *alloc = Alloc_find(jobid);
 
     if (!alloc) {
-	alloc = findAllocByPackID(jobid);
+	alloc = Alloc_findByPackID(jobid);
 	if (!alloc) {
 	    flog("no allocation for jobid %u found\n", jobid);
 	    return 0;
@@ -728,7 +728,7 @@ int handlePelogueOE(void *data)
     bool fwEpilogueOE= getConfValueU(&Config, "PELOGUE_LOG_OE");
     if (!fwEpilogueOE) return 0;
 
-    Alloc_t *alloc = findAlloc(jobid);
+    Alloc_t *alloc = Alloc_find(jobid);
     if (!alloc) {
 	static uint32_t errJobID = -1;
 
@@ -752,7 +752,7 @@ int handlePelogueGlobal(void *data)
 
     if (!pedata->exit) return 0;
 
-    Alloc_t *alloc = findAlloc(jobid);
+    Alloc_t *alloc = Alloc_find(jobid);
     if (alloc) {
 	if (alloc->state == A_INIT || alloc->state == A_PROLOGUE_FINISH ||
 	    alloc->state == A_PROLOGUE) {

@@ -130,7 +130,7 @@ static char *showJobs(void)
  *
  * @return Always returns false to loop throw all allocations
  */
-static bool addAllocInfo(Alloc_t *alloc, const void *info)
+static bool Alloc_addInfo(Alloc_t *alloc, const void *info)
 {
     struct tm *ts;
     char start[50];
@@ -154,7 +154,7 @@ static bool addAllocInfo(Alloc_t *alloc, const void *info)
     addStrBuf(line, strBuf);
 
     snprintf(line, sizeof(line), "alloc state '%s'\n",
-	    strAllocState(alloc->state));
+	    Alloc_strState(alloc->state));
     addStrBuf(line, strBuf);
 
     /* format start time */
@@ -320,12 +320,12 @@ static char *showAllocations(void)
 {
     StrBuffer_t strBuf = { .buf = NULL };
 
-    if (!countAllocs()) {
+    if (!Alloc_count()) {
 	return addStrBuf("\nNo current allocations.\n", &strBuf);
     }
 
     addStrBuf("\nallocations:\n\n", &strBuf);
-    traverseAllocs(addAllocInfo, &strBuf);
+    Alloc_traverse(Alloc_addInfo, &strBuf);
 
     return strBuf.buf;
 }

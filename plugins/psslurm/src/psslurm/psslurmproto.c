@@ -573,7 +573,7 @@ static void handleLaunchTasks(Slurm_Msg_t *sMsg)
 	 step->stepHetComp == NO_VAL ? 0 : step->stepHetComp);
 
     /* ensure an allocation exists for the new step */
-    if (!findAlloc(step->jobid)) {
+    if (!Alloc_find(step->jobid)) {
 	flog("error: no allocation for jobid %u found\n", step->jobid);
 	flog("** ensure slurmctld prologue is setup correctly **\n");
 	sendSlurmRC(sMsg, ESLURMD_INVALID_JOB_CREDENTIAL);
@@ -1419,7 +1419,7 @@ static void handleFileBCast(Slurm_Msg_t *sMsg)
     /* assign to job/allocation */
     Job_t *job = Job_findById(bcast->jobid);
     if (!job) {
-	Alloc_t *alloc = findAlloc(bcast->jobid);
+	Alloc_t *alloc = Alloc_find(bcast->jobid);
 	if (!alloc) {
 	    mlog("%s: job %u not found\n", __func__, bcast->jobid);
 	    sendSlurmRC(sMsg, ESLURM_INVALID_JOB_ID);
@@ -1898,12 +1898,12 @@ static void handleLaunchProlog(Slurm_Msg_t *sMsg)
     sendSlurmRC(sMsg, SLURM_SUCCESS);
 
     /* add an allocation if slurmctld prologue did not */
-    Alloc_t *alloc = findAlloc(req->jobid);
+    Alloc_t *alloc = Alloc_find(req->jobid);
     if (!alloc && req->hetJobid != 0 && req->hetJobid != NO_VAL) {
-	alloc = findAllocByPackID(req->hetJobid);
+	alloc = Alloc_findByPackID(req->hetJobid);
     }
     if (!alloc) {
-	alloc = addAlloc(req->jobid, req->hetJobid, req->nodes, &req->spankEnv,
+	alloc = Alloc_add(req->jobid, req->hetJobid, req->nodes, &req->spankEnv,
 			 req->uid, req->gid, req->userName);
     } else {
 	envCat(&alloc->env, &req->spankEnv, envFilter);
@@ -1918,7 +1918,7 @@ static void handleLaunchProlog(Slurm_Msg_t *sMsg)
 	startPElogue(alloc, PELOGUE_PROLOGUE);
     } else {
        flog("prologue for allocation %u in state %s already executed\n",
-            req->jobid, strAllocState(alloc->state));
+            req->jobid, Alloc_strState(alloc->state));
 
 	/* let the slurmctld know the prologue has finished */
 	sendPrologComplete(req->jobid, SLURM_SUCCESS);
@@ -2112,7 +2112,7 @@ static void handleBatchJobLaunch(Slurm_Msg_t *sMsg)
     /* setup job environment */
     initJobEnv(job);
 
-    Alloc_t *alloc = findAlloc(job->jobid);
+    Alloc_t *alloc = Alloc_find(job->jobid);
     bool ret = false;
     char *prologue = getConfValueC(&SlurmConfig, "Prolog");
     if (!prologue || prologue[0] == '\0') {
@@ -2127,7 +2127,7 @@ static void handleBatchJobLaunch(Slurm_Msg_t *sMsg)
 	/* sanity check allocation state */
 	if (alloc->state != A_PROLOGUE_FINISH) {
 	    flog("allocation %u in invalid state %s\n", alloc->id,
-		 strAllocState(alloc->state));
+		 Alloc_strState(alloc->state));
 	    goto ERROR;
 	}
 
@@ -2183,16 +2183,16 @@ static void doTerminateAlloc(Slurm_Msg_t *sMsg, Alloc_t *alloc)
     if (maxTermReq > 0 && alloc->terminate++ >= maxTermReq) {
 	/* ensure jobs will not get stuck forever */
 	flog("force termination of allocation %u in state %s requests %i\n",
-	     alloc->id, strAllocState(alloc->state), alloc->terminate);
+	     alloc->id, Alloc_strState(alloc->state), alloc->terminate);
 	sendEpilogueComplete(alloc->id, 0);
-	deleteAlloc(alloc->id);
+	Alloc_delete(alloc->id);
 	sendSlurmRC(sMsg, SLURM_SUCCESS);
 	return;
     }
 
     switch (alloc->state) {
 	case A_RUNNING:
-	    if ((pcount = signalAlloc(alloc->id, signal, sMsg->head.uid)) > 0) {
+	    if ((pcount = Alloc_signal(alloc->id, signal, sMsg->head.uid)) > 0) {
 		sendSlurmRC(sMsg, SLURM_SUCCESS);
 		flog("waiting for %i processes to complete, alloc %u (%i/%i)\n",
 		     pcount, alloc->id, alloc->terminate, maxTermReq);
@@ -2206,10 +2206,10 @@ static void doTerminateAlloc(Slurm_Msg_t *sMsg, Alloc_t *alloc)
 	    return;
 	case A_EPILOGUE_FINISH:
 	case A_EXIT:
-	    if (!isAllocLeader(alloc)) {
+	    if (!Alloc_isLeader(alloc)) {
 		/* epilogue already executed, we are done */
 		sendSlurmRC(sMsg, ESLURMD_KILL_JOB_ALREADY_COMPLETE);
-		deleteAlloc(alloc->id);
+		Alloc_delete(alloc->id);
 	    } else {
 		/* mother superior will wait for other nodes */
 		if (!finalizeEpilogue(alloc)) {
@@ -2233,7 +2233,7 @@ static void doTerminateAlloc(Slurm_Msg_t *sMsg, Alloc_t *alloc)
 	    break;
 	default:
 	    flog("invalid allocation state %u\n", alloc->state);
-	    deleteAlloc(alloc->id);
+	    Alloc_delete(alloc->id);
 	    sendSlurmRC(sMsg, SLURM_SUCCESS);
 	    return;
     }
@@ -2241,7 +2241,7 @@ static void doTerminateAlloc(Slurm_Msg_t *sMsg, Alloc_t *alloc)
     /* job/steps already finished, start epilogue now */
     sendSlurmRC(sMsg, SLURM_SUCCESS);
     mlog("%s: starting epilogue for allocation %u state %s\n", __func__,
-	 alloc->id, strAllocState(alloc->state));
+	 alloc->id, Alloc_strState(alloc->state));
     startPElogue(alloc, PELOGUE_EPILOGUE);
 }
 
@@ -2274,13 +2274,13 @@ static void handleAbortReq(Slurm_Msg_t *sMsg, uint32_t jobid, uint32_t stepid)
 	}
 	Job_delete(job);
     } else {
-	Alloc_t *alloc = findAlloc(jobid);
-	if (alloc && isAllocLeader(alloc)) {
+	Alloc_t *alloc = Alloc_find(jobid);
+	if (alloc && Alloc_isLeader(alloc)) {
 	    Step_signalByJobid(alloc->id, SIGKILL, sMsg->head.uid);
 	    send_PS_JobExit(alloc->id, SLURM_BATCH_SCRIPT,
 		    alloc->nrOfNodes, alloc->nodes);
 	}
-	deleteAlloc(jobid);
+	Alloc_delete(jobid);
     }
 }
 
@@ -2356,7 +2356,7 @@ static void handleKillReq(Slurm_Msg_t *sMsg, Alloc_t *alloc, Kill_Info_t *info)
     }
 
     if (alloc->state == A_RUNNING || alloc->state == A_PROLOGUE_FINISH) {
-	int pcount = signalAlloc(alloc->id, SIGTERM, sMsg->head.uid);
+	int pcount = Alloc_signal(alloc->id, SIGTERM, sMsg->head.uid);
 	if (pcount > 0) {
 	    flog("waiting for %i processes to complete\n", pcount);
 	    sendSlurmRC(sMsg, SLURM_SUCCESS);
@@ -2405,7 +2405,7 @@ static void handleTerminateReq(Slurm_Msg_t *sMsg)
     cleanupDelayedSpawns(req->jobid, req->stepid);
 
     /* find the corresponding allocation */
-    Alloc_t *alloc = findAlloc(req->jobid);
+    Alloc_t *alloc = Alloc_find(req->jobid);
 
     if (!alloc) {
 	Job_deleteById(req->jobid);

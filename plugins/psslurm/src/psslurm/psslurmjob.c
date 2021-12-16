@@ -368,7 +368,7 @@ int Job_signalAll(int signal)
 	count += Job_signalTasks(job, signal, 0);
     }
 
-    count += signalAllocs(signal);
+    count += Alloc_signalAll(signal);
 
     return count;
 }

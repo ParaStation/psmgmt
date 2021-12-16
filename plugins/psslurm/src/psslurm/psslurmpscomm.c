@@ -712,7 +712,7 @@ static int callbackNodeOffline(uint32_t id, int32_t exit, PSnodes_ID_t remote,
 			       uint16_t scriptID, char *output)
 {
     Job_t *job = Job_findById(id);
-    Alloc_t *alloc = findAlloc(id);
+    Alloc_t *alloc = Alloc_find(id);
 
     mlog("%s: id %u exit %i remote %i\n", __func__, id, exit, remote);
 
@@ -735,7 +735,7 @@ static int callbackNodeOffline(uint32_t id, int32_t exit, PSnodes_ID_t remote,
     }
 
     flog("%s alloc %u state %s\n", exit ? "error" : "success", alloc->id,
-	 strAllocState(alloc->state));
+	 Alloc_strState(alloc->state));
 
     return 0;
 }
@@ -906,7 +906,7 @@ static void handle_JobExit(DDTypedBufferMsg_t *msg)
     } else {
 	step->state = JOB_EXIT;
 	fdbg(PSSLURM_LOG_JOB, "%s in %s\n", Step_strID(step),
-	     strAllocState(step->state));
+	     Alloc_strState(step->state));
     }
 }
 
@@ -978,7 +978,7 @@ static void handle_EpilogueStateRes(DDTypedBufferMsg_t *msg)
     PSP_getTypedMsgBuf(msg, &used, "ID", &id, sizeof(id));
     PSP_getTypedMsgBuf(msg, &used, "res", &res, sizeof(res));
 
-    Alloc_t *alloc = findAlloc(id);
+    Alloc_t *alloc = Alloc_find(id);
     if (!alloc) {
 	flog("allocation with ID %u not found\n", id);
 	return;
@@ -1021,7 +1021,7 @@ static void handle_EpilogueStateReq(DDTypedBufferMsg_t *msg)
 
     PSP_getTypedMsgBuf(msg, &used, "ID", &id, sizeof(id));
 
-    Alloc_t *alloc = findAlloc(id);
+    Alloc_t *alloc = Alloc_find(id);
     if (!alloc) {
 	flog("allocation with ID %u not found\n", id);
 	res = 0;
@@ -1031,7 +1031,7 @@ static void handle_EpilogueStateReq(DDTypedBufferMsg_t *msg)
 	    alloc->state != A_EPILOGUE_FINISH &&
 	    alloc->state != A_EXIT) {
 	    flog("starting epilogue for allocation %u state %s\n", id,
-		 strAllocState(alloc->state));
+		 Alloc_strState(alloc->state));
 	    startPElogue(alloc, PELOGUE_EPILOGUE);
 	}
     }
@@ -1078,7 +1078,7 @@ static void handle_PElogueRes(DDTypedBufferMsg_t *msg)
     fdbg(PSSLURM_LOG_PELOG, "%s result %i for allocation %u from %s\n",
 	 sType, res, id, PSC_printTID(msg->header.sender));
 
-    Alloc_t *alloc = findAlloc(id);
+    Alloc_t *alloc = Alloc_find(id);
     if (!alloc) {
 	flog("allocation with ID %u not found\n", id);
 	return;
@@ -1158,7 +1158,7 @@ static void handle_JobLaunch(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
     Job_t *job = Job_add(jobid);
     job->state = JOB_QUEUED;
     mdbg(PSSLURM_LOG_JOB, "%s: job %u in %s\n", __func__, job->jobid,
-	 strAllocState(job->state));
+	 Alloc_strState(job->state));
     job->mother = msg->header.sender;
 
     /* get uid/gid */
@@ -1193,14 +1193,14 @@ static void handleAllocState(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
     /* get state */
     getUint16(&ptr, &state);
 
-    if (!(alloc = findAlloc(jobid))) {
+    if (!(alloc = Alloc_find(jobid))) {
 	flog("allocation %u not found\n", jobid);
 	return;
     }
 
     alloc->state = state;
 
-    flog("jobid %u state %s from %s\n", jobid, strAllocState(alloc->state),
+    flog("jobid %u state %s from %s\n", jobid, Alloc_strState(alloc->state),
 	 PSC_printTID(msg->header.sender));
 }
 
@@ -1331,7 +1331,7 @@ static void handlePackInfo(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
     /* pack allocation ID */
     getUint32(&ptr, &packAllocID);
 
-    if (!findAllocByPackID(packAllocID)) {
+    if (!Alloc_findByPackID(packAllocID)) {
 	flog("allocation %u not found\n", packAllocID);
 	return;
     }
@@ -1663,7 +1663,7 @@ static bool nodeDownAlloc(Alloc_t *alloc, const void *info)
 	if (alloc->nodes[i] != node) continue;
 
 	flog("node %i in allocation %u state %s is down\n",
-	     node, alloc->id, strAllocState(alloc->state));
+	     node, alloc->id, Alloc_strState(alloc->state));
 
 	Step_t *step = Step_findByJobid(alloc->id);
 	if (!step) step = Step_findByJobid(alloc->packID);
@@ -1694,7 +1694,7 @@ static bool nodeDownAlloc(Alloc_t *alloc, const void *info)
 
 	if (alloc->state == A_RUNNING
 	    || alloc->state == A_PROLOGUE_FINISH) {
-	    signalAlloc(alloc->id, SIGKILL, 0);
+	    Alloc_signal(alloc->id, SIGKILL, 0);
 	}
 
 	alloc->nodeFail = true;
@@ -1715,7 +1715,7 @@ static int handleNodeDown(void *nodeID)
     PSnodes_ID_t node = *((PSnodes_ID_t *) nodeID);
 
     /* test if the node is part of an allocation */
-    traverseAllocs(nodeDownAlloc, &node);
+    Alloc_traverse(nodeDownAlloc, &node);
 
     /* test for missing tree forwarded message of the unreachable node */
     handleBrokenConnection(node);
@@ -1761,7 +1761,7 @@ static void handleDroppedEpilogue(DDTypedBufferMsg_t *msg)
 
     PSP_getTypedMsgBuf(msg, &used, "ID", &id, sizeof(id));
 
-    Alloc_t *alloc = findAlloc(id);
+    Alloc_t *alloc = Alloc_find(id);
     if (!alloc) {
 	flog("allocation with ID %u not found\n", id);
 	return;
