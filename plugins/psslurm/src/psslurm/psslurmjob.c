@@ -39,7 +39,7 @@
 /** List of all jobs */
 static LIST_HEAD(JobList);
 
-bool deleteJob(Job_t *job)
+bool Job_delete(Job_t *job)
 {
     if (!job) return false;
 
@@ -110,11 +110,11 @@ bool deleteJob(Job_t *job)
     return true;
 }
 
-Job_t *addJob(uint32_t jobid)
+Job_t *Job_add(uint32_t jobid)
 {
     Job_t *job = ucalloc(sizeof(Job_t));
 
-    deleteJobById(jobid);
+    Job_deleteById(jobid);
 
     job->jobid = jobid;
     job->stdOutFD = job->stdErrFD = -1;
@@ -130,7 +130,7 @@ Job_t *addJob(uint32_t jobid)
     return job;
 }
 
-bool verifyJobData(Job_t *job)
+bool Job_verifyData(Job_t *job)
 {
     JobCred_t *cred = job->cred;
     if (!cred) {
@@ -214,15 +214,15 @@ bool verifyJobData(Job_t *job)
     return true;
 }
 
-Job_t *findJobByIdC(char *id)
+Job_t *Job_findByIdC(char *id)
 {
     uint32_t jobid;
 
     if ((sscanf(id, "%u", &jobid)) != 1) return NULL;
-    return findJobById(jobid);
+    return Job_findById(jobid);
 }
 
-Job_t *findJobById(uint32_t jobid)
+Job_t *Job_findById(uint32_t jobid)
 {
     list_t *j;
     list_for_each(j, &JobList) {
@@ -232,7 +232,7 @@ Job_t *findJobById(uint32_t jobid)
     return NULL;
 }
 
-PSnodes_ID_t *findJobNodeEntry(Job_t *job, PSnodes_ID_t id)
+PSnodes_ID_t *Job_findNodeEntry(Job_t *job, PSnodes_ID_t id)
 {
     unsigned int i;
 
@@ -244,7 +244,7 @@ PSnodes_ID_t *findJobNodeEntry(Job_t *job, PSnodes_ID_t id)
     return NULL;
 }
 
-void clearJobList(Job_t *preserve)
+void Job_clearList(Job_t *preserve)
 {
     clearBCastList();
 
@@ -252,19 +252,19 @@ void clearJobList(Job_t *preserve)
     list_for_each_safe(j, tmp, &JobList) {
 	Job_t *job = list_entry(j, Job_t, next);
 	if (job == preserve) continue;
-	deleteJob(job);
+	Job_delete(job);
     }
 }
 
-bool deleteJobById(uint32_t jobid)
+bool Job_deleteById(uint32_t jobid)
 {
-    Job_t *job = findJobById(jobid);
+    Job_t *job = Job_findById(jobid);
     if (!job) return false;
 
-    return deleteJob(job);
+    return Job_delete(job);
 }
 
-int killForwarderByJobid(uint32_t jobid)
+int Job_killForwarder(uint32_t jobid)
 {
     list_t *j, *tmp;
     int count = 0;
@@ -282,7 +282,7 @@ int killForwarderByJobid(uint32_t jobid)
     return count;
 }
 
-int countJobs(void)
+int Job_count(void)
 {
     int count=0;
     list_t *j;
@@ -291,10 +291,10 @@ int countJobs(void)
     return count;
 }
 
-void getJobInfos(uint32_t *infoCount, uint32_t **jobids, uint32_t **stepids)
+void Job_getInfos(uint32_t *infoCount, uint32_t **jobids, uint32_t **stepids)
 {
     list_t *j, *tmp;
-    uint32_t max = countJobs() + *infoCount;
+    uint32_t max = Job_count() + *infoCount;
 
     *jobids = urealloc(*jobids, sizeof(uint32_t) * max);
     *stepids = urealloc(*stepids, sizeof(uint32_t) * max);
@@ -311,9 +311,9 @@ void getJobInfos(uint32_t *infoCount, uint32_t **jobids, uint32_t **stepids)
     }
 }
 
-bool signalJobscript(uint32_t jobid, int signal, uid_t reqUID)
+bool Job_signalJS(uint32_t jobid, int signal, uid_t reqUID)
 {
-    Job_t *job = findJobById(jobid);
+    Job_t *job = Job_findById(jobid);
 
     if (!job) return false;
 
@@ -332,7 +332,7 @@ bool signalJobscript(uint32_t jobid, int signal, uid_t reqUID)
     return false;
 }
 
-int signalJob(Job_t *job, int signal, uid_t reqUID)
+int Job_signalTasks(Job_t *job, int signal, uid_t reqUID)
 {
     int count;
 
@@ -358,14 +358,14 @@ int signalJob(Job_t *job, int signal, uid_t reqUID)
     return count;
 }
 
-int signalJobs(int signal)
+int Job_signalAll(int signal)
 {
     list_t *j, *tmp;
     int count = 0;
 
     list_for_each_safe(j, tmp, &JobList) {
 	Job_t *job = list_entry(j, Job_t, next);
-	count += signalJob(job, signal, 0);
+	count += Job_signalTasks(job, signal, 0);
     }
 
     count += signalAllocs(signal);
@@ -373,7 +373,7 @@ int signalJobs(int signal)
     return count;
 }
 
-char *strJobState(JobState_t state)
+char *Job_strState(JobState_t state)
 {
     static char buf[128];
 
@@ -398,7 +398,7 @@ char *strJobState(JobState_t state)
     }
 }
 
-char *strJobID(uint32_t jobid)
+char *Job_strID(uint32_t jobid)
 {
     static char sJobID[MAX_JOBID_LENGTH];
 
@@ -407,7 +407,7 @@ char *strJobID(uint32_t jobid)
     return sJobID;
 }
 
-bool traverseJobs(JobVisitor_t visitor, const void *info)
+bool Job_traverse(JobVisitor_t visitor, const void *info)
 {
     list_t *j, *tmp;
     list_for_each_safe(j, tmp, &JobList) {

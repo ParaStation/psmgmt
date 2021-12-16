@@ -74,7 +74,7 @@ static bool addJobInfo(Job_t *job, const void *info)
     addStrBuf(line, strBuf);
 
     snprintf(line, sizeof(line), "job state '%s'\n",
-	    strJobState(job->state));
+	    Job_strState(job->state));
     addStrBuf(line, strBuf);
 
     if (job->fwdata) {
@@ -111,12 +111,12 @@ static char *showJobs(void)
 {
     StrBuffer_t strBuf = { .buf = NULL };
 
-    if (!countJobs()) {
+    if (!Job_count()) {
 	return addStrBuf("\nNo current jobs.\n", &strBuf);
     }
 
     addStrBuf("\njobs:\n\n", &strBuf);
-    traverseJobs(addJobInfo, &strBuf);
+    Job_traverse(addJobInfo, &strBuf);
 
     return strBuf.buf;
 }
@@ -506,7 +506,7 @@ static bool addStepInfo(Step_t *step, const void *info)
 	     step->slurmHosts);
     addStrBuf(line, strBuf);
 
-    snprintf(line, sizeof(line), "state: %s\n", strJobState(step->state));
+    snprintf(line, sizeof(line), "state: %s\n", Job_strState(step->state));
     addStrBuf(line, strBuf);
 
     snprintf(line, sizeof(line), "tpp: %u numHwThreads: %u\n",

@@ -58,7 +58,7 @@ typedef struct {
  *
  * @return No return value
  */
-void deleteJobComp(JobCompInfo_t *jobComp);
+void Job_deleteComp(JobCompInfo_t *jobComp);
 
 typedef struct {
     uint16_t x11;               /**< flag to use (vanilla) X11 forwarding */

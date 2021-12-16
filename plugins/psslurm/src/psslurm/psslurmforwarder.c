@@ -127,7 +127,7 @@ static int jobCallback(int32_t exit_status, Forwarder_Data_t *fw)
 
     mlog("%s: job '%u' finished, exit %i / %i\n", __func__, job->jobid,
 	 exit_status, fw->chldExitStatus);
-    if (!findJobById(job->jobid)) {
+    if (!Job_findById(job->jobid)) {
 	mlog("%s: job '%u' not found\n", __func__, job->jobid);
 	return 0;
     }
@@ -138,10 +138,10 @@ static int jobCallback(int32_t exit_status, Forwarder_Data_t *fw)
     /* make sure all processes are gone */
     Step_signalByJobid(job->jobid, SIGKILL, 0);
     signalTasks(job->jobid, job->uid, &job->tasks, SIGKILL, -1);
-    killForwarderByJobid(job->jobid);
+    Job_killForwarder(job->jobid);
 
     job->state = JOB_COMPLETE;
-    fdbg(PSSLURM_LOG_JOB, "job %u in %s\n", job->jobid,strJobState(job->state));
+    fdbg(PSSLURM_LOG_JOB, "job %u in %s\n", job->jobid,Job_strState(job->state));
 
     /* get exit status of child */
     int eStatus = fw->exitRcvd ? fw->chldExitStatus : fw->hookExitCode;
@@ -157,7 +157,7 @@ static int jobCallback(int32_t exit_status, Forwarder_Data_t *fw)
 
     if (!alloc) {
 	flog("allocation for job %u not found\n", job->jobid);
-	deleteJob(job);
+	Job_delete(job);
 	return 0;
     }
 
@@ -169,7 +169,7 @@ static int jobCallback(int32_t exit_status, Forwarder_Data_t *fw)
 	/* run epilogue now */
 	flog("starting epilogue for allocation %u\n", alloc->id);
 	fdbg(PSSLURM_LOG_JOB, "job %u in %s\n", job->jobid,
-	     strJobState(job->state));
+	     Job_strState(job->state));
 	startPElogue(alloc, PELOGUE_EPILOGUE);
     }
 
@@ -230,11 +230,11 @@ static int stepFollowerCB(int32_t exit_status, Forwarder_Data_t *fw)
 
     step->state = JOB_COMPLETE;
     fdbg(PSSLURM_LOG_JOB, "%s in %s\n", Step_strID(step),
-	 strJobState(step->state));
+	 Job_strState(step->state));
 
     /* test if we were waiting only for this step to finish */
     Alloc_t *alloc = findAlloc(step->jobid);
-    if (!findJobById(step->jobid) && alloc && alloc->state == A_RUNNING
+    if (!Job_findById(step->jobid) && alloc && alloc->state == A_RUNNING
 	&& alloc->terminate) {
 	/* run epilogue now */
 	flog("starting epilogue for %s\n", Step_strID(step));
@@ -259,7 +259,7 @@ static int stepCallback(int32_t exit_status, Forwarder_Data_t *fw)
 
     Alloc_t *alloc = findAlloc(step->jobid);
     flog("%s in %s finished, exit %i / %i\n", Step_strID(step),
-	 strJobState(step->state), exit_status, fw->chldExitStatus);
+	 Job_strState(step->state), exit_status, fw->chldExitStatus);
 
     /* terminate cgroup */
     PSID_execFunc(termStepJail, NULL, cbTermJail, NULL, step);
@@ -305,11 +305,11 @@ static int stepCallback(int32_t exit_status, Forwarder_Data_t *fw)
 
     step->state = JOB_COMPLETE;
     fdbg(PSSLURM_LOG_JOB, "%s in %s\n", Step_strID(step),
-	 strJobState(step->state));
+	 Job_strState(step->state));
     psAccountDelJob(PSC_getTID(-1, fw->cPid));
 
     /* test if we were waiting only for this step to finish */
-    if (!findJobById(step->jobid) && alloc && alloc->state == A_RUNNING
+    if (!Job_findById(step->jobid) && alloc && alloc->state == A_RUNNING
 	&& alloc->terminate) {
 	/* run epilogue now */
 	flog("starting epilogue for %s\n", Step_strID(step));
@@ -455,7 +455,7 @@ static void initFwPtr(PStask_t *task)
 
     if (step) {
 	fwStep = step;
-	fwJob = findJobById(jobid);
+	fwJob = Job_findById(jobid);
 	fwAlloc = findAlloc(jobid);
     }
     fwTask = task;
@@ -1058,7 +1058,7 @@ static int stepForwarderInit(Forwarder_Data_t *fwdata)
     struct spank_handle spank = {
 	.task = NULL,
 	.alloc = findAlloc(step->jobid),
-	.job = findJobById(step->jobid),
+	.job = Job_findById(step->jobid),
 	.step = step,
 	.hook = SPANK_INIT
     };
@@ -1163,7 +1163,7 @@ static void stepFinalize(Forwarder_Data_t *fwdata)
     struct spank_handle spank = {
 	.task = NULL,
 	.alloc = findAlloc(step->jobid),
-	.job = findJobById(step->jobid),
+	.job = Job_findById(step->jobid),
 	.step = step,
 	.hook = SPANK_EXIT
     };
@@ -1258,7 +1258,7 @@ void handleJobLoop(Forwarder_Data_t *fwdata)
 static int jobForwarderInit(Forwarder_Data_t *fwdata)
 {
     Job_t *job = fwdata->userData;
-    clearJobList(job);
+    Job_clearList(job);
     Step_deleteAll(NULL);
 
     PSIDhook_call(PSIDHOOK_PSSLURM_JOB_FWINIT, job->username);
@@ -1296,7 +1296,7 @@ bool execBatchJob(Job_t *job)
 
     Forwarder_Data_t *fwdata = ForwarderData_new();
     fwdata->pTitle = ustrdup(fname);
-    fwdata->jobID = ustrdup(strJobID(job->jobid));
+    fwdata->jobID = ustrdup(Job_strID(job->jobid));
     fwdata->userData = job;
     fwdata->graceTime = grace;
     fwdata->accounted = true;
@@ -1484,7 +1484,7 @@ static int stepFollowerFWinit(Forwarder_Data_t *fwdata)
     struct spank_handle spank = {
 	.task = NULL,
 	.alloc = findAlloc(step->jobid),
-	.job = findJobById(step->jobid),
+	.job = Job_findById(step->jobid),
 	.step = step,
 	.hook = SPANK_INIT
     };

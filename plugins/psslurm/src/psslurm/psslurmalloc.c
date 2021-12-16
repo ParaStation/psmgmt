@@ -78,7 +78,7 @@ Alloc_t *addAlloc(uint32_t id, uint32_t packID, char *slurmHosts, env_t *env,
 
     /* add user in pspam for SSH access */
     uint32_t ID = (alloc->packID != NO_VAL) ? alloc->packID : alloc->id;
-    psPamAddUser(alloc->username, strJobID(ID), PSPAM_STATE_PROLOGUE);
+    psPamAddUser(alloc->username, Job_strID(ID), PSPAM_STATE_PROLOGUE);
 
     return alloc;
 }
@@ -168,7 +168,7 @@ bool deleteAlloc(uint32_t id)
     Alloc_t *alloc;
 
     /* free corresponding resources */
-    deleteJobById(id);
+    Job_deleteById(id);
     Step_clearByJobid(id);
     clearBCastByJobid(id);
 
@@ -180,7 +180,7 @@ bool deleteAlloc(uint32_t id)
     PSIDhook_call(PSIDHOOK_PSSLURM_FINALLOC, alloc);
 
     /* free corresponding pelogue job */
-    psPelogueDeleteJob("psslurm", strJobID(alloc->id));
+    psPelogueDeleteJob("psslurm", Job_strID(alloc->id));
 
     /* tell sisters the allocation is revoked */
     if (isAllocLeader(alloc)) {
@@ -189,7 +189,7 @@ bool deleteAlloc(uint32_t id)
     }
 
     uint32_t ID = (alloc->packID != NO_VAL) ? alloc->packID : alloc->id;
-    psPamDeleteUser(alloc->username, strJobID(ID));
+    psPamDeleteUser(alloc->username, Job_strID(ID));
 
     ufree(alloc->nodes);
     ufree(alloc->slurmHosts);
@@ -222,13 +222,13 @@ int signalAllocs(int signal)
 int signalAlloc(uint32_t id, int signal, uid_t reqUID)
 {
     Alloc_t *alloc = findAlloc(id);
-    Job_t *job = findJobById(id);
+    Job_t *job = Job_findById(id);
     int count = 0;
 
     if  (!alloc) return 0;
 
     if (job) {
-	count = signalJob(job, signal, reqUID);
+	count = Job_signalTasks(job, signal, reqUID);
     } else {
 	count = Step_signalByJobid(id, signal, reqUID);
     }

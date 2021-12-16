@@ -104,7 +104,7 @@ static void handlePrologueCB(Alloc_t *alloc, int exitStatus, int16_t res)
     } else if (exitStatus == 0) {
 	/* prologue was successful */
 	alloc->state = A_RUNNING;
-	psPelogueDeleteJob("psslurm", strJobID(alloc->id));
+	psPelogueDeleteJob("psslurm", Job_strID(alloc->id));
     } else {
 	/* start local epilogue */
 	startPElogue(alloc, PELOGUE_EPILOGUE);
@@ -120,7 +120,7 @@ static bool stepEpilogue(Step_t *step, const void *info)
 
 	step->state = JOB_EXIT;
 	fdbg(PSSLURM_LOG_JOB, "%s in %s\n", Step_strID(step),
-	     strJobState(step->state));
+	     Job_strState(step->state));
     }
     return false;
 }
@@ -132,14 +132,14 @@ static bool stepEpilogue(Step_t *step, const void *info)
  */
 static void handleEpilogueCB(Alloc_t *alloc, PElogueResList_t *resList)
 {
-    Job_t *job = findJobById(alloc->id);
+    Job_t *job = Job_findById(alloc->id);
 
     alloc->state = A_EXIT;
 
     if (job) {
 	job->state = JOB_EXIT;
 	fdbg(PSSLURM_LOG_JOB, "job %u in %s\n", job->jobid,
-	     strJobState(job->state));
+	     Job_strState(job->state));
     } else {
 	Step_traverse(stepEpilogue, &alloc->id);
     }
@@ -219,7 +219,7 @@ CLEANUP:
 
 bool startPElogue(Alloc_t *alloc, PElogueType_t type)
 {
-    char *sjobid = strJobID(alloc->id);
+    char *sjobid = Job_strID(alloc->id);
     char buf[512];
     env_t clone;
 
@@ -446,7 +446,7 @@ int handlePEloguePrepare(void *data)
     struct spank_handle spank = {
 	.task = NULL,
 	.alloc = findAlloc(jobid),
-	.job = findJobById(jobid),
+	.job = Job_findById(jobid),
 	.step = NULL,
 	.hook = SPANK_JOB_PROLOG
     };
@@ -482,11 +482,11 @@ int handleLocalPElogueFinish(void *data)
     /* allow/revoke SSH access to my node */
     uint32_t ID = (alloc->packID != NO_VAL) ? alloc->packID : alloc->id;
     if (!pedata->exit && pedata->type == PELOGUE_PROLOGUE) {
-	psPamAddUser(alloc->username, strJobID(ID), PSPAM_STATE_JOB);
-	psPamSetState(alloc->username, strJobID(ID), PSPAM_STATE_JOB);
+	psPamAddUser(alloc->username, Job_strID(ID), PSPAM_STATE_JOB);
+	psPamSetState(alloc->username, Job_strID(ID), PSPAM_STATE_JOB);
     }
     if (pedata->type != PELOGUE_PROLOGUE) {
-	psPamDeleteUser(alloc->username, strJobID(ID));
+	psPamDeleteUser(alloc->username, Job_strID(ID));
     }
 
     /* start step forwarder for all waiting steps */

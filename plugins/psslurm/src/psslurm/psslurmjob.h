@@ -102,7 +102,7 @@ typedef struct {
  *
  * @param preserve Job to preserve
  */
-void clearJobList(Job_t *preserve);
+void Job_clearList(Job_t *preserve);
 
 /**
  * @brief Add a new job
@@ -111,7 +111,7 @@ void clearJobList(Job_t *preserve);
  *
  * @return Returns the newly created job
  */
-Job_t *addJob(uint32_t jobid);
+Job_t *Job_add(uint32_t jobid);
 
 /**
  * @brief Verify job information
@@ -124,7 +124,7 @@ Job_t *addJob(uint32_t jobid);
  * @return On success true is returned or false in case of an
  * error.
  */
-bool verifyJobData(Job_t *job);
+bool Job_verifyData(Job_t *job);
 
 /**
  * @brief Find a job identified by its job id
@@ -134,7 +134,7 @@ bool verifyJobData(Job_t *job);
  * @return Returns a pointer to the job or NULL if the
  * job was not found
  */
-Job_t *findJobById(uint32_t jobid);
+Job_t *Job_findById(uint32_t jobid);
 
 /**
  * @brief Find a job identified by its string job id
@@ -144,7 +144,7 @@ Job_t *findJobById(uint32_t jobid);
  * @return Returns a pointer to the job or NULL if the
  * job was not found
  */
-Job_t *findJobByIdC(char *id);
+Job_t *Job_findByIdC(char *id);
 
 /**
  * @brief Find a job node entry
@@ -154,7 +154,7 @@ Job_t *findJobByIdC(char *id);
  * @return Returns the found job node entry
  * on success or NULL otherwise
  */
-PSnodes_ID_t *findJobNodeEntry(Job_t *job, PSnodes_ID_t id);
+PSnodes_ID_t *Job_findNodeEntry(Job_t *job, PSnodes_ID_t id);
 
 /**
  * @brief Delete a job
@@ -163,7 +163,7 @@ PSnodes_ID_t *findJobNodeEntry(Job_t *job, PSnodes_ID_t id);
  *
  * @return Returns true on success and false on error
  */
-bool deleteJob(Job_t *job);
+bool Job_delete(Job_t *job);
 
 /**
  * @brief Delete a job
@@ -172,21 +172,21 @@ bool deleteJob(Job_t *job);
  *
  * @return Returns true on success and false on error
  */
-bool deleteJobById(uint32_t jobid);
+bool Job_deleteById(uint32_t jobid);
 
 /**
  * @brief Convert a job state to its string representation
  *
  * @param state The job state to convert
  */
-char *strJobState(JobState_t state);
+char *Job_strState(JobState_t state);
 
 /**
  * @brief Get the number of jobs
  *
  * Returns the number of jobs
  */
-int countJobs(void);
+int Job_count(void);
 
 /**
  * @brief Get a list of all known job on the local node
@@ -197,7 +197,7 @@ int countJobs(void);
  *
  * @param stepids Always set to SLURM_BATCH_SCRIPT
  */
-void getJobInfos(uint32_t *infoCount, uint32_t **jobids, uint32_t **stepids);
+void Job_getInfos(uint32_t *infoCount, uint32_t **jobids, uint32_t **stepids);
 
 /**
  * @brief Send a signal to a jobscript
@@ -214,7 +214,7 @@ void getJobInfos(uint32_t *infoCount, uint32_t **jobids, uint32_t **stepids);
  *
  * @return Returns true on success and false on error.
  */
-bool signalJobscript(uint32_t jobid, int signal, uid_t reqUID);
+bool Job_signalJS(uint32_t jobid, int signal, uid_t reqUID);
 
 /**
  * @brief Send a signal to all tasks of a job
@@ -232,7 +232,7 @@ bool signalJobscript(uint32_t jobid, int signal, uid_t reqUID);
  * @return Returns the number of tasks which were signaled or -1
  *  if the @a reqUID is not permitted to signal the tasks
  */
-int signalJob(Job_t *job, int signal, uid_t reqUID);
+int Job_signalTasks(Job_t *job, int signal, uid_t reqUID);
 
 /**
  * @brief Send a signal to all jobs
@@ -245,7 +245,7 @@ int signalJob(Job_t *job, int signal, uid_t reqUID);
  *
  * @return Returns the number of tasks signaled.
  */
-int signalJobs(int signal);
+int Job_signalAll(int signal);
 
 /**
  * @brief Send SIGKILL to a job
@@ -258,7 +258,7 @@ int signalJobs(int signal);
  * @return Returns the number of all forwarders
  * the SIGKILL was sent to
  */
-int killForwarderByJobid(uint32_t jobid);
+int Job_killForwarder(uint32_t jobid);
 
 /**
  * @brief Convert a integer jobid to string
@@ -267,20 +267,20 @@ int killForwarderByJobid(uint32_t jobid);
  *
  * @return Returns the converted jobid as string
  */
-char *strJobID(uint32_t jobid);
+char *Job_strID(uint32_t jobid);
 
 /**
  * @brief Visitor function
  *
- * Visitor function used by @ref traverseJobs() in order to visit
+ * Visitor function used by @ref Job_traverse() in order to visit
  * each job currently registered.
  *
  * The parameters are as follows: @a job points to the job to
  * visit. @a info points to the additional information passed to @ref
- * traverseJobs() in order to be forwarded to each job.
+ * Job_traverse() in order to be forwarded to each job.
  *
  * If the visitor function returns true the traversal will be
- * interrupted and @ref traverseJobs() will return to its calling
+ * interrupted and @ref Job_traverse() will return to its calling
  * function.
  */
 typedef bool JobVisitor_t(Job_t *job, const void *info);
@@ -304,6 +304,6 @@ typedef bool JobVisitor_t(Job_t *job, const void *info);
  * true is returned. If no visitor returned true during the traversal
  * false is returned.
  */
-bool traverseJobs(JobVisitor_t visitor, const void *info);
+bool Job_traverse(JobVisitor_t visitor, const void *info);
 
 #endif  /* __PS_PSSLURM_JOB */

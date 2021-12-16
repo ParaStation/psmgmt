@@ -385,8 +385,8 @@ void initJobEnv(Job_t *job)
     envSet(&job->env, "SLURMD_NODENAME",
 	   getConfValueC(&Config, "SLURM_HOSTNAME"));
 
-    envSet(&job->env, "SLURM_JOBID", strJobID(job->jobid));
-    envSet(&job->env, "SLURM_JOB_ID", strJobID(job->jobid));
+    envSet(&job->env, "SLURM_JOBID", Job_strID(job->jobid));
+    envSet(&job->env, "SLURM_JOB_ID", Job_strID(job->jobid));
 
     char tmp[1024];
     snprintf(tmp, sizeof(tmp), "%u", job->nrOfNodes);
@@ -476,7 +476,7 @@ static char *GTIDsToList(Step_t *step)
 static uint32_t getJobNodeId(Step_t *step)
 {
     Alloc_t *alloc = findAlloc(step->jobid);
-    Job_t *job = findJobById(step->jobid);
+    Job_t *job = Job_findById(step->jobid);
 
     uint32_t jobNodeId = NO_VAL;
     if (job) {

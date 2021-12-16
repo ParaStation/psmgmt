@@ -93,7 +93,7 @@ plugin_dep_t dependencies[] = {
 static void cleanupJobs(void)
 {
     static int obitTimeCounter = 0;
-    int jcount = countJobs() + countAllocs();
+    int jcount = Job_count() + countAllocs();
     bool stopHC = stopHealthCheck(SIGTERM);
 
     /* check if we are waiting for jobs to exit */
@@ -112,7 +112,7 @@ static void cleanupJobs(void)
 
     if (obitTimeCounter >= obitTime && jcount) {
 	mlog("sending SIGKILL to %i remaining jobs\n", jcount);
-	signalJobs(SIGKILL);
+	Job_signalAll(SIGKILL);
     }
     if (obitTimeCounter >= obitTime && !stopHC) {
 	stopHealthCheck(SIGKILL);
@@ -786,12 +786,12 @@ void finalize(void)
 
     bool stopHC = stopHealthCheck(SIGTERM);
 
-    int jcount = countJobs() + countAllocs();
+    int jcount = Job_count() + countAllocs();
     if (jcount || !stopHC) {
 	struct timeval cleanupTimer = {1,0};
 
 	mlog("sending SIGTERM to %i remaining jobs\n", jcount);
-	signalJobs(SIGTERM);
+	Job_signalAll(SIGTERM);
 
 	/* re-investigate every second */
 	cleanupTimerID = Timer_register(&cleanupTimer, cleanupJobs);
@@ -838,7 +838,7 @@ void cleanup(void)
     if (psAccountSetGlobalCollect) psAccountSetGlobalCollect(false);
 
     /* free all malloced memory */
-    clearJobList(NULL);
+    Job_clearList(NULL);
     Step_destroyAll();
     clearGresConf();
     clearSlurmdProto();

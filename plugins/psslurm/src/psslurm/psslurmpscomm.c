@@ -711,7 +711,7 @@ static int retryExecScript(PSnodes_ID_t remote, uint16_t scriptID)
 static int callbackNodeOffline(uint32_t id, int32_t exit, PSnodes_ID_t remote,
 			       uint16_t scriptID, char *output)
 {
-    Job_t *job = findJobById(id);
+    Job_t *job = Job_findById(id);
     Alloc_t *alloc = findAlloc(id);
 
     mlog("%s: id %u exit %i remote %i\n", __func__, id, exit, remote);
@@ -781,7 +781,7 @@ static int callbackRequeueBatchJob(uint32_t id, int32_t exit,
 		id, exit, remote);
 
 	/* cancel job */
-	Job_t *job = findJobById(id);
+	Job_t *job = Job_findById(id);
 	if (job) sendJobExit(job, -1);
     }
     return 0;
@@ -793,7 +793,7 @@ void requeueBatchJob(Job_t *job, PSnodes_ID_t dest)
 
     envClone(&job->env, &clone, envFilter);
 
-    envSet(&clone, "SLURM_JOBID", strJobID(job->jobid));
+    envSet(&clone, "SLURM_JOBID", Job_strID(job->jobid));
     psExecStartScript(job->jobid, "psslurm-requeue-job", &clone,
 			dest, callbackRequeueBatchJob);
 
@@ -890,7 +890,7 @@ static void handle_JobExit(DDTypedBufferMsg_t *msg)
 	 PSC_printTID(msg->header.sender));
 
     if (stepid == SLURM_BATCH_SCRIPT) {
-	Job_t *job = findJobById(jobid);
+	Job_t *job = Job_findById(jobid);
 	if (!job) return;
 	job->state = JOB_EXIT;
 	return;
@@ -1048,7 +1048,7 @@ static bool startWaitingJobs(Job_t *job, const void *info)
     if (job->jobid == jobid && job->state == JOB_QUEUED) {
 	    bool ret = execBatchJob(job);
 	    fdbg(PSSLURM_LOG_JOB, "job %u in %s\n", job->jobid,
-		 strJobState(job->state));
+		 Job_strState(job->state));
 	    if (!ret) {
 		sendJobRequeue(jobid);
 		return true;
@@ -1124,7 +1124,7 @@ static void handle_PElogueRes(DDTypedBufferMsg_t *msg)
 		char *prologue = getConfValueC(&SlurmConfig, "Prolog");
 		if (prologue && prologue[0] != '\0') {
 		    /* let waiting jobs start */
-		    traverseJobs(startWaitingJobs, &alloc->id);
+		    Job_traverse(startWaitingJobs, &alloc->id);
 		}
 	    }
     } else {
@@ -1155,7 +1155,7 @@ static void handle_JobLaunch(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
     /* get jobid */
     getUint32(&ptr, &jobid);
 
-    Job_t *job = addJob(jobid);
+    Job_t *job = Job_add(jobid);
     job->state = JOB_QUEUED;
     mdbg(PSSLURM_LOG_JOB, "%s: job %u in %s\n", __func__, job->jobid,
 	 strAllocState(job->state));
@@ -1384,13 +1384,13 @@ static void handlePackInfo(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
     /* slots */
     if (!getSlotsFromMsg(&ptr, &jobcomp->slots, &len)) {
 	flog("Error getting slots from message\n");
-	deleteJobComp(jobcomp);
+	Job_deleteComp(jobcomp);
 	return;
     }
     if (len != jobcomp->np) {
 	flog("length of slots list does not match number of processes"
 	     " (%u != %u)\n", len, jobcomp->np);
-	deleteJobComp(jobcomp);
+	Job_deleteComp(jobcomp);
 	return;
     }
 
@@ -1675,8 +1675,8 @@ static bool nodeDownAlloc(Alloc_t *alloc, const void *info)
 	}
 
 	if (!alloc->nodeFail) {
-	    Job_t *job = findJobById(alloc->id);
-	    if (!job) job = findJobById(alloc->packID);
+	    Job_t *job = Job_findById(alloc->id);
+	    if (!job) job = Job_findById(alloc->packID);
 	    if (job && !job->mother) {
 		char buf[512];
 		snprintf(buf, sizeof(buf), "job %u terminated due to "
@@ -2279,7 +2279,7 @@ static bool handleChildBornMsg(DDErrorMsg_t *msg)
 	 PSC_printTID(msg->header.sender), jobid, stepid);
 
     if (stepid == SLURM_BATCH_SCRIPT) {
-	Job_t *job = findJobById(jobid);
+	Job_t *job = Job_findById(jobid);
 	if (!job) {
 	    mlog("%s: job %u not found\n", __func__, jobid);
 	    return false; // fallback to old handler

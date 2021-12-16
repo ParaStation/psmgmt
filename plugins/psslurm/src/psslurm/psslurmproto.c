@@ -183,7 +183,7 @@ bool writeJobscript(Job_t *job)
 
     /* set jobscript filename */
     jobdir = getConfValueC(&Config, "DIR_JOB_FILES");
-    snprintf(buf, sizeof(buf), "%s/%s", jobdir, strJobID(job->jobid));
+    snprintf(buf, sizeof(buf), "%s/%s", jobdir, Job_strID(job->jobid));
     job->jobscript = ustrdup(buf);
 
     FILE *fp = fopen(job->jobscript, "a");
@@ -307,7 +307,7 @@ static void printLaunchTasksInfos(Step_t *step)
 
     /* job state */
     fdbg(PSSLURM_LOG_JOB, "%s in %s\n", Step_strID(step),
-	 strJobState(step->state));
+	 Job_strState(step->state));
 
     /* pinning */
     fdbg(PSSLURM_LOG_PART, "taskDist 0x%x\n", step->taskDist);
@@ -606,7 +606,7 @@ static void handleLaunchTasks(Slurm_Msg_t *sMsg)
 	 * intercept createPart call to overwrite the nodelist */
 	step->state = JOB_PRESTART;
 	fdbg(PSSLURM_LOG_JOB, "%s in %s\n", Step_strID(step),
-	     strJobState(step->state));
+	     Job_strState(step->state));
 	/* non pack jobs can be started right away.
 	 * However for pack jobs the pack leader has to wait for
 	 * the pack follower to send hw threads */
@@ -650,7 +650,7 @@ static int doSignalTasks(Req_Signal_Tasks_t *req)
 	/* send signal to complete job including all steps */
 	mlog("%s: sending all processes of job %u signal %u\n", __func__,
 	     req->jobid, req->signal);
-	signalJobscript(req->jobid, req->signal, req->uid);
+	Job_signalJS(req->jobid, req->signal, req->uid);
 	Step_signalByJobid(req->jobid, req->signal, req->uid);
     } else if (req->flags & KILL_STEPS_ONLY) {
 	/* send signal to all steps excluding the jobscript */
@@ -660,7 +660,7 @@ static int doSignalTasks(Req_Signal_Tasks_t *req)
     } else {
 	if (req->stepid == SLURM_BATCH_SCRIPT) {
 	    /* signal jobscript only, not all corresponding steps */
-	    return signalJobscript(req->jobid, req->signal, req->uid);
+	    return Job_signalJS(req->jobid, req->signal, req->uid);
 	} else {
 	    /* signal a single step */
 	    flog("send step %u:%u (stepHetComp %u) signal %u\n",
@@ -1417,7 +1417,7 @@ static void handleFileBCast(Slurm_Msg_t *sMsg)
     }
 
     /* assign to job/allocation */
-    Job_t *job = findJobById(bcast->jobid);
+    Job_t *job = Job_findById(bcast->jobid);
     if (!job) {
 	Alloc_t *alloc = findAlloc(bcast->jobid);
 	if (!alloc) {
@@ -1742,7 +1742,7 @@ static void handleJobNotify(Slurm_Msg_t *sMsg)
 	return;
     }
 
-    Job_t *job = findJobById(req->jobid);
+    Job_t *job = Job_findById(req->jobid);
     Step_t *step = Step_findByStepId(req->jobid, req->stepid);
 
     if (!job && !step) {
@@ -1997,7 +1997,7 @@ static bool extractJobPackInfos(Job_t *job)
  */
 static void printJobLaunchInfos(Job_t *job)
 {
-    fdbg(PSSLURM_LOG_JOB, "job %u in %s\n", job->jobid,strJobState(job->state));
+    fdbg(PSSLURM_LOG_JOB, "job %u in %s\n", job->jobid,Job_strState(job->state));
 
     /* log cpu options */
     if (job->cpusPerNode && job->cpuCountReps) {
@@ -2034,7 +2034,7 @@ static void handleBatchJobLaunch(Slurm_Msg_t *sMsg)
     if (pluginShutdown) {
 	/* don't accept new jobs if a shutdown is in progress */
 	sendSlurmRC(sMsg, SLURM_ERROR);
-	deleteJob(job);
+	Job_delete(job);
 	return;
     }
 
@@ -2058,7 +2058,7 @@ static void handleBatchJobLaunch(Slurm_Msg_t *sMsg)
     }
 
     /* verify job credential */
-    if (!verifyJobData(job)) goto ERROR;
+    if (!Job_verifyData(job)) goto ERROR;
     job->state = JOB_QUEUED;
 
     printJobLaunchInfos(job);
@@ -2091,7 +2091,7 @@ static void handleBatchJobLaunch(Slurm_Msg_t *sMsg)
 			"psslurm: writing jobscript failed");
 	/* need to return success to be able to requeue the job */
 	sendSlurmRC(sMsg, SLURM_SUCCESS);
-	deleteJob(job);
+	Job_delete(job);
 	return;
     }
 
@@ -2135,7 +2135,7 @@ static void handleBatchJobLaunch(Slurm_Msg_t *sMsg)
 	alloc->state = A_RUNNING;
 	ret = execBatchJob(job);
 	fdbg(PSSLURM_LOG_JOB, "job %u in %s\n", job->jobid,
-	     strJobState(job->state));
+	     Job_strState(job->state));
     } else {
 	/* slurmd prologue is configured */
 	if (alloc && alloc->state == A_PROLOGUE_FINISH) {
@@ -2143,7 +2143,7 @@ static void handleBatchJobLaunch(Slurm_Msg_t *sMsg)
 	    alloc->state = A_RUNNING;
 	    ret = execBatchJob(job);
 	    fdbg(PSSLURM_LOG_JOB, "job %u in %s\n", job->jobid,
-		 strJobState(job->state));
+		 Job_strState(job->state));
 	} else {
 	    /* slurmctld will start the "slurmd_prolog"
 	     * (see @ref handleLaunchProlog) and the batch
@@ -2162,7 +2162,7 @@ static void handleBatchJobLaunch(Slurm_Msg_t *sMsg)
 
 ERROR:
     sendSlurmRC(sMsg, ESLURMD_INVALID_JOB_CREDENTIAL);
-    deleteJob(job);
+    Job_delete(job);
 }
 
 static void doTerminateAlloc(Slurm_Msg_t *sMsg, Alloc_t *alloc)
@@ -2176,7 +2176,7 @@ static void doTerminateAlloc(Slurm_Msg_t *sMsg, Alloc_t *alloc)
 	/* grace time is over, use SIGKILL from now on */
 	mlog("%s: sending SIGKILL to fowarders of allocation %u\n", __func__,
 		alloc->id);
-	killForwarderByJobid(alloc->id);
+	Job_killForwarder(alloc->id);
 	signal = SIGKILL;
     }
 
@@ -2264,15 +2264,15 @@ static void handleAbortReq(Slurm_Msg_t *sMsg, uint32_t jobid, uint32_t stepid)
 	return;
     }
 
-    Job_t *job = findJobById(jobid);
+    Job_t *job = Job_findById(jobid);
 
     if (job) {
 	if (!job->mother) {
-	    signalJob(job, SIGKILL, sMsg->head.uid);
+	    Job_signalTasks(job, SIGKILL, sMsg->head.uid);
 	    send_PS_JobExit(job->jobid, SLURM_BATCH_SCRIPT,
 		    job->nrOfNodes, job->nodes);
 	}
-	deleteJob(job);
+	Job_delete(job);
     } else {
 	Alloc_t *alloc = findAlloc(jobid);
 	if (alloc && isAllocLeader(alloc)) {
@@ -2339,7 +2339,7 @@ static void handleKillReq(Slurm_Msg_t *sMsg, Alloc_t *alloc, Kill_Info_t *info)
     if (!alloc->firstKillReq) {
 	alloc->firstKillReq = time(NULL);
 
-	Job_t *job = findJobById(info->jobid);
+	Job_t *job = Job_findById(info->jobid);
 	if (job) {
 	    char buf[512];
 	    if (info->timeout) {
@@ -2408,7 +2408,7 @@ static void handleTerminateReq(Slurm_Msg_t *sMsg)
     Alloc_t *alloc = findAlloc(req->jobid);
 
     if (!alloc) {
-	deleteJobById(req->jobid);
+	Job_deleteById(req->jobid);
 	Step_clearByJobid(req->jobid);
 	flog("allocation %s not found\n", Step_strID(&s));
 	if (sMsg->head.type == REQUEST_TERMINATE_JOB) {
@@ -2931,7 +2931,7 @@ void sendNodeRegStatus(bool startup)
     }
 
     /* job id infos (count, array (jobid/stepid) */
-    getJobInfos(&stat.jobInfoCount, &stat.jobids, &stat.stepids);
+    Job_getInfos(&stat.jobInfoCount, &stat.jobids, &stat.stepids);
     Step_getInfos(&stat.jobInfoCount, &stat.jobids, &stat.stepids);
     stat.stepHetComp = umalloc(sizeof(*stat.stepHetComp) * stat.jobInfoCount);
     for (uint32_t i=0; i<stat.jobInfoCount; i++) {

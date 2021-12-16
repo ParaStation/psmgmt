@@ -1521,7 +1521,7 @@ static bool unpackReqBatchJobLaunch(Slurm_Msg_t *sMsg)
     /* jobid */
     getUint32(ptr, &jobid);
 
-    Job_t *job = addJob(jobid);
+    Job_t *job = Job_add(jobid);
 
     /* pack jobid */
     getUint32(ptr, &job->packJobid);
@@ -1648,7 +1648,7 @@ static bool unpackReqBatchJobLaunch(Slurm_Msg_t *sMsg)
     return true;
 
 ERROR:
-    deleteJob(job);
+    Job_delete(job);
     return false;
 }
 
@@ -2843,7 +2843,7 @@ bool packReqJobRequeue(PS_SendDB_t *data, Req_Job_Requeue_t *req)
     /* jobid */
     addUint32ToMsg(req->jobid, data);
     /* jobid as string*/
-    addStringToMsg(strJobID(req->jobid), data);
+    addStringToMsg(Job_strID(req->jobid), data);
     /* flags */
     addUint32ToMsg(req->flags, data);
 
@@ -2869,10 +2869,10 @@ static bool packReqKillJob(PS_SendDB_t *data, Req_Job_Kill_t *req)
 	/* step header */
 	packStepHead(req, data);
 	/* jobid as string*/
-	addStringToMsg(strJobID(req->jobid), data);
+	addStringToMsg(Job_strID(req->jobid), data);
     } else {
 	/* jobid as string*/
-	addStringToMsg(strJobID(req->jobid), data);
+	addStringToMsg(Job_strID(req->jobid), data);
 	/* jobid / stepid */
 	addUint32ToMsg(req->jobid, data);
 	addUint32ToMsg(req->stepid, data);

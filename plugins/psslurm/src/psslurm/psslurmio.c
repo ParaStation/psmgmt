@@ -619,7 +619,7 @@ char *IO_replaceStepSymbols(Step_t *step, int rank, char *path)
     uint32_t arrayJobId = 0, arrayTaskId = 0;
 
     char *hostname = getConfValueC(&Config, "SLURM_HOSTNAME");
-    Job_t *job = findJobById(step->jobid);
+    Job_t *job = Job_findById(step->jobid);
     if (job) {
 	arrayJobId = job->arrayJobId;
 	arrayTaskId = job->arrayTaskId;

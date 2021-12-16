@@ -227,7 +227,7 @@ void Step_clearByJobid(uint32_t jobid)
     }
 }
 
-void deleteJobComp(JobCompInfo_t *jobComp)
+void Job_deleteComp(JobCompInfo_t *jobComp)
 {
     if (!jobComp) return;
 
@@ -313,7 +313,7 @@ bool Step_delete(Step_t *step)
     list_for_each_safe(c, tmp, &step->jobCompInfos) {
 	JobCompInfo_t *cur = list_entry(c, JobCompInfo_t, next);
 	list_del(&cur->next);
-	deleteJobComp(cur);
+	Job_deleteComp(cur);
     }
 
     for (uint32_t i=0; i<step->spankOptCount; i++) {
