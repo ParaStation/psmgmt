@@ -168,7 +168,8 @@ bool Alloc_delete(uint32_t id)
     Alloc_t *alloc;
 
     /* free corresponding resources */
-    Job_deleteById(id);
+    Job_t *job = Job_findById(id);
+    Job_destroy(job);
     Step_clearByJobid(id);
     clearBCastByJobid(id);
 

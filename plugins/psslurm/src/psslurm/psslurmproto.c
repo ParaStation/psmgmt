@@ -2408,7 +2408,9 @@ static void handleTerminateReq(Slurm_Msg_t *sMsg)
     Alloc_t *alloc = Alloc_find(req->jobid);
 
     if (!alloc) {
-	Job_deleteById(req->jobid);
+	Job_t *job = Job_findById(req->jobid);
+	Job_destroy(job);
+
 	Step_clearByJobid(req->jobid);
 	flog("allocation %s not found\n", Step_strID(&s));
 	if (sMsg->head.type == REQUEST_TERMINATE_JOB) {

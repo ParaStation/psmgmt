@@ -113,7 +113,7 @@ const char *IO_strOpt(int opt)
     }
 }
 
-void IO_init()
+void IO_init(void)
 {
     uint16_t i;
 

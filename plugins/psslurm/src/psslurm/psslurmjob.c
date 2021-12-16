@@ -39,16 +39,11 @@
 /** List of all jobs */
 static LIST_HEAD(JobList);
 
-bool Job_delete(Job_t *job)
+bool Job_destroy(Job_t *job)
 {
     if (!job) return false;
 
     mdbg(PSSLURM_LOG_JOB, "%s: '%u'\n", __func__, job->jobid);
-
-    /* cleanup all corresponding resources */
-    Step_clearByJobid(job->jobid);
-    clearBCastByJobid(job->jobid);
-    freeGresCred(&job->gresList);
 
     /* cleanup local job */
     if (!job->mother) {
@@ -66,6 +61,20 @@ bool Job_delete(Job_t *job)
 	    killChild(PSC_getPID(job->fwdata->tid), SIGKILL, 0);
 	}
     }
+
+    return Job_delete(job);
+}
+
+bool Job_delete(Job_t *job)
+{
+    if (!job) return false;
+
+    mdbg(PSSLURM_LOG_JOB, "%s: '%u'\n", __func__, job->jobid);
+
+    /* cleanup all corresponding resources */
+    Step_clearByJobid(job->jobid);
+    clearBCastByJobid(job->jobid);
+    freeGresCred(&job->gresList);
 
     /* free memory */
     ufree(job->username);
@@ -114,7 +123,8 @@ Job_t *Job_add(uint32_t jobid)
 {
     Job_t *job = ucalloc(sizeof(Job_t));
 
-    Job_deleteById(jobid);
+    Job_t *dup = Job_findById(jobid);
+    if (dup) Job_destroy(dup);
 
     job->jobid = jobid;
     job->stdOutFD = job->stdErrFD = -1;
@@ -234,17 +244,26 @@ Job_t *Job_findById(uint32_t jobid)
 
 PSnodes_ID_t *Job_findNodeEntry(Job_t *job, PSnodes_ID_t id)
 {
-    unsigned int i;
-
     if (!job->nodes) return NULL;
 
-    for (i=0; i<job->nrOfNodes; i++) {
+    for (unsigned int i=0; i<job->nrOfNodes; i++) {
 	if (job->nodes[i] == id) return &job->nodes[i];
     }
     return NULL;
 }
 
-void Job_clearList(Job_t *preserve)
+void Job_destroyAll(void)
+{
+    clearBCastList();
+
+    list_t *j, *tmp;
+    list_for_each_safe(j, tmp, &JobList) {
+	Job_t *job = list_entry(j, Job_t, next);
+	Job_destroy(job);
+    }
+}
+
+void Job_deleteAll(Job_t *preserve)
 {
     clearBCastList();
 
@@ -254,14 +273,6 @@ void Job_clearList(Job_t *preserve)
 	if (job == preserve) continue;
 	Job_delete(job);
     }
-}
-
-bool Job_deleteById(uint32_t jobid)
-{
-    Job_t *job = Job_findById(jobid);
-    if (!job) return false;
-
-    return Job_delete(job);
 }
 
 int Job_killForwarder(uint32_t jobid)

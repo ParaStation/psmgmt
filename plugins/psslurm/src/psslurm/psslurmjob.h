@@ -95,14 +95,24 @@ typedef struct {
 } Job_t;
 
 /**
+ * @brief Destroy all jobs
+ *
+ * Delete all jobs including the associated steps and free used memory.
+ * Additionally all remaining processes are killed and associated connections
+ * closed.
+ */
+void Job_destroyAll(void);
+
+/**
  * @brief Delete all jobs
  *
- * Delete jobs steps but the one @a preserve points to. If @a preserve
- * is NULL, all jobs will be deleted.
+ * Delete all jobs including the associated steps but spare the one @a
+ * preserve points to. If @a preserve is NULL, all jobs will be deleted.
+ * In contrast to Job_destroyAll() only the used memory is freed.
  *
  * @param preserve Job to preserve
  */
-void Job_clearList(Job_t *preserve);
+void Job_deleteAll(Job_t *preserve);
 
 /**
  * @brief Add a new job
@@ -157,6 +167,15 @@ Job_t *Job_findByIdC(char *id);
 PSnodes_ID_t *Job_findNodeEntry(Job_t *job, PSnodes_ID_t id);
 
 /**
+ * @brief Destroy a job
+ *
+ * @param job Job to destroy
+ *
+ * @return Returns true on success and false on error
+ */
+bool Job_destroy(Job_t *job);
+
+/**
  * @brief Delete a job
  *
  * @param job Job to delete
@@ -164,15 +183,6 @@ PSnodes_ID_t *Job_findNodeEntry(Job_t *job, PSnodes_ID_t id);
  * @return Returns true on success and false on error
  */
 bool Job_delete(Job_t *job);
-
-/**
- * @brief Delete a job
- *
- * @param jobid Job ID to identify the job
- *
- * @return Returns true on success and false on error
- */
-bool Job_deleteById(uint32_t jobid);
 
 /**
  * @brief Convert a job state to its string representation

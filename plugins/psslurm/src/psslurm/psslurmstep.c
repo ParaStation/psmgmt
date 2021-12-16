@@ -209,7 +209,7 @@ void Step_deleteAll(Step_t *preserve)
     }
 }
 
-void Step_destroyAll()
+void Step_destroyAll(void)
 {
     list_t *s, *tmp;
     list_for_each_safe(s, tmp, &StepList) {
@@ -448,7 +448,7 @@ bool Step_partOfJob(uint32_t jobid)
     return false;
 }
 
-char *Step_getActiveList()
+char *Step_getActiveList(void)
 {
     list_t *s;
     char strStep[128];

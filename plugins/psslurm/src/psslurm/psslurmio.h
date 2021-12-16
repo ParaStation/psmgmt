@@ -53,7 +53,7 @@ typedef enum {
 /**
  * @brief Initialize the I/O facility
  */
-void IO_init();
+void IO_init(void);
 
 /**
  * @brief Finalize the I/O facility

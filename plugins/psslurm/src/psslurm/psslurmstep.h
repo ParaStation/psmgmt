@@ -253,7 +253,7 @@ void Step_deleteAll(Step_t *preserve);
  * remaining processes are killed and associated connections
  * closed.
  */
-void Step_destroyAll();
+void Step_destroyAll(void);
 
 /**
  * @brief Delete all steps of a specific job
@@ -440,7 +440,7 @@ bool Step_traverse(StepVisitor_t visitor, const void *info);
  * @return Returns a string holding all active steps. The caller is
  * responsible to free the string using @ref ufree().
  */
-char *Step_getActiveList();
+char *Step_getActiveList(void);
 
 /**
  * @brief Send SIGKILL to all step forwarders of a job

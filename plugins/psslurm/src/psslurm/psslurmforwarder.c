@@ -1258,7 +1258,7 @@ void handleJobLoop(Forwarder_Data_t *fwdata)
 static int jobForwarderInit(Forwarder_Data_t *fwdata)
 {
     Job_t *job = fwdata->userData;
-    Job_clearList(job);
+    Job_deleteAll(job);
     Step_deleteAll(NULL);
 
     PSIDhook_call(PSIDHOOK_PSSLURM_JOB_FWINIT, job->username);
