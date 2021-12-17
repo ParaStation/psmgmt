@@ -45,7 +45,7 @@ bool Job_destroy(Job_t *job)
 
     destroyBCastByJobid(job->jobid);
 
-    mdbg(PSSLURM_LOG_JOB, "%s: '%u'\n", __func__, job->jobid);
+    fdbg(PSSLURM_LOG_JOB, "%u\n", job->jobid);
 
     /* cleanup local job */
     if (!job->mother) {
@@ -71,7 +71,7 @@ bool Job_delete(Job_t *job)
 {
     if (!job) return false;
 
-    mdbg(PSSLURM_LOG_JOB, "%s: '%u'\n", __func__, job->jobid);
+    fdbg(PSSLURM_LOG_JOB, "%u\n", job->jobid);
 
     /* cleanup all corresponding resources */
     Step_clearByJobid(job->jobid);
