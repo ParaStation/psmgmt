@@ -167,7 +167,7 @@ Step_t *Step_findByJobid(uint32_t jobid)
     return NULL;
 }
 
-Step_t *Step_findStepByLogger(PStask_ID_t loggerTID)
+Step_t *Step_findByLogger(PStask_ID_t loggerTID)
 {
     list_t *s;
     list_for_each(s, &StepList) {

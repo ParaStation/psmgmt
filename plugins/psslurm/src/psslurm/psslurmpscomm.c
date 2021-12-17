@@ -1830,7 +1830,7 @@ static bool handleDroppedMsg(DDTypedBufferMsg_t *msg)
 
 static bool handleCC_IO_Msg(PSLog_Msg_t *msg)
 {
-    Step_t *step = Step_findStepByLogger(msg->header.dest);
+    Step_t *step = Step_findByLogger(msg->header.dest);
     if (!step) {
 	PStask_t *task;
 	if (PSC_getMyID() == PSC_getID(msg->header.sender)) {
@@ -1890,7 +1890,7 @@ static void handleCC_INIT_Msg(PSLog_Msg_t *msg)
     if (msg->sender == -1) {
 	/* message from psilogger to psidforwarder */
 	if (PSC_getID(msg->header.dest) != PSC_getMyID()) return;
-	Step_t *step = Step_findStepByLogger(msg->header.sender);
+	Step_t *step = Step_findByLogger(msg->header.sender);
 	if (step) {
 	    PS_Tasks_t *task = findTaskByFwd(&step->tasks, msg->header.dest);
 	    if (task) {
@@ -1911,7 +1911,7 @@ static void handleCC_INIT_Msg(PSLog_Msg_t *msg)
 	}
     } else if (msg->sender >= 0) {
 	/* message from psidforwarder to psilogger */
-	Step_t *step = Step_findStepByLogger(msg->header.dest);
+	Step_t *step = Step_findByLogger(msg->header.dest);
 	if (step) {
 	    if (PSC_getMyID() == PSC_getID(msg->header.sender)) {
 		PS_Tasks_t *task = findTaskByFwd(&step->tasks,
@@ -1931,7 +1931,7 @@ static bool handleCC_STDIN_Msg(PSLog_Msg_t *msg)
     mdbg(PSSLURM_LOG_IO, "dest %s data len %u\n",
 	 PSC_printTID(msg->header.dest), msgLen);
 
-    Step_t *step = Step_findStepByLogger(msg->header.sender);
+    Step_t *step = Step_findByLogger(msg->header.sender);
     if (!step) {
 	PStask_t *task = PStasklist_find(&managedTasks, msg->header.sender);
 	if (!task || !isPSAdminUser(task->uid, task->gid)) {
@@ -1959,7 +1959,7 @@ static bool handleCC_Finalize_Msg(PSLog_Msg_t *msg)
 	return false; // call the old handler if any
     }
 
-    Step_t *step = Step_findStepByLogger(msg->header.dest);
+    Step_t *step = Step_findByLogger(msg->header.dest);
     if (!step) {
 	PStask_t *task = PStasklist_find(&managedTasks, msg->header.sender);
 	if (!task || !isPSAdminUser(task->uid, task->gid)) {

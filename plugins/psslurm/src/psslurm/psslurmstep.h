@@ -282,16 +282,16 @@ Step_t *Step_findByJobid(uint32_t jobid);
  * Find an active step identified by the TaskID of the psilogger.
  * Steps in the state "completed" or "exit" will be ignored.
  *
- * Warning: The logger TID will be set by catching
- * the message PSP_DD_CHILDBORN in @ref handleChildBornMsg().
- * Before any user processes are spawned step->loggerTID will be
- * 0 and therefore Step_findStepByLogger() will return NULL.
+ * @warning: The logger TID will be set by catching the message
+ * PSP_DD_CHILDBORN in @ref handleChildBornMsg(). Thus, before any
+ * user processes are spawned step->loggerTID will be 0 and therefore
+ * this function will return NULL.
  *
- * @param loggerTID The task ID of the psilogger
+ * @param loggerTID Task ID of the psilogger
  *
  * @return Returns the requested step or NULL on error
  */
-Step_t *Step_findStepByLogger(PStask_ID_t loggerTID);
+Step_t *Step_findByLogger(PStask_ID_t loggerTID);
 
 /**
  * @brief Find a step identified by a jobid and stepid
@@ -383,10 +383,9 @@ int Step_signal(Step_t *step, int signal, uid_t reqUID);
 /**
  * @brief Test if a job has active steps
  *
- * @param jobid The jobid of the job to test
+ * @param jobid ID of the job to test
  *
- * @return Returns true if the job has active steps or
- * false otherwise
+ * @return Returns true if the job has active steps or false otherwise
  */
 bool Step_partOfJob(uint32_t jobid);
 
