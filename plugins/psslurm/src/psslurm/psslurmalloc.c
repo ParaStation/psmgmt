@@ -165,15 +165,14 @@ static void cbTermJail(int exit, bool tmdOut, int iofd, void *info)
 
 bool Alloc_delete(uint32_t id)
 {
-    Alloc_t *alloc;
-
     /* free corresponding resources */
     Job_t *job = Job_findById(id);
     Job_destroy(job);
     Step_clearByJobid(id);
     clearBCastByJobid(id);
 
-    if (!(alloc = Alloc_find(id))) return false;
+    Alloc_t *alloc = Alloc_find(id);
+    if (!alloc) return false;
 
     /* terminate cgroup */
     PSID_execFunc(termJail, NULL, cbTermJail, NULL, alloc);

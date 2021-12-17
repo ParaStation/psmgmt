@@ -277,11 +277,9 @@ void Job_deleteAll(Job_t *preserve)
 
 int Job_killForwarder(uint32_t jobid)
 {
+    int count = Step_killFWbyJobid(jobid);
+
     list_t *j, *tmp;
-    int count = 0;
-
-    count += Step_killFWbyJobid(jobid);
-
     list_for_each_safe(j, tmp, &JobList) {
 	Job_t *job = list_entry(j, Job_t, next);
 	if (job->jobid == jobid && job->fwdata) {
