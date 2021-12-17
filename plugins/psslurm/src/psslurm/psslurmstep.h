@@ -58,7 +58,7 @@ typedef struct {
  *
  * @return No return value
  */
-void Job_deleteComp(JobCompInfo_t *jobComp);
+void JobComp_delete(JobCompInfo_t *jobComp);
 
 typedef struct {
     uint16_t x11;               /**< flag to use (vanilla) X11 forwarding */
@@ -217,6 +217,18 @@ Step_t *Step_add(void);
  * error.
  */
 bool Step_verifyData(Step_t *step);
+
+/**
+ * @brief Insert pack job info into sorted list of infos in step
+ *
+ * JobInfo list is sorted by `firstRank`. This is needed later for putting
+ * together the mpiexec call in the correct order so each job will get the
+ * right rank range and the same later for the threads in the partition.
+ *
+ * @param step  Step to insert to
+ * @param info  info object to insert
+ */
+void Step_addJobCompInfo(Step_t *step, JobCompInfo_t *info);
 
 /**
  * @brief Delete a step and free used memory

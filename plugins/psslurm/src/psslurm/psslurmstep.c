@@ -143,6 +143,20 @@ bool Step_verifyData(Step_t *step)
     return true;
 }
 
+void Step_addJobCompInfo(Step_t *step, JobCompInfo_t *info)
+{
+    list_t *c;
+    list_for_each(c, &step->jobCompInfos) {
+	JobCompInfo_t *cur = list_entry(c, JobCompInfo_t, next);
+	if (cur->firstRank > info->firstRank) {
+	    /* insert into list before current */
+	    list_add_tail(&info->next, c);
+	    return;
+	}
+    }
+    list_add_tail(&info->next, &step->jobCompInfos);
+}
+
 Step_t *Step_findByStepId(uint32_t jobid, uint32_t stepid)
 {
     list_t *s;
@@ -227,7 +241,7 @@ void Step_clearByJobid(uint32_t jobid)
     }
 }
 
-void Job_deleteComp(JobCompInfo_t *jobComp)
+void JobComp_delete(JobCompInfo_t *jobComp)
 {
     if (!jobComp) return;
 
@@ -313,7 +327,7 @@ bool Step_delete(Step_t *step)
     list_for_each_safe(c, tmp, &step->jobCompInfos) {
 	JobCompInfo_t *cur = list_entry(c, JobCompInfo_t, next);
 	list_del(&cur->next);
-	Job_deleteComp(cur);
+	JobComp_delete(cur);
     }
 
     for (uint32_t i=0; i<step->spankOptCount; i++) {

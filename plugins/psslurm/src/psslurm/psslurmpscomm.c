@@ -1283,31 +1283,6 @@ static void handlePackExit(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
 }
 
 /**
- * @brief Insert pack job info into sorted list of infos in step
- *
- * JobInfo list is sorted by `firstRank`. This is needed later for putting
- * together the mpiexec call in the correct order so each job will get the
- * right rank range and the same later for the threads in the partition.
- *
- * @param step  Step to insert to
- * @param info  info object to insert
- */
-void insertJobCompInfoToStep(Step_t *step, JobCompInfo_t *info)
-{
-    list_t *c;
-
-    list_for_each(c, &step->jobCompInfos) {
-	JobCompInfo_t *cur = list_entry(c, JobCompInfo_t, next);
-	if (cur->firstRank > info->firstRank) {
-	    /* insert into list before current */
-	    list_add_tail(&info->next, c);
-	    return;
-	}
-    }
-    list_add_tail(&info->next, &step->jobCompInfos);
-}
-
-/**
  * @brief Handle a pack info message
  *
  * This message is send from every pack follower (MS) nodes to the
@@ -1384,17 +1359,17 @@ static void handlePackInfo(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
     /* slots */
     if (!getSlotsFromMsg(&ptr, &jobcomp->slots, &len)) {
 	flog("Error getting slots from message\n");
-	Job_deleteComp(jobcomp);
+	JobComp_delete(jobcomp);
 	return;
     }
     if (len != jobcomp->np) {
 	flog("length of slots list does not match number of processes"
 	     " (%u != %u)\n", len, jobcomp->np);
-	Job_deleteComp(jobcomp);
+	JobComp_delete(jobcomp);
 	return;
     }
 
-    insertJobCompInfoToStep(step, jobcomp);
+    Step_addJobCompInfo(step, jobcomp);
 
     /* test if we have all infos to start */
     if (step->rcvdPackProcs == step->packNtasks) {
