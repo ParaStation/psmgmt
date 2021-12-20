@@ -6,6 +6,48 @@ Copyright (C) 2021 ParTec AG, Munich
 Please send bug reports, questions and suggestions to <support@par-tec.com>
 
 
+Version 5.1.46:
+===============
+Bugfixes:
+ - Ensure psidclient will not crash after PSIDclient_clearMem()
+ - Fix various memory leaks
+ - Don't request configuration if config-server was not set
+ - Fix packing of flags for job info request
+ - Add sanity checks to execBatchJob()
+ - psslumgetbind supports CPU mapping and fix up
+ - Fix several scanbuild warnings
+Enhancements:
+ - Add support for Slurm protocol 21.08
+ - Add support for Slurm health-check (#31)
+ - Add support for REQUEST_REBOOT_NODES (#36)
+ - Make RPC RESPONSE_CONFIG compatible with Slurm 21.08
+ - Allow to use Prolog in addition to PrologSlurmctld in slurm.conf
+ - Remove the need for [prologue|epilogue].parallel
+ - Set SLURM_CONF to config-cache in configless mode (for external programs)
+ - Unset SLURM_CONF for jobs and steps in configless mode
+ - Replace getpwuid() with PSC_getpwuidBuf() in psidspawn
+ - Add timeout monitor (60 sec/SLURM_HC_TIMEOUT) to Slurm health-check
+ - Let psslurm parse SlurmdParameters of slurm.conf
+ - Add RPCs REQUEST_JOB_REQUEUE and REQUEST_KILL_JOB,
+   REQUEST_LAUNCH_PROLOG and REQUEST_COMPLETE_PROLOG
+ - Use sendSlurmReq() for RPCs REQUEST_UPDATE_NODE and MESSAGE_EPILOG_COMPLETE
+ - Set SHOW_LOCAL flag for Req_Job_Info_Single
+ - Synchronize slurmd prolog and batch job startup
+ - Cleanup memory in psslurm job/step forwarder
+ - Improve PSID_exec[script|func]): clear mem, jail forked procs, kill procgroup
+ - pscommon functions to query user database in plugins prevents psid bloating
+ - Avoid detour when deleting a job or step
+Additional changes:
+ - Include SPANK error codes for Slurm protocol 21.08
+ - Rework the Slurm message unpack code
+ - Rework slurmctld request/response message handling
+ - Introduce destroyBCastByJobid() to kill running BCast forwarders
+ - Introduce Job_destroy() to kill all remaing processes of a job
+ - Introduce Step_destroy() to kill all remaing processes of a step
+ - Some refactoring in psslurm and function naming consolidation
+ - IWYU fixes
+
+
 Version 5.1.45-4:
 =================
 Bugfixes:

@@ -1,3 +1,539 @@
+Version psmgmt-5.1.46:
+======================
+------------------------------------------------------------------------
+85632e4f | Norbert Eicker | Fri, 17 Dec 2021 17:31:31 +0100
+
+Streamline logging
+------------------------------------------------------------------------
+8655df4e | Norbert Eicker | Fri, 17 Dec 2021 16:59:42 +0100
+
+JobComps only loosely related to Job but belong to Step
+------------------------------------------------------------------------
+a45d9e8f | Norbert Eicker | Fri, 17 Dec 2021 16:45:36 +0100
+
+Minor streamlining
+------------------------------------------------------------------------
+4c7ae6c4 | Norbert Eicker | Fri, 17 Dec 2021 15:57:41 +0100
+
+More consolidation of step functions' naming
+------------------------------------------------------------------------
+355caefa | Michael Rauh | Thu, 16 Dec 2021 21:17:54 +0100
+
+Introduce destroyBCastByJobid() which kills a running
+BCast forwarder. In contrast to deleteBCastByJobid() which
+only frees used memory.
+------------------------------------------------------------------------
+ff3094d3 | Michael Rauh | Thu, 16 Dec 2021 21:00:15 +0100
+
+Introduce Job_destroy() to kill all remaing processes of
+a job. Job_delete() only frees allocated memory.
+
+ - Additionally fix some prototypes missing void qualifier
+------------------------------------------------------------------------
+1d8afa1c | Michael Rauh | Thu, 16 Dec 2021 10:37:38 +0100
+
+Consolidate naming of allocation functions
+------------------------------------------------------------------------
+45593cf4 | Michael Rauh | Thu, 16 Dec 2021 10:27:37 +0100
+
+Consolidate naming of job functions
+------------------------------------------------------------------------
+bfa07923 | Michael Rauh | Wed, 15 Dec 2021 17:02:45 +0100
+
+Introduce Step_destroy() to kill all remaing processes of
+a step. Step_delete() only frees allocated memory
+------------------------------------------------------------------------
+892e94ab | Michael Rauh | Wed, 15 Dec 2021 16:25:53 +0100
+
+Consolidate naming of step functions
+------------------------------------------------------------------------
+d8c3f7ba | Norbert Eicker | Tue, 14 Dec 2021 21:52:54 +0100
+
+Ensure psidclient will not crash after PSIDclient_clearMem()
+------------------------------------------------------------------------
+841713a9 | Norbert Eicker | Tue, 14 Dec 2021 21:46:31 +0100
+
+Improve docu comments
+------------------------------------------------------------------------
+69fb6ac9 | Michael Rauh | Tue, 14 Dec 2021 16:12:42 +0100
+
+Replace getpwuid() with PSC_getpwuidBuf() in psidspawn
+------------------------------------------------------------------------
+21d71fcf | Michael Rauh | Tue, 14 Dec 2021 15:56:45 +0100
+
+Expose PSC_getpwuidBuf() from pscommon
+------------------------------------------------------------------------
+23bf6571 | Norbert Eicker | Tue, 14 Dec 2021 17:59:55 +0100
+
+Merge branch '5.1.45'
+------------------------------------------------------------------------
+a3a548d3 | Norbert Eicker | Tue, 14 Dec 2021 02:25:27 +0100
+
+Fix several scanbuild warnings
+------------------------------------------------------------------------
+aea81e86 | Norbert Eicker | Tue, 14 Dec 2021 01:29:10 +0100
+
+Bugfix: Ensure new size is actually taken into account
+------------------------------------------------------------------------
+e1c40c3d | Norbert Eicker | Mon, 13 Dec 2021 20:04:21 +0100
+
+Adapt copyright
+------------------------------------------------------------------------
+1e287b49 | Norbert Eicker | Mon, 13 Dec 2021 20:01:38 +0100
+
+Warning from PSC_[gu]idFromString() shall be enough
+------------------------------------------------------------------------
+8be351df | Norbert Eicker | Mon, 13 Dec 2021 20:01:03 +0100
+
+Streamline syslog usage
+------------------------------------------------------------------------
+0ab32fe7 | Norbert Eicker | Mon, 13 Dec 2021 20:00:27 +0100
+
+Ensure memory is free() using the correct pointer
+------------------------------------------------------------------------
+baef438a | Norbert Eicker | Mon, 13 Dec 2021 19:59:29 +0100
+
+Bugfix: Ensure new size is actually taken into account
+------------------------------------------------------------------------
+149d77a3 | Norbert Eicker | Mon, 13 Dec 2021 19:59:01 +0100
+
+Fix typos in docu
+------------------------------------------------------------------------
+3a827619 | Norbert Eicker | Tue, 7 Dec 2021 01:33:28 +0100
+
+Fit getpwnamBuf() in pscommon's naming scheme
+------------------------------------------------------------------------
+0f933aba | Michael Rauh | Mon, 6 Dec 2021 14:51:47 +0100
+
+Use pscommon functions to query the user database in plugins
+------------------------------------------------------------------------
+6d7656cd | Michael Rauh | Mon, 6 Dec 2021 14:35:40 +0100
+
+Use const qualifier in pscommon function to query
+the user database
+------------------------------------------------------------------------
+29727438 | Michael Rauh | Mon, 6 Dec 2021 13:59:25 +0100
+
+Use local storage to query the user database in pscommon. This prevents
+the psid from bloating.
+------------------------------------------------------------------------
+617a2e5e | Michael Rauh | Mon, 13 Dec 2021 16:42:26 +0100
+
+Fix size calculation of commit a313bcd7
+------------------------------------------------------------------------
+a313bcd7 | Michael Rauh | Mon, 13 Dec 2021 14:41:56 +0100
+
+Bugfix: fix mimicking addStringToMsg() in pluginforwarder (#50)
+------------------------------------------------------------------------
+d442a991 | Michael Rauh | Mon, 6 Dec 2021 12:42:17 +0100
+
+Let gidFromString() actually return the group ID
+------------------------------------------------------------------------
+86f5630e | Norbert Eicker | Fri, 3 Dec 2021 16:44:07 +0100
+
+Move userFromUID() and groupFromGID() to pscommon
+------------------------------------------------------------------------
+31725b64 | Norbert Eicker | Fri, 3 Dec 2021 16:28:36 +0100
+
+Move uidFromString() and gidFromString() to pscommon
+------------------------------------------------------------------------
+5370c354 | Michael Rauh | Mon, 6 Dec 2021 13:34:10 +0100
+
+Include SPANK error codes for Slurm protocol 21.08
+------------------------------------------------------------------------
+c908c1b7 | Norbert Eicker | Fri, 3 Dec 2021 22:00:22 +0100
+
+Improve PSID_exec[script|func]):
+
+ - Clear memory before executing script via system(), too
+ - Jail forked process(es) into their process group
+ - Kill the whole process group upon timeout or cancelation
+------------------------------------------------------------------------
+d6e52c18 | Norbert Eicker | Fri, 3 Dec 2021 21:59:34 +0100
+
+Refine docu of PSID_execScript()
+------------------------------------------------------------------------
+688d10d2 | Norbert Eicker | Fri, 3 Dec 2021 20:25:23 +0100
+
+IWYU fixes
+------------------------------------------------------------------------
+4f9bc95e | Norbert Eicker | Fri, 3 Dec 2021 19:30:31 +0100
+
+Avoid detour when deleting a job
+------------------------------------------------------------------------
+27ba0e60 | Norbert Eicker | Fri, 3 Dec 2021 19:04:36 +0100
+
+Avoid detour when deleting a step
+------------------------------------------------------------------------
+8c1f54d6 | Norbert Eicker | Fri, 3 Dec 2021 18:52:44 +0100
+
+Minor improvement
+------------------------------------------------------------------------
+6248c805 | Norbert Eicker | Fri, 3 Dec 2021 18:52:23 +0100
+
+Improve docu comment
+------------------------------------------------------------------------
+483f75e3 | Michael Rauh | Fri, 3 Dec 2021 14:53:10 +0100
+
+Add timeout monitoring to Slurm health-check script
+ - default health-check timeout is 60 seconds
+ - timeout can be adjusted via SLURM_HC_TIMEOUT in psslurm.conf
+ - Warning: slurmctld might not take timeouts larger than 60
+   seconds into account
+------------------------------------------------------------------------
+b7d1bdaf | Michael Rauh | Fri, 3 Dec 2021 12:24:03 +0100
+
+Enhancement: Remove the need for [prologue|epilogue].parallel
+ - the same scripts wil be called on all nodes in the allocation
+------------------------------------------------------------------------
+b5d7befd | Michael Rauh | Thu, 2 Dec 2021 15:59:31 +0100
+
+Cleanup memory in psslurm job/step forwarder
+------------------------------------------------------------------------
+b7e1d32f | Norbert Eicker | Thu, 2 Dec 2021 03:12:36 +0100
+
+Adapt to PSIDscripts' new API
+------------------------------------------------------------------------
+50b199c7 | Michael Rauh | Wed, 1 Dec 2021 17:40:48 +0100
+
+Add support for Slurm health-check (#31)
+
+ - Limitation: currently there is no timeout of the health-check enforced
+------------------------------------------------------------------------
+a0ae8c69 | Norbert Eicker | Thu, 2 Dec 2021 03:33:00 +0100
+
+Move Alloc_t definition to psslurmalloc.h and IWYU fixes
+------------------------------------------------------------------------
+7faa2a9e | Norbert Eicker | Thu, 2 Dec 2021 02:31:15 +0100
+
+Major rewrite of PSIDscripts
+
+ - Add timeout argument to PSID_execFunc() and PSID_execScript()
+ - Handling of control file descriptor now inside PSIDscripts
+ - Avoid small malloc() and use PSitems instead
+------------------------------------------------------------------------
+883c003d | Norbert Eicker | Thu, 2 Dec 2021 02:23:10 +0100
+
+More IWYU fixes
+------------------------------------------------------------------------
+e7316a28 | Norbert Eicker | Thu, 2 Dec 2021 01:55:57 +0100
+
+Change PSID_scriptPrep_t prototype
+------------------------------------------------------------------------
+604083a9 | Norbert Eicker | Thu, 2 Dec 2021 01:55:15 +0100
+
+Fix docu typos
+------------------------------------------------------------------------
+408b565a | Norbert Eicker | Wed, 1 Dec 2021 02:37:01 +0100
+
+More IWYU fixes
+------------------------------------------------------------------------
+7a600189 | Norbert Eicker | Tue, 30 Nov 2021 23:22:11 +0100
+
+Fix memory leaks
+------------------------------------------------------------------------
+bcd438d4 | Norbert Eicker | Tue, 30 Nov 2021 21:27:33 +0100
+
+Booleanize PSID_blockSig()
+------------------------------------------------------------------------
+53d934ee | Michael Rauh | Mon, 29 Nov 2021 14:40:37 +0100
+
+Set SLURM_CONF to configuration cache in configless mode
+(needed for external programs using the SLURM API)
+------------------------------------------------------------------------
+dfd18ac7 | Norbert Eicker | Fri, 26 Nov 2021 23:20:15 +0100
+
+Fix more memleak corner-cases and simplify code
+------------------------------------------------------------------------
+0a01bfb1 | Norbert Eicker | Fri, 26 Nov 2021 23:02:06 +0100
+
+IWYU fixes for psslurmproto
+------------------------------------------------------------------------
+3f0841bb | Norbert Eicker | Fri, 26 Nov 2021 22:21:03 +0100
+
+Fix more memleak corner-cases
+------------------------------------------------------------------------
+f40156d7 | Michael Rauh | Fri, 26 Nov 2021 12:03:00 +0100
+
+Fix memory leaks from unpacked messages
+------------------------------------------------------------------------
+dd0da009 | Norbert Eicker | Wed, 24 Nov 2021 23:06:57 +0100
+
+Do not update *val if getFromBuf() failed
+------------------------------------------------------------------------
+ca992a3e | Norbert Eicker | Wed, 24 Nov 2021 23:06:14 +0100
+
+Remove doubled prototype (and docu)
+------------------------------------------------------------------------
+b2f304d5 | Norbert Eicker | Wed, 24 Nov 2021 13:31:35 +0100
+
+Fix more includes
+------------------------------------------------------------------------
+71bcf765 | Norbert Eicker | Wed, 24 Nov 2021 11:55:01 +0100
+
+Move definition of Slurm_Auth_t into psslurmauth.h
+------------------------------------------------------------------------
+5ba77610 | Norbert Eicker | Wed, 24 Nov 2021 11:33:01 +0100
+
+Refactor more functions away from psslurmauth
+------------------------------------------------------------------------
+14b1d0e0 | Norbert Eicker | Wed, 24 Nov 2021 10:57:35 +0100
+
+Refactor BCast_t handlers into psslurmbcast.c
+------------------------------------------------------------------------
+5cd204c6 | Norbert Eicker | Wed, 24 Nov 2021 10:50:14 +0100
+
+Fix potential memory leak
+------------------------------------------------------------------------
+57370123 | Norbert Eicker | Wed, 24 Nov 2021 10:24:08 +0100
+
+Refactor JobCred_t handlers into psslurmjobcred.c
+------------------------------------------------------------------------
+af80586c | Michael Rauh | Tue, 23 Nov 2021 10:34:40 +0100
+
+Unload psslurm when a node is requested to reboot if
+slurmd option shutdown_on_reboot is set
+------------------------------------------------------------------------
+4fc19219 | Michael Rauh | Tue, 23 Nov 2021 10:21:20 +0100
+
+Let psslurm parse SlurmdParameters of slurm.conf
+------------------------------------------------------------------------
+1542c0be | Michael Rauh | Fri, 19 Nov 2021 16:53:32 +0100
+
+Add support for REQUEST_REBOOT_NODES (#36)
+------------------------------------------------------------------------
+f372d246 | Michael Rauh | Fri, 12 Nov 2021 15:22:55 +0100
+
+Bugfix: don't try to request configuration if config-server
+was not set
+------------------------------------------------------------------------
+d79b78fc | Michael Rauh | Wed, 10 Nov 2021 12:29:50 +0100
+
+Unset SLURM_CONF for jobs and steps in configless mode
+------------------------------------------------------------------------
+a8d30862 | Michael Rauh | Mon, 8 Nov 2021 15:56:59 +0100
+
+Make RPC RESPONSE_CONFIG compatible with Slurm 21.08
+------------------------------------------------------------------------
+1093bdc0 | Michael Rauh | Mon, 8 Nov 2021 12:35:33 +0100
+
+Add psslurm unpack function getBool()
+------------------------------------------------------------------------
+2470a2ac | Michael Rauh | Mon, 8 Nov 2021 12:27:43 +0100
+
+Move getBitString() to psslurmpack
+------------------------------------------------------------------------
+d4fd469c | Michael Rauh | Tue, 12 Oct 2021 14:37:28 +0200
+
+Read srun response before closing the communication socket.
+Otherwise srun will show error messages
+starting with protocol 21.08
+------------------------------------------------------------------------
+9539046f | Michael Rauh | Thu, 7 Oct 2021 22:10:22 +0200
+
+Adopt Slurm 21.08 I/O init header
+------------------------------------------------------------------------
+57065509 | Michael Rauh | Tue, 5 Oct 2021 12:42:19 +0200
+
+First step to add support for Slurm protocol 21.08
+------------------------------------------------------------------------
+61b28a2f | Norbert Eicker | Fri, 5 Nov 2021 23:40:15 +0100
+
+Streamlining
+------------------------------------------------------------------------
+68962f70 | Michael Rauh | Thu, 5 Aug 2021 15:09:42 +0200
+
+Introduce confHasOpt()
+------------------------------------------------------------------------
+53a3f0e7 | Norbert Eicker | Fri, 26 Nov 2021 12:57:15 +0100
+
+Fix IWYU false complain on openSUSE
+------------------------------------------------------------------------
+85da81eb | Norbert Eicker | Fri, 26 Nov 2021 04:03:50 +0100
+
+Make IWYU even happier and fix build on CentOS7
+------------------------------------------------------------------------
+764eda59 | Norbert Eicker | Fri, 26 Nov 2021 04:02:49 +0100
+
+Improve IWYU usage desciption and add mappings
+------------------------------------------------------------------------
+f79beb94 | Norbert Eicker | Thu, 25 Nov 2021 22:46:40 +0100
+
+IWYU cleanup of *.c in bin/daemon
+------------------------------------------------------------------------
+942451b2 | Norbert Eicker | Thu, 25 Nov 2021 21:13:47 +0100
+
+IWYU cleanup of *.h in bin/daemon
+------------------------------------------------------------------------
+d5f3096e | Norbert Eicker | Thu, 25 Nov 2021 20:37:03 +0100
+
+First round of IWYU cleanup in include
+------------------------------------------------------------------------
+000329c0 | Norbert Eicker | Thu, 25 Nov 2021 19:51:40 +0100
+
+Add some notes on how to use IWYU
+------------------------------------------------------------------------
+59d3c70e | Stephan Krempel | Mon, 22 Nov 2021 13:10:57 +0100
+
+psslumgetbind: fix up
+------------------------------------------------------------------------
+e43398f3 | Stephan Krempel | Thu, 18 Nov 2021 13:38:02 +0100
+
+psslurmgetbind: Support CPU mapping
+------------------------------------------------------------------------
+609dc1df | Stephan Krempel | Wed, 17 Nov 2021 16:13:43 +0100
+
+psslurmgetbind: Streamlining
+------------------------------------------------------------------------
+da3e386c | Norbert Eicker | Wed, 17 Nov 2021 17:12:16 +0100
+
+Make code more readable
+------------------------------------------------------------------------
+269332d3 | Norbert Eicker | Wed, 17 Nov 2021 17:09:12 +0100
+
+Fix typo
+------------------------------------------------------------------------
+54862fbd | Michael Rauh | Wed, 17 Nov 2021 16:44:39 +0100
+
+Disable slurmd prolog for now
+------------------------------------------------------------------------
+25ace33d | Michael Rauh | Wed, 17 Nov 2021 16:24:34 +0100
+
+Valid unpacking data is was successful
+------------------------------------------------------------------------
+1c2c0ac1 | Michael Rauh | Wed, 17 Nov 2021 16:10:50 +0100
+
+Let pack layer handle RESPONSE_JOB_INFO
+------------------------------------------------------------------------
+cfcfed8b | Norbert Eicker | Fri, 5 Nov 2021 23:40:15 +0100
+
+Streamlining
+------------------------------------------------------------------------
+39a64d1d | Michael Rauh | Fri, 5 Nov 2021 14:43:06 +0100
+
+Rework the Slurm message unpack code
+
+ - introduce unpackSlurmMsg() to unpack the majority of Slurm
+   messages
+ - provides a cleaner, more enclosed interface
+ - additionally the unpacked data is stored in the Slurm message structure
+------------------------------------------------------------------------
+e763412d | Michael Rauh | Tue, 2 Nov 2021 16:05:53 +0100
+
+Bugfix: fix packing of flags for job info request
+------------------------------------------------------------------------
+14b084eb | Michael Rauh | Tue, 2 Nov 2021 15:40:38 +0100
+
+Set SHOW_LOCAL flag for Req_Job_Info_Single
+------------------------------------------------------------------------
+e6bc5118 | Michael Rauh | Tue, 2 Nov 2021 14:49:39 +0100
+
+Use strJobID() instead of a static array
+------------------------------------------------------------------------
+80a664fe | Michael Rauh | Tue, 2 Nov 2021 11:53:55 +0100
+
+Forward info argument of __sendSlurmMsg()
+------------------------------------------------------------------------
+8a258c81 | Michael Rauh | Fri, 15 Oct 2021 16:30:54 +0200
+
+Improve documentation
+------------------------------------------------------------------------
+ec072f61 | Michael Rauh | Fri, 27 Aug 2021 17:56:58 +0200
+
+Synchronize slurmd prolog and batch job startup
+------------------------------------------------------------------------
+c615bdfc | Michael Rauh | Fri, 27 Aug 2021 14:28:56 +0200
+
+Remove defunct psslurm messages
+------------------------------------------------------------------------
+9abeae1d | Michael Rauh | Thu, 26 Aug 2021 17:04:54 +0200
+
+Add sanity checks to execBatchJob()
+------------------------------------------------------------------------
+80f01781 | Michael Rauh | Mon, 23 Aug 2021 17:01:49 +0200
+
+Make REQUEST_STEP_COMPLETE compatible with
+with sendSlurmctldReq()
+------------------------------------------------------------------------
+edbf3323 | Michael Rauh | Mon, 23 Aug 2021 16:32:09 +0200
+
+Make REQUEST_COMPLETE_BATCH_SCRIPT compatible
+with sendSlurmctldReq()
+------------------------------------------------------------------------
+85e0e90f | Michael Rauh | Wed, 18 Aug 2021 15:20:15 +0200
+
+Remove obsolete arguments from pack functions
+------------------------------------------------------------------------
+44b84303 | Michael Rauh | Wed, 18 Aug 2021 14:24:24 +0200
+
+Improve naming of sendSlurmReq() to sendSlurmctldReq() to better
+reflect the functionality
+------------------------------------------------------------------------
+573fc1f8 | Michael Rauh | Wed, 18 Aug 2021 14:10:57 +0200
+
+Use sendSlurmReq() for RPC REQUEST_UPDATE_NODE
+------------------------------------------------------------------------
+b4c9624e | Michael Rauh | Wed, 18 Aug 2021 14:03:19 +0200
+
+Update documentation
+------------------------------------------------------------------------
+dcb1e26b | Michael Rauh | Wed, 18 Aug 2021 13:56:21 +0200
+
+Use sendSlurmReq() for RPC MESSAGE_EPILOG_COMPLETE
+------------------------------------------------------------------------
+ff2164bf | Michael Rauh | Wed, 18 Aug 2021 13:09:14 +0200
+
+Let psslurm requeue and optional cancel a job if the
+slurmd prolog failed
+
+ * Add RPCs REQUEST_JOB_REQUEUE and REQUEST_KILL_JOB
+------------------------------------------------------------------------
+0cf23249 | Michael Rauh | Mon, 16 Aug 2021 18:10:55 +0200
+
+Let sendSlurmReq() pack the data necessary for the request by
+calling packSlurmReq()
+------------------------------------------------------------------------
+ccd9024f | Michael Rauh | Fri, 13 Aug 2021 17:10:30 +0200
+
+Rework slurmctld request/response message handling
+
+Additional request information can be passed to the sending
+function. The information is passed to the function handling
+the response. Therefore general RC (return code) answers can now be
+correlated to a specific request.
+------------------------------------------------------------------------
+b8fccc40 | Michael Rauh | Thu, 5 Aug 2021 17:51:30 +0200
+
+Add Slurm job states for prologue handling
+------------------------------------------------------------------------
+e0e21c81 | Michael Rauh | Thu, 5 Aug 2021 15:09:42 +0200
+
+Introduce confHasOpt()
+------------------------------------------------------------------------
+510b7837 | Michael Rauh | Mon, 12 Jul 2021 14:14:15 +0200
+
+Log spank environment when peloge debug mask is set
+------------------------------------------------------------------------
+156cc7a3 | Michael Rauh | Fri, 9 Jul 2021 15:20:59 +0200
+
+Actually start a local prologue if it has not been run by the
+slurmctld prologue before
+------------------------------------------------------------------------
+ddd4a5d5 | Michael Rauh | Fri, 2 Jul 2021 17:13:38 +0200
+
+Allow to use Prolog additional to PrologSlurmctld in slurm.conf
+------------------------------------------------------------------------
+53484aa8 | Michael Rauh | Tue, 29 Jun 2021 17:28:56 +0200
+
+Add code to process RPC REQUEST_LAUNCH_PROLOG
+------------------------------------------------------------------------
+4bf247b2 | Michael Rauh | Tue, 29 Jun 2021 17:26:04 +0200
+
+Add un-/pack code for RPC REQUEST_LAUNCH_PROLOG
+and REQUEST_COMPLETE_PROLOG
+------------------------------------------------------------------------
+
+
 Version psmgmt-5.1.45-4:
 ========================
 ------------------------------------------------------------------------
