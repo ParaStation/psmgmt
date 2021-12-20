@@ -260,10 +260,10 @@ static void writeLabelIOmsg(Forwarder_Data_t *fwdata, char *msg,
     char label[128];
     snprintf(label, sizeof(label), "%0*u: ", getWidth(step->np -1), grank);
 
-    uint32_t left = msgLen;
+    ssize_t left = msgLen;
     char *nl, *ptr = msg;
 
-    while (ptr && left > 0 && (nl = memchr(ptr, '\n', left))) {
+    while (left > 0 && (nl = memchr(ptr, '\n', left))) {
 	uint32_t len = (nl +1) - ptr;
 	IO_writeMsg(fwdata, label, strlen(label), grank, type, lrank);
 	IO_writeMsg(fwdata, ptr, len, grank, type, lrank);
