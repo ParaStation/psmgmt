@@ -793,14 +793,14 @@ static void showDistances(char *key, StrBuffer_t *strBuf)
 
     /* column header */
     addStrBuf("\t     ", strBuf);
-    for (uint16_t i = 0; i < numNUMA; i++) {
+    for (int16_t i = 0; i < numNUMA; i++) {
 	snprintf(line, sizeof(line), " % 5hd", i);
 	addStrBuf(line, strBuf);
     }
     addStrBuf("\n", strBuf);
 
     /* each line */
-    for (uint16_t i = 0; i < numNUMA; i++) {
+    for (int16_t i = 0; i < numNUMA; i++) {
 	/* row header */
 	snprintf(line, sizeof(line), "\t% 5hd", i);
 	addStrBuf(line, strBuf);

@@ -754,7 +754,7 @@ static uint32_t getHWEnv(void)
 	int idx;
 	int err = PSI_infoInt(-1, PSP_INFO_HWINDEX, hw, &idx, false);
 	if (!err && (idx >= 0) && (idx < ((int)sizeof(hwType) * 8))) {
-	    hwType |= 1 << idx;
+	    hwType |= (uint32_t)1 << idx;
 	} else {
 	    PSI_log(-1, "%s: Unknown hardware type '%s'."
 		    " Ignore environment %s\n", __func__, hw, ENV_HW_TYPE);
