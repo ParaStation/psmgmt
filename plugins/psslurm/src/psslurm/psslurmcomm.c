@@ -734,7 +734,7 @@ const char *slurmRC2String(int rc)
     }
 
     static char buf[64];
-    snprintf(buf, sizeof(buf), "unkown %u", rc);
+    snprintf(buf, sizeof(buf), "unkown %d", rc);
 
     return buf;
 }

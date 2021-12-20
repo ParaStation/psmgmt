@@ -133,7 +133,7 @@ static bool getFullList(sizedList_t *list, PSP_Info_t what, size_t itemSize)
     hosts = recv/itemSize;
 
     if (hosts != PSC_getNrOfNodes()) {
-	printf("%s: failed (recv %d, itemSize %zd, hosts %d, NoN %d).\n",
+	printf("%s: failed (recv %d, itemSize %zu, hosts %d, NoN %d).\n",
 	       funcStr, recv, itemSize, hosts, PSC_getNrOfNodes());
 	return false;
     }

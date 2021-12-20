@@ -304,7 +304,7 @@ static char *showHealthCheck(void)
 {
     StrBuffer_t strBuf = { .buf = NULL };
 
-    snprintf(line, sizeof(line), "\nSlurm health-check runs: %zu\n",
+    snprintf(line, sizeof(line), "\nSlurm health-check runs: %lu\n",
 	     getSlurmHCRuns());
     addStrBuf(line, &strBuf);
 

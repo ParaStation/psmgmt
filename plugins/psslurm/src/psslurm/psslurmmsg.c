@@ -129,7 +129,7 @@ const char *msgType2String(int type)
     }
 
     static char buf[64];
-    snprintf(buf, sizeof(buf), "unkown %u", type);
+    snprintf(buf, sizeof(buf), "unkown %d", type);
 
     return buf;
 }

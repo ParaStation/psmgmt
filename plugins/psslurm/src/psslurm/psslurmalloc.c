@@ -139,7 +139,7 @@ static int termJail(void *info)
     pid_t pid = -1;
     char buf[1024];
 
-    snprintf(buf, sizeof(buf), "%i", alloc->id);
+    snprintf(buf, sizeof(buf), "%u", alloc->id);
     setenv("SLURM_JOBID", buf, 1);
     setenv("SLURM_USER", alloc->username, 1);
 
