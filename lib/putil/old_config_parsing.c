@@ -171,163 +171,139 @@ static int getRDPPort(char *token)
 
 static int getRDPTimeout(char *token)
 {
-    int temp, ret;
-
-    ret = parser_getNumValue(parser_getString(), &temp, "RDP timeout");
+    int tmp;
+    int ret = parser_getNumValue(parser_getString(), &tmp, "RDP timeout");
     if (ret) return ret;
 
-    if (temp < MIN_TIMEOUT_MSEC) {
-	parser_comment(-1, "RDP timeout %d too small. Ignoring...\n", temp);
+    if (tmp < MIN_TIMEOUT_MSEC) {
+	parser_comment(-1, "RDP timeout %d too small. Ignoring...\n", tmp);
     } else {
-	config.RDPTimeout = temp;
+	config.RDPTimeout = tmp;
     }
-
-    return ret;
+    return 0;
 }
 
 static int getRDPMaxRetrans(char *token)
 {
-    int ret, tmp;
-
-    ret = parser_getNumValue(parser_getString(), &tmp,
-			     "RDP maximum retransmissions");
+    int tmp;
+    int ret = parser_getNumValue(parser_getString(), &tmp,
+				 "RDP maximum retransmissions");
     if (ret) return ret;
 
     setMaxRetransRDP(tmp);
-
-    return ret;
+    return 0;
 }
 
 static int getRDPResendTimeout(char *token)
 {
-    int ret, tmp;
-
-    ret = parser_getNumValue(parser_getString(), &tmp,
-			     "RDP resend timeout");
+    int tmp;
+    int ret = parser_getNumValue(parser_getString(), &tmp,
+				 "RDP resend timeout");
     if (ret) return ret;
 
     setRsndTmOutRDP(tmp);
-
-    return ret;
+    return 0;
 }
 
 static int getRDPClosedTimeout(char *token)
 {
-    int ret, tmp;
-
-    ret = parser_getNumValue(parser_getString(), &tmp,
-			     "RDP closed timeout");
+    int tmp;
+    int ret = parser_getNumValue(parser_getString(), &tmp,
+				 "RDP closed timeout");
     if (ret) return ret;
 
     setClsdTmOutRDP(tmp);
-
-    return ret;
+    return 0;
 }
 
 static int getRDPMaxACKPend(char *token)
 {
-    int ret, tmp;
-
-    ret = parser_getNumValue(parser_getString(), &tmp,
-			     "RDP maximum pending ACKs");
+    int tmp;
+    int ret = parser_getNumValue(parser_getString(), &tmp,
+				 "RDP maximum pending ACKs");
     if (ret) return ret;
 
     setMaxAckPendRDP(tmp);
-
-    return ret;
+    return 0;
 }
 
 static int getRDPStatistics(char *token)
 {
-    int ret, tmp;
-
-    ret = parser_getBool(parser_getString(), &tmp, "RDP statistics");
-
+    int tmp;
+    int ret = parser_getBool(parser_getString(), &tmp, "RDP statistics");
     if (ret) return ret;
 
     RDP_setStatistics(tmp);
-
-    return ret;
+    return 0;
 }
 
 static int getSelectTime(char *token)
 {
-    int temp, ret;
-
-    ret = parser_getNumValue(parser_getString(), &temp, "select time");
+    int tmp;
+    int ret = parser_getNumValue(parser_getString(), &tmp, "select time");
     if (ret) return ret;
 
-    config.selectTime = temp;
-
-    return ret;
+    config.selectTime = tmp;
+    return 0;
 }
 
 static int getDeadInterval(char *token)
 {
-    int temp, ret;
-
-    ret = parser_getNumValue(parser_getString(), &temp, "dead interval");
+    int tmp;
+    int ret = parser_getNumValue(parser_getString(), &tmp, "dead interval");
     if (ret) return ret;
 
-    config.deadInterval = temp;
-
-    return ret;
+    config.deadInterval = tmp;
+    return 0;
 }
 
 static int getStatTmout(char *token)
 {
-    int temp, ret;
-
-    ret = parser_getNumValue(parser_getString(), &temp, "status timeout");
+    int tmp;
+    int ret = parser_getNumValue(parser_getString(), &tmp, "status timeout");
     if (ret) return ret;
 
-    if (temp < MIN_TIMEOUT_MSEC) {
-	parser_comment(-1, "status timeout %d too small. Ignoring...\n", temp);
+    if (tmp < MIN_TIMEOUT_MSEC) {
+	parser_comment(-1, "status timeout %d too small. Ignoring...\n", tmp);
     } else {
-	config.statusTimeout = temp;
+	config.statusTimeout = tmp;
     }
-
-    return ret;
+    return 0;
 }
 
 static int getStatBcast(char *token)
 {
-    int temp, ret;
-
-    ret = parser_getNumValue(parser_getString(), &temp, "status broadcasts");
+    int tmp;
+    int ret = parser_getNumValue(parser_getString(), &tmp, "status broadcasts");
     if (ret) return ret;
 
-    if (temp < 0) {
+    if (tmp < 0) {
 	parser_comment(-1, "status broadcasts must be positive. Ignoring...\n");
     } else {
-	config.statusBroadcasts = temp;
+	config.statusBroadcasts = tmp;
     }
 
-    return ret;
+    return 0;
 }
 
 static int getDeadLmt(char *token)
 {
-    int temp, ret;
-
-    ret = parser_getNumValue(parser_getString(), &temp, "dead limit");
+    int tmp;
+    int ret = parser_getNumValue(parser_getString(), &tmp, "dead limit");
     if (ret) return ret;
 
-    config.deadLimit = temp;
-
-    return ret;
+    config.deadLimit = tmp;
+    return 0;
 }
 
 static int getKillDelay(char *token)
 {
-    int temp, ret;
-
-    ret = parser_getNumValue(parser_getString(), &temp, "kill delay");
+    int tmp;
+    int ret = parser_getNumValue(parser_getString(), &tmp, "kill delay");
     if (ret) return ret;
 
-    config.killDelay = temp;
-
-    return ret;
+    config.killDelay = tmp;
+    return 0;
 }
 
 static int getLogMask(char *token)
@@ -2173,7 +2149,7 @@ static int handleGenStr(long val, char *in, char **out, size_t *size)
 	if (len >= *size) {
 	    *size = len+80; /* some extra space */
 	    *out = realloc(*out, *size);
-	    if (!out) {
+	    if (!*out) {
 		parser_comment(-1, "%s: Out of mem\n", __func__);
 		free(inStr);
 		return -1;
