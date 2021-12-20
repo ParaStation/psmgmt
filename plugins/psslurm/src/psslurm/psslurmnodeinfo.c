@@ -127,25 +127,25 @@ static void coreMapToHWthreads(PSCPU_set_t *hwthreads, const bool *coreMap,
  *
  * @param iter     iterator to be processed
  *
- * @returns true if a node is left, false if not
+ * @returns next nodeinfo if a node is left, NULL if not
  */
 static nodeinfo_t *node_iter_next(node_iterator *iter)
 {
     if (!iter->initialized) {
 	flog("node iterator not initialized");
-	return false;
+	return NULL;
     }
 
     iter->index++;
     if (iter->index >= iter->nrOfNodes) {
-	return false;
+	return NULL;
     }
 
     /* get cpu count per node from job credential */
     if (iter->nodeArrayIndex >= iter->nodeArraySize) {
 	flog("invalid job core array index %i, size %i\n",
 		iter->nodeArrayIndex, iter->nodeArraySize);
-	return false;
+	return NULL;
     }
 
     uint32_t coreCount = iter->coresPerSocket[iter->nodeArrayIndex]
@@ -155,7 +155,7 @@ static nodeinfo_t *node_iter_next(node_iterator *iter)
     if (numThreads < 0) {
 	flog("invalid node id %hu in nodes array at pos %zd\n", nodeid,
 		iter->index);
-	return false;
+	return NULL;
 
     }
     uint16_t threadsPerCore = numThreads / coreCount;
@@ -297,7 +297,7 @@ nodeinfo_t *getJobNodeinfo(PSnodes_ID_t id, const Job_t *job)
     nodeinfo_t *nodeinfo = node_iter_to_node(&iter, id);
 
     if (!nodeinfo) {
-	flog("Node id %hu not found in %s\n", id, job ? "job" : "step");
+	flog("Node id %hu not found in job\n", id);
 	return NULL;
     }
 
