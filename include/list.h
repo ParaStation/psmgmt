@@ -2,6 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2006-2018 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2021 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -11,6 +12,11 @@
 #define _LIST_H_
 
 #include <stddef.h>
+
+/* HACK suppress Clang's __builtin_assume hint in other compilers*/
+#ifndef __clang__
+#define __builtin_assume(...)
+#endif
 
 /*
  * Simple doubly linked list implementation.

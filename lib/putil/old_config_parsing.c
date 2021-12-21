@@ -819,6 +819,7 @@ static void clear_GUIDlist(list_t *list)
     list_for_each_safe(pos, tmp, list) {
 	GUent_t *guent = list_entry(pos, GUent_t, next);
 	list_del(pos);
+	__builtin_assume(pos != list->next); // hint to Clang's static analyzer
 	free(guent);
     }
 }
