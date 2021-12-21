@@ -181,8 +181,8 @@ void cleanup(void)
 	jlog(-1, "removing PSIDHOOK_JAIL_TERM failed\n");
     }
 
-    if (jailScript) free(jailScript);
-    if (termScript) free(termScript);
+    free(jailScript);
+    free(termScript);
     freeConfig(&config);
 
     jlog(-1, "...Bye.\n");
@@ -227,7 +227,7 @@ char *set(char *key, char *val)
 
     if (!strcmp(key, "JAIL_SCRIPT")) {
 	addConfigEntry(&config, key, val);
-	if (jailScript) free(jailScript);
+	free(jailScript);
 	char *script = getConfValueC(&config, "JAIL_SCRIPT");
 	jailScript = checkScript(script);
 	jlog(J_LOG_VERBOSE, "jailScript set to '%s'\n",
@@ -242,7 +242,7 @@ char *set(char *key, char *val)
 	}
     } else if (!strcmp(key, "JAIL_TERM_SCRIPT")) {
 	addConfigEntry(&config, key, val);
-	if (termScript) free(termScript);
+	free(termScript);
 	char *script = getConfValueC(&config, "JAIL_TERM_SCRIPT");
 	termScript = checkScript(script);
 	jlog(J_LOG_VERBOSE, "termScript set to '%s'\n",
@@ -272,7 +272,7 @@ char *unset(char *key)
 {
     if (!strcmp(key, "JAIL_SCRIPT")) {
 	unsetConfigEntry(&config, confDef, key);
-	if (jailScript) free(jailScript);
+	free(jailScript);
 	char *script = getConfValueC(&config, "JAIL_SCRIPT");
 	jailScript = checkScript(script);
 	if (!jailScript) {
@@ -282,7 +282,7 @@ char *unset(char *key)
 	}
     } else if (!strcmp(key, "JAIL_TERM_SCRIPT")) {
 	unsetConfigEntry(&config, confDef, key);
-	if (termScript) free(termScript);
+	free(termScript);
 	char *script = getConfValueC(&config, "JAIL_TERM_SCRIPT");
 	termScript = checkScript(script);
 	if (!termScript) {

@@ -753,7 +753,7 @@ static void statPID(pid_t pid)
     }
 
     PSID_log(-1, "%s(%d): %s", __func__, pid, statLine);
-    if (statLine) free(statLine);
+    free(statLine);
 }
 
 /**
@@ -3142,10 +3142,7 @@ static bool msg_CHILDBORN(DDErrorMsg_t *msg)
     }
 
     if (forwarder->argv) {
-	uint32_t i;
-	for (i=0; i<forwarder->argc; i++) {
-	    if (forwarder->argv[i]) free(forwarder->argv[i]);
-	}
+	for (uint32_t i = 0; i < forwarder->argc; i++) free(forwarder->argv[i]);
 	free(forwarder->argv);
 	forwarder->argv = NULL;
 	forwarder->argc = 0;

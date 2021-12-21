@@ -160,8 +160,8 @@ Job_t *addJob(const char *plugin, const char *jobid, uid_t uid, gid_t gid,
 
 	    list_add_tail(&job->next, &jobList);
 	} else {
-	    if (job->plugin) free(job->plugin);
-	    if (job->id) free(job->id);
+	    free(job->plugin);
+	    free(job->id);
 	    free(job);
 	    job = NULL;
 	}

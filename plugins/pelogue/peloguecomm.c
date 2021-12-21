@@ -395,8 +395,8 @@ static void handlePElogueStart(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
     child = addChild(plugin, jobid, prlg ? PELOGUE_PROLOGUE : PELOGUE_EPILOGUE);
     if (!child) {
 	mlog("%s: Failed to create a new child\n", __func__);
-	if (plugin) free(plugin);
-	if (jobid) free(jobid);
+	free(plugin);
+	free(jobid);
 	return;
     }
     child->mainPElogue = PSC_getID(msg->header.sender);
@@ -493,18 +493,18 @@ static void handlePElogueSignal(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
 
     /* find job */
     child = findChild(plugin, jobid);
-    if (plugin) free(plugin);
+    free(plugin);
     if (!child) {
 	mdbg(PELOGUE_LOG_WARN, "%s: No child for job %s\n", __func__,
 	     jobid ? jobid : "<unknown>");
-	if (jobid) free(jobid);
-	if (reason) free(reason);
+	free(jobid);
+	free(reason);
 	return;
     }
     free(jobid);
 
     signalChild(child, signal, reason);
-    if (reason) free(reason);
+    free(reason);
 }
 
 void sendPElogueFinish(PElogueChild_t *child)
@@ -541,13 +541,13 @@ static void handlePElogueFinish(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
     char *jobid = getStringM(&ptr);
 
     Job_t *job = findJobById(plugin, jobid);
-    if (plugin) free(plugin);
+    free(plugin);
     if (!job) {
 	if (!jobIDInHistory(jobid)) {
 	    mdbg(PELOGUE_LOG_WARN, "%s: ignore %s finish message for job %s\n",
 		 __func__, peType, jobid ? jobid : "<unknown>");
 	}
-	if (jobid) free(jobid);
+	free(jobid);
 	return;
     }
     free(jobid);

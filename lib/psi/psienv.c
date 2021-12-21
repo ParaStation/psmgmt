@@ -20,12 +20,8 @@ static int sizeOfEnv = 0;
 
 void clearPSIEnv(void)
 {
-    for (int i = 0; i < sizeOfEnv; i++) {
-	if (environment[i]) free(environment[i]);
-    }
-
-    if (environment) free(environment);
-
+    for (int i = 0; i < sizeOfEnv; i++) free(environment[i]);
+    free(environment);
     environment = NULL;
     sizeOfEnv = 0;
 }

@@ -527,8 +527,7 @@ PSCPU_set_t * PSIDhw_getPCISets(bool PCIorder, PCI_ID_t ID_list[])
 
 	idx++;
     }
-
-    if (map) free(map);
+    free(map);
 
     return sets;
 }

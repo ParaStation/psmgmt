@@ -308,7 +308,7 @@ static bool addNode(PSnodes_ID_t node, nodelist_t *nl)
 	nl->maxsize += 128;
 	nl->nodes = realloc(nl->nodes, nl->maxsize * sizeof(*nl->nodes));
 	if (!nl->nodes) {
-	    if (tmp) free(tmp);
+	    free(tmp);
 	    PSI_log(-1, "%s: no memory\n", __func__);
 	    return false;
 	}
@@ -323,8 +323,7 @@ static bool addNode(PSnodes_ID_t node, nodelist_t *nl)
 static void freeNodelist(nodelist_t *nl)
 {
     if (!nl) return;
-
-    if (nl->nodes) free(nl->nodes);
+    free(nl->nodes);
     free(nl);
 }
 
@@ -913,10 +912,10 @@ static void analyzeError(PSpart_request_t *request, nodelist_t *nodelist)
     }
 
 end:
-    if (nStat) free(nStat);
-    if (hwStat) free(hwStat);
-    if (allocJobs) free(allocJobs);
-    if (numThreads) free(numThreads);
+    free(nStat);
+    free(hwStat);
+    free(allocJobs);
+    free(numThreads);
 }
 
 static bool alarmCalled = false;

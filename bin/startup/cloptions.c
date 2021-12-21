@@ -1202,34 +1202,31 @@ PARSE_MPIEXEC_OPT:
 
 void releaseConf(Conf_t *conf)
 {
-    int e,i;
-
     if (!conf) return;
 
-    if (conf->nList) free(conf->nList);
-    if (conf->hList) free(conf->hList);
-    if (conf->hFile) free(conf->hFile);
-    if (conf->sort) free(conf->sort);
+    free(conf->nList);
+    free(conf->hList);
+    free(conf->hFile);
+    free(conf->sort);
 
-    if (conf->PSComPlgnDir) free(conf->PSComPlgnDir);
-    if (conf->PSComDisCom) free(conf->PSComDisCom);
-    if (conf->PSComNtwrk) free(conf->PSComNtwrk);
+    free(conf->PSComPlgnDir);
+    free(conf->PSComDisCom);
+    free(conf->PSComNtwrk);
 
-    if (conf->dest) free(conf->dest);
-    if (conf->envList) free(conf->envList);
-    if (conf->path) free(conf->path);
+    free(conf->dest);
+    free(conf->envList);
+    free(conf->path);
 
     if (conf->exec) {
-	for (e = 0; e < conf->execCount; e++) {
+	for (int e = 0; e < conf->execCount; e++) {
 	    if (conf->exec[e].argv) {
-		for (i = 0; i < conf->exec[e].argc; i++) {
+		for (int i = 0; i < conf->exec[e].argc; i++) {
 		    free(conf->exec[e].argv[i]);
 		}
-		free(conf->exec[e].argv);
 	    }
+	    free(conf->exec[e].argv);
 	}
-	free(conf->exec);
     }
-
+    free(conf->exec);
     free(conf);
 }

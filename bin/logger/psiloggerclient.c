@@ -510,7 +510,7 @@ void setupDestList(char *input)
     int first, last, r, oldSTOPs;
 
     if (input && (!destStr || strcmp(destStr, input))) {
-	if (destStr) free(destStr);
+	free(destStr);
 	destStr = strdup(input);
     }
 

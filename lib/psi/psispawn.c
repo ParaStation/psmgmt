@@ -123,7 +123,7 @@ static char *mygetwd(const char *ext)
 	tmp = dir;
 	dir = realloc(dir, strlen(dir) + (ext ? strlen(ext) : 0) + 2);
 	if (!dir) {
-	    if (tmp) free(tmp);
+	    free(tmp);
 	    goto error;
 	}
 
@@ -991,7 +991,7 @@ int PSI_spawnRsrvtn(int count, PSrsrvtn_ID_t resID, char *workdir,
     ret = total;
 
 exit:
-    if (nodes) free(nodes);
+    free(nodes);
     return ret;
 }
 

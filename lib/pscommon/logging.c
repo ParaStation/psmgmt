@@ -44,13 +44,8 @@ void logger_setTag(logger_t* logger, const char* tag)
 {
     if (!logger) return;
 
-    if (logger->tag) free(logger->tag);
-
-    if (tag) {
-	logger->tag = strdup(tag);
-    } else {
-	logger->tag = NULL;
-    }
+    free(logger->tag);
+    logger->tag = tag ? strdup(tag) : NULL;
 }
 
 bool logger_getTimeFlag(logger_t* logger)
@@ -120,12 +115,11 @@ void logger_finalize(logger_t* logger)
 
     if (logger->trailUsed) logger_print(logger, -1, "\n");
 
-    if (logger->tag) free(logger->tag);
-    if (logger->trail) free(logger->trail);
-    if (logger->fmt) free(logger->fmt);
-    if (logger->prfx) free(logger->prfx);
-    if (logger->txt) free(logger->txt);
-
+    free(logger->tag);
+    free(logger->trail);
+    free(logger->fmt);
+    free(logger->prfx);
+    free(logger->txt);
     free(logger);
 }
 

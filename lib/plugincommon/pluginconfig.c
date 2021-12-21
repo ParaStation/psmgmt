@@ -86,7 +86,7 @@ int parseConfigFile(char *filename, Config_t *conf, bool trimQuotes)
 
 	pluginlog("%s: error opening config cwd:%s file:%s\n", __func__, cwd,
 		  filename);
-	if (cwd) free(cwd);
+	free(cwd);
 	return -1;
     }
 

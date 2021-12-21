@@ -379,7 +379,7 @@ static bool getCoreDir(char *key)
 	parser_comment(-1, "'%s' is not a directory\n", dname);
     } else {
 	config.coreDir = dname;
-	if (usedDir) free(usedDir);
+	free(usedDir);
 	usedDir = config.coreDir;
 	setLimit(RLIMIT_CORE, RLIM_INFINITY);
 
@@ -1213,7 +1213,6 @@ static bool getEnv(char *key)
 static void pushAndClearEnv(void)
 {
     list_t *pos, *tmp;
-
     list_for_each_safe(pos, tmp, &envList) {
 	EnvEnt_t *env = list_entry(pos, EnvEnt_t, next);
 	list_del(pos);
@@ -1222,9 +1221,8 @@ static void pushAndClearEnv(void)
 			   env->name, env->value);
 	    setenv(env->name, env->value, 1);
 	}
-	if (env->name) free(env->name);
-	if (env->value) free(env->value);
-
+	free(env->name);
+	free(env->value);
 	free(env);
     }
 }

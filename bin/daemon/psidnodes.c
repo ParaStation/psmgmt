@@ -990,7 +990,7 @@ int PSIDnodes_setDistances(PSnodes_ID_t id, uint32_t *distances)
 {
     if (!validID(id)) return -1;
 
-    if (nodes[id].distances) free(nodes[id].distances);
+    free(nodes[id].distances);
     nodes[id].distances = distances;
     return 0;
 }
@@ -1016,7 +1016,7 @@ int PSIDnodes_setCPUSets(PSnodes_ID_t id, PSCPU_set_t *CPUset)
 {
     if (!validID(id)) return -1;
 
-    if (nodes[id].CPUset) free(nodes[id].CPUset);
+    free(nodes[id].CPUset);
     nodes[id].CPUset = CPUset;
     return 0;
 }
@@ -1047,7 +1047,7 @@ int PSIDnodes_setGPUSets(PSnodes_ID_t id, PSCPU_set_t *GPUset)
 {
     if (!validID(id)) return -1;
 
-    if (nodes[id].GPUset) free(nodes[id].GPUset);
+    free(nodes[id].GPUset);
     nodes[id].GPUset = GPUset;
     return 0;
 }
@@ -1078,7 +1078,7 @@ int PSIDnodes_setNICSets(PSnodes_ID_t id, PSCPU_set_t *NICset)
 {
     if (!validID(id)) return -1;
 
-    if (nodes[id].NICset) free(nodes[id].NICset);
+    free(nodes[id].NICset);
     nodes[id].NICset = NICset;
     return 0;
 }
@@ -1106,11 +1106,11 @@ void PSIDnodes_clearMem(void)
 	clear_GUID_list(&nodes[n].gid_list);
 	clear_GUID_list(&nodes[n].admuid_list);
 	clear_GUID_list(&nodes[n].admgid_list);
-	if (nodes[n].CPUmap) free(nodes[n].CPUmap);
-	if (nodes[n].distances) free(nodes[n].distances);
-	if (nodes[n].CPUset) free(nodes[n].CPUset);
-	if (nodes[n].GPUset) free(nodes[n].GPUset);
-	if (nodes[n].NICset) free(nodes[n].NICset);
+	free(nodes[n].CPUmap);
+	free(nodes[n].distances);
+	free(nodes[n].CPUset);
+	free(nodes[n].GPUset);
+	free(nodes[n].NICset);
     }
 
     free(nodes);

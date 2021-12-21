@@ -2,6 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2006-2020 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2021 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -129,7 +130,7 @@ int main(int argc, const char *argv[])
 	    if (unknownArg == argv[i]) {
 		int j, totLen = 2;
 		for (j=i; j<argc; j++) totLen += strlen(argv[j]) + 1;
-		if (cmdLine) free(cmdLine);
+		free(cmdLine);
 		cmdLine = malloc(totLen);
 		cmdLine[0] = '\0';
 		for (j=i; j<argc; j++)

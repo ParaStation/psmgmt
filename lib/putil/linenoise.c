@@ -836,7 +836,7 @@ static void linenoiseEditDeletePrevWord(struct linenoiseState *l) {
     /* save to cache */
     char tmp = l->buf[old_pos];
     l->buf[old_pos] = '\0';
-    if (cache) free(cache);
+    free(cache);
     cache = strdup(l->buf+l->pos);
     l->buf[old_pos] = tmp;
 
@@ -1003,14 +1003,14 @@ static int linenoiseHandleInput(struct linenoiseState *l)
         if (linenoiseEditInsert(l,c)) return -1;
         break;
     case CTRL_U: /* Ctrl+u, delete the whole line. */
-        if (cache) free(cache);
+	free(cache);
         cache = strdup(l->buf);
         l->buf[0] = '\0';
         l->pos = l->len = 0;
         refreshLine(l);
         break;
     case CTRL_K: /* Ctrl+k, delete from current to end of line. */
-        if (cache) free(cache);
+        free(cache);
         cache = strdup(l->buf+l->pos);
         l->buf[l->pos] = '\0';
         l->len = l->pos;
@@ -1142,7 +1142,7 @@ static char *linenoiseNoTTY(void) {
             char *oldval = line;
             line = realloc(line,maxlen);
             if (line == NULL) {
-                if (oldval) free(oldval);
+                free(oldval);
                 return NULL;
             }
         }
@@ -1240,7 +1240,7 @@ void linenoiseRemoveHandlerCallback(void) {
 
 void linenoiseSetPrompt(char *prompt)
 {
-    if (as.prompt) free((char *)as.prompt);
+    free((char *)as.prompt);
     as.prompt = prompt ? strdup(prompt) : prompt;
     as.plen = prompt ? strlen(prompt) : 0;
 }

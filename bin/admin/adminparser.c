@@ -46,7 +46,7 @@ static bool setupDefaultNL(void)
 
 static void releaseDefaultNL(void)
 {
-    if (defaultNL) free(defaultNL);
+    free(defaultNL);
     defaultNL = NULL;
 }
 
@@ -246,7 +246,7 @@ static int rangeCommand(char *token)
 	printf(" ");
 	res = printRange(NULL);
 	printf("\n");
-	if (res) free(res);
+	free(res);
     }
 
     return 0;
@@ -1308,10 +1308,8 @@ static PSIADM_valList_t *cpusFromString(char *valStr)
     return valList;
 
  error:
-    if (valList) {
-	if (valList->value) free(valList->value);
-	free(valList);
-    }
+    if (valList) free(valList->value);
+    free(valList);
     return NULL;
 }
 
@@ -1553,10 +1551,8 @@ static int setCommand(char *token)
 	goto printError;
     }
 
-    if (valList) {
-	if (valList->value) free(valList->value);
-	free(valList);
-    }
+    if (valList) free(valList->value);
+    free(valList);
 
     return 0;
 
@@ -1564,10 +1560,8 @@ printError:
     printError(&setInfo);
 
 error:
-    if (valList) {
-	if (valList->value) free(valList->value);
-	free(valList);
-    }
+    if (valList) free(valList->value);
+    free(valList);
 
     return -1;
 }

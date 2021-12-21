@@ -2,6 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2012 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2021 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -37,8 +38,7 @@ char * blub_set(void *data, char *value)
 
     if (!data) return strdup("No place to store");
 
-    if (*strp) free(*strp);
-
+    free(*strp);
     *strp = strdup(value);
     if (value && ! *strp) return strdup("strdup() failed");
 

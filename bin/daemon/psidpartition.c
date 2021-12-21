@@ -222,11 +222,11 @@ void initPartHandler(void)
 
     if (!nodeStat || !tmpStat || !tmpSets) {
 	PSID_log(-1, "%s: No memory\n", __func__);
-	if (nodeStat) free(nodeStat);
+	free(nodeStat);
 	nodeStat = NULL;
-	if (tmpStat) free(tmpStat);
+	free(tmpStat);
 	tmpStat = NULL;
-	if (tmpSets) free(tmpSets);
+	free(tmpSets);
 	tmpSets = NULL;
 	return;
     }
@@ -256,11 +256,11 @@ void exitPartHandler(void)
     clrPartQueue(&runReq);
     clrPartQueue(&suspReq);
     clrPartQueue(&regisReq);
-    if (nodeStat) free(nodeStat);
+    free(nodeStat);
     nodeStat = NULL;
-    if (tmpStat) free(tmpStat);
+    free(tmpStat);
     tmpStat = NULL;
-    if (tmpSets) free(tmpSets);
+    free(tmpSets);
     tmpSets = NULL;
     PSIDhook_call(PSIDHOOK_MASTER_EXITPART, NULL);
 }
@@ -1668,7 +1668,7 @@ static bool getPartition(PSpart_request_t *request)
     ret = sendPartition(request);
 
  error:
-    if (candidates && candidates->entry) free(candidates->entry);
+    if (candidates) free(candidates->entry);
 
     return ret;
 }
@@ -2313,7 +2313,7 @@ static int getHWThreads(PSpart_slot_t *slots, uint32_t num,
 
     if (totThreads < 1) {
 	PSID_log(-1, "%s: No HW-threads in slots\n", __func__);
-	if (*threads) free(*threads);
+	free(*threads);
 	*threads = NULL;
 
 	return 0;
@@ -2341,7 +2341,7 @@ static int getHWThreads(PSpart_slot_t *slots, uint32_t num,
 	}
     }
 
-    if (*threads) free(*threads);
+    free(*threads);
     *threads = HWThreads;
 
     return totThreads;
@@ -2811,7 +2811,7 @@ static int createSlots(uint32_t np, uint16_t ppn, uint16_t tpp,
     }
 
 exit:
-    if (task->totalThreads > myUseSpaceSize && myUse) free(myUse);
+    if (task->totalThreads > myUseSpaceSize) free(myUse);
 
     return got;
 }

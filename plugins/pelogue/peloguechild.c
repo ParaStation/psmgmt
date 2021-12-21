@@ -365,10 +365,10 @@ bool deleteChild(PElogueChild_t *child)
 {
     if (!child) return false;
 
-    if (child->plugin) free(child->plugin);
-    if (child->jobid) free(child->jobid);
-    if (child->scriptDir) free(child->scriptDir);
-    if (child->tmpDir) free(child->tmpDir);
+    free(child->plugin);
+    free(child->jobid);
+    free(child->scriptDir);
+    free(child->tmpDir);
     envDestroy(&child->env);
     if (child->fwData) {
 	/* detach from forwarder */
@@ -376,11 +376,7 @@ bool deleteChild(PElogueChild_t *child)
 	child->fwData->userData = NULL;
     }
     if (child->argv) {
-	int i = 0;
-	while (child->argv[i]) {
-	    free(child->argv[i]);
-	    i++;
-	}
+	for (int i = 0; child->argv[i]; i++) free(child->argv[i]);
 	free(child->argv);
     }
 

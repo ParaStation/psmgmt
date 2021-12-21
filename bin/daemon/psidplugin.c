@@ -525,7 +525,7 @@ static void delPlugin(plugin_t *plugin)
 		 __func__, plugin->name, line);
 	return;
     }
-    if (plugin->name) free(plugin->name);
+    free(plugin->name);
     if (plugin->handle)
 	PSID_log(-1, "%s: handle %p still exists\n", __func__, plugin->handle);
 
@@ -1751,7 +1751,7 @@ void initPlugins(FILE *logfile)
 	if (!loadPlugin(ent->name, 0, NULL, logfile)) {
 	    PSID_log(-1, "%s: loading '%s' failed.\n", __func__, ent->name);
 	}
-	if (ent->name) free(ent->name);
+	free(ent->name);
 	free(ent);
     }
 

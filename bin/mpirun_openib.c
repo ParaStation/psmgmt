@@ -2,6 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2007-2020 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2021 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -447,7 +448,7 @@ static void exchangeHostIDs(int sock, int nprocs)
     } else {
 	fprintf(stderr, "%s\n", msg);
     }
-    if (hostids) free(hostids);
+    free(hostids);
     exit(1);
 }
 
@@ -671,8 +672,8 @@ static void exchangeInfo(int sock, unsigned int nprocs)
     } else {
 	fprintf(stderr, "%s\n", msg);
     }
-    if (alladdrs) free(alladdrs);
-    if (out_addrs) free(out_addrs);
+    free(alladdrs);
+    free(out_addrs);
     exit(1);
 }
 

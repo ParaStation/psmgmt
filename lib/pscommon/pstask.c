@@ -162,7 +162,6 @@ bool PStask_init(PStask_t* task)
 static void delSigList(list_t *list)
 {
     list_t *s, *tmp;
-
     list_for_each_safe(s, tmp, list) {
 	PSsignal_t *signal = list_entry(s, PSsignal_t, next);
 	list_del(&signal->next);
@@ -173,7 +172,6 @@ static void delSigList(list_t *list)
 static void delReservationList(list_t *list)
 {
     list_t *r, *tmp;
-
     list_for_each_safe(r, tmp, list) {
 	PSrsrvtn_t *reservation = list_entry(r, PSrsrvtn_t, next);
 	list_del(&reservation->next);
@@ -187,23 +185,22 @@ static void delReservationList(list_t *list)
 
 bool PStask_reinit(PStask_t* task)
 {
-    uint32_t i;
-
     PSC_log(PSC_LOG_TASK, "%s(%p)\n", __func__, task);
 
     if (!task) return false;
 
     if (!list_empty(&task->next)) list_del_init(&task->next);
 
-    if (task->workingdir)
-	free(task->workingdir);
+    free(task->workingdir);
+    if (task->argv) {
+	for (uint32_t i = 0; i < task->argc; i++) free(task->argv[i]);
+	free(task->argv);
+	task->argv = NULL;
+    }
 
-    for (i = 0; i < task->argc; i++)
-	if (task->argv && task->argv[i]) free(task->argv[i]);
-    if (task->argv) free(task->argv);
 
     if (task->environ) {
-	for (i = 0; task->environ[i]; i++) free(task->environ[i]);
+	for (uint32_t i = 0; task->environ[i]; i++) free(task->environ[i]);
 	free(task->environ);
 	task->environ = NULL;
     }
@@ -213,15 +210,15 @@ bool PStask_reinit(PStask_t* task)
     delSigList(&task->deadBefore);
 
     if (task->request) PSpart_delReq(task->request);
-    if (task->partition) free(task->partition);
-    if (task->partThrds) free(task->partThrds);
+    free(task->partition);
+    free(task->partThrds);
 
     delReservationList(&task->reservations);
     delReservationList(&task->resRequests);
 
-    if (task->spawnNodes) free(task->spawnNodes);
-    if (task->info) free(task->info);
-    if (task->resPorts) free(task->resPorts);
+    free(task->spawnNodes);
+    free(task->info);
+    free(task->resPorts);
 
     delSigList(&task->signalSender);
     delSigList(&task->signalReceiver);

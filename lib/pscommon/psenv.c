@@ -25,7 +25,7 @@ static inline void *umalloc(size_t size)
 
 void envUnsetIndex(env_t *env, uint32_t idx)
 {
-    if (env->vars[idx]) free(env->vars[idx]);
+    free(env->vars[idx]);
     env->cnt--;
     env->vars[idx] = env->vars[env->cnt]; /* cnt >= 0 because idx != -1 */
     env->vars[env->cnt] = NULL;
@@ -33,10 +33,8 @@ void envUnsetIndex(env_t *env, uint32_t idx)
 
 void envDestroy(env_t *env)
 {
-    uint32_t i;
-
-    for (i=0; i<env->cnt; i++) if (env->vars[i]) free(env->vars[i]);
-    if (env->vars) free(env->vars);
+    for (uint32_t i = 0; i < env->cnt; i++) free(env->vars[i]);
+    free(env->vars);
     env->vars = NULL;
     env->cnt = env->size = 0;
 }
@@ -55,14 +53,11 @@ void envDestroy(env_t *env)
  */
 static int getIndex(const env_t *env, const char *name)
 {
-    size_t len;
-    uint32_t i;
-
     if (!name || strchr(name,'=')) return -1;
 
-    len = strlen(name);
-    for (i=0; i<env->cnt; i++) {
-	if (!strncmp(name, env->vars[i], len) && (env->vars[i][len] == '=')){
+    size_t len = strlen(name);
+    for (uint32_t i = 0; i < env->cnt; i++) {
+	if (!strncmp(name, env->vars[i], len) && (env->vars[i][len] == '=')) {
 	    return i;
 	}
     }
@@ -86,7 +81,7 @@ void envUnset(env_t *env, const char *name)
 static bool envDoSet(env_t *env, char *envstring)
 {
     if (!env || !envstring) {
-	if (envstring) free(envstring);
+	free(envstring);
 	return false;
     }
 
@@ -147,21 +142,18 @@ bool envSet(env_t *env, const char *name, const char *val)
 
 bool envPut(env_t *env, const char *envstring)
 {
-    size_t len;
-    uint32_t i;
-
     if (!envstring) return false;
 
     char *value = strchr(envstring, '=');
     if (!value) return false;
 
-    len = strlen(envstring) - strlen(value);
-    for (i=0; i<env->cnt; i++) {
+    size_t len = strlen(envstring) - strlen(value);
+    for (uint32_t i = 0; i < env->cnt; i++) {
 	if (!strncmp(envstring, env->vars[i], len) &&
 	    (env->vars[i][len] == '=')) {
 	    char *tmp = strdup(envstring);
 	    if (!tmp) return false;
-	    if (env->vars[i]) free(env->vars[i]);
+	    free(env->vars[i]);
 	    env->vars[i] = tmp;
 	    return true;
 	}

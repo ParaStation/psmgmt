@@ -43,7 +43,7 @@ static KVS_t *kvs = NULL;
  */
 static void growKVS(void)
 {
-    int i, oldSize = maxKVS;
+    int oldSize = maxKVS;
 
     /* grow the kvs structure */
     if (numKVS + 1 <= maxKVS) return;
@@ -56,7 +56,7 @@ static void growKVS(void)
     }
 
     maxKVS = newsize;
-    for (i=oldSize; i<maxKVS; i++) kvs[i].name = NULL;
+    for (int i = oldSize; i < maxKVS; i++) kvs[i].name = NULL;
 }
 
 /**
@@ -69,14 +69,12 @@ static void growKVS(void)
  */
 static KVS_t *getKvsByName(char *name)
 {
-    int i;
-
     if (!name || strlen(name) > PMI_KVSNAME_MAX ) {
 	mlog("%s: invalid kvs name '%s'\n", __func__, name);
 	return NULL;
     }
 
-    for (i=0; i<numKVS; i++) {
+    for (int i = 0; i < numKVS; i++) {
 	if (kvs[i].name && !strcmp(kvs[i].name, name)) return &kvs[i];
     }
 
@@ -146,12 +144,9 @@ bool kvs_destroy(char *name)
 	return false;
     }
 
-    if (lkvs->name) {
-	free(lkvs->name);
-	lkvs->name = NULL;
-    }
-
-    if (lkvs->env) free(lkvs->env);
+    free(lkvs->name);
+    lkvs->name = NULL;
+    free(lkvs->env);
 
     return true;
 }

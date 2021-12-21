@@ -132,7 +132,7 @@ bool traverseHostList(char *hostlist, HL_Visitor_t visitor, void *info)
 		goto expandError;
 	    }
 
-	    if (prefix) free(prefix);
+	    free(prefix);
 	    prefix = NULL;
 	    isOpen = false;
 	} else if (isOpen) {

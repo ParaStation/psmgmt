@@ -373,7 +373,7 @@ int PSI_exitClient(void)
     close(daemonSock);
     daemonSock = -1;
 
-    if (protoCache) free(protoCache);
+    free(protoCache);
 
     PSI_finalizeLog();
 

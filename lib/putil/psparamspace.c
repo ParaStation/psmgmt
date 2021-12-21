@@ -132,7 +132,7 @@ static char * stringSet(void *data, char *value)
 
     if (!data) return strdup("No place to store");
 
-    if (*strp) free(*strp);
+    free(*strp);
 
     if (value) *strp = strdup(value);
     if (value && ! *strp) return strdup("strdup() failed");
@@ -254,8 +254,7 @@ static void delParam(param_t *param)
     if (!param) return;
 
     list_del(&param->next);
-
-    if (param->name) free(param->name);
+    free(param->name);
     free(param);
 }
 

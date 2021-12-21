@@ -653,7 +653,7 @@ static int getCoreDir(char *token)
     }
 
     config.coreDir = strdup(dname);
-    if (usedDir) free(usedDir);
+    free(usedDir);
     usedDir = config.coreDir;
     if (!rlimitCoreGiven) setLimit(RLIMIT_CORE, RLIM_INFINITY);
 
@@ -1661,7 +1661,6 @@ static int getEnv(char *token)
 static void pushAndClearEnv(void)
 {
     list_t *pos, *tmp;
-
     list_for_each_safe(pos, tmp, &envList) {
 	EnvEnt_t *env = list_entry(pos, EnvEnt_t, next);
 	list_del(pos);
@@ -1670,9 +1669,8 @@ static void pushAndClearEnv(void)
 			   env->name, env->value);
 	    setenv(env->name, env->value, 1);
 	}
-	if (env->name) free(env->name);
-	if (env->value) free(env->value);
-
+	free(env->name);
+	free(env->value);
 	free(env);
     }
 }
@@ -1687,13 +1685,11 @@ static void pushAndClearEnv(void)
 static void clearEnv(void)
 {
     list_t *pos, *tmp;
-
     list_for_each_safe(pos, tmp, &envList) {
 	EnvEnt_t *env = list_entry(pos, EnvEnt_t, next);
 	list_del(pos);
-	if (env->name) free(env->name);
-	if (env->value) free(env->value);
-
+	free(env->name);
+	free(env->value);
 	free(env);
     }
 }
@@ -1726,7 +1722,6 @@ static int setupNodeFromDefault(void)
     node_maxStatTry = default_maxStatTry;
 
     if (default_cpumap_size) {
-	size_t i;
 	if (default_cpumap_size > node_cpumap_maxsize) {
 	    node_cpumap_maxsize = default_cpumap_size;
 
@@ -1739,7 +1734,7 @@ static int setupNodeFromDefault(void)
 	    parser_comment(-1, "%s: No memory\n", __func__);
 	    return -1;
 	}
-	for (i=0; i<default_cpumap_size; i++) {
+	for (size_t i = 0; i < default_cpumap_size; i++) {
 	    node_cpumap[i] = default_cpumap[i];
 	}
 	node_cpumap_size = default_cpumap_size;
@@ -2160,7 +2155,7 @@ static int handleGenStr(long val, char *in, char **out, size_t *size)
 
     ret = 0;
 end:
-    if (inStr) free(inStr);
+    free(inStr);
     if (ret) parser_comment(-1, "%s: broken record ${%s}\n", __func__, rec);
     return ret;
 }
@@ -2222,8 +2217,8 @@ static int getMultiNodes(char *token)
 	}
     }
 
-    if (realHost) free(realHost);
-    if (realID) free(realID);
+    free(realHost);
+    free(realID);
 
     clearEnv();
 

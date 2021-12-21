@@ -63,9 +63,9 @@ void PSpart_reinitReq(PSpart_request_t* request)
 	return;
     }
 
-    if (request->nodes) free(request->nodes);
-    if (request->slots) free(request->slots);
-    if (request->resPorts) free(request->resPorts);
+    free(request->nodes);
+    free(request->slots);
+    free(request->resPorts);
 
     PSpart_initReq(request);
 }

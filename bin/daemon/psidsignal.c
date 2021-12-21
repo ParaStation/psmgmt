@@ -1135,7 +1135,7 @@ static int releaseTask(PStask_t *task)
 	sTNSize = PSC_getNrOfNodes();
 	sentToNode = realloc(sentToNode, sTNSize * sizeof(*sentToNode));
 	if (!sentToNode) {
-	    if (bak) free(bak);
+	    free(bak);
 	    sTNSize = 0;
 	    PSID_warn(-1, ENOMEM, "%s: realloc()", __func__);
 	    return ENOMEM;

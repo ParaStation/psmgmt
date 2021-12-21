@@ -425,7 +425,7 @@ static size_t titleSize = 0;
 
 void PSC_saveTitleSpace(int argc, const char **argv, int saveEnv)
 {
-    int numEnv = 0, i;
+    int numEnv = 0;
     const char *nextArg; /* will point *behind* the last arg / env */
     char **newEnv = NULL;
 
@@ -436,11 +436,12 @@ void PSC_saveTitleSpace(int argc, const char **argv, int saveEnv)
     PSC_log(PSC_LOG_VERB, "%s\n", __func__);
 
     /* find last element in argv/env */
-    for (i=0; i<argc; i++) {
+    for (int i = 0; i < argc; i++) {
 	if (argv[i] == nextArg) nextArg += strlen(argv[i]) + 1;
     }
     if (environ) {
-	for (i=0; environ[i]; i++) {
+	int i;
+	for (i = 0; environ[i]; i++) {
 	    if (environ[i] == nextArg) nextArg += strlen(environ[i]) + 1;
 	}
 	numEnv = i;
@@ -457,7 +458,7 @@ void PSC_saveTitleSpace(int argc, const char **argv, int saveEnv)
 
 	if (!newEnv) goto noSpace;
 
-	for (i=0; environ[i]; i++) {
+	for (int i = 0; environ[i]; i++) {
 	    newEnv[i] = strdup(environ[i]);
 	    if (!newEnv[i]) goto noSpace;
 	}
@@ -469,7 +470,7 @@ void PSC_saveTitleSpace(int argc, const char **argv, int saveEnv)
 noSpace:
     /* Cleanup the incomplete new environemnt */
     if (newEnv) {
-	for (i=0; newEnv[i]; i++) free(newEnv[i]);
+	for (int i = 0; newEnv[i]; i++) free(newEnv[i]);
 	free(newEnv);
     }
     /* Re-adjust the size to the available space */
