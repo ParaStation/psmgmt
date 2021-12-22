@@ -8,6 +8,9 @@
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
+#include "pluginpsconfig.h"
+
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -16,16 +19,12 @@
 
 #include <glib.h>
 #include <psconfig.h>
-#include <psconfig-utils.h>
 #endif
 
 #include "list.h"
 
 #include "pluginmalloc.h"
-#include "pluginhelper.h"
 #include "pluginlog.h"
-
-#include "pluginpsconfig.h"
 
 #define PLUGIN_PSCONFIG_MAGIC 0x4711170442
 

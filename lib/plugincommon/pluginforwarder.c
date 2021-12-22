@@ -8,25 +8,28 @@
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
+#include "pluginforwarder.h"
+
+#include <stddef.h>
 #include <stdlib.h>
-#include <string.h>
 #include <errno.h>
+#include <netinet/in.h>
 #include <signal.h>
+#include <string.h>
 #include <syslog.h>
-#include <unistd.h>
 #include <sys/resource.h>
 #include <sys/signalfd.h>
 #include <sys/socket.h>
 #include <sys/time.h>
-#include <sys/types.h>
-#include <sys/un.h>
 #include <sys/wait.h>
+#include <unistd.h>
 
 #include "pscio.h"
 #include "pscommon.h"
+#include "psprotocol.h"
+#include "pstask.h"
 #include "selector.h"
 #include "timer.h"
-#include "pluginhelper.h"
 #include "pluginmalloc.h"
 #include "pluginlog.h"
 
@@ -36,8 +39,6 @@
 #include "psidspawn.h"
 #include "psidsignal.h"
 #include "psidhook.h"
-
-#include "pluginforwarder.h"
 
 /** Default grace time before sending SIGKILL */
 #define DEFAULT_GRACE_TIME 3

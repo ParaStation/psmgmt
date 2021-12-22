@@ -16,7 +16,6 @@
 #include <grp.h>
 #include <netdb.h>
 #include <netinet/in.h>
-#include <pwd.h>
 #include <string.h>
 #include <sys/prctl.h>
 #include <sys/socket.h>
@@ -30,7 +29,6 @@
 #include "psidnodes.h"
 #include "psidhook.h"
 #include "pluginlog.h"
-#include "pluginmalloc.h"
 
 /** time-limit in seconds to warn about a slow name resolver */
 #define RESOLVE_TIME_WARNING 1

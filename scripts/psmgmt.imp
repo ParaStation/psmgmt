@@ -9,4 +9,5 @@
   { symbol: ["iovec", "private", "<sys/socket.h>", "public"] },
   { include: ["@<hwloc/.*", "private", "<hwloc.h>", "public"] },
   { include: ["<bits/types/struct_rusage.h>", "private", "<sys/resource.h>", "public"] },
+  { include: ["@<psconfig-.*", "private", "<psconfig.h>", "public"] },
 ]

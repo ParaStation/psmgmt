@@ -2,26 +2,26 @@
  * ParaStation
  *
  * Copyright (C) 2014-2020 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2021 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
+#include "pluginpty.h"
 
-#include <stdlib.h>
 #include <stdio.h>
-#include <sys/stat.h>
 #include <fcntl.h>
 #include <grp.h>
 #include <errno.h>
 #include <string.h>
-#include <unistd.h>
 #include <signal.h>
 #include <sys/ioctl.h>
+#include <sys/stat.h>
+#include <unistd.h>
 
 #include "pscommon.h"
 #include "pluginlog.h"
-#include "pluginpty.h"
 
 #define _PATH_TTY "/dev/tty"
 

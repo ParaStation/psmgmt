@@ -2,21 +2,19 @@
  * ParaStation
  *
  * Copyright (C) 2018-2019 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2021 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
+#include "pluginvector.h"
 
 #include <assert.h>
-#include <stdint.h>
-#include <string.h>
-#include <stdbool.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include "pluginmalloc.h"
-
-#include "pluginvector.h"
 
 void __vectorInit(vector_t *vector, size_t initcount, uint16_t chunkcount,
 	uint16_t typesize, const char *func, const int line)
