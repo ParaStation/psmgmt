@@ -23,3 +23,17 @@ for f in `cat checks`; do
       echo $f >> unresolved
    fi
 done
+
+As an alternative one might utilize iwyu_tool.py after creating a build database
+
+Start with creating the database via bear:
+pushd <build_path>
+make -sj clean
+bear make -sj
+popd
+
+This will create 'compile_commands.json' in <build_path>
+
+Now you can run iwyu_tool.py:
+iwyu_tool.py -p ../<build_path> <file or path> \
+	     -- -Xiwyu --mapping_file=${PWD}/scripts/psmgmt.imp
