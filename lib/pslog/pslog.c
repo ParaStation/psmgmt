@@ -9,19 +9,15 @@
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-#include <stdio.h>
-#include <unistd.h>
-#include <string.h>
+#include "pslog.h"
+
 #include <errno.h>
-#include <sys/socket.h>
-#include <sys/types.h>
-#include <stddef.h>
+#include <string.h>
+#include <sys/select.h>
+#include <unistd.h>
 
 #include "pscio.h"
 #include "pscommon.h"
-#include "pstask.h"
-
-#include "pslog.h"
 
 static int daemonsock = -1;
 static int id;
