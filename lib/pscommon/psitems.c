@@ -2,19 +2,20 @@
  * ParaStation
  *
  * Copyright (C) 2018-2021 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2021 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
+#include "psitems.h"
+
 #include <errno.h>
 #include <stdlib.h>
 #include <string.h>
 
 #include "list.h"
 #include "pscommon.h"
-
-#include "psitems.h"
 
 /** Default chunk size utilizing the mmap() path of glibc's malloc() */
 #define CHUNK_SIZE (128*1024)

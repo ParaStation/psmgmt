@@ -2,16 +2,17 @@
  * ParaStation
  *
  * Copyright (C) 2014-2020 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2021 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
+#include "psenv.h"
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-
-#include "psenv.h"
 
 /** Minimum size of any allocation done by psenv */
 #define MIN_MALLOC_SIZE 64

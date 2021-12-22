@@ -21,7 +21,6 @@
 #include <sys/time.h>
 #include <sys/types.h>
 #include <termios.h>
-#include <time.h>
 
 #include "list_t.h"
 #include "pstaskid.h" // IWYU pragma: export

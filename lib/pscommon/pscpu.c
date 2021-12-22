@@ -2,17 +2,15 @@
  * ParaStation
  *
  * Copyright (C) 2007-2021 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2021 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-#include <stdio.h>
-#include <stdlib.h>
-#include <stdint.h>
-#include <string.h>
-
 #include "pscpu.h"
+
+#include <stdio.h>
 
 /** Number of bits (i.e. CPUs) encoded within @ref PSCPU_mask_t. */
 #define CPUmask_s (int16_t)(8*sizeof(PSCPU_mask_t))

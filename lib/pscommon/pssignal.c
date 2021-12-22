@@ -2,16 +2,19 @@
  * ParaStation
  *
  * Copyright (C) 2015-2021 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2021 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
+#include "pssignal.h"
+
+#include <stddef.h>
+
 #include "list.h"
 #include "psitems.h"
 #include "pscommon.h"
-
-#include "pssignal.h"
 
 /** data structure to handle a pool of signal structures */
 static PSitems_t sigPool = NULL;

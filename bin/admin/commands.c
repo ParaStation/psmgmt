@@ -25,6 +25,7 @@
 #include <sys/socket.h>
 #include <arpa/inet.h>
 #include <sys/resource.h>
+#include <time.h>
 
 #include "pscommon.h"
 #include "parser.h"

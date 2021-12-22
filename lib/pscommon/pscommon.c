@@ -12,28 +12,23 @@
 #include "pscommon.h"
 
 #include <stdarg.h>
-#include <stdio.h>
 #include <stdlib.h>
-#include <unistd.h>
+#include <arpa/inet.h>
 #include <errno.h>
 #include <grp.h>
+#include <net/if.h>
+#include <netdb.h>
 #include <pwd.h>
 #include <signal.h>
 #include <string.h>
 #include <strings.h>
 #include <syslog.h>
 #include <sys/ioctl.h>
-#include <sys/types.h>
 #include <sys/stat.h>
 #include <sys/socket.h>
-#include <net/if.h>
-#include <netdb.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
+#include <unistd.h>
 
-#include "logging.h"
 #include "list.h"
-
 
 logger_t* PSC_logger = NULL;
 

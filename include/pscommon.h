@@ -21,7 +21,6 @@
 #include <stdio.h>
 #include <sys/types.h>
 #include <netinet/in.h>
-#include <pwd.h>
 
 #include "logging.h"
 #include "psnodes.h"

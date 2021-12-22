@@ -8,25 +8,22 @@
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-#include <stdbool.h>
-#include <stddef.h>
+#include "psserial.h"
+
+#include <dlfcn.h>
+#include <errno.h>
+#include <netinet/in.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <unistd.h>
-#include <errno.h>
-#include <time.h>
 #include <string.h>
-#include <arpa/inet.h>
-#include <dlfcn.h>
 
-#include "pscio.h"
+#include "list.h"
 #include "pscommon.h"
 #include "psitems.h"
+#include "psnodes.h"
 
 #include "psidhook.h"
 #include "psidutil.h"
-
-#include "psserial.h"
 
 #define UINT64_SWAP_LE_BE(val) ((uint64_t) (				\
     (((uint64_t) (val) & (uint64_t) (0x00000000000000ffU)) << 56)	\

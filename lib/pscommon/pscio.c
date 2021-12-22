@@ -8,15 +8,14 @@
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-#include <errno.h>
+#include "pscio.h"
+
 #include <fcntl.h>
 #include <sys/select.h>
 #include <time.h>
 #include <unistd.h>
 
 #include "pscommon.h"
-
-#include "pscio.h"
 
 void PSCio_setFDblock(int fd, bool block)
 {
