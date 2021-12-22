@@ -6,6 +6,7 @@
   { symbol: ["__kernel_ulong_t", "private", "<sys/sysinfo.h>", "public"] },
   { symbol: ["sysinfo", "private", "<sys/sysinfo.h>", "public"] },
   { symbol: ["SI_LOAD_SHIFT", "private", "<sys/sysinfo.h>", "public"] },
+  { symbol: ["iovec", "private", "<sys/socket.h>", "public"] },
   { include: ["@<hwloc/.*", "private", "<hwloc.h>", "public"] },
   { include: ["<bits/types/struct_rusage.h>", "private", "<sys/resource.h>", "public"] },
 ]
