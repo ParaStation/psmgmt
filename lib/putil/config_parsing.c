@@ -31,7 +31,6 @@ config_t *parseConfig(FILE* logfile, int logmask, char *configfile)
 #include <arpa/inet.h>
 #include <glib.h>
 #include <psconfig.h>
-#include <psconfig-types.h>
 
 #include "parser.h"
 #include "psnodes.h"
