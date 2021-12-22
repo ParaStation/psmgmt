@@ -8,18 +8,17 @@
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-#include <stdlib.h>
+#include "psicomm.h"
+
 #include <errno.h>
+#include <stdint.h>
 #include <string.h>
-#include <sys/types.h>
 #include <sys/socket.h>
 
 #include "psprotocol.h"
 #include "psicomm_proto.h"
 
 #include "psilog.h"
-
-#include "psicomm.h"
 
 static int PSIcomm_sock = -1;
 

@@ -3,18 +3,17 @@
  *
  * Copyright (C) 1999-2002 ParTec AG, Karlsruhe
  * Copyright (C) 2005-2018 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2021 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-#include <stdio.h>
+#include "psilog.h"
+
 #include <stdlib.h>
-#include <unistd.h>
 
 #include "pscommon.h"
-
-#include "psilog.h"
 
 logger_t* PSI_logger = NULL;
 

@@ -9,6 +9,8 @@
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
+#include "psispawn.h"
+
 #include <stdio.h>
 #include <stddef.h>
 #include <stdlib.h>
@@ -19,25 +21,19 @@
 #include <limits.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
-#include <netdb.h>
-#include <signal.h>
 #include <termios.h>
-#include <sys/types.h>
 #include <sys/ioctl.h>
 #include <sys/stat.h>
 
 #include "pscommon.h"
 #include "psprotocol.h"
 #include "psserial.h"
-#include "pstask.h"
 
 #include "psi.h"
 #include "psilog.h"
 #include "psiinfo.h"
 #include "psienv.h"
 #include "psipartition.h"
-
-#include "psispawn.h"
 
 #define ENV_NODE_RARG      "PSI_RARG_PRE_%d"
 

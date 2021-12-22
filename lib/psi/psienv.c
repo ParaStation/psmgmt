@@ -3,17 +3,17 @@
  *
  * Copyright (C) 2001-2003 ParTec AG, Karlsruhe
  * Copyright (C) 2005-2021 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2021 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-#include <stdlib.h>
+#include "psienv.h"
+
 #include <stdio.h>
 #include <string.h>
 #include <errno.h>
-
-#include "psienv.h"
 
 static char** environment = NULL;
 static int sizeOfEnv = 0;

@@ -14,7 +14,6 @@
 #define __PSI_H
 
 #include <stdbool.h>
-#include <stddef.h>
 #include <sys/types.h>
 
 #include "psnodes.h"
