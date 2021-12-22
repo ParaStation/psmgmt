@@ -9,19 +9,20 @@
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
+#include "selector.h"
+
 #include <stdlib.h>
 #include <unistd.h>
 #include <errno.h>
 #include <string.h>
 #include <syslog.h>
 #include <sys/epoll.h>
+#include <sys/select.h>
 
 #include "list.h"
 #include "logging.h"
 #include "psitems.h"
 #include "timer.h"
-
-#include "selector.h"
 
 /** Flag to let Sselect() start over, i.e. return 0 and all fds cleared */
 static bool startOver = false;

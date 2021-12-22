@@ -3,25 +3,24 @@
  *
  * Copyright (C) 2002-2004 ParTec AG, Karlsruhe
  * Copyright (C) 2005-2019 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2021 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-#include <stdio.h>
+#include "mcast.h"
+
 #include <stdlib.h>
 #include <errno.h>
 #include <syslog.h>
 #include <unistd.h>
-#include <sys/time.h>
-#include <sys/types.h>
+#include <sys/select.h>
 #include <sys/socket.h>
-#include <fcntl.h>
-#include <signal.h>
+#include <sys/time.h>
 #include <string.h>
 #include <arpa/inet.h>
 #include <netinet/in.h>
-#include <netdb.h>
 
 /* Extra includes for load-determination */
 #include <sys/sysinfo.h>
@@ -29,8 +28,6 @@
 #include "logging.h"
 #include "selector.h"
 #include "timer.h"
-
-#include "mcast.h"
 
 /**
  * The socket used to send and receive MCast packets. Will be opened in

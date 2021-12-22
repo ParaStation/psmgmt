@@ -20,8 +20,8 @@
 #define __TIMER_H
 
 #include <stdbool.h>
-#include <stdio.h>
 #include <stdint.h>
+#include <stdio.h>
 #include <sys/time.h> // IWYU pragma: keep
 struct timeval;       // Make IWYU happy
 

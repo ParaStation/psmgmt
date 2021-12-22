@@ -9,21 +9,18 @@
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-#include <stdbool.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <math.h>
+#include "timer.h"
+
 #include <errno.h>
-#include <string.h>
-#include <syslog.h>
+#include <math.h>
 #include <signal.h>
+#include <stdlib.h>
+#include <syslog.h>
 #include <sys/time.h>
 
 #include "list.h"
 #include "logging.h"
 #include "pscommon.h"
-
-#include "timer.h"
 
 /**
  * The unique ID of the next timer to register. Set by @ref

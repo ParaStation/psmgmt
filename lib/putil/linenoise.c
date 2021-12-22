@@ -102,20 +102,18 @@
  *    Effect: clear the whole screen
  *
  */
+#include "linenoise.h"
 
-#include <termios.h>
-#include <unistd.h>
-#include <stdlib.h>
 #include <stdio.h>
-#include <errno.h>
-#include <string.h>
 #include <stdlib.h>
 #include <ctype.h>
-#include <sys/stat.h>
-#include <sys/types.h>
+#include <errno.h>
+#include <string.h>
+#include <strings.h>
 #include <sys/ioctl.h>
+#include <sys/stat.h>
+#include <termios.h>
 #include <unistd.h>
-#include "linenoise.h"
 
 #define LINENOISE_DEFAULT_HISTORY_MAX_LEN 100
 #define LINENOISE_MAX_LINE 4096

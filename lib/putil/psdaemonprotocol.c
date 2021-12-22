@@ -9,11 +9,11 @@
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
+#include "psdaemonprotocol.h"
+
 #include <stdio.h>
 
 #include "pspluginprotocol.h"
-
-#include "psdaemonprotocol.h"
 
 /*
  * string identification of message IDs.

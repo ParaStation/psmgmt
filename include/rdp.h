@@ -17,8 +17,8 @@
 #define __RDP_H
 
 #include <stdbool.h>
-#include <stdio.h>
 #include <stdint.h>
+#include <stdio.h>
 #include <netinet/in.h>
 
 /**

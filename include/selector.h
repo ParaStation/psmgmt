@@ -28,7 +28,6 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
-#include <sys/select.h>
 #include <sys/time.h> // IWYU pragma: keep
 struct timeval;       // Make IWYU happy
 

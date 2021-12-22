@@ -3,17 +3,18 @@
  *
  * Copyright (C) 2003 ParTec AG, Karlsruhe
  * Copyright (C) 2005-2016 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2021 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
+#include "env.h"
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
-#include "env.h"
 
 void env_init(env_fields_t *env)
 {

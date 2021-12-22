@@ -9,36 +9,26 @@
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-#include <stdbool.h>
-#include <stdio.h>
+#include "rdp.h"
+
 #include <stdlib.h>
-#include <stdint.h>
 #include <errno.h>
 #include <syslog.h>
 #include <unistd.h>
 #include <sys/time.h>
-#include <sys/types.h>
 #include <sys/socket.h>
 #include <sys/select.h>
-#include <fcntl.h>
-#include <signal.h>
 #include <string.h>
 #include <arpa/inet.h>
-#include <netinet/in.h>
-#include <netdb.h>
 
 /* Extra includes for extended reliable error message passing */
-#include <asm/types.h>
 #include <linux/errqueue.h>
-#include <sys/uio.h>
 
 #include "list.h"
 #include "logging.h"
 #include "selector.h"
 #include "timer.h"
 #include "psbyteorder.h"
-
-#include "rdp.h"
 
 /** The socket used to send and receive RDP messages. Created in RDP_init(). */
 static int rdpsock = -1;
