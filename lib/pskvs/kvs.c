@@ -2,21 +2,22 @@
  * ParaStation
  *
  * Copyright (C) 2007-2017 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2021 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
+#include "kvs.h"
+
 #include <stdio.h>
 #include <stdlib.h>
-#include <unistd.h>
 #include <string.h>
+#include <unistd.h>
 
 #include "env.h"
 #include "kvscommon.h"
 #include "kvslog.h"
-
-#include "kvs.h"
 
 #define KVS_GROW_SIZE	5
 

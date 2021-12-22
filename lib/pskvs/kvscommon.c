@@ -2,17 +2,18 @@
  * ParaStation
  *
  * Copyright (C) 2007-2021 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2021 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
+#include "kvscommon.h"
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <stdint.h>
-
-#include "kvscommon.h"
 
 static const char delimiters[] =" \n";
 static const char *uDelim = NULL;
