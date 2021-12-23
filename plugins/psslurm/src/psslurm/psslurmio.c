@@ -964,7 +964,6 @@ void IO_redirectStep(Forwarder_Data_t *fwdata, Step_t *step)
 
 int handleUserOE(int sock, void *data)
 {
-    static char buf[1024];
     Forwarder_Data_t *fwdata = data;
     Step_t *step = fwdata->userData;
     uint16_t type;
@@ -975,14 +974,16 @@ int handleUserOE(int sock, void *data)
 	type = (sock == fwdata->stdOut[0]) ? SLURM_IO_STDOUT : SLURM_IO_STDERR;
     }
 
-    ssize_t size = PSCio_recvBuf(sock, buf, sizeof(buf) - 1);
+    static char buf[1024];
+    ssize_t size = PSCio_recvBufS(sock, buf, sizeof(buf) - 1);
     if (size <= 0) {
+	fdbg(PSSLURM_LOG_IO, "close sock %i ret %li\n", sock, size);
 	Selector_remove(sock);
 	close(sock);
     }
 
-    mdbg(PSSLURM_LOG_IO, "%s: sock %i forward %s size %zi\n", __func__,
-	 sock, type == SLURM_IO_STDOUT ? "stdout" : "stderr", size);
+    fdbg(PSSLURM_LOG_IO, "sock %i forward %s size %zi\n", sock,
+	 type == SLURM_IO_STDOUT ? "stdout" : "stderr", size);
 
     /* EOF to srun */
     if (size < 0) size = 0;
