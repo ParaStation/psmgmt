@@ -127,7 +127,7 @@ static void coreMapToHWthreads(PSCPU_set_t *hwthreads, const bool *coreMap,
  *
  * @param iter     iterator to be processed
  *
- * @returns next nodeinfo if a node is left, NULL if not
+ * @returns returns the next nodeinfo if available or NULL otherwise
  */
 static nodeinfo_t *node_iter_next(node_iterator *iter)
 {
@@ -290,14 +290,15 @@ nodeinfo_t *getJobNodeinfo(PSnodes_ID_t id, const Job_t *job)
 
     node_iterator iter;
     if (!node_iter_init(&iter, job->nodes, job->nrOfNodes, job->cred)) {
-	flog("Initialization of node iteration failed.\n");
+	flog("Initialization of node iteration for job %u failed.\n",
+	     job->jobid);
 	return NULL;
     }
 
     nodeinfo_t *nodeinfo = node_iter_to_node(&iter, id);
 
     if (!nodeinfo) {
-	flog("Node id %hu not found in job\n", id);
+	flog("Node id %hu not found in job %u\n", id, job->jobid);
 	return NULL;
     }
 

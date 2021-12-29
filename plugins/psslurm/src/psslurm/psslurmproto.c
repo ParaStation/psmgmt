@@ -1002,13 +1002,11 @@ static bool writeFile(const char *name, const char *dir, const char *data)
 	return false;
     }
 
-    if (data) {
-	errno = 0;
-	fwrite(data, strlen(data), 1, fp);
-	if (errno) {
-	    mwarn(errno, "%s: fwrite() to '%s'", __func__, path);
-	    return false;
-	}
+    errno = 0;
+    fwrite(data, strlen(data), 1, fp);
+    if (errno) {
+	mwarn(errno, "%s: fwrite() to '%s'", __func__, path);
+	return false;
     }
 
     fclose(fp);
