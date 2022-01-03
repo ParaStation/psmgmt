@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2006-2018 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021 ParTec AG, Munich
+ * Copyright (C) 2021-2022 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -11,12 +11,19 @@
 #ifndef _LIST_H_
 #define _LIST_H_
 
+#include <stdbool.h>
 #include <stddef.h>
 
-/* HACK suppress Clang's __builtin_assume hint in other compilers*/
-#ifndef __clang__
-#define __builtin_assume(...)
+/* HACK Provide hints according to compilers' capabilities */
+inline void ASSUME(bool cond) {
+#if defined(__clang__)  // Must go first because Clang also defines __GNUC__.
+  __builtin_assume(cond);
+#elif defined(__GNUC__)
+  if (!cond) { __builtin_unreachable(); }
+#else
+  // Do nothing.
 #endif
+}
 
 /*
  * Simple doubly linked list implementation.
