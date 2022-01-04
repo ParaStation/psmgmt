@@ -2,15 +2,18 @@
  * ParaStation
  *
  * Copyright (C) 2018-2020 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2022 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-#include "pluginconfig.h"
-#include "jaillog.h"
-
 #include "jailconfig.h"
+
+#include <stdbool.h>
+#include <stddef.h>
+
+#include "jaillog.h"
 
 #ifndef DEFAULT_JAIL_SCRIPT
 #define DEFAULT_JAIL_SCRIPT "jail.sh"
