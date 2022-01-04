@@ -2,21 +2,23 @@
  * ParaStation
  *
  * Copyright (C) 2012-2021 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2022 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
+#include <stdint.h>
 #include <stdio.h>
-#include <stdlib.h>
+#include <string.h>
 
 #include "pscommon.h"
 #include "pspartition.h"
 #include "plugin.h"
 #include "psidhook.h"
 
+#include "pluginconfig.h"
 #include "pluginmalloc.h"
-#include "pluginlog.h"
 
 #include "psresportlog.h"
 #include "psresportconfig.h"
