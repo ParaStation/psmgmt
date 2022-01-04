@@ -26,21 +26,19 @@ config_t *parseConfig(FILE* logfile, int logmask, char *configfile)
 #include <sys/stat.h>
 #include <sys/resource.h>
 #include <sys/socket.h>
-#include <unistd.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <glib.h>
 #include <psconfig.h>
 
-#include "parser.h"
-#include "psnodes.h"
-
 #include "pscommon.h"
 #include "hardware.h"
 #include "pspartition.h"
-#include "timer.h"
-#include "rdp.h"
+#include "parser.h"
+#include "psconfighelper.h"
 #include "selector.h"
+#include "rdp.h"
+#include "timer.h"
 
 #include "psidnodes.h"
 #include "psidscripts.h"
@@ -1854,6 +1852,17 @@ static bool setupLocalNode(void)
     return true;
 }
 
+static void cleanup(void)
+{
+    free(nodeconf.cpumap);
+    nodeconf.cpumap = NULL;
+    nodeconf.cpumap_maxsize = 0;
+
+    psconfigobj = NULL;
+    psconfig_unref(psconfig);
+    psconfig = NULL;
+}
+
 config_t *parseConfig(FILE* logfile, int logmask, char *configfile)
 {
     /* Check if configfile exists and has not length 0.
@@ -1881,31 +1890,11 @@ config_t *parseConfig(FILE* logfile, int logmask, char *configfile)
 
     // open psconfig database
     psconfig = psconfig_new();
-    psconfigobj = NULL;
-
     // generate local psconfig host object name
-    psconfigobj = malloc(70*sizeof(char));
-    strncpy(psconfigobj, "host:", 6);
-    gethostname(psconfigobj+5, 65);
-    psconfigobj[69] = '\0'; //assure object to be null terminated
-
-    // check if the host object exists or we have to cut the hostname
-    gchar *nodename;
-    if (!getString("NodeName", &nodename)) {
-	// cut hostname
-	parser_comment(PARSER_LOG_VERB, "%s: Cutting hostname \"%s\" for"
-		" psconfig.\n", __func__, psconfigobj+5);
-	char *pos = strchr(psconfigobj, '.');
-	if (pos == NULL) {
-	    parser_comment(-1,
-			   "ERROR: Cannot find host object for this node.\n");
-	    goto parseConfigError;
-	}
-	*pos = '\0';
-	parser_comment(-1, "INFO: Trying to use cutted hostname for psconfig"
-		       " host object: \"%s\".\n", psconfigobj);
-    } else {
-	g_free(nodename);
+    psconfigobj = PSCfgHelp_getObject(psconfig, psconfig_flags);
+    if (!psconfigobj) {
+	parser_comment(-1, "ERROR: no host object for this node.\n");
+	goto parseConfigError;
     }
 
     // get local psid domain
@@ -1943,31 +1932,13 @@ config_t *parseConfig(FILE* logfile, int logmask, char *configfile)
 	goto parseConfigError;
     }
 
-    if (nodeconf.cpumap) {
-	free(nodeconf.cpumap);
-	nodeconf.cpumap = NULL;
-	nodeconf.cpumap_maxsize = 0;
-    }
+    cleanup();
 
     parser_finalize(); //TODO
-
-    free(psconfigobj);
-    psconfigobj = NULL;
-    psconfig_unref(psconfig);
-    psconfig = NULL;
-
     return &config;
 
 parseConfigError:
-    if (nodeconf.cpumap) {
-	free(nodeconf.cpumap);
-	nodeconf.cpumap = NULL;
-	nodeconf.cpumap_maxsize = 0;
-    }
-    free(psconfigobj);
-    psconfigobj = NULL;
-    psconfig_unref(psconfig);
-    psconfig = NULL;
+    cleanup();
     return NULL;
 }
 #endif /* BUILD_WITHOUT_PSCONFIG */

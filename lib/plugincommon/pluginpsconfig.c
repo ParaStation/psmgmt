@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2020-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021 ParTec AG, Munich
+ * Copyright (C) 2021-2022 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -15,7 +15,6 @@
 #include <string.h>
 
 #ifndef BUILD_WITHOUT_PSCONFIG
-#include <unistd.h>
 
 #include <glib.h>
 #include <psconfig.h>
@@ -23,6 +22,7 @@
 
 #include "list.h"
 
+#include "psconfighelper.h"
 #include "pluginmalloc.h"
 #include "pluginlog.h"
 
@@ -288,29 +288,6 @@ guint psCfgFlags =
     PSCONFIG_FLAG_FOLLOW | PSCONFIG_FLAG_INHERIT | PSCONFIG_FLAG_ANCESTRAL;
 
 /**
- * Get string value from psconfigobj in the psconfig configuration.
- *
- * On success, *value is set to the string value and 0 is returned.
- * On error a parser comment is printed, *value is set to NULL and -1 returned.
- *
- * Note: For psconfig an non existing key and an empty value is the same
- */
-static bool getString(PSConfig* psconfig, char *obj,
-		      const char *key, gchar **value)
-{
-    GError *err = NULL;
-
-    *value = psconfig_get(psconfig, obj, key, psCfgFlags, &err);
-    if (!*value) {
-	pluginlog("%s: %s(%s): %s\n", __func__, obj, key, err->message);
-	g_error_free(err);
-	return false;
-    }
-
-    return true;
-}
-
-/**
  * @brief Handle single psconfig entry
  *
  * Handle a single psconfig entry described by @a key fetched from the
@@ -417,23 +394,11 @@ bool pluginConfig_load(pluginConfig_t conf, const char *configKey)
     PSConfig* psCfg = psconfig_new();
 
     /* generate local psconfig host object name */
-    char psCfgObj[128] = "host:";
-    gethostname(psCfgObj+strlen(psCfgObj), sizeof(psCfgObj)-strlen(psCfgObj));
-    psCfgObj[sizeof(psCfgObj) - 1] = '\0'; //assure object is null terminated
-
-    // check if the host object exists or we have to cut the hostname
-    char *nodename;
-    if (!getString(psCfg, psCfgObj, "NodeName", &nodename)) {
-	/* cut hostname and try again */
-	char *pos = strchr(psCfgObj, '.');
-	if (pos) *pos = '\0';
-
-	if (!pos || !getString(psCfg, psCfgObj, "NodeName", &nodename)) {
-	    pluginlog("%s: no host object for this node\n", __func__);
-	    goto loadCfgErr;
-	}
+    char *psCfgObj = PSCfgHelp_getObject(psCfg, psCfgFlags);
+    if (!psCfgObj) {
+	pluginlog("%s: no host object for this node\n", __func__);
+	goto loadCfgErr;
     }
-    g_free(nodename);
 
     GError *err = NULL;
     gchar keypat[128];
