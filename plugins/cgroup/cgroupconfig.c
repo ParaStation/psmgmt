@@ -2,16 +2,18 @@
  * ParaStation
  *
  * Copyright (C) 2016-2020 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2022 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-
-#include "pluginconfig.h"
-#include "cgrouplog.h"
-
 #include "cgroupconfig.h"
+
+#include <stdbool.h>
+#include <stddef.h>
+
+#include "cgrouplog.h"
 
 #ifndef DEFAULT_CGROUP_ROOT
 #define DEFAULT_CGROUP_ROOT "/sys/fs/cgroup/"
