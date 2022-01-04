@@ -2,34 +2,33 @@
  * ParaStation
  *
  * Copyright (C) 2010-2016 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2022 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-
 #define _GNU_SOURCE
-#include <stdlib.h>
+#include "psmomcollect.h"
+
+#include <stdbool.h>
 #include <stdio.h>
-#include <string.h>
-#include <sys/utsname.h>
 #include <errno.h>
-#include <sys/time.h>
-#include <time.h>
-#include <sys/vfs.h>
 #include <inttypes.h>
+#include <string.h>
+#include <sys/statfs.h>
+#include <sys/utsname.h>
 
 #include "list.h"
-#include "psmomlog.h"
+#include "pluginconfig.h"
 #include "pluginmalloc.h"
 
 #include "psaccounthandles.h"
 
-#include "psmomjob.h"
-#include "psmomconfig.h"
 #include "psmom.h"
-
-#include "psmomcollect.h"
+#include "psmomconfig.h"
+#include "psmomjob.h"
+#include "psmomlog.h"
 
 #define PROC_MEMINFO_PATH   "/proc/meminfo"
 #define PROC_CPUINFO_PATH   "/proc/cpuinfo"

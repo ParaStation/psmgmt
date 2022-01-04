@@ -2,42 +2,36 @@
  * ParaStation
  *
  * Copyright (C) 2010-2021 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2022 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
+#include "psmominteractive.h"
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <errno.h>
+#include <fcntl.h>
+#include <netdb.h>
+#include <netinet/in.h>
+#include <string.h>
 #include <sys/ioctl.h>
+#include <sys/socket.h>
 #include <termios.h>
 #include <unistd.h>
-#include <fcntl.h>
-#include <signal.h>
-#include <string.h>
-#include <errno.h>
-#include <sys/stat.h>
-#include <grp.h>
-#include <sys/types.h>
-#include <pwd.h>
-
-#include <sys/socket.h>
-#include <netdb.h>
 
 #include "pscio.h"
-#include "psmomlog.h"
-#include "psmomconv.h"
-#include "psmomlocalcomm.h"
 #include "pluginmalloc.h"
-#include "pluginpty.h"
 #include "selector.h"
-#include "psmomtcp.h"
-#include "pbsdef.h"
-#include "psmomenv.h"
-#include "psmomforwarder.h"
 
-#include "psmominteractive.h"
+#include "pbsdef.h"
+#include "psmomconv.h"
+#include "psmomenv.h"
+#include "psmomlocalcomm.h"
+#include "psmomlog.h"
+#include "psmomtcp.h"
 
 #define _PATH_TTY "/dev/tty"
 #define X11_AUTH_CMD "/usr/bin/xauth"

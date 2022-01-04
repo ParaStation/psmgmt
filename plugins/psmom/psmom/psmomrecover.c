@@ -2,27 +2,28 @@
  * ParaStation
  *
  * Copyright (C) 2010-2018 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021 ParTec AG, Munich
+ * Copyright (C) 2021-2022 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-#include <stdlib.h>
+#include "psmomrecover.h"
+
 #include <stdio.h>
-#include <string.h>
 #include <dirent.h>
 #include <errno.h>
+#include <pwd.h>
+#include <string.h>
 
-#include "psmomlog.h"
-#include "psmomjob.h"
-#include "psmomconfig.h"
-#include "psmomproto.h"
-#include "psmom.h"
-
+#include "list.h"
+#include "pluginconfig.h"
 #include "pluginmalloc.h"
 
-#include "psmomrecover.h"
+#include "psmom.h"
+#include "psmomconfig.h"
+#include "psmomlist.h"
+#include "psmomlog.h"
 
 void recoverJobInfo()
 {

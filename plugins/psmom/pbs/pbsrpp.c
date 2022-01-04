@@ -99,13 +99,10 @@
 #include <netdb.h>
 #include <errno.h>
 #include <assert.h>
-#include <math.h>
 #include <time.h>
 #include <sys/types.h>
-#include <sys/file.h>
-#include <sys/stat.h>
+#include <sys/select.h>
 #include <sys/socket.h>
-#include <sys/time.h>
 #include <netinet/in.h>
 #if defined(NTOHL_NEEDS_ARPA_INET_H) && defined(HAVE_ARPA_INET_H)
 #include <arpa/inet.h>

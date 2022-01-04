@@ -2,40 +2,34 @@
  * ParaStation
  *
  * Copyright (C) 2010-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021 ParTec AG, Munich
+ * Copyright (C) 2021-2022 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
+#include "psmompartition.h"
 
+#include <stddef.h>
+#include <stdint.h>
 #include <stdio.h>
-#include <string.h>
 #include <errno.h>
+#include <string.h>
+#include <sys/types.h>
 
-#include "pstask.h"
-#include "list.h"
 #include "pscommon.h"
-#include "psidtask.h"
-#include "psidcomm.h"
-#include "psidstatus.h"
-#include "psidnodes.h"
-#include "psidpartition.h"
-#include "psdaemonprotocol.h"
+#include "pspartition.h"
+#include "pluginconfig.h"
 #include "pluginpartition.h"
 
-#include "psaccounthandles.h"
+#include "psidcomm.h"
+#include "psidtask.h"
 
-#include "psmomjob.h"
-#include "psmomlog.h"
-#include "psmom.h"
-#include "psmomjobinfo.h"
-
-#include "psmompscomm.h"
 #include "psmomconfig.h"
-
-
-#include "psmompartition.h"
+#include "psmomjob.h"
+#include "psmomjobinfo.h"
+#include "psmomlog.h"
+#include "psmompscomm.h"
 
 bool handlePSSpawnReq(DDTypedBufferMsg_t *msg)
 {

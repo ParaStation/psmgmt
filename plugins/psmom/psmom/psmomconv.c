@@ -2,27 +2,20 @@
  * ParaStation
  *
  * Copyright (C) 2010-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021 ParTec AG, Munich
+ * Copyright (C) 2021-2022 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
+#include "psmomconv.h"
+
 #include <stdio.h>
 #include <stdlib.h>
-#include <unistd.h>
 #include <string.h>
-#include <errno.h>
-#include <math.h>
 
 #include "psmomlog.h"
-#include "pbsdef.h"
-#include "psmomcomm.h"
-#include "psmomlist.h"
-#include "psmomconv.h"
 #include "pluginmalloc.h"
-
-#include "psmomconv.h"
 
 #define SEND_BUF_SIZE 1024
 #define INT_BUF_SIZE 1024

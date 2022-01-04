@@ -2,30 +2,28 @@
  * ParaStation
  *
  * Copyright (C) 2010-2016 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2022 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-#include <stdio.h>
-#include <stdlib.h>
-#include <unistd.h>
-#include <string.h>
-#include <errno.h>
-#include <math.h>
-
-#include "psmomlog.h"
 #include "psmomrpp.h"
-#include "psmomcomm.h"
-#include "psmomproto.h"
-#include "psmompbsserver.h"
-#include "psmom.h"
-#include "psmomauth.h"
 
-#include "pbsdef.h"
+#include <stdio.h>
+#include <errno.h>
+#include <netinet/in.h>
+#include <string.h>
+
 #include "selector.h"
 
 #include "pbsrpp.h"
+#include "psmom.h"
+#include "psmomauth.h"
+#include "psmomcomm.h"
+#include "psmomlog.h"
+#include "psmomproto.h"
+#include "psmompbsserver.h"
 
 int rppPoll(int fd, void *data)
 {

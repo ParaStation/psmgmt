@@ -2,6 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2010-2013 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2022 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -10,7 +11,7 @@
 #ifndef __PS_MOM_RPP
 #define __PS_MOM_RPP
 
-#include "psmomcomm.h"
+#include <sys/types.h>
 
 /**
  * @brief Init and bind a rpp connection.

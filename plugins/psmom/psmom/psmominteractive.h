@@ -2,14 +2,20 @@
  * ParaStation
  *
  * Copyright (C) 2010-2016 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2022 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-
 #ifndef __ps_mom_interactive
 #define __ps_mom_interactive
+
+#include <stddef.h>
+
+#include "psmomcomm.h"
+#include "psmomforwarder.h"
+#include "psmomjob.h"
 
 /**
  * @brief Initialize a connection to waiting qsub.

@@ -2,6 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2010-2013 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2022 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -10,10 +11,11 @@
 #ifndef __PS_MOM_PROTO
 #define __PS_MOM_PROTO
 
-#include <sys/resource.h>
+#include <stdint.h>
 
-#include "psmomjob.h"
 #include "psmomcomm.h"
+#include "psmomjob.h"
+#include "psmomlist.h"
 
 int handleNewData(ComHandle_t *com);
 int WriteIS(ComHandle_t *com, int cmd);

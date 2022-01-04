@@ -2,61 +2,55 @@
  * ParaStation
  *
  * Copyright (C) 2010-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021 ParTec AG, Munich
+ * Copyright (C) 2021-2022 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
 #define _GNU_SOURCE
+#include "psmomspawn.h"
+
+#include <stdint.h>
 #include <stdlib.h>
 #include <stdio.h>
-#include <pwd.h>
 #include <errno.h>
-#include <grp.h>
-#include <unistd.h>
-#include <string.h>
-#include <sys/prctl.h>
-#include <sys/resource.h>
-#include <sys/stat.h>
-#include <sys/time.h>
-#include <sys/types.h>
+#include <pwd.h>
 #include <signal.h>
-#include <netdb.h>
-#include <sys/wait.h>
+#include <string.h>
+#include <sys/resource.h>
+#include <time.h>
+#include <unistd.h>
 
+#include "list.h"
 #include "pscio.h"
 #include "pscommon.h"
-#include "timer.h"
-#include "psidscripts.h"
-#include "psprotocol.h"
-#include "psnodes.h"
-#include "psidcomm.h"
-#include "pscommon.h"
+#include "pspluginprotocol.h"
+#include "psserial.h"
 
+#include "psidscripts.h"
+
+#include "pluginconfig.h"
 #include "pluginhelper.h"
 #include "pluginmalloc.h"
 
 #include "psaccounthandles.h"
 #include "pspamhandles.h"
 
-#include "pbsdef.h"
-#include "psmomlog.h"
-#include "psmomconfig.h"
+#include "pbserror.h"
 #include "psmom.h"
-#include "psmompscomm.h"
+#include "psmomacc.h"
 #include "psmomchild.h"
-#include "psmomscript.h"
-#include "psmomforwarder.h"
-#include "psmomproto.h"
+#include "psmomconfig.h"
 #include "psmomconv.h"
 #include "psmomenv.h"
-#include "psmompbsserver.h"
-#include "psmomcollect.h"
-#include "psmomacc.h"
 #include "psmomkvs.h"
-
-#include "psmomspawn.h"
+#include "psmomlist.h"
+#include "psmomlog.h"
+#include "psmompbsserver.h"
+#include "psmomproto.h"
+#include "psmompscomm.h"
+#include "psmomscript.h"
 
 void psmomSwitchUser(char *username, struct passwd *spasswd, int saveEnv)
 {

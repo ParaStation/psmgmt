@@ -2,42 +2,41 @@
  * ParaStation
  *
  * Copyright (C) 2010-2020 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021 ParTec AG, Munich
+ * Copyright (C) 2021-2022 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
+#include "psmompscomm.h"
+
 #include <stdbool.h>
-#include <stdlib.h>
+#include <stdint.h>
 #include <stdio.h>
-#include <netdb.h>
-#include <sys/socket.h>
-#include <math.h>
+#include <string.h>
 #include <time.h>
 
+#include "list.h"
+#include "psprotocol.h"
+#include "pspluginprotocol.h"
 #include "psserial.h"
 #include "pluginhelper.h"
-#include "pluginmalloc.h"
-
-#include "pspamhandles.h"
-
-#include "psmomlog.h"
-#include "psmomscript.h"
-#include "psmomjob.h"
-#include "psmomproto.h"
-#include "psmom.h"
-#include "psmomjobinfo.h"
-#include "psmompbsserver.h"
 
 #include "psidcomm.h"
 #include "psidplugin.h"
 #include "pscommon.h"
-#include "psidnodes.h"
 #include "psidutil.h"
 #include "psidtask.h"
 
-#include "psmompscomm.h"
+#include "pspamhandles.h"
+
+#include "pbsdef.h"
+#include "psmomlog.h"
+#include "psmomjobinfo.h"
+#include "psmompbsserver.h"
+#include "psmomproto.h"
+#include "psmomscript.h"
+#include "psmomspawn.h"
 
 #define PSMOM_PSCOMM_VERSION 101
 

@@ -2,28 +2,25 @@
  * ParaStation
  *
  * Copyright (C) 2010-2017 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2022 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-
 #ifndef __PSMOM_JOB
 #define __PSMOM_JOB
 
 #include <stdbool.h>
 #include <stdint.h>
-#include <time.h>
-#include <sys/types.h>
 #include <pwd.h>
+#include <time.h>
 
 #include "list.h"
 #include "pscommon.h"
-#include "psnodes.h"
-#include "pstask.h"
 
-#include "psmomlist.h"
 #include "psmomcomm.h"
+#include "psmomlist.h"
 
 typedef enum {
     JOB_INIT   = 0x0001,

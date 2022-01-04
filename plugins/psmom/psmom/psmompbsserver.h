@@ -2,6 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2011-2013 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2022 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -11,6 +12,8 @@
 #define __PS_MOM_PBS_SERVER
 
 #include <time.h>
+
+#include "list.h"
 
 #include "psmomcomm.h"
 

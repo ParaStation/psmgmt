@@ -2,40 +2,34 @@
  * ParaStation
  *
  * Copyright (C) 2010-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021 ParTec AG, Munich
+ * Copyright (C) 2021-2022 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
+#include "psmomtcp.h"
+
 #include <stdio.h>
-#include <stdlib.h>
-#include <unistd.h>
-#include <string.h>
 #include <errno.h>
-#include <sys/types.h>
-#include <signal.h>
-#include <popt.h>
-#include <netinet/in.h>
-#include <unistd.h>
-#include <syslog.h>
-#include <sys/stat.h>
-#include <fcntl.h>
-#include <sys/socket.h>
 #include <arpa/inet.h>
 #include <netdb.h>
+#include <netinet/in.h>
+#include <string.h>
+#include <strings.h>
+#include <sys/socket.h>
+#include <unistd.h>
 
 #include "pscio.h"
-#include "psmomlog.h"
-#include "pluginmalloc.h"
-#include "psmomcomm.h"
-#include "psmomproto.h"
-#include "psmomconfig.h"
-#include "psmomauth.h"
-
 #include "selector.h"
 
-#include "psmomtcp.h"
+#include "pluginmalloc.h"
+
+#include "psmomauth.h"
+#include "psmomcomm.h"
+#include "psmomlog.h"
+#include "psmomproto.h"
+
 
 #define TCP_RESEND  5		/* number of resend retry until we give up */
 #define TCP_RECONNECT 10	/* number of reconnect tries until we give up */
