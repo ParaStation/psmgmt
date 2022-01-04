@@ -2,21 +2,24 @@
  * ParaStation
  *
  * Copyright (C) 2020-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021 ParTec AG, Munich
+ * Copyright (C) 2021-2022 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
+#include "nodeinfo.h"
+
 #include <stdbool.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <errno.h>
-#include <unistd.h>
+#include <strings.h>
 
 #include "plugin.h"
 #include "pscommon.h"
+#include "pscpu.h"
 #include "psprotocol.h"
 #include "pspluginprotocol.h"
 #include "psserial.h"
@@ -25,16 +28,13 @@
 #include "psidhook.h"
 #include "psidhw.h"
 #include "psidnodes.h"
-#include "psidplugin.h"
-#include "psidutil.h"
 
 #include "pluginmalloc.h"
+#include "pluginpsconfig.h"
 
 #include "nodeinfolog.h"
 #include "nodeinfoconfig.h"
 #include "nodeinfotypes.h"
-
-#include "nodeinfo.h"
 
 /** psid plugin requirements */
 char name[] = "nodeinfo";
