@@ -2,26 +2,25 @@
  * ParaStation
  *
  * Copyright (C) 2016-2020 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2022 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
+#include "psexecscripts.h"
+
 #include <stdio.h>
-#include <stdlib.h>
 #include <signal.h>
 #include <errno.h>
 
-#include "list.h"
+#include "pluginmalloc.h"
+
 #include "psidscripts.h"
 #include "psidsignal.h"
 
-#include "pluginmalloc.h"
-
 #include "psexeccomm.h"
 #include "psexeclog.h"
-
-#include "psexecscripts.h"
 
 static LIST_HEAD(scriptList);
 
