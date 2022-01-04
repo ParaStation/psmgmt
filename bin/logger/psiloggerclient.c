@@ -2,23 +2,25 @@
  * ParaStation
  *
  * Copyright (C) 2009-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021 ParTec AG, Munich
+ * Copyright (C) 2021-2022 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
+#include "psiloggerclient.h"
+
 #include <stdio.h>
 #include <stdlib.h>
-#include <unistd.h>
 #include <errno.h>
+#include <string.h>
+#include <strings.h>
+#include <unistd.h>
 
 #include "list.h"
 #include "pscommon.h"
 #include "selector.h"
 #include "psilogger.h"
-
-#include "psiloggerclient.h"
 
 /** Internal state-masks of clients */
 typedef enum {

@@ -2,6 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2006-2021 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2022 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -12,9 +13,9 @@
  * psaccounter: ParaStation accounting daemon
  */
 #include <stdbool.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <unistd.h>
 #include <string.h>
 #include <errno.h>
 #include <sys/types.h>
@@ -34,17 +35,14 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 
+#include "list.h"
+#include "pscommon.h"
+#include "pscpu.h"
 #include "pse.h"
 #include "psi.h"
 #include "psiinfo.h"
 #include "psispawn.h"
 #include "psilog.h"
-#include "pscommon.h"
-#include "pstask.h"
-#include "pscpu.h"
-#include "psprotocol.h"
-#include "list.h"
-#include "logging.h"
 
 #define MAX_HOSTNAME_LEN 64
 #define MAX_USERNAME_LEN 64

@@ -3,7 +3,7 @@
  *
  * Copyright (C) 1999-2004 ParTec AG, Karlsruhe
  * Copyright (C) 2005-2019 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021 ParTec AG, Munich
+ * Copyright (C) 2021-2022 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -13,6 +13,8 @@
  * @file
  * psiadmin: ParaStation Administration Tool
  */
+#include "psiadmin.h"
+
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -22,20 +24,16 @@
 #include <signal.h>
 #include <errno.h>
 #include <pwd.h>
-#include <termios.h> /* Just to prevent a warning */
-#include <sys/types.h>
 #include <sys/stat.h>
 #include <popt.h>
 
-#include "parser.h"
-#include "psprotocol.h"
 #include "pscommon.h"
+#include "parser.h"
 #include "linenoise.h"
 #include "psi.h"
 
 #include "commands.h"
 #include "adminparser.h"
-#include "psiadmin.h"
 
 logger_t *PSIadm_logger = NULL;
 

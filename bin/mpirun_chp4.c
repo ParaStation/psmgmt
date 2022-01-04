@@ -3,6 +3,7 @@
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
  * Copyright (C) 2005-2019 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2022 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -19,12 +20,11 @@
 
 #include <popt.h>
 
-#include <pse.h>
-#include <psi.h>
-#include <psipartition.h>
-#include <psispawn.h>
-#include <psienv.h>
-#include <pscommon.h>
+#include "pscommon.h"
+#include "pse.h"
+#include "psi.h"
+#include "psienv.h"
+#include "psispawn.h"
 
 /*
  * Print version info

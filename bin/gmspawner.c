@@ -3,6 +3,7 @@
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
  * Copyright (C) 2005-2020 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2022 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -22,7 +23,6 @@
 #include <signal.h>
 #include <pthread.h>
 
-#include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
@@ -30,11 +30,12 @@
 
 #include <popt.h>
 
-#include <psi.h>
-#include <psiinfo.h>
-#include <psispawn.h>
-#include <psienv.h>
-#include <pscommon.h>
+#include "pscommon.h"
+
+#include "psi.h"
+#include "psienv.h"
+#include "psiinfo.h"
+#include "psispawn.h"
 
 static pthread_t listener;
 

@@ -2,31 +2,34 @@
  * ParaStation
  *
  * Copyright (C) 2017-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021 ParTec AG, Munich
+ * Copyright (C) 2021-2022 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-#include <stdlib.h>
-#include <string.h>
+#include <stdbool.h>
+#include <stdint.h>
 #include <stdio.h>
-#include <signal.h>
-#include <unistd.h>
+#include <stdlib.h>
+#include <netinet/in.h>
 #include <popt.h>
+#include <signal.h>
+#include <string.h>
+#include <sys/socket.h>
+#include <sys/time.h>
+#include <unistd.h>
 #include <netdb.h>
 #include <arpa/inet.h>
 
 #ifndef BUILD_WITHOUT_PSCONFIG
 #include <glib.h>
 #include <psconfig.h>
-#include <psconfig-utils.h>
 #endif
 
 #include "pscommon.h"
 #include "psenv.h"
 #include "pshostlist.h"
-#include "psnodes.h"
 #include "psserial.h"
 #include "pspluginprotocol.h"
 

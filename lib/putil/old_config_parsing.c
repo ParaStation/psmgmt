@@ -22,15 +22,13 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 
-#include "parser.h"
-#include "psnodes.h"
-
 #include "pscommon.h"
 #include "hardware.h"
 #include "pspartition.h"
-#include "timer.h"
+#include "parser.h"
 #include "rdp.h"
 #include "selector.h"
+#include "timer.h"
 
 #include "psidnodes.h"
 #include "psidscripts.h"
