@@ -2,23 +2,25 @@
  * ParaStation
  *
  * Copyright (C) 2018-2020 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2022 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-#include <string.h>
-#include <unistd.h>
+#include "psgwrequest.h"
+
 #include <errno.h>
 #include <signal.h>
+#include <string.h>
+#include <unistd.h>
 
 #include "pluginmalloc.h"
-#include "peloguehandles.h"
-#include "pscommon.h"
 #include "psidsignal.h"
 
+#include "peloguehandles.h"
+
 #include "psgwlog.h"
-#include "psgwrequest.h"
 
 /** List of all requests */
 static LIST_HEAD(ReqList);

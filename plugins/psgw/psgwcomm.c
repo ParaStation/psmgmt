@@ -2,27 +2,31 @@
  * ParaStation
  *
  * Copyright (C) 2020 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021 ParTec AG, Munich
+ * Copyright (C) 2021-2022 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-#include <stdlib.h>
+#include "psgwcomm.h"
+
+#include <stdint.h>
+#include <stdio.h>
 
 #include "pscommon.h"
+#include "psenv.h"
+#include "pslog.h"
 #include "pspluginprotocol.h"
 #include "psserial.h"
+#include "pluginconfig.h"
 #include "pluginmalloc.h"
 
 #include "peloguetypes.h"
 
+#include "psgwconfig.h"
 #include "psgwlog.h"
 #include "psgwrequest.h"
 #include "psgwres.h"
-#include "psgwconfig.h"
-
-#include "psgwcomm.h"
 
 typedef enum {
     PSP_PELOGUE_OE,	    /**< forward pelogue script stdout/stderr */

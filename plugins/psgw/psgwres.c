@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2018-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021 ParTec AG, Munich
+ * Copyright (C) 2021-2022 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -22,10 +22,8 @@
 #include <timer.h>
 #include <unistd.h>
 
-#include "logging.h"
 #include "pscommon.h"
 #include "psenv.h"
-#include "psnodes.h"
 #include "pluginconfig.h"
 #include "pluginforwarder.h"
 #include "pluginhelper.h"
@@ -37,10 +35,8 @@
 #include "psexechandles.h"
 #include "psslurmalloc.h"
 
-#include "psgwlog.h"
-#include "psgwrequest.h"
 #include "psgwconfig.h"
-
+#include "psgwlog.h"
 #include "psgwpart.h"
 
 static char msgBuf[1024];

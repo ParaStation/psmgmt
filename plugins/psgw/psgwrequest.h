@@ -2,22 +2,31 @@
  * ParaStation
  *
  * Copyright (C) 2018-2020 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2022 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-
 #ifndef __PSGW_REQUEST
 #define __PSGW_REQUEST
+
+#include <stdbool.h>
+#include <stdint.h>
+#include <sys/types.h>
+
+#include "list.h"
+#include "pscommon.h"
+#include "psenv.h"
+#include "pluginforwarder.h"
 
 #include "peloguetypes.h"
 
 /** track started psgwd */
 typedef struct {
     PSnodes_ID_t node;        /**< list of gateway nodes */
-    pid_t pid;	              /**< PIDs of psgwd */
-    char *addr;	              /**< IP and port of psgwd */
+    pid_t pid;                /**< PIDs of psgwd */
+    char *addr;               /**< IP and port of psgwd */
 } PSGWD_t;
 
 /** holding all information about a psgw request */
