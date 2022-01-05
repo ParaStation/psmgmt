@@ -2,34 +2,35 @@
  * ParaStation
  *
  * Copyright (C) 2019-2020 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2022 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
+#include "psaccountenergy.h"
+
 #include <stdio.h>
-#include <stdint.h>
+#include <stdlib.h>
 #include <errno.h>
 #include <inttypes.h>
-#include <string.h>
 #include <math.h>
-#include <time.h>
-#include <unistd.h>
-#include <stdlib.h>
+#include <signal.h>
+#include <string.h>
 #include <sys/wait.h>
 #include <sys/stat.h>
+#include <time.h>
+#include <unistd.h>
 
-#include "psaccountenergy.h"
-#include "psaccountproc.h"
-#include "psaccountlog.h"
-#include "psaccountconfig.h"
-
+#include "pslog.h"
+#include "psserial.h"
 #include "pluginconfig.h"
 #include "pluginforwarder.h"
 #include "pluginmalloc.h"
-#include "pslog.h"
-#include "psserial.h"
-#include "pscommon.h"
+
+#include "psaccountconfig.h"
+#include "psaccountlog.h"
+#include "psaccountproc.h"
 
 #define NO_VAL64   (0xfffffffffffffffe)
 

@@ -2,36 +2,33 @@
  * ParaStation
  *
  * Copyright (C) 2010-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021 ParTec AG, Munich
+ * Copyright (C) 2021-2022 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
+#include "psaccountproc.h"
+
 #include <stdio.h>
 #include <stdlib.h>
-#include <stdbool.h>
 #include <dirent.h>
-#include <sys/types.h>
-#include <ctype.h>
+#include <errno.h>
+#include <inttypes.h>
+#include <signal.h>
 #include <string.h>
 #include <sys/stat.h>
-#include <signal.h>
 #include <unistd.h>
-#include <inttypes.h>
-#include <errno.h>
+
+#include "pluginconfig.h"
+#include "pluginmalloc.h"
 
 #include "psidutil.h"
 #include "psidhook.h"
 #include "psidsignal.h"
 
-#include "pluginconfig.h"
-#include "pluginmalloc.h"
-#include "psaccountlog.h"
 #include "psaccountconfig.h"
-#include "psaccountclient.h"
-
-#include "psaccountproc.h"
+#include "psaccountlog.h"
 
 /** List of all known processes cached from /proc */
 static LIST_HEAD(procList);
