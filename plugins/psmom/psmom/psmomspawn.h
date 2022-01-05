@@ -12,7 +12,7 @@
 #define __PS_MOM_SPAWN
 
 #include <stdbool.h>
-struct passwd;   // Make IWYU happy
+#include <pwd.h>
 
 #include "psmomcomm.h"
 #include "psmomforwarder.h"

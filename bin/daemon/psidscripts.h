@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2009-2020 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021 ParTec AG, Munich
+ * Copyright (C) 2021-2022 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -15,8 +15,7 @@
 #define __PSIDSCRIPTS_H
 
 #include <stdbool.h>
-#include <sys/time.h> // IWYU pragma: keep
-struct timeval;       // Make IWYU happy
+#include <sys/time.h>
 #include <sys/types.h>
 
 #include "config_parsing.h"

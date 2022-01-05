@@ -21,7 +21,7 @@
 #include <signal.h>
 #include <sys/types.h>
 
-#include "pscommon.h"  // IWYU pragma: keep
+#include "pscommon.h"
 #include "psprotocol.h"
 #include "config_parsing.h"
 #include "selector.h"

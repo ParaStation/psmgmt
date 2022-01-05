@@ -36,4 +36,5 @@ This will create 'compile_commands.json' in <build_path>
 
 Now you can run iwyu_tool.py:
 iwyu_tool.py -p ../<build_path> <file or path> \
-	     -- -Xiwyu --mapping_file=${PWD}/scripts/psmgmt.imp
+	     -- -Xiwyu --mapping_file=${PWD}/scripts/psmgmt.imp \
+		-Xiwyu --no_fwd_decls
