@@ -2,21 +2,27 @@
  * ParaStation
  *
  * Copyright (C) 2013-2020 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021 ParTec AG, Munich
+ * Copyright (C) 2021-2022 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
+#include "pelogueinter.h"
+
+#include <stdbool.h>
+#include <sys/types.h>
+
+#include "list.h"
 #include "pscommon.h"
+#include "psenv.h"
+#include "pluginconfig.h"
 #include "pluginmalloc.h"
 
 #include "pelogueconfig.h"
 #include "peloguejob.h"
 #include "peloguecomm.h"
 #include "peloguelog.h"
-
-#include "pelogueinter.h"
 
 bool psPelogueAddPluginConfig(char *name, Config_t *configList)
 {

@@ -2,16 +2,15 @@
  * ParaStation
  *
  * Copyright (C) 2013-2016 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2022 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-#include <unistd.h>
-#include <sys/stat.h>
-#include <sys/types.h>
-
 #include "peloguescript.h"
+
+#include <sys/stat.h>
 
 int checkPELogueFileStats(char *filename, bool root)
 {

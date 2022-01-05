@@ -2,12 +2,15 @@
  * ParaStation
  *
  * Copyright (C) 2013-2020 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021 ParTec AG, Munich
+ * Copyright (C) 2021-2022 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
+#include "peloguechild.h"
+
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -17,13 +20,12 @@
 #include <signal.h>
 #include <string.h>
 #include <sys/stat.h>
-#include <sys/types.h>
 #include <sys/utsname.h>
-#include <sys/wait.h>
 
 #include "list.h"
 #include "pscommon.h"
 #include "psenv.h"
+#include "pslog.h"
 #include "psserial.h"
 
 #include "psidhook.h"
@@ -37,10 +39,8 @@
 
 #include "peloguecomm.h"
 #include "pelogueconfig.h"
-#include "peloguelog.h"
 #include "pelogueforwarder.h"
-
-#include "peloguechild.h"
+#include "peloguelog.h"
 
 /** List of all children */
 static LIST_HEAD(childList);

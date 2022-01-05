@@ -2,26 +2,24 @@
  * ParaStation
  *
  * Copyright (C) 2013-2019 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021 ParTec AG, Munich
+ * Copyright (C) 2021-2022 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
+#include "pelogueconfig.h"
+
 #include <stdio.h>
-#include <stdlib.h>
-#include <unistd.h>
 #include <errno.h>
 #include <limits.h>
 #include <string.h>
 #include <sys/stat.h>
-#include <sys/types.h>
+
+#include "pluginmalloc.h"
 
 #include "peloguelog.h"
 #include "peloguescript.h"
-#include "pluginmalloc.h"
-
-#include "pelogueconfig.h"
 
 #define MAX_SUPPORTED_PLUGINS 10
 

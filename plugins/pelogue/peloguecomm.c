@@ -2,36 +2,40 @@
  * ParaStation
  *
  * Copyright (C) 2013-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021 ParTec AG, Munich
+ * Copyright (C) 2021-2022 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
+#include "peloguecomm.h"
+
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <errno.h>
+#include <string.h>
+#include <sys/types.h>
+#include <time.h>
 
+#include "list.h"
 #include "pscommon.h"
-#include "psserial.h"
 #include "pspluginprotocol.h"
+#include "psprotocol.h"
+#include "psserial.h"
+
 #include "plugin.h"
+#include "pluginconfig.h"
 #include "pluginmalloc.h"
 #include "pluginhelper.h"
 
 #include "psidcomm.h"
 #include "psidhook.h"
-#include "psidnodes.h"
 #include "psidtask.h"
 #include "psidutil.h"
 
-#include "peloguetypes.h"
 #include "peloguechild.h"
 #include "pelogueconfig.h"
-#include "peloguejob.h"
 #include "peloguelog.h"
-
-#include "peloguecomm.h"
 
 #define SPOOL_DIR LOCALSTATEDIR "/spool/parastation"
 
