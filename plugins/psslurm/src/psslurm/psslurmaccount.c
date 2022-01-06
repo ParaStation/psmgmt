@@ -2,20 +2,22 @@
  * ParaStation
  *
  * Copyright (C) 2019 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2022 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-
-#include <string.h>
-
 #include "psslurmaccount.h"
+
+#include <stdio.h>
+
+#include "pluginmalloc.h"
+
+#include "slurmcommon.h"
 #include "psslurmlog.h"
 #include "psslurmproto.h"
 
-#include "pluginmalloc.h"
-#include "slurmcommon.h"
 
 #define INF2Z(num) (num == INFINITE64) ? (0) : (num)
 

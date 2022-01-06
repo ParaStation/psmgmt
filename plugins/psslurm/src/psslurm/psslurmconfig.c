@@ -2,27 +2,31 @@
  * ParaStation
  *
  * Copyright (C) 2014-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021 ParTec AG, Munich
+ * Copyright (C) 2021-2022 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
+#include "psslurmconfig.h"
+
+#include <stdio.h>
 #include <dirent.h>
 #include <errno.h>
 #include <glob.h>
 #include <netdb.h>
-#include <stdlib.h>
+#include <netinet/in.h>
 #include <string.h>
+#include <strings.h>
 #include <sys/stat.h>
 #include <sys/socket.h>
 #include <time.h>
-#include <unistd.h>
 
-#include "pshostlist.h"
 #include "pscommon.h"
+#include "pshostlist.h"
 
 #include "pluginmalloc.h"
+#include "pluginstrv.h"
 #include "psidhw.h"
 
 #include "psslurmlog.h"
@@ -30,8 +34,6 @@
 #ifdef HAVE_SPANK
 #include "psslurmspank.h"
 #endif
-
-#include "psslurmconfig.h"
 
 /** psslurm plugin configuration list */
 Config_t Config;

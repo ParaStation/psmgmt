@@ -2,6 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2019-2021 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2022 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -10,14 +11,19 @@
 #ifndef __PSSLURM_SPANK
 #define __PSSLURM_SPANK
 
+#include <stdarg.h>
 #include <stdbool.h>
+#include <stdint.h>
 
-#include "slurm/spank.h"
+#include <slurm/spank.h>
 
+#include "list.h"
+#include "pstask.h"
 #include "pluginstrv.h"
-#include "psslurmstep.h"
+
 #include "psslurmjob.h"
 #include "psslurmalloc.h"
+#include "psslurmstep.h"
 
 typedef struct {
     list_t next;                /**< used to put into some plugin-lists */

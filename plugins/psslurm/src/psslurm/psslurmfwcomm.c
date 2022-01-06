@@ -2,20 +2,32 @@
  * ParaStation
  *
  * Copyright (C) 2020-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021 ParTec AG, Munich
+ * Copyright (C) 2021-2022 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
+#include "psslurmfwcomm.h"
+
+#include <stdbool.h>
+#include <stddef.h>
+#include <netinet/in.h>
+
+#include "list.h"
 #include "pscommon.h"
+#include "pslog.h"
+#include "psprotocol.h"
+#include "psserial.h"
+
 #include "pluginmalloc.h"
 #include "psidcomm.h"
 
+#include "slurmcommon.h"
+#include "psslurmcomm.h"
+#include "psslurmio.h"
 #include "psslurmlog.h"
 #include "psslurmproto.h"
-
-#include "psslurmfwcomm.h"
 
 typedef enum {
     CMD_PRINT_CHILD_MSG = 100,

@@ -1,21 +1,19 @@
 #define _GNU_SOURCE
-#include <string.h>
-#include <stdlib.h>
 #include <stdio.h>
-#include <errno.h>
-#include <unistd.h>
-#include <time.h>
-
+#include <stdlib.h>
 #include <arpa/inet.h>
-#include <sys/types.h>
-#include <sys/select.h>
-#include <sys/socket.h>
-#include <sys/wait.h>
+#include <errno.h>
 #include <netdb.h>
 #include <netinet/in.h>
 #include <netinet/tcp.h>
-#include <sys/un.h>
 #include <signal.h>
+#include <string.h>
+#include <sys/select.h>
+#include <sys/socket.h>
+#include <sys/un.h>
+#include <sys/wait.h>
+#include <time.h>
+#include <unistd.h>
 
 #include <slurm/spank.h>
 

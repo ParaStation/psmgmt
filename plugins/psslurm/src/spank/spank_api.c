@@ -1,3 +1,5 @@
+#include <stdarg.h>
+#include <stdbool.h>
 #include <stdlib.h>
 #include <slurm/spank.h>
 #include <dlfcn.h>
@@ -26,7 +28,7 @@ static int psSpank_loglevel = SPANK_LOG_VERBOSE;
 #define PSLOG(level, logger, fmt) {                     \
     va_list ap;                                         \
     if (!psSpank_logger ||                              \
-        psSpank_loglevel < level) return;               \
+	psSpank_loglevel < level) return;               \
     mlog("spank(L%i): ", level);                        \
     va_start(ap, fmt);                                  \
     logger_vprint(logger, -1, fmt, ap);                 \

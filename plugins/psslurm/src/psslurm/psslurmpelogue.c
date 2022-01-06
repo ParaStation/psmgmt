@@ -2,46 +2,51 @@
  * ParaStation
  *
  * Copyright (C) 2015-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021 ParTec AG, Munich
+ * Copyright (C) 2021-2022 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
+#include "psslurmpelogue.h"
+
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <unistd.h>
 #include <errno.h>
-#include <sys/types.h>
-#include <sys/wait.h>
 #include <signal.h>
+#include <string.h>
 #include <sys/stat.h>
+#include <sys/wait.h>
+#include <time.h>
+#include <unistd.h>
 
 #include "pscommon.h"
-#include "peloguehandles.h"
-#include "pspamhandles.h"
-#include "pluginmalloc.h"
-#include "pluginhelper.h"
-#include "psaccounthandles.h"
+#include "psenv.h"
 #include "pshostlist.h"
+
+#include "pluginconfig.h"
+#include "pluginmalloc.h"
 #include "psidsignal.h"
 
-#include "slurmcommon.h"
+#include "peloguehandles.h"
+#include "pspamhandles.h"
 
+#include "slurmcommon.h"
+#include "slurmerrno.h"
 #include "psslurm.h"
-#include "psslurmlog.h"
-#include "psslurmjob.h"
-#include "psslurmproto.h"
-#include "psslurmforwarder.h"
-#include "psslurmpscomm.h"
-#include "psslurmenv.h"
 #include "psslurmconfig.h"
+#include "psslurmenv.h"
+#include "psslurmforwarder.h"
+#include "psslurmjob.h"
+#include "psslurmjobcred.h"
 #include "psslurmlimits.h"
+#include "psslurmlog.h"
+#include "psslurmproto.h"
+#include "psslurmpscomm.h"
 #ifdef HAVE_SPANK
 #include "psslurmspank.h"
 #endif
-
-#include "psslurmpelogue.h"
 
 /**
  * @brief Handle a failed prologue

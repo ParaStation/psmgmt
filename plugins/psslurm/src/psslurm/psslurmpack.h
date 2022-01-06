@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2016-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021 ParTec AG, Munich
+ * Copyright (C) 2021-2022 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -16,14 +16,14 @@
 #include "list.h"
 #include "psserial.h"
 
-#include "psslurmmsg.h"
-#include "psslurmauth.h"
-#include "psslurmjobcred.h"
-#include "psslurmbcast.h"
-#include "psslurmio.h"
-#include "psslurmcomm.h"
-#include "psslurmproto.h"
 #include "psslurmaccount.h"
+#include "psslurmauth.h"
+#include "psslurmbcast.h"
+#include "psslurmcomm.h"
+#include "psslurmio.h"
+#include "psslurmjobcred.h"
+#include "psslurmmsg.h"
+#include "psslurmproto.h"
 
 /**
  * @brief Pack a Slurm authentication

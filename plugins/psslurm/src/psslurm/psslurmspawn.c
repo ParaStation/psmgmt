@@ -2,30 +2,26 @@
  * ParaStation
  *
  * Copyright (C) 2015-2020 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2022 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
+#include "psslurmspawn.h"
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <errno.h>
 #include <unistd.h>
-#include <sys/types.h>
 
 #include "psenv.h"
-#include "psserial.h"
 
 #include "pluginmalloc.h"
-#include "pluginhelper.h"
 
 #include "slurmcommon.h"
 #include "psslurmlog.h"
-#include "psslurmcomm.h"
-#include "psslurmlog.h"
-
-#include "psslurmspawn.h"
 
 #define SRUN_BINARY "/usr/bin/srun"
 

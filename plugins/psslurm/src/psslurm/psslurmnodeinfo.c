@@ -1,26 +1,26 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2021 ParTec AG, Munich
+ * Copyright (C) 2021-2022 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
+#include "psslurmnodeinfo.h"
+
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdlib.h>
+#include "string.h"
 #include <unistd.h>
-#include <ctype.h>
 
-#include "psidnodes.h"
-
+#include "pscpu.h"
 #include "pluginmalloc.h"
+#include "psidnodes.h"
 
 #include "psslurmlog.h"
 #include "psslurmjobcred.h"
-
-#include "psslurmnodeinfo.h"
 
 typedef struct {
     ssize_t index;	      /* iteration index and counter starting from 0 */

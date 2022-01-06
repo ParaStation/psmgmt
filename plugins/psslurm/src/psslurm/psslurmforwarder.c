@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2014-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021 ParTec AG, Munich
+ * Copyright (C) 2021-2022 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -34,14 +34,10 @@
 #include "pscommon.h"
 #include "pscio.h"
 #include "psenv.h"
-#include "psnodes.h"
 #include "psprotocolenv.h"
 #include "psserial.h"
-#include "pstask.h"
 #include "selector.h"
-#include "psidcomm.h"
-#include "psidhook.h"
-#include "psidscripts.h"
+
 #include "pluginconfig.h"
 #include "pluginforwarder.h"
 #include "pluginhelper.h"
@@ -49,13 +45,15 @@
 #include "pluginpartition.h"
 #include "pluginpty.h"
 #include "pluginstrv.h"
+#include "psidcomm.h"
+#include "psidhook.h"
+#include "psidscripts.h"
 
 #include "peloguehandles.h"
 #include "psaccounthandles.h"
 #include "pspmihandles.h"
 
 #include "psslurm.h"
-#include "psslurmalloc.h"
 #include "psslurmcomm.h"
 #include "psslurmconfig.h"
 #include "psslurmenv.h"

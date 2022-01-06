@@ -2,27 +2,33 @@
  * ParaStation
  *
  * Copyright (C) 2019-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021 ParTec AG, Munich
+ * Copyright (C) 2021-2022 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
+#include "psslurmspank.h"
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <dlfcn.h>
+#include <string.h>
 #include <sys/stat.h>
-
-#include "slurm/spank.h"
+#include <sys/time.h>
+#include <sys/types.h>
 
 #include "pscommon.h"
+#include "psenv.h"
 #include "pluginmalloc.h"
+
+#include "slurmcommon.h"
+#include "slurmerrno.h"
 
 #include "psslurmalloc.h"
 #include "psslurmjob.h"
 #include "psslurmstep.h"
 #include "psslurmlog.h"
-#include "psslurmspank.h"
 #include "psslurmproto.h"
 
 #include "spank_api.h"

@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2014-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021 ParTec AG, Munich
+ * Copyright (C) 2021-2022 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -11,11 +11,10 @@
 #ifndef __PS_SLURM_GRES
 #define __PS_SLURM_GRES
 
+#include <stdbool.h>
 #include <stdint.h>
 
 #include "list.h"
-#include "psserial.h"
-#include "slurmcommon.h"
 
 /** ID of the GRES GPU plugin */
 #define GRES_PLUGIN_GPU 7696487

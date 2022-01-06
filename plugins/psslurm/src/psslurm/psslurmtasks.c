@@ -2,23 +2,24 @@
  * ParaStation
  *
  * Copyright (C) 2017-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021 ParTec AG, Munich
+ * Copyright (C) 2021-2022 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
+#include "psslurmtasks.h"
+
+#include <stddef.h>
 #include <signal.h>
 #include <unistd.h>
 
-#include "psslurmlog.h"
-
-#include "pluginmalloc.h"
-#include "psidtask.h"
-#include "psidsignal.h"
 #include "pscommon.h"
+#include "pluginmalloc.h"
+#include "psidsignal.h"
+#include "psidtask.h"
 
-#include "psslurmtasks.h"
+#include "psslurmlog.h"
 
 PS_Tasks_t *addTask(list_t *list, PStask_ID_t childTID,
 		    PStask_ID_t forwarderTID, PStask_t *forwarder,

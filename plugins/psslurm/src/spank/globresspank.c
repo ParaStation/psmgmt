@@ -1,4 +1,4 @@
-#include <stdlib.h>
+#include <stdlib.h>  // IWYU pragma: keep
 
 #include <slurm/spank.h>
 

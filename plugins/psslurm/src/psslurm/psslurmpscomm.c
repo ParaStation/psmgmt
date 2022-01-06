@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2014-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021 ParTec AG, Munich
+ * Copyright (C) 2021-2022 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -21,20 +21,23 @@
 #include <signal.h>
 #include <string.h>
 #include <sys/stat.h>
-#include <sys/types.h>
 
 #include "list.h"
 #include "pscommon.h"
 #include "pscpu.h"
 #include "psdaemonprotocol.h"
-#include "psenv.h"
+#include "pshostlist.h"
 #include "pslog.h"
 #include "pspartition.h"
 #include "pspluginprotocol.h"
 #include "psreservation.h"
 #include "psserial.h"
-#include "pstask.h"
 
+#include "pluginconfig.h"
+#include "pluginforwarder.h"
+#include "pluginmalloc.h"
+#include "pluginhelper.h"
+#include "pluginpartition.h"
 #include "psidcomm.h"
 #include "psidhook.h"
 #include "psidnodes.h"
@@ -43,14 +46,7 @@
 #include "psidtask.h"
 #include "psidutil.h"
 
-#include "pluginconfig.h"
-#include "pluginforwarder.h"
-#include "pluginmalloc.h"
-#include "pluginhelper.h"
-#include "pluginpartition.h"
-
 #include "psexechandles.h"
-#include "pshostlist.h"
 
 #include "slurmcommon.h"
 #include "slurmerrno.h"
@@ -62,10 +58,8 @@
 #include "psslurmforwarder.h"
 #include "psslurmfwcomm.h"
 #include "psslurmio.h"
-#include "psslurmjob.h"
 #include "psslurmjobcred.h"
 #include "psslurmlog.h"
-#include "psslurmmsg.h"
 #include "psslurmpack.h"
 #include "psslurmpelogue.h"
 #include "psslurmpin.h"

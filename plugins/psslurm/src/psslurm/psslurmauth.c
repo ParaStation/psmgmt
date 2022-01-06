@@ -2,28 +2,23 @@
  * ParaStation
  *
  * Copyright (C) 2014-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021 ParTec AG, Munich
+ * Copyright (C) 2021-2022 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-#include <stdio.h>
-#include <stdlib.h>
-#include <errno.h>
+#include "psslurmauth.h"
 
-#include "pluginhelper.h"
+#include <stdio.h>
+#include <string.h>
+
 #include "pluginmalloc.h"
 #include "psmungehandles.h"
-#include "slurmcommon.h"
 
 #include "psslurm.h"
 #include "psslurmlog.h"
-#include "psslurmcomm.h"
-#include "psslurmgres.h"
-#include "psslurmproto.h"
 #include "psslurmpack.h"
-#include "psslurmauth.h"
 
 /** munge plugin identification */
 #define MUNGE_PLUGIN_ID 101

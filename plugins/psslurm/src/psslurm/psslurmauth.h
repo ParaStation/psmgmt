@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2014-2019 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021 ParTec AG, Munich
+ * Copyright (C) 2021-2022 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -12,15 +12,17 @@
 #define __PS_SLURM_AUTH
 
 #include <stdbool.h>
+#include <stdint.h>
 #include <sys/types.h>
-
-#include "psslurmmsg.h"
 
 /** structure holding a Slurm authentication */
 typedef struct {
     char *cred;		/**< authentication credential */
     uint32_t pluginID;	/**< plugin used for authentication */
 } Slurm_Auth_t;
+
+// leave after Slurm_Auth_t definition to break include cycle
+#include "psslurmmsg.h"  // IWYU pragma: keep
 
 /**
  * @brief Generate a Slurm authentication

@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2015-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021 ParTec AG, Munich
+ * Copyright (C) 2021-2022 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -11,8 +11,13 @@
 #ifndef __PS_SLURM_PELOGUE
 #define __PS_SLURM_PELOGUE
 
-#include "psslurmalloc.h"
+#include <stdbool.h>
+
+#include "pstask.h"
 #include "peloguetypes.h"
+
+#include "psslurmalloc.h"
+#include "psslurmstep.h"
 
 /**
  * @brief Start a local prologue or epilogue for an allocation

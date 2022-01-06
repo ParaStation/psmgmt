@@ -2,35 +2,37 @@
  * ParaStation
  *
  * Copyright (C) 2020-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021 ParTec AG, Munich
+ * Copyright (C) 2021-2022 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
+#include <stdarg.h>
+#include <stdbool.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <stdint.h>
-#include <sys/types.h>
-#include <unistd.h>
+#include <netinet/in.h>
+#include <sched.h>
 #include <string.h>
-#include <stdarg.h>
 
 #ifdef HAVE_LIBNUMA
 #include <numa.h>
 #endif
 
-#include "logging.h"
-#include "psidpin.h"
-#include "psslurmpin.h"
-
 #include "slurmcommon.h" /* bind type constants */
 
-#include "psnodes.h" /* typedef of PSnodes_ID_t for stubs */
+#include "list.h"
+#include "pscommon.h"  /* typedef of PSnodes_ID_t for stubs */
+#include "pscpu.h"
+#include "psenv.h"
 
 #include "pluginconfig.h" /* read configuration file */
 
-#include "list.h"
+#include "psidpin.h"
+#include "psslurmpin.h"
+#include "psslurmstep.h"
 
 static int verbosity = 0;
 static bool humanreadable = false;

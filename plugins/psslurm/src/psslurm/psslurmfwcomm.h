@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2020 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021 ParTec AG, Munich
+ * Copyright (C) 2021-2022 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -11,9 +11,12 @@
 #ifndef __PS_SLURM_FW_COMM
 #define __PS_SLURM_FW_COMM
 
+#include <stdint.h>
+
 #include "pslog.h"
 #include "pluginforwarder.h"
 
+#include "psslurmjob.h"
 #include "psslurmstep.h"
 #include "psslurmtasks.h"
 
@@ -109,7 +112,7 @@ void fwCMD_printMsg(Job_t *job, Step_t *step, char *plMsg, uint32_t msgLen,
  * @param sig The signature to validate the connection
  */
 void fwCMD_reattachTasks(Forwarder_Data_t *fwdata, uint32_t addr,
-		         uint16_t ioPort, uint16_t ctlPort, char *sig);
+			 uint16_t ioPort, uint16_t ctlPort, char *sig);
 
 /**
  * @brief Send CMD_INFO_TASKS to a forwarder

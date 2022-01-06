@@ -2,39 +2,51 @@
  * ParaStation
  *
  * Copyright (C) 2016-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021 ParTec AG, Munich
+ * Copyright (C) 2021-2022 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
 #include <stdbool.h>
-#include <stdlib.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <string.h>
+#include <time.h>
 
+#include "list.h"
 #include "pscommon.h"
+#include "pscpu.h"
 #include "pshostlist.h"
-#include "pluginmalloc.h"
+#include "pspartition.h"
+
+#include "plugin.h"
+#include "pluginconfig.h"
+#include "pluginforwarder.h"
 #include "pluginhelper.h"
+#include "pluginmalloc.h"
 
 #include "psidnodes.h"
+#include "psidtask.h"
 
+#include "psmungehandles.h"
+
+#include "slurmcommon.h"
+#include "psslurmalloc.h"
 #include "psslurmconfig.h"
 #include "psslurmlog.h"
 #include "psslurmjob.h"
-#include "psslurmalloc.h"
+#include "psslurmjobcred.h"
+#include "psslurmnodeinfotype.h"
 #include "psslurmpin.h"
 #include "psslurmproto.h"
 #include "psslurmpscomm.h"
+#include "psslurmstep.h"
 #include "psslurmtasks.h"
 #ifdef HAVE_SPANK
 #include "psslurmspank.h"
 #endif
 
-#include "psidtask.h"
-#include "plugin.h"
-#include "psmungehandles.h"
 
 typedef struct {
     StrBuffer_t strBuf;

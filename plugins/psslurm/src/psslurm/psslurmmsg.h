@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2017-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021 ParTec AG, Munich
+ * Copyright (C) 2021-2022 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -13,15 +13,12 @@
 
 #include <stdbool.h>
 #include <stdint.h>
-#include <time.h>
 #include <sys/types.h>
 
 #include "list.h"
 
-#include "psnodes.h"
-#include "pstaskid.h"
+#include "pscommon.h"
 #include "psserial.h"
-#include "slurmmsg.h"
 
 /** holding Slurm forward tree results */
 typedef struct {
@@ -65,7 +62,8 @@ typedef struct {
     time_t recvTime;		/**< time the message was received */
 } Slurm_Msg_t;
 
-#include "psslurmauth.h"
+// leave after Slurm_Msg_t definition to break include cycle
+#include "psslurmauth.h"  // IWYU pragma: keep
 
 typedef struct {
     Slurm_Auth_t *auth;		/**< Slurm authentication */

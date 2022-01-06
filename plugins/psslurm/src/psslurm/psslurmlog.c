@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2014-2018 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021 ParTec AG, Munich
+ * Copyright (C) 2021-2022 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -11,12 +11,8 @@
 #include "psslurmlog.h"
 
 #include <stdarg.h>
-#include <stdlib.h>
-#include <stdio.h>
 
-#include "logging.h"
 #include "pluginlog.h"
-#include "pluginmalloc.h"
 
 #define MAX_FLOG_SIZE 4096
 

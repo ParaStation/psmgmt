@@ -2,22 +2,23 @@
  * ParaStation
  *
  * Copyright (C) 2014-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021 ParTec AG, Munich
+ * Copyright (C) 2021-2022 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
+#include "psslurmpin.h"
+
 #include <stdio.h>
 #include <stdlib.h>
-#include <sys/types.h>
+#include <string.h>
+#include <strings.h>
 #include <unistd.h>
-#include <ctype.h>
-#include <limits.h>
 
 #ifdef HAVE_LIBNUMA
-#include <numa.h>
 #include <math.h>
+#include <numa.h>
 #endif
 
 #define _GNU_SOURCE
@@ -25,24 +26,20 @@
 #include <sched.h>
 
 #include "pscommon.h"
+#include "pslog.h"
+#include "pspartition.h"
+
+#include "pluginconfig.h"
 #include "pluginmalloc.h"
 #include "psidnodes.h"
 #include "psidpin.h"
 
 #include "slurmcommon.h"
-
-#include "psslurmjob.h"
-#include "psslurmlog.h"
 #include "psslurmconfig.h"
-#include "psslurmproto.h"
-#include "psslurmio.h"
 #include "psslurmfwcomm.h"
-#include "psslurmgres.h"
+#include "psslurmlog.h"
 #include "psslurmnodeinfo.h"
-
-#include "psenv.h"
-
-#include "psslurmpin.h"
+#include "psslurmproto.h"
 
 static cpu_bind_type_t defaultCPUbindType = 0;
 static task_dist_states_t defaultSocketDist = 0;

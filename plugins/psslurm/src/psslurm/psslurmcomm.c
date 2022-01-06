@@ -2,48 +2,48 @@
  * ParaStation
  *
  * Copyright (C) 2014-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021 ParTec AG, Munich
+ * Copyright (C) 2021-2022 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
 #define _GNU_SOURCE
-#include <stdio.h>
-#include <stdlib.h>
-#include <errno.h>
-#include <fcntl.h>
-#include <sys/socket.h>
-#include <arpa/inet.h>
-#include <netdb.h>
-#include <unistd.h>
-#include <signal.h>
-#include <ctype.h>
-#include <string.h>
+#include "psslurmcomm.h"
 
-#include "pscommon.h"
+#include <stdio.h>
+#include <arpa/inet.h>
+#include <ctype.h>
+#include <errno.h>
+#include <netdb.h>
+#include <netinet/in.h>
+#include <string.h>
+#include <strings.h>
+#include <sys/ioctl.h>
+#include <sys/socket.h>
+#include <unistd.h>
+
+#include "list.h"
 #include "pscio.h"
-#include "psserial.h"
-#include "pluginconfig.h"
-#include "pluginhelper.h"
-#include "pluginmalloc.h"
-#include "psidcomm.h"
+#include "pscommon.h"
+#include "psenv.h"
 #include "pslog.h"
+#include "psprotocol.h"
 #include "selector.h"
 
-#include "slurmcommon.h"
-#include "psslurmproto.h"
-#include "psslurmconfig.h"
-#include "psslurmjob.h"
-#include "psslurmlog.h"
-#include "psslurmauth.h"
-#include "psslurmio.h"
-#include "psslurmenv.h"
-#include "psslurmpscomm.h"
-#include "psslurmpack.h"
-#include "psslurmfwcomm.h"
+#include "pluginconfig.h"
+#include "pluginforwarder.h"
+#include "pluginhelper.h"
 
-#include "psslurmcomm.h"
+#include "slurmcommon.h"
+#include "slurmerrno.h"
+#include "psslurmauth.h"
+#include "psslurmconfig.h"
+#include "psslurmfwcomm.h"
+#include "psslurmlog.h"
+#include "psslurmpack.h"
+#include "psslurmproto.h"
+#include "psslurmtasks.h"
 
 /** default slurmd port psslurm listens for new srun/slurmcltd requests */
 #define PSSLURM_SLURMD_PORT 6818
