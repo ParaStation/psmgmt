@@ -2,25 +2,21 @@
  * ParaStation
  *
  * Copyright (C) 2020-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021 ParTec AG, Munich
+ * Copyright (C) 2021-2022 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-#include <stdbool.h>
-#include <sys/types.h>
-#include <unistd.h>
-#include <dlfcn.h>
-#include <errno.h>
 #include <stdio.h>
 #include <security/pam_appl.h>
+#include <security/pam_modules.h>
 
-#include "plugin.h"
-#include "psidplugin.h"
-#include "psidhook.h"
-#include "pluginmalloc.h"
 #include "pscommon.h"
+#include "plugin.h"
+#include "pluginmalloc.h"
+
+#include "psidhook.h"
 
 #include "pamservice_log.h"
 

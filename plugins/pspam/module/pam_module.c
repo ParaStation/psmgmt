@@ -2,7 +2,7 @@
  *               ParaStation
  *
  * Copyright (C) 2011-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021 ParTec AG, Munich
+ * Copyright (C) 2021-2022 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -13,13 +13,13 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <errno.h>
+#include <grp.h>
 #include <limits.h>
-#include <unistd.h>
-#include <syslog.h>
 #include <string.h>
+#include <syslog.h>
 #include <sys/socket.h>
-#include <sys/types.h>
 #include <sys/un.h>
+#include <unistd.h>
 
 #include "pscio.h"
 #include "psserial.h"
@@ -34,8 +34,6 @@
 #define PAM_SM_SESSION
 
 #include <security/pam_modules.h>
-#include <security/_pam_macros.h>
-#include <security/pam_modutil.h>
 #include <security/pam_ext.h>
 
 /** comma-sep. list of users always allowed to connect; set via PAM options*/

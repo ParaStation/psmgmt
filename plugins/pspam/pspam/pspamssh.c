@@ -2,22 +2,22 @@
  * ParaStation
  *
  * Copyright (C) 2011-2020 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2022 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-#include <stdlib.h>
+#include "pspamssh.h"
+
 #include <stdio.h>
-#include <string.h>
+#include <stdlib.h>
 #include <signal.h>
+#include <string.h>
 #include <time.h>
-#include <unistd.h>
 
 #include "pluginmalloc.h"
 #include "psaccounthandles.h"
-
-#include "pspamssh.h"
 
 /* list holding all ssh sessions */
 static LIST_HEAD(sshList);

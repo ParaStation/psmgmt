@@ -2,41 +2,39 @@
  * ParaStation
  *
  * Copyright (C) 2017-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021 ParTec AG, Munich
+ * Copyright (C) 2021-2022 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
+#include "pspamcomm.h"
+
 #include <stdint.h>
-#include <unistd.h>
+#include <stdlib.h>
 #include <errno.h>
+#include <netinet/in.h>
 #include <string.h>
 #include <sys/socket.h>
 #include <sys/stat.h>
-#include <sys/types.h>
 #include <sys/un.h>
-#include <pwd.h>
-#include <stdlib.h>
-#include <netinet/in.h>
+#include <unistd.h>
 
 #include "pscio.h"
+#include "pscommon.h"
 #include "psserial.h"
-#include "pluginmalloc.h"
-#include "pluginpartition.h"
-#include "pluginhelper.h"
 #include "selector.h"
+#include "pluginhelper.h"
+#include "pluginpartition.h"
+
 #include "psidhook.h"
 #include "psidscripts.h"
-#include "pscommon.h"
 
 #include "pspamcommon.h"
 #include "pspamlog.h"
 #include "pspamssh.h"
 #include "pspamtypes.h"
 #include "pspamuser.h"
-
-#include "pspamcomm.h"
 
 /** socket plugin is listening on to be accesses from PAM module */
 static int masterSock = -1;
