@@ -8,18 +8,23 @@
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
+#include <stdio.h>
 #include <stdlib.h>
 #include <dlfcn.h>
+#include <string.h>
+#include <sys/time.h>
 
+#include "list.h"
 #include "timer.h"
 
+#include "plugin.h"
 #include "psidutil.h"
 #include "psidplugin.h"
 
 #include "slurmmsg.h"
 #include "psslurmhandles.h"
-
-#include "plugin.h"
+#include "psslurmmsg.h"
+#include "psslurmtypes.h"
 
 int requiredAPI = 107;
 

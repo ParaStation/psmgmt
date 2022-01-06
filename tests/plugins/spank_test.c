@@ -1,8 +1,7 @@
-#include <stdlib.h>
-#include <sys/types.h>
 #include <stdint.h>
-#include <unistd.h>
+#include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
 
 #include <slurm/spank.h>
 

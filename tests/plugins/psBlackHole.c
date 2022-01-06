@@ -2,22 +2,26 @@
  * ParaStation
  *
  * Copyright (C) 2018-2021 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2022 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
+#include <stdbool.h>
+#include <stdint.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
 #include "list.h"
-#include "psidcomm.h"
-#include "psidhook.h"
-#include "psidplugin.h"
-#include "psidutil.h"
+#include "psprotocol.h"
 
 #include "plugin.h"
 #include "pluginmalloc.h"
+#include "psidcomm.h"
+#include "psidhook.h"
+#include "psidutil.h"
 
 int requiredAPI = 120;
 

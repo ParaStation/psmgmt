@@ -2,6 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2012 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2022 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -9,9 +10,8 @@
  */
 #include <stdlib.h>
 
+#include "plugin.h"  // IWYU pragma: keep
 #include "psidutil.h"
-
-#include "plugin.h"
 
 char name[] = "plugin7";
 
