@@ -2,6 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2007-2016 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2022 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -13,16 +14,15 @@
  * is responsible for handling PMI messages received from the client
  * process.
  */
-
 #ifndef __PS_PMI_CLIENT
 #define __PS_PMI_CLIENT
 
+#include "pstask.h"
+
+#include "pmitypes.h"
+
 /** Magic value to indicate proper finalization of PMI */
 #define PMI_FINALIZED 55
-
-#include "pslog.h"
-#include "pmitypes.h"
-#include "pmiclientspawn.h"
 
 /**
  * @brief Handle a new PMI message from the local MPI client.

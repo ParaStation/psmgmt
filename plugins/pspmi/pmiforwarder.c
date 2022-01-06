@@ -2,32 +2,33 @@
  * ParaStation
  *
  * Copyright (C) 2013-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021 ParTec AG, Munich
+ * Copyright (C) 2021-2022 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
+#include "pmiforwarder.h"
 
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <unistd.h>
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <strings.h>
-#include <errno.h>
 #include <netinet/in.h>
+#include <string.h>
+#include <sys/socket.h>
+#include <unistd.h>
 
-#include "selector.h"
 #include "pscommon.h"
+#include "psprotocol.h"
 #include "kvscommon.h"
-#include "psidforwarder.h"
-#include "psidhook.h"
-#include "pmiclient.h"
-#include "pmilog.h"
+#include "selector.h"
 #include "pluginmalloc.h"
 
-#include "pmiforwarder.h"
+#include "psidforwarder.h"
+#include "psidhook.h"
+
+#include "pmiclient.h"
+#include "pmilog.h"
 
 /** The socket listening for connection from the MPI client (tcp/ip only) */
 static int pmiTCPSocket = -1;

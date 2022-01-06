@@ -2,41 +2,45 @@
  * ParaStation
  *
  * Copyright (C) 2007-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021 ParTec AG, Munich
+ * Copyright (C) 2021-2022 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
+#include "pmiclient.h"
+
 #include <stdbool.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <unistd.h>
-#include <string.h>
-#include <sys/socket.h>
 #include <errno.h>
+#include <string.h>
+#include <unistd.h>
 
-#include "pscio.h"
+#include "list.h"
 #include "pscommon.h"
+#include "pscio.h"
+#include "pslog.h"
+#include "psprotocol.h"
+#include "selector.h"
+
 #include "psilog.h"
 #include "psispawn.h"
-#include "pluginmalloc.h"
-#include "pluginstrv.h"
+
 #include "kvs.h"
 #include "kvscommon.h"
-#include "pslog.h"
-#include "list.h"
-#include "selector.h"
+#include "pluginmalloc.h"
+#include "pluginstrv.h"
+
 #include "psidcomm.h"
 #include "psidforwarder.h"
 #include "psidhook.h"
+
 #include "psaccounthandles.h"
 
-#include "pmilog.h"
-#include "pmiforwarder.h"
 #include "pmiclientspawn.h"
-
-#include "pmiclient.h"
+#include "pmilog.h"
 
 #define SOCKET int
 #define PMI_VERSION 1
