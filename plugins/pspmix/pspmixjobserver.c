@@ -2,31 +2,29 @@
  * ParaStation
  *
  * Copyright (C) 2018-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021 ParTec AG, Munich
+ * Copyright (C) 2021-2022 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-
 /**
  * @file Implementation of pspmix functions running in the plugin forwarder
  *       working as PMIx server
  */
+#include "pspmixjobserver.h"
 
 #include <stdio.h>
-#include <stdlib.h>
-#include <unistd.h>
-#include <assert.h>
 
 #include "list.h"
 #include "pstask.h"
+#include "psreservation.h"
+
+#include "psidspawn.h"
 
 #include "pspmixlog.h"
 #include "pspmixservice.h"
-#include "pspmixcomm.h"
-
-#include "pspmixjobserver.h"
+#include "pspmixtypes.h"
 
 static PspmixJobserver_t *server = NULL;
 

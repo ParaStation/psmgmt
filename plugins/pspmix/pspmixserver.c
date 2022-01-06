@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2018-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021 ParTec AG, Munich
+ * Copyright (C) 2021-2022 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -14,23 +14,22 @@
  * The pmix server library in initialized and used only in the jobserver.
  */
 #define _GNU_SOURCE
+#include "pspmixserver.h"
+
 #include <stdio.h>
 #include <stdlib.h>
-#include <unistd.h>
-#include <stdbool.h>
-#include <string.h>
 #include <assert.h>
+#include <string.h>
+#include <unistd.h>
 
 #include <pmix_server.h>
 
 #include "list.h"
 #include "pluginmalloc.h"
-#include "timer.h"
+#include "pluginvector.h"
 
 #include "pspmixlog.h"
 #include "pspmixservice.h"
-
-#include "pspmixserver.h"
 
 /* allow walking throu the environment */
 extern char **environ;

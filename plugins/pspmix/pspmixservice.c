@@ -2,58 +2,38 @@
  * ParaStation
  *
  * Copyright (C) 2018-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021 ParTec AG, Munich
+ * Copyright (C) 2021-2022 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
+#include "pspmixservice.h"
+
 #include <stdio.h>
 #include <stdlib.h>
-#include <stdbool.h>
 #include <unistd.h>
 #include <string.h>
-#include <errno.h>
 #include <pthread.h>
 
-#include <pmix_common.h>
-
-#include "list.h"
 #include "pscommon.h"
 #include "psenv.h"
+#include "psprotocol.h"
+#include "psreservation.h"
+
 #include "pluginmalloc.h"
+#include "pluginvector.h"
 #include "psidforwarder.h"
-#include "pspluginprotocol.h"
-#include "psidcomm.h"
-#if 0
-#include "pluginstrv.h"
-#include "pslog.h"
-#include "selector.h"
-#include "psaccounthandles.h"
-#endif
+#include "psidspawn.h"
 
-#include "pspmixtypes.h"
-#include "pspmixlog.h"
-#include "pspmixserver.h"
-#include "pspmixservicespawn.h"
 #include "pspmixcomm.h"
-#include "pspmixjobserver.h"
-
-#include "pspmixservice.h"
+#include "pspmixlog.h"
+#include "pspmixservicespawn.h"
 
 #define MAX_NODE_ID 32768
 
-/* Set this to 1 to enable additional debug output describing the environment */
-#define DEBUG_ENV 0
-#if DEBUG_ENV
-extern char **environ;
-#endif
-
 /* Set to 1 to enable output of modex data send, received and forwarded */
 #define DEBUG_MODEX_DATA 0
-
-/* Set to 1 to enable output of the process map */
-#define PRINT_PROCMAP 0
 
 /* Fence object */
 typedef struct {
@@ -200,11 +180,6 @@ static bool __critErr(const char *func, int line)
 
 bool pspmix_service_init(PStask_ID_t loggerTID, uid_t uid, gid_t gid)
 {
-#if DEBUG_ENV
-    i = 0;
-    while(environ[i]) { mlog("%lu: %s\n", i, environ[i++]); }
-#endif
-
     mdbg(PSPMIX_LOG_CALL, "%s() called\n", __func__);
 
     loggertid = loggerTID;

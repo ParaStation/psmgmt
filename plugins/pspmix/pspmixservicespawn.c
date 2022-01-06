@@ -2,23 +2,25 @@
  * ParaStation
  *
  * Copyright (C) 2018-2019 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2022 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
+#include "pspmixservicespawn.h"
 
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <unistd.h>
+#include <string.h>
 
-#include "pluginstrv.h"
+#include "pstask.h"
+
 #include "pluginmalloc.h"
+#include "pluginstrv.h"
 
 #include "pspmixlog.h"
-#include "pspmixtypes.h"
-
-#include "pspmixservicespawn.h"
 
 /* spawn functions */
 static fillerFunc_t *fillTaskFunction = NULL;

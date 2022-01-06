@@ -2,20 +2,24 @@
  * ParaStation
  *
  * Copyright (C) 2018-2019 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021 ParTec AG, Munich
+ * Copyright (C) 2021-2022 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-
 #ifndef __PS_PMIX_SERVER
 #define __PS_PMIX_SERVER
 
-#include <pmix_server.h>
+#include <stdbool.h>
+#include <stddef.h>
+#include <stdint.h>
+#include <pmix_common.h>
 
-#include "pstaskid.h"
+#include "list.h"
+#include "pscommon.h"
 
+#include "pspmixtypes.h"
 
 /** Type for callback data for fence and get */
 typedef struct {
@@ -27,7 +31,6 @@ typedef struct {
     pmix_modex_cbfunc_t cbfunc;
     void *cbdata;
 } modexdata_t;
-
 
 /**
  * @brief Initialize the pmix server library and register all callbacks

@@ -2,19 +2,19 @@
  * ParaStation
  *
  * Copyright (C) 2019 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021 ParTec AG, Munich
+ * Copyright (C) 2021-2022 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-
 /**
  * @file Definitions of small common pspmix helper functions
  */
-
 #ifndef __PS_PMIX_COMMON
 #define __PS_PMIX_COMMON
+
+#include <stdbool.h>
 
 #include "pstask.h"
 

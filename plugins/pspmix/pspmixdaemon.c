@@ -2,13 +2,12 @@
  * ParaStation
  *
  * Copyright (C) 2018-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021 ParTec AG, Munich
+ * Copyright (C) 2021-2022 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-
 /**
  * @file Implementation of pspmix functions running in the daemon
  *
@@ -16,30 +15,34 @@
  * 1. Start the PMIx jobserver as plugin forwarder
  * 2. Forward plugin messages
  */
+#include "pspmixdaemon.h"
 
+#include <stdbool.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
 
 #include "list.h"
 #include "pscommon.h"
-#include "psserial.h"
-#include "pstask.h"
-#include "psidhook.h"
-#include "pluginmalloc.h"
-#include "psidcomm.h"
-#include "psidclient.h"
-#include "psidspawn.h"
+#include "pslog.h"
 #include "pspluginprotocol.h"
+#include "psprotocol.h"
+#include "psserial.h"
+
 #include "pluginforwarder.h"
+#include "pluginmalloc.h"
+
+#include "psidclient.h"
+#include "psidcomm.h"
+#include "psidhook.h"
+#include "psidspawn.h"
 
 #include "pspmixtypes.h"
 #include "pspmixlog.h"
 #include "pspmixcommon.h"
 #include "pspmixjobserver.h"
 #include "pspmixcomm.h"
-
-#include "pspmixdaemon.h"
 
 /** The list of running PMIx jobservers on this node */
 static LIST_HEAD(pmixJobservers);

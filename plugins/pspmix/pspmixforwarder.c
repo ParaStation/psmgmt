@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2018-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021 ParTec AG, Munich
+ * Copyright (C) 2021-2022 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -20,31 +20,32 @@
  *    an unnecessary indirection (PMIx Jobsever <-> PSID Forwarder <-> PSID).
  *    @todo Think about getting rid of that.)
  */
+#include "pspmixforwarder.h"
 
+#include <stdbool.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <unistd.h>
 #include <errno.h>
+#include <pmix_common.h>
 #include <sys/select.h>
 #include <sys/types.h>
-#include <sys/socket.h>
 
 #include "pscio.h"
 #include "pscommon.h"
-#include "pstask.h"
-#include "psidhook.h"
-#include "psidcomm.h"
-#include "pluginmalloc.h"
-#include "psidforwarder.h"
+#include "psprotocol.h"
 #include "pspluginprotocol.h"
+#include "psreservation.h"
 #include "psserial.h"
 
-#include "pspmixlog.h"
-#include "pspmixcommon.h"
-#include "pspmixservice.h"
-#include "pspmixcomm.h"
+#include "pluginmalloc.h"
+#include "psidcomm.h"
+#include "psidforwarder.h"
+#include "psidhook.h"
 
-#include "pspmixforwarder.h"
+#include "pspmixcommon.h"
+#include "pspmixlog.h"
+#include "pspmixtypes.h"
 
 /* psid rank of this forwarder and child */
 static int32_t rank;

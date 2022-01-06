@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2018-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021 ParTec AG, Munich
+ * Copyright (C) 2021-2022 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -12,27 +12,22 @@
  * @file Implementations of the pspmix communication functions called in the
  *       plugin forwarders working as PMIx Jobserver
  */
-#include <stdio.h>
-#include <stdlib.h>
-#include <stdbool.h>
-#include <unistd.h>
-#include <string.h>
+#include "pspmixcomm.h"
+
 #include <errno.h>
 #include <pthread.h>
+#include <unistd.h>
 
-#include <pmix_common.h>
-
-#include "pscommon.h"
-#include "pluginmalloc.h"
-#include "pluginforwarder.h"
 #include "psdaemonprotocol.h"
 #include "pspluginprotocol.h"
+#include "psreservation.h"
 #include "psserial.h"
+
+#include "pluginmalloc.h"
 
 #include "pspmixlog.h"
 #include "pspmixservice.h"
-
-#include "pspmixcomm.h"
+#include "pspmixtypes.h"
 
 /**
 * @brief Handle PSPMIX_REGISTER_CLIENT message

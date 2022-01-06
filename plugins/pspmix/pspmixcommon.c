@@ -2,26 +2,23 @@
  * ParaStation
  *
  * Copyright (C) 2019 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021 ParTec AG, Munich
+ * Copyright (C) 2021-2022 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-
 /**
  * @file Implementation of small common pspmix helper functions
  */
+#include "pspmixcommon.h"
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <unistd.h>
+#include <stdint.h>
+#include <string.h>
 
 #include "pstask.h"
 
 #include "pspmixlog.h"
-
-#include "pspmixcommon.h"
 
 /* decide if this job wants to use PMIx */
 bool __pspmix_common_usePMIx(PStask_t *task, const char* func) {

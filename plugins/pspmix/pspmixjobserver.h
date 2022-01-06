@@ -2,20 +2,20 @@
  * ParaStation
  *
  * Copyright (C) 2018-2019 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021 ParTec AG, Munich
+ * Copyright (C) 2021-2022 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-
 /**
  * @file Definitions of functions running in the plugin forwarder working as
  *       PMIx job server
  */
-
 #ifndef __PS_PMIX_JOBSERVER
 #define __PS_PMIX_JOBSERVER
+
+#include "pluginforwarder.h"
 
 /**
  * @brief Function called to initialize the plugin forwarder

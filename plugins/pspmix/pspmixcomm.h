@@ -2,27 +2,29 @@
  * ParaStation
  *
  * Copyright (C) 2018-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021 ParTec AG, Munich
+ * Copyright (C) 2021-2022 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-
 /**
  * @file Definitions of the pspmix communication functions called in the
  *       plugin forwarders working as PMIx Jobserver.
  */
-
 #ifndef __PS_PMIX_COMM
 #define __PS_PMIX_COMM
 
 #include <stdbool.h>
+#include <stddef.h>
+#include <stdint.h>
 
 #include <pmix_common.h>
 
-#include "psprotocol.h"
-#include "pstask.h"
+#include "pscommon.h"
+#include "pslog.h"
+
+#include "pluginforwarder.h"
 
 /**
  * @brief Handle messages from our mother psid
