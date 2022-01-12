@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2002-2003 ParTec AG, Karlsruhe
  * Copyright (C) 2005-2020 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021 ParTec AG, Munich
+ * Copyright (C) 2021-2022 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -19,6 +19,8 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <netinet/in.h>
+
+#include "logging.h"
 
 /**
  * Information container for parser calls.
@@ -213,6 +215,9 @@ void parser_removeComment(char* line);
  */
 int parser_parseFile(parser_t* parser);
 
+/** private logger to use */
+extern logger_t *parserlogger;
+
 /**
  * Various message classes for logging. These define the different
  * bits of the debug-mask set via @ref parser_setDebugMask().
@@ -295,11 +300,10 @@ void parser_setDebugMask(int32_t mask);
  *
  * @return No return value.
  *
- * @see logger_print(), parser_getDebugLevel(),
- * parser_setDebugLevel(), parser_commentCont()
+ * @see logger_print(), parser_getDebugLevel(), parser_setDebugLevel()
  */
-void parser_comment(parser_log_key_t key, char* format, ...)
-__attribute__((format(printf,2,3)));
+#define parser_comment(...) if (parserlogger)	\
+	logger_print(parserlogger, __VA_ARGS__)
 
 /**
  * @brief Print a warn-messages and exit.

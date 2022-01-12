@@ -24,8 +24,7 @@
 
 #include "pscommon.h"
 
-/** logger used for error- and progress-messages */
-static logger_t *logger = NULL;
+logger_t *parserlogger = NULL;
 
 /** The file to parse, if any */
 static FILE *parsefile;
@@ -60,7 +59,7 @@ static char *nextline(void)
     parseline++;
 
     snprintf(tag, sizeof(tag), "Parser in line %d", parseline);
-    logger_setTag(logger, tag);
+    logger_setTag(parserlogger, tag);
 
     if (!fgets(line+length, sizeof(line)-length, parsefile)) {
 	parser_comment(PARSER_LOG_FILE, "Got EOF\n");
@@ -94,8 +93,8 @@ static char *nextline(void)
 
 void parser_init(FILE* logfile, FILE *input)
 {
-    logger = logger_init("Parser", logfile);
-    if (!logger) {
+    parserlogger = logger_init("Parser", logfile);
+    if (!parserlogger) {
 	if (logfile) {
 	    fprintf(logfile, "%s: failed to initialize logger\n", __func__);
 	} else {
@@ -111,8 +110,8 @@ void parser_init(FILE* logfile, FILE *input)
 
 void parser_finalize(void)
 {
-    logger_finalize(logger);
-    logger = NULL;
+    logger_finalize(parserlogger);
+    parserlogger = NULL;
 
     parsefile = NULL;
     parseline = 0;
@@ -120,12 +119,12 @@ void parser_finalize(void)
 
 int32_t parser_getDebugMask(void)
 {
-    return logger_getMask(logger);
+    return logger_getMask(parserlogger);
 }
 
 void parser_setDebugMask(int32_t mask)
 {
-    logger_setMask(logger, mask);
+    logger_setMask(parserlogger, mask);
 }
 
 void parser_setFile(FILE *input)
@@ -298,15 +297,6 @@ int parser_error(char *token)
     return -1;
 }
 
-void parser_comment(parser_log_key_t key, char *format, ...)
-{
-    va_list ap;
-
-    va_start(ap, format);
-    logger_vprint(logger, key, format, ap);
-    va_end(ap);
-}
-
 void parser_exit(int eno, char *format, ...)
 {
     char *fmt = NULL, *errstr = strerror(eno);
@@ -324,7 +314,7 @@ void parser_exit(int eno, char *format, ...)
     }
 
     va_start(ap, format);
-    logger_vprint(logger, -1, fmt, ap);
+    logger_vprint(parserlogger, -1, fmt, ap);
     va_end(ap);
 
     if (fmt != format) free(fmt);
