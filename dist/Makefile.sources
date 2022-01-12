@@ -2,6 +2,7 @@
 # ParaStation
 #
 # Copyright (C) 2012-2021 ParTec Cluster Competence Center GmbH, Munich
+# Copyright (C) 2022 ParTec AG, Munich
 #
 # This file may be distributed under the terms of the Q Public License
 # as defined in the file LICENSE.QPL included in the packaging of this
@@ -165,6 +166,7 @@ include/pluginvector.h \
 include/psbyteorder.h \
 include/pscio.h \
 include/pscommon.h \
+include/psconfighelper.h \
 include/pscpu.h \
 include/psdaemonprotocol.h \
 include/pse.h \
@@ -253,6 +255,7 @@ lib/putil/linenoise.c \
 lib/putil/mcast.c \
 lib/putil/old_config_parsing.c \
 lib/putil/parser.c \
+lib/putil/psconfighelper.c \
 lib/putil/psdaemonprotocol.c \
 lib/putil/psparamspace.c \
 lib/putil/rdp.c \
