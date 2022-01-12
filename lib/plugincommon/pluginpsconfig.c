@@ -394,7 +394,8 @@ bool pluginConfig_load(pluginConfig_t conf, const char *configKey)
     PSConfig* psCfg = psconfig_new();
 
     /* generate local psconfig host object name */
-    char *psCfgObj = PSCfgHelp_getObject(psCfg, psCfgFlags);
+    char *psCfgObj = PSCfgHelp_getObject(psCfg, psCfgFlags, pluginlogger,
+					 PLUGIN_LOG_VERBOSE);
     if (!psCfgObj) {
 	pluginlog("%s: no valid host object for this node\n", __func__);
 	goto loadCfgErr;

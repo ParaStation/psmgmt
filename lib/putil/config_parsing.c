@@ -1891,7 +1891,8 @@ config_t *parseConfig(FILE* logfile, int logmask, char *configfile)
     // open psconfig database
     psconfig = psconfig_new();
     // generate local psconfig host object name
-    psconfigobj = PSCfgHelp_getObject(psconfig, psconfig_flags);
+    psconfigobj = PSCfgHelp_getObject(psconfig, psconfig_flags, parserlogger,
+				      PARSER_LOG_VERB);
     if (!psconfigobj) {
 	parser_comment(-1, "ERROR: no valid host object for this node.\n");
 	goto parseConfigError;

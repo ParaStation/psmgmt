@@ -14,8 +14,11 @@
 #define __PSCONFIG_HELPER_H
 
 #ifndef BUILD_WITHOUT_PSCONFIG
+#include <stdint.h>
 #include <glib.h>
 #include <psconfig.h>
+
+#include "logging.h"
 
 /**
  * @brief Create psconfig object for further retrievals
@@ -30,15 +33,23 @@
  * qualified domain name section ("all the stuff behind the first
  * dot").
  *
+ * If the hostname has to be cut a message is printed to the logger
+ * facility @a logger if @a key matches its mask.
+ *
  * @param db psconfig database to utilize
  *
  * @param flags Flags steering the behavior of the database
+ *
+ * @param logger The logger facility to use
+ *
+ * @param key The key to use in order to decide if anything is put out
  *
  * @return On success the name of the local configuration object
  * suitable for further calls to the database is returned; in case of
  * failure NULL is returned
  */
-char * PSCfgHelp_getObject(PSConfig* db, guint flags);
+char * PSCfgHelp_getObject(PSConfig* db, guint flags,
+			   logger_t* logger, int32_t key);
 
 #endif /* BUILD_WITHOUT_PSCONFIG */
 

@@ -17,7 +17,8 @@
 
 static char obj[HOST_NAME_MAX + 6];
 
-char * PSCfgHelp_getObject(PSConfig* db, guint flags)
+char * PSCfgHelp_getObject(PSConfig* db, guint flags,
+			   logger_t* logger, int32_t key)
 {
     /* generate local psconfig host object name */
     strncpy(obj, "host:", sizeof(obj));
@@ -32,6 +33,7 @@ char * PSCfgHelp_getObject(PSConfig* db, guint flags)
 	if (!pos) return NULL;
 
 	*pos = '\0';
+	logger_print(logger, key, "%s: cut hostname to '%s'\n", __func__, obj);
 	nodename = psconfig_get(db, obj, "NodeName", flags, NULL);
     }
     g_free(nodename);
