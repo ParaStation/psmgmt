@@ -1893,7 +1893,7 @@ config_t *parseConfig(FILE* logfile, int logmask, char *configfile)
     // generate local psconfig host object name
     psconfigobj = PSCfgHelp_getObject(psconfig, psconfig_flags);
     if (!psconfigobj) {
-	parser_comment(-1, "ERROR: no host object for this node.\n");
+	parser_comment(-1, "ERROR: no valid host object for this node.\n");
 	goto parseConfigError;
     }
 
