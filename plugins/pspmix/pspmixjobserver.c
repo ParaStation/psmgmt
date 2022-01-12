@@ -15,12 +15,15 @@
 #include "pspmixjobserver.h"
 
 #include <stdio.h>
+#include <sys/types.h>
+#include <pwd.h>
 
 #include "list.h"
 #include "pstask.h"
 #include "psreservation.h"
 
 #include "psidspawn.h"
+#include "pluginhelper.h"
 
 #include "pspmixlog.h"
 #include "pspmixservice.h"
@@ -50,6 +53,17 @@ int pspmix_jobserver_initialize(Forwarder_Data_t *fwdata)
 
     PStask_t *prototask;
     prototask = server->prototask;
+
+    /* drop root privileges as early as possible */
+    struct passwd *pws;
+    if (!(pws = getpwuid(prototask->uid))) {
+	mlog("%s: FATAL: UID not found\n", __func__);
+	return -1;
+    }
+    if (!switchUser(pws->pw_name, prototask->uid, prototask->gid, NULL)) {
+	mlog("%s: FATAL: switching user failed\n", __func__);
+	return -1;
+    }
 
     /* there has to be a resInfo in the list */
     if (list_empty(&server->resInfos)) {
