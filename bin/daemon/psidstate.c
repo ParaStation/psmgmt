@@ -14,7 +14,6 @@
 #include <stdlib.h>
 #include <netinet/in.h>
 #include <signal.h>
-#include <sys/time.h>
 
 #include "pscommon.h"
 #include "psprotocol.h"
@@ -24,7 +23,6 @@
 #include "rdp.h"
 
 #include "psidutil.h"
-#include "psidtimer.h"
 #include "psidcomm.h"
 #include "psidclient.h"
 #include "psidstatus.h"
