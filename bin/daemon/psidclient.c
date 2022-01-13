@@ -979,7 +979,8 @@ static void msg_CLIENTCONNECT(int fd, DDBufferMsg_t *bufmsg)
 	PSID_log(-1, "%s: PSIDclient_delete()\n", __func__);
 	PSIDclient_delete(fd);
 
-	if (msg->group==TG_RESET && !uid) PSID_reset();
+	if (msg->group == TG_RESET && !uid
+	    && !(PSID_getDaemonState() & PSID_STATE_RESET)) PSID_reset();
     } else {
 	PSIDclient_setEstablished(fd, handleClientMsg, NULL);
 	task->protocolVersion = msg->version;

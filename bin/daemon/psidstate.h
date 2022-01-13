@@ -109,18 +109,16 @@ void PSID_shutdown(void);
  *
  * Setting PSID_STATE_RESET_HW is only possible from within this
  * module. This is usually done via measures within the internal
- * msg_DAEMONRESET() function, which usually handles
- * PSP_CD_DAEMONRESET messages.
+ * msg_DAEMONRESET() function, which handles PSP_CD_DAEMONRESET
+ * messages.
  *
  * Once this function was called for the first time, PSID_STATE_RESET
  * is added to the daemon's internal state. This state might be
- * requested from the outside via @ref PSID_getDaemonState(). If
- * PSID_STATE_RESET is set in the internal state, this has to trigger
- * repeated calls to this function from the main loop. A timer inside
- * this functions assures that each phase lasts at least one second.
+ * requested from the outside via @ref PSID_getDaemonState().
  *
- * The different phases used to reset the local daemon are organized
- * as follows:
+ * The first call will trigger repeated calls to this function from
+ * the main loop. The different phases used to reset the daemon are
+ * organized as follows:
  *
  *  phase 0:
  *     - switch to PSID_STATE_RESET

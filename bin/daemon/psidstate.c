@@ -50,7 +50,8 @@ PSID_DaemonState_t PSID_getDaemonState(void)
 
 void PSID_shutdown(void)
 {
-    static int phase = -1, numPlugins;
+    static int phase = -1;
+    int numPlugins;
 
     phase++;
     PSID_log(-1, "%s(%d)\n", __func__, phase);
@@ -111,27 +112,9 @@ void PSID_shutdown(void)
 void PSID_reset(void)
 {
     static int phase = 0;
-    static struct timeval resetTimer, now;
     int num = 1;
 
-    if (!phase) timerclear(&resetTimer);
-
-    gettimeofday(&now, NULL);
-    if (timercmp(&now, &resetTimer, <)) {
-	PSID_log(PSID_LOG_TIMER, "%s: not ready: [%ld:%ld]<[%ld:%ld]\n",
-		 __func__, now.tv_sec, now.tv_usec,
-		 resetTimer.tv_sec, resetTimer.tv_usec);
-	return;
-    }
-
     PSID_log(-1, "%s(%d)\n", __func__, phase);
-
-    PSID_log(PSID_LOG_TIMER, "%s: now[%ld:%ld], reset[%ld:%ld]\n",
-	     __func__, now.tv_sec, now.tv_usec,
-	     resetTimer.tv_sec, resetTimer.tv_usec);
-
-    gettimeofday(&resetTimer, NULL);
-    mytimeradd(&resetTimer, 1, 0);
 
     switch (phase) {
     case 0:
@@ -263,7 +246,7 @@ static bool msg_DAEMONRESET(DDBufferMsg_t *msg)
     } else if (PSC_getID(msg->header.dest) == PSC_getMyID()) {
 	if (*(int *)msg->buf & PSP_RESET_HW) daemonState |= PSID_STATE_RESET_HW;
 	/* Resetting my node */
-	PSID_reset();
+	if (!(PSID_getDaemonState() & PSID_STATE_RESET)) PSID_reset();
     } else {
 	sendMsg(msg);
     }
