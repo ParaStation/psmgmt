@@ -50,8 +50,9 @@ PSID_DaemonState_t PSID_getDaemonState(void)
 
 void PSID_shutdown(void)
 {
-    static int phase = 0, numPlugins;
+    static int phase = -1, numPlugins;
 
+    phase++;
     PSID_log(-1, "%s(%d)\n", __func__, phase);
 
     switch (phase) {
@@ -60,22 +61,26 @@ void PSID_shutdown(void)
 	PSID_registerLoopAct(PSID_shutdown);
 	PSIDhook_call(PSIDHOOK_SHUTDOWN, NULL);
 	PSID_disableMasterSock();
-	/* fallthrough */
+	if (!PSIDclient_killAll(SIGTERM, false))
+	    /* no clients => proceed immediately to next phase */
+	    PSID_shutdown();
+	break;
     case 1:
-	PSIDclient_killAll(SIGTERM, 0);
+	if (!PSIDclient_killAll(SIGTERM, false)) PSID_shutdown();
 	break;
     case 2:
-	PSIDclient_killAll(SIGKILL, 0);
+	if (!PSIDclient_killAll(SIGKILL, false)) PSID_shutdown();
 	break;
     case 3:
-	PSIDclient_killAll(SIGTERM, 1);
+	if (!PSIDclient_killAll(SIGTERM, true)) PSID_shutdown();
 	break;
     case 4:
-	PSIDclient_killAll(SIGKILL, 1);
+	if (!PSIDclient_killAll(SIGKILL, true)) PSID_shutdown();
 	break;
     case 5:
 	PSIDplugin_setUnloadTmout(2);
 	PSIDplugin_forceUnloadAll();
+	if (!PSIDplugin_getNum()) PSID_shutdown();
 	break;
     case 6:
 	numPlugins = PSIDplugin_getNum();
@@ -83,7 +88,7 @@ void PSID_shutdown(void)
 	    PSID_log(-1, "    Still %d plugins\n", numPlugins);
 	    /* Stay in this phase */
 	    phase--;
-	    break;
+	    return;
 	}
 	if (!PSID_config->useMCast) {
 	    releaseStatusTimer();
@@ -101,8 +106,6 @@ void PSID_shutdown(void)
     default:
 	PSID_log(-1, "%s: unknown phase %d\n", __func__, phase);
     }
-
-    phase++;
 }
 
 void PSID_reset(void)
