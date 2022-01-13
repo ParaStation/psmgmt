@@ -114,10 +114,8 @@ static void closeDaemonSock(void)
  */
 static ssize_t sendLogMsg(PSLog_msg_t type, char *buf, size_t len)
 {
-    int ret = 0;
-    static bool first = true;
-
     if (loggerTID < 0) {
+	static bool first = true;
 	if (first) {
 	    PSID_log(-1, "%s(%d): not connected\n", __func__, type);
 	    PSID_log(-1, "%s(%d): %s\n", __func__, type, buf);
@@ -128,8 +126,7 @@ static ssize_t sendLogMsg(PSLog_msg_t type, char *buf, size_t len)
 	return -1;
     }
 
-    ret = PSLog_write(loggerTID, type, buf, len);
-
+    int ret = PSLog_write(loggerTID, type, buf, len);
     if (ret < 0) {
 	PSID_warn(-1, errno, "%s: PSLog_write()", __func__);
 	closeDaemonSock();
@@ -191,7 +188,7 @@ static void sendSignal(pid_t dest, int signal)
 	    PSID_log(PSID_LOG_SIGNAL, "%s: got from tcgetpgrp()\n", __func__);
 	    pid = -pid;
 	} else {
-	    pid = (dest > 0) ? -dest : dest;
+	    pid = -dest;
 	    PSID_log(PSID_LOG_SIGNAL, "%s: tcgetpgrp() said 0, try %d\n",
 		     __func__, pid);
 	}
