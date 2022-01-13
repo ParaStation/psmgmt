@@ -111,37 +111,13 @@ void PSID_shutdown(void)
 
 void PSID_reset(void)
 {
-    static int phase = 0;
-    int num = 1;
-
-    PSID_log(-1, "%s(%d)\n", __func__, phase);
-
-    switch (phase) {
-    case 0:
-	daemonState |= PSID_STATE_RESET;
-	PSID_registerLoopAct(PSID_reset);
-	/* fallthrough */
-    case 1:
-	num = PSIDclient_killAll(SIGTERM, 0);
-	break;
-    case 2:
-	num = PSIDclient_killAll(SIGKILL, 0);
-	break;
-    case 3:
-	num = PSIDclient_killAll(SIGTERM, 0);
-	if (num) {
-	    PSID_log(-1, "%s: still %d clients in phase %d. Continue\n",
-		     __func__, num, phase);
-	}
-	num = 0;
-	break;
-    default:
-	PSID_log(-1, "%s: unknown phase %d\n", __func__, phase);
-    }
+    static int phase = -1;
+    int num;
 
     phase++;
+    PSID_log(-1, "%s(%d)\n", __func__, phase);
 
-    if (!num) {
+    if (!PSIDclient_getNum(false)) {
 	/* reset the hardware if demanded */
 	if (daemonState & PSID_STATE_RESET_HW) {
 	    PSID_log(-1, "%s: resetting hardware", __func__);
@@ -150,9 +126,36 @@ void PSID_reset(void)
 	}
 	/* reset the state */
 	daemonState &= ~(PSID_STATE_RESET | PSID_STATE_RESET_HW);
-	phase = 0;
-	PSID_unregisterLoopAct(PSID_reset);
+	if (phase) PSID_unregisterLoopAct(PSID_reset);
+	phase = -1;
 	PSID_log(-1, "%s: done\n", __func__);
+	return;
+    }
+
+    switch (phase) {
+    case 0:
+	daemonState |= PSID_STATE_RESET;
+	PSID_registerLoopAct(PSID_reset);
+	if (!PSIDclient_killAll(SIGTERM, false))
+	    /* no clients => proceed immediately to next phase */
+	    PSID_reset();
+	break;
+    case 1:
+	if (!PSIDclient_killAll(SIGTERM, false)) PSID_reset();
+	break;
+    case 2:
+	if (!PSIDclient_killAll(SIGKILL, false)) PSID_reset();
+	break;
+    case 3:
+	num = PSIDclient_killAll(SIGKILL, false);
+	if (!num) PSID_reset();
+
+	PSID_log(-1, "%s: still %d clients\n", __func__, num);
+	/* Stay in this phase */
+	phase--;
+	break;
+    default:
+	PSID_log(-1, "%s: unknown phase %d\n", __func__, phase);
     }
 }
 
