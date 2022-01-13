@@ -63,10 +63,7 @@ PSID_DaemonState_t PSID_getDaemonState(void);
  * PSID_getDaemonState().
  *
  * The first call will trigger repeated calls to this function from
- * the main loop. A timer inside this functions assures that each
- * phase lasts at least one second.
- *
- * The different phases used to shutdown the local daemon are
+ * the main loop. The different phases used to shutdown the daemon are
  * organized as follows:
  *
  *  phase 0:

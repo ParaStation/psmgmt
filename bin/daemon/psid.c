@@ -404,7 +404,7 @@ static int handleSignals(int fd, void *info)
 	    break;
 	default:
 	    PSID_log(-1, "Received signal '%s'. Shut down\n", strsignal(sig));
-	    PSID_shutdown();
+	    if (!(PSID_getDaemonState() & PSID_STATE_SHUTDOWN)) PSID_shutdown();
 	    break;
 	}
     }

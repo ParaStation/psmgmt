@@ -51,27 +51,8 @@ PSID_DaemonState_t PSID_getDaemonState(void)
 void PSID_shutdown(void)
 {
     static int phase = 0, numPlugins;
-    static struct timeval shutdownTimer, now;
-
-    if (!phase) timerclear(&shutdownTimer);
-
-    gettimeofday(&now, NULL);
-    if (timercmp(&now, &shutdownTimer, <)) {
-	PSID_log(PSID_LOG_TIMER, "%s: not ready: [%ld:%ld]<[%ld:%ld]\n",
-		 __func__, now.tv_sec, now.tv_usec,
-		 shutdownTimer.tv_sec, shutdownTimer.tv_usec);
-	return;
-    }
 
     PSID_log(-1, "%s(%d)\n", __func__, phase);
-
-    PSID_log(PSID_LOG_TIMER, "%s: now[%ld:%ld], shutdown[%ld:%ld]\n",
-	     __func__, now.tv_sec, now.tv_usec,
-	     shutdownTimer.tv_sec, shutdownTimer.tv_usec);
-
-    gettimeofday(&shutdownTimer, NULL);
-    mytimeradd(&shutdownTimer, 1, 0);
-
 
     switch (phase) {
     case 0:
@@ -251,7 +232,7 @@ static bool msg_DAEMONSTOP(DDMsg_t *msg)
 	PSID_log(-1, "%s: task %s not allowed to stop daemons\n", __func__,
 		 PSC_printTID(msg->sender));
     } else if (PSC_getID(msg->dest) == PSC_getMyID()) {
-	PSID_shutdown();
+	if (!(PSID_getDaemonState() & PSID_STATE_SHUTDOWN)) PSID_shutdown();
     } else {
 	sendMsg(msg);
     }
