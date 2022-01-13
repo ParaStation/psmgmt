@@ -67,31 +67,31 @@ PSID_DaemonState_t PSID_getDaemonState(void);
  * organized as follows:
  *
  *  phase 0:
- *     - switch to PSID_STATE_SHUTDOWN
- *     - disable the master socket, i.e. don't except new connections
- *     - kill all client processes
+ *   - switch to PSID_STATE_SHUTDOWN
+ *   - disable the master socket, i.e. don't except new connections
+ *   - kill all client processes
  *
  *  phase 1:
  *     - kill clients again where killing wasn't successful, yet
  *
  *  phase 2:
- *     - hardly kill (SIGKILL) clients where killing wasn't successful, yet.
+ *   - hardly kill (SIGKILL) clients where killing wasn't successful, yet.
  *
  *  phase 3:
- *     - kill all remaining processes (forwarder, admin, etc.)
+ *   - kill all remaining processes (forwarder, admin, etc.)
  *
  *  phase 4:
- *     - hardly kill (SIGKILL) all remaining processes (forwarder, admin, etc.)
+ *   - hardly kill (SIGKILL) all remaining processes (forwarder, admin, etc.)
  *
  *  phase 5:
- *     - finalize all plugins and trigger them to unload
+ *   - finalize all plugins and trigger them to unload
  *
  *  phase 6:
- *     - check if all plugins are gone in the meantime; wait longer if not
- *     - stop all local hardware managed by the daemon
- *     - close connections to other nodes and shutdown RDP
- *     - shutdown daemon's master socket
- *     - say good bye and exit
+ *   - check if all plugins are gone in the meantime; wait longer if not
+ *   - stop all local hardware managed by the daemon
+ *   - close connections to other nodes and shutdown RDP
+ *   - shutdown daemon's master socket
+ *   - say good bye and exit
  *
  * @return No return value
  */
@@ -121,23 +121,21 @@ void PSID_shutdown(void);
  * organized as follows:
  *
  *  phase 0:
- *     - switch to PSID_STATE_RESET
- *     - kill all client processes
+ *   - switch to PSID_STATE_RESET
+ *   - kill all client processes
  *
  *  phase 1:
- *     - kill clients again where killing wasn't successful, yet
+ *   - kill clients again where killing wasn't successful, yet
  *
  *  phase 2:
- *     - hardly kill (SIGKILL) clients where killing wasn't successful, yet.
+ *   - hardly kill (SIGKILL) clients where killing wasn't successful, yet
  *
- *  phase 3:
- *     - kill all remaining processes (forwarder, admin, etc.)
+ *  after each phase:
+ *   - check if all clients are gone
+ *   - if any left proceed to the next phase (unless in the last phase)
+ *   - otherwise do the actual reset (including the hardware if requested)
  *
- *  phase 4:
- *     - hardly kill (SIGKILL) all remaining processes (forwarder, admin, etc.)
- *     - close connections to local clients
- *     - close connections to other nodes
- *     - exit
+ *
  *
  * @return No return value
  */

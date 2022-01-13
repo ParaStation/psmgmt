@@ -144,15 +144,14 @@ void PSID_reset(void)
 	if (!PSIDclient_killAll(SIGTERM, false)) PSID_reset();
 	break;
     case 2:
-	if (!PSIDclient_killAll(SIGKILL, false)) PSID_reset();
-	break;
-    case 3:
 	num = PSIDclient_killAll(SIGKILL, false);
-	if (!num) PSID_reset();
-
-	PSID_log(-1, "%s: still %d clients\n", __func__, num);
-	/* Stay in this phase */
-	phase--;
+	if (num) {
+	    PSID_log(-1, "%s: still %d clients\n", __func__, num);
+	    /* Stay in this phase */
+	    phase--;
+	    return;
+	}
+	PSID_reset();
 	break;
     default:
 	PSID_log(-1, "%s: unknown phase %d\n", __func__, phase);
