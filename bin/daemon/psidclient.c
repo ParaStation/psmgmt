@@ -667,11 +667,28 @@ void PSIDclient_delete(int fd)
     return;
 }
 
-int PSIDclient_killAll(int sig, int killAdminTasks)
+int PSIDclient_getNum(bool admTasks)
+{
+    int cnt = 0;
+    list_t *t;
+    list_for_each(t, &managedTasks) {
+	PStask_t *task = list_entry(t, PStask_t, next);
+
+	if (task->deleted || task->group == TG_MONITOR) continue;
+	if (task->group==TG_ADMIN || task->group==TG_FORWARDER) {
+	    if (admTasks) cnt++;
+	} else {
+	    if (!admTasks) cnt++;
+	}
+    }
+    return cnt;
+}
+
+int PSIDclient_killAll(int sig, bool killAdmTasks)
 {
     int ret = 0;
 
-    PSID_log(PSID_LOG_CLIENT, "%s(%d, %d)\n", __func__, sig, killAdminTasks);
+    PSID_log(PSID_LOG_CLIENT, "%s(%d, %d)\n", __func__, sig, killAdmTasks);
 
     /* loop over all tasks */
     list_t *t;
@@ -682,7 +699,7 @@ int PSIDclient_killAll(int sig, int killAdminTasks)
 	if (task->deleted) continue;
 	if (task->group==TG_MONITOR) continue;
 	if ((task->group==TG_ADMIN || task->group==TG_FORWARDER)
-	    && !killAdminTasks) continue;
+	    && !killAdmTasks) continue;
 
 	PSID_log(PSID_LOG_CLIENT, "%s: send %s to %s pid %d fd %d\n", __func__,
 		 strsignal(sig), PSC_printTID(task->tid), pid, task->fd);
@@ -693,7 +710,7 @@ int PSIDclient_killAll(int sig, int killAdminTasks)
 	    ret++;
 	}
 
-	if (sig==SIGKILL && killAdminTasks && task->fd != -1) {
+	if (sig==SIGKILL && killAdmTasks && task->fd != -1) {
 	    PSID_log(-1, "%s: PSIDclient_delete()\n", __func__);
 	    PSIDclient_delete(task->fd);
 	}
