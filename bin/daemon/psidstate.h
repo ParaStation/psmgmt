@@ -2,6 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2008-2020 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2022 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -59,9 +60,10 @@ PSID_DaemonState_t PSID_getDaemonState(void);
  * Once this function was called for the first time,
  * PSID_STATE_SHUTDOWN is added to the daemon's internal state. This
  * state might be requested from the outside via @ref
- * PSID_getDaemonState(). If PSID_STATE_SHUTDOWN is set in the
- * internal state, this has to trigger repeated calls to this function
- * from the main loop. A timer inside this functions assures that each
+ * PSID_getDaemonState().
+ *
+ * The first call will trigger repeated calls to this function from
+ * the main loop. A timer inside this functions assures that each
  * phase lasts at least one second.
  *
  * The different phases used to shutdown the local daemon are
@@ -69,23 +71,30 @@ PSID_DaemonState_t PSID_getDaemonState(void);
  *
  *  phase 0:
  *     - switch to PSID_STATE_SHUTDOWN
- *     - close master socket, i.e. don't except new connections
+ *     - disable the master socket, i.e. don't except new connections
  *     - kill all client processes
  *
  *  phase 1:
- *     - kill clients again where killing wasn't sucessful, yet
+ *     - kill clients again where killing wasn't successful, yet
  *
  *  phase 2:
- *     - hardly kill (SIGKILL) clients where killing wasn't sucessful, yet.
+ *     - hardly kill (SIGKILL) clients where killing wasn't successful, yet.
  *
  *  phase 3:
  *     - kill all remaining processes (forwarder, admin, etc.)
  *
  *  phase 4:
  *     - hardly kill (SIGKILL) all remaining processes (forwarder, admin, etc.)
- *     - close connections to local clients
- *     - close connections to other nodes
- *     - exit
+ *
+ *  phase 5:
+ *     - finalize all plugins and trigger them to unload
+ *
+ *  phase 6:
+ *     - check if all plugins are gone in the meantime; wait longer if not
+ *     - stop all local hardware managed by the daemon
+ *     - close connections to other nodes and shutdown RDP
+ *     - shutdown daemon's master socket
+ *     - say good bye and exit
  *
  * @return No return value
  */
@@ -96,8 +105,8 @@ void PSID_shutdown(void);
  *
  * Reset the local node, i.e. kill all client processes. This will
  * happen in different phases. If PSID_STATE_RESET_HW is set within
- * the daemon's internal state, all local communicaton hardware
- * will be reseted after all clients are gone. Reseting the
+ * the daemon's internal state, all local communication hardware
+ * will be reset after all clients are gone. Resetting the
  * communication hardware is done via calling @ref PSID_stopAllHW()
  * and @ref PSID_startAllHW().
  *
@@ -121,10 +130,10 @@ void PSID_shutdown(void);
  *     - kill all client processes
  *
  *  phase 1:
- *     - kill clients again where killing wasn't sucessful, yet
+ *     - kill clients again where killing wasn't successful, yet
  *
  *  phase 2:
- *     - hardly kill (SIGKILL) clients where killing wasn't sucessful, yet.
+ *     - hardly kill (SIGKILL) clients where killing wasn't successful, yet.
  *
  *  phase 3:
  *     - kill all remaining processes (forwarder, admin, etc.)
