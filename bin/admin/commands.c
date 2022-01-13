@@ -1657,7 +1657,7 @@ void PSIADM_ShowParamList(PSP_Option_t type, bool *nl)
 
 /**
  * Flag to mark an ongoing restart of the local daemon. Thus SIGTERM
- * signals sent by the daemon can be ignored if different from 0.
+ * signals sent by the daemon can be ignored if true
  */
 static bool doRestart = false;
 
