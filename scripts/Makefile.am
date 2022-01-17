@@ -2,6 +2,7 @@
 # ParaStation
 #
 # Copyright (C) 2012-2021 ParTec Cluster Competence Center GmbH, Munich
+# Copyright (C) 2022 ParTec AG, Munich
 #
 # This file may be distributed under the terms of the Q Public License
 # as defined in the file LICENSE.QPL included in the packaging of this
@@ -22,6 +23,8 @@ if HAVE_SYSTEMD
   unit_DATA = systemd/psid.service
   unit_DATA += systemd/psidstarter.socket
   unit_DATA += systemd/psidstarter@.service
+  systemd_psid_ddir = $(sysconfdir)/systemd/system/psid.service.d
+  systemd_psid_d_DATA = systemd/munge.conf
 else
   init_d_SCRIPTS = init.d/parastation
   nobase_sysconf_DATA = xinetd.d/psidstarter

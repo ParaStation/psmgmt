@@ -414,6 +414,9 @@ exit 0
 %if !0%{?disable_munge}
 %{_plugindir}/psmunge.so
 %exclude %{_plugindir}/psmunge.la
+%if !0%{?disable_systemd}
+%config(missingok,noreplace) /etc/systemd/system/psid.service.d/munge.conf
+%endif
 %endif
 
 %files pspmix
