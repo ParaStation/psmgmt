@@ -11,6 +11,7 @@ topo.j3c053.xml    JUROPA3 GPU node
 topo.jsfc005.xml   JUSUF GPU node
 topo.jsfc070.xml   JUSUF standard node
 topo.jrc0386.xml   JURECA-DC GPU partition
+topo.jrc0323.xml   JURECA-DC GPU partition (utilizing hwloc v2.2)
 topo.jrc0732.xml   JURECA-DC CPU partition standard node
 topo.jrc0832.xml   JURECA-DC CPU partition large memory
 topo.jrc5001.xml   JURECA-Booster (Cluster: Quadrant / Memory: Cache)
