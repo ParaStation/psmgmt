@@ -21,6 +21,7 @@
 
 %if !0%{?disable_systemd}
 %{!?_unitdir: %global _unitdir %(pkg-config --variable=systemdsystemunitdir systemd)}
+%{!?_systemdconfdir: %global _systemdconfdir %(pkg-config --variable=systemdsystemconfdir systemd)}
 %endif
 
 Summary:   ParaStation Process Management
@@ -312,6 +313,7 @@ exit 0
 %_unitdir/psid.service
 %_unitdir/psidstarter@.service
 %_unitdir/psidstarter.socket
+%dir %{_systemdconfdir}/psid.service.d
 %else
 %{_sysconfdir}/init.d/parastation
 %config(noreplace) /etc/xinetd.d/psidstarter
@@ -415,7 +417,7 @@ exit 0
 %{_plugindir}/psmunge.so
 %exclude %{_plugindir}/psmunge.la
 %if !0%{?disable_systemd}
-%config(missingok,noreplace) /etc/systemd/system/psid.service.d/munge.conf
+%config(missingok,noreplace) %{_systemdconfdir}/psid.service.d/munge.conf
 %endif
 %endif
 

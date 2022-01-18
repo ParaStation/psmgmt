@@ -23,7 +23,7 @@ if HAVE_SYSTEMD
   unit_DATA = systemd/psid.service
   unit_DATA += systemd/psidstarter.socket
   unit_DATA += systemd/psidstarter@.service
-  systemd_psid_ddir = $(sysconfdir)/systemd/system/psid.service.d
+  systemd_psid_ddir = $(systemdconfdir)/psid.service.d
   systemd_psid_d_DATA = systemd/munge.conf
 else
   init_d_SCRIPTS = init.d/parastation

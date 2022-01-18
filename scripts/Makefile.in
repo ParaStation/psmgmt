@@ -304,6 +304,7 @@ sbindir = @sbindir@
 sharedstatedir = @sharedstatedir@
 srcdir = @srcdir@
 sysconfdir = @sysconfdir@
+systemdconfdir = @systemdconfdir@
 target = @target@
 target_alias = @target_alias@
 target_cpu = @target_cpu@
@@ -372,7 +373,7 @@ gdbinit_d_DATA = psmgmt.gdb
 @HAVE_SYSTEMD_TRUE@unit_DATA = systemd/psid.service \
 @HAVE_SYSTEMD_TRUE@	systemd/psidstarter.socket \
 @HAVE_SYSTEMD_TRUE@	systemd/psidstarter@.service
-@HAVE_SYSTEMD_TRUE@systemd_psid_ddir = $(sysconfdir)/systemd/system/psid.service.d
+@HAVE_SYSTEMD_TRUE@systemd_psid_ddir = $(systemdconfdir)/psid.service.d
 @HAVE_SYSTEMD_TRUE@systemd_psid_d_DATA = systemd/munge.conf
 @HAVE_SYSTEMD_FALSE@init_d_SCRIPTS = init.d/parastation
 @HAVE_SYSTEMD_FALSE@nobase_sysconf_DATA = xinetd.d/psidstarter

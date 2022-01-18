@@ -397,6 +397,7 @@ sbindir = @sbindir@
 sharedstatedir = @sharedstatedir@
 srcdir = @srcdir@
 sysconfdir = @sysconfdir@
+systemdconfdir = @systemdconfdir@
 target = @target@
 target_alias = @target_alias@
 target_cpu = @target_cpu@
