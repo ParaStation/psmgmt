@@ -953,7 +953,7 @@ ERROR:
 
 bool signalForwarderChild(Forwarder_Data_t *fw, int sig)
 {
-    if (fw->cSid > 0) {
+    if (fw && fw->cSid > 0) {
 	fw->killSession(fw->cSid, sig);
 	pluginlog("%s: session %i signal %i\n", __func__, fw->cSid, sig);
 
@@ -962,7 +962,7 @@ bool signalForwarderChild(Forwarder_Data_t *fw, int sig)
 	    pskill(PSC_getPID(fw->tid), SIGTERM, 0);
 	}
 	return true;
-    } else if (fw->tid != -1 && PSC_getPID(fw->tid)) {
+    } else if (fw && fw->tid != -1 && PSC_getPID(fw->tid)) {
 	PSLog_Msg_t msg = {
 	    .header = {
 		.type = PSP_CC_MSG,
@@ -985,6 +985,8 @@ bool signalForwarderChild(Forwarder_Data_t *fw, int sig)
 
 void startGraceTime(Forwarder_Data_t *fw)
 {
+    if (!fw || fw->tid == -1 || !PSC_getPID(fw->tid)) return;
+
     PSLog_Msg_t msg = {
 	.header = {
 	    .type = PSP_CC_MSG,
@@ -994,14 +996,13 @@ void startGraceTime(Forwarder_Data_t *fw)
 	.version = PLUGINFW_PROTO_VERSION,
 	.type = PLGN_START_GRACE,
 	.sender = -1};
-
-    if (fw->tid == -1 || !PSC_getPID(fw->tid)) return;
-
     sendMsg(&msg);
 }
 
 void shutdownForwarder(Forwarder_Data_t *fw)
 {
+    if (!fw || fw->tid == -1 || !PSC_getPID(fw->tid)) return;
+
     PSLog_Msg_t msg = {
 	.header = {
 	    .type = PSP_CC_MSG,
@@ -1011,8 +1012,5 @@ void shutdownForwarder(Forwarder_Data_t *fw)
 	.version = PLUGINFW_PROTO_VERSION,
 	.type = PLGN_SHUTDOWN,
 	.sender = -1};
-
-    if (fw->tid == -1 || !PSC_getPID(fw->tid)) return;
-
     sendMsg(&msg);
 }

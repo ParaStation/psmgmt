@@ -2081,8 +2081,8 @@ static bool handleSpawnFailed(DDErrorMsg_t *msg)
 
 	/* don't expect a finalize message */
 	step->fwFinCount++;
-	if (!step->leader &&
-		step->tasksToLaunch[step->localNodeId] == step->fwFinCount) {
+	if (!step->leader && step->fwdata
+	    && step->tasksToLaunch[step->localNodeId] == step->fwFinCount) {
 	    mlog("%s: shutdown I/O forwarder\n", __func__);
 	    shutdownForwarder(step->fwdata);
 	}

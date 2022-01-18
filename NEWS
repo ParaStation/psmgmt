@@ -1,9 +1,15 @@
 psmgmt NEWS -- history of user-visible changes.
 
 Copyright (C) 2010-2021 ParTec Cluster Competence Center GmbH, Munich
-Copyright (C) 2021 ParTec AG, Munich
+Copyright (C) 2021-2022 ParTec AG, Munich
 
 Please send bug reports, questions and suggestions to <support@par-tec.com>
+
+
+Version 5.1.46-1:
+=================
+Bugfixes:
+ - Avoid NULL pointer de-reference (jwc:#12570)
 
 
 Version 5.1.46:
