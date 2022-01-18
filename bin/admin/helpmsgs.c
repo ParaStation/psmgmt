@@ -251,7 +251,8 @@ static info_t setInfo = {
 	" | mcastdebug <level> | {freeonsuspend|fos} <bool>"
 	" | starter <bool> | runjobs <bool>"
 	" | overbook {<bool>|auto} | exclusive <bool> | pinprocs <bool>"
-	" | bindmem <bool> | bindGPUs <bool> | supplementaryGroups <bool>"
+	" | bindmem <bool> | bindGPUs <bool> | bindNICs <bool>"
+	" | supplementaryGroups <bool>"
 	" | maxStatTry <num> | cpumap <map> | allowUserMap <bool>"
 	" | nodessort <mode> | adminuser [+|-]{<user>|any}"
 	" | admingroup [+|-]{<group>|any}"
@@ -365,6 +366,10 @@ static info_t setInfo = {
 	  .descr = "Set flag marking if this nodes will use GPU-binding"
 	  " Relevant values are 'false', 'true', 'no', 'yes'"
 	  ", 0 or different from 0." },
+	{ .tag = "set bindNICs <bool>",
+	  .descr = "Set flag marking if this nodes will use NIC-binding"
+	  " Relevant values are 'false', 'true', 'no', 'yes'"
+	  ", 0 or different from 0." },
 	{ .tag = "set supplementaryGroups <bool>",
 	  .descr = "Set flag marking if this nodes will set the user's"
 	  " supplementary groups while spawning new processes. Relevant"
@@ -472,7 +477,8 @@ static info_t showInfo = {
 	" | rdpretrans | rdpclosedtimeout | rdpmaxackpend | rdpstatistics"
 	" | mcastdebug | master | {freeonsuspend|fos}"
 	" | starter | runjobs | overbook | exclusive | pinprocs | bindmem"
-	" | bindGPUs | cpumap | allowUserMap | nodessort | supplementaryGroups"
+	" | bindGPUs | bindNICs | cpumap | allowUserMap | nodessort"
+	" | supplementaryGroups"
 	" | maxStatTry | adminuser | admingroup | accounters"
 	" | killdelay | pluginAPIversion | pluginUnloadTmout | obsoleteTasks"
 	" | rl_{addressspace|as} | rl_core | rl_cpu | rl_data | rl_fsize"
@@ -542,6 +548,8 @@ static info_t showInfo = {
 	  " policy." },
 	{ .tag = "show bindGPUs",
 	  .descr = "Show flag marking if this nodes uses GPU binding." },
+	{ .tag = "show bindNICs",
+	  .descr = "Show flag marking if this nodes uses NIC binding." },
 	{ .tag = "show supplementaryGroups",
 	  .descr = "Show flag marking if this nodes will set the user's"
 	  " supplementary groups while spawning new processes." },

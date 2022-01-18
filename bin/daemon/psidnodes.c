@@ -56,6 +56,7 @@ typedef struct {
     char pinProcs;         /**< Flag to mark that node to pin processes */
     char bindMem;          /**< Flag to mark that node to bind memory */
     char bindGPUs;         /**< Flag to mark that node to bind GPUs */
+    char bindNICs;         /**< Flag to mark that node to bind NICs */
     short *CPUmap;         /**< Map virt. procs. slots to hardware threads */
     size_t CPUmapSize;     /**< Current size of @ref CPUmap */
     size_t CPUmapMaxSize;  /**< Allocated size of @ref CPUmap */
@@ -455,6 +456,21 @@ int PSIDnodes_bindGPUs(PSnodes_ID_t id)
     if (!validID(id)) return -1;
 
     return nodes[id].bindGPUs;
+}
+
+int PSIDnodes_setBindNICSs(PSnodes_ID_t id, int bindNICs)
+{
+    if (!validID(id)) return -1;
+
+    nodes[id].bindNICs = bindNICs;
+    return 0;
+}
+
+int PSIDnodes_bindNICs(PSnodes_ID_t id)
+{
+    if (!validID(id)) return -1;
+
+    return nodes[id].bindNICs;
 }
 
 short PSIDnodes_mapCPU(PSnodes_ID_t id, short cpu)

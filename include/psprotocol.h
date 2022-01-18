@@ -112,6 +112,7 @@ typedef enum {
     PSP_OP_CPUMAP,                /**< request full CPU-map (returns list)*/
     PSP_OP_ALLOWUSERMAP,          /**< allow user to influence CPU-mapping */
     PSP_OP_BINDGPUS,              /**< GPU-binding is used on this node */
+    PSP_OP_BINDNICS,              /**< NIC-binding is used on this node */
 
     PSP_OP_SET_UID = 0x0050,      /**< set an exclusive user */
     PSP_OP_ADD_UID,               /**< add a new exclusive user */

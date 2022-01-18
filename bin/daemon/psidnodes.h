@@ -659,6 +659,32 @@ int PSIDnodes_setBindGPUs(PSnodes_ID_t id, int bindGPUs);
  */
 int PSIDnodes_bindGPUs(PSnodes_ID_t id);
 
+/**
+ * @brief Set node's NIC-binding flag
+ *
+ * Set the NIC-binding flag of the node with ParaStation ID @a id to @a
+ * bindNICs.
+ *
+ * @param id ParaStation ID of the node to be modified
+ *
+ * @param bindGPUs The NIC-binding flag to be set to this node
+ *
+ * @return On success, 0 is returned; or -1 if an error occurred
+ */
+int PSIDnodes_setBindNICs(PSnodes_ID_t id, int bindNICs);
+
+/**
+ * @brief Get node's NIC-binding flag
+ *
+ * Get the NIC-binding flag of the node with ParaStation ID @a id.
+ *
+ * @param id ParaStation ID of the node to look up
+ *
+ * @return If the node was found, the NIC-binding flag is returned; or
+ * -1 if an error occurred
+ */
+int PSIDnodes_bindNICs(PSnodes_ID_t id);
+
 
 /**
  * @brief Clear node's CPU-map
