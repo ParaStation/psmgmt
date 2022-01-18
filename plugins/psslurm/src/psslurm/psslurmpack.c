@@ -2008,7 +2008,7 @@ static bool packRespNodeRegStatus(PS_SendDB_t *data,
     addGresData(data, slurmProto);
 
     /* add energy data */
-    __packEnergyData(data, &stat->eData, caller, line);
+    packEnergyData(data, &stat->eData);
 
     /* protocol version */
     addStringToMsg(stat->verStr, data);
