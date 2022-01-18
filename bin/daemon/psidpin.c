@@ -131,78 +131,109 @@ static void pinToCPUs(cpu_set_t *physSet)
 }
 
 /**
- * @brief Bind process to GPUs by setting environment variable
+ * @brief Bind process to pinnable devices by setting environment variable
  *
  * The environment variables named below are set to a comma separated
- * list containing the numbers of all GPUs that are connected to the same
+ * list containing the numbers of all devices that are connected to the same
  * NUMA locality domain as any of the threads set in @a cpuSet.
  *
  * Sets the informational environment variables
- * - PSID_LOCAL_GPUS   (GPUs local to the NUMA domains matching cpuSet)
- * - PSID_CLOSE_GPUS   (GPUs closest to the NUMA domains matching cpuSet)
+ * - for type GPU:
+ *   - PSID_LOCAL_GPUS   (GPUs local to the NUMA domains matching cpuSet)
+ *   - PSID_CLOSE_GPUS   (GPUs closest to the NUMA domains matching cpuSet)
+ * - for type NIC:
+ *   - PSID_LOCAL_NICS   (NICs local to the NUMA domains matching cpuSet)
+ *   - PSID_CLOSE_NICS   (NICs closest to the NUMA domains matching cpuSet)
  *
  * Sets the functional environment variables
- * - CUDA_VISIBLE_DEVICES (for Nvidia GPUs)
- * - GPU_DEVICE_ORDINAL   (for AMD GPUs)
+ * - for type GPU:
+ *   - CUDA_VISIBLE_DEVICES (for Nvidia GPUs)
+ *   - GPU_DEVICE_ORDINAL   (for AMD GPUs)
+ * - for type NIC:
+ *   - UCX_NET_DEVICES
  *
  * This function respects the value of the environment variable
- * __PSID_USE_GPUS and takes only the here listed GPUs into account. If the
- * variable is set but empty, no variables are set.
+ * __PSID_USE_GPUS and __PSID_USE_NICS and takes only the here listed GPUs or
+ * NICs into account. If the respective variable is set but empty, no variables
+ * will be set.
  *
- * It further respects the environment variables AUTO_CUDA_VISIBLE_DEVICES and
- * AUTO_GPU_DEVICE_ORDINAL and only overrides the functional variables if the
- * old value matches the corresponding AUTO_* variable.
+ * It further respects the environment variables AUTO_CUDA_VISIBLE_DEVICES,
+ * AUTO_GPU_DEVICE_ORDINAL, and AUTO_UCX_NET_DEVICES and only overrides the
+ * functional variables if the old value matches the corresponding AUTO_*
+ * variable.
  *
  * @param cpuSet Physical HW-threads the process is expected to run
  *
+ * @param type   Pinnable device type to handle
+ *
  * @return No return value
  */
-static void bindToGPUs(cpu_set_t *cpuSet)
+static void bindToDevs(cpu_set_t *cpuSet, PSpin_dev_type_t type)
 {
-    uint16_t numGPUs = PSIDnodes_numGPUs(PSC_getMyID());
 
-    /* build list of usable GPUs */
-    PSCPU_set_t gpuSet;
-    char *usable = getenv("__PSID_USE_GPUS");
-    if (usable) {
-	PSCPU_clrAll(gpuSet);
-	char *tmp = strdup(usable);
-	char *tok;
-	for (char *ptr = tmp; (tok = strtok(ptr, ",")); ptr = NULL) {
-	    char *end;
-	    uint16_t gpu = strtol(tok, &end, 0);
-	    if (gpu >= numGPUs) continue;
-	    PSCPU_setCPU(gpuSet, gpu);
-	}
-	free(tmp);
-    } else {
-	PSCPU_setAll(gpuSet);
-    }
-
-    uint16_t gpulist[numGPUs], closelist[numGPUs];
-    size_t gpucount, closecount;
-    if (!PSIDpin_getCloseDevs(PSC_getMyID(), cpuSet, &gpuSet,
-			      gpulist, &gpucount, closelist, &closecount,
-			      PSPIN_DEV_TYPE_GPU)) {
-	return;
-    }
-
-    char val[3*numGPUs];
-    size_t len = 0;
-
-    /* build string listing the closest GPUs */
-    for (size_t i = 0; i < gpucount; i++) {
-	len += snprintf(val+len, 4, "%hu,", gpulist[i]);
-    }
-    val[len ? len-1 : len] = '\0';
-
-    PSID_log(PSID_LOG_SPAWN, "%s: Setup to use GPUs '%s'\n", __func__, val);
-
-    char * variables[] = {
+    char *GPUvariables[] = {
 	"CUDA_VISIBLE_DEVICES", /* Nvidia GPUs */
 	"GPU_DEVICE_ORDINAL",   /* AMD GPUs */
 	NULL
     };
+    char *NICvariables[] = {
+	"UCX_NET_DEVICES", /* UCX */
+	NULL
+    };
+
+    char *typename = "unknown";
+    uint16_t numDevs = 0;
+    char *usable = NULL;
+    char **variables = NULL;
+    switch(type) {
+        case PSPIN_DEV_TYPE_GPU:
+	    typename = "GPU";
+	    numDevs = PSIDnodes_numGPUs(PSC_getMyID());
+	    usable = getenv("__PSID_USE_GPUS");
+	    variables = GPUvariables;
+	    break;
+	case PSPIN_DEV_TYPE_NIC:
+	    typename = "NIC";
+	    numDevs = PSIDnodes_numNICs(PSC_getMyID());
+	    usable = getenv("__PSID_USE_NICS");
+	    variables = NICvariables;
+	    break;
+    }
+
+    /* build list of usable devices */
+    PSCPU_set_t devSet;
+    if (usable) {
+	PSCPU_clrAll(devSet);
+	char *tmp = strdup(usable);
+	char *tok;
+	for (char *ptr = tmp; (tok = strtok(ptr, ",")); ptr = NULL) {
+	    char *end;
+	    uint16_t dev = strtol(tok, &end, 0);
+	    if (dev >= numDevs) continue;
+	    PSCPU_setCPU(devSet, dev);
+	}
+	free(tmp);
+    } else {
+	PSCPU_setAll(devSet);
+    }
+
+    uint16_t devlist[numDevs], closelist[numDevs];
+    size_t devcount, closecount;
+    if (!PSIDpin_getCloseDevs(PSC_getMyID(), cpuSet, &devSet,
+			      devlist, &devcount, closelist, &closecount,
+			      type)) return;
+
+    char val[3*numDevs];
+    size_t len = 0;
+
+    /* build string listing the closest devices */
+    for (size_t i = 0; i < devcount; i++) {
+	len += snprintf(val+len, 4, "%hu,", devlist[i]);
+    }
+    val[len ? len-1 : len] = '\0';
+
+    PSID_log(PSID_LOG_SPAWN, "%s: Setup to use %ss '%s'\n", __func__, val,
+	     typename);
 
     char *prefix = "__AUTO_";
     char name[1024];
@@ -224,19 +255,36 @@ static void bindToGPUs(cpu_set_t *cpuSet)
     }
 
     /* always set PSID version */
-    setenv("PSID_CLOSE_GPUS", val, 1);
+    switch(type) {
+        case PSPIN_DEV_TYPE_GPU:
+	    setenv("PSID_CLOSE_GPUS", val, 1);
+	    break;
+	case PSPIN_DEV_TYPE_NIC:
+	    setenv("PSID_CLOSE_NICS", val, 1);
+	    break;
+    }
 
-    /* build string listing the close GPUs */
+    /* build string listing the close devices */
     len = 0;
     for (size_t i = 0; i < closecount; i++) {
 	len += snprintf(val+len, 4, "%hu,", closelist[i]);
     }
     val[len ? len-1 : len] = '\0';
 
-    /* set variable with real close GPUs, connected directly to one of the
+    /* set variable with real close devices, connected directly to one of the
      * NUMA domains our CPUs are also connected to */
-    PSID_log(PSID_LOG_SPAWN, "%s: Set PSID_LOCAL_GPUS='%s'\n", __func__, val);
-    setenv("PSID_LOCAL_GPUS", val, 1);
+    switch(type) {
+        case PSPIN_DEV_TYPE_GPU:
+	    PSID_log(PSID_LOG_SPAWN, "%s: Set PSID_LOCAL_GPUS='%s'\n",
+		     __func__, val);
+	    setenv("PSID_LOCAL_GPUS", val, 1);
+	    break;
+	case PSPIN_DEV_TYPE_NIC:
+	    PSID_log(PSID_LOG_SPAWN, "%s: Set PSID_LOCAL_GPUS='%s'\n",
+		     __func__, val);
+	    setenv("PSID_LOCAL_NICS", val, 1);
+	    break;
+    }
 }
 
 typedef struct{
@@ -472,7 +520,7 @@ void PSIDpin_doClamps(PStask_t *task)
 	    if (getenv("__PSI_NO_GPUBIND")) {
 		fprintf(stderr, "No GPU-binding for rank %d\n", task->rank);
 	    } else {
-		bindToGPUs(physSet);
+		bindToDevs(physSet, PSPIN_DEV_TYPE_GPU);
 	    }
 	}
 #else
