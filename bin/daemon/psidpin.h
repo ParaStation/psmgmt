@@ -9,7 +9,7 @@
  * file.
  */
 /**
- * @file Pinning and binding of client processes to CPU, GPU, memory etc.
+ * @file Pinning and binding of client processes to CPU, GPU, NIC, memory etc.
  */
 #ifndef __PSIDPIN_H
 #define __PSIDPIN_H
@@ -22,6 +22,12 @@
 #include "pscpu.h"
 #include "psnodes.h"
 #include "pstask.h"
+
+/** Types of additional pinning devices */
+typedef enum {
+	PSPIN_DEV_TYPE_GPU,   /**< GPU */
+	PSPIN_DEV_TYPE_NIC    /**< NIC */
+} PSpin_dev_type_t;
 
 /**
  * @brief Map CPUs
@@ -54,7 +60,7 @@ cpu_set_t *PSIDpin_mapCPUs(PSnodes_ID_t id, PSCPU_set_t set);
  * @brief Do various process clamps.
  *
  * Pin process to the HW-threads as defined in @a task and bind it to
- * the corresponding NUMA domains, GPUs, etc. if demanded on the local
+ * the corresponding NUMA domains, GPUs, NICs etc. if demanded on the local
  * node.
  *
  * Before doing the actual pinning and binding the logical CPUs are
@@ -69,57 +75,59 @@ cpu_set_t *PSIDpin_mapCPUs(PSnodes_ID_t id, PSCPU_set_t set);
 void PSIDpin_doClamps(PStask_t *task);
 
 /**
- * @brief Get info on node's list of GPUs close to the CPUs in @a CPUs
+ * @brief Get info on node's list of devices close to the CPUs in @a CPUs
  *
- * Create lists of GPUs included in the set @a GPUs that have minimum
- * distance to those NUMA domains hosting CPUs contained in the set @a
- * CPUs on the node with ParaStation ID @a id. The lists will be
- * in ascending order and contain only unique.
+ * Create lists of pinning devices of @a type included in the set @a devs
+ * that have minimum distance to those NUMA domains hosting CPUs contained
+ * in the set @a CPUs on the node with ParaStation ID @a id. The lists will
+ * be in ascending order and contain only unique.
  *
  * @a CPUs is expected to be a mapped set, i.e. the result of a call
  * to @ref PSIDpin_mapCPUs(). This means it contains references to
  * physical HW-threads directly associated to NUMA domains.
  *
- * If @a closeGPUs is different from NULL, it will be filled with one
- * or multiple entries describing the GPUs with minimum distance
+ * If @a closeDevs is different from NULL, it will be filled with one
+ * or multiple entries describing the devices with minimum distance
  * according to distances between NUMA domains. Upon return @a
- * closeCnt will contain the number of valid entries in @a closeGPUs.
- * Unless the set @a GPUs is empty there will be always at least one
- * closest GPU but there might be multiple. The closest GPUs might be
- * local or remote concerning NUMA topology.
+ * closeCnt will contain the number of valid entries in @a closeDevs.
+ * Unless the set @a devs is empty there will be always at least one
+ * closest device but there might be multiple. The closest devices might
+ * be local or remote concerning NUMA topology.
  *
- * If @a localGPUs is different from NULL, it will be filled with one
- * or multiple entries describing the GPUs local to the NUMA domains
- * hosting CPUs contained in the set @a cpuSet. Upon return @a
- * localCnt will contain the number of valid entries in @a
- * localGPUs. If localGPUs is non-empty upon return it will be
- * identical to @a closeGPUs.
+ * If @a localDevs is different from NULL, it will be filled with one
+ * or multiple entries describing the devices local to the NUMA domains
+ * hosting CPUs contained in the set @a cpuSet. Upon return @a localCnt
+ * will contain the number of valid entries in @a localDevs. If localDevs
+ * is non-empty upon return it will be identical to @a closeDevs.
  *
- * Both @a closeGPUs and @a localGPUs have to be of sufficient size to
+ * Both @a closeDevs and @a localDevs have to be of sufficient size to
  * host all created entries. The number of entries is limited by the
- * size of the set @a GPUs.
+ * size of the set @a devs.
  *
- * This function is currently used by the psid's default GPU pinning
- * mechanism as well as by psslurm to do enhanced GPU pinning.
+ * This function is currently used by the psid's default GPU and NIC pinning
+ * mechanism as well as by psslurm to do enhanced GPU and NIC pinning.
  *
  * @param id ParaStation ID of the node to look up
  *
  * @param CPUs A set of mapped CPUs to which the list will be created
  *
- * @param GPUs Set of GPUs to be taken into account
+ * @param devs Set of devices to be taken into account
  *
- * @param closeGPUs List of close GPUs according to NUMA distances
+ * @param closeDevs List of close devices according to NUMA distances
  *
- * @param closeCnt Number of valid entries in @a closeGPUs upon return
+ * @param closeCnt Number of valid entries in @a closeDevs upon return
  *
- * @param localGPUs List of local GPUs according to NUMA topology
+ * @param localDevs List of local devices according to NUMA topology
  *
- * @param localCnt Number of valid entries in @a localGPUs upon return
+ * @param localCnt Number of valid entries in @a localDevs upon return
  *
- * @return True if GPU sets are found and @a closeGPUs is set, else false
+ * @param type Type of device to handle
+ *
+ * @return True if device sets are found and @a closeDevs is set, else false
  */
-bool PSIDpin_getCloseGPUs(PSnodes_ID_t id, cpu_set_t *CPUs, PSCPU_set_t *GPUs,
-			  uint16_t closeGPUs[], size_t *closeCnt,
-			  uint16_t localGPUs[], size_t *localCnt);
+bool PSIDpin_getCloseDevs(PSnodes_ID_t id, cpu_set_t *CPUs, PSCPU_set_t *devs,
+			  uint16_t closeDevs[], size_t *closeCnt,
+			  uint16_t localDevs[], size_t *localCnt,
+			  PSpin_dev_type_t type);
 
 #endif /* __PSIDPIN_H */

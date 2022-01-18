@@ -1548,9 +1548,9 @@ int16_t getRankGpuPinning(uint32_t localRankId, Step_t *step,
 	    size_t closeCnt = 0;
 	    cpu_set_t *physSet = PSIDpin_mapCPUs(step->nodes[stepNodeId],
 						 step->slots[tid].CPUset);
-	    if (!PSIDpin_getCloseGPUs(step->nodes[stepNodeId], physSet,
+	    if (!PSIDpin_getCloseDevs(step->nodes[stepNodeId], physSet,
 				      assGPUs, closeList, &closeCnt,
-				      NULL, NULL)) {
+				      NULL, NULL, PSPIN_DEV_TYPE_GPU)) {
 		return -1;
 	    }
 
