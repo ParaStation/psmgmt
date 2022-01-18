@@ -523,6 +523,17 @@ void PSIDpin_doClamps(PStask_t *task)
 		bindToDevs(physSet, PSPIN_DEV_TYPE_GPU);
 	    }
 	}
+	if (PSIDnodes_bindNICs(PSC_getMyID())) {
+	    if (getenv("__PSI_NO_NICBIND")) {
+		fprintf(stderr, "No NIC-binding for rank %d\n", task->rank);
+	    } else {
+		bindToDevs(physSet, PSPIN_DEV_TYPE_NIC);
+		/* TODO
+		 * reset UCX_NET_DEVICES from "0,1,2,3" to
+		 * "mlx5_1:0, mlx5_1:1, mlx5_2:0, mlx5_2:1" by mapping the
+		 * devices correctly */
+	    }
+	}
 #else
 	fprintf(stderr, "Daemon has no sched_setaffinity(). No pinning\n");
 #endif
