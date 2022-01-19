@@ -23,11 +23,11 @@
 #include "psnodes.h"
 #include "pstask.h"
 
-/** Types of additional pinning devices */
+/** Types of additional devices capable for pinning */
 typedef enum {
 	PSPIN_DEV_TYPE_GPU,   /**< GPU */
 	PSPIN_DEV_TYPE_NIC    /**< NIC */
-} PSpin_dev_type_t;
+} PSIDpin_devType_t;
 
 /**
  * @brief Map CPUs
@@ -80,7 +80,7 @@ void PSIDpin_doClamps(PStask_t *task);
  * Create lists of pinning devices of @a type included in the set @a devs
  * that have minimum distance to those NUMA domains hosting CPUs contained
  * in the set @a CPUs on the node with ParaStation ID @a id. The lists will
- * be in ascending order and contain only unique.
+ * be in ascending order and contain only unique entries.
  *
  * @a CPUs is expected to be a mapped set, i.e. the result of a call
  * to @ref PSIDpin_mapCPUs(). This means it contains references to
@@ -104,8 +104,9 @@ void PSIDpin_doClamps(PStask_t *task);
  * host all created entries. The number of entries is limited by the
  * size of the set @a devs.
  *
- * This function is currently used by the psid's default GPU and NIC pinning
- * mechanism as well as by psslurm to do enhanced GPU and NIC pinning.
+ * This function is currently used by the psid's default GPU and NIC
+ * pinning mechanism as well as by psslurm to do enhanced GPU and NIC
+ * pinning.
  *
  * @param id ParaStation ID of the node to look up
  *
@@ -128,6 +129,6 @@ void PSIDpin_doClamps(PStask_t *task);
 bool PSIDpin_getCloseDevs(PSnodes_ID_t id, cpu_set_t *CPUs, PSCPU_set_t *devs,
 			  uint16_t closeDevs[], size_t *closeCnt,
 			  uint16_t localDevs[], size_t *localCnt,
-			  PSpin_dev_type_t type);
+			  PSIDpin_devType_t type);
 
 #endif /* __PSIDPIN_H */

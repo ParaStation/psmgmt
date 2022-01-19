@@ -131,31 +131,32 @@ static void pinToCPUs(cpu_set_t *physSet)
 }
 
 /**
- * @brief Bind process to pinnable devices by setting environment variable
+ * @brief Bind process to devices by setting environment variable
  *
  * The environment variables named below are set to a comma separated
- * list containing the numbers of all devices that are connected to the same
- * NUMA locality domain as any of the threads set in @a cpuSet.
+ * list containing the numbers of all devices that are connected to
+ * the same NUMA locality domain as any of the threads set in @a
+ * cpuSet.
  *
  * Sets the informational environment variables
- * - for type GPU:
+ * - for type PSPIN_DEV_TYPE_GPU:
  *   - PSID_LOCAL_GPUS   (GPUs local to the NUMA domains matching cpuSet)
  *   - PSID_CLOSE_GPUS   (GPUs closest to the NUMA domains matching cpuSet)
- * - for type NIC:
+ * - for type PSPIN_DEV_TYPE_NIC:
  *   - PSID_LOCAL_NICS   (NICs local to the NUMA domains matching cpuSet)
  *   - PSID_CLOSE_NICS   (NICs closest to the NUMA domains matching cpuSet)
  *
  * Sets the functional environment variables
- * - for type GPU:
+ * - for type PSPIN_DEV_TYPE_GPU:
  *   - CUDA_VISIBLE_DEVICES (for Nvidia GPUs)
  *   - GPU_DEVICE_ORDINAL   (for AMD GPUs)
- * - for type NIC:
+ * - for type PSPIN_DEV_TYPE_NIC:
  *   - UCX_NET_DEVICES
  *
  * This function respects the value of the environment variable
- * __PSID_USE_GPUS and __PSID_USE_NICS and takes only the here listed GPUs or
- * NICs into account. If the respective variable is set but empty, no variables
- * will be set.
+ * __PSID_USE_GPUS and __PSID_USE_NICS, respectively, and takes only
+ * devices listed her into account. If the respective variable is set
+ * but empty, no variables will be set.
  *
  * It further respects the environment variables AUTO_CUDA_VISIBLE_DEVICES,
  * AUTO_GPU_DEVICE_ORDINAL, and AUTO_UCX_NET_DEVICES and only overrides the
@@ -164,13 +165,12 @@ static void pinToCPUs(cpu_set_t *physSet)
  *
  * @param cpuSet Physical HW-threads the process is expected to run
  *
- * @param type   Pinnable device type to handle
+ * @param type Device type capable for pinning to handle
  *
  * @return No return value
  */
-static void bindToDevs(cpu_set_t *cpuSet, PSpin_dev_type_t type)
+static void bindToDevs(cpu_set_t *cpuSet, PSIDpin_devType_t type)
 {
-
     char *GPUvariables[] = {
 	"CUDA_VISIBLE_DEVICES", /* Nvidia GPUs */
 	"GPU_DEVICE_ORDINAL",   /* AMD GPUs */
@@ -186,18 +186,21 @@ static void bindToDevs(cpu_set_t *cpuSet, PSpin_dev_type_t type)
     char *usable = NULL;
     char **variables = NULL;
     switch(type) {
-        case PSPIN_DEV_TYPE_GPU:
-	    typename = "GPU";
-	    numDevs = PSIDnodes_numGPUs(PSC_getMyID());
-	    usable = getenv("__PSID_USE_GPUS");
-	    variables = GPUvariables;
-	    break;
-	case PSPIN_DEV_TYPE_NIC:
-	    typename = "NIC";
-	    numDevs = PSIDnodes_numNICs(PSC_getMyID());
-	    usable = getenv("__PSID_USE_NICS");
-	    variables = NICvariables;
-	    break;
+    case PSPIN_DEV_TYPE_GPU:
+	typename = "GPU";
+	numDevs = PSIDnodes_numGPUs(PSC_getMyID());
+	usable = getenv("__PSID_USE_GPUS");
+	variables = GPUvariables;
+	break;
+    case PSPIN_DEV_TYPE_NIC:
+	typename = "NIC";
+	numDevs = PSIDnodes_numNICs(PSC_getMyID());
+	usable = getenv("__PSID_USE_NICS");
+	variables = NICvariables;
+	break;
+    default:
+	PSID_log(-1, "%s: unknown type %d\n", __func__, type);
+	return;
     }
 
     /* build list of usable devices */
@@ -256,12 +259,12 @@ static void bindToDevs(cpu_set_t *cpuSet, PSpin_dev_type_t type)
 
     /* always set PSID version */
     switch(type) {
-        case PSPIN_DEV_TYPE_GPU:
-	    setenv("PSID_CLOSE_GPUS", val, 1);
-	    break;
-	case PSPIN_DEV_TYPE_NIC:
-	    setenv("PSID_CLOSE_NICS", val, 1);
-	    break;
+    case PSPIN_DEV_TYPE_GPU:
+	setenv("PSID_CLOSE_GPUS", val, 1);
+	break;
+    case PSPIN_DEV_TYPE_NIC:
+	setenv("PSID_CLOSE_NICS", val, 1);
+	break;
     }
 
     /* build string listing the close devices */
@@ -271,19 +274,19 @@ static void bindToDevs(cpu_set_t *cpuSet, PSpin_dev_type_t type)
     }
     val[len ? len-1 : len] = '\0';
 
-    /* set variable with real close devices, connected directly to one of the
-     * NUMA domains our CPUs are also connected to */
+    /* set variable with real close devices, connected directly to one
+     * of the NUMA domains our CPUs are also connected to */
     switch(type) {
-        case PSPIN_DEV_TYPE_GPU:
-	    PSID_log(PSID_LOG_SPAWN, "%s: Set PSID_LOCAL_GPUS='%s'\n",
-		     __func__, val);
-	    setenv("PSID_LOCAL_GPUS", val, 1);
-	    break;
-	case PSPIN_DEV_TYPE_NIC:
-	    PSID_log(PSID_LOG_SPAWN, "%s: Set PSID_LOCAL_GPUS='%s'\n",
-		     __func__, val);
-	    setenv("PSID_LOCAL_NICS", val, 1);
-	    break;
+    case PSPIN_DEV_TYPE_GPU:
+	PSID_log(PSID_LOG_SPAWN, "%s: Set PSID_LOCAL_GPUS='%s'\n",
+		 __func__, val);
+	setenv("PSID_LOCAL_GPUS", val, 1);
+	break;
+    case PSPIN_DEV_TYPE_NIC:
+	PSID_log(PSID_LOG_SPAWN, "%s: Set PSID_LOCAL_NICS='%s'\n",
+		 __func__, val);
+	setenv("PSID_LOCAL_NICS", val, 1);
+	break;
     }
 }
 
@@ -543,22 +546,25 @@ void PSIDpin_doClamps(PStask_t *task)
 bool PSIDpin_getCloseDevs(PSnodes_ID_t id, cpu_set_t *CPUs, PSCPU_set_t *devs,
 			  uint16_t closeDevs[], size_t *closeCnt,
 			  uint16_t localDevs[], size_t *localCnt,
-			  PSpin_dev_type_t type)
+			  PSIDpin_devType_t type)
 {
     uint16_t numDevs;
     char *typename = "unknown";
     PSCPU_set_t *devsets = NULL;
     switch(type) {
-	case PSPIN_DEV_TYPE_GPU:
-	    numDevs = PSIDnodes_numGPUs(id);
-	    typename = "GPU";
-	    devsets = PSIDnodes_GPUSets(id);
-	    break;
-	case PSPIN_DEV_TYPE_NIC:
-	    numDevs = PSIDnodes_numNICs(id);
-	    typename = "NIC";
-	    devsets = PSIDnodes_NICSets(id);
-	    break;
+    case PSPIN_DEV_TYPE_GPU:
+	numDevs = PSIDnodes_numGPUs(id);
+	typename = "GPU";
+	devsets = PSIDnodes_GPUSets(id);
+	break;
+    case PSPIN_DEV_TYPE_NIC:
+	numDevs = PSIDnodes_numNICs(id);
+	typename = "NIC";
+	devsets = PSIDnodes_NICSets(id);
+	break;
+    default:
+	PSID_log(-1, "%s: unknown type %d\n", __func__, type);
+	return false;
     }
     if (!devsets) {
 	PSID_log(PSID_LOG_SPAWN, "%s(%d): No %s sets found.\n", __func__, id,
@@ -592,8 +598,8 @@ bool PSIDpin_getCloseDevs(PSnodes_ID_t id, cpu_set_t *CPUs, PSCPU_set_t *devs,
     PSCPU_set_t *CPUSets = PSIDnodes_CPUSets(id);
     for (uint16_t dom = 0; dom < numNUMA; dom++) {
 	if (PSCPU_overlap(mappedSet, CPUSets[dom], numThrds)) {
-	    PSID_log(PSID_LOG_SPAWN, "%s(%d): CPUset matches NUMA domain %hu"
-		     " (type=%s)\n", __func__, id, dom, typename);
+	    PSID_log(PSID_LOG_SPAWN, "%s(%d, type=%s): CPUset matches"
+		     " NUMA domain %hu\n", __func__, id, typename, dom);
 	    used[dom] = true;
 	}
     }
@@ -611,7 +617,7 @@ bool PSIDpin_getCloseDevs(PSnodes_ID_t id, cpu_set_t *CPUs, PSCPU_set_t *devs,
     /* Fill list of local devices if requested */
     if (localDevs) {
 	if (!localCnt) {
-	    PSID_log(-1, "%s(%d): localCnt is NULL (type=%s)\n", __func__, id,
+	    PSID_log(-1, "%s(%d, type=%s): localCnt is NULL\n", __func__, id,
 		     typename);
 	    return false;
 	}
@@ -631,7 +637,7 @@ bool PSIDpin_getCloseDevs(PSnodes_ID_t id, cpu_set_t *CPUs, PSCPU_set_t *devs,
 	/* no device is closer than a local one => we're done */
 	if (closeDevs) {
 	    if (!closeCnt) {
-		PSID_log(-1, "%s(%d): closeCnt is NULL (type=%s)\n", __func__,
+		PSID_log(-1, "%s(%d, type=%s): closeCnt is NULL\n", __func__,
 			 id, typename);
 		return false;
 	    }
@@ -644,7 +650,7 @@ bool PSIDpin_getCloseDevs(PSnodes_ID_t id, cpu_set_t *CPUs, PSCPU_set_t *devs,
     }
     if (!closeDevs) return true;
     if (!closeCnt) {
-	PSID_log(-1, "%s(%d): closeCnt is NULL (type=%s)\n", __func__, id,
+	PSID_log(-1, "%s(%d, type=%s): closeCnt is NULL\n", __func__, id,
 		 typename);
 	return false;
     }
@@ -670,7 +676,7 @@ bool PSIDpin_getCloseDevs(PSnodes_ID_t id, cpu_set_t *CPUs, PSCPU_set_t *devs,
     }
 
     if (minDist == UINT32_MAX) {
-	PSID_log(PSID_LOG_SPAWN, "%s(%d): No distances found (type=%s)\n",
+	PSID_log(PSID_LOG_SPAWN, "%s(%d, type=%s): No distances found\n",
 		 __func__, id, typename);
 	free(dists);
 	return false;

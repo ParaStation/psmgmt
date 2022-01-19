@@ -759,7 +759,7 @@ short PSIDnodes_numGPUs(PSnodes_ID_t id) {
 bool PSIDpin_getCloseDevs(PSnodes_ID_t id, cpu_set_t *CPUs, PSCPU_set_t *GPUs,
 			  uint16_t closeGPUs[], size_t *closeCnt,
 			  uint16_t localGPUs[], size_t *localCnt,
-			  PSpin_dev_type_t type) {
+			  PSIDpin_devType_t type) {
     return true;
 }
 
