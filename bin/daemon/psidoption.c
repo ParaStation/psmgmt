@@ -80,9 +80,13 @@ void send_OPTIONS(PSnodes_ID_t destnode)
     msg.opt[(int) msg.count].option = PSP_OP_BINDGPUS;
     msg.opt[(int) msg.count].value = PSIDnodes_bindGPUs(PSC_getMyID());
     msg.count++;
+    msg.opt[(int) msg.count].option = PSP_OP_BINDNICS;
+    msg.opt[(int) msg.count].value = PSIDnodes_bindNICs(PSC_getMyID());
+    msg.count++;
     msg.opt[(int) msg.count].option = PSP_OP_SUPPL_GRPS;
     msg.opt[(int) msg.count].value = PSIDnodes_supplGrps(PSC_getMyID());
     msg.count++;
+    /* max 3 left (if ProtoV < 344) */
 
     if (sendMsg(&msg) == -1 && errno != EWOULDBLOCK) {
 	PSID_warn(-1, errno, "%s: sendMsg()", __func__);
@@ -614,7 +618,7 @@ static bool msg_SETOPTION(DDOptionMsg_t *msg)
 			    .len = sizeof(info) },
 			.count = 1,
 			.opt = {{ .option = msg->opt[i].option,
-				  .value = msg->opt[i].value }} };
+				.value = msg->opt[i].value }} };
 
 		    PSIDnodes_setBindGPUs(PSC_getMyID(), msg->opt[i].value);
 
@@ -622,6 +626,27 @@ static bool msg_SETOPTION(DDOptionMsg_t *msg)
 		    broadcastMsg(&info);
 		} else {
 		    PSIDnodes_setBindGPUs(PSC_getID(msg->header.sender),
+					  msg->opt[i].value);
+		}
+		break;
+	    case PSP_OP_BINDNICS:
+		if (PSC_getPID(msg->header.sender)) {
+		    DDOptionMsg_t info = {
+			.header = {
+			    .type = PSP_CD_SETOPTION,
+			    .sender = PSC_getMyTID(),
+			    .dest = 0,
+			    .len = sizeof(info) },
+			.count = 1,
+			.opt = {{ .option = msg->opt[i].option,
+				.value = msg->opt[i].value }} };
+
+		    PSIDnodes_setBindNICs(PSC_getMyID(), msg->opt[i].value);
+
+		    /* Info all nodes about my BINDNICS */
+		    broadcastMsg(&info);
+		} else {
+		    PSIDnodes_setBindNICs(PSC_getID(msg->header.sender),
 					  msg->opt[i].value);
 		}
 		break;
@@ -878,6 +903,9 @@ static bool msg_GETOPTION(DDOptionMsg_t *msg)
 		break;
 	    case PSP_OP_BINDGPUS:
 		msg->opt[out].value = PSIDnodes_bindGPUs(PSC_getMyID());
+		break;
+	    case PSP_OP_BINDNICS:
+		msg->opt[out].value = PSIDnodes_bindNICs(PSC_getMyID());
 		break;
 	    case PSP_OP_CPUMAP:
 		send_CPUMap_OPTIONS(msg->header.sender);
