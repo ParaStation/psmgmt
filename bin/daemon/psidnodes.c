@@ -458,7 +458,7 @@ int PSIDnodes_bindGPUs(PSnodes_ID_t id)
     return nodes[id].bindGPUs;
 }
 
-int PSIDnodes_setBindNICSs(PSnodes_ID_t id, int bindNICs)
+int PSIDnodes_setBindNICs(PSnodes_ID_t id, int bindNICs)
 {
     if (!validID(id)) return -1;
 
