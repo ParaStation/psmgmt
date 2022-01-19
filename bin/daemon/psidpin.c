@@ -232,8 +232,8 @@ static void bindToDevs(cpu_set_t *cpuSet, PSpin_dev_type_t type)
     }
     val[len ? len-1 : len] = '\0';
 
-    PSID_log(PSID_LOG_SPAWN, "%s: Setup to use %ss '%s'\n", __func__, val,
-	     typename);
+    PSID_log(PSID_LOG_SPAWN, "%s: Setup to use %ss '%s'\n", __func__, typename,
+	     val);
 
     char *prefix = "__AUTO_";
     char name[1024];
