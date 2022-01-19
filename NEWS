@@ -6,6 +6,12 @@ Copyright (C) 2021-2022 ParTec AG, Munich
 Please send bug reports, questions and suggestions to <support@par-tec.com>
 
 
+Version 5.1.46-2:
+=================
+Bugfixes:
+ - do not exec client process with blocked SIGCHLD
+
+
 Version 5.1.46-1:
 =================
 Bugfixes:
