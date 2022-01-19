@@ -640,6 +640,7 @@ LIBOBJS
 HAVE_SYSTEMD_FALSE
 HAVE_SYSTEMD_TRUE
 systemdconfdir
+sysctldir
 unitdir
 BUILD_WITHOUT_TESTPLUGINS_FALSE
 BUILD_WITHOUT_TESTPLUGINS_TRUE
@@ -13235,11 +13236,14 @@ fi
       with_unitdir=no
 else
   with_unitdir="$def_unitdir"
+      sysctldir=$($PKG_CONFIG --variable=sysctl_dir systemd)
       systemdconfdir=$($PKG_CONFIG --variable=systemdsystemconfdir systemd)
 fi
 fi
 if test "x$with_unitdir" != "xno"; then :
   unitdir=$with_unitdir
+
+   sysctldir=$sysctldir
 
    systemdconfdir=$systemdconfdir
 

@@ -2,6 +2,7 @@
 # ParaStation
 #
 # Copyright (C) 2012-2021 ParTec Cluster Competence Center GmbH, Munich
+# Copyright (C) 2022 ParTec AG, Munich
 #
 # This file may be distributed under the terms of the Q Public License
 # as defined in the file LICENSE.QPL included in the packaging of this
@@ -12,7 +13,9 @@ include $(top_srcdir)/common.am
 
 dist_plugin_DATA = psresport.conf psaccount.conf cgroup.conf
 
-dist_sysctlconf_DATA = 99-psid.conf
+if HAVE_SYSTEMD
+  dist_sysctl_DATA = 99-psid.conf
+endif
 
 dist_noinst_DATA = parastation.conf.tmpl README.cgroup	\
 	README.nodeinfo README.pspam

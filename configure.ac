@@ -141,9 +141,11 @@ AS_IF([test "x$with_unitdir" = "xyes" -o "x$with_unitdir" = "xauto"],
        [AC_MSG_ERROR([systemd support requested but pkg-config unable to query systemd package])])
       with_unitdir=no],
      [with_unitdir="$def_unitdir"
+      sysctldir=$($PKG_CONFIG --variable=sysctl_dir systemd)
       systemdconfdir=$($PKG_CONFIG --variable=systemdsystemconfdir systemd)])])
 AS_IF([test "x$with_unitdir" != "xno"],
   [AC_SUBST([unitdir], [$with_unitdir])
+   AC_SUBST([sysctldir], [$sysctldir])
    AC_SUBST([systemdconfdir], [$systemdconfdir])])
 AM_CONDITIONAL([HAVE_SYSTEMD], [test "x$with_unitdir" != "xno"])
 
