@@ -361,7 +361,7 @@ scriptsdir = $(prefix)/scripts
 dist_plugin_DATA = psresport.conf psaccount.conf cgroup.conf
 @HAVE_SYSTEMD_TRUE@dist_sysctl_DATA = 99-psid.conf
 dist_noinst_DATA = parastation.conf.tmpl README.cgroup	\
-	README.nodeinfo README.pspam
+	README.nodeinfo README.pspam README.psgw
 
 EXTRA_DIST = MessageTypes psconfig systemd cgroup.conf.in
 CLEANFILES = cgroup.conf.in

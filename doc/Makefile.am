@@ -18,7 +18,7 @@ if HAVE_SYSTEMD
 endif
 
 dist_noinst_DATA = parastation.conf.tmpl README.cgroup	\
-	README.nodeinfo README.pspam
+	README.nodeinfo README.pspam README.psgw
 
 EXTRA_DIST = MessageTypes psconfig systemd cgroup.conf.in
 

@@ -40,14 +40,14 @@ noinst_SCRIPTS = psid2cmustatus memtest.py
 
 # for simplicity, put all dist files here, so no dist_ primaries above
 EXTRA_DIST = psmgmt.gdb init.d/parastation.in loggerdebug.py lsf	\
-        memtest.py mpiexec.gdb mpirun_java parastation_tru64		\
-        ps_acc.in ps_gm.in ps_gmcounters psaccview.in			\
-        psid2cmustatus.in psmgmt.csh.in psmgmt.sh.in			\
-        systemd/psid.service.in systemd/psidstarter.socket		\
-        systemd/psidstarter@.service vcversion				\
-        xinetd.d/psidstarter.in
+	memtest.py mpiexec.gdb mpirun_java parastation_tru64		\
+	ps_acc.in ps_gm.in ps_gmcounters psaccview.in			\
+	psid2cmustatus.in psmgmt.csh.in psmgmt.sh.in			\
+	systemd/munge.conf systemd/psid.service.in			\
+	systemd/psidstarter.socket systemd/psidstarter@.service		\
+	vcversion xinetd.d/psidstarter.in
 
 # clean up generated files
 CLEANFILES = psaccview psmgmt.csh psmgmt.sh ps_gm ps_acc		\
-        init.d/parastation xinetd.d/psidstarter systemd/psid.service	\
-        psid2cmustatus
+	init.d/parastation xinetd.d/psidstarter systemd/psid.service	\
+	psid2cmustatus

@@ -2,6 +2,7 @@
 # ParaStation
 #
 # Copyright (C) 2019-2021 ParTec Cluster Competence Center GmbH, Munich
+# Copyright (C) 2022 ParTec AG, Munich
 #
 # This file may be distributed under the terms of the Q Public License
 # as defined in the file LICENSE.QPL included in the packaging of this
@@ -14,12 +15,14 @@ psslurm_dir := plugins/psslurm/src
 
 AM_LDFLAGS += -avoid-version -module
 AM_CPPFLAGS += -I$(top_srcdir)/bin/daemon		\
-	       -I$(top_srcdir)/$(psslurm_dir)/common 	\
+	       -I$(top_srcdir)/$(psslurm_dir)/common	\
 	       -I$(top_srcdir)/$(psslurm_dir)/psslurm
 
-slurmlib_LTLIBRARIES = cudaspank.la globresspank.la nopshcspank.la noturbospank.la perfparanoidspank.la perftoolspank.la showglobresspank.la spank_api.la visspank.la x11spank.la
+slurmlib_LTLIBRARIES = cudaspank.la globresspank.la nopshcspank.la	\
+	noturbospank.la perfparanoidspank.la perftoolspank.la		\
+	showglobresspank.la spank_api.la visspank.la x11spank.la
 
-spank_api_la_SOURCES = spank_api.c
+spank_api_la_SOURCES = spank_api.c spank_api.h
 
 spank_api_la_CPPFLAGS = $(AM_CPPFLAGS) -DSLURMLIBDIR=\"$(slurmlibdir)\"
 
