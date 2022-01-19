@@ -13236,7 +13236,7 @@ fi
       with_unitdir=no
 else
   with_unitdir="$def_unitdir"
-      sysctldir=$($PKG_CONFIG --variable=sysctl_dir systemd)
+      sysctldir=$($PKG_CONFIG --variable=sysctldir systemd)
       systemdconfdir=$($PKG_CONFIG --variable=systemdsystemconfdir systemd)
 fi
 fi
