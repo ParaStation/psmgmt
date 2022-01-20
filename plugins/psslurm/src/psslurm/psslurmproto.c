@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2014-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021 ParTec AG, Munich
+ * Copyright (C) 2021-2022 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -2745,42 +2745,53 @@ slurmdHandlerFunc_t clearSlurmdMsg(int msgType)
 
 /**
  * @brief Automatically detect the installed Slurm version
+ *
+ * Detect the installed Slurm version by calling the binary defined in
+ * the SINFO_BINARY configuration variable with option
+ * "--version". The output is expected to be of the form "slurm
+ * <version>" and is parsed accordingly.
+ *
+ * @return Return a static string containing the Slurm version number
+ * or NULL in case of failure
  */
 static const char *autoDetectSlurmVer(void)
 {
+    static char autoVer[32] = { '\0' };
     const char *sinfo = getConfValueC(&Config, "SINFO_BINARY");
-    char *line = NULL;
-    static char autoVer[32];
-    size_t len = 0;
-    bool ret = false;
 
-    FILE *fp = fopen(sinfo, "r");
+    if (!sinfo) {
+	flog("no SINFO_BINARY provided\n");
+	return NULL;
+    }
+
+    char sinfoCmd[128];
+    snprintf(sinfoCmd, sizeof(sinfoCmd), "%s --version", sinfo);
+
+    FILE *fp = popen(sinfoCmd, "r");
     if (!fp) {
 	const char *pver = getConfValueC(&Config, "SLURM_PROTO_VERSION");
 	if (!strcmp(pver, "auto")) {
-	    mwarn(errno, "sinfo binary %s not found:", sinfo);
-	    flog("please set SINFO_BINARY to the correct path of sinfo\n");
+	    mwarn(errno, "calling sinfo via '%s' failed", sinfoCmd);
 	}
 	return NULL;
     }
 
-    while (getdelim(&line, &len, '\0', fp) != -1) {
-	if (!strncmp(line, "SLURM_VERSION_STRING", 20)) {
-	    if (sscanf(line, "SLURM_VERSION_STRING \"%31s\"", autoVer) == 1) {
-		char *quote = strchr(autoVer, '"');
-		if (quote) quote[0] = '\0';
-		ret = true;
-		break;
-	    } else {
-		flog("invalid slurm version string: %s\n", line);
-	    }
+    char *line = NULL;
+    size_t len = 0;
+    while (getline(&line, &len, fp) != -1) {
+	if (strncmp(line, "slurm ", 6)) continue;
+	if (sscanf(line, "slurm %31s", autoVer) == 1) {
+	    char *dash = strchr(autoVer, '-');
+	    if (dash) *dash = '\0';
+	    break;
+	} else {
+	    flog("invalid slurm version string: '%s'\n", line);
 	}
     }
-
     free(line);
-    fclose(fp);
+    pclose(fp);
 
-    return (ret ? autoVer : NULL);
+    return strlen(autoVer) ? autoVer : NULL;
 }
 
 bool initSlurmdProto(void)
