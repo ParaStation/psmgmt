@@ -101,6 +101,7 @@ typedef struct {
     bool pinProcs;
     bool bindMem;
     bool bindGPUs;
+    bool bindNICs;
     bool allowUserMap;
     bool supplGrps;
     int maxStatTry;
@@ -120,6 +121,7 @@ static nodeconf_t nodeconf = {
     .pinProcs = true,              /* local node */
     .bindMem = true,               /* local node */
     .bindGPUs = true,              /* local node */
+    .bindNICs = true,              /* local node */
     .allowUserMap = false,         /* local node */
     .supplGrps = false,            /* local node */
     .maxStatTry = 1,               /* local node */
@@ -1067,6 +1069,17 @@ static bool getBindGPUs(char *key)
     return true;
 }
 
+static bool getBindNICs(char *key)
+{
+    bool bindNICs;
+    if (!getBool(key, &bindNICs)) return false;
+
+    nodeconf.bindNICs = bindNICs;
+    parser_comment(PARSER_LOG_NODE, " NICs get%s bound\n",
+		   bindNICs ? "":" not");
+    return true;
+}
+
 static bool getAllowUserMap(char *key)
 {
     bool allowMap;
@@ -1697,6 +1710,7 @@ static confkeylist_t local_node_configkey_list[] = {
     {"Psid.PinProcesses", getPinProcs},
     {"Psid.BindMemory", getBindMem},
     {"Psid.BindGpus", getBindGPUs},
+    {"Psid.BindNics", getBindNICs},
     {"Psid.AllowUserCpuMap", getAllowUserMap},
     {"Psid.SetSupplementaryGroups", getSupplGrps},
     {"Psid.MaxStatTry", getMaxStatTry},
@@ -1801,6 +1815,12 @@ static bool setupLocalNode(void)
     if (PSIDnodes_setBindGPUs(nodeconf.id, nodeconf.bindGPUs)) {
 	parser_comment(-1, "PSIDnodes_setBindGPUs(%ld, %d) failed\n",
 		       nodeconf.id, nodeconf.bindGPUs);
+	return false;
+    }
+
+    if (PSIDnodes_setBindNICs(nodeconf.id, nodeconf.bindNICs)) {
+	parser_comment(-1, "PSIDnodes_setBindNICs(%ld, %d) failed\n",
+		       nodeconf.id, nodeconf.bindNICs);
 	return false;
     }
 

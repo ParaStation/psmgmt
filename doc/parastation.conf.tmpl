@@ -243,6 +243,12 @@ HWType	{ ethernet p4sock }
 #
 # bindGPUs	yes
 
+# Enable binding of process to NICs connected to the same NUMA domain
+#
+# This can also be set during run-time via psiadmin's 'set bindNICs' directive.
+#
+# bindNICs	yes
+
 #
 # Define map assigning logical process-slots to physical processor cores.
 #
