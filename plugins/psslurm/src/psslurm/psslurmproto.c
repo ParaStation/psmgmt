@@ -2751,28 +2751,39 @@ slurmdHandlerFunc_t clearSlurmdMsg(int msgType)
  * "--version". The output is expected to be of the form "slurm
  * <version>" and is parsed accordingly.
  *
+ * This mechanism will only be triggered if the configuation variable
+ * SLURM_PROTO_VERSION is set to "auto".
+ *
  * @return Return a static string containing the Slurm version number
- * or NULL in case of failure
+ * or NULL in case of failure or SLURM_PROTO_VERSION != "auto"
  */
 static const char *autoDetectSlurmVer(void)
 {
     static char autoVer[32] = { '\0' };
-    const char *sinfo = getConfValueC(&Config, "SINFO_BINARY");
 
+    const char *confVer = getConfValueC(&Config, "SLURM_PROTO_VERSION");
+    if (strcmp(confVer, "auto")) return NULL;
+
+    const char *sinfo = getConfValueC(&Config, "SINFO_BINARY");
     if (!sinfo) {
 	flog("no SINFO_BINARY provided\n");
 	return NULL;
     }
 
+    struct stat sb;
+    if (stat(sinfo, &sb) == -1) {
+	mwarn(errno, "%s: stat('%s')", __func__, sinfo);
+	return NULL;
+    } else if (!(sb.st_mode & S_IXUSR)) {
+	flog("'%s' not executable\n", sinfo);
+	return NULL;
+    }
+
     char sinfoCmd[128];
     snprintf(sinfoCmd, sizeof(sinfoCmd), "%s --version", sinfo);
-
     FILE *fp = popen(sinfoCmd, "r");
     if (!fp) {
-	const char *pver = getConfValueC(&Config, "SLURM_PROTO_VERSION");
-	if (!strcmp(pver, "auto")) {
-	    mwarn(errno, "calling sinfo via '%s' failed", sinfoCmd);
-	}
+	mwarn(errno, "%s: popen('%s')", __func__, sinfoCmd);
 	return NULL;
     }
 
@@ -2785,21 +2796,27 @@ static const char *autoDetectSlurmVer(void)
 	    if (dash) *dash = '\0';
 	    break;
 	} else {
+	    char *nl = strchr(line, '\n');
+	    if (nl) *nl = '\0';
 	    flog("invalid slurm version string: '%s'\n", line);
 	}
     }
     free(line);
     pclose(fp);
 
-    return strlen(autoVer) ? autoVer : NULL;
+    if (!strlen(autoVer)) {
+	flog("no version found\n");
+	return NULL;
+    }
+    return autoVer;
 }
 
 bool initSlurmdProto(void)
 {
     const char *pver = getConfValueC(&Config, "SLURM_PROTO_VERSION");
-    const char *autoVer = autoDetectSlurmVer();
 
     if (!strcmp(pver, "auto")) {
+	const char *autoVer = autoDetectSlurmVer();
 	if (!autoVer) {
 	    flog("Automatic detection of the Slurm protocol failed, "
 		 "consider setting SLURM_PROTO_VERSION in psslurm.conf\n");
