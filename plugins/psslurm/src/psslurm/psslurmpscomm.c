@@ -72,6 +72,8 @@
 #include "psslurmproto.h"
 #include "psslurmtasks.h"
 
+/** Flag initialization */
+static bool initialized = false;
 
 /** Used to cache RDP messages */
 typedef struct {
@@ -2332,6 +2334,8 @@ static void freeHostLT(void)
 
 void finalizePScomm(bool verbose)
 {
+    if (!initialized) return;
+
     /* unregister psslurm msg */
     PSID_clearMsg(PSP_PLUG_PSSLURM, (handlerFunc_t) handlePsslurmMsg);
 
@@ -2376,6 +2380,8 @@ void finalizePScomm(bool verbose)
 
     freeHostLT();
     hdestroy_r(&HostHash);
+
+    initialized = false;
 }
 
 /**
@@ -2589,6 +2595,8 @@ ERROR:
 
 bool initPScomm(void)
 {
+    initialized = true;
+
     initSerial(0, sendMsg);
 
     /* register to psslurm PSP_PLUG_PSSLURM message */

@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2020-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021 ParTec AG, Munich
+ * Copyright (C) 2021-2022 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -626,6 +626,7 @@ int initialize(FILE *logfile)
 
     if (!PSID_registerMsg(PSP_PLUG_NODEINFO, handleNodeInfoMsg)) {
 	mlog("%s: register 'PSP_PLUG_NODEINFO' handler failed\n", __func__);
+	finalizeSerial();
 	goto INIT_ERROR;
     }
 
@@ -637,9 +638,7 @@ int initialize(FILE *logfile)
     return 0;
 
 INIT_ERROR:
-    PSID_clearMsg(PSP_PLUG_NODEINFO, handleNodeInfoMsg);
     unregisterHooks(false);
-    finalizeSerial();
     finalizeNodeInfoConfig();
     finalizeNodeInfoLogger();
 
