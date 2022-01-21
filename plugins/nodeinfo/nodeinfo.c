@@ -626,6 +626,7 @@ int initialize(FILE *logfile)
 
     if (!PSID_registerMsg(PSP_PLUG_NODEINFO, handleNodeInfoMsg)) {
 	mlog("%s: register 'PSP_PLUG_NODEINFO' handler failed\n", __func__);
+	finalizeSerial();
 	goto INIT_ERROR;
     }
 
@@ -637,9 +638,7 @@ int initialize(FILE *logfile)
     return 0;
 
 INIT_ERROR:
-    PSID_clearMsg(PSP_PLUG_NODEINFO, handleNodeInfoMsg);
     unregisterHooks(false);
-    finalizeSerial();
     finalizeNodeInfoConfig();
     finalizeNodeInfoLogger();
 

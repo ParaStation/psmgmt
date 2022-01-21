@@ -2742,50 +2742,78 @@ slurmdHandlerFunc_t clearSlurmdMsg(int msgType)
 
 /**
  * @brief Automatically detect the installed Slurm version
+ *
+ * Detect the installed Slurm version by calling the binary defined in
+ * the SINFO_BINARY configuration variable with option
+ * "--version". The output is expected to be of the form "slurm
+ * <version>" and is parsed accordingly.
+ *
+ * This mechanism will only be triggered if the configuation variable
+ * SLURM_PROTO_VERSION is set to "auto".
+ *
+ * @return Return a static string containing the Slurm version number
+ * or NULL in case of failure or SLURM_PROTO_VERSION != "auto"
  */
 static const char *autoDetectSlurmVer(void)
 {
-    const char *sinfo = getConfValueC(&Config, "SINFO_BINARY");
-    char *line = NULL;
-    static char autoVer[32];
-    size_t len = 0;
-    bool ret = false;
+    static char autoVer[32] = { '\0' };
 
-    FILE *fp = fopen(sinfo, "r");
-    if (!fp) {
-	const char *pver = getConfValueC(&Config, "SLURM_PROTO_VERSION");
-	if (!strcmp(pver, "auto")) {
-	    mwarn(errno, "sinfo binary %s not found:", sinfo);
-	    flog("please set SINFO_BINARY to the correct path of sinfo\n");
-	}
+    const char *confVer = getConfValueC(&Config, "SLURM_PROTO_VERSION");
+    if (strcmp(confVer, "auto")) return NULL;
+
+    const char *sinfo = getConfValueC(&Config, "SINFO_BINARY");
+    if (!sinfo) {
+	flog("no SINFO_BINARY provided\n");
 	return NULL;
     }
 
-    while (getdelim(&line, &len, '\0', fp) != -1) {
-	if (!strncmp(line, "SLURM_VERSION_STRING", 20)) {
-	    if (sscanf(line, "SLURM_VERSION_STRING \"%31s\"", autoVer) == 1) {
-		char *quote = strchr(autoVer, '"');
-		if (quote) quote[0] = '\0';
-		ret = true;
-		break;
-	    } else {
-		flog("invalid slurm version string: %s\n", line);
-	    }
-	}
+    struct stat sb;
+    if (stat(sinfo, &sb) == -1) {
+	mwarn(errno, "%s: stat('%s')", __func__, sinfo);
+	return NULL;
+    } else if (!(sb.st_mode & S_IXUSR)) {
+	flog("'%s' not executable\n", sinfo);
+	return NULL;
     }
 
-    free(line);
-    fclose(fp);
+    char sinfoCmd[128];
+    snprintf(sinfoCmd, sizeof(sinfoCmd), "%s --version", sinfo);
+    FILE *fp = popen(sinfoCmd, "r");
+    if (!fp) {
+	mwarn(errno, "%s: popen('%s')", __func__, sinfoCmd);
+	return NULL;
+    }
 
-    return (ret ? autoVer : NULL);
+    char *line = NULL;
+    size_t len = 0;
+    while (getline(&line, &len, fp) != -1) {
+	if (strncmp(line, "slurm ", 6)) continue;
+	if (sscanf(line, "slurm %31s", autoVer) == 1) {
+	    char *dash = strchr(autoVer, '-');
+	    if (dash) *dash = '\0';
+	    break;
+	} else {
+	    char *nl = strchr(line, '\n');
+	    if (nl) *nl = '\0';
+	    flog("invalid slurm version string: '%s'\n", line);
+	}
+    }
+    free(line);
+    pclose(fp);
+
+    if (!strlen(autoVer)) {
+	flog("no version found\n");
+	return NULL;
+    }
+    return autoVer;
 }
 
 bool initSlurmdProto(void)
 {
     const char *pver = getConfValueC(&Config, "SLURM_PROTO_VERSION");
-    const char *autoVer = autoDetectSlurmVer();
 
     if (!strcmp(pver, "auto")) {
+	const char *autoVer = autoDetectSlurmVer();
 	if (!autoVer) {
 	    flog("Automatic detection of the Slurm protocol failed, "
 		 "consider setting SLURM_PROTO_VERSION in psslurm.conf\n");

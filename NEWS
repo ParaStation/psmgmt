@@ -9,6 +9,13 @@ Please send bug reports, questions and suggestions to <support@par-tec.com>
 Version 5.1.46-2:
 =================
 Bugfixes:
+ - Extract Slurm Protocol Version by calling sinfo
+ - Ensure initSerial() and finalizeSerial() are balanced
+
+
+Version 5.1.46-2:
+=================
+Bugfixes:
  - do not exec client process with blocked SIGCHLD
 
 
