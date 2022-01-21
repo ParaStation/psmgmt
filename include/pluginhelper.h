@@ -163,7 +163,9 @@ void __printBinaryData(char *data, size_t len, char *tag,
  * to create core dumps is re-enabled and the child is jailed by
  * PSIDHOOK_JAIL_CHILD.
  *
- * @param username The username of the user to switch
+ * If @a username is NULL, the name will be resolved by getpwuid().
+ *
+ * @param username The username of the user to switch or NULL
  *
  * @param uid The user ID of the user to switch
  *

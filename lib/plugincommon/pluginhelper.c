@@ -23,6 +23,7 @@
 #include <sys/time.h>
 #include <sys/types.h>
 #include <unistd.h>
+#include <pwd.h>
 
 #include "pscio.h"
 #include "pscommon.h"
@@ -265,8 +266,12 @@ bool switchUser(char *username, uid_t uid, gid_t gid, char *cwd)
     pid_t pid = getpid();
 
     if (!username) {
-	pluginlog("%s: invalid username\n", __func__);
-	return false;
+	struct passwd *pws;
+	if (!(pws = getpwuid(uid))) {
+	    pluginwarn(errno, "%s: getpwuid(%d) failed: ", __func__, uid);
+	    return false;
+	}
+	username = pws->pw_name;
     }
 
     /* jail child into cgroup */
