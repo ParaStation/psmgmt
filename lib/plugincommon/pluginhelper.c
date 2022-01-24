@@ -261,55 +261,55 @@ void __printBinaryData(char *data, size_t len, char *tag,
     pluginlog("'\n");
 }
 
-bool switchUser(char *username, uid_t uid, gid_t gid, char *cwd)
+bool switchUser(char *username, uid_t uid, gid_t gid)
 {
-    pid_t pid = getpid();
-
     if (!username) {
-	struct passwd *pws;
-	if (!(pws = getpwuid(uid))) {
-	    pluginwarn(errno, "%s: getpwuid(%d) failed: ", __func__, uid);
+	struct passwd *pws = getpwuid(uid); // @todo use PSC_getpwuid()?
+	if (!pws) {
+	    pluginwarn(errno, "%s: getpwuid(%d)", __func__, uid);
 	    return false;
 	}
 	username = pws->pw_name;
     }
 
-    /* jail child into cgroup */
-    PSIDhook_call(PSIDHOOK_JAIL_CHILD, &pid);
-
-    /* remove psslurm group memberships */
-    if ((setgroups(0, NULL)) == -1) {
-	pluginwarn(errno, "%s: setgroups(0) failed: ", __func__);
+    /* drop current supplementary groups */
+    if (setgroups(0, NULL) == -1) {
+	pluginwarn(errno, "%s: setgroups(0)", __func__);
 	return false;
     }
 
     /* set supplementary groups */
-    if ((initgroups(username, gid)) < 0) {
-	pluginwarn(errno, "%s: initgroups() failed: ", __func__);
+    if (initgroups(username, gid) < 0) {
+	pluginwarn(errno, "%s: initgroups()", __func__);
 	return false;
     }
 
     /* change the GID */
-    if ((setgid(gid)) < 0) {
-	pluginwarn(errno, "%s: setgid(%i) failed: ", __func__, gid);
+    if (setgid(gid) < 0) {
+	pluginwarn(errno, "%s: setgid(%i)", __func__, gid);
 	return false;
     }
 
     /* change the UID */
-    if ((setuid(uid)) < 0) {
-	pluginwarn(errno, "%s: setuid(%i) failed: ", __func__, uid);
+    if (setuid(uid) < 0) {
+	pluginwarn(errno, "%s: setuid(%i)", __func__, uid);
 	return false;
     }
 
     /* re-enable capability to create core-dumps */
     if (prctl(PR_SET_DUMPABLE, 1) == -1) {
-	pluginwarn(errno, "%s: prctl() failed: ", __func__);
+	pluginwarn(errno, "%s: prctl()", __func__);
 	return false;
     }
 
+    return true;
+}
+
+bool switchCwd(char *cwd)
+{
     /* change to job working directory */
-    if (cwd && (chdir(cwd)) == -1) {
-	pluginwarn(errno, "%s: chdir to '%s' failed: ", __func__, cwd);
+    if (cwd && chdir(cwd) == -1) {
+	pluginwarn(errno, "%s: chdir(%s)", __func__, cwd);
 	return false;
     }
 

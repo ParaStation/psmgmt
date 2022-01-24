@@ -29,6 +29,7 @@
 #include "psprotocol.h"
 #include "selector.h"
 #include "timer.h"
+#include "pluginhelper.h"
 #include "pluginmalloc.h"
 #include "pluginlog.h"
 
@@ -74,8 +75,9 @@ void ForwarderData_delete(Forwarder_Data_t *fw)
 {
     if (!fw) return;
 
-    if (fw->pTitle) ufree(fw->pTitle);
-    if (fw->jobID) ufree(fw->jobID);
+    ufree(fw->pTitle);
+    ufree(fw->jobID);
+    ufree(fw->userName);
     free(fw);
 }
 
@@ -298,9 +300,6 @@ static void signalHandler(int sig)
 
 static bool initForwarder(int motherFD, Forwarder_Data_t *fw)
 {
-    int signalFD;
-    sigset_t mask;
-
     Selector_init(NULL);
     Timer_init(NULL);
 
@@ -324,10 +323,11 @@ static bool initForwarder(int motherFD, Forwarder_Data_t *fw)
 
     PSID_blockSig(SIGALRM, true);
 
+    sigset_t mask;
     sigemptyset(&mask);
     sigaddset(&mask, SIGCHLD);
     PSID_blockSig(SIGCHLD, true);
-    signalFD = signalfd(-1, &mask, 0);
+    int signalFD = signalfd(-1, &mask, 0);
     if (signalFD == -1) {
 	pluginwarn(errno, "%s: signalfd()", __func__);
 	return false;
@@ -335,6 +335,19 @@ static bool initForwarder(int motherFD, Forwarder_Data_t *fw)
     if (Selector_register(signalFD, handleSignalFd, fw)) {
 	pluginwarn(errno, "%s: Selector_register(signalFD)", __func__);
 	return false;
+    }
+
+    /* jail myself and all my children */
+    if (fw->jailChild && PSIDhook_call(PSIDHOOK_JAIL_CHILD, &fw->uID) < 0) {
+	pluginlog("%s: hook PSIDHOOK_JAIL_CHILD failed\n", __func__);
+	return false;
+    }
+
+    if (fw->uID != getuid() || fw->gID != getgid()) {
+	if (!switchUser(fw->userName, fw->uID, fw->gID)) {
+	    pluginlog("%s: switchUser() failed\n", __func__);
+	    return false;
+	}
     }
 
     return true;
@@ -671,15 +684,6 @@ static void execForwarder(PStask_t *task)
 	}
     }
 
-    /* jail myself and all my children */
-    if (fw->jailChild) {
-	pid_t mypid = getpid();
-	if (PSIDhook_call(PSIDHOOK_JAIL_CHILD, &mypid) < 0) {
-	    pluginlog("%s: hook PSIDHOOK_JAIL_CHILD failed\n", __func__);
-	    exit(1);
-	}
-    }
-
     for (i = 1; i <= fw->childRerun; i++) {
 	if (fw->childFunc) {
 	    int controlFDs[2];
@@ -923,8 +927,8 @@ bool startForwarder(Forwarder_Data_t *fw)
 
     task->group = TG_PLUGINFW;
     task->ptid = PSC_getMyTID();
-    task->uid = getuid();
-    task->gid = getgid();
+    task->uid = fw->uID;
+    task->gid = fw->gID;
     task->info = fw;
     task->argc = 1 + !!fw->jobID;
     task->argv = malloc(task->argc * sizeof(*task->argv));

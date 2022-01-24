@@ -255,6 +255,8 @@ static bool startJobserver(PspmixJobserver_t *server)
     fwdata->pTitle = ustrdup(fname);
     fwdata->jobID = ustrdup(jobid);
     fwdata->userData = server;
+    fwdata->uID = server->prototask->uid;
+    fwdata->gID = server->prototask->gid;
     fwdata->graceTime = 3;
 //    fwdata->accounted = true;
     fwdata->killSession = killJobserver;

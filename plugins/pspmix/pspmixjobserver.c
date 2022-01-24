@@ -49,30 +49,19 @@ int pspmix_jobserver_initialize(Forwarder_Data_t *fwdata)
 
     mdbg(PSPMIX_LOG_CALL, "%s() called\n", __func__);
 
-    PStask_t *prototask;
-    prototask = server->prototask;
-
-    /* drop root privileges as early as possible */
-    if (!switchUser(NULL, prototask->uid, prototask->gid, NULL)) {
-	mlog("%s: FATAL: switching user failed\n", __func__);
-	return -1;
-    }
-
     /* there has to be a resInfo in the list */
     if (list_empty(&server->resInfos)) {
 	mlog("%s: FATAL: no reservation in server's list\n", __func__);
 	return -1;
     }
 
-    PSresinfo_t *resInfo;
-    resInfo = findReservation(prototask->resID);
-
+    PStask_t *prototask = server->prototask;
+    PSresinfo_t *resInfo = findReservation(prototask->resID);
     if (resInfo == NULL) {
 	mlog("%s: FATAL: Reservation for initial spawn not found (resID %d)\n",
-		__func__, prototask->resID);
+	     __func__, prototask->resID);
 	return -1;
     }
-
 
     if (mset(PSPMIX_LOG_VERBOSE)) {
 	list_t *r;

@@ -28,6 +28,7 @@
 #include "pspluginprotocol.h"
 #include "psserial.h"
 
+#include "psidhook.h"
 #include "psidscripts.h"
 
 #include "pluginconfig.h"
@@ -65,11 +66,19 @@ void psmomSwitchUser(char *username, struct passwd *spasswd, int saveEnv)
 	}
     }
 
+    if (!switchUser(spasswd->pw_name, spasswd->pw_uid, spasswd->pw_gid)) {
+	mlog("%s: changing user failed\n", __func__);
+	exit(1);
+     }
+
+    /* jail child into cgroup */
+    pid_t pid = getpid();
+    PSIDhook_call(PSIDHOOK_JAIL_CHILD, &pid);
+
     char *initDir = getEnvValue("PBS_O_INITDIR");
     char *cwd = initDir ? initDir : spasswd->pw_dir;
-
-    if (!switchUser(spasswd->pw_name, spasswd->pw_uid, spasswd->pw_gid, cwd)) {
-	mlog("%s: changing user failed\n", __func__);
+    if (!switchCwd(cwd)) {
+	mlog("%s: changing CWD failed\n", __func__);
 	exit(1);
     }
 

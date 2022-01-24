@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2014-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021 ParTec AG, Munich
+ * Copyright (C) 2021-2022 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -29,6 +29,9 @@ typedef struct __fwData__ {
     char *pTitle;          /**< Process title to use */
     char *jobID;           /**< Job ID if any */
     void *userData;        /**< Additional information to be attached */
+    char *userName;        /**< username used to run the forwarder */
+    uid_t uID;             /**< user ID used to run the forwarder */
+    gid_t gID;             /**< group ID used to run the forwarder */
     int8_t childRerun;     /**< How many times @ref childFunc() might be run */
     int32_t timeoutChild;  /**< Maximum runtime of @ref childFunc() */
     int32_t graceTime;     /**< Grace time before sending SIGKILL */

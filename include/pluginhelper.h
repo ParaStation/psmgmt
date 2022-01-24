@@ -156,12 +156,10 @@ void __printBinaryData(char *data, size_t len, char *tag,
     __printBinaryData(data, len, tag, __func__, __LINE__)
 
 /**
- * @brief Change the executing user
+ * @brief Change executing user
  *
- * Switch the executing user including the supplementary groups and
- * optional the current working directory. Furthermore, the capability
- * to create core dumps is re-enabled and the child is jailed by
- * PSIDHOOK_JAIL_CHILD.
+ * Switch the executing user including the supplementary groups.
+ * Furthermore, the capability to create core dumps is re-enabled.
  *
  * If @a username is NULL, the name will be resolved by getpwuid().
  *
@@ -171,11 +169,21 @@ void __printBinaryData(char *data, size_t len, char *tag,
  *
  * @param gid The group ID of the user to switch
  *
- * @param cwd The new working directory or NULL
- *
- * @return Returns true on success otherwise false is returned
+ * @return Returns true on success or false in case of failure
  */
-bool switchUser(char *username, uid_t uid, gid_t gid, char *cwd);
+bool switchUser(char *username, uid_t uid, gid_t gid);
+
+/**
+ * @brief Change the current working directory
+ *
+ * Switch the current working directory to @a cwd. If @a cwd is NULL
+ * nothing will be done.
+ *
+ * @param cwd The new working directory
+ *
+ * @return Returns true on success or false in case of failure
+ */
+bool switchCwd(char *cwd);
 
 /**
  * @brief Fetch error message and from a script callback

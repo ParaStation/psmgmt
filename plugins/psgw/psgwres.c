@@ -177,11 +177,16 @@ void writeErrorFile(PSGW_Req_t *req, char *msg, char *file, bool header)
     pid_t childPID = fork();
 
     if (!childPID) {
-	char *cwd = envGet(&req->env, "SLURM_SPANK_PSGW_CWD");
-
 	/* switch to user */
-	if (!switchUser(req->username, req->uid, req->gid, cwd)) {
+	if (!switchUser(req->username, req->uid, req->gid)) {
 	    flog("switching user %s failed\n", req->username);
+	    exit(1);
+	}
+
+	/* switch to current working directory */
+	char *cwd = envGet(&req->env, "SLURM_SPANK_PSGW_CWD");
+	if (!switchCwd(cwd)) {
+	    flog("switching cwd to '%s'\n", cwd);
 	    exit(1);
 	}
 
