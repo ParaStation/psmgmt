@@ -386,7 +386,7 @@ void updateGPUInfo(void)
     uint16_t numGPUs = GPU_IDs ? PSIDhw_getNumPCIDevs(GPU_IDs) : 0;
     PSIDnodes_setNumGPUs(PSC_getMyID(), numGPUs);
     if (numGPUs) {
-	PSCPU_set_t *GPUsets = PSIDhw_getPCISets(GPU_PCIeOrder, GPU_IDs);
+	PSCPU_set_t *GPUsets = PSIDhw_getPCISets(GPU_PCIeOrder, GPU_IDs, NULL);
 	PSIDnodes_setGPUSets(PSC_getMyID(), GPUsets);
     }
 }
@@ -401,8 +401,10 @@ void updateNICInfo(void)
     uint16_t numNICs = NIC_IDs ? PSIDhw_getNumPCIDevs(NIC_IDs) : 0;
     PSIDnodes_setNumNICs(PSC_getMyID(), numNICs);
     if (numNICs) {
-	PSCPU_set_t *NICsets = PSIDhw_getPCISets(NIC_PCIeOrder, NIC_IDs);
+	PSIDhw_IOdev_t *devs = NULL;
+	PSCPU_set_t *NICsets = PSIDhw_getPCISets(NIC_PCIeOrder, NIC_IDs, &devs);
 	PSIDnodes_setNICSets(PSC_getMyID(), NICsets);
+	PSIDnodes_setNICDevs(numNICs, devs);
     }
 }
 
@@ -829,6 +831,25 @@ void printPCIIDs(PCI_ID_t *id, StrBuffer_t *strBuf)
     addStrBuf("\n", strBuf);
 }
 
+void printNICDevNames(StrBuffer_t *strBuf)
+{
+    short numNICs= PSIDnodes_numNICs(PSC_getMyID());
+    if (!numNICs) return;
+
+    addStrBuf("    names and ports:\n", strBuf);
+    for (short n = 0; n < numNICs; n++) {
+	PSIDhw_IOdev_t *dev = PSIDnodes_NICDevs(n);
+	char devStr[80];
+	snprintf(devStr, sizeof(devStr), "\t%2d: name='%s' port%s:", n,
+		 dev->name, (dev->numPorts > 1) ? "s" : "");
+	for (short p = 0; p < dev->numPorts; p++)
+	    snprintf(devStr + strlen(devStr), sizeof(devStr) - strlen(devStr),
+		     " %d", dev->portNums[p]);
+	addStrBuf(devStr, strBuf);
+	addStrBuf("\n", strBuf);
+    }
+}
+
 char *show(char *key)
 {
     StrBuffer_t strBuf = { .buf = NULL };
@@ -849,6 +870,7 @@ char *show(char *key)
 	PSnodes_ID_t node = getNode(key);
 	printSets(node, "NICs", PSIDnodes_numNUMADoms(node),
 		  PSIDnodes_NICSets(node), PSIDnodes_numNICs(node), &strBuf);
+	if (node == PSC_getMyID()) printNICDevNames(&strBuf);
     } else if (!strncmp(key, "map", strlen("map"))) {
 	showMap(key, &strBuf);
     } else if (!strncmp(key, "distances", strlen("distances"))) {
@@ -862,6 +884,7 @@ char *show(char *key)
 		  PSIDnodes_GPUSets(node), PSIDnodes_numGPUs(node), &strBuf);
 	printSets(node, "NICs", PSIDnodes_numNUMADoms(node),
 		  PSIDnodes_NICSets(node), PSIDnodes_numNICs(node), &strBuf);
+	if (node == PSC_getMyID()) printNICDevNames(&strBuf);
 	showDistances(key, &strBuf);
     } else if (!strncmp(key, "pci", strlen("pci"))) {
 	addStrBuf("\n", &strBuf);

@@ -26,6 +26,8 @@
 #include "psnodes.h"
 #include "pstask.h"
 
+#include "psidhw.h"
+
 /**
  * @brief Initialize the PSIDnodes module
  *
@@ -1154,7 +1156,11 @@ short PSIDnodes_numNICs(PSnodes_ID_t id);
  * entries according to the number of NICs on this node (@see
  * PSIDnodes_numNICs()). Further entries might be ignored.
  *
- * NICs are numbered according to hwloc order.
+ * NIC numbering might be according to hwloc order or PCIe order
+ * depending on the setting instance. The PSIDhw's default is to use
+ * hwloc order (which means BIOS order) but the nodeinfo plugin might
+ * choose a different ordering according the its psconfig
+ * setting. E.g. UCX expects PCIe ordering.
  *
  * @a NICset is expected to be allocated with @ref malloc() and
  * friends and will be freed within @ref PSIDnodes_clearMem(). If a
@@ -1184,7 +1190,11 @@ int PSIDnodes_setNICSets(PSnodes_ID_t id, PSCPU_set_t *NICset);
  * entries according to the number of NICs on this node (@see
  * PSIDnodes_numNICs()). Further entries might be ignored.
  *
- * NICs are numbered according to hwloc order.
+ * NIC numbering might be according to hwloc order or PCIe order
+ * depending on the setting instance. The PSIDhw's default is to use
+ * hwloc order (which means BIOS order) but the nodeinfo plugin might
+ * choose a different ordering according the its psconfig
+ * setting. E.g. UCX expects PCIe ordering.
  *
  * @param id ParaStation ID of the node to look up
  *
@@ -1193,6 +1203,48 @@ int PSIDnodes_setNICSets(PSnodes_ID_t id, PSCPU_set_t *NICset);
  */
 PSCPU_set_t * PSIDnodes_NICSets(PSnodes_ID_t id);
 
+/**
+ * @brief Set local node's NIC device-names
+ *
+ * Set the device-names and port information of the local node to @a
+ * devs. The information is provided in an array of structs of type
+ * PSIDhw_IOdev_t -- one entry per NIC (@see PSIDnodes_numNICs() for
+ * the expected size of the array). The actual size of @a devs is
+ * provided in the @a num parameter.
+ *
+ * NIC numbering shall be consistent with the one chosen for @ref
+ * PCIDnodes_setNICSets(). See further information there.
+ *
+ * @a devs is expected to be allocated with @ref malloc() and friends
+ * and will be freed within @ref PSIDnodes_clearMem(). If this type of
+ * information was set before, further calls to this function will
+ * @ref free() the old information before setting the new one. If @a
+ * devs is NULL, the old distribution will be freed, too.
+ *
+ * @param num Number of entries (i.e. size) of @a devs
+ *
+ * @param devs Information on device-names and available port for each
+ * NIC identified on the local node
+ *
+ * @return No return value
+ */
+void PSIDnodes_setNICDevs(short num, PSIDhw_IOdev_t *devs);
+
+/**
+ * @brief Get local node's NIC device-name
+ *
+ * Get the device-name and port information of the device @a devNum on
+ * the local node. The information is provided in a structs of type
+ * PSIDhw_IOdev_t.
+ *
+ * NIC numbering is defined via @ref PSIDnodes_setNICDevs() and shall
+ * be consistent with the one chosen for @ref
+ * PCIDnodes_setNICSets(). See further information there.
+ *
+ * @return If the device was found, the corresponding device
+ * description is returned; or NULL in case of error
+ */
+PSIDhw_IOdev_t * PSIDnodes_NICDevs(short devNum);
 
 /**
  * @brief Memory cleanup

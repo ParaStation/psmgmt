@@ -62,7 +62,8 @@ static void initHWloc(void)
 #if HWLOC_API_VERSION >= 0x00020000 /* hwloc 2.0 */
     /* do not filter PCI devices */
     hwloc_topology_set_type_filter(topology, HWLOC_OBJ_PCI_DEVICE,
-	    HWLOC_TYPE_FILTER_KEEP_ALL);
+				   HWLOC_TYPE_FILTER_KEEP_ALL);
+    hwloc_topology_set_io_types_filter(topology, HWLOC_TYPE_FILTER_KEEP_ALL);
 #else
     /* enable detection of GPUs and NICs (incl HCAs) */
     hwloc_topology_set_flags(topology, HWLOC_TOPOLOGY_FLAG_IO_DEVICES);
@@ -454,15 +455,21 @@ static uint16_t * getPCIorderMap(uint16_t numDevs, PCI_ID_t ID_list[])
     return map;
 }
 
-PSCPU_set_t * PSIDhw_getPCISets(bool PCIorder, PCI_ID_t ID_list[])
+PSCPU_set_t * PSIDhw_getPCISets(bool PCIorder, PCI_ID_t ID_list[],
+				PSIDhw_IOdev_t **IOdevs)
 {
     uint16_t numDevs = PSIDhw_getNumPCIDevs(ID_list);
 
     if (!numDevs) return NULL;
 
     PSCPU_set_t *sets = malloc(getNUMADoms() * sizeof(*sets));
-    if (!sets) PSID_exit(errno, "%s: malloc()", __func__);
+    if (!sets) PSID_exit(errno, "%s: malloc(sets)", __func__);
     for (uint16_t d = 0; d < getNUMADoms(); d++) PSCPU_clrAll(sets[d]);
+
+    if (IOdevs) {
+	*IOdevs = calloc(numDevs, sizeof(**IOdevs));
+	if (!*IOdevs) PSID_exit(errno, "%s: calloc(*IOdevs)", __func__);
+    }
 
     uint16_t *map = NULL;
     if (PCIorder) {
@@ -491,6 +498,39 @@ PSCPU_set_t * PSIDhw_getPCISets(bool PCIorder, PCI_ID_t ID_list[])
 		 pciObj->attr->pcidev.device_id);
 	if (!checkPCIDev(&pciObj->attr->pcidev, ID_list)) continue;
 	PSID_log(PSID_LOG_HW, "%s: Match\n", __func__);
+
+	/* Identify OS-names of IO devices if requested */
+	if (IOdevs) {
+	    if (!pciObj->io_arity) {
+		PSID_log(-1, "%s: no io info for device %04x:%04x\n", __func__,
+			 pciObj->attr->pcidev.vendor_id,
+			 pciObj->attr->pcidev.device_id);
+	    } else {
+		int ioidx = map ? map[idx] : idx;
+
+		/* traverse io_children to search of Port<num>State entries */
+		hwloc_obj_t obj = pciObj->io_first_child;
+		while (obj) {
+		    bool first = true;
+		    for (unsigned i = 0; i < obj->infos_count; i++) {
+			uint8_t portNum;
+			char str[128];
+			int num = sscanf(obj->infos[i].name, "Port%hhu%64s",
+					 &portNum, str);
+			if (num == 2 && !strncmp(str, "State", 5)) {
+			    if (first) {
+				/* Found Port<num>State => this is our device */
+				(*IOdevs)[ioidx].name = strdup(obj->name);
+				first = false;
+			    }
+			    uint8_t nPort = (*IOdevs)[ioidx].numPorts++;
+			    (*IOdevs)[ioidx].portNums[nPort] = portNum;
+			}
+		    }
+		    obj = obj->next_sibling;
+		}
+	    }
+	}
 
 	/* Find CPU set this device is connected to */
 	/* The detour via CPU sets is necessary since there is no
@@ -1047,14 +1087,14 @@ void PSIDhw_init(void)
     uint16_t numGPUs = PSIDhw_getNumPCIDevs(GPU_IDs);
     PSIDnodes_setNumGPUs(PSC_getMyID(), numGPUs);
     if (numGPUs) {
-	PSCPU_set_t *GPUsets = PSIDhw_getPCISets(true /* PCIe */, GPU_IDs);
+	PSCPU_set_t *GPUsets = PSIDhw_getPCISets(true /* PCIe */, GPU_IDs, NULL);
 	PSIDnodes_setGPUSets(PSC_getMyID(), GPUsets);
     }
 
     uint16_t numNICs = PSIDhw_getNumPCIDevs(NIC_IDs);
     PSIDnodes_setNumNICs(PSC_getMyID(), numNICs);
     if (numNICs) {
-	PSCPU_set_t *NICsets = PSIDhw_getPCISets(false /* BIOS */, NIC_IDs);
+	PSCPU_set_t *NICsets = PSIDhw_getPCISets(false /* BIOS */, NIC_IDs, NULL);
 	PSIDnodes_setNICSets(PSC_getMyID(), NICsets);
     }
 

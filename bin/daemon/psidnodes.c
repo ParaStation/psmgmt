@@ -1107,6 +1107,30 @@ PSCPU_set_t * PSIDnodes_NICSets(PSnodes_ID_t id)
     return nodes[id].NICset;
 }
 
+/** Number of entries in @ref NICDevs */
+static short numNICDevs = 0;
+
+/** Info on local NIC devices (name and ports) */
+static PSIDhw_IOdev_t *NICDevs = NULL;
+
+void PSIDnodes_setNICDevs(short num, PSIDhw_IOdev_t *devs)
+{
+    if (NICDevs) {
+	for (short d = 0; d < numNICDevs; d++) free(NICDevs[d].name);
+	free(NICDevs);
+    }
+    numNICDevs = num;
+    NICDevs = devs;
+}
+
+PSIDhw_IOdev_t * PSIDnodes_NICDevs(short devNum)
+{
+    if (devNum < 0 || devNum >= numNICDevs) return NULL;
+
+    return &NICDevs[devNum];
+}
+
+
 void PSIDnodes_clearMem(void)
 {
     for (int h = 0; h < 256; h++) {
@@ -1132,4 +1156,14 @@ void PSIDnodes_clearMem(void)
 
     free(nodes);
     nodes = NULL;
+
+    if (NICDevs) {
+	for (short d = 0; d < numNICDevs; d++) free(NICDevs[d].name);
+
+	free(NICDevs);
+	NICDevs = NULL;
+    }
+    numNICDevs = 0;
+
+
 }

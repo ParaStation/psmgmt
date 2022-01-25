@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2006-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021 ParTec AG, Munich
+ * Copyright (C) 2021-2022 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -181,6 +181,14 @@ typedef struct {
  */
 uint16_t PSIDhw_getNumPCIDevs(PCI_ID_t ID_list[]);
 
+#define PSIDHW_MAX_PORTS 8
+
+typedef struct {
+    char *name;              /**< OS-name (e.g. mlx5_2) */
+    uint8_t numPorts;        /**< number of ports (i.e. # of portNums entries)*/
+    uint8_t portNums[PSIDHW_MAX_PORTS];   /**< actual port numbers */
+} PSIDhw_IOdev_t;
+
 /**
  * @brief Get the PCI device sets for all NUMA nodes
  *
@@ -203,15 +211,28 @@ uint16_t PSIDhw_getNumPCIDevs(PCI_ID_t ID_list[]);
  * the PSIDnodes facility via PSIDnodes_setGPUSets() or
  * PSIDnodes_setNICSets().
  *
+ * If @a IOdevs is different from NULL, some memory will be allocated
+ * via malloc() and filled with information on (OS-)NIC device names
+ * and available ports. The size of the array will be identical to the
+ * number of devices identified by the corresponding call to @ref
+ * PSIDhw_getNumPCIDevs(). Entries are ordered in the same fashion as
+ * in the returned set. The array has to be free()ed by the caller
+ * once it is no longer needed. Thus, it is well suited to be registered to
+ * the PSIDnodes facility via PSIDnodes_setNICDevs().
+ *
  * @param PCIorder Flag to trigger PCI device order for numbering the
  * PCI devices to handle
  *
  * @param ID_list Zero-terminated array of PCI vendor, device,
  * subvendor and subdevice IDs identifying the PCI devices to handle
  *
+ * @param IOdevs Will point to device names and ports upon return if
+ * provided but entries might be empty if no information was found
+ *
  * @return On success, the array of CPU set is returned; on error, NULL
  * might be returned
  */
-PSCPU_set_t * PSIDhw_getPCISets(bool PCIorder, PCI_ID_t ID_list[]);
+PSCPU_set_t * PSIDhw_getPCISets(bool PCIorder, PCI_ID_t ID_list[],
+				PSIDhw_IOdev_t **IOdevs);
 
 #endif /* __PSIDHW_H */
