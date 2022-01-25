@@ -18,6 +18,10 @@ topo.jrc5001.xml   JURECA-Booster (Cluster: Quadrant / Memory: Cache)
 topo.jwb0001.xml   JUWELS-Booster
 topo.jwc00n001.xml JUWELS-Cluster CPU partition
 topo.jwc09n003.xml JUWELS-Cluster GPU partition
+topo.mel0001.xml   Meluxina CPU partition
+topo.mel2001.xml   Meluxina GPU partition
+topo.mel3001.xml   Meluxina FPGA partition
+topo.mel4001.xml   Meluxina Large Memory partition
 
 These were recorded with HWLOC_KNL_NUMA_QUIRK=0 to get distances on KNL.
 All systems have Memory: Flat / Cluster: Quadrant unless otherwise noted
