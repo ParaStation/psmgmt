@@ -281,7 +281,6 @@ bool Step_delete(Step_t *step)
     ufree(step->slots);
     ufree(step->acctFreq);
     ufree(step->gids);
-    ufree(step->packTaskCounts);
     ufree(step->packHostlist);
     ufree(step->packNodes);
     ufree(step->tresBind);
@@ -315,6 +314,7 @@ bool Step_delete(Step_t *step)
 	ufree(step->packTIDs);
     }
     ufree(step->packTIDsOffset);
+    ufree(step->packTaskCounts);
 
     for (uint32_t i=0; i<step->argc; i++) {
 	ufree(step->argv[i]);
