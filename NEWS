@@ -6,7 +6,16 @@ Copyright (C) 2021-2022 ParTec AG, Munich
 Please send bug reports, questions and suggestions to <support@par-tec.com>
 
 
-Version 5.1.46-2:
+Version 5.1.46-4:
+=================
+Enhancements:
+ - Execute Slurm health-check when psslurm is loaded
+   * slurm.conf option "HealthCheckInterval" does *not* influence the
+     health-check execution on startup
+   * psslurm.conf option SLURM_HC_STARTUP may prevent execution on startup
+
+
+Version 5.1.46-3:
 =================
 Bugfixes:
  - Extract Slurm Protocol Version by calling sinfo
