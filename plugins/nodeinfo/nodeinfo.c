@@ -839,6 +839,7 @@ void printNICDevNames(StrBuffer_t *strBuf)
     addStrBuf("    names and ports:\n", strBuf);
     for (short n = 0; n < numNICs; n++) {
 	PSIDhw_IOdev_t *dev = PSIDnodes_NICDevs(n);
+	if (!dev) continue;
 	char devStr[80];
 	snprintf(devStr, sizeof(devStr), "\t%2d: name='%s' port%s:", n,
 		 dev->name, (dev->numPorts > 1) ? "s" : "");
