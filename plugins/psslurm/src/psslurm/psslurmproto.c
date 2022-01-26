@@ -1280,30 +1280,28 @@ bool runHealthCheck(void)
 {
     /* run health-check script */
     char *script = getConfValueC(&SlurmConfig, "HealthCheckProgram");
-    char *interval = getConfValueC(&SlurmConfig, "HealthCheckInterval");
+    if (!script) return true;
 
-    if (script && interval) {
-	if (access(script, R_OK | X_OK) < 0) {
-	    flog("invalid permissions for health-check script %s\n", script);
-	    return false;
-	}
-	if (slurmHCpid != -1) {
-	    flog("error: another Slurm health-check script with PID %u is"
-		 " already running\n", slurmHCpid);
-	    return false;
-	}
-
-	int seconds = getConfValueU(&Config, "SLURM_HC_TIMEOUT");
-	struct timeval timeout = {seconds, 0};
-	slurmHCpid = PSID_execScript(script, &prepHCenv, &cbHealthcheck,
-				     &timeout, NULL);
-	if (slurmHCpid == -1) {
-	    flog("error spawning health-check script %s\n", script);
-	    return false;
-	}
-	flog("(#%zu) execute health-check script %s pid %u\n", ++slurmHCRuns,
-	     script, slurmHCpid);
+    if (access(script, R_OK | X_OK) < 0) {
+	flog("invalid permissions for health-check script %s\n", script);
+	return false;
     }
+    if (slurmHCpid != -1) {
+	flog("error: another Slurm health-check script with PID %u is"
+		" already running\n", slurmHCpid);
+	return false;
+    }
+
+    int seconds = getConfValueU(&Config, "SLURM_HC_TIMEOUT");
+    struct timeval timeout = {seconds, 0};
+    slurmHCpid = PSID_execScript(script, &prepHCenv, &cbHealthcheck,
+	    &timeout, NULL);
+    if (slurmHCpid == -1) {
+	flog("error spawning health-check script %s\n", script);
+	return false;
+    }
+    flog("(#%zu) execute health-check script %s pid %u\n", ++slurmHCRuns,
+	    script, slurmHCpid);
 
     return true;
 }

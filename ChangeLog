@@ -1,3 +1,16 @@
+Version psmgmt-5.1.46-4:
+========================
+------------------------------------------------------------------------
+9935d18c | Michael Rauh | Tue, 25 Jan 2022 17:33:54 +0100
+
+Execute Slurm health-check when psslurm is loaded
+ - slurm.conf option "HealthCheckInterval" does *not* influence
+   the health-check execution on startup
+ - introduce psslurm.conf option SLURM_HC_STARTUP
+ - SLURM_HC_STARTUP may be used to prevent the execution on startup
+------------------------------------------------------------------------
+
+
 Version psmgmt-5.1.46-3:
 ========================
 ------------------------------------------------------------------------

@@ -242,6 +242,10 @@ const ConfDef_t confDef[] =
 	"int",
 	"60",
 	"Timeout in seconds for a Slurm health-check script" },
+    { "SLURM_HC_STARTUP", 1,
+	"bool",
+	"1",
+	"Execute Slurm health-check on psslurm startup" },
     { NULL, 0, NULL, NULL, NULL },
 };
 

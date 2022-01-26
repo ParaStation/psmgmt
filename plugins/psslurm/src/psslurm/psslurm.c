@@ -687,7 +687,8 @@ bool finalizeInit(void)
     if (!initPinning()) return false;
 
     /* start health-check script */
-    if (!runHealthCheck()) return false;
+    bool run = getConfValueI(&Config, "SLURM_HC_STARTUP");
+    if (run && !runHealthCheck()) return false;
 
     isInit = true;
 
