@@ -163,13 +163,20 @@ static void pinToCPUs(cpu_set_t *physSet)
  * functional variables if the old value matches the corresponding AUTO_*
  * variable.
  *
+ * If @a mapFunc is set, the output of this function is used as the string to
+ * set for the device with id instead of the string representation of the
+ * device id.
+ *
  * @param cpuSet Physical HW-threads the process is expected to run
  *
  * @param type Device type capable for pinning to handle
  *
+ * @param mapFunc Function mapping device id to string or NULL
+ *
  * @return No return value
  */
-static void bindToDevs(cpu_set_t *cpuSet, PSIDpin_devType_t type)
+static void bindToDevs(cpu_set_t *cpuSet, PSIDpin_devType_t type,
+		       char * mapFunc(short id))
 {
     char *GPUvariables[] = {
 	"CUDA_VISIBLE_DEVICES", /* Nvidia GPUs */
@@ -226,12 +233,18 @@ static void bindToDevs(cpu_set_t *cpuSet, PSIDpin_devType_t type)
 			      devlist, &devcount, closelist, &closecount,
 			      type)) return;
 
-    char val[3*numDevs];
+    char val[1024];
     size_t len = 0;
+
+    if (mapFunc)
 
     /* build string listing the closest devices */
     for (size_t i = 0; i < devcount; i++) {
-	len += snprintf(val+len, 4, "%hu,", devlist[i]);
+	if (mapFunc) {
+	    len += snprintf(val+len, 4, "%s,", mapFunc(devlist[i]));
+	} else {
+	    len += snprintf(val+len, 4, "%hu,", devlist[i]);
+	}
     }
     val[len ? len-1 : len] = '\0';
 
@@ -472,6 +485,29 @@ cpu_set_t *PSIDpin_mapCPUs(PSnodes_ID_t id, PSCPU_set_t set)
     return &physSet;
 }
 
+static char mapvalue[128];
+
+char * mapNIC(short id) {
+    PSIDhw_IOdev_t *NICDev = PSIDnodes_NICDevs(id);
+    if (!NICDev) {
+	fprintf(stderr, "no device info for NIC %d\n", id);
+	return "N/A";
+    }
+
+    size_t len = 0;
+    for (size_t i = 0; i < NICDev->numPorts; i++) {
+	len += snprintf(mapvalue+len, sizeof(mapvalue)-len, "%s:%hhu,",
+			NICDev->name, NICDev->portNums[i]);
+	if (len >= sizeof(mapvalue)) {
+	    fprintf(stderr, "mapped name of NIC %hd truncated\n", id);
+	    break;
+	}
+    }
+    mapvalue[len ? len-1 : len] = '\0';
+
+    return mapvalue;
+}
+
 #endif  /* CPU_ZERO */
 
 void PSIDpin_doClamps(PStask_t *task)
@@ -523,18 +559,14 @@ void PSIDpin_doClamps(PStask_t *task)
 	    if (getenv("__PSI_NO_GPUBIND")) {
 		fprintf(stderr, "No GPU-binding for rank %d\n", task->rank);
 	    } else {
-		bindToDevs(physSet, PSPIN_DEV_TYPE_GPU);
+		bindToDevs(physSet, PSPIN_DEV_TYPE_GPU, NULL);
 	    }
 	}
 	if (PSIDnodes_bindNICs(PSC_getMyID())) {
 	    if (getenv("__PSI_NO_NICBIND")) {
 		fprintf(stderr, "No NIC-binding for rank %d\n", task->rank);
 	    } else {
-		bindToDevs(physSet, PSPIN_DEV_TYPE_NIC);
-		/* TODO
-		 * reset UCX_NET_DEVICES from "0,1,2,3" to
-		 * "mlx5_1:0, mlx5_1:1, mlx5_2:0, mlx5_2:1" by mapping the
-		 * devices correctly */
+		bindToDevs(physSet, PSPIN_DEV_TYPE_NIC, mapNIC);
 	    }
 	}
 #else
