@@ -76,6 +76,9 @@ static PspmixJobserver_t* findJobserver(PStask_ID_t loggertid)
  * as target for @a msg.
  *
  * @param msg    message fragment to manipulate
+ *
+ * @return Returns true on success, i.e. when the destination could be
+ * determined or false otherwise
  */
 static bool setTargetToPmixJobserver(DDTypedBufferMsg_t *msg)
 {
@@ -114,7 +117,7 @@ static bool setTargetToPmixJobserver(DDTypedBufferMsg_t *msg)
  *
  * @param vmsg Pointer to message to handle
  *
- * @return Always return true
+ * @return Return true if message was forwarded or false otherwise
  */
 static bool forwardPspmixMsg(DDBufferMsg_t *vmsg)
 {
@@ -144,14 +147,14 @@ static bool forwardPspmixMsg(DDBufferMsg_t *vmsg)
 	    return false;
 	}
     }
-    if (PSC_getPID(msg->header.dest)) {
-	PSIDclient_send((DDMsg_t *)vmsg);
-    } else {
+    if (!PSC_getPID(msg->header.dest)) {
 	mlog("%s: no dest (sender %s type  %s)\n", __func__,
 	     PSC_printTID(msg->header.sender),
 	     pspmix_getMsgTypeString(msg->type));
+	return false;
     }
-    return true;
+
+    return PSIDclient_send((DDMsg_t *)vmsg) >= 0;
 }
 
 /**
