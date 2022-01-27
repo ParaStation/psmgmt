@@ -16,6 +16,7 @@ topo.jrc0732.xml   JURECA-DC CPU partition standard node
 topo.jrc0832.xml   JURECA-DC CPU partition large memory
 topo.jrc5001.xml   JURECA-Booster (Cluster: Quadrant / Memory: Cache)
 topo.jwb0001.xml   JUWELS-Booster
+topo.jwb0004.xml   JUWELS-Booster (utilizing hwloc v2.2)
 topo.jwc00n001.xml JUWELS-Cluster CPU partition
 topo.jwc09n003.xml JUWELS-Cluster GPU partition
 topo.mel0001.xml   Meluxina CPU partition
