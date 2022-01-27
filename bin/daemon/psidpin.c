@@ -236,14 +236,20 @@ static void bindToDevs(cpu_set_t *cpuSet, PSIDpin_devType_t type,
     char val[1024];
     size_t len = 0;
 
-    if (mapFunc)
-
     /* build string listing the closest devices */
     for (size_t i = 0; i < devcount; i++) {
 	if (mapFunc) {
-	    len += snprintf(val+len, 4, "%s,", mapFunc(devlist[i]));
+	    char *devstr = mapFunc(devlist[i]);
+	    if (!devstr) {
+		fprintf(stderr, "unable to setup %s pinning: no name found for"
+			" device %d\n", typename, devlist[i]);
+		len = 0;
+		break;
+	    }
+	    len += snprintf(val+len, sizeof(val)-len, "%s,",
+			    mapFunc(devlist[i]));
 	} else {
-	    len += snprintf(val+len, 4, "%hu,", devlist[i]);
+	    len += snprintf(val+len, sizeof(val)-len, "%hu,", devlist[i]);
 	}
     }
     val[len ? len-1 : len] = '\0';
@@ -283,7 +289,18 @@ static void bindToDevs(cpu_set_t *cpuSet, PSIDpin_devType_t type,
     /* build string listing the close devices */
     len = 0;
     for (size_t i = 0; i < closecount; i++) {
-	len += snprintf(val+len, 4, "%hu,", closelist[i]);
+	if (mapFunc) {
+	    char *devstr = mapFunc(closelist[i]);
+	    if (!devstr) {
+		PSID_log(PSID_LOG_SPAWN, "%s: no name found for %s device %d\n",
+			 __func__, typename, closelist[i]);
+		devstr = "unknown";
+		break;
+	    }
+	    len += snprintf(val+len, sizeof(val)-len, "%s,", devstr);
+	} else {
+	    len += snprintf(val+len, sizeof(val)-len, "%hu,", closelist[i]);
+	}
     }
     val[len ? len-1 : len] = '\0';
 
@@ -489,10 +506,7 @@ static char mapvalue[128];
 
 char * mapNIC(short id) {
     PSIDhw_IOdev_t *NICDev = PSIDnodes_NICDevs(id);
-    if (!NICDev) {
-	fprintf(stderr, "no device info for NIC %d\n", id);
-	return "N/A";
-    }
+    if (!NICDev) return NULL;
 
     size_t len = 0;
     for (size_t i = 0; i < NICDev->numPorts; i++) {
