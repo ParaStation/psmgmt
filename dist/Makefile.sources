@@ -343,6 +343,8 @@ plugins/psaccount/psaccounthistory.c \
 plugins/psaccount/psaccounthistory.h \
 plugins/psaccount/psaccountinter.c \
 plugins/psaccount/psaccountinter.h \
+plugins/psaccount/psaccountinterconnect.c \
+plugins/psaccount/psaccountinterconnect.h \
 plugins/psaccount/psaccountjob.c \
 plugins/psaccount/psaccountjob.h \
 plugins/psaccount/psaccountkvs.c \
