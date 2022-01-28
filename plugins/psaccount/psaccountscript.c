@@ -135,6 +135,19 @@ static bool testCollectScript(char *spath, char *title)
 Collect_Script_t *Script_start(char *title, char *path,
 			       scriptDataHandler_t *func, int poll)
 {
+    if (!title) {
+	mlog("%s: invalid title given\n", __func__);
+	return false;
+    }
+    if (!path) {
+	mlog("%s: invalid path given\n", __func__);
+	return false;
+    }
+    if (!func) {
+	mlog("%s: invalid func given\n", __func__);
+	return false;
+    }
+
     if (!testCollectScript(path, title)) return false;
 
     Collect_Script_t *script = umalloc(sizeof(*script));
@@ -166,6 +179,11 @@ Collect_Script_t *Script_start(char *title, char *path,
 
 void Script_finalize(Collect_Script_t *script)
 {
+    if (!script) {
+	mlog("%s: invalid script given\n", __func__);
+	return;
+    }
+
     shutdownForwarder(script->fwdata);
     ufree(script->path);
     ufree(script);

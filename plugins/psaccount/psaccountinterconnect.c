@@ -23,6 +23,7 @@
 #include "psaccountlog.h"
 #include "psaccountconfig.h"
 #include "psaccountscript.h"
+#include "psaccounttypes.h"
 
 #include "pluginconfig.h"
 #include "pluginforwarder.h"
@@ -36,15 +37,43 @@
 /** interconnect monitor script */
 static Collect_Script_t *iScript = NULL;
 
+/** interconnect state data */
+static psAccountIC_t icData, icBase;
+
 static void parseInterconn(char *data)
 {
-    unsigned long long power, energy;
+    static bool isInit = false;
+    psAccountIC_t new;
 
-    if (sscanf(data, "power:%llu energy:%llu", &power, &energy) != 2) {
-	mlog("%s: parsing energy data '%s' from script failed\n",
+    if (sscanf(data, "RcvData:%zu RcvPkts:%zu Select:%hu XmitData:%zu "
+	       "XmitPkts:%zu", &new.recvBytes, &new.recvPkts,
+	       &new.port, &new.sendBytes, &new.sendPkts) != 5) {
+	mlog("%s: parsing interconnect data '%s' from script failed\n",
 	     __func__, data);
 	return;
     }
+    new.lastUpdate = time(NULL);
+
+    if (!isInit) {
+	memcpy(&icBase, &new, sizeof(icBase));
+	isInit = true;
+
+	mlog("%s: init base values: port %hu XmitData %zu RcvData %zu "
+	     "XmitPkts %zu RcvPkts %zu\n", __func__, icData.port,
+	     icBase.recvBytes, icBase.recvPkts, icBase.sendBytes,
+	     icBase.sendPkts);
+    }
+
+    icData.recvBytes = new.recvBytes - icBase.recvBytes;
+    icData.recvPkts = new.recvPkts - icBase.recvPkts;
+    icData.sendBytes = new.sendBytes - icBase.sendBytes;
+    icData.sendPkts = new.sendPkts - icBase.sendPkts;
+    icData.port = new.port;
+    icData.lastUpdate = time(NULL);
+
+    mlog("%s: port %hu XmitData %zu RcvData %zu XmitPkts %zu RcvPkts %zu\n",
+	 __func__, icData.port, icData.recvBytes, icData.recvPkts,
+	 icData.sendBytes, icData.sendPkts);
 }
 
 bool InterconnInit(void)
@@ -64,7 +93,5 @@ bool InterconnInit(void)
 
 void InterconnFinalize(void)
 {
-    if (iScript) {
-	Script_finalize(iScript);
-    }
+    if (iScript) Script_finalize(iScript);
 }

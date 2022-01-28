@@ -167,9 +167,7 @@ bool energyInit(void)
 
 void energyFinalize(void)
 {
-    if (eScript) {
-	Script_finalize(eScript);
-    }
+    if (eScript) Script_finalize(eScript);
 }
 
 bool energyUpdate(void)

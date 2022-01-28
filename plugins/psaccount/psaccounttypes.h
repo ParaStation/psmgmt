@@ -79,6 +79,16 @@ typedef struct {
     time_t lastUpdate;		/**< time stamp of the last update */
 } psAccountEnergy_t;
 
+/** Node interconnect I/O data */
+typedef struct {
+    int16_t port;		/**< port number */
+    uint64_t recvBytes;		/**< number of bytes red */
+    uint64_t sendBytes;		/**< number of bytes written */
+    uint64_t recvPkts;		/**< number of packets red */
+    uint64_t sendPkts;		/**< number of packets written */
+    time_t lastUpdate;		/**< time stamp of the last update */
+} psAccountIC_t;
+
 /**
  * @brief Register batch jobscript
  *
