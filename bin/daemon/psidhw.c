@@ -499,14 +499,16 @@ PSCPU_set_t * PSIDhw_getPCISets(bool PCIorder, PCI_ID_t ID_list[],
 	if (!checkPCIDev(&pciObj->attr->pcidev, ID_list)) continue;
 	PSID_log(PSID_LOG_HW, "%s: Match\n", __func__);
 
+	int mappedIdx = map ? map[idx] : idx;
+
 	/* Identify OS-names of IO devices if requested */
 	if (IOdevs) {
+#if HWLOC_API_VERSION >= 0x00020000 /* hwloc 2.0 */
 	    if (!pciObj->io_arity) {
 		PSID_log(-1, "%s: no io info for device %04x:%04x\n", __func__,
 			 pciObj->attr->pcidev.vendor_id,
 			 pciObj->attr->pcidev.device_id);
 	    } else {
-		int ioidx = map ? map[idx] : idx;
 
 		/* traverse io_children to search of Port<num>State entries */
 		hwloc_obj_t obj = pciObj->io_first_child;
@@ -520,16 +522,37 @@ PSCPU_set_t * PSIDhw_getPCISets(bool PCIorder, PCI_ID_t ID_list[],
 			if (num == 2 && !strncmp(str, "State", 5)) {
 			    if (first) {
 				/* Found Port<num>State => this is our device */
-				(*IOdevs)[ioidx].name = strdup(obj->name);
+				(*IOdevs)[mappedIdx].name = strdup(obj->name);
 				first = false;
 			    }
-			    uint8_t nPort = (*IOdevs)[ioidx].numPorts++;
-			    (*IOdevs)[ioidx].portNums[nPort] = portNum;
+			    uint8_t nPort = (*IOdevs)[mappedIdx].numPorts++;
+			    (*IOdevs)[mappedIdx].portNums[nPort] = portNum;
 			}
 		    }
 		    obj = obj->next_sibling;
 		}
 	    }
+#else
+	    hwloc_obj_t obj = NULL;
+	    while ((obj = hwloc_get_next_child(topology, pciObj, obj))) {
+		bool first = true;
+		for (unsigned i = 0; i < obj->infos_count; i++) {
+		    uint8_t portNum = 0;
+		    char str[128];
+		    int num = sscanf(obj->infos[i].name, "Port%hhu%64s",
+				     &portNum, str);
+		    if (num == 2 && !strncmp(str, "State", 5)) {
+			if (first) {
+			    /* Found Port<num>State => this is our device */
+			    (*IOdevs)[mappedIdx].name = strdup(obj->name);
+			    first = false;
+			}
+			uint8_t nPort = (*IOdevs)[mappedIdx].numPorts++;
+			(*IOdevs)[mappedIdx].portNums[nPort] = portNum;
+		    }
+		}
+	    }
+#endif
 	}
 
 	/* Find CPU set this device is connected to */
@@ -553,9 +576,9 @@ PSCPU_set_t * PSIDhw_getPCISets(bool PCIorder, PCI_ID_t ID_list[],
 	hwloc_bitmap_foreach_begin(hwthread, obj->cpuset) {
 	    for (uint16_t d = 0; d < getNUMADoms(); d++) {
 		if (PSCPU_isSet(CPUSets[d], hwthread)) {
-		    PSCPU_setCPU(sets[d], map ? map[idx] : idx);
+		    PSCPU_setCPU(sets[d], mappedIdx);
 		    PSID_log(PSID_LOG_HW, "%s: register as %d at %d\n",
-			     __func__, map ? map[idx] : idx, d);
+			     __func__, mappedIdx, d);
 
 		    found = true;
 		    break;
