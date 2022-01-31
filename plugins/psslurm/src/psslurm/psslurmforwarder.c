@@ -376,6 +376,10 @@ static void fwExecBatchJob(Forwarder_Data_t *fwdata, int rerun)
     if (getConfValueI(&Config, "CWD_PATTERN") == 1) {
 	cwd = IO_replaceJobSymbols(job, job->cwd);
     }
+    if (!switchUser(job->username, job->uid, job->gid)) {
+	flog("switching user failed\n");
+	exit(1);
+    }
     if (!switchCwd(cwd)) {
 	flog("switching working directory failed\n");
 	exit(1);
@@ -944,6 +948,9 @@ static void fwExecStep(Forwarder_Data_t *fwdata, int rerun)
     if (getConfValueI(&Config, "CWD_PATTERN") == 1) {
 	cwd = IO_replaceStepSymbols(step, 0, step->cwd);
     }
+    if (!switchUser(step->username, step->uid, step->gid)) {
+	flog("switching user failed\n");
+    }
     if (!switchCwd(cwd)) {
 	flog("switching working directory failed\n");
 	exit(1);
@@ -1207,9 +1214,6 @@ bool execStepLeader(Step_t *step)
     fwdata->pTitle = ustrdup(fname);
     fwdata->jobID = ustrdup(jobid);
     fwdata->userData = step;
-    fwdata->userName = strdup(step->username);
-    fwdata->uID = step->uid;
-    fwdata->gID = step->gid;
     fwdata->graceTime = grace;
     fwdata->accounted = true;
     fwdata->killSession = psAccountSignalSession;
@@ -1299,9 +1303,6 @@ bool execBatchJob(Job_t *job)
     fwdata->pTitle = ustrdup(fname);
     fwdata->jobID = ustrdup(Job_strID(job->jobid));
     fwdata->userData = job;
-    fwdata->userName = strdup(job->username);
-    fwdata->uID = job->uid;
-    fwdata->gID = job->gid;
     fwdata->graceTime = grace;
     fwdata->accounted = true;
     fwdata->killSession = psAccountSignalSession;
@@ -1335,6 +1336,11 @@ static void fwExecBCast(Forwarder_Data_t *fwdata, int rerun)
 {
     BCast_t *bcast = fwdata->userData;
     struct utimbuf times;
+
+    if (!switchUser(bcast->username, bcast->uid, bcast->gid)) {
+	flog("switching user failed\n");
+	exit(1);
+    }
 
     /* open the file */
     int wFlags = O_WRONLY;
@@ -1412,9 +1418,6 @@ bool execBCast(BCast_t *bcast)
     fwdata->pTitle = ustrdup(fname);
     fwdata->jobID = ustrdup(jobid);
     fwdata->userData = bcast;
-    fwdata->userName = strdup(bcast->username);
-    fwdata->uID = bcast->uid;
-    fwdata->gID = bcast->gid;
     fwdata->graceTime = grace;
     fwdata->killSession = psAccountSignalSession;
     fwdata->callback = bcastCallback;
