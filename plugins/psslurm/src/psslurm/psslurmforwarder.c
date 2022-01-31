@@ -1337,11 +1337,6 @@ static void fwExecBCast(Forwarder_Data_t *fwdata, int rerun)
     BCast_t *bcast = fwdata->userData;
     struct utimbuf times;
 
-    if (!switchUser(bcast->username, bcast->uid, bcast->gid)) {
-	flog("switching user failed\n");
-	exit(1);
-    }
-
     /* open the file */
     int wFlags = O_WRONLY;
     if (bcast->blockNumber == 1) {
@@ -1418,6 +1413,9 @@ bool execBCast(BCast_t *bcast)
     fwdata->pTitle = ustrdup(fname);
     fwdata->jobID = ustrdup(jobid);
     fwdata->userData = bcast;
+    fwdata->userName = strdup(bcast->username);
+    fwdata->uID = bcast->uid;
+    fwdata->gID = bcast->gid;
     fwdata->graceTime = grace;
     fwdata->killSession = psAccountSignalSession;
     fwdata->callback = bcastCallback;
