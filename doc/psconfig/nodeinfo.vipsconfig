@@ -1,3 +1,6 @@
+[+class:defaults]
+.parents = []
+
 [+class:nodeinfo]
 .parents = ["defaults:nodeinfo"]
 # Inherited keys:

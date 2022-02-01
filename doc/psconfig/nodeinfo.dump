@@ -1,4 +1,9 @@
 #
+# Object "class:defaults"
+#
+psconfig -q -- create 'class:defaults'
+psconfig -q -- setParents 'class:defaults' # empty #
+#
 # Object "class:nodeinfo"
 #
 psconfig -q -- create 'class:nodeinfo'

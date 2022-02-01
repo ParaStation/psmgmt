@@ -1,3 +1,7 @@
+; defaults class object
+;
+[+class:defaults]
+
 ; host class object
 ;
 [+class:host]
@@ -6,7 +10,7 @@
 ; not to be changed by the administrator
 ;
 [+defaults:psid]
-.parents = []
+.parents = [class:defaults]
 AdminGroups = ["root"]
 AdminUsers = ["root"]
 AllowExclusive = "no"
@@ -59,7 +63,7 @@ UseMCast = "no"
 ; not to be changed by the administrator
 ;
 [+defaults:resourcelimits]
-.parents = []
+.parents = [class:defaults]
 Core = "unlimited"
 # Inherited keys:
 
