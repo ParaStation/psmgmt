@@ -167,6 +167,9 @@ static bool forwardPspmixMsg(DDBufferMsg_t *vmsg)
  * This function is used to forward messages coming from the local PMIx
  * jobserver in the daemon.
  *
+ * As a side effect, this function is setting server's used flag as soon
+ * as the first PSPMIX_CLIENT_INIT message is send by a jobserver.
+ *
  * @param tmpmsg message received
  * @param fw     the plugin forwarder hosting the PMIx jobserver
  *
@@ -180,6 +183,29 @@ static int forwardPspmixFwMsg(PSLog_Msg_t *tmpmsg, ForwarderData_t *fw)
     DDBufferMsg_t *vmsg = (DDBufferMsg_t *)tmpmsg; /* HACK */
 
     if (vmsg->header.type != PSP_PLUG_PSPMIX) return 0;
+
+    DDTypedBufferMsg_t *msg = (DDTypedBufferMsg_t *)vmsg;
+
+    if (msg->type == PSPMIX_CLIENT_INIT) {
+	PspmixJobserver_t *server = NULL;
+
+	list_t *j;
+	list_for_each(j, &pmixJobservers) {
+	    PspmixJobserver_t *js = list_entry(j, PspmixJobserver_t, next);
+	    if (js->fwdata->tid == msg->header.sender)
+		server = js;
+	}
+	if (server) {
+	    if (!server->used) {
+		mlog("%s: Job with logger tid %s started to use PMIx.\n",
+			__func__, PSC_printTID(server->loggertid));
+	    }
+	    server->used = true;
+	} else {
+	    mlog("%s: Couldn't find sending jobserver %s\n", __func__,
+		    PSC_printTID(msg->header.sender));
+	}
+    }
 
     forwardPspmixMsg(vmsg);
 

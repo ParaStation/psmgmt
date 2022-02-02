@@ -34,6 +34,7 @@ typedef struct {
     list_t resInfos;         /**< job's reservations involving this node */
     PStask_t *prototask;     /**< task prototype, see PSIDHOOK_RECV_SPAWNREQ */
     int timerId;             /**< ID of the kill timer or -1 */
+    bool used;               /**< Flag whether the server is actually used */
 } PspmixJobserver_t;
 
 /* Application information */
