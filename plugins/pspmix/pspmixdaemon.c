@@ -167,7 +167,7 @@ static bool forwardPspmixMsg(DDBufferMsg_t *vmsg)
  * This function is used to forward messages coming from the local PMIx
  * jobserver in the daemon.
  *
- * @param vmsg   message received
+ * @param tmpmsg message received
  * @param fw     the plugin forwarder hosting the PMIx jobserver
  *
  * @return Returns 1 if the type is known, 0 if not

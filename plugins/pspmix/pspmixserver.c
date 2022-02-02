@@ -250,7 +250,7 @@ static pmix_status_t server_client_finalized_cb(const pmix_proc_t *proc,
 	 "%s(proc(%d, '%s') clientObject %p cbfunc %p cbdata %p)\n", __func__,
 	 proc->rank, proc->nspace, clientObject, cbfunc, cbdata);
 
-    mlog("Finalization of %s:%d nnotified\n", proc->nspace, proc->rank);
+    mlog("Finalization of %s:%d notified\n", proc->nspace, proc->rank);
 
     mycbfunc_t *cb = NULL;
     if (cbfunc) {
