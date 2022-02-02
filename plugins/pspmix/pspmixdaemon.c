@@ -275,10 +275,11 @@ static void jobserverTerminated_cb(int32_t exit_status, Forwarder_Data_t *fw)
 	     exit_status);
     }
 
-    /* regularly this function only unlists and frees the server */
+    /* only unlists and frees the server if stopServer() has set timerId */
     if (server->timerId >= 0) {
 	Timer_remove(server->timerId);
 	deleteServer(server);
+	return;
     }
 
     /* if no timer is set, stopJobserver() has not been called yet and
