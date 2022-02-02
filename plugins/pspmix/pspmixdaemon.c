@@ -239,7 +239,7 @@ static void killJobserver(int timerId, void *data)
 
     pid_t pid = PSC_getPID(server->fwdata->tid);
     if (pid) {
-	kill(server->fwdata->tid , SIGKILL);
+	kill(pid, SIGKILL);
     } else {
 	mlog("%s: Not killing myself!\n", __func__);
     }
