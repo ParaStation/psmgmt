@@ -118,7 +118,7 @@ static void cbTermJail(int exit, bool tmdOut, int iofd, void *info)
     }
 }
 
-static int jobCallback(int32_t exit_status, Forwarder_Data_t *fw)
+static void jobCallback(int32_t exit_status, Forwarder_Data_t *fw)
 {
     Job_t *job = fw->userData;
     Alloc_t *alloc = Alloc_find(job->jobid);
@@ -127,7 +127,7 @@ static int jobCallback(int32_t exit_status, Forwarder_Data_t *fw)
 	 exit_status, fw->chldExitStatus);
     if (!Job_findById(job->jobid)) {
 	mlog("%s: job '%u' not found\n", __func__, job->jobid);
-	return 0;
+	return;
     }
 
     /* terminate cgroup */
@@ -156,7 +156,7 @@ static int jobCallback(int32_t exit_status, Forwarder_Data_t *fw)
     if (!alloc) {
 	flog("allocation for job %u not found\n", job->jobid);
 	Job_delete(job);
-	return 0;
+	return;
     }
 
     if (pluginShutdown) {
@@ -172,7 +172,6 @@ static int jobCallback(int32_t exit_status, Forwarder_Data_t *fw)
     }
 
     job->fwdata = NULL;
-    return 0;
 }
 
 static int termStepJail(void *info)
@@ -185,14 +184,14 @@ static int termStepJail(void *info)
     return PSIDhook_call(PSIDHOOK_JAIL_TERM, &step->fwdata->cPid);
 }
 
-static int stepFollowerCB(int32_t exit_status, Forwarder_Data_t *fw)
+static void stepFollowerCB(int32_t exit_status, Forwarder_Data_t *fw)
 {
     Step_t *step = fw->userData;
 
     /* validate step pointer */
     if (!Step_verifyPtr(step)) {
 	flog("Invalid step pointer %p\n", step);
-	return 0;
+	return;
     }
 
     /* terminate cgroup */
@@ -240,18 +239,16 @@ static int stepFollowerCB(int32_t exit_status, Forwarder_Data_t *fw)
     }
 
     if (step->stepid == SLURM_INTERACTIVE_STEP) Step_delete(step);
-
-    return 0;
 }
 
-static int stepCallback(int32_t exit_status, Forwarder_Data_t *fw)
+static void stepCallback(int32_t exit_status, Forwarder_Data_t *fw)
 {
     Step_t *step = fw->userData;
 
     /* validate step pointer */
     if (!Step_verifyPtr(step)) {
 	flog("Invalid step pointer %p\n", step);
-	return 0;
+	return;
     }
     stopStepFollower(step);
 
@@ -320,11 +317,9 @@ static int stepCallback(int32_t exit_status, Forwarder_Data_t *fw)
 	step->fwdata = NULL;
 	clearTasks(&step->tasks);
     }
-
-    return 0;
 }
 
-static int bcastCallback(int32_t exit_status, Forwarder_Data_t *fw)
+static void bcastCallback(int32_t exit_status, Forwarder_Data_t *fw)
 {
     BCast_t *bcast = fw->userData;
 
@@ -332,8 +327,6 @@ static int bcastCallback(int32_t exit_status, Forwarder_Data_t *fw)
 
     bcast->fwdata = NULL;
     if (bcast->flags & BCAST_LAST_BLOCK) clearBCastByJobid(bcast->jobid);
-
-    return 0;
 }
 
 static int setFilePermissions(Job_t *job)
@@ -1598,7 +1591,7 @@ static void fwExecEpiFin(Forwarder_Data_t *fwdata, int rerun)
     exit(err);
 }
 
-static int epiFinCallback(int32_t exit_status, Forwarder_Data_t *fwdata)
+static void epiFinCallback(int32_t exit_status, Forwarder_Data_t *fwdata)
 {
     Alloc_t *alloc = fwdata->userData;
 
@@ -1609,8 +1602,6 @@ static int epiFinCallback(int32_t exit_status, Forwarder_Data_t *fwdata)
 	sendEpilogueComplete(alloc->id, 0);
 	Alloc_delete(alloc->id);
     }
-
-    return 0;
 }
 
 bool execEpilogueFin(Alloc_t *alloc)

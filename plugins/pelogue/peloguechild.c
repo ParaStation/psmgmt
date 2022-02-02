@@ -195,12 +195,12 @@ static void manageTempDir(PElogueChild_t *child, bool create)
     }
 }
 
-static int fwCallback(int32_t forwStatus, Forwarder_Data_t *fwData)
+static void fwCallback(int32_t forwStatus, Forwarder_Data_t *fwData)
 {
     PElogueChild_t *child = fwData->userData;
     int exitStatus = 1;
 
-    if (!child) return 0;
+    if (!child) return;
 
     if (fwData->exitRcvd) {
 	int pelogueStatus = fwData->chldExitStatus;
@@ -238,8 +238,6 @@ static int fwCallback(int32_t forwStatus, Forwarder_Data_t *fwData)
 	mlog("%s: deleting child '%s' failed\n", __func__, fwData->jobID);
     }
     /* fwData will be cleaned up within pluginforwarder */
-
-    return 0;
 }
 
 /**

@@ -201,13 +201,13 @@ static int killJobserver(pid_t session, int sig)
 /**
  * Function called when the PMIx jobserver terminated
  */
-static int jobserverTerminated_cb(int32_t exit_status, Forwarder_Data_t *fw)
+static void jobserverTerminated_cb(int32_t exit_status, Forwarder_Data_t *fw)
 {
     mdbg(PSPMIX_LOG_CALL, "%s() called with forwarder %s status %d\n", __func__,
 	    PSC_printTID(fw->tid), exit_status);
 
     /* regularly this function has nothing to do */
-    if (exit_status == 0 && fw->userData == NULL) return 0;
+    if (exit_status == 0 && fw->userData == NULL) return;
 
     PspmixJobserver_t *server = fw->userData;
 
@@ -231,8 +231,6 @@ static int jobserverTerminated_cb(int32_t exit_status, Forwarder_Data_t *fw)
     /* The server is removed from PMIx jobservers list later by stopJobserver()
      * which will be called in hookLocalJobRemoved() after the psid detected
      * that the job is canceled */
-
-    return 0;
 }
 
 /*

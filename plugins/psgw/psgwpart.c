@@ -326,14 +326,14 @@ ERROR:
     return false;
 }
 
-static int fwCallback(int32_t exit_status, Forwarder_Data_t *fw)
+static void fwCallback(int32_t exit_status, Forwarder_Data_t *fw)
 {
     PSGW_Req_t *req = Request_verify(fw->userData);
 
     if (!req) {
 	/* may happen on shutdown after epilogue */
 	fdbg(PSGW_LOG_DEBUG, "no request for %p\n", fw->userData);
-	return 0;
+	return;
     }
 
     req->fwdata = NULL;
@@ -342,8 +342,6 @@ static int fwCallback(int32_t exit_status, Forwarder_Data_t *fw)
 		 "with error %i\n", req->jobid, exit_status);
 	cancelReq(req, msgBuf);
     }
-
-    return 0;
 }
 
 int handleMotherMsg(PSLog_Msg_t *msg, Forwarder_Data_t *fw)

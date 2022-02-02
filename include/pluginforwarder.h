@@ -63,8 +63,9 @@ typedef struct __fwData__ {
     bool jailChild;	   /**< jail all my children by
 			    * calling the hook PSIDHOOK_JAIL_CHILD */
     int (*killSession)(pid_t, int);
-			   /**< Method to kill forwarder and all its children */
-    int (*callback)(int32_t, Forwarder_Data_t *);
+			   /**< Method used by forwarder to kill all its
+			    * children */
+    void (*callback)(int32_t, Forwarder_Data_t *);
 			   /**< Callback invoked upon forwarder's termination */
     void (*childFunc)(Forwarder_Data_t *, int);
 			   /**< Child function forked by forwarder */
