@@ -261,7 +261,6 @@ static void jobserverTerminated_cb(int32_t exit_status, Forwarder_Data_t *fw)
 	    PSC_printTID(fw->tid), exit_status);
 
     PspmixJobserver_t *server = fw->userData;
-
     if (!server) {
 	mlog("%s: UNEXPECTED: PMIx jobserver with tid %s and invalid server"
 		" reference terminated with status %d\n", __func__,
@@ -486,10 +485,8 @@ static int hookLocalJobRemoved(void *data)
     // TODO look if this job is using PMIx
 
     /* is there a PMIx jobserver running for this job? */
-    PspmixJobserver_t *server;
-    server = findJobserver(job->loggertid);
-
-    if (server == NULL) {
+    PspmixJobserver_t *server = findJobserver(job->loggertid);
+    if (!server) {
 	mlog("%s: No existing PMIx jobserver found for job with loggertid %s."
 		" (This is fine for jobs not using PMIx.)\n",
 		__func__, PSC_printTID(job->loggertid));
@@ -520,10 +517,9 @@ static int hookNodeDown(void *data)
 
     mdbg(PSPMIX_LOG_CALL, "%s() called with nodeid %hd\n", __func__, *nodeid);
 
-    PspmixJobserver_t *jobserver;
     list_t *j, *tmp;
     list_for_each_safe(j, tmp, &pmixJobservers) {
-	jobserver = list_entry(j, PspmixJobserver_t, next);
+	PspmixJobserver_t *jobserver = list_entry(j, PspmixJobserver_t, next);
 	if (PSC_getID(jobserver->loggertid) == *nodeid) {
 	    stopJobserver(jobserver);
 	}
