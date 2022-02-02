@@ -21,9 +21,8 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <unistd.h>
-#include <sys/types.h>
 #include <signal.h>
+#include <sys/time.h>
 
 #include "list.h"
 #include "pscommon.h"
@@ -33,6 +32,7 @@
 #include "psserial.h"
 #include "timer.h"
 
+#include "pluginconfig.h"
 #include "pluginforwarder.h"
 #include "pluginmalloc.h"
 

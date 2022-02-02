@@ -21,7 +21,6 @@
 #include "psreservation.h"
 
 #include "psidspawn.h"
-#include "pluginhelper.h"
 
 #include "pspmixlog.h"
 #include "pspmixservice.h"
