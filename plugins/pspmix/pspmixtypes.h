@@ -1,8 +1,8 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2018-2020 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021 ParTec AG, Munich
+ * Copyright (C) 2018-2021 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2021-2022 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -33,6 +33,7 @@ typedef struct {
     Forwarder_Data_t *fwdata;/**< data of the plugin forwarder (== jobserver) */
     list_t resInfos;         /**< job's reservations involving this node */
     PStask_t *prototask;     /**< task prototype, see PSIDHOOK_RECV_SPAWNREQ */
+    int timerId;             /**< ID of the kill timer or -1 */
 } PspmixJobserver_t;
 
 /* Application information */

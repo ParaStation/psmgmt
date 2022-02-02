@@ -22,6 +22,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <sys/types.h>
+#include <signal.h>
 
 #include "list.h"
 #include "pscommon.h"
@@ -29,6 +31,7 @@
 #include "pspluginprotocol.h"
 #include "psprotocol.h"
 #include "psserial.h"
+#include "timer.h"
 
 #include "pluginforwarder.h"
 #include "pluginmalloc.h"
@@ -43,6 +46,7 @@
 #include "pspmixcommon.h"
 #include "pspmixjobserver.h"
 #include "pspmixcomm.h"
+#include "pspmixconfig.h"
 
 /** The list of running PMIx jobservers on this node */
 static LIST_HEAD(pmixJobservers);
@@ -187,50 +191,85 @@ static int forwardPspmixFwMsg(PSLog_Msg_t *tmpmsg, ForwarderData_t *fw)
  * ****************************************************** */
 
 /**
- * Kill the PMIx jobserver
+ * Unlist and free a server object
  */
-static int killJobserver(pid_t session, int sig)
+static void deleteServer(PspmixJobserver_t *server)
 {
-    mlog("%s() called\n", __func__);
-
-    //TODO  send signal to the correct jobserver
-
-    return 0;
+	list_del(&server->next);
+	if (server->fwdata) server->fwdata->userData = NULL;
+	free(server);
 }
 
 /**
- * Function called when the PMIx jobserver terminated
+ * Kill the PMIx jobserver by signal when timer is up
+ */
+static void killJobserver(int timerId, void *data)
+{
+    PspmixJobserver_t *server = data;
+
+    mlog("%s: Sending SIGKILL to PMIx server for job with loggertid %s",
+	    __func__, PSC_printTID(server->loggertid));
+    mlog(" (%s)\n", PSC_printTID(server->fwdata->tid));
+
+    pid_t pid = PSC_getPID(server->fwdata->tid);
+    if (pid) {
+	kill(server->fwdata->tid , SIGKILL);
+    } else {
+	mlog("%s: Not killing myself!\n", __func__);
+    }
+}
+
+/**
+ * @brief Function called when the PMIx jobserver terminated
+ *
+ * This function distinguishes two situations:
+ * - @a stopJobserver() had been called for the same server and has exited
+ *   regularly as expected.
+ * - the jobserver terminated unexpected
+ *
+ * In any case, the server is removed from the list of servers and freed.
  */
 static void jobserverTerminated_cb(int32_t exit_status, Forwarder_Data_t *fw)
 {
     mdbg(PSPMIX_LOG_CALL, "%s() called with forwarder %s status %d\n", __func__,
 	    PSC_printTID(fw->tid), exit_status);
 
-    /* regularly this function has nothing to do */
-    if (exit_status == 0 && fw->userData == NULL) return;
-
     PspmixJobserver_t *server = fw->userData;
 
-    if (server != NULL) {
-	/* the jobserver forwarder died unintentionally, eliminate reference to
-	 * the fwdata in the corresponding server object */
-	server->fwdata = NULL;
-
-	mlog("%s: PMIx jobserver for job with loggertid %s terminated with"
-		" status %d\n", __func__, PSC_printTID(server->loggertid),
-		exit_status);
-    }
-    else {
+    if (!server) {
 	mlog("%s: UNEXPECTED: PMIx jobserver with tid %s and invalid server"
 		" reference terminated with status %d\n", __func__,
 		PSC_printTID(fw->tid), exit_status);
+	return;
     }
 
-    fw->userData = NULL;
+    if (exit_status != 0) {
+	mlog("%s: PMIx jobserver for job with loggertid %s terminated with"
+	     " status %d\n", __func__, PSC_printTID(server->loggertid),
+	     exit_status);
+    }
 
-    /* The server is removed from PMIx jobservers list later by stopJobserver()
-     * which will be called in hookLocalJobRemoved() after the psid detected
-     * that the job is canceled */
+    /* regularly this function only unlists and frees the server */
+    if (server->timerId >= 0) {
+	Timer_remove(server->timerId);
+	deleteServer(server);
+    }
+
+    /* if no timer is set, stopJobserver() has not been called yet and
+     * deleting is done later there but eliminate reference to the fwdata */
+    server->fwdata = NULL;
+}
+
+/**
+ * Fake killSessions since this needs to be set in ForwarderData_t
+ */
+static int fakeKillSession(pid_t pid, int signal)
+{
+    mdbg(PSPMIX_LOG_CALL, "%s() called with pid %d and signal %d\n", __func__,
+	    pid, signal);
+
+    /* since we do not have a child, we need nothing to do here */
+    return 0;
 }
 
 /*
@@ -257,7 +296,7 @@ static bool startJobserver(PspmixJobserver_t *server)
     fwdata->gID = server->prototask->gid;
     fwdata->graceTime = 3;
 //    fwdata->accounted = true;
-    fwdata->killSession = killJobserver;
+    fwdata->killSession = fakeKillSession;
     fwdata->callback = jobserverTerminated_cb;
     fwdata->hookFWInit = pspmix_jobserver_initialize;
     fwdata->hookLoop = pspmix_jobserver_prepareLoop;
@@ -279,30 +318,37 @@ static bool startJobserver(PspmixJobserver_t *server)
 /*
  * @brief Stop the PMIx server process for a job
  *
- * Stop the pluginforwarder working as PMIx jobserver and removes it from
- * the list of jobservers.
- * If the server already died, just remove it from the list.
+ * Tries to shutdown the pluginforwarder working as PMIx jobserver regularly.
+ * Afterwards, start a timer to kill it in exceptional case.
  */
 static void stopJobserver(PspmixJobserver_t *server)
 {
     mdbg(PSPMIX_LOG_CALL, "%s() called for job with loggertid %s\n", __func__,
 	    PSC_printTID(server->loggertid));
 
-    if (server->fwdata) {
-	shutdownForwarder(server->fwdata);
-	server->fwdata->userData = NULL;
-	mdbg(PSPMIX_LOG_VERBOSE, "%s: PMIx jobserver stopped for job with"
-		" loggertid %s\n", __func__, PSC_printTID(server->loggertid));
-    }
-    else {
+    if (!server->fwdata) {
 	mlog("%s: PMIx jobserver for job with loggertid %s has no valid"
 		" forwarder data, just removing from list.\n", __func__,
 		PSC_printTID(server->loggertid));
+	deleteServer(server);
+	return;
     }
 
-    list_del(&server->next);
-    ufree(server);
+    /* setup timer to kill the server in case it will not go smoothly
+     * this is also used to ensure the server will not be used again */
+    int grace = getConfValueI(&config, "SERVER_KILL_WAIT");
+    struct timeval timeout = {grace, 0};
+    server->timerId = Timer_registerEnhanced(&timeout, killJobserver, server);
+    if (server->timerId < 0) {
+	mlog("%s: failed to setup kill timer for PMIx jobserver for job with"
+		" loggertid %s.\n", __func__, PSC_printTID(server->loggertid));
+    }
 
+    shutdownForwarder(server->fwdata);
+    mdbg(PSPMIX_LOG_VERBOSE, "%s: PMIx jobserver stopped for job with"
+	    " loggertid %s\n", __func__, PSC_printTID(server->loggertid));
+
+    /* server object is freed in callback after SIGCHILD from jobserver */
 }
 
 /**
@@ -345,10 +391,11 @@ static int hookRecvSpawnReq(void *data)
     PspmixJobserver_t *server;
     server = findJobserver(job->loggertid);
 
-    if (!server) {
-	/* No jobserver found, start one */
+    if (!server || server->timerId >= 0 /* server already in shutdown */) {
+	/* No suitable jobserver found, start one */
 	server = ucalloc(sizeof(*server));
 	server->loggertid = prototask->loggertid;
+	server->timerId = -1;
 
 	// @todo what needs to be copied when cleanup daemon stuff
 	// in jobserver_init?

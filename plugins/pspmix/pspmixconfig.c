@@ -1,8 +1,8 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2019-2020 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2022 ParTec AG, Munich
+ * Copyright (C) 2019-2021 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2021-2022 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -19,6 +19,8 @@ const ConfDef_t confDef[] =
 {
     { "DEBUG_MASK", true, "mask", "0",
       "Mask to steer debug output" },
+    { "SERVER_KILL_WAIT", true, "seconds", "5",
+      "Time to wait after shutdown command before killing the PMIx server" },
     { NULL, false, NULL, NULL, NULL},
 };
 
