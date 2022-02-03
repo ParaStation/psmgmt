@@ -267,19 +267,23 @@ static void jobserverTerminated_cb(int32_t exit_status, Forwarder_Data_t *fw)
     PspmixJobserver_t *server = fw->userData;
     if (!server) {
 	mlog("%s: UNEXPECTED: PMIx jobserver with tid %s and invalid server"
-		" reference terminated with status %d\n", __func__,
-		PSC_printTID(fw->tid), exit_status);
+	     " reference terminated with status %d", __func__,
+	     PSC_printTID(fw->tid), WEXITSTATUS(exit_status));
+	if (WIFSIGNALED(exit_status)) {
+	    mlog(" after signal %d", WTERMSIG(exit_status));
+	}
+	mlog("\n");
 	return;
     }
 
-    if (!WIFEXITED(exit_status)) {
-	mlog("%s: PMIx jobserver for job with loggertid %s terminated",
-		__func__, PSC_printTID(server->loggertid));
+    if (WEXITSTATUS(exit_status) || WIFSIGNALED(exit_status)) {
+	mlog("%s: PMIx jobserver for loggertid %s terminated with status %d",
+	     __func__, PSC_printTID(server->loggertid),
+	     WEXITSTATUS(exit_status));
 	if (WIFSIGNALED(exit_status)) {
-	    mlog(" after signal %d\n", WTERMSIG(exit_status));
-	} else {
-	    mlog(" with status %d\n", exit_status);
+	    mlog(" after signal %d", WTERMSIG(exit_status));
 	}
+	mlog("\n");
     }
 
     /* only unlists and frees the server if stopServer() has set timerId */
