@@ -359,7 +359,7 @@ void PSID_sendSignalsToRelatives(PStask_t *task)
  * set up the requested user and group IDs and than to actually send
  * the signal to the receiving process.
  *
- * Furthermore if the signal sent is marked to be pervasive, this
+ * Furthermore, if the signal sent is marked to be pervasive, this
  * signal is also forwarded to all child processes of the receiving
  * process, local or remote.
  *
@@ -380,6 +380,13 @@ static bool msg_SIGNAL(DDSignalMsg_t *msg)
 	if (!sender) {
 	    PSID_log(-1, "%s: sender %s not found\n",
 		     __func__, PSC_printTID(msg->header.sender));
+	    return true;  /* ignore message */
+	}
+	if (sender->uid && (uid_t)msg->param != sender->uid) {
+	    PSID_log(-1, "%s: sender %s with uid %d sends signal as %d\n",
+		     __func__, PSC_printTID(msg->header.sender), sender->uid,
+		     msg->param);
+	    return true;  /* ignore message */
 	}
     }
 
