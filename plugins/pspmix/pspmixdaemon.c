@@ -362,9 +362,12 @@ static void stopJobserver(PspmixJobserver_t *server)
 
     /* setup timer to kill the server in case it will not go smoothly
      * this is also used to ensure the server will not be used again */
-    int grace = getConfValueI(&config, "SERVER_KILL_WAIT");
-    struct timeval timeout = {grace, 0};
-    server->timerId = Timer_registerEnhanced(&timeout, killJobserver, server);
+    if (server->timerId < 0) {
+	int grace = getConfValueI(&config, "SERVER_KILL_WAIT");
+	struct timeval timeout = {grace, 0};
+	server->timerId = Timer_registerEnhanced(&timeout, killJobserver,
+						 server);
+    }
     if (server->timerId < 0) {
 	mlog("%s: failed to setup kill timer for PMIx jobserver for job with"
 		" loggertid %s.\n", __func__, PSC_printTID(server->loggertid));
