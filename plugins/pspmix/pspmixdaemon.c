@@ -63,7 +63,10 @@ static PspmixJobserver_t* findJobserver(PStask_ID_t loggertid)
     list_t *j;
     list_for_each(j, &pmixJobservers) {
 	PspmixJobserver_t *jobserver = list_entry(j, PspmixJobserver_t, next);
-	if (jobserver->loggertid == loggertid) return jobserver;
+	if (jobserver->loggertid == loggertid
+	    && jobserver->timerId < 0 /* server not already in shutdown */) {
+	    return jobserver;
+	}
     }
     return NULL;
 }
@@ -420,7 +423,7 @@ static int hookRecvSpawnReq(void *data)
     PspmixJobserver_t *server;
     server = findJobserver(job->loggertid);
 
-    if (!server || server->timerId >= 0 /* server already in shutdown */) {
+    if (!server) {
 	/* No suitable jobserver found, start one */
 	server = ucalloc(sizeof(*server));
 	server->loggertid = prototask->loggertid;
