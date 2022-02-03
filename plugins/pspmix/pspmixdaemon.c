@@ -23,6 +23,7 @@
 #include <stdlib.h>
 #include <signal.h>
 #include <sys/time.h>
+#include <sys/wait.h>
 
 #include "list.h"
 #include "pscommon.h"
@@ -271,10 +272,14 @@ static void jobserverTerminated_cb(int32_t exit_status, Forwarder_Data_t *fw)
 	return;
     }
 
-    if (exit_status != 0) {
-	mlog("%s: PMIx jobserver for job with loggertid %s terminated with"
-	     " status %d\n", __func__, PSC_printTID(server->loggertid),
-	     exit_status);
+    if (!WIFEXITED(exit_status)) {
+	mlog("%s: PMIx jobserver for job with loggertid %s terminated",
+		__func__, PSC_printTID(server->loggertid));
+	if (WIFSIGNALED(exit_status)) {
+	    mlog(" after signal %d\n", WTERMSIG(exit_status));
+	} else {
+	    mlog(" with status %d\n", exit_status);
+	}
     }
 
     /* only unlists and frees the server if stopServer() has set timerId */
