@@ -41,6 +41,7 @@
 #include "psidcomm.h"
 #include "psidhook.h"
 #include "psidspawn.h"
+#include "psidsignal.h"
 
 #include "pspmixtypes.h"
 #include "pspmixlog.h"
@@ -249,6 +250,18 @@ static void killJobserver(int timerId, void *data)
 }
 
 /**
+ * @brief Terminate the job associated with @a loggertid
+ */
+static void terminateJob(PStask_ID_t loggertid)
+{
+    mdbg(PSPMIX_LOG_CALL, "%s() called with logger TID %s\n", __func__,
+	    PSC_printTID(loggertid));
+
+    PSID_sendSignal(loggertid, getuid(), PSC_getMyTID(), -1 /* signal */,
+		    0 /* pervasive */, 0 /* answer */);
+}
+
+/**
  * @brief Function called when the PMIx jobserver terminated
  *
  * This function distinguishes two situations:
@@ -283,6 +296,19 @@ static void jobserverTerminated_cb(int32_t exit_status, Forwarder_Data_t *fw)
 	    mlog(" after signal %d", WTERMSIG(exit_status));
 	}
 	mlog("\n");
+
+	if (getConfValueI(&config, "KILL_JOB_ON_SERVERFAIL")) {
+	    if (server->used) {
+		mlog("%s: terminating job with logger %s"
+			" (KILL_JOB_ON_SERVERFAIL set)\n", __func__,
+			PSC_printTID(server->loggertid));
+		terminateJob(server->loggertid);
+	    } else {
+		mdbg(PSPMIX_LOG_VERBOSE, "%s: job with logger %s did not use"
+			" this server, not terminating\n", __func__,
+			PSC_printTID(server->loggertid));
+	    }
+	}
     }
 
     /* only unlists and frees the server if stopServer() has set timerId */

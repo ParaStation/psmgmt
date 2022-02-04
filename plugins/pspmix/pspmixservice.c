@@ -29,6 +29,7 @@
 #include "pspmixcomm.h"
 #include "pspmixlog.h"
 #include "pspmixservicespawn.h"
+#include "pspmixconfig.h"
 
 #define MAX_NODE_ID 32768
 
@@ -143,13 +144,16 @@ static PspmixFence_t* findFence(uint64_t fenceid) {
  *
  * @return No return value.
  */
-static void terminateJob(void)
+static void terminateJob(PStask_ID_t loggerTID)
 {
+    mdbg(PSPMIX_LOG_CALL, "%s() called with logger TID %s\n", __func__,
+	    PSC_printTID(loggerTID));
+
     DDSignalMsg_t msg;
 
     msg.header.type = PSP_CD_SIGNAL;
     msg.header.sender = PSC_getMyTID();
-    msg.header.dest = PSC_getMyTID();
+    msg.header.dest = loggerTID;
     msg.header.len = sizeof(msg);
     msg.signal = -1;
     msg.param = getuid();
@@ -157,25 +161,6 @@ static void terminateJob(void)
     msg.answer = 0;
 
     sendDaemonMsg((DDMsg_t *)&msg);
-}
-
-/**
- * @brief Handle critical error
- *
- * To handle a critical error close the connection and kill the child.
- * If something goes wrong in the startup phase with PMI, the child
- * and therefore the whole job can hang infinite. So we have to kill it.
- *
- * @return Always return false
- */
-#define critErr() __critErr(__func__, __LINE__);
-static bool __critErr(const char *func, int line)
-{
-    mdbg(PSPMIX_LOG_CALL, "%s:%d: critErr() called\n", func, line);
-
-    terminateJob();
-
-    return false;
 }
 
 bool pspmix_service_init(PStask_ID_t loggerTID, uid_t uid, gid_t gid)
@@ -198,7 +183,12 @@ bool pspmix_service_init(PStask_ID_t loggerTID, uid_t uid, gid_t gid)
     /* initialize the pmix server */
     if (!pspmix_server_init(uid, gid)) {
 	mlog("%s: failed to initialize pspmix server\n", __func__);
-	return critErr();
+	if (getConfValueI(&config, "KILL_JOB_ON_SERVERFAIL")) {
+	    mlog("%s: terminating job with logger %s (KILL_JOB_ON_SERVERFAIL"
+		    " set)\n", __func__, PSC_printTID(loggertid));
+	    terminateJob(loggerTID);
+	}
+	return false;
     }
 
     return true;
@@ -727,7 +717,7 @@ void pspmix_service_abort(void *clientObject)
     elog("%s: aborting on users request from rank %d\n", __func__,
 	    client->rank);
 
-    terminateJob();
+    terminateJob(loggertid);
 }
 
 /**

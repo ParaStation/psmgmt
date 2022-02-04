@@ -21,6 +21,8 @@ const ConfDef_t confDef[] =
       "Mask to steer debug output" },
     { "SERVER_KILL_WAIT", true, "seconds", "5",
       "Time to wait after shutdown command before killing the PMIx server" },
+    { "KILL_JOB_ON_SERVERFAIL", true, "bool", "0",
+      "Flag whether to terminate jobs using a failed PMIx Server" },
     { NULL, false, NULL, NULL, NULL},
 };
 
