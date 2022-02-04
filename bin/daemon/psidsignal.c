@@ -81,7 +81,7 @@ int pskill(pid_t pid, int sig, uid_t uid)
 	/* Send signal */
 	if (sig == SIGKILL) kill(pid, SIGCONT);
 	int error = kill(pid, sig);
-	eno = errno;
+	eno = (error) ? errno : 0;
 	if (write(cntrlfds[1], &eno, sizeof(eno)) < 0) {
 	    PSID_warn(-1, errno,
 		      "%s: write to control channel failed", __func__);
