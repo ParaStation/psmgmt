@@ -14,13 +14,13 @@
 
 #include "pscommon.h"
 #include "plugin.h"
-#include "pluginconfig.h"
 #include "pluginmalloc.h"
 
 #include "pspmixlog.h"
 #include "pspmixconfig.h"
 #include "pspmixdaemon.h"
 #include "pspmixforwarder.h"
+#include "pspmixconfig.h"
 
 #if 0
 #include "psaccounthandles.h"
@@ -124,21 +124,17 @@ char *help(void)
 
 char *set(char *key, char *val)
 {
-    const ConfDef_t *thisConfDef = getConfigDef(key, confDef);
-
-    if (!thisConfDef) return ustrdup("\nUnknown option\n");
+    if (!getConfigDef(key, confDef)) return ustrdup("\nUnknown key\n");
 
     if (verifyConfigEntry(confDef, key, val))
 	return ustrdup("\tIllegal value\n");
 
+    addConfigEntry(&config, key, val);
+
     if (!strcmp(key, "DEBUG_MASK")) {
-	int dbgMask;
-	addConfigEntry(&config, key, val);
-	dbgMask = getConfValueI(&config, key);
+	int dbgMask = getConfValueI(&config, key);
 	pspmix_maskLogger(dbgMask);
-	mdbg(PSPMIX_LOG_VERBOSE, "debugMask set to %#x\n", dbgMask);
-    } else {
-	return ustrdup("\nPermission denied\n");
+	mlog("debugMask set to %#x\n", dbgMask);
     }
 
     return NULL;
@@ -146,14 +142,14 @@ char *set(char *key, char *val)
 
 char *unset(char *key)
 {
+    if (!getConfigDef(key, confDef)) return ustrdup("\nUnknown key\n");
+
+    unsetConfigEntry(&config, confDef, key);
+
     if (!strcmp(key, "DEBUG_MASK")) {
-	int dbgMask;
-	unsetConfigEntry(&config, confDef, key);
-	dbgMask = getConfValueI(&config, key);
+	int dbgMask = getConfValueI(&config, key);
 	pspmix_maskLogger(dbgMask);
-	mdbg(PSPMIX_LOG_VERBOSE, "debugMask set to %#x\n", dbgMask);
-    } else {
-	return ustrdup("Permission denied\n");
+	mlog("debugMask set to %#x\n", dbgMask);
     }
 
     return NULL;
