@@ -21,6 +21,7 @@
 #include "psprotocol.h"
 #include "psreservation.h"
 
+#include "pluginconfig.h"
 #include "pluginmalloc.h"
 #include "pluginvector.h"
 #include "psidforwarder.h"

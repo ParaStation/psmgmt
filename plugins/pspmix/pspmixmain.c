@@ -14,13 +14,14 @@
 
 #include "pscommon.h"
 #include "plugin.h"
+
+#include "pluginconfig.h"
 #include "pluginmalloc.h"
 
 #include "pspmixlog.h"
 #include "pspmixconfig.h"
 #include "pspmixdaemon.h"
 #include "pspmixforwarder.h"
-#include "pspmixconfig.h"
 
 #if 0
 #include "psaccounthandles.h"

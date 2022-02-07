@@ -12,13 +12,21 @@
 #ifndef __PS_PMIX_TYPES
 #define __PS_PMIX_TYPES
 
+#include <stdbool.h>
+#include <stddef.h>
+#include <stdint.h>
+#include <sys/types.h>
+
 #include <pmix_common.h>
 
 #include "list.h"
-#include "pluginvector.h"
+#include "pscommon.h"
+#include "psreservation.h"
+
+#include "psidspawn.h"
+
 #include "pluginforwarder.h"
-#include "psidspawn.h"  /* for PSresinfo_t */
-#include "pstask.h"
+#include "pluginvector.h"
 
 /** Simple key-value pair */
 typedef struct {
