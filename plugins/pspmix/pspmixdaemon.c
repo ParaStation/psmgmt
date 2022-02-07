@@ -62,12 +62,12 @@ static LIST_HEAD(pmixJobservers);
  */
 static PspmixJobserver_t* findJobserver(PStask_ID_t loggertid)
 {
-    list_t *j;
-    list_for_each(j, &pmixJobservers) {
-	PspmixJobserver_t *jobserver = list_entry(j, PspmixJobserver_t, next);
-	if (jobserver->loggertid == loggertid
-	    && jobserver->timerId < 0 /* server not already in shutdown */) {
-	    return jobserver;
+    list_t *s;
+    list_for_each(s, &pmixJobservers) {
+	PspmixJobserver_t *server = list_entry(s, PspmixJobserver_t, next);
+	if (server->loggertid == loggertid
+	    && server->timerId < 0 /* server not already in shutdown */) {
+	    return server;
 	}
     }
     return NULL;
@@ -516,7 +516,7 @@ static int hookLocalJobRemoved(void *data)
 
     // TODO look if this job is using PMIx
 
-    /* is there a PMIx jobserver running for this job? */
+    /* is there a PMIx jobserver refering to this job? */
     PspmixJobserver_t *server = findJobserver(job->loggertid);
     if (!server) {
 	mlog("%s: No existing PMIx jobserver found for job with loggertid %s."
@@ -527,6 +527,9 @@ static int hookLocalJobRemoved(void *data)
 
     /* jobserver found, stop it */
     stopJobserver(server);
+
+    /* remove job's reference */
+    server->job = NULL;
 
     return 0;
 }
