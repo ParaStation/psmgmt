@@ -447,6 +447,7 @@ static int hookRecvSpawnReq(void *data)
     if (list_empty(&job->resInfos)) {
 	mlog("%s: No reservation in job with logger %s\n", __func__,
 	     PSC_printTID(prototask->loggertid));
+	return -1;
     }
 
     /* is there already a PMIx jobserver running for this job? */
