@@ -31,8 +31,8 @@ typedef struct {
     list_t next;             /**< used to put into pmixJobservers */
     PStask_ID_t loggertid;   /**< TID of the jobs logger, used as job id */
     Forwarder_Data_t *fwdata;/**< data of the plugin forwarder (== jobserver) */
-    list_t resInfos;         /**< job's reservations involving this node */
     PStask_t *prototask;     /**< task prototype, see PSIDHOOK_RECV_SPAWNREQ */
+    PSjob_t *job;            /**< direct reference to job object */
     int timerId;             /**< ID of the kill timer or -1 */
     bool used;               /**< Flag whether the server is actually used */
 } PspmixJobserver_t;

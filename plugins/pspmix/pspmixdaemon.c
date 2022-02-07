@@ -329,7 +329,7 @@ static void jobserverTerminated_cb(int32_t exit_status, Forwarder_Data_t *fw)
 static int fakeKillSession(pid_t pid, int signal)
 {
     mdbg(PSPMIX_LOG_CALL, "%s() called with pid %d and signal %d\n", __func__,
-	    pid, signal);
+	 pid, signal);
 
     /* since we do not have a child, we need nothing to do here */
     return 0;
@@ -343,13 +343,9 @@ static int fakeKillSession(pid_t pid, int signal)
  */
 static bool startJobserver(PspmixJobserver_t *server)
 {
-    Forwarder_Data_t *fwdata;
-    char *jobid;
+    Forwarder_Data_t *fwdata = ForwarderData_new();
+    char *jobid = PSC_printTID(server->loggertid);
     char fname[300];
-
-    fwdata = ForwarderData_new();
-
-    jobid = PSC_printTID(server->loggertid);
     snprintf(fname, sizeof(fname), "pspmix-server:%s", jobid);
 
     fwdata->pTitle = ustrdup(fname);
@@ -454,13 +450,12 @@ static int hookRecvSpawnReq(void *data)
     }
 
     /* is there already a PMIx jobserver running for this job? */
-    PspmixJobserver_t *server;
-    server = findJobserver(job->loggertid);
-
+    PspmixJobserver_t *server = findJobserver(job->loggertid);
     if (!server) {
 	/* No suitable jobserver found, start one */
 	server = ucalloc(sizeof(*server));
 	server->loggertid = prototask->loggertid;
+	server->job = job;
 	server->timerId = -1;
 
 	// @todo what needs to be copied when cleanup daemon stuff
@@ -468,9 +463,6 @@ static int hookRecvSpawnReq(void *data)
 
 	/* set prototask to access it in the forked jobserver process */
 	server->prototask = prototask;
-
-	/* copy stuff from job */
-	server->resInfos = job->resInfos;
 
 	if (!startJobserver(server)) {
 	    mlog("%s: Failed to start PMIx jobserver for job with logger %s\n",

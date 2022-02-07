@@ -37,9 +37,9 @@ static PspmixJobserver_t *server = NULL;
  */
 static PSresinfo_t* findReservation(PSrsrvtn_ID_t resID)
 {
-    if (!server) return NULL;
+    if (!server || !server->job) return NULL;
 
-    return findReservationInList(resID, &server->resInfos);
+    return findReservationInList(resID, &server->job->resInfos);
 }
 
 int pspmix_jobserver_initialize(Forwarder_Data_t *fwdata)
@@ -48,9 +48,21 @@ int pspmix_jobserver_initialize(Forwarder_Data_t *fwdata)
 
     mdbg(PSPMIX_LOG_CALL, "%s() called\n", __func__);
 
+    /* there has to be a server object */
+    if (!server) {
+	mlog("%s: FATAL: no server provided\n", __func__);
+	return -1;
+    }
+
+    /* there has to be a job in the server object */
+    if (!server->job) {
+	mlog("%s: FATAL: no job in server object\n", __func__);
+	return -1;
+    }
+
     /* there has to be a resInfo in the list */
-    if (list_empty(&server->resInfos)) {
-	mlog("%s: FATAL: no reservation in server's list\n", __func__);
+    if (list_empty(&server->job->resInfos)) {
+	mlog("%s: FATAL: no reservation in job's list\n", __func__);
 	return -1;
     }
 
@@ -64,7 +76,7 @@ int pspmix_jobserver_initialize(Forwarder_Data_t *fwdata)
 
     if (mset(PSPMIX_LOG_VERBOSE)) {
 	list_t *r;
-	list_for_each(r, &server->resInfos) {
+	list_for_each(r, &server->job->resInfos) {
 	    PSresinfo_t *res = list_entry(r, PSresinfo_t, next);
 	    mlog("%s: Reservation: resID %d nEntries %u entries [",
 		    __func__, res->resID, res->nEntries);
@@ -85,7 +97,7 @@ int pspmix_jobserver_initialize(Forwarder_Data_t *fwdata)
     }
 
     /* register initial namespace */
-    if (!pspmix_service_registerNamespace(prototask, server->resInfos)) {
+    if (!pspmix_service_registerNamespace(prototask, server->job->resInfos)) {
 	mlog("%s: Failed to register initial namespace\n", __func__);
 	return -1;
     }
