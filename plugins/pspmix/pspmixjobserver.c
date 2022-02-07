@@ -28,20 +28,6 @@
 
 static PspmixJobserver_t *server = NULL;
 
-/**
- * @brief Find reservation in the server object
- *
- * @param resID  reservation id
- *
- * @return Returns the reservation or NULL if not in list
- */
-static PSresinfo_t* findReservation(PSrsrvtn_ID_t resID)
-{
-    if (!server || !server->job) return NULL;
-
-    return findReservationInList(resID, &server->job->resInfos);
-}
-
 int pspmix_jobserver_initialize(Forwarder_Data_t *fwdata)
 {
     server = fwdata->userData;
@@ -67,7 +53,8 @@ int pspmix_jobserver_initialize(Forwarder_Data_t *fwdata)
     }
 
     PStask_t *prototask = server->prototask;
-    PSresinfo_t *resInfo = findReservation(prototask->resID);
+    PSresinfo_t *resInfo = findReservationInList(prototask->resID,
+						 &server->job->resInfos);
     if (resInfo == NULL) {
 	mlog("%s: FATAL: Reservation for initial spawn not found (resID %d)\n",
 	     __func__, prototask->resID);
