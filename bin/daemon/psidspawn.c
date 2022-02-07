@@ -2102,7 +2102,7 @@ static bool msg_SPAWNLOC(DDBufferMsg_t *msg)
 }
 
 /** The list of reservations this node is part of. */
-LIST_HEAD(localJobs);
+static LIST_HEAD(localJobs);
 
 PSjob_t* PSID_findJobByLoggerTID(PStask_ID_t loggerTID)
 {
