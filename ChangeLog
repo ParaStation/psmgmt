@@ -1,3 +1,510 @@
+Version psmgmt-5.1.47:
+======================
+------------------------------------------------------------------------
+e5dc6c6a | Michael Rauh | Thu, 10 Feb 2022 16:31:19 +0100
+
+Add SLURM_CONF_SERVER and SLURM_CONF_BACKUP_SERVER to
+example psslurm.conf
+------------------------------------------------------------------------
+df805a85 | Norbert Eicker | Mon, 7 Feb 2022 19:57:42 +0100
+
+Fix IWYU warnings
+------------------------------------------------------------------------
+aee0245a | Norbert Eicker | Mon, 7 Feb 2022 19:36:21 +0100
+
+Ensure there is a reservation for the PMIx server
+------------------------------------------------------------------------
+413ea968 | Stephan Krempel | Mon, 7 Feb 2022 13:27:22 +0100
+
+Streamlining
+------------------------------------------------------------------------
+bd64e2b7 | Norbert Eicker | Mon, 7 Feb 2022 11:33:21 +0100
+
+Ensure remove job is not referenced by server
+------------------------------------------------------------------------
+3e7b9460 | Norbert Eicker | Mon, 7 Feb 2022 11:23:21 +0100
+
+Hide localJobs list
+------------------------------------------------------------------------
+197f1c33 | Norbert Eicker | Mon, 7 Feb 2022 11:21:25 +0100
+
+Refer to job instead of moving/copying resource list
+------------------------------------------------------------------------
+9ee7af73 | Stephan Krempel | Fri, 4 Feb 2022 17:07:35 +0100
+
+pspmix: Add option to terminate job on server fail
+------------------------------------------------------------------------
+52ef00b5 | Stephan Krempel | Fri, 4 Feb 2022 16:36:05 +0100
+
+pspmix: Fix set/unset config functions
+------------------------------------------------------------------------
+e023e9e8 | Stephan Krempel | Fri, 4 Feb 2022 10:40:20 +0100
+
+Only use errno value if kill() failed
+------------------------------------------------------------------------
+bad8584c | Norbert Eicker | Thu, 3 Feb 2022 13:49:53 +0100
+
+Bugfix: only take healthy jobservers into account
+------------------------------------------------------------------------
+32f61ffa | Norbert Eicker | Thu, 3 Feb 2022 13:43:54 +0100
+
+Adapt to other logging
+------------------------------------------------------------------------
+3c022b6f | Stephan Krempel | Thu, 3 Feb 2022 11:09:17 +0100
+
+pspmix: Pre analyse exit status of dying servers
+------------------------------------------------------------------------
+05c92495 | Stephan Krempel | Thu, 3 Feb 2022 10:16:09 +0100
+
+pspmix: Makes findJobserver() return only valid servers
+------------------------------------------------------------------------
+3f160c0a | Stephan Krempel | Thu, 3 Feb 2022 10:02:15 +0100
+
+pspmix: Prevent to create kill timer twice.
+------------------------------------------------------------------------
+6603e6a3 | Norbert Eicker | Thu, 3 Feb 2022 00:40:48 +0100
+
+Fix IWYU warnings
+------------------------------------------------------------------------
+570e2d94 | Norbert Eicker | Thu, 3 Feb 2022 00:38:55 +0100
+
+Streamlining
+------------------------------------------------------------------------
+51256425 | Norbert Eicker | Thu, 3 Feb 2022 00:36:11 +0100
+
+Bugfix: Avoid Use After Free
+------------------------------------------------------------------------
+9a792def | Norbert Eicker | Thu, 3 Feb 2022 00:32:57 +0100
+
+Bugfix: Actually kill the pid, not the tid
+------------------------------------------------------------------------
+a737a059 | Stephan Krempel | Wed, 2 Feb 2022 18:40:23 +0100
+
+pspmix: Detect inside psid if a PMIx server is used
+
+This uses the messages forwarded by the psid to each client's
+forwarder indicating that the client connected to the server.
+------------------------------------------------------------------------
+d1247a7a | Stephan Krempel | Wed, 2 Feb 2022 18:32:54 +0100
+
+pspmix: Fix typos
+------------------------------------------------------------------------
+0613699b | Stephan Krempel | Wed, 2 Feb 2022 11:50:32 +0100
+
+Fix server shutdown and add kill timer
+
+This introduces the new pspmix.conf parameter SERVER_KILL_WAIT to
+control the time a server has for regular shutdown before
+getting killed
+------------------------------------------------------------------------
+3ae18e64 | Norbert Eicker | Thu, 3 Feb 2022 22:47:45 +0100
+
+Bugfix: Check for uid_t consistency in msg_SIGNAL
+------------------------------------------------------------------------
+74fb73a6 | Norbert Eicker | Wed, 2 Feb 2022 22:14:31 +0100
+
+Fix docu
+------------------------------------------------------------------------
+d70cce23 | Stephan Krempel | Wed, 2 Feb 2022 11:32:19 +0100
+
+Rework plugin forwarder callback function
+------------------------------------------------------------------------
+74a7b580 | Norbert Eicker | Tue, 1 Feb 2022 21:36:06 +0100
+
+Change nodeinfo's NICSort default from BIOS to PCI
+------------------------------------------------------------------------
+ff60c1f6 | Norbert Eicker | Tue, 1 Feb 2022 21:35:04 +0100
+
+Reflex psconfig's class conventions by introducing class:defaults
+------------------------------------------------------------------------
+9c6dcc83 | Stephan Krempel | Mon, 31 Jan 2022 15:09:10 +0100
+
+psslurm: Let BCast forwarder run as user
+------------------------------------------------------------------------
+fd141409 | Stephan Krempel | Mon, 31 Jan 2022 12:48:44 +0100
+
+psslurm: Run all plugin forwarders as root again
+------------------------------------------------------------------------
+3e86c2a8 | Norbert Eicker | Mon, 24 Jan 2022 10:55:00 +0100
+
+Allow to run plugin forwarder as user in a more natural way
+------------------------------------------------------------------------
+e34765b3 | Stephan Krempel | Fri, 21 Jan 2022 17:22:25 +0100
+
+Update copyright notice
+------------------------------------------------------------------------
+5e842e26 | Stephan Krempel | Fri, 21 Jan 2022 17:11:52 +0100
+
+Move resolving of unknown username to switchUser()
+------------------------------------------------------------------------
+ab160364 | Stephan Krempel | Wed, 12 Jan 2022 19:00:41 +0100
+
+pspmix: Drop root priviliges in pspmix server
+
+Each pspmix server does only manage the jobs of one user so
+it can run as that user, too.
+On the one hand, this prevents potential security issues and on the
+other hand enables the HC to kill server processes left over for any
+reason as seen in #43.
+------------------------------------------------------------------------
+3223522f | Norbert Eicker | Mon, 31 Jan 2022 23:52:59 +0100
+
+Implement NIC device name fetching for hwloc 1.11
+------------------------------------------------------------------------
+430bb189 | Stephan Krempel | Fri, 28 Jan 2022 00:13:25 +0100
+
+Not setting NIC pinning on mapping problems
+
+If not able to set a correct NIC pinning it is better
+to set no pinning at all to not disturb the driver.
+------------------------------------------------------------------------
+ed008341 | Stephan Krempel | Wed, 26 Jan 2022 15:53:47 +0100
+
+Add mapping to device names in NIC pinning
+------------------------------------------------------------------------
+c1859c7f | Norbert Eicker | Wed, 26 Jan 2022 22:55:33 +0100
+
+Prevent segfault when try to print ports in nodeinfo
+------------------------------------------------------------------------
+ba5e33af | Norbert Eicker | Tue, 25 Jan 2022 22:08:20 +0100
+
+Fetch NIC device names and port and push to PSIDnodes
+------------------------------------------------------------------------
+eeb4ba67 | Norbert Eicker | Fri, 21 Jan 2022 16:50:49 +0100
+
+Fix copyright
+------------------------------------------------------------------------
+2c4b221c | Stephan Krempel | Thu, 20 Jan 2022 17:34:40 +0100
+
+New config parameter for control automatic NIC binding
+------------------------------------------------------------------------
+737f3740 | Norbert Eicker | Wed, 19 Jan 2022 23:33:55 +0100
+
+Stylistic improvements
+------------------------------------------------------------------------
+d77ec506 | Norbert Eicker | Wed, 19 Jan 2022 23:32:24 +0100
+
+Fix debug output
+------------------------------------------------------------------------
+c997aaf8 | Norbert Eicker | Wed, 19 Jan 2022 21:58:37 +0100
+
+Actually implement getting/setting BINDNICS
+------------------------------------------------------------------------
+b5b667ed | Norbert Eicker | Wed, 19 Jan 2022 21:57:45 +0100
+
+Fix typo
+------------------------------------------------------------------------
+1bf4d03f | Norbert Eicker | Wed, 19 Jan 2022 21:38:11 +0100
+
+Fix copyright date
+------------------------------------------------------------------------
+71d54004 | Stephan Krempel | Tue, 18 Jan 2022 13:27:11 +0100
+
+Include prototype of default NIC pinning into psid
+------------------------------------------------------------------------
+1de27da8 | Stephan Krempel | Tue, 18 Jan 2022 13:22:00 +0100
+
+Generalize pinning function for setting environment
+
+    Change bindToGPUs() to bindToDevs() to include NIC handling.
+------------------------------------------------------------------------
+32ab23f4 | Stephan Krempel | Tue, 18 Jan 2022 11:54:01 +0100
+
+Generalize pinning function for getting NUMA close devices
+
+Change PSIDpin_getCloseGPUs() to PSIDpin_getCloseDevs() to include
+NIC handling.
+------------------------------------------------------------------------
+984c0553 | Stephan Krempel | Tue, 18 Jan 2022 11:47:32 +0100
+
+Add node configuration option bindNICs
+------------------------------------------------------------------------
+20601670 | Norbert Eicker | Thu, 27 Jan 2022 01:17:58 +0100
+
+Add JUWELS-Booster node topology recorded with v2.2
+------------------------------------------------------------------------
+cea266f9 | Norbert Eicker | Thu, 27 Jan 2022 00:44:41 +0100
+
+Improve return value and fix docu
+------------------------------------------------------------------------
+ddfd220c | Stephan Krempel | Wed, 8 Dec 2021 16:49:40 +0100
+
+pspmix: Report if message target could not be set
+------------------------------------------------------------------------
+52a6b84d | Michael Rauh | Wed, 26 Jan 2022 16:14:13 +0100
+
+Bugfix: fix possbile segfault when a step is deleted (jwt:#12795)
+------------------------------------------------------------------------
+108f1a24 | Norbert Eicker | Wed, 26 Jan 2022 11:54:02 +0100
+
+Merge branch '5.1.46' once again
+------------------------------------------------------------------------
+24db4c46 | Stephan Krempel | Tue, 25 Jan 2022 14:32:30 +0100
+
+Add hwloc topo files of Meluxina compute nodes
+------------------------------------------------------------------------
+98cb9628 | Norbert Eicker | Fri, 21 Jan 2022 16:46:39 +0100
+
+Merge branch '5.1.46' yet another time
+------------------------------------------------------------------------
+2f668464 | Norbert Eicker | Wed, 19 Jan 2022 21:25:42 +0100
+
+Merge branch '5.1.46' again
+------------------------------------------------------------------------
+d78a8bee | Norbert Eicker | Wed, 19 Jan 2022 09:24:13 +0100
+
+Adapt sysctl's config dir to RedHat's less flexible pkg-config
+------------------------------------------------------------------------
+941a0375 | Norbert Eicker | Wed, 19 Jan 2022 02:58:35 +0100
+
+Ensure 'make dist' creates a self-consistent and complete tar
+------------------------------------------------------------------------
+1588ab45 | Norbert Eicker | Wed, 19 Jan 2022 01:58:48 +0100
+
+Determine sysctl's config directory via pkg-config, too
+------------------------------------------------------------------------
+177024c0 | Norbert Eicker | Wed, 19 Jan 2022 00:24:32 +0100
+
+Determine systemd's config directory via pkg-config
+------------------------------------------------------------------------
+87b2866a | Norbert Eicker | Mon, 17 Jan 2022 23:57:27 +0100
+
+Make psid depending on munge when using systemd
+------------------------------------------------------------------------
+57aa164d | Norbert Eicker | Mon, 17 Jan 2022 23:49:13 +0100
+
+Move psmunge plugin into psslurm sub-RPM
+------------------------------------------------------------------------
+04907702 | Norbert Eicker | Tue, 18 Jan 2022 20:17:53 +0100
+
+Merge branch '5.1.46'
+------------------------------------------------------------------------
+0803d382 | Norbert Eicker | Tue, 18 Jan 2022 19:20:41 +0100
+
+Add JURECA-DC GPU node topology recorded with v2.2
+------------------------------------------------------------------------
+cc2d6d5d | Norbert Eicker | Thu, 13 Jan 2022 04:41:41 +0100
+
+Cleanup includes
+------------------------------------------------------------------------
+a8eb3467 | Norbert Eicker | Thu, 13 Jan 2022 04:35:43 +0100
+
+Converge PSID_reset()'s implementation and docu
+------------------------------------------------------------------------
+221df280 | Norbert Eicker | Thu, 13 Jan 2022 04:03:31 +0100
+
+Speedup psid's reset process, too
+------------------------------------------------------------------------
+3421a418 | Norbert Eicker | Thu, 13 Jan 2022 03:52:53 +0100
+
+Get rid of PSID_reset()'s timer, too
+------------------------------------------------------------------------
+0b3fe513 | Norbert Eicker | Thu, 13 Jan 2022 03:39:22 +0100
+
+Fix docu
+------------------------------------------------------------------------
+4752196d | Norbert Eicker | Thu, 13 Jan 2022 03:25:57 +0100
+
+Speedup psid's shutdown process
+------------------------------------------------------------------------
+e089c32d | Norbert Eicker | Thu, 13 Jan 2022 02:39:25 +0100
+
+Introduce PSIDclient_getNum()
+------------------------------------------------------------------------
+f7f7dcdc | Norbert Eicker | Thu, 13 Jan 2022 02:03:34 +0100
+
+Get rid of PSID_shutdown()'s timer
+
+ - PSID_shutdown() is called from the mainloop only any other
+   second anyhow
+------------------------------------------------------------------------
+cfb0c039 | Norbert Eicker | Thu, 13 Jan 2022 01:57:44 +0100
+
+Update PSID_shutdown()'s outdated documentation
+------------------------------------------------------------------------
+9ca534f1 | Norbert Eicker | Thu, 13 Jan 2022 01:16:08 +0100
+
+Fix cppcheck warnings
+------------------------------------------------------------------------
+bdc3ea7e | Norbert Eicker | Thu, 13 Jan 2022 00:45:07 +0100
+
+Fix RPM build by adding new files to Makefile.sources
+------------------------------------------------------------------------
+575a5b39 | Norbert Eicker | Thu, 13 Jan 2022 00:13:35 +0100
+
+Add warning when hostname is cut and verbosity matches
+------------------------------------------------------------------------
+f1525c12 | Norbert Eicker | Wed, 12 Jan 2022 23:23:48 +0100
+
+Rework parser's logging the make it's logger_t visible
+------------------------------------------------------------------------
+fddbe354 | Norbert Eicker | Wed, 12 Jan 2022 22:38:31 +0100
+
+Improve logging
+------------------------------------------------------------------------
+3a9455d3 | Norbert Eicker | Tue, 4 Jan 2022 14:12:38 +0100
+
+Utilize PSCfgHelp_getObject() when interacting with psconfig
+------------------------------------------------------------------------
+c62f9a57 | Norbert Eicker | Tue, 4 Jan 2022 13:59:02 +0100
+
+Introduce PSCfgHelp_getObject() into libputil
+------------------------------------------------------------------------
+6878e87d | Norbert Eicker | Thu, 6 Jan 2022 20:15:06 +0100
+
+IWYU cleanup for test plugins
+------------------------------------------------------------------------
+bcc5a2d2 | Norbert Eicker | Thu, 6 Jan 2022 19:55:09 +0100
+
+Fix build of test plugins broken by IWYU changes
+------------------------------------------------------------------------
+a8c6c240 | Norbert Eicker | Thu, 6 Jan 2022 19:50:10 +0100
+
+IWYU cleanup for psslurm plugin
+------------------------------------------------------------------------
+e849512d | Norbert Eicker | Thu, 6 Jan 2022 15:38:16 +0100
+
+IWYU cleanup for pspmix plugin
+------------------------------------------------------------------------
+b6ea4bb6 | Norbert Eicker | Thu, 6 Jan 2022 14:53:11 +0100
+
+IWYU cleanup for pspam plugin and module
+------------------------------------------------------------------------
+c6ab7511 | Norbert Eicker | Thu, 6 Jan 2022 14:24:42 +0100
+
+IWYU cleanup for psmunge plugin
+------------------------------------------------------------------------
+d3d91cb2 | Norbert Eicker | Thu, 6 Jan 2022 14:20:24 +0100
+
+IWYU cleanup for pspmi plugin
+------------------------------------------------------------------------
+647fdd88 | Norbert Eicker | Wed, 5 Jan 2022 21:29:00 +0100
+
+IWYU cleanup for psgw plugin
+------------------------------------------------------------------------
+9002d63d | Norbert Eicker | Wed, 5 Jan 2022 21:06:33 +0100
+
+IWYU cleanup for psaccount plugin
+------------------------------------------------------------------------
+394060bc | Norbert Eicker | Wed, 5 Jan 2022 20:28:06 +0100
+
+IWYU cleanup for pelogue plugin
+------------------------------------------------------------------------
+5623bbaf | Norbert Eicker | Wed, 5 Jan 2022 20:03:38 +0100
+
+Minor IWYU refinements
+------------------------------------------------------------------------
+fdcf4e63 | Norbert Eicker | Tue, 4 Jan 2022 22:35:24 +0100
+
+IWYU cleanup for psmom plugin
+------------------------------------------------------------------------
+5779b83d | Norbert Eicker | Tue, 4 Jan 2022 22:17:02 +0100
+
+IWYU cleanup for psresport plugin
+------------------------------------------------------------------------
+81595c14 | Norbert Eicker | Tue, 4 Jan 2022 22:14:10 +0100
+
+IWYU cleanup for psexec plugin
+------------------------------------------------------------------------
+7a98bbb5 | Norbert Eicker | Tue, 4 Jan 2022 22:08:27 +0100
+
+IWYU cleanup for nodeinfo plugin
+------------------------------------------------------------------------
+1ec472c2 | Norbert Eicker | Tue, 4 Jan 2022 22:05:05 +0100
+
+IWYU cleanup for jail plugin
+------------------------------------------------------------------------
+b8cd1931 | Norbert Eicker | Tue, 4 Jan 2022 22:01:18 +0100
+
+IWYU cleanup for cgroup plugin
+------------------------------------------------------------------------
+6ec83702 | Norbert Eicker | Tue, 4 Jan 2022 14:28:14 +0100
+
+Further IWYU fixes and cleanups
+------------------------------------------------------------------------
+37419d50 | Michael Rauh | Wed, 29 Dec 2021 17:57:38 +0100
+
+Fix warnings unveiled by cppcheck
+------------------------------------------------------------------------
+98828ec7 | Michael Rauh | Thu, 23 Dec 2021 16:21:50 +0100
+
+Introduce PSCio_recvBufS() to suppress warning when psslurm
+PTY connections are closed
+------------------------------------------------------------------------
+5a5bf994 | Norbert Eicker | Mon, 3 Jan 2022 10:26:53 +0100
+
+Rework assumption functionality
+------------------------------------------------------------------------
+dce2b358 | Norbert Eicker | Tue, 21 Dec 2021 22:00:58 +0100
+
+Provide scan-build hints to get on with lists
+------------------------------------------------------------------------
+2cf4471a | Norbert Eicker | Tue, 21 Dec 2021 20:38:15 +0100
+
+Remove useless checks around free()
+------------------------------------------------------------------------
+4a6942c2 | Norbert Eicker | Mon, 20 Dec 2021 21:15:48 +0100
+
+Fix cppcheck warnings
+------------------------------------------------------------------------
+08de1182 | Norbert Eicker | Mon, 20 Dec 2021 21:15:08 +0100
+
+Choose the right type as suggested by cppcheck
+------------------------------------------------------------------------
+40ecba36 | Norbert Eicker | Mon, 20 Dec 2021 21:13:19 +0100
+
+Fix format string bugs shown by cppcheck
+------------------------------------------------------------------------
+ae31824c | Norbert Eicker | Mon, 20 Dec 2021 21:10:17 +0100
+
+Fix return value as unveiled by cppcheck
+------------------------------------------------------------------------
+371ac6c4 | Norbert Eicker | Mon, 20 Dec 2021 21:06:57 +0100
+
+Fix warnings emitted by cppcheck and streamlining
+------------------------------------------------------------------------
+5fb73f75 | Norbert Eicker | Wed, 22 Dec 2021 18:40:49 +0100
+
+Minor IWYU fix
+------------------------------------------------------------------------
+f717c0e8 | Norbert Eicker | Wed, 22 Dec 2021 18:37:16 +0100
+
+IWYU cleanup for libpslog
+------------------------------------------------------------------------
+7ca9c7d8 | Norbert Eicker | Wed, 22 Dec 2021 18:32:05 +0100
+
+IWYU cleanup for libpsi and libpse
+------------------------------------------------------------------------
+3b49250d | Norbert Eicker | Wed, 22 Dec 2021 17:45:34 +0100
+
+IWYU cleanup for libpscommon
+------------------------------------------------------------------------
+9bbf2b4d | Norbert Eicker | Wed, 22 Dec 2021 17:15:05 +0100
+
+IWYU cleanup for libplugincommon
+------------------------------------------------------------------------
+272e3834 | Norbert Eicker | Wed, 22 Dec 2021 16:37:54 +0100
+
+IWYU cleanup for libpskvs
+------------------------------------------------------------------------
+5beba8f4 | Norbert Eicker | Wed, 22 Dec 2021 16:22:34 +0100
+
+IWYU cleanup for libputil
+------------------------------------------------------------------------
+81496f83 | Norbert Eicker | Wed, 22 Dec 2021 16:21:09 +0100
+
+IWYU hints for rdp.c
+------------------------------------------------------------------------
+6c3b8957 | Norbert Eicker | Wed, 22 Dec 2021 16:14:55 +0100
+
+Add hints on iwyu_tool.py usage
+------------------------------------------------------------------------
+3776e4d7 | Norbert Eicker | Wed, 22 Dec 2021 14:58:48 +0100
+
+Push to automake 1.16.5
+------------------------------------------------------------------------
+
+
 Version psmgmt-5.1.46-4:
 ========================
 ------------------------------------------------------------------------

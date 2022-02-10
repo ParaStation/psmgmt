@@ -6,6 +6,47 @@ Copyright (C) 2021-2022 ParTec AG, Munich
 Please send bug reports, questions and suggestions to <support@par-tec.com>
 
 
+*************************************************************************
+*************************************************************************
+**                                                                     **
+**  psmgmt 5.1.47 introduces NIC binding. If psid is configured via    **
+**  psconfig, this has to be reflected in psid's default object in the **
+**  database. Therefore, on the node hosting psconfig's master db run: **
+**                                                                     **
+**      psconfig -- set 'defaults:psid' 'BindNics' 'yes'               **
+**                                                                     **
+*************************************************************************
+*************************************************************************
+
+Version 5.1.47:
+==============
+Bugfixes:
+ - Fix possbile segfault when a step is deleted (jwt:#12795)
+ - Only use errno value if kill() actually failed
+ - Check for uid_t consistency in msg_SIGNAL
+ - Ensure PMIx-server shutdown and add kill timer (steered via SERVER_KILL_WAIT)
+Enhancements:
+ - Add NIC pinning with correct mapping to device names
+ - Speedup psid's shutdown/reset process
+ - pspmix: Add option to terminate job on server fail
+ - pspmix: Drop root priviliges in pspmix server (shall help with #43)
+ - psslurm: BCast forwarder runs as user
+ - pspmix: Detect PMIx server usage within psid
+ - Allow to run plugin forwarder as user in a more natural way
+ - NIC device name fetching via hwloc
+ - Change nodeinfo's NICSort default from BIOS to PCI (only for new installs)
+ - Introduce PSCio_recvBufS(): suppress warning on closed psslurm PTY connection
+ - Make psid depending on munge when using systemd
+Additional changes:
+ - Add SLURM_CONF_SERVER and SLURM_CONF_BACKUP_SERVER to example psslurm.conf
+ - Move psmunge plugin into psslurm sub-RPM
+ - Determine systemd's and sysctl's config directory via pkg-config
+ - Introduce PSIDclient_getNum()
+ - Introduce PSCfgHelp_getObject() into libputil
+ - Several improvements on cppcheck and scanbuild warning
+ - Tons of IWYU cleanup
+
+
 Version 5.1.46-4:
 =================
 Enhancements:
