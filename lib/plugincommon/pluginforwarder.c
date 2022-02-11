@@ -337,19 +337,6 @@ static bool initForwarder(int motherFD, Forwarder_Data_t *fw)
 	return false;
     }
 
-    /* jail myself and all my children */
-    if (fw->jailChild && PSIDhook_call(PSIDHOOK_JAIL_CHILD, &fw->uID) < 0) {
-	pluginlog("%s: hook PSIDHOOK_JAIL_CHILD failed\n", __func__);
-	return false;
-    }
-
-    if (fw->uID != getuid() || fw->gID != getgid()) {
-	if (!switchUser(fw->userName, fw->uID, fw->gID)) {
-	    pluginlog("%s: switchUser() failed\n", __func__);
-	    return false;
-	}
-    }
-
     return true;
 }
 
@@ -674,6 +661,19 @@ static void execForwarder(PStask_t *task)
 	    pluginlog("%s: hookFWInit failed with %d\n", __func__, ret);
 	    sendCodeInfo(ret);
 	    exit(-1);
+	}
+    }
+
+    /* jail myself and all my children */
+    if (fw->jailChild && PSIDhook_call(PSIDHOOK_JAIL_CHILD, &fw->uID) < 0) {
+	pluginlog("%s: hook PSIDHOOK_JAIL_CHILD failed\n", __func__);
+	return false;
+    }
+
+    if (fw->uID != getuid() || fw->gID != getgid()) {
+	if (!switchUser(fw->userName, fw->uID, fw->gID)) {
+	    pluginlog("%s: switchUser() failed\n", __func__);
+	    return false;
 	}
     }
 
