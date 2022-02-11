@@ -3,7 +3,7 @@
 # ParaStation
 #
 # Copyright (C) 2018-2021 ParTec Cluster Competence Center GmbH, Munich
-# Copyright (C) 2021 ParTec AG, Munich
+# Copyright (C) 2021-2022 ParTec AG, Munich
 #
 # This file may be distributed under the terms of the Q Public License
 # as defined in the file LICENSE.QPL included in the packaging of this
@@ -40,7 +40,9 @@ exec 2>>$LOG_FILE 1>&2
 for modName in ${MODULES//,/$IFS}; do
 	MODULE="$CommandPath/$SCRIPT-$modName.inc"
 	[ -r $MODULE ] || {
-		mlog "$SCRIPT module $MODULE not found"
+		[ $SCRIPT != "jail-term" ] && {
+			mlog "$SCRIPT module $MODULE not found"
+		}
 		continue
 	}
 	BASE="$CGROUP_BASE/$modName"
