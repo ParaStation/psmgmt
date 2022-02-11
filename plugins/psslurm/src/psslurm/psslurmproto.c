@@ -2775,7 +2775,13 @@ static const char *autoDetectSlurmVer(void)
     }
 
     char sinfoCmd[128];
-    snprintf(sinfoCmd, sizeof(sinfoCmd), "%s --version", sinfo);
+    char *server = getConfValueC(&Config, "SLURM_CONF_SERVER");
+    if (strcmp("server", "none")) {
+	snprintf(sinfoCmd, sizeof(sinfoCmd), "SLURM_CONF_SERVER=%s "
+		 "%s --version", server, sinfo);
+    } else  {
+	snprintf(sinfoCmd, sizeof(sinfoCmd), "%s --version", sinfo);
+    }
     FILE *fp = popen(sinfoCmd, "r");
     if (!fp) {
 	mwarn(errno, "%s: popen('%s')", __func__, sinfoCmd);
