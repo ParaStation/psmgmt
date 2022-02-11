@@ -60,7 +60,7 @@ typedef struct __fwData__ {
 			    * child to the mother. The caller is responsible to
 			    * handle the STDOUT/STDERR messages in the function
 			    * handleFwMsg() */
-    bool jailChild;	   /**< jail all my children by
+    bool jailChild;	   /**< jail myself and all my children by
 			    * calling the hook PSIDHOOK_JAIL_CHILD */
     int (*killSession)(pid_t, int);
 			   /**< Method to kill all forwarder's children */
