@@ -3,6 +3,7 @@
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
  * Copyright (C) 2005-2021 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2022 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -74,7 +75,7 @@ static void PSIDMsgbuf_gc(void)
 {
     if (!PSitems_gcRequired(smallMsgBufs)) return;
 
-    int blockedRDP = RDP_blockTimer(1);
+    int blockedRDP = RDP_blockTimer(true);
 
     PSitems_gc(smallMsgBufs, relocSmallMsgBuf);
 
@@ -86,7 +87,7 @@ PSIDmsgbuf_t *PSIDMsgbuf_get(size_t len)
     PSIDmsgbuf_t *mp;
 
     if (len <= MSGBUF_SMALLSIZE) {
-	int blockedRDP = RDP_blockTimer(1);
+	int blockedRDP = RDP_blockTimer(true);
 
 	mp = PSitems_getItem(smallMsgBufs);
 

@@ -3,7 +3,7 @@
  *
  * Copyright (C) 1999-2004 ParTec AG, Karlsruhe
  * Copyright (C) 2005-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021 ParTec AG, Munich
+ * Copyright (C) 2021-2022 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -999,8 +999,6 @@ static void clearMsgQ(int node)
  */
 static void closeConnection(int node, bool callback, bool silent)
 {
-    int blocked;
-
     RDP_log((conntable[node].state == ACTIVE && !silent) ? -1 : RDP_LOG_CONN,
 	    "%s(%d)\n", __func__, node);
 
@@ -1008,7 +1006,7 @@ static void closeConnection(int node, bool callback, bool silent)
      * A blocked timer needs to be restored since closeConnection()
      * can be called from within handleTimeoutRDP().
      */
-    blocked = Timer_block(timerID, 1);
+    int blocked = Timer_block(timerID, true);
 
     clearMsgQ(node);
 
@@ -1088,7 +1086,7 @@ static void resendMsgs(int node)
 	break;
     case ACTIVE:
     {
-	int blocked = Timer_block(timerID, 1);
+	int blocked = Timer_block(timerID, true);
 	list_for_each(m, &conntable[node].pendList) {
 	    int ret;
 	    msgbuf_t *mp = list_entry(m, msgbuf_t, next);
@@ -1400,7 +1398,6 @@ static void doACK(rdphdr_t *hdr, int fromnode)
 {
     Rconninfo_t *cp;
     list_t *m, *tmp;
-    int blocked;
     bool callback = false, doStatistics = RDPStatistics;
     struct timeval now;
 
@@ -1433,7 +1430,7 @@ static void doACK(rdphdr_t *hdr, int fromnode)
 
     if (doStatistics) gettimeofday(&now, NULL);
 
-    blocked = Timer_block(timerID, 1);
+    int blocked = Timer_block(timerID, true);
 
     list_for_each_safe(m, tmp, &cp->pendList) {
 	msgbuf_t *mp = list_entry(m, msgbuf_t, next);
@@ -1924,7 +1921,7 @@ void setTmOutRDP(int timeout)
     if (!nrOfNodes) return;
 
     if (timerID > 0) {
-	Timer_block(timerID, 1);
+	Timer_block(timerID, true);
 	Timer_remove(timerID);
 	timerID = -1;
     }
@@ -2013,9 +2010,9 @@ void RDP_setStatistics(bool state)
 int Rsendto(int node, void *buf, size_t len)
 {
     msgbuf_t *mp;
-    int retval = 0, blocked;
+    int retval = 0;
 
-    if (((node < 0) || (node >= (int)nrOfNodes))) {
+    if (node < 0 || node >= (int)nrOfNodes) {
 	/* illegal node number */
 	RDP_log(-1, "%s: illegal node number %d\n", __func__, node);
 	errno = EHOSTUNREACH;
@@ -2064,7 +2061,7 @@ int Rsendto(int node, void *buf, size_t len)
      * A blocked timer needs to be restored since Rsendto() can be called
      * from within the callback function.
      */
-    blocked = Timer_block(timerID, 1);
+    int blocked = Timer_block(timerID, true);
 
     /* setup msg buffer */
     mp = getMsg();
@@ -2337,7 +2334,7 @@ void closeConnRDP(int node)
     timeradd(&tv, &CLOSED_TIMEOUT, &conntable[node].closed);
 }
 
-int RDP_blockTimer(int block)
+int RDP_blockTimer(bool block)
 {
     if (timerID == -1) return -1;
     return Timer_block(timerID, block);

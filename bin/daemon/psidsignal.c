@@ -232,7 +232,7 @@ void PSID_sendSignal(PStask_ID_t tid, uid_t uid, PStask_ID_t sender,
 	} else if (pervasive) {
 	    answer = 0;
 
-	    int blockedRDP = RDP_blockTimer(1);
+	    int blockedRDP = RDP_blockTimer(true);
 
 	    list_t *s, *tmp;
 	    list_for_each_safe(s, tmp, &dest->childList) { /* @todo safe req? */
@@ -333,7 +333,7 @@ void PSID_sendSignalsToRelatives(PStask_t *task)
 		 PSC_printTID(task->ptid));
     }
 
-    int blockedRDP = RDP_blockTimer(1);
+    int blockedRDP = RDP_blockTimer(true);
 
     list_t *s;
     list_for_each(s, &task->childList) {
@@ -1693,7 +1693,7 @@ static bool drop_RELEASE(DDBufferMsg_t *msg)
 
 static void signalGC(void)
 {
-    bool blockedRDP = RDP_blockTimer(1);
+    bool blockedRDP = RDP_blockTimer(true);
     PSsignal_gc();
     RDP_blockTimer(blockedRDP);
 }

@@ -3,7 +3,7 @@
  *
  * Copyright (C) 1999-2004 ParTec AG, Karlsruhe
  * Copyright (C) 2005-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021 ParTec AG, Munich
+ * Copyright (C) 2021-2022 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -505,14 +505,14 @@ void closeConnRDP(int node);
  * will call @ref Timer_block() from the Timer module with the
  * corresponding unique timer ID.
  *
- * @param block On 0, the timer will be unblocked. On other values, it
- * will be blocked.
+ * @param block On false the timer will be unblocked; on true it will
+ * be blocked.
  *
  * @return If the timer was blocked before, 1 will be returned. If the timer
  * was not blocked, 0 will be returned. If an error occurred, -1 will be
  * returned.
  */
-int RDP_blockTimer(int block);
+int RDP_blockTimer(bool block);
 
 /**
  * @brief Print statistics

@@ -271,7 +271,7 @@ static bool storeMsg(int fd, DDMsg_t *msg, size_t offset)
     memcpy(msgbuf->msg, msg, msg->len);
     msgbuf->offset = offset;
 
-    int blockedRDP = RDP_blockTimer(1);
+    int blockedRDP = RDP_blockTimer(true);
     list_add_tail(&msgbuf->next, &clients[fd].msgs);
     RDP_blockTimer(blockedRDP);
 
@@ -304,7 +304,7 @@ static int flushClientMsgs(int fd, void *info)
 
     if (clients[fd].flags & (FLUSH | CLOSE)) return 1;
 
-    int blockedRDP = RDP_blockTimer(1);
+    int blockedRDP = RDP_blockTimer(true);
 
     clients[fd].flags |= FLUSH;
 
@@ -485,7 +485,7 @@ static void closeConnection(int fd)
 
     if (clients[fd].flags & CLOSE) return;
 
-    int blockedRDP = RDP_blockTimer(1);
+    int blockedRDP = RDP_blockTimer(true);
 
     clients[fd].flags |= CLOSE;
 

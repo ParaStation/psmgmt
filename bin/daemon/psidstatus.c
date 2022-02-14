@@ -536,8 +536,6 @@ static void stateChangeCB(int result, bool tmdOut, int iofd, void *info)
 
 bool declareNodeDead(PSnodes_ID_t id, int sendDeadnode, bool silent)
 {
-    list_t *t;
-
     if (!PSC_validNode(id)) {
 	PSID_log(-1, "%s: id %d out of range\n", __func__, id);
 	return false;
@@ -569,6 +567,7 @@ bool declareNodeDead(PSnodes_ID_t id, int sendDeadnode, bool silent)
     if (PSID_config->useMCast) declareNodeDeadMCast(id);
 
     /* Send signals to all processes that controlled task on the dead node */
+    list_t *t;
     list_for_each(t, &managedTasks) {
 	PStask_t *task = list_entry(t, PStask_t, next);
 	PStask_ID_t sndr;
