@@ -189,8 +189,7 @@ PStask_ID_t PSID_getSignal(list_t *sigList, int *signal)
     return tid;
 }
 
-PStask_ID_t PSID_getSignalByID(list_t *sigList,
-			       PSnodes_ID_t id, int *signal, int remove)
+PStask_ID_t PSID_getSignalByID(list_t *sigList, PSnodes_ID_t id, int *signal)
 {
     int blockedRDP = RDP_blockTimer(true);
 
@@ -211,12 +210,8 @@ PStask_ID_t PSID_getSignalByID(list_t *sigList,
 	*signal = thissig->signal;
 	tid = thissig->tid;
 
-	if (remove) {
-	    list_del(&thissig->next);
-	    PSsignal_put(thissig);
-	} else {
-	    thissig->deleted = true;
-	}
+	list_del(&thissig->next);
+	PSsignal_put(thissig);
     }
 
     RDP_blockTimer(blockedRDP);

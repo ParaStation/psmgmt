@@ -570,11 +570,11 @@ bool declareNodeDead(PSnodes_ID_t id, bool sendDeadnode, bool silent)
     list_t *t;
     list_for_each(t, &managedTasks) {
 	PStask_t *task = list_entry(t, PStask_t, next);
-	PStask_ID_t sndr;
-	int sig;
 	if (task->deleted) continue;
 	/* deliver all assigned signals */
-	while ((sndr = PSID_getSignalByID(&task->assignedSigs, id, &sig, 1))) {
+	int sig;
+	PStask_ID_t sndr;
+	while ((sndr = PSID_getSignalByID(&task->assignedSigs, id, &sig))) {
 	    /* controlled task was on dead node */
 
 	    /* This might have been a child */
@@ -585,13 +585,13 @@ bool declareNodeDead(PSnodes_ID_t id, bool sendDeadnode, bool silent)
 	    PSID_sendSignal(task->tid, task->uid, sndr, sig, 0, 0);
 	}
 	/* also take kept children into account */
-	while ((sndr = PSID_getSignalByID(&task->keptChildren, id, &sig, 1))) {
+	while ((sndr = PSID_getSignalByID(&task->keptChildren, id, &sig))) {
 	    /* kept child was on dead node */
 	    /* Send the signal */
 	    PSID_sendSignal(task->tid, task->uid, sndr, sig, 0, 0);
 	}
 	/* remove remote children, even if signals already delivered */
-	while (PSID_getSignalByID(&task->childList, id, &sig, 0));
+	while (PSID_getSignalByID(&task->childList, id, &sig));
 
 	if (task->removeIt && PSID_emptySigList(&task->childList)) {
 	    PSID_log(PSID_LOG_TASK, "%s: PSIDtask_cleanup()\n", __func__);
@@ -604,7 +604,7 @@ bool declareNodeDead(PSnodes_ID_t id, bool sendDeadnode, bool silent)
 	PStask_ID_t sndr;
 	int sig;
 	if (task->deleted) continue;
-	while ((sndr = PSID_getSignalByID(&task->assignedSigs, id, &sig, 1))) {
+	while ((sndr = PSID_getSignalByID(&task->assignedSigs, id, &sig))) {
 	    /* controlled task was on dead node */
 
 	    /* This might have been a child */
@@ -612,7 +612,7 @@ bool declareNodeDead(PSnodes_ID_t id, bool sendDeadnode, bool silent)
 	    if (task->removeIt && PSID_emptySigList(&task->childList)) break;
 	}
 	/* delete remote children, even if signals already delivered */
-	while (PSID_getSignalByID(&task->childList, id, &sig, 0));
+	while (PSID_getSignalByID(&task->childList, id, &sig));
 
 	if (task->removeIt && PSID_emptySigList(&task->childList)) {
 	    PSID_log(PSID_LOG_TASK, "%s: PSIDtask_cleanup()\n", __func__);
