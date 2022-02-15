@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2015-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021 ParTec AG, Munich
+ * Copyright (C) 2021-2022 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -10,6 +10,7 @@
  */
 #include "pssignal.h"
 
+#include <errno.h>
 #include <stddef.h>
 
 #include "list.h"
@@ -69,4 +70,40 @@ void PSsignal_printStat(void)
 	    PSitems_getUsed(sigPool), PSitems_getAvail(sigPool));
     PSC_log(-1, "\t%d/%d (gets/grows)\n", PSitems_getUtilization(sigPool),
 	    PSitems_getDynamics(sigPool));
+}
+
+void PSsignal_clearList(list_t *list)
+{
+    list_t *s, *tmp;
+    list_for_each_safe(s, tmp, list) {
+	PSsignal_t *signal = list_entry(s, PSsignal_t, next);
+	list_del(&signal->next);
+	PSsignal_put(signal);
+    }
+}
+
+void PSsignal_cloneList(list_t *cloneList, list_t *origList)
+{
+    PSC_log(PSC_LOG_TASK, "%s(%p)\n", __func__, origList);
+
+    PSsignal_clearList(cloneList);
+
+    list_t *s;
+    list_for_each(s, origList) {
+	PSsignal_t *origSig = list_entry(s, PSsignal_t, next);
+
+	if (origSig->deleted) continue;
+
+	PSsignal_t *cloneSig = PSsignal_get();
+	if (!cloneSig) {
+	    PSsignal_clearList(cloneList);
+	    PSC_warn(-1, ENOMEM, "%s()", __func__);
+	    break;
+	}
+
+	cloneSig->tid = origSig->tid;
+	cloneSig->signal = origSig->signal;
+	cloneSig->deleted = origSig->deleted;
+	list_add_tail(&cloneSig->next, cloneList);
+    }
 }

@@ -159,16 +159,6 @@ bool PStask_init(PStask_t* task)
     return true;
 }
 
-static void delSigList(list_t *list)
-{
-    list_t *s, *tmp;
-    list_for_each_safe(s, tmp, list) {
-	PSsignal_t *signal = list_entry(s, PSsignal_t, next);
-	list_del(&signal->next);
-	PSsignal_put(signal);
-    }
-}
-
 static void delReservationList(list_t *list)
 {
     list_t *r, *tmp;
@@ -203,9 +193,9 @@ bool PStask_reinit(PStask_t* task)
 	task->environ = NULL;
     }
 
-    delSigList(&task->childList);
-    delSigList(&task->releasedBefore);
-    delSigList(&task->deadBefore);
+    PSsignal_clearList(&task->childList);
+    PSsignal_clearList(&task->releasedBefore);
+    PSsignal_clearList(&task->deadBefore);
 
     if (task->request) PSpart_delReq(task->request);
     free(task->partition);
@@ -218,10 +208,10 @@ bool PStask_reinit(PStask_t* task)
     free(task->info);
     free(task->resPorts);
 
-    delSigList(&task->signalSender);
-    delSigList(&task->signalReceiver);
-    delSigList(&task->assignedSigs);
-    delSigList(&task->keptChildren);
+    PSsignal_clearList(&task->signalSender);
+    PSsignal_clearList(&task->signalReceiver);
+    PSsignal_clearList(&task->assignedSigs);
+    PSsignal_clearList(&task->keptChildren);
 
     return PStask_init(task);
 }
@@ -236,49 +226,6 @@ bool PStask_delete(PStask_t* task)
     free(task);
 
     return true;
-}
-
-/**
- * @brief Clone a signal list.
- *
- * Create an exact clone of the signal list @a origList and store it
- * to the new list @a cloneList.
- *
- * @warning This function may fail silently when running out of
- * memory.
- *
- * @param cloneList The list-head of the cloned list to be created.
- *
- * @param origList The original list of signals to be cloned.
- *
- * @return No return value.
- */
-static void cloneSigList(list_t *cloneList, list_t *origList)
-{
-    list_t *s;
-
-    PSC_log(PSC_LOG_TASK, "%s(%p)\n", __func__, origList);
-
-    delSigList(cloneList);
-
-    list_for_each(s, origList) {
-	PSsignal_t *origSig = list_entry(s, PSsignal_t, next);
-	PSsignal_t *cloneSig;
-
-	if (origSig->deleted) continue;
-
-	cloneSig = PSsignal_get();
-	if (!cloneSig) {
-	    delSigList(cloneList);
-	    PSC_warn(-1, ENOMEM, "%s()", __func__);
-	    break;
-	}
-
-	cloneSig->tid = origSig->tid;
-	cloneSig->signal = origSig->signal;
-	cloneSig->deleted = origSig->deleted;
-	list_add_tail(&cloneSig->next, cloneList);
-    }
 }
 
 PStask_t* PStask_clone(PStask_t* task)
@@ -385,9 +332,9 @@ PStask_t* PStask_clone(PStask_t* task)
     gettimeofday(&clone->started, NULL);
     clone->protocolVersion = task->protocolVersion;
 
-    cloneSigList(&clone->childList, &task->childList);
-    cloneSigList(&clone->releasedBefore, &task->releasedBefore);
-    cloneSigList(&clone->deadBefore, &task->deadBefore);
+    PSsignal_cloneList(&clone->childList, &task->childList);
+    PSsignal_cloneList(&clone->releasedBefore, &task->releasedBefore);
+    PSsignal_cloneList(&clone->deadBefore, &task->deadBefore);
 
     clone->request = NULL; /* Do not clone requests */
     clone->options = task->options;
@@ -438,10 +385,10 @@ PStask_t* PStask_clone(PStask_t* task)
     clone->injectedEnv = task->injectedEnv;
     /* Ignore sigChldCB and info */
 
-    cloneSigList(&clone->signalSender, &task->signalSender);
-    cloneSigList(&clone->signalReceiver, &task->signalReceiver);
-    cloneSigList(&clone->assignedSigs, &task->assignedSigs);
-    cloneSigList(&clone->keptChildren, &task->keptChildren);
+    PSsignal_cloneList(&clone->signalSender, &task->signalSender);
+    PSsignal_cloneList(&clone->signalReceiver, &task->signalReceiver);
+    PSsignal_cloneList(&clone->assignedSigs, &task->assignedSigs);
+    PSsignal_cloneList(&clone->keptChildren, &task->keptChildren);
 
     return clone;
 

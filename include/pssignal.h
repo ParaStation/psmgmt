@@ -2,6 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2015-2021 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2022 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -69,6 +70,36 @@ PSsignal_t *PSsignal_get(void);
  * @return No return value
  */
 void PSsignal_put(PSsignal_t *sp);
+
+/**
+ * @brief Clone list of signal structures
+ *
+ * Create an exact clone of the list of signal structures @a origList
+ * and store it to the new list @a cloneList.
+ *
+ * If this functions runs out of memory, i.e. if not enough signal
+ * structures could be retrieved from the pool via @ref
+ * PSsignal_get(), @a cloneList will be an empty list upon return.
+ *
+ * @param cloneList List-head of the cloned list to be created
+ *
+ * @param origList List-head of the original list to be cloned
+ *
+ * @return No return value
+ */
+void PSsignal_cloneList(list_t *cloneList, list_t *origList);
+
+/**
+ * @brief Clear list of signal structures
+ *
+ * Clear the list of signal structures @a list and put all structures
+ * back into the pool via @ref PSsignal_put()
+ *
+ * @param list List-head of the list to be cleared
+ *
+ * @return No return value
+ */
+void PSsignal_clearList(list_t *list);
 
 /**
  * @brief Garbage collection
