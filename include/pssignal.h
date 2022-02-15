@@ -22,11 +22,9 @@
 
 /** Signal structure */
 typedef struct {
-    list_t next;              /**< used to put into signal-lists */
-    PStask_ID_t tid;          /**< unique task identifier */
-    int32_t signal;           /**< signal to send, or -1 for child-signal */
-    bool deleted;             /**< flag to mark deleted signal structs.
-				 Will be removed later when save. */
+    list_t next;         /**< used to put into signal-lists */
+    PStask_ID_t tid;     /**< unique task identifier */
+    int32_t signal;      /**< signal to send, or -1 for child-signal */
 } PSsignal_t;
 
 /**

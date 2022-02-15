@@ -232,17 +232,26 @@ void PSID_sendSignal(PStask_ID_t tid, uid_t uid, PStask_ID_t sender,
 	} else if (pervasive) {
 	    answer = 0;
 
+	    /*
+	     * We have to act on a cloned childList here since the
+	     * original one might get destroyed while sending signals
+	     * due to nodes detected to have gone down.
+	     */
+
 	    int blockedRDP = RDP_blockTimer(true);
 
-	    list_t *s, *tmp;
-	    list_for_each_safe(s, tmp, &dest->childList) { /* @todo safe req? */
-		PSsignal_t *sig = list_entry(s, PSsignal_t, next);
-		if (sig->deleted) continue;
-
-		PSID_sendSignal(sig->tid, uid, sender, signal, 1, answer);
-	    }
+	    LIST_HEAD(children);
+	    PSsignal_cloneList(&children, &dest->childList);
 
 	    RDP_blockTimer(blockedRDP);
+
+	    int sig = -1;
+	    PStask_ID_t childTID;
+	    while ((childTID = PSID_getSignal(&children, &sig))) {
+		if (PSIDnodes_isUp(PSC_getID(childTID)))
+		    PSID_sendSignal(childTID, uid, sender, signal, 1, answer);
+		sig = -1;
+	    }
 
 	    /* Deliver signal if tid not the original sender */
 	    if (tid != sender) {
@@ -333,20 +342,31 @@ void PSID_sendSignalsToRelatives(PStask_t *task)
 		 PSC_printTID(task->ptid));
     }
 
+    /*
+     * We have to act on a cloned childList here since the
+     * original one might get destroyed while sending signals
+     * due to nodes detected to have gone down.
+     */
+
     int blockedRDP = RDP_blockTimer(true);
 
-    list_t *s;
-    list_for_each(s, &task->childList) {
-	PSsignal_t *sig = list_entry(s, PSsignal_t, next);
-	if (sig->deleted) continue;
-
-	PSID_sendSignal(sig->tid, task->uid, task->tid, -1, 0, 0);
-	PSID_log(PSID_LOG_SIGNAL, "%s(%s)", __func__, PSC_printTID(task->tid));
-	PSID_log(PSID_LOG_SIGNAL, " sent signal -1 to %s\n",
-		 PSC_printTID(sig->tid));
-    }
+    LIST_HEAD(children);
+    PSsignal_cloneList(&children, &task->childList);
 
     RDP_blockTimer(blockedRDP);
+
+    int sig = -1;
+    PStask_ID_t childTID;
+    while ((childTID = PSID_getSignal(&children, &sig))) {
+	if (PSIDnodes_isUp(PSC_getID(childTID))) {
+	    PSID_sendSignal(childTID, task->uid, task->tid, -1, 0, 0);
+	    PSID_log(PSID_LOG_SIGNAL, "%s(%s)", __func__,
+		     PSC_printTID(task->tid));
+	    PSID_log(PSID_LOG_SIGNAL, " sent signal -1 to %s\n",
+		     PSC_printTID(childTID));
+	}
+	sig = -1;
+    }
 }
 
 /**

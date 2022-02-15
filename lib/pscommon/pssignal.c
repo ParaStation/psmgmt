@@ -32,7 +32,6 @@ PSsignal_t *PSsignal_get(void)
     if (!sp) return NULL;
 
     sp->tid = 0;
-    sp->deleted = false;
 
     return sp;
 }
@@ -51,7 +50,6 @@ static bool relocSig(void *item)
     /* copy signal struct's content */
     repl->tid = orig->tid;
     repl->signal = orig->signal;
-    repl->deleted = orig->deleted;
 
     /* tweak the list */
     __list_add(&repl->next, orig->next.prev, orig->next.next);
@@ -91,9 +89,6 @@ void PSsignal_cloneList(list_t *cloneList, list_t *origList)
     list_t *s;
     list_for_each(s, origList) {
 	PSsignal_t *origSig = list_entry(s, PSsignal_t, next);
-
-	if (origSig->deleted) continue;
-
 	PSsignal_t *cloneSig = PSsignal_get();
 	if (!cloneSig) {
 	    PSsignal_clearList(cloneList);
@@ -103,7 +98,6 @@ void PSsignal_cloneList(list_t *cloneList, list_t *origList)
 
 	cloneSig->tid = origSig->tid;
 	cloneSig->signal = origSig->signal;
-	cloneSig->deleted = origSig->deleted;
 	list_add_tail(&cloneSig->next, cloneList);
     }
 }
