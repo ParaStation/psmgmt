@@ -114,26 +114,26 @@ static void rescaleActPeriods(struct timeval *newTimeout)
 /**
  * @brief Handles received signals
  *
- * Does all the signal-handling work. When a SIGALRM is received, sigHandler()
- * updates the counter @ref calls for each timer and calls the specific
- * @ref timeoutHandler(), if necessary.
+ * Does all the signal-handling work. When a SIGALRM is received, this
+ * function updates the counter @ref calls for each timer and marks
+ * the specific @ref timeoutHandler() to have a pending signal if
+ * necessary. The actual call of this handler will happen in @ref
+ * Timer_handleSignals() which for the time being is called from
+ * within the Selector facility.
  *
- * @param sig The signal send to the process. Ignored, since only SIGALRM is
- * handled.
+ * @param sig Signal to be the processed (ignored, since only SIGALRM
+ * is handled)
  *
- * @return No return value.
+ * @return No return value
  */
 static void sigHandler(int sig)
 {
     list_t *t;
-
     list_for_each(t, &timerList) {
 	Timer_t *timer = list_entry(t, Timer_t, next);
 	if (timer->deleted) continue;
 	timer->calls = (timer->calls + 1) % timer->period;
-	if (!timer->calls) {
-	    timer->sigPending = true;
-	}
+	if (!timer->calls) timer->sigPending = true;
     }
 }
 
