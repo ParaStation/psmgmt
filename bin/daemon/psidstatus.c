@@ -534,7 +534,7 @@ static void stateChangeCB(int result, bool tmdOut, int iofd, void *info)
     if (iofd > -1) close(iofd); /* Discard further output */
 }
 
-bool declareNodeDead(PSnodes_ID_t id, int sendDeadnode, bool silent)
+bool declareNodeDead(PSnodes_ID_t id, bool sendDeadnode, bool silent)
 {
     if (!PSC_validNode(id)) {
 	PSID_log(-1, "%s: id %d out of range\n", __func__, id);
@@ -938,7 +938,7 @@ static bool msg_DAEMONSHUTDOWN(DDMsg_t *msg)
 
     PSID_log(id != PSC_getMyID() ? PSID_LOG_STATUS : -1,
 	     "%s(%d)\n", __func__, id);
-    declareNodeDead(id, 0, 1);
+    declareNodeDead(id, false /* sendDeadNode */, true /* silent */);
     closeConnRDP(id);
     return true;
 }

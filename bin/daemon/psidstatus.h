@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
  * Copyright (C) 2005-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021 ParTec AG, Munich
+ * Copyright (C) 2021-2022 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -337,24 +337,24 @@ void setMaxStatBCast(int limit);
  * indicators are set appropriately. Furthermore local processes
  * connected with foreign ones on the according node will be signaled.
  *
- * If @a sendDeadnode is different from 0 and the actual node acts as
- * master, a PSP_DD_DEAD_NODE message is sent to all node known to be
- * up in order to inform them about the dead node.
+ * If @a sendDeadnode is true and the actual node acts as master, a
+ * PSP_DD_DEAD_NODE message is sent to all node known to be up in
+ * order to inform them about the dead node.
  *
  * If @a silent is true, no message concerning the lost connection is
  * created within the logs -- unless PSID_LOG_STATUS is part of the
  * debug-mask.
  *
- * @param id The ParaStation ID of the node declared to be dead.
+ * @param id ParaStation ID of the node declared to be dead
  *
- * @param sendDeadnode Flag triggering PSP_DD_DEAD_NODE messages.
+ * @param sendDeadnode Flag triggering PSP_DD_DEAD_NODE messages
  *
  * @param silent Flag triggering log-suppression of lost connection
  *
- * @return If successful, true is returned. Or false if @id is out of
- * range.
+ * @return If successful, true is returned; or false if @id is out of
+ * range
  */
-bool declareNodeDead(PSnodes_ID_t id, int sendDeadnode, bool silent);
+bool declareNodeDead(PSnodes_ID_t id, bool sendDeadnode, bool silent);
 
 /**
  * @brief Declare a node alive.
