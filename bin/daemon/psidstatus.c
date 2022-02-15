@@ -578,7 +578,7 @@ bool declareNodeDead(PSnodes_ID_t id, bool sendDeadnode, bool silent)
 	    /* controlled task was on dead node */
 
 	    /* This might have been a child */
-	    if (sig == -1) PSID_deleteSignal(&task->childList, sndr, sig);
+	    if (sig == -1) PSID_removeSignal(&task->childList, sndr, sig);
 	    if (task->removeIt && PSID_emptySigList(&task->childList)) break;
 
 	    /* Send the signal */
@@ -608,7 +608,7 @@ bool declareNodeDead(PSnodes_ID_t id, bool sendDeadnode, bool silent)
 	    /* controlled task was on dead node */
 
 	    /* This might have been a child */
-	    if (sig == -1) PSID_deleteSignal(&task->childList, sndr, sig);
+	    if (sig == -1) PSID_removeSignal(&task->childList, sndr, sig);
 	    if (task->removeIt && PSID_emptySigList(&task->childList)) break;
 	}
 	/* delete remote children, even if signals already delivered */

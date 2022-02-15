@@ -61,41 +61,21 @@ void PSID_setSignal(list_t *sigList, PStask_ID_t tid, int signal);
 PSsignal_t *PSID_findSignal(list_t *sigList, PStask_ID_t tid, int signal);
 
 /**
- * @brief Unregister signal.
+ * @brief Unregister signal
  *
- * Unregister the signal @a signal associated with the task @a tid
- * from another task's signal list @a sigList.
+ * Unregister the signal @a signal associated to the task @a tid from
+ * another task's signal list @a sigList.
  *
- * @param sigList The signal list the signal was stored to.
+ * @param sigList Signal list the signal was stored to
  *
- * @param tid The unique task ID the signal is associated with.
+ * @param tid Unique task ID the signal is associated with
  *
- * @param signal The signal to unregister.
- *
- * @return On success, i.e. if the corresponding signal was found
- * within the signal list, 1 is returned, otherwise 0 is given back.
- */
-int PSID_removeSignal(list_t *sigList, PStask_ID_t tid, int signal);
-
-/**
- * @brief Mark signal as deleted.
- *
- * Mark the signal @a signal associated with the task @a tid from
- * another task's signal list @a sigList as deleted. In essence the
- * effect of this function is the same as calling @ref
- * PSID_removeSignal(). Nevertheless, this function will just mark the
- * signal as deleted leaving the signal list untouched.
- *
- * @param sigList The signal list the signal was stored to.
- *
- * @param tid The unique task ID the signal is associated with.
- *
- * @param signal The signal to be marked as deleted.
+ * @param signal The signal to unregister
  *
  * @return On success, i.e. if the corresponding signal was found
- * within the signal list, 1 is returned, otherwise 0 is given back.
+ * within the signal list, true is returned, otherwise false is given back
  */
-int PSID_deleteSignal(list_t *sigList, PStask_ID_t tid, int signal);
+bool PSID_removeSignal(list_t *sigList, PStask_ID_t tid, int signal);
 
 /**
  * @brief Get a signal from signal list

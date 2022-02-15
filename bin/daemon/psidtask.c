@@ -99,21 +99,20 @@ PSsignal_t *PSID_findSignal(list_t *sigList, PStask_ID_t tid, int signal)
     return NULL;
 }
 
-static int remSig(const char *fname, list_t *sigList, PStask_ID_t tid,
-		  int signal)
+bool PSID_removeSignal(list_t *sigList, PStask_ID_t tid, int signal)
 {
     int blockedRDP = RDP_blockTimer(true);
 
     if (PSID_getDebugMask() & PSID_LOG_SIGDBG) {
 	PSID_log(PSID_LOG_SIGDBG, "%s: signals before (in %p):",
-		 fname, sigList);
+		 __func__, sigList);
 	printList(sigList);
 	PSID_log(PSID_LOG_SIGDBG, "\n");
     }
 
-    PSID_log(PSID_LOG_SIGNAL, "%s(%s, %d)", fname, PSC_printTID(tid), signal);
+    PSID_log(PSID_LOG_SIGNAL,"%s(%s, %d)", __func__, PSC_printTID(tid), signal);
 
-    int ret = 0;
+    bool ret = false;
     PSsignal_t *sig = PSID_findSignal(sigList, tid, signal);
     if (sig) {
 	/* Signal found */
@@ -123,12 +122,12 @@ static int remSig(const char *fname, list_t *sigList, PStask_ID_t tid,
 	PSID_log(PSID_LOG_SIGNAL, "\n");
 	if (PSID_getDebugMask() & PSID_LOG_SIGDBG) {
 	    PSID_log(PSID_LOG_SIGDBG, "%s: signals after (in %p):",
-		     fname, sigList);
+		     __func__, sigList);
 	    printList(sigList);
 	    PSID_log(PSID_LOG_SIGDBG, "\n");
 	}
 
-	ret = 1;
+	ret = true;
     } else {
 	PSID_log(PSID_LOG_SIGNAL, ": Not found\n");
     }
@@ -136,16 +135,6 @@ static int remSig(const char *fname, list_t *sigList, PStask_ID_t tid,
     RDP_blockTimer(blockedRDP);
 
     return ret;
-}
-
-int PSID_removeSignal(list_t *sigList, PStask_ID_t tid, int signal)
-{
-    return remSig(__func__, sigList, tid, signal);
-}
-
-int PSID_deleteSignal(list_t *sigList, PStask_ID_t tid, int signal)
-{
-    return remSig(__func__, sigList, tid, signal);
 }
 
 PStask_ID_t PSID_getSignal(list_t *sigList, int *signal)
