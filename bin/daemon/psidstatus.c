@@ -582,13 +582,16 @@ bool declareNodeDead(PSnodes_ID_t id, bool sendDeadnode, bool silent)
 	    if (task->removeIt && PSID_emptySigList(&task->childList)) break;
 
 	    /* Send the signal */
-	    PSID_sendSignal(task->tid, task->uid, sndr, sig, 0, 0);
+	    PSID_sendSignal(task->tid, task->uid, sndr, sig,
+			    false /* pervasive */, false /* answer */);
+
 	}
 	/* also take kept children into account */
 	while ((sndr = PSID_getSignalByID(&task->keptChildren, id, &sig))) {
 	    /* kept child was on dead node */
 	    /* Send the signal */
-	    PSID_sendSignal(task->tid, task->uid, sndr, sig, 0, 0);
+	    PSID_sendSignal(task->tid, task->uid, sndr, sig,
+			    false /* pervasive */, false /* answer */);
 	}
 	/* remove remote children, even if signals already delivered */
 	while (PSID_getSignalByID(&task->childList, id, &sig));

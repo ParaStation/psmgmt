@@ -261,7 +261,7 @@ static void terminateJob(PStask_ID_t loggertid)
 	    PSC_printTID(loggertid));
 
     PSID_sendSignal(loggertid, getuid(), PSC_getMyTID(), -1 /* signal */,
-		    0 /* pervasive */, 0 /* answer */);
+		    false /* pervasive */, false /* answer */);
 }
 
 /**

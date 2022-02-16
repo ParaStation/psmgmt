@@ -172,7 +172,7 @@ int PSID_kill(pid_t pid, int sig, uid_t uid)
 }
 
 void PSID_sendSignal(PStask_ID_t tid, uid_t uid, PStask_ID_t sender,
-		     int signal, int pervasive, int answer)
+		     int signal, bool pervasive, bool answer)
 {
     if (PSC_getID(tid) != PSC_getMyID()) {
 	/* receiver is on a remote node, send message */
@@ -230,7 +230,7 @@ void PSID_sendSignal(PStask_ID_t tid, uid_t uid, PStask_ID_t sender,
 		     signal, PSC_printTID(tid));
 	    PSID_log(-1, " sender was %s", PSC_printTID(sender));
 	} else if (pervasive) {
-	    answer = 0;
+	    answer = false;
 
 	    /*
 	     * We have to act on a cloned childList here since the
@@ -246,16 +246,16 @@ void PSID_sendSignal(PStask_ID_t tid, uid_t uid, PStask_ID_t sender,
 	    RDP_blockTimer(blockedRDP);
 
 	    int sig = -1;
-	    PStask_ID_t childTID;
-	    while ((childTID = PSID_getSignal(&children, &sig))) {
-		if (PSIDnodes_isUp(PSC_getID(childTID)))
-		    PSID_sendSignal(childTID, uid, sender, signal, 1, answer);
+	    PStask_ID_t child;
+	    while ((child = PSID_getSignal(&children, &sig))) {
+		if (PSIDnodes_isUp(PSC_getID(child)))
+		    PSID_sendSignal(child, uid, sender, signal, true, answer);
 		sig = -1;
 	    }
 
 	    /* Deliver signal if tid not the original sender */
 	    if (tid != sender) {
-		PSID_sendSignal(tid, uid, sender, signal, 0, answer);
+		PSID_sendSignal(tid, uid, sender, signal, false, answer);
 	    }
 
 	    /* Now inform the master if necessary */
@@ -324,8 +324,8 @@ void PSID_sendAllSignals(PStask_t *task)
     PStask_ID_t sigtid;
 
     while ((sigtid = PSID_getSignal(&task->signalReceiver, &sig))) {
-	PSID_sendSignal(sigtid, task->uid, task->tid, sig, 0, 0);
-
+	PSID_sendSignal(sigtid, task->uid, task->tid, sig,
+			false /* pervasive */, false /* answer */);
 	PSID_log(PSID_LOG_SIGNAL, "%s(%s)", __func__, PSC_printTID(task->tid));
 	PSID_log(PSID_LOG_SIGNAL,
 		 " sent signal %d to %s\n", sig, PSC_printTID(sigtid));
@@ -336,7 +336,8 @@ void PSID_sendAllSignals(PStask_t *task)
 void PSID_sendSignalsToRelatives(PStask_t *task)
 {
     if (task->ptid) {
-	PSID_sendSignal(task->ptid, task->uid, task->tid, -1, 0, 0);
+	PSID_sendSignal(task->ptid, task->uid, task->tid, -1,
+			false /* pervasive */, false /* answer */);
 	PSID_log(PSID_LOG_SIGNAL, "%s(%s)", __func__, PSC_printTID(task->tid));
 	PSID_log(PSID_LOG_SIGNAL, " sent signal -1 to parent %s\n",
 		 PSC_printTID(task->ptid));
@@ -359,7 +360,8 @@ void PSID_sendSignalsToRelatives(PStask_t *task)
     PStask_ID_t childTID;
     while ((childTID = PSID_getSignal(&children, &sig))) {
 	if (PSIDnodes_isUp(PSC_getID(childTID))) {
-	    PSID_sendSignal(childTID, task->uid, task->tid, -1, 0, 0);
+	    PSID_sendSignal(childTID, task->uid, task->tid, -1,
+			    false /* pervasive */, false /* answer */);
 	    PSID_log(PSID_LOG_SIGNAL, "%s(%s)", __func__,
 		     PSC_printTID(task->tid));
 	    PSID_log(PSID_LOG_SIGNAL, " sent signal -1 to %s\n",
@@ -712,7 +714,8 @@ static bool msg_NEWPARENT(DDErrorMsg_t *msg)
 
 	if (!PSIDnodes_isUp(PSC_getID(msg->request))) {
 	    /* Node is down, deliver signal now */
-	    PSID_sendSignal(task->tid, task->uid, msg->request, -1, 0, 0);
+	    PSID_sendSignal(task->tid, task->uid, msg->request, -1,
+			    false /* pervasive */, false /* answer */);
 	} else {
 	    task->ptid = msg->request;
 	    /* parent will send signal on exit -> include into assignedSigs */
@@ -817,7 +820,8 @@ static bool msg_NEWANCESTOR(DDErrorMsg_t *msg)
 
 	if (!grandParentOK) {
 	    /* Node is down, deliver signal now */
-	    PSID_sendSignal(task->tid, task->uid, msg->request, -1, 0, 0);
+	    PSID_sendSignal(task->tid, task->uid, msg->request, -1,
+			    false /* pervasive */, false /* answer */);
 	    continue;
 	} else {
 	    task->ptid = msg->request;
@@ -1028,7 +1032,8 @@ static bool msg_ADOPTFAILED(DDBufferMsg_t *msg)
 
 	task->ptid = ptid;
 
-	PSID_sendSignal(task->tid, task->uid, ptid, -1, 0, 0);
+	PSID_sendSignal(task->tid, task->uid, ptid, -1,
+			false /* pervasive */, false /* answer */);
 
 	/* Also change back forwarder's ptid */
 	if (task->forwarder) task->forwarder->ptid = ptid;

@@ -3,6 +3,7 @@
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
  * Copyright (C) 2005-2020 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2022 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -15,6 +16,7 @@
 #ifndef __PSIDSIGNAL_H
 #define __PSIDSIGNAL_H
 
+#include <stdbool.h>
 #include <sys/types.h>
 
 #include "pstask.h"
@@ -109,9 +111,8 @@ int PSID_kill(pid_t pid, int sig, uid_t uid);
  * might be determined from the process using the PSI_whodied()
  * function, has the unique ID @a senderTid.
  *
- * If @a pervasive is different from 0, i.e. if it's logical true, the
- * signal @a sig will also be send to all children of task @a tid,
- * including their children and so on.
+ * If @a pervasive is true, the signal @a sig will also be sent to all
+ * children of task @a tid, including their children and so on.
  *
  * In contrast to PSID_kill(), the actual process to be signaled might
  * live on a remote node.
@@ -125,16 +126,16 @@ int PSID_kill(pid_t pid, int sig, uid_t uid);
  *
  * @param signal Signal to send
  *
- * @param pervasive Flag the signal to be pervasive. If different from
- * 0, all children of @a tid will be signaled, too. Otherwise, only @a
- * tid will be signaled.
+ * @param pervasive Flag the signal to be pervasive. If true, all
+ * children of @a tid will be signaled, too. Otherwise, only @a tid
+ * will be signaled.
  *
  * @param answer Flag the creation of an answer message
  *
  * @return No return value
  */
 void PSID_sendSignal(PStask_ID_t tid, uid_t uid, PStask_ID_t sender,
-		     int signal, int pervasive, int answer);
+		     int signal, bool pervasive, bool answer);
 
 /**
  * @brief Send signals to all tasks which have asked for

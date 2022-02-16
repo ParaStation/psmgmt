@@ -908,7 +908,8 @@ static void msg_CLIENTCONNECT(int fd, DDBufferMsg_t *bufmsg)
 		}
 	    } else {
 		/* no parent !? kill the task */
-		PSID_sendSignal(task->tid, task->uid, PSC_getMyTID(), -1, 0,0);
+		PSID_sendSignal(task->tid, task->uid, PSC_getMyTID(), -1,
+				false /* pervasive */, false /* answer */);
 	    }
 	}
 

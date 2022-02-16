@@ -3001,8 +3001,8 @@ static bool msg_SPAWNSUCCESS(DDErrorMsg_t *msg)
 	/* task not found, it has already died */
 	PSID_log(-1, "%s(%s)", __func__, PSC_printTID(tid));
 	PSID_log(-1, " with parent(%s) already dead\n", PSC_printTID(ptid));
-	PSID_sendSignal(tid, 0, ptid, -1, 0, 0);
-
+	PSID_sendSignal(tid, 0, ptid, -1,
+			false /* pervasive */, false /* answer */);
 	return true;
     }
 
@@ -3280,7 +3280,8 @@ static bool msg_CHILDDEAD(DDErrorMsg_t *msg)
 		     __func__, PSC_printTID(task->tid));
 	    PSID_log(-1, " from %s. Sending signal now.\n",
 		     PSC_printTID(msg->request));
-	    PSID_sendSignal(task->tid, task->uid, msg->request, -1, 0, 0);
+	    PSID_sendSignal(task->tid, task->uid, msg->request, -1,
+			    false /* pervasive */, false /* answer */);
 	}
 	if (!PSID_removeSignal(&task->childList, msg->request, -1)) {
 	    /* No child found. Might already be inherited by parent */
@@ -3328,7 +3329,8 @@ static bool msg_CHILDDEAD(DDErrorMsg_t *msg)
 	    /* service task requested signal */
 	    if (!WIFEXITED(msg->error) || WIFSIGNALED(msg->error)
 		|| PSID_emptySigList(&task->childList)) {
-		PSID_sendSignal(task->tid, task->uid, msg->request, -1, 0, 0);
+		PSID_sendSignal(task->tid, task->uid, msg->request, -1,
+				false /* pervasive */, false /* answer */);
 	    }
 	    break;
 	default:
