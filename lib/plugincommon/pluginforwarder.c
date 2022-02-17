@@ -653,7 +653,8 @@ static int execFWhooks(Forwarder_Data_t *fw)
     }
 
     /* jail myself and all my children */
-    if (fw->jailChild && PSIDhook_call(PSIDHOOK_JAIL_CHILD, &fw->uID) < 0) {
+    pid_t mypid = getpid();
+    if (fw->jailChild && PSIDhook_call(PSIDHOOK_JAIL_CHILD, &mypid) < 0) {
 	pluginlog("%s: hook PSIDHOOK_JAIL_CHILD failed\n", __func__);
 	return ret;
     }
