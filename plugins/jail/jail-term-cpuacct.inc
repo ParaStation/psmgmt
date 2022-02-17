@@ -28,16 +28,16 @@ CG_STEP="$CG_JOB/step-$SLURM_STEPID"
 }
 
 if [ -n "$SLURM_STEPID" ]; then
-	mlog "killing step $SLURM_JOBID:$SLURM_STEPID with signal $KILL_SIGNAL"
+	dlog "killing step $SLURM_JOBID:$SLURM_STEPID with signal $KILL_SIGNAL"
 
 	if [ -d "$CG_STEP" ]; then
 		killTasks "$CG_STEP"
 	else
-		mlog "no cgroup step $CG_STEP"
+		dlog "no cgroup step $CG_STEP"
 	fi
 
 elif [ -n "$SLURM_JOBID" ]; then
-	mlog "killing job $SLURM_JOBID with signal $KILL_SIGNAL"
+	dlog "killing job $SLURM_JOBID with signal $KILL_SIGNAL"
 	killJob $CG_JOB
 
 	# cleanup user directory

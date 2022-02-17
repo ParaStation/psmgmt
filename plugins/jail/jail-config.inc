@@ -21,7 +21,7 @@ EXPAND="/opt/parastation/bin/psnameexpand"
 COMPRESS="/opt/parastation/bin/psnamecompress"
 
 # enable debug logging
-DEBUG="1"
+DEBUG="0"
 
 # prefix of the cgroup name
 PREFIX="psid"
