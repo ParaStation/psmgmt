@@ -1,3 +1,54 @@
+Version psmgmt-5.1.47-1:
+========================
+------------------------------------------------------------------------
+c74bd2dc | Norbert Eicker | Thu, 17 Feb 2022 23:08:35 +0100
+
+Minor cleanup
+------------------------------------------------------------------------
+5d3b5bae | Michael Rauh | Thu, 17 Feb 2022 15:48:21 +0100
+
+Bugfix: use forwarders PID for hook PSIDHOOK_JAIL_CHILD
+instead of UID
+------------------------------------------------------------------------
+cdf0cf02 | Michael Rauh | Thu, 17 Feb 2022 15:02:10 +0100
+
+Use hookFWInitUser() to initialize the PMIx server
+------------------------------------------------------------------------
+ba742f4a | Michael Rauh | Thu, 17 Feb 2022 14:59:33 +0100
+
+Introduce hookFWInitUser() in pluginforwarder
+------------------------------------------------------------------------
+97ad8843 | Michael Rauh | Thu, 17 Feb 2022 12:41:05 +0100
+
+Test for valid child PID in jail scripts
+------------------------------------------------------------------------
+b0ee7680 | Michael Rauh | Thu, 17 Feb 2022 12:21:09 +0100
+
+Switch off debug output of jail scripts
+------------------------------------------------------------------------
+604d3c4e | Michael Rauh | Fri, 11 Feb 2022 13:05:41 +0100
+
+Don't expect a terminate script for every jail module
+------------------------------------------------------------------------
+0fc313b5 | Michael Rauh | Fri, 11 Feb 2022 12:51:53 +0100
+
+Fix docu
+------------------------------------------------------------------------
+2e7a35a3 | Michael Rauh | Fri, 11 Feb 2022 12:50:19 +0100
+
+Bugfix: call PSIDHOOK_JAIL_CHILD after hookFWInit()
+------------------------------------------------------------------------
+a39f2c1a | Norbert Eicker | Fri, 11 Feb 2022 16:14:30 +0100
+
+Improve docu
+------------------------------------------------------------------------
+94f923e3 | Michael Rauh | Fri, 11 Feb 2022 14:57:33 +0100
+
+Call sinfo with config server environment variable
+for Slurm protocol version detection
+------------------------------------------------------------------------
+
+
 Version psmgmt-5.1.47:
 ======================
 ------------------------------------------------------------------------

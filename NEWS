@@ -6,6 +6,18 @@ Copyright (C) 2021-2022 ParTec AG, Munich
 Please send bug reports, questions and suggestions to <support@par-tec.com>
 
 
+Version 5.1.47-1:
+=================
+Bugfixes:
+ - Call PSIDHOOK_JAIL_CHILD after hookFWInit() to provide all information
+ - Test for valid child PID in jail scripts
+ - Don't expect a terminate script for every jail module
+ - Pass forwarder's PID to hook PSIDHOOK_JAIL_CHILD instead of UID
+Enhancements:
+ - Call sinfo with SLURM_CONF_SERVER set for Slurm protocol version detection
+ - Switch off debug output in jail scripts as default
+ - Introduce hookFWInitUser() to pluginforwarder
+
 *************************************************************************
 *************************************************************************
 **                                                                     **
@@ -19,9 +31,9 @@ Please send bug reports, questions and suggestions to <support@par-tec.com>
 *************************************************************************
 
 Version 5.1.47:
-==============
+===============
 Bugfixes:
- - Fix possbile segfault when a step is deleted (jwt:#12795)
+ - Fix possible segfault when a step is deleted (jwt:#12795)
  - Only use errno value if kill() actually failed
  - Check for uid_t consistency in msg_SIGNAL
  - Ensure PMIx-server shutdown and add kill timer (steered via SERVER_KILL_WAIT)
