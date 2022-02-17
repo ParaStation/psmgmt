@@ -37,6 +37,11 @@ source $CommandPath/jail-config.inc
 
 exec 2>>$LOG_FILE 1>&2
 
+if [ -z "$CHILD" ] || [ "$CHILD" == "0" ]; then
+  dlog "Skipping invalid child $CHILD"
+  exit 0
+fi
+
 for modName in ${MODULES//,/$IFS}; do
 	MODULE="$CommandPath/$SCRIPT-$modName.inc"
 	[ -r $MODULE ] || {
