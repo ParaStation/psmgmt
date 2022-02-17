@@ -3385,8 +3385,11 @@ static bool msg_CHILDDEAD(DDErrorMsg_t *msg)
 	}
 
 	/* Prepare CHILDDEAD msg here. Task might be removed in next step */
-	msg->header.dest = task->ptid;
-	msg->header.sender = PSC_getMyTID();
+	if (!task->released) {
+	    /* parent only expects CHILDDEAD if child is not released */
+	    msg->header.dest = task->ptid;
+	    msg->header.sender = PSC_getMyTID();
+	}
 
 	/* child is dead now; thus, remove parent from assignedSigs */
 	PSID_removeSignal(&task->assignedSigs, task->ptid, -1);
