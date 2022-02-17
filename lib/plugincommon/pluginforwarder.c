@@ -641,8 +641,6 @@ static bool openOEpipes(Forwarder_Data_t *fw)
 
 static int execFWhooks(Forwarder_Data_t *fw)
 {
-    int ret = -1;
-
     /* initialize as root */
     if (fw->hookFWInit) {
 	int ret = fw->hookFWInit(fw);
@@ -653,17 +651,17 @@ static int execFWhooks(Forwarder_Data_t *fw)
     }
 
     /* jail myself and all my children */
-    pid_t mypid = getpid();
-    if (fw->jailChild && PSIDhook_call(PSIDHOOK_JAIL_CHILD, &mypid) < 0) {
+    pid_t pid = getpid();
+    if (fw->jailChild && PSIDhook_call(PSIDHOOK_JAIL_CHILD, &pid) < 0) {
 	pluginlog("%s: hook PSIDHOOK_JAIL_CHILD failed\n", __func__);
-	return ret;
+	return -1;
     }
 
     /* optional switch user */
     if (fw->uID != getuid() || fw->gID != getgid()) {
 	if (!switchUser(fw->userName, fw->uID, fw->gID)) {
 	    pluginlog("%s: switchUser() failed\n", __func__);
-	    return ret;
+	    return -1;
 	}
 
 	/* initialize as user */
@@ -680,7 +678,7 @@ static int execFWhooks(Forwarder_Data_t *fw)
     if (fw->fwChildOE) {
 	if (!openOEpipes(fw)) {
 	    pluginlog("%s: initialize child STDOUT/STDERR failed\n", __func__);
-	    return ret;
+	    return -1;
 	}
     }
 
