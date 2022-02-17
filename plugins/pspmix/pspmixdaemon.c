@@ -357,7 +357,7 @@ static bool startJobserver(PspmixJobserver_t *server)
 //    fwdata->accounted = true;
     fwdata->killSession = fakeKillSession;
     fwdata->callback = jobserverTerminated_cb;
-    fwdata->hookFWInit = pspmix_jobserver_initialize;
+    fwdata->hookFWInitUser = pspmix_jobserver_initialize;
     fwdata->hookLoop = pspmix_jobserver_prepareLoop;
     fwdata->hookFinalize = pspmix_jobserver_finalize;
     fwdata->handleMthrMsg = pspmix_comm_handleMthrMsg;
