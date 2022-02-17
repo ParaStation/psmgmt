@@ -639,6 +639,53 @@ static bool openOEpipes(Forwarder_Data_t *fw)
     return true;
 }
 
+static int execFWhooks(Forwarder_Data_t *fw)
+{
+    int ret = -1;
+
+    /* initialize as root */
+    if (fw->hookFWInit) {
+	int ret = fw->hookFWInit(fw);
+	if (ret < 0) {
+	    pluginlog("%s: hookFWInit failed with %d\n", __func__, ret);
+	    return ret;
+	}
+    }
+
+    /* jail myself and all my children */
+    if (fw->jailChild && PSIDhook_call(PSIDHOOK_JAIL_CHILD, &fw->uID) < 0) {
+	pluginlog("%s: hook PSIDHOOK_JAIL_CHILD failed\n", __func__);
+	return ret;
+    }
+
+    /* optional switch user */
+    if (fw->uID != getuid() || fw->gID != getgid()) {
+	if (!switchUser(fw->userName, fw->uID, fw->gID)) {
+	    pluginlog("%s: switchUser() failed\n", __func__);
+	    return ret;
+	}
+
+	/* initialize as user */
+	if (fw->hookFWInitUser) {
+	    int ret = fw->hookFWInitUser(fw);
+	    if (ret < 0) {
+		pluginlog("%s: hookFWInitUser failed with %d\n", __func__, ret);
+		return ret;
+	    }
+	}
+    }
+
+    /* setup output/error pipes */
+    if (fw->fwChildOE) {
+	if (!openOEpipes(fw)) {
+	    pluginlog("%s: initialize child STDOUT/STDERR failed\n", __func__);
+	    return ret;
+	}
+    }
+
+    return 0;
+}
+
 static void execForwarder(PStask_t *task)
 {
     fwTask = task;
@@ -655,33 +702,11 @@ static void execForwarder(PStask_t *task)
 	exit(1);
     }
 
-    if (fw->hookFWInit) {
-	int ret = fw->hookFWInit(fw);
-	if (ret < 0) {
-	    pluginlog("%s: hookFWInit failed with %d\n", __func__, ret);
-	    sendCodeInfo(ret);
-	    exit(-1);
-	}
-    }
-
-    /* jail myself and all my children */
-    if (fw->jailChild && PSIDhook_call(PSIDHOOK_JAIL_CHILD, &fw->uID) < 0) {
-	pluginlog("%s: hook PSIDHOOK_JAIL_CHILD failed\n", __func__);
-	return false;
-    }
-
-    if (fw->uID != getuid() || fw->gID != getgid()) {
-	if (!switchUser(fw->userName, fw->uID, fw->gID)) {
-	    pluginlog("%s: switchUser() failed\n", __func__);
-	    return false;
-	}
-    }
-
-    if (fw->fwChildOE) {
-	if (!openOEpipes(fw)) {
-	    pluginlog("%s: initialize child STDOUT/STDERR failed\n", __func__);
-	    exit(1);
-	}
+    int ret = execFWhooks(fw);
+    if (ret < 0) {
+	pluginlog("%s: forwarder hooks failed\n", __func__);
+	sendCodeInfo(ret);
+	exit(-1);
     }
 
     for (i = 1; i <= fw->childRerun; i++) {
