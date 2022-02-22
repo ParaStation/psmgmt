@@ -823,15 +823,14 @@ static bool msg_NEWANCESTOR(DDErrorMsg_t *msg)
 	    /* Node is down, deliver signal now */
 	    PSID_sendSignal(task->tid, task->uid, msg->request, -1,
 			    false /* pervasive */, false /* answer */);
-	    continue;
-	} else {
-	    task->ptid = msg->request;
-	    /* parent will send signal on exit -> include into assignedSigs */
-	    PSID_setSignal(&task->assignedSigs, msg->request, -1);
-
-	    /* Also change forwarder's ptid */
-	    if (task->forwarder) task->forwarder->ptid = msg->request;
+	    continue; /* tid not required in answer */
 	}
+
+	task->ptid = msg->request;
+	/* parent will send signal on exit -> include into assignedSigs */
+	PSID_setSignal(&task->assignedSigs, msg->request, -1);
+	/* Also change forwarder's ptid */
+	if (task->forwarder) task->forwarder->ptid = msg->request;
 
 	size_t oldLen = answer.header.len;
 	if (!PSP_tryPutMsgBuf(&answer, "TID", &task->tid, sizeof(task->tid))
