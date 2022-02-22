@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2002-2004 ParTec AG, Karlsruhe
  * Copyright (C) 2005-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021 ParTec AG, Munich
+ * Copyright (C) 2021-2022 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -90,7 +90,7 @@ struct __task__ {
     /*C*/ struct winsize winsize;  /**< window size of the controlling tty */
     /*C*/ PStask_group_t group;    /**< task group @see PStask_group_t */
     PStask_group_t childGroup;     /**< used by forwarder during spawn */
-    PSrsrvtn_ID_t resID;           /**< reservation to be spawned in */
+    /*C*/ PSrsrvtn_ID_t resID;     /**< reservation to be spawned in */
     /*C*/ PStask_ID_t loggertid;   /**< unique identifier of the logger */
     PStask_t *forwarder;           /**< pointer to forwarder's task struct */
     /*C*/ int32_t rank;            /**< rank of task within task group */
