@@ -1102,10 +1102,10 @@ static int releaseChild(PStask_ID_t parent, PStask_ID_t child, bool answer)
  * @brief Remove signal from task
  *
  * Remove the signal @a sig which should be sent to the task with
- * unique task ID @a receiver from the one with unique task ID @a
- * sender.
+ * unique task ID @a sigRcvr from the one with unique task ID @a
+ * sigSndr.
  *
- * Each signal can be identified uniquely via giving the unique task
+ * Each signal can be identified uniquely by giving the unique task
  * IDs of the sending and receiving process plus the signal to send.
  *
  * @param sigSndr Task ID of the task which should send the signal
@@ -1114,19 +1114,13 @@ static int releaseChild(PStask_ID_t parent, PStask_ID_t child, bool answer)
  * @param sigRcvr Task ID of the task which should have received
  * the signal to remove
  *
- * @param sig The signal to be removed
+ * @param sig Signal to be removed
  *
- * @param answer Flag to expect answer. Used if release is forwarded
- * to parent process.
- *
- * @return On success, 0 is returned or an @a errno on error. In the
- * special case of forwarding the release request to a new parent, -1
- * is returned.
+ * @return On success, 0 is returned or an @a errno on error
  *
  * @see errno(3)
  */
-static int releaseSignal(PStask_ID_t sigSndr, PStask_ID_t sigRcvr, int sig,
-			 int answer)
+static int releaseSignal(PStask_ID_t sigSndr, PStask_ID_t sigRcvr, int sig)
 {
     PStask_t *task = PStasklist_find(&managedTasks, sigSndr);
 
@@ -1142,13 +1136,7 @@ static int releaseSignal(PStask_ID_t sigSndr, PStask_ID_t sigRcvr, int sig,
     PSID_log(PSID_LOG_SIGNAL, " from %s: release\n", PSC_printTID(sigSndr));
 
     /* Remove signal from list */
-    if (sig == -1) {
-	/* Release a child */
-	PSID_removeSignal(&task->assignedSigs, sigRcvr, sig);
-	if (releaseChild(sigSndr, sigRcvr, answer) < 0) return -1;
-    } else {
-	PSID_removeSignal(&task->signalReceiver, sigRcvr, sig);
-    }
+    PSID_removeSignal(&task->signalReceiver, sigRcvr, sig);
 
     return 0;
 }
@@ -1285,7 +1273,7 @@ static int releaseTask(PStask_t *task)
 		 __func__, sig, PSC_printTID(sender));
 	if (PSC_getID(sender) == PSC_getMyID()) {
 	    /* controlled task is local */
-	    int ret = releaseSignal(sender, task->tid, sig, task->releaseAnswer);
+	    int ret = releaseSignal(sender, task->tid, sig);
 	    if (ret > 0) task->pendingReleaseErr = ret;
 	} else {
 	    DDSignalMsg_t sigMsg = {
@@ -1439,8 +1427,7 @@ static bool msg_RELEASE(DDSignalMsg_t *msg)
 	    if (msg->signal == -1) {
 		msg->param = releaseChild(tid, registrarTid, msg->answer);
 	    } else {
-		msg->param = releaseSignal(tid, registrarTid, msg->signal,
-					   msg->answer);
+		msg->param = releaseSignal(tid, registrarTid, msg->signal);
 	    }
 	    if (msg->param < 0) {
 		/*
