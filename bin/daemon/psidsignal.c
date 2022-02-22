@@ -289,8 +289,7 @@ void PSID_sendSignal(PStask_ID_t tid, uid_t uid, PStask_ID_t sender,
 		}
 	    }
 	} else {
-	    int ret, sig = (signal != -1) ? signal : dest->relativesignal;
-
+	    int sig = (signal != -1) ? signal : dest->relativesignal;
 	    if (signal == -1) {
 		int delay = PSIDnodes_killDelay(PSC_getMyID());
 		/* Kill using SIGKILL in some seconds */
@@ -303,7 +302,7 @@ void PSID_sendSignal(PStask_ID_t tid, uid_t uid, PStask_ID_t sender,
 	    }
 
 	    PSID_removeSignal(&dest->assignedSigs, sender, signal);
-	    ret = PSID_kill(pid, sig, uid);
+	    int ret = PSID_kill(pid, sig, uid);
 	    msg.error = ret;
 
 	    if (ret) {
@@ -793,8 +792,7 @@ static bool msg_NEWANCESTOR(DDErrorMsg_t *msg)
 	    .sender = msg->header.dest,
 	    .len = offsetof(DDBufferMsg_t, buf) },
 	.buf = { 0 } };
-    size_t emptyLen = answer.header.len, oldLen;
-    PStask_ID_t nTID = 0;
+    size_t emptyLen = answer.header.len;
     bool grandParentOK = PSIDnodes_isUp(PSC_getID(msg->request));
 
     if (grandParentOK) {
@@ -803,14 +801,14 @@ static bool msg_NEWANCESTOR(DDErrorMsg_t *msg)
 	emptyLen = answer.header.len;
     }
 
-    int found = 0;
+    bool found = false;
     list_t *t;
     list_for_each(t, &managedTasks) {
 	PStask_t *task = list_entry(t, PStask_t, next);
 
 	if (task->deleted || task->ptid != msg->header.sender
 	    || task->released || task->group == TG_FORWARDER) continue;
-	found++;
+	found = true;
 
 	PSID_log(PSID_LOG_SIGNAL, "%s: %s: parent",
 		 __func__, PSC_printTID(task->tid));
@@ -835,7 +833,7 @@ static bool msg_NEWANCESTOR(DDErrorMsg_t *msg)
 	    if (task->forwarder) task->forwarder->ptid = msg->request;
 	}
 
-	oldLen = answer.header.len;
+	size_t oldLen = answer.header.len;
 	if (!PSP_tryPutMsgBuf(&answer, "TID", &task->tid, sizeof(task->tid))
 	    || !PSP_tryPutMsgBuf(&answer, "released", &task->released,
 				 sizeof(task->released))) {
@@ -854,6 +852,7 @@ static bool msg_NEWANCESTOR(DDErrorMsg_t *msg)
     }
 
     if (grandParentOK) {
+	PStask_ID_t nTID = 0;
 	if (!PSP_tryPutMsgBuf(&answer, "end", &nTID, sizeof(nTID))) {
 	    sendMsg(&answer);
 	    answer.header.len = emptyLen;
@@ -1000,18 +999,17 @@ static bool drop_ADOPTCHILDSET(DDBufferMsg_t *msg)
  */
 static bool msg_ADOPTFAILED(DDBufferMsg_t *msg)
 {
-    PStask_ID_t ptid, tid;
     size_t used = 0;
 
+    PStask_ID_t ptid;
     if (!PSP_getMsgBuf(msg, &used, "ptid", &ptid, sizeof(ptid))) {
 	PSID_log(-1, "%s: from %s: truncated\n", __func__,
 		 PSC_printTID(msg->header.sender));
 	return true;
     }
 
+    PStask_ID_t tid;
     while (PSP_tryGetMsgBuf(msg, &used, "tid", &tid, sizeof(tid))) {
-	PStask_t *task;
-
 	if (!tid) {
 	    /* last child received, tell parent */
 	    DDMsg_t answer = {
@@ -1023,7 +1021,7 @@ static bool msg_ADOPTFAILED(DDBufferMsg_t *msg)
 	    break;
 	}
 
-	task = PStasklist_find(&managedTasks, tid);
+	PStask_t *task = PStasklist_find(&managedTasks, tid);
 	if (!task) continue; /* Task already gone */
 
 	PSID_log(-1, "%s: New parent %s is gone.", __func__,
@@ -1324,11 +1322,9 @@ static bool deregisterFromParent(PStask_t *task)
 {
     if (!task) return false;
 
-    int answer =  task->releaseAnswer ? 1 : 0;
-
     if (PSC_getID(task->ptid) == PSC_getMyID()) {
 	/* parent task is local */
-	int ret = releaseSignal(task->ptid, task->tid, -1, answer);
+	int ret = releaseSignal(task->ptid, task->tid, -1, task->releaseAnswer);
 	if (ret > 0) task->pendingReleaseErr = ret;
     } else {
 	/* parent task is remote, send a message */
@@ -1339,14 +1335,15 @@ static bool deregisterFromParent(PStask_t *task)
 		.dest = task->ptid,
 		.len = sizeof(sigMsg) },
 	    .signal = -1,
-	    .answer = answer };
+	    .answer = task->releaseAnswer };
 
 	PSID_log(PSID_LOG_TASK|PSID_LOG_SIGNAL, "%s: notify parent %s\n",
 		 __func__, PSC_printTID(task->ptid));
 
 	sendMsg(&sigMsg);
 
-	if (!task->parentReleased && answer) task->pendingReleaseRes++;
+	if (!task->parentReleased && task->releaseAnswer)
+	    task->pendingReleaseRes++;
     }
     task->parentReleased = true;
 
@@ -1569,24 +1566,24 @@ static void send_RELEASERES(PStask_t *task, PStask_ID_t sender)
  */
 static bool msg_INHERITDONE(DDBufferMsg_t *msg)
 {
-    PStask_ID_t tid = msg->header.dest, keptChild;
+    PStask_ID_t tid = msg->header.dest;
     PStask_t *task = PStasklist_find(&managedTasks, tid);
-    size_t used = 0;
 
-    if (!PSP_getMsgBuf(msg, &used, "kept child", &keptChild,
-		       sizeof(keptChild))) {
+    size_t used = 0;
+    PStask_ID_t keptChld;
+    if (!PSP_getMsgBuf(msg, &used, "kept child", &keptChld, sizeof(keptChld))) {
 	PSID_log(-1, "%s(%s): truncated\n", __func__, PSC_printTID(tid));
 	return true;
     }
 
     if (!task) {
 	PSID_log(-1, "%s(%s) for %d: no task\n", __func__, PSC_printTID(tid),
-		 PSC_getID(keptChild));
+		 PSC_getID(keptChld));
 	return true;
     }
 
     /* remove kept back signal */
-    PSID_removeSignal(&task->keptChildren, keptChild, -1);
+    PSID_removeSignal(&task->keptChildren, keptChld, -1);
 
     task->pendingReleaseRes--;
     if (task->pendingReleaseRes
