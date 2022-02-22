@@ -1482,7 +1482,25 @@ static int spawnTask(PStask_t *task)
     return err;
 }
 
-void sendCHILDRESREL(PStask_ID_t logger, PSCPU_set_t set, PStask_ID_t sender)
+/**
+ * @brief Send a PSP_DD_CHILDRESREL message
+ *
+ * Create and send a message of type PSP_DD_CHILDRESREL to the logger
+ * with task ID @a logger concerning the set of HW-threads @a
+ * set. This will release the now unused resources and enable them to
+ * be reused. The task ID @a sender will act as the messsenger
+ * reporting the released resources.
+ *
+ * @param logger Destination of the message to send
+ *
+ * @param set Set of HW-threads to be released
+ *
+ * @param sender Messenger reporting about the resources to be released
+ *
+ * @return No return value
+ */
+static void sendCHILDRESREL(PStask_ID_t logger, PSCPU_set_t set,
+			    PStask_ID_t sender)
 {
     DDBufferMsg_t resRelMsg = {
 	.header = {
@@ -3366,6 +3384,7 @@ static bool msg_CHILDDEAD(DDErrorMsg_t *msg)
 	    && task->group != TG_ADMINTASK && task->group != TG_KVS
 	    && task->group != TG_PLUGINFW) {
 	    /** Create and send PSP_DD_CHILDRESREL message */
+	    // @todo we might want to try to reduce number of messages sent
 	    sendCHILDRESREL(task->loggertid, task->CPUset, msg->request);
 	}
 

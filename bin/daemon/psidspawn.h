@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2002-2004 ParTec AG, Karlsruhe
  * Copyright (C) 2005-2020 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021 ParTec AG, Munich
+ * Copyright (C) 2021-2022 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -239,25 +239,6 @@ typedef void PSIDspawn_creator_t(PStask_t *task);
  */
 int PSIDspawn_localTask(PStask_t *task, PSIDspawn_creator_t creator,
 			Selector_CB_t *msgHandler);
-
-/**
- * @brief Send a PSP_DD_CHILDRESREL message
- *
- * Create and send a message of type PSP_DD_CHILDRESREL to the logger
- * with task ID @a logger concerning the set of HW-threads @a
- * set. This will release the now unused resources and enable them to
- * be reused. The task ID @a sender will act as the messsenger
- * reporting the released resources.
- *
- * @param logger Destination of the message to send
- *
- * @param set Set of HW-threads to be released
- *
- * @param sender Messenger reporting about the resources to be released
- *
- * @return No return value
- */
-void sendCHILDRESREL(PStask_ID_t logger, PSCPU_set_t set, PStask_ID_t sender);
 
 /**
  * @brief Initialize spawning stuff
