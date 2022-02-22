@@ -1195,10 +1195,13 @@ static int releaseSignal(PStask_ID_t sigSndr, PStask_ID_t sigRcvr, int sig,
  */
 static int releaseTask(PStask_t *task)
 {
-    int ret;
+    if (!task) {
+	PSID_log(-1, "%s(): no task\n", __func__);
+	return ESRCH;
+    }
+
     static bool *sentToNode = NULL;
     static int sTNSize = 0;
-
     if (!sentToNode || sTNSize < PSC_getNrOfNodes()) {
 	bool *bak = sentToNode;
 
@@ -1212,134 +1215,126 @@ static int releaseTask(PStask_t *task)
 	}
     }
 
-    if (!task) {
-	PSID_log(-1, "%s(): no task\n", __func__);
+    PSID_log(PSID_LOG_TASK|PSID_LOG_SIGNAL, "%s(%s): release\n", __func__,
+	     PSC_printTID(task->tid));
 
-	return ESRCH;
-    } else {
-	PStask_ID_t child, sender;
-	int sig, answer = task->releaseAnswer ? 1 : 0;
+    task->released = true;
 
-	PSID_log(PSID_LOG_TASK|PSID_LOG_SIGNAL, "%s(%s): release\n", __func__,
-		 PSC_printTID(task->tid));
+    /* Prevent sending premature RELEASERES messages to initiator */
+    task->pendingReleaseRes++;
 
-	task->released = true;
+    if (task->ptid) {
+	/* Reorganize children. They are inherited by the parent task */
+	PSnodes_ID_t parentNode = PSC_getID(task->ptid);
 
-	/* Prevent sending premature RELEASERES messages to initiator */
-	task->pendingReleaseRes++;
+	memset(sentToNode, false, sTNSize * sizeof(*sentToNode));
 
-	if (task->ptid) {
-	    /* Reorganize children. They are inherited by the parent task */
-	    PSnodes_ID_t parentNode = PSC_getID(task->ptid);
+	int sig = -1;
+	PStask_ID_t child;
+	while ((child = PSID_getSignal(&task->childList, &sig))) {
+	    bool assgnd = PSID_findSignal(&task->assignedSigs, child, -1);
+	    PSnodes_ID_t childNode = PSC_getID(child);
 
-	    memset(sentToNode, false, sTNSize * sizeof(*sentToNode));
+	    PSID_log(PSID_LOG_TASK|PSID_LOG_SIGNAL, "%s: notify child %s\n",
+		     __func__, PSC_printTID(child));
 
-	    sig = -1;
-	    while ((child = PSID_getSignal(&task->childList, &sig))) {
-		bool assgnd = PSID_findSignal(&task->assignedSigs, child, -1);
-		PSnodes_ID_t childNode = PSC_getID(child);
+	    /* Child's assigned signal not needed any more */
+	    if (assgnd) PSID_removeSignal(&task->assignedSigs, child, -1);
 
-		PSID_log(PSID_LOG_TASK|PSID_LOG_SIGNAL, "%s: notify child %s\n",
-			 __func__, PSC_printTID(child));
+	    if (task->group == TG_KVS && task->noParricide) {
+		/* Avoid inheritance to prevent parricide */
+		sig = -1;
+		continue;
+	    }
 
-		/* Child's assigned signal not needed any more */
-		if (assgnd) PSID_removeSignal(&task->assignedSigs, child, -1);
+	    if (PSIDnodes_getDmnProtoV(childNode) < 412
+		|| PSIDnodes_getDmnProtoV(parentNode) < 412) {
 
-		if (task->group == TG_KVS && task->noParricide) {
-		    /* Avoid inheritance to prevent parricide */
-		    sig = -1;
-		    continue;
-		}
+		/* Send child new ptid */
+		DDErrorMsg_t inheritMsg = (DDErrorMsg_t) {
+		    .header = {
+			.type = PSP_DD_NEWPARENT,
+			.dest = child,
+			.sender =  task->tid,
+			.len = sizeof(inheritMsg) },
+		    .request = task->ptid,
+		    .error = 1 };
 
-		if (PSIDnodes_getDmnProtoV(childNode) < 412
-		    || PSIDnodes_getDmnProtoV(parentNode) < 412) {
+		task->pendingReleaseRes++;
+		sendMsg(&inheritMsg);
 
-		    /* Send child new ptid */
-		    DDErrorMsg_t inheritMsg = (DDErrorMsg_t) {
+		/* Send parent new child */
+		inheritMsg = (DDErrorMsg_t) {
+		    .header = {
+			.type = PSP_DD_NEWCHILD,
+			.dest =  task->ptid,
+			.sender =  task->tid,
+			.len = sizeof(inheritMsg) },
+		    .request = child,
+		    .error = assgnd ? -1 : 0 /* already released? */ };
+
+		task->pendingReleaseRes++;
+		sendMsg(&inheritMsg);
+	    } else {
+		if (!sentToNode[childNode]) {
+		    DDErrorMsg_t inheritMsg = {
 			.header = {
-			    .type = PSP_DD_NEWPARENT,
+			    .type = PSP_DD_NEWANCESTOR,
+			    .sender = task->tid,
 			    .dest = child,
-			    .sender =  task->tid,
 			    .len = sizeof(inheritMsg) },
 			.request = task->ptid,
-			.error = 1 };
+			.error = 0 };
 
 		    task->pendingReleaseRes++;
+
 		    sendMsg(&inheritMsg);
-
-		    /* Send parent new child */
-		    inheritMsg = (DDErrorMsg_t) {
-			.header = {
-			    .type = PSP_DD_NEWCHILD,
-			    .dest =  task->ptid,
-			    .sender =  task->tid,
-			    .len = sizeof(inheritMsg) },
-			.request = child,
-			.error = assgnd ? -1 : 0 /* already released? */ };
-
-		    task->pendingReleaseRes++;
-		    sendMsg(&inheritMsg);
-		} else {
-		    if (!sentToNode[childNode]) {
-			DDErrorMsg_t inheritMsg = {
-			    .header = {
-				.type = PSP_DD_NEWANCESTOR,
-				.sender = task->tid,
-				.dest = child,
-				.len = sizeof(inheritMsg) },
-			    .request = task->ptid,
-			    .error = 0 };
-
-			task->pendingReleaseRes++;
-
-			sendMsg(&inheritMsg);
-			sentToNode[childNode] = true;
-			PSID_setSignal(&task->keptChildren, child, -1);
-		    }
+		    sentToNode[childNode] = true;
+		    PSID_setSignal(&task->keptChildren, child, -1);
 		}
-
-		/* Prepare to get next child */
-		sig = -1;
 	    }
 
-	    /* Remove parent's assigned signal */
-	    PSID_removeSignal(&task->assignedSigs, task->ptid, -1);
-	}
-
-	/* Don't send any signals to me after release */
-	sig = -1;
-	while ((sender = PSID_getSignal(&task->assignedSigs, &sig))) {
-	    PSID_log(PSID_LOG_SIGNAL,
-		     "%s: release signal %d assigned from %s\n", __func__,
-		     sig, PSC_printTID(sender));
-	    if (PSC_getID(sender) == PSC_getMyID()) {
-		/* controlled task is local */
-		ret = releaseSignal(sender, task->tid, sig, answer);
-		if (ret > 0) task->pendingReleaseErr = ret;
-	    } else {
-		DDSignalMsg_t sigMsg = {
-		    .header = {
-			.type = PSP_CD_RELEASE,
-			.sender = task->tid,
-			.dest = sender,
-			.len = sizeof(sigMsg) },
-		    .signal = sig,
-		    .answer = answer };
-
-		/* controlled task is remote, send a message */
-		PSID_log(PSID_LOG_SIGNAL, "%s: notify sender %s\n",
-			 __func__, PSC_printTID(sender));
-
-		sendMsg(&sigMsg);
-
-		if (answer) task->pendingReleaseRes++;
-	    }
+	    /* Prepare to get next child */
 	    sig = -1;
 	}
 
-	/* Now RELEASERES messages might be sent to initiator */
-	task->pendingReleaseRes--;
+	/* Remove parent's assigned signal */
+	PSID_removeSignal(&task->assignedSigs, task->ptid, -1);
     }
+
+    /* Don't send any signals to me after release */
+    int sig = -1;
+    PStask_ID_t sender;
+    while ((sender = PSID_getSignal(&task->assignedSigs, &sig))) {
+	PSID_log(PSID_LOG_SIGNAL, "%s: release signal %d assigned from %s\n",
+		 __func__, sig, PSC_printTID(sender));
+	if (PSC_getID(sender) == PSC_getMyID()) {
+	    /* controlled task is local */
+	    int ret = releaseSignal(sender, task->tid, sig, task->releaseAnswer);
+	    if (ret > 0) task->pendingReleaseErr = ret;
+	} else {
+	    DDSignalMsg_t sigMsg = {
+		.header = {
+		    .type = PSP_CD_RELEASE,
+		    .sender = task->tid,
+		    .dest = sender,
+		    .len = sizeof(sigMsg) },
+		.signal = sig,
+		.answer = task->releaseAnswer };
+
+	    /* controlled task is remote, send a message */
+	    PSID_log(PSID_LOG_SIGNAL, "%s: notify sender %s\n",
+		     __func__, PSC_printTID(sender));
+
+	    sendMsg(&sigMsg);
+
+	    if (task->releaseAnswer) task->pendingReleaseRes++;
+	}
+	sig = -1;
+    }
+
+    /* Now RELEASERES messages might be sent to initiator */
+    task->pendingReleaseRes--;
 
     return task->pendingReleaseErr;
 }
@@ -1469,8 +1464,10 @@ static bool msg_RELEASE(DDSignalMsg_t *msg)
 	    msg->param = releaseSignal(tid, registrarTid, msg->signal,
 				       msg->answer);
 	    if (msg->param < 0) {
-		/* RELEASE message was forwarded to new
-		 * parent. RELEASERES message will be created there */
+		/*
+		 * RELEASE message forwarded to new parent when
+		 * releasing child => RELEASERES message created there
+		 */
 		return true;
 	    }
 	    if (msg->answer) return msg_RELEASERES(msg);
