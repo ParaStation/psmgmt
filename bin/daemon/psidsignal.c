@@ -650,8 +650,6 @@ static bool msg_NEWCHILD(DDErrorMsg_t *msg)
 	    /* RELEASE already received */
 	    PSID_log(PSID_LOG_SIGNAL, "%s: inherit released child %s\n",
 		     __func__, PSC_printTID(msg->request));
-	} else if (msg->error) {
-	    PSID_setSignal(&task->assignedSigs, msg->request, -1);
 	}
 	if (PSID_getSignalByTID(&task->deadBefore, msg->request)) {
 	    /* CHILDDEAD already received */
@@ -711,17 +709,12 @@ static bool msg_NEWPARENT(DDErrorMsg_t *msg)
 	PSID_log(PSID_LOG_SIGNAL, " new parent is %s\n",
 		 PSC_printTID(msg->request));
 
-	/* Signal from old parent was expected */
-	PSID_removeSignal(&task->assignedSigs, msg->header.sender, -1);
-
 	if (!PSIDnodes_isUp(PSC_getID(msg->request))) {
 	    /* Node is down, deliver signal now */
 	    PSID_sendSignal(task->tid, task->uid, msg->request, -1,
 			    false /* pervasive */, false /* answer */);
 	} else {
 	    task->ptid = msg->request;
-	    /* parent will send signal on exit -> include into assignedSigs */
-	    PSID_setSignal(&task->assignedSigs, msg->request, -1);
 
 	    /* Also change forwarder's ptid */
 	    if (task->forwarder) task->forwarder->ptid = msg->request;
@@ -816,9 +809,6 @@ static bool msg_NEWANCESTOR(DDErrorMsg_t *msg)
 	PSID_log(PSID_LOG_SIGNAL, " new parent is %s\n",
 		 PSC_printTID(msg->request));
 
-	/* Signal from old parent was expected */
-	PSID_removeSignal(&task->assignedSigs, msg->header.sender, -1);
-
 	if (!grandParentOK) {
 	    /* Node is down, deliver signal now */
 	    PSID_sendSignal(task->tid, task->uid, msg->request, -1,
@@ -827,8 +817,6 @@ static bool msg_NEWANCESTOR(DDErrorMsg_t *msg)
 	}
 
 	task->ptid = msg->request;
-	/* parent will send signal on exit -> include into assignedSigs */
-	PSID_setSignal(&task->assignedSigs, msg->request, -1);
 	/* Also change forwarder's ptid */
 	if (task->forwarder) task->forwarder->ptid = msg->request;
 
@@ -924,8 +912,6 @@ static bool msg_ADOPTCHILDSET(DDBufferMsg_t *msg)
 	    /* RELEASE already received */
 	    PSID_log(PSID_LOG_SIGNAL, "%s: inherit released child %s\n",
 		     __func__, PSC_printTID(tid));
-	} else if (!rlsd && !deadBefore) {
-	    PSID_setSignal(&task->assignedSigs, tid, -1);
 	}
 	if (deadBefore) {
 	    /* CHILDDEAD already received */
@@ -1027,11 +1013,7 @@ static bool msg_ADOPTFAILED(DDBufferMsg_t *msg)
 		 PSC_printTID(msg->header.sender));
 	PSID_log(-1, " kill %s\n", PSC_printTID(tid));
 
-	/* Signal from new parent was set to be expected */
-	PSID_removeSignal(&task->assignedSigs, msg->header.sender, -1);
-
 	task->ptid = ptid;
-
 	PSID_sendSignal(task->tid, task->uid, ptid, -1,
 			false /* pervasive */, false /* answer */);
 
@@ -1232,14 +1214,10 @@ static int releaseTask(PStask_t *task)
 	int sig = -1;
 	PStask_ID_t child;
 	while ((child = PSID_getSignal(&task->childList, &sig))) {
-	    bool assgnd = PSID_findSignal(&task->assignedSigs, child, -1);
 	    PSnodes_ID_t childNode = PSC_getID(child);
 
 	    PSID_log(PSID_LOG_TASK|PSID_LOG_SIGNAL, "%s: notify child %s\n",
 		     __func__, PSC_printTID(child));
-
-	    /* Child's assigned signal not needed any more */
-	    if (assgnd) PSID_removeSignal(&task->assignedSigs, child, -1);
 
 	    if (task->group == TG_KVS && task->noParricide) {
 		/* Avoid inheritance to prevent parricide */
@@ -1271,7 +1249,7 @@ static int releaseTask(PStask_t *task)
 			.sender =  task->tid,
 			.len = sizeof(inheritMsg) },
 		    .request = child,
-		    .error = assgnd ? -1 : 0 /* already released? */ };
+		    .error = 0 };
 
 		task->pendingReleaseRes++;
 		sendMsg(&inheritMsg);
@@ -1297,9 +1275,6 @@ static int releaseTask(PStask_t *task)
 	    /* Prepare to get next child */
 	    sig = -1;
 	}
-
-	/* Remove parent's assigned signal */
-	PSID_removeSignal(&task->assignedSigs, task->ptid, -1);
     }
 
     /* Don't send any signals to me after release */
@@ -1357,7 +1332,7 @@ static bool deregisterFromParent(PStask_t *task)
 
     if (PSC_getID(task->ptid) == PSC_getMyID()) {
 	/* parent task is local */
-	int ret = releaseSignal(task->ptid, task->tid, -1, task->releaseAnswer);
+	int ret = releaseChild(task->ptid, task->tid, task->releaseAnswer);
 	if (ret > 0) task->pendingReleaseErr = ret;
     } else {
 	/* parent task is remote, send a message */
@@ -1461,8 +1436,12 @@ static bool msg_RELEASE(DDSignalMsg_t *msg)
 	    msg->param = 0;
 	} else {
 	    /* receiving task (task to release) is local */
-	    msg->param = releaseSignal(tid, registrarTid, msg->signal,
-				       msg->answer);
+	    if (msg->signal == -1) {
+		msg->param = releaseChild(tid, registrarTid, msg->answer);
+	    } else {
+		msg->param = releaseSignal(tid, registrarTid, msg->signal,
+					   msg->answer);
+	    }
 	    if (msg->param < 0) {
 		/*
 		 * RELEASE message forwarded to new parent when

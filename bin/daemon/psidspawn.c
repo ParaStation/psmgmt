@@ -2994,9 +2994,6 @@ static bool msg_SPAWNSUCCESS(DDErrorMsg_t *msg)
     if (task && (task->fd > -1 || task->group == TG_ANY)) {
 	/* register the child */
 	PSID_setSignal(&task->childList, tid, -1);
-
-	/* child will send a signal on exit, thus include into assignedSigs */
-	PSID_setSignal(&task->assignedSigs, tid, -1);
     } else {
 	/* task not found, it has already died */
 	PSID_log(-1, "%s(%s)", __func__, PSC_printTID(tid));
@@ -3181,8 +3178,6 @@ static bool msg_CHILDBORN(DDErrorMsg_t *msg)
 	child->argc = 1;
     }
 
-    /* Child will get signal from parent. Thus add ptid to assignedSigs */
-    PSID_setSignal(&child->assignedSigs, child->ptid, -1);
     /* Enqueue the task right in front of the forwarder */
     PStasklist_enqueueBefore(&managedTasks, child, forwarder);
     /* Tell everybody about the new task */
@@ -3203,7 +3198,6 @@ static bool msg_CHILDBORN(DDErrorMsg_t *msg)
 		     PSC_printTID(child->ptid));
 	} else {
 	    PSID_setSignal(&parent->childList, child->tid, -1);
-	    PSID_setSignal(&parent->assignedSigs, child->tid, -1);
 
 	    /*
 	     * If the parent is a normal but unconnected task, it was
@@ -3274,15 +3268,6 @@ static bool msg_CHILDDEAD(DDErrorMsg_t *msg)
 	PStask_t *task = PStasklist_find(&managedTasks, msg->header.dest);
 	if (!task) return true;
 
-	if (PSID_removeSignal(&task->assignedSigs, msg->request, -1)) {
-	    /* Neither release nor sig received, send sig now */
-	    PSID_log(-1, "%s: Neither signal nor release received for %s",
-		     __func__, PSC_printTID(task->tid));
-	    PSID_log(-1, " from %s. Sending signal now.\n",
-		     PSC_printTID(msg->request));
-	    PSID_sendSignal(task->tid, task->uid, msg->request, -1,
-			    false /* pervasive */, false /* answer */);
-	}
 	if (!PSID_removeSignal(&task->childList, msg->request, -1)) {
 	    /* No child found. Might already be inherited by parent */
 	    if (task->ptid) {
@@ -3390,9 +3375,6 @@ static bool msg_CHILDDEAD(DDErrorMsg_t *msg)
 	    msg->header.dest = task->ptid;
 	    msg->header.sender = PSC_getMyTID();
 	}
-
-	/* child is dead now; thus, remove parent from assignedSigs */
-	PSID_removeSignal(&task->assignedSigs, task->ptid, -1);
 
 	/* If child not connected, remove task from tasklist. This
 	 * will also send all signals */

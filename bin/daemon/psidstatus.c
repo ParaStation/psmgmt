@@ -575,47 +575,43 @@ bool declareNodeDead(PSnodes_ID_t id, bool sendDeadnode, bool silent)
 	int sig;
 	PStask_ID_t sndr;
 	while ((sndr = PSID_getSignalByID(&task->assignedSigs, id, &sig))) {
-	    /* controlled task was on dead node */
-
-	    /* This might have been a child */
-	    if (sig == -1) PSID_removeSignal(&task->childList, sndr, sig);
-	    if (task->removeIt && PSID_emptySigList(&task->childList)) break;
-
-	    /* Send the signal */
-	    PSID_sendSignal(task->tid, task->uid, sndr, sig,
-			    false /* pervasive */, false /* answer */);
-
-	}
-	/* also take kept children into account */
-	while ((sndr = PSID_getSignalByID(&task->keptChildren, id, &sig))) {
-	    /* kept child was on dead node */
-	    /* Send the signal */
+	    /* controlled task was on dead node => send signal now */
 	    PSID_sendSignal(task->tid, task->uid, sndr, sig,
 			    false /* pervasive */, false /* answer */);
 	}
-	/* remove remote children, even if signals already delivered */
-	while (PSID_getSignalByID(&task->childList, id, &sig));
-
+	if (PSC_getID(task->ptid) == id) {
+	    /* parent resided on that node => send signal now */
+	    PSID_sendSignal(task->tid, task->uid, task->ptid, -1,
+			    false /* pervasive */, false /* answer */);
+	}
+	/* one or more children resided on that node */
+	while ((sndr = PSID_getSignalByID(&task->childList, id, &sig))) {
+	    /* child task was on dead node => send signal now */
+	    PSID_sendSignal(task->tid, task->uid, sndr, -1,
+			    false /* pervasive */, false /* answer */);
+	}
 	if (task->removeIt && PSID_emptySigList(&task->childList)) {
 	    PSID_log(PSID_LOG_TASK, "%s: PSIDtask_cleanup()\n", __func__);
 	    PSIDtask_cleanup(task);
+	    continue;
+	}
+
+	/* take kept children into account, too */
+	while ((sndr = PSID_getSignalByID(&task->keptChildren, id, &sig))) {
+	    /* kept child was on dead node */
+	    /* Send the signal */
+	    PSID_sendSignal(task->tid, task->uid, sndr, -1,
+			    false /* pervasive */, false /* answer */);
 	}
     }
+
     /* We might have to cleanup obsolete tasks, too (but no signals required) */
     list_for_each(t, &obsoleteTasks) {
 	PStask_t *task = list_entry(t, PStask_t, next);
-	PStask_ID_t sndr;
-	int sig;
 	if (task->deleted) continue;
-	while ((sndr = PSID_getSignalByID(&task->assignedSigs, id, &sig))) {
-	    /* controlled task was on dead node */
-
-	    /* This might have been a child */
-	    if (sig == -1) PSID_removeSignal(&task->childList, sndr, sig);
-	    if (task->removeIt && PSID_emptySigList(&task->childList)) break;
-	}
-	/* delete remote children, even if signals already delivered */
-	while (PSID_getSignalByID(&task->childList, id, &sig));
+	/* delete remote children */
+	int sig = -1;
+	while (PSID_getSignalByID(&task->childList, id, &sig)) sig = -1;
 
 	if (task->removeIt && PSID_emptySigList(&task->childList)) {
 	    PSID_log(PSID_LOG_TASK, "%s: PSIDtask_cleanup()\n", __func__);
