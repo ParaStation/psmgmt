@@ -1045,6 +1045,79 @@ static bool msg_ADOPTFAILED(DDBufferMsg_t *msg)
 static bool msg_RELEASE(DDSignalMsg_t *msg);
 
 /**
+ * @brief Release parent from child
+ *
+ * Remove the child task @a child from the list of children of the
+ * parent process with unique task ID @a parent. After this the parent
+ * task will no longer inherit this child task to upon its
+ * release. Thus, the child task and all its children detaches from
+ * its tree of tasks.
+ *
+ * @param parent Task ID of the parent task which shall be release
+ * from the child
+ *
+ * @param child Task ID of the child task which wants to detach itself
+ * (and all its children) from the global task tree the signal to
+ *
+ * @param answer Flag if an answer is expected
+ *
+ * @return On success, 0 is returned or an @a errno on error; in the
+ * special case of forwarding the release request to a new parent, -1
+ * is returned
+ *
+ * @see errno(3)
+ */
+static int releaseChild(PStask_ID_t parent, PStask_ID_t child, bool answer)
+{
+    PStask_t *task = PStasklist_find(&managedTasks, parent);
+    if (!task) {
+	PSID_log(-1, "%s: parent %s", __func__, PSC_printTID(parent));
+	PSID_log(-1, " not found for %s\n", PSC_printTID(child));
+	return ESRCH;
+    }
+
+    PSID_log(PSID_LOG_SIGNAL, "%s: release %s", __func__, PSC_printTID(parent));
+    PSID_log(PSID_LOG_SIGNAL, " from child %s\n", PSC_printTID(child));
+
+    if (!PSID_getSignalByTID(&task->childList, child)) {
+	/* No child found. Might already be inherited by parent */
+	if (task->ptid) {
+	    DDSignalMsg_t msg = {
+		.header = {
+		    .type = PSP_CD_RELEASE,
+		    .dest = task->ptid,
+		    .sender = child,
+		    .len = sizeof(msg) },
+		.signal = -1,
+		.pervasive = 0,
+		.answer = answer };
+
+	    PSID_log(PSID_LOG_SIGNAL, "%s: forward PSP_CD_RELEASE from %s",
+		     __func__, PSC_printTID(child));
+	    PSID_log(PSID_LOG_SIGNAL, " dest %s", PSC_printTID(task->tid));
+	    PSID_log(PSID_LOG_SIGNAL, "->%s\n", PSC_printTID(task->ptid));
+
+	    if (PSC_getID(child) == PSC_getMyID()) {
+		PStask_t *childTask = PStasklist_find(&managedTasks, child);
+		if (childTask && !childTask->parentReleased) {
+		    childTask->pendingReleaseRes += answer;
+		    childTask->parentReleased = true;
+		}
+	    }
+	    msg_RELEASE(&msg);
+
+	    return -1;
+	}
+	/* To be sure, mark child as released */
+	PSID_log(PSID_LOG_SIGNAL, "%s: %s not (yet?) child of",
+		 __func__, PSC_printTID(child));
+	PSID_log(PSID_LOG_SIGNAL, " %s\n", PSC_printTID(parent));
+	PSID_setSignal(&task->releasedBefore, child, -1);
+    }
+    return 0;
+}
+
+/**
  * @brief Remove signal from task
  *
  * Remove the signal @a sig which should be sent to the task with
