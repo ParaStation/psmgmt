@@ -224,7 +224,10 @@ void PSID_sendSignal(PStask_ID_t tid, uid_t uid, PStask_ID_t sender,
     } else {
 	/* Check if signal was intended for an obsolete task */
 	PStask_t *obsT = PStasklist_find(&obsoleteTasks, tid);
-	if (obsT && PSID_findSignal(&obsT->assignedSigs, sender, signal)) {
+	if (obsT && (( signal == -1
+		       && ( sender == obsT->ptid
+			    || PSID_findSignal(&obsT->childList, sender, -1)))
+		     ||	PSID_findSignal(&obsT->assignedSigs, sender, signal))) {
 	    msg.error = ESRCH;
 	    PSID_log(-1, "%s: sig %d intended for obsolete tasks %s", __func__,
 		     signal, PSC_printTID(tid));
