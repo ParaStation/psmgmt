@@ -1164,41 +1164,7 @@ static int releaseSignal(PStask_ID_t sigSndr, PStask_ID_t sigRcvr, int sig,
     if (sig == -1) {
 	/* Release a child */
 	PSID_removeSignal(&task->assignedSigs, sigRcvr, sig);
-	if (!PSID_findSignal(&task->childList, sigRcvr, sig)) {
-	    /* No child found. Might already be inherited by parent */
-	    if (task->ptid) {
-		DDSignalMsg_t msg = {
-		    .header = {
-			.type = PSP_CD_RELEASE,
-			.dest = task->ptid,
-			.sender = sigRcvr,
-			.len = sizeof(msg) },
-		    .signal = -1,
-		    .pervasive = 0,
-		    .answer = !!answer };
-
-		PSID_log(PSID_LOG_SIGNAL, "%s: forward PSP_CD_RELEASE from %s",
-			 __func__, PSC_printTID(sigRcvr));
-		PSID_log(PSID_LOG_SIGNAL, " dest %s", PSC_printTID(task->tid));
-		PSID_log(PSID_LOG_SIGNAL, "->%s\n", PSC_printTID(task->ptid));
-
-		if (PSC_getID(sigRcvr) == PSC_getMyID()) {
-		    PStask_t *rtask = PStasklist_find(&managedTasks, sigRcvr);
-		    if (rtask && !rtask->parentReleased) {
-			rtask->pendingReleaseRes += !!answer;
-			rtask->parentReleased = true;
-		    }
-		}
-		msg_RELEASE(&msg);
-
-		return -1;
-	    }
-	    /* To be sure, mark child as released */
-	    PSID_log(PSID_LOG_SIGNAL, "%s: %s not (yet?) child of",
-		     __func__, PSC_printTID(sigRcvr));
-	    PSID_log(PSID_LOG_SIGNAL, " %s\n", PSC_printTID(sigSndr));
-	    PSID_setSignal(&task->releasedBefore, sigRcvr, -1);
-	}
+	if (releaseChild(sigSndr, sigRcvr, answer) < 0) return -1;
     } else {
 	PSID_removeSignal(&task->signalReceiver, sigRcvr, sig);
     }
