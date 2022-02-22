@@ -1412,8 +1412,10 @@ static bool msg_RELEASE(DDSignalMsg_t *msg)
 		msg->param = releaseTask(task);
 
 		if (task->pendingReleaseRes || !deregisterFromParent(task)) {
-		    /* RELEASERES message pending, RELEASERES to initiatior
-		     * will be sent by msg_RELEASERES() */
+		    /*
+		     * RELEASE message forwarded to new parent when
+		     * releasing child => RELEASERES message created there
+		     */
 		    return true;
 		}
 	    }
