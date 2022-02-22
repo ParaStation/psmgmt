@@ -73,6 +73,16 @@ static PspmixJobserver_t* findJobserver(PStask_ID_t loggertid)
     return NULL;
 }
 
+PStask_ID_t pspmix_daemon_getJobserverTID(PStask_ID_t loggertid)
+{
+    PspmixJobserver_t* server = findJobserver(loggertid);
+    if (!server) {
+	mlog("%s: server not found.", __func__);
+	return -1;
+    }
+    return server->fwdata->tid;
+}
+
 /* ****************************************************** *
  *                 Send/Receive functions                 *
  * ****************************************************** */
@@ -488,11 +498,6 @@ static int hookRecvSpawnReq(void *data)
 	//     task and resinfo ??? think we need to so it can resolve
 	//     rank to node for each reservation
     }
-
-    /* set jobserver tid in environment for the spawn forwarder */
-    char buf[40];
-    snprintf(buf, sizeof(buf), "%d", server->fwdata->tid);
-    setenv("__PSPMIX_LOCAL_JOBSERVER_TID", buf, 1);
 
     return 0;
 }

@@ -14,6 +14,8 @@
 #ifndef __PS_PMIX_DAEMON
 #define __PS_PMIX_DAEMON
 
+#include "pstaskid.h"
+
 /**
  * @brief Initialize the daemon module
  *
@@ -31,5 +33,14 @@ void pspmix_initDaemonModule(void);
  * @return No return value
  */
 void pspmix_finalizeDaemonModule(void);
+
+/**
+ * @brief Find TID of the jobserver for job with passed loggertid
+ *
+ * @param loggertid  loggertid of the job
+ *
+ * @return The TID of the server or -1 on error
+ */
+PStask_ID_t pspmix_daemon_getJobserverTID(PStask_ID_t loggertid);
 
 #endif  /* __PS_PMIX_DAEMON */

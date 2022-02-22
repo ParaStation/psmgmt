@@ -46,6 +46,7 @@
 #include "pspmixcommon.h"
 #include "pspmixlog.h"
 #include "pspmixtypes.h"
+#include "pspmixdaemon.h"
 
 /* psid rank of this forwarder and child */
 static int32_t rank;
@@ -70,11 +71,7 @@ static struct {
 /**
  * @brief Compose and send a client registration message to the PMIx server
  *
- * @param loggertid  TID of the tasks logger identifying the job it belongs to
- * @param resid      reservation id of the task the client is part of
- * @param clientRank the rank of the client task
- * @param uid        the uid of the client
- * @param gid        the gid of the client
+ * @param clientTask the client task to register
  *
  * @return Returns true on success, false on error
  */
@@ -85,18 +82,12 @@ static bool sendRegisterClientMsg(PStask_t *clientTask)
 
     PStask_ID_t myTID = PSC_getMyTID();
 
-    char *tmp = getenv("__PSPMIX_LOCAL_JOBSERVER_TID");
-    if (!tmp) {
-	mlog("%s(r%d): No TID of local PMIx job server\n", __func__, rank);
+    PStask_ID_t serverTID = pspmix_daemon_getJobserverTID(
+	    clientTask->loggertid);
+    if (serverTID < 0) {
+	mlog("%s(r%d): Failed to get jobserver TID\n", __func__, rank);
 	return false;
     }
-
-    PStask_ID_t serverTID;
-    if (sscanf(tmp, "%d", &serverTID) != 1) {
-	mlog("%s(r%d): Failed to parse TID from '%s'\n", __func__, rank, tmp);
-	return false;
-    }
-    unsetenv("__PSPMIX_LOCAL_JOBSERVER_TID");
 
     DDTypedBufferMsg_t msg = {
 	.header = {
