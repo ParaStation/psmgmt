@@ -26,8 +26,14 @@
 #include "pluginmalloc.h"
 #include "pslog.h"
 #include "psserial.h"
+#include "pscommon.h"
+#include "psidcomm.h"
 
 #include "psaccountscript.h"
+
+typedef enum {
+    CMD_SET_POLL_TIME = 100,
+} FW_Cmds_t;
 
 /**
  * @brief Parse stdout/stderr from collect script
@@ -109,31 +115,67 @@ static void execCollectScript(Forwarder_Data_t *fwdata, int rerun)
     }
 }
 
-/**
- * @brief Validate the collect script
- *
- * @path The absolute path to the script
- */
-static bool testCollectScript(char *spath, char *title)
+bool Script_test(char *spath, char *title)
 {
-    if (spath) {
-	struct stat sbuf;
-	if (stat(spath, &sbuf) == -1) {
-	    mwarn(errno, "%s: %s script %s not found:", __func__, title, spath);
-	    return false;
-	}
-	if (!(sbuf.st_mode & S_IFREG) || !(sbuf.st_mode & S_IXUSR)) {
-	    mlog("%s: %s script %s is not a valid executable script\n",
-		 __func__, title, spath);
-	    return false;
-	}
-	return true;
+    if (!spath) {
+	return false;
     }
-    return false;
+
+    struct stat sbuf;
+    if (stat(spath, &sbuf) == -1) {
+	mwarn(errno, "%s: %s script %s not found:", __func__, title, spath);
+	return false;
+    }
+    if (!(sbuf.st_mode & S_IFREG) || !(sbuf.st_mode & S_IXUSR)) {
+	mlog("%s: %s script %s is not a valid executable script\n",
+		__func__, title, spath);
+	return false;
+    }
+    return true;
+}
+
+/**
+ * @brief Update the poll time of the script
+ *
+ * @param fwdata The forwarder management structure
+ *
+ * @param ptr Holding the new poll time
+ */
+static void handleSetPollTime(Forwarder_Data_t *fwdata, char *ptr)
+{
+    Collect_Script_t *script = fwdata->userData;
+    getUint32(&ptr, &script->poll);
+}
+
+/**
+ * @brief Handle a message from mother send to script forwarder
+ *
+ * @param msg The message to handle
+ *
+ * @param fwdata The forwarder management structure
+ *
+ * @return Returns 1 on success and 0 otherwise
+ */
+static int fwCMD_handleMthrMsg(PSLog_Msg_t *msg, Forwarder_Data_t *fwdata)
+{
+    FW_Cmds_t type = (FW_Cmds_t)msg->type;
+
+    switch (type) {
+	case CMD_SET_POLL_TIME:
+	    handleSetPollTime(fwdata, msg->buf);
+	    break;
+	default:
+	    mlog("%s: unexpected msg, type %d (PSlog type %s) from TID %s (%s) "
+		 "jobid %s\n", __func__, type, PSLog_printMsgType(msg->type),
+		 PSC_printTID(msg->sender), fwdata->pTitle, fwdata->jobID);
+	    return 0;
+    }
+
+    return 1;
 }
 
 Collect_Script_t *Script_start(char *title, char *path,
-			       scriptDataHandler_t *func, int poll)
+			       scriptDataHandler_t *func, uint32_t poll)
 {
     if (!title) {
 	mlog("%s: invalid title given\n", __func__);
@@ -148,7 +190,10 @@ Collect_Script_t *Script_start(char *title, char *path,
 	return false;
     }
 
-    if (!testCollectScript(path, title)) return false;
+    if (!Script_test(path, title)) {
+	mlog("%s: invalid %s script given\n", __func__, title);
+	return false;
+    }
 
     Collect_Script_t *script = umalloc(sizeof(*script));
     script->path = ustrdup(path);
@@ -164,6 +209,7 @@ Collect_Script_t *Script_start(char *title, char *path,
     fwdata->childFunc = execCollectScript;
     fwdata->fwChildOE = true;
     fwdata->userData = script;
+    fwdata->handleMthrMsg = fwCMD_handleMthrMsg;
 
     if (!startForwarder(fwdata)) {
 	mlog("%s: starting %s script forwarder failed\n", __func__, title);
@@ -187,4 +233,32 @@ void Script_finalize(Collect_Script_t *script)
     shutdownForwarder(script->fwdata);
     ufree(script->path);
     ufree(script);
+}
+
+bool Script_setPollTime(Collect_Script_t *script, uint32_t poll)
+{
+    if (!script || !script->fwdata) {
+	mlog("%s: invalid script or forwarder data\n", __func__);
+	return false;
+    }
+
+    PSLog_Msg_t msg = {
+	.header = {
+	    .type = PSP_CC_MSG,
+	    .dest = script->fwdata->tid,
+	    .sender = PSC_getMyTID(),
+	    .len = offsetof(PSLog_Msg_t, buf) },
+	.version = PLUGINFW_PROTO_VERSION,
+	.type = (PSLog_msg_t)CMD_SET_POLL_TIME,
+	.sender = -1};
+    DDBufferMsg_t *bMsg = (DDBufferMsg_t *)&msg;
+    uint32_t len = htonl(sizeof(poll));
+
+    /* Add data including its length mimicking addData */
+    PSP_putMsgBuf(bMsg, "len", &len, sizeof(len));
+    PSP_putMsgBuf(bMsg, "time", &poll, sizeof(poll));
+
+    if (sendMsg(&msg) == -1) return false;
+    script->poll = poll;
+    return true;
 }

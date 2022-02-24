@@ -20,7 +20,7 @@ typedef void scriptDataHandler_t(char *);
 typedef struct {
     char *path;
     scriptDataHandler_t *func;
-    int poll;
+    uint32_t poll;
     Forwarder_Data_t *fwdata;
 } Collect_Script_t;
 
@@ -38,7 +38,7 @@ typedef struct {
  * @return Returns a structure to the started script or NULL on error
  */
 Collect_Script_t *Script_start(char *title, char *path,
-			       scriptDataHandler_t *func, int poll);
+			       scriptDataHandler_t *func, uint32_t poll);
 
 /**
  * @brief Finalize a collect script
@@ -46,5 +46,23 @@ Collect_Script_t *Script_start(char *title, char *path,
  * @param script The structure of the collect script to stop
  */
 void Script_finalize(Collect_Script_t *script);
+
+/**
+ * @brief Set poll time in seconds
+ *
+ * @param script The collect script
+ *
+ * @param poll The new poll time in seconds
+ *
+ * @return Returns true on success otherwise false is returned
+ */
+bool Script_setPollTime(Collect_Script_t *script, uint32_t poll);
+
+/**
+ * @brief Validate a collect script
+ *
+ * @spath The absolute path to the script
+ */
+bool Script_test(char *spath, char *title);
 
 #endif  /* __PS_ACCOUNT_SCRIPT */
