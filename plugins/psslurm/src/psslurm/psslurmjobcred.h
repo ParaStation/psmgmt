@@ -62,6 +62,8 @@ typedef struct {
 				   how many nodes are on the same index */
     uint32_t jobNumHosts;       /**< number of nodes in the job */
     char *jobHostlist;		/**< Slurm compressed job host-list */
+    PSnodes_ID_t *jobNodes;	/**< IDs of job's participating nodes
+				     (basis for both coreMaps) */
     char *sig;                  /**< munge signature */
     char *jobConstraints;       /**< job constraints */
     uint16_t x11;		/**< X11 flags for job */

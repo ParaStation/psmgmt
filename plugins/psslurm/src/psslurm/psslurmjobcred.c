@@ -16,9 +16,11 @@
 #include "pluginhelper.h"
 #include "pluginmalloc.h"
 #include "psmungehandles.h"
+#include "pshostlist.h"
 
 #include "psslurmlog.h"
 #include "psslurmpack.h"
+#include "psslurmpscomm.h"
 
 void freeJobCred(JobCred_t *cred)
 {
@@ -94,8 +96,23 @@ JobCred_t *extractJobCred(list_t *gresList, Slurm_Msg_t *sMsg, bool verify)
 	    printBinaryData(credStart, credLen, "jobData");
 	    goto ERROR;
 	}
-	free(sigBuf);
     }
+
+    /* convert slurm hostlist to PSnodes */
+    uint32_t count;
+    if (!convHLtoPSnodes(cred->jobHostlist, getNodeIDbySlurmHost,
+			 &cred->jobNodes, &count)) {
+	flog("resolving PS nodeIDs from %s failed\n", cred->jobHostlist);
+	goto ERROR;
+    }
+
+    if (count != cred->jobNumHosts) {
+	flog("wrong size of hostlist %s (%d instead of %d)\n",
+	     cred->jobHostlist, count, cred->jobNumHosts);
+	goto ERROR;
+    }
+
+    free(sigBuf);
 
     if (psslurmlogger->mask & PSSLURM_LOG_AUTH) {
 	flog("cred len %u jobMemLimit %lu stepMemLimit %lu stepHostlist '%s' "
