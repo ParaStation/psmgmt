@@ -65,7 +65,7 @@ static void periodicMain(void)
     if (!mainTimer.tv_sec) return;
 
     /* update node energy/power consumption */
-    energyUpdate();
+    Energy_update();
 
     /* update proc snapshot */
     if (haveActiveClients()) {
@@ -121,7 +121,7 @@ int initialize(FILE *logfile)
     maskLogger(debugMask);
 
     /* init energy facility */
-    if (!energyInit()) {
+    if (!Energy_init()) {
 	mlog("%s: failed to initialize energy monitoring\n", __func__);
 	return 1;
     }
@@ -182,7 +182,7 @@ void cleanup(void)
     /* remove all timer */
     if (mainTimerID != -1) Timer_remove(mainTimerID);
 
-    energyFinalize();
+    Energy_finalize();
     IC_Finalize();
     finalizeAccComm();
 

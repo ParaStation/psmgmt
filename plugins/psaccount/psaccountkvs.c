@@ -63,7 +63,7 @@ static char *showConfig(char *buf, size_t *bufSize)
 
 static char *showEnergy(char *buf, size_t *bufSize)
 {
-    psAccountEnergy_t *e = energyGetData();
+    psAccountEnergy_t *e = Energy_getData();
 
     str2Buf("\n", &buf, bufSize);
     snprintf(line, sizeof(line), "power cur: %u avg: %u min: %u max: %u "

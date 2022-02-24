@@ -20,26 +20,26 @@
  *
  * @return Returns true on success or false otherwise
  */
-bool energyInit(void);
+bool Energy_init(void);
 
 /**
  * @brief Update node energy and power consumption
  *
  * @return Returns true on success or false otherwise
  */
-bool energyUpdate(void);
+bool Energy_update(void);
 
 /**
  * @brief Get current energy and power data
  *
  * @return Returns a pointer to the current energy data
  */
-psAccountEnergy_t *energyGetData(void);
+psAccountEnergy_t *Energy_getData(void);
 
 /**
  * @brief Finalize energy monitoring
  */
-void energyFinalize(void);
+void Energy_finalize(void);
 
 /**
  * @brief Set energy poll time

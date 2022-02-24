@@ -588,7 +588,7 @@ bool aggregateDataByLogger(PStask_ID_t logger, AccountDataExt_t *accData)
 		addClientToAggData(client, accData);
 		if (!energyLocal && client->job && client->job->energyBase) {
 		    /* energy is calculated on a per job basis */
-		    psAccountEnergy_t *eData = energyGetData();
+		    psAccountEnergy_t *eData = Energy_getData();
 		    energyLocal = eData->energyCur - client->job->energyBase;
 		}
 	    } else if (client->type == ACC_CHILD_REMOTE) {
@@ -714,7 +714,7 @@ void forwardJobData(Job_t *job, bool force)
     }
 
     /* calculate energy consumption */
-    psAccountEnergy_t *eData = energyGetData();
+    psAccountEnergy_t *eData = Energy_getData();
     aggData.energyCons = eData->energyCur - job->energyBase;
 
     mdbg(PSACC_LOG_ENERGY, "%s: energy aggregation for logger: %s "

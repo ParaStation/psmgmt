@@ -128,7 +128,7 @@ static bool initPowerUnit(void)
     return true;
 }
 
-bool energyInit(void)
+bool Energy_init(void)
 {
     if (!initPowerUnit()) return false;
 
@@ -159,18 +159,18 @@ bool energyInit(void)
 	}
     }
 
-    if (!energyUpdate()) return false;
+    if (!Energy_update()) return false;
     eData.powerMin = eData.powerMax = eData.powerCur;
 
     return true;
 }
 
-void energyFinalize(void)
+void Energy_finalize(void)
 {
     if (eScript) Script_finalize(eScript);
 }
 
-bool energyUpdate(void)
+bool Energy_update(void)
 {
     bool ret = true;
 
@@ -204,7 +204,7 @@ bool energyUpdate(void)
     return ret;
 }
 
-psAccountEnergy_t *energyGetData(void)
+psAccountEnergy_t *Energy_getData(void)
 {
     return &eData;
 }

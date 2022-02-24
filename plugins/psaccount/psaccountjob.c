@@ -65,7 +65,7 @@ Job_t *addJob(PStask_ID_t loggerTID)
     job->endTime = 0;
     job->latestChildStart = 0;
 
-    psAccountEnergy_t *eData = energyGetData();
+    psAccountEnergy_t *eData = Energy_getData();
     job->energyBase = eData->energyCur;
 
     list_add_tail(&job->next, &jobList);
