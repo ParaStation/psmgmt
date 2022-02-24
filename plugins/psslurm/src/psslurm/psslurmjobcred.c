@@ -97,6 +97,8 @@ JobCred_t *extractJobCred(list_t *gresList, Slurm_Msg_t *sMsg, bool verify)
 	    printBinaryData(credStart, credLen, "jobData");
 	    goto ERROR;
 	}
+	free(sigBuf);
+	sigBuf = NULL;
     }
 
     /* convert slurm hostlist to PSnodes */
@@ -112,8 +114,6 @@ JobCred_t *extractJobCred(list_t *gresList, Slurm_Msg_t *sMsg, bool verify)
 	     cred->jobHostlist, count, cred->jobNumHosts);
 	goto ERROR;
     }
-
-    free(sigBuf);
 
     if (psslurmlogger->mask & PSSLURM_LOG_AUTH) {
 	flog("cred len %u jobMemLimit %lu stepMemLimit %lu stepHostlist '%s' "

@@ -42,12 +42,15 @@ typedef struct {
 /**
  * Initialize an node iterator
  *
- * The iterator always walk through the list of nodes in the whole job as
- * specified by the credentials. This is especially needed to correctly
- * interpret the coreMap that always covers this list of nodes.
+ * The iterator always walks through the list of nodes in the whole
+ * job as specified by the credentials. This is of specific importance
+ * in order to correctly interpret the coreMap that always covers this
+ * list of nodes.
  *
  * @param iter      iterator to be initialized
  * @param cred      credentials to walk through
+ *
+ * @return Return true on success or false in case of error
  */
 static bool node_iter_init(node_iterator *iter, JobCred_t *cred)
 {
@@ -313,8 +316,8 @@ nodeinfo_t *getStepNodeinfoArray(const Step_t *step)
 {
     node_iterator iter;
     if (!node_iter_init(&iter, step->cred)) {
-	flog("Initialization of node iteration for allocation of job %u"
-	     " failed.\n", step->jobid);
+	flog("Initialization of node iteration for step %u failed.\n",
+	     step->jobid);
 	return NULL;
     }
 
