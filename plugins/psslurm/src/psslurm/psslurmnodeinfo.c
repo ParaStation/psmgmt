@@ -39,27 +39,20 @@ typedef struct {
     bool initialized;         /* Initialization switch */
 } node_iterator;
 
-/*
+/**
  * Initialize an node iterator
  *
- * You can give a job or a step. If both is given, job takes preference.
- *
- * This is to cover all cases that exist in Slurm:
- *
- * sbatch job before or without srun: only job
- * srun without sbatch: only step
- * srun in sbatch: job and step
+ * The iterator always walk through the list of nodes in the whole job as
+ * specified by the credentials. This is especially needed to correctly
+ * interpret the coreMap that always covers this list of nodes.
  *
  * @param iter      iterator to be initialized
- * @param nodes     node list to iterate
- * @param nrOfNodes size of @a nodes
- * @param cred      associate credentials
+ * @param cred      credentials to walk through
  */
-static bool node_iter_init(node_iterator *iter, PSnodes_ID_t *nodes,
-			   uint32_t nrOfNodes, JobCred_t *cred)
+static bool node_iter_init(node_iterator *iter, JobCred_t *cred)
 {
-    iter->nrOfNodes = nrOfNodes;
-    iter->nodes = nodes;
+    iter->nrOfNodes = cred->jobNumHosts;
+    iter->nodes = cred->jobNodes;
 
     iter->coreMapIndex = 0;
     iter->nodeArrayIndex = 0;
@@ -93,7 +86,7 @@ static bool node_iter_init(node_iterator *iter, PSnodes_ID_t *nodes,
     return true;
 }
 
-/*
+/**
  * Cleanup an node iterator's allocations.
  *
  * @param iter      iterator to be cleaned up
@@ -124,6 +117,9 @@ static void coreMapToHWthreads(PSCPU_set_t *hwthreads, const bool *coreMap,
 
 /**
  * Process next step in hardware thread iteration
+ *
+ * The nodes are walked through in the order as they are listed in the
+ * job node list in the credentials passed to @a node_iter_init().
  *
  * @param iter     iterator to be processed
  *
@@ -289,7 +285,7 @@ nodeinfo_t *getJobNodeinfo(PSnodes_ID_t id, const Job_t *job)
     }
 
     node_iterator iter;
-    if (!node_iter_init(&iter, job->nodes, job->nrOfNodes, job->cred)) {
+    if (!node_iter_init(&iter, job->cred)) {
 	flog("Initialization of node iteration for job %u failed.\n",
 	     job->jobid);
 	return NULL;
@@ -316,8 +312,9 @@ nodeinfo_t *getJobNodeinfo(PSnodes_ID_t id, const Job_t *job)
 nodeinfo_t *getStepNodeinfoArray(const Step_t *step)
 {
     node_iterator iter;
-    if (!node_iter_init(&iter, step->nodes, step->nrOfNodes, step->cred)) {
-	flog("Initialization of node iteration failed.\n");
+    if (!node_iter_init(&iter, step->cred)) {
+	flog("Initialization of node iteration for allocation of job %u"
+	     " failed.\n", step->jobid);
 	return NULL;
     }
 
@@ -326,9 +323,23 @@ nodeinfo_t *getStepNodeinfoArray(const Step_t *step)
 
     nodeinfo_t *nodeinfo;
     nodeinfo_t *ptr = array;
-    while ((nodeinfo = node_iter_next(&iter))) {
+    for (size_t i = 0; i < step->nrOfNodes; i++) {
 
-	PSnodes_ID_t id = step->nodes[iter.index];
+	PSnodes_ID_t id = step->nodes[i];
+
+	/* since we assume the credentials node list and the step node list
+	 * to be in the same order, we can just continue iteration */
+	while ((nodeinfo = node_iter_next(&iter))) {
+	    if (nodeinfo->id == id) break;
+	}
+	if (!nodeinfo) {
+	    flog("Cannot find all step nodes in credential (%zd of %d).\n", i,
+		 step->nrOfNodes);
+	    node_iter_cleanup(&iter);
+	    ufree(array);
+	    return NULL;
+	}
+
 	if (!PSIDnodes_isUp(id)) {
 	    flog("Node id %hu is down.\n", id);
 	    node_iter_cleanup(&iter);
