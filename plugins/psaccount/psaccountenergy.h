@@ -41,4 +41,20 @@ psAccountEnergy_t *energyGetData(void);
  */
 void energyFinalize(void);
 
+/**
+ * @brief Set energy poll time
+ *
+ * @param poll The new poll time in seconds
+ *
+ * @return Returns true on success otherwise false is returned
+ */
+bool Energy_setPoll(uint32_t poll);
+
+/**
+ * @brief Get energy poll time
+ *
+ * @param Returns the current poll time in seconds
+ */
+uint32_t Energy_getPoll(void);
+
 #endif  /* __PS_ACCOUNT_ENERGY */

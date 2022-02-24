@@ -208,3 +208,15 @@ psAccountEnergy_t *energyGetData(void)
 {
     return &eData;
 }
+
+bool Energy_setPoll(uint32_t poll)
+{
+    if (eScript) return Script_setPollTime(eScript, poll);
+    return false;
+}
+
+uint32_t Energy_getPoll(void)
+{
+    if (eScript) return eScript->poll;
+    return 0;
+}
