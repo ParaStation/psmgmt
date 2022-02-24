@@ -76,14 +76,34 @@ static void parseInterconn(char *data)
 	 icData.sendBytes, icData.sendPkts);
 }
 
-bool InterconnInit(void)
+psAccountIC_t *IC_getData(void)
 {
+    return &icData;
+}
+
+bool IC_Init(void)
+{
+    memset(&icData, 0, sizeof(icData));
+
     char *interScript = getConfValueC(&config, "INTERCONNECT_SCRIPT");
+
     if (interScript && interScript[0] != '\0') {
+	if (!Script_test(interScript, "interconnect")) {
+	    mlog("%s: invalid interconnect script, cannot continue\n",
+		 __func__);
+	    return false;
+	}
+
 	int poll = getConfValueI(&config, "INTERCONNECT_POLL");
+	if (poll < 1) {
+	    /* interconnect polling is disabled */
+	    return true;
+	}
+
 	iScript = Script_start("interconn", interScript, parseInterconn, poll);
 	if (!iScript) {
-	    mlog("%s: invalid interconnect script, cannot continue\n", __func__);
+	    mlog("%s: invalid interconnect script, cannot continue\n",
+		 __func__);
 	    return false;
 	}
     }
@@ -91,7 +111,19 @@ bool InterconnInit(void)
     return true;
 }
 
-void InterconnFinalize(void)
+void IC_Finalize(void)
 {
     if (iScript) Script_finalize(iScript);
+}
+
+bool IC_setPoll(uint32_t poll)
+{
+    if (iScript) return Script_setPollTime(iScript, poll);
+    return false;
+}
+
+uint32_t IC_getPoll(void)
+{
+    if (iScript) return iScript->poll;
+    return 0;
 }

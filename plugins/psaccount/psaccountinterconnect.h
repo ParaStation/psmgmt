@@ -16,11 +16,34 @@
  *
  * @return Returns true on success or false otherwise
  */
-bool InterconnInit(void);
+bool IC_Init(void);
 
 /**
  * @brief Finalize interconnect monitoring
  */
-void InterconnFinalize(void);
+void IC_Finalize(void);
+
+/**
+ * @brief Get current interconnect data
+ *
+ * @return Returns a pointer to the current interconnect data
+ */
+psAccountIC_t *IC_getData(void);
+
+/**
+ * @brief Set interconnect poll time
+ *
+ * @param poll The new poll time in seconds
+ *
+ * @return Returns true on success otherwise false is returned
+ */
+bool IC_setPoll(uint32_t poll);
+
+/**
+ * @brief Get interconnect poll time
+ *
+ * @param Returns the current poll time in seconds
+ */
+uint32_t IC_getPoll(void);
 
 #endif  /* __PS_ACCOUNT_INTERCONN */

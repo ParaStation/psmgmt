@@ -127,7 +127,7 @@ int initialize(FILE *logfile)
     }
 
     /* init interconnect facility */
-    if (!InterconnInit()) {
+    if (!IC_Init()) {
 	mlog("%s: failed to initialize interconnect monitoring\n", __func__);
 	return 1;
     }
@@ -183,7 +183,7 @@ void cleanup(void)
     if (mainTimerID != -1) Timer_remove(mainTimerID);
 
     energyFinalize();
-    InterconnFinalize();
+    IC_Finalize();
     finalizeAccComm();
 
     if (memoryDebug) fclose(memoryDebug);
