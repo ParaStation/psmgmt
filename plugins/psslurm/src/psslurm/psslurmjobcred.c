@@ -46,6 +46,7 @@ void freeJobCred(JobCred_t *cred)
     ufree(cred->stepMemAlloc);
     ufree(cred->stepMemAllocRepCount);
     ufree(cred->SELinuxContext);
+    ufree(cred->jobNodes);
     ufree(cred);
 }
 
