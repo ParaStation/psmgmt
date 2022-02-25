@@ -25,6 +25,7 @@
 #include "psaccountjob.h"
 #include "psaccountlog.h"
 #include "psaccountproc.h"
+#include "psaccountinterconnect.h"
 
 int psAccountSwitchAccounting(PStask_ID_t clientTID, bool enable)
 {
@@ -113,16 +114,42 @@ PStask_ID_t psAccountGetLoggerByClient(pid_t pid)
 
 void psAccountGetEnergy(psAccountEnergy_t *eData)
 {
-    psAccountEnergy_t *eSrc = energyGetData();
+    psAccountEnergy_t *eSrc = Energy_getData();
     memcpy(eData, eSrc, sizeof(*eSrc));
 }
 
-int psAccountGetPoll(void)
+void psAccountGetIC(psAccountIC_t *icData)
 {
-    return getMainTimer();
+    psAccountIC_t *icSrc = IC_getData();
+    memcpy(icData, icSrc, sizeof(*icSrc));
 }
 
-bool psAccountSetPoll(int poll)
+int psAccountGetPoll(psAccountOpt_t type)
 {
-    return setMainTimer(poll);
+    switch (type) {
+	case PSACCOUNT_OPT_MAIN:
+	    return getMainTimer();
+	case PSACCOUNT_OPT_IC:
+	    return IC_getPoll();
+	case PSACCOUNT_OPT_ENERGY:
+	    return Energy_getPoll();
+    }
+
+    mlog("%s: invalid option %i\n", __func__, type);
+    return -1;
+}
+
+bool psAccountSetPoll(psAccountOpt_t type, int poll)
+{
+    switch (type) {
+	case PSACCOUNT_OPT_MAIN:
+	    return setMainTimer(poll);
+	case PSACCOUNT_OPT_IC:
+	    return IC_setPoll(poll);
+	case PSACCOUNT_OPT_ENERGY:
+	    return Energy_setPoll(poll);
+    }
+
+    mlog("%s: invalid option %i\n", __func__, type);
+    return false;
 }

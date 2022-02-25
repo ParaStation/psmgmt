@@ -31,6 +31,7 @@ psAccountFindDaemonProcs_t psAccountFindDaemonProcs;
 psAccountSignalSession_t psAccountSignalSession;
 
 psAccountGetEnergy_t psAccountGetEnergy;
+psAccountGetIC_t psAccountGetIC;
 
 psAccountGetPoll_t psAccountGetPoll;
 psAccountSetPoll_t psAccountSetPoll;

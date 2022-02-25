@@ -68,6 +68,14 @@ typedef struct {
     uint64_t energyCons;       /**< consumed energy in joules */
 } AccountDataExt_t;
 
+/** Option (sub-module) to influence/query */
+typedef enum {
+    PSACCOUNT_OPT_MAIN,		/**< main account timer */
+    PSACCOUNT_OPT_IC,		/**< interconnect options */
+    PSACCOUNT_OPT_ENERGY,	/**< energy options */
+    PSACCOUNT_OPT_FS,		/**< filesystem options */
+} psAccountOpt_t;
+
 /** Node energy and power consumption data */
 typedef struct {
     uint32_t powerMin;	       	/**< minimum power consumption */
@@ -328,21 +336,32 @@ typedef int(psAccountSignalSession_t)(pid_t session, int sig);
 typedef void(psAccountGetEnergy_t)(psAccountEnergy_t *eData);
 
 /**
- * @brief Get general poll interval
+ * @brief Get nodes interconnect counters
  *
- * @return Current general poll interval
+ * @param icData Will hold the nodes interconnect data on return
  */
-typedef int(psAccountGetPoll_t)(void);
+typedef void(psAccountGetIC_t)(psAccountIC_t *icData);
 
 /**
- * @brief Set general poll interval
+ * @brief Get various poll intervals
+ *
+ * @param type The option type to get the interval for
+ *
+ * @return Current general poll interval or -1 on error
+ */
+typedef int(psAccountGetPoll_t)(psAccountOpt_t type);
+
+/**
+ * @brief Set various poll intervals
  *
  * Set the plugin's general poll interval to @a poll seconds
+ *
+ * @param type The option type to set the interval for
  *
  * @param poll General poll interval to be set
  *
  * @return If @a poll is valid, return true; or false otherwise
  */
-typedef bool(psAccountSetPoll_t)(int poll);
+typedef bool(psAccountSetPoll_t)(psAccountOpt_t type, int poll);
 
 #endif  /* __PS_ACCOUNT_TYPES */
