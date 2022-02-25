@@ -115,7 +115,7 @@ char name[] = "psmom";
 int version = 58;
 int requiredAPI = 109;
 plugin_dep_t dependencies[] = {
-    { .name = "psaccount", .version = 29 },
+    { .name = "psaccount", .version = 30 },
     { .name = "pspam", .version = 5 },
     { .name = NULL, .version = 0 } };
 
@@ -282,7 +282,9 @@ static bool initAccountingFunc(void)
     }
 
     /* we want to have periodic updates on used resources */
-    if (!psAccountGetPoll()) psAccountSetPoll(30);
+    if (!psAccountGetPoll(PSACCOUNT_OPT_MAIN)) {
+	psAccountSetPoll(PSACCOUNT_OPT_MAIN , 30);
+    }
 
     /* set collect mode in psaccount */
     psAccountSetGlobalCollect(true);
