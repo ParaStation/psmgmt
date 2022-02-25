@@ -15,6 +15,7 @@
 #include <stdio.h>
 
 #include "logging.h"
+#include "pluginlog.h"
 
 extern logger_t *psaccountlogger;
 extern FILE *psaccountlogfile;
@@ -25,6 +26,26 @@ extern FILE *psaccountlogfile;
 			    logger_warn(psaccountlogger, -1, __VA_ARGS__)
 #define mdbg(...)  if (psaccountlogger) \
 			    logger_print(psaccountlogger, __VA_ARGS__)
+/**
+ * @brief Print a log message with function prefix
+ *
+ * Print a log message and add a function name as prefix. The maximal message
+ * length is MAX_FLOG_SIZE including the added function name. If the message
+ * to print is larger then MAX_FLOG_SIZE it will be printed without prefix.
+ *
+ * @param func The function name to use as prefix
+ *
+ * @param key The key to use in order to decide if anything is put out
+ *
+ * @param format The format to be used in order to produce output. The
+ * syntax of this parameter is according to the one defined for the
+ * printf() family of functions from the C standard. This string will
+ * also define the further parameters to be expected.
+ */
+#define flog(...) \
+    __Plugin_flog(psaccountlogger, __func__, -1, __VA_ARGS__)
+#define fdbg(key, ...) \
+    __Plugin_flog(psaccountlogger, __func__, key, __VA_ARGS__)
 
 /** Various types of logging levels for more verbose logging */
 typedef enum {
