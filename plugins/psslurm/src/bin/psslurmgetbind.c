@@ -29,10 +29,12 @@
 #include "psenv.h"
 
 #include "pluginconfig.h" /* read configuration file */
+#include "pluginlog.h"
 
 #include "psidpin.h"
 #include "psslurmpin.h"
 #include "psslurmstep.h"
+#include "psslurmlog.h"
 
 static int verbosity = 0;
 static bool humanreadable = false;
@@ -616,7 +618,8 @@ void logger_print(logger_t* logger, int32_t key, const char* format, ...) {
 }
 
 #define MAX_FLOG_SIZE 4096
-void __flog(const char *func, int32_t key, char *format, ...)
+void __Plugin_flog(logger_t* logger, const char *func, int32_t key,
+		   char *format, ...)
 {
     static char buf[MAX_FLOG_SIZE];
     char *fmt = format;

@@ -7,8 +7,11 @@
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
+#include <stdarg.h>
 
 #include "pluginlog.h"
+
+#define MAX_FLOG_SIZE 4096
 
 logger_t *pluginlogger = NULL;
 
@@ -35,4 +38,25 @@ int32_t getPluginLoggerMask(void)
 void finalizePluginLogger(void)
 {
     logger_finalize(pluginlogger);
+}
+
+void __Plugin_flog(logger_t* logger, const char *func, int32_t key,
+		   char *format, ...)
+{
+    static char buf[MAX_FLOG_SIZE];
+    char *fmt = format;
+    va_list ap;
+    size_t len;
+
+    if ((key != -1) && !(logger->mask & key)) return;
+
+    len = snprintf(NULL, 0, "%s: %s", func, format);
+    if (len+1 <= sizeof(buf)) {
+	snprintf(buf, sizeof(buf), "%s: %s", func, format);
+	fmt = buf;
+    }
+
+    va_start(ap, format);
+    logger_vprint(logger, -1, fmt, ap);
+    va_end(ap);
 }
