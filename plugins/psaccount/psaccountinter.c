@@ -26,6 +26,7 @@
 #include "psaccountlog.h"
 #include "psaccountproc.h"
 #include "psaccountinterconnect.h"
+#include "psaccountfilesystem.h"
 
 int psAccountSwitchAccounting(PStask_ID_t clientTID, bool enable)
 {
@@ -133,6 +134,8 @@ int psAccountGetPoll(psAccountOpt_t type)
 	    return IC_getPoll();
 	case PSACCOUNT_OPT_ENERGY:
 	    return Energy_getPoll();
+	case PSACCOUNT_OPT_FS:
+	    return FS_getPoll();
     }
 
     mlog("%s: invalid option %i\n", __func__, type);
@@ -148,6 +151,8 @@ bool psAccountSetPoll(psAccountOpt_t type, int poll)
 	    return IC_setPoll(poll);
 	case PSACCOUNT_OPT_ENERGY:
 	    return Energy_setPoll(poll);
+	case PSACCOUNT_OPT_FS:
+	    return FS_setPoll(poll);
     }
 
     mlog("%s: invalid option %i\n", __func__, type);

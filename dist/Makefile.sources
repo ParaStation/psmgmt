@@ -338,6 +338,8 @@ plugins/psaccount/psaccountconfig.c \
 plugins/psaccount/psaccountconfig.h \
 plugins/psaccount/psaccountenergy.c \
 plugins/psaccount/psaccountenergy.h \
+plugins/psaccount/psaccountfilesystem.c \
+plugins/psaccount/psaccountfilesystem.h \
 plugins/psaccount/psaccounthandles.h \
 plugins/psaccount/psaccounthistory.c \
 plugins/psaccount/psaccounthistory.h \

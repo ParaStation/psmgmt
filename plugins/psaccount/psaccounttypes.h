@@ -97,6 +97,15 @@ typedef struct {
     time_t lastUpdate;		/**< time stamp of the last update */
 } psAccountIC_t;
 
+/** Node filesystem I/O data */
+typedef struct {
+    uint64_t readBytes;		/**< number of bytes red */
+    uint64_t writeBytes;	/**< number of bytes written */
+    uint64_t numReads;		/**< number of reads */
+    uint64_t numWrites;		/**< number of writes */
+    time_t lastUpdate;		/**< time stamp of the last update */
+} psAccountFS_t;
+
 /**
  * @brief Register batch jobscript
  *
