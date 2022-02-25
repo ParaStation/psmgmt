@@ -160,7 +160,8 @@ am_psaccount_la_OBJECTS = psaccount_la-psaccount.lo \
 	psaccount_la-psaccounthistory.lo \
 	psaccount_la-psaccountenergy.lo \
 	psaccount_la-psaccountscript.lo \
-	psaccount_la-psaccountinterconnect.lo
+	psaccount_la-psaccountinterconnect.lo \
+	psaccount_la-psaccountfilesystem.lo
 psaccount_la_OBJECTS = $(am_psaccount_la_OBJECTS)
 AM_V_lt = $(am__v_lt_@AM_V@)
 am__v_lt_ = $(am__v_lt_@AM_DEFAULT_V@)
@@ -186,6 +187,7 @@ am__depfiles_remade = ./$(DEPDIR)/psaccount_la-psaccount.Plo \
 	./$(DEPDIR)/psaccount_la-psaccountcomm.Plo \
 	./$(DEPDIR)/psaccount_la-psaccountconfig.Plo \
 	./$(DEPDIR)/psaccount_la-psaccountenergy.Plo \
+	./$(DEPDIR)/psaccount_la-psaccountfilesystem.Plo \
 	./$(DEPDIR)/psaccount_la-psaccounthistory.Plo \
 	./$(DEPDIR)/psaccount_la-psaccountinter.Plo \
 	./$(DEPDIR)/psaccount_la-psaccountinterconnect.Plo \
@@ -434,7 +436,8 @@ psaccount_la_SOURCES = psaccount.c psaccount.h psaccountclient.c	\
 	psaccounthistory.c psaccounthandles.h psaccounttypes.h		\
 	psaccountenergy.c psaccountenergy.h psaccountscript.c 		\
 	psaccountscript.h psaccountinterconnect.h			\
-	psaccountinterconnect.c
+	psaccountinterconnect.c psaccountfilesystem.h			\
+	psaccountfilesystem.c
 
 psaccount_la_CPPFLAGS = $(AM_CPPFLAGS) -DPLUGINDIR=\"$(plugindir)\"
 psaccount_la_LIBADD = $(libplugincommon) $(libpscommon)
@@ -522,6 +525,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/psaccount_la-psaccountcomm.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/psaccount_la-psaccountconfig.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/psaccount_la-psaccountenergy.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/psaccount_la-psaccountfilesystem.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/psaccount_la-psaccounthistory.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/psaccount_la-psaccountinter.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/psaccount_la-psaccountinterconnect.Plo@am__quote@ # am--include-marker
@@ -651,6 +655,13 @@ psaccount_la-psaccountinterconnect.lo: psaccountinterconnect.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='psaccountinterconnect.c' object='psaccount_la-psaccountinterconnect.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(psaccount_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o psaccount_la-psaccountinterconnect.lo `test -f 'psaccountinterconnect.c' || echo '$(srcdir)/'`psaccountinterconnect.c
+
+psaccount_la-psaccountfilesystem.lo: psaccountfilesystem.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(psaccount_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT psaccount_la-psaccountfilesystem.lo -MD -MP -MF $(DEPDIR)/psaccount_la-psaccountfilesystem.Tpo -c -o psaccount_la-psaccountfilesystem.lo `test -f 'psaccountfilesystem.c' || echo '$(srcdir)/'`psaccountfilesystem.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/psaccount_la-psaccountfilesystem.Tpo $(DEPDIR)/psaccount_la-psaccountfilesystem.Plo
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='psaccountfilesystem.c' object='psaccount_la-psaccountfilesystem.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(psaccount_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o psaccount_la-psaccountfilesystem.lo `test -f 'psaccountfilesystem.c' || echo '$(srcdir)/'`psaccountfilesystem.c
 
 mostlyclean-libtool:
 	-rm -f *.lo
@@ -791,6 +802,7 @@ distclean: distclean-am
 	-rm -f ./$(DEPDIR)/psaccount_la-psaccountcomm.Plo
 	-rm -f ./$(DEPDIR)/psaccount_la-psaccountconfig.Plo
 	-rm -f ./$(DEPDIR)/psaccount_la-psaccountenergy.Plo
+	-rm -f ./$(DEPDIR)/psaccount_la-psaccountfilesystem.Plo
 	-rm -f ./$(DEPDIR)/psaccount_la-psaccounthistory.Plo
 	-rm -f ./$(DEPDIR)/psaccount_la-psaccountinter.Plo
 	-rm -f ./$(DEPDIR)/psaccount_la-psaccountinterconnect.Plo
@@ -849,6 +861,7 @@ maintainer-clean: maintainer-clean-am
 	-rm -f ./$(DEPDIR)/psaccount_la-psaccountcomm.Plo
 	-rm -f ./$(DEPDIR)/psaccount_la-psaccountconfig.Plo
 	-rm -f ./$(DEPDIR)/psaccount_la-psaccountenergy.Plo
+	-rm -f ./$(DEPDIR)/psaccount_la-psaccountfilesystem.Plo
 	-rm -f ./$(DEPDIR)/psaccount_la-psaccounthistory.Plo
 	-rm -f ./$(DEPDIR)/psaccount_la-psaccountinter.Plo
 	-rm -f ./$(DEPDIR)/psaccount_la-psaccountinterconnect.Plo
