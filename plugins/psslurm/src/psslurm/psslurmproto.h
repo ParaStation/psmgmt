@@ -96,6 +96,8 @@ typedef struct {
 /** Structure holding all infos to pack Slurm accounting data */
 typedef struct {
     AccountDataExt_t psAcct;	/**< actual accounting data from psaccount */
+    psAccountIC_t *icBase;	/**< interconnect base counters */
+    psAccountIC_t icData;	/**< interconnect total usage */
     uint8_t type;		/**< type of accounting */
     bool empty;			/**< flag to signal empty accounting data */
     uint32_t nrOfNodes;		/**< number of nodes */
@@ -104,6 +106,7 @@ typedef struct {
     PStask_ID_t loggerTID;	/**< task ID of the logger (if any) */
     list_t *tasks;
     list_t *remoteTasks;
+    uint32_t localNodeId;
 } SlurmAccData_t;
 
 /** Holding information for RPC RESPONSE_SLURMD_STATUS */

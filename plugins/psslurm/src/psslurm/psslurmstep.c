@@ -17,6 +17,7 @@
 
 #include "pluginmalloc.h"
 #include "psidsignal.h"
+#include "psaccounttypes.h"
 
 #include "psslurmauth.h"
 #include "psslurmbcast.h"
@@ -56,6 +57,7 @@ Step_t *Step_add(void)
     initSlurmMsg(&step->srunIOMsg);
     initSlurmMsg(&step->srunControlMsg);
     initSlurmMsg(&step->srunPTYMsg);
+    psAccountGetIC(&step->icBase);
 
     list_add_tail(&step->next, &StepList);
 

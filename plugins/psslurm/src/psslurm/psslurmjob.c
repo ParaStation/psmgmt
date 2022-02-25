@@ -20,6 +20,7 @@
 #include "psidsignal.h"
 
 #include "pluginmalloc.h"
+#include "psaccounttypes.h"
 
 #include "slurmcommon.h"
 #include "psslurmalloc.h"
@@ -137,6 +138,7 @@ Job_t *Job_add(uint32_t jobid)
     INIT_LIST_HEAD(&job->tasks);
     envInit(&job->env);
     envInit(&job->spankenv);
+    psAccountGetIC(&job->icBase);
 
     list_add_tail(&job->next, &JobList);
 

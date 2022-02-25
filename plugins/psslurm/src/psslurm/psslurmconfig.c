@@ -673,6 +673,29 @@ static void parseSlurmdParam(char *param)
     }
 }
 
+static void parseSlurmAccFeq(char *param)
+{
+    char *toksave, *next;
+    const char delimiters[] =" \t\n";
+
+    next = strtok_r(param, delimiters, &toksave);
+    while (next) {
+	if (!strcasecmp(next, "network")) {
+	    addConfigEntry(&Config, "SLURM_ACC_NETWORK", next+8);
+	}
+	if (!strcasecmp(next, "task")) {
+	    addConfigEntry(&Config, "SLURM_ACC_TASK", next+5);
+	}
+	if (!strcasecmp(next, "energy")) {
+	    addConfigEntry(&Config, "SLURM_ACC_ENERGY", next+7);
+	}
+	if (!strcasecmp(next, "filesystem")) {
+	    addConfigEntry(&Config, "SLURM_ACC_FILESYSTEM", next+10);
+	}
+	next = strtok_r(NULL, delimiters, &toksave);
+    }
+}
+
 /**
  * @brief Parse a Slurm configuration pair
  *
@@ -709,6 +732,8 @@ static bool parseSlurmConf(char *key, char *value, const void *info)
 	}
     } else if (!strcmp(key, "SlurmdParameters")) {
 	parseSlurmdParam(value);
+    } else if (!strcmp(key, "JobAcctGatherFrequency")) {
+	parseSlurmAccFeq(value);
     }
     /* parsing was successful, continue with next line */
     return false;

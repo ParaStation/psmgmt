@@ -264,7 +264,7 @@ static void setAccOpts(char *freqString, uint16_t *accType)
 
 	if (freq > 0) {
 	    mlog("%s: setting acct freq to %i\n", __func__, freq);
-	    psAccountSetPoll(freq);
+	    psAccountSetPoll(PSACCOUNT_OPT_MAIN, freq);
 	}
     }
 
@@ -1593,6 +1593,15 @@ static int addSlurmAccData(SlurmAccData_t *slurmAccData)
 		__func__, accData->avgRssCount, accData->numTasks);
     }
 
+    /* save interconnect usage counters */
+    if (getConfValueC(&Config, "SLURM_ACC_NETWORK")) {
+	psAccountGetIC(&slurmAccData->icData);
+	slurmAccData->icData.recvBytes -= slurmAccData->icBase->recvBytes;
+	slurmAccData->icData.sendBytes -= slurmAccData->icBase->sendBytes;
+	slurmAccData->icData.recvPkts -= slurmAccData->icBase->recvPkts;
+	slurmAccData->icData.sendPkts -= slurmAccData->icBase->sendPkts;
+    }
+
     return accData->numTasks;
 }
 
@@ -1640,7 +1649,9 @@ static void handleStepStat(Slurm_Msg_t *sMsg)
 	.loggerTID = step->loggerTID,
 	.tasks = &step->tasks,
 	.remoteTasks = &step->remoteTasks,
-	.childPid = 0 };
+	.childPid = 0,
+	.localNodeId = step->localNodeId,
+        .icBase = &step->icBase };
     uint32_t numTasks = addSlurmAccData(&slurmAccData);
     packSlurmAccData(msg, &slurmAccData);
     /* correct number of tasks */
@@ -2467,7 +2478,7 @@ static void handleTerminateReq(Slurm_Msg_t *sMsg)
 	 req->jobstate, sMsg->head.uid, msgType2String(sMsg->head.type));
 
     /* restore account freq */
-    psAccountSetPoll(confAccPollTime);
+    psAccountSetPoll(PSACCOUNT_OPT_MAIN, confAccPollTime);
 
     /* remove all unfinished spawn requests */
     PSIDspawn_cleanupBySpawner(PSC_getMyTID());
@@ -3160,7 +3171,9 @@ void sendStepExit(Step_t *step, uint32_t exitStatus)
 	.loggerTID = PSC_getTID(-1, childPid),
 	.tasks = &step->tasks,
 	.remoteTasks = &step->remoteTasks,
-	.childPid = 0 };
+	.childPid = 0,
+	.localNodeId = step->localNodeId,
+        .icBase = &step->icBase };
     addSlurmAccData(&slurmAccData);
 
     Req_Step_Comp_t comp = {
@@ -3463,6 +3476,8 @@ void sendJobExit(Job_t *job, uint32_t exitStatus)
 
     slurmAccData.nodes = job->nodes;
     slurmAccData.nrOfNodes = job->nrOfNodes;
+    slurmAccData.icBase = &job->icBase;
+    slurmAccData.localNodeId = job->localNodeId;
 
     if (job->fwdata) {
 	/* add information from forwarder */

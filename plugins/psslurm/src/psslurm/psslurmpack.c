@@ -1797,6 +1797,34 @@ static void convAccDataToTRes(SlurmAccData_t *slurmAccData, TRes_t *tres)
     entry.out_max_nodeid = getAccNodeID(slurmAccData, ACCID_MAX_DISKWRITE);
     entry.out_max_taskid = getAccRank(slurmAccData, ACCID_MAX_DISKWRITE);
     TRes_set(tres, TRES_FS_DISK, &entry);
+
+    /* interconnect data */
+    psAccountIC_t *ic = &slurmAccData->icData;
+
+    if (getConfValueC(&Config, "SLURM_ACC_NETWORK") && ic->lastUpdate) {
+	uint32_t icID = TRes_getID("ic", "ofed");
+
+	if (icID == NO_VAL) {
+	    flog("could not find TRes ID for ic/ofed\n");
+	} else {
+	    TRes_reset_entry(&entry);
+
+	    entry.in_max = ic->recvBytes;
+	    entry.in_min = ic->recvBytes;
+	    entry.in_tot = ic->recvBytes * countTasks(slurmAccData->tasks) ;
+	    entry.in_max_nodeid = slurmAccData->localNodeId;
+	    /* all ranks will have the same data */
+	    entry.in_max_taskid = getAccRank(slurmAccData, ACCID_MAX_DISKREAD);
+
+	    entry.out_max = ic->sendBytes;
+	    entry.out_min = ic->sendBytes;
+	    entry.out_tot = ic->sendBytes * countTasks(slurmAccData->tasks);
+	    entry.out_max_nodeid = slurmAccData->localNodeId;
+	    /* all ranks will have the same data */
+	    entry.out_max_taskid = getAccRank(slurmAccData, ACCID_MAX_DISKWRITE);
+	    TRes_set(tres, icID, &entry);
+	}
+    }
 }
 
 bool __packSlurmAccData(PS_SendDB_t *data, SlurmAccData_t *slurmAccData,

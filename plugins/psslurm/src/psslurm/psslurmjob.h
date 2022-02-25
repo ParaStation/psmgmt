@@ -21,6 +21,7 @@
 #include "psenv.h"
 
 #include "pluginforwarder.h"
+#include "psaccounttypes.h"
 
 #include "psslurmjobcred.h"
 
@@ -91,6 +92,7 @@ typedef struct {
     uint32_t profile;       /**< profile (unused) */
     PSCPU_set_t hwthreads;  /**< hwthreads to use for job on current node */
     char *container;        /**< container path */
+    psAccountIC_t icBase;   /**< interconnect counter at job start */
 } Job_t;
 
 /**

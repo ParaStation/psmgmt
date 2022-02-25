@@ -86,7 +86,7 @@ int version = 117;
 int requiredAPI =136;
 plugin_dep_t dependencies[] = {
     { .name = "psmunge", .version = 5 },
-    { .name = "psaccount", .version = 29 },
+    { .name = "psaccount", .version = 30 },
     { .name = "pelogue", .version = 9 },
     { .name = "pspam", .version = 3 },
     { .name = "psexec", .version = 2 },
@@ -318,6 +318,12 @@ static bool regPsAccountHandles(void)
     psAccountGetEnergy = dlsym(pluginHandle, "psAccountGetEnergy");
     if (!psAccountGetEnergy) {
 	mlog("%s: loading psAccountGetEnergy() failed\n", __func__);
+	return false;
+    }
+
+    psAccountGetIC = dlsym(pluginHandle, "psAccountGetIC");
+    if (!psAccountGetIC) {
+	mlog("%s: loading psAccountGetIC() failed\n", __func__);
 	return false;
     }
 
@@ -759,13 +765,25 @@ int initialize(FILE *logfile)
 
     if (!initEnvFilter()) goto INIT_ERROR;
 
+    /* save default account poll time */
+    if ((confAccPollTime = psAccountGetPoll(PSACCOUNT_OPT_MAIN)) <= 0) {
+	confAccPollTime = 30;
+    }
+
     /* we want to have periodic updates on used resources */
-    if (!psAccountGetPoll()) psAccountSetPoll(30);
+    if (!psAccountGetPoll(PSACCOUNT_OPT_MAIN)) {
+	psAccountSetPoll(PSACCOUNT_OPT_MAIN, 30);
+    }
 
     /* set collect mode in psaccount */
     psAccountSetGlobalCollect(true);
 
     psPelogueAddPluginConfig("psslurm", &Config);
+
+    int poll = getConfValueI(&Config, "SLURM_ACC_NETWORK");
+    if (poll > 0) {
+	psAccountSetPoll(PSACCOUNT_OPT_IC, poll);
+    }
 
     /* make sure timer facility is ready */
     if (!Timer_isInitialized()) {
@@ -773,9 +791,6 @@ int initialize(FILE *logfile)
 	    " it\n");
 	Timer_init(NULL);
     }
-
-    /* save default account poll time */
-    if ((confAccPollTime = psAccountGetPoll()) <= 0) confAccPollTime = 30;
 
     if (confRes == CONFIG_SERVER) {
 	char *confDir = getConfValueC(&Config, "SLURM_CONF_DIR");

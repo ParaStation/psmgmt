@@ -20,6 +20,7 @@
 #include "pscommon.h"
 #include "psenv.h"
 #include "pspartition.h"
+#include "psaccounthandles.h"
 
 #include "pluginforwarder.h"
 
@@ -194,6 +195,7 @@ typedef struct {
     uint32_t rcvdPackInfos;	/**< number of received pack infos */
     uint32_t rcvdPackProcs;	/**< number of received pack processes */
     char *container;            /**< container path */
+    psAccountIC_t icBase;       /**< interconnect counter at step start */
     list_t next;                /**< used to put into some step-lists */
 } Step_t;
 
