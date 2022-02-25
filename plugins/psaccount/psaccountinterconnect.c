@@ -48,8 +48,7 @@ static void parseInterconn(char *data)
     if (sscanf(data, "RcvData:%zu RcvPkts:%zu Select:%hu XmitData:%zu "
 	       "XmitPkts:%zu", &new.recvBytes, &new.recvPkts,
 	       &new.port, &new.sendBytes, &new.sendPkts) != 5) {
-	mlog("%s: parsing interconnect data '%s' from script failed\n",
-	     __func__, data);
+	flog("parsing interconnect data '%s' from script failed\n",data);
 	return;
     }
     new.lastUpdate = time(NULL);
@@ -58,10 +57,9 @@ static void parseInterconn(char *data)
 	memcpy(&icBase, &new, sizeof(icBase));
 	isInit = true;
 
-	mlog("%s: init base values: port %hu XmitData %zu RcvData %zu "
-	     "XmitPkts %zu RcvPkts %zu\n", __func__, icData.port,
-	     icBase.recvBytes, icBase.recvPkts, icBase.sendBytes,
-	     icBase.sendPkts);
+	flog("init base values: port %hu XmitData %zu RcvData %zu "
+	     "XmitPkts %zu RcvPkts %zu\n", icData.port, icBase.recvBytes,
+	     icBase.recvPkts, icBase.sendBytes, icBase.sendPkts);
     }
 
     icData.recvBytes = new.recvBytes - icBase.recvBytes;
@@ -71,9 +69,9 @@ static void parseInterconn(char *data)
     icData.port = new.port;
     icData.lastUpdate = time(NULL);
 
-    mlog("%s: port %hu XmitData %zu RcvData %zu XmitPkts %zu RcvPkts %zu\n",
-	 __func__, icData.port, icData.recvBytes, icData.recvPkts,
-	 icData.sendBytes, icData.sendPkts);
+    flog("port %hu XmitData %zu RcvData %zu XmitPkts %zu RcvPkts %zu\n",
+	 icData.port, icData.recvBytes, icData.recvPkts, icData.sendBytes,
+	 icData.sendPkts);
 }
 
 psAccountIC_t *IC_getData(void)
@@ -89,8 +87,7 @@ bool IC_Init(void)
 
     if (interScript && interScript[0] != '\0') {
 	if (!Script_test(interScript, "interconnect")) {
-	    mlog("%s: invalid interconnect script, cannot continue\n",
-		 __func__);
+	    flog("invalid interconnect script, cannot continue\n");
 	    return false;
 	}
 
@@ -102,8 +99,7 @@ bool IC_Init(void)
 
 	iScript = Script_start("interconn", interScript, parseInterconn, poll);
 	if (!iScript) {
-	    mlog("%s: invalid interconnect script, cannot continue\n",
-		 __func__);
+	    flog("invalid interconnect script, cannot continue\n");
 	    return false;
 	}
     }

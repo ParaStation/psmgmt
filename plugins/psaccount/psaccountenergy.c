@@ -95,8 +95,7 @@ static void parseEnergy(char *data)
     unsigned long long power, energy;
 
     if (sscanf(data, "power:%llu energy:%llu", &power, &energy) != 2) {
-	mlog("%s: parsing energy data '%s' from script failed\n",
-	     __func__, data);
+	flog("parsing energy data '%s' from script failed\n", data);
 	return;
     }
 
@@ -108,7 +107,7 @@ static bool initPowerUnit(void)
 {
     char *powerUnit = getConfValueC(&config, "POWER_UNIT");
     if (!powerUnit || powerUnit[0] == '\0') {
-	mlog("%s: empty config parameter POWER_UNIT\n", __func__);
+	flog("empty config parameter POWER_UNIT\n");
 	return false;
     }
 
@@ -121,8 +120,7 @@ static bool initPowerUnit(void)
     } else if (!strcmp(powerUnit, "MW") || !strcmp(powerUnit, "Megawatt")) {
 	powerMult = 1000 * 1000;
     } else {
-	mlog("%s: parsing config parameter POWER_UNIT '%s' failed\n", __func__,
-	     powerUnit);
+	flog("parsing config parameter POWER_UNIT '%s' failed\n", powerUnit);
 	return false;
     }
     return true;
@@ -139,22 +137,20 @@ bool Energy_init(void)
     if (energyScript && energyScript[0] != '\0') {
 	char *energyPath = getConfValueC(&config, "ENERGY_PATH");
 	if (energyPath && energyPath[0] != '\0') {
-	    mlog("%s: error: ENERGY_SCRIPT and ENERGY_PATH are mutual "
-		 "exclusive\n", __func__);
+	    flog("error: ENERGY_SCRIPT and ENERGY_PATH are mutual exclusive\n");
 	    return false;
 	}
 
 	char *powerPath = getConfValueC(&config, "POWER_PATH");
 	if (powerPath && powerPath[0] != '\0') {
-	    mlog("%s: error: ENERGY_SCRIPT and POWER_PATH are mutual "
-		 "exclusive\n", __func__);
+	    flog("error: ENERGY_SCRIPT and POWER_PATH are mutual exclusive\n");
 	    return false;
 	}
 
 	int poll = getConfValueU(&config, "ENERGY_SCRIPT_POLL");
 	eScript = Script_start("energy", energyScript, parseEnergy, poll);
 	if (!eScript) {
-	    mlog("%s: invalid energy script, cannot continue\n", __func__);
+	    flog("invalid energy script, cannot continue\n");
 	    return false;
 	}
     }
@@ -184,7 +180,7 @@ bool Energy_update(void)
 	if (energy != NO_VAL64) {
 	    updateEnergy(energy);
 	} else {
-	    mlog("%s: no energy data from %s\n", __func__, energyPath);
+	    flog("no energy data from %s\n", energyPath);
 	    ret = false;
 	}
     }
@@ -196,7 +192,7 @@ bool Energy_update(void)
 	if (power != NO_VAL64) {
 	    updatePower(power);
 	} else {
-	    mlog("%s: no power data from %s\n", __func__, powerPath);
+	    flog("no power data from %s\n", powerPath);
 	    ret = false;
 	}
     }

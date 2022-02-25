@@ -56,12 +56,11 @@ static int handleFwMsg(PSLog_Msg_t *msg, Forwarder_Data_t *fwdata)
 	    ufree(data);
 	    break;
 	    data = getStringM(&ptr);
-	    mlog("%s: error from %s script: %s\n", __func__, fwdata->pTitle,
-		 data);
+	    flog("error from %s script: %s\n", fwdata->pTitle, data);
 	    ufree(data);
 	    break;
 	default:
-	    mlog("%s: unhandled msg type %d\n", __func__, msg->type);
+	    flog("unhandled msg type %d\n", msg->type);
 	    return 0;
     }
 
@@ -86,8 +85,7 @@ static void execCollectScript(Forwarder_Data_t *fwdata, int rerun)
 	errno = 0;
 	pid_t child = fork();
 	if (child < 0) {
-	    mlog("%s: fork() %s failed: %s\n", __func__, fwdata->pTitle,
-		 strerror(errno));
+	    flog("fork() %s failed: %s\n", fwdata->pTitle, strerror(errno));
 	    exit(1);
 	}
 
@@ -104,7 +102,7 @@ static void execCollectScript(Forwarder_Data_t *fwdata, int rerun)
 	    int status;
 	    if (waitpid(child, &status, 0) < 0) {
 		if (errno == EINTR) continue;
-		mlog("%s: parent kill() errno: %i\n", __func__, errno);
+		flog("parent kill() errno: %i\n", errno);
 		killpg(child, SIGKILL);
 		exit(1);
 	    }
@@ -127,8 +125,7 @@ bool Script_test(char *spath, char *title)
 	return false;
     }
     if (!(sbuf.st_mode & S_IFREG) || !(sbuf.st_mode & S_IXUSR)) {
-	mlog("%s: %s script %s is not a valid executable script\n",
-		__func__, title, spath);
+	flog("%s script %s is not a valid executable script\n", title, spath);
 	return false;
     }
     return true;
@@ -165,8 +162,8 @@ static int fwCMD_handleMthrMsg(PSLog_Msg_t *msg, Forwarder_Data_t *fwdata)
 	    handleSetPollTime(fwdata, msg->buf);
 	    break;
 	default:
-	    mlog("%s: unexpected msg, type %d (PSlog type %s) from TID %s (%s) "
-		 "jobid %s\n", __func__, type, PSLog_printMsgType(msg->type),
+	    flog("unexpected msg, type %d (PSlog type %s) from TID %s (%s) "
+		 "jobid %s\n", type, PSLog_printMsgType(msg->type),
 		 PSC_printTID(msg->sender), fwdata->pTitle, fwdata->jobID);
 	    return 0;
     }
@@ -178,20 +175,20 @@ Collect_Script_t *Script_start(char *title, char *path,
 			       scriptDataHandler_t *func, uint32_t poll)
 {
     if (!title) {
-	mlog("%s: invalid title given\n", __func__);
+	flog("invalid title given\n");
 	return false;
     }
     if (!path) {
-	mlog("%s: invalid path given\n", __func__);
+	flog("invalid path given\n");
 	return false;
     }
     if (!func) {
-	mlog("%s: invalid func given\n", __func__);
+	flog("invalid func given\n");
 	return false;
     }
 
     if (!Script_test(path, title)) {
-	mlog("%s: invalid %s script given\n", __func__, title);
+	flog("invalid %s script given\n", title);
 	return false;
     }
 
@@ -212,7 +209,7 @@ Collect_Script_t *Script_start(char *title, char *path,
     fwdata->handleMthrMsg = fwCMD_handleMthrMsg;
 
     if (!startForwarder(fwdata)) {
-	mlog("%s: starting %s script forwarder failed\n", __func__, title);
+	flog("starting %s script forwarder failed\n", title);
 	ForwarderData_delete(fwdata);
 	ufree(script->path);
 	ufree(script);
@@ -226,7 +223,7 @@ Collect_Script_t *Script_start(char *title, char *path,
 void Script_finalize(Collect_Script_t *script)
 {
     if (!script) {
-	mlog("%s: invalid script given\n", __func__);
+	flog("invalid script given\n");
 	return;
     }
 
@@ -238,7 +235,7 @@ void Script_finalize(Collect_Script_t *script)
 bool Script_setPollTime(Collect_Script_t *script, uint32_t poll)
 {
     if (!script || !script->fwdata) {
-	mlog("%s: invalid script or forwarder data\n", __func__);
+	flog("invalid script or forwarder data\n");
 	return false;
     }
 
