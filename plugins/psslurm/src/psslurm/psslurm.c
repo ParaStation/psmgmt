@@ -60,6 +60,7 @@
 #include "psslurmspank.h"
 #endif
 #include "psslurmstep.h"
+#include "psslurmaccount.h"
 
 #define PSSLURM_CONFIG_FILE  PLUGINDIR "/psslurm.conf"
 #define MEMORY_DEBUG 0
@@ -71,8 +72,6 @@ static int cleanupTimerID = -1;
 static int obitTime = 5;
 
 bool isInit = false;
-
-int confAccPollTime;
 
 uid_t slurmUserID = 495;
 
@@ -759,25 +758,9 @@ int initialize(FILE *logfile)
 
     if (!initEnvFilter()) goto INIT_ERROR;
 
-    /* save default account poll time */
-    if ((confAccPollTime = psAccountGetPoll(PSACCOUNT_OPT_MAIN)) <= 0) {
-	confAccPollTime = 30;
-    }
-
-    /* we want to have periodic updates on used resources */
-    if (!psAccountGetPoll(PSACCOUNT_OPT_MAIN)) {
-	psAccountSetPoll(PSACCOUNT_OPT_MAIN, 30);
-    }
-
-    /* set collect mode in psaccount */
-    psAccountSetGlobalCollect(true);
+    Acc_Init();
 
     psPelogueAddPluginConfig("psslurm", &Config);
-
-    int poll = getConfValueI(&Config, "SLURM_ACC_NETWORK");
-    if (poll > 0) {
-	psAccountSetPoll(PSACCOUNT_OPT_IC, poll);
-    }
 
     /* make sure timer facility is ready */
     if (!Timer_isInitialized()) {
@@ -870,7 +853,7 @@ void cleanup(void)
     unregisterHooks(true);
 
     /* reset collect mode in psaccount */
-    if (psAccountSetGlobalCollect) psAccountSetGlobalCollect(false);
+    Acc_Finalize();
 
     /* free all malloced memory */
     Job_destroyAll();

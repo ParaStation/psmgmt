@@ -2,6 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2019-2021 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2022 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -119,5 +120,22 @@ void TRes_print(TRes_t *tres);
  * @return Returns the TRes ID or NO_VAL on error
  */
 uint32_t TRes_getID(const char *type, const char *name);
+
+/**
+ * @brief Initialize the accounting facility
+ */
+void Acc_Init(void);
+
+/**
+ * @brief Get the main accounting interval
+ *
+ * @return Returns the request parameter
+ */
+int Acc_getPoll(void);
+
+/**
+ * @brief Finalize the accounting facility
+ */
+void Acc_Finalize(void);
 
 #endif  /* __PSSLURM_ACCOUNT */

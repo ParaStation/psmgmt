@@ -26,9 +26,6 @@ extern time_t start_time;
 /** name of the user slurmctld executes as */
 extern uid_t slurmUserID;
 
-/** default account poll time */
-extern int confAccPollTime;
-
 /** flag set to true if psslurm was successfully init */
 extern bool isInit;
 

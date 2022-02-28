@@ -17,9 +17,24 @@
 #include "slurmcommon.h"
 #include "psslurmlog.h"
 #include "psslurmproto.h"
-
+#include "psslurmconfig.h"
 
 #define INF2Z(num) (num == INFINITE64) ? (0) : (num)
+
+/** default account poll interval */
+#define POLL_TIME 30
+
+/** current main accounting poll interval */
+static int confAccPollTime;
+
+/** saved energy poll interval for later restoration */
+static int oldEnergyPollTime = 0;
+
+/** saved file-system poll interval for later restoration */
+static int oldFilesystemPollTime = 0;
+
+/** saved interconnect poll interval for later restoration */
+static int oldInterconnectPollTime = 0;
 
 TRes_t *TRes_new(void)
 {
@@ -225,4 +240,66 @@ void TRes_destroy(TRes_t *tres)
     ufree(tres->out_tot);
 
     ufree(tres);
+}
+
+void Acc_Init(void)
+{
+    /* save default account poll time */
+    if ((confAccPollTime = psAccountGetPoll(PSACCOUNT_OPT_MAIN)) <= 0) {
+	confAccPollTime = POLL_TIME;
+    }
+
+    /* we want to have periodic updates on used resources */
+    if (!psAccountGetPoll(PSACCOUNT_OPT_MAIN)) {
+	psAccountSetPoll(PSACCOUNT_OPT_MAIN, POLL_TIME);
+    }
+
+    /* set collect mode in psaccount */
+    psAccountSetGlobalCollect(true);
+
+    /* enable energy polling */
+    int poll = getConfValueI(&Config, "SLURM_ACC_ENERGY");
+    if (poll > 0) {
+	oldEnergyPollTime = psAccountGetPoll(PSACCOUNT_OPT_ENERGY);
+	psAccountSetPoll(PSACCOUNT_OPT_ENERGY, poll);
+    }
+
+    /* enable file-system polling */
+    poll = getConfValueI(&Config, "SLURM_ACC_FILESYSTEM");
+    if (poll > 0) {
+	oldFilesystemPollTime = psAccountGetPoll(PSACCOUNT_OPT_FS);
+	psAccountSetPoll(PSACCOUNT_OPT_FS, poll);
+    }
+
+    /* enable interconnect polling */
+    poll = getConfValueI(&Config, "SLURM_ACC_NETWORK");
+    if (poll > 0) {
+	oldInterconnectPollTime = psAccountGetPoll(PSACCOUNT_OPT_IC);
+	psAccountSetPoll(PSACCOUNT_OPT_IC, poll);
+    }
+}
+
+int Acc_getPoll(void)
+{
+    return confAccPollTime;
+}
+
+void Acc_Finalize(void)
+{
+    psAccountSetGlobalCollect(false);
+
+    int poll = getConfValueI(&Config, "SLURM_ACC_ENERGY");
+    if (poll > 0) {
+	psAccountSetPoll(PSACCOUNT_OPT_ENERGY, oldEnergyPollTime);
+    }
+
+    poll = getConfValueI(&Config, "SLURM_ACC_FILESYSTEM");
+    if (poll > 0) {
+	psAccountSetPoll(PSACCOUNT_OPT_FS, oldFilesystemPollTime);
+    }
+
+    poll = getConfValueI(&Config, "SLURM_ACC_NETWORK");
+    if (poll > 0) {
+	psAccountSetPoll(PSACCOUNT_OPT_IC, oldInterconnectPollTime);
+    }
 }

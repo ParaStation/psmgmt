@@ -66,6 +66,7 @@
 #include "psslurmpscomm.h"
 #include "psslurmtasks.h"
 #include "psslurm.h"
+#include "psslurmaccount.h"
 
 /** Slurm protocol version */
 uint32_t slurmProto;
@@ -2482,7 +2483,7 @@ static void handleTerminateReq(Slurm_Msg_t *sMsg)
 	 req->jobstate, sMsg->head.uid, msgType2String(sMsg->head.type));
 
     /* restore account freq */
-    psAccountSetPoll(PSACCOUNT_OPT_MAIN, confAccPollTime);
+    psAccountSetPoll(PSACCOUNT_OPT_MAIN, Acc_getPoll());
 
     /* remove all unfinished spawn requests */
     PSIDspawn_cleanupBySpawner(PSC_getMyTID());
