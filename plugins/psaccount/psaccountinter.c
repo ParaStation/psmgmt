@@ -113,16 +113,18 @@ PStask_ID_t psAccountGetLoggerByClient(pid_t pid)
     return getLoggerByClientPID(pid);
 }
 
-void psAccountGetEnergy(psAccountEnergy_t *eData)
+void psAccountGetLocalInfo(psAccountInfo_t *info)
 {
-    psAccountEnergy_t *eSrc = Energy_getData();
-    memcpy(eData, eSrc, sizeof(*eSrc));
-}
+    memset(info, 0, sizeof(*info));
 
-void psAccountGetIC(psAccountIC_t *icData)
-{
+    psAccountEnergy_t *eSrc = Energy_getData();
+    memcpy(&info->energy, eSrc, sizeof(*eSrc));
+
     psAccountIC_t *icSrc = IC_getData();
-    memcpy(icData, icSrc, sizeof(*icSrc));
+    memcpy(&info->interconnect, icSrc, sizeof(*icSrc));
+
+    psAccountFS_t *fsSrc = FS_getData();
+    memcpy(&info->filesytem, fsSrc, sizeof(*fsSrc));
 }
 
 int psAccountGetPoll(psAccountOpt_t type)

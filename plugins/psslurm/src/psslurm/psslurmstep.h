@@ -195,7 +195,7 @@ typedef struct {
     uint32_t rcvdPackInfos;	/**< number of received pack infos */
     uint32_t rcvdPackProcs;	/**< number of received pack processes */
     char *container;            /**< container path */
-    psAccountIC_t icBase;       /**< interconnect counter at step start */
+    psAccountInfo_t acctBase;  /**< account base values (e.g. file-system) */
     list_t next;                /**< used to put into some step-lists */
 } Step_t;
 

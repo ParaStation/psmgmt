@@ -138,7 +138,7 @@ Job_t *Job_add(uint32_t jobid)
     INIT_LIST_HEAD(&job->tasks);
     envInit(&job->env);
     envInit(&job->spankenv);
-    psAccountGetIC(&job->icBase);
+    psAccountGetLocalInfo(&job->acctBase);
 
     list_add_tail(&job->next, &JobList);
 

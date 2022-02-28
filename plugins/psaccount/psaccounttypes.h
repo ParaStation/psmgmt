@@ -2,6 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2014-2021 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2022 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -105,6 +106,13 @@ typedef struct {
     uint64_t numWrites;		/**< number of writes */
     time_t lastUpdate;		/**< time stamp of the last update */
 } psAccountFS_t;
+
+/** Holding all local node informations for exchange with other plugins */
+typedef struct {
+    psAccountFS_t filesytem;	/**< local filesystem counter */
+    psAccountIC_t interconnect;	/**< local interconnect counter */
+    psAccountEnergy_t energy;   /**< local energy data */
+} psAccountInfo_t;
 
 /**
  * @brief Register batch jobscript
@@ -338,18 +346,15 @@ typedef void(psAccountFindDaemonProcs_t)(uid_t uid, bool kill, bool warn);
 typedef int(psAccountSignalSession_t)(pid_t session, int sig);
 
 /**
- * @brief Get nodes energy consumption
+ * @brief Get various local node information
  *
- * @param eData Will hold the nodes energy consumption data on return
- */
-typedef void(psAccountGetEnergy_t)(psAccountEnergy_t *eData);
-
-/**
- * @brief Get nodes interconnect counters
+ * The information currently holds energy, interconnect and file-system
+ * counters. If no information is collect for a monitor all its counters
+ * will be 0.
  *
- * @param icData Will hold the nodes interconnect data on return
+ * @param info Will hold the nodes local information on return
  */
-typedef void(psAccountGetIC_t)(psAccountIC_t *icData);
+typedef void(psAccountGetLocalInfo_t)(psAccountInfo_t *info);
 
 /**
  * @brief Get various poll intervals

@@ -57,7 +57,7 @@ Step_t *Step_add(void)
     initSlurmMsg(&step->srunIOMsg);
     initSlurmMsg(&step->srunControlMsg);
     initSlurmMsg(&step->srunPTYMsg);
-    psAccountGetIC(&step->icBase);
+    psAccountGetLocalInfo(&step->acctBase);
 
     list_add_tail(&step->next, &StepList);
 

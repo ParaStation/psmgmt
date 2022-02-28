@@ -315,15 +315,9 @@ static bool regPsAccountHandles(void)
 	return false;
     }
 
-    psAccountGetEnergy = dlsym(pluginHandle, "psAccountGetEnergy");
-    if (!psAccountGetEnergy) {
-	mlog("%s: loading psAccountGetEnergy() failed\n", __func__);
-	return false;
-    }
-
-    psAccountGetIC = dlsym(pluginHandle, "psAccountGetIC");
-    if (!psAccountGetIC) {
-	mlog("%s: loading psAccountGetIC() failed\n", __func__);
+    psAccountGetLocalInfo = dlsym(pluginHandle, "psAccountGetLocalInfo");
+    if (!psAccountGetLocalInfo) {
+	mlog("%s: loading psAccountGetLocalInfo() failed\n", __func__);
 	return false;
     }
 

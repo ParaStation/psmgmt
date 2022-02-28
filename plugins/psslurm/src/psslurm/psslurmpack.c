@@ -1799,7 +1799,7 @@ static void convAccDataToTRes(SlurmAccData_t *slurmAccData, TRes_t *tres)
     TRes_set(tres, TRES_FS_DISK, &entry);
 
     /* interconnect data */
-    psAccountIC_t *ic = &slurmAccData->icData;
+    psAccountIC_t *ic = &slurmAccData->iData.interconnect;
 
     if (getConfValueC(&Config, "SLURM_ACC_NETWORK") && ic->lastUpdate) {
 	uint32_t icID = TRes_getID("ic", "ofed");

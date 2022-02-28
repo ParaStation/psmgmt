@@ -92,7 +92,7 @@ typedef struct {
     uint32_t profile;       /**< profile (unused) */
     PSCPU_set_t hwthreads;  /**< hwthreads to use for job on current node */
     char *container;        /**< container path */
-    psAccountIC_t icBase;   /**< interconnect counter at job start */
+    psAccountInfo_t acctBase;  /**< account base values (e.g. file-system) */
 } Job_t;
 
 /**

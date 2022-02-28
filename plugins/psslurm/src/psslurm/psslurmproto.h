@@ -96,8 +96,8 @@ typedef struct {
 /** Structure holding all infos to pack Slurm accounting data */
 typedef struct {
     AccountDataExt_t psAcct;	/**< actual accounting data from psaccount */
-    psAccountIC_t *icBase;	/**< interconnect base counters */
-    psAccountIC_t icData;	/**< interconnect total usage */
+    psAccountInfo_t *iBase;	/**< local account base counters */
+    psAccountInfo_t iData;	/**< local account data usage */
     uint8_t type;		/**< type of accounting */
     bool empty;			/**< flag to signal empty accounting data */
     uint32_t nrOfNodes;		/**< number of nodes */

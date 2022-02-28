@@ -1397,11 +1397,11 @@ static void handleAcctGatherUpdate(Slurm_Msg_t *sMsg)
     }
 
     /* pack energy data */
-    psAccountEnergy_t eData;
-    psAccountGetEnergy(&eData);
+    psAccountInfo_t info;
+    psAccountGetLocalInfo(&info);
 
     /* we need at least 1 sensor to prevent segfaults in slurmctld */
-    packEnergySensor(msg, &eData);
+    packEnergySensor(msg, &info.energy);
 
     sendSlurmReply(sMsg, RESPONSE_ACCT_GATHER_UPDATE);
 }
@@ -1418,11 +1418,11 @@ static void handleAcctGatherEnergy(Slurm_Msg_t *sMsg)
     }
 
     /* pack energy data */
-    psAccountEnergy_t eData;
-    psAccountGetEnergy(&eData);
+    psAccountInfo_t info;
+    psAccountGetLocalInfo(&info);
 
     /* we need at least 1 sensor to prevent segfaults in slurmctld */
-    packEnergySensor(msg, &eData);
+    packEnergySensor(msg, &info.energy);
 
     sendSlurmReply(sMsg, RESPONSE_ACCT_GATHER_ENERGY);
 }
@@ -1593,13 +1593,17 @@ static int addSlurmAccData(SlurmAccData_t *slurmAccData)
 		__func__, accData->avgRssCount, accData->numTasks);
     }
 
+    psAccountGetLocalInfo(&slurmAccData->iData);
+
     /* save interconnect usage counters */
     if (getConfValueC(&Config, "SLURM_ACC_NETWORK")) {
-	psAccountGetIC(&slurmAccData->icData);
-	slurmAccData->icData.recvBytes -= slurmAccData->icBase->recvBytes;
-	slurmAccData->icData.sendBytes -= slurmAccData->icBase->sendBytes;
-	slurmAccData->icData.recvPkts -= slurmAccData->icBase->recvPkts;
-	slurmAccData->icData.sendPkts -= slurmAccData->icBase->sendPkts;
+	psAccountIC_t *icData = &slurmAccData->iData.interconnect;
+	psAccountIC_t *icBase = &slurmAccData->iBase->interconnect;
+
+	icData->recvBytes -= icBase->recvBytes;
+	icData->sendBytes -= icBase->sendBytes;
+	icData->recvPkts -= icBase->recvPkts;
+	icData->sendPkts -= icBase->sendPkts;
     }
 
     return accData->numTasks;
@@ -1651,7 +1655,7 @@ static void handleStepStat(Slurm_Msg_t *sMsg)
 	.remoteTasks = &step->remoteTasks,
 	.childPid = 0,
 	.localNodeId = step->localNodeId,
-        .icBase = &step->icBase };
+        .iBase = &step->acctBase };
     uint32_t numTasks = addSlurmAccData(&slurmAccData);
     packSlurmAccData(msg, &slurmAccData);
     /* correct number of tasks */
@@ -3084,7 +3088,9 @@ void sendNodeRegStatus(bool startup)
     if (startup) stat.flags |= SLURMD_REG_FLAG_STARTUP;
 
     /* fill energy data */
-    psAccountGetEnergy(&stat.eData);
+    psAccountInfo_t info;
+    psAccountGetLocalInfo(&info);
+    memcpy(&stat.eData, &info.energy, sizeof(info.energy));
 
     /* dynamic node feature */
     stat.dynamic = false;
@@ -3173,7 +3179,7 @@ void sendStepExit(Step_t *step, uint32_t exitStatus)
 	.remoteTasks = &step->remoteTasks,
 	.childPid = 0,
 	.localNodeId = step->localNodeId,
-        .icBase = &step->icBase };
+        .iBase = &step->acctBase };
     addSlurmAccData(&slurmAccData);
 
     Req_Step_Comp_t comp = {
@@ -3476,7 +3482,7 @@ void sendJobExit(Job_t *job, uint32_t exitStatus)
 
     slurmAccData.nodes = job->nodes;
     slurmAccData.nrOfNodes = job->nrOfNodes;
-    slurmAccData.icBase = &job->icBase;
+    slurmAccData.iBase = &job->acctBase;
     slurmAccData.localNodeId = job->localNodeId;
 
     if (job->fwdata) {
