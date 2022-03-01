@@ -316,8 +316,8 @@ nodeinfo_t *getStepNodeinfoArray(const Step_t *step)
 {
     node_iterator iter;
     if (!node_iter_init(&iter, step->cred)) {
-	flog("Initialization of node iteration for step %u failed.\n",
-	     step->jobid);
+	flog("Initialization of node iteration for %s failed.\n",
+	     Step_strID(step));
 	return NULL;
     }
 
