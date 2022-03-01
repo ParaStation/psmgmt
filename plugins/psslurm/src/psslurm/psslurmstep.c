@@ -528,7 +528,7 @@ void Step_getInfos(uint32_t *infoCount, uint32_t **jobids, uint32_t **stepids)
     }
 }
 
-const char *Step_strID(Step_t *step)
+const char *Step_strID(const Step_t *step)
 {
     static char buf[128];
 
