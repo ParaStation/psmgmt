@@ -108,7 +108,7 @@ static void parseEnergy(char *ptr)
     updatePower(power);
 }
 
-static int handleFwMsg(PSLog_Msg_t *msg, Forwarder_Data_t *fwdata)
+static int handleFwMsg(DDTypedBufferMsg_t *msg, Forwarder_Data_t *fwdata)
 {
     switch (msg->type) {
 	case STDOUT:

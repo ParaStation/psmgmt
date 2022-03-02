@@ -255,31 +255,28 @@ static void handlePspmixMsg(DDTypedBufferMsg_t *msg)
  *
  * @return Returns 1 if the type is known, 0 if not
  */
-static int handleMsg(DDMsg_t *msg)
+static int handleMsg(DDTypedBufferMsg_t *msg)
 {
     mdbg(PSPMIX_LOG_CALL, "%s() called\n", __func__);
 
-    switch(msg->type) {
+    switch(msg->header.type) {
     case PSP_PLUG_PSPMIX:
-	handlePspmixMsg((DDTypedBufferMsg_t *)msg);
+	handlePspmixMsg(msg);
 	break;
     default:
 	mlog("%s: received unexpected msg type: %s (0x%X) [%s", __func__,
-	     PSDaemonP_printMsg(msg->type), msg->type,
-	     PSC_printTID(msg->sender));
-	mlog("->%s]\n", PSC_printTID(msg->dest));
+	     PSDaemonP_printMsg(msg->header.type), msg->header.type,
+	     PSC_printTID(msg->header.sender));
+	mlog("->%s]\n", PSC_printTID(msg->header.dest));
 	return 0;
     }
 
     return 1;
 }
 
-int pspmix_comm_handleMthrMsg(PSLog_Msg_t *tmpmsg, ForwarderData_t *fw)
+int pspmix_comm_handleMthrMsg(DDTypedBufferMsg_t *msg, ForwarderData_t *fw)
 {
     mdbg(PSPMIX_LOG_CALL, "%s() called\n", __func__);
-
-    DDMsg_t *msg = (DDMsg_t *)tmpmsg;
-
     return handleMsg(msg);
 }
 
@@ -307,7 +304,7 @@ static ssize_t sendMsgToDaemon(DDTypedBufferMsg_t *msg)
 
     if (msg->header.dest == PSC_getMyTID()) {
 	/* message is for myself, directly handle it */
-	if (!handleMsg((DDMsg_t *)msg)) {
+	if (!handleMsg(msg)) {
 	    errno = EINVAL;
 	    return -1;
 	}
@@ -319,7 +316,7 @@ static ssize_t sendMsgToDaemon(DDTypedBufferMsg_t *msg)
 	    __func__, PSC_printTID(msg->header.dest));
 
     int ret;
-    ret = sendMsgToMother((PSLog_Msg_t *)msg); /* HACK to use PSLog_Msg_t */
+    ret = sendMsgToMother(msg);
     if (ret == -1 && errno != EWOULDBLOCK) {
 	mwarn(errno, "%s: sending msg to %s failed ", __func__,
 		PSC_printTID(msg->header.dest));

@@ -36,7 +36,7 @@
  *
  * @return Returns 1 if the type is known, 0 if not
  */
-int pspmix_comm_handleMthrMsg(PSLog_Msg_t *tmpmsg, ForwarderData_t *fw);
+int pspmix_comm_handleMthrMsg(DDTypedBufferMsg_t *msg, ForwarderData_t *fw);
 
 /**
  * @brief Compose and send a client PMIx environment message

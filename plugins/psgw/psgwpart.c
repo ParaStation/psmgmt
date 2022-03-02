@@ -344,10 +344,9 @@ static void fwCallback(int32_t exit_status, Forwarder_Data_t *fw)
     }
 }
 
-int handleMotherMsg(PSLog_Msg_t *msg, Forwarder_Data_t *fw)
+int handleMotherMsg(DDTypedBufferMsg_t *msg, Forwarder_Data_t *fw)
 {
     PSGW_Req_t *req = Request_verify(fw->userData);
-
     if (!req) {
 	flog("no request for %p\n", fw->userData);
 	return 0;

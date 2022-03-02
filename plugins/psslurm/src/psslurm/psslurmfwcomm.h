@@ -29,7 +29,7 @@
  *
  * @return Returns 1 on success and 0 otherwise
  */
-int fwCMD_handleFwStepMsg(PSLog_Msg_t *msg, Forwarder_Data_t *fwdata);
+int fwCMD_handleFwStepMsg(DDTypedBufferMsg_t *msg, Forwarder_Data_t *fwdata);
 
 /**
  * @brief Handle a message from mother sendto step forwarder
@@ -40,7 +40,7 @@ int fwCMD_handleFwStepMsg(PSLog_Msg_t *msg, Forwarder_Data_t *fwdata);
  *
  * @return Returns 1 on success and 0 otherwise
  */
-int fwCMD_handleMthrStepMsg(PSLog_Msg_t *msg, Forwarder_Data_t *fwdata);
+int fwCMD_handleMthrStepMsg(DDTypedBufferMsg_t *msg, Forwarder_Data_t *fwdata);
 
 /**
  * @brief Handle a message from mother sendto job forwarder
@@ -51,7 +51,7 @@ int fwCMD_handleMthrStepMsg(PSLog_Msg_t *msg, Forwarder_Data_t *fwdata);
  *
  * @return Returns 1 on success and 0 otherwise
  */
-int fwCMD_handleMthrJobMsg(PSLog_Msg_t *msg, Forwarder_Data_t *fwdata);
+int fwCMD_handleMthrJobMsg(DDTypedBufferMsg_t *msg, Forwarder_Data_t *fwdata);
 
 /**
  * @brief Send CMD_STEP_TIMEOUT to a forwarder

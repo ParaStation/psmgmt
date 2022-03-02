@@ -185,22 +185,16 @@ static bool forwardPspmixMsg(DDBufferMsg_t *vmsg)
  * As a side effect, this function is setting server's used flag as soon
  * as the first PSPMIX_CLIENT_INIT message is send by a jobserver.
  *
- * @param tmpmsg message received
+ * @param msg    message received
  * @param fw     the plugin forwarder hosting the PMIx jobserver
  *
  * @return Returns 1 if the type is known, 0 if not
  */
-static int forwardPspmixFwMsg(PSLog_Msg_t *tmpmsg, ForwarderData_t *fw)
+static int forwardPspmixFwMsg(DDTypedBufferMsg_t *msg, ForwarderData_t *fw)
 {
-
     mdbg(PSPMIX_LOG_CALL, "%s() called\n", __func__);
 
-    DDBufferMsg_t *vmsg = (DDBufferMsg_t *)tmpmsg; /* HACK */
-
-    if (vmsg->header.type != PSP_PLUG_PSPMIX) return 0;
-
-    DDTypedBufferMsg_t *msg = (DDTypedBufferMsg_t *)vmsg;
-
+    if (msg->header.type != PSP_PLUG_PSPMIX) return false;
     if (msg->type == PSPMIX_CLIENT_INIT) {
 	bool found = false;
 	list_t *s;
@@ -221,7 +215,7 @@ static int forwardPspmixFwMsg(PSLog_Msg_t *tmpmsg, ForwarderData_t *fw)
 			 PSC_printTID(msg->header.sender));
     }
 
-    forwardPspmixMsg(vmsg);
+    forwardPspmixMsg((DDBufferMsg_t *)msg);
 
     return 1;
 }

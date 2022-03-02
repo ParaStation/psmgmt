@@ -265,7 +265,7 @@ static void handlePeIO(Forwarder_Data_t *fwdata, short outType, char *ptr)
 /**
  * @brief Handle messages form pelogue forwarder
  */
-static int handlePeFwMsg(PSLog_Msg_t *msg, Forwarder_Data_t *fwdata)
+static int handlePeFwMsg(DDTypedBufferMsg_t *msg, Forwarder_Data_t *fwdata)
 {
     switch (msg->type) {
 	case STDOUT:
@@ -274,8 +274,8 @@ static int handlePeFwMsg(PSLog_Msg_t *msg, Forwarder_Data_t *fwdata)
 	    break;
 	default:
 	    mlog("%s: unexpected msg, type %s from TID %s (%s) "
-		 "jobid %s\n", __func__, PSLog_printMsgType(msg->type),
-		 PSC_printTID(msg->sender), fwdata->pTitle, fwdata->jobID);
+		 "jobid %s\n", __func__, PSLog_printMsgType(msg->type), // @todo
+		 PSC_printTID(msg->header.sender), fwdata->pTitle, fwdata->jobID);
 	    return 0;
     }
 

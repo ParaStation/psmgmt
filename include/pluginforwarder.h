@@ -16,7 +16,7 @@
 #include <sys/types.h>
 
 #include "pstaskid.h"
-#include "pslog.h"
+#include "psprotocol.h"
 
 #define PLUGINFW_PROTO_VERSION 2
 
@@ -80,9 +80,9 @@ typedef struct __fwData__ {
 			   /**< Called within mother when child is ready */
     void (*hookFinalize)(Forwarder_Data_t *);
 			   /**< Called within forwarder upon finalization */
-    int (*handleMthrMsg)(PSLog_Msg_t *, Forwarder_Data_t *);
+    int (*handleMthrMsg)(DDTypedBufferMsg_t *, Forwarder_Data_t *);
 			   /**< Additional mother-msgs handled by forwarder */
-    int (*handleFwMsg)(PSLog_Msg_t *, Forwarder_Data_t *);
+    int (*handleFwMsg)(DDTypedBufferMsg_t *, Forwarder_Data_t *);
 			   /**< Additional forwarder-msgs handled by mother */
 } ForwarderData_t;
 
@@ -98,7 +98,7 @@ typedef struct __fwData__ {
  *
  * @return The number of bytes sent or -1 on error
  */
-ssize_t sendMsgToMother(PSLog_Msg_t *msg);
+ssize_t sendMsgToMother(DDTypedBufferMsg_t *msg);
 
 /* --------------- Functions to be executed in mother ------------------- */
 

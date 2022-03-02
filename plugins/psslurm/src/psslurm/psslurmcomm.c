@@ -1307,7 +1307,8 @@ static int forwardInputMsg(Step_t *step, uint16_t rank, char *buf, int bufLen)
 	     rank, n, PSLog_headerSize + n, PSC_printTID(task->forwarderTID));
 	fdbg(PSSLURM_LOG_IO_VERB, "'%.*s'\n", n, msg.buf);
 	msg.header.len = PSLog_headerSize + n;
-	sendMsgToMother(&msg);
+	// @todo most probably we have to put msg into an envelope
+	sendMsgToMother((DDTypedBufferMsg_t *)&msg);
 	c -= n;
 	ptr += n;
     } while (c > 0);
