@@ -149,7 +149,7 @@ pspmix_la_DEPENDENCIES = $(am__DEPENDENCIES_1) $(libplugincommon) \
 am_pspmix_la_OBJECTS = pspmix_la-pspmixmain.lo pspmix_la-pspmixlog.lo \
 	pspmix_la-pspmixconfig.lo pspmix_la-pspmixcommon.lo \
 	pspmix_la-pspmixdaemon.lo pspmix_la-pspmixforwarder.lo \
-	pspmix_la-pspmixjobserver.lo pspmix_la-pspmixcomm.lo \
+	pspmix_la-pspmixuserserver.lo pspmix_la-pspmixcomm.lo \
 	pspmix_la-pspmixservice.lo pspmix_la-pspmixservicespawn.lo \
 	pspmix_la-pspmixserver.lo
 pspmix_la_OBJECTS = $(am_pspmix_la_OBJECTS)
@@ -180,12 +180,12 @@ am__depfiles_remade = ./$(DEPDIR)/pspmix_la-pspmixcomm.Plo \
 	./$(DEPDIR)/pspmix_la-pspmixconfig.Plo \
 	./$(DEPDIR)/pspmix_la-pspmixdaemon.Plo \
 	./$(DEPDIR)/pspmix_la-pspmixforwarder.Plo \
-	./$(DEPDIR)/pspmix_la-pspmixjobserver.Plo \
 	./$(DEPDIR)/pspmix_la-pspmixlog.Plo \
 	./$(DEPDIR)/pspmix_la-pspmixmain.Plo \
 	./$(DEPDIR)/pspmix_la-pspmixserver.Plo \
 	./$(DEPDIR)/pspmix_la-pspmixservice.Plo \
-	./$(DEPDIR)/pspmix_la-pspmixservicespawn.Plo
+	./$(DEPDIR)/pspmix_la-pspmixservicespawn.Plo \
+	./$(DEPDIR)/pspmix_la-pspmixuserserver.Plo
 am__mv = mv -f
 COMPILE = $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) \
 	$(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
@@ -436,8 +436,8 @@ plugin_LTLIBRARIES = pspmix.la
 pspmix_la_SOURCES = pspmixmain.c pspmixtypes.h pspmixlog.c		\
 	pspmixlog.h pspmixconfig.c pspmixconfig.h pspmixcommon.c	\
 	pspmixcommon.h pspmixdaemon.c pspmixdaemon.h			\
-	pspmixforwarder.c pspmixforwarder.h pspmixjobserver.c		\
-	pspmixjobserver.h pspmixcomm.c pspmixcomm.h pspmixservice.c	\
+	pspmixforwarder.c pspmixforwarder.h pspmixuserserver.c		\
+	pspmixuserserver.h pspmixcomm.c pspmixcomm.h pspmixservice.c	\
 	pspmixservice.h pspmixservicespawn.c pspmixservicespawn.h	\
 	pspmixserver.c pspmixserver.h
 
@@ -533,12 +533,12 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/pspmix_la-pspmixconfig.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/pspmix_la-pspmixdaemon.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/pspmix_la-pspmixforwarder.Plo@am__quote@ # am--include-marker
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/pspmix_la-pspmixjobserver.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/pspmix_la-pspmixlog.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/pspmix_la-pspmixmain.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/pspmix_la-pspmixserver.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/pspmix_la-pspmixservice.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/pspmix_la-pspmixservicespawn.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/pspmix_la-pspmixuserserver.Plo@am__quote@ # am--include-marker
 
 $(am__depfiles_remade):
 	@$(MKDIR_P) $(@D)
@@ -612,12 +612,12 @@ pspmix_la-pspmixforwarder.lo: pspmixforwarder.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(pspmix_la_CPPFLAGS) $(CPPFLAGS) $(pspmix_la_CFLAGS) $(CFLAGS) -c -o pspmix_la-pspmixforwarder.lo `test -f 'pspmixforwarder.c' || echo '$(srcdir)/'`pspmixforwarder.c
 
-pspmix_la-pspmixjobserver.lo: pspmixjobserver.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(pspmix_la_CPPFLAGS) $(CPPFLAGS) $(pspmix_la_CFLAGS) $(CFLAGS) -MT pspmix_la-pspmixjobserver.lo -MD -MP -MF $(DEPDIR)/pspmix_la-pspmixjobserver.Tpo -c -o pspmix_la-pspmixjobserver.lo `test -f 'pspmixjobserver.c' || echo '$(srcdir)/'`pspmixjobserver.c
-@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/pspmix_la-pspmixjobserver.Tpo $(DEPDIR)/pspmix_la-pspmixjobserver.Plo
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='pspmixjobserver.c' object='pspmix_la-pspmixjobserver.lo' libtool=yes @AMDEPBACKSLASH@
+pspmix_la-pspmixuserserver.lo: pspmixuserserver.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(pspmix_la_CPPFLAGS) $(CPPFLAGS) $(pspmix_la_CFLAGS) $(CFLAGS) -MT pspmix_la-pspmixuserserver.lo -MD -MP -MF $(DEPDIR)/pspmix_la-pspmixuserserver.Tpo -c -o pspmix_la-pspmixuserserver.lo `test -f 'pspmixuserserver.c' || echo '$(srcdir)/'`pspmixuserserver.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/pspmix_la-pspmixuserserver.Tpo $(DEPDIR)/pspmix_la-pspmixuserserver.Plo
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='pspmixuserserver.c' object='pspmix_la-pspmixuserserver.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(pspmix_la_CPPFLAGS) $(CPPFLAGS) $(pspmix_la_CFLAGS) $(CFLAGS) -c -o pspmix_la-pspmixjobserver.lo `test -f 'pspmixjobserver.c' || echo '$(srcdir)/'`pspmixjobserver.c
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(pspmix_la_CPPFLAGS) $(CPPFLAGS) $(pspmix_la_CFLAGS) $(CFLAGS) -c -o pspmix_la-pspmixuserserver.lo `test -f 'pspmixuserserver.c' || echo '$(srcdir)/'`pspmixuserserver.c
 
 pspmix_la-pspmixcomm.lo: pspmixcomm.c
 @am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(pspmix_la_CPPFLAGS) $(CPPFLAGS) $(pspmix_la_CFLAGS) $(CFLAGS) -MT pspmix_la-pspmixcomm.lo -MD -MP -MF $(DEPDIR)/pspmix_la-pspmixcomm.Tpo -c -o pspmix_la-pspmixcomm.lo `test -f 'pspmixcomm.c' || echo '$(srcdir)/'`pspmixcomm.c
@@ -806,12 +806,12 @@ distclean: distclean-am
 	-rm -f ./$(DEPDIR)/pspmix_la-pspmixconfig.Plo
 	-rm -f ./$(DEPDIR)/pspmix_la-pspmixdaemon.Plo
 	-rm -f ./$(DEPDIR)/pspmix_la-pspmixforwarder.Plo
-	-rm -f ./$(DEPDIR)/pspmix_la-pspmixjobserver.Plo
 	-rm -f ./$(DEPDIR)/pspmix_la-pspmixlog.Plo
 	-rm -f ./$(DEPDIR)/pspmix_la-pspmixmain.Plo
 	-rm -f ./$(DEPDIR)/pspmix_la-pspmixserver.Plo
 	-rm -f ./$(DEPDIR)/pspmix_la-pspmixservice.Plo
 	-rm -f ./$(DEPDIR)/pspmix_la-pspmixservicespawn.Plo
+	-rm -f ./$(DEPDIR)/pspmix_la-pspmixuserserver.Plo
 	-rm -f Makefile
 distclean-am: clean-am distclean-compile distclean-generic \
 	distclean-tags
@@ -862,12 +862,12 @@ maintainer-clean: maintainer-clean-am
 	-rm -f ./$(DEPDIR)/pspmix_la-pspmixconfig.Plo
 	-rm -f ./$(DEPDIR)/pspmix_la-pspmixdaemon.Plo
 	-rm -f ./$(DEPDIR)/pspmix_la-pspmixforwarder.Plo
-	-rm -f ./$(DEPDIR)/pspmix_la-pspmixjobserver.Plo
 	-rm -f ./$(DEPDIR)/pspmix_la-pspmixlog.Plo
 	-rm -f ./$(DEPDIR)/pspmix_la-pspmixmain.Plo
 	-rm -f ./$(DEPDIR)/pspmix_la-pspmixserver.Plo
 	-rm -f ./$(DEPDIR)/pspmix_la-pspmixservice.Plo
 	-rm -f ./$(DEPDIR)/pspmix_la-pspmixservicespawn.Plo
+	-rm -f ./$(DEPDIR)/pspmix_la-pspmixuserserver.Plo
 	-rm -f Makefile
 maintainer-clean-am: distclean-am maintainer-clean-generic
 

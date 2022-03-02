@@ -26,8 +26,8 @@ plugin_LTLIBRARIES = pspmix.la
 pspmix_la_SOURCES = pspmixmain.c pspmixtypes.h pspmixlog.c		\
 	pspmixlog.h pspmixconfig.c pspmixconfig.h pspmixcommon.c	\
 	pspmixcommon.h pspmixdaemon.c pspmixdaemon.h			\
-	pspmixforwarder.c pspmixforwarder.h pspmixjobserver.c		\
-	pspmixjobserver.h pspmixcomm.c pspmixcomm.h pspmixservice.c	\
+	pspmixforwarder.c pspmixforwarder.h pspmixuserserver.c		\
+	pspmixuserserver.h pspmixcomm.c pspmixcomm.h pspmixservice.c	\
 	pspmixservice.h pspmixservicespawn.c pspmixservicespawn.h	\
 	pspmixserver.c pspmixserver.h
 

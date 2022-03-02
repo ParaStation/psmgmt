@@ -548,8 +548,8 @@ plugins/pspmix/pspmixdaemon.c \
 plugins/pspmix/pspmixdaemon.h \
 plugins/pspmix/pspmixforwarder.c \
 plugins/pspmix/pspmixforwarder.h \
-plugins/pspmix/pspmixjobserver.c \
-plugins/pspmix/pspmixjobserver.h \
+plugins/pspmix/pspmixuserserver.c \
+plugins/pspmix/pspmixuserserver.h \
 plugins/pspmix/pspmixlog.c \
 plugins/pspmix/pspmixlog.h \
 plugins/pspmix/pspmixmain.c \
