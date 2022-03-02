@@ -120,9 +120,9 @@ PStask_ID_t PSID_getSignalByID(list_t *sigList, PSnodes_ID_t id, int *signal);
 /**
  * @brief Get a signal by task ID from signal list
  *
- * Get the a signal associated with unique task ID @a tid from the
- * signal list @a sigList and return the associated signal. The signal
- * found will be removed from the signal list @a sigList.
+ * Get a signal associated to the unique task ID @a tid from the
+ * signal list @a sigList and return this signal. The signal found
+ * will be removed from the signal list @a sigList.
  *
  * @param sigList Signal list to be searched for the signal
  *

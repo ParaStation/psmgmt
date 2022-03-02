@@ -254,7 +254,7 @@ static void sendChildReleaseMsg(void)
 	    .dest = childTask->tid,
 	    .len = sizeof(msg) },
 	.signal = -1,
-	.answer = 1 }; // answer is handler via PSIDHOOK_FRWRD_EXIT
+	.answer = 1 }; // answer is handled via PSIDHOOK_FRWRD_EXIT
     sendDaemonMsg((DDMsg_t *)&msg);
 }
 
