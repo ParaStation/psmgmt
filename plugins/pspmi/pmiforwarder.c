@@ -192,12 +192,10 @@ static int readFromPMIClient(int fd, void *data)
 
 	if (strptr >= (msgBuf + msgBufUsed)) {
 	    /* complete message handled */
-	    if (mmBuffer) {
-		ufree(mmBuffer);
-		mmBuffer = NULL;
-		mmBufferSize = 0;
-		mmBufferUsed = 0;
-	    }
+	    ufree(mmBuffer);
+	    mmBuffer = NULL;
+	    mmBufferSize = 0;
+	    mmBufferUsed = 0;
 
 	    break;
 	}
@@ -233,12 +231,10 @@ static int readFromPMIClient(int fd, void *data)
 
 readFromPMIClient_error:
 
-    if (mmBuffer) {
-	ufree(mmBuffer);
-	mmBuffer = NULL;
-	mmBufferSize = 0;
-	mmBufferUsed = 0;
-    }
+    ufree(mmBuffer);
+    mmBuffer = NULL;
+    mmBufferSize = 0;
+    mmBufferUsed = 0;
 
     return 0;
 }

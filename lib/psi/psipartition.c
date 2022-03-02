@@ -656,10 +656,9 @@ static nodelist_t *getNodelist(void)
     return nodelist;
 
  error:
-    if (nodelist->nodes) {
-	free(nodelist->nodes);
-	nodelist->nodes = NULL;
-    }
+    free(nodelist->nodes);
+    nodelist->nodes = NULL;
+
     nodelist->size = -1;
     PSI_log(-1, "%s: failed from %s '%s': Please check your environment\n",
 	    __func__, nodeStr ? ENV_NODE_NODES :

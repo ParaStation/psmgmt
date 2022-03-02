@@ -32,16 +32,15 @@ static int insertEntry(list_t *list, char *name, char *res, char *val)
 
 void clearDataList(list_t *list)
 {
-    list_t *d, *tmp;
-
     if (!list || list_empty(list)) return;
 
+    list_t *d, *tmp;
     list_for_each_safe(d, tmp, list) {
 	Data_Entry_t *dEntry = list_entry(d, Data_Entry_t, list);
 
-	if (dEntry->name) ufree(dEntry->name);
-	if (dEntry->resource) ufree(dEntry->resource);
-	if (dEntry->value) ufree(dEntry->value);
+	ufree(dEntry->name);
+	ufree(dEntry->resource);
+	ufree(dEntry->value);
 	list_del(&dEntry->list);
 	ufree(dEntry);
     }

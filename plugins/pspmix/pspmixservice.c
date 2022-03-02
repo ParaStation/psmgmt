@@ -423,7 +423,7 @@ bool pspmix_service_registerNamespace(PStask_t *prototask, list_t resInfos)
     return true;
 
 nscreate_error:
-    if (ns->apps) ufree(ns->apps);
+    ufree(ns->apps);
     freeProcMap(&ns->procMap);
     ufree(ns);
     return false;
@@ -1231,7 +1231,7 @@ void pspmix_service_handleModexDataResponse(bool success, pmix_proc_t *proc,
     }
 
     if (!success) {
-	if (data) ufree(data);
+	ufree(data);
 	pspmix_server_returnModexData(false, mdata);
 	return;
     }

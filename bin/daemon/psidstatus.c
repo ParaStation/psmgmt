@@ -158,10 +158,9 @@ static void allocMasterSpace(void)
  */
 static void freeMasterSpace(void)
 {
-    if (clientStat) {
-	free(clientStat);
-	clientStat = NULL;
-    }
+    free(clientStat);
+    clientStat = NULL;
+
     exitPartHandler();
 }
 

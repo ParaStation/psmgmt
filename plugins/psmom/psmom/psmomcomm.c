@@ -425,17 +425,9 @@ void wClose(ComHandle_t *com)
     if (!(isValidComHandle(com))) return;
 
     com->Close(com->socket);
-    com->socket = -1;
-    com->localPort = -1;
-    com->remotePort = -1;
-
-    if (com->jobid) {
-	ufree(com->jobid);
-	com->jobid = NULL;
-    }
-    if (com->outBuf) ufree(com->outBuf);
-    if (com->info) ufree(com->info);
-
+    ufree(com->jobid);
+    ufree(com->outBuf);
+    ufree(com->info);
     list_del(&com->list);
     ufree(com);
 }

@@ -183,7 +183,7 @@ static bool getBool(char *key, bool *value)
 {
     gchar *token;
     if (!getString(key, &token) || *token == '\0') {
-	if (token) g_free(token);
+	g_free(token);
 	return false;
     }
 
@@ -212,7 +212,7 @@ static bool getNumber(char *key, int *val)
 {
     gchar *token;
     if (!getString(key, &token) || *token == '\0') {
-	if (token) g_free(token);
+	g_free(token);
 	return false;
     }
 

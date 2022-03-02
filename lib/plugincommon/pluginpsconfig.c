@@ -120,12 +120,12 @@ static void cleanupValue(pluginConfigObj_t *obj)
     case PLUGINCONFIG_VALUE_NUM:
 	break;
     case PLUGINCONFIG_VALUE_STR:
-	if (obj->value.val.str) ufree(obj->value.val.str);
+	ufree(obj->value.val.str);
 	obj->value.val.str = NULL;
 	break;
     case PLUGINCONFIG_VALUE_LST:
 	for (char **l = obj->value.val.lst; l && *l; l++) ufree(*l);
-	if (obj->value.val.lst) ufree(obj->value.val.lst);
+	ufree(obj->value.val.lst);
 	obj->value.val.lst = NULL;
 	break;
     default:
@@ -188,7 +188,7 @@ static bool addObj(pluginConfig_t conf, const char *key,
 static void delObj(pluginConfigObj_t *obj)
 {
     if (!obj) return;
-    if (obj->key) ufree(obj->key);
+    ufree(obj->key);
     cleanupValue(obj);
     list_del(&obj->next);
     ufree(obj);

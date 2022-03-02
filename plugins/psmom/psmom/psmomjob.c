@@ -461,32 +461,20 @@ static void doDelete(Job_t *job)
     /* close all connections associated with this job */
     closeAllJobConnections(job);
 
-    if (job->id) {
-	ufree(job->id);
-	job->id = NULL;
-    }
-    if (job->user) {
-	ufree(job->user);
-	job->user = NULL;
-    }
-    if (job->hashname) {
-	ufree(job->hashname);
-	job->hashname = NULL;
-    }
-    if (job->server) {
-	ufree(job->server);
-	job->server = NULL;
-    }
-    if (job->jobscript) {
-	ufree(job->jobscript);
-	job->jobscript = NULL;
-    }
-    if (job->cookie) {
-	ufree(job->cookie);
-	job->cookie = NULL;
-    }
-    if (job->pwbuf) ufree(job->pwbuf);
-    if (job->nodes) ufree(job->nodes);
+    ufree(job->id);
+    job->id = NULL;
+    ufree(job->user);
+    job->user = NULL;
+    ufree(job->hashname);
+    job->hashname = NULL;
+    ufree(job->server);
+    job->server = NULL;
+    ufree(job->jobscript);
+    job->jobscript = NULL;
+    ufree(job->cookie);
+    job->cookie = NULL;
+    ufree(job->pwbuf);
+    ufree(job->nodes);
 
     if (job->resDelegate) {
 	list_t *t;
@@ -693,8 +681,7 @@ Job_Conn_t *findJobConn(Job_t *job, Job_Conn_type_t type, ComHandle_t *com)
 
 void closeJobConn(Job_Conn_t *con)
 {
-    if (con->jobid) ufree(con->jobid);
-
+    ufree(con->jobid);
     list_del(&con->list);
     ufree(con);
 }
@@ -734,7 +721,7 @@ int findJobCookie(char *cookie, pid_t pid)
 	}
     }
 
-    if (line) ufree(line);
+    ufree(line);
     fclose(fd);
     if (found) return 1;
     return 0;
@@ -742,10 +729,8 @@ int findJobCookie(char *cookie, pid_t pid)
 
 int isJobIDinHistory(char *jobid)
 {
-    int i;
-
-    for (i=0; i<JOB_HISTORY_SIZE; i++) {
-	if (!(strncmp(jobid, jobHistory[i], JOB_HISTORY_ID_LEN))) return 1;
+    for (int i = 0; i < JOB_HISTORY_SIZE; i++) {
+	if (!strncmp(jobid, jobHistory[i], JOB_HISTORY_ID_LEN)) return 1;
     }
     return 0;
 }
@@ -753,13 +738,13 @@ int isJobIDinHistory(char *jobid)
 int hasRunningJobs(char *user)
 {
     /* search in normal jobs */
-    if ((findJobByUser(user, JOB_RUNNING))) {
+    if (findJobByUser(user, JOB_RUNNING)) {
 	//mlog("%s: user has running local job\n", __func__);
 	return 1;
     }
 
     /* search in remote jobs */
-    if ((findJobInfoByUser(user))) {
+    if (findJobInfoByUser(user)) {
 	//mlog("%s: user has running remote job\n", __func__);
 	return 1;
     }

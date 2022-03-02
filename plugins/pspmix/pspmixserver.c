@@ -461,11 +461,10 @@ static void dmodex_req_release_fn(void *cbdata)
 {
     assert(cbdata != NULL);
 
-    modexdata_t *mdata;
-    mdata = cbdata;
+    modexdata_t *mdata = cbdata;
 
     /* free data allocated by pspmix_service_handleModexDataResponse() */
-    if (mdata->data) ufree(mdata->data);
+    ufree(mdata->data);
 
     /* free struct allocated by server_dmodex_req_cb() */
     ufree(mdata);

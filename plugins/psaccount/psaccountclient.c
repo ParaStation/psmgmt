@@ -634,9 +634,8 @@ static void doDeleteClient(Client_t *client)
 {
     if (!client) return;
 
+    ufree(client->jobid);
     list_del(&client->next);
-
-    if (client->jobid) ufree(client->jobid);
     ufree(client);
 }
 

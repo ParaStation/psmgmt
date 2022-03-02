@@ -744,7 +744,6 @@ static void callbackPElogue(int exitStat, bool tmdOut, int iofd, void *info)
  */
 static void handlePELogueTimeout(int timerId, void *data)
 {
-    Job_t *job;
     char *jobid = data;
     const char *host;
     char *buf = NULL, tmp[100];
@@ -754,15 +753,14 @@ static void handlePELogueTimeout(int timerId, void *data)
     /* don't call myself again */
     Timer_remove(timerId);
 
-    if (!(job = findJobById(jobid))) {
+    Job_t *job = findJobById(jobid);
+    if (!job) {
 	mlog("%s: job '%s' not found\n", __func__, jobid);
 	ufree(jobid);
 	return;
     }
-    if (job->pelogueMonStr) {
-	ufree(job->pelogueMonStr);
-	job->pelogueMonStr = NULL;
-    }
+    ufree(job->pelogueMonStr);
+    job->pelogueMonStr = NULL;
 
     /* don't break job if it got re-queued */
     if (timerId != job->pelogueMonitorId) {
@@ -823,10 +821,8 @@ void removePELogueTimeout(Job_t *job)
 	job->pelogueMonitorId = -1;
     }
 
-    if (job->pelogueMonStr) {
-	ufree(job->pelogueMonStr);
-	job->pelogueMonStr = NULL;
-    }
+    ufree(job->pelogueMonStr);
+    job->pelogueMonStr = NULL;
 }
 
 void monitorPELogueTimeout(Job_t *job)
@@ -1010,7 +1006,7 @@ void handlePELogueStart(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *msgData)
 
 	sendFragMsg(&ans);
 
-	if (data->tmpDir) ufree(data->tmpDir);
+	ufree(data->tmpDir);
 	ufree(data->dirScripts);
 	ufree(data->jobid);
 	ufree(data->jobname);

@@ -299,15 +299,9 @@ static struct t_node *deleteTNode(PStask_ID_t key, struct t_node *leaf)
 	} else if (!leaf->right) {
 	    leaf = leaf->left;
 	}
-	if (tmpleaf->job->jobname) {
-	    free(tmpleaf->job->jobname);
-	}
-	if (tmpleaf->job->jobid) {
-	    free(tmpleaf->job->jobid);
-	}
-	if (tmpleaf->job->exec_hosts) {
-	    free(tmpleaf->job->exec_hosts);
-	}
+	free(tmpleaf->job->jobname);
+	free(tmpleaf->job->jobid);
+	free(tmpleaf->job->exec_hosts);
 	free(tmpleaf->job);
 	free(tmpleaf);
     }

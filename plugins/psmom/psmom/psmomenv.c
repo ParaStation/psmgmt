@@ -58,11 +58,12 @@ static Env_t *findEnvEntry(char *envStr)
 
 Env_t *addEnv(char *envStr)
 {
-    Env_t *env;
+    Env_t *env = findEnvEntry(envStr);
+
 
     /* use old entry */
-    if ((env = findEnvEntry(envStr))) {
-	if (env->var) ufree(env->var);
+    if (env) {
+	ufree(env->var);
 	if (!(env->var = ustrdup(envStr))) {
 	    mlog("%s: out of memory\n", __func__);
 	    exit(1);

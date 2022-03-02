@@ -74,16 +74,15 @@ Job_t *addJob(PStask_ID_t loggerTID)
 
 void deleteJob(PStask_ID_t loggerTID)
 {
-    Job_t *job = findJobByLogger(loggerTID);
-
     /* delete all children */
     deleteClientsByLogger(loggerTID);
 
-    if (job) {
-	list_del(&job->next);
-	if (job->jobid) ufree(job->jobid);
-	ufree(job);
-    }
+    Job_t *job = findJobByLogger(loggerTID);
+    if (!job) return;
+
+    ufree(job->jobid);
+    list_del(&job->next);
+    ufree(job);
 }
 
 void deleteJobsByJobscript(pid_t js)

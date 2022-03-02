@@ -240,22 +240,15 @@ Child_t *addChild(pid_t pid, PSMOM_child_types_t type, char *jobid)
 
 int deleteChild(pid_t pid)
 {
-    Child_t *child;
-
-    if ((child = findChild(pid)) == NULL) {
-	return 0;
-    }
+    Child_t *child = findChild(pid);
+    if (!child) return 0;
 
     /* remove child timeout monitor */
     if (child->childMonitorId != -1) {
 	Timer_remove(child->childMonitorId);
 	child->childMonitorId = -1;
     }
-
-    if (child->jobid) {
-	ufree(child->jobid);
-    }
-
+    ufree(child->jobid);
     list_del(&child->list);
     ufree(child);
     return 1;

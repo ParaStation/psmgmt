@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2002-2004 ParTec AG, Karlsruhe
  * Copyright (C) 2005-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021 ParTec AG, Munich
+ * Copyright (C) 2021-2022 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -174,11 +174,9 @@ static void delReservationList(list_t *list)
     list_t *r, *tmp;
     list_for_each_safe(r, tmp, list) {
 	PSrsrvtn_t *reservation = list_entry(r, PSrsrvtn_t, next);
+	free(reservation->slots);
+	reservation->slots = NULL;
 	list_del(&reservation->next);
-	if (reservation->slots) {
-	    free(reservation->slots);
-	    reservation->slots = NULL;
-	}
 	PSrsrvtn_put(reservation);
     }
 }

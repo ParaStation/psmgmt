@@ -111,7 +111,7 @@ static void setNetload(void)
 	allBytes += bytesRecv + bytesSend;
     }
     fclose(fp);
-    if (line) ufree(line);
+    ufree(line);
 
     snprintf(buffer, sizeof(buffer), "netload=%llu", allBytes);
     setEntry(&infoData.list, "netload", "", buffer);
@@ -217,7 +217,7 @@ static void setMemory(void)
 	}
     }
 
-    if (line) ufree(line);
+    ufree(line);
     fclose(fp);
 
     /* available mem = mem_free + swap_free */

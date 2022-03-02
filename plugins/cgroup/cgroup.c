@@ -288,10 +288,10 @@ void cleanup(void)
     }
     unregisterHooks(true);
     freeConfig(&config);
-    if (cgroupRoot) ufree(cgroupRoot);
-    if (cgroupName) ufree(cgroupName);
-    if (myCgroup) ufree(myCgroup);
-    if (tasksFile) ufree(tasksFile);
+    ufree(cgroupRoot);
+    ufree(cgroupName);
+    ufree(myCgroup);
+    ufree(tasksFile);
 
     cgroupRoot = cgroupName = myCgroup = tasksFile = NULL;
 }

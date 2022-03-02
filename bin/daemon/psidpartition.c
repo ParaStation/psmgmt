@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
  * Copyright (C) 2005-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021 ParTec AG, Munich
+ * Copyright (C) 2021-2022 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -1658,10 +1658,8 @@ static bool getPartition(PSpart_request_t *request)
 	goto error;
     }
 
-    if (request->nodes) {
-	free(request->nodes);
-	request->nodes = NULL;
-    }
+    free(request->nodes);
+    request->nodes = NULL;
 
     enqPart(&runReq, request);
     registerReq(request);
@@ -2562,7 +2560,7 @@ static bool msg_PROVIDEPARTRP(DDBufferMsg_t *inmsg)
  *
  * @param caller Name of the calling function for logging
  *
- * @return Return the total number of HW-threads released.
+ * @return Return the total number of HW-threads released
  */
 static int releaseThreads(PSpart_slot_t *slot, unsigned int nSlots,
 			  PStask_t *task, const char *caller)
@@ -3123,10 +3121,8 @@ static bool msg_CHILDRESREL(DDBufferMsg_t *msg)
 		    resDone = true;
 		    deqRes(&task->reservations, res);
 		    send_RESRELEASED(res);
-		    if (res->slots) {
-			free(res->slots);
-			res->slots = NULL;
-		    }
+		    free(res->slots);
+		    res->slots = NULL;
 		    PSrsrvtn_put(res);
 		}
 		break;
@@ -3727,10 +3723,8 @@ no_task_error:
 	PSP_putMsgBuf(&msg, "eno", &eno, sizeof(eno));
 
 	/* Reservation no longer used */
-	if (r->slots) {
-	    free(r->slots);
-	    r->slots = NULL;
-	}
+	free(r->slots);
+	r->slots = NULL;
 	PSrsrvtn_put(r);
     }
 
@@ -3972,10 +3966,8 @@ error:
 	PSP_putMsgBuf(&msg, "eno", &eno, sizeof(eno));
 
 	if (r) {
-	    if (r->slots) {
-		free(r->slots);
-		r->slots = NULL;
-	    }
+	    free(r->slots);
+	    r->slots = NULL;
 	    PSrsrvtn_put(r);
 	}
 

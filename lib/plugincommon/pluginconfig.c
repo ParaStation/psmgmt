@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2014-2020 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021 ParTec AG, Munich
+ * Copyright (C) 2021-2022 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -121,7 +121,7 @@ int parseConfigFile(char *filename, Config_t *conf, bool trimQuotes)
 	count++;
     }
 
-    if (linebuf) ufree(linebuf);
+    ufree(linebuf);
     fclose(fp);
 
     return count;
@@ -159,7 +159,7 @@ void addConfigEntry(Config_t *conf, char *key, char *value)
 
     if (obj) {
 	char *myVal = (value) ? ustrdup(value) : ustrdup("");
-	if (obj->value) ufree(obj->value);
+	ufree(obj->value);
 	obj->value = myVal;
     } else {
 	doAddConfigEntry(conf, key, value);
@@ -221,8 +221,10 @@ int verifyConfig(Config_t *conf, const ConfDef_t confDef[])
 
 static void delConfObj(ConfObj_t *obj)
 {
-    if (obj->key) ufree(obj->key);
-    if (obj->value) ufree(obj->value);
+    if (!obj) return;
+
+    ufree(obj->key);
+    ufree(obj->value);
     list_del(&obj->next);
     ufree(obj);
 }

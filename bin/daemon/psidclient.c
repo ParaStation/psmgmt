@@ -1185,9 +1185,7 @@ void PSIDclient_clearMem(void)
 	}
     }
 
-    if (clients) {
-	free(clients);
-	clients = NULL;
-    }
+    free(clients);
+    clients = NULL;
     maxClientFD = 0;
 }

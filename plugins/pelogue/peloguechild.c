@@ -394,14 +394,10 @@ void clearChildList(void)
 	}
 	deleteChild(child);
     }
-    if (rootHome) {
-	free(rootHome);
-	rootHome = NULL;
-    }
-    if (hostName) {
-	free(hostName);
-	hostName = NULL;
-    }
+    free(rootHome);
+    rootHome = NULL;
+    free(hostName);
+    hostName = NULL;
 }
 
 char *printChildStatistics(char *buf, size_t *bufSize)

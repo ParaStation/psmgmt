@@ -68,10 +68,9 @@ static void doDeleteJob(Job_t *job)
     /* make sure pelogue timeout monitoring is gone */
     cancelJobMonitor(job);
 
-    if (job->id) ufree(job->id);
-    if (job->plugin) ufree(job->plugin);
-    if (job->nodes) ufree(job->nodes);
-
+    ufree(job->id);
+    ufree(job->plugin);
+    ufree(job->nodes);
     list_del(&job->next);
     ufree(job);
 }

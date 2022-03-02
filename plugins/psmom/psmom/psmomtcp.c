@@ -90,12 +90,10 @@ int tcpDoSend(int sock, const char *caller)
 	     __func__, caller, sent, com->dataSize);
     }
 
-    if (com->outBuf) {
-	ufree(com->outBuf);
-	com->outBuf = NULL;
-	com->bufSize = 0;
-	com->dataSize = 0;
-    }
+    ufree(com->outBuf);
+    com->outBuf = NULL;
+    com->bufSize = 0;
+    com->dataSize = 0;
 
     return ret;
 }

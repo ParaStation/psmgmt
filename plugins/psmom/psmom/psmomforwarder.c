@@ -1688,7 +1688,7 @@ static int setOutputStreams(Job_t *job, char *outLog, size_t outLen,
 	snprintf(out, sizeof(out), "%s/%s.OU", spoolDir, job->hashname);
 	snprintf(error, sizeof(error), "%s/%s.ER", spoolDir, job->hashname);
     }
-    if (seq) ufree(seq);
+    ufree(seq);
 
     /* redirect/join stdout and error output */
     if (!(join_path = getJobDetail(&job->data, "Join_Path", NULL))) {

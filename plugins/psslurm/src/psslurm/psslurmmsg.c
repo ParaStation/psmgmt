@@ -210,10 +210,10 @@ void releaseSlurmMsg(Slurm_Msg_t *sMsg)
     if (!sMsg) return;
 
     if (sMsg->data) {
-	if (sMsg->data->buf) ufree(sMsg->data->buf);
+	ufree(sMsg->data->buf);
 	ufree(sMsg->data);
     }
-    if (sMsg->head.fwNodeList) ufree(sMsg->head.fwNodeList);
+    ufree(sMsg->head.fwNodeList);
 
     ufree(sMsg);
 }
