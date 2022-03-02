@@ -110,18 +110,17 @@ static PSpart_request_t *findPart(list_t *queue, PStask_ID_t tid)
  * @param part The partition to be removed from the queue
  *
  * @return If the partition was found within the queue and could be
- * removed, a pointer to it will be returned. Otherwise NULL will be
- * returned.
+ * removed, true will be returned; or false otherwise
  *
  * @see PSpart_newReq() enqPart()
  */
-static PSpart_request_t *deqPart(list_t *queue, PSpart_request_t *part)
+static bool deqPart(list_t *queue, PSpart_request_t *part)
 {
     PSpart_request_t *r;
 
     if (!part) {
 	PSID_log(-1, "%s: no request given\n", __func__);
-	return NULL;
+	return false;
     }
 
     PSID_log(PSID_LOG_PART, "%s(%p, %s)\n", __func__, queue,
@@ -132,17 +131,16 @@ static PSpart_request_t *deqPart(list_t *queue, PSpart_request_t *part)
     if (!r) {
 	PSID_log(PSID_LOG_PART, "%s: no request for %s found\n", __func__,
 		 PSC_printTID(part->tid));
-	return NULL;
+	return false;
     }
     if (r != part) {
 	PSID_log(PSID_LOG_PART, "%s: found duplicate of %s\n", __func__,
 		 PSC_printTID(part->tid));
-	return NULL;
+	return false;
     }
+    list_del(&r->next);
 
-    list_del_init(&r->next);
-
-    return r;
+    return true;
 }
 
 /**
@@ -157,14 +155,12 @@ static PSpart_request_t *deqPart(list_t *queue, PSpart_request_t *part)
  */
 static void clrPartQueue(list_t *queue)
 {
-    list_t *r, *tmp;
-
     PSID_log(PSID_LOG_PART, "%s(%p)\n", __func__, queue);
 
+    list_t *r, *tmp;
     list_for_each_safe(r, tmp, queue) {
 	PSpart_request_t *req = list_entry(r, PSpart_request_t, next);
-
-	list_del_init(&req->next);
+	list_del(&req->next);
 	PSpart_delReq(req);
     }
 }
@@ -251,7 +247,6 @@ void initPartHandler(void)
 
 void exitPartHandler(void)
 {
-    /* @todo Maybe we have to act asynchronously here, too */
     clrPartQueue(&pendReq);
     clrPartQueue(&runReq);
     clrPartQueue(&suspReq);
@@ -300,8 +295,6 @@ static inline int getFreeCPUs(PSnodes_ID_t node, PSCPU_set_t free, int tpp)
  */
 static void registerReq(PSpart_request_t *req)
 {
-    unsigned int i;
-
     PSID_log(PSID_LOG_PART, "%s(%s)", __func__, PSC_printTID(req->tid));
 
     if (!req->size || !req->slots) return;
@@ -312,7 +305,7 @@ static void registerReq(PSpart_request_t *req)
 	return;
     }
     PSID_log(PSID_LOG_PART, " size %d:", req->size);
-    for (i=0; i<req->size; i++) {
+    for (unsigned int i = 0; i < req->size; i++) {
 	PSnodes_ID_t node = req->slots[i].node;
 	PSCPU_set_t *CPUset = &req->slots[i].CPUset;
 
@@ -338,8 +331,6 @@ static void registerReq(PSpart_request_t *req)
  */
 static void unregisterReq(PSpart_request_t *req)
 {
-    unsigned int i;
-
     PSID_log(PSID_LOG_PART, "%s(%s)", __func__, PSC_printTID(req->tid));
 
     if (!req->size || !req->slots) return;
@@ -350,7 +341,7 @@ static void unregisterReq(PSpart_request_t *req)
 	return;
     }
     PSID_log(PSID_LOG_PART, " size %d:", req->size);
-    for (i=0; i<req->size; i++) {
+    for (unsigned int i = 0; i < req->size; i++) {
 	PSnodes_ID_t node = req->slots[i].node;
 	PSCPU_set_t *CPUset = &req->slots[i].CPUset;
 
@@ -2936,7 +2927,7 @@ static bool msg_GETNODES(DDBufferMsg_t *inmsg)
 }
 
 static void handleResRequests(PStask_t *task);
-static PSrsrvtn_t *deqRes(list_t *queue, PSrsrvtn_t *res);
+static bool deqRes(list_t *queue, PSrsrvtn_t *res);
 
 /**
  * @brief Distribute reservation information to nodes involved in partition
@@ -3431,27 +3422,26 @@ static PSrsrvtn_t *findRes(list_t *queue, PSrsrvtn_ID_t rid)
 }
 
 /**
- * @brief Dequeue reservation.
+ * @brief Dequeue reservation
  *
  * Remove the reservation @a res from the queue @a queue. The
  * reservation has to be created using @ref PSrsrvtn_get() and added
  * to the list of reservation via @ref enqRes().
  *
- * @param queue The queue the reservation shall be removed from.
+ * @param queue The queue the reservation shall be removed from
  *
- * @param res The reservation to be removed from the queue.
+ * @param res Reservation to be removed from the queue
  *
  * @return If the reservation was found within the queue and could be
- * removed, a pointer to it will be returned. Otherwise NULL will be
- * returned.
+ * removed, true will be returned; otherwise false will be returned
  *
  * @see PSrsrvtn_get() enqRes()
  */
-static PSrsrvtn_t *deqRes(list_t *queue, PSrsrvtn_t *res)
+static bool deqRes(list_t *queue, PSrsrvtn_t *res)
 {
     if (!res) {
 	PSID_log(-1, "%s: no reservation given\n", __func__);
-	return NULL;
+	return false;
     }
 
     PSID_log(PSID_LOG_PART, "%s(%p, %#x)\n", __func__, queue, res->rid);
@@ -3459,16 +3449,15 @@ static PSrsrvtn_t *deqRes(list_t *queue, PSrsrvtn_t *res)
     PSrsrvtn_t *r = findRes(queue, res->rid);
     if (!r) {
 	PSID_log(-1, "%s: reservation %#x not found\n", __func__, res->rid);
-	return NULL;
+	return false;
     }
     if (r != res) {
 	PSID_log(-1, "%s: found duplicate of %#x\n", __func__, res->rid);
-	return NULL;
+	return false;
     }
 
-    list_del_init(&r->next);
-
-    return r;
+    list_del(&r->next);
+    return true;
 }
 /* ---------------------------------------------------------------------- */
 
