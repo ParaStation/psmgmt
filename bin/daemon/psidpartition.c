@@ -2965,6 +2965,7 @@ static bool send_RESCREATED(PStask_t *task, PSrsrvtn_t *res)
 
     addInt32ToMsg(res->rid, &msg); // reservation ID
     addTaskIdToMsg(task->tid, &msg); // logger's task ID
+    addTaskIdToMsg(res->requester, &msg); // spawners's task ID
 
     /* compress information into message, optimized for pack nodes first */
     int32_t firstrank = res->firstRank;
