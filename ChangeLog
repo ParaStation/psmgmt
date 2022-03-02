@@ -1,3 +1,43 @@
+Version psmgmt-5.1.47-2:
+========================
+------------------------------------------------------------------------
+54ed226b | Michael Rauh | Tue, 1 Mar 2022 15:41:06 +0100
+
+Use Step_strID() to log error message
+------------------------------------------------------------------------
+6aa571f9 | Michael Rauh | Tue, 1 Mar 2022 15:40:01 +0100
+
+Add const qualifier to step argument of Step_strID()
+------------------------------------------------------------------------
+721c9d5e | Norbert Eicker | Thu, 24 Feb 2022 22:30:12 +0100
+
+Minor fixes
+------------------------------------------------------------------------
+6753f190 | Michael Rauh | Thu, 24 Feb 2022 15:24:19 +0100
+
+Free unpacked job nodelist in credentials struct
+------------------------------------------------------------------------
+70b83002 | Stephan Krempel | Thu, 24 Feb 2022 14:02:33 +0100
+
+psslurm: Fix core credential mapping to nodes
+
+Fix the extraction of the right part of the core map in case the
+beginning step node list does not match the start of the job node list.
+This always happened if a step is not assigned to the beginning of the
+allocation.
+
+Closes #61
+------------------------------------------------------------------------
+4d6d86d2 | Stephan Krempel | Thu, 24 Feb 2022 14:00:40 +0100
+
+psslurm: Store unpacked job nodelist in credentials struct
+------------------------------------------------------------------------
+3fa7abdf | Stephan Krempel | Tue, 22 Feb 2022 17:45:11 +0100
+
+pspmix: Fix forwarding of server TID to psid forwarders
+------------------------------------------------------------------------
+
+
 Version psmgmt-5.1.47-1:
 ========================
 ------------------------------------------------------------------------

@@ -6,6 +6,13 @@ Copyright (C) 2021-2022 ParTec AG, Munich
 Please send bug reports, questions and suggestions to <support@par-tec.com>
 
 
+Version 5.1.47-2:
+=================
+Bugfixes:
+ - Fix core credential mapping to nodes (#61)
+ - Fix forwarding of (ps)PMIx server TID to psid forwarders
+
+
 Version 5.1.47-1:
 =================
 Bugfixes:
