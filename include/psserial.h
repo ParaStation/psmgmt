@@ -471,6 +471,8 @@ bool getFromBuf(char **ptr, void *val, PS_DataType_t type,
 
 #define getNodeId(ptr, val) getInt16(ptr, val)
 
+#define getResId(ptr, val) getInt32(ptr, val)
+
 /**
  * @brief Read data from buffer
  *
@@ -712,6 +714,8 @@ bool addToBuf(const void *val, const uint32_t size, PS_SendDB_t *data,
 #define addTaskIdToMsg(val, data) addInt32ToMsg(val, data)
 
 #define addNodeIdToMsg(val, data) addInt16ToMsg(val, data)
+
+#define addResIdToMsg(val, data) addInt32ToMsg(val, data)
 
 #define addMemToMsg(mem, len, data)				\
     addToBuf(mem, len, data, PSDATA_MEM, __func__, __LINE__)
