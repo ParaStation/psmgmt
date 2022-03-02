@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2004 ParTec AG, Karlsruhe
  * Copyright (C) 2005-2019 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021 ParTec AG, Munich
+ * Copyright (C) 2021-2022 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -70,17 +70,17 @@ void PSpart_reinitReq(PSpart_request_t* request)
     PSpart_initReq(request);
 }
 
-int PSpart_delReq(PSpart_request_t* request)
+bool PSpart_delReq(PSpart_request_t* request)
 {
     if (!request) {
 	PSC_log(-1, "%s: request is NULL\n", __func__);
-	return 0;
+	return false;
     }
 
     PSpart_reinitReq(request);
     free(request);
 
-    return 1;
+    return true;
 }
 
 void PSpart_snprintf(char* txt, size_t size, PSpart_request_t* request)

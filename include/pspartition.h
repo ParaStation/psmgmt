@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
  * Copyright (C) 2005-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021 ParTec AG, Munich
+ * Copyright (C) 2021-2022 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -117,60 +117,60 @@ typedef struct {
 } PSpart_request_t;
 
 /**
- * @brief Create a new partition request structure.
+ * @brief Create a new partition request structure
  *
  * A new partition request structure is created and initialized via
  * @ref PSpart_initReq(). It may be removed with @ref PSpart_delReq().
- * The memory needed in order to store the request is allocated via
+ * The memory required in order to store the request is allocated via
  * malloc().
  *
  * @return On success, a pointer to the newly created partition request
- * structure is returned, or NULL otherwise.
+ * structure is returned; or NULL otherwise
  *
  * @see PSpart_initReq(), PSpart_delReq()
  */
 PSpart_request_t *PSpart_newReq(void);
 
 /**
- * @brief Initialize a partition request structure.
+ * @brief Initialize a partition request structure
  *
  * Initialize the partition request structure @a request, i.e. set all
  * member to default values.
  *
  * @param request Pointer to the partition request structure to be
- * initialized.
+ * initialized
  *
  * @return No return value.
  */
 void PSpart_initReq(PSpart_request_t *request);
 
 /**
- * @brief Reinitialize a partition request structure.
+ * @brief Reinitialize a partition request structure
  *
  * Reinitialize the partition request structure @a request that was
- * previously used. All allocated strings and signal-lists shall be
- * removed, all links are reset to NULL.
+ * previously used. All allocated memory is removed, all pointers are
+ * reset to NULL, etc.
  *
  * @param request Pointer to the partition request structure to be
- * reinitialized.
+ * reinitialized
  *
- * @return No return value.
+ * @return No return value
  */
 void PSpart_reinitReq(PSpart_request_t *request);
 
 /**
- * @brief Delete a partition request structure.
+ * @brief Delete a partition request structure
  *
  * Delete the partition request structure @a request created via @ref
  * PSpart_newReq(). First the partition request is cleaned up by @ref
- * PSpart_reinitReq(), i.e. all allocated strings and signal-lists are
- * removed. Afterward the partition request itself is removed.
+ * PSpart_reinitReq(), i.e. all allocated memory is removed. Afterward
+ * the partition request itself is removed.
  *
- * @param request Pointer to the partition request structure to be deleted.
+ * @param request Pointer to the partition request structure to be deleted
  *
- * @return On success, 1 is returned, or 0 otherwise.
+ * @return On success, true is returned, or false otherwise
  */
-int PSpart_delReq(PSpart_request_t *request);
+bool PSpart_delReq(PSpart_request_t *request);
 
 /**
  * @brief Encode a partition request structure.
