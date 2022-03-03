@@ -676,21 +676,21 @@ static void parseSlurmdParam(char *param)
 static void parseSlurmAccFeq(char *param)
 {
     char *toksave, *next;
-    const char delimiters[] =" \t\n";
+    const char delimiters[] =" \t\n,";
 
     next = strtok_r(param, delimiters, &toksave);
     while (next) {
-	if (!strcasecmp(next, "network")) {
+	if (!strncasecmp(next, "network=", 8)) {
 	    addConfigEntry(&Config, "SLURM_ACC_NETWORK", next+8);
 	}
-	if (!strcasecmp(next, "task")) {
+	if (!strncasecmp(next, "task=", 5)) {
 	    addConfigEntry(&Config, "SLURM_ACC_TASK", next+5);
 	}
-	if (!strcasecmp(next, "energy")) {
+	if (!strncasecmp(next, "energy=", 7)) {
 	    addConfigEntry(&Config, "SLURM_ACC_ENERGY", next+7);
 	}
-	if (!strcasecmp(next, "filesystem")) {
-	    addConfigEntry(&Config, "SLURM_ACC_FILESYSTEM", next+10);
+	if (!strncasecmp(next, "filesystem=", 11)) {
+	    addConfigEntry(&Config, "SLURM_ACC_FILESYSTEM", next+11);
 	}
 	next = strtok_r(NULL, delimiters, &toksave);
     }

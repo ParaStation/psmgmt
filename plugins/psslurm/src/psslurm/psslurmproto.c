@@ -2585,11 +2585,11 @@ static void handleRespNodeReg(Slurm_Msg_t *sMsg)
     /* don't free the data after this function */
     sMsg->unpData = NULL;
 
-    for (uint32_t i = 0; i < tresDBconfig->count; i++) {
-	fdbg(PSSLURM_LOG_ACC, "alloc %zu count %lu id %u name %s type: %s\n",
-	     tresDBconfig->entry[i].allocSec, tresDBconfig->entry[i].count,
-	     tresDBconfig->entry[i].id, tresDBconfig->entry[i].name,
-	     tresDBconfig->entry[i].type);
+    for (uint32_t i=0; i<tresDBconfig->count; i++) {
+	fdbg(PSSLURM_LOG_ACC, "TRes(%u) alloc %zu count %lu id %u name %s "
+	     "type: %s\n", i, tresDBconfig->entry[i].allocSec,
+	     tresDBconfig->entry[i].count, tresDBconfig->entry[i].id,
+	     tresDBconfig->entry[i].name, tresDBconfig->entry[i].type);
     }
 
     char *val = getConfValueC(&SlurmConfig, "AcctGatherInterconnectType");

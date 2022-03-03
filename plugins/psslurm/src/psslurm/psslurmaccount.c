@@ -242,7 +242,7 @@ void TRes_destroy(TRes_t *tres)
     ufree(tres);
 }
 
-void Acc_Init(void)
+bool Acc_Init(void)
 {
     /* save default account poll time */
     if ((confAccPollTime = psAccountGetPoll(PSACCOUNT_OPT_MAIN)) <= 0) {
@@ -251,7 +251,9 @@ void Acc_Init(void)
 
     /* we want to have periodic updates on used resources */
     if (!psAccountGetPoll(PSACCOUNT_OPT_MAIN)) {
-	psAccountSetPoll(PSACCOUNT_OPT_MAIN, POLL_TIME);
+	fdbg(PSSLURM_LOG_ACC, "set main account interval to %i\n",
+	     confAccPollTime);
+	psAccountSetPoll(PSACCOUNT_OPT_MAIN, confAccPollTime);
     }
 
     /* set collect mode in psaccount */
@@ -262,6 +264,14 @@ void Acc_Init(void)
     if (poll > 0) {
 	oldEnergyPollTime = psAccountGetPoll(PSACCOUNT_OPT_ENERGY);
 	psAccountSetPoll(PSACCOUNT_OPT_ENERGY, poll);
+	bool ret = psAccountCtlScript(PSACCOUNT_SCRIPT_START,
+				      PSACCOUNT_OPT_ENERGY);
+
+	if (!ret) {
+	    flog("failed to start energy monitor script\n");
+	    return false;
+	}
+	fdbg(PSSLURM_LOG_ACC, "start energy script interval %i\n", poll);
     }
 
     /* enable file-system polling */
@@ -269,6 +279,12 @@ void Acc_Init(void)
     if (poll > 0) {
 	oldFilesystemPollTime = psAccountGetPoll(PSACCOUNT_OPT_FS);
 	psAccountSetPoll(PSACCOUNT_OPT_FS, poll);
+	bool ret = psAccountCtlScript(PSACCOUNT_SCRIPT_START, PSACCOUNT_OPT_FS);
+	if (!ret) {
+	    flog("failed to start filesystem monitor script\n");
+	    return false;
+	}
+	fdbg(PSSLURM_LOG_ACC, "start filesystem script interval %i\n", poll);
     }
 
     /* enable interconnect polling */
@@ -276,7 +292,16 @@ void Acc_Init(void)
     if (poll > 0) {
 	oldInterconnectPollTime = psAccountGetPoll(PSACCOUNT_OPT_IC);
 	psAccountSetPoll(PSACCOUNT_OPT_IC, poll);
+	bool ret = psAccountCtlScript(PSACCOUNT_SCRIPT_START, PSACCOUNT_OPT_IC);
+	if (!ret) {
+	    flog("failed to start interconnect monitor script\n");
+	    return false;
+	}
+	fdbg(PSSLURM_LOG_ACC, "start interconnect script interval %i\n", poll);
     }
+
+    fdbg(PSSLURM_LOG_ACC, "psslurm account facility initialize success\n");
+    return true;
 }
 
 int Acc_getPoll(void)
@@ -302,4 +327,6 @@ void Acc_Finalize(void)
     if (poll > 0) {
 	psAccountSetPoll(PSACCOUNT_OPT_IC, oldInterconnectPollTime);
     }
+
+    fdbg(PSSLURM_LOG_ACC, "psslurm account facility finalized success\n");
 }

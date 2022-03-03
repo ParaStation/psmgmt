@@ -123,8 +123,10 @@ uint32_t TRes_getID(const char *type, const char *name);
 
 /**
  * @brief Initialize the accounting facility
+ *
+ * @returns Returns true on success otherwise false is returned
  */
-void Acc_Init(void);
+bool Acc_Init(void);
 
 /**
  * @brief Get the main accounting interval

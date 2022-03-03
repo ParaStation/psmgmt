@@ -332,6 +332,12 @@ static bool regPsAccountHandles(void)
 	return false;
     }
 
+    psAccountCtlScript = dlsym(pluginHandle, "psAccountCtlScript");
+    if (!psAccountCtlScript) {
+	mlog("%s: loading psAccountCtlScript() failed\n", __func__);
+	return false;
+    }
+
     return true;
 }
 
@@ -697,6 +703,9 @@ bool finalizeInit(void)
     /* initialize pinning defaults */
     if (!initPinning()) return false;
 
+    /* initialize accounting facility */
+    if (!Acc_Init()) return false;
+
     /* start health-check script */
     char *script = getConfValueC(&SlurmConfig, "HealthCheckProgram");
     bool run = getConfValueI(&Config, "SLURM_HC_STARTUP");
@@ -757,8 +766,6 @@ int initialize(FILE *logfile)
     enableFPEexceptions();
 
     if (!initEnvFilter()) goto INIT_ERROR;
-
-    Acc_Init();
 
     psPelogueAddPluginConfig("psslurm", &Config);
 
