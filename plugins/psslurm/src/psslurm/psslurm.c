@@ -774,6 +774,8 @@ int initialize(FILE *logfile)
 	if (needConfUpdate(confDir)) {
 	    /* wait for config response from slurmctld */
 	    if (!requestConfig()) goto INIT_ERROR;
+	    /* make it possible to unload psslurm if config parsing fails */
+	    isInit = true;
 	    return 0;
 	}
 
