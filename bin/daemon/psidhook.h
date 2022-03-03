@@ -85,14 +85,16 @@ typedef enum {
     PSIDHOOK_MASTER_EXITPART, /**< The local node is discharged from the
 				burden of acting as a master, so all relevant
 				resources should be freed. No argument. */
-    PSIDHOOK_LOCALJOBCREATED, /**< After creating a new local job triggered by
-				receiving a message of type PSP_DD_RESCREATED,
+    PSIDHOOK_LOCALSESSIONCREATED,
+                              /**< After creating a new local session triggered
+			        by receiving a message of type PSP_DD_RESCREATED,
 				thus informing us about being involved in a new
 				reservation.
 				The argument is the job already containing the
 				new reservation information.
 				The return value of the hook is ignored. */
-    PSIDHOOK_LOCALJOBREMOVED, /**< Right before a local job gets removed due
+    PSIDHOOK_LOCALSESSIONREMOVED,
+			      /**< Right before a local session gets removed due
 				to its last reservation is removed triggered by
 				receiving a message of type PSP_DD_RESRELEASED.
 				The argument is the job with no reservation

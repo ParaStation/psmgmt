@@ -43,28 +43,28 @@ typedef struct {
 /** Set of reservation infos: Reservations involving this node requested
  *  together by the same spawner */
 typedef struct {
-    list_t next;             /**< used to put into PSjob_t.resSets */
+    list_t next;             /**< used to put into PSsession_t.resSets */
     PStask_ID_t spawner;     /**< spawner's tid, unique set identifier */
     list_t resInfos;         /**< reservations in this set (PSresinfo_t) */
 } PSresset_t;
 
-/** Job running on this node */
+/** Session running on this node */
 typedef struct {
-    list_t next;             /**< used to put into localJobs */
+    list_t next;             /**< used to put into localSessions */
     PStask_ID_t logger;      /**< logger's tid, unique job identifier */
     list_t resSets;          /**< sets of reservations (PSspawnblock_t) */
-} PSjob_t;
+} PSsession_t;
 
 /**
- * @brief Find local job by logger TID
+ * @brief Find local session by logger TID
  *
- * Find information on a local job by its logger's task ID @a logger.
+ * Find information on a local session by its logger's task ID @a logger.
  *
  * @param loggerTID Task ID of the logger identifying the job
  *
  * @return Return pointer to the job information or NULL if no job was found
  */
-PSjob_t* PSID_findJobByLoggerTID(PStask_ID_t loggerTID);
+PSsession_t* PSID_findSessionByLoggerTID(PStask_ID_t loggerTID);
 
 /**
  * @brief Cleanup task waiting to be spawned by node

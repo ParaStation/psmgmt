@@ -2298,14 +2298,14 @@ static bool msg_SPAWNLOC(DDBufferMsg_t *msg)
 }
 
 /** The list of reservations this node is part of. */
-static LIST_HEAD(localJobs);
+static LIST_HEAD(localSessions);
 
-PSjob_t* PSID_findJobByLoggerTID(PStask_ID_t loggerTID)
+PSsession_t* PSID_findSessionByLoggerTID(PStask_ID_t loggerTID)
 {
     list_t *j;
-    list_for_each(j, &localJobs) {
-	PSjob_t *job = list_entry(j, PSjob_t, next);
-	if (job->logger == loggerTID) return job;
+    list_for_each(j, &localSessions) {
+	PSsession_t *session = list_entry(j, PSsession_t, next);
+	if (session->logger == loggerTID) return session;
     }
     return NULL;
 }
@@ -2342,17 +2342,17 @@ static bool addReservationToSet(PSresset_t *resSet, PSresinfo_t *res)
 }
 
 /**
- * @brief Find reservation set in job by spawner
+ * @brief Find reservation set in session by spawner
  *
- * @param job          job to look into
+ * @param session      session to look into
  * @param spawnerTID   thread ID of the spawner to find reservations for
  *
  * @return Returns the reservation set or NULL if none found
  */
-PSresset_t* findResSetInJob(PSjob_t *job, PStask_ID_t spawnerTID)
+PSresset_t* findResSetInSession(PSsession_t *session, PStask_ID_t spawnerTID)
 {
     list_t *s;
-    list_for_each(s, &job->resSets) {
+    list_for_each(s, &session->resSets) {
 	PSresset_t *resSet = list_entry(s, PSresset_t, next);
 	if (resSet->spawner == spawnerTID) return resSet;
     }
@@ -2429,31 +2429,31 @@ static void handleResCreated(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
 
     res->nEntries = nentries;
 
-    /* find existing job */
-    bool jobCreated = false;
+    /* find existing session */
+    bool sessionCreated = false;
 
-    /* try to find corresponding job */
-    PSjob_t *job = PSID_findJobByLoggerTID(loggerTID);
+    /* try to find corresponding session */
+    PSsession_t *session = PSID_findSessionByLoggerTID(loggerTID);
 
-    if (!job) {
-	/* create new job */
-	job = malloc(sizeof(*job));
-	if (!job) {
+    if (!session) {
+	/* create new session */
+	session = malloc(sizeof(*session));
+	if (!session) {
 	    free(res->entries);
 	    free(res);
-	    PSID_log(-1, "%s: No memory for job.\n", __func__);
+	    PSID_log(-1, "%s: No memory for session.\n", __func__);
 	    return;
 	}
-	job->logger = loggerTID;
-	INIT_LIST_HEAD(&job->resSets);
-	list_add_tail(&job->next, &localJobs);
-	jobCreated = true;
-	PSID_log(PSID_LOG_SPAWN, "%s: Job created for logger %s\n",
+	session->logger = loggerTID;
+	INIT_LIST_HEAD(&session->resSets);
+	list_add_tail(&session->next, &localSessions);
+	sessionCreated = true;
+	PSID_log(PSID_LOG_SPAWN, "%s: Session created for logger %s\n",
 		 __func__, PSC_printTID(loggerTID));
     }
 
     /* try to find existing reservation set */
-    PSresset_t *resSet = findResSetInJob(job, spawnerTID);
+    PSresset_t *resSet = findResSetInSession(session, spawnerTID);
 
     if (!resSet) {
         /* create new set */
@@ -2461,13 +2461,13 @@ static void handleResCreated(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
 	if (!resSet) {
 	    free(res->entries);
 	    free(res);
-	    if (jobCreated) free(job);
+	    if (sessionCreated) free(session);
 	    PSID_log(-1, "%s: No memory for reservation set.\n", __func__);
 	    return;
 	}
         resSet->spawner = spawnerTID;
         INIT_LIST_HEAD(&resSet->resInfos);
-        list_add_tail(&resSet->next, &job->resSets);
+        list_add_tail(&resSet->next, &session->resSets);
 	PSID_log(PSID_LOG_SPAWN, "%s: Reservation set created for spawner %s",
 		 __func__, PSC_printTID(spawnerTID));
 	PSID_log(PSID_LOG_SPAWN, "in job with loggertid %s\n",
@@ -2488,9 +2488,9 @@ static void handleResCreated(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
 	PSID_log(PSID_LOG_SPAWN, " logger %s)\n", PSC_printTID(loggerTID));
     }
 
-    if (jobCreated) {
+    if (sessionCreated) {
 	/* Give plugins the option to react on job creation */
-	PSIDhook_call(PSIDHOOK_LOCALJOBCREATED, job);
+	PSIDhook_call(PSIDHOOK_LOCALSESSIONCREATED, session);
     }
 }
 
@@ -2561,9 +2561,9 @@ static bool msg_RESRELEASED(DDBufferMsg_t *msg)
     PSP_getMsgBuf(msg, &used, "logger TID", &logTID, sizeof(logTID));
 
     /* try to find corresponding job */
-    PSjob_t *job = PSID_findJobByLoggerTID(logTID);
-    if (!job) {
-	PSID_log(-1, "%s: No job with loggertid %s expected to hold resID %d"
+    PSsession_t *session = PSID_findSessionByLoggerTID(logTID);
+    if (!session) {
+	PSID_log(-1, "%s: No session with logger %s expected to hold resID %d"
 		 " to be released\n", __func__, PSC_printTID(logTID), resID);
 	return true;
     }
@@ -2571,7 +2571,7 @@ static bool msg_RESRELEASED(DDBufferMsg_t *msg)
     /* try to find reservation within the job and delete it */
     bool found = false;
     list_t *s, *r;
-    list_for_each(s, &job->resSets) {
+    list_for_each(s, &session->resSets) {
 	PSresset_t *resSet = list_entry(s, PSresset_t, next);
 	list_for_each(r, &resSet->resInfos) {
 	    PSresinfo_t *res = list_entry(r, PSresinfo_t, next);
@@ -2594,12 +2594,12 @@ static bool msg_RESRELEASED(DDBufferMsg_t *msg)
     }
     if (found) {
 	/* if there are no reservation sets left in the job, delete it */
-	if (list_empty(&job->resSets)) {
+	if (list_empty(&session->resSets)) {
 	    /* Give plugins the option to react on job removal */
-	    PSIDhook_call(PSIDHOOK_LOCALJOBREMOVED, job);
+	    PSIDhook_call(PSIDHOOK_LOCALSESSIONREMOVED, session);
 
-	    list_del(&job->next);
-	    free(job);
+	    list_del(&session->next);
+	    free(session);
 	}
     } else {
 	PSID_log(-1, "%s: No reservation with ID %d in job with logger %s\n",
