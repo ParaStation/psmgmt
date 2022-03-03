@@ -43,16 +43,16 @@ typedef struct {
 /** Set of reservation infos: Reservations involving this node requested
  *  together by the same spawner */
 typedef struct {
-    list_t next;             /**< used to put into PSsession_t.resSets */
+    list_t next;             /**< used to put into PSsession_t.jobs */
     PStask_ID_t spawner;     /**< spawner's tid, unique set identifier */
     list_t resInfos;         /**< reservations in this set (PSresinfo_t) */
-} PSresset_t;
+} PSjob_t;
 
 /** Session running on this node */
 typedef struct {
     list_t next;             /**< used to put into localSessions */
     PStask_ID_t logger;      /**< logger's tid, unique job identifier */
-    list_t resSets;          /**< sets of reservations (PSspawnblock_t) */
+    list_t jobs;             /**< jobs in the session (PSjob_t) */
 } PSsession_t;
 
 /**
