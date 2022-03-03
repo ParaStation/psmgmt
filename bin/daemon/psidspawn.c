@@ -1112,7 +1112,7 @@ static void sendAcctChild(PStask_t *task)
 	    .type = PSP_CD_ACCOUNT,
 	    .dest =  PSC_getMyTID(),
 	    .sender = task->tid,
-	    .len = offsetof(DDTypedBufferMsg_t, buf) },
+	    .len = 0 },
 	.type = PSP_ACCOUNT_CHILD };
 
     /* logger's TID identifies a task uniquely */
@@ -1281,13 +1281,8 @@ static void sendAcctStart(PStask_ID_t sender, PStask_t *task)
 	    .type = PSP_CD_ACCOUNT,
 	    .dest =  PSC_getMyTID(),
 	    .sender = sender,
-	    .len = offsetof(DDTypedBufferMsg_t, buf) },
+	    .len = 0 },
 	.type = PSP_ACCOUNT_START };
-    PSCPU_set_t setBuf;
-    unsigned short maxCPUs = 0;
-    int32_t slotsChunk, slot, num = task->totalThreads;
-    uint16_t nBytes;
-    int pSize = task->partitionSize;
 
     /* logger's TID, this identifies a task uniquely */
     PSP_putTypedMsgBuf(&msg, "loggertid", &task->loggertid,
@@ -1295,11 +1290,14 @@ static void sendAcctStart(PStask_ID_t sender, PStask_t *task)
     PSP_putTypedMsgBuf(&msg, "rank", &task->rank, sizeof(task->rank));
     PSP_putTypedMsgBuf(&msg, "uid", &task->uid, sizeof(task->uid));
     PSP_putTypedMsgBuf(&msg, "gid", &task->gid, sizeof(task->gid));
+    int32_t num = task->totalThreads;
     PSP_putTypedMsgBuf(&msg, "num", &num, sizeof(num));
 
     sendMsg((DDMsg_t *)&msg);
 
-    for (slot = 0; slot < pSize; slot++) {
+    unsigned short maxCPUs = 0;
+    int pSize = task->partitionSize;
+    for (int32_t slot = 0; slot < pSize; slot++) {
 	unsigned short cpus = PSIDnodes_getNumThrds(task->partition[slot].node);
 	if (cpus > maxCPUs) maxCPUs = cpus;
     }
@@ -1310,17 +1308,17 @@ static void sendAcctStart(PStask_ID_t sender, PStask_t *task)
 
     msg.type = PSP_ACCOUNT_SLOTS;
 
-    nBytes = PSCPU_bytesForCPUs(maxCPUs);
-    slotsChunk = 1024 / (sizeof(PSnodes_ID_t) + nBytes);
+    uint16_t nBytes = PSCPU_bytesForCPUs(maxCPUs);
+    int32_t slotsChunk = 1024 / (sizeof(PSnodes_ID_t) + nBytes);
 
-    for (slot = 0; slot < pSize; slot++) {
+    for (int32_t slot = 0; slot < pSize; slot++) {
 	if (! (slot%slotsChunk)) {
 	    uint16_t chunk =
 		(pSize-slot < slotsChunk) ? pSize-slot : slotsChunk;
 
 	    if (slot) sendMsg((DDMsg_t *)&msg);
 
-	    msg.header.len = sizeof(msg.header) + sizeof(msg.type);
+	    msg.header.len = 0;
 
 	    PSP_putTypedMsgBuf(&msg, "loggertid", &task->loggertid,
 			       sizeof(task->loggertid));
@@ -1332,6 +1330,7 @@ static void sendAcctStart(PStask_ID_t sender, PStask_t *task)
 	PSP_putTypedMsgBuf(&msg, "node", &task->partition[slot].node,
 			   sizeof(task->partition[slot].node));
 
+	PSCPU_set_t setBuf;
 	PSCPU_extract(setBuf, task->partition[slot].CPUset, nBytes);
 	PSP_putTypedMsgBuf(&msg, "CPUset", setBuf, nBytes);
     }
@@ -1507,13 +1506,13 @@ static void sendCHILDRESREL(PStask_ID_t logger, PSCPU_set_t set,
 	    .type = PSP_DD_CHILDRESREL,
 	    .dest = logger,
 	    .sender = sender,
-	    .len = offsetof(DDBufferMsg_t, buf) },
+	    .len = 0 },
 	.buf = { 0 } };
-    PSCPU_set_t setBuf;
-    uint16_t nBytes = PSCPU_bytesForCPUs(PSIDnodes_getNumThrds(PSC_getMyID()));
 
+    uint16_t nBytes = PSCPU_bytesForCPUs(PSIDnodes_getNumThrds(PSC_getMyID()));
     PSP_putMsgBuf(&resRelMsg, "nBytes", &nBytes, sizeof(nBytes));
 
+    PSCPU_set_t setBuf;
     PSCPU_extract(setBuf, set, nBytes);
     PSP_putMsgBuf(&resRelMsg, "CPUset", setBuf, nBytes);
 
@@ -1522,8 +1521,7 @@ static void sendCHILDRESREL(PStask_ID_t logger, PSCPU_set_t set,
     PSID_log(PSID_LOG_PART, " from %s\n", PSC_printTID(sender));
 
     if (sendMsg(&resRelMsg) < 0) {
-	PSID_warn(-1, errno, "%s: send PSP_DD_CHILDRESREL to node %d failed",
-		  __func__, PSC_getID(resRelMsg.header.dest));
+	PSID_warn(-1, errno, "%s: sendMsg(%s)", __func__, PSC_printTID(logger));
     }
 }
 
@@ -1734,17 +1732,16 @@ static bool msg_SPAWNREQ(DDTypedBufferMsg_t *msg)
 		    .type = PSP_CD_SPAWNREQ,
 		    .dest = msg->header.dest,
 		    .sender = msg->header.sender,
-		    .len = offsetof(DDTypedBufferMsg_t, buf) },
+		    .len = 0 },
 		.type = PSP_SPAWN_LOC };
 	    PSCPU_set_t *rankSet = &ptask->spawnNodes[rank].CPUset;
 	    PSnodes_ID_t destID = PSC_getID(locMsg.header.dest);
 
-	    PSCPU_set_t setBuf;
 	    short numCPUs = PSIDnodes_getNumThrds(destID);
 	    uint16_t nBytes = PSCPU_bytesForCPUs(numCPUs);
-
 	    PSP_putTypedMsgBuf(&locMsg, "nBytes", &nBytes, sizeof(nBytes));
 
+	    PSCPU_set_t setBuf;
 	    PSCPU_extract(setBuf, *rankSet, nBytes);
 	    PSP_putTypedMsgBuf(&locMsg, "CPUset", setBuf, nBytes);
 
@@ -1974,10 +1971,9 @@ static bool send_SPAWNLOC(uint32_t num, int32_t rank, PStask_ID_t sender,
 	    .type = PSP_DD_SPAWNLOC,
 	    .sender = sender,
 	    .dest = dest,
-	    .len = offsetof(DDBufferMsg_t, buf) },
+	    .len = 0 },
 	.buf = { 0 } };
     PSnodes_ID_t destID = PSC_getID(dest);
-    uint32_t i;
 
     PSID_log(PSID_LOG_SPAWN, "%s: send PSP_DD_SPAWNLOC to node %d\n", __func__,
 	     destID);
@@ -1989,7 +1985,7 @@ static bool send_SPAWNLOC(uint32_t num, int32_t rank, PStask_ID_t sender,
     PSP_putMsgBuf(&locMsg, "rank", &rank, sizeof(rank));
     PSP_putMsgBuf(&locMsg, "nBytes", &nBytes, sizeof(nBytes));
 
-    for (i = 0; i < num; i++) {
+    for (uint32_t i = 0; i < num; i++) {
 	PSCPU_set_t setBuf;
 
 	memset(&setBuf, 0, sizeof(setBuf));
@@ -2008,7 +2004,7 @@ static bool send_SPAWNLOC(uint32_t num, int32_t rank, PStask_ID_t sender,
 
 	    PSID_log(PSID_LOG_SPAWN, "%s: next msg...\n", __func__);
 
-	    locMsg.header.len = offsetof(DDBufferMsg_t, buf);
+	    locMsg.header.len = 0;
 	    PSP_putMsgBuf(&locMsg, "num", &num, sizeof(num));
 	    PSP_putMsgBuf(&locMsg, "rank", &myR, sizeof(myR));
 	    PSP_putMsgBuf(&locMsg, "nBytes", &nBytes, sizeof(nBytes));
