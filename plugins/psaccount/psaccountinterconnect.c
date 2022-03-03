@@ -40,6 +40,9 @@ static Collect_Script_t *iScript = NULL;
 /** interconnect state data */
 static psAccountIC_t icData, icBase;
 
+/** script poll interval in seconds */
+static int pollTime = 0;
+
 static void parseInterconn(char *data)
 {
     static bool isInit = false;
@@ -79,7 +82,23 @@ psAccountIC_t *IC_getData(void)
     return &icData;
 }
 
-bool IC_Init(void)
+bool IC_startScript(void)
+{
+    if (iScript) return true;
+
+    if (pollTime < 1) pollTime = 30;
+    char *interScript = getConfValueC(&config, "INTERCONNECT_SCRIPT");
+
+    iScript = Script_start("interconn", interScript, parseInterconn, pollTime);
+    if (!iScript) {
+	flog("failed to start interconnect script, cannot continue\n");
+	return false;
+    }
+
+    return true;
+}
+
+bool IC_init(void)
 {
     memset(&icData, 0, sizeof(icData));
 
@@ -96,30 +115,28 @@ bool IC_Init(void)
 	    /* interconnect polling is disabled */
 	    return true;
 	}
+	pollTime = poll;
 
-	iScript = Script_start("interconn", interScript, parseInterconn, poll);
-	if (!iScript) {
-	    flog("invalid interconnect script, cannot continue\n");
-	    return false;
-	}
+	return IC_startScript();
     }
 
     return true;
 }
 
-void IC_Finalize(void)
+void IC_finalize(void)
 {
     if (iScript) Script_finalize(iScript);
+    iScript = NULL;
 }
 
 bool IC_setPoll(uint32_t poll)
 {
+    pollTime = poll;
     if (iScript) return Script_setPollTime(iScript, poll);
-    return false;
+    return true;
 }
 
 uint32_t IC_getPoll(void)
 {
-    if (iScript) return iScript->poll;
-    return 0;
+    return pollTime;
 }

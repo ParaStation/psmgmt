@@ -16,12 +16,12 @@
  *
  * @return Returns true on success or false otherwise
  */
-bool FS_Init(void);
+bool FS_init(void);
 
 /**
  * @brief Finalize filesystem monitoring
  */
-void FS_Finalize(void);
+void FS_finalize(void);
 
 /**
  * @brief Get current filesystem data
@@ -45,5 +45,12 @@ bool FS_setPoll(uint32_t poll);
  * @param Returns the current poll time in seconds
  */
 uint32_t FS_getPoll(void);
+
+/**
+ * @brief Start the filesystem monitor script
+ *
+ * @return Returns true on success otherwise false is returned
+ */
+bool FS_startScript(void);
 
 #endif  /* __PS_ACCOUNT_FILESYSTEM */

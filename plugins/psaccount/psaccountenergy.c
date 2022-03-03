@@ -35,12 +35,17 @@
 
 #define NO_VAL64   (0xfffffffffffffffe)
 
+/** power unit multiplier */
 static float powerMult = 0;
 
+/** energy state data */
 static psAccountEnergy_t eData;
 
 /** energy monitor script */
 static Collect_Script_t *eScript = NULL;
+
+/** script poll interval in seconds */
+static int pollTime = 0;
 
 static uint64_t readEnergyFile(char *path)
 {
@@ -126,6 +131,22 @@ static bool initPowerUnit(void)
     return true;
 }
 
+bool Energy_startScript(void)
+{
+    if (eScript) return true;
+
+    if (pollTime < 1) pollTime = 30;
+
+    char *energyScript = getConfValueC(&config, "ENERGY_SCRIPT");
+    eScript = Script_start("energy", energyScript, parseEnergy, pollTime);
+    if (!eScript) {
+	flog("invalid energy script, cannot continue\n");
+	return false;
+    }
+
+    return true;
+}
+
 bool Energy_init(void)
 {
     if (!initPowerUnit()) return false;
@@ -147,12 +168,6 @@ bool Energy_init(void)
 	    return false;
 	}
 
-	int poll = getConfValueU(&config, "ENERGY_SCRIPT_POLL");
-	eScript = Script_start("energy", energyScript, parseEnergy, poll);
-	if (!eScript) {
-	    flog("invalid energy script, cannot continue\n");
-	    return false;
-	}
     }
 
     if (!Energy_update()) return false;
@@ -164,6 +179,7 @@ bool Energy_init(void)
 void Energy_finalize(void)
 {
     if (eScript) Script_finalize(eScript);
+    eScript = NULL;
 }
 
 bool Energy_update(void)
@@ -207,12 +223,12 @@ psAccountEnergy_t *Energy_getData(void)
 
 bool Energy_setPoll(uint32_t poll)
 {
+    pollTime = poll;
     if (eScript) return Script_setPollTime(eScript, poll);
-    return false;
+    return true;
 }
 
 uint32_t Energy_getPoll(void)
 {
-    if (eScript) return eScript->poll;
-    return 0;
+    return pollTime;
 }

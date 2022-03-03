@@ -140,7 +140,7 @@ int psAccountGetPoll(psAccountOpt_t type)
 	    return FS_getPoll();
     }
 
-    mlog("%s: invalid option %i\n", __func__, type);
+    flog("invalid option %i\n", type);
     return -1;
 }
 
@@ -157,6 +157,38 @@ bool psAccountSetPoll(psAccountOpt_t type, int poll)
 	    return FS_setPoll(poll);
     }
 
-    mlog("%s: invalid option %i\n", __func__, type);
+    flog("invalid option %i\n", type);
+    return false;
+}
+
+bool psAccountCtlScript(psAccountCtl_t action, psAccountOpt_t type)
+{
+    switch(type) {
+	case PSACCOUNT_OPT_IC:
+	    if (action == PSACCOUNT_SCRIPT_START) {
+		return IC_startScript();
+	    } else {
+		IC_finalize();
+		return true;
+	    }
+	case PSACCOUNT_OPT_ENERGY:
+	    if (action == PSACCOUNT_SCRIPT_START) {
+		return Energy_startScript();
+	    } else {
+		Energy_finalize();
+		return true;
+	    }
+	case PSACCOUNT_OPT_FS:
+	    if (action == PSACCOUNT_SCRIPT_START) {
+		return FS_startScript();
+	    } else {
+		FS_finalize();
+		return true;
+	    }
+	default:
+	    flog("invalid action %i or type %i\n", action, type);
+	    return false;
+    }
+
     return false;
 }

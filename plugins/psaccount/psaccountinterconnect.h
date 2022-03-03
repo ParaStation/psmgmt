@@ -14,14 +14,17 @@
 /**
  * @brief Initialize interconnect monitoring
  *
+ * If a vaild poll interval is configured the monitoring script
+ * is started.
+ *
  * @return Returns true on success or false otherwise
  */
-bool IC_Init(void);
+bool IC_init(void);
 
 /**
  * @brief Finalize interconnect monitoring
  */
-void IC_Finalize(void);
+void IC_finalize(void);
 
 /**
  * @brief Get current interconnect data
@@ -45,5 +48,12 @@ bool IC_setPoll(uint32_t poll);
  * @param Returns the current poll time in seconds
  */
 uint32_t IC_getPoll(void);
+
+/**
+ * @brief Start the interconnect monitor script
+ *
+ * @return Returns true on success otherwise false is returned
+ */
+bool IC_startScript(void);
 
 #endif  /* __PS_ACCOUNT_INTERCONN */

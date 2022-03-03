@@ -40,6 +40,9 @@ static Collect_Script_t *fsScript = NULL;
 /** filesystem state data */
 static psAccountFS_t fsData, fsBase;
 
+/** script poll interval in seconds */
+static int pollTime = 0;
+
 static void parseFilesys(char *data)
 {
     static bool isInit = false;
@@ -78,7 +81,23 @@ psAccountFS_t *FS_getData(void)
     return &fsData;
 }
 
-bool FS_Init(void)
+bool FS_startScript(void)
+{
+    if (fsScript) return true;
+
+    if (pollTime < 1) pollTime = 30;
+    char *fsPath = getConfValueC(&config, "FILESYSTEM_SCRIPT");
+
+    fsScript = Script_start("filesystem", fsPath, parseFilesys, pollTime);
+    if (!fsScript) {
+	flog("invalid filesytem script, cannot continue\n");
+	return false;
+    }
+
+    return true;
+}
+
+bool FS_init(void)
 {
     memset(&fsData, 0, sizeof(fsData));
 
@@ -95,30 +114,28 @@ bool FS_Init(void)
 	    /* filesytem polling is disabled */
 	    return true;
 	}
+	pollTime = poll;
 
-	fsScript = Script_start("filesystem", fsPath, parseFilesys, poll);
-	if (!fsScript) {
-	    flog("invalid filesytem script, cannot continue\n");
-	    return false;
-	}
+	return FS_startScript();
     }
 
     return true;
 }
 
-void FS_Finalize(void)
+void FS_finalize(void)
 {
     if (fsScript) Script_finalize(fsScript);
+    fsScript = NULL;
 }
 
 bool FS_setPoll(uint32_t poll)
 {
+    pollTime = poll;
     if (fsScript) return Script_setPollTime(fsScript, poll);
-    return false;
+    return true;
 }
 
 uint32_t FS_getPoll(void)
 {
-    if (fsScript) return fsScript->poll;
-    return 0;
+    return pollTime;
 }

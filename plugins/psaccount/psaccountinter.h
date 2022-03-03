@@ -31,6 +31,7 @@ psAccountGetPidsByLogger_t psAccountGetPidsByLogger;
 psAccountFindDaemonProcs_t psAccountFindDaemonProcs;
 psAccountSignalSession_t psAccountSignalSession;
 psAccountGetLocalInfo_t psAccountGetLocalInfo;
+psAccountCtlScript_t psAccountCtlScript;
 
 psAccountGetPoll_t psAccountGetPoll;
 psAccountSetPoll_t psAccountSetPoll;

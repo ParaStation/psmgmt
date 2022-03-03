@@ -57,4 +57,11 @@ bool Energy_setPoll(uint32_t poll);
  */
 uint32_t Energy_getPoll(void);
 
+/**
+ * @brief Start the energy monitor script
+ *
+ * @return Returns true on success otherwise false is returned
+ */
+bool Energy_startScript(void);
+
 #endif  /* __PS_ACCOUNT_ENERGY */

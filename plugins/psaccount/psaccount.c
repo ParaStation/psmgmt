@@ -30,6 +30,7 @@
 #include "psaccountkvs.h"
 #include "psaccountenergy.h"
 #include "psaccountinterconnect.h"
+#include "psaccountfilesystem.h"
 
 #define PSACCOUNT_CONFIG "psaccount.conf"
 
@@ -106,29 +107,35 @@ int initialize(FILE *logfile)
     struct utsname uts;
     char configfn[200];
 
-    /* init logging facility */
+    /* initialize logging facility */
     initLogger(name, logfile);
 
-    /* init all lists */
+    /* initialize all lists */
     initProc();
 
-    /* init the config facility */
+    /* initialize the config facility */
     snprintf(configfn, sizeof(configfn), "%s/%s", PLUGINDIR, PSACCOUNT_CONFIG);
     if (!initPSAccConfig(configfn)) return 1;
 
-    /* init logging facility */
+    /* initialize logging facility */
     int debugMask = getConfValueI(&config, "DEBUG_MASK");
     maskLogger(debugMask);
 
-    /* init energy facility */
+    /* initialize energy facility */
     if (!Energy_init()) {
-	mlog("%s: failed to initialize energy monitoring\n", __func__);
+	flog("failed to initialize energy monitoring\n");
 	return 1;
     }
 
-    /* init interconnect facility */
-    if (!IC_Init()) {
-	mlog("%s: failed to initialize interconnect monitoring\n", __func__);
+    /* initialize interconnect facility */
+    if (!IC_init()) {
+	flog("failed to initialize interconnect monitoring\n");
+	return 1;
+    }
+
+    /* initialize filesystem facility */
+    if (!FS_init()) {
+	flog("failed to initialize filesystem monitoring\n");
 	return 1;
     }
 
@@ -183,7 +190,7 @@ void cleanup(void)
     if (mainTimerID != -1) Timer_remove(mainTimerID);
 
     Energy_finalize();
-    IC_Finalize();
+    IC_finalize();
     finalizeAccComm();
 
     if (memoryDebug) fclose(memoryDebug);

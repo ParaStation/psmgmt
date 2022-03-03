@@ -77,6 +77,12 @@ typedef enum {
     PSACCOUNT_OPT_FS,		/**< filesystem options */
 } psAccountOpt_t;
 
+/** Option to control an account script */
+typedef enum {
+    PSACCOUNT_SCRIPT_START,	/**< start an account script */
+    PSACCOUNT_SCRIPT_STOP,	/**< stop an account script */
+} psAccountCtl_t;
+
 /** Node energy and power consumption data */
 typedef struct {
     uint32_t powerMin;	       	/**< minimum power consumption */
@@ -377,5 +383,17 @@ typedef int(psAccountGetPoll_t)(psAccountOpt_t type);
  * @return If @a poll is valid, return true; or false otherwise
  */
 typedef bool(psAccountSetPoll_t)(psAccountOpt_t type, int poll);
+
+
+/**
+ * @brief Control an accounting script
+ *
+ * @param action The action to invoke for the script
+ *
+ * @param type The type of script to control
+ *
+ * @return Returns true on success otherwise false is returned
+ */
+typedef bool(psAccountCtlScript_t)(psAccountCtl_t action, psAccountOpt_t type);
 
 #endif  /* __PS_ACCOUNT_TYPES */
