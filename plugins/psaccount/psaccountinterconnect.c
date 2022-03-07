@@ -140,3 +140,8 @@ uint32_t IC_getPoll(void)
 {
     return pollTime;
 }
+
+bool IC_ctlEnv(psAccountCtl_t action, const char *envStr)
+{
+    return Script_ctlEnv(iScript, action, envStr);
+}

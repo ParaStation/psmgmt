@@ -56,4 +56,15 @@ uint32_t IC_getPoll(void);
  */
 bool IC_startScript(void);
 
+/**
+ * @brief Set/unset environment variable for interconnect script
+ *
+ * @param envStr The new environment variable to set
+ *
+ * @param action Specifies if a variable should be added or removed
+ *
+ * @return Returns true on success otherwise false is returned
+ */
+bool IC_ctlEnv(psAccountCtl_t action, const char *envStr);
+
 #endif  /* __PS_ACCOUNT_INTERCONN */

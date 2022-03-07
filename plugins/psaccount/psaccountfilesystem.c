@@ -139,3 +139,8 @@ uint32_t FS_getPoll(void)
 {
     return pollTime;
 }
+
+bool FS_ctlEnv(psAccountCtl_t action, const char *envStr)
+{
+    return Script_ctlEnv(fsScript, action, envStr);
+}

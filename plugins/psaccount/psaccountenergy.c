@@ -232,3 +232,8 @@ uint32_t Energy_getPoll(void)
 {
     return pollTime;
 }
+
+bool Energy_ctlEnv(psAccountCtl_t action, const char *envStr)
+{
+    return Script_ctlEnv(eScript, action, envStr);
+}

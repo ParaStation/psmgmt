@@ -64,4 +64,15 @@ uint32_t Energy_getPoll(void);
  */
 bool Energy_startScript(void);
 
+/**
+ * @brief Set/unset environment variable for energy script
+ *
+ * @param envStr The new environment variable to set
+ *
+ * @param action Specifies if a variable should be added or removed
+ *
+ * @return Returns true on success otherwise false is returned
+ */
+bool Energy_ctlEnv(psAccountCtl_t action, const char *envStr);
+
 #endif  /* __PS_ACCOUNT_ENERGY */

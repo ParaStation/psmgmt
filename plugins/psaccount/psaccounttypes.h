@@ -81,6 +81,8 @@ typedef enum {
 typedef enum {
     PSACCOUNT_SCRIPT_START,	/**< start an account script */
     PSACCOUNT_SCRIPT_STOP,	/**< stop an account script */
+    PSACCOUNT_SCRIPT_ENV_SET,	/**< add environment variable */
+    PSACCOUNT_SCRIPT_ENV_UNSET,	/**< delete environment variable */
 } psAccountCtl_t;
 
 /** Node energy and power consumption data */
@@ -384,7 +386,6 @@ typedef int(psAccountGetPoll_t)(psAccountOpt_t type);
  */
 typedef bool(psAccountSetPoll_t)(psAccountOpt_t type, int poll);
 
-
 /**
  * @brief Control an accounting script
  *
@@ -395,5 +396,19 @@ typedef bool(psAccountSetPoll_t)(psAccountOpt_t type, int poll);
  * @return Returns true on success otherwise false is returned
  */
 typedef bool(psAccountCtlScript_t)(psAccountCtl_t action, psAccountOpt_t type);
+
+/**
+ * @brief Set/unset environment variable for an accounting script
+ *
+ * @param action Specifies if a variable should be added or removed
+ *
+ * @param type The type of script to control
+ *
+ * @param envStr The new environment variable to set
+ *
+ * @return Returns true on success otherwise false is returned
+ */
+typedef bool (psAccountScriptEnv_t)(psAccountCtl_t action, psAccountOpt_t type,
+				    char *envStr);
 
 #endif  /* __PS_ACCOUNT_TYPES */

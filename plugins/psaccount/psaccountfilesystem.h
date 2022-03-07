@@ -53,4 +53,15 @@ uint32_t FS_getPoll(void);
  */
 bool FS_startScript(void);
 
+/**
+ * @brief Set/unset environment variable for filesystem script
+ *
+ * @param envStr The new environment variable to set
+ *
+ * @param action Specifies if a variable should be added or removed
+ *
+ * @return Returns true on success otherwise false is returned
+ */
+bool FS_ctlEnv(psAccountCtl_t action, const char *envStr);
+
 #endif  /* __PS_ACCOUNT_FILESYSTEM */

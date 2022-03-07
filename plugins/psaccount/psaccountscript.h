@@ -2,6 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2021 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2022 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -12,6 +13,8 @@
 #define __PS_ACCOUNT_SCRIPT
 
 #include "pluginforwarder.h"
+#include "psenv.h"
+#include "psaccounttypes.h"
 
 /** the callback function handling the stdout/stderr of the script */
 typedef void scriptDataHandler_t(char *);
@@ -22,6 +25,7 @@ typedef struct {
     scriptDataHandler_t *func;
     uint32_t poll;
     Forwarder_Data_t *fwdata;
+    env_t env;
 } Collect_Script_t;
 
 /**
@@ -64,5 +68,19 @@ bool Script_setPollTime(Collect_Script_t *script, uint32_t poll);
  * @spath The absolute path to the script
  */
 bool Script_test(char *spath, char *title);
+
+/**
+ * @brief Set/unset environment variable for collect script
+ *
+ * @param script The collect script
+ *
+ * @param envStr The new environment variable to set
+ *
+ * @param action Specifies if a variable should be added or removed
+ *
+ * @return Returns true on success otherwise false is returned
+ */
+bool Script_ctlEnv(Collect_Script_t *script, psAccountCtl_t action,
+		   const char *envStr);
 
 #endif  /* __PS_ACCOUNT_SCRIPT */

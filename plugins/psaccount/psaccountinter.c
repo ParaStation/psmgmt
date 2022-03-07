@@ -192,3 +192,26 @@ bool psAccountCtlScript(psAccountCtl_t action, psAccountOpt_t type)
 
     return false;
 }
+
+bool psAccountScriptEnv(psAccountCtl_t action, psAccountOpt_t type,
+			char *envStr)
+{
+    if (!envStr) {
+	flog("called with invalid envStr\n");
+	return false;
+    }
+
+    switch(type) {
+	case PSACCOUNT_OPT_IC:
+	    return IC_ctlEnv(action, envStr);
+	case PSACCOUNT_OPT_ENERGY:
+	    return Energy_ctlEnv(action, envStr);
+	case PSACCOUNT_OPT_FS:
+	    return FS_ctlEnv(action, envStr);
+	default:
+	    flog("invalid action %i or type %i\n", action, type);
+	    return false;
+    }
+
+    return false;
+}

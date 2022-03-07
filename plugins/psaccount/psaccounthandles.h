@@ -42,6 +42,7 @@ psAccountGetLocalInfo_t *psAccountGetLocalInfo;
 psAccountFindDaemonProcs_t *psAccountFindDaemonProcs;
 psAccountSignalSession_t *psAccountSignalSession;
 psAccountCtlScript_t *psAccountCtlScript;
+psAccountScriptEnv_t *psAccountScriptEnv;
 
 psAccountGetPoll_t *psAccountGetPoll;
 psAccountSetPoll_t *psAccountSetPoll;

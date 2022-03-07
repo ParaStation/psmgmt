@@ -2,6 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2021 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2022 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -33,6 +34,8 @@
 
 typedef enum {
     CMD_SET_POLL_TIME = 100,
+    CMD_SET_ENV_VAR,
+    CMD_UNSET_ENV_VAR,
 } FW_Cmds_t;
 
 /**
@@ -91,6 +94,12 @@ static void execCollectScript(Forwarder_Data_t *fwdata, int rerun)
 
 	if (!child) {
 	    /* This is the child */
+
+	    /* update scripts environment */
+	    for (uint32_t i = 0; i < script->env.cnt; i++) {
+		putenv(script->env.vars[i]);
+	    }
+
 	    char *argv[2] = { script->path, NULL };
 	    execvp(argv[0], argv);
 	    /* never be here */
@@ -109,7 +118,7 @@ static void execCollectScript(Forwarder_Data_t *fwdata, int rerun)
 	    break;
 	}
 
-	sleep(script->poll);
+	if (script->poll) sleep(script->poll);
     }
 }
 
@@ -145,6 +154,27 @@ static void handleSetPollTime(Forwarder_Data_t *fwdata, char *ptr)
 }
 
 /**
+ * @brief Put new variable into script environment
+ *
+ * @param fwdata The forwarder management structure
+ *
+ * @param ptr Holding the new environment variable
+ */
+static void handleCtlEnvVar(Forwarder_Data_t *fwdata, char *ptr, int action)
+{
+    Collect_Script_t *script = fwdata->userData;
+    size_t msglen;
+    char *envStr = getDataM(&ptr, &msglen);
+
+    if (action == CMD_SET_ENV_VAR) {
+	envPut(&script->env, envStr);
+    } else {
+	envUnset(&script->env, envStr);
+    }
+    ufree(envStr);
+}
+
+/**
  * @brief Handle a message from mother send to script forwarder
  *
  * @param msg The message to handle
@@ -160,6 +190,10 @@ static int fwCMD_handleMthrMsg(PSLog_Msg_t *msg, Forwarder_Data_t *fwdata)
     switch (type) {
 	case CMD_SET_POLL_TIME:
 	    handleSetPollTime(fwdata, msg->buf);
+	    break;
+	case CMD_SET_ENV_VAR:
+	case CMD_UNSET_ENV_VAR:
+	    handleCtlEnvVar(fwdata, msg->buf, type);
 	    break;
 	default:
 	    flog("unexpected msg, type %d (PSlog type %s) from TID %s (%s) "
@@ -196,6 +230,7 @@ Collect_Script_t *Script_start(char *title, char *path,
     script->path = ustrdup(path);
     script->func = func;
     script->poll = poll;
+    envInit(&script->env);
 
     Forwarder_Data_t *fwdata = ForwarderData_new();
     fwdata->pTitle = ustrdup(title);
@@ -257,5 +292,70 @@ bool Script_setPollTime(Collect_Script_t *script, uint32_t poll)
 
     if (sendMsg(&msg) == -1) return false;
     script->poll = poll;
+    return true;
+}
+
+bool Script_ctlEnv(Collect_Script_t *script, psAccountCtl_t action,
+		   const char *envStr)
+{
+    if (!script || !script->fwdata) {
+	flog("invalid script or forwarder data\n");
+	return false;
+    }
+
+    if (!envStr) {
+	flog("got invalid envStr\n");
+	return false;
+    }
+
+    int cmd;
+    switch (action) {
+	case PSACCOUNT_SCRIPT_ENV_SET:
+	    cmd = CMD_SET_ENV_VAR;
+	    if (!strchr(envStr, '=')) {
+		flog("missing '=' in environment variable to set\n");
+		return false;
+	    }
+	    break;
+	case PSACCOUNT_SCRIPT_ENV_UNSET:
+	    cmd = CMD_UNSET_ENV_VAR;
+	    if (strchr(envStr, '=')) {
+		flog("invalid '=' in environment variable to unset\n");
+		return false;
+	    }
+	    break;
+	default:
+	    flog("invalid action %i\n", action);
+	    return false;
+    }
+
+    PSLog_Msg_t msg = {
+	.header = {
+	    .type = PSP_CC_MSG,
+	    .dest = script->fwdata->tid,
+	    .sender = PSC_getMyTID(),
+	    .len = offsetof(PSLog_Msg_t, buf) },
+	.version = PLUGINFW_PROTO_VERSION,
+	.type = (PSLog_msg_t)cmd,
+	.sender = -1};
+    const size_t chunkSize = sizeof(msg.buf) - sizeof(uint8_t)
+	- sizeof(uint32_t) - sizeof(uint32_t);
+    size_t msgLen = strlen(envStr);
+    size_t left = msgLen;
+
+    do {
+	uint32_t chunk = left > chunkSize ? chunkSize : left;
+	uint32_t len = htonl(chunk);
+	DDBufferMsg_t *bMsg = (DDBufferMsg_t *)&msg;
+	msg.header.len = offsetof(PSLog_Msg_t, buf);
+
+	/* Add data chunk including its length mimicking addData */
+	PSP_putMsgBuf(bMsg, "len", &len, sizeof(len));
+	PSP_putMsgBuf(bMsg, "data", envStr + msgLen - left, chunk);
+
+	sendMsg(&msg);
+	left -= chunk;
+    } while (left);
+
     return true;
 }
