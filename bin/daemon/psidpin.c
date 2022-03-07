@@ -22,6 +22,7 @@
 #include "pscommon.h"
 
 #include "psidnodes.h"
+#include "psidhw.h"
 #include "psidutil.h"
 
 

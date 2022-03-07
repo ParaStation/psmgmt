@@ -22,7 +22,7 @@
 #include <pmix_common.h>
 
 #include "pscommon.h"
-#include "pslog.h"
+#include "psprotocol.h"
 
 #include "pluginforwarder.h"
 

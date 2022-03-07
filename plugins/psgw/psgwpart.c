@@ -22,7 +22,6 @@
 #include "psdaemonprotocol.h"
 #include "pspartition.h"
 #include "hardware.h"
-#include "pslog.h"
 #include "timer.h"
 #include "pluginconfig.h"
 #include "pluginforwarder.h"

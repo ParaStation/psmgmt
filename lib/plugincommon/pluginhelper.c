@@ -28,7 +28,6 @@
 #include "pscio.h"
 #include "pscommon.h"
 #include "psidnodes.h"
-#include "psidhook.h"
 #include "pluginlog.h"
 
 /** time-limit in seconds to warn about a slow name resolver */

@@ -14,6 +14,7 @@
 #include <stdint.h>
 
 #include "pslog.h"
+#include "psprotocol.h"
 #include "pluginforwarder.h"
 
 #include "psslurmjob.h"

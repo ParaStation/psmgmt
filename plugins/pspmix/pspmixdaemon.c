@@ -27,7 +27,6 @@
 
 #include "list.h"
 #include "pscommon.h"
-#include "pslog.h"
 #include "pspluginprotocol.h"
 #include "psprotocol.h"
 #include "psserial.h"
