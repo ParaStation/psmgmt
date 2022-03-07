@@ -2459,7 +2459,7 @@ void test_pinning(uint16_t socketCount, uint16_t coresPerSocket,
 		}
 		else {
 		    printf("0x");
-		    for (int i = (socketCount - 1) - socketCount % 4 + 1;
+		    for (int i = (socketCount - 1) - (socketCount - 1) % 4;
 			    i >= 0; i -= 4) {
 			printf("%lx", (*(nodemask->maskp) & (0xF << i)) >> i);
 		    }
