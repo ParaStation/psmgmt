@@ -1489,7 +1489,7 @@ static void handleFWslurmMsgRes(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
     handleFrwrdMsgReply(&sMsg, SLURM_SUCCESS);
 }
 
-static void handlePElogueOE(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
+static void handlePElogueOEMsg(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
 {
     char *ptr = data->buf;
     uint32_t allocID;
@@ -1520,7 +1520,7 @@ static void handlePElogueOE(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
     snprintf(buf, sizeof(buf), "%s/%u/%s-%s.%s", logPath, allocID,
 	     getSlurmHostbyNodeID(PSC_getID(msg->header.sender)),
 	     (PElogueType == PELOGUE_PROLOGUE ? "prologue" : "epilogue"),
-	     (msgType == STDOUT ? "out" : "err"));
+	     (msgType == PELOGUE_OE_STDOUT ? "out" : "err"));
 
     /* write data */
     FILE *fp = fopen(buf, "a+");
@@ -1595,7 +1595,7 @@ static bool handlePsslurmMsg(DDTypedBufferMsg_t *msg)
 	    handle_EpilogueStateRes(msg);
 	    break;
 	case PSP_PELOGUE_OE:
-	    recvFragMsg(msg, handlePElogueOE);
+	    recvFragMsg(msg, handlePElogueOEMsg);
 	    break;
 	case PSP_STOP_STEP_FW:
 	    handleStopStepFW(msg);

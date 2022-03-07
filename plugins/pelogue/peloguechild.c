@@ -26,6 +26,7 @@
 #include "pscommon.h"
 #include "psenv.h"
 #include "pslog.h"
+#include "psprotocol.h"
 #include "psserial.h"
 
 #include "psidhook.h"
@@ -246,10 +247,11 @@ static void fwCallback(int32_t forwStatus, Forwarder_Data_t *fwData)
  * Provides hook PSIDHOOK_PELOGUE_OE for psslurm
  * to handle stdout and stderr streams of the prologue/epilogue.
  */
-static void handlePeIO(Forwarder_Data_t *fwdata, short outType, char *ptr)
+static void handlePeIO(Forwarder_Data_t *fwdata, PElogue_OEtype_t type,
+		       char *ptr)
 {
     PElogue_OEdata_t oeData = {
-	.type = outType,
+	.type = type,
 	.child = fwdata->userData,
     };
 
@@ -268,15 +270,17 @@ static void handlePeIO(Forwarder_Data_t *fwdata, short outType, char *ptr)
 static int handlePeFwMsg(DDTypedBufferMsg_t *msg, Forwarder_Data_t *fwdata)
 {
     switch (msg->type) {
-	case STDOUT:
-	case STDERR:
-	    handlePeIO(fwdata, msg->type, msg->buf);
-	    break;
-	default:
-	    mlog("%s: unexpected msg, type %s from TID %s (%s) "
-		 "jobid %s\n", __func__, PSLog_printMsgType(msg->type), // @todo
-		 PSC_printTID(msg->header.sender), fwdata->pTitle, fwdata->jobID);
-	    return 0;
+    case STDOUT:
+	handlePeIO(fwdata, PELOGUE_OE_STDOUT, msg->buf);
+	break;
+    case STDERR:
+	handlePeIO(fwdata, PELOGUE_OE_STDERR, msg->buf);
+	break;
+    default:
+	mlog("%s: unexpected msg, type %d from TID %s (%s) jobid %s\n",
+	     __func__, msg->type, PSC_printTID(msg->header.sender),
+	     fwdata->pTitle, fwdata->jobID);
+	return 0;
     }
 
     return 1;

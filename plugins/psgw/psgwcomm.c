@@ -15,7 +15,6 @@
 
 #include "pscommon.h"
 #include "psenv.h"
-#include "pslog.h"
 #include "pspluginprotocol.h"
 #include "psserial.h"
 #include "pluginconfig.h"
@@ -61,7 +60,7 @@ int handlePelogueOE(void *pedata)
     return 0;
 }
 
-static void handlePElogueOE(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
+static void handlePElogueOEMsg(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
 {
     char *ptr = data->buf;
     int8_t PElogueType, msgType;
@@ -86,7 +85,8 @@ static void handlePElogueOE(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
     char *cwd = envGet(&req->env, "SLURM_SPANK_PSGW_CWD");
     char path[1024];
     snprintf(path, sizeof(path), "%s/JOB-%s-psgwd-n%i.%s", cwd, req->jobid,
-	     PSC_getID(msg->header.sender), msgType == STDOUT ? "out" : "err");
+	     PSC_getID(msg->header.sender),
+	     msgType == PELOGUE_OE_STDOUT ? "out" : "err");
 
     writeErrorFile(req, msgData, path, false);
 
@@ -105,7 +105,7 @@ bool handlePSGWmsg(DDTypedBufferMsg_t *msg)
 
     switch (msg->type) {
 	case PSP_PELOGUE_OE:
-	    recvFragMsg(msg, handlePElogueOE);
+	    recvFragMsg(msg, handlePElogueOEMsg);
 	    break;
 	default:
 	    flog("received unknown msg type: %i [%s -> %s]\n",
