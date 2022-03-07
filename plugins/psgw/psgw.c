@@ -37,6 +37,9 @@
 
 #define PSGW_CONFIG_FILE  PLUGINDIR "/psgw.conf"
 
+/** flag set to true if psgw was successfully initialized */
+static bool isInit = false;
+
 /** psid plugin requirements */
 char name[] = "psgw";
 int version = 2;
@@ -48,7 +51,7 @@ plugin_dep_t dependencies[] = {
     { .name = NULL, .version = 0 } };
 
 /**
- * @brief Verfiy file permissions of the routing script
+ * @brief Verify file permissions of the routing script
  */
 static bool checkRouteScript(void)
 {
@@ -279,12 +282,16 @@ int initialize(FILE *logfile)
 
     regPartMsg();
 
+    isInit = true;
+
     mlog("(%i) successfully started\n", version);
     return 0;
 }
 
 void cleanup(void)
 {
+    if (!isInit) return;
+
     if (!PSIDhook_del(PSIDHOOK_PELOGUE_RES, handlePElogueRes)) {
 	mlog("unregister 'PSIDHOOK_PELOGUE_RES' failed\n");
     }
@@ -297,7 +304,7 @@ void cleanup(void)
 	mlog("unregister 'PSIDHOOK_PELOGUE_OE' failed\n");
     }
 
-    /* unregister psgw msg */
+    /* unregister psgw message */
     PSID_clearMsg(PSP_PLUG_PSGW, (handlerFunc_t)handlePSGWmsg);
 
     clrPartMsg();
