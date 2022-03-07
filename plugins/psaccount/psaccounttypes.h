@@ -79,10 +79,10 @@ typedef enum {
 
 /** Option to control an account script */
 typedef enum {
-    PSACCOUNT_SCRIPT_START,	/**< start an account script */
-    PSACCOUNT_SCRIPT_STOP,	/**< stop an account script */
-    PSACCOUNT_SCRIPT_ENV_SET,	/**< add environment variable */
-    PSACCOUNT_SCRIPT_ENV_UNSET,	/**< delete environment variable */
+    PSACCOUNT_SCRIPT_START = 0x300, /**< start an account script */
+    PSACCOUNT_SCRIPT_STOP,	    /**< stop an account script */
+    PSACCOUNT_SCRIPT_ENV_SET,	    /**< add environment variable */
+    PSACCOUNT_SCRIPT_ENV_UNSET,	    /**< delete environment variable */
 } psAccountCtl_t;
 
 /** Node energy and power consumption data */
