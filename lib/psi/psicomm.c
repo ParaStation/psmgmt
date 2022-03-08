@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2013-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021 ParTec AG, Munich
+ * Copyright (C) 2021-2022 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -101,7 +101,7 @@ int PSIcomm_send(int dest_rank, int type, void *payload, size_t len)
 	return -1;
     }
 
-    msg.header.type = PSP_CC_PSI_MSG;
+    msg.header.type = PSP_RR_MSG;
     msg.header.sender = 0; /* will be filled by local forwarder */
     msg.header.dest = 0;   /* will be filled by local daemon/psicomm plugin */
     msg.header.len = sizeof(msg.header);

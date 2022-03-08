@@ -22,7 +22,7 @@
 #include <time.h>
 #include <unistd.h>
 
-#include "pslog.h"
+#include "psprotocol.h"
 #include "psserial.h"
 #include "pluginconfig.h"
 #include "pluginforwarder.h"
@@ -111,15 +111,15 @@ static void parseEnergy(char *ptr)
 static int handleFwMsg(DDTypedBufferMsg_t *msg, Forwarder_Data_t *fwdata)
 {
     switch (msg->type) {
-	case STDOUT:
-	    parseEnergy(msg->buf);
-	    break;
-	case STDERR:
-	    mlog("%s: error from energy script: %s\n", __func__, msg->buf);
-	    break;
-	default:
-	    mlog("%s: unhandled msg type %d\n", __func__, msg->type);
-	    return 0;
+    case PLGN_STDOUT:
+	parseEnergy(msg->buf);
+	break;
+    case PLGN_STDERR:
+	mlog("%s: error from energy script: %s\n", __func__, msg->buf);
+	break;
+    default:
+	mlog("%s: unhandled msg type %d\n", __func__, msg->type);
+	return 0;
     }
 
     return 1;

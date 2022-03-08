@@ -17,7 +17,8 @@
 #include "list.h"
 #include "pscommon.h"
 #include "pslog.h"
-#include "psprotocol.h"
+#include "psdaemonprotocol.h"
+#include "pspluginprotocol.h"
 #include "psserial.h"
 
 #include "pluginmalloc.h"
@@ -30,7 +31,7 @@
 #include "psslurmproto.h"
 
 typedef enum {
-    CMD_PRINT_CHILD_MSG = 100,
+    CMD_PRINT_CHILD_MSG = PLGN_TYPE_LAST+1,
     CMD_ENABLE_SRUN_IO,
     CMD_FW_FINALIZE,
     CMD_REATTACH_TASKS,
@@ -49,10 +50,8 @@ static void handleStepTimeout(Forwarder_Data_t *fwdata)
 static void handleInfoTasks(Forwarder_Data_t *fwdata, char *ptr)
 {
     Step_t *step = fwdata->userData;
-    PS_Tasks_t *task;
-    size_t len;
 
-    task = getDataM(&ptr, &len);
+    PS_Tasks_t *task = getDataM(&ptr, NULL);
     list_add_tail(&task->next, &step->tasks);
 
     fdbg(PSSLURM_LOG_PROCESS, "%s child %s rank %i task %u from %u\n",
@@ -70,8 +69,7 @@ static void handleInfoTasks(Forwarder_Data_t *fwdata, char *ptr)
 static void handleFWfinalize(Forwarder_Data_t *fwdata, char *ptr)
 {
     Step_t *step = fwdata->userData;
-    size_t len;
-    PSLog_Msg_t *msg = getDataM(&ptr, &len);
+    PSLog_Msg_t *msg = getDataM(&ptr, NULL);
     PStask_ID_t sender = msg->header.sender;
 
     mdbg(PSSLURM_LOG_IO, "%s from %s\n", __func__, PSC_printTID(sender));
@@ -136,9 +134,7 @@ static void handlePrintStepMsg(Forwarder_Data_t *fwdata, char *ptr)
 
 int fwCMD_handleMthrStepMsg(DDTypedBufferMsg_t *msg, Forwarder_Data_t *fwdata)
 {
-    PSSLURM_Fw_Cmds_t type = (PSSLURM_Fw_Cmds_t)msg->type;
-
-    switch (type) {
+    switch ((PSSLURM_Fw_Cmds_t)msg->type) {
 	case CMD_PRINT_CHILD_MSG:
 	    handlePrintStepMsg(fwdata, msg->buf);
 	    break;
@@ -146,7 +142,7 @@ int fwCMD_handleMthrStepMsg(DDTypedBufferMsg_t *msg, Forwarder_Data_t *fwdata)
 	    handleEnableSrunIO(fwdata);
 	    break;
 	case CMD_FW_FINALIZE:
-	    handleFWfinalize(fwdata, msg->buf); // @todo pass the whole message?
+	    handleFWfinalize(fwdata, msg->buf);
 	    break;
 	case CMD_REATTACH_TASKS:
 	    handleSattachTasks(fwdata, msg->buf);
@@ -158,8 +154,8 @@ int fwCMD_handleMthrStepMsg(DDTypedBufferMsg_t *msg, Forwarder_Data_t *fwdata)
 	    handleStepTimeout(fwdata);
 	    break;
 	default:
-	    flog("unexpected msg, type %d (PSlog type %s) from TID %s (%s) "
-		 "jobid %s\n", type, PSLog_printMsgType(msg->type),
+	    flog("unexpected msg, type %s (sub-type %d) from TID %s (%s) "
+		 "jobid %s\n", PSDaemonP_printMsg(msg->header.type), msg->type,
 		 PSC_printTID(msg->header.sender), fwdata->pTitle, fwdata->jobID);
 	    return 0;
     }
@@ -216,30 +212,40 @@ static void handleBrokeIOcon(DDTypedBufferMsg_t *msg)
 
 int fwCMD_handleFwStepMsg(DDTypedBufferMsg_t *msg, Forwarder_Data_t *fwdata)
 {
-    PSSLURM_Fw_Cmds_t type = (PSSLURM_Fw_Cmds_t)msg->type;
-    switch (type) {
-    case CMD_BROKE_IO_CON:
-	handleBrokeIOcon(msg);
-	break;
-    default:
-	mdbg(PSSLURM_LOG_IO_VERB, "%s: Unhandled type %d\n", __func__, type);
-	return 0;
+    if (msg->header.type == PSP_CC_MSG) {
+	PSLog_Msg_t *lmsg = (PSLog_Msg_t *)msg;
+	switch (lmsg->type) {
+	case FINALIZE:
+	case STDIN:
+	    sendMsg(msg);
+	    return 1;
+	default:
+	    mdbg(-1, "%s: Unhandled Log-type %s\n", __func__,
+		 PSLog_printMsgType(lmsg->type));
+	}
+    } else if (msg->header.type == PSP_PLUG_PSSLURM) {
+	switch ((PSSLURM_Fw_Cmds_t)msg->type) {
+	case CMD_BROKE_IO_CON:
+	    handleBrokeIOcon(msg);
+	    return 1;
+	default:
+	    mdbg(PSSLURM_LOG_IO_VERB, "%s: Unhandled type %d\n", __func__,
+		 msg->type);
+	}
     }
 
-    return 1;
+    return 0;
 }
 
 void fwCMD_stepTimeout(Forwarder_Data_t *fwdata)
 {
-    PSLog_Msg_t msg = {
+    DDTypedMsg_t msg = {
 	.header = {
-	    .type = PSP_CC_MSG,
+	    .type = PSP_PLUG_PSSLURM,
 	    .dest = fwdata ? fwdata->tid : -1,
 	    .sender = PSC_getMyTID(),
-	    .len = offsetof(PSLog_Msg_t, buf) },
-	.version = PLUGINFW_PROTO_VERSION,
-	.type = (PSLog_msg_t)CMD_STEP_TIMEOUT,
-	.sender = -1};
+	    .len = sizeof(msg) },
+	.type = CMD_STEP_TIMEOUT };
 
     /* might happen that forwarder is already gone */
     if (!fwdata) return;
@@ -251,7 +257,7 @@ void fwCMD_brokeIOcon(Step_t *step)
 {
     DDTypedBufferMsg_t msg = {
 	.header = {
-	    .type = PSP_CC_MSG,
+	    .type = PSP_PLUG_PSSLURM,
 	    .dest = PSC_getTID(-1,0),
 	    .sender = PSC_getMyTID(),
 	    .len = 0, },
@@ -266,15 +272,13 @@ void fwCMD_brokeIOcon(Step_t *step)
 
 void fwCMD_enableSrunIO(Step_t *step)
 {
-    PSLog_Msg_t msg = {
+    DDTypedMsg_t msg = {
 	.header = {
-	    .type = PSP_CC_MSG,
+	    .type = PSP_PLUG_PSSLURM,
 	    .dest = step->fwdata ? step->fwdata->tid : -1,
 	    .sender = PSC_getMyTID(),
-	    .len = offsetof(PSLog_Msg_t, buf) },
-	.version = PLUGINFW_PROTO_VERSION,
-	.type = (PSLog_msg_t)CMD_ENABLE_SRUN_IO,
-	.sender = -1};
+	    .len = sizeof(msg) },
+	.type = CMD_ENABLE_SRUN_IO };
 
     /* might happen that forwarder is already gone */
     if (!step->fwdata) return;
@@ -298,7 +302,7 @@ void fwCMD_printMsg(Job_t *job, Step_t *step, char *plMsg, uint32_t msgLen,
 
     DDTypedBufferMsg_t msg = {
 	.header = {
-	    .type = PSP_CC_MSG,
+	    .type = PSP_PLUG_PSSLURM,
 	    .dest = fwdata->tid,
 	    .sender = PSC_getMyTID(),
 	    .len = 0, },
@@ -343,29 +347,27 @@ void fwCMD_printMsg(Job_t *job, Step_t *step, char *plMsg, uint32_t msgLen,
 void fwCMD_reattachTasks(Forwarder_Data_t *fwdata, uint32_t addr,
 			 uint16_t ioPort, uint16_t ctlPort, char *sig)
 {
-    PSLog_Msg_t msg = {
+    DDTypedBufferMsg_t msg = {
 	.header = {
-	    .type = PSP_CC_MSG,
+	    .type = PSP_PLUG_PSSLURM,
 	    .dest = fwdata ? fwdata->tid : -1,
 	    .sender = PSC_getMyTID(),
-	    .len = offsetof(PSLog_Msg_t, buf) },
-	.version = PLUGINFW_PROTO_VERSION,
-	.type = (PSLog_msg_t)CMD_REATTACH_TASKS,
-	.sender = -1};
-    DDBufferMsg_t *bMsg = (DDBufferMsg_t *)&msg;
-    uint32_t nAddr = htonl(addr);
-    uint16_t nioPort = htons(ioPort), nctlPort = htons(ctlPort);
-    uint32_t len = htonl(PSP_strLen(sig));
+	    .len = 0 },
+	.type = CMD_REATTACH_TASKS };
 
     /* might happen that forwarder is already gone */
     if (!fwdata) return;
 
-    PSP_putMsgBuf(bMsg, "addr", &nAddr, sizeof(nAddr));
-    PSP_putMsgBuf(bMsg, "ioPort", &nioPort, sizeof(nioPort));
-    PSP_putMsgBuf(bMsg, "ctlPort", &nctlPort, sizeof(nctlPort));
+    uint32_t nAddr = htonl(addr);
+    PSP_putTypedMsgBuf(&msg, "addr", &nAddr, sizeof(nAddr));
+    uint16_t nioPort = htons(ioPort);
+    PSP_putTypedMsgBuf(&msg, "ioPort", &nioPort, sizeof(nioPort));
+    uint16_t nctlPort = htons(ctlPort);
+    PSP_putTypedMsgBuf(&msg, "ctlPort", &nctlPort, sizeof(nctlPort));
     /* Add string including its length mimicking addString */
-    PSP_putMsgBuf(bMsg, "len", &len, sizeof(len));
-    PSP_putMsgBuf(bMsg, "sigStr", sig, PSP_strLen(sig));
+    uint32_t len = htonl(PSP_strLen(sig));
+    PSP_putTypedMsgBuf(&msg, "len", &len, sizeof(len));
+    PSP_putTypedMsgBuf(&msg, "sigStr", sig, PSP_strLen(sig));
 
     sendMsg(&msg);
 }
@@ -374,16 +376,16 @@ void fwCMD_finalize(Forwarder_Data_t *fwdata, PSLog_Msg_t *plMsg)
 {
     DDTypedBufferMsg_t msg = {
 	.header = {
-	    .type = PSP_CC_MSG,
+	    .type = PSP_PLUG_PSSLURM,
 	    .dest = fwdata ? fwdata->tid : -1,
 	    .sender = PSC_getMyTID(),
 	    .len = 0, },
-	.type = (PSLog_msg_t)CMD_FW_FINALIZE };
+	.type = CMD_FW_FINALIZE };
 
     /* might happen that forwarder is already gone */
     if (!fwdata) return;
 
-    /* This shall be okay since FINALIZE messages are << PSLog_Msg_t */
+    /* Shall be okay since PSLog_Msg_t always fits DDTypedBufferMsg_t buf */
     /* Add data including its length mimicking addData */
     uint32_t len = htonl(plMsg->header.len);
     PSP_putTypedMsgBuf(&msg, "len", &len, sizeof(len));
@@ -396,44 +398,34 @@ void fwCMD_finalize(Forwarder_Data_t *fwdata, PSLog_Msg_t *plMsg)
 
 void fwCMD_taskInfo(Forwarder_Data_t *fwdata, PS_Tasks_t *task)
 {
-    PSLog_Msg_t msg = {
+    DDTypedBufferMsg_t msg = {
 	.header = {
-	    .type = PSP_CC_MSG,
+	    .type = PSP_PLUG_PSSLURM,
 	    .dest = fwdata ? fwdata->tid : -1,
 	    .sender = PSC_getMyTID(),
-	    .len = offsetof(PSLog_Msg_t, buf) },
-	.version = PLUGINFW_PROTO_VERSION,
-	.type = (PSLog_msg_t)CMD_INFO_TASKS,
-	.sender = -1};
-    DDBufferMsg_t *bMsg = (DDBufferMsg_t *)&msg;
-    uint32_t len = htonl(sizeof(*task));
+	    .len = 0 },
+	.type = CMD_INFO_TASKS };
 
     /* might happen that forwarder is already gone */
     if (!fwdata) return;
 
     /* Add data including its length mimicking addData */
-    PSP_putMsgBuf(bMsg, "len", &len, sizeof(len));
-    PSP_putMsgBuf(bMsg, "task", task, sizeof(*task));
+    uint32_t len = htonl(sizeof(*task));
+    PSP_putTypedMsgBuf(&msg, "len", &len, sizeof(len));
+    PSP_putTypedMsgBuf(&msg, "task", task, sizeof(*task));
 
     sendMsg(&msg);
 }
 
 void fwCMD_msgSrunProxy(Step_t *step, PSLog_Msg_t *lmsg, int32_t senderRank)
 {
-    PSLog_Msg_t msg = {
+    DDTypedBufferMsg_t msg = {
 	.header = {
-	    .type = PSP_CC_MSG,
+	    .type = PSP_PLUG_PSSLURM,
 	    .dest = step->fwdata ? step->fwdata->tid : -1,
 	    .sender = lmsg->header.sender,
-	    .len = offsetof(PSLog_Msg_t, buf) },
-	.version = PLUGINFW_PROTO_VERSION,
-	.type = (PSLog_msg_t)CMD_PRINT_CHILD_MSG,
-	.sender = -1};
-    const size_t chunkSize = sizeof(msg.buf) - sizeof(uint8_t)
-	- sizeof(uint32_t) - sizeof(uint32_t);
-    char *buf = lmsg->buf;
-    size_t msgLen = lmsg->header.len - offsetof(PSLog_Msg_t, buf);
-    size_t left = msgLen;
+	    .len = 0 },
+	.type = CMD_PRINT_CHILD_MSG };
 
     /* might happen if forwarder is already gone */
     if (!step->fwdata) return;
@@ -449,21 +441,16 @@ void fwCMD_msgSrunProxy(Step_t *step, PSLog_Msg_t *lmsg, int32_t senderRank)
     /* if msg from service rank, let it seem like it comes from first task */
     if (senderRank < 0) senderRank = step->globalTaskIds[step->localNodeId][0];
 
-    do {
-	uint32_t chunk = left > chunkSize ? chunkSize : left;
-	uint8_t type = lmsg->type;
-	uint32_t nRank = htonl(senderRank);
-	uint32_t len = htonl(chunk);
-	DDBufferMsg_t *bMsg = (DDBufferMsg_t *)&msg;
-	msg.header.len = offsetof(PSLog_Msg_t, buf);
+    /* no chunks required since sizeof(lmsg->buf) << msg.buf */
+    uint8_t type = lmsg->type;
+    PSP_putTypedMsgBuf(&msg, "type", &type, sizeof(type));
+    uint32_t nRank = htonl(senderRank);
+    PSP_putTypedMsgBuf(&msg, "rank", &nRank, sizeof(nRank));
+    /* Add data chunk including its length mimicking addData */
+    size_t msgLen = lmsg->header.len - offsetof(PSLog_Msg_t, buf);
+    uint32_t len = htonl(msgLen);
+    PSP_putTypedMsgBuf(&msg, "len", &len, sizeof(len));
+    PSP_putTypedMsgBuf(&msg, "data", lmsg->buf, msgLen);
 
-	PSP_putMsgBuf(bMsg, "type", &type, sizeof(type));
-	PSP_putMsgBuf(bMsg, "rank", &nRank, sizeof(nRank));
-	/* Add data chunk including its length mimicking addData */
-	PSP_putMsgBuf(bMsg, "len", &len, sizeof(len));
-	PSP_putMsgBuf(bMsg, "data", buf + msgLen - left, chunk);
-
-	sendMsg(&msg);
-	left -= chunk;
-    } while (left);
+    sendMsg(&msg);
 }

@@ -26,7 +26,6 @@
 
 #include "pscio.h"
 #include "pscommon.h"
-#include "pslog.h"
 #include "selector.h"
 #include "timer.h"
 #include "pluginhelper.h"
@@ -42,7 +41,6 @@
 
 /** Default grace time before sending SIGKILL */
 #define DEFAULT_GRACE_TIME 3
-
 
 /* ----- Data handling (used in mother but data passed to forwarder) ----- */
 
@@ -184,15 +182,18 @@ static int handleMthrSock(int fd, void *info)
 
     if (fw->hideCCError && msg.header.type == PSP_CC_ERROR) return 0;
 
-    if (!fw->hideFWctrlMsg || msg.header.type != PSP_CC_MSG
-	|| msg.type > PSLOG_LAST) { // @todo
+    if (!fw->hideFWctrlMsg || msg.header.type != PSP_PF_MSG) {
 	if (fw->handleMthrMsg && fw->handleMthrMsg(&msg, fw)) return 0;
     }
 
-    if (msg.header.type == PSP_CC_ERROR) return 0; /* ignore */
+    switch (msg.header.type) {
+    case PSP_CC_ERROR:
+    case PSP_PF_ERROR: // @todo required?
+	return 0;                  /* ignore */
+    }
 
-    /* messages not handled by hook need to be PSP_CC_MSG */
-    if (msg.header.type != PSP_CC_MSG) {
+    /* messages not handled yet must be PSP_PF_MSG */
+    if (msg.header.type != PSP_PF_MSG) {
 	pluginlog("%s: unexpected message %s from %s (type %d)\n", __func__,
 		  PSP_printMsg(msg.header.type),
 		  PSC_printTID(msg.header.sender), msg.type);
@@ -456,7 +457,7 @@ static void sendChildInfo(Forwarder_Data_t *fw)
 {
     DDTypedBufferMsg_t msg = {
 	.header = {
-	    .type = PSP_CC_MSG,
+	    .type = PSP_PF_MSG,
 	    .dest = PSC_getTID(-1,0),
 	    .sender = PSC_getMyTID(),
 	    .len = 0, },
@@ -506,10 +507,10 @@ static void sendAccInfo(Forwarder_Data_t *fw, int32_t status,
 	return;
     }
 
-    /* Put messsage into envelope */
+    /* Put messsage into envelope */ // @todo think about sending directly
     DDTypedBufferMsg_t msg = {
 	.header = {
-	    .type = PSP_CC_MSG,
+	    .type = PSP_PF_MSG,
 	    .dest = PSC_getTID(-1,0),
 	    .sender = PSC_getMyTID(),
 	    .len = 0, },
@@ -523,11 +524,11 @@ static void sendCodeInfo(int32_t ecode)
 {
     DDTypedBufferMsg_t msg = {
 	.header = {
-	    .type = PSP_CC_MSG,
+	    .type = PSP_PF_MSG,
 	    .dest = PSC_getTID(-1,0),
 	    .sender = PSC_getMyTID(),
 	    .len = 0, },
-	.type = PLGN_CODE };
+	.type = PLGN_EXITCODE };
     PSP_putTypedMsgBuf(&msg, "exit code", &ecode, sizeof(ecode));
 
     sendMsgToMother(&msg);
@@ -537,11 +538,11 @@ static void sendExitInfo(int32_t estatus)
 {
     DDTypedBufferMsg_t msg = {
 	.header = {
-	    .type = PSP_CC_MSG,
+	    .type = PSP_PF_MSG,
 	    .dest = PSC_getTID(-1,0),
 	    .sender = PSC_getMyTID(),
 	    .len = 0, },
-	.type = PLGN_EXIT };
+	.type = PLGN_EXITSTATUS };
     PSP_putTypedMsgBuf(&msg, "exit status", &estatus, sizeof(estatus));
 
     sendMsgToMother(&msg);
@@ -551,7 +552,7 @@ static void sendFin(void)
 {
     DDTypedBufferMsg_t msg = {
 	.header = {
-	    .type = PSP_CC_MSG,
+	    .type = PSP_PF_MSG,
 	    .dest = PSC_getTID(-1,0),
 	    .sender = PSC_getMyTID(),
 	    .len = 0, },
@@ -578,11 +579,11 @@ static int handleChildOE(int fd, void *info)
     /* send to mother */
     DDTypedBufferMsg_t msg = {
 	.header = {
-	    .type = PSP_CC_MSG,
+	    .type = PSP_PF_MSG,
 	    .dest = PSC_getTID(-1,0),
 	    .sender = PSC_getMyTID(),
 	    .len = 0, },
-	.type = (fd == fw->stdOut[0] ? STDOUT : STDERR) };
+	.type = (fd == fw->stdOut[0] ? PLGN_STDOUT : PLGN_STDERR) };
     /* Add data chunk including its length mimicking addString */
     uint32_t len = htonl(PSP_strLen(buf));
     PSP_putTypedMsgBuf(&msg, "len", &len, sizeof(len));
@@ -830,7 +831,7 @@ static void handleChildFin(PStask_ID_t sender)
 {
     DDTypedMsg_t msg = {
 	.header = {
-	    .type = PSP_CC_MSG,
+	    .type = PSP_PF_MSG,
 	    .dest = sender,
 	    .sender = PSC_getMyTID(),
 	    .len = sizeof(msg) },
@@ -871,31 +872,34 @@ static int handleFwSock(int fd, void *info)
 	return 0;
     }
 
-    if (!(fw->hideFWctrlMsg && msg.header.type == PSP_CC_MSG
-	  && msg.type <= PSLOG_LAST)) { // @todo
+    if (!fw->hideFWctrlMsg || msg.header.type != PSP_PF_MSG) {
 	if (fw->handleFwMsg && fw->handleFwMsg(&msg, fw)) return 0;
     } else if (fw->fwChildOE
-	       && (msg.type == STDOUT || msg.type == STDERR)) {
-	/* forward child STDOUT/STDERR if requested */
+	       && (msg.type == PLGN_STDOUT || msg.type == PLGN_STDERR)) {
+	/* forward child STDOUT/STDERR if requested or drop */
 	if (fw->handleFwMsg) fw->handleFwMsg(&msg, fw);
 	return 0;
     }
 
+    /* messages not handled yet must be PSP_PF_MSG */
+    if (msg.header.type != PSP_PF_MSG) {
+	pluginlog("%s: unexpected message %s from %s (type %d)\n", __func__,
+		  PSP_printMsg(msg.header.type),
+		  PSC_printTID(msg.header.sender), msg.type);
+	return 0;
+    }
+
     switch (msg.type) {
-    case STDIN:
-    case FINALIZE:
-	sendMsg(&msg);
-	break;
     case PLGN_CHILD:
 	handleChildStart(fw, &msg);
 	break;
     case PLGN_ACCOUNT:
 	PSID_handleMsg((DDBufferMsg_t *) msg.buf);
 	break;
-    case PLGN_CODE:
+    case PLGN_EXITCODE:
 	handleChildCode(fw, &msg);
 	break;
-    case PLGN_EXIT:
+    case PLGN_EXITSTATUS:
 	handleChildExit(fw, &msg);
 	break;
     case PLGN_FIN:
@@ -966,7 +970,7 @@ bool signalForwarderChild(Forwarder_Data_t *fw, int sig)
     } else if (fw && fw->tid != -1 && PSC_getPID(fw->tid)) {
 	DDTypedBufferMsg_t msg = {
 	    .header = {
-		.type = PSP_CC_MSG,
+		.type = PSP_PF_MSG,
 		.dest = fw->tid,
 		.sender = PSC_getMyTID(),
 		.len = 0, },
@@ -987,7 +991,7 @@ void startGraceTime(Forwarder_Data_t *fw)
 
     DDTypedMsg_t msg = {
 	.header = {
-	    .type = PSP_CC_MSG,
+	    .type = PSP_PF_MSG,
 	    .dest = fw->tid,
 	    .sender = PSC_getMyTID(),
 	    .len = sizeof(msg) },
@@ -1001,7 +1005,7 @@ void shutdownForwarder(Forwarder_Data_t *fw)
 
     DDTypedMsg_t msg = {
 	.header = {
-	    .type = PSP_CC_MSG,
+	    .type = PSP_PF_MSG,
 	    .dest = fw->tid,
 	    .sender = PSC_getMyTID(),
 	    .len = sizeof(msg) },

@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2003 ParTec AG, Karlsruhe
  * Copyright (C) 2005-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021 ParTec AG, Munich
+ * Copyright (C) 2021-2022 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -150,28 +150,6 @@ const char *PSLog_printMsgType(PSLog_msg_t type)
     case SERV_EXT:
 	return "SERV_EXT";
 
-    case PLGN_CHILD:
-	return "PLGN_CHILD";
-    case PLGN_SIGNAL_CHLD:
-	return "PLGN_SIGNAL_CHLD";
-    case PLGN_START_GRACE:
-	return "PLGN_START_GRACE";
-    case PLGN_SHUTDOWN:
-	return "PLGN_SHUTDOWN";
-    case PLGN_ACCOUNT:
-	return "PLGN_ACCOUNT";
-    case PLGN_CODE:
-	return "PLGN_CODE";
-    case PLGN_EXIT:
-	return "PLGN_EXIT";
-    case PLGN_FIN:
-	return "PLGN_FIN";
-    case PLGN_FIN_ACK:
-	return "PLGN_FIN_ACK";
-    case PLGN_SIGNAL:
-	return "PLGN_SIGNAL";
-    case PLGN_REQ_ACCNT:
-	return "PLGN_REQ_ACCNT";
     default:
 	return "<unknown>";
     }

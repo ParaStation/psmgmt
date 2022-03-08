@@ -315,10 +315,12 @@ typedef enum {
 #define PSP_CD_SENDCONT          0x0071  /**< Continue sending packets */
 
 /** Client-client messages. These are fully transparent for the daemons. */
-#define PSP_CC_MSG               0x0080  /**< Message between clients. */
-#define PSP_CC_ERROR             0x0081  /**< Error in client communication. */
-#define PSP_CC_PSI_MSG           0x0082  /**< Rank-routed message. */
-#define PSP_CC_PSI_ERROR         0x0083  /**< Error in rank-routed comm. */
+#define PSP_CC_MSG               0x0080  /**< Message between clients */
+#define PSP_CC_ERROR             0x0081  /**< Error in client communication */
+#define PSP_PF_MSG               0x0082  /**< Message to/from pluginforwarder */
+#define PSP_PF_ERROR             0x0083  /**< Error to/from pluginforwarder */
+#define PSP_RR_MSG               0x0084  /**< Rank-routed message */
+#define PSP_RR_ERROR             0x0085  /**< Error in rank-routed comm */
 
 /** Error messages */
 #define PSP_CD_UNKNOWN           0x00FE  /**< Message reporting unknown types

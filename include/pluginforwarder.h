@@ -18,8 +18,6 @@
 #include "pstaskid.h"
 #include "psprotocol.h"
 
-#define PLUGINFW_PROTO_VERSION 2
-
 /* forward declaration */
 struct __fwData__;    // Make IWYU happy
 typedef struct __fwData__ Forwarder_Data_t;
@@ -85,6 +83,23 @@ typedef struct __fwData__ {
     int (*handleFwMsg)(DDTypedBufferMsg_t *, Forwarder_Data_t *);
 			   /**< Additional forwarder-msgs handled by mother */
 } ForwarderData_t;
+
+/** Generic message (sub-)types exchanged between mother and forwarder */
+typedef enum {
+    PLGN_CHILD,          /**< fw -> plgn Child is ready */
+    PLGN_SIGNAL_CHLD,    /**< plgn -> fw Signal child */
+    PLGN_STDOUT,         /**< fw -> plgn Child's stdout */
+    PLGN_STDERR,         /**< fw -> plgn Child's stderr */
+    PLGN_START_GRACE,    /**< plgn -> fw Start child's grace period */
+    PLGN_SHUTDOWN,       /**< plgn -> fw Shutdown child */
+    PLGN_ACCOUNT,        /**< fw -> plgn Resources used by child */
+    PLGN_EXITCODE,       /**< fw -> plgn Child hook exit code */
+    PLGN_EXITSTATUS,     /**< fw -> plgn Child exit status */
+    PLGN_FIN,            /**< fw -> plgn Forwarder going to finalize */
+    PLGN_FIN_ACK,        /**< plgn -> fw ACK finalization */
+    PLGN_TYPE_LAST = 32, /**< all numbers beyond this might be used privately,
+			 e.g. between plugins and their own forwarders */
+} ForwarderMsg_t;
 
 /* ------------- Functions to be executed in forwarder ------------------ */
 

@@ -25,7 +25,6 @@
 #include "list.h"
 #include "pscommon.h"
 #include "psenv.h"
-#include "pslog.h"
 #include "psprotocol.h"
 #include "psserial.h"
 
@@ -270,10 +269,10 @@ static void handlePeIO(Forwarder_Data_t *fwdata, PElogue_OEtype_t type,
 static int handlePeFwMsg(DDTypedBufferMsg_t *msg, Forwarder_Data_t *fwdata)
 {
     switch (msg->type) {
-    case STDOUT:
+    case PLGN_STDOUT:
 	handlePeIO(fwdata, PELOGUE_OE_STDOUT, msg->buf);
 	break;
-    case STDERR:
+    case PLGN_STDERR:
 	handlePeIO(fwdata, PELOGUE_OE_STDERR, msg->buf);
 	break;
     default:
