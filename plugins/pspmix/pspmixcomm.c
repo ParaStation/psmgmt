@@ -253,9 +253,9 @@ static void handlePspmixMsg(DDTypedBufferMsg_t *msg)
  *
  * @param msg Message to handle
  *
- * @return Returns 1 if the type is known, 0 if not
+ * @return Return true if message was handled or false otherwise
  */
-static int handleMsg(DDTypedBufferMsg_t *msg)
+static bool handleMsg(DDTypedBufferMsg_t *msg)
 {
     mdbg(PSPMIX_LOG_CALL, "%s() called\n", __func__);
 
@@ -268,13 +268,13 @@ static int handleMsg(DDTypedBufferMsg_t *msg)
 	     PSDaemonP_printMsg(msg->header.type), msg->header.type,
 	     PSC_printTID(msg->header.sender));
 	mlog("->%s]\n", PSC_printTID(msg->header.dest));
-	return 0;
+	return false;
     }
 
-    return 1;
+    return true;
 }
 
-int pspmix_comm_handleMthrMsg(DDTypedBufferMsg_t *msg, ForwarderData_t *fw)
+bool pspmix_comm_handleMthrMsg(DDTypedBufferMsg_t *msg, ForwarderData_t *fw)
 {
     mdbg(PSPMIX_LOG_CALL, "%s() called\n", __func__);
     return handleMsg(msg);

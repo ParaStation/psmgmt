@@ -108,8 +108,10 @@ static void parseEnergy(char *ptr)
     updatePower(power);
 }
 
-static int handleFwMsg(DDTypedBufferMsg_t *msg, Forwarder_Data_t *fwdata)
+static bool handleFwMsg(DDTypedBufferMsg_t *msg, Forwarder_Data_t *fwdata)
 {
+    if (msg->header.type != PSP_PF_MSG) return false;
+
     switch (msg->type) {
     case PLGN_STDOUT:
 	parseEnergy(msg->buf);
@@ -119,10 +121,10 @@ static int handleFwMsg(DDTypedBufferMsg_t *msg, Forwarder_Data_t *fwdata)
 	break;
     default:
 	mlog("%s: unhandled msg type %d\n", __func__, msg->type);
-	return 0;
+	return false;
     }
 
-    return 1;
+    return true;
 }
 
 static void execEnergyScript(Forwarder_Data_t *fwdata, int rerun)

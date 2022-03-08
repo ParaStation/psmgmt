@@ -54,10 +54,10 @@ typedef struct __fwData__ {
 			    * from handleMthrMsg() hook. Defaults to true. */
     bool hideCCError;	   /**< hide PSP_CC_ERROR messages from handleMthrMsg()
 			    * hook. Defaults to true. */
-    bool fwChildOE;	   /**< Automatically forward STDOUT/STDERR from the
+    bool fwChildOE;	   /**< Automatically forward stdout/stderr from the
 			    * child to the mother. The caller is responsible to
-			    * handle the STDOUT/STDERR messages in the function
-			    * handleFwMsg() */
+			    * handle the PLGN_STDOUT/PLGN_STDERR messages in the
+			    * function handleFwMsg() */
     bool jailChild;	   /**< jail myself and all my children by
 			    * calling the hook PSIDHOOK_JAIL_CHILD */
     int (*killSession)(pid_t, int);
@@ -78,9 +78,9 @@ typedef struct __fwData__ {
 			   /**< Called within mother when child is ready */
     void (*hookFinalize)(Forwarder_Data_t *);
 			   /**< Called within forwarder upon finalization */
-    int (*handleMthrMsg)(DDTypedBufferMsg_t *, Forwarder_Data_t *);
+    bool (*handleMthrMsg)(DDTypedBufferMsg_t *, Forwarder_Data_t *);
 			   /**< Additional mother-msgs handled by forwarder */
-    int (*handleFwMsg)(DDTypedBufferMsg_t *, Forwarder_Data_t *);
+    bool (*handleFwMsg)(DDTypedBufferMsg_t *, Forwarder_Data_t *);
 			   /**< Additional forwarder-msgs handled by mother */
 } ForwarderData_t;
 

@@ -266,8 +266,10 @@ static void handlePeIO(Forwarder_Data_t *fwdata, PElogue_OEtype_t type,
 /**
  * @brief Handle messages form pelogue forwarder
  */
-static int handlePeFwMsg(DDTypedBufferMsg_t *msg, Forwarder_Data_t *fwdata)
+static bool handlePeFwMsg(DDTypedBufferMsg_t *msg, Forwarder_Data_t *fwdata)
 {
+    if (msg->header.type != PSP_PF_MSG) return false;
+
     switch (msg->type) {
     case PLGN_STDOUT:
 	handlePeIO(fwdata, PELOGUE_OE_STDOUT, msg->buf);
@@ -279,10 +281,10 @@ static int handlePeFwMsg(DDTypedBufferMsg_t *msg, Forwarder_Data_t *fwdata)
 	mlog("%s: unexpected msg, type %d from TID %s (%s) jobid %s\n",
 	     __func__, msg->type, PSC_printTID(msg->header.sender),
 	     fwdata->pTitle, fwdata->jobID);
-	return 0;
+	return false;
     }
 
-    return 1;
+    return true;
 }
 
 void startChild(PElogueChild_t *child)

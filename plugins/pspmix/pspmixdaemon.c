@@ -187,9 +187,9 @@ static bool forwardPspmixMsg(DDBufferMsg_t *vmsg)
  * @param msg    message received
  * @param fw     the plugin forwarder hosting the PMIx jobserver
  *
- * @return Returns 1 if the type is known, 0 if not
+ * @return Return true if message was handled or false otherwise
  */
-static int forwardPspmixFwMsg(DDTypedBufferMsg_t *msg, ForwarderData_t *fw)
+static bool forwardPspmixFwMsg(DDTypedBufferMsg_t *msg, ForwarderData_t *fw)
 {
     mdbg(PSPMIX_LOG_CALL, "%s() called\n", __func__);
 
@@ -216,7 +216,7 @@ static int forwardPspmixFwMsg(DDTypedBufferMsg_t *msg, ForwarderData_t *fw)
 
     forwardPspmixMsg((DDBufferMsg_t *)msg);
 
-    return 1;
+    return true;
 }
 
 /* ****************************************************** *

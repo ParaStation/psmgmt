@@ -343,12 +343,12 @@ static void fwCallback(int32_t exit_status, Forwarder_Data_t *fw)
     }
 }
 
-int handleMotherMsg(DDTypedBufferMsg_t *msg, Forwarder_Data_t *fw)
+static bool handleMotherMsg(DDTypedBufferMsg_t *msg, Forwarder_Data_t *fw)
 {
     PSGW_Req_t *req = Request_verify(fw->userData);
     if (!req) {
 	flog("no request for %p\n", fw->userData);
-	return 0;
+	return false;
     }
 
     /* failed to get resources from master */
@@ -365,7 +365,7 @@ int handleMotherMsg(DDTypedBufferMsg_t *msg, Forwarder_Data_t *fw)
 	exit(1);
     }
 
-    return 0;
+    return false;
 }
 
 bool requestGWnodes(PSGW_Req_t *req, int numNodes)

@@ -10,7 +10,6 @@
  */
 #include "psslurmfwcomm.h"
 
-#include <stdbool.h>
 #include <stddef.h>
 #include <netinet/in.h>
 
@@ -132,35 +131,36 @@ static void handlePrintStepMsg(Forwarder_Data_t *fwdata, char *ptr)
     ufree(msg);
 }
 
-int fwCMD_handleMthrStepMsg(DDTypedBufferMsg_t *msg, Forwarder_Data_t *fwdata)
+bool fwCMD_handleMthrStepMsg(DDTypedBufferMsg_t *msg, Forwarder_Data_t *fwdata)
 {
+    if (msg->header.type != PSP_PF_MSG) return false;
+
     switch ((PSSLURM_Fw_Cmds_t)msg->type) {
-	case CMD_PRINT_CHILD_MSG:
-	    handlePrintStepMsg(fwdata, msg->buf);
-	    break;
-	case CMD_ENABLE_SRUN_IO:
-	    handleEnableSrunIO(fwdata);
-	    break;
-	case CMD_FW_FINALIZE:
-	    handleFWfinalize(fwdata, msg->buf);
-	    break;
-	case CMD_REATTACH_TASKS:
-	    handleSattachTasks(fwdata, msg->buf);
-	    break;
-	case CMD_INFO_TASKS:
-	    handleInfoTasks(fwdata, msg->buf);
-	    break;
-	case CMD_STEP_TIMEOUT:
-	    handleStepTimeout(fwdata);
-	    break;
-	default:
-	    flog("unexpected msg, type %s (sub-type %d) from TID %s (%s) "
-		 "jobid %s\n", PSDaemonP_printMsg(msg->header.type), msg->type,
-		 PSC_printTID(msg->header.sender), fwdata->pTitle, fwdata->jobID);
-	    return 0;
+    case CMD_PRINT_CHILD_MSG:
+	handlePrintStepMsg(fwdata, msg->buf);
+	break;
+    case CMD_ENABLE_SRUN_IO:
+	handleEnableSrunIO(fwdata);
+	break;
+    case CMD_FW_FINALIZE:
+	handleFWfinalize(fwdata, msg->buf);
+	break;
+    case CMD_REATTACH_TASKS:
+	handleSattachTasks(fwdata, msg->buf);
+	break;
+    case CMD_INFO_TASKS:
+	handleInfoTasks(fwdata, msg->buf);
+	break;
+    case CMD_STEP_TIMEOUT:
+	handleStepTimeout(fwdata);
+	break;
+    default:
+	flog("unexpected msg, type %d from TID %s (%s) jobid %s\n", msg->type,
+	     PSC_printTID(msg->header.sender), fwdata->pTitle, fwdata->jobID);
+	return false;
     }
 
-    return 1;
+    return true;
 }
 
 static void handlePrintJobMsg(Forwarder_Data_t *fwdata, char *ptr)
@@ -177,22 +177,21 @@ static void handlePrintJobMsg(Forwarder_Data_t *fwdata, char *ptr)
     ufree(msg);
 }
 
-int fwCMD_handleMthrJobMsg(DDTypedBufferMsg_t *msg, Forwarder_Data_t *fwdata)
+bool fwCMD_handleMthrJobMsg(DDTypedBufferMsg_t *msg, Forwarder_Data_t *fwdata)
 {
-    PSSLURM_Fw_Cmds_t type = (PSSLURM_Fw_Cmds_t)msg->type;
+    if (msg->header.type != PSP_PF_MSG) return false;
 
-    switch (type) {
-	case CMD_PRINT_CHILD_MSG:
-	    handlePrintJobMsg(fwdata, msg->buf);
-	    break;
-	default:
-	    flog("unexpected msg, type %d (PSlog type %s) from TID %s (%s) "
-		 "jobid %s\n", type, PSLog_printMsgType(msg->type),
-		 PSC_printTID(msg->header.sender), fwdata->pTitle, fwdata->jobID);
-	    return 0;
+    switch ((PSSLURM_Fw_Cmds_t)msg->type) {
+    case CMD_PRINT_CHILD_MSG:
+	handlePrintJobMsg(fwdata, msg->buf);
+	break;
+    default:
+	flog("unexpected msg, type %d from TID %s (%s) jobid %s\n", msg->type,
+	     PSC_printTID(msg->header.sender), fwdata->pTitle, fwdata->jobID);
+	return false;
     }
 
-    return 1;
+    return true;
 }
 
 static void handleBrokeIOcon(DDTypedBufferMsg_t *msg)
@@ -210,7 +209,7 @@ static void handleBrokeIOcon(DDTypedBufferMsg_t *msg)
     if (step->ioCon == IO_CON_NORM) step->ioCon = IO_CON_ERROR;
 }
 
-int fwCMD_handleFwStepMsg(DDTypedBufferMsg_t *msg, Forwarder_Data_t *fwdata)
+bool fwCMD_handleFwStepMsg(DDTypedBufferMsg_t *msg, Forwarder_Data_t *fwdata)
 {
     if (msg->header.type == PSP_CC_MSG) {
 	PSLog_Msg_t *lmsg = (PSLog_Msg_t *)msg;
@@ -218,23 +217,25 @@ int fwCMD_handleFwStepMsg(DDTypedBufferMsg_t *msg, Forwarder_Data_t *fwdata)
 	case FINALIZE:
 	case STDIN:
 	    sendMsg(msg);
-	    return 1;
+	    break;
 	default:
 	    mdbg(-1, "%s: Unhandled Log-type %s\n", __func__,
 		 PSLog_printMsgType(lmsg->type));
+	    return false;
 	}
     } else if (msg->header.type == PSP_PLUG_PSSLURM) {
 	switch ((PSSLURM_Fw_Cmds_t)msg->type) {
 	case CMD_BROKE_IO_CON:
 	    handleBrokeIOcon(msg);
-	    return 1;
+	    break;
 	default:
 	    mdbg(PSSLURM_LOG_IO_VERB, "%s: Unhandled type %d\n", __func__,
 		 msg->type);
+	    return false;
 	}
-    }
+    } else return false; // do not handle other types of messages
 
-    return 0;
+    return true;
 }
 
 void fwCMD_stepTimeout(Forwarder_Data_t *fwdata)

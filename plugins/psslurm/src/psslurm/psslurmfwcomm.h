@@ -11,6 +11,7 @@
 #ifndef __PS_SLURM_FW_COMM
 #define __PS_SLURM_FW_COMM
 
+#include <stdbool.h>
 #include <stdint.h>
 
 #include "pslog.h"
@@ -28,9 +29,9 @@
  *
  * @param fwdata The forwarder management structure
  *
- * @return Returns 1 on success and 0 otherwise
+ * @return Return true if message was handled or false otherwise
  */
-int fwCMD_handleFwStepMsg(DDTypedBufferMsg_t *msg, Forwarder_Data_t *fwdata);
+bool fwCMD_handleFwStepMsg(DDTypedBufferMsg_t *msg, Forwarder_Data_t *fwdata);
 
 /**
  * @brief Handle a message from mother sendto step forwarder
@@ -39,9 +40,9 @@ int fwCMD_handleFwStepMsg(DDTypedBufferMsg_t *msg, Forwarder_Data_t *fwdata);
  *
  * @param fwdata The forwarder management structure
  *
- * @return Returns 1 on success and 0 otherwise
+ * @return Return true if message was handled or false otherwise
  */
-int fwCMD_handleMthrStepMsg(DDTypedBufferMsg_t *msg, Forwarder_Data_t *fwdata);
+bool fwCMD_handleMthrStepMsg(DDTypedBufferMsg_t *msg, Forwarder_Data_t *fwdata);
 
 /**
  * @brief Handle a message from mother sendto job forwarder
@@ -50,9 +51,9 @@ int fwCMD_handleMthrStepMsg(DDTypedBufferMsg_t *msg, Forwarder_Data_t *fwdata);
  *
  * @param fwdata The forwarder management structure
  *
- * @return Returns 1 on success and 0 otherwise
+ * @return Return true if message was handled or false otherwise
  */
-int fwCMD_handleMthrJobMsg(DDTypedBufferMsg_t *msg, Forwarder_Data_t *fwdata);
+bool fwCMD_handleMthrJobMsg(DDTypedBufferMsg_t *msg, Forwarder_Data_t *fwdata);
 
 /**
  * @brief Send CMD_STEP_TIMEOUT to a forwarder

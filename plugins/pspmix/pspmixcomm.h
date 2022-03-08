@@ -34,9 +34,9 @@
  * @param msg Message to handle
  * @param fw  Forwarder struct (ignored)
  *
- * @return Returns 1 if the type is known, 0 if not
+ * @return Return true if message was handled or false otherwise
  */
-int pspmix_comm_handleMthrMsg(DDTypedBufferMsg_t *msg, ForwarderData_t *fw);
+bool pspmix_comm_handleMthrMsg(DDTypedBufferMsg_t *msg, ForwarderData_t *fw);
 
 /**
  * @brief Compose and send a client PMIx environment message
