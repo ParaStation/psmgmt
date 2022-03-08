@@ -182,7 +182,8 @@ static int handleMthrSock(int fd, void *info)
 
     if (fw->hideCCError && msg.header.type == PSP_CC_ERROR) return 0;
 
-    if (!fw->hideFWctrlMsg || msg.header.type != PSP_PF_MSG) {
+    if (!fw->hideFWctrlMsg || msg.header.type != PSP_PF_MSG
+	|| msg.type > PLGN_TYPE_LAST) {
 	if (fw->handleMthrMsg && fw->handleMthrMsg(&msg, fw)) return 0;
     }
 
@@ -872,7 +873,8 @@ static int handleFwSock(int fd, void *info)
 	return 0;
     }
 
-    if (!fw->hideFWctrlMsg || msg.header.type != PSP_PF_MSG) {
+    if (!fw->hideFWctrlMsg || msg.header.type != PSP_PF_MSG
+	|| msg.type > PLGN_TYPE_LAST) {
 	if (fw->handleFwMsg && fw->handleFwMsg(&msg, fw)) return 0;
     } else if (fw->fwChildOE
 	       && (msg.type == PLGN_STDOUT || msg.type == PLGN_STDERR)) {
