@@ -89,7 +89,7 @@ static void handleFWfinalize(Forwarder_Data_t *fwdata, char *ptr)
     }
 
     /* let main psslurm forward FINALIZE to logger */
-    sendMsgToMother((DDTypedBufferMsg_t *)msg); // @todo most probably encapsuled
+    sendMsgToMother((DDTypedBufferMsg_t *)msg);
     ufree(msg);
 }
 
@@ -241,7 +241,7 @@ void fwCMD_stepTimeout(Forwarder_Data_t *fwdata)
 {
     DDTypedMsg_t msg = {
 	.header = {
-	    .type = PSP_PLUG_PSSLURM,
+	    .type = PSP_PF_MSG,
 	    .dest = fwdata ? fwdata->tid : -1,
 	    .sender = PSC_getMyTID(),
 	    .len = sizeof(msg) },
@@ -257,7 +257,7 @@ void fwCMD_brokeIOcon(Step_t *step)
 {
     DDTypedBufferMsg_t msg = {
 	.header = {
-	    .type = PSP_PLUG_PSSLURM,
+	    .type = PSP_PF_MSG,
 	    .dest = PSC_getTID(-1,0),
 	    .sender = PSC_getMyTID(),
 	    .len = 0, },
@@ -274,7 +274,7 @@ void fwCMD_enableSrunIO(Step_t *step)
 {
     DDTypedMsg_t msg = {
 	.header = {
-	    .type = PSP_PLUG_PSSLURM,
+	    .type = PSP_PF_MSG,
 	    .dest = step->fwdata ? step->fwdata->tid : -1,
 	    .sender = PSC_getMyTID(),
 	    .len = sizeof(msg) },
@@ -302,7 +302,7 @@ void fwCMD_printMsg(Job_t *job, Step_t *step, char *plMsg, uint32_t msgLen,
 
     DDTypedBufferMsg_t msg = {
 	.header = {
-	    .type = PSP_PLUG_PSSLURM,
+	    .type = PSP_PF_MSG,
 	    .dest = fwdata->tid,
 	    .sender = PSC_getMyTID(),
 	    .len = 0, },
@@ -349,7 +349,7 @@ void fwCMD_reattachTasks(Forwarder_Data_t *fwdata, uint32_t addr,
 {
     DDTypedBufferMsg_t msg = {
 	.header = {
-	    .type = PSP_PLUG_PSSLURM,
+	    .type = PSP_PF_MSG,
 	    .dest = fwdata ? fwdata->tid : -1,
 	    .sender = PSC_getMyTID(),
 	    .len = 0 },
@@ -376,7 +376,7 @@ void fwCMD_finalize(Forwarder_Data_t *fwdata, PSLog_Msg_t *plMsg)
 {
     DDTypedBufferMsg_t msg = {
 	.header = {
-	    .type = PSP_PLUG_PSSLURM,
+	    .type = PSP_PF_MSG,
 	    .dest = fwdata ? fwdata->tid : -1,
 	    .sender = PSC_getMyTID(),
 	    .len = 0, },
@@ -400,7 +400,7 @@ void fwCMD_taskInfo(Forwarder_Data_t *fwdata, PS_Tasks_t *task)
 {
     DDTypedBufferMsg_t msg = {
 	.header = {
-	    .type = PSP_PLUG_PSSLURM,
+	    .type = PSP_PF_MSG,
 	    .dest = fwdata ? fwdata->tid : -1,
 	    .sender = PSC_getMyTID(),
 	    .len = 0 },
@@ -421,7 +421,7 @@ void fwCMD_msgSrunProxy(Step_t *step, PSLog_Msg_t *lmsg, int32_t senderRank)
 {
     DDTypedBufferMsg_t msg = {
 	.header = {
-	    .type = PSP_PLUG_PSSLURM,
+	    .type = PSP_PF_MSG,
 	    .dest = step->fwdata ? step->fwdata->tid : -1,
 	    .sender = lmsg->header.sender,
 	    .len = 0 },
