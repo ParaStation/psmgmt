@@ -59,6 +59,7 @@
 #include "psidplugin.h"
 #include "psidrdp.h"
 #include "psidscripts.h"
+#include "psidsession.h"
 #include "psidsignal.h"
 #include "psidspawn.h"
 #include "psidstate.h"
@@ -469,6 +470,7 @@ void PSID_clearMem(bool aggressive)
     if (aggressive) PSIDtask_clearMem();
     PSsignal_gc();
     PSrsrvtn_clearMem();
+    PSIDsession_clearMem();
 
     PSIDRDP_clearMem();
     PSIDclient_clearMem();
@@ -723,6 +725,7 @@ int main(int argc, const char *argv[])
     initStatus();
     initSignal();
     PSIDspawn_init();
+    PSIDsession_init();
     initPartition();
     PSIDhw_init();
     PSIDscripts_init();
