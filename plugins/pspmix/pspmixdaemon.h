@@ -1,8 +1,8 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2018-2019 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2022 ParTec AG, Munich
+ * Copyright (C) 2018-2021 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2021-2022 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -13,6 +13,8 @@
  */
 #ifndef __PS_PMIX_DAEMON
 #define __PS_PMIX_DAEMON
+
+#include <sys/types.h>
 
 #include "pstaskid.h"
 
@@ -35,12 +37,12 @@ void pspmix_initDaemonModule(void);
 void pspmix_finalizeDaemonModule(void);
 
 /**
- * @brief Find TID of the jobserver for job with passed loggertid
+ * @brief Find TID of the server of the passed user
  *
- * @param loggertid  loggertid of the job
+ * @param uid  ID of the user
  *
  * @return The TID of the server or -1 on error
  */
-PStask_ID_t pspmix_daemon_getJobserverTID(PStask_ID_t loggertid);
+PStask_ID_t pspmix_daemon_getServerTID(uid_t uid);
 
 #endif  /* __PS_PMIX_DAEMON */

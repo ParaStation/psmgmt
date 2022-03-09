@@ -23,13 +23,12 @@
 
 #include "pscommon.h"
 #include "psprotocol.h"
+#include "psenv.h"
 
 #include "pluginforwarder.h"
 
 /**
  * @brief Handle messages from our mother psid
- *
- * This needs to take PSLog_Msg_t until the plugin forwarder is generalized.
  *
  * @param msg Message to handle
  * @param fw  Forwarder struct (ignored)
@@ -47,13 +46,11 @@ bool pspmix_comm_handleMthrMsg(DDTypedBufferMsg_t *msg, ForwarderData_t *fw);
  *
  * @return Returns true on success, false on error
  */
-bool pspmix_comm_sendClientPMIxEnvironment(PStask_ID_t targetTID,
-	char **environ, uint32_t envsize);
+bool pspmix_comm_sendClientPMIxEnvironment(PStask_ID_t targetTID, env_t *env);
 
 /**
  * @brief Compose and send a fence in message
  *
- * @param loggertid  tid of the logger, used as jobid
  * @param target     node id of the node to send the message to
  * @param fenceid    id of the fence
  * @param data       data blob to share with all participating nodes
@@ -61,8 +58,8 @@ bool pspmix_comm_sendClientPMIxEnvironment(PStask_ID_t targetTID,
  *
  * @return Returns true on success, false on error
  */
-bool pspmix_comm_sendFenceIn(PStask_ID_t loggertid, PSnodes_ID_t target,
-			     uint64_t fenceid, char *data, size_t ndata);
+bool pspmix_comm_sendFenceIn(PSnodes_ID_t target, uint64_t fenceid,
+			     char *data, size_t ndata);
 
 /**
  * @brief Compose and send a fence out message
@@ -80,14 +77,12 @@ bool pspmix_comm_sendFenceOut(PStask_ID_t targetTID, uint64_t fenceid,
 /**
  * @brief Compose and send a modex data request message
  *
- * @param loggertid  tid of the logger, used as jobid
  * @param target     node id of the psid to send the message to
  * @param proc       process information the message shall contain
  *
  * @return Returns true on success, false on error
  */
-bool pspmix_comm_sendModexDataRequest(PStask_ID_t loggertid,
-				      PSnodes_ID_t target, pmix_proc_t *proc);
+bool pspmix_comm_sendModexDataRequest(PSnodes_ID_t target, pmix_proc_t *proc);
 
 /**
  * @brief Compose and send a modex data response message
@@ -109,11 +104,13 @@ bool pspmix_comm_sendModexDataResponse(PStask_ID_t targetTID, bool status,
  * @param targetTID  task id of the forwarder to send the message to
  * @param rank       rank of the client
  * @param nspace     namespace name
+ * @param spawnertid spawner as job identifier for extra field
  *
  * @return Returns true on success, false on error
  */
 bool pspmix_comm_sendInitNotification(PStask_ID_t targetTID,
-	pmix_rank_t rank, const char *nspace);
+				      pmix_rank_t rank, const char *nspace,
+				      PStask_ID_t spawnertid);
 
 /**
  * @brief Compose and send a client finalization notification message
@@ -121,20 +118,34 @@ bool pspmix_comm_sendInitNotification(PStask_ID_t targetTID,
  * @param targetTID  task id of the forwarder to send the message to
  * @param rank       rank of the client
  * @param nspace     namespace name
+ * @param spawnertid spawner as job identifier for extra field
  *
  * @return Returns true on success, false on error
  */
 bool pspmix_comm_sendFinalizeNotification(PStask_ID_t targetTID,
-	pmix_rank_t rank, const char *nspace);
+					  pmix_rank_t rank, const char *nspace,
+					  PStask_ID_t spawnertid);
+
+/**
+ * @brief Send a signal message to a process via the daemon
+ *
+ * @param targetTID  task id of the process to receive the message
+ * @param signal     signal to send with the message
+ *
+ * @return No return value.
+ */
+void pspmix_comm_sendSignal(PStask_ID_t targetTID, int signal);
 
 /**
  * @brief Initialize communication
  *
  * Setup fragmentation layer.
  *
+ * @param uid  uid of the server (to be used as message extra)
+ *
  * @return Returns true on success, false on errors
  */
-bool pspmix_comm_init();
+bool pspmix_comm_init(uid_t uid);
 
 /**
  * @brief Finalize communication

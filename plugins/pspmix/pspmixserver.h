@@ -122,7 +122,7 @@ bool pspmix_server_registerClient(const char *nspace, int rank, int uid,
  *
  * @param nspace     name of the namespace to register
  * @param rank       rank of the child to fork
- * @param childEnv   pointer to the child environment to modify
+ * @param childEnv   pointer to the child environment to modify (NULL term.)
  *
  * @return true on success, false on error
  */

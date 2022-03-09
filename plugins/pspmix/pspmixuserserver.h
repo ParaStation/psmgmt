@@ -10,38 +10,53 @@
  */
 /**
  * @file Definitions of functions running in the plugin forwarder working as
- *       PMIx job server
+ *       PMIx user server
  */
-#ifndef __PS_PMIX_JOBSERVER
-#define __PS_PMIX_JOBSERVER
+#ifndef __PS_PMIX_USERSERVER
+#define __PS_PMIX_USERSERVER
 
 #include "pluginforwarder.h"
+
+#include "pspmixtypes.h"
 
 /**
  * @brief Function called to initialize the plugin forwarder
  *
- * This function assumes, that all reservation notifications for one job
- * (in PMIx meaning) have been received before the first spawn request for this
- * job. This is needed to create the complete namespace.
- *
  * @param fwdata  the forwarders user data containing the server struct
  */
-int pspmix_jobserver_initialize(Forwarder_Data_t *fwdata);
+int pspmix_userserver_initialize(Forwarder_Data_t *fwdata);
+
+/**
+ * @brief Add a job to this server
+ *
+ * @param loggertid  logger to identify session to add the job to
+ * @param job        the job to add to the server (takes ownership)
+ *                   (needs not to have the session set, yet)
+ */
+bool pspmix_userserver_addJob(PStask_ID_t loggertid, PspmixJob_t *job);
+
+/**
+ * @brief Remove a job from this server
+ *
+ * @param spawnertid  spawner identifying the job to remove
+ * @param abort       flag if the job need to be aborted
+ */
+bool pspmix_userserver_removeJob(PStask_ID_t spawnertid, bool abort);
 
 /**
  * @brief Function called to prepare the plugin forwarder loop
  *
  * @param fwdata  the forwarders user data containing the server struct (unused)
  */
-void pspmix_jobserver_prepareLoop(Forwarder_Data_t *fwdata);
+void pspmix_userserver_prepareLoop(Forwarder_Data_t *fwdata);
 
 /**
  * @brief Function called to finalize the plugin forwarder
  *
  * @param fwdata  the forwarders user data containing the server struct (unused)
  */
-void pspmix_jobserver_finalize(Forwarder_Data_t *fwdata);
+void pspmix_userserver_finalize(Forwarder_Data_t *fwdata);
 
-#endif  /* __PS_PMIX_JOBSERVER */
+#endif  /* __PS_PMIX_USERSERVER */
 
 /* vim: set ts=8 sw=4 tw=0 sts=4 noet :*/

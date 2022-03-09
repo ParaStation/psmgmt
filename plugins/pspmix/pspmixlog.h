@@ -17,6 +17,8 @@
 
 #include "logging.h"
 
+#include "psidforwarder.h"
+
 #include "pspmixtypes.h"
 
 extern logger_t *pmixlogger;
@@ -72,6 +74,25 @@ typedef enum {
  * @return Returns the string
  */
 const char *pspmix_getMsgTypeString(PSP_PSPMIX_t type);
+
+/**
+ * @brief Returns string representing a PMIx job
+ *
+ * @param job  the job
+ *
+ * @return Returns the string
+ */
+const char *pspmix_jobStr(PspmixJob_t *job);
+
+/**
+ * @brief Returns string representing a PMIx job
+ *
+ * @param loggertid   session id
+ * @param spawnertid  job id
+ *
+ * @return Returns the string
+ */
+const char *pspmix_jobIDsStr(PStask_ID_t loggertid, PStask_ID_t spawnertid);
 
 /**
  * @brief Init logging facility

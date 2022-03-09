@@ -13,11 +13,11 @@
  *
  * Two jobs are done in the forwarders:
  * - Before forking the client, wait for the environment sent by the
- *   PMIx Jobserver and set it for the client.
+ *   PMIx server and set it for the client.
  * - Manage the initialization state (in PMIx sense) of the client to correctly
  *   do the client release and thus failure handling.
  *   (This task is historically done in the psid forwarder and actually means
- *    an unnecessary indirection (PMIx Jobsever <-> PSID Forwarder <-> PSID).
+ *    an unnecessary indirection (PMIx server <-> PSID Forwarder <-> PSID).
  *    @todo Think about getting rid of that.)
  */
 #include "pspmixforwarder.h"
@@ -60,8 +60,8 @@ PSIDhook_ClntRls_t pmixStatus = IDLE;
 /** Various info on client waiting for PSP_CD_RELEASERES message */
 static struct {
     PStask_ID_t client;     /**< Task ID of client to be released */
-    pmix_proc_t proc;       /**< PMIX info identifying client to be released */
-    PStask_ID_t jobServer;  /**< Job server of client to be released */
+    pmix_proc_t proc;       /**< PMIx info identifying client to be released */
+    PStask_ID_t server;     /**< PMIx server of client to be released */
 } clntInfo;
 
 /* ****************************************************** *
@@ -82,10 +82,10 @@ static bool sendRegisterClientMsg(PStask_t *clientTask)
 
     PStask_ID_t myTID = PSC_getMyTID();
 
-    PStask_ID_t serverTID = pspmix_daemon_getJobserverTID(
-	    clientTask->loggertid);
+    PStask_ID_t serverTID = pspmix_daemon_getServerTID(clientTask->uid);
     if (serverTID < 0) {
-	mlog("%s(r%d): Failed to get jobserver TID\n", __func__, rank);
+	mlog("%s(r%d): Failed to get PMIx server TID (uid %d)\n", __func__,
+	     rank, clientTask->uid);
 	return false;
     }
 
@@ -100,6 +100,8 @@ static bool sendRegisterClientMsg(PStask_t *clientTask)
 
     PSP_putTypedMsgBuf(&msg, "loggertid",
 		       &clientTask->loggertid, sizeof(clientTask->loggertid));
+    PSP_putTypedMsgBuf(&msg, "spawnertid",
+		       &clientTask->spawnertid, sizeof(clientTask->spawnertid));
     PSP_putTypedMsgBuf(&msg, "resid",
 		       &clientTask->resID, sizeof(clientTask->resID));
     PSP_putTypedMsgBuf(&msg, "rank",
@@ -279,7 +281,7 @@ static void handleClientFinalize(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
     PMIX_PROC_CONSTRUCT(&clntInfo.proc);
     getUint32(&ptr, &clntInfo.proc.rank);
     getString(&ptr, clntInfo.proc.nspace, sizeof(clntInfo.proc.nspace));
-    clntInfo.jobServer = msg->header.sender;
+    clntInfo.server = msg->header.sender;
 
     mdbg(PSPMIX_LOG_COMM, "%s: received %s (0x%X) from namespace %s rank %d\n",
 	 __func__, pspmix_getMsgTypeString(msg->type), msg->type,
@@ -295,7 +297,7 @@ static void handleClientFinalize(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
  * @brief Handle messages of type PSP_PLUG_PSPMIX
  *
  * This function is registered in the forwarder and used for messages coming
- * from the PMIx jobserver.
+ * from the PMIx server.
  *
  * @param vmsg Pointer to message to handle
  *
@@ -338,7 +340,7 @@ static bool handlePspmixMsg(DDBufferMsg_t *vmsg) {
  * This hook is called right before the psid forwarder forks its child
  *
  * In this function we do:
- * - Wait for the environment sent by the PMIx jobserver
+ * - Wait for the environment sent by the PMIx server
  * - Set the environment in the childs task structure
  *
  * @param data Pointer to the child's task structure
@@ -405,7 +407,7 @@ static int hookForwarderInit(void *data)
     /* initialize fragmentation layer */
     initSerial(0, sendDaemonMsg);
 
-    /* register handler for notification messages from the PMIx jobserver */
+    /* register handler for notification messages from the PMIx server */
     if (!PSID_registerMsg(PSP_PLUG_PSPMIX, handlePspmixMsg)) {
 	mlog("%s(r%d): Failed to register message handler\n", __func__, rank);
 	return -1;
@@ -451,7 +453,7 @@ static int hookForwarderClientRelease(void *data)
  * @todo What exactly means the flag passed to this function and do we have to
  *       take it into account somehow?
  *
- * @param data Pointer to an int flag indicating wether to release the client
+ * @param data Pointer to an int flag indicating whether to release the client
  *
  * @return Always returns 0
  */
@@ -467,14 +469,14 @@ static int hookForwarderExit(void *data)
     if (cTID) {
 	if (clntInfo.client == *cTID) {
 	    /* send response */
-	    sendNotificationResp(clntInfo.jobServer, PSPMIX_CLIENT_FINALIZE_RES,
+	    sendNotificationResp(clntInfo.server, PSPMIX_CLIENT_FINALIZE_RES,
 				 clntInfo.proc.rank, clntInfo.proc.nspace);
 	} else {
 	    mlog("%s(r%d): Unknown %s\n", __func__, rank, PSC_printTID(*cTID));
 	}
     }
 
-    /* un-register handler for notification messages from the PMIx jobserver */
+    /* un-register handler for notification messages from the PMIx userserver */
     PSID_clearMsg(PSP_PLUG_PSPMIX, handlePspmixMsg);
 
     finalizeSerial();

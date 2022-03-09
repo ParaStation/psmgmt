@@ -12,7 +12,7 @@
  * @file Implementation of pspmix functions running in the plugin forwarder
  *       working as PMIx server
  */
-#include "pspmixjobserver.h"
+#include "pspmixuserserver.h"
 
 #include <stdio.h>
 
@@ -20,14 +20,39 @@
 #include "pstask.h"
 
 #include "psidspawn.h"
+#include "pluginmalloc.h"
 
 #include "pspmixlog.h"
 #include "pspmixservice.h"
 #include "pspmixtypes.h"
+#include "pspmixutil.h"
+#include "pspmixcomm.h"
 
-static PspmixJobserver_t *server = NULL;
+/**
+ * @brief Find job with given spawnertid
+ *
+ * @param spawnertid  TID of the spawner creating the job (unique ID)
+ *
+ * @return Returns the job or NULL if not in list
+ */
+static PspmixJob_t * findJob(PStask_ID_t spawnertid)
+{
+    if (!server) return NULL;
 
-int pspmix_jobserver_initialize(Forwarder_Data_t *fwdata)
+    list_t *s, *j;
+    list_for_each(s, &server->sessions) {
+	PspmixSession_t *session = list_entry(s, PspmixSession_t, next);
+	list_for_each(j, &session->jobs) {
+	    PspmixJob_t *job = list_entry(j, PspmixJob_t, next);
+	    if (job->spawnertid == spawnertid) {
+		return job;
+	    }
+	}
+    }
+    return NULL;
+}
+
+int pspmix_userserver_initialize(Forwarder_Data_t *fwdata)
 {
     server = fwdata->userData;
 
@@ -35,69 +60,147 @@ int pspmix_jobserver_initialize(Forwarder_Data_t *fwdata)
 
     /* there has to be a server object */
     if (!server) {
-	mlog("%s: FATAL: no server provided\n", __func__);
+	mlog("%s: FATAL: no server object\n", __func__);
 	return -1;
     }
 
-    /* there has to be a job in the server object */
-    if (!server->job) {
-	mlog("%s: FATAL: no job in server object\n", __func__);
+    /* there has to be no job in the server object */
+    if (!list_empty(&server->sessions)) {
+	mlog("%s: FATAL: sessions list not empty\n", __func__);
 	return -1;
-    }
-
-    /* there has to be a resInfo in the list */
-    if (list_empty(&server->job->resInfos)) {
-	mlog("%s: FATAL: no reservation in job's list\n", __func__);
-	return -1;
-    }
-
-    PStask_t *prototask = server->prototask;
-    PSresinfo_t *resInfo = findReservationInList(prototask->resID,
-						 &server->job->resInfos);
-    if (resInfo == NULL) {
-	mlog("%s: FATAL: Reservation for initial spawn not found (resID %d)\n",
-	     __func__, prototask->resID);
-	return -1;
-    }
-
-    if (mset(PSPMIX_LOG_VERBOSE)) {
-	list_t *r;
-	list_for_each(r, &server->job->resInfos) {
-	    PSresinfo_t *res = list_entry(r, PSresinfo_t, next);
-	    mlog("%s: Reservation: resID %d nEntries %u entries [",
-		    __func__, res->resID, res->nEntries);
-	    for (unsigned int i = 0; i < res->nEntries; i++) {
-		mlog("(%hd:%d-%d)", res->entries[i].node,
-			res->entries[i].firstrank,
-			res->entries[i].lastrank);
-	    }
-	    mlog("]\n");
-	}
     }
 
     /* initialize service modules */
-    if (!pspmix_service_init(prototask->loggertid, prototask->uid,
-		prototask->gid)) {
+    if (!pspmix_service_init(server->uid, server->gid)) {
 	mlog("%s: Failed to initialize pmix service\n", __func__);
 	return -1;
     }
 
-    /* register initial namespace */
-    if (!pspmix_service_registerNamespace(prototask, server->job->resInfos)) {
-	mlog("%s: Failed to register initial namespace\n", __func__);
-	return -1;
-    }
-
-    return 1;
+    return 0;
 }
 
-void pspmix_jobserver_prepareLoop(Forwarder_Data_t *fwdata)
+
+bool pspmix_userserver_addJob(PStask_ID_t loggertid, PspmixJob_t *job)
+{
+    mdbg(PSPMIX_LOG_CALL, "%s() called (%s)\n", __func__,
+	 pspmix_jobIDsStr(loggertid, job->spawnertid));
+
+    if (!server) {
+	mlog("%s: FATAL: no server object\n", __func__);
+	return false;
+    }
+
+    PspmixSession_t *session = findSessionInList(loggertid, &server->sessions);
+    if (!session) {
+	session = ucalloc(sizeof(*session));
+	session->server = server;
+	session->loggertid = loggertid;
+	INIT_LIST_HEAD(&session->jobs);
+	list_add(&session->next, &server->sessions);
+	mdbg(PSPMIX_LOG_VERBOSE, "%s(uid %d): session created (logger %s)\n",
+	     __func__, server->uid, PSC_printTID(loggertid));
+    }
+
+    job->session = session;
+    list_add_tail(&job->next, &session->jobs);
+
+    mdbg(PSPMIX_LOG_VERBOSE, "%s(uid %d): job added (%s)\n", __func__,
+	 server->uid, pspmix_jobStr(job));
+
+    if (!pspmix_service_registerNamespace(job)) {
+	mlog("%s: creating namespace failed (%s)\n", __func__,
+	     pspmix_jobStr(job));
+	pspmix_deleteJob(job);
+	if (list_empty(&session->jobs)) pspmix_deleteSession(session, true);
+	return false;
+    }
+
+    if (mset(PSPMIX_LOG_VERBOSE)) pspmix_printServer(server, true);
+
+    return true;
+}
+
+/**
+ * @brief Terminate the Session
+ *
+ * Send first TERM and then KILL signal to all the processes in a session.
+ * This is done by simply signaling the sessions logger.
+ *
+ * @return No return value.
+ */
+static void terminateSession(PspmixSession_t *session)
+{
+    mdbg(PSPMIX_LOG_CALL, "%s() called (logger %s)\n", __func__,
+         PSC_printTID(session->loggertid));
+
+    ulog("terminating session by signaling logger %s\n",
+	 PSC_printTID(session->loggertid));
+
+    pspmix_comm_sendSignal(session->loggertid, -1);
+}
+
+/**
+ * @brief Terminate the SessionJob
+ *
+ * Send first TERM and then KILL signal to all the job's processes.
+ *
+ * @return No return value.
+ */
+static void terminateJob(PspmixJob_t *job)
+{
+    mdbg(PSPMIX_LOG_CALL, "%s() called (%s)\n", __func__, pspmix_jobStr(job));
+
+    /* TODO change for spawn support */
+
+    ulog("only terminating sessions is supported at the moment\n");
+
+    terminateSession(job->session);
+}
+
+bool pspmix_userserver_removeJob(PStask_ID_t spawnertid, bool abort)
+{
+    mdbg(PSPMIX_LOG_CALL, "%s called\n", __func__);
+
+    if (!server) {
+	mlog("%s: FATAL: no server object\n", __func__);
+	return false;
+    }
+
+    PspmixJob_t *job = findJob(spawnertid);
+    if (!job) {
+	ulog("job not found (spawner %s)\n", PSC_printTID(spawnertid));
+	return false;
+    }
+
+    PStask_ID_t loggertid = job->session->loggertid;
+
+    if (abort) terminateJob(job);
+
+    if (!pspmix_service_destroyNamespace(spawnertid)) {
+	ulog("destroying namespace failed (%s)\n", pspmix_jobStr(job));
+	return false;
+    }
+
+    PspmixSession_t *session = job->session;
+    pspmix_deleteJob(job);
+
+    mdbg(PSPMIX_LOG_VERBOSE, "%s(uid %d): job removed (job %s)\n",
+	 __func__, server->uid, pspmix_jobIDsStr(loggertid, spawnertid));
+
+    if (list_empty(&session->jobs)) pspmix_deleteSession(session, true);
+
+    return true;
+}
+
+void pspmix_userserver_prepareLoop(Forwarder_Data_t *fwdata)
 {
     mdbg(PSPMIX_LOG_CALL, "%s called\n", __func__);
 }
 
-void pspmix_jobserver_finalize(Forwarder_Data_t *fwdata)
+void pspmix_userserver_finalize(Forwarder_Data_t *fwdata)
 {
+    mdbg(PSPMIX_LOG_CALL, "%s called\n", __func__);
+
     pspmix_service_finalize();
 
     server = NULL;

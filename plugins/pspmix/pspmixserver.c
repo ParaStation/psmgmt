@@ -11,7 +11,7 @@
 /**
  * @file
  * This file contains the implementation of the PMIx server interface
- * The pmix server library in initialized and used only in the jobserver.
+ * The pmix server library is initialized and used only in the PMix server.
  */
 #define _GNU_SOURCE
 #include "pspmixserver.h"

@@ -10,7 +10,7 @@
  */
 /**
  * @file
- * Core functionality of pspmix. This part lives within the jobserver and
+ * Core functionality of pspmix. This part lives within the PMIx server and
  * provides the functionality for the callback functions called by the pmix
  * server library.
  */
@@ -29,38 +29,53 @@
 #include "pspmixserver.h"
 #include "pspmixtypes.h"
 
+extern PspmixServer_t *server;
+
+#define ulog(format, ...) \
+    mlog("%s(uid %d): " format, __func__, server->uid __VA_OPT__(,) __VA_ARGS__)
+
 /**
  * @brief Initialize the PMIX service
  *
  * This must be the first call to the PMI service module.
  *
- * @param loggerTID  task id of our logger, used as job id
  * @param uid        UID for the server
  * @param gid        GID for the server
  *
  * @return Returns true on success and false on errors
  */
-bool pspmix_service_init(PStask_ID_t loggerTID, uid_t uid, gid_t gid);
+bool pspmix_service_init(uid_t uid, gid_t gid);
 
 /**
  * @brief Register a new namespace
  *
- * @param spawnTask  task prototype for the tasks to be spawned into the new ns
- * @param resInfos   complete list of all reservations belonging to the ns
- *                   sorted by ID
+ * @param job   job to be implemented by the namespace
  *
  * @return Returns true on success and false on errors
  */
-bool pspmix_service_registerNamespace(PStask_t *spawnTask, list_t resInfo);
+bool pspmix_service_registerNamespace(PspmixJob_t *job);
 
 /**
  * @brief Register the client and send its environment to its forwarder
  *
+ * @param loggertid  logger to identify the session the client belongs to
+ * @param spawnertid spawner to identify the job the client belongs to
  * @param client     client to register
  *
  * @return Returns true on success and false on errors
  */
-bool pspmix_service_registerClientAndSendEnv(PspmixClient_t *client);
+bool pspmix_service_registerClientAndSendEnv(PStask_ID_t loggertid,
+					     PStask_ID_t spawnertid,
+					     PspmixClient_t *client);
+
+/**
+ * @brief Destroy a namespace
+ *
+ * @param spawnertid   spawner identifying the job implemented by the namespace
+ *
+ * @return Returns true on success and false on errors
+ */
+bool pspmix_service_destroyNamespace(PStask_ID_t spawnertid);
 
 /**
  * @brief Finalize the PMIx service
@@ -167,14 +182,14 @@ int pspmix_service_fenceIn(const pmix_proc_t procs[], size_t nprocs,
 	char *data, size_t ndata, modexdata_t *mdata);
 
 /**
- * @brief Handle messages of type PSPMIX_FENCE_IN comming from PMIx Jobservers
+ * @brief Handle messages of type PSPMIX_FENCE_IN comming from PMIx servers
  *        on other nodes
  *
  * @see checkFence() in pspmixservice.c for an overall description of
  * fence handling logic
  *
  * @param fenceid  ID of the fence
- * @param sender   task ID of the sending jobserver
+ * @param sender   task ID of the sending PMIx server
  * @param data     data blob to share with all participating nodes
 *                  (takes ownership)
  * @param len      size of the data blob to share

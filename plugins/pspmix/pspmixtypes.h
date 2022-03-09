@@ -35,7 +35,7 @@ typedef struct {
     char *value;
 } KVP_t;
 
-/** Type holding all information needed by the jobserver */
+/** Type holding all information needed by the PMIx server */
 typedef struct {
     list_t next;             /**< used to put into pmixServers */
     uid_t uid;               /**< User ID of the owner, used as server ID */

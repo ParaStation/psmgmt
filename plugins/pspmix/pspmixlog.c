@@ -18,6 +18,10 @@ pthread_mutex_t __mlock = PTHREAD_MUTEX_INITIALIZER;
 const char *pspmix_getMsgTypeString(PSP_PSPMIX_t type)
 {
     switch(type) {
+	case PSPMIX_ADD_JOB:
+	    return "PSPMIX_ADD_JOB";
+	case PSPMIX_REMOVE_JOB:
+	    return "PSPMIX_REMOVE_JOB";
 	case PSPMIX_REGISTER_CLIENT:
 	    return "PSPMIX_REGISTER_CLIENT";
 	case PSPMIX_CLIENT_PMIX_ENV:
@@ -41,6 +45,24 @@ const char *pspmix_getMsgTypeString(PSP_PSPMIX_t type)
 	default:
 	    return "<unknown>";
     }
+}
+
+const char *pspmix_jobStr(PspmixJob_t *job)
+{
+    return pspmix_jobIDsStr(job->session->loggertid, job->spawnertid);
+}
+
+const char *pspmix_jobIDsStr(PStask_ID_t loggertid, PStask_ID_t spawnertid)
+{
+    static char str[64];
+    int n = 0;
+
+    n += snprintf(str, sizeof(str) - n, "logger %s",
+	          PSC_printTID(loggertid));
+    n += snprintf(str+n, sizeof(str) - n, " spawner %s",
+	          PSC_printTID(spawnertid));
+
+    return str;
 }
 
 void pspmix_initLogger(char *name, FILE *logfile)
