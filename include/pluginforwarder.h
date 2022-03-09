@@ -101,6 +101,101 @@ typedef enum {
 			 e.g. between plugins and their own forwarders */
 } ForwarderMsg_t;
 
+/**
+ * @page plgnfw_comm_strategy Communication between psid and
+ * pluginforwarder
+ *
+ * The UNIX socket connecting a pluginforwarder and its daemon runs
+ * the standard ParaStation protocol (PSP) utilizing the full range of
+ * messages including serialized messages. For this, accordingly
+ * addressed messages might be sent to the pluginforwarder using the
+ * @ref sendMsg() or @ref PSIDclient_send() functions or created via
+ * the fragmentation layer of psserial. In order to send messages from
+ * the plugin forwarder to the local daemon @ref sendMsgToMother()
+ * shall be used either directly or indirectly via psserial's
+ * fragmentation layer.
+ *
+ * Since this connection will be utilized to send and receive messages
+ * necessary for the management of the pluginforwarder and its client,
+ * too, special care has to be taken when receiving messages on either
+ * side. The default behavior is that the mentioned management
+ * messages will be handled internally and no additional messages are
+ * expected to be received on either side of the connection.
+ *
+ * In order to allow plugins to received additional messages from its
+ * forwarder a @ref handleFwMsg() function might be provided in the
+ * forwarder's definition. This function will be called upon receiving
+ * a message from the corresponding forwarder and at least one of the
+ * following criteria is fulfilled:
+ *
+ * 1. The type of the message marked in its header is different from
+ * @ref PSP_PF_MSG
+ *
+ * 2. The header's message type is @ref PSP_PF_MSG and its sub-type
+ * (as in a @ref DDTypedMsg_t message or in a @ref DDTypedBufferMsg_t
+ * message) is beyond PLGN_TYPE_LAST
+ *
+ * 3. The forwarder's @ref hideFWctrlMsg flag is cleared in its
+ * definition (the default is that this flag set!)
+ *
+ * @ref handleFwMsg() will be called with a pointer to the message
+ * received as the first argument and a pointer to the forwarder's
+ * definition as its second argument. By its return value @ref
+ * handleFwMsg() will flag if the message was handled and no further
+ * measures have to be taken by the caller (true) or if the caller
+ * shall continue the handling of the message (false). Therefore, with
+ * the @ref hideFWctrlMsg flag cleared @ref handleFwMsg() might peek
+ * into each messages received from the forwarder and suppress further
+ * handling even of management messages by marking the message as
+ * handled (by returning true).
+ *
+ * Beyond this, if the @ref fwChildOE flag in the forwarder's
+ * definition is set, management messages of type @ref PLGN_STDOUT and
+ * @ref PLGN_STDERR are created by the forwarder presenting the stdout
+ * and stderr output of its client process, respectively, and passed
+ * to @ref handleFwMsg(), too. These messages will be dropped
+ * independent of @ref handleFwMsg()'s return value afterwards.
+ *
+ * By providing a @ref handleMthrMsg() function in its definition the
+ * forwarder itself will be enabled to receive and handle additional
+ * messages. Again, messages are presented to this function if one of
+ * the following criteria are met:
+ *
+ * 1. The type of the message marked in its header is different from
+ * @ref PSP_PF_MSG
+ *
+ * 2. The header's message type is @ref PSP_PF_MSG and its sub-type
+ * (as in a @ref DDTypedMsg_t message or in a @ref DDTypedBufferMsg_t
+ * message) is beyond PLGN_TYPE_LAST
+ *
+ * 3. The forwarder's @ref hideFWctrlMsg flag is cleared in its
+ * definition (the default is that this flag set!)
+ *
+ * @ref handleMthrMsg() will be called with a pointer to the message
+ * received as the first argument and a pointer to the forwarder's
+ * definition as its second argument. By its return value @ref
+ * handleMthrMsg() will flag if the message was handled and no further
+ * measures have to be taken by the caller (true) or if the caller
+ * shall continue the handling of the message (false). Therefore, with
+ * the @ref hideFWctrlMsg flag cleared @ref handleMthrMsg() might peek
+ * into each messages received by the forwarder from the local daemon
+ * and suppress further handling even of management messages by
+ * marking the message as handled (by returning true).
+ *
+ * It has to be kept in mind that each message (except management
+ * messages, i.e. messages of type PSP_PF_MSG and sub-types mentioned
+ * in @ref ForwarderMsg_t) have to be handled explicitly in @ref
+ * handleFwMsg() / @ref handleMthrMsg(). No automatic message
+ * forwarding (e.g. to remote daemons or other local clients) will be
+ * done automatically. Nevertheless, the handling of such type of
+ * messages is sufficed by just forwarding (i.e. sending) them.
+ *
+ * The plugin and its forwarder might use message of type PSP_PF_MSG
+ * with sub-types (as in a @ref DDTypedMsg_t message or in a @ref
+ * DDTypedBufferMsg_t message) beyond PLGN_TYPE_LAST for their own
+ * purposes, i.e. to implement their own extended protocol.
+ */
+
 /* ------------- Functions to be executed in forwarder ------------------ */
 
 /**

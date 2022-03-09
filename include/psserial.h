@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2012-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021 ParTec AG, Munich
+ * Copyright (C) 2021-2022 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -10,8 +10,8 @@
  */
 /**
  * @file Serialization layer for messages potentially not fitting into
- * a single message of the ParaStation protocol. Data added to such
- * messages might either be stored in a PS_DataBuffer_t structure
+ * a single message of the ParaStation protocol (PSP). Data added to
+ * such messages might either be stored in a PS_DataBuffer_t structure
  * ready to be send as a whole via a stream-connection or send via a
  * series of RDP messages as soon as a single message-buffer is
  * completely filled.
@@ -21,7 +21,7 @@
  * data in a buffer) or by initializing the PS_SendSB_t structure via
  * @ref initFragBuffer() or @ref initFragBufferExtra() and @ref
  * setFragDest() or @ref setFragDestUniq() (immediately send a series
- * of RDP messages).
+ * of PSP messages).
  */
 #ifndef __PSSERIAL_H
 #define __PSSERIAL_H
