@@ -29,7 +29,7 @@ pspmix_la_SOURCES = pspmixmain.c pspmixtypes.h pspmixlog.c		\
 	pspmixforwarder.c pspmixforwarder.h pspmixuserserver.c		\
 	pspmixuserserver.h pspmixcomm.c pspmixcomm.h pspmixservice.c	\
 	pspmixservice.h pspmixservicespawn.c pspmixservicespawn.h	\
-	pspmixserver.c pspmixserver.h
+	pspmixserver.c pspmixserver.h pspmixutil.c pspmixutil.h
 
 pspmix_la_CPPFLAGS = $(AM_CPPFLAGS) \
 		     -DLIBEXECDIR=\"$(pkglibexecdir)\" \
