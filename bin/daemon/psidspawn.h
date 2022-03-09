@@ -40,19 +40,18 @@ typedef struct {
     PSresinfoentry_t *entries; /**< Slots forming the reservation */
 } PSresinfo_t;
 
-/** Set of reservation infos: Reservations involving this node requested
- *  together by the same spawner */
+/** Job: reservations involving this node requested by the same spawner */
 typedef struct {
     list_t next;             /**< used to put into PSsession_t.jobs */
-    PStask_ID_t spawner;     /**< spawner's tid, unique set identifier */
-    list_t resInfos;         /**< reservations in this set (PSresinfo_t) */
+    PStask_ID_t spawnertid;  /**< spawner's tid, unique job identifier */
+    list_t resInfos;         /**< reservations in this job (PSresinfo_t) */
 } PSjob_t;
 
-/** Session running on this node */
+/** Session: jobs running on this node with a common logger */
 typedef struct {
     list_t next;             /**< used to put into localSessions */
-    PStask_ID_t logger;      /**< logger's tid, unique job identifier */
-    list_t jobs;             /**< jobs in the session (PSjob_t) */
+    PStask_ID_t loggertid;   /**< logger's tid, unique session identifier */
+    list_t jobs;             /**< sets of reservations (PSspawnblock_t) */
 } PSsession_t;
 
 /**
@@ -60,9 +59,9 @@ typedef struct {
  *
  * Find information on a local session by its logger's task ID @a logger.
  *
- * @param loggerTID Task ID of the logger identifying the job
+ * @param loggerTID Task ID of the logger identifying the session
  *
- * @return Return pointer to the job information or NULL if no job was found
+ * @return Return pointer to the session information or NULL if none was found
  */
 PSsession_t* PSID_findSessionByLoggerTID(PStask_ID_t loggerTID);
 
