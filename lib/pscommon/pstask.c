@@ -101,6 +101,7 @@ bool PStask_init(PStask_t* task)
     task->childGroup = TG_ANY;
     task->resID = -1;
     task->loggertid = 0;
+    task->spawnertid = 0;
     task->forwarder = NULL;
     task->rank = -1;
     PSCPU_clrAll(task->CPUset);
@@ -253,6 +254,7 @@ PStask_t* PStask_clone(PStask_t* task)
     clone->childGroup = task->childGroup;
     clone->resID = task->resID;
     clone->loggertid = task->loggertid;
+    clone->spawnertid = task->spawnertid;
     clone->forwarder = task->forwarder;
     clone->rank = task->rank;
     memcpy(clone->CPUset, task->CPUset, sizeof(clone->CPUset));
@@ -453,6 +455,7 @@ static struct {
     PSrsrvtn_ID_t resID;
     int32_t rank;
     PStask_ID_t loggertid;
+    PStask_ID_t spawnertid;
     uint32_t argc;
     int32_t noParricide;
 } tmpTask;
@@ -480,6 +483,7 @@ size_t PStask_encodeTask(char *buffer, size_t size, PStask_t *task, char **off)
     tmpTask.resID = task->resID;
     tmpTask.rank = task->rank;
     tmpTask.loggertid = task->loggertid;
+    tmpTask.spawnertid = task->spawnertid;
     tmpTask.argc = task->argc;
     tmpTask.noParricide = task->noParricide;
 
@@ -523,6 +527,7 @@ bool PStask_sendTask(PS_SendDB_t *msg, PStask_t *task)
     tmpTask.resID = task->resID;
     tmpTask.rank = task->rank;
     tmpTask.loggertid = task->loggertid;
+    tmpTask.spawnertid = task->spawnertid;
     tmpTask.argc = task->argc;
     tmpTask.noParricide = task->noParricide;
 
@@ -569,6 +574,7 @@ int PStask_decodeTask(char *buffer, PStask_t *task, bool withWDir)
     task->resID = tmpTask.resID;
     task->rank = tmpTask.rank;
     task->loggertid = tmpTask.loggertid;
+    task->spawnertid = tmpTask.spawnertid;
     task->argc = tmpTask.argc;
     task->noParricide = tmpTask.noParricide;
 

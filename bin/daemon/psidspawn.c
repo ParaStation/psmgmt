@@ -2380,6 +2380,7 @@ static void handleSpawnReq(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
     task = PStask_new();
 
     ptr += PStask_decodeTask(ptr, task, false);
+    task->spawnertid = msg->header.sender;
     task->workingdir = getStringM(&ptr);
     getStringArrayM(&ptr, &task->argv, &task->argc);
     getStringArrayM(&ptr, &task->environ, &task->envSize);
