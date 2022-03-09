@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2018-2019 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2018-2021 ParTec Cluster Competence Center GmbH, Munich
  * Copyright (C) 2021-2022 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
@@ -197,7 +197,18 @@ void pspmix_service_handleFenceIn(uint64_t fenceid, PStask_ID_t sender,
  */
 void pspmix_service_handleFenceOut(uint64_t fenceid, void *data, size_t len);
 
-/* TODO document */
+/**
+ * @brief Send a modex data request
+ *
+ * Find out the node where the target rank runs and send a direct modex data
+ * request to it.
+ *
+ * In case of success, takes ownership of @a mdata.
+ *
+ * @param mdata  modex data to send
+ *
+ * @returns True on success, false on error
+ */
 bool pspmix_service_sendModexDataRequest(modexdata_t *mdata);
 
 /**

@@ -65,6 +65,8 @@ static void handleRegisterClient(DDTypedBufferMsg_t *msg)
 /**
 * @brief Handle PSPMIX_FENCE_IN message
 *
+* This message is sent by another PMIx server of the same user.
+*
 * @param msg  The last fragment of the message to handle
 * @param data The defragmented data received
 */
@@ -89,6 +91,8 @@ static void handleFenceIn(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
 
 /**
 * @brief Handle PSPMIX_FENCE_OUT message
+*
+* This message is sent by another PMIx server of the same user.
 *
 * @param msg  The last fragment of the message to handle
 * @param data The defragmented data received
@@ -115,6 +119,8 @@ static void handleFenceOut(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
 /**
 * @brief Handle PSPMIX_MODEX_DATA_REQ message
 *
+* This message is sent by another PMIx server of the same user.
+*
 * @param msg The message to handle
 */
 static void handleModexDataReq(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
@@ -139,6 +145,8 @@ static void handleModexDataReq(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
 
 /**
 * @brief Handle PSPMIX_MODEX_DATA_RES message
+*
+* This message is sent by another PMIx server of the same user.
 *
 * @param msg  The last fragment of the message to handle
 * @param data The defragmented data received

@@ -1109,14 +1109,6 @@ void pspmix_service_handleFenceOut(uint64_t fenceid, void *data, size_t len)
     ufree(fence);
 }
 
-/*
- * Find out the the node where the target rank runs
- * and send direct modex data request to it.
- *
- * In case of success, takes ownership of @a mdata.
- *
- * TODO document in header
- */
 bool pspmix_service_sendModexDataRequest(modexdata_t *mdata)
 {
     GET_LOCK(namespaceList);
