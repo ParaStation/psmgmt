@@ -22,8 +22,9 @@
 #include "list.h"
 #include "pscommon.h"
 #include "psreservation.h"
+#include "psenv.h"
 
-#include "psidspawn.h"
+#include "psidsession.h"
 
 #include "pluginforwarder.h"
 #include "pluginvector.h"
@@ -36,23 +37,95 @@ typedef struct {
 
 /** Type holding all information needed by the jobserver */
 typedef struct {
-    list_t next;             /**< used to put into pmixJobservers */
-    PStask_ID_t loggertid;   /**< TID of the jobs logger, used as job id */
-    Forwarder_Data_t *fwdata;/**< data of the plugin forwarder (== jobserver) */
-    PStask_t *prototask;     /**< task prototype, see PSIDHOOK_RECV_SPAWNREQ */
-    PSjob_t *job;            /**< direct reference to job object */
+    list_t next;             /**< used to put into pmixServers */
+    uid_t uid;               /**< User ID of the owner, used as server ID */
+    gid_t gid;               /**< Group ID of the owner */
+    Forwarder_Data_t *fwdata;/**< data of the plugin forwarder (PMIx server) */
+    list_t sessions;         /**< list of jobs handled by this PMIx server
+				  entries have type PspmixSession_t */
+    bool usePMIx;            /**< flag if PMIx is actively used by this job */
     int timerId;             /**< ID of the kill timer or -1 */
-    bool used;               /**< Flag whether the server is actually used */
-} PspmixJobserver_t;
+} PspmixServer_t;
 
-/* Application information */
+/**
+ * Type to manage session list in server objects
+ *
+ * PMIx standard 4.0:
+ * > Session refers to a pool of resources with a unique identifier assigned
+ * > by the WorkLoad Manager (WLM) that has been reserved for one or more
+ * > users. [...] the term session in this document refers to a potentially
+ * > dynamic entity, perhaps comprised of resources accumulated as a result
+ * > of multiple allocation requests that are managed as a single unit by the
+ * > WLM.
+ *
+ * Note: In pspmix, a session always belongs to only one user.
+ */
+typedef struct {
+    list_t next;             /**< used to put into PspmixServer_t's jobs list */
+    PStask_ID_t loggertid;   /**< logger's tid, unique PMIx session identifier */
+    PspmixServer_t *server;  /**< refence to PMIx server handling the job */
+    list_t jobs;             /**< job involving this node in the session,
+			          entries are of type PspmixJob_t
+				  (only used in PMIx server, not in daemon) */
+    bool usePMIx;            /**< flag if PMIx is actively used by this job */
+    bool remove;             /**< flag if this session is to be removed */
+} PspmixSession_t;
+
+/**
+ * Type to manage job list in session objects
+ *
+ * PMIx Standard 4.0:
+ * > Job refers to a set of one or more applications executed as a single
+ * > invocation by the user within a session with a unique identifier
+ * > (a.k.a, the job ID) assigned by the RM or launcher. For example, the
+ * > command line “mpiexec -n 1 app1 : -n 2 app2” generates a single Multiple
+ * > Program Multiple Data (MPMD) job containing two applications. A user may
+ * > execute multiple jobs within a given session, either sequentially or in
+ * > parallel.
+ */
+typedef struct {
+    list_t next;             /**< used to put into PspmixServer_t's jobs list */
+    PStask_ID_t spawnertid;  /**< spawner's tid (psid resSet identifier) */
+    PspmixSession_t *session;/**< refence to PMIx session the job is part of */
+    list_t resInfos;         /**< job's reservations involving this node,
+			          entries are of type PSresinfo_t
+				  (only used in PMIx server, not in daemon) */
+    env_t env;               /**< environment of the spawn creating this job
+				  (only used in PMIx server, not in daemon) */
+    bool usePMIx;            /**< flag if PMIx is actively used by this job */
+    bool remove;             /**< flag if this job is to be removed */
+} PspmixJob_t;
+
+/**
+ * Type for extra field in PSP_PLUG_PSPMIX messages
+ */
+typedef struct {
+    uid_t uid;               /**< user ID to select the PMIx server */
+    PStask_ID_t spawnertid;  /**< task ID of the spawner used as PMIx job ID
+			          (only used for PSPMIX_CLIENT_* types) */
+} PspmixMsgExtra_t;
+
+/**
+ * Application information
+ *
+ * PMIx Standard 4.0:
+ * > Application refers to a single executable (binary, script, etc.) member of
+ * > a job.
+ */
 typedef struct {
     uint32_t num;
     uint32_t size;
     pmix_rank_t firstRank;
 } PspmixApp_t;
 
-/* Process information */
+/**
+ * Process information
+ *
+ * PMIx Standard 4.0:
+ * > Process refers to an operating system process, also commonly referred to
+ * > as a heavyweight process. A process is often comprised of multiple
+ * > lightweight threads, commonly known as simply threads.
+ */
 typedef struct {
     pmix_rank_t rank;        /**< rank in the job/namespace */
     pmix_rank_t grank;       /**< global rank in the session (== psid rank) */
@@ -62,7 +135,7 @@ typedef struct {
     uint16_t nrank;          /**< rank on the node running */
 } PspmixProcess_t;
 
-/* Node information */
+/** Node information */
 typedef struct {
     list_t next;
     PSnodes_ID_t id;         /**< parastation id of the node */
@@ -70,12 +143,22 @@ typedef struct {
 				  processes running on this node */
 } PspmixNode_t;
 
-/* Namespace information */
 #define MAX_NSLEN PMIX_MAX_NSLEN
+/**
+ * Namespace information
+ *
+ * PMIx Standard 4.0:
+ * > Namespace refers to a character string value assigned by the RM or launcher
+ * > (e.g., mpiexec) to a job. All applications executed as part of that job
+ * > share the same namespace. The namespace assigned to each job must be
+ * > unique within the scope of the governing RM and often is implemented as a
+ * > string representation of a numerical job ID. The namespace and job terms
+ * > will be used interchangeably throughout the document.
+ */
 typedef struct {
     list_t next;
     char name[MAX_NSLEN+1];     /**< space for the name of the namespace ;) */
-    list_t resInfos;            /**< the reservations matching the namespace */
+    PspmixJob_t *job;           /**< job this namespace is implementing */
     uint32_t universeSize;      /**< size of the MPI universe (from mpiexec) */
     uint32_t jobSize;           /**< size of the job (from mpiexec) */
     bool spawned;               /**< flag if result of an MPI_Spawn call */
@@ -86,7 +169,15 @@ typedef struct {
     list_t clientList;          /**< list of clients on this node in this ns */
 } PspmixNamespace_t;
 
-/** Information about one client */
+/**
+ * Information about one client
+ *
+ * PMIx Standard 4.0:
+ * > Client refers to a process that was registered with the PMIx server prior
+ * > to being started, and connects to that PMIx server via PMIx_Init using its
+ * > assigned namespace and rank with the information required to connect to
+ * > that server being provided to the process at time of start of execution.
+ */
 typedef struct {
     list_t next;               /**< used to put into clientList in namespace */
     pmix_rank_t rank;          /**< PMIx rank of the client in the namespace */
@@ -134,6 +225,12 @@ typedef struct {
 
 /* generates findNodeInList(PSnodes_ID_t id, list_t *list) */
 FIND_IN_LIST_FUNC(Node, PspmixNode_t, PSnodes_ID_t, id)
+
+/* generates findSessionInList(PStask_ID_t loggertid, list_t *list) */
+FIND_IN_LIST_FUNC(Session, PspmixSession_t, PStask_ID_t, loggertid)
+
+/* generates findJobInList(PStask_ID_t spwanertid, list_t *list) */
+FIND_IN_LIST_FUNC(Job, PspmixJob_t, PStask_ID_t, spawnertid)
 
 /* generates findReservationInList(PSrsrvtn_ID_t resID, list_t *list) */
 FIND_IN_LIST_FUNC(Reservation, PSresinfo_t, PSrsrvtn_ID_t, resID)
@@ -188,6 +285,8 @@ typedef void(psPmixResetFillSpawnTaskFunction_t)(void);
 
 /** Sub-types of message type PSP_PLUG_PSPMIX */
 typedef enum {
+    PSPMIX_ADD_JOB,            /**< Add job to PMIx server */
+    PSPMIX_REMOVE_JOB,         /**< Remove job from PMIx server */
     PSPMIX_REGISTER_CLIENT,    /**< Request to register a new client */
     PSPMIX_CLIENT_PMIX_ENV,    /**< Client's environment addition */
     PSPMIX_FENCE_IN,           /**< Enter fence request */
