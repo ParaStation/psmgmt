@@ -33,10 +33,10 @@ psid_SOURCES = psid.c psidaccount.c psidaccount.h psidclient.c		\
 	psidinfo.c psidinfo.h psidmsgbuf.c psidmsgbuf.h psidnodes.c	\
 	psidnodes.h psidoption.c psidoption.h psidpartition.c		\
 	psidpartition.h psidpin.c psidpin.h psidplugin.c psidplugin.h	\
-	psidrdp.c psidrdp.h psidscripts.c psidscripts.h psidsignal.c	\
-	psidsignal.h psidspawn.c psidspawn.h psidstate.c psidstate.h	\
-	psidstatus.c psidstatus.h psidtask.c psidtask.h psidutil.c	\
-	psidutil.h
+	psidrdp.c psidrdp.h psidscripts.c psidscripts.h psidsession.c	\
+	psidsession.h psidsignal.c psidsignal.h psidspawn.c		\
+	psidspawn.h psidstate.c psidstate.h psidstatus.c psidstatus.h	\
+	psidtask.c psidtask.h psidutil.c psidutil.h
 
 psid_LDFLAGS = $(AM_LDFLAGS) $(glib2_LIBS) -export-dynamic
 psid_LDADD = $(libputil) $(libpscommon) $(libpslog) -lutil	\
