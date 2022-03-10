@@ -93,8 +93,8 @@ bool IC_startScript(void)
     if (pollTime < 1) pollTime = 30;
     char *interScript = getConfValueC(&config, "INTERCONNECT_SCRIPT");
 
-    iScript = Script_start("interconn", interScript, parseInterconn, pollTime,
-			   &scriptEnv);
+    iScript = Script_start("psaccount-interconn", interScript, parseInterconn,
+			   pollTime, &scriptEnv);
     if (!iScript) {
 	flog("failed to start interconnect script, cannot continue\n");
 	return false;

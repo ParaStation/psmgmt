@@ -91,8 +91,8 @@ bool FS_startScript(void)
     if (pollTime < 1) pollTime = 30;
     char *fsPath = getConfValueC(&config, "FILESYSTEM_SCRIPT");
 
-    fsScript = Script_start("filesystem", fsPath, parseFilesys, pollTime,
-			    &scriptEnv);
+    fsScript = Script_start("psaccount-filesystem", fsPath, parseFilesys,
+			    pollTime, &scriptEnv);
     if (!fsScript) {
 	flog("invalid filesytem script, cannot continue\n");
 	return false;

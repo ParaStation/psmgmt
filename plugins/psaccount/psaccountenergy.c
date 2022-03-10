@@ -141,8 +141,8 @@ bool Energy_startScript(void)
     if (pollTime < 1) pollTime = 30;
 
     char *energyScript = getConfValueC(&config, "ENERGY_SCRIPT");
-    eScript = Script_start("energy", energyScript, parseEnergy, pollTime,
-			   &scriptEnv);
+    eScript = Script_start("psaccount-energy", energyScript, parseEnergy,
+			   pollTime, &scriptEnv);
     if (!eScript) {
 	flog("invalid energy script, cannot continue\n");
 	return false;
