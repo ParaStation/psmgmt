@@ -58,6 +58,7 @@ static int handleFwMsg(PSLog_Msg_t *msg, Forwarder_Data_t *fwdata)
 	    script->func(data);
 	    ufree(data);
 	    break;
+	case STDERR:
 	    data = getStringM(&ptr);
 	    flog("error from %s script: %s\n", fwdata->pTitle, data);
 	    ufree(data);
@@ -84,49 +85,48 @@ static void execCollectScript(Forwarder_Data_t *fwdata, int rerun)
 {
     Collect_Script_t *script = fwdata->userData;
 
-    while(true) {
-	errno = 0;
-	pid_t child = fork();
-	if (child < 0) {
-	    flog("fork() %s failed: %s\n", fwdata->pTitle, strerror(errno));
-	    exit(1);
-	}
-
-	if (!child) {
-	    /* This is the child */
-
-	    /* update scripts environment */
-	    for (uint32_t i = 0; i < script->env.cnt; i++) {
-		putenv(script->env.vars[i]);
-	    }
-
-	    char *argv[2] = { script->path, NULL };
-	    execvp(argv[0], argv);
-	    /* never be here */
-	    exit(1);
-	}
-
-	/* parent */
-	while (true) {
-	    int status;
-	    if (waitpid(child, &status, 0) < 0) {
-		if (errno == EINTR) continue;
-		flog("parent kill() errno: %i\n", errno);
-		killpg(child, SIGKILL);
-		exit(1);
-	    }
-	    break;
-	}
-
-	if (script->poll) sleep(script->poll);
+    errno = 0;
+    pid_t child = fork();
+    if (child < 0) {
+	flog("fork() %s failed: %s\n", fwdata->pTitle, strerror(errno));
+	exit(1);
     }
+
+    if (!child) {
+	/* This is the child */
+
+	/* update scripts environment */
+	for (uint32_t i = 0; i < script->env.cnt; i++) {
+	    putenv(script->env.vars[i]);
+	}
+
+	char *argv[2] = { script->path, NULL };
+	execvp(argv[0], argv);
+	/* never be here */
+	exit(1);
+    }
+
+    /* parent */
+    while (true) {
+	int status;
+	if (waitpid(child, &status, 0) < 0) {
+	    if (errno == EINTR) continue;
+	    flog("parent kill() errno: %i\n", errno);
+	    killpg(child, SIGKILL);
+	    exit(1);
+	}
+	break;
+    }
+
+    /* wait for the next cycle */
+    if (script->poll) sleep(script->poll);
+
+    exit(0);
 }
 
 bool Script_test(char *spath, char *title)
 {
-    if (!spath) {
-	return false;
-    }
+    if (!spath) return false;
 
     struct stat sbuf;
     if (stat(spath, &sbuf) == -1) {
@@ -242,6 +242,7 @@ Collect_Script_t *Script_start(char *title, char *path,
     fwdata->fwChildOE = true;
     fwdata->userData = script;
     fwdata->handleMthrMsg = fwCMD_handleMthrMsg;
+    fwdata->childRerun = FW_CHILD_INFINITE;
 
     if (!startForwarder(fwdata)) {
 	flog("starting %s script forwarder failed\n", title);
@@ -340,7 +341,7 @@ bool Script_ctlEnv(Collect_Script_t *script, psAccountCtl_t action,
 	.sender = -1};
     const size_t chunkSize = sizeof(msg.buf) - sizeof(uint8_t)
 	- sizeof(uint32_t) - sizeof(uint32_t);
-    size_t msgLen = strlen(envStr);
+    size_t msgLen = strlen(envStr) + 1;
     size_t left = msgLen;
 
     do {
