@@ -293,12 +293,6 @@ bool Acc_Init(void)
 	oldInterconnectPollTime = psAccountGetPoll(PSACCOUNT_OPT_IC);
 	psAccountSetPoll(PSACCOUNT_OPT_IC, poll);
 
-	bool ret = psAccountCtlScript(PSACCOUNT_SCRIPT_START, PSACCOUNT_OPT_IC);
-	if (!ret) {
-	    flog("failed to start interconnect monitor script\n");
-	    return false;
-	}
-
 	char *port = getConfValueC(&SlurmConfig, "INFINIBAND_OFED_PORT");
 	if (port) {
 	    char envStr[128];
@@ -309,6 +303,12 @@ bool Acc_Init(void)
 		flog("failed to setup interconnect monitor environment\n");
 		return false;
 	    }
+	}
+
+	bool ret = psAccountCtlScript(PSACCOUNT_SCRIPT_START, PSACCOUNT_OPT_IC);
+	if (!ret) {
+	    flog("failed to start interconnect monitor script\n");
+	    return false;
 	}
 	fdbg(PSSLURM_LOG_ACC, "start interconnect script interval %i\n", poll);
     }

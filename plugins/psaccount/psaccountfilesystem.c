@@ -43,6 +43,9 @@ static psAccountFS_t fsData, fsBase;
 /** script poll interval in seconds */
 static int pollTime = 0;
 
+/** additional script environment */
+static env_t scriptEnv;
+
 static void parseFilesys(char *data)
 {
     static bool isInit = false;
@@ -88,7 +91,8 @@ bool FS_startScript(void)
     if (pollTime < 1) pollTime = 30;
     char *fsPath = getConfValueC(&config, "FILESYSTEM_SCRIPT");
 
-    fsScript = Script_start("filesystem", fsPath, parseFilesys, pollTime);
+    fsScript = Script_start("filesystem", fsPath, parseFilesys, pollTime,
+			    &scriptEnv);
     if (!fsScript) {
 	flog("invalid filesytem script, cannot continue\n");
 	return false;
@@ -102,6 +106,7 @@ bool FS_startScript(void)
 bool FS_init(void)
 {
     memset(&fsData, 0, sizeof(fsData));
+    envInit(&scriptEnv);
 
     char *fsPath = getConfValueC(&config, "FILESYSTEM_SCRIPT");
 
@@ -144,5 +149,18 @@ uint32_t FS_getPoll(void)
 
 bool FS_ctlEnv(psAccountCtl_t action, const char *envStr)
 {
-    return Script_ctlEnv(fsScript, action, envStr);
+    switch (action) {
+	case PSACCOUNT_SCRIPT_ENV_SET:
+	    envPut(&scriptEnv, envStr);
+	    break;
+	case PSACCOUNT_SCRIPT_ENV_UNSET:
+	    envUnset(&scriptEnv, envStr);
+	    break;
+	default:
+	    flog("invalid action %i\n", action);
+	    return false;
+    }
+
+    if (fsScript) return Script_ctlEnv(fsScript, action, envStr);
+    return true;
 }

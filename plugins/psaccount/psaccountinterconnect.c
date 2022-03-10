@@ -43,6 +43,9 @@ static psAccountIC_t icData, icBase;
 /** script poll interval in seconds */
 static int pollTime = 0;
 
+/** additional script environment */
+static env_t scriptEnv;
+
 static void parseInterconn(char *data)
 {
     static bool isInit = false;
@@ -61,7 +64,7 @@ static void parseInterconn(char *data)
 	isInit = true;
 
 	fdbg(PSACC_LOG_INTERCON, "init base values: port %hu XmitData %zu "
-	     "RcvData %zu XmitPkts %zu RcvPkts %zu\n", icData.port,
+	     "RcvData %zu XmitPkts %zu RcvPkts %zu\n", icBase.port,
 	     icBase.recvBytes, icBase.recvPkts, icBase.sendBytes,
 	     icBase.sendPkts);
     }
@@ -90,7 +93,8 @@ bool IC_startScript(void)
     if (pollTime < 1) pollTime = 30;
     char *interScript = getConfValueC(&config, "INTERCONNECT_SCRIPT");
 
-    iScript = Script_start("interconn", interScript, parseInterconn, pollTime);
+    iScript = Script_start("interconn", interScript, parseInterconn, pollTime,
+			   &scriptEnv);
     if (!iScript) {
 	flog("failed to start interconnect script, cannot continue\n");
 	return false;
@@ -104,6 +108,7 @@ bool IC_startScript(void)
 bool IC_init(void)
 {
     memset(&icData, 0, sizeof(icData));
+    envInit(&scriptEnv);
 
     char *interScript = getConfValueC(&config, "INTERCONNECT_SCRIPT");
 
@@ -146,5 +151,19 @@ uint32_t IC_getPoll(void)
 
 bool IC_ctlEnv(psAccountCtl_t action, const char *envStr)
 {
-    return Script_ctlEnv(iScript, action, envStr);
+    switch (action) {
+	case PSACCOUNT_SCRIPT_ENV_SET:
+	    envPut(&scriptEnv, envStr);
+	    break;
+	case PSACCOUNT_SCRIPT_ENV_UNSET:
+	    envUnset(&scriptEnv, envStr);
+	    break;
+	default:
+	    flog("invalid action %i\n", action);
+	    return false;
+    }
+
+    if (iScript) return Script_ctlEnv(iScript, action, envStr);
+
+    return true;
 }

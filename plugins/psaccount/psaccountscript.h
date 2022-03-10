@@ -39,10 +39,13 @@ typedef struct {
  *
  * @param poll The time to wait between repeading calls of the script
  *
+ * @param env Additional scripts environment variables or NULL
+ *
  * @return Returns a structure to the started script or NULL on error
  */
 Collect_Script_t *Script_start(char *title, char *path,
-			       scriptDataHandler_t *func, uint32_t poll);
+			       scriptDataHandler_t *func, uint32_t poll,
+			       env_t *env);
 
 /**
  * @brief Finalize a collect script

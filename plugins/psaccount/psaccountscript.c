@@ -206,7 +206,8 @@ static int fwCMD_handleMthrMsg(PSLog_Msg_t *msg, Forwarder_Data_t *fwdata)
 }
 
 Collect_Script_t *Script_start(char *title, char *path,
-			       scriptDataHandler_t *func, uint32_t poll)
+			       scriptDataHandler_t *func, uint32_t poll,
+			       env_t *env)
 {
     if (!title) {
 	flog("invalid title given\n");
@@ -230,7 +231,11 @@ Collect_Script_t *Script_start(char *title, char *path,
     script->path = ustrdup(path);
     script->func = func;
     script->poll = poll;
-    envInit(&script->env);
+    if (!env) {
+	envInit(&script->env);
+    } else {
+	envClone(env, &script->env, NULL);
+    }
 
     Forwarder_Data_t *fwdata = ForwarderData_new();
     fwdata->pTitle = ustrdup(title);
