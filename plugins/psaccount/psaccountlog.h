@@ -59,6 +59,8 @@ typedef enum {
     PSACC_LOG_ACC_SWITCH    = 0x000800, /**< enable/disable acct by pspmi */
     PSACC_LOG_SIGNAL        = 0x001000, /**< signal delivery */
     PSACC_LOG_ENERGY	    = 0x002000, /**< node energy consumption */
+    PSACC_LOG_INTERCON      = 0x004000, /**< node interconnect counters */
+    PSACC_LOG_FILESYS       = 0x008000, /**< node filesystem counters */
 } PSAccount_log_types_t;
 
 /**

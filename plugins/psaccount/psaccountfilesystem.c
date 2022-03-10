@@ -60,8 +60,8 @@ static void parseFilesys(char *data)
 	memcpy(&fsBase, &new, sizeof(fsBase));
 	isInit = true;
 
-	flog("init base values: readBytes %zu writeBytes %zu "
-	     "numReads %zu numWrites %zu\n", fsBase.readBytes,
+	fdbg(PSACC_LOG_FILESYS, "init base values: readBytes %zu "
+	     "writeBytes %zu numReads %zu numWrites %zu\n", fsBase.readBytes,
 	     fsBase.writeBytes, fsBase.numReads, fsBase.numWrites);
     }
 
@@ -71,8 +71,8 @@ static void parseFilesys(char *data)
     fsData.numWrites = new.numWrites - fsBase.numWrites;
     fsData.lastUpdate = time(NULL);
 
-    flog("XmitData %zu RcvData %zu XmitPkts %zu RcvPkts %zu\n",
-	 fsData.readBytes, fsData.writeBytes, fsData.numReads,
+    fdbg(PSACC_LOG_FILESYS, "XmitData %zu RcvData %zu XmitPkts %zu "
+	 "RcvPkts %zu\n", fsData.readBytes, fsData.writeBytes, fsData.numReads,
 	 fsData.numWrites);
 }
 
@@ -93,6 +93,8 @@ bool FS_startScript(void)
 	flog("invalid filesytem script, cannot continue\n");
 	return false;
     }
+    fdbg(PSACC_LOG_FILESYS, "filesystem monitor %s interval %i started\n",
+	 fsPath, pollTime);
 
     return true;
 }

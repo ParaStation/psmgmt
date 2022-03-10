@@ -60,9 +60,10 @@ static void parseInterconn(char *data)
 	memcpy(&icBase, &new, sizeof(icBase));
 	isInit = true;
 
-	flog("init base values: port %hu XmitData %zu RcvData %zu "
-	     "XmitPkts %zu RcvPkts %zu\n", icData.port, icBase.recvBytes,
-	     icBase.recvPkts, icBase.sendBytes, icBase.sendPkts);
+	fdbg(PSACC_LOG_INTERCON, "init base values: port %hu XmitData %zu "
+	     "RcvData %zu XmitPkts %zu RcvPkts %zu\n", icData.port,
+	     icBase.recvBytes, icBase.recvPkts, icBase.sendBytes,
+	     icBase.sendPkts);
     }
 
     icData.recvBytes = new.recvBytes - icBase.recvBytes;
@@ -72,9 +73,9 @@ static void parseInterconn(char *data)
     icData.port = new.port;
     icData.lastUpdate = time(NULL);
 
-    flog("port %hu XmitData %zu RcvData %zu XmitPkts %zu RcvPkts %zu\n",
-	 icData.port, icData.recvBytes, icData.recvPkts, icData.sendBytes,
-	 icData.sendPkts);
+    fdbg(PSACC_LOG_INTERCON, "port %hu XmitData %zu RcvData %zu XmitPkts %zu "
+	 "RcvPkts %zu\n", icData.port, icData.recvBytes, icData.recvPkts,
+	 icData.sendBytes, icData.sendPkts);
 }
 
 psAccountIC_t *IC_getData(void)
@@ -94,6 +95,8 @@ bool IC_startScript(void)
 	flog("failed to start interconnect script, cannot continue\n");
 	return false;
     }
+    fdbg(PSACC_LOG_INTERCON, "interconnect monitor %s interval %i started\n",
+	 interScript, pollTime);
 
     return true;
 }

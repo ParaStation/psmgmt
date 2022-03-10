@@ -143,6 +143,8 @@ bool Energy_startScript(void)
 	flog("invalid energy script, cannot continue\n");
 	return false;
     }
+    fdbg(PSACC_LOG_ENERGY, "energy monitor %s interval %i started\n",
+	 energyScript, pollTime);
 
     return true;
 }
