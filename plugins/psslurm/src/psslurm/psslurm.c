@@ -338,6 +338,12 @@ static bool regPsAccountHandles(void)
 	return false;
     }
 
+    psAccountScriptEnv = dlsym(pluginHandle, "psAccountScriptEnv");
+    if (!psAccountScriptEnv) {
+	mlog("%s: loading psAccountScriptEnv() failed\n", __func__);
+	return false;
+    }
+
     return true;
 }
 
