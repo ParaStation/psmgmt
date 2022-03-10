@@ -100,6 +100,9 @@ static bool sigChild = false;
 /** Flag indication child's wall-time limit is reached */
 static bool jobTimeout = false;
 
+/** Flag indicating forwarder is shutting down */
+static bool fwShutdown = false;
+
 static struct timeval childStart;
 
 ssize_t sendMsgToMother(DDTypedBufferMsg_t *msg)
@@ -152,6 +155,7 @@ static void killForwarderChild(Forwarder_Data_t *fw, int sig, char *reason,
 
 static void handleLocalShutdown(Forwarder_Data_t *fw)
 {
+    fwShutdown = true;
     if (fw->cSid < 1) {
 	sigChild = true;
 	Selector_startOver();
@@ -272,6 +276,7 @@ static void signalHandler(int sig)
 {
     switch (sig) {
     case SIGTERM:
+	fwShutdown = true;
 	if (sendHardKill) return;
 
 	/* kill the child */
@@ -281,6 +286,7 @@ static void signalHandler(int sig)
 	/* reset possible alarms */
 	alarm(0);
 
+	fwShutdown = true;
 	if (killAllChildren && fwData->cSid > 0) {
 	    /* second kill phase, do it the hard way now */
 	    pluginlog("%s: SIGKILL to sid %i (job %s)\n", __func__,
@@ -611,6 +617,17 @@ static void monitorOEpipes(Forwarder_Data_t *fw)
 
 static bool openOEpipes(Forwarder_Data_t *fw)
 {
+    if (fw->stdOut[0] != -1) {
+	if (Selector_isRegistered(fw->stdOut[0])) Selector_remove(fw->stdOut[0]);
+	close(fw->stdOut[0]);
+	close(fw->stdOut[1]);
+    }
+    if (fw->stdErr[0] != -1) {
+	if (Selector_isRegistered(fw->stdErr[0])) Selector_remove(fw->stdErr[0]);
+	close(fw->stdErr[0]);
+	close(fw->stdErr[1]);
+    }
+
     /* stdout */
     if (pipe(fw->stdOut) == -1) {
 	pluginwarn(errno, "%s: pipe(stdout) for job %s", __func__, fw->jobID);
@@ -659,14 +676,6 @@ static int execFWhooks(Forwarder_Data_t *fw)
 	}
     }
 
-    /* setup output/error pipes */
-    if (fw->fwChildOE) {
-	if (!openOEpipes(fw)) {
-	    pluginlog("%s: initialize child STDOUT/STDERR failed\n", __func__);
-	    return -1;
-	}
-    }
-
     return 0;
 }
 
@@ -675,8 +684,7 @@ static void execForwarder(PStask_t *task)
     fwTask = task;
     Forwarder_Data_t *fw = task->info;
     fwData = fw;
-    int status = 0, i;
-    struct rusage rusage;
+    int status = 0;
 
     /* cleanup daemon memory and reset global facilities */
     PSID_clearMem(false);
@@ -693,15 +701,29 @@ static void execForwarder(PStask_t *task)
 	exit(-1);
     }
 
-    for (i = 1; i <= fw->childRerun; i++) {
+    int i = 1;
+    while (!fwShutdown &&
+	  (fw->childRerun  FW_CHILD_INFINITE || i++ <= fw->childRerun)) {
+
 	if (fw->childFunc) {
-	    int controlFDs[2];
+	    /* setup output/error pipes */
+	    if (fw->fwChildOE) {
+		if (!openOEpipes(fw)) {
+		    pluginlog("%s: initialize child STDOUT/STDERR failed\n",
+			      __func__);
+		    exit(-1);
+		}
+	    }
 
 	    /* open control fds */
+	    int controlFDs[2];
 	    if (socketpair(PF_UNIX, SOCK_STREAM, 0, controlFDs) < 0) {
 		pluginwarn(errno, "%s: socketpair(controlFDs)", __func__);
 		break;
 	    }
+
+	    /* ensure Swait() is called */
+	    sigChild = false;
 
 	    /* fork child */
 	    fw->cPid = fork();
@@ -736,6 +758,7 @@ static void execForwarder(PStask_t *task)
 	if (fw->hookLoop) fw->hookLoop(fw);
 	forwarderLoop(fw);
 
+	struct rusage rusage;
 	if (fw->childFunc) {
 	    int res = wait4(fw->cPid, &status, 0, &rusage);
 	    if (res == -1) {
