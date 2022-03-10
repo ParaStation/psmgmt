@@ -79,6 +79,10 @@ const ConfDef_t confDef[] =
 	"file",
 	"/etc/slurm/plugstack.conf",
 	"Default spank configuration file of slurm" },
+    { "SLURM_GATHER_CONF", 0,
+	"file",
+	"/etc/slurm/acct_gather.conf",
+	"Default account gather configuration file of slurm" },
     { "DIR_SCRIPTS", 0,
 	"path",
 	SPOOL_DIR "/scripts",
@@ -1103,6 +1107,16 @@ static bool verifySlurmConf(void)
     return true;
 }
 
+static bool parseAcctGatherConf(char *key, char *value, const void *info)
+{
+    if (!strcasecmp(key, "InfinibandOFEDPort")) {
+	addConfigEntry(&SlurmConfig, "INFINIBAND_OFED_PORT", value);
+    }
+
+    /* parsing was successful, continue with next line */
+    return false;
+}
+
 bool parseSlurmConfigFiles(void)
 {
     struct stat sbuf;
@@ -1151,6 +1165,28 @@ bool parseSlurmConfigFiles(void)
 	}
 	freeConfig(&SlurmGresTmp);
     }
+
+    /* parse optional Slurm account gather config file */
+    confFile = getConfValueC(&Config, "SLURM_GATHER_CONF");
+    if (!confFile) {
+	flog("Configuration value SLURM_GATHER_CONF not found\n");
+	return false;
+    }
+    if (stat(confFile, &sbuf) != -1) {
+	Config_t AcctGather;
+	if (parseConfigFile(confFile, &AcctGather, true /*trimQuotes*/) < 0) {
+	    flog("Parsing account gather configuration file %s failed\n",
+		 confFile);
+	    return false;
+	}
+
+	if (traverseConfig(&AcctGather, parseAcctGatherConf, NULL)) {
+	    flog("Traversing account gather configuration failed\n");
+	    return false;
+	}
+	freeConfig(&AcctGather);
+    }
+
 
 #ifdef HAVE_SPANK
     Config_t SlurmPlugConf;

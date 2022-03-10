@@ -3556,6 +3556,9 @@ void activateConfigCache(char *confDir)
 
     snprintf(path, sizeof(path), "%s/%s", confDir, "plugstack.conf");
     addConfigEntry(&Config, "SLURM_SPANK_CONF", path);
+
+    snprintf(path, sizeof(path), "%s/%s", confDir, "acct_gather.conf");
+    addConfigEntry(&Config, "SLURM_GATHER_CONF", path);
 }
 
 /**
