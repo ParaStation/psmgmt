@@ -12,6 +12,9 @@
 #ifndef __PS_ACCOUNT_SCRIPT
 #define __PS_ACCOUNT_SCRIPT
 
+#include <stdbool.h>
+#include <stdint.h>
+
 #include "pluginforwarder.h"
 #include "psenv.h"
 #include "psaccounttypes.h"

@@ -25,8 +25,6 @@
 #include "pluginhelper.h"
 #include "pluginmalloc.h"
 
-#include "psaccounthandles.h"
-
 #include "slurmcommon.h"
 #include "slurmmsg.h"
 #include "psslurmconfig.h"

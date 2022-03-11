@@ -34,7 +34,6 @@
 #include "psidpin.h"
 #include "psslurmpin.h"
 #include "psslurmstep.h"
-#include "psslurmlog.h"
 
 static int verbosity = 0;
 static bool humanreadable = false;

@@ -7,32 +7,21 @@
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-#include <stdio.h>
-#include <stdint.h>
-#include <errno.h>
-#include <inttypes.h>
-#include <string.h>
-#include <math.h>
-#include <time.h>
-#include <unistd.h>
-#include <stdlib.h>
-#include <sys/wait.h>
-#include <sys/stat.h>
+#include "psaccountfilesystem.h"
 
-#include "psaccountproc.h"
-#include "psaccountlog.h"
+#include <stdint.h>
+#include <stdio.h>
+#include <string.h>
+#include <time.h>
+
+#include "pluginconfig.h"
+#include "psenv.h"
+
 #include "psaccountconfig.h"
+#include "psaccountlog.h"
 #include "psaccountscript.h"
 #include "psaccounttypes.h"
 
-#include "pluginconfig.h"
-#include "pluginforwarder.h"
-#include "pluginmalloc.h"
-#include "pslog.h"
-#include "psserial.h"
-#include "pscommon.h"
-
-#include "psaccountfilesystem.h"
 
 /** filesystem monitor script */
 static Collect_Script_t *fsScript = NULL;

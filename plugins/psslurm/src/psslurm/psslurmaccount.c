@@ -11,8 +11,11 @@
 #include "psslurmaccount.h"
 
 #include <stdio.h>
+#include <string.h>
 
+#include "pluginconfig.h"
 #include "pluginmalloc.h"
+#include "psaccounthandles.h"
 
 #include "slurmcommon.h"
 #include "psslurmlog.h"

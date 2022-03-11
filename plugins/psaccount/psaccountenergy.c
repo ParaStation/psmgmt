@@ -11,26 +11,17 @@
 #include "psaccountenergy.h"
 
 #include <stdio.h>
-#include <stdlib.h>
 #include <errno.h>
 #include <inttypes.h>
 #include <math.h>
-#include <signal.h>
 #include <string.h>
-#include <sys/wait.h>
-#include <sys/stat.h>
 #include <time.h>
-#include <unistd.h>
 
-#include "psprotocol.h"
-#include "psserial.h"
+#include "psenv.h"
 #include "pluginconfig.h"
-#include "pluginforwarder.h"
-#include "pluginmalloc.h"
 
 #include "psaccountconfig.h"
 #include "psaccountlog.h"
-#include "psaccountproc.h"
 #include "psaccountscript.h"
 
 #define NO_VAL64   (0xfffffffffffffffe)

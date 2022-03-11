@@ -11,6 +11,11 @@
 #ifndef __PS_ACCOUNT_INTERCONN
 #define __PS_ACCOUNT_INTERCONN
 
+#include <stdbool.h>
+#include <stdint.h>
+
+#include "psaccounttypes.h"
+
 /**
  * @brief Initialize interconnect monitoring
  *

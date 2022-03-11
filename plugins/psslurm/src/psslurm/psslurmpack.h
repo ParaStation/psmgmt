@@ -15,6 +15,7 @@
 
 #include "list.h"
 #include "psserial.h"
+#include "psaccounthandles.h"
 
 #include "psslurmaccount.h"
 #include "psslurmauth.h"

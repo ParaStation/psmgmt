@@ -12,6 +12,7 @@
 #define __PS_ACCOUNT_ENERGY
 
 #include <stdbool.h>
+#include <stdint.h>
 
 #include "psaccounttypes.h"
 

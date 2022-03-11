@@ -17,7 +17,6 @@
 
 #include "pluginmalloc.h"
 #include "psidsignal.h"
-#include "psaccounttypes.h"
 
 #include "psslurmauth.h"
 #include "psslurmbcast.h"

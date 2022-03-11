@@ -150,7 +150,7 @@ void finalizePluginLogger(void);
  * also define the further parameters to be expected.
  */
 void __Plugin_flog(logger_t* logger, const char *func, int32_t key,
-	           char *format, ...)
-     __attribute__((format(printf,4,5)));
+		   char *format, ...)
+__attribute__((format(printf,4,5)));
 
 #endif  /* __PLUGIN_LIB_LOG */

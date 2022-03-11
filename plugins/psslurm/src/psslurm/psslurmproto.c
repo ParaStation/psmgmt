@@ -18,6 +18,7 @@
 #include <netinet/in.h>
 #include <signal.h>
 #include <string.h>
+#include <strings.h>
 #include <sys/resource.h>
 #include <sys/stat.h>
 #include <sys/statfs.h>

@@ -20,7 +20,7 @@
 #include "psidsignal.h"
 
 #include "pluginmalloc.h"
-#include "psaccounttypes.h"
+#include "psaccounthandles.h"
 
 #include "slurmcommon.h"
 #include "psslurmalloc.h"

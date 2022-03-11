@@ -15,7 +15,7 @@
 #include <stdio.h>
 
 #include "logging.h"
-#include "pluginlog.h"
+#include "pluginlog.h"  // IWYU pragma: keep
 
 extern logger_t *psaccountlogger;
 extern FILE *psaccountlogfile;

@@ -8,9 +8,9 @@
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-#include <stdarg.h>
-
 #include "pluginlog.h"
+
+#include <stdarg.h>
 
 #define MAX_FLOG_SIZE 4096
 

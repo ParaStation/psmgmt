@@ -7,9 +7,13 @@
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-
 #ifndef __PS_ACCOUNT_FILESYSTEM
 #define __PS_ACCOUNT_FILESYSTEM
+
+#include <stdbool.h>
+#include <stdint.h>
+
+#include "psaccounttypes.h"
 
 /**
  * @brief Initialize filesystem monitoring

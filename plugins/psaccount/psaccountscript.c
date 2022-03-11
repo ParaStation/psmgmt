@@ -8,29 +8,31 @@
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-#include <stdio.h>
+#include "psaccountscript.h"
+
+#include <stddef.h>
 #include <stdint.h>
-#include <errno.h>
-#include <inttypes.h>
-#include <string.h>
-#include <math.h>
-#include <time.h>
-#include <unistd.h>
 #include <stdlib.h>
-#include <sys/wait.h>
+#include <errno.h>
+#include <netinet/in.h>
+#include <signal.h>
+#include <string.h>
 #include <sys/stat.h>
+#include <sys/wait.h>
+#include <unistd.h>
+
+#include "pscommon.h"
+#include "pslog.h"
+#include "psprotocol.h"
+#include "psserial.h"
+
+#include "pluginforwarder.h"
+#include "pluginmalloc.h"
+#include "psidcomm.h"
 
 #include "psaccountproc.h"
 #include "psaccountlog.h"
 
-#include "pluginforwarder.h"
-#include "pluginmalloc.h"
-#include "pslog.h"
-#include "psserial.h"
-#include "pscommon.h"
-#include "psidcomm.h"
-
-#include "psaccountscript.h"
 
 typedef enum {
     CMD_SET_POLL_TIME = 100,
