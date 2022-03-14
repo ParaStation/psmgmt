@@ -22,7 +22,6 @@
 #include <unistd.h>
 
 #include "pscommon.h"
-#include "pslog.h"
 #include "psprotocol.h"
 #include "psserial.h"
 
@@ -33,44 +32,46 @@
 #include "psaccountproc.h"
 #include "psaccountlog.h"
 
-
 typedef enum {
-    CMD_SET_POLL_TIME = 100,
+    CMD_SET_POLL_TIME = PLGN_TYPE_LAST+1,
     CMD_SET_ENV_VAR,
     CMD_UNSET_ENV_VAR,
-} FW_Cmds_t;
+} PSACCOUNT_Fw_Cmds_t;
 
 /**
  * @brief Parse stdout/stderr from collect script
  *
- * @param msg The message to parse
+ * @param msg Message to parse
  *
  * @param fwdata Structure holding all forwarder information
  *
- * @return Returns 1 on success otherwise 0 is returned
+ * @return Returns true on success or false otherwise
  */
-static int handleFwMsg(PSLog_Msg_t *msg, Forwarder_Data_t *fwdata)
+static bool handleFwMsg(DDTypedBufferMsg_t *msg, Forwarder_Data_t *fwdata)
 {
     Collect_Script_t *script = fwdata->userData;
+
+    if (msg->header.type != PSP_PF_MSG) return false;
+
     char *ptr = msg->buf, *data;
 
     switch (msg->type) {
-	case STDOUT:
-	    data = getStringM(&ptr);
-	    script->func(data);
-	    ufree(data);
-	    break;
-	case STDERR:
-	    data = getStringM(&ptr);
-	    flog("error from %s script: %s\n", fwdata->pTitle, data);
-	    ufree(data);
-	    break;
-	default:
-	    flog("unhandled msg type %d\n", msg->type);
-	    return 0;
+    case PLGN_STDOUT:
+	data = getStringM(&ptr);
+	script->func(data);
+	ufree(data);
+	break;
+    case PLGN_STDERR:
+	data = getStringM(&ptr);
+	flog("error from %s script: %s\n", fwdata->pTitle, data);
+	ufree(data);
+	break;
+    default:
+	flog("unhandled msg type %d\n", msg->type);
+	return false;
     }
 
-    return 1;
+    return true;
 }
 
 /**
@@ -156,22 +157,29 @@ static void handleSetPollTime(Forwarder_Data_t *fwdata, char *ptr)
 }
 
 /**
- * @brief Put new variable into script environment
+ * @brief Put/Remove variable into/from script environment
  *
  * @param fwdata The forwarder management structure
  *
- * @param ptr Holding the new environment variable
+ * @param ptr Holding the environment variable to handle
+ *
+ * @param action Actual action to execute
  */
-static void handleCtlEnvVar(Forwarder_Data_t *fwdata, char *ptr, int action)
+static void handleCtlEnvVar(Forwarder_Data_t *fwdata, char *ptr,
+			    PSACCOUNT_Fw_Cmds_t action)
 {
     Collect_Script_t *script = fwdata->userData;
-    size_t msglen;
-    char *envStr = getDataM(&ptr, &msglen);
+    char *envStr = getDataM(&ptr, NULL);
 
-    if (action == CMD_SET_ENV_VAR) {
+    switch (action) {
+    case CMD_SET_ENV_VAR:
 	envPut(&script->env, envStr);
-    } else {
+	break;
+    case CMD_UNSET_ENV_VAR:
 	envUnset(&script->env, envStr);
+	break;
+    default:
+	flog("unexpected action %d\n", action);
     }
     ufree(envStr);
 }
@@ -183,28 +191,27 @@ static void handleCtlEnvVar(Forwarder_Data_t *fwdata, char *ptr, int action)
  *
  * @param fwdata The forwarder management structure
  *
- * @return Returns 1 on success and 0 otherwise
+ * @return Returns true on success or false otherwise
  */
-static int fwCMD_handleMthrMsg(PSLog_Msg_t *msg, Forwarder_Data_t *fwdata)
+static bool handleMthrMsg(DDTypedBufferMsg_t *msg, Forwarder_Data_t *fwdata)
 {
-    FW_Cmds_t type = (FW_Cmds_t)msg->type;
+    if (msg->header.type != PSP_PF_MSG) return false;
 
-    switch (type) {
-	case CMD_SET_POLL_TIME:
-	    handleSetPollTime(fwdata, msg->buf);
-	    break;
-	case CMD_SET_ENV_VAR:
-	case CMD_UNSET_ENV_VAR:
-	    handleCtlEnvVar(fwdata, msg->buf, type);
-	    break;
-	default:
-	    flog("unexpected msg, type %d (PSlog type %s) from TID %s (%s) "
-		 "jobid %s\n", type, PSLog_printMsgType(msg->type),
-		 PSC_printTID(msg->sender), fwdata->pTitle, fwdata->jobID);
-	    return 0;
+    switch ((PSACCOUNT_Fw_Cmds_t)msg->type) {
+    case CMD_SET_POLL_TIME:
+	handleSetPollTime(fwdata, msg->buf);
+	break;
+    case CMD_SET_ENV_VAR:
+    case CMD_UNSET_ENV_VAR:
+	handleCtlEnvVar(fwdata, msg->buf, msg->type);
+	break;
+    default:
+	flog("unexpected msg, type %d from TID %s (%s)\n", msg->type,
+	     PSC_printTID(msg->header.sender), fwdata->pTitle);
+	return false;
     }
 
-    return 1;
+    return true;
 }
 
 Collect_Script_t *Script_start(char *title, char *path,
@@ -248,7 +255,7 @@ Collect_Script_t *Script_start(char *title, char *path,
     fwdata->childFunc = execCollectScript;
     fwdata->fwChildOE = true;
     fwdata->userData = script;
-    fwdata->handleMthrMsg = fwCMD_handleMthrMsg;
+    fwdata->handleMthrMsg = handleMthrMsg;
     fwdata->childRerun = FW_CHILD_INFINITE;
 
     if (!startForwarder(fwdata)) {
@@ -282,21 +289,18 @@ bool Script_setPollTime(Collect_Script_t *script, uint32_t poll)
 	return false;
     }
 
-    PSLog_Msg_t msg = {
+    DDTypedBufferMsg_t msg = {
 	.header = {
-	    .type = PSP_CC_MSG,
+	    .type = PSP_PF_MSG,
 	    .dest = script->fwdata->tid,
 	    .sender = PSC_getMyTID(),
-	    .len = offsetof(PSLog_Msg_t, buf) },
-	.version = PLUGINFW_PROTO_VERSION,
-	.type = (PSLog_msg_t)CMD_SET_POLL_TIME,
-	.sender = -1};
-    DDBufferMsg_t *bMsg = (DDBufferMsg_t *)&msg;
-    uint32_t len = htonl(sizeof(poll));
+	    .len = 0, },
+	.type = CMD_SET_POLL_TIME };
 
     /* Add data including its length mimicking addData */
-    PSP_putMsgBuf(bMsg, "len", &len, sizeof(len));
-    PSP_putMsgBuf(bMsg, "time", &poll, sizeof(poll));
+    uint32_t len = htonl(sizeof(poll));
+    PSP_putTypedMsgBuf(&msg, "len", &len, sizeof(len));
+    PSP_putTypedMsgBuf(&msg, "time", &poll, sizeof(poll));
 
     if (sendMsg(&msg) == -1) return false;
     script->poll = poll;
@@ -316,54 +320,47 @@ bool Script_ctlEnv(Collect_Script_t *script, psAccountCtl_t action,
 	return false;
     }
 
-    int cmd;
+    PSACCOUNT_Fw_Cmds_t cmd;
     switch (action) {
-	case PSACCOUNT_SCRIPT_ENV_SET:
-	    cmd = CMD_SET_ENV_VAR;
-	    if (!strchr(envStr, '=')) {
-		flog("missing '=' in environment variable to set\n");
-		return false;
-	    }
-	    break;
-	case PSACCOUNT_SCRIPT_ENV_UNSET:
-	    cmd = CMD_UNSET_ENV_VAR;
-	    if (strchr(envStr, '=')) {
-		flog("invalid '=' in environment variable to unset\n");
-		return false;
-	    }
-	    break;
-	default:
-	    flog("invalid action %i\n", action);
+    case PSACCOUNT_SCRIPT_ENV_SET:
+	cmd = CMD_SET_ENV_VAR;
+	if (!strchr(envStr, '=')) {
+	    flog("missing '=' in environment variable to set\n");
 	    return false;
+	}
+	break;
+    case PSACCOUNT_SCRIPT_ENV_UNSET:
+	cmd = CMD_UNSET_ENV_VAR;
+	if (strchr(envStr, '=')) {
+	    flog("invalid '=' in environment variable to unset\n");
+	    return false;
+	}
+	break;
+    default:
+	flog("invalid action %i\n", action);
+	return false;
     }
 
-    PSLog_Msg_t msg = {
+    DDTypedBufferMsg_t msg = {
 	.header = {
-	    .type = PSP_CC_MSG,
+	    .type = PSP_PF_MSG,
 	    .dest = script->fwdata->tid,
 	    .sender = PSC_getMyTID(),
-	    .len = offsetof(PSLog_Msg_t, buf) },
-	.version = PLUGINFW_PROTO_VERSION,
-	.type = (PSLog_msg_t)cmd,
-	.sender = -1};
-    const size_t chunkSize = sizeof(msg.buf) - sizeof(uint8_t)
-	- sizeof(uint32_t) - sizeof(uint32_t);
-    size_t msgLen = strlen(envStr) + 1;
-    size_t left = msgLen;
+	    .len = 0, },
+	.type = cmd };
 
-    do {
-	uint32_t chunk = left > chunkSize ? chunkSize : left;
-	uint32_t len = htonl(chunk);
-	DDBufferMsg_t *bMsg = (DDBufferMsg_t *)&msg;
-	msg.header.len = offsetof(PSLog_Msg_t, buf);
+    size_t envLen = strlen(envStr) + 1;
+    uint32_t len = htonl(envLen);
+    if (envLen > sizeof(msg.buf) - sizeof(len)) {
+	flog("environment string '%s' too long\n", envStr);
+	return false;
+    }
 
-	/* Add data chunk including its length mimicking addData */
-	PSP_putMsgBuf(bMsg, "len", &len, sizeof(len));
-	PSP_putMsgBuf(bMsg, "data", envStr + msgLen - left, chunk);
+    /* Add string including its length mimicking addData */
+    PSP_putTypedMsgBuf(&msg, "len", &len, sizeof(len));
+    PSP_putTypedMsgBuf(&msg, "env string", envStr, envLen);
 
-	sendMsg(&msg);
-	left -= chunk;
-    } while (left);
+    if (sendMsg(&msg) == -1) return false;
 
     return true;
 }
