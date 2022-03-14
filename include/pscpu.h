@@ -68,8 +68,8 @@ static inline void PSCPU_setCPU(PSCPU_set_t set, uint16_t cpu)
  */
 static inline void PSCPU_setAll(PSCPU_set_t set)
 {
-    unsigned i;
-    for (i=0; i < sizeof(PSCPU_set_t)/sizeof(PSCPU_mask_t); i++) set[i] = -1;
+    for (uint16_t i = 0; i < sizeof(PSCPU_set_t)/sizeof(PSCPU_mask_t); i++)
+	set[i] = -1;
 }
 
 /**
@@ -86,8 +86,7 @@ static inline void PSCPU_setAll(PSCPU_set_t set)
  */
 static inline void PSCPU_addCPUs(PSCPU_set_t set, const PSCPU_set_t add)
 {
-    unsigned i;
-    for (i=0; i < sizeof(PSCPU_set_t)/sizeof(PSCPU_mask_t); i++)
+    for (uint16_t i = 0; i < sizeof(PSCPU_set_t)/sizeof(PSCPU_mask_t); i++)
 	set[i] |= add[i];
 }
 
@@ -122,8 +121,8 @@ static inline void PSCPU_clrCPU(PSCPU_set_t set, uint16_t cpu)
  */
 static inline void PSCPU_clrAll(PSCPU_set_t set)
 {
-    unsigned i;
-    for (i=0; i < sizeof(PSCPU_set_t)/sizeof(PSCPU_mask_t); i++) set[i] = 0;
+    for (uint16_t i = 0; i < sizeof(PSCPU_set_t)/sizeof(PSCPU_mask_t); i++)
+	set[i] = 0;
 }
 
 /**
@@ -140,8 +139,7 @@ static inline void PSCPU_clrAll(PSCPU_set_t set)
  */
 static inline void PSCPU_remCPUs(PSCPU_set_t set, const PSCPU_set_t rem)
 {
-    unsigned i;
-    for (i=0; i < sizeof(PSCPU_set_t)/sizeof(PSCPU_mask_t); i++)
+    for (uint16_t i = 0; i < sizeof(PSCPU_set_t)/sizeof(PSCPU_mask_t); i++)
 	set[i] &= ~rem[i];
 }
 
@@ -209,7 +207,7 @@ bool PSCPU_all(const PSCPU_set_t set, uint16_t numBits);
  * numBits bits, true is returned; or false otherwise
  */
 bool PSCPU_overlap(const PSCPU_set_t set1, const PSCPU_set_t set2,
-	           uint16_t numBits);
+		   uint16_t numBits);
 
 /**
  * @brief Check for disjointedness between CPU-sets
@@ -299,7 +297,6 @@ int PSCPU_getCPUs(const PSCPU_set_t origSet, PSCPU_set_t newSet, int16_t num);
 int PSCPU_getUnset(const PSCPU_set_t set, uint16_t numBits,
 		   PSCPU_set_t free, uint16_t tpp);
 
-
 /**
  * @brief Print CPU-set
  *
@@ -376,7 +373,7 @@ static inline void PSCPU_copy(PSCPU_set_t dest, const PSCPU_set_t src)
  *
  * @see PSCPU_extract(), PSCPU_inject()
  */
-static inline size_t PSCPU_bytesForCPUs(unsigned short num)
+static inline size_t PSCPU_bytesForCPUs(uint16_t num)
 {
     size_t bytes = num ? (num-1)/8 + 1 : 0;
 
