@@ -388,6 +388,7 @@ do_subst = sed \
 pamconfdir = $(sysconfdir)/pam.d
 slurmlibdir = $(libdir)/slurm
 psgwlibdir = $(libexecdir)/psgw
+psacctlibdir = $(libexecdir)/psaccount
 
 # should be $(libdir)/psmgmt-plugins or similar
 plugindir = $(prefix)/plugins
