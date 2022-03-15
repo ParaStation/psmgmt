@@ -42,7 +42,7 @@ const ConfDef_t confDef[] =
       "Absolute path to energy monitoring script" },
     { "ENERGY_SCRIPT_POLL", true, "num", "0",
       "Energy script poll time in seconds" },
-    { "INTERCONNECT_SCRIPT", false, "file", "",
+    { "INTERCONNECT_SCRIPT", false, "file", "monitor_interconnect.sh",
       "Absolute path to interconnect monitoring script" },
     { "INTERCONNECT_POLL", true, "num", "0",
       "Interconnect script poll time in seconds" },
