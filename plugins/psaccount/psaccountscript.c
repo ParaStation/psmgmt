@@ -31,6 +31,7 @@
 
 #include "psaccountproc.h"
 #include "psaccountlog.h"
+#include "psaccountconfig.h"
 
 typedef enum {
     CMD_SET_POLL_TIME = PLGN_TYPE_LAST+1,
@@ -131,15 +132,32 @@ bool Script_test(char *spath, char *title)
 {
     if (!spath) return false;
 
+    char *fName;
+    if (spath[0] == '/') {
+	fName = strdup(spath);
+    } else {
+	const char *monPath = getConfValueC(&config, "MONITOR_SCRIPT_PATH");
+	fName = PSC_concat(monPath, "/", spath, 0L);
+    }
+
+    if (!fName) {
+	flog("out of memory\n");
+	return false;
+    }
+
     struct stat sbuf;
-    if (stat(spath, &sbuf) == -1) {
-	mwarn(errno, "%s: %s script %s not found:", __func__, title, spath);
+    if (stat(fName, &sbuf) == -1) {
+	mwarn(errno, "%s: %s script %s not found:", __func__, title, fName);
+	ufree(fName);
 	return false;
     }
     if (!(sbuf.st_mode & S_IFREG) || !(sbuf.st_mode & S_IXUSR)) {
-	flog("%s script %s is not a valid executable script\n", title, spath);
+	flog("%s script %s is not a valid executable script\n", title, fName);
+	ufree(fName);
 	return false;
     }
+
+    ufree(fName);
     return true;
 }
 
@@ -230,14 +248,26 @@ Collect_Script_t *Script_start(char *title, char *path,
 	flog("invalid func given\n");
 	return false;
     }
-
     if (!Script_test(path, title)) {
 	flog("invalid %s script given\n", title);
 	return false;
     }
 
+    char *fName;
+    if (path[0] == '/') {
+	fName = strdup(path);
+    } else {
+	const char *monPath = getConfValueC(&config, "MONITOR_SCRIPT_PATH");
+	fName = PSC_concat(monPath, "/", path, 0L);
+    }
+
+    if (!fName) {
+	flog("out of memory\n");
+	return false;
+    }
+
     Collect_Script_t *script = umalloc(sizeof(*script));
-    script->path = ustrdup(path);
+    script->path = fName;
     script->func = func;
     script->poll = poll;
     if (!env) {

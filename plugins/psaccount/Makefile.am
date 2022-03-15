@@ -31,5 +31,6 @@ psaccount_la_SOURCES = psaccount.c psaccount.h psaccountclient.c	\
 	psaccountinterconnect.c psaccountfilesystem.h			\
 	psaccountfilesystem.c
 
-psaccount_la_CPPFLAGS = $(AM_CPPFLAGS) -DPLUGINDIR=\"$(plugindir)\"
+psaccount_la_CPPFLAGS = $(AM_CPPFLAGS) -DPLUGINDIR=\"$(plugindir)\"	\
+		        -DPSACCTLIBDIR=\"$(psacctlibdir)\"
 psaccount_la_LIBADD = $(libplugincommon) $(libpscommon)
