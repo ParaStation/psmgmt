@@ -22,6 +22,7 @@
 #include "psaccountscript.h"
 #include "psaccounttypes.h"
 
+#define DEFAULT_POLL_TIME 30
 
 /** filesystem monitor script */
 static Collect_Script_t *fsScript = NULL;
@@ -77,7 +78,7 @@ bool FS_startScript(void)
 {
     if (fsScript) return true;
 
-    if (pollTime < 1) pollTime = 30;
+    if (pollTime < 1) pollTime = DEFAULT_POLL_TIME;
     char *fsPath = getConfValueC(&config, "FILESYSTEM_SCRIPT");
 
     fsScript = Script_start("psaccount-filesystem", fsPath, parseFilesys,

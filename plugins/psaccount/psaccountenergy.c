@@ -26,6 +26,8 @@
 
 #define NO_VAL64   (0xfffffffffffffffe)
 
+#define DEFAULT_POLL_TIME 30
+
 /** power unit multiplier */
 static float powerMult = 0;
 
@@ -129,8 +131,9 @@ bool Energy_startScript(void)
 {
     if (eScript) return true;
 
-    if (pollTime < 1) pollTime = 30;
+    if (pollTime < 1) pollTime = DEFAULT_POLL_TIME;
 
+    /* start forwarder to execute energy collect script */
     char *energyScript = getConfValueC(&config, "ENERGY_SCRIPT");
     eScript = Script_start("psaccount-energy", energyScript, parseEnergy,
 			   pollTime, &scriptEnv);
@@ -151,7 +154,7 @@ bool Energy_init(void)
     memset(&eData, 0, sizeof(eData));
     envInit(&scriptEnv);
 
-    /* start forwarder to execute energy collect script */
+    /* test energy collect configuration */
     char *energyScript = getConfValueC(&config, "ENERGY_SCRIPT");
     if (energyScript && energyScript[0] != '\0') {
 	char *energyPath = getConfValueC(&config, "ENERGY_PATH");
@@ -165,11 +168,12 @@ bool Energy_init(void)
 	    flog("error: ENERGY_SCRIPT and POWER_PATH are mutual exclusive\n");
 	    return false;
 	}
-
     }
 
     if (!Energy_update()) return false;
     eData.powerMin = eData.powerMax = eData.powerCur;
+
+    pollTime = getConfValueI(&config, "ENERGY_SCRIPT_POLL");
 
     return true;
 }

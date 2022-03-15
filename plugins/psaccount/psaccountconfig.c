@@ -40,12 +40,16 @@ const ConfDef_t confDef[] =
       "Unit of the power consumption sensor" },
     { "ENERGY_SCRIPT", false, "file", "",
       "Absolute path to energy monitoring script" },
-    { "ENERGY_SCRIPT_POLL", true, "num", "30",
+    { "ENERGY_SCRIPT_POLL", true, "num", "0",
       "Energy script poll time in seconds" },
     { "INTERCONNECT_SCRIPT", false, "file", "",
       "Absolute path to interconnect monitoring script" },
+    { "INTERCONNECT_POLL", true, "num", "0",
+      "Interconnect script poll time in seconds" },
     { "FILESYSTEM_SCRIPT", false, "file", "",
       "Absolute path to filesystem monitoring script" },
+    { "FILESYSTEM_POLL", true, "num", "0",
+      "Filesystem script poll time in seconds" },
     { NULL, false, NULL, NULL, NULL },
 };
 

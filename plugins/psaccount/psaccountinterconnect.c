@@ -22,6 +22,8 @@
 #include "psaccountscript.h"
 #include "psaccounttypes.h"
 
+#define DEFAULT_POLL_TIME 30
+
 /** interconnect monitor script */
 static Collect_Script_t *iScript = NULL;
 
@@ -78,7 +80,7 @@ bool IC_startScript(void)
 {
     if (iScript) return true;
 
-    if (pollTime < 1) pollTime = 30;
+    if (pollTime < 1) pollTime = DEFAULT_POLL_TIME;
     char *interScript = getConfValueC(&config, "INTERCONNECT_SCRIPT");
 
     iScript = Script_start("psaccount-interconn", interScript, parseInterconn,
