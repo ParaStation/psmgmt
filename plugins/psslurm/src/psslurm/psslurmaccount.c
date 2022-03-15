@@ -115,19 +115,12 @@ void TRes_reset_entry(TRes_Entry_t *entry)
 
 uint32_t TRes_getID(const char *type, const char *name)
 {
-    if (!type) return NO_VAL;
+    if (!type || !tresDBconfig) return NO_VAL;
 
-    if (tresDBconfig) {
-	for (uint32_t i=0; i<tresDBconfig->count; i++) {
-	    if (!strcmp(tresDBconfig->entry[i].type, type)) {
-		if (name) {
-		    if (!strcmp(tresDBconfig->entry[i].name, name)) {
-			return tresDBconfig->entry[i].id;
-		    }
-		} else {
-		    return tresDBconfig->entry[i].id;
-		}
-	    }
+    for (uint32_t i=0; i<tresDBconfig->count; i++) {
+	if (strcmp(tresDBconfig->entry[i].type, type)) continue;
+	if (!name || !strcmp(tresDBconfig->entry[i].name, name)) {
+	    return tresDBconfig->entry[i].id;
 	}
     }
 
