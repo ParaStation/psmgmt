@@ -99,24 +99,21 @@ bool FS_init(void)
     envInit(&scriptEnv);
 
     char *fsPath = getConfValueC(&config, "FILESYSTEM_SCRIPT");
+    if (!fsPath || fsPath[0] == '\0') return true;
 
-    if (fsPath && fsPath[0] != '\0') {
-	if (!Script_test(fsPath, "filesytem")) {
-	    flog("invalid filesytem script, cannot continue\n");
-	    return false;
-	}
-
-	int poll = getConfValueI(&config, "FILESYSTEM_POLL");
-	if (poll < 1) {
-	    /* filesytem polling is disabled */
-	    return true;
-	}
-	pollTime = poll;
-
-	return FS_startScript();
+    if (!Script_test(fsPath, "filesytem")) {
+	flog("invalid filesytem script, cannot continue\n");
+	return false;
     }
 
-    return true;
+    int poll = getConfValueI(&config, "FILESYSTEM_POLL");
+    if (poll < 1) {
+	/* filesytem polling is disabled */
+	return true;
+    }
+    pollTime = poll;
+
+    return FS_startScript();
 }
 
 void FS_finalize(void)

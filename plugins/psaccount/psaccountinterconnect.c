@@ -101,24 +101,21 @@ bool IC_init(void)
     envInit(&scriptEnv);
 
     char *interScript = getConfValueC(&config, "INTERCONNECT_SCRIPT");
+    if (!interScript || interScript[0] == '\0') return true;
 
-    if (interScript && interScript[0] != '\0') {
-	if (!Script_test(interScript, "interconnect")) {
-	    flog("invalid interconnect script, cannot continue\n");
-	    return false;
-	}
-
-	int poll = getConfValueI(&config, "INTERCONNECT_POLL");
-	if (poll < 1) {
-	    /* interconnect polling is disabled */
-	    return true;
-	}
-	pollTime = poll;
-
-	return IC_startScript();
+    if (!Script_test(interScript, "interconnect")) {
+	flog("invalid interconnect script, cannot continue\n");
+	return false;
     }
 
-    return true;
+    int poll = getConfValueI(&config, "INTERCONNECT_POLL");
+    if (poll < 1) {
+	/* interconnect polling is disabled */
+	return true;
+    }
+    pollTime = poll;
+
+    return IC_startScript();
 }
 
 void IC_finalize(void)
