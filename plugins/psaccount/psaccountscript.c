@@ -89,10 +89,9 @@ static void execCollectScript(Forwarder_Data_t *fwdata, int rerun)
 {
     Collect_Script_t *script = fwdata->userData;
 
-    errno = 0;
     pid_t child = fork();
     if (child < 0) {
-	flog("fork() %s failed: %s\n", fwdata->pTitle, strerror(errno));
+	mwarn(errno, "%s: fork() %s", __func__, fwdata->pTitle);
 	exit(1);
     }
 
@@ -147,12 +146,12 @@ bool Script_test(char *spath, char *title)
 
     struct stat sbuf;
     if (stat(fName, &sbuf) == -1) {
-	mwarn(errno, "%s: %s script %s not found:", __func__, title, fName);
+	mwarn(errno, "%s: %s script '%s'", __func__, title, fName);
 	ufree(fName);
 	return false;
     }
     if (!(sbuf.st_mode & S_IFREG) || !(sbuf.st_mode & S_IXUSR)) {
-	flog("%s script %s is not a valid executable script\n", title, fName);
+	flog("%s script '%s' is not a valid executable script\n", title, fName);
 	ufree(fName);
 	return false;
     }
