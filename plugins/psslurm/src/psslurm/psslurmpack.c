@@ -2267,7 +2267,7 @@ bool __packRespLaunchTasks(PS_SendDB_t *data, Resp_Launch_Tasks_t *ltasks,
 }
 
 bool __packEnergySensor(PS_SendDB_t *data, psAccountEnergy_t *sensor,
-		        const char *caller, const int line)
+			const char *caller, const int line)
 {
     if (!data) {
 	flog("invalid data pointer from '%s' at %i\n", caller, line);

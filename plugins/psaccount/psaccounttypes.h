@@ -87,7 +87,7 @@ typedef enum {
 
 /** Node energy and power consumption data */
 typedef struct {
-    uint32_t powerMin;	       	/**< minimum power consumption */
+    uint32_t powerMin;		/**< minimum power consumption */
     uint32_t powerMax;		/**< maximal power consumption */
     uint32_t powerCur;		/**< current power consumption */
     uint32_t powerAvg;		/**< average power consumption */

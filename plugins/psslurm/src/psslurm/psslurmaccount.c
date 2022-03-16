@@ -294,7 +294,7 @@ bool Acc_Init(void)
 	    char envStr[128];
 	    snprintf(envStr, sizeof(envStr), "INFINIBAND_OFED_PORT=%s", port);
 	    bool ret = psAccountScriptEnv(PSACCOUNT_SCRIPT_ENV_SET,
-		                          PSACCOUNT_OPT_IC, envStr);
+					  PSACCOUNT_OPT_IC, envStr);
 	    if (!ret) {
 		flog("failed to setup interconnect monitor environment\n");
 		return false;
