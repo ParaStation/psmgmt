@@ -191,6 +191,7 @@ void cleanup(void)
 
     Energy_finalize();
     IC_finalize();
+    FS_finalize();
     finalizeAccComm();
 
     if (memoryDebug) fclose(memoryDebug);
