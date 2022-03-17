@@ -677,7 +677,7 @@ static void parseSlurmdParam(char *param)
     }
 }
 
-static void parseSlurmAccFeq(char *param)
+static void parseSlurmAccFreq(char *param)
 {
     char *toksave, *next;
     const char delimiters[] =" \t\n,";
@@ -737,7 +737,7 @@ static bool parseSlurmConf(char *key, char *value, const void *info)
     } else if (!strcmp(key, "SlurmdParameters")) {
 	parseSlurmdParam(value);
     } else if (!strcmp(key, "JobAcctGatherFrequency")) {
-	parseSlurmAccFeq(value);
+	parseSlurmAccFreq(value);
     }
     /* parsing was successful, continue with next line */
     return false;
