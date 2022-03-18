@@ -382,7 +382,7 @@ typedef int(psAccountGetPoll_t)(psAccountOpt_t type);
  *
  * @param poll General poll interval to be set
  *
- * @return If @a poll is valid, return true; or false otherwise
+ * @return Returns true if @a poll is valid or false otherwise
  */
 typedef bool(psAccountSetPoll_t)(psAccountOpt_t type, int poll);
 
@@ -393,7 +393,7 @@ typedef bool(psAccountSetPoll_t)(psAccountOpt_t type, int poll);
  *
  * @param type The type of script to control
  *
- * @return Returns true on success otherwise false is returned
+ * @return Returns true on success or false otherwise
  */
 typedef bool(psAccountCtlScript_t)(psAccountCtl_t action, psAccountOpt_t type);
 
@@ -406,7 +406,7 @@ typedef bool(psAccountCtlScript_t)(psAccountCtl_t action, psAccountOpt_t type);
  *
  * @param envStr The new environment variable to set
  *
- * @return Returns true on success otherwise false is returned
+ * @return Returns true on success or false otherwise
  */
 typedef bool (psAccountScriptEnv_t)(psAccountCtl_t action, psAccountOpt_t type,
 				    char *envStr);

@@ -8,8 +8,8 @@
  * file.
  */
 
-#ifndef __PS_ACCOUNT_INTERCONN
-#define __PS_ACCOUNT_INTERCONN
+#ifndef __PS_ACCOUNT_INTERCONNECT
+#define __PS_ACCOUNT_INTERCONNECT
 
 #include <stdbool.h>
 #include <stdint.h>
@@ -57,19 +57,19 @@ uint32_t IC_getPoll(void);
 /**
  * @brief Start the interconnect monitor script
  *
- * @return Returns true on success otherwise false is returned
+ * @return Returns true on success or false otherwise
  */
 bool IC_startScript(void);
 
 /**
  * @brief Set/unset environment variable for interconnect script
  *
- * @param envStr The new environment variable to set
+ * @param envStr Environment variable to set/unset
  *
  * @param action Specifies if a variable should be added or removed
  *
- * @return Returns true on success otherwise false is returned
+ * @return Returns true on success or false otherwise
  */
 bool IC_ctlEnv(psAccountCtl_t action, const char *envStr);
 
-#endif  /* __PS_ACCOUNT_INTERCONN */
+#endif  /* __PS_ACCOUNT_INTERCONNECT */

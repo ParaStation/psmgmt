@@ -64,7 +64,7 @@ void Script_finalize(Collect_Script_t *script);
  *
  * @param poll The new poll time in seconds
  *
- * @return Returns true on success otherwise false is returned
+ * @return Returns true on success or false otherwise
  */
 bool Script_setPollTime(Collect_Script_t *script, uint32_t poll);
 
@@ -78,13 +78,13 @@ bool Script_test(char *spath, char *title);
 /**
  * @brief Set/unset environment variable for collect script
  *
- * @param script The collect script
+ * @param script Collect script to modify
  *
- * @param envStr The new environment variable to set
+ * @param envStr Environment variable to set/unset
  *
  * @param action Specifies if a variable should be added or removed
  *
- * @return Returns true on success otherwise false is returned
+ * @return Returns true on success or false otherwise
  */
 bool Script_ctlEnv(Collect_Script_t *script, psAccountCtl_t action,
 		   const char *envStr);

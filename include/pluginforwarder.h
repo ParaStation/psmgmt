@@ -32,10 +32,11 @@ typedef struct __fwData__ {
     char *userName;        /**< username used to run the forwarder */
     uid_t uID;             /**< user ID used to run the forwarder */
     gid_t gID;             /**< group ID used to run the forwarder */
-    int8_t childRerun;     /**< How many times @ref childFunc() might be run.
-			    * Default is 1. Use FW_CHILD_INFINITE to restart the
-			    * child endlessly until the forwarder is stopped or
-			    * a predefined time limit is reached. */
+    int8_t childRerun;     /**< # of times @ref childFunc() will run.
+			    * Default is 1. Use FW_CHILD_INFINITE for
+			    * indefinite restarts of @ref childFunc()
+			    * until the forwarder is stopped or a
+			    * predefined time limit is reached. */
     int32_t timeoutChild;  /**< Maximum runtime of @ref childFunc() */
     int32_t graceTime;     /**< Grace time before sending SIGKILL */
     bool accounted;        /**< Flag to get accounting data on forwarder.

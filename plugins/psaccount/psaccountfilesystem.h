@@ -39,7 +39,7 @@ psAccountFS_t *FS_getData(void);
  *
  * @param poll The new poll time in seconds
  *
- * @return Returns true on success otherwise false is returned
+ * @return Returns true on success or false otherwise
  */
 bool FS_setPoll(uint32_t poll);
 
@@ -53,18 +53,18 @@ uint32_t FS_getPoll(void);
 /**
  * @brief Start the filesystem monitor script
  *
- * @return Returns true on success otherwise false is returned
+ * @return Returns true on success or false otherwise
  */
 bool FS_startScript(void);
 
 /**
  * @brief Set/unset environment variable for filesystem script
  *
- * @param envStr The new environment variable to set
+ * @param envStr Environment variable to set/unset
  *
  * @param action Specifies if a variable should be added or removed
  *
- * @return Returns true on success otherwise false is returned
+ * @return Returns true on success or false otherwise
  */
 bool FS_ctlEnv(psAccountCtl_t action, const char *envStr);
 

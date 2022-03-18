@@ -47,7 +47,7 @@ void Energy_finalize(void);
  *
  * @param poll The new poll time in seconds
  *
- * @return Returns true on success otherwise false is returned
+ * @return Returns true on success or false otherwise
  */
 bool Energy_setPoll(uint32_t poll);
 
@@ -61,18 +61,18 @@ uint32_t Energy_getPoll(void);
 /**
  * @brief Start the energy monitor script
  *
- * @return Returns true on success otherwise false is returned
+ * @return Returns true on success or false otherwise
  */
 bool Energy_startScript(void);
 
 /**
  * @brief Set/unset environment variable for energy script
  *
- * @param envStr The new environment variable to set
+ * @param envStr Environment variable to set/unset
  *
  * @param action Specifies if a variable should be added or removed
  *
- * @return Returns true on success otherwise false is returned
+ * @return Returns true on success or false otherwise
  */
 bool Energy_ctlEnv(psAccountCtl_t action, const char *envStr);
 
