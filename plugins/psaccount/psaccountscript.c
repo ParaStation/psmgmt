@@ -89,13 +89,13 @@ static void execCollectScript(Forwarder_Data_t *fwdata, int rerun)
 {
     Collect_Script_t *script = fwdata->userData;
 
-    pid_t child = fork();
-    if (child < 0) {
+    pid_t childPID = fork();
+    if (childPID < 0) {
 	mwarn(errno, "%s: fork() %s", __func__, fwdata->pTitle);
 	exit(1);
     }
 
-    if (!child) {
+    if (!childPID) {
 	/* This is the child */
 
 	/* update scripts environment */
@@ -112,10 +112,10 @@ static void execCollectScript(Forwarder_Data_t *fwdata, int rerun)
     /* parent */
     while (true) {
 	int status;
-	if (waitpid(child, &status, 0) < 0) {
+	if (waitpid(childPID, &status, 0) < 0) {
 	    if (errno == EINTR) continue;
 	    flog("parent kill() errno: %i\n", errno);
-	    killpg(child, SIGKILL);
+	    killpg(childPID, SIGKILL);
 	    exit(1);
 	}
 	break;
