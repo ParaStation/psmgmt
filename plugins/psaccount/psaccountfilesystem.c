@@ -106,12 +106,11 @@ bool FS_init(void)
 	return false;
     }
 
-    int poll = getConfValueI(&config, "FILESYSTEM_POLL");
-    if (poll < 1) {
+    pollTime = getConfValueI(&config, "FILESYSTEM_POLL");
+    if (pollTime < 1) {
 	/* filesytem polling is disabled */
 	return true;
     }
-    pollTime = poll;
 
     return FS_startScript();
 }

@@ -108,12 +108,11 @@ bool IC_init(void)
 	return false;
     }
 
-    int poll = getConfValueI(&config, "INTERCONNECT_POLL");
-    if (poll < 1) {
+    pollTime = getConfValueI(&config, "INTERCONNECT_POLL");
+    if (pollTime < 1) {
 	/* interconnect polling is disabled */
 	return true;
     }
-    pollTime = poll;
 
     return IC_startScript();
 }
