@@ -164,30 +164,41 @@ bool psAccountSetPoll(psAccountOpt_t type, int poll)
 bool psAccountCtlScript(psAccountCtl_t action, psAccountOpt_t type)
 {
     switch(type) {
-	case PSACCOUNT_OPT_IC:
-	    if (action == PSACCOUNT_SCRIPT_START) {
-		return IC_startScript();
-	    } else {
-		IC_finalize();
-		return true;
-	    }
-	case PSACCOUNT_OPT_ENERGY:
-	    if (action == PSACCOUNT_SCRIPT_START) {
-		return Energy_startScript();
-	    } else {
-		Energy_finalize();
-		return true;
-	    }
-	case PSACCOUNT_OPT_FS:
-	    if (action == PSACCOUNT_SCRIPT_START) {
-		return FS_startScript();
-	    } else {
-		FS_finalize();
-		return true;
-	    }
+    case PSACCOUNT_OPT_IC:
+	switch (action) {
+	case PSACCOUNT_SCRIPT_START:
+	    return IC_startScript();
+	case PSACCOUNT_SCRIPT_STOP:
+	    IC_finalize();
+	    return true;
 	default:
-	    flog("invalid action %i or type %i\n", action, type);
-	    return false;
+	    flog("invalid interconnect action %i\n", action);
+	}
+	break;
+    case PSACCOUNT_OPT_ENERGY:
+	switch (action) {
+	case PSACCOUNT_SCRIPT_START:
+	    return Energy_startScript();
+	case PSACCOUNT_SCRIPT_STOP:
+	    Energy_finalize();
+	    return true;
+	default:
+	    flog("invalid energy action %i\n", action);
+	}
+	break;
+    case PSACCOUNT_OPT_FS:
+	switch (action) {
+	case PSACCOUNT_SCRIPT_START:
+	    return FS_startScript();
+	case PSACCOUNT_SCRIPT_STOP:
+	    FS_finalize();
+	    return true;
+	default:
+	    flog("invalid filesystem action %i\n", action);
+	}
+	break;
+    default:
+	flog("invalid type %i (action %i)\n", type, action);
     }
 
     return false;
