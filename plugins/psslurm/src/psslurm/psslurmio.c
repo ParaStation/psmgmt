@@ -341,6 +341,10 @@ void __IO_printStepMsg(Forwarder_Data_t *fwdata, char *msg, size_t msgLen,
 	return;
     }
 
+    /* adjust global rank on pack basis,
+     * has to be done *after* getLocalRankID()! */
+    grank -= step->packTaskOffset;
+
     /* track I/O channels */
     if (!msgLen) {
 	if (type == STDOUT && step->outChannels) {
