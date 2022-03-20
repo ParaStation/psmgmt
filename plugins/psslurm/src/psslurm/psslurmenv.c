@@ -825,6 +825,16 @@ static void setCommonRankEnv(int32_t rank, Step_t *step)
 	putenv(step->env.vars[i]);
     }
 
+    /* use pwd over cwd if realpath is identical */
+    char *pwd = envGet(&step->env, "PWD");
+    if (pwd) {
+	char *rpath = realpath(pwd, NULL);
+	if (rpath && !strcmp(rpath, step->cwd)) {
+	    setenv("PWD", pwd, 1);
+	}
+	free(rpath);
+    }
+
     char *confServer = getConfValueC(&Config, "SLURM_CONF_SERVER");
     if (confServer && strcmp(confServer, "none")) {
 	/* ensure the configuration cache is used */

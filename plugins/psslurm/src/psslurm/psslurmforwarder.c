@@ -825,7 +825,7 @@ static void debugMpiexecStart(char **argv, char **env)
  * @param PMIdisabled Flag to signal if PMI is used
  */
 static void buildMpiexecArgs(Forwarder_Data_t *fwdata, strv_t *argV,
-				pmi_type_t pmi_type)
+			     pmi_type_t pmi_type)
 {
     Step_t *step = fwdata->userData;
     char buf[128];
@@ -937,17 +937,30 @@ static void fwExecStep(Forwarder_Data_t *fwdata, int rerun)
     setDefaultRlimits();
 
     /* switch user */
+    if (!switchUser(step->username, step->uid, step->gid)) {
+	flog("switching user failed\n");
+    }
+
     char *cwd = step->cwd;
     if (getConfValueI(&Config, "CWD_PATTERN") == 1) {
 	cwd = IO_replaceStepSymbols(step, 0, step->cwd);
     }
-    if (!switchUser(step->username, step->uid, step->gid)) {
-	flog("switching user failed\n");
+
+    char *pwd = envGet(&step->env, "PWD");
+    char *rpath = NULL;
+    if (pwd) {
+	rpath = realpath(pwd, NULL);
+	if (rpath && !strcmp(rpath, cwd)) {
+	    /* use pwd over cwd if realpath is identical */
+	    cwd = pwd;
+	}
     }
+
     if (!switchCwd(cwd)) {
 	flog("switching working directory failed\n");
 	exit(1);
     }
+    free(rpath);
 
     /* decide which PMI type to use */
     pmi_type = getPMIType(step);
