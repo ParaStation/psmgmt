@@ -947,20 +947,19 @@ static void fwExecStep(Forwarder_Data_t *fwdata, int rerun)
     }
 
     char *pwd = envGet(&step->env, "PWD");
-    char *rpath = NULL;
     if (pwd) {
-	rpath = realpath(pwd, NULL);
+	char *rpath = realpath(pwd, NULL);
 	if (rpath && !strcmp(rpath, cwd)) {
 	    /* use pwd over cwd if realpath is identical */
 	    cwd = pwd;
 	}
+	free(rpath);
     }
 
     if (!switchCwd(cwd)) {
 	flog("switching working directory failed\n");
 	exit(1);
     }
-    free(rpath);
 
     /* decide which PMI type to use */
     pmi_type = getPMIType(step);
