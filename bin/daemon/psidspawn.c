@@ -1583,17 +1583,42 @@ static int clearMemPendCRR(void *info)
 /**
  * @brief Send a PSP_DD_CHILDRESREL message
  *
- * Create and send a message of type PSP_DD_CHILDRESREL to the logger
- * with task ID @a logger concerning the set of HW-threads @a
- * set. This will release the now unused resources and enable them to
- * be reused. The task ID @a sender will act as the messsenger
- * reporting the released resources.
+ * Send a message of type PSP_DD_CHILDRESREL to the logger with task
+ * ID @a logger concerning the set of HW-threads @a set being part of
+ * the reservation with ID @a resID. This will release the now unused
+ * resources and enable them to be reused. The task ID @a sender will
+ * act as the messenger reporting the released resources.
+ *
+ * Unless the flag @a combine is set, this message will be sent
+ * immediately. If @a combine is set, it is tried to merge subsequent
+ * calls to this function to reduce the total number of messages sent
+ * to @a logger and to limit the effort on the receiving side.
+ *
+ * The strategy applied is as follows:
+ *
+ * - Identify a pending messages to @a logger concerning @a resID and
+ *   merge the new request. Send the message if no further requests
+ *   are expected for this combination
+ *
+ * - If no pending message was found and the logger is capable to
+ *   receive combined requests (i.e. its PSDaemonProtocolVersion is at
+ *   least 414), identify the maximum number of expected requests for
+ *   the combination of @a logger and @a resID (i.e. number of
+ *   processes in managedTasks for this combination) and created a
+ *   pending message; otherwise send the message immediately
+ *
+ * - From time to time (i.e. in the loop-action) send all pending
+ *   messages via @ref sendAllPendCRR()
  *
  * @param logger Destination of the message to send
+ *
+ * @param resID Reservation the to be release HW-threads were part of
  *
  * @param set Set of HW-threads to be released
  *
  * @param sender Messenger reporting about the resources to be released
+ *
+ * @param combine Flag merging subsequent calls into this
  *
  * @return No return value
  */
@@ -1607,17 +1632,71 @@ static void sendCHILDRESREL(PStask_ID_t logger, PSrsrvtn_ID_t resID,
 	    .sender = sender,
 	    .len = 0 },
 	.buf = { 0 } };
-
     uint16_t nBytes = PSCPU_bytesForCPUs(PSIDnodes_getNumThrds(PSC_getMyID()));
-    PSP_putMsgBuf(&resRelMsg, "nBytes", &nBytes, sizeof(nBytes));
 
-    PSCPU_set_t setBuf;
-    PSCPU_extract(setBuf, set, nBytes);
-    PSP_putMsgBuf(&resRelMsg, "CPUset", setBuf, nBytes);
+    if (PSIDnodes_getDmnProtoV(PSC_getID(logger)) < 414) {
+	/* keep compatibility with older daemons */
+	PSP_putMsgBuf(&resRelMsg, "nBytes", &nBytes, sizeof(nBytes));
+	PSP_putMsgBuf(&resRelMsg, "CPUset", set, nBytes);
+    } else if (combine) {
+	PendCRR_t *crr = findPendCRR(logger, resID);
+	if (!crr) {
+	    crr = newPendCRR();
+	    if (!crr) {
+		PSID_warn(-1, ENOMEM, "%s: newPendCRR(%s, %d)", __func__,
+			  PSC_printTID(logger), resID);
+		return;
+	    }
 
-    PSID_log(PSID_LOG_PART, "%s: PSP_DD_CHILDRESREL  to %s with CPUs %s",
+	    crr->logger = logger;
+	    crr->resID = resID;
+	    crr->sender = sender;
+	    /* determine total number of calls expected */
+	    crr->pendSlots = 1; // this call
+	    list_t *t;
+	    list_for_each(t, &managedTasks) {
+		PStask_t *task = list_entry(t, PStask_t, next);
+		if (task->deleted) continue;
+		if (task->loggertid != logger || task->resID != resID) continue;
+		if (!PSCPU_any(task->CPUset, nBytes * 8)) continue;
+		crr->pendSlots++;
+	    }
+	    list_add_tail(&crr->next, &pendCRRList);
+	}
+
+	/* fit this call into crr */
+	uint16_t s = 0;
+	while (s < NUM_CPUSETS
+	       && PSCPU_overlap(set, crr->sets[s], 8 * nBytes)) s++;
+	if (s == NUM_CPUSETS) {
+	    /* no space for this call => send now and reset */
+	    sendPendCRR(crr);
+	    /* reset crr */
+	    for (s = 0; s < NUM_CPUSETS; s++) PSCPU_clrAll(crr->sets[s]);
+	    crr->numSlots = 0;
+	    s = 0;
+	}
+	PSCPU_addCPUs(crr->sets[s], set);
+	crr->numSlots++;
+	crr->pendSlots--;
+	if (!crr->pendSlots) {
+	    /* all slots included => lets send */
+	    sendPendCRR(crr);
+	    list_del(&crr->next);
+	    delPendCRR(crr);
+	}
+	return;
+    } else {
+	/* send message immediately */
+	PSP_putMsgBuf(&resRelMsg, "nBytes", &nBytes, sizeof(nBytes));
+	PSP_putMsgBuf(&resRelMsg, "CPUset", set, nBytes);
+	uint16_t one = 1;
+	PSP_putMsgBuf(&resRelMsg, "numSlots", &one, sizeof(one));
+	PSP_putMsgBuf(&resRelMsg, "resID", &resID, sizeof(resID));
+    }
+    PSID_log(PSID_LOG_PART, "%s: PSP_DD_CHILDRESREL to %s with CPUs %s of",
 	     __func__, PSC_printTID(logger), PSCPU_print_part(set, nBytes));
-    PSID_log(PSID_LOG_PART, " from %s\n", PSC_printTID(sender));
+    PSID_log(PSID_LOG_PART, " res %d from %s\n", resID, PSC_printTID(sender));
 
     if (sendMsg(&resRelMsg) < 0) {
 	PSID_warn(-1, errno, "%s: sendMsg(%s)", __func__, PSC_printTID(logger));
@@ -3623,4 +3702,7 @@ void PSIDspawn_init(void)
 
     PSID_registerLoopAct(checkObstinateTasks);
     PSID_registerLoopAct(cleanupSpawnTasks);
+    PSID_registerLoopAct(sendAllPendCRR);
+
+    PSIDhook_add(PSIDHOOK_CLEARMEM, clearMemPendCRR);
 }
