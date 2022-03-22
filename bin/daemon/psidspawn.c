@@ -1597,8 +1597,8 @@ static int clearMemPendCRR(void *info)
  *
  * @return No return value
  */
-static void sendCHILDRESREL(PStask_ID_t logger, PSCPU_set_t set,
-			    PStask_ID_t sender)
+static void sendCHILDRESREL(PStask_ID_t logger, PSrsrvtn_ID_t resID,
+			    PSCPU_set_t set, PStask_ID_t sender, bool combine)
 {
     DDBufferMsg_t resRelMsg = {
 	.header = {
@@ -2015,6 +2015,7 @@ static bool msg_SPAWNREQ(DDTypedBufferMsg_t *msg)
 
     if (msg->type == PSP_SPAWN_END) {
 	PStask_ID_t loggerTID = task->loggertid;
+	PSrsrvtn_ID_t resID = task->resID;
 	PSCPU_set_t CPUset;
 	PSCPU_copy(CPUset, task->CPUset);
 
@@ -2031,7 +2032,7 @@ static bool msg_SPAWNREQ(DDTypedBufferMsg_t *msg)
 	if (answer.error) {
 	    /* send only on failure. success reported by forwarder */
 	    sendMsg(&answer);
-	    sendCHILDRESREL(loggerTID, CPUset, PSC_getMyTID());
+	    sendCHILDRESREL(loggerTID, resID, CPUset, PSC_getMyTID(), false);
 	}
     }
     return true;
@@ -2077,11 +2078,9 @@ static bool send_SPAWNLOC(uint32_t num, int32_t rank, PStask_ID_t sender,
     PSID_log(PSID_LOG_SPAWN, "%s: send PSP_DD_SPAWNLOC to node %d\n", __func__,
 	     destID);
 
-    short numCPUs = PSIDnodes_getNumThrds(destID);
-    uint16_t nBytes = PSCPU_bytesForCPUs(numCPUs);
-
     PSP_putMsgBuf(&locMsg, "num", &num, sizeof(num));
     PSP_putMsgBuf(&locMsg, "rank", &rank, sizeof(rank));
+    uint16_t nBytes = PSCPU_bytesForCPUs(PSIDnodes_getNumThrds(destID));
     PSP_putMsgBuf(&locMsg, "nBytes", &nBytes, sizeof(nBytes));
 
     for (uint32_t i = 0; i < num; i++) {
@@ -2656,6 +2655,7 @@ static void handleSpawnReq(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
 
 	// Now clone might be used for actual spawn
 	PStask_ID_t loggerTID = clone->loggertid;
+	PSrsrvtn_ID_t resID = clone->resID;
 	PSCPU_set_t CPUset;
 	PSCPU_copy(CPUset, clone->CPUset);
 	char tasktxt[256];
@@ -2673,7 +2673,7 @@ static void handleSpawnReq(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
 	if (answer.error) {
 	    /* send only on failure. success reported by forwarder */
 	    sendMsg(&answer);
-	    sendCHILDRESREL(loggerTID, CPUset, PSC_getMyTID());
+	    sendCHILDRESREL(loggerTID, resID, CPUset, PSC_getMyTID(), false);
 	}
     }
 
@@ -2970,6 +2970,7 @@ void PSIDspawn_startDelayedTasks(PSIDspawn_filter_t filter, void *info)
 	    .error = 0,
 	    .request = task->rank};
 	PStask_ID_t loggerTID = task->loggertid;
+	PSrsrvtn_ID_t resID = task->resID;
 	PSCPU_set_t CPUset;
 	PSCPU_copy(CPUset, task->CPUset);
 
@@ -2985,7 +2986,7 @@ void PSIDspawn_startDelayedTasks(PSIDspawn_filter_t filter, void *info)
 	if (answer.error) {
 	    /* send only on failure. success reported by forwarder */
 	    sendMsg(&answer);
-	    sendCHILDRESREL(loggerTID, CPUset, PSC_getMyTID());
+	    sendCHILDRESREL(loggerTID, resID, CPUset, PSC_getMyTID(), false);
 	}
     }
 }
@@ -3044,7 +3045,11 @@ void PSIDspawn_cleanupBySpawner(PStask_ID_t tid)
 	    task->deleted = true;
 	    sendMsg(&answer);
 	    if (PSCPU_any(task->CPUset, PSCPU_MAX)) {
-		sendCHILDRESREL(task->loggertid, task->CPUset, PSC_getMyTID());
+		PSCPU_set_t CPUset;
+		PSCPU_copy(CPUset, task->CPUset);
+		PSCPU_clrAll(task->CPUset);
+		sendCHILDRESREL(task->loggertid, task->resID,
+				CPUset, PSC_getMyTID(), true);
 	    }
 	}
     }
@@ -3158,7 +3163,8 @@ static bool msg_SPAWNFAILED(DDErrorMsg_t *msg)
 		     PSC_printTID(msg->header.sender));
 	} else {
 	    task->released = true;
-	    sendCHILDRESREL(task->loggertid, task->CPUset, msg->header.sender);
+	    sendCHILDRESREL(task->loggertid, task->resID,
+			    task->CPUset, msg->header.sender, false);
 	    PSIDclient_delete(task->fd);
 	}
     }
@@ -3249,7 +3255,8 @@ static bool msg_CHILDBORN(DDErrorMsg_t *msg)
 	msg->error = ENOMEM;
 	msg->request = forwarder->rank;
 	sendMsg(msg);
-	sendCHILDRESREL(forwarder->loggertid, forwarder->CPUset,PSC_getMyTID());
+	sendCHILDRESREL(forwarder->loggertid, forwarder->resID,
+			forwarder->CPUset, PSC_getMyTID(), false);
 
 	return true;
     }
@@ -3479,8 +3486,11 @@ static bool msg_CHILDDEAD(DDErrorMsg_t *msg)
 	    && task->group != TG_ADMINTASK && task->group != TG_KVS
 	    && task->group != TG_PLUGINFW) {
 	    /** Create and send PSP_DD_CHILDRESREL message */
-	    // @todo we might want to try to reduce number of messages sent
-	    sendCHILDRESREL(task->loggertid, task->CPUset, msg->request);
+	    PSCPU_set_t CPUset;
+	    PSCPU_copy(CPUset, task->CPUset);
+	    PSCPU_clrAll(task->CPUset);
+	    sendCHILDRESREL(task->loggertid, task->resID,
+			    CPUset, msg->request, true);
 	}
 
 	/* Prepare CHILDDEAD msg here. Task might be removed in next step */
