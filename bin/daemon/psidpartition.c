@@ -3089,62 +3089,92 @@ static bool msg_CHILDRESREL(DDBufferMsg_t *msg)
     PSCPU_clrAll(dynRes.slot.CPUset);
     PSCPU_inject(dynRes.slot.CPUset, setBuf, nBytes);
 
-    /* Try to identify the affected reservation */
-    bool resDone = false;
-    list_t *r;
-    list_for_each(r, &task->reservations) {
-	PSrsrvtn_t *res = list_entry(r, PSrsrvtn_t, next);
-
-	for (int s = 0; s < res->nextSlot; s++) {
-	    if (res->slots[s].node == dynRes.slot.node
-		&& !PSCPU_cmp(res->slots[s].CPUset, dynRes.slot.CPUset)) {
-		PSID_log(PSID_LOG_PART, "%s: slot belongs to reservation %#x\n",
-			 __func__, res->rid);
-		dynRes.rid = res->rid;
-		res->relSlots++;
-		if (res->relSlots == res->nSlots) {
-		    resDone = true;
-		    deqRes(&task->reservations, res);
-		    send_RESRELEASED(res);
-		    free(res->slots);
-		    res->slots = NULL;
-		    PSrsrvtn_put(res);
-		}
-		break;
-	    }
-	}
-	if (dynRes.rid) break;
+    uint16_t numSlots = 1;
+    if (PSP_tryGetMsgBuf(msg, &used, "numSlots", &numSlots, sizeof(numSlots))) {
+	/* if numSlots is present, there shall be a reservation ID, too */
+	PSP_getMsgBuf(msg, &used, "resID", &dynRes.rid, sizeof(dynRes.rid));
     }
 
-    uint32_t numToRelease = PSCPU_getCPUs(dynRes.slot.CPUset, NULL, PSCPU_MAX);
-
-    /* Find and release the corresponding slots */
-    uint32_t released = releaseThreads(&dynRes.slot, 1, delegate, __func__);
-    delegate->usedThreads -= released;
-    /* double entry bookkeeping on delegation */
-    if (task->delegate) {
-	task->usedThreads -= released;
-	if (task->removeIt && !task->usedThreads) {
-	    task->delegate = NULL;
-	    PSIDtask_cleanup(task);
-	}
-    }
-
-    PSID_log(PSID_LOG_PART, "%s: %d threads removed from reservation %#x\n",
-	     __func__, released, dynRes.rid);
-    if (released != numToRelease) {
-	if (task->options & PART_OPT_DYNAMIC) {
-	    /* Maybe these resources were dynamically assigned */
-	    PSIDhook_call(PSIDHOOK_RELS_PART_DYNAMIC, &dynRes);
-	} else {
-	    PSID_log(-1, "%s: Only %d of %d HW-threads released.\n", __func__,
-		     released, numToRelease);
+    PSrsrvtn_t *thisRes = NULL;
+    if (dynRes.rid) {
+	/* get pointer to the reservation via rid */
+	list_t *r;
+	list_for_each(r, &task->reservations) {
+	    PSrsrvtn_t *res = list_entry(r, PSrsrvtn_t, next);
+	    if (res->rid != dynRes.rid) continue;
+	    thisRes = res;
+	    break;
 	}
     } else {
-	PSID_log(PSID_LOG_PART, "%s: Allow to re-use threads %s on node %d."
-		 " %d threads used\n", __func__,
-		 PSCPU_print(dynRes.slot.CPUset), dynRes.slot.node,
+	/* try to identify the affected reservation by received slots*/
+	list_t *r;
+	list_for_each(r, &task->reservations) {
+	    PSrsrvtn_t *res = list_entry(r, PSrsrvtn_t, next);
+
+	    for (int s = 0; s < res->nextSlot; s++) {
+		if (res->slots[s].node != dynRes.slot.node
+		    || !PSCPU_overlap(res->slots[s].CPUset, dynRes.slot.CPUset,
+				      8*nBytes))
+		    continue;
+
+		PSID_log(PSID_LOG_PART, "%s: slot in reservation %#x\n",
+			 __func__, res->rid);
+		dynRes.rid = res->rid;
+		thisRes = res;
+		break;
+	    }
+	    if (thisRes) break;
+	}
+    }
+    bool resDone = false;
+    if (thisRes) {
+	thisRes->relSlots += numSlots;
+	if (thisRes->relSlots >= thisRes->nSlots) {
+	    deqRes(&task->reservations, thisRes);
+	    send_RESRELEASED(thisRes);
+	    free(thisRes->slots);
+	    thisRes->slots = NULL;
+	    PSrsrvtn_put(thisRes);
+	    resDone = true;
+	}
+    }
+
+    /* handle all CPUset in the message, first is already in dynRes.slot */
+    while (true) {
+	uint32_t nRelease = PSCPU_getCPUs(dynRes.slot.CPUset, NULL, PSCPU_MAX);
+
+	/* Find and release the corresponding slots */
+	uint32_t released = releaseThreads(&dynRes.slot, 1, delegate, __func__);
+	delegate->usedThreads -= released;
+	/* double entry bookkeeping on delegation */
+	if (task->delegate) {
+	    task->usedThreads -= released;
+	    if (task->removeIt && !task->usedThreads) {
+		task->delegate = NULL;
+		PSIDtask_cleanup(task);
+	    }
+	}
+	PSID_log(PSID_LOG_PART, "%s: %d threads removed from reservation %#x\n",
+		 __func__, released, dynRes.rid);
+	if (released != nRelease) {
+	    if (task->options & PART_OPT_DYNAMIC) {
+		/* Maybe these resources were dynamically assigned */
+		PSIDhook_call(PSIDHOOK_RELS_PART_DYNAMIC, &dynRes);
+	    } else {
+		PSID_log(-1, "%s: just %d of %d HW-threads released\n",
+			 __func__, released, nRelease);
+	    }
+	}
+
+	PSID_log(PSID_LOG_PART, "%s: Allow to re-use threads %s in reservation"
+		 " %#x on node %d. Still %d threads used\n", __func__,
+		 PSCPU_print(dynRes.slot.CPUset), dynRes.rid, dynRes.slot.node,
 		 delegate->usedThreads);
+
+	/* next CPUset in message if any */
+	if (!PSP_tryGetMsgBuf(msg, &used, "CPUset", setBuf, nBytes)) break;
+	PSCPU_clrAll(dynRes.slot.CPUset);
+	PSCPU_inject(dynRes.slot.CPUset, setBuf, nBytes);
     }
 
     if (resDone) {
@@ -3152,7 +3182,7 @@ static bool msg_CHILDRESREL(DDBufferMsg_t *msg)
 		 dynRes.rid);
     }
 
-    task->activeChild--;
+    task->activeChild -= numSlots;
 
     handleResRequests(delegate);
 
