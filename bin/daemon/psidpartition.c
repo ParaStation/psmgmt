@@ -4252,6 +4252,8 @@ static bool msg_SLOTSRES(DDBufferMsg_t *msg)
     return true;
 }
 
+#define NUM_CPUSETS 8
+
 void PSIDpart_cleanupSlots(PStask_t *task)
 {
     if (!task || !task->spawnNodes) return;
@@ -4266,22 +4268,60 @@ void PSIDpart_cleanupSlots(PStask_t *task)
 
     for (uint32_t r = 0; r < task->spawnNodesSize; r++) {
 	PSnodes_ID_t rankNode = task->spawnNodes[r].node;
-	PSCPU_set_t *rankSet = &task->spawnNodes[r].CPUset;
+	uint16_t nBytes = PSCPU_bytesForCPUs(PSIDnodes_getNumThrds(rankNode));
+	PSCPU_set_t rankSets[NUM_CPUSETS];
+	PSCPU_clrAll(rankSets[0]);
+	PSCPU_extract(rankSets[0], task->spawnNodes[r].CPUset, nBytes);
 
-	if (!PSCPU_any(*rankSet, PSCPU_MAX)) continue;
+	if (!PSCPU_any(rankSets[0], nBytes * 8)) continue;
 
 	relMsg.header.sender = PSC_getTID(rankNode, 0);
 	relMsg.header.len = 0;
 
-	uint16_t nBytes = PSCPU_bytesForCPUs(PSIDnodes_getNumThrds(rankNode));
+	/* first items are contained anyhow */
 	PSP_putMsgBuf(&relMsg, "nBytes", &nBytes, sizeof(nBytes));
 
-	PSCPU_set_t setBuf;
-	PSCPU_extract(setBuf, *rankSet, nBytes);
-	PSP_putMsgBuf(&relMsg, "CPUset", setBuf, nBytes);
+	uint16_t numSlots = 1;
+	if (PSIDnodes_getDmnProtoV(PSC_getID(relMsg.header.dest)) < 414) {
+	    /* in former times just one slot was expected */
+	    PSP_putMsgBuf(&relMsg, "CPUset", rankSets[0], nBytes);
+	} else {
+	    /* modern partners expect multiple (combined) slots */
+	    /* We don't have a reservation ID here, but collect slots anyhow */
+	    for (uint16_t s=1; s < NUM_CPUSETS; s++) PSCPU_clrAll(rankSets[s]);
 
-	PSID_log(PSID_LOG_PART, "%s: CHILDRESREL to %s on node %d (rank %d)\n",
-		 __func__, PSC_printTID(relMsg.header.dest), rankNode, r);
+	    while (r+1 < task->spawnNodesSize
+		   && task->spawnNodes[r+1].node == rankNode) {
+		r++;
+		if (!PSCPU_any(task->spawnNodes[r].CPUset, nBytes*8)) continue;
+		numSlots++;
+		/* check if we can use the same CPUset */
+		uint16_t s = 0;
+		while (s < NUM_CPUSETS
+		       && PSCPU_overlap(task->spawnNodes[r].CPUset,
+					rankSets[s], 8 * nBytes)) s++;
+		if (s == NUM_CPUSETS) {
+		    /* break to send message now and re-iterate */
+		    r--;
+		    break;
+		}
+		PSCPU_addCPUs(rankSets[s], task->spawnNodes[r].CPUset);
+	    }
+	    PSP_putMsgBuf(&relMsg, "CPUset", rankSets[0], nBytes);
+	    PSP_putMsgBuf(&relMsg, "numSlots", &numSlots, sizeof(numSlots));
+	    PSrsrvtn_ID_t resID = 0;  // unknown
+	    PSP_putMsgBuf(&relMsg, "resID", &resID, sizeof(resID));
+	    /* add all further (combined) slots if any */
+	    for (uint16_t s = 1; s < NUM_CPUSETS; s++) {
+		if (!PSCPU_any(rankSets[s], nBytes * 8)) break;
+		PSP_putMsgBuf(&relMsg, "CPUset", rankSets[s], nBytes);
+	    }
+	}
+
+	PSID_log(PSID_LOG_PART, "%s: PSP_DD_CHILDRESREL to %s with CPUs %s in"
+		 " %d slots from %d (rank %d)\n", __func__,
+		 PSC_printTID(task->loggertid),
+		 PSCPU_print_part(rankSets[0], nBytes), numSlots, rankNode, r);
 
 	if (sendMsg(&relMsg) < 0) {
 	    PSID_warn(-1, errno, "%s: sendMsg(%s) for rank %d", __func__,
