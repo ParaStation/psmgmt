@@ -1481,6 +1481,105 @@ static int spawnTask(PStask_t *task)
     return err;
 }
 
+#define NUM_CPUSETS 8
+
+/** Structure to store information on pending PSP_DD_CHILDRESREL messages */
+typedef struct {
+    list_t next;         /**< used to put into reservation-lists */
+    PStask_ID_t logger;  /**< logger task ID of this pending release message */
+    PSrsrvtn_ID_t resID; /**< reservation ID of this pending release message */
+    PStask_ID_t sender;  /**< sender task ID to send this pending message */
+    int16_t pendSlots;   /**< number of slots missing until (full) send */
+    uint16_t numSlots;   /**< number of slots merged into sets */
+    PSCPU_set_t sets[NUM_CPUSETS]; /**< accumulated HW-threads to release */
+} PendCRR_t;
+
+/** List of pending PSP_DD_CHILDRESREL messages */
+static LIST_HEAD(pendCRRList);
+
+static PendCRR_t *newPendCRR(void)
+{
+    PendCRR_t *crr = malloc(sizeof(*crr));
+    if (crr) {
+	for (uint16_t s = 0; s < NUM_CPUSETS; s++) PSCPU_clrAll(crr->sets[s]);
+	crr->numSlots = 0;
+    }
+    return crr;
+}
+
+static void delPendCRR(PendCRR_t *crr)
+{
+    free(crr);
+}
+
+static PendCRR_t *findPendCRR(PStask_ID_t logger, PSrsrvtn_ID_t resID)
+{
+    list_t *c;
+    list_for_each(c, &pendCRRList) {
+	PendCRR_t * crr = list_entry(c, PendCRR_t, next);
+	if (crr->logger == logger && crr->resID == resID) return crr;
+    }
+    return NULL;
+}
+
+static void sendPendCRR(PendCRR_t *crr)
+{
+    if (!crr) return;
+
+    DDBufferMsg_t msg = {
+	.header = {
+	    .type = PSP_DD_CHILDRESREL,
+	    .dest = crr->logger,
+	    .sender = crr->sender,
+	    .len = 0 },
+	.buf = { 0 } };
+    uint16_t nBytes = PSCPU_bytesForCPUs(PSIDnodes_getNumThrds(PSC_getMyID()));
+
+    PSP_putMsgBuf(&msg, "nBytes", &nBytes, sizeof(nBytes));
+    PSP_putMsgBuf(&msg, "CPUset", crr->sets[0], nBytes);
+    PSP_putMsgBuf(&msg, "numSlots", &crr->numSlots, sizeof(crr->numSlots));
+    PSP_putMsgBuf(&msg, "resID", &crr->resID, sizeof(crr->resID));
+
+    for (uint16_t s = 1;
+	 s < NUM_CPUSETS && PSCPU_any(crr->sets[s], nBytes * 8); s++) {
+	PSP_putMsgBuf(&msg, "CPUset", crr->sets[s], nBytes);
+    }
+
+    sendMsg(&msg);
+    PSID_log(PSID_LOG_PART, "%s: PSP_DD_CHILDRESREL to %s with CPUs %s of",
+	     __func__, PSC_printTID(crr->logger),
+	     PSCPU_print_part(crr->sets[0], nBytes));
+    PSID_log(PSID_LOG_PART, " res %d from %s\n", crr->resID,
+	     PSC_printTID(crr->sender));
+    if (sendMsg(&msg) < 0) {
+	PSID_warn(-1, errno, "%s: sendMsg(%s)", __func__,
+		  PSC_printTID(crr->logger));
+    }
+}
+
+static void sendAllPendCRR(void)
+{
+    list_t *c, *tmp;
+    list_for_each_safe(c, tmp, &pendCRRList) {
+	PendCRR_t * crr = list_entry(c, PendCRR_t, next);
+	sendPendCRR(crr);
+	list_del(&crr->next);
+	delPendCRR(crr);
+    }
+}
+
+static int clearMemPendCRR(void *info)
+{
+    list_t *c, *tmp;
+    list_for_each_safe(c, tmp, &pendCRRList) {
+	PendCRR_t * crr = list_entry(c, PendCRR_t, next);
+	list_del(&crr->next);
+	delPendCRR(crr);
+    }
+
+    return 0;
+}
+
 /**
  * @brief Send a PSP_DD_CHILDRESREL message
  *
