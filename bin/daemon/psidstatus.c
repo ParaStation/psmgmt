@@ -168,7 +168,7 @@ static void freeMasterSpace(void)
  * Major timeout after which status ping are sent and @ref
  * handleMasterTask() is called.
  */
-static struct timeval StatusTimeout = { .tv_sec = 2, .tv_usec = 0 };
+static struct timeval statusTimeout = { .tv_sec = 2, .tv_usec = 0 };
 
 /**
  * Number of consecutive status pings allowed to miss before a node is
@@ -215,7 +215,7 @@ void setMaxStatBCast(int limit)
 /**
  * @brief Master handling routine.
  *
- * All the stuff the master has to handle when @ref StatusTimeout is
+ * All the stuff the master has to handle when @ref statusTimeout is
  * elapsed. This includes test if all expected status pings were
  * received and ringing down nodes in order to prevent decomposition
  * of the cluster into independent sub-clusters.
@@ -233,7 +233,7 @@ static void handleMasterTasks(void)
     if (PSID_getDaemonState() & PSID_STATE_SHUTDOWN) return;
 
     gettimeofday(&tv, NULL);
-    mytimersub(&tv, StatusTimeout.tv_sec, StatusTimeout.tv_usec);
+    mytimersub(&tv, statusTimeout.tv_sec, statusTimeout.tv_usec);
     for (PSnodes_ID_t n = 0; n < PSC_getNrOfNodes(); n++) {
 	if (PSIDnodes_isUp(n)) {
 	    if (timercmp(&clientStat[n].lastPing, &tv, <)) {
@@ -317,20 +317,20 @@ static int timerID = -1;
 
 int getStatusTimeout(void)
 {
-    return StatusTimeout.tv_sec * 1000 + StatusTimeout.tv_usec / 1000;
+    return statusTimeout.tv_sec * 1000 + statusTimeout.tv_usec / 1000;
 }
 
 void setStatusTimeout(int timeout)
 {
     if (timeout < MIN_TIMEOUT_MSEC) return;
 
-    StatusTimeout.tv_sec = timeout / 1000;
-    StatusTimeout.tv_usec = (timeout%1000) * 1000;
+    statusTimeout.tv_sec = timeout / 1000;
+    statusTimeout.tv_usec = (timeout%1000) * 1000;
 
     if (timerID > 0) {
 	Timer_block(timerID, true);
 	releaseStatusTimer();
-	timerID = Timer_register(&StatusTimeout, sendRDPPing);
+	timerID = Timer_register(&statusTimeout, sendRDPPing);
 	if (timerID < 0) {
 	    PSID_log(-1, "%s: Failed to re-register status timer\n", __func__);
 	}
@@ -439,7 +439,7 @@ void declareMaster(PSnodes_ID_t newMaster)
 	if (!Timer_isInitialized()) {
 	    Timer_init(PSID_config->logfile);
 	}
-	timerID = Timer_register(&StatusTimeout, sendRDPPing);
+	timerID = Timer_register(&statusTimeout, sendRDPPing);
 	sendRDPPing();
     }
 
