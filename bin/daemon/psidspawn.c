@@ -1540,17 +1540,18 @@ static void sendPendCRR(PendCRR_t *crr)
     PSP_putMsgBuf(&msg, "numSlots", &crr->numSlots, sizeof(crr->numSlots));
     PSP_putMsgBuf(&msg, "resID", &crr->resID, sizeof(crr->resID));
 
-    for (uint16_t s = 1;
-	 s < NUM_CPUSETS && PSCPU_any(crr->sets[s], nBytes * 8); s++) {
+    int nCPUs = PSCPU_getCPUs(crr->sets[0], NULL, nBytes * 8);
+    uint16_t s = 1;
+    for (; s < NUM_CPUSETS && PSCPU_any(crr->sets[s], nBytes * 8); s++) {
 	PSP_putMsgBuf(&msg, "CPUset", crr->sets[s], nBytes);
+	nCPUs += PSCPU_getCPUs(crr->sets[s], NULL, nBytes * 8);
     }
 
-    sendMsg(&msg);
-    PSID_log(PSID_LOG_PART, "%s: PSP_DD_CHILDRESREL to %s with CPUs %s of",
-	     __func__, PSC_printTID(crr->logger),
-	     PSCPU_print_part(crr->sets[0], nBytes));
-    PSID_log(PSID_LOG_PART, " res %d from %s\n", crr->resID,
-	     PSC_printTID(crr->sender));
+    PSID_log(PSID_LOG_PART, "%s(%s): %d CPUs in %d slots of res %d in %d sets",
+	     __func__, PSC_printTID(crr->logger), nCPUs, crr->resID,
+	     crr->numSlots, s);
+    PSID_log(PSID_LOG_PART, " from %s (%d pending)\n",
+	     PSC_printTID(crr->sender), crr->pendSlots);
     if (sendMsg(&msg) < 0) {
 	PSID_warn(-1, errno, "%s: sendMsg(%s)", __func__,
 		  PSC_printTID(crr->logger));
@@ -1656,11 +1657,12 @@ static void sendCHILDRESREL(PStask_ID_t logger, PSrsrvtn_ID_t resID,
 	    list_t *t;
 	    list_for_each(t, &managedTasks) {
 		PStask_t *task = list_entry(t, PStask_t, next);
-		if (task->deleted) continue;
+		if (task->deleted || task->group == TG_FORWARDER) continue;
 		if (task->loggertid != logger || task->resID != resID) continue;
 		if (!PSCPU_any(task->CPUset, nBytes * 8)) continue;
 		crr->pendSlots++;
 	    }
+	    PSID_log(PSID_LOG_PART, "%s: miss %d\n", __func__, crr->pendSlots);
 	    list_add_tail(&crr->next, &pendCRRList);
 	}
 
@@ -1670,6 +1672,7 @@ static void sendCHILDRESREL(PStask_ID_t logger, PSrsrvtn_ID_t resID,
 	       && PSCPU_overlap(set, crr->sets[s], 8 * nBytes)) s++;
 	if (s == NUM_CPUSETS) {
 	    /* no space for this call => send now and reset */
+	    PSID_log(PSID_LOG_PART, "%s: no sets left\n", __func__);
 	    sendPendCRR(crr);
 	    /* reset crr */
 	    for (s = 0; s < NUM_CPUSETS; s++) PSCPU_clrAll(crr->sets[s]);
@@ -1681,6 +1684,7 @@ static void sendCHILDRESREL(PStask_ID_t logger, PSrsrvtn_ID_t resID,
 	crr->pendSlots--;
 	if (!crr->pendSlots) {
 	    /* all slots included => lets send */
+	    PSID_log(PSID_LOG_PART, "%s: pending slots filled\n", __func__);
 	    sendPendCRR(crr);
 	    list_del(&crr->next);
 	    delPendCRR(crr);

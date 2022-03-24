@@ -3095,6 +3095,10 @@ static bool msg_CHILDRESREL(DDBufferMsg_t *msg)
 	PSP_getMsgBuf(msg, &used, "resID", &dynRes.rid, sizeof(dynRes.rid));
     }
 
+    PSID_log(PSID_LOG_PART, "%s(%s)", __func__, PSC_printTID(target));
+    PSID_log(PSID_LOG_PART, " from %s with %d slots for res %d\n",
+	     PSC_printTID(msg->header.sender), numSlots, dynRes.rid);
+
     PSrsrvtn_t *thisRes = NULL;
     if (dynRes.rid) {
 	/* get pointer to the reservation via rid */
@@ -4318,9 +4322,8 @@ void PSIDpart_cleanupSlots(PStask_t *task)
 	    }
 	}
 
-	PSID_log(PSID_LOG_PART, "%s: PSP_DD_CHILDRESREL to %s with CPUs %s in"
-		 " %d slots from %d (rank %d)\n", __func__,
-		 PSC_printTID(task->loggertid),
+	PSID_log(PSID_LOG_PART, "%s(%s): with CPUs %s in %d slots from %d"
+		 " (rank %d)\n", __func__, PSC_printTID(task->loggertid),
 		 PSCPU_print_part(rankSets[0], nBytes), numSlots, rankNode, r);
 
 	if (sendMsg(&relMsg) < 0) {
