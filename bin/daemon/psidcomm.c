@@ -204,6 +204,10 @@ ssize_t sendMsg(void *amsg)
 	PSID_warn(key, eno, "%s(type=%s, len=%d) to %s in %s",
 		  __func__, PSDaemonP_printMsg(msg->type), msg->len,
 		  PSC_printTID(msg->dest), sender);
+	if (msg->len > sizeof(*msg)) {
+	    DDTypedMsg_t *tmsg = amsg;
+	    PSID_log(key, "%s: sub-type might be %d\n", __func__, tmsg->type);
+	}
 
 	if (eno == EWOULDBLOCK && PSIDFlwCntrl_applicable(msg)) {
 	    DDTypedMsg_t stopmsg = { .header = { .type = PSP_DD_SENDSTOP,
