@@ -35,9 +35,10 @@
 #include "psidutil.h"
 #include "psidclient.h"
 #include "psidcomm.h"
+#include "psidhook.h"
 #include "psidspawn.h"
 #include "psidsignal.h"
-#include "psidhook.h"
+#include "psidtask.h"
 
 /** Default grace time before sending SIGKILL */
 #define DEFAULT_GRACE_TIME 3
@@ -970,16 +971,19 @@ bool signalForwarderChild(Forwarder_Data_t *fw, int sig)
 	}
 	return true;
     } else if (fw && fw->tid != -1 && PSC_getPID(fw->tid)) {
-	DDTypedBufferMsg_t msg = {
-	    .header = {
-		.type = PSP_PF_MSG,
-		.dest = fw->tid,
-		.sender = PSC_getMyTID(),
-		.len = 0, },
-	    .type = PLGN_SIGNAL_CHLD };
-	PSP_putTypedMsgBuf(&msg, "signal", &sig, sizeof(sig));
+	PStask_t *fwTask = PStasklist_find(&managedTasks, fw->tid);
+	if (fwTask && fwTask->fd != -1) {
+	    DDTypedBufferMsg_t msg = {
+		.header = {
+		    .type = PSP_PF_MSG,
+		    .dest = fw->tid,
+		    .sender = PSC_getMyTID(),
+		    .len = 0, },
+		.type = PLGN_SIGNAL_CHLD };
+	    PSP_putTypedMsgBuf(&msg, "signal", &sig, sizeof(sig));
 
-	sendMsg(&msg);
+	    sendMsg(&msg);
+	}
 	return true;
     } else {
 	pluginlog("%s: unable to signal forwarder\n", __func__);
@@ -990,6 +994,9 @@ bool signalForwarderChild(Forwarder_Data_t *fw, int sig)
 void startGraceTime(Forwarder_Data_t *fw)
 {
     if (!fw || fw->tid == -1 || !PSC_getPID(fw->tid)) return;
+
+    PStask_t *fwTask = PStasklist_find(&managedTasks, fw->tid);
+    if (!fwTask || fwTask->fd == -1) return;
 
     DDTypedMsg_t msg = {
 	.header = {
@@ -1004,6 +1011,9 @@ void startGraceTime(Forwarder_Data_t *fw)
 void shutdownForwarder(Forwarder_Data_t *fw)
 {
     if (!fw || fw->tid == -1 || !PSC_getPID(fw->tid)) return;
+
+    PStask_t *fwTask = PStasklist_find(&managedTasks, fw->tid);
+    if (!fwTask || fwTask->fd == -1) return;
 
     DDTypedMsg_t msg = {
 	.header = {
