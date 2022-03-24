@@ -78,7 +78,6 @@ bin/daemon/psidstatus.c \
 bin/daemon/psidstatus.h \
 bin/daemon/psidtask.c \
 bin/daemon/psidtask.h \
-bin/daemon/psidtimer.h \
 bin/daemon/psidutil.c \
 bin/daemon/psidutil.h \
 bin/daemon/test_config.c \
