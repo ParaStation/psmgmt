@@ -40,7 +40,6 @@
 #include "psidoption.h"
 #include "psidcomm.h"
 #include "psidrdp.h"
-#include "psidtimer.h"
 #include "psidpartition.h"
 #include "psidaccount.h"
 #include "psidstate.h"
@@ -225,18 +224,18 @@ void setMaxStatBCast(int limit)
 static void handleMasterTasks(void)
 {
     static int round = 0;
-    int nrDownNodes = 0;
-    struct timeval tv;
 
     PSID_log(PSID_LOG_STATUS, "%s\n", __func__);
 
     if (PSID_getDaemonState() & PSID_STATE_SHUTDOWN) return;
 
-    gettimeofday(&tv, NULL);
-    mytimersub(&tv, statusTimeout.tv_sec, statusTimeout.tv_usec);
+    struct timeval timeNow, lastCheck;
+    gettimeofday(&timeNow, NULL);
+    timersub(&timeNow, &statusTimeout, &lastCheck);
+    int nrDownNodes = 0;
     for (PSnodes_ID_t n = 0; n < PSC_getNrOfNodes(); n++) {
 	if (PSIDnodes_isUp(n)) {
-	    if (timercmp(&clientStat[n].lastPing, &tv, <)) {
+	    if (timercmp(&clientStat[n].lastPing, &lastCheck, <)) {
 		/* no ping in the last 'round' */
 		PSID_log(PSID_LOG_STATUS,
 			 "%s: Ping from node %d missing [%d]\n",
