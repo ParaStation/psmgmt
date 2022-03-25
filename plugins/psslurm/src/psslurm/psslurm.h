@@ -41,4 +41,16 @@ extern bool isInit;
  */
 bool finalizeInit(void);
 
+/**
+ * @brief Initialize Slurm options
+ *
+ * Initialize Slurm options from various configuration files. On
+ * success the communication facility is started and the node is
+ * registered to the slurmctld. Additionally all spank plugins are
+ * initialized and the global spank API is loaded.
+ *
+ * @return Returns true on success or false otherwise
+ */
+bool initSlurmOpt(void);
+
 #endif

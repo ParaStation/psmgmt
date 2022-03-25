@@ -626,17 +626,7 @@ static bool requestConfig(void)
     return true;
 }
 
-/**
- * @brief Initialize Slurm options
- *
- * Initialize Slurm options from various configuration files. On
- * success the communication facility is started and the node is
- * registered to the slurmctld. Additionally all spank plugins are
- * initialized and the global spank API is loaded.
- *
- * @return Returns true on success or false otherwise
- */
-static bool initSlurmOpt(void)
+bool initSlurmOpt(void)
 {
     if (!initPScomm()) goto INIT_ERROR;
     if (!initLimits()) goto INIT_ERROR;
@@ -681,14 +671,20 @@ INIT_ERROR:
 
 bool finalizeInit(void)
 {
-    if (!initSlurmOpt()) return false;
-
     /* initialize pinning defaults */
     if (!initPinning()) return false;
 
     /* start health-check script */
+    char *script = getConfValueC(&SlurmConfig, "HealthCheckProgram");
     bool run = getConfValueI(&Config, "SLURM_HC_STARTUP");
-    if (run && !runHealthCheck()) return false;
+    /* wait till health-check is complete to register to slurmctld */
+    if (run && script) {
+	flog("running health-check before registering to slurmctld\n");
+	return runHealthCheck();
+    }
+
+    /* initialize Slurm options and register node to slurmctld */
+    if (!initSlurmOpt()) return false;
 
     isInit = true;
 

@@ -1251,6 +1251,20 @@ static void cbHealthcheck(int exit, bool tmdOut, int iofd, void *info)
 	     " of %u seconds\n", script, seconds);
     } else if (exit != 0) {
 	flog("'%s' returned exit status %i\n", script, exit);
+    } else {
+	if (!isInit) {
+	    /* initialize Slurm options and register node to slurmctld */
+	    if (initSlurmOpt()) {
+		isInit = true;
+
+		mlog("(%i) successfully started, protocol '%s (%i)'\n", version,
+		     slurmProtoStr, slurmProto);
+	    } else {
+		/* psslurm failed initialize, unload */
+		flog("initialize Slurm communication failed\n");
+		PSIDplugin_finalize("psslurm");
+	    }
+	}
     }
 
     if (errMsg[0] != '\0') flog("health-check script message: %s\n", errMsg);
@@ -3518,7 +3532,10 @@ static int handleSlurmConf(Slurm_Msg_t *sMsg, void *info)
 	    }
 
 	    /* finalize the startup of psslurm */
-	    finalizeInit();
+	    if (!finalizeInit()) {
+		flog("startup of psslurm failed\n");
+		PSIDplugin_finalize("psslurm");
+	    }
 	    break;
 	case CONF_ACT_RELOAD:
 	    flog("ignoring configuration reload request\n");
