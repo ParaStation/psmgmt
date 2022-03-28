@@ -2393,7 +2393,7 @@ void test_pinning(uint16_t socketCount, uint16_t coresPerSocket,
 	setCPUset(&CPUset, cpuBindType, cpuBindString, &nodeinfo, &lastCpu,
 		&thread, tasksPerNode, threadsPerTask, local_tid, &pininfo);
 
-	if (cpumap) {
+	if (cpumap && !(cpuBindType & (CPU_BIND_MAP| CPU_BIND_MASK))) {
 	    PSCPU_set_t mappedSet;
 	    PSCPU_clrAll(mappedSet);
 	    for (uint16_t thrd = 0; thrd < threadCount; thrd++) {
