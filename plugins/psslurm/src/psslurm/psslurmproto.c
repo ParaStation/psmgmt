@@ -1297,7 +1297,7 @@ bool runHealthCheck(void)
     if (!script) return true;
 
     if (access(script, R_OK | X_OK) < 0) {
-	flog("invalid permissions for health-check script %s\n", script);
+	mwarn(errno, "%s: invalid health-check script %s", __func__, script);
 	return false;
     }
     if (slurmHCpid != -1) {
