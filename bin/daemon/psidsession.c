@@ -35,7 +35,7 @@ PSsession_t* PSID_findSessionByLoggerTID(PStask_ID_t loggerTID)
 /**
  * @brief Try to insert reservation to job
  *
- * If the reservation already exists and is identical it is simply ignored,
+ * If the reservation already exists and is identical, it is simply ignored,
  * if it is not the same, it is ignored and a warning is logged.
  *
  * @param job   job to add the reservation to
@@ -116,16 +116,14 @@ static void handleResCreated(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
 	return;
     }
 
-    PSnodes_ID_t node;
-    int32_t firstrank, lastrank;
-
     /* calculate size of one entry */
-    size_t entrysize = sizeof(node) + sizeof(firstrank) + sizeof(lastrank);
+    size_t entrysize = sizeof(res->entries->node)
+	+ sizeof(res->entries->firstrank) + sizeof(res->entries->lastrank);
 
     /* calculate number of entries */
-    size_t nentries = (rData->buf + rData->used - ptr) / entrysize;
+    res->nEntries = (rData->buf + rData->used - ptr) / entrysize;
 
-    res->entries = calloc(nentries, sizeof(*res->entries));
+    res->entries = calloc(res->nEntries, sizeof(*res->entries));
     if (!res->entries) {
 	free(res);
 	PSID_log(-1, "%s: No memory for reservation info entries.\n", __func__);
@@ -135,26 +133,20 @@ static void handleResCreated(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
     res->resID = resID;
 
     /* get entries */
-    for (size_t i = 0; i < nentries; i++) {
-	getNodeId(&ptr, &node);
-	getInt32(&ptr, &firstrank);
-	getInt32(&ptr, &lastrank);
+    for (size_t i = 0; i < res->nEntries; i++) {
+	getNodeId(&ptr, &res->entries[i].node);
+	getInt32(&ptr, &res->entries[i].firstrank);
+	getInt32(&ptr, &res->entries[i].lastrank);
 
 	/* add to reservation */
 	PSID_log(PSID_LOG_SPAWN, "%s: Reservation %d: Adding node %hd:"
-		 " ranks %d-%d\n", __func__, resID, node, firstrank, lastrank);
-
-	res->entries[i].node = node;
-	res->entries[i].firstrank = firstrank;
-	res->entries[i].lastrank = lastrank;
+		 " ranks %d-%d\n", __func__, resID, res->entries[i].node,
+		 res->entries[i].firstrank, res->entries[i].lastrank);
     }
-
-    res->nEntries = nentries;
 
     /* try to find existing session */
     bool sessionCreated = false;
     PSsession_t *session = PSID_findSessionByLoggerTID(loggerTID);
-
     if (!session) {
 	/* create new session */
 	session = malloc(sizeof(*session));
