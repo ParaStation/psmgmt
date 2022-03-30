@@ -3019,7 +3019,8 @@ static bool send_RESRELEASED(PSrsrvtn_t *res)
     }
 
     PSP_putMsgBuf(&msg, "resID", &res->rid, sizeof(res->rid));
-    PSP_putMsgBuf(&msg, "loggertid", &res->task, sizeof(res->task));
+    PSP_putMsgBuf(&msg, "loggerTID", &res->task, sizeof(res->task));
+    PSP_putMsgBuf(&msg, "spawnerTID", &res->requester, sizeof(res->requester));
 
     for (int i = 0; i < res->nSlots; i++) {
 	PSnodes_ID_t node = res->slots[i].node;
@@ -3028,8 +3029,8 @@ static bool send_RESRELEASED(PSrsrvtn_t *res)
 	// break on looping nodes (@todo this might not be sufficient!)
 	if (i > 0 && node == res->slots[0].node) break;
 
-	PSID_log(PSID_LOG_PART, "%s: send RESRELEASED to %hu for resID %d)\n",
-		 __func__, node, res->rid);
+	PSID_log(PSID_LOG_PART, "%s: to %hu for resID %d)\n", __func__,
+		 node, res->rid);
 
 	msg.header.dest =  PSC_getTID(node, 0);
 	if (sendMsg(&msg) == -1 && errno != EWOULDBLOCK) {

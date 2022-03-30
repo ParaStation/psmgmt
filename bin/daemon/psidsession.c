@@ -280,56 +280,60 @@ static bool msg_RESCREATED(DDTypedBufferMsg_t *msg)
 static bool msg_RESRELEASED(DDBufferMsg_t *msg)
 {
     PSrsrvtn_ID_t resID;
-    PStask_ID_t logTID;
+    PStask_ID_t logTID, spawnTID;
     size_t used = 0;
 
     PSP_getMsgBuf(msg, &used, "resID", &resID, sizeof(resID));
-    PSP_getMsgBuf(msg, &used, "logger TID", &logTID, sizeof(logTID));
+    PSP_getMsgBuf(msg, &used, "loggerTID", &logTID, sizeof(logTID));
+    PSP_getMsgBuf(msg, &used, "spawnerTID", &spawnTID, sizeof(spawnTID));
 
     /* try to find corresponding session */
     PSsession_t *session = PSID_findSessionByLoggerTID(logTID);
     if (!session) {
-	PSID_log(-1, "%s: No session with loggertid %s expected to hold resID"
-		 " %d to be released\n", __func__, PSC_printTID(logTID), resID);
+	PSID_log(-1, "%s: No session (%s) expected to hold resID %d\n",
+		 __func__, PSC_printTID(logTID), resID);
 	return true;
     }
 
     /* try to find reservation within the session and delete it */
-    bool found = false;
-    list_t *j, *r;
-    list_for_each(j, &session->jobs) {
-	PSjob_t *job = list_entry(j, PSjob_t, next);
-	list_for_each(r, &job->resInfos) {
-	    PSresinfo_t *res = list_entry(r, PSresinfo_t, next);
-	    if (res->resID == resID) {
-		list_del(&res->next);
-		free(res->entries);
-		free(res);
-		found = true;
-		break;
-	    }
-	}
-	if (found) {
-	    /* if there are no reservations left in set, delete it */
-	    if (list_empty(&job->resInfos)) {
-		/* Give plugins the option to react on job removal */
-		PSIDhook_call(PSIDHOOK_LOCALJOBREMOVED, job);
-
-		list_del(&job->next);
-		free(job);
-	    }
-	    break;
-	}
+    PSjob_t* job = findJobInSession(session, spawnTID);
+    if (!job) {
+	PSID_log(-1, "%s: No job (%s) expected to hold resID %d",
+		 __func__, PSC_printTID(spawnTID), resID);
+	PSID_log(-1, " in session (%s)\n", PSC_printTID(logTID));
+	return true;
     }
-    if (found) {
-	/* if there are no reservation sets left in the session, delete it */
-	if (list_empty(&session->jobs)) {
-	    list_del(&session->next);
-	    free(session);
-	}
-    } else {
-	PSID_log(-1, "%s: No reservation with ID %d in session with"
-		 " logger %s\n", __func__, resID, PSC_printTID(logTID));
+
+    bool found = false;
+    list_t *r;
+    list_for_each(r, &job->resInfos) {
+	PSresinfo_t *res = list_entry(r, PSresinfo_t, next);
+	if (res->resID != resID) continue;
+	list_del(&res->next);
+	free(res->entries);
+	free(res);
+	found = true;
+	break;
+    }
+
+    if (!found) {
+	PSID_log(-1, "%s: No reservation (%d) in session (%s)\n", __func__,
+		 resID, PSC_printTID(logTID));
+    }
+
+    /* if job has no reservations left, delete it */
+    if (list_empty(&job->resInfos)) {
+	/* Give plugins the option to react on job removal */
+	PSIDhook_call(PSIDHOOK_LOCALJOBREMOVED, job);
+
+	list_del(&job->next);
+	free(job);
+    }
+
+    /* if session has no jobs left, delete it */
+    if (list_empty(&session->jobs)) {
+	list_del(&session->next);
+	free(session);
     }
 
     return true;
