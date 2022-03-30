@@ -167,25 +167,27 @@ static void handleResCreated(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
     /* try to find existing job */
     bool jobCreated = false;
     PSjob_t *job = findJobInSession(session, spawnerTID);
-
     if (!job) {
-        /* create new job */
-        job = malloc(sizeof(*job));
+	/* create new job */
+	job = malloc(sizeof(*job));
 	if (!job) {
+	    if (sessionCreated) {
+		list_del(&session->next);
+		free(session);
+	    }
 	    free(res->entries);
 	    free(res);
-	    if (sessionCreated) free(session);
 	    PSID_log(-1, "%s: No memory for job.\n", __func__);
 	    return;
 	}
-        job->spawnertid = spawnerTID;
-        INIT_LIST_HEAD(&job->resInfos);
-        list_add_tail(&job->next, &session->jobs);
+	job->spawnertid = spawnerTID;
+	INIT_LIST_HEAD(&job->resInfos);
+	list_add_tail(&job->next, &session->jobs);
+	jobCreated = true;
 	PSID_log(PSID_LOG_SPAWN, "%s: Job created for spawner %s",
 		 __func__, PSC_printTID(spawnerTID));
 	PSID_log(PSID_LOG_SPAWN, "in session with loggertid %s\n",
 		 PSC_printTID(loggerTID));
-	jobCreated = true;
     }
 
     /* try to add reservation to job */
@@ -193,6 +195,14 @@ static void handleResCreated(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
 	PSID_log(PSID_LOG_SPAWN, "%s: Reservation %d exists (spawner %s",
 		__func__, resID, PSC_printTID(spawnerTID));
 	PSID_log(PSID_LOG_SPAWN, " logger %s)\n", PSC_printTID(loggerTID));
+	if (jobCreated) {
+	    list_del(&job->next);
+	    free(job);
+	    if (sessionCreated) {
+		list_del(&session->next);
+		free(session);
+	    }
+	}
 	free(res->entries);
 	free(res);
 	return;
