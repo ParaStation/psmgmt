@@ -17,10 +17,8 @@
 #define __PSIDSPAWN_H
 
 #include <stdbool.h>
-#include <stdint.h>
 
-#include "list.h"
-#include "pscpu.h"
+#include "psnodes.h"
 #include "pstask.h"
 #include "selector.h"
 

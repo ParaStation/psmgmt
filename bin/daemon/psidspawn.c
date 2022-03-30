@@ -12,6 +12,7 @@
 #include "psidspawn.h"
 
 #include <stddef.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -34,12 +35,14 @@
 #include <termios.h>
 #include <time.h>
 
+#include "list.h"
 #include "pscio.h"
 #include "pscommon.h"
 #include "pscpu.h"
-#include "psprotocolenv.h"
 #include "psdaemonprotocol.h"
 #include "pspartition.h"
+#include "psprotocolenv.h"
+#include "psreservation.h"
 #include "psserial.h"
 
 #include "config_parsing.h"

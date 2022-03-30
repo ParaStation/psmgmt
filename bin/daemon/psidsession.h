@@ -14,12 +14,12 @@
 #ifndef __PSIDSESSION_H
 #define __PSIDSESSION_H
 
-#include <stdbool.h>
 #include <stdint.h>
 
 #include "list.h"
 #include "psnodes.h"
 #include "psreservation.h"
+#include "pstask.h"
 
 /** Single node part of a reservation */
 typedef struct {

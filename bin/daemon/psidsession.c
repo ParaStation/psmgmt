@@ -9,8 +9,10 @@
  */
 #include "psidsession.h"
 
+#include <stdbool.h>
 #include <stdlib.h>
 
+#include "pscommon.h"
 #include "psserial.h"
 #include "psdaemonprotocol.h"
 
