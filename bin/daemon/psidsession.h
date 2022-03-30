@@ -30,7 +30,7 @@ typedef struct {
 
 /** Compact reservation information structure, used in non-logger deamons */
 typedef struct {
-    list_t next;               /**< used to put into reservation-lists */
+    list_t next;               /**< used to put into PSjob_t.resInfos */
     PSrsrvtn_ID_t resID;       /**< unique reservation identifier */
     uint32_t nEntries;         /**< Number of entries in @ref entries */
     PSresinfoentry_t *entries; /**< Slots forming the reservation */
@@ -43,17 +43,17 @@ typedef struct {
     list_t resInfos;         /**< reservations in this job (PSresinfo_t) */
 } PSjob_t;
 
-/** Session: jobs running on this node with a common logger */
+/** Session: jobs involving this node with a common logger */
 typedef struct {
     list_t next;             /**< used to put into localSessions */
     PStask_ID_t loggertid;   /**< logger's tid, unique session identifier */
-    list_t jobs;             /**< sets of reservations (PSspawnblock_t) */
+    list_t jobs;             /**< jobs in this session (PSjob_t) */
 } PSsession_t;
 
 /**
  * @brief Find local session by logger TID
  *
- * Find information on a local session by its logger's task ID @a logger.
+ * Find information on a local session by its logger's task ID @a loggerTID.
  *
  * @param loggerTID Task ID of the logger identifying the session
  *
@@ -64,8 +64,8 @@ PSsession_t* PSID_findSessionByLoggerTID(PStask_ID_t loggerTID);
 /**
  * @brief Initialize session stuff
  *
- * Initialize the session framework. This registers
- * the necessary message handlers.
+ * Initialize the session framework. This registers the necessary
+ * message handlers.
  *
  * @return No return value.
  */
@@ -75,9 +75,9 @@ void PSIDsession_init(void);
  * @brief Memory cleanup
  *
  * Cleanup all dynamic memory currently retained in session structures
- * collected in the @ref localSessions list. This will very aggressively
- * free() all allocated memory destroying all information on sessions, jobs,
- * and reservation.
+ * and all descendants collected in the @ref localSessions list. This
+ * will very aggressively free() all allocated memory destroying all
+ * information on sessions, jobs, and reservations.
  *
  * The purpose of this function is to cleanup before a fork()ed
  * process is handling other businesses, e.g. becoming a forwarder.
