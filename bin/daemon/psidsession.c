@@ -51,7 +51,7 @@ static bool addReservationToJob(PSjob_t *job, PSresinfo_t *res)
 	if (cur->resID == res->resID) {
 	    if (cur->nEntries != res->nEntries) {
 		PSID_log(-1, "%s: Reservation %d already known but differs,"
-			 " this should never happen.\n", __func__, res->resID);
+			 " this should never happen\n", __func__, res->resID);
 	    }
 	    /* Note: Could also check all entries, but that may be overkill? */
 	    return false;
@@ -112,7 +112,7 @@ static void handleResCreated(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
     /* create reservation info */
     PSresinfo_t *res = malloc(sizeof(*res));
     if (!res) {
-	PSID_log(-1, "%s: No memory for reservation info.\n", __func__);
+	PSID_log(-1, "%s: No memory for reservation info\n", __func__);
 	return;
     }
 
@@ -126,7 +126,7 @@ static void handleResCreated(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
     res->entries = calloc(res->nEntries, sizeof(*res->entries));
     if (!res->entries) {
 	free(res);
-	PSID_log(-1, "%s: No memory for reservation info entries.\n", __func__);
+	PSID_log(-1, "%s: No memory for reservation info entries\n", __func__);
 	return;
     }
 
@@ -153,7 +153,7 @@ static void handleResCreated(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
 	if (!session) {
 	    free(res->entries);
 	    free(res);
-	    PSID_log(-1, "%s: No memory for session.\n", __func__);
+	    PSID_log(-1, "%s: No memory for session\n", __func__);
 	    return;
 	}
 	session->loggertid = loggerTID;
@@ -177,7 +177,7 @@ static void handleResCreated(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
 	    }
 	    free(res->entries);
 	    free(res);
-	    PSID_log(-1, "%s: No memory for job.\n", __func__);
+	    PSID_log(-1, "%s: No memory for job\n", __func__);
 	    return;
 	}
 	job->spawnertid = spawnerTID;
