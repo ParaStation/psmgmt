@@ -21,7 +21,7 @@
 #include "psidnodes.h"
 #include "psidcomm.h"
 
-/** The list of reservations this node is part of. */
+/** List of reservations this node is part of organized in sessions and jobs */
 static LIST_HEAD(localSessions);
 
 PSsession_t* PSID_findSessionByLoggerTID(PStask_ID_t loggerTID)
@@ -35,7 +35,7 @@ PSsession_t* PSID_findSessionByLoggerTID(PStask_ID_t loggerTID)
 }
 
 /**
- * @brief Try to insert reservation to job
+ * @brief Try to add reservation to job
  *
  * If the reservation already exists and is identical, it is simply ignored,
  * if it is not the same, it is ignored and a warning is logged.
@@ -68,8 +68,8 @@ static bool addReservationToJob(PSjob_t *job, PSresinfo_t *res)
 /**
  * @brief Find job in session by spawner
  *
- * @param session      session to look into
- * @param spawnerTID   thread ID of the spawner to find reservations for
+ * @param session      Session to search in
+ * @param spawnerTID   Task ID of spawner identifying the job
  *
  * @return Returns the job or NULL if none found
  */
@@ -86,11 +86,12 @@ PSjob_t* findJobInSession(PSsession_t *session, PStask_ID_t spawnerTID)
 /**
  * @brief Store reservation information
  *
- * Actually stores the reservation information described on the data
+ * Actually stores the reservation information contained in the data
  * buffer @a rData. It contains a whole message of type PSP_DD_RESCREATED
  * holding all information about which rank will run on which node in
  * a specific reservation created.
- * Additional information can be obtained for @a msg containing
+ *
+ * Additional information can be obtained from @a msg containing
  * meta-information of the last fragment received.
  *
  * @param msg Message header (including the type) of the last fragment
@@ -234,8 +235,8 @@ static void handleResCreated(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
  * using the serialization layer or forward single fragments to their
  * final destination.
  *
- * The actual handling of the spawn request once all fragments are
- * received is done within @ref handleResCreated().
+ * The actual handling of the payload once all fragments are received
+ * is done within @ref handleResCreated().
  *
  * @param msg Pointer to message holding the fragment to handle
  *
@@ -295,7 +296,7 @@ static bool msg_RESRELEASED(DDBufferMsg_t *msg)
 	return true;
     }
 
-    /* try to find reservation within the session and delete it */
+    /* try to find corresponding job within the session */
     PSjob_t* job = findJobInSession(session, spawnTID);
     if (!job) {
 	PSID_log(-1, "%s: No job (%s) expected to hold resID %d",
@@ -304,6 +305,7 @@ static bool msg_RESRELEASED(DDBufferMsg_t *msg)
 	return true;
     }
 
+    /* try to find reservation in job and delete it */
     bool found = false;
     list_t *r;
     list_for_each(r, &job->resInfos) {
@@ -353,7 +355,7 @@ void PSIDsession_init(void)
 }
 
 /**
- * Aggressively delete a job and free all memory of it and it's reservations
+ * Aggressively delete a job and free all memory of it and its reservations
  *
  * @param job  job to delete
  */
@@ -370,7 +372,7 @@ static void PSjob_delete(PSjob_t *job)
 }
 
 /**
- * Aggressively delete a session and free all memory of itself and it's jobs
+ * Aggressively delete a session and free all memory of it and its jobs
  *
  * @param session  session to delete
  */

@@ -55,7 +55,7 @@ typedef struct {
  *
  * Find information on a local session by its logger's task ID @a loggerTID.
  *
- * @param loggerTID Task ID of the logger identifying the session
+ * @param loggerTID Task ID of logger identifying the session
  *
  * @return Return pointer to the session information or NULL if none was found
  */
@@ -75,9 +75,9 @@ void PSIDsession_init(void);
  * @brief Memory cleanup
  *
  * Cleanup all dynamic memory currently retained in session structures
- * and all descendants collected in the @ref localSessions list. This
- * will very aggressively free() all allocated memory destroying all
- * information on sessions, jobs, and reservations.
+ * and all descendants. This will very aggressively free() all
+ * allocated memory destroying all information on sessions, jobs, and
+ * reservations.
  *
  * The purpose of this function is to cleanup before a fork()ed
  * process is handling other businesses, e.g. becoming a forwarder.
