@@ -79,6 +79,8 @@ static void print_help() {
 	    "          Print 0/1-blocks instead of hex masks\n"
 	    "   -m, --membind\n"
 	    "          Print memory binding, too\n"
+	    "   -M,  --cpumap <CPUMAP>\n"
+	    "          Use different cpumap\n"
 	    "\n"
 	    "Supported srun Options (see srun manpage):\n"
 	    "   -N 1\n"
