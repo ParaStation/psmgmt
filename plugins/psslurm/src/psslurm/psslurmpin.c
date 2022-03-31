@@ -1115,7 +1115,7 @@ static void setCPUset(PSCPU_set_t *CPUset, uint16_t cpuBindType,
     }
 
     if (cpuBindType & CPU_BIND_TO_BOARDS) {
-	/* XXX: Only correct for systems with only one board per node */
+	/* removed in Slurm 22.05 */
 	pinToAllThreads(CPUset, nodeinfo);
 	mdbg(PSSLURM_LOG_PART, "%s: (cpu_bind_boards)\n", __func__);
 	return;
