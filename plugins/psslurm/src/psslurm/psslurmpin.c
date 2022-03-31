@@ -367,7 +367,7 @@ static void pinToAllThreads(PSCPU_set_t *CPUset, const nodeinfo_t *nodeinfo)
  * Pin to specified socket
  */
 static void pinToSocket(PSCPU_set_t *CPUset, const nodeinfo_t *nodeinfo,
-	    uint16_t socket, bool os_order)
+	    uint16_t socket)
 {
     int t;
     uint16_t s;
@@ -381,13 +381,7 @@ static void pinToSocket(PSCPU_set_t *CPUset, const nodeinfo_t *nodeinfo,
 	    for (i = 0; i < nodeinfo->coresPerSocket; i++) {
 		thread = (t * nodeinfo->coreCount)
 					+ (s * nodeinfo->coresPerSocket) + i;
-		if (os_order) {
-		    PSCPU_setCPU(*CPUset,
-			    PSIDnodes_unmapCPU(nodeinfo->id, thread));
-		}
-		else {
-		    PSCPU_setCPU(*CPUset, thread);
-		}
+		PSCPU_setCPU(*CPUset, thread);
 	    }
 	}
     }
@@ -411,6 +405,11 @@ static void pinToCore(PSCPU_set_t *CPUset, const nodeinfo_t *nodeinfo,
 /*
  * Parse the string @a maskStr containing a hex number (with or without
  * leading "0x") and set @a CPUset accordingly.
+ *
+ * This function uses PSIDnodes_unmapCPU() to create a reverse mapped CPUset
+ * since actually the mask should be applied to the physical hardware as it is.
+ * The unmap here and the map later will negate each other so that at the end
+ * we do always have an identity mapping.
  *
  * If the sting is not a valid hex number, each bit in @a CPUset becomes set.
  */
@@ -571,7 +570,7 @@ static void parseSocketMask(PSCPU_set_t *CPUset, const nodeinfo_t *nodeinfo,
 
 	for (j = 0; j<4; j++) {
 	    if (digit & (1 << j)) {
-		pinToSocket(CPUset, nodeinfo, curbit + j, true);
+		pinToSocket(CPUset, nodeinfo, curbit + j);
 	    }
 	}
 	curbit += 4;
@@ -589,6 +588,12 @@ static void parseSocketMask(PSCPU_set_t *CPUset, const nodeinfo_t *nodeinfo,
  * CPU IDs or CPU masks or if the CPU bind type is LDMAP or LDMASK and
  * so the bind string is formated "s1,s2,..." with sn are Socket IDs
  * or Socket masks.
+ *
+ * For CPU_BIND_MASK and CPU_BIND_MAP this function (or it's subfunctions)
+ * use PSIDnodes_unmapCPU() to create a reverse mapped CPUset since actually
+ * the mask should be applied to the* physical hardware as it is. The unmap
+ * here and the map later will negate each other so that at the end we do
+ * always have an identity mapping.
  *
  * @param CPUset         CPU set to be set
  * @param cpuBindType    bind type to use (CPU_BIND_[MASK|MAP|LDMASK|LDMAP])
@@ -688,7 +693,7 @@ static void getBindMapFromString(PSCPU_set_t *CPUset, uint16_t cpuBindType,
 	}
 
 	/* mysock is valid */
-	pinToSocket(CPUset, nodeinfo, myldom, true);
+	pinToSocket(CPUset, nodeinfo, myldom);
 	fdbg(PSSLURM_LOG_PART, "(bind_ldmap) node %d local task %d bindstr '%s'"
 	     " ldom %ld\n", nodeinfo->id, lTID, cpuBindString, myldom);
 	return;
@@ -952,7 +957,7 @@ static void bindToSockets(PSCPU_set_t *CPUset, const nodeinfo_t *nodeinfo,
 
 	if (PSCPU_isSet(*CPUset, thread)) {
 	    uint16_t socket = getSocketByThread(thread, nodeinfo);
-	    pinToSocket(CPUset, nodeinfo, socket, false);
+	    pinToSocket(CPUset, nodeinfo, socket);
 	    if (socket + 1 == nodeinfo->socketCount) break;
 	    iter.next = getNextSocketStart(thread, nodeinfo, false);
 	}
@@ -1069,10 +1074,17 @@ static void getSocketRankBinding(PSCPU_set_t *CPUset,
 /*
  * Set CPUset according to cpuBindType.
  *
+ * The CPU set is always filled as if the hardware threads were numbered in
+ * cores-sockets-threads order:
+ *
+ * cores:   0123456701234567
+ * sockets: 0000111100001111
+ * threads: 0000000011111111
+ *
  * @param CPUset         <OUT>  Output
  * @param cpuBindType    <IN>   Type of binding
  * @param cpuBindString  <IN>   Binding string, needed for map and mask binding
- * @param nodeinfo         <IN>   node information
+ * @param nodeinfo       <IN>   node information
  * @param lastCpu        <BOTH> Local CPU ID of the last CPU in this node
  *                              already assigned to a task
  * @param thread         <BOTH> current HW to fill (fill physical cores first)
