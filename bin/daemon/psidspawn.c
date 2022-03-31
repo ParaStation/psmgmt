@@ -1959,7 +1959,8 @@ static bool msg_SPAWNREQ(DDTypedBufferMsg_t *msg)
 	}
 	task = PStask_new();
 	PStask_decodeTask(msg->buf, task, true);
-	task->tid = msg->header.sender;
+	task->tid = msg->header.sender; /* for identification among spawnees */
+	task->spawnertid = msg->header.sender;
 	task->argc = 0;           /* determine from argv later */
 
 	/* Check if we have to and can copy the location */

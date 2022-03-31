@@ -92,7 +92,7 @@ struct __task__ {
     PStask_group_t childGroup;     /**< used by forwarder during spawn */
     /*C*/ PSrsrvtn_ID_t resID;     /**< reservation to be spawned in */
     /*C*/ PStask_ID_t loggertid;   /**< unique identifier of the logger */
-    /*C*/ PStask_ID_t spawnertid;  /**< unique identifier of the spawner */
+    PStask_ID_t spawnertid;        /**< unique identifier of the spawner */
     PStask_t *forwarder;           /**< pointer to forwarder's task struct */
     /*C*/ int32_t rank;            /**< rank of task within task group */
     PSCPU_set_t CPUset;            /**< set of logical CPUs to pin to */

@@ -443,6 +443,7 @@ void PStask_snprintf(char *txt, size_t size, PStask_t *task)
     snprintf(txt+strlen(txt), size-strlen(txt), "\"");
 }
 
+/* helper struct to compress the relvant parts of PStask_t to be sent */
 static struct {
     PStask_ID_t tid;
     PStask_ID_t ptid;
@@ -455,7 +456,6 @@ static struct {
     PSrsrvtn_ID_t resID;
     int32_t rank;
     PStask_ID_t loggertid;
-    PStask_ID_t spawnertid;
     uint32_t argc;
     int32_t noParricide;
 } tmpTask;
@@ -483,7 +483,6 @@ size_t PStask_encodeTask(char *buffer, size_t size, PStask_t *task, char **off)
     tmpTask.resID = task->resID;
     tmpTask.rank = task->rank;
     tmpTask.loggertid = task->loggertid;
-    tmpTask.spawnertid = task->spawnertid;
     tmpTask.argc = task->argc;
     tmpTask.noParricide = task->noParricide;
 
@@ -527,7 +526,6 @@ bool PStask_sendTask(PS_SendDB_t *msg, PStask_t *task)
     tmpTask.resID = task->resID;
     tmpTask.rank = task->rank;
     tmpTask.loggertid = task->loggertid;
-    tmpTask.spawnertid = task->spawnertid;
     tmpTask.argc = task->argc;
     tmpTask.noParricide = task->noParricide;
 
@@ -574,7 +572,6 @@ int PStask_decodeTask(char *buffer, PStask_t *task, bool withWDir)
     task->resID = tmpTask.resID;
     task->rank = tmpTask.rank;
     task->loggertid = tmpTask.loggertid;
-    task->spawnertid = tmpTask.spawnertid;
     task->argc = tmpTask.argc;
     task->noParricide = tmpTask.noParricide;
 
