@@ -258,6 +258,8 @@ const ConfDef_t confDef[] =
  */
 static bool addHostOptions(char *options)
 {
+    if (!options) return false;
+
     char *toksave, *next;
     const char delimiters[] =" \t\n";
 
@@ -307,6 +309,8 @@ static bool addHostOptions(char *options)
  */
 static bool parseGresOptions(char *options)
 {
+    if (!options) return false;
+
     char *toksave, *next, *count = NULL;
     const char delimiters[] =" \t\n";
     Gres_Conf_t *gres = ucalloc(sizeof(*gres));
@@ -410,20 +414,24 @@ static bool parseHost(char *host, void *info)
 
     if (hInfo->gres) {
 	char *myHost = getConfValueC(&Config, "SLURM_HOSTNAME");
-	if (myHost && !strcmp(myHost, host)) {
+	if (myHost && !strcmp(myHost, host) && hInfo->options) {
 	    res = parseGresOptions(hInfo->options);
 	}
     } else {
 	if (!strcmp(host, "DEFAULT")) {
 	    flog("saved default host definition\n");
-	    res = addHostOptions(hInfo->options);
+	    if (hInfo->options) {
+		res = addHostOptions(hInfo->options);
+	    }
 	} else if (isLocalAddr(host)) {
 	    flog("local addr: %s args: %s\n", host, hInfo->options);
 	    if (!hInfo->useNodeAddr) {
 		addConfigEntry(&Config, "SLURM_HOSTNAME", host);
 	    }
 	    hInfo->localHostIdx = hInfo->count;
-	    res = addHostOptions(hInfo->options);
+	    if (hInfo->options) {
+		res = addHostOptions(hInfo->options);
+	    }
 	}
     }
 
@@ -459,7 +467,7 @@ static bool findMyHost(char *host, void *info)
  *
  * @param hosts The host range to parse
  *
- * @param hostopt The host options to parse
+ * @param hostopt Optional host options to parse
  *
  * @param nodeAddr Optional node address
  *
@@ -559,14 +567,12 @@ static void saveNodeNameEntry(char *NodeName, char *nodeAddr)
 static bool parseNodeNameEntry(char *line, int gres)
 {
     char *hostopt = strchr(line, ' ');
-    if (!hostopt) {
-	mlog("%s: invalid node definition '%s'\n", __func__, line);
-	return false;
+    char *nodeAddr = NULL;
+    if (hostopt) {
+	hostopt[0] = '\0';
+	hostopt++;
+	nodeAddr = findNodeAddr(hostopt);
     }
-
-    hostopt[0] = '\0';
-    hostopt++;
-    char *nodeAddr = findNodeAddr(hostopt);
 
     /* save all host definitions except for gres and the default host */
     if (!gres && strcmp(line, "DEFAULT")) {
