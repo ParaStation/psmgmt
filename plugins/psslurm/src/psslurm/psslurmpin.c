@@ -2329,7 +2329,7 @@ void test_pinning(uint16_t socketCount, uint16_t coresPerSocket,
 	uint16_t threadsPerCore, uint32_t tasksPerNode, uint16_t threadsPerTask,
 	uint16_t cpuBindType, char *cpuBindString, uint32_t taskDist,
 	uint16_t memBindType, char *memBindString, env_t *env,
-	bool humanreadable, bool printmembind, short cpumap[])
+	bool humanreadable, bool printmembind)
 {
 
     uint32_t threadCount = socketCount * coresPerSocket * threadsPerCore;
@@ -2393,21 +2393,18 @@ void test_pinning(uint16_t socketCount, uint16_t coresPerSocket,
 	setCPUset(&CPUset, cpuBindType, cpuBindString, &nodeinfo, &lastCpu,
 		&thread, tasksPerNode, threadsPerTask, local_tid, &pininfo);
 
-	if (cpumap && !(cpuBindType & (CPU_BIND_MAP| CPU_BIND_MASK))) {
-	    PSCPU_set_t mappedSet;
-	    PSCPU_clrAll(mappedSet);
-	    for (uint16_t thrd = 0; thrd < threadCount; thrd++) {
-		if (PSCPU_isSet(CPUset, thrd)) {
-		    int16_t mappedThrd = cpumap[thrd];
-		    if (mappedThrd < 0 || (size_t)mappedThrd >= threadCount) {
-			flog("Mapping CPU %d->%d out of range. No pinning\n",
-				thrd, mappedThrd);
-			continue;
-		    }
-		    PSCPU_setCPU(mappedSet, mappedThrd);
+	PSCPU_set_t mappedSet;
+	PSCPU_clrAll(mappedSet);
+	for (uint16_t thrd = 0; thrd < threadCount; thrd++) {
+	    if (PSCPU_isSet(CPUset, thrd)) {
+		int16_t mappedThrd = PSIDnodes_mapCPU(nodeinfo.id, thrd);
+		if (mappedThrd < 0 || (size_t)mappedThrd >= threadCount) {
+		    flog("Mapping CPU %d->%d out of range. No pinning\n",
+			    thrd, mappedThrd);
+		    continue;
 		}
+		PSCPU_setCPU(mappedSet, mappedThrd);
 	    }
-	    PSCPU_copy(CPUset, mappedSet);
 	}
 
 	printf("%2u: ", local_tid);
@@ -2415,16 +2412,15 @@ void test_pinning(uint16_t socketCount, uint16_t coresPerSocket,
 	    for (size_t i = 0; i < threadCount; i++) {
 		if (i % coresPerSocket == 0) printf(" ");
 		if (i % (socketCount * coresPerSocket) == 0) printf("\n    ");
-		printf("%d", PSCPU_isSet(CPUset, i));
+		printf("%d", PSCPU_isSet(mappedSet, i));
 	    }
 	}
 	else {
-	    printf("%s", PSCPU_print_part(CPUset,
+	    printf("%s", PSCPU_print_part(mappedSet,
 			PSCPU_bytesForCPUs(threadCount)));
 	}
 
 	if (printmembind) {
-
 	    struct bitmask *nodemask;
 	    if (memBindType & MEM_BIND_LOCAL) {
 		/* default usually handled in psid */

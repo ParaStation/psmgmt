@@ -590,8 +590,7 @@ int main(int argc, char *argv[])
 
     test_pinning(socketCount, coresPerSocket, threadsPerCore, tasksPerNode,
 		 threadsPerTask, cpuBindType, cpuBindString, taskDist,
-		 memBindType, memBindString, &env, humanreadable, printmembind,
-		 cpumap);
+		 memBindType, memBindString, &env, humanreadable, printmembind);
 }
 
 
@@ -750,8 +749,23 @@ struct bitmask *numa_get_membind(void) {
     return NULL;
 }
 
-short PSIDnodes_unmapCPU(PSnodes_ID_t id, short hwthread) {
-    return hwthread;
+short PSIDnodes_mapCPU(PSnodes_ID_t id, short cpu)
+{
+    if (!cpumap) return cpu;
+
+    if (cpu < 0 || (unsigned)cpu >= cpumap_size) return -1;
+
+    return cpumap[cpu];
+}
+
+short PSIDnodes_unmapCPU(PSnodes_ID_t id, short hwthread)
+{
+    if (!cpumap) return hwthread;
+
+    for (unsigned short i = 0; i < cpumap_size; i++) {
+	if (cpumap[i] == hwthread) return i;
+    }
+    return -1;
 }
 
 short PSIDnodes_numGPUs(PSnodes_ID_t id) {
