@@ -6,6 +6,27 @@ Copyright (C) 2021-2022 ParTec AG, Munich
 Please send bug reports, questions and suggestions to <support@par-tec.com>
 
 
+Version 5.1.48:
+===============
+Bugfixes:
+ - Fix rank label output for pack jobs (jrt:13143)
+ - Fix ldom mask|map pinning with uncommon CPU maps in psslurm
+ - Register to slurmctld only after health-check at startup phase is finished
+ - Only release forwarder when all children are gone
+ - Don't use cpu map with map_cpu and mask_cpu in psslurmgetbind
+Enhancements:
+ - Prevent sending superfluous CHILDDEAD messages
+ - Combine consecutive calls to sendCHILDRESREL() into one message
+ - Avoid double bookkeeping of parent/child signals
+ - Use $PWD over CWD provided in step if both resolve to same directory
+ - psslurmgetbind: Include --cpumap|-M in --help output
+ - Re-work messaging in between psid and pluginforwarder avoiding PSLog
+Additional changes:
+ - Push daemon-protocol version to 414
+ - Get rid of now obsolete psidtimer.h
+ - Cosmetic fix of memory mask length in output of psslurmgetbind
+
+
 Version 5.1.47-2:
 =================
 Bugfixes:

@@ -1,3 +1,263 @@
+Version psmgmt-5.1.48:
+======================
+------------------------------------------------------------------------
+e876fb6a8 | Norbert Eicker | Fri, 1 Apr 2022 17:10:55 +0200
+
+IWYU fixes
+------------------------------------------------------------------------
+f00a500ba | Stephan Krempel | Fri, 1 Apr 2022 01:44:56 +0200
+
+psslurm: Add comment that boards pinning is removed in Slurm 22.05
+------------------------------------------------------------------------
+e2a1c7e39 | Stephan Krempel | Fri, 1 Apr 2022 01:42:06 +0200
+
+psslurm: Fix ldom mask|map pinning with uncommon CPU maps
+
+This was broken with CPU maps like 0,2,4,6,1,3,5,7
+------------------------------------------------------------------------
+b637763c7 | Stephan Krempel | Fri, 1 Apr 2022 01:40:11 +0200
+
+psslurmgetbind: Cleaner handling of CPU map
+------------------------------------------------------------------------
+b9ea60fb5 | Stephan Krempel | Fri, 1 Apr 2022 01:36:37 +0200
+
+psslurmgetbind: Include --cpumap|-M in --help output
+------------------------------------------------------------------------
+d17d27755 | Norbert Eicker | Thu, 24 Mar 2022 11:35:13 +0100
+
+Bugfixes and improved logging
+
+ - Send pending CRR message only once
+ - Ignore TG_FORWARDER tasks when determining pending CRR calls
+------------------------------------------------------------------------
+63f1bea28 | Norbert Eicker | Tue, 22 Mar 2022 01:42:23 +0100
+
+Push daemon-protocol version to activate slot combining
+------------------------------------------------------------------------
+17c1080fa | Norbert Eicker | Tue, 22 Mar 2022 01:42:06 +0100
+
+Also combine slots when cleaning up
+------------------------------------------------------------------------
+fdcc77989 | Norbert Eicker | Tue, 22 Mar 2022 01:40:06 +0100
+
+Expect combined CHILDRESREL
+------------------------------------------------------------------------
+01dc4a63b | Norbert Eicker | Tue, 22 Mar 2022 01:33:26 +0100
+
+Combine consecutive calls to sendCHILDRESREL() into one message
+
+ - Combines slots release to the same logger and reservation
+ - Send combined message from time to time in the main loop
+ - Send immediately if all slots to be expected are combined
+------------------------------------------------------------------------
+fe5ca41e7 | Norbert Eicker | Tue, 22 Mar 2022 01:19:30 +0100
+
+Pass resID to sendCHILDRESREL()
+------------------------------------------------------------------------
+a4ef0169b | Norbert Eicker | Tue, 22 Mar 2022 01:11:49 +0100
+
+Introduce helper to handle pending CHILDRESREL messages
+------------------------------------------------------------------------
+d5eccf97d | Norbert Eicker | Mon, 14 Mar 2022 17:31:41 +0100
+
+Streamlining
+------------------------------------------------------------------------
+7b6a6ae0a | Norbert Eicker | Thu, 3 Mar 2022 01:16:42 +0100
+
+Streamlining
+------------------------------------------------------------------------
+408366895 | Norbert Eicker | Wed, 2 Mar 2022 23:43:45 +0100
+
+Clear one obsolete @todo accompanied by streamlining
+------------------------------------------------------------------------
+ba70df77c | Norbert Eicker | Wed, 2 Mar 2022 23:40:32 +0100
+
+Streamlining, booleaziation, docu fixes
+------------------------------------------------------------------------
+9ddc53c01 | Norbert Eicker | Wed, 2 Mar 2022 18:45:16 +0100
+
+Fix typos in docu comments
+------------------------------------------------------------------------
+f90091c28 | Norbert Eicker | Tue, 22 Feb 2022 21:31:32 +0100
+
+Improve docu comment
+------------------------------------------------------------------------
+a37720a1d | Norbert Eicker | Tue, 22 Feb 2022 21:28:04 +0100
+
+Hide sendCHILDRESREL()
+------------------------------------------------------------------------
+5658886c7 | Norbert Eicker | Tue, 22 Feb 2022 21:20:42 +0100
+
+Only release forwarder when all children are gone
+------------------------------------------------------------------------
+4d2e82539 | Norbert Eicker | Tue, 22 Feb 2022 21:15:03 +0100
+
+Simplify releaseSignal()
+------------------------------------------------------------------------
+797a1cd52 | Norbert Eicker | Tue, 22 Feb 2022 20:59:12 +0100
+
+Avoid double bookkeeping of parent/child signals
+------------------------------------------------------------------------
+db03aad4b | Norbert Eicker | Tue, 22 Feb 2022 20:30:30 +0100
+
+Reorganize releaseTask()
+------------------------------------------------------------------------
+a8e44c0a1 | Norbert Eicker | Tue, 22 Feb 2022 19:56:04 +0100
+
+Streamlining
+------------------------------------------------------------------------
+4f91e3f9f | Norbert Eicker | Tue, 22 Feb 2022 19:46:26 +0100
+
+Utilize releaseChild() from releaseSignal()
+------------------------------------------------------------------------
+a3090026a | Norbert Eicker | Tue, 22 Feb 2022 19:23:59 +0100
+
+Introduce releaseChild()
+------------------------------------------------------------------------
+a55e3459c | Norbert Eicker | Tue, 22 Feb 2022 18:57:27 +0100
+
+Streamlining
+------------------------------------------------------------------------
+6182747d4 | Norbert Eicker | Tue, 22 Feb 2022 15:57:27 +0100
+
+Improve detection of obsolete tasks sending signals
+------------------------------------------------------------------------
+050b944fa | Norbert Eicker | Tue, 22 Feb 2022 15:43:24 +0100
+
+Fix outdated docu comments
+------------------------------------------------------------------------
+639e8c888 | Norbert Eicker | Fri, 18 Feb 2022 22:36:19 +0100
+
+Add comment
+------------------------------------------------------------------------
+5542cbf3a | Norbert Eicker | Thu, 17 Feb 2022 23:32:20 +0100
+
+Prevent sending superfluous CHILDDEAD messages
+------------------------------------------------------------------------
+e4305d8ed | Norbert Eicker | Wed, 16 Feb 2022 01:01:54 +0100
+
+Booleanize PSID_sendSignal()
+------------------------------------------------------------------------
+b3d736080 | Norbert Eicker | Wed, 16 Feb 2022 00:38:14 +0100
+
+PSID_deleteSignal() became a synomym of PSID_removeSignal()
+------------------------------------------------------------------------
+69934333a | Norbert Eicker | Wed, 16 Feb 2022 00:30:48 +0100
+
+Simplify handling of signal-lists
+------------------------------------------------------------------------
+d394db3e6 | Norbert Eicker | Tue, 15 Feb 2022 23:39:27 +0100
+
+Move handling of signal-lists to PSsignal and make it public
+------------------------------------------------------------------------
+acc310db9 | Norbert Eicker | Tue, 15 Feb 2022 22:29:52 +0100
+
+Remove signals from siglist immediately in PSID_getSignalByID()
+------------------------------------------------------------------------
+6f1bcd3a1 | Norbert Eicker | Tue, 15 Feb 2022 21:56:33 +0100
+
+Booleanize declareNodeDead()
+------------------------------------------------------------------------
+685b22216 | Norbert Eicker | Tue, 15 Feb 2022 21:33:15 +0100
+
+Enhance documentation
+------------------------------------------------------------------------
+7339b07bc | Norbert Eicker | Mon, 14 Feb 2022 22:52:23 +0100
+
+Booleanize RDP_blockTimer()
+------------------------------------------------------------------------
+82047cd12 | Michael Rauh | Tue, 29 Mar 2022 15:13:22 +0200
+
+Improve psslurm error message
+------------------------------------------------------------------------
+d08f167a4 | Michael Rauh | Fri, 25 Mar 2022 11:13:39 +0100
+
+psslurm: register to slurmctld after health-check at startup phase
+is finished
+------------------------------------------------------------------------
+9a5d1a82b | Stephan Krempel | Mon, 28 Mar 2022 16:21:44 +0200
+
+psslurmgetbind: Don't use cpu map with map_cpu and mask_cpu
+------------------------------------------------------------------------
+455767264 | Norbert Eicker | Thu, 24 Mar 2022 14:53:41 +0100
+
+Get rid of now obsolete psidtimer.h
+------------------------------------------------------------------------
+c5e24f582 | Norbert Eicker | Thu, 24 Mar 2022 14:51:29 +0100
+
+Get rid of mytimersub()
+------------------------------------------------------------------------
+ac768ce8d | Norbert Eicker | Thu, 24 Mar 2022 14:48:23 +0100
+
+Rename StatusTimeout -> statusTimeout
+------------------------------------------------------------------------
+3a812eaa9 | Norbert Eicker | Thu, 24 Mar 2022 14:16:52 +0100
+
+Send message to pluginforwarder only if still connected
+------------------------------------------------------------------------
+2f8178557 | Norbert Eicker | Thu, 24 Mar 2022 14:15:24 +0100
+
+Give more hints on dropped message
+------------------------------------------------------------------------
+f16adc4fc | Michael Rauh | Sun, 20 Mar 2022 16:07:46 +0100
+
+Fix rank label output for pack jobs (jrt:13143)
+------------------------------------------------------------------------
+c526457be | Norbert Eicker | Mon, 21 Mar 2022 19:03:01 +0100
+
+Limit rpath's visibility (and adapt to pattern in psslurmenv.c)
+------------------------------------------------------------------------
+75fe45ee4 | Michael Rauh | Sun, 20 Mar 2022 12:39:34 +0100
+
+Use $PWD over current working directory provided in step if
+resovled both use to same directory
+------------------------------------------------------------------------
+95a7d15e6 | Norbert Eicker | Wed, 9 Mar 2022 23:46:11 +0100
+
+Describe communication between psid and pluginforwarder
+------------------------------------------------------------------------
+88c8d398f | Norbert Eicker | Wed, 9 Mar 2022 00:28:45 +0100
+
+IWYU fix
+------------------------------------------------------------------------
+2cb656dcb | Norbert Eicker | Wed, 9 Mar 2022 00:19:38 +0100
+
+Booleanize pluginforwarder's message handlers
+------------------------------------------------------------------------
+e07dfebd4 | Norbert Eicker | Tue, 8 Mar 2022 23:33:23 +0100
+
+Actually pass type beyond PLGN_TYPE_LAST to handlers
+------------------------------------------------------------------------
+c93306779 | Norbert Eicker | Tue, 8 Mar 2022 23:18:46 +0100
+
+You must not use PSP_PLUG_PSSLURM to send to pluginforwarder
+------------------------------------------------------------------------
+c618b0c69 | Norbert Eicker | Tue, 8 Mar 2022 01:00:45 +0100
+
+Use own message type in between psid and pluginforwarder
+------------------------------------------------------------------------
+37a74e790 | Norbert Eicker | Tue, 8 Mar 2022 00:31:33 +0100
+
+Make pelogue's type interface more stringent
+------------------------------------------------------------------------
+d5cd56b92 | Norbert Eicker | Mon, 7 Mar 2022 23:19:17 +0100
+
+IWYU fixes
+------------------------------------------------------------------------
+26aaba673 | Norbert Eicker | Wed, 2 Mar 2022 12:19:41 +0100
+
+Avoid use of PSLog in between psid and pluginforwarders
+------------------------------------------------------------------------
+5fcd6ebe0 | Stephan Krempel | Mon, 7 Mar 2022 14:46:42 +0100
+
+psslurmgetbind: Cosmetic fix of memory mask length in output
+------------------------------------------------------------------------
+fb0fdb168 | Norbert Eicker | Wed, 2 Mar 2022 12:16:45 +0100
+
+More useless checks around free() removed
+------------------------------------------------------------------------
+
+
 Version psmgmt-5.1.47-2:
 ========================
 ------------------------------------------------------------------------
