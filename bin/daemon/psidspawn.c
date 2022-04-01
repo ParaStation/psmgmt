@@ -36,6 +36,7 @@
 
 #include "pscio.h"
 #include "pscommon.h"
+#include "pscpu.h"
 #include "psprotocolenv.h"
 #include "psdaemonprotocol.h"
 #include "pspartition.h"

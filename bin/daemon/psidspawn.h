@@ -20,7 +20,6 @@
 #include <stdint.h>
 
 #include "list.h"
-#include "pscpu.h"
 #include "psnodes.h"
 #include "psreservation.h"
 #include "pstask.h"

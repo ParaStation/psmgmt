@@ -14,7 +14,6 @@
 #ifndef __PSSIGNAL_H
 #define __PSSIGNAL_H
 
-#include <stdbool.h>
 #include <stdint.h>
 
 #include "list_t.h"
