@@ -671,7 +671,7 @@ static bool startServer(PspmixServer_t *server)
     char fname[300];
     snprintf(fname, sizeof(fname), "pspmix-server:%d", server->uid);
     char id[16];
-    snprintf(id, sizeof(fname), "uid:%d", server->uid);
+    snprintf(id, sizeof(id), "uid:%d", server->uid);
 
 
     fwdata->pTitle = ustrdup(fname);
