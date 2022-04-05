@@ -65,7 +65,7 @@ typedef struct {
     PStask_ID_t loggertid;   /**< logger's tid, unique PMIx session identifier */
     PspmixServer_t *server;  /**< refence to PMIx server handling the job */
     list_t jobs;             /**< job involving this node in the session,
-			          entries are of type PspmixJob_t
+				  entries are of type PspmixJob_t
 				  (only used in PMIx server, not in daemon) */
     bool usePMIx;            /**< flag if PMIx is actively used by this job */
     bool remove;             /**< flag if this session is to be removed */
@@ -88,7 +88,7 @@ typedef struct {
     PStask_ID_t spawnertid;  /**< spawner's tid (psid resSet identifier) */
     PspmixSession_t *session;/**< refence to PMIx session the job is part of */
     list_t resInfos;         /**< job's reservations involving this node,
-			          entries are of type PSresinfo_t
+				  entries are of type PSresinfo_t
 				  (only used in PMIx server, not in daemon) */
     env_t env;               /**< environment of the spawn creating this job
 				  (only used in PMIx server, not in daemon) */
@@ -102,7 +102,7 @@ typedef struct {
 typedef struct {
     uid_t uid;               /**< user ID to select the PMIx server */
     PStask_ID_t spawnertid;  /**< task ID of the spawner used as PMIx job ID
-			          (only used for PSPMIX_CLIENT_* types) */
+				  (only used for PSPMIX_CLIENT_* types) */
 } PspmixMsgExtra_t;
 
 /**
@@ -185,7 +185,7 @@ typedef struct {
     gid_t gid;                 /**< group id */
     PSrsrvtn_ID_t resID;       /**< reservation ID */
     PspmixNamespace_t *nspace; /**< namespace of the client */
-    PStask_ID_t fwtid;	       /**< TID of the clients forwarder */
+    PStask_ID_t fwtid;	       /**< TID of the client's forwarder */
     void *notifiedFwCb;        /**< callback object for forwarder notification
 				    about init/finalize */
 } PspmixClient_t;
@@ -229,7 +229,7 @@ FIND_IN_LIST_FUNC(Node, PspmixNode_t, PSnodes_ID_t, id)
 /* generates findSessionInList(PStask_ID_t loggertid, list_t *list) */
 FIND_IN_LIST_FUNC(Session, PspmixSession_t, PStask_ID_t, loggertid)
 
-/* generates findJobInList(PStask_ID_t spwanertid, list_t *list) */
+/* generates findJobInList(PStask_ID_t spawnertid, list_t *list) */
 FIND_IN_LIST_FUNC(Job, PspmixJob_t, PStask_ID_t, spawnertid)
 
 /* generates findReservationInList(PSrsrvtn_ID_t resID, list_t *list) */
