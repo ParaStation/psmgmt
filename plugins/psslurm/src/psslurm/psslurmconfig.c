@@ -505,6 +505,8 @@ static bool setMyHostDef(char *hosts, char *hostopt, char *nodeAddr, int gres)
  */
 static char *findNodeAddr(char *hostopt)
 {
+    if (!hostopt) return NULL;
+
     const char delimiters[] =" \t\n";
     char *toksave, *next, *nodeAddr = NULL, *res = NULL;
     char *options = ustrdup(hostopt);
@@ -643,6 +645,8 @@ static bool saveCtldHost(char *confVal)
 
 static void parseSlurmdParam(char *param)
 {
+    if (!param) return;
+
     char *toksave, *next;
     const char delimiters[] =" \t\n";
 
@@ -802,6 +806,12 @@ ERROR:
 bool parseSlurmPlugLine(char *key, char *value, const void *info)
 {
     const char delimiters[] =" \t\n";
+
+    if (!key) {
+	flog("no key provided\n");
+	return true; /* an error occurred, return true to stop parsing */
+    }
+
     char *toksave;
     Spank_Plugin_t *def = umalloc(sizeof(*def));
 
@@ -853,7 +863,7 @@ bool parseSlurmPlugLine(char *key, char *value, const void *info)
     strvInit(&def->argV, NULL, 0);
 
     char *arg1 = strtok_r(NULL, delimiters, &toksave);
-    if (arg1) {
+    if (arg1 && value) {
 	char tmp[1024];
 	char *val1 = strtok_r(value, delimiters, &toksave);
 	snprintf(tmp, sizeof(tmp), "%s=%s", arg1, val1);
