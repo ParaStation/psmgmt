@@ -74,6 +74,7 @@ void __pspmix_printServer(PspmixServer_t *server, bool sessions,
 
 void pspmix_deleteJob(PspmixJob_t *job)
 {
+    if (!job) return;
     mdbg(PSPMIX_LOG_CALL, "%s(spawner %s) called\n", __func__,
 	 PSC_printTID(job->spawnertid));
 
@@ -94,6 +95,7 @@ void pspmix_deleteJob(PspmixJob_t *job)
 void __pspmix_deleteSession(PspmixSession_t *session, bool warn,
 			  const char *caller, const int line)
 {
+    if (!session) return;
     mdbg(PSPMIX_LOG_CALL, "%s(logger %s) called\n", __func__,
 	 PSC_printTID(session->loggertid));
 
