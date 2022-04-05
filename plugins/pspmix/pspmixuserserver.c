@@ -17,9 +17,8 @@
 #include <stdio.h>
 
 #include "list.h"
-#include "pstask.h"
+#include "pscommon.h"
 
-#include "psidspawn.h"
 #include "pluginmalloc.h"
 
 #include "pspmixlog.h"

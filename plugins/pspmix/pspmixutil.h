@@ -7,9 +7,10 @@
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-
 #ifndef __PS_PMIX_UTIL
 #define __PS_PMIX_UTIL
+
+#include <stdbool.h>
 
 #include "pspmixtypes.h"
 

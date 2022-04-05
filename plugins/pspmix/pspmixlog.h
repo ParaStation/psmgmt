@@ -16,8 +16,9 @@
 #include <pthread.h>
 
 #include "logging.h"
+#include "pstask.h"
 
-#include "psidforwarder.h"
+#include "psidforwarder.h"  // IWYU pragma: keep
 
 #include "pspmixtypes.h"
 

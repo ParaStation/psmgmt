@@ -12,24 +12,21 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <unistd.h>
 #include <string.h>
 #include <pthread.h>
 
+#include "list.h"
 #include "pscommon.h"
 #include "psenv.h"
-#include "psprotocol.h"
 #include "psreservation.h"
 
-#include "pluginconfig.h"
 #include "pluginmalloc.h"
 #include "pluginvector.h"
-#include "psidspawn.h"
+#include "psidsession.h"
 
 #include "pspmixcomm.h"
 #include "pspmixlog.h"
 #include "pspmixservicespawn.h"
-#include "pspmixconfig.h"
 #include "pspmixuserserver.h"
 
 #define MAX_NODE_ID 32768

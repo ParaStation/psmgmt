@@ -15,6 +15,9 @@
 #ifndef __PS_PMIX_USERSERVER
 #define __PS_PMIX_USERSERVER
 
+#include <stdbool.h>
+
+#include "pstask.h"
 #include "pluginforwarder.h"
 
 #include "pspmixtypes.h"

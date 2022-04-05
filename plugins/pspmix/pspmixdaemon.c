@@ -30,10 +30,11 @@
 
 #include "list.h"
 #include "pscommon.h"
+#include "psenv.h"
 #include "pspluginprotocol.h"
 #include "psprotocol.h"
+#include "psreservation.h"
 #include "psserial.h"
-#include "psenv.h"
 #include "timer.h"
 
 #include "pluginconfig.h"
@@ -819,7 +820,7 @@ static int hookRecvSpawnReq(void *data)
 	mdbg(PSPMIX_LOG_VERBOSE, "%s: new PMIx server started (uid %d server "
 	     "%s)\n", __func__, server->uid, PSC_printTID(server->fwdata->tid));
     } else {
-        /* there is already a server for the user running */
+	/* there is already a server for the user running */
 	mdbg(PSPMIX_LOG_VERBOSE, "%s: existing PMIx server found (uid %d"
 	     " server %s)\n", __func__, server->uid,
 	     PSC_printTID(server->fwdata->tid));

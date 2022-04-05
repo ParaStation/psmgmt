@@ -10,6 +10,7 @@
  */
 #include "pspmixlog.h"
 
+#include "pscommon.h"
 #include "pluginlog.h"
 
 logger_t *pmixlogger = NULL;
@@ -58,9 +59,9 @@ const char *pspmix_jobIDsStr(PStask_ID_t loggertid, PStask_ID_t spawnertid)
     int n = 0;
 
     n += snprintf(str, sizeof(str) - n, "logger %s",
-	          PSC_printTID(loggertid));
+		  PSC_printTID(loggertid));
     n += snprintf(str+n, sizeof(str) - n, " spawner %s",
-	          PSC_printTID(spawnertid));
+		  PSC_printTID(spawnertid));
 
     return str;
 }

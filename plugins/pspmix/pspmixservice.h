@@ -23,9 +23,9 @@
 
 #include <pmix_common.h>
 
-#include "list.h"
 #include "pstask.h"
 
+#include "pspmixlog.h"
 #include "pspmixserver.h"
 #include "pspmixtypes.h"
 

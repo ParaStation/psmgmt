@@ -7,10 +7,16 @@
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-
 #include "pspmixutil.h"
 
+#include <stdlib.h>
+
 #include "list.h"
+#include "pscommon.h"
+
+#include "psidsession.h"
+
+#include "pluginforwarder.h"
 #include "pluginmalloc.h"
 
 #include "pspmixlog.h"
