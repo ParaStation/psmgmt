@@ -80,13 +80,11 @@ void pspmix_deleteJob(PspmixJob_t *job)
 
     list_del(&job->next);
 
-    if (!list_empty(&job->resInfos)) {
-	list_t *pos, *r;
-	list_for_each_safe(pos, r, &job->resInfos) {
-	    PSresinfo_t *resInfo = list_entry(r, PSresinfo_t, next);
-	    list_del(&resInfo->next);
-	    free(resInfo);
-	}
+    list_t *r, *tmp;
+    list_for_each_safe(r, tmp, &job->resInfos) {
+	PSresinfo_t *resInfo = list_entry(r, PSresinfo_t, next);
+	list_del(&resInfo->next);
+	free(resInfo);
     }
 
     ufree(job);
@@ -101,15 +99,15 @@ void __pspmix_deleteSession(PspmixSession_t *session, bool warn,
 
     list_del(&session->next);
 
-    if (!list_empty(&session->jobs)) {
-	if (warn) mlog("%s(%s@%d): jobs list not empty (logger %s)\n", __func__,
-		       caller, line, PSC_printTID(session->loggertid));
+    if (!list_empty(&session->jobs) && warn) {
+	mlog("%s(%s@%d): jobs list not empty (logger %s)\n", __func__,
+	     caller, line, PSC_printTID(session->loggertid));
+    }
 
-	list_t *pos, *j;
-	list_for_each_safe(pos, j, &session->jobs) {
-	    PspmixJob_t *job = list_entry(j, PspmixJob_t, next);
-	    pspmix_deleteJob(job);
-	}
+    list_t *j, *tmp;
+    list_for_each_safe(j, tmp, &session->jobs) {
+	PspmixJob_t *job = list_entry(j, PspmixJob_t, next);
+	pspmix_deleteJob(job);
     }
 
     ufree(session);
@@ -122,18 +120,17 @@ void __pspmix_deleteServer(PspmixServer_t *server, bool warn,
 
     list_del(&server->next);
 
-    if (!list_empty(&server->sessions)) {
-	if (warn) mlog("%s(%s@%d): sessions list not empty (uid %s)\n",
-		       __func__, caller, line, PSC_printTID(server->uid));
+    if (!list_empty(&server->sessions) && warn) {
+	mlog("%s(%s@%d): sessions list not empty (uid %s)\n", __func__,
+	     caller, line, PSC_printTID(server->uid));
+    }
 
-	list_t *pos, *s;
-	list_for_each_safe(pos, s, &server->sessions) {
-	    PspmixSession_t *session = list_entry(s, PspmixSession_t, next);
-	    __pspmix_deleteSession(session, warn, caller, line);
-	}
+    list_t *s, *tmp;
+    list_for_each_safe(s, tmp, &server->sessions) {
+	PspmixSession_t *session = list_entry(s, PspmixSession_t, next);
+	__pspmix_deleteSession(session, warn, caller, line);
     }
 
     if (server->fwdata) server->fwdata->userData = NULL;
     free(server);
 }
-
