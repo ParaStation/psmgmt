@@ -750,6 +750,9 @@ static bool findSpankAbsPath(char *relPath, char *absPath, size_t lenPath)
     return false;
 }
 
+/* forward declaration */
+static bool parseSlurmPlugLine(char *key, char *value, const void *info);
+
 /**
  * @brief Handle an include statement of the Slurm plugstack.conf
  *
@@ -803,7 +806,17 @@ ERROR:
     return false;
 }
 
-bool parseSlurmPlugLine(char *key, char *value, const void *info)
+/**
+ * @brief Parse a Slurm plugstack configuration line
+ *
+ * @param key The key of the line to parse
+ *
+ * @param value The value of the line to parse
+ *
+ * @return Returns true on error to stop further parsing
+ * and false otherwise
+ */
+static bool parseSlurmPlugLine(char *key, char *value, const void *info)
 {
     const char delimiters[] =" \t\n";
 

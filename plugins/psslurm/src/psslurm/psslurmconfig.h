@@ -49,18 +49,6 @@ extern const ConfDef_t confDef[];
 int initPSSlurmConfig(char *filename);
 
 /**
- * @brief Parse a Slurm plugstack configuration line
- *
- * @param key The key of the line to parse
- *
- * @param value The value of the line to parse
- *
- * @return Returns true on error to stop further parsing
- * and false otherwise
- */
-bool parseSlurmPlugLine(char *key, char *value, const void *info);
-
-/**
  * @brief Parse Slurm configuration files
  *
  * @return Return true on success or false otherwise
