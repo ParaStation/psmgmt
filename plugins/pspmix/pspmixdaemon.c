@@ -322,13 +322,15 @@ static bool forwardPspmixFwMsg(DDTypedBufferMsg_t *msg, ForwarderData_t *fw)
 	    PspmixJob_t *job = findJobInServer(msg->header.sender,
 					       extra->spawnertid);
 	    if (job) {
-		if (!job->usePMIx) {
+		if (!job->used) {
 		    mlog("%s: job starts using PMIx (uid %d %s)\n", __func__,
 			 job->session->server->uid, pspmix_jobStr(job));
 		}
-		job->usePMIx = true;
-		job->session->usePMIx = true;
-		job->session->server->usePMIx = true;
+		job->used = true;
+		if (job->session) {
+		    job->session->used = true;
+		    if (job->session->server) job->session->server->used = true;
+		}
 	    }
 	}
     }
@@ -583,7 +585,7 @@ static void serverTerminated_cb(int32_t exit_status, Forwarder_Data_t *fw)
 		mlog("%s: terminating session (logger %s)"
 			" (KILL_JOB_ON_SERVERFAIL set)\n", __func__,
 			PSC_printTID(session->loggertid));
-		if (session->usePMIx) {
+		if (session->used) {
 		    terminateSession(session->loggertid);
 		} else {
 		    mdbg(PSPMIX_LOG_VERBOSE, "%s: session not using server"

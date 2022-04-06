@@ -43,7 +43,7 @@ typedef struct {
     Forwarder_Data_t *fwdata;/**< data of the plugin forwarder (PMIx server) */
     list_t sessions;         /**< list of sessions (of type PspmixSession_t)
 				  handled by this PMIx server */
-    bool usePMIx;            /**< flag if this server is actively used */
+    bool used;               /**< flag if this server is actively used */
     int timerId;             /**< ID of the kill timer or -1 */
 } PspmixServer_t;
 
@@ -67,7 +67,7 @@ typedef struct {
     list_t jobs;             /**< jobs involving this node in the session,
 				  entries are of type PspmixJob_t
 				  (only used in PMIx server, not in daemon) */
-    bool usePMIx;            /**< flag if PMIx is actively in this session */
+    bool used;               /**< flag if PMIx is actively in this session */
     bool remove;             /**< flag if this session is to be removed */
 } PspmixSession_t;
 
@@ -92,7 +92,7 @@ typedef struct {
 				  (only used in PMIx server, not in daemon) */
     env_t env;               /**< environment of the spawn creating this job
 				  (only used in PMIx server, not in daemon) */
-    bool usePMIx;            /**< flag if PMIx is actively used by this job */
+    bool used;               /**< flag if PMIx is actively used by this job */
     bool remove;             /**< flag if this job is to be removed */
 } PspmixJob_t;
 

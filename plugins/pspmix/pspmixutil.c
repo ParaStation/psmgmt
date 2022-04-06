@@ -33,16 +33,16 @@ static void printSessions(PspmixServer_t *server)
     list_t *s, *j, *r;
     list_for_each(s, &server->sessions) {
 	PspmixSession_t *session = list_entry(s, PspmixSession_t, next);
-	mlog("%s: Session: logger %s usePMIx %s remove %s\n", __func__,
+	mlog("%s: Session: logger %s used %s remove %s\n", __func__,
 	     PSC_printTID(session->loggertid),
-	     session->usePMIx ? "true" : "false",
+	     session->used ? "true" : "false",
 	     session->remove ? "true" : "false");
 	list_for_each(j, &session->jobs) {
 	    PspmixJob_t *job = list_entry(j, PspmixJob_t, next);
-	    mlog("%s:  - Job: spawner %s usePMIx %s remove %s\n",
+	    mlog("%s:  - Job: spawner %s used %s remove %s\n",
 		 __func__, PSC_printTID(job->spawnertid),
-		 session->usePMIx ? "true" : "false",
-		 session->remove ? "true" : "false");
+		 job->used ? "true" : "false",
+		 job->remove ? "true" : "false");
 	    list_for_each(r, &job->resInfos) {
 		PSresinfo_t *res = list_entry(r, PSresinfo_t, next);
 		mlog("%s:    - Reservation: resID %d nEntries %u entries [",
@@ -61,9 +61,9 @@ static void printSessions(PspmixServer_t *server)
 void __pspmix_printServer(PspmixServer_t *server, bool sessions,
 			  const char *caller, const int line)
 {
-    mlog("%s(%s:%d): Server: uid %d gid %d fwdata %p usePMIx %s timerId %d\n",
+    mlog("%s(%s:%d): Server: uid %d gid %d fwdata %p used %s timerId %d\n",
 	 __func__, caller, line, server->uid, server->gid, server->fwdata,
-	 server->usePMIx ? "true" : "false", server->timerId);
+	 server->used ? "true" : "false", server->timerId);
     if (server->fwdata) {
 	mlog("%s: Forwarder: pTitle %s jobID %s tid %s\n", __func__,
 		server->fwdata->pTitle, server->fwdata->jobID,
