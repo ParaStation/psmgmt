@@ -41,14 +41,14 @@ typedef struct {
     uid_t uid;               /**< User ID of the owner, used as server ID */
     gid_t gid;               /**< Group ID of the owner */
     Forwarder_Data_t *fwdata;/**< data of the plugin forwarder (PMIx server) */
-    list_t sessions;         /**< list of jobs handled by this PMIx server
-				  entries have type PspmixSession_t */
-    bool usePMIx;            /**< flag if PMIx is actively used by this job */
+    list_t sessions;         /**< list of sessions (of type PspmixSession_t)
+				  handled by this PMIx server */
+    bool usePMIx;            /**< flag if this server is actively used */
     int timerId;             /**< ID of the kill timer or -1 */
 } PspmixServer_t;
 
 /**
- * Type to manage session list in server objects
+ * Type to manage sessions in server objects
  *
  * PMIx standard 4.0:
  * > Session refers to a pool of resources with a unique identifier assigned
@@ -61,18 +61,18 @@ typedef struct {
  * Note: In pspmix, a session always belongs to only one user.
  */
 typedef struct {
-    list_t next;             /**< used to put into PspmixServer_t's jobs list */
-    PStask_ID_t loggertid;   /**< logger's tid, unique PMIx session identifier */
-    PspmixServer_t *server;  /**< refence to PMIx server handling the job */
-    list_t jobs;             /**< job involving this node in the session,
+    list_t next;             /**< used to put into PspmixServer_t's session list */
+    PStask_ID_t loggertid;   /**< logger's tid, unique PMIx session ID */
+    PspmixServer_t *server;  /**< reference to PMIx server handling the session */
+    list_t jobs;             /**< jobs involving this node in the session,
 				  entries are of type PspmixJob_t
 				  (only used in PMIx server, not in daemon) */
-    bool usePMIx;            /**< flag if PMIx is actively used by this job */
+    bool usePMIx;            /**< flag if PMIx is actively in this session */
     bool remove;             /**< flag if this session is to be removed */
 } PspmixSession_t;
 
 /**
- * Type to manage job list in session objects
+ * Type to manage jobs in session objects
  *
  * PMIx Standard 4.0:
  * > Job refers to a set of one or more applications executed as a single
@@ -84,9 +84,9 @@ typedef struct {
  * > parallel.
  */
 typedef struct {
-    list_t next;             /**< used to put into PspmixServer_t's jobs list */
-    PStask_ID_t spawnertid;  /**< spawner's tid (psid resSet identifier) */
-    PspmixSession_t *session;/**< refence to PMIx session the job is part of */
+    list_t next;             /**< used to put into PspmixSession_t's job list */
+    PStask_ID_t spawnertid;  /**< spawner's tid (psid resSet ID) */
+    PspmixSession_t *session;/**< reference to PMIx session hosting the job */
     list_t resInfos;         /**< job's reservations involving this node,
 				  entries are of type PSresinfo_t
 				  (only used in PMIx server, not in daemon) */
