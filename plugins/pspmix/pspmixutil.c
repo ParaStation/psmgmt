@@ -33,16 +33,12 @@ static void printSessions(PspmixServer_t *server)
     list_t *s, *j, *r;
     list_for_each(s, &server->sessions) {
 	PspmixSession_t *session = list_entry(s, PspmixSession_t, next);
-	mlog("%s: Session: logger %s used %s remove %s\n", __func__,
-	     PSC_printTID(session->loggertid),
-	     session->used ? "true" : "false",
-	     session->remove ? "true" : "false");
+	mlog("%s: Session: logger %s used %s\n", __func__,
+	     PSC_printTID(session->loggertid), session->used ? "true" : "false");
 	list_for_each(j, &session->jobs) {
 	    PspmixJob_t *job = list_entry(j, PspmixJob_t, next);
-	    mlog("%s:  - Job: spawner %s used %s remove %s\n",
-		 __func__, PSC_printTID(job->spawnertid),
-		 job->used ? "true" : "false",
-		 job->remove ? "true" : "false");
+	    mlog("%s:  - Job: spawner %s used %s\n", __func__,
+		 PSC_printTID(job->spawnertid), job->used ? "true" : "false");
 	    list_for_each(r, &job->resInfos) {
 		PSresinfo_t *res = list_entry(r, PSresinfo_t, next);
 		mlog("%s:    - Reservation: resID %d nEntries %u entries [",

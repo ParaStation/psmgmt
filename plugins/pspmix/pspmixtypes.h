@@ -68,7 +68,6 @@ typedef struct {
 				  entries are of type PspmixJob_t
 				  (only used in PMIx server, not in daemon) */
     bool used;               /**< flag if PMIx is actively in this session */
-    bool remove;             /**< flag if this session is to be removed */
 } PspmixSession_t;
 
 /**
@@ -93,7 +92,6 @@ typedef struct {
     env_t env;               /**< environment of the spawn creating this job
 				  (only used in PMIx server, not in daemon) */
     bool used;               /**< flag if PMIx is actively used by this job */
-    bool remove;             /**< flag if this job is to be removed */
 } PspmixJob_t;
 
 /**
