@@ -38,14 +38,13 @@ static PspmixJob_t * findJob(PStask_ID_t spawnertid)
 {
     if (!server) return NULL;
 
-    list_t *s, *j;
+    list_t *s;
     list_for_each(s, &server->sessions) {
 	PspmixSession_t *session = list_entry(s, PspmixSession_t, next);
+	list_t *j;
 	list_for_each(j, &session->jobs) {
 	    PspmixJob_t *job = list_entry(j, PspmixJob_t, next);
-	    if (job->spawnertid == spawnertid) {
-		return job;
-	    }
+	    if (job->spawnertid == spawnertid) return job;
 	}
     }
     return NULL;

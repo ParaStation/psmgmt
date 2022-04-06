@@ -86,13 +86,13 @@ static pthread_mutex_t modexRequestList_lock = PTHREAD_MUTEX_INITIALIZER;
 	mdbg(PSPMIX_LOG_LOCK, "%s: Requesting lock for "#var" ...\n", \
 		__func__); \
 	pthread_mutex_lock(&var ## _lock); \
-	mdbg(PSPMIX_LOG_LOCK, "%s: Lock for "#var" entered.\n", __func__); \
+	mdbg(PSPMIX_LOG_LOCK, "%s: Lock for "#var" entered\n", __func__); \
     } while(0)
 
 #define RELEASE_LOCK(var) \
     do { \
 	pthread_mutex_unlock(&var ## _lock); \
-	mdbg(PSPMIX_LOG_LOCK, "%s: Lock for "#var" released.\n", __func__); \
+	mdbg(PSPMIX_LOG_LOCK, "%s: Lock for "#var" released\n", __func__); \
     } while(0)
 
 /**
@@ -104,13 +104,10 @@ static pthread_mutex_t modexRequestList_lock = PTHREAD_MUTEX_INITIALIZER;
  */
 static PspmixNamespace_t* findNamespace(const char *nsname)
 {
-    PspmixNamespace_t *ns;
     list_t *n;
     list_for_each(n, &namespaceList) {
-	ns = list_entry(n, PspmixNamespace_t, next);
-	if (strncmp(ns->name, nsname, MAX_NSLEN) == 0) {
-	    return ns;
-	}
+	PspmixNamespace_t *ns = list_entry(n, PspmixNamespace_t, next);
+	if (!strncmp(ns->name, nsname, MAX_NSLEN)) return ns;
     }
     return NULL;
 }
@@ -124,13 +121,10 @@ static PspmixNamespace_t* findNamespace(const char *nsname)
  */
 static PspmixNamespace_t* findNamespaceByJobID(PStask_ID_t spawnertid)
 {
-    PspmixNamespace_t *ns;
     list_t *n;
     list_for_each(n, &namespaceList) {
-	ns = list_entry(n, PspmixNamespace_t, next);
-	if (ns->job->spawnertid == spawnertid) {
-	    return ns;
-	}
+	PspmixNamespace_t *ns = list_entry(n, PspmixNamespace_t, next);
+	if (ns->job->spawnertid == spawnertid) return ns;
     }
     return NULL;
 }
@@ -142,14 +136,12 @@ static PspmixNamespace_t* findNamespaceByJobID(PStask_ID_t spawnertid)
  *
  * @return Returns the fence or NULL if not in list
  */
-static PspmixFence_t* findFence(uint64_t fenceid) {
-    PspmixFence_t *fence;
+static PspmixFence_t* findFence(uint64_t fenceid)
+{
     list_t *f;
     list_for_each(f, &fenceList) {
-	fence = list_entry(f, PspmixFence_t, next);
-	if (fence->id == fenceid) {
-	    return fence;
-	}
+	PspmixFence_t *fence = list_entry(f, PspmixFence_t, next);
+	if (fence->id == fenceid) return fence;
     }
     return NULL;
 }
@@ -237,7 +229,7 @@ static void freeProcMap(list_t *map)
 
 bool pspmix_service_registerNamespace(PspmixJob_t *job)
 {
-    mdbg(PSPMIX_LOG_CALL, "%s() called.\n", __func__);
+    mdbg(PSPMIX_LOG_CALL, "%s() called\n", __func__);
 
     /* we are using the loggertid as session ID */
     uint32_t sessionId = job->session->loggertid;
@@ -336,7 +328,7 @@ bool pspmix_service_registerNamespace(PspmixJob_t *job)
 
 	PSresinfo_t *resInfo = findReservationInList(resID, &job->resInfos);
 	if (!resInfo) {
-	    ulog("reservation %d for app %zu not found.\n", resID, app);
+	    ulog("reservation %d for app %zu not found\n", resID, app);
 	    goto nscreate_error;
 	}
 
@@ -452,7 +444,7 @@ static PSnodes_ID_t getNodeFromRank(int32_t rank, PspmixNamespace_t *ns)
 	}
     }
 
-    ulog("rank %d not found in any reservation of namespace '%s'.\n", rank,
+    ulog("rank %d not found in any reservation of namespace '%s'\n", rank,
 	 ns->name);
     return -2;
 
@@ -506,7 +498,7 @@ bool pspmix_service_registerClientAndSendEnv(PStask_ID_t loggertid,
     /* get environment from PMIx server */
     if (!pspmix_server_setupFork(nsname, client->rank, &envp)) {
 	ulog("r%d: failed to setup the environment at the pspmix server\n",
-		client->rank);
+	     client->rank);
 	return false;
     }
 
@@ -530,8 +522,8 @@ bool pspmix_service_registerClientAndSendEnv(PStask_ID_t loggertid,
     PSresinfo_t *resInfo = findReservationInList(client->resID,
 	    &client->nspace->job->resInfos);
     if (!resInfo) {
-	ulog("r%d: client's reservation %d not found in client's namespace"
-		" %s\n", client->rank, client->resID, client->nspace->name);
+	ulog("r%d: reservation %d not found in client's namespace %s\n",
+	     client->rank, client->resID, client->nspace->name);
 	return false;
 
     }
@@ -579,7 +571,7 @@ bool pspmix_service_finalize(void)
     ulog("called\n");
 
     if (!pspmix_server_finalize()) {
-	elog("%s: Failed to finalize pmix server.\n", __func__);
+	elog("%s: Failed to finalize pmix server\n", __func__);
 	return false;
     }
 
@@ -779,7 +771,7 @@ void checkFence(PspmixFence_t *fence) {
 	     * the tid of our precursor from fence in round
 	     * remote data blob received already contains our own data */
 	    mdbg(PSPMIX_LOG_FENCE, "%s: Starting fence_out daisy chain for"
-		    " fence id 0x%04lX with %lu nodes.\n", __func__, fence->id,
+		    " fence id 0x%04lX with %lu nodes\n", __func__, fence->id,
 		    fence->nnodes);
 
 	    pspmix_comm_sendFenceOut(fence->precursor, fence->id, fence->rdata,
@@ -802,7 +794,7 @@ void checkFence(PspmixFence_t *fence) {
 
 	    /* send fence_in to next in chain */
 	    mdbg(PSPMIX_LOG_FENCE, "%s: Adding my data and forwarding fence_in"
-		    " for fence id 0x%04lX with %lu nodes to node %hd.\n",
+		    " for fence id 0x%04lX with %lu nodes to node %hd\n",
 		    __func__, fence->id, fence->nnodes, fence->nodes[i]);
 
 	    pspmix_comm_sendFenceIn(fence->nodes[i], fence->id,
@@ -839,7 +831,7 @@ int pspmix_service_fenceIn(const pmix_proc_t procs[], size_t nprocs,
 {
 
     if (nprocs == 0) {
-	ulog("ERROR: nprocs == 0.\n");
+	ulog("ERROR: nprocs == 0\n");
 	return -1;
     }
 
@@ -883,7 +875,7 @@ int pspmix_service_fenceIn(const pmix_proc_t procs[], size_t nprocs,
 	PSnodes_ID_t nodeid;
 	nodeid = getNodeFromRank(procs[i].rank, ns);
 	if (nodeid < 0) {
-	    ulog("failed to get node for rank %d in namespace '%s'.\n",
+	    ulog("failed to get node for rank %d in namespace '%s'\n",
 		 procs[i].rank, procs[i].nspace);
 	    vectorDestroy(&nodes);
 	    RELEASE_LOCK(namespaceList);
@@ -899,7 +891,7 @@ int pspmix_service_fenceIn(const pmix_proc_t procs[], size_t nprocs,
     RELEASE_LOCK(namespaceList);
 
     if (nodes.len == 0) {
-	ulog("UNEXPECTED: no node in list of participating nodes.\n");
+	ulog("UNEXPECTED: no node in list of participating nodes\n");
 	vectorDestroy(&nodes);
 	return -1;
     }
@@ -908,7 +900,7 @@ int pspmix_service_fenceIn(const pmix_proc_t procs[], size_t nprocs,
     myNodeID = PSC_getMyID();
     if (!vectorContains(&nodes, &myNodeID)) {
 	ulog("UNEXPECTED: This node is not in list of participating nodes"
-	     " (length = %lu).\n", nodes.len);
+	     " (length = %lu)\n", nodes.len);
 	vectorDestroy(&nodes);
 	return -1;
     }
@@ -919,8 +911,8 @@ int pspmix_service_fenceIn(const pmix_proc_t procs[], size_t nprocs,
 	memcpy(mdata->data, data, ndata);
 	mdata->ndata = ndata;
 
-	mdbg(PSPMIX_LOG_FENCE, "%s: This is the only node participating in"
-		" this fence.\n", __func__);
+	mdbg(PSPMIX_LOG_FENCE, "%s: Just this node participating in fence\n",
+	     __func__);
 	vectorDestroy(&nodes);
 	return 1;
     }
@@ -1053,27 +1045,27 @@ void pspmix_service_handleFenceOut(uint64_t fenceid, void *data, size_t len)
     fence = findFence(fenceid);
 
     if (fence == NULL) {
-	ulog("UNEXPECTED: no fence with id 0x%04lX found.\n", fenceid);
+	ulog("UNEXPECTED: no fence with id 0x%04lX found\n", fenceid);
 	RELEASE_LOCK(fenceList);
 	return;
     }
 
     if (fence->nodes == NULL) {
-	ulog("UNEXPECTED: first fence with id 0x%04lX has nodes not set.\n",
+	ulog("UNEXPECTED: first fence with id 0x%04lX has nodes not set\n",
 	     fenceid);
 	RELEASE_LOCK(fenceList);
 	return;
     }
 
     if (!fence->receivedIn) {
-	ulog("UNEXPECTED: first fence with id 0x%04lX has receivedIn not"
-	     " set.\n", fenceid);
+	ulog("UNEXPECTED: first fence (id 0x%04lX) has receivedIn not set\n",
+	     fenceid);
 	RELEASE_LOCK(fenceList);
 	return;
     }
 
     mdbg(PSPMIX_LOG_FENCE, "%s: matching fence object found for fence id"
-	    " 0x%04lX\n", __func__, fenceid);
+	 " 0x%04lX\n", __func__, fenceid);
 
     /* remove fence from list */
     list_del(&fence->next);
@@ -1083,13 +1075,13 @@ void pspmix_service_handleFenceOut(uint64_t fenceid, void *data, size_t len)
     if (!fence->started) {
 	/* we are not the last one of the chain */
 	mdbg(PSPMIX_LOG_FENCE, "%s: Forwarding fence_out for fence id 0x%04lX"
-	     " with %lu nodes to node %d.\n", __func__, fence->id,
+	     " with %lu nodes to node %d\n", __func__, fence->id,
 	     fence->nnodes, fence->precursor);
 	pspmix_comm_sendFenceOut(fence->precursor, fence->id, data, len);
     }
     else {
 	mdbg(PSPMIX_LOG_FENCE, "%s: Fence out daisy chain for fence id 0x%04lX"
-		" with %lu nodes completed.\n", __func__, fence->id,
+		" with %lu nodes completed\n", __func__, fence->id,
 		fence->nnodes);
     }
 
@@ -1112,7 +1104,7 @@ bool pspmix_service_sendModexDataRequest(modexdata_t *mdata)
     PspmixNamespace_t *ns;
     ns = findNamespace(mdata->proc.nspace);
     if (ns == NULL) {
-	ulog("namespace '%s' not found.\n", mdata->proc.nspace);
+	ulog("namespace '%s' not found\n", mdata->proc.nspace);
 	RELEASE_LOCK(namespaceList);
 	return false;
     }
@@ -1120,7 +1112,7 @@ bool pspmix_service_sendModexDataRequest(modexdata_t *mdata)
     PSnodes_ID_t nodeid;
     nodeid = getNodeFromRank(mdata->proc.rank, ns);
     if (nodeid < 0) {
-	ulog("UNEXPECTED: getNodeFromRank(%d, %s) failed.\n", mdata->proc.rank,
+	ulog("UNEXPECTED: getNodeFromRank(%d, %s) failed\n", mdata->proc.rank,
 	    ns->name);
 	RELEASE_LOCK(namespaceList);
 	return false;
@@ -1135,7 +1127,7 @@ bool pspmix_service_sendModexDataRequest(modexdata_t *mdata)
     GET_LOCK(modexRequestList);
 
     if (!pspmix_comm_sendModexDataRequest(nodeid, &mdata->proc)) {
-	ulog("failed to send modex data request for %s:%d to node %hd.\n",
+	ulog("send failed for %s:%d to node %hd\n",
 		mdata->proc.nspace, mdata->proc.rank, nodeid);
 	RELEASE_LOCK(modexRequestList);
 	return false;
@@ -1161,7 +1153,7 @@ void pspmix_service_handleModexDataRequest(PStask_ID_t senderTID,
 
     /* hands over ownership of mdata */
     if (!pspmix_server_requestModexData(mdata)) {
-	ulog("pspmix_server_requestModexData() failed for %s:%d.\n",
+	ulog("pspmix_server_requestModexData() failed for %s:%d\n",
 	     proc->nspace, proc->rank);
 	ufree(mdata);
     }
@@ -1171,9 +1163,7 @@ void pspmix_service_sendModexDataResponse(bool status, modexdata_t *mdata)
 {
     mdbg(PSPMIX_LOG_CALL, "%s() called with status %d\n", __func__, status);
 
-    if (!status) {
-	ulog("pspmix_server_sendModexDataResponse() failed.\n");
-    }
+    if (!status) ulog(" failed\n");
 
 #if DEBUG_MODEX_DATA
     ulog("Sending data: ");
@@ -1211,8 +1201,8 @@ void pspmix_service_handleModexDataResponse(bool success, pmix_proc_t *proc,
     RELEASE_LOCK(modexRequestList);
 
     if (mdata == NULL) {
-	ulog("no modex data request found for modex data response resceived"
-	     " (rank %d namespace %s). Ignoring!\n", proc->rank, proc->nspace);
+	ulog("no request for response (rank %d namespace %s). Ignoring!\n",
+	     proc->rank, proc->nspace);
 	return;
     }
 

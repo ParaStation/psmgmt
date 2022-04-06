@@ -1103,14 +1103,12 @@ bool pspmix_server_init(uint32_t uid, uint32_t gid)
 	    gid);
 
     /* print some interesting environment variables if set */
-    size_t i = 0;
-    while (environ[i]) {
-	if (strncmp (environ[i], "PMIX_DEBUG", 10) == 0
-		|| strncmp (environ[i], "PMIX_OUTPUT", 11) == 0
-		|| strncmp (environ[i], "PMIX_MCA_", 9) == 0) {
+    for (size_t i = 0; environ[i]; i++) {
+	if (!strncmp(environ[i], "PMIX_DEBUG", 10)
+	    || !strncmp (environ[i], "PMIX_OUTPUT", 11)
+	    || !strncmp (environ[i], "PMIX_MCA_", 9)) {
 	    mlog("%s: %s set\n", __func__, environ[i]);
 	}
-	++i;
     }
 
     mycbdata_t cbdata;
