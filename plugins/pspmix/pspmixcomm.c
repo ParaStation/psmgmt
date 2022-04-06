@@ -16,7 +16,6 @@
 
 #include <errno.h>
 #include <pthread.h>
-#include <unistd.h>
 
 #include "list.h"
 #include "psdaemonprotocol.h"
@@ -54,7 +53,7 @@ static PspmixMsgExtra_t extra;
 */
 static void handleAddJob(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
 {
-    mdbg(PSPMIX_LOG_CALL, "%s() called\n", __func__);
+    mdbg(PSPMIX_LOG_CALL, "%s()\n", __func__);
 
     char *ptr = data->buf;
 
@@ -104,7 +103,7 @@ static void handleAddJob(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
 */
 static void handleRemoveJob(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
 {
-    mdbg(PSPMIX_LOG_CALL, "%s() called\n", __func__);
+    mdbg(PSPMIX_LOG_CALL, "%s()\n", __func__);
 
     char *ptr = data->buf;
 
@@ -130,7 +129,7 @@ static void handleRegisterClient(DDTypedBufferMsg_t *msg)
 {
     size_t used = 0;
 
-    mdbg(PSPMIX_LOG_CALL, "%s() called\n", __func__);
+    mdbg(PSPMIX_LOG_CALL, "%s()\n", __func__);
 
     PStask_ID_t loggertid, spawnertid;
     PspmixClient_t *client;
@@ -166,9 +165,9 @@ static void handleRegisterClient(DDTypedBufferMsg_t *msg)
 * @param data The defragmented data received
 */
 static void handleClientNotifyResp(DDTypedBufferMsg_t *msg,
-	PS_DataBuffer_t *data)
+				   PS_DataBuffer_t *data)
 {
-    mdbg(PSPMIX_LOG_CALL, "%s() called\n", __func__);
+    mdbg(PSPMIX_LOG_CALL, "%s()\n", __func__);
 
     char *ptr = data->buf;
 
@@ -210,7 +209,7 @@ static void handleClientNotifyResp(DDTypedBufferMsg_t *msg,
 */
 static void handleFenceIn(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
 {
-    mdbg(PSPMIX_LOG_CALL, "%s() called\n", __func__);
+    mdbg(PSPMIX_LOG_CALL, "%s()\n", __func__);
 
     char *ptr = data->buf;
 
@@ -237,7 +236,7 @@ static void handleFenceIn(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
 */
 static void handleFenceOut(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
 {
-    mdbg(PSPMIX_LOG_CALL, "%s() called\n", __func__);
+    mdbg(PSPMIX_LOG_CALL, "%s()\n", __func__);
 
     char *ptr = data->buf;
 
@@ -263,7 +262,7 @@ static void handleFenceOut(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
 */
 static void handleModexDataReq(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
 {
-    mdbg(PSPMIX_LOG_CALL, "%s() called\n", __func__);
+    mdbg(PSPMIX_LOG_CALL, "%s()\n", __func__);
 
     char *ptr = data->buf;
 
@@ -291,7 +290,7 @@ static void handleModexDataReq(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
 */
 static void handleModexDataResp(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
 {
-    mdbg(PSPMIX_LOG_CALL, "%s() called\n", __func__);
+    mdbg(PSPMIX_LOG_CALL, "%s()\n", __func__);
 
     char *ptr = data->buf;
 
@@ -321,7 +320,7 @@ static void handleModexDataResp(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
 */
 static void handlePspmixMsg(DDTypedBufferMsg_t *msg)
 {
-    mdbg(PSPMIX_LOG_CALL, "%s() called\n", __func__);
+    mdbg(PSPMIX_LOG_CALL, "%s()\n", __func__);
 
     mdbg(PSPMIX_LOG_COMM, "%s: msg type: %s (0x%X) [%s", __func__,
 	 pspmix_getMsgTypeString(msg->type), msg->type,
@@ -377,7 +376,7 @@ static void handlePspmixMsg(DDTypedBufferMsg_t *msg)
  */
 static bool handleMsg(DDTypedBufferMsg_t *msg)
 {
-    mdbg(PSPMIX_LOG_CALL, "%s() called\n", __func__);
+    mdbg(PSPMIX_LOG_CALL, "%s()\n", __func__);
 
     switch(msg->header.type) {
     case PSP_PLUG_PSPMIX:
@@ -396,7 +395,7 @@ static bool handleMsg(DDTypedBufferMsg_t *msg)
 
 bool pspmix_comm_handleMthrMsg(DDTypedBufferMsg_t *msg, ForwarderData_t *fw)
 {
-    mdbg(PSPMIX_LOG_CALL, "%s() called\n", __func__);
+    mdbg(PSPMIX_LOG_CALL, "%s()\n", __func__);
     return handleMsg(msg);
 }
 
@@ -420,7 +419,7 @@ static pthread_mutex_t send_lock = PTHREAD_MUTEX_INITIALIZER;
  */
 static ssize_t sendMsgToDaemon(DDTypedBufferMsg_t *msg)
 {
-    mdbg(PSPMIX_LOG_CALL, "%s() called\n", __func__);
+    mdbg(PSPMIX_LOG_CALL, "%s()\n", __func__);
 
     if (msg->header.dest == PSC_getMyTID()) {
 	/* message is for myself, directly handle it */
@@ -432,14 +431,14 @@ static ssize_t sendMsgToDaemon(DDTypedBufferMsg_t *msg)
     }
 
     /* message is for someone else, forward to my daemon */
-    mdbg(PSPMIX_LOG_COMM, "%s: Forwarding message for %s to my daemon\n",
-	    __func__, PSC_printTID(msg->header.dest));
+    mdbg(PSPMIX_LOG_COMM, "%s: forward for %s\n", __func__,
+	 PSC_printTID(msg->header.dest));
 
     int ret;
     ret = sendMsgToMother(msg);
     if (ret == -1 && errno != EWOULDBLOCK) {
-	mwarn(errno, "%s: sending msg to %s failed ", __func__,
-		PSC_printTID(msg->header.dest));
+	mwarn(errno, "%s(%s type %d) failed\n", __func__,
+	      PSC_printTID(msg->header.dest), msg->type);
     }
     return ret;
 }
@@ -447,8 +446,7 @@ static ssize_t sendMsgToDaemon(DDTypedBufferMsg_t *msg)
 
 bool pspmix_comm_sendClientPMIxEnvironment(PStask_ID_t targetTID, env_t *env)
 {
-    mdbg(PSPMIX_LOG_CALL, "%s() called (targetTID %s)\n", __func__,
-	 PSC_printTID(targetTID));
+    mdbg(PSPMIX_LOG_CALL, "%s(%s)\n", __func__, PSC_printTID(targetTID));
 
     PS_SendDB_t msg;
     pthread_mutex_lock(&send_lock);
@@ -474,11 +472,9 @@ bool pspmix_comm_sendClientPMIxEnvironment(PStask_ID_t targetTID, env_t *env)
 bool pspmix_comm_sendFenceIn(PSnodes_ID_t target /* remote psid */,
 			     uint64_t fenceid, char *data, size_t ndata)
 {
-    mdbg(PSPMIX_LOG_CALL, "%s() called (target %hd uid %d fenceid 0x%04lX"
-	 " ndata %lu)\n", __func__, target, extra.uid, fenceid, ndata);
-
-    mdbg(PSPMIX_LOG_COMM, "%s: Sending fence_in to node %hd (fenceid 0x%04lX"
-	    " ndata %lu)\n", __func__, target, fenceid, ndata);
+    mdbg(PSPMIX_LOG_CALL|PSPMIX_LOG_COMM,
+	 "%s(target %hd uid %d fenceid 0x%04lX ndata %lu)\n", __func__,
+	 target, extra.uid, fenceid, ndata);
 
     PS_SendDB_t msg;
     pthread_mutex_lock(&send_lock);
@@ -491,8 +487,8 @@ bool pspmix_comm_sendFenceIn(PSnodes_ID_t target /* remote psid */,
     int ret = sendFragMsg(&msg);
     pthread_mutex_unlock(&send_lock);
     if (ret < 0) {
-	mlog("%s: Sending (fenceid 0x%04lX ndata %lu) to node %hd failed\n",
-	     __func__, fenceid, ndata, target);
+	mlog("%s(target %hd fenceid 0x%04lX ndata %lu) failed\n",
+	     __func__, target, fenceid, ndata);
 	return false;
     }
     return true;
@@ -501,11 +497,9 @@ bool pspmix_comm_sendFenceIn(PSnodes_ID_t target /* remote psid */,
 bool pspmix_comm_sendFenceOut(PStask_ID_t targetTID /* remote PMIx server */,
 			      uint64_t fenceid, char *data, size_t ndata)
 {
-    mdbg(PSPMIX_LOG_CALL, "%s() called (target %s fenceid 0x%04lX ndata %lu)\n",
-	 __func__, PSC_printTID(targetTID), fenceid, ndata);
-
-    mdbg(PSPMIX_LOG_COMM, "%s: Sending fence_out to %s (fenceid 0x%04lX"
-	    " ndata %lu)\n", __func__, PSC_printTID(targetTID), fenceid, ndata);
+    mdbg(PSPMIX_LOG_CALL|PSPMIX_LOG_COMM,
+	 "%s(target %s fenceid 0x%04lX ndata %lu)\n", __func__,
+	 PSC_printTID(targetTID), fenceid, ndata);
 
     PS_SendDB_t msg;
     pthread_mutex_lock(&send_lock);
@@ -518,8 +512,8 @@ bool pspmix_comm_sendFenceOut(PStask_ID_t targetTID /* remote PMIx server */,
     int ret = sendFragMsg(&msg);
     pthread_mutex_unlock(&send_lock);
     if (ret < 0) {
-	mlog("%s: Sending (fenceid 0x%04lX ndata %lu) to %s failed\n",
-	     __func__, fenceid, ndata, PSC_printTID(targetTID));
+	mlog("%s(target %s fenceid 0x%04lX ndata %lu) failed\n",
+	     __func__, PSC_printTID(targetTID), fenceid, ndata);
 	return false;
     }
     return true;
@@ -528,11 +522,8 @@ bool pspmix_comm_sendFenceOut(PStask_ID_t targetTID /* remote PMIx server */,
 bool pspmix_comm_sendModexDataRequest(PSnodes_ID_t target /* remote psid */,
 				      pmix_proc_t *proc)
 {
-    mdbg(PSPMIX_LOG_CALL, "%s() called (target %s)\n", __func__,
-	 PSC_printTID(target));
-
-    mdbg(PSPMIX_LOG_COMM, "%s: Sending modex data request to rank %d"
-	    " (nspace %s)\n", __func__, proc->rank, proc->nspace);
+    mdbg(PSPMIX_LOG_CALL|PSPMIX_LOG_COMM, "%s(target %s rank %d (nspace %s))\n",
+	 __func__, PSC_printTID(target), proc->rank, proc->nspace);
 
     PS_SendDB_t msg;
     pthread_mutex_lock(&send_lock);
@@ -545,8 +536,8 @@ bool pspmix_comm_sendModexDataRequest(PSnodes_ID_t target /* remote psid */,
     int ret = sendFragMsg(&msg);
     pthread_mutex_unlock(&send_lock);
     if (ret < 0) {
-	mlog("%s: Sending (nspace %s) to rank %d failed\n", __func__,
-	     proc->nspace, proc->rank);
+	mlog("%s(target %s rank %d (nspace %s)) failed\n",
+	     __func__, PSC_printTID(target), proc->rank, proc->nspace);
 	return false;
     }
     return true;
@@ -557,13 +548,9 @@ bool pspmix_comm_sendModexDataResponse(PStask_ID_t targetTID
 				       bool status, pmix_proc_t *proc,
 				       void *data, size_t ndata)
 {
-    mdbg(PSPMIX_LOG_CALL, "%s() called (targetTID %s status %d nspace %s"
-	 " rank %u ndata %zu)\n", __func__, PSC_printTID(targetTID), status,
-	 proc->nspace, proc->rank, ndata);
-
-    mdbg(PSPMIX_LOG_COMM, "%s: Sending modex data response to rank %u"
-	    " (status %d nspace %s ndata %zu)\n", __func__, proc->rank, status,
-	    proc->nspace, ndata);
+    mdbg(PSPMIX_LOG_CALL|PSPMIX_LOG_COMM,
+	 "%s(targetTID %s status %d nspace %s rank %u ndata %zu)\n", __func__,
+	 PSC_printTID(targetTID), status, proc->nspace, proc->rank, ndata);
 
     PS_SendDB_t msg;
     pthread_mutex_lock(&send_lock);
@@ -578,8 +565,9 @@ bool pspmix_comm_sendModexDataResponse(PStask_ID_t targetTID
     int ret = sendFragMsg(&msg);
     pthread_mutex_unlock(&send_lock);
     if (ret < 0) {
-	mlog("%s: Sending (status %d nspace %s ndata %zu) to rank %u failed\n",
-	     __func__, status, proc->nspace, ndata, proc->rank);
+	mlog("%s(targetTID %s status %d nspace %s rank %u ndata %zu) failed\n",
+	     __func__, PSC_printTID(targetTID), status, proc->nspace,
+	     proc->rank, ndata);
 	return false;
     }
     return true;
@@ -600,8 +588,8 @@ static bool sendForwarderNotification(PStask_ID_t targetTID /* fw */,
     int ret = sendFragMsg(&msg);
     pthread_mutex_unlock(&send_lock);
     if (ret < 0) {
-	mlog("%s: Sending (rank %u nspace %s) to %s failed.\n", __func__,
-	     rank, nspace, PSC_printTID(targetTID));
+	mlog("%s(targetTID %s rank %u nspace %s) failed\n", __func__,
+	     PSC_printTID(targetTID), rank, nspace);
 	return false;
     }
     return true;
@@ -611,12 +599,10 @@ bool pspmix_comm_sendInitNotification(PStask_ID_t targetTID /* fw */,
 				      pmix_rank_t rank, const char *nspace,
 				      PStask_ID_t spawnertid)
 {
-    mdbg(PSPMIX_LOG_CALL, "%s() called (targetTID %s nspace %s rank %u",
+    mdbg(PSPMIX_LOG_CALL|PSPMIX_LOG_COMM, "%s(targetTID %s nspace %s rank %u",
 	 __func__, PSC_printTID(targetTID), nspace, rank);
-    mdbg(PSPMIX_LOG_CALL, " spawner %s)\n", PSC_printTID(spawnertid));
-
-    mdbg(PSPMIX_LOG_COMM, "%s: Sending client initialization notification"
-	 " for rank %u (nspace %s)\n", __func__, rank, nspace);
+    mdbg(PSPMIX_LOG_CALL|PSPMIX_LOG_COMM, " spawner %s)\n",
+	 PSC_printTID(spawnertid));
 
     extra.spawnertid = spawnertid;
 
@@ -628,12 +614,10 @@ bool pspmix_comm_sendFinalizeNotification(PStask_ID_t targetTID /* fw */,
 					  pmix_rank_t rank, const char *nspace,
 					  PStask_ID_t spawnertid)
 {
-    mdbg(PSPMIX_LOG_CALL, "%s() called (targetTID %s nspace %s rank %u",
+    mdbg(PSPMIX_LOG_CALL|PSPMIX_LOG_COMM, "%s(targetTID %s nspace %s rank %u",
 	 __func__, PSC_printTID(targetTID), nspace, rank);
-    mdbg(PSPMIX_LOG_CALL, " spawner %s)\n", PSC_printTID(spawnertid));
-
-    mdbg(PSPMIX_LOG_COMM, "%s: Sending client finalization notification"
-	 " for rank %u (nspace %s)\n", __func__, rank, nspace);
+    mdbg(PSPMIX_LOG_CALL|PSPMIX_LOG_COMM, " spawner %s)\n",
+	 PSC_printTID(spawnertid));
 
     extra.spawnertid = spawnertid;
 
@@ -643,23 +627,20 @@ bool pspmix_comm_sendFinalizeNotification(PStask_ID_t targetTID /* fw */,
 
 void pspmix_comm_sendSignal(PStask_ID_t targetTID, int signal)
 {
-    mdbg(PSPMIX_LOG_CALL, "%s() called (targetTID %s signal %d)\n", __func__,
-         PSC_printTID(targetTID), signal);
+    mdbg(PSPMIX_LOG_CALL|PSPMIX_LOG_COMM,
+	 "%s(targetTID %s signal %d uid %d)\n", __func__,
+	 PSC_printTID(targetTID), signal, extra.uid);
 
-    DDSignalMsg_t msg;
-
-    msg.header.type = PSP_CD_SIGNAL;
-    msg.header.sender = PSC_getMyTID();
-    msg.header.dest = targetTID;
-    msg.header.len = sizeof(msg);
-    msg.signal = signal;
-    msg.param = getuid();
-    msg.pervasive = 1;
-    msg.answer = 0;
-
-    mdbg(PSPMIX_LOG_COMM, "%s(uid %d): sending signal %d to %s\n", __func__,
-	 extra.uid, signal, PSC_printTID(targetTID));
-
+    DDSignalMsg_t msg = {
+	.header = {
+	    .type = PSP_CD_SIGNAL,
+	    .sender = PSC_getMyTID(),
+	    .dest = targetTID,
+	    .len = sizeof(msg) },
+	.signal = signal,
+	.param = extra.uid,
+	.pervasive = 1,
+	.answer = 0 };
     sendDaemonMsg((DDMsg_t *)&msg);
 }
 
@@ -669,7 +650,7 @@ void pspmix_comm_sendSignal(PStask_ID_t targetTID, int signal)
 
 bool pspmix_comm_init(uid_t uid)
 {
-    mdbg(PSPMIX_LOG_CALL, "%s() called (uid %d)\n", __func__, uid);
+    mdbg(PSPMIX_LOG_CALL, "%s(uid %d)\n", __func__, uid);
 
     extra.uid = uid;
     extra.spawnertid = -1;
@@ -682,7 +663,7 @@ bool pspmix_comm_init(uid_t uid)
 
 void pspmix_comm_finalize()
 {
-    mdbg(PSPMIX_LOG_CALL, "%s() called\n", __func__);
+    mdbg(PSPMIX_LOG_CALL, "%s()\n", __func__);
 
     finalizeSerial();
 }

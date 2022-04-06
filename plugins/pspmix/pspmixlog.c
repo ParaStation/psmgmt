@@ -53,15 +53,11 @@ const char *pspmix_jobStr(PspmixJob_t *job)
     return pspmix_jobIDsStr(job->session->loggertid, job->spawnertid);
 }
 
-const char *pspmix_jobIDsStr(PStask_ID_t loggertid, PStask_ID_t spawnertid)
+const char *pspmix_jobIDsStr(PStask_ID_t logTID, PStask_ID_t spawnTID)
 {
     static char str[64];
-    int n = 0;
-
-    n += snprintf(str, sizeof(str) - n, "logger %s",
-		  PSC_printTID(loggertid));
-    n += snprintf(str+n, sizeof(str) - n, " spawner %s",
-		  PSC_printTID(spawnertid));
+    int n = snprintf(str, sizeof(str), "logger %s", PSC_printTID(logTID));
+    n += snprintf(str+n, sizeof(str) - n, " spawner %s", PSC_printTID(spawnTID));
 
     return str;
 }
