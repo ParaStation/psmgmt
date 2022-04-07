@@ -406,6 +406,8 @@ void IO_finalize(Forwarder_Data_t *fwdata)
 
     /* close all sattach sockets */
     for (i=0; i<MAX_SATTACH_SOCKETS; i++) {
+	if (sattachSockets[i] == -1) continue;
+
 	if (Selector_isRegistered(sattachSockets[i])) {
 	    Selector_remove(sattachSockets[i]);
 	}
