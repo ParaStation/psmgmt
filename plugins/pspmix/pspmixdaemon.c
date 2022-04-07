@@ -119,9 +119,7 @@ static PspmixJob_t * findJob(PStask_ID_t spawnertid)
 	    PspmixSession_t *session = list_entry(t, PspmixSession_t, next);
 	    list_for_each(j, &session->jobs) {
 		PspmixJob_t *job = list_entry(j, PspmixJob_t, next);
-		if (job->spawnertid == spawnertid) {
-		    return job;
-		}
+		if (job->spawnertid == spawnertid) return job;
 	    }
 	}
     }
@@ -151,7 +149,7 @@ PStask_ID_t pspmix_daemon_getServerTID(uid_t uid)
  * @brief Find a PMIx job in a server object
  *
  * Finds the server by @a servertid and the PMIx job by spawner @a spawnertid
- * if it's jobs list.
+ * in its jobs list.
  *
  * @param servertid  TID of the PMIx server of the job
  * @param spawnertid  TID of the spawner requested the PMIx job
@@ -182,10 +180,8 @@ static PspmixJob_t * findJobInServer(PStask_ID_t servertid,
 	PspmixSession_t *pmixsession = list_entry(s, PspmixSession_t, next);
 	list_t *j;
 	list_for_each(j, &pmixsession->jobs) {
-	    PspmixJob_t *pmixjob = list_entry(j, PspmixJob_t, next);
-	    if (pmixjob->spawnertid == spawnertid) {
-		return pmixjob;
-	    }
+	    PspmixJob_t *job = list_entry(j, PspmixJob_t, next);
+	    if (job->spawnertid == spawnertid) return job;
 	}
     }
 
@@ -204,7 +200,7 @@ static PspmixJob_t * findJobInServer(PStask_ID_t servertid,
  * @brief Set the target of the message to the TID of the right PMIx server.
  *
  * This function looks into the message fragment header, reads the user ID
- * from there and find the right PMIx server for the user. It's TID is then set
+ * from there and find the right PMIx server for the user. Its TID is then set
  * as target for @a msg.
  *
  * @param msg    message fragment to manipulate
@@ -214,7 +210,7 @@ static PspmixJob_t * findJobInServer(PStask_ID_t servertid,
  */
 static bool setTargetToPmixServer(DDTypedBufferMsg_t *msg)
 {
-    mdbg(PSPMIX_LOG_CALL, "%s() called\n", __func__);
+    mdbg(PSPMIX_LOG_CALL, "%s()\n", __func__);
 
     size_t used = 0, eS;
     PspmixMsgExtra_t *extra;
@@ -226,7 +222,7 @@ static bool setTargetToPmixServer(DDTypedBufferMsg_t *msg)
 
     PspmixServer_t *server = findServer(extra->uid);
     if (!server) {
-	mlog("%s: UNEXPECTED: No PMIx server for uid %d found.\n", __func__,
+	mlog("%s: UNEXPECTED: No PMIx server for uid %d found\n", __func__,
 	     extra->uid);
 	return false;
     }
@@ -257,7 +253,7 @@ static bool setTargetToPmixServer(DDTypedBufferMsg_t *msg)
  */
 static bool forwardPspmixMsg(DDBufferMsg_t *vmsg)
 {
-    mdbg(PSPMIX_LOG_CALL, "%s() called\n", __func__);
+    mdbg(PSPMIX_LOG_CALL, "%s()\n", __func__);
 
     DDTypedBufferMsg_t *msg = (DDTypedBufferMsg_t *)vmsg;
 
@@ -277,8 +273,8 @@ static bool forwardPspmixMsg(DDBufferMsg_t *vmsg)
     case PSPMIX_FENCE_IN:
     case PSPMIX_MODEX_DATA_REQ:
 	if (!setTargetToPmixServer(msg)) {
-	    mlog("%s: setting target PMIx server failed (type"
-		    " PSPMIX_MODEX_DATA_REQ), dropping\n", __func__);
+	    mlog("%s: setting target PMIx server failed (type %s), dropping\n",
+		 __func__, pspmix_getMsgTypeString(msg->type));
 	    return false;
 	}
     }
@@ -295,11 +291,13 @@ static bool forwardPspmixMsg(DDBufferMsg_t *vmsg)
 /**
  * @brief Forward messages of type PSP_PLUG_PSPMIX in the main daemon.
  *
- * This function is used to forward messages coming from the local PMIx server
- * in the daemon.
+ * This function is used to forward messages received from the local
+ * PMIx server in the daemon.
  *
- * As a side effect, this function is setting server's used flag as soon
- * as the first PSPMIX_CLIENT_INIT message is send by a PMIx server.
+ * As a side effect, this function is setting both, the server's, the
+ * session's and the job's @ref used flag as soon as the first
+ * PSPMIX_CLIENT_INIT message is send by a PMIx server concerning a
+ * job.
  *
  * @param msg    message received
  * @param fw     the plugin forwarder hosting the PMIx user server
@@ -308,7 +306,7 @@ static bool forwardPspmixMsg(DDBufferMsg_t *vmsg)
  */
 static bool forwardPspmixFwMsg(DDTypedBufferMsg_t *msg, ForwarderData_t *fw)
 {
-    mdbg(PSPMIX_LOG_CALL, "%s() called\n", __func__);
+    mdbg(PSPMIX_LOG_CALL, "%s()\n", __func__);
 
     if (msg->header.type != PSP_PLUG_PSPMIX) return false;
     if (msg->type == PSPMIX_CLIENT_INIT) {
@@ -317,7 +315,7 @@ static bool forwardPspmixFwMsg(DDTypedBufferMsg_t *msg, ForwarderData_t *fw)
 	if (!fetchFragHeader(msg, &used, NULL, NULL, (void **)&extra, &eS)
 	    || eS != sizeof(*extra)) {
 	    mlog("%s: UNEXPECTED: Fetching header information failed, cannot"
-		    " mark job as using PMIx.\n", __func__);
+		    " mark job as using PMIx\n", __func__);
 	} else {
 	    PspmixJob_t *job = findJobInServer(msg->header.sender,
 					       extra->spawnertid);
@@ -351,11 +349,11 @@ static bool forwardPspmixFwMsg(DDTypedBufferMsg_t *msg, ForwarderData_t *fw)
  *
  * @returns True on success or if job already known to server, false on error
  */
-bool sendAddJob(PspmixServer_t *server, PStask_ID_t loggertid,
-		PStask_ID_t spawnertid, list_t *resInfos,
-		char **environ, uint32_t envSize)
+static bool sendAddJob(PspmixServer_t *server, PStask_ID_t loggertid,
+		       PStask_ID_t spawnertid, list_t *resInfos,
+		       char **environ, uint32_t envSize)
 {
-    mdbg(PSPMIX_LOG_CALL, "%s(uid %d spawner %s) called\n", __func__,
+    mdbg(PSPMIX_LOG_CALL, "%s(uid %d spawner %s)\n", __func__,
 	 server->uid, PSC_printTID(spawnertid));
 
     if (!server->fwdata) {
@@ -396,9 +394,9 @@ bool sendAddJob(PspmixServer_t *server, PStask_ID_t loggertid,
     mdbg(PSPMIX_LOG_COMM, " (spawner %s)\n", PSC_printTID(spawnertid));
 
     if (sendFragMsg(&msg) < 0) {
-	mlog("%s: sending reservation infos failed (uid %d spawner %s",
-	     __func__, server->uid, PSC_printTID(spawnertid));
-	mlog(" server %s)\n", PSC_printTID(targetTID));
+	mlog("%s: sendFragMsg(uid %d spawner %s", __func__,
+	     server->uid, PSC_printTID(spawnertid));
+	mlog(" server %s) failed\n", PSC_printTID(targetTID));
 	return false;
     }
 
@@ -422,7 +420,7 @@ bool sendAddJob(PspmixServer_t *server, PStask_ID_t loggertid,
  */
 static bool sendRemoveJob(PspmixServer_t *server, PStask_ID_t spawnertid)
 {
-    mdbg(PSPMIX_LOG_CALL, "%s(uid %d spawnertid %s) called\n", __func__,
+    mdbg(PSPMIX_LOG_CALL, "%s(uid %d spawnertid %s)\n", __func__,
 	 server->uid, PSC_printTID(spawnertid));
 
     if (!server->fwdata) {
@@ -430,22 +428,20 @@ static bool sendRemoveJob(PspmixServer_t *server, PStask_ID_t spawnertid)
 	return false;
     }
 
-    PStask_ID_t targetTID = server->fwdata->tid;
-
     PS_SendDB_t msg;
     initFragBuffer(&msg, PSP_PLUG_PSPMIX, PSPMIX_REMOVE_JOB);
-    setFragDest(&msg, targetTID);
+    setFragDest(&msg, server->fwdata->tid);
 
     addInt32ToMsg(spawnertid, &msg);
 
     mdbg(PSPMIX_LOG_COMM, "%s: sending PSPMIX_REMOVE_JOB to %s", __func__,
-	    PSC_printTID(targetTID));
+	    PSC_printTID(server->fwdata->tid));
     mdbg(PSPMIX_LOG_COMM, " (spawner %s)\n", PSC_printTID(spawnertid));
 
     if (sendFragMsg(&msg) < 0) {
 	mlog("%s: sending job remove message failed (uid %d spawner %s",
 	       __func__, server->uid, PSC_printTID(spawnertid));
-	mlog(" server %s)\n", PSC_printTID(targetTID));
+	mlog(" server %s)\n", PSC_printTID(server->fwdata->tid));
 	return false;
     }
 
@@ -475,7 +471,7 @@ static bool sendRemoveJob(PspmixServer_t *server, PStask_ID_t spawnertid)
 static bool addJobToServer(PspmixServer_t *server, PStask_ID_t loggertid,
 			   PSjob_t *psjob, env_t *env)
 {
-    mdbg(PSPMIX_LOG_CALL, "%s(uid %d loggertid %s) called\n", __func__,
+    mdbg(PSPMIX_LOG_CALL, "%s(uid %d loggertid %s)\n", __func__,
 	 server->uid, PSC_printTID(loggertid));
 
     PspmixSession_t *session = findSessionInList(loggertid, &server->sessions);
@@ -531,7 +527,7 @@ static void killServer(int timerId, void *data)
     PspmixServer_t *server = data;
 
     mlog("%s: sending SIGKILL to PMIx server (uid %d server %s)\n", __func__,
-	    server->uid, PSC_printTID(server->fwdata->tid));
+	 server->uid, PSC_printTID(server->fwdata->tid));
 
     pid_t pid = PSC_getPID(server->fwdata->tid);
     if (pid) {
@@ -546,8 +542,7 @@ static void killServer(int timerId, void *data)
  */
 static void terminateSession(PStask_ID_t loggertid)
 {
-    mdbg(PSPMIX_LOG_CALL, "%s(logger %s) called\n", __func__,
-	    PSC_printTID(loggertid));
+    mdbg(PSPMIX_LOG_CALL, "%s(logger %s)\n", __func__, PSC_printTID(loggertid));
 
     PSID_sendSignal(loggertid, getuid(), PSC_getMyTID(), -1 /* signal */,
 		    false /* pervasive */, false /* answer */);
@@ -565,7 +560,7 @@ static void terminateSession(PStask_ID_t loggertid)
  */
 static void serverTerminated_cb(int32_t exit_status, Forwarder_Data_t *fw)
 {
-    mdbg(PSPMIX_LOG_CALL, "%s(server %s status %d) called\n", __func__,
+    mdbg(PSPMIX_LOG_CALL, "%s(server %s status %d)\n", __func__,
 	    PSC_printTID(fw->tid), exit_status);
 
     PspmixServer_t *server = fw->userData;
@@ -624,8 +619,7 @@ static void serverTerminated_cb(int32_t exit_status, Forwarder_Data_t *fw)
  */
 static int fakeKillSession(pid_t pid, int signal)
 {
-    mdbg(PSPMIX_LOG_CALL, "%s(pid %d signal %d) called\n", __func__,
-	 pid, signal);
+    mdbg(PSPMIX_LOG_CALL, "%s(pid %d signal %d)\n", __func__, pid, signal);
 
     /* since we do not have a child, we need nothing to do here */
     return 0;
@@ -646,7 +640,7 @@ int initialCleanup(Forwarder_Data_t *fwdata)
 {
     PspmixServer_t *myserver = fwdata->userData;
 
-    mdbg(PSPMIX_LOG_CALL, "%s() called\n", __func__);
+    mdbg(PSPMIX_LOG_CALL, "%s()\n", __func__);
 
     /* there has to be a server object */
     if (!myserver) {
@@ -720,7 +714,7 @@ static bool startServer(PspmixServer_t *server)
  */
 static void stopServer(PspmixServer_t *server)
 {
-    mdbg(PSPMIX_LOG_CALL, "%s(uid %d) called\n", __func__, server->uid);
+    mdbg(PSPMIX_LOG_CALL, "%s(uid %d)\n", __func__, server->uid);
 
     if (!server->fwdata) {
 	mlog("%s: no valid forwarder data, removing from list (uid %d)\n",
@@ -774,7 +768,7 @@ static int hookRecvSpawnReq(void *data)
     /* leave all special task groups alone */
     if (prototask->group != TG_ANY) return 0;
 
-    mdbg(PSPMIX_LOG_CALL, "%s() called with task group TG_ANY\n", __func__);
+    mdbg(PSPMIX_LOG_CALL, "%s(task group TG_ANY)\n", __func__);
 
     /* decide if this job wants to use PMIx */
     if (!pspmix_common_usePMIx(prototask)) return 0;
@@ -869,7 +863,7 @@ static int hookLocalJobRemoved(void *data)
 {
     PSjob_t *psjob = data;
 
-    mdbg(PSPMIX_LOG_CALL, "%s() called (spawner %s)\n", __func__,
+    mdbg(PSPMIX_LOG_CALL, "%s(spawner %s)\n", __func__,
 	 PSC_printTID(psjob->spawnertid));
 
     if (mset(PSPMIX_LOG_VERBOSE)) printServers();
@@ -927,7 +921,7 @@ static int hookNodeDown(void *data)
 {
     PSnodes_ID_t *nodeid = data;
 
-    mdbg(PSPMIX_LOG_CALL, "%s(nodeid %hd) called\n", __func__, *nodeid);
+    mdbg(PSPMIX_LOG_CALL, "%s(nodeid %hd)\n", __func__, *nodeid);
 
     /** @todo
      * Is there any action needed here?
