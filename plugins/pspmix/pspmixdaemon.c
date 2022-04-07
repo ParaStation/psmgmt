@@ -11,11 +11,11 @@
 /**
  * @file Implementation of pspmix functions running in the daemon
  *
- * Four jobs are done inside the daemon:
+ * Four tasks are fulfilled inside the daemon:
  * 1. Start the PMIx server for the user as plugin forwarder
  * 2. Inform an already running PMIx server about new jobs
  * 3. Forward plugin messages
- * 4. Handle (unexpected) deads of PMIx servers
+ * 4. Handle (unexpected) death of PMIx servers
  */
 #include "pspmixdaemon.h"
 
@@ -484,31 +484,40 @@ static bool addJobToServer(PspmixServer_t *server, PStask_ID_t loggertid,
 	     " %s)\n", __func__, server->uid, PSC_printTID(loggertid));
     } else {
 	session = ucalloc(sizeof(*session));
+	if (!session) return false;
 
 	session->loggertid = loggertid;
 	session->server = server;
 	INIT_LIST_HEAD(&session->jobs);
 
-	list_add(&session->next, &server->sessions);
+	list_add_tail(&session->next, &server->sessions);
 
 	mdbg(PSPMIX_LOG_VERBOSE, "%s: new session created (uid %d loggertid"
 	     " %s)\n", __func__, server->uid, PSC_printTID(loggertid));
     }
 
-    /* check if the user's server already knows this reservation set */
+    /* check if the user's server already knows this job */
     if (findJobInList(psjob->spawnertid, &session->jobs)) {
 	mdbg(PSPMIX_LOG_VERBOSE, "%s: job already known (uid %d spawner %s)\n",
 	     __func__, server->uid, PSC_printTID(psjob->spawnertid));
 	return 0;
     }
 
-    PspmixJob_t *job = umalloc(sizeof(*job));
+    PspmixJob_t *job = ucalloc(sizeof(*job));
+    if (!job) {
+	if (list_empty(&session->jobs)) {
+	    /* remove newly created session again */
+	    list_del(&session->next);
+	    ufree(session);
+	}
+	return false;
+    }
 
     job->spawnertid = psjob->spawnertid;
     job->session = session;
     INIT_LIST_HEAD(&job->resInfos); /* init even if never used */
 
-    list_add(&job->next, &session->jobs);
+    list_add_tail(&job->next, &session->jobs);
 
     return sendAddJob(server, loggertid, job->spawnertid, &psjob->resInfos,
 		      env->vars, env->cnt);
