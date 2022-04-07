@@ -649,12 +649,11 @@ int initialCleanup(Forwarder_Data_t *fwdata)
     }
 
     /* delete all server information but our's */
-    list_t *s;
-    list_for_each(s, &pmixServers) {
+    list_t *s, *tmp;
+    list_for_each_safe(s, tmp, &pmixServers) {
 	PspmixServer_t *server = list_entry(s, PspmixServer_t, next);
-	if (server->uid != myserver->uid) {
-	    pspmix_deleteServer(server, false);
-	}
+	if (server->uid == myserver->uid) continue;
+	pspmix_deleteServer(server, false);
     }
 
     /* in execForwarder() PSID_clearMem() is not called aggressively,
