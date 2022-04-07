@@ -62,6 +62,20 @@ typedef struct {
 PSsession_t* PSID_findSessionByLoggerTID(PStask_ID_t loggerTID);
 
 /**
+ * @brief Find job in session by spawner TID
+ *
+ * Find information on a local job by its spawner's task ID @a
+ * spawnerTID in the list of jobs in session @a session.
+ *
+ * @param session      Session to search in
+ *
+ * @param spawnerTID   Task ID of spawner identifying the job
+ *
+ * @return Returns the job or NULL if none found
+ */
+PSjob_t* PSID_findJobInSession(PSsession_t *session, PStask_ID_t spawnerTID);
+
+/**
  * @brief Initialize session stuff
  *
  * Initialize the session framework. This registers the necessary

@@ -73,7 +73,7 @@ static bool addReservationToJob(PSjob_t *job, PSresinfo_t *res)
  *
  * @return Returns the job or NULL if none found
  */
-PSjob_t* findJobInSession(PSsession_t *session, PStask_ID_t spawnerTID)
+PSjob_t* PSID_findJobInSession(PSsession_t *session, PStask_ID_t spawnerTID)
 {
     list_t *j;
     list_for_each(j, &session->jobs) {
@@ -169,7 +169,7 @@ static void handleResCreated(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
 
     /* try to find existing job */
     bool jobCreated = false;
-    PSjob_t *job = findJobInSession(session, spawnerTID);
+    PSjob_t *job = PSID_findJobInSession(session, spawnerTID);
     if (!job) {
 	/* create new job */
 	job = malloc(sizeof(*job));
@@ -297,7 +297,7 @@ static bool msg_RESRELEASED(DDBufferMsg_t *msg)
     }
 
     /* try to find corresponding job within the session */
-    PSjob_t* job = findJobInSession(session, spawnTID);
+    PSjob_t* job = PSID_findJobInSession(session, spawnTID);
     if (!job) {
 	PSID_log(-1, "%s: No job (%s) expected to hold resID %d",
 		 __func__, PSC_printTID(spawnTID), resID);
