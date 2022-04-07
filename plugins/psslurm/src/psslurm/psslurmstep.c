@@ -235,7 +235,7 @@ void Step_clearByJobid(uint32_t jobid)
     list_t *s, *tmp;
     list_for_each_safe(s, tmp, &StepList) {
 	Step_t *step = list_entry(s, Step_t, next);
-	if (step->jobid == jobid) Step_delete(step);
+	if (step->jobid == jobid) Step_destroy(step);
     }
 }
 

@@ -267,9 +267,9 @@ void Step_deleteAll(Step_t *preserve);
 void Step_destroyAll(void);
 
 /**
- * @brief Delete all steps of a specific job
+ * @brief Destroy all steps of a specific job
  *
- * @param jobid The jobid to identify the steps to delete
+ * @param jobid The jobid to identify the steps to destroy
  */
 void Step_clearByJobid(uint32_t jobid);
 
