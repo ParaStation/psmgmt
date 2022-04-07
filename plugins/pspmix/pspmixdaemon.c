@@ -500,7 +500,7 @@ static bool addJobToServer(PspmixServer_t *server, PStask_ID_t loggertid,
     if (findJobInList(psjob->spawnertid, &session->jobs)) {
 	mdbg(PSPMIX_LOG_VERBOSE, "%s: job already known (uid %d spawner %s)\n",
 	     __func__, server->uid, PSC_printTID(psjob->spawnertid));
-	return 0;
+	return true;
     }
 
     PspmixJob_t *job = ucalloc(sizeof(*job));
