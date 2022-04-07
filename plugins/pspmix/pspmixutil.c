@@ -80,6 +80,7 @@ void pspmix_deleteJob(PspmixJob_t *job)
     list_for_each_safe(r, tmp, &job->resInfos) {
 	PSresinfo_t *resInfo = list_entry(r, PSresinfo_t, next);
 	list_del(&resInfo->next);
+	free(resInfo->entries);
 	free(resInfo);
     }
 
