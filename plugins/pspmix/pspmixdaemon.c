@@ -658,7 +658,7 @@ int initialCleanup(Forwarder_Data_t *fwdata)
 
     /* in execForwarder() PSID_clearMem() is not called aggressively,
      * so we need to cleanup the tasks here */
-    PSIDtask_clearMem();
+    // PSIDtask_clearMem(); // @todo this needs rework
 
     return 0;
 }
