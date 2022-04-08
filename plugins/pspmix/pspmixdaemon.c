@@ -741,9 +741,6 @@ static void stopServer(PspmixServer_t *server)
     /* server object is freed in callback after SIGCHILD from PMIx server */
 }
 
-/* generates findPSjobInList(PStask_ID_t spawnertid, list_t *list) */
-FIND_IN_LIST_FUNC(PSjob, PSjob_t, PStask_ID_t, spawnertid)
-
 /**
  * @brief Hook function for PSIDHOOK_RECV_SPAWNREQ
  *
@@ -751,12 +748,12 @@ FIND_IN_LIST_FUNC(PSjob, PSjob_t, PStask_ID_t, spawnertid)
  *
  * Starts the PMIx server or notify the already running PMIx server of the user.
  *
- * This function assumes that the first spawn request for a reservation in a
- * reservation set is not received before all reservation information of the
- * set are. So the reservation set (= PMIx job) is complete once this hook is
- * called.
+ * This function assumes that the first spawn request for a job is not
+ * received before all reservation information of the job have
+ * arrived. So the reservation set (= PMIx job) is complete once this
+ * hook is called.
  *
- * @param data Pointer to task structure to be spawned.
+ * @param data Pointer to task structure to be spawned
  *
  * @return Returns 0 on success and -1 on error.
  */
@@ -780,24 +777,24 @@ static int hookRecvSpawnReq(void *data)
     /* find job */
     PSsession_t *pssession = PSID_findSessionByLoggerTID(loggertid);
     if (!pssession) {
-	mlog("%s: no job with logger %s\n", __func__, PSC_printTID(loggertid));
+	mlog("%s: no session (logger %s)\n", __func__, PSC_printTID(loggertid));
 	return -1;
     }
 
     /* check if there is a matching reservation set */
-    PSjob_t *psjob = findPSjobInList(spawnertid, &pssession->jobs);
+    PSjob_t *psjob = PSID_findJobInSession(pssession, spawnertid);
     if (!psjob) {
 	mlog("%s: no job (spawner %s", __func__, PSC_printTID(spawnertid));
-	mlog(" logger %s)\n", PSC_printTID(pssession->loggertid));
+	mlog(" logger %s)\n", PSC_printTID(loggertid));
 	return -1;
     }
 
     /* check if there is a matching reservation in the job */
     PSresinfo_t *resInfo = findReservationInList(resID, &psjob->resInfos);
     if (!resInfo) {
-	mlog("%s: no reservation %d (spawner %s", __func__, prototask->resID,
-	     PSC_printTID(psjob->spawnertid));
-	mlog(" logger %s)\n", PSC_printTID(pssession->loggertid));
+	mlog("%s: no reservation %d (spawner %s", __func__, resID,
+	     PSC_printTID(spawnertid));
+	mlog(" logger %s)\n", PSC_printTID(loggertid));
 	return -1;
     }
 
@@ -881,7 +878,7 @@ static int hookLocalJobRemoved(void *data)
     if (!sendRemoveJob(server, job->spawnertid)) {
 	mlog("%s: sending job remove failed (uid %d %s)\n", __func__,
 	     server->uid, pspmix_jobStr(job));
-	//TODO stop server if still alive ???
+	//TODO @todo stop server if still alive ???
     }
 
     list_del(&job->next);

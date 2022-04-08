@@ -132,8 +132,7 @@ static void handleRegisterClient(DDTypedBufferMsg_t *msg)
     mdbg(PSPMIX_LOG_CALL, "%s()\n", __func__);
 
     PStask_ID_t loggertid, spawnertid;
-    PspmixClient_t *client;
-    client = ucalloc(sizeof(*client));
+    PspmixClient_t *client = ucalloc(sizeof(*client));
 
     PSP_getTypedMsgBuf(msg, &used, "loggertid", &loggertid, sizeof(loggertid));
     PSP_getTypedMsgBuf(msg, &used, "spawnertid", &spawnertid,
@@ -322,10 +321,10 @@ static void handlePspmixMsg(DDTypedBufferMsg_t *msg)
 {
     mdbg(PSPMIX_LOG_CALL, "%s()\n", __func__);
 
-    mdbg(PSPMIX_LOG_COMM, "%s: msg type: %s (0x%X) [%s", __func__,
+    mdbg(PSPMIX_LOG_COMM, "%s(type %s (0x%X) [%s", __func__,
 	 pspmix_getMsgTypeString(msg->type), msg->type,
 	 PSC_printTID(msg->header.sender));
-    mdbg(PSPMIX_LOG_COMM, "->%s]\n", PSC_printTID(msg->header.dest));
+    mdbg(PSPMIX_LOG_COMM, "->%s])\n", PSC_printTID(msg->header.dest));
 
     switch (msg->type) {
     /* message types comming from the psid */
@@ -340,8 +339,6 @@ static void handlePspmixMsg(DDTypedBufferMsg_t *msg)
 	handleRegisterClient(msg);
 	break;
     case PSPMIX_CLIENT_INIT_RES:
-	recvFragMsg(msg, handleClientNotifyResp);
-	break;
     case PSPMIX_CLIENT_FINALIZE_RES:
 	recvFragMsg(msg, handleClientNotifyResp);
 	break;

@@ -162,7 +162,7 @@ static void handleClientPMIxEnv(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
  */
 static bool readClientPMIxEnvironment(int daemonfd, struct timeval timeout)
 {
-    mdbg(PSPMIX_LOG_CALL, "%s(r%d) called (timeout %lu us)\n", __func__, rank,
+    mdbg(PSPMIX_LOG_CALL, "%s(r%d timeout %lu us)\n", __func__, rank,
 	 (unsigned long)(timeout.tv_sec * 1000 * 1000 + timeout.tv_usec));
 
     while (!environmentReady) {
@@ -193,12 +193,10 @@ static bool readClientPMIxEnvironment(int daemonfd, struct timeval timeout)
 static bool sendNotificationResp(PStask_ID_t targetTID, PSP_PSPMIX_t type,
 				 pmix_rank_t pmirank, const char *nspace)
 {
-    mdbg(PSPMIX_LOG_CALL, "%s(r%d) targetTID %s type %s nspace %s pmirank %u\n",
-	 __func__, rank, PSC_printTID(targetTID),
-	 pspmix_getMsgTypeString(type), nspace, pmirank);
-
-    mdbg(PSPMIX_LOG_COMM, "%s: Sending %s for pmirank %u (nspace %s)\n",
-	 __func__, pspmix_getMsgTypeString(type), pmirank, nspace);
+    mdbg(PSPMIX_LOG_CALL|PSPMIX_LOG_COMM,
+	 "%s(r%d targetTID %s type %s nspace %s pmirank %u)\n", __func__,
+	 rank, PSC_printTID(targetTID), pspmix_getMsgTypeString(type),
+	 nspace, pmirank);
 
     PS_SendDB_t msg;
     initFragBuffer(&msg, PSP_PLUG_PSPMIX, type);
@@ -225,7 +223,7 @@ static bool sendNotificationResp(PStask_ID_t targetTID, PSP_PSPMIX_t type,
  */
 static void handleClientInit(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
 {
-    mdbg(PSPMIX_LOG_CALL, "%s() called\n", __func__);
+    mdbg(PSPMIX_LOG_CALL, "%s()\n", __func__);
 
     char *ptr = data->buf;
 
@@ -273,7 +271,7 @@ static void sendChildReleaseMsg(void)
  */
 static void handleClientFinalize(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
 {
-    mdbg(PSPMIX_LOG_CALL, "%s() called\n", __func__);
+    mdbg(PSPMIX_LOG_CALL, "%s()\n", __func__);
 
     char *ptr = data->buf;
 
@@ -305,7 +303,7 @@ static void handleClientFinalize(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
  */
 static bool handlePspmixMsg(DDBufferMsg_t *vmsg) {
 
-    mdbg(PSPMIX_LOG_CALL, "%s() called\n", __func__);
+    mdbg(PSPMIX_LOG_CALL, "%s()\n", __func__);
 
     DDTypedBufferMsg_t *msg = (DDTypedBufferMsg_t *)vmsg;
 
@@ -349,7 +347,7 @@ static bool handlePspmixMsg(DDBufferMsg_t *vmsg) {
  */
 static int hookExecForwarder(void *data)
 {
-    mdbg(PSPMIX_LOG_CALL, "%s() called\n", __func__);
+    mdbg(PSPMIX_LOG_CALL, "%s()\n", __func__);
 
     /* pointer is assumed to be valid for the life time of the forwarder */
     childTask = data;
@@ -396,7 +394,7 @@ static int hookForwarderInit(void *data)
     /* break if this is not a PMIx job */
     if (!childTask) return 0;
 
-    mdbg(PSPMIX_LOG_CALL, "%s() called\n", __func__);
+    mdbg(PSPMIX_LOG_CALL, "%s()\n", __func__);
 
     /* pointer is assumed to be valid for the life time of the forwarder */
     if (childTask != data) {
@@ -432,11 +430,11 @@ static int hookForwarderClientRelease(void *data)
     /* break if this is not a PMIx job */
     if (!childTask) return IDLE;
 
-    mdbg(PSPMIX_LOG_CALL, "%s() called with childTask set.\n", __func__);
+    mdbg(PSPMIX_LOG_CALL, "%s(with childTask set)\n", __func__);
 
     /* pointer is assumed to be valid for the life time of the forwarder */
     if (childTask != data) {
-	mlog("%s: Unexpected child task.", __func__);
+	mlog("%s: Unexpected child task\n", __func__);
 	return IDLE;
     }
 

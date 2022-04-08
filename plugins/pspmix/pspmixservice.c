@@ -148,7 +148,7 @@ static PspmixFence_t* findFence(uint64_t fenceid)
 
 bool pspmix_service_init(uid_t uid, gid_t gid)
 {
-    mdbg(PSPMIX_LOG_CALL, "%s(uid %d gid %d) called\n", __func__, uid, gid);
+    mdbg(PSPMIX_LOG_CALL, "%s(uid %d gid %d)\n", __func__, uid, gid);
 
     /* initialize the communication facility */
     if (!pspmix_comm_init(uid)) {
@@ -229,7 +229,7 @@ static void freeProcMap(list_t *map)
 
 bool pspmix_service_registerNamespace(PspmixJob_t *job)
 {
-    mdbg(PSPMIX_LOG_CALL, "%s() called\n", __func__);
+    mdbg(PSPMIX_LOG_CALL, "%s()\n", __func__);
 
     /* we are using the loggertid as session ID */
     uint32_t sessionId = job->session->loggertid;
@@ -454,9 +454,8 @@ bool pspmix_service_registerClientAndSendEnv(PStask_ID_t loggertid,
 					     PStask_ID_t spawnertid,
 					     PspmixClient_t *client)
 {
-    mdbg(PSPMIX_LOG_CALL, "%s() called (job %s rank %d reservation %d)\n",
-	 __func__, pspmix_jobIDsStr(loggertid, spawnertid), client->rank,
-	 client->resID);
+    mdbg(PSPMIX_LOG_CALL, "%s(job %s rank %d reservation %d)\n", __func__,
+	 pspmix_jobIDsStr(loggertid, spawnertid), client->rank, client->resID);
 
     /* get namespace name */
     const char *nsname = generateNamespaceName(spawnertid);
@@ -568,7 +567,7 @@ bool pspmix_service_registerClientAndSendEnv(PStask_ID_t loggertid,
 
 bool pspmix_service_finalize(void)
 {
-    ulog("called\n");
+    ulog("()\n");
 
     if (!pspmix_server_finalize()) {
 	elog("%s: Failed to finalize pmix server\n", __func__);
@@ -584,7 +583,7 @@ bool pspmix_service_clientConnected(void *clientObject, void *cb)
 {
     PspmixClient_t *client = clientObject;
 
-    ulog("called for rank %d\n", client->rank);
+    ulog("(rank %d)\n", client->rank);
 
     /* Inform the client's forwarder about initialization and remember callback
      * for answer handling */
@@ -643,7 +642,7 @@ bool pspmix_service_clientFinalized(void *clientObject, void *cb)
 {
     PspmixClient_t *client = clientObject;
 
-    ulog("called for rank %d\n", client->rank);
+    ulog("(rank %d)\n", client->rank);
 
     /* Inform the client's forwarder about finalization and remember callback
      * for answer handling */
@@ -705,7 +704,7 @@ void pspmix_service_abort(void *clientObject)
     PspmixClient_t *client;
     client = clientObject;
 
-    ulog("called for rank %d\n", client->rank);
+    ulog("(rank %d)\n", client->rank);
 
     elog("%s: aborting on users request from rank %d\n", __func__,
 	    client->rank);
@@ -759,8 +758,8 @@ static uint64_t getFenceID(PSnodes_ID_t sortednodes[], int numnodes)
  */
 void checkFence(PspmixFence_t *fence) {
 
-    mdbg(PSPMIX_LOG_CALL, "%s() called (id 0x%04lX receivedIn %d nnodes %lu)\n",
-	    __func__, fence->id, fence->receivedIn, fence->nnodes);
+    mdbg(PSPMIX_LOG_CALL, "%s(id 0x%04lX receivedIn %d nnodes %lu)\n",
+	 __func__, fence->id, fence->receivedIn, fence->nnodes);
 
     if (fence->receivedIn && (fence->nodes != NULL)) {
 	/* we received fence in and pspmix_service_fenceIn has been called */
@@ -835,8 +834,8 @@ int pspmix_service_fenceIn(const pmix_proc_t procs[], size_t nprocs,
 	return -1;
     }
 
-    mdbg(PSPMIX_LOG_CALL, "%s() called with nprocs %lu nspace %s ndata %ld\n",
-	    __func__, nprocs, procs[0].nspace, ndata);
+    mdbg(PSPMIX_LOG_CALL, "%s(nprocs %lu nspace %s ndata %ld)\n", __func__,
+	 nprocs, procs[0].nspace, ndata);
 
     /* create list of participating nodes */
     vector_t nodes;
@@ -1161,7 +1160,7 @@ void pspmix_service_handleModexDataRequest(PStask_ID_t senderTID,
 
 void pspmix_service_sendModexDataResponse(bool status, modexdata_t *mdata)
 {
-    mdbg(PSPMIX_LOG_CALL, "%s() called with status %d\n", __func__, status);
+    mdbg(PSPMIX_LOG_CALL, "%s(status %d)\n", __func__, status);
 
     if (!status) ulog(" failed\n");
 
@@ -1179,7 +1178,7 @@ void pspmix_service_sendModexDataResponse(bool status, modexdata_t *mdata)
 }
 
 void pspmix_service_handleModexDataResponse(bool success, pmix_proc_t *proc,
-	void *data, size_t len)
+					    void *data, size_t len)
 {
     list_t *s, *tmp;
 

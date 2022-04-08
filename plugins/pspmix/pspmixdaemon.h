@@ -37,7 +37,7 @@ void pspmix_initDaemonModule(void);
 void pspmix_finalizeDaemonModule(void);
 
 /**
- * @brief Find TID of the server of the passed user
+ * @brief Find TID of the server handling the user's jobs
  *
  * @param uid  ID of the user
  *
