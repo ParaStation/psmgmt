@@ -2124,8 +2124,8 @@ bool __packSlurmMsg(PS_SendDB_t *data, Slurm_Msg_Header_t *head,
     head->bodyLen = body->used;
     __packSlurmHeader(data, head, caller, line);
 
-    mdbg(PSSLURM_LOG_COMM, "%s: added slurm header (%i) : body len :%zi\n",
-	    __func__, data->bufUsed, body->used);
+    mdbg(PSSLURM_LOG_COMM, "%s: slurm header len %i body len %zi RPC %s\n",
+	 __func__, data->bufUsed, body->used, msgType2String(head->type));
 
     if (logger_getMask(psslurmlogger) & PSSLURM_LOG_IO_VERB) {
 	printBinaryData(data->buf + lastBufLen, data->bufUsed - lastBufLen,
