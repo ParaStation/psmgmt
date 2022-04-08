@@ -882,8 +882,10 @@ static void handle_JobExit(DDTypedBufferMsg_t *msg)
     PSP_getTypedMsgBuf(msg, &used, "jobID", &jobid, sizeof(jobid));
     PSP_getTypedMsgBuf(msg, &used, "stepID", &stepid, sizeof(stepid));
 
-    mlog("%s: id %u:%u from %s\n", __func__, jobid, stepid,
-	 PSC_printTID(msg->header.sender));
+    Step_t s = {
+	.jobid = jobid,
+	.stepid = stepid };
+    flog("for %s from %s\n", Step_strID(&s), PSC_printTID(msg->header.sender));
 
     if (stepid == SLURM_BATCH_SCRIPT) {
 	Job_t *job = Job_findById(jobid);
@@ -894,9 +896,6 @@ static void handle_JobExit(DDTypedBufferMsg_t *msg)
 
     Step_t *step = Step_findByStepId(jobid, stepid);
     if (!step) {
-	Step_t s = {
-	    .jobid = jobid,
-	    .stepid = stepid };
 	flog("%s not found\n", Step_strID(&s));
 	return;
     } else {
@@ -1962,7 +1961,7 @@ static bool handleCC_Finalize_Msg(PSLog_Msg_t *msg)
 	step->fwFinCount++;
 	if (!step->leader &&
 		step->tasksToLaunch[step->localNodeId] == step->fwFinCount) {
-	    mlog("%s: shutdown I/O forwarder\n", __func__);
+	    flog("shutdown I/O forwarder for %s\n", Step_strID(step));
 	    shutdownForwarder(step->fwdata);
 	}
 	return true; // message is fully handled
