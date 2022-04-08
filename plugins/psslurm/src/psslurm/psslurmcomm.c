@@ -57,18 +57,6 @@
 /** socket to listen for new Slurm connections */
 static int slurmListenSocket = -1;
 
-/** structure holding connection management data */
-typedef struct {
-    list_t next;	    /**< used to put into connection-list */
-    PS_DataBuffer_t data;   /**< buffer for received message parts */
-    Connection_CB_t *cb;    /**< function to handle received messages */
-    void *info;		    /**< additional info passed to callback */
-    int sock;		    /**< socket of the connection */
-    time_t recvTime;	    /**< time first complete message was received */
-    bool readSize;	    /**< true if the message size was read */
-    Msg_Forward_t fw;	    /**< message forwarding structure */
-} Connection_t;
-
 /** structure holding slurmctld host definitions */
 typedef struct {
     char *host;		    /**< hostname */
@@ -116,6 +104,18 @@ static Connection_t *findConnection(int socket)
     return NULL;
 }
 
+Connection_t *findConnectionByStep(Step_t *step)
+{
+    if (!step) return NULL;
+
+    list_t *c;
+    list_for_each(c, &connectionList) {
+	Connection_t *con = list_entry(c, Connection_t, next);
+	if (con->step == step) return con;
+    }
+    return NULL;
+}
+
 /**
  * @brief Find a connection
  *
@@ -154,12 +154,14 @@ static bool resetConnection(int socket)
     Connection_t *con = findConnection(socket);
 
     if (!con) return false;
+    fdbg(PSSLURM_LOG_COMM, "for socket %i\n", socket);
 
     ufree(con->data.buf);
     con->data.buf = NULL;
     con->data.size = 0;
     con->data.used = 0;
     con->readSize = false;
+    con->step = NULL;
 
     return true;
 }
@@ -174,17 +176,23 @@ static bool resetConnection(int socket)
  * @param info Pointer to additional information passed to @a
  * cb
  *
- * @return Returns a pointer to the added connection
+ * @return Returns a pointer to the added connection or NULL on error
  */
 static Connection_t *addConnection(int socket, Connection_CB_t *cb, void *info)
 {
-    Connection_t *con = findConnection(socket);
+    if (socket < 0) {
+	flog("got invalid socket %i\n", socket);
+	return NULL;
+    }
 
+    fdbg(PSSLURM_LOG_COMM, "add connection for socket %i\n", socket);
+    Connection_t *con = findConnection(socket);
     if (con) {
 	flog("socket(%i) already has a connection, resetting it\n", socket);
 	resetConnection(socket);
 	con->cb = cb;
 	con->info = info;
+	gettimeofday(&con->openTime, NULL);
 	return con;
     }
 
@@ -193,6 +201,7 @@ static Connection_t *addConnection(int socket, Connection_CB_t *cb, void *info)
     con->sock = socket;
     con->cb = cb;
     con->info = info;
+    gettimeofday(&con->openTime, NULL);
     initSlurmMsgHead(&con->fw.head);
 
     list_add_tail(&con->next, &connectionList);
@@ -203,8 +212,7 @@ static Connection_t *addConnection(int socket, Connection_CB_t *cb, void *info)
 void closeSlurmCon(int socket)
 {
     Connection_t *con = findConnection(socket);
-
-    mdbg(PSSLURM_LOG_COMM, "%s(%d)\n", __func__, socket);
+    if (!con) fdbg(PSSLURM_LOG_COMM, "(%d)\n", socket);
 
     /* close the connection */
     if (Selector_isRegistered(socket)) Selector_remove(socket);
@@ -212,6 +220,14 @@ void closeSlurmCon(int socket)
 
     /* free memory */
     if (con) {
+	if (psslurmlogger->mask & PSSLURM_LOG_COMM) {
+	    struct timeval time_now, time_diff;
+
+	    gettimeofday(&time_now, NULL);
+	    timersub(&time_now, &con->openTime, &time_diff);
+	    flog("(%i) was open %.4f seconds\n", socket,
+		 time_diff.tv_sec + 1e-6 * time_diff.tv_usec);
+	}
 	list_del(&con->next);
 	freeSlurmMsgHead(&con->fw.head);
 	if (con->fw.nodesCount) ufree(con->fw.nodes);
@@ -516,16 +532,26 @@ CALLBACK:
     return 0;
 }
 
-bool registerSlurmSocket(int sock, Connection_CB_t *cb, void *info)
+Connection_t *registerSlurmSocket(int sock, Connection_CB_t *cb, void *info)
 {
+    if (sock < 0) {
+	flog("got invalid socket %i\n", sock);
+	return NULL;
+    }
+
     Connection_t *con = addConnection(sock, cb, info);
+    if (!con) {
+	flog("failed to add connection for sock %i\n", sock);
+	return NULL;
+    }
 
     PSCio_setFDblock(sock, false);
     if (Selector_register(sock, readSlurmMsg, con) == -1) {
 	flog("register socket %i failed\n", sock);
-	return false;
+	closeSlurmCon(sock);
+	return NULL;
     }
-    return true;
+    return con;
 }
 
 const char *slurmRC2String(int rc)
@@ -881,6 +907,29 @@ TCP_RECONNECT:
 	return -1;
     }
 
+    if (psslurmlogger->mask & PSSLURM_LOG_COMM) {
+	struct sockaddr_in sockLocal, sockRemote;
+	socklen_t len = sizeof(sockLocal);
+	bool ret = true;
+
+	if (getsockname(sock, (struct sockaddr*)&sockLocal, &len) == -1) {
+	    mwarn(errno, "%s: getsockname(%i)", __func__, sock);
+	    ret = false;
+	}
+
+	len = sizeof(sockLocal);
+	if (getpeername(sock, (struct sockaddr*)&sockRemote, &len) == -1) {
+	    mwarn(errno, "%s: getpeername(%i)", __func__, sock);
+	    ret = false;
+	}
+
+	if (ret) {
+	    flog("socket %i connected local %s:%u remote %s:%u\n", sock,
+		 inet_ntoa(sockRemote.sin_addr), ntohs(sockRemote.sin_port),
+		 inet_ntoa(sockLocal.sin_addr), ntohs(sockLocal.sin_port));
+	}
+    }
+
     return sock;
 }
 
@@ -910,7 +959,9 @@ int openSlurmctldConEx(Connection_CB_t *cb, void *info)
 	return sock;
     }
 
-    registerSlurmSocket(sock, cb, info);
+    if (!registerSlurmSocket(sock, cb, info)) {
+	flog("register Slurm socket %i failed\n", sock);
+    }
 
     return sock;
 }
@@ -1153,10 +1204,26 @@ static int acceptSlurmClient(int socket, void *data)
 	return 0;
     }
 
-    fdbg(PSSLURM_LOG_COMM, "from %s:%u socket:%i\n", inet_ntoa(SAddr.sin_addr),
-	 ntohs(SAddr.sin_port), newSock);
+    if (psslurmlogger->mask & PSSLURM_LOG_COMM) {
+	struct sockaddr_in sock_local;
+	socklen_t len = sizeof(sock_local);
 
-    registerSlurmSocket(newSock, handleSlurmdMsg, NULL);
+	if (getsockname(newSock, (struct sockaddr*)&sock_local, &len) == -1) {
+	    mwarn(errno, "%s: getsockname(%i)", __func__, newSock);
+
+	    flog("from %s:%u socket:%i\n", inet_ntoa(SAddr.sin_addr),
+		 ntohs(SAddr.sin_port), newSock);
+	} else {
+	    flog("from %s:%u socket:%i local %s:%u\n",
+		 inet_ntoa(SAddr.sin_addr), ntohs(SAddr.sin_port), newSock,
+		 inet_ntoa(sock_local.sin_addr), ntohs(sock_local.sin_port));
+	}
+    }
+
+    if (!registerSlurmSocket(newSock, handleSlurmdMsg, NULL)) {
+	flog("failed to register socket %i\n", newSock);
+	return 0;
+    }
 
     return 0;
 }
@@ -1335,6 +1402,9 @@ int handleSrunIOMsg(int sock, void *data)
 	if (ret < 0) mwarn(errno, "%s: PSCio_recvBufPProg()", __func__);
 	flog("close srun connection %i for %s (rcvd %zd)\n", sock,
 	     Step_strID(step), rcvd);
+	if (sock == step->srunIOMsg.sock) {
+	    step->srunIOMsg.sock = -1;
+	}
 	goto ERROR;
     }
 
@@ -1456,9 +1526,9 @@ static int handleSrunMsg(Slurm_Msg_t *sMsg, void *info)
 		    .stepid = req->stepid };
 
     if (sMsg->head.type != RESPONSE_SLURM_RC) {
-	flog("unexpected srun response %s for request %s %s\n",
+	flog("unexpected srun response %s for request %s %s sock %i\n",
 	     msgType2String(sMsg->head.type), msgType2String(req->type),
-	     Step_strID(&step));
+	     Step_strID(&step), sMsg->sock);
 	goto CLEANUP;
     }
 
@@ -1472,8 +1542,8 @@ static int handleSrunMsg(Slurm_Msg_t *sMsg, void *info)
 	     msgType2String(sMsg->head.type), slurmRC2String(rc), sMsg->sock,
 	     msgType2String(req->type), Step_strID(&step));
     } else {
-	fdbg(PSSLURM_LOG_COMM, "got SLURM_SUCCESS for srun req %s %s\n",
-	     msgType2String(req->type), Step_strID(&step));
+	fdbg(PSSLURM_LOG_COMM, "got SLURM_SUCCESS for srun req %s %s sock %i\n",
+	     msgType2String(req->type), Step_strID(&step), sMsg->sock);
     }
 
 CLEANUP:
@@ -1496,13 +1566,15 @@ int srunSendMsg(int sock, Step_t *step, slurm_msg_type_t type,
     req->stepid = step->stepid;
     req->time = time(NULL);
 
-    if (!registerSlurmSocket(sock, handleSrunMsg, req)) {
+    Connection_t *con = registerSlurmSocket(sock, handleSrunMsg, req);
+    if (!con) {
 	flog("register Slurm socket %i failed\n", sock);
 	ufree(req);
 	return -1;
     }
+    con->step = step;
 
-    fdbg(PSSLURM_LOG_IO | PSSLURM_LOG_IO_VERB,
+    fdbg(PSSLURM_LOG_IO | PSSLURM_LOG_IO_VERB | PSSLURM_LOG_COMM,
 	 "sock %u, len: body.bufUsed %u\n", sock, body->bufUsed);
 
     int ret = sendSlurmMsg(sock, type, body);
@@ -1732,6 +1804,23 @@ void closeAllStepConnections(Step_t *step)
     }
     if (!step->srunPTYMsg.head.forward) {
 	freeSlurmMsg(&step->srunPTYMsg);
+    }
+
+    /* close all remaining srun connections */
+    list_t *c, *tmp;
+
+    list_for_each_safe(c, tmp, &connectionList) {
+	Connection_t *con = list_entry(c, Connection_t, next);
+	if (con->step == step) {
+	    struct timeval time_now, time_diff;
+
+	    gettimeofday(&time_now, NULL);
+	    timersub(&time_now, &con->openTime, &time_diff);
+	    flog("warning: closing lingering %s connection "
+		 "with socket %i opened %.4f seconds\n", Step_strID(step),
+		 con->sock, time_diff.tv_sec + 1e-6 * time_diff.tv_usec);
+	    closeSlurmCon(con->sock);
+	}
     }
 }
 

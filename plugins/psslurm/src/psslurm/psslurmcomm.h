@@ -43,16 +43,30 @@ typedef struct {
 				    each forwarded node */
 } Msg_Forward_t;
 
+/** structure holding connection management data */
+typedef struct {
+    list_t next;	    /**< used to put into connection-list */
+    PS_DataBuffer_t data;   /**< buffer for received message parts */
+    Connection_CB_t *cb;    /**< function to handle received messages */
+    void *info;		    /**< additional info passed to callback */
+    int sock;		    /**< socket of the connection */
+    time_t recvTime;	    /**< time first complete message was received */
+    struct timeval openTime;/**< time the connection was opened */
+    bool readSize;	    /**< true if the message size was read */
+    Msg_Forward_t fw;	    /**< message forwarding structure */
+    Step_t *step;	    /**< set if connection is associated with a step */
+} Connection_t;
+
 /** structure to make information available about the message request
  * when handling a corresponding response */
 typedef struct {
-    uint16_t type;
-    uint16_t expRespType;
-    uint32_t jobid;
-    uint32_t stepid;
-    uint32_t stepHetComp;
-    time_t time;
-    Connection_CB_t *cb;
+    uint16_t type;	    /**< message type of the request */
+    uint16_t expRespType;   /**< expected message type of the response */
+    uint32_t jobid;	    /**< optional jobid associated with the request */
+    uint32_t stepid;	    /**< optional stepid associated with the request */
+    uint32_t stepHetComp;   /**< step het component identifier */
+    time_t time;	    /**< time the request was sent */
+    Connection_CB_t *cb;    /**< callback to handle a reply */
 } Req_Info_t;
 
 /**
@@ -526,9 +540,9 @@ int openSlurmctldConEx(Connection_CB_t *cb, void *info);
  * @param info Pointer to additional information passed to @a
  * cb
  *
- * @return Returns true on success and false otherwise
+ * @return Returns the associated connection or NULL otherwise
  */
-bool registerSlurmSocket(int sock, Connection_CB_t *cb, void *info);
+Connection_t *registerSlurmSocket(int sock, Connection_CB_t *cb, void *info);
 
 /**
  * @brief Convert a Slurm return code to string
@@ -538,5 +552,14 @@ bool registerSlurmSocket(int sock, Connection_CB_t *cb, void *info);
  * @return Returns the requested return code as string
  */
 const char *slurmRC2String(int rc);
+
+/**
+ * @brief Find a connection identified by a step
+ *
+ * @param Step The step associated with the connection to find
+ *
+ * @return On success the requested connection is returned or NULL otherwise
+ */
+Connection_t *findConnectionByStep(Step_t *step);
 
 #endif  /* __PSSLURM_COMM */

@@ -414,6 +414,11 @@ void IO_finalize(Forwarder_Data_t *fwdata)
 	close(sattachSockets[i]);
 	close(sattachCtlSock[i]);
     }
+
+    /* ensure to wait for all answers from srun */
+    while (findConnectionByStep(step)) {
+	Swait(1);
+    }
 }
 
 void IO_sattachTasks(Step_t *step, uint32_t ioAddr, uint16_t ioPort,
