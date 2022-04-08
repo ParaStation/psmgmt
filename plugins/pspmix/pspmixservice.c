@@ -464,8 +464,7 @@ bool pspmix_service_registerClientAndSendEnv(PStask_ID_t loggertid,
 
     /* find namespace in list */
     PspmixNamespace_t *ns = findNamespace(nsname);
-
-    if (ns == NULL) {
+    if (!ns) {
 	ulog("namespace '%s' not found\n", nsname);
 	ufree(client);
 	RELEASE_LOCK(namespaceList);
@@ -474,10 +473,21 @@ bool pspmix_service_registerClientAndSendEnv(PStask_ID_t loggertid,
 
     client->nspace = ns;
 
-    /* add to list of clients of namespace */
+    /* add to namespace's list of clients */
     list_add_tail(&client->next, &ns->clientList);
 
     RELEASE_LOCK(namespaceList);
+
+    PSresinfo_t *resInfo = findReservationInList(client->resID,
+						 &client->nspace->job->resInfos);
+    if (!resInfo) {
+	ulog("r%d: reservation %d not found in client's namespace %s\n",
+	     client->rank, client->resID, client->nspace->name);
+	// @todo do we need a GET_LOCK(namespaceList) here?
+	list_del(&client->next);
+	ufree(client);
+	return false;
+    }
 
     /* register client at server */
     /* the client object is passed to the PMIx server and is returned
@@ -486,18 +496,22 @@ bool pspmix_service_registerClientAndSendEnv(PStask_ID_t loggertid,
     if (!pspmix_server_registerClient(nsname, client->rank, client->uid,
 		client->gid, (void*)client)) {
 	ulog("r%d: failed to register client to PMIx server\n", client->rank);
+	// @todo do we need a GET_LOCK(namespaceList) here?
+	list_del(&client->next);
 	ufree(client);
 	return false;
     }
 
-    /* create empty environment */
-    char **envp;
-    envp = ucalloc(sizeof(*envp));
-
     /* get environment from PMIx server */
+    char **envp = ucalloc(sizeof(*envp));
     if (!pspmix_server_setupFork(nsname, client->rank, &envp)) {
 	ulog("r%d: failed to setup the environment at the pspmix server\n",
 	     client->rank);
+	ufree(envp);
+	// @todo if pspmix_server_setupFork() fails, what about validity of client?
+	// @todo do we need a GET_LOCK(namespaceList) here?
+	list_del(&client->next);
+	ufree(client);
 	return false;
     }
 
@@ -508,6 +522,7 @@ bool pspmix_service_registerClientAndSendEnv(PStask_ID_t loggertid,
 	envPut(&env, envp[i]);
 	mdbg(PSPMIX_LOG_ENV, "%s: Got %s\n", __func__, envp[i]);
     }
+    ufree(envp);
 
     /* add custom environment variables */
     char tmp[20];
@@ -518,14 +533,6 @@ bool pspmix_service_registerClientAndSendEnv(PStask_ID_t loggertid,
     snprintf(tmp, sizeof(tmp), "%u", client->nspace->universeSize);
     envSet(&env, "OMPI_UNIVERSE_SIZE", tmp);
 
-    PSresinfo_t *resInfo = findReservationInList(client->resID,
-	    &client->nspace->job->resInfos);
-    if (!resInfo) {
-	ulog("r%d: reservation %d not found in client's namespace %s\n",
-	     client->rank, client->resID, client->nspace->name);
-	return false;
-
-    }
     PSnodes_ID_t nodeId = getNodeFromRank(client->rank, ns);
     bool found = false;
     int lrank = -1;
@@ -556,7 +563,11 @@ bool pspmix_service_registerClientAndSendEnv(PStask_ID_t loggertid,
     envSet(&env, "OMPI_COMM_WORLD_NODE_RANK", tmp);
 
     /* send message */
-    if (!pspmix_comm_sendClientPMIxEnvironment(client->fwtid, &env)) {
+    bool success = pspmix_comm_sendClientPMIxEnvironment(client->fwtid, &env);
+    envDestroy(&env);
+
+    if (!success) {
+	// @todo shall we de-register the client right now?
 	ulog("r%d: failed to send the environment to client forwarder %s\n",
 	     client->rank, PSC_printTID(client->fwtid));
 	return false;
