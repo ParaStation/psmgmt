@@ -640,7 +640,7 @@ static void handleLaunchTasks(Slurm_Msg_t *sMsg)
     return;
 
 ERROR:
-    if (step) Step_delete(step);
+    if (step) Step_destroy(step);
 }
 
 static int doSignalTasks(Req_Signal_Tasks_t *req)
@@ -2269,7 +2269,7 @@ static void handleAbortReq(Slurm_Msg_t *sMsg, uint32_t jobid, uint32_t stepid)
 	    return;
 	}
 	Step_signal(step, SIGKILL, sMsg->head.uid);
-	Step_delete(step);
+	Step_destroy(step);
 	return;
     }
 
