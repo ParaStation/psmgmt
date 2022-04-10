@@ -385,10 +385,10 @@ void __IO_printStepMsg(Forwarder_Data_t *fwdata, char *msg, size_t msgLen,
 void IO_finalize(Forwarder_Data_t *fwdata)
 {
     Step_t *step = fwdata->userData;
-    uint32_t i, myNodeID = step->localNodeId;
+    uint32_t myNodeID = step->localNodeId;
 
     /* make sure to close all leftover I/O channels */
-    for (i=0; i<step->globalTaskIdsLen[myNodeID]; i++) {
+    for (uint32_t i = 0; i < step->globalTaskIdsLen[myNodeID]; i++) {
 	/* use global rank */
 	uint32_t grank = step->globalTaskIds[myNodeID][i] +
 			 step->packTaskOffset;
@@ -405,7 +405,7 @@ void IO_finalize(Forwarder_Data_t *fwdata)
     sendTaskExit(step, sattachCtlSock, sattachAddr);
 
     /* close all sattach sockets */
-    for (i=0; i<MAX_SATTACH_SOCKETS; i++) {
+    for (uint32_t i = 0; i < MAX_SATTACH_SOCKETS; i++) {
 	if (sattachSockets[i] == -1) continue;
 
 	if (Selector_isRegistered(sattachSockets[i])) {
@@ -416,9 +416,7 @@ void IO_finalize(Forwarder_Data_t *fwdata)
     }
 
     /* ensure to wait for all answers from srun */
-    while (findConnectionByStep(step)) {
-	Swait(1);
-    }
+    while (findConnectionByStep(step)) Swait(1);
 }
 
 void IO_sattachTasks(Step_t *step, uint32_t ioAddr, uint16_t ioPort,
