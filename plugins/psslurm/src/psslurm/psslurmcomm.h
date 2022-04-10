@@ -54,7 +54,7 @@ typedef struct {
     struct timeval openTime;/**< time the connection was opened */
     bool readSize;	    /**< true if the message size was read */
     Msg_Forward_t fw;	    /**< message forwarding structure */
-    Step_t *step;	    /**< set if connection is associated with a step */
+    Step_t *step;	    /**< set if connection is associated to a step */
 } Connection_t;
 
 /** structure to make information available about the message request

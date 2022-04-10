@@ -70,7 +70,7 @@ static Ctl_Hosts_t ctlHosts[MAX_CTL_HOSTS];
 /** number of control hosts */
 static int ctlHostsCount = 0;
 
-/** list which holds all connections */
+/** list holding all connections */
 static LIST_HEAD(connectionList);
 
 PSnodes_ID_t getCtlHostID(int index)
@@ -95,7 +95,6 @@ int getCtlHostIndex(PSnodes_ID_t id)
 static Connection_t *findConnection(int socket)
 {
     list_t *c;
-
     list_for_each(c, &connectionList) {
 	Connection_t *con = list_entry(c, Connection_t, next);
 	if (con->sock == socket) return con;
@@ -171,12 +170,11 @@ static bool resetConnection(int socket)
  *
  * @param socket The socket of the connection to add
  *
- * @param cb The function to call to handle received messages
+ * @param cb Function to call to handle received messages
  *
- * @param info Pointer to additional information passed to @a
- * cb
+ * @param info Pointer to additional information passed to @a cb
  *
- * @return Returns a pointer to the added connection or NULL on error
+ * @return Returns a pointer to the new connection or NULL on error
  */
 static Connection_t *addConnection(int socket, Connection_CB_t *cb, void *info)
 {
@@ -213,6 +211,7 @@ void closeSlurmCon(int socket)
 {
     Connection_t *con = findConnection(socket);
     if (!con) fdbg(PSSLURM_LOG_COMM, "(%d)\n", socket);
+    if (socket < 0) return;
 
     /* close the connection */
     if (Selector_isRegistered(socket)) Selector_remove(socket);
@@ -535,7 +534,7 @@ CALLBACK:
 Connection_t *registerSlurmSocket(int sock, Connection_CB_t *cb, void *info)
 {
     if (sock < 0) {
-	flog("got invalid socket %i\n", sock);
+	flog("invalid socket %i\n", sock);
 	return NULL;
     }
 
@@ -909,21 +908,14 @@ TCP_RECONNECT:
 
     if (psslurmlogger->mask & PSSLURM_LOG_COMM) {
 	struct sockaddr_in sockLocal, sockRemote;
-	socklen_t len = sizeof(sockLocal);
-	bool ret = true;
+	socklen_t lenLoc = sizeof(sockLocal), lenRem = sizeof(sockRemote);
 
-	if (getsockname(sock, (struct sockaddr*)&sockLocal, &len) == -1) {
+	if (getsockname(sock, (struct sockaddr*)&sockLocal, &lenLoc) == -1) {
 	    mwarn(errno, "%s: getsockname(%i)", __func__, sock);
-	    ret = false;
-	}
-
-	len = sizeof(sockLocal);
-	if (getpeername(sock, (struct sockaddr*)&sockRemote, &len) == -1) {
+	} else if (getpeername(sock, (struct sockaddr*)&sockRemote,
+			       &lenRem) == -1) {
 	    mwarn(errno, "%s: getpeername(%i)", __func__, sock);
-	    ret = false;
-	}
-
-	if (ret) {
+	} else {
 	    flog("socket %i connected local %s:%u remote %s:%u\n", sock,
 		 inet_ntoa(sockRemote.sin_addr), ntohs(sockRemote.sin_port),
 		 inet_ntoa(sockLocal.sin_addr), ntohs(sockLocal.sin_port));
@@ -1205,24 +1197,21 @@ static int acceptSlurmClient(int socket, void *data)
     }
 
     if (psslurmlogger->mask & PSSLURM_LOG_COMM) {
-	struct sockaddr_in sock_local;
-	socklen_t len = sizeof(sock_local);
+	struct sockaddr_in sockLocal;
+	socklen_t len = sizeof(sockLocal);
 
-	if (getsockname(newSock, (struct sockaddr*)&sock_local, &len) == -1) {
-	    mwarn(errno, "%s: getsockname(%i)", __func__, newSock);
-
-	    flog("from %s:%u socket:%i\n", inet_ntoa(SAddr.sin_addr),
-		 ntohs(SAddr.sin_port), newSock);
+	flog("from %s:%u socket:%i", inet_ntoa(SAddr.sin_addr),
+	     ntohs(SAddr.sin_port), newSock);
+	if (getsockname(newSock, (struct sockaddr*)&sockLocal, &len) == -1) {
+	    mwarn(errno, " getsockname(%i)", newSock);
 	} else {
-	    flog("from %s:%u socket:%i local %s:%u\n",
-		 inet_ntoa(SAddr.sin_addr), ntohs(SAddr.sin_port), newSock,
-		 inet_ntoa(sock_local.sin_addr), ntohs(sock_local.sin_port));
+	    mlog(" local %s:%u\n", inet_ntoa(sockLocal.sin_addr),
+		 ntohs(sockLocal.sin_port));
 	}
     }
 
     if (!registerSlurmSocket(newSock, handleSlurmdMsg, NULL)) {
 	flog("failed to register socket %i\n", newSock);
-	return 0;
     }
 
     return 0;
@@ -1808,7 +1797,6 @@ void closeAllStepConnections(Step_t *step)
 
     /* close all remaining srun connections */
     list_t *c, *tmp;
-
     list_for_each_safe(c, tmp, &connectionList) {
 	Connection_t *con = list_entry(c, Connection_t, next);
 	if (con->step == step) {
