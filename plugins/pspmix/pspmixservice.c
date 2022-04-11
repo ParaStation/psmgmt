@@ -403,6 +403,7 @@ bool pspmix_service_destroyNamespace(PStask_ID_t spawnertid)
     PspmixNamespace_t *ns = findNamespaceByJobID(spawnertid);
     if (!ns) {
 	ulog("namespace not found (spawner %s)\n", PSC_printTID(spawnertid));
+	RELEASE_LOCK(namespaceList);
 	return false;
     }
     list_del(&ns->next);
