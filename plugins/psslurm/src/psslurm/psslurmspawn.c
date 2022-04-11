@@ -19,6 +19,7 @@
 #include "psenv.h"
 
 #include "pluginmalloc.h"
+#include "pluginstrv.h"
 
 #include "slurmcommon.h"
 #include "psslurmlog.h"
@@ -64,24 +65,15 @@ static void addSpawnPreputToEnv(int preputc, KVP_t *preputv, env_t *env)
 static int fillCmdForSingleSpawn(SpawnRequest_t *req, int usize,
 				 PStask_t *task)
 {
-    int i, maxargc;
-
-    if (req->num != 1) return 0;
-
-    /* calc max number of arguments to be passed to srun */
-    maxargc = 6; /* "srun --cpu_bind=none --ntasks=<NP> --chdir=<WDIR>
-		    --hosts=<HOSTLIST> <BINARY> ... */
-    maxargc += req->spawns[0].argc;
-
-    int argc = 0;
-    task->argv = umalloc(maxargc * sizeof(char *));
+    strv_t argV;
+    strvInit(&argV, NULL, 0);
 
     const char *srun = getConfValueC(&Config, "SRUN_BINARY");
     if (!srun) {
 	flog("no SRUN_BINARY provided\n");
 	return 0;
     }
-    task->argv[argc++] = ustrdup(srun);
+    strvAdd(&argV, ustrdup(srun));
 
     /* this is stupid but needed for best slurm compatibility
        actually this removes our default rank binding from the spawned
@@ -92,14 +84,16 @@ static int fillCmdForSingleSpawn(SpawnRequest_t *req, int usize,
 				| CPU_BIND_LDMASK | CPU_BIND_TO_SOCKETS
 				| CPU_BIND_TO_LDOMS | CPU_BIND_LDRANK
 				| CPU_BIND_RANK | CPU_BIND_TO_THREADS ))) {
-        task->argv[argc++] = ustrdup("--cpu_bind=none");
+	strvAdd(&argV, ustrdup("--cpu_bind"));
+	strvAdd(&argV, ustrdup("none"));
     }
 
     SingleSpawn_t *spawn = &(req->spawns[0]);
 
     /* set the number of processes to spawn */
-    snprintf(buffer, sizeof(buffer), "--ntasks=%d", spawn->np);
-    task->argv[argc++] = ustrdup(buffer);
+    strvAdd(&argV, ustrdup("--ntasks"));
+    snprintf(buffer, sizeof(buffer), "%d", spawn->np);
+    strvAdd(&argV, ustrdup(buffer));
 
     /* extract info values and keys
      *
@@ -127,28 +121,24 @@ static int fillCmdForSingleSpawn(SpawnRequest_t *req, int usize,
      *		+ 0:8:2,7 means 0,2,4,6,7,8
      *		+ 0:2 means 0,1,2
      */
-    for (i = 0; i < spawn->infoc; i++) {
+    for (int i = 0; i < spawn->infoc; i++) {
 	KVP_t *info = &(spawn->infov[i]);
 
 	if (strcmp(info->key, "wdir") == 0) {
-	    snprintf(buffer, sizeof(buffer), "--chdir=%s", info->value);
-	    task->argv[argc++] = ustrdup(buffer);
-	}
-	else if (strcmp(info->key, "host") == 0) {
-	    snprintf(buffer, sizeof(buffer), "--nodelist=%s", info->value);
-	    task->argv[argc++] = ustrdup(buffer);
-	}
-	else {
-	    mlog("%s: info key '%s' not supported\n", __func__, info->key);
+	    strvAdd(&argV, ustrdup("--chdir"));
+	    strvAdd(&argV, ustrdup(info->value));
+	} else if (strcmp(info->key, "host") == 0) {
+	    strvAdd(&argV, ustrdup("--nodelist"));
+	    strvAdd(&argV, ustrdup(info->value));
+	} else {
+	    flog("info key '%s' not supported\n", info->key);
 	}
     }
 
-    for (i = 0; i < spawn->argc; i++) {
-	task->argv[argc++] = ustrdup(spawn->argv[i]);
-    }
+    for (int i = 0; i<spawn->argc; i++) strvAdd(&argV, ustrdup(spawn->argv[i]));
 
-    task->argv[argc] = NULL;
-    task->argc = argc;
+    task->argc = argV.count;
+    task->argv = argV.strings;
 
     return 1;
 }
@@ -156,13 +146,10 @@ static int fillCmdForSingleSpawn(SpawnRequest_t *req, int usize,
 static int fillCmdForMultiSpawn(SpawnRequest_t *req, int usize,
 				PStask_t *task)
 {
-    int i, j, argc, maxargc, ntasks, fd;
-
-    char filebuf[64];
-
     /* create multi-prog file */
+    char filebuf[64];
     sprintf(filebuf, "/tmp/psslurm-spawn.%d.XXXXXX", getpid());
-    fd = mkstemp(filebuf);
+    int fd = mkstemp(filebuf);
     if (fd < 0) {
 	mlog("%s: failed to create temporary multi-prog file %s: %s\n",
 		__func__, filebuf, strerror(errno));
@@ -179,8 +166,8 @@ static int fillCmdForMultiSpawn(SpawnRequest_t *req, int usize,
     mlog("Writing %d spawn requests to multi-prog file '%s'\n", totalSpawns,
 	    filebuf);
 
-    ntasks = 0;
-    for (i = 0; i < totalSpawns; i++) {
+    int ntasks = 0;
+    for (int i = 0; i < totalSpawns; i++) {
 	SingleSpawn_t *spawn = &(req->spawns[i]);
 
 	/* TODO: handle info (slurm ignores too) */
@@ -194,7 +181,7 @@ static int fillCmdForMultiSpawn(SpawnRequest_t *req, int usize,
 		fprintf(fs, "%d-%d ", ntasks, ntasks + spawn->np - 1);
 	}
 
-	for (j = 0; j < spawn->argc; j++) {
+	for (int j = 0; j < spawn->argc; j++) {
 		fprintf(fs, " %s", spawn->argv[j]);
 	}
 	fprintf(fs, "\n");
@@ -203,18 +190,15 @@ static int fillCmdForMultiSpawn(SpawnRequest_t *req, int usize,
     }
     fclose(fs);
 
-    /* calc max number of arguments to be passed to srun */
-    maxargc = 5; /* "srun --cpu_bind=none --ntasks=<NP> --multi-prog <FILE> */
-
-    argc = 0;
-    task->argv = umalloc(maxargc * sizeof(char *));
+    strv_t argV;
+    strvInit(&argV, NULL, 0);
 
     const char *srun = getConfValueC(&Config, "SRUN_BINARY");
     if (!srun) {
 	flog("no SRUN_BINARY provided\n");
 	return 0;
     }
-    task->argv[argc++] = ustrdup(srun);
+    strvAdd(&argV, ustrdup(srun));
 
     /* this is stupid but needed for best slurm compatibility
        actually this removes our default rank binding from the spawned
@@ -225,39 +209,38 @@ static int fillCmdForMultiSpawn(SpawnRequest_t *req, int usize,
 				| CPU_BIND_LDMASK | CPU_BIND_TO_SOCKETS
 				| CPU_BIND_TO_LDOMS | CPU_BIND_LDRANK
 				| CPU_BIND_RANK | CPU_BIND_TO_THREADS ))) {
-        task->argv[argc++] = ustrdup("--cpu_bind=none");
+	strvAdd(&argV, ustrdup("--cpu_bind"));
+	strvAdd(&argV, ustrdup("none"));
     }
 
     /* set the number of processes to spawn */
-    snprintf(buffer, sizeof(buffer), "--ntasks=%d", ntasks);
-    task->argv[argc++] = ustrdup(buffer);
+    strvAdd(&argV, ustrdup("--ntasks"));
+    snprintf(buffer, sizeof(buffer), "%d", ntasks);
+    strvAdd(&argV, ustrdup(buffer));
 
-    task->argv[argc++] = ustrdup("--multi-prog");
-    task->argv[argc++] = ustrdup(filebuf);
-    task->argv[argc] = NULL;
-    task->argc = argc;
+    strvAdd(&argV, ustrdup("--multi-prog"));
+    strvAdd(&argV, ustrdup(filebuf));
+
+    task->argc = argV.count;
+    task->argv = argV.strings;
 
     return 1;
 }
 
 int fillSpawnTaskWithSrun(SpawnRequest_t *req, int usize, PStask_t *task)
 {
-    size_t i;
-    env_t newenv;
-
     if (!step) {
 	mlog("%s: There is no slurm step. Assuming this is not a slurm job.\n",
 		__func__);
 	return -1;
     }
 
-    size_t totalSpawns = req->num;
-
     /* *** build environment *** */
+    env_t newenv;
     envInit(&newenv);
 
     /* start with existing task environment */
-    for (i=0; task->environ[i] != NULL; i++) {
+    for (size_t i=0; task->environ[i] != NULL; i++) {
 	envPut(&newenv, task->environ[i]);
     }
 
@@ -266,7 +249,7 @@ int fillSpawnTaskWithSrun(SpawnRequest_t *req, int usize, PStask_t *task)
     /* we need the DISPLAY variable set by psslurm */
     char *display = getenv("DISPLAY");
 
-    for (i=0; i < step->env.cnt; i++) {
+    for (size_t i=0; i < step->env.cnt; i++) {
 	if (!(strncmp(step->env.vars[i], "SLURM_RLIMIT_", 13))) continue;
 	if (!(strncmp(step->env.vars[i], "SLURM_UMASK=", 12))) continue;
 	if (!(strncmp(step->env.vars[i], "PWD=", 4))) continue;
@@ -295,7 +278,7 @@ int fillSpawnTaskWithSrun(SpawnRequest_t *req, int usize, PStask_t *task)
     addSpawnPreputToEnv(spawn->preputc, spawn->preputv, &newenv);
 
     /* replace task environment */
-    for (i=0; task->environ[i] != NULL; i++) {
+    for (size_t i=0; task->environ[i] != NULL; i++) {
 	ufree(task->environ[i]);
     }
     ufree(task->environ);
@@ -305,10 +288,10 @@ int fillSpawnTaskWithSrun(SpawnRequest_t *req, int usize, PStask_t *task)
 				(task->envSize + 1) * sizeof(char *));
     task->environ[task->envSize] = NULL;
 
+    size_t totalSpawns = req->num;
     if (totalSpawns == 1) {
 	return fillCmdForSingleSpawn(req, usize, task);
-    }
-    else {
+    } else {
 	return fillCmdForMultiSpawn(req, usize, task);
     }
 }
