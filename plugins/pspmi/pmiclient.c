@@ -1998,6 +1998,9 @@ static int fillWithMpiexec(SpawnRequest_t *req, int usize, PStask_t *task)
     strvAdd(&args, ustrdup(buffer));
 
     for (i = 0; i < req->num; i++) {
+
+	spawn = &(req->spawns[i]);
+
 	/* set the number of processes to spawn */
 	strvAdd(&args, ustrdup("-np"));
 	snprintf(buffer, sizeof(buffer), "%d", spawn->np);
