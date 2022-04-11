@@ -290,9 +290,6 @@ int fillSpawnTaskWithSrun(SpawnRequest_t *req, int usize, PStask_t *task)
     ufree(task->environ);
     task->environ = newenv.vars;
     task->envSize = newenv.cnt;
-    task->environ = urealloc(task->environ,
-				(task->envSize + 1) * sizeof(char *));
-    task->environ[task->envSize] = NULL;
 
     size_t totalSpawns = req->num;
     if (totalSpawns == 1) {
