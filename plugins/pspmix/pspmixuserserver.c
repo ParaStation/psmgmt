@@ -122,10 +122,11 @@ bool pspmix_userserver_addJob(PStask_ID_t loggertid, PspmixJob_t *job)
 /**
  * @brief Terminate the Session
  *
- * Send first TERM and then KILL signal to all the processes in a session.
- * This is done by simply signaling the sessions logger.
+ * Send first TERM and then KILL signal to all the processes in a
+ * session.  This is done by simply signaling the session's logger and
+ * relying on the SIGTERM / delayed SIGKILL mechanism in the psid
  *
- * @return No return value.
+ * @return No return value
  */
 static void terminateSession(PspmixSession_t *session)
 {
@@ -143,7 +144,7 @@ static void terminateSession(PspmixSession_t *session)
  *
  * Send first TERM and then KILL signal to all the job's processes.
  *
- * @return No return value.
+ * @return No return value
  */
 static void terminateJob(PspmixJob_t *job)
 {
