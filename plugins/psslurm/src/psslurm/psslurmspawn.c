@@ -18,6 +18,7 @@
 
 #include "psenv.h"
 
+#include "pluginconfig.h"
 #include "pluginmalloc.h"
 #include "pluginstrv.h"
 

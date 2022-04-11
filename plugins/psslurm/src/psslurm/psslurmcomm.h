@@ -13,8 +13,10 @@
 
 #include <stdbool.h>
 #include <stdint.h>
+#include <sys/time.h>
 #include <time.h>
 
+#include "list.h"
 #include "psnodes.h"
 #include "psserial.h"
 #include "pluginmalloc.h"
