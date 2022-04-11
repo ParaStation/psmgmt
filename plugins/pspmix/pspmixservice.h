@@ -31,9 +31,6 @@
 
 extern PspmixServer_t *server;
 
-#define ulog(format, ...) \
-    mlog("%s(uid %d): " format, __func__, server->uid __VA_OPT__(,) __VA_ARGS__)
-
 /**
  * @brief Initialize the PMIX service
  *

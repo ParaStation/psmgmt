@@ -56,6 +56,12 @@ extern pthread_mutex_t __mlock;
 #define elog(...) PSIDfwd_printMsgf(STDERR, __VA_ARGS__)
 #define mset(flag) (logger_getMask(pmixlogger) & flag)
 
+#define udbg(mask, format, ...)						\
+    mdbg(mask, "%s(uid %d): " format, __func__, server->uid __VA_OPT__(,) \
+	 __VA_ARGS__)
+
+#define ulog(...) udbg(-1, __VA_ARGS__)
+
 /** Various types of logging levels for more verbose logging */
 typedef enum {
     PSPMIX_LOG_CALL    = 0x000001, /**< Log function calls */
@@ -64,6 +70,7 @@ typedef enum {
     PSPMIX_LOG_LOCK    = 0x000008, /**< Log service locking */
     PSPMIX_LOG_FENCE   = 0x000010, /**< Log fence stuff */
     PSPMIX_LOG_PROCMAP = 0x000020, /**< Log process mappings */
+    PSPMIX_LOG_MODEX   = 0x000040, /**< Log modex data send/receive/forward */
     PSPMIX_LOG_VERBOSE = 0x000100, /**< Other verbose stuff */
 } PSPMIX_log_types_t;
 

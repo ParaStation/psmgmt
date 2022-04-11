@@ -31,9 +31,6 @@
 
 #define MAX_NODE_ID 32768
 
-/* Set to 1 to enable output of modex data send, received and forwarded */
-#define DEBUG_MODEX_DATA 0
-
 /* Fence object */
 typedef struct {
     list_t next;
@@ -1130,9 +1127,7 @@ bool pspmix_service_sendModexDataRequest(modexdata_t *mdata)
 
     RELEASE_LOCK(namespaceList);
 
-#if DEBUG_MODEX_DATA
-    ulog("rank %d living on node %hd\n", mdata->proc.rank, nodeid);
-#endif
+    udbg(PSPMIX_LOG_MODEX, "rank %d on node %hd\n", mdata->proc.rank, nodeid);
 
     GET_LOCK(modexRequestList);
 
@@ -1175,13 +1170,13 @@ void pspmix_service_sendModexDataResponse(bool status, modexdata_t *mdata)
 
     if (!status) ulog(" failed\n");
 
-#if DEBUG_MODEX_DATA
-    ulog("Sending data: ");
-    for (size_t i = 0; i < mdata->ndata; i++) {
-	mlog("%02hhx ", *(char *)(mdata->data+i));
+    if (mset(PSPMIX_LOG_MODEX)) {
+	ulog("Sending data: ");
+	for (size_t i = 0; i < mdata->ndata; i++) {
+	    mlog("%02hhx ", *(char *)(mdata->data+i));
+	}
+	mlog(" (%zu)\n", mdata->ndata);
     }
-    mlog(" (%zu)\n", mdata->ndata);
-#endif
 
     pspmix_comm_sendModexDataResponse(mdata->requester, status, &mdata->proc,
 				      mdata->data, mdata->ndata);
@@ -1225,13 +1220,13 @@ void pspmix_service_handleModexDataResponse(bool success, pmix_proc_t *proc,
     mdata->data = data;
     mdata->ndata = len;
 
-#if DEBUG_MODEX_DATA
-    ulog("passing received data: ");
-    for (size_t i = 0; i < mdata->ndata; i++) {
-	mlog("%02hhx ", *(char *)(mdata->data+i));
+    if (mset(PSPMIX_LOG_MODEX)) {
+	ulog("passing received data: ");
+	for (size_t i = 0; i < mdata->ndata; i++) {
+	    mlog("%02hhx ", *(char *)(mdata->data+i));
+	}
+	mlog(" (%zu)\n", mdata->ndata);
     }
-    mlog(" (%zu)\n", mdata->ndata);
-#endif
 
     pspmix_server_returnModexData(true, mdata);
 }
