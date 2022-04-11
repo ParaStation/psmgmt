@@ -24,8 +24,6 @@
 #include "psslurmlog.h"
 #include "psslurmconfig.h"
 
-#define SRUN_BINARY "/usr/bin/srun"
-
 static char buffer[1024];
 
 static Step_t *step = NULL;
@@ -78,7 +76,12 @@ static int fillCmdForSingleSpawn(SpawnRequest_t *req, int usize,
     int argc = 0;
     task->argv = umalloc(maxargc * sizeof(char *));
 
-    task->argv[argc++] = ustrdup(SRUN_BINARY);
+    const char *srun = getConfValueC(&Config, "SRUN_BINARY");
+    if (!srun) {
+	flog("no SRUN_BINARY provided\n");
+	return 0;
+    }
+    task->argv[argc++] = ustrdup(srun);
 
     /* this is stupid but needed for best slurm compatibility
        actually this removes our default rank binding from the spawned
@@ -206,7 +209,12 @@ static int fillCmdForMultiSpawn(SpawnRequest_t *req, int usize,
     argc = 0;
     task->argv = umalloc(maxargc * sizeof(char *));
 
-    task->argv[argc++] = ustrdup(SRUN_BINARY);
+    const char *srun = getConfValueC(&Config, "SRUN_BINARY");
+    if (!srun) {
+	flog("no SRUN_BINARY provided\n");
+	return 0;
+    }
+    task->argv[argc++] = ustrdup(srun);
 
     /* this is stupid but needed for best slurm compatibility
        actually this removes our default rank binding from the spawned
