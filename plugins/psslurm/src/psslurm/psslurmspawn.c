@@ -22,8 +22,8 @@
 #include "pluginstrv.h"
 
 #include "slurmcommon.h"
-#include "psslurmlog.h"
 #include "psslurmconfig.h"
+#include "psslurmlog.h"
 
 static char buffer[1024];
 
@@ -48,12 +48,10 @@ void initSpawnFacility(Step_t *jobstep)
  */
 static void addSpawnPreputToEnv(int preputc, KVP_t *preputv, env_t *env)
 {
-    int i;
-
     snprintf(buffer, sizeof(buffer), "__PMI_preput_num=%i", preputc);
     envPut(env, buffer);
 
-    for (i = 0; i < preputc; i++) {
+    for (int i = 0; i < preputc; i++) {
 	snprintf(buffer, sizeof(buffer), "__PMI_preput_key_%i", i);
 	envSet(env, buffer, preputv[i].key);
 
@@ -65,6 +63,8 @@ static void addSpawnPreputToEnv(int preputc, KVP_t *preputv, env_t *env)
 static int fillCmdForSingleSpawn(SpawnRequest_t *req, int usize,
 				 PStask_t *task)
 {
+    if (req->num != 1) return 0; // ensure to only handle single spawns
+
     strv_t argV;
     strvInit(&argV, NULL, 0);
 
@@ -179,13 +179,13 @@ static int fillCmdForMultiSpawn(SpawnRequest_t *req, int usize,
 	}
 
 	if (spawn->np == 1) {
-		fprintf(fs, "%d ", ntasks);
+	    fprintf(fs, "%d ", ntasks);
 	} else {
-		fprintf(fs, "%d-%d ", ntasks, ntasks + spawn->np - 1);
+	    fprintf(fs, "%d-%d ", ntasks, ntasks + spawn->np - 1);
 	}
 
 	for (int j = 0; j < spawn->argc; j++) {
-		fprintf(fs, " %s", spawn->argv[j]);
+	    fprintf(fs, " %s", spawn->argv[j]);
 	}
 	fprintf(fs, "\n");
 
@@ -284,15 +284,12 @@ int fillSpawnTaskWithSrun(SpawnRequest_t *req, int usize, PStask_t *task)
     addSpawnPreputToEnv(spawn->preputc, spawn->preputv, &newenv);
 
     /* replace task environment */
-    for (size_t i=0; task->environ[i] != NULL; i++) {
-	ufree(task->environ[i]);
-    }
+    for (size_t i = 0; task->environ[i] != NULL; i++) ufree(task->environ[i]);
     ufree(task->environ);
     task->environ = newenv.vars;
     task->envSize = newenv.cnt;
 
-    size_t totalSpawns = req->num;
-    if (totalSpawns == 1) {
+    if (req->num == 1) {
 	return fillCmdForSingleSpawn(req, usize, task);
     } else {
 	return fillCmdForMultiSpawn(req, usize, task);
