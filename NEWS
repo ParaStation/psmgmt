@@ -6,6 +6,18 @@ Copyright (C) 2021-2022 ParTec AG, Munich
 Please send bug reports, questions and suggestions to <support@par-tec.com>
 
 
+Version 5.1.48-1:
+=================
+Bugfixes:
+ - Ensure to receive all pending ACKs from srun (#2977)
+ - Force spawning srun to use configuration cache in Slurm configless-mode
+ - Ensure to close all connections via Step_destroy() on step termination
+ - Allow NodeName entry of slurm.conf without additional options
+Enhancements:
+ - Let (pmi[x])spawn fail early if ressources are insufficient
+ - Add psslurm configuration option SRUN_BINARY used for spawning processes
+
+
 Version 5.1.48:
 ===============
 Bugfixes:

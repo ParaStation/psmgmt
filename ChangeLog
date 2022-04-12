@@ -1,3 +1,92 @@
+Version psmgmt-5.1.48-1:
+========================
+------------------------------------------------------------------------
+8b5e9a66 | Norbert Eicker | Mon, 11 Apr 2022 20:43:47 +0200
+
+IWYU fixes
+------------------------------------------------------------------------
+1028a802 | Norbert Eicker | Mon, 11 Apr 2022 20:38:54 +0200
+
+Streamlining
+------------------------------------------------------------------------
+9a0e8b99 | Norbert Eicker | Mon, 11 Apr 2022 20:37:23 +0200
+
+psenv ensures NULL terminated environment array
+------------------------------------------------------------------------
+559b5e1a | Michael Rauh | Mon, 11 Apr 2022 16:15:34 +0200
+
+Enhancement: let spawn fail if not enough ressources are available
+ * prevent srun from waiting until step timelimit is reached
+------------------------------------------------------------------------
+92d14128 | Michael Rauh | Mon, 11 Apr 2022 16:12:25 +0200
+
+Use string vector to build up spawn arguments for srun
+ * additional minor cleanup
+------------------------------------------------------------------------
+3c5b2422 | Michael Rauh | Mon, 11 Apr 2022 14:10:36 +0200
+
+Add psslurm configuration option SRUN_BINARY used for
+spawning processes
+------------------------------------------------------------------------
+62425b55 | Michael Rauh | Mon, 11 Apr 2022 14:02:44 +0200
+
+Bugfix: force spawning srun to use configuration cache in
+Slurm configless-mode
+------------------------------------------------------------------------
+8387c34c | Norbert Eicker | Sun, 10 Apr 2022 23:50:40 +0200
+
+Reorganize debug log and improve docu comments
+------------------------------------------------------------------------
+1989ccda | Norbert Eicker | Sun, 10 Apr 2022 23:46:21 +0200
+
+Streamlining
+------------------------------------------------------------------------
+b3c4d983 | Michael Rauh | Fri, 8 Apr 2022 16:27:17 +0200
+
+Bugfix: ensure to receive all unanswered request from srun
+before psslurmforwader shutdown
+
+ * add additional timing and debug output for Slurm connections
+------------------------------------------------------------------------
+502da6a0 | Michael Rauh | Fri, 8 Apr 2022 12:00:57 +0200
+
+Improve psslurm debug log message
+------------------------------------------------------------------------
+c1d89436 | Michael Rauh | Fri, 8 Apr 2022 11:58:21 +0200
+
+Use Step_destroy() to ensure all step connections get closed
+when the step is terminated
+------------------------------------------------------------------------
+988485b6 | Michael Rauh | Fri, 8 Apr 2022 11:57:20 +0200
+
+Improve psslurm log message
+------------------------------------------------------------------------
+1700cc97 | Michael Rauh | Thu, 7 Apr 2022 17:38:23 +0200
+
+Use Step_destroy() in Step_clearByJobid() to ensure all step
+connections get closed
+------------------------------------------------------------------------
+41ddd270 | Michael Rauh | Thu, 7 Apr 2022 14:11:58 +0200
+
+Minor improvement to skip unused sattach sockets on cleanup
+------------------------------------------------------------------------
+909fc8a4 | Norbert Eicker | Tue, 5 Apr 2022 23:32:29 +0200
+
+Hide parseSlurmPlugLine()
+------------------------------------------------------------------------
+f9f0b21c | Norbert Eicker | Tue, 5 Apr 2022 23:28:33 +0200
+
+Protect first call of strtok_r() from NULL argument
+------------------------------------------------------------------------
+58af5461 | Michael Rauh | Thu, 31 Mar 2022 10:52:23 +0200
+
+Bugfix: allow NodeName entry of slurm.conf without additional
+options
+
+ * all options of the node can be set via the default parameter
+------------------------------------------------------------------------
+
+
 Version psmgmt-5.1.48:
 ======================
 ------------------------------------------------------------------------
