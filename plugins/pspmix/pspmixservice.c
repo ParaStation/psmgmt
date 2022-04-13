@@ -464,28 +464,22 @@ bool pspmix_service_registerClientAndSendEnv(PStask_ID_t loggertid,
     PspmixNamespace_t *ns = findNamespace(nsname);
     if (!ns) {
 	ulog("namespace '%s' not found\n", nsname);
-	ufree(client);
 	RELEASE_LOCK(namespaceList);
 	return false;
     }
 
-    client->nspace = ns;
-
-    /* add to namespace's list of clients */
-    list_add_tail(&client->next, &ns->clientList);
-
-    RELEASE_LOCK(namespaceList);
+    strcpy(client->nsname, ns->name);
 
     PSresinfo_t *resInfo = findReservationInList(client->resID,
-						 &client->nspace->job->resInfos);
+						 &ns->job->resInfos);
     if (!resInfo) {
 	ulog("r%d: reservation %d not found in client's namespace %s\n",
-	     client->rank, client->resID, client->nspace->name);
-	// @todo do we need a GET_LOCK(namespaceList) here?
-	list_del(&client->next);
-	ufree(client);
+	     client->rank, client->resID, client->nsname);
+	RELEASE_LOCK(namespaceList);
 	return false;
     }
+
+    RELEASE_LOCK(namespaceList);
 
     /* register client at server */
     /* the client object is passed to the PMIx server and is returned
@@ -494,9 +488,6 @@ bool pspmix_service_registerClientAndSendEnv(PStask_ID_t loggertid,
     if (!pspmix_server_registerClient(nsname, client->rank, client->uid,
 		client->gid, (void*)client)) {
 	ulog("r%d: failed to register client to PMIx server\n", client->rank);
-	// @todo do we need a GET_LOCK(namespaceList) here?
-	list_del(&client->next);
-	ufree(client);
 	return false;
     }
 
@@ -506,12 +497,24 @@ bool pspmix_service_registerClientAndSendEnv(PStask_ID_t loggertid,
 	ulog("r%d: failed to setup the environment at the pspmix server\n",
 	     client->rank);
 	ufree(envp);
-	// @todo if pspmix_server_setupFork() fails, what about validity of client?
-	// @todo do we need a GET_LOCK(namespaceList) here?
-	list_del(&client->next);
-	ufree(client);
+	pspmix_server_deregisterClient(nsname, client->rank);
+	/* the client object is invalid now */
 	return false;
     }
+
+    GET_LOCK(namespaceList);
+
+    /* lookup namespace again to assure it is still valid in this lock */
+    ns = findNamespace(nsname);
+    if (!ns) {
+	ulog("namespace '%s' not longer valid\n", nsname);
+	RELEASE_LOCK(namespaceList);
+	pspmix_server_deregisterClient(nsname, client->rank);
+	return false;
+    }
+
+    /* add to namespace's list of clients */
+    list_add_tail(&client->next, &ns->clientList);
 
     /* put into env_t */
     env_t env;
@@ -524,14 +527,19 @@ bool pspmix_service_registerClientAndSendEnv(PStask_ID_t loggertid,
 
     /* add custom environment variables */
     char tmp[20];
-    snprintf(tmp, sizeof(tmp), "%u", client->nspace->jobSize);
+    snprintf(tmp, sizeof(tmp), "%u", ns->jobSize);
     envSet(&env, "OMPI_COMM_WORLD_SIZE", tmp);
     snprintf(tmp, sizeof(tmp), "%d", client->rank);
     envSet(&env, "OMPI_COMM_WORLD_RANK", tmp);
-    snprintf(tmp, sizeof(tmp), "%u", client->nspace->universeSize);
+    snprintf(tmp, sizeof(tmp), "%u", ns->universeSize);
     envSet(&env, "OMPI_UNIVERSE_SIZE", tmp);
 
     PSnodes_ID_t nodeId = getNodeFromRank(client->rank, ns);
+
+    RELEASE_LOCK(namespaceList);
+
+    // @todo how long is resInfo valid? can this become a problem?
+
     bool found = false;
     int lrank = -1;
     int lsize = 0;
@@ -572,6 +580,7 @@ bool pspmix_service_registerClientAndSendEnv(PStask_ID_t loggertid,
     }
 
     return true;
+
 }
 
 bool pspmix_service_finalize(void)
@@ -597,9 +606,21 @@ bool pspmix_service_clientConnected(void *clientObject, void *cb)
     /* Inform the client's forwarder about initialization and remember callback
      * for answer handling */
 
+    GET_LOCK(namespaceList);
+    PspmixNamespace_t *ns = findNamespace(client->nsname);
+    if (!ns) {
+	ulog("namespace '%s' not found\n", client->nsname);
+	ufree(client);
+	RELEASE_LOCK(namespaceList);
+	return false;
+    }
+
+    PStask_ID_t spawnertid = ns->job->spawnertid;
+    RELEASE_LOCK(namespaceList);
+
     pspmix_comm_sendInitNotification(client->fwtid, client->rank,
-				     client->nspace->name,
-				     client->nspace->job->spawnertid);
+				     client->nsname,
+				     spawnertid);
 
     if (client->notifiedFwCb) {
 	ulog("UNEXPECTED: client->notifiedFwCb set\n");
@@ -656,9 +677,20 @@ bool pspmix_service_clientFinalized(void *clientObject, void *cb)
     /* Inform the client's forwarder about finalization and remember callback
      * for answer handling */
 
+    GET_LOCK(namespaceList);
+    PspmixNamespace_t *ns = findNamespace(client->nsname);
+    if (!ns) {
+	ulog("namespace '%s' not found\n", client->nsname);
+	ufree(client);
+	RELEASE_LOCK(namespaceList);
+	return false;
+    }
+
+    PStask_ID_t spawnertid = ns->job->spawnertid;
+    RELEASE_LOCK(namespaceList);
+
     pspmix_comm_sendFinalizeNotification(client->fwtid, client->rank,
-					 client->nspace->name,
-					 client->nspace->job->spawnertid);
+					 client->nsname, spawnertid);
 
     if (client->notifiedFwCb) {
 	ulog("UNEXPECTED: client->notifiedFwCb set\n");
@@ -718,7 +750,17 @@ void pspmix_service_abort(void *clientObject)
     elog("%s: aborting on users request from rank %d\n", __func__,
 	    client->rank);
 
-    pspmix_userserver_removeJob(client->nspace->job->spawnertid, true);
+    GET_LOCK(namespaceList);
+    PspmixNamespace_t *ns = findNamespace(client->nsname);
+    if (!ns) {
+	ulog("namespace '%s' not found\n", client->nsname);
+	ufree(client);
+    }
+
+    PStask_ID_t spawnertid = ns->job->spawnertid;
+    RELEASE_LOCK(namespaceList);
+
+    pspmix_userserver_removeJob(spawnertid, true);
 }
 
 /**

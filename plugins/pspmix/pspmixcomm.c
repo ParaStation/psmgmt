@@ -152,7 +152,10 @@ static void handleRegisterClient(DDTypedBufferMsg_t *msg)
 	 pspmix_jobIDsStr(loggertid, spawnertid), client->rank,
 	 client->resID);
 
-    pspmix_service_registerClientAndSendEnv(loggertid, spawnertid, client);
+    if (!pspmix_service_registerClientAndSendEnv(loggertid, spawnertid,
+						 client)) {
+	ufree(client);
+    }
 }
 
 /**

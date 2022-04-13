@@ -182,7 +182,7 @@ typedef struct {
     uid_t uid;                 /**< user id */
     gid_t gid;                 /**< group id */
     PSrsrvtn_ID_t resID;       /**< reservation ID */
-    PspmixNamespace_t *nspace; /**< namespace of the client */
+    char nsname[MAX_NSLEN+1];  /**< name of the client's namespace */
     PStask_ID_t fwtid;	       /**< TID of the client's forwarder */
     void *notifiedFwCb;        /**< callback object for forwarder notification
 				    about init/finalize */

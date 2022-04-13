@@ -55,6 +55,9 @@ bool pspmix_service_registerNamespace(PspmixJob_t *job);
 /**
  * @brief Register the client and send its environment to its forwarder
  *
+ * If false is returned, the client object passed is to be considered as
+ * invalid.
+ *
  * @param loggertid  logger to identify the session the client belongs to
  * @param spawnertid spawner to identify the job the client belongs to
  * @param client     client to register
