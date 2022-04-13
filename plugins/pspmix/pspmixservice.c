@@ -408,6 +408,18 @@ bool pspmix_service_destroyNamespace(PStask_ID_t spawnertid)
     }
     list_del(&ns->next);
     RELEASE_LOCK(namespaceList);
+    // @todo is it safe to unlock already here?
+
+    if (!pspmix_server_deregisterNamespace(ns->name)) {
+	ulog("deregister namespace failed");
+    }
+
+    /* client objects can be safely freed now */
+    list_t *c;
+    list_for_each(c, &ns->clientList) {
+	PspmixClient_t *client = list_entry(c, PspmixClient_t, next);
+	ufree(client);
+    }
 
     ufree(ns->apps);
     freeProcMap(&ns->procMap);
@@ -684,6 +696,7 @@ bool pspmix_service_clientFinalized(void *clientObject, void *cb)
     PspmixNamespace_t *ns = findNamespace(client->nsname);
     if (!ns) {
 	ulog("namespace '%s' not found\n", client->nsname);
+	ufree(client->notifiedFwCb);
 	ufree(client);
 	RELEASE_LOCK(namespaceList);
 	return false;
