@@ -479,6 +479,11 @@ bool pspmix_service_registerClientAndSendEnv(PStask_ID_t loggertid,
 	return false;
     }
 
+    /* remember some information to be used outside the lock */
+    uint32_t universeSize = ns->universeSize;
+    uint32_t jobSize = ns->jobSize;
+    PSnodes_ID_t nodeId = getNodeFromRank(client->rank, ns);
+
     RELEASE_LOCK(namespaceList);
 
     /* register client at server */
@@ -502,20 +507,6 @@ bool pspmix_service_registerClientAndSendEnv(PStask_ID_t loggertid,
 	return false;
     }
 
-    GET_LOCK(namespaceList);
-
-    /* lookup namespace again to assure it is still valid in this lock */
-    ns = findNamespace(nsname);
-    if (!ns) {
-	ulog("namespace '%s' not longer valid\n", nsname);
-	RELEASE_LOCK(namespaceList);
-	pspmix_server_deregisterClient(nsname, client->rank);
-	return false;
-    }
-
-    /* add to namespace's list of clients */
-    list_add_tail(&client->next, &ns->clientList);
-
     /* put into env_t */
     env_t env;
     envInit(&env);
@@ -527,19 +518,16 @@ bool pspmix_service_registerClientAndSendEnv(PStask_ID_t loggertid,
 
     /* add custom environment variables */
     char tmp[20];
-    snprintf(tmp, sizeof(tmp), "%u", ns->jobSize);
+    snprintf(tmp, sizeof(tmp), "%u", jobSize);
     envSet(&env, "OMPI_COMM_WORLD_SIZE", tmp);
     snprintf(tmp, sizeof(tmp), "%d", client->rank);
     envSet(&env, "OMPI_COMM_WORLD_RANK", tmp);
-    snprintf(tmp, sizeof(tmp), "%u", ns->universeSize);
+    snprintf(tmp, sizeof(tmp), "%u", universeSize);
     envSet(&env, "OMPI_UNIVERSE_SIZE", tmp);
 
-    PSnodes_ID_t nodeId = getNodeFromRank(client->rank, ns);
-
-    RELEASE_LOCK(namespaceList);
-
-    // @todo how long is resInfo valid? can this become a problem?
-
+    /* since this function is always running in the main thread and resInfo
+       is not affected by pspmix_service_registerClientAndSendEnv() it is
+       still valid here and we don't need to protect or validate it */
     bool found = false;
     int lrank = -1;
     int lsize = 0;
@@ -573,14 +561,29 @@ bool pspmix_service_registerClientAndSendEnv(PStask_ID_t loggertid,
     envDestroy(&env);
 
     if (!success) {
-	// @todo shall we de-register the client right now?
 	ulog("r%d: failed to send the environment to client forwarder %s\n",
 	     client->rank, PSC_printTID(client->fwtid));
+	pspmix_server_deregisterClient(nsname, client->rank);
 	return false;
     }
 
-    return true;
+    GET_LOCK(namespaceList);
 
+    /* lookup namespace again to assure it is still valid in this lock */
+    ns = findNamespace(nsname);
+    if (!ns) {
+	ulog("namespace '%s' not longer valid\n", nsname);
+	RELEASE_LOCK(namespaceList);
+	pspmix_server_deregisterClient(nsname, client->rank);
+	return false;
+    }
+
+    /* add to namespace's list of clients */
+    list_add_tail(&client->next, &ns->clientList);
+
+    RELEASE_LOCK(namespaceList);
+
+    return true;
 }
 
 bool pspmix_service_finalize(void)
