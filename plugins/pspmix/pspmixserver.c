@@ -1972,6 +1972,23 @@ bool pspmix_server_registerClient(const char *nspace, int rank, int uid,
     return true;
 }
 
+/* run this function in exception case to remove all client information  */
+void pspmix_server_deregisterClient(const char *nspace, int rank)
+{
+    mdbg(PSPMIX_LOG_CALL, "%s called with nspace '%s' rank %d\n", __func__,
+	    nspace, rank);
+
+    /* setup process struct */
+    pmix_proc_t proc;
+    PMIX_PROC_LOAD(&proc, nspace, rank);
+
+    /* deregister client */
+    mycbdata_t cbdata;
+    INIT_CBDATA(cbdata);
+    PMIx_server_deregister_client(&proc, NULL, NULL);
+    PMIX_PROC_DESTRUCT(&proc);
+}
+
 /* get the client environment set */
 bool pspmix_server_setupFork(const char *nspace, int rank, char ***childEnv)
 {

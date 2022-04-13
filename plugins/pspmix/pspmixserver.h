@@ -118,6 +118,20 @@ bool pspmix_server_registerClient(const char *nspace, int rank, int uid,
 	int gid, void *childIdent);
 
 /**
+ * @brief Deregister the client from the server
+ *
+ * This purges all data relating to the client from the server library and is
+ * mainly meant to be called in exception case.
+ *
+ * Especially we assume, that no callback function will be called with a
+ * formerly passed client object reference after this function returned.
+ *
+ * @param nspace     name of the namespace the client is registered for
+ * @param rank       rank of the client in the namespace
+ */
+void pspmix_server_deregisterClient(const char *nspace, int rank);
+
+/**
  * @brief Get the client environment set
  *
  * @param nspace     name of the namespace to register
