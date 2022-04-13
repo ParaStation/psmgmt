@@ -731,9 +731,9 @@ void pspmix_service_handleClientFinalizeResp(bool success, pmix_rank_t rank,
     }
 
     PspmixClient_t *client = findClientInList(rank, &ns->clientList);
-    RELEASE_LOCK(namespaceList);
     if (!client) {
 	ulog("no client for rank %d in namespace '%s'\n", rank, nspace);
+	RELEASE_LOCK(namespaceList);
 	return;
     }
 
@@ -742,17 +742,19 @@ void pspmix_service_handleClientFinalizeResp(bool success, pmix_rank_t rank,
 	ulog("client finalize notification response from unexpected TID %s",
 	     PSC_printTID(fwtid));
 	mlog(" (expected %s)\n", PSC_printTID(client->fwtid));
+	RELEASE_LOCK(namespaceList);
 	return;
     }
+
+    /* remove client from namespace */
+    list_del(&client->next);
+
+    RELEASE_LOCK(namespaceList);
 
     pspmix_server_operationFinished(success, client->notifiedFwCb);
     ufree(client->notifiedFwCb);
     client->notifiedFwCb = NULL;
 
-    /* remove client from namespace */
-    GET_LOCK(namespaceList);
-    list_del(&client->next);
-    RELEASE_LOCK(namespaceList);
     ufree(client);
 }
 

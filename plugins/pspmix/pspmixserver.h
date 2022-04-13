@@ -79,6 +79,9 @@ bool pspmix_server_registerNamespace(
 /**
  * @brief Deregister namespace from the server library
  *
+ * Deletes all client information for the namespace. So it is not needed to
+ * call @a pspmix_server_deregisterClient() for each client in addition.
+ *
  * @param nspace     name of the namespace to register
  */
 bool pspmix_server_deregisterNamespace(const char *nspace);
