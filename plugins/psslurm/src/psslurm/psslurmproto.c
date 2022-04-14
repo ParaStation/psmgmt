@@ -2335,10 +2335,9 @@ static bool killSelectedSteps(Step_t *step, const void *killInfo)
 
 static void handleKillReq(Slurm_Msg_t *sMsg, Alloc_t *alloc, Kill_Info_t *info)
 {
-    Step_traverse(killSelectedSteps, info);
-
     /* if we only kill one selected step, we are done */
     if (info->stepid != NO_VAL) {
+	Step_traverse(killSelectedSteps, info);
 	sendSlurmRC(sMsg, SLURM_SUCCESS);
 	return;
     }
