@@ -1954,7 +1954,7 @@ static bool packRespNodeRegStatus(PS_SendDB_t *data,
     /* architecture */
     addStringToMsg(stat->arch, data);
     /* CPU spec list */
-    addStringToMsg("", data);
+    addStringToMsg(NULL, data);
     /* OS */
     addStringToMsg(stat->sysname, data);
     /* CPUs */
