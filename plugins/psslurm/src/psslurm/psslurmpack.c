@@ -1883,13 +1883,13 @@ bool packGresConf(Gres_Conf_t *gres, void *info)
     addUint32ToMsg(gres->id, msg);
     addStringToMsg(gres->cpus, msg);
     /* links */
-    addStringToMsg("", msg);
+    addStringToMsg(NULL, msg);
     addStringToMsg(gres->name, msg);
     addStringToMsg(gres->type, msg);
 
     if (slurmProto >= SLURM_21_08_PROTO_VERSION) {
 	/* unique ID (GPU binding with MICs) */
-	addStringToMsg("", msg);
+	addStringToMsg(NULL, msg);
     }
 
     return false;
