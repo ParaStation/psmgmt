@@ -36,6 +36,9 @@ typedef struct {
     char *type;                 /**< GRES type */
     char *cores;                /**< cores to bind to GRES */
     char *strFlags;             /**< flags specified for the GRES from config */
+    char *links;                /**< comma separated list of numbers identifying
+                                     the number of connections between
+                                     devices */
     uint32_t flags;             /**< parsed binary flags */
     uint64_t count;             /**< number of GRES resources */
     uint32_t id;                /**< GRES plugin ID */

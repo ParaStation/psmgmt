@@ -1883,7 +1883,7 @@ bool packGresConf(Gres_Conf_t *gres, void *info)
     addUint32ToMsg(gres->id, msg);
     addStringToMsg(gres->cpus, msg);
     /* links */
-    addStringToMsg(NULL, msg);
+    addStringToMsg(gres->links, msg);
     addStringToMsg(gres->name, msg);
     addStringToMsg(gres->type, msg);
 

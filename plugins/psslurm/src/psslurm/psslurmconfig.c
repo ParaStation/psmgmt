@@ -337,6 +337,10 @@ static bool parseGresOptions(char *options)
 	    gres->type = ustrdup(next+5);
 	} else if (!strncasecmp(next, "Flags=", 6)) {
 	    gres->strFlags = ustrdup(next+6);
+	} else if (!strncasecmp(next, "Link=", 5)) {
+	    gres->links = ustrdup(next+5);
+	} else if (!strncasecmp(next, "Links=", 6)) {
+	    gres->links = ustrdup(next+6);
 	} else {
 	    flog("unknown gres option '%s'\n", next);
 	    return false;
