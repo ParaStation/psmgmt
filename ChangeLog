@@ -1,3 +1,31 @@
+Version psmgmt-5.1.48-2:
+========================
+------------------------------------------------------------------------
+1827661b9 | Michael Rauh | Thu, 14 Apr 2022 16:37:51 +0200
+
+Fix minor issue in Slurm node registration RPC
+------------------------------------------------------------------------
+ee66209f3 | Michael Rauh | Thu, 14 Apr 2022 16:33:59 +0200
+
+Add support for links parameter of gres.conf
+------------------------------------------------------------------------
+dfc6f397c | Michael Rauh | Thu, 14 Apr 2022 14:48:08 +0200
+
+Bugfix: fix slurmcltd warning about empty gres links statement
+ * only relevant for Slurm protocol 21.08
+------------------------------------------------------------------------
+b582cee37 | Stephan Krempel | Wed, 13 Apr 2022 14:41:14 +0000
+
+Update plugins/pspmix/pspmixservicespawn.c
+------------------------------------------------------------------------
+1bd585649 | Stephan Krempel | Mon, 11 Apr 2022 14:47:26 +0200
+
+Bugfix: use all spawn requests during MPI_Comm_spawn_multiple
+
+Applies to pure mpiexec usage.
+------------------------------------------------------------------------
+
+
 Version psmgmt-5.1.48-1:
 ========================
 ------------------------------------------------------------------------

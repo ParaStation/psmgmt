@@ -6,6 +6,15 @@ Copyright (C) 2021-2022 ParTec AG, Munich
 Please send bug reports, questions and suggestions to <support@par-tec.com>
 
 
+Version 5.1.48-2:
+=================
+Bugfixes:
+ - Fix slurmcltd (v21.08) warning on empty gres links statement (psc:#400)
+ - Consider all spawn info objects during MPI_Comm_spawn_multiple (#69)
+Enhancements:
+ - Add support for links parameter of gres.conf
+
+
 Version 5.1.48-1:
 =================
 Bugfixes:
