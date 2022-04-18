@@ -147,39 +147,34 @@ static inline void fixList(list_t *list, list_t *oldHead)
 int PSIDnodes_grow(PSnodes_ID_t num)
 {
     PSnodes_ID_t oldNum = PSIDnodes_getNum();
-    node_t *oldNodes = nodes;
+    if (oldNum >= num) return 0; /* don't shrink */
 
-    if (PSIDnodes_getNum() >= num) return 0; /* don't shrink */
-
-    if (PSIDnodes_getNum() < 0) {
+    if (oldNum < 0) {
 	initHash();
 	oldNum = 0;
     }
 
     numNodes = num;
-
-    nodes = realloc(nodes, sizeof(*nodes) * numNodes);
-    if (!nodes) {
+    node_t *newNodes = realloc(nodes, sizeof(*nodes) * numNodes);
+    if (!newNodes) {
 	PSID_warn(-1, ENOMEM, "%s", __func__);
-	nodes=oldNodes;
 	numNodes = oldNum;
 	return -1;
     }
 
     /* Restore old lists if necessary */
-    if (nodes != oldNodes) {
+    if (newNodes != nodes) {
 	for (int i = 0; i < oldNum; i++) {
-	    fixList(&nodes[i].uid_list, &oldNodes[i].uid_list);
-	    fixList(&nodes[i].gid_list, &oldNodes[i].gid_list);
-	    fixList(&nodes[i].admuid_list, &oldNodes[i].admuid_list);
-	    fixList(&nodes[i].admgid_list, &oldNodes[i].admgid_list);
+	    fixList(&newNodes[i].uid_list, &nodes[i].uid_list);
+	    fixList(&newNodes[i].gid_list, &nodes[i].gid_list);
+	    fixList(&newNodes[i].admuid_list, &nodes[i].admuid_list);
+	    fixList(&newNodes[i].admgid_list, &nodes[i].admgid_list);
 	}
     }
-
     /* Initialize new nodes */
-    for (int i = oldNum; i < numNodes; i++) {
-	nodeInit(&nodes[i]);
-    }
+    for (int i = oldNum; i < numNodes; i++) nodeInit(&newNodes[i]);
+
+    nodes = newNodes;
 
     return 0;
 }
