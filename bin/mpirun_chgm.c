@@ -262,10 +262,8 @@ int main(int argc, const char *argv[])
 	    val = strdup(envlist);
 	}
 	setenv("PSI_EXPORTS", val, 1);
+	if (verbose) printf("Environment variables to be exported: %s\n", val);
 	free(val);
-	if (verbose) {
-	    printf("Environment variables to be exported: %s\n", val);
-	}
     }
 
     msg = PSE_checkAndSetNodeEnv(nList, hList, hFile, NULL, "-", verbose);
