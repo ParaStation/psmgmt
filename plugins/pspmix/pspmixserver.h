@@ -82,9 +82,11 @@ bool pspmix_server_registerNamespace(
  * Deletes all client information for the namespace. So it is not needed to
  * call @a pspmix_server_deregisterClient() for each client in addition.
  *
- * @param nspace     name of the namespace to register
+ * @param nsname     name of the namespace to deregister
+ * @param nsobject   namespace object later to be passed via the callback
+ *                   to @a pspmix_service_destroyNamespace
  */
-bool pspmix_server_deregisterNamespace(const char *nspace);
+void pspmix_server_deregisterNamespace(const char *nsname, void *nsobject);
 
 /**
  * @brief Setting up local support XXX what exactly does this do?

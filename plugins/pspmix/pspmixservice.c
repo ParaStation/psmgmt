@@ -376,7 +376,7 @@ bool pspmix_service_registerNamespace(PspmixJob_t *job)
     /* setup local node */
     if (!pspmix_server_setupLocalSupport(ns->name)) {
 	ulog("failed to setup local support\n");
-	pspmix_server_deregisterNamespace(ns->name);
+	pspmix_server_deregisterNamespace(ns->name, ns);
 	goto nscreate_error;
     }
 
@@ -397,7 +397,11 @@ nscreate_error:
     return false;
 }
 
-bool pspmix_service_destroyNamespace(PStask_ID_t spawnertid)
+/* main thread:
+	if called by handleRemoveJob() via pspmix_userserver_removeJob()
+   library thread:
+	if called by pmix_service_abort() via pspmix_userserver_removeJob() */
+bool pspmix_service_removeNamespace(PStask_ID_t spawnertid)
 {
     GET_LOCK(namespaceList);
     PspmixNamespace_t *ns = findNamespaceByJobID(spawnertid);
@@ -407,14 +411,28 @@ bool pspmix_service_destroyNamespace(PStask_ID_t spawnertid)
 	return false;
     }
     list_del(&ns->next);
-    RELEASE_LOCK(namespaceList);
-    // @todo is it safe to unlock already here?
 
-    if (!pspmix_server_deregisterNamespace(ns->name)) {
-	ulog("deregister namespace failed");
+    pspmix_server_deregisterNamespace(ns->name, ns);
+
+    RELEASE_LOCK(namespaceList);
+
+    return true;
+}
+
+/* library thread */
+void pspmix_service_destroyNamespace(void *nspace, bool error,
+				     const char *errstr)
+{
+    PspmixNamespace_t *ns = (PspmixNamespace_t *)nspace;
+
+    if (error) {
+	ulog("deregister namespace %s failed: %s", ns->name, errstr);
+	return;
     }
 
-    /* client objects can be safely freed now */
+    /* client objects can be safely freed now:
+       - handleClient{Init|Finalize}Resp() will not find the namespace
+       - the server library will not call callbacks related to the client */
     list_t *c;
     list_for_each(c, &ns->clientList) {
 	PspmixClient_t *client = list_entry(c, PspmixClient_t, next);
@@ -424,7 +442,6 @@ bool pspmix_service_destroyNamespace(PStask_ID_t spawnertid)
     ufree(ns->apps);
     freeProcMap(&ns->procMap);
     ufree(ns);
-    return true;
 }
 
 /**
@@ -460,6 +477,7 @@ static PSnodes_ID_t getNodeFromRank(int32_t rank, PspmixNamespace_t *ns)
 
 }
 
+/* main thread */
 bool pspmix_service_registerClientAndSendEnv(PStask_ID_t loggertid,
 					     PStask_ID_t spawnertid,
 					     PspmixClient_t *client)
@@ -612,16 +630,18 @@ bool pspmix_service_finalize(void)
     return true;
 }
 
+/* library thread */
 bool pspmix_service_clientConnected(void *clientObject, void *cb)
 {
     PspmixClient_t *client = clientObject;
+
+    GET_LOCK(namespaceList);
 
     ulog("(rank %d)\n", client->rank);
 
     /* Inform the client's forwarder about initialization and remember callback
      * for answer handling */
 
-    GET_LOCK(namespaceList);
     PspmixNamespace_t *ns = findNamespace(client->nsname);
     if (!ns) {
 	ulog("namespace '%s' not found\n", client->nsname);
@@ -650,6 +670,7 @@ bool pspmix_service_clientConnected(void *clientObject, void *cb)
     return true;
 }
 
+/* main thread */
 void pspmix_service_handleClientInitResp(bool success, pmix_rank_t rank,
 	const char *nspace, PStask_ID_t fwtid)
 {
@@ -683,16 +704,18 @@ void pspmix_service_handleClientInitResp(bool success, pmix_rank_t rank,
     client->notifiedFwCb = NULL;
 }
 
+/* library thread */
 bool pspmix_service_clientFinalized(void *clientObject, void *cb)
 {
     PspmixClient_t *client = clientObject;
+
+    GET_LOCK(namespaceList);
 
     ulog("(rank %d)\n", client->rank);
 
     /* Inform the client's forwarder about finalization and remember callback
      * for answer handling */
 
-    GET_LOCK(namespaceList);
     PspmixNamespace_t *ns = findNamespace(client->nsname);
     if (!ns) {
 	ulog("namespace '%s' not found\n", client->nsname);

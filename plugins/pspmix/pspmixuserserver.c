@@ -174,7 +174,7 @@ bool pspmix_userserver_removeJob(PStask_ID_t spawnertid, bool abort)
 
     if (abort) terminateJob(job);
 
-    if (!pspmix_service_destroyNamespace(spawnertid)) {
+    if (!pspmix_service_removeNamespace(spawnertid)) {
 	ulog("destroying namespace failed (%s)\n", pspmix_jobStr(job));
 	return false;
     }

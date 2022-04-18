@@ -69,13 +69,41 @@ bool pspmix_service_registerClientAndSendEnv(PStask_ID_t loggertid,
 					     PspmixClient_t *client);
 
 /**
- * @brief Destroy a namespace
+ * @brief Remove a namespace
+ *
+ * The namespace is removed from the list so it cannot be found any more from
+ * anywhere else. Then the deregestration from the server library is triggered
+ * asynchronously. This needs to be non-blocking since we need to do it inside
+ * the NamespaceList lock to avoid races on the client objects but we cannot be
+ * sure whether a server library internal lock then will lead to a deadlock
+ * during the deregistration process if a callback is still in process using
+ * NamespaceList lock, too.
+ *
+ * Actual cleanup of the remaining client objects and the namespace object is
+ * done in the deregistration callback via @a pspmix_service_destroyNamespace().
  *
  * @param spawnertid   spawner identifying the job implemented by the namespace
  *
  * @return Returns true on success and false on errors
  */
-bool pspmix_service_destroyNamespace(PStask_ID_t spawnertid);
+bool pspmix_service_removeNamespace(PStask_ID_t spawnertid);
+
+/**
+ * @brief Delete a namespace
+ *
+ * Actually cleanup the remaining client of a namespace and the namespace object
+ * itself. It is the followup function of @a pspmix_service_deleteNamespace()
+ * called from the namespace deregistration callback.
+ *
+ * nspace is the namespace object reference that has been passed to
+ * @a pspmix_server_deregisterNamespace() in @a pspmix_service_deleteNamespace()
+ *
+ * @param nspace   namespace object of type (PspmixNamespace_t *)
+ * @param error    indicator of a error reported by the server library
+ * @param errstr   in case of an error, this is the error string
+ */
+void pspmix_service_destroyNamespace(void *nspace, bool error,
+				     const char *errstr);
 
 /**
  * @brief Finalize the PMIx service

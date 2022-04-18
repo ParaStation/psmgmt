@@ -1836,38 +1836,24 @@ reg_nspace_error:
 /**
  * To be called by PMIx_deregister_namespace() to provide status
  */
-static void deregisterNamespace_cb(pmix_status_t status, void *cbdata) 
+static void deregisterNamespace_cb(pmix_status_t status, void *cbdata)
 {
-    mycbdata_t *data;
-    data = cbdata;
-
     mdbg(PSPMIX_LOG_CALL, "%s()\n", __func__);
 
-    data->status = status;
-
-    SET_CBDATA_AVAIL(data);
-}
-
-bool pspmix_server_deregisterNamespace(const char *nspace)
-{
-    mdbg(PSPMIX_LOG_CALL, "%s(namespace '%s')\n", __func__, nspace);
-
-    mycbdata_t data;
-    INIT_CBDATA(data);
-
-    /* deregister namespace */
-    PMIx_server_deregister_nspace(nspace, deregisterNamespace_cb, &data);
-    WAIT_FOR_CBDATA(data);
-
-    if (data.status != PMIX_SUCCESS) {
-	mlog("%s: Callback from register namespace failed: %s\n", __func__,
-	     PMIx_Error_string(data.status));
-	DESTROY_CBDATA(data);
-	return false;
+    const char *errstr = "";
+    if (status != PMIX_SUCCESS) {
+	errstr = PMIx_Error_string(status);
     }
 
-    DESTROY_CBDATA(data);
-    return true;
+    pspmix_service_destroyNamespace(cbdata, (status != PMIX_SUCCESS), errstr);
+}
+
+void pspmix_server_deregisterNamespace(const char *nsname, void *nsobject)
+{
+    mdbg(PSPMIX_LOG_CALL, "%s(namespace '%s')\n", __func__, nsname);
+
+    /* deregister namespace */
+    PMIx_server_deregister_nspace(nsname, deregisterNamespace_cb, nsobject);
 }
 
 /**
