@@ -308,7 +308,7 @@ bool pspmix_service_registerNamespace(PStask_t *prototask, list_t resInfos)
 	ns->apps[i].num = i;
 
 	/* set the application size from environment set by the spawner */
-	char var[32];
+	char var[64];
 	snprintf(var, sizeof(var), "PMIX_APPSIZE_%zu", i);
 	env = envGet(&e, var);
 	if (!env) {
@@ -344,7 +344,7 @@ bool pspmix_service_registerNamespace(PStask_t *prototask, list_t resInfos)
     for(size_t app = 0; app < ns->appsCount; app++) {
 
 	/* get used reservation from environment set by the spawner */
-	char var[32];
+	char var[64];
 	snprintf(var, sizeof(var), "__PMIX_RESID_%zu", app);
 	env = envGet(&e, var);
 	if (!env) {
