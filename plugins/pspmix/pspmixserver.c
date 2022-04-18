@@ -1945,6 +1945,23 @@ bool pspmix_server_registerClient(const char *nspace, int rank, int uid,
     return true;
 }
 
+#if PMIX_VERSION_MAJOR < 4
+/**
+ * To be called by PMIx_deregisterClient() to provide status
+ */
+static void deregisterClient_cb(pmix_status_t status, void *cbdata)
+{
+    mycbdata_t *data;
+    data = cbdata;
+
+    mdbg(PSPMIX_LOG_CALL, "%s()\n", __func__);
+
+    data->status = status;
+
+    SET_CBDATA_AVAIL(data);
+}
+
+#endif
 /* run this function in exception case to remove all client information  */
 void pspmix_server_deregisterClient(const char *nspace, int rank)
 {
@@ -1955,9 +1972,21 @@ void pspmix_server_deregisterClient(const char *nspace, int rank)
     PMIX_PROC_LOAD(&proc, nspace, rank);
 
     /* deregister client */
+#if PMIX_VERSION_MAJOR >= 4
+    PMIx_server_deregister_client(&proc, NULL, NULL);
+#else
     mycbdata_t cbdata;
     INIT_CBDATA(cbdata);
-    PMIx_server_deregister_client(&proc, NULL, NULL);
+    PMIx_server_deregister_client(&proc, deregisterClient_cb, &cbdata);
+    WAIT_FOR_CBDATA(cbdata);
+
+    if (cbdata.status != PMIX_SUCCESS) {
+	mlog("%s: Callback from register client failed: %s\n", __func__,
+	     PMIx_Error_string(cbdata.status));
+    }
+
+    DESTROY_CBDATA(cbdata);
+#endif
     PMIX_PROC_DESTRUCT(&proc);
 }
 
