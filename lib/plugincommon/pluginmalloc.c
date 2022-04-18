@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2012-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021 ParTec AG, Munich
+ * Copyright (C) 2021-2022 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -38,11 +38,11 @@ void *__umalloc(size_t size, const char *func, const int line)
 
 void *__urealloc(void *old ,size_t size, const char *func, const int line)
 {
-    void *ptr;
-
     if (size < MIN_MALLOC_SIZE) size = MIN_MALLOC_SIZE;
 
-    ptr = realloc(old, size);
+    char oldAddr[64];
+    snprintf(oldAddr, sizeof(oldAddr), "%p", old);
+    void *ptr = realloc(old, size);
     if (!ptr) {
 	pluginlog("%s: realloc of '%zu' failed.\n", func, size);
 	exit(EXIT_FAILURE);
@@ -50,7 +50,7 @@ void *__urealloc(void *old ,size_t size, const char *func, const int line)
 
     plugindbg(PLUGIN_LOG_MALLOC, "%s\t%15s\t%i\t%p (%zu)",
 	      old ? "urealloc" : "umalloc", func, line, ptr, size);
-    if (old) plugindbg(PLUGIN_LOG_MALLOC, "\t%p", old);
+    if (old) plugindbg(PLUGIN_LOG_MALLOC, "\t%s", oldAddr);
     plugindbg(PLUGIN_LOG_MALLOC, "\n");
 
     return ptr;
