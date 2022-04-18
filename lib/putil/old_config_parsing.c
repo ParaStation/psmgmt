@@ -2106,85 +2106,82 @@ end:
 
 static int handleGenStr(long val, char *in, char **out, size_t *size)
 {
-    char *inStr, *dollar = strchr(in, '$'), *rec;
-    size_t len;
-    int ret = -1;
-
+    char *dollar = strchr(in, '$');
     if (!dollar) {
 	/* Nothing to replace */
-	len = strlen(in)+1;
-
+	size_t len = strlen(in) + 1;
 	if (len > *size) {
 	    *size = len;
 	    *out = realloc(*out, *size);
 	}
-	if (!out) {
+	if (!*out) {
 	    parser_comment(-1, "%s: Out of mem\n", __func__);
 	    return -1;
 	}
 	sprintf(*out, "%s", in);
 
 	return 0;
-    } else {
-	char *start, *end, base = 'd', fmt[32];
-	long off = 0, width = 1;
+    }
 
-	inStr = strdup(in);
-	if (!inStr) {
+    char base = 'd', fmt[32];
+    size_t off = 0, width = 1;
+    int ret = -1;
+
+    char *inStr = strdup(in);
+    if (!inStr) {
+	parser_comment(-1, "%s: Out of mem\n", __func__);
+	return -1;
+    }
+
+    /* Now handle inStr */
+    dollar = strchr(inStr, '$');
+    *dollar = '\0';
+    char *start = dollar + 1, *end, *rec;
+    if (*start != '{') {
+	end = start;
+    } else {
+	rec = start + 1;
+	end = strchr(rec, '}');
+	if (!end) goto end;
+
+	*end = '\0';
+	off = strtol(rec, &end, 0);
+	if (end == rec) goto end;
+
+	if (*end == ',') {
+	    start = end + 1;
+	    width = strtol(start, &end, 0);
+	    if (end == start) goto end;
+	    if (*end == ',') {
+		start = end + 1;
+		if (! *start || (*start!='d' && *start!='o' &&
+				 *start!='x' && *start!='X')) goto end;
+		base = *start;
+		end = start + 1;
+	    }
+	}
+	if (*end) goto end;
+	end++;
+    }
+
+    snprintf(fmt, sizeof(fmt), "%%s%%.%ld%c%%s", width, base);
+
+    size_t len = snprintf(*out, *size, fmt, inStr, val + off, end);
+    if (len >= *size) {
+	*size = len + 80; /* some extra space */
+	*out = realloc(*out, *size);
+	if (!*out) {
 	    parser_comment(-1, "%s: Out of mem\n", __func__);
+	    free(inStr);
 	    return -1;
 	}
-
-	/* Now handle inStr */
-	dollar = strchr(inStr, '$');
-	*dollar = '\0';
-	start = dollar+1;
-	if (*start != '{') {
-	    end = start;
-	} else {
-	    rec = start+1;
-	    end = strchr(rec, '}');
-	    if (!end) goto end;
-
-	    *end = '\0';
-	    off = strtol(rec, &end, 0);
-	    if (end == rec) goto end;
-
-	    if (*end == ',') {
-		start = end+1;
-		width = strtol(start, &end, 0);
-		if (end == start) goto end;
-		if (*end == ',') {
-		    start = end+1;
-		    if (! *start || (*start!='d' && *start!='o' &&
-				     *start!='x' && *start!='X')) goto end;
-		    base = *start;
-		    end = start+1;
-		}
-	    }
-	    if (*end) goto end;
-	    end++;
-	}
-
-	snprintf(fmt, sizeof(fmt), "%%s%%.%ld%c%%s", width, base);
-
-	len = snprintf(*out, *size, fmt, inStr, val+off, end);
-	if (len >= *size) {
-	    *size = len+80; /* some extra space */
-	    *out = realloc(*out, *size);
-	    if (!*out) {
-		parser_comment(-1, "%s: Out of mem\n", __func__);
-		free(inStr);
-		return -1;
-	    }
-	    sprintf(*out, fmt, inStr, val+off, end);
-	}
+	sprintf(*out, fmt, inStr, val + off, end);
     }
 
     ret = 0;
 end:
-    free(inStr);
     if (ret) parser_comment(-1, "%s: broken record ${%s}\n", __func__, rec);
+    free(inStr);
     return ret;
 }
 
