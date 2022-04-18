@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2002-2004 ParTec AG, Karlsruhe
  * Copyright (C) 2005-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021 ParTec AG, Munich
+ * Copyright (C) 2021-2022 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -370,46 +370,38 @@ void PSC_printNodelist(bool *nl)
 
 char * PSC_concat(const char *str, ...)
 {
+    size_t allocated = 128, used = 0;
+    char *result = malloc(allocated);
+    if (!result) return NULL;
+
     va_list ap;
-    size_t allocated = 100;
-    char *result = (char *) malloc(allocated);
+    va_start(ap, str);
+    for (const char *s = str; s != NULL; s = va_arg(ap, const char *)) {
+	size_t len = strlen(s);
 
-    if (result) {
-	char *newp, *wp;
-	const char *s;
-
-	va_start(ap, str);
-
-	wp = result;
-	for (s = str; s != NULL; s = va_arg(ap, const char *)) {
-	    size_t len = strlen(s);
-
-	    /* Resize the allocated memory if necessary.  */
-	    if (wp + len + 1 > result + allocated) {
-		allocated = (allocated + len) * 2;
-		newp = (char *) realloc(result, allocated);
-		if (!newp) {
-		    free(result);
-		    va_end(ap);
-		    return NULL;
-		}
-		wp = newp + (wp - result);
-		result = newp;
+	/* Resize the allocated memory if necessary.  */
+	if (used + len + 1 > allocated) {
+	    allocated = (allocated + len) * 2;
+	    char *newp = realloc(result, allocated);
+	    if (!newp) {
+		free(result);
+		va_end(ap);
+		return NULL;
 	    }
-
-	    memcpy(wp, s, len);
-	    wp += len;
+	    result = newp;
 	}
 
-	/* Terminate the result string.  */
-	*wp++ = '\0';
-
-	/* Resize memory to the optimal size.  */
-	newp = realloc(result, wp - result);
-	if (newp) result = newp;
-
-	va_end(ap);
+	memcpy(result + used, s, len);
+	used += len;
     }
+    va_end(ap);
+
+    /* Terminate result string */
+    result[used++] = '\0';
+
+    /* Try to resize memory to optimal size */
+    char *newp = realloc(result, used);
+    if (newp) result = newp;
 
     return result;
 }
