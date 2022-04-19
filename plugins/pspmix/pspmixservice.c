@@ -650,18 +650,23 @@ bool pspmix_service_clientConnected(void *clientObject, void *cb)
 	return false;
     }
 
-    PStask_ID_t spawnertid = ns->job->spawnertid;
-    RELEASE_LOCK(namespaceList);
-
-    pspmix_comm_sendInitNotification(client->fwtid, client->rank,
-				     client->nsname,
-				     spawnertid);
-
     if (client->notifiedFwCb) {
 	ulog("UNEXPECTED: client->notifiedFwCb set\n");
+	RELEASE_LOCK(namespaceList);
 	return false;
     }
     client->notifiedFwCb = cb;
+
+    /* copy values inside lock */
+    PStask_ID_t fwtid = client->fwtid;
+    pmix_rank_t rank = client->rank;
+    char nsname[MAX_NSLEN+1];
+    strcpy(nsname, client->nsname);
+    PStask_ID_t spawnertid = ns->job->spawnertid;
+
+    RELEASE_LOCK(namespaceList);
+
+    pspmix_comm_sendInitNotification(fwtid, rank, nsname, spawnertid);
 
     /* TODO TODO TODO
        if (psAccountSwitchAccounting) psAccountSwitchAccounting(childTask->tid, false);
@@ -692,16 +697,24 @@ bool pspmix_service_clientFinalized(void *clientObject, void *cb)
     }
 
     PStask_ID_t spawnertid = ns->job->spawnertid;
-    RELEASE_LOCK(namespaceList);
 
-    pspmix_comm_sendFinalizeNotification(client->fwtid, client->rank,
-					 client->nsname, spawnertid);
 
     if (client->notifiedFwCb) {
 	ulog("UNEXPECTED: client->notifiedFwCb set\n");
+	RELEASE_LOCK(namespaceList);
 	return false;
     }
     client->notifiedFwCb = cb;
+
+    /* copy values inside lock */
+    PStask_ID_t fwtid = client->fwtid;
+    pmix_rank_t rank = client->rank;
+    char nsname[MAX_NSLEN+1];
+    strcpy(nsname, client->nsname);
+
+    RELEASE_LOCK(namespaceList);
+
+    pspmix_comm_sendFinalizeNotification(fwtid, rank, nsname, spawnertid);
 
     return true;
 }
