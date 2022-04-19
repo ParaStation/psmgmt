@@ -397,12 +397,11 @@ static pmix_status_t server_fencenb_cb(
 
 	    if (procs[i].rank == PMIX_RANK_WILDCARD) {
 		snprintf(rankstr, sizeof(rankstr), "*");
-	    }
-	    else {
+	    } else {
 		snprintf(rankstr, sizeof(rankstr), "%u", procs[i].rank);
 	    }
 
-	    if (i == 0) {
+	    if (!i) {
 		mlog("%s{%s", procs[i].nspace, rankstr);
 		continue;
 	    }
@@ -410,8 +409,7 @@ static pmix_status_t server_fencenb_cb(
 	    /* i > 0 */
 	    if (PMIX_CHECK_NSPACE(procs[i].nspace, procs[i-1].nspace) == 0) {
 		mlog(",%s", rankstr);
-	    }
-	    else {
+	    } else {
 		mlog("},%s{%s", procs[i].nspace, rankstr);
 	    }
 	}
@@ -892,7 +890,7 @@ static pmix_status_t
 pspmix_server_listener_cb(int listening_sd,
 	pmix_connection_cbfunc_t cbfunc, void *cbdata)
 {
-    mdbg(PSPMIX_LOG_CALL, "%s() called\n", __func__);
+    mdbg(PSPMIX_LOG_CALL, "%s()\n", __func__);
 
     /* not implemented */
     return PMIX_ERR_NOT_IMPLEMENTED;
@@ -1224,7 +1222,7 @@ static void setupApplication_cb(
     mycbdata_t *data;
     data = provided_cbdata;
 
-    mdbg(PSPMIX_LOG_CALL, "%s() called\n", __func__);
+    mdbg(PSPMIX_LOG_CALL, "%s()\n", __func__);
 
     data->status = status;
 
