@@ -84,7 +84,7 @@ bool pspmix_server_registerNamespace(
  *
  * @param nsname     name of the namespace to deregister
  * @param nsobject   namespace object later to be passed via the callback
- *                   to @a pspmix_service_destroyNamespace
+ *                   to @ref pspmix_service_cleanupNamespace()
  */
 void pspmix_server_deregisterNamespace(const char *nsname, void *nsobject);
 

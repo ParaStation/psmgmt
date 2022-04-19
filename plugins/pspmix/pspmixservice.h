@@ -55,8 +55,9 @@ bool pspmix_service_registerNamespace(PspmixJob_t *job);
 /**
  * @brief Register the client and send its environment to its forwarder
  *
- * If false is returned, the client object passed is to be considered as
- * invalid.
+ * If false is returned, the @a client object passed is to be
+ * considered as unused and shall be cleaned up by the calling
+ * function if not needed for other purposes.
  *
  * @param loggertid  logger to identify the session the client belongs to
  * @param spawnertid spawner to identify the job the client belongs to
@@ -79,8 +80,9 @@ bool pspmix_service_registerClientAndSendEnv(PStask_ID_t loggertid,
  * during the deregistration process if a callback is still in process using
  * NamespaceList lock, too.
  *
- * Actual cleanup of the remaining client objects and the namespace object is
- * done in the deregistration callback via @a pspmix_service_destroyNamespace().
+ * Actual cleanup of the remaining client objects and the namespace
+ * object is done in the deregistration callback that must call @ref
+ * pspmix_service_cleanupNamespace().
  *
  * @param spawnertid   spawner identifying the job implemented by the namespace
  *
@@ -89,20 +91,21 @@ bool pspmix_service_registerClientAndSendEnv(PStask_ID_t loggertid,
 bool pspmix_service_removeNamespace(PStask_ID_t spawnertid);
 
 /**
- * @brief Delete a namespace
+ * @brief Cleanup namespace
  *
- * Actually cleanup the remaining client of a namespace and the namespace object
- * itself. It is the followup function of @a pspmix_service_deleteNamespace()
- * called from the namespace deregistration callback.
+ * Actually cleanup the remaining client of a namespace and the
+ * namespace object itself. This is a followup function of @ref
+ * pspmix_server_deregisterNamespace() and is called via the namespace
+ * deregistration callback.
  *
  * nspace is the namespace object reference that has been passed to
- * @a pspmix_server_deregisterNamespace() in @a pspmix_service_deleteNamespace()
+ * @ref pspmix_server_deregisterNamespace()
  *
  * @param nspace   namespace object of type (PspmixNamespace_t *)
  * @param error    indicator of a error reported by the server library
  * @param errstr   in case of an error, this is the error string
  */
-void pspmix_service_destroyNamespace(void *nspace, bool error,
+void pspmix_service_cleanupNamespace(void *nspace, bool error,
 				     const char *errstr);
 
 /**

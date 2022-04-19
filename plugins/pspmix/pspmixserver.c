@@ -1843,7 +1843,7 @@ static void deregisterNamespace_cb(pmix_status_t status, void *cbdata)
 	errstr = PMIx_Error_string(status);
     }
 
-    pspmix_service_destroyNamespace(cbdata, (status != PMIX_SUCCESS), errstr);
+    pspmix_service_cleanupNamespace(cbdata, (status != PMIX_SUCCESS), errstr);
 }
 
 void pspmix_server_deregisterNamespace(const char *nsname, void *nsobject)

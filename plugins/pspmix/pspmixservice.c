@@ -420,7 +420,7 @@ bool pspmix_service_removeNamespace(PStask_ID_t spawnertid)
 }
 
 /* library thread */
-void pspmix_service_destroyNamespace(void *nspace, bool error,
+void pspmix_service_cleanupNamespace(void *nspace, bool error,
 				     const char *errstr)
 {
     PspmixNamespace_t *ns = (PspmixNamespace_t *)nspace;
