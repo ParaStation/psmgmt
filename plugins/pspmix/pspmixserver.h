@@ -82,6 +82,9 @@ bool pspmix_server_registerNamespace(
  * Deletes all client information for the namespace. So it is not needed to
  * call @a pspmix_server_deregisterClient() for each client in addition.
  *
+ * Only triggers the deregistration non-blocking. When the operation is
+ * finished @ref pspmix_service_cleanupNamespace() is called.
+ *
  * @param nsname     name of the namespace to deregister
  * @param nsobject   namespace object later to be passed via the callback
  *                   to @ref pspmix_service_cleanupNamespace()

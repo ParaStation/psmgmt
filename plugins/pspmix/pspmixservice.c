@@ -412,6 +412,7 @@ bool pspmix_service_removeNamespace(PStask_ID_t spawnertid)
     }
     list_del(&ns->next);
 
+    /* trigger the deregistration non blocking */
     pspmix_server_deregisterNamespace(ns->name, ns);
 
     RELEASE_LOCK(namespaceList);
@@ -759,9 +760,14 @@ void pspmix_service_handleClientIFResp(bool success, pmix_rank_t rank,
     ufree(client);
 }
 
+/* library thread */
 void pspmix_service_abort(void *clientObject)
 {
     PspmixClient_t *client = clientObject;
+
+    /* since we do never free client objects before deregistering the
+       according namespace from the server library, the clientObject should be
+       always valid here */
 
     ulog("(rank %d)\n", client->rank);
 
@@ -771,7 +777,9 @@ void pspmix_service_abort(void *clientObject)
     GET_LOCK(namespaceList);
     PspmixNamespace_t *ns = findNamespace(client->nsname);
     if (!ns) {
-	ulog("namespace '%s' not found\n", client->nsname);
+	/* this should never happen, namespace is only unlisted after
+           deregistering from the server library */
+	ulog("UNEXPECTED: no namespace '%s'\n", client->nsname);
 	ufree(client);
 	RELEASE_LOCK(namespaceList);
 	return;
