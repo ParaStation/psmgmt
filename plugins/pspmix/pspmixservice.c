@@ -793,6 +793,8 @@ void pspmix_service_abort(void *clientObject)
     if (!ns) {
 	ulog("namespace '%s' not found\n", client->nsname);
 	ufree(client);
+	RELEASE_LOCK(namespaceList);
+	return;
     }
 
     PStask_ID_t spawnertid = ns->job->spawnertid;
