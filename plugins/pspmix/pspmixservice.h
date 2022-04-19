@@ -132,20 +132,6 @@ bool pspmix_service_finalize(void);
 bool pspmix_service_clientConnected(void *clientObject, void *cb);
 
 /**
- * @brief Handle the response of a client's forwarder about connection
- *
- * Triggers calling the callback function to report the result of the client
- * initialization to the PMIx server library.
- *
- * @param success  Result reported by the forwarder
- * @param rank     namespace rank of the client
- * @param nspace   namespace of the client
- * @param fwtid    TID of the client's forwarder
- */
-void pspmix_service_handleClientInitResp(bool success, pmix_rank_t  rank,
-	const char *nspace, PStask_ID_t fwtid);
-
-/**
  * @brief Handle that a client finalized
  *
  * Notify the client's forwarder about the finalization of the client.
@@ -160,7 +146,8 @@ void pspmix_service_handleClientInitResp(bool success, pmix_rank_t  rank,
 bool pspmix_service_clientFinalized(void *clientObject, void *cb);
 
 /**
- * @brief Handle the response of a client's forwarder about finalization
+ * @brief Handle the response of a client's forwarder about connection or
+ *        finalization
  *
  * Triggers calling the callback function to report the result of the client
  * finalization to the PMIx server library.
@@ -170,7 +157,7 @@ bool pspmix_service_clientFinalized(void *clientObject, void *cb);
  * @param nspace   namespace of the client
  * @param fwtid    TID of the client's forwarder
  */
-void pspmix_service_handleClientFinalizeResp(bool success, pmix_rank_t  rank,
+void pspmix_service_handleClientIFResp(bool success, pmix_rank_t rank,
 	const char *nspace, PStask_ID_t fwtid);
 
 /**

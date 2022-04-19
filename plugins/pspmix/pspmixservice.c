@@ -431,7 +431,7 @@ void pspmix_service_cleanupNamespace(void *nspace, bool error,
     }
 
     /* client objects can be safely freed now:
-       - handleClient{Init|Finalize}Resp() will not find the namespace
+       - handleClientIFResp() will not find the namespace any longer
        - the server library will not call callbacks related to the client */
     list_t *c;
     list_for_each(c, &ns->clientList) {
@@ -670,40 +670,6 @@ bool pspmix_service_clientConnected(void *clientObject, void *cb)
     return true;
 }
 
-/* main thread */
-void pspmix_service_handleClientInitResp(bool success, pmix_rank_t rank,
-	const char *nspace, PStask_ID_t fwtid)
-{
-    GET_LOCK(namespaceList);
-
-    /* find namespace in list */
-    PspmixNamespace_t *ns = findNamespace(nspace);
-    if (!ns) {
-	ulog("namespace '%s' not found\n", nspace);
-	RELEASE_LOCK(namespaceList);
-	return;
-    }
-
-    PspmixClient_t *client = findClientInList(rank, &ns->clientList);
-    RELEASE_LOCK(namespaceList);
-    if (!client) {
-	ulog("client with rank %d not found in namespace '%s'\n", rank, nspace);
-	return;
-    }
-
-    /* check fwtid */
-    if (client->fwtid != fwtid) {
-	ulog("got client finalization notification response from unexpected"
-	     "TID %s", PSC_printTID(fwtid));
-	mlog(" (expected %s)\n", PSC_printTID(client->fwtid));
-	return;
-    }
-
-    pspmix_server_operationFinished(success, client->notifiedFwCb);
-    ufree(client->notifiedFwCb);
-    client->notifiedFwCb = NULL;
-}
-
 /* library thread */
 bool pspmix_service_clientFinalized(void *clientObject, void *cb)
 {
@@ -740,7 +706,8 @@ bool pspmix_service_clientFinalized(void *clientObject, void *cb)
     return true;
 }
 
-void pspmix_service_handleClientFinalizeResp(bool success, pmix_rank_t rank,
+/* main thread */
+void pspmix_service_handleClientIFResp(bool success, pmix_rank_t rank,
 	const char *nspace, PStask_ID_t fwtid)
 {
     GET_LOCK(namespaceList);
@@ -762,8 +729,8 @@ void pspmix_service_handleClientFinalizeResp(bool success, pmix_rank_t rank,
 
     /* check fwtid */
     if (client->fwtid != fwtid) {
-	ulog("client finalize notification response from unexpected TID %s",
-	     PSC_printTID(fwtid));
+	ulog("client init/finalize notification response from unexpected TID"
+	     " %s", PSC_printTID(fwtid));
 	mlog(" (expected %s)\n", PSC_printTID(client->fwtid));
 	RELEASE_LOCK(namespaceList);
 	return;

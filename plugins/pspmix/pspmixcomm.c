@@ -188,12 +188,9 @@ static void handleClientNotifyResp(DDTypedBufferMsg_t *msg,
 
     switch(msg->type) {
     case PSPMIX_CLIENT_INIT_RES:
-	pspmix_service_handleClientInitResp(success, proc.rank, proc.nspace,
-					    msg->header.sender);
-	break;
     case PSPMIX_CLIENT_FINALIZE_RES:
-	pspmix_service_handleClientFinalizeResp(success, proc.rank, proc.nspace,
-						msg->header.sender);
+	pspmix_service_handleClientIFResp(success, proc.rank, proc.nspace,
+					    msg->header.sender);
 	break;
     default:
 	mlog("%s: Unexpected message type %s\n", __func__,
