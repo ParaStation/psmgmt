@@ -437,6 +437,7 @@ void pspmix_service_cleanupNamespace(void *nspace, bool error,
     list_t *c;
     list_for_each(c, &ns->clientList) {
 	PspmixClient_t *client = list_entry(c, PspmixClient_t, next);
+	ufree(client->notifiedFwCb);
 	ufree(client);
     }
 
@@ -750,14 +751,17 @@ void pspmix_service_handleClientIFResp(bool success, pmix_rank_t rank,
 	return;
     }
 
-    /* remove client from namespace */
-    list_del(&client->next);
+    /* copy reference inside lock */
+    void* cb = client->notifiedFwCb;
+    client->notifiedFwCb = NULL; /* avoids to be freed elsewhere */
 
     RELEASE_LOCK(namespaceList);
 
-    pspmix_server_operationFinished(success, client->notifiedFwCb);
-    ufree(client->notifiedFwCb);
-    ufree(client);
+    pspmix_server_operationFinished(success, cb);
+
+    ufree(cb);
+
+    // @todo do we need to save client state in client?
 }
 
 /* library thread */
