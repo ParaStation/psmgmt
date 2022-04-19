@@ -1086,8 +1086,7 @@ static void registerErrorHandler_cb (
 {
     mdbg(PSPMIX_LOG_CALL, "%s()\n", __func__);
 
-    mycbdata_t *data;
-    data = cbdata;
+    mycbdata_t *data = cbdata;
 
     data->status = status;
 
@@ -1219,8 +1218,7 @@ static void setupApplication_cb(
 	pmix_info_t info[], size_t ninfo,
 	void *provided_cbdata, pmix_op_cbfunc_t cbfunc, void *cbdata)
 {
-    mycbdata_t *data;
-    data = provided_cbdata;
+    mycbdata_t *data = provided_cbdata;
 
     mdbg(PSPMIX_LOG_CALL, "%s()\n", __func__);
 
@@ -1554,8 +1552,7 @@ static void fillProcDataArray(pmix_data_array_t *procData,
  */
 static void registerNamespace_cb(pmix_status_t status, void *cbdata)
 {
-    mycbdata_t *data;
-    data = cbdata;
+    mycbdata_t *data = cbdata;
 
     mdbg(PSPMIX_LOG_CALL, "%s()\n", __func__);
 
@@ -1839,9 +1836,7 @@ static void deregisterNamespace_cb(pmix_status_t status, void *cbdata)
     mdbg(PSPMIX_LOG_CALL, "%s()\n", __func__);
 
     const char *errstr = "";
-    if (status != PMIX_SUCCESS) {
-	errstr = PMIx_Error_string(status);
-    }
+    if (status != PMIX_SUCCESS) errstr = PMIx_Error_string(status);
 
     pspmix_service_cleanupNamespace(cbdata, (status != PMIX_SUCCESS), errstr);
 }
@@ -1859,8 +1854,7 @@ void pspmix_server_deregisterNamespace(const char *nsname, void *nsobject)
  */
 static void setupLocalSupport_cb(pmix_status_t status, void *cbdata)
 {
-    mycbdata_t *data;
-    data = cbdata;
+    mycbdata_t *data = cbdata;
 
     mdbg(PSPMIX_LOG_CALL, "%s()\n", __func__);
 
@@ -1906,8 +1900,7 @@ bool pspmix_server_setupLocalSupport(const char *nspace)
  */
 static void registerClient_cb(pmix_status_t status, void *cbdata)
 {
-    mycbdata_t *data;
-    data = cbdata;
+    mycbdata_t *data = cbdata;
 
     mdbg(PSPMIX_LOG_CALL, "%s()\n", __func__);
 

@@ -602,7 +602,7 @@ bool pspmix_service_registerClientAndSendEnv(PStask_ID_t loggertid,
     /* lookup namespace again to assure it is still valid in this lock */
     ns = findNamespace(nsname);
     if (!ns) {
-	ulog("namespace '%s' not longer valid\n", nsname);
+	ulog("namespace '%s' no longer valid\n", nsname);
 	RELEASE_LOCK(namespaceList);
 	pspmix_server_deregisterClient(nsname, client->rank);
 	return false;
@@ -776,15 +776,12 @@ void pspmix_service_handleClientFinalizeResp(bool success, pmix_rank_t rank,
 
     pspmix_server_operationFinished(success, client->notifiedFwCb);
     ufree(client->notifiedFwCb);
-    client->notifiedFwCb = NULL;
-
     ufree(client);
 }
 
 void pspmix_service_abort(void *clientObject)
 {
-    PspmixClient_t *client;
-    client = clientObject;
+    PspmixClient_t *client = clientObject;
 
     ulog("(rank %d)\n", client->rank);
 
@@ -935,8 +932,7 @@ int pspmix_service_fenceIn(const pmix_proc_t procs[], size_t nprocs,
 
     GET_LOCK(namespaceList);
 
-    PspmixNamespace_t *ns;
-    ns = findNamespace(procs[0].nspace);
+    PspmixNamespace_t *ns = findNamespace(procs[0].nspace);
 
     for (size_t i = 0; i < nprocs; i++) {
 
@@ -963,8 +959,7 @@ int pspmix_service_fenceIn(const pmix_proc_t procs[], size_t nprocs,
 	    continue;
 	}
 
-	PSnodes_ID_t nodeid;
-	nodeid = getNodeFromRank(procs[i].rank, ns);
+	PSnodes_ID_t nodeid = getNodeFromRank(procs[i].rank, ns);
 	if (nodeid < 0) {
 	    ulog("failed to get node for rank %d in namespace '%s'\n",
 		 procs[i].rank, procs[i].nspace);
@@ -1033,13 +1028,12 @@ int pspmix_service_fenceIn(const pmix_proc_t procs[], size_t nprocs,
 	/* search first entry with matching id
 	 * and this function not yet called for */
 	if (fence->id == fenceid) {
-	    if (fence->nodes == NULL) {
+	    if (!fence->nodes) {
 		found = true;
 		mdbg(PSPMIX_LOG_FENCE, "%s: Matching fence object found for"
 			" fence id 0x%04lX\n", __func__, fenceid);
 		break;
-	    }
-	    else {
+	    } else {
 		mdbg(PSPMIX_LOG_FENCE, "%s: Fence object with matching fence id"
 		" 0x%04lX found but nodes already set, continuing search\n",
 		__func__, fenceid);
@@ -1192,16 +1186,14 @@ bool pspmix_service_sendModexDataRequest(modexdata_t *mdata)
 {
     GET_LOCK(namespaceList);
 
-    PspmixNamespace_t *ns;
-    ns = findNamespace(mdata->proc.nspace);
-    if (ns == NULL) {
+    PspmixNamespace_t *ns = findNamespace(mdata->proc.nspace);
+    if (!ns) {
 	ulog("namespace '%s' not found\n", mdata->proc.nspace);
 	RELEASE_LOCK(namespaceList);
 	return false;
     }
 
-    PSnodes_ID_t nodeid;
-    nodeid = getNodeFromRank(mdata->proc.rank, ns);
+    PSnodes_ID_t nodeid = getNodeFromRank(mdata->proc.rank, ns);
     if (nodeid < 0) {
 	ulog("UNEXPECTED: getNodeFromRank(%d, %s) failed\n", mdata->proc.rank,
 	    ns->name);
@@ -1270,14 +1262,14 @@ void pspmix_service_sendModexDataResponse(bool status, modexdata_t *mdata)
 void pspmix_service_handleModexDataResponse(bool success, pmix_proc_t *proc,
 					    void *data, size_t len)
 {
-    list_t *s, *tmp;
 
     modexdata_t *mdata = NULL;
 
     GET_LOCK(modexRequestList);
 
     /* find first matching request in modexRequestList and take it out */
-    list_for_each_safe(s, tmp, &modexRequestList) {
+    list_t *s;
+    list_for_each(s, &modexRequestList) {
 	modexdata_t *cur = list_entry(s, modexdata_t, next);
 	if (cur->proc.rank == proc->rank
 		&& PMIX_CHECK_NSPACE(cur->proc.nspace, proc->nspace)) {
@@ -1289,7 +1281,7 @@ void pspmix_service_handleModexDataResponse(bool success, pmix_proc_t *proc,
 
     RELEASE_LOCK(modexRequestList);
 
-    if (mdata == NULL) {
+    if (!mdata) {
 	ulog("no request for response (rank %d namespace %s). Ignoring!\n",
 	     proc->rank, proc->nspace);
 	return;
