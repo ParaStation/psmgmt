@@ -172,6 +172,44 @@ static void delReservationList(list_t *list)
     }
 }
 
+/**
+ * @brief Cleanup task
+ *
+ * Cleanup the task @a task, i.e. free() all memory associated to
+ * it. This will *not* include any signal list or reservation list.
+ *
+ * This function is intended for aggressive cleanup of memory. At the
+ * same time it is assumed that memory associated to the mentioned
+ * lists will be cleaned up separately via the according item pools.
+ *
+ * @param task Pointer to task structure to be cleaned up
+ *
+ * @return No return value
+ */
+static void PStask_cleanup(PStask_t* task)
+{
+    free(task->workingdir);
+    if (task->argv) {
+	for (uint32_t i = 0; i < task->argc; i++) free(task->argv[i]);
+	free(task->argv);
+	task->argv = NULL;
+    }
+
+    if (task->environ) {
+	for (uint32_t i = 0; task->environ[i]; i++) free(task->environ[i]);
+	free(task->environ);
+	task->environ = NULL;
+    }
+
+    if (task->request) PSpart_delReq(task->request);
+    free(task->partition);
+    free(task->partThrds);
+
+    free(task->spawnNodes);
+    free(task->info);
+    free(task->resPorts);
+}
+
 bool PStask_reinit(PStask_t* task)
 {
     PSC_log(PSC_LOG_TASK, "%s(%p)\n", __func__, task);
@@ -180,34 +218,14 @@ bool PStask_reinit(PStask_t* task)
 
     if (!list_empty(&task->next)) list_del_init(&task->next);
 
-    free(task->workingdir);
-    if (task->argv) {
-	for (uint32_t i = 0; i < task->argc; i++) free(task->argv[i]);
-	free(task->argv);
-	task->argv = NULL;
-    }
-
-
-    if (task->environ) {
-	for (uint32_t i = 0; task->environ[i]; i++) free(task->environ[i]);
-	free(task->environ);
-	task->environ = NULL;
-    }
+    PStask_cleanup(task);
 
     PSsignal_clearList(&task->childList);
     PSsignal_clearList(&task->releasedBefore);
     PSsignal_clearList(&task->deadBefore);
 
-    if (task->request) PSpart_delReq(task->request);
-    free(task->partition);
-    free(task->partThrds);
-
     delReservationList(&task->reservations);
     delReservationList(&task->resRequests);
-
-    free(task->spawnNodes);
-    free(task->info);
-    free(task->resPorts);
 
     PSsignal_clearList(&task->signalSender);
     PSsignal_clearList(&task->signalReceiver);
@@ -224,6 +242,20 @@ bool PStask_delete(PStask_t* task)
     if (!task) return false;
 
     PStask_reinit(task);
+    free(task);
+
+    return true;
+}
+
+bool PStask_destroy(PStask_t* task)
+{
+    PSC_log(PSC_LOG_TASK, "%s(%p)\n", __func__, task);
+
+    if (!task) return false;
+
+    if (!list_empty(&task->next)) list_del(&task->next);
+
+    PStask_cleanup(task);
     free(task);
 
     return true;

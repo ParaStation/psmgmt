@@ -186,31 +186,47 @@ PStask_t *PStask_new(void);
 bool PStask_init(PStask_t *task);
 
 /**
- * @brief Reinitialize a task structure.
+ * @brief Reinitialize a task structure
  *
  * Reinitialize the task structure @a task that was previously
  * used. All allocated strings and signal-lists shall be removed, all
  * links are reset to NULL.
  *
- * @param task Pointer to the task structure to be reinitialized.
+ * @param task Pointer to the task structure to be reinitialized
  *
  * @return On success true is returned; or false in case of error
  */
 bool PStask_reinit(PStask_t *task);
 
 /**
- * @brief Delete a task structure.
+ * @brief Delete a task structure
  *
  * Delete the task structure @a task created via @ref
  * PStask_new(). First the task is cleaned up by @ref PStask_reinit(),
  * i.e. all allocated strings and signal-lists are removed. Afterward
  * the task itself is removed.
  *
- * @param task Pointer to the task structure to be deleted.
+ * @param task Pointer to the task structure to be deleted
  *
  * @return On success true is returned; or false in case of error
  */
 bool PStask_delete(PStask_t *task);
+
+/**
+ * @brief Destroy task structure
+ *
+ * Destroy the task structure @a task created via @ref
+ * PStask_new(). Different from @ref PStask_delete() this will not
+ * touch any signal list or reservation list but just release the
+ * memory directly associated to the task structure (and the task
+ * structure itself). The mentioned lists are assumed to be cleaned up
+ * via the according *_clearMem() functions.
+ *
+ * @param task Pointer to the task structure to be destroyed
+ *
+ * @return On success true is returned; or false in case of error
+ */
+bool PStask_destroy(PStask_t *task);
 
 /**
  * @brief Clone a task structure.
