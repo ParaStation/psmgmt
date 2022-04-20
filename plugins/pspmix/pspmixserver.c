@@ -338,7 +338,11 @@ static pmix_status_t server_abort_cb(const pmix_proc_t *proc,
 	mlog(" (not supported)\n");
 
 	// we do currently not support aborting subsets of namespaces
+#if PMIX_VERSION_MAJOR < 4
 	return PMIX_ERR_NOT_SUPPORTED;
+#else
+	return PMIX_ERR_PARAM_VALUE_NOT_SUPPORTED;
+#endif
     }
 
     pspmix_service_abort(clientObject);
