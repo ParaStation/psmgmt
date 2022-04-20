@@ -690,9 +690,7 @@ bool pspmix_service_clientFinalized(void *clientObject, void *cb)
 
     PspmixNamespace_t *ns = findNamespace(client->nsname);
     if (!ns) {
-	ulog("namespace '%s' not found\n", client->nsname);
-	ufree(client->notifiedFwCb);
-	ufree(client);
+	ulog("no namespace '%s'\n", client->nsname);
 	RELEASE_LOCK(namespaceList);
 	return false;
     }
@@ -780,10 +778,8 @@ void pspmix_service_abort(void *clientObject)
     GET_LOCK(namespaceList);
     PspmixNamespace_t *ns = findNamespace(client->nsname);
     if (!ns) {
-	/* this should never happen, namespace is only unlisted after
-           deregistering from the server library */
-	ulog("UNEXPECTED: no namespace '%s'\n", client->nsname);
-	ufree(client);
+	/* can only happen if namespace deregistration in already ongoing */
+	ulog("no namespace '%s'\n", client->nsname);
 	RELEASE_LOCK(namespaceList);
 	return;
     }
