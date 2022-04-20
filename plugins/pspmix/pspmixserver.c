@@ -1739,7 +1739,7 @@ static void fillJobInfoArray(pmix_data_array_t *jobInfo, const char *jobId,
 
     /* job identifier (this is the name of the namespace */
     strncpy(infos[0].key, PMIX_JOBID, PMIX_MAX_KEYLEN);
-    PMIX_VAL_SET(&infos[0].value, string, jobId);
+    PMIX_VALUE_LOAD(&infos[0].value, jobId, PMIX_STRING);
 
     /* total num of processes in this job across all contained applications */
     PMIX_INFO_LOAD(&infos[1], PMIX_JOB_SIZE, &jobSize, PMIX_UINT32);
@@ -1751,7 +1751,7 @@ static void fillJobInfoArray(pmix_data_array_t *jobInfo, const char *jobId,
     char *nodelist_r;
     PMIx_generate_regex(nodelist_s, &nodelist_r);
     strncpy(infos[3].key, PMIX_NODE_MAP, PMIX_MAX_KEYLEN);
-    PMIX_VAL_ASSIGN(&infos[3].value, string, nodelist_r);
+    PMIX_VALUE_LOAD(&infos[3].value, nodelist_r, PMIX_STRING);
 
     /* regex describing procs on each node within this job */
     char *pmap_s;
@@ -1764,7 +1764,7 @@ static void fillJobInfoArray(pmix_data_array_t *jobInfo, const char *jobId,
     PMIx_generate_ppn(pmap_s, &pmap_r);
     ufree(pmap_s);
     strncpy(infos[4].key, PMIX_PROC_MAP, PMIX_MAX_KEYLEN);
-    PMIX_VAL_ASSIGN(&infos[4].value, string, pmap_r);
+    PMIX_VALUE_LOAD(&infos[4].value, pmap_r, PMIX_STRING);
 
     /* optional infos (PMIx v3.0):
      * * PMIX_SERVER_NSPACE "pmix.srv.nspace" (char*)
