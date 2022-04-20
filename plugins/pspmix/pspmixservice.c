@@ -646,8 +646,7 @@ bool pspmix_service_clientConnected(void *clientObject, void *cb)
 
     PspmixNamespace_t *ns = findNamespace(client->nsname);
     if (!ns) {
-	ulog("namespace '%s' not found\n", client->nsname);
-	ufree(client);
+	ulog("no namespace '%s'\n", client->nsname);
 	RELEASE_LOCK(namespaceList);
 	return false;
     }
