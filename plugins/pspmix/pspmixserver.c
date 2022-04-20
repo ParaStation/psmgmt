@@ -23,6 +23,9 @@
 #include <unistd.h>
 
 #include <pmix_server.h>
+#if PMIX_VERSION_MAJOR >= 4
+# include <pmix.h>
+#endif
 
 #include "list.h"
 #include "pluginmalloc.h"
