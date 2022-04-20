@@ -69,6 +69,11 @@ void envInit(env_t *env)
     memset(env, 0, sizeof(*env));
 }
 
+uint32_t envSize(env_t *env)
+{
+    return env->cnt;
+}
+
 void envUnset(env_t *env, const char *name)
 {
     int idx = getIndex(env, name);

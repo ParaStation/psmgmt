@@ -33,6 +33,18 @@ typedef struct {
 void envInit(env_t *env);
 
 /**
+ * @brief Get environment's size
+ *
+ * Get the actual size, i.e. the number of stored variables, of the
+ * environment @a env.
+ *
+ * @param env Environment to investigate
+ *
+ * @return Size of the environment
+ */
+uint32_t envSize(env_t *env);
+
+/**
  * @brief Get value from environment
  *
  * Get the value indexed by the key @a name from the environment @a env.
