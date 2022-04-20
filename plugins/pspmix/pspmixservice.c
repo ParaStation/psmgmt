@@ -519,9 +519,11 @@ bool pspmix_service_registerClientAndSendEnv(PStask_ID_t loggertid,
     RELEASE_LOCK(namespaceList);
 
     /* register client at server */
-    /* the client object is passed to the PMIx server and is returned
-     * with pspmix_service_clientConnected(), pspmix_service_clientFinalized(),
-     * and pspmix_service_abort(). It is freed in the later two. */
+    /* the client object is passed to the PMIx server and might be
+     * passed back via pspmix_service_clientConnected(),
+     * pspmix_service_clientFinalized(), and pspmix_service_abort().
+     * Cleanup is done together with the namespace's all other clients
+     * in pspmix_service_removeNamespace()/pspmix_service_cleanupNamespace()*/
     if (!pspmix_server_registerClient(nsname, client->rank, client->uid,
 		client->gid, (void*)client)) {
 	ulog("r%d: failed to register client to PMIx server\n", client->rank);
@@ -766,19 +768,18 @@ void pspmix_service_abort(void *clientObject)
 {
     PspmixClient_t *client = clientObject;
 
-    /* since we do never free client objects before deregistering the
-       according namespace from the server library, the clientObject should be
-       always valid here */
+    /* since we never free client objects before deregistering the
+       according namespace from the server library, the clientObject
+       should be always valid here */
 
     ulog("(rank %d)\n", client->rank);
 
-    elog("%s: aborting on users request from rank %d\n", __func__,
-	    client->rank);
+    elog("%s: on users request from rank %d\n", __func__, client->rank);
 
     GET_LOCK(namespaceList);
     PspmixNamespace_t *ns = findNamespace(client->nsname);
     if (!ns) {
-	/* can only happen if namespace deregistration in already ongoing */
+	/* might only happen if namespace deregistration is already ongoing */
 	ulog("no namespace '%s'\n", client->nsname);
 	RELEASE_LOCK(namespaceList);
 	return;
