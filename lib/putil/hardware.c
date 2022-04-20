@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2003 ParTec AG, Karlsruhe
  * Copyright (C) 2005-2020 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021 ParTec AG, Munich
+ * Copyright (C) 2021-2022 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -15,12 +15,12 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "env.h"
+#include "psenv.h"
 
 typedef struct {
     char *name;
-    env_fields_t scripts;
-    env_fields_t environment;
+    env_t scripts;
+    env_t environment;
 } hardware_t;
 
 static hardware_t *hw = NULL;
@@ -62,8 +62,8 @@ int HW_add(const char *name)
     }
 
     hw[cnt].name = strdup(name);
-    env_init(&hw[cnt].scripts);
-    env_init(&hw[cnt].environment);
+    envInit(&hw[cnt].scripts);
+    envInit(&hw[cnt].environment);
 
     cnt++;
 
@@ -79,42 +79,42 @@ int HW_setScript(const int idx, const char *type, const char *script)
 {
     if (idx < 0 || idx >= cnt) return 0;
 
-    return !env_set(&hw[idx].scripts, type, script);
+    return envSet(&hw[idx].scripts, type, script);
 }
 
 char *HW_getScript(const int idx, const char *type)
 {
     if (idx < 0 || idx >= cnt) return NULL;
 
-    return env_get(&hw[idx].scripts, type);
+    return envGet(&hw[idx].scripts, type);
 }
 
 int HW_setEnv(const int idx, const char *name, const char *val)
 {
     if (idx < 0 || idx >= cnt) return 0;
 
-    return !env_set(&hw[idx].environment, name, val);
+    return envSet(&hw[idx].environment, name, val);
 }
 
 char *HW_getEnv(const int idx, const char *name)
 {
     if (idx < 0 || idx >= cnt) return NULL;
 
-    return env_get(&hw[idx].environment, name);
+    return envGet(&hw[idx].environment, name);
 }
 
 int HW_getEnvSize(const int idx)
 {
     if (idx < 0 || idx >= cnt) return 0;
 
-    return env_size(&hw[idx].environment);
+    return envSize(&hw[idx].environment);
 }
 
 char *HW_dumpEnv(const int idx, const int num)
 {
     if (idx < 0 || idx >= cnt) return NULL;
 
-    return env_dump(&hw[idx].environment, num);
+    return envDumpIndex(&hw[idx].environment, num);
 }
 
 char *HW_printType(const unsigned int hwType)
