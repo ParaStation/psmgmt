@@ -213,13 +213,33 @@ static void decodeValue(const char *encval, pmix_value_t *val,
 }
 #endif
 
-/* Notify the host server that a client connected to us - note
- * that the client will be in a blocked state until the host server
- * executes the callback function, thus allowing the PMIx server support
- * library to release the client */
-/* pmix_server_client_connected_fn_t */
+/* Notify the host environment that a client has called PMIx_Init.
+ * Note that the client will be in a blocked state until the host server
+ * executes the callback function, thus allowing the PMIx server support library
+ * to release the client. The server_object parameter will be the value of the
+ * server_object parameter passed to PMIx_server_register_client by the
+ * host server when registering the connecting client.
+ * It is possible that only a subset of the clients in a namespace call
+ * PMIx_Init. The server’s pmix_server_client_connected2_fn_t implementation
+ * should therefore not depend on being called once per rank in a namespace or
+ * delay calling the callback function until all ranks have connected. However,
+ * the host may rely on the pmix_server_client_connected2_fn_t function module
+ * entry being called for a given rank prior to any other function module
+ * entries being executed on behalf of that rank. */
+/* pmix_server_client_connected2_fn_t */
+#if PMIX_VERSION_MAJOR >= 4
+static pmix_status_t server_client_connected2_cb(const pmix_proc_t *proc,
+						 void *clientObject,
+						 pmix_info_t info[],
+						 size_t ninfo,
+						 pmix_op_cbfunc_t cbfunc,
+						 void *cbdata)
+#else
 static pmix_status_t server_client_connected_cb(const pmix_proc_t *proc,
-	void *clientObject, pmix_op_cbfunc_t cbfunc, void *cbdata)
+						 void *clientObject,
+						 pmix_op_cbfunc_t cbfunc,
+						 void *cbdata)
+#endif
 {
     mdbg(PSPMIX_LOG_CALL,
 	 "%s(proc(%d, '%s', clientObject %p cbfunc %p cbdata %p)\n", __func__,
@@ -238,10 +258,18 @@ static pmix_status_t server_client_connected_cb(const pmix_proc_t *proc,
     return PMIX_SUCCESS;
 }
 
-/* Notify the host server that a client called PMIx_Finalize - note
- * that the client will be in a blocked state until the host server
- * executes the callback function, thus allowing the PMIx server support
- * library to release the client */
+/* Notify the host environment that a client called PMIx_Finalize.
+ * Note that the client will be in a blocked state until the host server
+ * executes the callback function, thus allowing the PMIx server support library
+ * to release the client. The server_object parameter will be the value of the
+ * server_object parameter passed to PMIx_server_register_client by the host
+ * server when registering the connecting client. If provided, an implementation
+ * of pmix_server_client_finalized_fn_t is only required to call the callback
+ * function designated.
+ * Note that the host server is only being informed that the client has called
+ * PMIx_Finalize. The client might not have exited. If a client exits without
+ * calling PMIx_Finalize, the server support library will not call the
+ * pmix_server_client_finalized_fn_t implementation. */
 /* pmix_server_client_finalized_fn_t */
 static pmix_status_t server_client_finalized_cb(const pmix_proc_t *proc,
 	void* clientObject, pmix_op_cbfunc_t cbfunc, void *cbdata)
@@ -278,11 +306,15 @@ void pspmix_server_operationFinished(bool success, void* cb)
     callback->cbfunc(success ? PMIX_SUCCESS : PMIX_ERROR, callback->cbdata);
 }
 
-/* A local client called PMIx_Abort - note that the client will be in a blocked
- * state until the host server executes the callback function, thus
- * allowing the PMIx server support library to release the client. The
- * array of procs indicates which processes are to be terminated. A NULL
- * indicates that all procs in the client's nspace are to be terminated */
+/* A local client called PMIx_Abort.
+ * Note that the client will be in a blocked state until the host server
+ * executes the callback function, thus allowing the PMIx server library to
+ * release the client.
+ * The array of procs indicates which processes are to be terminated. A NULL for
+ * the procs array indicates that all processes in the caller’s namespace are to
+ * be aborted, including itself - this is the equivalent of passing a
+ * pmix_proc_t array element containing the caller’s namespace and a rank
+ * value of PMIX_RANK_WILDCARD. */
 /* pmix_server_abort_fn_t */
 static pmix_status_t server_abort_cb(const pmix_proc_t *proc,
 	void *clientObject, int status, const char msg[], pmix_proc_t procs[],
@@ -503,6 +535,17 @@ void pspmix_server_returnModexData(bool success, modexdata_t *mdata)
  * may never become available. The directives are optional _unless_ the _mandatory_ flag
  * has been set - in such cases, the host RM is required to return an error
  * if the directive cannot be met. */
+
+
+/* Used by the PMIx server to request its local host contact the PMIx server on
+ * the remote node that hosts the specified proc to obtain and return any
+ * information that process posted via calls to PMIx_Put and PMIx_Commit.
+ *
+ * The array of info structs is used to pass user-requested options to the
+ * server. This can include a timeout to preclude an indefinite wait for data
+ * that may never become available. The directives are optional unless the
+ * mandatory flag has been set - in such cases, the host RM is required to
+ * return an error if the directive cannot be met. */
 /* pmix_server_dmodex_req_fn_t */
 static pmix_status_t server_dmodex_req_cb(const pmix_proc_t *proc,
 					  const pmix_info_t info[],
@@ -598,24 +641,27 @@ bool pspmix_server_requestModexData(modexdata_t *mdata)
     return true;
 }
 
-/* Publish data per the PMIx API specification. The callback is to be executed
- * upon completion of the operation. The default data range is expected to be
- * PMIX_SESSION, and the default persistence PMIX_PERSIST_SESSION. These values
- * can be modified by including the respective pmix_info_t struct in the
- * provided array.
+/* Publish data per the PMIx_Publish specification.
+ * The callback is to be executed upon completion of the operation. The default
+ * data range is left to the host environment, but expected to be
+ * PMIX_RANGE_SESSION, and the default persistence PMIX_PERSIST_SESSION or their
+ * equivalent. These values can be specified by including the respective
+ * attributed in the info array. The persistence indicates how long the server
+ * should retain the data.
  *
- * Note that the host server is not required to guarantee support for any specific
- * range - i.e., the server does not need to return an error if the data store
- * doesn't support range-based isolation. However, the server must return an error
- * (a) if the key is duplicative within the storage range, and (b) if the server
- * does not allow overwriting of published info by the original publisher - it is
- * left to the discretion of the host server to allow info-key-based flags to modify
- * this behavior.
+ * Advice to PMIx server hosts:
+ * The host environment is not required to guarantee support for any specific
+ * range - i.e., the environment does not need to return an error if the data
+ * store doesn’t support a specified range so long as it is covered by some
+ * internally defined range. However, the server must return an error
+ * (a) if the key is duplicative within the storage range, and
+ * (b) if the server does not allow overwriting of published info by the
+ * original publisher - it is left to the discretion of the host environment to
+ * allow info-key-based flags to modify this behavior.
  *
- * The persistence indicates how long the server should retain the data.
- *
- * The identifier of the publishing process is also provided and is expected to
- * be returned on any subsequent lookup request */
+ * The PMIX_USERID and PMIX_GRPID of the publishing process will be provided to
+ * support authorization-based access to published information and must be
+ * returned on any subsequent lookup request. */
 /* pmix_server_publish_fn_t */
 static pmix_status_t server_publish_cb(
 	const pmix_proc_t *proc,
@@ -626,7 +672,7 @@ static pmix_status_t server_publish_cb(
 
     mlog("%s: NOT IMPLEMENTED\n", __func__);
 
-    /* TODO */
+    // @todo implement
 #if 0
     size_t i, errcount;
     bool ret;
@@ -660,6 +706,24 @@ static pmix_status_t server_publish_cb(
  * immediately callback with whatever data is available. In addition, a timeout
  * can be specified on the wait to preclude an indefinite wait for data that
  * may never be published. */
+
+/* Lookup published data. The host server will be passed a NULL-terminated array
+ * of string keys identifying the data being requested.
+ * The array of info structs is used to pass user-requested options to the
+ * server. The default data range is left to the host environment, but expected
+ * to be PMIX_RANGE_SESSION. This can include a wait flag to indicate that the
+ * server should wait for all data to become available before executing the
+ * callback function, or should immediately callback with whatever data is
+ * available. In addition, a timeout can be specified on the wait to preclude an
+ * indefinite wait for data that may never be published.
+ *
+ * Advice to PMIx server hosts:
+ * The PMIX_USERID and PMIX_GRPID of the requesting process will be provided to
+ * support authorization-based access to published information. The host
+ * environment is not required to guarantee support for any specific range -
+ * i.e., the environment does not need to return an error if the data store
+ * doesn’t support a specified range so long as it is covered by some internally
+ * defined range. */
 /* pmix_server_lookup_fn_t */
 static pmix_status_t server_lookup_cb(
 	const pmix_proc_t *proc, char **keys,
@@ -670,7 +734,7 @@ static pmix_status_t server_lookup_cb(
 
     mlog("%s: NOT IMPLEMENTED\n", __func__);
 
-    /* TODO */
+    /* @todo implement */
 #if 0
     const char *encval;
     size_t i, nkeys, ndata;
@@ -722,10 +786,19 @@ static pmix_status_t server_lookup_cb(
     return PMIX_ERR_NOT_IMPLEMENTED;
 }
 
-/* Delete data from the data store. The host server will be passed a NULL-terminated array
- * of string keys, plus potential directives such as the data range within which the
- * keys should be deleted. The callback is to be executed upon completion of the delete
- * procedure */
+/* Delete data from the data store. The host server will be passed a
+ * NULL-terminated array of string keys, plus potential directives such as the
+ * data range within which the keys should be deleted. The default data range is
+ * left to the host environment, but expected to be PMIX_RANGE_SESSION.
+ * The callback is to be executed upon completion of the delete procedure.
+ *
+ * Advice to PMIx server hosts:
+ * The PMIX_USERID and PMIX_GRPID of the requesting process will be provided to
+ * support authorization-based access to published information. The host
+ * environment is not required to guarantee support for any specific range -
+ * i.e., the environment does not need to return an error if the data store
+ * doesn’t support a specified range so long as it is covered by some internally
+ * defined range. */
 /* pmix_server_unpublish_fn_t */
 static pmix_status_t server_unpublish_cb(
 	const pmix_proc_t *proc, char **keys,
@@ -736,7 +809,7 @@ static pmix_status_t server_unpublish_cb(
 
     mlog("%s: NOT IMPLEMENTED\n", __func__);
 
-    /* TODO */
+    // @todo implement
 
     return PMIX_ERR_NOT_IMPLEMENTED;
 }
@@ -752,6 +825,16 @@ static pmix_status_t server_unpublish_cb(
  * Note that a timeout can be specified in the job_info array to indicate
  * that failure to start the requested job within the given time should
  * result in termination to avoid hangs */
+/* Spawn a set of applications/processes as per the PMIx_Spawn API.
+ * Note that applications are not required to be MPI or any other programming
+ * model. Thus, the host server cannot make any assumptions as to their required
+ * support. The callback function is to be executed once all processes have been
+ * started. An error in starting any application or process in this request
+ * shall cause all applications and processes in the request to be terminated,
+ * and an error returned to the originating caller.
+ * Note that a timeout can be specified in the job_info array to indicate that
+ * failure to start the requested job within the given time should result in
+ * termination to avoid hangs. */
 /* pmix_server_spawn_fn_t  */
 static pmix_status_t server_spawn_cb(
 	const pmix_proc_t *proc,
@@ -763,25 +846,22 @@ static pmix_status_t server_spawn_cb(
 
     mlog("%s: NOT IMPLEMENTED\n", __func__);
 
-    /* TODO */
+    // @todo implement at highest priority
 
     return PMIX_ERR_NOT_IMPLEMENTED;
 }
 
-/* Record the specified processes as "connected". This means that the resource
- * manager should treat the failure of any process in the specified group as
- * a reportable event, and take appropriate action. The callback function is
- * to be called once all participating processes have called connect. Note that
- * a process can only engage in *one* connect operation involving the identical
- * set of procs at a time. However, a process *can* be simultaneously engaged
- * in multiple connect operations, each involving a different set of procs
+/* Record the processes specified by the procs array as connected as per the
+ * PMIx definition. The callback is to be executed once every daemon hosting at
+ * least one participant has called the host server’s pmix_server_connect_fn_t
+ * function, and the host environment has completed any supporting operations
+ * required to meet the terms of the PMIx definition of connected processes.
  *
- * Note also that this is a collective operation within the client library, and
- * thus the client will be blocked until all procs participate. Thus, the info
- * array can be used to pass user directives, including a timeout.
- * The directives are optional _unless_ the _mandatory_ flag
- * has been set - in such cases, the host RM is required to return an error
- * if the directive cannot be met. */
+ * Advice to PMIx server hosts:
+ * The host will receive a single call for each collective operation. It is the
+ * responsibility of the host to identify the nodes containing participating
+ * processes, execute the collective across all participating nodes, and notify
+ * the local PMIx server library upon completion of the global collective. */
 /* pmix_server_connect_fn_t */
 static pmix_status_t server_connect_cb(
 	const pmix_proc_t procs[], size_t nprocs,
@@ -792,7 +872,7 @@ static pmix_status_t server_connect_cb(
 
     mlog("%s: NOT IMPLEMENTED\n", __func__);
 
-    /* TODO */
+    // @todo implement
 
     /* not implemented yet */
     return PMIX_ERR_NOT_IMPLEMENTED;
@@ -811,6 +891,19 @@ static pmix_status_t server_connect_cb(
  * The directives are optional _unless_ the _mandatory_ flag
  * has been set - in such cases, the host RM is required to return an error
  * if the directive cannot be met. */
+/* Disconnect a previously connected set of processes. The callback is to be
+ * executed once every daemon hosting at least one participant has called the
+ * host server’s has called the pmix_server_disconnect_fn_t function, and the
+ * host environment has completed any required supporting operations.
+ *
+ * Advice to PMIx server hosts:
+ * The host will receive a single call for each collective operation. It is the
+ * responsibility of the host to identify the nodes containing participating
+ * processes, execute the collective across all participating nodes, and notify
+ * the local PMIx server library upon completion of the global collective.
+ * A PMIX_ERR_INVALID_OPERATION error must be returned if the specified set of
+ * procs was not previously connected via a call to the pmix_server_connect_fn_t
+ * function. */
 /* pmix_server_disconnect_fn_t */
 static pmix_status_t server_disconnect_cb(
 	const pmix_proc_t procs[], size_t nprocs,
@@ -821,7 +914,7 @@ static pmix_status_t server_disconnect_cb(
 
     mlog("%s: NOT IMPLEMENTED\n", __func__);
 
-    /* TODO */
+    // @todo implement
 
     /* not implemented yet */
     return PMIX_ERR_NOT_IMPLEMENTED;
@@ -840,6 +933,17 @@ static pmix_status_t server_disconnect_cb(
  * The info array included in this API is reserved for possible future directives
  * to further steer notification.
  */
+/* Register to receive notifications for the specified status codes. The info
+ * array included in this API is reserved for possible future directives to
+ * further steer notification.
+ *
+ * Advice to PMIx server hosts:
+ * The host environment is required to pass to its PMIx server library all
+ * non-environmental events that directly relate to a registered namespace
+ * without the PMIx server library explicitly requesting them. Environmental
+ * events are to be translated to their nearest PMIx equivalent code as defined
+ * in the range between PMIX_EVENT_SYS_BASE and PMIX_EVENT_SYS_OTHER
+ * (inclusive). */
 /* pmix_server_register_events_fn_t */
 static pmix_status_t server_register_events_cb(
 	pmix_status_t *codes, size_t ncodes,
@@ -850,15 +954,14 @@ static pmix_status_t server_register_events_cb(
 
     mlog("%s: NOT IMPLEMENTED\n", __func__);
 
-    /* TODO ignoring this for the moment */
+    // @todo implement
 
     /* not implemented yet */
     return PMIX_ERR_NOT_IMPLEMENTED;
 }
 
-/* Deregister to receive notifications for the specified environmental events
- * for which the PMIx server has previously registered. The host RM remains
- * required to notify of any job-related events */
+/* Deregister to receive notifications for the specified events to which the
+ * PMIx server has previously registered. */
 /* pmix_server_deregister_events_fn_t */
 static pmix_status_t server_deregister_events_cb(
 	pmix_status_t *codes, size_t ncodes,
@@ -868,23 +971,57 @@ static pmix_status_t server_deregister_events_cb(
 
     mlog("%s: NOT IMPLEMENTED\n", __func__);
 
-    /* TODO ignoring this for the moment */
+    // @todo implement
 
     /* not implemented yet */
     return PMIX_ERR_NOT_IMPLEMENTED;
 }
 
+/* Notify the specified processes of an event generated either by
+ * the PMIx server itself, or by one of its local clients. The process
+ * generating the event is provided in the source parameter. */
+/* Notify the specified processes (described through a combination of range
+ * and attributes provided in the info array) of an event generated either by
+ * the PMIx server itself or by one of its local clients.
+ *
+ * The process generating the event is provided in the source parameter, and any
+ * further descriptive information is included in the info array.
+ *
+ * Note that the PMIx server library is not allowed to echo any event given to
+ * it by its host via the PMIx_Notify_event API back to the host through the
+ * pmix_server_notify_event_fn_t server module function.
+ *
+ * Advice to PMIx server hosts:
+ * The callback function is to be executed once the host environment no longer
+ * requires that the PMIx server library maintain the provided data structures.
+ * It does not necessarily indicate that the event has been delivered to any
+ * process, nor that the event has been distributed for delivery */
+/* pmix_server_notify_event_fn_t */
+static pmix_status_t server_notify_event_cb(
+	pmix_status_t code, const pmix_proc_t *source,
+	pmix_data_range_t range,
+	pmix_info_t info[], size_t ninfo,
+	pmix_op_cbfunc_t cbfunc, void *cbdata)
+{
+    mdbg(PSPMIX_LOG_CALL, "%s()\n", __func__);
+
+    mlog("%s: NOT IMPLEMENTED\n", __func__);
+
+    // @todo implement
+
+    /* not implemented */
+    return PMIX_ERR_NOT_IMPLEMENTED;
+}
+
 #if 0
-/* Register a socket the host server can monitor for connection
- * requests, harvest them, and then call our internal callback
- * function for further processing. A listener thread is essential
- * to efficiently harvesting connection requests from large
- * numbers of local clients such as occur when running on large
- * SMPs. The host server listener is required to call accept
- * on the incoming connection request, and then passing the
- * resulting soct to the provided cbfunc. A NULL for this function
- * will cause the internal PMIx server to spawn its own listener
- * thread */
+/* Register a socket the host environment can monitor for connection requests,
+ * harvest them, and then call the PMIx server library’s internal callback
+ * function for further processing. A listener thread is essential to
+ * efficiently harvesting connection requests from large numbers of local
+ * clients such as occur when running on large SMPs. The host server listener is
+ * required to call accept on the incoming connection request, and then pass the
+ * resulting socket to the provided cbfunc. A NULL for this function will cause
+ * the internal PMIx server to spawn its own listener thread. */
 /* pmix_server_listener_fn_t */
 static pmix_status_t
 pspmix_server_listener_cb(int listening_sd,
@@ -897,28 +1034,10 @@ pspmix_server_listener_cb(int listening_sd,
 }
 #endif
 
-/* Notify the specified processes of an event generated either by
- * the PMIx server itself, or by one of its local clients. The process
- * generating the event is provided in the source parameter. */
-/* pmix_server_notify_event_fn_t */
-static pmix_status_t server_notify_event_cb(
-	pmix_status_t code, const pmix_proc_t *source,
-	pmix_data_range_t range,
-	pmix_info_t info[], size_t ninfo,
-	pmix_op_cbfunc_t cbfunc, void *cbdata)
-{
-    mdbg(PSPMIX_LOG_CALL, "%s()\n", __func__);
-
-    mlog("%s: NOT IMPLEMENTED\n", __func__);
-
-    /* not implemented */
-    return PMIX_ERR_NOT_IMPLEMENTED;
-}
-
-/* Query information from the resource manager. The query will include
- * the nspace/rank of the proc that is requesting the info, an
- * array of pmix_query_t describing the request, and a callback
- * function/data for the return. */
+/* Query information from the host environment. The query will include the
+ * namespace/rank of the process that is requesting the info, an array of
+ * pmix_query_t describing the request, and a callback function/data for the
+ * return. */
 /* pmix_server_query_fn_t */
 static pmix_status_t server_query_cb(
 	pmix_proc_t *proc,
@@ -927,6 +1046,8 @@ static pmix_status_t server_query_cb(
 {
     mdbg(PSPMIX_LOG_CALL, "%s(rank %u namespace %s)\n", __func__, proc->rank,
 	 proc->nspace);
+
+    // @todo implement
 
     vector_t query;
     charvInit(&query, 50);
@@ -949,18 +1070,28 @@ static pmix_status_t server_query_cb(
     return PMIX_ERR_NOT_IMPLEMENTED;
 }
 
-/* Register that a tool has connected to the server, and request
- * that the tool be assigned an nspace/rank for further interactions.
- * The optional pmix_info_t array can be used to pass qualifiers for
- * the connection request:
+/* Register that a tool has connected to the server, possibly requesting that
+ * the tool be assigned a namespace/rank identifier for further interactions.
+ * The pmix_info_t array is used to pass qualifiers for the connection request,
+ * including the effective uid and gid of the calling tool for authentication
+ * purposes.
  *
- * (a) PMIX_USERID - effective userid of the tool
- * (b) PMIX_GRPID - effective groupid of the tool
- * (c) PMIX_FWD_STDOUT - forward any stdout to this tool
- * (d) PMIX_FWD_STDERR - forward any stderr to this tool
- * (e) PMIX_FWD_STDIN - forward stdin from this tool to any
- *     processes spawned on its behalf
- */
+ * If the tool already has an assigned process identifier, then this must be
+ * indicated in the info array. The host is responsible for checking that the
+ * provided namespace does not conflict with any currently known assignments,
+ * returning an appropriate error in the callback function if a conflict is
+ * found.
+ * The host environment is solely responsible for authenticating and authorizing
+ * the connection using whatever means it deems appropriate. If certificates or
+ * other authentication information are required, then the tool must provide
+ * them. The conclusion of those operations shall be communicated back to the
+ * PMIx server library via the callback function.
+ *
+ * Approval or rejection of the connection request shall be returned in the
+ * status parameter of the pmix_tool_connection_cbfunc_t. If the connection is
+ * refused, the PMIx server library must terminate the connection attempt. The
+ * host must not execute the callback function prior to returning from the API.
+ * */
 /* pmix_server_tool_connection_fn_t */
 static void server_tool_connection_cb(
 	pmix_info_t *info, size_t ninfo,
@@ -968,12 +1099,17 @@ static void server_tool_connection_cb(
 {
     mdbg(PSPMIX_LOG_CALL, "%s()\n", __func__);
 
+    // @todo implement at low priority
+
     mlog("%s: NOT IMPLEMENTED\n", __func__);
 
     /* not implemented */
 }
 
-/* Log data on behalf of a client */
+/* Log data on behalf of a client.
+ * This function is not intended for output of computational results, but rather
+ * for reporting status and error messages. The host must not execute the
+ * callback function prior to returning from the API. */
 /* pmix_server_log_fn_t */
 static void server_log_cb(
 	const pmix_proc_t *client,
@@ -983,10 +1119,31 @@ static void server_log_cb(
 {
     mdbg(PSPMIX_LOG_CALL, "%s()\n", __func__);
 
+    // @todo implement
+
     mlog("%s: NOT IMPLEMENTED\n", __func__);
 }
 
-/* Request allocation modifications on behalf of a client */
+/* Request new allocation or modifications to an existing allocation on behalf
+ * of a client.
+ *
+ * Several broad categories are envisioned, including the ability to:
+ * - Request allocation of additional resources, including memory, bandwidth,
+ *   and compute for an existing allocation. Any additional allocated resources
+ *   will be considered as part of the current allocation, and thus will be
+ *   released at the same time.
+ * - Request a new allocation of resources. Note that the new allocation will be
+ *   disjoint from (i.e., not affiliated with) the allocation of the requestor
+ *    - thus the termination of one allocation will not impact the other.
+ * - Extend the reservation on currently allocated resources, subject to
+ *   scheduling availability and priorities.
+ * - Return no-longer-required resources to the scheduler. This includes the
+ *   loan of resources back to the scheduler with a promise to return them upon
+ *   subsequent request.
+ *
+ * The callback function provides a status to indicate whether or not the
+ * request was granted, and to provide some information as to the reason for any
+ * denial in the pmix_info_cbfunc_t array of pmix_info_t structures. */
 /* pmix_server_alloc_fn_t */
 static pmix_status_t server_alloc_cb(
 	const pmix_proc_t *client,
@@ -998,10 +1155,23 @@ static pmix_status_t server_alloc_cb(
 
     mlog("%s: NOT IMPLEMENTED\n", __func__);
 
+    // @todo implement at low priority
+
     return PMIX_ERR_NOT_IMPLEMENTED;
 }
 
 /* Execute a job control action on behalf of a client */
+/* Execute a job control action on behalf of a client.
+ *
+ * The targets array identifies the processes to which the requested job control
+ * action is to be applied. A NULL value can be used to indicate all processes
+ * in the caller’s namespace. The use of PMIX_RANK_WILDCARD can also be used to
+ * indicate that all processes in the given namespace are to be included.
+ *
+ * The directives are provided as pmix_info_t structures in the directives
+ * array. The callback function provides a status to indicate whether or not the
+ * request was granted, and to provide some information as to the reason for any
+ * denial in the pmix_info_cbfunc_t array of pmix_info_t structures. */
 /* pmix_server_job_control_fn_t */
 static pmix_status_t server_job_control_cb(
 	const pmix_proc_t *requestor,
@@ -1010,6 +1180,8 @@ static pmix_status_t server_job_control_cb(
 	pmix_info_cbfunc_t cbfunc, void *cbdata)
 {
     mdbg(PSPMIX_LOG_CALL, "%s()\n", __func__);
+
+    // @todo implement at low priority
 
     mlog("%s: NOT IMPLEMENTED\n", __func__);
 
@@ -1028,16 +1200,166 @@ static pmix_status_t server_monitor_cb(
 {
     mdbg(PSPMIX_LOG_CALL, "%s()\n", __func__);
 
+    // @todo implement at low priority
+
     mlog("%s: NOT IMPLEMENTED\n", __func__);
 
     /* not implemented */
     return PMIX_ERR_NOT_IMPLEMENTED;
 }
 
+/* Request a credential from the host environment. */
+/* pmix_server_get_cred_fn_t */
+static pmix_status_t server_get_cred_cb(
+	const pmix_proc_t *proc,
+	const pmix_info_t directives[],
+	size_t ndirs,
+	pmix_credential_cbfunc_t cbfunc,
+	void *cbdata)
+{
+    mdbg(PSPMIX_LOG_CALL, "%s()\n", __func__);
+
+    // @todo implement at low priority
+
+    mlog("%s: NOT IMPLEMENTED\n", __func__);
+
+    /* not implemented */
+    return PMIX_ERR_NOT_IMPLEMENTED;
+}
+
+/* Request validation of a credential. */
+/* pmix_server_validate_cred_fn_t */
+static pmix_status_t server_validate_cred_cb(
+	const pmix_proc_t *proc,
+	const pmix_byte_object_t *cred,
+	const pmix_info_t directives[],
+	size_t ndirs,
+	pmix_validation_cbfunc_t cbfunc,
+	void *cbdata)
+{
+    mdbg(PSPMIX_LOG_CALL, "%s()\n", __func__);
+
+    // @todo implement at low priority
+
+    mlog("%s: NOT IMPLEMENTED\n", __func__);
+
+    /* not implemented */
+    return PMIX_ERR_NOT_IMPLEMENTED;
+}
+
+/* Request the specified IO channels be forwarded from the given array of
+ * processes */
+/* pmix_server_iof_fn_t */
+static pmix_status_t server_iof_cb(
+	const pmix_proc_t procs[],
+	size_t nprocs,
+	const pmix_info_t directives[],
+	size_t ndirs,
+	pmix_iof_channel_t channels,
+	pmix_op_cbfunc_t cbfunc, void *cbdata)
+{
+    mdbg(PSPMIX_LOG_CALL, "%s()\n", __func__);
+
+    // @todo implement at low priority
+
+    mlog("%s: NOT IMPLEMENTED\n", __func__);
+
+    /* not implemented */
+    return PMIX_ERR_NOT_IMPLEMENTED;
+}
+
+/* Pass standard input data to the host environment for transmission to
+ * specified recipients. */
+/* pmix_server_stdin_fn_t */
+static pmix_status_t server_stdin_cb(
+	const pmix_proc_t *source,
+	const pmix_proc_t targets[],
+	size_t ntargets,
+	const pmix_info_t directives[],
+	size_t ndirs,
+	const pmix_byte_object_t *bo,
+	pmix_op_cbfunc_t cbfunc, void *cbdata)
+{
+    mdbg(PSPMIX_LOG_CALL, "%s()\n", __func__);
+
+    // @todo implement at low priority
+
+    mlog("%s: NOT IMPLEMENTED\n", __func__);
+
+    /* not implemented */
+    return PMIX_ERR_NOT_IMPLEMENTED;
+}
+
+#if PMIX_VERSION_MAJOR >= 4
+/* Request group operations (construct, destruct, etc.) on behalf of a set of
+ * processes.
+ *
+ * Perform the specified operation across the identified processes, plus any
+ * special actions included in the directives. Return the result of any special
+ * action requests in the callback function when the operation is completed.
+ * Actions may include a request (PMIX_GROUP_ASSIGN_CONTEXT_ID) that the host
+ * assign a unique numerical (size_t) ID to this group - if given, the
+ * PMIX_RANGE attribute will specify the range across which the ID must be
+ * unique (default to PMIX_RANGE_SESSION). */
+/* pmix_server_grp_fn_t */
+static pmix_status_t server_grp_cb(
+	pmix_group_operation_t op,
+	char grp[],
+	const pmix_proc_t procs[],
+	size_t nprocs,
+	const pmix_info_t directives[],
+	size_t ndirs,
+	pmix_info_cbfunc_t cbfunc,
+	void *cbdata)
+{
+    mdbg(PSPMIX_LOG_CALL, "%s()\n", __func__);
+
+    // @todo implement at low priority
+
+    mlog("%s: NOT IMPLEMENTED\n", __func__);
+
+    /* not implemented */
+    return PMIX_ERR_NOT_IMPLEMENTED;
+}
+
+/* Request fabric-related operations (e.g., information on a fabric) on behalf
+ * of a tool or other process.
+ *
+ * Perform the specified operation. Return the result of any requests in the
+ * callback function when the operation is completed. Operations may, for
+ * example, include a request for fabric information. See pmix_fabric_t for a
+ * list of expected information to be included in the response. Note that
+ * requests for device index are to be returned in the callback function’s array
+ * of pmix_info_t using the PMIX_FABRIC_DEVICE_INDEX attribute. */
+/* pmix_server_fabric_fn_t */
+static pmix_status_t server_fabric_cb(
+	const pmix_proc_t *requestor,
+	pmix_fabric_operation_t op,
+	const pmix_info_t directives[],
+	size_t ndirs,
+	pmix_info_cbfunc_t cbfunc,
+	void *cbdata)
+{
+    mdbg(PSPMIX_LOG_CALL, "%s()\n", __func__);
+
+    // @todo implement at low priority
+
+    mlog("%s: NOT IMPLEMENTED\n", __func__);
+
+    /* not implemented */
+    return PMIX_ERR_NOT_IMPLEMENTED;
+}
+#endif
+
+
 /* struct holding the server callback functions */
 static pmix_server_module_t module = {
     /* v1x interfaces */
+#if PMIX_VERSION_MAJOR >= 4
+    .client_connected = NULL, /* deprecated */
+#else
     .client_connected = server_client_connected_cb,
+#endif
     .client_finalized = server_client_finalized_cb,
     .abort = server_abort_cb,
     .fence_nb = server_fencenb_cb,
@@ -1063,6 +1385,17 @@ static pmix_server_module_t module = {
     .allocate = server_alloc_cb,
     .job_control = server_job_control_cb,
     .monitor = server_monitor_cb,
+    /* v3x interfaces */
+    .get_credential = server_get_cred_cb,
+    .validate_credential = server_validate_cred_cb,
+    .iof_pull = server_iof_cb,
+    .push_stdin = server_stdin_cb,
+    /* v4x interfaces */
+#if PMIX_VERSION_MAJOR >= 4
+    .group = server_grp_cb,
+    .fabric = server_fabric_cb,
+    .client_connected2 = server_client_connected2_cb,
+#endif
 };
 
 /* XXX */
