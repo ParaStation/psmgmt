@@ -560,8 +560,23 @@ static pmix_status_t server_dmodex_req_cb(const pmix_proc_t *proc,
     mdbg(PSPMIX_LOG_CALL, "%s(rank %u namespace %s)\n", __func__, proc->rank,
 	 proc->nspace);
 
+
+#if PMIX_VERSION_MAJOR >= 4
+    /* handle command directives */
+    for (size_t i = 0; i < ninfo; i++) {
+	if (PMIX_CHECK_KEY(info+i, PMIX_REQUIRED_KEY)) {
+	    mlog("%s: Found %s info [key '%s' value '%s']\n", __func__,
+		 (PMIX_INFO_IS_REQUIRED(&info[i])) ? "required" : "optional",
+		 info[i].key, info[i].value.data.string);
+	    // @todo include required key into request to other servers
+	    continue;
+	}
+
+	/* inform about lacking implementation */
+#else
     /* inform about lacking implementation */
     for (size_t i = 0; i < ninfo; i++) {
+#endif
 	mlog("%s: Ignoring info [key '%s' flags '%s' value.type '%s']"
 	     " (not implemented)\n", __func__, info[i].key,
 	     PMIx_Info_directives_string(info[i].flags),
