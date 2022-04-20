@@ -93,7 +93,7 @@ int sendExecScript(Script_t *script, PSnodes_ID_t dest)
     mlog("%s: name '%s' dest %i\n", __func__, script->execName, dest);
     addUint32ToMsg(env->cnt, &data);
     for (i=0; i<env->cnt; i++) {
-	addStringToMsg(envGetIndex(env, i), &data);
+	addStringToMsg(envDumpIndex(env, i), &data);
     }
 
     /* send the messages */
@@ -110,7 +110,7 @@ static void prepEnv(void *info)
     mlog("%s: setting env %i\n", __func__, env->cnt);
 
     for (uint32_t i = 0; i < env->cnt; i++) {
-	putenv(envGetIndex(env, i));
+	putenv(envDumpIndex(env, i));
     }
 }
 

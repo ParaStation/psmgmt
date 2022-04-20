@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2014-2018 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021 ParTec AG, Munich
+ * Copyright (C) 2021-2022 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -47,18 +47,21 @@ void envInit(env_t *env);
 char *envGet(const env_t *env, const char *name);
 
 /**
- * @brief Get entry from environment
+ * @brief Dump entry from environment
  *
- * Get the entry at index @a idx from the environment @a env.
+ * Dump the entry at index @a idx from the environment @a env.  This
+ * function is mainly used for putting whole environments into a
+ * processes real environment via successiv calls of putenv().
  *
  * @param env Environment to search
  *
  * @param idx Index to look up
  *
- * @return If the index is value the full entry of the form
- * <key>=<value> is returned. Otherwise NULL is returned.
+ * @return If an environment variable is stored under the index @a
+ * idx, a string of the format 'name=value' is returned. Otherwise
+ * NULL is returned.
  */
-char *envGetIndex(const env_t *env, uint32_t idx);
+char *envDumpIndex(const env_t *env, uint32_t idx);
 
 /**
  * @brief Add to environment

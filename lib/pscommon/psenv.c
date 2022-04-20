@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2014-2020 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021 ParTec AG, Munich
+ * Copyright (C) 2021-2022 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -109,7 +109,7 @@ char *envGet(const env_t *env, const char *name)
     return strchr(env->vars[idx], '=') + 1;
 }
 
-char *envGetIndex(const env_t *env, uint32_t idx)
+char *envDumpIndex(const env_t *env, uint32_t idx)
 {
     if (idx >= env->cnt) return NULL;
     return env->vars[idx];
