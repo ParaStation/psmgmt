@@ -1169,7 +1169,8 @@ void pspmix_service_handleFenceOut(uint64_t fenceid, void *data, size_t len)
 
     /* cleanup fence object */
     ufree(fence->nodes);
-    ufree(fence->rdata); /* free only rdata, helper library ownes ldata */
+    ufree(fence->rdata);
+    free(fence->ldata); /* ownership is passed by server_fencenb_cb() */
     ufree(fence);
 }
 
