@@ -25,7 +25,6 @@
 
 #include "pstask.h"
 
-#include "pspmixlog.h"
 #include "pspmixserver.h"
 #include "pspmixtypes.h"
 
