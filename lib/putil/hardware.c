@@ -34,13 +34,9 @@ char *HW_name(const int idx)
 
 int HW_index(const char *name)
 {
-    int i;
-
     if (!name) return -1;
 
-    for (i=0; i<cnt; i++) {
-	if (!strcmp(name, hw[i].name)) return i;
-    }
+    for (int i = 0; i < cnt; i++) if (!strcmp(name, hw[i].name)) return i;
 
     return -1;
 }
@@ -75,9 +71,9 @@ int HW_num(void)
     return cnt;
 }
 
-int HW_setScript(const int idx, const char *type, const char *script)
+bool HW_setScript(const int idx, const char *type, const char *script)
 {
-    if (idx < 0 || idx >= cnt) return 0;
+    if (idx < 0 || idx >= cnt) return false;
 
     return envSet(&hw[idx].scripts, type, script);
 }
@@ -89,9 +85,9 @@ char *HW_getScript(const int idx, const char *type)
     return envGet(&hw[idx].scripts, type);
 }
 
-int HW_setEnv(const int idx, const char *name, const char *val)
+bool HW_setEnv(const int idx, const char *name, const char *val)
 {
-    if (idx < 0 || idx >= cnt) return 0;
+    if (idx < 0 || idx >= cnt) return false;
 
     return envSet(&hw[idx].environment, name, val);
 }

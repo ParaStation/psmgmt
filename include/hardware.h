@@ -3,6 +3,7 @@
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
  * Copyright (C) 2005-2020 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2022 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -13,6 +14,8 @@
  */
 #ifndef _HARDWARE_H_
 #define _HARDWARE_H_
+
+#include <stdbool.h>
 
 /**
  * @brief Create new hardware type.
@@ -96,9 +99,9 @@ int HW_index(const char *name);
  *
  * @param script The actual script to register.
  *
- * @return On succes, 1 is returned, or 0 if an error occured.
+ * @return On succes, true is returned; or false if an error occured
  */
-int HW_setScript(const int idx, const char *type, const char *script);
+bool HW_setScript(const int idx, const char *type, const char *script);
 
 /**
  * @brief Get a hardware's script.
@@ -130,9 +133,9 @@ char *HW_getScript(const int idx, const char *type);
  *
  * @param val The actual value to register.
  *
- * @return On succes, 1 is returned, or 0 if an error occured.
+ * @return On succes, true is returned, or false if an error occured
  */
-int HW_setEnv(const int idx, const char *name, const char *val);
+bool HW_setEnv(const int idx, const char *name, const char *val);
 
 /**
  * @brief Get a hardware's environment.
