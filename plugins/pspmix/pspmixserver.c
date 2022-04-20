@@ -456,8 +456,8 @@ static pmix_status_t server_fencenb_cb(
     for (size_t i = 0; i < ninfo; i++) {
 	if (PMIX_CHECK_KEY(info+i, PMIX_COLLECT_DATA)) {
 	    mlog("%s: Found %s info [key '%s' value '%s']\n", __func__,
+		 (PMIX_INFO_IS_REQUIRED(&info[i])) ? "required" : "optional",
 		 info[i].key,
-		 (info[i].flags & PMIX_INFO_REQD) ? "required" : "optional",
 		 (PMIX_INFO_TRUE(&info[i])) ? "true" : "false");
 	    continue;
 	}
