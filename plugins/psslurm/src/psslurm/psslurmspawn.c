@@ -79,6 +79,9 @@ static int fillCmdForSingleSpawn(SpawnRequest_t *req, int usize,
     /* ensure srun will not hang and wait for resources */
     strvAdd(&argV, ustrdup("--immediate=5"));
 
+    /* always use exact the resources requested */
+    strvAdd(&argV, ustrdup("--exact"));
+
     /* this is stupid but needed for best slurm compatibility
        actually this removes our default rank binding from the spawned
        processes which is needed, since slurm does none cpu binding by
@@ -206,6 +209,9 @@ static int fillCmdForMultiSpawn(SpawnRequest_t *req, int usize,
 
     /* ensure srun will not hang and wait for resources */
     strvAdd(&argV, ustrdup("--immediate=5"));
+
+    /* always use exact the resources requested */
+    strvAdd(&argV, ustrdup("--exact"));
 
     /* this is stupid but needed for best slurm compatibility
        actually this removes our default rank binding from the spawned
