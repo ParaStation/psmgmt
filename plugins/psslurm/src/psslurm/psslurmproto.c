@@ -2328,16 +2328,20 @@ static bool killSelectedSteps(Step_t *step, const void *killInfo)
 	}
     }
 
-    if (step->stepid != NO_VAL) Step_signal(step, SIGTERM, info->uid);
+    /* only signal selected steps */
+    if (info->stepid != NO_VAL) Step_signal(step, SIGTERM, info->uid);
 
     return false;
 }
 
 static void handleKillReq(Slurm_Msg_t *sMsg, Alloc_t *alloc, Kill_Info_t *info)
 {
+    /* save step timeout and print warning message for all steps,
+     * but only signal selected steps */
+    Step_traverse(killSelectedSteps, info);
+
     /* if we only kill one selected step, we are done */
     if (info->stepid != NO_VAL) {
-	Step_traverse(killSelectedSteps, info);
 	sendSlurmRC(sMsg, SLURM_SUCCESS);
 	return;
     }
