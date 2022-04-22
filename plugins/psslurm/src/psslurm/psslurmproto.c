@@ -165,7 +165,7 @@ uint32_t __getLocalRankID(uint32_t rank, Step_t *step,
 
     uint32_t adjRank = (rank > 0) ? rank - step->packTaskOffset : 0;
 
-    for (uint32_t i=0; i<step->globalTaskIdsLen[step->localNodeId]; i++) {
+    for (uint32_t i = 0; i < step->globalTaskIdsLen[step->localNodeId]; i++) {
 	if (step->globalTaskIds[step->localNodeId][i] == adjRank) return i;
     }
     return NO_VAL;
@@ -253,7 +253,7 @@ static void setAccOpts(char *freqString, uint16_t *accType)
     if (!strncmp("task=", freqString, 5)) {
 	freq = atoi(freqString+5);
 
-	if (freq >0) {
+	if (freq > 0) {
 	    mlog("%s: setting acct freq to %i\n", __func__, freq);
 	    psAccountSetPoll(freq);
 	}
@@ -274,16 +274,14 @@ static void setAccOpts(char *freqString, uint16_t *accType)
  */
 static void printLaunchTasksInfos(Step_t *step)
 {
-    uint32_t i;
-
     /* env */
-    for (i=0; i<step->env.cnt; i++) {
+    for (uint32_t i = 0; i < step->env.cnt; i++) {
 	mdbg(PSSLURM_LOG_ENV, "%s: env%i: '%s'\n", __func__, i,
 		step->env.vars[i]);
     }
 
     /* spank env */
-    for (i=0; i<step->spankenv.cnt; i++) {
+    for (uint32_t i = 0; i < step->spankenv.cnt; i++) {
 	mdbg(PSSLURM_LOG_ENV, "%s: spankenv%i: '%s'\n", __func__, i,
 		step->spankenv.vars[i]);
     }
@@ -339,7 +337,7 @@ static bool extractStepPackInfos(Step_t *step)
 		 step->slurmHosts);
 	    ufree(step->packNodes);
 	    step->packNodes = umalloc(sizeof(*step->packNodes) * step->nrOfNodes);
-	    for (uint32_t i=0; i<step->nrOfNodes; i++) {
+	    for (uint32_t i = 0; i < step->nrOfNodes; i++) {
 		step->packNodes[i] = step->nodes[i];
 	    }
 	} else {
@@ -350,7 +348,7 @@ static bool extractStepPackInfos(Step_t *step)
 	}
     }
 
-    for (uint32_t i=0; i<step->packNrOfNodes; i++) {
+    for (uint32_t i = 0; i < step->packNrOfNodes; i++) {
 	mdbg(PSSLURM_LOG_PACK, "%s: packTaskCount[%u]: %u\n", __func__, i,
 		step->packTaskCounts[i]);
     }
@@ -399,7 +397,7 @@ static bool testSlurmVersion(uint32_t pVer, uint32_t cmd)
 
 static void freeRespJobInfo(Resp_Job_Info_t *resp)
 {
-    for (uint32_t i=0; i<resp->numJobs; i++) {
+    for (uint32_t i = 0; i < resp->numJobs; i++) {
 	Slurm_Job_Rec_t *rec = &resp->jobs[i];
 
 	ufree(rec->arrayTaskStr);
@@ -435,7 +433,7 @@ static int handleJobInfoResp(Slurm_Msg_t *sMsg, void *info)
     }
     flog("received count: %u time %zu\n", resp->numJobs, resp->lastUpdate);
 
-    for (uint32_t i=0; i<resp->numJobs; i++) {
+    for (uint32_t i = 0; i < resp->numJobs; i++) {
 	Slurm_Job_Rec_t *rec = &resp->jobs[i];
 	flog("jobid: %u userid %u\n", rec->jobid, rec->userID);
     }
@@ -459,10 +457,10 @@ int requestJobInfo(uint32_t jobid)
 
 uint32_t getLocalID(PSnodes_ID_t *nodes, uint32_t nrOfNodes)
 {
-    uint32_t i, id = NO_VAL;
+    uint32_t id = NO_VAL;
     PSnodes_ID_t myID = PSC_getMyID();
 
-    for (i=0; i<nrOfNodes; i++) if (nodes[i] == myID) id = i;
+    for (uint32_t i = 0; i < nrOfNodes; i++) if (nodes[i] == myID) id = i;
     return id;
 }
 
@@ -501,7 +499,7 @@ static void handleLaunchTasks(Slurm_Msg_t *sMsg)
     /* env / spank env */
     step->env.size = step->env.cnt;
     step->spankenv.size = step->spankenv.cnt;
-    for (uint32_t i=0; i<step->spankenv.cnt; i++) {
+    for (uint32_t i = 0; i < step->spankenv.cnt; i++) {
 	if (!strncmp("_SLURM_SPANK_OPTION_x11spank_forward_x",
 		     step->spankenv.vars[i], 38)) {
 	    step->x11forward = 1;
@@ -964,7 +962,7 @@ static void handleReconfigure(Slurm_Msg_t *sMsg)
 static void freeSlurmConfigMsg(Config_Msg_t *config)
 {
     /* new configuration message since 21.08 */
-    for (uint32_t i=0; i<config->numFiles; i++) {
+    for (uint32_t i = 0; i < config->numFiles; i++) {
 	ufree(config->files[i].name);
 	ufree(config->files[i].data);
     }
@@ -1032,7 +1030,7 @@ static bool writeSlurmConfigFiles(Config_Msg_t *config, char *confDir)
 
     if (config->numFiles) {
 	/* new Slurm configuration format since Slurm 21.08 */
-	for (uint32_t i=0; i<config->numFiles; i++) {
+	for (uint32_t i = 0; i < config->numFiles; i++) {
 	    Config_File_t *file = &config->files[i];
 
 	    if (!file->create) {
@@ -1927,7 +1925,7 @@ static void handleLaunchProlog(Slurm_Msg_t *sMsg)
 	startPElogue(alloc, PELOGUE_PROLOGUE);
     } else {
        flog("prologue for allocation %u in state %s already executed\n",
-            req->jobid, Alloc_strState(alloc->state));
+	    req->jobid, Alloc_strState(alloc->state));
 
 	/* let the slurmctld know the prologue has finished */
 	sendPrologComplete(req->jobid, SLURM_SUCCESS);
@@ -1967,7 +1965,7 @@ static bool extractJobPackInfos(Job_t *job)
     job->packSize = atoi(sPackSize);
 
     /* extract pack nodes */
-    for (uint32_t i=0; i<job->packSize; i++) {
+    for (uint32_t i = 0; i < job->packSize; i++) {
 	char nodeListName[256];
 
 	snprintf(nodeListName, sizeof(nodeListName),
@@ -2512,7 +2510,7 @@ static void handleRespNodeReg(Slurm_Msg_t *sMsg)
     /* don't free the data after this function */
     sMsg->unpData = NULL;
 
-    for (uint32_t i=0; i<tresDBconfig->count; i++) {
+    for (uint32_t i = 0; i < tresDBconfig->count; i++) {
 	fdbg(PSSLURM_LOG_ACC, "alloc %zu count %lu id %u name %s type: %s\n",
 	     tresDBconfig->entry[i].allocSec, tresDBconfig->entry[i].count,
 	     tresDBconfig->entry[i].id, tresDBconfig->entry[i].name,
@@ -2532,7 +2530,7 @@ static void handleRespNodeReg(Slurm_Msg_t *sMsg)
 static bool slurmTreeForward(Slurm_Msg_t *sMsg, Msg_Forward_t *fw)
 {
     PSnodes_ID_t *nodes = NULL;
-    uint32_t i, nrOfNodes;
+    uint32_t nrOfNodes;
     bool verbose = logger_getMask(psslurmlogger) & PSSLURM_LOG_FWD;
     struct timeval time_start, time_now, time_diff;
 
@@ -2557,7 +2555,7 @@ static bool slurmTreeForward(Slurm_Msg_t *sMsg, Msg_Forward_t *fw)
     fw->head.fwRes =
 	umalloc(sMsg->head.forward * sizeof(Slurm_Forward_Res_t));
 
-    for (i=0; i<sMsg->head.forward; i++) {
+    for (uint32_t i = 0; i < sMsg->head.forward; i++) {
 	fw->head.fwRes[i].error = SLURM_COMMUNICATIONS_CONNECTION_ERROR;
 	fw->head.fwRes[i].type = RESPONSE_FORWARD_FAILED;
 	fw->head.fwRes[i].node = -1;
@@ -2921,7 +2919,7 @@ void clearSlurmdProto(void)
     ufree(slurmVerStr);
 
     if (tresDBconfig) {
-	for (uint32_t i=0; i<tresDBconfig->count; i++) {
+	for (uint32_t i = 0; i < tresDBconfig->count; i++) {
 	    ufree(tresDBconfig->entry[i].name);
 	    ufree(tresDBconfig->entry[i].type);
 	}
@@ -2982,7 +2980,7 @@ void sendNodeRegStatus(bool startup)
     Job_getInfos(&stat.jobInfoCount, &stat.jobids, &stat.stepids);
     Step_getInfos(&stat.jobInfoCount, &stat.jobids, &stat.stepids);
     stat.stepHetComp = umalloc(sizeof(*stat.stepHetComp) * stat.jobInfoCount);
-    for (uint32_t i=0; i<stat.jobInfoCount; i++) {
+    for (uint32_t i = 0; i < stat.jobInfoCount; i++) {
 	stat.stepHetComp[i] = NO_VAL;
     }
 
@@ -3064,9 +3062,7 @@ int __sendSlurmRC(Slurm_Msg_t *sMsg, uint32_t rc, const char *func,
 int getSlurmNodeID(PSnodes_ID_t psNodeID, PSnodes_ID_t *nodes,
 		   uint32_t nrOfNodes)
 {
-    for (uint32_t i=0; i<nrOfNodes; i++) {
-	if (nodes[i] == psNodeID) return i;
-    }
+    for (uint32_t i = 0; i < nrOfNodes; i++) if (nodes[i] == psNodeID) return i;
     return -1;
 }
 
@@ -3186,10 +3182,10 @@ static void doSendTaskExit(Step_t *step, int exitCode, uint32_t *count,
 	srunSendMsg(-1, step, MESSAGE_TASK_EXIT, &body);
     } else {
 	/* send to all sattach processes */
-	for (int i=0; i<MAX_SATTACH_SOCKETS; i++) {
+	for (int i = 0; i < MAX_SATTACH_SOCKETS; i++) {
 	    if (ctlPort[i] != -1) {
 		int sock = tcpConnectU(ctlAddr[i], ctlPort[i]);
-		if (sock <0) {
+		if (sock < 0) {
 		    flog("connection to srun %u:%u failed\n",
 			 ctlAddr[i], ctlPort[i]);
 		} else {
@@ -3213,11 +3209,8 @@ static void doSendTaskExit(Step_t *step, int exitCode, uint32_t *count,
  */
 static void addMissingTasks(Step_t *step)
 {
-    uint32_t i;
-    int32_t rank;
-
-    for (i=0; i<step->globalTaskIdsLen[step->localNodeId]; i++) {
-	rank = step->globalTaskIds[step->localNodeId][i];
+    for (uint32_t i = 0; i < step->globalTaskIdsLen[step->localNodeId]; i++) {
+	int32_t rank = step->globalTaskIds[step->localNodeId][i];
 	if (!findTaskByRank(&step->tasks, rank)) {
 	    PS_Tasks_t *task = addTask(&step->tasks, -1, -1, NULL, TG_ANY, rank);
 	    task->exitCode = -1;
@@ -3227,22 +3220,18 @@ static void addMissingTasks(Step_t *step)
 
 void sendTaskExit(Step_t *step, int *ctlPort, int *ctlAddr)
 {
-    uint32_t count = 0, taskCount = 0;
-    list_t *t;
-    int exitCode;
-
     addMissingTasks(step);
 
-    taskCount = countRegTasks(&step->tasks);
-
+    uint32_t taskCount = countRegTasks(&step->tasks);
     if (taskCount != step->globalTaskIdsLen[step->localNodeId]) {
 	mlog("%s: still missing tasks: %u of %u\n", __func__, taskCount,
 	    step->globalTaskIdsLen[step->localNodeId]);
     }
 
+    uint32_t count = 0;
     while (count < taskCount) {
-	exitCode = -100;
-
+	int exitCode = -100;
+	list_t *t;
 	list_for_each(t, &step->tasks) {
 	    PS_Tasks_t *task = list_entry(t, PS_Tasks_t, next);
 	    if (task->childRank < 0) continue;
@@ -3312,8 +3301,7 @@ static void doSendLaunchTasksFailed(Step_t *step, uint32_t nodeID,
 void sendLaunchTasksFailed(Step_t *step, uint32_t nodeID, uint32_t error)
 {
     if (nodeID == (uint32_t) ALL_NODES) {
-	uint32_t i;
-	for (i=0; i<step->nrOfNodes; i++) {
+	for (uint32_t i = 0; i < step->nrOfNodes; i++) {
 	    doSendLaunchTasksFailed(step, i, error);
 	}
     } else {
@@ -3337,7 +3325,7 @@ void sendTaskPids(Step_t *step)
     /* count of PIDs */
     list_for_each(t, &step->tasks) {
 	PS_Tasks_t *task = list_entry(t, PS_Tasks_t, next);
-	if (task->childRank <0) continue;
+	if (task->childRank < 0) continue;
 	countPIDs++;
     }
     resp.countPIDs = countPIDs;
@@ -3347,7 +3335,7 @@ void sendTaskPids(Step_t *step)
 
     list_for_each(t, &step->tasks) {
 	PS_Tasks_t *task = list_entry(t, PS_Tasks_t, next);
-	if (task->childRank <0) continue;
+	if (task->childRank < 0) continue;
 	if (countLocalPIDs >=countPIDs) break;
 	resp.localPIDs[countLocalPIDs++] = PSC_getPID(task->childTID);
     }
@@ -3358,7 +3346,7 @@ void sendTaskPids(Step_t *step)
 
     list_for_each(t, &step->tasks) {
 	PS_Tasks_t *task = list_entry(t, PS_Tasks_t, next);
-	if (task->childRank <0) continue;
+	if (task->childRank < 0) continue;
 	if (countGTIDs >=countPIDs) break;
 	resp.globalTIDs[countGTIDs++] = task->childRank;
     }
