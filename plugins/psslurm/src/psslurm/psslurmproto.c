@@ -12,6 +12,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <ctype.h>
 #include <errno.h>
 #include <malloc.h>
 #include <netinet/in.h>
@@ -204,21 +205,18 @@ bool writeJobscript(Job_t *job)
     return true;
 }
 
-static int needIOReplace(char *ioString, char symbol)
+static bool needIOReplace(char *ioString, char symbol)
 {
     char *ptr = ioString, *next;
-    int needReplace = 0, index = 1;
 
     while ((next = strchr(ptr, '%'))) {
-	while (next[index] >= 48 && next[index] <=57) index++;
+	int index = 1;
+	while (isdigit(next[index])) index++;
 
-	if (next[index] == symbol) {
-	    needReplace = 1;
-	    break;
-	}
-	ptr = next+index;
+	if (next[index] == symbol) return true;
+	ptr = next + index;
     }
-    return needReplace;
+    return false;
 }
 
 static void setIOoptions(char *ioString, int *Opt, int32_t *rank)
