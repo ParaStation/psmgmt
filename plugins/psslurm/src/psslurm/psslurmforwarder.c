@@ -1611,7 +1611,7 @@ static void epiFinCallback(int32_t exit_status, Forwarder_Data_t *fwdata)
 	 exit_status, fwdata->chldExitStatus);
 
     if (alloc->terminate) {
-	sendEpilogueComplete(alloc->id, 0);
+	sendEpilogueComplete(alloc->id, SLURM_SUCCESS);
 	Alloc_delete(alloc->id);
     }
 }

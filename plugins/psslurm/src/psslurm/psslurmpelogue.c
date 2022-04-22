@@ -292,7 +292,7 @@ bool finalizeEpilogue(Alloc_t *alloc)
 
 	if (!epilogueFinScript(alloc)) {
 	    if (alloc->terminate) {
-		sendEpilogueComplete(alloc->id, 0);
+		sendEpilogueComplete(alloc->id, SLURM_SUCCESS);
 		Alloc_delete(alloc->id);
 		return true;
 	    }
