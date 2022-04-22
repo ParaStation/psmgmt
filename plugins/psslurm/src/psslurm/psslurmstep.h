@@ -153,8 +153,8 @@ typedef struct {
     char *nodeAlias;		/**< node alias */
     char *checkpoint;		/**< checkpoint directory (removed in 21.08) */
     char *restartDir;           /**< restart directory (removed in 21.08) */
-    uint8_t x11forward;		/**< X11 forwarding */
-    uint32_t fwInitCount;	/**< track INIT messages from logger to fw */
+    bool x11forward;		/**< X11 forwarding */
+    int32_t fwInitCount;	/**< track INIT messages from logger to fw */
     uint32_t fwFinCount;	/**< track FINALIZE message from fw to logger */
     bool timeout;		/**< set to true if step ran into a timeout */
     uint8_t ioCon;		/**< track srun I/O connection state */

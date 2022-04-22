@@ -178,7 +178,7 @@ bool writeJobscript(Job_t *job)
 
     if (!job->jsData) {
 	mlog("%s: invalid jobscript data\n", __func__);
-	return 0;
+	return false;
     }
 
     /* set jobscript filename */
@@ -500,7 +500,7 @@ static void handleLaunchTasks(Slurm_Msg_t *sMsg)
     for (uint32_t i = 0; i < step->spankenv.cnt; i++) {
 	if (!strncmp("_SLURM_SPANK_OPTION_x11spank_forward_x",
 		     step->spankenv.vars[i], 38)) {
-	    step->x11forward = 1;
+	    step->x11forward = true;
 	}
     }
 
@@ -2351,7 +2351,7 @@ static void handleKillReq(Slurm_Msg_t *sMsg, Alloc_t *alloc, Kill_Info_t *info)
 	if (job) {
 	    char buf[512];
 	    if (info->timeout) {
-		job->timeout = 1;
+		job->timeout = true;
 		snprintf(buf, sizeof(buf), "error: *** job %u CANCELLED DUE "
 			 "TO TIME LIMIT ***\n", info->jobid);
 		fwCMD_printMsg(job, NULL, buf, strlen(buf), STDERR, 0);
@@ -2437,11 +2437,11 @@ static void handleTerminateReq(Slurm_Msg_t *sMsg)
 
     switch (sMsg->head.type) {
 	case REQUEST_KILL_PREEMPTED:
-	    info.timeout = 0;
+	    info.timeout = false;
 	    handleKillReq(sMsg, alloc, &info);
 	    break;
 	case REQUEST_KILL_TIMELIMIT:
-	    info.timeout = 1;
+	    info.timeout = true;
 	    handleKillReq(sMsg, alloc, &info);
 	    break;
 	case REQUEST_ABORT_JOB:
