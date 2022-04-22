@@ -34,9 +34,6 @@
 /** maximal number of arguments for pmi spawn */
 #define PMI_SPAWN_MAX_ARGUMENTS	256
 
-/* PMIHEADER = PMI_CMD + PMI_STRING_LEN */
-#define PMIUPDATE_HEADER_LEN sizeof(uint8_t) + sizeof(uint16_t)
-
 typedef enum {
     PUT = 10,		    /** put a kv-pair into global kvs */
     DAISY_SUCC_READY,	    /** the successor is ready to receive messages
