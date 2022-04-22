@@ -265,19 +265,17 @@ static void initKVS(void)
  * the Job on error.
  */
 #define findClient(msg, term) __findClient(msg, term, __func__)
-static PMI_Clients_t *__findClient(PSLog_Msg_t *msg, int term, const char *func)
+static PMI_Clients_t *__findClient(PSLog_Msg_t *msg, bool term, const char *func)
 {
-    int i, tid = msg->header.sender;
+    PStask_ID_t tid = msg->header.sender;
 
-
-    for (i=0; i<maxClients; i++) {
+    for (int i = 0; i < maxClients; i++) {
 	if (clients[i].tid == tid) return &clients[i];
     }
 
     if (term) {
 	mlog("%s(%s): invalid client with rank %i tid %s connected to me\n",
-	     __func__, func, msg->sender, PSC_printTID(msg->header.sender));
-
+	     __func__, func, msg->sender, PSC_printTID(tid));
 	terminateJob(__func__);
     }
 
@@ -285,23 +283,23 @@ static PMI_Clients_t *__findClient(PSLog_Msg_t *msg, int term, const char *func)
 }
 
 /**
- * @brief Test incoming messages.
+ * @brief Test incoming messages
  *
  * Test, if incoming message @a msg is consistent with internal KVS
  * settings. Tests are consistency of task-ID and rank fitting into
  * @ref clients array.
  *
- * @param fName Name of the calling function.
+ * @param fName Name of the calling function
  *
- * @param msg The message to test.
+ * @param client The client or NULL; in the latter case try to find it
  *
- * @return No return value.
+ * @param msg The message to test
+ *
+ * @return No return value
  */
-static void testMsg(const char fName[], PSLog_Msg_t *msg)
+static void testMsg(const char fName[], PMI_Clients_t *client, PSLog_Msg_t *msg)
 {
-    PMI_Clients_t *client;
-
-    client = findClient(msg, 1);
+    if (!client) client = findClient(msg, true);
 
     /* check for invalid ranks */
     if (client->pmiRank < 0 || client->pmiRank > maxClients -1) {
@@ -500,13 +498,16 @@ static void sendKvsUpdateToClients(int finish)
  */
 static void handleKVS_Put(PSLog_Msg_t *msg, char *ptr)
 {
-    char key[PMI_KEYLEN_MAX], value[PMI_VALLEN_MAX];
-    size_t keyLen, valLen;
     int index;
 
     /* extract key and value */
-    if ((keyLen = getKVSString(&ptr, key, sizeof(key))) < 1) goto PUT_ERROR;
-    if ((valLen = getKVSString(&ptr, value, sizeof(value))) < 1) goto PUT_ERROR;
+    char key[PMI_KEYLEN_MAX];
+    size_t keyLen = getKVSString(&ptr, key, sizeof(key));
+    if (keyLen < 1) goto PUT_ERROR;
+
+    char value[PMI_VALLEN_MAX];
+    size_t valLen = getKVSString(&ptr, value, sizeof(value));
+    if (valLen < 1) goto PUT_ERROR;
 
     /* save in global KVS */
     if (!kvs_putIdx(kvsname, key, value, &index)) {
@@ -551,12 +552,10 @@ static void handleKVS_Daisy_Barrier_In(PSLog_Msg_t *msg, char *ptr)
 {
     char *bufPtr = buffer;
     size_t bufLen = 0;
-    PMI_Clients_t *client;
     int32_t barrierCount = 0, globalPutCount = 0;
 
-    client = findClient(msg, 1);
-
-    testMsg(__func__, msg);
+    PMI_Clients_t *client = findClient(msg, true);
+    testMsg(__func__, client, msg);
 
     /* debugging output */
     mdbg(KVS_LOG_PROVIDER, "%s\n", __func__);
@@ -613,12 +612,10 @@ static void handleKVS_Daisy_Barrier_In(PSLog_Msg_t *msg, char *ptr)
  */
 static void handleKVS_Update_Cache_Finish(PSLog_Msg_t *msg, char *ptr)
 {
-    PMI_Clients_t *client;
     int32_t mc, updateIndex;
 
-    client = findClient(msg, 1);
-
-    testMsg(__func__, msg);
+    PMI_Clients_t *client = findClient(msg, true);
+    testMsg(__func__, client, msg);
 
     /* parse arguments */
     mc = getKVSInt32(&ptr);
@@ -747,11 +744,8 @@ static void setInitTimeout(void)
  */
 static void handleKVS_Init(PSLog_Msg_t *msg)
 {
-    PMI_Clients_t *client;
-
-    client = findClient(msg, 1);
-
-    testMsg(__func__, msg);
+    PMI_Clients_t *client = findClient(msg, true);
+    testMsg(__func__, client, msg);
 
     client->flags |= PMI_CLIENT_INIT;
 
@@ -867,9 +861,7 @@ static void handleKVS_Join(PSLog_Msg_t *msg, char *ptr)
  */
 static void handleKVS_Leave(PSLog_Msg_t *msg)
 {
-    PMI_Clients_t *client;
-
-    client = findClient(msg, 1);
+    PMI_Clients_t *client = findClient(msg, true);
 
     if (client->flags & PMI_CLIENT_GONE) {
 	mlog("%s: rank %i pmiRank %i already left\n", __func__,
@@ -889,7 +881,7 @@ static void handleKVS_Leave(PSLog_Msg_t *msg)
 	exit(0);
     }
 
-    testMsg(__func__, msg);
+    testMsg(__func__, client, msg);
     client->flags |= PMI_CLIENT_GONE;
 }
 
@@ -1029,7 +1021,7 @@ static int handlePSIMessage(int fd, void *data)
 	    /* logger died, nothing left for me to do here */
 	    exit(0);
 	}
-	if ((client = findClient(&msg, 0))) {
+	if ((client = findClient(&msg, false))) {
 	    if (!(client->flags & PMI_CLIENT_GONE)) {
 		mdbg(KVS_LOG_VERBOSE, "%s: client %s already gone\n",
 		     __func__, PSC_printTID(msg.header.sender));
