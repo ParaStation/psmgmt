@@ -6,6 +6,15 @@ Copyright (C) 2021-2022 ParTec AG, Munich
 Please send bug reports, questions and suggestions to <support@par-tec.com>
 
 
+Version 5.1.48-4:
+=================
+Bugfixes:
+ - Set correct exit status for steps hitting the walltime limit
+ - Ensure symbol is found after after second %, too
+Enhancements:
+ - Add `--exact` option to srun when spawning additional processes
+
+
 Version 5.1.48-3:
 =================
 Bugfixes:
