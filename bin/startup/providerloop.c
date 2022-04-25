@@ -63,8 +63,8 @@ static int initRounds = 2;
 /** The number of received PMI client init msgs */
 static int initCount = 0;
 
-/** Track if we need to distribute an update */
-static int kvsChanged = 0;
+/** Flag the need to distribute an update */
+static bool kvsChanged = false;
 
 /** Track the total length of new KVS updates */
 static int kvsUpdateLen = 0;
@@ -408,40 +408,34 @@ static void growKvsUpdateIdx(int minNewSize, const char *caller)
 }
 
 /**
- * @brief Send a KVS update to all clients in a PMI group.
+ * @brief Send a KVS update to all clients in a PMI group
  *
- * @param finish When set to 1 a finish message is send when the update is
- * complete. Otherwise only update messages are send.
+ * @param finish Flag sending of finish message when the update is
+ * complete. Otherwise only update messages are sent.
  *
- * @return No return value.
+ * @return No return value
  */
-static void sendKvsUpdateToClients(int finish)
+static void sendKvsUpdateToClients(bool finish)
 {
     char kvsmsg[PMIU_MAXLINE], nextval[PMI_KEYLEN_MAX + PMI_VALLEN_MAX];
-    int kvsvalcount, valup, pmiCmd;
 
-    kvsvalcount = kvs_count_values(kvsname);
-    valup = 0;
-    while (kvsvalcount > valup) {
+    int kvsvalcount = kvs_count_values(kvsname);
+    int valup = 0;
+    while (valup < kvsvalcount && valup < kvsIndexSize) {
 	size_t bufLen = 0;
 	char *bufPtr = buffer;
 	kvsmsg[0] = '\0';
 
 	/* add the values to the msg */
-	while (kvsvalcount > valup) {
-	    size_t newLen;
-	    char *valPtr;
+	while (valup < kvsvalcount && valup < kvsIndexSize) {
 
-	    /* skip already send fields */
-	    if (valup >= kvsIndexSize) {
-		break;
-	    }
+	    /* skip already sent fields */
 	    if (kvsUpdateIndex[valup] == 0) {
 		valup++;
 		continue;
 	    }
 
-	    valPtr = kvs_getbyidx(kvsname, valup);
+	    char *valPtr = kvs_getbyidx(kvsname, valup);
 	    if (!valPtr) {
 		mlog("%s: invalid KVS index valup %i kvsvalcount %i\n",
 			__func__, valup, kvsvalcount);
@@ -449,7 +443,7 @@ static void sendKvsUpdateToClients(int finish)
 	    }
 	    snprintf(nextval, sizeof(nextval), " %s", valPtr);
 
-	    newLen = strlen(kvsmsg) + strlen(nextval) + 1;
+	    size_t newLen = strlen(kvsmsg) + strlen(nextval) + 1;
 	    if (newLen > PMIUPDATE_PAYLOAD || newLen > sizeof(kvsmsg)) break;
 
 	    strcat(kvsmsg, nextval);
@@ -458,12 +452,9 @@ static void sendKvsUpdateToClients(int finish)
 	    valup++;
 	}
 
-	if (!finish) {
-	    pmiCmd = UPDATE_CACHE;
-	} else {
-	    pmiCmd = (kvsvalcount <= valup) ?
-			UPDATE_CACHE_FINISH : UPDATE_CACHE;
-	}
+	int pmiCmd = UPDATE_CACHE;
+	if (valup >= kvsvalcount && finish) pmiCmd = UPDATE_CACHE_FINISH;
+
 	if (measure > 1) {
 		mlog("%s: sending KVS update: %s len:%lu finish:%i, "
 		    "kvsvalcount:%i valup:%i putcount:%i\n", __func__,
@@ -480,11 +471,11 @@ static void sendKvsUpdateToClients(int finish)
 	if (pmiCmd == UPDATE_CACHE_FINISH) {
 	    if (++nextUpdateField == KVS_UPDATE_FIELDS) nextUpdateField = 0;
 	}
-	if (!finish || valup >= kvsIndexSize) break;
+	if (!finish) break;
     }
 
     /* we are up to date now */
-    if (finish) kvsChanged = 0;
+    if (finish) kvsChanged = false;
 }
 
 /**
@@ -521,16 +512,16 @@ static void handleKVS_Put(PSLog_Msg_t *msg, char *ptr)
 	if (kvsIndexSize <= index) growKvsUpdateIdx(index, __func__);
 	kvsUpdateIndex[index] = 1;
 
-	kvsChanged = 1;
+	kvsChanged = true;
 	kvsUpdateLen += keyLen + valLen + 2;
 
 	/* check if we can start sending update messages */
 	if (clients[0].tid != -1) {
 	    if (waitForPuts && waitForPuts == putCount) {
 		waitForPuts = 0;
-		sendKvsUpdateToClients(1);
+		sendKvsUpdateToClients(true);
 	    } else if (kvsUpdateLen + 2 >= PMIUPDATE_PAYLOAD) {
-		sendKvsUpdateToClients(0);
+		sendKvsUpdateToClients(false);
 	    }
 	}
 	return;
@@ -593,7 +584,7 @@ static void handleKVS_Daisy_Barrier_In(PSLog_Msg_t *msg, char *ptr)
 
     if (kvsChanged) {
 	/* distribute KVS update */
-	sendKvsUpdateToClients(1);
+	sendKvsUpdateToClients(true);
     } else {
 	/* send all Clients barrier_out */
 	setKVSCmd(&bufPtr, &bufLen, DAISY_BARRIER_OUT);
@@ -612,27 +603,34 @@ static void handleKVS_Daisy_Barrier_In(PSLog_Msg_t *msg, char *ptr)
  */
 static void handleKVS_Update_Cache_Finish(PSLog_Msg_t *msg, char *ptr)
 {
-    int32_t mc, updateIndex;
-
     PMI_Clients_t *client = findClient(msg, true);
     testMsg(__func__, client, msg);
 
     /* parse arguments */
-    mc = getKVSInt32(&ptr);
-    updateIndex = getKVSInt32(&ptr);
+    int mc = getKVSInt32(&ptr);
+    int updateIndex = getKVSInt32(&ptr);
 
-    if (updateIndex > KVS_UPDATE_FIELDS -1) {
-	mlog("%s: invalid update index %i from %s\n",
-		   __func__, updateIndex, PSC_printTID(msg->header.sender));
+    if (updateIndex > KVS_UPDATE_FIELDS - 1) {
+	mlog("%s: invalid update index %i from %s\n", __func__,
+	     updateIndex, PSC_printTID(msg->header.sender));
+	terminateJob(__func__);
+    }
+
+    /* check if the result msg came from the last client in chain */
+    if (client->pmiRank != maxClients -1) {
+	mlog("%s: update from wrong rank %i on %s\n", __func__,
+	     msg->sender, PSC_printTID(msg->header.sender));
 	terminateJob(__func__);
     }
 
     /* check if clients got all the updates */
     if (mc != kvsUpdateTrack[updateIndex]) {
-	mlog("%s: clients did not get all KVS update msgs %i : %i\n",
-		   __func__, mc, kvsUpdateTrack[updateIndex]);
+	mlog("%s: clients did not get all KVS update msgs %i : %i\n", __func__,
+	     mc, kvsUpdateTrack[updateIndex]);
 	terminateJob(__func__);
     }
+
+    /* last forward send us an reply, so everything is ok */
     kvsUpdateTrack[updateIndex] = 0;
 
     if (measure) {
@@ -641,14 +639,6 @@ static void handleKVS_Update_Cache_Finish(PSLog_Msg_t *msg, char *ptr)
 	mlog("%s: cache update complete: time %f diff %f\n", __func__,
 	     time_now.tv_sec + 1e-6 * time_now.tv_usec,
 	     time_diff.tv_sec + 1e-6 * time_diff.tv_usec);
-    }
-
-    /* last forward send us an reply, so everything is ok */
-    /* check if the result msg came from the last client in chain */
-    if (client->pmiRank != maxClients -1) {
-	mlog("%s: update from wrong rank %i on %s\n", __func__,
-		msg->sender, PSC_printTID(msg->header.sender));
-	terminateJob(__func__);
     }
 }
 
@@ -683,8 +673,6 @@ static void sendDaisyReady(PStask_ID_t tid, PStask_ID_t succ)
  */
 static void handleInitTimeout(int dummy, void *ptr)
 {
-    int i;
-
     mlog("Timeout: Not all clients called pmi_init(): "
 	 "init=%i left=%i round=%i\n", initCount, maxClients - initCount,
 	 initRounds - initRoundsCount+1);
@@ -692,7 +680,7 @@ static void handleInitTimeout(int dummy, void *ptr)
     if (--initRoundsCount) return;
 
     mlog("Missing clients:\n");
-    for (i = 0; i < maxClients; i++) {
+    for (int i = 0; i < maxClients; i++) {
 	if (!clients[i].init) {
 	    mlog("%s rank %d\n", (clients[i].tid == -1) ?
 		 "unconnected" : PSC_printTID(clients[i].tid), i);
