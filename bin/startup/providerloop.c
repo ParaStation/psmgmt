@@ -111,10 +111,10 @@ static char noParricide = false;
 /** Generic message buffer */
 static char buffer[1024];
 
-/** The count of the received kvs_put messages */
+/** Number of received kvs_put messages */
 static int putCount = 0;
 
-/** Flag to indicate that we need to wait for late arriving kvs_put messages */
+/** Counter indicating the need to wait for late arriving kvs_put messages */
 static int waitForPuts = 0;
 
 /** Flag to enable measurement output */
@@ -485,26 +485,26 @@ static void handleKVS_Put(PSLog_Msg_t *msg, char *ptr)
     sprintf(envStr, "%s=%s", key, value);
 
     /* save in global KVS */
-    if (!kvs_put(kvsname, key, value)) {
-	putCount++;
+    if (!kvs_set(kvsname, key, value)) goto PUT_ERROR;
 
-	/* add envStr to send-cache */
-	if (nextCacheEntry >= kvsCacheSize) growKvsUpdateCache(0);
-	kvsUpdateCache[nextCacheEntry++] = envStr;
+    putCount++;
 
-	kvsUpdateLen += envStrLen + 1 /* extra separator in message to send */;
+    /* add envStr to send-cache */
+    if (nextCacheEntry >= kvsCacheSize) growKvsUpdateCache(0);
+    kvsUpdateCache[nextCacheEntry++] = envStr;
 
-	/* check if we can start sending update messages */
-	if (clients[0].tid != -1) {
-	    if (waitForPuts && waitForPuts == putCount) {
-		waitForPuts = 0;
-		sendKvsUpdateToClients(true);
-	    } else if (kvsUpdateLen + 2 >= PMIUPDATE_PAYLOAD) {
-		sendKvsUpdateToClients(false);
-	    }
+    kvsUpdateLen += envStrLen + 1 /* extra separator in message to send */;
+
+    /* check if we can start sending update messages */
+    if (clients[0].tid != -1) {
+	if (waitForPuts && waitForPuts == putCount) {
+	    waitForPuts = 0;
+	    sendKvsUpdateToClients(true);
+	} else if (kvsUpdateLen + 2 >= PMIUPDATE_PAYLOAD) {
+	    sendKvsUpdateToClients(false);
 	}
-	return;
     }
+    return;
 
 PUT_ERROR:
     mlog("%s: error saving value to kvs\n", __func__);

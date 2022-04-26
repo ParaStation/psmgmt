@@ -457,7 +457,7 @@ static void handleUpdate(char *pmiLine, bool lastUpdate, int updateIdx)
 	vname[len] = '\0';
 
 	/* save key/value to kvs */
-	if (kvs_put(myKVSname, vname, value)) {
+	if (!kvs_set(myKVSname, vname, value)) {
 	    elog("%s(r%i): error saving kvs update: kvsname:%s, key:%s,"
 		    " value:%s\n", __func__, rank, myKVSname, vname, value);
 	    critErr();
@@ -697,7 +697,7 @@ static int p_Put(char *msg)
     putCount++;
 
     /* save to local KVS */
-    if (kvs_put(kvsname, key, value)) {
+    if (!kvs_set(kvsname, key, value)) {
 	if (debug_kvs) {
 	    elog("%s(r%i): error while put key:%s value:%s to kvs:%s \n",
 		 __func__, rank, key, value, kvsname);
@@ -1114,7 +1114,7 @@ static int setPreputValues(void)
 	    return critErr();
 	}
 
-	if (kvs_put(myKVSname, key, value)) {
+	if (!kvs_set(myKVSname, key, value)) {
 	    elog("%s(r%i): error saving preput value kvsname:%s, key:%s,"
 		    " value:%s\n", __func__, rank, myKVSname, key, value);
 	    return critErr();

@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2007-2017 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021 ParTec AG, Munich
+ * Copyright (C) 2021-2022 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -151,37 +151,37 @@ bool kvs_destroy(char *name)
     return true;
 }
 
-int kvs_put(char *kvsname, char *name, char *value)
+bool kvs_set(char *kvsname, char *name, char *value)
 {
     int index;
 
-    return kvs_putIdx(kvsname, name, value, &index);
+    return kvs_setIdx(kvsname, name, value, &index);
 }
 
-int kvs_putIdx(char *kvsname, char *name, char *value, int *index)
+bool kvs_setIdx(char *kvsname, char *name, char *value, int *index)
 {
     *index = -1;
     if (!kvsname || !name || !value || strlen(kvsname) > PMI_KVSNAME_MAX
 	|| strlen(name) > PMI_KEYLEN_MAX || strlen(value) > PMI_VALLEN_MAX ) {
 	mlog("%s: invalid kvsname '%s', valuename '%s' or value '%s'\n",
-		__func__, kvsname, name, value);
-	return 1;
+	     __func__, kvsname, name, value);
+	return false;
     }
 
     /* kvs not found */
     KVS_t *lkvs = getKvsByName(kvsname);
 
     if (!lkvs) {
-	mlog("%s: put to non existing kvs '%s'\n", __func__, kvsname);
-	return 1;
+	mlog("%s: non existing kvs '%s'\n", __func__, kvsname);
+	return false;
     }
 
     if (env_setIdx(lkvs->env, name, value, index) == -1) {
-	mlog("%s: error in env_set for kvs '%s'\n", __func__, kvsname);
-	return 1;
+	mlog("%s: error in env_setIdx for kvs '%s'\n", __func__, kvsname);
+	return false;
     }
 
-    return 0;
+    return true;
 }
 
 char *kvs_get(char *kvsname, char *name)
@@ -226,11 +226,8 @@ int kvs_count_values(char *kvsname)
 
 int kvs_count(void)
 {
-    int i, count = 0;
-
-    for (i=0; i<numKVS; i++) {
-	if (kvs[i].name) count++;
-    }
+    int count = 0;
+    for (int i = 0; i < numKVS; i++) if (kvs[i].name) count++;
 
     return count;
 }
