@@ -63,14 +63,17 @@ static int initRounds = 2;
 /** The number of received PMI client init msgs */
 static int initCount = 0;
 
-/** Flag the need to distribute an update */
-static bool kvsChanged = false;
-
 /** Track the total length of new KVS updates */
 static int kvsUpdateLen = 0;
 
-/** Track which index was updated in the KVS */
-static int *kvsUpdateIndex = NULL;
+/** Track which cache updates still have to be sent */
+static char * *kvsUpdateCache = NULL;
+
+/** Size of @ref kvsUpdateCache */
+static size_t kvsCacheSize = 0;
+
+/** Next entry of @ref kvsUpdateCache to use */
+static size_t nextCacheEntry = 0;
 
 /** Index to the next update element to use */
 static int nextUpdateField = 0;
@@ -81,13 +84,10 @@ static int kvsUpdateTrack[KVS_UPDATE_FIELDS];
 /** Array to store infos about forwarders joined our KVS */
 static PMI_Clients_t *clients;
 
-/** The size of the KVS update index */
-static int kvsIndexSize;
-
-/** The maximal size of PMI clients we will handle */
+/** Maximum number of PMI clients we will handle */
 static int maxClients;
 
-/** The job unique KVS name */
+/** The job's unique KVS name */
 static char kvsname[PMI_KVSNAME_MAX];
 
 /** Total count of all KVS clients we know */
@@ -137,60 +137,55 @@ static struct timeval time_diff;
  */
 static void releaseMySelf(const char *func)
 {
-    PSLog_Msg_t answer;
-    PStask_ID_t myTID = PSC_getMyTID();
-    DDSignalMsg_t msg = {
-	.header = {
-	    .type = PSP_CD_RELEASE,
-	    .dest = myTID,
-	    .sender = myTID,
-	    .len = sizeof(msg) },
-	.signal = -1,
-	.answer = 1, };
-    int ret;
-
     if (Selector_isRegistered(daemonFD)) Selector_remove(daemonFD);
     if (Selector_isRegistered(forwarderFD)) Selector_remove(forwarderFD);
 
+    DDSignalMsg_t msg = {
+	.header = {
+	    .type = PSP_CD_RELEASE,
+	    .dest = PSC_getMyTID(),
+	    .sender = PSC_getMyTID(),
+	    .len = sizeof(msg) },
+	.signal = -1,
+	.answer = 1, };
     if (PSI_sendMsg(&msg) == -1) {
 	mwarn(errno, "%s: sending msg failed", __func__);
 	return;
     }
 
-again:
-    ret = PSI_recvMsg((DDMsg_t *)&answer, sizeof(answer));
+    while (true) {
+	PSLog_Msg_t answer;
+	int ret = PSI_recvMsg((DDMsg_t *)&answer, sizeof(answer));
 
-    if (ret <= 0) {
-	if (!ret) {
-	    mlog("%s: unexpected message length 0\n", __func__);
-	} else {
-	    mwarn(errno, "%s: PSI_recvMsg", __func__);
+	if (ret <= 0) {
+	    if (!ret) {
+		mlog("%s: unexpected message length 0\n", __func__);
+	    } else {
+		mwarn(errno, "%s: PSI_recvMsg", __func__);
+	    }
+	    return;
 	}
-	return;
-    }
 
-    switch (answer.header.type) {
+	switch (answer.header.type) {
 	case PSP_CD_RELEASERES:
 	    break;
 	case PSP_CC_ERROR:
-	    if (answer.header.sender == loggertid) {
-		mlog("%s: logger already died\n", __func__);
-		break;
-	    }
-	    goto again;
+	    if (answer.header.sender != loggertid) continue;
+	    mlog("%s: logger already died\n", __func__);
+	    break;
 	case PSP_CD_WHODIED:
 	case PSP_CC_MSG:
 	    /* ignore late arriving messages */
-	    goto again;
-	    break;
+	    continue;
 	default:
 	    mlog("%s: wrong message type %d (%s)\n", __func__,
-		answer.header.type, PSP_printMsg(answer.header.type));
+		 answer.header.type, PSP_printMsg(answer.header.type));
+	}
+	break;
     }
 
-    if (verbose) {
-	printf("(%s:) KVS process %s finished\n", func, PSC_printTID(myTID));
-    }
+    if (verbose) printf("(%s:) KVS process %s finished\n", func,
+			PSC_printTID(PSC_getMyTID()));
 }
 
 /**
@@ -225,6 +220,30 @@ static void terminateJob(const char *func)
 }
 
 /**
+ * @brief Grow a KVS update cache
+ *
+ * @param minSize Minimum size of the KVS update cache upon return
+ *
+ * @return No return value
+ */
+static void growKvsUpdateCache(size_t minSize)
+{
+    if (measure) mlog("%s(%zd)\n", __func__, minSize);
+
+    size_t newSize = kvsCacheSize + maxClients;
+    if (newSize < minSize) newSize = minSize;
+
+    kvsUpdateCache = realloc(kvsUpdateCache, sizeof(*kvsUpdateCache) * newSize);
+    if (!kvsUpdateCache) {
+	mwarn(errno, "%s: realloc()", __func__);
+	terminateJob(__func__);
+    }
+
+    for (size_t i = kvsCacheSize; i < newSize; i++) kvsUpdateCache[i] = NULL;
+    kvsCacheSize = newSize;
+}
+
+/**
  * @brief Initialize the KVS.
  *
  * @return No return value.
@@ -244,14 +263,7 @@ static void initKVS(void)
 	clients[i].pmiRank = -1;
     }
 
-    kvsIndexSize = maxClients + 10;
-
-    kvsUpdateIndex = malloc(sizeof(*kvsUpdateIndex) * kvsIndexSize);
-    if (!kvsUpdateIndex) {
-	mwarn(errno, "%s", __func__);
-	terminateJob(__func__);
-    }
-    for (int i = 0; i < kvsIndexSize; i++) kvsUpdateIndex[i] = 0;
+    growKvsUpdateCache(maxClients + 10);
 
     memset(kvsUpdateTrack, 0, sizeof(kvsUpdateTrack));
 }
@@ -378,36 +390,6 @@ static void sendMsgToKvsSucc(char *msgBuf, size_t len)
 }
 
 /**
- * @brief Grow a KVS update tracking index.
- *
- * @param minNewSize The minimum size of the grown update index.
- *
- * @param caller The name of the calling function.
- *
- * @return No return value.
- */
-static void growKvsUpdateIdx(int minNewSize, const char *caller)
-{
-    int oldSize = kvsIndexSize, i;
-    int newSize = oldSize + 2 * maxClients;
-
-    if (measure) mlog("%s: grow update Index\n", __func__);
-
-    if (newSize < minNewSize) newSize = minNewSize;
-    kvsUpdateIndex = realloc(kvsUpdateIndex, sizeof(*kvsUpdateIndex) * newSize);
-
-    if (!kvsUpdateIndex) {
-	mwarn(errno, "%s: realloc()", __func__);
-	terminateJob(__func__);
-    }
-    kvsIndexSize = newSize;
-
-    for (i=oldSize; i < kvsIndexSize; i++) {
-	kvsUpdateIndex[i] = 0;
-    }
-}
-
-/**
  * @brief Send a KVS update to all clients in a PMI group
  *
  * @param finish Flag sending of finish message when the update is
@@ -417,51 +399,43 @@ static void growKvsUpdateIdx(int minNewSize, const char *caller)
  */
 static void sendKvsUpdateToClients(bool finish)
 {
-    char kvsmsg[PMIU_MAXLINE], nextval[PMI_KEYLEN_MAX + PMI_VALLEN_MAX];
+    size_t ent;
+    for (ent = 0; ent < nextCacheEntry || finish; ent++) {
+	char kvsmsg[PMIU_MAXLINE] = { '\0' };
 
-    int kvsvalcount = kvs_count_values(kvsname);
-    int valup = 0;
-    while (valup < kvsvalcount && valup < kvsIndexSize) {
-	size_t bufLen = 0;
-	char *bufPtr = buffer;
-	kvsmsg[0] = '\0';
+	/* add key-value pairs to the msg */
+	for (; ent < nextCacheEntry; ent++) {
+	    char *nextEnt = kvsUpdateCache[ent];
 
-	/* add the values to the msg */
-	while (valup < kvsvalcount && valup < kvsIndexSize) {
-
-	    /* skip already sent fields */
-	    if (kvsUpdateIndex[valup] == 0) {
-		valup++;
-		continue;
-	    }
-
-	    char *valPtr = kvs_getbyidx(kvsname, valup);
-	    if (!valPtr) {
-		mlog("%s: invalid KVS index valup %i kvsvalcount %i\n",
-			__func__, valup, kvsvalcount);
+	    if (!nextEnt) {
+		mlog("%s: invalid KVS entry %zi (putCount %i)\n", __func__,
+		     ent, putCount);
 		terminateJob(__func__);
 	    }
-	    snprintf(nextval, sizeof(nextval), " %s", valPtr);
 
-	    size_t newLen = strlen(kvsmsg) + strlen(nextval) + 1;
-	    if (newLen > PMIUPDATE_PAYLOAD || newLen > sizeof(kvsmsg)) break;
+	    size_t newLen = strlen(kvsmsg) + strlen(nextEnt) + 2;
+	    if (newLen > PMIUPDATE_PAYLOAD || newLen > sizeof(kvsmsg)) {
+		ent--; // retry to sent in the next round
+		break;
+	    }
 
-	    strcat(kvsmsg, nextval);
-	    kvsUpdateLen -= strlen(nextval);
-	    kvsUpdateIndex[valup] = 0;
-	    valup++;
+	    strcat(kvsmsg, " ");
+	    kvsUpdateLen -= 1;
+	    strcat(kvsmsg, nextEnt);
+	    kvsUpdateLen -= strlen(nextEnt);
 	}
 
 	int pmiCmd = UPDATE_CACHE;
-	if (valup >= kvsvalcount && finish) pmiCmd = UPDATE_CACHE_FINISH;
+	if (ent >= nextCacheEntry && finish) pmiCmd = UPDATE_CACHE_FINISH;
 
 	if (measure > 1) {
-		mlog("%s: sending KVS update: %s len:%lu finish:%i, "
-		    "kvsvalcount:%i valup:%i putcount:%i\n", __func__,
-		    PSKVScmdToString(pmiCmd), strlen(kvsmsg),
-		    finish, kvsvalcount, valup, putCount);
+	    mlog("%s: sending KVS update: %s len:%lu finish:%i, ent:%zi"
+		 " putCount:%i\n", __func__, PSKVScmdToString(pmiCmd),
+		 strlen(kvsmsg), finish, ent, putCount);
 	}
 
+	size_t bufLen = 0;
+	char *bufPtr = buffer;
 	setKVSCmd(&bufPtr, &bufLen, pmiCmd);
 	addKVSInt32(&bufPtr, &bufLen, &nextUpdateField);
 	addKVSString(&bufPtr, &bufLen, kvsmsg);
@@ -469,13 +443,21 @@ static void sendKvsUpdateToClients(bool finish)
 
 	kvsUpdateTrack[nextUpdateField]++;
 	if (pmiCmd == UPDATE_CACHE_FINISH) {
-	    if (++nextUpdateField == KVS_UPDATE_FIELDS) nextUpdateField = 0;
+	    nextUpdateField++;
+	    nextUpdateField %= KVS_UPDATE_FIELDS;
 	}
 	if (!finish) break;
     }
 
-    /* we are up to date now */
-    if (finish) kvsChanged = false;
+    /* Eliminate now obsolete cache entries and reorder entries */
+    for (size_t c = 0; c < ent; c++) {
+	free(kvsUpdateCache[c]);
+	if (ent + c < nextCacheEntry) {
+	    kvsUpdateCache[c] = kvsUpdateCache[ent+c];
+	} else {
+	    kvsUpdateCache[c] = NULL;
+	}
+    }
 }
 
 /**
@@ -489,8 +471,6 @@ static void sendKvsUpdateToClients(bool finish)
  */
 static void handleKVS_Put(PSLog_Msg_t *msg, char *ptr)
 {
-    int index;
-
     /* extract key and value */
     char key[PMI_KEYLEN_MAX];
     size_t keyLen = getKVSString(&ptr, key, sizeof(key));
@@ -500,20 +480,19 @@ static void handleKVS_Put(PSLog_Msg_t *msg, char *ptr)
     size_t valLen = getKVSString(&ptr, value, sizeof(value));
     if (valLen < 1) goto PUT_ERROR;
 
-    /* save in global KVS */
-    if (!kvs_putIdx(kvsname, key, value, &index)) {
+    size_t envStrLen = keyLen + valLen + 2;
+    char *envStr = malloc(envStrLen);
+    sprintf(envStr, "%s=%s", key, value);
 
+    /* save in global KVS */
+    if (!kvs_put(kvsname, key, value)) {
 	putCount++;
 
-	if (index < 0) {
-	    mlog("%s: invalid kvs index from put\n", __func__);
-	    terminateJob(__func__);
-	}
-	if (kvsIndexSize <= index) growKvsUpdateIdx(index, __func__);
-	kvsUpdateIndex[index] = 1;
+	/* add envStr to send-cache */
+	if (nextCacheEntry >= kvsCacheSize) growKvsUpdateCache(0);
+	kvsUpdateCache[nextCacheEntry++] = envStr;
 
-	kvsChanged = true;
-	kvsUpdateLen += keyLen + valLen + 2;
+	kvsUpdateLen += envStrLen + 1 /* extra separator in message to send */;
 
 	/* check if we can start sending update messages */
 	if (clients[0].tid != -1) {
@@ -582,7 +561,7 @@ static void handleKVS_Daisy_Barrier_In(PSLog_Msg_t *msg, char *ptr)
 	return;
     }
 
-    if (kvsChanged) {
+    if (kvsUpdateCache[0]) {
 	/* distribute KVS update */
 	sendKvsUpdateToClients(true);
     } else {
@@ -722,13 +701,13 @@ static void setInitTimeout(void)
 /**
  * @brief Handle a KVS init from the PMI client.
  *
- * The init process is monitored to make sure all MPI clients are
- * started successfully in time. The KVS init message is send when
- * the corresponding MPI client calls PMI init.
+ * The init process is monitored to make sure all PMI clients are
+ * started successfully in time. The KVS init message is sent when
+ * the corresponding PMI client calls PMI init.
  *
- * @param msg The message to handle.
+ * @param msg The message to handle
  *
- * @return No return value.
+ * @return No return value
  */
 static void handleKVS_Init(PSLog_Msg_t *msg)
 {
@@ -774,21 +753,23 @@ static void handleKVS_Init(PSLog_Msg_t *msg)
  */
 static void handleKVS_Join(PSLog_Msg_t *msg, char *ptr)
 {
-    char client_kvs[PMI_KEYLEN_MAX];
-    int rank = msg->sender, pmiRank, rRank;
+    int rank = msg->sender;
 
     /* verify that the client has the same kvsname */
+    char client_kvs[PMI_KEYLEN_MAX];
     getKVSString(&ptr, client_kvs, sizeof(client_kvs));
     if (strcmp(client_kvs, kvsname)) {
 	mlog("%s: got invalid default KVS name '%s' from rank %i\n", __func__,
 	     client_kvs, rank);
 	terminateJob(__func__);
     }
-    if ((rRank = getKVSInt32(&ptr)) != rank) {
+
+    int rRank = getKVSInt32(&ptr);
+    if (rRank != rank) {
 	mlog("%s: mismatching ranks %i - %i.\n", __func__, rank, rRank);
 	terminateJob(__func__);
     }
-    pmiRank = getKVSInt32(&ptr);
+    int pmiRank = getKVSInt32(&ptr);
 
     if (!totalKVSclients) {
 	if (measure) {
