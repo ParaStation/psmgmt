@@ -87,16 +87,16 @@ static bool debug_kvs = false;
 /** The size of the PMI universe set from mpiexec */
 static int universe_size = 0;
 
-/** Task structure describing the connected MPI client to serve */
+/** Task structure describing the connected client to serve */
 static PStask_t *cTask = NULL;
 
-/** PS rank of the connected MPI client. This is redundant to cTask->rank */
+/** PS rank of the connected client. This is redundant to cTask->rank */
 static int rank = -1;
 
-/** The PMI rank of the connected MPI client */
+/** The PMI rank of the connected client */
 static int pmiRank = -1;
 
-/** The PMI appnum parameter of the connected MPI client */
+/** The PMI appnum parameter of the connected client */
 static int appnum = -1;
 
 /** Count update KVS msg from provider to make sure all msg were received */
@@ -105,7 +105,7 @@ static int32_t updateMsgCount;
 /** Suffix of the KVS name */
 static char kvs_name_prefix[PMI_KVSNAME_MAX];
 
-/** The socket which is connected to the MPI client */
+/** The socket which is connected to the PMI client */
 static SOCKET pmisock = -1;
 
 /** The KVS provider's task ID within the current job */
@@ -171,12 +171,10 @@ static fillerFunc_t *fillTaskFunction = NULL;
 static void sendKvsMsg(const char *func, PStask_ID_t tid, char *msg, size_t len)
 {
     if (debug_kvs) {
-	int8_t cmd;
-
-	cmd = *(int8_t *) msg;
+	int8_t cmd = *(int8_t *) msg;
 	if (cmd == PUT) {
-	    elog("%s(r%i): pslog_write cmd %s len %zu dest: %s\n",
-		 func, rank, PSKVScmdToString(cmd), len, PSC_printTID(tid));
+	    elog("%s(r%i): pslog_write cmd %s len %zu dest: %s\n", func,
+		 rank, PSKVScmdToString(cmd), len, PSC_printTID(tid));
 	}
     }
 
@@ -263,9 +261,9 @@ static int critErr(void)
 }
 
 /**
- * @brief Send a PMI message to the MPI client
+ * @brief Send a PMI message to the client
  *
- * Send a message to the connected MPI client.
+ * Send a message to the connected client.
  *
  * @param msg Buffer with the PMI message to send
  *
@@ -391,7 +389,7 @@ static int p_Get_Appnum(void)
  * @brief Check if we can forward the daisy barrier
  *
  * Check if we can forward the daisy barrier. We have to wait for the
- * daisy barrier from the previous rank and from the local MPI client.
+ * daisy barrier from the previous rank and from the local PMI client.
  *
  * If we are the first in the daisy chain we start the barrier.
  *
@@ -423,9 +421,9 @@ static void checkDaisyBarrier(void)
  * @brief Parse a KVS update message from ther provider
  *
  * Parse a KVS update message from the provider. Save all received key-value
- * pairs into the local KVS space. All get requests from the local MPI client
+ * pairs into the local KVS space. All get requests from the local PMI client
  * will be answered using the local KVS space. If we got all update message
- * we can release the waiting MPI client via barrier-out.
+ * we can release the waiting PMI client via barrier_out.
  *
  * If we are the last client in the chain, we need to tell the provider that the
  * update was successful completed.
@@ -446,7 +444,7 @@ static void handleUpdate(char *pmiLine, bool lastUpdate, int updateIdx)
     char *saveptr;
     const char delimiters[] =" \n";
     char *nextvalue = strtok_r(pmiLine, delimiters, &saveptr);
-    while (nextvalue != NULL) {
+    while (nextvalue) {
 	/* extract next key/value pair */
 	char *value = strchr(nextvalue, '=') + 1;
 	if (!value) {
@@ -470,7 +468,7 @@ static void handleUpdate(char *pmiLine, bool lastUpdate, int updateIdx)
     updateMsgCount++;
 
     if (lastUpdate) {
-	/* we got all update msg, so we can release the waiting MPI client */
+	/* we got all update msg, so we can release the waiting PMI client */
 	gotBarrierIn = false;
 	PMI_send("cmd=barrier_out\n");
 
@@ -489,9 +487,9 @@ static void handleUpdate(char *pmiLine, bool lastUpdate, int updateIdx)
 }
 
 /**
- * @brief Handle a PMI barrier_in request from the local MPI client
+ * @brief Handle a PMI barrier_in request from the local PMI client
  *
- * The MPI client has to wait until all clients have entered barrier.
+ * The PMI client has to wait until all clients have entered barrier.
  * A barrier is typically used to syncronize the local KVS space.
  *
  * We can forwarder a pending daisy chain barrier_in message now.
@@ -721,7 +719,7 @@ static int p_Put(char *msg)
 }
 
 /**
- * @brief The MPI client reads a key/value pair from local KVS
+ * @brief The PMI client reads a key/value pair from local KVS
  *
  * Read a value from the local KVS.
  *
@@ -917,7 +915,7 @@ static int p_GetByIdx(char *msg)
  * Init the PMI communication, mainly to be sure both sides
  * are using the same protocol versions.
  *
- * The init process is monitored by the provider to make sure all MPI clients
+ * The init process is monitored by the provider to make sure all PMI clients
  * are started successfully in time.
  *
  * @param msg Buffer containing the PMI msg to handle
@@ -957,7 +955,7 @@ static int p_Init(char *msg)
 
     if (psAccountSwitchAccounting) psAccountSwitchAccounting(cTask->tid, false);
 
-    /* tell provider that the MPI client was initialized */
+    /* tell provider that the PMI client was initialized */
     char *ptr = buffer;
     size_t len = 0;
     setKVSCmd(&ptr, &len, INIT);
@@ -1016,8 +1014,8 @@ static int p_Get_Rank2Hosts(void)
 /**
  * @brief Authenticate the client
  *
- * Use a handshake to authenticate the MPI client. Note that it is not
- * mandatory for the MPI client to authenticate itself. Hydra continous even
+ * Use a handshake to authenticate the PMI client. Note that it is not
+ * mandatory for the PMI client to authenticate itself. Hydra continous even
  * with incorrect authentification.
  *
  * @param msg Buffer containing the PMI msg to handle
@@ -1040,12 +1038,12 @@ static int p_InitAck(char *msg)
     getpmiv("pmiid", msg, client_id, sizeof(client_id));
 
     if (!client_id[0]) {
-	elog("%s(r%i): empty pmiid from MPI client\n", __func__, rank);
+	elog("%s(r%i): empty pmiid from PMI client\n", __func__, rank);
 	return critErr();
     }
 
     if (strcmp(pmi_id, client_id)) {
-	elog("%s(r%i): invalid pmi_id '%s' from MPI client should be '%s'\n",
+	elog("%s(r%i): invalid pmi_id '%s' from PMI client should be '%s'\n",
 	     __func__, rank, client_id, pmi_id);
 	return critErr();
     }
@@ -1258,7 +1256,7 @@ int pmi_init(int pmisocket, PStask_t *childTask)
 /**
 * @brief Release the PMI client
 *
-* Finalize the PMI connection and release the MPI client.
+* Finalize the PMI connection and release the PMI client.
 *
 * @return No return value
 */
@@ -1268,8 +1266,8 @@ void pmi_finalize(void)
 }
 
 /**
- * @brief Buffer an update message until both the local MPI client and our
- * successor is ready
+ * @brief Buffer an update message until both the local PMI client and our
+ * successor are ready
  *
  * @param msg The message to buffer
  *
@@ -1324,13 +1322,12 @@ static void handleKVScacheUpdate(PSLog_Msg_t *msg, char *ptr, bool lastUpdate)
 	return;
     }
     size_t msgSize = msg->header.len - PSLog_headerSize;
-    size_t pLen = msgSize - (UPDATE_HEAD) - sizeof(uint16_t);
-    size_t slen = len;
+    ssize_t pLen = msgSize - (UPDATE_HEAD) - sizeof(uint16_t);
 
     /* sanity check */
-    if (strlen(pmiLine) != slen || slen != pLen) {
-	elog("%s(r%i): invalid update msg len:%zu strlen:%zu bufLen:%zu\n",
-	     __func__, rank, slen, strlen(pmiLine), pLen);
+    if (strlen(pmiLine) != (size_t)len || len != pLen) {
+	elog("%s(r%i): invalid update msg len:%zu strlen:%zu bufLen:%zi\n",
+	     __func__, rank, len, strlen(pmiLine), pLen);
 	critErr();
 	return;
     }
@@ -1342,29 +1339,26 @@ static void handleKVScacheUpdate(PSLog_Msg_t *msg, char *ptr, bool lastUpdate)
 	return;
     }
 
-    /* we need to buffer the message for later */
-    if (slen > 0 && (!succReady || !gotBarrierIn)) {
+    /* we might need to buffer the message for later */
+    if (!succReady || !gotBarrierIn) {
 	bufferCacheUpdate(msg->buf, msgSize, lastUpdate, updateIndex);
     }
 
-    /* forward to successor */
+    /* forward to successor */ // uBufferList
     if (succReady && succtid != kvsProvTID) sendKvstoSucc(msg->buf, msgSize);
+
+    /* update local KVS if barrier_in from local PMI client already received */
+    if (gotBarrierIn) handleUpdate(pmiLine, lastUpdate, updateIndex);
 
     if (lastUpdate && psAccountSwitchAccounting) {
 	psAccountSwitchAccounting(cTask->tid, true);
     }
-
-    /* wait with the update until we got the barrier_in from local MPI client */
-    if (!gotBarrierIn) return;
-
-    /* update the local KVS */
-    handleUpdate(pmiLine, lastUpdate, updateIndex);
 }
 
 /**
  * @brief Hanlde a KVS barrier out message
  *
- * Release the waiting MPI client from the barrier.
+ * Release the waiting PMI client from the barrier.
  *
  * @return No return value
  */
@@ -1420,9 +1414,7 @@ static void handleSuccReady(char *mbuf)
 	Update_Buffer_t *uBuf = list_entry(ub, Update_Buffer_t, next);
 	if (uBuf->forwarded) continue;
 
-	if (succtid != kvsProvTID) {
-	    sendKvstoSucc(uBuf->msg, uBuf->len);
-	}
+	if (succtid != kvsProvTID) sendKvstoSucc(uBuf->msg, uBuf->len);
 
 	uBuf->forwarded = true;
 
