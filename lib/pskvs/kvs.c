@@ -15,7 +15,7 @@
 #include <string.h>
 #include <unistd.h>
 
-#include "env.h"
+#include "psenv.h"
 #include "kvscommon.h"
 #include "kvslog.h"
 
@@ -23,7 +23,7 @@
 
 typedef struct {
     char *name;
-    env_fields_t *env;
+    env_t *env;
 } KVS_t;
 
 /** The current number of kvs */
@@ -118,12 +118,12 @@ bool kvs_create(char *name)
     index = numKVS++;
 
     /* setup up the env */
-    kvs[index].env = malloc(sizeof(env_fields_t));
+    kvs[index].env = malloc(sizeof(*(kvs[index].env)));
     if (!kvs[index].env) {
 	mlog("%s: out of memory\n", __func__);
 	exit(1);
     }
-    env_init(kvs[index].env);
+    envInit(kvs[index].env);
 
     /* set the name of the kvs */
     kvs[index].name = strdup(name);
@@ -153,14 +153,6 @@ bool kvs_destroy(char *name)
 
 bool kvs_set(char *kvsname, char *name, char *value)
 {
-    int index;
-
-    return kvs_setIdx(kvsname, name, value, &index);
-}
-
-bool kvs_setIdx(char *kvsname, char *name, char *value, int *index)
-{
-    *index = -1;
     if (!kvsname || !name || !value || strlen(kvsname) > PMI_KVSNAME_MAX
 	|| strlen(name) > PMI_KEYLEN_MAX || strlen(value) > PMI_VALLEN_MAX ) {
 	mlog("%s: invalid kvsname '%s', valuename '%s' or value '%s'\n",
@@ -170,14 +162,13 @@ bool kvs_setIdx(char *kvsname, char *name, char *value, int *index)
 
     /* kvs not found */
     KVS_t *lkvs = getKvsByName(kvsname);
-
     if (!lkvs) {
 	mlog("%s: non existing kvs '%s'\n", __func__, kvsname);
 	return false;
     }
 
-    if (env_setIdx(lkvs->env, name, value, index) == -1) {
-	mlog("%s: error in env_setIdx for kvs '%s'\n", __func__, kvsname);
+    if (!envSet(lkvs->env, name, value)) {
+	mlog("%s: error in envSet for kvs '%s'\n", __func__, kvsname);
 	return false;
     }
 
@@ -185,13 +176,6 @@ bool kvs_setIdx(char *kvsname, char *name, char *value, int *index)
 }
 
 char *kvs_get(char *kvsname, char *name)
-{
-    int index;
-
-    return kvs_getIdx(kvsname, name, &index);
-}
-
-char *kvs_getIdx(char *kvsname, char *name, int *index)
 {
     if (!kvsname || !name || strlen(kvsname) < 1 || strlen(name) < 1) {
 	mlog("%s: invalid kvsname '%s', valuename '%s'\n",
@@ -205,7 +189,7 @@ char *kvs_getIdx(char *kvsname, char *name, int *index)
 	return NULL;
     }
 
-    return env_getIdx(lkvs->env, name, index);
+    return envGet(lkvs->env, name);
 }
 
 int kvs_count_values(char *kvsname)
@@ -221,7 +205,7 @@ int kvs_count_values(char *kvsname)
 	return -1;
     }
 
-    return env_size(lkvs->env);
+    return envSize(lkvs->env);
 }
 
 int kvs_count(void)
@@ -245,5 +229,5 @@ char *kvs_getbyidx(char *kvsname, int index)
 	return NULL;
     }
 
-    return env_dump(lkvs->env, index);
+    return envDumpIndex(lkvs->env, index);
 }

@@ -2,6 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2007-2017 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2022 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -46,51 +47,22 @@ bool kvs_destroy(char *name);
 bool kvs_set(char *kvsname, char *name, char *value);
 
 /**
- * @brief Save a key-value pair to the kvs
+ * @brief Read a value from a kvs
  *
  * @param kvsname Name of the kvs
  *
- * @param name Name of the value to save
- *
- * @param value Value to save in the kvs
- *
- * @param index The integer which will receive the index of the put value
- * or -1 on error
- *
- * @return Returns true on success, or false if an error occurred
- */
-bool kvs_setIdx(char *kvsname, char *name, char *value, int *index);
-
-/**
- * @brief Read a value from a kvs.
- *
- * @param kvsname The name of the kvs.
- *
- * @param name The name of the value to read.
+ * @param name Name of the value to read
  *
  * @return Returns the requested kvs value or NULL if an error occurred
  */
 char *kvs_get(char *kvsname, char *name);
 
 /**
- * @brief Read a value from a kvs.
+ * @brief Read a value by index from kvs
  *
- * @param kvsname The name of the kvs.
+ * @param kvsname Name of the kvs
  *
- * @param name The name of the value to read.
- *
- * @param index The integer will receive the index in the kvs environment.
- *
- * @return Returns the requested kvs value or NULL if an error occurred
- */
-char *kvs_getIdx(char *kvsname, char *name, int *index);
-
-/**
- * @brief Read a value by index from kvs.
- *
- * @param kvsname The name of the kvs.
- *
- * @param index The index of the kvs value.
+ * @param index Index of the kvs value
  *
  * @return Returns the value in format name=value or NULL if an error occurred
  */
