@@ -17,9 +17,8 @@ AM_LDFLAGS += $(glib2_LDFLAGS)
 
 noinst_LTLIBRARIES = libputil.la
 
-libputil_la_SOURCES = config_parsing.c env.c hardware.c mcast.c	\
-	parser.c psdaemonprotocol.c rdp.c selector.c timer.c	\
-	psparamspace.c old_config_parsing.c linenoise.c		\
-	psconfighelper.c
+libputil_la_SOURCES = config_parsing.c hardware.c mcast.c parser.c	\
+	psdaemonprotocol.c rdp.c selector.c timer.c psparamspace.c	\
+	old_config_parsing.c linenoise.c psconfighelper.c
 
 libputil_la_LIBADD = -lm

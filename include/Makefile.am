@@ -17,7 +17,7 @@ include_HEADERS = pse.h psprotocol.h psnodes.h pstask.h pspartition.h	\
 	psicomm_proto.h pssignal.h psreservation.h pstaskid.h		\
 	psenv.h pshostlist.h
 
-noinst_HEADERS = env.h hardware.h kvscommon.h kvs.h mcast.h parser.h	\
+noinst_HEADERS = hardware.h kvscommon.h kvs.h mcast.h parser.h		\
 	psbyteorder.h psilog.h pslog.h pspartition.h rdp.h		\
 	psipartition.h psparamspace.h psprotocolenv.h psserial.h	\
 	kvslog.h linenoise.h pluginconfig.h pluginforwarder.h		\

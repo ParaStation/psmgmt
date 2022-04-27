@@ -125,7 +125,7 @@ CONFIG_CLEAN_FILES =
 CONFIG_CLEAN_VPATH_FILES =
 LTLIBRARIES = $(noinst_LTLIBRARIES)
 libputil_la_DEPENDENCIES =
-am_libputil_la_OBJECTS = config_parsing.lo env.lo hardware.lo mcast.lo \
+am_libputil_la_OBJECTS = config_parsing.lo hardware.lo mcast.lo \
 	parser.lo psdaemonprotocol.lo rdp.lo selector.lo timer.lo \
 	psparamspace.lo old_config_parsing.lo linenoise.lo \
 	psconfighelper.lo
@@ -150,10 +150,9 @@ DEFAULT_INCLUDES = -I.@am__isrc@
 depcomp = $(SHELL) $(top_srcdir)/scripts/depcomp
 am__maybe_remake_depfiles = depfiles
 am__depfiles_remade = ./$(DEPDIR)/config_parsing.Plo \
-	./$(DEPDIR)/env.Plo ./$(DEPDIR)/hardware.Plo \
-	./$(DEPDIR)/linenoise.Plo ./$(DEPDIR)/mcast.Plo \
-	./$(DEPDIR)/old_config_parsing.Plo ./$(DEPDIR)/parser.Plo \
-	./$(DEPDIR)/psconfighelper.Plo \
+	./$(DEPDIR)/hardware.Plo ./$(DEPDIR)/linenoise.Plo \
+	./$(DEPDIR)/mcast.Plo ./$(DEPDIR)/old_config_parsing.Plo \
+	./$(DEPDIR)/parser.Plo ./$(DEPDIR)/psconfighelper.Plo \
 	./$(DEPDIR)/psdaemonprotocol.Plo ./$(DEPDIR)/psparamspace.Plo \
 	./$(DEPDIR)/rdp.Plo ./$(DEPDIR)/selector.Plo \
 	./$(DEPDIR)/timer.Plo
@@ -386,10 +385,9 @@ scriptsdir = $(prefix)/scripts
 @HAVE_SYSTEMD_FALSE@default_cgroup_name = psmgmtGrp
 @HAVE_SYSTEMD_TRUE@default_cgroup_name = system.slice/psid.service/descendants
 noinst_LTLIBRARIES = libputil.la
-libputil_la_SOURCES = config_parsing.c env.c hardware.c mcast.c	\
-	parser.c psdaemonprotocol.c rdp.c selector.c timer.c	\
-	psparamspace.c old_config_parsing.c linenoise.c		\
-	psconfighelper.c
+libputil_la_SOURCES = config_parsing.c hardware.c mcast.c parser.c	\
+	psdaemonprotocol.c rdp.c selector.c timer.c psparamspace.c	\
+	old_config_parsing.c linenoise.c psconfighelper.c
 
 libputil_la_LIBADD = -lm
 all: all-am
@@ -448,7 +446,6 @@ distclean-compile:
 	-rm -f *.tab.c
 
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/config_parsing.Plo@am__quote@ # am--include-marker
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/env.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/hardware.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/linenoise.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/mcast.Plo@am__quote@ # am--include-marker
@@ -622,7 +619,6 @@ clean-am: clean-generic clean-libtool clean-noinstLTLIBRARIES \
 
 distclean: distclean-am
 		-rm -f ./$(DEPDIR)/config_parsing.Plo
-	-rm -f ./$(DEPDIR)/env.Plo
 	-rm -f ./$(DEPDIR)/hardware.Plo
 	-rm -f ./$(DEPDIR)/linenoise.Plo
 	-rm -f ./$(DEPDIR)/mcast.Plo
@@ -680,7 +676,6 @@ installcheck-am:
 
 maintainer-clean: maintainer-clean-am
 		-rm -f ./$(DEPDIR)/config_parsing.Plo
-	-rm -f ./$(DEPDIR)/env.Plo
 	-rm -f ./$(DEPDIR)/hardware.Plo
 	-rm -f ./$(DEPDIR)/linenoise.Plo
 	-rm -f ./$(DEPDIR)/mcast.Plo
