@@ -30,6 +30,7 @@
 #include "list.h"
 #include "pluginmalloc.h"
 #include "pluginvector.h"
+#include "pluginhelper.h"
 
 #include "pspmixlog.h"
 #include "pspmixservice.h"
@@ -1432,6 +1433,60 @@ static void errhandler(
 	 __func__, status, source->nspace, source->rank, ninfo, nresults);
 }
 
+#if PMIX_VERSION_MAJOR >= 4
+static void fillServerSessionArray(pmix_data_array_t *sessionInfo,
+			       const char *clusterid)
+{
+    pmix_info_t *infos;
+
+#define SERVER_SESSION_INFO_ARRAY_LEN 4
+
+    PMIX_INFO_CREATE(infos, SERVER_SESSION_INFO_ARRAY_LEN);
+
+    /* A string name for the cluster this allocation is on */
+    PMIX_INFO_LOAD(&infos[0], PMIX_CLUSTER_ID, clusterid, PMIX_STRING);
+
+    /* String name of the RM */
+    char *rmname = "ParaStation";
+    PMIX_INFO_LOAD(&infos[1], PMIX_RM_NAME, rmname, PMIX_STRING);
+
+    /* RM version string */
+    const char *rmversion = PSC_getVersionStr();
+    PMIX_INFO_LOAD(&infos[2], PMIX_RM_VERSION, rmversion, PMIX_STRING);
+
+    /* Host where target PMIx server is located */
+    const char *hostname = getHostnameByNodeId(PSC_getMyID());
+    PMIX_INFO_LOAD(&infos[3], PMIX_SERVER_HOSTNAME, hostname, PMIX_STRING);
+
+#if PRINT_FILLINFOS
+    mlog("%s: %s(%d)='%s' - %s(%d)='%s' - %s(%d)='%s' - %s(%d)='%s'\n",
+	 __func__,
+	 infos[0].key, infos[0].value.type, infos[0].value.data.string,
+	 infos[1].key, infos[1].value.type, infos[1].value.data.string,
+	 infos[2].key, infos[2].value.type, infos[2].value.data.string,
+	 infos[3].key, infos[3].value.type, infos[3].value.data.string);
+#endif
+
+    sessionInfo->type = PMIX_INFO;
+    sessionInfo->size = SERVER_SESSION_INFO_ARRAY_LEN;
+    sessionInfo->array = infos;
+}
+
+/**
+ * To be called by PMIx_server_register_resources() to provide status
+ */
+static void registerResources_cb(pmix_status_t status, void *cbdata)
+{
+    mdbg(PSPMIX_LOG_CALL, "%s()\n", __func__);
+
+    mycbdata_t *data = cbdata;
+
+    data->status = status;
+
+    SET_CBDATA_AVAIL(data);
+}
+#endif
+
 /**
  * To be called by error handler registration function to provide success state
  */
@@ -1448,8 +1503,8 @@ static void registerErrorHandler_cb (
     SET_CBDATA_AVAIL(data);
 }
 
-bool pspmix_server_init(char *nspace, pmix_rank_t rank, char *srvtmpdir,
-			char *systmpdir)
+bool pspmix_server_init(char *nspace, pmix_rank_t rank, const char *clusterid,
+			const char *srvtmpdir, const char *systmpdir)
 {
     mdbg(PSPMIX_LOG_CALL, "%s(nspace %s rank %d srvtmpdir %s systmpdir %s)\n",
 	    __func__, nspace, rank, srvtmpdir, systmpdir);
@@ -1551,6 +1606,38 @@ bool pspmix_server_init(char *nspace, pmix_rank_t rank, char *srvtmpdir,
     }
     mdbg(PSPMIX_LOG_VERBOSE, "%s: PMIx_server_init() successful\n", __func__);
     DESTROY_CBDATA(cbdata);
+
+#if PMIX_VERSION_MAJOR >= 4
+    /* tell the server common information */
+    INIT_CBDATA(cbdata);
+    cbdata.ninfo = 1;
+
+    PMIX_INFO_CREATE(cbdata.info, cbdata.ninfo);
+
+    pmix_data_array_t sessionInfo;
+    fillServerSessionArray(&sessionInfo, clusterid);
+
+    PMIX_INFO_LOAD(&cbdata.info[0], PMIX_SESSION_INFO_ARRAY, &sessionInfo,
+	    PMIX_DATA_ARRAY);
+    status = PMIx_server_register_resources(cbdata.info, cbdata.ninfo,
+					    registerResources_cb, &cbdata);
+    if (status != PMIX_SUCCESS) {
+	mlog("%s: PMIx_server_register_resources() failed: %s\n", __func__,
+	     PMIx_Error_string(status));
+	return false;
+    }
+    WAIT_FOR_CBDATA(cbdata);
+
+    if (cbdata.status != PMIX_SUCCESS) {
+	mlog("%s: Callback from register resources failed: %s\n", __func__,
+	     PMIx_Error_string(cbdata.status));
+	return false;
+    }
+    DESTROY_CBDATA(cbdata);
+
+    mdbg(PSPMIX_LOG_VERBOSE, "%s: PMIx_server_register_resources()"
+	 " successful\n", __func__);
+#endif
 
     /* register the error handler */
     INIT_CBDATA(cbdata);

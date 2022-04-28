@@ -147,6 +147,8 @@ bool pspmix_service_init(uid_t uid, gid_t gid)
 {
     mdbg(PSPMIX_LOG_CALL, "%s(uid %d gid %d)\n", __func__, uid, gid);
 
+    char *clusterid = "@todo"; /* @todo */
+
     /* initialize the communication facility */
     if (!pspmix_comm_init(uid)) {
 	ulog("could not initialize communication\n");
@@ -164,7 +166,7 @@ bool pspmix_service_init(uid_t uid, gid_t gid)
     snprintf(nspace, MAX_NSLEN, "pspmix_%d", uid);
 
     /* initialize the pmix server */
-    if (!pspmix_server_init(nspace, PSC_getMyID(), NULL, NULL)) {
+    if (!pspmix_server_init(nspace, PSC_getMyID(), clusterid, NULL, NULL)) {
 	ulog("failed to initialize pspmix server\n");
 	return false;
     }

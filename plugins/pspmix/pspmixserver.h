@@ -37,6 +37,7 @@ typedef struct {
  *
  * @param nspace     Name of the namespace to use for this PMIx server
  * @param rank       Rank of this PMIx server
+ * @param clusterid  String name for the cluster
  * @param srvtmpdir  Top-level temporary directory for all client processes
  *                   connected to this server, and where the PMIx server will
  *                   place its tool rendezvous point and contact information
@@ -46,10 +47,8 @@ typedef struct {
  *
  * @return true on success, false on error
  */
-bool pspmix_server_init(char *nspace,
-			pmix_rank_t rank,
-			char *srvtmpdir,
-			char *systmpdir);
+bool pspmix_server_init(char *nspace, pmix_rank_t rank, const char *clusterid,
+			const char *srvtmpdir, const char *systmpdir);
 
 /**
  * @brief Initiate calling a callback function of the server library
