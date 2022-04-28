@@ -1937,7 +1937,7 @@ static void fillJobInfoArray(pmix_data_array_t *jobInfo, const char *jobId,
      *     Rank of this PMIx server
      *
      * * PMIX_NPROC_OFFSET "pmix.offset" (pmix_rank_t)
-     *     Starting global rank of this job
+     *     Starting global rank of this job     (XXX: needed for spawn support)
      *
      * * PMIX_ALLOCATED_NODELIST "pmix.alist" (char*)   (v4.0: in session realm)
      *     Comma-delimited list of all nodes in this allocation regardless of
