@@ -1983,7 +1983,7 @@ static void fillAppInfoArray(pmix_data_array_t *appInfo, PspmixApp_t *app)
 {
     pmix_info_t *infos;
 
-#define APP_INFO_ARRAY_LEN 3
+#define APP_INFO_ARRAY_LEN 4
 
     PMIX_INFO_CREATE(infos, APP_INFO_ARRAY_LEN);
 
@@ -1996,11 +1996,16 @@ static void fillAppInfoArray(pmix_data_array_t *appInfo, PspmixApp_t *app)
     /* lowest rank in this application within the job */
     PMIX_INFO_LOAD(&infos[2], PMIX_APPLDR, &app->firstRank, PMIX_PROC_RANK);
 
+    /* working directory for spawned processes */
+    strncpy(infos[3].key, PMIX_WDIR, PMIX_MAX_KEYLEN);
+    PMIX_VALUE_LOAD(&infos[3].value, app->wdir, PMIX_STRING);
+
 #if PRINT_FILLINFOS
-    mlog("%s: %s(%d)='%u' - %s(%d)=%u - %s(%d)=%u\n", __func__,
+    mlog("%s: %s(%d)='%u' - %s(%d)=%u - %s(%d)=%u - %s(%d)=%s\n", __func__,
 	 infos[0].key, infos[0].value.type, infos[0].value.data.uint32,
 	 infos[1].key, infos[1].value.type, infos[1].value.data.uint32,
-	 infos[2].key, infos[2].value.type, infos[2].value.data.rank);
+	 infos[2].key, infos[2].value.type, infos[2].value.data.rank,
+	 infos[3].key, infos[3].value.type, infos[3].value.data.string);
 #endif
 
     appInfo->type = PMIX_INFO;

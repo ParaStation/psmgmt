@@ -114,6 +114,7 @@ typedef struct {
     uint32_t num;
     uint32_t size;
     pmix_rank_t firstRank;
+    char *wdir;
 } PspmixApp_t;
 
 /**
