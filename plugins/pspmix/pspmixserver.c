@@ -1448,9 +1448,11 @@ static void registerErrorHandler_cb (
     SET_CBDATA_AVAIL(data);
 }
 
-bool pspmix_server_init(uint32_t uid, uint32_t gid)
+bool pspmix_server_init(char *nspace, pmix_rank_t rank, char *srvtmpdir,
+			char *systmpdir)
 {
-    mdbg(PSPMIX_LOG_CALL, "%s(uid %u gid %u)\n", __func__, uid, gid);
+    mdbg(PSPMIX_LOG_CALL, "%s(nspace %s rank %d srvtmpdir %s systmpdir %s)\n",
+	    __func__, nspace, rank, srvtmpdir, systmpdir);
 
     /* print some interesting environment variables if set */
     for (size_t i = 0; environ[i]; i++) {
@@ -1463,13 +1465,81 @@ bool pspmix_server_init(uint32_t uid, uint32_t gid)
 
     mycbdata_t cbdata;
     INIT_CBDATA(cbdata);
-    cbdata.ninfo = 2;
+#if PMIX_VERSION_MAJOR >= 4
+    cbdata.ninfo = 7;
+#else 
+    cbdata.ninfo = 4;
+#endif
+    if (srvtmpdir) cbdata.ninfo++;
+    if (systmpdir) cbdata.ninfo++;
     PMIX_INFO_CREATE(cbdata.info, cbdata.ninfo);
 
-    PMIX_INFO_LOAD(&cbdata.info[0], PMIX_USERID, &uid, PMIX_UINT32);
-    PMIX_INFO_LOAD(&cbdata.info[1], PMIX_GRPID, &gid, PMIX_UINT32);
+    size_t i = 0;
+    
+    /* Name of the namespace to use for this PMIx server */
+    PMIX_INFO_LOAD(&cbdata.info[i], PMIX_SERVER_NSPACE, nspace, PMIX_STRING);
+    i++;
 
-    mdbg(PSPMIX_LOG_VERBOSE, "%s: Setting uid %u gid %u\n", __func__, uid, gid);
+    /* Rank of this PMIx server */
+    PMIX_INFO_LOAD(&cbdata.info[i], PMIX_SERVER_RANK, &rank, PMIX_PROC_RANK);
+    i++;
+
+    /* Top-level temporary directory for all client processes connected to this
+     * server, and where the PMIx server will place its tool rendezvous point
+     * and contact information. */
+    if (srvtmpdir) {
+	PMIX_INFO_LOAD(&cbdata.info[i], PMIX_SERVER_TMPDIR, srvtmpdir,
+		       PMIX_STRING);
+	i++;
+    }
+
+    /* Temporary directory for this system, and where a PMIx server that
+     * declares itself to be a system-level server will place a tool rendezvous
+     * point and contact information. */
+    if (systmpdir) {
+	PMIX_INFO_LOAD(&cbdata.info[i], PMIX_SYSTEM_TMPDIR, systmpdir,
+		       PMIX_STRING);
+	i++;
+    }
+
+    /* The host RM wants to declare itself as willing to accept tool connection
+     * requests. */
+    bool tmpbool = false;
+    PMIX_INFO_LOAD(&cbdata.info[i], PMIX_SERVER_TOOL_SUPPORT, &tmpbool,
+		   PMIX_BOOL);
+    i++;
+
+    /* The host RM wants to declare itself as being the local system server for
+     * PMIx connection @todo set to true? */
+    tmpbool = false;
+    PMIX_INFO_LOAD(&cbdata.info[i], PMIX_SERVER_SYSTEM_SUPPORT, &tmpbool,
+		   PMIX_BOOL);
+    i++;
+
+#if PMIX_VERSION_MAJOR >= 4
+    /* The host RM wants to declare itself as being the local session server for
+     * PMIx connection requests. */
+    tmpbool = false;
+    PMIX_INFO_LOAD(&cbdata.info[i], PMIX_SERVER_SESSION_SUPPORT, &tmpbool,
+		   PMIX_BOOL);
+    i++;
+
+    /* Server is acting as a gateway for PMIx requests that cannot be serviced
+     * on backend nodes (e.g., logging to email). */
+    tmpbool = false;
+    PMIX_INFO_LOAD(&cbdata.info[i], PMIX_SERVER_GATEWAY, &tmpbool, PMIX_BOOL);
+    i++;
+
+    /* Server is supporting system scheduler and desires access to appropriate
+     * WLM-supporting features. Indicates that the library is to be initialized
+     * for scheduler support. */
+    tmpbool = false;
+    PMIX_INFO_LOAD(&cbdata.info[i], PMIX_SERVER_SCHEDULER, &tmpbool, PMIX_BOOL);
+    i++;
+#endif
+
+    mdbg(PSPMIX_LOG_VERBOSE, "%s: Setting nspace %s rank %d\n", __func__,
+	    nspace, rank);
 
     /* initialize server library */
     pmix_status_t status;

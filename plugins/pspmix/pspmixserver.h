@@ -35,12 +35,21 @@ typedef struct {
 /**
  * @brief Initialize the pmix server library and register all callbacks
  *
- * @param uid  effectiv userid to use for the server
- * @param gid  effectiv groupid to use for the server
+ * @param nspace     Name of the namespace to use for this PMIx server
+ * @param rank       Rank of this PMIx server
+ * @param srvtmpdir  Top-level temporary directory for all client processes
+ *                   connected to this server, and where the PMIx server will
+ *                   place its tool rendezvous point and contact information
+ * @param systmpdir  Temporary directory for this system, and where a PMIx
+ *                   server that declares itself to be a system-level server
+ *                   will place a tool rendezvous point and contact information
  *
  * @return true on success, false on error
  */
-bool pspmix_server_init(uint32_t uid, uint32_t gid);
+bool pspmix_server_init(char *nspace,
+			pmix_rank_t rank,
+			char *srvtmpdir,
+			char *systmpdir);
 
 /**
  * @brief Initiate calling a callback function of the server library

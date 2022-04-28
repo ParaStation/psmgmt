@@ -158,8 +158,13 @@ bool pspmix_service_init(uid_t uid, gid_t gid)
 	 " fillWithMpiexec()\n");
     if (!pspmix_getFillTaskFunction()) pspmix_resetFillSpawnTaskFunction();
 
+
+    /* generate server namespace name */
+    static char nspace[MAX_NSLEN];
+    snprintf(nspace, MAX_NSLEN, "pspmix_%d", uid);
+
     /* initialize the pmix server */
-    if (!pspmix_server_init(uid, gid)) {
+    if (!pspmix_server_init(nspace, PSC_getMyID(), NULL, NULL)) {
 	ulog("failed to initialize pspmix server\n");
 	return false;
     }
