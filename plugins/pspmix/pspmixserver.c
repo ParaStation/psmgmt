@@ -1886,11 +1886,11 @@ static void fillSessionInfoArray(pmix_data_array_t *sessionInfo,
 
 static void fillJobInfoArray(pmix_data_array_t *jobInfo, const char *jobId,
 	uint32_t jobSize, uint32_t maxProcs, const char *nodelist_s,
-	list_t *procMap)
+	list_t *procMap, uint32_t numApps)
 {
     pmix_info_t *infos;
 
-#define JOB_INFO_ARRAY_LEN 5
+#define JOB_INFO_ARRAY_LEN 6
 
     PMIX_INFO_CREATE(infos, JOB_INFO_ARRAY_LEN);
 
@@ -1923,6 +1923,9 @@ static void fillJobInfoArray(pmix_data_array_t *jobInfo, const char *jobId,
     strncpy(infos[4].key, PMIX_PROC_MAP, PMIX_MAX_KEYLEN);
     PMIX_VALUE_LOAD(&infos[4].value, pmap_r, PMIX_STRING);
 
+    /* number of applications in this job (required if > 1) */
+    PMIX_INFO_LOAD(&infos[5], PMIX_JOB_NUM_APPS, &numApps, PMIX_UINT32);
+
     /* optional infos (PMIx v3.0):
      * * PMIX_SERVER_NSPACE "pmix.srv.nspace" (char*)
      *     Name of the namespace to use for this PMIx server.
@@ -1937,9 +1940,6 @@ static void fillJobInfoArray(pmix_data_array_t *jobInfo, const char *jobId,
      *     Comma-delimited list of all nodes in this allocation regardless of
      *     whether or not they currently host processes
      *
-     * * PMIX_JOB_NUM_APPS "pmix.job.napps" (uint32_t)
-     *     Number of applications in this job.
-     *
      * * PMIX_MAPBY "pmix.mapby" (char*)
      *     Process mapping policy
      *
@@ -1952,12 +1952,13 @@ static void fillJobInfoArray(pmix_data_array_t *jobInfo, const char *jobId,
 
 #if PRINT_FILLINFOS
     mlog("%s: %s(%d)='%s' - %s(%d)=%u - %s(%d)=%u - %s(%d)='%s' - "
-	 "%s(%d)='%s'\n", __func__,
+	 "%s(%d)='%s' - %s(%d)=%u\n", __func__,
 	 infos[0].key, infos[0].value.type, infos[0].value.data.string,
 	 infos[1].key, infos[1].value.type, infos[1].value.data.uint32,
 	 infos[2].key, infos[2].value.type, infos[2].value.data.uint32,
 	 infos[3].key, infos[3].value.type, infos[3].value.data.string,
-	 infos[4].key, infos[4].value.type, infos[4].value.data.string);
+	 infos[4].key, infos[4].value.type, infos[4].value.data.string,
+	 infos[5].key, infos[5].value.type, infos[5].value.data.uint32);
 #endif
 
     jobInfo->type = PMIX_INFO;
@@ -2166,7 +2167,7 @@ bool pspmix_server_registerNamespace(
 
     pmix_data_array_t jobInfo;
     fillJobInfoArray(&jobInfo, nspace, jobSize, univSize, nodelist_s,
-	    procMap);
+	    procMap, numApps);
 
     PMIX_INFO_LOAD(&data.info[count], PMIX_JOB_INFO_ARRAY, &jobInfo,
 	    PMIX_DATA_ARRAY);
