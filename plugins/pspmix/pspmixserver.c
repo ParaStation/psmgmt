@@ -1869,9 +1869,12 @@ static void fillSessionInfoArray(pmix_data_array_t *sessionInfo,
     /* number of slots in this session */
     PMIX_INFO_LOAD(&infos[1], PMIX_MAX_PROCS, &universe_size, PMIX_UINT32);
 
-    /* XXX omitting PMIX_NUM_NODES (PMIX_UINT32) */
-
-    /* XXX omitting PMIX_NODE_MAP (char* created by PMIx_generate_regex) */
+    /* optional infos (PMIx v4.0):
+     * * PMIX_ALLOCATED_NODELIST "pmix.alist" (char*)
+     *     Comma-delimited list or regular expression of all nodes in the
+     *     specified realm regardless of whether or not they currently host
+     *     processes. Defaults to the job realm.
+     */
 
 #if PRINT_FILLINFOS
     mlog("%s: %s(%d)=%u - %s(%d)=%u\n", __func__,
@@ -1927,16 +1930,16 @@ static void fillJobInfoArray(pmix_data_array_t *jobInfo, const char *jobId,
     PMIX_INFO_LOAD(&infos[5], PMIX_JOB_NUM_APPS, &numApps, PMIX_UINT32);
 
     /* optional infos (PMIx v3.0):
-     * * PMIX_SERVER_NSPACE "pmix.srv.nspace" (char*)
+     * * PMIX_SERVER_NSPACE "pmix.srv.nspace" (char*)       (mendatory in v4.0?)
      *     Name of the namespace to use for this PMIx server.
      *
-     * * PMIX_SERVER_RANK "pmix.srv.rank" (pmix_rank_t)
+     * * PMIX_SERVER_RANK "pmix.srv.rank" (pmix_rank_t)     (mendatory in v4.0?)
      *     Rank of this PMIx server
      *
      * * PMIX_NPROC_OFFSET "pmix.offset" (pmix_rank_t)
      *     Starting global rank of this job
      *
-     * * PMIX_ALLOCATED_NODELIST "pmix.alist" (char*)
+     * * PMIX_ALLOCATED_NODELIST "pmix.alist" (char*)   (v4.0: in session realm)
      *     Comma-delimited list of all nodes in this allocation regardless of
      *     whether or not they currently host processes
      *
@@ -1948,6 +1951,16 @@ static void fillJobInfoArray(pmix_data_array_t *jobInfo, const char *jobId,
      *
      * * PMIX_BINDTO "pmix.bindto" (char*)
      *     Process binding policy
+     *
+     * optional infos (PMIx v4.0):
+     * * PMIX_HOSTNAME_KEEP_FQDN "pmix.fqdn" (bool)
+     *     FQDNs are being retained by the PMIx library.
+     *
+     * * PMIX_TDIR_RMCLEAN "pmix.tdir.rmclean" (bool)
+     *     Resource Manager will cleanup assigned temporary directory trees.
+     *
+     * * PMIX_CRYPTO_KEY "pmix.sec.key" (pmix_byte_object_t)
+     *     Blob containing crypto key.
      */
 
 #if PRINT_FILLINFOS
