@@ -2041,6 +2041,110 @@ static void fillAppInfoArray(pmix_data_array_t *appInfo, PspmixApp_t *app)
     appInfo->array = infos;
 }
 
+/**
+ * @param nodeInfo     array to fill
+ * @param node         node object
+ * @param id           id of the node in the session (PMIX_NODEID)
+ * @param tmpdir       temporary directory of the session
+ * @param nsdir        temporary directory of the namespace relative to tmpdir
+ */
+static void fillNodeInfoArray(pmix_data_array_t *nodeInfo, PspmixNode_t *node,
+			      uint32_t id, const char *tmpdir,
+			      const char *nsdir)
+{
+    pmix_info_t *infos;
+
+    uint32_t ninfo = 5;
+    if (node->id == PSC_getMyID()) ninfo += 2;
+
+    PMIX_INFO_CREATE(infos, ninfo);
+
+    /* node id (in the session) */
+    PMIX_INFO_LOAD(&infos[0], PMIX_NODEID, &id, PMIX_UINT32);
+
+    /* hostname */
+    PMIX_INFO_LOAD(&infos[1], PMIX_HOSTNAME, node->hostname, PMIX_STRING);
+
+    /* number of processes on the node (in this namespace) */
+    PMIX_INFO_LOAD(&infos[2], PMIX_LOCAL_SIZE, &node->procs.len, PMIX_UINT32);
+
+    /* Note: PMIX_NODE_SIZE (processes over all the user's jobs)
+     * managed by pmix_register_resources @todo */
+
+    /* lowest rank on this node within this job/namespace */
+    PspmixProcess_t *proc = vectorGet(&node->procs, 0, PspmixProcess_t);
+    PMIX_INFO_LOAD(&infos[3], PMIX_LOCALLDR, &proc->rank, PMIX_PROC_RANK);
+
+    /* Comma-delimited list of ranks that are executing on the node
+     * within this namespace */
+    char *lpeers;
+    lpeers = getNodeRanksString(node);
+    if (lpeers[0] == '\0') mlog("%s: no local ranks for node %u (%s)\n",
+				__func__, id, node->hostname);
+    PMIX_INFO_LOAD(&infos[4], PMIX_LOCAL_PEERS, lpeers, PMIX_STRING);
+    ufree(lpeers);
+
+    /* optional infos (PMIx v4.0):
+     * * PMIX_MAX_PROCS "pmix.max.size" (uint32_t)
+     *     Maximum number of processes that can be executed in the specified
+     *     realm. Typically, this is a constraint imposed by a scheduler or by
+     *     user settings in a hostfile or other resource description. Defaults
+     *     to the job realm.
+     */
+
+    if (node->id == PSC_getMyID()) {
+
+	/* Full path to the top-level temporary directory assigned to the
+	 * session */
+	PMIX_INFO_LOAD(&infos[5], PMIX_TMPDIR, tmpdir, PMIX_STRING);
+
+	/* Full path to the temporary directory assigned to the specified job,
+	 * under PMIX_TMPDIR. */
+	PMIX_INFO_LOAD(&infos[6], PMIX_NSDIR, nsdir, PMIX_STRING);
+
+	/* Array of pmix_proc_t of all processes executing on the local node */
+	//@todo how to implement that, standard ambiguous?
+	//PMIX_LOCAL_PROCS "pmix.lprocs" (pmix_proc_t array)
+
+	/* optional infos (PMIx v4.0):
+	 * * PMIX_LOCAL_CPUSETS "pmix.lcpus" (pmix_data_array_t)
+	 *     (this was required in PMIx v3.0)
+	 *     A pmix_data_array_t array of string representations of the PU
+	 *     binding bitmaps applied to each local peer on the caller’s node
+	 *     upon launch. Each string shall begin with the name of the library
+	 *     that generated it (e.g., "hwloc") followed by a colon and the
+	 *     bitmap string itself. The array shall be in the same order as the
+	 *     processes returned by PMIX_LOCAL_PEERS for that namespace.
+	 *
+	 * * PMIX_AVAIL_PHYS_MEMORY "pmix.pmem" (uint64_t)
+	 *     Total available physical memory on a node.
+	 *     As this information is not related to the namespace, it can be
+	 *     passed using the PMIx_server_register_resources API.
+	 */
+    }
+
+
+#if PRINT_FILLINFOS
+    mlog("%s: %s(%d)=%u - %s(%d)='%s' - %s(%d)=%u - %s(%d)=%u - %s(%d)='%s'",
+	 __func__,
+	 infos[0].key, infos[0].value.type, infos[0].value.data.uint32,
+	 infos[1].key, infos[1].value.type, infos[1].value.data.string,
+	 infos[2].key, infos[2].value.type, infos[2].value.data.uint32,
+	 infos[3].key, infos[3].value.type, infos[3].value.data.rank,
+	 infos[4].key, infos[4].value.type, infos[4].value.data.string);
+    if (node->id == PSC_getMyID()) {
+	mlog(" - %s(%d)='%s' - %s(%d)='%s'",
+	 infos[5].key, infos[5].value.type, infos[5].value.data.string,
+	 infos[6].key, infos[6].value.type, infos[6].value.data.string);
+    }
+    mlog("\n");
+#endif
+
+    nodeInfo->type = PMIX_INFO;
+    nodeInfo->size = ninfo;
+    nodeInfo->array = infos;
+}
+
 static void fillProcDataArray(pmix_data_array_t *procData,
 	PspmixProcess_t *proc, PSnodes_ID_t nodeID, bool spawned)
 {
@@ -2122,8 +2226,10 @@ static void registerNamespace_cb(pmix_status_t status, void *cbdata)
 
 bool pspmix_server_registerNamespace(
 	const char *nspace, uint32_t sessionId,	uint32_t univSize,
-	uint32_t jobSize, bool spawned, const char *nodelist_s,
-	list_t *procMap, uint32_t numApps, PspmixApp_t *apps,
+	uint32_t jobSize, bool spawned,
+	uint32_t numNodes, const char *nodelist_s, list_t *procMap,
+	uint32_t numApps, PspmixApp_t *apps,
+	const char *tmpdir, const char *nsdir,
 	PSnodes_ID_t nodeID)
 {
     mdbg(PSPMIX_LOG_CALL, "%s(nspace '%s' sessionId %u univSize %u jobSize %u"
@@ -2180,13 +2286,12 @@ bool pspmix_server_registerNamespace(
 	return false;
     }
 
-    uint32_t val_u32;
     size_t count;
 
     /* fill infos */
     mycbdata_t data;
     INIT_CBDATA(data);
-    data.ninfo = 4 + numApps + jobSize + 2;
+    data.ninfo = 4 + numApps + numNodes + jobSize;
 
     PMIX_INFO_CREATE(data.info, data.ninfo);
     count = 0;
@@ -2228,10 +2333,22 @@ bool pspmix_server_registerNamespace(
 	++count;
     }
 
+    /* ===== node info arrays ===== */
+    uint32_t nodeIdx = 0;
+    list_t *n;
+    list_for_each(n, procMap) {
+	PspmixNode_t *node = list_entry(n, PspmixNode_t, next);
+	pmix_data_array_t nodeInfo;
+	fillNodeInfoArray(&nodeInfo, node, nodeIdx++, tmpdir, nsdir);
+
+	PMIX_INFO_LOAD(&data.info[count], PMIX_NODE_INFO_ARRAY, &nodeInfo,
+		PMIX_DATA_ARRAY);
+	++count;
+    }
+
     /* ===== process data ===== */
 
     /* information about all global ranks */
-    list_t *n;
     list_for_each(n, procMap) {
 	PspmixNode_t *node = list_entry(n, PspmixNode_t, next);
 	for(size_t i = 0; i < node->procs.len; i++) {
@@ -2246,75 +2363,6 @@ bool pspmix_server_registerNamespace(
 	    ++count;
 	}
     }
-
-    /* ===== own node info ===== */
-
-    /* number of processes in this job/namespace on this node */
-    val_u32 = mynode->procs.len;
-    PMIX_INFO_LOAD(&data.info[count], PMIX_LOCAL_SIZE, &val_u32, PMIX_UINT32);
-    ++count;
-
-    /* comma-delimited string of ranks on this node within the specified job */
-    char *lpeers;
-    lpeers = getNodeRanksString(mynode);
-    if (lpeers[0] == '\0') {
-	mlog("%s: no local ranks found.\n", __func__);
-	ufree(lpeers);
-	DESTROY_CBDATA(data);
-	return false;
-    }
-#if PRINT_FILLINFOS
-    mlog("%s: local ranks string created: '%s'\n", __func__, lpeers);
-#endif
-    PMIX_INFO_LOAD(&data.info[count], PMIX_LOCAL_PEERS, lpeers, PMIX_STRING);
-    ++count;
-    ufree(lpeers);
-
-    /* XXX omitting PMIX_LOCAL_CPUSETS for now which is required according to
-     * the standard */
-
-    /* optional infos (PMIx v3.0):
-     * * PMIX_AVAIL_PHYS_MEMORY "pmix.pmem" (uint64_t)
-     *     Total available physical memory on this node.
-     *
-     * * PMIX_HWLOC_XML_V1 "pmix.hwlocxml1" (char*)
-     *     XML representation of local topology using HWLOC’s v1.x format.
-     *
-     * * PMIX_HWLOC_XML_V2 "pmix.hwlocxml2" (char*)
-     *     XML representation of local topology using HWLOC’s v2.x format.
-     *
-     * * PMIX_LOCALLDR "pmix.lldr" (pmix_rank_t)
-     *     Lowest rank on this node within this job
-     *
-     *  * PMIX_NODE_SIZE "pmix.node.size" (uint32_t)
-     *     Number of processes across all jobs on this node.
-     *
-     * * PMIX_LOCAL_PROCS "pmix.lprocs" (pmix_proc_t array)
-     *     Array of pmix_proc_t of all processes on the specified node
-     */
-
-
-
-#if 0 /* XXX: are some of these needed even if not mentioned in PMIx v3.0??? */
-    ++count;
-    /* user id of the job */
-    PMIX_INFO_LOAD(&data.info[count], PMIX_USERID, &uid, PMIX_UINT32);
-
-    ++count;
-    /* group id of the job */
-    PMIX_INFO_LOAD(&data.info[count], PMIX_GRPID, &gid, PMIX_UINT32);
-
-    ++count;
-    /* node identifier */
-    val_u32 = nodeID;
-    PMIX_INFO_LOAD(&data.info[count], PMIX_NODEID, &val_u32, PMIX_UINT32);
-
-    ++count;
-    /* lowest rank on this node within this job */
-    proc = vectorGet(&mynode->procs, 0, PspmixProcess_t);
-    PMIX_INFO_LOAD(&data.info[count], PMIX_LOCALLDR, &proc->applead,
-	    PMIX_PROC_RANK);
-#endif
 
     if (count != data.ninfo) {
 	mlog("%s: WARNING: Number of info fields does not match (%lu != %lu)\n",

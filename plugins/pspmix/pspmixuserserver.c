@@ -79,6 +79,14 @@ int pspmix_userserver_initialize(Forwarder_Data_t *fwdata)
     return 0;
 }
 
+static char * genSessionTmpdirName(PspmixSession_t *session)
+{
+    char tmp[128];
+    snprintf(tmp, sizeof(tmp), "/tmp/pspmix/%d/%s", session->server->uid,
+	     PSC_printTID(session->loggertid));
+
+    return ustrdup(tmp);
+}
 
 bool pspmix_userserver_addJob(PStask_ID_t loggertid, PspmixJob_t *job)
 {
@@ -98,8 +106,10 @@ bool pspmix_userserver_addJob(PStask_ID_t loggertid, PspmixJob_t *job)
 	session->loggertid = loggertid;
 	INIT_LIST_HEAD(&session->jobs);
 	list_add_tail(&session->next, &server->sessions);
-	mdbg(PSPMIX_LOG_VERBOSE, "%s(uid %d): session created (logger %s)\n",
-	     __func__, server->uid, PSC_printTID(loggertid));
+	session->tmpdir = genSessionTmpdirName(session);
+	mdbg(PSPMIX_LOG_VERBOSE, "%s(uid %d): session created (logger %s"
+	     " tmpdir %s)\n", __func__, server->uid, PSC_printTID(loggertid),
+	     session->tmpdir);
     }
 
     job->session = session;

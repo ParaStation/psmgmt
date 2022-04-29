@@ -107,6 +107,7 @@ void __pspmix_deleteSession(PspmixSession_t *session, bool warn,
 	pspmix_deleteJob(job);
     }
 
+    ufree(session->tmpdir);
     ufree(session);
 }
 

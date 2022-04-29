@@ -72,16 +72,21 @@ void pspmix_server_operationFinished(bool success, void* cb);
  * @param univSize   number of slots in this session
  * @param numProcs   number of processes in this job/namespace
  * @param spawned    true if this job spawn resulted from a call to PMIx_Spawn
+ * @param numNodes   number of nodes this job/namespace runs at
  * @param nodelist_s string containing comma separated list of nodes in the job
  * @param procMap    process map of the job (which process runs on which node)
  * @param numApps    number of applications in this job/namespace
  * @param apps       application characteristics array of length numApps
+ * @param tmpdir     full path of temporary dir of the session on this node
+ * @param nsdir      full path of temp dir of this namespace (under @a tmpdir)
  * @param nodeID     parastation node id of this node
  */
 bool pspmix_server_registerNamespace(
 	const char *nspace, uint32_t sessionId,	uint32_t univSize,
-	uint32_t numProcs, bool spawned, const char *nodelist_s,
-	list_t *procMap, uint32_t numApps, PspmixApp_t *apps,
+	uint32_t jobSize, bool spawned,
+	uint32_t numNodes, const char *nodelist_s, list_t *procMap,
+	uint32_t numApps, PspmixApp_t *apps,
+	const char *tmpdir, const char *nsdir,
 	PSnodes_ID_t nodeID);
 
 /**

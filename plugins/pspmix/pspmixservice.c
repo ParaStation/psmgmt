@@ -22,6 +22,7 @@
 
 #include "pluginmalloc.h"
 #include "pluginvector.h"
+#include "pluginhelper.h"
 #include "psidsession.h"
 
 #include "pspmixcomm.h"
@@ -224,6 +225,7 @@ static void freeProcMap(list_t *map)
 	node = list_entry(n, PspmixNode_t, next);
 	vectorDestroy(&node->procs);
 	list_del(&node->next);
+	ufree(node->hostname);
 	ufree(node);
     }
 }
@@ -359,6 +361,13 @@ bool pspmix_service_registerNamespace(PspmixJob_t *job)
 		/* add new node to process map */
 		node = umalloc(sizeof(*node));
 		node->id = entry->node;
+		const char *hostname = getHostnameByNodeId(node->id);
+		if (!hostname) {
+		    ulog("no hostname for node %hd", node->id);
+		    ufree(node);
+		    goto nscreate_error;
+		}
+		node->hostname = ustrdup(hostname);
 		vectorInit(&node->procs, 10, 10, PspmixProcess_t);
 		list_add_tail(&node->next, &ns->procMap);
 	    }
@@ -374,9 +383,11 @@ bool pspmix_service_registerNamespace(PspmixJob_t *job)
 	}
     }
 
-    /* add node specific ranks to process information */
+    /* add node specific ranks to process information and count nodes */
+    size_t nodeCount = 0;
     list_t *n;
     list_for_each(n, &ns->procMap) {
+	nodeCount++;
 	PspmixNode_t *node = list_entry(n, PspmixNode_t, next);
 	for (uint16_t r = 0; r < node->procs.len; r++) {
 	    PspmixProcess_t *proc = vectorGet(&node->procs, r, PspmixProcess_t);
@@ -387,13 +398,21 @@ bool pspmix_service_registerNamespace(PspmixJob_t *job)
 
     if (mset(PSPMIX_LOG_PROCMAP)) printProcMap(&ns->procMap);
 
+    char *nsdir = umalloc(strlen(job->session->tmpdir) + strlen(ns->name) + 2);
+    sprintf(nsdir, "%s/%s", job->session->tmpdir, ns->name);
+
     /* register namespace */
     if (!pspmix_server_registerNamespace(ns->name, sessionId, ns->universeSize,
-		ns->jobSize, ns->spawned, ns->nodelist_s, &ns->procMap,
-		ns->appsCount, ns->apps, PSC_getMyID())) {
+		                         ns->jobSize, ns->spawned, nodeCount,
+					 ns->nodelist_s, &ns->procMap,
+					 ns->appsCount, ns->apps,
+					 job->session->tmpdir, nsdir,
+					 PSC_getMyID())) {
 	ulog("failed to register namespace at the pspmix server\n");
+	ufree(nsdir);
 	goto nscreate_error;
     }
+    ufree(nsdir);
 
     /* setup local node */
     if (!pspmix_server_setupLocalSupport(ns->name)) {
@@ -438,6 +457,9 @@ bool pspmix_service_removeNamespace(PStask_ID_t spawnertid)
     pspmix_server_deregisterNamespace(ns->name, ns);
 
     RELEASE_LOCK(namespaceList);
+
+    /* @todo update PMIX_NODE_SIZE (processes over all the user's jobs)
+     * for all nodes of the namespace using pmix_register_resources */
 
     return true;
 }

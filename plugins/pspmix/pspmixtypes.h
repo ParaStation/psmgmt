@@ -67,6 +67,7 @@ typedef struct {
     list_t jobs;             /**< jobs involving this node in the session,
 				  entries are of type PspmixJob_t
 				  (only used in PMIx server, not in daemon) */
+    char *tmpdir;            /**< Temporary directory for this session */
     bool used;               /**< flag if PMIx is actively in this session */
 } PspmixSession_t;
 
@@ -141,6 +142,7 @@ typedef struct {
     PSnodes_ID_t id;         /**< parastation id of the node */
     vector_t procs;          /**< vector with entries of type PspmixProcess_t
 				  processes running on this node */
+    char *hostname;          /**< hostname of the node */
 } PspmixNode_t;
 
 #define MAX_NSLEN PMIX_MAX_NSLEN
