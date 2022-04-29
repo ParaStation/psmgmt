@@ -400,9 +400,7 @@ top_build_prefix = @top_build_prefix@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
 unitdir = @unitdir@
-AM_CPPFLAGS = -I$(top_srcdir)/include -DNDEBUG \
-	-DVERSION_psmgmt=\"$(PKG_VER)\" \
-	-DRELEASE_psmgmt=\"$(PKG_REL)\"
+AM_CPPFLAGS = -I$(top_srcdir)/include -DNDEBUG
 subst_verbose = $(subst_verbose_$(V))
 subst_verbose_ = $(subst_verbose_$(AM_DEFAULT_VERBOSITY))
 subst_verbose_0 = @echo "  SUBST   " $(@F);
@@ -440,8 +438,6 @@ scriptsdir = $(prefix)/scripts
 @HAVE_SYSTEMD_TRUE@default_cgroup_root = /sys/fs/cgroup/
 @HAVE_SYSTEMD_FALSE@default_cgroup_name = psmgmtGrp
 @HAVE_SYSTEMD_TRUE@default_cgroup_name = system.slice/psid.service/descendants
-PKG_VER := $(shell ${top_srcdir}/scripts/vcversion -r $(top_srcdir) --fmt version -n)
-PKG_REL := $(shell ${top_srcdir}/scripts/vcversion -r $(top_srcdir) --fmt release -n)
 include_HEADERS = psidcomm.h psidhook.h	psidnodes.h psidplugin.h	\
 	psidscripts.h psidstatus.h psidtask.h psidutil.h
 

@@ -31,7 +31,7 @@
  */
 static void printVersion(void)
 {
-    fprintf(stderr, "mpirun_chgm %s-%s\n", VERSION_psmgmt, RELEASE_psmgmt);
+    fprintf(stderr, "mpirun_chgm %s\n", PSC_getVersionStr());
 }
 
 static inline void propagateEnv(const char *env, int req)

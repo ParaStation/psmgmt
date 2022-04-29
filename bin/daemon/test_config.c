@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2004 ParTec AG, Karlsruhe
  * Copyright (C) 2005-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021 ParTec AG, Munich
+ * Copyright (C) 2021-2022 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -54,7 +54,7 @@ PStask_t *PStasklist_find(list_t *list, PStask_ID_t tid) {return NULL;}
  */
 static void printVersion(void)
 {
-    fprintf(stderr, "test_config %s-%s\n", VERSION_psmgmt, RELEASE_psmgmt);
+    fprintf(stderr, "test_config %s\n", PSC_getVersionStr());
 }
 
 int main(int argc, const char *argv[])

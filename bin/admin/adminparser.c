@@ -2379,7 +2379,7 @@ static int versionCommand(char *token)
     printf("\n");
     printf("PSProtocol: %d\t(with a %sgeneous setup)\n", PSProtocolVersion,
 	   PSI_mixedProto() ? "hetero" : "homo");
-    printf("PSIADMIN:   %s-%s\n", VERSION_psmgmt, RELEASE_psmgmt);
+    printf("PSIADMIN:   %s\n", PSC_getVersionStr());
 
     err = PSI_infoString(-1, PSP_INFO_RPMREV, NULL, tmp, sizeof(tmp), false);
     if (err) strcpy(tmp, "unknown");

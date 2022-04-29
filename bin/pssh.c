@@ -32,7 +32,7 @@
  */
 static void printVersion(void)
 {
-    fprintf(stderr, "pssh %s-%s\n", VERSION_psmgmt, RELEASE_psmgmt);
+    fprintf(stderr, "pssh %s\n", PSC_getVersionStr());
 }
 
 #define OTHER_OPTIONS_STR "<command> [options]"

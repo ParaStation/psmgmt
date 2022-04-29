@@ -499,8 +499,7 @@ static bool msg_INFOREQUEST(DDTypedBufferMsg_t *inmsg)
 	break;
     }
     case PSP_INFO_RPMREV:
-	snprintf(msg.buf, sizeof(msg.buf), "%s-%s",
-		 VERSION_psmgmt, RELEASE_psmgmt);
+	snprintf(msg.buf, sizeof(msg.buf), "%s", PSC_getVersionStr());
 	msg.header.len += strlen(msg.buf)+1;
 	break;
     case PSP_INFO_QUEUE_NORMTASK:

@@ -1554,7 +1554,7 @@ static void loop(char *arg_logdir)
 
 static void printVersion(void)
 {
-    alog("psaccounter %s-%s\n", VERSION_psmgmt, RELEASE_psmgmt);
+    alog("psaccounter %s\n", PSC_getVersionStr());
 }
 
 /**

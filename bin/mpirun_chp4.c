@@ -31,7 +31,7 @@
  */
 static void printVersion(void)
 {
-    fprintf(stderr, "mpirun_chp4 %s-%s\n", VERSION_psmgmt, RELEASE_psmgmt);
+    fprintf(stderr, "mpirun_chp4 %s\n", PSC_getVersionStr());
 }
 
 #define OTHER_OPTIONS_STR "<command> [options]"

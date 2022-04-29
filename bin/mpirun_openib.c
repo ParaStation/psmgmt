@@ -74,8 +74,8 @@ static char msgstr[512]; /* Space for error messages */
  */
 static void printVersion(void)
 {
-    fprintf(stderr, "mpirun_openib %s-%s (MVAPIch proto %d)\n",
-	    VERSION_psmgmt, RELEASE_psmgmt, PMGR_VERSION);
+    fprintf(stderr, "mpirun_openib %s (MVAPIch proto %d)\n",
+	    PSC_getVersionStr(), PMGR_VERSION);
 }
 
 

@@ -18,6 +18,7 @@
 #include <netinet/in.h>
 #include <popt.h>
 
+#include "pscommon.h"
 #include "mcast.h"
 
 static char errtxt[256];
@@ -49,7 +50,7 @@ static void init(int num_nodes)
  */
 static void printVersion(void)
 {
-    fprintf(stderr, "mlisten %s-%s\n", VERSION_psmgmt, RELEASE_psmgmt);
+    fprintf(stderr, "mlisten %s\n", PSC_getVersionStr());
 }
 
 int main(int argc, const char *argv[])

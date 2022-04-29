@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2017-2019 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021 ParTec AG, Munich
+ * Copyright (C) 2021-2022 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -167,7 +167,7 @@ static void errExit(char *msg)
  */
 static void printVersion(void)
 {
-    fprintf(stderr, "mpiexec %s-%s\n", VERSION_psmgmt, RELEASE_psmgmt);
+    fprintf(stderr, "mpiexec %s\n", PSC_getVersionStr());
 }
 
 /* Set up the popt help tables */

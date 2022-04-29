@@ -11,12 +11,6 @@
 
 include $(top_srcdir)/common.am
 
-PKG_VER := $(shell ${top_srcdir}/scripts/vcversion -r $(top_srcdir) --fmt version -n)
-PKG_REL := $(shell ${top_srcdir}/scripts/vcversion -r $(top_srcdir) --fmt release -n)
-
-AM_CPPFLAGS += -DVERSION_psmgmt=\"$(PKG_VER)\"
-AM_CPPFLAGS += -DRELEASE_psmgmt=\"$(PKG_REL)\"
-
 bin_PROGRAMS = psid test_config
 
 include_HEADERS = psidcomm.h psidhook.h	psidnodes.h psidplugin.h	\

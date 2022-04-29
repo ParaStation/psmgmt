@@ -457,7 +457,7 @@ static void initSigHandlers(void)
 static void printWelcome(void)
 {
     PSID_log(-1, "Starting ParaStation DAEMON\n");
-    PSID_log(-1, "RPM Version %s-%s\n", VERSION_psmgmt, RELEASE_psmgmt);
+    PSID_log(-1, "RPM Version %s\n", PSC_getVersionStr());
     PSID_log(-1, "Protocol Version %d\n", PSProtocolVersion);
     PSID_log(-1, "Daemon-Protocol Version %d\n", PSDaemonProtocolVersion);
     PSID_log(-1, " (c) ParTec AG, Munich (www.par-tec.com)\n");
@@ -499,7 +499,7 @@ void PSID_clearMem(bool aggressive)
  */
 static void printVersion(void)
 {
-    fprintf(stderr, "psid %s-%s\n", VERSION_psmgmt, RELEASE_psmgmt);
+    fprintf(stderr, "psid %s\n", PSC_getVersionStr());
 }
 
 #define FORKMAGIC 4711

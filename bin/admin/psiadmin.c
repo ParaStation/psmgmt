@@ -84,7 +84,7 @@ static void PSIadm_finalizeLogs(void)
  */
 static void printVersion(void)
 {
-    printf("psiadmin %s-%s\n", VERSION_psmgmt, RELEASE_psmgmt);
+    printf("psiadmin %s\n", PSC_getVersionStr());
 }
 
 static void doReset(void)
