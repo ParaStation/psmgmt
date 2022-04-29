@@ -143,16 +143,14 @@ int PSIDfwd_printMsg(PSLog_msg_t type, char *buf)
 int PSIDfwd_printMsgf(PSLog_msg_t type, const char *format, ...)
 {
     char buf[PSIDfwd_printMsgf_len];
-    int n;
 
     va_list ap;
     va_start(ap, format);
-    n = vsnprintf(buf, sizeof(buf), format, ap);
+    ssize_t n = vsnprintf(buf, sizeof(buf), format, ap);
     va_end(ap);
+    if (n > PSIDfwd_printMsgf_len) n = PSIDfwd_printMsgf_len;
 
-    if (n >= 0) {
-	n = sendLogMsg(type, buf, n);
-    }
+    if (n >= 0) n = sendLogMsg(type, buf, n);
     return n;
 }
 
