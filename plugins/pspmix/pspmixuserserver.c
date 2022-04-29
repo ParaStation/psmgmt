@@ -27,6 +27,8 @@
 #include "pspmixutil.h"
 #include "pspmixcomm.h"
 
+PspmixServer_t *server = NULL;
+
 /**
  * @brief Find job with given spawnertid
  *
@@ -52,7 +54,7 @@ static PspmixJob_t * findJob(PStask_ID_t spawnertid)
 
 int pspmix_userserver_initialize(Forwarder_Data_t *fwdata)
 {
-    server = fwdata->userData;
+    server = (PspmixServer_t *)fwdata->userData;
 
     mdbg(PSPMIX_LOG_CALL, "%s()\n", __func__);
 

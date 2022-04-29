@@ -137,7 +137,7 @@ typedef struct {
 
 /** Node information */
 typedef struct {
-    list_t next;
+    list_t next;             /**< list in PspmixNamespace_t.procMap */
     PSnodes_ID_t id;         /**< parastation id of the node */
     vector_t procs;          /**< vector with entries of type PspmixProcess_t
 				  processes running on this node */

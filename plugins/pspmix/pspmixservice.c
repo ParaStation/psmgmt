@@ -53,9 +53,6 @@ typedef struct {
 /* allow walking throu the environment */
 extern char **environ;
 
-/* this server */
-PspmixServer_t *server = NULL;
-
 /****** global variable needed to be lock protected ******/
 
 /** A list of namespaces */

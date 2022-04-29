@@ -1619,6 +1619,7 @@ bool pspmix_server_init(char *nspace, pmix_rank_t rank, const char *clusterid,
 
     PMIX_INFO_LOAD(&cbdata.info[0], PMIX_SESSION_INFO_ARRAY, &sessionInfo,
 	    PMIX_DATA_ARRAY);
+
     status = PMIx_server_register_resources(cbdata.info, cbdata.ninfo,
 					    registerResources_cb, &cbdata);
     if (status != PMIX_SUCCESS) {
@@ -2172,8 +2173,7 @@ bool pspmix_server_registerNamespace(
 #endif
 
     /* find this node in procMap */
-    PspmixNode_t *mynode;
-    mynode = findNodeInList(nodeID, procMap);
+    PspmixNode_t *mynode = findNodeInList(nodeID, procMap);
     if (mynode == NULL) {
 	mlog("%s: Could not find my own node (%u) in process map\n", __func__,
 	     nodeID);
@@ -2233,8 +2233,7 @@ bool pspmix_server_registerNamespace(
     /* information about all global ranks */
     list_t *n;
     list_for_each(n, procMap) {
-	PspmixNode_t *node;
-	node = list_entry(n, PspmixNode_t, next);
+	PspmixNode_t *node = list_entry(n, PspmixNode_t, next);
 	for(size_t i = 0; i < node->procs.len; i++) {
 	    PspmixProcess_t *proc;
 	    proc = vectorGet(&node->procs, i, PspmixProcess_t);
