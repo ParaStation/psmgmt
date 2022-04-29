@@ -111,10 +111,11 @@ typedef struct {
  * > a job.
  */
 typedef struct {
-    uint32_t num;
-    uint32_t size;
-    pmix_rank_t firstRank;
-    char *wdir;
+    uint32_t num;          /**< number of the app */
+    uint32_t size;         /**< processes to be spawed for this app */
+    pmix_rank_t firstRank; /**< rank of the first process of this app */
+    char *wdir;            /**< working dir of the processes of this app */
+    char *args;            /**< concatenated argv of the app, space delimited */
 } PspmixApp_t;
 
 /**

@@ -307,6 +307,15 @@ bool pspmix_service_registerNamespace(PspmixJob_t *job)
 	}
 	ns->apps[i].wdir = ustrdup(env);
 
+	/* set arguments */
+	snprintf(var, sizeof(var), "PMIX_APPARGV_%zu", i);
+	env = envGet(&job->env, var);
+	if (!env) {
+	    ulog("broken environment: '%s' missing\n", var);
+	    goto nscreate_error;
+	}
+	ns->apps[i].args = ustrdup(env);
+
 	procCount += ns->apps[i].size;
     }
 
@@ -460,6 +469,7 @@ void pspmix_service_cleanupNamespace(void *nspace, bool error,
 
     for(size_t i = 0; i < ns->appsCount; i++) {
 	ufree(ns->apps[i].wdir);
+	ufree(ns->apps[i].args);
     }
     ufree(ns->apps);
     freeProcMap(&ns->procMap);

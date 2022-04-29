@@ -437,8 +437,23 @@ static void setupCommonEnv(Conf_t *conf)
 	    snprintf(var, sizeof(var), "PMIX_APPSIZE_%d", i);
 	    snprintf(tmp, sizeof(tmp), "%d", conf->exec[i].np);
 	    setPSIEnv(var, tmp, 1);
+
 	    snprintf(var, sizeof(var), "PMIX_APPWDIR_%d", i);
 	    setPSIEnv(var, conf->exec[i].wdir, 1);
+
+	    snprintf(var, sizeof(var), "PMIX_APPARGV_%d", i);
+	    size_t sum = 0;
+	    for (int j = 0; j < conf->exec[i].argc; j++) {
+		sum += strlen(conf->exec[i].argv[j]) + 1;
+	    }
+	    env = umalloc(sum);
+	    char *ptr = env;
+	    for (int j = 0; j < conf->exec[i].argc; j++) {
+		ptr += sprintf(ptr, "%s ", conf->exec[i].argv[j]);
+	    }
+	    *(ptr-1)='\0';
+	    setPSIEnv(var, env, 1);
+	    free(env);
 	}
 
 	for (int i = 0; i < conf->execCount; i++) {

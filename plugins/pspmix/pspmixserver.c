@@ -1983,7 +1983,7 @@ static void fillAppInfoArray(pmix_data_array_t *appInfo, PspmixApp_t *app)
 {
     pmix_info_t *infos;
 
-#define APP_INFO_ARRAY_LEN 4
+#define APP_INFO_ARRAY_LEN 5
 
     PMIX_INFO_CREATE(infos, APP_INFO_ARRAY_LEN);
 
@@ -2000,12 +2000,18 @@ static void fillAppInfoArray(pmix_data_array_t *appInfo, PspmixApp_t *app)
     strncpy(infos[3].key, PMIX_WDIR, PMIX_MAX_KEYLEN);
     PMIX_VALUE_LOAD(&infos[3].value, app->wdir, PMIX_STRING);
 
+    /* concatenated argv for spawned processes */
+    strncpy(infos[4].key, PMIX_APP_ARGV, PMIX_MAX_KEYLEN);
+    PMIX_VALUE_LOAD(&infos[4].value, app->args, PMIX_STRING);
+
 #if PRINT_FILLINFOS
-    mlog("%s: %s(%d)='%u' - %s(%d)=%u - %s(%d)=%u - %s(%d)=%s\n", __func__,
+    mlog("%s: %s(%d)='%u' - %s(%d)=%u - %s(%d)=%u - %s(%d)=%s - %s(%d)=%s\n",
+	 __func__,
 	 infos[0].key, infos[0].value.type, infos[0].value.data.uint32,
 	 infos[1].key, infos[1].value.type, infos[1].value.data.uint32,
 	 infos[2].key, infos[2].value.type, infos[2].value.data.rank,
-	 infos[3].key, infos[3].value.type, infos[3].value.data.string);
+	 infos[3].key, infos[3].value.type, infos[3].value.data.string,
+	 infos[4].key, infos[4].value.type, infos[4].value.data.string);
 #endif
 
     appInfo->type = PMIX_INFO;
