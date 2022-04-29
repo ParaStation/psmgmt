@@ -61,7 +61,7 @@ PSIDhook_ClntRls_t clientStatus = IDLE;
  */
 static void closePMIclientSocket(void)
 {
-    /* close MPI client socket */
+    /* close PMI client socket */
     if (pmiClientSock > 0) {
 	if (Selector_isRegistered(pmiClientSock)) {
 	    Selector_remove(pmiClientSock);
@@ -98,9 +98,6 @@ static void closePMIlistenSocket(void)
 static int readFromPMIClient(int fd, void *data)
 {
     char stackBuf[PMIU_MAXLINE+1];
-    char *strptr, *recvBuf, *msgBuf;
-    ssize_t len;
-    size_t msgBufUsed;
     int ret = 0;
 
     if (pmiClientSock < 0) {
@@ -109,6 +106,8 @@ static int readFromPMIClient(int fd, void *data)
     }
 
     /* if there is a static buffer, append, else use stack buffer */
+    char *recvBuf, *msgBuf;
+    size_t msgBufUsed;
     if (mmBuffer) {
 	mmBufferSize = mmBufferUsed + PMIU_MAXLINE + 1;
 	mmBuffer = urealloc(mmBuffer, mmBufferSize);
@@ -125,7 +124,12 @@ static int readFromPMIClient(int fd, void *data)
 	msgBufUsed = 0;
     }
 
-    if (!(len = recv(pmiClientSock, recvBuf, PMIU_MAXLINE, 0))) {
+    ssize_t len = recv(pmiClientSock, recvBuf, PMIU_MAXLINE, 0);
+    if (len < 0) {
+	/* socket error occurred */
+	elog( "%s: error on PMI socket occurred\n", __func__);
+	return 0;
+    } else if (!len) {
 	/* no data received from client */
 	elog("%s: lost connection to the PMI client\n", __func__);
 
@@ -134,11 +138,6 @@ static int readFromPMIClient(int fd, void *data)
 	return 0;
     }
 
-    /* socket error occurred */
-    if (len < 0) {
-	elog( "%s: error on PMI socket occurred\n", __func__);
-	return 0;
-    }
 
     /* truncate msg to received bytes */
     recvBuf[len] = '\0';
@@ -152,10 +151,11 @@ static int readFromPMIClient(int fd, void *data)
     mdbg(PSPMI_LOG_RECV, "%s: PMI message received: {%s}\n",
 	 __func__, recvBuf);
 
-    while(true) {
+    while (true) {
 	mdbg(PSPMI_LOG_VERBOSE, "%s: Current message buffer: {%s}\n",
 	     __func__, msgBuf);
 
+	char *strptr;
 	if (strncmp("cmd=", msgBuf, 4) == 0) {
 	    strptr = strchr(msgBuf, '\n');
 	} else if (strncmp("mcmd=", msgBuf, 5) == 0) {
@@ -250,9 +250,6 @@ readFromPMIClient_error:
  */
 static int acceptPMIClient(int fd, void *data)
 {
-    unsigned int clientlen;
-    struct sockaddr_in SAddr;
-
     /* check if a client is already connected */
     if (pmiClientSock != -1) {
 	elog( "%s: error only one PMI connection is allowed\n", __func__);
@@ -260,7 +257,8 @@ static int acceptPMIClient(int fd, void *data)
     }
 
     /* accept a new PMI connection */
-    clientlen = sizeof(SAddr);
+    struct sockaddr_in SAddr;
+    socklen_t clientlen = sizeof(SAddr);
     pmiClientSock = accept(pmiTCPSocket, (void *)&SAddr, &clientlen);
     if (pmiClientSock == -1) {
 	elog( "%s: error on accepting new pmi connection\n", __func__);
@@ -271,7 +269,7 @@ static int acceptPMIClient(int fd, void *data)
     closePMIlistenSocket();
 
     /* init the PMI interface */
-    if (pmi_init(pmiClientSock, childTask)) {
+    if (pmi_init(pmiClientSock, childTask) != 0) {
 	pmiType = PMI_DISABLED;
 	return 0;
     }
