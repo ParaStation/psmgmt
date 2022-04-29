@@ -2004,6 +2004,27 @@ static void fillAppInfoArray(pmix_data_array_t *appInfo, PspmixApp_t *app)
     strncpy(infos[4].key, PMIX_APP_ARGV, PMIX_MAX_KEYLEN);
     PMIX_VALUE_LOAD(&infos[4].value, app->args, PMIX_STRING);
 
+    /* optional infos (PMIx v4.0):
+     * * PMIX_PSET_NAMES "pmix.pset.nms" (pmix_data_array_t*)
+     *     Returns an array of char* string names of the process sets in which
+     *     the given process is a member.
+     *
+     * * PMIX_APP_MAP_TYPE "pmix.apmap.type" (char*)
+     *     Type of mapping used to layout the application (e.g., cyclic).
+     *
+     * * PMIX_APP_MAP_REGEX "pmix.apmap.regex" (char*)
+     *     Regular expression describing the result of the process mapping.
+     *
+     * * PMIX_PROGRAMMING_MODEL "pmix.pgm.model" (char*)
+     *     Programming model being initialized (e.g., “MPI” or “OpenMP”).
+     *
+     * * PMIX_MODEL_LIBRARY_NAME "pmix.mdl.name" (char*)
+     *     Programming model implementation ID (e.g., “OpenMPI” or “MPICH”).
+     *
+     * * PMIX_MODEL_LIBRARY_VERSION "pmix.mld.vrs" (char*)
+     *     Programming model version string (e.g., “2.1.1”).
+     */
+
 #if PRINT_FILLINFOS
     mlog("%s: %s(%d)='%u' - %s(%d)=%u - %s(%d)=%u - %s(%d)=%s - %s(%d)=%s\n",
 	 __func__,
