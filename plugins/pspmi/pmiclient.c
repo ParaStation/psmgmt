@@ -1173,6 +1173,10 @@ int pmi_init(int pmisocket, PStask_t *childTask)
     }
     env = getenv("PMI_DEBUG_KVS");
     if (env) debug_kvs = (atoi(env) > 0);
+    if (debug) {
+	elog("%s(r%i): new connection on %d\n", __func__, rank, pmisocket);
+	elog("%s(r%i): debug(_kvs) %d/%d\n", __func__, rank, debug, debug_kvs);
+    }
 
     /* set the PMI universe size */
     env = getenv("PMI_UNIVERSE_SIZE");
@@ -2318,15 +2322,15 @@ static void handleKVSMessage(PSLog_Msg_t *msg)
 static bool extractPMIcmd(char *msg, char *cmdbuf, size_t bufsize)
 {
     const char delimiters[] =" \n";
-    char *msgCopy, *cmd, *saveptr;
 
     if (!msg || strlen(msg) < 5) {
 	elog("%s(r%i): invalid PMI msg '%s' received\n", __func__, rank, msg);
 	return !critErr();
     }
 
-    msgCopy = ustrdup(msg);
-    cmd = strtok_r(msgCopy, delimiters, &saveptr);
+    char *msgCopy = ustrdup(msg);
+    char *saveptr;
+    char *cmd = strtok_r(msgCopy, delimiters, &saveptr);
 
     while (cmd) {
 	size_t offset = 0;
@@ -2383,10 +2387,6 @@ static const struct {
 
 int handlePMIclientMsg(char *msg)
 {
-    int i;
-    char cmd[PMI_VALLEN_MAX];
-    char reply[PMIU_MAXLINE];
-
     if (!initialized) {
 	elog("%s(r%i): you must call pmi_init first, msg '%s'\n", __func__,
 	     rank, msg);
@@ -2398,29 +2398,32 @@ int handlePMIclientMsg(char *msg)
 	return critErr();
     }
 
+    char cmd[PMI_VALLEN_MAX];
     if (!extractPMIcmd(msg, cmd, sizeof(cmd)) || strlen(cmd) <2) {
 	elog("%s(r%i): invalid PMI cmd received, msg was '%s'\n", __func__,
 	     rank, msg);
 	return critErr();
     }
 
-    if (debug) elog("%s(r%i): got %s\n", __func__, rank, msg);
+    if (debug) elog("%s(r%i): got '%s'\n", __func__, rank, msg);
 
     /* find PMI cmd */
-    for (i = 0; pmi_commands[i].Name; i++) {
+    for (int i = 0; pmi_commands[i].Name; i++) {
 	if (!strcmp(cmd, pmi_commands[i].Name)) {
 	    return pmi_commands[i].fpFunc(msg);
 	}
     }
 
     /* find short PMI cmd */
-    for (i = 0; pmi_short_commands[i].Name; i++) {
+    for (int i = 0; pmi_short_commands[i].Name; i++) {
 	if (!strcmp(cmd, pmi_short_commands[i].Name)) {
 	    return pmi_short_commands[i].fpFunc();
 	}
     }
 
     /* cmd not found */
+    char reply[PMIU_MAXLINE];
+
     elog("%s(r%i): unsupported PMI cmd received '%s'\n", __func__, rank, cmd);
 
     snprintf(reply, sizeof(reply), "cmd=%.512s rc=%i info=not_supported_cmd\n",
