@@ -29,7 +29,7 @@
 #include "pslog.h"
 
 /* PSLog buffer size - PMIHEADER */
-#define PMIUPDATE_PAYLOAD (1024 - 7)
+#define PMIUPDATE_PAYLOAD (1048 - 7)
 
 /* Ring buffer to keep track of KVS update messages */
 #define KVS_UPDATE_FIELDS 100
@@ -64,7 +64,7 @@ static int initRounds = 2;
 static int initCount = 0;
 
 /** Track the total length of new KVS updates */
-static int kvsUpdateLen = 0;
+static size_t kvsUpdateLen = 0;
 
 /** Track which cache updates still have to be sent */
 static char * *kvsUpdateCache = NULL;
@@ -118,7 +118,7 @@ static int putCount = 0;
 static int waitForPuts = 0;
 
 /** Flag to enable measurement output */
-static int measure = 0;
+static bool measure = false;
 
 /** Timer to measure the kvs phases */
 static struct timeval time_start;
@@ -228,7 +228,7 @@ static void terminateJob(const char *func)
  */
 static void growKvsUpdateCache(size_t minSize)
 {
-    if (measure) mlog("%s(%zd)\n", __func__, minSize);
+    mdbg(KVS_LOG_PROVIDER, "%s(%zd)\n", __func__, minSize);
 
     size_t newSize = kvsCacheSize + maxClients;
     if (newSize < minSize) newSize = minSize;
@@ -399,8 +399,10 @@ static void sendMsgToKvsSucc(char *msgBuf, size_t len)
  */
 static void sendKvsUpdateToClients(bool finish)
 {
+    const size_t limit = MIN(PMIUPDATE_PAYLOAD, PMIU_MAXLINE);
     size_t ent;
-    for (ent = 0; ent < nextCacheEntry || finish; ent++) {
+    for (ent = 0; ent < nextCacheEntry
+	     && (finish || kvsUpdateLen > limit); ent++) {
 	char kvsmsg[PMIU_MAXLINE] = { '\0' };
 
 	/* add key-value pairs to the msg */
@@ -413,26 +415,27 @@ static void sendKvsUpdateToClients(bool finish)
 		terminateJob(__func__);
 	    }
 
+	    mdbg(KVS_LOG_PROVIDER, "%s: inspect ent %zd len %zd\n", __func__,
+		 ent, strlen(nextEnt));
 	    size_t newLen = strlen(kvsmsg) + strlen(nextEnt) + 2;
-	    if (newLen > PMIUPDATE_PAYLOAD || newLen > sizeof(kvsmsg)) {
-		ent--; // retry to sent in the next round
-		break;
-	    }
+	    if (newLen > limit) break;  /* message full, send right now */
 
+	    mdbg(KVS_LOG_PROVIDER, "%s: add ent %zd len %zd to msg\n", __func__,
+		 ent, strlen(nextEnt));
 	    strcat(kvsmsg, " ");
 	    kvsUpdateLen -= 1;
 	    strcat(kvsmsg, nextEnt);
-	    kvsUpdateLen -= strlen(nextEnt);
+	    kvsUpdateLen -= strlen(nextEnt) + 1;
 	}
 
 	int pmiCmd = UPDATE_CACHE;
 	if (ent >= nextCacheEntry && finish) pmiCmd = UPDATE_CACHE_FINISH;
 
-	if (measure > 1) {
-	    mlog("%s: sending KVS update: %s len:%lu finish:%i, ent:%zi"
-		 " putCount:%i\n", __func__, PSKVScmdToString(pmiCmd),
-		 strlen(kvsmsg), finish, ent, putCount);
-	}
+	ent--; // retry to sent in the next round if necessary
+
+	mdbg(KVS_LOG_PROVIDER, "%s: sending KVS update: %s len:%lu finish:%i,"
+	     " ent:%zi putCount:%i\n", __func__, PSKVScmdToString(pmiCmd),
+	     strlen(kvsmsg), finish, ent, putCount);
 
 	size_t bufLen = 0;
 	char *bufPtr = buffer;
@@ -446,18 +449,24 @@ static void sendKvsUpdateToClients(bool finish)
 	    nextUpdateField++;
 	    nextUpdateField %= KVS_UPDATE_FIELDS;
 	}
-	if (!finish) break;
+	mdbg(KVS_LOG_PROVIDER, "%s: ent %zd nextCacheEntry %zd kvsUpdateLen %zd\n",
+	     __func__, ent, nextCacheEntry, kvsUpdateLen);
     }
 
-    /* Eliminate now obsolete cache entries and reorder entries */
-    for (size_t c = 0; c < ent; c++) {
-	free(kvsUpdateCache[c]);
+    /* Eliminate now obsolete cache entries and reorder remaining ones */
+    mdbg(KVS_LOG_PROVIDER, "%s: before cleanup ent %zd nextCacheEntry %zd\n",
+	 __func__, ent, nextCacheEntry);
+    for (size_t c = 0; c < nextCacheEntry; c++) {
+	if (c < ent) free(kvsUpdateCache[c]);
 	if (ent + c < nextCacheEntry) {
-	    kvsUpdateCache[c] = kvsUpdateCache[ent+c];
+	    kvsUpdateCache[c] = kvsUpdateCache[ent + c];
 	} else {
 	    kvsUpdateCache[c] = NULL;
 	}
     }
+    nextCacheEntry -= ent;
+    mdbg(KVS_LOG_PROVIDER, "%s: after cleanup ent %zd nextCacheEntry %zd\n",
+	 __func__, ent, nextCacheEntry);
 }
 
 /**
@@ -553,10 +562,8 @@ static void handleKVS_Daisy_Barrier_In(PSLog_Msg_t *msg, char *ptr)
     }
 
     if (putCount != globalPutCount) {
-	if (measure) {
-	mlog("%s: missing put messages got %i global %i\n", __func__,
-	     putCount, globalPutCount);
-	}
+	mdbg(KVS_LOG_PROVIDER, "%s: missing put messages got %i global %i\n",
+	     __func__, putCount, globalPutCount);
 	waitForPuts = globalPutCount;
 	return;
     }
@@ -1048,6 +1055,7 @@ static void initKvsProvider(void)
     /* set KVS debug mode */
     char *envstr = getenv("PMI_DEBUG");
     if (!envstr) envstr = getenv("PMI_DEBUG_KVS");
+    if (!envstr) envstr = getenv("PMI_DEBUG_PROVIDER");
     if (envstr && atoi(envstr)) {
 	maskKVSLogger(getKVSLoggerMask() | KVS_LOG_PROVIDER);
     }
