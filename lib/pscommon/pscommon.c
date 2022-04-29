@@ -175,6 +175,11 @@ char* PSC_printTID(PStask_ID_t tid)
     return taskNumString;
 }
 
+const char* PSC_getVersionStr(void)
+{
+    return VERSION_psmgmt"-"RELEASE_psmgmt;
+}
+
 void PSC_startDaemon(in_addr_t hostaddr)
 {
     struct sockaddr_in sa;

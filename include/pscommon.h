@@ -175,7 +175,7 @@ PStask_ID_t PSC_getMyTID(void);
 void PSC_resetMyTID(void);
 
 /**
- * @brief Get string describing the task ID.
+ * @brief Get string describing the task ID
  *
  * Get a string describing the task ID @a tid. The returned pointer
  * leads to a static character array that contains the
@@ -184,7 +184,7 @@ void PSC_resetMyTID(void);
  * if more than one call of this function is made within a single
  * argument-list of printf(3) and friends.
  *
- * @param tid The task ID to describe.
+ * @param tid Task ID to describe
  *
  * @return A pointer to a static character array containing task ID's
  * description. Do not try to free(2) this array.
@@ -192,7 +192,20 @@ void PSC_resetMyTID(void);
 char *PSC_printTID(PStask_ID_t tid);
 
 /**
- * @brief Start a ParaStation daemon.
+ * @brief Get a string describing the current version
+ *
+ * Get a static string describing the current version of the whole
+ * psmgmt installation. The string is of the form
+ * VERSION_psmgmt"-"RELEASE_psmgmt and describes the situation at
+ * compile time.
+ *
+ * @return Pointer to a static character array decribing the current
+ * version
+ */
+const char* PSC_getVersionStr(void);
+
+/**
+ * @brief Start a ParaStation daemon
  *
  * Try to start the ParaStation daemon on the host with IP address @a
  * hostaddr. The IP address has to be given in network byte order.
@@ -200,10 +213,9 @@ char *PSC_printTID(PStask_ID_t tid);
  * The (x)inetd(8) has to be configured appropriately and must run on
  * the destination node.
  *
- * @param hostaddr The IP address of the node on which to start the
- * daemon.
+ * @param hostaddr IP address of the node on which to start the daemon
  *
- * @return No return value.
+ * @return No return value
  */
 void PSC_startDaemon(in_addr_t hostaddr);
 
