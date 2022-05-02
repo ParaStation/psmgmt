@@ -1807,13 +1807,17 @@ static char* getProcessMapString(list_t *procMap)
     list_for_each(n, procMap) {
 	PspmixNode_t *node;
 	node = list_entry(n, PspmixNode_t, next);
+	bool first = true;
 	for(size_t i = 0; i < node->procs.len; i++) {
 	    proc = vectorGet(&node->procs, i, PspmixProcess_t);
 	    sprintf(buf, "%u", proc->rank);
-	    if (pmap.len > 0) charvAdd(&pmap, &ranksep);
+	    if (first) first = false; else charvAdd(&pmap, &ranksep);
 	    charvAddCount(&pmap, buf, strlen(buf));
 	}
-	if (node->next.next != procMap) charvAdd(&pmap, &nodesep);
+	if (node->next.next != procMap) {
+	    charvAdd(&pmap, &nodesep);
+	    first = true;
+	}
     }
 
     /* terminate string */
