@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2016-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021 ParTec AG, Munich
+ * Copyright (C) 2021-2022 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -58,6 +58,19 @@ static int mungeEncCtx(char **cred, munge_ctx_t ctx, const void *buf, int len)
 
 int psMungeEncode(char **cred)
 {
+    return psMungeEncodeRes(cred, MUNGE_UID_ANY);
+}
+
+int psMungeEncodeRes(char **cred, uid_t uid)
+{
+    munge_err_t err = munge_ctx_set(defEncCtx, MUNGE_OPT_UID_RESTRICTION, uid);
+    if (err != EMUNGE_SUCCESS) {
+	mlog("%s: set restriced uid %i failed: %s\n", __func__, uid,
+	     munge_strerror(err));
+	mlog("%s: ctx error: %s\n", __func__, munge_ctx_strerror(defEncCtx));
+	return 0;
+    }
+
     return mungeEncCtx(cred, defEncCtx, NULL, 0);
 }
 
