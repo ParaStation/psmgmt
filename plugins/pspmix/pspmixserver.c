@@ -2031,8 +2031,8 @@ static void fillAppInfoArray(pmix_data_array_t *appInfo, PspmixApp_t *app)
      */
 
 #if PRINT_FILLINFOS
-    mlog("%s: %s(%d)='%u' - %s(%d)=%u - %s(%d)=%u - %s(%d)=%s - %s(%d)=%s\n",
-	 __func__,
+    mlog("%s: %s(%d)=%u - %s(%d)=%u - %s(%d)=%u - %s(%d)='%s'"
+	 " - %s(%d)='%s'\n", __func__,
 	 infos[0].key, infos[0].value.type, infos[0].value.data.uint32,
 	 infos[1].key, infos[1].value.type, infos[1].value.data.uint32,
 	 infos[2].key, infos[2].value.type, infos[2].value.data.rank,
@@ -2237,7 +2237,7 @@ bool pspmix_server_registerNamespace(
 	PSnodes_ID_t nodeID)
 {
     mdbg(PSPMIX_LOG_CALL, "%s(nspace '%s' sessionId %u univSize %u jobSize %u"
-	 " spawned %d nodelist_s '%s' numApps '%u' nodeID %hd)\n", __func__,
+	 " spawned %d nodelist_s '%s' numApps %u nodeID %hd)\n", __func__,
 	 nspace, sessionId, univSize, jobSize, spawned, nodelist_s, numApps,
 	 nodeID);
 
