@@ -126,7 +126,7 @@ void finalize(void)
     PSIDplugin_unload(name);
 }
 
-char * help(void)
+char * help(char *key)
 {
     char *helpText = "\tDelay certain messages within psslurm.\n"
 	"\tAfter removing this plugin shall be handled immediately again\n"

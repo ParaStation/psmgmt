@@ -33,7 +33,7 @@ char *show(char *key)
     return printChildStatistics(buf, &bufSize);
 }
 
-char *help(void)
+char *help(char *key)
 {
     char *buf = NULL;
     size_t bufSize = 0;

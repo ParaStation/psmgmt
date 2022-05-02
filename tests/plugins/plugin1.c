@@ -97,7 +97,7 @@ void cleanup(void)
 }
 #endif
 
-char * help(void)
+char * help(char *key)
 {
     char *helpText = "\tThis is the help-text for this plugin. For test-usage\n"
 	"\tthis one includes more that one line. In fact, it even contains a\n"

@@ -109,7 +109,7 @@ void cleanup(void)
 }
 
 
-char * help(void)
+char * help(char *key)
 {
     char *helpText =
 	"\tAllow to drop messages randomly for debugging purposes.\n"

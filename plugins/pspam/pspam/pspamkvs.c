@@ -73,7 +73,7 @@ char *set(char *key, char *val)
     return buf;
 }
 
-char *help(void)
+char *help(char *key)
 {
     char *buf = NULL;
     size_t bufSize = 0;

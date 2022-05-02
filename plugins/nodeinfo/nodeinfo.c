@@ -660,7 +660,7 @@ void cleanup(void)
     finalizeNodeInfoLogger();
 }
 
-char *help(void)
+char *help(char *key)
 {
     StrBuffer_t strBuf = { .buf = NULL };
 

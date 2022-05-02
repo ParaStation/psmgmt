@@ -133,17 +133,21 @@ void cleanup(void);
  *
  * This function is called in order to receive the plugin's
  * help-text. The text will be sent to the requesting psiadmin in
- * order to get displayed to the user.
+ * order to get displayed to the user. A more specific help-text might
+ * be requested via the parameter @a key.
  *
  * The plugin is expected to create the text in dynamic memory
  * allocated by malloc() or strdup() as a null-terminated
  * character-string. After the text was sent to the requester in one
  * or more messages the memory is given back by calling free().
  *
+ * @param key Key to request a more specific help message possibly
+ * concentrating on a detail of the plugin's configuration
+ *
  * @return Pointer to dynamic memory holding the help-text or NULL, if
  * no such text exists
  */
-char * help(void);
+char * help(char *key);
 
 /**
  * @brief Set plugin's key-value pair

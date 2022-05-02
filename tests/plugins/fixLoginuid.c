@@ -49,7 +49,7 @@ int initialize(FILE *logfile)
     return 0;
 }
 
-char * help(void)
+char * help(char *key)
 {
     return strdup("\tFix loginuid settings of main psid.\n");
 }

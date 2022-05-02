@@ -194,7 +194,7 @@ void cleanup(void)
     pluginlog("%s: Done\n", __func__);
 }
 
-char * help(void)
+char * help(char *key)
 {
     StrBuffer_t strBuf = { .buf = NULL };
 

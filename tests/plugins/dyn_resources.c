@@ -262,7 +262,7 @@ void cleanup(void)
     PSID_log(-1, "%s: Done\n", name);
 }
 
-char * help(void)
+char * help(char *key)
 {
     char *helpText =
 	"\tThis is some dummy plugin mimicking dynamic resource handling.\n"

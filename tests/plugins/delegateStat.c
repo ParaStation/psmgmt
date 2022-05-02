@@ -35,7 +35,7 @@ int version = 100;
 plugin_dep_t dependencies[] = {
     { NULL, 0 } };
 
-char * help(void)
+char * help(char *key)
 {
     return strdup("\tPlugin to peek into existing delegate tasks.\n"
 		  "\tUse the plugin's show directive to take a peek\n"

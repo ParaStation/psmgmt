@@ -86,7 +86,7 @@ char *unset(char *key)
     return buf;
 }
 
-char *help(void)
+char *help(char *key)
 {
     char *buf = NULL;
     size_t bufSize = 0;

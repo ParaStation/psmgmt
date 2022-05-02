@@ -73,7 +73,7 @@ void cleanup(void)
     PSID_log(-1, "%s: Done\n", name);
 }
 
-char * help(void)
+char * help(char *key)
 {
     StrBuffer_t strBuf = { .buf = NULL };
 

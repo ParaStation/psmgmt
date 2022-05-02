@@ -101,18 +101,17 @@ void cleanup(void)
     logger_finalize(pmixlogger);
 }
 
-char *help(void)
+char *help(char *key)
 {
     char *buf = NULL;
     size_t bufSize = 0;
     int maxKeyLen = getMaxKeyLen(confDef);
-    int i;
 
     str2Buf("\tProvide PMIx interface to executed programs\n",
 	    &buf, &bufSize);
     str2Buf("# configuration options #\n", &buf, &bufSize);
 
-    for (i = 0; confDef[i].name; i++) {
+    for (int i = 0; confDef[i].name; i++) {
 	char type[10], line[160];
 	snprintf(type, sizeof(type), "<%s>", confDef[i].type);
 	snprintf(line, sizeof(line), "%*s %10s  %s\n",

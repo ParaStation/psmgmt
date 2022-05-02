@@ -296,12 +296,11 @@ void cleanup(void)
     cgroupRoot = cgroupName = myCgroup = tasksFile = NULL;
 }
 
-char *help(void)
+char *help(char *key)
 {
     char *buf = NULL;
     size_t bufSize = 0;
     int maxKeyLen = getMaxKeyLen(confDef);
-    int i;
 
     str2Buf("\tJail all psid's client processes into a single cgroup\n\n",
 	    &buf, &bufSize);
@@ -309,7 +308,7 @@ char *help(void)
 	    &buf, &bufSize);
     str2Buf("# configuration options #\n", &buf, &bufSize);
 
-    for (i = 0; confDef[i].name; i++) {
+    for (int i = 0; confDef[i].name; i++) {
 	char type[10], line[160];
 	snprintf(type, sizeof(type), "<%s>", confDef[i].type);
 	snprintf(line, sizeof(line), "%*s %10s  %s\n",

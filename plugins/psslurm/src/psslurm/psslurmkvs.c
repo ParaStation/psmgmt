@@ -726,21 +726,19 @@ char *unset(char *key)
     return buf;
 }
 
-char *help(void)
+char *help(char *key)
 {
     char *buf = NULL;
     size_t bufSize = 0;
-    int i = 0;
     char type[10];
 
     str2Buf("\n# configuration options #\n\n", &buf, &bufSize);
 
-    while (confDef[i].name != NULL) {
+    for (int i = 0; confDef[i].name; i++) {
 	snprintf(type, sizeof(type), "<%s>", confDef[i].type);
 	snprintf(line, sizeof(line), "%21s\t%8s    %s\n", confDef[i].name,
 		type, confDef[i].desc);
 	str2Buf(line, &buf, &bufSize);
-	i++;
     }
 
     return showVirtualKeys(buf, &bufSize, true);

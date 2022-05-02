@@ -214,16 +214,15 @@ char *unset(char *key)
     return buf;
 }
 
-char *help(void)
+char *help(char *key)
 {
     char *buf = NULL;
     size_t bufSize = 0;
     int maxKeyLen = getMaxKeyLen(confDef);
-    int i;
 
     str2Buf("\n# configuration options #\n\n", &buf, &bufSize);
 
-    for (i = 0; confDef[i].name; i++) {
+    for (int i = 0; confDef[i].name; i++) {
 	char type[10];
 	snprintf(type, sizeof(type), "<%s>", confDef[i].type);
 	snprintf(line, sizeof(line), "%*s %8s  %s\n", maxKeyLen+2,

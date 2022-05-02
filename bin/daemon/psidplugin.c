@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2009-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021 ParTec AG, Munich
+ * Copyright (C) 2021-2022 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -36,8 +36,6 @@ typedef int initFunc_t(FILE *logfile);
 
 typedef void voidFunc_t(void);
 
-typedef char *helpFunc_t(void);
-
 typedef char *setFunc_t(char *key, char *value);
 
 typedef char *keyFunc_t(char *key);
@@ -52,7 +50,7 @@ typedef struct {
     initFunc_t *initialize;  /**< Initializer (after dependencies resolved) */
     voidFunc_t *finalize;    /**< Finalize (trigger plugin's stop) */
     voidFunc_t *cleanup;     /**< Cleanup (immediately before unload) */
-    helpFunc_t *help;        /**< Some help message from the plugin */
+    keyFunc_t *help;         /**< Some help message from the plugin */
     setFunc_t *set;          /**< Modify plugin's internal state */
     keyFunc_t *unset;        /**< Unset plugin's internal state */
     keyFunc_t *show;         /**< Show plugin's internal state */
@@ -159,8 +157,10 @@ static LIST_HEAD(pluginList);
  * 133: Message handling via registered handlers in psidforwarder
  *
  * 134: Reworked hook PSIDHOOK_FRWRD_CLNT_RLS to support multiple plugins
+ *
+ * 135: Add key parameter to help() function
  */
-static int pluginAPIVersion = 134;
+static int pluginAPIVersion = 135;
 
 
 /** Grace period between finalize and unload on forcefully unloads */
@@ -1271,8 +1271,10 @@ end:
     sendStr(&msg, "", __func__);
 }
 
-static void sendHelp(PStask_ID_t dest, char *pName)
+static void sendHelp(PStask_ID_t dest, char *buf)
 {
+    char *pName = buf, *key = pName + PSP_strLen(pName);
+    plugin_t *plugin = findPlugin(pName);
     DDTypedBufferMsg_t msg = {
 	.header = {
 	    .type = PSP_CD_PLUGINRES,
@@ -1280,7 +1282,8 @@ static void sendHelp(PStask_ID_t dest, char *pName)
 	    .sender = PSC_getMyTID(),
 	    .len = offsetof(DDTypedBufferMsg_t, buf) },
 	.type = PSP_PLUGIN_HELP };
-    plugin_t *plugin = findPlugin(pName);
+
+    if (! *key) key = NULL;
 
     if (!plugin) {
 	char mBuf[sizeof(msg.buf)];
@@ -1293,7 +1296,7 @@ static void sendHelp(PStask_ID_t dest, char *pName)
 		 __func__, pName);
 	sendStr(&msg, mBuf, __func__);
     } else {
-	char *res = plugin->help();
+	char *res = plugin->help(key);
 
 	if (res) {
 	    sendStr(&msg, res, __func__);

@@ -57,7 +57,7 @@ void finalize(void)
     PSIDplugin_unload(name);
 }
 
-char * help(void)
+char * help(char *key)
 {
     char *helpText =
 	"\tDisable flow-controll on the node just by loading this plugin.\n"
