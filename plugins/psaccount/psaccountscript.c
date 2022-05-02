@@ -25,6 +25,7 @@
 #include "psprotocol.h"
 #include "psserial.h"
 
+#include "pluginconfig.h"
 #include "pluginforwarder.h"
 #include "pluginmalloc.h"
 #include "psidcomm.h"
