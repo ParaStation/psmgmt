@@ -131,26 +131,4 @@ int32_t getPluginLoggerMask(void);
  */
 void finalizePluginLogger(void);
 
-/**
- * @brief Print a log message with function prefix
- *
- * Print a log message and add a function name as prefix. The maximal message
- * length is MAX_FLOG_SIZE including the added function name. If the message
- * to print is larger then MAX_FLOG_SIZE it will be printed without prefix.
- *
- * @param logger Private logger to use
- *
- * @param func The function name to use as prefix
- *
- * @param key The key to use in order to decide if anything is put out
- *
- * @param format The format to be used in order to produce output. The
- * syntax of this parameter is according to the one defined for the
- * printf() family of functions from the C standard. This string will
- * also define the further parameters to be expected.
- */
-void __Plugin_flog(logger_t* logger, const char *func, int32_t key,
-		   char *format, ...)
-__attribute__((format(printf,4,5)));
-
 #endif  /* __PLUGIN_LIB_LOG */
