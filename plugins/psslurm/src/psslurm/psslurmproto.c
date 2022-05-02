@@ -596,6 +596,7 @@ static void handleLaunchTasks(Slurm_Msg_t *sMsg)
 	step->srunControlMsg.sock = sMsg->sock;
 	step->srunControlMsg.head.forward = sMsg->head.forward;
 	step->srunControlMsg.recvTime = sMsg->recvTime;
+	step->srunControlMsg.head.uid = step->uid;
 
 	/* start mpiexec to spawn the parallel processes,
 	 * intercept createPart call to overwrite the nodelist */
@@ -1733,7 +1734,7 @@ static void handleDaemonStatus(Slurm_Msg_t *sMsg)
 	     slurmProtoStr);
 
     packRespDaemonStatus(&msg, &stat);
-    sendSlurmMsg(sMsg->sock, RESPONSE_SLURMD_STATUS, &msg);
+    sendSlurmMsg(sMsg->sock, RESPONSE_SLURMD_STATUS, &msg, sMsg->head.uid);
 
     ufree(stat.stepList);
 }
@@ -2552,6 +2553,7 @@ static bool slurmTreeForward(Slurm_Msg_t *sMsg, Msg_Forward_t *fw)
     fw->head.fwResSize = sMsg->head.forward;
     fw->head.fwRes =
 	umalloc(sMsg->head.forward * sizeof(Slurm_Forward_Res_t));
+    fw->head.uid = sMsg->head.uid;
 
     for (uint32_t i = 0; i < sMsg->head.forward; i++) {
 	fw->head.fwRes[i].error = SLURM_COMMUNICATIONS_CONNECTION_ERROR;
@@ -3024,7 +3026,7 @@ int __sendSlurmReply(Slurm_Msg_t *sMsg, slurm_msg_type_t type,
     if (sMsg->source == -1) {
 	if (!sMsg->head.forward) {
 	    /* no forwarding active for this message, just send the answer */
-	    ret = sendSlurmMsg(sMsg->sock, type, &sMsg->reply);
+	    ret = sendSlurmMsg(sMsg->sock, type, &sMsg->reply, sMsg->head.uid);
 	} else {
 	    /* we are the root of the forwarding tree, so we save the result
 	     * and wait for all other forwarded messages to return */
@@ -3569,7 +3571,7 @@ bool sendConfigReq(const char *server, const int action)
 
     /* send configuration request message to slurmctld */
     addUint32ToMsg(CONFIG_REQUEST_SLURMD, &body);
-    if (sendSlurmMsg(sock, REQUEST_CONFIG, &body) == -1) {
+    if (sendSlurmMsg(sock, REQUEST_CONFIG, &body, slurmUserID) == -1) {
 	flog("sending config request message failed\n");
 	goto ERROR;
     }

@@ -85,7 +85,7 @@ char name[] = "psslurm";
 int version = 117;
 int requiredAPI =134;
 plugin_dep_t dependencies[] = {
-    { .name = "psmunge", .version = 4 },
+    { .name = "psmunge", .version = 5 },
     { .name = "psaccount", .version = 29 },
     { .name = "pelogue", .version = 9 },
     { .name = "pspam", .version = 3 },
@@ -387,6 +387,12 @@ static bool regMungeHandles(void)
     psMungeEncode = dlsym(pluginHandle, "psMungeEncode");
     if (!psMungeEncode) {
 	mlog("%s: loading psMungeEncode() failed\n", __func__);
+	return false;
+    }
+
+    psMungeEncodeRes = dlsym(pluginHandle, "psMungeEncodeRes");
+    if (!psMungeEncodeRes) {
+	mlog("%s: loading psMungeEncodeRes() failed\n", __func__);
 	return false;
     }
 

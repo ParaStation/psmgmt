@@ -144,10 +144,10 @@ void closeSlurmCon(int socket);
  * @return Returns the number of bytes written or -1 on error
  */
 int __sendSlurmMsg(int sock, slurm_msg_type_t type, PS_SendDB_t *body,
-		   void *info, const char *caller, const int line);
+		   void *info, uid_t uid, const char *caller, const int line);
 
-#define sendSlurmMsg(sock, type, body) \
-    __sendSlurmMsg(sock, type, body, NULL, __func__, __LINE__)
+#define sendSlurmMsg(sock, type, body, uid) \
+    __sendSlurmMsg(sock, type, body, NULL, uid, __func__, __LINE__)
 
 /**
  * @brief Send a Slurm message
