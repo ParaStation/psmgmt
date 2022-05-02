@@ -29,7 +29,6 @@
 #include "psenv.h"
 
 #include "pluginconfig.h" /* read configuration file */
-#include "pluginlog.h"
 
 #include "psidpin.h"
 #include "psslurmpin.h"
@@ -605,34 +604,28 @@ static logger_t lt;
 logger_t *psslurmlogger = &lt;
 logger_t *pluginlogger = NULL;
 
-void logger_print(logger_t* logger, int32_t key, const char* format, ...) {
-
+void logger_print(logger_t* logger, int32_t key, const char* format, ...)
+{
     if (verbosity != DEBUGOUT) return;
 
     va_list ap;
     va_start(ap, format);
     vprintf(format, ap);
     va_end(ap);
-    return;
 }
 
-#define MAX_FLOG_SIZE 4096
-void __Plugin_flog(logger_t* logger, const char *func, int32_t key,
-		   char *format, ...)
+void logger_funcprint(logger_t* logger, const char *func, int32_t key,
+		      const char* format, ...)
 {
-    static char buf[MAX_FLOG_SIZE];
-    char *fmt = format;
-    va_list ap;
-    size_t len;
-
     if (verbosity != DEBUGOUT) return;
 
-    len = snprintf(NULL, 0, "%s: %s", func, format);
-    if (len+1 <= sizeof(buf)) {
-	snprintf(buf, sizeof(buf), "%s: %s", func, format);
-	fmt = buf;
-    }
+    static char fmtStr[1024];
+    const char *fmt = format;
 
+    size_t len = snprintf(fmtStr, sizeof(fmtStr), "%s: %s", func, format);
+    if (len + 1 <= sizeof(fmtStr)) fmt = fmtStr;
+
+    va_list ap;
     va_start(ap, format);
     vprintf(fmt, ap);
     va_end(ap);
