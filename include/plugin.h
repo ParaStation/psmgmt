@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2009-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021 ParTec AG, Munich
+ * Copyright (C) 2021-2022 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -65,7 +65,7 @@ extern plugin_dep_t dependencies[];
  * functions provided by the plugins marked to be dependents are
  * accessible when this function is called.
  *
- * The @a logfile parameter defines the logging destiation. Plugins
+ * The @a logfile parameter defines the logging destination. Plugins
  * are expected to use this file for logging or to use syslog when
  * NULL. Thus, iIt is save to pass this argument directly to @ref
  * logger_init() or @ref initPluginLogger().
@@ -75,8 +75,8 @@ extern plugin_dep_t dependencies[];
  * case resolving dependencies and initialization of triggering
  * plugins is stopped immediately.
  *
- * @attention Uninitialized plugins will not be finalized. Thus, if
- * an plugin was not (or not successfully) initialized, its
+ * @attention Uninitialized plugins will not be finalized. Thus, if a
+ * plugin was not (or not successfully) initialized, its
  * cleanup-method might be called without calling the finalize-method
  * beforehand.
  *
@@ -109,7 +109,7 @@ int initialize(FILE *logfile);
  * to be unloaded immediately if it is no longer required by other
  * plugins depending on it.
  *
- * @return No return value.
+ * @return No return value
  */
 void finalize(void);
 
@@ -124,7 +124,7 @@ void finalize(void);
  * This function will be called for each plugin independently from the
  * result of the initialization of the plugin.
  *
- * @return No return value.
+ * @return No return value
  */
 void cleanup(void);
 
@@ -141,7 +141,7 @@ void cleanup(void);
  * or more messages the memory is given back by calling free().
  *
  * @return Pointer to dynamic memory holding the help-text or NULL, if
- * no such text exists.
+ * no such text exists
  */
 char * help(void);
 
@@ -159,10 +159,14 @@ char * help(void);
  * The text to be returned by the plugin is created in dynamic memory
  * allocated by malloc() or strdup() as a null-terminated
  * character-string. After this text was sent to the requester in one
- * or more messages the memory is given back by calling free().
+ * or more messages the memory shall be given back by calling free().
+ *
+ * @param key Index of the key-value pair to store
+ *
+ * @param val Value of the key-value pair to store
  *
  * @return Pointer to dynamic memory holding a message-text or NULL, if
- * no such text exists.
+ * no such text exists
  */
 char * set(char *key, char *val);
 
@@ -182,8 +186,10 @@ char * set(char *key, char *val);
  * character-string. After this text was sent to the requester in one
  * or more message the memory is given back by calling free().
  *
+ * @param key Index of he key-value pair to be removed
+ *
  * @return Pointer to dynamic memory holding a message-text or NULL, if
- * no such text exists.
+ * no such text exists
  */
 char * unset(char *key);
 
@@ -205,8 +211,11 @@ char * unset(char *key);
  * character-string. After this text was sent to the requester in one
  * or more message the memory is given back by calling free().
  *
+ * @param key Index of the key value pair to display of NULL to show
+ * all pairs
+ *
  * @return Pointer to dynamic memory holding a message-text or NULL, if
- * no such text exists.
+ * no such text exists
  */
 char * show(char *key);
 
