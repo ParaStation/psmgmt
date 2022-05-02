@@ -291,8 +291,8 @@ void logger_write(logger_t* logger, int32_t key, const char *buf, size_t count);
  *
  * @return No return value
  *
- * @see printf(), logger_print(), logger_vprint(), logger_warn(),
- * logger_exit()
+ * @see printf(), logger_print(), logger_vprint(), logger_funcprint(),
+ * logger_warn(), logger_exit()
  */
 void logger_print(logger_t* logger, int32_t key, const char* format, ...)
     __attribute__((format(printf,3,4)));
@@ -324,9 +324,40 @@ void logger_vprint(logger_t* logger, int32_t key, const char* format,va_list ap)
     __attribute__((format(printf,3,0)));
 
 /**
+ * @brief Print a log message with function prefix
+ *
+ * Print a warn message similar to the log messages put out via @ref
+ * logger_print(), but add the function name @a func as a prefix. As a
+ * result the log message is prepended by both, the current tag of the
+ * logger facility @a logger and the function name.
+ *
+ * Internally @ref logger_print() will be used for the actual
+ * output. Therefore all functionality mentioned there will apply here
+ * as well.
+ *
+ * @param logger The logger facility to use
+ *
+ * @param func The function name to insert between tag and message
+ *
+ * @param key The key to use in order to decide if anything is put out
+ *
+ * @param format The format to be used in order to produce output. The
+ * syntax of this parameter is according to the one defined for the
+ * printf() family of functions from the C standard. This string will
+ * also define the further parameters to be expected.
+ *
+ * @return No return value
+ *
+ * @see logger_print()
+ */
+void logger_funcprint(logger_t* logger, const char *func, int32_t key,
+		      const char *format, ...)
+    __attribute__((format(printf,4,5)));
+
+/**
  * @brief Print a warn message
  *
- * Print a warn message similar to the log messages puted out via @ref
+ * Print a warn message similar to the log messages put out via @ref
  * logger_print(), but append the string returned from strerror() for
  * the argument @a errorno and a trailing newline. Thus this function
  * will always produce output instantly.

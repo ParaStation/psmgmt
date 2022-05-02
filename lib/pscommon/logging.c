@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2005-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021 ParTec AG, Munich
+ * Copyright (C) 2021-2022 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -340,6 +340,31 @@ void logger_vprint(logger_t* logger, int32_t key,
     if (!logger || ((key != -1) && !(logger->mask & key))) return;
 
     do_print(logger, format, ap);
+}
+
+void logger_funcprint(logger_t* logger, const char *func, int32_t key,
+		      const char *format, ...)
+{
+    if (!logger || ((key != -1) && !(logger->mask & key))) return;
+
+    if (func) {
+	int res = snprintf(logger->fmt, logger->fmtSize,
+			   "%s: %s\n", func, format);
+	size_t len = (res >= 0) ? res : 0;
+	if (len >= logger->fmtSize) {
+	    logger->fmtSize = len + 80; /* Some extra space */
+	    logger->fmt = (char*)realloc(logger->fmt, logger->fmtSize);
+	    if (!logger->fmt) {
+		do_panic(logger, "%s: no mem for '%s'\n", __func__, format);
+	    }
+	    sprintf(logger->fmt, "%s: %s\n", func, format);
+	}
+    }
+
+    va_list ap;
+    va_start(ap, format);
+    do_print(logger, func ? logger->fmt : format, ap);
+    va_end(ap);
 }
 
 void logger_warn(logger_t* logger, int32_t key, int eno,
