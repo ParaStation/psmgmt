@@ -1911,12 +1911,9 @@ void PSIADM_PluginKey(bool *nl, char *name, char *key, char *value,
 
     msg.type = action;
 
-    if (!PSP_putTypedMsgBuf(&msg, "plugin", name, PSP_strLen(name)))
-	return;
-    if (!PSP_putTypedMsgBuf(&msg, "key", key, PSP_strLen(key)))
-	return;
-    if (!PSP_putTypedMsgBuf(&msg, "value", value, PSP_strLen(value)))
-	return;
+    if (!PSP_putTypedMsgBuf(&msg, "plugin", name, PSP_strLen(name))) return;
+    if (!PSP_putTypedMsgBuf(&msg, "key", key, PSP_strLen(key))) return;
+    if (!PSP_putTypedMsgBuf(&msg, "value", value, PSP_strLen(value))) return;
 
     if (! getHostStatus()) return;
 
