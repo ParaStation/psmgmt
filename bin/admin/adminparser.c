@@ -1764,6 +1764,12 @@ static int pluginHelpCmd(char *token)
     char *plugin = parser_getString();
     char *nl_descr = parser_getString();
     bool *nl = defaultNL;
+    char *key = NULL;
+
+    if (nl_descr && !strcasecmp(nl_descr, "key")) {
+	key = parser_getString();
+	nl_descr = parser_getString();
+    }
 
     if (parser_getString() || !plugin) {
 	printError(&pluginInfo);
@@ -1775,7 +1781,7 @@ static int pluginHelpCmd(char *token)
 	if (!nl) return -1;
     }
 
-    PSIADM_PluginKey(nl, plugin, NULL, NULL, PSP_PLUGIN_HELP);
+    PSIADM_PluginKey(nl, plugin, key, NULL, PSP_PLUGIN_HELP);
     return 0;
 }
 
