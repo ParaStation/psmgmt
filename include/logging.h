@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2005-2020 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021 ParTec AG, Munich
+ * Copyright (C) 2021-2022 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -45,29 +45,29 @@ typedef struct {
 } logger_t;
 
 /**
- * @brief Query the log-mask.
+ * @brief Query the log-mask
  *
  * Get the actual log-mask of the logger module @a logger.
  *
- * @param logger The logger to ask.
+ * @param logger The logger to ask
  *
- * @return The current log-mask is returned.
+ * @return The current log-mask is returned
  *
  * @see logger_setMask()
  */
 int32_t logger_getMask(logger_t* logger);
 
 /**
- * @brief Set the log-mask.
+ * @brief Set the log-mask
  *
  * Set the log-mask of the logger module @a logger. The possible
  * values depend on the usage in the actual modules.
  *
- * @param logger The logger to manipulate.
+ * @param logger The logger to manipulate
  *
- * @param mask The log-mask to be set.
+ * @param mask The log-mask to be set
  *
- * @return No return value.
+ * @return No return value
  *
  * @see logger_getMask()
  */
@@ -181,7 +181,6 @@ bool logger_getWaitNLFlag(logger_t* logger);
  */
 void logger_setWaitNLFlag(logger_t* logger, bool flag);
 
-
 /**
  * @brief Initialize logger facility
  *
@@ -195,7 +194,6 @@ void logger_setWaitNLFlag(logger_t* logger, bool flag);
  *
  * @param logfile The file to use for logging. If NULL, syslog() will
  * be used.
- *
  *
  * @return On success, a handle of the created logger is
  * returned. This handle has to be passed to any further function
@@ -217,14 +215,14 @@ logger_t* logger_init(const char* tag, FILE *logfile);
  *
  * @param logger Handle of the logger facility to finalize
  *
- * @return No return value.
+ * @return No return value
  *
  * @see logger_init()
  */
 void logger_finalize(logger_t* logger);
 
 /**
- * @brief Write a log message.
+ * @brief Write a log message
  *
  * Write the raw message of length @a count stored in @a buf to the
  * logger facility @a logger.
@@ -243,22 +241,22 @@ void logger_finalize(logger_t* logger);
  * prefixes, source-ranks or time-stamps. This functions is mainly
  * useful for raw communication as it used by psiloggers in raw-mode.
  *
- * @param logger The logger facility to use.
+ * @param logger The logger facility to use
  *
- * @param key The key to use in order to decide if anything is put out.
+ * @param key The key to use in order to decide if anything is put out
  *
- * @param buf Buffer holding the message to write via the logger.
+ * @param buf Buffer holding the message to write via the logger
  *
- * @param count Length of the message to write.
+ * @param count Length of the message to write
  *
- * @return No return value.
+ * @return No return value
  *
  * @see write(2), logger_exit()
  */
 void logger_write(logger_t* logger, int32_t key, const char *buf, size_t count);
 
 /**
- * @brief Print a log message.
+ * @brief Print a log message
  *
  * Print a message defined via @a format and the remaining arguments
  * with some beautification, mainly prepended by the current tag of
@@ -282,26 +280,25 @@ void logger_write(logger_t* logger, int32_t key, const char *buf, size_t count);
  * to @ref logger_print(), @ref logger_vprint(), @ref logger_warn() or
  * @ref logger_exit().
  *
- * @param logger The logger facility to use.
+ * @param logger The logger facility to use
  *
- * @param key The key to use in order to decide if anything is put out.
+ * @param key The key to use in order to decide if anything is put out
  *
  * @param format The format to be used in order to produce output. The
  * syntax of this parameter is according to the one defined for the
  * printf() family of functions from the C standard. This string will
  * also define the further parameters to be expected.
  *
- *
- * @return No return value.
+ * @return No return value
  *
  * @see printf(), logger_print(), logger_vprint(), logger_warn(),
  * logger_exit()
  */
 void logger_print(logger_t* logger, int32_t key, const char* format, ...)
-__attribute__((format(printf,3,4)));
+    __attribute__((format(printf,3,4)));
 
 /**
- * @brief Print a log message.
+ * @brief Print a log message
  *
  * A wrapper for @ref logger_print() with only expecting the remaining
  * arguments defined within @a format within the va_list @a ap instead
@@ -310,66 +307,62 @@ __attribute__((format(printf,3,4)));
  * The main use of this function is to enable the user to write
  * specialized wrappers around @ref logger_print().
  *
- * @param logger The logger facility to use.
+ * @param logger The logger facility to use
  *
- * @param key The key to use in order to decide if anything is put out.
+ * @param key The key to use in order to decide if anything is put out
  *
- * @param format The format to be used in order to produce output.
+ * @param format The format to be used in order to produce output
  *
  * @param ap The va_list of the remainig parameters defined from @a
- * format.
+ * format
  *
- *
- * @return No return value.
+ * @return No return value
  *
  * @see logger_print()
  */
-void logger_vprint(logger_t* logger, int32_t key,
-		   const char* format, va_list ap)
-__attribute__((format(printf,3,0)));
+void logger_vprint(logger_t* logger, int32_t key, const char* format,va_list ap)
+    __attribute__((format(printf,3,0)));
 
 /**
- * @brief Print a warn message.
+ * @brief Print a warn message
  *
  * Print a warn message similar to the log messages puted out via @ref
  * logger_print(), but append the string returned from strerror() for
  * the argument @a errorno and a trailing newline. Thus this function
  * will always produce output instantly.
  *
- * @param logger The logger facility to use.
+ * @param logger The logger facility to use
  *
- * @param key The key to use in order to decide if anything is put out.
+ * @param key The key to use in order to decide if anything is put out
  *
  * @param errorno Error code describing the error string to append to
- * the message.
+ * the message
  *
- * @param format The format to be used in order to produce output.
+ * @param format The format to be used in order to produce output
  *
- *
- * @return No return value.
+ * @return No return value
  *
  * @see logger_print(), strerror()
  */
 void logger_warn(logger_t* logger, int32_t key, int errorno,
 		 const char* format, ...)
-__attribute__((format(printf,4,5)));
+    __attribute__((format(printf,4,5)));
 
 /**
- * @brief Print a warn-messages and exit.
+ * @brief Print a warn-messages and exit
  *
  * Print a message like from @ref logger_warn(), but gives this
  * message always, i.e no comparison to @a logger's mask. Furthermore
  * calls exit() afterwards.
  *
- * @param logger The logger facility to use.
+ * @param logger The logger facility to use
  *
  * @param errorno Error code describing the error string to append to
- * the message.
+ * the message
  *
- * @param format The format to be used in order to produce output.
+ * @param format The format to be used in order to produce output
  *
- *
- * @return No return value.
+ * @return No return value
  *
  * @see logger_warn(), exit()
  */
