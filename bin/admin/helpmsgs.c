@@ -771,7 +771,7 @@ static info_t pluginInfo = {
     .syntax = (syntax_t[]) {{
 	.cmd = "plugin",
 	.arg = "{ avail | list | {add|load | delete|remove|rm|unload"
-	" | forceunload|forceremove | help } <plugin>"
+	" | forceunload|forceremove } <plugin> | help <plugin> [key <key>] "
 	" | show <plugin> [key <key>] | set <plugin> <key> <value>"
 	" | unset <plugin> <key> | loadtime [plugin <plugin>] } <nodes>"
     }},
@@ -798,8 +798,10 @@ static info_t pluginInfo = {
 	  " nodes. The plugin might still be loaded for some time afterward"
 	  " until all depending plugin are unloaded and all timeouts are"
 	  " expunged." },
-	{ .tag = "plugin help <plugin>",
-	  .descr = "Request some help-message from the plugin <plugin>." },
+	{ .tag = "plugin help <plugin> [key <topic>]",
+	  .descr = "Request some help-message from the plugin <plugin>. If"
+	  " a <topic> is provided, the plugin might give some more detailed"
+	  " help concerning this topic." },
 	{ .tag = "plugin show <plugin> [key <key>]",
 	  .descr = "Show key-value pair indexed by <key> for the given plugin"
 	  " <plugin>. If no key is given explicitly, all pairs are"
