@@ -235,6 +235,8 @@ bool pspmix_service_registerNamespace(PspmixJob_t *job)
     mdbg(PSPMIX_LOG_CALL, "%s()\n", __func__);
 
     /* we are using the loggertid as session ID */
+    /* @todo discuss
+     * PMIx 4 standard: "Session identifier assigned by the scheduler" */
     uint32_t sessionId = job->session->loggertid;
 
     /* create and initialize namespace object */
