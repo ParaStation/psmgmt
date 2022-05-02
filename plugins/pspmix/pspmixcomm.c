@@ -10,7 +10,7 @@
  */
 /**
  * @file Implementations of the pspmix communication functions called in the
- *       plugin forwarders working as PMIx Jobserver
+ *       plugin forwarders working as PMIx Userserver
  */
 #include "pspmixcomm.h"
 
