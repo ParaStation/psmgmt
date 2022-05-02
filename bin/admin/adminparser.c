@@ -73,16 +73,15 @@ static bool * getNodeList(char *nl_descr)
     while (host) {
 	PSnodes_ID_t node = PSI_resolveNodeID(host);
 
-	if (node < 0) goto error;
+	if (node < 0) {
+	    printf("Illegal nodename '%s'\n", host);
+	    return NULL;
+	}
 
 	nl[node] = true;
 	host = strtok_r(NULL, ",", &work);
     }
     return nl;
-
-error:
-    printf("Illegal nodename '%s'\n", host);
-    return NULL;
 }
 
 /*************************** simple commands ****************************/
@@ -92,20 +91,18 @@ static int addCommand(char *token)
     char *nl_descr = parser_getString();
     bool *nl = defaultNL;
 
-    if (parser_getString()) goto error;
+    if (parser_getString()) {
+	printError(&addInfo);
+	return -1;
+    }
 
     if (nl_descr) {
 	nl = getNodeList(nl_descr);
-
 	if (!nl) return -1;
     }
 
     PSIADM_AddNode(nl);
     return 0;
-
- error:
-    printError(&addInfo);
-    return -1;
 }
 
 static int shutdownCommand(char *token)
@@ -119,20 +116,18 @@ static int shutdownCommand(char *token)
 	nl_descr = parser_getString();
     }
 
-    if (parser_getString()) goto error;
+    if (parser_getString()) {
+	printError(&shutdownInfo);
+	return -1;
+    }
 
     if (nl_descr) {
 	nl = getNodeList(nl_descr);
-
 	if (!nl) return -1;
     }
 
     PSIADM_ShutdownNode(silent, nl);
     return 0;
-
- error:
-    printError(&shutdownInfo);
-    return -1;
 }
 
 static int hwstartCommand(char *token)
@@ -151,7 +146,6 @@ static int hwstartCommand(char *token)
 
     if (nl_descr) {
 	nl = getNodeList(nl_descr);
-
 	if (!nl) return -1;
     }
 
@@ -162,7 +156,7 @@ static int hwstartCommand(char *token)
     PSIADM_HWStart(hwIndex, nl);
     return 0;
 
- error:
+error:
     printError(&hwstartInfo);
     return -1;
 }
@@ -183,7 +177,6 @@ static int hwstopCommand(char *token)
 
     if (nl_descr) {
 	nl = getNodeList(nl_descr);
-
 	if (!nl) return -1;
     }
 
@@ -204,20 +197,18 @@ static int restartCommand(char *token)
     char *nl_descr = parser_getString();
     bool *nl = defaultNL;
 
-    if (parser_getString()) goto error;
+    if (parser_getString()) {
+	printError(&restartInfo);
+	return -1;
+    }
 
     if (nl_descr) {
 	nl = getNodeList(nl_descr);
-
 	if (!nl) return -1;
     }
 
     PSIADM_Reset(1, nl);
     return 0;
-
- error:
-    printError(&restartInfo);
-    return -1;
 }
 
 static char * printRange(void *data)
@@ -231,7 +222,10 @@ static int rangeCommand(char *token)
 {
     char *nl_descr = parser_getString();
 
-    if (parser_getString()) goto error;
+    if (parser_getString()) {
+	printError(&rangeInfo);
+	return -1;
+    }
 
     if (nl_descr) {
 	bool *nl = getNodeList(nl_descr);
@@ -247,10 +241,6 @@ static int rangeCommand(char *token)
     }
 
     return 0;
-
- error:
-    printError(&rangeInfo);
-    return -1;
 }
 
 static int resetCommand(char *token)
@@ -264,20 +254,18 @@ static int resetCommand(char *token)
 	hw = 1;
     }
 
-    if (parser_getString()) goto error;
+    if (parser_getString()) {
+	printError(&resetInfo);
+	return -1;
+    }
 
     if (nl_descr) {
 	nl = getNodeList(nl_descr);
-
 	if (!nl) return -1;
     }
 
     PSIADM_Reset(hw, nl);
     return 0;
-
- error:
-    printError(&resetInfo);
-    return -1;
 }
 
 /**************************** list commands *****************************/
@@ -349,7 +337,14 @@ static int listPluginCommand(char *token)
     char *nl_descr = parser_getString();
     bool *nl = defaultNL;
 
-    if (parser_getString()) goto error;
+    if (parser_getString()) {
+	if (token && !strcasecmp(token, "plugin")) {
+	    printError(&pluginInfo);
+	} else {
+	    printError(&listInfo);
+	}
+	return -1;
+    }
 
     if (nl_descr) {
 	nl = getNodeList(nl_descr);
@@ -357,16 +352,7 @@ static int listPluginCommand(char *token)
     }
 
     PSIADM_PluginStat(nl);
-
     return 0;
-
-error:
-    if (token && !strcasecmp(token, "plugin")) {
-	printError(&pluginInfo);
-    } else {
-	printError(&listInfo);
-    }
-    return -1;
 }
 
 static int listEnvCommand(char *token)
@@ -389,7 +375,6 @@ static int listEnvCommand(char *token)
     }
 
     PSIADM_EnvStat(key, nl);
-
     return 0;
 
  error:
@@ -406,7 +391,10 @@ static int listNodeCommand(char *token)
     char *nl_descr = parser_getString();
     bool *nl = defaultNL;
 
-    if (parser_getString()) goto error;
+    if (parser_getString()) {
+	printError(&listInfo);
+	return -1;
+    }
 
     if (nl_descr) {
 	nl = getNodeList(nl_descr);
@@ -415,10 +403,6 @@ static int listNodeCommand(char *token)
 
     PSIADM_NodeStat(nl);
     return 0;
-
- error:
-    printError(&listInfo);
-    return -1;
 }
 
 static int listSomeCommand(char *token)
@@ -426,7 +410,10 @@ static int listSomeCommand(char *token)
     char *nl_descr = parser_getString();
     bool *nl = defaultNL;
 
-    if (parser_getString()) goto error;
+    if (parser_getString()) {
+	printError(&listInfo);
+	return -1;
+    }
 
     if (nl_descr) {
 	nl = getNodeList(nl_descr);
@@ -435,10 +422,6 @@ static int listSomeCommand(char *token)
 
     PSIADM_SomeStat(nl, token[0]);
     return 0;
-
- error:
-    printError(&listInfo);
-    return -1;
 }
 
 static int listSummaryCommand(char *token)
@@ -477,7 +460,10 @@ static int listStarttimeCommand(char *token)
     char *nl_descr = parser_getString();
     bool *nl = defaultNL;
 
-    if (parser_getString()) goto error;
+    if (parser_getString()) {
+	printError(&listInfo);
+	return -1;
+    }
 
     if (nl_descr) {
 	nl = getNodeList(nl_descr);
@@ -486,10 +472,6 @@ static int listStarttimeCommand(char *token)
 
     PSIADM_StarttimeStat(nl);
     return 0;
-
- error:
-    printError(&listInfo);
-    return -1;
 }
 
 static int listScriptCommand(char *token)
@@ -529,7 +511,10 @@ static int listRDPCommand(char *token)
     char *nl_descr = parser_getString();
     bool *nl = defaultNL;
 
-    if (parser_getString()) goto error;
+    if (parser_getString()) {
+	printError(&listInfo);
+	return -1;
+    }
 
     if (nl_descr) {
 	nl = getNodeList(nl_descr);
@@ -538,10 +523,6 @@ static int listRDPCommand(char *token)
 
     PSIADM_RDPStat(nl);
     return 0;
-
- error:
-    printError(&listInfo);
-    return -1;
 }
 
 static int listRDPConnCommand(char *token)
@@ -549,7 +530,10 @@ static int listRDPConnCommand(char *token)
     char *nl_descr = parser_getString();
     bool *nl = defaultNL;
 
-    if (parser_getString()) goto error;
+    if (parser_getString()) {
+	printError(&listInfo);
+	return -1;
+    }
 
     if (nl_descr) {
 	nl = getNodeList(nl_descr);
@@ -558,10 +542,6 @@ static int listRDPConnCommand(char *token)
 
     PSIADM_RDPConnStat(nl);
     return 0;
-
- error:
-    printError(&listInfo);
-    return -1;
 }
 
 static int listMCastCommand(char *token)
@@ -569,7 +549,10 @@ static int listMCastCommand(char *token)
     char *nl_descr = parser_getString();
     bool *nl = defaultNL;
 
-    if (parser_getString()) goto error;
+    if (parser_getString()) {
+	printError(&listInfo);
+	return -1;
+    }
 
     if (nl_descr) {
 	nl = getNodeList(nl_descr);
@@ -578,10 +561,6 @@ static int listMCastCommand(char *token)
 
     PSIADM_MCastStat(nl);
     return 0;
-
- error:
-    printError(&listInfo);
-    return -1;
 }
 
 static int listLoadCommand(char *token)
@@ -589,7 +568,10 @@ static int listLoadCommand(char *token)
     char *nl_descr = parser_getString();
     bool *nl = defaultNL;
 
-    if (parser_getString()) goto error;
+    if (parser_getString()) {
+	printError(&listInfo);
+	return -1;
+    }
 
     if (nl_descr) {
 	nl = getNodeList(nl_descr);
@@ -598,10 +580,6 @@ static int listLoadCommand(char *token)
 
     PSIADM_LoadStat(nl);
     return 0;
-
- error:
-    printError(&listInfo);
-    return -1;
 }
 
 static int listMemoryCommand(char *token)
@@ -609,7 +587,10 @@ static int listMemoryCommand(char *token)
     char *nl_descr = parser_getString();
     bool *nl = defaultNL;
 
-    if (parser_getString()) goto error;
+    if (parser_getString()) {
+	printError(&listInfo);
+	return -1;
+    }
 
     if (nl_descr) {
 	nl = getNodeList(nl_descr);
@@ -618,10 +599,6 @@ static int listMemoryCommand(char *token)
 
     PSIADM_MemStat(nl);
     return 0;
-
- error:
-    printError(&listInfo);
-    return -1;
 }
 
 static int listHWCommand(char *token)
@@ -629,7 +606,10 @@ static int listHWCommand(char *token)
     char *nl_descr = parser_getString();
     bool *nl = defaultNL;
 
-    if (parser_getString()) goto error;
+    if (parser_getString()) {
+	printError(&listInfo);
+	return -1;
+    }
 
     if (nl_descr) {
 	nl = getNodeList(nl_descr);
@@ -638,10 +618,6 @@ static int listHWCommand(char *token)
 
     PSIADM_HWStat(nl);
     return 0;
-
- error:
-    printError(&listInfo);
-    return -1;
 }
 
 static int listInstdirCommand(char *token)
@@ -649,7 +625,10 @@ static int listInstdirCommand(char *token)
     char *nl_descr = parser_getString();
     bool *nl = defaultNL;
 
-    if (parser_getString()) goto error;
+    if (parser_getString()) {
+	printError(&listInfo);
+	return -1;
+    }
 
     if (nl_descr) {
 	nl = getNodeList(nl_descr);
@@ -658,10 +637,6 @@ static int listInstdirCommand(char *token)
 
     PSIADM_InstdirStat(nl);
     return 0;
-
- error:
-    printError(&listInfo);
-    return -1;
 }
 
 static int listJobsCommand(char *token)
@@ -716,7 +691,10 @@ static int listVersionCommand(char *token)
     char *nl_descr = parser_getString();
     bool *nl = defaultNL;
 
-    if (parser_getString()) goto error;
+    if (parser_getString()) {
+	printError(&listInfo);
+	return -1;
+    }
 
     if (nl_descr) {
 	nl = getNodeList(nl_descr);
@@ -725,17 +703,16 @@ static int listVersionCommand(char *token)
 
     PSIADM_VersionStat(nl);
     return 0;
-
- error:
-    printError(&listInfo);
-    return -1;
 }
 
 static int listSpecialCommand(char *token)
 {
     bool *nl = defaultNL;
 
-    if (parser_getString()) goto error;
+    if (parser_getString()) {
+	printError(&listInfo);
+	return -1;
+    }
 
     /* Maybe this is like 'list a-b' */
     if (token) {
@@ -745,10 +722,6 @@ static int listSpecialCommand(char *token)
 
     PSIADM_NodeStat(nl);
     return 0;
-
- error:
-    printError(&listInfo);
-    return -1;
 }
 
 static keylist_t listList[] = {
@@ -1695,15 +1668,14 @@ static int testCommand(char *token)
 	} else if (!strcasecmp(option, "quiet")) {
 	    verbose = 0;
 	} else if (!strcasecmp(option, "normal")) {
-	} else goto error;
+	} else {
+	    printError(&testInfo);
+	    return -1;
+	}
     }
 
     PSIADM_TestNetwork(verbose);
     return 0;
-
- error:
-    printError(&testInfo);
-    return -1;
 }
 
 /************************* plugin commands ******************************/
@@ -1714,21 +1686,18 @@ static int pluginLoadCmd(char *token)
     char *nl_descr = parser_getString();
     bool *nl = defaultNL;
 
-    if (parser_getString() || !plugin) goto error;
+    if (parser_getString() || !plugin) {
+	printError(&pluginInfo);
+	return -1;
+    }
 
     if (nl_descr) {
 	nl = getNodeList(nl_descr);
-
 	if (!nl) return -1;
     }
 
     PSIADM_Plugin(nl, plugin, PSP_PLUGIN_LOAD);
-
     return 0;
-
- error:
-    printError(&pluginInfo);
-    return -1;
 }
 
 static int pluginRmCmd(char *token)
@@ -1737,21 +1706,18 @@ static int pluginRmCmd(char *token)
     char *nl_descr = parser_getString();
     bool *nl = defaultNL;
 
-    if (parser_getString() || !plugin) goto error;
+    if (parser_getString() || !plugin) {
+	printError(&pluginInfo);
+	return -1;
+    }
 
     if (nl_descr) {
 	nl = getNodeList(nl_descr);
-
 	if (!nl) return -1;
     }
 
     PSIADM_Plugin(nl, plugin, PSP_PLUGIN_REMOVE);
-
     return 0;
-
- error:
-    printError(&pluginInfo);
-    return -1;
 }
 
 static int pluginFRmCmd(char *token)
@@ -1760,21 +1726,18 @@ static int pluginFRmCmd(char *token)
     char *nl_descr = parser_getString();
     bool *nl = defaultNL;
 
-    if (parser_getString() || !plugin) goto error;
+    if (parser_getString() || !plugin) {
+	printError(&pluginInfo);
+	return -1;
+    }
 
     if (nl_descr) {
 	nl = getNodeList(nl_descr);
-
 	if (!nl) return -1;
     }
 
     PSIADM_Plugin(nl, plugin, PSP_PLUGIN_FORCEREMOVE);
-
     return 0;
-
- error:
-    printError(&pluginInfo);
-    return -1;
 }
 
 static int pluginAvailCmd(char *token)
@@ -1782,21 +1745,18 @@ static int pluginAvailCmd(char *token)
     char *nl_descr = parser_getString();
     bool *nl = defaultNL;
 
-    if (parser_getString()) goto error;
+    if (parser_getString()) {
+	printError(&pluginInfo);
+	return -1;
+    }
 
     if (nl_descr) {
 	nl = getNodeList(nl_descr);
-
 	if (!nl) return -1;
     }
 
     PSIADM_PluginKey(nl, NULL, NULL, NULL, PSP_PLUGIN_AVAIL);
-
     return 0;
-
- error:
-    printError(&pluginInfo);
-    return -1;
 }
 
 static int pluginHelpCmd(char *token)
@@ -1805,21 +1765,18 @@ static int pluginHelpCmd(char *token)
     char *nl_descr = parser_getString();
     bool *nl = defaultNL;
 
-    if (parser_getString() || !plugin) goto error;
+    if (parser_getString() || !plugin) {
+	printError(&pluginInfo);
+	return -1;
+    }
 
     if (nl_descr) {
 	nl = getNodeList(nl_descr);
-
 	if (!nl) return -1;
     }
 
     PSIADM_PluginKey(nl, plugin, NULL, NULL, PSP_PLUGIN_HELP);
-
     return 0;
-
- error:
-    printError(&pluginInfo);
-    return -1;
 }
 
 static int pluginLoadTmCmd(char *token)
@@ -1833,7 +1790,10 @@ static int pluginLoadTmCmd(char *token)
 	nl_descr = parser_getString();
     }
 
-    if (parser_getString()) goto error;
+    if (parser_getString()) {
+	printError(&pluginInfo);
+	return -1;
+    }
 
     if (nl_descr) {
 	nl = getNodeList(nl_descr);
@@ -1842,10 +1802,6 @@ static int pluginLoadTmCmd(char *token)
 
     PSIADM_PluginKey(nl, plugin, NULL, NULL, PSP_PLUGIN_LOADTIME);
     return 0;
-
- error:
-    printError(&pluginInfo);
-    return -1;
 }
 
 static int pluginShowCmd(char *token)
@@ -1860,7 +1816,10 @@ static int pluginShowCmd(char *token)
 	nl_descr = parser_getString();
     }
 
-    if (parser_getString() || !plugin) goto error;
+    if (parser_getString() || !plugin) {
+	printError(&pluginInfo);
+	return -1;
+    }
 
     if (nl_descr) {
 	nl = getNodeList(nl_descr);
@@ -1869,10 +1828,6 @@ static int pluginShowCmd(char *token)
 
     PSIADM_PluginKey(nl, plugin, key, NULL, PSP_PLUGIN_SHOW);
     return 0;
-
- error:
-    printError(&pluginInfo);
-    return -1;
 }
 
 static int pluginSetCmd(char *token)
@@ -1883,7 +1838,10 @@ static int pluginSetCmd(char *token)
     char *nl_descr = parser_getString();
     bool *nl = defaultNL;
 
-    if (parser_getString() || !plugin || !key || !value) goto error;
+    if (parser_getString() || !plugin || !key || !value) {
+	printError(&pluginInfo);
+	return -1;
+    }
 
     if (nl_descr) {
 	nl = getNodeList(nl_descr);
@@ -1892,10 +1850,6 @@ static int pluginSetCmd(char *token)
 
     PSIADM_PluginKey(nl, plugin, key, value, PSP_PLUGIN_SET);
     return 0;
-
- error:
-    printError(&pluginInfo);
-    return -1;
 }
 
 static int pluginUnsetCmd(char *token)
@@ -1905,7 +1859,10 @@ static int pluginUnsetCmd(char *token)
     char *nl_descr = parser_getString();
     bool *nl = defaultNL;
 
-    if (parser_getString() || !plugin || !key) goto error;
+    if (parser_getString() || !plugin || !key) {
+	printError(&pluginInfo);
+	return -1;
+    }
 
     if (nl_descr) {
 	nl = getNodeList(nl_descr);
@@ -1914,10 +1871,6 @@ static int pluginUnsetCmd(char *token)
 
     PSIADM_PluginKey(nl, plugin, key, NULL, PSP_PLUGIN_UNSET);
     return 0;
-
- error:
-    printError(&pluginInfo);
-    return -1;
 }
 
 
@@ -1966,21 +1919,18 @@ static int envSetCommand(char *token)
     char *nl_descr = parser_getString();
     bool *nl = defaultNL;
 
-    if (parser_getString() || !key || !value) goto error;
+    if (parser_getString() || !key || !value) {
+	printError(&envInfo);
+	return -1;
+    }
 
     if (nl_descr) {
 	nl = getNodeList(nl_descr);
-
 	if (!nl) return -1;
     }
 
     PSIADM_Environment(nl, key, value, PSP_ENV_SET);
-
     return 0;
-
- error:
-    printError(&envInfo);
-    return -1;
 }
 
 static int envUnsetCommand(char *token)
@@ -1989,21 +1939,18 @@ static int envUnsetCommand(char *token)
     char *nl_descr = parser_getString();
     bool *nl = defaultNL;
 
-    if (parser_getString() || !key) goto error;
+    if (parser_getString() || !key) {
+	printError(&envInfo);
+	return -1;
+    }
 
     if (nl_descr) {
 	nl = getNodeList(nl_descr);
-
 	if (!nl) return -1;
     }
 
     PSIADM_Environment(nl, key, NULL, PSP_ENV_UNSET);
-
     return 0;
-
- error:
-    printError(&envInfo);
-    return -1;
 }
 
 static int envError(char *token)
@@ -2226,45 +2173,39 @@ static int paramSetCommand(char *token)
     char *key = parser_getString();
     char *value = parser_getQuotedString();
 
-    if (parser_getString() || !key || !value) goto error;
+    if (parser_getString() || !key || !value) {
+	printError(&paramInfo);
+	return -1;
+    }
 
     PSPARM_set(key, value);
-
     return 0;
-
- error:
-    printError(&paramInfo);
-    return -1;
 }
 
 static int paramShowCommand(char *token)
 {
     char *key = parser_getString();
 
-    if (parser_getString()) goto error;
+    if (parser_getString()) {
+	printError(&paramInfo);
+	return -1;
+    }
 
     PSPARM_print(NULL, key);
-
     return 0;
-
- error:
-    printError(&paramInfo);
-    return -1;
 }
 
 static int paramHelpCommand(char *token)
 {
     char *key = parser_getString();
 
-    if (parser_getString()) goto error;
+    if (parser_getString()) {
+	printError(&paramInfo);
+	return -1;
+    }
 
     PSPARM_printHelp(key);
-
     return 0;
-
- error:
-    printError(&paramInfo);
-    return -1;
 }
 
 
@@ -2319,7 +2260,6 @@ static char * setRange(void *data, char *nl_descr)
     if (!nl_descr) return strdup("value missing");
 
     bool *nl = getNodeList(nl_descr);
-
     if (nl) memcpy(defaultNL, nl, PSC_getNrOfNodes() * sizeof(*defaultNL));
 
     return NULL;
@@ -2366,10 +2306,10 @@ static void cleanupParameters(void)
 
 static int versionCommand(char *token)
 {
-    char tmp[100];
-    int err;
-
-    if (parser_getString()) goto error;
+    if (parser_getString()) {
+	printError(&versionInfo);
+	return -1;
+    }
 
     printf("PSIADMIN: ParaStation administration tool\n");
     printf(" Copyright (C) 1996-2004 ParTec AG, Karlsruhe\n");
@@ -2381,14 +2321,11 @@ static int versionCommand(char *token)
 	   PSI_mixedProto() ? "hetero" : "homo");
     printf("PSIADMIN:   %s\n", PSC_getVersionStr());
 
-    err = PSI_infoString(-1, PSP_INFO_RPMREV, NULL, tmp, sizeof(tmp), false);
+    char tmp[100];
+    int err = PSI_infoString(-1, PSP_INFO_RPMREV, NULL, tmp, sizeof(tmp), false);
     if (err) strcpy(tmp, "unknown");
     printf("PSID:       %s\n", tmp);
     return 0;
-
- error:
-    printError(&versionInfo);
-    return -1;
 }
 
 static int echoCommand(char *token)
@@ -2396,7 +2333,6 @@ static int echoCommand(char *token)
     char *line = parser_getLine();
 
     printf("%s\n", line ? line : "");
-
     return 0;
 }
 
@@ -2405,17 +2341,15 @@ static int sleepCommand(char *token)
     long tmp;
 
     token = parser_getString();
-    if (!token) goto error;
-    if (parser_getNumber(token, &tmp)) goto error;
-
-    if (tmp < 0 || parser_getString()) goto error;
+    if (!token
+	|| parser_getNumber(token, &tmp) || tmp < 0
+	|| parser_getString()) {
+	printError(&sleepInfo);
+	return -1;
+    }
 
     sleep(tmp);
     return 0;
-
- error:
-    printError(&sleepInfo);
-    return -1;
 }
 
 static int resolveCommand(char *token)
@@ -2423,7 +2357,10 @@ static int resolveCommand(char *token)
     char *nl_descr = parser_getString();
     bool *nl = defaultNL;
 
-    if (parser_getString()) goto error;
+    if (parser_getString()) {
+	printError(&resolveInfo);
+	return -1;
+    }
 
     if (nl_descr) {
 	nl = getNodeList(nl_descr);
@@ -2432,10 +2369,6 @@ static int resolveCommand(char *token)
 
     PSIADM_Resolve(nl);
     return 0;
-
- error:
-    printError(&resolveInfo);
-    return -1;
 }
 
 /** Magic value returned by the parser function to show 'quit' was reached. */
@@ -2443,12 +2376,12 @@ static int resolveCommand(char *token)
 
 static int quitCommand(char *token)
 {
-    if (parser_getString()) goto error;
-    return quitMagic;
+    if (parser_getString()) {
+	printError(&exitInfo);
+	return -1;
+    }
 
- error:
-    printError(&exitInfo);
-    return -1;
+    return quitMagic;
 }
 
 static int error(char *token)
