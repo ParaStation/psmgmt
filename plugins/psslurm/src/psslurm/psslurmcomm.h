@@ -29,7 +29,11 @@
 /** default slurmctld port */
 #define PSSLURM_SLURMCTLD_PORT "6817"
 
+/** magic socket to open a new connection to slurmctld */
 #define SLURMCTLD_SOCK -1
+
+/** magic UID to allow any user to decode the munge credentail */
+#define RES_UID_ANY -1
 
 /** callback function of a connection structure */
 typedef int Connection_CB_t(Slurm_Msg_t *msg, void *info);

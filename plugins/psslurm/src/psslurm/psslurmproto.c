@@ -3571,7 +3571,7 @@ bool sendConfigReq(const char *server, const int action)
 
     /* send configuration request message to slurmctld */
     addUint32ToMsg(CONFIG_REQUEST_SLURMD, &body);
-    if (sendSlurmMsg(sock, REQUEST_CONFIG, &body, slurmUserID) == -1) {
+    if (sendSlurmMsg(sock, REQUEST_CONFIG, &body, RES_UID_ANY) == -1) {
 	flog("sending config request message failed\n");
 	goto ERROR;
     }
