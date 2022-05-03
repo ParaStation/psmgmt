@@ -2150,67 +2150,158 @@ static void fillNodeInfoArray(pmix_data_array_t *nodeInfo, PspmixNode_t *node,
 }
 
 static void fillProcDataArray(pmix_data_array_t *procData,
-	PspmixProcess_t *proc, PSnodes_ID_t nodeID, bool spawned)
+	PspmixProcess_t *proc, PSnodes_ID_t nodeID, bool spawned,
+	const char *nsdir)
 {
-    uint32_t val_u32;
+#if PMIX_VERSION_MAJOR >= 4
+    uint32_t ninfo = 9;
+    if (nodeID == PSC_getMyID()) ninfo += 3;
+#else
+    uint32_t ninfo = 8;
+#endif
 
     pmix_info_t *infos;
+    PMIX_INFO_CREATE(infos, ninfo);
 
-#define PROC_DATA_ARRAY_LEN 8
-
-    PMIX_INFO_CREATE(infos, PROC_DATA_ARRAY_LEN);
-
-    /* first entry needs to be the rank */
+    /* process rank within the job, starting from zero */
     PMIX_INFO_LOAD(&infos[0], PMIX_RANK, &proc->rank, PMIX_PROC_RANK);
 
-    /* rank on this node within this job */
-    PMIX_INFO_LOAD(&infos[1], PMIX_LOCAL_RANK, &proc->lrank, PMIX_UINT16);
+    /* application number within the job in which the process is a member. */
+    PMIX_INFO_LOAD(&infos[1], PMIX_APPNUM, &proc->app->num, PMIX_UINT32);
 
-    /* rank on this node spanning all jobs */
-    PMIX_INFO_LOAD(&infos[2], PMIX_NODE_RANK, &proc->nrank, PMIX_UINT16);
+    /* rank within the process' application */
+    PMIX_INFO_LOAD(&infos[2], PMIX_APP_RANK, &proc->arank, PMIX_PROC_RANK);
 
-    /* node identifier where the specified proc is located */
-    val_u32 = nodeID;
-    PMIX_INFO_LOAD(&infos[3], PMIX_NODEID, &val_u32, PMIX_UINT32);
+    /* rank of the process spanning across all jobs in this session
+     * starting with zero.
+     * Note that no ordering of the jobs is implied when computing this value.
+     * As jobs can start and end at random times, this is defined as a
+     * continually growing number - i.e., it is not dynamically adjusted as
+     * individual jobs and processes are started or terminated. */
+    PMIX_INFO_LOAD(&infos[3], PMIX_GLOBAL_RANK, &proc->grank, PMIX_PROC_RANK);
 
-    /* app number within the job */
-    PMIX_INFO_LOAD(&infos[4], PMIX_APPNUM, &proc->app->num, PMIX_UINT32);
+    /* rank of the process on its node in its job
+     * refers to the numerical location (starting from zero) of the process on
+     * its node when idxing only those processes from the same job that share
+     * the node, ordered by their overall rank within that job. */
+    PMIX_INFO_LOAD(&infos[4], PMIX_LOCAL_RANK, &proc->lrank, PMIX_UINT16);
 
-    /* rank within this app */
-    PMIX_INFO_LOAD(&infos[5], PMIX_APP_RANK, &proc->arank, PMIX_PROC_RANK);
+    /* rank of the process on its node spanning all jobs
+     * refers to the numerical location (starting from zero) of the process on
+     * its node when idxing all processes (regardless of job) that share the
+     * node, ordered by their overall rank within the job. The value represents
+     * a snapshot in time when the specified process was started on its node and
+     * is not dynamically adjusted as processes from other jobs are started or
+     * terminated on the node. */
+    PMIX_INFO_LOAD(&infos[5], PMIX_NODE_RANK, &proc->nrank, PMIX_UINT16);
 
-    /* rank spanning across all jobs in this session */
-    PMIX_INFO_LOAD(&infos[6], PMIX_GLOBAL_RANK, &proc->grank, PMIX_PROC_RANK);
+    /* node identifier where the process is located */
+    uint32_t val_u32 = nodeID;
+    PMIX_INFO_LOAD(&infos[6], PMIX_NODEID, &val_u32, PMIX_UINT32);
 
     /* true if this proc resulted from a call to PMIx_Spawn */
     PMIX_INFO_LOAD(&infos[7], PMIX_SPAWNED, &spawned, PMIX_BOOL);
 
-    /* optional infos (PMIx v3.0):
-     * * PMIX_PROCID "pmix.procid" (pmix_proc_t)
-     *     Process identifier
-     *
-     * * PMIX_GLOBAL_RANK "pmix.grank" (pmix_rank_t)
-     *     Process rank spanning across all jobs in this session.
+#if PMIX_VERSION_MAJOR >= 4
+    /* number of times this process has been re-instantiated
+     * i.e, a value of zero indicates that the process has never been restarted.
+     */
+    PMIX_INFO_LOAD(&infos[8], PMIX_REINCARNATION, &proc->reinc, PMIX_UINT32);
+
+    /* optional infos (PMIx v4.0):
      *
      * * PMIX_HOSTNAME "pmix.hname" (char*)
      *     Name of the host where the specified process is running.
+     *
+     * * PMIX_PROCID "pmix.procid" (pmix_proc_t)
+     *     Process identifier
+     *
+     * * PMIX_CPUSET "pmix.cpuset" (char*)
+     *     A string representation of the PU binding bitmap applied to the
+     *     process upon launch. The string shall begin with the name of the
+     *     library that generated it (e.g., "hwloc") followed by a colon and
+     *     the bitmap string itself.
+     *
+     * * PMIX_CPUSET_BITMAP "pmix.bitmap" (pmix_cpuset_t*)
+     *     Bitmap applied to the process upon launch.
+     *
+     * * PMIX_DEVICE_DISTANCES "pmix.dev.dist" (pmix_data_array_t)
+     *     Return an array of pmix_device_distance_t containing the minimum and
+     *     maximum distances of the given process location to all devices of the
+     *     specified type on the local node.
      */
 
+    if (nodeID == PSC_getMyID()) {
+	/* string describing a process’s bound location
+	 * referenced using the process’s rank. The string is prefixed by the
+	 * implementation that created it (e.g., "hwloc") followed by a colon.
+	 * The remainder of the string represents the corresponding locality as
+	 * expressed by the underlying implementation. The entire string must be
+	 * passed to PMIx_Get_relative_locality for processing. Note that hosts
+	 * are only required to provide locality strings for local client
+	 * processes - thus, a call to PMIx_Get for the locality string of a
+	 * process that returns PMIX_ERR_NOT_FOUND indicates that the process is
+	 * not executing on the same node. */
+	char *locstr = "@todo"; /* @todo somehow get the string */
+	PMIX_INFO_LOAD(&infos[9], PMIX_LOCALITY_STRING, locstr, PMIX_STRING);
+
+	/* Full path to the subdirectory under PMIX_NSDIR assigned to the
+	 * specified process. */
+	int pdsize = strlen(nsdir)+10;
+	char *procdir = umalloc(pdsize);
+	if (snprintf(procdir, pdsize, "%s/%u", nsdir, proc->rank) >= pdsize) {
+	    mlog("%s: Warning, procdir truncated", __func__);
+	}
+	PMIX_INFO_LOAD(&infos[10], PMIX_PROCDIR, procdir, PMIX_STRING);
+	ufree(procdir);
+
+	/* rank of the process on the package (socket) where this process
+	 * resides refers to the numerical location (starting from zero) of the
+	 * process on its package when counting only those processes from the
+	 * same job that share the package, ordered by their overall rank within
+	 * that job. Note that processes that are not bound to PUs within a
+	 * single specific package cannot have a package rank. */
+	uint16_t pkgrank = 0; /* @todo how to get this here? */
+	PMIX_INFO_LOAD(&infos[11], PMIX_PACKAGE_RANK, &pkgrank, PMIX_UINT16);
+    }
+#endif
+
 #if PRINT_FILLINFOS
-    mlog("%s: %s(%d)=%u - %s(%d)=%hu - %s(%d)=%hu - %s(%d)=%u - %s(%d)=%u -"
+# if PMIX_VERSION_MAJOR >= 4
+    mlog("%s: %s(%d)=%u - %s(%d)=%u - %s(%d)=%u - %s(%d)=%u - %s(%d)=%hu -"
+	 " %s(%d)=%hu - %s(%d)=%u - %s(%d)=%d - %s(%d)=%u", __func__,
+	 infos[0].key, infos[0].value.type, infos[0].value.data.rank,
+	 infos[1].key, infos[1].value.type, infos[1].value.data.uint32,
+	 infos[2].key, infos[2].value.type, infos[2].value.data.rank,
+	 infos[3].key, infos[3].value.type, infos[3].value.data.rank,
+	 infos[4].key, infos[4].value.type, infos[4].value.data.uint16,
+	 infos[5].key, infos[5].value.type, infos[5].value.data.uint16,
+	 infos[6].key, infos[6].value.type, infos[6].value.data.uint32,
+	 infos[7].key, infos[7].value.type, infos[7].value.data.flag,
+	 infos[8].key, infos[8].value.type, infos[8].value.data.uint32);
+    if (nodeID == PSC_getMyID()) {
+	mlog(" - %s(%d)='%s' - %s(%d)='%s' - %s(%d)=%hu",
+	 infos[9].key, infos[9].value.type, infos[9].value.data.string,
+	 infos[10].key, infos[10].value.type, infos[10].value.data.string,
+	 infos[11].key, infos[11].value.type, infos[11].value.data.uint16);
+    }
+    mlog("\n");
+# else
+    mlog("%s: %s(%d)=%u - %s(%d)=%u - %s(%d)=%u - %s(%d)=%u - %s(%d)=%hu -"
 	 " %s(%d)=%hu - %s(%d)=%u - %s(%d)=%d\n", __func__,
 	 infos[0].key, infos[0].value.type, infos[0].value.data.rank,
-	 infos[1].key, infos[1].value.type, infos[1].value.data.uint16,
-	 infos[2].key, infos[2].value.type, infos[2].value.data.uint16,
-	 infos[3].key, infos[3].value.type, infos[3].value.data.uint32,
-	 infos[4].key, infos[4].value.type, infos[4].value.data.uint32,
-	 infos[5].key, infos[5].value.type, infos[5].value.data.rank,
-	 infos[6].key, infos[6].value.type, infos[6].value.data.rank,
+	 infos[1].key, infos[1].value.type, infos[1].value.data.uint32,
+	 infos[2].key, infos[2].value.type, infos[2].value.data.rank,
+	 infos[3].key, infos[3].value.type, infos[3].value.data.rank,
+	 infos[4].key, infos[4].value.type, infos[4].value.data.uint16,
+	 infos[5].key, infos[5].value.type, infos[5].value.data.uint16,
+	 infos[6].key, infos[6].value.type, infos[6].value.data.uint32,
 	 infos[7].key, infos[7].value.type, infos[7].value.data.flag);
+# endif
 #endif
 
     procData->type = PMIX_INFO;
-    procData->size = PROC_DATA_ARRAY_LEN;
+    procData->size = ninfo;
     procData->array = infos;
 }
 
@@ -2360,7 +2451,7 @@ bool pspmix_server_registerNamespace(
 	    proc = vectorGet(&node->procs, i, PspmixProcess_t);
 
 	    pmix_data_array_t procData;
-	    fillProcDataArray(&procData, proc, node->id, spawned);
+	    fillProcDataArray(&procData, proc, node->id, spawned, nsdir);
 
 	    PMIX_INFO_LOAD(&data.info[count], PMIX_PROC_DATA, &procData,
 		    PMIX_DATA_ARRAY);

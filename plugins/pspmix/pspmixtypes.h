@@ -134,6 +134,7 @@ typedef struct {
     PspmixApp_t *app;        /**< application this process belongs to */
     uint16_t lrank;          /**< application local rank on the node running */
     uint16_t nrank;          /**< rank on the node running */
+    uint32_t reinc;          /**< times this process has been re-instantiated */
 } PspmixProcess_t;
 
 /** Node information */

@@ -190,8 +190,8 @@ static const char* generateNamespaceName(PStask_ID_t spawnertid)
 static char * printProcess(PspmixProcess_t *proc) {
     static char buffer[64];
 
-    sprintf(buffer, "(%u,%u,[%u:%u,%hu],%hu)", proc->grank, proc->rank,
-	    proc->app->num, proc->arank, proc->lrank, proc->nrank);
+    sprintf(buffer, "(%u,%u,[%u:%u,%hu],%hu,%u)", proc->grank, proc->rank,
+	    proc->app->num, proc->arank, proc->lrank, proc->nrank, proc->reinc);
 
     return buffer;
 }
@@ -379,7 +379,8 @@ bool pspmix_service_registerNamespace(PspmixJob_t *job)
 		    .rank = r,
 		    .grank = r,   /* XXX change for spawn support */
 		    .arank = apprank++,
-		    .app = ns->apps + app };
+		    .app = ns->apps + app,
+		    .reinc = 0 }; /* @todo when to increase that* */
 		vectorAdd(&node->procs, &proc);
 	    }
 	}
