@@ -380,8 +380,7 @@ bool pspmix_service_registerNamespace(PspmixJob_t *job)
 		    .grank = r,   /* XXX change for spawn support */
 		    .arank = apprank++,
 		    .app = ns->apps + app,
-		    .reinc = 0 }; /* @todo when to increase that?
-			https://github.com/pmix/pmix-standard/issues/402 */
+		    .reinc = 0 };
 		vectorAdd(&node->procs, &proc);
 	    }
 	}

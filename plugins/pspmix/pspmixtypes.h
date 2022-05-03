@@ -128,13 +128,14 @@ typedef struct {
  * > lightweight threads, commonly known as simply threads.
  */
 typedef struct {
-    pmix_rank_t rank;        /**< rank in the job/namespace */
-    pmix_rank_t grank;       /**< global rank in the session (== psid rank) */
-    pmix_rank_t arank;       /**< rank in the application */
-    PspmixApp_t *app;        /**< application this process belongs to */
-    uint16_t lrank;          /**< application local rank on the node running */
-    uint16_t nrank;          /**< rank on the node running */
-    uint32_t reinc;          /**< times this process has been re-instantiated */
+    pmix_rank_t rank;   /**< rank in the job/namespace */
+    pmix_rank_t grank;  /**< global rank in the session (== psid rank) */
+    pmix_rank_t arank;  /**< rank in the application */
+    PspmixApp_t *app;   /**< application this process belongs to */
+    uint16_t lrank;     /**< application local rank on the node running */
+    uint16_t nrank;     /**< rank on the node running */
+    uint32_t reinc;     /**< times this process has been re-instantiated
+			     https://github.com/pmix/pmix-standard/issues/402 */
 } PspmixProcess_t;
 
 /** Node information */
