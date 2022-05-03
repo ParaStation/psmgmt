@@ -380,7 +380,8 @@ bool pspmix_service_registerNamespace(PspmixJob_t *job)
 		    .grank = r,   /* XXX change for spawn support */
 		    .arank = apprank++,
 		    .app = ns->apps + app,
-		    .reinc = 0 }; /* @todo when to increase that* */
+		    .reinc = 0 }; /* @todo when to increase that?
+			https://github.com/pmix/pmix-standard/issues/402 */
 		vectorAdd(&node->procs, &proc);
 	    }
 	}
@@ -462,7 +463,8 @@ bool pspmix_service_removeNamespace(PStask_ID_t spawnertid)
     RELEASE_LOCK(namespaceList);
 
     /* @todo update PMIX_NODE_SIZE (processes over all the user's jobs)
-     * for all nodes of the namespace using pmix_register_resources */
+     * for all nodes of the namespace using pmix_register_resources
+     * https://github.com/pmix/pmix-standard/issues/401 */
 
     return true;
 }

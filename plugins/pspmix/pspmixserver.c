@@ -2073,7 +2073,8 @@ static void fillNodeInfoArray(pmix_data_array_t *nodeInfo, PspmixNode_t *node,
     PMIX_INFO_LOAD(&infos[2], PMIX_LOCAL_SIZE, &node->procs.len, PMIX_UINT32);
 
     /* Note: PMIX_NODE_SIZE (processes over all the user's jobs)
-     * managed by pmix_register_resources @todo */
+     * managed by pmix_register_resources @todo
+     * https://github.com/pmix/pmix-standard/issues/401*/
 
     /* lowest rank on this node within this job/namespace */
     PspmixProcess_t *proc = vectorGet(&node->procs, 0, PspmixProcess_t);
