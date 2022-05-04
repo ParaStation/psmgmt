@@ -174,35 +174,41 @@ uint32_t __getLocalRankID(uint32_t rank, Step_t *step,
 
 bool writeJobscript(Job_t *job)
 {
-    char *jobdir, buf[PATH_BUFFER_LEN];
+    bool ret = false;
 
     if (!job->jsData) {
-	mlog("%s: invalid jobscript data\n", __func__);
-	return false;
+	flog("invalid jobscript data for job %u\n", job->jobid);
+	return ret;
     }
 
     /* set jobscript filename */
-    jobdir = getConfValueC(&Config, "DIR_JOB_FILES");
+    char *jobdir = getConfValueC(&Config, "DIR_JOB_FILES");
+    char buf[PATH_BUFFER_LEN];
     snprintf(buf, sizeof(buf), "%s/%s", jobdir, Job_strID(job->jobid));
     job->jobscript = ustrdup(buf);
 
     FILE *fp = fopen(job->jobscript, "a");
     if (!fp) {
-	mlog("%s: open file '%s' failed\n", __func__, job->jobscript);
-	return false;
+	mwarn(errno, "%s: open jobscript '%s' for job %u failed", __func__,
+	      job->jobscript, job->jobid);
+	goto CLEANUP;
     }
 
     while (fprintf(fp, "%s", job->jsData) != (int)strlen(job->jsData)) {
 	if (errno == EINTR) continue;
-	mlog("%s: writing jobscript '%s' failed : %s\n", __func__,
-		job->jobscript, strerror(errno));
-	return false;
+	mwarn(errno, "%s: writing jobscript '%s' for job %i failed", __func__,
+	      job->jobscript, job->jobid);
+	goto CLEANUP;
     }
+
+    ret = true;
+
+CLEANUP:
     fclose(fp);
-    ufree(job->jsData);
+    strShred(job->jsData);
     job->jsData = NULL;
 
-    return true;
+    return ret;
 }
 
 static bool needIOReplace(char *ioString, char symbol)
@@ -2046,7 +2052,6 @@ static void handleBatchJobLaunch(Slurm_Msg_t *sMsg)
 
     /* memory cleanup  */
     malloc_trim(200);
-
 
     /* convert slurm hostlist to PSnodes   */
     if (!convHLtoPSnodes(job->slurmHosts, getNodeIDbySlurmHost,

@@ -81,11 +81,11 @@ bool Job_delete(Job_t *job)
     strShred(job->cwd);
     strShred(job->account);
     strShred(job->container);
+    strShred(job->jsData);
     job->uid = job->gid = 0;
 
     /* free memory */
     ufree(job->nodes);
-    ufree(job->jsData);
     ufree(job->stdOut);
     ufree(job->stdErr);
     ufree(job->stdIn);
