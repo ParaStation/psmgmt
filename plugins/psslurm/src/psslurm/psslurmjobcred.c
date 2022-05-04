@@ -26,7 +26,9 @@ void freeJobCred(JobCred_t *cred)
 {
     if (!cred) return;
 
-    ufree(cred->username);
+    strShred(cred->sig);
+    strShred(cred->username);
+
     ufree(cred->gids);
     ufree(cred->coresPerSocket);
     ufree(cred->socketsPerNode);
@@ -36,7 +38,6 @@ void freeJobCred(JobCred_t *cred)
     ufree(cred->stepCoreBitmap);
     ufree(cred->jobHostlist);
     ufree(cred->jobConstraints);
-    ufree(cred->sig);
     ufree(cred->pwGecos);
     ufree(cred->pwShell);
     ufree(cred->pwDir);
