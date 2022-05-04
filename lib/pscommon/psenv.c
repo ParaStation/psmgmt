@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2014-2020 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021 ParTec AG, Munich
+ * Copyright (C) 2021-2022 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -31,9 +31,12 @@ void envUnsetIndex(env_t *env, uint32_t idx)
     env->vars[env->cnt] = NULL;
 }
 
-void envDestroy(env_t *env)
+void __envDestroy(env_t *env, bool shred)
 {
-    for (uint32_t i = 0; i < env->cnt; i++) free(env->vars[i]);
+    for (uint32_t i = 0; i < env->cnt; i++) {
+	if (shred && env->vars[i]) memset(env->vars[i], 0, strlen(env->vars[i]));
+	free(env->vars[i]);
+    }
     free(env->vars);
     env->vars = NULL;
     env->cnt = env->size = 0;
