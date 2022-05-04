@@ -25,9 +25,9 @@
  *
  * @param cred Pointer to the created credential
  *
- * @return Returns 1 on success, or 0 in case of error
+ * @return Returns true on success, or false in case of error
  */
-typedef int(psMungeEncode_t)(char **cred);
+typedef bool(psMungeEncode_t)(char **cred);
 
 /**
  * @brief Create credential with restriced user access
@@ -41,9 +41,9 @@ typedef int(psMungeEncode_t)(char **cred);
  *
  * @param uid The user ID which is allowed to decode the credential
  *
- * @return Returns 1 on success, or 0 in case of error
+ * @return Returns true on success, or false in case of error
  */
-typedef int(psMungeEncodeRes_t)(char **cred, uid_t uid);
+typedef bool(psMungeEncodeRes_t)(char **cred, uid_t uid);
 
 /**
  * @brief Decode credential
@@ -58,9 +58,9 @@ typedef int(psMungeEncodeRes_t)(char **cred, uid_t uid);
  *
  * @param gid Group ID of the process creating the credential
  *
- * @return Returns 1 on success, or 0 in case of error
+ * @return Returns true on success, or false in case of error
  */
-typedef int(psMungeDecode_t)(const char *cred, uid_t *uid, gid_t *gid);
+typedef bool(psMungeDecode_t)(const char *cred, uid_t *uid, gid_t *gid);
 
 /**
  * @brief Decode credential with payload
@@ -87,10 +87,10 @@ typedef int(psMungeDecode_t)(const char *cred, uid_t *uid, gid_t *gid);
  *
  * @param gid Group ID of the process creating the credential
  *
- * @return Returns 1 on success, or 0 in case of error
+ * @return Returns true on success, or false in case of error
  */
-typedef int(psMungeDecodeBuf_t)(const char *cred, void **buf, int *len,
-				uid_t *uid, gid_t *gid);
+typedef bool(psMungeDecodeBuf_t)(const char *cred, void **buf, int *len,
+				 uid_t *uid, gid_t *gid);
 
 /**
  * @brief Measure calls to libmunge

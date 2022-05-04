@@ -89,9 +89,7 @@ bool extractSlurmAuth(Slurm_Msg_t *sMsg)
 	goto ERROR;
     }
 
-    int ret = psMungeDecode(auth->cred, &sMsg->head.uid, &sMsg->head.gid);
-
-    if (!ret) {
+    if (!psMungeDecode(auth->cred, &sMsg->head.uid, &sMsg->head.gid)) {
 	flog("decoding munge credential failed\n");
 	goto ERROR;
     }

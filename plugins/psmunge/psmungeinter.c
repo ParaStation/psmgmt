@@ -28,7 +28,7 @@ static munge_ctx_t defDecCtx = NULL;
 /** Flag to measure libmunge execution times */
 static bool timeMunge = false;
 
-static int mungeEncCtx(char **cred, munge_ctx_t ctx, const void *buf, int len)
+static bool mungeEncCtx(char **cred, munge_ctx_t ctx, const void *buf, int len)
 {
     struct timeval time_start, time_now, time_diff;
 
@@ -50,25 +50,25 @@ static int mungeEncCtx(char **cred, munge_ctx_t ctx, const void *buf, int len)
     if (err != EMUNGE_SUCCESS) {
 	mlog("%s: encode failed: %s\n", __func__, munge_strerror(err));
 	mlog("%s: ctx error: %s\n", __func__, munge_ctx_strerror(ctx));
-	return 0;
+	return false;
     }
 
-    return 1;
+    return true;
 }
 
-int psMungeEncode(char **cred)
+bool psMungeEncode(char **cred)
 {
     return psMungeEncodeRes(cred, MUNGE_UID_ANY);
 }
 
-int psMungeEncodeRes(char **cred, uid_t uid)
+bool psMungeEncodeRes(char **cred, uid_t uid)
 {
     munge_err_t err = munge_ctx_set(defEncCtx, MUNGE_OPT_UID_RESTRICTION, uid);
     if (err != EMUNGE_SUCCESS) {
 	mlog("%s: set restriced uid %i failed: %s\n", __func__, uid,
 	     munge_strerror(err));
 	mlog("%s: ctx error: %s\n", __func__, munge_ctx_strerror(defEncCtx));
-	return 0;
+	return false;
     }
 
     return mungeEncCtx(cred, defEncCtx, NULL, 0);
@@ -96,8 +96,8 @@ static void mungeLogCredTime(munge_ctx_t ctx)
     }
 }
 
-static int mungeDecCtx(const char *cred, munge_ctx_t ctx, void **buf, int *len,
-		       uid_t *uid, gid_t *gid)
+static bool mungeDecCtx(const char *cred, munge_ctx_t ctx, void **buf, int *len,
+		        uid_t *uid, gid_t *gid)
 {
     struct timeval time_start, time_now, time_diff;
 
@@ -121,29 +121,29 @@ static int mungeDecCtx(const char *cred, munge_ctx_t ctx, void **buf, int *len,
 	mlog("%s: ctx error: %s\n", __func__, munge_ctx_strerror(ctx));
 	if (err == EMUNGE_CRED_EXPIRED) mungeLogCredTime(ctx);
 	if (err == EMUNGE_BAD_ARG) mlog("%s: bad arg %s\n", __func__, cred);
-	return 0;
+	return false;
     }
 
-    return 1;
+    return true;
 }
 
-int psMungeDecode(const char *cred, uid_t *uid, gid_t *gid)
+bool psMungeDecode(const char *cred, uid_t *uid, gid_t *gid)
 {
     return mungeDecCtx(cred, defDecCtx, NULL, 0, uid, gid);
 }
 
-int psMungeDecodeBuf(const char *cred, void **buf, int *len,
+bool psMungeDecodeBuf(const char *cred, void **buf, int *len,
 		   uid_t *uid, gid_t *gid)
 {
     return mungeDecCtx(cred, defDecCtx, buf, len, uid, gid);
 }
 
-static int initDefaultContext(void)
+static bool initDefaultContext(void)
 {
     defEncCtx = munge_ctx_create();
     if (!defEncCtx) {
 	mlog("%s: creating encoding context failed\n", __func__);
-	return 0;
+	return false;
     }
 
     defDecCtx = munge_ctx_create();
@@ -151,7 +151,7 @@ static int initDefaultContext(void)
 	munge_ctx_destroy(defEncCtx);
 	defEncCtx = NULL;
 	mlog("%s: creating decoding context failed\n", __func__);
-	return 0;
+	return false;
     }
 
     /*
@@ -178,7 +178,7 @@ static int initDefaultContext(void)
     }
     */
 
-    return 1;
+    return true;
 }
 
 void psMungeMeasure(bool active)
