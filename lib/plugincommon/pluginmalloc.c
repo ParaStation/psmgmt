@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2012-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021 ParTec AG, Munich
+ * Copyright (C) 2021-2022 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -68,6 +68,12 @@ char *__ustrdup(const char *s1, const char *func, const int line)
     strcpy(copy, s1);
 
     return copy;
+}
+
+void __mshred(void *ptr, size_t len, const char *func, const int line)
+{
+    if (ptr) memset(ptr, 0, len);
+    __ufree(ptr, func, line);
 }
 
 void __ufree(void *ptr, const char *func, const int line)
