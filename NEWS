@@ -6,6 +6,24 @@ Copyright (C) 2021-2022 ParTec AG, Munich
 Please send bug reports, questions and suggestions to <support@par-tec.com>
 
 
+*************************************************************************
+*************************************************************************
+**                                                                     **
+**  psmgmt 5.1.48-5 adapts psslurm to critical bugfixes in Slurm       **
+**  (CVE-2022-29500, CVE-2022-29501, CVE-2022-29502). Therefore        **
+**  psslurm in this and further versions is only compatible with       **
+**  Slurm versions 20.11.9 and 21.08.8 and beyond                      **
+**                                                                     **
+*************************************************************************
+*************************************************************************
+
+Version 5.1.48-5:
+=================
+Bugfixes:
+ - Allow only specific users to decode munge messages send by psslurm
+ - Cleanup possibly sensitive information when spawning step- or job-forwarder
+
+
 Version 5.1.48-4:
 =================
 Bugfixes:

@@ -1,3 +1,54 @@
+Version psmgmt-5.1.48-5:
+========================
+------------------------------------------------------------------------
+b36f0d7cd | Norbert Eicker | Thu, 5 May 2022 18:14:16 +0200
+
+IWYU fixes
+------------------------------------------------------------------------
+b74e3862c | Michael Rauh | Thu, 5 May 2022 11:05:28 +0200
+
+Verify Slurm message type via munge credential
+------------------------------------------------------------------------
+f087470a1 | Michael Rauh | Wed, 4 May 2022 20:06:00 +0200
+
+booleanize psmunge functions
+------------------------------------------------------------------------
+708585235 | Michael Rauh | Wed, 4 May 2022 13:59:50 +0200
+
+Improve cleanup of writeJobscript()
+------------------------------------------------------------------------
+a042df2c4 | Michael Rauh | Wed, 4 May 2022 13:22:35 +0200
+
+Shred sensitive user data in psslurm
+------------------------------------------------------------------------
+07dd9a176 | Michael Rauh | Wed, 4 May 2022 13:22:01 +0200
+
+Introduce envShred() to zero and free an environment
+------------------------------------------------------------------------
+2bbbbba67 | Michael Rauh | Wed, 4 May 2022 13:16:37 +0200
+
+Introduce strShred() to zero and free a string in memory
+------------------------------------------------------------------------
+f9d25814c | Michael Rauh | Tue, 3 May 2022 17:27:37 +0200
+
+Allow REQUEST_CONFIG to be decoded by any user
+
+ - this is needed for configless setup if the Slurm user has a
+   non standard UID
+------------------------------------------------------------------------
+2a141aa3e | Michael Rauh | Mon, 2 May 2022 18:14:52 +0200
+
+Allow only specific users to decode munge messages send by psslurm
+------------------------------------------------------------------------
+e1f246f68 | Michael Rauh | Mon, 2 May 2022 14:52:55 +0200
+
+Add function psMungeEncodeRes() to restrict user access
+for munge credentials
+
+ - also bump psmunge API to version 5
+------------------------------------------------------------------------
+
+
 Version psmgmt-5.1.48-4:
 ========================
 ------------------------------------------------------------------------

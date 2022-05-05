@@ -115,9 +115,14 @@ void envUnset(env_t *env, const char *name);
  *
  * @param env Environment to clear
  *
+ * @param shred If true overwrite the memory with zeros before free
+ *
  * @return No return value
  */
-void envDestroy(env_t *env);
+void __envDestroy(env_t *env, bool shred);
+
+#define envDestroy(env) __envDestroy(env, false);
+#define envShred(env) __envDestroy(env, true);
 
 /**
  * @brief Put into environment

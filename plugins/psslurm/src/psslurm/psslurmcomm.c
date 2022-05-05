@@ -44,6 +44,7 @@
 #include "psslurmpack.h"
 #include "psslurmproto.h"
 #include "psslurmtasks.h"
+#include "psslurm.h"
 
 /** default slurmd port psslurm listens for new srun/slurmcltd requests */
 #define PSSLURM_SLURMD_PORT 6818
@@ -274,6 +275,7 @@ static bool saveFrwrdMsgReply(Slurm_Msg_t *sMsg, Msg_Forward_t *fw,
     if (srcNode == PSC_getMyID()) {
 	/* save local processed message */
 	fw->head.type = sMsg->head.type;
+	fw->head.uid = sMsg->head.uid;
 	if (!memToDataBuffer(sMsg->reply.buf, sMsg->reply.bufUsed, &fw->body)) {
 	    flog("error saving local result, caller %s@%i\n", func, line);
 	    return true;
@@ -978,12 +980,13 @@ int __sendDataBuffer(int sock, PS_SendDB_t *data, size_t offset,
 }
 
 int __sendSlurmMsg(int sock, slurm_msg_type_t type, PS_SendDB_t *body,
-		   void *info, const char *caller, const int line)
+		   void *info, uid_t uid, const char *caller, const int line)
 {
     Slurm_Msg_Header_t head;
 
     initSlurmMsgHead(&head);
     head.type = type;
+    head.uid = uid;
 
     return __sendSlurmMsgEx(sock, &head, body, info, caller, line);
 }
@@ -1006,14 +1009,15 @@ int __sendSlurmMsgEx(int sock, Slurm_Msg_Header_t *head, PS_SendDB_t *body,
 	return -1;
     }
 
-    Slurm_Auth_t *auth = getSlurmAuth();
+    fdbg(PSSLURM_LOG_PROTO, "msg(%i): %s, version %u munge uid %i "
+	 "caller %s:%i\n", head->type, msgType2String(head->type),
+	 head->version, head->uid, caller, line);
+
+    Slurm_Auth_t *auth = getSlurmAuth(head->uid);
     if (!auth) {
 	flog("getting a slurm authentication token failed\n");
 	return -1;
     }
-
-    fdbg(PSSLURM_LOG_PROTO, "msg(%i): %s, version %u\n",
-	 head->type, msgType2String(head->type), head->version);
 
     /* connect to slurmctld */
     if (sock < 0) {
@@ -1080,7 +1084,7 @@ int __sendSlurmctldReq(Req_Info_t *req, void *data,
     }
 
     req->time = time(NULL);
-    ret = __sendSlurmMsg(sock, req->type, &msg, req, caller, line);
+    ret = __sendSlurmMsg(sock, req->type, &msg, req, slurmUserID, caller, line);
 
 FINALIZE:
     if (ret == -1) ufree(req);
@@ -1566,7 +1570,7 @@ int srunSendMsg(int sock, Step_t *step, slurm_msg_type_t type,
     fdbg(PSSLURM_LOG_IO | PSSLURM_LOG_IO_VERB | PSSLURM_LOG_COMM,
 	 "sock %u, len: body.bufUsed %u\n", sock, body->bufUsed);
 
-    int ret = sendSlurmMsg(sock, type, body);
+    int ret = sendSlurmMsg(sock, type, body, step->uid);
     if (ret < 0) ufree(req);
 
     return ret;

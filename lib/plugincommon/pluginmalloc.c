@@ -71,6 +71,12 @@ char *__ustrdup(const char *s1, const char *func, const int line)
     return copy;
 }
 
+void __mshred(void *ptr, size_t len, const char *func, const int line)
+{
+    if (ptr) memset(ptr, 0, len);
+    __ufree(ptr, func, line);
+}
+
 void __ufree(void *ptr, const char *func, const int line)
 {
     plugindbg(PLUGIN_LOG_MALLOC, "ufree\t%15s\t%i\t%p\n", func, line, ptr);

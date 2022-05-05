@@ -75,15 +75,20 @@ bool Job_delete(Job_t *job)
     clearBCastByJobid(job->jobid);
     freeGresCred(&job->gresList);
 
+    /* overwrite sensitive data */
+    strShred(job->username);
+    strShred(job->jobscript);
+    strShred(job->cwd);
+    strShred(job->account);
+    strShred(job->container);
+    strShred(job->jsData);
+    job->uid = job->gid = 0;
+
     /* free memory */
-    ufree(job->username);
     ufree(job->nodes);
-    ufree(job->jobscript);
-    ufree(job->jsData);
     ufree(job->stdOut);
     ufree(job->stdErr);
     ufree(job->stdIn);
-    ufree(job->cwd);
     ufree(job->hostname);
     ufree(job->slurmHosts);
     ufree(job->checkpoint);
@@ -97,19 +102,17 @@ bool Job_delete(Job_t *job)
     ufree(job->tresBind);
     ufree(job->tresFreq);
     ufree(job->restartDir);
-    ufree(job->account);
     ufree(job->qos);
     ufree(job->resName);
-    ufree(job->container);
 
-    for (unsigned int i=0; i<job->argc; i++) ufree(job->argv[i]);
+    for (unsigned int i=0; i<job->argc; i++) strShred(job->argv[i]);
     ufree(job->argv);
 
     clearTasks(&job->tasks);
     freeJobCred(job->cred);
 
-    envDestroy(&job->env);
-    envDestroy(&job->spankenv);
+    envShred(&job->env);
+    envShred(&job->spankenv);
 
     list_del(&job->next);
     ufree(job);

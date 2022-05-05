@@ -14,6 +14,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <sys/time.h>
+#include <sys/types.h>
 #include <time.h>
 
 #include "list.h"
@@ -29,7 +30,11 @@
 /** default slurmctld port */
 #define PSSLURM_SLURMCTLD_PORT "6817"
 
+/** magic socket to open a new connection to slurmctld */
 #define SLURMCTLD_SOCK -1
+
+/** magic UID to allow any user to decode the munge credentail */
+#define RES_UID_ANY -1
 
 /** callback function of a connection structure */
 typedef int Connection_CB_t(Slurm_Msg_t *msg, void *info);
@@ -144,10 +149,10 @@ void closeSlurmCon(int socket);
  * @return Returns the number of bytes written or -1 on error
  */
 int __sendSlurmMsg(int sock, slurm_msg_type_t type, PS_SendDB_t *body,
-		   void *info, const char *caller, const int line);
+		   void *info, uid_t uid, const char *caller, const int line);
 
-#define sendSlurmMsg(sock, type, body) \
-    __sendSlurmMsg(sock, type, body, NULL, __func__, __LINE__)
+#define sendSlurmMsg(sock, type, body, uid) \
+    __sendSlurmMsg(sock, type, body, NULL, uid, __func__, __LINE__)
 
 /**
  * @brief Send a Slurm message

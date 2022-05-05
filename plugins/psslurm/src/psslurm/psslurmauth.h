@@ -31,9 +31,11 @@ typedef struct {
  * psmunge is supported as authentication method. The caller is
  * responsible to free the allocated memory using freeSlurmAuth().
  *
- * @return Returns the authentication token or NULL on error.
+ * @param uid The user ID allowed to decode the credential
+ *
+ * @return Returns the authentication token or NULL on error
  */
-Slurm_Auth_t *getSlurmAuth(void);
+Slurm_Auth_t *getSlurmAuth(uid_t uid);
 
 /**
  * @brief Free a Slurm authentication structure

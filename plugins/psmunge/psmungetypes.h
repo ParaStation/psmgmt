@@ -2,6 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2016 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2022 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -24,9 +25,25 @@
  *
  * @param cred Pointer to the created credential
  *
- * @return Returns 1 on success, or 0 in case of error
+ * @return Returns true on success, or false in case of error
  */
-typedef int(psMungeEncode_t)(char **cred);
+typedef bool(psMungeEncode_t)(char **cred);
+
+/**
+ * @brief Create credential with restriced user access
+ *
+ * Creates a credential contained in a NUL-terminated base64 string which
+ * can only be decoded by the specified user ID. A pointer to the resulting
+ * credential is returned via @a cred; on error, it is set to NULL.
+ * The caller is responsible to free() the memory referenced by @a cred.
+ *
+ * @param cred Pointer to the created credential
+ *
+ * @param uid The user ID which is allowed to decode the credential
+ *
+ * @return Returns true on success, or false in case of error
+ */
+typedef bool(psMungeEncodeRes_t)(char **cred, uid_t uid);
 
 /**
  * @brief Decode credential
@@ -41,9 +58,9 @@ typedef int(psMungeEncode_t)(char **cred);
  *
  * @param gid Group ID of the process creating the credential
  *
- * @return Returns 1 on success, or 0 in case of error
+ * @return Returns true on success, or false in case of error
  */
-typedef int(psMungeDecode_t)(const char *cred, uid_t *uid, gid_t *gid);
+typedef bool(psMungeDecode_t)(const char *cred, uid_t *uid, gid_t *gid);
 
 /**
  * @brief Decode credential with payload
@@ -70,10 +87,10 @@ typedef int(psMungeDecode_t)(const char *cred, uid_t *uid, gid_t *gid);
  *
  * @param gid Group ID of the process creating the credential
  *
- * @return Returns 1 on success, or 0 in case of error
+ * @return Returns true on success, or false in case of error
  */
-typedef int(psMungeDecodeBuf_t)(const char *cred, void **buf, int *len,
-				uid_t *uid, gid_t *gid);
+typedef bool(psMungeDecodeBuf_t)(const char *cred, void **buf, int *len,
+				 uid_t *uid, gid_t *gid);
 
 /**
  * @brief Measure calls to libmunge

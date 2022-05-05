@@ -174,35 +174,41 @@ uint32_t __getLocalRankID(uint32_t rank, Step_t *step,
 
 bool writeJobscript(Job_t *job)
 {
-    char *jobdir, buf[PATH_BUFFER_LEN];
+    bool ret = false;
 
     if (!job->jsData) {
-	mlog("%s: invalid jobscript data\n", __func__);
-	return false;
+	flog("invalid jobscript data for job %u\n", job->jobid);
+	return ret;
     }
 
     /* set jobscript filename */
-    jobdir = getConfValueC(&Config, "DIR_JOB_FILES");
+    char *jobdir = getConfValueC(&Config, "DIR_JOB_FILES");
+    char buf[PATH_BUFFER_LEN];
     snprintf(buf, sizeof(buf), "%s/%s", jobdir, Job_strID(job->jobid));
     job->jobscript = ustrdup(buf);
 
     FILE *fp = fopen(job->jobscript, "a");
     if (!fp) {
-	mlog("%s: open file '%s' failed\n", __func__, job->jobscript);
-	return false;
+	mwarn(errno, "%s: open jobscript '%s' for job %u failed", __func__,
+	      job->jobscript, job->jobid);
+	goto CLEANUP;
     }
 
     while (fprintf(fp, "%s", job->jsData) != (int)strlen(job->jsData)) {
 	if (errno == EINTR) continue;
-	mlog("%s: writing jobscript '%s' failed : %s\n", __func__,
-		job->jobscript, strerror(errno));
-	return false;
+	mwarn(errno, "%s: writing jobscript '%s' for job %i failed", __func__,
+	      job->jobscript, job->jobid);
+	goto CLEANUP;
     }
+
+    ret = true;
+
+CLEANUP:
     fclose(fp);
-    ufree(job->jsData);
+    strShred(job->jsData);
     job->jsData = NULL;
 
-    return true;
+    return ret;
 }
 
 static bool needIOReplace(char *ioString, char symbol)
@@ -596,6 +602,7 @@ static void handleLaunchTasks(Slurm_Msg_t *sMsg)
 	step->srunControlMsg.sock = sMsg->sock;
 	step->srunControlMsg.head.forward = sMsg->head.forward;
 	step->srunControlMsg.recvTime = sMsg->recvTime;
+	step->srunControlMsg.head.uid = step->uid;
 
 	/* start mpiexec to spawn the parallel processes,
 	 * intercept createPart call to overwrite the nodelist */
@@ -1733,7 +1740,7 @@ static void handleDaemonStatus(Slurm_Msg_t *sMsg)
 	     slurmProtoStr);
 
     packRespDaemonStatus(&msg, &stat);
-    sendSlurmMsg(sMsg->sock, RESPONSE_SLURMD_STATUS, &msg);
+    sendSlurmMsg(sMsg->sock, RESPONSE_SLURMD_STATUS, &msg, sMsg->head.uid);
 
     ufree(stat.stepList);
 }
@@ -2045,7 +2052,6 @@ static void handleBatchJobLaunch(Slurm_Msg_t *sMsg)
 
     /* memory cleanup  */
     malloc_trim(200);
-
 
     /* convert slurm hostlist to PSnodes   */
     if (!convHLtoPSnodes(job->slurmHosts, getNodeIDbySlurmHost,
@@ -2552,6 +2558,7 @@ static bool slurmTreeForward(Slurm_Msg_t *sMsg, Msg_Forward_t *fw)
     fw->head.fwResSize = sMsg->head.forward;
     fw->head.fwRes =
 	umalloc(sMsg->head.forward * sizeof(Slurm_Forward_Res_t));
+    fw->head.uid = sMsg->head.uid;
 
     for (uint32_t i = 0; i < sMsg->head.forward; i++) {
 	fw->head.fwRes[i].error = SLURM_COMMUNICATIONS_CONNECTION_ERROR;
@@ -3024,7 +3031,7 @@ int __sendSlurmReply(Slurm_Msg_t *sMsg, slurm_msg_type_t type,
     if (sMsg->source == -1) {
 	if (!sMsg->head.forward) {
 	    /* no forwarding active for this message, just send the answer */
-	    ret = sendSlurmMsg(sMsg->sock, type, &sMsg->reply);
+	    ret = sendSlurmMsg(sMsg->sock, type, &sMsg->reply, sMsg->head.uid);
 	} else {
 	    /* we are the root of the forwarding tree, so we save the result
 	     * and wait for all other forwarded messages to return */
@@ -3569,7 +3576,7 @@ bool sendConfigReq(const char *server, const int action)
 
     /* send configuration request message to slurmctld */
     addUint32ToMsg(CONFIG_REQUEST_SLURMD, &body);
-    if (sendSlurmMsg(sock, REQUEST_CONFIG, &body) == -1) {
+    if (sendSlurmMsg(sock, REQUEST_CONFIG, &body, RES_UID_ANY) == -1) {
 	flog("sending config request message failed\n");
 	goto ERROR;
     }

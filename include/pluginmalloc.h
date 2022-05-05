@@ -2,6 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2012-2021 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2021-2022 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -72,6 +73,27 @@ void *__urealloc(void *old ,size_t size, const char *func, const int line);
  */
 void __ufree(void *ptr, const char *func, const int line);
 #define ufree(ptr) __ufree(ptr, __func__, __LINE__)
+
+/**
+ * @brief Shred and free memory
+ *
+ * Zero the memory and free it with additional logging.
+ *
+ * @param ptr Pointer to the memory address to shred
+ *
+ * @param len The length of the data to shred
+ *
+ * @param func Funtion name of the calling function
+ *
+ * @param line Line number where this function is called
+ *
+ * @return No return value.
+ */
+void __mshred(void *ptr, size_t len, const char *func, const int line);
+#define mshred(ptr, len) __mshred(ptr, len, __func__, __LINE__)
+
+#define strShred(ptr) {	size_t len = 0; if (ptr) len = strlen(ptr); \
+    __mshred(ptr, len, __func__, __LINE__); }
 
 /**
  * @brief strdup() replacement using umalloc() and logging.

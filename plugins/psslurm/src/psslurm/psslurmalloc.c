@@ -190,9 +190,12 @@ bool Alloc_delete(uint32_t id)
 
     ufree(alloc->nodes);
     ufree(alloc->slurmHosts);
-    ufree(alloc->username);
     ufree(alloc->epilogRes);
-    envDestroy(&alloc->env);
+
+    /* overwrite sensitive data */
+    alloc->uid = alloc->gid = 0;
+    strShred(alloc->username);
+    envShred(&alloc->env);
 
     freeJobCred(alloc->cred);
     freeGresJobAlloc(alloc->gresList);

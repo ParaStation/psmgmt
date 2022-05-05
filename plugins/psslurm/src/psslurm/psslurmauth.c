@@ -53,12 +53,12 @@ Slurm_Auth_t *dupSlurmAuth(Slurm_Auth_t *auth)
     return dupAuth;
 }
 
-Slurm_Auth_t *getSlurmAuth(void)
+Slurm_Auth_t *getSlurmAuth(uid_t uid)
 {
     Slurm_Auth_t *auth;
     char *cred;
 
-    if (!psMungeEncode(&cred)) return NULL;
+    if (!psMungeEncodeRes(&cred, uid)) return NULL;
 
     auth = umalloc(sizeof(Slurm_Auth_t));
     auth->cred = cred;
@@ -69,40 +69,50 @@ Slurm_Auth_t *getSlurmAuth(void)
 
 bool extractSlurmAuth(Slurm_Msg_t *sMsg)
 {
-    Slurm_Auth_t *auth = NULL;
+    bool res = false;
+    char *sigBuf = NULL;
 
+    Slurm_Auth_t *auth = NULL;
     if (!unpackSlurmAuth(sMsg, &auth)) {
 	flog("unpacking Slurm authentication failed\n");
-	goto ERROR;
+	goto CLEANUP;
     }
 
     /* ensure munge is used for authentication */
     if (auth->pluginID && auth->pluginID != MUNGE_PLUGIN_ID) {
 	flog("unsupported authentication plugin %u should be %u\n",
 	     auth->pluginID, MUNGE_PLUGIN_ID);
-	goto ERROR;
+	goto CLEANUP;
     }
 
     /* unpack munge credential */
     if (!unpackMungeCred(sMsg, auth)) {
 	flog("unpacking munge credential failed\n");
-	goto ERROR;
+	goto CLEANUP;
     }
 
-    int ret = psMungeDecode(auth->cred, &sMsg->head.uid, &sMsg->head.gid);
-
-    if (!ret) {
+    int sigBufLen;
+    if (!psMungeDecodeBuf(auth->cred, (void **) &sigBuf, &sigBufLen,
+			  &sMsg->head.uid, &sMsg->head.gid)) {
 	flog("decoding munge credential failed\n");
-	goto ERROR;
+	goto CLEANUP;
+    }
+
+    /* check message type (a.k.a. hash) */
+    if (sigBufLen != 3 || sigBuf[0] != 1 ||
+	memcmp(sigBuf + 1, &sMsg->head.type, sizeof(sMsg->head.type))) {
+	flog("verify Slurm message hash failed\n");
+	goto CLEANUP;
     }
 
     fdbg(PSSLURM_LOG_AUTH, "valid message from user uid '%u' gid '%u'\n",
 	 sMsg->head.uid, sMsg->head.gid);
 
-    freeSlurmAuth(auth);
-    return true;
+    res = true;
 
-ERROR:
+CLEANUP:
+    ufree(sigBuf);
     freeSlurmAuth(auth);
-    return false;
+
+    return res;
 }

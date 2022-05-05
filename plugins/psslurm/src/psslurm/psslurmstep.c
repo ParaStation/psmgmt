@@ -256,6 +256,17 @@ bool Step_delete(Step_t *step)
 
     deleteCachedMsg(step->jobid, step->stepid);
 
+    /* overwrite sensitive data */
+    strShred(step->cwd);
+    strShred(step->taskProlog);
+    strShred(step->taskEpilog);
+    strShred(step->username);
+    strShred(step->x11.host);
+    strShred(step->x11.magicCookie);
+    strShred(step->x11.target);
+    strShred(step->container);
+    step->uid = step->gid = 0;
+
     ufree(step->srunPorts);
     ufree(step->tasksToLaunch);
     ufree(step->slurmHosts);
@@ -265,15 +276,11 @@ bool Step_delete(Step_t *step)
     ufree(step->cpuBind);
     ufree(step->memBind);
     ufree(step->IOPort);
-    ufree(step->cwd);
-    ufree(step->taskProlog);
-    ufree(step->taskEpilog);
     ufree(step->stdOut);
     ufree(step->stdIn);
     ufree(step->stdErr);
     ufree(step->checkpoint);
     ufree(step->partition);
-    ufree(step->username);
     ufree(step->outFDs);
     ufree(step->errFDs);
     ufree(step->outChannels);
@@ -286,11 +293,7 @@ bool Step_delete(Step_t *step)
     ufree(step->tresBind);
     ufree(step->tresFreq);
     ufree(step->tresPerTask);
-    ufree(step->x11.host);
-    ufree(step->x11.magicCookie);
-    ufree(step->x11.target);
     ufree(step->restartDir);
-    ufree(step->container);
 
     clearTasks(&step->tasks);
     clearTasks(&step->remoteTasks);
@@ -316,9 +319,7 @@ bool Step_delete(Step_t *step)
     ufree(step->packTIDsOffset);
     ufree(step->packTaskCounts);
 
-    for (uint32_t i=0; i<step->argc; i++) {
-	ufree(step->argv[i]);
-    }
+    for (uint32_t i=0; i<step->argc; i++) strShred(step->argv[i]);
     ufree(step->argv);
 
     list_t *c, *tmp;
@@ -335,9 +336,9 @@ bool Step_delete(Step_t *step)
     }
     ufree(step->spankOpt);
 
-    envDestroy(&step->env);
-    envDestroy(&step->spankenv);
-    envDestroy(&step->pelogueEnv);
+    envShred(&step->env);
+    envShred(&step->spankenv);
+    envShred(&step->pelogueEnv);
 
     list_del(&step->next);
     ufree(step);
