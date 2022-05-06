@@ -1551,9 +1551,9 @@ static void sendPendCRR(PendCRR_t *crr)
 	nCPUs += PSCPU_getCPUs(crr->sets[s], NULL, nBytes * 8);
     }
 
-    PSID_log(PSID_LOG_PART, "%s(%s): %d CPUs in %d slots of res %d in %d sets",
-	     __func__, PSC_printTID(crr->logger), nCPUs, crr->resID,
-	     crr->numSlots, s);
+    PSID_log(PSID_LOG_PART, "%s(%s): %d CPUs in %d slots of res %#x in %d sets",
+	     __func__, PSC_printTID(crr->logger), nCPUs, crr->numSlots,
+	     crr->resID, s);
     PSID_log(PSID_LOG_PART, " from %s (%d pending)\n",
 	     PSC_printTID(crr->sender), crr->pendSlots);
     if (sendMsg(&msg) < 0) {

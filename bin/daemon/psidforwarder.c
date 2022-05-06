@@ -357,8 +357,8 @@ static bool connectLogger(PStask_ID_t tid)
 	}
 
 	if (msg.header.len < PSLog_headerSize + (int) sizeof(int)) {
-	    PSID_log(-1, "%s(%s): rank %i : Message too short\n", __func__,
-		     PSC_printTID(tid), childTask->rank);
+	    PSID_log(-1, "%s(%s): rank %i: Message too short (%d)\n", __func__,
+		     PSC_printTID(tid), childTask->rank, msg.header.len);
 	    break;
 	} else if (msg.header.type != PSP_CC_MSG) {
 	    PSID_log(-1 ,"%s(%s): Protocol messed up, got %s\n", __func__,

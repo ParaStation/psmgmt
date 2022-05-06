@@ -53,14 +53,15 @@ Slurm_Auth_t *dupSlurmAuth(Slurm_Auth_t *auth)
     return dupAuth;
 }
 
-Slurm_Auth_t *getSlurmAuth(uid_t uid)
+Slurm_Auth_t *getSlurmAuth(uid_t uid, uint16_t msgType)
 {
-    Slurm_Auth_t *auth;
+    unsigned char sigBuf[3] = { 1 };
+    memcpy(sigBuf + 1, &msgType, sizeof(msgType));
+
     char *cred;
+    if (!psMungeEncodeRes(&cred, uid, sigBuf, sizeof(sigBuf))) return NULL;
 
-    if (!psMungeEncodeRes(&cred, uid)) return NULL;
-
-    auth = umalloc(sizeof(Slurm_Auth_t));
+    Slurm_Auth_t *auth = umalloc(sizeof(Slurm_Auth_t));
     auth->cred = cred;
     auth->pluginID = MUNGE_PLUGIN_ID;
 

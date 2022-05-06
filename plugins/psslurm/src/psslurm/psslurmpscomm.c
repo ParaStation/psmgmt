@@ -468,7 +468,7 @@ static int handleGetReservation(void *res) {
 
     /* psslurm does not support dynamic reservation requests */
     if (r->nMin != r->nMax) {
-	flog("Unexpected dynamic reservation request %d for task %s (%d"
+	flog("Unexpected dynamic reservation request %#x for task %s (%d"
 	     " != %d)\n", r->rid, PSC_printTID(task->tid), r->nMin, r->nMax);
 	return 1;
     }
@@ -491,7 +491,7 @@ static int handleGetReservation(void *res) {
 	/* only for MULTI_PROG steps we expect to get multiple reservation
 	 * requests since an mpiexec call with colons was generated for it */
 	if (!(step->taskFlags & LAUNCH_MULTI_PROG) && (r->nMin != step->np)) {
-	    flog("WARNING: Unexpected reservation request %d for task %s:"
+	    flog("WARNING: Unexpected reservation request %#x for task %s:"
 		 " Only %u from %d slots requested\n", r->rid,
 		 PSC_printTID(task->tid), r->nMin, step->np);
 	}

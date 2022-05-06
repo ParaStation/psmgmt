@@ -3029,7 +3029,7 @@ static bool send_RESRELEASED(PSrsrvtn_t *res)
 	// break on looping nodes (@todo this might not be sufficient!)
 	if (i > 0 && node == res->slots[0].node) break;
 
-	PSID_log(PSID_LOG_PART, "%s: to %hu for resID %d)\n", __func__,
+	PSID_log(PSID_LOG_PART, "%s: to %hu for resID %#x)\n", __func__,
 		 node, res->rid);
 
 	msg.header.dest =  PSC_getTID(node, 0);
@@ -3098,7 +3098,7 @@ static bool msg_CHILDRESREL(DDBufferMsg_t *msg)
     }
 
     PSID_log(PSID_LOG_PART, "%s(%s)", __func__, PSC_printTID(target));
-    PSID_log(PSID_LOG_PART, " from %s with %d slots for res %d\n",
+    PSID_log(PSID_LOG_PART, " from %s with %d slots for res %#x\n",
 	     PSC_printTID(msg->header.sender), numSlots, dynRes.rid);
 
     PSrsrvtn_t *thisRes = NULL;
@@ -3172,10 +3172,9 @@ static bool msg_CHILDRESREL(DDBufferMsg_t *msg)
 	    }
 	}
 
-	PSID_log(PSID_LOG_PART, "%s: Allow to re-use threads %s in reservation"
-		 " %#x on node %d. Still %d threads used\n", __func__,
-		 PSCPU_print(dynRes.slot.CPUset), dynRes.rid, dynRes.slot.node,
-		 delegate->usedThreads);
+	PSID_log(PSID_LOG_PART, "%s: Allow to re-use %d threads in reservation"
+		 " %#x on node %d. Still %d threads used\n", __func__, released,
+		 dynRes.rid, dynRes.slot.node, delegate->usedThreads);
 
 	/* next CPUset in message if any */
 	if (!PSP_tryGetMsgBuf(msg, &used, "CPUset", setBuf, nBytes)) break;
@@ -3440,7 +3439,7 @@ static PSrsrvtn_t *findRes(list_t *queue, PSrsrvtn_ID_t rid)
 {
     list_t *r;
 
-    PSID_log(PSID_LOG_PART, "%s(%p,%#x)\n", __func__, queue, rid);
+    PSID_log(PSID_LOG_PART, "%s(%p, %#x)\n", __func__, queue, rid);
 
     list_for_each(r, queue) {
 	PSrsrvtn_t *res = list_entry(r, PSrsrvtn_t, next);
