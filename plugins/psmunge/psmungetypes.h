@@ -41,9 +41,14 @@ typedef bool(psMungeEncode_t)(char **cred);
  *
  * @param uid The user ID which is allowed to decode the credential
  *
+ * @param buf Pointer to credential's payload if any
+ *
+ * @param len Length of credential's payload if any
+ *
  * @return Returns true on success, or false in case of error
  */
-typedef bool(psMungeEncodeRes_t)(char **cred, uid_t uid);
+typedef bool(psMungeEncodeRes_t)(char **cred, uid_t uid, const void *buf,
+				 int len);
 
 /**
  * @brief Decode credential

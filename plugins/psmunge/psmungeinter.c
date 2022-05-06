@@ -58,10 +58,10 @@ static bool mungeEncCtx(char **cred, munge_ctx_t ctx, const void *buf, int len)
 
 bool psMungeEncode(char **cred)
 {
-    return psMungeEncodeRes(cred, MUNGE_UID_ANY);
+    return psMungeEncodeRes(cred, MUNGE_UID_ANY, NULL, 0);
 }
 
-bool psMungeEncodeRes(char **cred, uid_t uid)
+bool psMungeEncodeRes(char **cred, uid_t uid, const void *buf, int len)
 {
     munge_err_t err = munge_ctx_set(defEncCtx, MUNGE_OPT_UID_RESTRICTION, uid);
     if (err != EMUNGE_SUCCESS) {
@@ -71,7 +71,7 @@ bool psMungeEncodeRes(char **cred, uid_t uid)
 	return false;
     }
 
-    return mungeEncCtx(cred, defEncCtx, NULL, 0);
+    return mungeEncCtx(cred, defEncCtx, buf, len);
 }
 
 static void mungeLogCredTime(munge_ctx_t ctx)
