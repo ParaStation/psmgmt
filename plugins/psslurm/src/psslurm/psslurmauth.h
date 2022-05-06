@@ -33,9 +33,11 @@ typedef struct {
  *
  * @param uid The user ID allowed to decode the credential
  *
+ * @param type Slurm message type bound to the credential
+ *
  * @return Returns the authentication token or NULL on error
  */
-Slurm_Auth_t *getSlurmAuth(uid_t uid);
+Slurm_Auth_t *getSlurmAuth(uid_t uid, uint16_t type);
 
 /**
  * @brief Free a Slurm authentication structure

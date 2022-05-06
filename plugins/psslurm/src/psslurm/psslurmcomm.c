@@ -1013,7 +1013,7 @@ int __sendSlurmMsgEx(int sock, Slurm_Msg_Header_t *head, PS_SendDB_t *body,
 	 "caller %s:%i\n", head->type, msgType2String(head->type),
 	 head->version, head->uid, caller, line);
 
-    Slurm_Auth_t *auth = getSlurmAuth(head->uid);
+    Slurm_Auth_t *auth = getSlurmAuth(head->uid, head->type);
     if (!auth) {
 	flog("getting a slurm authentication token failed\n");
 	return -1;
