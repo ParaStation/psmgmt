@@ -6,6 +6,14 @@ Copyright (C) 2021-2022 ParTec AG, Munich
 Please send bug reports, questions and suggestions to <support@par-tec.com>
 
 
+Version 5.1.48-6:
+=================
+Bugfixes:
+ - Attach Slurm message hash to munge credential (psc:#402)
+Enhancements:
+ - Allow to encode payload in psMungeEncodeRes()
+ - Improve debug log (unify resID print, minor fixes)
+
 *************************************************************************
 *************************************************************************
 **                                                                     **
