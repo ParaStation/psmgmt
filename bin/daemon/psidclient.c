@@ -1127,18 +1127,6 @@ void PSIDclient_init(void)
     PSID_registerDropper(PSP_CC_MSG, drop_CC_MSG);
 }
 
-static inline void fixList(list_t *list, list_t *oldHead)
-{
-    if (list->next == oldHead) {
-	/* list was empty */
-	INIT_LIST_HEAD(list);
-    } else {
-	/* fix reverse pointers */
-	list->next->prev = list;
-	list->prev->next = list;
-    }
-}
-
 int PSIDclient_setMax(int max)
 {
     int oldMax = maxClientFD;
@@ -1156,9 +1144,9 @@ int PSIDclient_setMax(int max)
     /* Restore old lists if necessary */
     if (newClients != clients) {
 	for (int fd = 0; fd < oldMax; fd++) {
-	    fixList(&newClients[fd].msgs, &clients[fd].msgs);
+	    list_fix(&newClients[fd].msgs, &clients[fd].msgs);
 	    for (int h = 0; h < FLWCNTRL_HASH_SIZE; h++) {
-		fixList(&newClients[fd].stops[h], &clients[fd].stops[h]);
+		list_fix(&newClients[fd].stops[h], &clients[fd].stops[h]);
 	    }
 	}
     }

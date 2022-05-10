@@ -132,18 +132,6 @@ static void initHash(void)
     for (unsigned i = 0; i < sizeof(hosts)/sizeof(*hosts); i++) hosts[i] = NULL;
 }
 
-static inline void fixList(list_t *list, list_t *oldHead)
-{
-    if (list->next == oldHead) {
-	/* list was empty */
-	INIT_LIST_HEAD(list);
-    } else {
-	/* fix reverse pointers */
-	list->next->prev = list;
-	list->prev->next = list;
-    }
-}
-
 int PSIDnodes_grow(PSnodes_ID_t num)
 {
     PSnodes_ID_t oldNum = PSIDnodes_getNum();
@@ -165,10 +153,10 @@ int PSIDnodes_grow(PSnodes_ID_t num)
     /* Restore old lists if necessary */
     if (newNodes != nodes) {
 	for (int i = 0; i < oldNum; i++) {
-	    fixList(&newNodes[i].uid_list, &nodes[i].uid_list);
-	    fixList(&newNodes[i].gid_list, &nodes[i].gid_list);
-	    fixList(&newNodes[i].admuid_list, &nodes[i].admuid_list);
-	    fixList(&newNodes[i].admgid_list, &nodes[i].admgid_list);
+	    list_fix(&newNodes[i].uid_list, &nodes[i].uid_list);
+	    list_fix(&newNodes[i].gid_list, &nodes[i].gid_list);
+	    list_fix(&newNodes[i].admuid_list, &nodes[i].admuid_list);
+	    list_fix(&newNodes[i].admgid_list, &nodes[i].admgid_list);
 	}
     }
     /* Initialize new nodes */

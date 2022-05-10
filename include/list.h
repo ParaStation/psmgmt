@@ -181,5 +181,23 @@ static inline void list_splice(struct list_head *list, struct list_head *head)
 		pos = n, n = pos->next)
 
 
+/**
+ * list_fix - adapt list linkage if head was moved (e.g. as part of a
+ * struct via realloc())
+ *
+ * @head:	new position of @struct list_head to fix.
+ * @old:	old posistion of @struct list_head for reference.
+ */
+static inline void list_fix(struct list_head *head, struct list_head *old)
+{
+    if (head->next == old) {
+	/* list was empty */
+	INIT_LIST_HEAD(head);
+    } else {
+	/* fix reverse pointers */
+	head->next->prev = head;
+	head->prev->next = head;
+    }
+}
 
 #endif /* _LIST_H_ */
