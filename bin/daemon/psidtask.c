@@ -34,7 +34,6 @@ LIST_HEAD(obsoleteTasks);
 static void printList(list_t *sigList)
 {
     list_t *s;
-
     list_for_each(s, sigList) {
 	PSsignal_t *sig = list_entry(s, PSsignal_t, next);
 	PSID_log(PSID_LOG_SIGDBG, " %s/%d",
@@ -44,16 +43,17 @@ static void printList(list_t *sigList)
 
 void PSID_setSignal(list_t *sigList, PStask_ID_t tid, int signal)
 {
+    int blockedRDP = RDP_blockTimer(true);
+
     PSsignal_t *thissig = PSsignal_get();
     if (!thissig) {
 	PSID_warn(-1, errno, "%s(%s,%d)", __func__, PSC_printTID(tid), signal);
+	RDP_blockTimer(blockedRDP);
 	return;
     }
 
     PSID_log(PSID_LOG_SIGNAL, "%s(%s, %d)\n",
 	     __func__, PSC_printTID(tid), signal);
-
-    int blockedRDP = RDP_blockTimer(true);
 
     if (PSID_getDebugMask() & PSID_LOG_SIGDBG) {
 	PSID_log(PSID_LOG_SIGDBG, "%s: signals before (in %p):",
@@ -75,7 +75,6 @@ void PSID_setSignal(list_t *sigList, PStask_ID_t tid, int signal)
     }
 
     RDP_blockTimer(blockedRDP);
-
 }
 
 PSsignal_t *PSID_findSignal(list_t *sigList, PStask_ID_t tid, int signal)
