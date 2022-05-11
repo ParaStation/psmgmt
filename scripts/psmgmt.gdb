@@ -2,7 +2,7 @@
 # ParaStation
 #
 # Copyright (C) 2011-2021 ParTec Cluster Competence Center GmbH, Munich
-# Copyright (C) 2021 ParTec AG, Munich
+# Copyright (C) 2021-2022 ParTec AG, Munich
 #
 # This file may be distributed under the terms of the Q Public License
 # as defined in the file LICENSE.QPL included in the packaging of this
@@ -48,7 +48,6 @@ the array is assumed to have structured elements and only this entry
 of the structure is printed.
 
 end
-
 
 define reverse_print_list
 
@@ -96,7 +95,6 @@ the first element will be printed.
 
 end
 
-
 define print_list
 
   if $argc < 1
@@ -143,7 +141,6 @@ the first element will be printed.
 
 end
 
-
 define list_len
 
   if $argc < 1
@@ -180,7 +177,6 @@ Print length of list defined with the help of the Linux kernel's list.h.
 LISTHEAD is the corresponding anchor of the list.
 
 end
-
 
 define array_list_len
 
@@ -230,7 +226,6 @@ not start at the first element but at the number given.
 
 end
 
-
 define print_msg_list
 
   if $argc < 1
@@ -271,7 +266,6 @@ NUM is given, the first NUM elements will be displayed. Otherwise only
 the first element of the list will be printed.
 end
 
-
 define reverse_print_list_entry
 
   if $argc < 3
@@ -301,7 +295,6 @@ define reverse_print_list_entry
   end
 end
 
-
 document reverse_print_list_entry
 Syntax: reverse_print_list_entry LISTHEAD TYPE ENTRY [NUM]
 
@@ -314,7 +307,6 @@ argument NUM is given, the first NUM entries will be
 displayed. Otherwise only the first entry of the list will be printed.
 
 end
-
 
 define print_list_entry
 
@@ -345,7 +337,6 @@ define print_list_entry
   end
 end
 
-
 document print_list_entry
 Syntax: print_list_entry LISTHEAD TYPE ENTRY [NUM]
 
@@ -366,6 +357,7 @@ define list_item
   else
     echo ($arg1\ *)
     output ((char *)($arg0)-(unsigned long)(&(($arg1 *)0)->next))
+    echo \n
   end
 end
 
@@ -374,6 +366,50 @@ Syntax: list_item LISTPOINTER TYPE
 
 LISTPOINTER points to the list anchor of the element. It is assumed that the
 element is of type TYPE. A pointer to the actual element is returned.
+
+end
+
+define print_array_if
+  if $argc < 3
+    echo print_array_if ARRAY CONDFIELD CONDVALUE [NUM [FIELD]]\n
+  else
+    set $array = $arg0
+    if $argc < 4
+      set $num = 5
+    else
+      set $num = $arg3
+    end
+
+    set $i = 0
+    while $i < $num
+      if $array[$i].$arg1 == $arg2
+	output $i
+	echo \ :\ \
+	if $argc < 5
+	  output $array[$i]
+	else
+	  output $array[$i++].$arg4
+	end
+	echo \n
+      end
+      set $i = $i + 1
+    end
+  end
+end
+
+document print_array_if
+Syntax: print_array_if ARRAY CONDFIELD CONDVALUE [NUM [ENTRY]]
+
+Print array's content conditionally.
+
+ARRAY is the array itself. Content will only be printed if the array's
+entry's CONDFIELD element is identical to CONDVALUE. Otherwise the
+corresponding entry is skipped. If the optional argument NUM is given,
+the first NUM elements will be displayed. If furthermore ENTRY is given,
+the array is assumed to have structured elements and only this entry
+of the structure is printed.
+
+end
 
 ### Local Variables:
 ### mode: gdb-script
