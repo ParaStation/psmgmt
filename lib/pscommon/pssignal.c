@@ -30,9 +30,7 @@ void PSsignal_init(void)
 PSsignal_t *PSsignal_get(void)
 {
     PSsignal_t *sp = PSitems_getItem(sigPool);
-    if (!sp) return NULL;
-
-    sp->tid = 0;
+    if (sp) sp->tid = 0;
 
     return sp;
 }

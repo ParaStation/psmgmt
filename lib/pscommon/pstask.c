@@ -71,11 +71,8 @@ const char* PStask_printGrp(PStask_group_t tg)
 
 PStask_t* PStask_new(void)
 {
-    PStask_t* task;
-
     PSC_log(PSC_LOG_TASK, "%s()\n", __func__);
-    task = malloc(sizeof(PStask_t));
-
+    PStask_t* task = malloc(sizeof(PStask_t));
     if (task) PStask_init(task);
 
     return task;
@@ -263,13 +260,10 @@ bool PStask_destroy(PStask_t* task)
 
 PStask_t* PStask_clone(PStask_t* task)
 {
-    PStask_t *clone;
-    int eno = 0;
-    uint32_t i;
-
     PSC_log(PSC_LOG_TASK, "%s(%p)\n", __func__, task);
+    int eno = 0;
 
-    clone = PStask_new();
+    PStask_t *clone = PStask_new();
 
     /* clone->tid = 0; */
     clone->ptid = task->ptid;
@@ -311,7 +305,7 @@ PStask_t* PStask_clone(PStask_t* task)
 	PSC_warn(-1, eno, "%s: malloc(argv)", __func__);
 	goto error;
     }
-    for (i=0; i<task->argc; i++) {
+    for (uint32_t i = 0; i < task->argc; i++) {
 	if (!task->argv[i]) {
 	    PSC_log(-1, "%s: argv[%d] is NULL\n", __func__, i);
 	    eno = EINVAL;
@@ -338,7 +332,8 @@ PStask_t* PStask_clone(PStask_t* task)
 	    PSC_warn(-1, eno, "%s: malloc(environ)", __func__);
 	    goto error;
 	}
-	for (i=0; task->environ[i]; i++) {
+	uint32_t i;
+	for (i = 0; task->environ[i]; i++) {
 	    clone->environ[i] = strdup(task->environ[i]);
 	    if (!clone->environ[i]) {
 		eno = errno;
@@ -446,12 +441,10 @@ static void snprintfStruct(char *txt, size_t size, PStask_t *task)
 
 static void snprintfStrV(char *txt, size_t size, char **strV)
 {
-    if (strV) {
-	int i;
-	for (i=0; strV[i]; i++) {
-	    snprintf(txt+strlen(txt), size-strlen(txt), "%s ", strV[i]);
-	    if (strlen(txt)+1 == size) return;
-	}
+    if (!strV) return;
+    for (uint32_t i = 0; strV[i]; i++) {
+	snprintf(txt+strlen(txt), size-strlen(txt), "%s ", strV[i]);
+	if (strlen(txt)+1 == size) return;
     }
 }
 
@@ -542,8 +535,6 @@ size_t PStask_encodeTask(char *buffer, size_t size, PStask_t *task, char **off)
 
 bool PStask_sendTask(PS_SendDB_t *msg, PStask_t *task)
 {
-    char *wDir;
-
     snprintfStruct(someStr, sizeof(someStr), task);
     PSC_log(PSC_LOG_TASK, "%s(%p, task(%s))\n", __func__, msg, someStr);
 
@@ -563,11 +554,7 @@ bool PStask_sendTask(PS_SendDB_t *msg, PStask_t *task)
 
     if (!addMemToMsg(&tmpTask, sizeof(tmpTask), msg)) return false;
 
-    if (task->workingdir) {
-	wDir = task->workingdir;
-    } else {
-	wDir = "";
-    }
+    char *wDir = task->workingdir ? task->workingdir : "";
     if (!addStringToMsg(wDir, msg)) return false;
 
     return true;
@@ -625,12 +612,12 @@ int PStask_decodeTask(char *buffer, PStask_t *task, bool withWDir)
 
 bool PStask_sendStrV(PS_SendDB_t *msg, char **strV)
 {
-    uint32_t num = 0, i;
-
+    uint32_t num = 0;
     while (strV[num]) num++;
 
     addUint32ToMsg(num, msg);
-    for (i = 0; i < num; i++) if (!addStringToMsg(strV[i], msg)) return false;
+    for (uint32_t i = 0; i < num; i++)
+	if (!addStringToMsg(strV[i], msg)) return false;
 
     return true;
 }
@@ -817,8 +804,6 @@ static int decodeStrV(char *buffer, char ***strV, uint32_t *size)
  */
 static int decodeStrVApp(char *buffer, char **strV, int size)
 {
-    size_t newLen;
-
     if (!strV) {
 	PSC_log(-1, "%s: No string in strV yet\n", __func__);
 	return 0;
@@ -826,7 +811,7 @@ static int decodeStrVApp(char *buffer, char **strV, int size)
 
     /* Append to environment */
     /* size-1 is closing NULL, thus use size-2 */
-    newLen = strlen(strV[size-2]) + strlen(buffer) + 1;
+    size_t newLen = strlen(strV[size-2]) + strlen(buffer) + 1;
     strV[size-2] = realloc(strV[size-2], newLen);
     if (! strV[size-2]) {
 	PSC_warn(-1, errno, "%s: realloc()", __func__);
@@ -857,8 +842,6 @@ size_t PStask_encodeArgv(char *buffer, size_t size, char **argv, int *cur,
 
 int PStask_decodeArgv(char *buffer, PStask_t *task)
 {
-    int ret;
-
     if (!task) {
 	PSC_log(-1, "%s: task is NULL\n", __func__);
 	return 0;
@@ -871,7 +854,7 @@ int PStask_decodeArgv(char *buffer, PStask_t *task)
 
     /* argc ignores closing NULL in argv */
     if (task->argc) task->argc++;
-    ret = decodeStrV(buffer, &task->argv, &task->argc);
+    int ret = decodeStrV(buffer, &task->argv, &task->argc);
     task->argc--;
 
     if (PSC_getDebugMask() & PSC_LOG_TASK) {
@@ -885,8 +868,6 @@ int PStask_decodeArgv(char *buffer, PStask_t *task)
 
 int PStask_decodeArgvAppend(char *buffer, PStask_t *task)
 {
-    int ret;
-
     if (!task) {
 	PSC_log(-1, "%s: task is NULL\n", __func__);
 	return 0;
@@ -904,7 +885,7 @@ int PStask_decodeArgvAppend(char *buffer, PStask_t *task)
 
     /* argc ignores closing NULL in argv */
     if (task->argc) task->argc++;
-    ret = decodeStrVApp(buffer, task->argv, task->argc);
+    int ret = decodeStrVApp(buffer, task->argv, task->argc);
     task->argc--;
 
     if (PSC_getDebugMask() & PSC_LOG_TASK) {
@@ -935,8 +916,6 @@ size_t PStask_encodeEnv(char *buffer, size_t size, char **env,
 
 int PStask_decodeEnv(char *buffer, PStask_t *task)
 {
-    int ret;
-
     if (!task) {
 	PSC_log(-1, "%s: task is NULL\n", __func__);
 	return 0;
@@ -947,7 +926,7 @@ int PStask_decodeEnv(char *buffer, PStask_t *task)
 	PSC_log(PSC_LOG_TASK, "%s(%p, task(%s))\n", __func__, buffer, someStr);
     }
 
-    ret = decodeStrV(buffer, &task->environ, &task->envSize);
+    int ret = decodeStrV(buffer, &task->environ, &task->envSize);
 
     if (PSC_getDebugMask() & PSC_LOG_TASK) {
 	snprintfStrV(someStr, sizeof(someStr), task->environ);
@@ -960,8 +939,6 @@ int PStask_decodeEnv(char *buffer, PStask_t *task)
 
 int PStask_decodeEnvAppend(char *buffer, PStask_t *task)
 {
-    int ret;
-
     if (!task) {
 	PSC_log(-1, "%s: task is NULL\n", __func__);
 	return 0;
@@ -977,7 +954,7 @@ int PStask_decodeEnvAppend(char *buffer, PStask_t *task)
 	return 0;
     }
 
-    ret = decodeStrVApp(buffer, task->environ, task->envSize);
+    int ret = decodeStrVApp(buffer, task->environ, task->envSize);
 
     if (PSC_getDebugMask() & PSC_LOG_TASK) {
 	snprintfStrV(someStr, sizeof(someStr), task->environ);

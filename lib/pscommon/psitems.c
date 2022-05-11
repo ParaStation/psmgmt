@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2018-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021 ParTec AG, Munich
+ * Copyright (C) 2021-2022 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -166,9 +166,7 @@ void * __PSitems_getItem(PSitems_t items, const char *caller, const int line)
 		caller, line);
 	return NULL;
     }
-
-    list_del(&item->next);
-    INIT_LIST_HEAD(&item->next);
+    list_del_init(&item->next);
 
     items->used++;
 
@@ -227,14 +225,14 @@ static void freeChunk(PSitems_t items, chunk_t *chunk, bool(*relocItem)(void*))
 	}
     }
 
-    /* Second round: now relocate and release all used items */
+    /* Second round: now relocate and release all items still in use */
     for (uint32_t i = 0; i < items->iPC; i++) {
 	item_t *item = (item_t *)&chunk->itemBuf[i * items->itemSize];
 
 	if (item->state == PSITEM_DRAINED) continue;
 
 	if (item->state == PSITEM_IDLE) {
-	    /* item might got idle in the meantime */
+	    /* item might have got idle in the meantime */
 	    list_del(&item->next);
 	} else {
 	    if (!relocItem(item)) {

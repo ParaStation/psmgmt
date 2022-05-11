@@ -207,7 +207,7 @@ static void RDPCallBack(RDP_CB_type_t type, void *buf)
  * Process all pending SIGCHLD. Will cleanup corresponding
  * task-structures, etc.
  *
- * @param fd File-selector providing info on died child processes. Ignored.
+ * @param fd File-selector providing info on dead child processes (ignored)
  *
  * @param info Dummy pointer to extra info. Ignored.
  *
