@@ -3279,7 +3279,8 @@ static bool msg_CHILDDEAD(DDErrorMsg_t *msg)
 	obsoleteSndr ? &obsoleteTasks : &managedTasks, msg->header.sender);
     if (forwarder) {
 	if (PSID_removeSignal(&forwarder->childList, msg->request, -1)) {
-	    if (list_empty(&forwarder->childList)) forwarder->released = true;
+	    if (PSID_emptySigList(&forwarder->childList))
+		forwarder->released = true;
 	} else {
 	    /* ensure non responsible forwarder is not referred any further */
 	    forwarder = NULL;
