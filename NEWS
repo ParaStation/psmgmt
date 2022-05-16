@@ -6,6 +6,33 @@ Copyright (C) 2021-2022 ParTec AG, Munich
 Please send bug reports, questions and suggestions to <support@par-tec.com>
 
 
+Version 5.1.49:
+===============
+Bugfixes:
+ - Avoid reading beyond end of buffer
+ - Ensure SIGPIPE is not ignored if started via systemd
+ - Prevent PSsignal_get() from interupt by RDP timeouts, too
+Enhancements:
+ - Major rework of pspmix to a concept of one server per user
+ - Add function to deregister client from PMIx server library
+ - Unload psslurm if Slurm's healthcheck fails
+ - Introduce PStask_destroy() and rework PSIDtask_clearMem() to use it
+ - Plugin's help directive now takes an argument
+ - Rework update caching in providerloop.c
+Additional changes:
+ - Store reservations in jobs as sets grouped by spawner
+ - Fix description of DEBUG_MASK in pspmix.conf
+ - Fix various gcc-12 warnings
+ - Split psidsession.[ch] from psidspawn.[ch]
+ - Introduce PSC_getVersionStr() and make use of it at various places
+ - Make PSID_findJobInSession() public
+ - Rename (original) PSjob_t to PSsession_t and PSresset_t to PSjob_t
+ - Rename PSI_sendSpawnReq() to sendSpawnReq() and make it private
+ - Consolidate env.[ch] into psenv.[cv]
+ - Centralize fixList() into list_fix() in list.h
+ - Add print_array_if macro to gdbinit definitions
+
+
 Version 5.1.48-6:
 =================
 Bugfixes:
