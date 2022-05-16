@@ -19,7 +19,7 @@
 #include <sys/types.h>
 
 #include "list.h"
-#include "pstask.h"
+#include "pscommon.h"
 
 #include "psidclient.h"
 #include "psidcomm.h"
@@ -27,7 +27,6 @@
 #include "psidtask.h"
 #include "psidutil.h"
 
-#include "logging.h"
 #include "config_parsing.h"
 
 /* stub required for logging in psidnodes.c */
