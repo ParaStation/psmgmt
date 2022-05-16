@@ -174,17 +174,16 @@ bool SpankInitPlugins(void)
 
 void SpankFinalize(void)
 {
-    list_t *s, *tmp;
-
     /* unload all spank plugins */
+    list_t *s, *tmp;
     list_for_each_safe(s, tmp, &SpankList) {
 	Spank_Plugin_t *sp = list_entry(s, Spank_Plugin_t, next);
-
 	delSpankPlug(sp);
     }
 
     /* unload global spank symbols */
     if (globalSym) dlclose(globalSym);
+    globalSym = NULL;
 }
 
 bool SpankInitGlobalSym(void)
@@ -200,6 +199,7 @@ bool SpankInitGlobalSym(void)
     psSpank_Init = dlsym(globalSym, "psSpank_Init");
     if (!psSpank_Init) {
 	dlclose(globalSym);
+	globalSym = NULL;
 	flog("dlsym(%s) failed to get psSpank_Init handle\n", GLOBAL_SYMBOLS);
 	return false;
     }
