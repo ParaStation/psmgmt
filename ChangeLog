@@ -1,3 +1,460 @@
+Version psmgmt-5.1.49:
+======================
+------------------------------------------------------------------------
+f61525c91 | Norbert Eicker | Mon, 16 May 2022 20:33:58 +0200
+
+Ensure SpankIsInitialized() always returns the truth
+------------------------------------------------------------------------
+c6b5bbfcc | Norbert Eicker | Mon, 16 May 2022 20:31:27 +0200
+
+Avoid unnecessary goto statements
+------------------------------------------------------------------------
+833790d55 | Michael Rauh | Mon, 16 May 2022 16:04:27 +0200
+
+Unload psslurm if Slurm healthcheck fails
+------------------------------------------------------------------------
+8cf6f07c0 | Norbert Eicker | Mon, 16 May 2022 10:13:02 +0200
+
+IWYU fixes
+------------------------------------------------------------------------
+bb7a9aa18 | Norbert Eicker | Mon, 2 May 2022 16:33:09 +0200
+
+Update psiadmin's inline help to upgraded 'plugin help' directive
+------------------------------------------------------------------------
+7c1a43de7 | Norbert Eicker | Mon, 2 May 2022 12:09:15 +0200
+
+Enable `plugin help` extra parameter in psiadmin
+------------------------------------------------------------------------
+8942cb3d4 | Norbert Eicker | Mon, 2 May 2022 12:07:00 +0200
+
+Avoid unnecessary goto statements
+------------------------------------------------------------------------
+f23f2ef8d | Norbert Eicker | Mon, 2 May 2022 11:37:46 +0200
+
+Add key parameter to plugins' help() method
+------------------------------------------------------------------------
+199193a88 | Norbert Eicker | Mon, 2 May 2022 11:35:42 +0200
+
+Streamlining
+------------------------------------------------------------------------
+3319062ae | Norbert Eicker | Mon, 2 May 2022 10:50:12 +0200
+
+Improve docu comments
+------------------------------------------------------------------------
+93590306b | Norbert Eicker | Thu, 12 May 2022 21:05:19 +0200
+
+More safety from RDP timeouts
+------------------------------------------------------------------------
+b57fc3113 | Norbert Eicker | Wed, 11 May 2022 15:48:46 +0200
+
+Prevent PSsignal_get() from interupt by PSsignal_get(), too
+------------------------------------------------------------------------
+571765dd1 | Norbert Eicker | Wed, 11 May 2022 14:31:26 +0200
+
+Minor streamlining and improved comments
+------------------------------------------------------------------------
+647d465e9 | Norbert Eicker | Wed, 11 May 2022 13:01:46 +0200
+
+Add print_array_if macro to gdbinit definitions
+------------------------------------------------------------------------
+72e38258a | Norbert Eicker | Tue, 10 May 2022 10:07:20 +0200
+
+Centralize fixList() into list_fix() in list.h
+------------------------------------------------------------------------
+dcffb01de | Norbert Eicker | Fri, 6 May 2022 14:00:34 +0200
+
+Merge branch '5.1.48' again
+------------------------------------------------------------------------
+7f87a2aae | Norbert Eicker | Thu, 5 May 2022 18:29:13 +0200
+
+Merge branch '5.1.48'
+------------------------------------------------------------------------
+5da766f26 | Norbert Eicker | Fri, 29 Apr 2022 17:34:36 +0200
+
+IWYU fixes
+------------------------------------------------------------------------
+3e26404fb | Norbert Eicker | Fri, 29 Apr 2022 17:18:27 +0200
+
+Bugfix: Make providerloops new caching actually work
+
+ - Add and rework debug logs
+------------------------------------------------------------------------
+e61b88ce9 | Norbert Eicker | Fri, 29 Apr 2022 14:29:32 +0200
+
+Improve debug output and streamlining
+------------------------------------------------------------------------
+b581a7480 | Norbert Eicker | Fri, 29 Apr 2022 14:28:35 +0200
+
+Bugfix: Avoid reading beyond end of buffer
+------------------------------------------------------------------------
+9fb2fe1f4 | Norbert Eicker | Fri, 29 Apr 2022 14:27:38 +0200
+
+Streamlining
+------------------------------------------------------------------------
+b6985d651 | Norbert Eicker | Wed, 27 Apr 2022 02:21:09 +0200
+
+Get rid of now obsolete env.[ch]
+------------------------------------------------------------------------
+fd851bb63 | Norbert Eicker | Wed, 27 Apr 2022 02:03:36 +0200
+
+Shift kvs.c from env_fields_t (env.c) to env_t (psenv.c)
+------------------------------------------------------------------------
+fe902c112 | Norbert Eicker | Wed, 27 Apr 2022 01:46:48 +0200
+
+Rename kvs_put[Idx]() to kvs_set[Idx]() for consistency with [ps]env
+------------------------------------------------------------------------
+fe5cee837 | Norbert Eicker | Wed, 27 Apr 2022 01:22:42 +0200
+
+Rework update caching in providerloop.c
+------------------------------------------------------------------------
+0ad31f8ce | Norbert Eicker | Wed, 27 Apr 2022 00:58:30 +0200
+
+Improve docu and streamline pmiclient.c
+------------------------------------------------------------------------
+11bbc83e6 | Norbert Eicker | Mon, 25 Apr 2022 20:15:00 +0200
+
+More booleanization and streamlining of providerloop.c
+------------------------------------------------------------------------
+0cce1c759 | Norbert Eicker | Fri, 22 Apr 2022 16:45:01 +0200
+
+Streamline pmiclient.c
+------------------------------------------------------------------------
+1a14d914e | Norbert Eicker | Fri, 22 Apr 2022 15:25:24 +0200
+
+Streamline providerloop.c
+------------------------------------------------------------------------
+f412cbff2 | Norbert Eicker | Wed, 20 Apr 2022 14:57:38 +0200
+
+Booleanize and streamline hardware.c
+------------------------------------------------------------------------
+f46a3a1b6 | Norbert Eicker | Wed, 20 Apr 2022 14:49:27 +0200
+
+Shift hardware.c from env_fields_t (env.c) to env_t (psenv.c)
+------------------------------------------------------------------------
+ee8e9c4dd | Norbert Eicker | Wed, 20 Apr 2022 14:46:20 +0200
+
+Introduce envSize()
+------------------------------------------------------------------------
+1756afb3d | Norbert Eicker | Wed, 20 Apr 2022 14:42:31 +0200
+
+Rename envGetIndex() to envDumpIndex()
+------------------------------------------------------------------------
+205bdf389 | Norbert Eicker | Fri, 29 Apr 2022 11:33:43 +0200
+
+Make use of PSC_getVersionStr() at various places
+------------------------------------------------------------------------
+433119b40 | Norbert Eicker | Fri, 29 Apr 2022 11:01:26 +0200
+
+Introduce PSC_getVersionStr()
+------------------------------------------------------------------------
+077636fad | Norbert Eicker | Wed, 20 Apr 2022 12:29:21 +0200
+
+IWYU fixes
+------------------------------------------------------------------------
+392144ca4 | Norbert Eicker | Wed, 20 Apr 2022 10:43:50 +0200
+
+Improve docu comments
+------------------------------------------------------------------------
+71fac60f0 | Stephan Krempel | Wed, 20 Apr 2022 02:33:27 +0200
+
+pspmix: Free client objects only after namespace deregistration
+------------------------------------------------------------------------
+101db2a42 | Stephan Krempel | Wed, 20 Apr 2022 02:28:02 +0200
+
+pspmix: Remove unnecessary free of client
+------------------------------------------------------------------------
+f0088caab | Stephan Krempel | Wed, 20 Apr 2022 01:57:56 +0200
+
+pspmix: Fix memory leak of client fw callback object
+------------------------------------------------------------------------
+3eb61e610 | Stephan Krempel | Wed, 20 Apr 2022 01:53:06 +0200
+
+pspmix: Enhance documentation
+------------------------------------------------------------------------
+59e186fbd | Stephan Krempel | Wed, 20 Apr 2022 01:55:31 +0200
+
+pspmix: Fix potential use-after-free in client init/finalize handling
+------------------------------------------------------------------------
+768acb68f | Stephan Krempel | Wed, 20 Apr 2022 01:50:59 +0200
+
+pspmix: Unify client init and finalize response handling
+------------------------------------------------------------------------
+b96fbb3dc | Norbert Eicker | Wed, 20 Apr 2022 01:54:34 +0200
+
+Reenable reworked PSIDtask_clearMem() in PMIx server
+------------------------------------------------------------------------
+af558f01b | Norbert Eicker | Wed, 20 Apr 2022 01:50:37 +0200
+
+Rework PSIDtask_clearMem() to use PStask_destroy()
+------------------------------------------------------------------------
+a75d6c409 | Norbert Eicker | Wed, 20 Apr 2022 01:49:13 +0200
+
+Introduce PStask_destroy()
+------------------------------------------------------------------------
+d9927116b | Norbert Eicker | Wed, 20 Apr 2022 01:15:18 +0200
+
+Prevent dereferencing of NULL pointer
+------------------------------------------------------------------------
+817e61fd8 | Norbert Eicker | Wed, 20 Apr 2022 01:14:10 +0200
+
+Streamlining
+------------------------------------------------------------------------
+f2548e2e5 | Norbert Eicker | Wed, 20 Apr 2022 01:08:33 +0200
+
+Rename pspmix_service_destroyNamespace to pspmix_service_cleanupNamespace()
+------------------------------------------------------------------------
+be0966456 | Norbert Eicker | Tue, 19 Apr 2022 23:46:36 +0200
+
+Adjust more debugging output and streamline
+------------------------------------------------------------------------
+07dfa9bb0 | Stephan Krempel | Tue, 19 Apr 2022 01:12:18 +0200
+
+pspmix: Cleanup client objects with thread-safety in mind
+------------------------------------------------------------------------
+f10805361 | Stephan Krempel | Wed, 13 Apr 2022 10:44:33 +0200
+
+pspmix: Prevent using of potentially invalid namespace
+------------------------------------------------------------------------
+7b9f86953 | Stephan Krempel | Wed, 13 Apr 2022 10:43:45 +0200
+
+pspmix: Fix potential memory leak
+------------------------------------------------------------------------
+38479dd7a | Stephan Krempel | Wed, 13 Apr 2022 10:12:44 +0200
+
+pspmix: Adjust debugging output
+------------------------------------------------------------------------
+a32d60bc8 | Stephan Krempel | Wed, 13 Apr 2022 09:56:33 +0200
+
+pspmix: Add changes missed in the last commit
+------------------------------------------------------------------------
+21b0b770e | Stephan Krempel | Wed, 13 Apr 2022 09:44:21 +0200
+
+pspmix: Rework pspmix_service_registerClientAndSendEnv()
+
+- free client outside of the func as it is allocated there, too
+- reorganized to work safe with two lock areas
+------------------------------------------------------------------------
+b15abdba2 | Stephan Krempel | Wed, 13 Apr 2022 09:42:55 +0200
+
+pspmix: Add function to deregister client from server library
+------------------------------------------------------------------------
+fb6f3b87f | Norbert Eicker | Mon, 11 Apr 2022 10:31:07 +0200
+
+Improve docu comments
+------------------------------------------------------------------------
+7723859ec | Norbert Eicker | Mon, 11 Apr 2022 10:00:25 +0200
+
+Bugfix: Avoid deadlock
+------------------------------------------------------------------------
+e55760f4f | Norbert Eicker | Mon, 11 Apr 2022 09:46:34 +0200
+
+Make Modex debug switchable during runtime
+
+ - ulog() (and udbg()) better suits to pspmixlog.h
+------------------------------------------------------------------------
+c57427880 | Norbert Eicker | Fri, 8 Apr 2022 17:21:35 +0200
+
+For the time being take PSIDtask_clearMem() out of the game
+------------------------------------------------------------------------
+4e0cfa69e | Norbert Eicker | Fri, 8 Apr 2022 13:55:29 +0200
+
+Try to fix mem-leaks and use-after-frees
+
+ - Also add various @todo to investigate
+------------------------------------------------------------------------
+cb9cfa75e | Norbert Eicker | Fri, 8 Apr 2022 02:00:44 +0200
+
+Streamlining and log improvements
+------------------------------------------------------------------------
+1cc164165 | Norbert Eicker | Fri, 8 Apr 2022 01:59:23 +0200
+
+Make PSID_findJobInSession() public
+------------------------------------------------------------------------
+5f184d955 | Norbert Eicker | Thu, 7 Apr 2022 19:56:37 +0200
+
+Bugfix: prevent use after free when looping over list
+------------------------------------------------------------------------
+68c5731c5 | Norbert Eicker | Thu, 7 Apr 2022 19:52:37 +0200
+
+Streamlining and improved debug and comments
+------------------------------------------------------------------------
+dcda0f984 | Norbert Eicker | Thu, 7 Apr 2022 19:49:48 +0200
+
+Bugfix: close memory leak
+------------------------------------------------------------------------
+46760504c | Norbert Eicker | Thu, 7 Apr 2022 12:12:40 +0200
+
+Fix addJobToServer()'s return value
+------------------------------------------------------------------------
+51aa12943 | Norbert Eicker | Thu, 7 Apr 2022 12:10:57 +0200
+
+Ensure new PspmixJob_t structs are properly initialized
+------------------------------------------------------------------------
+1d23d3e65 | Norbert Eicker | Wed, 6 Apr 2022 23:33:05 +0200
+
+Streamlining
+------------------------------------------------------------------------
+0b9af355f | Norbert Eicker | Wed, 6 Apr 2022 22:53:22 +0200
+
+Log improvements and minor streamlining
+------------------------------------------------------------------------
+95e07f8cb | Norbert Eicker | Wed, 6 Apr 2022 22:16:33 +0200
+
+Remove unused remove flag from PspmixSession_t and PspmixJob_t
+------------------------------------------------------------------------
+5c73bcc46 | Norbert Eicker | Wed, 6 Apr 2022 22:12:43 +0200
+
+Rename usePMIx flag of several structures to used
+------------------------------------------------------------------------
+d4c5a4eeb | Norbert Eicker | Wed, 6 Apr 2022 22:00:22 +0200
+
+Improve docu comments
+------------------------------------------------------------------------
+a365d4775 | Norbert Eicker | Wed, 6 Apr 2022 01:00:53 +0200
+
+Bugfix: Use correct order of arguments in list_for_each_safe()
+------------------------------------------------------------------------
+8553e6904 | Norbert Eicker | Wed, 6 Apr 2022 00:52:37 +0200
+
+Add some safety measures against segfaults
+------------------------------------------------------------------------
+c07e6642d | Norbert Eicker | Wed, 6 Apr 2022 00:45:18 +0200
+
+Bugfix: Use correct size in snprintf()
+------------------------------------------------------------------------
+33235deb3 | Norbert Eicker | Wed, 6 Apr 2022 00:44:39 +0200
+
+IWYU fixes
+------------------------------------------------------------------------
+c2dc8905e | Norbert Eicker | Wed, 6 Apr 2022 00:31:24 +0200
+
+Whitespace fixes and minor typos
+------------------------------------------------------------------------
+9c97267cc | Norbert Eicker | Thu, 31 Mar 2022 23:34:22 +0200
+
+Rename PSI_sendSpawnReq() to sendSpawnReq() and make it private
+------------------------------------------------------------------------
+e20f88045 | Norbert Eicker | Thu, 31 Mar 2022 23:31:08 +0200
+
+Bugfix: Do not send spawnertid with spawn messages
+
+ - This is unnecessary since it can be set on the fly on receive
+ - This will break the protocol compatibility
+------------------------------------------------------------------------
+a8a0af19d | Norbert Eicker | Thu, 31 Mar 2022 22:03:36 +0200
+
+More docu improvements
+------------------------------------------------------------------------
+eb2a898f8 | Norbert Eicker | Wed, 30 Mar 2022 21:10:20 +0200
+
+Simplify handling of PSP_DD_RESRELEASED by sending spawner's TID
+------------------------------------------------------------------------
+85b6209d9 | Norbert Eicker | Wed, 30 Mar 2022 19:42:43 +0200
+
+IWYU fixes
+------------------------------------------------------------------------
+b973cacf9 | Norbert Eicker | Wed, 30 Mar 2022 19:35:27 +0200
+
+Nicer logging
+------------------------------------------------------------------------
+91952cafc | Norbert Eicker | Wed, 30 Mar 2022 19:32:48 +0200
+
+Bugfix: Avoid memory leak and/or use after free
+------------------------------------------------------------------------
+03526297d | Norbert Eicker | Wed, 30 Mar 2022 19:26:57 +0200
+
+Get rid of superfluous helper variables
+------------------------------------------------------------------------
+d9b8d1c81 | Norbert Eicker | Wed, 30 Mar 2022 19:20:18 +0200
+
+Improve docu comments
+------------------------------------------------------------------------
+b5cde684a | Norbert Eicker | Wed, 9 Mar 2022 22:22:16 +0100
+
+Add missing Makefile.am changes
+------------------------------------------------------------------------
+6a9ed6e2b | Stephan Krempel | Wed, 9 Mar 2022 12:38:07 +0100
+
+pspmix: Major rework to user server concept
+------------------------------------------------------------------------
+28106b603 | Stephan Krempel | Wed, 9 Mar 2022 12:34:47 +0100
+
+pspmix: Fix comments and copyright notes
+------------------------------------------------------------------------
+c096eee8b | Stephan Krempel | Wed, 9 Mar 2022 12:05:51 +0100
+
+pspmix: Fix description of DEBUG_MASK in pspmix.conf
+------------------------------------------------------------------------
+4449f7c3d | Stephan Krempel | Wed, 9 Mar 2022 12:04:49 +0100
+
+pspmix: Introduce pspmixutil.[ch]
+------------------------------------------------------------------------
+bc71bcd32 | Stephan Krempel | Wed, 9 Mar 2022 11:59:42 +0100
+
+pspmix: Adjust types to user server concept
+------------------------------------------------------------------------
+07a7041f6 | Stephan Krempel | Wed, 2 Mar 2022 13:25:53 +0100
+
+pspmix: Rename pspmixjobserver.[ch] to pspmixuserserver.[ch]
+------------------------------------------------------------------------
+c6beee3ef | Stephan Krempel | Wed, 2 Mar 2022 07:06:21 +0100
+
+Extend serial messages interface by functions for PSrsrvtn_ID_t
+------------------------------------------------------------------------
+701ff7c1f | Stephan Krempel | Wed, 9 Mar 2022 01:46:02 +0100
+
+Include spawner TID into task
+------------------------------------------------------------------------
+7ab4a91e2 | Stephan Krempel | Wed, 9 Mar 2022 03:44:28 +0100
+
+Split psidsession.[ch] from psidspawn.[ch]
+------------------------------------------------------------------------
+5a8d2d90e | Stephan Krempel | Wed, 9 Mar 2022 01:44:28 +0100
+
+Consolidate renaming and hooks
+------------------------------------------------------------------------
+f7ed283b1 | Stephan Krempel | Thu, 3 Mar 2022 10:28:00 +0100
+
+Rename PSresset_t to PSjob_t
+------------------------------------------------------------------------
+26229ecae | Stephan Krempel | Thu, 3 Mar 2022 10:23:40 +0100
+
+Rename PSjob_t to PSsession_t
+------------------------------------------------------------------------
+b742bf75b | Stephan Krempel | Wed, 2 Mar 2022 07:02:50 +0100
+
+Store reservations in jobs as sets grouped by spawner
+------------------------------------------------------------------------
+26c3d968b | Norbert Eicker | Sat, 23 Apr 2022 00:51:32 +0200
+
+Ensure SIGPIPE is not ignored if started via systemd
+------------------------------------------------------------------------
+faf914309 | Norbert Eicker | Tue, 19 Apr 2022 00:12:19 +0200
+
+Work around gcc-12 (false-positive) warnings
+------------------------------------------------------------------------
+a3f2d254e | Norbert Eicker | Mon, 18 Apr 2022 23:27:17 +0200
+
+Fix (unlikely) insufficient string size unveiled by gcc-12
+------------------------------------------------------------------------
+616c4b681 | Norbert Eicker | Mon, 18 Apr 2022 23:19:01 +0200
+
+Fix UAFs unveiled by gcc-12
+------------------------------------------------------------------------
+20e8c822b | Norbert Eicker | Mon, 18 Apr 2022 23:10:18 +0200
+
+Work around a gcc-12 (false-positive) warning
+------------------------------------------------------------------------
+123e427da | Norbert Eicker | Mon, 18 Apr 2022 23:06:18 +0200
+
+Refactor handleGenStr() and fix a UAF unveiled by gcc-12
+------------------------------------------------------------------------
+3418d96ec | Norbert Eicker | Mon, 18 Apr 2022 22:36:19 +0200
+
+Work around (false positive) gcc-12 warning
+------------------------------------------------------------------------
+
+
 Version psmgmt-5.1.48-6:
 ========================
 ------------------------------------------------------------------------
