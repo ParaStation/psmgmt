@@ -1247,13 +1247,17 @@ static void cbHealthcheck(int exit, bool tmdOut, int iofd, void *info)
     getScriptCBdata(iofd, errMsg, sizeof(errMsg), &errLen);
     slurmHCpid = -1;
 
+    if (errMsg[0] != '\0') flog("health-check script message: %s\n", errMsg);
+
     char *script = getConfValueC(&SlurmConfig, "HealthCheckProgram");
     if (tmdOut) {
 	int seconds = getConfValueU(&Config, "SLURM_HC_TIMEOUT");
 	flog("'%s' was terminated because it exceeded the time-limit"
 	     " of %u seconds\n", script, seconds);
+	goto ERROR;
     } else if (exit != 0) {
 	flog("'%s' returned exit status %i\n", script, exit);
+	goto ERROR;
     } else {
 	if (!isInit) {
 	    /* initialize Slurm options and register node to slurmctld */
@@ -1265,12 +1269,15 @@ static void cbHealthcheck(int exit, bool tmdOut, int iofd, void *info)
 	    } else {
 		/* psslurm failed initialize, unload */
 		flog("initialize Slurm communication failed\n");
-		PSIDplugin_finalize("psslurm");
+		goto ERROR;
 	    }
 	}
     }
+    return;
 
-    if (errMsg[0] != '\0') flog("health-check script message: %s\n", errMsg);
+ERROR:
+    flog("fatal: healthcheck failed, psslurm will unload itself\n");
+    PSIDplugin_finalize("psslurm");
 }
 
 static void prepHCenv(void *info)

@@ -207,6 +207,11 @@ bool SpankInitGlobalSym(void)
     return psSpank_Init(psslurmlogger->mask & PSSLURM_LOG_SPANK);
 }
 
+bool SpankIsInitialized(void)
+{
+    return globalSym ? true : false;
+}
+
 static void doCallHook(Spank_Plugin_t *plugin, spank_t spank, char *hook)
 {
     struct timeval time_start, time_now, time_diff;

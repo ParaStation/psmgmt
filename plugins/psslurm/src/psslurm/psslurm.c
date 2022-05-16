@@ -815,7 +815,8 @@ void finalize(void)
 	.step = NULL,
 	.hook = SPANK_SLURMD_EXIT
     };
-    SpankCallHook(&spank);
+
+    if (SpankIsInitialized()) SpankCallHook(&spank);
 #endif
 
     closeSlurmdSocket();

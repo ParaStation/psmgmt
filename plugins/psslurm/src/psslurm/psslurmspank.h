@@ -87,6 +87,17 @@ bool SpankInitGlobalSym(void);
 bool SpankInitPlugins(void);
 
 /**
+ * @brief Test if the Spank module is initialized.
+ *
+ * Test if the Spank module is initialized, i.e. if SpankInitGlobalSym()
+ * was called before.
+ *
+ * @return If the Spank module is initialized, true is returned or
+ * false otherwise
+ */
+bool SpankIsInitialized(void);
+
+/**
  * @brief Save a spank plugin definition
  *
  * @param def The plugin definition to save
