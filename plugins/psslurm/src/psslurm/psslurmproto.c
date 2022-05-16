@@ -1254,28 +1254,23 @@ static void cbHealthcheck(int exit, bool tmdOut, int iofd, void *info)
 	int seconds = getConfValueU(&Config, "SLURM_HC_TIMEOUT");
 	flog("'%s' was terminated because it exceeded the time-limit"
 	     " of %u seconds\n", script, seconds);
-	goto ERROR;
     } else if (exit != 0) {
 	flog("'%s' returned exit status %i\n", script, exit);
-	goto ERROR;
     } else {
-	if (!isInit) {
-	    /* initialize Slurm options and register node to slurmctld */
-	    if (initSlurmOpt()) {
-		isInit = true;
+	if (isInit) return;
+	/* initialize Slurm options and register node to slurmctld */
+	if (initSlurmOpt()) {
+	    isInit = true;
 
-		mlog("(%i) successfully started, protocol '%s (%i)'\n", version,
-		     slurmProtoStr, slurmProto);
-	    } else {
-		/* psslurm failed initialize, unload */
-		flog("initialize Slurm communication failed\n");
-		goto ERROR;
-	    }
+	    mlog("(%i) successfully started, protocol '%s (%i)'\n", version,
+		 slurmProtoStr, slurmProto);
+	    return;
+	} else {
+	    /* psslurm failed initialize, unload */
+	    flog("initialize Slurm communication failed\n");
 	}
     }
-    return;
 
-ERROR:
     flog("fatal: healthcheck failed, psslurm will unload itself\n");
     PSIDplugin_finalize("psslurm");
 }
