@@ -978,7 +978,11 @@ static void checkConsistency(Conf_t *conf)
 	conf->pmiSock = false;
     } else if (!conf->pmiTCP && !conf->pmiSock) {
 	/* default PMI connection method is unix socket */
-	conf->pmiSock = true;
+	if (getenv("PMI_ENABLE_TCP")) {
+	    conf->pmiTCP = true;
+	} else {
+	    conf->pmiSock = true;
+	}
     }
 }
 
