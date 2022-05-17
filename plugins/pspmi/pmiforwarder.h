@@ -14,20 +14,21 @@
 #include "pmitypes.h"
 
 /**
- * @brief Set the pmi connection information.
+ * @brief Set PMI connection information
  *
- * @param type The pmi connection type.
+ * @param type PMI connection type
  *
- * @param sock The socket to use for pmi communication.
+ * @param sock Socket to use for PMI communication
  *
- * @return No return value.
+ * @return No return value
  */
 void setConnectionInfo(PMItype_t type, int sock);
 
 /**
  * @brief Initialize the forwarder module
  *
- * Initialize the forwarder module of the pspmi plugin.
+ * Initialize the forwarder module of the pspmi plugin. This will
+ * register various hooks called within the psidforwarder process.
  *
  * @return No return value
  */
@@ -36,7 +37,8 @@ void initForwarder(void);
 /**
  * @brief Finalize the forwarder module
  *
- * Finalize the forwarder module the pspmi plugin.
+ * Finalize the forwarder module within the pspmi plugin. This will
+ * cleanup various hooks registered in @ref initForwarder().
  *
  * @return No return value
  */
