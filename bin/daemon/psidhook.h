@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2013-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021 ParTec AG, Munich
+ * Copyright (C) 2021-2022 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -125,18 +125,17 @@ typedef enum {
 				about pre/succ ranks (obsolete) */
     PSIDHOOK_FRWRD_KVS,       /**< Handle a KVS/Service messages, arg
 				points to msg (obsolete) */
-    PSIDHOOK_FRWRD_EXIT,      /**< Tell attached (PMI-)plugin that the forwarder
-				is going to exit. arg is a pointer to the task
-				ID of the child process that was released or
-				NULL. If not NULL, PMI is expected to release
-				its client, i.e. to send a "finalize_ack" */
-    PSIDHOOK_FRWRD_CLNT_RLS,  /**< Tell attached plugins that the client is
-				ready for release. The client is described by
-				the task structure passed in arg. The plugin
-				is expected to return a value of type
-				PSIDhook_ClntRls_t. If IDLE is returned,
-				a PSP_CD_RELEASE message might be sent
-				according to some heuristics. */
+    PSIDHOOK_FRWRD_EXIT,      /**< Tell attached plugins that the forwarder
+				is going to exit. arg might be a pointer to the
+				task ID of the child process but is NULL most
+				of the time (in the meantime always). */
+    PSIDHOOK_FRWRD_CLNT_RLS,  /**< Ask attached plugins if the client is
+				released. The client is described by the task
+				structure passed in arg. The plugin is expected
+				to return a value of type PSIDhook_ClntRls_t.
+				If IDLE or RELEASED is returned, a message of
+				type PSP_CD_RELEASE will be sent according to
+				some heuristics. */
     PSIDHOOK_FRWRD_SPAWNRES,  /**< A result msg to a spawn request. Arg is a
 				pointer to the msg. Used by pspmi to handle the
 				result of spawning new service processes.
