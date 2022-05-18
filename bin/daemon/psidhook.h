@@ -18,8 +18,8 @@
 
 /** Return type expected from functions registered to PSIDHOOK_FRWRD_CLNT_RLS */
 typedef enum {
-    RELEASED = 0,   /**< Client was released by plugin */
-    CONNECTED,      /**< Client still connected to plugin, don't release */
+    CONNECTED = 0,  /**< Client still connected to plugin, don't release */
+    RELEASED,       /**< Client was released by plugin */
     IDLE,           /**< Client ignored the plugin (so far) */
 } PSIDhook_ClntRls_t;
 
