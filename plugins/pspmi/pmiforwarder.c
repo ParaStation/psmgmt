@@ -19,12 +19,11 @@
 #include <unistd.h>
 
 #include "pscommon.h"
-#include "psprotocol.h"
 #include "kvscommon.h"
 #include "selector.h"
 #include "pluginmalloc.h"
 
-#include "psidforwarder.h"
+#include "psidforwarder.h"  // IWYU pragma: keep
 #include "psidhook.h"
 
 #include "pmiclient.h"
