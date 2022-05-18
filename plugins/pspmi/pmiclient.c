@@ -1174,6 +1174,8 @@ int pmi_init(int pmisocket, PStask_t *childTask)
     if (debug) {
 	elog("%s(r%i): new connection on %d\n", __func__, rank, pmisocket);
 	elog("%s(r%i): debug(_kvs) %d/%d\n", __func__, rank, debug, debug_kvs);
+	elog("%s(r%i): logger %s pmiRank %i spawned '%s'\n", __func__, rank,
+	     PSC_printTID(cTask->loggertid), pmiRank, getenv("PMI_SPAWNED"));
     }
 
     if (initialized) return 0; // this is a re-connect
