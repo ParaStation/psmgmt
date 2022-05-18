@@ -57,13 +57,6 @@ static PStask_t *childTask = NULL;
 /* PMIx initialization status of the child */
 PSIDhook_ClntRls_t pmixStatus = IDLE;
 
-/** Various info on client waiting for PSP_CD_RELEASERES message */
-static struct {
-    PStask_ID_t client;     /**< Task ID of client to be released */
-    pmix_proc_t proc;       /**< PMIx info identifying client to be released */
-    PStask_ID_t server;     /**< PMIx server of client to be released */
-} clntInfo;
-
 /* ****************************************************** *
  *                 Send/Receive functions                 *
  * ****************************************************** */
@@ -243,22 +236,6 @@ static void handleClientInit(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
 }
 
 /**
- * @brief Send PSP_CD_RELEASE message for our client to the local daemon
- */
-static void sendChildReleaseMsg(void)
-{
-    DDSignalMsg_t msg = {
-	.header = {
-	    .type = PSP_CD_RELEASE,
-	    .sender = PSC_getMyTID(),
-	    .dest = childTask->tid,
-	    .len = sizeof(msg) },
-	.signal = -1,
-	.answer = 1 }; // answer is handled via PSIDHOOK_FRWRD_EXIT
-    sendDaemonMsg((DDMsg_t *)&msg);
-}
-
-/**
  * @brief Handle messages of type PSPMIX_CLIENT_FINALIZE
  *
  * Handle notification about finalization of forwarders client. This marks the
@@ -275,20 +252,19 @@ static void handleClientFinalize(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
 
     char *ptr = data->buf;
 
-    clntInfo.client = childTask->tid;
-    PMIX_PROC_CONSTRUCT(&clntInfo.proc);
-    getUint32(&ptr, &clntInfo.proc.rank);
-    getString(&ptr, clntInfo.proc.nspace, sizeof(clntInfo.proc.nspace));
-    clntInfo.server = msg->header.sender;
+    pmix_proc_t proc;
+    PMIX_PROC_CONSTRUCT(&proc);
+    getUint32(&ptr, &proc.rank);
+    getString(&ptr, proc.nspace, sizeof(proc.nspace));
 
-    mdbg(PSPMIX_LOG_COMM, "%s: received %s (0x%X) from namespace %s rank %d\n",
-	 __func__, pspmix_getMsgTypeString(msg->type), msg->type,
-	 clntInfo.proc.nspace, clntInfo.proc.rank);
-
-    /* release the child */
-    sendChildReleaseMsg();
+    mdbg(PSPMIX_LOG_COMM, "%s: received %s from namespace %s rank %d\n",
+	 __func__, pspmix_getMsgTypeString(msg->type), proc.nspace, proc.rank);
 
     pmixStatus = RELEASED;
+
+    /* send response */
+    sendNotificationResp(msg->header.sender, PSPMIX_CLIENT_FINALIZE_RES,
+			 proc.rank, proc.nspace);
 }
 
 /**
@@ -307,8 +283,8 @@ static bool handlePspmixMsg(DDBufferMsg_t *vmsg) {
 
     DDTypedBufferMsg_t *msg = (DDTypedBufferMsg_t *)vmsg;
 
-    mdbg(PSPMIX_LOG_COMM, "%s: msg: type %s (%i) length %hu [%s", __func__,
-	 pspmix_getMsgTypeString(msg->type), msg->type, msg->header.len,
+    mdbg(PSPMIX_LOG_COMM, "%s: msg: type %s length %hu [%s", __func__,
+	 pspmix_getMsgTypeString(msg->type), msg->header.len,
 	 PSC_printTID(msg->header.sender));
     mdbg(PSPMIX_LOG_COMM, "->%s]\n", PSC_printTID(msg->header.dest));
 
@@ -448,31 +424,13 @@ static int hookForwarderClientRelease(void *data)
  * This is mostly needless since the forwarder will exit anyway and done only
  * for symmetry reasons.
  *
- * @todo What exactly means the flag passed to this function and do we have to
- *       take it into account somehow?
- *
- * @param data Pointer to an int flag indicating whether to release the client
+ * @param data Unused parameter
  *
  * @return Always returns 0
  */
 static int hookForwarderExit(void *data)
 {
     mdbg(PSPMIX_LOG_CALL, "%s(%p)\n", __func__, data);
-
-    /* break if this is not a PMIx job */
-    if (!childTask) return 0;
-
-    /* Release child task if needed */
-    PStask_ID_t *cTID = data;
-    if (cTID) {
-	if (clntInfo.client == *cTID) {
-	    /* send response */
-	    sendNotificationResp(clntInfo.server, PSPMIX_CLIENT_FINALIZE_RES,
-				 clntInfo.proc.rank, clntInfo.proc.nspace);
-	} else {
-	    mlog("%s(r%d): Unknown %s\n", __func__, rank, PSC_printTID(*cTID));
-	}
-    }
 
     /* un-register handler for notification messages from the PMIx userserver */
     PSID_clearMsg(PSP_PLUG_PSPMIX, handlePspmixMsg);
