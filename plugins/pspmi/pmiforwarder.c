@@ -55,9 +55,9 @@ static size_t mmBufferUsed = 0;
 PSIDhook_ClntRls_t clientStatus = IDLE;
 
 /**
- * @brief Close the socket which is connected to the MPI client.
+ * @brief Close the socket connecting to PMI client
  *
- * @return No return value.
+ * @return No return value
  */
 static void closePMIclientSocket(void)
 {
@@ -211,26 +211,15 @@ static int readFromPMIClient(int fd, void *data)
 
     /* PMI communication finished */
     if (ret == PMI_FINALIZED) {
-
-	/* release the child */
-	DDSignalMsg_t msg = {
-	    .header = {
-		.type = PSP_CD_RELEASE,
-		.sender = PSC_getMyTID(),
-		.dest = childTask->tid,
-		.len = sizeof(msg) },
-	    .signal = -1,
-	    .answer = 1 };
-	sendDaemonMsg((DDMsg_t *)&msg);
-
 	clientStatus = RELEASED;
+	ackFinalize();
+	/* prepare for re-connecting client */
+	closePMIclientSocket();
     }
 
     return 0;
 
-
 readFromPMIClient_error:
-
     ufree(mmBuffer);
     mmBuffer = NULL;
     mmBufferSize = 0;
@@ -240,33 +229,32 @@ readFromPMIClient_error:
 }
 
 /**
- * @brief Accept a new PMI connection.
+ * @brief Accept new PMI connection
  *
- * @param fd Unused parameter.
+ * @param fd Unused parameter
  *
- * @param data Unused parameter.
+ * @param data Unused parameter
  *
- * @return Always returns 0.
+ * @return Always returns 0
  */
 static int acceptPMIClient(int fd, void *data)
 {
-    /* check if a client is already connected */
-    if (pmiClientSock != -1) {
-	elog( "%s: error only one PMI connection is allowed\n", __func__);
-	return 0;
-    }
-
     /* accept a new PMI connection */
     struct sockaddr_in SAddr;
     socklen_t clientlen = sizeof(SAddr);
-    pmiClientSock = accept(pmiTCPSocket, (void *)&SAddr, &clientlen);
-    if (pmiClientSock == -1) {
+    int sock = accept(pmiTCPSocket, (void *)&SAddr, &clientlen);
+    if (sock == -1) {
 	elog( "%s: error on accepting new pmi connection\n", __func__);
 	return 0;
     }
 
-    /* close the socket which waits for new connections */
-    closePMIlistenSocket();
+    /* check if a client is already connected */
+    if (pmiClientSock != -1) {
+	elog( "%s: error only one PMI connection is allowed\n", __func__);
+	close(sock);
+	return 0;
+    }
+    pmiClientSock = sock;
 
     /* init the PMI interface */
     if (pmi_init(pmiClientSock, childTask) != 0) {
@@ -370,40 +358,37 @@ static int setupPMIsockets(void *data)
 }
 
 /**
- * @brief Release the mpi client.
+ * @brief Hook function for PSIDHOOK_FRWRD_EXIT
  *
- * @param data When this flag is set to 1 pmi_finalize() will be called.
+ * Close all sockets and leave KVS explicitly if necessary. This is
+ * mostly needless since the forwarder will exit anyway and done only
+ * for symmetry reasons.
  *
- * @return Always returns 0.
+ * @param data Unused parameter
+ *
+ * @return Always returns 0
  */
-static int releasePMIClient(void *data)
+static int hookForwarderExit(void *data)
 {
-    PStask_ID_t *tid = data;
-
     /* release the MPI client */
-    if (pmiType != PMI_DISABLED) {
-	if (tid) {
-	    pmi_finalize();
-	} else {
-	    leaveKVS(1);
-	}
-    }
+    if (pmiType != PMI_DISABLED) leaveKVS();
 
-    /*close connection */
+    /*close connections */
     closePMIclientSocket();
+    closePMIlistenSocket();
     return 0;
 }
 
 void initForwarder(void)
 {
     PSIDhook_add(PSIDHOOK_FRWRD_INIT, setupPMIsockets);
-    PSIDhook_add(PSIDHOOK_FRWRD_EXIT, releasePMIClient);
+    PSIDhook_add(PSIDHOOK_FRWRD_EXIT, hookForwarderExit);
     PSIDhook_add(PSIDHOOK_FRWRD_CLNT_RLS, getClientStatus);
 }
 
 void finalizeForwarder(void)
 {
     PSIDhook_del(PSIDHOOK_FRWRD_INIT, setupPMIsockets);
-    PSIDhook_del(PSIDHOOK_FRWRD_EXIT, releasePMIClient);
+    PSIDhook_del(PSIDHOOK_FRWRD_EXIT, hookForwarderExit);
     PSIDhook_del(PSIDHOOK_FRWRD_CLNT_RLS, getClientStatus);
 }

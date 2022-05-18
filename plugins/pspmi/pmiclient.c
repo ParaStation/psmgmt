@@ -70,7 +70,10 @@ static LIST_HEAD(uBufferList);
 static bool initialized = false;
 
 /** Flag to check if initialisation between us and client was ok */
-static bool pmi_init_client = false;
+static bool clientIsInitialized = false;
+
+/** Flag (INIT) registration to the KVS provider -- shall be done only once */
+static bool initToProvider = false;
 
 /** Counter of the next KVS name */
 static int kvs_next = 0;
@@ -531,31 +534,28 @@ static int p_Barrier_In(char *msg)
     return 0;
 }
 
-void leaveKVS(int used)
+void leaveKVS(void)
 {
+    if (succReady && !clientIsInitialized) return;
+
+    /* inform the provider that we are leaving the KVS space unexpectedly */
     char *ptr = buffer;
     size_t len = 0;
-
-    if (!used || !succReady) {
-	/* inform the provider we are leaving the KVS space */
-	setKVSCmd(&ptr, &len, LEAVE);
-	sendKvstoProvider(buffer, len);
-    }
+    setKVSCmd(&ptr, &len, LEAVE);
+    sendKvstoProvider(buffer, len);
 }
 
 /**
- * @brief Finalize the PMI
+ * @brief Finalize the PMI usage
  *
- * Returns PMI_FINALIZED to notice the forwarder that the
- * child has successful finished execution. The forwarder will release
- * the child and then call pmi_finalize() to allow the child to exit.
+ * Return PMI_FINALIZED to notice the forwarder that the child has
+ * signed out from PMI. The forwarder will prepare for receiving
+ * SIGCHLD and release the child by calling @ref ackFinalize().
  *
  * @return Returns PMI_FINALIZED
- * */
+ */
 static int p_Finalize(void)
 {
-    leaveKVS(0);
-
     return PMI_FINALIZED;
 }
 
@@ -951,15 +951,20 @@ static int p_Init(char *msg)
 		atoi(pmisubversion));
 	return 1;
     }
-    pmi_init_client = true;
+    clientIsInitialized = true;
 
-    if (psAccountSwitchAccounting) psAccountSwitchAccounting(cTask->tid, false);
+    if (!initToProvider) {
+	if (psAccountSwitchAccounting)
+	    psAccountSwitchAccounting(cTask->tid, false);
 
-    /* tell provider that the PMI client was initialized */
-    char *ptr = buffer;
-    size_t len = 0;
-    setKVSCmd(&ptr, &len, INIT);
-    sendKvstoProvider(buffer, len);
+	/* tell provider that the PMI client was initialized */
+	char *ptr = buffer;
+	size_t len = 0;
+	setKVSCmd(&ptr, &len, INIT);
+	sendKvstoProvider(buffer, len);
+
+	initToProvider = true;
+    }
 
     return 0;
 }
@@ -1151,13 +1156,6 @@ int pmi_init(int pmisocket, PStask_t *childTask)
 	return 1;
     }
 
-    mdbg(PSPMI_LOG_VERBOSE, "%s:(r%i): pmiRank %i pmisock %i logger %s",
-	 __func__, rank, pmiRank, pmisock, PSC_printTID(cTask->loggertid));
-    mdbg(PSPMI_LOG_VERBOSE, " spawned '%s' myTid %s\n",
-	 getenv("PMI_SPAWNED"), PSC_printTID(PSC_getMyTID()));
-
-    INIT_LIST_HEAD(&uBufferList);
-
     if (pmisocket < 1) {
 	elog("%s(r%i): invalid PMI socket %i\n", __func__, rank, pmisocket);
 	return 1;
@@ -1177,6 +1175,10 @@ int pmi_init(int pmisocket, PStask_t *childTask)
 	elog("%s(r%i): new connection on %d\n", __func__, rank, pmisocket);
 	elog("%s(r%i): debug(_kvs) %d/%d\n", __func__, rank, debug, debug_kvs);
     }
+
+    if (initialized) return 0; // this is a re-connect
+
+    INIT_LIST_HEAD(&uBufferList);
 
     /* set the PMI universe size */
     env = getenv("PMI_UNIVERSE_SIZE");
@@ -1257,16 +1259,11 @@ int pmi_init(int pmisocket, PStask_t *childTask)
     return 0;
 }
 
-/**
-* @brief Release the PMI client
-*
-* Finalize the PMI connection and release the PMI client.
-*
-* @return No return value
-*/
-void pmi_finalize(void)
+void ackFinalize(void)
 {
-    if (pmi_init_client) PMI_send("cmd=finalize_ack\n");
+    PMI_send("cmd=finalize_ack\n");
+    /* prepare for re-connecting client */
+    clientIsInitialized = false;
 }
 
 /**

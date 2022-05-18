@@ -76,21 +76,23 @@ void setKVSProviderTID(PStask_ID_t tid);
 void setKVSProviderSock(int fd);
 
 /**
- * @brief Send finalize_ack to the MPI client
+* @brief Acknowledge PMI client's finalize message
  *
- * Finalize is called by the forwarder if the daemon has released
- * the MPI client. This message allows the MPI client to exit. (??)
+ * Finalize the PMI connection and release the PMI client
+ *
+ * This must be called by the forwarder as soon as it's ensured that
+ * preparations to receive the PMI client's SIGCHLD signal are made.
  *
  * @return No return value
  */
-void pmi_finalize(void);
+void ackFinalize(void);
 
 /**
- * @brief Tell the kvsprovider we are leaving
+ * @brief Tell the kvsprovider we are leaving if necessary
  *
  * @return No return value
  */
-void leaveKVS(int used);
+void leaveKVS(void);
 
 psPmiSetFillSpawnTaskFunction_t psPmiSetFillSpawnTaskFunction;
 
