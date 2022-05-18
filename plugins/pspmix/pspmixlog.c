@@ -44,7 +44,11 @@ const char *pspmix_getMsgTypeString(PSP_PSPMIX_t type)
 	case PSPMIX_CLIENT_FINALIZE_RES:
 	    return "PSPMIX_CLIENT_FINALIZE_RES";
 	default:
-	    return "<unknown>";
+	{
+	    static char buf[32];
+	    snprintf(buf, sizeof(buf), "<unknown> (%d)", type);
+	    return buf;
+	}
     }
 }
 

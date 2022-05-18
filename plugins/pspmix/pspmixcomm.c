@@ -84,9 +84,8 @@ static void handleAddJob(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
     getEnviron(&ptr, &job->env.size, job->env.vars);
     job->env.cnt = job->env.size;
 
-    mdbg(PSPMIX_LOG_COMM, "%s: received %s (0x%X) with loggertid %s",
-	 __func__, pspmix_getMsgTypeString(msg->type), msg->type,
-	 PSC_printTID(loggertid));
+    mdbg(PSPMIX_LOG_COMM, "%s: received %s with loggertid %s", __func__,
+	 pspmix_getMsgTypeString(msg->type), PSC_printTID(loggertid));
     mdbg(PSPMIX_LOG_COMM, " spawnertid %s numResInfos %d\n",
 	 PSC_printTID(job->spawnertid), numResInfos);
 
@@ -110,9 +109,8 @@ static void handleRemoveJob(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
     PStask_ID_t spawnertid;
     getTaskId(&ptr, &spawnertid);
 
-    mdbg(PSPMIX_LOG_COMM, "%s: received %s (0x%X) with spawnertid %s\n",
-	    __func__, pspmix_getMsgTypeString(msg->type), msg->type,
-	    PSC_printTID(spawnertid));
+    mdbg(PSPMIX_LOG_COMM, "%s: received %s with spawnertid %s\n", __func__,
+	 pspmix_getMsgTypeString(msg->type), PSC_printTID(spawnertid));
 
     pspmix_userserver_removeJob(spawnertid, false);
 }
@@ -145,12 +143,10 @@ static void handleRegisterClient(DDTypedBufferMsg_t *msg)
 
     client->fwtid = msg->header.sender;
 
-    mdbg(PSPMIX_LOG_COMM, "%s: received %s (0x%X) from %s", __func__,
-	 pspmix_getMsgTypeString(msg->type), msg->type,
-	 PSC_printTID(msg->header.sender));
+    mdbg(PSPMIX_LOG_COMM, "%s: received %s from %s", __func__,
+	 pspmix_getMsgTypeString(msg->type), PSC_printTID(msg->header.sender));
     mdbg(PSPMIX_LOG_COMM, " (%s rank %u reservation %d)\n",
-	 pspmix_jobIDsStr(loggertid, spawnertid), client->rank,
-	 client->resID);
+	 pspmix_jobIDsStr(loggertid, spawnertid), client->rank, client->resID);
 
     if (!pspmix_service_registerClientAndSendEnv(loggertid, spawnertid,
 						 client)) {
@@ -180,9 +176,8 @@ static void handleClientNotifyResp(DDTypedBufferMsg_t *msg,
     getUint32(&ptr, &proc.rank);
     getString(&ptr, proc.nspace, sizeof(proc.nspace));
 
-    mdbg(PSPMIX_LOG_COMM, "%s: received %s (0x%X) from %s (success %s"
-	 " namespace %s rank %d)\n", __func__,
-	 pspmix_getMsgTypeString(msg->type), msg->type,
+    mdbg(PSPMIX_LOG_COMM, "%s: received %s from %s (success %s namespace %s"
+	 " rank %d)\n", __func__, pspmix_getMsgTypeString(msg->type),
 	 PSC_printTID(msg->header.sender), success ? "true" : "false",
 	 proc.nspace, proc.rank);
 
@@ -217,9 +212,9 @@ static void handleFenceIn(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
     size_t len;
     void *rdata = getDataM(&ptr, &len);
 
-    mdbg(PSPMIX_LOG_COMM, "%s: received %s (0x%X) from %s for fence 0x%04lX"
-	    " (ndata %lu)\n", __func__, pspmix_getMsgTypeString(msg->type),
-	    msg->type, PSC_printTID(msg->header.sender), fenceid, len);
+    mdbg(PSPMIX_LOG_COMM, "%s: received %s from %s for fence 0x%04lX"
+	 " (ndata %lu)\n", __func__, pspmix_getMsgTypeString(msg->type),
+	 PSC_printTID(msg->header.sender), fenceid, len);
 
     /* transfers ownership of data */
     pspmix_service_handleFenceIn(fenceid, msg->header.sender, rdata, len);
@@ -244,9 +239,9 @@ static void handleFenceOut(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
     size_t len;
     void *rdata = getDataM(&ptr, &len);
 
-    mdbg(PSPMIX_LOG_COMM, "%s: received %s (0x%X) from %s for fence 0x%04lX"
-	    " (ndata %lu)\n", __func__, pspmix_getMsgTypeString(msg->type),
-	    msg->type, PSC_printTID(msg->header.sender), fenceid, len);
+    mdbg(PSPMIX_LOG_COMM, "%s: received %s from %s for fence 0x%04lX"
+	 " (ndata %lu)\n", __func__, pspmix_getMsgTypeString(msg->type),
+	 PSC_printTID(msg->header.sender), fenceid, len);
 
     /* transfers ownership of data */
     pspmix_service_handleFenceOut(fenceid, rdata, len);
@@ -270,9 +265,8 @@ static void handleModexDataReq(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
     getUint32(&ptr, &proc.rank);
     getString(&ptr, proc.nspace, sizeof(proc.nspace));
 
-    mdbg(PSPMIX_LOG_COMM, "%s: received %s (0x%X) for namespace %s rank %d\n",
-	    __func__, pspmix_getMsgTypeString(msg->type), msg->type,
-	    proc.nspace, proc.rank);
+    mdbg(PSPMIX_LOG_COMM, "%s: received %s (namespace %s rank %d)\n", __func__,
+	 pspmix_getMsgTypeString(msg->type), proc.nspace, proc.rank);
 
     pspmix_service_handleModexDataRequest(msg->header.sender, &proc);
 
@@ -302,9 +296,8 @@ static void handleModexDataResp(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
     size_t len;
     void *blob = getDataM(&ptr, &len);
 
-    mdbg(PSPMIX_LOG_COMM, "%s: received %s (0x%X) from namespace %s rank %d\n",
-	    __func__, pspmix_getMsgTypeString(msg->type), msg->type,
-	    proc.nspace, proc.rank);
+    mdbg(PSPMIX_LOG_COMM, "%s: received %s (namespace %s rank %d)\n", __func__,
+	 pspmix_getMsgTypeString(msg->type), proc.nspace, proc.rank);
 
     /* transfers ownership of blob */
     pspmix_service_handleModexDataResponse(success, &proc, blob, len);
@@ -321,9 +314,8 @@ static void handlePspmixMsg(DDTypedBufferMsg_t *msg)
 {
     mdbg(PSPMIX_LOG_CALL, "%s()\n", __func__);
 
-    mdbg(PSPMIX_LOG_COMM, "%s(type %s (0x%X) [%s", __func__,
-	 pspmix_getMsgTypeString(msg->type), msg->type,
-	 PSC_printTID(msg->header.sender));
+    mdbg(PSPMIX_LOG_COMM, "%s(type %s [%s", __func__,
+	 pspmix_getMsgTypeString(msg->type), PSC_printTID(msg->header.sender));
     mdbg(PSPMIX_LOG_COMM, "->%s])\n", PSC_printTID(msg->header.dest));
 
     switch (msg->type) {

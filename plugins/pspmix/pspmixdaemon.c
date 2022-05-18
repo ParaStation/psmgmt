@@ -257,9 +257,9 @@ static bool forwardPspmixMsg(DDBufferMsg_t *vmsg)
 
     DDTypedBufferMsg_t *msg = (DDTypedBufferMsg_t *)vmsg;
 
-    mdbg(PSPMIX_LOG_COMM, "%s: msg: type %s (%i) length %hu [%s",
-	    __func__, pspmix_getMsgTypeString(msg->type), msg->type,
-	    msg->header.len, PSC_printTID(msg->header.sender));
+    mdbg(PSPMIX_LOG_COMM, "%s: msg: type %s length %hu [%s", __func__,
+	 pspmix_getMsgTypeString(msg->type), msg->header.len,
+	 PSC_printTID(msg->header.sender));
     mdbg(PSPMIX_LOG_COMM, "->%s]\n", PSC_printTID(msg->header.dest));
 
     /* destination is remote, just forward */
@@ -279,7 +279,7 @@ static bool forwardPspmixMsg(DDBufferMsg_t *vmsg)
 	}
     }
     if (!PSC_getPID(msg->header.dest)) {
-	mlog("%s: no dest (sender %s type  %s)\n", __func__,
+	mlog("%s: no dest (sender %s type %s)\n", __func__,
 	     PSC_printTID(msg->header.sender),
 	     pspmix_getMsgTypeString(msg->type));
 	return false;
