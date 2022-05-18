@@ -711,13 +711,6 @@ static int readFromDaemon(int fd, void *data)
     return 0;
 }
 
-static bool msgRELEASERES(DDBufferMsg_t *msg)
-{
-    /* release the client */
-    PSIDhook_call(PSIDHOOK_FRWRD_EXIT, &msg->header.sender);
-    return true;
-}
-
 static bool msgCC(DDBufferMsg_t *msg)
 {
     PSLog_Msg_t *lmsg = (PSLog_Msg_t *)msg;
@@ -743,7 +736,7 @@ static bool msgCC(DDBufferMsg_t *msg)
 	break;
     case EXIT:
 	/* Logger is going to die */
-	/* Release the client */
+	/* Tell plugins */
 	PSIDhook_call(PSIDHOOK_FRWRD_EXIT, NULL);
 	/* Release the daemon */
 	closeDaemonSock();
@@ -1026,10 +1019,11 @@ static void finalizeForwarder(void)
 
     PSIDhook_ClntRls_t ret = PSIDhook_call(PSIDHOOK_FRWRD_CLNT_RLS, childTask);
 
-    /* Release, if no error occurred and not already done */
-    if ((ret == IDLE || ret == PSIDHOOK_NOFUNC)
-	&& (WIFEXITED(childStatus) && !WEXITSTATUS(childStatus))
-	&& !WIFSIGNALED(childStatus)) {
+    /* Release, if client is released or no error occurred */
+    if (ret == RELEASED
+	|| ((ret == IDLE || ret == PSIDHOOK_NOFUNC)
+	    && (WIFEXITED(childStatus) && !WEXITSTATUS(childStatus))
+	    && !WIFSIGNALED(childStatus))) {
 	/* release the child */
 	DDSignalMsg_t msg = {
 	    .header = {
@@ -1070,7 +1064,7 @@ static void finalizeForwarder(void)
     /* Send SIGKILL to process group in order to stop fork()ed children */
     sendSignal(-PSC_getPID(childTask->tid), SIGKILL);
 
-    /* Release the client */
+    /* Tell plugins */
     PSIDhook_call(PSIDHOOK_FRWRD_EXIT, NULL);
 
     /* Release the daemon */
@@ -1312,7 +1306,6 @@ void PSID_forwarder(PStask_t *task, int clientFD, int eno)
     PSID_registerMsg(PSP_CD_WHODIED, NULL);
     PSID_registerMsg(PSP_DD_CHILDDEAD, NULL);
     /* register message types to be always handled */
-    PSID_registerMsg(PSP_CD_RELEASERES, msgRELEASERES);
     PSID_registerMsg(PSP_CC_MSG, msgCC);
     PSID_registerMsg(PSP_CC_ERROR, msgCC_ERROR);
 
