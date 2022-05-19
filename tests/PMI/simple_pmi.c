@@ -19,6 +19,8 @@
 #define PMI_VERSION    1
 #define PMI_SUBVERSION 1
 
+#define USE_PMI_PORT 1
+
 #include <stdio.h>
 #include <unistd.h>
 #include <stdlib.h>
@@ -96,6 +98,142 @@ static int MPL_strnapp(char *dest, const char *src, size_t n)
          * debugging version */
         return 1;
     }
+}
+
+#include <arpa/inet.h>
+#include <netdb.h>
+
+typedef struct sockaddr_storage MPL_sockaddr_t;
+
+static int af_type = AF_INET;
+static int _use_loopback = 0;
+static int _max_conn = SOMAXCONN;
+
+#define MPL_SOCKADDR_ANY 0
+#define MPL_SOCKADDR_LOOPBACK 1
+
+#define MPL_LISTEN_PUSH(a,b) MPL_set_listen_attr(a, b)
+#define MPL_LISTEN_POP MPL_set_listen_attr(0, SOMAXCONN)
+
+int MPL_get_sockaddr(const char *s_hostname, MPL_sockaddr_t * p_addr)
+{
+    struct addrinfo ai_hint;
+    struct addrinfo *ai_list;
+    int ret;
+
+    /* NOTE: there is report that getaddrinfo implementations will call kernel
+     * even when s_hostname is entirely numerical string and it may cause
+     * problems when host is configured with thousands of ip addresses.
+     */
+    /* TODO: detect the cases when s_hostname is entirely numerical string and
+     * call inet_pton directly (-- do this on first bug report).
+     */
+    memset(p_addr, 0, sizeof(*p_addr));
+    memset(&ai_hint, 0, sizeof(ai_hint));
+    ai_hint.ai_family = af_type;
+    ai_hint.ai_socktype = SOCK_STREAM;
+    ai_hint.ai_protocol = IPPROTO_TCP;
+    ai_hint.ai_flags = AI_V4MAPPED;
+    ret = getaddrinfo(s_hostname, NULL, &ai_hint, &ai_list);
+    if (ret) {
+	return ret;
+    }
+    if (af_type == AF_INET) {
+	memcpy(p_addr, ai_list->ai_addr, sizeof(struct sockaddr_in));
+    } else if (af_type == AF_INET6) {
+	memcpy(p_addr, ai_list->ai_addr, sizeof(struct sockaddr_in6));
+    } else {
+	assert(0);
+    }
+    freeaddrinfo(ai_list);
+    return 0;
+}
+
+int MPL_get_sockaddr_direct(int type, MPL_sockaddr_t * p_addr)
+{
+    memset(p_addr, 0, sizeof(*p_addr));
+    assert(type == MPL_SOCKADDR_ANY || type == MPL_SOCKADDR_LOOPBACK);
+    if (af_type == AF_INET) {
+	struct sockaddr_in *p_addr4 = (struct sockaddr_in *) p_addr;
+
+	p_addr4->sin_family = AF_INET;
+	if (type == MPL_SOCKADDR_LOOPBACK) {
+	    p_addr4->sin_addr.s_addr = htonl(0x7f000001);
+	} else {
+	    p_addr4->sin_addr.s_addr = htonl(INADDR_ANY);
+	}
+	return 0;
+    } else if (af_type == AF_INET6) {
+	struct sockaddr_in6 *p_addr6 = (struct sockaddr_in6 *) p_addr;
+
+	p_addr6->sin6_family = AF_INET6;
+	if (type == MPL_SOCKADDR_LOOPBACK) {
+	    p_addr6->sin6_addr = in6addr_loopback;
+	} else {
+	    p_addr6->sin6_addr = in6addr_any;
+	}
+	return 0;
+    } else {
+	assert(0);
+    }
+}
+
+int MPL_socket()
+{
+    return socket(af_type, SOCK_STREAM, IPPROTO_TCP);
+}
+int MPL_connect(int sock_fd, MPL_sockaddr_t * p_addr, unsigned short port)
+{
+    if (af_type == AF_INET) {
+	((struct sockaddr_in *) p_addr)->sin_port = htons(port);
+	return connect(sock_fd, (const struct sockaddr *) p_addr, sizeof(struct sockaddr_in));
+    } else if (af_type == AF_INET6) {
+	((struct sockaddr_in6 *) p_addr)->sin6_port = htons(port);
+	return connect(sock_fd, (const struct sockaddr *) p_addr, sizeof(struct sockaddr_in6));
+    } else {
+	return -1;
+    }
+}
+
+void MPL_set_listen_attr(int use_loopback, int max_conn)
+{
+    _use_loopback = use_loopback;
+    _max_conn = max_conn;
+}
+
+int MPL_listen_anyport(int sock_fd, unsigned short *p_port)
+{
+    MPL_sockaddr_t addr;
+    int ret;
+
+    if (_use_loopback) {
+	MPL_get_sockaddr_direct(MPL_SOCKADDR_LOOPBACK, &addr);
+    } else {
+	MPL_get_sockaddr_direct(MPL_SOCKADDR_ANY, &addr);
+    }
+    if (af_type == AF_INET) {
+	((struct sockaddr_in *) &addr)->sin_port = 0;
+	ret = bind(sock_fd, (const struct sockaddr *) &addr, sizeof(struct sockaddr_in));
+    } else if (af_type == AF_INET6) {
+	((struct sockaddr_in6 *) &addr)->sin6_port = 0;
+	ret = bind(sock_fd, (const struct sockaddr *) &addr, sizeof(struct sockaddr_in6));
+    } else {
+	assert(0);
+    }
+    if (ret) {
+	return ret;
+    }
+    unsigned int n = sizeof(addr);
+    ret = getsockname(sock_fd, (struct sockaddr *) &addr, &n);
+    if (ret) {
+	return ret;
+    }
+    if (af_type == AF_INET) {
+	*p_port = ntohs(((struct sockaddr_in *) &addr)->sin_port);
+    } else if (af_type == AF_INET6) {
+	*p_port = ntohs(((struct sockaddr_in6 *) &addr)->sin6_port);
+    }
+    return listen(sock_fd, _max_conn);
 }
 
 /***************************************************************************/
