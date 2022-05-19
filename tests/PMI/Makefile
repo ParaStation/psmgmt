@@ -5,7 +5,11 @@ TARGETS = reproducer
 
 all: $(TARGETS)
 
-reproducer: LOADLIBES += -lpmi
+reproducer: reproducer.o simple_pmi.o simple_pmiutil.o
+
+reproducer.o: pmi.h reproducer.c
+
+simple_pmi.o simple_pmiutil.o: pmi.h simple_pmiutil.h
 
 .PHONY: clean realclean
 
