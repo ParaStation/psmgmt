@@ -47,7 +47,7 @@ void checkPMI(int round)
 int main(void)
 {
     char *rankStr = getenv("PMI_RANK");
-    int rank = atoi(rankStr);
+    int rank = rankStr ? atoi(rankStr) : 0;
 
     for (int i = 0; i < NUM_ROUNDS; i++) {
 	checkPMI(i);
