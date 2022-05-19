@@ -1,15 +1,19 @@
 CFLAGS = -Wall
 
-TARGETS = reproducer
+TARGETS = reproducer pmi_hello
 
 
 all: $(TARGETS)
 
-reproducer: reproducer.o simple_pmi.o simple_pmiutil.o
+PMI_CLIENT_LIB = simple_pmi.o simple_pmiutil.o
 
-reproducer.o: pmi.h reproducer.c
+reproducer: reproducer.o $(PMI_CLIENT_LIB)
 
-simple_pmi.o simple_pmiutil.o: pmi.h simple_pmiutil.h
+pmi_hello: pmi_hello.o $(PMI_CLIENT_LIB)
+
+#reproducer.o: pmi.h reproducer.c
+
+$(PMI_CLIENT_LIB): pmi.h simple_pmiutil.h
 
 .PHONY: clean realclean
 
