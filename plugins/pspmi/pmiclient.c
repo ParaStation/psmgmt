@@ -543,6 +543,7 @@ static int p_Barrier_In(char *msg)
 void leaveKVS(void)
 {
     if (succReady && !clientIsInitialized) return;
+    if (kvsProvTID == -1) return;
 
     /* inform the provider that we are leaving the KVS space unexpectedly */
     char *ptr = buffer;
