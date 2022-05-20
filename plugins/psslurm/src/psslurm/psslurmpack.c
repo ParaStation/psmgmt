@@ -976,7 +976,7 @@ static bool unpackGresJobAlloc(char **ptr, list_t *gresList)
 	if (filled) {
 	    gres->bitAlloc = umalloc(sizeof(char *) * gres->nodeCount);
 	    for (uint32_t j=0; j<gres->nodeCount; j++) {
-		gres->bitAlloc[i] = getBitString(ptr);
+		gres->bitAlloc[j] = getBitString(ptr);
 		fdbg(PSSLURM_LOG_GRES, "node %u bit_alloc %s\n", j,
 		     gres->bitAlloc[j]);
 	    }
