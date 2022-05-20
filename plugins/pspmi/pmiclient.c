@@ -174,11 +174,17 @@ static fillerFunc_t *fillTaskFunction = NULL;
 static void sendKvsMsg(const char *func, PStask_ID_t tid, char *msg, size_t len)
 {
     if (debug_kvs) {
-	int8_t cmd = *(int8_t *) msg;
+	PSKVS_cmd_t cmd = *(PSKVS_cmd_t *) msg;
 	if (cmd == PUT) {
 	    elog("%s(r%i): pslog_write cmd %s len %zu dest: %s\n", func,
 		 rank, PSKVScmdToString(cmd), len, PSC_printTID(tid));
 	}
+    }
+    if (tid == -1) {
+	PSKVS_cmd_t cmd = *(PSKVS_cmd_t *) msg;
+	mlog("%s(%s, %s, %zd)\n", func, PSC_printTID(tid),
+	     PSKVScmdToString(cmd), len);
+	return;
     }
 
     PSLog_write(tid, KVS, msg, len);
