@@ -434,9 +434,10 @@ void pspmix_service_cleanupNamespace(void *nspace, bool error,
     /* client objects can be safely freed now:
        - handleClientIFResp() will not find the namespace any longer
        - the server library will not call callbacks related to the client */
-    list_t *c;
-    list_for_each(c, &ns->clientList) {
+    list_t *c, *tmp;
+    list_for_each_safe(c, tmp, &ns->clientList) {
 	PspmixClient_t *client = list_entry(c, PspmixClient_t, next);
+	list_del(&client->next);
 	ufree(client->notifiedFwCb);
 	ufree(client);
     }
