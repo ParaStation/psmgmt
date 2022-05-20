@@ -437,7 +437,7 @@ int handleLocalPElogueStart(void *data)
 	alloc->state = A_PROLOGUE;
     }
 
-    if (!userEnv && user) ufree(user);
+    if (!userEnv) ufree(user);
 
     return ret;
 }

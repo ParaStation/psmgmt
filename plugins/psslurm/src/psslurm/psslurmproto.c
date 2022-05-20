@@ -2798,11 +2798,11 @@ static const char *autoDetectSlurmVer(void)
 
     char sinfoCmd[128];
     char *server = getConfValueC(&Config, "SLURM_CONF_SERVER");
-    if (strcmp("server", "none")) {
+    if (!strcmp(server, "none")) {
+	snprintf(sinfoCmd, sizeof(sinfoCmd), "%s --version", sinfo);
+    } else {
 	snprintf(sinfoCmd, sizeof(sinfoCmd), "SLURM_CONF_SERVER=%s "
 		 "%s --version", server, sinfo);
-    } else  {
-	snprintf(sinfoCmd, sizeof(sinfoCmd), "%s --version", sinfo);
     }
     FILE *fp = popen(sinfoCmd, "r");
     if (!fp) {
