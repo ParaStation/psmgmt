@@ -588,9 +588,10 @@ typedef bool ConnectionVisitor_t(Connection_t *conn, const void *info);
 /**
  * @brief Traverse all connections
  *
- * Traverse all connections by calling @a visitor for each of the registered
- * connection. In addition to a pointer to the current connection @a info is
- * passed as additional information to @a visitor.
+ * Traverse all connections by calling @a visitor for each of the
+ * registered connections. In addition to a pointer to the current
+ * connection @a info is passed as additional information to @a
+ * visitor.
  *
  * If @a visitor returns true, the traversal will be stopped
  * immediately and true is returned to the calling function.
@@ -601,7 +602,7 @@ typedef bool ConnectionVisitor_t(Connection_t *conn, const void *info);
  * visiting the connections
  *
  * @return If the visitor returns true, traversal will be stopped and
- * true is returned. If no visitor returned true during the traversal
+ * true is returned. If no visitor returned true during the traversal,
  * false is returned.
  */
 bool Connection_traverse(ConnectionVisitor_t visitor, const void *info);
