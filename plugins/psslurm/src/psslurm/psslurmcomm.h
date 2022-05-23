@@ -569,4 +569,41 @@ const char *slurmRC2String(int rc);
  */
 Connection_t *findConnectionByStep(Step_t *step);
 
+/**
+ * @brief Visitor function
+ *
+ * Visitor function used by @ref Connection_traverse() in order to visit
+ * each connection currently registered.
+ *
+ * The parameters are as follows: @a conn points to the connection to
+ * visit. @a info points to the additional information passed to @ref
+ * Connection_traverse() in order to be forwarded to each connection.
+ *
+ * If the visitor function returns true the traversal will be
+ * interrupted and @ref Connection_traverse() will return to its calling
+ * function.
+ */
+typedef bool ConnectionVisitor_t(Connection_t *conn, const void *info);
+
+/**
+ * @brief Traverse all connections
+ *
+ * Traverse all connections by calling @a visitor for each of the registered
+ * connection. In addition to a pointer to the current connection @a info is
+ * passed as additional information to @a visitor.
+ *
+ * If @a visitor returns true, the traversal will be stopped
+ * immediately and true is returned to the calling function.
+ *
+ * @param visitor Visitor function to be called for each connection
+ *
+ * @param info Additional information to be passed to @a visitor while
+ * visiting the connections
+ *
+ * @return If the visitor returns true, traversal will be stopped and
+ * true is returned. If no visitor returned true during the traversal
+ * false is returned.
+ */
+bool Connection_traverse(ConnectionVisitor_t visitor, const void *info);
+
 #endif  /* __PSSLURM_COMM */

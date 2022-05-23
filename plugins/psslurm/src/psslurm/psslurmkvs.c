@@ -13,6 +13,9 @@
 #include <stdio.h>
 #include <string.h>
 #include <time.h>
+#include <sys/socket.h>
+#include <arpa/inet.h>
+#include <errno.h>
 
 #include "list.h"
 #include "pscommon.h"
@@ -629,6 +632,7 @@ static char *showVirtualKeys(char *buf, size_t *bufSize, bool example)
     str2Buf("    tainted\tshow if a spank plugin taints psid\n", &buf, bufSize);
     str2Buf("  slurmHash\tshow slurm.conf hash and read time\n", &buf, bufSize);
     str2Buf("    slurmHC\tshow Slurm health-check runs\n", &buf, bufSize);
+    str2Buf("connections\tshow Slurm connections\n", &buf, bufSize);
 
     if (example) {
 	str2Buf("\nExamples:\n * Use 'plugin show psslurm key jobs' "
@@ -744,6 +748,77 @@ char *help(char *key)
     return showVirtualKeys(buf, &bufSize, true);
 }
 
+/**
+ * @brief Visitor to add information about a connection to a buffer
+ *
+ * @param conn The connection to add
+ *
+ * @param info A StrBuffer structure to save the information
+ *
+ * @return Always returns false to loop throw all connections
+ */
+static bool addConnInfo(Connection_t *conn, const void *info)
+{
+    StrBuffer_t *strBuf = (StrBuffer_t *) info;
+
+    snprintf(line, sizeof(line), "\n- socket %u -\n", conn->sock);
+    addStrBuf(line, strBuf);
+
+    time_t oTime = conn->openTime.tv_sec;
+    struct tm *ts = localtime(&oTime);
+    strftime(line, sizeof(line), "opened: %Y-%m-%d %H:%M:%S\n", ts);
+    addStrBuf(line, strBuf);
+
+    ts = localtime(&conn->recvTime);
+    strftime(line, sizeof(line), "received: %Y-%m-%d %H:%M:%S\n", ts);
+    addStrBuf(line, strBuf);
+
+    if (conn->fw.head.fwNodeList) {
+	snprintf(line, sizeof(line), "message %s forward to %s returned %i of "
+		 "%i\n", msgType2String(conn->fw.head.type),
+		 conn->fw.head.fwNodeList, conn->fw.head.returnList,
+		 conn->fw.head.fwResSize);
+	addStrBuf(line, strBuf);
+    }
+
+    if (conn->step && Step_verifyPtr(conn->step)) {
+	snprintf(line, sizeof(line), "step %s\n", Step_strID(conn->step));
+	addStrBuf(line, strBuf);
+    }
+
+    struct sockaddr_in sockLocal, sockRemote;
+    socklen_t lenLoc = sizeof(sockLocal), lenRem = sizeof(sockRemote);
+
+    if (getsockname(conn->sock, (struct sockaddr*)&sockLocal, &lenLoc) == -1) {
+	mwarn(errno, "%s: getsockname(%i)", __func__, conn->sock);
+    } else if (getpeername(conn->sock, (struct sockaddr*)&sockRemote,
+	       &lenRem) == -1) {
+	mwarn(errno, "%s: getpeername(%i)", __func__, conn->sock);
+    } else {
+	snprintf(line, sizeof(line), "connected local %s:%u remote %s:%u\n",
+		 inet_ntoa(sockRemote.sin_addr), ntohs(sockRemote.sin_port),
+		 inet_ntoa(sockLocal.sin_addr), ntohs(sockLocal.sin_port));
+	addStrBuf(line, strBuf);
+    }
+
+    return false;
+}
+
+/**
+ * @brief Show current connections
+ *
+ * @return Returns the buffer with the updated connection information
+ */
+static char *showConnections(void)
+{
+    StrBuffer_t strBuf = { .buf = NULL };
+
+    addStrBuf("\nconnections:\n\n", &strBuf);
+    Connection_traverse(addConnInfo, &strBuf);
+
+    return strBuf.buf;
+}
+
 char *show(char *key)
 {
     char *buf = NULL, *tmp;
@@ -797,6 +872,9 @@ char *show(char *key)
 
     /* show Slurm healthcheck runs */
     if (!strcmp(key, "slurmHC")) return showHealthCheck();
+
+    /* show Slurm connections */
+    if (!strcmp(key, "connections")) return showConnections();
 
 #ifdef HAVE_SPANK
     /* show spank plugins */

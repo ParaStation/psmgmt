@@ -161,7 +161,6 @@ static bool resetConnection(int socket)
     con->data.size = 0;
     con->data.used = 0;
     con->readSize = false;
-    con->step = NULL;
 
     return true;
 }
@@ -1963,4 +1962,16 @@ bool initSlurmCon(void)
     sendNodeRegStatus(true);
 
     return true;
+}
+
+bool Connection_traverse(ConnectionVisitor_t visitor, const void *info)
+{
+    list_t *s, *tmp;
+    list_for_each_safe(s, tmp, &connectionList) {
+	Connection_t *conn = list_entry(s, Connection_t, next);
+
+	if (visitor(conn, info)) return true;
+    }
+
+    return false;
 }
