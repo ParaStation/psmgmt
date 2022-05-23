@@ -11,11 +11,13 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
-#include <string.h>
-#include <time.h>
-#include <sys/socket.h>
 #include <arpa/inet.h>
 #include <errno.h>
+#include <netinet/in.h>
+#include <string.h>
+#include <sys/socket.h>
+#include <sys/time.h>
+#include <time.h>
 
 #include "list.h"
 #include "pscommon.h"
@@ -36,10 +38,12 @@
 
 #include "slurmcommon.h"
 #include "psslurmalloc.h"
+#include "psslurmcomm.h"
 #include "psslurmconfig.h"
 #include "psslurmlog.h"
 #include "psslurmjob.h"
 #include "psslurmjobcred.h"
+#include "psslurmmsg.h"
 #include "psslurmnodeinfotype.h"
 #include "psslurmpin.h"
 #include "psslurmproto.h"
