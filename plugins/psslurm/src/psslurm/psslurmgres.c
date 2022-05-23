@@ -241,8 +241,13 @@ void freeGresJobAlloc(list_t *gresList)
 	Gres_Job_Alloc_t *gres = list_entry(g, Gres_Job_Alloc_t, next);
 
 	list_del(&gres->next);
-	ufree(gres->nodeAlloc);
+	if (gres->bitAlloc) {
+	    for (uint32_t i=0; i<gres->nodeCount; i++) {
+		ufree(gres->bitAlloc[i]);
+	    }
+	}
 	ufree(gres->bitAlloc);
+	ufree(gres->nodeAlloc);
 	ufree(gres);
     }
 }

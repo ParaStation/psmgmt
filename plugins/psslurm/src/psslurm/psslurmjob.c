@@ -99,6 +99,7 @@ bool Job_delete(Job_t *job)
     ufree(job->acctFreq);
     ufree(job->gids);
     ufree(job->packHostlist);
+    ufree(job->packNodes);
     ufree(job->tresBind);
     ufree(job->tresFreq);
     ufree(job->restartDir);
