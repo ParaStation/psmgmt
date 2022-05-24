@@ -6,6 +6,22 @@ Copyright (C) 2021-2022 ParTec AG, Munich
 Please send bug reports, questions and suggestions to <support@par-tec.com>
 
 
+Version 5.1.49-2:
+=================
+Bugfixes:
+ - Fix possible memory leak if slurmctld misses to send a reply to request
+ - Prevent segfault when cleaning up clients in PMIx server
+ - Fix memory corruption if number of requested GRes is too large
+ - Fix memory leaks unveiled by valgrind
+ - Fix warnings unveiled by cppcheck
+Enhancements:
+ - Add the ability to query psslurm's active Slurm connections via psiadmin
+ - Allow PMI client to connect multiple times (via TCP)
+ - Overwrite default PMI connection method by PMI_ENABLE_TCP environment
+Additional changes:
+ - Raise preference of CONNECTED above RELEASED for PMI(x) status
+
+
 Version 5.1.49-1:
 =================
 Messed up the tags, thus, need a new version
