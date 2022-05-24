@@ -545,7 +545,8 @@ int openSlurmctldConEx(Connection_CB_t *cb, void *info);
  * @param cb The function to call to handle received messages
  *
  * @param info Pointer to additional information passed to @a
- * cb
+ * cb. The memory for @a info has to be allocated dynamically and
+ * will get freed by using @ref ufree().
  *
  * @return Returns the associated connection or NULL otherwise
  */

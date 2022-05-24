@@ -85,8 +85,6 @@ uint64_t slurmHCRuns = 0;
 /** Flag to request additional info in node registration */
 static bool needNodeRegResp = true;
 
-static int confAction = 0;
-
 /** PID of a running Slurm health-check script */
 static pid_t slurmHCpid = -1;
 
@@ -3550,7 +3548,6 @@ bool sendConfigReq(const char *server, const int action)
     PS_SendDB_t body = { .bufUsed = 0, .useFrag = false };
     char *confServer = ustrdup(server);
     char *confPort = strchr(confServer, ':');
-    confAction = action;
 
     if (confPort) {
 	confPort[0] = '\0';
@@ -3571,7 +3568,9 @@ bool sendConfigReq(const char *server, const int action)
 	goto ERROR;
     }
 
-    if (!registerSlurmSocket(sock, handleSlurmConf, &confAction)) {
+    int *confAction = umalloc(sizeof(*confAction));
+    *confAction = action;
+    if (!registerSlurmSocket(sock, handleSlurmConf, confAction)) {
 	flog("register Slurm socket %i failed\n", sock);
 	goto ERROR;
     }

@@ -232,6 +232,7 @@ void closeSlurmCon(int socket)
 	if (con->fw.nodesCount) ufree(con->fw.nodes);
 	ufree(con->fw.body.buf);
 	ufree(con->data.buf);
+	ufree(con->info);
 	ufree(con);
     }
 }
@@ -827,7 +828,6 @@ static int handleSlurmctldReply(Slurm_Msg_t *sMsg, void *info)
 
 CLEANUP:
     if (sMsg->source == -1) closeSlurmCon(sMsg->sock);
-    ufree(info);
     return 0;
 }
 
@@ -1540,7 +1540,6 @@ static int handleSrunMsg(Slurm_Msg_t *sMsg, void *info)
 
 CLEANUP:
     closeSlurmCon(sMsg->sock);
-    ufree(info);
     return 0;
 }
 
