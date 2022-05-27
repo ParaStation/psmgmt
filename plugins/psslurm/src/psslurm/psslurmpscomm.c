@@ -109,6 +109,8 @@ typedef enum {
     PSP_PELOGUE_OE,	    /**< forward pelogue script stdout/stderr */
     PSP_STOP_STEP_FW,	    /**< shutdown step follower on all relevant nodes */
     PSP_PELOGUE_RES,	    /**< result of a non-parallel prologue/epilogue */
+    PSP_ALLOC_TERM,	    /**< terminate an allocation including all
+				 corresponding jobs and steps */
 } PSP_PSSLURM_t;
 
 /** hostname lookup table for PS node IDs */
@@ -151,6 +153,8 @@ static const char *msg2Str(PSP_PSSLURM_t type)
 	    return "PSP_STOP_STEP_FW";
 	case PSP_PELOGUE_RES:
 	    return "PSP_PELOGUE_RES";
+	case PSP_ALLOC_TERM:
+	    return "PSP_ALLOC_TERM";
 	default:
 	    snprintf(buf, sizeof(buf), "%i <Unknown>", type);
 	    return buf;
@@ -1538,6 +1542,28 @@ static void handlePElogueOEMsg(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
     ufree(msgData);
 }
 
+static void handle_AllocTerm(DDTypedBufferMsg_t *msg)
+{
+    uint32_t allocID;
+    size_t used = 0;
+
+    PSP_getTypedMsgBuf(msg, &used, "allocID", &allocID, sizeof(allocID));
+
+    flog("allocation %i from %s\n", allocID, PSC_printTID(msg->header.sender));
+
+    Alloc_t *alloc = Alloc_find(allocID);
+    if (!alloc) {
+	flog("allocation %i not found\n", allocID);
+    }
+
+    if (alloc->state == A_RUNNING || alloc->state == A_EPILOGUE ||
+	alloc->state == A_PROLOGUE) {
+	Alloc_signal(alloc->id, SIGKILL, 0);
+    }
+
+    Alloc_delete(alloc->id);
+}
+
 /**
 * @brief Handle a PSP_PLUG_PSSLURM message
 *
@@ -1598,6 +1624,9 @@ static bool handlePsslurmMsg(DDTypedBufferMsg_t *msg)
 	    break;
 	case PSP_STOP_STEP_FW:
 	    handleStopStepFW(msg);
+	    break;
+	case PSP_ALLOC_TERM:
+	    handle_AllocTerm(msg);
 	    break;
 	case PSP_EPILOGUE_RES:
 	    flog("received defunct msg type: %i [%s -> %s]\n", msg->type,
@@ -1790,6 +1819,7 @@ static bool handleDroppedMsg(DDTypedBufferMsg_t *msg)
     case PSP_EPILOGUE_STATE_RES:
     case PSP_PACK_INFO:
     case PSP_PACK_EXIT:
+    case PSP_ALLOC_TERM:
 	/* nothing we can do here */
 	break;
     default:
@@ -2842,6 +2872,28 @@ void sendPElogueOE(Alloc_t *alloc, PElogue_OEdata_t *oeData)
     addStringToMsg(oeData->msg, &data);
 
     sendFragMsg(&data);
+}
+
+void send_PS_AllocTerm(Alloc_t *alloc)
+{
+    DDTypedBufferMsg_t msg = {
+	.header = {
+	    .type = PSP_PLUG_PSSLURM,
+	    .sender = PSC_getMyTID(),
+	    .len = offsetof(DDTypedBufferMsg_t, buf) },
+	.type = PSP_ALLOC_TERM,
+	.buf = {'\0'} };
+
+    PSP_putTypedMsgBuf(&msg, "allocID", &alloc->id, sizeof(alloc->id));
+
+    /* send the messages */
+    for (uint32_t n = 0; n < alloc->nrOfNodes; n++) {
+	msg.header.dest = PSC_getTID(alloc->nodes[n], 0);
+	if (sendMsg(&msg) == -1 && errno != EWOULDBLOCK) {
+	    mwarn(errno, "%s: sendMsg(%s)", __func__,
+		  PSC_printTID(msg.header.dest));
+	}
+    }
 }
 
 /* vim: set ts=8 sw=4 tw=0 sts=4 noet:*/

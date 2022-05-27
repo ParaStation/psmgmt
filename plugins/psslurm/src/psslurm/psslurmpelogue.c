@@ -80,6 +80,9 @@ static void handleFailedPrologue(Alloc_t *alloc, PElogueResList_t *resList)
 	if (offline) setNodeOffline(&alloc->env, alloc->id,
 				    getSlurmHostbyNodeID(resList[i].id), msg);
     }
+
+    /* delete the allocation on all nodes */
+    send_PS_AllocTerm(alloc);
 }
 
 /**

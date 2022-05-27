@@ -251,12 +251,22 @@ void finalizePScomm(bool verbose);
  * @brief Stop step follower
  *
  * Only the step leader should call this function.
- * It wil send a message to all step follower to ensure the forwarder
+ * It will send a message to all step follower to ensure the forwarder
  * will shutdown after mpiexec has exited. It is a safety net for normal
  * steps, but mandatory for heterogeneous steps.
  *
  * @param step The step to signal the follower
  */
 void stopStepFollower(Step_t *step);
+
+/**
+ * @brief Terminate and delete an allocation
+ *
+ * Terminate and remove an allocation including all corresponding
+ * jobs and steps.
+ *
+ * @param alloc The allocation to terminate
+ */
+void send_PS_AllocTerm(Alloc_t *alloc);
 
 #endif
