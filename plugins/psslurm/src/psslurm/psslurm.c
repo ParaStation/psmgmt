@@ -657,7 +657,8 @@ static bool requestConfig(void)
 	    return false;
 	}
     }
-    flog("waiting for Slurm configuration from %s\n", server);
+    flog("waiting for Slurm configuration from %s proto %s (%i)\n", server,
+	 slurmProtoStr, slurmProto);
 
     return true;
 }
