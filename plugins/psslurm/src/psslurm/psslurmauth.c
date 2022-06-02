@@ -56,6 +56,7 @@ Slurm_Auth_t *dupSlurmAuth(Slurm_Auth_t *auth)
 Slurm_Auth_t *getSlurmAuth(uid_t uid, uint16_t msgType)
 {
     unsigned char sigBuf[3] = { 1 };
+    if (slurmProto >= SLURM_22_05_PROTO_VERSION) msgType = htons(msgType);
     memcpy(sigBuf + 1, &msgType, sizeof(msgType));
 
     char *cred;
@@ -100,10 +101,18 @@ bool extractSlurmAuth(Slurm_Msg_t *sMsg)
     }
 
     /* check message type (a.k.a. hash) */
-    if (sigBufLen != 3 || sigBuf[0] != 1 ||
-	memcmp(sigBuf + 1, &sMsg->head.type, sizeof(sMsg->head.type))) {
-	flog("verify Slurm message hash failed\n");
-	goto CLEANUP;
+    uint16_t msgType = sMsg->head.type;
+    if (sMsg->head.version >= SLURM_22_05_PROTO_VERSION) {
+	msgType = htons(msgType);
+    }
+    if (sigBuf[0] == 1) {
+	/* skip K12 hash for testing */
+	if (sigBufLen != 3 || sigBuf[0] != 1 ||
+	    memcmp(sigBuf + 1, &msgType, sizeof(msgType))) {
+	    flog("verify Slurm message hash failed, hash type %i "
+		 "sigBufLen %i\n", sigBuf[0], sigBufLen);
+	    goto CLEANUP;
+	}
     }
 
     fdbg(PSSLURM_LOG_AUTH, "valid message from user uid '%u' gid '%u'\n",
