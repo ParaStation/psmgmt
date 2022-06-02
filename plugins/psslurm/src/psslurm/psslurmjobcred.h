@@ -62,6 +62,7 @@ typedef struct {
 				   get one common index and this array holds
 				   how many nodes are on the same index */
     uint32_t jobNumHosts;       /**< number of nodes in the job */
+    uint32_t jobNumTasks;       /**< number of tasks in the job */
     char *jobHostlist;		/**< Slurm compressed job host-list */
     PSnodes_ID_t *jobNodes;	/**< IDs of job's participating nodes
 				     (basis for both coreMaps) */
@@ -75,6 +76,18 @@ typedef struct {
     uint64_t *stepMemAlloc;
     uint32_t *stepMemAllocRepCount;
     char *SELinuxContext;
+    char *jobAccount;
+    char *jobAliasList;
+    char *jobComment;
+    char *jobPartition;
+    char *jobReservation;
+    uint16_t jobRestartCount;
+    char *jobStderr;
+    char *jobStdin;
+    char *jobStdout;
+    uint32_t cpuArrayCount;
+    uint16_t *cpuArray;
+    uint32_t *cpuArrayRep;
 } JobCred_t;
 
 /**

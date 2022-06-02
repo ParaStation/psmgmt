@@ -2534,8 +2534,11 @@ static void handleTerminateReq(Slurm_Msg_t *sMsg)
 CLEANUP:
     envDestroy(&req->spankEnv);
     freeGresJobAlloc(&req->gresList);
+    freeJobCred(req->cred);
+    freeGresCred(&req->gresJobList);
     ufree(req->nodes);
     ufree(req->workDir);
+    ufree(req->details);
     ufree(req);
 }
 
@@ -2936,7 +2939,10 @@ bool initSlurmdProto(void)
 
     // TODO  :  make a function which converts protocol version in int to string
 
-    if (!strncmp(pver, "21.08", 5) || !strncmp(pver, "2108", 4)) {
+    if (!strncmp(pver, "22.05", 5) || !strncmp(pver, "2205", 4)) {
+	slurmProto = SLURM_22_05_PROTO_VERSION;
+	slurmProtoStr = ustrdup("22.05");
+    } else if (!strncmp(pver, "21.08", 5) || !strncmp(pver, "2108", 4)) {
 	slurmProto = SLURM_21_08_PROTO_VERSION;
 	slurmProtoStr = ustrdup("21.08");
     } else if (!strncmp(pver, "20.11", 5) || !strncmp(pver, "2011", 4)) {
@@ -3094,6 +3100,7 @@ void sendNodeRegStatus(bool startup)
 
     /* dynamic node feature */
     stat.dynamic = false;
+    stat.dynamicConf = NULL;
     stat.dynamicFeat = NULL;
 
     /* send request to slurmctld */
@@ -3107,6 +3114,8 @@ void sendNodeRegStatus(bool startup)
     ufree(stat.jobids);
     ufree(stat.stepids);
     ufree(stat.stepHetComp);
+    ufree(stat.dynamicConf);
+    ufree(stat.dynamicFeat);
 }
 
 int __sendSlurmReply(Slurm_Msg_t *sMsg, slurm_msg_type_t type,

@@ -196,6 +196,7 @@ typedef struct {
     uint32_t rcvdPackProcs;	/**< number of received pack processes */
     char *container;            /**< container path */
     psAccountInfo_t acctBase;  /**< account base values (e.g. file-system) */
+    uint32_t mpiPluginID;	/**< Slurm MPI plugin ID */
     list_t next;                /**< used to put into some step-lists */
 } Step_t;
 

@@ -528,6 +528,12 @@ bool __unpackJobCred(Slurm_Msg_t *sMsg, JobCred_t **credPtr,
     /* count of specialized cores */
     getUint16(ptr, &cred->jobCoreSpec);
 
+    if (msgVer >= SLURM_22_05_PROTO_VERSION) {
+	cred->jobAccount = getStringM(ptr);
+	cred->jobAliasList = getStringM(ptr);
+	cred->jobComment = getStringM(ptr);
+    }
+
     if (msgVer < SLURM_21_08_PROTO_VERSION) {
 	/* job/step memory limit */
 	getUint64(ptr, &cred->jobMemLimit);
@@ -536,6 +542,18 @@ bool __unpackJobCred(Slurm_Msg_t *sMsg, JobCred_t **credPtr,
 
     /* job constraints */
     cred->jobConstraints = getStringM(ptr);
+
+    if (msgVer >= SLURM_22_05_PROTO_VERSION) {
+	cred->jobPartition = getStringM(ptr);
+	cred->jobReservation = getStringM(ptr);
+	getUint16(ptr, &cred->jobRestartCount);
+	cred->jobStderr = getStringM(ptr);
+	cred->jobStdin = getStringM(ptr);
+	cred->jobStdout = getStringM(ptr);
+    } else {
+	cred->jobRestartCount = INFINITE16;
+    }
+
     /* step hostlist */
     cred->stepHL = getStringM(ptr);
     if (!cred->stepHL) {
@@ -581,8 +599,34 @@ bool __unpackJobCred(Slurm_Msg_t *sMsg, JobCred_t **credPtr,
 	    goto ERROR;
 	}
     }
+
+    if (msgVer >= SLURM_22_05_PROTO_VERSION) {
+	getUint32(ptr, &cred->cpuArrayCount);
+	if (cred->cpuArrayCount) {
+	    uint32_t len;
+	    getUint16Array(ptr, &cred->cpuArray, &len);
+	    if (len != cred->cpuArrayCount) {
+		flog("unpacking cpu array failed %i != %i\n", len,
+		     cred->cpuArrayCount);
+		goto ERROR;
+	    }
+	    getUint32Array(ptr, &cred->cpuArrayRep, &len);
+	    if (len != cred->cpuArrayCount) {
+		flog("unpacking cpu array repetition failed %i != %i\n", len,
+		     cred->cpuArrayCount);
+		goto ERROR;
+	    }
+	}
+    }
+
     /* job number of hosts */
     getUint32(ptr, &cred->jobNumHosts);
+
+    if (msgVer >= SLURM_22_05_PROTO_VERSION) {
+	/* job number of tasks */
+	getUint32(ptr, &cred->jobNumTasks);
+    }
+
     /* job hostlist */
     cred->jobHostlist = getStringM(ptr);
 
@@ -711,8 +755,12 @@ bool __unpackSlurmHeader(char **ptr, Slurm_Msg_Header_t *head,
     getUint16(ptr, &head->version);
     /* message flags */
     getUint16(ptr, &head->flags);
-    /* message index */
-    getUint16(ptr, &head->index);
+
+    if (head->version < SLURM_22_05_PROTO_VERSION) {
+	/* message index */
+	getUint16(ptr, &head->index);
+    }
+
     /* type (RPC) */
     getUint16(ptr, &head->type);
     /* body length */
@@ -811,8 +859,12 @@ bool __packSlurmHeader(PS_SendDB_t *data, Slurm_Msg_Header_t *head,
     addUint16ToMsg(head->version, data);
     /* flags */
     addUint16ToMsg(head->flags, data);
-    /* message index */
-    addUint16ToMsg(head->index, data);
+
+    if (head->version < SLURM_22_05_PROTO_VERSION) {
+	/* message index */
+	addUint16ToMsg(head->index, data);
+    }
+
     /* message (RPC) type */
     addUint16ToMsg(head->type, data);
     /* body len */
@@ -1004,6 +1056,23 @@ static bool unpackReqTerminate(Slurm_Msg_t *sMsg)
 
     uint16_t msgVer = sMsg->head.version;
     char **ptr = &sMsg->ptr;
+
+    INIT_LIST_HEAD(&req->gresJobList);
+    if (msgVer >= SLURM_22_05_PROTO_VERSION) {
+	uint8_t hasCred;
+	getUint8(ptr, &hasCred);
+
+	if (hasCred) {
+	    req->cred = extractJobCred(&req->gresJobList, sMsg, false);
+	    if (!req->cred) {
+		flog("extracting job credential failed\n");
+		return false;
+	    }
+	}
+	req->details = getStringM(ptr);
+	getUint32(ptr, &req->derivedExitCode);
+	getUint32(ptr, &req->exitCode);
+    }
 
     INIT_LIST_HEAD(&req->gresList);
     if (!unpackGresJobAlloc(ptr, &req->gresList)) {
@@ -1277,6 +1346,12 @@ static bool unpackReqLaunchTasks(Slurm_Msg_t *sMsg)
     if (step->packTaskOffset == NO_VAL) step->packTaskOffset = 0;
     /* pack nodelist */
     step->packHostlist = getStringM(ptr);
+
+    if (msgVer >= SLURM_22_05_PROTO_VERSION) {
+	/* MPI plugin ID */
+	getUint32(ptr, &step->mpiPluginID);
+    }
+
     /* number of tasks */
     getUint32(ptr, &step->np);
     /* number of tasks per board */
@@ -1289,8 +1364,11 @@ static bool unpackReqLaunchTasks(Slurm_Msg_t *sMsg)
     }
     /* number of tasks per socket */
     getUint16(ptr, &step->numTasksPerSocket);
-    /* partition */
-    step->partition = getStringM(ptr);
+
+    if (msgVer < SLURM_22_05_PROTO_VERSION) {
+	/* partition */
+	step->partition = getStringM(ptr);
+    }
 
     /* job/step memory limit */
     getUint64(ptr, &step->jobMemLimit);
@@ -1322,6 +1400,17 @@ static bool unpackReqLaunchTasks(Slurm_Msg_t *sMsg)
     getUint16(ptr, &step->jobCoreSpec);
     /* accelerator bind type */
     getUint16(ptr, &step->accelBindType);
+
+    if (msgVer >= SLURM_22_05_PROTO_VERSION) {
+	/* unkown why there is an extra version field now */
+	uint16_t credVer;
+	getUint16(ptr, &credVer);
+
+	if (credVer != msgVer) {
+	    flog("warning: credential version %i not msg head version %i\n",
+		 credVer, msgVer);
+	}
+    }
 
     /* job credentials */
     step->cred = extractJobCred(&step->gresList, sMsg, true);
@@ -1614,6 +1703,18 @@ static bool unpackReqBatchJobLaunch(Slurm_Msg_t *sMsg)
     }
     /* TODO use job memory limit */
     getUint64(ptr, &job->memLimit);
+
+
+    if (msgVer >= SLURM_22_05_PROTO_VERSION) {
+	/* unkown why there is an extra version field now */
+	uint16_t credVer;
+	getUint16(ptr, &credVer);
+
+	if (credVer != msgVer) {
+	    flog("warning: credential version %i not msg head version %i\n",
+		 credVer, msgVer);
+	}
+    }
 
     /* job credential */
     job->cred = extractJobCred(&job->gresList, sMsg, true);
@@ -2001,6 +2102,12 @@ static bool packRespNodeRegStatus(PS_SendDB_t *data,
     /* features active/avail */
     addStringToMsg(NULL, data);
     addStringToMsg(NULL, data);
+
+    if (slurmProto >= SLURM_22_05_PROTO_VERSION) {
+	/* hostname */
+	addStringToMsg(stat->nodeName, data);
+    }
+
     /* node_name */
     addStringToMsg(stat->nodeName, data);
     /* architecture */
@@ -2068,6 +2175,12 @@ static bool packRespNodeRegStatus(PS_SendDB_t *data,
     if (slurmProto >= SLURM_20_11_PROTO_VERSION) {
 	/* dynamic node */
 	addUint8ToMsg(stat->dynamic, data);
+
+	if (slurmProto >= SLURM_22_05_PROTO_VERSION) {
+	    /* dynamic node feature */
+	    addStringToMsg(stat->dynamicConf, data);
+	}
+
 	/* dynamic node feature */
 	addStringToMsg(stat->dynamicFeat, data);
     }
@@ -2650,6 +2763,7 @@ static bool unpackReqLaunchProlog(Slurm_Msg_t *sMsg)
 {
     Req_Launch_Prolog_t *req = ucalloc(sizeof(*req));
     char **ptr = &sMsg->ptr;
+    uint16_t msgVer = sMsg->head.version;
 
     req->gresList = umalloc(sizeof(*req->gresList));
     INIT_LIST_HEAD(req->gresList);
@@ -2669,8 +2783,12 @@ static bool unpackReqLaunchProlog(Slurm_Msg_t *sMsg)
     req->aliasList = getStringM(ptr);
     /* nodes */
     req->nodes = getStringM(ptr);
-    /* partition */
-    req->partition = getStringM(ptr);
+
+    if (msgVer < SLURM_22_05_PROTO_VERSION) {
+	/* partition */
+	req->partition = getStringM(ptr);
+    }
+
     /* stdout/stderr */
     req->stdErr = getStringM(ptr);
     req->stdOut = getStringM(ptr);
@@ -2997,6 +3115,12 @@ static bool packReqPrologComplete(PS_SendDB_t *data, Req_Prolog_Comp_t *req)
 {
     /* jobid */
     addUint32ToMsg(req->jobid, data);
+
+    if (slurmProto >= SLURM_22_05_PROTO_VERSION) {
+	/* node name */
+	addStringToMsg(getConfValueC(&Config, "SLURM_HOSTNAME"), data);
+    }
+
     /* prolog return code */
     addUint32ToMsg(req->rc, data);
 

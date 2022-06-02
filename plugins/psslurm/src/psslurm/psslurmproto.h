@@ -44,6 +44,12 @@ typedef struct {
     time_t requestTime;		/**< time slurmctld send the request */
     list_t gresList;		/**< list of allocated generic resources */
     char * workDir;		/**< working directory */
+    JobCred_t *cred;		/**< optional job credential */
+    list_t gresJobList;		/**< optional list of allocated
+				     job generic resources */
+    char *details;
+    uint32_t derivedExitCode;
+    uint32_t exitCode;
 } Req_Terminate_Job_t;
 
 /** Structure holding a signal tasks request */
@@ -89,8 +95,9 @@ typedef struct {
     int protoVersion;		/**< protocol version */
     char verStr[64];		/**< version string */
     psAccountEnergy_t eData;	/**< energy accounting data */
-    bool dynamic;		/**< dynamic future node */
-    char *dynamicFeat;		/**< dynamic feature */
+    uint8_t dynamic;		/**< dynamic future node (type) */
+    char *dynamicFeat;		/**< dynamic node feature */
+    char *dynamicConf;		/**< dynamic node configuration */
 } Resp_Node_Reg_Status_t;
 
 /** Structure holding all infos to pack Slurm accounting data */
