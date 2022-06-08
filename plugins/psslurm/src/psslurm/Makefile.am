@@ -23,6 +23,7 @@ AM_CFLAGS += -std=gnu99
 AM_LDFLAGS += -avoid-version -module
 AM_CPPFLAGS += -I$(top_srcdir)/bin/daemon -I$(srcdir)/../include \
 	       -I$(top_srcdir)/$(psslurm_dir)/common \
+	       -I$(top_srcdir)/$(psslurm_dir)/k12 \
 	       -I$(top_srcdir)/$(psaccount_dir) \
 	       -I$(top_srcdir)/$(pelogue_dir) \
 	       -I$(top_srcdir)/$(psmunge_dir) \
@@ -36,6 +37,7 @@ plugin_LTLIBRARIES = psslurm.la
 libplugincommon = $(top_builddir)/lib/plugincommon/libplugincommon.la
 libslurmcommon = $(top_builddir)/$(psslurm_dir)/common/libslurmcommon.la
 libpscommon = $(top_builddir)/lib/pscommon/libpscommon.la
+libk12 = $(top_builddir)/$(psslurm_dir)/k12/libk12.la
 
 psslurm_la_SOURCES = psslurm.c psslurm.h psslurmlog.c psslurmlog.h	\
 	psslurmpscomm.c psslurmpscomm.h psslurmconfig.c			\
@@ -68,7 +70,7 @@ psslurm_la_CPPFLAGS = $(AM_CPPFLAGS) -DPLUGINDIR=\"$(plugindir)\"	\
 
 
 psslurm_la_LIBADD = $(libpsi) $(libplugincommon) $(libslurmcommon) \
-		    $(libpscommon) $(NUMA_LIBS) -lm
+		    $(libpscommon) $(NUMA_LIBS) -lm $(libk12)
 
 install-exec-local:
 	$(INSTALL) -d $(DESTDIR)$(localstatedir)/spool/parastation/jobs
