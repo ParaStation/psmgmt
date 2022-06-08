@@ -156,7 +156,7 @@ am__installdirs = "$(DESTDIR)$(plugindir)"
 LTLIBRARIES = $(plugin_LTLIBRARIES)
 am__DEPENDENCIES_1 =
 psslurm_la_DEPENDENCIES = $(libplugincommon) $(libslurmcommon) \
-	$(libpscommon) $(am__DEPENDENCIES_1)
+	$(libpscommon) $(am__DEPENDENCIES_1) $(libk12)
 am__psslurm_la_SOURCES_DIST = psslurm.c psslurm.h psslurmlog.c \
 	psslurmlog.h psslurmpscomm.c psslurmpscomm.h psslurmconfig.c \
 	psslurmconfig.h psslurmjob.c psslurmjob.h psslurmforwarder.c \
@@ -435,6 +435,7 @@ unitdir = @unitdir@
 AM_CPPFLAGS = -I$(top_srcdir)/include -DNDEBUG \
 	-I$(top_srcdir)/bin/daemon -I$(srcdir)/../include \
 	-I$(top_srcdir)/$(psslurm_dir)/common \
+	-I$(top_srcdir)/$(psslurm_dir)/k12 \
 	-I$(top_srcdir)/$(psaccount_dir) \
 	-I$(top_srcdir)/$(pelogue_dir) -I$(top_srcdir)/$(psmunge_dir) \
 	-I$(top_srcdir)/$(pspam_dir) -I$(top_srcdir)/$(psexec_dir) \
@@ -488,6 +489,7 @@ plugin_LTLIBRARIES = psslurm.la
 libplugincommon = $(top_builddir)/lib/plugincommon/libplugincommon.la
 libslurmcommon = $(top_builddir)/$(psslurm_dir)/common/libslurmcommon.la
 libpscommon = $(top_builddir)/lib/pscommon/libpscommon.la
+libk12 = $(top_builddir)/$(psslurm_dir)/k12/libk12.la
 psslurm_la_SOURCES = psslurm.c psslurm.h psslurmlog.c psslurmlog.h \
 	psslurmpscomm.c psslurmpscomm.h psslurmconfig.c \
 	psslurmconfig.h psslurmjob.c psslurmjob.h psslurmforwarder.c \
@@ -511,7 +513,7 @@ psslurm_la_CPPFLAGS = $(AM_CPPFLAGS) -DPLUGINDIR=\"$(plugindir)\"	\
 	-DSLURMLIBDIR=\"$(slurmlibdir)\"
 
 psslurm_la_LIBADD = $(libpsi) $(libplugincommon) $(libslurmcommon) \
-		    $(libpscommon) $(NUMA_LIBS) -lm
+		    $(libpscommon) $(NUMA_LIBS) -lm $(libk12)
 
 all: all-am
 

@@ -13356,6 +13356,8 @@ ac_config_files="$ac_config_files plugins/psslurm/src/bin/Makefile"
 
 ac_config_files="$ac_config_files plugins/psslurm/src/common/Makefile"
 
+ac_config_files="$ac_config_files plugins/psslurm/src/k12/Makefile"
+
 ac_config_files="$ac_config_files plugins/psslurm/src/psslurm/Makefile"
 
 ac_config_files="$ac_config_files plugins/psslurm/src/spank/Makefile"
@@ -14484,6 +14486,7 @@ do
     "plugins/psslurm/doc/Makefile") CONFIG_FILES="$CONFIG_FILES plugins/psslurm/doc/Makefile" ;;
     "plugins/psslurm/src/bin/Makefile") CONFIG_FILES="$CONFIG_FILES plugins/psslurm/src/bin/Makefile" ;;
     "plugins/psslurm/src/common/Makefile") CONFIG_FILES="$CONFIG_FILES plugins/psslurm/src/common/Makefile" ;;
+    "plugins/psslurm/src/k12/Makefile") CONFIG_FILES="$CONFIG_FILES plugins/psslurm/src/k12/Makefile" ;;
     "plugins/psslurm/src/psslurm/Makefile") CONFIG_FILES="$CONFIG_FILES plugins/psslurm/src/psslurm/Makefile" ;;
     "plugins/psslurm/src/spank/Makefile") CONFIG_FILES="$CONFIG_FILES plugins/psslurm/src/spank/Makefile" ;;
     "scripts/Makefile") CONFIG_FILES="$CONFIG_FILES scripts/Makefile" ;;
