@@ -895,7 +895,7 @@ static void handleReattachTasks(Slurm_Msg_t *sMsg)
     } else if (!req->cred) {
 	flog("invalid credential for %s\n", Step_strID(step));
 	sendReattachFail(sMsg, ESLURM_INVALID_JOB_CREDENTIAL);
-    } else if (strlen(req->cred->sig) + 1 != SLURM_IO_KEY_SIZE) {
+    } else if (strlen(req->cred->sig) + 1 < SLURM_IO_KEY_SIZE) {
 	flog("invalid I/O key size %zu for %s\n", strlen(req->cred->sig) + 1,
 	     Step_strID(step));
 	sendReattachFail(sMsg, ESLURM_INVALID_JOB_CREDENTIAL);
