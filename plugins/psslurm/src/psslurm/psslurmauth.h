@@ -31,13 +31,20 @@ typedef struct {
  * psmunge is supported as authentication method. The caller is
  * responsible to free the allocated memory using freeSlurmAuth().
  *
- * @param uid The user ID allowed to decode the credential
+ * The user ID of the @ref head will be used to set the allowed
+ * user which can decode the credentail. Additional the message body
+ * is used to caluclate a message hash which is secured using munge.
  *
- * @param type Slurm message type bound to the credential
+ * @param head Slurm message header
+ *
+ * @param body Slurm message body
+ *
+ * @param bodyLen Length of Slurm message body
  *
  * @return Returns the authentication token or NULL on error
  */
-Slurm_Auth_t *getSlurmAuth(uid_t uid, uint16_t type);
+Slurm_Auth_t *getSlurmAuth(Slurm_Msg_Header_t *head, char *body,
+			   uint32_t bodyLen);
 
 /**
  * @brief Free a Slurm authentication structure

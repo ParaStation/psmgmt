@@ -15,6 +15,7 @@
 
 #include "pluginmalloc.h"
 #include "psmungehandles.h"
+#include "KangarooTwelve.h"
 
 #include "psslurm.h"
 #include "psslurmlog.h"
@@ -22,6 +23,21 @@
 
 /** munge plugin identification */
 #define MUNGE_PLUGIN_ID 101
+
+/* Slurm message hash types */
+typedef enum {
+    HASH_PLUGIN_DEFAULT = 0,
+    HASH_PLUGIN_NONE,
+    HASH_PLUGIN_K12,
+    HASH_PLUGIN_SHA256,
+    HASH_PLUGIN_CNT
+} Slurm_Msg_Hash_Type_t;
+
+/** Slurm hash secured by munge */
+typedef struct {
+    unsigned char type;
+    unsigned char hash[32];
+} Slurm_Msg_Hash_t;
 
 bool verifyUserId(uid_t userID, uid_t validID)
 {
@@ -53,14 +69,32 @@ Slurm_Auth_t *dupSlurmAuth(Slurm_Auth_t *auth)
     return dupAuth;
 }
 
-Slurm_Auth_t *getSlurmAuth(uid_t uid, uint16_t msgType)
+Slurm_Auth_t *getSlurmAuth(Slurm_Msg_Header_t *head, char *body,
+			   uint32_t bodyLen)
 {
-    unsigned char sigBuf[3] = { 1 };
-    if (slurmProto >= SLURM_22_05_PROTO_VERSION) msgType = htons(msgType);
-    memcpy(sigBuf + 1, &msgType, sizeof(msgType));
+    Slurm_Msg_Hash_t credHash = {0};
+    if (slurmProto >= SLURM_22_05_PROTO_VERSION) {
+	uint16_t msgType = htons(head->type);
+
+	/* calculate k12 hash from message payload */
+	if (KangarooTwelve((unsigned char *) body, bodyLen, credHash.hash,
+			   sizeof(credHash.hash), (unsigned char *) &msgType,
+			   sizeof(msgType))) {
+	    flog("k12 hash calculation failed\n");
+	    return NULL;
+	}
+	credHash.type = HASH_PLUGIN_K12;
+    } else {
+	memcpy(&credHash.hash, &head->type, sizeof(head->type));
+	credHash.type = HASH_PLUGIN_NONE;
+    }
 
     char *cred;
-    if (!psMungeEncodeRes(&cred, uid, sigBuf, sizeof(sigBuf))) return NULL;
+    int credLen = (credHash.type == HASH_PLUGIN_NONE) ? 3 : sizeof(credHash);
+    if (!psMungeEncodeRes(&cred, head->uid, &credHash, credLen)) {
+	flog("encoding message hash using munge failed\n");
+	return NULL;
+    }
 
     Slurm_Auth_t *auth = umalloc(sizeof(Slurm_Auth_t));
     auth->cred = cred;
@@ -72,7 +106,6 @@ Slurm_Auth_t *getSlurmAuth(uid_t uid, uint16_t msgType)
 bool extractSlurmAuth(Slurm_Msg_t *sMsg)
 {
     bool res = false;
-    char *sigBuf = NULL;
 
     Slurm_Auth_t *auth = NULL;
     if (!unpackSlurmAuth(sMsg, &auth)) {
@@ -93,26 +126,44 @@ bool extractSlurmAuth(Slurm_Msg_t *sMsg)
 	goto CLEANUP;
     }
 
-    int sigBufLen;
-    if (!psMungeDecodeBuf(auth->cred, (void **) &sigBuf, &sigBufLen,
+    /* decode message hash using munge */
+    int hashLen;
+    char *credHash = NULL;
+    if (!psMungeDecodeBuf(auth->cred, (void **) &credHash, &hashLen,
 			  &sMsg->head.uid, &sMsg->head.gid)) {
 	flog("decoding munge credential failed\n");
 	goto CLEANUP;
     }
 
-    /* check message type (a.k.a. hash) */
+    /* verify message hash */
     uint16_t msgType = sMsg->head.type;
     if (sMsg->head.version >= SLURM_22_05_PROTO_VERSION) {
 	msgType = htons(msgType);
     }
-    if (sigBuf[0] == 1) {
-	/* skip K12 hash for testing */
-	if (sigBufLen != 3 || sigBuf[0] != 1 ||
-	    memcmp(sigBuf + 1, &msgType, sizeof(msgType))) {
-	    flog("verify Slurm message hash failed, hash type %i "
-		 "sigBufLen %i\n", sigBuf[0], sigBufLen);
+
+    if (credHash[0] == HASH_PLUGIN_NONE) {
+	if (hashLen != 3 || memcmp(credHash + 1, &msgType, sizeof(msgType))) {
+	    flog("verify Slurm message hash with type %i lenght %i failed ",
+		 credHash[0], hashLen);
 	    goto CLEANUP;
 	}
+    } else if (credHash[0] == HASH_PLUGIN_K12) {
+	/* calculate k12 hash from message payload */
+        unsigned char plHash[32] = {0};
+	if (KangarooTwelve((unsigned char *) sMsg->ptr, sMsg->head.bodyLen,
+		           plHash, sizeof(plHash), (unsigned char *) &msgType,
+			   sizeof(msgType))) {
+	    flog("k12 hash calculation failed\n");
+	    goto CLEANUP;
+	}
+
+	if (memcmp(credHash + 1, &plHash, sizeof(plHash))) {
+	    flog("k12 hash cmp failed!\n");
+	    goto CLEANUP;
+	}
+    } else {
+	flog("unsupported hash algorithm type %i\n", credHash[0]);
+	goto CLEANUP;
     }
 
     fdbg(PSSLURM_LOG_AUTH, "valid message from user uid '%u' gid '%u'\n",
@@ -121,7 +172,7 @@ bool extractSlurmAuth(Slurm_Msg_t *sMsg)
     res = true;
 
 CLEANUP:
-    ufree(sigBuf);
+    ufree(credHash);
     freeSlurmAuth(auth);
 
     return res;
