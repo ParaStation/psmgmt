@@ -1413,7 +1413,11 @@ static bool unpackReqLaunchTasks(Slurm_Msg_t *sMsg)
     }
 
     /* job credentials */
-    step->cred = extractJobCred(&step->gresList, sMsg, true);
+    if (msgVer >= SLURM_22_05_PROTO_VERSION) {
+	step->cred = extractJobCred(&step->gresList, sMsg, false);
+    } else {
+	step->cred = extractJobCred(&step->gresList, sMsg, true);
+    }
     if (!step->cred) {
 	mlog("%s: extracting job credential failed\n", __func__);
 	goto ERROR;
@@ -1717,7 +1721,11 @@ static bool unpackReqBatchJobLaunch(Slurm_Msg_t *sMsg)
     }
 
     /* job credential */
-    job->cred = extractJobCred(&job->gresList, sMsg, true);
+    if (msgVer >= SLURM_22_05_PROTO_VERSION) {
+	job->cred = extractJobCred(&job->gresList, sMsg, false);
+    } else {
+	job->cred = extractJobCred(&job->gresList, sMsg, true);
+    }
     if (!job->cred) {
 	mlog("%s: extracting job credentail failed\n", __func__);
 	goto ERROR;
@@ -2804,7 +2812,11 @@ static bool unpackReqLaunchProlog(Slurm_Msg_t *sMsg)
     /* spank environment */
     getStringArrayM(ptr, &req->spankEnv.vars, &req->spankEnv.cnt);
     /* job credential */
-    req->cred = extractJobCred(req->gresList, sMsg, true);
+    if (msgVer < SLURM_22_05_PROTO_VERSION) {
+	req->cred = extractJobCred(req->gresList, sMsg, true);
+    } else {
+	req->cred = extractJobCred(req->gresList, sMsg, false);
+    }
     /* user name */
     req->userName = getStringM(ptr);
 
