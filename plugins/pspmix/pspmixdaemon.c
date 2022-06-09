@@ -753,6 +753,10 @@ static void stopServer(PspmixServer_t *server)
  * arrived. So the reservation set (= PMIx job) is complete once this
  * hook is called.
  *
+ * Attention: The task passed is a prototype containing only the values
+ * decoded in @a PStask_decodeTask and in addition spawnerid, workingdir,
+ * argv, argc, environ, and envSize.
+ *
  * @param data Pointer to task structure to be spawned
  *
  * @return Returns 0 on success and -1 on error.
@@ -766,15 +770,22 @@ static int hookRecvSpawnReq(void *data)
 
     mdbg(PSPMIX_LOG_CALL, "%s(task group TG_ANY)\n", __func__);
 
-    PStask_ID_t loggertid = prototask->loggertid;
-    PStask_ID_t spawnertid = prototask->spawnertid;
-    PSrsrvtn_ID_t resID = prototask->resID;
     env_t env = { prototask->environ, prototask->envSize, prototask->envSize };
 
-    /* decide if this job wants to use PMIx */
-    if (!pspmix_common_usePMIx(&env)) return 0;
+    /* mark environment if mpiexec demands PMIx for this job */
+    if (envGet(&env, "__PMIX_NODELIST")) {
+	envPut(&env, strdup("__USE_PMIX=1")); /* for pspmix_common_usePMIx() */
+    }
+
+    prototask->environ = env.vars;
+    prototask->envSize = env.cnt;
+
+    /* only for debugging output */
+    bool usePMIx = pspmix_common_usePMIx(&env);
+    if (!usePMIx && !getConfValueI(&config, "SUPPORT_MPI_SINGLETON")) return 0;
 
     /* find job */
+    PStask_ID_t loggertid = prototask->loggertid;
     PSsession_t *pssession = PSID_findSessionByLoggerTID(loggertid);
     if (!pssession) {
 	mlog("%s: no session (logger %s)\n", __func__, PSC_printTID(loggertid));
@@ -782,6 +793,7 @@ static int hookRecvSpawnReq(void *data)
     }
 
     /* check if there is a matching reservation set */
+    PStask_ID_t spawnertid = prototask->spawnertid;
     PSjob_t *psjob = PSID_findJobInSession(pssession, spawnertid);
     if (!psjob) {
 	mlog("%s: no job (spawner %s", __func__, PSC_printTID(spawnertid));
@@ -790,6 +802,7 @@ static int hookRecvSpawnReq(void *data)
     }
 
     /* check if there is a matching reservation in the job */
+    PSrsrvtn_ID_t resID = prototask->resID;
     PSresinfo_t *resInfo = findReservationInList(resID, &psjob->resInfos);
     if (!resInfo) {
 	mlog("%s: no reservation %d (spawner %s", __func__, resID,
@@ -827,8 +840,42 @@ static int hookRecvSpawnReq(void *data)
 	     PSC_printTID(server->fwdata->tid));
     }
 
+    /* clone environment so we can modify it in singleton case */
+    env_t jobenv;
+    if (!envClone(&env, &jobenv, NULL)) {
+        mlog("%s: cloning env failed\n", __func__);
+        return -1;
+    }
+
+    /* fake environment for one process if MPI singleton support is enabled */
+    if (!usePMIx) {
+	envSet(&jobenv, "PMI_UNIVERSE_SIZE", "1");
+	envSet(&jobenv, "PMI_SIZE", "1");
+	envSet(&jobenv, "PMIX_APPCOUNT", "1");
+	envSet(&jobenv, "PMIX_APPSIZE_0", "1");
+	envSet(&jobenv, "PMIX_APPWDIR_0", prototask->workingdir);
+	char **argv = prototask->argv;
+	int argc = prototask->argc;
+	size_t sum = 0;
+	for (int j = 0; j < argc; j++) {
+	    sum += strlen(argv[j]) + 1;
+	}
+	char *str = umalloc(sum);
+	char *ptr = str;
+	for (int j = 0; j < argc; j++) {
+	    ptr += sprintf(ptr, "%s ", argv[j]);
+	}
+	*(ptr-1)='\0';
+	envSet(&jobenv, "PMIX_APPARGV_0", str);
+	char var[128];
+	gethostname(var, sizeof(var));
+	envSet(&jobenv, "__PMIX_NODELIST", var);
+	snprintf(var, sizeof(var), "%d", resID);
+	envSet(&jobenv, "__PMIX_RESID_0", var);
+    }
+
     /* save job in server (if not yet known) and notify running server */
-    if (!addJobToServer(server, loggertid, psjob, &env)) {
+    if (!addJobToServer(server, loggertid, psjob, &jobenv)) {
 	mlog("%s: sending job failed (uid %d server %s", __func__, server->uid,
 	     PSC_printTID(server->fwdata->tid));
 	mlog(" logger %s)\n", PSC_printTID(loggertid));
@@ -836,9 +883,11 @@ static int hookRecvSpawnReq(void *data)
 	mlog("%s: stopping PMIx server (uid %d)\n", __func__, server->uid);
 	stopServer(server);
 
+	envDestroy(&jobenv);
 	return -1;
     }
 
+    envDestroy(&jobenv);
     return 0;
 }
 

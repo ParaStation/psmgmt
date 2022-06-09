@@ -27,7 +27,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <errno.h>
-#include <pmix_common.h>
+#include <pmix.h>
 #include <sys/select.h>
 #include <sys/types.h>
 
@@ -38,11 +38,13 @@
 #include "pspluginprotocol.h"
 #include "psreservation.h"
 #include "psserial.h"
+#include "psenv.h"
 
 #include "psidcomm.h"
 #include "psidforwarder.h"
 #include "psidhook.h"
 
+#include "pspmixconfig.h"
 #include "pspmixcommon.h"
 #include "pspmixlog.h"
 #include "pspmixtypes.h"
@@ -331,9 +333,10 @@ static int hookExecForwarder(void *data)
     /* pointer is assumed to be valid for the life time of the forwarder */
     childTask = data;
 
-    /* decide if this job wants to use PMIx */
-    env_t env = { childTask->environ, childTask->envSize, childTask->envSize };
-    if (childTask->group != TG_ANY || !pspmix_common_usePMIx(&env)) {
+    env_t env = {childTask->environ, childTask->envSize, childTask->envSize};
+    if (childTask->group != TG_ANY
+	|| (!pspmix_common_usePMIx(&env)
+	    && !getConfValueI(&config, "SUPPORT_MPI_SINGLETON"))) {
 	childTask = NULL;
 	return 0;
     }
@@ -371,7 +374,7 @@ static int hookExecForwarder(void *data)
  */
 static int hookForwarderInit(void *data)
 {
-    /* break if this is not a PMIx job */
+    /* break if this is not a PMIx job and no PMIx singleton */
     if (!childTask) return 0;
 
     mdbg(PSPMIX_LOG_CALL, "%s()\n", __func__);
@@ -391,6 +394,44 @@ static int hookForwarderInit(void *data)
 	return -1;
     }
 
+    return 0;
+}
+
+/**
+ * @brief Hook function for PSIDHOOK_EXEC_CLIENT_USER
+ *
+ * Call PMIx_Init() for singleton support
+ *
+ * @param data Pointer to the child's task structure
+ *
+ * @return Return 0 or -1 in case of error
+ */
+static int hookExecClientUser(void *data)
+{
+    /* break if this is not a PMIx job and no PMIx singleton */
+    if (!childTask) return 0;
+
+    mdbg(PSPMIX_LOG_CALL, "%s()\n", __func__);
+
+    /* pointer is assumed to be valid for the life time of the forwarder */
+    if (childTask != data) {
+	mlog("%s: Unexpected child task\n", __func__);
+	return -1;
+    }
+
+    /* if this is a singleton case, call PMIx_Init() to prevent the PMIx server
+     * lib from deleting the namespace after first use */
+    env_t env = { childTask->environ, childTask->envSize, childTask->envSize };
+    if (pspmix_common_usePMIx(&env)) return 0;
+    pmix_proc_t proc;
+    mlog("%s(r%d): Calling PMIx_Init() for singleton support.\n", __func__,
+	 rank);
+    pmix_status_t status = PMIx_Init(&proc, NULL, 0);
+    if (status != PMIX_SUCCESS) {
+	mlog("%s: PMIX_Init() failed: %s\n", __func__,
+	     PMIx_Error_string(status));
+	return -1;
+    }
     return 0;
 }
 
@@ -448,6 +489,7 @@ void pspmix_initForwarderModule(void)
 {
     PSIDhook_add(PSIDHOOK_EXEC_FORWARDER, hookExecForwarder);
     PSIDhook_add(PSIDHOOK_FRWRD_INIT, hookForwarderInit);
+    PSIDhook_add(PSIDHOOK_EXEC_CLIENT_USER, hookExecClientUser);
     PSIDhook_add(PSIDHOOK_FRWRD_CLNT_RLS, hookForwarderClientRelease);
     PSIDhook_add(PSIDHOOK_FRWRD_EXIT, hookForwarderExit);
 }
@@ -456,6 +498,7 @@ void pspmix_finalizeForwarderModule(void)
 {
     PSIDhook_del(PSIDHOOK_EXEC_FORWARDER, hookExecForwarder);
     PSIDhook_del(PSIDHOOK_FRWRD_INIT, hookForwarderInit);
+    PSIDhook_del(PSIDHOOK_EXEC_CLIENT_USER, hookExecClientUser);
     PSIDhook_del(PSIDHOOK_FRWRD_CLNT_RLS, hookForwarderClientRelease);
     PSIDhook_del(PSIDHOOK_FRWRD_EXIT, hookForwarderExit);
 }

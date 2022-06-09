@@ -29,6 +29,7 @@
 #include "pspmixlog.h"
 #include "pspmixservicespawn.h"
 #include "pspmixuserserver.h"
+#include "pspmixcommon.h"
 
 #define MAX_NODE_ID 32768
 
@@ -175,11 +176,12 @@ bool pspmix_service_init(uid_t uid, gid_t gid, char *clusterid)
  *
  * @return Returns buffer containing the generated name
  */
-static const char* generateNamespaceName(PStask_ID_t spawnertid)
+static const char* generateNamespaceName(PStask_ID_t spawnertid, bool singleton)
 {
     static char buf[MAX_NSLEN];
 
-    snprintf(buf, MAX_NSLEN, "pspmix_%s", PSC_printTID(spawnertid));
+    snprintf(buf, MAX_NSLEN, "pspmix_%s%s", PSC_printTID(spawnertid),
+	     singleton ? "_singleton" : "");
 
     return buf;
 }
@@ -241,7 +243,9 @@ bool pspmix_service_registerNamespace(PspmixJob_t *job)
     ns->job = job;
 
     /* generate my namespace name */
-    strncpy(ns->name, generateNamespaceName(job->spawnertid), sizeof(ns->name));
+    bool singleton = !pspmix_common_usePMIx(&job->env);
+    strncpy(ns->name, generateNamespaceName(job->spawnertid, singleton),
+	    sizeof(ns->name));
 
     /* get information from spawner set environment */
 
@@ -536,16 +540,20 @@ bool pspmix_service_registerClientAndSendEnv(PStask_ID_t loggertid,
 	 pspmix_jobIDsStr(loggertid, spawnertid), client->rank, client->resID);
 
     /* get namespace name */
-    const char *nsname = generateNamespaceName(spawnertid);
+    const char *nsname = generateNamespaceName(spawnertid, false);
 
     GET_LOCK(namespaceList);
 
     /* find namespace in list */
     PspmixNamespace_t *ns = findNamespace(nsname);
     if (!ns) {
-	ulog("namespace '%s' not found\n", nsname);
-	RELEASE_LOCK(namespaceList);
-	return false;
+	/* try singleton name */
+	const char *nsname2 = generateNamespaceName(spawnertid, true);
+	if (!((ns = findNamespace(nsname2)))) {
+	    ulog("namespace '%s' not found\n", nsname);
+	    RELEASE_LOCK(namespaceList);
+	    return false;
+	}
     }
 
     strcpy(client->nsname, ns->name);
@@ -671,8 +679,6 @@ bool pspmix_service_registerClientAndSendEnv(PStask_ID_t loggertid,
 
 bool pspmix_service_finalize(void)
 {
-    ulog("()\n");
-
     if (!pspmix_server_finalize()) {
 	elog("%s: Failed to finalize pmix server\n", __func__);
 	return false;

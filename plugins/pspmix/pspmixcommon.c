@@ -14,16 +14,22 @@
 #include "pspmixcommon.h"
 
 #include "pspmixlog.h"
+#include "pspmixconfig.h"
 
-/* decide if this job wants to use PMIx */
+/* decide if this job wants to use PMIx
+ * Relies on __USE_PMIX set in hookRecvSpawnReq() in pspmixdaemon.c */
 bool __pspmix_common_usePMIx(const env_t *env, const char* func) {
-    if (envGet(env, "__PMIX_NODELIST")) {
-	mdbg(PSPMIX_LOG_VERBOSE, "%s: PMIx support requested by mpiexec.\n",
-	     __func__);
+    if (envGet(env, "__USE_PMIX")) {
+	mdbg(PSPMIX_LOG_VERBOSE, "%s: PMIx support requested by mpiexec\n",
+	     func);
 	return true;
     }
-    mdbg(PSPMIX_LOG_VERBOSE, "%s: No PMIx support requested by mpiexec.\n",
-	    func);
+    mdbg(PSPMIX_LOG_VERBOSE, "%s: No PMIx support requested by mpiexec\n", func);
+
+    if (getConfValueI(&config, "SUPPORT_MPI_SINGLETON")) {
+	mdbg(PSPMIX_LOG_VERBOSE, "%s: Singleton support enabled\n", func);
+    }
+
     return false;
 }
 

@@ -23,6 +23,8 @@ const ConfDef_t confDef[] =
       "Time to wait after shutdown command before killing the PMIx server" },
     { "KILL_JOB_ON_SERVERFAIL", true, "bool", "0",
       "Flag whether to terminate jobs using a failed PMIx Server" },
+    { "SUPPORT_MPI_SINGLETON", true, "bool", "0",
+      "Flag whether to support MPI Singleton by always start a PMIx server" },
     { NULL, false, NULL, NULL, NULL},
 };
 
