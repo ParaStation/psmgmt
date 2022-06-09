@@ -16,11 +16,11 @@
 
 #include <stdbool.h>
 
-#include "pstask.h"
+#include "psenv.h"
 
 /* decide if this job wants to use PMIx */
-#define pspmix_common_usePMIx(t) __pspmix_common_usePMIx(t, __func__)
-bool __pspmix_common_usePMIx(PStask_t *task, const char* func);
+#define pspmix_common_usePMIx(e) __pspmix_common_usePMIx(e, __func__)
+bool __pspmix_common_usePMIx(const env_t *env, const char* func);
 
 #endif  /* __PS_PMIX_COMMON */
 

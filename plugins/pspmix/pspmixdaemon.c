@@ -763,13 +763,13 @@ static int hookRecvSpawnReq(void *data)
 
     mdbg(PSPMIX_LOG_CALL, "%s(task group TG_ANY)\n", __func__);
 
-    /* decide if this job wants to use PMIx */
-    if (!pspmix_common_usePMIx(prototask)) return 0;
-
     PStask_ID_t loggertid = prototask->loggertid;
     PStask_ID_t spawnertid = prototask->spawnertid;
     PSrsrvtn_ID_t resID = prototask->resID;
     env_t env = { prototask->environ, prototask->envSize, prototask->envSize };
+
+    /* decide if this job wants to use PMIx */
+    if (!pspmix_common_usePMIx(&env)) return 0;
 
     /* find job */
     PSsession_t *pssession = PSID_findSessionByLoggerTID(loggertid);

@@ -16,18 +16,14 @@
 #include <stdint.h>
 #include <string.h>
 
-#include "pstask.h"
-
 #include "pspmixlog.h"
 
 /* decide if this job wants to use PMIx */
-bool __pspmix_common_usePMIx(PStask_t *task, const char* func) {
-    for (uint32_t i = 0; i < task->envSize; i++) {
-	if (strncmp(task->environ[i], "__PMIX_NODELIST=", 16) == 0) {
-	    mdbg(PSPMIX_LOG_VERBOSE, "%s: PMIx support requested by mpiexec.\n",
-		    __func__);
-	    return true;
-	}
+bool __pspmix_common_usePMIx(const env_t *env, const char* func) {
+    if (envGet(env, "__PMIX_NODELIST")) {
+	mdbg(PSPMIX_LOG_VERBOSE, "%s: PMIx support requested by mpiexec.\n",
+	     __func__);
+	return true;
     }
     mdbg(PSPMIX_LOG_VERBOSE, "%s: No PMIx support requested by mpiexec.\n",
 	    func);

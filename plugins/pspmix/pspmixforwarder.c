@@ -330,7 +330,8 @@ static int hookExecForwarder(void *data)
     childTask = data;
 
     /* decide if this job wants to use PMIx */
-    if (childTask->group != TG_ANY || !pspmix_common_usePMIx(childTask)) {
+    env_t env = { childTask->environ, childTask->envSize, childTask->envSize };
+    if (childTask->group != TG_ANY || !pspmix_common_usePMIx(&env)) {
 	childTask = NULL;
 	return 0;
     }
