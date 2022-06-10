@@ -28,10 +28,8 @@ static LIST_HEAD(GresConfList);
 
 static uint32_t getGresId(char *name)
 {
-    int i, x;
     uint32_t gresId = 0;
-
-    for (i=0, x=0; name[i]; i++) {
+    for (uint32_t i = 0, x = 0; name[i]; i++) {
 	gresId += (name[i] << x);
 	x = (x + 8) % 32;
     }
@@ -190,14 +188,12 @@ void releaseGresCred(Gres_Cred_t *gres)
     if (!gres) return;
 
     if (gres->bitAlloc) {
-	unsigned int i;
-	for (i=0; i<gres->nodeCount; i++) ufree(gres->bitAlloc[i]);
+	for (uint32_t i = 0; i < gres->nodeCount; i++) ufree(gres->bitAlloc[i]);
 	ufree(gres->bitAlloc);
     }
 
     if (gres->bitStepAlloc) {
-	unsigned int i;
-	for (i=0; i<gres->nodeCount; i++) ufree(gres->bitStepAlloc[i]);
+	for (uint32_t i = 0; i < gres->nodeCount; i++) ufree(gres->bitStepAlloc[i]);
 	ufree(gres->bitStepAlloc);
     }
 
