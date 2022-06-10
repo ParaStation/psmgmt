@@ -717,6 +717,9 @@ static bool dropPElogueMsg(DDTypedBufferMsg_t *msg)
     mlog("%s: drop msg type %s(%i) fragment %hu to host %s(%i)\n", __func__,
 	 msg2Str(msg->type), msg->type, fragNum, hname, node);
 
+    /* inform other plugins (e.g. psslurm) */
+    PSIDhook_call(PSIDHOOK_PELOGUE_DROP, msg);
+
     switch (msg->type) {
     case PSP_PROLOGUE_START:
     case PSP_EPILOGUE_START:
