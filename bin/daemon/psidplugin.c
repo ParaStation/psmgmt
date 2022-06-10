@@ -159,8 +159,10 @@ static LIST_HEAD(pluginList);
  * 134: Reworked hook PSIDHOOK_FRWRD_CLNT_RLS to support multiple plugins
  *
  * 135: Add key parameter to help() function
+ *
+ * 136: new hook PSIDHOOK_PELOGUE_DROP
  */
-static int pluginAPIVersion = 135;
+static int pluginAPIVersion = 136;
 
 
 /** Grace period between finalize and unload on forcefully unloads */
