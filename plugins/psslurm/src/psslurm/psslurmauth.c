@@ -12,14 +12,17 @@
 
 #include <stdio.h>
 #include <string.h>
+#include <netinet/in.h>
 
 #include "pluginmalloc.h"
 #include "psmungehandles.h"
+#include "slurmcommon.h"
 #include "KangarooTwelve.h"
 
 #include "psslurm.h"
 #include "psslurmlog.h"
 #include "psslurmpack.h"
+#include "psslurmproto.h"
 
 /** munge plugin identification */
 #define MUNGE_PLUGIN_ID 101
@@ -105,9 +108,10 @@ Slurm_Auth_t *getSlurmAuth(Slurm_Msg_Header_t *head, char *body,
 
 bool extractSlurmAuth(Slurm_Msg_t *sMsg)
 {
+    Slurm_Auth_t *auth = NULL;
+    char *credHash = NULL;
     bool res = false;
 
-    Slurm_Auth_t *auth = NULL;
     if (!unpackSlurmAuth(sMsg, &auth)) {
 	flog("unpacking Slurm authentication failed\n");
 	goto CLEANUP;
@@ -128,7 +132,6 @@ bool extractSlurmAuth(Slurm_Msg_t *sMsg)
 
     /* decode message hash using munge */
     int hashLen;
-    char *credHash = NULL;
     if (!psMungeDecodeBuf(auth->cred, (void **) &credHash, &hashLen,
 			  &sMsg->head.uid, &sMsg->head.gid)) {
 	flog("decoding munge credential failed\n");
@@ -149,9 +152,9 @@ bool extractSlurmAuth(Slurm_Msg_t *sMsg)
 	}
     } else if (credHash[0] == HASH_PLUGIN_K12) {
 	/* calculate k12 hash from message payload */
-        unsigned char plHash[32] = {0};
+	unsigned char plHash[32] = {0};
 	if (KangarooTwelve((unsigned char *) sMsg->ptr, sMsg->head.bodyLen,
-		           plHash, sizeof(plHash), (unsigned char *) &msgType,
+			   plHash, sizeof(plHash), (unsigned char *) &msgType,
 			   sizeof(msgType))) {
 	    flog("k12 hash calculation failed\n");
 	    goto CLEANUP;
