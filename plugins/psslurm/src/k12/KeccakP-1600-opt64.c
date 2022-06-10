@@ -24,7 +24,6 @@ Please refer to LowLevel.build for the exact list of other files it must be comb
 
 #include <stdint.h>
 #include <string.h>
-#include <stdlib.h>
 #include "brg_endian.h"
 #include "KeccakP-1600-opt64-config.h"
 

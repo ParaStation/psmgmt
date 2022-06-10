@@ -14,8 +14,6 @@ and related or neighboring rights to the source code in this file.
 http://creativecommons.org/publicdomain/zero/1.0/
 */
 
-#include <string.h>
-#include <stdint.h>
 #include "KangarooTwelve.h"
 
 #ifdef XKCP_has_KeccakP1600times2

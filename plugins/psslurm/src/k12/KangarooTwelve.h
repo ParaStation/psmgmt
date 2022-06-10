@@ -21,7 +21,7 @@ http://creativecommons.org/publicdomain/zero/1.0/
 #ifdef XKCP_has_KeccakP1600
 
 #include <stddef.h>
-#include "align.h"
+#include "align.h"  // IWYU pragma: export
 #include "KeccakSponge.h"
 #include "Phases.h"
 
