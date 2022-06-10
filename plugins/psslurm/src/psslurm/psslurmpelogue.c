@@ -771,4 +771,34 @@ int handlePelogueGlobal(void *data)
     return 0;
 }
 
+int handlePelogueDrop(void *data)
+{
+    DDTypedBufferMsg_t *msg = data;
+    if (msg->type != PSP_PELOGUE_RESP) return 0;
+
+    size_t used = 0;
+    uint16_t fragNum;
+    fetchFragHeader(msg, &used, NULL, &fragNum, NULL, NULL);
+
+    /* ignore follow up messages */
+    if (fragNum) return 0;
+
+    char *ptr = msg->buf + used;
+
+    /* jobid */
+    char *sJobid = getStringM(&ptr);
+    uint32_t jobid = atoi(sJobid);
+    ufree(sJobid);
+
+    Alloc_t *alloc = Alloc_find(jobid);
+    if (alloc) {
+	flog("pspelogue result message got dropped, deleting allocation %u\n",
+	     jobid);
+	/* delete the allocation on all nodes */
+	send_PS_AllocTerm(alloc);
+    }
+
+    return 0;
+}
+
 /* vim: set ts=8 sw=4 tw=0 sts=4 noet:*/

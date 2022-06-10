@@ -83,7 +83,7 @@ bool pluginShutdown = false;
 /** psid plugin requirements */
 char name[] = "psslurm";
 int version = 117;
-int requiredAPI =134;
+int requiredAPI =136;
 plugin_dep_t dependencies[] = {
     { .name = "psmunge", .version = 5 },
     { .name = "psaccount", .version = 29 },
@@ -139,12 +139,24 @@ static void unregisterHooks(bool verbose)
 	if (verbose) mlog("unregister 'PSIDHOOK_EXEC_CLIENT_USER' failed\n");
     }
 
+    if (!PSIDhook_del(PSIDHOOK_EXEC_FORWARDER, handleHookExecFW)) {
+	if (verbose) mlog("unregister 'PSIDHOOK_EXEC_FORWARDER' failed\n");
+    }
+
+    if (!PSIDhook_del(PSIDHOOK_EXEC_CLIENT_PREP, handleExecClientPrep)) {
+	if (verbose) mlog("unregister 'PSIDHOOK_EXEC_CLIENT_PREP' failed\n");
+    }
+
     if (!PSIDhook_del(PSIDHOOK_FRWRD_INIT, handleForwarderInit)) {
 	if (verbose) mlog("unregister 'PSIDHOOK_FRWRD_INIT' failed\n");
     }
 
     if (!PSIDhook_del(PSIDHOOK_FRWRD_CLNT_RLS, handleForwarderClientStatus)){
 	if (verbose) mlog("unregister 'PSIDHOOK_FRWRD_CLNT_RLS' failed\n");
+    }
+
+    if (!PSIDhook_del(PSIDHOOK_FRWRD_CLNT_RES, handleFwRes)) {
+	if (verbose) mlog("unregister 'PSIDHOOK_FRWRD_CLNT_RES' failed\n");
     }
 
     if (!PSIDhook_del(PSIDHOOK_PELOGUE_START, handleLocalPElogueStart)) {
@@ -159,10 +171,6 @@ static void unregisterHooks(bool verbose)
 	if (verbose) mlog("unregister 'PSIDHOOK_PELOGUE_PREPARE' failed\n");
     }
 
-    if (!PSIDhook_del(PSIDHOOK_FRWRD_CLNT_RES, handleFwRes)) {
-	if (verbose) mlog("unregister 'PSIDHOOK_FRWRD_CLNT_RES' failed\n");
-    }
-
     if (!PSIDhook_del(PSIDHOOK_PELOGUE_OE, handlePelogueOE)) {
 	if (verbose) mlog("unregister 'PSIDHOOK_PELOGUE_OE' failed\n");
     }
@@ -171,12 +179,8 @@ static void unregisterHooks(bool verbose)
 	if (verbose) mlog("unregister 'PSIDHOOK_PELOGUE_GLOBAL' failed\n");
     }
 
-    if (!PSIDhook_del(PSIDHOOK_EXEC_FORWARDER, handleHookExecFW)) {
-	if (verbose) mlog("unregister 'PSIDHOOK_EXEC_FORWARDER' failed\n");
-    }
-
-    if (!PSIDhook_del(PSIDHOOK_EXEC_CLIENT_PREP, handleExecClientPrep)) {
-	if (verbose) mlog("unregister 'PSIDHOOK_EXEC_CLIENT_PREP' failed\n");
+    if (!PSIDhook_del(PSIDHOOK_PELOGUE_DROP, handlePelogueDrop)) {
+	if (verbose) mlog("unregister 'PSIDHOOK_PELOGUE_DROP' failed\n");
     }
 }
 
@@ -195,6 +199,16 @@ static bool registerHooks(void)
 	return false;
     }
 
+    if (!PSIDhook_add(PSIDHOOK_EXEC_FORWARDER, handleHookExecFW)) {
+	mlog("register 'PSIDHOOK_EXEC_FORWARDER' failed\n");
+	return false;
+    }
+
+    if (!PSIDhook_add(PSIDHOOK_EXEC_CLIENT_PREP, handleExecClientPrep)) {
+	mlog("register 'PSIDHOOK_EXEC_CLIENT_PREP' failed\n");
+	return false;
+    }
+
     if (!PSIDhook_add(PSIDHOOK_FRWRD_INIT, handleForwarderInit)) {
 	mlog("register 'PSIDHOOK_FRWRD_INIT' failed\n");
 	return false;
@@ -202,6 +216,11 @@ static bool registerHooks(void)
 
     if (!PSIDhook_add(PSIDHOOK_FRWRD_CLNT_RLS, handleForwarderClientStatus)){
 	mlog("register 'PSIDHOOK_FRWRD_CLNT_RLS' failed\n");
+	return false;
+    }
+
+    if (!PSIDhook_add(PSIDHOOK_FRWRD_CLNT_RES, handleFwRes)) {
+	mlog("register 'PSIDHOOK_FRWRD_CLNT_RES' failed\n");
 	return false;
     }
 
@@ -220,11 +239,6 @@ static bool registerHooks(void)
 	return false;
     }
 
-    if (!PSIDhook_add(PSIDHOOK_FRWRD_CLNT_RES, handleFwRes)) {
-	mlog("register 'PSIDHOOK_FRWRD_CLNT_RES' failed\n");
-	return false;
-    }
-
     if (!PSIDhook_add(PSIDHOOK_PELOGUE_OE, handlePelogueOE)) {
 	mlog("register 'PSIDHOOK_PELOGUE_OE' failed\n");
 	return false;
@@ -235,13 +249,8 @@ static bool registerHooks(void)
 	return false;
     }
 
-    if (!PSIDhook_add(PSIDHOOK_EXEC_FORWARDER, handleHookExecFW)) {
-	mlog("register 'PSIDHOOK_EXEC_FORWARDER' failed\n");
-	return false;
-    }
-
-    if (!PSIDhook_add(PSIDHOOK_EXEC_CLIENT_PREP, handleExecClientPrep)) {
-	mlog("register 'PSIDHOOK_EXEC_CLIENT_PREP' failed\n");
+    if (!PSIDhook_add(PSIDHOOK_PELOGUE_DROP, handlePelogueDrop)) {
+	mlog("register 'PSIDHOOK_PELOGUE_DROP' failed\n");
 	return false;
     }
 

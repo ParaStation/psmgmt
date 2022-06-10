@@ -142,4 +142,6 @@ int handlePelogueOE(void *data);
  */
 int handlePelogueGlobal(void *data);
 
+int handlePelogueDrop(void *data);
+
 #endif
