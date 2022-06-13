@@ -18,6 +18,7 @@
 #include <sys/socket.h>
 #include <sys/time.h>
 #include <time.h>
+#include <stdlib.h>
 
 #include "list.h"
 #include "pscommon.h"
@@ -652,6 +653,36 @@ char *set(char *key, char *value)
     char *buf = NULL;
     size_t bufSize = 0;
 
+    if (!strcmp(key, "DEL_ALLOC")) {
+	uint32_t id = atoi(value);
+	if (Alloc_delete(id)) {
+	    snprintf(line, sizeof(line), "\ndeleted allocation %i\n", id);
+	} else {
+	    snprintf(line, sizeof(line), "\nfailed to delete allocation %i\n",
+		     id);
+	}
+	return str2Buf(line, &buf, &bufSize);
+    } else if (!strcmp(key, "DEL_JOB")) {
+	Job_t *job = Job_findByIdC(value);
+	if (Job_destroy(job)) {
+	    snprintf(line, sizeof(line), "\ndeleted job %s\n", value);
+	} else {
+	    snprintf(line, sizeof(line), "\nfailed to delete job %s\n",
+		     value);
+	}
+	return str2Buf(line, &buf, &bufSize);
+    } else if (!strcmp(key, "DEL_STEP")) {
+	uint32_t id = atoi(value);
+	if (Step_findByJobid(id)) {
+	    Step_clearByJobid(id);
+	    snprintf(line, sizeof(line), "\ndeleted steps with jobid %i\n", id);
+	} else {
+	    snprintf(line, sizeof(line), "\nfailed to delete steps with jobid "
+		     "%i\n", id);
+	}
+	return str2Buf(line, &buf, &bufSize);
+    }
+
     /* search in config for given key */
     if (getConfigDef(key, confDef)) {
 	int ret = verifyConfigEntry(confDef, key, value);
@@ -739,6 +770,22 @@ char *help(char *key)
     char *buf = NULL;
     size_t bufSize = 0;
     char type[10];
+
+    if (!strcmp(key, "set")) {
+	str2Buf("\n# psslurm set options #\n\n", &buf, &bufSize);
+	str2Buf("\nTo change configuration parameters use "
+		"'plugin set psslurm config_name config_value\n", &buf,
+		&bufSize);
+	str2Buf(" * Use 'plugin set psslurm DEL_ALLOC ID' to delete "
+		"an allocation\n", &buf, &bufSize);
+	str2Buf(" * Use 'plugin set psslurm DEL_JOB ID' to delete "
+		"an allocation\n", &buf, &bufSize);
+	str2Buf(" * Use 'plugin set psslurm DEL_STEP ID' to delete "
+		"an allocation\n", &buf, &bufSize);
+	str2Buf(" * Use 'plugin set psslurm CLEAR_CONF_CACHE 1' to clear "
+		"config cache\n", &buf, &bufSize);
+	return buf;
+    }
 
     str2Buf("\n# configuration options #\n\n", &buf, &bufSize);
 
