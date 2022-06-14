@@ -377,6 +377,7 @@ static void handleResponse(void)
     /* verify msg */
     switch (answer.header.type) {
     case PSP_CC_MSG:
+    case PSP_PLUG_PELOGUE:
 	break;
     case PSP_CD_UNKNOWN:
 	handleRespUnknown((DDBufferMsg_t *)&answer);

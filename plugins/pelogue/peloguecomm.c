@@ -16,6 +16,7 @@
 #include <string.h>
 #include <sys/types.h>
 #include <time.h>
+#include <errno.h>
 
 #include "list.h"
 #include "pscommon.h"
@@ -32,6 +33,7 @@
 #include "psidhook.h"
 #include "psidtask.h"
 #include "psidutil.h"
+#include "psidclient.h"
 
 #include "peloguechild.h"
 #include "pelogueconfig.h"
@@ -104,7 +106,7 @@ static int sendPrologueResp(char *jobid, int exit, bool timeout,
 {
     PS_SendDB_t data;
 
-    initFragBuffer(&data, PSP_CC_MSG, PSP_PELOGUE_RESP);
+    initFragBuffer(&data, PSP_PLUG_PELOGUE, PSP_PELOGUE_RESP);
     setFragDest(&data, dest);
 
     /* jobid */
@@ -579,56 +581,17 @@ static void handlePElogueFinish(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
     finishJobPElogue(job, res, prologue);
 }
 
-static bool handlePElogueMsg(DDTypedBufferMsg_t *msg)
+static void sendDropResp(DDTypedBufferMsg_t *msg)
 {
-    char cover[128];
+    mlog("%s: failed to send result to pspelogue %i from mother superior %s",
+	 __func__, PSC_getPID(msg->header.dest),
+	 PSC_printTID(msg->header.sender));
 
-    /* only authorized users may send pelogue messages */
-    if (!PSID_checkPrivilege(msg->header.sender)) {
-	PStask_t *task = PStasklist_find(&managedTasks, msg->header.sender);
-	mlog("%s: access violation: dropping message uid %i type %i "
-	     "sender %s\n", __func__, (task ? task->uid : 0), msg->type,
-	     PSC_printTID(msg->header.sender));
-	return true;
-    }
+    msg->header.dest = msg->header.sender;
+    msg->header.sender = PSC_getMyTID();
+    msg->type = PSP_PELOGUE_DROP;
 
-    if (PSC_getID(msg->header.dest) != PSC_getMyID()) {
-	/* forward messages to other nodes */
-	sendMsg(msg);
-	return true;
-    }
-
-    snprintf(cover, sizeof(cover), "[%s->", PSC_printTID(msg->header.sender));
-    snprintf(cover+strlen(cover), sizeof(cover)-strlen(cover), "%s]",
-	     PSC_printTID(msg->header.dest));
-
-    mdbg(PELOGUE_LOG_COMM, "%s: type: %i %s\n", __func__, msg->type, cover);
-
-    switch (msg->type) {
-    case PSP_PROLOGUE_START:
-    case PSP_EPILOGUE_START:
-	recvFragMsg(msg, handlePElogueStart);
-	break;
-    case PSP_PROLOGUE_FINISH:
-    case PSP_EPILOGUE_FINISH:
-	recvFragMsg(msg, handlePElogueFinish);
-	break;
-    case PSP_PELOGUE_SIGNAL:
-	recvFragMsg(msg, handlePElogueSignal);
-	break;
-    case PSP_PELOGUE_REQ:
-	recvFragMsg(msg, handlePElogueReq);
-	break;
-    case PSP_PLUGIN_CONFIG_ADD:
-	recvFragMsg(msg, handlePluginConfigAdd);
-	break;
-    case PSP_PLUGIN_CONFIG_DEL:
-	recvFragMsg(msg, handlePluginConfigDel);
-	break;
-    default:
-	mlog("%s: unknown type %i %s\n", __func__, msg->type, cover);
-    }
-    return true;
+    sendMsg(msg);
 }
 
 static char *msg2Str(PSP_PELOGUE_t type)
@@ -738,6 +701,67 @@ static bool dropPElogueMsg(DDTypedBufferMsg_t *msg)
 	break;
     default:
 	mlog("%s: unknown msg type %i\n", __func__, msg->type);
+    }
+    return true;
+}
+
+static bool handlePElogueMsg(DDTypedBufferMsg_t *msg)
+{
+    char cover[128];
+
+    /* only authorized users may send pelogue messages */
+    if (!PSID_checkPrivilege(msg->header.sender)) {
+	PStask_t *task = PStasklist_find(&managedTasks, msg->header.sender);
+	mlog("%s: access violation: dropping message uid %i type %i "
+	     "sender %s\n", __func__, (task ? task->uid : 0), msg->type,
+	     PSC_printTID(msg->header.sender));
+	return true;
+    }
+
+    if (PSC_getID(msg->header.dest) != PSC_getMyID()) {
+	/* forward messages to other nodes */
+	sendMsg(msg);
+	return true;
+    }
+
+    snprintf(cover, sizeof(cover), "[%s->", PSC_printTID(msg->header.sender));
+    snprintf(cover+strlen(cover), sizeof(cover)-strlen(cover), "%s]",
+	     PSC_printTID(msg->header.dest));
+
+    mdbg(PELOGUE_LOG_COMM, "%s: type: %i %s\n", __func__, msg->type, cover);
+
+    switch (msg->type) {
+    case PSP_PROLOGUE_START:
+    case PSP_EPILOGUE_START:
+	recvFragMsg(msg, handlePElogueStart);
+	break;
+    case PSP_PROLOGUE_FINISH:
+    case PSP_EPILOGUE_FINISH:
+	recvFragMsg(msg, handlePElogueFinish);
+	break;
+    case PSP_PELOGUE_SIGNAL:
+	recvFragMsg(msg, handlePElogueSignal);
+	break;
+    case PSP_PELOGUE_REQ:
+	recvFragMsg(msg, handlePElogueReq);
+	break;
+    case PSP_PLUGIN_CONFIG_ADD:
+	recvFragMsg(msg, handlePluginConfigAdd);
+	break;
+    case PSP_PLUGIN_CONFIG_DEL:
+	recvFragMsg(msg, handlePluginConfigDel);
+	break;
+    case PSP_PELOGUE_RESP:
+	if (PSIDclient_send((DDMsg_t *) msg) == -1) {
+	    if (errno == EHOSTUNREACH) sendDropResp(msg);
+	}
+	break;
+    case PSP_PELOGUE_DROP:
+	msg->type = PSP_PELOGUE_RESP;
+	dropPElogueMsg(msg);
+	break;
+    default:
+	mlog("%s: unknown type %i %s\n", __func__, msg->type, cover);
     }
     return true;
 }

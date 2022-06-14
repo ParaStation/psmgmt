@@ -40,6 +40,7 @@
 #include "psidsignal.h"
 #include "psidstate.h"
 #include "psidflowcontrol.h"
+#include "psidclient.h"
 
 /* possible values of clients.flags */
 #define INITIALCONTACT  0x00000001   /* No message yet (only accept()ed) */

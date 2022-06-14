@@ -78,6 +78,7 @@ typedef enum {
     PSP_PELOGUE_RESP,	    /**< remote pelogue response */
     PSP_PLUGIN_CONFIG_ADD,  /**< add plugin configuration */
     PSP_PLUGIN_CONFIG_DEL,  /**< delete plugin configuration */
+    PSP_PELOGUE_DROP,	    /**< pelogue response got dropped */
 } PSP_PELOGUE_t;
 
 typedef void(PElogueResourceCb_t)(char *plugin, char *jobid, uint16_t res);
