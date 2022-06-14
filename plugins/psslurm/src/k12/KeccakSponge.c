@@ -90,10 +90,7 @@ http://creativecommons.org/publicdomain/zero/1.0/
     #undef SnP_width
     #undef SnP_Permute
     #undef SnP_FastLoop_Absorb
-#endif
 
-#ifdef XKCP_has_KeccakP1600
-    #include "KeccakP-1600-SnP.h"
 
     #define prefix KeccakWidth1600_12rounds
     #define SnP KeccakP1600
