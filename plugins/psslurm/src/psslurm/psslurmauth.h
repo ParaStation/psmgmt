@@ -32,8 +32,8 @@ typedef struct {
  * responsible to free the allocated memory using freeSlurmAuth().
  *
  * The user ID of the @ref head will be used to set the allowed
- * user which can decode the credentail. Additional the message body
- * is used to caluclate a message hash which is secured using munge.
+ * user which can decode the credential. Additionally the message body
+ * is used to calculate a message hash which is secured using munge.
  *
  * @param head Slurm message header
  *
