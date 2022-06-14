@@ -28,6 +28,8 @@
 #include "pluginconfig.h"
 #include "pluginmalloc.h"
 #include "psidsignal.h"
+#include "psprotocol.h"
+#include "psserial.h"
 
 #include "peloguehandles.h"
 #include "pspamhandles.h"
