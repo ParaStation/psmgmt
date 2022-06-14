@@ -11,6 +11,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <arpa/inet.h>
 #include <errno.h>
 #include <netinet/in.h>
@@ -18,7 +19,6 @@
 #include <sys/socket.h>
 #include <sys/time.h>
 #include <time.h>
-#include <stdlib.h>
 
 #include "list.h"
 #include "pscommon.h"
@@ -779,9 +779,9 @@ char *help(char *key)
 	str2Buf(" * Use 'plugin set psslurm DEL_ALLOC ID' to delete "
 		"an allocation\n", &buf, &bufSize);
 	str2Buf(" * Use 'plugin set psslurm DEL_JOB ID' to delete "
-		"an allocation\n", &buf, &bufSize);
+		"a job\n", &buf, &bufSize);
 	str2Buf(" * Use 'plugin set psslurm DEL_STEP ID' to delete "
-		"an allocation\n", &buf, &bufSize);
+		"a step\n", &buf, &bufSize);
 	str2Buf(" * Use 'plugin set psslurm CLEAR_CONF_CACHE 1' to clear "
 		"config cache\n", &buf, &bufSize);
 	return buf;
