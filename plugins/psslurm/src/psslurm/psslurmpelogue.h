@@ -142,6 +142,17 @@ int handlePelogueOE(void *data);
  */
 int handlePelogueGlobal(void *data);
 
+/**
+ * @brief Handle hook PSIDHOOK_PELOGUE_DROP
+ *
+ * Handle a messages of type PSP_PLUG_PELOGUE to be dropped. This
+ * might happen if pspelogue is aborted prematurely. For the time
+ * being only sub-type PSP_PELOGUE_RESP is handled.
+ *
+ * @param data Message to be dropped
+ *
+ * @return Always returns 0
+ */
 int handlePelogueDrop(void *data);
 
 #endif

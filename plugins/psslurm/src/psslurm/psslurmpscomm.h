@@ -262,8 +262,8 @@ void stopStepFollower(Step_t *step);
 /**
  * @brief Terminate and delete an allocation
  *
- * Terminate and remove an allocation including all corresponding
- * jobs and steps.
+ * Terminate and remove the allocation @a alloc including all
+ * corresponding jobs and steps.
  *
  * @param alloc The allocation to terminate
  */

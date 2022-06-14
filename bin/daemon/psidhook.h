@@ -185,11 +185,11 @@ typedef enum {
 				executed by the pelogue plugin can be inspected.
 				Used by the psslurm plugin. Arg is pointer to
 				PElogue_Global_Res_t */
-    PSIDHOOK_PELOGUE_DROP,    /**< A pelogue message got dropped. This
-				may happen if pspelogue gets killed before the
-				prologue is complete. Used by psslurm to cleanup
-				allocation information. Arg is pointer to
-				message which got dropped. */
+    PSIDHOOK_PELOGUE_DROP,    /**< A pelogue message got dropped. This might
+				happen if pspelogue gets killed before the
+				prologue is complete. Used by psslurm to
+				cleanup allocation information. Arg is pointer
+				to message which got dropped. */
     PSIDHOOK_FRWRD_DSOCK,     /**< In forwarder's init() function, arg is a
 				pointer to the daemon socket. (obsolete!) */
     PSIDHOOK_JAIL_CHILD,      /**< Jail child into cgroup, arg points to PID.
