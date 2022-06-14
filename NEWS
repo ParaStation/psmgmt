@@ -6,6 +6,16 @@ Copyright (C) 2021-2022 ParTec AG, Munich
 Please send bug reports, questions and suggestions to <support@par-tec.com>
 
 
+Version 5.1.49-3:
+=================
+Bugfixes:
+ - Delete allocation if the slurmctld prologue fails (jwt:#14755)
+ - Also delete lingering allocation if result cannot be sent to pspelogue
+Enhancements:
+ - Add psslurm kvs set commands DEL_ALLOC, DEL_JOB, DEL_STEP
+ - Add hook PSIDHOOK_PELOGUE_DROP and bump plugin API version to 136
+
+
 Version 5.1.49-2:
 =================
 Bugfixes:

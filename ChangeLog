@@ -1,3 +1,57 @@
+Version 5.1.49-3:
+=================
+------------------------------------------------------------------------
+a39d44d9 | Norbert Eicker | Tue, 14 Jun 2022 23:40:25 +0200
+
+Simplify code
+------------------------------------------------------------------------
+1172277d | Norbert Eicker | Tue, 14 Jun 2022 23:39:14 +0200
+
+Prevent NULL-pointer dereference
+------------------------------------------------------------------------
+282c28a7 | Norbert Eicker | Tue, 14 Jun 2022 23:38:32 +0200
+
+Add/improve docu comments
+------------------------------------------------------------------------
+58643879 | Norbert Eicker | Tue, 14 Jun 2022 23:36:57 +0200
+
+Fix copy'n'paste error in help message
+------------------------------------------------------------------------
+db373e5e | Norbert Eicker | Tue, 14 Jun 2022 23:36:21 +0200
+
+IWYU fixes
+------------------------------------------------------------------------
+70958617 | Michael Rauh | Tue, 14 Jun 2022 17:48:30 +0200
+
+Ensure to delete lingering psslurm allocation if prologue
+result cannot be send to pspelogue
+------------------------------------------------------------------------
+02369e47 | Michael Rauh | Mon, 13 Jun 2022 19:03:41 +0200
+
+Add psslurm kvs set commands DEL_ALLOC, DEL_JOB, DEL_STEP
+------------------------------------------------------------------------
+6bc6402d | Michael Rauh | Fri, 10 Jun 2022 15:22:51 +0200
+
+Use PSIDHOOK_PELOGUE_DROP in psslurm
+------------------------------------------------------------------------
+047dab65 | Michael Rauh | Fri, 10 Jun 2022 11:43:13 +0200
+
+Call hook PSIDHOOK_PELOGUE_DROP in pelogue
+------------------------------------------------------------------------
+872ee11f | Michael Rauh | Fri, 10 Jun 2022 11:37:19 +0200
+
+Add hook PSIDHOOK_PELOGUE_DROP and bump
+plugin API version to 136
+------------------------------------------------------------------------
+5c142447 | Michael Rauh | Fri, 27 May 2022 13:54:17 +0200
+
+Ensure the allocation gets deleted if the slurmctld prologue fails
+
+ - slurmcltd will not send a terminate request if slurmctld prologue
+   fails (Slurm 21.08)
+------------------------------------------------------------------------
+
+
 Version 5.1.49-2:
 =================
 ------------------------------------------------------------------------
