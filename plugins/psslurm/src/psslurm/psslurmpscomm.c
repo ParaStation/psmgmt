@@ -1554,6 +1554,7 @@ static void handle_AllocTerm(DDTypedBufferMsg_t *msg)
     Alloc_t *alloc = Alloc_find(allocID);
     if (!alloc) {
 	flog("allocation %i not found\n", allocID);
+	return;
     }
 
     if (alloc->state == A_RUNNING || alloc->state == A_EPILOGUE ||
@@ -2880,7 +2881,7 @@ void send_PS_AllocTerm(Alloc_t *alloc)
 	.header = {
 	    .type = PSP_PLUG_PSSLURM,
 	    .sender = PSC_getMyTID(),
-	    .len = offsetof(DDTypedBufferMsg_t, buf) },
+	    .len = 0 },
 	.type = PSP_ALLOC_TERM,
 	.buf = {'\0'} };
 
