@@ -686,6 +686,7 @@ static bool dropPElogueMsg(DDTypedBufferMsg_t *msg)
     switch (msg->type) {
     case PSP_PROLOGUE_START:
     case PSP_EPILOGUE_START:
+    case PSP_PELOGUE_SIGNAL:
 	dropMsgAndCancel(msg);
 	break;
     case PSP_PROLOGUE_FINISH:
@@ -695,9 +696,6 @@ static bool dropPElogueMsg(DDTypedBufferMsg_t *msg)
     case PSP_PELOGUE_REQ:
     case PSP_PELOGUE_RESP:
 	/* nothing we can do here */
-	break;
-    case PSP_PELOGUE_SIGNAL:
-	dropMsgAndCancel(msg);
 	break;
     default:
 	mlog("%s: unknown msg type %i\n", __func__, msg->type);
