@@ -6,6 +6,12 @@ Copyright (C) 2021-2022 ParTec AG, Munich
 Please send bug reports, questions and suggestions to <support@par-tec.com>
 
 
+Version 5.1.49-4:
+=================
+Bugfixes:
+ - Don't delete the allocation before all terminate messages are send
+
+
 Version 5.1.49-3:
 =================
 Bugfixes:
