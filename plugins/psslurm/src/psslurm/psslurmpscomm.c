@@ -2888,12 +2888,22 @@ void send_PS_AllocTerm(Alloc_t *alloc)
     PSP_putTypedMsgBuf(&msg, "allocID", &alloc->id, sizeof(alloc->id));
 
     /* send the messages */
+    PStask_ID_t myID = PSC_getMyTID();
     for (uint32_t n = 0; n < alloc->nrOfNodes; n++) {
 	msg.header.dest = PSC_getTID(alloc->nodes[n], 0);
+
+	if (msg.header.dest == myID) continue;
 	if (sendMsg(&msg) == -1 && errno != EWOULDBLOCK) {
 	    mwarn(errno, "%s: sendMsg(%s)", __func__,
 		  PSC_printTID(msg.header.dest));
 	}
+    }
+
+    /* send message to myself */
+    msg.header.dest = myID;
+    if (sendMsg(&msg) == -1 && errno != EWOULDBLOCK) {
+	mwarn(errno, "%s: sendMsg(%s)", __func__,
+		PSC_printTID(msg.header.dest));
     }
 }
 
