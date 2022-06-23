@@ -1410,6 +1410,8 @@ static void handleFileBCast(Slurm_Msg_t *sMsg)
 	return;
     }
     bcast->msg.sock = sMsg->sock;
+    /* set correct uid for response message */
+    bcast->msg.head.uid = sMsg->head.uid;
 
     /* unpack credential */
     if (!extractBCastCred(sMsg, bcast)) {
