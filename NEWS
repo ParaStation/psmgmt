@@ -6,6 +6,12 @@ Copyright (C) 2021-2022 ParTec AG, Munich
 Please send bug reports, questions and suggestions to <support@par-tec.com>
 
 
+Version 5.1.49-5:
+=================
+Bugfixes:
+ - Fix user ID of response message for a BCast RPC (pct:#405)
+
+
 Version 5.1.49-4:
 =================
 Bugfixes:

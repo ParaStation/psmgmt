@@ -1,3 +1,15 @@
+Version 5.1.49-5:
+=================
+------------------------------------------------------------------------
+e29a4352 | Michael Rauh | Thu, 23 Jun 2022 14:24:33 +0200
+
+Bugfix: fix user ID of response message for a BCast RPC (pct:#405)
+
+ - needed to enable the bcast binary to decode the munge credential with
+   option MUNGE_OPT_UID_RESTRICTION
+------------------------------------------------------------------------
+
+
 Version 5.1.49-4:
 =================
 ------------------------------------------------------------------------
