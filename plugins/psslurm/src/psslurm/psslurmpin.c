@@ -365,9 +365,15 @@ static void pinToAllThreads(PSCPU_set_t *CPUset, const nodeinfo_t *nodeinfo)
 
 /*
  * Pin to specified socket
+ *
+ * If phys is true, this function uses PSIDnodes_unmapCPU() to create a reverse
+ * mapped CPUset to interpret socket as physical NUMA domain index.
+ * The unmap here and the map later will negate each other so that at the end
+ * we do always have an identity mapping.
+ *
  */
 static void pinToSocket(PSCPU_set_t *CPUset, const nodeinfo_t *nodeinfo,
-	    uint16_t socket)
+	    uint16_t socket, bool phys)
 {
     int t;
     uint16_t s;
@@ -381,6 +387,7 @@ static void pinToSocket(PSCPU_set_t *CPUset, const nodeinfo_t *nodeinfo,
 	    for (i = 0; i < nodeinfo->coresPerSocket; i++) {
 		thread = (t * nodeinfo->coreCount)
 					+ (s * nodeinfo->coresPerSocket) + i;
+		if (phys) thread = PSIDnodes_unmapCPU(nodeinfo->id, thread);
 		PSCPU_setCPU(*CPUset, thread);
 	    }
 	}
@@ -538,6 +545,11 @@ error:
  * Parse the socket mask string @a maskStr containing a hex number (with or
  * without leading "0x") and set @a CPUset accordingly.
  *
+ * This function makes pinToSocket() create a reverse mapped CPUset to apply
+ * the mask directly to the physical hardware at the end.
+ * The unmap here and the map later will negate each other so that at the end
+ * we do always have an identity mapping.
+ *
  * If the sting is not a valid hex number, each bit in @a CPUset becomes set.
  */
 static void parseSocketMask(PSCPU_set_t *CPUset, const nodeinfo_t *nodeinfo,
@@ -570,7 +582,7 @@ static void parseSocketMask(PSCPU_set_t *CPUset, const nodeinfo_t *nodeinfo,
 
 	for (j = 0; j<4; j++) {
 	    if (digit & (1 << j)) {
-		pinToSocket(CPUset, nodeinfo, curbit + j);
+		pinToSocket(CPUset, nodeinfo, curbit + j, true);
 	    }
 	}
 	curbit += 4;
@@ -589,11 +601,11 @@ static void parseSocketMask(PSCPU_set_t *CPUset, const nodeinfo_t *nodeinfo,
  * so the bind string is formated "s1,s2,..." with sn are Socket IDs
  * or Socket masks.
  *
- * For CPU_BIND_MASK and CPU_BIND_MAP this function (or it's subfunctions)
- * use PSIDnodes_unmapCPU() to create a reverse mapped CPUset since actually
- * the mask should be applied to the* physical hardware as it is. The unmap
- * here and the map later will negate each other so that at the end we do
- * always have an identity mapping.
+ * For CPU_BIND_MASK, CPU_BIND_MAP, and CPU_BIND_LDMASK this function
+ * (or it's subfunctions) use PSIDnodes_unmapCPU() to create a reverse mapped
+ * CPUset since actually the mask should be applied to the* physical hardware
+ * as it is. The unmap here and the map later will negate each other so that at
+ * the end we do always have an identity mapping.
  *
  * @param CPUset         CPU set to be set
  * @param cpuBindType    bind type to use (CPU_BIND_[MASK|MAP|LDMASK|LDMAP])
@@ -693,7 +705,7 @@ static void getBindMapFromString(PSCPU_set_t *CPUset, uint16_t cpuBindType,
 	}
 
 	/* mysock is valid */
-	pinToSocket(CPUset, nodeinfo, myldom);
+	pinToSocket(CPUset, nodeinfo, myldom, false);
 	fdbg(PSSLURM_LOG_PART, "(bind_ldmap) node %d local task %d bindstr '%s'"
 	     " ldom %ld\n", nodeinfo->id, lTID, cpuBindString, myldom);
 	return;
@@ -957,7 +969,7 @@ static void bindToSockets(PSCPU_set_t *CPUset, const nodeinfo_t *nodeinfo,
 
 	if (PSCPU_isSet(*CPUset, thread)) {
 	    uint16_t socket = getSocketByThread(thread, nodeinfo);
-	    pinToSocket(CPUset, nodeinfo, socket);
+	    pinToSocket(CPUset, nodeinfo, socket, false);
 	    if (socket + 1 == nodeinfo->socketCount) break;
 	    iter.next = getNextSocketStart(thread, nodeinfo, false);
 	}
