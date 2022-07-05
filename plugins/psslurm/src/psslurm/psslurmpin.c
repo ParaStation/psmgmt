@@ -364,30 +364,25 @@ static void pinToAllThreads(PSCPU_set_t *CPUset, const nodeinfo_t *nodeinfo)
 /*
  * Pin to specified socket
  *
- * If phys is true, this function uses PSIDnodes_unmapCPU() to create a reverse
- * mapped CPUset to interpret socket as physical NUMA domain index.
- * The unmap here and the map later will negate each other so that at the end
- * we do always have an identity mapping.
- *
+ * Add all HW-threads that belong to the socket @a socket to the CPU
+ * set @a CPUset according to the node information that is provided
+ * within @a nodeinfo. If @a phys is set, @ref PSIDnodes_unmapCPU() is
+ * utilized to create a reverse mapped CPUset to interpret @a socket
+ * as physical NUMA domain index. The unmap here and the map later
+ * will compensate each other so that at the end we do always have an
+ * identity mapping.
  */
 static void pinToSocket(PSCPU_set_t *CPUset, const nodeinfo_t *nodeinfo,
-	    uint16_t socket, bool phys)
+			uint16_t socket, bool phys)
 {
-    int t;
-    uint16_t s;
-    uint32_t i, thread;
-
     mdbg(PSSLURM_LOG_PART, "%s: pinning to socket %u\n", __func__, socket);
 
-    for (t = 0; t < nodeinfo->threadsPerCore; t++) {
-	for (s = 0; s < nodeinfo->socketCount; s++) {
-	    if (s != socket) continue;
-	    for (i = 0; i < nodeinfo->coresPerSocket; i++) {
-		thread = (t * nodeinfo->coreCount)
-					+ (s * nodeinfo->coresPerSocket) + i;
-		if (phys) thread = PSIDnodes_unmapCPU(nodeinfo->id, thread);
-		PSCPU_setCPU(*CPUset, thread);
-	    }
+    for (uint16_t c = 0; c < nodeinfo->coresPerSocket; c++) {
+	for (uint16_t t = 0; t < nodeinfo->threadsPerCore; t++) {
+	    uint16_t thread = nodeinfo->coreCount * t
+		+ socket * nodeinfo->coresPerSocket + c;
+	    if (phys) thread = PSIDnodes_unmapCPU(nodeinfo->id, thread);
+	    PSCPU_setCPU(*CPUset, thread);
 	}
     }
 }
