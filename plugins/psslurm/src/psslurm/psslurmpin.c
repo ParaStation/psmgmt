@@ -356,10 +356,8 @@ static void fillDistributionStrategies(uint32_t taskDist, pininfo_t *pininfo)
  */
 static void pinToAllThreads(PSCPU_set_t *CPUset, const nodeinfo_t *nodeinfo)
 {
-    uint32_t i;
-
-    for (i = 0; i < nodeinfo->threadCount; i++) {
-	PSCPU_setCPU(*CPUset, i);
+    for (uint16_t t = 0; t < nodeinfo->threadCount; t++) {
+	PSCPU_setCPU(*CPUset, t);
     }
 }
 
@@ -398,13 +396,11 @@ static void pinToSocket(PSCPU_set_t *CPUset, const nodeinfo_t *nodeinfo,
  * Pin to specified core
  */
 static void pinToCore(PSCPU_set_t *CPUset, const nodeinfo_t *nodeinfo,
-	    uint32_t core)
+		      uint16_t core)
 {
-    int t;
-
     mdbg(PSSLURM_LOG_PART, "%s: pinning to core %u\n", __func__, core);
 
-    for (t = 0; t < nodeinfo->threadsPerCore; t++) {
+    for (uint16_t t = 0; t < nodeinfo->threadsPerCore; t++) {
 	PSCPU_setCPU(*CPUset, nodeinfo->coreCount * t + core);
     }
 }
@@ -423,13 +419,7 @@ static void pinToCore(PSCPU_set_t *CPUset, const nodeinfo_t *nodeinfo,
 static void parseCPUmask(PSCPU_set_t *CPUset, const nodeinfo_t *nodeinfo,
 			 char *maskStr)
 {
-    char *mask, *curchar, *endptr;
-    size_t len;
-    uint32_t curbit;
-    int i, j, digit;
-
-    mask = maskStr;
-
+    char *mask = maskStr;
     if (strncmp(maskStr, "0x", 2) == 0) {
 	/* skip "0x", treat always as hex */
 	mask += 2;
@@ -437,21 +427,22 @@ static void parseCPUmask(PSCPU_set_t *CPUset, const nodeinfo_t *nodeinfo,
 
     mask = ustrdup(mask); /* gets destroyed */
 
-    len = strlen(mask);
-    curchar = mask + (len - 1);
-    curbit = 0;
-    for (i = len; i>0; i--) {
-	digit = strtol(curchar, &endptr, 16);
+    size_t len = strlen(mask);
+    char *curchar = mask + (len - 1);
+    uint32_t curbit = 0;
+    for (int i = len; i > 0; i--) {
+	char *endptr;
+	int digit = strtol(curchar, &endptr, 16);
 	if (*endptr != '\0') {
 	    mlog("%s: invalid digit in cpu mask '%s'\n", __func__, maskStr);
 	    pinToAllThreads(CPUset, nodeinfo); //XXX other result in error case?
 	    break;
 	}
 
-	for (j = 0; j<4; j++) {
+	for (int j = 0; j < 4; j++) {
 	    if (digit & (1 << j)) {
 		PSCPU_setCPU(*CPUset,
-			PSIDnodes_unmapCPU(nodeinfo->id, curbit + j));
+			     PSIDnodes_unmapCPU(nodeinfo->id, curbit + j));
 	    }
 	}
 	curbit += 4;
@@ -555,32 +546,26 @@ error:
 static void parseSocketMask(PSCPU_set_t *CPUset, const nodeinfo_t *nodeinfo,
 			    char *maskStr)
 {
-    char *mask, *curchar, *endptr;
-    size_t len;
-    uint32_t curbit;
-    int i, j, digit;
-
-    mask = maskStr;
-
+    char *mask = maskStr;
     if (strncmp(maskStr, "0x", 2) == 0) {
 	/* skip "0x", treat always as hex */
 	mask += 2;
     }
-
     mask = ustrdup(mask); /* gets destroyed */
 
-    len = strlen(mask);
-    curchar = mask + (len - 1);
-    curbit = 0;
-    for (i = len; i>0; i--) {
-	digit = strtol(curchar, &endptr, 16);
+    size_t len = strlen(mask);
+    char *curchar = mask + (len - 1);
+    uint32_t curbit = 0;
+    for (int i = len; i > 0; i--) {
+	char *endptr;
+	int digit = strtol(curchar, &endptr, 16);
 	if (*endptr != '\0') {
 	    mlog("%s: invalid digit in cpu mask '%s'\n", __func__, maskStr);
 	    pinToAllThreads(CPUset, nodeinfo); //XXX other result in error case?
 	    break;
 	}
 
-	for (j = 0; j<4; j++) {
+	for (int j = 0; j < 4; j++) {
 	    if (digit & (1 << j)) {
 		pinToSocket(CPUset, nodeinfo, curbit + j, true);
 	    }
@@ -1738,46 +1723,33 @@ error:
 
 static char * printCpuMask(pid_t pid)
 {
-    cpu_set_t mask;
-    PSCPU_set_t CPUset;
-    int numcpus, i;
-
     static char ret[PSCPU_MAX/4+10];
-    char* lstr;
-    int offset;
 
+    cpu_set_t mask;
+    int numcpus = 128;
     if (sched_getaffinity(1, sizeof(cpu_set_t), &mask) == 0) {
 	numcpus = CPU_COUNT(&mask);
     }
-    else {
-	numcpus = 128;
-    }
 
+    PSCPU_set_t CPUset;
     PSCPU_clrAll(CPUset);
     if (sched_getaffinity(pid, sizeof(cpu_set_t), &mask) == 0) {
-	for (i = 0; i < numcpus; i++) {
-	    if(CPU_ISSET(i, &mask)) {
-		PSCPU_setCPU(CPUset, i);
-	    }
+	for (int i = 0; i < numcpus; i++) {
+	    if (CPU_ISSET(i, &mask)) PSCPU_setCPU(CPUset, i);
 	}
-    }
-    else {
+    } else {
 	return "unknown";
     }
 
-    lstr = PSCPU_print(CPUset);
+    char* lstr = PSCPU_print(CPUset);
 
     strcpy(ret, "0x");
 
     // cut leading zeros
-    offset = 2;
-    while (*(lstr + offset) == '0') {
-	offset++;
-    }
+    int offset = 2;
+    while (*(lstr + offset) == '0') offset++;
 
-    if (*(lstr + offset) == '\0') {
-	return "0x0";
-    }
+    if (*(lstr + offset) == '\0') return "0x0";
 
     strcpy(ret + 2, lstr + offset);
 
@@ -1787,20 +1759,17 @@ static char * printCpuMask(pid_t pid)
 static char * printMemMask(void)
 {
 #ifdef HAVE_LIBNUMA
-    struct bitmask *memmask;
-    int i, p, max, s;
-
     static char ret[PSCPU_MAX/4+10];
 
-    memmask = numa_get_membind();
+    struct bitmask *memmask = numa_get_membind();
 
     strcpy(ret, "0x");
 
-    p = 2;
-    max = numa_max_node();
-    i = max + (4 - (max + 1) % 4);
+    int p = 2;
+    int max = numa_max_node();
+    int i = max + (4 - (max + 1) % 4);
     while (i >= 0) {
-	s = 0;
+	int s = 0;
 	for (int j = 3; j >= 0 && i >= 0; j--) {
 	    s += (numa_bitmask_isbitset(memmask, i--) ? 1 : 0) * pow(2, j);
 	}
@@ -1831,14 +1800,11 @@ void verboseCpuPinningOutput(Step_t *step, PS_Tasks_t *task)
 	} else {
 	    if (step->cpuBindType & CPU_BIND_TO_THREADS) {
 		units = "_threads";
-	    }
-	    else if (step->cpuBindType & CPU_BIND_TO_CORES) {
+	    } else if (step->cpuBindType & CPU_BIND_TO_CORES) {
 		units = "_cores"; // this is unsupported
-	    }
-	    else if (step->cpuBindType & CPU_BIND_TO_SOCKETS) {
+	    } else if (step->cpuBindType & CPU_BIND_TO_SOCKETS) {
 		units = "_sockets";
-	    }
-	    else if (step->cpuBindType & CPU_BIND_TO_LDOMS) {
+	    } else if (step->cpuBindType & CPU_BIND_TO_LDOMS) {
 		units = "_ldoms";
 	    }
 	    else {
@@ -1847,26 +1813,19 @@ void verboseCpuPinningOutput(Step_t *step, PS_Tasks_t *task)
 
 	    if (step->cpuBindType & CPU_BIND_RANK) {
 		bind_type = "RANK";
-	    }
-	    else if (step->cpuBindType & CPU_BIND_MAP) {
+	    } else if (step->cpuBindType & CPU_BIND_MAP) {
 		bind_type = "MAP ";
-	    }
-	    else if (step->cpuBindType & CPU_BIND_MASK) {
+	    } else if (step->cpuBindType & CPU_BIND_MASK) {
 		bind_type = "MASK";
-	    }
-	    else if (step->cpuBindType & CPU_BIND_LDRANK) {
+	    } else if (step->cpuBindType & CPU_BIND_LDRANK) {
 		bind_type = "LDRANK";
-	    }
-	    else if (step->cpuBindType & CPU_BIND_LDMAP) {
+	    } else if (step->cpuBindType & CPU_BIND_LDMAP) {
 		bind_type = "LDMAP ";
-	    }
-	    else if (step->cpuBindType & CPU_BIND_LDMASK) {
+	    } else if (step->cpuBindType & CPU_BIND_LDMASK) {
 		bind_type = "LDMASK";
-	    }
-	    else if (step->cpuBindType & (~CPU_BIND_VERBOSE)) {
+	    } else if (step->cpuBindType & (~CPU_BIND_VERBOSE)) {
 		bind_type = "UNK ";
-	    }
-	    else {
+	    } else {
 		action = "";
 		bind_type = "NULL";
 	    }
@@ -1920,37 +1879,36 @@ void verboseCpuPinningOutput(Step_t *step, PS_Tasks_t *task)
  * processes */
 void verboseMemPinningOutput(Step_t *step, PStask_t *task)
 {
-    char *bind_type, *action;
+    if (!(step->memBindType & MEM_BIND_VERBOSE)) return;
 
-    if (step->memBindType & MEM_BIND_VERBOSE) {
-	action = " set";
+    char *action = " set";
+    char *bind_type;
 
-	if (step->memBindType & MEM_BIND_NONE) {
-	    action = "";
-	    bind_type = "NONE";
+    if (step->memBindType & MEM_BIND_NONE) {
+	action = "";
+	bind_type = "NONE";
+    } else {
+	if (step->memBindType & MEM_BIND_RANK) {
+	    bind_type = "RANK ";
+	} else if (step->memBindType & MEM_BIND_LOCAL) {
+	    bind_type = "LOC ";
+	} else if (step->memBindType & MEM_BIND_MAP) {
+	    bind_type = "MAP ";
+	} else if (step->memBindType & MEM_BIND_MASK) {
+	    bind_type = "MASK";
+	} else if (step->memBindType & (~MEM_BIND_VERBOSE)) {
+	    bind_type = "UNK ";
 	} else {
-	    if (step->memBindType & MEM_BIND_RANK) {
-		bind_type = "RANK ";
-	    } else if (step->memBindType & MEM_BIND_LOCAL) {
-		bind_type = "LOC ";
-	    } else if (step->memBindType & MEM_BIND_MAP) {
-		bind_type = "MAP ";
-	    } else if (step->memBindType & MEM_BIND_MASK) {
-		bind_type = "MASK";
-	    } else if (step->memBindType & (~MEM_BIND_VERBOSE)) {
-		bind_type = "UNK ";
-	    } else {
-		action = "";
-		bind_type = "NULL";
-	    }
+	    action = "";
+	    bind_type = "NULL";
 	}
-
-	fprintf(stderr, "mem_bind=%s - "
-		"%s, task %2d %2u [%d]: mask %s%s\n", bind_type,
-		getConfValueC(&Config, "SLURM_HOSTNAME"), // hostname
-		task->rank, getLocalRankID(task->rank, step),
-		getpid(), printMemMask(), action);
     }
+
+    fprintf(stderr, "mem_bind=%s - "
+	    "%s, task %2d %2u [%d]: mask %s%s\n", bind_type,
+	    getConfValueC(&Config, "SLURM_HOSTNAME"), // hostname
+	    task->rank, getLocalRankID(task->rank, step),
+	    getpid(), printMemMask(), action);
 }
 
 #ifdef HAVE_LIBNUMA
@@ -1963,31 +1921,25 @@ void verboseMemPinningOutput(Step_t *step, PStask_t *task)
  */
 static void parseNUMAmask(struct bitmask *nodemask, char *maskStr, int32_t rank)
 {
-    char *mask, *curchar, *endptr;
-    size_t len;
-    uint32_t curbit;
-    uint16_t i, j, digit;
-
-    mask = maskStr;
-
+    char *mask = maskStr;
     if (strncmp(maskStr, "0x", 2) == 0) {
 	/* skip "0x", treat always as hex */
 	mask += 2;
     }
-
     mask = ustrdup(mask); /* gets destroyed */
 
-    len = strlen(mask);
-    curchar = mask + (len - 1);
-    curbit = 0;
-    for (i = len; i > 0; i--) {
-	digit = strtol(curchar, &endptr, 16);
+    size_t len = strlen(mask);
+    char *curchar = mask + (len - 1);
+    uint32_t curbit = 0;
+    for (uint16_t i = len; i > 0; i--) {
+	char *endptr;
+	uint16_t digit = strtol(curchar, &endptr, 16);
 	if (*endptr != '\0') {
 	    mlog("%s: error parsing memory mask '%s'\n", __func__, maskStr);
 	    goto error;
 	}
 
-	for (j = 0; j < 4; j++) {
+	for (uint16_t j = 0; j < 4; j++) {
 	    if (digit & (1 << j)) {
 		if ((long int)(curbit + j) > numa_max_node()) {
 		    mlog("%s: invalid memory mask entry '%s' for rank %d\n",
@@ -1997,7 +1949,7 @@ static void parseNUMAmask(struct bitmask *nodemask, char *maskStr, int32_t rank)
 		    goto error;
 		}
 		if (numa_bitmask_isbitset(numa_get_mems_allowed(),
-			    curbit + j)) {
+					  curbit + j)) {
 		    numa_bitmask_setbit(nodemask, curbit + j);
 		} else {
 		    mlog("%s: setting bit %u in memory mask not allowed in"
