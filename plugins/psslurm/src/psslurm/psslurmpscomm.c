@@ -1167,13 +1167,16 @@ static void handle_JobLaunch(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
     /* get username */
     job->username = getStringM(&ptr);
 
-    /* get nodelist */
+    /* get node-list */
     job->slurmHosts = getStringM(&ptr);
 
     if (!convHLtoPSnodes(job->slurmHosts, getNodeIDbySlurmHost,
 			 &job->nodes, &job->nrOfNodes)) {
 	flog("converting %s to PS node IDs failed\n", job->slurmHosts);
     }
+
+    Alloc_t *alloc = Alloc_find(jobid);
+    if (alloc) alloc->verified = true;
 
     mlog("%s: jobid %u user '%s' nodes %u from %s\n", __func__, jobid,
 	 job->username, job->nrOfNodes, PSC_printTID(msg->header.sender));

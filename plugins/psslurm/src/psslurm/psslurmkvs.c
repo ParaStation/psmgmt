@@ -187,6 +187,10 @@ static bool Alloc_addInfo(Alloc_t *alloc, const void *info)
     snprintf(line, sizeof(line), "local node id %u -\n", alloc->localNodeId);
     addStrBuf(line, strBuf);
 
+    snprintf(line, sizeof(line), "verified: %s\n",
+	     alloc->verified ? "yes" : "no");
+    addStrBuf(line, strBuf);
+
     addStrBuf("-\n\n", strBuf);
 
     return false;

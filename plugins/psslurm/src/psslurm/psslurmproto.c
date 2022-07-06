@@ -397,15 +397,36 @@ static bool testSlurmVersion(uint32_t pVer, uint32_t cmd)
     return true;
 }
 
-static void freeRespJobInfo(Resp_Job_Info_t *resp)
+void freeRespJobInfo(Resp_Job_Info_t *resp)
 {
+    if (!resp) return;
+
     for (uint32_t i = 0; i < resp->numJobs; i++) {
 	Slurm_Job_Rec_t *rec = &resp->jobs[i];
 
 	ufree(rec->arrayTaskStr);
 	ufree(rec->hetJobIDset);
+	ufree(rec->container);
+	ufree(rec->cluster);
+	ufree(rec->nodes);
+	ufree(rec->schedNodes);
+	ufree(rec->partition);
+	ufree(rec->account);
+	ufree(rec->adminComment);
+	ufree(rec->network);
+	ufree(rec->comment);
+	ufree(rec->batchFeat);
+	ufree(rec->batchHost);
+	ufree(rec->burstBuffer);
+	ufree(rec->burstBufferState);
+	ufree(rec->systemComment);
+	ufree(rec->qos);
+	ufree(rec->licenses);
+	ufree(rec->stateDesc);
+	ufree(rec->resvName);
+	ufree(rec->mcsLabel);
     }
-
+    ufree(resp->jobs);
     ufree(resp);
 }
 
@@ -430,14 +451,23 @@ static int handleJobInfoResp(Slurm_Msg_t *sMsg, void *info)
 
     Resp_Job_Info_t *resp = sMsg->unpData;
     if (!resp) {
-	flog("invalid resp data\n");
+	flog("invalid response data\n");
 	return 0;
     }
-    flog("received count: %u time %zu\n", resp->numJobs, resp->lastUpdate);
+
+    flog("received %u jobs, update %zu\n", resp->numJobs, resp->lastUpdate);
 
     for (uint32_t i = 0; i < resp->numJobs; i++) {
-	Slurm_Job_Rec_t *rec = &resp->jobs[i];
-	flog("jobid: %u userid %u\n", rec->jobid, rec->userID);
+	Slurm_Job_Rec_t *rec = &(resp->jobs)[i];
+
+	if (req->jobid != rec->jobid) {
+	    flog("warning: got non requested job %u, requested job %u\n",
+		 rec->jobid, req->jobid);
+	}
+
+	flog("jobid %u userid %u state %x state_reason %u exit code %u\n",
+	     rec->jobid, rec->userID, rec->jobState & JOB_STATE_BASE,
+	     rec->stateReason, rec->exitCode);
     }
 
     freeRespJobInfo(resp);
@@ -445,15 +475,19 @@ static int handleJobInfoResp(Slurm_Msg_t *sMsg, void *info)
     return 0;
 }
 
-int requestJobInfo(uint32_t jobid)
+int requestJobInfo(uint32_t jobid, Connection_CB_t *cb)
 {
-    Req_Job_Info_Single_t jobInfo = { .jobid = jobid, .flags = SHOW_LOCAL };
+    Req_Job_Info_Single_t jobInfo = { .jobid = jobid, .flags = 0 };
+
+    jobInfo.flags |= JOB_SHOW_ALL;
+    jobInfo.flags |= JOB_SHOW_DETAIL;
 
     Req_Info_t *req = ucalloc(sizeof(*req));
     req->type = REQUEST_JOB_INFO_SINGLE;
     req->jobid = jobid;
-    req->cb = &handleJobInfoResp;
+    req->cb = cb ? cb : &handleJobInfoResp;
 
+    flog("job %u\n", jobid);
     return sendSlurmctldReq(req, &jobInfo);
 }
 
@@ -572,12 +606,14 @@ static void handleLaunchTasks(Slurm_Msg_t *sMsg)
 	 step->stepHetComp == NO_VAL ? 0 : step->stepHetComp);
 
     /* ensure an allocation exists for the new step */
-    if (!Alloc_find(step->jobid)) {
+    Alloc_t *alloc = Alloc_find(step->jobid);
+    if (!alloc) {
 	flog("error: no allocation for jobid %u found\n", step->jobid);
 	flog("** ensure slurmctld prologue is setup correctly **\n");
 	sendSlurmRC(sMsg, ESLURMD_INVALID_JOB_CREDENTIAL);
 	goto ERROR;
     }
+    alloc->verified = true;
 
     /* set slots for the step (and number of hardware threads) */
     if (!setStepSlots(step)) {
@@ -2143,6 +2179,7 @@ static void handleBatchJobLaunch(Slurm_Msg_t *sMsg)
 		 Alloc_strState(alloc->state));
 	    goto ERROR;
 	}
+	alloc->verified = true;
 
 	/* pspelogue already ran parallel prologue, start job */
 	alloc->state = A_RUNNING;
@@ -2151,6 +2188,7 @@ static void handleBatchJobLaunch(Slurm_Msg_t *sMsg)
 	     Job_strState(job->state));
     } else {
 	/* slurmd prologue is configured */
+	alloc->verified = true;
 	if (alloc && alloc->state == A_PROLOGUE_FINISH) {
 	    /* pspelogue already executed the prologue */
 	    alloc->state = A_RUNNING;
@@ -2647,6 +2685,7 @@ static void handleNodeRegStat(Slurm_Msg_t *sMsg)
 {
     sendPing(sMsg);
     sendNodeRegStatus(false);
+    Alloc_verify(true);
 }
 
 static void handleInvalid(Slurm_Msg_t *sMsg)

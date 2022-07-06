@@ -35,6 +35,11 @@
 #include "psslurmpscomm.h"
 #include "psslurmproto.h"
 #include "psslurmstep.h"
+#include "psslurmpack.h"
+#include "psslurmconfig.h"
+
+/* timespan in seconds until an allocation is verified */
+#define ALLOC_VERIFY_TIME 300
 
 /** List of all allocations */
 static LIST_HEAD(AllocList);
@@ -42,6 +47,8 @@ static LIST_HEAD(AllocList);
 Alloc_t *Alloc_add(uint32_t id, uint32_t packID, char *slurmHosts, env_t *env,
 		   uid_t uid, gid_t gid, char *username)
 {
+    Alloc_verify(false);
+
     Alloc_t *alloc = Alloc_find(id);
 
     if (alloc) return alloc;
@@ -55,8 +62,9 @@ Alloc_t *Alloc_add(uint32_t id, uint32_t packID, char *slurmHosts, env_t *env,
     alloc->slurmHosts = ustrdup(slurmHosts);
     alloc->username = ustrdup(username);
     alloc->startTime = time(0);
+    alloc->verified = false;
 
-    /* init node-list */
+    /* initialize node-list */
     if (!convHLtoPSnodes(slurmHosts, getNodeIDbySlurmHost,
 			 &alloc->nodes, &alloc->nrOfNodes)) {
 	flog("converting %s to PS node IDs failed\n", slurmHosts);
@@ -64,7 +72,7 @@ Alloc_t *Alloc_add(uint32_t id, uint32_t packID, char *slurmHosts, env_t *env,
     alloc->localNodeId = getLocalID(alloc->nodes, alloc->nrOfNodes);
     alloc->epilogRes = ucalloc(sizeof(bool) * alloc->nrOfNodes);
 
-    /* init environment */
+    /* initialize environment */
     if (env) {
 	envClone(env, &alloc->env, envFilter);
     } else {
@@ -266,4 +274,93 @@ bool Alloc_isLeader(Alloc_t *alloc)
     if (!alloc || !alloc->nodes) return false;
     if (alloc->nodes[0] == PSC_getMyID()) return true;
     return false;
+}
+
+static int verifyJobInfo(Slurm_Msg_t *sMsg, void *info)
+{
+    Req_Info_t *req = info;
+    Resp_Job_Info_t *resp = NULL;
+
+    Alloc_t *alloc = Alloc_find(req->jobid);
+    if (!alloc) {
+	flog("allocation %u to verify not found\n", req->jobid);
+	goto CLEANUP;
+    }
+
+    if (!unpackSlurmMsg(sMsg)) {
+	flog("unpacking message %s (%u) for jobid %u failed\n",
+	     msgType2String(sMsg->head.type), sMsg->head.version, req->jobid);
+	alloc->verified = true;
+	return 0;
+    }
+
+    resp = sMsg->unpData;
+    if (!resp) {
+	flog("invalid response data for allocation %u\n", req->jobid);
+	alloc->verified = true;
+	return 0;
+    }
+
+    for (uint32_t i = 0; i < resp->numJobs; i++) {
+	Slurm_Job_Rec_t *rec = &(resp->jobs)[i];
+
+	if (req->jobid != rec->jobid) {
+	    flog("warning: skipping not requested job %u, requested job %u\n",
+		 rec->jobid, req->jobid);
+	    continue;
+	}
+
+	alloc->verified = true;
+
+	switch (rec->jobState & JOB_STATE_BASE) {
+	    case SLURM_JOB_RUNNING:
+	    case SLURM_JOB_SUSPENDED:
+		/* allocation is in an expected state */
+		break;
+	    case SLURM_JOB_PENDING:
+	    case SLURM_JOB_COMPLETE:
+	    case SLURM_JOB_CANCELLED:
+	    case SLURM_JOB_FAILED:
+	    case SLURM_JOB_TIMEOUT:
+	    case SLURM_JOB_NODE_FAIL:
+	    case SLURM_JOB_PREEMPTED:
+	    case SLURM_JOB_BOOT_FAIL:
+	    case SLURM_JOB_DEADLINE:
+	    case SLURM_JOB_OOM:
+	    case SLURM_JOB_END:
+		flog("deleting allocation %u job state %u\n", rec->jobid,
+		     rec->jobState & JOB_STATE_BASE);
+		send_PS_AllocTerm(alloc);
+		break;
+	}
+    }
+
+CLEANUP:
+    if (resp) freeRespJobInfo(resp);
+
+    return 0;
+}
+
+void Alloc_verify(bool grace)
+{
+    if (slurmProto < SLURM_21_08_PROTO_VERSION) return;
+
+    char *prologue = getConfValueC(&SlurmConfig, "Prolog");
+    if (!prologue || prologue[0] == '\0') {
+	/* no slurmd prologue configured,
+	 * pspelogue should have added an allocation */
+
+	list_t *a;
+	list_for_each(a, &AllocList) {
+	    Alloc_t *alloc = list_entry(a, Alloc_t, next);
+	    if (alloc->verified) continue;
+
+	    if (Alloc_isLeader(alloc)) {
+		if (!grace || time(0) - alloc->startTime > ALLOC_VERIFY_TIME) {
+		    flog("request status for allocation %u\n", alloc->id);
+		    requestJobInfo(alloc->id, &verifyJobInfo);
+		}
+	    }
+	}
+    }
 }

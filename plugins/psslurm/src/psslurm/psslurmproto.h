@@ -236,7 +236,7 @@ typedef struct {
 typedef struct {
     char *hostname;	/**< hostname the processes were executed */
     uint32_t count;	/**< number of PIDs */
-    pid_t *pid;	/**< the actual PIDs to pack */
+    pid_t *pid;		/**< the actual PIDs to pack */
 } Slurm_PIDs_t;
 
 /** Holding all information for RPC REQUEST_REATTACH_TASKS */
@@ -345,12 +345,59 @@ typedef struct {
     uint32_t profile;
     uint32_t jobState;
     uint16_t batchFlag;
+    uint32_t hetJobID;
+    char *container;
+    uint16_t stateReason;
+    uint8_t powerFlags;
+    uint8_t reboot;
+    uint16_t restartCount;
+    uint16_t showFlags;
+    time_t deadline;
+    uint32_t allocSID;
+    uint32_t timeLimit;
+    uint32_t timeMin;
+    uint32_t nice;
+    time_t submitTime;
+    time_t eligibleTime;
+    time_t accrueTime;
+    time_t startTime;
+    time_t endTime;
+    time_t suspendTime;
+    time_t preSusTime;
+    time_t resizeTime;
+    time_t lastSchedEval;
+    time_t preemptTime;
+    uint32_t priority;
+    double billableTres;
+    char *cluster;
+    char *nodes;
+    char *schedNodes;
+    char *partition;
+    char *account;
+    char *adminComment;
+    uint32_t siteFactor;
+    char *network;
+    char *comment;
+    char *batchFeat;
+    char *batchHost;
+    char *burstBuffer;
+    char *burstBufferState;
+    char *systemComment;
+    char *qos;
+    time_t preemptableTime;
+    char *licenses;
+    char *stateDesc;
+    char *resvName;
+    char *mcsLabel;
+    uint32_t exitCode;
+    uint32_t derivedExitCode;
 } Slurm_Job_Rec_t;
 
 /** Holding all information for RPC RESPONSE_JOB_INFO */
 typedef struct {
     uint32_t numJobs;	    /**< number of job records */
     time_t lastUpdate;	    /**< last time the data was updated */
+    time_t lastBackfill;    /**< last time backfiller run */
     Slurm_Job_Rec_t *jobs;  /**< the job infos */
 } Resp_Job_Info_t;
 
@@ -629,10 +676,14 @@ void clearSlurmdProto(void);
  *
  * @param jobid The job ID to request information for
  *
+ * @param cb Callback function to handle the result or NULL
+ *
  * @return Returns the number of bytes written, -1 on error or -2 if
  * the message was stored and will be send out later
  */
-int requestJobInfo(uint32_t jobid);
+int requestJobInfo(uint32_t jobid, Connection_CB_t *cb);
+
+void freeRespJobInfo(Resp_Job_Info_t *resp);
 
 /**
  * @brief Get the local ID of current node

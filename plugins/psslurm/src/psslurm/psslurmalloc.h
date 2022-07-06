@@ -41,6 +41,7 @@ typedef struct {
     bool *epilogRes;	    /**< track epilogue results per node */
     uint32_t epilogCnt;     /**< number of nodes finished epilogue */
     bool nodeFail;	    /**< flag to save node failure */
+    bool verified;	    /**< set to true if the allocation is verified */
     JobCred_t *cred;	    /**< job credentials */
     list_t *gresList;	    /**< list of allocated generic resources */
 } Alloc_t;
@@ -206,5 +207,7 @@ const char *Alloc_strState(AllocState_t state);
  * false
  */
 bool Alloc_isLeader(Alloc_t *alloc);
+
+void Alloc_verify(bool grace);
 
 #endif  /* __PS_PSSLURM_ALLOC */

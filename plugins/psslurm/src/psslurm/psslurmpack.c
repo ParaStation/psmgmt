@@ -2669,29 +2669,155 @@ static bool unpackRespJobInfo(Slurm_Msg_t *sMsg)
 {
     Resp_Job_Info_t *resp = ucalloc(sizeof(*resp));
     char **ptr = &sMsg->ptr;
+    uint16_t msgVer = sMsg->head.version;
 
+    /* number of jobs */
     getUint32(ptr, &resp->numJobs);
+    /* last update */
     getTime(ptr, &resp->lastUpdate);
+
+    if (msgVer >= SLURM_21_08_PROTO_VERSION) {
+	/* last backfill time */
+	getTime(ptr, &resp->lastBackfill);
+    }
 
     resp->jobs = umalloc(sizeof(*(resp->jobs)) * resp->numJobs);
 
     for (uint32_t i=0; i<resp->numJobs; i++) {
-	Slurm_Job_Rec_t *rec = &resp->jobs[i];
+	Slurm_Job_Rec_t *rec = &(resp->jobs)[i];
 
+	/* array job ID */
 	getUint32(ptr, &rec->arrayJobID);
+	/* array task ID */
 	getUint32(ptr, &rec->arrayTaskID);
+	/* array task string */
 	rec->arrayTaskStr = getStringM(ptr);
+	/* array maximal tasks */
 	getUint32(ptr, &rec->arrayMaxTasks);
+	/* association ID for job */
 	getUint32(ptr, &rec->assocID);
+
+	if (msgVer >= SLURM_21_08_PROTO_VERSION) {
+	    /* job container, will be overwritten laster,
+	     * unclear why this was introduced */
+	    char *tmp = getStringM(ptr);
+	    ufree(tmp);
+	}
+	/* delay boot */
 	getUint32(ptr, &rec->delayBoot);
+	/* job ID */
 	getUint32(ptr, &rec->jobid);
+	/* user ID */
 	getUint32(ptr, &rec->userID);
+	/* group ID */
 	getUint32(ptr, &rec->groupID);
+	/* het job ID */
+	getUint32(ptr, &rec->hetJobID);
+	/* het job ID set */
 	rec->hetJobIDset = getStringM(ptr);
+	/* het job offset */
 	getUint32(ptr, &rec->hetJobOffset);
+	/* profile */
 	getUint32(ptr, &rec->profile);
+	/* job state */
 	getUint32(ptr, &rec->jobState);
+	/* batch flag */
 	getUint16(ptr, &rec->batchFlag);
+	/* state reason */
+	getUint16(ptr, &rec->stateReason);
+
+	/* power flags */
+	getUint8(ptr, &rec->powerFlags);
+	/* reboot */
+	getUint8(ptr, &rec->reboot);
+	/* restart count */
+	getUint16(ptr, &rec->restartCount);
+	/* show flags */
+	getUint16(ptr, &rec->showFlags);
+	/* deadline */
+	getTime(ptr, &rec->deadline);
+	/* alloc sid */
+	getUint32(ptr, &rec->allocSID);
+	/* time limit */
+	getUint32(ptr, &rec->timeLimit);
+	/* time min */
+	getUint32(ptr, &rec->timeMin);
+	/* nice */
+	getUint32(ptr, &rec->nice);
+
+	/* submit time */
+	getTime(ptr, &rec->submitTime);
+	/* eligible time */
+	getTime(ptr, &rec->eligibleTime);
+	/* accrue time */
+	getTime(ptr, &rec->accrueTime);
+	/* start time */
+	getTime(ptr, &rec->startTime);
+	/* end time */
+	getTime(ptr, &rec->endTime);
+	/* suspend time */
+	getTime(ptr, &rec->suspendTime);
+	/* time prior last suspend */
+	getTime(ptr, &rec->preSusTime);
+	/* resize time */
+	getTime(ptr, &rec->resizeTime);
+	/* last time schedule was evaluated */
+	getTime(ptr, &rec->lastSchedEval);
+	/* preempt time */
+	getTime(ptr, &rec->preemptTime);
+
+	/* priority */
+	getUint32(ptr, &rec->priority);
+	/* billable tres */
+	getDouble(ptr, &rec->billableTres);
+	/* cluster */
+	rec->cluster = getStringM(ptr);
+	/* nodes */
+	rec->nodes = getStringM(ptr);
+	/* sched nodes */
+	rec->schedNodes = getStringM(ptr);
+	/* partition */
+	rec->partition = getStringM(ptr);
+	/* account */
+	rec->account = getStringM(ptr);
+	/* admin comment */
+	rec->adminComment = getStringM(ptr);
+	/* site factor */
+	getUint32(ptr, &rec->siteFactor);
+	/* network */
+	rec->network = getStringM(ptr);
+	/* comment */
+	rec->comment = getStringM(ptr);
+	/* container */
+	rec->container = getStringM(ptr);
+
+	/* batch features */
+	rec->batchFeat = getStringM(ptr);
+	/* batch host */
+	rec->batchHost = getStringM(ptr);
+	/* burst buffer */
+	rec->burstBuffer = getStringM(ptr);
+	/* burst buffer state */
+	rec->burstBufferState = getStringM(ptr);
+	/* system comment */
+	rec->systemComment = getStringM(ptr);
+	/* qos */
+	rec->qos = getStringM(ptr);
+	/* preemptable time */
+	getTime(ptr, &rec->preemptableTime);
+	/* licenses */
+	rec->licenses = getStringM(ptr);
+	/* stateDesc */
+	rec->stateDesc = getStringM(ptr);
+	/* resvName */
+	rec->resvName = getStringM(ptr);
+	/* mcs label */
+	rec->mcsLabel = getStringM(ptr);
+
+	/* exit code */
+	getUint32(ptr, &rec->exitCode);
+	/* derived exit code */
+	getUint32(ptr, &rec->derivedExitCode);
     }
 
     /* save in sMsg */

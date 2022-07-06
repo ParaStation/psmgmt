@@ -255,6 +255,12 @@ enum slurm_job_states {
 	SLURM_JOB_END
 };
 
+#define JOB_STATE_BASE  0x000000ff
+#define JOB_STATE_FLAGS 0xffffff00
+
+#define JOB_SHOW_ALL    0x0001
+#define JOB_SHOW_DETAIL 0x0002
+
 #define SLURM_JOB_LAUNCH_FAILED 0x00000100
 #define SLURM_JOB_REQUEUE       0x00000400
 #define SLURM_JOB_REQUEUE_HOLD  0x00000800
