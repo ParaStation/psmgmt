@@ -72,6 +72,7 @@ typedef struct {
     char *nodeUpScript;  /**< Script called, if node connects to master */
     char *nodeDownScript;/**< Script called, if node disconnects from master */
     uint32_t nodeListHash; /**< Hash computed from all hostnames in nodelist */
+    char *psiddomain;    /**< PSID domain this psid is running in */
 } config_t;
 
 /** Structure to store lists of name. Used e.g. for the list of plugins. */

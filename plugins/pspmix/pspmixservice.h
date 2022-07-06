@@ -37,10 +37,11 @@ extern PspmixServer_t *server;
  *
  * @param uid        UID for the server
  * @param gid        GID for the server
+ * @param clusterid  Cluster ID
  *
  * @return Returns true on success and false on errors
  */
-bool pspmix_service_init(uid_t uid, gid_t gid);
+bool pspmix_service_init(uid_t uid, gid_t gid, char *clusterid);
 
 /**
  * @brief Register a new namespace

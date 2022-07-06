@@ -65,6 +65,7 @@ static config_t config = {
     .nodeUpScript = NULL,
     .nodeDownScript = NULL,
     .nodeListHash = 0,
+    .psiddomain = NULL,
 };
 
 #define ENV_END 17 /* Some magic value */
@@ -1925,6 +1926,8 @@ config_t *parseConfig(FILE* logfile, int logmask, char *configfile)
 		       " objects.\n");
     }
 
+    config.psiddomain = psiddomain;
+
     // get hostname to ID mapping
     if (!getNodes(psiddomain)) {
 	parser_comment(-1, "ERROR: Reading nodes configuration from psconfig"
@@ -1932,7 +1935,6 @@ config_t *parseConfig(FILE* logfile, int logmask, char *configfile)
 	g_free(psiddomain);
 	goto parseConfigError;
     }
-    g_free(psiddomain);
 
     // set default UID/GID for local node
     setID(&nodeUID, PSNODES_ANYUSER);

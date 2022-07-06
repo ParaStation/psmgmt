@@ -18,6 +18,7 @@
 
 #include "list.h"
 #include "pscommon.h"
+#include "psidutil.h"
 
 #include "pluginmalloc.h"
 
@@ -70,8 +71,11 @@ int pspmix_userserver_initialize(Forwarder_Data_t *fwdata)
 	return -1;
     }
 
+    char *clusterid = PSID_config->psiddomain;
+    if (!clusterid) clusterid = "ParaStationCluster";
+
     /* initialize service modules */
-    if (!pspmix_service_init(server->uid, server->gid)) {
+    if (!pspmix_service_init(server->uid, server->gid, clusterid)) {
 	mlog("%s: Failed to initialize pmix service\n", __func__);
 	return -1;
     }

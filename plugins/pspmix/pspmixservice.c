@@ -141,11 +141,9 @@ static PspmixFence_t* findFence(uint64_t fenceid)
     return NULL;
 }
 
-bool pspmix_service_init(uid_t uid, gid_t gid)
+bool pspmix_service_init(uid_t uid, gid_t gid, char *clusterid)
 {
     mdbg(PSPMIX_LOG_CALL, "%s(uid %d gid %d)\n", __func__, uid, gid);
-
-    char *clusterid = "@todo"; /* @todo */
 
     /* initialize the communication facility */
     if (!pspmix_comm_init(uid)) {
