@@ -1591,6 +1591,137 @@ bool pspmix_server_init(char *nspace, pmix_rank_t rank, const char *clusterid,
     tmpbool = false;
     PMIX_INFO_LOAD(&cbdata.info[i], PMIX_SERVER_SCHEDULER, &tmpbool, PMIX_BOOL);
     i++;
+
+# if 0 /* optional attributes */
+
+    /* Disable legacy UNIX socket (usock) support. */
+    tmpbool = false;
+    PMIX_INFO_LOAD(&cbdata.info[i], PMIX_USOCK_DISABLE, &tmpbool, PMIX_BOOL);
+    i++;
+
+    /* POSIX mode_t (9 bits valid). */
+    uint32_t tmpuint32 = 0;
+    PMIX_INFO_LOAD(&cbdata.info[i], PMIX_SOCKET_MODE, &tmpuint32, PMIX_UINT32);
+    i++;
+
+    /* Use only one rendezvous socket, letting priorities and/or environment
+     * parameters select the active transport. */
+    tmpbool = false;
+    PMIX_INFO_LOAD(&cbdata.info[i], PMIX_SINGLE_LISTENER, &tmpbool, PMIX_BOOL);
+    i++;
+
+    /* If provided, directs that the TCP URI be reported and indicates the
+     * desired method of reporting: ’-’ for stdout, ’+’ for stderr, or filename.
+     * If the library supports TCP socket connections, this attribute may be
+     * supported for reporting the URI. */
+    tmpstr = "";
+    PMIX_INFO_LOAD(&cbdata.info[i], PMIX_TCP_REPORT_URI, &tmpstr, PMIX_STRING);
+    i++;
+
+    /* Comma-delimited list of devices and/or CIDR notation to include when
+     * establishing the TCP connection. If the library supports TCP socket
+     * connections, this attribute may be supported for specifying the
+     * interfaces to be used. */
+    tmpstr = "";
+    PMIX_INFO_LOAD(&cbdata.info[i], PMIX_TCP_IF_INCLUDE, &tmpstr, PMIX_STRING);
+    i++;
+
+    /* Comma-delimited list of devices and/or CIDR notation to exclude when
+     * establishing the TCP connection. If the library supports TCP socket
+     * connections, this attribute may be supported for specifying the
+     * interfaces that are not to be used. */
+    tmpstr = "";
+    PMIX_INFO_LOAD(&cbdata.info[i], PMIX_TCP_IF_EXCLUDE, &tmpstr, PMIX_STRING);
+    i++;
+
+    /* The IPv4 port to be used.. If the library supports IPV4 connections, this
+     * attribute may be supported for specifying the port to be used. */
+    int tmpint = 1234;
+    PMIX_INFO_LOAD(&cbdata.info[i], PMIX_TCP_IPV4_PORT, &tmpint, PMIX_INT);
+    i++;
+
+    /* The IPv6 port to be used. If the library supports IPV6 connections, this
+     * attribute may be supported for specifying the port to be used. */
+    int tmpint = 1234;
+    PMIX_INFO_LOAD(&cbdata.info[i], PMIX_TCP_IPV6_PORT, &tmpint, PMIX_INT);
+    i++;
+
+    /* Set to true to disable IPv4 family of addresses. If the library supports
+     * IPV4 connections, this attribute may be supported for disabling it. */
+    tmpbool = false;
+    PMIX_INFO_LOAD(&cbdata.info[i], PMIX_TCP_DISABLE_IPV4, &tmpbool, PMIX_BOOL);
+    i++;
+
+    /* Set to true to disable IPv6 family of addresses. If the library supports
+     * IPV6 connections, this attribute may be supported for disabling it. */
+    tmpbool = false;
+    PMIX_INFO_LOAD(&cbdata.info[i], PMIX_TCP_DISABLE_IPV6, &tmpbool, PMIX_BOOL);
+    i++;
+
+    /* Allow connections from remote tools. Forces the PMIx server to not
+     * exclusively use loopback device. */
+    tmpbool = false;
+    PMIX_INFO_LOAD(&cbdata.info[i], PMIX_SERVER_REMOTE_CONNECTIONS, &tmpbool,
+		   PMIX_BOOL);
+    i++;
+
+    /* The host shall progress the PMIx library via calls to PMIx_Progress */
+    tmpbool = false;
+    PMIX_INFO_LOAD(&cbdata.info[i], PMIX_EXTERNAL_PROGRESS, &tmpbool,
+		   PMIX_BOOL);
+    i++;
+
+    /* Pointer to an event_base to use in place of the internal progress thread.
+     * All PMIx library events are to be assigned to the provided event base.
+     * The event base must be compatible with the event library used by the PMIx
+     * implementation - e.g., either both the host and PMIx library must use
+     * libevent, or both must use libev. Cross-matches are unlikely to work and
+     * should be avoided - it is the responsibility of the host to ensure that
+     * the PMIx implementation supports (and was built with) the appropriate
+     * event library. */
+    void *tmpptr = NULL;
+    PMIX_INFO_LOAD(&cbdata.info[i], PMIX_EVENT_BASE, &tmpptr, PMIX_POINTER);
+    i++;
+
+    /* Provide a pointer to an implementation-specific description of the local
+     * node topology. */
+    pmix_topology_t tmptopo;
+    PMIX_TOPOLOGY_CONSTRUCT(&tmptopo);
+    tmptopo.source = "custom";
+    tmptopo.topology = NULL;
+    PMIX_INFO_LOAD(&cbdata.info[i], PMIX_TOPOLOGY2, &tmptopo, PMIX_TOPO);
+    i++;
+
+    /* The PMIx server is to share its copy of the local node topology (whether
+     * given to it or self-discovered) with any clients. */
+    tmpbool = false;
+    PMIX_INFO_LOAD(&cbdata.info[i], PMIX_SERVER_SHARE_TOPOLOGY, &tmpbool,
+		   PMIX_BOOL);
+    i++;
+
+    /* Enable PMIx internal monitoring by the PMIx server. */
+    tmpbool = false;
+    PMIX_INFO_LOAD(&cbdata.info[i], PMIX_SERVER_ENABLE_MONITORING, &tmpbool,
+		   PMIX_BOOL);
+    i++;
+
+    /* The nodes comprising the session are homogeneous - i.e., they each
+     * contain the same number of identical packages, fabric interfaces, GPUs,
+     * and other devices. */
+    tmpbool = false;
+    PMIX_INFO_LOAD(&cbdata.info[i], PMIX_HOMOGENEOUS_SYSTEM, &tmpbool,
+		   PMIX_BOOL);
+    i++;
+
+    /* Time when the server started - i.e., when the server created it’s
+     * rendezvous file (given in ctime string format). */
+    time_t tmptime = time(NULL);
+    char *tmpstr = ctime(&tmptime);
+    PMIX_INFO_LOAD(&cbdata.info[i], PMIX_SERVER_START_TIME, tmpstr,
+		   PMIX_STRING);
+    i++;
+# endif /* optional attributes */
+
 #endif
 
     mdbg(PSPMIX_LOG_VERBOSE, "%s: Setting nspace %s rank %d\n", __func__,
