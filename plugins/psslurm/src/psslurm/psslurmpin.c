@@ -78,12 +78,14 @@ static char* nextStartStrategyString[] = {
 };
 
 typedef struct {
-    bool *usedHwThreads;      /* array of already assigned hardware threads */
+    uint16_t *usedHwThreads;  /* array of #assignments of each hw thread */
     int64_t lastUsedThread;   /* number of the thread used last */
     enum thread_iter_strategy threadIterStrategy;
     enum next_start_strategy nextStartStrategy;
     uint16_t* tasksPerSocket; /* array of number of tasks left per socket */
     uint32_t firstThread;     /* first thread assigned for current task */
+    bool overcommit;          /* allow overbooking */
+    uint16_t maxuse;          /* maximum processes per thread (overbooking) */
 } pininfo_t;
 
 typedef struct {
@@ -787,10 +789,10 @@ static uint32_t getNextStartThread(const nodeinfo_t *nodeinfo,
 	    continue;
 	}
 
-	/* omit cpus already assigned */
-	if (pininfo->usedHwThreads[thread]) {
-	    mdbg(PSSLURM_LOG_PART, "%s: thread '%u' already used\n", __func__,
-		    thread);
+	/* omit cpus already assigned maxuse times */
+	if (pininfo->usedHwThreads[thread] >= pininfo->maxuse) {
+	    mdbg(PSSLURM_LOG_PART, "%s: thread '%u' already used '%hu' times\n",
+		 __func__, thread, pininfo->usedHwThreads[thread]);
 	    continue;
 	}
 
@@ -847,79 +849,97 @@ static void getThreadsBinding(PSCPU_set_t *CPUset, const nodeinfo_t *nodeinfo,
 	start = getNextStartThread(nodeinfo, pininfo);
 
 	if (start == UINT32_MAX) {
-	    /* there are no threads left, overbooked? */
-	    mlog("%s: No threads left to start from, pin to all.\n", __func__);
+	    /* there are no threads left */
+	    if (!pininfo->overcommit) {
+		mlog("%s: No threads left to start from, pin to all.\n",
+		     __func__);
+		pinToAllThreads(CPUset, nodeinfo);
+		return;
+	    }
 
-	    pinToAllThreads(CPUset, nodeinfo);
-	    return;
+	    /* overbook further */
+	    pininfo->maxuse++;
+	    pininfo->lastUsedThread = -1;
+	    start = 0;
 	}
     }
 
     thread_iterator iter;
-    thread_iter_init(&iter, pininfo->threadIterStrategy, nodeinfo, start);
-
-    mdbg(PSSLURM_LOG_PART, "%s: node '%u' task '%u' lastUsedThread '%ld'"
-	    " start '%u'\n", __func__, nodeinfo->id, local_tid,
-	    pininfo->lastUsedThread, start);
-
     uint32_t thread, threadsLeft = threadsPerTask;
-    while (threadsLeft > 0 && thread_iter_next(&iter, &thread)) {
+    while (true) {
+	thread_iter_init(&iter, pininfo->threadIterStrategy, nodeinfo, start);
 
-	/* on which core is this thread? */
-	uint32_t core = getCore(thread, nodeinfo);
+	mdbg(PSSLURM_LOG_PART, "%s: node '%u' task '%u' lastUsedThread '%ld'"
+		" start '%u' maxuse '%hu'\n", __func__, nodeinfo->id, local_tid,
+		pininfo->lastUsedThread, start, pininfo->maxuse);
 
-	/* omit cpus not in core map and thus not to use by this job step */
-	if (!PSCPU_isSet(nodeinfo->stepHWthreads, core)) {
-	    mdbg(PSSLURM_LOG_PART, "%s: thread '%u' core '%u' socket '%hu'"
-		    " not assigned to step (not in core map)\n", __func__,
-		    thread, core, getSocketByCore(core, nodeinfo));
-	    continue;
-	}
+	while (threadsLeft > 0 && thread_iter_next(&iter, &thread)) {
 
-	/* omit cpus already assigned */
-	if (pininfo->usedHwThreads[thread]) {
-	    mdbg(PSSLURM_LOG_PART, "%s: thread '%u' core '%u' socket '%hu'"
-		    " already used\n",
-		    __func__, thread, core, getSocketByCore(core, nodeinfo));
+	    /* on which core is this thread? */
+	    uint32_t core = getCore(thread, nodeinfo);
 
-	    continue;
-	}
-
-	/* check if all lower threads of the core are used
-	 * this is needed for some special cases as `*:fcyclic:cyclic` */
-	uint32_t corethread = getCorethread(thread, nodeinfo);
-	for (uint32_t t = 0; t < corethread; t++) {
-	    uint32_t checkthread = t * nodeinfo->coreCount + core;
-	    if (!pininfo->usedHwThreads[checkthread]) {
+	    /* omit cpus not in core map and thus not to use by this job step */
+	    if (!PSCPU_isSet(nodeinfo->stepHWthreads, core)) {
 		mdbg(PSSLURM_LOG_PART, "%s: thread '%u' core '%u' socket '%hu'"
-		    " unused, take it\n",
-		    __func__, thread, core, getSocketByCore(core, nodeinfo));
-		thread = checkthread;
-		break;
+			" not assigned to step (not in core map)\n", __func__,
+			thread, core, getSocketByCore(core, nodeinfo));
+		continue;
 	    }
+
+	    /* omit cpus already assigned */
+	    if (pininfo->usedHwThreads[thread] >= pininfo->maxuse) {
+		mdbg(PSSLURM_LOG_PART, "%s: thread '%u' core '%u' socket '%hu'"
+			" already used '%hu' times\n",
+			__func__, thread, core, getSocketByCore(core, nodeinfo),
+			pininfo->usedHwThreads[thread]);
+
+		continue;
+	    }
+
+	    /* check if all lower threads of the core are used
+	     * this is needed for some special cases as `*:fcyclic:cyclic` */
+	    uint32_t corethread = getCorethread(thread, nodeinfo);
+	    for (uint32_t t = 0; t < corethread; t++) {
+		uint32_t checkthread = t * nodeinfo->coreCount + core;
+		if (pininfo->usedHwThreads[checkthread] < pininfo->maxuse) {
+		    mdbg(PSSLURM_LOG_PART, "%s: thread '%u' core '%u' socket"
+			 " '%hu' used only '%hu' times, take it\n", __func__,
+			 thread, core, getSocketByCore(core, nodeinfo),
+			 pininfo->usedHwThreads[checkthread]);
+		    thread = checkthread;
+		    break;
+		}
+	    }
+
+	    mdbg(PSSLURM_LOG_PART, "%s: thread '%u' core '%u' socket '%hu'\n",
+		    __func__, thread, core, getSocketByCore(core, nodeinfo));
+
+	    /* this is the first thread assigned to the task so remember */
+	    if (threadsLeft == threadsPerTask) pininfo->firstThread = thread;
+
+	    /* assign hardware thread */
+	    PSCPU_setCPU(*CPUset, thread);
+	    pininfo->usedHwThreads[thread]++;
+	    threadsLeft--;
 	}
 
-	mdbg(PSSLURM_LOG_PART, "%s: thread '%u' core '%u' socket '%hu'\n",
-		__func__, thread, core, getSocketByCore(core, nodeinfo));
+	if (threadsLeft == 0) break;
 
-	/* this is the first thread assigned to the task so remember */
-	if (threadsLeft == threadsPerTask) pininfo->firstThread = thread;
+	/* there are not enough threads left */
+	if (!pininfo->overcommit) {
+	    mlog("%s: No threads left, pin to all.\n", __func__);
+	    pinToAllThreads(CPUset, nodeinfo);
+	    break;
+	}
 
-	/* assign hardware thread */
-	PSCPU_setCPU(*CPUset, thread);
-	pininfo->usedHwThreads[thread] = true;
-	threadsLeft--;
+	/* overbook further */
+	pininfo->maxuse++;
+	pininfo->lastUsedThread = -1;
+	start = 0;
     }
 
     /* remember last used thread */
     pininfo->lastUsedThread = thread;
-
-    if (threadsLeft > 0) {
-	/* there are no enough threads left, overbooked? */
-	mlog("%s: No threads left to start from, pin to all.\n", __func__);
-
-	pinToAllThreads(CPUset, nodeinfo);
-    }
 }
 
 /*
@@ -1029,38 +1049,49 @@ static void getSocketRankBinding(PSCPU_set_t *CPUset,
     }
 
     thread_iterator iter;
-    thread_iter_init(&iter, FILLSOCKETS_FILLCORES, nodeinfo, start);
-
     uint32_t thread, threadsLeft = threadsPerTask;
-    while (threadsLeft > 0 && thread_iter_next(&iter, &thread)) {
+    while (true) {
+	thread_iter_init(&iter, FILLSOCKETS_FILLCORES, nodeinfo, start);
 
-	/* on which core is this thread? */
-	uint32_t core = getCore(thread, nodeinfo);
+	while (threadsLeft > 0 && thread_iter_next(&iter, &thread)) {
 
-	mdbg(PSSLURM_LOG_PART, "%s: node '%u' task '%u' start '%u' thread '%u'"
-		" core '%u' socket '%hu' lastUsedThread '%ld'\n", __func__,
-		nodeinfo->id, local_tid, start, thread, core,
-		getSocketByCore(core, nodeinfo), pininfo->lastUsedThread);
+	    /* on which core is this thread? */
+	    uint32_t core = getCore(thread, nodeinfo);
 
-	/* omit cpus not to use or already assigned */
-	if (!PSCPU_isSet(nodeinfo->stepHWthreads, core)
-		|| pininfo->usedHwThreads[thread]) {
-	    continue;
+	    mdbg(PSSLURM_LOG_PART, "%s: node '%u' task '%u' start '%u' thread '%u'"
+		    " core '%u' socket '%hu' lastUsedThread '%ld'\n", __func__,
+		    nodeinfo->id, local_tid, start, thread, core,
+		    getSocketByCore(core, nodeinfo), pininfo->lastUsedThread);
+
+	    /* omit cpus not to use or already assigned maxuse times */
+	    if (!PSCPU_isSet(nodeinfo->stepHWthreads, core)
+		    || pininfo->usedHwThreads[thread] >= pininfo->maxuse) {
+		continue;
+	    }
+
+	    /* assign hardware thread */
+	    PSCPU_setCPU(*CPUset, thread);
+	    pininfo->usedHwThreads[thread]++;
+	    threadsLeft--;
 	}
 
-	/* assign hardware thread */
-	PSCPU_setCPU(*CPUset, thread);
-	pininfo->usedHwThreads[thread] = true;
-	threadsLeft--;
+	if (threadsLeft == 0) break;
+
+	/* there are not enough threads left */
+	if (!pininfo->overcommit) {
+	    mlog("%s: No threads left, pin to all.\n", __func__);
+	    pinToAllThreads(CPUset, nodeinfo);
+	    break;
+	}
+
+	/* overbook further */
+	pininfo->maxuse++;
+	pininfo->lastUsedThread = -1;
+	start = 0;
     }
 
     /* remember last used socket */
     pininfo->lastUsedThread = thread;
-
-    /* if there were not enough threads left, pin to all */
-    if (threadsLeft > 0) {
-	pinToAllThreads(CPUset, nodeinfo);
-    }
 }
 
 /*
@@ -1621,6 +1652,9 @@ bool setStepSlots(Step_t *step)
     hints_t hints;
     fillHints(&hints, &step->env);
 
+    /* allow overbooking ? */
+    bool overcommit = !strcmp(envGet(&step->env, "SLURM_OVERCOMMIT"), "1");
+
     for (uint32_t node = 0; node < step->nrOfNodes; node++) {
 
 	nodeinfo_t *nodeinfo = &(step->nodeinfos[node]);
@@ -1635,6 +1669,9 @@ bool setStepSlots(Step_t *step)
 					* nodeinfo->threadsPerCore
 					* sizeof(*pininfo.usedHwThreads));
 	pininfo.lastUsedThread = -1;
+
+	pininfo.overcommit = overcommit;
+	pininfo.maxuse = 1;
 
 	/* handle --distribution */
 	fillDistributionStrategies(step->taskDist, &pininfo);
@@ -2300,7 +2337,7 @@ void test_pinning(uint16_t socketCount, uint16_t coresPerSocket,
 	uint16_t threadsPerCore, uint32_t tasksPerNode, uint16_t threadsPerTask,
 	uint16_t cpuBindType, char *cpuBindString, uint32_t taskDist,
 	uint16_t memBindType, char *memBindString, env_t *env,
-	bool humanreadable, bool printmembind)
+	bool humanreadable, bool printmembind, bool overcommit)
 {
 
     uint32_t threadCount = socketCount * coresPerSocket * threadsPerCore;
@@ -2342,6 +2379,9 @@ void test_pinning(uint16_t socketCount, uint16_t coresPerSocket,
     pininfo.usedHwThreads = ucalloc(nodeinfo.coreCount * threadsPerCore
 	    * sizeof(*pininfo.usedHwThreads));
     pininfo.lastUsedThread = -1;
+
+    pininfo.overcommit = overcommit;
+    pininfo.maxuse = 1;
 
     fillDistributionStrategies(taskDist, &pininfo);
     fillTasksPerSocket(&pininfo, env, &nodeinfo);

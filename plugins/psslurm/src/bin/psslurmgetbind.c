@@ -89,7 +89,8 @@ static void print_help() {
 	    "   --cpu-bind=<cpuBindType>\n"
 	    "   -m <distribution>, --distribution=<distribution>\n"
 	    "   -B <ressources>, --extra-node-info=<ressources>\n"
-	    "   --mem-bind=<memBindType>\n");
+	    "   --mem-bind=<memBindType>\n"
+	    "   -O, --overcommit\n");
 }
 
 static unsigned int atoui(char* in) {
@@ -443,6 +444,7 @@ int main(int argc, char *argv[])
     char *cpuBindString = NULL;
     uint32_t taskDist = 0;
     bool nomultithread = false;
+    bool overcommit = false;
 
     /* membind info */
     uint16_t memBindType = 0;
@@ -542,6 +544,9 @@ int main(int argc, char *argv[])
 		outline(ERROROUT, "Invalid memory bind type.");
 		exit(-1);
 	    }
+	} else if (!strcmp(cur, "--overcommit") || !strcmp(cur, "-O")) {
+	    outline(DEBUGOUT, "Read option \"overcommit\"");
+	    overcommit = true;
 	} else {
 	    outline(ERROROUT, "Invalid argument: \"%s\"", cur);
 	    exit(-1);
@@ -590,7 +595,8 @@ int main(int argc, char *argv[])
 
     test_pinning(socketCount, coresPerSocket, threadsPerCore, tasksPerNode,
 		 threadsPerTask, cpuBindType, cpuBindString, taskDist,
-		 memBindType, memBindString, &env, humanreadable, printmembind);
+		 memBindType, memBindString, &env, humanreadable, printmembind,
+		 overcommit);
 }
 
 
