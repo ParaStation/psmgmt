@@ -540,17 +540,6 @@ void pspmix_server_returnModexData(bool success, modexdata_t *mdata)
     }
 }
 
-/* Used by the PMIx server to request its local host contact the
- * PMIx server on the remote node that hosts the specified proc to
- * obtain and return a direct modex blob for that proc.
- *
- * The array of info structs is used to pass user-requested options to the server.
- * This can include a timeout to preclude an indefinite wait for data that
- * may never become available. The directives are optional _unless_ the _mandatory_ flag
- * has been set - in such cases, the host RM is required to return an error
- * if the directive cannot be met. */
-
-
 /* Used by the PMIx server to request its local host contact the PMIx server on
  * the remote node that hosts the specified proc to obtain and return any
  * information that process posted via calls to PMIx_Put and PMIx_Commit.
@@ -727,16 +716,6 @@ static pmix_status_t server_publish_cb(
 }
 
 /* Lookup published data. The host server will be passed a NULL-terminated array
- * of string keys.
- *
- * The array of info structs is used to pass user-requested options to the server.
- * This can include a wait flag to indicate that the server should wait for all
- * data to become available before executing the callback function, or should
- * immediately callback with whatever data is available. In addition, a timeout
- * can be specified on the wait to preclude an indefinite wait for data that
- * may never be published. */
-
-/* Lookup published data. The host server will be passed a NULL-terminated array
  * of string keys identifying the data being requested.
  * The array of info structs is used to pass user-requested options to the
  * server. The default data range is left to the host environment, but expected
@@ -843,17 +822,6 @@ static pmix_status_t server_unpublish_cb(
     return PMIX_ERR_NOT_IMPLEMENTED;
 }
 
-/* Spawn a set of applications/processes as per the PMIx API. Note that
- * applications are not required to be MPI or any other programming model.
- * Thus, the host server cannot make any assumptions as to their required
- * support. The callback function is to be executed once all processes have
- * been started. An error in starting any application or process in this
- * request shall cause all applications and processes in the request to
- * be terminated, and an error returned to the originating caller.
- *
- * Note that a timeout can be specified in the job_info array to indicate
- * that failure to start the requested job within the given time should
- * result in termination to avoid hangs */
 /* Spawn a set of applications/processes as per the PMIx_Spawn API.
  * Note that applications are not required to be MPI or any other programming
  * model. Thus, the host server cannot make any assumptions as to their required
@@ -907,19 +875,6 @@ static pmix_status_t server_connect_cb(
     return PMIX_ERR_NOT_IMPLEMENTED;
 }
 
-/* Disconnect a previously connected set of processes. An error should be returned
- * if the specified set of procs was not previously "connected". As above, a process
- * may be involved in multiple simultaneous disconnect operations. However, a process
- * is not allowed to reconnect to a set of ranges that has not fully completed
- * disconnect - i.e., you have to fully disconnect before you can reconnect to the
- * same group of processes.
-  *
- * Note also that this is a collective operation within the client library, and
- * thus the client will be blocked until all procs participate. Thus, the info
- * array can be used to pass user directives, including a timeout.
- * The directives are optional _unless_ the _mandatory_ flag
- * has been set - in such cases, the host RM is required to return an error
- * if the directive cannot be met. */
 /* Disconnect a previously connected set of processes. The callback is to be
  * executed once every daemon hosting at least one participant has called the
  * host server’s has called the pmix_server_disconnect_fn_t function, and the
@@ -949,19 +904,6 @@ static pmix_status_t server_disconnect_cb(
     return PMIX_ERR_NOT_IMPLEMENTED;
 }
 
-/* Register to receive notifications for the specified events. The resource
- * manager is _required_ to pass along to the local PMIx server all events
- * that directly relate to a registered namespace. However, the RM may have
- * access to events beyond those - e.g., environmental events. The PMIx server
- * will register to receive environmental events that match specific PMIx
- * event codes. If the host RM supports such notifications, it will need to
- * translate its own internal event codes to fit into a corresponding PMIx event
- * code - any specific info beyond that can be passed in via the pmix_info_t
- * upon notification.
- *
- * The info array included in this API is reserved for possible future directives
- * to further steer notification.
- */
 /* Register to receive notifications for the specified status codes. The info
  * array included in this API is reserved for possible future directives to
  * further steer notification.
@@ -1006,9 +948,6 @@ static pmix_status_t server_deregister_events_cb(
     return PMIX_ERR_NOT_IMPLEMENTED;
 }
 
-/* Notify the specified processes of an event generated either by
- * the PMIx server itself, or by one of its local clients. The process
- * generating the event is provided in the source parameter. */
 /* Notify the specified processes (described through a combination of range
  * and attributes provided in the info array) of an event generated either by
  * the PMIx server itself or by one of its local clients.
@@ -1189,7 +1128,6 @@ static pmix_status_t server_alloc_cb(
     return PMIX_ERR_NOT_IMPLEMENTED;
 }
 
-/* Execute a job control action on behalf of a client */
 /* Execute a job control action on behalf of a client.
  *
  * The targets array identifies the processes to which the requested job control
