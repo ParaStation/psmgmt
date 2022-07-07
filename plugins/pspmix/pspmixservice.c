@@ -201,15 +201,14 @@ static void printProcMap(list_t *map)
 	 " rank), job/nspace rank, [app num: app rank, local app rank],"
 	 " node rank)\n");
 
-    PspmixNode_t *node;
     list_t *n;
     list_for_each(n, map) {
-	node = list_entry(n, PspmixNode_t, next);
+	PspmixNode_t *node = list_entry(n, PspmixNode_t, next);
 	ulog("node %u [%s", node->id,
 	     printProcess(vectorGet(&node->procs, 0, PspmixProcess_t)));
 	for(size_t rank = 1; rank < node->procs.len; rank++) {
 	    mlog(",%s", printProcess(vectorGet(&node->procs, rank,
-			    PspmixProcess_t)));
+					       PspmixProcess_t)));
 	}
 	mlog("]\n");
     }
@@ -217,10 +216,9 @@ static void printProcMap(list_t *map)
 
 static void freeProcMap(list_t *map)
 {
-    PspmixNode_t *node;
     list_t *n, *tmp;
     list_for_each_safe(n, tmp, map) {
-	node = list_entry(n, PspmixNode_t, next);
+	PspmixNode_t *node = list_entry(n, PspmixNode_t, next);
 	vectorDestroy(&node->procs);
 	list_del(&node->next);
 	ufree(node->hostname);
@@ -357,7 +355,7 @@ bool pspmix_service_registerNamespace(PspmixJob_t *job)
 	for (size_t i = 0; i < resInfo->nEntries; i++) {
 	    PSresinfoentry_t *entry = &resInfo->entries[i];
 	    PspmixNode_t *node = findNodeInList(entry->node, &ns->procMap);
-	    if (node == NULL) {
+	    if (!node) {
 		/* add new node to process map */
 		node = umalloc(sizeof(*node));
 		node->id = entry->node;
@@ -399,12 +397,11 @@ bool pspmix_service_registerNamespace(PspmixJob_t *job)
 
     if (mset(PSPMIX_LOG_PROCMAP)) printProcMap(&ns->procMap);
 
-    char *nsdir = umalloc(strlen(job->session->tmpdir) + strlen(ns->name) + 2);
-    sprintf(nsdir, "%s/%s", job->session->tmpdir, ns->name);
+    char *nsdir = PSC_concat(job->session->tmpdir, "/", ns->name);
 
     /* register namespace */
     if (!pspmix_server_registerNamespace(ns->name, sessionId, ns->universeSize,
-		                         ns->jobSize, ns->spawned, nodeCount,
+					 ns->jobSize, ns->spawned, nodeCount,
 					 ns->nodelist_s, &ns->procMap,
 					 ns->appsCount, ns->apps,
 					 job->session->tmpdir, nsdir,
@@ -1091,8 +1088,7 @@ int pspmix_service_fenceIn(const pmix_proc_t procs[], size_t nprocs,
     }
 
     /* take over data from vector */
-    PSnodes_ID_t *sortednodes;
-    sortednodes = (PSnodes_ID_t *)nodes.data;
+    PSnodes_ID_t *sortednodes = (PSnodes_ID_t *)nodes.data;
 
     /* fill fence object */
     fence->nodes = sortednodes;
@@ -1167,16 +1163,14 @@ void pspmix_service_handleFenceOut(uint64_t fenceid, void *data, size_t len)
 {
     GET_LOCK(fenceList);
 
-    PspmixFence_t *fence;
-    fence = findFence(fenceid);
-
-    if (fence == NULL) {
+    PspmixFence_t *fence = findFence(fenceid);
+    if (!fence) {
 	ulog("UNEXPECTED: no fence with id 0x%04lX found\n", fenceid);
 	RELEASE_LOCK(fenceList);
 	return;
     }
 
-    if (fence->nodes == NULL) {
+    if (!fence->nodes) {
 	ulog("UNEXPECTED: first fence with id 0x%04lX has nodes not set\n",
 	     fenceid);
 	RELEASE_LOCK(fenceList);

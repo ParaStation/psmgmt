@@ -70,7 +70,7 @@ void pspmix_server_operationFinished(bool success, void* cb);
  * @param nspace     name of the namespace to register
  * @param sessionId  id of the session
  * @param univSize   number of slots in this session
- * @param numProcs   number of processes in this job/namespace
+ * @param jobSize    number of processes in this job/namespace
  * @param spawned    true if this job spawn resulted from a call to PMIx_Spawn
  * @param numNodes   number of nodes this job/namespace runs at
  * @param nodelist_s string containing comma separated list of nodes in the job

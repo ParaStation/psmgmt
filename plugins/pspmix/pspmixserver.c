@@ -692,14 +692,10 @@ static pmix_status_t server_publish_cb(
 
     // @todo implement
 #if 0
-    size_t i, errcount;
-    bool ret;
-    const char *encval;
-
-    errcount = 0;
-    for (i=0; i<ninfo; i++) {
-	encval = encodeValue(&(info[i].value), proc->rank);
-	ret = pspmix_service_putToKVS(proc->nspace, info[i].key, encval);
+    size_t errcount = 0;
+    for (size_t i = 0; i < ninfo; i++) {
+	const char *encval = encodeValue(&(info[i].value), proc->rank);
+	bool ret = pspmix_service_putToKVS(proc->nspace, info[i].key, encval);
 	if (!ret) errcount++;
 
 	/* inform about lacking implementation */
@@ -1379,7 +1375,7 @@ static void errhandler(
 
 #if PMIX_VERSION_MAJOR >= 4
 static void fillServerSessionArray(pmix_data_array_t *sessionInfo,
-			       const char *clusterid)
+				   const char *clusterid)
 {
     pmix_info_t *infos;
 
@@ -1466,7 +1462,7 @@ bool pspmix_server_init(char *nspace, pmix_rank_t rank, const char *clusterid,
     INIT_CBDATA(cbdata);
 #if PMIX_VERSION_MAJOR >= 4
     cbdata.ninfo = 7;
-#else 
+#else
     cbdata.ninfo = 4;
 #endif
     if (srvtmpdir) cbdata.ninfo++;
@@ -1474,7 +1470,7 @@ bool pspmix_server_init(char *nspace, pmix_rank_t rank, const char *clusterid,
     PMIX_INFO_CREATE(cbdata.info, cbdata.ninfo);
 
     size_t i = 0;
-    
+
     /* Name of the namespace to use for this PMIx server */
     PMIX_INFO_LOAD(&cbdata.info[i], PMIX_SERVER_NSPACE, nspace, PMIX_STRING);
     i++;
@@ -1693,7 +1689,7 @@ bool pspmix_server_init(char *nspace, pmix_rank_t rank, const char *clusterid,
     fillServerSessionArray(&sessionInfo, clusterid);
 
     PMIX_INFO_LOAD(&cbdata.info[0], PMIX_SESSION_INFO_ARRAY, &sessionInfo,
-	    PMIX_DATA_ARRAY);
+		   PMIX_DATA_ARRAY);
 
     status = PMIx_server_register_resources(cbdata.info, cbdata.ninfo,
 					    registerResources_cb, &cbdata);
@@ -1878,13 +1874,11 @@ static char* getProcessMapString(list_t *procMap)
     charvInit(&pmap, 50);
 
     list_t *n;
-    PspmixProcess_t *proc;
     list_for_each(n, procMap) {
-	PspmixNode_t *node;
-	node = list_entry(n, PspmixNode_t, next);
+	PspmixNode_t *node = list_entry(n, PspmixNode_t, next);
 	bool first = true;
-	for(size_t i = 0; i < node->procs.len; i++) {
-	    proc = vectorGet(&node->procs, i, PspmixProcess_t);
+	for (size_t i = 0; i < node->procs.len; i++) {
+	    PspmixProcess_t *proc = vectorGet(&node->procs, i, PspmixProcess_t);
 	    sprintf(buf, "%u", proc->rank);
 	    if (first) first = false; else charvAdd(&pmap, &ranksep);
 	    charvAddCount(&pmap, buf, strlen(buf));
@@ -2010,10 +2004,10 @@ static void fillJobInfoArray(pmix_data_array_t *jobInfo, const char *jobId,
     PMIX_INFO_LOAD(&infos[5], PMIX_JOB_NUM_APPS, &numApps, PMIX_UINT32);
 
     /* optional infos (PMIx v3.0):
-     * * PMIX_SERVER_NSPACE "pmix.srv.nspace" (char*)       (mendatory in v4.0?)
+     * * PMIX_SERVER_NSPACE "pmix.srv.nspace" (char*)       (mandatory in v4.0?)
      *     Name of the namespace to use for this PMIx server.
      *
-     * * PMIX_SERVER_RANK "pmix.srv.rank" (pmix_rank_t)     (mendatory in v4.0?)
+     * * PMIX_SERVER_RANK "pmix.srv.rank" (pmix_rank_t)     (mandatory in v4.0?)
      *     Rank of this PMIx server
      *
      * * PMIX_NPROC_OFFSET "pmix.offset" (pmix_rank_t)
@@ -2139,11 +2133,10 @@ static void fillNodeInfoArray(pmix_data_array_t *nodeInfo, PspmixNode_t *node,
 			      uint32_t id, const char *tmpdir,
 			      const char *nsdir)
 {
-    pmix_info_t *infos;
-
     uint32_t ninfo = 5;
     if (node->id == PSC_getMyID()) ninfo += 2;
 
+    pmix_info_t *infos;
     PMIX_INFO_CREATE(infos, ninfo);
 
     /* node id (in the session) */
@@ -2465,15 +2458,13 @@ bool pspmix_server_registerNamespace(
 	return false;
     }
 
-    size_t count;
-
     /* fill infos */
     mycbdata_t data;
     INIT_CBDATA(data);
     data.ninfo = 4 + numApps + numNodes + jobSize;
 
     PMIX_INFO_CREATE(data.info, data.ninfo);
-    count = 0;
+    size_t count = 0;
 
     /* ===== session info ===== */
 
@@ -2530,10 +2521,8 @@ bool pspmix_server_registerNamespace(
     /* information about all global ranks */
     list_for_each(n, procMap) {
 	PspmixNode_t *node = list_entry(n, PspmixNode_t, next);
-	for(size_t i = 0; i < node->procs.len; i++) {
-	    PspmixProcess_t *proc;
-	    proc = vectorGet(&node->procs, i, PspmixProcess_t);
-
+	for (size_t i = 0; i < node->procs.len; i++) {
+	    PspmixProcess_t *proc = vectorGet(&node->procs, i, PspmixProcess_t);
 	    pmix_data_array_t procData;
 	    fillProcDataArray(&procData, proc, node->id, spawned, nsdir);
 
@@ -2735,11 +2724,9 @@ bool pspmix_server_registerClient(const char *nspace, int rank, int uid,
  */
 static void deregisterClient_cb(pmix_status_t status, void *cbdata)
 {
-    mycbdata_t *data;
-    data = cbdata;
-
     mdbg(PSPMIX_LOG_CALL, "%s()\n", __func__);
 
+    mycbdata_t *data = cbdata;
     data->status = status;
 
     SET_CBDATA_AVAIL(data);

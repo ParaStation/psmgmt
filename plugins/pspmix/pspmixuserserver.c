@@ -65,7 +65,7 @@ int pspmix_userserver_initialize(Forwarder_Data_t *fwdata)
 	return -1;
     }
 
-    /* there must no be a session in the server object */
+    /* there must not be a session in the server object */
     if (!list_empty(&server->sessions)) {
 	mlog("%s: FATAL: sessions list not empty\n", __func__);
 	return -1;
