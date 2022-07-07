@@ -16,6 +16,7 @@
 
 #include <stdio.h>
 
+#include "config_parsing.h"
 #include "list.h"
 #include "pscommon.h"
 #include "psidutil.h"

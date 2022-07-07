@@ -13,9 +13,6 @@
  */
 #include "pspmixcommon.h"
 
-#include <stdint.h>
-#include <string.h>
-
 #include "pspmixlog.h"
 
 /* decide if this job wants to use PMIx */

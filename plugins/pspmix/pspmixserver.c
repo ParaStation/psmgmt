@@ -23,6 +23,7 @@
 #include <unistd.h>
 
 #include <pmix_server.h>
+#include <pmix_version.h>
 #if PMIX_VERSION_MAJOR >= 4
 # include <pmix.h>
 #endif
@@ -30,7 +31,6 @@
 #include "list.h"
 #include "pluginmalloc.h"
 #include "pluginvector.h"
-#include "pluginhelper.h"
 
 #include "pspmixlog.h"
 #include "pspmixservice.h"
