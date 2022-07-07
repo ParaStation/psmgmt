@@ -55,6 +55,7 @@ static config_t config = {
     .nodeUpScript = NULL,
     .nodeDownScript = NULL,
     .nodeListHash = 0,
+    .psiddomain = NULL,
 };
 
 #define ENV_END 17 /* Some magic value */

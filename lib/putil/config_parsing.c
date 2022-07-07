@@ -1926,8 +1926,6 @@ config_t *parseConfig(FILE* logfile, int logmask, char *configfile)
 		       " objects.\n");
     }
 
-    config.psiddomain = psiddomain;
-
     // get hostname to ID mapping
     if (!getNodes(psiddomain)) {
 	parser_comment(-1, "ERROR: Reading nodes configuration from psconfig"
@@ -1935,6 +1933,8 @@ config_t *parseConfig(FILE* logfile, int logmask, char *configfile)
 	g_free(psiddomain);
 	goto parseConfigError;
     }
+
+    config.psiddomain = psiddomain;
 
     // set default UID/GID for local node
     setID(&nodeUID, PSNODES_ANYUSER);
