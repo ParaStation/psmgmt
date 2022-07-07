@@ -784,14 +784,14 @@ static uint32_t getNextStartThread(const nodeinfo_t *nodeinfo,
 
 	/* omit cpus not in core map and thus not to use by this job step */
 	if (!PSCPU_isSet(nodeinfo->stepHWthreads, getCore(thread, nodeinfo))) {
-	    mdbg(PSSLURM_LOG_PART, "%s: thread '%u' not assigned to step (not"
+	    mdbg(PSSLURM_LOG_PART, "%s: thread %u not assigned to step (not"
 		    " in core map)\n", __func__, thread);
 	    continue;
 	}
 
 	/* omit cpus already assigned maxuse times */
 	if (pininfo->usedHwThreads[thread] >= pininfo->maxuse) {
-	    mdbg(PSSLURM_LOG_PART, "%s: thread '%u' already used '%hu' times\n",
+	    mdbg(PSSLURM_LOG_PART, "%s: thread %u already used %hu times\n",
 		 __func__, thread, pininfo->usedHwThreads[thread]);
 	    continue;
 	}
@@ -799,18 +799,18 @@ static uint32_t getNextStartThread(const nodeinfo_t *nodeinfo,
 	/* omit sockets for which are no tasks left */
 	if (pininfo->tasksPerSocket) {
 	    uint16_t socket = getSocketByThread(thread, nodeinfo);
-	    mdbg(PSSLURM_LOG_PART, "%s: thread '%u' belongs to socket '%u'"
+	    mdbg(PSSLURM_LOG_PART, "%s: thread %u belongs to socket %u"
 		 " having %d tasks left\n", __func__, thread, socket,
 		    pininfo->tasksPerSocket[socket]);
 	    if (pininfo->tasksPerSocket[socket] == 0) {
-		mdbg(PSSLURM_LOG_PART, "%s: omitting thread '%u' since"
-			" socket '%u' has no tasks left\n", __func__, thread,
+		mdbg(PSSLURM_LOG_PART, "%s: omitting thread %u since"
+			" socket %u has no tasks left\n", __func__, thread,
 			socket);
 		continue;
 	    }
 	}
 
-	mdbg(PSSLURM_LOG_PART, "%s: found thread '%u' with strategy %s\n",
+	mdbg(PSSLURM_LOG_PART, "%s: found thread %u with strategy %s\n",
 		__func__, thread,
 		nextStartStrategyString[pininfo->nextStartStrategy]);
 
@@ -851,7 +851,7 @@ static void getThreadsBinding(PSCPU_set_t *CPUset, const nodeinfo_t *nodeinfo,
 	if (start == UINT32_MAX) {
 	    /* there are no threads left */
 	    if (!pininfo->overcommit) {
-		mlog("%s: No threads left to start from, pin to all.\n",
+		mlog("%s: No threads left to start from, pin to all\n",
 		     __func__);
 		pinToAllThreads(CPUset, nodeinfo);
 		return;
@@ -869,8 +869,8 @@ static void getThreadsBinding(PSCPU_set_t *CPUset, const nodeinfo_t *nodeinfo,
     while (true) {
 	thread_iter_init(&iter, pininfo->threadIterStrategy, nodeinfo, start);
 
-	mdbg(PSSLURM_LOG_PART, "%s: node '%u' task '%u' lastUsedThread '%ld'"
-		" start '%u' maxuse '%hu'\n", __func__, nodeinfo->id, local_tid,
+	mdbg(PSSLURM_LOG_PART, "%s: node %u task %u lastUsedThread %ld"
+		" start %u maxuse %hu\n", __func__, nodeinfo->id, local_tid,
 		pininfo->lastUsedThread, start, pininfo->maxuse);
 
 	while (threadsLeft > 0 && thread_iter_next(&iter, &thread)) {
@@ -880,7 +880,7 @@ static void getThreadsBinding(PSCPU_set_t *CPUset, const nodeinfo_t *nodeinfo,
 
 	    /* omit cpus not in core map and thus not to use by this job step */
 	    if (!PSCPU_isSet(nodeinfo->stepHWthreads, core)) {
-		mdbg(PSSLURM_LOG_PART, "%s: thread '%u' core '%u' socket '%hu'"
+		mdbg(PSSLURM_LOG_PART, "%s: thread %u core %u socket %hu"
 			" not assigned to step (not in core map)\n", __func__,
 			thread, core, getSocketByCore(core, nodeinfo));
 		continue;
@@ -888,8 +888,8 @@ static void getThreadsBinding(PSCPU_set_t *CPUset, const nodeinfo_t *nodeinfo,
 
 	    /* omit cpus already assigned */
 	    if (pininfo->usedHwThreads[thread] >= pininfo->maxuse) {
-		mdbg(PSSLURM_LOG_PART, "%s: thread '%u' core '%u' socket '%hu'"
-			" already used '%hu' times\n",
+		mdbg(PSSLURM_LOG_PART, "%s: thread %u core %u socket %hu"
+			" already used %hu times\n",
 			__func__, thread, core, getSocketByCore(core, nodeinfo),
 			pininfo->usedHwThreads[thread]);
 
@@ -902,8 +902,8 @@ static void getThreadsBinding(PSCPU_set_t *CPUset, const nodeinfo_t *nodeinfo,
 	    for (uint32_t t = 0; t < corethread; t++) {
 		uint32_t checkthread = t * nodeinfo->coreCount + core;
 		if (pininfo->usedHwThreads[checkthread] < pininfo->maxuse) {
-		    mdbg(PSSLURM_LOG_PART, "%s: thread '%u' core '%u' socket"
-			 " '%hu' used only '%hu' times, take it\n", __func__,
+		    mdbg(PSSLURM_LOG_PART, "%s: thread %u core %u socket %hu"
+			 " used only %hu times, take it\n", __func__,
 			 thread, core, getSocketByCore(core, nodeinfo),
 			 pininfo->usedHwThreads[checkthread]);
 		    thread = checkthread;
@@ -911,8 +911,8 @@ static void getThreadsBinding(PSCPU_set_t *CPUset, const nodeinfo_t *nodeinfo,
 		}
 	    }
 
-	    mdbg(PSSLURM_LOG_PART, "%s: thread '%u' core '%u' socket '%hu'\n",
-		    __func__, thread, core, getSocketByCore(core, nodeinfo));
+	    mdbg(PSSLURM_LOG_PART, "%s: thread %u core %u socket %hu\n",
+		 __func__, thread, core, getSocketByCore(core, nodeinfo));
 
 	    /* this is the first thread assigned to the task so remember */
 	    if (threadsLeft == threadsPerTask) pininfo->firstThread = thread;
@@ -927,7 +927,7 @@ static void getThreadsBinding(PSCPU_set_t *CPUset, const nodeinfo_t *nodeinfo,
 
 	/* there are not enough threads left */
 	if (!pininfo->overcommit) {
-	    mlog("%s: No threads left, pin to all.\n", __func__);
+	    mlog("%s: No threads left, pin to all\n", __func__);
 	    pinToAllThreads(CPUset, nodeinfo);
 	    break;
 	}
@@ -1058,10 +1058,10 @@ static void getSocketRankBinding(PSCPU_set_t *CPUset,
 	    /* on which core is this thread? */
 	    uint32_t core = getCore(thread, nodeinfo);
 
-	    mdbg(PSSLURM_LOG_PART, "%s: node '%u' task '%u' start '%u' thread '%u'"
-		    " core '%u' socket '%hu' lastUsedThread '%ld'\n", __func__,
-		    nodeinfo->id, local_tid, start, thread, core,
-		    getSocketByCore(core, nodeinfo), pininfo->lastUsedThread);
+	    mdbg(PSSLURM_LOG_PART, "%s: node %u task %u start %u thread %u"
+		 " core %u socket %hu lastUsedThread %ld\n", __func__,
+		 nodeinfo->id, local_tid, start, thread, core,
+		 getSocketByCore(core, nodeinfo), pininfo->lastUsedThread);
 
 	    /* omit cpus not to use or already assigned maxuse times */
 	    if (!PSCPU_isSet(nodeinfo->stepHWthreads, core)
@@ -1079,7 +1079,7 @@ static void getSocketRankBinding(PSCPU_set_t *CPUset,
 
 	/* there are not enough threads left */
 	if (!pininfo->overcommit) {
-	    mlog("%s: No threads left, pin to all.\n", __func__);
+	    mlog("%s: No threads left, pin to all\n", __func__);
 	    pinToAllThreads(CPUset, nodeinfo);
 	    break;
 	}
@@ -1236,7 +1236,7 @@ static task_dist_states_t getDefaultCoreDist(task_dist_states_t taskDist)
 	case SLURM_DIST_SOCKCFULL:
 	    return SLURM_DIST_CORECFULL;
 	default:
-	    flog("WARNING: Default core distribution cannot be determined.\n");
+	    flog("WARNING: Default core distribution cannot be determined\n");
 	    return SLURM_DIST_CORECYCLIC;
     }
 }
@@ -1281,7 +1281,7 @@ static void setDistributions(task_dist_states_t *taskDist)
     /* warn and remove if strange bit set */
     if (*taskDist == SLURM_DIST_NO_LLLP) {
 	flog("WARNING: SLURM_DIST_NO_LLLP is set, removing not to break"
-		" distribution default configuration.\n");
+	     " distribution default configuration\n");
 	*taskDist &= ~SLURM_DIST_NO_LLLP;
     }
 
@@ -1332,7 +1332,7 @@ bool initPinning(void)
     else if (!strcmp(type, "cores"))   defaultCPUbindType = CPU_BIND_TO_CORES;
     else if (!strcmp(type, "sockets")) defaultCPUbindType = CPU_BIND_TO_SOCKETS;
     else {
-	flog("Invalid value for DEFAULT_CPU_BIND in psslurm config: '%s'.\n",
+	flog("Invalid value for DEFAULT_CPU_BIND in psslurm config: '%s'\n",
 		type);
 	return false;
     }
@@ -1345,8 +1345,8 @@ bool initPinning(void)
     else if (!strcmp(dist, "cyclic")) defaultSocketDist = SLURM_DIST_SOCKCYCLIC;
     else if (!strcmp(dist, "fcyclic")) defaultSocketDist = SLURM_DIST_SOCKCFULL;
     else {
-	flog("Invalid value for DEFAULT_SOCKET_DIST in psslurm config:"
-		" '%s'.\n", dist);
+	flog("Invalid value for DEFAULT_SOCKET_DIST in psslurm config: '%s'\n",
+	     dist);
 	return false;
     }
 
@@ -1361,7 +1361,7 @@ bool initPinning(void)
     else if (!strcmp(dist, "inherit")) defaultCoreDist = 0;
     else {
 	flog("Invalid value for DEFAULT_CORE_DIST in psslurm config:"
-		" '%s'.\n", dist);
+		" '%s'\n", dist);
 	return false;
     }
 
@@ -1446,7 +1446,7 @@ static void fillTasksPerSocket(pininfo_t *pininfo, env_t *env,
 static char * getGpuBindString(char *tres_bind)
 {
     if (!tres_bind) {
-	fdbg(PSSLURM_LOG_PART, "tres_bind not set.\n");
+	fdbg(PSSLURM_LOG_PART, "tres_bind not set\n");
 	return NULL;
     }
 
@@ -1514,11 +1514,11 @@ static bool parseGpuBindString(char *gpu_bind, bool *verbose,
 		    gpu_bind);
 	}
 #endif
-	flog("gpu_bind type \"single\" is not supported by psslurm.\n");
+	flog("gpu_bind type \"single\" is not supported by psslurm\n");
 	return false;
     }
     if (!strncasecmp(gpu_bind, "closest", 7)) {
-	flog("gpu_bind type\"closest\" is not yet supported by psslurm.\n");
+	flog("gpu_bind type\"closest\" is not yet supported by psslurm\n");
 	return false;
     }
     if (!strncasecmp(gpu_bind, "map_gpu:", 8)) {
@@ -1530,7 +1530,7 @@ static bool parseGpuBindString(char *gpu_bind, bool *verbose,
 	return true;
     }
 
-    flog("gpu_bind type \"%s\" is unknown.\n", gpu_bind);
+    flog("gpu_bind type \"%s\" is unknown\n", gpu_bind);
     return false;
 }
 
@@ -1568,7 +1568,7 @@ int16_t getRankGpuPinning(uint32_t localRankId, Step_t *step,
 	ufree(maparray);
     } else if (mask_gpu) {
 	//TODO we need to support more than one GPU per task to support this
-	flog("gpu_bind type\"mask_gpu\" is not yet supported by psslurm.\n");
+	flog("gpu_bind type\"mask_gpu\" is not yet supported by psslurm\n");
 	return -1;
     } else {
 	uint16_t gpus[ltnum];
@@ -1679,7 +1679,7 @@ bool setStepSlots(Step_t *step)
 	/* check cpu mapping */
 	for (uint32_t cpu = 0; cpu < nodeinfo->threadCount; cpu++) {
 	    if (PSIDnodes_unmapCPU(nodeinfo->id, cpu) < 0) {
-		flog("CPU %u not included in CPUmap for node %hu.\n",
+		flog("CPU %u not included in CPUmap for node %hu\n",
 		     cpu, nodeinfo->id);
 	    }
 	}
@@ -1976,8 +1976,8 @@ static void parseNUMAmask(struct bitmask *nodemask, char *maskStr, int32_t rank)
 		if ((long int)(curbit + j) > numa_max_node()) {
 		    mlog("%s: invalid memory mask entry '%s' for rank %d\n",
 			    __func__, maskStr, rank);
-		    fprintf(stderr, "Invalid memory mask entry '%s' for rank"
-			    " %d\n", maskStr, rank);
+		    fprintf(stderr, "Invalid memory mask entry '%s' for"
+			    " rank %d\n", maskStr, rank);
 		    goto error;
 		}
 		if (numa_bitmask_isbitset(numa_get_mems_allowed(),
@@ -2146,7 +2146,7 @@ void doMemBind(Step_t *step, PStask_t *task)
     uint32_t lTID = getLocalRankID(task->rank, step);
 
     if (lTID == NO_VAL) {
-	flog("Getting local rank ID failed. Omit custom memory binding.\n");
+	flog("Getting local rank ID failed. Omit custom memory binding\n");
 	return;
     }
 
@@ -2289,7 +2289,7 @@ void test_thread_iterator(uint16_t socketCount, uint16_t coresPerSocket,
 	"FILLSOCKETS_CYCLECORES",
 	"FILLSOCKETS_FILLCORES"
     };
-    printf("Strategy %hhu (%s) selected, starting with thread %u.\n",
+    printf("Strategy %hhu (%s) selected, starting with thread %u\n",
 	    strategy, strategystr[strategy], start);
 
     nodeinfo_t nodeinfo = {
@@ -2393,8 +2393,7 @@ void test_pinning(uint16_t socketCount, uint16_t coresPerSocket,
     PSCPU_set_t CPUset;
 
     /* set node and cpuset for every task on this node */
-    uint32_t local_tid;
-    for (local_tid=0; local_tid < tasksPerNode; local_tid++) {
+    for (uint32_t local_tid=0; local_tid < tasksPerNode; local_tid++) {
 
 	PSCPU_clrAll(CPUset);
 
