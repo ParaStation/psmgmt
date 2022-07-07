@@ -2063,7 +2063,11 @@ static void fillAppInfoArray(pmix_data_array_t *appInfo, PspmixApp_t *app)
 {
     pmix_info_t *infos;
 
+#if PMIX_VERSION_MAJOR >= 4
 #define APP_INFO_ARRAY_LEN 5
+#else
+#define APP_INFO_ARRAY_LEN 4
+#endif
 
     PMIX_INFO_CREATE(infos, APP_INFO_ARRAY_LEN);
 
@@ -2080,9 +2084,11 @@ static void fillAppInfoArray(pmix_data_array_t *appInfo, PspmixApp_t *app)
     strncpy(infos[3].key, PMIX_WDIR, PMIX_MAX_KEYLEN);
     PMIX_VALUE_LOAD(&infos[3].value, app->wdir, PMIX_STRING);
 
+#if PMIX_VERSION_MAJOR >= 4
     /* concatenated argv for spawned processes */
     strncpy(infos[4].key, PMIX_APP_ARGV, PMIX_MAX_KEYLEN);
     PMIX_VALUE_LOAD(&infos[4].value, app->args, PMIX_STRING);
+#endif
 
     /* optional infos (PMIx v4.0):
      * * PMIX_PSET_NAMES "pmix.pset.nms" (pmix_data_array_t*)
@@ -2112,7 +2118,9 @@ static void fillAppInfoArray(pmix_data_array_t *appInfo, PspmixApp_t *app)
 	 infos[1].key, infos[1].value.type, infos[1].value.data.uint32,
 	 infos[2].key, infos[2].value.type, infos[2].value.data.rank,
 	 infos[3].key, infos[3].value.type, infos[3].value.data.string,
+#if PMIX_VERSION_MAJOR >= 4
 	 infos[4].key, infos[4].value.type, infos[4].value.data.string);
+#endif
 #endif
 
     appInfo->type = PMIX_INFO;
