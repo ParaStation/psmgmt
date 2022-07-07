@@ -17,7 +17,6 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <unistd.h>
 #include <errno.h>
 #include <string.h>
 #include <sys/socket.h>
@@ -440,31 +439,9 @@ static void setupCommonEnv(Conf_t *conf)
 	    setPSIEnv(var, tmp, 1);
 
 	    snprintf(var, sizeof(var), "PMIX_APPWDIR_%d", i);
-	    if (!conf->exec[i].wdir || (conf->exec[i].wdir[0]!='/')) {
-		/* the same as in psispawn.c:mygetwd(), @todo unify that? */
-		char *dir;
-		char *ext = conf->exec[i].wdir;
-		char *tmp = getenv("PWD");
-		
-		if (tmp) dir = strdup(tmp);
-		else dir = getcwd(NULL, 0);
-
-		if (dir) {
-		    /* Enlarge the string */
-		    tmp = dir;
-		    dir = realloc(dir, strlen(dir) + (ext ? strlen(ext) : 0) + 2);
-
-		    if (dir) {
-			strcat(dir, "/");
-			strcat(dir, ext ? ext : "");
-			setPSIEnv(var, dir, 1);
-			free(dir);
-		    }
-		}
-	    } else {
-		setPSIEnv(var, conf->exec[i].wdir, 1);
-	    }
-
+	    char *dir = PSC_getwd(conf->exec[i].wdir);
+	    setPSIEnv(var, dir, 1);
+	    free(dir);
 
 	    snprintf(var, sizeof(var), "PMIX_APPARGV_%d", i);
 	    size_t sum = 0;

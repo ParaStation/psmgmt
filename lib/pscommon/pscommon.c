@@ -257,6 +257,31 @@ char* PSC_lookupInstalldir(char *hint)
     return installdir;
 }
 
+char *PSC_getwd(const char *ext)
+{
+    char *dir;
+
+    if (ext && (ext[0] == '/')) {
+	dir = strdup(ext);
+    } else {
+	char *tmp = getenv("PWD");
+	if (tmp) {
+	    dir = strdup(tmp);
+	} else {
+	    dir = getcwd(NULL, 0);
+	}
+	if (!ext) ext = "";
+	if (dir) {
+	    tmp = PSC_concat(dir, "/", ext, 0L);
+	    free(dir);
+	    dir = tmp;
+	}
+    }
+    if (!dir) errno = ENOMEM;
+
+    return dir;
+}
+
 int PSC_getServicePort(char* name , int def)
 {
     struct servent* service;

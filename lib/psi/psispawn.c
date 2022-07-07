@@ -88,59 +88,6 @@ void PSI_RemoteArgs(int Argc, char **Argv, int *RArgc, char ***RArgv)
 }
 
 /**
- * @brief Get current working directory.
- *
- * Get the current working directory. If @a ext is given, it will be
- * appended to the determined string.
- *
- * The strategy to determine the current working directory is to
- * firstly look for the PWD environment variable and if this is not
- * present, to call getcwd(3).
- *
- * @param ext The extension to append to determined directory.
- *
- * @return On success, a pointer to a character array containing the
- * extended working directory is returned. This array is allocated via
- * malloc() and should be free()ed by the user when it is no longer
- * needed. If something went wrong, NULL is returned.
- */
-static char *mygetwd(const char *ext)
-{
-    char *dir;
-
-    if (!ext || (ext[0]!='/')) {
-	char *tmp = getenv("PWD");
-
-	if (tmp) {
-	    dir = strdup(tmp);
-	} else {
-	    dir = getcwd(NULL, 0);
-	}
-	if (!dir) goto error;
-
-	/* Enlarge the string */
-	tmp = dir;
-	dir = realloc(dir, strlen(dir) + (ext ? strlen(ext) : 0) + 2);
-	if (!dir) {
-	    free(tmp);
-	    goto error;
-	}
-
-	strcat(dir, "/");
-	strcat(dir, ext ? ext : "");
-    } else {
-	dir = strdup(ext);
-    }
-    if (!dir) goto error;
-
-    return dir;
-
-error:
-    errno = ENOMEM;
-    return NULL;
-}
-
-/**
  * @brief Send task-structure
  *
  * Send the actual task structure stored in @a task using the message
@@ -720,7 +667,7 @@ static int dospawn(int count, PSnodes_ID_t *dstnodes, char *workingdir,
     }
     task->resID = resID;
 
-    mywd = mygetwd(workingdir);
+    mywd = PSC_getwd(workingdir);
 
     if (!mywd) {
 	PSI_warn(-1, errno, "%s: unable to get working directory", __func__);
@@ -1173,19 +1120,17 @@ PStask_ID_t PSI_spawnGMSpawner(int np, char *workdir, int argc, char **argv,
 
 char *PSI_createPGfile(int num, const char *prog, int local)
 {
-    char *PIfilename, *myprog, filename[20];
-    FILE *PIfile;
-    int i;
-
-    myprog = mygetwd(prog);
+    char *myprog = PSC_getwd(prog);
     if (!myprog) {
-	PSI_warn(-1, errno, "%s: mygetwd", __func__);
+	PSI_warn(-1, errno, "%s: PSC_getwd", __func__);
 	return NULL;
     }
 
+    char filename[20];
     snprintf(filename, sizeof(filename), "PI%d", getpid());
-    PIfile = fopen(filename, "w+");
+    FILE *PIfile = fopen(filename, "w+");
 
+    char *PIfilename;
     if (PIfile) {
 	PIfilename = strdup(filename);
     } else {
@@ -1203,7 +1148,7 @@ char *PSI_createPGfile(int num, const char *prog, int local)
 	}
     }
 
-    for (i = 0; i < num; i++) {
+    for (int i = 0; i < num; i++) {
 	PSnodes_ID_t node;
 	static struct in_addr hostaddr;
 

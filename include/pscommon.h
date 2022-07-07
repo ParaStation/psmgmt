@@ -353,6 +353,26 @@ typedef enum {
 char *PSC_lookupInstalldir(char *hint);
 
 /**
+ * @brief Get current working directory
+ *
+ * Get the current working directory. If @a ext is provided and does
+ * not start with '/', it will be appended to the determined string.
+ *
+ * The strategy to determine the current working directory is to
+ * firstly look for the PWD environment variable and if this is not
+ * present, to call getcwd(3).
+ *
+ * @param ext The extension to append to determined directory.
+ *
+ * @return On success, a pointer to a character array containing the
+ * extended working directory is returned. This array is allocated via
+ * malloc() and should be free()ed by the user when it is no longer
+ * needed. In case of error NULL is returned and errno is set
+ * appropriately.
+ */
+char *PSC_getwd(const char *ext);
+
+/**
  * @brief Get a port entry
  *
  * Get the TCP port number associated with the service entry @a name
