@@ -229,7 +229,10 @@ static void decodeValue(const char *encval, pmix_value_t *val,
  * delay calling the callback function until all ranks have connected. However,
  * the host may rely on the pmix_server_client_connected2_fn_t function module
  * entry being called for a given rank prior to any other function module
- * entries being executed on behalf of that rank. */
+ * entries being executed on behalf of that rank.
+ *
+ * Note that this text is copied from the standard and we use our clientObject
+ * as what the standard calls server_object */
 /* pmix_server_client_connected2_fn_t */
 #if PMIX_VERSION_MAJOR >= 4
 static pmix_status_t server_client_connected2_cb(const pmix_proc_t *proc,
@@ -273,7 +276,10 @@ static pmix_status_t server_client_connected_cb(const pmix_proc_t *proc,
  * Note that the host server is only being informed that the client has called
  * PMIx_Finalize. The client might not have exited. If a client exits without
  * calling PMIx_Finalize, the server support library will not call the
- * pmix_server_client_finalized_fn_t implementation. */
+ * pmix_server_client_finalized_fn_t implementation.
+ *
+ * Note that this text is copied from the standard and we use our clientObject
+ * as what the standard calls server_object */
 /* pmix_server_client_finalized_fn_t */
 static pmix_status_t server_client_finalized_cb(const pmix_proc_t *proc,
 	void* clientObject, pmix_op_cbfunc_t cbfunc, void *cbdata)
