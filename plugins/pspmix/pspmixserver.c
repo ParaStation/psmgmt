@@ -31,6 +31,7 @@
 #include "list.h"
 #include "pluginmalloc.h"
 #include "pluginvector.h"
+#include "pluginhelper.h"
 
 #include "pspmixlog.h"
 #include "pspmixservice.h"
