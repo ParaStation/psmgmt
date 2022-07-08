@@ -2698,7 +2698,7 @@ static bool unpackRespJobInfo(Slurm_Msg_t *sMsg)
 	getUint32(ptr, &rec->assocID);
 
 	if (msgVer >= SLURM_21_08_PROTO_VERSION) {
-	    /* job container, will be overwritten laster,
+	    /* job container, will be overwritten later,
 	     * unclear why this was introduced */
 	    char *tmp = getStringM(ptr);
 	    ufree(tmp);

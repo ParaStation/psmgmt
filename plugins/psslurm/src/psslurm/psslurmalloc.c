@@ -308,7 +308,7 @@ static int verifyJobInfo(Slurm_Msg_t *sMsg, void *info)
 	Slurm_Job_Rec_t *rec = &(resp->jobs)[i];
 
 	if (req->jobid != rec->jobid) {
-	    flog("warning: skipping not requested job %u, requested job %u\n",
+	    flog("warning: skipping unrequested job %u, requested job %u\n",
 		 rec->jobid, req->jobid);
 	    continue;
 	}

@@ -208,6 +208,9 @@ const char *Alloc_strState(AllocState_t state);
  */
 bool Alloc_isLeader(Alloc_t *alloc);
 
+/**
+ * @doctodo
+ */
 void Alloc_verify(bool grace);
 
 #endif  /* __PS_PSSLURM_ALLOC */

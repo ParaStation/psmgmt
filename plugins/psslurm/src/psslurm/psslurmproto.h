@@ -280,7 +280,7 @@ typedef struct {
     env_t spankEnv;		/**< spank environment */
     char *userName;		/**< username */
     JobCred_t *cred;		/**< job credentials */
-    list_t *gresList;	    	/**< list of allocated generic resources */
+    list_t *gresList;		/**< list of allocated generic resources */
 } Req_Launch_Prolog_t;
 
 /** Holding all information for RPC REQUEST_COMPLETE_PROLOG */
@@ -683,6 +683,9 @@ void clearSlurmdProto(void);
  */
 int requestJobInfo(uint32_t jobid, Connection_CB_t *cb);
 
+/**
+ * @doctodo
+ */
 void freeRespJobInfo(Resp_Job_Info_t *resp);
 
 /**
