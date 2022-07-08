@@ -784,35 +784,33 @@ static uint32_t getNextStartThread(const nodeinfo_t *nodeinfo,
 
 	/* omit cpus not in core map and thus not to use by this job step */
 	if (!PSCPU_isSet(nodeinfo->stepHWthreads, getCore(thread, nodeinfo))) {
-	    mdbg(PSSLURM_LOG_PART, "%s: thread %u not assigned to step (not"
-		    " in core map)\n", __func__, thread);
+	    fdbg(PSSLURM_LOG_PART, "thread %u not assigned to step (not"
+		 " in core map)\n", thread);
 	    continue;
 	}
 
 	/* omit cpus already assigned maxuse times */
 	if (pininfo->usedHwThreads[thread] >= pininfo->maxuse) {
-	    mdbg(PSSLURM_LOG_PART, "%s: thread %u already used %hu times\n",
-		 __func__, thread, pininfo->usedHwThreads[thread]);
+	    fdbg(PSSLURM_LOG_PART, "thread %u already used %hu times\n",
+		 thread, pininfo->usedHwThreads[thread]);
 	    continue;
 	}
 
 	/* omit sockets for which are no tasks left */
 	if (pininfo->tasksPerSocket) {
 	    uint16_t socket = getSocketByThread(thread, nodeinfo);
-	    mdbg(PSSLURM_LOG_PART, "%s: thread %u belongs to socket %u"
-		 " having %d tasks left\n", __func__, thread, socket,
-		    pininfo->tasksPerSocket[socket]);
+	    fdbg(PSSLURM_LOG_PART, "thread %u belongs to socket %u"
+		 " having %d tasks left\n", thread, socket,
+		 pininfo->tasksPerSocket[socket]);
 	    if (pininfo->tasksPerSocket[socket] == 0) {
-		mdbg(PSSLURM_LOG_PART, "%s: omitting thread %u since"
-			" socket %u has no tasks left\n", __func__, thread,
-			socket);
+		fdbg(PSSLURM_LOG_PART, "omitting thread %u since socket %u"
+		     " has no tasks left\n", thread, socket);
 		continue;
 	    }
 	}
 
-	mdbg(PSSLURM_LOG_PART, "%s: found thread %u with strategy %s\n",
-		__func__, thread,
-		nextStartStrategyString[pininfo->nextStartStrategy]);
+	fdbg(PSSLURM_LOG_PART, "found thread %u with strategy %s\n", thread,
+	     nextStartStrategyString[pininfo->nextStartStrategy]);
 
 	return thread;
     }
@@ -851,8 +849,7 @@ static void getThreadsBinding(PSCPU_set_t *CPUset, const nodeinfo_t *nodeinfo,
 	if (start == UINT32_MAX) {
 	    /* there are no threads left */
 	    if (!pininfo->overcommit) {
-		mlog("%s: No threads left to start from, pin to all\n",
-		     __func__);
+		flog("No threads left to start from, pin to all\n");
 		pinToAllThreads(CPUset, nodeinfo);
 		return;
 	    }
@@ -864,34 +861,33 @@ static void getThreadsBinding(PSCPU_set_t *CPUset, const nodeinfo_t *nodeinfo,
 	}
     }
 
-    thread_iterator iter;
     uint32_t thread, threadsLeft = threadsPerTask;
     while (true) {
+	thread_iterator iter;
 	thread_iter_init(&iter, pininfo->threadIterStrategy, nodeinfo, start);
 
-	mdbg(PSSLURM_LOG_PART, "%s: node %u task %u lastUsedThread %ld"
-		" start %u maxuse %hu\n", __func__, nodeinfo->id, local_tid,
-		pininfo->lastUsedThread, start, pininfo->maxuse);
+	fdbg(PSSLURM_LOG_PART, "node %u task %u lastUsedThread %ld start %u"
+	     " maxuse %hu\n", nodeinfo->id, local_tid, pininfo->lastUsedThread,
+	     start, pininfo->maxuse);
 
 	while (threadsLeft > 0 && thread_iter_next(&iter, &thread)) {
-
 	    /* on which core is this thread? */
 	    uint32_t core = getCore(thread, nodeinfo);
 
 	    /* omit cpus not in core map and thus not to use by this job step */
 	    if (!PSCPU_isSet(nodeinfo->stepHWthreads, core)) {
-		mdbg(PSSLURM_LOG_PART, "%s: thread %u core %u socket %hu"
-			" not assigned to step (not in core map)\n", __func__,
-			thread, core, getSocketByCore(core, nodeinfo));
+		fdbg(PSSLURM_LOG_PART, "thread %u core %u socket %hu"
+		     " not assigned to step (not in core map)\n",
+		     thread, core, getSocketByCore(core, nodeinfo));
 		continue;
 	    }
 
 	    /* omit cpus already assigned */
 	    if (pininfo->usedHwThreads[thread] >= pininfo->maxuse) {
-		mdbg(PSSLURM_LOG_PART, "%s: thread %u core %u socket %hu"
-			" already used %hu times\n",
-			__func__, thread, core, getSocketByCore(core, nodeinfo),
-			pininfo->usedHwThreads[thread]);
+		fdbg(PSSLURM_LOG_PART, "thread %u core %u socket %hu"
+		     " already used %hu times\n", thread, core,
+		     getSocketByCore(core, nodeinfo),
+		     pininfo->usedHwThreads[thread]);
 
 		continue;
 	    }
@@ -902,17 +898,17 @@ static void getThreadsBinding(PSCPU_set_t *CPUset, const nodeinfo_t *nodeinfo,
 	    for (uint32_t t = 0; t < corethread; t++) {
 		uint32_t checkthread = t * nodeinfo->coreCount + core;
 		if (pininfo->usedHwThreads[checkthread] < pininfo->maxuse) {
-		    mdbg(PSSLURM_LOG_PART, "%s: thread %u core %u socket %hu"
-			 " used only %hu times, take it\n", __func__,
-			 thread, core, getSocketByCore(core, nodeinfo),
+		    fdbg(PSSLURM_LOG_PART, "thread %u core %u socket %hu"
+			 " used only %hu times, take it\n", thread, core,
+			 getSocketByCore(core, nodeinfo),
 			 pininfo->usedHwThreads[checkthread]);
 		    thread = checkthread;
 		    break;
 		}
 	    }
 
-	    mdbg(PSSLURM_LOG_PART, "%s: thread %u core %u socket %hu\n",
-		 __func__, thread, core, getSocketByCore(core, nodeinfo));
+	    fdbg(PSSLURM_LOG_PART, "thread %u core %u socket %hu\n",
+		 thread, core, getSocketByCore(core, nodeinfo));
 
 	    /* this is the first thread assigned to the task so remember */
 	    if (threadsLeft == threadsPerTask) pininfo->firstThread = thread;
@@ -923,11 +919,11 @@ static void getThreadsBinding(PSCPU_set_t *CPUset, const nodeinfo_t *nodeinfo,
 	    threadsLeft--;
 	}
 
-	if (threadsLeft == 0) break;
+	if (!threadsLeft) break;
 
 	/* there are not enough threads left */
 	if (!pininfo->overcommit) {
-	    mlog("%s: No threads left, pin to all\n", __func__);
+	    flog("No threads left, pin to all\n");
 	    pinToAllThreads(CPUset, nodeinfo);
 	    break;
 	}
@@ -958,10 +954,9 @@ static void getThreadsBinding(PSCPU_set_t *CPUset, const nodeinfo_t *nodeinfo,
  *
  */
 static void bindToSockets(PSCPU_set_t *CPUset, const nodeinfo_t *nodeinfo,
-		uint32_t lTID)
+			  uint32_t lTID)
 {
     thread_iterator iter;
-
     thread_iter_init(&iter, FILLSOCKETS_FILLCORES, nodeinfo, 0);
 
     uint32_t thread;
@@ -992,10 +987,9 @@ static void bindToSockets(PSCPU_set_t *CPUset, const nodeinfo_t *nodeinfo,
  *
  */
 static void bindToCores(PSCPU_set_t *CPUset, const nodeinfo_t *nodeinfo,
-		uint32_t lTID)
+			uint32_t lTID)
 {
     thread_iterator iter;
-
     thread_iter_init(&iter, FILLSOCKETS_FILLCORES, nodeinfo, 0);
 
     uint32_t thread;
@@ -1048,9 +1042,9 @@ static void getSocketRankBinding(PSCPU_set_t *CPUset,
 	start = getNextSocketStart(pininfo->lastUsedThread, nodeinfo, false);
     }
 
-    thread_iterator iter;
     uint32_t thread, threadsLeft = threadsPerTask;
     while (true) {
+	thread_iterator iter;
 	thread_iter_init(&iter, FILLSOCKETS_FILLCORES, nodeinfo, start);
 
 	while (threadsLeft > 0 && thread_iter_next(&iter, &thread)) {
@@ -1058,10 +1052,10 @@ static void getSocketRankBinding(PSCPU_set_t *CPUset,
 	    /* on which core is this thread? */
 	    uint32_t core = getCore(thread, nodeinfo);
 
-	    mdbg(PSSLURM_LOG_PART, "%s: node %u task %u start %u thread %u"
-		 " core %u socket %hu lastUsedThread %ld\n", __func__,
-		 nodeinfo->id, local_tid, start, thread, core,
-		 getSocketByCore(core, nodeinfo), pininfo->lastUsedThread);
+	    fdbg(PSSLURM_LOG_PART, "node %u task %u start %u thread %u core %u"
+		 " socket %hu lastUsedThread %ld\n", nodeinfo->id, local_tid,
+		 start, thread, core, getSocketByCore(core, nodeinfo),
+		 pininfo->lastUsedThread);
 
 	    /* omit cpus not to use or already assigned maxuse times */
 	    if (!PSCPU_isSet(nodeinfo->stepHWthreads, core)
@@ -1075,11 +1069,11 @@ static void getSocketRankBinding(PSCPU_set_t *CPUset,
 	    threadsLeft--;
 	}
 
-	if (threadsLeft == 0) break;
+	if (!threadsLeft) break;
 
 	/* there are not enough threads left */
 	if (!pininfo->overcommit) {
-	    mlog("%s: No threads left, pin to all\n", __func__);
+	    flog("No threads left, pin to all\n");
 	    pinToAllThreads(CPUset, nodeinfo);
 	    break;
 	}
