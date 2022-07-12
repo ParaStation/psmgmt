@@ -33,12 +33,12 @@
 
 #include "pscio.h"
 #include "pscommon.h"
+#include "psenv.h"
 #include "psprotocol.h"
 #include "pspluginprotocol.h"
 #include "psreservation.h"
 #include "psserial.h"
 
-#include "pluginmalloc.h"
 #include "psidcomm.h"
 #include "psidforwarder.h"
 #include "psidhook.h"
@@ -128,20 +128,21 @@ static void handleClientPMIxEnv(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
 {
     char *ptr = data->buf;
 
-    uint32_t envSize;
-    char **env;
-    getEnviron(&ptr, &envSize, env);
+    env_t env;
+    envInit(&env);
+    getStringArrayM(&ptr, &env.vars, &env.cnt);
+    env.size = env.cnt + 1;
 
     mdbg(PSPMIX_LOG_COMM, "%s(r%d): Setting environment:\n", __func__, rank);
-    for (uint32_t i = 0; i < envSize; i++) {
-	if (putenv(env[i]) != 0) {
-	    mwarn(errno, "%s(r%d): set env '%s'", __func__, rank, env[i]);
-	    ufree(env[i]);
+    for (uint32_t i = 0; i < env.cnt; i++) {
+	char *envStr = envDumpIndex(&env, i);
+	if (putenv(envStr) != 0) {
+	    mwarn(errno, "%s(r%d): set env '%s'", __func__, rank, envStr);
 	    continue;
 	}
-	mdbg(PSPMIX_LOG_COMM, "%s(r%d): %d %s\n", __func__, rank, i, env[i]);
+	mdbg(PSPMIX_LOG_COMM, "%s(r%d): %d %s\n", __func__, rank, i, envStr);
     }
-    ufree(env);
+    envDestroy(&env);
 
     environmentReady = true;
 }

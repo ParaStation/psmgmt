@@ -81,8 +81,8 @@ static void handleAddJob(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
 	list_add_tail(&resInfo->next, &job->resInfos);
     }
 
-    getEnviron(&ptr, &job->env.size, job->env.vars);
-    job->env.cnt = job->env.size;
+    getStringArrayM(&ptr, &job->env.vars, &job->env.cnt);
+    job->env.size = job->env.cnt + 1;
 
     mdbg(PSPMIX_LOG_COMM, "%s: received %s with loggertid %s", __func__,
 	 pspmix_getMsgTypeString(msg->type), PSC_printTID(loggertid));
@@ -446,7 +446,7 @@ bool pspmix_comm_sendClientPMIxEnvironment(PStask_ID_t targetTID, env_t *env)
     for (uint32_t i = 0; i < env->cnt; i++) {
 	mdbg(PSPMIX_LOG_COMM, "%s: %d %s\n", __func__, i, (env->vars)[i]);
     }
-    addEnvironToMsg(env->cnt, env->vars, &msg);
+    addStringArrayToMsg(env->vars, &msg);
 
     int ret = sendFragMsg(&msg);
     pthread_mutex_unlock(&send_lock);

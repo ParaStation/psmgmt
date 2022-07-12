@@ -344,14 +344,12 @@ static bool forwardPspmixFwMsg(DDTypedBufferMsg_t *msg, ForwarderData_t *fw)
  * @param server     target server
  * @param spawnertid PMIx job identifier
  * @param resInfos   reservation information list
- * @param environ    environment for the job
- * @param envSize    size of the environment
+ * @param env        job's environment
  *
  * @returns True on success or if job already known to server, false on error
  */
 static bool sendAddJob(PspmixServer_t *server, PStask_ID_t loggertid,
-		       PStask_ID_t spawnertid, list_t *resInfos,
-		       char **environ, uint32_t envSize)
+		       PStask_ID_t spawnertid, list_t *resInfos, env_t *env)
 {
     mdbg(PSPMIX_LOG_CALL, "%s(uid %d spawner %s)\n", __func__,
 	 server->uid, PSC_printTID(spawnertid));
@@ -387,7 +385,7 @@ static bool sendAddJob(PspmixServer_t *server, PStask_ID_t loggertid,
 	}
     }
 
-    addEnvironToMsg(envSize, environ, &msg);
+    addStringArrayToMsg(env->vars, &msg);
 
     mdbg(PSPMIX_LOG_COMM, "%s: sending PSPMIX_ADD_JOB to %s", __func__,
 	    PSC_printTID(targetTID));
@@ -515,8 +513,7 @@ static bool addJobToServer(PspmixServer_t *server, PStask_ID_t loggertid,
 
     list_add_tail(&job->next, &session->jobs);
 
-    return sendAddJob(server, loggertid, job->spawnertid, &psjob->resInfos,
-		      env->vars, env->cnt);
+    return sendAddJob(server, loggertid, job->spawnertid, &psjob->resInfos, env);
 }
 
 /**
