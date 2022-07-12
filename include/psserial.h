@@ -413,7 +413,7 @@ bool __memToDataBuffer(void *mem, size_t len, PS_DataBuffer_t *buffer,
  * If reading is successful, @a ptr will be updated to point behind
  * the last data read, i.e. prepared to read the next data from it.
  *
- * If the global @ref byteOrder flag is true byte order of the
+ * If the global @ref byteOrder flag is true, byte order of the
  * received data will be adapted form network to host byte-order.
  *
  * @param ptr Data buffer to read from
@@ -613,7 +613,7 @@ bool getArrayFromBuf(char **ptr, void **val, uint32_t *len, PS_DataType_t type,
  * If reading is successful, @a ptr will be updated to point behind
  * the last data read, i.e. prepared to read the next data from it.
  *
- * If @a len is 0 upon return array will be untouched.
+ * If @a len is 0, upon return array will be untouched.
  *
  * @param ptr Data buffer to read from
  *
@@ -639,15 +639,15 @@ bool __getStringArrayM(char **ptr, char ***array, uint32_t *len,
  * @brief Add element to buffer
  *
  * Add an element of @a size bytes located at @a val to the data
- * buffer @a data. If the global flag @ref typeInfo is true the
+ * buffer @a data. If the global flag @ref typeInfo is true, the
  * element will be annotated to be of type @a type.
  *
- * If the data is of type PSDATA_STRING or PSDATA_DATA it will be
+ * If the data is of type PSDATA_STRING or PSDATA_DATA, it will be
  * annotated by an additional length item.
  *
- * If the global @ref byteOrder flag is true the data will be shuffled
- * into network byte-order unless it is of type PSDATA_STRING,
- * PSDATA_DATA or PSDATA_MEM.
+ * If the global @ref byteOrder flag is true, the data will be
+ * shuffled into network byte-order unless it is of type
+ * PSDATA_STRING, PSDATA_DATA or PSDATA_MEM.
  *
  *
  * @param val Address of the element to add
@@ -740,14 +740,14 @@ bool addToBuf(const void *val, const uint32_t size, PS_SendDB_t *data,
  *
  * Add an array of @a num individual elements of @a size bytes located
  * at @a val to the data buffer @a data. If the global flag @ref
- * typeInfo is true each element will be annotated to be of type @a
+ * typeInfo is true, each element will be annotated to be of type @a
  * type.
  *
  * The overall data will be annotated by a leading element describing
  * the number of elements provided via @a num.
  *
- * If the global @ref byteOrder flag is true each element will be shuffled
- * into network byte-order.
+ * If the global @ref byteOrder flag is true, each element will be
+ * shuffled into network byte-order.
  *
  * @param val Address of the elements to add
  *
@@ -792,5 +792,36 @@ bool addArrayToBuf(const void *val, const uint32_t num, PS_SendDB_t *data,
 #define addInt64ArrayToMsg(val, num, data)				\
     addArrayToBuf(val, num, data, PSDATA_INT64, sizeof(int64_t),	\
 		  __func__, __LINE__)
+
+/**
+ * @brief Add array of strings to buffer
+ *
+ * Add an array of strings stored in the NULL terminated @a array to
+ * the data buffer @a data.
+ *
+ * If the global flag @ref typeInfo is true, each element will be
+ * annotated to be of type PSDATA_STRING. Generally, each element will
+ * be annotated by an additional length item. The overall data will be
+ * annotated by a leading element describing the number of string
+ * elements in the array.
+ *
+ * The data format is suitable for the array of strings to be read
+ * from the buffer with @ref getStringArrayM().
+ *
+ * @param array Address of the array of strings to add
+ *
+ * @param data Data buffer to save data to
+ *
+ * @param caller Function name of the calling function
+ *
+ * @param line Line number where this function is called
+ *
+ * @return On success true is returned or false in case of an error.
+*/
+bool __addStringArrayToBuf(char **array, PS_SendDB_t *data,
+			   const char *caller, const int line);
+
+#define addStringArrayToMsg(array, data)			\
+    __addStringArrayToBuf(array, data, __func__, __LINE__)
 
 #endif  /* __PSSERIAL_H */

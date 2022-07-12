@@ -493,9 +493,7 @@ bool setFragDest(PS_SendDB_t *buffer, PStask_ID_t tid)
 
 bool setFragDestUniq(PS_SendDB_t *buffer, PStask_ID_t tid)
 {
-    int i;
-
-    for (i = 0; i < buffer->numDest; i++) {
+    for (int i = 0; i < buffer->numDest; i++) {
 	if (destTIDs[i] == tid) return false;
     }
 
@@ -816,7 +814,6 @@ void freeDataBuffer(PS_DataBuffer_t *data)
 PS_DataBuffer_t *dupDataBuffer(PS_DataBuffer_t *data)
 {
     PS_DataBuffer_t *dup = umalloc(sizeof(*dup));
-
     if (!dup) {
 	PSC_log(-1, "%s: duplication failed\n", __func__);
 	return NULL;
@@ -885,11 +882,9 @@ bool __memToDataBuffer(void *mem, size_t len, PS_DataBuffer_t *buffer,
 static bool verifyTypeInfo(char **ptr, PS_DataType_t expectedType,
 			   const char *caller, const int line)
 {
-    uint8_t type;
-
     if (!typeInfo) return true;
 
-    type = *(uint8_t *) *ptr;
+    uint8_t type = *(uint8_t *) *ptr;
     *ptr += sizeof(uint8_t);
 
     if (type != expectedType) {
@@ -943,8 +938,6 @@ bool getArrayFromBuf(char **ptr, void **val, uint32_t *len,
 		     PS_DataType_t type, size_t size,
 		     const char *caller, const int line)
 {
-    uint32_t i;
-
     if (!getFromBuf(ptr, len, PSDATA_UINT32, sizeof(*len), caller, line))
 	return false;
 
@@ -956,7 +949,7 @@ bool getArrayFromBuf(char **ptr, void **val, uint32_t *len,
 	return false;
     }
 
-    for (i = 0; i < *len; i++) {
+    for (uint32_t i = 0; i < *len; i++) {
 	getFromBuf(ptr, (char *)*val + i*size, type, size, caller, line);
     }
 
@@ -966,8 +959,6 @@ bool getArrayFromBuf(char **ptr, void **val, uint32_t *len,
 void *getMemFromBuf(char **ptr, char *data, size_t dataSize, size_t *len,
 		    PS_DataType_t type, const char *caller, const int line)
 {
-    uint32_t l;
-
     if (dataSize && !data) {
 	PSC_log(-1, "%s(%s@%d): invalid buffer\n", __func__, caller, line);
 	return NULL;
@@ -981,7 +972,7 @@ void *getMemFromBuf(char **ptr, char *data, size_t dataSize, size_t *len,
     if (!verifyTypeInfo(ptr, type, caller, line)) return NULL;
 
     /* data length */
-    l = *(uint32_t *) *ptr;
+    uint32_t l = *(uint32_t *) *ptr;
     *ptr += sizeof(uint32_t);
 
     if (byteOrder) l = ntohl(l);
@@ -1018,8 +1009,6 @@ void *getMemFromBuf(char **ptr, char *data, size_t dataSize, size_t *len,
 bool __getStringArrayM(char **ptr, char ***array, uint32_t *len,
 			const char *caller, const int line)
 {
-    uint32_t i;
-
     *array = NULL;
     if (!getFromBuf(ptr, len, PSDATA_UINT32, sizeof(*len), caller, line))
 	return false;
@@ -1033,7 +1022,7 @@ bool __getStringArrayM(char **ptr, char ***array, uint32_t *len,
 	return false;
     }
 
-    for (i = 0; i < *len; i++) {
+    for (uint32_t i = 0; i < *len; i++) {
 	(*array)[i] = getMemFromBuf(ptr, NULL, 0, NULL, PSDATA_STRING,
 				    caller, line);
     }
@@ -1213,9 +1202,6 @@ bool addArrayToBuf(const void *val, const uint32_t num, PS_SendDB_t *data,
 		   PS_DataType_t type, size_t size,
 		   const char *caller, const int line)
 {
-    uint32_t i;
-    const char *valPtr = val;
-
     if (!data) {
 	PSC_log(-1, "%s(%s@%d): invalid data\n", __func__, caller, line);
 	return false;
@@ -1228,8 +1214,34 @@ bool addArrayToBuf(const void *val, const uint32_t num, PS_SendDB_t *data,
     if (!addToBuf(&num, sizeof(num), data, PSDATA_UINT32, caller, line))
 	return false;
 
-    for (i = 0; i < num; i++) {
+    const char *valPtr = val;
+    for (uint32_t i = 0; i < num; i++) {
 	addToBuf(valPtr + i*size, size, data, type, caller, line);
+    }
+
+    return true;
+}
+
+bool __addStringArrayToBuf(char **array, PS_SendDB_t *data,
+			   const char *caller, const int line)
+{
+    if (!data) {
+	PSC_log(-1, "%s(%s@%d): invalid data\n", __func__, caller, line);
+	return false;
+    }
+    if (!array) {
+	PSC_log(-1, "%s(%s@%d): invalid array\n", __func__, caller, line);
+	return false;
+    }
+
+    uint32_t num = 0;
+    while (array[num]) num++;
+    if (!addToBuf(&num, sizeof(num), data, PSDATA_UINT32, caller, line))
+	return false;
+
+    for (uint32_t i = 0; i < num; i++) {
+	if (!addToBuf(array[i], PSP_strLen(array[i]), data, PSDATA_STRING,
+		      caller, line)) return false;
     }
 
     return true;
