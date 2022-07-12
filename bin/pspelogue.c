@@ -424,12 +424,9 @@ static void handleResponse(void)
 void sendPElogueReq(char *jobid, char *sUid, char *sGid, uint32_t nrOfNodes,
 		   PSnodes_ID_t *nodes, env_t *env)
 {
-    uint32_t i;
-    int ret;
     PS_SendDB_t msg;
-    PStask_ID_t dest = PSC_getTID(nodes[0], 0);
-
     initFragBuffer(&msg, PSP_PLUG_PELOGUE, PSP_PELOGUE_REQ);
+    PStask_ID_t dest = PSC_getTID(nodes[0], 0);
     setFragDest(&msg, dest);
 
     /* protocol version */
@@ -455,12 +452,7 @@ void sendPElogueReq(char *jobid, char *sUid, char *sGid, uint32_t nrOfNodes,
     /* nodelist */
     addInt16ArrayToMsg(nodes, nrOfNodes, &msg);
     /* environment */
-    /*
-     * @todo
-    addStringArrayM(ptr, &req->pelogueEnv.vars, &req->pelogueEnv.cnt);
-    */
-    addUint32ToMsg(env->cnt, &msg);
-    for (i=0; i<env->cnt; i++) addStringToMsg(env->vars[i], &msg);
+    addStringArrayToMsg(env->vars, &msg);
     /* fwPrologueOE */
     addUint16ToMsg(fwPrologueOE, &msg);
 
@@ -470,7 +462,7 @@ void sendPElogueReq(char *jobid, char *sUid, char *sGid, uint32_t nrOfNodes,
 		      PSC_printTID(dest),
 		      time_start.tv_sec + 1e-6 * time_start.tv_usec, jobID);
 
-    ret = sendFragMsg(&msg);
+    int ret = sendFragMsg(&msg);
 
     if (ret == -1) {
 	fprintf(stderr, "%s: send request to %s for job %s failed\n", __func__,
