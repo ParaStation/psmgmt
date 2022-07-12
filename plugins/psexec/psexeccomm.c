@@ -21,7 +21,6 @@
 #include "psprotocol.h"
 #include "pspluginprotocol.h"
 #include "pluginhelper.h"
-#include "pluginmalloc.h"
 
 #include "psidcomm.h"
 #include "psidscripts.h"
