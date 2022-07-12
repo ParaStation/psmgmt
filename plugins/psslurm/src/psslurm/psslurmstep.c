@@ -302,7 +302,7 @@ bool Step_delete(Step_t *step)
     freeJobCred(step->cred);
 
     if (step->globalTaskIds) {
-	for (uint32_t i=0; i<step->nrOfNodes; i++) {
+	for (uint32_t i = 0; i < step->nrOfNodes; i++) {
 	    if (step->globalTaskIdsLen[i] > 0) ufree(step->globalTaskIds[i]);
 	}
 	ufree(step->globalTaskIds);
@@ -310,17 +310,15 @@ bool Step_delete(Step_t *step)
     ufree(step->globalTaskIdsLen);
 
     if (step->packTIDs) {
-	for (uint32_t i=0; i<step->packNrOfNodes; i++) {
-	    if (step->packTaskCounts[i] > 0) {
-		ufree(step->packTIDs[i]);
-	    }
+	for (uint32_t i = 0; i < step->packNrOfNodes; i++) {
+	    if (step->packTaskCounts[i] > 0) ufree(step->packTIDs[i]);
 	}
 	ufree(step->packTIDs);
     }
     ufree(step->packTIDsOffset);
     ufree(step->packTaskCounts);
 
-    for (uint32_t i=0; i<step->argc; i++) strShred(step->argv[i]);
+    for (uint32_t i = 0; i < step->argc; i++) strShred(step->argv[i]);
     ufree(step->argv);
 
     list_t *c, *tmp;
@@ -330,7 +328,7 @@ bool Step_delete(Step_t *step)
 	JobComp_delete(cur);
     }
 
-    for (uint32_t i=0; i<step->spankOptCount; i++) {
+    for (uint32_t i = 0; i < step->spankOptCount; i++) {
 	ufree(step->spankOpt[i].optName);
 	ufree(step->spankOpt[i].pluginName);
 	ufree(step->spankOpt[i].val);
@@ -426,9 +424,9 @@ void Step_shutdownForwarders(uint32_t jobid)
 
 int Step_signalByJobid(uint32_t jobid, int signal, uid_t reqUID)
 {
-    list_t *s, *tmp;
     int ret = 0, count = 0;
 
+    list_t *s, *tmp;
     list_for_each_safe(s, tmp, &StepList) {
 	Step_t *step = list_entry(s, Step_t, next);
 	if (step->jobid == jobid && step->state != JOB_COMPLETE) {
@@ -464,10 +462,10 @@ bool Step_partOfJob(uint32_t jobid)
 
 char *Step_getActiveList(void)
 {
-    list_t *s;
     char strStep[128];
     StrBuffer_t strBuf = { .buf = NULL };
 
+    list_t *s;
     list_for_each(s, &StepList) {
 	Step_t *step = list_entry(s, Step_t, next);
 
@@ -496,9 +494,9 @@ bool Step_traverse(StepVisitor_t visitor, const void *info)
 
 int Step_killFWbyJobid(uint32_t jobid)
 {
-    list_t *s, *tmp;
     int count = 0;
 
+    list_t *s, *tmp;
     list_for_each_safe(s, tmp, &StepList) {
 	Step_t *step = list_entry(s, Step_t, next);
 
@@ -513,12 +511,12 @@ int Step_killFWbyJobid(uint32_t jobid)
 
 void Step_getInfos(uint32_t *infoCount, uint32_t **jobids, uint32_t **stepids)
 {
-    list_t *s, *tmp;
     uint32_t max = Step_count() + *infoCount;
 
     *jobids = urealloc(*jobids, sizeof(uint32_t) * max);
     *stepids = urealloc(*stepids, sizeof(uint32_t) * max);
 
+    list_t *s, *tmp;
     list_for_each_safe(s, tmp, &StepList) {
 	Step_t *step = list_entry(s, Step_t, next);
 	if (*infoCount == max) break;
