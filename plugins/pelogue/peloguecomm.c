@@ -316,7 +316,7 @@ static void handlePElogueReq(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
     /* environment */
     env_t *env = umalloc(sizeof(*env));
     getStringArrayM(&ptr, &env->vars, &env->cnt);
-    env->size = env->cnt;
+    env->size = env->cnt + 1;
     /* fwPrologueOE */
     uint16_t fwPrologueOE = false;
     getUint16(&ptr, &fwPrologueOE);
