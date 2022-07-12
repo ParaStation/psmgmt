@@ -533,7 +533,7 @@ size_t PStask_encodeTask(char *buffer, size_t size, PStask_t *task, char **off)
     return msglen;
 }
 
-bool PStask_sendTask(PS_SendDB_t *msg, PStask_t *task)
+bool PStask_addToMsg(PStask_t *task, PS_SendDB_t *msg)
 {
     snprintfStruct(someStr, sizeof(someStr), task);
     PSC_log(PSC_LOG_TASK, "%s(%p, task(%s))\n", __func__, msg, someStr);
@@ -608,18 +608,6 @@ int PStask_decodeTask(char *buffer, PStask_t *task, bool withWDir)
     }
 
     return msglen;
-}
-
-bool PStask_sendStrV(PS_SendDB_t *msg, char **strV)
-{
-    uint32_t num = 0;
-    while (strV[num]) num++;
-
-    addUint32ToMsg(num, msg);
-    for (uint32_t i = 0; i < num; i++)
-	if (!addStringToMsg(strV[i], msg)) return false;
-
-    return true;
 }
 
 /**

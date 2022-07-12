@@ -74,7 +74,7 @@ typedef struct __task__ PStask_t;
 typedef void PStask_sigChldCB_t(int status, PStask_t *task);
 
 /** Task structure */
-/* Members marked C are handled by PStask_[en|de]code()/PStask_sendTask() */
+/* Members marked C are handled by PStask_[en|de]code()/PStask_addToMsg() */
 struct __task__ {
     list_t next;                   /**< used to put into managedTasks, etc. */
     /*C*/ PStask_ID_t tid;         /**< unique task identifier */
@@ -335,7 +335,7 @@ int PStask_decodeTask(char *buffer, PStask_t *task, bool withWdir);
  * Send task structure @a task via the serialization layer utilizing
  * the data buffer @a msg. Only the core members of @a task will be
  * sent. Further parts like the argument vector or the environment are
- * omitted and have to be sent explicitely via @ref PStask_sendStrV().
+ * omitted and have to be added explicitely via @ref addStringArray().
  *
  * @a msg has to be setup before in order to provide the message type,
  * the destination address, etc.
@@ -346,25 +346,7 @@ int PStask_decodeTask(char *buffer, PStask_t *task, bool withWdir);
  *
  * @return On success true is returned; or false in case of error
  */
-bool PStask_sendTask(PS_SendDB_t *msg, PStask_t *task);
-
-/**
- * @brief Send vector of strings
- *
- * Send vector of strings @a strV via the serialization layer
- * utilizing the data buffer @a msg. Data might be received on the
- * destination side using the @ref getStringArrayM() function
- *
- * @a msg has to be setup before in order to provide the message type,
- * the destination address, etc.
- *
- * @param msg Data buffer used for sending
- *
- * @param strV Vector of strings to be sent
- *
- * @return On success true is returned; or false in case of error
- */
-bool PStask_sendStrV(PS_SendDB_t *msg, char **strV);
+bool PStask_addToMsg(PStask_t *task, PS_SendDB_t *msg);
 
 /**
  * @brief Encode argv part of task structure.

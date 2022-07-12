@@ -499,28 +499,28 @@ static int handleAnswer(unsigned int firstRank, int count,
 static int sendSpawnReq(PStask_t* task, PSnodes_ID_t *dstnodes, uint32_t max)
 {
     PS_SendDB_t msg;
-    uint32_t r, num = 0;
     PStask_ID_t dest = PSC_getTID(dstnodes[0], 0);
 
     initFragBuffer(&msg, PSP_CD_SPAWNREQUEST, -1);
     setFragDest(&msg, dest);
 
+    uint32_t num = 0;
     while (num < max && dstnodes[num] == dstnodes[0]) num++;
 
     PSI_log(PSI_LOG_SPAWN, "%s: %d proc to %d at rank %d\n", __func__, num,
 	    dstnodes[0], task->rank);
 
     addUint32ToMsg(num, &msg);
-    if (!PStask_sendTask(&msg, task)) return -1;
-    if (!PStask_sendStrV(&msg, task->argv)) return -1;
-    if (!PStask_sendStrV(&msg, task->environ)) return -1;
+    if (!PStask_addToMsg(task, &msg)) return -1;
+    if (!addStringArrayToMsg(task->argv, &msg)) return -1;
+    if (!addStringArrayToMsg(task->environ, &msg)) return -1;
 
-    for (r = 0; r < num; r++) {
+    for (uint32_t r = 0; r < num; r++) {
 	char **extraEnv;
 
 	if (extraEnvFunc
 	    && (extraEnv = extraEnvFunc(task->rank + r, extraEnvInfo))) {
-	    if (!PStask_sendStrV(&msg, extraEnv)) return -1;
+	    if (!addStringArrayToMsg(extraEnv, &msg)) return -1;
 	} else {
 	    addUint32ToMsg(0, &msg);
 	}
