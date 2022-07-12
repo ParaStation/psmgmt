@@ -2749,7 +2749,6 @@ static void addSlotsToMsg(PSpart_slot_t *slots, uint32_t len, PS_SendDB_t *data)
 int send_PS_PackInfo(Step_t *step)
 {
     PS_SendDB_t data;
-    uint32_t i;
 
     initFragBuffer(&data, PSP_PLUG_PSSLURM, PSP_PACK_INFO);
     setFragDest(&data, PSC_getTID(step->packNodes[0], 0));
@@ -2766,12 +2765,8 @@ int send_PS_PackInfo(Step_t *step)
     addUint32ToMsg(step->np, &data);
     /* tpp */
     addUint16ToMsg(step->tpp, &data);
-    /* argc */
-    addUint32ToMsg(step->argc, &data);
     /* argv */
-    for (i=0; i<step->argc; i++) {
-	addStringToMsg(step->argv[i], &data);
-    }
+    addStringArrayToMsg(step->argv, &data);
     /* slots */
     addSlotsToMsg(step->slots, step->np, &data);
 
