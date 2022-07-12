@@ -46,7 +46,6 @@ typedef enum {
 int sendScriptResult(Script_t *script, int32_t res, char *output)
 {
     PS_SendDB_t data;
-    int ret;
 
     if (script->initiator == -1) {
 	mlog("%s: id %i uID %u: no initiator\n", __func__, script->id,
@@ -65,18 +64,16 @@ int sendScriptResult(Script_t *script, int32_t res, char *output)
     addStringToMsg(output, &data);
 
     /* send the messages */
-    ret = sendFragMsg(&data);
-
-    return ret;
+    return sendFragMsg(&data);
 }
 
 int sendExecScript(Script_t *script, PSnodes_ID_t dest)
 {
-    PS_SendDB_t data;
-    uint32_t i;
-    int ret;
-    env_t *env = &script->env;
+    if (!script) return -1;
 
+    mlog("%s: name '%s' dest %i\n", __func__, script->execName, dest);
+
+    PS_SendDB_t data;
     initFragBuffer(&data, PSP_PLUG_PSEXEC, PSP_EXEC_SCRIPT);
     setFragDest(&data, PSC_getTID(dest, 0));
 
@@ -88,18 +85,11 @@ int sendExecScript(Script_t *script, PSnodes_ID_t dest)
     addStringToMsg(script->execName, &data);
     /* add optional executable path */
     addStringToMsg(script->execPath, &data);
-
     /* add env */
-    mlog("%s: name '%s' dest %i\n", __func__, script->execName, dest);
-    addUint32ToMsg(env->cnt, &data);
-    for (i=0; i<env->cnt; i++) {
-	addStringToMsg(envDumpIndex(env, i), &data);
-    }
+    addStringArrayToMsg(script->env.vars, &data);
 
     /* send the messages */
-    ret = sendFragMsg(&data);
-
-    return ret;
+    return sendFragMsg(&data);
 }
 
 static void prepEnv(void *info)
@@ -109,9 +99,7 @@ static void prepEnv(void *info)
 
     mlog("%s: setting env %i\n", __func__, env->cnt);
 
-    for (uint32_t i = 0; i < env->cnt; i++) {
-	putenv(envDumpIndex(env, i));
-    }
+    for (uint32_t i = 0; i < env->cnt; i++) putenv(envDumpIndex(env, i));
 }
 
 static bool execScript(Script_t *script, PSID_scriptCB_t cb)
@@ -194,12 +182,9 @@ static void callbackScript(int exit, bool tmdOut, int iofd, void *info)
 static void handleExecScript(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
 {
     char *ptr = data->buf;
-    char exe[128];
-    uint32_t i, envc;
-    uint16_t uID, version;
-    Script_t *script;
 
     /* verify protocol version */
+    uint16_t version;
     getUint16(&ptr, &version);
     if (version != PSEXEC_PROTO_VERSION) {
 	mlog("%s: invalid protocol version %u from %s expect %u\n", __func__,
@@ -208,23 +193,22 @@ static void handleExecScript(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
 	return;
     }
     /* remote uID */
+    uint16_t uID;
     getUint16(&ptr, &uID);
     /* executable name */
-    getString(&ptr, exe, sizeof(exe));
+    char *execName = getStringM(&ptr);
     /* optional path for executable */
     char *execPath = getStringM(&ptr);
 
     /* get new script struct */
-    script = addScript(uID, exe, execPath, NULL);
+    Script_t *script = addScript(uID, execName, execPath, NULL);
+    free(execName);
+    free(execPath);
     script->initiator = msg->header.sender;
 
     /* env */
-    getUint32(&ptr, &envc);
-    for (i=0; i<envc; i++) {
-	char *env = getStringM(&ptr);
-	envPut(&script->env, env);
-	ufree(env);
-    }
+    getStringArrayM(&ptr, &script->env.vars, &script->env.cnt);
+    script->env.size = script->env.cnt + 1;
 
     if (!execScript(script, callbackScript)) {
 	char output[] = "";
