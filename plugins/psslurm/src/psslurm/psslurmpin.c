@@ -1647,7 +1647,8 @@ bool setStepSlots(Step_t *step)
     fillHints(&hints, &step->env);
 
     /* allow overbooking ? */
-    bool overcommit = !strcmp(envGet(&step->env, "SLURM_OVERCOMMIT"), "1");
+    char *overcommitStr = envGet(&step->env, "SLURM_OVERCOMMIT");
+    bool overcommit = overcommitStr && !strcmp(overcommitStr, "1");
 
     for (uint32_t node = 0; node < step->nrOfNodes; node++) {
 
