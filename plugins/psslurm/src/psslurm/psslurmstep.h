@@ -122,7 +122,7 @@ typedef struct {
     uint32_t taskFlags;		/**< e.g. TASK_PARALLEL_DEBUG (slurmcommon.h) */
     int state;			/**< current state of the step */
     int exitCode;		/**< exit code of the step */
-    char **argv;		/**< program arguments */
+    char **argv;		/**< program arguments (NULL terminated) */
     uint32_t argc;		/**< number of arguments */
     env_t env;			/**< environment variables */
     env_t spankenv;		/**< spank environment variables */

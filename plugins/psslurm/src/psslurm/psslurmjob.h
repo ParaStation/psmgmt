@@ -38,7 +38,7 @@ typedef struct {
     char *partition;	    /**< Slurm partition of the job */
     JobCred_t *cred;	    /**< job/step credentials */
     list_t gresList;	    /**< list of generic resources */
-    char **argv;	    /**< program arguments */
+    char **argv;	    /**< program arguments (NULL terminated) */
     uint32_t argc;	    /**< number of arguments */
     env_t env;		    /**< environment variables */
     env_t spankenv;	    /**< spank environment variables */
