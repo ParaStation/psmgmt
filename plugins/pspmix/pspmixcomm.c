@@ -265,10 +265,22 @@ static void handleModexDataReq(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
     getUint32(&ptr, &proc.rank);
     getString(&ptr, proc.nspace, sizeof(proc.nspace));
 
-    mdbg(PSPMIX_LOG_COMM, "%s: received %s (namespace %s rank %d)\n", __func__,
-	 pspmix_getMsgTypeString(msg->type), proc.nspace, proc.rank);
+    int32_t timeout;
+    getInt32(&ptr, &timeout);
 
-    pspmix_service_handleModexDataRequest(msg->header.sender, &proc);
+    char **reqKeys;
+    uint32_t numReqKeys;
+    getStringArrayM(&ptr, &reqKeys, &numReqKeys);
+    if (!numReqKeys) reqKeys = ucalloc(sizeof(*reqKeys));
+
+    mdbg(PSPMIX_LOG_COMM, "%s: received %s (namespace %s rank %d numReqKeys %u"
+	 " timeout %d)\n", __func__, pspmix_getMsgTypeString(msg->type),
+	 proc.nspace, proc.rank, numReqKeys, timeout);
+
+    if (!pspmix_service_handleModexDataRequest(msg->header.sender, &proc,
+					       reqKeys, timeout)) {
+	ufree(reqKeys);
+    }
 
     PMIX_PROC_DESTRUCT(&proc);
 }
@@ -509,7 +521,9 @@ bool pspmix_comm_sendFenceOut(PStask_ID_t targetTID /* remote PMIx server */,
 }
 
 bool pspmix_comm_sendModexDataRequest(PSnodes_ID_t target /* remote psid */,
-				      pmix_proc_t *proc)
+				      pmix_proc_t *proc,
+				      char **reqKeys,
+				      int32_t timeout)
 {
     mdbg(PSPMIX_LOG_CALL|PSPMIX_LOG_COMM, "%s(target %s rank %d (nspace %s))\n",
 	 __func__, PSC_printTID(target), proc->rank, proc->nspace);
@@ -521,6 +535,8 @@ bool pspmix_comm_sendModexDataRequest(PSnodes_ID_t target /* remote psid */,
 
     addUint32ToMsg(proc->rank, &msg);
     addStringToMsg(proc->nspace, &msg);
+    addInt32ToMsg(timeout, &msg);
+    addStringArrayToMsg(reqKeys, &msg);
 
     int ret = sendFragMsg(&msg);
     pthread_mutex_unlock(&send_lock);

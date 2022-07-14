@@ -80,10 +80,13 @@ bool pspmix_comm_sendFenceOut(PStask_ID_t targetTID, uint64_t fenceid,
  *
  * @param target     node id of the psid to send the message to
  * @param proc       process information the message shall contain
+ * @param reqKeys    keys required to be included in the data (NULL terminated)
+ * @param timeout    max seconds to wait for the required data to be available
  *
  * @return Returns true on success, false on error
  */
-bool pspmix_comm_sendModexDataRequest(PSnodes_ID_t target, pmix_proc_t *proc);
+bool pspmix_comm_sendModexDataRequest(PSnodes_ID_t target, pmix_proc_t *proc,
+				      char **reqKeys, int32_t timeout);
 
 /**
  * @brief Compose and send a modex data response message

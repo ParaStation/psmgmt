@@ -1243,7 +1243,8 @@ bool pspmix_service_sendModexDataRequest(modexdata_t *mdata)
 
     GET_LOCK(modexRequestList);
 
-    if (!pspmix_comm_sendModexDataRequest(nodeid, &mdata->proc)) {
+    if (!pspmix_comm_sendModexDataRequest(nodeid, &mdata->proc, mdata->reqkeys,
+					  mdata->timeout)) {
 	ulog("send failed for %s:%d to node %hd\n",
 		mdata->proc.nspace, mdata->proc.rank, nodeid);
 	RELEASE_LOCK(modexRequestList);
@@ -1257,8 +1258,10 @@ bool pspmix_service_sendModexDataRequest(modexdata_t *mdata)
     return true;
 }
 
-void pspmix_service_handleModexDataRequest(PStask_ID_t senderTID,
-					   pmix_proc_t *proc)
+bool pspmix_service_handleModexDataRequest(PStask_ID_t senderTID,
+					   pmix_proc_t *proc,
+					   char **reqKeys,
+					   int timeout)
 {
     modexdata_t *mdata = NULL;
     mdata = umalloc(sizeof(*mdata));
@@ -1268,12 +1271,17 @@ void pspmix_service_handleModexDataRequest(PStask_ID_t senderTID,
     mdata->proc.rank = proc->rank;
     strncpy(mdata->proc.nspace, proc->nspace, sizeof(mdata->proc.nspace));
 
+    mdata->reqkeys = reqKeys;
+    mdata->timeout = timeout;
+
     /* hands over ownership of mdata */
     if (!pspmix_server_requestModexData(mdata)) {
 	ulog("pspmix_server_requestModexData() failed for %s:%d\n",
 	     proc->nspace, proc->rank);
 	ufree(mdata);
+	return false;
     }
+    return true;
 }
 
 void pspmix_service_sendModexDataResponse(bool status, modexdata_t *mdata)
@@ -1292,6 +1300,7 @@ void pspmix_service_sendModexDataResponse(bool status, modexdata_t *mdata)
 
     pspmix_comm_sendModexDataResponse(mdata->requester, status, &mdata->proc,
 				      mdata->data, mdata->ndata);
+    ufree(mdata->reqkeys);
     ufree(mdata);
 }
 

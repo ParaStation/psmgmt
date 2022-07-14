@@ -23,13 +23,16 @@
 
 /** Type for callback data for fence and get */
 typedef struct {
-    list_t next;
-    pmix_proc_t proc;
-    PStask_ID_t requester;
-    void *data;
-    size_t ndata;
-    pmix_modex_cbfunc_t cbfunc;
-    void *cbdata;
+    list_t next;                 /**< pointer to add to list of open requests */
+    pmix_proc_t proc;            /**< process that is asked for modex data */
+    PStask_ID_t requester;       /**< process made the modex request */
+    void *data;                  /**< response data */
+    size_t ndata;                /**< size of response data */
+    pmix_modex_cbfunc_t cbfunc;  /**< function to use to pass back data */
+    void *cbdata;                /**< pointer to pass back to cbfunc */
+    char **reqkeys;              /**< array of required strings */
+    int timeout;                 /**< max time to wait for required strings */
+    time_t reqtime;              /**< time the request handling started */
 } modexdata_t;
 
 /**
@@ -196,6 +199,9 @@ pspmix_server_returnModexData(bool success, modexdata_t *mdata);
  * the original requestor there passing to @a pspmix_server_returnModexData()
  *
  * @param mdata  modex data
+ *
+ * @returns True on success, False on error. In success case, ownership of
+ *          @a mdata is taken.
  */
 bool
 pspmix_server_requestModexData(modexdata_t *mdata);

@@ -209,7 +209,7 @@ int pspmix_service_fenceIn(const pmix_proc_t procs[], size_t nprocs,
  * @param fenceid  ID of the fence
  * @param sender   task ID of the sending PMIx server
  * @param data     data blob to share with all participating nodes
-*                  (takes ownership)
+ *                 (takes ownership)
  * @param len      size of the data blob to share
  */
 void pspmix_service_handleFenceIn(uint64_t fenceid, PStask_ID_t sender,
@@ -245,15 +245,22 @@ void pspmix_service_handleFenceOut(uint64_t fenceid, void *data, size_t len);
 bool pspmix_service_sendModexDataRequest(modexdata_t *mdata);
 
 /**
-* @brief Handle a direct modex data request
-*
-* Tell the PMIx server that the requested modex is needed.
-*
-* @param senderTID  task id of the sender of the message
-* @param proc       rank and namespace of the requested dmodex
-*/
-void pspmix_service_handleModexDataRequest(PStask_ID_t senderTID,
-	pmix_proc_t *proc);
+ * @brief Handle a direct modex data request
+ *
+ * Tell the PMIx server that the requested modex is needed.
+ *
+ * @param senderTID  task id of the sender of the message
+ * @param proc       rank and namespace of the requested dmodex
+ * @param reqKeys    keys required to be included in the data (NULL terminated)
+ * @param timeout    max seconds to wait for the required data to be available
+ *
+ * @returns True on success, false on error. In success case, ownership of
+ *          @a reqKeys is taken.
+ */
+bool pspmix_service_handleModexDataRequest(PStask_ID_t senderTID,
+					   pmix_proc_t *proc,
+					   char **reqKeys,
+					   int timeout);
 
 /**
  * @brief Send direct modex data response
@@ -264,15 +271,15 @@ void pspmix_service_handleModexDataRequest(PStask_ID_t senderTID,
 void pspmix_service_sendModexDataResponse(bool status, modexdata_t *mdata);
 
 /**
-* @brief Handle a direct modex data response
-*
-* Pass the requested modex to the PMIx server
-*
-* @param success   success state of the request
-* @param proc      from which rank and namespace are the data
-* @param data      direct modex blob requested (takes memory ownership)
-* @param len       length of direct modex blob
-*/
+ * @brief Handle a direct modex data response
+ *
+ * Pass the requested modex to the PMIx server
+ *
+ * @param success   success state of the request
+ * @param proc      from which rank and namespace are the data
+ * @param data      direct modex blob requested (takes memory ownership)
+ * @param len       length of direct modex blob
+ */
 void pspmix_service_handleModexDataResponse(bool success, pmix_proc_t *proc,
 	void *data, size_t len);
 

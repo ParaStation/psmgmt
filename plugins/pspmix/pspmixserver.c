@@ -29,9 +29,11 @@
 #endif
 
 #include "list.h"
+#include "timer.h"
 #include "pluginmalloc.h"
 #include "pluginvector.h"
 #include "pluginhelper.h"
+#include "pluginstrv.h"
 
 #include "pspmixlog.h"
 #include "pspmixservice.h"
@@ -561,14 +563,40 @@ static pmix_status_t server_dmodex_req_cb(const pmix_proc_t *proc,
 
 
 #if PMIX_VERSION_MAJOR >= 4
+
+    strv_t reqKeys;
+    strvInit(&reqKeys, NULL, 0);
+    int timeout = 0;
+
     /* handle command directives */
     for (size_t i = 0; i < ninfo; i++) {
+
+	/* debug print each info */
+	mdbg(PSPMIX_LOG_MODEX, "%s: Found %s info [key '%s' flags '%s'"
+	     " value.type '%s'\n", __func__,
+	     (PMIX_INFO_IS_REQUIRED(info+i)) ? "required" : "optional",
+	     info[i].key, PMIx_Info_directives_string(info[i].flags),
+	     PMIx_Data_type_string(info[i].value.type));
+
+	/* support mendatory key PMIX_REQUIRED_KEY */
 	if (PMIX_CHECK_KEY(info+i, PMIX_REQUIRED_KEY)) {
-	    mlog("%s: Found %s info [key '%s' value '%s']\n", __func__,
-		 (PMIX_INFO_IS_REQUIRED(&info[i])) ? "required" : "optional",
-		 info[i].key, info[i].value.data.string);
-	    // @todo include required key into request to other servers
+	    strvAdd(&reqKeys, ustrdup(info[i].value.data.string));
 	    continue;
+	}
+
+	/* support optional key PMIX_TIMEOUT */
+	if (PMIX_CHECK_KEY(info+i, PMIX_TIMEOUT)) {
+	    timeout = info[i].value.data.integer;
+	    continue;
+	}
+
+	/* info with required directive are not allowed to be ignored */
+	if (PMIX_INFO_IS_REQUIRED(info+i)) {
+	    mlog("%s: Error: Unsupported info [key '%s' flags '%s' value.type"
+		 " '%s'] marked required", __func__, info[i].key,
+		 PMIx_Info_directives_string(info[i].flags),
+		 PMIx_Data_type_string(info[i].value.type));
+	    return PMIX_ERR_NOT_SUPPORTED;
 	}
 
 	/* inform about lacking implementation */
@@ -591,10 +619,17 @@ static pmix_status_t server_dmodex_req_cb(const pmix_proc_t *proc,
     mdata->ndata = 0;
     mdata->cbfunc = cbfunc;
     mdata->cbdata = cbdata;
+#if PMIX_VERSION_MAJOR >= 4
+    mdata->reqkeys = reqKeys.strings;
+    mdata->timeout = timeout;
+#endif
 
     if (!pspmix_service_sendModexDataRequest(mdata)) {
 	mlog("%s: pspmix_service_sendModexDataRequest() for rank %u in"
 	     " namespace %s failed.\n", __func__, proc->rank, proc->nspace);
+#if PMIX_VERSION_MAJOR >= 4
+	strvDestroy(&reqKeys);
+#endif
 	ufree(mdata);
 
 	return PMIX_ERROR;
@@ -633,6 +668,83 @@ static void requestModexData_cb(
 	    mdata);
 }
 
+/**
+ * @brief Check for availability of all required keys at a client
+ *
+ * @param proc     client process
+ * @param reqKeys  array of keys (NULL terminated)
+ */
+static bool checkKeyAvailability(pmix_proc_t *proc, char **reqKeys)
+{
+    pmix_info_t *infos;
+    PMIX_INFO_CREATE(infos, 2);
+    bool tmpbool = true;
+    PMIX_INFO_LOAD(&infos[0], PMIX_IMMEDIATE, &tmpbool, PMIX_BOOL);
+    PMIX_INFO_LOAD(&infos[1], PMIX_GET_POINTER_VALUES, &tmpbool, PMIX_BOOL);
+
+    size_t c = 0;
+    char *key;
+    while ((key = reqKeys[c++])) {
+	pmix_value_t *val;
+	pmix_status_t status = PMIx_Get(proc, key, infos, 2, &val);
+	switch (status) {
+	    case PMIX_SUCCESS:
+		break;
+	    case PMIX_ERR_NOT_FOUND:
+		return false;
+	    case PMIX_ERR_BAD_PARAM:
+	    case PMIX_ERR_EXISTS_OUTSIDE_SCOPE:
+		mlog("%s: PMIx_get(proc %s:%d key %s) failed: %s\n", __func__,
+			proc->nspace, proc->rank, key,
+			PMIx_Error_string(status));
+		return false;
+	}
+    }
+    return true;
+}
+
+
+/**
+ * @brief Timeout handler
+ *
+ * Handler called upon expiration of the timeout associated to the
+ * script or function to execute identified by @a info. This will try
+ * to cleanup all used resources and call the callback accordingly.
+ *
+ * @param timerID ID of the expired timer
+ *
+ * @param info Information blob identifying the associated script/func
+ *
+ * @return No return value
+ */
+static void reqModexTimeoutHandler(int timerID, void *info)
+{
+    modexdata_t *mdata = info;
+    if (!mdata) {
+	mlog("%s: no mdata for %d\n", __func__, timerID);
+	return;
+    }
+
+    if (checkKeyAvailability(&mdata->proc, mdata->reqkeys)) {
+	/* there are either no keys required or all available */
+	pmix_status_t status =
+		PMIx_server_dmodex_request(&mdata->proc, requestModexData_cb,
+					   mdata);
+	if (status != PMIX_SUCCESS) {
+	    mlog("%s: PMIx_server_dmodex_request() failed: %s\n", __func__,
+		 PMIx_Error_string(status));
+	}
+	return;
+    }
+
+    time_t curtime = time(NULL);
+    if (curtime - mdata->reqtime > mdata->timeout) {
+	/* time is over */
+	Timer_remove(timerID);
+	requestModexData_cb(PMIX_ERR_TIMEOUT, NULL, 0, mdata);
+    }
+}
+
 /* Request modex data from the local PMIx server. This is used to support
  * the direct modex operation - i.e., where data is cached locally on each
  * PMIx server for its own local clients, and is obtained on-demand for
@@ -647,14 +759,27 @@ bool pspmix_server_requestModexData(modexdata_t *mdata)
     mdbg(PSPMIX_LOG_CALL, "%s(rank %u namespace %s)\n", __func__,
 	 mdata->proc.rank, mdata->proc.nspace);
 
-    pmix_status_t status;
-    status = PMIx_server_dmodex_request(&mdata->proc, requestModexData_cb,
-	    mdata);
-    if (status != PMIX_SUCCESS) {
-	mlog("%s: PMIx_server_dmodex_request() failed: %s\n", __func__,
-	     PMIx_Error_string(status));
-	return false;
+    /* store time processing of the request has started */
+    mdata->reqtime = time(NULL);
+
+    if (checkKeyAvailability(&mdata->proc, mdata->reqkeys)) {
+	/* there are either no keys required or all available */
+	pmix_status_t status =
+		PMIx_server_dmodex_request(&mdata->proc, requestModexData_cb,
+					   mdata);
+	if (status != PMIX_SUCCESS) {
+	    mlog("%s: PMIx_server_dmodex_request() failed: %s\n", __func__,
+		 PMIx_Error_string(status));
+	    return false;
+	}
+
+	return true;
     }
+
+    /* lookup for availability of required keys every second until timeout
+     *  @todo frequency is a subject to be discussed */
+    struct timeval polltime = (struct timeval) { 1, 0 };
+    Timer_registerEnhanced(&polltime, reqModexTimeoutHandler, &mdata);
 
     return true;
 }
