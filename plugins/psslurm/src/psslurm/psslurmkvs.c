@@ -771,7 +771,7 @@ char *help(char *key)
     size_t bufSize = 0;
     char type[10];
 
-    if (!strcmp(key, "set")) {
+    if (key && !strcmp(key, "set")) {
 	str2Buf("\n# psslurm set options #\n\n", &buf, &bufSize);
 	str2Buf("\nTo change configuration parameters use "
 		"'plugin set psslurm config_name config_value\n", &buf,
