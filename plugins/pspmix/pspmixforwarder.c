@@ -142,7 +142,7 @@ static void handleClientPMIxEnv(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
 	}
 	mdbg(PSPMIX_LOG_COMM, "%s(r%d): %d %s\n", __func__, rank, i, envStr);
     }
-    envDestroy(&env);
+    envSteal(&env);
 
     environmentReady = true;
 }

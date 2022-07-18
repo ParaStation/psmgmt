@@ -108,6 +108,20 @@ bool envSet(env_t *env, const char *name, const char *val);
 void envUnset(env_t *env, const char *name);
 
 /**
+ * @brief Steal strings from the environment
+ *
+ * Clear the environment @a env but leave the actual strings alone. For this,
+ * only the pointer array is free()ed, not the strings memory.
+ *
+ * This is meant to be used after all the environment has been putenv()ed.
+ *
+ * @param env Environment to steal the strings from
+ *
+ * @return No return value
+ */
+void envSteal(env_t *env);
+
+/**
  * @brief Clear environment
  *
  * Clear the environment @a env. For this, all entries are removed and

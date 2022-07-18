@@ -31,6 +31,13 @@ void envUnsetIndex(env_t *env, uint32_t idx)
     env->vars[env->cnt] = NULL;
 }
 
+void envSteal(env_t *env)
+{
+    free(env->vars);
+    env->vars = NULL;
+    env->cnt = env->size = 0;
+}
+
 void __envDestroy(env_t *env, bool shred)
 {
     for (uint32_t i = 0; i < env->cnt; i++) {
