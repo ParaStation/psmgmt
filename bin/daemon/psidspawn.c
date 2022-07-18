@@ -381,7 +381,7 @@ static int testExecutable(PStask_t *task, char **executable)
 	    char *path = strdup(p);
 	    p = strtok(path, ":");
 	    while (p) {
-		char *fn = PSC_concat(p, "/", task->argv[0], NULL);
+		char *fn = PSC_concat(p, "/", task->argv[0], 0L);
 
 		if (!stat(fn, &sb) && (sb.st_mode & S_IXUSR)
 		    && !S_ISDIR(sb.st_mode) ) {
