@@ -2395,9 +2395,9 @@ bool pspmix_server_registerNamespace(
 	PSnodes_ID_t nodeID)
 {
     mdbg(PSPMIX_LOG_CALL, "%s(nspace '%s' sessionId %u univSize %u jobSize %u"
-	 " spawned %d nodelist_s '%s' numApps %u nodeID %hd)\n", __func__,
-	 nspace, sessionId, univSize, jobSize, spawned, nodelist_s, numApps,
-	 nodeID);
+	 " spawned %d nodelist_s '%s' numApps %u tmpdir '%s' nsdir '%s'"
+	 " nodeID %hd)\n", __func__, nspace, sessionId, univSize, jobSize,
+	 spawned, nodelist_s, numApps, tmpdir, nsdir, nodeID);
 
     pmix_status_t status;
 
