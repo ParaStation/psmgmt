@@ -737,6 +737,7 @@ static void reqModexTimeoutHandler(int timerID, void *info)
     }
 
     if (checkKeyAvailability(&mdata->proc, mdata->reqkeys)) {
+	Timer_remove(timerID);
 	/* there are either no keys required or all available */
 	pmix_status_t status =
 		PMIx_server_dmodex_request(&mdata->proc, requestModexData_cb,
