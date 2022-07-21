@@ -1263,8 +1263,7 @@ bool pspmix_service_handleModexDataRequest(PStask_ID_t senderTID,
 					   char **reqKeys,
 					   int timeout)
 {
-    modexdata_t *mdata = NULL;
-    mdata = umalloc(sizeof(*mdata));
+    modexdata_t *mdata = ucalloc(sizeof(*mdata));
 
     mdata->requester = senderTID;
 
@@ -1284,11 +1283,15 @@ bool pspmix_service_handleModexDataRequest(PStask_ID_t senderTID,
     return true;
 }
 
-void pspmix_service_sendModexDataResponse(bool status, modexdata_t *mdata)
+void pspmix_service_sendModexDataResponse(pmix_status_t status,
+					  modexdata_t *mdata)
 {
     mdbg(PSPMIX_LOG_CALL, "%s(status %d)\n", __func__, status);
 
-    if (!status) ulog(" failed\n");
+    if (status != PMIX_SUCCESS)
+    {
+	ulog(" failed: %d\n", status);
+    }
 
     if (mset(PSPMIX_LOG_MODEX)) {
 	ulog("Sending data: ");
@@ -1304,7 +1307,7 @@ void pspmix_service_sendModexDataResponse(bool status, modexdata_t *mdata)
     ufree(mdata);
 }
 
-void pspmix_service_handleModexDataResponse(bool success, pmix_proc_t *proc,
+void pspmix_service_handleModexDataResponse(pmix_status_t status, pmix_proc_t *proc,
 					    void *data, size_t len)
 {
 
@@ -1332,12 +1335,6 @@ void pspmix_service_handleModexDataResponse(bool success, pmix_proc_t *proc,
 	return;
     }
 
-    if (!success) {
-	ufree(data);
-	pspmix_server_returnModexData(false, mdata);
-	return;
-    }
-
     mdata->data = data;
     mdata->ndata = len;
 
@@ -1349,7 +1346,7 @@ void pspmix_service_handleModexDataResponse(bool success, pmix_proc_t *proc,
 	mlog(" (%zu)\n", mdata->ndata);
     }
 
-    pspmix_server_returnModexData(true, mdata);
+    pspmix_server_returnModexData(status, mdata);
 }
 
 

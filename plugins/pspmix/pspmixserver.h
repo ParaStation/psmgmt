@@ -180,11 +180,11 @@ void pspmix_server_fenceOut(bool success, modexdata_t *mdata);
  * The returned blob contains the data from the process requested got from
  * the server of that process.
  *
- * @param success  true if successful, false if not
+ * @param status   PMIx return status
  * @param mdata    modex data containing the requested data
  */
 void
-pspmix_server_returnModexData(bool success, modexdata_t *mdata);
+pspmix_server_returnModexData(pmix_status_t status, modexdata_t *mdata);
 
 /**
  * @brief Request modex data from the local PMIx server

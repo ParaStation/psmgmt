@@ -265,23 +265,27 @@ bool pspmix_service_handleModexDataRequest(PStask_ID_t senderTID,
 /**
  * @brief Send direct modex data response
  *
- * @param status  Request succeeded (true) or failed (false)
+ * @param state   PMIx return state of the request
  * @param mdata   modex data (takes back ownership of mdata (not mdata->data))
  */
-void pspmix_service_sendModexDataResponse(bool status, modexdata_t *mdata);
+void pspmix_service_sendModexDataResponse(pmix_status_t status,
+					  modexdata_t *mdata);
 
 /**
  * @brief Handle a direct modex data response
  *
  * Pass the requested modex to the PMIx server
  *
- * @param success   success state of the request
+ * @param state     PMIx return state of the request
  * @param proc      from which rank and namespace are the data
  * @param data      direct modex blob requested (takes memory ownership)
+ *		    NULL if state != PMIX_SUCCESS
  * @param len       length of direct modex blob
+ *		    0 if state != PMIX_SUCCESS
  */
-void pspmix_service_handleModexDataResponse(bool success, pmix_proc_t *proc,
-	void *data, size_t len);
+void pspmix_service_handleModexDataResponse(pmix_status_t status,
+					    pmix_proc_t *proc,
+					    void *data, size_t len);
 
 #endif  /* __PS_PMIX_SERVICE */
 

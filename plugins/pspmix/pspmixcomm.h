@@ -99,7 +99,7 @@ bool pspmix_comm_sendModexDataRequest(PSnodes_ID_t target, pmix_proc_t *proc,
  *
  * @return Returns true on success, false on error
  */
-bool pspmix_comm_sendModexDataResponse(PStask_ID_t targetTID, bool status,
+bool pspmix_comm_sendModexDataResponse(PStask_ID_t targetTID, int32_t status,
 	pmix_proc_t *proc, void *data, size_t ndata);
 
 /**

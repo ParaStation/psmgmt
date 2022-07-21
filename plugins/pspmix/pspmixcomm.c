@@ -299,8 +299,8 @@ static void handleModexDataResp(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
 
     char *ptr = data->buf;
 
-    uint8_t success;
-    getUint8(&ptr, &success);
+    int32_t status;
+    getInt32(&ptr, &status);
     pmix_proc_t proc;
     PMIX_PROC_CONSTRUCT(&proc);
     getUint32(&ptr, &proc.rank);
@@ -308,11 +308,16 @@ static void handleModexDataResp(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
     size_t len;
     void *blob = getDataM(&ptr, &len);
 
+    if (!len) {
+	ufree(blob);
+	blob = NULL;
+    }
+
     mdbg(PSPMIX_LOG_COMM, "%s: received %s (namespace %s rank %d)\n", __func__,
 	 pspmix_getMsgTypeString(msg->type), proc.nspace, proc.rank);
 
     /* transfers ownership of blob */
-    pspmix_service_handleModexDataResponse(success, &proc, blob, len);
+    pspmix_service_handleModexDataResponse(status, &proc, blob, len);
 
     PMIX_PROC_DESTRUCT(&proc);
 }
@@ -550,7 +555,7 @@ bool pspmix_comm_sendModexDataRequest(PSnodes_ID_t target /* remote psid */,
 
 bool pspmix_comm_sendModexDataResponse(PStask_ID_t targetTID
 						       /* remote PMIx server */,
-				       bool status, pmix_proc_t *proc,
+				       int32_t status, pmix_proc_t *proc,
 				       void *data, size_t ndata)
 {
     mdbg(PSPMIX_LOG_CALL|PSPMIX_LOG_COMM,
@@ -562,7 +567,7 @@ bool pspmix_comm_sendModexDataResponse(PStask_ID_t targetTID
     initFragPspmix(&msg, PSPMIX_MODEX_DATA_RES);
     setFragDest(&msg, targetTID);
 
-    addUint8ToMsg(status, &msg);
+    addInt32ToMsg(status, &msg);
     addUint32ToMsg(proc->rank, &msg);
     addStringToMsg(proc->nspace, &msg);
     addDataToMsg(data, ndata, &msg);

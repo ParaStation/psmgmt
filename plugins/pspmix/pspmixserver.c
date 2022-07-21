@@ -522,15 +522,13 @@ static void dmodex_req_release_fn(void *cbdata)
  * process requested got from the server of that process.
  *
  * This function takes the ownership of mdata, so no locking required */
-void pspmix_server_returnModexData(bool success, modexdata_t *mdata)
+void pspmix_server_returnModexData(pmix_status_t status, modexdata_t *mdata)
 {
     assert(mdata != NULL);
 
-    mdbg(PSPMIX_LOG_CALL, "%s(success %d rank %u namespace %s ndata %lu)\n",
-	 __func__, success, mdata->proc.rank, mdata->proc.nspace, mdata->ndata);
-
-    pmix_status_t status;
-    status = success ? PMIX_SUCCESS : PMIX_ERROR;
+    mdbg(PSPMIX_LOG_CALL, "%s(status %s rank %u namespace %s ndata %lu)\n",
+	 __func__, PMIx_Error_string(status), mdata->proc.rank,
+	 mdata->proc.nspace, mdata->ndata);
 
     /* Call the callback provided by the server in server_dmodex_req_cb().
      * As the data is "owned" by the host server, provide a secondary callback
@@ -654,18 +652,16 @@ static void requestModexData_cb(
     mdbg(PSPMIX_LOG_CALL, "%s(ndata %zu rank %u namespace %s)\n", __func__,
 	 ndata, mdata->proc.rank, mdata->proc.nspace);
 
-    if (status == PMIX_SUCCESS) {
-	mdata->data = data;
-	mdata->ndata = ndata;
-    }
-    else {
+    mdata->data = data;
+    mdata->ndata = ndata;
+
+    if (status != PMIX_SUCCESS) {
 	mlog("%s: modex data request for rank %u in namespace %s failed:"
 	     " %s\n", __func__, mdata->proc.rank, mdata->proc.nspace,
 	     PMIx_Error_string(status));
     }
 
-    pspmix_service_sendModexDataResponse(status == PMIX_SUCCESS ? true : false,
-	    mdata);
+    pspmix_service_sendModexDataResponse(status, mdata);
 }
 
 /**
@@ -778,8 +774,8 @@ bool pspmix_server_requestModexData(modexdata_t *mdata)
 
     /* lookup for availability of required keys every second until timeout
      *  @todo frequency is a subject to be discussed */
-    struct timeval polltime = (struct timeval) { 1, 0 };
-    Timer_registerEnhanced(&polltime, reqModexTimeoutHandler, &mdata);
+    struct timeval polltime = (struct timeval) { 0, 500000 };
+    Timer_registerEnhanced(&polltime, reqModexTimeoutHandler, mdata);
 
     return true;
 }
