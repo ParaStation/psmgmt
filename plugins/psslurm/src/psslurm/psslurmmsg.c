@@ -273,12 +273,10 @@ void deleteMsgBuf(Slurm_Msg_Buf_t *msgBuf)
 Slurm_Msg_Buf_t *saveSlurmMsg(Slurm_Msg_Header_t *head, PS_SendDB_t *body,
 			      Slurm_Auth_t *auth, int sock, size_t written)
 {
-    Slurm_Msg_Buf_t *msgBuf;
-
     mdbg(PSSLURM_LOG_COMM, "%s: save msg type %s written %zu\n",
 	 __func__, msgType2String(head->type), written);
 
-    msgBuf = umalloc(sizeof(*msgBuf));
+    Slurm_Msg_Buf_t *msgBuf = umalloc(sizeof(*msgBuf));
     msgBuf->sock = sock;
     msgBuf->offset = written;
     msgBuf->timerID = -1;
