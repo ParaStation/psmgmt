@@ -66,6 +66,7 @@ typedef struct {
 #include "psslurmauth.h"  // IWYU pragma: keep
 
 typedef struct {
+    list_t next;		/**< the list element */
     Slurm_Auth_t *auth;		/**< Slurm authentication */
     Slurm_Msg_Header_t head;	/**< Slurm message head */
     PS_DataBuffer_t body;	/**< Slurm message body */
@@ -76,8 +77,6 @@ typedef struct {
     int maxConRetry;		/**< maximal reconnect attempts */
     int timerID;		/**< reconnect timer ID */
     time_t authTime;		/**< authentication time-stamp */
-    void *info;			/**< additional information for cb */
-    list_t list;		/**< the list element */
 } Slurm_Msg_Buf_t;
 
 /**

@@ -244,7 +244,7 @@ void clearMsgBuf(void)
 {
     list_t *pos, *tmp;
     list_for_each_safe(pos, tmp, &msgBufList) {
-	Slurm_Msg_Buf_t *msgBuf = list_entry(pos, Slurm_Msg_Buf_t, list);
+	Slurm_Msg_Buf_t *msgBuf = list_entry(pos, Slurm_Msg_Buf_t, next);
 	deleteMsgBuf(msgBuf);
     }
 }
@@ -266,7 +266,7 @@ void deleteMsgBuf(Slurm_Msg_Buf_t *msgBuf)
     freeSlurmMsgHead(&msgBuf->head);
     freeSlurmAuth(msgBuf->auth);
     ufree(msgBuf->body.buf);
-    list_del(&msgBuf->list);
+    list_del(&msgBuf->next);
     ufree(msgBuf);
 }
 
@@ -298,7 +298,7 @@ Slurm_Msg_Buf_t *saveSlurmMsg(Slurm_Msg_Header_t *head, PS_SendDB_t *body,
     msgBuf->auth = (auth) ? dupSlurmAuth(auth) : NULL;
 
     /* save to list */
-    list_add_tail(&msgBuf->list, &msgBufList);
+    list_add_tail(&msgBuf->next, &msgBufList);
 
     return msgBuf;
 }
@@ -392,7 +392,7 @@ static void handleReconTimeout(int timerId, void *data)
 
     if (savedMsg->sock == -1) {
 	/* try to connect to slurmctld */
-	savedMsg->sock = openSlurmctldCon(savedMsg->info);
+	savedMsg->sock = openSlurmctldCon(NULL);
 
 	if (savedMsg->sock < 0) {
 	    mlog("%s: connection attempt %u of %u to slurmctld failed\n",
