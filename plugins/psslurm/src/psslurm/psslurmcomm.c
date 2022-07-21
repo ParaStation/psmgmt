@@ -189,6 +189,7 @@ static Connection_t *addConnection(int socket, Connection_CB_t *cb, void *info)
 	flog("socket(%i) already has a connection, resetting it\n", socket);
 	resetConnection(socket);
 	con->cb = cb;
+	ufree(con->info);
 	con->info = info;
 	gettimeofday(&con->openTime, NULL);
 	return con;
