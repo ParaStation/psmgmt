@@ -515,6 +515,8 @@ static void dmodex_req_release_fn(void *cbdata)
     ufree(mdata->data);
 
     /* free struct allocated by server_dmodex_req_cb() */
+    for (size_t i = 0; mdata->reqkeys[i]; i++) ufree(mdata->reqkeys[i]);
+    ufree(mdata->reqkeys);
     ufree(mdata);
 }
 
