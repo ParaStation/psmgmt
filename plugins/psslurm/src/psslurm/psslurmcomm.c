@@ -172,7 +172,9 @@ static bool resetConnection(int socket)
  *
  * @param cb Function to call to handle received messages
  *
- * @param info Pointer to additional information passed to @a cb
+ * @param info Pointer to additional information passed to @a
+ * cb. Responsibility on @a info is passed to the connection here only
+ * upon success. Otherwise the caller remains responsible.
  *
  * @return Returns a pointer to the new connection or NULL on error
  */
@@ -196,14 +198,15 @@ static Connection_t *addConnection(int socket, Connection_CB_t *cb, void *info)
     }
 
     con = ucalloc(sizeof(*con));
+    if (con) {
+	con->sock = socket;
+	con->cb = cb;
+	con->info = info;
+	gettimeofday(&con->openTime, NULL);
+	initSlurmMsgHead(&con->fw.head);
 
-    con->sock = socket;
-    con->cb = cb;
-    con->info = info;
-    gettimeofday(&con->openTime, NULL);
-    initSlurmMsgHead(&con->fw.head);
-
-    list_add_tail(&con->next, &connectionList);
+	list_add_tail(&con->next, &connectionList);
+    }
 
     return con;
 }
@@ -550,6 +553,7 @@ Connection_t *registerSlurmSocket(int sock, Connection_CB_t *cb, void *info)
     PSCio_setFDblock(sock, false);
     if (Selector_register(sock, readSlurmMsg, con) == -1) {
 	flog("register socket %i failed\n", sock);
+	con->info = NULL; // prevent free() since info is handled outside
 	closeSlurmCon(sock);
 	return NULL;
     }
@@ -995,9 +999,6 @@ int __sendSlurmMsgEx(int sock, Slurm_Msg_Header_t *head, PS_SendDB_t *body,
 		     void *info, const char *caller, const int line)
 {
     PS_SendDB_t data = { .bufUsed = 0, .useFrag = false };
-    PS_DataBuffer_t payload = { .buf = NULL };
-    int ret = 0;
-    size_t written = 0;
 
     if (!head) {
 	flog("invalid header from %s@%i\n", caller, line);
@@ -1042,10 +1043,12 @@ int __sendSlurmMsgEx(int sock, Slurm_Msg_Header_t *head, PS_SendDB_t *body,
     /* non blocking write */
     PSCio_setFDblock(sock, false);
 
+    PS_DataBuffer_t payload = { .buf = NULL };
     memToDataBuffer(body->buf, body->bufUsed, &payload);
     packSlurmMsg(&data, head, &payload, auth);
 
-    ret = __sendDataBuffer(sock, &data, 0, &written, caller, line);
+    size_t written = 0;
+    int ret = __sendDataBuffer(sock, &data, 0, &written, caller, line);
     if (ret == -1) {
 	if (!written) {
 	    flog("sending msg type %s failed\n", msgType2String(head->type));
@@ -1068,27 +1071,23 @@ int __sendSlurmMsgEx(int sock, Slurm_Msg_Header_t *head, PS_SendDB_t *body,
 int __sendSlurmctldReq(Req_Info_t *req, void *data,
 		       const char *caller, const int line)
 {
-    int ret = -1;
-
     PS_SendDB_t msg = { .bufUsed = 0, .useFrag = false };
     if (!packSlurmReq(req, &msg, data, caller, line)) {
 	flog("packing request %s for %s:%i failed\n", msgType2String(req->type),
 	     caller, line);
-	goto FINALIZE;
+	ufree(req);
+	return -1;
     }
 
     int sock = openSlurmctldCon(req);
     if (sock < 0) {
 	flog("open connection to slurmctld failed\n");
-	goto FINALIZE;
+	ufree(req);
+	return -1;
     }
 
     req->time = time(NULL);
-    ret = __sendSlurmMsg(sock, req->type, &msg, req, slurmUserID, caller, line);
-
-FINALIZE:
-    if (ret == -1) ufree(req);
-    return ret;
+    return __sendSlurmMsg(sock, req->type, &msg, req, slurmUserID, caller, line);
 }
 
 static void addVal2List(StrBuffer_t *strBuf, int32_t val, bool range, bool fin,
@@ -1569,10 +1568,7 @@ int srunSendMsg(int sock, Step_t *step, slurm_msg_type_t type,
     fdbg(PSSLURM_LOG_IO | PSSLURM_LOG_IO_VERB | PSSLURM_LOG_COMM,
 	 "sock %u, len: body.bufUsed %u\n", sock, body->bufUsed);
 
-    int ret = sendSlurmMsg(sock, type, body, step->uid);
-    if (ret < 0) ufree(req);
-
-    return ret;
+    return sendSlurmMsg(sock, type, body, step->uid);
 }
 
 int srunOpenPTYConnection(Step_t *step)

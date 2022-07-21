@@ -199,7 +199,7 @@ int __sendSlurmMsgEx(int sock, Slurm_Msg_Header_t *head, PS_SendDB_t *body,
  * Also see @ref packSlurmReq().
  *
  * The request has to be allocated using ucalloc() and will be freed
- * automatically after use.
+ * automatically after use even in case of error
  *
  * @param req The request meta information
  *
@@ -544,11 +544,13 @@ int openSlurmctldConEx(Connection_CB_t *cb, void *info);
  *
  * @param cb The function to call to handle received messages
  *
- * @param info Pointer to additional information passed to @a
- * cb. The memory for @a info has to be allocated dynamically and
- * will get freed by using @ref ufree().
+ * @param info Pointer to additional information passed to @a cb. The
+ * memory for @a info has to be allocated dynamically and will get
+ * freed using @ref ufree(). Responsibility on @a info is passed to
+ * the connection only upon success. Otherwise the caller remains
+ * responsible.
  *
- * @return Returns the associated connection or NULL otherwise
+ * @return Returns the associated connection on success or NULL otherwise
  */
 Connection_t *registerSlurmSocket(int sock, Connection_CB_t *cb, void *info);
 
