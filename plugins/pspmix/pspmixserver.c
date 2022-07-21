@@ -590,6 +590,12 @@ static pmix_status_t server_dmodex_req_cb(const pmix_proc_t *proc,
 	    continue;
 	}
 
+	/* ignore keys not relevant for our implementation */
+	if (PMIX_CHECK_KEY(info+i, PMIX_GET_REFRESH_CACHE)) {
+	    /* we no not manage an own modex cache */
+	    continue;
+	}
+
 	/* info with required directive are not allowed to be ignored */
 	if (PMIX_INFO_IS_REQUIRED(info+i)) {
 	    mlog("%s: Error: Unsupported info [key '%s' flags '%s' value.type"
