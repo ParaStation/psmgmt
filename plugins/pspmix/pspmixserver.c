@@ -391,9 +391,9 @@ void pspmix_server_fenceOut(bool success, modexdata_t *mdata)
     assert(mdata != NULL);
     assert(mdata->cbfunc != NULL || mdata->data == NULL);
 
-    mdbg(PSPMIX_LOG_CALL, "%s(success %s, mdata->cbfunc %s, mdata->ndata %lu\n",
-	 __func__, success ? "true" : "false", mdata->cbfunc ? "set" : "unset",
-	 mdata->ndata);
+    mdbg(PSPMIX_LOG_CALL, "%s(success %s, mdata->cbfunc %s,"
+	 " mdata->ndata %lu)\n", __func__, success ? "true" : "false",
+	 mdata->cbfunc ? "set" : "unset", mdata->ndata);
 
     pmix_status_t status = success ? PMIX_SUCCESS : PMIX_ERROR;
 
@@ -577,6 +577,7 @@ static pmix_status_t server_dmodex_req_cb(const pmix_proc_t *proc,
 	     (PMIX_INFO_IS_REQUIRED(info+i)) ? "required" : "optional",
 	     info[i].key, PMIx_Info_directives_string(info[i].flags),
 	     PMIx_Data_type_string(info[i].value.type));
+	/* @todo use PMIx_Info_string() for PMIx > 4.1.2 */
 
 	/* support mendatory key PMIX_REQUIRED_KEY */
 	if (PMIX_CHECK_KEY(info+i, PMIX_REQUIRED_KEY)) {
@@ -680,21 +681,27 @@ static void requestModexData_cb(
  */
 static bool checkKeyAvailability(pmix_proc_t *proc, char **reqKeys)
 {
-    pmix_info_t *infos;
-    PMIX_INFO_CREATE(infos, 2);
-    bool tmpbool = true;
-    PMIX_INFO_LOAD(&infos[0], PMIX_IMMEDIATE, &tmpbool, PMIX_BOOL);
-    PMIX_INFO_LOAD(&infos[1], PMIX_GET_POINTER_VALUES, &tmpbool, PMIX_BOOL);
+    int ninfo = 2;
+    pmix_info_t *info;
+    PMIX_INFO_CREATE(info, ninfo);
+    bool flag = true;
+    PMIX_INFO_LOAD(info+0, PMIX_IMMEDIATE, &flag, PMIX_BOOL);
+    PMIX_INFO_LOAD(info+1, PMIX_GET_POINTER_VALUES, &flag, PMIX_BOOL);
 
     size_t c = 0;
     char *key;
     while ((key = reqKeys[c++])) {
 	pmix_value_t *val;
-	pmix_status_t status = PMIx_Get(proc, key, infos, 2, &val);
+	pmix_status_t status = PMIx_Get(proc, key, info, ninfo, &val);
+	PMIX_INFO_FREE(info, ninfo);
 	switch (status) {
 	    case PMIX_SUCCESS:
+		udbg(PSPMIX_LOG_MODEX, "found '%s' for rank %d\n", key,
+		     proc->rank);
 		break;
 	    case PMIX_ERR_NOT_FOUND:
+		udbg(PSPMIX_LOG_MODEX, "not found '%s' for rank %d\n", key,
+		     proc->rank);
 		return false;
 	    case PMIX_ERR_BAD_PARAM:
 	    case PMIX_ERR_EXISTS_OUTSIDE_SCOPE:
@@ -741,11 +748,15 @@ static void reqModexTimeoutHandler(int timerID, void *info)
 	return;
     }
 
+    udbg(PSPMIX_LOG_MODEX, "not yet found all required keys for rank %d\n",
+	 mdata->proc.rank);
+
     time_t curtime = time(NULL);
     if (curtime - mdata->reqtime > mdata->timeout) {
 	/* time is over */
 	Timer_remove(timerID);
 	requestModexData_cb(PMIX_ERR_TIMEOUT, NULL, 0, mdata);
+	/* @todo should we send all available data nevertheless? */
     }
 }
 
