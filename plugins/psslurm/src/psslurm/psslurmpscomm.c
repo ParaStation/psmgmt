@@ -2144,8 +2144,13 @@ static bool filter(PStask_t *task, void *info)
     bool isAdmin = isPSAdminUser(task->uid, task->gid);
     Step_t *step = findStepByEnv(task->environ, &jobid, &stepid, isAdmin);
     if (!step) {
-	mlog("%s: no slurm ids found in spawnee environment from %s\n",
-	     __func__, PSC_printTID(task->tid));
+	if (!jobid) {
+	    mlog("%s: no slurm ids found in spawnee environment from %s\n",
+		 __func__, PSC_printTID(task->tid));
+	} else {
+	    mlog("%s: no step found for %u:%u from %s\n", __func__,
+		 jobid, stepid, PSC_printTID(task->tid));
+	}
 	return false;
     }
 
