@@ -950,6 +950,10 @@ static void handleStopStepFW(DDTypedBufferMsg_t *msg)
     PSP_getTypedMsgBuf(msg, &used, "jobid", &jobid, sizeof(jobid));
     PSP_getTypedMsgBuf(msg, &used, "stepid", &stepid, sizeof(stepid));
 
+    /* cleanup delayed spawn messages which arrived after a terminate
+     * RPC from slurmctld was proccessed for the step */
+    cleanupDelayedSpawns(jobid, stepid);
+
     Step_t *step = Step_findByStepId(jobid, stepid);
     if (!step) {
 	fdbg(PSSLURM_LOG_DEBUG, "step %u:%u not found\n", jobid, stepid);
