@@ -474,6 +474,10 @@ static pmix_status_t server_fencenb_cb(
 	    continue;
 	}
 
+	/* @todo implement PMIX_LOCAL_COLLECTIVE_STATUS (pmix.loc.col.st)
+	 * This is not part of PMIx 4.1 standard but is used by OpenMPI 4.1.4
+	 * Currently it is included as provisional in the PMIx standard HEAD */
+
 	/* inform about lacking implementation */
 	mlog("%s: Ignoring info [key '%s' flags '%s' value.type '%s']"
 	     " (not implemented)\n", __func__, info[i].key,
