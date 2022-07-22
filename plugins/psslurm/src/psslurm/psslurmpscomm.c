@@ -96,7 +96,7 @@ typedef struct {
 static LIST_HEAD(msgCache);
 
 typedef enum {
-    PSP_JOB_EXIT = 18,      /**< @doctodo */
+    PSP_JOB_EXIT = 18,      /**< inform sister nodes a job is finished */
     PSP_JOB_LAUNCH,	    /**< inform sister nodes about a new job */
     PSP_FORWARD_SMSG = 22,  /**< forward a Slurm message */
     PSP_FORWARD_SMSG_RES,   /**< result of forwarding a Slurm message */

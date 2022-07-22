@@ -35,7 +35,11 @@ extern bool isInit;
 /**
  * @brief Finalize the initialisation of psslurm
  *
- * @doctodo briefly describe what's done inside
+ * Do further initialisation which is dependent on options specified
+ * in the Slurm configuration. In config-less mode the configuration needs to be
+ * fetched from the slurmctld in a request/response manner. After receiving and
+ * parsing the configuration final initialisation (e.g. pinning and
+ * Slurm health-check) can be done.
  *
  * @return Return on success otherwise false is returned
  */

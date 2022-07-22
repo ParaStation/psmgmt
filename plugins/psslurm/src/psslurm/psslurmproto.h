@@ -684,7 +684,9 @@ void clearSlurmdProto(void);
 int requestJobInfo(uint32_t jobid, Connection_CB_t *cb);
 
 /**
- * @doctodo
+ * @brief Free a job info response
+ *
+ * @param resp The job info response to free
  */
 void freeRespJobInfo(Resp_Job_Info_t *resp);
 

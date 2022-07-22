@@ -592,7 +592,13 @@ static void enableFPEexceptions(void)
 }
 
 /**
- * @doctodo
+ * @brief Test if psslurm should request the Slurm configuration from slurmcltd
+ *
+ * If SLURM_UPDATE_CONF_AT_STARTUP is set than the configuration will be fetched
+ * on every start of psslurm. Otherwise the configuration will only be fetched
+ * if the local configuration cache is empty.
+ *
+ * @param confDir The path to the configuration cache
  */
 static bool needConfUpdate(char *confDir)
 {
@@ -612,7 +618,10 @@ static bool needConfUpdate(char *confDir)
 }
 
 /**
- * @doctodo
+ * @brief Request Slurm configuration files from slurmcltd
+ *
+ * Request the Slurm configuration form slurmcltd by sending a
+ * CONFIG_REQUEST_SLURMD RPC.
  */
 static bool requestConfig(void)
 {

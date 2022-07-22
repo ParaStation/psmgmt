@@ -206,7 +206,8 @@ void IO_sattachTasks(Step_t *step, uint32_t ioAddr, uint16_t ioPort,
 		     uint16_t ctlPort, char *sig);
 
 /**
- * @brief doctodo
+ * @brief todo Verify that function can be safely removed with the
+ * new I/O architecture
  */
 int handleUserOE(int sock, void *data);
 
