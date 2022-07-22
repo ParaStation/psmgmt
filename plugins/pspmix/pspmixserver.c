@@ -2017,16 +2017,14 @@ static char* getProcessMapString(list_t *procMap)
     list_t *n;
     list_for_each(n, procMap) {
 	PspmixNode_t *node = list_entry(n, PspmixNode_t, next);
-	bool first = true;
 	for (size_t i = 0; i < node->procs.len; i++) {
 	    PspmixProcess_t *proc = vectorGet(&node->procs, i, PspmixProcess_t);
 	    sprintf(buf, "%u", proc->rank);
-	    if (first) first = false; else charvAdd(&pmap, &ranksep);
+	    if (i) charvAdd(&pmap, &ranksep);
 	    charvAddCount(&pmap, buf, strlen(buf));
 	}
 	if (node->next.next != procMap) {
 	    charvAdd(&pmap, &nodesep);
-	    first = true;
 	}
     }
 
