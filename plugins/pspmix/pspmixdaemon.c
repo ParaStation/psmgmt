@@ -27,6 +27,7 @@
 #include <sys/time.h>
 #include <unistd.h>
 #include <sys/types.h>
+#include <errno.h>
 
 #include "list.h"
 #include "pscommon.h"
@@ -285,7 +286,9 @@ static bool forwardPspmixMsg(DDBufferMsg_t *vmsg)
 	return false;
     }
 
-    return PSIDclient_send((DDMsg_t *)vmsg) >= 0;
+    int ret = PSIDclient_send((DDMsg_t *)vmsg);
+    if (ret < 0 && errno == EWOULDBLOCK) return true; /* message postponed */
+    return (ret >= 0);
 }
 
 /**
