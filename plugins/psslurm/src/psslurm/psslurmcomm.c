@@ -1052,15 +1052,14 @@ int __sendSlurmMsgEx(int sock, Slurm_Msg_Header_t *head, PS_SendDB_t *body,
     size_t written = 0;
     int ret = __sendDataBuffer(sock, &data, 0, &written, caller, line);
     if (ret == -1) {
-	if (!written) {
-	    flog("sending msg type %s failed\n", msgType2String(head->type));
-	} else {
+	if (errno == EAGAIN || errno == EINTR) {
 	    /* msg was fractionally written, retry later */
-	    Slurm_Msg_Buf_t *savedMsg;
-
-	    savedMsg = saveSlurmMsg(head, body, auth, sock, written);
+	    Slurm_Msg_Buf_t *savedMsg = saveSlurmMsg(head, body, auth, sock,
+						     written);
 	    Selector_awaitWrite(sock, resendSlurmMsg, savedMsg);
 	    ret = -2;
+	} else {
+	    flog("sending msg type %s failed\n", msgType2String(head->type));
 	}
     }
 
