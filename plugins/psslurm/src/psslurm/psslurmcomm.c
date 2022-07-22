@@ -986,7 +986,7 @@ int __sendDataBuffer(int sock, PS_SendDB_t *data, size_t offset,
 }
 
 int __sendSlurmMsg(int sock, slurm_msg_type_t type, PS_SendDB_t *body,
-		   void *info, uid_t uid, const char *caller, const int line)
+		   uid_t uid, const char *caller, const int line)
 {
     Slurm_Msg_Header_t head;
 
@@ -994,11 +994,11 @@ int __sendSlurmMsg(int sock, slurm_msg_type_t type, PS_SendDB_t *body,
     head.type = type;
     head.uid = uid;
 
-    return __sendSlurmMsgEx(sock, &head, body, info, caller, line);
+    return __sendSlurmMsgEx(sock, &head, body, caller, line);
 }
 
 int __sendSlurmMsgEx(int sock, Slurm_Msg_Header_t *head, PS_SendDB_t *body,
-		     void *info, const char *caller, const int line)
+		     const char *caller, const int line)
 {
     PS_SendDB_t data = { .bufUsed = 0, .useFrag = false };
 
@@ -1024,7 +1024,7 @@ int __sendSlurmMsgEx(int sock, Slurm_Msg_Header_t *head, PS_SendDB_t *body,
 
     /* connect to slurmctld */
     if (sock < 0) {
-	sock = openSlurmctldCon(info);
+	sock = openSlurmctldCon(NULL);
 	if (sock < 0) {
 	    freeSlurmAuth(auth);
 	    if (needMsgResend(head->type)) {
@@ -1089,7 +1089,7 @@ int __sendSlurmctldReq(Req_Info_t *req, void *data,
     }
 
     req->time = time(NULL);
-    return __sendSlurmMsg(sock, req->type, &msg, req, slurmUserID, caller, line);
+    return __sendSlurmMsg(sock, req->type, &msg, slurmUserID, caller, line);
 }
 
 static void addVal2List(StrBuffer_t *strBuf, int32_t val, bool range, bool fin,
