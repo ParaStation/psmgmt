@@ -681,7 +681,7 @@ static void requestModexData_cb(
  */
 static bool checkKeyAvailability(pmix_proc_t *proc, char **reqKeys)
 {
-    int ninfo = 2;
+    size_t ninfo = 2;
     pmix_info_t *info;
     PMIX_INFO_CREATE(info, ninfo);
     bool flag = true;
