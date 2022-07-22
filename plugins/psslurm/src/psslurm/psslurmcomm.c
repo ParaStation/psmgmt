@@ -959,6 +959,8 @@ int openSlurmctldConEx(Connection_CB_t *cb, void *info)
 
     if (!registerSlurmSocket(sock, cb, info)) {
 	flog("register Slurm socket %i failed\n", sock);
+	close(sock);
+	return -1;
     }
 
     return sock;
