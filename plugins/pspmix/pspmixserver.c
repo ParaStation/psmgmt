@@ -1650,7 +1650,31 @@ bool pspmix_server_init(char *nspace, pmix_rank_t rank, const char *clusterid,
     i++;
 
     /* The host RM wants to declare itself as being the local system server for
-     * PMIx connection @todo set to true? */
+     * PMIx connection @todo set to true?
+     *
+     * PMIx servers that are designated as system servers by including the
+     * PMIX_SERVER_SYSTEM_SUPPORT attribute when calling PMIx_server_init will
+     * create a rendezvous file in PMIX_SYSTEM_TMPDIR top-level directory.
+     * The filename will be of the form pmix.sys.hostname, where hostname is the
+     * string returned by the gethostname system call. Note that only one PMIx
+     * server on a node can be designated as the system server.
+     *
+     * Non-system PMIx servers will create a set of three rendezvous files in
+     * the directory defined by either the PMIX_SERVER_TMPDIR attribute or the
+     * TMPDIR environmental variable:
+     * • pmix.host.tool.nspace where host is the string returned by the
+     *			       gethostname system call and nspace is the
+     *			       namespace of the server.
+     * • pmix.host.tool.pid    where host is the string returned by the
+     *			       gethostname system call and pid is the PID of the
+     *			       server.
+     * • pmix.host.tool        where host is the string returned by the
+     *			       gethostname system call. Note that servers which
+     *			       are not given a namespace-specific
+     *			       PMIX_SERVER_TMPDIR attribute may not
+     *			       generate this file due to conflicts should
+     *			       multiple servers be present on the node.
+     */
     tmpbool = false;
     PMIX_INFO_LOAD(&cbdata.info[i], PMIX_SERVER_SYSTEM_SUPPORT, &tmpbool,
 		   PMIX_BOOL);
