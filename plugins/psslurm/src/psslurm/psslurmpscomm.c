@@ -2235,6 +2235,15 @@ static bool handleSpawnReq(DDTypedBufferMsg_t *msg)
 	Step_t s = {
 	    .jobid = jobid,
 	    .stepid = stepid };
+
+	if (!Alloc_find(jobid) && !Alloc_findByPackID(jobid)) {
+	    flog("removing obsolete spawnee %s where no allocation for "
+		 "step %s was found\n",  PSC_printTID(msg->header.sender),
+		 Step_strID(&s));
+	    PSIDtask_cleanup(spawnee);
+	    return true; // message is fully handled
+	}
+
 	flog("delay spawnee from %s due to missing %s\n",
 	     PSC_printTID(msg->header.sender), Step_strID(&s));
 
