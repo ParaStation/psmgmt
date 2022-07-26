@@ -50,9 +50,9 @@ const ConfDef_t confDef[] =
       "Absolute path to filesystem monitoring script" },
     { "FILESYSTEM_POLL", true, "num", "0",
       "Filesystem script poll time in seconds" },
-    { NULL, false, NULL, NULL, NULL },
     { "MONITOR_SCRIPT_PATH", false, "path", PSACCTLIBDIR,
       "Default search path for monitor scripts" },
+    { NULL, false, NULL, NULL, NULL },
 };
 
 Config_t config;

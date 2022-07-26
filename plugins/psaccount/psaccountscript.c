@@ -128,36 +128,51 @@ static void execCollectScript(Forwarder_Data_t *fwdata, int rerun)
     exit(0);
 }
 
-bool Script_test(char *spath, char *title)
+static char *getAbsMonPath(char *spath)
 {
-    if (!spath) return false;
+    if (!spath) return NULL;
 
     char *fName;
     if (spath[0] == '/') {
 	fName = strdup(spath);
     } else {
 	const char *monPath = getConfValueC(&config, "MONITOR_SCRIPT_PATH");
+	if (!monPath) {
+	    flog("invalid MONITOR_SCRIPT_PATH\n");
+	    return NULL;
+	}
 	fName = PSC_concat(monPath, "/", spath, 0L);
     }
 
     if (!fName) {
 	flog("out of memory\n");
+	return NULL;
+    }
+    return fName;
+}
+
+bool Script_test(char *spath, char *title)
+{
+    char *absPath = getAbsMonPath(spath);
+    if (!absPath) {
+	flog("getting absolute script path for %s failed\n", title);
 	return false;
     }
 
     struct stat sbuf;
-    if (stat(fName, &sbuf) == -1) {
-	mwarn(errno, "%s: %s script '%s'", __func__, title, fName);
-	ufree(fName);
+    if (stat(absPath, &sbuf) == -1) {
+	mwarn(errno, "%s: %s script '%s'", __func__, title, absPath);
+	ufree(absPath);
 	return false;
     }
     if (!(sbuf.st_mode & S_IFREG) || !(sbuf.st_mode & S_IXUSR)) {
-	flog("%s script '%s' is not a valid executable script\n", title, fName);
-	ufree(fName);
+	flog("%s script '%s' is not a valid executable script\n", title,
+	     absPath);
+	ufree(absPath);
 	return false;
     }
 
-    ufree(fName);
+    ufree(absPath);
     return true;
 }
 
@@ -253,21 +268,8 @@ Collect_Script_t *Script_start(char *title, char *path,
 	return false;
     }
 
-    char *fName;
-    if (path[0] == '/') {
-	fName = strdup(path);
-    } else {
-	const char *monPath = getConfValueC(&config, "MONITOR_SCRIPT_PATH");
-	fName = PSC_concat(monPath, "/", path, 0L);
-    }
-
-    if (!fName) {
-	flog("out of memory\n");
-	return false;
-    }
-
     Collect_Script_t *script = umalloc(sizeof(*script));
-    script->path = fName;
+    script->path = getAbsMonPath(path);
     script->func = func;
     script->poll = poll;
     if (!env) {
