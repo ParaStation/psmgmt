@@ -24,8 +24,8 @@
 
 #define INF2Z(num) (num == INFINITE64) ? (0) : (num)
 
-/** default account poll interval */
-#define POLL_TIME 30
+/** default account poll interval in seconds */
+#define DEFAULT_POLL_TIME 30
 
 /** current main accounting poll interval */
 static int confAccPollTime;
@@ -240,23 +240,21 @@ void TRes_destroy(TRes_t *tres)
 
 bool Acc_Init(void)
 {
-    /* save default account poll time */
-    if ((confAccPollTime = psAccountGetPoll(PSACCOUNT_OPT_MAIN)) <= 0) {
-	confAccPollTime = POLL_TIME;
-    }
-
     /* we want to have periodic updates on used resources */
-    if (!psAccountGetPoll(PSACCOUNT_OPT_MAIN)) {
-	fdbg(PSSLURM_LOG_ACC, "set main account interval to %i\n",
-	     confAccPollTime);
-	psAccountSetPoll(PSACCOUNT_OPT_MAIN, confAccPollTime);
+    int poll = getConfValueI(&Config, "SLURM_ACC_TASK");
+    if (poll < 0) poll = DEFAULT_POLL_TIME;
+    fdbg(PSSLURM_LOG_ACC, "set main account interval to %i seconds\n", poll);
+    if (!psAccountSetPoll(PSACCOUNT_OPT_MAIN, poll)) {
+	flog("failed setting main accounting time to %i\n", poll);
+	return false;
     }
+    confAccPollTime = poll;
 
     /* set collect mode in psaccount */
     psAccountSetGlobalCollect(true);
 
     /* enable energy polling */
-    int poll = getConfValueI(&Config, "SLURM_ACC_ENERGY");
+    poll = getConfValueI(&Config, "SLURM_ACC_ENERGY");
     if (poll > 0) {
 	oldEnergyPollTime = psAccountGetPoll(PSACCOUNT_OPT_ENERGY);
 	psAccountSetPoll(PSACCOUNT_OPT_ENERGY, poll);
