@@ -31,7 +31,7 @@
 
 /** psid plugin requirements */
 char name[] = "pspmix";
-int version = 1;
+int version = 2;
 int requiredAPI = 134;
 plugin_dep_t dependencies[] = {
 #if 0
