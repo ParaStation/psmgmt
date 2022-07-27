@@ -60,7 +60,11 @@ typedef struct {
 } mycbfunc_t;
 
 /** Setting up data for callback routines */
-#define INIT_CBDATA(d) memset(&(d), 0, sizeof(d))
+#define INIT_CBDATA(d, n) do {     \
+    memset(&(d), 0, sizeof(d));    \
+    (d).ninfo = n;                 \
+    PMIX_INFO_CREATE((d).info, n); \
+} while(0)
 
 /** Waiting for data to be filled by callback function */
 #define WAIT_FOR_CBDATA(d) while(!(d).filled) usleep(10)
@@ -1615,16 +1619,16 @@ bool pspmix_server_init(char *nspace, pmix_rank_t rank, const char *clusterid,
 	}
     }
 
-    mycbdata_t cbdata;
-    INIT_CBDATA(cbdata);
 #if PMIX_VERSION_MAJOR >= 4
-    cbdata.ninfo = 7;
+    size_t ninfo = 7;
 #else
-    cbdata.ninfo = 4;
+    size_t ninfo = 4;
 #endif
-    if (srvtmpdir) cbdata.ninfo++;
-    if (systmpdir) cbdata.ninfo++;
-    PMIX_INFO_CREATE(cbdata.info, cbdata.ninfo);
+    if (srvtmpdir) ninfo++;
+    if (systmpdir) ninfo++;
+
+    mycbdata_t cbdata;
+    INIT_CBDATA(cbdata, ninfo);
 
     size_t i = 0;
 
@@ -1861,15 +1865,12 @@ bool pspmix_server_init(char *nspace, pmix_rank_t rank, const char *clusterid,
 
 #if PMIX_VERSION_MAJOR >= 4
     /* tell the server common information */
-    INIT_CBDATA(cbdata);
-    cbdata.ninfo = 1;
-
-    PMIX_INFO_CREATE(cbdata.info, cbdata.ninfo);
+    INIT_CBDATA(cbdata, 1);
 
     pmix_data_array_t sessionInfo;
     fillServerSessionArray(&sessionInfo, clusterid);
 
-    PMIX_INFO_LOAD(&cbdata.info[0], PMIX_SESSION_INFO_ARRAY, &sessionInfo,
+    PMIX_INFO_LOAD(cbdata.info+0, PMIX_SESSION_INFO_ARRAY, &sessionInfo,
 		   PMIX_DATA_ARRAY);
 
     status = PMIx_server_register_resources(cbdata.info, cbdata.ninfo,
@@ -1877,6 +1878,7 @@ bool pspmix_server_init(char *nspace, pmix_rank_t rank, const char *clusterid,
     if (status != PMIX_SUCCESS) {
 	mlog("%s: PMIx_server_register_resources() failed: %s\n", __func__,
 	     PMIx_Error_string(status));
+	DESTROY_CBDATA(cbdata);
 	return false;
     }
     WAIT_FOR_CBDATA(cbdata);
@@ -1884,6 +1886,7 @@ bool pspmix_server_init(char *nspace, pmix_rank_t rank, const char *clusterid,
     if (cbdata.status != PMIX_SUCCESS) {
 	mlog("%s: Callback from register resources failed: %s\n", __func__,
 	     PMIx_Error_string(cbdata.status));
+	DESTROY_CBDATA(cbdata);
 	return false;
     }
     DESTROY_CBDATA(cbdata);
@@ -1893,7 +1896,7 @@ bool pspmix_server_init(char *nspace, pmix_rank_t rank, const char *clusterid,
 #endif
 
     /* register the error handler */
-    INIT_CBDATA(cbdata);
+    INIT_CBDATA(cbdata, 0);
     PMIx_Register_event_handler(NULL, 0, NULL, 0,
 	    errhandler, registerErrorHandler_cb, &cbdata);
     WAIT_FOR_CBDATA(cbdata);
@@ -2629,10 +2632,8 @@ bool pspmix_server_registerNamespace(
 
     /* fill infos */
     mycbdata_t data;
-    INIT_CBDATA(data);
-    data.ninfo = 4 + numApps + numNodes + jobSize;
+    INIT_CBDATA(data, 4 + numApps + numNodes + jobSize);
 
-    PMIX_INFO_CREATE(data.info, data.ninfo);
     size_t count = 0;
 
     /* ===== session info ===== */
@@ -2817,7 +2818,7 @@ bool pspmix_server_setupLocalSupport(const char *nspace)
      * needed for PMIx fabric plugin support
      * see https://github.com/pmix/pmix-standard/issues/157 */
     mycbdata_t cbdata;
-    INIT_CBDATA(cbdata);
+    INIT_CBDATA(cbdata, 0);
     status = PMIx_server_setup_local_support(nspace, NULL, 0,
 	    setupLocalSupport_cb, &cbdata);
     if (status != PMIX_SUCCESS) {
@@ -2867,7 +2868,7 @@ bool pspmix_server_registerClient(const char *nspace, int rank, int uid,
 
     /* register clients uid and gid as well as ident object */
     mycbdata_t cbdata;
-    INIT_CBDATA(cbdata);
+    INIT_CBDATA(cbdata, 0);
     status = PMIx_server_register_client(&proc, uid, gid, clientObject,
 					 registerClient_cb, &cbdata);
     PMIX_PROC_DESTRUCT(&proc);
@@ -2918,7 +2919,7 @@ void pspmix_server_deregisterClient(const char *nspace, int rank)
     PMIx_server_deregister_client(&proc, NULL, NULL);
 #else
     mycbdata_t cbdata;
-    INIT_CBDATA(cbdata);
+    INIT_CBDATA(cbdata, 0);
     PMIx_server_deregister_client(&proc, deregisterClient_cb, &cbdata);
     WAIT_FOR_CBDATA(cbdata);
 
