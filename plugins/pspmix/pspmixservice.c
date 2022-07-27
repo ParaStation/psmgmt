@@ -1307,6 +1307,8 @@ void pspmix_service_sendModexDataResponse(pmix_status_t status,
     pspmix_comm_sendModexDataResponse(mdata->requester, status,
 				      mdata->proc.nspace, mdata->proc.rank,
 				      mdata->data, mdata->ndata);
+
+    for (size_t i = 0; mdata->reqkeys[i]; i++) ufree(mdata->reqkeys[i]);
     ufree(mdata->reqkeys);
     ufree(mdata);
 }
