@@ -1819,7 +1819,7 @@ static void convAccDataToTRes(SlurmAccData_t *slurmAccData, TRes_t *tres)
 	    entry.out_tot = ic->sendBytes * countTasks(slurmAccData->tasks);
 	    entry.out_max_nodeid = slurmAccData->localNodeId;
 	    /* all ranks will have the same data */
-	    entry.out_max_taskid = getAccRank(slurmAccData, ACCID_MAX_DISKWRITE);
+	    entry.out_max_taskid = entry.in_max_taskid;
 	    TRes_set(tres, icID, &entry);
 	}
     }
