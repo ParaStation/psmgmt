@@ -697,7 +697,6 @@ static bool checkKeyAvailability(pmix_proc_t *proc, char **reqKeys)
     while ((key = reqKeys[c++])) {
 	pmix_value_t *val;
 	pmix_status_t status = PMIx_Get(proc, key, info, ninfo, &val);
-	PMIX_INFO_FREE(info, ninfo);
 	switch (status) {
 	    case PMIX_SUCCESS:
 		udbg(PSPMIX_LOG_MODEX, "found '%s' for rank %d\n", key,
@@ -706,15 +705,18 @@ static bool checkKeyAvailability(pmix_proc_t *proc, char **reqKeys)
 	    case PMIX_ERR_NOT_FOUND:
 		udbg(PSPMIX_LOG_MODEX, "not found '%s' for rank %d\n", key,
 		     proc->rank);
+		PMIX_INFO_FREE(info, ninfo);
 		return false;
 	    case PMIX_ERR_BAD_PARAM:
 	    case PMIX_ERR_EXISTS_OUTSIDE_SCOPE:
 		mlog("%s: PMIx_get(proc %s:%d key %s) failed: %s\n", __func__,
 			proc->nspace, proc->rank, key,
 			PMIx_Error_string(status));
+		PMIX_INFO_FREE(info, ninfo);
 		return false;
 	}
     }
+    PMIX_INFO_FREE(info, ninfo);
     return true;
 }
 
