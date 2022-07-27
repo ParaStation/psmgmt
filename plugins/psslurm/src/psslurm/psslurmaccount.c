@@ -258,6 +258,19 @@ bool Acc_Init(void)
     if (poll > 0) {
 	oldEnergyPollTime = psAccountGetPoll(PSACCOUNT_OPT_ENERGY);
 	psAccountSetPoll(PSACCOUNT_OPT_ENERGY, poll);
+
+	char *val = getConfValueC(&SlurmConfig, "AcctGatherEnergyType");
+	if (val) {
+	    char envStr[128];
+	    snprintf(envStr, sizeof(envStr), "ENERGY_TYPE=%s", val);
+	    bool ret = psAccountScriptEnv(PSACCOUNT_SCRIPT_ENV_SET,
+					  PSACCOUNT_OPT_ENERGY, envStr);
+	    if (!ret) {
+		flog("failed to setup energy monitor environment\n");
+		return false;
+	    }
+	}
+
 	bool ret = psAccountCtlScript(PSACCOUNT_SCRIPT_START,
 				      PSACCOUNT_OPT_ENERGY);
 
@@ -273,6 +286,19 @@ bool Acc_Init(void)
     if (poll > 0) {
 	oldFilesystemPollTime = psAccountGetPoll(PSACCOUNT_OPT_FS);
 	psAccountSetPoll(PSACCOUNT_OPT_FS, poll);
+
+	char *val = getConfValueC(&SlurmConfig, "AcctGatherFilesystemType");
+	if (val) {
+	    char envStr[128];
+	    snprintf(envStr, sizeof(envStr), "FILESYSTEM_TYPE=%s", val);
+	    bool ret = psAccountScriptEnv(PSACCOUNT_SCRIPT_ENV_SET,
+					  PSACCOUNT_OPT_FS, envStr);
+	    if (!ret) {
+		flog("failed to setup filesystem monitor environment\n");
+		return false;
+	    }
+	}
+
 	bool ret = psAccountCtlScript(PSACCOUNT_SCRIPT_START, PSACCOUNT_OPT_FS);
 	if (!ret) {
 	    flog("failed to start filesystem monitor script\n");
@@ -286,6 +312,18 @@ bool Acc_Init(void)
     if (poll > 0) {
 	oldInterconnectPollTime = psAccountGetPoll(PSACCOUNT_OPT_IC);
 	psAccountSetPoll(PSACCOUNT_OPT_IC, poll);
+
+	char *val = getConfValueC(&SlurmConfig, "AcctGatherInterconnectType");
+	if (val) {
+	    char envStr[128];
+	    snprintf(envStr, sizeof(envStr), "INTERCONNECT_TYPE=%s", val);
+	    bool ret = psAccountScriptEnv(PSACCOUNT_SCRIPT_ENV_SET,
+					  PSACCOUNT_OPT_IC, envStr);
+	    if (!ret) {
+		flog("failed to setup interconnect monitor environment\n");
+		return false;
+	    }
+	}
 
 	char *port = getConfValueC(&SlurmConfig, "INFINIBAND_OFED_PORT");
 	if (port) {
