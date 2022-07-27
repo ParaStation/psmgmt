@@ -153,12 +153,12 @@ bool pspmix_service_clientFinalized(void *clientObject, void *cb);
  * finalization to the PMIx server library.
  *
  * @param success  Result reported by the forwarder
- * @param rank     namespace rank of the client
  * @param nspace   namespace of the client
+ * @param rank     namespace rank of the client
  * @param fwtid    TID of the client's forwarder
  */
-void pspmix_service_handleClientIFResp(bool success, pmix_rank_t rank,
-	const char *nspace, PStask_ID_t fwtid);
+void pspmix_service_handleClientIFResp(bool success, const char *nspace,
+				       pmix_rank_t rank, PStask_ID_t fwtid);
 
 /**
  * @brief Abort the job
@@ -250,8 +250,8 @@ bool pspmix_service_sendModexDataRequest(modexdata_t *mdata);
  * Tell the PMIx server that the requested modex is needed.
  *
  * @param senderTID  task id of the sender of the message
- * @param rank       rank of the requested dmodex
  * @param nspace     namespace of the requested dmodex
+ * @param rank       rank of the requested dmodex
  * @param reqKeys    keys required to be included in the data (NULL terminated)
  * @param timeout    max seconds to wait for the required data to be available
  *
@@ -259,10 +259,8 @@ bool pspmix_service_sendModexDataRequest(modexdata_t *mdata);
  *          @a reqKeys is taken.
  */
 bool pspmix_service_handleModexDataRequest(PStask_ID_t senderTID,
-					   uint32_t rank,
-					   const char *nspace,
-					   char **reqKeys,
-					   int timeout);
+					   const char *nspace, uint32_t rank,
+					   char **reqKeys, int timeout);
 
 /**
  * @brief Send direct modex data response
@@ -279,15 +277,15 @@ void pspmix_service_sendModexDataResponse(pmix_status_t status,
  * Pass the requested modex to the PMIx server
  *
  * @param state     PMIx return state of the request
- * @param rank      from which rank are the data
  * @param nspace    from which namespace are the data
+ * @param rank      from which rank are the data
  * @param data      direct modex blob requested (takes memory ownership)
  *		    NULL if state != PMIX_SUCCESS
  * @param len       length of direct modex blob
  *		    0 if state != PMIX_SUCCESS
  */
 void pspmix_service_handleModexDataResponse(pmix_status_t status,
-					    uint32_t rank, const char *nspace,
+					    const char *nspace, uint32_t rank,
 					    void *data, size_t len);
 
 #endif  /* __PS_PMIX_SERVICE */

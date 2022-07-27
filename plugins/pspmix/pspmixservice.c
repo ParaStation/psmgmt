@@ -497,13 +497,13 @@ void pspmix_service_cleanupNamespace(void *nspace, bool error,
 /**
  * @brief Get the node containing a specific rank in a given reservation
  *
- * @param rank     rank in reservation
  * @param ns       namespace
+ * @param rank     rank in reservation
  *
  * @return Returns node id or -1 if no reservation found and -2 if rank not
  *         found.
  */
-static PSnodes_ID_t getNodeFromRank(int32_t rank, PspmixNamespace_t *ns)
+static PSnodes_ID_t getNodeFromRank(PspmixNamespace_t *ns, int32_t rank)
 {
 
     //TODO: translate namespace rank to parastation rank ?!?
@@ -562,7 +562,7 @@ bool pspmix_service_registerClientAndSendEnv(PStask_ID_t loggertid,
     /* remember some information to be used outside the lock */
     uint32_t universeSize = ns->universeSize;
     uint32_t jobSize = ns->jobSize;
-    PSnodes_ID_t nodeId = getNodeFromRank(client->rank, ns);
+    PSnodes_ID_t nodeId = getNodeFromRank(ns, client->rank);
 
     RELEASE_LOCK(namespaceList);
 
@@ -710,14 +710,14 @@ bool pspmix_service_clientConnected(void *clientObject, void *cb)
 
     /* copy values inside lock */
     PStask_ID_t fwtid = client->fwtid;
-    pmix_rank_t rank = client->rank;
     char nsname[MAX_NSLEN+1];
     strcpy(nsname, client->nsname);
+    pmix_rank_t rank = client->rank;
     PStask_ID_t spawnertid = ns->job->spawnertid;
 
     RELEASE_LOCK(namespaceList);
 
-    pspmix_comm_sendInitNotification(fwtid, rank, nsname, spawnertid);
+    pspmix_comm_sendInitNotification(fwtid, nsname, rank, spawnertid);
 
     /* TODO TODO TODO
        if (psAccountSwitchAccounting) psAccountSwitchAccounting(childTask->tid, false);
@@ -763,14 +763,14 @@ bool pspmix_service_clientFinalized(void *clientObject, void *cb)
 
     RELEASE_LOCK(namespaceList);
 
-    pspmix_comm_sendFinalizeNotification(fwtid, rank, nsname, spawnertid);
+    pspmix_comm_sendFinalizeNotification(fwtid, nsname, rank, spawnertid);
 
     return true;
 }
 
 /* main thread */
-void pspmix_service_handleClientIFResp(bool success, pmix_rank_t rank,
-	const char *nspace, PStask_ID_t fwtid)
+void pspmix_service_handleClientIFResp(bool success, const char *nspace,
+				       pmix_rank_t rank, PStask_ID_t fwtid)
 {
     GET_LOCK(namespaceList);
 
@@ -997,7 +997,7 @@ int pspmix_service_fenceIn(const pmix_proc_t procs[], size_t nprocs,
 	    continue;
 	}
 
-	PSnodes_ID_t nodeid = getNodeFromRank(procs[i].rank, ns);
+	PSnodes_ID_t nodeid = getNodeFromRank(ns, procs[i].rank);
 	if (nodeid < 0) {
 	    ulog("failed to get node for rank %d in namespace '%s'\n",
 		 procs[i].rank, procs[i].nspace);
@@ -1229,10 +1229,10 @@ bool pspmix_service_sendModexDataRequest(modexdata_t *mdata)
 	return false;
     }
 
-    PSnodes_ID_t nodeid = getNodeFromRank(mdata->proc.rank, ns);
+    PSnodes_ID_t nodeid = getNodeFromRank(ns, mdata->proc.rank);
     if (nodeid < 0) {
-	ulog("UNEXPECTED: getNodeFromRank(%d, %s) failed\n", mdata->proc.rank,
-	    ns->name);
+	ulog("UNEXPECTED: getNodeFromRank(%s, %d) failed\n", ns->name,
+	     mdata->proc.rank);
 	RELEASE_LOCK(namespaceList);
 	return false;
     }
@@ -1243,8 +1243,8 @@ bool pspmix_service_sendModexDataRequest(modexdata_t *mdata)
 
     GET_LOCK(modexRequestList);
 
-    if (!pspmix_comm_sendModexDataRequest(nodeid, mdata->proc.rank,
-					  mdata->proc.nspace, mdata->reqkeys,
+    if (!pspmix_comm_sendModexDataRequest(nodeid, mdata->proc.nspace,
+					  mdata->proc.rank, mdata->reqkeys,
 					  mdata->timeout)) {
 	ulog("send failed for %s:%d to node %hd\n",
 		mdata->proc.nspace, mdata->proc.rank, nodeid);
@@ -1260,8 +1260,8 @@ bool pspmix_service_sendModexDataRequest(modexdata_t *mdata)
 }
 
 bool pspmix_service_handleModexDataRequest(PStask_ID_t senderTID,
-					   uint32_t rank,
 					   const char *nspace,
+					   uint32_t rank,
 					   char **reqKeys,
 					   int timeout)
 {
@@ -1305,14 +1305,14 @@ void pspmix_service_sendModexDataResponse(pmix_status_t status,
     }
 
     pspmix_comm_sendModexDataResponse(mdata->requester, status,
-				      mdata->proc.rank, mdata->proc.nspace,
+				      mdata->proc.nspace, mdata->proc.rank,
 				      mdata->data, mdata->ndata);
     ufree(mdata->reqkeys);
     ufree(mdata);
 }
 
 void pspmix_service_handleModexDataResponse(pmix_status_t status,
-					    uint32_t rank, const char *nspace,
+					    const char *nspace, uint32_t rank,
 					    void *data, size_t len)
 {
 
@@ -1335,8 +1335,8 @@ void pspmix_service_handleModexDataResponse(pmix_status_t status,
     RELEASE_LOCK(modexRequestList);
 
     if (!mdata) {
-	ulog("no request for response (rank %d namespace %s). Ignoring!\n",
-	     rank, nspace);
+	ulog("no request for response (namespace %s rank %d). Ignoring!\n",
+	     nspace, rank);
 	return;
     }
 

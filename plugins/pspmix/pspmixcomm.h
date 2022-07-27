@@ -77,59 +77,59 @@ bool pspmix_comm_sendFenceOut(PStask_ID_t targetTID, uint64_t fenceid,
  * @brief Compose and send a modex data request message
  *
  * @param target     node id of the psid to send the message to
- * @param rank       process rank information the message shall contain
  * @param nspace     process namespace information the message shall contain
+ * @param rank       process rank information the message shall contain
  * @param reqKeys    keys required to be included in the data (NULL terminated)
  * @param timeout    max seconds to wait for the required data to be available
  *
  * @return Returns true on success, false on error
  */
-bool pspmix_comm_sendModexDataRequest(PSnodes_ID_t target, uint32_t rank,
-				      const char *nspace, char **reqKeys,
-				      int32_t timeout);
+bool pspmix_comm_sendModexDataRequest(PSnodes_ID_t target,
+				      const char *nspace, uint32_t rank,
+				      char **reqKeys, int32_t timeout);
 
 /**
  * @brief Compose and send a modex data response message
  *
  * @param targetTID  task id of the forwarder to send the message to
  * @param status     status information the message shall contain
- * @param rank       process rank information the message shall contain
  * @param nspace     process namespace information the message shall contain
+ * @param rank       process rank information the message shall contain
  * @param data       data the message shall contain
  * @param ndata      size of data the message shall contain
  *
  * @return Returns true on success, false on error
  */
 bool pspmix_comm_sendModexDataResponse(PStask_ID_t targetTID, int32_t status,
-				       uint32_t rank, const char *nspace,
+				       const char *nspace, uint32_t rank,
 				       void *data, size_t ndata);
 
 /**
  * @brief Compose and send a client init notification message
  *
  * @param targetTID  task id of the forwarder to send the message to
- * @param rank       rank of the client
  * @param nspace     namespace name
+ * @param rank       rank of the client
  * @param spawnertid spawner as job identifier for extra field
  *
  * @return Returns true on success, false on error
  */
 bool pspmix_comm_sendInitNotification(PStask_ID_t targetTID,
-				      uint32_t rank, const char *nspace,
+				      const char *nspace, uint32_t rank,
 				      PStask_ID_t spawnertid);
 
 /**
  * @brief Compose and send a client finalization notification message
  *
  * @param targetTID  task id of the forwarder to send the message to
- * @param rank       rank of the client
  * @param nspace     namespace name
+ * @param rank       rank of the client
  * @param spawnertid spawner as job identifier for extra field
  *
  * @return Returns true on success, false on error
  */
 bool pspmix_comm_sendFinalizeNotification(PStask_ID_t targetTID,
-					  uint32_t rank, const char *nspace,
+				          const char *nspace, uint32_t rank,
 					  PStask_ID_t spawnertid);
 
 /**

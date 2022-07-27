@@ -172,9 +172,9 @@ static void handleClientNotifyResp(DDTypedBufferMsg_t *msg,
     uint8_t success;
     getUint8(&ptr, &success);
 
+    char *nspace = getStringM(&ptr);
     uint32_t rank;
     getUint32(&ptr, &rank);
-    char *nspace = getStringM(&ptr);
 
     mdbg(PSPMIX_LOG_COMM, "%s: received %s from %s (success %s namespace %s"
 	 " rank %d)\n", __func__, pspmix_getMsgTypeString(msg->type),
@@ -184,7 +184,7 @@ static void handleClientNotifyResp(DDTypedBufferMsg_t *msg,
     switch(msg->type) {
     case PSPMIX_CLIENT_INIT_RES:
     case PSPMIX_CLIENT_FINALIZE_RES:
-	pspmix_service_handleClientIFResp(success, rank, nspace,
+	pspmix_service_handleClientIFResp(success, nspace, rank,
 					  msg->header.sender);
 	break;
     default:
@@ -261,9 +261,9 @@ static void handleModexDataReq(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
 
     char *ptr = data->buf;
 
+    char *nspace = getStringM(&ptr);
     uint32_t rank;
     getUint32(&ptr, &rank);
-    char *nspace = getStringM(&ptr);
 
     int32_t timeout;
     getInt32(&ptr, &timeout);
@@ -277,7 +277,7 @@ static void handleModexDataReq(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
 	 " timeout %d)\n", __func__, pspmix_getMsgTypeString(msg->type),
 	 nspace, rank, numReqKeys, timeout);
 
-    if (!pspmix_service_handleModexDataRequest(msg->header.sender, rank, nspace,
+    if (!pspmix_service_handleModexDataRequest(msg->header.sender, nspace, rank,
 					       reqKeys, timeout)) {
 	for (size_t i = 0; reqKeys[i]; i++) ufree(reqKeys[i]);
 	ufree(reqKeys);
@@ -302,9 +302,9 @@ static void handleModexDataResp(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
     int32_t status;
     getInt32(&ptr, &status);
 
+    char *nspace = getStringM(&ptr);
     uint32_t rank;
     getUint32(&ptr, &rank);
-    char *nspace = getStringM(&ptr);
 
     size_t len;
     void *blob = getDataM(&ptr, &len);
@@ -318,7 +318,7 @@ static void handleModexDataResp(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
 	 pspmix_getMsgTypeString(msg->type), nspace, rank);
 
     /* transfers ownership of blob */
-    pspmix_service_handleModexDataResponse(status, rank, nspace, blob, len);
+    pspmix_service_handleModexDataResponse(status, nspace, rank, blob, len);
 
     ufree(nspace);
 }
@@ -527,29 +527,28 @@ bool pspmix_comm_sendFenceOut(PStask_ID_t targetTID /* remote PMIx server */,
 }
 
 bool pspmix_comm_sendModexDataRequest(PSnodes_ID_t target /* remote psid */,
-				      uint32_t rank,
-				      const char *nspace,
+				      const char *nspace, uint32_t rank,
 				      char **reqKeys,
 				      int32_t timeout)
 {
-    mdbg(PSPMIX_LOG_CALL|PSPMIX_LOG_COMM, "%s(target %s rank %d (nspace %s))\n",
-	 __func__, PSC_printTID(target), rank, nspace);
+    mdbg(PSPMIX_LOG_CALL|PSPMIX_LOG_COMM, "%s(target %s nspace %s rank %d)\n",
+	 __func__, PSC_printTID(target), nspace, rank);
 
     PS_SendDB_t msg;
     pthread_mutex_lock(&send_lock);
     initFragPspmix(&msg, PSPMIX_MODEX_DATA_REQ);
     setFragDest(&msg, PSC_getTID(target, 0));
 
-    addUint32ToMsg(rank, &msg);
     addStringToMsg(nspace, &msg);
+    addUint32ToMsg(rank, &msg);
     addInt32ToMsg(timeout, &msg);
     addStringArrayToMsg(reqKeys, &msg);
 
     int ret = sendFragMsg(&msg);
     pthread_mutex_unlock(&send_lock);
     if (ret < 0) {
-	mlog("%s(target %s rank %d (nspace %s)) failed\n",
-	     __func__, PSC_printTID(target), rank, nspace);
+	mlog("%s(target %s nspace %s rank %d) failed\n",
+	     __func__, PSC_printTID(target), nspace, rank);
 	return false;
     }
     return true;
@@ -558,8 +557,7 @@ bool pspmix_comm_sendModexDataRequest(PSnodes_ID_t target /* remote psid */,
 bool pspmix_comm_sendModexDataResponse(PStask_ID_t targetTID
 						       /* remote PMIx server */,
 				       int32_t status,
-				       uint32_t rank,
-				       const char *nspace,
+				       const char *nspace, uint32_t rank,
 				       void *data, size_t ndata)
 {
     mdbg(PSPMIX_LOG_CALL|PSPMIX_LOG_COMM,
@@ -572,8 +570,8 @@ bool pspmix_comm_sendModexDataResponse(PStask_ID_t targetTID
     setFragDest(&msg, targetTID);
 
     addInt32ToMsg(status, &msg);
-    addUint32ToMsg(rank, &msg);
     addStringToMsg(nspace, &msg);
+    addUint32ToMsg(rank, &msg);
     addDataToMsg(data, ndata, &msg);
 
     int ret = sendFragMsg(&msg);
@@ -588,28 +586,28 @@ bool pspmix_comm_sendModexDataResponse(PStask_ID_t targetTID
 
 static bool sendForwarderNotification(PStask_ID_t targetTID /* fw */,
 				      PSP_PSPMIX_t type,
-				      uint32_t rank, const char *nspace)
+				      const char *nspace, uint32_t rank)
 {
     PS_SendDB_t msg;
     pthread_mutex_lock(&send_lock);
     initFragPspmix(&msg, type);
     setFragDest(&msg, targetTID);
 
-    addUint32ToMsg(rank, &msg);
     addStringToMsg(nspace, &msg);
+    addUint32ToMsg(rank, &msg);
 
     int ret = sendFragMsg(&msg);
     pthread_mutex_unlock(&send_lock);
     if (ret < 0) {
-	mlog("%s(targetTID %s rank %u nspace %s) failed\n", __func__,
-	     PSC_printTID(targetTID), rank, nspace);
+	mlog("%s(targetTID %s nspace %s rank %u) failed\n", __func__,
+	     PSC_printTID(targetTID), nspace, rank);
 	return false;
     }
     return true;
 }
 
 bool pspmix_comm_sendInitNotification(PStask_ID_t targetTID /* fw */,
-				      uint32_t rank, const char *nspace,
+				      const char *nspace, uint32_t rank,
 				      PStask_ID_t spawnertid)
 {
     mdbg(PSPMIX_LOG_CALL|PSPMIX_LOG_COMM, "%s(targetTID %s nspace %s rank %u",
@@ -620,11 +618,11 @@ bool pspmix_comm_sendInitNotification(PStask_ID_t targetTID /* fw */,
     extra.spawnertid = spawnertid;
 
     return sendForwarderNotification(targetTID, PSPMIX_CLIENT_INIT,
-				     rank, nspace);
+				     nspace, rank);
 }
 
 bool pspmix_comm_sendFinalizeNotification(PStask_ID_t targetTID /* fw */,
-					  uint32_t rank, const char *nspace,
+					  const char *nspace, uint32_t rank,
 					  PStask_ID_t spawnertid)
 {
     mdbg(PSPMIX_LOG_CALL|PSPMIX_LOG_COMM, "%s(targetTID %s nspace %s rank %u",
@@ -635,7 +633,7 @@ bool pspmix_comm_sendFinalizeNotification(PStask_ID_t targetTID /* fw */,
     extra.spawnertid = spawnertid;
 
     return sendForwarderNotification(targetTID, PSPMIX_CLIENT_FINALIZE,
-				     rank, nspace);
+				     nspace, rank);
 }
 
 void pspmix_comm_sendSignal(PStask_ID_t targetTID, int signal)
