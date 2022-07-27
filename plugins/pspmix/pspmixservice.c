@@ -1243,7 +1243,8 @@ bool pspmix_service_sendModexDataRequest(modexdata_t *mdata)
 
     GET_LOCK(modexRequestList);
 
-    if (!pspmix_comm_sendModexDataRequest(nodeid, &mdata->proc, mdata->reqkeys,
+    if (!pspmix_comm_sendModexDataRequest(nodeid, mdata->proc.rank,
+					  mdata->proc.nspace, mdata->reqkeys,
 					  mdata->timeout)) {
 	ulog("send failed for %s:%d to node %hd\n",
 		mdata->proc.nspace, mdata->proc.rank, nodeid);
@@ -1259,7 +1260,8 @@ bool pspmix_service_sendModexDataRequest(modexdata_t *mdata)
 }
 
 bool pspmix_service_handleModexDataRequest(PStask_ID_t senderTID,
-					   pmix_proc_t *proc,
+					   uint32_t rank,
+					   const char *nspace,
 					   char **reqKeys,
 					   int timeout)
 {
@@ -1267,16 +1269,17 @@ bool pspmix_service_handleModexDataRequest(PStask_ID_t senderTID,
 
     mdata->requester = senderTID;
 
-    mdata->proc.rank = proc->rank;
-    strncpy(mdata->proc.nspace, proc->nspace, sizeof(mdata->proc.nspace));
+    PMIX_PROC_CONSTRUCT(&mdata->proc);
+    PMIX_PROC_LOAD(&mdata->proc, nspace, rank);
 
     mdata->reqkeys = reqKeys;
     mdata->timeout = timeout;
 
     /* hands over ownership of mdata */
     if (!pspmix_server_requestModexData(mdata)) {
-	ulog("pspmix_server_requestModexData() failed for %s:%d\n",
-	     proc->nspace, proc->rank);
+	ulog("pspmix_server_requestModexData() failed for %s:%d\n", nspace,
+	     rank);
+	PMIX_PROC_DESTRUCT(&mdata->proc);
 	ufree(mdata);
 	return false;
     }
@@ -1301,13 +1304,15 @@ void pspmix_service_sendModexDataResponse(pmix_status_t status,
 	mlog(" (%zu)\n", mdata->ndata);
     }
 
-    pspmix_comm_sendModexDataResponse(mdata->requester, status, &mdata->proc,
+    pspmix_comm_sendModexDataResponse(mdata->requester, status,
+				      mdata->proc.rank, mdata->proc.nspace,
 				      mdata->data, mdata->ndata);
     ufree(mdata->reqkeys);
     ufree(mdata);
 }
 
-void pspmix_service_handleModexDataResponse(pmix_status_t status, pmix_proc_t *proc,
+void pspmix_service_handleModexDataResponse(pmix_status_t status,
+					    uint32_t rank, const char *nspace,
 					    void *data, size_t len)
 {
 
@@ -1319,8 +1324,8 @@ void pspmix_service_handleModexDataResponse(pmix_status_t status, pmix_proc_t *p
     list_t *s;
     list_for_each(s, &modexRequestList) {
 	modexdata_t *cur = list_entry(s, modexdata_t, next);
-	if (cur->proc.rank == proc->rank
-		&& PMIX_CHECK_NSPACE(cur->proc.nspace, proc->nspace)) {
+	if (cur->proc.rank == rank
+		&& PMIX_CHECK_NSPACE(cur->proc.nspace, nspace)) {
 	    mdata = cur;
 	    list_del(&cur->next);
 	    break;
@@ -1331,7 +1336,7 @@ void pspmix_service_handleModexDataResponse(pmix_status_t status, pmix_proc_t *p
 
     if (!mdata) {
 	ulog("no request for response (rank %d namespace %s). Ignoring!\n",
-	     proc->rank, proc->nspace);
+	     rank, nspace);
 	return;
     }
 

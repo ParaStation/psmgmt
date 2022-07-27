@@ -20,8 +20,6 @@
 #include <stdint.h>
 #include <sys/types.h>
 
-#include <pmix_common.h>
-
 #include "pscommon.h"
 #include "psprotocol.h"
 #include "psenv.h"
@@ -79,28 +77,32 @@ bool pspmix_comm_sendFenceOut(PStask_ID_t targetTID, uint64_t fenceid,
  * @brief Compose and send a modex data request message
  *
  * @param target     node id of the psid to send the message to
- * @param proc       process information the message shall contain
+ * @param rank       process rank information the message shall contain
+ * @param nspace     process namespace information the message shall contain
  * @param reqKeys    keys required to be included in the data (NULL terminated)
  * @param timeout    max seconds to wait for the required data to be available
  *
  * @return Returns true on success, false on error
  */
-bool pspmix_comm_sendModexDataRequest(PSnodes_ID_t target, pmix_proc_t *proc,
-				      char **reqKeys, int32_t timeout);
+bool pspmix_comm_sendModexDataRequest(PSnodes_ID_t target, uint32_t rank,
+				      const char *nspace, char **reqKeys,
+				      int32_t timeout);
 
 /**
  * @brief Compose and send a modex data response message
  *
  * @param targetTID  task id of the forwarder to send the message to
  * @param status     status information the message shall contain
- * @param proc       process information the message shall contain
+ * @param rank       process rank information the message shall contain
+ * @param nspace     process namespace information the message shall contain
  * @param data       data the message shall contain
  * @param ndata      size of data the message shall contain
  *
  * @return Returns true on success, false on error
  */
 bool pspmix_comm_sendModexDataResponse(PStask_ID_t targetTID, int32_t status,
-	pmix_proc_t *proc, void *data, size_t ndata);
+				       uint32_t rank, const char *nspace,
+				       void *data, size_t ndata);
 
 /**
  * @brief Compose and send a client init notification message
@@ -113,7 +115,7 @@ bool pspmix_comm_sendModexDataResponse(PStask_ID_t targetTID, int32_t status,
  * @return Returns true on success, false on error
  */
 bool pspmix_comm_sendInitNotification(PStask_ID_t targetTID,
-				      pmix_rank_t rank, const char *nspace,
+				      uint32_t rank, const char *nspace,
 				      PStask_ID_t spawnertid);
 
 /**
@@ -127,7 +129,7 @@ bool pspmix_comm_sendInitNotification(PStask_ID_t targetTID,
  * @return Returns true on success, false on error
  */
 bool pspmix_comm_sendFinalizeNotification(PStask_ID_t targetTID,
-					  pmix_rank_t rank, const char *nspace,
+					  uint32_t rank, const char *nspace,
 					  PStask_ID_t spawnertid);
 
 /**

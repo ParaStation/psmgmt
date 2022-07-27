@@ -250,7 +250,8 @@ bool pspmix_service_sendModexDataRequest(modexdata_t *mdata);
  * Tell the PMIx server that the requested modex is needed.
  *
  * @param senderTID  task id of the sender of the message
- * @param proc       rank and namespace of the requested dmodex
+ * @param rank       rank of the requested dmodex
+ * @param nspace     namespace of the requested dmodex
  * @param reqKeys    keys required to be included in the data (NULL terminated)
  * @param timeout    max seconds to wait for the required data to be available
  *
@@ -258,7 +259,8 @@ bool pspmix_service_sendModexDataRequest(modexdata_t *mdata);
  *          @a reqKeys is taken.
  */
 bool pspmix_service_handleModexDataRequest(PStask_ID_t senderTID,
-					   pmix_proc_t *proc,
+					   uint32_t rank,
+					   const char *nspace,
 					   char **reqKeys,
 					   int timeout);
 
@@ -277,14 +279,15 @@ void pspmix_service_sendModexDataResponse(pmix_status_t status,
  * Pass the requested modex to the PMIx server
  *
  * @param state     PMIx return state of the request
- * @param proc      from which rank and namespace are the data
+ * @param rank      from which rank are the data
+ * @param nspace    from which namespace are the data
  * @param data      direct modex blob requested (takes memory ownership)
  *		    NULL if state != PMIX_SUCCESS
  * @param len       length of direct modex blob
  *		    0 if state != PMIX_SUCCESS
  */
 void pspmix_service_handleModexDataResponse(pmix_status_t status,
-					    pmix_proc_t *proc,
+					    uint32_t rank, const char *nspace,
 					    void *data, size_t len);
 
 #endif  /* __PS_PMIX_SERVICE */
