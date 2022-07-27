@@ -375,6 +375,7 @@ static void fencenb_release_fn(void *cbdata)
 	memset(mdata, 0, sizeof(*mdata)); /* only for debugging */
     }
 
+    PMIX_PROC_DESTRUCT(&mdata->proc);
     ufree(mdata);
 }
 
@@ -492,9 +493,10 @@ static pmix_status_t server_fencenb_cb(
     mdata->ndata = 0;
     mdata->cbfunc = cbfunc;
     mdata->cbdata = cbdata;
+    PMIX_PROC_CONSTRUCT(&mdata->proc);
 
     /* XXX kind of a hack, can there be multiple nspaces involved? */
-    strncpy(mdata->proc.nspace, procs[0].nspace, sizeof(mdata->proc.nspace));
+    PMIX_PROC_LOAD(&mdata->proc, procs[0].nspace, 0);
 
     int ret;
     ret = pspmix_service_fenceIn(procs, nprocs, data, ndata, mdata);
@@ -502,6 +504,7 @@ static pmix_status_t server_fencenb_cb(
     if (ret == 0) return PMIX_SUCCESS;
     assert(ret == 1);
 
+    PMIX_PROC_DESTRUCT(&mdata->proc);
     ufree(mdata);
     mdbg(PSPMIX_LOG_FENCE, "%s: Returning PMIX_OPERATION_SUCCEEDED.\n",
 	    __func__);
@@ -521,6 +524,7 @@ static void dmodex_req_release_fn(void *cbdata)
     /* free struct allocated by server_dmodex_req_cb() */
     for (size_t i = 0; mdata->reqkeys[i]; i++) ufree(mdata->reqkeys[i]);
     ufree(mdata->reqkeys);
+    PMIX_PROC_DESTRUCT(&mdata->proc);
     ufree(mdata);
 }
 
@@ -624,8 +628,8 @@ static pmix_status_t server_dmodex_req_cb(const pmix_proc_t *proc,
     /* initialize return data struct */
     modexdata_t *mdata;
     mdata = umalloc(sizeof(*mdata));
-    mdata->proc.rank = proc->rank;
-    memcpy(mdata->proc.nspace, proc->nspace, PMIX_MAX_NSLEN);
+    PMIX_PROC_CONSTRUCT(&mdata->proc);
+    PMIX_PROC_LOAD(&mdata->proc, proc->nspace, proc->rank);
     mdata->data = NULL;
     mdata->ndata = 0;
     mdata->cbfunc = cbfunc;
@@ -641,6 +645,7 @@ static pmix_status_t server_dmodex_req_cb(const pmix_proc_t *proc,
 #if PMIX_VERSION_MAJOR >= 4
 	strvDestroy(&reqKeys);
 #endif
+	PMIX_PROC_DESTRUCT(&mdata->proc);
 	ufree(mdata);
 
 	return PMIX_ERROR;
@@ -659,8 +664,7 @@ static void requestModexData_cb(
 	char *data, size_t ndata,
 	void *cbdata)
 {
-    modexdata_t *mdata;
-    mdata = cbdata;
+    modexdata_t *mdata = cbdata;
 
     mdbg(PSPMIX_LOG_CALL, "%s(ndata %zu rank %u namespace %s)\n", __func__,
 	 ndata, mdata->proc.rank, mdata->proc.nspace);
@@ -2850,6 +2854,7 @@ bool pspmix_server_registerClient(const char *nspace, int rank, int uid,
 
     /* setup process struct */
     pmix_proc_t proc;
+    PMIX_PROC_CONSTRUCT(&proc);
     PMIX_PROC_LOAD(&proc, nspace, rank);
 
     /* register clients uid and gid as well as ident object */
@@ -2897,6 +2902,7 @@ void pspmix_server_deregisterClient(const char *nspace, int rank)
 
     /* setup process struct */
     pmix_proc_t proc;
+    PMIX_PROC_CONSTRUCT(&proc);
     PMIX_PROC_LOAD(&proc, nspace, rank);
 
     /* deregister client */
@@ -2927,6 +2933,7 @@ bool pspmix_server_setupFork(const char *nspace, int rank, char ***childEnv)
 
     /* setup process struct */
     pmix_proc_t proc;
+    PMIX_PROC_CONSTRUCT(&proc);
     PMIX_PROC_LOAD(&proc, nspace, rank);
 
     /* setup environment */
