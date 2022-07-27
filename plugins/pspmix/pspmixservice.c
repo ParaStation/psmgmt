@@ -595,6 +595,7 @@ bool pspmix_service_registerClientAndSendEnv(PStask_ID_t loggertid,
     for (size_t i = 0; envp[i]; i++) {
 	envPut(&env, envp[i]);
 	mdbg(PSPMIX_LOG_ENV, "%s: Got %s\n", __func__, envp[i]);
+	/* @todo check if we need to free envp[i] here */
     }
     ufree(envp);
 
