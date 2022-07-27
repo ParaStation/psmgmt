@@ -145,6 +145,8 @@ void __envDestroy(env_t *env, bool shred);
  * is expected to be of the form <name>=<value>. If an entry with key
  * <name> exists before, it will be removed from the environment.
  *
+ * Note: Unlike putenv(), this function stores a copy of the passed string.
+ *
  * @param env Environment to extend
  *
  * @param envString Character string of the form <name>=<value> to be
