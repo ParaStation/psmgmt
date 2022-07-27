@@ -488,9 +488,7 @@ static pmix_status_t server_fencenb_cb(
 
     /* initialize return data struct */
     modexdata_t *mdata;
-    mdata = umalloc(sizeof(*mdata));
-    mdata->data = NULL;
-    mdata->ndata = 0;
+    mdata = ucalloc(sizeof(*mdata));
     mdata->cbfunc = cbfunc;
     mdata->cbdata = cbdata;
     PMIX_PROC_CONSTRUCT(&mdata->proc);
@@ -627,17 +625,15 @@ static pmix_status_t server_dmodex_req_cb(const pmix_proc_t *proc,
 
     /* initialize return data struct */
     modexdata_t *mdata;
-    mdata = umalloc(sizeof(*mdata));
-    PMIX_PROC_CONSTRUCT(&mdata->proc);
-    PMIX_PROC_LOAD(&mdata->proc, proc->nspace, proc->rank);
-    mdata->data = NULL;
-    mdata->ndata = 0;
+    mdata = ucalloc(sizeof(*mdata));
     mdata->cbfunc = cbfunc;
     mdata->cbdata = cbdata;
 #if PMIX_VERSION_MAJOR >= 4
     mdata->reqkeys = reqKeys.strings;
     mdata->timeout = timeout;
 #endif
+    PMIX_PROC_CONSTRUCT(&mdata->proc);
+    PMIX_PROC_LOAD(&mdata->proc, proc->nspace, proc->rank);
 
     if (!pspmix_service_sendModexDataRequest(mdata)) {
 	mlog("%s: pspmix_service_sendModexDataRequest() for rank %u in"
