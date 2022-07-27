@@ -279,6 +279,7 @@ static void handleModexDataReq(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
 
     if (!pspmix_service_handleModexDataRequest(msg->header.sender, &proc,
 					       reqKeys, timeout)) {
+	for (size_t i = 0; reqKeys[i]; i++) ufree(reqKeys[i]);
 	ufree(reqKeys);
     }
 
