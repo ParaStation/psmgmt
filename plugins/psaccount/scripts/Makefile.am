@@ -10,4 +10,4 @@
 
 include $(top_srcdir)/common.am
 
-dist_psacctlib_SCRIPTS = monitor_interconnect.sh
+dist_psacctlib_SCRIPTS = monitor_interconnect.sh megware_energymeter.sh
