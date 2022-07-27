@@ -102,7 +102,7 @@ static PspmixNamespace_t* findNamespace(const char *nsname)
     list_t *n;
     list_for_each(n, &namespaceList) {
 	PspmixNamespace_t *ns = list_entry(n, PspmixNamespace_t, next);
-	if (!strncmp(ns->name, nsname, MAX_NSLEN)) return ns;
+	if (!PMIX_CHECK_NSPACE(ns->name, nsname)) return ns;
     }
     return NULL;
 }
