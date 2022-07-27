@@ -174,8 +174,12 @@ bool Energy_init(void)
     eData.powerMin = eData.powerMax = eData.powerCur;
 
     pollTime = getConfValueI(&config, "ENERGY_SCRIPT_POLL");
+    if (pollTime < 1 || !energyScript || energyScript[0] == '\0') {
+	/* energy polling is disabled */
+	return true;
+    }
 
-    return true;
+    return Energy_startScript();
 }
 
 void Energy_finalize(void)
