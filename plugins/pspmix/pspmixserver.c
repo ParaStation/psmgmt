@@ -24,9 +24,7 @@
 
 #include <pmix_server.h>
 #include <pmix_version.h>
-#if PMIX_VERSION_MAJOR >= 4
-# include <pmix.h>
-#endif
+#include <pmix.h>
 
 #include "list.h"
 #include "timer.h"
@@ -685,12 +683,19 @@ static void requestModexData_cb(
  */
 static bool checkKeyAvailability(pmix_proc_t *proc, char **reqKeys)
 {
+#if PMIX_VERSION_MAJOR >= 4
     size_t ninfo = 2;
+#else
+    size_t ninfo = 1;
+#endif
+
     pmix_info_t *info;
     PMIX_INFO_CREATE(info, ninfo);
     bool flag = true;
     PMIX_INFO_LOAD(info+0, PMIX_IMMEDIATE, &flag, PMIX_BOOL);
+#if PMIX_VERSION_MAJOR >= 4
     PMIX_INFO_LOAD(info+1, PMIX_GET_POINTER_VALUES, &flag, PMIX_BOOL);
+#endif
 
     size_t c = 0;
     char *key;
@@ -701,6 +706,9 @@ static bool checkKeyAvailability(pmix_proc_t *proc, char **reqKeys)
 	    case PMIX_SUCCESS:
 		udbg(PSPMIX_LOG_MODEX, "found '%s' for rank %d\n", key,
 		     proc->rank);
+#if PMIX_VERSION_MAJOR < 4
+		PMIX_VALUE_DESTRUCT(val);
+#endif
 		break;
 	    case PMIX_ERR_NOT_FOUND:
 		udbg(PSPMIX_LOG_MODEX, "not found '%s' for rank %d\n", key,
@@ -708,7 +716,9 @@ static bool checkKeyAvailability(pmix_proc_t *proc, char **reqKeys)
 		PMIX_INFO_FREE(info, ninfo);
 		return false;
 	    case PMIX_ERR_BAD_PARAM:
+#if PMIX_VERSION_MAJOR >= 4
 	    case PMIX_ERR_EXISTS_OUTSIDE_SCOPE:
+#endif
 		mlog("%s: PMIx_get(proc %s:%d key %s) failed: %s\n", __func__,
 			proc->nspace, proc->rank, key,
 			PMIx_Error_string(status));
