@@ -1007,6 +1007,20 @@ static bool verifySlurmPlugins(void)
 	}
     }
 
+    /* AcctGatherEnergyType */
+    val = getConfValueC(&SlurmConfig, "AcctGatherEnergyType");
+    if (val) {
+	if (!strcasecmp(val, "acct_gather_energy/none")) {
+	    fdbg(PSSLURM_LOG_SPLUGIN, "gather energy: none\n");
+	} else if (!strcasecmp(val, "acct_gather_energy/rapl")) {
+	    fdbg(PSSLURM_LOG_SPLUGIN, "gather energy: rapl\n");
+	} else {
+	    flog("unsupported AcctGatherEnergyType %s in "
+		 "slurm.conf\n", val);
+	    return false;
+	}
+    }
+
     return true;
 }
 
