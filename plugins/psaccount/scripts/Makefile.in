@@ -356,7 +356,9 @@ scriptsdir = $(prefix)/scripts
 @HAVE_SYSTEMD_TRUE@default_cgroup_root = /sys/fs/cgroup/
 @HAVE_SYSTEMD_FALSE@default_cgroup_name = psmgmtGrp
 @HAVE_SYSTEMD_TRUE@default_cgroup_name = system.slice/psid.service/descendants
-dist_psacctlib_SCRIPTS = monitor_interconnect.sh megware_energymeter.sh
+dist_psacctlib_SCRIPTS = megware_energymeter.sh monitor_energy.sh monitor_filesystem.sh \
+			 monitor_interconnect.sh
+
 all: all-am
 
 .SUFFIXES:
