@@ -2682,7 +2682,7 @@ bool pspmix_server_registerNamespace(const char *nspace, uint32_t sessionId,
     /* information about all global ranks */
     list_for_each(n, procMap) {
 	PspmixNode_t *node = list_entry(n, PspmixNode_t, next);
-	for (size_t j = 0; i < node->procs.len; j++) {
+	for (size_t j = 0; j < node->procs.len; j++) {
 	    PspmixProcess_t *proc = vectorGet(&node->procs, j, PspmixProcess_t);
 	    pmix_data_array_t procData;
 	    fillProcDataArray(&procData, proc, node->id, spawned, nsdir);
