@@ -63,7 +63,7 @@ typedef struct {
 #define INIT_CBDATA(d, n) do {     \
     memset(&(d), 0, sizeof(d));    \
     (d).ninfo = n;                 \
-    PMIX_INFO_CREATE((d).info, n); \
+    if (n) PMIX_INFO_CREATE((d).info, n); \
 } while(0)
 
 /** Waiting for data to be filled by callback function */
@@ -73,7 +73,7 @@ typedef struct {
 #define SET_CBDATA_AVAIL(d) (d)->filled = true
 
 /** Setting up data for callback routines */
-#define DESTROY_CBDATA(d) PMIX_INFO_FREE((d).info, (d).ninfo)
+#define DESTROY_CBDATA(d) if ((d).ninfo) PMIX_INFO_FREE((d).info, (d).ninfo)
 
 #if 0
 /* Create a string representation of a typed pmix value */
