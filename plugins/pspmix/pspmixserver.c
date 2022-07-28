@@ -410,6 +410,7 @@ void pspmix_server_fenceOut(bool success, modexdata_t *mdata)
 		      fencenb_release_fn, mdata);
     } else {
 	assert(mdata->data == NULL);
+	PMIX_PROC_DESTRUCT(&mdata->proc);
 	ufree(mdata);
     }
 }

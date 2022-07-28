@@ -234,6 +234,7 @@ static void handleClientInit(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
     /* send response */
     sendNotificationResp(msg->header.sender, PSPMIX_CLIENT_INIT_RES,
 			 proc.rank, proc.nspace);
+    PMIX_PROC_DESTRUCT(&proc);
 }
 
 /**
@@ -266,6 +267,7 @@ static void handleClientFinalize(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
     /* send response */
     sendNotificationResp(msg->header.sender, PSPMIX_CLIENT_FINALIZE_RES,
 			 proc.rank, proc.nspace);
+    PMIX_PROC_DESTRUCT(&proc);
 }
 
 /**
