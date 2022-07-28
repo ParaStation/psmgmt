@@ -565,16 +565,16 @@ static pmix_status_t server_dmodex_req_cb(const pmix_proc_t *proc,
     mdbg(PSPMIX_LOG_CALL, "%s(rank %u namespace %s)\n", __func__, proc->rank,
 	 proc->nspace);
 
-
 #if PMIX_VERSION_MAJOR >= 4
-
     strv_t reqKeys;
     strvInit(&reqKeys, NULL, 0);
     int timeout = 0;
+#endif
 
     /* handle command directives */
     for (size_t i = 0; i < ninfo; i++) {
 
+#if PMIX_VERSION_MAJOR >= 4
 	/* debug print each info */
 	mdbg(PSPMIX_LOG_MODEX, "%s: Found %s info [key '%s' flags '%s'"
 	     " value.type '%s'\n", __func__,
@@ -609,12 +609,9 @@ static pmix_status_t server_dmodex_req_cb(const pmix_proc_t *proc,
 		 PMIx_Data_type_string(info[i].value.type));
 	    return PMIX_ERR_NOT_SUPPORTED;
 	}
+#endif
 
 	/* inform about lacking implementation */
-#else
-    /* inform about lacking implementation */
-    for (size_t i = 0; i < ninfo; i++) {
-#endif
 	mlog("%s: Ignoring info [key '%s' flags '%s' value.type '%s']"
 	     " (not implemented)\n", __func__, info[i].key,
 	     PMIx_Info_directives_string(info[i].flags),
