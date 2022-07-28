@@ -361,6 +361,8 @@ plugins/psaccount/psaccounttypes.h \
 plugins/psaccount/scripts/Makefile.am \
 plugins/psaccount/scripts/Makefile.in \
 plugins/psaccount/scripts/megware_energymeter.sh \
+plugins/psaccount/scripts/monitor_energy.sh \
+plugins/psaccount/scripts/monitor_filesystem.sh \
 plugins/psaccount/scripts/monitor_interconnect.sh \
 plugins/psexec/Makefile.am \
 plugins/psexec/Makefile.in \

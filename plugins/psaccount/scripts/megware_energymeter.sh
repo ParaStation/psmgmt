@@ -1,12 +1,16 @@
 #!/bin/bash
 
-# script to read the MEGWARE energy meter
-
+# Script to read MEGWARE energy meter data
+#
 # needed psaccount.conf example configuration:
 #
 # POWER_UNIT = mW
 # ENERGY_SCRIPT = megware_energymeter.sh
 # ENERGY_SCRIPT_POLL = 30
+#
+# The energy monitor script is supposed to output one line with the format
+#
+# power:num energy:num
 
 
 sem_path=/sys/devices/platform/
