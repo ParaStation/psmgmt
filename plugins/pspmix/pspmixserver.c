@@ -607,6 +607,7 @@ static pmix_status_t server_dmodex_req_cb(const pmix_proc_t *proc,
 		 " '%s'] marked required", __func__, info[i].key,
 		 PMIx_Info_directives_string(info[i].flags),
 		 PMIx_Data_type_string(info[i].value.type));
+	    strvDestroy(&reqKeys);
 	    return PMIX_ERR_NOT_SUPPORTED;
 	}
 #endif
