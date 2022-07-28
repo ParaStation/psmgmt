@@ -528,8 +528,7 @@ bool pspmix_comm_sendFenceOut(PStask_ID_t targetTID /* remote PMIx server */,
 
 bool pspmix_comm_sendModexDataRequest(PSnodes_ID_t target /* remote psid */,
 				      const char *nspace, uint32_t rank,
-				      char **reqKeys,
-				      int32_t timeout)
+				      char **reqKeys, int32_t timeout)
 {
     mdbg(PSPMIX_LOG_CALL|PSPMIX_LOG_COMM, "%s(target %s nspace %s rank %d)\n",
 	 __func__, PSC_printTID(target), nspace, rank);
@@ -556,9 +555,8 @@ bool pspmix_comm_sendModexDataRequest(PSnodes_ID_t target /* remote psid */,
 
 bool pspmix_comm_sendModexDataResponse(PStask_ID_t targetTID
 						       /* remote PMIx server */,
-				       int32_t status,
-				       const char *nspace, uint32_t rank,
-				       void *data, size_t ndata)
+				       int32_t status, const char *nspace,
+				       uint32_t rank, void *data, size_t ndata)
 {
     mdbg(PSPMIX_LOG_CALL|PSPMIX_LOG_COMM,
 	 "%s(targetTID %s status %d nspace %s rank %u ndata %zu)\n", __func__,

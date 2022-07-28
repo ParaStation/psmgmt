@@ -129,7 +129,7 @@ bool pspmix_comm_sendInitNotification(PStask_ID_t targetTID,
  * @return Returns true on success, false on error
  */
 bool pspmix_comm_sendFinalizeNotification(PStask_ID_t targetTID,
-				          const char *nspace, uint32_t rank,
+					  const char *nspace, uint32_t rank,
 					  PStask_ID_t spawnertid);
 
 /**
