@@ -671,6 +671,8 @@ static void requestModexData_cb(pmix_status_t status, char *data, size_t ndata,
  */
 static bool checkKeyAvailability(pmix_proc_t *proc, strv_t *reqKeys)
 {
+    if (!reqKeys->strings) return true;
+
 #if PMIX_VERSION_MAJOR < 4
     size_t ninfo = 1;
 #else
