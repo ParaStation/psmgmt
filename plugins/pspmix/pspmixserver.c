@@ -455,7 +455,7 @@ static pmix_status_t server_fencenb_cb(
 	    }
 
 	    /* i > 0 */
-	    if (PMIX_CHECK_NSPACE(procs[i].nspace, procs[i-1].nspace) == 0) {
+	    if (PMIX_CHECK_NSPACE(procs[i].nspace, procs[i-1].nspace)) {
 		mlog(",%s", rankstr);
 	    } else {
 		mlog("},%s{%s", procs[i].nspace, rankstr);
