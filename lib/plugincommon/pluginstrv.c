@@ -17,7 +17,7 @@
 
 #define VECTOR_CHUNK_SIZE 8
 
-void __strvInit(strv_t *strv, char **initstrv, size_t initcount,
+void __strvInit(strv_t *strv, char **initstrv, uint32_t initcount,
 		const char *func, const int line)
 {
     if (initstrv) {
@@ -60,7 +60,7 @@ void __strvDestroy(strv_t *strv, const char *func, const int line)
 {
     if (!strv || !strv->strings) return;
 
-    for (size_t s = 0; s < strv->count; s++) {
+    for (uint32_t s = 0; s < strv->count; s++) {
 	__ufree(strv->strings[s], func, line);
     }
 

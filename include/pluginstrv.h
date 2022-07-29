@@ -18,13 +18,13 @@
 #ifndef __PLUGIN_LIB_STRV
 #define __PLUGIN_LIB_STRV
 
-#include <stddef.h>
+#include <stdint.h>
 
 /** String vector to be handled by strv* functions */
 typedef struct {
     char **strings;    /**< Array of strings */
-    size_t count;      /**< Current number of strings in array */
-    size_t size;       /**< Current maximum size incl. NULL (do not use) */
+    uint32_t count;    /**< Current number of strings in array */
+    uint32_t size;     /**< Current maximum size incl. NULL (do not use) */
 } strv_t;
 
 /**
@@ -50,7 +50,7 @@ typedef struct {
  *
  * @return No return value
  */
-void __strvInit(strv_t *strv, char **initstrv, size_t initcount,
+void __strvInit(strv_t *strv, char **initstrv, uint32_t initcount,
 		const char *func, const int line);
 #define strvInit(strv, initstrv, initcount) \
     __strvInit(strv, initstrv, initcount, __func__, __LINE__)
