@@ -82,12 +82,8 @@ void __strvAdd(strv_t *strv, char *str, const char *func, const int line);
  * Destroys string vector
  *
  * Destroy the string vector @a strv. All memory used by the string
- * vector itself is invalidated and free()ed. Nevertheless, memory
- * used by the strings within the vector is left untouched.
- *
- * To use @a strv again @ref strvInit() has to be called once more.
- *
- * @attention This function especially frees strv->strings.
+ * vector itself and the containing strings is invalidated and
+ * free()ed.
  *
  * @param strv The string vector to be destroy
  *
@@ -99,5 +95,25 @@ void __strvAdd(strv_t *strv, char *str, const char *func, const int line);
  */
 void __strvDestroy(strv_t *strv, const char *func, const int line);
 #define strvDestroy(strv) __strvDestroy(strv, __func__, __LINE__)
+
+/**
+ * Steal string vector
+ *
+ * Destroy the string vector @a strv. All memory used by the string
+ * vector itself is invalidated and free()ed. Nevertheless, memory
+ * used by the strings within the vector is left untouched.
+ *
+ * @attention This function especially frees strv->strings.
+ *
+ * @param strv The string vector to be destroy
+ *
+ * @param func Function name of the calling function
+ *
+ * @param line Line number where this function is called
+ *
+ * @return No return value
+ */
+void __strvSteal(strv_t *strv, const char *func, const int line);
+#define strvSteal(strv) __strvSteal(strv, __func__, __LINE__)
 
 #endif  /* __PLUGIN_LIB_STRV */

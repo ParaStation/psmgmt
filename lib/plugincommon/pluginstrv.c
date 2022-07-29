@@ -60,6 +60,17 @@ void __strvDestroy(strv_t *strv, const char *func, const int line)
 {
     if (!strv || !strv->strings) return;
 
+    for (size_t s = 0; s < strv->count; s++) {
+	__ufree(strv->strings[s], func, line);
+    }
+
+    __strvSteal(strv, func, line);
+}
+
+void __strvSteal(strv_t *strv, const char *func, const int line)
+{
+    if (!strv || !strv->strings) return;
+
     __ufree(strv->strings, func, line);
     memset(strv, 0, sizeof(strv_t));
 }
