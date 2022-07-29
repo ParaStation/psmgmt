@@ -14,10 +14,12 @@
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
+#include <time.h>
 #include <pmix_common.h>
 
 #include "list.h"
 #include "pscommon.h"
+#include "pluginstrv.h"
 
 #include "pspmixtypes.h"
 
@@ -30,7 +32,7 @@ typedef struct {
     size_t ndata;                /**< size of response data */
     pmix_modex_cbfunc_t cbfunc;  /**< function to use to pass back data */
     void *cbdata;                /**< pointer to pass back to cbfunc */
-    char **reqkeys;              /**< array of required strings */
+    strv_t reqKeys;              /**< array of required strings */
     int timeout;                 /**< max time to wait for required strings */
     time_t reqtime;              /**< time the request handling started */
 } modexdata_t;
@@ -183,8 +185,7 @@ void pspmix_server_fenceOut(bool success, modexdata_t *mdata);
  * @param status   PMIx return status
  * @param mdata    modex data containing the requested data
  */
-void
-pspmix_server_returnModexData(pmix_status_t status, modexdata_t *mdata);
+void pspmix_server_returnModexData(pmix_status_t status, modexdata_t *mdata);
 
 /**
  * @brief Request modex data from the local PMIx server
@@ -203,8 +204,7 @@ pspmix_server_returnModexData(pmix_status_t status, modexdata_t *mdata);
  * @returns True on success, False on error. In success case, ownership of
  *          @a mdata is taken.
  */
-bool
-pspmix_server_requestModexData(modexdata_t *mdata);
+bool pspmix_server_requestModexData(modexdata_t *mdata);
 
 /**
  * @brief Finalize the pmix server library

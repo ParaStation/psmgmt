@@ -20,6 +20,7 @@
 #include <stdlib.h>
 #include <assert.h>
 #include <string.h>
+#include <sys/time.h>
 #include <unistd.h>
 
 #include <pmix_server.h>
@@ -29,9 +30,8 @@
 #include "list.h"
 #include "timer.h"
 #include "pluginmalloc.h"
-#include "pluginvector.h"
-#include "pluginhelper.h"
 #include "pluginstrv.h"
+#include "pluginvector.h"
 
 #include "pspmixlog.h"
 #include "pspmixservice.h"
@@ -518,9 +518,8 @@ static void dmodex_req_release_fn(void *cbdata)
     ufree(mdata->data);
 
     /* free struct allocated by server_dmodex_req_cb() */
-    for (size_t i = 0; mdata->reqkeys[i]; i++) ufree(mdata->reqkeys[i]);
-    ufree(mdata->reqkeys);
     PMIX_PROC_DESTRUCT(&mdata->proc);
+    strvDestroy(&mdata->reqKeys);
     ufree(mdata);
 }
 
@@ -542,7 +541,7 @@ void pspmix_server_returnModexData(pmix_status_t status, modexdata_t *mdata)
      * can be released */
     if (mdata->cbfunc) {
 	mdata->cbfunc(status, mdata->data, mdata->ndata, mdata->cbdata,
-		dmodex_req_release_fn, mdata);
+		      dmodex_req_release_fn, mdata);
     }
 }
 
@@ -565,11 +564,9 @@ static pmix_status_t server_dmodex_req_cb(const pmix_proc_t *proc,
     mdbg(PSPMIX_LOG_CALL, "%s(rank %u namespace %s)\n", __func__, proc->rank,
 	 proc->nspace);
 
-#if PMIX_VERSION_MAJOR >= 4
     strv_t reqKeys;
     strvInit(&reqKeys, NULL, 0);
     int timeout = 0;
-#endif
 
     /* handle command directives */
     for (size_t i = 0; i < ninfo; i++) {
@@ -625,18 +622,14 @@ static pmix_status_t server_dmodex_req_cb(const pmix_proc_t *proc,
     PMIX_PROC_LOAD(&mdata->proc, proc->nspace, proc->rank);
     mdata->cbfunc = cbfunc;
     mdata->cbdata = cbdata;
-#if PMIX_VERSION_MAJOR >= 4
-    mdata->reqkeys = reqKeys.strings;
+    mdata->reqKeys = reqKeys;
     mdata->timeout = timeout;
-#endif
 
     if (!pspmix_service_sendModexDataRequest(mdata)) {
 	mlog("%s: pspmix_service_sendModexDataRequest() for rank %u in"
 	     " namespace %s failed.\n", __func__, proc->rank, proc->nspace);
-#if PMIX_VERSION_MAJOR >= 4
-	strvDestroy(&reqKeys);
-#endif
 	PMIX_PROC_DESTRUCT(&mdata->proc);
+	strvDestroy(&reqKeys);
 	ufree(mdata);
 
 	return PMIX_ERROR;
@@ -676,7 +669,7 @@ static void requestModexData_cb(pmix_status_t status, char *data, size_t ndata,
  * @param proc     client process
  * @param reqKeys  array of keys (NULL terminated)
  */
-static bool checkKeyAvailability(pmix_proc_t *proc, char **reqKeys)
+static bool checkKeyAvailability(pmix_proc_t *proc, strv_t *reqKeys)
 {
 #if PMIX_VERSION_MAJOR < 4
     size_t ninfo = 1;
@@ -698,7 +691,7 @@ static bool checkKeyAvailability(pmix_proc_t *proc, char **reqKeys)
 
     size_t c = 0;
     char *key;
-    while ((key = reqKeys[c++])) {
+    while ((key = reqKeys->strings[c++])) {
 	pmix_value_t *val;
 	pmix_status_t status = PMIx_Get(proc, key, info, ninfo, &val);
 	switch (status) {
@@ -751,7 +744,7 @@ static void reqModexTimeoutHandler(int timerID, void *info)
 	return;
     }
 
-    if (checkKeyAvailability(&mdata->proc, mdata->reqkeys)) {
+    if (checkKeyAvailability(&mdata->proc, &mdata->reqKeys)) {
 	Timer_remove(timerID);
 	/* there are either no keys required or all available */
 	pmix_status_t status =
@@ -793,7 +786,7 @@ bool pspmix_server_requestModexData(modexdata_t *mdata)
     /* store time processing of the request has started */
     mdata->reqtime = time(NULL);
 
-    if (checkKeyAvailability(&mdata->proc, mdata->reqkeys)) {
+    if (checkKeyAvailability(&mdata->proc, &mdata->reqKeys)) {
 	/* there are either no keys required or all available */
 	pmix_status_t status =
 		PMIx_server_dmodex_request(&mdata->proc, requestModexData_cb,

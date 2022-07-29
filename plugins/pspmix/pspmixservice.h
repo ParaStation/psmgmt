@@ -24,6 +24,7 @@
 #include <pmix_common.h>
 
 #include "pstask.h"
+#include "pluginstrv.h"
 
 #include "pspmixserver.h"
 #include "pspmixtypes.h"
@@ -249,10 +250,13 @@ bool pspmix_service_sendModexDataRequest(modexdata_t *mdata);
  *
  * Tell the PMIx server that the requested modex is needed.
  *
+ * Ownership of @a reqKeys will only be taken on success. Thus, in
+ * case of error the caller has to cleanup @a reqKeys if necessary.
+ *
  * @param senderTID  task id of the sender of the message
  * @param nspace     namespace of the requested dmodex
  * @param rank       rank of the requested dmodex
- * @param reqKeys    keys required to be included in the data (NULL terminated)
+ * @param reqKeys    keys required to be included in the data
  * @param timeout    max seconds to wait for the required data to be available
  *
  * @returns True on success, false on error. In success case, ownership of
@@ -260,7 +264,7 @@ bool pspmix_service_sendModexDataRequest(modexdata_t *mdata);
  */
 bool pspmix_service_handleModexDataRequest(PStask_ID_t senderTID,
 					   const char *nspace, uint32_t rank,
-					   char **reqKeys, int timeout);
+					   strv_t reqKeys, int timeout);
 
 /**
  * @brief Send direct modex data response

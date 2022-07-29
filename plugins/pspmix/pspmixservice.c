@@ -20,9 +20,9 @@
 #include "psenv.h"
 #include "psreservation.h"
 
+#include "pluginhelper.h"
 #include "pluginmalloc.h"
 #include "pluginvector.h"
-#include "pluginhelper.h"
 #include "psidsession.h"
 
 #include "pspmixcomm.h"
@@ -1244,7 +1244,8 @@ bool pspmix_service_sendModexDataRequest(modexdata_t *mdata)
     GET_LOCK(modexRequestList);
 
     if (!pspmix_comm_sendModexDataRequest(nodeid, mdata->proc.nspace,
-					  mdata->proc.rank, mdata->reqkeys,
+					  mdata->proc.rank,
+					  mdata->reqKeys.strings,
 					  mdata->timeout)) {
 	ulog("send failed for %s:%d to node %hd\n",
 		mdata->proc.nspace, mdata->proc.rank, nodeid);
@@ -1260,10 +1261,8 @@ bool pspmix_service_sendModexDataRequest(modexdata_t *mdata)
 }
 
 bool pspmix_service_handleModexDataRequest(PStask_ID_t senderTID,
-					   const char *nspace,
-					   uint32_t rank,
-					   char **reqKeys,
-					   int timeout)
+					   const char *nspace, uint32_t rank,
+					   strv_t reqKeys, int timeout)
 {
     modexdata_t *mdata = ucalloc(sizeof(*mdata));
 
@@ -1272,7 +1271,7 @@ bool pspmix_service_handleModexDataRequest(PStask_ID_t senderTID,
     PMIX_PROC_CONSTRUCT(&mdata->proc);
     PMIX_PROC_LOAD(&mdata->proc, nspace, rank);
 
-    mdata->reqkeys = reqKeys;
+    mdata->reqKeys = reqKeys;
     mdata->timeout = timeout;
 
     /* hands over ownership of mdata */
@@ -1308,8 +1307,8 @@ void pspmix_service_sendModexDataResponse(pmix_status_t status,
 				      mdata->proc.nspace, mdata->proc.rank,
 				      mdata->data, mdata->ndata);
 
-    for (size_t i = 0; mdata->reqkeys[i]; i++) ufree(mdata->reqkeys[i]);
-    ufree(mdata->reqkeys);
+    PMIX_PROC_DESTRUCT(&mdata->proc);
+    strvDestroy(&mdata->reqKeys);
     ufree(mdata);
 }
 

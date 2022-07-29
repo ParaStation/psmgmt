@@ -16,6 +16,7 @@
 
 #include <errno.h>
 #include <pthread.h>
+#include <pmix_common.h>
 
 #include "list.h"
 #include "psdaemonprotocol.h"
@@ -28,6 +29,7 @@
 #include "psidsession.h"
 
 #include "pluginmalloc.h"
+#include "pluginstrv.h"
 
 #include "pspmixlog.h"
 #include "pspmixuserserver.h"
@@ -268,19 +270,18 @@ static void handleModexDataReq(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
     int32_t timeout;
     getInt32(&ptr, &timeout);
 
-    char **reqKeys;
-    uint32_t numReqKeys;
-    getStringArrayM(&ptr, &reqKeys, &numReqKeys);
-    if (!numReqKeys) reqKeys = ucalloc(sizeof(*reqKeys));
+    strv_t reqKeys;
+    strvInit(&reqKeys, NULL, 0);
+    getStringArrayM(&ptr, &reqKeys.strings, &reqKeys.count);
+    if (reqKeys.count) reqKeys.size = reqKeys.count + 1;
 
     mdbg(PSPMIX_LOG_COMM, "%s: received %s (namespace %s rank %d numReqKeys %u"
 	 " timeout %d)\n", __func__, pspmix_getMsgTypeString(msg->type),
-	 nspace, rank, numReqKeys, timeout);
+	 nspace, rank, reqKeys.count, timeout);
 
     if (!pspmix_service_handleModexDataRequest(msg->header.sender, nspace, rank,
 					       reqKeys, timeout)) {
-	for (size_t i = 0; reqKeys[i]; i++) ufree(reqKeys[i]);
-	ufree(reqKeys);
+	strvDestroy(&reqKeys);
     }
     ufree(nspace);
 }
