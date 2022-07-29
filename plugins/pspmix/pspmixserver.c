@@ -32,6 +32,9 @@
 #include "pluginmalloc.h"
 #include "pluginstrv.h"
 #include "pluginvector.h"
+#if PMIX_VERSION_MAJOR >= 4
+#include "pluginhelper.h"
+#endif
 
 #include "pspmixlog.h"
 #include "pspmixservice.h"
@@ -1517,7 +1520,7 @@ static void fillServerSessionArray(pmix_data_array_t *sessionInfo,
 
     /* RM version string */
     const char *rmversion = PSC_getVersionStr();
-    PMIX_INFO_LOAD(&infos[i], PMIX_RM_VERSION, rmversion, PMIX_STRING)
+    PMIX_INFO_LOAD(&infos[i], PMIX_RM_VERSION, rmversion, PMIX_STRING);
     i++;
 
     /* Host where target PMIx server is located */
