@@ -1479,7 +1479,7 @@ static bool getSpawnArgs(char *msg, strv_t *args)
 {
     char *execname;
     char numArgs[50];
-    int addArgs = 0, i;
+    int addArgs = 0;
 
     /* setup argv */
     if (!getpmiv("argcnt", msg, numArgs, sizeof(numArgs))) {
@@ -1505,15 +1505,13 @@ static bool getSpawnArgs(char *msg, strv_t *args)
     strvAdd(args, execname);
 
     /* add additional arguments */
-    for (i = 1; i <= addArgs; i++) {
+    for (int i = 1; i <= addArgs; i++) {
 	char *nextval;
 	snprintf(buffer, sizeof(buffer), "arg%i", i);
 	nextval = getpmivm(buffer, msg);
 	if (nextval) {
 	    strvAdd(args, nextval);
 	} else {
-	    size_t j;
-	    for (j = 0; j < args->count; j++) ufree(args->strings[j]);
 	    mlog("%s(r%i): extracting arguments failed\n", __func__, rank);
 	    return false;
 	}

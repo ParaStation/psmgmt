@@ -79,8 +79,6 @@ static bool getSpawnArgs(char *msg, strv_t *args)
 	if (nextval) {
 	    strvAdd(args, nextval);
 	} else {
-	    size_t j;
-	    for (j = 0; j < args->count; j++) ufree(args->strings[j]);
 	    mlog("%s(r%i): extracting arguments failed\n", __func__, rank);
 	    return false;
 	}
