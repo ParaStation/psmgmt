@@ -47,7 +47,7 @@ void __strvAdd(strv_t *strv, char *str, const char *func, const int line)
     assert(strv && (strv->strings || !strv->size));
     assert(strv->size >= strv->count);
 
-    if (strv->count >= strv->size - 1) {
+    if (strv->count + 1 >= strv->size) {
 	strv->size += VECTOR_CHUNK_SIZE;
 	strv->strings = __urealloc(strv->strings, strv->size * sizeof(char *),
 				   func, line);
