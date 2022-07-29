@@ -6,6 +6,34 @@ Copyright (C) 2021-2022 ParTec AG, Munich
 Please send bug reports, questions and suggestions to <support@par-tec.com>
 
 
+Version 5.1.50:
+===============
+Bugfixes:
+ - Reorganize psslurm's con->info handling (#77)
+ - Let MASK_LDOM pinning use physical domain numbers (#72)
+ - Release delayed spawn requests in the step callback (meluxina:#219)
+ - Ensure an allocation is defined for spawn request (meluxina:#219).
+ - Do not crash psid when SLURM_OVERCOMMIT is not set
+ - Ensure psslurm's help will not crash psid if no key is given
+ - Avoid use-after-free for config.psiddomain
+ - Avoid memory leak upon connection reset in psslurm
+ - Fix memory leak in pspmix' fence data handling
+ - Substantial hardening of pspmix
+ - Retry sending Slurm message even if nothing is sent yet
+ - Verify an allocation if no job/step is started
+ - Ensure openSlurmctldConEx() returns an error
+Enhancements:
+ - Add basic support for PMIx 4.0 and bump pspmix plugin version to 2
+ - Continue pinning on full nodes when overcommit is set in psslurm
+ - Use psid domain as cluster ID in pspmix
+ - Introduce PSC_getwd()
+ - Introduce addStringArrayToMsg()
+Additional changes:
+ - Adapt strv_t in analogy to env_t and add compatibility to getStringArrayM()
+ - Replace add/getEnviron() by addStringArrayToMsg() and getStringArrayM()
+ - Remove obsolete info parameter from sendSlurmMsg()
+
+
 Version 5.1.49-5:
 =================
 Bugfixes:

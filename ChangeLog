@@ -1,3 +1,514 @@
+Version 5.1.50:
+===============
+------------------------------------------------------------------------
+5207436b1 | Stephan Krempel | Fri, 29 Jul 2022 16:12:29 +0200
+
+pspmix: Fix small slips
+------------------------------------------------------------------------
+936de7fd4 | Stephan Krempel | Fri, 29 Jul 2022 15:58:11 +0200
+
+pspmix: Allow checkKeyAvailability() call with empty key list.
+------------------------------------------------------------------------
+db9fd23f1 | Stephan Krempel | Fri, 29 Jul 2022 15:43:46 +0200
+
+Fix comparison of unsigned values in __strvAdd()
+------------------------------------------------------------------------
+3b5693c0a | Stephan Krempel | Fri, 29 Jul 2022 15:18:50 +0200
+
+pspmix: Fix debugging output
+------------------------------------------------------------------------
+3c73efa4d | Stephan Krempel | Fri, 29 Jul 2022 15:15:46 +0200
+
+pspmix: Fix memory leak
+------------------------------------------------------------------------
+40da036bf | Norbert Eicker | Fri, 29 Jul 2022 14:23:59 +0200
+
+pspmix: Use strv_t to handle required keys
+------------------------------------------------------------------------
+1342740c0 | Norbert Eicker | Fri, 29 Jul 2022 12:46:16 +0200
+
+Make strv_t compatible to getStringArrayM()
+------------------------------------------------------------------------
+43ef26618 | Norbert Eicker | Fri, 29 Jul 2022 12:18:50 +0200
+
+Adapt to new meaning of strvDestroy()
+------------------------------------------------------------------------
+033544a51 | Norbert Eicker | Fri, 29 Jul 2022 11:58:51 +0200
+
+Introduce strvSteal() and adapt strvDestroy() according to env_t
+------------------------------------------------------------------------
+1668913fa | Norbert Eicker | Fri, 29 Jul 2022 11:54:11 +0200
+
+Allow strv_t to start empty, i.e. without allocating strings
+------------------------------------------------------------------------
+2244285ed | Stephan Krempel | Fri, 29 Jul 2022 01:27:35 +0200
+
+pspmix: Circumvent unsupported PMIX_INFO_CREATE(m, 0)
+------------------------------------------------------------------------
+510a59e8a | Stephan Krempel | Fri, 29 Jul 2022 01:33:36 +0200
+
+pspmix: Fix loop variable
+------------------------------------------------------------------------
+b2cb8b2f2 | Stephan Krempel | Wed, 27 Jul 2022 18:23:32 +0200
+
+pspmix: Add todo
+------------------------------------------------------------------------
+b3a1f5e31 | Stephan Krempel | Wed, 27 Jul 2022 18:21:48 +0200
+
+Add note to envPut() about difference to putenv()
+------------------------------------------------------------------------
+9654f94ea | Norbert Eicker | Thu, 28 Jul 2022 18:29:41 +0200
+
+psslurm: Unify use of PMIX_INFO_LOAD
+------------------------------------------------------------------------
+627fbf094 | Norbert Eicker | Thu, 28 Jul 2022 12:51:54 +0200
+
+psslurm: fix potential memory leak
+------------------------------------------------------------------------
+abc52ef03 | Norbert Eicker | Thu, 28 Jul 2022 12:51:20 +0200
+
+psslurm: improve #ifdef readability
+------------------------------------------------------------------------
+f87ea71bf | Norbert Eicker | Thu, 28 Jul 2022 09:51:37 +0200
+
+psslurm: Streamline
+------------------------------------------------------------------------
+27b1c8901 | Norbert Eicker | Thu, 28 Jul 2022 09:50:52 +0200
+
+pspmix: More use PMIX_PROC_* macros
+------------------------------------------------------------------------
+ba89ccca1 | Stephan Krempel | Wed, 27 Jul 2022 16:25:29 +0200
+
+pspmix: Bump plugin version to 2
+------------------------------------------------------------------------
+51fd2b8e8 | Stephan Krempel | Wed, 27 Jul 2022 15:23:42 +0200
+
+pspmix: Integrate PMIX_INFO_CREATE into INIT_CBDATA
+
+Since PMIX_INFO_FREE is done in DESTROY_CBDATA this makes sense
+for symmetry reasons.
+
+Fixing some potential memory leaks as add-on.
+------------------------------------------------------------------------
+3095fab34 | Stephan Krempel | Wed, 27 Jul 2022 15:01:17 +0200
+
+pspmix: Fix compatibility to pmix 3.2.3
+------------------------------------------------------------------------
+9290c6d9c | Stephan Krempel | Wed, 27 Jul 2022 15:00:32 +0200
+
+pspmix: Correctly use PMIX_CHECK_NSPACE
+------------------------------------------------------------------------
+f4b39f4e4 | Stephan Krempel | Wed, 27 Jul 2022 13:46:45 +0200
+
+pspmix: Fix potential use after free
+------------------------------------------------------------------------
+52543cd30 | Stephan Krempel | Wed, 27 Jul 2022 13:27:01 +0200
+
+pspmix: Fix memory leak
+------------------------------------------------------------------------
+a3f5caf98 | Stephan Krempel | Wed, 27 Jul 2022 13:16:02 +0200
+
+pspmix: Use ucalloc to initialize modexdata_t objects
+------------------------------------------------------------------------
+9a2921453 | Stephan Krempel | Wed, 27 Jul 2022 13:04:05 +0200
+
+pspmix: Use PMIX_CHECK_NSPACE() instead of strncmp()
+------------------------------------------------------------------------
+b33d723e4 | Stephan Krempel | Wed, 27 Jul 2022 13:02:07 +0200
+
+pspmix: Consequently use nspace,rank order
+------------------------------------------------------------------------
+686e4988c | Stephan Krempel | Wed, 27 Jul 2022 12:21:32 +0200
+
+pspmix: Remove pmix data types from communication interface
+------------------------------------------------------------------------
+6cf0bb7de | Stephan Krempel | Wed, 27 Jul 2022 12:16:32 +0200
+
+pspmix: Fix memory leak
+------------------------------------------------------------------------
+b9c7cbe22 | Stephan Krempel | Wed, 27 Jul 2022 10:49:12 +0200
+
+pspmix: Consequently use PMIX_PROC_* macros
+------------------------------------------------------------------------
+2a92c2e53 | Stephan Krempel | Fri, 22 Jul 2022 14:08:04 +0200
+
+pspmix: Add detailed description about PMIX_SERVER_SYSTEM_SUPPORT info
+------------------------------------------------------------------------
+bdc27877e | Stephan Krempel | Fri, 22 Jul 2022 13:58:01 +0200
+
+pspmix: Add todo for provisional PMIX_LOCAL_COLLECTIVE_STATUS info
+------------------------------------------------------------------------
+7b359b673 | Stephan Krempel | Fri, 22 Jul 2022 11:00:22 +0200
+
+pspmix: Streamlining
+------------------------------------------------------------------------
+979c55471 | Stephan Krempel | Fri, 22 Jul 2022 10:35:50 +0200
+
+pspmix: Catch EWOULDBLOCK from PSIDclient_send()
+------------------------------------------------------------------------
+f7616e1bc | Stephan Krempel | Fri, 22 Jul 2022 10:18:38 +0200
+
+pspmix: Fix type
+------------------------------------------------------------------------
+308cdef71 | Stephan Krempel | Thu, 21 Jul 2022 18:28:15 +0200
+
+pspmix: Remove timer for dmodex response if succeeded
+------------------------------------------------------------------------
+a2b7b3c9f | Stephan Krempel | Thu, 21 Jul 2022 18:27:47 +0200
+
+pspmix: Enhance debugging output and some comments
+------------------------------------------------------------------------
+3958645e4 | Stephan Krempel | Thu, 21 Jul 2022 18:26:09 +0200
+
+pspmix: Ignore PMIX_GET_REFRESH_CACHE info in dmodex requests
+------------------------------------------------------------------------
+6f9b405ef | Stephan Krempel | Thu, 21 Jul 2022 18:25:30 +0200
+
+pspmix: Fix memory leak
+------------------------------------------------------------------------
+63c3bbd52 | Stephan Krempel | Thu, 21 Jul 2022 18:24:27 +0200
+
+pspmix: Return status with dmodex response for timeout handling
+------------------------------------------------------------------------
+ab5472420 | Stephan Krempel | Thu, 14 Jul 2022 15:51:41 +0200
+
+pspmix: Support required keys and timeout in modex requests
+------------------------------------------------------------------------
+cff9296b3 | Stephan Krempel | Wed, 20 Jul 2022 17:52:51 +0200
+
+pspmix: Include PSPMIX_LOG_MODEX in pspmix.conf comment
+------------------------------------------------------------------------
+51f98d122 | Stephan Krempel | Tue, 19 Jul 2022 00:41:23 +0200
+
+pspmix: Fix use after free of added env in forwarder
+------------------------------------------------------------------------
+c67468869 | Stephan Krempel | Tue, 19 Jul 2022 00:06:47 +0200
+
+pspmix: Enhance debugging output
+------------------------------------------------------------------------
+7a52a6ac5 | Norbert Eicker | Mon, 18 Jul 2022 16:05:24 +0200
+
+Unify use of PSC_concat()
+------------------------------------------------------------------------
+07530db49 | Stephan Krempel | Mon, 18 Jul 2022 15:42:45 +0200
+
+pspmix: Fix call of PSC_concat()
+------------------------------------------------------------------------
+c52634654 | Stephan Krempel | Mon, 18 Jul 2022 15:41:41 +0200
+
+Enhance documentation of PSC_concat()
+------------------------------------------------------------------------
+d9813b687 | Stephan Krempel | Fri, 8 Jul 2022 09:27:29 +0200
+
+pspmix: Fix version separation
+------------------------------------------------------------------------
+f1c53fcc6 | Stephan Krempel | Fri, 8 Jul 2022 09:27:08 +0200
+
+pspmix: Fix include
+------------------------------------------------------------------------
+94151f0e6 | Norbert Eicker | Thu, 7 Jul 2022 21:41:28 +0200
+
+IWYU fixes
+------------------------------------------------------------------------
+4a94f9091 | Norbert Eicker | Thu, 7 Jul 2022 21:34:49 +0200
+
+Simplify creation of debug output
+------------------------------------------------------------------------
+d0953bc2c | Norbert Eicker | Thu, 7 Jul 2022 21:32:34 +0200
+
+Avoid use-after-free for config.psiddomain
+------------------------------------------------------------------------
+168a4bc5d | Norbert Eicker | Thu, 7 Jul 2022 20:15:19 +0200
+
+Various minor fixes (streamlinig, typos, whitespace, etc.)
+------------------------------------------------------------------------
+d201e566f | Norbert Eicker | Thu, 7 Jul 2022 19:19:36 +0200
+
+Introduce PSC_getwd()
+------------------------------------------------------------------------
+67e4b611c | Norbert Eicker | Thu, 7 Jul 2022 19:04:32 +0200
+
+PMIX_APP_ARGV was only introduced in PMIx 4
+------------------------------------------------------------------------
+f2a7fcafc | Stephan Krempel | Thu, 7 Jul 2022 17:07:39 +0200
+
+pspmix: Remove obsolete versions of function descriptions
+------------------------------------------------------------------------
+56b279268 | Stephan Krempel | Thu, 7 Jul 2022 16:58:30 +0200
+
+pspsmix: Clarifying comment about clientObject as server_object
+------------------------------------------------------------------------
+c82f1b04e | Stephan Krempel | Wed, 6 Jul 2022 16:37:07 +0200
+
+pspmix: List optional attributes for PMIx_server_init()
+
+Only document the attributes, not implement any of them.
+------------------------------------------------------------------------
+d043cadad | Stephan Krempel | Wed, 6 Jul 2022 16:35:42 +0200
+
+pspmix: Use psid domain as cluster ID
+------------------------------------------------------------------------
+a80e9ed86 | Stephan Krempel | Thu, 9 Jun 2022 10:54:24 +0200
+
+pspmix: Use env_t to check if job uses PMIx
+------------------------------------------------------------------------
+2da2fad88 | Stephan Krempel | Wed, 4 May 2022 01:18:39 +0200
+
+pspmix: Enhance PMIX_REINCARNATION comments
+------------------------------------------------------------------------
+27f2a8bdc | Stephan Krempel | Tue, 3 May 2022 04:05:52 +0200
+
+pspmix: Add URLs of standard clarification issues
+------------------------------------------------------------------------
+7e37f03d3 | Stephan Krempel | Tue, 3 May 2022 02:20:53 +0200
+
+pspmix: Rework PROC_DATA info fields for PMIx 4
+------------------------------------------------------------------------
+9fe9657b4 | Stephan Krempel | Mon, 2 May 2022 16:56:09 +0200
+
+pspmix: Add todo note about session ID
+------------------------------------------------------------------------
+016335939 | Stephan Krempel | Mon, 2 May 2022 16:46:56 +0200
+
+pspmix: Fix debugging output
+------------------------------------------------------------------------
+9b8c5a87d | Stephan Krempel | Mon, 2 May 2022 16:38:11 +0200
+
+pspmix: Fix process map string generation
+------------------------------------------------------------------------
+79f433cde | Stephan Krempel | Mon, 2 May 2022 16:29:48 +0200
+
+pspmix: Fix comment
+------------------------------------------------------------------------
+f4d1ecddf | Stephan Krempel | Mon, 2 May 2022 16:27:34 +0200
+
+Set PMIX_APPWDIR_* in any case
+------------------------------------------------------------------------
+ee61a7fa7 | Stephan Krempel | Sat, 30 Apr 2022 01:19:00 +0200
+
+pspmix: Add node info arrays at namespace registration
+------------------------------------------------------------------------
+464f70c2f | Stephan Krempel | Sat, 30 Apr 2022 00:38:43 +0200
+
+pspmix: Streamlining
+------------------------------------------------------------------------
+2c6156d97 | Stephan Krempel | Fri, 29 Apr 2022 02:36:49 +0200
+
+pspmix: Note optional info keys in APP_INFO_ARRAY
+------------------------------------------------------------------------
+114db6433 | Stephan Krempel | Fri, 29 Apr 2022 02:29:37 +0200
+
+pspmix: Add application arguments to APP_INFO_ARRAY
+------------------------------------------------------------------------
+47f7b748e | Stephan Krempel | Fri, 29 Apr 2022 01:24:08 +0200
+
+pspmix: Add application working dirs to APP_INFO_ARRAY
+------------------------------------------------------------------------
+a774c2dec | Stephan Krempel | Fri, 29 Apr 2022 01:25:17 +0200
+
+pspmix: Add spawn implementation hint
+------------------------------------------------------------------------
+f09d5d076 | Stephan Krempel | Fri, 29 Apr 2022 00:56:14 +0200
+
+pspmix: Note additional info fields to add
+------------------------------------------------------------------------
+8416f58a0 | Stephan Krempel | Fri, 29 Apr 2022 00:54:58 +0200
+
+pspmix: Always set PMIX_JOB_NUM_APPS (required by PMIx 4)
+------------------------------------------------------------------------
+f37a3416d | Stephan Krempel | Fri, 29 Apr 2022 00:53:11 +0200
+
+pspmix: Use PMIx_server_register_resources()
+------------------------------------------------------------------------
+d0e5e14aa | Stephan Krempel | Thu, 28 Apr 2022 17:46:54 +0200
+
+pspmix: Pass supported info entries to PMIx_server_init()
+------------------------------------------------------------------------
+d59887002 | Stephan Krempel | Wed, 20 Apr 2022 17:38:30 +0200
+
+pspmix: Replace obsolete PMIx value macros
+------------------------------------------------------------------------
+d42495451 | Stephan Krempel | Wed, 20 Apr 2022 17:36:01 +0200
+
+pspmix: Include pmix.h with PMIx 4
+------------------------------------------------------------------------
+e4eba3895 | Stephan Krempel | Wed, 20 Apr 2022 14:40:14 +0200
+
+pspmix: Read required key in server_dmodex_req_cb()
+------------------------------------------------------------------------
+8e5628e6f | Stephan Krempel | Wed, 20 Apr 2022 14:39:31 +0200
+
+pspmix: Fix debugging output
+------------------------------------------------------------------------
+ddac6d92f | Stephan Krempel | Wed, 20 Apr 2022 14:38:56 +0200
+
+pspmix: Use new error code
+------------------------------------------------------------------------
+f14dff738 | Stephan Krempel | Wed, 20 Apr 2022 14:37:27 +0200
+
+pspmix: Update descriptions and add stubs for PMIx 4 server API
+------------------------------------------------------------------------
+6262cb013 | Stephan Krempel | Wed, 20 Apr 2022 12:25:46 +0200
+
+pspmix: Fix memory leak in fence data handling
+------------------------------------------------------------------------
+ab5d31860 | Stephan Krempel | Tue, 19 Apr 2022 01:04:50 +0200
+
+pspmix: Call PMIx_server_deregister_client() blocking (PMIx 4 only)
+------------------------------------------------------------------------
+a7e2fb225 | Norbert Eicker | Mon, 25 Jul 2022 23:36:32 +0200
+
+Improve logging
+------------------------------------------------------------------------
+4af141445 | Michael Rauh | Mon, 25 Jul 2022 16:56:24 +0200
+
+Ensure an allocation is defined for a spawn request (meluxina:#219).
+------------------------------------------------------------------------
+c16564314 | Norbert Eicker | Thu, 21 Jul 2022 17:34:44 +0200
+
+Fix misleading syslog message
+------------------------------------------------------------------------
+d57f299c9 | Michael Rauh | Thu, 21 Jul 2022 14:45:20 +0200
+
+Release delayed spawn requests on all nodes of a step
+when in the step callback of mother superior (meluxina:#219)
+------------------------------------------------------------------------
+625cc228f | Norbert Eicker | Fri, 22 Jul 2022 18:09:04 +0200
+
+Retry sending Slurm message even if nothing is sent yet
+------------------------------------------------------------------------
+2a156d75a | Michael Rauh | Fri, 22 Jul 2022 16:19:37 +0200
+
+Remove obsolete info parameter from sendSlurmMsg()
+------------------------------------------------------------------------
+c71ab0079 | Michael Rauh | Fri, 22 Jul 2022 15:24:30 +0200
+
+Ensure openSlurmctldConEx() returns an error if registering the
+socket fails
+------------------------------------------------------------------------
+65e19e43d | Norbert Eicker | Thu, 21 Jul 2022 21:33:08 +0200
+
+Bugfix: reorganize psslurm's con->info handling (#77)
+------------------------------------------------------------------------
+1b1447fbd | Norbert Eicker | Thu, 21 Jul 2022 21:18:52 +0200
+
+Avoid memory leak upon connection reset in psslurm
+------------------------------------------------------------------------
+74d2dbf83 | Norbert Eicker | Thu, 21 Jul 2022 21:04:37 +0200
+
+Streamline
+------------------------------------------------------------------------
+994feba42 | Norbert Eicker | Thu, 21 Jul 2022 20:00:48 +0200
+
+Drop obsolete info element from Slurm_Msg_Buf_t
+------------------------------------------------------------------------
+6b1bade81 | Michael Rauh | Fri, 22 Jul 2022 10:49:40 +0200
+
+Update documentation
+------------------------------------------------------------------------
+5ee29a2af | Norbert Eicker | Fri, 8 Jul 2022 18:02:49 +0200
+
+Fix typos and whitespace, add @doctodos
+------------------------------------------------------------------------
+c55f494f3 | Norbert Eicker | Fri, 8 Jul 2022 16:33:39 +0200
+
+IWYU fixes
+------------------------------------------------------------------------
+dc230f992 | Michael Rauh | Wed, 6 Jul 2022 14:38:16 +0200
+
+Verify an allocation if no job/step is started
+------------------------------------------------------------------------
+d4824b1cd | Norbert Eicker | Fri, 15 Jul 2022 18:19:10 +0200
+
+Bugfix: ensure psslurm's help will no crash psid if no key is given
+------------------------------------------------------------------------
+1a7d06a2a | Stephan Krempel | Thu, 14 Jul 2022 09:42:24 +0000
+
+Highlight NULL termination of argv in job and step
+------------------------------------------------------------------------
+b12985225 | Norbert Eicker | Tue, 12 Jul 2022 18:14:00 +0200
+
+IWYU fix
+------------------------------------------------------------------------
+8bcb7ad57 | Norbert Eicker | Tue, 12 Jul 2022 18:13:34 +0200
+
+Fix environment's size
+------------------------------------------------------------------------
+44eb7910d | Norbert Eicker | Tue, 12 Jul 2022 15:45:40 +0200
+
+Replace add/getEnviron() by addStringArrayToMsg() and getStringArrayM()
+
+ - Fix a memory leak in pspmix forwarder code, too
+------------------------------------------------------------------------
+16be6ffd3 | Norbert Eicker | Tue, 12 Jul 2022 15:08:04 +0200
+
+Make use of addStringArrayToMsg()
+
+ - Fix one memory leak in psexec and streamline
+------------------------------------------------------------------------
+707f02f88 | Norbert Eicker | Tue, 12 Jul 2022 12:56:43 +0200
+
+Streamlining
+------------------------------------------------------------------------
+8fb15fd71 | Norbert Eicker | Tue, 12 Jul 2022 12:52:35 +0200
+
+Add one @todo for analysis
+------------------------------------------------------------------------
+524db6224 | Norbert Eicker | Tue, 12 Jul 2022 12:50:23 +0200
+
+Make use of addStringArrayToMsg()
+------------------------------------------------------------------------
+226772063 | Norbert Eicker | Tue, 12 Jul 2022 12:49:26 +0200
+
+Make use of addStringArrayToMsg() and getStringArrayM()
+------------------------------------------------------------------------
+f24aae78d | Norbert Eicker | Tue, 12 Jul 2022 12:45:00 +0200
+
+Make use of addStringArrayToMsg() and streamline
+------------------------------------------------------------------------
+08f2bdbb1 | Norbert Eicker | Tue, 12 Jul 2022 12:42:48 +0200
+
+Make use of addStringArrayToMsg()
+
+ - This obsoletes PStask_sendStrV()
+ - Rename PStask_sendTask() to PStask_addToMsg() for consistency
+------------------------------------------------------------------------
+abc9d6ce2 | Norbert Eicker | Tue, 12 Jul 2022 11:00:46 +0200
+
+Introducde addStringArrayToMsg()
+------------------------------------------------------------------------
+18b495cce | Norbert Eicker | Wed, 13 Jul 2022 09:48:41 +0200
+
+Bugfix: Do not crash psid when SLURM_OVERCOMMIT is not set
+------------------------------------------------------------------------
+1f5806a78 | Norbert Eicker | Fri, 8 Jul 2022 16:26:22 +0200
+
+More debug output improvements
+------------------------------------------------------------------------
+0cf4580a0 | Norbert Eicker | Thu, 7 Jul 2022 22:10:25 +0200
+
+Improve debug output
+------------------------------------------------------------------------
+19c46a11d | Stephan Krempel | Thu, 7 Jul 2022 15:21:42 +0200
+
+psslurm: Continue pinning on full nodes when overcommit is set
+------------------------------------------------------------------------
+e087e8906 | Norbert Eicker | Tue, 5 Jul 2022 23:31:09 +0200
+
+Simplify pinToSocket() and improve docu
+------------------------------------------------------------------------
+dc6870d52 | Norbert Eicker | Tue, 5 Jul 2022 23:30:25 +0200
+
+Streamlining
+------------------------------------------------------------------------
+d24863fd0 | Stephan Krempel | Wed, 29 Jun 2022 15:35:01 +0200
+
+psslurm: Let MASK_LDOM pinning use physical domain numbers
+
+Fixes #72
+------------------------------------------------------------------------
+
+
 Version 5.1.49-5:
 =================
 ------------------------------------------------------------------------
