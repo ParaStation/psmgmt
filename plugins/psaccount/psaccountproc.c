@@ -404,9 +404,9 @@ bool readProcIO(pid_t pid, ProcIO_t *io)
 		    "%*[^:]: "
 		    "%"PRIu64" "     /* wchar / disk write */
 		    "%*[^:]: "
-		    "%*"PRIu64" "    /* syscr */
+		    "%*"PRIu64" "    /* syscr: number of read I/O operations */
 		    "%*[^:]: "
-		    "%*"PRIu64" "    /* syscw */
+		    "%*"PRIu64" "    /* syscw: number of write I/O operations */
 		    "%*[^:]: "
 		    "%"PRIu64" "     /* read_bytes */
 		    "%*[^:]: "

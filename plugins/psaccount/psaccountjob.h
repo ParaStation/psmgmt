@@ -31,7 +31,7 @@ typedef struct {
     PStask_ID_t logger;         /**< task ID of the logger */
     pid_t jobscript;            /**< process ID of the job-script */
     uint64_t energyBase;        /**< base energy consumption when
-				   the job was added */
+				     the job was added */
 } Job_t;
 
 /**

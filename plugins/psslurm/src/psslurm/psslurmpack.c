@@ -1745,7 +1745,7 @@ static void convAccDataToTRes(SlurmAccData_t *slurmAccData, TRes_t *tres)
     AccountDataExt_t *accData = &slurmAccData->psAcct;
     TRes_Entry_t entry;
 
-    /* vsize in byte */
+    /* virtual memory in bytes */
     TRes_reset_entry(&entry);
     entry.in_max = accData->maxVsize * 1024;
     entry.in_min = accData->maxVsize * 1024;
@@ -1754,7 +1754,7 @@ static void convAccDataToTRes(SlurmAccData_t *slurmAccData, TRes_t *tres)
     entry.in_max_taskid =  getAccRank(slurmAccData, ACCID_MAX_VSIZE);
     TRes_set(tres, TRES_VMEM, &entry);
 
-    /* memory in byte */
+    /* memory in bytes */
     TRes_reset_entry(&entry);
     entry.in_max = accData->maxRss * 1024;
     entry.in_min = accData->maxRss * 1024;
@@ -1772,7 +1772,7 @@ static void convAccDataToTRes(SlurmAccData_t *slurmAccData, TRes_t *tres)
     entry.in_max_taskid = getAccRank(slurmAccData, ACCID_MAX_PAGES);
     TRes_set(tres, TRES_PAGES, &entry);
 
-    /* cpu */
+    /* CPU */
     TRes_reset_entry(&entry);
     entry.in_min = accData->minCputime * 1000;
     entry.in_max = accData->minCputime * 1000;
@@ -1781,7 +1781,7 @@ static void convAccDataToTRes(SlurmAccData_t *slurmAccData, TRes_t *tres)
     entry.in_min_taskid = getAccRank(slurmAccData, ACCID_MIN_CPU);
     TRes_set(tres, TRES_CPU, &entry);
 
-    /* fs disk in byte */
+    /* local disk read/write in byte */
     TRes_reset_entry(&entry);
     entry.in_max = accData->maxDiskRead * 1048576;
     entry.in_min = accData->maxDiskRead * 1048576;
@@ -1809,17 +1809,22 @@ static void convAccDataToTRes(SlurmAccData_t *slurmAccData, TRes_t *tres)
 
 	    entry.in_max = ic->recvBytes;
 	    entry.in_min = ic->recvBytes;
-	    entry.in_tot = ic->recvBytes * countTasks(slurmAccData->tasks) ;
+	    entry.in_tot = ic->recvBytes * countTasks(slurmAccData->tasks);
+	    entry.in_min_nodeid = slurmAccData->localNodeId;
 	    entry.in_max_nodeid = slurmAccData->localNodeId;
 	    /* all ranks will have the same data */
-	    entry.in_max_taskid = getAccRank(slurmAccData, ACCID_MAX_DISKREAD);
+	    entry.in_min_taskid = getAccRank(slurmAccData, ACCID_MAX_DISKREAD);
+	    entry.in_max_taskid = entry.in_min_taskid;
 
 	    entry.out_max = ic->sendBytes;
 	    entry.out_min = ic->sendBytes;
 	    entry.out_tot = ic->sendBytes * countTasks(slurmAccData->tasks);
+	    entry.out_min_nodeid = slurmAccData->localNodeId;
 	    entry.out_max_nodeid = slurmAccData->localNodeId;
 	    /* all ranks will have the same data */
-	    entry.out_max_taskid = entry.in_max_taskid;
+	    entry.out_min_taskid = entry.in_min_taskid;
+	    entry.out_max_taskid = entry.in_min_taskid;
+
 	    TRes_set(tres, icID, &entry);
 	}
     }
