@@ -1338,6 +1338,7 @@ void pspmix_service_handleModexDataResponse(pmix_status_t status,
     if (!mdata) {
 	ulog("no request for response (namespace %s rank %d). Ignoring!\n",
 	     nspace, rank);
+	ufree(data);
 	return;
     }
 
