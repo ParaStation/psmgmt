@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2016-2017 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021 ParTec AG, Munich
+ * Copyright (C) 2021-2022 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -12,7 +12,7 @@
  * This small library is a collection of functions for easy handling of dynamic
  * NULL terminated string vectors.
  * After each function called on a strv_t *strv:
- * - strv->strings is a pointer to a NULL terminated vector of strings
+ * - strv->strings is a pointer to a NULL terminated vector of strings or NULL
  * - strv->count contains the number of entries in the strings vector
  */
 #ifndef __PLUGIN_LIB_STRV
@@ -62,7 +62,7 @@ void __strvInit(strv_t *strv, char **initstrv, size_t initcount,
  * vector @a strv has to be initialized via @ref strvInit() before.
  *
  * @attention The pointer @a str to the string pointer is stored
- * directly, i.e. a @ref strdup() has to be done explicitely if
+ * directly, i.e. a @ref strdup() has to be done explicitely before if
  * intended.
  *
  * @param strv The string vector to be extended

@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2016 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021 ParTec AG, Munich
+ * Copyright (C) 2021-2022 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -15,39 +15,39 @@
 
 #include "pluginmalloc.h"
 
-#define VECTOR_CHUNK_SIZE 5
+#define VECTOR_CHUNK_SIZE 8
 
 void __strvInit(strv_t *strv, char **initstrv, size_t initcount,
 		const char *func, const int line)
 {
-    size_t count = 0;
-
     if (initstrv) {
-	if (initcount) {
-	    count = initcount;
-	} else {
-	    while (initstrv[count]) count++;
-	}
+	size_t count = initcount;
+	if (!count) while (initstrv[count]) count++;
+
 	strv->size = (count/VECTOR_CHUNK_SIZE + 1) * VECTOR_CHUNK_SIZE;
 	strv->count = count;
     } else {
-	strv->size = VECTOR_CHUNK_SIZE;
+	strv->size = 0;
 	strv->count = 0;
     }
 
-    strv->strings = __umalloc(strv->size * sizeof(char *), func, line);
+    if (strv->size) {
+	strv->strings = __umalloc(strv->size * sizeof(char *), func, line);
 
-    if (initstrv) memcpy(strv->strings, initstrv, count * sizeof(char *));
+	if (initstrv) memcpy(strv->strings, initstrv, strv->count * sizeof(char *));
 
-    strv->strings[strv->count] = NULL; /* terminate vector */
+	strv->strings[strv->count] = NULL; /* terminate vector */
+    } else {
+	strv->strings = NULL;
+    }
 }
 
 void __strvAdd(strv_t *strv, char *str, const char *func, const int line)
 {
-    assert(strv && strv->strings);
+    assert(strv && (strv->strings || !strv->size));
     assert(strv->size >= strv->count);
 
-    if (strv->count == strv->size - 1) {
+    if (strv->count >= strv->size - 1) {
 	strv->size += VECTOR_CHUNK_SIZE;
 	strv->strings = __urealloc(strv->strings, strv->size * sizeof(char *),
 				   func, line);
