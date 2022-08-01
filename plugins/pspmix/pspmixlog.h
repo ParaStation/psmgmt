@@ -56,9 +56,14 @@ extern pthread_mutex_t __mlock;
 #define elog(...) PSIDfwd_printMsgf(STDERR, __VA_ARGS__)
 #define mset(flag) (logger_getMask(pmixlogger) & flag)
 
+#if defined __GNUC__ && __GNUC__ < 8
+#define udbg(mask, format, ...)						\
+    mdbg(mask, "%s(uid %d): " format, __func__, server->uid, ##__VA_ARGS__)
+#else
 #define udbg(mask, format, ...)						\
     mdbg(mask, "%s(uid %d): " format, __func__, server->uid __VA_OPT__(,) \
 	 __VA_ARGS__)
+#endif
 
 #define ulog(...) udbg(-1, __VA_ARGS__)
 
