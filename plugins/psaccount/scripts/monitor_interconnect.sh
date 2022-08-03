@@ -5,10 +5,10 @@
 # "RcvData:num RcvPkts:num Select:num XmitData:num XmitPkts:num"
 #
 # RcvData = number of bytes received
-# RcvPkts = number of packages received
+# RcvPkts = number of packets received
 # Select = the (ofed) port monitored
 # XmitData = number of bytes sent
-# XmitPkts = number of packages sent
+# XmitPkts = number of packets sent
 #
 # An optional environment variable INTERCONNECT_TYPE may specify which
 # interconnect to monitor.

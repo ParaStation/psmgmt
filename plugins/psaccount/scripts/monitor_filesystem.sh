@@ -4,7 +4,7 @@
 #
 # readBytes:num writeBytes:num numReads:num numWrites:num
 #
-# readBytes = number of bytes red
+# readBytes = number of bytes read
 # writeBytes = number of bytes written
 # numReads = number of read operations
 # numWrites = number of write operations
