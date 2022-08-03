@@ -144,10 +144,7 @@ static char *getAbsMonPath(char *spath)
 	fName = PSC_concat(monPath, "/", spath, 0L);
     }
 
-    if (!fName) {
-	flog("out of memory\n");
-	return NULL;
-    }
+    if (!fName) flog("out of memory\n");
     return fName;
 }
 
