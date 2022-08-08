@@ -724,7 +724,7 @@ static int MYrecvfrom(int sock, void *buf, size_t len, int flags,
  * @see sendto(2)
  */
 static int MYsendto(int sock, void *buf, size_t len, int flags,
-		    int node, int hton)
+		    int node, bool hton)
 {
     int ret;
     struct sockaddr *to = (struct sockaddr *)&conntable[node].sin;
@@ -810,7 +810,7 @@ static void sendSYN(int node)
     hdr.connid = conntable[node].ConnID_out;
     RDP_log(RDP_LOG_CNTR, "%s: to %d (%s), NFTS=%x\n", __func__, node,
 	    inet_ntoa(conntable[node].sin.sin_addr), hdr.seqno);
-    MYsendto(rdpsock, &hdr, sizeof(hdr), 0, node, 1);
+    MYsendto(rdpsock, &hdr, sizeof(hdr), 0, node, true);
 }
 
 /**
@@ -832,7 +832,7 @@ static void sendACK(int node)
     hdr.ackno = conntable[node].frameExpected-1;   /* ACK Expected - 1 */
     hdr.connid = conntable[node].ConnID_out;
     RDP_log(RDP_LOG_ACKS, "%s: to %d, FE=%x\n", __func__, node, hdr.ackno);
-    MYsendto(rdpsock, &hdr, sizeof(hdr), 0, node, 1);
+    MYsendto(rdpsock, &hdr, sizeof(hdr), 0, node, true);
     conntable[node].ackPending = 0;
 }
 
@@ -856,7 +856,7 @@ static void sendSYNACK(int node)
     hdr.connid = conntable[node].ConnID_out;
     RDP_log(RDP_LOG_CNTR, "%s: to %d, NFTS=%x, FE=%x\n", __func__, node,
 	    hdr.seqno, hdr.ackno);
-    MYsendto(rdpsock, &hdr, sizeof(hdr), 0, node, 1);
+    MYsendto(rdpsock, &hdr, sizeof(hdr), 0, node, true);
     conntable[node].ackPending = 0;
 }
 
@@ -880,7 +880,7 @@ static void sendNACK(int node)
     hdr.connid = conntable[node].ConnID_out;
     conntable[node].totNACK++;
     RDP_log(RDP_LOG_CNTR, "%s: to %d, FE=%x\n", __func__, node, hdr.ackno);
-    MYsendto(rdpsock, &hdr, sizeof(hdr), 0, node, 1);
+    MYsendto(rdpsock, &hdr, sizeof(hdr), 0, node, true);
 }
 
 /* ---------------------------------------------------------------------- */
@@ -1091,7 +1091,7 @@ static void resendMsgs(int node)
 	    mp->msg.small->header.ackno =
 		pshton32(conntable[node].frameExpected-1);
 	    ret = MYsendto(rdpsock, &mp->msg.small->header,
-			   mp->len + sizeof(rdphdr_t), 0, node, 0);
+			   mp->len + sizeof(rdphdr_t), 0, node, false);
 	    if (ret < 0) break;
 	}
 	conntable[node].ackPending = 0;
@@ -2142,7 +2142,7 @@ int Rsendto(int node, void *buf, size_t len)
 
 	conntable[node].frameToSend++;
 	retval = MYsendto(rdpsock, &mp->msg.small->header,
-			  len + sizeof(rdphdr_t), 0, node, 0);
+			  len + sizeof(rdphdr_t), 0, node, false);
 	break;
     default:
 	RDP_log(-1, "%s: unknown state %d for %d\n",
