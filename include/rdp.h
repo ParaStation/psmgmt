@@ -544,6 +544,21 @@ void RDP_printStat(void);
 RDPState_t RDP_getState(int node);
 
 /**
+ * @brief Get number of pending messages
+ *
+ * Get the number of pending messages on RDP's connection to node @a
+ * node during (re-)connect. This value is only meaningful if the
+ * connection is not yet establihed, i.e. if @ref RDP_getState() does
+ * *not* return ACTIVE.
+ *
+ * @param node The node determining the connection to investigate
+ *
+ * @return Return the number of pending messages or -1 if @a node is invalid
+ *
+*/
+int RDP_getNumPend(int node);
+
+/**
  * @brief Memory cleanup
  *
  * Cleanup all memory currently used by the RDP module. This will very

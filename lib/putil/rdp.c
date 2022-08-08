@@ -2377,6 +2377,16 @@ RDPState_t RDP_getState(int node)
     return conntable[node].state;
 }
 
+int RDP_getNumPend(int node)
+{
+    if (node < 0 || node >= (int)nrOfNodes) {
+	RDP_log(-1, "%s: illegal node number %d\n", __func__, node);
+	return -1;
+    }
+
+    return conntable[node].msgPending;
+}
+
 void RDP_clearMem(void)
 {
     if (MsgPool) {
