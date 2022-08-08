@@ -53,6 +53,14 @@ typedef enum {
 				  * is reachable again */
 } RDP_CB_type_t;
 
+/** States a RDP connection can take */
+typedef enum {
+    CLOSED=0x1,  /**< connection is down */
+    SYN_SENT,    /**< connection establishing: SYN sent */
+    SYN_RECVD,   /**< connection establishing: SYN received */
+    ACTIVE       /**< connection is up */
+} RDPState_t;
+
 /**
  * The default RDP-port number. Magic number defined by Joe long time ago.
  * Can be overruled via RDP_init().
@@ -420,7 +428,7 @@ void RDP_setStatistics(bool newState);
 int Rsendto(int node, void* buf, size_t len);
 
 /**
- * @brief Receive a RDP packet.
+ * @brief Receive a RDP packet
  *
  * Receive a RDP packet of maximal length @a len. The message is stored in
  * @a buf, the node it was received from in @a node.
@@ -443,7 +451,7 @@ int Rsendto(int node, void* buf, size_t len);
 int Rrecvfrom(int* node, void* buf, size_t len);
 
 /**
- * @brief Get status info.
+ * @brief Get status info
  *
  * Get status information from the RDP module concerning the connection to
  * node @a node. The result is returned in @a string and can be directly
@@ -520,9 +528,20 @@ int RDP_blockTimer(bool block);
  * Print some useful statistics on RDP. Currently this includes:
  * - Some statistics on the UDP-socket used by RDP
  *
- * @return No return value.
+ * @return No return value
  */
 void RDP_printStat(void);
+
+/**
+ * @brief Get connection state
+ *
+ * Get the current state of RDP's connection to node @a node.
+ *
+ * @param node The node determining the connection to check
+ *
+ * @return Return the connection state or -1 if @a node is invalid
+ */
+RDPState_t RDP_getState(int node);
 
 /**
  * @brief Memory cleanup
@@ -536,7 +555,7 @@ void RDP_printStat(void);
  *
  * As a side effect it will also reset Timer information.
  *
- * @return No return value.
+ * @return No return value
  */
 void RDP_clearMem(void);
 

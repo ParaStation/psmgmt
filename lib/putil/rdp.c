@@ -64,14 +64,6 @@ static void (*RDPCallback)(RDP_CB_type_t, void*) = NULL;
  */
 static void (*RDPDispatcher)(void) = NULL;
 
-/** Possible RDP states of a connection */
-typedef enum {
-    CLOSED=0x1,  /**< connection is down */
-    SYN_SENT,    /**< connection establishing: SYN sent */
-    SYN_RECVD,   /**< connection establishing: SYN received */
-    ACTIVE       /**< connection is up */
-} RDPState_t;
-
 /** The possible RDP message types. */
 #define RDP_DATA     0x1  /**< regular data message */
 #define RDP_SYN      0x2  /**< synchronization message */
@@ -2373,6 +2365,16 @@ void RDP_printStat(void)
 	    RDP_log(-1, "%s: SO_SNDBUF is %d\n", __func__, sval);
 	}
     }
+}
+
+RDPState_t RDP_getState(int node)
+{
+    if (node < 0 || node >= (int)nrOfNodes) {
+	RDP_log(-1, "%s: illegal node number %d\n", __func__, node);
+	return -1;
+    }
+
+    return conntable[node].state;
 }
 
 void RDP_clearMem(void)
