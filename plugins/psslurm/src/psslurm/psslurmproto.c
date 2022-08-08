@@ -125,6 +125,13 @@ static void getSysInfo(uint32_t *cpuload, uint64_t *freemem, uint32_t *uptime)
     *cpuload = (info.loads[0] / div) * 100.0;
     *freemem = (((uint64_t) info.freeram) * info.mem_unit) / (1024*1024);
     *uptime = info.uptime;
+
+    /* pretend the node was booted when psslurm was loaded */
+    if (getenv("PSSLURM_FAKE_UPTIME")) {
+	static uint32_t realUptime = 0;
+	if (!realUptime) realUptime = info.uptime;
+	*uptime = info.uptime - realUptime;
+    }
 }
 
 /**
