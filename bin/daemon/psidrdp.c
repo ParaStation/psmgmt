@@ -25,10 +25,11 @@
 
 #include "rdp.h"
 
-#include "psidutil.h"
-#include "psidmsgbuf.h"
 #include "psidcomm.h"
+#include "psidmsgbuf.h"
 #include "psidnodes.h"
+#include "psidstatus.h"
+#include "psidutil.h"
 
 /* possible values of node_bufs.flags */
 #define FLUSH           0x00000001   /* Flush is under way */
@@ -212,6 +213,14 @@ int sendRDP(DDMsg_t *msg)
 
     if (!list_empty(&node_bufs[node].list)) flushRDPMsgs(node);
     if (list_empty(&node_bufs[node].list)) {
+	if (RDP_getState(node) != ACTIVE && !RDP_getNumPend(node)
+	    && msg->type != PSP_DD_DAEMONCONNECT) {
+	    /*
+	     * Ensure PSP_DD_DAEMONCONNECT message goes first as
+	     * required by the serialization layer
+	     */
+	    send_DAEMONCONNECT(node);
+	}
 	ret = Rsendto(node, msg, msg->len);
     }
 
