@@ -15,5 +15,5 @@ dist_plugin_DATA = psslurm.conf
 dist_noinst_DATA = pinning.txt psslurm-epilogue.example			\
 	psslurm-epilogue.finalize.example psslurm-offline.example	\
 	psslurm-prologue.example psslurm-requeue-job.example		\
-	resume_nodes.sh.example slurmctld.prologue.example 		\
+	resume_nodes.sh.example slurmctld.prologue.example		\
 	suspend_nodes.sh.example
