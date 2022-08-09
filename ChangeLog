@@ -1,3 +1,53 @@
+Version 5.1.50-1:
+=================
+------------------------------------------------------------------------
+bd77ddf75 | Norbert Eicker | Tue, 9 Aug 2022 12:54:23 +0200
+
+Move example scripts into -slurmutils RPM
+------------------------------------------------------------------------
+70fe3d110 | Norbert Eicker | Tue, 9 Aug 2022 12:02:40 +0200
+
+Actually deliver example scripts in RPM
+------------------------------------------------------------------------
+3fa61b19d | Norbert Eicker | Tue, 9 Aug 2022 12:02:15 +0200
+
+Beautify scripts
+------------------------------------------------------------------------
+e59ca2a17 | Michael Rauh | Tue, 9 Aug 2022 10:41:33 +0200
+
+Update buildsystem
+------------------------------------------------------------------------
+ff84bca62 | Michael Rauh | Tue, 9 Aug 2022 10:37:13 +0200
+
+Add example scripts for Slurm power saving feature
+------------------------------------------------------------------------
+a8c1f24b3 | Norbert Eicker | Mon, 8 Aug 2022 21:14:56 +0200
+
+Force PSP_DD_DAEMONCONNECT to go first for psserial
+------------------------------------------------------------------------
+0d1a3cb4a | Norbert Eicker | Mon, 8 Aug 2022 21:11:50 +0200
+
+Introduce RDP_getNumPend()
+------------------------------------------------------------------------
+9d3892d87 | Norbert Eicker | Mon, 8 Aug 2022 20:54:04 +0200
+
+Booleanize RDP's MYsendto()
+------------------------------------------------------------------------
+a85ab869f | Norbert Eicker | Mon, 8 Aug 2022 20:12:40 +0200
+
+Introduce RDP_getState()
+------------------------------------------------------------------------
+745bb25b5 | Michael Rauh | Mon, 8 Aug 2022 15:50:38 +0200
+
+If PSSLURM_FAKE_UPTIME is set psslurm will pretend that the node
+was booted the same time psslurm was started
+------------------------------------------------------------------------
+03f7abf51 | Norbert Eicker | Mon, 1 Aug 2022 09:35:44 +0200
+
+Work around unknown __VA_OPT__ in GCC prior 8.0
+------------------------------------------------------------------------
+
+
 Version 5.1.50:
 ===============
 ------------------------------------------------------------------------

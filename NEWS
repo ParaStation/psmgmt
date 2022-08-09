@@ -6,6 +6,17 @@ Copyright (C) 2021-2022 ParTec AG, Munich
 Please send bug reports, questions and suggestions to <support@par-tec.com>
 
 
+Version 5.1.50-1:
+=================
+Bugfixes:
+ - Enforce PSP_DD_DAEMONCONNECT to be the first message delivered via RDP
+Enhancements:
+ - Introduce PSSLURM_FAKE_UPTIME to help supporting Slurms power saving feature
+ - Add example scripts for Slurm power saving feature
+Additional changes:
+ - Introduce RDP_getState() and RDP_getNumPend()
+
+
 Version 5.1.50:
 ===============
 Bugfixes:
