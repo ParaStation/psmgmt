@@ -1,0 +1,45 @@
+#!/bin/bash
+
+exec > /tmp/slurmctld.prologue 2>&1
+
+# hack to skip the slurmctld prologue if slurmd is used for testing
+USE_PSSLURM=$(scontrol show node "$SLURM_JOB_NODELIST" |grep psslurm)
+[ -z "$USE_PSSLURM" ] && exit 0
+
+getNodeState()
+{
+    while read token; do
+        while read key value; do
+            if [ "${key}" == "State" ]; then
+                echo ${value}
+            fi
+        done <<< ${token/=/ }
+    done <<< "$(scontrol show node ${1} | tr -s ' ' | tr ' ' \\n)"
+}
+
+waitForNodes()
+{
+    hostlist=${1}
+    for h in ${hostlist}; do
+        echo -en Waiting for \"${h}\"\\t
+        state=UNKNOWN
+        until [ ${state}'#' = "IDLE#" -o ${state}'#' = "ALLOCATED#" ]; do
+            state=`getNodeState ${h}`
+        done
+        echo "=> done as "${state}
+    done
+}
+
+waitForNodes "`scontrol show hostnames ${SLURM_JOB_NODELIST}`"
+
+env >/tmp/slurmctld.prologue.env
+/opt/parastation/bin/pspelogue -v -d
+
+EXIT_STATUS=$?
+
+# pack job follower will exit here
+if [ -n "$SLURM_PACK_JOB_ID" ] && [ "$SLURM_PACK_JOB_ID" != "$SLURM_JOB_ID" ]; then
+  exit $EXIT_STATUS
+fi
+# pack leader will exit here
+exit $EXIT_STATUS

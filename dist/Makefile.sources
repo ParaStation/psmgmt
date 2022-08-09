@@ -580,6 +580,9 @@ plugins/psslurm/doc/psslurm-offline.example \
 plugins/psslurm/doc/psslurm-prologue.example \
 plugins/psslurm/doc/psslurm-requeue-job.example \
 plugins/psslurm/doc/psslurm.conf \
+plugins/psslurm/doc/resume_nodes.sh.example \
+plugins/psslurm/doc/slurmctld.prologue.example \
+plugins/psslurm/doc/suspend_nodes.sh.example \
 plugins/psslurm/src/bin/Makefile.am \
 plugins/psslurm/src/bin/Makefile.in \
 plugins/psslurm/src/bin/psslurmgetbind.c \
