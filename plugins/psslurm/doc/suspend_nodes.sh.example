@@ -1,14 +1,14 @@
 #!/bin/bash
 
-service=psid
+service=psid.service
 USE_PSSLURM=$(scontrol show node ${1} |grep psslurm)
-[ -z "$USE_PSSLURM" ] && service=slurmd
+[ -z "$USE_PSSLURM" ] && service=slurmd.service
 
+# use logfile=/dev/null to suppress logging
 logfile=/var/log/slurm_powersave
 
-echo -n "Call "${0}" with arguments '"${*}"' at " >> ${logfile}
-date >> ${logfile}
+echo "Call "${0}" with arguments '"${*}"' at "`date` >> ${logfile}
 
-cmd="sudo /opt/parastation/sbin/psh -n ${1} -D -a /tmp systemctl stop $service" 
+cmd="sudo /opt/parastation/sbin/psh -n ${1} -D -a /tmp systemctl stop ${service}"
 echo executing \"${cmd}\" >> ${logfile}
 $cmd >> ${logfile} 2>&1

@@ -1,17 +1,17 @@
 #!/bin/bash
 
-service=psid
+service=psid.service
 USE_PSSLURM=$(scontrol show node ${1} |grep psslurm)
-[ -z "$USE_PSSLURM" ] && service=slurmd
+[ -z "$USE_PSSLURM" ] && service=slurmd.service
 
 getNodeState()
 {
     while read token; do
-        while read key value; do
-            if [ "${key}" == "State" ]; then
-                echo ${value}
-            fi
-        done <<< ${token/=/ }
+	while read key value; do
+	    if [ "${key}" == "State" ]; then
+		echo ${value}
+	    fi
+	done <<< ${token/=/ }
     done <<< "$(scontrol show node ${1} | tr -s ' ' | tr ' ' \\n)"
 }
 
@@ -19,27 +19,38 @@ waitForNodes()
 {
     hostlist=${1}
     for h in ${hostlist}; do
-        echo -en Waiting for \"${h}\"\\t
-        state=UNKNOWN
-        until [ ${state}'#' = "IDLE#" -o ${state}'#' = "ALLOCATED#" ]; do
-            state=`getNodeState ${h}`
-        done
-        echo "=> done as "${state}
+	echo -en Waiting for \"${h}\"\\t
+	state=UNKNOWN
+	until [ ${state}'#' = "IDLE#" -o ${state}'#' = "ALLOCATED#" ]; do
+	    state=`getNodeState ${h}`
+	done
+	echo "=> done as "${state}
     done
 }
 
+# use logfile=/dev/null to suppress logging
 logfile=/var/log/slurm_powersave
 
-echo -n "Call "${0}" with arguments '"${*}"' at " >> ${logfile}
-date >> ${logfile}
+echo "Call "${0}" with arguments '"${*}"' at "`date` >> ${logfile}
 
-if [ "$service" == "psid" ]; then
-	sysctlcmd="systemctl set-environment PSSLURM_FAKE_UPTIME=1; systemctl start $service; systemctl unset-environment PSSLURM_FAKE_UPTIME"
-else
-	sysctlcmd="systemctl set-environment SLURMD_OPTIONS=-b; systemctl start $service; systemctl unset-environment SLURMD_OPTIONS"
-fi
+case ${service} in
+    "psid.service" )
+	sysctlcmd="systemctl set-environment PSSLURM_FAKE_UPTIME=1; \
+		   systemctl start ${service}; \
+		   systemctl unset-environment PSSLURM_FAKE_UPTIME"
+	;;
+    "slurmd.service" )
+	sysctlcmd="systemctl set-environment SLURMD_OPTIONS=-b; \
+		   systemctl start ${service}; \
+		   systemctl unset-environment SLURMD_OPTIONS"
+	;;
+    * )
+	echo "Unknown service '"${service}"'" >> ${logfile}
+	exit 1
+	;;
+esac
 
-cmd="sudo /opt/parastation/sbin/psh -n ${1} -D -a /tmp $sysctlcmd" 
+cmd="sudo /opt/parastation/sbin/psh -n ${1} -D -a /tmp ${sysctlcmd}"
 echo executing \"${cmd}\" >> ${logfile}
 $cmd >> ${logfile} 2>&1
 
