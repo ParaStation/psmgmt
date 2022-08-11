@@ -185,24 +185,24 @@ static bool readClientPMIxEnvironment(int daemonfd, struct timeval timeout)
 }
 
 static bool sendNotificationResp(PStask_ID_t targetTID, PSP_PSPMIX_t type,
-				 pmix_rank_t pmirank, const char *nspace)
+				 const char *nspace, pmix_rank_t rank)
 {
     mdbg(PSPMIX_LOG_CALL|PSPMIX_LOG_COMM,
-	 "%s(r%d targetTID %s type %s nspace %s pmirank %u)\n", __func__,
+	 "%s(r%d targetTID %s type %s nspace %s rank %u)\n", __func__,
 	 rank, PSC_printTID(targetTID), pspmix_getMsgTypeString(type),
-	 nspace, pmirank);
+	 nspace, rank);
 
     PS_SendDB_t msg;
     initFragBuffer(&msg, PSP_PLUG_PSPMIX, type);
     setFragDest(&msg, targetTID);
 
     addUint8ToMsg(1, &msg);
-    addUint32ToMsg(pmirank, &msg);
     addStringToMsg(nspace, &msg);
+    addUint32ToMsg(rank, &msg);
 
     if (sendFragMsg(&msg) < 0) {
-	mlog("%s: Sending %s (pmirank %u nspace %s) to %s failed\n", __func__,
-	     pspmix_getMsgTypeString(type), pmirank, nspace,
+	mlog("%s: Sending %s (nspace %s rank %u) to %s failed\n", __func__,
+	     pspmix_getMsgTypeString(type), nspace, rank,
 	     PSC_printTID(targetTID));
 	return false;
     }
@@ -223,8 +223,8 @@ static void handleClientInit(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
 
     pmix_proc_t proc;
     PMIX_PROC_CONSTRUCT(&proc);
-    getUint32(&ptr, &proc.rank);
     getString(&ptr, proc.nspace, sizeof(proc.nspace));
+    getUint32(&ptr, &proc.rank);
 
     mdbg(PSPMIX_LOG_COMM, "%s(r%d): Handling client initialized message for"
 	 " %s:%d\n", __func__, rank, proc.nspace, proc.rank);
@@ -233,7 +233,7 @@ static void handleClientInit(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
 
     /* send response */
     sendNotificationResp(msg->header.sender, PSPMIX_CLIENT_INIT_RES,
-			 proc.rank, proc.nspace);
+			 proc.nspace, proc.rank);
     PMIX_PROC_DESTRUCT(&proc);
 }
 
@@ -256,8 +256,8 @@ static void handleClientFinalize(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
 
     pmix_proc_t proc;
     PMIX_PROC_CONSTRUCT(&proc);
-    getUint32(&ptr, &proc.rank);
     getString(&ptr, proc.nspace, sizeof(proc.nspace));
+    getUint32(&ptr, &proc.rank);
 
     mdbg(PSPMIX_LOG_COMM, "%s: received %s from namespace %s rank %d\n",
 	 __func__, pspmix_getMsgTypeString(msg->type), proc.nspace, proc.rank);
@@ -266,7 +266,7 @@ static void handleClientFinalize(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
 
     /* send response */
     sendNotificationResp(msg->header.sender, PSPMIX_CLIENT_FINALIZE_RES,
-			 proc.rank, proc.nspace);
+			 proc.nspace, proc.rank);
     PMIX_PROC_DESTRUCT(&proc);
 }
 

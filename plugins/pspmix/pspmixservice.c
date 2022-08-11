@@ -690,7 +690,7 @@ bool pspmix_service_clientConnected(void *clientObject, void *cb)
 
     GET_LOCK(namespaceList);
 
-    ulog("(rank %d)\n", client->rank);
+    ulog("(nspace %s rank %d)\n", client->nsname, client->rank);
 
     /* Inform the client's forwarder about initialization and remember callback
      * for answer handling */
