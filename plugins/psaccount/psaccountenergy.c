@@ -76,7 +76,7 @@ static void updatePower(uint64_t power)
     static uint32_t readCount = 0;
     /* convert to watt  */
     eData.powerCur = (uint64_t) floor(power * powerMult);
-    if (eData.powerCur < eData.powerMin) {
+    if (!eData.powerMin ||  eData.powerCur < eData.powerMin) {
 	eData.powerMin = eData.powerCur;
     }
     if (eData.powerCur > eData.powerMax) {
