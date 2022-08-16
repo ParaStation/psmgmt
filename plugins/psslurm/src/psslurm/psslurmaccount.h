@@ -15,6 +15,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 
+/** predefined track-able resources types */
 enum {
     TRES_CPU = 0,
     TRES_MEM,
@@ -27,6 +28,7 @@ enum {
     TRES_TOTAL_CNT
 };
 
+/** track-able resources (TRes) entry */
 typedef struct {
     uint64_t in_max; 		/* TRes in max usage data */
     uint64_t in_max_nodeid; 	/* TRes in max usage data node id */
@@ -44,6 +46,7 @@ typedef struct {
     uint64_t out_tot; 		/* total out usage (megabytes) */
 } TRes_Entry_t;
 
+/** a collection of TRes records */
 typedef struct {
     uint32_t count; 		/* count of TRes in the usage array's */
     uint32_t *ids; 		/* array of tres_count of the TRes id's */
