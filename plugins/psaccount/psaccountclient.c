@@ -24,6 +24,7 @@
 #include "psaccountenergy.h"
 #include "psaccountlog.h"
 #include "psaccountproc.h"
+#include "psaccountinterconnect.h"
 
 #define MAX_JOBS_PER_NODE 1024
 
@@ -188,7 +189,7 @@ static void updateClntData(Client_t *client)
     accData->avgRssTotal += rssnew;
     accData->avgRssCount++;
 
-    /* set virtual mem */
+    /* set virtual memory */
     vsizenew = (proc->vmem + pChildren.vmem) / 1024;
     if (vsizenew > accData->maxVsize) accData->maxVsize = vsizenew;
     accData->avgVsizeTotal += vsizenew;
@@ -213,7 +214,7 @@ static void updateClntData(Client_t *client)
     /* read IO statistics */
     readProcIO(client->pid, &procIO);
 
-    /* set total disc read/write */
+    /* set total local disk read/write */
     if (procIO.diskRead > accData->totDiskRead) {
 	accData->totDiskRead = procIO.diskRead;
     }
@@ -221,15 +222,15 @@ static void updateClntData(Client_t *client)
 	accData->totDiskWrite = procIO.diskWrite;
     }
 
-    /* set readBytes/writeBytes */
-    if (procIO.readBytes > accData->readBytes) {
-	accData->readBytes = procIO.readBytes;
+    /* set local disk readBytes/writeBytes */
+    if (procIO.readBytes > accData->diskReadBytes) {
+	accData->diskReadBytes = procIO.readBytes;
     }
-    if (procIO.writeBytes > accData->writeBytes) {
-	accData->writeBytes = procIO.writeBytes;
+    if (procIO.writeBytes > accData->diskWriteBytes) {
+	accData->diskWriteBytes = procIO.writeBytes;
     }
 
-    /* calc cpu freq */
+    /* calculate CPU frequency */
     if (diffCputime > 0) {
 	accData->cpuWeight = accData->cpuWeight +
 	    getCpuFreq(proc->cpu) * diffCputime;
@@ -262,14 +263,13 @@ static void updateClntData(Client_t *client)
  *
  * @return No return value
  */
-void addClientToAggData(Client_t *client, AccountDataExt_t *aggData)
+void addClientToAggData(Client_t *client, AccountDataExt_t *aggData,
+		        bool *addEnergy)
 {
     AccountDataExt_t *cData = &client->data;
-    uint64_t maxRss, maxVsize, CPUtime;
-    double dtmp;
 
-    maxRss = cData->maxRss;
-    maxVsize = cData->maxVsize;
+    uint64_t maxRss = cData->maxRss;
+    uint64_t maxVsize = cData->maxVsize;
 
     /* sum up for maxima totals */
     aggData->maxThreadsTotal += cData->maxThreads;
@@ -316,8 +316,9 @@ void addClientToAggData(Client_t *client, AccountDataExt_t *aggData)
     timeradd(&aggData->rusage.ru_stime, &cData->rusage.ru_stime,
 	     &aggData->rusage.ru_stime);
 
-    /* min cputime */
-    CPUtime = cData->rusage.ru_utime.tv_sec + cData->rusage.ru_stime.tv_sec;
+    /* min CPU time */
+    uint64_t CPUtime = cData->rusage.ru_utime.tv_sec +
+		       cData->rusage.ru_stime.tv_sec;
     if (!aggData->numTasks) {
 	aggData->minCputime = CPUtime;
 	aggData->taskIds[ACCID_MIN_CPU] = client->taskid;
@@ -326,7 +327,7 @@ void addClientToAggData(Client_t *client, AccountDataExt_t *aggData)
 	aggData->taskIds[ACCID_MIN_CPU] = client->taskid;
     }
 
-    /* total cputime */
+    /* total CPU time */
     aggData->totCputime += CPUtime;
 
     /* major page faults */
@@ -336,15 +337,15 @@ void addClientToAggData(Client_t *client, AccountDataExt_t *aggData)
 	aggData->taskIds[ACCID_MAX_PAGES] = client->taskid;
     }
 
-    /* disc read */
-    dtmp = (double)cData->totDiskRead / (1024*1024);
+    /* local disk read */
+    double dtmp = (double)cData->totDiskRead / (1024*1024);
     aggData->totDiskRead += dtmp;
     if (dtmp > aggData->maxDiskRead) {
 	aggData->maxDiskRead = dtmp;
 	aggData->taskIds[ACCID_MAX_DISKREAD] = client->taskid;
     }
 
-    /* disc write */
+    /* local disk write */
     dtmp = (double)cData->totDiskWrite / (1024*1024);
     aggData->totDiskWrite += dtmp;
     if (dtmp > aggData->maxDiskWrite) {
@@ -352,16 +353,83 @@ void addClientToAggData(Client_t *client, AccountDataExt_t *aggData)
 	aggData->taskIds[ACCID_MAX_DISKWRITE] = client->taskid;
     }
 
-    aggData->numTasks++;
-
-    /* cpu freq */
+    /* CPU frequency */
     aggData->cpuFreq += cData->cpuFreq;
 
-    mdbg(PSACC_LOG_AGGREGATE, "%s: client %s maxThreads %lu maxVsize %lu"
-	 " maxRss %lu cutime %lu cstime %lu avg cpuFreq %.2fG\n",
-	 __func__, PSC_printTID(client->taskid), cData->maxThreads,
+    /* energy is calculated on a per node basis, add only once for all local
+     * clients */
+    if (*addEnergy && client->job && client->job->energyBase) {
+	psAccountEnergy_t *eData = Energy_getData();
+
+	/* energy */
+	uint64_t energyTot = eData->energyCur - client->job->energyBase;
+	if (energyTot > aggData->energyMax) {
+	    aggData->energyMax = energyTot;
+	    aggData->taskIds[ACCID_MAX_ENERGY] = client->taskid;
+	}
+	if (!aggData->numTasks || energyTot < aggData->energyMin) {
+	    aggData->energyMin = energyTot;
+	    aggData->taskIds[ACCID_MIN_ENERGY] = client->taskid;
+	}
+	aggData->energyTot += energyTot;
+
+	/* power */
+	aggData->powerAvg += eData->powerAvg;
+	if (eData->powerMax > aggData->powerMax) {
+	    aggData->powerMax = eData->powerMax;
+	    aggData->taskIds[ACCID_MAX_POWER] = client->taskid;
+	}
+	if (!aggData->powerMin ||
+	    (eData->powerMin && eData->powerMin < aggData->powerMin)) {
+	    aggData->powerMin = eData->powerMin;
+	    aggData->taskIds[ACCID_MIN_POWER] = client->taskid;
+	}
+	*addEnergy = false;
+
+	fdbg(PSACC_LOG_AGGREGATE, "node %i energy tot %zu min %zu max %zu "
+	     " power avg %zu power min %zu power max %zu\n",
+	     PSC_getID(client->taskid), aggData->energyTot, aggData->energyMin,
+	     aggData->energyMax, aggData->powerAvg, aggData->powerMin,
+	     aggData->powerMax);
+    }
+
+    psAccountIC_t *icData = IC_getData();
+
+    /* received bytes from interconnect */
+    aggData->IC_recvBytesTot += icData->recvBytes;
+    if (icData->recvBytes > aggData->IC_recvBytesMax) {
+	aggData->IC_recvBytesMax = icData->recvBytes;
+	aggData->taskIds[ACCID_MAX_IC_RECV] = client->taskid;
+    }
+    if (!aggData->IC_recvBytesMin ||
+	(icData->recvBytes &&
+	 icData->recvBytes < aggData->IC_recvBytesMin)) {
+	aggData->IC_recvBytesMin = icData->recvBytes;
+	aggData->taskIds[ACCID_MIN_IC_RECV] = client->taskid;
+    }
+
+    /* sent bytes from interconnect */
+    aggData->IC_sendBytesTot += icData->sendBytes;
+    if (icData->sendBytes > aggData->IC_sendBytesMax) {
+	aggData->IC_sendBytesMax = icData->sendBytes;
+	aggData->taskIds[ACCID_MAX_IC_SEND] = client->taskid;
+    }
+    if (!aggData->IC_sendBytesMin ||
+	(icData->sendBytes &&
+	 icData->sendBytes < aggData->IC_sendBytesMin)) {
+	aggData->IC_sendBytesMin = icData->sendBytes;
+	aggData->taskIds[ACCID_MIN_IC_SEND] = client->taskid;
+    }
+
+    aggData->numTasks++;
+
+    fdbg(PSACC_LOG_AGGREGATE, "client %s maxThreads %lu maxVsize %lu"
+	 " maxRss %lu cutime %lu cstime %lu avg cpuFreq %.2fG"
+	 " IC_recvBytesTot %zu IC_sendBytesTot %zu\n",
+	 PSC_printTID(client->taskid), cData->maxThreads,
 	 cData->maxVsize, cData->maxRss, cData->cutime, cData->cstime,
-	 (double) aggData->cpuFreq / aggData->numTasks / (1024*1024));
+	 (double) aggData->cpuFreq / aggData->numTasks / (1024*1024),
+	 icData->recvBytes, icData->sendBytes);
 }
 
 /**
@@ -421,7 +489,7 @@ static void addAggData(AccountDataExt_t *srcData, AccountDataExt_t *destData)
 	destData->taskIds[ACCID_MAX_PAGES] = srcData->taskIds[ACCID_MAX_PAGES];
     }
 
-    /* disc read */
+    /* local disk read */
     destData->totDiskRead += srcData->totDiskRead;
     if (srcData->totDiskRead > destData->maxDiskRead) {
 	destData->maxDiskRead = srcData->totDiskRead;
@@ -429,7 +497,7 @@ static void addAggData(AccountDataExt_t *srcData, AccountDataExt_t *destData)
 	    srcData->taskIds[ACCID_MAX_DISKREAD];
     }
 
-    /* disc write */
+    /* local disk write */
     destData->totDiskWrite += srcData->totDiskWrite;
     if (srcData->totDiskWrite > destData->maxDiskWrite) {
 	destData->maxDiskWrite = srcData->totDiskWrite;
@@ -445,32 +513,99 @@ static void addAggData(AccountDataExt_t *srcData, AccountDataExt_t *destData)
     timeradd(&destData->rusage.ru_stime, &srcData->rusage.ru_stime,
 	     &destData->rusage.ru_stime);
 
-    /* minimum CPU-time */
-    if (!destData->numTasks) {
-	destData->minCputime = srcData->minCputime;
-	destData->taskIds[ACCID_MIN_CPU] = srcData->taskIds[ACCID_MIN_CPU];
-    } else if (srcData->minCputime < destData->minCputime) {
+    /* minimum CPU time */
+    if (!destData->numTasks ||
+	srcData->minCputime < destData->minCputime) {
 	destData->minCputime = srcData->minCputime;
 	destData->taskIds[ACCID_MIN_CPU] = srcData->taskIds[ACCID_MIN_CPU];
     }
 
-    /* total CPU-time */
+    /* total CPU time */
     destData->totCputime += srcData->totCputime;
 
     /* CPU frequency */
     destData->cpuFreq += srcData->cpuFreq;
 
-    destData->numTasks += srcData->numTasks;
     destData->pageSize = srcData->pageSize;
 
-    /* energy consumption */
-    destData->energyCons += srcData->energyCons;
+    /* energy */
+    destData->energyTot += srcData->energyTot;
+    if (srcData->energyTot > destData->energyMax) {
+	destData->energyMax = srcData->energyTot;
+	destData->taskIds[ACCID_MAX_ENERGY] =
+	    srcData->taskIds[ACCID_MAX_ENERGY];
+    }
+    if (!destData->numTasks ||
+	srcData->energyTot < destData->energyMin) {
+	destData->energyMin = srcData->energyTot;
+	destData->taskIds[ACCID_MIN_ENERGY] =
+	    srcData->taskIds[ACCID_MIN_ENERGY];
+    }
 
-    mdbg(PSACC_LOG_AGGREGATE, "%s: maxThreads %lu maxVsize %lu maxRss %lu"
-	 " cutime %lu cstime %lu avg cpuFreq %.2fG\n", __func__,
+    /* power */
+    destData->powerAvg += srcData->powerAvg;
+    if (srcData->powerMax > destData->powerMax) {
+	destData->powerMax = srcData->powerMax;
+	destData->taskIds[ACCID_MAX_POWER] = srcData->taskIds[ACCID_MAX_POWER];
+    }
+    if (!destData->powerMin ||
+	(srcData->powerMin && srcData->powerMin < destData->powerMin)) {
+	destData->powerMin = srcData->powerMin;
+	destData->taskIds[ACCID_MIN_POWER] = srcData->taskIds[ACCID_MIN_POWER];
+    }
+
+    /* received bytes from interconnect */
+    destData->IC_recvBytesTot += srcData->IC_recvBytesTot;
+
+    if (srcData->IC_recvBytesMax > destData->IC_recvBytesMax) {
+	destData->IC_recvBytesMax = srcData->IC_recvBytesMax;
+	destData->taskIds[ACCID_MAX_IC_RECV] =
+	    srcData->taskIds[ACCID_MAX_IC_RECV];
+    }
+    if (!destData->IC_recvBytesMin ||
+	(srcData->IC_recvBytesMin &&
+	 srcData->IC_recvBytesMin < destData->IC_recvBytesMin)) {
+	destData->IC_recvBytesMin = srcData->IC_recvBytesMin;
+	destData->taskIds[ACCID_MIN_IC_RECV] =
+	    srcData->taskIds[ACCID_MIN_IC_RECV];
+    }
+
+    /* sent bytes from interconnect */
+    destData->IC_sendBytesTot += srcData->IC_sendBytesTot;
+    if (srcData->IC_sendBytesMax > destData->IC_sendBytesMax) {
+	destData->IC_sendBytesMax = srcData->IC_sendBytesMax;
+	destData->taskIds[ACCID_MAX_IC_SEND] =
+	    srcData->taskIds[ACCID_MAX_IC_SEND];
+    }
+    if (!destData->IC_sendBytesMin ||
+	(srcData->IC_sendBytesMin &&
+	 srcData->IC_sendBytesMin < destData->IC_sendBytesMin)) {
+	destData->IC_sendBytesMin = srcData->IC_sendBytesMin;
+	destData->taskIds[ACCID_MIN_IC_SEND] =
+	    srcData->taskIds[ACCID_MIN_IC_SEND];
+    }
+
+    /* counters from file-system */
+    destData->FS_writeBytes += srcData->FS_writeBytes;
+    destData->FS_readBytes += srcData->FS_readBytes;
+
+    /* number of tasks */
+    destData->numTasks += srcData->numTasks;
+
+    fdbg(PSACC_LOG_AGGREGATE, "node %u numTasks %u maxThreads %lu maxVsize %lu"
+	 " maxRss %lu cutime %lu cstime %lu avg cpuFreq %.2fG total energy %zu"
+	 " power avg %zu power min %zu power max %zu IC_recvTot %zu"
+	 " IC_recvMin %zu IC_recvMax %zu IC_sendTot %zu IC_sendMin %zu"
+	 " IC_sendMax %zu FS_write %zu FS_read %zu\n",
+	 PSC_getID(srcData->taskIds[ACCID_MAX_RSS]), srcData->numTasks,
 	 srcData->maxThreads, srcData->maxVsize, srcData->maxRss,
 	 srcData->cutime, srcData->cstime,
-	 ((double)destData->cpuFreq / destData->numTasks) / (1024*1024));
+	 ((double)destData->cpuFreq / destData->numTasks) / (1024*1024),
+	 srcData->energyTot, srcData->powerAvg, srcData->powerMin,
+	 srcData->powerMax, srcData->IC_recvBytesTot, srcData->IC_recvBytesMin,
+	 srcData->IC_recvBytesMax,srcData->IC_sendBytesTot,
+	 srcData->IC_sendBytesMin, srcData->IC_sendBytesMax,
+	 srcData->FS_writeBytes, srcData->FS_readBytes);
 }
 
 void setAggData(PStask_ID_t tid, PStask_ID_t logger, AccountDataExt_t *data)
@@ -577,29 +712,34 @@ PStask_ID_t getLoggerByClientPID(pid_t pid)
 
 bool aggregateDataByLogger(PStask_ID_t logger, AccountDataExt_t *accData)
 {
-    int res = false;
-    list_t *c;
-    uint64_t energyLocal = 0;
+    bool res = false, addEnergy = true;
 
+    list_t *c;
     list_for_each(c, &clientList) {
 	Client_t *client = list_entry(c, Client_t, next);
 	if (client->logger == logger && client->type != ACC_CHILD_JOBSCRIPT) {
 	    if (client->type == ACC_CHILD_PSIDCHILD) {
-		addClientToAggData(client, accData);
-		if (!energyLocal && client->job && client->job->energyBase) {
-		    /* energy is calculated on a per job basis */
-		    psAccountEnergy_t *eData = Energy_getData();
-		    energyLocal = eData->energyCur - client->job->energyBase;
-		}
+		addClientToAggData(client, accData, &addEnergy);
 	    } else if (client->type == ACC_CHILD_REMOTE) {
 		addAggData(&client->data, accData);
 	    }
 	    res = true;
 	}
     }
-    mdbg(PSACC_LOG_ENERGY, "%s: local energy consumption: %zu\n",
-	 __func__, energyLocal);
-    if (energyLocal) accData->energyCons += energyLocal;
+
+    fdbg(PSACC_LOG_AGGREGATE, "aggregated: numTasks %u maxThreads %lu"
+	 " maxVsize %lu maxRss %lu cutime %lu cstime %lu avg cpuFreq %.2fG"
+	 " total energy %zu" " power avg %zu power min %zu power max %zu"
+	 " IC_recvTot %zu IC_recvMin %zu IC_recvMax %zu IC_sendTot %zu"
+	 " IC_sendMin %zu IC_sendMax %zu FS_write %zu FS_read %zu\n",
+	 accData->numTasks, accData->maxThreads, accData->maxVsize,
+	 accData->maxRss, accData->cutime, accData->cstime,
+	 ((double)accData->cpuFreq / accData->numTasks) / (1024*1024),
+	 accData->energyTot, accData->powerAvg, accData->powerMin,
+	 accData->powerMax, accData->IC_recvBytesTot, accData->IC_recvBytesMin,
+	 accData->IC_recvBytesMax, accData->IC_sendBytesTot,
+	 accData->IC_sendBytesMin, accData->IC_sendBytesMax,
+	 accData->FS_writeBytes, accData->FS_readBytes);
 
     return res;
 }
@@ -706,21 +846,17 @@ void forwardJobData(Job_t *job, bool force)
 
     /* aggregate accounting data on a per logger basis */
     memset(&aggData, 0, sizeof(AccountDataExt_t));
+    bool addEnergy = true;
     list_for_each(c, &clientList) {
 	Client_t *client = list_entry(c, Client_t, next);
 	if (client->logger == logger && (client->doAccounting || force)) {
-	    addClientToAggData(client, &aggData);
+	    addClientToAggData(client, &aggData, &addEnergy);
 	}
     }
 
-    /* calculate energy consumption */
-    psAccountEnergy_t *eData = Energy_getData();
-    aggData.energyCons = eData->energyCur - job->energyBase;
-
-    mdbg(PSACC_LOG_ENERGY, "%s: energy aggregation for logger: %s "
-	 "consumption: %zu  base: %zu current: %zu\n", __func__,
-	 PSC_printTID(job->logger), aggData.energyCons, job->energyBase,
-	 eData->energyCur);
+    mdbg(PSACC_LOG_ENERGY, "energy aggregation for logger: %s "
+	 "consumption: %zu  base: %zu\n", PSC_printTID(job->logger),
+	 aggData.energyTot, job->energyBase);
 
     /* send the update */
     if (aggData.numTasks) sendAggData(logger, &aggData);

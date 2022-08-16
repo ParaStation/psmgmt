@@ -236,9 +236,12 @@ bool aggregateDataByLogger(PStask_ID_t logger, AccountDataExt_t *accData);
  *
  * @param accData Data aggregation acting as the accumulator
  *
+ * @param addEnergy If true local energy consuption is added to data
+ *
  * @return No return value
  */
-void addClientToAggData(Client_t *client, AccountDataExt_t *accData);
+void addClientToAggData(Client_t *client, AccountDataExt_t *aggData,
+		        bool *addEnergy);
 
 /**
  * @brief Store remote aggregated data

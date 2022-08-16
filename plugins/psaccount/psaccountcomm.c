@@ -400,22 +400,49 @@ void sendAggData(PStask_ID_t logger, AccountDataExt_t *aggData)
     addTimeToMsg(aggData->rusage.ru_stime.tv_sec, &data);
     addTimeToMsg(aggData->rusage.ru_stime.tv_usec, &data);
 
-    addUint64ToMsg(aggData->energyCons, &data);
+    addUint64ToMsg(aggData->energyTot, &data);
+    addInt32ToMsg(aggData->taskIds[ACCID_MIN_ENERGY], &data);
+    addInt32ToMsg(aggData->taskIds[ACCID_MAX_ENERGY], &data);
+    addUint64ToMsg(aggData->powerAvg, &data);
+    addUint64ToMsg(aggData->powerMin, &data);
+    addUint64ToMsg(aggData->powerMax, &data);
+    addInt32ToMsg(aggData->taskIds[ACCID_MIN_POWER], &data);
+    addInt32ToMsg(aggData->taskIds[ACCID_MAX_POWER], &data);
+
+    addUint64ToMsg(aggData->IC_recvBytesTot, &data);
+    addUint64ToMsg(aggData->IC_recvBytesMin, &data);
+    addUint64ToMsg(aggData->IC_recvBytesMax, &data);
+    addInt32ToMsg(aggData->taskIds[ACCID_MIN_IC_RECV], &data);
+    addInt32ToMsg(aggData->taskIds[ACCID_MAX_IC_RECV], &data);
+
+    addUint64ToMsg(aggData->IC_sendBytesTot, &data);
+    addUint64ToMsg(aggData->IC_sendBytesMin, &data);
+    addUint64ToMsg(aggData->IC_sendBytesMax, &data);
+    addInt32ToMsg(aggData->taskIds[ACCID_MIN_IC_SEND], &data);
+    addInt32ToMsg(aggData->taskIds[ACCID_MAX_IC_SEND], &data);
+
+    addUint64ToMsg(aggData->FS_writeBytes, &data);
+    addUint64ToMsg(aggData->FS_readBytes, &data);
 
     sendFragMsg(&data);
 
-    mdbg(PSACC_LOG_UPDATE_MSG, "%s: to %i maxThreadsTot %lu maxVsizeTot %lu"
+    fdbg(PSACC_LOG_UPDATE_MSG, "to %i maxThreadsTot %lu maxVsizeTot %lu"
 	 " maxRsstot %lu maxThreads %lu maxVsize %lu maxRss %lu numTasks %u"
 	 " avgThreadsTotal %lu avgThreadsCount %lu avgVsizeTotal %lu"
 	 " avgVsizeCount %lu avgRssTotal %lu avgRssCount %lu cutime %lu"
-	 " cstime %lu minCputime %lu totCputime %lu energyConsump %zu\n",
-	 __func__, loggerNode, aggData->maxThreadsTotal, aggData->maxVsizeTotal,
-	 aggData->maxRssTotal, aggData->maxThreads, aggData->maxVsize,
-	 aggData->maxRss, aggData->numTasks, aggData->avgThreadsTotal,
-	 aggData->avgThreadsCount, aggData->avgVsizeTotal,
-	 aggData->avgVsizeCount, aggData->avgRssTotal, aggData->avgRssCount,
-	 aggData->cutime, aggData->cstime, aggData->minCputime,
-	 aggData->totCputime, aggData->energyCons);
+	 " cstime %lu minCputime %lu totCputime %lu energyTot %zu"
+	 " powerAvg %zu powerMin %zu powerMax %zu" " IC_recvBytesTot %zu"
+	 " IC_sendBytesTot %zu FS_writeBytes %zu FS_readBytes %zu\n",
+	 loggerNode, aggData->maxThreadsTotal,
+	 aggData->maxVsizeTotal, aggData->maxRssTotal, aggData->maxThreads,
+	 aggData->maxVsize, aggData->maxRss, aggData->numTasks,
+	 aggData->avgThreadsTotal, aggData->avgThreadsCount,
+	 aggData->avgVsizeTotal, aggData->avgVsizeCount, aggData->avgRssTotal,
+	 aggData->avgRssCount, aggData->cutime, aggData->cstime,
+	 aggData->minCputime, aggData->totCputime, aggData->energyTot,
+	 aggData->powerAvg, aggData->powerMin, aggData->powerMax,
+	 aggData->IC_recvBytesTot, aggData->IC_sendBytesTot,
+	 aggData->FS_writeBytes, aggData->FS_readBytes);
 }
 
 static void handleAggDataUpdate(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
@@ -474,16 +501,43 @@ static void handleAggDataUpdate(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
     getTime(&ptr, &aggData.rusage.ru_stime.tv_sec);
     getTime(&ptr, &aggData.rusage.ru_stime.tv_usec);
 
-    getUint64(&ptr, &aggData.energyCons);
+    getUint64(&ptr, &aggData.energyTot);
+    getInt32(&ptr, &aggData.taskIds[ACCID_MIN_ENERGY]);
+    getInt32(&ptr, &aggData.taskIds[ACCID_MAX_ENERGY]);
+
+    getUint64(&ptr, &aggData.powerAvg);
+    getUint64(&ptr, &aggData.powerMin);
+    getUint64(&ptr, &aggData.powerMax);
+    getInt32(&ptr, &aggData.taskIds[ACCID_MIN_POWER]);
+    getInt32(&ptr, &aggData.taskIds[ACCID_MAX_POWER]);
+
+    getUint64(&ptr, &aggData.IC_recvBytesTot);
+    getUint64(&ptr, &aggData.IC_recvBytesMin);
+    getUint64(&ptr, &aggData.IC_recvBytesMax);
+    getInt32(&ptr, &aggData.taskIds[ACCID_MIN_IC_RECV]);
+    getInt32(&ptr, &aggData.taskIds[ACCID_MAX_IC_RECV]);
+
+    getUint64(&ptr, &aggData.IC_sendBytesTot);
+    getUint64(&ptr, &aggData.IC_sendBytesMin);
+    getUint64(&ptr, &aggData.IC_sendBytesMax);
+    getInt32(&ptr, &aggData.taskIds[ACCID_MIN_IC_SEND]);
+    getInt32(&ptr, &aggData.taskIds[ACCID_MAX_IC_SEND]);
+
+    getUint64(&ptr, &aggData.FS_writeBytes);
+    getUint64(&ptr, &aggData.FS_readBytes);
 
     setAggData(msg->header.sender, logger, &aggData);
 
-    mdbg(PSACC_LOG_UPDATE_MSG, "%s: from %s maxThreadsTot %lu maxVsizeTot %lu"
+    fdbg(PSACC_LOG_UPDATE_MSG, "from %s maxThreadsTot %lu maxVsizeTot %lu"
 	 " maxRsstot %lu maxThreads %lu maxVsize %lu maxRss %lu numTasks %u"
-	 " energyConsump %zu\n", __func__, PSC_printTID(msg->header.sender),
+	 " energyTot %zu powerAvg %zu powerMin %zu powerMax %zu"
+	 " IC_recvBytesTot %zu IC_sendBytesTot %zu FS_writeBytes %zu"
+	 " FS_readBytes %zu\n", PSC_printTID(msg->header.sender),
 	 aggData.maxThreadsTotal, aggData.maxVsizeTotal, aggData.maxRssTotal,
 	 aggData.maxThreads, aggData.maxVsize, aggData.maxRss,
-	 aggData.numTasks, aggData.energyCons);
+	 aggData.numTasks, aggData.energyTot, aggData.powerAvg,
+	 aggData.powerMin, aggData.powerMax, aggData.IC_recvBytesTot,
+	 aggData.IC_sendBytesTot, aggData.FS_writeBytes, aggData.FS_readBytes);
 }
 
 /**

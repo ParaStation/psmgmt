@@ -229,7 +229,8 @@ bool getDataByJob(pid_t js, AccountDataExt_t *accData)
 
     /* add the jobscript */
     uint64_t minCputime = accData->minCputime;
-    addClientToAggData(jsClient, accData);
+    bool addEnergy = true;
+    addClientToAggData(jsClient, accData, &addEnergy);
     accData->minCputime = minCputime;
 
     return true;

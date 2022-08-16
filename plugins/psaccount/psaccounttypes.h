@@ -29,7 +29,15 @@ typedef enum {
     ACCID_MAX_PAGES,     /**< task owning maximum number of pages */
     ACCID_MIN_CPU,       /**< task owning minimum CPU time */
     ACCID_MAX_DISKREAD,  /**< task that read max amount of data from disk */
-    ACCID_MAX_DISKWRITE  /**< task that wrote max amount of data to disk */
+    ACCID_MAX_DISKWRITE, /**< task that wrote max amount of data to disk */
+    ACCID_MIN_ENERGY,    /**< (task) node consumed minimum energy */
+    ACCID_MAX_ENERGY,	 /**< (task) node consumed maximum energy */
+    ACCID_MIN_POWER,     /**< (task) node consumed minimum power */
+    ACCID_MAX_POWER,	 /**< (task) node consumed maximum power */
+    ACCID_MIN_IC_RECV,   /**< (task) node received minimum bytes over IC */
+    ACCID_MAX_IC_RECV,   /**< (task) node received maximum bytes over IC */
+    ACCID_MIN_IC_SEND,   /**< (task) node send minimum bytes over IC */
+    ACCID_MAX_IC_SEND    /**< (task) node send maximum bytes over IC */
 } ExAccTaskIds_t;
 
 /** Various resources accounted for each client / aggregated for a job */
@@ -48,25 +56,41 @@ typedef struct {
     uint64_t avgVsizeCount;    /**< number of addends in @ref avgVsizeTotal */
     uint64_t avgRssTotal;      /**< sum of res. set mem. size samples (in kB)*/
     uint64_t avgRssCount;      /**< number of addends in @ref avgRssTotal */
-    uint64_t cutime;
-    uint64_t cstime;
+    uint64_t cutime;	       /**< user time consumed by process'
+				    descendants */
+    uint64_t cstime;	       /**< system time consumed by process'
+				    descendants */
     uint64_t minCputime;
-    uint64_t pageSize;
-    uint32_t numTasks;
-    uint64_t maxMajflt;
-    uint64_t totMajflt;
-    uint64_t totCputime;
-    uint64_t cpuFreq;
-    double maxDiskRead;
-    double totDiskRead;
-    double maxDiskWrite;
-    double totDiskWrite;
-    uint64_t readBytes;
-    uint64_t writeBytes;
-    uint64_t cpuWeight;
-    PStask_ID_t taskIds[6];
+    uint64_t pageSize;	       /**< System's page size. */
+    uint32_t numTasks;	       /**< number of tasks */
+    uint64_t maxMajflt;	       /**< maximum major page faults */
+    uint64_t totMajflt;	       /**< total major page faults */
+    uint64_t totCputime;       /**< total CPU time */
+    uint64_t cpuFreq;	       /**< CPU frequency */
+    double maxDiskRead;	       /**< maximum local disk read */
+    double totDiskRead;	       /**< total local disk read */
+    double maxDiskWrite;       /**< maximum local disk write */
+    double totDiskWrite;       /**< total local disk write */
+    uint64_t diskReadBytes;    /**< number of bytes read from local disk */
+    uint64_t diskWriteBytes;   /**< number of bytes written to local disk */
+    uint64_t cpuWeight;        /**< needed to calculate the CPU frequency */
+    PStask_ID_t taskIds[14];   /**< Indices for individual task IDs,
+				    see ExAccTaskIds_t */
     struct rusage rusage;      /**< resource usage collect upon client's dead */
-    uint64_t energyCons;       /**< consumed energy in joules */
+    uint64_t energyTot;	       /**< total consumed energy in joules */
+    uint64_t energyMin;	       /**< minimum consumed energy in joules */
+    uint64_t energyMax;	       /**< maximum consumed energy in joules */
+    uint64_t powerAvg;	       /**< average power consumption in watts */
+    uint64_t powerMin;	       /**< minimum power consumption in watts */
+    uint64_t powerMax;         /**< maximum power consumption in watts */
+    uint64_t IC_recvBytesTot;  /**< total bytes received from interconnect */
+    uint64_t IC_recvBytesMin;  /**< minimum bytes received from interconnect */
+    uint64_t IC_recvBytesMax;  /**< maximum bytes received from interconnect */
+    uint64_t IC_sendBytesTot;  /**< total bytes send using interconnect */
+    uint64_t IC_sendBytesMin;  /**< minimum bytes send using interconnect */
+    uint64_t IC_sendBytesMax;  /**< maximum bytes send using interconnect */
+    uint64_t FS_writeBytes;    /**< bytes written to file-system */
+    uint64_t FS_readBytes;     /**< bytes read from file-system */
 } AccountDataExt_t;
 
 /** Option (sub-module) to influence/query */
@@ -74,7 +98,7 @@ typedef enum {
     PSACCOUNT_OPT_MAIN,		/**< main account timer */
     PSACCOUNT_OPT_IC,		/**< interconnect options */
     PSACCOUNT_OPT_ENERGY,	/**< energy options */
-    PSACCOUNT_OPT_FS,		/**< filesystem options */
+    PSACCOUNT_OPT_FS,		/**< file-system options */
 } psAccountOpt_t;
 
 /** Option to control an account script */
@@ -106,7 +130,7 @@ typedef struct {
     time_t lastUpdate;		/**< time stamp of the last update */
 } psAccountIC_t;
 
-/** Node filesystem I/O data */
+/** Node file-system I/O data */
 typedef struct {
     uint64_t readBytes;		/**< number of bytes red */
     uint64_t writeBytes;	/**< number of bytes written */
@@ -117,7 +141,7 @@ typedef struct {
 
 /** Holding all local node informations for exchange with other plugins */
 typedef struct {
-    psAccountFS_t filesytem;	/**< local filesystem counter */
+    psAccountFS_t filesytem;	/**< local file-system counter */
     psAccountIC_t interconnect;	/**< local interconnect counter */
     psAccountEnergy_t energy;   /**< local energy data */
 } psAccountInfo_t;
