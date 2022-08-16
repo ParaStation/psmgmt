@@ -1539,12 +1539,12 @@ CLEANUP:
 
 static int addSlurmAccData(SlurmAccData_t *slurmAccData)
 {
-    bool res;
     AccountDataExt_t *accData = &slurmAccData->psAcct;
 
     /* no accounting data */
     if (!slurmAccData->type) return accData->numTasks;
 
+    bool res;
     if (slurmAccData->childPid) {
 	res = psAccountGetDataByJob(slurmAccData->childPid, accData);
     } else {
@@ -1574,14 +1574,32 @@ static int addSlurmAccData(SlurmAccData_t *slurmAccData)
 	 ((double) accData->cpuFreq / (double) accData->numTasks)
 	 / (double) 1048576);
 
-    mdbg(PSSLURM_LOG_ACC, "%s: nodes maxVsize %u maxRss %u maxPages %u "
-	 "minCpu %u maxDiskRead %u maxDiskWrite %u\n", __func__,
+    fdbg(PSSLURM_LOG_ACC, "nodes maxVsize %u maxRss %u maxPages %u "
+	 "minCpu %u maxDiskRead %u maxDiskWrite %u minEnergy %u maxEnergy %u "
+	 "minPower %u maxPower %u\n",
 	 PSC_getID(accData->taskIds[ACCID_MAX_VSIZE]),
 	 PSC_getID(accData->taskIds[ACCID_MAX_RSS]),
 	 PSC_getID(accData->taskIds[ACCID_MAX_PAGES]),
 	 PSC_getID(accData->taskIds[ACCID_MIN_CPU]),
 	 PSC_getID(accData->taskIds[ACCID_MAX_DISKREAD]),
-	 PSC_getID(accData->taskIds[ACCID_MAX_DISKWRITE]));
+	 PSC_getID(accData->taskIds[ACCID_MAX_DISKWRITE]),
+	 PSC_getID(accData->taskIds[ACCID_MIN_ENERGY]),
+	 PSC_getID(accData->taskIds[ACCID_MAX_ENERGY]),
+	 PSC_getID(accData->taskIds[ACCID_MIN_POWER]),
+	 PSC_getID(accData->taskIds[ACCID_MAX_POWER]));
+
+    if (accData->energyMax || accData->powerMax) {
+	fdbg(PSSLURM_LOG_ACC, "energyTot %zu energyMin %zu energyMax %zu"
+	     " powerAvg %zu powerMin %zu powerMax %zu", accData->energyTot,
+	     accData->energyMin, accData->energyMax, accData->powerAvg,
+	     accData->powerMin, accData->powerMax);
+
+	fdbg(PSSLURM_LOG_ACC, "nodes IDs minEnergy %u maxEnergy %u minPower %u "
+	     "maxPower %u\n", PSC_getID(accData->taskIds[ACCID_MIN_ENERGY]),
+	     PSC_getID(accData->taskIds[ACCID_MAX_ENERGY]),
+	     PSC_getID(accData->taskIds[ACCID_MIN_POWER]),
+	     PSC_getID(accData->taskIds[ACCID_MAX_POWER]));
+    }
 
     if (accData->avgVsizeCount > 0 &&
 	accData->avgVsizeCount != accData->numTasks) {
@@ -1593,19 +1611,6 @@ static int addSlurmAccData(SlurmAccData_t *slurmAccData)
 	    accData->avgRssCount != accData->numTasks) {
 	mlog("%s: warning: total RSS is not sum of #tasks values (%lu!=%u)\n",
 		__func__, accData->avgRssCount, accData->numTasks);
-    }
-
-    psAccountGetLocalInfo(&slurmAccData->iData);
-
-    /* save interconnect usage counters */
-    if (getConfValueC(&Config, "SLURM_ACC_NETWORK")) {
-	psAccountIC_t *icData = &slurmAccData->iData.interconnect;
-	psAccountIC_t *icBase = &slurmAccData->iBase->interconnect;
-
-	icData->recvBytes -= icBase->recvBytes;
-	icData->sendBytes -= icBase->sendBytes;
-	icData->recvPkts -= icBase->recvPkts;
-	icData->sendPkts -= icBase->sendPkts;
     }
 
     return accData->numTasks;
@@ -2587,8 +2592,8 @@ static void handleRespNodeReg(Slurm_Msg_t *sMsg)
     sMsg->unpData = NULL;
 
     for (uint32_t i=0; i<tresDBconfig->count; i++) {
-	fdbg(PSSLURM_LOG_ACC, "TRes(%u) alloc %zu count %lu id %u name %s "
-	     "type: %s\n", i, tresDBconfig->entry[i].allocSec,
+	fdbg(PSSLURM_LOG_ACC, "TRes(%u) alloc %zu count %lu id %u name '%s' "
+	     "type '%s'\n", i, tresDBconfig->entry[i].allocSec,
 	     tresDBconfig->entry[i].count, tresDBconfig->entry[i].id,
 	     tresDBconfig->entry[i].name, tresDBconfig->entry[i].type);
     }

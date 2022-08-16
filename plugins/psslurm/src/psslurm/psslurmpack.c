@@ -1781,6 +1781,22 @@ static void convAccDataToTRes(SlurmAccData_t *slurmAccData, TRes_t *tres)
     entry.in_min_taskid = getAccRank(slurmAccData, ACCID_MIN_CPU);
     TRes_set(tres, TRES_CPU, &entry);
 
+    /* energy and power */
+    TRes_reset_entry(&entry);
+    /* all "in" values represent energy */
+    entry.in_tot = accData->energyTot;
+    entry.in_min = accData->energyMin;
+    entry.in_max = accData->energyMax;
+    entry.in_min_nodeid = getAccNodeID(slurmAccData, ACCID_MIN_ENERGY);
+    entry.in_max_nodeid = getAccNodeID(slurmAccData, ACCID_MAX_ENERGY);
+    /* all "out" values represent power */
+    entry.out_tot = accData->powerAvg;
+    entry.out_min = accData->powerMin;
+    entry.out_max = accData->powerMax;
+    entry.out_min_nodeid = getAccNodeID(slurmAccData, ACCID_MIN_POWER);
+    entry.out_max_nodeid = getAccNodeID(slurmAccData, ACCID_MAX_POWER);
+    TRes_set(tres, TRES_ENERGY, &entry);
+
     /* local disk read/write in byte */
     TRes_reset_entry(&entry);
     entry.in_max = accData->maxDiskRead * 1048576;
@@ -1797,33 +1813,38 @@ static void convAccDataToTRes(SlurmAccData_t *slurmAccData, TRes_t *tres)
     TRes_set(tres, TRES_FS_DISK, &entry);
 
     /* interconnect data */
-    psAccountIC_t *ic = &slurmAccData->iData.interconnect;
-
-    if (getConfValueC(&Config, "SLURM_ACC_NETWORK") && ic->lastUpdate) {
+    if (getConfValueC(&Config, "SLURM_ACC_NETWORK")) {
 	uint32_t icID = TRes_getID("ic", "ofed");
 
 	if (icID == NO_VAL) {
 	    flog("could not find TRes ID for ic/ofed\n");
 	} else {
 	    TRes_reset_entry(&entry);
+	    /* received bytes */
+	    entry.in_max = accData->IC_recvBytesMax;
+	    entry.in_min = accData->IC_recvBytesMin;
+	    entry.in_tot = accData->IC_recvBytesTot;
+	    entry.in_min_nodeid = getAccNodeID(slurmAccData,
+					       ACCID_MIN_IC_RECV);
+	    entry.in_max_nodeid = getAccNodeID(slurmAccData,
+					       ACCID_MAX_IC_RECV);
+	    entry.in_min_taskid = getAccRank(slurmAccData,
+					     ACCID_MIN_IC_RECV);
+	    entry.in_max_taskid = getAccRank(slurmAccData,
+					     ACCID_MAX_IC_RECV);
 
-	    entry.in_max = ic->recvBytes;
-	    entry.in_min = ic->recvBytes;
-	    entry.in_tot = ic->recvBytes * countTasks(slurmAccData->tasks);
-	    entry.in_min_nodeid = slurmAccData->localNodeId;
-	    entry.in_max_nodeid = slurmAccData->localNodeId;
-	    /* all ranks will have the same data */
-	    entry.in_min_taskid = getAccRank(slurmAccData, ACCID_MAX_DISKREAD);
-	    entry.in_max_taskid = entry.in_min_taskid;
-
-	    entry.out_max = ic->sendBytes;
-	    entry.out_min = ic->sendBytes;
-	    entry.out_tot = ic->sendBytes * countTasks(slurmAccData->tasks);
-	    entry.out_min_nodeid = slurmAccData->localNodeId;
-	    entry.out_max_nodeid = slurmAccData->localNodeId;
-	    /* all ranks will have the same data */
-	    entry.out_min_taskid = entry.in_min_taskid;
-	    entry.out_max_taskid = entry.in_min_taskid;
+	    /* send bytes */
+	    entry.out_max = accData->IC_sendBytesMax;
+	    entry.out_min = accData->IC_sendBytesMin;
+	    entry.out_tot = accData->IC_sendBytesTot;
+	    entry.out_min_nodeid = getAccNodeID(slurmAccData,
+					        ACCID_MIN_IC_SEND);
+	    entry.out_max_nodeid = getAccNodeID(slurmAccData,
+						ACCID_MAX_IC_SEND);
+	    entry.out_min_taskid = getAccRank(slurmAccData,
+					      ACCID_MIN_IC_SEND);
+	    entry.out_max_taskid = getAccRank(slurmAccData,
+					      ACCID_MAX_IC_SEND);
 
 	    TRes_set(tres, icID, &entry);
 	}
@@ -1855,7 +1876,7 @@ bool __packSlurmAccData(PS_SendDB_t *data, SlurmAccData_t *slurmAccData,
 
     AccountDataExt_t *accData = &slurmAccData->psAcct;
 
-    /* user cpu sec/usec */
+    /* user CPU sec/usec */
     if (slurmProto >= SLURM_21_08_PROTO_VERSION) {
 	addUint64ToMsg(accData->rusage.ru_utime.tv_sec, data);
     } else {
@@ -1867,7 +1888,7 @@ bool __packSlurmAccData(PS_SendDB_t *data, SlurmAccData_t *slurmAccData,
     }
     addUint32ToMsg(accData->rusage.ru_utime.tv_usec, data);
 
-    /* system cpu sec/usec */
+    /* system CPU sec/usec */
     if (slurmProto >= SLURM_21_08_PROTO_VERSION) {
 	addUint64ToMsg(accData->rusage.ru_stime.tv_sec, data);
     } else {
@@ -1879,13 +1900,13 @@ bool __packSlurmAccData(PS_SendDB_t *data, SlurmAccData_t *slurmAccData,
     }
     addUint32ToMsg(accData->rusage.ru_stime.tv_usec, data);
 
-    /* act cpufreq */
+    /* CPU frequency */
     addUint32ToMsg(accData->cpuFreq, data);
 
     /* energy consumed */
-    addUint64ToMsg(accData->energyCons, data);
+    addUint64ToMsg(accData->energyTot, data);
 
-    /* trackable resources (TRes) */
+    /* track-able resources (TRes) */
     TRes_t *tres = TRes_new();
     convAccDataToTRes(slurmAccData, tres);
 
@@ -2321,6 +2342,11 @@ bool __packEnergyData(PS_SendDB_t *data, psAccountEnergy_t *eData,
     addUint64ToMsg(eData->energyCur, data);
     /* time of the last energy update */
     addTimeToMsg(eData->lastUpdate, data);
+
+    fdbg(PSSLURM_LOG_DEBUG, "base energy %zu average power %u total energy %zu"
+	 " current power %u", eData->energyBase,
+	 eData->powerAvg, eData->energyCur - eData->energyBase,
+	 eData->powerCur);
 
     return true;
 }
