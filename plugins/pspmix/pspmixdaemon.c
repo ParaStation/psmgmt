@@ -843,8 +843,8 @@ static int hookRecvSpawnReq(void *data)
     /* clone environment so we can modify it in singleton case */
     env_t jobenv;
     if (!envClone(&env, &jobenv, NULL)) {
-        mlog("%s: cloning env failed\n", __func__);
-        return -1;
+	mlog("%s: cloning env failed\n", __func__);
+	return -1;
     }
 
     /* fake environment for one process if MPI singleton support is enabled */
