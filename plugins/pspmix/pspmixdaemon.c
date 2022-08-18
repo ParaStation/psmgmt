@@ -856,15 +856,11 @@ static int hookRecvSpawnReq(void *data)
 	envSet(&jobenv, "PMIX_APPWDIR_0", prototask->workingdir);
 	char **argv = prototask->argv;
 	int argc = prototask->argc;
-	size_t sum = 0;
-	for (int j = 0; j < argc; j++) {
-	    sum += strlen(argv[j]) + 1;
-	}
+	size_t sum = 1;
+	for (int j = 0; j < argc; j++) sum += strlen(argv[j]) + 1;
 	char *str = umalloc(sum);
 	char *ptr = str;
-	for (int j = 0; j < argc; j++) {
-	    ptr += sprintf(ptr, "%s ", argv[j]);
-	}
+	for (int j = 0; j < argc; j++) ptr += sprintf(ptr, "%s ", argv[j]);
 	*(ptr-1)='\0';
 	envSet(&jobenv, "PMIX_APPARGV_0", str);
 	char var[128];
