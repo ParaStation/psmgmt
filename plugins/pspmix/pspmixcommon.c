@@ -13,6 +13,8 @@
  */
 #include "pspmixcommon.h"
 
+#include "pluginconfig.h"
+
 #include "pspmixlog.h"
 #include "pspmixconfig.h"
 

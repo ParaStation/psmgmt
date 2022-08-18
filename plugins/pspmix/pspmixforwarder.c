@@ -28,6 +28,7 @@
 #include <stdlib.h>
 #include <errno.h>
 #include <pmix.h>
+#include <pmix_common.h>
 #include <sys/select.h>
 #include <sys/types.h>
 
@@ -38,11 +39,11 @@
 #include "pspluginprotocol.h"
 #include "psreservation.h"
 #include "psserial.h"
-#include "psenv.h"
 
 #include "psidcomm.h"
 #include "psidforwarder.h"
 #include "psidhook.h"
+#include "pluginconfig.h"
 
 #include "pspmixconfig.h"
 #include "pspmixcommon.h"
