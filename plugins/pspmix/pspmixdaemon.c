@@ -19,15 +19,16 @@
  */
 #include "pspmixdaemon.h"
 
+#include <errno.h>
+#include <limits.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <signal.h>
 #include <sys/time.h>
-#include <unistd.h>
 #include <sys/types.h>
-#include <errno.h>
+#include <unistd.h>
 
 #include "list.h"
 #include "pscommon.h"
@@ -863,7 +864,7 @@ static int hookRecvSpawnReq(void *data)
 	for (int j = 0; j < argc; j++) ptr += sprintf(ptr, "%s ", argv[j]);
 	*(ptr-1)='\0';
 	envSet(&jobenv, "PMIX_APPARGV_0", str);
-	char var[128];
+	char var[HOST_NAME_MAX + 1];
 	gethostname(var, sizeof(var));
 	envSet(&jobenv, "__PMIX_NODELIST", var);
 	snprintf(var, sizeof(var), "%d", resID);
