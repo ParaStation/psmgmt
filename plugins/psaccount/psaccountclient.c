@@ -257,9 +257,13 @@ static void updateClntData(Client_t *client)
  * item of the data aggregation @a aggData and store the results into
  * @a aggData.
  *
- * @param srcData Data aggregation to be added
+ * @param client Client holding data to be added
  *
- * @param destData Data aggregation acting as the accumulator
+ * @param aggData Data aggregation acting as the accumulator
+ *
+ * @param addEnergy If true energy data from the client is added
+ * to @ref aggData. If the data is added successfully the flag is set to false.
+ * The energy data should only be added once for each node.
  *
  * @return No return value
  */
