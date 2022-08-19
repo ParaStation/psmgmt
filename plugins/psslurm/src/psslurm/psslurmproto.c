@@ -1593,12 +1593,6 @@ static int addSlurmAccData(SlurmAccData_t *slurmAccData)
 	     " powerAvg %zu powerMin %zu powerMax %zu", accData->energyTot,
 	     accData->energyMin, accData->energyMax, accData->powerAvg,
 	     accData->powerMin, accData->powerMax);
-
-	fdbg(PSSLURM_LOG_ACC, "nodes IDs minEnergy %u maxEnergy %u minPower %u "
-	     "maxPower %u\n", PSC_getID(accData->taskIds[ACCID_MIN_ENERGY]),
-	     PSC_getID(accData->taskIds[ACCID_MAX_ENERGY]),
-	     PSC_getID(accData->taskIds[ACCID_MIN_POWER]),
-	     PSC_getID(accData->taskIds[ACCID_MAX_POWER]));
     }
 
     if (accData->avgVsizeCount > 0 &&
