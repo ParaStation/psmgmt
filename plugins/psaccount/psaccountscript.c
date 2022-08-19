@@ -250,23 +250,28 @@ Collect_Script_t *Script_start(char *title, char *path,
 {
     if (!title) {
 	flog("invalid title given\n");
-	return false;
+	return NULL;
     }
     if (!path) {
 	flog("invalid path given\n");
-	return false;
+	return NULL;
     }
     if (!func) {
 	flog("invalid func given\n");
-	return false;
+	return NULL;
     }
     if (!Script_test(path, title)) {
 	flog("invalid %s script given\n", title);
-	return false;
+	return NULL;
     }
 
     Collect_Script_t *script = umalloc(sizeof(*script));
     script->path = getAbsMonPath(path);
+    if (!script->path) {
+	flog("getting absolute script path for %s failed\n", title);
+	ufree(script);
+	return NULL;
+    }
     script->func = func;
     script->poll = poll;
     if (!env) {
