@@ -367,7 +367,7 @@ void addClientToAggData(Client_t *client, AccountDataExt_t *aggData,
 	    aggData->energyMax = energyTot;
 	    aggData->taskIds[ACCID_MAX_ENERGY] = client->taskid;
 	}
-	if (!aggData->numTasks || energyTot < aggData->energyMin) {
+	if (!aggData->energyMin || energyTot < aggData->energyMin) {
 	    aggData->energyMin = energyTot;
 	    aggData->taskIds[ACCID_MIN_ENERGY] = client->taskid;
 	}
