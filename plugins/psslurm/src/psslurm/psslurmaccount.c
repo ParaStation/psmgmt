@@ -12,6 +12,7 @@
 
 #include <stdio.h>
 #include <string.h>
+#include <stdlib.h>
 
 #include "pluginconfig.h"
 #include "pluginmalloc.h"
@@ -261,10 +262,14 @@ bool Acc_Init(void)
 
 	char *val = getConfValueC(&SlurmConfig, "AcctGatherEnergyType");
 	if (val) {
-	    char envStr[128];
-	    snprintf(envStr, sizeof(envStr), "ENERGY_TYPE=%s", val);
+	    char *envStr = PSC_concat("ENERGY_TYPE=", val);
+	    if (!envStr) {
+		flog("PSC_concat() out of memory");
+		return false;
+	    }
 	    bool ret = psAccountScriptEnv(PSACCOUNT_SCRIPT_ENV_SET,
 					  PSACCOUNT_OPT_ENERGY, envStr);
+	    free(envStr);
 	    if (!ret) {
 		flog("failed to setup energy monitor environment\n");
 		return false;
@@ -289,10 +294,14 @@ bool Acc_Init(void)
 
 	char *val = getConfValueC(&SlurmConfig, "AcctGatherFilesystemType");
 	if (val) {
-	    char envStr[128];
-	    snprintf(envStr, sizeof(envStr), "FILESYSTEM_TYPE=%s", val);
+	    char *envStr = PSC_concat("FILESYSTEM_TYPE=", val);
+	    if (!envStr) {
+		flog("PSC_concat() out of memory");
+		return false;
+	    }
 	    bool ret = psAccountScriptEnv(PSACCOUNT_SCRIPT_ENV_SET,
 					  PSACCOUNT_OPT_FS, envStr);
+	    free(envStr);
 	    if (!ret) {
 		flog("failed to setup filesystem monitor environment\n");
 		return false;
@@ -315,10 +324,14 @@ bool Acc_Init(void)
 
 	char *val = getConfValueC(&SlurmConfig, "AcctGatherInterconnectType");
 	if (val) {
-	    char envStr[128];
-	    snprintf(envStr, sizeof(envStr), "INTERCONNECT_TYPE=%s", val);
+	    char *envStr = PSC_concat("INTERCONNECT_TYPE=", val);
+	    if (!envStr) {
+		flog("PSC_concat() out of memory");
+		return false;
+	    }
 	    bool ret = psAccountScriptEnv(PSACCOUNT_SCRIPT_ENV_SET,
 					  PSACCOUNT_OPT_IC, envStr);
+	    free(envStr);
 	    if (!ret) {
 		flog("failed to setup interconnect monitor environment\n");
 		return false;
@@ -327,10 +340,14 @@ bool Acc_Init(void)
 
 	char *port = getConfValueC(&SlurmConfig, "INFINIBAND_OFED_PORT");
 	if (port) {
-	    char envStr[128];
-	    snprintf(envStr, sizeof(envStr), "INFINIBAND_OFED_PORT=%s", port);
+	    char *envStr = PSC_concat("INFINIBAND_OFED_PORT=", port);
+	    if (!envStr) {
+		flog("PSC_concat() out of memory");
+		return false;
+	    }
 	    bool ret = psAccountScriptEnv(PSACCOUNT_SCRIPT_ENV_SET,
 					  PSACCOUNT_OPT_IC, envStr);
+	    free(envStr);
 	    if (!ret) {
 		flog("failed to setup interconnect monitor environment\n");
 		return false;
