@@ -424,10 +424,9 @@ static int hookExecClientUser(void *data)
      * lib from deleting the namespace after first use */
     env_t env = { childTask->environ, childTask->envSize, childTask->envSize };
     if (pspmix_common_usePMIx(&env)) return 0;
-    pmix_proc_t proc;
     mlog("%s(r%d): Calling PMIx_Init() for singleton support.\n", __func__,
 	 rank);
-    pmix_status_t status = PMIx_Init(&proc, NULL, 0);
+    pmix_status_t status = PMIx_Init(NULL, NULL, 0);
     if (status != PMIX_SUCCESS) {
 	mlog("%s: PMIX_Init() failed: %s\n", __func__,
 	     PMIx_Error_string(status));
