@@ -323,10 +323,7 @@ void addClientToAggData(Client_t *client, AccountDataExt_t *aggData,
     /* min CPU time */
     uint64_t CPUtime = cData->rusage.ru_utime.tv_sec +
 		       cData->rusage.ru_stime.tv_sec;
-    if (!aggData->numTasks) {
-	aggData->minCputime = CPUtime;
-	aggData->taskIds[ACCID_MIN_CPU] = client->taskid;
-    } else if (CPUtime < aggData->minCputime) {
+    if (!aggData->numTasks || CPUtime < aggData->minCputime) {
 	aggData->minCputime = CPUtime;
 	aggData->taskIds[ACCID_MIN_CPU] = client->taskid;
     }
@@ -371,7 +368,7 @@ void addClientToAggData(Client_t *client, AccountDataExt_t *aggData,
 	    aggData->energyMax = energyTot;
 	    aggData->taskIds[ACCID_MAX_ENERGY] = client->taskid;
 	}
-	if (!aggData->energyMin || energyTot < aggData->energyMin) {
+	if (!aggData->numTasks || energyTot < aggData->energyMin) {
 	    aggData->energyMin = energyTot;
 	    aggData->taskIds[ACCID_MIN_ENERGY] = client->taskid;
 	}
@@ -383,8 +380,7 @@ void addClientToAggData(Client_t *client, AccountDataExt_t *aggData,
 	    aggData->powerMax = eData->powerMax;
 	    aggData->taskIds[ACCID_MAX_POWER] = client->taskid;
 	}
-	if (!aggData->powerMin ||
-	    (eData->powerMin && eData->powerMin < aggData->powerMin)) {
+	if (!aggData->numTasks || eData->powerMin < aggData->powerMin) {
 	    aggData->powerMin = eData->powerMin;
 	    aggData->taskIds[ACCID_MIN_POWER] = client->taskid;
 	}
@@ -405,9 +401,7 @@ void addClientToAggData(Client_t *client, AccountDataExt_t *aggData,
 	aggData->IC_recvBytesMax = icData->recvBytes;
 	aggData->taskIds[ACCID_MAX_IC_RECV] = client->taskid;
     }
-    if (!aggData->IC_recvBytesMin ||
-	(icData->recvBytes &&
-	 icData->recvBytes < aggData->IC_recvBytesMin)) {
+    if (!aggData->numTasks || icData->recvBytes < aggData->IC_recvBytesMin) {
 	aggData->IC_recvBytesMin = icData->recvBytes;
 	aggData->taskIds[ACCID_MIN_IC_RECV] = client->taskid;
     }
@@ -418,9 +412,7 @@ void addClientToAggData(Client_t *client, AccountDataExt_t *aggData,
 	aggData->IC_sendBytesMax = icData->sendBytes;
 	aggData->taskIds[ACCID_MAX_IC_SEND] = client->taskid;
     }
-    if (!aggData->IC_sendBytesMin ||
-	(icData->sendBytes &&
-	 icData->sendBytes < aggData->IC_sendBytesMin)) {
+    if (!aggData->numTasks || icData->sendBytes < aggData->IC_sendBytesMin) {
 	aggData->IC_sendBytesMin = icData->sendBytes;
 	aggData->taskIds[ACCID_MIN_IC_SEND] = client->taskid;
     }
@@ -539,8 +531,7 @@ static void addAggData(AccountDataExt_t *srcData, AccountDataExt_t *destData)
 	destData->taskIds[ACCID_MAX_ENERGY] =
 	    srcData->taskIds[ACCID_MAX_ENERGY];
     }
-    if (!destData->numTasks ||
-	srcData->energyTot < destData->energyMin) {
+    if (!destData->numTasks || srcData->energyTot < destData->energyMin) {
 	destData->energyMin = srcData->energyTot;
 	destData->taskIds[ACCID_MIN_ENERGY] =
 	    srcData->taskIds[ACCID_MIN_ENERGY];
@@ -552,8 +543,7 @@ static void addAggData(AccountDataExt_t *srcData, AccountDataExt_t *destData)
 	destData->powerMax = srcData->powerMax;
 	destData->taskIds[ACCID_MAX_POWER] = srcData->taskIds[ACCID_MAX_POWER];
     }
-    if (!destData->powerMin ||
-	(srcData->powerMin && srcData->powerMin < destData->powerMin)) {
+    if (!destData->numTasks || srcData->powerMin < destData->powerMin) {
 	destData->powerMin = srcData->powerMin;
 	destData->taskIds[ACCID_MIN_POWER] = srcData->taskIds[ACCID_MIN_POWER];
     }
@@ -566,9 +556,8 @@ static void addAggData(AccountDataExt_t *srcData, AccountDataExt_t *destData)
 	destData->taskIds[ACCID_MAX_IC_RECV] =
 	    srcData->taskIds[ACCID_MAX_IC_RECV];
     }
-    if (!destData->IC_recvBytesMin ||
-	(srcData->IC_recvBytesMin &&
-	 srcData->IC_recvBytesMin < destData->IC_recvBytesMin)) {
+    if (!destData->numTasks
+	|| srcData->IC_recvBytesMin < destData->IC_recvBytesMin) {
 	destData->IC_recvBytesMin = srcData->IC_recvBytesMin;
 	destData->taskIds[ACCID_MIN_IC_RECV] =
 	    srcData->taskIds[ACCID_MIN_IC_RECV];
@@ -581,9 +570,8 @@ static void addAggData(AccountDataExt_t *srcData, AccountDataExt_t *destData)
 	destData->taskIds[ACCID_MAX_IC_SEND] =
 	    srcData->taskIds[ACCID_MAX_IC_SEND];
     }
-    if (!destData->IC_sendBytesMin ||
-	(srcData->IC_sendBytesMin &&
-	 srcData->IC_sendBytesMin < destData->IC_sendBytesMin)) {
+    if (!destData->numTasks
+	|| srcData->IC_sendBytesMin < destData->IC_sendBytesMin) {
 	destData->IC_sendBytesMin = srcData->IC_sendBytesMin;
 	destData->taskIds[ACCID_MIN_IC_SEND] =
 	    srcData->taskIds[ACCID_MIN_IC_SEND];
