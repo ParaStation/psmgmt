@@ -6,6 +6,12 @@ Copyright (C) 2021-2022 ParTec AG, Munich
 Please send bug reports, questions and suggestions to <support@par-tec.com>
 
 
+Version 5.1.50-2:
+=================
+Bugfixes:
+ - Ensure reqKeys.strings gets initialized (jwt:#16557)
+
+
 Version 5.1.50-1:
 =================
 Bugfixes:
