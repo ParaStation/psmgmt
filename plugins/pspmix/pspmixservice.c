@@ -20,16 +20,18 @@
 #include "psenv.h"
 #include "psreservation.h"
 
+#include "pluginconfig.h"
 #include "pluginhelper.h"
 #include "pluginmalloc.h"
 #include "pluginvector.h"
 #include "psidsession.h"
 
 #include "pspmixcomm.h"
+#include "pspmixcommon.h"
+#include "pspmixconfig.h"
 #include "pspmixlog.h"
 #include "pspmixservicespawn.h"
 #include "pspmixuserserver.h"
-#include "pspmixcommon.h"
 
 #define MAX_NODE_ID 32768
 
@@ -547,9 +549,18 @@ bool pspmix_service_registerClientAndSendEnv(PStask_ID_t loggertid,
     /* find namespace in list */
     PspmixNamespace_t *ns = findNamespace(nsname);
     if (!ns) {
-	/* try singleton name */
-	const char *nsname2 = generateNamespaceName(spawnertid, true);
-	if (!((ns = findNamespace(nsname2)))) {
+	if (getConfValueI(&config, "SUPPORT_MPI_SINGLETON")) {
+	    /* try singleton name */
+	    char *nsname2 = ustrdup(nsname);
+	    nsname = generateNamespaceName(spawnertid, true);
+	    if (!((ns = findNamespace(nsname)))) {
+		ulog("namespaces '%s' and '%s' not found\n", nsname2, nsname);
+		ufree(nsname2);
+		RELEASE_LOCK(namespaceList);
+		return false;
+	    }
+	    ufree(nsname2);
+	} else {
 	    ulog("namespace '%s' not found\n", nsname);
 	    RELEASE_LOCK(namespaceList);
 	    return false;
