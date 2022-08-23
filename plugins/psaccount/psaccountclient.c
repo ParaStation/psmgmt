@@ -250,25 +250,8 @@ static void updateClntData(Client_t *client)
 
 /************************* Data aggregations *************************/
 
-/**
- * @brief Add client data to data aggregation
- *
- * Add each data item of the client @a client to the corresponding
- * item of the data aggregation @a aggData and store the results into
- * @a aggData.
- *
- * @param client Client holding data to be added
- *
- * @param aggData Data aggregation acting as the accumulator
- *
- * @param addEnergy If true energy data from the client is added
- * to @ref aggData. If the data is added successfully the flag is set to false.
- * The energy data should only be added once for each node.
- *
- * @return No return value
- */
 void addClientToAggData(Client_t *client, AccountDataExt_t *aggData,
-			bool *addEnergy)
+			bool addEnergy)
 {
     AccountDataExt_t *cData = &client->data;
 
@@ -356,7 +339,7 @@ void addClientToAggData(Client_t *client, AccountDataExt_t *aggData,
 
     /* energy is calculated on a per node basis, add only once for all local
      * clients */
-    if (*addEnergy && client->job && client->job->energyBase) {
+    if (addEnergy && client->job && client->job->energyBase) {
 	psAccountEnergy_t *eData = Energy_getData();
 
 	/* energy */
@@ -381,7 +364,6 @@ void addClientToAggData(Client_t *client, AccountDataExt_t *aggData,
 	    aggData->powerMin = eData->powerMin;
 	    aggData->taskIds[ACCID_MIN_POWER] = client->taskid;
 	}
-	*addEnergy = false;
 
 	fdbg(PSACC_LOG_AGGREGATE, "node %i energy tot %zu min %zu max %zu "
 	     " power avg %zu power min %zu power max %zu\n",
@@ -701,14 +683,16 @@ PStask_ID_t getLoggerByClientPID(pid_t pid)
 
 bool aggregateDataByLogger(PStask_ID_t logger, AccountDataExt_t *accData)
 {
-    bool res = false, addEnergy = true;
+    bool res = false;
 
+    bool addEnergy = true;
     list_t *c;
     list_for_each(c, &clientList) {
 	Client_t *client = list_entry(c, Client_t, next);
 	if (client->logger == logger && client->type != ACC_CHILD_JOBSCRIPT) {
 	    if (client->type == ACC_CHILD_PSIDCHILD) {
-		addClientToAggData(client, accData, &addEnergy);
+		addClientToAggData(client, accData, addEnergy);
+		if (client->job && client->job->energyBase) addEnergy = false;
 	    } else if (client->type == ACC_CHILD_REMOTE) {
 		addAggData(&client->data, accData);
 	    }
@@ -827,19 +811,19 @@ void cleanupClients(void)
 
 void forwardJobData(Job_t *job, bool force)
 {
-    AccountDataExt_t aggData;
     PStask_ID_t logger = job->logger;
-    list_t *c;
-
     if (PSC_getID(logger) == PSC_getMyID()) return;
 
     /* aggregate accounting data on a per logger basis */
+    AccountDataExt_t aggData;
     memset(&aggData, 0, sizeof(AccountDataExt_t));
     bool addEnergy = true;
+    list_t *c;
     list_for_each(c, &clientList) {
 	Client_t *client = list_entry(c, Client_t, next);
 	if (client->logger == logger && (client->doAccounting || force)) {
-	    addClientToAggData(client, &aggData, &addEnergy);
+	    addClientToAggData(client, &aggData, addEnergy);
+	    if (client->job && client->job->energyBase) addEnergy = false;
 	}
     }
 

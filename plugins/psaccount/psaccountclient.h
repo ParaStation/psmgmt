@@ -228,20 +228,24 @@ char *listClients(char *buf, size_t *bufSize, bool detailed);
  */
 bool aggregateDataByLogger(PStask_ID_t logger, AccountDataExt_t *accData);
 
-/** @brief Add client to aggregated data
+
+/**
+ * @brief Add client data to data aggregation
  *
- * Add resource data of the client @a client to @a accData.
+ * Add each data item of @a client to the corresponding item of the
+ * data aggregation @a aggData and store the results into @a aggData.
  *
  * @param client Client holding data to be added
  *
- * @param accData Data aggregation acting as the accumulator
+ * @param aggData Data aggregation acting as the accumulator
  *
- * @param addEnergy If true local energy consuption is added to data
+ * @param addEnergy Flag to add @a client's energy data to @a
+ * aggData. Energy data should only be added once for each node.
  *
  * @return No return value
  */
 void addClientToAggData(Client_t *client, AccountDataExt_t *aggData,
-		        bool *addEnergy);
+			bool addEnergy);
 
 /**
  * @brief Store remote aggregated data
