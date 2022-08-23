@@ -579,7 +579,7 @@ bool declareNodeDead(PSnodes_ID_t id, bool sendDeadnode, bool silent)
 	    PSID_sendSignal(task->tid, task->uid, sndr, sig,
 			    false /* pervasive */, false /* answer */);
 	}
-	if (PSC_getID(task->ptid) == id) {
+	if (task->ptid && PSC_getID(task->ptid) == id) {
 	    /* parent resided on that node => send signal now */
 	    PSID_sendSignal(task->tid, task->uid, task->ptid, -1,
 			    false /* pervasive */, false /* answer */);

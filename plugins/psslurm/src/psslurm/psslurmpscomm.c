@@ -1663,10 +1663,8 @@ static bool handlePsslurmMsg(DDTypedBufferMsg_t *msg)
  */
 static bool nodeDownAlloc(Alloc_t *alloc, const void *info)
 {
-    uint32_t i;
     const PSnodes_ID_t node = *(PSnodes_ID_t *) info;
-
-    for (i=0; i<alloc->nrOfNodes; i++) {
+    for (uint32_t i = 0; i < alloc->nrOfNodes; i++) {
 	if (alloc->nodes[i] != node) continue;
 
 	flog("node %i in allocation %u state %s is down\n",
