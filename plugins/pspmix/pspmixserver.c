@@ -568,7 +568,8 @@ static pmix_status_t server_dmodex_req_cb(const pmix_proc_t *proc,
 	 proc->nspace);
 
     strv_t reqKeys;
-    strvInit(&reqKeys, NULL, 0);
+    char *emptyStr = NULL;
+    strvInit(&reqKeys, &emptyStr, 0); // ensure reqKeys.strings get initialized
     int timeout = 0;
 
     /* handle command directives */
