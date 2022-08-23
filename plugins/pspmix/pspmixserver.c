@@ -677,6 +677,7 @@ static bool checkKeyAvailability(pmix_proc_t *proc, strv_t *reqKeys)
 #if PMIX_VERSION_MAJOR < 4
     size_t ninfo = 1;
 #else
+    /* @todo move to PMIX_INFO_LIST_* macro when removing PMIx < 4 support */
     size_t ninfo = 2;
 #endif
     pmix_info_t *info;
