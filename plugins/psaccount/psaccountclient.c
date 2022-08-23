@@ -268,30 +268,27 @@ static void updateClntData(Client_t *client)
  * @return No return value
  */
 void addClientToAggData(Client_t *client, AccountDataExt_t *aggData,
-		        bool *addEnergy)
+			bool *addEnergy)
 {
     AccountDataExt_t *cData = &client->data;
 
-    uint64_t maxRss = cData->maxRss;
-    uint64_t maxVsize = cData->maxVsize;
-
     /* sum up for maxima totals */
     aggData->maxThreadsTotal += cData->maxThreads;
-    aggData->maxRssTotal += maxRss;
-    aggData->maxVsizeTotal += maxVsize;
+    aggData->maxRssTotal += cData->maxRss;
+    aggData->maxVsizeTotal += cData->maxVsize;
 
     /* maxima per client */
     if (aggData->maxThreads < cData->maxThreads) {
 	aggData->maxThreads = cData->maxThreads;
     }
 
-    if (aggData->maxRss < maxRss) {
-	aggData->maxRss = maxRss;
+    if (cData->maxRss > aggData->maxRss) {
+	aggData->maxRss = cData->maxRss;
 	aggData->taskIds[ACCID_MAX_RSS] = client->taskid;
     }
 
-    if (aggData->maxVsize < maxVsize) {
-	aggData->maxVsize = maxVsize;
+    if (cData->maxVsize > aggData->maxVsize) {
+	aggData->maxVsize = cData->maxVsize;
 	aggData->taskIds[ACCID_MAX_VSIZE] = client->taskid;
     }
 
