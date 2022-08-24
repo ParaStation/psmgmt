@@ -426,12 +426,19 @@ static int hookExecClientUser(void *data)
     if (pspmix_common_usePMIx(&env)) return 0;
     mlog("%s(r%d): Calling PMIx_Init() for singleton support.\n", __func__,
 	 rank);
-    pmix_status_t status = PMIx_Init(NULL, NULL, 0);
+    /* need to call with proc != NULL since this is buggy until in 4.2.0
+     * see https://github.com/openpmix/openpmix/issues/2707
+     * @todo subject to change when dropping support for PMIx < 4.2.1 */
+    pmix_proc_t proc;
+    PMIX_PROC_CONSTRUCT(&proc);
+    pmix_status_t status = PMIx_Init(&proc, NULL, 0);
     if (status != PMIX_SUCCESS) {
 	mlog("%s: PMIX_Init() failed: %s\n", __func__,
 	     PMIx_Error_string(status));
+	PMIX_PROC_DESTRUCT(&proc);
 	return -1;
     }
+    PMIX_PROC_DESTRUCT(&proc);
     return 0;
 }
 
