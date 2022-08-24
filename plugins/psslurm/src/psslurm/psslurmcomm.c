@@ -1005,13 +1005,14 @@ int __sendSlurmMsgEx(int sock, Slurm_Msg_Header_t *head, Send_Msg_Body_t *body,
 {
     PS_SendDB_t data = { .bufUsed = 0, .useFrag = false };
 
-    if (!head) {
-	flog("invalid header from %s@%i\n", caller, line);
+    if (!body) {
+	flog("invalid body from %s@%i\n", caller, line);
 	return -1;
     }
 
-    if (!body) {
-	flog("invalid body from %s@%i\n", caller, line);
+    if (!head) {
+	flog("invalid header from %s@%i\n", caller, line);
+	if (sock < 0) ufree(body->req);
 	return -1;
     }
 
@@ -1022,6 +1023,7 @@ int __sendSlurmMsgEx(int sock, Slurm_Msg_Header_t *head, Send_Msg_Body_t *body,
     Slurm_Auth_t *auth = getSlurmAuth(head->uid, head->type);
     if (!auth) {
 	flog("getting a slurm authentication token failed\n");
+	if (sock < 0) ufree(body->req);
 	return -1;
     }
 
@@ -1037,12 +1039,16 @@ int __sendSlurmMsgEx(int sock, Slurm_Msg_Header_t *head, Send_Msg_Body_t *body,
 		if (setReconTimer(savedMsg) == -1) {
 		    flog("setting resend timer failed\n");
 		    deleteMsgBuf(savedMsg);
+		    /* without a connection the request has to be freed */
+		    ufree(body->req);
 		    return -1;
 		}
 		flog("sending msg %s failed, saved for later resend\n",
 		     msgType2String(head->type));
 		return -2;
 	    }
+	    /* without re-sending the request has to be freed */
+	    ufree(body->req);
 	    return -1;
 	}
     }
