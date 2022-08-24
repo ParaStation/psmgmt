@@ -23,6 +23,8 @@
 #include "pspmixdaemon.h"
 #include "pspmixforwarder.h"
 
+#include "pmix_version.h"
+
 #if 0
 #include "psaccounthandles.h"
 #endif
@@ -51,6 +53,9 @@ int initialize(FILE *logfile)
     snprintf(configFile, sizeof(configFile), "%s/%s", PLUGINDIR, PSPMIX_CONFIG);
 
     initPSPMIxConfig(configFile);
+
+    mlog("Using PMIx %ld.%ld.%ld\n", PMIX_VERSION_MAJOR, PMIX_VERSION_MINOR,
+	 PMIX_VERSION_RELEASE);
 
     /* adapt the debug mask */
     debugMask = getConfValueI(&config, "DEBUG_MASK");
