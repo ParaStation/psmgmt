@@ -6,6 +6,13 @@ Copyright (C) 2021-2022 ParTec AG, Munich
 Please send bug reports, questions and suggestions to <support@par-tec.com>
 
 
+Version 5.1.50-3:
+=================
+Bugfixes:
+ - Ensure ptid is interpreted correctly if node goes down (jwt:#16170)
+ - Fix re-sendind requests originally sent via sendSlurmctldReq() (jwt:#16170)
+
+
 Version 5.1.50-2:
 =================
 Bugfixes:
