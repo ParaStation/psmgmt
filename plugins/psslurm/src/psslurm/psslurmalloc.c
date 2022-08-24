@@ -29,7 +29,6 @@
 
 #include "slurmcommon.h"
 #include "psslurmbcast.h"
-#include "psslurmcomm.h"
 #include "psslurmenv.h"
 #include "psslurmgres.h"
 #include "psslurmjob.h"
