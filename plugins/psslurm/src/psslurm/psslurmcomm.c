@@ -1012,7 +1012,7 @@ int __sendSlurmMsgEx(int sock, Slurm_Msg_Header_t *head, Send_Msg_Body_t *body,
 
     if (!head) {
 	flog("invalid header from %s@%i\n", caller, line);
-	if (sock < 0) ufree(body->req);
+	ufree(body->req);
 	return -1;
     }
 
@@ -1023,7 +1023,7 @@ int __sendSlurmMsgEx(int sock, Slurm_Msg_Header_t *head, Send_Msg_Body_t *body,
     Slurm_Auth_t *auth = getSlurmAuth(head->uid, head->type);
     if (!auth) {
 	flog("getting a slurm authentication token failed\n");
-	if (sock < 0) ufree(body->req);
+	ufree(body->req);
 	return -1;
     }
 
@@ -1038,9 +1038,9 @@ int __sendSlurmMsgEx(int sock, Slurm_Msg_Header_t *head, Send_Msg_Body_t *body,
 		savedMsg = saveSlurmMsg(head, body, NULL, -1, 0);
 		if (setReconTimer(savedMsg) == -1) {
 		    flog("setting resend timer failed\n");
-		    deleteMsgBuf(savedMsg);
 		    /* without a connection the request has to be freed */
 		    ufree(body->req);
+		    deleteMsgBuf(savedMsg);
 		    return -1;
 		}
 		flog("sending msg %s failed, saved for later resend\n",
@@ -1051,6 +1051,9 @@ int __sendSlurmMsgEx(int sock, Slurm_Msg_Header_t *head, Send_Msg_Body_t *body,
 	    ufree(body->req);
 	    return -1;
 	}
+    } else {
+	/* an existing connection is re-used => free now dangling request */
+	ufree(body->req); // @todo do we need a warning here?
     }
 
     /* non blocking write */
