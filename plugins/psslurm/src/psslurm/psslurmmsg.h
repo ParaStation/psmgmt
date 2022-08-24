@@ -64,7 +64,7 @@ typedef struct {
 
 // leave after Slurm_Msg_t definition to break include cycle
 #include "psslurmauth.h"  // IWYU pragma: keep
-			  //
+
 /** callback function of a connection structure */
 typedef int Connection_CB_t(Slurm_Msg_t *msg, void *info);
 
