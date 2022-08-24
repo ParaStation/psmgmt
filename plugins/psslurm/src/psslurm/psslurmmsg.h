@@ -64,6 +64,21 @@ typedef struct {
 
 // leave after Slurm_Msg_t definition to break include cycle
 #include "psslurmauth.h"  // IWYU pragma: keep
+			  //
+/** callback function of a connection structure */
+typedef int Connection_CB_t(Slurm_Msg_t *msg, void *info);
+
+/** structure to make information available about the message request
+ * when handling a corresponding response */
+typedef struct {
+    uint16_t type;	    /**< message type of the request */
+    uint16_t expRespType;   /**< expected message type of the response */
+    uint32_t jobid;	    /**< optional jobid associated with the request */
+    uint32_t stepid;	    /**< optional stepid associated with the request */
+    uint32_t stepHetComp;   /**< step het component identifier */
+    time_t time;	    /**< time the request was sent */
+    Connection_CB_t *cb;    /**< callback to handle a reply */
+} Req_Info_t;
 
 typedef struct {
     list_t next;		/**< the list element */
@@ -77,7 +92,14 @@ typedef struct {
     int maxConRetry;		/**< maximal reconnect attempts */
     int timerID;		/**< reconnect timer ID */
     time_t authTime;		/**< authentication time-stamp */
+    Req_Info_t *req;		/**< optional request information */
 } Slurm_Msg_Buf_t;
+
+/** holding message payload and information to handle a possible response */
+typedef struct {
+    PS_SendDB_t *payload;   /**< payload to send */
+    Req_Info_t *req;	    /**< holding request meta information */
+} Send_Msg_Body_t;
 
 /**
  * @brief Convert a Slurm message type from integer
@@ -180,7 +202,7 @@ void freeSlurmMsgHead(Slurm_Msg_Header_t *head);
  *
  * @return Returns the buffer holding the saved message
  */
-Slurm_Msg_Buf_t *saveSlurmMsg(Slurm_Msg_Header_t *head, PS_SendDB_t *body,
+Slurm_Msg_Buf_t *saveSlurmMsg(Slurm_Msg_Header_t *head, Send_Msg_Body_t *body,
 			      Slurm_Auth_t *auth, int sock, size_t written);
 
 /**

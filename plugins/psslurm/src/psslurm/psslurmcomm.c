@@ -371,7 +371,8 @@ void __handleFrwrdMsgReply(Slurm_Msg_t *sMsg, uint32_t error, const char *func,
 	 * results from all the nodes the RPC was forwarded to. */
 	msg.buf = fw->body.buf;
 	msg.bufUsed = fw->body.used;
-	sendSlurmMsgEx(con->sock, &fw->head, &msg);
+	Send_Msg_Body_t body = { .payload = &msg, .req = NULL };
+	sendSlurmMsgEx(con->sock, &fw->head, &body);
 	closeSlurmCon(con->sock);
     }
 }
@@ -985,7 +986,7 @@ int __sendDataBuffer(int sock, PS_SendDB_t *data, size_t offset,
     return ret;
 }
 
-int __sendSlurmMsg(int sock, slurm_msg_type_t type, PS_SendDB_t *body,
+int __sendSlurmMsg(int sock, slurm_msg_type_t type, PS_SendDB_t *payload,
 		   uid_t uid, const char *caller, const int line)
 {
     Slurm_Msg_Header_t head;
@@ -994,10 +995,12 @@ int __sendSlurmMsg(int sock, slurm_msg_type_t type, PS_SendDB_t *body,
     head.type = type;
     head.uid = uid;
 
-    return __sendSlurmMsgEx(sock, &head, body, caller, line);
+    Send_Msg_Body_t body = { .payload = payload, .req = NULL };
+
+    return __sendSlurmMsgEx(sock, &head, &body, caller, line);
 }
 
-int __sendSlurmMsgEx(int sock, Slurm_Msg_Header_t *head, PS_SendDB_t *body,
+int __sendSlurmMsgEx(int sock, Slurm_Msg_Header_t *head, Send_Msg_Body_t *body,
 		     const char *caller, const int line)
 {
     PS_SendDB_t data = { .bufUsed = 0, .useFrag = false };
@@ -1024,7 +1027,7 @@ int __sendSlurmMsgEx(int sock, Slurm_Msg_Header_t *head, PS_SendDB_t *body,
 
     /* connect to slurmctld */
     if (sock < 0) {
-	sock = openSlurmctldCon(NULL);
+	sock = openSlurmctldCon(body->req);
 	if (sock < 0) {
 	    freeSlurmAuth(auth);
 	    if (needMsgResend(head->type)) {
@@ -1036,6 +1039,8 @@ int __sendSlurmMsgEx(int sock, Slurm_Msg_Header_t *head, PS_SendDB_t *body,
 		    deleteMsgBuf(savedMsg);
 		    return -1;
 		}
+		flog("sending msg %s failed, saved for later resend\n",
+		     msgType2String(head->type));
 		return -2;
 	    }
 	    return -1;
@@ -1046,7 +1051,7 @@ int __sendSlurmMsgEx(int sock, Slurm_Msg_Header_t *head, PS_SendDB_t *body,
     PSCio_setFDblock(sock, false);
 
     PS_DataBuffer_t payload = { .buf = NULL };
-    memToDataBuffer(body->buf, body->bufUsed, &payload);
+    memToDataBuffer(body->payload->buf, body->payload->bufUsed, &payload);
     packSlurmMsg(&data, head, &payload, auth);
 
     size_t written = 0;
@@ -1080,15 +1085,15 @@ int __sendSlurmctldReq(Req_Info_t *req, void *data,
 	return -1;
     }
 
-    int sock = openSlurmctldCon(req);
-    if (sock < 0) {
-	flog("open connection to slurmctld failed\n");
-	ufree(req);
-	return -1;
-    }
-
     req->time = time(NULL);
-    return __sendSlurmMsg(sock, req->type, &msg, slurmUserID, caller, line);
+    Send_Msg_Body_t body = { .payload = &msg, .req = req };
+
+    Slurm_Msg_Header_t head;
+    initSlurmMsgHead(&head);
+    head.type = req->type;
+    head.uid = slurmUserID;
+
+    return __sendSlurmMsgEx(SLURMCTLD_SOCK, &head, &body, caller, line);
 }
 
 static void addVal2List(StrBuffer_t *strBuf, int32_t val, bool range, bool fin,
@@ -1569,7 +1574,13 @@ int srunSendMsg(int sock, Step_t *step, slurm_msg_type_t type,
     fdbg(PSSLURM_LOG_IO | PSSLURM_LOG_IO_VERB | PSSLURM_LOG_COMM,
 	 "sock %u, len: body.bufUsed %u\n", sock, body->bufUsed);
 
-    return sendSlurmMsg(sock, type, body, step->uid);
+    Slurm_Msg_Header_t head;
+    initSlurmMsgHead(&head);
+    head.type = type;
+    head.uid = step->uid;
+
+    Send_Msg_Body_t sendBody = { .payload = body, .req = req };
+    return sendSlurmMsgEx(sock, &head, &sendBody);
 }
 
 int srunOpenPTYConnection(Step_t *step)

@@ -270,7 +270,7 @@ void deleteMsgBuf(Slurm_Msg_Buf_t *msgBuf)
     ufree(msgBuf);
 }
 
-Slurm_Msg_Buf_t *saveSlurmMsg(Slurm_Msg_Header_t *head, PS_SendDB_t *body,
+Slurm_Msg_Buf_t *saveSlurmMsg(Slurm_Msg_Header_t *head, Send_Msg_Body_t *body,
 			      Slurm_Auth_t *auth, int sock, size_t written)
 {
     mdbg(PSSLURM_LOG_COMM, "%s: save msg type %s written %zu\n",
@@ -284,13 +284,14 @@ Slurm_Msg_Buf_t *saveSlurmMsg(Slurm_Msg_Header_t *head, PS_SendDB_t *body,
     msgBuf->conRetry = 0;
     msgBuf->maxConRetry = getConfValueI(&Config, "RECONNECT_MAX_RETRIES");
     msgBuf->authTime = (auth) ? time(NULL) : 0;
+    msgBuf->req = body->req;
 
     /* dup msg head */
     dupSlurmMsgHead(&msgBuf->head, head);
 
     /* save data buffer */
     msgBuf->body.buf = NULL;
-    memToDataBuffer(body->buf, body->bufUsed, &msgBuf->body);
+    memToDataBuffer(body->payload->buf, body->payload->bufUsed, &msgBuf->body);
 
     /* dup auth */
     msgBuf->auth = (auth) ? dupSlurmAuth(auth) : NULL;
@@ -352,7 +353,8 @@ int resendSlurmMsg(int sock, void *msg)
     savedMsg->sendRetry++;
     savedMsg->offset += written;
 
-    mdbg(PSSLURM_LOG_COMM, "%s: type %s ret %i retry %u written %zu\n",
+    mdbg(PSSLURM_LOG_COMM | PSSLURM_LOG_PROTO,
+	 "%s: type %s ret %i retry %u written %zu\n",
 	 __func__, msgType2String(savedMsg->head.type), ret,
 	 savedMsg->sendRetry, written);
 
@@ -374,7 +376,7 @@ int resendSlurmMsg(int sock, void *msg)
 	return 0;
     } else {
 	/* all data has been written */
-	mdbg(PSSLURM_LOG_COMM, "%s: success sending %s\n", __func__,
+	flog("%s: success re-sending message %s\n", __func__,
 	     msgType2String(savedMsg->head.type));
     }
 
@@ -390,11 +392,12 @@ static void handleReconTimeout(int timerId, void *data)
 
     if (savedMsg->sock == -1) {
 	/* try to connect to slurmctld */
-	savedMsg->sock = openSlurmctldCon(NULL);
+	savedMsg->sock = openSlurmctldCon(savedMsg->req);
 
 	if (savedMsg->sock < 0) {
-	    mlog("%s: connection attempt %u of %u to slurmctld failed\n",
-		 __func__, savedMsg->conRetry, savedMsg->maxConRetry);
+	    flog("connection attempt %u of %u to slurmctld to re-send msg %s"
+		 " failed\n", savedMsg->conRetry +1, savedMsg->maxConRetry,
+		 msgType2String(savedMsg->head.type));
 
 	    if (savedMsg->maxConRetry == -1) {
 		savedMsg->conRetry++;
@@ -406,7 +409,9 @@ static void handleReconTimeout(int timerId, void *data)
 		     "'%s'\n", __func__, savedMsg->conRetry,
 		     msgType2String(savedMsg->head.type));
 
-		/* drop the saved msg */
+		/* drop the saved msg and free request only here if the
+		 * conneciton could not be opened */
+		ufree(savedMsg->req);
 		deleteMsgBuf(savedMsg);
 	    }
 	    return;

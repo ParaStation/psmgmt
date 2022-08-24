@@ -36,9 +36,6 @@
 /** magic UID to allow any user to decode the munge credentail */
 #define RES_UID_ANY -1
 
-/** callback function of a connection structure */
-typedef int Connection_CB_t(Slurm_Msg_t *msg, void *info);
-
 /** structure to track message forwarding for a connection */
 typedef struct {
     PSnodes_ID_t *nodes;	/** all nodes the message is forwarded to
@@ -63,18 +60,6 @@ typedef struct {
     Msg_Forward_t fw;	    /**< message forwarding structure */
     Step_t *step;	    /**< set if connection is associated to a step */
 } Connection_t;
-
-/** structure to make information available about the message request
- * when handling a corresponding response */
-typedef struct {
-    uint16_t type;	    /**< message type of the request */
-    uint16_t expRespType;   /**< expected message type of the response */
-    uint32_t jobid;	    /**< optional jobid associated with the request */
-    uint32_t stepid;	    /**< optional stepid associated with the request */
-    uint32_t stepHetComp;   /**< step het component identifier */
-    time_t time;	    /**< time the request was sent */
-    Connection_CB_t *cb;    /**< callback to handle a reply */
-} Req_Info_t;
 
 /**
  * @brief Initialize the Slurm communication facility
@@ -138,7 +123,7 @@ void closeSlurmCon(int socket);
  *
  * @param type The Slurm message type to send
  *
- * @param body The message body to send
+ * @param payload The message payload to send
  *
  * @param caller Function name of the calling function
  *
@@ -146,11 +131,11 @@ void closeSlurmCon(int socket);
  *
  * @return Returns the number of bytes written or -1 on error
  */
-int __sendSlurmMsg(int sock, slurm_msg_type_t type, PS_SendDB_t *body,
+int __sendSlurmMsg(int sock, slurm_msg_type_t type, PS_SendDB_t *payload,
 		   uid_t uid, const char *caller, const int line);
 
-#define sendSlurmMsg(sock, type, body, uid) \
-    __sendSlurmMsg(sock, type, body, uid, __func__, __LINE__)
+#define sendSlurmMsg(sock, type, payload, uid) \
+    __sendSlurmMsg(sock, type, payload, uid, __func__, __LINE__)
 
 /**
  * @brief Send a Slurm message
@@ -174,7 +159,7 @@ int __sendSlurmMsg(int sock, slurm_msg_type_t type, PS_SendDB_t *body,
  * @return Returns the number of bytes written, -1 on error or -2 if
  * the message was stored and will be send out later
  */
-int __sendSlurmMsgEx(int sock, Slurm_Msg_Header_t *head, PS_SendDB_t *body,
+int __sendSlurmMsgEx(int sock, Slurm_Msg_Header_t *head, Send_Msg_Body_t *body,
 		     const char *caller, const int line);
 
 #define sendSlurmMsgEx(sock, head, body) \
