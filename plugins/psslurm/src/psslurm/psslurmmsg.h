@@ -95,12 +95,6 @@ typedef struct {
     Req_Info_t *req;		/**< optional request information */
 } Slurm_Msg_Buf_t;
 
-/** holding message payload and information to handle a possible response */
-typedef struct {
-    PS_SendDB_t *payload;   /**< payload to send */
-    Req_Info_t *req;	    /**< holding request meta information */
-} Send_Msg_Body_t;
-
 /**
  * @brief Convert a Slurm message type from integer
  * to string representation
@@ -194,6 +188,8 @@ void freeSlurmMsgHead(Slurm_Msg_Header_t *head);
  *
  * @param body The message body to save
  *
+ * @param req Request associated to this message if any
+ *
  * @param auth The Slurm authentication of the message
  *
  * @param sock The socket to send the message out
@@ -202,8 +198,9 @@ void freeSlurmMsgHead(Slurm_Msg_Header_t *head);
  *
  * @return Returns the buffer holding the saved message
  */
-Slurm_Msg_Buf_t *saveSlurmMsg(Slurm_Msg_Header_t *head, Send_Msg_Body_t *body,
-			      Slurm_Auth_t *auth, int sock, size_t written);
+Slurm_Msg_Buf_t *saveSlurmMsg(Slurm_Msg_Header_t *head, PS_SendDB_t *body,
+			      Req_Info_t *req, Slurm_Auth_t *auth,
+			      int sock, size_t written);
 
 /**
  * @brief Delete a Slurm message buffer

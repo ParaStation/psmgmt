@@ -123,7 +123,7 @@ void closeSlurmCon(int socket);
  *
  * @param type The Slurm message type to send
  *
- * @param payload The message payload to send
+ * @param body The message body to send
  *
  * @param caller Function name of the calling function
  *
@@ -131,11 +131,11 @@ void closeSlurmCon(int socket);
  *
  * @return Returns the number of bytes written or -1 on error
  */
-int __sendSlurmMsg(int sock, slurm_msg_type_t type, PS_SendDB_t *payload,
+int __sendSlurmMsg(int sock, slurm_msg_type_t type, PS_SendDB_t *body,
 		   uid_t uid, const char *caller, const int line);
 
-#define sendSlurmMsg(sock, type, payload, uid) \
-    __sendSlurmMsg(sock, type, payload, uid, __func__, __LINE__)
+#define sendSlurmMsg(sock, type, body, uid) \
+    __sendSlurmMsg(sock, type, body, uid, __func__, __LINE__)
 
 /**
  * @brief Send a Slurm message
@@ -152,6 +152,8 @@ int __sendSlurmMsg(int sock, slurm_msg_type_t type, PS_SendDB_t *payload,
  *
  * @param body The message body to send
  *
+ * @param req Request associated to this message if any
+ *
  * @param caller Function name of the calling function
  *
  * @param line Line number where this function is called
@@ -159,11 +161,11 @@ int __sendSlurmMsg(int sock, slurm_msg_type_t type, PS_SendDB_t *payload,
  * @return Returns the number of bytes written, -1 on error or -2 if
  * the message was stored and will be send out later
  */
-int __sendSlurmMsgEx(int sock, Slurm_Msg_Header_t *head, Send_Msg_Body_t *body,
-		     const char *caller, const int line);
+int __sendSlurmMsgEx(int sock, Slurm_Msg_Header_t *head, PS_SendDB_t *body,
+		     Req_Info_t *req, const char *caller, const int line);
 
-#define sendSlurmMsgEx(sock, head, body) \
-    __sendSlurmMsgEx(sock, head, body, __func__, __LINE__)
+#define sendSlurmMsgEx(sock, head, body, req)			\
+    __sendSlurmMsgEx(sock, head, body, req, __func__, __LINE__)
 
 /**
  * @brief Send a RPC request to the slurmctld

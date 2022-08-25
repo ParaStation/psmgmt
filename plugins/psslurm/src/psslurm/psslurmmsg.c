@@ -270,8 +270,9 @@ void deleteMsgBuf(Slurm_Msg_Buf_t *msgBuf)
     ufree(msgBuf);
 }
 
-Slurm_Msg_Buf_t *saveSlurmMsg(Slurm_Msg_Header_t *head, Send_Msg_Body_t *body,
-			      Slurm_Auth_t *auth, int sock, size_t written)
+Slurm_Msg_Buf_t *saveSlurmMsg(Slurm_Msg_Header_t *head, PS_SendDB_t *body,
+			      Req_Info_t *req, Slurm_Auth_t *auth,
+			      int sock, size_t written)
 {
     mdbg(PSSLURM_LOG_COMM, "%s: save msg type %s written %zu\n",
 	 __func__, msgType2String(head->type), written);
@@ -284,14 +285,14 @@ Slurm_Msg_Buf_t *saveSlurmMsg(Slurm_Msg_Header_t *head, Send_Msg_Body_t *body,
     msgBuf->conRetry = 0;
     msgBuf->maxConRetry = getConfValueI(&Config, "RECONNECT_MAX_RETRIES");
     msgBuf->authTime = (auth) ? time(NULL) : 0;
-    msgBuf->req = body->req;
+    msgBuf->req = req;
 
     /* dup msg head */
     dupSlurmMsgHead(&msgBuf->head, head);
 
     /* save data buffer */
     msgBuf->body.buf = NULL;
-    memToDataBuffer(body->payload->buf, body->payload->bufUsed, &msgBuf->body);
+    memToDataBuffer(body->buf, body->bufUsed, &msgBuf->body);
 
     /* dup auth */
     msgBuf->auth = (auth) ? dupSlurmAuth(auth) : NULL;
@@ -410,7 +411,7 @@ static void handleReconTimeout(int timerId, void *data)
 		     msgType2String(savedMsg->head.type));
 
 		/* drop the saved msg and free request only here if the
-		 * conneciton could not be opened */
+		 * connection could not be opened */
 		ufree(savedMsg->req);
 		deleteMsgBuf(savedMsg);
 	    }

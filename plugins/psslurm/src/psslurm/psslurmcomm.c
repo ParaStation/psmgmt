@@ -371,8 +371,7 @@ void __handleFrwrdMsgReply(Slurm_Msg_t *sMsg, uint32_t error, const char *func,
 	 * results from all the nodes the RPC was forwarded to. */
 	msg.buf = fw->body.buf;
 	msg.bufUsed = fw->body.used;
-	Send_Msg_Body_t body = { .payload = &msg, .req = NULL };
-	sendSlurmMsgEx(con->sock, &fw->head, &body);
+	sendSlurmMsgEx(con->sock, &fw->head, &msg, NULL);
 	closeSlurmCon(con->sock);
     }
 }
@@ -986,33 +985,37 @@ int __sendDataBuffer(int sock, PS_SendDB_t *data, size_t offset,
     return ret;
 }
 
-int __sendSlurmMsg(int sock, slurm_msg_type_t type, PS_SendDB_t *payload,
+int __sendSlurmMsg(int sock, slurm_msg_type_t type, PS_SendDB_t *body,
 		   uid_t uid, const char *caller, const int line)
 {
     Slurm_Msg_Header_t head;
-
     initSlurmMsgHead(&head);
     head.type = type;
     head.uid = uid;
 
-    Send_Msg_Body_t body = { .payload = payload, .req = NULL };
-
-    return __sendSlurmMsgEx(sock, &head, &body, caller, line);
+    return __sendSlurmMsgEx(sock, &head, body, NULL, caller, line);
 }
 
-int __sendSlurmMsgEx(int sock, Slurm_Msg_Header_t *head, Send_Msg_Body_t *body,
-		     const char *caller, const int line)
+int __sendSlurmMsgEx(int sock, Slurm_Msg_Header_t *head, PS_SendDB_t *body,
+		     Req_Info_t *req, const char *caller, const int line)
 {
     PS_SendDB_t data = { .bufUsed = 0, .useFrag = false };
 
-    if (!body) {
-	flog("invalid body from %s@%i\n", caller, line);
+    if (sock >= 0 && req) {
+	flog("new request for existing connection from %s@%i\n", caller, line);
+	ufree(req);
 	return -1;
     }
 
     if (!head) {
 	flog("invalid header from %s@%i\n", caller, line);
-	ufree(body->req);
+	ufree(req);
+	return -1;
+    }
+
+    if (!body) {
+	flog("invalid body from %s@%i\n", caller, line);
+	ufree(req);
 	return -1;
     }
 
@@ -1023,23 +1026,23 @@ int __sendSlurmMsgEx(int sock, Slurm_Msg_Header_t *head, Send_Msg_Body_t *body,
     Slurm_Auth_t *auth = getSlurmAuth(head->uid, head->type);
     if (!auth) {
 	flog("getting a slurm authentication token failed\n");
-	ufree(body->req);
+	ufree(req);
 	return -1;
     }
 
     /* connect to slurmctld */
     if (sock < 0) {
-	sock = openSlurmctldCon(body->req);
+	sock = openSlurmctldCon(req);
 	if (sock < 0) {
 	    freeSlurmAuth(auth);
 	    if (needMsgResend(head->type)) {
 		Slurm_Msg_Buf_t *savedMsg;
 
-		savedMsg = saveSlurmMsg(head, body, NULL, -1, 0);
+		savedMsg = saveSlurmMsg(head, body, req, NULL, -1, 0);
 		if (setReconTimer(savedMsg) == -1) {
 		    flog("setting resend timer failed\n");
 		    /* without a connection the request has to be freed */
-		    ufree(body->req);
+		    ufree(req);
 		    deleteMsgBuf(savedMsg);
 		    return -1;
 		}
@@ -1048,19 +1051,16 @@ int __sendSlurmMsgEx(int sock, Slurm_Msg_Header_t *head, Send_Msg_Body_t *body,
 		return -2;
 	    }
 	    /* without re-sending the request has to be freed */
-	    ufree(body->req);
+	    ufree(req);
 	    return -1;
 	}
-    } else {
-	/* an existing connection is re-used => free now dangling request */
-	ufree(body->req); // @todo do we need a warning here?
     }
 
     /* non blocking write */
     PSCio_setFDblock(sock, false);
 
     PS_DataBuffer_t payload = { .buf = NULL };
-    memToDataBuffer(body->payload->buf, body->payload->bufUsed, &payload);
+    memToDataBuffer(body->buf, body->bufUsed, &payload);
     packSlurmMsg(&data, head, &payload, auth);
 
     size_t written = 0;
@@ -1068,8 +1068,8 @@ int __sendSlurmMsgEx(int sock, Slurm_Msg_Header_t *head, Send_Msg_Body_t *body,
     if (ret == -1) {
 	if (errno == EAGAIN || errno == EINTR) {
 	    /* msg was fractionally written, retry later */
-	    Slurm_Msg_Buf_t *savedMsg = saveSlurmMsg(head, body, auth, sock,
-						     written);
+	    Slurm_Msg_Buf_t *savedMsg = saveSlurmMsg(head, body, req, auth,
+						     sock, written);
 	    Selector_awaitWrite(sock, resendSlurmMsg, savedMsg);
 	    ret = -2;
 	} else {
@@ -1095,14 +1095,13 @@ int __sendSlurmctldReq(Req_Info_t *req, void *data,
     }
 
     req->time = time(NULL);
-    Send_Msg_Body_t body = { .payload = &msg, .req = req };
 
     Slurm_Msg_Header_t head;
     initSlurmMsgHead(&head);
     head.type = req->type;
     head.uid = slurmUserID;
 
-    return __sendSlurmMsgEx(SLURMCTLD_SOCK, &head, &body, caller, line);
+    return __sendSlurmMsgEx(SLURMCTLD_SOCK, &head, &msg, req, caller, line);
 }
 
 static void addVal2List(StrBuffer_t *strBuf, int32_t val, bool range, bool fin,
@@ -1583,13 +1582,7 @@ int srunSendMsg(int sock, Step_t *step, slurm_msg_type_t type,
     fdbg(PSSLURM_LOG_IO | PSSLURM_LOG_IO_VERB | PSSLURM_LOG_COMM,
 	 "sock %u, len: body.bufUsed %u\n", sock, body->bufUsed);
 
-    Slurm_Msg_Header_t head;
-    initSlurmMsgHead(&head);
-    head.type = type;
-    head.uid = step->uid;
-
-    Send_Msg_Body_t sendBody = { .payload = body, .req = req };
-    return sendSlurmMsgEx(sock, &head, &sendBody);
+    return sendSlurmMsg(sock, type, body, step->uid);
 }
 
 int srunOpenPTYConnection(Step_t *step)
