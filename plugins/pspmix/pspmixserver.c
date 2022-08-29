@@ -1500,44 +1500,45 @@ static void errhandler(size_t evhdlr_registration_id, pmix_status_t status,
 }
 
 #if PMIX_VERSION_MAJOR >= 4
-static void fillServerSessionArray(pmix_data_array_t *sessionInfo,
+
+#define INFO_LIST_ADD(i, key, val, t) \
+    do { \
+	pmix_status_t status = PMIx_Info_list_add(i, key, val, t); \
+	if (status != PMIX_SUCCESS) mlog("%s: Failed to add : %s\n", \
+					   __func__, \
+					   PMIx_Error_string(status)); \
+    } while(0)
+
+static bool fillServerSessionArray(pmix_data_array_t *sessionInfo,
 				   const char *clusterid)
 {
-#define SERVER_SESSION_INFO_ARRAY_LEN 4
-    pmix_info_t *infos;
-    PMIX_INFO_CREATE(infos, SERVER_SESSION_INFO_ARRAY_LEN);
+    void *list = PMIx_Info_list_start();
 
-    size_t i = 0;
     /* A string name for the cluster this allocation is on */
-    PMIX_INFO_LOAD(&infos[i], PMIX_CLUSTER_ID, clusterid, PMIX_STRING);
-    i++;
+    INFO_LIST_ADD(list, PMIX_CLUSTER_ID, clusterid, PMIX_STRING);
 
     /* String name of the RM */
     char *rmname = "ParaStation";
-    PMIX_INFO_LOAD(&infos[i], PMIX_RM_NAME, rmname, PMIX_STRING);
-    i++;
+    INFO_LIST_ADD(list, PMIX_RM_NAME, rmname, PMIX_STRING);
 
     /* RM version string */
     const char *rmversion = PSC_getVersionStr();
-    PMIX_INFO_LOAD(&infos[i], PMIX_RM_VERSION, rmversion, PMIX_STRING);
-    i++;
+    INFO_LIST_ADD(list, PMIX_RM_VERSION, rmversion, PMIX_STRING);
 
     /* Host where target PMIx server is located */
     const char *hostname = getHostnameByNodeId(PSC_getMyID());
-    PMIX_INFO_LOAD(&infos[i], PMIX_SERVER_HOSTNAME, hostname, PMIX_STRING);
-    i++;
+    INFO_LIST_ADD(list, PMIX_SERVER_HOSTNAME, hostname, PMIX_STRING);
 
-    mdbg(PSPMIX_LOG_INFOARR,
-	 "%s: %s(%d)='%s' - %s(%d)='%s' - %s(%d)='%s' - %s(%d)='%s'\n",
-	 __func__,
-	 infos[0].key, infos[0].value.type, infos[0].value.data.string,
-	 infos[1].key, infos[1].value.type, infos[1].value.data.string,
-	 infos[2].key, infos[2].value.type, infos[2].value.data.string,
-	 infos[3].key, infos[3].value.type, infos[3].value.data.string);
+    pmix_status_t status;
+    status = PMIx_Info_list_convert(list, sessionInfo);
+    PMIx_Info_list_release(list);
+    if (status != PMIX_SUCCESS) {
+	printf("%s: Converting info list to array failed: %s\n", __func__,
+	       PMIx_Error_string(status));
+	return false;
+    }
 
-    sessionInfo->type = PMIX_INFO;
-    sessionInfo->size = SERVER_SESSION_INFO_ARRAY_LEN;
-    sessionInfo->array = infos;
+    return true;
 }
 
 /**
@@ -1812,7 +1813,7 @@ bool pspmix_server_init(char *nspace, pmix_rank_t rank, const char *clusterid,
     i++;
 # endif /* optional attributes */
 
-#endif
+#endif /* if PMIX_VERSION_MAJOR >= 4 */
 
     mdbg(PSPMIX_LOG_VERBOSE, "%s: Setting nspace %s rank %d\n", __func__,
 	    nspace, rank);
@@ -1825,6 +1826,16 @@ bool pspmix_server_init(char *nspace, pmix_rank_t rank, const char *clusterid,
 	     PMIx_Error_string(status));
 	return false;
     }
+#if PMIX_VERSION_MAJOR >= 4
+    if (mset(PSPMIX_LOG_INFOARR)) {
+	mlog("%s: PMIx_server_init info:\n", __func__);
+	for (i = 0; i < cbdata.ninfo; i++) {
+	    char * istr = PMIx_Info_string(&cbdata.info[i]);
+	    mlog("%s\n", istr);
+	    free(istr);
+	}
+    }
+#endif
     mdbg(PSPMIX_LOG_VERBOSE, "%s: PMIx_server_init() successful\n", __func__);
     DESTROY_CBDATA(cbdata);
 
@@ -1833,10 +1844,19 @@ bool pspmix_server_init(char *nspace, pmix_rank_t rank, const char *clusterid,
     INIT_CBDATA(cbdata, 1);
 
     pmix_data_array_t sessionInfo;
-    fillServerSessionArray(&sessionInfo, clusterid);
+    if (!fillServerSessionArray(&sessionInfo, clusterid)) {
+	mlog("%s: filling server session info failed\n", __func__);
+	return false;
+    }
 
     PMIX_INFO_LOAD(cbdata.info, PMIX_SESSION_INFO_ARRAY, &sessionInfo,
 		   PMIX_DATA_ARRAY);
+
+    if (mset(PSPMIX_LOG_INFOARR)) {
+	mlog("%s: PMIx_server_register_resources info:\n", __func__);
+	for (i = 0; i < cbdata.ninfo; i++)
+	    mlog("%s\n", PMIx_Info_string(&cbdata.info[i]));
+    }
 
     status = PMIx_server_register_resources(cbdata.info, cbdata.ninfo,
 					    registerResources_cb, &cbdata);
@@ -2562,9 +2582,9 @@ bool pspmix_server_registerNamespace(const char *nspace, uint32_t sessionId,
 				     PSnodes_ID_t nodeID)
 {
     mdbg(PSPMIX_LOG_CALL, "%s(nspace '%s' sessionId %u univSize %u jobSize %u"
-	 " spawned %d nodelist_s '%s' numApps %u tmpdir '%s' nsdir '%s'"
+	 " spawned %d numNodes %d nodelist_s '%s' numApps %u tmpdir '%s' nsdir '%s'"
 	 " nodeID %hd)\n", __func__, nspace, sessionId, univSize, jobSize,
-	 spawned, nodelist_s, numApps, tmpdir, nsdir, nodeID);
+	 spawned, numNodes, nodelist_s, numApps, tmpdir, nsdir, nodeID);
 
     pmix_status_t status;
 
