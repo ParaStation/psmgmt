@@ -73,7 +73,7 @@ int pspmix_userserver_initialize(Forwarder_Data_t *fwdata)
     }
 
     char *clusterid = PSID_config->psiddomain;
-    if (!clusterid) clusterid = "ParaStationCluster";
+    if (!clusterid || !clusterid[0]) clusterid = "ParaStationCluster";
 
     /* initialize service modules */
     if (!pspmix_service_init(server->uid, server->gid, clusterid)) {
