@@ -2278,6 +2278,7 @@ static void fillAppInfoArray(pmix_data_array_t *appInfo, PspmixApp_t *app)
     appInfo->array = infos;
 }
 
+#if PMIX_VERSION_MAJOR >= 4
 /**
  * @param nodeInfo     array to fill
  * @param node         node object
@@ -2388,6 +2389,7 @@ static void fillNodeInfoArray(pmix_data_array_t *nodeInfo, PspmixNode_t *node,
     nodeInfo->size = ninfo;
     nodeInfo->array = infos;
 }
+#endif /* PMIX_VERSION_MAJOR >= 4 */
 
 static void fillProcDataArray(pmix_data_array_t *procData,
 			      PspmixProcess_t *proc, PSnodes_ID_t nodeID,
@@ -2625,7 +2627,11 @@ bool pspmix_server_registerNamespace(const char *nspace, uint32_t sessionId,
 
     /* fill infos */
     mycbdata_t data;
+#if PMIX_VERSION_MAJOR >= 4
     INIT_CBDATA(data, 4 + numApps + numNodes + jobSize);
+#else
+    INIT_CBDATA(data, 4 + numApps + jobSize + 2);
+#endif
 
     /* ===== session info ===== */
 
@@ -2663,9 +2669,11 @@ bool pspmix_server_registerNamespace(const char *nspace, uint32_t sessionId,
 	i++;
     }
 
+    list_t *n;
+
+#if PMIX_VERSION_MAJOR >= 4
     /* ===== node info arrays ===== */
     uint32_t nodeIdx = 0;
-    list_t *n;
     list_for_each(n, procMap) {
 	PspmixNode_t *node = list_entry(n, PspmixNode_t, next);
 	pmix_data_array_t nodeInfo;
@@ -2675,6 +2683,7 @@ bool pspmix_server_registerNamespace(const char *nspace, uint32_t sessionId,
 		       PMIX_DATA_ARRAY);
 	i++;
     }
+#endif
 
     /* ===== process data ===== */
 
@@ -2691,6 +2700,28 @@ bool pspmix_server_registerNamespace(const char *nspace, uint32_t sessionId,
 	    i++;
 	}
     }
+
+#if PMIX_VERSION_MAJOR < 4
+    /* ===== own node info ===== */
+
+    /* number of processes in this job/namespace on this node */
+    uint32_t val_u32 = mynode->procs.len;
+    PMIX_INFO_LOAD(&data.info[i], PMIX_LOCAL_SIZE, &val_u32, PMIX_UINT32);
+    i++;
+
+    /* comma-delimited string of ranks on this node within the specified job */
+    char *lpeers;
+    lpeers = getNodeRanksString(mynode);
+    if (lpeers[0] == '\0') {
+	mlog("%s: no local ranks found.\n", __func__);
+	ufree(lpeers);
+	DESTROY_CBDATA(data);
+	return false;
+    }
+    PMIX_INFO_LOAD(&data.info[i], PMIX_LOCAL_PEERS, lpeers, PMIX_STRING);
+    i++;
+    ufree(lpeers);
+#endif
 
     if (i != data.ninfo) {
 	mlog("%s: WARNING: Number of info fields does not match (%lu != %lu)\n",
