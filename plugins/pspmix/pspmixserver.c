@@ -1818,14 +1818,6 @@ bool pspmix_server_init(char *nspace, pmix_rank_t rank, const char *clusterid,
     mdbg(PSPMIX_LOG_VERBOSE, "%s: Setting nspace %s rank %d\n", __func__,
 	    nspace, rank);
 
-    /* initialize server library */
-    pmix_status_t status;
-    status = PMIx_server_init(&module, cbdata.info, cbdata.ninfo);
-    if (status != PMIX_SUCCESS) {
-	mlog("%s: PMIx_server_init() failed: %s\n", __func__,
-	     PMIx_Error_string(status));
-	return false;
-    }
 #if PMIX_VERSION_MAJOR >= 4
     if (mset(PSPMIX_LOG_INFOARR)) {
 	mlog("%s: PMIx_server_init info:\n", __func__);
@@ -1836,6 +1828,15 @@ bool pspmix_server_init(char *nspace, pmix_rank_t rank, const char *clusterid,
 	}
     }
 #endif
+
+    /* initialize server library */
+    pmix_status_t status;
+    status = PMIx_server_init(&module, cbdata.info, cbdata.ninfo);
+    if (status != PMIX_SUCCESS) {
+	mlog("%s: PMIx_server_init() failed: %s\n", __func__,
+	     PMIx_Error_string(status));
+	return false;
+    }
     mdbg(PSPMIX_LOG_VERBOSE, "%s: PMIx_server_init() successful\n", __func__);
     DESTROY_CBDATA(cbdata);
 
