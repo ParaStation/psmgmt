@@ -2119,9 +2119,11 @@ static void fillSessionInfoArray(pmix_data_array_t *sessionInfo,
      *     processes. Defaults to the job realm.
      */
 
+#if PMIX_VERSION_MAJOR < 4
     mdbg(PSPMIX_LOG_INFOARR, "%s: %s(%d)=%u - %s(%d)=%u\n", __func__,
 	 infos[0].key, infos[0].value.type, infos[0].value.data.uint32,
 	 infos[1].key, infos[1].value.type, infos[1].value.data.uint32);
+#endif
 
     sessionInfo->type = PMIX_INFO;
     sessionInfo->size = SESSION_INFO_ARRAY_LEN;
@@ -2207,6 +2209,7 @@ static void fillJobInfoArray(pmix_data_array_t *jobInfo, const char *jobId,
      *     Blob containing crypto key.
      */
 
+#if PMIX_VERSION_MAJOR < 4
     mdbg(PSPMIX_LOG_INFOARR, "%s: %s(%d)='%s' - %s(%d)=%u - %s(%d)=%u - "
 	 "%s(%d)='%s' - %s(%d)='%s' - %s(%d)=%u\n", __func__,
 	 infos[0].key, infos[0].value.type, infos[0].value.data.string,
@@ -2215,6 +2218,7 @@ static void fillJobInfoArray(pmix_data_array_t *jobInfo, const char *jobId,
 	 infos[3].key, infos[3].value.type, infos[3].value.data.string,
 	 infos[4].key, infos[4].value.type, infos[4].value.data.string,
 	 infos[5].key, infos[5].value.type, infos[5].value.data.uint32);
+#endif
 
     jobInfo->type = PMIX_INFO;
     jobInfo->size = JOB_INFO_ARRAY_LEN;
@@ -2275,17 +2279,14 @@ static void fillAppInfoArray(pmix_data_array_t *appInfo, PspmixApp_t *app)
      *     Programming model version string (e.g., “2.1.1”).
      */
 
+#if PMIX_VERSION_MAJOR < 4
     mdbg(PSPMIX_LOG_INFOARR, "%s: %s(%d)=%u - %s(%d)=%u - %s(%d)=%u - "
-	 "%s(%d)='%s'", __func__,
+	 "%s(%d)='%s'\n", __func__,
 	 infos[0].key, infos[0].value.type, infos[0].value.data.uint32,
 	 infos[1].key, infos[1].value.type, infos[1].value.data.uint32,
 	 infos[2].key, infos[2].value.type, infos[2].value.data.rank,
 	 infos[3].key, infos[3].value.type, infos[3].value.data.string);
-#if PMIX_VERSION_MAJOR >= 4
-    mdbg(PSPMIX_LOG_INFOARR, " - %s(%d)='%s'",
-	 infos[4].key, infos[4].value.type, infos[4].value.data.string);
 #endif
-    mdbg(PSPMIX_LOG_INFOARR, "\n");
 
     appInfo->type = PMIX_INFO;
     appInfo->size = APP_INFO_ARRAY_LEN;
@@ -2383,6 +2384,7 @@ static void fillNodeInfoArray(pmix_data_array_t *nodeInfo, PspmixNode_t *node,
 	 */
     }
 
+#if PMIX_VERSION_MAJOR < 4
     mdbg(PSPMIX_LOG_INFOARR, "%s: %s(%d)=%u - %s(%d)='%s' - %s(%d)=%u - "
 	 "%s(%d)=%u - %s(%d)='%s'", __func__,
 	 infos[0].key, infos[0].value.type, infos[0].value.data.uint32,
@@ -2396,6 +2398,7 @@ static void fillNodeInfoArray(pmix_data_array_t *nodeInfo, PspmixNode_t *node,
 	 infos[6].key, infos[6].value.type, infos[6].value.data.string);
     }
     mdbg(PSPMIX_LOG_INFOARR, "\n");
+#endif
 
     nodeInfo->type = PMIX_INFO;
     nodeInfo->size = ninfo;
@@ -2532,8 +2535,9 @@ static void fillProcDataArray(pmix_data_array_t *procData,
     }
 #endif
 
+#if PMIX_VERSION_MAJOR < 4
     mdbg(PSPMIX_LOG_INFOARR, "%s: %s(%d)=%u - %s(%d)=%u - %s(%d)=%u - "
-	 "%s(%d)=%u - %s(%d)=%hu - %s(%d)=%hu - %s(%d)=%u - %s(%d)=%d",
+	 "%s(%d)=%u - %s(%d)=%hu - %s(%d)=%hu - %s(%d)=%u - %s(%d)=%d\n",
 	 __func__,
 	 infos[0].key, infos[0].value.type, infos[0].value.data.rank,
 	 infos[1].key, infos[1].value.type, infos[1].value.data.uint32,
@@ -2543,17 +2547,7 @@ static void fillProcDataArray(pmix_data_array_t *procData,
 	 infos[5].key, infos[5].value.type, infos[5].value.data.uint16,
 	 infos[6].key, infos[6].value.type, infos[6].value.data.uint32,
 	 infos[7].key, infos[7].value.type, infos[7].value.data.flag);
-# if PMIX_VERSION_MAJOR >= 4
-    mdbg(PSPMIX_LOG_INFOARR, " - %s(%d)=%u",
-	 infos[8].key, infos[8].value.type, infos[8].value.data.uint32);
-    if (nodeID == PSC_getMyID()) {
-	mdbg(PSPMIX_LOG_INFOARR, " - %s(%d)='%s' - %s(%d)='%s' - %s(%d)=%hu",
-	     infos[9].key, infos[9].value.type, infos[9].value.data.string,
-	     infos[10].key, infos[10].value.type, infos[10].value.data.string,
-	     infos[11].key, infos[11].value.type, infos[11].value.data.uint16);
-    }
 #endif
-    mdbg(PSPMIX_LOG_INFOARR, "\n");
 
     procData->type = PMIX_INFO;
     procData->size = ninfo;
@@ -2740,7 +2734,15 @@ bool pspmix_server_registerNamespace(const char *nspace, uint32_t sessionId,
     }
 
     /* debugging output of info values */
-    if (mset(PSPMIX_LOG_VERBOSE)) {
+    if (mset(PSPMIX_LOG_INFOARR)) {
+#if PMIX_VERSION_MAJOR >= 4
+	mlog("%s: PMIx_server_register_nspace info:\n", __func__);
+	for (i = 0; i < data.ninfo; i++) {
+	    char * istr = PMIx_Info_string(&data.info[i]);
+	    mlog("%s\n", istr);
+	    free(istr);
+	}
+#else
 	vector_t infostr;
 	charvInit(&infostr, 1024);
 
@@ -2772,6 +2774,7 @@ bool pspmix_server_registerNamespace(const char *nspace, uint32_t sessionId,
 	     " PMIx_server_register_nspace():\n%s", __func__,
 	     (char *)infostr.data);
 	charvDestroy(&infostr);
+#endif
     }
 
     /* register namespace */
