@@ -1517,6 +1517,10 @@ static bool fillServerSessionArray(pmix_data_array_t *sessionInfo,
     /* A string name for the cluster this allocation is on */
     INFO_LIST_ADD(list, PMIX_CLUSTER_ID, clusterid, PMIX_STRING);
 
+    /* session id of UINT32_MAX means every session */
+    uint32_t session_id = UINT32_MAX;
+    INFO_LIST_ADD(list, PMIX_SESSION_ID, &session_id, PMIX_UINT32);
+
     /* String name of the RM */
     char *rmname = "ParaStation";
     INFO_LIST_ADD(list, PMIX_RM_NAME, rmname, PMIX_STRING);
