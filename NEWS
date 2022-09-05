@@ -6,6 +6,15 @@ Copyright (C) 2021-2022 ParTec AG, Munich
 Please send bug reports, questions and suggestions to <support@par-tec.com>
 
 
+Version 5.1.50-5:
+=================
+Bugfixes:
+ - Do not pass node info array in pspmix with PMIx < 4 (jwt:#16581)
+ - Fix handling of PSPMIX_CLIENT_INIT/FINALIZE[_RES] message type
+Enhancements:
+ - Integrate pspmix' info arrays output into debug logging
+
+
 Version 5.1.50-4:
 =================
 Bugfixes:

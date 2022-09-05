@@ -1,3 +1,26 @@
+Version 5.1.50-5:
+=================
+------------------------------------------------------------------------
+83b672c6d | Stephan Krempel | Tue, 30 Aug 2022 02:13:52 +0200
+
+pspmix: Integrate info arrays output into debug logging
+------------------------------------------------------------------------
+9292916d2 | Stephan Krempel | Thu, 11 Aug 2022 14:44:19 +0200
+
+pspmix: Always use order nspace, rank
+
+Fixes PSPMIX_CLIENT_INIT message type
+------------------------------------------------------------------------
+9a4c1904f | Stephan Krempel | Thu, 1 Sep 2022 18:30:45 +0200
+
+pspmix: Do not pass node info array with PMIx < 4
+
+This leads to problems on systems where the hostname that
+that the nodes know themself is different from the hostname
+used by the psid.
+------------------------------------------------------------------------
+
+
 Version 5.1.50-4:
 =================
 ------------------------------------------------------------------------
