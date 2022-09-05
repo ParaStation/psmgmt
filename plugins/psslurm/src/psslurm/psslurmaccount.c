@@ -17,6 +17,7 @@
 #include "pluginconfig.h"
 #include "pluginmalloc.h"
 #include "psaccounthandles.h"
+#include "pscommon.h"
 
 #include "slurmcommon.h"
 #include "psslurmlog.h"
