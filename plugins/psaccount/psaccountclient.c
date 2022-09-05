@@ -375,25 +375,33 @@ void addClientToAggData(Client_t *client, AccountDataExt_t *aggData,
     psAccountIC_t *icData = IC_getData();
 
     /* received bytes from interconnect */
-    aggData->IC_recvBytesTot += icData->recvBytes;
-    if (icData->recvBytes > aggData->IC_recvBytesMax) {
-	aggData->IC_recvBytesMax = icData->recvBytes;
-	aggData->taskIds[ACCID_MAX_IC_RECV] = client->taskid;
-    }
-    if (!aggData->numTasks || icData->recvBytes < aggData->IC_recvBytesMin) {
-	aggData->IC_recvBytesMin = icData->recvBytes;
-	aggData->taskIds[ACCID_MIN_IC_RECV] = client->taskid;
+    uint64_t IC_recvBytes = 0;
+    if (client->job && client->job->IC_recvBase) {
+	IC_recvBytes = icData->recvBytes - client->job->IC_recvBase;
+	aggData->IC_recvBytesTot += IC_recvBytes;
+	if (IC_recvBytes > aggData->IC_recvBytesMax) {
+	    aggData->IC_recvBytesMax = IC_recvBytes;
+	    aggData->taskIds[ACCID_MAX_IC_RECV] = client->taskid;
+	}
+	if (!aggData->numTasks || IC_recvBytes < aggData->IC_recvBytesMin) {
+	    aggData->IC_recvBytesMin = IC_recvBytes;
+	    aggData->taskIds[ACCID_MIN_IC_RECV] = client->taskid;
+	}
     }
 
     /* sent bytes from interconnect */
-    aggData->IC_sendBytesTot += icData->sendBytes;
-    if (icData->sendBytes > aggData->IC_sendBytesMax) {
-	aggData->IC_sendBytesMax = icData->sendBytes;
-	aggData->taskIds[ACCID_MAX_IC_SEND] = client->taskid;
-    }
-    if (!aggData->numTasks || icData->sendBytes < aggData->IC_sendBytesMin) {
-	aggData->IC_sendBytesMin = icData->sendBytes;
-	aggData->taskIds[ACCID_MIN_IC_SEND] = client->taskid;
+    uint64_t IC_sendBytes = 0;
+    if (client->job && client->job->IC_sendBase) {
+	IC_sendBytes = icData->sendBytes - client->job->IC_sendBase;
+	aggData->IC_sendBytesTot += IC_sendBytes;
+	if (IC_sendBytes > aggData->IC_sendBytesMax) {
+	    aggData->IC_sendBytesMax = IC_sendBytes;
+	    aggData->taskIds[ACCID_MAX_IC_SEND] = client->taskid;
+	}
+	if (!aggData->numTasks || IC_sendBytes < aggData->IC_sendBytesMin) {
+	    aggData->IC_sendBytesMin = IC_sendBytes;
+	    aggData->taskIds[ACCID_MIN_IC_SEND] = client->taskid;
+	}
     }
 
     aggData->numTasks++;
@@ -404,7 +412,7 @@ void addClientToAggData(Client_t *client, AccountDataExt_t *aggData,
 	 PSC_printTID(client->taskid), cData->maxThreads,
 	 cData->maxVsize, cData->maxRss, cData->cutime, cData->cstime,
 	 (double) aggData->cpuFreq / aggData->numTasks / (1024*1024),
-	 icData->recvBytes, icData->sendBytes);
+	 IC_recvBytes, IC_sendBytes);
 }
 
 /**

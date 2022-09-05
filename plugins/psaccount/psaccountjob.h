@@ -32,6 +32,8 @@ typedef struct {
     pid_t jobscript;            /**< process ID of the job-script */
     uint64_t energyBase;        /**< base energy consumption when
 				     the job was added */
+    uint64_t IC_recvBase;	/**< base value of received interconnect data */
+    uint64_t IC_sendBase;	/**< base value of sent interconnect data */
 } Job_t;
 
 /**

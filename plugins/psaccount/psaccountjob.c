@@ -22,6 +22,7 @@
 #include "psaccountclient.h"
 #include "psaccountconfig.h"
 #include "psaccountenergy.h"
+#include "psaccountinterconnect.h"
 #include "psaccountlog.h"
 #include "psaccountproc.h"
 
@@ -67,6 +68,10 @@ Job_t *addJob(PStask_ID_t loggerTID)
 
     psAccountEnergy_t *eData = Energy_getData();
     job->energyBase = eData->energyCur;
+
+    psAccountIC_t *icData = IC_getData();
+    job->IC_sendBase = icData->sendBytes;
+    job->IC_recvBase = icData->recvBytes;
 
     list_add_tail(&job->next, &jobList);
     return job;
