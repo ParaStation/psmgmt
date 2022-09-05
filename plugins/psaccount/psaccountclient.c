@@ -339,7 +339,7 @@ void addClientToAggData(Client_t *client, AccountDataExt_t *aggData,
 
     /* energy is calculated on a per node basis, add only once for all local
      * clients */
-    if (addEnergy && client->job && client->job->energyBase) {
+    if (addEnergy && client->job) {
 	psAccountEnergy_t *eData = Energy_getData();
 
 	/* energy */
@@ -376,7 +376,7 @@ void addClientToAggData(Client_t *client, AccountDataExt_t *aggData,
 
     /* received bytes from interconnect */
     uint64_t IC_recvBytes = 0;
-    if (client->job && client->job->IC_recvBase) {
+    if (client->job) {
 	IC_recvBytes = icData->recvBytes - client->job->IC_recvBase;
 	aggData->IC_recvBytesTot += IC_recvBytes;
 	if (IC_recvBytes > aggData->IC_recvBytesMax) {
@@ -391,7 +391,7 @@ void addClientToAggData(Client_t *client, AccountDataExt_t *aggData,
 
     /* sent bytes from interconnect */
     uint64_t IC_sendBytes = 0;
-    if (client->job && client->job->IC_sendBase) {
+    if (client->job) {
 	IC_sendBytes = icData->sendBytes - client->job->IC_sendBase;
 	aggData->IC_sendBytesTot += IC_sendBytes;
 	if (IC_sendBytes > aggData->IC_sendBytesMax) {
@@ -700,7 +700,7 @@ bool aggregateDataByLogger(PStask_ID_t logger, AccountDataExt_t *accData)
 	if (client->logger == logger && client->type != ACC_CHILD_JOBSCRIPT) {
 	    if (client->type == ACC_CHILD_PSIDCHILD) {
 		addClientToAggData(client, accData, addEnergy);
-		if (client->job && client->job->energyBase) addEnergy = false;
+		if (client->job) addEnergy = false;
 	    } else if (client->type == ACC_CHILD_REMOTE) {
 		addAggData(&client->data, accData);
 	    }
@@ -831,7 +831,7 @@ void forwardJobData(Job_t *job, bool force)
 	Client_t *client = list_entry(c, Client_t, next);
 	if (client->logger == logger && (client->doAccounting || force)) {
 	    addClientToAggData(client, &aggData, addEnergy);
-	    if (client->job && client->job->energyBase) addEnergy = false;
+	    if (client->job) addEnergy = false;
 	}
     }
 
