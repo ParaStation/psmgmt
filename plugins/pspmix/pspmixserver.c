@@ -2004,18 +2004,14 @@ static void setupApplication_cb(
 static char * intArrayToCommaString(uint32_t *array, size_t len)
 {
 #define CHUNK 512
+    size_t retsize = CHUNK;
+    char *ret = umalloc(retsize * sizeof(*ret));
 
-    char *ret, *ptr;
-    size_t i, s, retsize, rest;
+    char *ptr = ret;
+    size_t rest = retsize;
 
-    retsize = CHUNK;
-    ret = umalloc(retsize * sizeof(*ret));
-
-    ptr = ret;
-    rest = retsize;
-
-    for (i = 1; i <= len; i++) {
-	s = snprintf(ptr, rest, "%d", array[i-1]);
+    for (size_t i = 1; i <= len; i++) {
+	size_t s = snprintf(ptr, rest, "%d", array[i-1]);
 	if (s >= rest) {
 	    retsize += CHUNK;
 	    ret = urealloc(ret, retsize * sizeof(*ret));
