@@ -1825,8 +1825,8 @@ bool pspmix_server_init(char *nspace, pmix_rank_t rank, const char *clusterid,
 #if PMIX_VERSION_MAJOR >= 4
     if (mset(PSPMIX_LOG_INFOARR)) {
 	mlog("%s: PMIx_server_init info:\n", __func__);
-	for (i = 0; i < cbdata.ninfo; i++) {
-	    char * istr = PMIx_Info_string(&cbdata.info[i]);
+	for (int j = 0; j < cbdata.ninfo; j++) {
+	    char * istr = PMIx_Info_string(&cbdata.info[j]);
 	    mlog("%s\n", istr);
 	    free(istr);
 	}
@@ -1859,8 +1859,8 @@ bool pspmix_server_init(char *nspace, pmix_rank_t rank, const char *clusterid,
 
     if (mset(PSPMIX_LOG_INFOARR)) {
 	mlog("%s: PMIx_server_register_resources info:\n", __func__);
-	for (i = 0; i < cbdata.ninfo; i++)
-	    mlog("%s\n", PMIx_Info_string(&cbdata.info[i]));
+	for (int j = 0; j < cbdata.ninfo; j++)
+	    mlog("%s\n", PMIx_Info_string(&cbdata.info[j]));
     }
 
     status = PMIx_server_register_resources(cbdata.info, cbdata.ninfo,
@@ -2085,7 +2085,7 @@ static char* getNodeRanksString(PspmixNode_t *node)
     vector_t ranks;
     charvInit(&ranks, 50);
 
-    for(size_t i = 0; i < node->procs.len; i++) {
+    for (size_t i = 0; i < node->procs.len; i++) {
 	PspmixProcess_t *proc;
 	proc = vectorGet(&node->procs, i, PspmixProcess_t);
 	sprintf(buf, "%u", proc->rank);
@@ -2741,8 +2741,8 @@ bool pspmix_server_registerNamespace(const char *nspace, uint32_t sessionId,
     if (mset(PSPMIX_LOG_INFOARR)) {
 #if PMIX_VERSION_MAJOR >= 4
 	mlog("%s: PMIx_server_register_nspace info:\n", __func__);
-	for (i = 0; i < data.ninfo; i++) {
-	    char * istr = PMIx_Info_string(&data.info[i]);
+	for (int j = 0; j < data.ninfo; j++) {
+	    char * istr = PMIx_Info_string(&data.info[j]);
 	    mlog("%s\n", istr);
 	    free(istr);
 	}
