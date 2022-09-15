@@ -583,11 +583,11 @@ static void parseSocketMask(PSCPU_set_t *CPUset, const nodeinfo_t *nodeinfo,
  * so the bind string is formated "s1,s2,..." with sn are Socket IDs
  * or Socket masks.
  *
- * For CPU_BIND_MASK, CPU_BIND_MAP, and CPU_BIND_LDMASK this function
- * (or it's subfunctions) use PSIDnodes_unmapCPU() to create a reverse mapped
- * CPUset since actually the mask should be applied to the* physical hardware
- * as it is. The unmap here and the map later will negate each other so that at
- * the end we do always have an identity mapping.
+ * For CPU_BIND_MASK, CPU_BIND_MAP, CPU_BIND_LDMASK, and CPU_BIND_LDMAP this
+ * function (or it's subfunctions) use PSIDnodes_unmapCPU() to create a reverse
+ * mapped CPUset since actually the mask should be applied to the* physical
+ * hardware as it is. The unmap here and the map later will negate each other so
+ * that at the end we do always have an identity mapping.
  *
  * @param CPUset         CPU set to be set
  * @param cpuBindType    bind type to use (CPU_BIND_[MASK|MAP|LDMASK|LDMAP])
@@ -687,7 +687,7 @@ static void getBindMapFromString(PSCPU_set_t *CPUset, uint16_t cpuBindType,
 	}
 
 	/* mysock is valid */
-	pinToSocket(CPUset, nodeinfo, myldom, false);
+	pinToSocket(CPUset, nodeinfo, myldom, true);
 	fdbg(PSSLURM_LOG_PART, "(bind_ldmap) node %d local task %d bindstr '%s'"
 	     " ldom %ld\n", nodeinfo->id, lTID, cpuBindString, myldom);
 	return;
