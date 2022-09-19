@@ -715,6 +715,7 @@ bool aggregateDataByLogger(PStask_ID_t logger, AccountDataExt_t *accData)
 	 " IC_sendMin %zu IC_sendMax %zu FS_write %zu FS_read %zu\n",
 	 accData->numTasks, accData->maxThreads, accData->maxVsize,
 	 accData->maxRss, accData->cutime, accData->cstime,
+	 !accData->numTasks ? 0 :
 	 ((double)accData->cpuFreq / accData->numTasks) / (1024*1024),
 	 accData->energyTot, accData->powerAvg, accData->powerMin,
 	 accData->powerMax, accData->IC_recvBytesTot, accData->IC_recvBytesMin,
