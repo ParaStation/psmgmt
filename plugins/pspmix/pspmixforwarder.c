@@ -335,9 +335,17 @@ static int hookExecForwarder(void *data)
     childTask = data;
 
     env_t env = {childTask->environ, childTask->envSize, childTask->envSize};
-    if (childTask->group != TG_ANY
-	|| (!pspmix_common_usePMIx(&env)
-	    && !getConfValueI(&config, "SUPPORT_MPI_SINGLETON"))) {
+    if (childTask->group != TG_ANY) {
+	childTask = NULL;
+	return 0;
+    }
+
+    /* continue only if PMIx support is requested
+     * or singleton support is configured and np == 1 */
+    bool usePMIx = pspmix_common_usePMIx(&env);
+    char *jobsize = envGet(&env, "PMI_SIZE");
+    if (!usePMIx && (!getConfValueI(&config, "SUPPORT_MPI_SINGLETON")
+		     || (jobsize ? atoi(jobsize) : 1) != 1)) {
 	childTask = NULL;
 	return 0;
     }

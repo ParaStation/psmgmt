@@ -782,9 +782,13 @@ static int hookRecvSpawnReq(void *data)
     prototask->environ = env.vars;
     prototask->envSize = env.cnt;
 
-    /* only for debugging output */
+
+    /* continue only if PMIx support is requested
+     * or singleton support is configured and np == 1 */
     bool usePMIx = pspmix_common_usePMIx(&env);
     if (!usePMIx && !getConfValueI(&config, "SUPPORT_MPI_SINGLETON")) return 0;
+    char *jobsize = envGet(&env, "PMI_SIZE");
+    if (!usePMIx && (jobsize ? atoi(jobsize) : 1) != 1) return 0;
 
     /* find job */
     PStask_ID_t loggertid = prototask->loggertid;
