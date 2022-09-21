@@ -349,7 +349,7 @@ void logger_funcprint(logger_t* logger, const char *func, int32_t key,
 
     if (func) {
 	int res = snprintf(logger->fmt, logger->fmtSize,
-			   "%s: %s\n", func, format);
+			   "%s: %s", func, format);
 	size_t len = (res >= 0) ? res : 0;
 	if (len >= logger->fmtSize) {
 	    logger->fmtSize = len + 80; /* Some extra space */
@@ -357,7 +357,7 @@ void logger_funcprint(logger_t* logger, const char *func, int32_t key,
 	    if (!logger->fmt) {
 		do_panic(logger, "%s: no mem for '%s'\n", __func__, format);
 	    }
-	    sprintf(logger->fmt, "%s: %s\n", func, format);
+	    sprintf(logger->fmt, "%s: %s", func, format);
 	}
     }
 
