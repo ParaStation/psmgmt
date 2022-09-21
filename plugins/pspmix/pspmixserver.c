@@ -1858,7 +1858,7 @@ bool pspmix_server_init(char *nspace, pmix_rank_t rank, const char *clusterid,
 
     if (mset(PSPMIX_LOG_INFOARR)) {
 	mlog("%s: PMIx_server_register_resources info:\n", __func__);
-	for (int j = 0; j < cbdata.ninfo; j++)
+	for (size_t j = 0; j < cbdata.ninfo; j++)
 	    mlog("%s\n", PMIx_Info_string(&cbdata.info[j]));
     }
 
@@ -2736,7 +2736,7 @@ bool pspmix_server_registerNamespace(const char *nspace, uint32_t sessionId,
     if (mset(PSPMIX_LOG_INFOARR)) {
 #if PMIX_VERSION_MAJOR >= 4
 	mlog("%s: PMIx_server_register_nspace info:\n", __func__);
-	for (int j = 0; j < data.ninfo; j++) {
+	for (size_t j = 0; j < data.ninfo; j++) {
 	    char * istr = PMIx_Info_string(&data.info[j]);
 	    mlog("%s\n", istr);
 	    free(istr);
