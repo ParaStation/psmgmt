@@ -26,6 +26,8 @@ extern logger_t *pmixlogger;
 
 extern pthread_mutex_t __mlock;
 
+extern PspmixServer_t *server;
+
 #define mlog(...) \
     do { \
 	if (pmixlogger) { \

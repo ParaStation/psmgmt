@@ -29,8 +29,6 @@
 #include "pspmixserver.h"
 #include "pspmixtypes.h"
 
-extern PspmixServer_t *server;
-
 /**
  * @brief Initialize the PMIX service
  *
