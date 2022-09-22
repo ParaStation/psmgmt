@@ -8,6 +8,7 @@
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
+#define _GNU_SOURCE
 #include "psslurmforwarder.h"
 
 #include <stdio.h>
@@ -29,6 +30,7 @@
 #include <sys/wait.h>
 #include <unistd.h>
 #include <utime.h>
+#include <fenv.h>
 
 #include "list.h"
 #include "pscommon.h"
@@ -387,6 +389,14 @@ static void fwExecBatchJob(Forwarder_Data_t *fwdata, int rerun)
     /* set RLimits */
     setRlimitsFromEnv(&job->env, 0);
 
+    /* reset exceptions mask */
+    if (getConfValueI(&Config, "ENABLE_FPE_EXCEPTION") &&
+        oldExceptions != -1) {
+	if (feenableexcept(oldExceptions) == -1) {
+	    flog("warning: failed to reset exception mask\n");
+	}
+    }
+
     /* do exec */
     closelog();
     execve(job->jobscript, job->argv, job->env.vars);
@@ -644,6 +654,14 @@ int handleExecClientUser(void *data)
     unsetenv("__MPIEXEC_DIST_START");
     unsetenv("MPIEXEC_VERBOSE");
     unsetenv("__PSI_NO_MEMBIND");
+
+    /* reset exceptions mask */
+    if (getConfValueI(&Config, "ENABLE_FPE_EXCEPTION") &&
+        oldExceptions != -1) {
+	if (feenableexcept(oldExceptions) == -1) {
+	    flog("warning: failed to reset exception mask\n");
+	}
+    }
 
     if (fwStep) startTaskPrologue(fwStep, task);
 

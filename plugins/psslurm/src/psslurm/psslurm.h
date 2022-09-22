@@ -29,6 +29,9 @@ extern uid_t slurmUserID;
 /** flag set to true if psslurm was successfully init */
 extern bool isInit;
 
+/** old execption mask */
+extern int oldExceptions;
+
 /**
  * @brief Finalize the initialisation of psslurm
  *

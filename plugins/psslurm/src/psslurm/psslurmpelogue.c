@@ -8,6 +8,7 @@
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
+#define _GNU_SOURCE
 #include "psslurmpelogue.h"
 
 #include <stdint.h>
@@ -20,6 +21,7 @@
 #include <sys/wait.h>
 #include <time.h>
 #include <unistd.h>
+#include <fenv.h>
 
 #include "pscommon.h"
 #include "psenv.h"
@@ -449,6 +451,14 @@ int handleLocalPElogueStart(void *data)
 
 int handlePEloguePrepare(void *data)
 {
+    /* reset exceptions mask */
+    if (getConfValueI(&Config, "ENABLE_FPE_EXCEPTION") &&
+        oldExceptions != -1) {
+	if (feenableexcept(oldExceptions) == -1) {
+	    flog("warning: failed to reset exception mask\n");
+	}
+    }
+
 #ifdef HAVE_SPANK
     PElogueChild_t *pedata = data;
     uint32_t jobid = atoi(pedata->jobid);

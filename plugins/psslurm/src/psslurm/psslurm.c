@@ -79,6 +79,8 @@ time_t start_time;
 
 bool pluginShutdown = false;
 
+int oldExceptions = -1;
+
 /** psid plugin requirements */
 char name[] = "psslurm";
 int version = 117;
@@ -594,6 +596,7 @@ static void enableFPEexceptions(void)
     if (ret == -1) {
 	mlog("%s: feenableexcept() failed\n", __func__);
     } else {
+	oldExceptions = ret;
 	mlog("%s: old exception mask: %s %s %s %s\n", __func__,
 	     (ret & FE_DIVBYZERO) ? "FE_DIVBYZERO :" : "",
 	     (ret & FE_INVALID) ? "FE_INVALID :" : "",
