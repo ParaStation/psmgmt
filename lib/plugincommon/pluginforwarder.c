@@ -665,14 +665,14 @@ static int execFWhooks(Forwarder_Data_t *fw)
 	    pluginlog("%s: switchUser() failed\n", __func__);
 	    return -1;
 	}
+    }
 
-	/* initialize as user */
-	if (fw->hookFWInitUser) {
-	    int ret = fw->hookFWInitUser(fw);
-	    if (ret < 0) {
-		pluginlog("%s: hookFWInitUser failed with %d\n", __func__, ret);
-		return ret;
-	    }
+    /* initialize as user */
+    if (fw->hookFWInitUser) {
+	int ret = fw->hookFWInitUser(fw);
+	if (ret < 0) {
+	    pluginlog("%s: hookFWInitUser failed with %d\n", __func__, ret);
+	    return ret;
 	}
     }
 

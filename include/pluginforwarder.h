@@ -76,8 +76,8 @@ typedef struct __fwData__ {
 			   /**< Called within forwarder upon initialization
 			    * with root privileges */
     int (*hookFWInitUser)(Forwarder_Data_t *);
-			   /**< Only called if forwarder is run as user. Called
-			    * after jail hook and user context switch */
+			   /**< Called as user after jail hook and user context
+			    * switch */
     void (*hookLoop)(Forwarder_Data_t *);
 			   /**< Called within forwarder before entering loop */
     void (*hookChild)(Forwarder_Data_t *, pid_t, pid_t, pid_t);
