@@ -210,6 +210,8 @@ bool pspmix_userserver_removeJob(PStask_ID_t spawnertid, bool abort)
 void pspmix_userserver_prepareLoop(Forwarder_Data_t *fwdata)
 {
     mdbg(PSPMIX_LOG_CALL, "%s()\n", __func__);
+
+    if (!server) mlog("%s: FATAL: no server object\n", __func__);
 }
 
 void pspmix_userserver_finalize(Forwarder_Data_t *fwdata)
