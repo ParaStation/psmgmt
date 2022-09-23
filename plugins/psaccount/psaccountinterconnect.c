@@ -41,8 +41,8 @@ static void parseInterconn(char *data)
     static bool isInit = false;
     psAccountIC_t new;
 
-    if (sscanf(data, "RcvData:%zu RcvPkts:%zu Select:%hu XmitData:%zu "
-	       "XmitPkts:%zu", &new.recvBytes, &new.recvPkts,
+    if (sscanf(data, "RcvData:%lu RcvPkts:%lu Select:%hu XmitData:%lu "
+	       "XmitPkts:%lu", &new.recvBytes, &new.recvPkts,
 	       &new.port, &new.sendBytes, &new.sendPkts) != 5) {
 	flog("parsing interconnect data '%s' from script failed\n",data);
 	return;
@@ -53,8 +53,8 @@ static void parseInterconn(char *data)
 	memcpy(&icBase, &new, sizeof(icBase));
 	isInit = true;
 
-	fdbg(PSACC_LOG_INTERCON, "init base values: port %hu XmitData %zu "
-	     "RcvData %zu XmitPkts %zu RcvPkts %zu\n", icBase.port,
+	fdbg(PSACC_LOG_INTERCON, "init base values: port %hu XmitData %lu "
+	     "RcvData %lu XmitPkts %lu RcvPkts %lu\n", icBase.port,
 	     icBase.recvBytes, icBase.recvPkts, icBase.sendBytes,
 	     icBase.sendPkts);
     }
@@ -66,8 +66,8 @@ static void parseInterconn(char *data)
     icData.port = new.port;
     icData.lastUpdate = time(NULL);
 
-    fdbg(PSACC_LOG_INTERCON, "port %hu XmitData %zu RcvData %zu XmitPkts %zu "
-	 "RcvPkts %zu\n", icData.port, icData.recvBytes, icData.recvPkts,
+    fdbg(PSACC_LOG_INTERCON, "port %hu XmitData %lu RcvData %lu XmitPkts %lu "
+	 "RcvPkts %lu\n", icData.port, icData.recvBytes, icData.recvPkts,
 	 icData.sendBytes, icData.sendPkts);
 }
 

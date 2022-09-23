@@ -41,8 +41,8 @@ static void parseFilesys(char *data)
     static bool isInit = false;
     psAccountFS_t new;
 
-    if (sscanf(data, "readBytes:%zu writeBytes:%zu numReads:%zu "
-	       "numWrites:%zu", &new.readBytes, &new.writeBytes,
+    if (sscanf(data, "readBytes:%lu writeBytes:%lu numReads:%lu "
+	       "numWrites:%lu", &new.readBytes, &new.writeBytes,
 	       &new.numReads, &new.numWrites) != 4) {
 	flog("parsing filesystem data '%s' from script failed\n", data);
 	return;
@@ -53,8 +53,8 @@ static void parseFilesys(char *data)
 	memcpy(&fsBase, &new, sizeof(fsBase));
 	isInit = true;
 
-	fdbg(PSACC_LOG_FILESYS, "init base values: readBytes %zu "
-	     "writeBytes %zu numReads %zu numWrites %zu\n", fsBase.readBytes,
+	fdbg(PSACC_LOG_FILESYS, "init base values: readBytes %lu "
+	     "writeBytes %lu numReads %lu numWrites %lu\n", fsBase.readBytes,
 	     fsBase.writeBytes, fsBase.numReads, fsBase.numWrites);
     }
 
@@ -64,8 +64,8 @@ static void parseFilesys(char *data)
     fsData.numWrites = new.numWrites - fsBase.numWrites;
     fsData.lastUpdate = time(NULL);
 
-    fdbg(PSACC_LOG_FILESYS, "XmitData %zu RcvData %zu XmitPkts %zu "
-	 "RcvPkts %zu\n", fsData.readBytes, fsData.writeBytes, fsData.numReads,
+    fdbg(PSACC_LOG_FILESYS, "XmitData %lu RcvData %lu XmitPkts %lu "
+	 "RcvPkts %lu\n", fsData.readBytes, fsData.writeBytes, fsData.numReads,
 	 fsData.numWrites);
 }
 
