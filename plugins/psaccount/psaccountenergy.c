@@ -197,7 +197,7 @@ bool Energy_update(void)
     /* update energy */
     char *energyPath = getConfValueC(&config, "ENERGY_PATH");
     if (energyPath && energyPath[0] != '\0') {
-	uint64_t energy = energyPath ? readEnergyFile(energyPath) : NO_VAL64;
+	uint64_t energy = readEnergyFile(energyPath);
 	if (energy != NO_VAL64) {
 	    updateEnergy(energy);
 	} else {
@@ -209,7 +209,7 @@ bool Energy_update(void)
     /* update power */
     char *powerPath = getConfValueC(&config, "POWER_PATH");
     if (powerPath && powerPath[0] != '\0') {
-	uint64_t power = powerPath ? readEnergyFile(powerPath) : NO_VAL64;
+	uint64_t power = readEnergyFile(powerPath);
 	if (power != NO_VAL64) {
 	    updatePower(power);
 	} else {
