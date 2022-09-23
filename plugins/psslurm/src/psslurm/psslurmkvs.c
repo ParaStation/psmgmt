@@ -658,7 +658,7 @@ char *set(char *key, char *value)
     size_t bufSize = 0;
 
     if (!strcmp(key, "DEL_ALLOC")) {
-	uint32_t id = atoi(value);
+	int id = atoi(value);
 	if (Alloc_delete(id)) {
 	    snprintf(line, sizeof(line), "\ndeleted allocation %i\n", id);
 	} else {
@@ -676,7 +676,7 @@ char *set(char *key, char *value)
 	}
 	return str2Buf(line, &buf, &bufSize);
     } else if (!strcmp(key, "DEL_STEP")) {
-	uint32_t id = atoi(value);
+	int id = atoi(value);
 	if (Step_findByJobid(id)) {
 	    Step_clearByJobid(id);
 	    snprintf(line, sizeof(line), "\ndeleted steps with jobid %i\n", id);
@@ -816,7 +816,7 @@ static bool addConnInfo(Connection_t *conn, const void *info)
 {
     StrBuffer_t *strBuf = (StrBuffer_t *) info;
 
-    snprintf(line, sizeof(line), "\n- socket %u -\n", conn->sock);
+    snprintf(line, sizeof(line), "\n- socket %i -\n", conn->sock);
     addStrBuf(line, strBuf);
 
     time_t oTime = conn->openTime.tv_sec;
@@ -829,8 +829,8 @@ static bool addConnInfo(Connection_t *conn, const void *info)
     addStrBuf(line, strBuf);
 
     if (conn->fw.head.fwNodeList) {
-	snprintf(line, sizeof(line), "message %s forward to %s returned %i of "
-		 "%i\n", msgType2String(conn->fw.head.type),
+	snprintf(line, sizeof(line), "message %s forward to %s returned %u of "
+		 "%u\n", msgType2String(conn->fw.head.type),
 		 conn->fw.head.fwNodeList, conn->fw.head.returnList,
 		 conn->fw.head.fwResSize);
 	addStrBuf(line, strBuf);
