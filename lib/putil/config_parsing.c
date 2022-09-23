@@ -1694,6 +1694,44 @@ static bool getDaemonScript(char *key)
 
 /* ---------------------------------------------------------------------- */
 
+static bool deprecated(char *key)
+{
+    gchar *value;
+    if (!getString(key, &value)) return false;
+
+    if (*value == '\0') {
+	// key not set, great
+	g_free(value);
+	return true;
+    }
+
+    /* warn about deprecated keys still in use */
+    char * deprecated[] = {
+	"Psid.RdpStatusTimeout",
+	"Psid.RdpStatusDeadLimit",
+	"Psid.RdpStatusBroadcasts"
+    };
+    char * replacement[] = {
+	"Psid.StatusTimeout",
+	"Psid.DeadLimit",
+	"Psid.StatusBroadcasts"
+    };
+    for (int i = 0; i < 3; i++) {
+	if (!strcmp(key, deprecated[i])) {
+	    parser_comment(-1, "Deprecated key '%s' found", deprecated[i]);
+	    if (replacement[i]) {
+		parser_comment(-1, ", key name changed to '%s'\n",
+			       replacement[i]);
+	    } else {
+		parser_comment(-1, "\n");
+	    }
+	}
+    }
+
+    /* do not allow psid to start if deprecated keys are set */
+    return false;
+}
+
 static confkeylist_t local_node_configkey_list[] = {
     {"Psid.InstallDirectory", getInstDir},
     {"Psid.CoreDirectory", getCoreDir},
@@ -1727,9 +1765,12 @@ static confkeylist_t local_node_configkey_list[] = {
     {"Psid.EnableRdpStatistics", getRDPStatistics},
     {"Psid.SelectTime", getSelectTime},
     {"Psid.MCastDeadInterval", getDeadInterval},
-    {"Psid.RdpStatusTimeout", getStatTmout},
-    {"Psid.RdpStatusBroadcasts", getStatBcast},
-    {"Psid.RdpStatusDeadLimit", getDeadLmt},
+    {"Psid.RdpStatusTimeout", deprecated}, /* deprecated */
+    {"Psid.StatusTimeout", getStatTmout},
+    {"Psid.RdpStatusDeadLimit", deprecated}, /* deprecated */
+    {"Psid.DeadLimit", getDeadLmt},
+    {"Psid.RdpStatusBroadcasts", deprecated}, /* deprecated */
+    {"Psid.StatusBroadcasts", getStatBcast},
     {"Psid.KillDelay", getKillDelay},
     {"Psid.ResourceLimits.", getRLimit},
     {"Psid.LogMask", getLogMask},
