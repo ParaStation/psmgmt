@@ -295,7 +295,6 @@ static void bindToDevs(cpu_set_t *cpuSet, PSIDpin_devType_t type,
 	    if (!devstr) {
 		PSID_log(PSID_LOG_SPAWN, "%s: no name found for %s device %d\n",
 			 __func__, typename, closelist[i]);
-		devstr = "unknown";
 		break;
 	    }
 	    len += snprintf(val+len, sizeof(val)-len, "%s,", devstr);

@@ -1549,12 +1549,16 @@ int16_t getRankGpuPinning(uint32_t localRankId, Step_t *step,
     if (map_gpu) {
 	size_t count;
 	long *maparray = parseMapString(map_gpu, &count, 0);
+	if (!maparray || !count) {
+	    flog("parsing map string failed\n");
+	    return -1;
+	}
 	for (size_t i = 0; i < count; i++) {
 	    if (!PSCPU_isSet(*assGPUs, maparray[i])) {
 		flog("GPU %ld included in map_gpu \"%s\" is not assigned to the"
 			" job\n", maparray[i], map_gpu);
 		ufree(maparray);
-		return false;
+		return -1;
 	    }
 	}
 

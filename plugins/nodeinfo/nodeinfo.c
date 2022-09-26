@@ -81,6 +81,7 @@ static void addSetsData(PSP_NodeInfo_t type, PSCPU_set_t *sets,
     addInt16ToMsg(setSize, data);
     if (!setSize) return;
     uint16_t nBytes = PSCPU_bytesForCPUs(setSize);
+    if (!nBytes) return;
     for (uint16_t dom = 0; dom < numNUMA; dom++) {
 	uint8_t setBuf[nBytes];
 	PSCPU_extract(setBuf, sets[dom], nBytes);
@@ -120,6 +121,11 @@ static bool handleSetData(char **ptr, PSnodes_ID_t sender,
 
     PSCPU_set_t *sets = malloc(numNUMA * sizeof(*sets));
     uint16_t nBytes = PSCPU_bytesForCPUs(setSize);
+    if (!nBytes) {
+	free(sets);
+	return false;
+    }
+
     for (uint16_t dom = 0; dom < numNUMA; dom++) {
 	uint8_t setBuf[nBytes];
 	for (uint16_t b = 0; b < nBytes; b++) getUint8(ptr, &setBuf[b]);
