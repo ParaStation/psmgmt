@@ -54,6 +54,7 @@ typedef enum {
     PSSLURM_LOG_PACK	 =	0x100000, /**< job pack */
     PSSLURM_LOG_SPANK	 =	0x200000, /**< spank */
     PSSLURM_LOG_SPLUGIN  =      0x400000, /**< slurm plugins */
+    PSSLURM_LOG_TOPO     =      0x800000, /**< Topology */
 } PSSLURM_log_types_t;
 
 #endif  /* __PSSLURM_LOG */

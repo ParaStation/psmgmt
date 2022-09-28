@@ -53,7 +53,7 @@ psslurm_la_SOURCES = psslurm.c psslurm.h psslurmlog.c psslurmlog.h	\
 	psslurmbcast.h psslurmalloc.c psslurmalloc.h psslurmaccount.h	\
 	psslurmaccount.c psslurmfwcomm.c psslurmfwcomm.h		\
 	psslurmnodeinfo.c psslurmnodeinfo.h psslurmnodeinfotype.h	\
-	psslurmjobcred.c
+	psslurmjobcred.c psslurmtopo.c psslurmtopo.h
 
 if SPANK_ENABLED
 AM_CPPFLAGS += -I$(top_srcdir)/$(psslurm_dir)/spank

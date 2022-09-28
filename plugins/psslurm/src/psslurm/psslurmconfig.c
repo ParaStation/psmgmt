@@ -31,6 +31,7 @@
 
 #include "psslurmlog.h"
 #include "psslurmgres.h"
+#include "psslurmtopo.h"
 #ifdef HAVE_SPANK
 #include "psslurmspank.h"
 #endif
@@ -50,7 +51,8 @@ static time_t configUpdateTime;
 /** configuraton type */
 typedef enum {
     SLURM_CONFIG_DEFAULT,
-    SLURM_CONFIG_GRES
+    SLURM_CONFIG_GRES,
+    SLURM_CONFIG_TOPOLOGY
 } slurm_config_t;
 
 /** used to forward information to host visitor */
@@ -89,6 +91,10 @@ const ConfDef_t confDef[] =
 	"file",
 	"/etc/slurm/acct_gather.conf",
 	"Default account gather configuration file of slurm" },
+    { "SLURM_TOPOLOGY_CONF", 0,
+	"file",
+	"/etc/slurm/topology.conf",
+	"Default fabric topology configuration file of slurm" },
     { "DIR_SCRIPTS", 0,
 	"path",
 	SPOOL_DIR "/scripts",
@@ -363,6 +369,45 @@ static bool parseGresOptions(char *options)
 
     ufree(count);
     return gres ? true : false;
+}
+
+/**
+ * @brief Parse and add topology options of current host to psslurm
+ * configuration
+ *
+ * @param options The current topology options to add
+ *
+ * @param return Returns true on success or false on error
+ */
+static bool parseTopologyOptions(char *options)
+{
+    if (!options) return false;
+
+    char *toksave, *next;
+    const char delimiters[] =" \t\n";
+    Topology_Conf_t *topo = ucalloc(sizeof(*topo));
+
+    next = strtok_r(options, delimiters, &toksave);
+    while (next) {
+	if (!strncasecmp(next, "SwitchName=", 11)) {
+	    topo->switchname = ustrdup(next+11);
+	} else if (!strncasecmp(next, "Switches=", 9)) {
+	    topo->switches = ustrdup(next+9);
+	} else if (!strncasecmp(next, "Nodes=", 6)) {
+	    topo->nodes = ustrdup(next+6);
+	} else if (!strncasecmp(next, "LinkSpeed=", 10)) {
+	    topo->linkspeed = ustrdup(next+10);
+	} else {
+	    flog("unknown topology option '%s'\n", next);
+	    return false;
+	}
+	next = strtok_r(NULL, delimiters, &toksave);
+    }
+
+    topo = saveTopologyConf(topo);
+    if (!topo) flog("saving topology configuration failed\n");
+
+    return topo ? true : false;
 }
 
 /**
@@ -759,6 +804,14 @@ static bool parseSlurmConf(char *key, char *value, const void *info)
 		snprintf(tmp, strlen(value) +6, "Name=%s", value);
 		//mlog("%s: Gres single name '%s'\n", __func__, tmp);
 		parseGresOptions(tmp);
+		ufree(tmp);
+	    }
+	    break;
+	case SLURM_CONFIG_TOPOLOGY:
+	    if (!strcmp(key, "SwitchName")) {
+		char *tmp = umalloc(strlen(value) +12);
+		snprintf(tmp, strlen(value) +12, "SwitchName=%s", value);
+		parseTopologyOptions(tmp);
 		ufree(tmp);
 	    }
 	    break;
@@ -1223,6 +1276,27 @@ bool parseSlurmConfigFiles(void)
 	    return false;
 	}
 	freeConfig(&AcctGather);
+    }
+
+    /* parse optional Slurm topology config file */
+    type = SLURM_CONFIG_TOPOLOGY;
+    confFile = getConfValueC(&Config, "SLURM_TOPOLOGY_CONF");
+    if (!confFile) {
+	flog("Configuration value SLURM_TOPOLOGY_CONF not found\n");
+	return false;
+    }
+    if (stat(confFile, &sbuf) != -1) {
+	Config_t SlurmTopoTmp;
+	if (parseConfigFile(confFile, &SlurmTopoTmp, true /*trimQuotes*/) < 0) {
+	    flog("Parsing topology configuration file %s failed\n", confFile);
+	    return false;
+	}
+
+	if (traverseConfig(&SlurmTopoTmp, parseSlurmConf, &type)) {
+	    flog("Traversing topology configuration failed\n");
+	    return false;
+	}
+	freeConfig(&SlurmTopoTmp);
     }
 
 
