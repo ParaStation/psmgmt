@@ -303,7 +303,7 @@ void setJailEnv(const env_t *env, const char *user,
  *
  * @param env The environment of the job to change
  */
-void setGResJobEnv(list_t *gresList, env_t *env)
+static void setGResJobEnv(list_t *gresList, env_t *env)
 {
     /* GRes "gpu" plugin */
     Gres_Cred_t *gres = findGresCred(gresList, GRES_PLUGIN_GPU, GRES_CRED_JOB);
