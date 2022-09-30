@@ -76,7 +76,7 @@ static bool visitHostRange(char *prefix, char *range, HL_Visitor_t visitor,
     return true;
 }
 
-bool traverseHostList(char *hostlist, HL_Visitor_t visitor, void *info)
+bool traverseHostList(const char *hostlist, HL_Visitor_t visitor, void *info)
 {
     const char delimiters[] =", \n";
     char *saveptr, *range, *prefix = NULL;

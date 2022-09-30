@@ -50,7 +50,7 @@ typedef bool HL_Visitor_t(char *host, void *info);
  * traversal will be stopped and false is returned. If parsing was successful
  * and no visitor returned false during the traversal true is returned.
  */
-bool traverseHostList(char *hostlist, HL_Visitor_t visitor, void *info);
+bool traverseHostList(const char *hostlist, HL_Visitor_t visitor, void *info);
 
 /**
  * @brief Host resolve function
