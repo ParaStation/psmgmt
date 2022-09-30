@@ -32,6 +32,7 @@
 #include "psslurmcomm.h"
 #include "psslurmconfig.h"
 #include "psslurmgres.h"
+#include "psslurmtopo.h"
 #include "psslurmlog.h"
 #include "psslurmpin.h"
 #include "psslurmproto.h"
@@ -872,6 +873,12 @@ static void setCommonRankEnv(int32_t rank, Step_t *step)
     /* set SLURM_TASKS_PER_NODE */
     char *val = getTasksPerNode(step->tasksToLaunch, step->nrOfNodes);
     setenv("SLURM_TASKS_PER_NODE", val, 1);
+
+    /* set topology environment */
+    Topology_t *topo = getTopology(getConfValueC(&Config, "SLURM_HOSTNAME"));
+    setenv("SLURM_TOPOLOGY_ADDR", topo->address, 1);
+    setenv("SLURM_TOPOLOGY_ADDR_PATTERN", topo->pattern, 1);
+    ufree(topo);
 }
 
 void setRankEnv(int32_t rank, Step_t *step)
