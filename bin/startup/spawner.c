@@ -444,7 +444,7 @@ static void setupCommonEnv(Conf_t *conf)
 	    free(dir);
 
 	    snprintf(var, sizeof(var), "PMIX_APPARGV_%d", i);
-	    size_t sum = 0;
+	    size_t sum = 1;
 	    for (int j = 0; j < conf->exec[i].argc; j++) {
 		sum += strlen(conf->exec[i].argv[j]) + 1;
 	    }
