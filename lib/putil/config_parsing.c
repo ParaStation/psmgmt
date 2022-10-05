@@ -146,9 +146,9 @@ static nodeconf_t nodeconf = {
  * Get string value from psconfigobj in the psconfig configuration.
  *
  * On success, *value is set to the string value and true is returned.
- * On error *value is will be NULL, prints a parser comment, and return false
+ * On error *value will be NULL, prints a parser comment, and return false
  *
- * Note: For psconfig an non existing key and an empty value is the same
+ * Note: For psconfig a non-existing key and an empty value are the same
  */
 static bool getString(char *key, gchar **value)
 {
@@ -1706,25 +1706,23 @@ static bool deprecated(char *key)
     }
 
     /* warn about deprecated keys still in use */
-    char * deprecated[] = {
-	"Psid.RdpStatusTimeout",
-	"Psid.RdpStatusDeadLimit",
-	"Psid.RdpStatusBroadcasts"
+    struct {
+	char *depr;
+	char *repl;
+    } keyList[] = {
+	{ "Psid.RdpStatusTimeout", "Psid.StatusTimeout" },
+	{ "Psid.RdpStatusDeadLimit", "Psid.DeadLimit" },
+	{ "Psid.RdpStatusBroadcasts", "Psid.StatusBroadcasts" },
+	{ NULL, NULL }
     };
-    char * replacement[] = {
-	"Psid.StatusTimeout",
-	"Psid.DeadLimit",
-	"Psid.StatusBroadcasts"
-    };
-    for (int i = 0; i < 3; i++) {
-	if (!strcmp(key, deprecated[i])) {
-	    parser_comment(-1, "Deprecated key '%s' found", deprecated[i]);
-	    if (replacement[i]) {
-		parser_comment(-1, ", key name changed to '%s'\n",
-			       replacement[i]);
-	    } else {
-		parser_comment(-1, "\n");
+
+    for (int i = 0; keyList[i].depr; i++) {
+	if (!strcmp(key, keyList[i].depr)) {
+	    parser_comment(-1, "Deprecated key '%s' found", keyList[i].depr);
+	    if (keyList[i].repl) {
+		parser_comment(-1, ", changed to '%s'", keyList[i].repl);
 	    }
+	    parser_comment(-1, "\n");
 	}
     }
 
