@@ -785,25 +785,21 @@ static void extractNodeInformation(PSnodes_ID_t *nodeList, int np)
  *
  * @param verbose Be more verbose in case of error
  *
- * @return Return 0 in case of success or -1 if an error occurred
+ * @return In case of success the number of spawned processes is
+ * returned; or -1 if an error occurred
  */
 static int spawnSingleExecutable(int np, int argc, char **argv, char *wd,
 				 PSrsrvtn_ID_t resID, bool verbose)
 {
-    int i, ret;
-    PStask_ID_t *tids;
-
     int *errors = umalloc(sizeof(int) * np);
-    for (i=0; i<np; i++) errors[i] = 0;
-    tids = umalloc(sizeof(PStask_ID_t) * np);
+    memset(errors, 0, sizeof(int) * np);
 
     /* spawn client processes */
-    ret = PSI_spawnRsrvtn(np, resID, wd, argc, argv, true, errors, tids);
+    int ret = PSI_spawnRsrvtn(np, resID, wd, argc, argv, true, errors, NULL);
 
     /* Analyze result, if necessary */
-    if (ret<0) {
-
-	for (i=0; i<np; i++) {
+    if (ret < 0) {
+	for (int i = 0; i < np; i++) {
 	    if (verbose || errors[i]) {
 		fprintf(stderr, "Could%s spawn '%s' process %d",
 			errors[i] ? " not" : "", argv[0], i);
@@ -815,10 +811,9 @@ static int spawnSingleExecutable(int np, int argc, char **argv, char *wd,
 	    }
 	}
 	fprintf(stderr, "%s: PSI_spawn() failed.\n", __func__);
-
     }
-
     free(errors);
+
     return ret;
 }
 
@@ -871,7 +866,6 @@ static void sendPMIFail(void)
  */
 static int startProcs(Conf_t *conf)
 {
-    int ret = 0, off = 0;
     Executable_t *exec = conf->exec;
 
     /* Create the reservations required later on */
@@ -902,10 +896,11 @@ static int startProcs(Conf_t *conf)
     /* Collect info on reservations */
     PSnodes_ID_t *nodeList = umalloc(conf->np * sizeof(*nodeList));
 
+    int cnt = 0;
     for (int i = 0; i < conf->execCount; i++) {
 	int got = PSI_infoList(-1, PSP_INFO_LIST_RESNODES, &exec[i].resID,
-			       nodeList+off, (conf->np-off)*sizeof(*nodeList),
-			       false);
+			       nodeList + cnt,
+			       (conf->np - cnt) * sizeof(*nodeList), false);
 
 	if ((unsigned)got != exec[i].np * sizeof(*nodeList)) {
 	    fprintf(stderr, "%s: Unable to get nodes in reservation %#x for"
@@ -915,11 +910,11 @@ static int startProcs(Conf_t *conf)
 
 	    return -1;
 	}
-	off += got / sizeof(*nodeList);
+	cnt += got / sizeof(*nodeList);
     }
 
-    if (off != conf->np) {
-	fprintf(stderr, "%s: nodes are missing (%d/%d)\n", __func__, off,
+    if (cnt != conf->np) {
+	fprintf(stderr, "%s: nodes are missing (%d/%d)\n", __func__, cnt,
 		conf->np);
 	free(nodeList);
 
@@ -944,17 +939,16 @@ static int startProcs(Conf_t *conf)
 
     for (int i = 0; i < conf->execCount; i++) {
 	setupExecEnv(conf, i);
-
-	ret = spawnSingleExecutable(exec[i].np, exec[i].argc, exec[i].argv,
-				    exec[i].wdir, exec[i].resID, conf->verbose);
-	if (ret < 0) {
+	int res = spawnSingleExecutable(exec[i].np, exec[i].argc, exec[i].argv,
+					exec[i].wdir, exec[i].resID,
+					conf->verbose);
+	if (res < 0) {
 	    if (getenv("PMI_SPAWNED")) sendPMIFail();
-
-	    break;
+	    return -1;
 	}
     }
 
-    return ret;
+    return 0;
 }
 
 /**
