@@ -667,7 +667,7 @@ static int execFWhooks(Forwarder_Data_t *fw)
 	}
     }
 
-    /* initialize as user */
+    /* more initialization, now that we might act as user */
     if (fw->hookFWInitUser) {
 	int ret = fw->hookFWInitUser(fw);
 	if (ret < 0) {
