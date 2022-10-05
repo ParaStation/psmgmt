@@ -22,6 +22,9 @@
 
 #include "pspmixtypes.h"
 
+/** All info on the local PMIx server available within its plugin forwarder */
+extern PspmixServer_t *server;
+
 /**
  * @brief Function called to initialize the plugin forwarder
  *
