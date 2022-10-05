@@ -587,17 +587,15 @@ static void setConfOpt(void)
  */
 static void enableFPEexceptions(void)
 {
-    int ret;
-
     if (!getConfValueI(&Config, "ENABLE_FPE_EXCEPTION")) return;
 
-    ret = feenableexcept(FE_DIVBYZERO | FE_INVALID | FE_OVERFLOW | FE_UNDERFLOW);
-
+    int ret = feenableexcept(FE_DIVBYZERO | FE_INVALID
+			     | FE_OVERFLOW | FE_UNDERFLOW);
     if (ret == -1) {
-	mlog("%s: feenableexcept() failed\n", __func__);
+	flog("feenableexcept() failed\n");
     } else {
 	oldExceptions = ret;
-	mlog("%s: old exception mask: %s %s %s %s\n", __func__,
+	flog("old exception mask: %s %s %s %s\n",
 	     (ret & FE_DIVBYZERO) ? "FE_DIVBYZERO :" : "",
 	     (ret & FE_INVALID) ? "FE_INVALID :" : "",
 	     (ret & FE_OVERFLOW) ? "FE_OVERFLOW :" : "",

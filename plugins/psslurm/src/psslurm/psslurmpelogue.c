@@ -451,9 +451,9 @@ int handleLocalPElogueStart(void *data)
 
 int handlePEloguePrepare(void *data)
 {
-    /* reset exceptions mask */
+    /* reset FPE exceptions mask */
     if (getConfValueI(&Config, "ENABLE_FPE_EXCEPTION") &&
-        oldExceptions != -1) {
+	oldExceptions != -1) {
 	if (feenableexcept(oldExceptions) == -1) {
 	    flog("warning: failed to reset exception mask\n");
 	}

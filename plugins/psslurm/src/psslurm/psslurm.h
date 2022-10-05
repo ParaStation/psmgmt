@@ -29,7 +29,8 @@ extern uid_t slurmUserID;
 /** flag set to true if psslurm was successfully init */
 extern bool isInit;
 
-/** old execption mask */
+/** FPE execption mask found when plugin is loaded; to be reset upon
+ * fork()ing processes */
 extern int oldExceptions;
 
 /**
