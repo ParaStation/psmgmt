@@ -137,8 +137,8 @@ bool PSI_sendSpawnMsg(PStask_t* task, bool envClone, PSnodes_ID_t dest,
  * @param errors Error-codes displaying if an error occurred within
  * PSI_spawn() while spawning the corresponding task.
  *
- * @param tids The task IDs of the spawned processes.
- *
+ * @param tids Array to hold task IDs of the spawned processes upon
+ * return. If NULL, no such info will be provided.
  *
  * @return On success, the number of tasks spawned is returned, or -1
  * if an error occurred. Then errors is set appropriately.
@@ -177,8 +177,8 @@ int PSI_spawn(int count, char *workingdir, int argc, char **argv,
  * @param errors Error-codes displaying if an error occurred within
  * PSI_spawn() while spawning the corresponding task.
  *
- * @param tids The task IDs of the spawned processes.
- *
+ * @param tids Array to hold task IDs of the spawned processes upon
+ * return. If NULL, no such info will be provided.
  *
  * @return On success, the number of tasks spawned is returned, or -1
  * if an error occurred. Then errors is set appropriately.
@@ -241,8 +241,8 @@ int PSI_spawnStrict(int count, char *workdir, int argc, char **argv,
  * @param errors Error-codes displaying if an error occurred within
  * PSI_spawn() while spawning the corresponding task.
  *
- * @param tids The task IDs of the spawned processes.
- *
+ * @param tids Array to hold task IDs of the spawned processes upon
+ * return. If NULL, no such info will be provided.
  *
  * @return On success, the number of tasks spawned is returned, or -1
  * if an error occurred. Then errors is set appropriately.
@@ -295,7 +295,8 @@ int PSI_spawnStrictHW(int count, uint32_t hwType, uint16_t tpp,
  * @param errors Error-codes displaying if an error occurred within
  * PSI_spawn() while spawning the corresponding task.
  *
- * @param tids The task IDs of the spawned processes.
+ * @param tids Array to hold task IDs of the spawned processes upon
+ * return. If NULL, no such info will be provided.
  *
  *
  * @return On success, the number of tasks spawned is returned, or -1
