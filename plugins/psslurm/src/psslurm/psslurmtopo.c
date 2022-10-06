@@ -20,7 +20,7 @@
 
 #include "psslurmlog.h"
 
-/** List of all GRES configurations */
+/** List of all topology configurations */
 static LIST_HEAD(topoConfList);
 
 static void freeTopologyConf(Topology_Conf_t *topo)

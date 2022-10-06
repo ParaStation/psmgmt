@@ -30,7 +30,7 @@ typedef struct {
 /**
  * @brief Save a topology configuration
  *
- * @param gres The topology configuration to save
+ * @param topo The topology configuration to save
  *
  * @return Returns the saved topology configuration on success or
  * NULL otherwise
