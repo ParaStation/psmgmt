@@ -13,7 +13,7 @@
 #include <string.h>
 #include <stdbool.h>
 
-
+#include "pscommon.h"
 #include "pshostlist.h"
 
 #include "pluginmalloc.h"
@@ -50,9 +50,9 @@ Topology_Conf_t *saveTopologyConf(Topology_Conf_t *topo)
 
 void clearTopologyConf(void)
 {
-    list_t *g, *tmp;
-    list_for_each_safe(g, tmp, &topoConfList) {
-	Topology_Conf_t *topo = list_entry(g, Topology_Conf_t, next);
+    list_t *t, *tmp;
+    list_for_each_safe(t, tmp, &topoConfList) {
+	Topology_Conf_t *topo = list_entry(t, Topology_Conf_t, next);
 
 	list_del(&topo->next);
 	freeTopologyConf(topo);
@@ -67,23 +67,17 @@ typedef struct {
 static bool compareName(char *name, void *info)
 {
     compInfo_t *cInfo = info;
-    if (cInfo->res) return true;
-    if (!strcmp(name, cInfo->name)) {
-	cInfo->res = true;
-    }
+    if (!cInfo->res && !strcmp(name, cInfo->name)) cInfo->res = true;
+
     return true;
 }
 
-static bool isChild(const char array[], const char* name)
+static bool isChild(const char nameList[], const char* name)
 {
-    compInfo_t cInfo = {
-	.name = name,
-	.res = false
-    };
+    if (!nameList) return false;
 
-    if (!array) return false;
-
-    traverseHostList(array, compareName, &cInfo);
+    compInfo_t cInfo = { .name = name, .res = false };
+    traverseHostList(nameList, compareName, &cInfo);
 
     return cInfo.res;
 }
@@ -110,15 +104,11 @@ static void addSwitch(Topology_t *topo, const char *sw)
     }
 
     char *old = topo->address;
-    size_t newsize = strlen(old) + 1 + strlen(sw) + 1;
-    topo->address = umalloc(newsize);
-    snprintf(topo->address, newsize, "%s.%s", sw, old);
+    topo->address = PSC_concat(sw, ".", old, 0L);
     ufree(old);
 
     old = topo->pattern;
-    newsize = strlen(old) + 7 + 1;
-    topo->pattern = umalloc(newsize);
-    snprintf(topo->pattern, newsize, "switch.%s", old);
+    topo->pattern = PSC_concat("switch.", old, 0L);
     ufree(old);
 
     fdbg(PSSLURM_LOG_TOPO, "topology address '%s' ('%s')\n", topo->address,
@@ -132,38 +122,37 @@ Topology_t *getTopology(const char *node)
     addNode(topology, node);
 
     /* looking for switch this node is directly connected to */
-    list_t *g;
-    Topology_Conf_t *topoconf;
-    bool found = false;
-    list_for_each(g, &topoConfList) {
-	topoconf = list_entry(g, Topology_Conf_t, next);
-	if (isChild(topoconf->nodes, node)) {
-	    found = true;
+    Topology_Conf_t *switchConf = NULL;
+
+    list_t *t;
+    list_for_each(t, &topoConfList) {
+	Topology_Conf_t *thisConf = list_entry(t, Topology_Conf_t, next);
+	if (isChild(thisConf->nodes, node)) {
+	    switchConf = thisConf;
 	    break;
 	}
     }
 
-    if (!found) {
+    if (!switchConf) {
 	/* no entry in topology.conf, assume node as standalone */
 	fdbg(PSSLURM_LOG_TOPO, "node '%s' not found in config\n", node);
 	return topology;
     }
 
-    do {
-	addSwitch(topology, topoconf->switchname);
+    while (switchConf) {
+	addSwitch(topology, switchConf->switchname);
+	char *thisName = switchConf->switchname;
 
 	/* looking for switch current switch is child of */
-	Topology_Conf_t *topoconf2;
-	found = false;
-	list_for_each(g, &topoConfList) {
-	    topoconf2 = list_entry(g, Topology_Conf_t, next);
-	    if (isChild(topoconf2->switches, topoconf->switchname)) {
-		topoconf = topoconf2;
-		found = true;
+	switchConf = NULL;
+	list_for_each(t, &topoConfList) {
+	    Topology_Conf_t *thisConf = list_entry(t, Topology_Conf_t, next);
+	    if (isChild(thisConf->switches, thisName)) {
+		switchConf = thisConf;
 		break;
 	    }
 	}
-    } while(found);
+    }
 
     return topology;
 }
