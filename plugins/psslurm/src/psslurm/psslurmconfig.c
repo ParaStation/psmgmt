@@ -1422,6 +1422,29 @@ bool updateSlurmConf(void)
 	freeConfig(&SlurmGresTmp);
     }
 
+    /* parse optional Slurm topology config file */
+    confFile = getConfValueC(&Config, "SLURM_TOPOLOGY_CONF");
+    if (!confFile) {
+	flog("Configuration value SLURM_TOPOLOGY_CONF not found\n");
+	return false;
+    }
+    if (stat(confFile, &sbuf) != -1) {
+	Config_t SlurmTopoTmp;
+	if (parseConfigFile(confFile, &SlurmTopoTmp, true /*trimQuotes*/) < 0) {
+	    flog("Parsing topology configuration file %s failed\n", confFile);
+	    return false;
+	}
+
+	/* remove old topology configuration and rebuild it */
+	clearTopologyConf();
+	config_type_t type = CONFIG_TYPE_TOPOLOGY;
+	if (traverseConfig(&SlurmTopoTmp, parseSlurmConf, &type)) {
+	    flog("Traversing topology configuration failed\n");
+	    return false;
+	}
+	freeConfig(&SlurmTopoTmp);
+    }
+
     return true;
 }
 
