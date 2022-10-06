@@ -25,6 +25,7 @@ static LIST_HEAD(topoConfList);
 
 static void freeTopologyConf(Topology_Conf_t *topo)
 {
+    if (!topo) return;
     ufree(topo->switchname);
     ufree(topo->switches);
     ufree(topo->nodes);
@@ -34,6 +35,7 @@ static void freeTopologyConf(Topology_Conf_t *topo)
 
 Topology_Conf_t *saveTopologyConf(Topology_Conf_t *topo)
 {
+    if (!topo) return NULL;
     flog("%s %s%s%s%s%s%s\n", topo->switchname,
 	 topo->switches ? " switches=" : "",
 	 topo->switches ? topo->switches : "",
