@@ -464,7 +464,13 @@ void PSC_printNodelist(bool* nl);
  * @return Upon success, a pointer to the concatenated string is
  * returned, or NULL, if insufficient memory was available.
  */
-char * PSC_concat(const char *str, ...);
+char * __PSC_concat(const char *str, ...);
+
+/**
+ * Make use of @ref __PSC_concat more convenient by implicit adding 0L
+ */
+#define PSC_concat(...) __PSC_concat(__VA_ARGS__, 0L)
+
 
 /**
  * @brief Save some space to modify the process title

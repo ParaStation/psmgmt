@@ -398,7 +398,7 @@ void PSC_printNodelist(bool *nl)
     return;
 }
 
-char * PSC_concat(const char *str, ...)
+char * __PSC_concat(const char *str, ...)
 {
     size_t allocated = 128, used = 0;
     char *result = malloc(allocated);
