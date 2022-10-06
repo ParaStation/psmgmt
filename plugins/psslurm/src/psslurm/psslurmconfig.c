@@ -399,6 +399,7 @@ static bool parseTopologyOptions(char *options)
 	    topo->linkspeed = ustrdup(next+10);
 	} else {
 	    flog("unknown topology option '%s'\n", next);
+	    ufree(topo);
 	    return false;
 	}
 	next = strtok_r(NULL, delimiters, &toksave);
