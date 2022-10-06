@@ -641,8 +641,8 @@ static bool parseNodeNameEntry(char *line, config_type_t type)
 	nodeAddr = findNodeAddr(hostopt);
     }
 
-    /* save all host definitions except for gres and the default host */
-    if (type != CONFIG_TYPE_GRES && strcmp(line, "DEFAULT")) {
+    /* save all host definitions from default config except the default host */
+    if (type == CONFIG_TYPE_DEFAULT && strcmp(line, "DEFAULT")) {
 	saveNodeNameEntry(line, nodeAddr);
     }
 
