@@ -878,6 +878,8 @@ static void setCommonRankEnv(int32_t rank, Step_t *step)
     Topology_t *topo = getTopology(getConfValueC(&Config, "SLURM_HOSTNAME"));
     setenv("SLURM_TOPOLOGY_ADDR", topo->address, 1);
     setenv("SLURM_TOPOLOGY_ADDR_PATTERN", topo->pattern, 1);
+    ufree(topo->address);
+    ufree(topo->pattern);
     ufree(topo);
 }
 
