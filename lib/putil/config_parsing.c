@@ -1258,7 +1258,7 @@ static confkeylist_t each_node_configkey_list[] = {
  * @return Return false if an error occurred or true if the node was
  * inserted successfully.
  */
-static bool newHost(int id, in_addr_t addr)
+static bool newHost(int id, in_addr_t addr, char *nodename)
 {
     if (id < 0) { /* id out of Range */
 	parser_comment(-1, "node ID <%d> out of range\n", id);
@@ -1288,9 +1288,9 @@ static bool newHost(int id, in_addr_t addr)
     }
 
     /* install hostname */
-    if (!PSIDnodes_register(id, addr)) {
-	parser_comment(-1, "PSIDnodes_register(%d, <%s>) failed\n",
-		       id, inet_ntoa(*(struct in_addr *)&addr));
+    if (!PSIDnodes_register(id, addr, nodename)) {
+	parser_comment(-1, "PSIDnodes_register(%d, <%s>, %s) failed\n",
+		       id, inet_ntoa(*(struct in_addr *)&addr), nodename);
 	return false;
     }
 
@@ -1399,14 +1399,18 @@ static bool insertNode(void)
 
     parser_comment(PARSER_LOG_NODE, "Register '%s' as %d\n", nodename, nodeid);
     parser_updateHash(&config.nodeListHash, nodename);
-    g_free(nodename);
-    if (!newHost(nodeid, ipaddr)) return false;
+
+    if (!newHost(nodeid, ipaddr, nodename)) {
+	g_free(nodename);
+	return false;
+    }
 
     if (PSC_isLocalIP(ipaddr)) {
 	nodeconf.id = nodeid;
 	PSC_setMyID(nodeid);
     }
 
+    g_free(nodename);
     return true;
 }
 

@@ -97,9 +97,11 @@ PSnodes_ID_t PSIDnodes_getMaxID(void);
  *
  * @param addr IP address of the new node
  *
+ * @param nodename Name of the new node (as configured for the psid)
+ *
  * @return On success, true is returned; or false if an error occurred
  */
-bool PSIDnodes_register(PSnodes_ID_t id, in_addr_t addr);
+bool PSIDnodes_register(PSnodes_ID_t id, in_addr_t addr, const char *nodename);
 
 
 /**
@@ -127,6 +129,20 @@ PSnodes_ID_t PSIDnodes_lookupHost(in_addr_t addr);
  * INADDR_ANY if an error occurred
  */
 in_addr_t PSIDnodes_getAddr(PSnodes_ID_t id);
+
+/**
+ * @brief Get node's configured name
+ *
+ * Get the name of the node with ParaStation ID @a id. This returnes the node's
+ * name as it is configured for the psid. It is not necessarily the same name
+ * as the resolver would get for the nodes IP address.
+ *
+ * @param id ParaStation ID of the node to look up
+ *
+ * @return If the node was found, the nodename is returned; or NULL if an error
+ * occurred
+ */
+const char * PSIDnodes_getNodename(PSnodes_ID_t id);
 
 /**
  * @brief Declare a node to be up

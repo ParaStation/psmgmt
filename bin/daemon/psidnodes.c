@@ -41,6 +41,8 @@ static struct host_t *hosts[256];
 /** Structure holding all known info available concerning a specific node */
 typedef struct {
     in_addr_t addr;        /**< IP address of that node */
+    char *nodename;        /**< name of that node as configured for the psid
+                                (not necessarily the resolver's name for addr)*/
     int protoVer;          /**< Node's PSprotocol version */
     int daemonProtoVer;    /**< Node's PSDaemonprotocol version */
     short numCores;        /**< Number of physical processor cores */
@@ -93,6 +95,7 @@ static node_t *nodes = NULL;
 static void nodeInit(node_t *node)
 {
     node->addr = INADDR_ANY;
+    node->nodename = NULL;
     node->protoVer = 0;
     node->daemonProtoVer = 0;
     node->numCores = 0;
@@ -194,7 +197,7 @@ static bool validID(PSnodes_ID_t id)
 
 #define GROW_CHUNK 64
 
-bool PSIDnodes_register(PSnodes_ID_t id, in_addr_t addr)
+bool PSIDnodes_register(PSnodes_ID_t id, in_addr_t addr, const char *nodename)
 {
     unsigned int hostno;
     struct host_t *host;
@@ -232,6 +235,7 @@ bool PSIDnodes_register(PSnodes_ID_t id, in_addr_t addr)
 
     /* install hostname */
     nodes[id].addr = addr;
+    nodes[id].nodename = strdup(nodename);
 
     if (id > PSIDnodes_getMaxID()) maxID = id;
 
@@ -262,6 +266,13 @@ in_addr_t PSIDnodes_getAddr(PSnodes_ID_t id)
     if (!validID(id)) return INADDR_ANY;
 
     return nodes[id].addr;
+}
+
+const char * PSIDnodes_getNodename(PSnodes_ID_t id)
+{
+    if (!validID(id)) return NULL;
+
+    return nodes[id].nodename;
 }
 
 int PSIDnodes_bringUp(PSnodes_ID_t id)
@@ -1135,6 +1146,7 @@ void PSIDnodes_clearMem(void)
 	free(nodes[n].CPUset);
 	free(nodes[n].GPUset);
 	free(nodes[n].NICset);
+	free(nodes[n].nodename);
     }
 
     free(nodes);

@@ -19,6 +19,7 @@
 #include <sys/stat.h>
 #include <sys/resource.h>
 #include <syslog.h>
+#include <netdb.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
 
@@ -1819,7 +1820,18 @@ static int newHost(int id, in_addr_t addr)
     }
 
     /* install hostname */
-    if (!PSIDnodes_register(id, addr)) {
+    char *nodename, buf[NI_MAXHOST];
+    struct sockaddr_in saddr = {
+        .sin_family = AF_INET,
+        .sin_port = 0,
+        .sin_addr = { .s_addr = addr } };
+    if (getnameinfo((struct sockaddr *)&saddr, sizeof(saddr),
+		buf, sizeof(buf), NULL, 0, NI_NAMEREQD)) {
+	nodename = "<unknown>";
+    } else {
+	nodename = buf;
+    }
+    if (!PSIDnodes_register(id, addr, nodename)) {
 	parser_comment(-1, "PSIDnodes_register(%d, <%s>) failed\n",
 		       id, inet_ntoa(*(struct in_addr *)&addr));
 	return -1;
