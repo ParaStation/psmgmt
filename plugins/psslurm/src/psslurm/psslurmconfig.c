@@ -50,16 +50,16 @@ static time_t configUpdateTime;
 
 /** configuraton type */
 typedef enum {
-    SLURM_CONFIG_DEFAULT,
-    SLURM_CONFIG_GRES,
-    SLURM_CONFIG_TOPOLOGY
-} slurm_config_t;
+    CONFIG_TYPE_DEFAULT,
+    CONFIG_TYPE_GRES,
+    CONFIG_TYPE_TOPOLOGY
+} config_type_t;
 
 /** used to forward information to host visitor */
 typedef struct {
     int count;		    /**< number of hosts parsed */
     char *options;	    /**< host options */
-    slurm_config_t type;    /**< configuration type */
+    config_type_t type;     /**< configuration type */
     bool result;	    /**< parsing result */
     bool useNodeAddr;	    /**< use NodeAddr option */
     int localHostIdx;	    /**< index of local host in host-list */
@@ -475,7 +475,7 @@ static bool parseHost(char *host, void *info)
 
     hInfo->count++;
 
-    if (hInfo->type == SLURM_CONFIG_GRES) {
+    if (hInfo->type == CONFIG_TYPE_GRES) {
 	char *myHost = getConfValueC(&Config, "SLURM_HOSTNAME");
 	if (myHost && !strcmp(myHost, host) && hInfo->options) {
 	    res = parseGresOptions(hInfo->options);
@@ -539,7 +539,7 @@ static bool findMyHost(char *host, void *info)
  * @param return Returns true on success or false on error
  */
 static bool setMyHostDef(char *hosts, char *hostopt, char *nodeAddr,
-			 slurm_config_t type)
+			 config_type_t type)
 {
     Host_Info_t hInfo = {
 	.count = 0,
@@ -630,7 +630,7 @@ static void saveNodeNameEntry(char *NodeName, char *nodeAddr)
  *
  * @param return Returns true on success or false on error
  */
-static bool parseNodeNameEntry(char *line, slurm_config_t type)
+static bool parseNodeNameEntry(char *line, config_type_t type)
 {
     char *hostopt = strchr(line, ' ');
     char *nodeAddr = NULL;
@@ -641,7 +641,7 @@ static bool parseNodeNameEntry(char *line, slurm_config_t type)
     }
 
     /* save all host definitions except for gres and the default host */
-    if (type != SLURM_CONFIG_GRES && strcmp(line, "DEFAULT")) {
+    if (type != CONFIG_TYPE_GRES && strcmp(line, "DEFAULT")) {
 	saveNodeNameEntry(line, nodeAddr);
     }
 
@@ -765,10 +765,10 @@ static void parseSlurmAccFreq(char *param)
  */
 static bool parseSlurmConf(char *key, char *value, const void *info)
 {
-    const slurm_config_t *type = info;
+    const config_type_t *type = info;
 
     switch(*type) {
-	case SLURM_CONFIG_DEFAULT:
+	case CONFIG_TYPE_DEFAULT:
 	    /* parse all NodeName entries */
 	    if (!strcmp(key, "NodeName")) {
 		char *hostline = ustrdup(value);
@@ -789,7 +789,7 @@ static bool parseSlurmConf(char *key, char *value, const void *info)
 		parseSlurmAccFreq(value);
 	    }
 	    break;
-	case SLURM_CONFIG_GRES:
+	case CONFIG_TYPE_GRES:
 	    if (!strcmp(key, "NodeName")) {
 		char *hostline = ustrdup(value);
 		if (!parseNodeNameEntry(hostline, *type)) {
@@ -807,7 +807,7 @@ static bool parseSlurmConf(char *key, char *value, const void *info)
 		ufree(tmp);
 	    }
 	    break;
-	case SLURM_CONFIG_TOPOLOGY:
+	case CONFIG_TYPE_TOPOLOGY:
 	    if (!strcmp(key, "SwitchName")) {
 		char *tmp = umalloc(strlen(value) +12);
 		snprintf(tmp, strlen(value) +12, "SwitchName=%s", value);
@@ -1211,7 +1211,7 @@ static bool parseAcctGatherConf(char *key, char *value, const void *info)
 bool parseSlurmConfigFiles(void)
 {
     struct stat sbuf;
-    slurm_config_t type = SLURM_CONFIG_DEFAULT;
+    config_type_t type = CONFIG_TYPE_DEFAULT;
 
     /* parse Slurm config file */
     char *confFile = getConfValueC(&Config, "SLURM_CONF");
@@ -1237,7 +1237,7 @@ bool parseSlurmConfigFiles(void)
     if (!verifySlurmPlugins()) return false;
 
     /* parse optional Slurm GRes config file */
-    type = SLURM_CONFIG_GRES;
+    type = CONFIG_TYPE_GRES;
     confFile = getConfValueC(&Config, "SLURM_GRES_CONF");
     if (!confFile) {
 	flog("Configuration value SLURM_GRES_CONF not found\n");
@@ -1279,7 +1279,7 @@ bool parseSlurmConfigFiles(void)
     }
 
     /* parse optional Slurm topology config file */
-    type = SLURM_CONFIG_TOPOLOGY;
+    type = CONFIG_TYPE_TOPOLOGY;
     confFile = getConfValueC(&Config, "SLURM_TOPOLOGY_CONF");
     if (!confFile) {
 	flog("Configuration value SLURM_TOPOLOGY_CONF not found\n");
@@ -1414,7 +1414,7 @@ bool updateSlurmConf(void)
 
 	/* remove old GRes configuration and rebuild it */
 	clearGresConf();
-	slurm_config_t type = SLURM_CONFIG_GRES;
+	config_type_t type = CONFIG_TYPE_GRES;
 	if (traverseConfig(&SlurmGresTmp, parseSlurmConf, &type)) {
 	    flog("Traversing GRes configuration failed\n");
 	    return false;
