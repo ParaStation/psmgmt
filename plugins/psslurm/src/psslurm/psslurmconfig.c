@@ -372,8 +372,7 @@ static bool parseGresOptions(char *options)
 }
 
 /**
- * @brief Parse and add topology options of current host to psslurm
- * configuration
+ * @brief Parse and add options to the topology configuration
  *
  * @param options The current topology options to add
  *
