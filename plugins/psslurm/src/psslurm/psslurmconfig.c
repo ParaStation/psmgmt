@@ -766,55 +766,49 @@ static void parseSlurmAccFreq(char *param)
 static bool parseSlurmConf(char *key, char *value, const void *info)
 {
     const config_type_t *type = info;
-
     switch(*type) {
-	case CONFIG_TYPE_DEFAULT:
-	    /* parse all NodeName entries */
-	    if (!strcmp(key, "NodeName")) {
-		char *hostline = ustrdup(value);
-		if (!parseNodeNameEntry(hostline, *type)) {
-		    ufree(hostline);
-		    return true; /* an error occurred,
-				    return true to stop parsing */
-		}
+    case CONFIG_TYPE_DEFAULT:
+	if (!strcmp(key, "NodeName")) {
+	    char *hostline = ustrdup(value);
+	    if (!parseNodeNameEntry(hostline, *type)) {
 		ufree(hostline);
-	    } else if (!strcmp(key, "SlurmctldHost")) {
-		if (!saveCtldHost(value)) {
-		    return true; /* an error occurred,
-				    return true to stop parsing */
-		}
-	    } else if (!strcmp(key, "SlurmdParameters")) {
-		parseSlurmdParam(value);
-	    } else if (!strcmp(key, "JobAcctGatherFrequency")) {
-		parseSlurmAccFreq(value);
+		return true; /* an error occurred, true stops parsing */
 	    }
-	    break;
-	case CONFIG_TYPE_GRES:
-	    if (!strcmp(key, "NodeName")) {
-		char *hostline = ustrdup(value);
-		if (!parseNodeNameEntry(hostline, *type)) {
-		    ufree(hostline);
-		    return true; /* an error occurred,
-				    return true to stop parsing */
-		}
+	    ufree(hostline);
+	} else if (!strcmp(key, "SlurmctldHost")) {
+	    if (!saveCtldHost(value)) {
+		return true; /* an error occurred, true stops parsing */
+	    }
+	} else if (!strcmp(key, "SlurmdParameters")) {
+	    parseSlurmdParam(value);
+	} else if (!strcmp(key, "JobAcctGatherFrequency")) {
+	    parseSlurmAccFreq(value);
+	}
+	break;
+    case CONFIG_TYPE_GRES:
+	if (!strcmp(key, "NodeName")) {
+	    char *hostline = ustrdup(value);
+	    if (!parseNodeNameEntry(hostline, *type)) {
 		ufree(hostline);
+		return true; /* an error occurred, true stops parsing */
 	    }
-	    else if (!strcmp(key, "Name")) {
-		char *tmp = umalloc(strlen(value) +6 + 1);
-		snprintf(tmp, strlen(value) +6, "Name=%s", value);
-		//mlog("%s: Gres single name '%s'\n", __func__, tmp);
-		parseGresOptions(tmp);
-		ufree(tmp);
-	    }
-	    break;
-	case CONFIG_TYPE_TOPOLOGY:
-	    if (!strcmp(key, "SwitchName")) {
-		char *tmp = umalloc(strlen(value) +12);
-		snprintf(tmp, strlen(value) +12, "SwitchName=%s", value);
-		parseTopologyOptions(tmp);
-		ufree(tmp);
-	    }
-	    break;
+	    ufree(hostline);
+	} else if (!strcmp(key, "Name")) {
+	    char *tmp = umalloc(strlen(value) + 6);
+	    snprintf(tmp, strlen(value) + 6, "Name=%s", value);
+	    //mlog("%s: Gres single name '%s'\n", __func__, tmp);
+	    parseGresOptions(tmp);
+	    ufree(tmp);
+	}
+	break;
+    case CONFIG_TYPE_TOPOLOGY:
+	if (!strcmp(key, "SwitchName")) {
+	    char *tmp = umalloc(strlen(value) + 12);
+	    snprintf(tmp, strlen(value) + 12, "SwitchName=%s", value);
+	    parseTopologyOptions(tmp);
+	    ufree(tmp);
+	}
+	break;
     }
     /* parsing was successful, continue with next line */
     return false;
