@@ -25,6 +25,7 @@
 #include "pluginmalloc.h"
 #include "pluginvector.h"
 #include "psidsession.h"
+#include "psidnodes.h"
 
 #include "pspmixcomm.h"
 #include "pspmixcommon.h"
@@ -365,7 +366,7 @@ bool pspmix_service_registerNamespace(PspmixJob_t *job)
 		/* add new node to process map */
 		node = umalloc(sizeof(*node));
 		node->id = entry->node;
-		const char *hostname = getHostnameByNodeId(node->id);
+		const char *hostname = PSIDnodes_getNodename(node->id);
 		if (!hostname) {
 		    ulog("no hostname for node %hd", node->id);
 		    ufree(node);
