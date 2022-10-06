@@ -236,7 +236,7 @@ char* PSC_lookupInstalldir(char *hint)
     struct stat fstat;
 
     if (hint || !installdir) {
-	char *name = PSC_concat(hint ? hint : DEFAULT_INSTDIR, LOGGER, 0L);
+	char *name = PSC_concat(hint ? hint : DEFAULT_INSTDIR, LOGGER);
 
 	free(installdir);
 	installdir = NULL;
@@ -272,7 +272,7 @@ char *PSC_getwd(const char *ext)
 	}
 	if (!ext) ext = "";
 	if (dir) {
-	    tmp = PSC_concat(dir, "/", ext, 0L);
+	    tmp = PSC_concat(dir, "/", ext);
 	    free(dir);
 	    dir = tmp;
 	}

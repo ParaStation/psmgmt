@@ -403,7 +403,7 @@ bool pspmix_service_registerNamespace(PspmixJob_t *job)
 
     if (mset(PSPMIX_LOG_PROCMAP)) printProcMap(&ns->procMap);
 
-    char *nsdir = PSC_concat(job->session->tmpdir, "/", ns->name, 0L);
+    char *nsdir = PSC_concat(job->session->tmpdir, "/", ns->name);
 
     /* register namespace */
     if (!pspmix_server_registerNamespace(ns->name, sessionId, ns->universeSize,

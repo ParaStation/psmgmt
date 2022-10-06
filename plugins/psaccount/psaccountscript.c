@@ -141,7 +141,7 @@ static char *getAbsMonPath(char *spath)
 	    flog("invalid MONITOR_SCRIPT_PATH\n");
 	    return NULL;
 	}
-	fName = PSC_concat(monPath, "/", spath, 0L);
+	fName = PSC_concat(monPath, "/", spath);
     }
 
     if (!fName) flog("out of memory\n");

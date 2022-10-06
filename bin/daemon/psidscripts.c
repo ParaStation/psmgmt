@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2009-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021 ParTec AG, Munich
+ * Copyright (C) 2021-2022 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -232,7 +232,7 @@ static int doExec(char *script, PSID_scriptFunc_t func, PSID_scriptPrep_t prep,
 	    while (*script==' ' || *script=='\t') script++;
 	    if (*script != '/') {
 		if (!dir) dir = "";
-		command = PSC_concat(dir, "/", script, 0L);
+		command = PSC_concat(dir, "/", script);
 	    } else {
 		command = strdup(script);
 	    }
@@ -357,7 +357,7 @@ int PSID_registerScript(config_t *config, char *type, char *script)
     if (*script != '/') {
 	char *dir = PSC_lookupInstalldir(NULL);
 	if (!dir) dir = "";
-	command = PSC_concat(dir, "/", script, 0L);
+	command = PSC_concat(dir, "/", script);
     } else {
 	command = strdup(script);
     }

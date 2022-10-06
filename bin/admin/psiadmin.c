@@ -165,7 +165,7 @@ static int handleRCfile(bool echo)
 	    return -1;
 	}
 
-	rcname = PSC_concat(home, "/", RCNAME, 0L);
+	rcname = PSC_concat(home, "/", RCNAME);
 	rcfile = fopen(rcname, "r");
 
 	if (!rcfile && errno != ENOENT) {
@@ -233,7 +233,7 @@ static bool readHistoryFile(void)
 	    PSIadm_log(-1, "%s: no homedir?\n", __func__);
 	    return false;
 	}
-	histName = PSC_concat(home, "/", HISTNAME, 0L);
+	histName = PSC_concat(home, "/", HISTNAME);
     }
 
     if ((stat(histName, &statbuf) < 0) && !(file = fopen(histName, "a"))) {

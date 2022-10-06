@@ -1136,7 +1136,7 @@ char *PSI_createPGfile(int num, const char *prog, int local)
     } else {
 	/* File open failed, lets try the user's home directory */
 	char *home = getenv("HOME");
-	PIfilename = PSC_concat(home, "/", filename, 0L);
+	PIfilename = PSC_concat(home, "/", filename);
 
 	PIfile = fopen(PIfilename, "w+");
 	/* File open failed finally */
@@ -1184,7 +1184,7 @@ char *PSI_createMPIhosts(int num, int local)
     } else {
 	/* File open failed, lets try the user's home directory */
 	char *home = getenv("HOME");
-	MPIhostsFilename = PSC_concat(home, "/", filename, 0L);
+	MPIhostsFilename = PSC_concat(home, "/", filename);
 
 	MPIhostsFile = fopen(MPIhostsFilename, "w+");
 	/* File open failed finally */

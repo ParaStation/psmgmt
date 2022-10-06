@@ -49,7 +49,7 @@ static char *checkScript(char *script)
     if (script[0] == '/') {
 	fName = strdup(script);
     } else {
-	fName = PSC_concat(PLUGINDIR, "/", script, 0L);
+	fName = PSC_concat(PLUGINDIR, "/", script);
     }
 
     struct stat sb;
@@ -74,7 +74,7 @@ static int execScript(pid_t child, char *script)
 {
     char argument[64];
     snprintf(argument, sizeof(argument), " %d", child);
-    char *command = PSC_concat(script, argument, 0L);
+    char *command = PSC_concat(script, argument);
 
     if (command) {
 	/* ensure system() is able to catch SIGCHLD */
