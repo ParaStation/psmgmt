@@ -263,7 +263,7 @@ bool Acc_Init(void)
 
 	char *val = getConfValueC(&SlurmConfig, "AcctGatherEnergyType");
 	if (val) {
-	    char *envStr = PSC_concat("ENERGY_TYPE=", val);
+	    char *envStr = PSC_concat("ENERGY_TYPE=", val, 0L);
 	    if (!envStr) {
 		flog("PSC_concat() out of memory");
 		return false;
@@ -295,7 +295,7 @@ bool Acc_Init(void)
 
 	char *val = getConfValueC(&SlurmConfig, "AcctGatherFilesystemType");
 	if (val) {
-	    char *envStr = PSC_concat("FILESYSTEM_TYPE=", val);
+	    char *envStr = PSC_concat("FILESYSTEM_TYPE=", val, 0L);
 	    if (!envStr) {
 		flog("PSC_concat() out of memory");
 		return false;
@@ -325,7 +325,7 @@ bool Acc_Init(void)
 
 	char *val = getConfValueC(&SlurmConfig, "AcctGatherInterconnectType");
 	if (val) {
-	    char *envStr = PSC_concat("INTERCONNECT_TYPE=", val);
+	    char *envStr = PSC_concat("INTERCONNECT_TYPE=", val, 0L);
 	    if (!envStr) {
 		flog("PSC_concat() out of memory");
 		return false;
@@ -341,7 +341,7 @@ bool Acc_Init(void)
 
 	char *port = getConfValueC(&SlurmConfig, "INFINIBAND_OFED_PORT");
 	if (port) {
-	    char *envStr = PSC_concat("INFINIBAND_OFED_PORT=", port);
+	    char *envStr = PSC_concat("INFINIBAND_OFED_PORT=", port, 0L);
 	    if (!envStr) {
 		flog("PSC_concat() out of memory");
 		return false;
