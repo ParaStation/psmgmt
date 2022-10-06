@@ -21,7 +21,7 @@ typedef struct {
     char *linkspeed;            /**< link speed of the switch */
 } Topology_Conf_t;
 
-/** Structure holding a topology for one node*/
+/** Structure holding a topology for a single node */
 typedef struct {
     char *address;              /**< topology address */
     char *pattern;              /**< topology address pattern */
@@ -45,7 +45,7 @@ void clearTopologyConf(void);
 /**
  * @brief Return topology information of the given node
  *
- * @param node   The node of which to get the topology
+ * @param node The node of which to get the topology
  *
  * @return Returns the topology of the node, need to be ufree()d
  */
