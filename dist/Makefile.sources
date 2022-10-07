@@ -667,6 +667,8 @@ plugins/psslurm/src/psslurm/psslurmstep.c \
 plugins/psslurm/src/psslurm/psslurmstep.h \
 plugins/psslurm/src/psslurm/psslurmtasks.c \
 plugins/psslurm/src/psslurm/psslurmtasks.h \
+plugins/psslurm/src/psslurm/psslurmtopo.c \
+plugins/psslurm/src/psslurm/psslurmtopo.h \
 plugins/psslurm/src/psslurm/psslurmtypes.h \
 plugins/psslurm/src/spank/Makefile.am \
 plugins/psslurm/src/spank/Makefile.in \
