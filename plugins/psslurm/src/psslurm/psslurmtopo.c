@@ -104,11 +104,11 @@ static void addSwitch(Topology_t *topo, const char *sw)
     }
 
     char *old = topo->address;
-    topo->address = PSC_concat(sw, ".", old, 0L);
+    topo->address = PSC_concat(sw, ".", old);
     ufree(old);
 
     old = topo->pattern;
-    topo->pattern = PSC_concat("switch.", old, 0L);
+    topo->pattern = PSC_concat("switch.", old);
     ufree(old);
 
     fdbg(PSSLURM_LOG_TOPO, "topology address '%s' ('%s')\n", topo->address,
