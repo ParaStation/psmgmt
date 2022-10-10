@@ -27,6 +27,7 @@
 #include "psslurmlog.h"
 #include "psslurmpack.h"
 #include "psslurmtasks.h"
+#include "psslurmconfig.h"
 
 /** List of all bcasts */
 static LIST_HEAD(BCastList);
@@ -115,6 +116,7 @@ bool extractBCastCred(Slurm_Msg_t *sMsg, BCast_t *bcast)
     bcast->sig = cred.sig;
     cred.sig = NULL;
     bcast->jobid = cred.jobid;
+    bcast->stepid = cred.stepid;
 
     freeBCastCred(&cred);
     free(sigBuf);
@@ -179,4 +181,24 @@ void freeBCastCred(BCast_Cred_t *cred)
     ufree(cred->gids);
     ufree(cred->hostlist);
     ufree(cred->sig);
+}
+
+char *BCast_adjustExe(char *exe, uint32_t jobid, uint32_t stepid)
+{
+    if (!exe) return NULL;
+
+    size_t exeLen = strlen(exe);
+    if (exe[exeLen -1] == '/') {
+	char strID[128];
+	snprintf(strID, sizeof(strID), "%u.%u", jobid, stepid);
+	char *newExe = PSC_concat(exe, "slurm_bcast_", strID, "_",
+			          getConfValueC(&Config, "SLURM_HOSTNAME"));
+	if (!newExe) {
+	    flog("PSC_concat(%s) out of memory\n", exe);
+	    return NULL;
+	}
+	return newExe;
+    }
+
+    return exe;
 }

@@ -53,6 +53,7 @@ typedef struct {
     uint32_t blockLen;		/**< length of this part */
     uint32_t uncompLen;		/**< uncompressed length of this data part */
     uint32_t jobid;		/**< the associated jobid */
+    uint32_t stepid;		/**< the associated stepid */
     uint64_t fileSize;		/**< size of the file */
     time_t atime;		/**< last access time of the file */
     time_t mtime;		/**< last modification time of the file */
@@ -132,5 +133,22 @@ void clearBCastList(void);
 * @param cred The bcast credential to free
 */
 void freeBCastCred(BCast_Cred_t *cred);
+
+/**
+ * @brief Adjust executable name to BCast distribution pattern
+ *
+ * The new executable name is allocated using malloc(). The caller is
+ * responsible to call free() after use.
+ *
+ * @param exe The executable name to adjust
+ *
+ * @param jobid The job ID of the associated step
+ *
+ * @param jobid The step ID of the associated step
+ *
+ * @return Returns the adjusted or original executable name on success or
+ * NULL on error
+ */
+char *BCast_adjustExe(char *exe, uint32_t jobid, uint32_t stepid);
 
 #endif

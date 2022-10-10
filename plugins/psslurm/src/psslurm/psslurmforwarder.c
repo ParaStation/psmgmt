@@ -596,6 +596,15 @@ int handleExecClientPrep(void *data)
 	if (!IO_redirectRank(fwStep, task->rank)) return -1;
 
 	setRankEnv(task->rank, fwStep);
+
+	/* adjust bcast executable name */
+	char *newExe = BCast_adjustExe(task->argv[0], fwStep->jobid,
+				       fwStep->stepid);
+	if (!newExe) {
+	    flog("failed to adjust bcast exe %s\n", task->argv[0]);
+	} else {
+	    task->argv[0] = newExe;
+	}
     } else {
 	if (!isPSAdminUser(task->uid, task->gid)) {
 	    flog("rank %i failed to find my step\n", task->rank);
@@ -1373,17 +1382,24 @@ static void fwExecBCast(Forwarder_Data_t *fwdata, int rerun)
 	wFlags |= O_APPEND;
     }
 
-    int fd = open(bcast->fileName, wFlags, 0700);
+    char *destFile = BCast_adjustExe(bcast->fileName, bcast->jobid,
+				     bcast->stepid);
+    if (!destFile) {
+	flog("adjusting bcast destination file %s failed\n", bcast->fileName);
+	exit(1);
+    }
+
+    int fd = open(destFile, wFlags, 0700);
     if (fd == -1) {
 	int eno = errno;
-	mwarn(eno, "%s: open(%s)", __func__, bcast->fileName);
+	mwarn(eno, "%s: open(%s)", __func__, destFile);
 	exit(eno);
     }
 
     /* write the file */
     if (PSCio_sendF(fd, bcast->block, bcast->blockLen) == -1) {
 	int eno = errno;
-	mwarn(eno, "%s: write(%s)", __func__, bcast->fileName);
+	mwarn(eno, "%s: write(%s)", __func__, destFile);
 	exit(eno);
     }
 
@@ -1391,20 +1407,20 @@ static void fwExecBCast(Forwarder_Data_t *fwdata, int rerun)
     if (bcast->flags & BCAST_LAST_BLOCK) {
 	if (fchmod(fd, bcast->modes & 0700) == -1) {
 	    int eno = errno;
-	    mwarn(eno, "%s: chmod(%s)", __func__, bcast->fileName);
+	    mwarn(eno, "%s: chmod(%s)", __func__, destFile);
 	    exit(eno);
 	}
 	if (fchown(fd, bcast->uid, bcast->gid) == -1) {
 	    int eno = errno;
-	    mwarn(eno, "%s: chown(%s)", __func__, bcast->fileName);
+	    mwarn(eno, "%s: chown(%s)", __func__, destFile);
 	    exit(eno);
 	}
 	if (bcast->atime) {
 	    times.actime  = bcast->atime;
 	    times.modtime = bcast->mtime;
-	    if (utime(bcast->fileName, &times)) {
+	    if (utime(destFile, &times)) {
 		int eno = errno;
-		mwarn(eno, "%s: utime(%s)", __func__, bcast->fileName);
+		mwarn(eno, "%s: utime(%s)", __func__, destFile);
 		exit(eno);
 	    }
 	}
