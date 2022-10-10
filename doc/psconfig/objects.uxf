@@ -4,9 +4,9 @@
   <element>
     <id>UMLClass</id>
     <coordinates>
-      <x>220</x>
+      <x>170</x>
       <y>0</y>
-      <w>540</w>
+      <w>590</w>
       <h>740</h>
     </coordinates>
     <panel_attributes>defaults:psid
@@ -53,7 +53,7 @@ DeadLimit = "5"
 EnableRdpStatistics = "0"
 FreeOnSuspend = "no"
 PsiNodesSortStrategy = "proc"
-RessourceLimits. = ptr(["defaults:ressourcelimits"])
+ResourceLimits. = ptr(["defaults:resourcelimits"])
 CoreDirectory = "/tmp"
 </panel_attributes>
     <additional_attributes/>
@@ -66,7 +66,7 @@ CoreDirectory = "/tmp"
       <w>210</w>
       <h>70</h>
     </coordinates>
-    <panel_attributes>defaults:ressourcelimits
+    <panel_attributes>defaults:resourcelimits
 --
 Core = "unlimited"</panel_attributes>
     <additional_attributes/>
@@ -114,7 +114,7 @@ Psid. = ptr([psid:compute])</panel_attributes>
 --
 .parents = ["defaults:psid"]
 --
-RessourceLimits. = ptr(["defaults:compute"])
+ResourceLimits. = ptr(["resourcelimits:compute"])
 Environment = ["A", "a", "B", "b"]</panel_attributes>
     <additional_attributes/>
   </element>
@@ -247,7 +247,7 @@ NodeDownScript = "scripts/psidNodeDown"
       <w>210</w>
       <h>70</h>
     </coordinates>
-    <panel_attributes>class:ressourcelimits
+    <panel_attributes>class:resourcelimits
 --
 </panel_attributes>
     <additional_attributes/>
@@ -271,7 +271,7 @@ NodeDownScript = "scripts/psidNodeDown"
       <w>210</w>
       <h>170</h>
     </coordinates>
-    <panel_attributes>ressourcelimits:compute
+    <panel_attributes>resourcelimits:compute
 --
 CpuTime = "300"
 DataSize = "50"
