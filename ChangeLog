@@ -1,3 +1,778 @@
+Version 5.1.51:
+===============
+------------------------------------------------------------------------
+8ef450366 | Norbert Eicker | Wed, 5 Oct 2022 23:36:45 +0200
+
+Fix docu and simplify code
+------------------------------------------------------------------------
+9167e71f7 | Norbert Eicker | Wed, 5 Oct 2022 23:19:27 +0200
+
+Improve docu comments
+------------------------------------------------------------------------
+378eab6d1 | Norbert Eicker | Wed, 5 Oct 2022 01:16:23 +0200
+
+Bugfix: Prevent writing behind end of buffer (#84)
+------------------------------------------------------------------------
+175bfe8e2 | Stephan Krempel | Mon, 10 Oct 2022 08:29:00 +0200
+
+Update psconfig objects diagram
+------------------------------------------------------------------------
+8ff26fdda | Stephan Krempel | Mon, 10 Oct 2022 08:28:28 +0200
+
+Fix typo in update defaults script
+------------------------------------------------------------------------
+a461d7e30 | Norbert Eicker | Fri, 7 Oct 2022 17:49:31 +0200
+
+Move psconfig update script and deliver it via RPM
+------------------------------------------------------------------------
+2cb85cadf | Norbert Eicker | Fri, 7 Oct 2022 17:18:33 +0200
+
+Fix psconfig migration script
+------------------------------------------------------------------------
+1bac08c77 | Norbert Eicker | Fri, 7 Oct 2022 17:17:28 +0200
+
+Update docu of psid's psconfig structure
+------------------------------------------------------------------------
+ebef983dd | Norbert Eicker | Fri, 7 Oct 2022 13:13:14 +0200
+
+More 0L's to remove from PSC_concat()
+------------------------------------------------------------------------
+9a537e4bd | Norbert Eicker | Fri, 7 Oct 2022 01:26:57 +0200
+
+Remove now obsolete 0L from PSC_concat()'s argument list
+------------------------------------------------------------------------
+2835fd63a | Norbert Eicker | Fri, 7 Oct 2022 01:20:02 +0200
+
+Make use of PSC_concat() less error-prone
+------------------------------------------------------------------------
+01c9c4a9a | Norbert Eicker | Fri, 7 Oct 2022 11:12:01 +0200
+
+Update rpm sources
+------------------------------------------------------------------------
+a71318d56 | Norbert Eicker | Fri, 7 Oct 2022 01:46:03 +0200
+
+Improve docu comment
+------------------------------------------------------------------------
+701020c3f | Norbert Eicker | Fri, 7 Oct 2022 01:41:20 +0200
+
+Adapt logic of saving host definitions in psslurm
+------------------------------------------------------------------------
+14e252b92 | Norbert Eicker | Fri, 7 Oct 2022 01:04:52 +0200
+
+Prevent memory leaks
+------------------------------------------------------------------------
+b0a977444 | Norbert Eicker | Fri, 7 Oct 2022 01:01:52 +0200
+
+Streamlining
+------------------------------------------------------------------------
+1289fcf9f | Norbert Eicker | Fri, 7 Oct 2022 00:56:48 +0200
+
+Improve docu comments
+------------------------------------------------------------------------
+371ddaa46 | Norbert Eicker | Thu, 6 Oct 2022 23:58:53 +0200
+
+Prevent memory leak
+------------------------------------------------------------------------
+2be213f49 | Norbert Eicker | Thu, 6 Oct 2022 23:56:24 +0200
+
+Prevent some segfaults
+------------------------------------------------------------------------
+a990db2f5 | Norbert Eicker | Thu, 6 Oct 2022 23:44:10 +0200
+
+Push to automake 1.16.5 again
+------------------------------------------------------------------------
+be7ca650e | Norbert Eicker | Thu, 6 Oct 2022 23:43:25 +0200
+
+Whitespace fixes
+------------------------------------------------------------------------
+528dfbf23 | Norbert Eicker | Thu, 6 Oct 2022 23:12:38 +0200
+
+Fix typos
+------------------------------------------------------------------------
+5b74bc178 | Stephan Krempel | Thu, 6 Oct 2022 14:32:30 +0200
+
+psslurm: Enable updating of topology.conf during runtime
+------------------------------------------------------------------------
+09abc796c | Stephan Krempel | Thu, 6 Oct 2022 14:31:46 +0200
+
+psslurm: Rename slurm_config_t to config_type_t
+------------------------------------------------------------------------
+cdf19aa49 | Stephan Krempel | Fri, 30 Sep 2022 12:56:29 +0200
+
+psslurm: Set SLURM_TOPOLOGY_* variables in rank environments
+------------------------------------------------------------------------
+b78bef91a | Stephan Krempel | Fri, 30 Sep 2022 12:52:27 +0200
+
+Add static qualifier to setGResJobEnv()
+------------------------------------------------------------------------
+230ec0e19 | Stephan Krempel | Fri, 30 Sep 2022 12:49:56 +0200
+
+Add const qualifier to traverseHostList()
+------------------------------------------------------------------------
+6d3e5b950 | Stephan Krempel | Wed, 28 Sep 2022 18:46:04 +0200
+
+psslurm: Support reading topology.conf
+------------------------------------------------------------------------
+4df3582cb | Stephan Krempel | Wed, 28 Sep 2022 14:53:29 +0200
+
+psslurm: Introduce configuration type
+------------------------------------------------------------------------
+58d6a77f4 | Norbert Eicker | Wed, 5 Oct 2022 18:45:55 +0200
+
+Improve documentation comments
+------------------------------------------------------------------------
+25778e4fd | Norbert Eicker | Wed, 5 Oct 2022 18:29:51 +0200
+
+Declaration of PMIx server more suitable here
+------------------------------------------------------------------------
+1314655fe | Stephan Krempel | Fri, 23 Sep 2022 00:20:59 +0200
+
+Also call hookFWInitUser if user is root
+
+PMIx is the only user of this interface for now and relies on
+this function being called during initialization. Not calling
+it if the spawning user is root makes it impossible to run PMIx
+jobs as user root.
+------------------------------------------------------------------------
+04387d426 | Stephan Krempel | Fri, 23 Sep 2022 00:20:09 +0200
+
+pspmix: Print error if server not set when preparing loop
+------------------------------------------------------------------------
+052cfc675 | Stephan Krempel | Fri, 23 Sep 2022 00:16:50 +0200
+
+pspmix: Move declaration of server variable to log header
+
+Makes more sense since ulog macro using it is defined there, too.
+------------------------------------------------------------------------
+5bc79a201 | Norbert Eicker | Thu, 19 May 2022 17:25:30 +0200
+
+Simplify rules for PMI library
+------------------------------------------------------------------------
+8fea554c0 | Norbert Eicker | Thu, 19 May 2022 17:25:21 +0200
+
+Bugfix: Ensure PMI_RANK is present to determine rank
+------------------------------------------------------------------------
+0d48d8d2b | Norbert Eicker | Thu, 19 May 2022 17:25:17 +0200
+
+Add pmi_hello to test if multiple PMI_Init/Finalize cycles are possible
+------------------------------------------------------------------------
+2866bc8c7 | Norbert Eicker | Thu, 19 May 2022 17:25:13 +0200
+
+Allow to use TCP connection for PMI, too
+------------------------------------------------------------------------
+4feeeeb8f | Norbert Eicker | Thu, 19 May 2022 17:25:10 +0200
+
+Add simple PMI client library bluntly stolen from the MPIch project
+------------------------------------------------------------------------
+68285bbe7 | Norbert Eicker | Thu, 19 May 2022 17:25:07 +0200
+
+Major rework adding more ways to test PMI implemenation
+------------------------------------------------------------------------
+0fb848608 | Norbert Eicker | Thu, 19 May 2022 17:24:51 +0200
+
+Add reproducer for psc:#332
+------------------------------------------------------------------------
+67fce63ee | Michael Rauh | Thu, 6 Oct 2022 12:12:17 +0200
+
+Bugfix: fix argument termination of PSC_concat() in psslurm
+------------------------------------------------------------------------
+ff5432934 | Norbert Eicker | Wed, 5 Oct 2022 20:52:13 +0200
+
+Adapt log to other use-cases of parseMapString()
+------------------------------------------------------------------------
+abf491c79 | Michael Rauh | Mon, 26 Sep 2022 17:40:01 +0200
+
+Fix possible bugs unveiled by scan-build
+------------------------------------------------------------------------
+7a2a0b383 | Stephan Krempel | Wed, 5 Oct 2022 12:47:25 +0200
+
+Regenerate psconfig objects diagram
+------------------------------------------------------------------------
+94e84734e | Norbert Eicker | Wed, 5 Oct 2022 09:42:46 +0200
+
+Improve code maintanability and docu comment
+------------------------------------------------------------------------
+79d7688c9 | Stephan Krempel | Fri, 23 Sep 2022 16:27:03 +0200
+
+psconfig: rename parameters to match psiadmin
+
+Important: Needs to be highlighted in NEWS file
+
+Renamings:
+- RdpStatusTimeout to StatusTimeout
+- RdpStatusDeadLimit to DeadLimit
+- RdpStatusBroadcasts to StatusBroadcasts
+
+Add script to update defaults object in existing psconfig databases.
+
+Custom configurations need to be adjusted manually. To assist
+administrators, PSID will refuse to start if old parameters are still set.
+------------------------------------------------------------------------
+2081e9276 | Michael Rauh | Wed, 5 Oct 2022 14:48:32 +0200
+
+psslurm: reset fpe exceptions when psslurm gets unloaded
+------------------------------------------------------------------------
+9d90e7a78 | Norbert Eicker | Wed, 5 Oct 2022 10:34:26 +0200
+
+Minor refinements
+------------------------------------------------------------------------
+592909c7b | Michael Rauh | Thu, 22 Sep 2022 11:27:44 +0200
+
+Bugfix: reset fpe exceptions for children if psslurm
+ENABLE_FPE_EXCEPTION option is enabled
+------------------------------------------------------------------------
+cad1d067f | Michael Rauh | Fri, 23 Sep 2022 15:39:38 +0200
+
+Fix some more format errors unveiled by cppcheck
+------------------------------------------------------------------------
+f55dd1656 | Michael Rauh | Fri, 23 Sep 2022 15:31:56 +0200
+
+Remove unnecessary checks in psaccount
+------------------------------------------------------------------------
+a2c6a27cd | Michael Rauh | Fri, 23 Sep 2022 15:21:57 +0200
+
+Fix print format errors in psaccount
+------------------------------------------------------------------------
+bd5378b89 | Michael Rauh | Wed, 21 Sep 2022 17:45:21 +0200
+
+Remove redundant newline from logger_funcprint()
+------------------------------------------------------------------------
+7fd13b7ea | Stephan Krempel | Wed, 21 Sep 2022 17:44:30 +0200
+
+pspmix: Deactivate singleton support if np != 1
+------------------------------------------------------------------------
+33549b138 | Stephan Krempel | Wed, 21 Sep 2022 13:33:43 +0200
+
+pspmix: Fix more signed unsigned comparisons
+------------------------------------------------------------------------
+c292bd153 | Stephan Krempel | Wed, 21 Sep 2022 13:31:30 +0200
+
+pspmix: Fix signed unsigned comparison
+------------------------------------------------------------------------
+4b9b9a203 | Stephan Krempel | Wed, 21 Sep 2022 13:16:25 +0200
+
+Make psaccount scripts executable
+------------------------------------------------------------------------
+5601fcfb0 | Michael Rauh | Mon, 19 Sep 2022 22:43:13 +0200
+
+Bugfix: fix possible segfault in psaccount if executable
+could not be started
+------------------------------------------------------------------------
+d2f08fa7e | Stephan Krempel | Thu, 15 Sep 2022 17:32:47 +0200
+
+psslurm: Let MAP_LDOM pinning use physical domain numbers
+
+Should be highlighted in NEWS file.
+------------------------------------------------------------------------
+06ad50e00 | Norbert Eicker | Wed, 7 Sep 2022 14:06:06 +0200
+
+Fix potential memory leaks
+------------------------------------------------------------------------
+6a943c1a4 | Norbert Eicker | Wed, 7 Sep 2022 14:05:13 +0200
+
+Streamline
+------------------------------------------------------------------------
+3f7ab77d0 | Norbert Eicker | Wed, 7 Sep 2022 14:02:33 +0200
+
+Ensure debug loops have no bad side effects
+------------------------------------------------------------------------
+b5ab851df | Stephan Krempel | Fri, 2 Sep 2022 15:51:18 +0200
+
+pspmix: Add default session ID explicitly
+
+This is imho not required by the standard, but at least by
+openpmix 4.1.2rc1.
+
+See https://github.com/openpmix/openpmix/issues/2736
+------------------------------------------------------------------------
+9cc36ea99 | Stephan Krempel | Fri, 2 Sep 2022 15:50:04 +0200
+
+pspmix: Always use PMIx_Info_String for PMIx 4+
+------------------------------------------------------------------------
+f28f625d3 | Stephan Krempel | Fri, 2 Sep 2022 11:56:39 +0200
+
+pspmix: Print info array before PMIx_server_init call
+
+In openpmix >= 4.2.1 PMIx_Info_string is allowed to be called
+before any init function.
+
+see https://github.com/openpmix/openpmix/pull/2724
+------------------------------------------------------------------------
+48fa0921f | Stephan Krempel | Mon, 29 Aug 2022 17:37:29 +0200
+
+pspmix: Handle empty cluster ID
+------------------------------------------------------------------------
+b3a0cec59 | Stephan Krempel | Mon, 29 Aug 2022 15:21:36 +0200
+
+pspmix: Use PMIx_Info_list API for server session array
+------------------------------------------------------------------------
+519072ef4 | Stephan Krempel | Wed, 24 Aug 2022 11:20:35 +0200
+
+pspmix: Print PMIx version at plugin initialization
+------------------------------------------------------------------------
+0b4f48584 | Stephan Krempel | Wed, 24 Aug 2022 11:18:52 +0200
+
+pspmix: Do not call PMIx_Init with proc == NULL
+
+This is broken in PMIx <= 4.2.0.
+
+https://github.com/openpmix/openpmix/issues/2707
+------------------------------------------------------------------------
+360260f03 | Stephan Krempel | Tue, 23 Aug 2022 18:49:03 +0200
+
+pspmix: Add reminder to use PMIX_INFO_LIST_* functions
+------------------------------------------------------------------------
+c97b64028 | Stephan Krempel | Tue, 23 Aug 2022 18:19:54 +0200
+
+pspmix: Correctly report namespace not found
+------------------------------------------------------------------------
+68d343c88 | Stephan Krempel | Mon, 22 Aug 2022 11:33:06 +0200
+
+pspmix: Call PMIx_Init for singleton without proc argument
+------------------------------------------------------------------------
+d36e47b5a | Norbert Eicker | Fri, 19 Aug 2022 00:23:50 +0200
+
+IWYU fixes
+------------------------------------------------------------------------
+0f9def9dd | Norbert Eicker | Thu, 18 Aug 2022 23:46:13 +0200
+
+Ensure array size for gethostname() is sufficient
+------------------------------------------------------------------------
+c346b9a06 | Norbert Eicker | Thu, 18 Aug 2022 23:43:45 +0200
+
+Prevent writing behind end of buffer
+------------------------------------------------------------------------
+3dcf2c664 | Norbert Eicker | Thu, 18 Aug 2022 23:38:54 +0200
+
+Whitespace fixes
+------------------------------------------------------------------------
+958161406 | Stephan Krempel | Thu, 9 Jun 2022 15:43:29 +0200
+
+pspmix: Support singleton
+------------------------------------------------------------------------
+87aa29e99 | Norbert Eicker | Mon, 5 Sep 2022 17:20:59 +0200
+
+IWYU fixes
+------------------------------------------------------------------------
+644870722 | Norbert Eicker | Mon, 5 Sep 2022 16:57:44 +0200
+
+psaccount: slightly improve per job accounting
+
+ - Ignore to rare case that energyBase, IC_recvBase, or IC_sendBase
+   might be accidentially 0
+------------------------------------------------------------------------
+7e46618c8 | Michael Rauh | Mon, 5 Sep 2022 13:11:01 +0200
+
+Calculate interconnect values on a per job basis
+------------------------------------------------------------------------
+05f6f6457 | Michael Rauh | Fri, 2 Sep 2022 16:52:03 +0200
+
+psaccount: Add rapl counters from sys filesystem to energy monitor script
+------------------------------------------------------------------------
+83f0c76ba | Norbert Eicker | Tue, 23 Aug 2022 18:08:47 +0200
+
+Simplify addClientToAggData()'s interface
+------------------------------------------------------------------------
+3337e13df | Norbert Eicker | Tue, 23 Aug 2022 17:40:57 +0200
+
+Get rid of helper variables
+------------------------------------------------------------------------
+cc34458af | Norbert Eicker | Tue, 23 Aug 2022 14:48:00 +0200
+
+Unify minimum calculation in accounting
+------------------------------------------------------------------------
+f8553f076 | Michael Rauh | Fri, 19 Aug 2022 17:24:04 +0200
+
+psaccount: update documentation of addClientToAggData()
+------------------------------------------------------------------------
+47491f888 | Michael Rauh | Fri, 19 Aug 2022 16:56:15 +0200
+
+psaccount: unify minimum calculation of power and energy
+------------------------------------------------------------------------
+d9d094282 | Michael Rauh | Fri, 19 Aug 2022 16:39:45 +0200
+
+psslurm: remove useless double debug logging
+------------------------------------------------------------------------
+7586f6ea2 | Michael Rauh | Fri, 19 Aug 2022 16:35:27 +0200
+
+psaccount: get rid of useless initialization
+------------------------------------------------------------------------
+a56d682e7 | Michael Rauh | Fri, 19 Aug 2022 16:22:05 +0200
+
+psaccount: Improve error handling in Script_start()
+------------------------------------------------------------------------
+e90cafc9e | Michael Rauh | Fri, 19 Aug 2022 16:13:19 +0200
+
+psslurm: Replace string arrays with PSC_concat()
+------------------------------------------------------------------------
+a0c44539d | Michael Rauh | Tue, 16 Aug 2022 17:51:20 +0200
+
+Forward energy and interconnect accounting data to slurmctld
+
+ - mother superior will send the aggregated data for all nodes in the
+   step
+ - data is transferred using the TRes format
+------------------------------------------------------------------------
+a7c0e4fed | Michael Rauh | Tue, 16 Aug 2022 17:50:35 +0200
+
+Improve some comments
+------------------------------------------------------------------------
+48b8da779 | Michael Rauh | Tue, 16 Aug 2022 17:42:47 +0200
+
+Forward aggregated accounting data for energy,
+file-system and interconnect to mother superior node
+------------------------------------------------------------------------
+71aafbf04 | Michael Rauh | Tue, 16 Aug 2022 17:36:13 +0200
+
+Set default energy and filesystem monitor scripts in psaccount
+configuration
+------------------------------------------------------------------------
+0c1796669 | Michael Rauh | Tue, 16 Aug 2022 17:32:58 +0200
+
+Ensure minimum energy value is initialized properly
+------------------------------------------------------------------------
+8badff61d | Norbert Eicker | Wed, 3 Aug 2022 02:04:05 +0200
+
+Streamline
+------------------------------------------------------------------------
+f22ab730d | Norbert Eicker | Wed, 3 Aug 2022 02:03:25 +0200
+
+Fix typos in comments
+------------------------------------------------------------------------
+c729a14d1 | Michael Rauh | Fri, 29 Jul 2022 16:50:43 +0200
+
+Improve some comments
+------------------------------------------------------------------------
+ac7b76774 | Michael Rauh | Thu, 28 Jul 2022 16:34:07 +0200
+
+Update buildsystem
+------------------------------------------------------------------------
+1418eef06 | Michael Rauh | Thu, 28 Jul 2022 16:32:47 +0200
+
+Add more psaccount example scripts for monitoring
+------------------------------------------------------------------------
+b4aaee831 | Michael Rauh | Wed, 27 Jul 2022 17:27:05 +0200
+
+Use the same task ID for entry.in_max_taskid and entry.out_max_taskid
+------------------------------------------------------------------------
+4a656299f | Michael Rauh | Wed, 27 Jul 2022 14:06:17 +0200
+
+Forward Slurm account gather type options to psaccount monitor scripts
+------------------------------------------------------------------------
+dbf078b30 | Michael Rauh | Wed, 27 Jul 2022 13:51:48 +0200
+
+Automatically start energy accounting script if polling parameter is
+not zero
+------------------------------------------------------------------------
+d9e66d76d | Michael Rauh | Wed, 27 Jul 2022 13:17:54 +0200
+
+Update buildsystem
+------------------------------------------------------------------------
+46ce142ce | Michael Rauh | Wed, 27 Jul 2022 13:16:44 +0200
+
+Add MEGWARE energy meter monitor script
+------------------------------------------------------------------------
+63a80b845 | Michael Rauh | Wed, 27 Jul 2022 12:28:20 +0200
+
+Verify values for AcctGatherEnergyType
+------------------------------------------------------------------------
+7c63a2bd0 | Michael Rauh | Tue, 26 Jul 2022 13:40:45 +0200
+
+Ensure MONITOR_SCRIPT_PATH is valid when building absolute path
+for a psaccount monitor script
+ * also fix invalid defaut of MONITOR_SCRIPT_PATH
+------------------------------------------------------------------------
+b0641664a | Michael Rauh | Tue, 26 Jul 2022 13:21:37 +0200
+
+Set default account polling from Slurm configuration
+------------------------------------------------------------------------
+13ea82a09 | Norbert Eicker | Mon, 2 May 2022 19:42:50 +0200
+
+IWYU fixes
+------------------------------------------------------------------------
+5225830de | Norbert Eicker | Mon, 2 May 2022 19:33:22 +0200
+
+Get rid of now obsolete __Plugin_flog()
+------------------------------------------------------------------------
+ee0dc5fb1 | Norbert Eicker | Mon, 2 May 2022 19:32:48 +0200
+
+Utilize logger_funcprint() instead of __Plugin_flog()
+------------------------------------------------------------------------
+27bab626f | Norbert Eicker | Mon, 2 May 2022 19:27:12 +0200
+
+Introduce logger_funcprint to logging facility
+------------------------------------------------------------------------
+ae04b90ba | Norbert Eicker | Mon, 2 May 2022 18:42:10 +0200
+
+Adapt documentation comments to the general style
+------------------------------------------------------------------------
+8e765ff78 | Norbert Eicker | Fri, 18 Mar 2022 01:18:56 +0100
+
+Simplify code
+------------------------------------------------------------------------
+331710911 | Norbert Eicker | Fri, 18 Mar 2022 01:15:17 +0100
+
+Minor improvements
+------------------------------------------------------------------------
+4b0a14c92 | Norbert Eicker | Fri, 18 Mar 2022 01:14:34 +0100
+
+Add checks for correct usage of psAccountCtlScript()
+------------------------------------------------------------------------
+26baa338e | Norbert Eicker | Fri, 18 Mar 2022 01:13:43 +0100
+
+Enhance docu comments
+------------------------------------------------------------------------
+5338705f6 | Michael Rauh | Thu, 17 Mar 2022 17:15:51 +0100
+
+Fix typo
+------------------------------------------------------------------------
+97eb490f4 | Michael Rauh | Thu, 17 Mar 2022 14:34:16 +0100
+
+Call FS_finalize() when psaccount is shutting down
+------------------------------------------------------------------------
+1c65d0c03 | Norbert Eicker | Thu, 17 Mar 2022 00:51:11 +0100
+
+Improve debug logs
+------------------------------------------------------------------------
+def39fca4 | Norbert Eicker | Thu, 17 Mar 2022 00:50:36 +0100
+
+Whitespace fixes
+------------------------------------------------------------------------
+d8fde99cd | Norbert Eicker | Thu, 17 Mar 2022 00:48:11 +0100
+
+Simplify code
+------------------------------------------------------------------------
+2aa3b29ec | Norbert Eicker | Tue, 15 Mar 2022 16:36:36 +0100
+
+Simplify code
+------------------------------------------------------------------------
+9636cc5f4 | Norbert Eicker | Tue, 15 Mar 2022 14:14:00 +0100
+
+Push to automake 1.16.5 again
+------------------------------------------------------------------------
+9dcd1f1ac | Michael Rauh | Tue, 15 Mar 2022 14:06:13 +0100
+
+Fix invalid syntax in pluginforwarder loop
+------------------------------------------------------------------------
+3d3f88ab4 | Michael Rauh | Tue, 15 Mar 2022 13:56:42 +0100
+
+Update buildsystem
+------------------------------------------------------------------------
+2395aee2d | Michael Rauh | Tue, 15 Mar 2022 13:37:03 +0100
+
+Add default interconnect monitor script
+------------------------------------------------------------------------
+40eb54a50 | Michael Rauh | Tue, 15 Mar 2022 13:33:29 +0100
+
+Upate buildsystem
+------------------------------------------------------------------------
+780f863cb | Michael Rauh | Tue, 15 Mar 2022 13:30:58 +0100
+
+Add psaccount configuration option MONITOR_SCRIPT_PATH
+ * allows to set the default search path for monitor scripts
+------------------------------------------------------------------------
+c6a945074 | Michael Rauh | Tue, 15 Mar 2022 12:32:52 +0100
+
+Add psaccount configuration options INTERCONNECT_POLL and FILESYSTEM_POLL
+ * set default script poll time to 0 (disabled)
+ * add options to configuration template
+------------------------------------------------------------------------
+2e2a22d2a | Norbert Eicker | Mon, 14 Mar 2022 22:22:26 +0100
+
+Adapt psaccountscript to now psid<->pluginforwarder protocol
+------------------------------------------------------------------------
+72f5e2e91 | Norbert Eicker | Fri, 11 Mar 2022 02:08:14 +0100
+
+IWYU fixes
+------------------------------------------------------------------------
+1f1ecb21e | Norbert Eicker | Fri, 11 Mar 2022 00:53:37 +0100
+
+Push to automake 1.16.5 again
+------------------------------------------------------------------------
+f0a1280f5 | Michael Rauh | Thu, 10 Mar 2022 22:23:03 +0100
+
+Add psaccount to process title of monitor scripts
+------------------------------------------------------------------------
+97f155f45 | Michael Rauh | Thu, 10 Mar 2022 22:19:17 +0100
+
+Enhancement: allow to use Script_ctlEnv() before the monitor
+script was started
+------------------------------------------------------------------------
+dbe4b1a0d | Michael Rauh | Thu, 10 Mar 2022 17:49:43 +0100
+
+Let psslurm us psAccountScriptEnv() to set the infiniband port
+to monitor in psaccount
+------------------------------------------------------------------------
+df2523783 | Michael Rauh | Thu, 10 Mar 2022 17:47:05 +0100
+
+Let psslurm parse Slurm configuration file acct_gather.conf
+------------------------------------------------------------------------
+6f491f01e | Michael Rauh | Thu, 10 Mar 2022 17:18:19 +0100
+
+Introduce psaccount debug masks PSACC_LOG_FILESYS and PSACC_LOG_INTERCON
+------------------------------------------------------------------------
+349e37c27 | Michael Rauh | Thu, 10 Mar 2022 16:59:51 +0100
+
+Use pluginforwarder option FW_CHILD_INFINITE in psaccountscript
+------------------------------------------------------------------------
+5b2c0bc7c | Michael Rauh | Thu, 10 Mar 2022 16:53:01 +0100
+
+Introduce FW_CHILD_INFINITE to let the child of a plugin
+forwarder be restarted endlessly
+
+ *  ensure to re-open stdout/stderr channels for the restarted child
+------------------------------------------------------------------------
+c64516c40 | Michael Rauh | Mon, 7 Mar 2022 20:29:20 +0100
+
+Make psAccountCtl_t more distinct
+------------------------------------------------------------------------
+3d579235b | Michael Rauh | Mon, 7 Mar 2022 14:33:30 +0100
+
+Prevent possible segfault in psgw at unload when it was not
+initialized
+------------------------------------------------------------------------
+7a2f4297a | Michael Rauh | Mon, 7 Mar 2022 12:16:32 +0100
+
+Add interconnect and filesystem script to psaccount configuration
+------------------------------------------------------------------------
+b7aa37ed7 | Michael Rauh | Mon, 7 Mar 2022 11:53:54 +0100
+
+Make the environment of an psaccount collect script changeable
+------------------------------------------------------------------------
+3b2863f9f | Michael Rauh | Thu, 3 Mar 2022 14:16:12 +0100
+
+Use psAccountCtlScript() in psslurm to control psaccount
+monitor scripts
+------------------------------------------------------------------------
+b8861ee18 | Michael Rauh | Thu, 3 Mar 2022 14:06:35 +0100
+
+Unload psslurm if Slurm configuration parsing in configless
+mode fails
+------------------------------------------------------------------------
+365518c61 | Michael Rauh | Thu, 3 Mar 2022 12:29:22 +0100
+
+Allow plugins to control psaccount monitor scripts
+------------------------------------------------------------------------
+3ae6686e1 | Michael Rauh | Mon, 28 Feb 2022 22:57:09 +0100
+
+Set file-system, interconnect and energy account poll interval from
+slurm.conf
+------------------------------------------------------------------------
+be5026152 | Michael Rauh | Mon, 28 Feb 2022 17:37:21 +0100
+
+Combine various psaccount script counters in psAccountInfo_t
+------------------------------------------------------------------------
+fc52515c4 | Michael Rauh | Fri, 25 Feb 2022 17:24:24 +0100
+
+Fix copyright
+------------------------------------------------------------------------
+14d09c8c6 | Michael Rauh | Fri, 25 Feb 2022 17:12:54 +0100
+
+Update buildsystem
+------------------------------------------------------------------------
+9fb6ade27 | Michael Rauh | Fri, 25 Feb 2022 17:11:49 +0100
+
+Add new psaccount monitor for filesystems
+------------------------------------------------------------------------
+97e60e955 | Michael Rauh | Fri, 25 Feb 2022 16:51:48 +0100
+
+Start to replace mlog() with flog()
+------------------------------------------------------------------------
+e37534f77 | Michael Rauh | Fri, 25 Feb 2022 16:51:23 +0100
+
+Add flog() to psaccount
+------------------------------------------------------------------------
+96e6afa52 | Michael Rauh | Fri, 25 Feb 2022 16:38:13 +0100
+
+Make flog() funtion of psslurm accessable to other plugins
+ * move function flog() to plugincommon library
+ * rename flog() to __Plugin_flog()
+------------------------------------------------------------------------
+92f136f5a | Michael Rauh | Fri, 25 Feb 2022 15:17:34 +0100
+
+Adopt psslurm to changes in psaccount and use new interconnect
+data in psslurm
+------------------------------------------------------------------------
+ffea396db | Michael Rauh | Fri, 25 Feb 2022 15:17:01 +0100
+
+Adopt psmom to psaccount changes
+------------------------------------------------------------------------
+e3824d131 | Michael Rauh | Fri, 25 Feb 2022 14:57:12 +0100
+
+Increase psaccount version to reflect changes
+------------------------------------------------------------------------
+48d46f1ff | Michael Rauh | Fri, 25 Feb 2022 14:55:10 +0100
+
+Make psAccountSetPoll() and psAccountGetPoll() usable in a more
+general way
+------------------------------------------------------------------------
+12dde0a8e | Michael Rauh | Thu, 24 Feb 2022 18:20:07 +0100
+
+Improve psaccount energy naming scheme
+------------------------------------------------------------------------
+1beeefa45 | Michael Rauh | Thu, 24 Feb 2022 18:03:16 +0100
+
+Add functions to change/read the poll time of the energy
+collect script
+------------------------------------------------------------------------
+8067322e2 | Michael Rauh | Thu, 24 Feb 2022 18:01:09 +0100
+
+Add functions to change/read the poll time of the interconnect
+collect script
+------------------------------------------------------------------------
+9df609efd | Michael Rauh | Thu, 24 Feb 2022 17:56:28 +0100
+
+Add CMD_SET_POLL_TIME to psaccount script forwarder to
+enable the adjustment of the poll time
+------------------------------------------------------------------------
+25a741f00 | Michael Rauh | Fri, 28 Jan 2022 15:24:15 +0100
+
+Update rpm sources
+------------------------------------------------------------------------
+e1e6c2da7 | Michael Rauh | Fri, 28 Jan 2022 15:09:55 +0100
+
+Add IC data query
+------------------------------------------------------------------------
+17d410deb | Michael Rauh | Wed, 26 Jan 2022 21:57:28 +0100
+
+Update makefiles
+------------------------------------------------------------------------
+7c64beb51 | Michael Rauh | Tue, 18 Jan 2022 12:58:16 +0100
+
+Resolve merge error
+------------------------------------------------------------------------
+275d4f85a | Michael Rauh | Fri, 30 Apr 2021 10:24:17 +0200
+
+Introduce psaccount interconnect monitoring
+------------------------------------------------------------------------
+28f5cf681 | Michael Rauh | Thu, 29 Apr 2021 17:21:35 +0200
+
+Use psaccountscript in psaccountenergy
+------------------------------------------------------------------------
+a64ce9b61 | Michael Rauh | Thu, 29 Apr 2021 17:20:21 +0200
+
+Update buildsystem
+------------------------------------------------------------------------
+a155f500a | Michael Rauh | Thu, 29 Apr 2021 17:15:34 +0200
+
+Introduce psaccountscript to manage various collect scripts
+------------------------------------------------------------------------
+8adddb701 | Michael Rauh | Mon, 26 Apr 2021 21:44:54 +0200
+
+Pack real energy data for AcctGatherUpdate and AcctGatherEnergy
+------------------------------------------------------------------------
+b2310a3f2 | Michael Rauh | Mon, 26 Apr 2021 20:55:19 +0200
+
+Verify the slurm.conf has the correct TRes parameters set for
+AcctGatherFilesystemType and AcctGatherInterconnectType
+------------------------------------------------------------------------
+e2260a04b | Michael Rauh | Mon, 26 Apr 2021 19:13:21 +0200
+
+Sanity check slurm.conf options AcctGatherInterconnectType and
+AcctGatherFilesystemType
+------------------------------------------------------------------------
+
+
 Version 5.1.50-5:
 =================
 ------------------------------------------------------------------------

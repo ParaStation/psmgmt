@@ -6,6 +6,58 @@ Copyright (C) 2021-2022 ParTec AG, Munich
 Please send bug reports, questions and suggestions to <support@par-tec.com>
 
 
+*************************************************************************
+*************************************************************************
+**                                                                     **
+**  psmgmt 5.1.51-0 renames psconfig parameters (i.e.:                 **
+**       RdpStatusTimeout => StatusTimeout                             **
+**       RdpStatusDeadLimit => DeadLimit                               **
+**       RdpStatusBroadcasts => StatusBroadcasts                       **
+**  This must be reflected in the psconfig database. To adapt the      **
+**  defaults:psid object accordingly, the script                       **
+**  update_defaults_5.1.51.sh deployed in                              **
+**  /opt/parastation/share/doc/psmgmt/psconfig                         **
+**  must be run with corresponding rights on the system hosting the    **
+**  psconfig database. If your configuration contains custom setting   **
+**  of either parameter listed above, those have to be adapted, too.   **
+**  Starting with version 5.1.51 the ParaStation daemon will refuse    **
+**  kick off if one of the now obsolete psconfig parameters is found   **
+**                                                                     **
+*************************************************************************
+*************************************************************************
+
+Version 5.1.51:
+===============
+Bugfixes:
+ - Prevent writing behind end of buffer in spawner (#84)
+ - Reset FPE exceptions on spawn and unload if ENABLE_FPE_EXCEPTION is enabled
+ - Allow to run PMIx jobs as root
+ - Prevent possible segfault in psgw at unload when it was uninitialized
+ - Various potential bugs unveiled by scan-build
+ - Fix format errors unveiled by cppcheck
+ - Ensure array size for gethostname() is sufficient
+ - Ensure debug loops have no bad side effects
+Enhancements:
+ - Let MAP_LDOM pinning use physical domain numbers
+ - Support topology.conf and set SLURM_TOPOLOGY_* in rank environments
+ - Extend psslurm's accounting towards energy, interconnect and I/O
+   * Set their poll intervals from slurm.conf
+   * Add psaccount configuration option MONITOR_SCRIPT_PATH
+   * Introduce psaccount debug masks PSACC_LOG_FILESYS and PSACC_LOG_INTERCON
+ - Unload psslurm if Slurm configuration parsing in configless mode fails
+ - Enhance PMIx 4 support
+ - Add PMIx singleton support to pspmix
+ - Add default session ID explicitly (might be required by openpmix 4.1.2rc1)
+Additional changes:
+ - Rename (misleading) psconfig parameters to match psiadmin
+ - Make use of PSC_concat() less error-prone (remove need for trailing 0L)
+ - Make flog() and and fdbg() accessible to other plugins
+ - Introduce FW_CHILD_INFINITE to restart plugin forwarder's child endlessly
+ - Also call hookFWInitUser if user is root
+ - Add const qualifier to traverseHostList()
+ - Add some test programs for PMI
+
+
 Version 5.1.50-5:
 =================
 Bugfixes:
