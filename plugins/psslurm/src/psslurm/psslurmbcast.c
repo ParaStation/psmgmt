@@ -186,19 +186,12 @@ void freeBCastCred(BCast_Cred_t *cred)
 char *BCast_adjustExe(char *exe, uint32_t jobid, uint32_t stepid)
 {
     if (!exe) return NULL;
+    if (exe[strlen(exe) -1] != '/') return exe;
 
-    size_t exeLen = strlen(exe);
-    if (exe[exeLen -1] == '/') {
-	char strID[128];
-	snprintf(strID, sizeof(strID), "%u.%u", jobid, stepid);
-	char *newExe = PSC_concat(exe, "slurm_bcast_", strID, "_",
-			          getConfValueC(&Config, "SLURM_HOSTNAME"));
-	if (!newExe) {
-	    flog("PSC_concat(%s) out of memory\n", exe);
-	    return NULL;
-	}
-	return newExe;
-    }
-
-    return exe;
+    char strID[128];
+    snprintf(strID, sizeof(strID), "%u.%u", jobid, stepid);
+    char *newExe = PSC_concat(exe, "slurm_bcast_", strID, "_",
+			      getConfValueC(&Config, "SLURM_HOSTNAME"));
+    if (!newExe) flog("PSC_concat(%s) out of memory\n", exe);
+    return newExe;
 }

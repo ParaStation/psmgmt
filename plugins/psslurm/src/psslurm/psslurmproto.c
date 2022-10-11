@@ -1491,16 +1491,15 @@ static void handleFileBCast(Slurm_Msg_t *sMsg)
 	    mlog("%s: job %u not found\n", __func__, bcast->jobid);
 	    sendSlurmRC(sMsg, ESLURM_INVALID_JOB_ID);
 	    goto CLEANUP;
-	} else {
-	    bcast->uid = alloc->uid;
-	    bcast->gid = alloc->gid;
-	    bcast->env = &alloc->env;
-	    ufree(bcast->username);
-	    bcast->username = ustrdup(alloc->username);
-	    Step_t *step = Step_findByJobid(bcast->jobid);
-	    if (step) PSCPU_copy(bcast->hwthreads,
-		    step->nodeinfos[step->localNodeId].stepHWthreads);
 	}
+	bcast->uid = alloc->uid;
+	bcast->gid = alloc->gid;
+	bcast->env = &alloc->env;
+	ufree(bcast->username);
+	bcast->username = ustrdup(alloc->username);
+	Step_t *step = Step_findByJobid(bcast->jobid);
+	if (step) PSCPU_copy(bcast->hwthreads,
+			     step->nodeinfos[step->localNodeId].stepHWthreads);
     } else {
 	bcast->uid = job->uid;
 	bcast->gid = job->gid;
