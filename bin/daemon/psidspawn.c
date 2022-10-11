@@ -573,7 +573,7 @@ static void execClient(PStask_t *task)
 	if (sscanf(envStr, "%o", &mask) > 0) umask(mask);
     }
 
-    /* used by psslurm Spank to modify the namespace,
+    /* used e.g. by psslurm Spank to modify the namespace,
      * thus before testExecutable() and alarm */
     if (PSIDhook_call(PSIDHOOK_EXEC_CLIENT_PREP, task) < 0) {
 	eno = EPERM;
