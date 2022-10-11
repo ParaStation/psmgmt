@@ -10,6 +10,7 @@
  */
 #include "psslurmbcast.h"
 
+#include <stdio.h>
 #include <stdlib.h>
 #include <errno.h>
 #include <signal.h>
@@ -18,6 +19,7 @@
 
 #include "pscommon.h"
 
+#include "pluginconfig.h"
 #include "pluginmalloc.h"
 
 #include "psmungehandles.h"
