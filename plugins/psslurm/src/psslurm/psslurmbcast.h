@@ -144,7 +144,7 @@ void freeBCastCred(BCast_Cred_t *cred);
  *
  * @param jobid The job ID of the associated step
  *
- * @param jobid The step ID of the associated step
+ * @param stepid ID of the associated step
  *
  * @return Returns the adjusted or original executable name on success or
  * NULL on error
