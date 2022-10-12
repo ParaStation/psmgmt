@@ -603,7 +603,7 @@ int handleExecClientPrep(void *data)
 	if (!newExe) {
 	    flog("failed to adjust BCast exe %s\n", task->argv[0]);
 	} else {
-	    free(task->argv[0]);
+	    if (newExe != task->argv[0]) free(task->argv[0]);
 	    task->argv[0] = newExe;
 	}
     } else {
