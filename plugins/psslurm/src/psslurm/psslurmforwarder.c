@@ -597,12 +597,13 @@ int handleExecClientPrep(void *data)
 
 	setRankEnv(task->rank, fwStep);
 
-	/* adjust bcast executable name */
+	/* adjust BCast executable name */
 	char *newExe = BCast_adjustExe(task->argv[0], fwStep->jobid,
 				       fwStep->stepid);
 	if (!newExe) {
-	    flog("failed to adjust bcast exe %s\n", task->argv[0]);
+	    flog("failed to adjust BCast exe %s\n", task->argv[0]);
 	} else {
+	    free(task->argv[0]);
 	    task->argv[0] = newExe;
 	}
     } else {
