@@ -41,7 +41,7 @@ bool Job_destroy(Job_t *job)
 {
     if (!job) return false;
 
-    destroyBCastByJobid(job->jobid);
+    BCast_destroyByJobid(job->jobid);
 
     fdbg(PSSLURM_LOG_JOB, "%u\n", job->jobid);
 
@@ -73,7 +73,7 @@ bool Job_delete(Job_t *job)
 
     /* cleanup all corresponding resources */
     Step_clearByJobid(job->jobid);
-    clearBCastByJobid(job->jobid);
+    BCast_clearByJobid(job->jobid);
     freeGresCred(&job->gresList);
 
     /* overwrite sensitive data */
@@ -268,7 +268,7 @@ void Job_destroyAll(void)
 
 void Job_deleteAll(Job_t *preserve)
 {
-    clearBCastList();
+    BCast_clearList();
 
     list_t *j, *tmp;
     list_for_each_safe(j, tmp, &JobList) {

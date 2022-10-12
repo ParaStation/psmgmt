@@ -34,7 +34,7 @@
 /** List of all bcasts */
 static LIST_HEAD(BCastList);
 
-BCast_t *addBCast(void)
+BCast_t *BCast_add(void)
 {
     BCast_t *bcast = ucalloc(sizeof(BCast_t));
 
@@ -45,7 +45,7 @@ BCast_t *addBCast(void)
     return bcast;
 }
 
-void deleteBCast(BCast_t *bcast)
+void BCast_delete(BCast_t *bcast)
 {
     list_del(&bcast->next);
     freeSlurmMsg(&bcast->msg);
@@ -56,7 +56,7 @@ void deleteBCast(BCast_t *bcast)
     ufree(bcast);
 }
 
-bool extractBCastCred(Slurm_Msg_t *sMsg, BCast_t *bcast)
+bool BCast_extractCred(Slurm_Msg_t *sMsg, BCast_t *bcast)
 {
     char *credStart = sMsg->ptr, *sigBuf = NULL;
     BCast_Cred_t cred;
@@ -96,7 +96,7 @@ bool extractBCastCred(Slurm_Msg_t *sMsg, BCast_t *bcast)
 	    goto ERROR;
 	}
     } else {
-	BCast_t *firstBCast = findBCast(bcast->jobid, bcast->fileName, 1);
+	BCast_t *firstBCast = BCast_find(bcast->jobid, bcast->fileName, 1);
 	if (!firstBCast) {
 	    flog("no matching bcast for jobid %u fileName '%s' blockNum %u\n",
 		 bcast->jobid, bcast->fileName, bcast->blockNumber);
@@ -120,19 +120,19 @@ bool extractBCastCred(Slurm_Msg_t *sMsg, BCast_t *bcast)
     bcast->jobid = cred.jobid;
     bcast->stepid = cred.stepid;
 
-    freeBCastCred(&cred);
+    BCast_freeCred(&cred);
     free(sigBuf);
     return true;
 
 ERROR:
     eno = errno;
-    freeBCastCred(&cred);
+    BCast_freeCred(&cred);
     free(sigBuf);
     errno = eno;
     return false;
 }
 
-void destroyBCastByJobid(uint32_t jobid)
+void BCast_destroyByJobid(uint32_t jobid)
 {
     list_t *b, *tmp;
     list_for_each_safe(b, tmp, &BCastList) {
@@ -141,31 +141,31 @@ void destroyBCastByJobid(uint32_t jobid)
 	    if (bcast->fwdata) {
 		killChild(PSC_getPID(bcast->fwdata->tid), SIGKILL, bcast->uid);
 	    } else {
-		deleteBCast(bcast);
+		BCast_delete(bcast);
 	    }
 	}
     }
 }
 
-void clearBCastByJobid(uint32_t jobid)
+void BCast_clearByJobid(uint32_t jobid)
 {
     list_t *b, *tmp;
     list_for_each_safe(b, tmp, &BCastList) {
 	BCast_t *bcast = list_entry(b, BCast_t, next);
-	if (bcast->jobid == jobid) deleteBCast(bcast);
+	if (bcast->jobid == jobid) BCast_delete(bcast);
     }
 }
 
-void clearBCastList(void)
+void BCast_clearList(void)
 {
     list_t *b, *tmp;
     list_for_each_safe(b, tmp, &BCastList) {
 	BCast_t *bcast = list_entry(b, BCast_t, next);
-	deleteBCast(bcast);
+	BCast_delete(bcast);
     }
 }
 
-BCast_t *findBCast(uint32_t jobid, char *fileName, uint32_t blockNum)
+BCast_t *BCast_find(uint32_t jobid, char *fileName, uint32_t blockNum)
 {
     list_t *b;
     list_for_each(b, &BCastList) {
@@ -177,7 +177,7 @@ BCast_t *findBCast(uint32_t jobid, char *fileName, uint32_t blockNum)
     return NULL;
 }
 
-void freeBCastCred(BCast_Cred_t *cred)
+void BCast_freeCred(BCast_Cred_t *cred)
 {
     ufree(cred->username);
     ufree(cred->gids);

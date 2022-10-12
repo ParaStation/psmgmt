@@ -176,7 +176,7 @@ bool Alloc_delete(uint32_t id)
     Job_t *job = Job_findById(id);
     Job_destroy(job);
     Step_clearByJobid(id);
-    clearBCastByJobid(id);
+    BCast_clearByJobid(id);
 
     Alloc_t *alloc = Alloc_find(id);
     if (!alloc) return false;

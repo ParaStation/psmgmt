@@ -1467,7 +1467,7 @@ static void handleFileBCast(Slurm_Msg_t *sMsg)
     bcast->msg.head.uid = sMsg->head.uid;
 
     /* unpack credential */
-    if (!extractBCastCred(sMsg, bcast)) {
+    if (!BCast_extractCred(sMsg, bcast)) {
 	if (!errno) {
 	    sendSlurmRC(sMsg, ESLURM_AUTH_CRED_INVALID);
 	} else {
@@ -1533,7 +1533,7 @@ static void handleFileBCast(Slurm_Msg_t *sMsg)
     return;
 
 CLEANUP:
-    deleteBCast(bcast);
+    BCast_delete(bcast);
 }
 
 static int addSlurmAccData(SlurmAccData_t *slurmAccData)

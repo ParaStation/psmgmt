@@ -72,7 +72,7 @@ typedef struct {
 /**
  * @brief Add a new BCast request
  */
-BCast_t *addBCast(void);
+BCast_t *BCast_add(void);
 
 /**
  * @brief Extract and verify a BCast credential
@@ -84,7 +84,7 @@ BCast_t *addBCast(void);
  * @return On success true is returned or false in case of an
  * error.
  */
-bool extractBCastCred(Slurm_Msg_t *sMsg, BCast_t *bcast);
+bool BCast_extractCred(Slurm_Msg_t *sMsg, BCast_t *bcast);
 
 /**
  * @brief Find a BCast request
@@ -97,21 +97,21 @@ bool extractBCastCred(Slurm_Msg_t *sMsg, BCast_t *bcast);
  *
  * @return Returns a pointer to the BCast request or NULL on error
  */
-BCast_t *findBCast(uint32_t jobid, char *fileName, uint32_t blockNum);
+BCast_t *BCast_find(uint32_t jobid, char *fileName, uint32_t blockNum);
 
 /**
  * @brief Delete a BCast request
  *
  * @param bcast Pointer to the request to delete
  */
-void deleteBCast(BCast_t *bcast);
+void BCast_delete(BCast_t *bcast);
 
 /**
  * @brief Delete all BCast requests for a job
  *
  * @param jobid The jobid to delete all requests for
  */
-void clearBCastByJobid(uint32_t jobid);
+void BCast_clearByJobid(uint32_t jobid);
 
 /**
  * @brief Destroy all BCast requests for a job
@@ -120,19 +120,19 @@ void clearBCastByJobid(uint32_t jobid);
  *
  * @param jobid The jobid to destroy all requests for
  */
-void destroyBCastByJobid(uint32_t jobid);
+void BCast_destroyByJobid(uint32_t jobid);
 
 /**
  * @brief Free all lingering BCast requests
  */
-void clearBCastList(void);
+void BCast_clearList(void);
 
 /**
-* @brief Free a bcast credential
+* @brief Free a BCast credential
 *
-* @param cred The bcast credential to free
+* @param cred The BCast credential to free
 */
-void freeBCastCred(BCast_Cred_t *cred);
+void BCast_freeCred(BCast_Cred_t *cred);
 
 /**
  * @brief Adjust executable name to BCast distribution pattern

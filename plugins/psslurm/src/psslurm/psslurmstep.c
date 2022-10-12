@@ -354,7 +354,7 @@ bool Step_destroy(Step_t *step)
 
     /* make sure all connections for the step are closed */
     closeAllStepConnections(step);
-    clearBCastByJobid(step->jobid);
+    BCast_clearByJobid(step->jobid);
 
     if (step->fwdata) {
 	signalTasks(step->jobid, step->uid, &step->tasks, SIGKILL, -1);

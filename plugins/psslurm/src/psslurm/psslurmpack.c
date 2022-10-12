@@ -2090,7 +2090,7 @@ static bool packRespNodeRegStatus(PS_SendDB_t *data,
 static bool unpackReqFileBcast(Slurm_Msg_t *sMsg)
 {
     char **ptr = &sMsg->ptr;
-    BCast_t *bcast = addBCast();
+    BCast_t *bcast = BCast_add();
     uint16_t msgVer = sMsg->head.version;
 
     /* block number */
@@ -2137,7 +2137,7 @@ static bool unpackReqFileBcast(Slurm_Msg_t *sMsg)
     bcast->block = getDataM(ptr, &len);
     if (bcast->blockLen != len) {
 	mlog("%s: blockLen mismatch: %d/%zd\n", __func__, bcast->blockLen, len);
-	deleteBCast(bcast);
+	BCast_delete(bcast);
 	return false;
     }
 

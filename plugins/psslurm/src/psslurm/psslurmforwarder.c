@@ -328,7 +328,7 @@ static void bcastCallback(int32_t exit_status, Forwarder_Data_t *fw)
     sendSlurmRC(&bcast->msg, WEXITSTATUS(fw->chldExitStatus));
 
     bcast->fwdata = NULL;
-    if (bcast->flags & BCAST_LAST_BLOCK) clearBCastByJobid(bcast->jobid);
+    if (bcast->flags & BCAST_LAST_BLOCK) BCast_clearByJobid(bcast->jobid);
 }
 
 static int setFilePermissions(Job_t *job)

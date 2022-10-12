@@ -885,7 +885,7 @@ void cleanup(void)
     clearGresConf();
     clearSlurmdProto();
     clearMsgBuf();
-    clearBCastList();
+    BCast_clearList();
     freeConfig(&Config);
     freeConfig(&SlurmConfig);
     freeEnvFilter();
