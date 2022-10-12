@@ -21,7 +21,7 @@
 #include "psidforwarder.h"  // IWYU pragma: keep
 
 #include "pspmixtypes.h"
-#include "pspmixuserserver.h"  // IWYU pragma: keep (for server)
+#include "pspmixuserserver.h"  // IWYU pragma: keep // for server)
 
 extern logger_t *pmixlogger;
 
