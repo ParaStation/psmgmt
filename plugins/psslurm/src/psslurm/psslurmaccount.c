@@ -240,6 +240,116 @@ void TRes_destroy(TRes_t *tres)
     ufree(tres);
 }
 
+static bool InitEnergyAcc(int poll)
+{
+    oldEnergyPollTime = psAccountGetPoll(PSACCOUNT_OPT_ENERGY);
+    psAccountSetPoll(PSACCOUNT_OPT_ENERGY, poll);
+
+    char *val = getConfValueC(&SlurmConfig, "AcctGatherEnergyType");
+    if (val) {
+	char *envStr = PSC_concat("ENERGY_TYPE=", val);
+	if (!envStr) {
+	    flog("PSC_concat() out of memory");
+	    return false;
+	}
+	bool ret = psAccountScriptEnv(PSACCOUNT_SCRIPT_ENV_SET,
+				      PSACCOUNT_OPT_ENERGY, envStr);
+	free(envStr);
+	if (!ret) {
+	    flog("failed to setup energy monitor environment\n");
+	    return false;
+	}
+    }
+
+    bool ret = psAccountCtlScript(PSACCOUNT_SCRIPT_START, PSACCOUNT_OPT_ENERGY);
+
+    if (!ret) {
+	flog("failed to start energy monitor script\n");
+	return false;
+    }
+    fdbg(PSSLURM_LOG_ACC, "start energy script interval %i\n", poll);
+
+    return true;
+}
+
+static bool InitFSAcc(int poll)
+{
+    oldFilesystemPollTime = psAccountGetPoll(PSACCOUNT_OPT_FS);
+    psAccountSetPoll(PSACCOUNT_OPT_FS, poll);
+
+    char *val = getConfValueC(&SlurmConfig, "AcctGatherFilesystemType");
+    if (val) {
+	char *envStr = PSC_concat("FILESYSTEM_TYPE=", val);
+	if (!envStr) {
+	    flog("PSC_concat() out of memory");
+	    return false;
+	}
+	bool ret = psAccountScriptEnv(PSACCOUNT_SCRIPT_ENV_SET,
+				      PSACCOUNT_OPT_FS, envStr);
+	free(envStr);
+	if (!ret) {
+	    flog("failed to setup filesystem monitor environment\n");
+	    return false;
+	}
+    }
+
+    bool ret = psAccountCtlScript(PSACCOUNT_SCRIPT_START, PSACCOUNT_OPT_FS);
+    if (!ret) {
+	flog("failed to start filesystem monitor script\n");
+	return false;
+    }
+    fdbg(PSSLURM_LOG_ACC, "start filesystem script interval %i\n", poll);
+    return true;
+}
+
+
+static bool InitNetworkAcc(int poll)
+{
+    oldInterconnectPollTime = psAccountGetPoll(PSACCOUNT_OPT_IC);
+    psAccountSetPoll(PSACCOUNT_OPT_IC, poll);
+
+    char *val = getConfValueC(&SlurmConfig, "AcctGatherInterconnectType");
+    if (val) {
+	char *envStr = PSC_concat("INTERCONNECT_TYPE=", val);
+	if (!envStr) {
+	    flog("PSC_concat() out of memory");
+	    return false;
+	}
+	bool ret = psAccountScriptEnv(PSACCOUNT_SCRIPT_ENV_SET,
+				      PSACCOUNT_OPT_IC, envStr);
+	free(envStr);
+	if (!ret) {
+	    flog("failed to setup interconnect monitor environment\n");
+	    return false;
+	}
+    }
+
+    char *port = getConfValueC(&SlurmConfig, "INFINIBAND_OFED_PORT");
+    if (port) {
+	char *envStr = PSC_concat("INFINIBAND_OFED_PORT=", port);
+	if (!envStr) {
+	    flog("PSC_concat() out of memory");
+	    return false;
+	}
+	bool ret = psAccountScriptEnv(PSACCOUNT_SCRIPT_ENV_SET,
+				      PSACCOUNT_OPT_IC, envStr);
+	free(envStr);
+	if (!ret) {
+	    flog("failed to setup interconnect monitor environment\n");
+	    return false;
+	}
+    }
+
+    bool ret = psAccountCtlScript(PSACCOUNT_SCRIPT_START, PSACCOUNT_OPT_IC);
+    if (!ret) {
+	flog("failed to start interconnect monitor script\n");
+	return false;
+    }
+
+    fdbg(PSSLURM_LOG_ACC, "start interconnect script interval %i\n", poll);
+    return true;
+}
+
 bool Acc_Init(void)
 {
     /* we want to have periodic updates on used resources */
@@ -257,111 +367,15 @@ bool Acc_Init(void)
 
     /* enable energy polling */
     poll = getConfValueI(&Config, "SLURM_ACC_ENERGY");
-    if (poll > 0) {
-	oldEnergyPollTime = psAccountGetPoll(PSACCOUNT_OPT_ENERGY);
-	psAccountSetPoll(PSACCOUNT_OPT_ENERGY, poll);
-
-	char *val = getConfValueC(&SlurmConfig, "AcctGatherEnergyType");
-	if (val) {
-	    char *envStr = PSC_concat("ENERGY_TYPE=", val);
-	    if (!envStr) {
-		flog("PSC_concat() out of memory");
-		return false;
-	    }
-	    bool ret = psAccountScriptEnv(PSACCOUNT_SCRIPT_ENV_SET,
-					  PSACCOUNT_OPT_ENERGY, envStr);
-	    free(envStr);
-	    if (!ret) {
-		flog("failed to setup energy monitor environment\n");
-		return false;
-	    }
-	}
-
-	bool ret = psAccountCtlScript(PSACCOUNT_SCRIPT_START,
-				      PSACCOUNT_OPT_ENERGY);
-
-	if (!ret) {
-	    flog("failed to start energy monitor script\n");
-	    return false;
-	}
-	fdbg(PSSLURM_LOG_ACC, "start energy script interval %i\n", poll);
-    }
+    if (poll > 0) InitEnergyAcc(poll);
 
     /* enable file-system polling */
     poll = getConfValueI(&Config, "SLURM_ACC_FILESYSTEM");
-    if (poll > 0) {
-	oldFilesystemPollTime = psAccountGetPoll(PSACCOUNT_OPT_FS);
-	psAccountSetPoll(PSACCOUNT_OPT_FS, poll);
-
-	char *val = getConfValueC(&SlurmConfig, "AcctGatherFilesystemType");
-	if (val) {
-	    char *envStr = PSC_concat("FILESYSTEM_TYPE=", val);
-	    if (!envStr) {
-		flog("PSC_concat() out of memory");
-		return false;
-	    }
-	    bool ret = psAccountScriptEnv(PSACCOUNT_SCRIPT_ENV_SET,
-					  PSACCOUNT_OPT_FS, envStr);
-	    free(envStr);
-	    if (!ret) {
-		flog("failed to setup filesystem monitor environment\n");
-		return false;
-	    }
-	}
-
-	bool ret = psAccountCtlScript(PSACCOUNT_SCRIPT_START, PSACCOUNT_OPT_FS);
-	if (!ret) {
-	    flog("failed to start filesystem monitor script\n");
-	    return false;
-	}
-	fdbg(PSSLURM_LOG_ACC, "start filesystem script interval %i\n", poll);
-    }
+    if (poll > 0) InitFSAcc(poll);
 
     /* enable interconnect polling */
     poll = getConfValueI(&Config, "SLURM_ACC_NETWORK");
-    if (poll > 0) {
-	oldInterconnectPollTime = psAccountGetPoll(PSACCOUNT_OPT_IC);
-	psAccountSetPoll(PSACCOUNT_OPT_IC, poll);
-
-	char *val = getConfValueC(&SlurmConfig, "AcctGatherInterconnectType");
-	if (val) {
-	    char *envStr = PSC_concat("INTERCONNECT_TYPE=", val);
-	    if (!envStr) {
-		flog("PSC_concat() out of memory");
-		return false;
-	    }
-	    bool ret = psAccountScriptEnv(PSACCOUNT_SCRIPT_ENV_SET,
-					  PSACCOUNT_OPT_IC, envStr);
-	    free(envStr);
-	    if (!ret) {
-		flog("failed to setup interconnect monitor environment\n");
-		return false;
-	    }
-	}
-
-	char *port = getConfValueC(&SlurmConfig, "INFINIBAND_OFED_PORT");
-	if (port) {
-	    char *envStr = PSC_concat("INFINIBAND_OFED_PORT=", port);
-	    if (!envStr) {
-		flog("PSC_concat() out of memory");
-		return false;
-	    }
-	    bool ret = psAccountScriptEnv(PSACCOUNT_SCRIPT_ENV_SET,
-					  PSACCOUNT_OPT_IC, envStr);
-	    free(envStr);
-	    if (!ret) {
-		flog("failed to setup interconnect monitor environment\n");
-		return false;
-	    }
-	}
-
-	bool ret = psAccountCtlScript(PSACCOUNT_SCRIPT_START, PSACCOUNT_OPT_IC);
-	if (!ret) {
-	    flog("failed to start interconnect monitor script\n");
-	    return false;
-	}
-	fdbg(PSSLURM_LOG_ACC, "start interconnect script interval %i\n", poll);
-    }
+    if (poll > 0) InitNetworkAcc(poll);
 
     fdbg(PSSLURM_LOG_ACC, "psslurm account facility initialize success\n");
     return true;
