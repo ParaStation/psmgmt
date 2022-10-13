@@ -240,6 +240,25 @@ void TRes_destroy(TRes_t *tres)
     ufree(tres);
 }
 
+static bool setAccEnv(char *name, psAccountOpt_t opt)
+{
+    char *val = getConfValueC(&SlurmConfig, name);
+    if (val) {
+	char *envStr = PSC_concat(name, "=", val);
+	if (!envStr) {
+	    flog("PSC_concat() out of memory");
+	    return false;
+	}
+	bool ret = psAccountScriptEnv(PSACCOUNT_SCRIPT_ENV_SET, opt, envStr);
+	free(envStr);
+	if (!ret) {
+	    flog("failed to setup %s environment\n", name);
+	    return false;
+	}
+    }
+    return true;
+}
+
 static bool InitEnergyAcc(int poll)
 {
     oldEnergyPollTime = psAccountGetPoll(PSACCOUNT_OPT_ENERGY);
@@ -324,21 +343,7 @@ static bool InitNetworkAcc(int poll)
 	}
     }
 
-    char *port = getConfValueC(&SlurmConfig, "INFINIBAND_OFED_PORT");
-    if (port) {
-	char *envStr = PSC_concat("INFINIBAND_OFED_PORT=", port);
-	if (!envStr) {
-	    flog("PSC_concat() out of memory");
-	    return false;
-	}
-	bool ret = psAccountScriptEnv(PSACCOUNT_SCRIPT_ENV_SET,
-				      PSACCOUNT_OPT_IC, envStr);
-	free(envStr);
-	if (!ret) {
-	    flog("failed to setup interconnect monitor environment\n");
-	    return false;
-	}
-    }
+    setAccEnv("INFINIBAND_OFED_PORT", PSACCOUNT_OPT_IC);
 
     bool ret = psAccountCtlScript(PSACCOUNT_SCRIPT_START, PSACCOUNT_OPT_IC);
     if (!ret) {
