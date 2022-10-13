@@ -1085,6 +1085,8 @@ static bool verifySlurmPlugins(void)
 	    fdbg(PSSLURM_LOG_SPLUGIN, "gather energy: none\n");
 	} else if (!strcasecmp(val, "acct_gather_energy/rapl")) {
 	    fdbg(PSSLURM_LOG_SPLUGIN, "gather energy: rapl\n");
+	} else if (!strcasecmp(val, "acct_gather_energy/ipmi")) {
+	    fdbg(PSSLURM_LOG_SPLUGIN, "gather energy: ipmi\n");
 	} else {
 	    flog("unsupported AcctGatherEnergyType %s in "
 		 "slurm.conf\n", val);
@@ -1196,6 +1198,16 @@ static bool parseAcctGatherConf(char *key, char *value, const void *info)
 {
     if (!strcasecmp(key, "InfinibandOFEDPort")) {
 	addConfigEntry(&SlurmConfig, "INFINIBAND_OFED_PORT", value);
+    } else if (!strcasecmp(key, "EnergyIPMIFrequency")) {
+	addConfigEntry(&SlurmConfig, "IPMI_FREQUENCY", value);
+    } else if (!strcasecmp(key, "EnergyIPMICalcAdjustment")) {
+	addConfigEntry(&SlurmConfig, "IPMI_ADJUSTMENT", value);
+    } else if (!strcasecmp(key, "EnergyIPMIPowerSensors")) {
+	addConfigEntry(&SlurmConfig, "IPMI_POWER_SENSORS", value);
+    } else if (!strcasecmp(key, "EnergyIPMIUsername")) {
+	addConfigEntry(&SlurmConfig, "IPMI_USERNAME", value);
+    } else if (!strcasecmp(key, "EnergyIPMIPassword")) {
+	addConfigEntry(&SlurmConfig, "IPMI_PASSWORD", value);
     }
 
     /* parsing was successful, continue with next line */

@@ -278,6 +278,14 @@ static bool InitEnergyAcc(int poll)
 	    flog("failed to setup energy monitor environment\n");
 	    return false;
 	}
+
+	if (!setAccEnv("IPMI_FREQUENCY", PSACCOUNT_OPT_ENERGY)) return false;
+	if (!setAccEnv("IPMI_ADJUSTMENT", PSACCOUNT_OPT_ENERGY)) return false;
+	if (!setAccEnv("IPMI_POWER_SENSORS", PSACCOUNT_OPT_ENERGY)) {
+	    return false;
+	}
+	if (!setAccEnv("IPMI_USERNAME", PSACCOUNT_OPT_ENERGY)) return false;
+	if (!setAccEnv("IPMI_PASSWORD", PSACCOUNT_OPT_ENERGY)) return false;
     }
 
     bool ret = psAccountCtlScript(PSACCOUNT_SCRIPT_START, PSACCOUNT_OPT_ENERGY);
@@ -321,7 +329,6 @@ static bool InitFSAcc(int poll)
     return true;
 }
 
-
 static bool InitNetworkAcc(int poll)
 {
     oldInterconnectPollTime = psAccountGetPoll(PSACCOUNT_OPT_IC);
@@ -343,7 +350,7 @@ static bool InitNetworkAcc(int poll)
 	}
     }
 
-    setAccEnv("INFINIBAND_OFED_PORT", PSACCOUNT_OPT_IC);
+    if (!setAccEnv("INFINIBAND_OFED_PORT", PSACCOUNT_OPT_IC)) return false;
 
     bool ret = psAccountCtlScript(PSACCOUNT_SCRIPT_START, PSACCOUNT_OPT_IC);
     if (!ret) {
