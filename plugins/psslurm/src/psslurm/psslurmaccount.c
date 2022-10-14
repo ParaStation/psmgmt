@@ -240,6 +240,15 @@ void TRes_destroy(TRes_t *tres)
     ufree(tres);
 }
 
+/**
+ * @brief Forward Slurm configuration value to monitor environment
+ *
+ * @param name The name of the configuration option to forward
+ *
+ * @param opt psaccount option to change
+ *
+ * @return Returns true on success otherwise false is returned
+ */
 static bool setAccEnv(char *name, psAccountOpt_t opt)
 {
     char *val = getConfValueC(&SlurmConfig, name);
@@ -259,6 +268,13 @@ static bool setAccEnv(char *name, psAccountOpt_t opt)
     return true;
 }
 
+/**
+ * @brief Initialize energy accounting
+ *
+ * @param poll Update time in seconds
+ *
+ * @return Returns true on success otherwise false is returned
+ */
 static bool InitEnergyAcc(int poll)
 {
     oldEnergyPollTime = psAccountGetPoll(PSACCOUNT_OPT_ENERGY);
@@ -299,6 +315,13 @@ static bool InitEnergyAcc(int poll)
     return true;
 }
 
+/**
+ * @brief Initialize file-system accounting
+ *
+ * @param poll Update time in seconds
+ *
+ * @return Returns true on success otherwise false is returned
+ */
 static bool InitFSAcc(int poll)
 {
     oldFilesystemPollTime = psAccountGetPoll(PSACCOUNT_OPT_FS);
@@ -329,6 +352,13 @@ static bool InitFSAcc(int poll)
     return true;
 }
 
+/**
+ * @brief Initialize network accounting
+ *
+ * @param poll Update time in seconds
+ *
+ * @return Returns true on success otherwise false is returned
+ */
 static bool InitNetworkAcc(int poll)
 {
     oldInterconnectPollTime = psAccountGetPoll(PSACCOUNT_OPT_IC);
