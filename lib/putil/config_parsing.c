@@ -1247,18 +1247,20 @@ static confkeylist_t each_node_configkey_list[] = {
 };
 
 /**
- * @brief Insert a node.
+ * @brief Insert a node
  *
  * Helper function to make a node known to the ParaStation daemon.
  *
- * @param id ParaStation ID for this node.
+ * @param id ParaStation ID of the node to register
  *
- * @param addr IP address of the node to register.
+ * @param nodename Symbolic name of the node to register
+ *
+ * @param addr IP address of the node to register
  *
  * @return Return false if an error occurred or true if the node was
  * inserted successfully.
  */
-static bool newHost(int id, in_addr_t addr, char *nodename)
+static bool newHost(int id, char *nodename, in_addr_t addr)
 {
     if (id < 0) { /* id out of Range */
 	parser_comment(-1, "node ID <%d> out of range\n", id);
@@ -1288,9 +1290,9 @@ static bool newHost(int id, in_addr_t addr, char *nodename)
     }
 
     /* install hostname */
-    if (!PSIDnodes_register(id, addr, nodename)) {
-	parser_comment(-1, "PSIDnodes_register(%d, <%s>, %s) failed\n",
-		       id, inet_ntoa(*(struct in_addr *)&addr), nodename);
+    if (!PSIDnodes_register(id, nodename, addr)) {
+	parser_comment(-1, "PSIDnodes_register(%d, %s, <%s>) failed\n",
+		       id, nodename, inet_ntoa(*(struct in_addr *)&addr));
 	return false;
     }
 
@@ -1400,7 +1402,7 @@ static bool insertNode(void)
     parser_comment(PARSER_LOG_NODE, "Register '%s' as %d\n", nodename, nodeid);
     parser_updateHash(&config.nodeListHash, nodename);
 
-    if (!newHost(nodeid, ipaddr, nodename)) {
+    if (!newHost(nodeid, nodename, ipaddr)) {
 	g_free(nodename);
 	return false;
     }

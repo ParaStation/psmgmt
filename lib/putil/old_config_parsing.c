@@ -1831,9 +1831,9 @@ static int newHost(int id, in_addr_t addr)
     } else {
 	nodename = buf;
     }
-    if (!PSIDnodes_register(id, addr, nodename)) {
-	parser_comment(-1, "PSIDnodes_register(%d, <%s>) failed\n",
-		       id, inet_ntoa(*(struct in_addr *)&addr));
+    if (!PSIDnodes_register(id, nodename, addr)) {
+	parser_comment(-1, "PSIDnodes_register(%d, %s, <%s>) failed\n",
+		       id, nodename, inet_ntoa(*(struct in_addr *)&addr));
 	return -1;
     }
 

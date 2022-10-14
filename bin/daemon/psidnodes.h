@@ -89,19 +89,24 @@ PSnodes_ID_t PSIDnodes_getMaxID(void);
 /**
  * @brief Register a new node
  *
- * Register a new node with ParaStation ID @a id. This node will
- * reside on the host with IP address @a IPaddr. The IP address has to
- * be given in network byteorder.
+ * Register a new node with ParaStation ID @a id and the symbolic name
+ * @a nodename. This node will reside on the host with IP address @a
+ * IPaddr. The IP address has to be given in network byteorder.
+ *
+ * The symbolic name @a nodename is only loosely connected to the IP
+ * address and is taken as is from psid's configuration. Especially
+ * resolving the IP address might result in a divergent name for this
+ * node.
  *
  * @param id ParaStation ID of the new node
  *
  * @param addr IP address of the new node
  *
- * @param nodename Name of the new node (as configured for the psid)
+ * @param nodename Name of the new node (as configured in psid's configuration)
  *
  * @return On success, true is returned; or false if an error occurred
  */
-bool PSIDnodes_register(PSnodes_ID_t id, in_addr_t addr, const char *nodename);
+bool PSIDnodes_register(PSnodes_ID_t id, const char *nodename, in_addr_t addr);
 
 
 /**
@@ -133,14 +138,15 @@ in_addr_t PSIDnodes_getAddr(PSnodes_ID_t id);
 /**
  * @brief Get node's configured name
  *
- * Get the name of the node with ParaStation ID @a id. This returnes the node's
- * name as it is configured for the psid. It is not necessarily the same name
- * as the resolver would get for the nodes IP address.
+ * Get the symbolic name of the node with ParaStation ID @a id. This
+ * returns the node's name as it is configured within psid's
+ * configuration. This is not necessarily identical to the name the
+ * resolver would get for the node's IP address.
  *
  * @param id ParaStation ID of the node to look up
  *
- * @return If the node was found, the nodename is returned; or NULL if an error
- * occurred
+ * @return If the node was found, a string containing the symbolic
+ * name is returned; or NULL if an error occurred
  */
 const char * PSIDnodes_getNodename(PSnodes_ID_t id);
 

@@ -41,8 +41,7 @@ static struct host_t *hosts[256];
 /** Structure holding all known info available concerning a specific node */
 typedef struct {
     in_addr_t addr;        /**< IP address of that node */
-    char *nodename;        /**< name of that node as configured for the psid
-                                (not necessarily the resolver's name for addr)*/
+    char *nodename;        /**< name of that node as givin in psid's config */
     int protoVer;          /**< Node's PSprotocol version */
     int daemonProtoVer;    /**< Node's PSDaemonprotocol version */
     short numCores;        /**< Number of physical processor cores */
@@ -197,7 +196,7 @@ static bool validID(PSnodes_ID_t id)
 
 #define GROW_CHUNK 64
 
-bool PSIDnodes_register(PSnodes_ID_t id, in_addr_t addr, const char *nodename)
+bool PSIDnodes_register(PSnodes_ID_t id, const char *nodename, in_addr_t addr)
 {
     unsigned int hostno;
     struct host_t *host;
@@ -235,6 +234,7 @@ bool PSIDnodes_register(PSnodes_ID_t id, in_addr_t addr, const char *nodename)
 
     /* install hostname */
     nodes[id].addr = addr;
+    free(nodes[id].nodename);
     nodes[id].nodename = strdup(nodename);
 
     if (id > PSIDnodes_getMaxID()) maxID = id;
