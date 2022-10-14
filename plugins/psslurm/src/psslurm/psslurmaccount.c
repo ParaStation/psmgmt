@@ -304,9 +304,7 @@ static bool InitEnergyAcc(int poll)
 	if (!setAccEnv("IPMI_PASSWORD", PSACCOUNT_OPT_ENERGY)) return false;
     }
 
-    bool ret = psAccountCtlScript(PSACCOUNT_SCRIPT_START, PSACCOUNT_OPT_ENERGY);
-
-    if (!ret) {
+    if (!psAccountCtlScript(PSACCOUNT_SCRIPT_START, PSACCOUNT_OPT_ENERGY)) {
 	flog("failed to start energy monitor script\n");
 	return false;
     }
@@ -343,8 +341,7 @@ static bool InitFSAcc(int poll)
 	}
     }
 
-    bool ret = psAccountCtlScript(PSACCOUNT_SCRIPT_START, PSACCOUNT_OPT_FS);
-    if (!ret) {
+    if (!psAccountCtlScript(PSACCOUNT_SCRIPT_START, PSACCOUNT_OPT_FS)) {
 	flog("failed to start filesystem monitor script\n");
 	return false;
     }
@@ -382,8 +379,7 @@ static bool InitNetworkAcc(int poll)
 
     if (!setAccEnv("INFINIBAND_OFED_PORT", PSACCOUNT_OPT_IC)) return false;
 
-    bool ret = psAccountCtlScript(PSACCOUNT_SCRIPT_START, PSACCOUNT_OPT_IC);
-    if (!ret) {
+    if (!psAccountCtlScript(PSACCOUNT_SCRIPT_START, PSACCOUNT_OPT_IC)) {
 	flog("failed to start interconnect monitor script\n");
 	return false;
     }
