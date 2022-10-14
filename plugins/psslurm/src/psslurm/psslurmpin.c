@@ -2336,7 +2336,7 @@ void test_pinning(uint16_t socketCount, uint16_t coresPerSocket,
 	uint16_t threadsPerCore, uint32_t tasksPerNode, uint16_t threadsPerTask,
 	uint16_t cpuBindType, char *cpuBindString, uint32_t taskDist,
 	uint16_t memBindType, char *memBindString, env_t *env,
-	bool humanreadable, bool printmembind, bool overcommit)
+	bool humanreadable, bool printmembind, bool overcommit, bool exact)
 {
 
     uint32_t threadCount = socketCount * coresPerSocket * threadsPerCore;
@@ -2371,6 +2371,52 @@ void test_pinning(uint16_t socketCount, uint16_t coresPerSocket,
 	nodeinfo.threadCount = nodeinfo.coreCount;
 	fdbg(PSSLURM_LOG_PART, "hint 'nomultithread' set,"
 		" setting nodeinfo.threadsPerCore = 1\n");
+    }
+
+    /* handle exact
+     * "exact" means to set the coremap of the step to just contain the minimum
+     * number of cores that are needed to fullfil the requirements. To calculate
+     * the coremap that we should get from slurmctld, we simulate to pin using
+     * the core distribution strategy block and aggregate the pinning maps
+     * of all processes into one.
+     * */
+    if (exact) {
+	pininfo_t pininfo;
+	pininfo.usedHwThreads = ucalloc(nodeinfo.coreCount * threadsPerCore
+					  * sizeof(*pininfo.usedHwThreads));
+	pininfo.lastUsedThread = -1;
+	pininfo.overcommit = false;
+	pininfo.maxuse = 1;
+
+	uint32_t dist = (taskDist & SLURM_DIST_SOCKMASK) | SLURM_DIST_COREBLOCK;
+	fillDistributionStrategies(&pininfo, dist);
+	fillTasksPerSocket(&pininfo, env, &nodeinfo);
+
+	int32_t lastCpu = -1;
+	int thread = 0;
+
+	PSCPU_set_t CPUset;
+	PSCPU_clrAll(CPUset);
+
+	/* add node and cpuset for every task on this node */
+	for (uint32_t local_tid=0; local_tid < tasksPerNode; local_tid++) {
+	    /* reset first thread */
+	    pininfo.firstThread = UINT32_MAX;
+
+	    PSCPU_set_t myCPUset;
+	    setCPUset(&myCPUset, CPU_BIND_TO_CORES, "", &nodeinfo, &lastCpu,
+		      &thread, tasksPerNode, threadsPerTask, local_tid,
+		      &pininfo);
+
+	    PSCPU_addCPUs(CPUset, myCPUset);
+	}
+	fdbg(PSSLURM_LOG_PART, "Using coremap %s\n", PSCPU_print_part(CPUset,
+		PSCPU_bytesForCPUs(nodeinfo.threadCount)));
+
+	PSCPU_clrAll(nodeinfo.stepHWthreads);
+	PSCPU_addCPUs(nodeinfo.stepHWthreads, CPUset);
+
+	ufree(pininfo.usedHwThreads);
     }
 
     /* prepare pininfo */
@@ -2473,7 +2519,8 @@ void test_pinning(uint16_t socketCount, uint16_t coresPerSocket,
 	    }
 	}
 	printf("\n");
-
     }
+
+    ufree(pininfo.usedHwThreads);
 }
 /* vim: set ts=8 sw=4 tw=0 sts=4 noet :*/
