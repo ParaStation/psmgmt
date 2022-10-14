@@ -21,7 +21,6 @@
 #include "psreservation.h"
 
 #include "pluginconfig.h"
-#include "pluginhelper.h"
 #include "pluginmalloc.h"
 #include "pluginvector.h"
 #include "psidsession.h"

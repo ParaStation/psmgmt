@@ -19,7 +19,6 @@
 #include <sys/stat.h>
 #include <sys/resource.h>
 #include <syslog.h>
-#include <netdb.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
 
