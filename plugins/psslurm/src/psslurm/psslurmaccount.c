@@ -294,15 +294,13 @@ static bool InitEnergyAcc(int poll)
 	    flog("failed to setup energy monitor environment\n");
 	    return false;
 	}
-
-	if (!setAccEnv("IPMI_FREQUENCY", PSACCOUNT_OPT_ENERGY)) return false;
-	if (!setAccEnv("IPMI_ADJUSTMENT", PSACCOUNT_OPT_ENERGY)) return false;
-	if (!setAccEnv("IPMI_POWER_SENSORS", PSACCOUNT_OPT_ENERGY)) {
-	    return false;
-	}
-	if (!setAccEnv("IPMI_USERNAME", PSACCOUNT_OPT_ENERGY)) return false;
-	if (!setAccEnv("IPMI_PASSWORD", PSACCOUNT_OPT_ENERGY)) return false;
     }
+
+    if (!setAccEnv("IPMI_FREQUENCY", PSACCOUNT_OPT_ENERGY)) return false;
+    if (!setAccEnv("IPMI_ADJUSTMENT", PSACCOUNT_OPT_ENERGY)) return false;
+    if (!setAccEnv("IPMI_POWER_SENSORS", PSACCOUNT_OPT_ENERGY)) return false;
+    if (!setAccEnv("IPMI_USERNAME", PSACCOUNT_OPT_ENERGY)) return false;
+    if (!setAccEnv("IPMI_PASSWORD", PSACCOUNT_OPT_ENERGY)) return false;
 
     if (!psAccountCtlScript(PSACCOUNT_SCRIPT_START, PSACCOUNT_OPT_ENERGY)) {
 	flog("failed to start energy monitor script\n");
@@ -346,6 +344,7 @@ static bool InitFSAcc(int poll)
 	return false;
     }
     fdbg(PSSLURM_LOG_ACC, "start filesystem script interval %i\n", poll);
+
     return true;
 }
 
@@ -383,8 +382,8 @@ static bool InitNetworkAcc(int poll)
 	flog("failed to start interconnect monitor script\n");
 	return false;
     }
-
     fdbg(PSSLURM_LOG_ACC, "start interconnect script interval %i\n", poll);
+
     return true;
 }
 
