@@ -243,17 +243,20 @@ void TRes_destroy(TRes_t *tres)
 /**
  * @brief Forward Slurm configuration value to monitor environment
  *
- * @param name The name of the configuration option to forward
+ * @param queryName Name to query configuration option to forward from
+ * Slurm config
+ *
+ * @param setName Name to set in the monitor's environment
  *
  * @param opt psaccount option to change
  *
  * @return Returns true on success otherwise false is returned
  */
-static bool setAccEnv(char *name, psAccountOpt_t opt)
+static bool setAccEnv2(char *queryName, char *setName, psAccountOpt_t opt)
 {
-    char *val = getConfValueC(&SlurmConfig, name);
+    char *val = getConfValueC(&SlurmConfig, queryName);
     if (val) {
-	char *envStr = PSC_concat(name, "=", val);
+	char *envStr = PSC_concat(setName, "=", val);
 	if (!envStr) {
 	    flog("PSC_concat() out of memory");
 	    return false;
@@ -261,11 +264,25 @@ static bool setAccEnv(char *name, psAccountOpt_t opt)
 	bool ret = psAccountScriptEnv(PSACCOUNT_SCRIPT_ENV_SET, opt, envStr);
 	free(envStr);
 	if (!ret) {
-	    flog("failed to setup %s environment\n", name);
+	    if (queryName != setName) {
+		flog("failed to setup %s/%s environment\n", queryName, setName);
+	    } else {
+		flog("failed to setup %s environment\n", queryName);
+	    }
 	    return false;
 	}
     }
     return true;
+}
+
+/**
+ * @brief Forward Slurm configuration value to monitor environment
+ *
+ * Wrapper of @ref setAccEnv2() unifying query and set names
+ */
+static bool setAccEnv(char *name, psAccountOpt_t opt)
+{
+    return setAccEnv2(name, name, opt);
 }
 
 /**
@@ -280,21 +297,8 @@ static bool InitEnergyAcc(int poll)
     oldEnergyPollTime = psAccountGetPoll(PSACCOUNT_OPT_ENERGY);
     psAccountSetPoll(PSACCOUNT_OPT_ENERGY, poll);
 
-    char *val = getConfValueC(&SlurmConfig, "AcctGatherEnergyType");
-    if (val) {
-	char *envStr = PSC_concat("ENERGY_TYPE=", val);
-	if (!envStr) {
-	    flog("PSC_concat() out of memory");
-	    return false;
-	}
-	bool ret = psAccountScriptEnv(PSACCOUNT_SCRIPT_ENV_SET,
-				      PSACCOUNT_OPT_ENERGY, envStr);
-	free(envStr);
-	if (!ret) {
-	    flog("failed to setup energy monitor environment\n");
-	    return false;
-	}
-    }
+    if (!setAccEnv2("AcctGatherEnergyType", "ENERGY_TYPE",
+		    PSACCOUNT_OPT_ENERGY)) return false;
 
     if (!setAccEnv("IPMI_FREQUENCY", PSACCOUNT_OPT_ENERGY)) return false;
     if (!setAccEnv("IPMI_ADJUSTMENT", PSACCOUNT_OPT_ENERGY)) return false;
@@ -323,21 +327,8 @@ static bool InitFSAcc(int poll)
     oldFilesystemPollTime = psAccountGetPoll(PSACCOUNT_OPT_FS);
     psAccountSetPoll(PSACCOUNT_OPT_FS, poll);
 
-    char *val = getConfValueC(&SlurmConfig, "AcctGatherFilesystemType");
-    if (val) {
-	char *envStr = PSC_concat("FILESYSTEM_TYPE=", val);
-	if (!envStr) {
-	    flog("PSC_concat() out of memory");
-	    return false;
-	}
-	bool ret = psAccountScriptEnv(PSACCOUNT_SCRIPT_ENV_SET,
-				      PSACCOUNT_OPT_FS, envStr);
-	free(envStr);
-	if (!ret) {
-	    flog("failed to setup filesystem monitor environment\n");
-	    return false;
-	}
-    }
+    if (!setAccEnv2("AcctGatherFilesystemType", "FILESYSTEM_TYPE",
+		    PSACCOUNT_OPT_FS)) return false;
 
     if (!psAccountCtlScript(PSACCOUNT_SCRIPT_START, PSACCOUNT_OPT_FS)) {
 	flog("failed to start filesystem monitor script\n");
@@ -360,21 +351,8 @@ static bool InitNetworkAcc(int poll)
     oldInterconnectPollTime = psAccountGetPoll(PSACCOUNT_OPT_IC);
     psAccountSetPoll(PSACCOUNT_OPT_IC, poll);
 
-    char *val = getConfValueC(&SlurmConfig, "AcctGatherInterconnectType");
-    if (val) {
-	char *envStr = PSC_concat("INTERCONNECT_TYPE=", val);
-	if (!envStr) {
-	    flog("PSC_concat() out of memory");
-	    return false;
-	}
-	bool ret = psAccountScriptEnv(PSACCOUNT_SCRIPT_ENV_SET,
-				      PSACCOUNT_OPT_IC, envStr);
-	free(envStr);
-	if (!ret) {
-	    flog("failed to setup interconnect monitor environment\n");
-	    return false;
-	}
-    }
+    if (!setAccEnv2("AcctGatherInterconnectType", "INTERCONNECT_TYPE",
+		    PSACCOUNT_OPT_IC)) return false;
 
     if (!setAccEnv("INFINIBAND_OFED_PORT", PSACCOUNT_OPT_IC)) return false;
 
