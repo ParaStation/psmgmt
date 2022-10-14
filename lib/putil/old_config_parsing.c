@@ -1776,21 +1776,24 @@ static int setupNodeFromDefault(void)
  * @brief Insert a node.
  *
  * Helper function to make a node known to the ParaStation daemon. All
- * other information besides the node's ParaStation ID @a id and its
- * IP address @a addr are passed implicitely via the node_* variables.
+ * other information besides the node's ParaStation ID @a id, its
+ * symbolic name @a nodename and its IP address @a addr are passed
+ * implicitely via the node_* variables.
  *
  * The node_* variables are pre-set from the current default settings
  * by @ref setupNodeFromDefault() and might be modified by directives
  * from the configuration file.
  *
- * @param id ParaStation ID for this node.
+ * @param id ParaStation ID of the node to register
  *
- * @param addr IP address of the node to register.
+ * @param nodename Symbolic name of the node to register
+ *
+ * @param addr IP address of the node to register
  *
  * @return Return -1 if an error occurred or 0 if the node was
  * inserted successfully.
  */
-static int newHost(int id, in_addr_t addr)
+static int newHost(int id, char *nodename, in_addr_t addr)
 {
     if (id < 0) { /* id out of Range */
 	parser_comment(-1, "node ID <%d> out of range\n", id);
@@ -1820,17 +1823,6 @@ static int newHost(int id, in_addr_t addr)
     }
 
     /* install hostname */
-    char *nodename, buf[NI_MAXHOST];
-    struct sockaddr_in saddr = {
-        .sin_family = AF_INET,
-        .sin_port = 0,
-        .sin_addr = { .s_addr = addr } };
-    if (getnameinfo((struct sockaddr *)&saddr, sizeof(saddr),
-		buf, sizeof(buf), NULL, 0, NI_NAMEREQD)) {
-	nodename = "<unknown>";
-    } else {
-	nodename = buf;
-    }
     if (!PSIDnodes_register(id, nodename, addr)) {
 	parser_comment(-1, "PSIDnodes_register(%d, %s, <%s>) failed\n",
 		       id, nodename, inet_ntoa(*(struct in_addr *)&addr));
@@ -2026,7 +2018,7 @@ static int getNodeLine(char *token)
 
     currentID = DEFAULT_ID;
 
-    ret = newHost(nodenum, ipaddr);
+    ret = newHost(nodenum, hostname, ipaddr);
     if (ret) {
 	free(hostname);
 	return ret;
@@ -2246,7 +2238,7 @@ static int getMultiNodes(char *token)
 	ret = parser_getNumValue(realID, &nodenum, "node number");
 	if (ret) return ret;
 
-	ret = newHost(nodenum, ipaddr);
+	ret = newHost(nodenum, realHost, ipaddr);
 	if (ret) return ret;
 
 	if (PSC_isLocalIP(ipaddr)) {
