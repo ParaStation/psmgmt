@@ -277,7 +277,7 @@ static uint32_t getNextCoreStart(uint32_t thread, const nodeinfo_t *nodeinfo)
 /*
  * Set the distribution strategies according to the step's task distribution
  */
-static void fillDistributionStrategies(uint32_t taskDist, pininfo_t *pininfo)
+static void fillDistributionStrategies(pininfo_t *pininfo, uint32_t taskDist)
 {
     uint32_t socketDist = taskDist & SLURM_DIST_SOCKMASK;
     uint32_t coreDist = taskDist & SLURM_DIST_COREMASK;
@@ -1673,7 +1673,7 @@ bool setStepSlots(Step_t *step)
 	pininfo.maxuse = 1;
 
 	/* handle --distribution */
-	fillDistributionStrategies(step->taskDist, &pininfo);
+	fillDistributionStrategies(&pininfo, step->taskDist);
 
 	/* check cpu mapping */
 	for (uint32_t cpu = 0; cpu < nodeinfo->threadCount; cpu++) {
@@ -2382,7 +2382,7 @@ void test_pinning(uint16_t socketCount, uint16_t coresPerSocket,
     pininfo.overcommit = overcommit;
     pininfo.maxuse = 1;
 
-    fillDistributionStrategies(taskDist, &pininfo);
+    fillDistributionStrategies(&pininfo, taskDist);
     fillTasksPerSocket(&pininfo, env, &nodeinfo);
 
 
