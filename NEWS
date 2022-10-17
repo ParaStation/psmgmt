@@ -6,6 +6,12 @@ Copyright (C) 2021-2022 ParTec AG, Munich
 Please send bug reports, questions and suggestions to <support@par-tec.com>
 
 
+Version 5.1.51-1:
+=================
+Bugfixes:
+ - Fix round counter for pluginforwarder children
+   * This is used by pelogue to determine if to run as root
+
 *************************************************************************
 *************************************************************************
 **                                                                     **
