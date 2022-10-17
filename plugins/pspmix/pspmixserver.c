@@ -1537,7 +1537,7 @@ static bool fillServerSessionArray(pmix_data_array_t *sessionInfo,
     status = PMIx_Info_list_convert(list, sessionInfo);
     PMIx_Info_list_release(list);
     if (status != PMIX_SUCCESS) {
-	printf("%s: Converting info list to array failed: %s\n", __func__,
+	mlog("%s: Converting info list to array failed: %s\n", __func__,
 	       PMIx_Error_string(status));
 	return false;
     }
