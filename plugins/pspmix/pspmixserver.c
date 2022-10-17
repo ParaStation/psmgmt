@@ -2098,7 +2098,11 @@ static char* getNodeRanksString(PspmixNode_t *node)
 static void fillSessionInfoArray(pmix_data_array_t *sessionInfo,
 				 uint32_t session_id, uint32_t universe_size)
 {
-#define SESSION_INFO_ARRAY_LEN 2
+#if PMIX_VERSION_MAJOR >= 4
+# define SESSION_INFO_ARRAY_LEN 3
+#else
+# define SESSION_INFO_ARRAY_LEN 2
+#endif
     pmix_info_t *infos;
     PMIX_INFO_CREATE(infos, SESSION_INFO_ARRAY_LEN);
 
@@ -2110,6 +2114,11 @@ static void fillSessionInfoArray(pmix_data_array_t *sessionInfo,
     /* number of slots in this session */
     PMIX_INFO_LOAD(&infos[i], PMIX_MAX_PROCS, &universe_size, PMIX_UINT32);
     i++;
+
+#if PMIX_VERSION_MAJOR >= 4
+    PMIX_INFO_LOAD(&infos[i], PMIX_UNIV_SIZE, &universe_size, PMIX_UINT32);
+    i++;
+#endif
 
     /* optional infos (PMIx v4.0):
      * * PMIX_ALLOCATED_NODELIST "pmix.alist" (char*)
@@ -2632,30 +2641,32 @@ bool pspmix_server_registerNamespace(const char *nspace, uint32_t sessionId,
     /* fill infos */
     mycbdata_t data;
 #if PMIX_VERSION_MAJOR >= 4
-    INIT_CBDATA(data, 4 + numApps + numNodes + jobSize);
+    INIT_CBDATA(data, 2 + numApps + numNodes + jobSize);
 #else
     INIT_CBDATA(data, 4 + numApps + jobSize + 2);
 #endif
 
-    /* ===== session info ===== */
-
     size_t i = 0;
+#if PMIX_VERSION_MAJOR < 4
     /* number of allocated slots in a session (here for historical reasons) */
     PMIX_INFO_LOAD(&data.info[i], PMIX_UNIV_SIZE, &univSize, PMIX_UINT32);
     i++;
+#endif
 
-    /* session info array */
+    /* ===== session info array ===== */
     pmix_data_array_t sessionInfo;
     fillSessionInfoArray(&sessionInfo, sessionId, univSize);
     PMIX_INFO_LOAD(&data.info[i], PMIX_SESSION_INFO_ARRAY, &sessionInfo,
 		   PMIX_DATA_ARRAY);
     i++;
 
-    /* ===== job info array ===== */
+#if PMIX_VERSION_MAJOR < 4
     /* total num of processes in this job (here for historical reasons) */
     PMIX_INFO_LOAD(&data.info[i], PMIX_JOB_SIZE, &jobSize, PMIX_UINT32);
     i++;
+#endif
 
+    /* ===== job info array ===== */
     pmix_data_array_t jobInfo;
     fillJobInfoArray(&jobInfo, nspace, jobSize, univSize, nodelist_s,
 		     procMap, numApps);
