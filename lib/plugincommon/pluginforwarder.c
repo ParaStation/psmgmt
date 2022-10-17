@@ -701,9 +701,9 @@ static void execForwarder(PStask_t *task)
 	exit(-1);
     }
 
-    int i = 1;
+    int round = 1;
     while (!fwShutdown &&
-	  (fw->childRerun == FW_CHILD_INFINITE || i++ <= fw->childRerun)) {
+	  (fw->childRerun == FW_CHILD_INFINITE || round <= fw->childRerun)) {
 
 	if (fw->childFunc) {
 	    /* setup output/error pipes */
@@ -734,7 +734,7 @@ static void execForwarder(PStask_t *task)
 		/* newly spawned child */
 		close(controlFDs[0]);
 		initChild(controlFDs[1], fw);
-		fw->childFunc(fw, i);
+		fw->childFunc(fw, round);
 
 		/* never reached */
 		exit(1);
@@ -776,6 +776,7 @@ static void execForwarder(PStask_t *task)
 	}
 
 	if (status) break;
+	round++;
     }
 
     /* cancel timeout */
