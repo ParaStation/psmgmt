@@ -820,7 +820,8 @@ static void setCommonRankEnv(int32_t rank, Step_t *step)
 	if (!(strncmp(step->env.vars[i], "PMI_SUBVERSION=", 15))) continue;
 	if (!(strncmp(step->env.vars[i], "PMI_VERSION=", 12))) continue;
 	if (!(strncmp(step->env.vars[i], "PMI_BARRIER_ROUNDS=", 19))) continue;
-	if (!(strncmp(step->env.vars[i], "PMIX_", 5))) continue;
+	if (!strncmp(step->env.vars[i], "PMIX_", 5)
+		&& strncmp(step->env.vars[i], "PMIX_MCA_", 9)) continue;
 	if (!(strncmp(step->env.vars[i], "PSP_SMP_NODE_ID=", 16))) continue;
 
 	putenv(step->env.vars[i]);
