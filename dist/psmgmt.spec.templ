@@ -50,6 +50,7 @@ BuildRequires:	libnuma-devel
 BuildRequires:	numactl-devel
 %endif
 BuildRequires:	hwloc-devel
+BuildRequires:  pmix-devel
 %if !0%{?disable_systemd}
 BuildRequires:  systemd
 Requires(post): systemd
@@ -126,6 +127,9 @@ a Slurm batch system.
 Summary:   The PMIx plugin of the ParaStation process management
 Group:     Productivity/Clustering/Computing
 Requires:  %{name} = %{version}-%{release}
+%global pmix_version %(rpm -q pmix --qf "%{RPMTAG_VERSION}")
+Requires: pmix = %{pmix_version}
+
 
 %description pspmix
 The ParaStation PMIx plugin provides support for PMIx based on the libpmix.
