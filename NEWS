@@ -6,6 +6,14 @@ Copyright (C) 2021-2022 ParTec AG, Munich
 Please send bug reports, questions and suggestions to <support@par-tec.com>
 
 
+Version 5.1.51-2:
+=================
+Bugfixes:
+ - pspmix: Create namespace with only info arrays
+ - psslurm: Do not filter PMIX_MCA_* variables from user env
+ - pspmix: Fix memory leak
+
+
 Version 5.1.51-1:
 =================
 Bugfixes:

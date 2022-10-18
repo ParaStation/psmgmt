@@ -1,3 +1,29 @@
+Version 5.1.51-2:
+=================
+------------------------------------------------------------------------
+54c810a2e | Stephan Krempel | Mon, 17 Oct 2022 16:27:10 +0200
+
+pspmix: Create namespace with only info arrays
+
+With OpenPMIx 4.2 it is not working to pass PMIX_UNIV_SIZE
+as individual info value, so move it into session info array
+
+See https://github.com/openpmix/openpmix/issues/2791
+------------------------------------------------------------------------
+52b039b96 | Stephan Krempel | Mon, 17 Oct 2022 16:26:02 +0200
+
+psslurm: Do not filter PMIX_MCA_* variables from user env
+------------------------------------------------------------------------
+4d6674746 | Stephan Krempel | Mon, 17 Oct 2022 16:25:07 +0200
+
+pspmix: Fix memory leak
+------------------------------------------------------------------------
+3c169f2a5 | Stephan Krempel | Mon, 17 Oct 2022 16:24:23 +0200
+
+pspmix: Fix typo
+------------------------------------------------------------------------
+
+
 Version 5.1.51-1:
 =================
 ------------------------------------------------------------------------
