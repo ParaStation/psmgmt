@@ -44,6 +44,16 @@ enum output_level {
     DEBUGOUT
 };
 
+enum {
+    SLURM_21_08 = 0,
+    SLURM_22_05,
+    SLURM_23_02,
+    SLURM_23_11,
+    SLURM_24_08,
+    SLURM_25_05
+} slurm_version;
+
+
 static void outline(enum output_level lvl, const char* format, ...) {
     FILE *stream = stdout;
 
@@ -410,6 +420,23 @@ int main(int argc, char *argv[])
 	}
     }
 
+    char *slurmver = getenv("SLURM_VERSION");
+    if (!slurmver) slurm_version = SLURM_21_08;
+    else {
+	if (strlen(slurmver) >= 6) slurmver[5] = '\0';
+	if (!strcmp(slurmver, "21.08")) slurm_version = SLURM_21_08;
+	else if (!strcmp(slurmver, "22.05")) slurm_version = SLURM_22_05;
+	else if (!strcmp(slurmver, "23.02")) slurm_version = SLURM_23_02;
+	else if (!strcmp(slurmver, "23.11")) slurm_version = SLURM_23_11;
+	else if (!strcmp(slurmver, "24.08")) slurm_version = SLURM_24_08;
+	else if (!strcmp(slurmver, "25.05")) slurm_version = SLURM_25_05;
+	else {
+	    outline(ERROROUT, "Unknown slurm version in SLURM_VERSION");
+	    return -1;
+	}
+	outline(INFOOUT, "SLURM_VERSION=%s", slurmver);
+    }
+
     if (!cpumap) {
 	char *mapStr = getenv("__PSI_CPUMAP");
 	if (mapStr) {
@@ -503,6 +530,11 @@ int main(int argc, char *argv[])
 	    if (!threadsPerTask) {
 		outline(ERROROUT, "Invalid number of threads per task.");
 		exit(-1);
+	    }
+	    /* starting with Slurm 22.05 -c implies --exact */
+	    if (slurm_version >= SLURM_22_05) {
+		exact = true;
+		outline(INFOOUT, "Slurm >= 22.05: '-c' implies '--exact'");
 	    }
 	} else if (!strncmp(cur, "--cpu-bind=", 11)) {
 	    outline(DEBUGOUT, "Reading --cpu-bind value: \"%s\"", cur+11);
