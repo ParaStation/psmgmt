@@ -382,15 +382,15 @@ bool Acc_Init(void)
 
     /* enable energy polling */
     poll = getConfValueI(&Config, "SLURM_ACC_ENERGY");
-    if (poll > 0) InitEnergyAcc(poll);
+    if (poll > 0 && !InitEnergyAcc(poll)) return false;
 
     /* enable file-system polling */
     poll = getConfValueI(&Config, "SLURM_ACC_FILESYSTEM");
-    if (poll > 0) InitFSAcc(poll);
+    if (poll > 0 && !InitFSAcc(poll)) return false;
 
     /* enable interconnect polling */
     poll = getConfValueI(&Config, "SLURM_ACC_NETWORK");
-    if (poll > 0) InitNetworkAcc(poll);
+    if (poll > 0 && !InitNetworkAcc(poll)) return false;
 
     fdbg(PSSLURM_LOG_ACC, "psslurm account facility initialize success\n");
     return true;
