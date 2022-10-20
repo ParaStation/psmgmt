@@ -1,6 +1,27 @@
 Running include-what-you-use sporadically over the sources might be helpful
 
-To check all files within an directory start with:
+The easiest way is to utilize iwyu_tool.py after creating a build database
+
+Start with creating the database via bear:
+pushd <build_path>
+make -sj clean
+bear make -sj
+popd
+
+This will create 'compile_commands.json' in <build_path>
+
+Now you can run iwyu_tool.py:
+iwyu_tool.py -p ../<build_path> <file or path> \
+	     -- -Xiwyu --mapping_file=${PWD}/scripts/psmgmt.imp \
+		-Xiwyu --no_fwd_decls
+
+In order to not get overwhelmed by iwyu_tool.py's output one might use:
+   | grep -v \^\$ | grep -v "has correct #includes/fwd-decls"
+as a filter
+
+
+As an alternative one might use the following strategy: to check all
+files within an directory start with:
 
 dir=bin/daemon
 rm -f unresolved
@@ -23,18 +44,3 @@ for f in `cat checks`; do
       echo $f >> unresolved
    fi
 done
-
-As an alternative one might utilize iwyu_tool.py after creating a build database
-
-Start with creating the database via bear:
-pushd <build_path>
-make -sj clean
-bear make -sj
-popd
-
-This will create 'compile_commands.json' in <build_path>
-
-Now you can run iwyu_tool.py:
-iwyu_tool.py -p ../<build_path> <file or path> \
-	     -- -Xiwyu --mapping_file=${PWD}/scripts/psmgmt.imp \
-		-Xiwyu --no_fwd_decls
