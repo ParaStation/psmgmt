@@ -13362,6 +13362,16 @@ ac_config_files="$ac_config_files plugins/psslurm/src/psslurm/Makefile"
 
 ac_config_files="$ac_config_files plugins/psslurm/src/spank/Makefile"
 
+ac_config_files="$ac_config_files plugins/rrcomm/Makefile"
+
+ac_config_files="$ac_config_files plugins/rrcomm/include/Makefile"
+
+ac_config_files="$ac_config_files plugins/rrcomm/lib/Makefile"
+
+ac_config_files="$ac_config_files plugins/rrcomm/plugin/Makefile"
+
+ac_config_files="$ac_config_files plugins/rrcomm/tests/Makefile"
+
 ac_config_files="$ac_config_files scripts/Makefile"
 
 ac_config_files="$ac_config_files tests/plugins/Makefile"
@@ -14489,6 +14499,11 @@ do
     "plugins/psslurm/src/k12/Makefile") CONFIG_FILES="$CONFIG_FILES plugins/psslurm/src/k12/Makefile" ;;
     "plugins/psslurm/src/psslurm/Makefile") CONFIG_FILES="$CONFIG_FILES plugins/psslurm/src/psslurm/Makefile" ;;
     "plugins/psslurm/src/spank/Makefile") CONFIG_FILES="$CONFIG_FILES plugins/psslurm/src/spank/Makefile" ;;
+    "plugins/rrcomm/Makefile") CONFIG_FILES="$CONFIG_FILES plugins/rrcomm/Makefile" ;;
+    "plugins/rrcomm/include/Makefile") CONFIG_FILES="$CONFIG_FILES plugins/rrcomm/include/Makefile" ;;
+    "plugins/rrcomm/lib/Makefile") CONFIG_FILES="$CONFIG_FILES plugins/rrcomm/lib/Makefile" ;;
+    "plugins/rrcomm/plugin/Makefile") CONFIG_FILES="$CONFIG_FILES plugins/rrcomm/plugin/Makefile" ;;
+    "plugins/rrcomm/tests/Makefile") CONFIG_FILES="$CONFIG_FILES plugins/rrcomm/tests/Makefile" ;;
     "scripts/Makefile") CONFIG_FILES="$CONFIG_FILES scripts/Makefile" ;;
     "tests/plugins/Makefile") CONFIG_FILES="$CONFIG_FILES tests/plugins/Makefile" ;;
     "tests/functional/Makefile") CONFIG_FILES="$CONFIG_FILES tests/functional/Makefile" ;;

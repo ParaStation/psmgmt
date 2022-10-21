@@ -146,6 +146,18 @@ Utilities helping to improve Slurm support. This includes spank plugins
 required to support e.g. the interplay of psgw functionality and
 Slurm or the psslurmgetbind tool.
 
+%package rrcomm-devel
+Summary:   Development files for the rank routed communication protocol
+Group:     Productivity/Clustering/Computing
+
+%description rrcomm-devel
+Rank routed communication is intended to provided communication
+capabilities to client processes belonging to the same
+applications. It releases the processes from the burden to register
+and distribute addressing information beforehand. This package
+provides a client library hiding all unnecessary technical details
+from the programmer.
+
 %if !0%{?disable_testplugins}
 %package testplugins
 Summary:   Set of plugins for debug and testing (psBlackHole, etc.)
@@ -312,6 +324,8 @@ exit 0
 %{_plugindir}/psresport.so
 %exclude %{_plugindir}/psresport.la
 %config(noreplace) %{_plugindir}/psresport.conf
+%{_plugindir}/rrcomm.so
+%exclude %{_plugindir}/rrcomm.la
 %config(missingok,noreplace) %{_sysconfdir}/gdbinit.d/psmgmt.gdb
 %config(missingok,noreplace) %{_sysconfdir}/profile.d/psmgmt.sh
 %config(missingok,noreplace) %{_sysconfdir}/profile.d/psmgmt.csh
@@ -462,6 +476,10 @@ exit 0
 %{_libdir}/slurm/x11spank.so
 %exclude %{_libdir}/slurm/x11spank.la
 %endif
+
+%files rrcomm-devel
+%{_includedir}/rrcomm.h
+%{_libdir}/librrcomm.a
 
 %if !0%{?disable_testplugins}
 %files testplugins
