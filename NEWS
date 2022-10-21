@@ -6,6 +6,13 @@ Copyright (C) 2021-2022 ParTec AG, Munich
 Please send bug reports, questions and suggestions to <support@par-tec.com>
 
 
+Version 5.1.52-1:
+=================
+Bugfixes:
+ - Adjust psslurmgetbind to Slurm's interpretation of -B option (#89)
+ - Fix hint nomultithread together with 'exact'
+
+
 Version 5.1.52:
 ===============
 Bugfixes:
