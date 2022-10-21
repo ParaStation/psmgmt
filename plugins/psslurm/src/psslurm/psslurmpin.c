@@ -2336,7 +2336,8 @@ void test_pinning(uint16_t socketCount, uint16_t coresPerSocket,
 	uint16_t threadsPerCore, uint32_t tasksPerNode, uint16_t threadsPerTask,
 	uint16_t cpuBindType, char *cpuBindString, uint32_t taskDist,
 	uint16_t memBindType, char *memBindString, env_t *env,
-	bool humanreadable, bool printmembind, bool overcommit, bool exact)
+	bool humanreadable, bool printmembind, bool overcommit, bool exact,
+	uint16_t useThreadsPerCore)
 {
 
     uint32_t threadCount = socketCount * coresPerSocket * threadsPerCore;
@@ -2371,6 +2372,14 @@ void test_pinning(uint16_t socketCount, uint16_t coresPerSocket,
 	nodeinfo.threadCount = nodeinfo.coreCount;
 	fdbg(PSSLURM_LOG_PART, "hint 'nomultithread' set,"
 		" setting nodeinfo.threadsPerCore = 1\n");
+    }
+
+    /* handle threads per core limitation */
+    if (useThreadsPerCore) {
+	nodeinfo.threadsPerCore = useThreadsPerCore;
+	nodeinfo.threadCount = nodeinfo.coreCount;
+	fdbg(PSSLURM_LOG_PART, "threads per core limit given,"
+		" setting nodeinfo.threadsPerCore = %hu\n", useThreadsPerCore);
     }
 
     /* handle exact

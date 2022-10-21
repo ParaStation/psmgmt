@@ -254,7 +254,8 @@ static bool readMemBindType(char *ptr, uint16_t *memBindType,
     return true;
 }
 
-static void handleExtraNodeInfo(char *value, uint16_t *cpuBindType)
+static void handleExtraNodeInfo(char *value, uint16_t *cpuBindType,
+			        uint16_t *useThreadsPerCore)
 {
     /* never override settings from --cpu-bind */
     if (*cpuBindType) return;
@@ -265,9 +266,10 @@ static void handleExtraNodeInfo(char *value, uint16_t *cpuBindType)
     if (cur) {
 	/* cores given */
 	*cpuBindType = CPU_BIND_TO_CORES;
-	if (strstr(cur+1, ":")) {
+	if ((cur = strstr(cur+1, ":"))) {
 	    /* threads given */
 	    *cpuBindType = CPU_BIND_TO_THREADS;
+	    *useThreadsPerCore = atoi(cur+1);
 	}
     }
 }
@@ -527,6 +529,7 @@ int main(int argc, char *argv[])
     bool nomultithread = false;
     bool overcommit = false;
     bool exact = false;
+    uint16_t useThreadsPerCore = 0;
 
     /* membind info */
     uint16_t memBindType = 0;
@@ -609,14 +612,14 @@ int main(int argc, char *argv[])
 	} else if (!strncmp(cur, "--extra-node-info=", 18)) {
 	    outline(DEBUGOUT, "Reading --extra-node-info value: \"%s\"",
 		    cur+18);
-	    handleExtraNodeInfo(cur+18, &cpuBindType);
+	    handleExtraNodeInfo(cur+18, &cpuBindType, &useThreadsPerCore);
 	} else if (!strcmp(cur, "-B")) {
 	    if (i == argc) {
 		outline(ERROROUT, "Syntax error reading value for -B.");
 		exit(-1);
 	    }
 	    outline(DEBUGOUT, "Reading -B value: \"%s\"", argv[i]);
-	    handleExtraNodeInfo(argv[i++], &cpuBindType);
+	    handleExtraNodeInfo(argv[i++], &cpuBindType, &useThreadsPerCore);
 	} else if (!strcmp(cur, "--hint=nomultithread")) {
 	    outline(DEBUGOUT, "Read hint \"nomultithread\"");
 	    nomultithread = true;
@@ -717,7 +720,7 @@ int main(int argc, char *argv[])
     test_pinning(socketCount, coresPerSocket, threadsPerCore, tasksPerNode,
 		 threadsPerTask, cpuBindType, cpuBindString, taskDist,
 		 memBindType, memBindString, &env, humanreadable, printmembind,
-		 overcommit, exact);
+		 overcommit, exact, useThreadsPerCore);
 }
 
 
