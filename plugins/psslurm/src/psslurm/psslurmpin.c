@@ -2393,7 +2393,7 @@ void test_pinning(uint16_t socketCount, uint16_t coresPerSocket,
 	fillTasksPerSocket(&pininfo, env, &nodeinfo);
 
 	/* calucalte minimum number of cores needed */
-	uint32_t useCores = (threadsPerTask - 1) / threadsPerCore + 1;
+	uint32_t useCores = (threadsPerTask - 1) / nodeinfo.threadsPerCore + 1;
 	fdbg(PSSLURM_LOG_PART, "Use %u cores per task to fulfill 'exact'\n",
 	     useCores);
 
