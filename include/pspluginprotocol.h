@@ -2,6 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2013-2020 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2022 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -20,5 +21,6 @@
 #define PSP_PLUG_PSPMIX		    0x0205  /**< pspmix message */
 #define PSP_PLUG_PSGW		    0x0206  /**< psgw message */
 #define PSP_PLUG_NODEINFO	    0x0207  /**< nodeinfo message */
+#define PSP_PLUG_RRCOMM             0x0208  /**< rank routed comm message */
 
 #endif  /* __PSPLUGIN_PROTOCOL */

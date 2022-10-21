@@ -94,6 +94,7 @@ static msgString_t pluginMessages[] = {
     { PSP_PLUG_PSPMIX         , "PSP_PLUG_PSPMIX"         },
     { PSP_PLUG_PSGW           , "PSP_PLUG_PSGW"           },
     { PSP_PLUG_NODEINFO       , "PSP_PLUG_NODEINFO"       },
+    { PSP_PLUG_RRCOMM         , "PSP_PLUG_RRCOMM"         },
     { 0, NULL }
 };
 
