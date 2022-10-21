@@ -16,6 +16,7 @@
 #include <netinet/in.h>
 #include <sched.h>
 #include <string.h>
+#include <sys/stat.h>
 
 #ifdef HAVE_LIBNUMA
 #include <numa.h>
@@ -275,6 +276,18 @@ static void handleExtraNodeInfo(char *value, uint16_t *cpuBindType)
 
 const ConfDef_t confDef[] =
 {
+    { "SLURM_CONF_SERVER", 0,
+	"ip[:port]",
+	"none",
+	"slurmctld to fetch configuration files from" },
+    { "SLURM_PROTO_VERSION", 0,
+	"string",
+	"auto",
+	"Slurm protocol version as string or auto (e.g. 17.11)" },
+    { "SINFO_BINARY", 0,
+	"string",
+	"/usr/bin/sinfo",
+	"Path to the sinfo binary used for automatic protocol detection" },
     { "DEFAULT_CPU_BIND_TYPE", 0,
 	"string",
 	"threads",
@@ -302,6 +315,63 @@ bool readConfigFile(void) {
     setConfigDefaults(&Config, confDef);
 
     return true;
+}
+
+const char *autoDetectSlurmVersion(void)
+{
+    static char autoVer[32] = { '\0' };
+
+    const char *sinfo = getConfValueC(&Config, "SINFO_BINARY");
+    if (*sinfo == '\0' ) {
+	outline(DEBUGOUT, "no SINFO_BINARY provided");
+	return NULL;
+    }
+
+    struct stat sb;
+    if (stat(sinfo, &sb) == -1) {
+	outline(ERROROUT, "%s: stat('%s')", __func__, sinfo);
+	return NULL;
+    } else if (!(sb.st_mode & S_IXUSR)) {
+	outline(INFOOUT, "'%s' not executable", sinfo);
+	return NULL;
+    }
+
+    char sinfoCmd[128];
+    char *server = getConfValueC(&Config, "SLURM_CONF_SERVER");
+    if (!strcmp(server, "none")) {
+	snprintf(sinfoCmd, sizeof(sinfoCmd), "%s --version", sinfo);
+    } else {
+	snprintf(sinfoCmd, sizeof(sinfoCmd), "SLURM_CONF_SERVER=%s "
+		 "%s --version", server, sinfo);
+    }
+    FILE *fp = popen(sinfoCmd, "r");
+    if (!fp) {
+	outline(ERROROUT, "%s: popen('%s')", __func__, sinfoCmd);
+	return NULL;
+    }
+
+    char *line = NULL;
+    size_t len = 0;
+    while (getline(&line, &len, fp) != -1) {
+	if (strncmp(line, "slurm ", 6)) continue;
+	if (sscanf(line, "slurm %31s", autoVer) == 1) {
+	    char *dash = strchr(autoVer, '-');
+	    if (dash) *dash = '\0';
+	    break;
+	} else {
+	    char *nl = strchr(line, '\n');
+	    if (nl) *nl = '\0';
+	   outline(INFOOUT, "invalid slurm version string: '%s'", line);
+	}
+    }
+    free(line);
+    pclose(fp);
+
+    if (!strlen(autoVer)) {
+	outline(INFOOUT, "could not autodetect Slurm version");
+	return NULL;
+    }
+    return autoVer;
 }
 
 /* node info */
@@ -420,23 +490,6 @@ int main(int argc, char *argv[])
 	}
     }
 
-    char *slurmver = getenv("SLURM_VERSION");
-    if (!slurmver) slurm_version = SLURM_21_08;
-    else {
-	if (strlen(slurmver) >= 6) slurmver[5] = '\0';
-	if (!strcmp(slurmver, "21.08")) slurm_version = SLURM_21_08;
-	else if (!strcmp(slurmver, "22.05")) slurm_version = SLURM_22_05;
-	else if (!strcmp(slurmver, "23.02")) slurm_version = SLURM_23_02;
-	else if (!strcmp(slurmver, "23.11")) slurm_version = SLURM_23_11;
-	else if (!strcmp(slurmver, "24.08")) slurm_version = SLURM_24_08;
-	else if (!strcmp(slurmver, "25.05")) slurm_version = SLURM_25_05;
-	else {
-	    outline(ERROROUT, "Unknown slurm version in SLURM_VERSION");
-	    return -1;
-	}
-	outline(INFOOUT, "SLURM_VERSION=%s", slurmver);
-    }
-
     if (!cpumap) {
 	char *mapStr = getenv("__PSI_CPUMAP");
 	if (mapStr) {
@@ -531,11 +584,6 @@ int main(int argc, char *argv[])
 		outline(ERROROUT, "Invalid number of threads per task.");
 		exit(-1);
 	    }
-	    /* starting with Slurm 22.05 -c implies --exact */
-	    if (slurm_version >= SLURM_22_05) {
-		exact = true;
-		outline(INFOOUT, "Slurm >= 22.05: '-c' implies '--exact'");
-	    }
 	} else if (!strncmp(cur, "--cpu-bind=", 11)) {
 	    outline(DEBUGOUT, "Reading --cpu-bind value: \"%s\"", cur+11);
 	    if (!readCpuBindType(cur+11, &cpuBindType, &cpuBindString)) {
@@ -628,6 +676,42 @@ int main(int argc, char *argv[])
     if (!readConfigFile()) {
 	outline(ERROROUT, "Error reading psslurm.conf.");
 	exit(-1);
+    }
+
+    const char *slurmver = getenv("SLURM_VERSION");
+    if (!slurmver) {
+	slurmver = getConfValueC(&Config, "SLURM_PROTO_VERSION");
+	if (!slurmver || !strcmp(slurmver, "auto")) {
+	    slurmver = autoDetectSlurmVersion();
+	    if (slurmver) outline(INFOOUT, "SLURM_VERSION autodetected");
+	} else {
+	    outline(INFOOUT, "Take SLURM_PROTO_VERSION from psslurm.conf as"
+		    " SLURM_VERSION");
+	}
+    }
+    if (slurmver) {
+	char *sv = strdup(slurmver);
+	if (strlen(sv) >= 6) sv[5] = '\0';
+	if (!strcmp(sv, "21.08")) slurm_version = SLURM_21_08;
+	else if (!strcmp(sv, "22.05")) slurm_version = SLURM_22_05;
+	else if (!strcmp(sv, "23.02")) slurm_version = SLURM_23_02;
+	else if (!strcmp(sv, "23.11")) slurm_version = SLURM_23_11;
+	else if (!strcmp(sv, "24.08")) slurm_version = SLURM_24_08;
+	else if (!strcmp(sv, "25.05")) slurm_version = SLURM_25_05;
+	else {
+	    outline(ERROROUT, "Unknown slurm version in SLURM_VERSION");
+	    return -1;
+	}
+	outline(INFOOUT, "SLURM_VERSION=%s", sv);
+	free(sv);
+    } else {
+	slurm_version = SLURM_21_08;
+    }
+
+    /* starting with Slurm 22.05 -c implies --exact */
+    if (slurm_version >= SLURM_22_05 && threadsPerTask > 1) {
+	exact = true;
+	outline(INFOOUT, "Slurm >= 22.05: '-c' implies '--exact'");
     }
 
     test_pinning(socketCount, coresPerSocket, threadsPerCore, tasksPerNode,
