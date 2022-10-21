@@ -2392,6 +2392,23 @@ void test_pinning(uint16_t socketCount, uint16_t coresPerSocket,
 	fillDistributionStrategies(&pininfo, dist);
 	fillTasksPerSocket(&pininfo, env, &nodeinfo);
 
+	/* calucalte minimum number of cores needed */
+	uint32_t useCores = (threadsPerTask - 1) / threadsPerCore + 1;
+	fdbg(PSSLURM_LOG_PART, "Use %u cores per task to fulfill 'exact'\n",
+	     useCores);
+
+	nodeinfo_t fakenodeinfo = {
+	    .id = 0, /* for debugging output only */
+	    .socketCount = socketCount,
+	    .coresPerSocket = coresPerSocket,
+	    .threadsPerCore = 1,
+	    .coreCount = socketCount * coresPerSocket,
+	    .threadCount = socketCount * coresPerSocket,
+	};
+
+	PSCPU_setAll(fakenodeinfo.stepHWthreads);
+	PSCPU_setAll(fakenodeinfo.jobHWthreads);
+
 	int32_t lastCpu = -1;
 	int thread = 0;
 
@@ -2404,14 +2421,14 @@ void test_pinning(uint16_t socketCount, uint16_t coresPerSocket,
 	    pininfo.firstThread = UINT32_MAX;
 
 	    PSCPU_set_t myCPUset;
-	    setCPUset(&myCPUset, CPU_BIND_TO_CORES, "", &nodeinfo, &lastCpu,
-		      &thread, tasksPerNode, threadsPerTask, local_tid,
+	    setCPUset(&myCPUset, CPU_BIND_TO_CORES, "", &fakenodeinfo, &lastCpu,
+		      &thread, tasksPerNode, useCores, local_tid,
 		      &pininfo);
 
 	    PSCPU_addCPUs(CPUset, myCPUset);
 	}
 	fdbg(PSSLURM_LOG_PART, "Using coremap %s\n", PSCPU_print_part(CPUset,
-		PSCPU_bytesForCPUs(nodeinfo.threadCount)));
+		PSCPU_bytesForCPUs(nodeinfo.coreCount)));
 
 	PSCPU_clrAll(nodeinfo.stepHWthreads);
 	PSCPU_addCPUs(nodeinfo.stepHWthreads, CPUset);
