@@ -6,10 +6,25 @@ Copyright (C) 2021-2022 ParTec AG, Munich
 Please send bug reports, questions and suggestions to <support@par-tec.com>
 
 
+Version 5.1.52:
+===============
+Bugfixes:
+ - Allow directory as destination for srun's --bcast option (pct:#404)
+ - Use configured nodename for psmix's namespace procmap (#82)
+Enhancements:
+ - Add support for Slurm 22.05
+ - Add IPMI support to psslurm's energy monitoring
+ - psslurmgetbind: Add --exact option (implied by -c for Slurm >= 22.05)
+ - Try to autodetect Slurm version in psslurmgetbind if possible
+ - Show Slurm protocol version in config request log message
+Additional changes:
+ - pspmix RPM require pmix version used to build
+
+
 Version 5.1.51-2:
 =================
 Bugfixes:
- - pspmix: Create namespace with only info arrays
+ - pspmix: Create namespace with only info arrays (works around OpenPMIx #2791)
  - psslurm: Do not filter PMIX_MCA_* variables from user env
  - pspmix: Fix memory leak
 

@@ -1,3 +1,223 @@
+Version 5.1.52:
+===============
+------------------------------------------------------------------------
+cfdab1942 | Stephan Krempel | Fri, 21 Oct 2022 12:41:22 +0200
+
+psslurmgetbind: Try to autodetect Slurm version if installed
+
+If SLURM_VERSION is not found in the environment, tries to
+detect the installed Slurm version by looking into psslurm.conf
+and asking sinfo.
+------------------------------------------------------------------------
+7a393c7b2 | Stephan Krempel | Fri, 21 Oct 2022 12:39:28 +0200
+
+psslurmgetbind: Fix 'exact' coremap to match slurmctld 22.05
+------------------------------------------------------------------------
+6f709ff77 | Norbert Eicker | Thu, 20 Oct 2022 11:33:28 +0200
+
+Add remarks concerning IWYU usage
+------------------------------------------------------------------------
+0e1d8b8a2 | Stephan Krempel | Tue, 18 Oct 2022 14:38:29 +0200
+
+psslurmgetbind: Add -c implies --exact for Slurm >= 22.05
+
+Introduces reading of environment variable SLURM_VERSION
+------------------------------------------------------------------------
+183396f5e | Stephan Krempel | Fri, 14 Oct 2022 16:26:21 +0200
+
+psslurmgetbind: Add support for --exact option
+------------------------------------------------------------------------
+b055753f6 | Stephan Krempel | Fri, 14 Oct 2022 10:44:21 +0200
+
+psslurm: Switch parameters of fillDistributionStrategies()
+------------------------------------------------------------------------
+9bf30701a | Stephan Krempel | Tue, 18 Oct 2022 13:49:29 +0200
+
+Make pspmix RPM require pmix version used to build
+------------------------------------------------------------------------
+a74a4b2ab | Michael Rauh | Tue, 18 Oct 2022 11:49:17 +0200
+
+psslurm initialization should fail if a account monitor initialization fails
+------------------------------------------------------------------------
+e1e55ef87 | Norbert Eicker | Fri, 14 Oct 2022 18:41:13 +0200
+
+Evict code duplicates
+------------------------------------------------------------------------
+6b6e46275 | Norbert Eicker | Fri, 14 Oct 2022 18:25:52 +0200
+
+Unify the logic of psslurmaccount's sub-inits
+------------------------------------------------------------------------
+04d2b48e0 | Norbert Eicker | Fri, 14 Oct 2022 18:11:06 +0200
+
+Streamline
+------------------------------------------------------------------------
+4211c74ba | Michael Rauh | Fri, 14 Oct 2022 16:16:44 +0200
+
+Add documentation
+------------------------------------------------------------------------
+efd0555fa | Michael Rauh | Fri, 14 Oct 2022 16:10:24 +0200
+
+Document optional ipmi account variables in monitor script
+------------------------------------------------------------------------
+952258c17 | Michael Rauh | Thu, 13 Oct 2022 23:07:12 +0200
+
+Forward Slurm ipmi options to energy accounting script
+------------------------------------------------------------------------
+b1d36e6a2 | Michael Rauh | Thu, 13 Oct 2022 22:55:04 +0200
+
+Introduce setAccEnv() to forward accounting environment
+------------------------------------------------------------------------
+7a28bb026 | Michael Rauh | Thu, 13 Oct 2022 22:49:40 +0200
+
+Split psslurm account initialization
+------------------------------------------------------------------------
+7d8257c5b | Norbert Eicker | Tue, 18 Oct 2022 11:48:20 +0200
+
+Merge branch '5.1.51' again
+------------------------------------------------------------------------
+1472155d0 | Norbert Eicker | Fri, 14 Oct 2022 19:44:59 +0200
+
+IWYU fixes
+------------------------------------------------------------------------
+2b0a0aab9 | Norbert Eicker | Fri, 14 Oct 2022 19:28:56 +0200
+
+Actually the node's symbolic name is in parastation.conf
+------------------------------------------------------------------------
+d4e44e8ac | Norbert Eicker | Fri, 14 Oct 2022 19:26:32 +0200
+
+Improve PSIDnodes' docu and adapt API
+------------------------------------------------------------------------
+a8f8345ed | Stephan Krempel | Thu, 6 Oct 2022 23:06:31 +0200
+
+pspmix: Use configured nodename for namespace's procmap
+
+Closes #82
+------------------------------------------------------------------------
+91150bd95 | Stephan Krempel | Thu, 6 Oct 2022 15:32:46 +0200
+
+Hold configured nodename in internal nodes database
+------------------------------------------------------------------------
+952db992f | Norbert Eicker | Mon, 17 Oct 2022 19:28:40 +0200
+
+Merge branch '5.1.51'
+------------------------------------------------------------------------
+ecbdedc3a | Stephan Krempel | Mon, 17 Oct 2022 16:27:10 +0200
+
+pspmix: Create namespace with only info arrays
+
+With OpenPMIx 4.2 it is not working to pass PMIX_UNIV_SIZE
+as individual info value, so move it into session info array
+
+See https://github.com/openpmix/openpmix/issues/2791
+------------------------------------------------------------------------
+8084aa95f | Stephan Krempel | Mon, 17 Oct 2022 16:26:02 +0200
+
+psslurm: Do not filter PMIX_MCA_* variables from user env
+------------------------------------------------------------------------
+9f92c0f1e | Stephan Krempel | Mon, 17 Oct 2022 16:25:07 +0200
+
+pspmix: Fix memory leak
+------------------------------------------------------------------------
+bf42c3e8f | Stephan Krempel | Mon, 17 Oct 2022 16:24:23 +0200
+
+pspmix: Fix typo
+------------------------------------------------------------------------
+7dede7f3f | Norbert Eicker | Wed, 12 Oct 2022 16:10:10 +0200
+
+Make the build-system self-consistent again
+------------------------------------------------------------------------
+168ac4596 | Norbert Eicker | Wed, 12 Oct 2022 16:02:27 +0200
+
+Fix one IWYU pragma to prevent complains
+------------------------------------------------------------------------
+c99cfaa67 | Norbert Eicker | Wed, 15 Jun 2022 00:42:14 +0200
+
+IWYU fixes
+------------------------------------------------------------------------
+04daa017f | Norbert Eicker | Wed, 15 Jun 2022 00:27:51 +0200
+
+Fix typos in docu comment
+------------------------------------------------------------------------
+1a7d9c45c | Norbert Eicker | Fri, 10 Jun 2022 20:41:40 +0200
+
+Streamlining
+------------------------------------------------------------------------
+b78d594c4 | Norbert Eicker | Fri, 10 Jun 2022 20:41:07 +0200
+
+IWYU fixes and ensure credHash is not used uninitialized
+------------------------------------------------------------------------
+a4c776331 | Norbert Eicker | Fri, 10 Jun 2022 20:40:07 +0200
+
+IWYU fixes
+------------------------------------------------------------------------
+8a6da0b7f | Michael Rauh | Thu, 9 Jun 2022 13:42:36 +0200
+
+Allow the usage of Slurm IO keys larger than SLURM_IO_KEY_SIZE
+------------------------------------------------------------------------
+1b7c1754a | Michael Rauh | Thu, 9 Jun 2022 12:26:16 +0200
+
+Job credential signature is replaced by message hash in
+Slurm 22.05 and above
+------------------------------------------------------------------------
+eb691a3db | Michael Rauh | Thu, 9 Jun 2022 11:51:51 +0200
+
+Use KangarooTwelve to verify Slurm messages
+------------------------------------------------------------------------
+e27556855 | Michael Rauh | Wed, 8 Jun 2022 21:58:11 +0200
+
+Update buildsystem
+------------------------------------------------------------------------
+b94a3f1e9 | Michael Rauh | Wed, 8 Jun 2022 21:38:53 +0200
+
+Add KangarooTwelve hash algorithm
+------------------------------------------------------------------------
+756ea4930 | Michael Rauh | Thu, 2 Jun 2022 17:59:16 +0200
+
+Update Slurm 22.05 message hash
+------------------------------------------------------------------------
+f8abc32b0 | Michael Rauh | Thu, 2 Jun 2022 16:23:42 +0200
+
+Show Slurm protocol version in config request log message
+------------------------------------------------------------------------
+1a516e1dd | Michael Rauh | Thu, 2 Jun 2022 14:02:13 +0200
+
+Add support for Slurm 22.05 protocol
+------------------------------------------------------------------------
+ce28b7d38 | Michael Rauh | Wed, 12 Oct 2022 14:53:00 +0200
+
+Prevent use after free()
+------------------------------------------------------------------------
+36b36f626 | Michael Rauh | Wed, 12 Oct 2022 14:47:41 +0200
+
+Improve BCast naming scheme
+------------------------------------------------------------------------
+6adb19a5f | Michael Rauh | Wed, 12 Oct 2022 14:28:50 +0200
+
+Minor improvments
+------------------------------------------------------------------------
+bf186ad42 | Norbert Eicker | Tue, 11 Oct 2022 23:22:12 +0200
+
+IWYU fixes
+------------------------------------------------------------------------
+9ffecca63 | Norbert Eicker | Tue, 11 Oct 2022 23:21:33 +0200
+
+Fix typo in docu comment
+------------------------------------------------------------------------
+61e5cad00 | Norbert Eicker | Tue, 11 Oct 2022 23:21:15 +0200
+
+Streamlining
+------------------------------------------------------------------------
+b774f803a | Norbert Eicker | Tue, 11 Oct 2022 23:13:28 +0200
+
+Adjust comment
+------------------------------------------------------------------------
+d39430f9b | Michael Rauh | Mon, 10 Oct 2022 16:47:07 +0200
+
+psslurm: allow to use a directory as destination for --bcast option of
+srun (pct:#404)
+------------------------------------------------------------------------
+
+
 Version 5.1.51-2:
 =================
 ------------------------------------------------------------------------
