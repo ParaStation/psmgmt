@@ -9,9 +9,19 @@
 #
 include $(top_srcdir)/common.am
 
+PKG_VER := $(shell ${top_srcdir}/scripts/vcversion -r $(top_srcdir) --fmt version -n)
+PKG_REL := $(shell ${top_srcdir}/scripts/vcversion -r $(top_srcdir) --fmt release -n)
+
+AM_CPPFLAGS += -DVERSION_psmgmt=\"$(PKG_VER)\"
+AM_CPPFLAGS += -DRELEASE_psmgmt=\"$(PKG_REL)\"
+
+AM_CPPFLAGS += -DPREFIX=\"$(prefix)\"
+
 AM_CPPFLAGS += -I$(srcdir)/../include
 AM_LDFLAGS += -avoid-version
 
 lib_LIBRARIES = librrcomm.a
 
-librrcomm_a_SOURCES = rrcomm.c
+librrcomm_a_SOURCES = rrcomm.c $(top_srcdir)/lib/pscommon/pscio.c	\
+	$(top_srcdir)/lib/pscommon/pscommon.c				\
+	$(top_srcdir)/lib/pscommon/logging.c

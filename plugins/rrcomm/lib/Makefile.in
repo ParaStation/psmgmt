@@ -148,7 +148,11 @@ am__v_AR_0 = @echo "  AR      " $@;
 am__v_AR_1 = 
 librrcomm_a_AR = $(AR) $(ARFLAGS)
 librrcomm_a_LIBADD =
-am_librrcomm_a_OBJECTS = rrcomm.$(OBJEXT)
+am__dirstamp = $(am__leading_dot)dirstamp
+am_librrcomm_a_OBJECTS = rrcomm.$(OBJEXT) \
+	$(top_builddir)/lib/pscommon/pscio.$(OBJEXT) \
+	$(top_builddir)/lib/pscommon/pscommon.$(OBJEXT) \
+	$(top_builddir)/lib/pscommon/logging.$(OBJEXT)
 librrcomm_a_OBJECTS = $(am_librrcomm_a_OBJECTS)
 AM_V_P = $(am__v_P_@AM_V@)
 am__v_P_ = $(am__v_P_@AM_DEFAULT_V@)
@@ -165,7 +169,11 @@ am__v_at_1 =
 DEFAULT_INCLUDES = -I.@am__isrc@
 depcomp = $(SHELL) $(top_srcdir)/scripts/depcomp
 am__maybe_remake_depfiles = depfiles
-am__depfiles_remade = ./$(DEPDIR)/rrcomm.Po
+am__depfiles_remade =  \
+	$(top_builddir)/lib/pscommon/$(DEPDIR)/logging.Po \
+	$(top_builddir)/lib/pscommon/$(DEPDIR)/pscio.Po \
+	$(top_builddir)/lib/pscommon/$(DEPDIR)/pscommon.Po \
+	./$(DEPDIR)/rrcomm.Po
 am__mv = mv -f
 COMPILE = $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) \
 	$(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
@@ -359,17 +367,10 @@ top_build_prefix = @top_build_prefix@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
 unitdir = @unitdir@
-
-#
-# ParaStation
-#
-# Copyright (C) 2022 ParTec AG, Munich
-#
-# This file may be distributed under the terms of the Q Public License
-# as defined in the file LICENSE.QPL included in the packaging of this
-# file.
-#
-AM_CPPFLAGS = -I$(top_srcdir)/include -DNDEBUG -I$(srcdir)/../include
+AM_CPPFLAGS = -I$(top_srcdir)/include -DNDEBUG \
+	-DVERSION_psmgmt=\"$(PKG_VER)\" \
+	-DRELEASE_psmgmt=\"$(PKG_REL)\" -DPREFIX=\"$(prefix)\" \
+	-I$(srcdir)/../include
 subst_verbose = $(subst_verbose_$(V))
 subst_verbose_ = $(subst_verbose_$(AM_DEFAULT_VERBOSITY))
 subst_verbose_0 = @echo "  SUBST   " $(@F);
@@ -408,8 +409,23 @@ scriptsdir = $(prefix)/scripts
 @HAVE_SYSTEMD_TRUE@default_cgroup_root = /sys/fs/cgroup/
 @HAVE_SYSTEMD_FALSE@default_cgroup_name = psmgmtGrp
 @HAVE_SYSTEMD_TRUE@default_cgroup_name = system.slice/psid.service/descendants
+
+#
+# ParaStation
+#
+# Copyright (C) 2022 ParTec AG, Munich
+#
+# This file may be distributed under the terms of the Q Public License
+# as defined in the file LICENSE.QPL included in the packaging of this
+# file.
+#
+PKG_VER := $(shell ${top_srcdir}/scripts/vcversion -r $(top_srcdir) --fmt version -n)
+PKG_REL := $(shell ${top_srcdir}/scripts/vcversion -r $(top_srcdir) --fmt release -n)
 lib_LIBRARIES = librrcomm.a
-librrcomm_a_SOURCES = rrcomm.c
+librrcomm_a_SOURCES = rrcomm.c $(top_srcdir)/lib/pscommon/pscio.c	\
+	$(top_srcdir)/lib/pscommon/pscommon.c				\
+	$(top_srcdir)/lib/pscommon/logging.c
+
 all: all-am
 
 .SUFFIXES:
@@ -475,6 +491,21 @@ uninstall-libLIBRARIES:
 
 clean-libLIBRARIES:
 	-test -z "$(lib_LIBRARIES)" || rm -f $(lib_LIBRARIES)
+$(top_builddir)/lib/pscommon/$(am__dirstamp):
+	@$(MKDIR_P) $(top_builddir)/lib/pscommon
+	@: > $(top_builddir)/lib/pscommon/$(am__dirstamp)
+$(top_builddir)/lib/pscommon/$(DEPDIR)/$(am__dirstamp):
+	@$(MKDIR_P) $(top_builddir)/lib/pscommon/$(DEPDIR)
+	@: > $(top_builddir)/lib/pscommon/$(DEPDIR)/$(am__dirstamp)
+$(top_builddir)/lib/pscommon/pscio.$(OBJEXT):  \
+	$(top_builddir)/lib/pscommon/$(am__dirstamp) \
+	$(top_builddir)/lib/pscommon/$(DEPDIR)/$(am__dirstamp)
+$(top_builddir)/lib/pscommon/pscommon.$(OBJEXT):  \
+	$(top_builddir)/lib/pscommon/$(am__dirstamp) \
+	$(top_builddir)/lib/pscommon/$(DEPDIR)/$(am__dirstamp)
+$(top_builddir)/lib/pscommon/logging.$(OBJEXT):  \
+	$(top_builddir)/lib/pscommon/$(am__dirstamp) \
+	$(top_builddir)/lib/pscommon/$(DEPDIR)/$(am__dirstamp)
 
 librrcomm.a: $(librrcomm_a_OBJECTS) $(librrcomm_a_DEPENDENCIES) $(EXTRA_librrcomm_a_DEPENDENCIES) 
 	$(AM_V_at)-rm -f librrcomm.a
@@ -483,10 +514,14 @@ librrcomm.a: $(librrcomm_a_OBJECTS) $(librrcomm_a_DEPENDENCIES) $(EXTRA_librrcom
 
 mostlyclean-compile:
 	-rm -f *.$(OBJEXT)
+	-rm -f $(top_builddir)/lib/pscommon/*.$(OBJEXT)
 
 distclean-compile:
 	-rm -f *.tab.c
 
+@AMDEP_TRUE@@am__include@ @am__quote@$(top_builddir)/lib/pscommon/$(DEPDIR)/logging.Po@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@$(top_builddir)/lib/pscommon/$(DEPDIR)/pscio.Po@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@$(top_builddir)/lib/pscommon/$(DEPDIR)/pscommon.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/rrcomm.Po@am__quote@ # am--include-marker
 
 $(am__depfiles_remade):
@@ -642,6 +677,8 @@ clean-generic:
 distclean-generic:
 	-test -z "$(CONFIG_CLEAN_FILES)" || rm -f $(CONFIG_CLEAN_FILES)
 	-test . = "$(srcdir)" || test -z "$(CONFIG_CLEAN_VPATH_FILES)" || rm -f $(CONFIG_CLEAN_VPATH_FILES)
+	-test -z "$(top_builddir)/lib/pscommon/$(DEPDIR)/$(am__dirstamp)" || rm -f $(top_builddir)/lib/pscommon/$(DEPDIR)/$(am__dirstamp)
+	-test -z "$(top_builddir)/lib/pscommon/$(am__dirstamp)" || rm -f $(top_builddir)/lib/pscommon/$(am__dirstamp)
 
 maintainer-clean-generic:
 	@echo "This command is intended for maintainers to use"
@@ -652,7 +689,10 @@ clean-am: clean-generic clean-libLIBRARIES clean-libtool \
 	mostlyclean-am
 
 distclean: distclean-am
-		-rm -f ./$(DEPDIR)/rrcomm.Po
+		-rm -f $(top_builddir)/lib/pscommon/$(DEPDIR)/logging.Po
+	-rm -f $(top_builddir)/lib/pscommon/$(DEPDIR)/pscio.Po
+	-rm -f $(top_builddir)/lib/pscommon/$(DEPDIR)/pscommon.Po
+	-rm -f ./$(DEPDIR)/rrcomm.Po
 	-rm -f Makefile
 distclean-am: clean-am distclean-compile distclean-generic \
 	distclean-tags
@@ -698,7 +738,10 @@ install-ps-am:
 installcheck-am:
 
 maintainer-clean: maintainer-clean-am
-		-rm -f ./$(DEPDIR)/rrcomm.Po
+		-rm -f $(top_builddir)/lib/pscommon/$(DEPDIR)/logging.Po
+	-rm -f $(top_builddir)/lib/pscommon/$(DEPDIR)/pscio.Po
+	-rm -f $(top_builddir)/lib/pscommon/$(DEPDIR)/pscommon.Po
+	-rm -f ./$(DEPDIR)/rrcomm.Po
 	-rm -f Makefile
 maintainer-clean-am: distclean-am maintainer-clean-generic
 

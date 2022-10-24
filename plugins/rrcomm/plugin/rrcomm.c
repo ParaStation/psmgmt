@@ -35,6 +35,19 @@ int version = 1;
 int requiredAPI = 136;
 plugin_dep_t dependencies[] = { { NULL, 0 } };
 
+/** Packet types used within the RRComm protocol */
+typedef enum {
+    RRCOMM_DATA,     /**< Payload */
+    RRCOMM_ERROR,    /**< Error signal */
+} RRC_pkt_t;
+
+/** Extended header of RRComm fragments */
+typedef struct {
+    uint32_t rank;   /**< Destination rank */
+    // @todo we might have to provide namespace information here
+} RRC_hdr_t;
+
+
 /* static void handleNodeInfoData(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData) */
 /* { */
 /*     PSnodes_ID_t sender = PSC_getID(msg->header.sender); */

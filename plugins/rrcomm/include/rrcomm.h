@@ -16,6 +16,7 @@
 #define __RRCOMM_H
 
 #include <stdbool.h>
+#include <stdint.h>
 #include <sys/types.h>
 
 /**
@@ -31,15 +32,22 @@ bool RRC_instantError(bool flag);
 /**
  * @doctodo
  */
-ssize_t RRC_send(int rank, char *buf, size_t bufSize);
+ssize_t RRC_send(int32_t rank, char *buf, size_t bufSize);
 
 /**
  * @doctodo
  */
-ssize_t RRC_recv(int *rank, char *buf, size_t bufSize);
+ssize_t RRC_recv(int32_t *rank, char *buf, size_t bufSize);
 
 /**
- * @doctodo
+ * @brief Finalize use of the RRComm interface
+ *
+ * Finalize the use of the RRComm interface. This closes the
+ * connection to the chaperon forwarder. The corresponding socket
+ * descriptor provided by @ref RRC_init() must have been evicted from
+ * any use in @ref select(), @ref poll(), or @ref epoll() before.
+ *
+ * @return No return value
  */
 void RRC_finalize(void);
 
