@@ -88,6 +88,11 @@ int RRC_init(void)
     return frwdSocket;
 }
 
+bool RRC_isInitialized(void)
+{
+    return frwdSocket != -1;
+}
+
 /** @doctodo */
 static bool instantError = false;
 
