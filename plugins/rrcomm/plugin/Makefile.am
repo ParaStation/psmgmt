@@ -18,7 +18,8 @@ plugin_LTLIBRARIES = rrcomm.la
 libplugincommon = $(top_builddir)/lib/plugincommon/libplugincommon.la
 libpscommon = $(top_builddir)/lib/pscommon/libpscommon.la
 
-rrcomm_la_SOURCES = rrcomm.c
+rrcomm_la_SOURCES = rrcomm.c rrcommconfig.c rrcommconfig.h	\
+	rrcommlog.c rrcommlog.h
 
 rrcomm_la_CPPFLAGS = $(AM_CPPFLAGS)
 rrcomm_la_LIBADD = $(libplugincommon) $(libpscommon)

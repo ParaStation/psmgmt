@@ -29,6 +29,9 @@
 #include "pluginmalloc.h"
 #include "pluginpsconfig.h"
 
+#include "rrcommconfig.h"
+#include "rrcommlog.h"
+
 /** psid plugin requirements */
 char name[] = "rrcomm";
 int version = 1;
@@ -48,103 +51,103 @@ typedef struct {
 } RRC_hdr_t;
 
 
-/* static void handleNodeInfoData(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData) */
-/* { */
-/*     PSnodes_ID_t sender = PSC_getID(msg->header.sender); */
-/*     char *ptr = rData->buf; */
-/*     PSP_NodeInfo_t type = 0; // ensure higher bytes are all 0 */
+static void handleRRCommData(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
+{
+    /* PSnodes_ID_t sender = PSC_getID(msg->header.sender); */
+    /* char *ptr = rData->buf; */
+    /* PSP_NodeInfo_t type = 0; // ensure higher bytes are all 0 */
 
-/*     mdbg(NODEINFO_LOG_VERBOSE, "%s: handle update from %s\n", __func__, */
-/* 	 PSC_printTID(msg->header.sender)); */
+    mdbg(RRCOMM_LOG_VERBOSE, "%s: handle message from %s\n", __func__,
+	 PSC_printTID(msg->header.sender));
 
-/*     getUint8(&ptr, &type); */
-/*     while (type) { */
-/* 	mdbg(NODEINFO_LOG_VERBOSE, "%s: update type %d\n", __func__, type); */
-/* 	switch (type) { */
-/* 	case PSP_NODEINFO_CPUMAP: */
-/* 	    if (!handleCPUMapData(&ptr, sender)) return; */
-/* 	    break; */
-/* 	case PSP_NODEINFO_NUMANODES: */
-/* 	    if (!handleSetData(&ptr, sender, NULL, */
-/* 			       PSIDnodes_setCPUSets)) return; */
-/* 	    break; */
-/* 	case PSP_NODEINFO_GPU: */
-/* 	    if (!handleSetData(&ptr, sender, PSIDnodes_setNumGPUs, */
-/* 			       PSIDnodes_setGPUSets)) return; */
-/* 	    break; */
-/* 	case PSP_NODEINFO_NIC: */
-/* 	    if (!handleSetData(&ptr, sender, PSIDnodes_setNumNICs, */
-/* 			       PSIDnodes_setNICSets)) return; */
-/* 	    break; */
-/* 	case PSP_NODEINFO_REQ: */
-/* 	    sendNodeInfoData(sender); */
-/* 	    break; */
-/* 	case PSP_NODEINFO_DISTANCES: */
-/* 	    if (!handleDistanceData(&ptr, sender)) return; */
-/* 	    break; */
-/* 	case PSP_NODEINFO_CPU: */
-/* 	    if (!handleCPUData(&ptr, sender)) return; */
-/* 	    break; */
-/* 	default: */
-/* 	    mlog("%s: unknown type %d\n", __func__, type); */
-/* 	    return; */
-/* 	} */
-/* 	/\* Peek into next type *\/ */
-/* 	getUint8(&ptr, &type); */
-/*     } */
-/* } */
+    /* getUint8(&ptr, &type); */
+    /* while (type) { */
+    /* 	mdbg(NODEINFO_LOG_VERBOSE, "%s: update type %d\n", __func__, type); */
+    /* 	switch (type) { */
+    /* 	case PSP_NODEINFO_CPUMAP: */
+    /* 	    if (!handleCPUMapData(&ptr, sender)) return; */
+    /* 	    break; */
+    /* 	case PSP_NODEINFO_NUMANODES: */
+    /* 	    if (!handleSetData(&ptr, sender, NULL, */
+    /* 			       PSIDnodes_setCPUSets)) return; */
+    /* 	    break; */
+    /* 	case PSP_NODEINFO_GPU: */
+    /* 	    if (!handleSetData(&ptr, sender, PSIDnodes_setNumGPUs, */
+    /* 			       PSIDnodes_setGPUSets)) return; */
+    /* 	    break; */
+    /* 	case PSP_NODEINFO_NIC: */
+    /* 	    if (!handleSetData(&ptr, sender, PSIDnodes_setNumNICs, */
+    /* 			       PSIDnodes_setNICSets)) return; */
+    /* 	    break; */
+    /* 	case PSP_NODEINFO_REQ: */
+    /* 	    sendNodeInfoData(sender); */
+    /* 	    break; */
+    /* 	case PSP_NODEINFO_DISTANCES: */
+    /* 	    if (!handleDistanceData(&ptr, sender)) return; */
+    /* 	    break; */
+    /* 	case PSP_NODEINFO_CPU: */
+    /* 	    if (!handleCPUData(&ptr, sender)) return; */
+    /* 	    break; */
+    /* 	default: */
+    /* 	    mlog("%s: unknown type %d\n", __func__, type); */
+    /* 	    return; */
+    /* 	} */
+    /* 	/\* Peek into next type *\/ */
+    /* 	getUint8(&ptr, &type); */
+    /* } */
+}
 
 static bool handleRRCommMsg(DDBufferMsg_t *msg)
 {
-    //recvFragMsg((DDTypedBufferMsg_t *)msg, handleNodeInfoData);
+    recvFragMsg((DDTypedBufferMsg_t *)msg, handleRRCommData);
     return true;
 }
 
-/* static bool evalValue(const char *key, const pluginConfigVal_t *val, */
-/* 		      const void *info) */
-/* { */
-/*     if (!strcmp(key, "DebugMask")) { */
-/* 	//uint32_t mask = val ? val->val.num : 0; */
-/* 	//maskRRCommLogger(mask); */
-/* 	//mdbg(RRCOMM_LOG_VERBOSE, "debugMask set to %#x\n", mask); */
-/*     } else { */
-/* 	//mlog("%s: unknown key '%s'\n", __func__, key); */
-/*     } */
+static bool evalValue(const char *key, const pluginConfigVal_t *val,
+		      const void *info)
+{
+    if (!strcmp(key, "DebugMask")) {
+	uint32_t mask = val ? val->val.num : 0;
+	maskRRCommLogger(mask);
+	mdbg(RRCOMM_LOG_VERBOSE, "debugMask set to %#x\n", mask);
+    } else {
+	mlog("%s: unknown key '%s'\n", __func__, key);
+    }
 
-/*     return true; */
-/* } */
+    return true;
+}
 
 
 int initialize(FILE *logfile)
 {
     /* init logging facility */
-    //initRRCommLogger(name, logfile);
+    initRRCommLogger(name, logfile);
 
     /* init configuration (depends on psconfig) */
-    //initRRCommConfig();
+    initRRCommConfig();
 
     /* Activate configuration values */
-    //pluginConfig_traverse(RRCommConfig, evalValue, NULL);
+    pluginConfig_traverse(RRCommConfig, evalValue, NULL);
 
     if (!initSerial(0, sendMsg)) {
-	//mlog("%s: initSerial() failed\n", __func__);
+	mlog("%s: initSerial() failed\n", __func__);
 	goto INIT_ERROR;
     }
 
     if (!PSID_registerMsg(PSP_PLUG_RRCOMM, handleRRCommMsg)) {
-	//mlog("%s: register 'PSP_PLUG_NODEINFO' handler failed\n", __func__);
+	mlog("%s: register 'PSP_PLUG_RRCOMM' handler failed\n", __func__);
 	finalizeSerial();
 	goto INIT_ERROR;
     }
 
-    //mlog("(%i) successfully started\n", version);
+    mlog("(%i) successfully started\n", version);
 
     return 0;
 
 INIT_ERROR:
     //unregisterHooks(false);
-    //finalizeNodeInfoConfig();
-    //finalizeNodeInfoLogger();
+    finalizeRRCommConfig();
+    finalizeRRCommLogger();
 
     return 1;
 }
@@ -153,54 +156,44 @@ void cleanup(void)
 {
     PSID_clearMsg(PSP_PLUG_RRCOMM, handleRRCommMsg);
     finalizeSerial();
-    //finalizeRRCConfig();
+    finalizeRRCommConfig();
 
-    //mlog("...Bye.\n");
+    mlog("...Bye.\n");
 
     /* release the logger */
-    //finalizeRRCLogger();
+    finalizeRRCommLogger();
 }
 
 char *help(char *key)
 {
     StrBuffer_t strBuf = { .buf = NULL };
 
-    addStrBuf("\tImplement rank route communication\n\n", &strBuf);
+    addStrBuf("\tImplement rank routed communication\n\n", &strBuf);
     addStrBuf("\n# configuration options #\n\n", &strBuf);
 
-    //pluginConfig_helpDesc(RRCConfig, &strBuf);
+    pluginConfig_helpDesc(RRCommConfig, &strBuf);
 
     return strBuf.buf;
 }
 
 char *set(char *key, char *val)
 {
-    /* const pluginConfigDef_t *thisDef = pluginConfig_getDef(RRCConfig, key); */
+    const pluginConfigDef_t *thisDef = pluginConfig_getDef(RRCommConfig, key);
 
-    /* if (!thisDef) return strdup(" Unknown option\n"); */
+    if (!thisDef) return strdup(" Unknown option\n");
 
-    /* if (thisDef->type == PLUGINCONFIG_VALUE_LST) { */
-    /* 	if (*val == '+') { */
-    /* 	    val++; */
-    /* 	    pluginConfig_addToLst(nodeInfoConfig, key, val); */
-    /* 	} else { */
-    /* 	    pluginConfig_remove(nodeInfoConfig, key); */
-    /* 	    pluginConfig_addToLst(nodeInfoConfig, key, val); */
-    /* 	} */
-    /* } else if (!pluginConfig_addStr(nodeInfoConfig, key, val)) { */
-    /* 	return strdup(" Illegal value\n"); */
-    /* } */
-    /* if (!evalValue(key, pluginConfig_get(nodeInfoConfig, key), NULL)) { */
-    /* 	return strdup(" Illegal value\n"); */
-    /* } */
+    if (!pluginConfig_addStr(RRCommConfig, key, val)
+	|| !evalValue(key, pluginConfig_get(RRCommConfig, key), NULL)) {
+	return strdup(" Illegal value\n");
+    }
 
     return NULL;
 }
 
 char *unset(char *key)
 {
-    //pluginConfig_remove(RRCConfig, key);
-    //evalValue(key, NULL, RRCConfig);
+    pluginConfig_remove(RRCommConfig, key);
+    evalValue(key, NULL, RRCommConfig);
 
     return NULL;
 }
@@ -212,11 +205,11 @@ char *show(char *key)
     if (!key) {
 	/* Show the whole configuration */
 	addStrBuf("\n", &strBuf);
-	//pluginConfig_traverse(RRCConfig, pluginConfig_showVisitor,&strBuf);
-    /* } else if (!pluginConfig_showKeyVal(RRCConfig, key, &strBuf)) { */
-    /* 	addStrBuf(" '", &strBuf); */
-    /* 	addStrBuf(key, &strBuf); */
-    /* 	addStrBuf("' is unknown\n", &strBuf); */
+	pluginConfig_traverse(RRCommConfig, pluginConfig_showVisitor,&strBuf);
+    } else if (!pluginConfig_showKeyVal(RRCommConfig, key, &strBuf)) {
+	addStrBuf(" '", &strBuf);
+	addStrBuf(key, &strBuf);
+	addStrBuf("' is unknown\n", &strBuf);
     }
 
     return strBuf.buf;
