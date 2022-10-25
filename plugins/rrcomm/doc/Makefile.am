@@ -9,4 +9,6 @@
 #
 include $(top_srcdir)/common.am
 
-SUBDIRS = doc include lib plugin tests
+dist_noinst_DATA = README.rrcomm
+
+EXTRA_DIST = psconfig

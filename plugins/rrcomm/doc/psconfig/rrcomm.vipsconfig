@@ -1,0 +1,24 @@
+[+class:defaults]
+.parents = []
+
+[+class:pluginconfigs]
+.parents = ["defaults:pluginconfigs"]
+RRComm. = ptr(["class:rrcomm"])
+# Inherited keys:
+
+[+class:psid]
+PluginConfigs. = ptr(["class:pluginconfigs"])
+
+[+class:rrcomm]
+.parents = ["defaults:rrcomm"]
+# Inherited keys:
+# DebugMask = "0"
+
+[+defaults:pluginconfigs]
+.parents = ["class:defaults"]
+# Inherited keys:
+
+[+defaults:rrcomm]
+.parents = ["class:defaults"]
+DebugMask = "0"
+# Inherited keys:

@@ -703,6 +703,11 @@ plugins/psslurm/src/spank/visspank.c \
 plugins/psslurm/src/spank/x11spank.c \
 plugins/rrcomm/Makefile.am \
 plugins/rrcomm/Makefile.in \
+plugins/rrcomm/doc/Makefile.am \
+plugins/rrcomm/doc/Makefile.in \
+plugins/rrcomm/doc/README.rrcomm \
+plugins/rrcomm/doc/psconfig/rrcomm.dump \
+plugins/rrcomm/doc/psconfig/rrcomm.vipsconfig \
 plugins/rrcomm/include/Makefile.am \
 plugins/rrcomm/include/Makefile.in \
 plugins/rrcomm/include/rrcomm.h \

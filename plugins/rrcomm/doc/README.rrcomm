@@ -1,0 +1,117 @@
+psmgmt README.rrcomm -- Remarks on setup of RRComm
+
+Copyright (C) 2022 ParTec AG, Munich
+
+Please send bug reports, questions and suggestions to <support@par-tec.com>
+
+
+INTRODUCTION
+
+Rank Routed Communication (RRComm) is intended to provided
+communication capabilities to client applications without putting the
+burden to register and distribute addressing information beforehand on
+these applications.
+
+PROBLEM DESCRIPTION
+
+In general MPI processes require some basic information in order to
+"find" each other. This is due to the fact that all processes
+belonging to a single application will be started independently from a
+central point, typically by mpiexec or srun. Thus, for scalability
+reasons no information can be provided during the spawn of processes
+how to reach these sister processes. To provide a directory service
+for the collection of processes the key-value space (KVS) of PMI or
+PMIx might be used. The high-level mechanism then works as follows:
+
+ * Each process creates a communication endpoint
+ * The address of this endpoint is determined. The relevant
+   information consists of IP-address + TCP-port or corresponding
+   information depending on the type of socket created. The type might
+   include native endpoints of the underlying high-performance
+   interconnect.
+ * This information is stored to the (local slice of the) global KVS
+ * A global synchronization of the local slices of the KVS is enforced
+ * Now the information of each communication partner can be read from the KVS
+ * Connect to the partner's communication endpoint
+
+Especially the global synchronization of the KVS might add significant
+overhead to the startup time of a large MPI application. The actual
+implementation requires some functionality to be provided by the
+underlying process management system. In the end there has to be
+distributed information on where a specific rank of the MPI
+application is located. This will be utilized by PMI or PMIx in order
+to distribute the information stored to the KVS across all involved
+nodes and processes.
+
+The idea behind the RRComm is to utilize the mentioned distributed
+information in order to enable client processes to directly exchange
+information. For this, the PSI-rank of the corresponding processes
+(which happens to be identical to the PMI[x] or MPI ranks of the
+processes) shall be used in order to address the destination of the
+messages to send. In the end RRComm messages will replace the TCP
+messages used to first negotiate the type of connection to be setup
+and later to exchange the necessary information for the actual setup.
+
+The rrcomm plugin provides the backend-functionality of RRComm. At the
+same time the user-interface is available via librrcomm that is
+delivered in the psmgmt-rrcomm-devel sub-package. For documentation of
+librrcomm's API refer to its header file rrcomm.h.
+
+CONFIGURATION
+
+The rrcomm plugin is configured via psconfig. The mechanism is as
+follows:
+
+ * A class:rrcomm object contains all parameters of the rrcomm plugin
+ * A class:pluginconfigs object hosts pointers to all objects hosting
+   plugin parameters. The pointer to the object hosting the rrcomm
+   parameters must be named "RRComm."
+ * In class:psid the pointer "PluginConfigs." refers to the
+   class:pluginconfigs object
+ * For both, class:rrcomm and class:pluginconfigs defaults are defined
+   in the defaults:rrcomm and defaults:pluginconfigs objects respectively
+ * Standard inheritance is applied to all objects in
+   class:rrcomm. E.g. to change to DebugMask for a certain class of
+   hosts it is sufficient to set Psid.PluginConfigs.RRComm.DebugMask
+   to the required value in the corresponding class: object
+
+The actual structure of the configuration expected by the rrcomm
+plugin is described in detail in psconfig/rrcomm.vipsconfig. As a
+first step it might be cut'n'pasted into the configuration using the
+vipsconfig tool. A better alternative will be to source
+psconfig/rrcomm.dump to instantiate all required classes and defaults.
+
+At the time of writing rrcomm supports the following configuration
+parameters:
+ * DebugMask	Bit-mask (integer) enabling more verbose logging
+
+The standard configuration provided by psconfig/rrcomm.dump mentioned
+above defines the following defaults:
+
+DebugMask = "0"
+
+PSIADMIN INTERFACE
+
+As most plugins rrcomm is accessible via psiadmin, too. The interface
+provides the following functionality:
+
+> plugin help rrcomm <node>
+  Present a help message including a brief description of the plugin's
+  psconfig parameters
+
+> plugin show rrcomm <node>
+  Display the current value of all configuration parameters
+
+> plugin show nodeinfo key <parameter> <node>
+  Display the current value of <parameter>. For the time being
+  <parameter> is allowed to be only DebugMask.
+
+> plugin unset node <parameter> <node?
+
+  Unset the value of <parameter>, i.e. replacing it with the default
+  value. For the time being <parameter> is allowed to be only
+  DebugMask.
+
+> plugin set node <parameter> <value> <node>
+  Set the value of <parameter> to <value>. For the time being
+  <parameter> is allowed to be only DebugMask.

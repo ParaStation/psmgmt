@@ -1,0 +1,26 @@
+#
+# Object "class:pluginconfigs"
+#
+psconfig -q -- create 'class:pluginconfigs'
+psconfig -q -- setParents 'class:pluginconfigs' 'defaults:pluginconfigs'
+psconfig -q -- setPointerList 'class:pluginconfigs' 'RRComm.' 'class:rrcomm'
+#
+# Object "class:psid"
+#
+psconfig -q -- setPointerList 'class:psid' 'PluginConfigs.' 'class:pluginconfigs'
+#
+# Object "class:rrcomm"
+#
+psconfig -q -- create 'class:rrcomm'
+psconfig -q -- setParents 'class:rrcomm' 'defaults:rrcomm'
+#
+# Object "defaults:pluginconfigs"
+#
+psconfig -q -- create 'class:pluginconfigs'
+psconfig -q -- setParents 'class:pluginconfigs' 'class:defaults'
+#
+# Object "defaults:rrcomm"
+#
+psconfig -q -- create 'defaults:rrcomm'
+psconfig -q -- setParents 'defaults:rrcomm' 'class:defaults'
+psconfig -q -- set 'defaults:rrcomm' 'DebugMask' '0'

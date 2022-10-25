@@ -13364,6 +13364,8 @@ ac_config_files="$ac_config_files plugins/psslurm/src/spank/Makefile"
 
 ac_config_files="$ac_config_files plugins/rrcomm/Makefile"
 
+ac_config_files="$ac_config_files plugins/rrcomm/doc/Makefile"
+
 ac_config_files="$ac_config_files plugins/rrcomm/include/Makefile"
 
 ac_config_files="$ac_config_files plugins/rrcomm/lib/Makefile"
@@ -14500,6 +14502,7 @@ do
     "plugins/psslurm/src/psslurm/Makefile") CONFIG_FILES="$CONFIG_FILES plugins/psslurm/src/psslurm/Makefile" ;;
     "plugins/psslurm/src/spank/Makefile") CONFIG_FILES="$CONFIG_FILES plugins/psslurm/src/spank/Makefile" ;;
     "plugins/rrcomm/Makefile") CONFIG_FILES="$CONFIG_FILES plugins/rrcomm/Makefile" ;;
+    "plugins/rrcomm/doc/Makefile") CONFIG_FILES="$CONFIG_FILES plugins/rrcomm/doc/Makefile" ;;
     "plugins/rrcomm/include/Makefile") CONFIG_FILES="$CONFIG_FILES plugins/rrcomm/include/Makefile" ;;
     "plugins/rrcomm/lib/Makefile") CONFIG_FILES="$CONFIG_FILES plugins/rrcomm/lib/Makefile" ;;
     "plugins/rrcomm/plugin/Makefile") CONFIG_FILES="$CONFIG_FILES plugins/rrcomm/plugin/Makefile" ;;
