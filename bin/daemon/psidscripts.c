@@ -430,7 +430,7 @@ static bool relocCBInfo(void *item)
 
 static void cbInfoPool_gc(void)
 {
-    if (!PSitems_gcRequired(cbInfoPool)) PSitems_gc(cbInfoPool, relocCBInfo);
+    if (PSitems_gcRequired(cbInfoPool)) PSitems_gc(cbInfoPool, relocCBInfo);
 }
 
 bool PSIDscripts_init(void)
