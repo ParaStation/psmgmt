@@ -247,6 +247,24 @@ static void createHWTypePSets(list_t *procMap, const char *nspace)
     }
 }
 
+static bool reservationFilter(PspmixNode_t *node, PspmixProcess_t *proc,
+			      void *data)
+{
+    PspmixApp_t *app = (PspmixApp_t *)data;
+    return (proc->app->resID == app->resID);
+}
+
+static void createReservationPSet(const char *name, list_t *procMap,
+				  const char *nspace, PspmixApp_t *app)
+{
+    if (!pspmix_server_createPSetByProcess(name, procMap, nspace,
+				   reservationFilter, app)) {
+	ulog("failed to create reservation process sets for id %d\n",
+	     app->resID);
+	return;
+    }
+}
+
 bool pspmix_service_registerNamespace(PspmixJob_t *job)
 {
     mdbg(PSPMIX_LOG_CALL, "%s()\n", __func__);
@@ -451,6 +469,14 @@ bool pspmix_service_registerNamespace(PspmixJob_t *job)
 
     /* create a process set for each hardware type */
     createHWTypePSets(&ns->procMap, ns->name);
+
+    /* create a process set for each reservation (= app) */
+    for (size_t a = 0; a < ns->appsCount; a++) {
+	char name[32];
+	snprintf(name, 32, "reservation_%d", ns->apps[a].resID);
+
+	createReservationPSet(name, &ns->procMap, ns->name, &ns->apps[a]);
+    }
 
     /* setup local node */
     if (!pspmix_server_setupLocalSupport(ns->name)) {
