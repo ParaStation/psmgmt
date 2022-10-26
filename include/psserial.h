@@ -123,6 +123,12 @@ bool initSerial(size_t bufSize, Send_Msg_Func_t *func);
  */
 void finalizeSerial(void);
 
+/** Fragment types */
+typedef enum {
+    FRAGMENT_PART = 0x01,   /* one fragment, more to follow */
+    FRAGMENT_END  = 0x02,   /* the end of a fragmented message */
+} FragType_t;
+
 /**
  * @brief Initialize a fragmented message buffer
  *

@@ -46,11 +46,6 @@
 
 #define DEFAULT_BUFFER_SIZE 128 * 1024
 
-typedef enum {
-    FRAGMENT_PART = 0x01,   /* one fragment, more to follow */
-    FRAGMENT_END  = 0x02,   /* the end of a fragmented message */
-} FragType_t;
-
 /** Flag byte-order conversation */
 static bool byteOrder = true;
 
