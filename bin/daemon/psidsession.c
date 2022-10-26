@@ -42,6 +42,8 @@ PSresinfo_t *getResinfo(void)
 {
     PSresinfo_t *resinfo = PSitems_getItem(resinfoPool);
     resinfo->nEntries = 0;
+    resinfo->minRank = 0;
+    resinfo->maxRank = 0;
     resinfo->entries = NULL;
 
     return resinfo;
@@ -126,6 +128,8 @@ static bool relocResinfo(void *item)
 
     /* copy content */
     repl->resID = orig->resID;
+    repl->minRank = orig->minRank;
+    repl->maxRank = orig->maxRank;
     repl->nEntries = orig->nEntries;
     repl->entries = orig->entries;
 
@@ -217,7 +221,8 @@ static bool addReservationToJob(PSjob_t *job, PSresinfo_t *res)
     list_for_each(r, &job->resInfos) {
 	PSresinfo_t *cur = list_entry(r, PSresinfo_t, next);
 	if (cur->resID != res->resID) continue;
-	if (cur->nEntries != res->nEntries) {
+	if (cur->nEntries != res->nEntries || cur->minRank != res->minRank
+	    || cur->maxRank != res->maxRank) {
 	    PSID_log(-1, "%s: Reservation %d already known but differs,"
 		     " this should never happen\n", __func__, res->resID);
 	}
@@ -304,6 +309,16 @@ static void handleResCreated(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
 	getNodeId(&ptr, &res->entries[i].node);
 	getInt32(&ptr, &res->entries[i].firstrank);
 	getInt32(&ptr, &res->entries[i].lastrank);
+	/* adapt minRank / maxRank */
+	if (!i) {
+	    res->minRank = res->entries[i].firstrank;
+	    res->maxRank = res->entries[i].lastrank;
+	} else {
+	    if (res->entries[i].firstrank < res->minRank)
+		res->minRank = res->entries[i].firstrank;
+	    if (res->entries[i].lastrank > res->maxRank)
+		res->maxRank = res->entries[i].lastrank;
+	}
 
 	/* add to reservation */
 	PSID_log(PSID_LOG_SPAWN, "%s: Reservation %d: Adding node %hd:"

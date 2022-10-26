@@ -33,6 +33,8 @@ typedef struct {
 typedef struct {
     list_t next;               /**< used to put into PSjob_t.resInfos */
     PSrsrvtn_ID_t resID;       /**< unique reservation identifier */
+    int32_t minRank;           /**< minimum rank in this reservation */
+    int32_t maxRank;           /**< maximum rank in this reservation */
     uint32_t nEntries;         /**< Number of entries in @ref entries */
     PSresinfoentry_t *entries; /**< Slots forming the reservation */
 } PSresinfo_t;
