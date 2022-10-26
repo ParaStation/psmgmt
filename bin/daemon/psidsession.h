@@ -14,6 +14,7 @@
 #ifndef __PSIDSESSION_H
 #define __PSIDSESSION_H
 
+#include <stdbool.h>
 #include <stdint.h>
 
 #include "list.h"
@@ -81,23 +82,18 @@ PSjob_t* PSID_findJobInSession(PSsession_t *session, PStask_ID_t spawnerTID);
  * Initialize the session framework. This registers the necessary
  * message handlers.
  *
- * @return No return value.
+ * @return On success true is returned; or false in case of error
  */
-void PSIDsession_init(void);
+bool PSIDsession_init(void);
 
 /**
- * @brief Memory cleanup
+ * @brief Print statistics
  *
- * Cleanup all dynamic memory currently retained in session structures
- * and all descendants. This will very aggressively free() all
- * allocated memory destroying all information on sessions, jobs, and
- * reservations.
- *
- * The purpose of this function is to cleanup before a fork()ed
- * process is handling other businesses, e.g. becoming a forwarder.
+ * Print statistics concerning the usage of internal pools for
+ * sessions, jobs and resinfos.
  *
  * @return No return value
  */
-void PSIDsession_clearMem(void);
+void PSIDsession_printStat(void);
 
 #endif /* __PSIDSESSION_H */

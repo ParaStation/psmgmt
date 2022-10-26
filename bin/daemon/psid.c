@@ -297,6 +297,7 @@ static int handleSIGUSR1(int fd, void *info)
     PSIDcomm_printStat();
     Selector_printStat();
     PSIDscripts_printStat();
+    PSIDsession_printStat();
 
     return 0;
 }
@@ -470,7 +471,6 @@ void PSID_clearMem(bool aggressive)
     if (aggressive) PSIDtask_clearMem();
     PSsignal_gc();
     PSrsrvtn_clearMem();
-    PSIDsession_clearMem();
 
     PSIDRDP_clearMem();
     PSIDclient_clearMem();

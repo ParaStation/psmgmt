@@ -9,10 +9,10 @@
  */
 #include "psidsession.h"
 
-#include <stdbool.h>
 #include <stdlib.h>
 
 #include "pscommon.h"
+#include "psitems.h"
 #include "psserial.h"
 #include "psdaemonprotocol.h"
 
@@ -21,8 +21,174 @@
 #include "psidnodes.h"
 #include "psidcomm.h"
 
+/** Pool of compact reservation information structures (of type PSresinfo_t) */
+static PSitems_t resinfoPool = NULL;
+
+/** Pool of job structures (of type PSjob_t) */
+static PSitems_t jobPool = NULL;
+
+/** Pool of session structures (of type PSsession_t) */
+static PSitems_t sessionPool = NULL;
+
 /** List of reservations this node is part of organized in sessions and jobs */
 static LIST_HEAD(localSessions);
+
+/********************* A bunch of item helper functions **********************/
+
+/**
+ * Fetch a new resinfo from the corresponding pool and initialize it
+ */
+PSresinfo_t *getResinfo(void)
+{
+    PSresinfo_t *resinfo = PSitems_getItem(resinfoPool);
+    resinfo->nEntries = 0;
+    resinfo->entries = NULL;
+
+    return resinfo;
+}
+
+/**
+ * Release all memory of a resinfo and put it back into the pool
+ *
+ * @param resinfo Resinfo to release
+ */
+static void putResinfo(PSresinfo_t *resinfo)
+{
+    free(resinfo->entries);
+    resinfo->entries = NULL;
+
+    PSitems_putItem(resinfoPool, resinfo);
+}
+
+/**
+ * Fetch a new job from the corresponding pool and initialize it
+ */
+PSjob_t *getJob(void)
+{
+    PSjob_t *job = PSitems_getItem(jobPool);
+    INIT_LIST_HEAD(&job->resInfos);
+
+    return job;
+}
+
+/**
+ * Detach all resinfos from job, release them and put the job back
+ * into the pool
+ *
+ * @param job Job to release
+ */
+static void putJob(PSjob_t *job)
+{
+    list_t *r, *tmp;
+    list_for_each_safe(r, tmp, &job->resInfos) {
+	PSresinfo_t *resinfo = list_entry(r, PSresinfo_t, next);
+	list_del(&resinfo->next);
+	putResinfo(resinfo);
+    }
+    PSitems_putItem(jobPool, job);
+}
+
+/**
+ * Fetch a new session from the corresponding pool and initialize it
+ */
+PSsession_t *getSession(void)
+{
+    PSsession_t *session = PSitems_getItem(sessionPool);
+    INIT_LIST_HEAD(&session->jobs);
+
+    return session;
+}
+
+/**
+ * Detach all jobs from a session, release the jobs and their attached
+ * resinfos, and put the session back into the pool
+ *
+ * @param session Session to release
+ */
+static void putSession(PSsession_t *session)
+{
+    list_t *j, *tmp;
+    list_for_each_safe(j, tmp, &session->jobs) {
+	PSjob_t *job = list_entry(j, PSjob_t, next);
+	list_del(&job->next);
+	putJob(job);
+    }
+    PSitems_putItem(sessionPool, session);
+}
+
+/**
+ * Relocate the resinfo @a item suitable to be called from PSitems_gc()
+ */
+static bool relocResinfo(void *item)
+{
+    PSresinfo_t *orig = item, *repl = PSitems_getItem(resinfoPool);
+    if (!repl) return false;
+
+    /* copy content */
+    repl->resID = orig->resID;
+    repl->nEntries = orig->nEntries;
+    repl->entries = orig->entries;
+
+    /* tweak the list */
+    __list_add(&repl->next, orig->next.prev, orig->next.next);
+
+    return true;
+}
+
+/**
+ * Relocate the job @a item suitable to be called from PSitems_gc()
+ */
+static bool relocJob(void *item)
+{
+    PSjob_t *orig = item, *repl = PSitems_getItem(jobPool);
+    if (!repl) return false;
+
+    /* copy content */
+    repl->spawnertid = orig->spawnertid;
+    /* rebase reservations if necessary */
+    if (list_empty(&orig->resInfos)) {
+	INIT_LIST_HEAD(&repl->resInfos);
+    } else {
+	__list_add(&repl->resInfos, orig->resInfos.prev, orig->resInfos.next);
+    }
+
+    /* tweak the list */
+    __list_add(&repl->next, orig->next.prev, orig->next.next);
+
+    return true;
+}
+
+/**
+ * Relocate the session @a item suitable to be called from PSitems_gc()
+ */
+static bool relocSession(void *item)
+{
+    PSsession_t *orig = item, *repl = PSitems_getItem(sessionPool);
+    if (!repl) return false;
+
+    /* copy content */
+    repl->loggertid = orig->loggertid;
+    /* rebase jobs if necessary */
+    if (list_empty(&orig->jobs)) {
+	INIT_LIST_HEAD(&repl->jobs);
+    } else {
+	__list_add(&repl->jobs, orig->jobs.prev, orig->jobs.next);
+    }
+
+    /* tweak the list */
+    __list_add(&repl->next, orig->next.prev, orig->next.next);
+
+    return true;
+}
+
+static void PSIDsession_gc(void)
+{
+    if (!PSitems_gcRequired(resinfoPool)) PSitems_gc(resinfoPool, relocResinfo);
+    if (!PSitems_gcRequired(jobPool)) PSitems_gc(jobPool, relocJob);
+    if (!PSitems_gcRequired(sessionPool)) PSitems_gc(sessionPool, relocSession);
+}
+
+/************************* Actual functionality ****************************/
 
 PSsession_t* PSID_findSessionByLoggerTID(PStask_ID_t loggerTID)
 {
@@ -50,14 +216,13 @@ static bool addReservationToJob(PSjob_t *job, PSresinfo_t *res)
     list_t *r;
     list_for_each(r, &job->resInfos) {
 	PSresinfo_t *cur = list_entry(r, PSresinfo_t, next);
-	if (cur->resID == res->resID) {
-	    if (cur->nEntries != res->nEntries) {
-		PSID_log(-1, "%s: Reservation %d already known but differs,"
-			 " this should never happen\n", __func__, res->resID);
-	    }
-	    /* Note: Could also check all entries, but that may be overkill? */
-	    return false;
+	if (cur->resID != res->resID) continue;
+	if (cur->nEntries != res->nEntries) {
+	    PSID_log(-1, "%s: Reservation %d already known but differs,"
+		     " this should never happen\n", __func__, res->resID);
 	}
+	/* Note: Could also check all entries, but that may be overkill? */
+	return false;
     }
 
     list_add_tail(&res->next, &job->resInfos);
@@ -104,22 +269,21 @@ static void handleResCreated(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
 {
     char *ptr = rData->buf;
 
-    int32_t resID;
-    PStask_ID_t loggerTID, spawnerTID;
-
     /* get reservation, logger task id and spawner task id */
+    int32_t resID;
     getInt32(&ptr, &resID);
+    PStask_ID_t loggerTID, spawnerTID;
     getTaskId(&ptr, &loggerTID);
     getTaskId(&ptr, &spawnerTID);
 
     /* create reservation info */
-    PSresinfo_t *res = malloc(sizeof(*res));
+    PSresinfo_t *res = getResinfo();
     if (!res) {
 	PSID_log(-1, "%s: No memory for reservation info\n", __func__);
 	return;
     }
 
-    /* calculate size of one entry */
+    /* calculate size of one entry in the messsage */
     size_t entrysize = sizeof(res->entries->node)
 	+ sizeof(res->entries->firstrank) + sizeof(res->entries->lastrank);
 
@@ -128,7 +292,7 @@ static void handleResCreated(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
 
     res->entries = calloc(res->nEntries, sizeof(*res->entries));
     if (!res->entries) {
-	free(res);
+	putResinfo(res);
 	PSID_log(-1, "%s: No memory for reservation info entries\n", __func__);
 	return;
     }
@@ -152,15 +316,13 @@ static void handleResCreated(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
     PSsession_t *session = PSID_findSessionByLoggerTID(loggerTID);
     if (!session) {
 	/* create new session */
-	session = malloc(sizeof(*session));
+	session = getSession();
 	if (!session) {
-	    free(res->entries);
-	    free(res);
+	    putResinfo(res);
 	    PSID_log(-1, "%s: No memory for session\n", __func__);
 	    return;
 	}
 	session->loggertid = loggerTID;
-	INIT_LIST_HEAD(&session->jobs);
 	list_add_tail(&session->next, &localSessions);
 	sessionCreated = true;
 	PSID_log(PSID_LOG_SPAWN, "%s: Session created for logger %s\n",
@@ -172,19 +334,17 @@ static void handleResCreated(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
     PSjob_t *job = PSID_findJobInSession(session, spawnerTID);
     if (!job) {
 	/* create new job */
-	job = malloc(sizeof(*job));
+	job = getJob();
 	if (!job) {
 	    if (sessionCreated) {
 		list_del(&session->next);
-		free(session);
+		putSession(session);
 	    }
-	    free(res->entries);
-	    free(res);
+	    putResinfo(res);
 	    PSID_log(-1, "%s: No memory for job\n", __func__);
 	    return;
 	}
 	job->spawnertid = spawnerTID;
-	INIT_LIST_HEAD(&job->resInfos);
 	list_add_tail(&job->next, &session->jobs);
 	jobCreated = true;
 	PSID_log(PSID_LOG_SPAWN, "%s: Job created for spawner %s",
@@ -198,16 +358,14 @@ static void handleResCreated(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
 	PSID_log(PSID_LOG_SPAWN, "%s: Reservation %d exists (spawner %s",
 		__func__, resID, PSC_printTID(spawnerTID));
 	PSID_log(PSID_LOG_SPAWN, " logger %s)\n", PSC_printTID(loggerTID));
-	if (jobCreated) {
+	if (sessionCreated) {
+	    list_del(&session->next);
+	    putSession(session);
+	} else if (jobCreated) {
 	    list_del(&job->next);
-	    free(job);
-	    if (sessionCreated) {
-		list_del(&session->next);
-		free(session);
-	    }
+	    putJob(job);
 	}
-	free(res->entries);
-	free(res);
+	putResinfo(res);
 	return;
     } else {
 	PSID_log(PSID_LOG_SPAWN, "%s: Reservation %d added (spawner %s",
@@ -215,10 +373,8 @@ static void handleResCreated(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
 	PSID_log(PSID_LOG_SPAWN, " logger %s)\n", PSC_printTID(loggerTID));
     }
 
-    if (jobCreated) {
-	/* Give plugins the option to react on job creation */
-	PSIDhook_call(PSIDHOOK_LOCALJOBCREATED, job);
-    }
+    /* Give plugins the option to react on job creation */
+    if (jobCreated) PSIDhook_call(PSIDHOOK_LOCALJOBCREATED, job);
 }
 
 /**
@@ -311,9 +467,9 @@ static bool msg_RESRELEASED(DDBufferMsg_t *msg)
     list_for_each(r, &job->resInfos) {
 	PSresinfo_t *res = list_entry(r, PSresinfo_t, next);
 	if (res->resID != resID) continue;
+
 	list_del(&res->next);
-	free(res->entries);
-	free(res);
+	putResinfo(res);
 	found = true;
 	break;
     }
@@ -329,71 +485,110 @@ static bool msg_RESRELEASED(DDBufferMsg_t *msg)
 	PSIDhook_call(PSIDHOOK_LOCALJOBREMOVED, job);
 
 	list_del(&job->next);
-	free(job);
+	putJob(job);
     }
 
     /* if session has no jobs left, delete it */
     if (list_empty(&session->jobs)) {
 	list_del(&session->next);
-	free(session);
+	putSession(session);
     }
 
     return true;
 }
 
-void PSIDsession_init(void)
+/**
+ * @brief Memory cleanup
+ *
+ * Cleanup all dynamic memory currently retained in session structures
+ * and all descendants. This will very aggressively free() all
+ * allocated memory destroying all information on sessions, jobs, and
+ * reservations.
+ *
+ * The purpose of this function is to cleanup before a fork()ed
+ * process is handling other businesses, e.g. becoming a forwarder. It
+ * will be registered to the PSIDHOOK_CLEARMEM hook in order to be
+ * called accordingly.
+ *
+ * @param dummy Ignored pointer to aggressive flag
+ *
+ * @return Always return 0
+ */
+static int clearMem(void *dummy)
+{
+    list_t *s, *tmp;
+    list_for_each_safe(s, tmp, &localSessions) {
+	PSsession_t *session = list_entry(s, PSsession_t, next);
+	list_del(&session->next);
+	putSession(session);
+    }
+
+    PSitems_clearMem(sessionPool);
+    sessionPool = NULL;
+
+    PSitems_clearMem(jobPool);
+    jobPool = NULL;
+
+    PSitems_clearMem(resinfoPool);
+    resinfoPool = NULL;
+
+    return 0;
+}
+
+
+bool PSIDsession_init(void)
 {
     PSID_log(PSID_LOG_VERB, "%s()\n", __func__);
+
+    /* initialize various item pools */
+    resinfoPool = PSitems_new(sizeof(PSresinfo_t), "resinfoPool");
+    if (!resinfoPool) {
+	PSID_log(-1, "%s: cannot get resinfo items\n", __func__);
+	return false;
+    }
+
+    jobPool = PSitems_new(sizeof(PSjob_t), "jobPool");
+    if (!jobPool) {
+	PSID_log(-1, "%s: cannot get job items\n", __func__);
+	return false;
+    }
+
+    sessionPool = PSitems_new(sizeof(PSsession_t), "sessionPool");
+    if (!sessionPool) {
+	PSID_log(-1, "%s: cannot get session items\n", __func__);
+	return false;
+    }
+    PSID_registerLoopAct(PSIDsession_gc);
+
+    if (!PSIDhook_add(PSIDHOOK_CLEARMEM, clearMem)) {
+	PSID_log(-1, "%s: cannot register to PSIDHOOK_CLEARMEM\n", __func__);
+	return false;
+    }
 
     /* init fragmentation layer used for PSP_DD_RESCREATED messages */
     if (!initSerial(0, sendMsg)) {
 	PSID_log(-1, "%s: initSerial() failed\n", __func__);
+	return false;
     }
 
     PSID_registerMsg(PSP_DD_RESCREATED, (handlerFunc_t) msg_RESCREATED);
     PSID_registerMsg(PSP_DD_RESRELEASED, msg_RESRELEASED);
+
+    return true;
 }
 
-/**
- * Aggressively delete a job and free all memory of it and its reservations
- *
- * @param job  job to delete
- */
-static void PSjob_delete(PSjob_t *job)
+void PSIDsession_printStat(void)
 {
-    list_t *r, *tmp;
-    list_for_each_safe(r, tmp, &job->resInfos) {
-	PSresinfo_t *res = list_entry(r, PSresinfo_t, next);
-	free(res->entries);
-	list_del(&res->next);
-    }
-    list_del(&job->next);
-    free(job);
-}
-
-/**
- * Aggressively delete a session and free all memory of it and its jobs
- *
- * @param session  session to delete
- */
-static void PSsession_delete(PSsession_t *session)
-{
-    list_t *j, *tmp;
-    list_for_each_safe(j, tmp, &session->jobs) {
-	PSjob_t *job = list_entry(j, PSjob_t, next);
-	PSjob_delete(job);
-    }
-    list_del(&session->next);
-    free(session);
-}
-
-void PSIDsession_clearMem(void)
-{
-    list_t *s, *tmp;
-
-    list_for_each_safe(s, tmp, &localSessions) {
-	PSsession_t *ss = list_entry(s, PSsession_t, next);
-
-	PSsession_delete(ss);
-    }
+    PSID_log(-1, "%s: Sessions %d/%d (used/avail)", __func__,
+	     PSitems_getUsed(sessionPool), PSitems_getAvail(sessionPool));
+    PSID_log(-1, "\t%d/%d (gets/grows)\n", PSitems_getUtilization(sessionPool),
+	     PSitems_getDynamics(sessionPool));
+    PSID_log(-1, "%s: Jobs %d/%d (used/avail)", __func__,
+	     PSitems_getUsed(jobPool), PSitems_getAvail(jobPool));
+    PSID_log(-1, "\t%d/%d (gets/grows)\n", PSitems_getUtilization(jobPool),
+	     PSitems_getDynamics(jobPool));
+    PSID_log(-1, "%s: ResInfos %d/%d (used/avail)", __func__,
+	     PSitems_getUsed(resinfoPool), PSitems_getAvail(resinfoPool));
+    PSID_log(-1, "\t%d/%d (gets/grows)\n", PSitems_getUtilization(resinfoPool),
+	     PSitems_getDynamics(resinfoPool));
 }
