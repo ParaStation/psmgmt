@@ -114,6 +114,7 @@ typedef struct {
  */
 typedef struct {
     uint32_t num;          /**< number of the app */
+    PSrsrvtn_ID_t resID;   /**< id of the reservation used for this app */
     uint32_t size;         /**< processes to be spawed for this app */
     pmix_rank_t firstRank; /**< rank of the first process of this app */
     char *wdir;            /**< working dir of the processes of this app */

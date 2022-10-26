@@ -301,42 +301,51 @@ bool pspmix_service_registerNamespace(PspmixJob_t *job)
     ns->apps = umalloc(ns->appsCount * sizeof(*ns->apps));
 
     uint32_t procCount = 0;
-    for(size_t i = 0; i < ns->appsCount; i++) {
+    for(size_t a = 0; a < ns->appsCount; a++) {
 
-	ns->apps[i].num = i;
+	ns->apps[a].num = a;
 
 	/* set the application size from environment set by the spawner */
 	char var[64];
-	snprintf(var, sizeof(var), "PMIX_APPSIZE_%zu", i);
+	snprintf(var, sizeof(var), "PMIX_APPSIZE_%zu", a);
 	env = envGet(&job->env, var);
 	if (!env) {
 	    ulog("broken environment: '%s' missing\n", var);
 	    goto nscreate_error;
 	}
-	ns->apps[i].size = atoi(env);
+	ns->apps[a].size = atoi(env);
 
 	/* set first job rank of the application to counted value */
-	ns->apps[i].firstRank = procCount;
+	ns->apps[a].firstRank = procCount;
 
 	/* set working directory */
-	snprintf(var, sizeof(var), "PMIX_APPWDIR_%zu", i);
+	snprintf(var, sizeof(var), "PMIX_APPWDIR_%zu", a);
 	env = envGet(&job->env, var);
 	if (!env) {
 	    ulog("broken environment: '%s' missing\n", var);
 	    goto nscreate_error;
 	}
-	ns->apps[i].wdir = ustrdup(env);
+	ns->apps[a].wdir = ustrdup(env);
 
 	/* set arguments */
-	snprintf(var, sizeof(var), "PMIX_APPARGV_%zu", i);
+	snprintf(var, sizeof(var), "PMIX_APPARGV_%zu", a);
 	env = envGet(&job->env, var);
 	if (!env) {
 	    ulog("broken environment: '%s' missing\n", var);
 	    goto nscreate_error;
 	}
-	ns->apps[i].args = ustrdup(env);
+	ns->apps[a].args = ustrdup(env);
 
-	procCount += ns->apps[i].size;
+	/* get used reservation from environment set by the spawner */
+	snprintf(var, sizeof(var), "__PMIX_RESID_%zu", a);
+	env = envGet(&job->env, var);
+	if (!env) {
+	    ulog("broken environment: '%s' missing\n", var);
+	    goto nscreate_error;
+	}
+	ns->apps[a].resID = atoi(env);
+
+	procCount += ns->apps[a].size;
     }
 
     if (procCount != ns->jobSize) {
@@ -356,21 +365,13 @@ bool pspmix_service_registerNamespace(PspmixJob_t *job)
     }
 
     /* add process information and mapping to namespace */
-    for(size_t app = 0; app < ns->appsCount; app++) {
+    for(size_t a = 0; a < ns->appsCount; a++) {
 
-	/* get used reservation from environment set by the spawner */
-	char var[64];
-	snprintf(var, sizeof(var), "__PMIX_RESID_%zu", app);
-	env = envGet(&job->env, var);
-	if (!env) {
-	    ulog("broken environment: '%s' missing\n", var);
-	    goto nscreate_error;
-	}
-	PSrsrvtn_ID_t resID = atoi(env);
-
-	PSresinfo_t *resInfo = findReservationInList(resID, &job->resInfos);
+	PSresinfo_t *resInfo = findReservationInList(ns->apps[a].resID,
+						     &job->resInfos);
 	if (!resInfo) {
-	    ulog("reservation %d for app %zu not found\n", resID, app);
+	    ulog("reservation %d for app %zu not found\n", ns->apps[a].resID,
+		 a);
 	    goto nscreate_error;
 	}
 
@@ -399,7 +400,7 @@ bool pspmix_service_registerNamespace(PspmixJob_t *job)
 		    .rank = r,
 		    .grank = r,   /* XXX change for spawn support */
 		    .arank = apprank++,
-		    .app = ns->apps + app,
+		    .app = ns->apps + a,
 		    .reinc = 0 };
 
 		if (node->id == PSC_getMyID()) {
