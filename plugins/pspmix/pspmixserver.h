@@ -95,9 +95,34 @@ bool pspmix_server_registerNamespace(
 	PSnodes_ID_t nodeID);
 
 /**
+ * Create a process set by process attributes
+ *
+ * Create a process set with @a name containing all processes in @a procMap
+ * for which @a filter is true.
+ *
+ * @param name     name of the process set to create
+ * @param procMap  process map (as stored in @see PspmixNamespace_t)
+ * @param nspace   name of the namespace
+ * @param filter   process filter function
+ * @param data     arbitrary data blob, passed to @a filter
+ *
+ * @return True on success, false on Error
+ */
+bool pspmix_server_createPSetByProcess(const char *name, list_t *procMap,
+				       const char *nspace,
+				       bool filter(PspmixNode_t *,
+						   PspmixProcess_t *, void *),
+				       void *data);
+
+/**
+ * Create a process set by node attributes
  *
  * Create a process set with @a name containing all processes in @a procMap
  * running on a node for which @a filter is true.
+ *
+ * This is optimized for node level attributes since it needs to call @a filter
+ * only once per node, not once per process as
+ * @see pspmix_server_createPSetByProcess() needs to.
  *
  * @param name     name of the process set to create
  * @param procMap  process map (as stored in @see PspmixNamespace_t)

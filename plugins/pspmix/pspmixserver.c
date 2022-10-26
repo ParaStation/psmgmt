@@ -2885,6 +2885,45 @@ reg_nspace_error:
     return false;
 }
 
+bool pspmix_server_createPSetByProcess(const char *name, list_t *procMap,
+				       const char *nspace,
+				       bool filter(PspmixNode_t *,
+						   PspmixProcess_t *, void *),
+				       void *data)
+{
+    vector_t members;
+    vectorInit(&members, 32, 32, pmix_proc_t);
+
+    list_t *n;
+    list_for_each(n, procMap) {
+	PspmixNode_t *node = list_entry(n, PspmixNode_t, next);
+	for (uint16_t r = 0; r < node->procs.len; r++) {
+	    PspmixProcess_t *proc = vectorGet(&node->procs, r, PspmixProcess_t);
+	    if (filter(node, proc, data)) {
+		pmix_proc_t pmixproc;
+		PMIX_PROC_LOAD(&pmixproc, nspace, proc->rank);
+		vectorAdd(&members, &pmixproc);
+	    }
+	}
+    }
+
+#pragma GCC diagnostic push
+/* pragma can be removed once this is fixed in openpmix
+ * see https://github.com/openpmix/openpmix/pull/2798 */
+#pragma GCC diagnostic ignored "-Wdiscarded-qualifiers"
+    pmix_status_t status = PMIx_server_define_process_set(members.data,
+						          members.len, name);
+#pragma GCC diagnostic pop
+    vectorDestroy(&members);
+
+    if (!status == PMIX_SUCCESS) {
+	ulog("failed to create process set '%s': %s\n", name,
+	     PMIx_Error_string(status));
+	return false;
+    }
+    return true;
+}
+
 bool pspmix_server_createPSetByNode(const char *name, list_t *procMap,
 				    const char *nspace,
 				    bool filter(PspmixNode_t *, void *),
