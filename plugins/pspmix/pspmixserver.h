@@ -95,6 +95,24 @@ bool pspmix_server_registerNamespace(
 	PSnodes_ID_t nodeID);
 
 /**
+ *
+ * Create a process set with @a name containing all processes in @a procMap
+ * running on a node for which @a filter is true.
+ *
+ * @param name     name of the process set to create
+ * @param procMap  process map (as stored in @see PspmixNamespace_t)
+ * @param nspace   name of the namespace
+ * @param filter   node filter function
+ * @param data     arbitrary data blob, passed to @a filter
+ *
+ * @return True on success, false on Error
+ */
+bool pspmix_server_createPSetByNode(const char *name, list_t *procMap,
+				    const char *nspace,
+				    bool filter(PspmixNode_t *, void *),
+				    void *data);
+
+/**
  * @brief Deregister namespace from the server library
  *
  * Deletes all client information for the namespace. So it is not needed to
