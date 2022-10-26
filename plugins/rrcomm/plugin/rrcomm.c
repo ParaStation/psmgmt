@@ -10,27 +10,26 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
-#include <stdlib.h>
 #include <string.h>
-#include <strings.h>
 
+#include "list.h"
 #include "plugin.h"
 #include "pscommon.h"
-#include "pscpu.h"
 #include "psprotocol.h"
 #include "pspluginprotocol.h"
 #include "psserial.h"
 
+#include "psidclient.h"
 #include "psidcomm.h"
-#include "psidhook.h"
-#include "psidhw.h"
-#include "psidnodes.h"
+#include "psidsession.h"
+#include "psidtask.h"
 
 #include "pluginmalloc.h"
 #include "pluginpsconfig.h"
 
 #include "rrcommconfig.h"
 #include "rrcommlog.h"
+#include "rrcommproto.h"
 
 /** psid plugin requirements */
 char name[] = "rrcomm";
@@ -38,68 +37,123 @@ int version = 1;
 int requiredAPI = 136;
 plugin_dep_t dependencies[] = { { NULL, 0 } };
 
-/** Packet types used within the RRComm protocol */
-typedef enum {
-    RRCOMM_DATA,     /**< Payload */
-    RRCOMM_ERROR,    /**< Error signal */
-} RRC_pkt_t;
-
-/** Extended header of RRComm fragments */
-typedef struct {
-    uint32_t rank;   /**< Destination rank */
-    // @todo we might have to provide namespace information here
-} RRC_hdr_t;
-
-
-static void handleRRCommData(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
+static bool handleRRCommMsg(DDTypedBufferMsg_t *msg)
 {
-    /* PSnodes_ID_t sender = PSC_getID(msg->header.sender); */
-    /* char *ptr = rData->buf; */
-    /* PSP_NodeInfo_t type = 0; // ensure higher bytes are all 0 */
+    if (msg->header.dest != PSC_getMyTID()) {
+	/* no messsage for me => forward */
+	fdbg(RRCOMM_LOG_VERBOSE, "%s->", PSC_printTID(msg->header.sender));
+	mdbg(RRCOMM_LOG_VERBOSE, "%s", PSC_printTID(msg->header.dest));
+	if (PSC_getID(msg->header.dest) != PSC_getMyID()) {
+	    sendMsg(msg);
+	} else {
+	    PSIDclient_send((DDMsg_t *)msg);
+	}
+	return true;
+    }
 
-    mdbg(RRCOMM_LOG_VERBOSE, "%s: handle message from %s\n", __func__,
-	 PSC_printTID(msg->header.sender));
+    if (msg->type != RRCOMM_DATA) {
+	flog("no routing for non-data packets -> drop\n");
+	return true;
+    }
 
-    /* getUint8(&ptr, &type); */
-    /* while (type) { */
-    /* 	mdbg(NODEINFO_LOG_VERBOSE, "%s: update type %d\n", __func__, type); */
-    /* 	switch (type) { */
-    /* 	case PSP_NODEINFO_CPUMAP: */
-    /* 	    if (!handleCPUMapData(&ptr, sender)) return; */
-    /* 	    break; */
-    /* 	case PSP_NODEINFO_NUMANODES: */
-    /* 	    if (!handleSetData(&ptr, sender, NULL, */
-    /* 			       PSIDnodes_setCPUSets)) return; */
-    /* 	    break; */
-    /* 	case PSP_NODEINFO_GPU: */
-    /* 	    if (!handleSetData(&ptr, sender, PSIDnodes_setNumGPUs, */
-    /* 			       PSIDnodes_setGPUSets)) return; */
-    /* 	    break; */
-    /* 	case PSP_NODEINFO_NIC: */
-    /* 	    if (!handleSetData(&ptr, sender, PSIDnodes_setNumNICs, */
-    /* 			       PSIDnodes_setNICSets)) return; */
-    /* 	    break; */
-    /* 	case PSP_NODEINFO_REQ: */
-    /* 	    sendNodeInfoData(sender); */
-    /* 	    break; */
-    /* 	case PSP_NODEINFO_DISTANCES: */
-    /* 	    if (!handleDistanceData(&ptr, sender)) return; */
-    /* 	    break; */
-    /* 	case PSP_NODEINFO_CPU: */
-    /* 	    if (!handleCPUData(&ptr, sender)) return; */
-    /* 	    break; */
-    /* 	default: */
-    /* 	    mlog("%s: unknown type %d\n", __func__, type); */
-    /* 	    return; */
-    /* 	} */
-    /* 	/\* Peek into next type *\/ */
-    /* 	getUint8(&ptr, &type); */
-    /* } */
+    /* Take a peek into the header to determine the next destination */
+    RRComm_hdr_t *hdr;
+    size_t used = 0, hdrSize;
+    fetchFragHeader(msg, &used, NULL, NULL, (void **)&hdr, &hdrSize);
+    if (hdrSize != sizeof(*hdr)) {
+	flog("broken extra header from %s (%zd/%zd)\n",
+	     PSC_printTID(msg->header.sender), hdrSize, sizeof(*hdr));
+	return PSID_dropMsg((DDBufferMsg_t *)msg);
+    }
+
+    if (PSC_getID(msg->header.sender) == PSC_getMyID()) {
+	/* sender is local: fillup missing hdr content */
+	PStask_t *sender = PStasklist_find(&managedTasks, msg->header.sender);
+
+	if (!sender) {
+	    flog("no sender for %s!?\n", PSC_printTID(msg->header.sender));
+	    return PSID_dropMsg((DDBufferMsg_t *)msg);
+	}
+	/* hdr points into the actual message */
+	hdr->loggerTID = sender->loggertid;
+	hdr->spawnerTID = sender->spawnertid;
+
+	/* now determine destination node */
+	PSsession_t *session = PSID_findSessionByLoggerTID(hdr->loggerTID);
+	if (!session) {
+	    flog("no session for %s!?\n", PSC_printTID(hdr->loggerTID));
+	    return PSID_dropMsg((DDBufferMsg_t *)msg);
+	}
+
+	PSjob_t *job = PSID_findJobInSession(session, hdr->spawnerTID);
+	if (!job) {
+	    flog("no job for %s!?\n", PSC_printTID(hdr->spawnerTID));
+	    return PSID_dropMsg((DDBufferMsg_t *)msg);
+	}
+
+	list_t *r;
+	list_for_each(r, &job->resInfos) {
+	    PSresinfo_t *res = list_entry(r, PSresinfo_t, next);
+	    bool found = false;
+	    if (hdr->rank < res->minRank || hdr->rank > res->maxRank) continue;
+	    for (uint32_t e = 0; e < res->nEntries; e++) {
+		if (hdr->rank < res->entries[e].firstrank
+		    || hdr->rank > res->entries[e].lastrank) continue;
+		msg->header.dest = PSC_getTID(res->entries[e].node, 0);
+		found = true;
+		break;
+	    }
+	    if (found) break;
+	}
+
+	if (msg->header.dest != PSC_getMyTID()) {
+	    /* rank lives on a remote node => forward */
+	    sendMsg(msg);
+	    return true;
+	}
+    }
+
+    list_t *t;
+    list_for_each(t, &managedTasks) {
+	PStask_t *task = list_entry(t, PStask_t, next);
+	if (task->rank != hdr->rank || task->loggertid != hdr->loggerTID
+	    || task->spawnertid != hdr->spawnerTID) continue;
+	if (!task->forwarder || task->deleted) continue;
+	msg->header.dest = task->forwarder->tid;
+	break;
+    }
+
+    if (msg->header.dest != PSC_getMyTID()) {
+	/* destination forwarder identified => forward */
+	PSIDclient_send((DDMsg_t *)msg);
+	return true;
+    }
+
+    return PSID_dropMsg((DDBufferMsg_t *)msg);
 }
 
-static bool handleRRCommMsg(DDBufferMsg_t *msg)
+static bool dropRRCommMsg(DDTypedBufferMsg_t *msg)
 {
-    recvFragMsg((DDTypedBufferMsg_t *)msg, handleRRCommData);
+    RRComm_hdr_t *hdr;
+    uint8_t fragType;
+    size_t used = 0, hdrSize;
+    fetchFragHeader(msg, &used, &fragType, NULL, (void **)&hdr, &hdrSize);
+
+    /* Silently drop non-data fragments and all fragments but the last */
+    if (msg->type != RRCOMM_DATA || fragType != FRAGMENT_END) return true;
+
+    DDTypedBufferMsg_t answer = {
+	.header = {
+	    .type = PSP_PLUG_RRCOMM,
+	    .sender = msg->header.dest,
+	    .dest = msg->header.sender,
+	    .len = 0, /* to be set by PSP_putTypedMsgBuf */ },
+	.type = RRCOMM_ERROR,
+	.buf = { '\0' } };
+    /* Add all information we have concerning the destination */
+    PSP_putTypedMsgBuf(&answer, "hdr", hdr, sizeof(*hdr));
+
+    sendMsg(&answer);
     return true;
 }
 
@@ -111,12 +165,11 @@ static bool evalValue(const char *key, const pluginConfigVal_t *val,
 	maskRRCommLogger(mask);
 	mdbg(RRCOMM_LOG_VERBOSE, "debugMask set to %#x\n", mask);
     } else {
-	mlog("%s: unknown key '%s'\n", __func__, key);
+	flog("unknown key '%s'\n", key);
     }
 
     return true;
 }
-
 
 int initialize(FILE *logfile)
 {
@@ -130,13 +183,17 @@ int initialize(FILE *logfile)
     pluginConfig_traverse(RRCommConfig, evalValue, NULL);
 
     if (!initSerial(0, sendMsg)) {
-	mlog("%s: initSerial() failed\n", __func__);
+	flog("initSerial() failed\n");
 	goto INIT_ERROR;
     }
 
-    if (!PSID_registerMsg(PSP_PLUG_RRCOMM, handleRRCommMsg)) {
-	mlog("%s: register 'PSP_PLUG_RRCOMM' handler failed\n", __func__);
-	finalizeSerial();
+    if (!PSID_registerMsg(PSP_PLUG_RRCOMM, (handlerFunc_t)handleRRCommMsg)) {
+	flog("register 'PSP_PLUG_RRCOMM' handler failed\n");
+	goto INIT_ERROR;
+    }
+
+    if (!PSID_registerDropper(PSP_PLUG_RRCOMM, (handlerFunc_t)dropRRCommMsg)) {
+	flog("register 'PSP_PLUG_RRCOMM' dropper failed\n");
 	goto INIT_ERROR;
     }
 
@@ -146,6 +203,7 @@ int initialize(FILE *logfile)
 
 INIT_ERROR:
     //unregisterHooks(false);
+    finalizeSerial();
     finalizeRRCommConfig();
     finalizeRRCommLogger();
 
@@ -154,7 +212,8 @@ INIT_ERROR:
 
 void cleanup(void)
 {
-    PSID_clearMsg(PSP_PLUG_RRCOMM, handleRRCommMsg);
+    PSID_clearMsg(PSP_PLUG_RRCOMM, (handlerFunc_t)handleRRCommMsg);
+    PSID_clearDropper(PSP_PLUG_RRCOMM, (handlerFunc_t)dropRRCommMsg);
     finalizeSerial();
     finalizeRRCommConfig();
 

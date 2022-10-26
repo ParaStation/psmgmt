@@ -721,6 +721,7 @@ plugins/rrcomm/plugin/rrcommconfig.c \
 plugins/rrcomm/plugin/rrcommconfig.h \
 plugins/rrcomm/plugin/rrcommlog.c \
 plugins/rrcomm/plugin/rrcommlog.h \
+plugins/rrcomm/plugin/rrcommproto.h \
 plugins/rrcomm/tests/Makefile.am \
 plugins/rrcomm/tests/Makefile.in \
 plugins/rrcomm/tests/test_rrcomm.c \

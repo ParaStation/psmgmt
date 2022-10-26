@@ -7,7 +7,6 @@
 # as defined in the file LICENSE.QPL included in the packaging of this
 # file.
 #
-
 include $(top_srcdir)/common.am
 
 AM_LDFLAGS += -avoid-version -module
@@ -19,7 +18,7 @@ libplugincommon = $(top_builddir)/lib/plugincommon/libplugincommon.la
 libpscommon = $(top_builddir)/lib/pscommon/libpscommon.la
 
 rrcomm_la_SOURCES = rrcomm.c rrcommconfig.c rrcommconfig.h	\
-	rrcommlog.c rrcommlog.h
+	rrcommlog.c rrcommlog.h rrcommproto.h
 
 rrcomm_la_CPPFLAGS = $(AM_CPPFLAGS)
 rrcomm_la_LIBADD = $(libplugincommon) $(libpscommon)
