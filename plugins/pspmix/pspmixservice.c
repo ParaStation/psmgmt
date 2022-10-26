@@ -20,6 +20,7 @@
 #include "pscpu.h"
 #include "psenv.h"
 #include "psreservation.h"
+#include "hardware.h"
 
 #include "pluginconfig.h"
 #include "pluginmalloc.h"
@@ -226,6 +227,26 @@ static void freeProcMap(list_t *map)
     }
 }
 
+static bool hwTypeFilter(PspmixNode_t *node, void *data)
+{
+    int i = *((int *)data);
+    int hwTypes = PSIDnodes_getHWType(node->id);
+    return hwTypes & (1 << i) ? true : false;
+}
+
+
+static void createHWTypePSets(list_t *procMap, const char *nspace)
+{
+    int num = HW_num();
+    for (int i = 0; i < num; i++) {
+	if (!pspmix_server_createPSetByNode(HW_name(i), procMap, nspace,
+				       hwTypeFilter, &i)) {
+	    ulog("failed to create hardware type process sets\n");
+	    return;
+	}
+    }
+}
+
 bool pspmix_service_registerNamespace(PspmixJob_t *job)
 {
     mdbg(PSPMIX_LOG_CALL, "%s()\n", __func__);
@@ -426,6 +447,9 @@ bool pspmix_service_registerNamespace(PspmixJob_t *job)
 	goto nscreate_error;
     }
     ufree(nsdir);
+
+    /* create a process set for each hardware type */
+    createHWTypePSets(&ns->procMap, ns->name);
 
     /* setup local node */
     if (!pspmix_server_setupLocalSupport(ns->name)) {
