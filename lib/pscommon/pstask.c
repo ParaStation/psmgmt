@@ -956,8 +956,7 @@ int PStask_decodeEnvAppend(char *buffer, PStask_t *task)
 PSrsrvtn_ID_t PStask_getNextResID(PStask_t *task)
 {
     task->nextResID++;
-
-    if (!task->nextResID) task->nextResID++; // prevent resID == 0
+    if (task->nextResID == -2) task->nextResID += 3; // prevent resID == [-2..0]
 
     return task->nextResID;
 }
