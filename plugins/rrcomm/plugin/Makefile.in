@@ -368,7 +368,7 @@ top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
 unitdir = @unitdir@
 AM_CPPFLAGS = -I$(top_srcdir)/include -DNDEBUG \
-	-I$(top_srcdir)/bin/daemon
+	-I$(top_srcdir)/bin/daemon -I$(srcdir)/../include
 subst_verbose = $(subst_verbose_$(V))
 subst_verbose_ = $(subst_verbose_$(AM_DEFAULT_VERBOSITY))
 subst_verbose_0 = @echo "  SUBST   " $(@F);

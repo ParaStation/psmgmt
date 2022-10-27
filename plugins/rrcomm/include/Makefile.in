@@ -109,7 +109,7 @@ am__aclocal_m4_deps = $(top_srcdir)/m4/ax_check_compile_flag.m4 \
 am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
 	$(ACLOCAL_M4)
 DIST_COMMON = $(srcdir)/Makefile.am $(include_HEADERS) \
-	$(am__DIST_COMMON)
+	$(noinst_HEADERS) $(am__DIST_COMMON)
 mkinstalldirs = $(install_sh) -d
 CONFIG_CLEAN_FILES =
 CONFIG_CLEAN_VPATH_FILES =
@@ -160,7 +160,7 @@ am__uninstall_files_from_dir = { \
          $(am__cd) "$$dir" && rm -f $$files; }; \
   }
 am__installdirs = "$(DESTDIR)$(includedir)"
-HEADERS = $(include_HEADERS)
+HEADERS = $(include_HEADERS) $(noinst_HEADERS)
 am__tagged_files = $(HEADERS) $(SOURCES) $(TAGS_FILES) $(LISP)
 # Read a list of newline-separated strings from the standard input,
 # and print each of them once, without duplicates.  Input order is
@@ -373,6 +373,7 @@ scriptsdir = $(prefix)/scripts
 # file.
 #
 include_HEADERS = rrcomm.h
+noinst_HEADERS = rrcomm_common.h
 all: all-am
 
 .SUFFIXES:
@@ -642,8 +643,6 @@ uninstall-am: uninstall-includeHEADERS
 
 %: %.in
 	$(subst_verbose)$(do_subst) < $^ > $@ && chmod --reference $^ $@
-
-# noinst_HEADERS =
 
 # Tell versions [3.59,3.63) of GNU make to not export all variables.
 # Otherwise a system limit (for SysV at least) may be exceeded.

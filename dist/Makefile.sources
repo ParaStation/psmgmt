@@ -711,6 +711,7 @@ plugins/rrcomm/doc/psconfig/rrcomm.vipsconfig \
 plugins/rrcomm/include/Makefile.am \
 plugins/rrcomm/include/Makefile.in \
 plugins/rrcomm/include/rrcomm.h \
+plugins/rrcomm/include/rrcomm_common.h \
 plugins/rrcomm/lib/Makefile.am \
 plugins/rrcomm/lib/Makefile.in \
 plugins/rrcomm/lib/rrcomm.c \

@@ -15,10 +15,12 @@
 
 #include "psidhook.h"
 
+#include "rrcomm_common.h"
 #include "rrcommlog.h"
 
 static int hookExecForwarder(void *data)
 {
+    flog("Storing abstract socket info to '%s' env\n", RRCOMM_SOCKET_ENV);
     return 0;
 }
 

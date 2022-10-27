@@ -10,7 +10,7 @@
 include $(top_srcdir)/common.am
 
 AM_LDFLAGS += -avoid-version -module
-AM_CPPFLAGS += -I$(top_srcdir)/bin/daemon
+AM_CPPFLAGS += -I$(top_srcdir)/bin/daemon -I$(srcdir)/../include
 
 plugin_LTLIBRARIES = rrcomm.la
 

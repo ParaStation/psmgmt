@@ -19,11 +19,13 @@
 #include "pscio.h"
 #include "pscommon.h"
 
+#include "rrcomm_common.h"
+
 /** Socket connecting to the chaperon forwarder */
 static int frwdSocket = -1;
 
 /** Maximum protocol version the lib is capable to handle */
-static uint32_t protoVersion = 1;
+static uint32_t protoVersion = RRCOMM_PROTO_VERSION;
 
 /** Protocol version the chaperon forwarder is willing to talk */
 static uint32_t currVersion = 0;

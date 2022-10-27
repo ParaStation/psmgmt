@@ -11,4 +11,4 @@ include $(top_srcdir)/common.am
 
 include_HEADERS = rrcomm.h
 
-# noinst_HEADERS =
+noinst_HEADERS = rrcomm_common.h
