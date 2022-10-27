@@ -28,7 +28,8 @@ typedef enum {
 
 /** Extended header of RRComm fragments */
 typedef struct {
-    int32_t rank;             /**< Destination rank */
+    int32_t sender;           /**< Sending rank */
+    int32_t dest;             /**< Destination rank */
     PStask_ID_t loggerTID;    /**< logger's task ID */
     PStask_ID_t spawnerTID;   /**< spawner's task ID */
     // @todo we might have to provide namespace information here

@@ -60,6 +60,16 @@ void initRRCommLogger(char *name, FILE *logfile);
 void maskRRCommLogger(uint32_t mask);
 
 /**
+ * @brief Get logger's debug mask
+ *
+ * @return The current log-mask is returned
+ */
+static inline int32_t getRRCommLoggerMask(void) {
+    return logger_getMask(RRCommLogger);
+}
+
+
+/**
  * @brief Finalize the logger facility
  *
  * Finalize all logging facilities utilized by the plugin. This

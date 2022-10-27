@@ -68,18 +68,7 @@ static bool handleRRCommMsg(DDTypedBufferMsg_t *msg)
     }
 
     if (PSC_getID(msg->header.sender) == PSC_getMyID()) {
-	/* sender is local: fillup missing hdr content */
-	PStask_t *sender = PStasklist_find(&managedTasks, msg->header.sender);
-
-	if (!sender) {
-	    flog("no sender for %s!?\n", PSC_printTID(msg->header.sender));
-	    return PSID_dropMsg((DDBufferMsg_t *)msg);
-	}
-	/* hdr points into the actual message */
-	hdr->loggerTID = sender->loggertid;
-	hdr->spawnerTID = sender->spawnertid;
-
-	/* now determine destination node */
+	/* determine destination node */
 	PSsession_t *session = PSID_findSessionByLoggerTID(hdr->loggerTID);
 	if (!session) {
 	    flog("no session for %s!?\n", PSC_printTID(hdr->loggerTID));
@@ -96,10 +85,10 @@ static bool handleRRCommMsg(DDTypedBufferMsg_t *msg)
 	list_for_each(r, &job->resInfos) {
 	    PSresinfo_t *res = list_entry(r, PSresinfo_t, next);
 	    bool found = false;
-	    if (hdr->rank < res->minRank || hdr->rank > res->maxRank) continue;
+	    if (hdr->dest < res->minRank || hdr->dest > res->maxRank) continue;
 	    for (uint32_t e = 0; e < res->nEntries; e++) {
-		if (hdr->rank < res->entries[e].firstrank
-		    || hdr->rank > res->entries[e].lastrank) continue;
+		if (hdr->dest < res->entries[e].firstrank
+		    || hdr->dest > res->entries[e].lastrank) continue;
 		msg->header.dest = PSC_getTID(res->entries[e].node, 0);
 		found = true;
 		break;
@@ -117,7 +106,7 @@ static bool handleRRCommMsg(DDTypedBufferMsg_t *msg)
     list_t *t;
     list_for_each(t, &managedTasks) {
 	PStask_t *task = list_entry(t, PStask_t, next);
-	if (task->rank != hdr->rank || task->loggertid != hdr->loggerTID
+	if (task->rank != hdr->dest || task->loggertid != hdr->loggerTID
 	    || task->spawnertid != hdr->spawnerTID) continue;
 	if (!task->forwarder || task->deleted) continue;
 	msg->header.dest = task->forwarder->tid;
@@ -151,7 +140,7 @@ static bool dropRRCommMsg(DDTypedBufferMsg_t *msg)
 	    .len = 0, /* to be set by PSP_putTypedMsgBuf */ },
 	.type = RRCOMM_ERROR,
 	.buf = { '\0' } };
-    /* Add all information we have concerning the destination */
+    /* Add all information we have concerning the message */
     PSP_putTypedMsgBuf(&answer, "hdr", hdr, sizeof(*hdr));
 
     sendMsg(&answer);
