@@ -28,6 +28,7 @@
 #include "pluginpsconfig.h"
 
 #include "rrcommconfig.h"
+#include "rrcommforwarder.h"
 #include "rrcommlog.h"
 #include "rrcommproto.h"
 
@@ -157,6 +158,30 @@ static bool dropRRCommMsg(DDTypedBufferMsg_t *msg)
     return true;
 }
 
+static bool registerMsgHandlers(void)
+{
+    if (!PSID_registerMsg(PSP_PLUG_RRCOMM, (handlerFunc_t)handleRRCommMsg)) {
+	flog("register 'PSP_PLUG_RRCOMM' handler failed\n");
+	return false;
+    }
+
+    if (!PSID_registerDropper(PSP_PLUG_RRCOMM, (handlerFunc_t)dropRRCommMsg)) {
+	flog("register 'PSP_PLUG_RRCOMM' dropper failed\n");
+	return false;
+    }
+    return true;
+}
+
+static void removeMsgHandlers(bool verbose)
+{
+    if (!PSID_clearMsg(PSP_PLUG_RRCOMM, (handlerFunc_t)handleRRCommMsg)) {
+	if (verbose) flog("clear 'PSP_PLUG_RRCOMM' handler failed\n");
+    }
+    if (!PSID_clearDropper(PSP_PLUG_RRCOMM, (handlerFunc_t)dropRRCommMsg)) {
+	if (verbose) flog("clear 'PSP_PLUG_RRCOMM' dropper failed\n");
+    }
+}
+
 static bool evalValue(const char *key, const pluginConfigVal_t *val,
 		      const void *info)
 {
@@ -187,22 +212,17 @@ int initialize(FILE *logfile)
 	goto INIT_ERROR;
     }
 
-    if (!PSID_registerMsg(PSP_PLUG_RRCOMM, (handlerFunc_t)handleRRCommMsg)) {
-	flog("register 'PSP_PLUG_RRCOMM' handler failed\n");
-	goto INIT_ERROR;
-    }
+    if (!registerMsgHandlers()) goto INIT_ERROR;
 
-    if (!PSID_registerDropper(PSP_PLUG_RRCOMM, (handlerFunc_t)dropRRCommMsg)) {
-	flog("register 'PSP_PLUG_RRCOMM' dropper failed\n");
-	goto INIT_ERROR;
-    }
+    if (!attachRRCommForwarderHooks()) goto INIT_ERROR;
 
     mlog("(%i) successfully started\n", version);
 
     return 0;
 
 INIT_ERROR:
-    //unregisterHooks(false);
+    detachRRCommForwarderHooks(false);
+    removeMsgHandlers(false);
     finalizeSerial();
     finalizeRRCommConfig();
     finalizeRRCommLogger();
@@ -212,8 +232,8 @@ INIT_ERROR:
 
 void cleanup(void)
 {
-    PSID_clearMsg(PSP_PLUG_RRCOMM, (handlerFunc_t)handleRRCommMsg);
-    PSID_clearDropper(PSP_PLUG_RRCOMM, (handlerFunc_t)dropRRCommMsg);
+    detachRRCommForwarderHooks(true);
+    removeMsgHandlers(true);
     finalizeSerial();
     finalizeRRCommConfig();
 

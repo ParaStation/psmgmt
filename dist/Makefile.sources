@@ -719,6 +719,8 @@ plugins/rrcomm/plugin/Makefile.in \
 plugins/rrcomm/plugin/rrcomm.c \
 plugins/rrcomm/plugin/rrcommconfig.c \
 plugins/rrcomm/plugin/rrcommconfig.h \
+plugins/rrcomm/plugin/rrcommforwarder.c \
+plugins/rrcomm/plugin/rrcommforwarder.h \
 plugins/rrcomm/plugin/rrcommlog.c \
 plugins/rrcomm/plugin/rrcommlog.h \
 plugins/rrcomm/plugin/rrcommproto.h \
