@@ -31,6 +31,7 @@ extern logger_t *RRCommLogger;
 
 typedef enum {
     RRCOMM_LOG_VERBOSE = 0x00001, /**< Be verbose */
+    RRCOMM_LOG_COMM = 0x00002,    /**< All about routing */
 } RRComm_log_types_t;
 
 /*

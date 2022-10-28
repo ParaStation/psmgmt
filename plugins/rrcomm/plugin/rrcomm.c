@@ -42,8 +42,8 @@ static bool handleRRCommMsg(DDTypedBufferMsg_t *msg)
 {
     if (msg->header.dest != PSC_getMyTID()) {
 	/* no messsage for me => forward */
-	fdbg(RRCOMM_LOG_VERBOSE, "%s->", PSC_printTID(msg->header.sender));
-	mdbg(RRCOMM_LOG_VERBOSE, "%s", PSC_printTID(msg->header.dest));
+	fdbg(RRCOMM_LOG_COMM, "%s->", PSC_printTID(msg->header.sender));
+	mdbg(RRCOMM_LOG_COMM, "%s\n", PSC_printTID(msg->header.dest));
 	if (PSC_getID(msg->header.dest) != PSC_getMyID()) {
 	    sendMsg(msg);
 	} else {
@@ -98,6 +98,8 @@ static bool handleRRCommMsg(DDTypedBufferMsg_t *msg)
 
 	if (msg->header.dest != PSC_getMyTID()) {
 	    /* rank lives on a remote node => forward */
+	    fdbg(RRCOMM_LOG_COMM, "%s-fwd->", PSC_printTID(msg->header.sender));
+	    mdbg(RRCOMM_LOG_COMM, "%s\n", PSC_printTID(msg->header.dest));
 	    sendMsg(msg);
 	    return true;
 	}
@@ -115,6 +117,8 @@ static bool handleRRCommMsg(DDTypedBufferMsg_t *msg)
 
     if (msg->header.dest != PSC_getMyTID()) {
 	/* destination forwarder identified => forward */
+	fdbg(RRCOMM_LOG_COMM, "%s-fwd->", PSC_printTID(msg->header.sender));
+	mdbg(RRCOMM_LOG_COMM, "%s\n", PSC_printTID(msg->header.dest));
 	PSIDclient_send((DDMsg_t *)msg);
 	return true;
     }
