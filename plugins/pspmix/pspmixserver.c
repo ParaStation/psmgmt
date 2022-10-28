@@ -2907,13 +2907,8 @@ bool pspmix_server_createPSetByProcess(const char *name, list_t *procMap,
 	}
     }
 
-#pragma GCC diagnostic push
-/* pragma can be removed once this is fixed in openpmix
- * see https://github.com/openpmix/openpmix/pull/2798 */
-#pragma GCC diagnostic ignored "-Wdiscarded-qualifiers"
     pmix_status_t status = PMIx_server_define_process_set(members.data,
 						          members.len, name);
-#pragma GCC diagnostic pop
     vectorDestroy(&members);
 
     if (!status == PMIX_SUCCESS) {
@@ -2945,12 +2940,7 @@ bool pspmix_server_createPSetByNode(const char *name, list_t *procMap,
 	}
     }
 
-#pragma GCC diagnostic push
-/* pragma can be removed once this is fixed in openpmix
- * see https://github.com/openpmix/openpmix/pull/2798 */
-#pragma GCC diagnostic ignored "-Wdiscarded-qualifiers"
     pmix_status_t status = PMIx_server_define_process_set(members, len, name);
-#pragma GCC diagnostic pop
     ufree(members);
     members = NULL;
     len = 0;
