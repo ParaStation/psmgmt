@@ -19,4 +19,3 @@ lib_LTLIBRARIES = libpse.la
 libpse_la_SOURCES = pse.c
 
 libpse_la_LIBADD = $(top_builddir)/lib/psi/libpsi.la
-
