@@ -71,7 +71,7 @@ typedef ssize_t Send_Msg_Func_t(void *);
  * fragment. The buffer of this last fragment is invalidated and part
  * of @a data
  *
- * @param data Data buffer presenting payload assembled for all fragments
+ * @param data Data buffer presenting payload assembled from all fragments
  */
 typedef void PS_DataBuffer_func_t(DDTypedBufferMsg_t *msg,
 				  PS_DataBuffer_t *data);
