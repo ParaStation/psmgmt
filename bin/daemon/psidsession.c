@@ -56,6 +56,7 @@ PSresinfo_t *getResinfo(void)
  */
 static void putResinfo(PSresinfo_t *resinfo)
 {
+    if (resinfo->entries) free(resinfo->entries[0].CPUsets);
     free(resinfo->entries);
     resinfo->entries = NULL;
 
@@ -249,6 +250,32 @@ PSjob_t* PSID_findJobInSession(PSsession_t *session, PStask_ID_t spawnerTID)
     list_for_each(j, &session->jobs) {
 	PSjob_t *job = list_entry(j, PSjob_t, next);
 	if (job->spawnertid == spawnerTID) return job;
+    }
+    return NULL;
+}
+
+/**
+ * @brief Find reservation info by session and job identifier
+ *
+ * @param loggerTID    Task ID of logger identifying the session
+ * @param spawnerTID   Task ID of spawner identifying the job
+ * @param resID        ID of the reservation to get the info object for
+ *
+ * @return Returns the reservation or NULL if none found
+ */
+PSresinfo_t* PSID_findResInfo(PStask_ID_t loggerTID, PStask_ID_t spawnerTID,
+			  PSrsrvtn_ID_t resID)
+{
+    PSsession_t *session = PSID_findSessionByLoggerTID(loggerTID);
+    if (!session) return NULL;
+
+    PSjob_t *job = PSID_findJobInSession(session, spawnerTID);
+    if (!job) return NULL;
+
+    list_t *r;
+    list_for_each(r, &job->resInfos) {
+	PSresinfo_t *resInfo = list_entry(r, PSresinfo_t, next);
+	if (resInfo->resID == resID) return resInfo;
     }
     return NULL;
 }
@@ -513,6 +540,115 @@ static bool msg_RESRELEASED(DDBufferMsg_t *msg)
 }
 
 /**
+ * @brief Store local reservation information
+ *
+ * Actually stores the local reservation information contained in the data
+ * buffer @a rData. It contains a whole message of type PSP_DD_LOCALRESINFO
+ * holding additional information about the local part of the reservation like
+ * pinning information of the processes.
+ *
+ * Additional information can be obtained from @a msg containing
+ * meta-information of the last fragment received.
+ *
+ * @param msg Message header (including the type) of the last fragment
+ *
+ * @param rData Data buffer presenting the actual PSP_DD_LOCALRESINFO
+ *
+ * @return No return value
+ */
+static void handleLocalResInfo(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
+{
+    char *ptr = rData->buf;
+
+    /* get reservation, logger task id and spawner task id */
+    int32_t resID;
+    getInt32(&ptr, &resID);
+    PStask_ID_t loggerTID, spawnerTID;
+    getTaskId(&ptr, &loggerTID);
+    getTaskId(&ptr, &spawnerTID);
+
+    /* create reservation info */
+    PSresinfo_t *res = PSID_findResInfo(loggerTID, spawnerTID, resID);
+    if (!res) {
+	PSID_log(-1, "%s: No reservation info for logger %s", __func__,
+		 PSC_printTID(loggerTID));
+	PSID_log(-1, "spawner %s and resID %d\n", PSC_printTID(spawnerTID),
+		 resID);
+	return;
+    }
+
+    size_t len = 0;
+    PSCPU_set_t *CPUsets = getDataM(&ptr, &len);
+    len /= sizeof(*CPUsets);
+
+    /* get entries */
+    PSCPU_set_t *pos = CPUsets;
+    for (size_t i = 0; i < res->nEntries; i++) {
+	res->entries[i].CPUsets = pos;
+	pos += res->entries[i].lastrank - res->entries[i].firstrank + 1;
+
+	if (pos > CPUsets + len) {
+	    res->entries[i].CPUsets = NULL;
+	    PSID_log(-1, "%s: CRITICAL: number of CPUsets too low\n", __func__);
+	    break;
+	}
+
+	PSID_log(PSID_LOG_SPAWN, "%s: Reservation %d: Adding cpusets for"
+		 " ranks %d-%d\n", __func__, resID,
+		 res->entries[i].firstrank, res->entries[i].lastrank);
+    }
+
+    if (pos != CPUsets + len) {
+	PSID_log(-1, "%s: number of CPUsets too high (%zu)\n", __func__, len);
+    }
+}
+
+/**
+ * @brief Handle a PSP_DD_LOCALRESINFO message
+ *
+ * Handle the message @a msg of type PSP_DD_LOCALRESINFO.
+ *
+ * This will store the reservation information described within this
+ * message. Since the serialization layer is utilized depending on
+ * the size and structure of the reservation the messages might be
+ * split into multiple fragments.
+ *
+ * This function will collect these fragments into a single message
+ * using the serialization layer or forward single fragments to their
+ * final destination.
+ *
+ * The actual handling of the payload once all fragments are received
+ * is done within @ref handleLocalResInfo().
+ *
+ * @param msg Pointer to message holding the fragment to handle
+ *
+ * @return Always return true
+ */
+static bool msg_LOCALRESINFO(DDTypedBufferMsg_t *msg)
+{
+    if (PSC_getID(msg->header.dest) == PSC_getMyID()) {
+	/* destination is here */
+	recvFragMsg(msg, handleLocalResInfo);
+	return true;
+    }
+
+    /* destination is remote */
+    if (!PSIDnodes_isUp(PSC_getID(msg->header.dest))) {
+	PSID_log(-1, "%s: unable to forward fragment to %s (node down)\n",
+		 __func__, PSC_printTID(msg->header.dest));
+	return true;
+    }
+
+    PSID_log(PSID_LOG_SPAWN, "%s: forward to node %d\n", __func__,
+	     PSC_getID(msg->header.dest));
+    if (sendMsg(msg) < 0) {
+	PSID_log(-1, "%s: unable to forward fragment to %s (sendMsg failed)\n",
+		 __func__, PSC_printTID(msg->header.dest));
+    }
+    return true;
+}
+
+/**
  * @brief Memory cleanup
  *
  * Cleanup all dynamic memory currently retained in session structures
@@ -588,6 +724,7 @@ bool PSIDsession_init(void)
 
     PSID_registerMsg(PSP_DD_RESCREATED, (handlerFunc_t) msg_RESCREATED);
     PSID_registerMsg(PSP_DD_RESRELEASED, msg_RESRELEASED);
+    PSID_registerMsg(PSP_DD_LOCALRESINFO, (handlerFunc_t) msg_LOCALRESINFO);
 
     return true;
 }

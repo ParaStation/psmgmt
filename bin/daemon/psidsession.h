@@ -21,12 +21,14 @@
 #include "psnodes.h"
 #include "psreservation.h"
 #include "pstask.h"
+#include "pscpu.h"
 
 /** Single node part of a reservation */
 typedef struct {
     PSnodes_ID_t node;       /**< node ID */
     int32_t firstrank;       /**< first rank designated to this node */
     int32_t lastrank;        /**< last rank designated to this node */
+    PSCPU_set_t *CPUsets;    /**< array of CPUsets to be used by the ranks */
 } PSresinfoentry_t;
 
 /** Compact reservation information structure, used in non-logger deamons */
@@ -77,6 +79,18 @@ PSsession_t* PSID_findSessionByLoggerTID(PStask_ID_t loggerTID);
  * @return Returns the job or NULL if none found
  */
 PSjob_t* PSID_findJobInSession(PSsession_t *session, PStask_ID_t spawnerTID);
+
+/**
+ * @brief Find reservation info by session and job identifier
+ *
+ * @param loggerTID    Task ID of logger identifying the session
+ * @param spawnerTID   Task ID of spawner identifying the job
+ * @param resID        ID of the reservation to get the info object for
+ *
+ * @return Returns the reservation or NULL if none found
+ */
+PSresinfo_t* PSID_findResInfo(PStask_ID_t loggerTID, PStask_ID_t spawnerTID,
+			  PSrsrvtn_ID_t resID);
 
 /**
  * @brief Initialize session stuff

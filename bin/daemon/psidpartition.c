@@ -2989,6 +2989,69 @@ static bool send_RESCREATED(PStask_t *task, PSrsrvtn_t *res)
 }
 
 /**
+ * @brief Distribute local CPU pinning information to each node involved
+ *        in partition
+ *
+ * Provide information on rank distribution within the reservation @a
+ * res to all nodes that are part of the partition the reservation is
+ * belonging to. This partition is expected to be associated to the
+ * task @a task. To actually provide the information, one or more
+ * messages of type PSP_DD_LOCALRESINFO are emitted.
+ *
+ * @param task Task holding the partition the reservation belong
+ *
+ * @param res Reservation to distribute
+ *
+ * @return On success, true is returned, or false if an error occurred.
+ */
+static bool send_LOCALRESINFO(PStask_t *task, PSrsrvtn_t *res)
+{
+    if (res->nSlots < 1) {
+	PSID_log(-1, "%s: No slots in reservation %#x\n", __func__, res->rid);
+	return false;
+    }
+
+    PSCPU_set_t *CPUsets = malloc(res->nSlots * sizeof(*CPUsets));
+    if (!CPUsets) {
+        PSID_log(-1, "%s: No memory for cpusets of %#x\n", __func__, res->rid);
+	return false;
+    }
+
+    /* send message to each node in the partition containing it's local info */
+    PS_SendDB_t msg;
+    for (uint32_t i = 0; i < task->partitionSize; i++) {
+	PSnodes_ID_t node = task->partition[i].node;
+	if (i > 0 && node == task->partition[i-1].node) continue; // don't send twice
+
+	initFragBuffer(&msg, PSP_DD_LOCALRESINFO, -1);
+	if (setFragDest(&msg, PSC_getTID(node, 0))) {
+	    PSID_log(PSID_LOG_PART, "%s: send PSP_DD_LOCALRESINFO to node %d\n",
+		     __func__, node);
+	}
+
+	addInt32ToMsg(res->rid, &msg); // reservation ID
+	addTaskIdToMsg(task->tid, &msg); // logger's task ID
+	addTaskIdToMsg(res->requester, &msg); // spawners's task ID
+
+	/* collect all cpusets on the current node */
+	size_t set = 0;
+	for (int i = 0; i < res->nSlots; i++) {
+	    if (res->slots[i].node != node) continue;
+	    PSCPU_copy(CPUsets[set++], res->slots[i].CPUset);
+	}
+	addDataToMsg(CPUsets, set * sizeof(*CPUsets), &msg);
+
+	if (sendFragMsg(&msg) == -1) {
+	    PSID_log(-1, "%s: sending failed\n", __func__);
+	    return false;
+	}
+    }
+    free(CPUsets);
+
+    return true;
+}
+
+/**
  * @brief Distribute info on released reservation to involved nodes
  *
  * Provide information that a reservation got deleted to all nodes
@@ -3728,6 +3791,7 @@ no_task_error:
 		 __func__, r->rid, got);
 	enqRes(&task->reservations, r);
 	send_RESCREATED(task, r);
+	send_LOCALRESINFO(task, r);
 
 	PSP_putMsgBuf(&msg, "rid", &r->rid, sizeof(r->rid));
 	PSP_putMsgBuf(&msg, "nSlots", &r->nSlots, sizeof(r->nSlots));
@@ -3837,6 +3901,7 @@ int PSIDpart_extendRes(PStask_ID_t tid, PSrsrvtn_ID_t resID,
 	     got, res->rid);
     enqRes(&task->reservations, res);
     send_RESCREATED(task, res);
+    send_LOCALRESINFO(task, res);
 
     PSP_putMsgBuf(&msg, "rid", &res->rid, sizeof(res->rid));
     PSP_putMsgBuf(&msg, "nSlots", &res->nSlots, sizeof(res->nSlots));
