@@ -2968,7 +2968,7 @@ static bool send_RESCREATED(PStask_t *task, PSrsrvtn_t *res)
     for (int i = 0; i < res->nSlots; i++) {
 	PSnodes_ID_t node = res->slots[i].node;
 
-	// wait for the last slot per node
+	/* find last slot for current node in this block */
 	if (i < res->nSlots-1 && node == res->slots[i+1].node) continue;
 
 	int32_t lastrank = res->firstRank + i;
