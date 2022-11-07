@@ -584,6 +584,8 @@ static void handleLocalResInfo(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
     /* get entries */
     PSCPU_set_t *pos = CPUsets;
     for (size_t i = 0; i < res->nEntries; i++) {
+	if (res->entries[i].node != PSC_getMyID()) continue;
+
 	res->entries[i].CPUsets = pos;
 	pos += res->entries[i].lastrank - res->entries[i].firstrank + 1;
 
@@ -598,7 +600,7 @@ static void handleLocalResInfo(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
 		 res->entries[i].firstrank, res->entries[i].lastrank);
     }
 
-    if (pos != CPUsets + len) {
+    if (pos < CPUsets + len) {
 	PSID_log(-1, "%s: number of CPUsets too high (%zu)\n", __func__, len);
     }
 }
