@@ -102,7 +102,7 @@ void PSI_LSF(void)
     lsf_hostfile = getenv(ENV_NODE_HOSTFILE_LSF);
     if (lsf_hosts || lsf_hostfile) {
 	checkOtherSettings("LSF");
-	setenv(ENV_NODE_SORT, "none", 1);
+	setenv(ENV_NODE_SORT, "NONE", 1);
 	unsetenv(ENV_NODE_NODES);
 	if (lsf_hostfile) {
 	    unsetenv(ENV_NODE_HOSTS);
@@ -130,7 +130,7 @@ void PSI_PBS(void)
     char *pbs_hostfile = getenv(ENV_NODE_HOSTFILE_PBS);
     if (pbs_hostfile) {
 	checkOtherSettings("PBS");
-	setenv(ENV_NODE_SORT, "none", 1);
+	setenv(ENV_NODE_SORT, "NONE", 1);
 	unsetenv(ENV_NODE_NODES);
 	unsetenv(ENV_NODE_HOSTS);
 	setenv(ENV_NODE_HOSTFILE, pbs_hostfile, 1);
@@ -152,7 +152,7 @@ void PSI_LL(void)
     char *ll_hosts = getenv(ENV_NODE_HOSTS_LL);
     if (ll_hosts) {
 	checkOtherSettings("LoadLeveler");
-	setenv(ENV_NODE_SORT, "none", 1);
+	setenv(ENV_NODE_SORT, "NONE", 1);
 	unsetenv(ENV_NODE_NODES);
 	setenv(ENV_NODE_HOSTS, ll_hosts, 1);
 	unsetenv(ENV_NODE_HOSTFILE);
@@ -175,7 +175,7 @@ void PSI_SGE(void)
     char *sge_pefile = getenv(ENV_NODE_PEFILE_SGE);
     if (sge_pefile) {
 	checkOtherSettings("GridEngine");
-	setenv(ENV_NODE_SORT, "none", 1);
+	setenv(ENV_NODE_SORT, "NONE", 1);
 	unsetenv(ENV_NODE_NODES);
 	unsetenv(ENV_NODE_HOSTS);
 	unsetenv(ENV_NODE_HOSTFILE);
@@ -243,6 +243,7 @@ static PSpart_option_t getPartitionOptions(void)
     if (batchPartition) options |= PART_OPT_EXACT;
     if (getenv(ENV_PART_OMPI)) options |= PART_OPT_RESPORTS;
     if (getenv(ENV_PART_DYNAMIC)) options |= PART_OPT_DYNAMIC;
+    if (getenv(ENV_PART_FULL)) options |= PART_OPT_FULL_LIST;
 
     return options;
 }
@@ -273,11 +274,11 @@ static bool addNode(PSnodes_ID_t node, nodelist_t *nl)
     PSI_log(PSI_LOG_VERB, "%s(%d)\n", __func__, node);
 
     if (nl->size == nl->maxsize) {
-	void *tmp = nl->nodes;
+	void *old = nl->nodes;
 	nl->maxsize += 128;
 	nl->nodes = realloc(nl->nodes, nl->maxsize * sizeof(*nl->nodes));
 	if (!nl->nodes) {
-	    free(tmp);
+	    free(old);
 	    PSI_log(-1, "%s: no memory\n", __func__);
 	    return false;
 	}
@@ -310,15 +311,12 @@ static void freeNodelist(nodelist_t *nl)
  */
 static int nodelistFromRange(char *range, nodelist_t *nodelist)
 {
-    long first, last, i;
-    char *start, *end;
-
     if (!range) return 0;
 
-    start = strsep(&range, "-");
+    char *start = strsep(&range, "-"), *end;
     if (!start) return 0;
 
-    first = strtol(start, &end, 0);
+    long first = strtol(start, &end, 0), last;
     if (*end != '\0') return 0;
     if (!PSC_validNode(first)) {
 	PSI_log(-1, "%s: node %ld out of range\n", __func__, first);
@@ -337,7 +335,7 @@ static int nodelistFromRange(char *range, nodelist_t *nodelist)
     }
 
     /* Now put the range into the nodelist */
-    for (i=first; i<=last; i++) {
+    for (long i = first; i <= last; i++) {
 	if (!addNode(i, nodelist)) return 0;
     }
 
@@ -816,7 +814,6 @@ static void analyzeError(PSpart_request_t *request, nodelist_t *nodelist)
     uint32_t *hwStat = NULL;
     uint16_t *allocJobs = NULL;
     uint16_t *numThreads = NULL;
-    int n;
 
     if (!request || !nodelist || !nodelist->nodes) return;
 
@@ -843,7 +840,7 @@ static void analyzeError(PSpart_request_t *request, nodelist_t *nodelist)
 	goto end;
     }
 
-    for (n=0; n < nodelist->size; n++) {
+    for (int n = 0; n < nodelist->size; n++) {
 	PSnodes_ID_t node = nodelist->nodes[n];
 
 	/* Test for down nodes */
@@ -867,7 +864,7 @@ static void analyzeError(PSpart_request_t *request, nodelist_t *nodelist)
 
     /* More analysis in case of tpp */
     if (request->tpp > 1) {
-	for (n=0; n < nodelist->size; n++) {
+	for (int n = 0; n < nodelist->size; n++) {
 	    PSnodes_ID_t node = nodelist->nodes[n];
 
 	    /* Test for correct tpp */
@@ -967,6 +964,7 @@ int PSI_createPartition(unsigned int size, uint32_t hwType)
     request->sort = getSortMode();
     request->options = getPartitionOptions();
     request->priority = 0; /* Not used */
+    request->num = 0;
 
     if (request->sort == PART_SORT_UNKNOWN) goto end;
 
@@ -981,8 +979,16 @@ int PSI_createPartition(unsigned int size, uint32_t hwType)
     if (nodelist) {
 	if (nodelist->size < 0) goto end;
 	request->num = nodelist->size;
-    } else {
-	request->num = 0;
+    }
+
+    if (request->options & PART_OPT_FULL_LIST) {
+	if (!nodelist) {
+	    PSI_log(-1, "%s: full partition requires explicit resources\n",
+		    __func__);
+	    goto end;
+	}
+	request->size = nodelist->size; // we want all nodes in nodelist
+	request->tpp = 1;               // ignore tpp; we get full nodes anyhow
     }
 
     hwEnv = getHWEnv();
@@ -1017,7 +1023,7 @@ int PSI_createPartition(unsigned int size, uint32_t hwType)
     }
     PSC_setSigHandler(SIGALRM, alarmHandlerPart);
 recv_retry:
-    if (PSI_recvMsg((DDMsg_t *)&msg, sizeof(msg))<0) {
+    if (PSI_recvMsg((DDMsg_t *)&msg, sizeof(msg)) < 0) {
 	PSI_warn(-1, errno, "%s: PSI_recvMsg", __func__);
 	goto end;
     }
@@ -1026,8 +1032,8 @@ recv_retry:
 
     switch (msg.header.type) {
     case PSP_CD_PARTITIONRES:
-	if (*(int*)msg.buf) {
-	    PSI_warn(-1, *(int*)msg.buf, "%s", __func__);
+	if (((DDTypedMsg_t *)&msg)->type) {
+	    PSI_warn(-1, ((DDTypedMsg_t *)&msg)->type, "%s", __func__);
 	    if (batchPartition) analyzeError(request, nodelist);
 	    goto end;
 	}
@@ -1038,7 +1044,7 @@ recv_retry:
 	break;
     case PSP_CD_ERROR:
 	PSI_warn(-1, ((DDErrorMsg_t*)&msg)->error, "%s: error in command %s",
-		 __func__, PSP_printMsg(((DDErrorMsg_t*)&msg)->request));
+		 __func__, PSP_printMsg(((DDErrorMsg_t *)&msg)->request));
 	goto end;
 	break;
     default:
@@ -1054,7 +1060,7 @@ recv_retry:
 	PSI_log(-1, "%s -- Starting now...\n", timeStr);
     }
 
-    ret = size;
+    ret = request->size;
 
 end:
     if (nodelist) freeNodelist(nodelist);

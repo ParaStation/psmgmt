@@ -101,6 +101,13 @@
 #define ENV_PART_WAIT      "PSI_WAIT"
 
 /**
+ * Name of the environment variable that flags partition creation from
+ * full list of nodes / hosts (or hostfile) ignoring the amount of
+ * resources actually required
+ */
+#define ENV_PART_FULL      "PSI_FULL_PARTITION"
+
+/**
  * Name of the evironment variable used in order to enable a
  * partitions PART_OPT_RESPORTS option.
  */
@@ -180,7 +187,7 @@ void PSI_SGE(void);
  * i.e. each hardware name has to be defined there.
  *
  * @param hwType A bit-field of the resolved list of
- * hardware-types. @a hwType is a bitwise OR of the hardware-types
+ * hardware-types. @a hwType is a bit-wise OR of the hardware-types
  * requested via 1<<INFO_request_hwindex() or 0.
  *
  * @return If one or more hardware-types are unknown, -1 is
@@ -194,96 +201,110 @@ int PSI_resolveHWList(char **hwList, uint32_t *hwType);
 /**
  * @brief Create a partition.
  *
- * Create a partition of size @a num according to various environment
+ * Create a partition of size @a size according to various environment
  * variables. Only those nodes are taken into account which have a
  * communication interface of hardware type @a hwType.
  *
  * The environment variables taken into account are as follows:
  *
  * - If PSI_NODES is present, use it to get the pool. PSI_NODES has to
- * contain a comma-separated list of node-ranges, where each
- * node-ranges is of the form 'first[-last]'. Here first and last are
- * node numbers, i.e. positive numbers smaller than @a NrOfNodes from
- * the parastation.conf configuration file.
+ *   contain a comma-separated list of node-ranges, where each
+ *   node-ranges is of the form 'first[-last]'. Here first and last
+ *   are node numbers, i.e. positive numbers smaller than @a NrOfNodes
+ *   from the parastation.conf configuration file.
  *
  * - Otherwise if PSI_HOSTS is present, use this. PSI_HOSTS has to
- * contain a whitespace separated list of hostnames. Each of them has
- * to be resolvable and the corresponding IP address has to be defined
- * within the ParaStation system.
+ *   contain a whitespace separated list of hostnames. Each of them
+ *   has to be resolvable and the corresponding IP address has to be
+ *   defined within the ParaStation system.
  *
  * - If the pool is not build yet, use PSI_HOSTFILE. If PSI_HOSTFILE
- * is set, it has to contain a filename. The according file consists
- * of lines, each containing a whitespace separated list of hostnames
- * with the same properties as discussed along the PSI_HOSTS variable.
+ *   is set, it has to contain a filename. The according file consists
+ *   of lines, each containing a whitespace separated list of
+ *   hostnames with the same properties as discussed for the PSI_HOSTS
+ *   variable.
  *
- * - If none of the three addressed environment variables is present,
- * take all nodes managed by ParaStation to build the pool.
+ * - If none of the above mentioned environment variables is present,
+ *   take all nodes managed by ParaStation to build the pool.
  *
- * To get into the pool, each node is tested, if it is available and
- * if it supports at least one of the hardware-types requested in @a
- * hwType. If @a hwType is 0, each node will be accepted to get into
+ * To get into the pool, each node is tested if it is available and if
+ * it supports at least one of the hardware-types requested in @a
+ * hwType. If @a hwType is 0, every node will be accepted to get into
  * the pool.
  *
- * When the pool is build, it may have to be sorted. The sorting is
+ * After the pool is build, it may have to be sorted. The sorting is
  * steered via the environment variable PSI_NODES_SORT. Depending on
  * its value, one of the following sorting strategies is deployed to
  * the node pool:
  *
  * - PROC: Sort the pool depending on the number of processes managed
- * by ParaStation residing on the nodes. This is also the default if
- * PSI_NODES_SORT is not set and no other default behavior is
- * configured within the daemon's configuration file.
+ *   by ParaStation residing on the nodes. This is also the default if
+ *   PSI_NODES_SORT is not set and no other default behavior is
+ *   configured within the daemon's configuration file.
  *
  * - LOAD or LOAD_1: Sort the pool depending on the load average
- * within the last minute on the nodes.
+ *   within the last minute on the nodes.
  *
  * - LOAD_5: Sort the pool depending on the load average within the
- * last 5 minutes on the nodes.
+ *   last 5 minutes on the nodes.
  *
  * - LOAD_15: Sort the pool depending on the load average within the
- * last 15 minutes on the nodes.
+ *   last 15 minutes on the nodes.
  *
  * - PROC+LOAD: Sort the pool depending on the sum of the 1 minute
- * load and the number processes managed by ParaStation residing on
- * that node. This will lead to fair load-balancing even if processes
- * are started without notification to the ParaStation management
- * facility.
+ *   load and the number processes managed by ParaStation residing on
+ *   that node. This will lead to fair load-balancing even if
+ *   processes are started without notification to the ParaStation
+ *   management facility.
  *
  * - NONE or anything else: Don't sort the pool.
  *
  * Furthermore there are options that affect the partition's creation:
  *
  * - PSI_EXCLUSIVE: Only get exclusive nodes, i.e. no further
- * processes are allowed on that node.
+ *   processes are allowed on that node.
  *
- * - PSI_OVERBOOK: Allow more than one process per node.  This
- * induces PSI_EXCLUSIVE implicitly.
+ * - PSI_OVERBOOK: Allow more than one process per HW-thread. This
+ *   induces PSI_EXCLUSIVE implicitly.
  *
  * - PSI_LOOP_NODES_FIRST: Place consecutive processes on different
- * nodes, if possible. Usually consecutive processes are placed on the
- * same node.
+ *   nodes, if possible. Usually consecutive processes are placed on
+ *   the same node.
  *
  * - PSI_WAIT: If the resources available at the time the parallel
- * task is started are not sufficient, wait until they are. Usually
- * the task will stop immediately if it cannot get the requested
- * resources.
+ *   task is started are not sufficient, wait until they are. Usually
+ *   the task will stop immediately if it cannot get the requested
+ *   resources.
+ *
+ * - PSI_TPP: Assume each process will require this number of
+ *   HW-threads to run
+ *
+ * - PSI_FULL_PARTITION: Create partition from full list of
+ *   nodes/hosts or hostfile independent of actual requirements; the
+ *   value passed in @a size will be ignored in this case
  *
  * The nodelist build by this means is propagated unmodified to all
  * child processes.
  *
- *
- * @param num The number of nodes to be reserved for the parallel
- * task.
+ * @param size Amount of resources to be reserved for the parallel
+ * tasks; usually this reflects the number of processes the partition
+ * is capable to host with taking the value of PSI_TPP into account;
+ * if PSI_FULL_PARTITION is given, this will be ignored and the number
+ * of nodes passed in PSI_NODES, PSI_HOSTS, or PSI_HOSTFILE will be
+ * reserved
  *
  * @param hwType Hardware-types to be supported by the selected
  * nodes. This bit-field shall be prepared using
  * PSI_resolveHWList(). If this is 0, any node will be accepted from
  * the hardware-type point of view.
  *
- * @return On success, the number of nodes in the partition is
- * returned or -1 if an error occurred.
+ * @return On success, the number of processes the partition is
+ * capable to host is returned, i.e. the amount requested in @a size;
+ * if PSI_FULL_PARTITION is set, the number of nodes passed in
+ * PSI_NODES, PSI_HOSTS, or PSI_HOSTFILE will be returned in case of
+ * success; or -1 if an error occurred
  */
-int PSI_createPartition(unsigned int num, uint32_t hwType);
+int PSI_createPartition(unsigned int size, uint32_t hwType);
 
 /**
  * @brief Get nodes to spawn processes to.
@@ -392,7 +413,7 @@ PSrsrvtn_ID_t PSI_getReservation(uint32_t nMin, uint32_t nMax, uint16_t ppn,
  *
  * This function will return the rank of the first process to spawn
  * into the received slots. Further processes will are expected to get
- * the successing ranks assigned.
+ * the successive ranks assigned.
  *
  * @param num The number of slots to get
  *

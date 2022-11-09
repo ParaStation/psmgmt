@@ -279,6 +279,13 @@ static void setupPSIEnv(Conf_t *conf)
 			    " nodes\n", ENV_PART_LOOPNODES);
     }
 
+    if (conf->fullPartition || getenv(ENV_PART_FULL)) {
+	setenv(ENV_PART_FULL, "1", 1);
+	setenv(ENV_NODE_SORT, "NONE", 1);
+	if (verbose) printf("%s=1 : Create partition from complete list or"
+			    " file\n", ENV_PART_FULL);
+    }
+
     if (conf->exclusive) {
 	setenv(ENV_PART_EXCLUSIVE, "1", 1);
 	if (verbose) printf("%s=1 : Exclusive mode, no other processes are"

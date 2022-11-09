@@ -104,6 +104,7 @@ static int exclusive = 0;
 static int wait = 0;
 static int loopnodesfirst = 0;
 static int dynamic = 0;
+static int fullPartition = 0;
 static int mergeout = 0;
 static int mergedepth = 0;
 static int mergetmout = 0;
@@ -220,6 +221,8 @@ static struct poptOption poptPlacementOptions[] = {
       "if possible", NULL},
     { "dynamic", '\0', POPT_ARG_NONE, &dynamic, 0,
       "allow dynamic extension of resources via batch-system", NULL },
+    { "fullpartition", 'P', POPT_ARG_NONE,
+      &fullPartition, 0, "create partition from full list or file", NULL},
     { "exclusive", 'X', POPT_ARG_NONE,
       &exclusive, 0, "do not allow any other processes on used node(s)", NULL},
     { "sort", 'S', POPT_ARG_STRING,
@@ -756,7 +759,6 @@ static uint32_t getNodeType(char *hwStr)
  */
 static void saveNextExecutable(Conf_t *conf, int argc, const char **argv)
 {
-    int i;
     char *hwTypeStr, msgStr[128];
     Executable_t *exec;
 
@@ -830,7 +832,7 @@ static void saveNextExecutable(Conf_t *conf, int argc, const char **argv)
 	snprintf(msgStr, sizeof(msgStr), "%s: malloc(): %m", __func__);
 	errExit(msgStr);
     }
-    for (i = 0; i < argc; i++) {
+    for (int i = 0; i < argc; i++) {
 	exec->argv[i] = strdup(argv[i]);
 	if (!exec->argv[i]) {
 	    snprintf(msgStr, sizeof(msgStr), "%s: strdup(%s): %m", __func__,
@@ -972,6 +974,10 @@ static void checkConsistency(Conf_t *conf)
 	errExit("overbooking is unsupported for OpenMPI");
     }
 
+    if (conf->fullPartition && !(conf->nList || conf->hList || conf->hFile)) {
+	errExit("Full partition only with explicit resources");
+    }
+
     /* PMI interface consistency */
     if (conf->pmiDisable || conf->mpichComp) {
 	conf->pmiTCP = false;
@@ -1032,6 +1038,7 @@ static void setupConf(Conf_t *conf)
     conf->wait = wait;
     conf->loopnodesfirst = loopnodesfirst;
     conf->dynamic = dynamic;
+    conf->fullPartition = fullPartition;
 
     /* special modes */
     conf->gdb = gdb;

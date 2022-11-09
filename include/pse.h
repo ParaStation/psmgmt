@@ -34,7 +34,7 @@
 void PSE_initialize(void);
 
 /**
- * @brief Create a partition.
+ * @brief Create a partition
  *
  * Create a partition of size @a num. This is mainly a wrapper around
  * @ref PSI_createPartition(), where the @a hwType used is set via
@@ -45,10 +45,16 @@ void PSE_initialize(void);
  * has to be called before any of @ref PSE_spawnMaster() or @ref
  * PSE_spawnTasks().
  *
- * @param num The number of nodes to be reserved for the partition.
+ * The meaning of @a num and the return value might depend on the
+ * options active while creating the partition. Refer to @ref
+ * PSI_createPartition() for details.
  *
- * @return On success, the number of nodes in the partition is
- * returned or -1 if an error occurred.
+ * @param num Amount of resources to be reserved for the partition;
+ * refer to @ref PSI_createPartition() for details
+ *
+ * @return On success, the amount of resources in the partition is
+ * returned; or -1 if an error occurred; the actual meaning of the
+ * return value is discussed at @ref PSI_createPartition().
  *
  * @see PSE_setHWType() PSE_setHWList() PSI_createPartition()
  * PSE_spawnMaster() PSE_spawnTasks()

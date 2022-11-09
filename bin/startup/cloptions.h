@@ -54,6 +54,7 @@ typedef struct {
     bool wait;          /**< Flag to wait for HW-threads to become available */
     bool loopnodesfirst;/**< Flag HW-thread allocation by looping over nodes */
     bool dynamic;       /**< Flag the dynamic extenion of HW-threads */
+    bool fullPartition; /**< Flag getting complete nodes in list as partition */
     /* special modes */
     bool gdb;           /**< Flag debugging mode, i.e. start processes in gdb */
     bool gdb_noargs;    /**< Flag to don't call gdb with --args option */

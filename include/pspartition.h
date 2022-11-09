@@ -75,6 +75,9 @@ typedef enum {
     PART_OPT_DYNAMIC   = 0x0080, /**< Include dynamic resources, too. This
 				    will require interaction with an external
 				    resource manager. */
+    PART_OPT_FULL_LIST = 0x0100, /**< Create partition from the whole list of
+				    nodes/hosts (or hostfile) independent of
+				    actual requirement. */
 } PSpart_option_t;
 
 /** Options possible for PSP_INFO_QUEUE_PARTITION requests */
