@@ -40,36 +40,6 @@ static bool waitForPartition = false;
 static bool waitForReservation = false;
 
 /**
- * Name of the evironment variable used in order to enable a
- * partitions PART_OPT_NODEFIRST option.
- */
-#define ENV_PART_LOOPNODES "PSI_LOOP_NODES_FIRST"
-
-/**
- * Name of the evironment variable used in order to enable a
- * partitions PART_OPT_EXCLUSIVE option.
- */
-#define ENV_PART_EXCLUSIVE "PSI_EXCLUSIVE"
-
-/**
- * Name of the evironment variable used in order to enable a
- * partitions PART_OPT_OVERBOOK option.
- */
-#define ENV_PART_OVERBOOK  "PSI_OVERBOOK"
-
-/**
- * Name of the evironment variable used in order to enable a
- * partitions PART_OPT_WAIT option.
- */
-#define ENV_PART_WAIT      "PSI_WAIT"
-
-/**
- * Name of the evironment variable used in order to enable a
- * partitions PART_OPT_RESPORTS option.
- */
-#define ENV_PART_OMPI	   "PSI_OPENMPI"
-
-/**
  * Name of the evironment variable used in order to enable a special
  * mode removing all multiple consecutive entry from within a
  * hostfile.

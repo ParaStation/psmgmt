@@ -35,6 +35,7 @@
 
 #include "psi.h"
 #include "psiinfo.h"
+#include "psipartition.h"
 #include "psispawn.h"
 
 #include "adminparser.h"
@@ -1756,7 +1757,7 @@ void PSIADM_TestNetwork(int mode)
 	snprintf(command, sizeof(command),
 		 "./bin/test_nodes -np %d", PSC_getNrOfNodes());
 
-	setenv("PSI_LOOP_NODES_FIRST", "", 1);
+	setenv(ENV_PART_LOOPNODES, "", 1);
 	unsetenv("PSI_NODES");
 
 	if (system(command) < 0) {

@@ -1040,7 +1040,7 @@ static void setupConf(Conf_t *conf)
     conf->memcheck = memcheck;
     conf->callgrind = callgrind;
     conf->openMPI = openMPI;
-    if (getenv("PSI_OPENMPI")) conf->openMPI = true;
+    if (getenv(ENV_PART_OMPI)) conf->openMPI = true;
     conf->mpichComp = mpichcom;
     if (getenv("MPIEXEC_BNR")) conf->mpichComp = true;
 

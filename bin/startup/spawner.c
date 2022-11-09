@@ -408,7 +408,7 @@ static void setupCommonEnv(Conf_t *conf)
 
 	/* process distribution algorithm
 	 * OpenMPI currently only supports block and cyclic */
-	if (conf->loopnodesfirst || getPSIEnv("PSI_LOOP_NODES_FIRST")) {
+	if (conf->loopnodesfirst || getPSIEnv(ENV_PART_LOOPNODES)) {
 	    setPSIEnv("SLURM_DISTRIBUTION", "cyclic", 1);
 	    fprintf(stdout, "setting OpenMPI cyclic mode\n");
 	} else {
@@ -466,8 +466,8 @@ static void setupCommonEnv(Conf_t *conf)
     }
 
     /* unset PSI_LOOP_NODES_FIRST in PSI env which is only needed for OpenMPI */
-    unsetPSIEnv("PSI_LOOP_NODES_FIRST");
-    unsetPSIEnv("PSI_OPENMPI");
+    unsetPSIEnv(ENV_PART_LOOPNODES);
+    unsetPSIEnv(ENV_PART_OMPI);
 
     unsetPSIEnv("__PMI_PROVIDER_FD");
 

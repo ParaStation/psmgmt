@@ -977,7 +977,7 @@ void setStepEnv(Step_t *step)
     /* forward overbook mode */
     if ((val = envGet(&step->env, "SLURM_OVERCOMMIT"))) {
 	if (!strcmp(val, "1")) {
-	    envSet(&step->env, "PSI_OVERBOOK", "1");
+	    envSet(&step->env, ENV_PART_OVERBOOK, "1");
 	}
     }
 
@@ -1067,7 +1067,7 @@ void setJobEnv(Job_t *job)
     char *val = envGet(&job->env, "SLURM_OVERCOMMIT");
 
     if (job->overcommit || (val && !strcmp(val, "1"))) {
-	envSet(&job->env, "PSI_OVERBOOK", "1");
+	envSet(&job->env, ENV_PART_OVERBOOK, "1");
     }
 
     /* set slurm umask */

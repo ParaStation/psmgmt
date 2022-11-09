@@ -3,6 +3,7 @@
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
  * Copyright (C) 2005-2018 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2022 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -74,6 +75,36 @@
  * The value is considered case-insensitive.
  */
 #define ENV_NODE_SORT      "PSI_NODES_SORT"
+
+/**
+ * Name of the evironment variable used in order to enable a
+ * partitions PART_OPT_NODEFIRST option.
+ */
+#define ENV_PART_LOOPNODES "PSI_LOOP_NODES_FIRST"
+
+/**
+ * Name of the evironment variable used in order to enable a
+ * partitions PART_OPT_EXCLUSIVE option.
+ */
+#define ENV_PART_EXCLUSIVE "PSI_EXCLUSIVE"
+
+/**
+ * Name of the evironment variable used in order to enable a
+ * partitions PART_OPT_OVERBOOK option.
+ */
+#define ENV_PART_OVERBOOK  "PSI_OVERBOOK"
+
+/**
+ * Name of the evironment variable used in order to enable a
+ * partitions PART_OPT_WAIT option.
+ */
+#define ENV_PART_WAIT      "PSI_WAIT"
+
+/**
+ * Name of the evironment variable used in order to enable a
+ * partitions PART_OPT_RESPORTS option.
+ */
+#define ENV_PART_OMPI	   "PSI_OPENMPI"
 
 /**
  * @brief Handle LSF environment variables.

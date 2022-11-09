@@ -262,26 +262,27 @@ static void setupPSIEnv(Conf_t *conf)
     }
 
     if (conf->wait) {
-	setenv("PSI_WAIT", "1", 1);
-	if (verbose) printf("PSI_WAIT=1 : Wait for sufficient resources\n");
+	setenv(ENV_PART_WAIT, "1", 1);
+	if (verbose) printf("%s=1 : Wait for sufficient resources\n",
+			    ENV_PART_WAIT);
     }
 
     if (conf->overbook) {
-	setenv("PSI_OVERBOOK", "1", 1);
+	setenv(ENV_PART_OVERBOOK, "1", 1);
 	setenv("PSP_SCHED_YIELD", "1", 1);
-	if (verbose) printf("PSI_OVERBOOK=1 : Allowing overbooking\n");
+	if (verbose) printf("%s=1 : Allow overbooking\n", ENV_PART_OVERBOOK);
     }
 
-    if (conf->loopnodesfirst || getenv("PSI_LOOP_NODES_FIRST")) {
-	setenv("PSI_LOOP_NODES_FIRST", "1", 1);
-	if (verbose) printf("PSI_LOOP_NODES_FIRST=1 : Placing consecutive "
-			    "processes on different nodes\n");
+    if (conf->loopnodesfirst || getenv(ENV_PART_LOOPNODES)) {
+	setenv(ENV_PART_LOOPNODES, "1", 1);
+	if (verbose) printf("%s=1 : Placing consecutive processes on different"
+			    " nodes\n", ENV_PART_LOOPNODES);
     }
 
     if (conf->exclusive) {
-	setenv("PSI_EXCLUSIVE", "1", 1);
-	if (verbose) printf("PSI_EXCLUSIVE=1 : Exclusive mode, no other"
-			    " processes are allowed on used nodes\n");
+	setenv(ENV_PART_EXCLUSIVE, "1", 1);
+	if (verbose) printf("%s=1 : Exclusive mode, no other processes are"
+			    " allowed on used nodes\n", ENV_PART_EXCLUSIVE);
     }
 
     if (conf->psiDbgMask) {
@@ -346,7 +347,7 @@ static void setupPSIEnv(Conf_t *conf)
 	free(val);
     }
 
-    if (conf->openMPI) setenv("PSI_OPENMPI", "1", 1);
+    if (conf->openMPI) setenv(ENV_PART_OMPI, "1", 1);
 
     /* forward verbosity */
     if (conf->verbose) setPSIEnv("MPIEXEC_VERBOSE", "1", 1);
