@@ -489,9 +489,9 @@ int parser_getBool(char* token, int* value, char* valname);
 int parser_parseOn(char* line, parser_t* parser);
 
 /**
- * @brief Shutdown the parser module.
+ * @brief Shutdown the parser module
  *
- * Shutdown the parser module and release all ressources occupied.
+ * Shutdown the parser module and release all occupied resources.
  *
  * Once the module is shut down all further calls to functions of the
  * parser module gives unspecifie results.

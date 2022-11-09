@@ -85,7 +85,7 @@
 #define PSP_DD_DEAD_NODE           0x0132  /**< Master's dead node info */
 #define PSP_DD_MASTER_IS           0x0133  /**< Info about correct master */
 
-/** Messages for ressource allocation */
+/** Messages for resource allocation */
 #define PSP_DD_NODESRES            0x0138  /**< Get nodes from a partition */
 #define PSP_DD_REGISTERPART        0x0139  /**< Register partition at master */
 #define PSP_DD_REGISTERPARTSL      0x013A  /**< Part. registration slot-list */
@@ -94,7 +94,7 @@
 #define PSP_DD_GETSLOTS            0x013D  /**< Forwarded GETSLOTS msg */
 #define PSP_DD_SLOTSRES            0x013E  /**< Results of GETSLOTS msg */
 
-/** Messages for ressource passing during spawn and finish */
+/** Messages for resource passing during spawn and finish */
 #define PSP_DD_SPAWNLOC            0x0140  /**< Resources for spawn */
 #define PSP_DD_RESCREATED          0x0141  /**< Reservation created with info */
 #define PSP_DD_RESRELEASED         0x0142  /**< Reservation released */

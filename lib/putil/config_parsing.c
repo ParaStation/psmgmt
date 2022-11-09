@@ -87,7 +87,7 @@ typedef struct {
 
 typedef struct {
     char *key;                /**< psconfig key */
-    int resource;             /**< ressource limit identifier */
+    int resource;             /**< resource limit identifier */
     bool mult;                /**< flag to multiply value with 1024 */
 } suppRLimit_t;
 
@@ -248,7 +248,7 @@ static bool doForList(char *key, bool (*action)(char *))
     return ret;
 }
 
-/* ---------------------- Stuff for ressource limits ----------------------- */
+/* ---------------------- Stuff for resource limits ------------------------ */
 
 static void setLimit(int limit, rlim_t value)
 {

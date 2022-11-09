@@ -99,7 +99,7 @@ static void print_help() {
 	    "   -c <threadsPerTask>\n"
 	    "   --cpu-bind=<cpuBindType>\n"
 	    "   -m <distribution>, --distribution=<distribution>\n"
-	    "   -B <ressources>, --extra-node-info=<ressources>\n"
+	    "   -B <resources>, --extra-node-info=<resources>\n"
 	    "   --mem-bind=<memBindType>\n"
 	    "   -O, --overcommit\n"
 	    "   --exact\n");
