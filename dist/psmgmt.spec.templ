@@ -127,8 +127,9 @@ a Slurm batch system.
 Summary:   The PMIx plugin of the ParaStation process management
 Group:     Productivity/Clustering/Computing
 Requires:  %{name} = %{version}-%{release}
-%global pmix_version %(rpm -q pmix --qf "%{RPMTAG_VERSION}")
-Requires: pmix = %{pmix_version}
+%global pmix_version_min %(rpm -q pmix --qf "%{RPMTAG_VERSION}")
+%global pmix_version_top %(rpm -q pmix --qf "%{RPMTAG_VERSION}" | awk -v FS="." '{ print $1"."$2+1".0" }')
+Requires: pmix >= %{pmix_version_min}, pmix < %{pmix_version_top}
 
 
 %description pspmix
