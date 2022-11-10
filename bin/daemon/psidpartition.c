@@ -920,8 +920,8 @@ typedef struct {
 
 /** A sortable list of candidates */
 typedef struct {
-    unsigned int size;  /**< The current size of the sort-list */
-    unsigned int freeHWTs;/**< Number of free HW-threads within the sort-list */
+    size_t size;        /**< The current size of the sort-list */
+    size_t freeHWTs;    /**< Number of free HW-threads within the sort-list */
     bool allPin;        /**< Flag all nodes are able to pin */
     sortentry_t *entry; /**< The actual entries to sort */
 } sortlist_t;
@@ -943,7 +943,7 @@ typedef struct {
 static sortlist_t *getCandidateList(PSpart_request_t *request)
 {
     static sortlist_t list;
-    bool canOverbook = false, exactPart = request->options & PART_OPT_EXACT;
+    bool exactPart = request->options & PART_OPT_EXACT;
     unsigned int totHWTs = 0, nextSet = 0;
 
     PSID_log(PSID_LOG_PART, "%s(%s)\n", __func__, PSC_printTID(request->tid));
@@ -962,6 +962,7 @@ static sortlist_t *getCandidateList(PSpart_request_t *request)
 
     memset(tmpStat, 0, PSC_getNrOfNodes() * sizeof(*tmpStat));
 
+    bool canOverbook = false;
     for (int n = 0 ; n < request->num; n++) {
 	PSnodes_ID_t node = request->nodes[n];
 
@@ -1051,9 +1052,11 @@ static sortlist_t *getCandidateList(PSpart_request_t *request)
 
 	    /*
 	     * This has to be inside if(nodeOK()) but outside of
-	     * if(nodeAvail()). This collects information since we
-	     * might want to wait for (over-booking-)resources to
-	     * become available!
+	     * if(nodeAvail()). It collects additional information
+	     * since we might want to wait for (over-booked) resources
+	     * to become available!
+	     *
+	     * This information will be ignored in case of full partition
 	     */
 	    list.freeHWTs += availHWThreads;
 
@@ -1075,12 +1078,21 @@ static sortlist_t *getCandidateList(PSpart_request_t *request)
 	}
     }
 
-    if (list.freeHWTs/request->tpp < request->size
+    if (request->options & PART_OPT_FULL_LIST) {
+	if (list.size < request->size) {
+	    PSID_log(-1, "%s: Unable to get full partition resources for %s"
+		     " list.size %zd request->size %d\n", __func__,
+		     PSC_printTID(request->tid), list.size, request->size);
+	    free(list.entry);
+	    errno = ENOSPC;
+	    return NULL;
+	}
+    } else if (list.freeHWTs/request->tpp < request->size
 	&& totHWTs < request->size
 	&& (!(request->options & PART_OPT_OVERBOOK) || !canOverbook)) {
 	PSID_log(-1, "%s: Unable to ever get sufficient resources for %s",
 		 __func__, PSC_printTID(request->tid));
-	PSID_log(-1, " freeHWThreads %d totHWThreads %d request->tpp %d"
+	PSID_log(-1, " freeHWThreads %zd totHWThreads %d request->tpp %d"
 		 " request->size %d\n", list.freeHWTs, totHWTs, request->tpp,
 		 request->size);
 	if (PSID_getDebugMask() & PSID_LOG_PART) {
@@ -1221,20 +1233,21 @@ static int createPartition(PSpart_request_t *request, sortlist_t *candidates)
 	return -1;
     }
 
-    unsigned int cand = 0, curSlot = 0, numProcs = 0;
+    size_t curSlot = 0, numSlots = 0;
     if (request->options & PART_OPT_EXACT) {
 	/*
 	 * This is an exact partition defined by a batch-system Let's
 	 * keep this for the time being. Most probably this can be
 	 * removed once exact partitions are not necessary any more
 	 */
-	while (cand < candidates->size && numProcs < numRequested) {
+	for (size_t cand = 0;
+	     cand < candidates->size && numSlots < numRequested; ) {
 	    sortentry_t *ce = &candidates->entry[cand];
 	    PSnodes_ID_t cid = ce->id;
 	    int numThrds = 0;
 
-	    if (!numProcs || slots[curSlot].node != cid) {
-		if (numProcs) curSlot++;
+	    if (!numSlots || slots[curSlot].node != cid) {
+		if (numSlots) curSlot++;
 		slots[curSlot].node = cid;
 		PSCPU_clrAll(slots[curSlot].CPUset);
 	    }
@@ -1247,62 +1260,61 @@ static int createPartition(PSpart_request_t *request, sortlist_t *candidates)
 	    }
 	    if (numThrds < tpp) break;
 
-	    PSID_log(PSID_LOG_PART, "%s: add processors %s of node %d"
-		     " in slot %d\n", __func__,
-		     PSCPU_print(slots[curSlot].CPUset), cid, curSlot);
-	    numProcs++;
+	    PSID_log(PSID_LOG_PART, "%s: add processors %s of node %d to slot"
+		     " %zd\n", __func__, PSCPU_print(slots[curSlot].CPUset),
+		     cid, curSlot);
+	    numSlots++;
 	}
 	curSlot++;
     } else {
-	/* Standard partition defined by the user */
+	/* partition defined by the user */
 	memset(tmpStat, 0, PSC_getNrOfNodes() * sizeof(*tmpStat));
 
-	while (cand < candidates->size && numProcs < numRequested) {
+	for (size_t cand = 0;
+	     cand < candidates->size && numSlots < numRequested; cand++) {
 	    PSnodes_ID_t cid = candidates->entry[cand].id;
+	    if (tmpStat[cid]) continue;
 
-	    if (!tmpStat[cid]) {
-		int numThrds = getFreeCPUs(cid, slots[curSlot].CPUset, tpp);
-		slots[curSlot].node = cid;
+	    int numThrds = getFreeCPUs(cid, slots[curSlot].CPUset, tpp);
+	    slots[curSlot].node = cid;
 
-		if (!numThrds) {
-		    PSID_log(-1, "%s: No HW-threads on node %d even though in"
-			     " list of candidates\n", __func__, cid);
-		    overbook = false; /* let the creation fail */
-		    break;
-		}
-		numProcs += numThrds / tpp;
-		if (numProcs > numRequested) {
-		    /* we over-shot */
-		    PSCPU_set_t mine;
-		    numThrds -= (numProcs - numRequested) * tpp;
-		    PSCPU_clrAll(mine);
-		    PSCPU_getCPUs(slots[curSlot].CPUset, mine, numThrds);
-		    PSCPU_copy(slots[curSlot].CPUset, mine);
-		    numProcs = numRequested;
-		}
-
-		PSID_log(PSID_LOG_PART, "%s: add processors %s of node %d"
-			 " in slot %d\n", __func__,
-			 PSCPU_print(slots[curSlot].CPUset), cid, curSlot);
-
-		/* Use node only once */
-		tmpStat[cid] = (PSCPU_set_t *)-1;
-
-		curSlot++;
+	    if (!numThrds) {
+		PSID_log(-1, "%s: No HW-threads on node %d even though in"
+			 " list of candidates\n", __func__, cid);
+		overbook = false; /* let the creation fail */
+		break;
+	    }
+	    numSlots +=
+		(request->options & PART_OPT_FULL_LIST) ? 1 : numThrds / tpp;
+	    if (numSlots > numRequested) {
+		/* we over-shot; this never happens for PART_OPT_FULL_LIST */
+		PSCPU_set_t mine;
+		numThrds -= (numSlots - numRequested) * tpp;
+		PSCPU_clrAll(mine);
+		PSCPU_getCPUs(slots[curSlot].CPUset, mine, numThrds);
+		PSCPU_copy(slots[curSlot].CPUset, mine);
+		numSlots = numRequested;
 	    }
 
-	    cand++;
+	    PSID_log(PSID_LOG_PART, "%s: add processors %s of node %d to slot"
+		     " %zd\n", __func__, PSCPU_print(slots[curSlot].CPUset),
+		     cid, curSlot);
+
+	    /* Use node only once */
+	    tmpStat[cid] = (PSCPU_set_t *)-1;
+
+	    curSlot++;
 	}
     }
 
-    if (numProcs < numRequested) {
-	if (!overbook || !curSlot) {
+    if (numSlots < numRequested) {
+	if (!overbook || !curSlot || request->options & PART_OPT_FULL_LIST) {
 	    PSID_log(PSID_LOG_PART, "%s: %s HW-threads found\n", __func__,
 		     curSlot ? "Insufficient" : "No");
 	    free(slots);
 	    return -1;
 	} else {
-	    numProcs = numRequested;
+	    numSlots = numRequested;
 	}
     }
 
@@ -1316,7 +1328,7 @@ static int createPartition(PSpart_request_t *request, sortlist_t *candidates)
     /* Adapt to the actual partition size */
     request->size = curSlot;
 
-    return numProcs;
+    return numSlots;
 }
 
 /**
@@ -1602,6 +1614,7 @@ static bool getPartition(PSpart_request_t *request)
 	request->numGot = numNodes;
     }
 
+    if (request->options & PART_OPT_FULL_LIST) request->tpp = 1;  // full nodes
     sortlist_t *candidates = getCandidateList(request);
     if (!candidates) return false;
 
@@ -1610,6 +1623,7 @@ static bool getPartition(PSpart_request_t *request)
 	errno = EAGAIN;
 	goto error;
     }
+    if (request->options & PART_OPT_FULL_LIST) request->size = candidates->size;
 
     if (request->sort != PART_SORT_NONE) sortCandidates(candidates);
 
