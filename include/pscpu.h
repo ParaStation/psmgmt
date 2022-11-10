@@ -2,6 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2007-2021 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2022 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -46,7 +47,7 @@ typedef PSCPU_mask_t PSCPU_set_t[PSCPU_MAX/CPUmask_s];
  * @attention Setting the corresponding bit might fail silently if @a
  * cpu is out of range, i.e. larger than PSCPU_MAX.
  *
- * @param set The CPU-set to manipulate
+ * @param set CPU-set to manipulate
  *
  * @param cpu Number of the bit within @a set to set
  *
@@ -62,7 +63,7 @@ static inline void PSCPU_setCPU(PSCPU_set_t set, uint16_t cpu)
  *
  * Set all bits within the CPU-set @a set.
  *
- * @param set The CPU-set to manipulate
+ * @param set CPU-set to manipulate
  *
  * @return No return value
  */
@@ -73,14 +74,14 @@ static inline void PSCPU_setAll(PSCPU_set_t set)
 }
 
 /**
- * @brief Join some bits into CPU-set.
+ * @brief Join some bits into CPU-set
  *
  * Join some bits described by the CPU-set @a add into the CPU-set
  * @a set.
  *
- * @param set The CPU-set to manipulate
+ * @param set CPU-set to manipulate
  *
- * @param add The CPU-set to join
+ * @param add CPU-set to join
  *
  * @return No return value
  */
@@ -99,7 +100,7 @@ static inline void PSCPU_addCPUs(PSCPU_set_t set, const PSCPU_set_t add)
  * @attention Clearing the corresponding bit might fail silently if @a
  * cpu is out of range, i.e. larger than PSCPU_MAX.
  *
- * @param set The CPU-set to manipulate
+ * @param set CPU-set to manipulate
  *
  * @param cpu Number of the bit within @a set to clear
  *
@@ -115,7 +116,7 @@ static inline void PSCPU_clrCPU(PSCPU_set_t set, uint16_t cpu)
  *
  * Clear all bits within the CPU-set @a set.
  *
- * @param set The CPU-set to manipulate
+ * @param set CPU-set to manipulate
  *
  * @return No return value
  */
@@ -131,9 +132,9 @@ static inline void PSCPU_clrAll(PSCPU_set_t set)
  * Remove some bits described by the CPU-set @a rem from the CPU-set
  * @a set.
  *
- * @param set The CPU-set to manipulate
+ * @param set CPU-set to manipulate
  *
- * @param add The CPU-set to remove
+ * @param rem CPU-set to remove
  *
  * @return No return value
  */
@@ -149,11 +150,11 @@ static inline void PSCPU_remCPUs(PSCPU_set_t set, const PSCPU_set_t rem)
  * Test if the bit representing CPU @a cpu is set within the CPU-set
  * @a set.
  *
- * @param set The CPU-set to test
+ * @param set CPU-set to test
  *
- * @param cpu The number of the CPU to test
+ * @param cpu Number of the CPU to test
  *
- * @return If the tested bit is set, true is returned. Or false otherwise.
+ * @return If the tested bit is set, true is returned; or false otherwise
  */
 static inline bool PSCPU_isSet(const PSCPU_set_t set, uint16_t cpu)
 {
@@ -167,11 +168,11 @@ static inline bool PSCPU_isSet(const PSCPU_set_t set, uint16_t cpu)
  * first @a numBits CPUs are actually investigated, all further ones
  * will be ignored.
  *
- * @param set The CPU-set to investigate
+ * @param set CPU-set to investigate
  *
  * @param numBits Number of bits to actualy investigate
  *
- * @return If any CPU is set, true is returned. Otherwise false is returned
+ * @return If any CPU is set, true is returned; otherwise false is returned
  */
 bool PSCPU_any(const PSCPU_set_t set, uint16_t numBits);
 
@@ -183,11 +184,11 @@ bool PSCPU_any(const PSCPU_set_t set, uint16_t numBits);
  * Only the first @a numBits CPUs are actually investigated, all
  * further ones will be ignored.
  *
- * @param set The CPU-set to investigate
+ * @param set CPU-set to investigate
  *
  * @param numBits Number of bits to actualy investigate
  *
- * @return If all CPU are set, true is returned. Otherwise false is returned
+ * @return If all CPU are set, true is returned; otherwise false is returned
  */
 bool PSCPU_all(const PSCPU_set_t set, uint16_t numBits);
 
@@ -239,7 +240,7 @@ static inline bool PSCPU_disjoint(const PSCPU_set_t set1,
  * Actually not the whole CPU-set is investigated, but only the first
  * @a numBits slots.
  *
- * @param set The CPU-set to investigate
+ * @param set CPU-set to investigate
  *
  * @param numBits Number of bits to actualy investigate
  *
@@ -255,15 +256,15 @@ int16_t PSCPU_first(const PSCPU_set_t set, uint16_t numBits);
  * Get up to @a num CPUs from the CPU-set @a origSet and store them to
  * the CPU-set @a newSet. While doing so @a origSet is left untouched.
  *
- * @param origSet The CPU-set to get CPUs from. Left untouched.
+ * @param origSet CPU-set to get CPUs from; left untouched
  *
- * @param newSet The CPU-set used to store the CPUs selected from @a
+ * @param newSet CPU-set used to store the CPUs selected from @a
  * origSet
  *
- * @param num The number of CPUs to get.
+ * @param num Maximum number of CPUs to get
  *
- * @return The number of CPUs got from @a origSet. This might be less
- * than what was requested via @a num.
+ * @return Number of CPUs got from @a origSet; this might be less than
+ * what was requested via @a num
  */
 int PSCPU_getCPUs(const PSCPU_set_t origSet, PSCPU_set_t newSet, int16_t num);
 
@@ -283,16 +284,16 @@ int PSCPU_getCPUs(const PSCPU_set_t origSet, PSCPU_set_t newSet, int16_t num);
  * CPUs in @a set will be used. Otherwise some CPUs within @a set
  * might remain free. Nevertheless @a set will not be changed.
  *
- * @param set The CPU-set to take the free CPUs from
+ * @param set CPU-set to take the free CPUs from
  *
  * @param numBits Number of bits in @a set to actualy investigate
  *
- * @param free The CPU-set to store the results in
+ * @param free CPU-set to store the result to
  *
- * @param tpp Possible 'threads per process'. The number of CPUs set
- * within @a free will be a multiple of this value.
+ * @param tpp Possible 'threads per process'; the number of CPUs set
+ * within @a free will be a multiple of this value
  *
- * @return The number of CPUs set within @a free.
+ * @return Number of CPUs set within @a free
  */
 int PSCPU_getUnset(const PSCPU_set_t set, uint16_t numBits,
 		   PSCPU_set_t free, uint16_t tpp);
@@ -308,10 +309,10 @@ int PSCPU_getUnset(const PSCPU_set_t set, uint16_t numBits,
  * function is made within a single argument-list of printf(3) and
  * friends.
  *
- * @param set The CPU-set to describe
+ * @param set CPU-set to describe
  *
  * @return A pointer to a static character array containing task ID's
- * description. Do not try to free(2) this array.
+ * description; do not try to free(2) this array
  */
 char *PSCPU_print(const PSCPU_set_t set);
 
@@ -334,7 +335,7 @@ char *PSCPU_print(const PSCPU_set_t set);
  * @param num Number of bytes to describe
  *
  * @return A pointer to a static character array containing task ID's
- * description. Do not try to free(2) this array.
+ * description; do not try to free(2) this array
  */
 char *PSCPU_print_part(const PSCPU_set_t set, size_t num);
 
@@ -343,9 +344,9 @@ char *PSCPU_print_part(const PSCPU_set_t set, size_t num);
  *
  * Copy the content of CPU-set @a src into the CPU-set @a dest.
  *
- * @param dest The destination CPU-set
+ * @param dest Destination CPU-set
  *
- * @param src The CPU-set to copy
+ * @param src CPU-set to copy
  *
  * @return No return value
  */
@@ -392,11 +393,11 @@ static inline size_t PSCPU_bytesForCPUs(uint16_t num)
  * @ref PSCPU_bytesForCPUs() might be used in order to determine the
  * number of bytes required to extract a given number of CPUs.
  *
- * @param dest The destination buffer
+ * @param dest Destination buffer
  *
- * @param src The CPU-set to extract from
+ * @param src CPU-set to extract from
  *
- * @param num The number bytes to extract
+ * @param num Number bytes to extract
  *
  * @return No return value
  *
@@ -417,11 +418,11 @@ static inline void PSCPU_extract(void *dest, const PSCPU_set_t src, size_t num)
  * @ref PSCPU_bytesForCPUs() might be used in order to determine the
  * number of bytes required to inject a given number of CPUs.
  *
- * @param dest The destination CPU-set
+ * @param dest Destination CPU-set
  *
- * @param src The source buffer to inject
+ * @param src Source buffer to inject
  *
- * @param num The number of bytes to inject
+ * @param num Number of bytes to inject
  *
  * @return No return value
  *
