@@ -85,13 +85,11 @@ static void enqPart(list_t *queue, PSpart_request_t *part)
  */
 static PSpart_request_t *findPart(list_t *queue, PStask_ID_t tid)
 {
-    list_t *r;
-
     PSID_log(PSID_LOG_PART, "%s(%p,%s)\n", __func__, queue, PSC_printTID(tid));
 
+    list_t *r;
     list_for_each(r, queue) {
 	PSpart_request_t *req = list_entry(r, PSpart_request_t, next);
-
 	if (req->tid == tid) return req;
     }
 
@@ -116,8 +114,6 @@ static PSpart_request_t *findPart(list_t *queue, PStask_ID_t tid)
  */
 static bool deqPart(list_t *queue, PSpart_request_t *part)
 {
-    PSpart_request_t *r;
-
     if (!part) {
 	PSID_log(-1, "%s: no request given\n", __func__);
 	return false;
@@ -126,8 +122,7 @@ static bool deqPart(list_t *queue, PSpart_request_t *part)
     PSID_log(PSID_LOG_PART, "%s(%p, %s)\n", __func__, queue,
 	     PSC_printTID(part->tid));
 
-    r = findPart(queue, part->tid);
-
+    PSpart_request_t *r = findPart(queue, part->tid);
     if (!r) {
 	PSID_log(PSID_LOG_PART, "%s: no request for %s found\n", __func__,
 		 PSC_printTID(part->tid));
@@ -210,8 +205,6 @@ static bool doCleanup = false;
 
 void initPartHandler(void)
 {
-    PSnodes_ID_t node;
-
     if (!nodeStat) nodeStat = malloc(PSC_getNrOfNodes() * sizeof(*nodeStat));
     if (!tmpStat) tmpStat = malloc(PSC_getNrOfNodes() * sizeof(*tmpStat));
     if (!tmpSets) tmpSets = malloc(PSC_getNrOfNodes() * sizeof(*tmpSets));
@@ -229,16 +222,14 @@ void initPartHandler(void)
 
     pendingTaskReq = 0;
 
-    for (node=0; node<PSC_getNrOfNodes(); node++) {
+    for (PSnodes_ID_t node = 0; node < PSC_getNrOfNodes(); node++) {
 	nodeStat[node] = (nodeStat_t) {
 	    .assgndThrds = 0,
 	    .exclusive = false,
 	    .taskReqPending = 0 };
 	PSCPU_clrAll(nodeStat[node].CPUset);
-	if (PSIDnodes_isUp(node)) {
-	    if (send_GETTASKS(node)<0) {
-		PSID_warn(-1, errno, "%s: send_GETTASKS(%d)", __func__, node);
-	    }
+	if (PSIDnodes_isUp(node) && send_GETTASKS(node) < 0) {
+	    PSID_warn(-1, errno, "%s: send_GETTASKS(%d)", __func__, node);
 	}
     }
 
@@ -842,7 +833,7 @@ static bool nodeOK(PSnodes_ID_t node, PSpart_request_t *req)
 }
 
 /**
- * @brief Test availability of nodes resources.
+ * @brief Test availability of nodes resources
  *
  * Test if the node @a node has enough resources in order to act as a
  * candidate within the creation of a partition which fulfills all
@@ -850,26 +841,26 @@ static bool nodeOK(PSnodes_ID_t node, PSpart_request_t *req)
  *
  * The following criteria are tested:
  *
- * - If the node has free processor slots.
+ * - The node has free processor slots
  *
  * - In case of an EXCLUSIVE request test if the node is totally free
- *   and exclusiveness is allowed.
+ *   and exclusiveness is allowed
  *
- * - In case of a OVERBOOK request test if over-booking is generally
- * allowed or if over-booking in the classical sense
- * (i.e. OVERBOOK_AUTO) is allowed and the node is free or if
- * over-booking is not allowed and the node has a free CPU.
+ * - In case of an OVERBOOK request test if over-booking is generally
+ *   allowed or if over-booking in the classical sense
+ *   (i.e. OVERBOOK_AUTO) is allowed and the node is free or if
+ *   over-booking is not allowed and the node has a free CPU
  *
- * @param node The node to evaluate.
+ * @param node The node to evaluate
  *
- * @param req The request holding all the criteria.
+ * @param req Request holding all the criteria
  *
- * @param threads The number of threads currently allocated to this node.
+ * @param threads Number of threads currently allocated to this node
  *
  * @return If the node is suitable to fulfill the request @a req, true
- * is returned. Or false otherwise.
+ * is returned; rr false otherwise
  */
-static bool nodeFree(PSnodes_ID_t node, PSpart_request_t *req, int threads)
+static bool nodeAvail(PSnodes_ID_t node, PSpart_request_t *req, int threads)
 {
     char *reason = NULL;
 
@@ -878,7 +869,7 @@ static bool nodeFree(PSnodes_ID_t node, PSpart_request_t *req, int threads)
 	return false;
     }
 
-    if (! PSIDnodes_isUp(node)) {
+    if (!PSIDnodes_isUp(node)) {
 	PSID_log(PSID_LOG_PART, "%s: node %d not UP, exclude from partition\n",
 		 __func__, node);
 	return false;
@@ -902,7 +893,7 @@ static bool nodeFree(PSnodes_ID_t node, PSpart_request_t *req, int threads)
 	goto used;
     }
     if ((req->options & PART_OPT_EXCLUSIVE)
-	&& !( PSIDnodes_exclusive(node) && !threads)) {
+	&& !(PSIDnodes_exclusive(node) && !threads)) {
 	reason = "exclusive";
 	goto used;
     }
@@ -941,7 +932,7 @@ typedef struct {
  * Create a list of candidates, i.e. nodes that might be used for the
  * processes of the task described by @a request. Within this function
  * @ref nodeOK() is used in order to determine if a node is suitable
- * and @ref nodeFree() if it is currently available.
+ * and @ref nodeAvail() if it is currently available.
  *
  * @param request This one describes the partition request.
  *
@@ -953,8 +944,6 @@ static sortlist_t *getCandidateList(PSpart_request_t *request)
 {
     static sortlist_t list;
     bool canOverbook = false, exactPart = request->options & PART_OPT_EXACT;
-    int i;
-
     unsigned int totHWTs = 0, nextSet = 0;
 
     PSID_log(PSID_LOG_PART, "%s(%s)\n", __func__, PSC_printTID(request->tid));
@@ -964,19 +953,17 @@ static sortlist_t *getCandidateList(PSpart_request_t *request)
     list.allPin = true;
     list.entry = malloc(request->num * (exactPart ? request->tpp : 1)
 			* sizeof(*list.entry));
-
-    PSID_log(PSID_LOG_PART, "%s: got list.entry %p\n", __func__, list.entry);
-
     if (!list.entry) {
 	PSID_log(-1, "%s: No memory\n", __func__);
 	errno = ENOMEM;
 	return NULL;
     }
+    PSID_log(PSID_LOG_PART, "%s: got list.entry %p\n", __func__, list.entry);
 
     memset(tmpStat, 0, PSC_getNrOfNodes() * sizeof(*tmpStat));
 
-    for (i=0; i<request->num; i++) {
-	PSnodes_ID_t node = request->nodes[i];
+    for (int n = 0 ; n < request->num; n++) {
+	PSnodes_ID_t node = request->nodes[n];
 
 	if (!PSC_validNode(node)) {
 	    PSID_log(-1, "%s: node %d out of range\n", __func__, node);
@@ -1006,7 +993,7 @@ static sortlist_t *getCandidateList(PSpart_request_t *request)
 	    }
 	    PSID_log(PSID_LOG_PART, "%s: found %d HW-threads on node %d\n",
 		     __func__, availHWThreads, node);
-	    if (availHWThreads && nodeFree(node, request, assgndThreads)) {
+	    if (availHWThreads && nodeAvail(node, request, assgndThreads)) {
 		PSID_log(PSID_LOG_PART, "%s: add %d to list\n", __func__, node);
 		list.entry[list.size].id = node;
 		list.entry[list.size].HWThreads = availHWThreads;
@@ -1063,8 +1050,8 @@ static sortlist_t *getCandidateList(PSpart_request_t *request)
 	    }
 
 	    /*
-	     * This has to be inside if(nodeOK()) but outside
-	     * if(nodeFree()). This collects information since we
+	     * This has to be inside if(nodeOK()) but outside of
+	     * if(nodeAvail()). This collects information since we
 	     * might want to wait for (over-booking-)resources to
 	     * become available!
 	     */
@@ -1207,22 +1194,17 @@ static void sortCandidates(sortlist_t *list)
 */
 static int createPartition(PSpart_request_t *request, sortlist_t *candidates)
 {
-    PSpart_slot_t *slots;
-    unsigned int cand=0, curSlot = 0, numProcs=0, numRequested;
-    bool overbook;
-    uint16_t tpp;
-
     PSID_log(PSID_LOG_PART, "%s(request=%p, candidates=%p)\n", __func__,
 	     request, candidates);
 
     if (!request || !candidates) return -1;
 
-    numRequested = request->size;
-    tpp = request->tpp;
-    overbook = request->options & PART_OPT_OVERBOOK;
+    unsigned int numRequested = request->size;
+    uint16_t tpp = request->tpp;
+    bool overbook = request->options & PART_OPT_OVERBOOK;
 
     if (overbook && candidates->freeHWTs / tpp >= numRequested) {
-	PSID_log(PSID_LOG_PART, "%s: Over-booking not required.\n", __func__);
+	PSID_log(PSID_LOG_PART, "%s: No over-booking required\n", __func__);
 	overbook = false;
     }
 
@@ -1233,12 +1215,13 @@ static int createPartition(PSpart_request_t *request, sortlist_t *candidates)
 
     PSID_log(PSID_LOG_PART, "%s: Prepare for up to %d slots\n", __func__,
 	     numRequested);
-    slots = malloc(numRequested * sizeof(*slots));
+    PSpart_slot_t *slots = malloc(numRequested * sizeof(*slots));
     if (!slots) {
 	PSID_log(-1, "%s: No memory\n", __func__);
 	return -1;
     }
 
+    unsigned int cand = 0, curSlot = 0, numProcs = 0;
     if (request->options & PART_OPT_EXACT) {
 	/*
 	 * This is an exact partition defined by a batch-system Let's
@@ -1602,26 +1585,25 @@ static bool sendPartition(PSpart_request_t *req)
 static bool getPartition(PSpart_request_t *request)
 {
     bool ret = false;
-    sortlist_t *candidates = NULL;
 
     PSID_log(PSID_LOG_PART, "%s([%s], %d)\n",
 	     __func__, HW_printType(request->hwType), request->size);
 
     if (!request->nodes) {
-	PSnodes_ID_t numNodes = PSC_getNrOfNodes(), i;
+	PSnodes_ID_t numNodes = PSC_getNrOfNodes();
 	request->nodes = malloc(numNodes * sizeof(*request->nodes));
 	if (!request->nodes) {
 	    PSID_log(-1, "%s: No memory\n", __func__);
 	    errno = ENOMEM;
-	    goto error;
+	    return false;
 	}
 	request->num = numNodes;
-	for (i=0; i < numNodes; i++) request->nodes[i] = i;
+	for (int i = 0; i < numNodes; i++) request->nodes[i] = i;
 	request->numGot = numNodes;
     }
 
-    candidates = getCandidateList(request);
-    if (!candidates) goto error;
+    sortlist_t *candidates = getCandidateList(request);
+    if (!candidates) return false;
 
     if (!candidates->size) {
 	PSID_log(PSID_LOG_PART, "%s: No candidates\n", __func__);
