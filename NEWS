@@ -6,6 +6,12 @@ Copyright (C) 2021-2022 ParTec AG, Munich
 Please send bug reports, questions and suggestions to <support@par-tec.com>
 
 
+Version 5.1.52-2:
+=================
+Enhancements:
+ - Allow higher pmix release versions in pspmix RPM requirements
+
+
 Version 5.1.52-1:
 =================
 Bugfixes:
