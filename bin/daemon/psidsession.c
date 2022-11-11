@@ -542,21 +542,21 @@ static bool msg_RESRELEASED(DDBufferMsg_t *msg)
 /**
  * @brief Store local reservation information
  *
- * Actually stores the local reservation information contained in the data
- * buffer @a rData. It contains a whole message of type PSP_DD_LOCALRESINFO
- * holding additional information about the local part of the reservation like
- * pinning information of the processes.
+ * Actually stores the local reservation information contained in the
+ * data buffer @a rData. It contains a whole message of type
+ * PSP_DD_RESSLOTS holding additional information about the local part
+ * of the reservation like pinning information of the processes.
  *
  * Additional information can be obtained from @a msg containing
  * meta-information of the last fragment received.
  *
  * @param msg Message header (including the type) of the last fragment
  *
- * @param rData Data buffer presenting the actual PSP_DD_LOCALRESINFO
+ * @param rData Data buffer presenting the actual PSP_DD_RESSLOTS
  *
  * @return No return value
  */
-static void handleLocalResInfo(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
+static void handleResSlots(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
 {
     char *ptr = rData->buf;
 
@@ -606,9 +606,9 @@ static void handleLocalResInfo(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
 }
 
 /**
- * @brief Handle a PSP_DD_LOCALRESINFO message
+ * @brief Handle a PSP_DD_RESSLOTS message
  *
- * Handle the message @a msg of type PSP_DD_LOCALRESINFO.
+ * Handle the message @a msg of type PSP_DD_RESSLOTS.
  *
  * This will store the reservation information described within this
  * message. Since the serialization layer is utilized depending on
@@ -620,17 +620,17 @@ static void handleLocalResInfo(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
  * final destination.
  *
  * The actual handling of the payload once all fragments are received
- * is done within @ref handleLocalResInfo().
+ * is done within @ref handleResSlots().
  *
  * @param msg Pointer to message holding the fragment to handle
  *
  * @return Always return true
  */
-static bool msg_LOCALRESINFO(DDTypedBufferMsg_t *msg)
+static bool msg_RESSLOTS(DDTypedBufferMsg_t *msg)
 {
     if (PSC_getID(msg->header.dest) == PSC_getMyID()) {
 	/* destination is here */
-	recvFragMsg(msg, handleLocalResInfo);
+	recvFragMsg(msg, handleResSlots);
 	return true;
     }
 
@@ -726,7 +726,7 @@ bool PSIDsession_init(void)
 
     PSID_registerMsg(PSP_DD_RESCREATED, (handlerFunc_t) msg_RESCREATED);
     PSID_registerMsg(PSP_DD_RESRELEASED, msg_RESRELEASED);
-    PSID_registerMsg(PSP_DD_LOCALRESINFO, (handlerFunc_t) msg_LOCALRESINFO);
+    PSID_registerMsg(PSP_DD_RESSLOTS, (handlerFunc_t) msg_RESSLOTS);
 
     return true;
 }

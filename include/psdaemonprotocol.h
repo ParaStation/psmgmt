@@ -98,7 +98,7 @@
 #define PSP_DD_SPAWNLOC            0x0140  /**< Resources for spawn */
 #define PSP_DD_RESCREATED          0x0141  /**< Reservation created with info */
 #define PSP_DD_RESRELEASED         0x0142  /**< Reservation released */
-#define PSP_DD_LOCALRESINFO        0x0143  /**< Node local reservation info */
+#define PSP_DD_RESSLOTS            0x0143  /**< Node's reservation slots */
 
     /***********************************************************/
     /* The IDs from 0x0200 on are reserved for plugin messages */

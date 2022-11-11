@@ -2933,7 +2933,7 @@ static bool deqRes(list_t *queue, PSrsrvtn_t *res);
  * task @a task. To actually provide the information, one or more
  * messages of type PSP_DD_RESCREATED are emitted.
  *
- * @param task Task holding the partition the reservation belong
+ * @param task Task holding the partition the reservation belongs to
  *
  * @param res Reservation to distribute
  *
@@ -2989,14 +2989,16 @@ static bool send_RESCREATED(PStask_t *task, PSrsrvtn_t *res)
 }
 
 /**
- * @brief Distribute local CPU pinning information to each node involved
- *        in partition
+ * @brief Distribute local slots to each node involved in reservation
  *
- * Provide information on rank distribution within the reservation @a
- * res to all nodes that are part of the partition the reservation is
- * belonging to. This partition is expected to be associated to the
- * task @a task. To actually provide the information, one or more
- * messages of type PSP_DD_LOCALRESINFO are emitted.
+ * Provide information on slot usage to each node within the
+ * reservation @a res. Each node just receives its local information,
+ * i.e. the slots foreseen for the ranks residing on this node. This
+ * information might be used for pinning of spawned processes. The
+ * reservation @a res is expected to be associated to the task @a
+ * task. To actually provide the information, one message of type
+ * PSP_DD_RESSLOTS is emitted to each node being part of the
+ * reservation.
  *
  * @param task Task holding the partition the reservation belong
  *
@@ -3004,7 +3006,7 @@ static bool send_RESCREATED(PStask_t *task, PSrsrvtn_t *res)
  *
  * @return On success, true is returned, or false if an error occurred.
  */
-static bool send_LOCALRESINFO(PStask_t *task, PSrsrvtn_t *res)
+static bool send_RESSLOTS(PStask_t *task, PSrsrvtn_t *res)
 {
     if (res->nSlots < 1) {
 	PSID_log(-1, "%s: No slots in reservation %#x\n", __func__, res->rid);
@@ -3013,7 +3015,7 @@ static bool send_LOCALRESINFO(PStask_t *task, PSrsrvtn_t *res)
 
     PSCPU_set_t *CPUsets = malloc(res->nSlots * sizeof(*CPUsets));
     if (!CPUsets) {
-        PSID_log(-1, "%s: No memory for cpusets of %#x\n", __func__, res->rid);
+	PSID_log(-1, "%s: No memory for cpusets of %#x\n", __func__, res->rid);
 	return false;
     }
 
@@ -3023,9 +3025,9 @@ static bool send_LOCALRESINFO(PStask_t *task, PSrsrvtn_t *res)
 	PSnodes_ID_t node = task->partition[i].node;
 	if (i > 0 && node == task->partition[i-1].node) continue; // don't send twice
 
-	initFragBuffer(&msg, PSP_DD_LOCALRESINFO, -1);
+	initFragBuffer(&msg, PSP_DD_RESSLOTS, -1);
 	if (setFragDest(&msg, PSC_getTID(node, 0))) {
-	    PSID_log(PSID_LOG_PART, "%s: send PSP_DD_LOCALRESINFO to node %d\n",
+	    PSID_log(PSID_LOG_PART, "%s: send PSP_DD_RESSLOTS to node %d\n",
 		     __func__, node);
 	}
 
@@ -3791,7 +3793,7 @@ no_task_error:
 		 __func__, r->rid, got);
 	enqRes(&task->reservations, r);
 	send_RESCREATED(task, r);
-	send_LOCALRESINFO(task, r);
+	send_RESSLOTS(task, r);
 
 	PSP_putMsgBuf(&msg, "rid", &r->rid, sizeof(r->rid));
 	PSP_putMsgBuf(&msg, "nSlots", &r->nSlots, sizeof(r->nSlots));
@@ -3901,7 +3903,7 @@ int PSIDpart_extendRes(PStask_ID_t tid, PSrsrvtn_ID_t resID,
 	     got, res->rid);
     enqRes(&task->reservations, res);
     send_RESCREATED(task, res);
-    send_LOCALRESINFO(task, res);
+    send_RESSLOTS(task, res);
 
     PSP_putMsgBuf(&msg, "rid", &res->rid, sizeof(res->rid));
     PSP_putMsgBuf(&msg, "nSlots", &res->nSlots, sizeof(res->nSlots));
