@@ -2960,7 +2960,7 @@ static bool send_RESCREATED(PStask_t *task, PSrsrvtn_t *res)
     }
 
     addInt32ToMsg(res->rid, &msg); // reservation ID
-    addTaskIdToMsg(task->tid, &msg); // logger's task ID
+    addTaskIdToMsg(res->task, &msg); // logger's task ID
     addTaskIdToMsg(res->requester, &msg); // spawners's task ID
 
     /* compress information into message, optimized for pack nodes first */
@@ -3032,7 +3032,7 @@ static bool send_RESSLOTS(PStask_t *task, PSrsrvtn_t *res)
 	}
 
 	addInt32ToMsg(res->rid, &msg); // reservation ID
-	addTaskIdToMsg(task->tid, &msg); // logger's task ID
+	addTaskIdToMsg(res->task, &msg); // logger's task ID
 	addTaskIdToMsg(res->requester, &msg); // spawners's task ID
 
 	/* collect all cpusets on the current node */
@@ -3841,23 +3841,21 @@ static void handleResRequests(PStask_t *task)
 int PSIDpart_extendRes(PStask_ID_t tid, PSrsrvtn_ID_t resID,
 		       uint32_t got, PSpart_slot_t *slots)
 {
-    PStask_t *task = PStasklist_find(&managedTasks, tid), *delegate;
-    PSrsrvtn_t *res;
     DDBufferMsg_t msg = {
 	.header = {
 	    .type = PSP_CD_RESERVATIONRES,
 	    .sender = PSC_getMyTID(),
 	    .len = offsetof(DDBufferMsg_t, buf) },
 	.buf = { 0 } };
-    uint32_t t, null = 0;
 
+    PStask_t *task = PStasklist_find(&managedTasks, tid);
     if (!task) {
 	PSID_log(-1, "%s: task %s not found\n", __func__, PSC_printTID(tid));
 	return -1;
     }
-    delegate = task->delegate ? task->delegate : task;
+    PStask_t *delegate = task->delegate ? task->delegate : task;
 
-    res = findRes(&delegate->resRequests, resID);
+    PSrsrvtn_t *res = findRes(&delegate->resRequests, resID);
     if (!res) {
 	PSID_log(-1, "%s: reservation %#x not found\n", __func__, resID);
 	return -1;
@@ -3871,6 +3869,7 @@ int PSIDpart_extendRes(PStask_ID_t tid, PSrsrvtn_ID_t resID,
 	int32_t eno = ENOSPC;
 	PSID_log(-1, "%s: failed to expand reservation %#x\n", __func__, resID);
 
+	uint32_t null = 0;
 	PSP_putMsgBuf(&msg, "error", &null, sizeof(null));
 
 	if (res->slots) {
@@ -3893,7 +3892,7 @@ int PSIDpart_extendRes(PStask_ID_t tid, PSrsrvtn_ID_t resID,
     }
 
     /* Copy the received slots */
-    for (t = 0; t < got; t++) {
+    for (uint32_t t = 0; t < got; t++) {
 	res->slots[res->nSlots + t].node = slots[t].node;
 	PSCPU_copy(res->slots[res->nSlots + t].CPUset, slots[t].CPUset);
     }
