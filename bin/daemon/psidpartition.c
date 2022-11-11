@@ -3037,9 +3037,9 @@ static bool send_RESSLOTS(PStask_t *task, PSrsrvtn_t *res)
 
 	/* collect all cpusets on the current node */
 	size_t set = 0;
-	for (int i = 0; i < res->nSlots; i++) {
-	    if (res->slots[i].node != node) continue;
-	    PSCPU_copy(CPUsets[set++], res->slots[i].CPUset);
+	for (int s = 0; s < res->nSlots; s++) {
+	    if (res->slots[s].node != node) continue;
+	    PSCPU_copy(CPUsets[set++], res->slots[s].CPUset);
 	}
 	addDataToMsg(CPUsets, set * sizeof(*CPUsets), &msg);
 
