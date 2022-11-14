@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2015-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021 ParTec AG, Munich
+ * Copyright (C) 2021-2022 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -46,10 +46,10 @@ typedef struct {
     PSpart_option_t options;  /**< Options steering reservation creation */
     PSrsrvtn_ID_t rid;        /**< unique reservation identifier */
     uint32_t firstRank;       /**< The first rank foreseen to spawn */
-    int nSlots;               /**< Number of slots in @ref slots */
+    uint32_t nSlots;          /**< Number of slots in @ref slots */
     PSpart_slot_t *slots;     /**< Slots forming the reservation */
-    int nextSlot;             /**< Number of next slot to use */
-    int relSlots;             /**< Number of slots already released */
+    uint32_t nextSlot;        /**< Number of next slot to use */
+    uint32_t relSlots;        /**< Number of slots already released */
     bool checked;             /**< Was checked to be completable */
     bool dynSent;             /**< Dynamic request was sent */
 } PSrsrvtn_t;

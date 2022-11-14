@@ -488,7 +488,7 @@ static int handleGetReservation(void *res) {
     }
 
     /* find correct slots array calculated by pinning */
-    int nSlots;
+    uint32_t nSlots;
     PSpart_slot_t *slots;
     if (step->packJobid == NO_VAL) {
 
@@ -545,7 +545,7 @@ static int handleGetReservation(void *res) {
     PSnodes_ID_t thisNode = -1;
 
     /* mark used threads in task */
-    for (ssize_t s = 0; s < r->nSlots; s++) {
+    for (uint32_t s = 0; s < r->nSlots; s++) {
 	/* find first entry in partition threads array matching node */
 	if (r->slots[s].node != thisNode) {
 	    size_t i, t;

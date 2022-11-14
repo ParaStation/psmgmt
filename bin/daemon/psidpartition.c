@@ -2547,23 +2547,23 @@ static bool msg_PROVIDEPARTRP(DDBufferMsg_t *inmsg)
  *
  * @return Return the total number of HW-threads released
  */
-static int releaseThreads(PSpart_slot_t *slot, unsigned int nSlots,
+static uint32_t releaseThreads(PSpart_slot_t *slot, uint32_t nSlots,
 			  PStask_t *task, const char *caller)
 {
     if (!slot || !task || !task->partThrds || !nSlots) return 0;
 
-    unsigned int totalRelease = 0;
-    for (unsigned int s = 0; s < nSlots; s++) {
+    uint32_t totalRelease = 0;
+    for (uint32_t s = 0; s < nSlots; s++) {
 	totalRelease += PSCPU_getCPUs(slot[s].CPUset, NULL, PSCPU_MAX);
     }
 
-    unsigned int numToRelease = totalRelease;
+    uint32_t numToRelease = totalRelease;
     PSID_log(PSID_LOG_PART, "%s: total %d %s\n", __func__, numToRelease,
 	     PSCPU_print(slot[0].CPUset));
 
-    for (unsigned int t = 0; t < task->totalThreads && numToRelease; t++) {
+    for (uint32_t t = 0; t < task->totalThreads && numToRelease; t++) {
 	PSpart_HWThread_t *thrd = &task->partThrds[t];
-	for (unsigned int s = 0; s < nSlots; s++) {
+	for (uint32_t s = 0; s < nSlots; s++) {
 	    if (slot[s].node == thrd->node
 		&& PSCPU_isSet(slot[s].CPUset, thrd->id)) {
 		if (--(thrd->timesUsed) < 0) {
@@ -2965,7 +2965,7 @@ static bool send_RESCREATED(PStask_t *task, PSrsrvtn_t *res)
 
     /* compress information into message, optimized for pack nodes first */
     int32_t firstrank = res->firstRank;
-    for (int i = 0; i < res->nSlots; i++) {
+    for (uint32_t i = 0; i < res->nSlots; i++) {
 	PSnodes_ID_t node = res->slots[i].node;
 
 	/* find last slot for current node in this block */
@@ -3037,7 +3037,7 @@ static bool send_RESSLOTS(PStask_t *task, PSrsrvtn_t *res)
 
 	/* collect all cpusets on the current node */
 	size_t set = 0;
-	for (int s = 0; s < res->nSlots; s++) {
+	for (uint32_t s = 0; s < res->nSlots; s++) {
 	    if (res->slots[s].node != node) continue;
 	    PSCPU_copy(CPUsets[set++], res->slots[s].CPUset);
 	}
@@ -3083,7 +3083,7 @@ static bool send_RESRELEASED(PSrsrvtn_t *res)
     PSP_putMsgBuf(&msg, "loggerTID", &res->task, sizeof(res->task));
     PSP_putMsgBuf(&msg, "spawnerTID", &res->requester, sizeof(res->requester));
 
-    for (int i = 0; i < res->nSlots; i++) {
+    for (uint32_t i = 0; i < res->nSlots; i++) {
 	PSnodes_ID_t node = res->slots[i].node;
 	if (i > 0 && node == res->slots[i-1].node) continue; // don't send twice
 
@@ -3178,7 +3178,7 @@ static bool msg_CHILDRESREL(DDBufferMsg_t *msg)
 	list_for_each(r, &task->reservations) {
 	    PSrsrvtn_t *res = list_entry(r, PSrsrvtn_t, next);
 
-	    for (int s = 0; s < res->nextSlot; s++) {
+	    for (uint32_t s = 0; s < res->nextSlot; s++) {
 		if (res->slots[s].node != dynRes.slot.node
 		    || !PSCPU_overlap(res->slots[s].CPUset, dynRes.slot.CPUset,
 				      8*nBytes))
@@ -3750,8 +3750,8 @@ static int handleSingleResRequest(PSrsrvtn_t *r)
 		    task->numChild -= r->nMax;            /* Fix the gap */
 		    /* free resource and error */
 		    if (got > 0) {
-			int released = releaseThreads(r->slots, got,
-						      delegate, __func__);
+			uint32_t released = releaseThreads(r->slots, got,
+							   delegate, __func__);
 			delegate->usedThreads -= released;
 			/* double entry bookkeeping on delegation */
 			if (task->delegate) task->usedThreads -= released;
@@ -3873,8 +3873,8 @@ int PSIDpart_extendRes(PStask_ID_t tid, PSrsrvtn_ID_t resID,
 	PSP_putMsgBuf(&msg, "error", &null, sizeof(null));
 
 	if (res->slots) {
-	    int released = releaseThreads(res->slots, res->nSlots,
-					  delegate, __func__);
+	    uint32_t released = releaseThreads(res->slots, res->nSlots,
+					       delegate, __func__);
 
 	    free(res->slots);
 	    res->slots = NULL;
@@ -4058,16 +4058,14 @@ error:
 
 void PSIDpart_cleanupRes(PStask_t *task)
 {
-    PStask_t *delegate;
-    int released = 0;
-    list_t *r, *tmp;
-
     if (!task) return;
 
     PSID_log(PSID_LOG_PART, "%s(%s)\n", __func__, PSC_printTID(task->tid));
 
-    delegate = task->delegate ? task->delegate : task;
+    PStask_t *delegate = task->delegate ? task->delegate : task;
 
+    uint32_t released = 0;
+    list_t *r, *tmp;
     list_for_each_safe(r, tmp, &task->reservations) {
 	PSrsrvtn_t *res = list_entry(r, PSrsrvtn_t, next);
 
@@ -4086,10 +4084,9 @@ void PSIDpart_cleanupRes(PStask_t *task)
 	    res->relSlots += res->nSlots - res->nextSlot;
 	    if (task->options & PART_OPT_DYNAMIC) {
 		/* Maybe some resources were dynamically assigned */
-		int s;
 		PSrsrvtn_dynRes_t dynRes;
 		dynRes.rid = res->rid;
-		for (s = res->nextSlot; s < res->nSlots; s++) {
+		for (uint32_t s = res->nextSlot; s < res->nSlots; s++) {
 		    if (!PSCPU_any(res->slots[s].CPUset, PSCPU_MAX)) continue;
 		    dynRes.slot.node = res->slots[s].node;
 		    PSCPU_copy(dynRes.slot.CPUset, res->slots[s].CPUset);
@@ -5019,16 +5016,14 @@ void PSIDpart_register(PStask_t *task)
 void PSIDpart_sendResNodes(PSrsrvtn_ID_t resID, PStask_t *task,
 			   DDTypedBufferMsg_t *msg)
 {
-    PSrsrvtn_t *res;
     const size_t emptyLen = sizeof(msg->header) + sizeof(msg->type);
-    int s;
 
     if (!task) {
 	PSID_log(-1, "%s: No task\n", __func__);
 	return;
     }
 
-    res = findRes(&task->reservations, resID);
+    PSrsrvtn_t *res = findRes(&task->reservations, resID);
     if (!res) {
 	PSID_log(-1, "%s: %#x not found\n", __func__, resID);
 	return;
@@ -5042,7 +5037,7 @@ void PSIDpart_sendResNodes(PSrsrvtn_ID_t resID, PStask_t *task,
     PSID_log(PSID_LOG_PART | PSID_LOG_INFO, "%s: %#x has %d slots\n", __func__,
 	     resID, res->nSlots);
 
-    for (s = 0; s < res->nSlots; s++) {
+    for (uint32_t s = 0; s < res->nSlots; s++) {
 	if (!PSP_tryPutTypedMsgBuf(msg, "slot", &res->slots[s].node,
 				   sizeof(PSnodes_ID_t))) {
 	    sendMsg(msg);
