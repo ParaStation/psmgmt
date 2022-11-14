@@ -83,7 +83,7 @@ bool initEnvFilter(void)
 void freeEnvFilter(void)
 {
     uint32_t index = 0;
-    while (envFilter[index]) ufree(envFilter[index++]);
+    if (envFilter) while (envFilter[index]) ufree(envFilter[index++]);
     ufree(envFilter);
 }
 

@@ -749,16 +749,17 @@ int initialize(FILE *logfile)
 	initPluginLogger("psslurm", logfile);
     }
 
-    /* we need to have root privileges */
-    if(getuid() != 0) {
-	mlog("%s: psslurm must have root privileges\n", __func__);
-	return 1;
-    }
-
-    /* init the configuration */
+    /* init the configurations */
+    initConfig(&SlurmConfig); // allow for early cleanup()
     int confRes = initPSSlurmConfig(PSSLURM_CONFIG_FILE);
     if (confRes == CONFIG_ERROR) {
 	mlog("%s: init of the configuration failed\n", __func__);
+	return 1;
+    }
+
+    /* we need to have root privileges */
+    if(getuid() != 0) {
+	mlog("%s: psslurm must have root privileges\n", __func__);
 	return 1;
     }
 
@@ -858,7 +859,7 @@ void cleanup(void)
     clearSlurmCon();
 
     /* free config in pelogue plugin */
-    psPelogueDelPluginConfig("psslurm");
+    if (psPelogueDelPluginConfig) psPelogueDelPluginConfig("psslurm");
 
     /* unregister timer */
     if (cleanupTimerID != -1) Timer_remove(cleanupTimerID);

@@ -1340,14 +1340,14 @@ int initPSSlurmConfig(char *filename)
 {
     struct stat sbuf;
 
+    initConfig(&Config);
+
     /* parse psslurm config file */
     if (stat(filename, &sbuf) != -1) {
 	if (parseConfigFile(filename, &Config, false /*trimQuotes*/) < 0) {
 	    flog("parsing '%s' failed\n", filename);
 	    return CONFIG_ERROR;
 	}
-    } else {
-	initConfig(&Config);
     }
 
     setConfigDefaults(&Config, confDef);
