@@ -3630,11 +3630,9 @@ static int handleSlurmConf(Slurm_Msg_t *sMsg, void *info)
 	    /* parse updated configuration files */
 	    if (!parseSlurmConfigFiles()) {
 		flog("fatal: failed to parse configuration\n");
-		return 0;
-	    }
-
-	    /* finalize the startup of psslurm */
-	    if (!finalizeInit()) {
+		PSIDplugin_finalize("psslurm");
+	    } else if (!finalizeInit()) {
+		/* finalize psslurm's startup failed */
 		flog("startup of psslurm failed\n");
 		PSIDplugin_finalize("psslurm");
 	    }

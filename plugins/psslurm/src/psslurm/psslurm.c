@@ -790,8 +790,6 @@ int initialize(FILE *logfile)
 	if (needConfUpdate(confDir)) {
 	    /* wait for config response from slurmctld */
 	    if (!requestConfig()) goto INIT_ERROR;
-	    /* make it possible to unload psslurm if config parsing fails */
-	    isInit = true;
 	    return 0;
 	}
 
@@ -853,8 +851,6 @@ void finalize(void)
 
 void cleanup(void)
 {
-    if (!isInit) return;
-
     /* close all remaining connections */
     clearSlurmCon();
 
