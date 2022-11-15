@@ -3013,42 +3013,57 @@ static bool send_RESSLOTS(PStask_t *task, PSrsrvtn_t *res)
 	return false;
     }
 
-    PSCPU_set_t *CPUsets = malloc(res->nSlots * sizeof(*CPUsets));
-    if (!CPUsets) {
-	PSID_log(-1, "%s: No memory for cpusets of %#x\n", __func__, res->rid);
-	return false;
-    }
+    static bool *sentToNode = NULL;
+    static int sTNSize = 0;
+    if (!sentToNode || sTNSize < PSC_getNrOfNodes()) {
+	bool *bak = sentToNode;
 
-    /* send message to each node in the partition containing it's local info */
-    PS_SendDB_t msg;
-    for (uint32_t i = 0; i < task->partitionSize; i++) {
-	PSnodes_ID_t node = task->partition[i].node;
-	if (i > 0 && node == task->partition[i-1].node) continue; // don't send twice
-
-	initFragBuffer(&msg, PSP_DD_RESSLOTS, -1);
-	if (setFragDest(&msg, PSC_getTID(node, 0))) {
-	    PSID_log(PSID_LOG_PART, "%s: send PSP_DD_RESSLOTS to node %d\n",
-		     __func__, node);
-	}
-
-	addInt32ToMsg(res->rid, &msg); // reservation ID
-	addTaskIdToMsg(res->task, &msg); // logger's task ID
-	addTaskIdToMsg(res->requester, &msg); // spawners's task ID
-
-	/* collect all cpusets on the current node */
-	size_t set = 0;
-	for (uint32_t s = 0; s < res->nSlots; s++) {
-	    if (res->slots[s].node != node) continue;
-	    PSCPU_copy(CPUsets[set++], res->slots[s].CPUset);
-	}
-	addDataToMsg(CPUsets, set * sizeof(*CPUsets), &msg);
-
-	if (sendFragMsg(&msg) == -1) {
-	    PSID_log(-1, "%s: sending failed\n", __func__);
+	sTNSize = PSC_getNrOfNodes();
+	sentToNode = realloc(sentToNode, sTNSize * sizeof(*sentToNode));
+	if (!sentToNode) {
+	    free(bak);
+	    sTNSize = 0;
+	    PSID_warn(-1, ENOMEM, "%s: realloc()", __func__);
 	    return false;
 	}
     }
-    free(CPUsets);
+
+    memset(sentToNode, false, sTNSize * sizeof(*sentToNode));
+
+    /* send message to each node in the reservation containing its local info */
+    PS_SendDB_t msg;
+    for (uint32_t s = 0; s < res->nSlots; s++) {
+	PSnodes_ID_t node = res->slots[s].node;
+	if (sentToNode[node] || PSIDnodes_getDmnProtoV(node) < 415) continue;
+
+	initFragBuffer(&msg, PSP_DD_RESSLOTS, -1);
+	setFragDest(&msg, PSC_getTID(node, 0));
+	PSID_log(PSID_LOG_PART, "%s: send PSP_DD_RESSLOTS to node %d\n",
+		 __func__, node);
+
+	addTaskIdToMsg(res->task, &msg);       // logger's task ID
+	addTaskIdToMsg(res->requester, &msg);  // spawners's task ID
+	addInt32ToMsg(res->rid, &msg);         // reservation ID
+
+	uint16_t nBytes = PSCPU_bytesForCPUs(PSIDnodes_getNumThrds(node));
+	addUint16ToMsg(nBytes, &msg);          // size of each packed CPU_set
+
+	for (uint32_t ss = s; ss < res->nSlots; ss++) {
+	    if (res->slots[ss].node != node) continue;
+	    addInt32ToMsg(res->firstRank + ss, &msg);    // rank
+
+	    char cpuBuf[nBytes];
+	    PSCPU_extract(cpuBuf, res->slots[ss].CPUset, nBytes);
+	    addMemToMsg(cpuBuf, nBytes, &msg); // packed CPU_set
+	}
+	addInt32ToMsg(-1, &msg);               // end of pairs
+
+	if (sendFragMsg(&msg) == -1) {
+	    PSID_log(-1, "%s: sendFragMs() failed\n", __func__);
+	    return false;
+	}
+	sentToNode[node] = true;
+    }
 
     return true;
 }

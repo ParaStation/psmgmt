@@ -25,11 +25,16 @@
 
 /** Single node part of a reservation */
 typedef struct {
-    PSnodes_ID_t node;       /**< node ID */
-    int32_t firstrank;       /**< first rank designated to this node */
-    int32_t lastrank;        /**< last rank designated to this node */
-    PSCPU_set_t *CPUsets;    /**< array of CPUsets to be used by the ranks */
+    PSnodes_ID_t node;         /**< node ID */
+    int32_t firstrank;         /**< first rank designated to this node */
+    int32_t lastrank;          /**< last rank designated to this node */
 } PSresinfoentry_t;
+
+/** Single rank part of the local reservation information */
+typedef struct {
+    int32_t rank;              /**< Rank the reservation slot belongs to */
+    PSCPU_set_t CPUset;        /**< Set of CPUs the slot occupies */
+} PSresslot_t;
 
 /** Compact reservation information structure, used in non-logger deamons */
 typedef struct {
@@ -39,6 +44,7 @@ typedef struct {
     int32_t maxRank;           /**< maximum rank in this reservation */
     uint32_t nEntries;         /**< Number of entries in @ref entries */
     PSresinfoentry_t *entries; /**< Slots forming the reservation */
+    PSresslot_t *localSlots;   /**< local reservation information */
 } PSresinfo_t;
 
 /** Job: reservations involving this node requested by the same spawner */

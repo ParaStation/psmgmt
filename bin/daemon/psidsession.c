@@ -45,6 +45,7 @@ PSresinfo_t *getResinfo(void)
     resinfo->minRank = 0;
     resinfo->maxRank = 0;
     resinfo->entries = NULL;
+    resinfo->localSlots = NULL;
 
     return resinfo;
 }
@@ -56,9 +57,10 @@ PSresinfo_t *getResinfo(void)
  */
 static void putResinfo(PSresinfo_t *resinfo)
 {
-    if (resinfo->entries) free(resinfo->entries[0].CPUsets);
     free(resinfo->entries);
     resinfo->entries = NULL;
+    free(resinfo->localSlots);
+    resinfo->localSlots = NULL;
 
     PSitems_putItem(resinfoPool, resinfo);
 }
@@ -560,14 +562,14 @@ static void handleResSlots(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
 {
     char *ptr = rData->buf;
 
-    /* get reservation, logger task id and spawner task id */
-    int32_t resID;
-    getInt32(&ptr, &resID);
+    /* get logger task id, spawner task id, and reservation */
     PStask_ID_t loggerTID, spawnerTID;
     getTaskId(&ptr, &loggerTID);
     getTaskId(&ptr, &spawnerTID);
+    int32_t resID;
+    getInt32(&ptr, &resID);
 
-    /* create reservation info */
+    /* identify reservation info */
     PSresinfo_t *res = PSID_findResInfo(loggerTID, spawnerTID, resID);
     if (!res) {
 	PSID_log(-1, "%s: No reservation info for logger %s", __func__,
@@ -576,33 +578,48 @@ static void handleResSlots(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
 		 resID);
 	return;
     }
+    if (res->localSlots) {
+	PSID_log(-1, "%s: reservation %d has localSlots?!\n", __func__, resID);
+	return;
+    }
 
-    size_t len = 0;
-    PSCPU_set_t *CPUsets = getDataM(&ptr, &len);
-    len /= sizeof(*CPUsets);
+    uint16_t nBytes;
+    getUint16(&ptr, &nBytes);
+    if (nBytes != PSCPU_bytesForCPUs(PSIDnodes_getNumThrds(PSC_getMyID()))) {
+	PSID_log(-1, "%s: CPU-set size mismatch %ud", __func__, nBytes);
+	return;
+    }
 
-    /* get entries */
-    PSCPU_set_t *pos = CPUsets;
-    for (size_t i = 0; i < res->nEntries; i++) {
-	if (res->entries[i].node != PSC_getMyID()) continue;
+    /* determine number of reservation slots: */
+    /* remaining bytes in msg / size of a single rank/slot pair */
+    size_t num = (rData->used - (ptr-rData->buf)) / (sizeof(int32_t) + nBytes);
+    res->localSlots = malloc(num * sizeof(*res->localSlots));
 
-	res->entries[i].CPUsets = pos;
-	pos += res->entries[i].lastrank - res->entries[i].firstrank + 1;
-
-	if (pos > CPUsets + len) {
-	    res->entries[i].CPUsets = NULL;
-	    PSID_log(-1, "%s: CRITICAL: number of CPUsets too low\n", __func__);
-	    break;
+    int32_t rank;
+    for (uint32_t s = 0; s < num; s++) {
+	getInt32(&ptr, &rank);
+	if (rank < 0 || rank < res->minRank || rank > res->maxRank) {
+	    PSID_log(-1, "%s: invalid rank %d @ %ud in resID %d (%d,%d)\n",
+		     __func__, rank, s, resID, res->minRank, res->maxRank);
+	    free(res->localSlots);
+	    res->localSlots = NULL;
+	    return;
 	}
+	res->localSlots[s].rank = rank;
 
-	PSID_log(PSID_LOG_SPAWN, "%s: Reservation %d: Adding cpusets for"
-		 " ranks %d-%d\n", __func__, resID,
-		 res->entries[i].firstrank, res->entries[i].lastrank);
+	PSCPU_clrAll(res->localSlots[s].CPUset);
+	PSCPU_inject(res->localSlots[s].CPUset, ptr, nBytes);
+	ptr += nBytes;
+
+	PSID_log(PSID_LOG_PART, "%s: Add cpuset %s for rank %d in res %d\n",
+		 __func__, PSCPU_print_part(res->localSlots[s].CPUset, nBytes),
+		 rank, resID);
     }
 
-    if (pos < CPUsets + len) {
-	PSID_log(-1, "%s: number of CPUsets too high (%zu)\n", __func__, len);
-    }
+    /* check for end of message */
+    getInt32(&ptr, &rank);
+    if (rank != -1)
+	PSID_log(-1, "%s: trailing slot for rank %d", __func__, rank);
 }
 
 /**
