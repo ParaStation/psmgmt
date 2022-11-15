@@ -124,6 +124,9 @@ static void cleanupJobs(void)
     }
 }
 
+/** Flag hook de/registration */
+static bool hooksRegistered = false;
+
 /**
  * @brief Unregister all hooks
  *
@@ -132,6 +135,8 @@ static void cleanupJobs(void)
  */
 static void unregisterHooks(bool verbose)
 {
+    if (!hooksRegistered) return;
+
     if (!PSIDhook_del(PSIDHOOK_EXEC_CLIENT, handleExecClient)) {
 	if (verbose) mlog("unregister 'PSIDHOOK_EXEC_CLIENT' failed\n");
     }
@@ -183,6 +188,8 @@ static void unregisterHooks(bool verbose)
     if (!PSIDhook_del(PSIDHOOK_PELOGUE_DROP, handlePelogueDrop)) {
 	if (verbose) mlog("unregister 'PSIDHOOK_PELOGUE_DROP' failed\n");
     }
+
+    hooksRegistered = false;
 }
 
 /**
@@ -194,6 +201,8 @@ static bool registerHooks(void)
 	mlog("register 'PSIDHOOK_EXEC_CLIENT' failed\n");
 	return false;
     }
+
+    hooksRegistered = true;
 
     if (!PSIDhook_add(PSIDHOOK_EXEC_CLIENT_USER, handleExecClientUser)) {
 	mlog("register 'PSIDHOOK_EXEC_CLIENT_USER' failed\n");
