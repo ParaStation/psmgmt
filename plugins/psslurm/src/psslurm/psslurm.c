@@ -743,6 +743,9 @@ bool finalizeInit(void)
     return true;
 }
 
+/** Track basic initalization of configurations */
+static bool haveBasicConfig = false;
+
 int initialize(FILE *logfile)
 {
     start_time = time(NULL);
@@ -765,6 +768,8 @@ int initialize(FILE *logfile)
 	mlog("%s: init of the configuration failed\n", __func__);
 	return 1;
     }
+    haveBasicConfig = true;
+
 
     /* we need to have root privileges */
     if(getuid() != 0) {
@@ -860,6 +865,8 @@ void finalize(void)
 
 void cleanup(void)
 {
+    if (!haveBasicConfig) return;
+
     /* close all remaining connections */
     clearSlurmCon();
 
