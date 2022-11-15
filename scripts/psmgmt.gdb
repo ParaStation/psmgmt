@@ -384,7 +384,7 @@ define print_array_if
     while $i < $num
       if $array[$i].$arg1 == $arg2
 	output $i
-	echo \ :\ \
+	echo \ :\ \ 
 	if $argc < 5
 	  output $array[$i]
 	else
