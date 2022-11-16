@@ -2988,6 +2988,12 @@ static bool send_RESCREATED(PStask_t *task, PSrsrvtn_t *res)
     return true;
 }
 
+/** number of slots to send to each node within send_RESSLOTS() */
+static uint16_t *numToSend = NULL;
+
+/** size of @ref numToSend */
+static ssize_t nTSSize = 0;
+
 /**
  * @brief Distribute local slots to each node involved in reservation
  *
@@ -3013,28 +3019,28 @@ static bool send_RESSLOTS(PStask_t *task, PSrsrvtn_t *res)
 	return false;
     }
 
-    static bool *sentToNode = NULL;
-    static int sTNSize = 0;
-    if (!sentToNode || sTNSize < PSC_getNrOfNodes()) {
-	bool *bak = sentToNode;
+    if (!numToSend || nTSSize < PSC_getNrOfNodes()) {
+	uint16_t *bak = numToSend;
 
-	sTNSize = PSC_getNrOfNodes();
-	sentToNode = realloc(sentToNode, sTNSize * sizeof(*sentToNode));
-	if (!sentToNode) {
+	nTSSize = PSC_getNrOfNodes();
+	numToSend = realloc(numToSend, nTSSize * sizeof(*numToSend));
+	if (!numToSend) {
 	    free(bak);
-	    sTNSize = 0;
+	    nTSSize = 0;
 	    PSID_warn(-1, ENOMEM, "%s: realloc()", __func__);
 	    return false;
 	}
     }
 
-    memset(sentToNode, false, sTNSize * sizeof(*sentToNode));
+    /* determine slots to send to each node */
+    memset(numToSend, 0, nTSSize * sizeof(*numToSend));
+    for (uint32_t s = 0; s < res->nSlots; s++) numToSend[res->slots[s].node]++;
 
     /* send message to each node in the reservation containing its local info */
     PS_SendDB_t msg;
     for (uint32_t s = 0; s < res->nSlots; s++) {
 	PSnodes_ID_t node = res->slots[s].node;
-	if (sentToNode[node] || PSIDnodes_getDmnProtoV(node) < 415) continue;
+	if (!numToSend[node] || PSIDnodes_getDmnProtoV(node) < 415) continue;
 
 	initFragBuffer(&msg, PSP_DD_RESSLOTS, -1);
 	setFragDest(&msg, PSC_getTID(node, 0));
@@ -3048,13 +3054,14 @@ static bool send_RESSLOTS(PStask_t *task, PSrsrvtn_t *res)
 	uint16_t nBytes = PSCPU_bytesForCPUs(PSIDnodes_getNumThrds(node));
 	addUint16ToMsg(nBytes, &msg);          // size of each packed CPU_set
 
-	for (uint32_t ss = s; ss < res->nSlots; ss++) {
+	for (uint32_t ss = s; ss < res->nSlots && numToSend[node]; ss++) {
 	    if (res->slots[ss].node != node) continue;
 	    addInt32ToMsg(res->firstRank + ss, &msg);    // rank
 
 	    char cpuBuf[nBytes];
 	    PSCPU_extract(cpuBuf, res->slots[ss].CPUset, nBytes);
 	    addMemToMsg(cpuBuf, nBytes, &msg); // packed CPU_set
+	    numToSend[node]--;
 	}
 	addInt32ToMsg(-1, &msg);               // end of pairs
 
@@ -3062,7 +3069,6 @@ static bool send_RESSLOTS(PStask_t *task, PSrsrvtn_t *res)
 	    PSID_log(-1, "%s: sendFragMs() failed\n", __func__);
 	    return false;
 	}
-	sentToNode[node] = true;
     }
 
     return true;
