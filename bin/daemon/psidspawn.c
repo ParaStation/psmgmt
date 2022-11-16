@@ -2886,8 +2886,8 @@ void PSIDspawn_cleanupBySpawner(PStask_ID_t tid)
  * @brief Cleanup spawning task marked as deleted
  *
  * Actually destroy task-structure waiting to be spawned but marked as
- * deleted. These tasks are expected to be marked via @ref
- * deleteSpawnTasks().
+ * deleted. These tasks are expected to be marked via setting the
+ * task's @ref deleted flag.
  *
  * @return No return value
  */
