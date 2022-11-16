@@ -403,22 +403,22 @@ int Acc_getPoll(void)
 
 void Acc_Finalize(void)
 {
-    psAccountSetGlobalCollect(false);
+    if (psAccountSetGlobalCollect) psAccountSetGlobalCollect(false);
 
     int poll = getConfValueI(&Config, "SLURM_ACC_ENERGY");
-    if (poll > 0) {
+    if (poll > 0 && oldEnergyPollTime > 0 && psAccountSetPoll) {
 	psAccountSetPoll(PSACCOUNT_OPT_ENERGY, oldEnergyPollTime);
     }
 
     poll = getConfValueI(&Config, "SLURM_ACC_FILESYSTEM");
-    if (poll > 0) {
+    if (poll > 0 && oldFilesystemPollTime > 0 && psAccountSetPoll) {
 	psAccountSetPoll(PSACCOUNT_OPT_FS, oldFilesystemPollTime);
     }
 
     poll = getConfValueI(&Config, "SLURM_ACC_NETWORK");
-    if (poll > 0) {
+    if (poll > 0 && oldInterconnectPollTime > 0 && psAccountSetPoll) {
 	psAccountSetPoll(PSACCOUNT_OPT_IC, oldInterconnectPollTime);
     }
 
-    fdbg(PSSLURM_LOG_ACC, "psslurm account facility finalized success\n");
+    fdbg(PSSLURM_LOG_ACC, "psslurm account facility finalized successfully\n");
 }

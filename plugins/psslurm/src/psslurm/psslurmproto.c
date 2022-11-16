@@ -3582,7 +3582,8 @@ void activateConfigCache(char *confDir)
 static int handleSlurmConf(Slurm_Msg_t *sMsg, void *info)
 {
     uint32_t rc;
-    int *action = info;
+    int action = CONF_ACT_NONE;
+    if (info) action = *(int *)info;
 
     switch (sMsg->head.type) {
 	case RESPONSE_SLURM_RC:
@@ -3624,16 +3625,14 @@ static int handleSlurmConf(Slurm_Msg_t *sMsg, void *info)
     /* update configuration file defaults */
     activateConfigCache(confDir);
 
-    switch (*action) {
+    switch (action) {
 	case CONF_ACT_STARTUP:
 	    /* parse updated configuration files */
 	    if (!parseSlurmConfigFiles()) {
 		flog("fatal: failed to parse configuration\n");
-		return 0;
-	    }
-
-	    /* finalize the startup of psslurm */
-	    if (!finalizeInit()) {
+		PSIDplugin_finalize("psslurm");
+	    } else if (!finalizeInit()) {
+		/* finalize psslurm's startup failed */
 		flog("startup of psslurm failed\n");
 		PSIDplugin_finalize("psslurm");
 	    }

@@ -124,6 +124,9 @@ static void cleanupJobs(void)
     }
 }
 
+/** Flag hook de/registration */
+static bool hooksRegistered = false;
+
 /**
  * @brief Unregister all hooks
  *
@@ -132,6 +135,8 @@ static void cleanupJobs(void)
  */
 static void unregisterHooks(bool verbose)
 {
+    if (!hooksRegistered) return;
+
     if (!PSIDhook_del(PSIDHOOK_EXEC_CLIENT, handleExecClient)) {
 	if (verbose) mlog("unregister 'PSIDHOOK_EXEC_CLIENT' failed\n");
     }
@@ -183,6 +188,8 @@ static void unregisterHooks(bool verbose)
     if (!PSIDhook_del(PSIDHOOK_PELOGUE_DROP, handlePelogueDrop)) {
 	if (verbose) mlog("unregister 'PSIDHOOK_PELOGUE_DROP' failed\n");
     }
+
+    hooksRegistered = false;
 }
 
 /**
@@ -194,6 +201,8 @@ static bool registerHooks(void)
 	mlog("register 'PSIDHOOK_EXEC_CLIENT' failed\n");
 	return false;
     }
+
+    hooksRegistered = true;
 
     if (!PSIDhook_add(PSIDHOOK_EXEC_CLIENT_USER, handleExecClientUser)) {
 	mlog("register 'PSIDHOOK_EXEC_CLIENT_USER' failed\n");
@@ -734,6 +743,9 @@ bool finalizeInit(void)
     return true;
 }
 
+/** Track basic initalization of configurations */
+static bool haveBasicConfig = false;
+
 int initialize(FILE *logfile)
 {
     start_time = time(NULL);
@@ -749,16 +761,19 @@ int initialize(FILE *logfile)
 	initPluginLogger("psslurm", logfile);
     }
 
-    /* we need to have root privileges */
-    if(getuid() != 0) {
-	mlog("%s: psslurm must have root privileges\n", __func__);
+    /* init the configurations */
+    initConfig(&SlurmConfig); // allow for early cleanup()
+    int confRes = initPSSlurmConfig(PSSLURM_CONFIG_FILE);
+    haveBasicConfig = true;
+    if (confRes == CONFIG_ERROR) {
+	mlog("%s: init of the configuration failed\n", __func__);
 	return 1;
     }
 
-    /* init the configuration */
-    int confRes = initPSSlurmConfig(PSSLURM_CONFIG_FILE);
-    if (confRes == CONFIG_ERROR) {
-	mlog("%s: init of the configuration failed\n", __func__);
+
+    /* we need to have root privileges */
+    if(getuid() != 0) {
+	mlog("%s: psslurm must have root privileges\n", __func__);
 	return 1;
     }
 
@@ -789,8 +804,6 @@ int initialize(FILE *logfile)
 	if (needConfUpdate(confDir)) {
 	    /* wait for config response from slurmctld */
 	    if (!requestConfig()) goto INIT_ERROR;
-	    /* make it possible to unload psslurm if config parsing fails */
-	    isInit = true;
 	    return 0;
 	}
 
@@ -852,13 +865,13 @@ void finalize(void)
 
 void cleanup(void)
 {
-    if (!isInit) return;
+    if (!haveBasicConfig) return;
 
     /* close all remaining connections */
     clearSlurmCon();
 
     /* free config in pelogue plugin */
-    psPelogueDelPluginConfig("psslurm");
+    if (psPelogueDelPluginConfig) psPelogueDelPluginConfig("psslurm");
 
     /* unregister timer */
     if (cleanupTimerID != -1) Timer_remove(cleanupTimerID);

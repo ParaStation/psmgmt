@@ -1,3 +1,34 @@
+Version 5.1.52-3:
+=================
+------------------------------------------------------------------------
+4ced876f9 | Norbert Eicker | Wed, 16 Nov 2022 12:00:00 +0100
+
+Ensure memory associated to psslurm's config is always free()ed
+------------------------------------------------------------------------
+00364114c | Norbert Eicker | Tue, 15 Nov 2022 16:40:28 +0100
+
+Bugfix: prevent psslurm from segfault by tracking init of basic configuration
+------------------------------------------------------------------------
+54a83c864 | Norbert Eicker | Tue, 15 Nov 2022 13:49:18 +0100
+
+Track hook registration in psslurm to make early unload less noisy
+------------------------------------------------------------------------
+1c7076f79 | Norbert Eicker | Mon, 14 Nov 2022 21:31:53 +0100
+
+Revert b8861ee182 and let psslurm fail gracefully
+
+ * This works around non functional psslurm in config-less mode in
+   combination with Slurm healthcheck during startup
+------------------------------------------------------------------------
+597677814 | Norbert Eicker | Mon, 14 Nov 2022 21:28:18 +0100
+
+Ensure handleSlurmConf() gets a valid action
+------------------------------------------------------------------------
+bdfd92f7b | Norbert Eicker | Mon, 14 Nov 2022 20:54:23 +0100
+
+Allow to call psslurm's cleanup() even if not fully initialized
+------------------------------------------------------------------------
+
 Version 5.1.52-2:
 =================
 ------------------------------------------------------------------------

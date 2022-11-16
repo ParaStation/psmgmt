@@ -6,6 +6,14 @@ Copyright (C) 2021-2022 ParTec AG, Munich
 Please send bug reports, questions and suggestions to <support@par-tec.com>
 
 
+Version 5.1.52-3:
+=================
+Bugfixes:
+- Ensure psslurm is fully initialized if config-less mode is combined
+  with Slurm healthcheck
+- Allow to call psslurm's cleanup() even if not fully initialized
+
+
 Version 5.1.52-2:
 =================
 Enhancements:
