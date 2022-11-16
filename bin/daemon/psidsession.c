@@ -590,10 +590,10 @@ static void handleResSlots(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
 	return;
     }
 
-    /* determine number of reservation slots: */
-    /* remaining bytes in msg / size of a single rank/slot pair */
-    size_t num = (rData->used - (ptr-rData->buf)) / (sizeof(int32_t) + nBytes);
+    uint16_t num;
+    getUint16(&ptr, &num);
     res->localSlots = malloc(num * sizeof(*res->localSlots));
+    res->nLocalSlots = num;
 
     int32_t rank;
     for (uint32_t s = 0; s < num; s++) {

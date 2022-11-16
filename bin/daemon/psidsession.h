@@ -44,6 +44,7 @@ typedef struct {
     int32_t maxRank;           /**< maximum rank in this reservation */
     uint32_t nEntries;         /**< Number of entries in @ref entries */
     PSresinfoentry_t *entries; /**< Slots forming the reservation */
+    uint16_t nLocalSlots;      /**< Number of entries in @ref localSlots */
     PSresslot_t *localSlots;   /**< local reservation information */
 } PSresinfo_t;
 

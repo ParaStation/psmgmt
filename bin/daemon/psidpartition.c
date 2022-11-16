@@ -3059,6 +3059,8 @@ static bool send_RESSLOTS(PStask_t *task, PSrsrvtn_t *res)
 	uint16_t nBytes = PSCPU_bytesForCPUs(PSIDnodes_getNumThrds(node));
 	addUint16ToMsg(nBytes, &msg);          // size of each packed CPU_set
 
+	addUint16ToMsg(numToSend[node], &msg); // number of slots to expect
+
 	for (uint32_t ss = s; ss < res->nSlots && numToSend[node]; ss++) {
 	    if (res->slots[ss].node != node) continue;
 	    addInt32ToMsg(res->firstRank + ss, &msg);    // rank
