@@ -2419,7 +2419,6 @@ static void handleSpawnReq(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
 	uint32_t extraEnvSize;
 
 	PStask_t *clone = PStask_clone(task);
-	clone->suspended = false;
 	clone->rank += r;
 	int32_t rank = clone->rank;
 	answer.request = rank;
@@ -2490,7 +2489,7 @@ static void handleSpawnReq(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
 	PStask_snprintf(tasktxt, sizeof(tasktxt), clone);
 	PSID_log(PSID_LOG_SPAWN, "%s: Spawning %s\n", __func__, tasktxt);
 
-	if (task->suspended) {
+	if (clone->delayReasons) {
 	    /* PSIDHOOK_RECV_SPAWNREQ may delay spawning */
 	    PSIDspawn_delayTask(clone);
 	} else {
@@ -2803,6 +2802,7 @@ void PSIDspawn_startDelayedTasks(PSIDspawn_filter_t filter, void *info)
 
 	if (task->deleted) continue;
 	if (filter && !filter(task, info)) continue;
+	if (task->delayReasons) continue;
 
 	PStask_snprintf(tasktxt, sizeof(tasktxt), task);
 	PSID_log(PSID_LOG_SPAWN, "%s: Spawning %s\n", __func__, tasktxt);

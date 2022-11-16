@@ -609,8 +609,9 @@ static int handleGetReservation(void *res) {
  * delayed until the srun-launch message holding vital information
  * arrives.
  *
- * The delay is triggered by setting the flag suspended in the task
- * structure @a taskPtr is pointing to.
+ * The delay is triggered by setting the @ref DELAY_PSSLURM bit in the
+ * delayReasons member of the task structure @a taskPtr is pointing
+ * to.
  *
  * @param taskPtr Task structure describing the processes to spawn
  *
@@ -631,7 +632,7 @@ static int handleRecvSpawnReq(void *taskPtr)
 	flog("delay spawning for %s due to missing nodeinfo in step %u:%u\n",
 	     PSC_printTID(spawnee->loggertid), jobid, stepid);
 
-	spawnee->suspended = true;
+	spawnee->delayReasons |= DELAY_PSSLURM;
     }
 
     return 0;
@@ -2136,7 +2137,6 @@ typedef struct {
 
 static bool filter(PStask_t *task, void *info)
 {
-    JobStepInfo_t *jsInfo = info;
     uint32_t jobid, stepid;
 
     /* get jobid and stepid from received environment */
@@ -2153,9 +2153,11 @@ static bool filter(PStask_t *task, void *info)
 	return false;
     }
 
-    if (info && jsInfo->jobid == jobid && jsInfo->stepid == stepid) return true;
+    JobStepInfo_t *js = info;
+    if (!js || js->jobid != jobid || js->stepid != stepid) return false;
 
-    return false;
+    task->delayReasons &= ~DELAY_PSSLURM;
+    return true;
 }
 
 void releaseDelayedSpawns(uint32_t jobid, uint32_t stepid) {
@@ -2245,6 +2247,7 @@ static bool handleSpawnReq(DDTypedBufferMsg_t *msg)
 	flog("delay spawnee from %s due to missing %s\n",
 	     PSC_printTID(msg->header.sender), Step_strID(&s));
 
+	spawnee->delayReasons |= DELAY_PSSLURM;
 	PSIDspawn_delayTask(spawnee);
 	return true; // message is fully handled
     }

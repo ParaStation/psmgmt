@@ -57,6 +57,18 @@ struct __task__;      // Make IWYU happy
 typedef struct __task__ PStask_t;
 
 /**
+ * Different reasons why a task's spawn is delayed. These define the
+ * different bits in the @ref delayReasons member of @ref PStask_t
+ * that might be set in @ref PSIDHOOK_RECV_SPAWNREQ and have to be
+ * cleared in the filter function of @ref PSIDspawn_startDelayedTasks()
+ */
+typedef enum {
+    DELAY_RESINFO = 0x0001,        /**< delay triggered by missing CPUset */
+    DELAY_PSSLURM = 0x0002,        /**< delay triggered by psslurm */
+} PStask_delay_t;
+
+
+/**
  * @brief Signal callback
  *
  * Callback to be executed upon SIGCHLD received from the
@@ -113,9 +125,9 @@ struct __task__ {
     bool parentReleased;           /**< flag RELEASE msg sent to parent */
     bool duplicate;                /**< flag to mark duplicate task, i.e. a
 				      tasks that are fork()ed by a client */
-    bool suspended;                /**< flag to mark suspended tasks. */
+    bool suspended;                /**< flag to mark suspended tasks */
     bool removeIt;                 /**< flag to mark task to be removed (as
-				      soon as all children are released). */
+				      soon as all children are released) */
     bool deleted;                  /**< flag to mark deleted tasks. It
 				      will be removed from the list of
 				      managed tasks in the next round
@@ -124,9 +136,10 @@ struct __task__ {
 				      from managed tasks but still referred
 				      by a  selector */
     /*C*/ bool noParricide;        /**< flag to be set if kill signals should
-				      not be forwarded to parents. */
+				      not be forwarded to parents */
+    PStask_delay_t delayReasons;   /**< reason to delay the spawn */
     time_t killat;                 /**< flag a killed task, i.e. the time when
-				      the task should really go away. */
+				      the task should really go away */
     struct timeval started;        /**< Time the task structure was created. */
     uint16_t protocolVersion;      /**< Protocol version the task speaks. */
     list_t childList;              /**< Task's children. Signal not used. */

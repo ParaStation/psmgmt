@@ -121,6 +121,7 @@ bool PStask_init(PStask_t* task)
     task->deleted = false;
     task->obsolete = false;
     task->noParricide = false;
+    task->delayReasons = 0;
     task->killat = 0;
     gettimeofday(&task->started, NULL);
     task->protocolVersion = -1;
@@ -357,6 +358,7 @@ PStask_t* PStask_clone(PStask_t* task)
     clone->deleted = task->deleted;
     clone->obsolete = task->obsolete;
     clone->noParricide = task->noParricide;
+    clone->delayReasons = task->delayReasons;
     clone->killat = task->killat;
     gettimeofday(&clone->started, NULL);
     clone->protocolVersion = task->protocolVersion;

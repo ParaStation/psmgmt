@@ -100,12 +100,20 @@ typedef enum {
 				The return value of the hook is ignored. */
     PSIDHOOK_RECV_SPAWNREQ,    /**< After receiving a message of type
 				PSP_CD_SPAWNREQ, thus requests us to actually
-				spawn some processes.
+				spawn one or several processes.
 				The argument is the task structure prototype
 				for the processes to be spawned only containing
 				information shared between all of them.
 				If the hook's return value is < 0, the spawn
-				is canceled and a fail response is sent. */
+				is canceled and a fail response is sent.
+				If the hook sets bits in the task's member
+				delayReasons the spawn will be delayed via
+				@ref PSIDspawn_delayTask(). The	hook's owner is
+				responsible to actually start or to cleanup the
+				delayed tasks respectively via
+				@ref PSIDspawn_startDelayedTasks() or
+				@ref PSIDspawn_cleanupDelayedTasks().
+			       */
     PSIDHOOK_EXEC_FORWARDER,  /**< Right before forking the forwarder's child.
 				Arg is a pointer to the child's task structure.
 				The hook might be used to prepare the child's

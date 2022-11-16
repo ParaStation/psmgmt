@@ -81,6 +81,12 @@ PStask_t *PSIDspawn_findSpawnee(PStask_ID_t ptid);
  * responsible for cleaning up the list of delayed tasks via @ref
  * PSIDspawn_cleanupDelayedTasks() if no late start was triggered.
  *
+ * For proper handling of multiple delay reasons the @a task @ref
+ * delayReasons member shall be used. I.e. the initiator of the delay
+ * shall set the bit it owns before delaying the task and clearing it
+ * in the filter function of PSIDspawn_startDelayedTasks() to release
+ * it.
+ *
  * @param task Task structure describing the task to be delayed
  *
  * @return No return value
@@ -96,6 +102,14 @@ void PSIDspawn_delayTask(PStask_t *task);
  * PSIDspawn_cleanupDelayedTasks() and will be called for each task
  * structure found in the list of delayed task. Decision shall be made
  * with regard to additional information to be passed via @a info.
+ *
+ * The decision to actually spawn the delayed task now is based on two
+ * criteria that have to be met at the same time:
+ *
+ * - The filter has cleared the last bit set in the task's
+ *   delayReasons member
+ *
+ * - The filter returns true
  *
  * @param task Task structure to check for specific action
  *
@@ -113,9 +127,12 @@ typedef bool PSIDspawn_filter_t(PStask_t *task, void *info);
  *
  * Actually start tasks that were delayed via @ref
  * PSIDspawn_delayTask(). If @a filter is given, for each task found
- * in the list of delayed tasks filter is called with @a info as a
- * second argument. The task is started only if @a filter returns
- * true for this task.
+ * in the list of delayed tasks filter is called with the task as the
+ * first and @a info as a second argument. The task is started only if
+ * @a filter returns true for this task. At the same time the filter
+ * has to clear the bit it manages in the task's delayReasons member
+ * and all other bits have been cleared before. No task will be
+ * started as long as any bit in @ref delayReasons is set.
  *
  * @param filter Filter to be called for each task found in the list
  * of delayed tasks
@@ -131,8 +148,9 @@ void PSIDspawn_startDelayedTasks(PSIDspawn_filter_t filter, void *info);
  *
  * Cleanup tasks that were delayed via @ref PSIDspawn_delayTask(). If
  * @a filter is given, for each task found in the list of delayed
- * tasks filter is called with @a info as a second argument. The task
- * is deleted only if @a filter returns true for this task.
+ * tasks filter is called with the task as the first and @a info as a
+ * second argument. The task is deleted only if @a filter returns true
+ * for this task.
  *
  * @param filter Filter to be called for each task found in the list
  * of delayed tasks
