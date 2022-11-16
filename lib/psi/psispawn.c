@@ -597,25 +597,15 @@ static int dospawn(int count, PSnodes_ID_t *dstnodes, char *workingdir,
 		   PStask_group_t taskGroup, PSrsrvtn_ID_t resID,
 		   unsigned int rank, int *errors, PStask_ID_t *tids)
 {
-    int outstanding_answers = 0;
-    char *mywd;
-
-    int i;          /* count variable */
     int ret = 0;    /* return value */
-    bool error = false;  /* error flag */
-    int fd = 0;
-    PStask_t* task; /* structure to store the information of the new process */
-    unsigned int firstRank = rank;
-    char *valgrind;
-    char *callgrind;
 
     if (!errors) {
 	PSI_log(-1, "%s: unable to reports errors\n", __func__);
 	return -1;
     }
 
-    valgrind = getenv("PSI_USE_VALGRIND");
-    callgrind = getenv("PSI_USE_CALLGRIND");
+    char *valgrind = getenv("PSI_USE_VALGRIND");
+    char *callgrind = getenv("PSI_USE_CALLGRIND");
 
     if ((taskGroup == TG_SERVICE || taskGroup == TG_SERVICE_SIG
 	|| taskGroup == TG_KVS) && count != 1) {
@@ -624,12 +614,11 @@ static int dospawn(int count, PSnodes_ID_t *dstnodes, char *workingdir,
 	return -1;
     }
 
-    for (i = 0; i < count; i++) errors[i] = 0;
+    for (int i = 0; i < count; i++) errors[i] = 0;
+    if (tids) for (int i = 0; i < count; i++) tids[i] = 0;
 
-    if (tids) for (i = 0; i < count; i++) tids[i] = 0;
-
-    /* setup task structure */
-    task = PStask_new();
+    /* setup task structure to store information of the new processes */
+    PStask_t* task = PStask_new();
     if (!task) {
 	PSI_log(-1, "%s: Cannot create task structure\n", __func__);
 	return -1;
@@ -643,6 +632,8 @@ static int dospawn(int count, PSnodes_ID_t *dstnodes, char *workingdir,
     }
     task->gid = getgid();
     task->aretty = 0;
+
+    int fd = 0;
     if (isatty(STDERR_FILENO)) {
 	task->aretty |= (1 << STDERR_FILENO);
 	fd = STDERR_FILENO;
@@ -667,14 +658,13 @@ static int dospawn(int count, PSnodes_ID_t *dstnodes, char *workingdir,
     }
     task->resID = resID;
 
-    mywd = PSC_getwd(workingdir);
-
-    if (!mywd) {
+    char *myWD = PSC_getwd(workingdir);
+    if (!myWD) {
 	PSI_warn(-1, errno, "%s: unable to get working directory", __func__);
 	goto cleanup;
     }
 
-    task->workingdir = mywd;
+    task->workingdir = myWD;
     task->argc = argc;
 
     if (!valgrind) {
@@ -726,15 +716,13 @@ static int dospawn(int count, PSnodes_ID_t *dstnodes, char *workingdir,
 	    task->argv[2]=strdup("--tool=callgrind");
 	}
 
-	uint32_t a;
-	for (a = 1; a < task->argc; a++) {
+	for (uint32_t a = 1; a < task->argc; a++) {
 	    task->argv[a+3]=strdup(argv[a]);
 	    if (!task->argv[a+3]) goto cleanup;
 	}
 	task->argc+=3;
     } else {
-	uint32_t a;
-	for (a=1; a < task->argc; a++) {
+	for (uint32_t a = 1; a < task->argc; a++) {
 	    task->argv[a]=strdup(argv[a]);
 	    if (!task->argv[a]) goto cleanup;
 	}
@@ -747,7 +735,7 @@ static int dospawn(int count, PSnodes_ID_t *dstnodes, char *workingdir,
 	goto cleanup;
     }
 
-    for (i = 0; i < count; i++) {
+    for (int i = 0; i < count; i++) {
 	if (i && dstnodes[i] == dstnodes[i-1]) continue; // do not check twice
 	/* check if dstnode is ok */
 	if (!PSC_validNode(dstnodes[i])) {
@@ -769,13 +757,14 @@ static int dospawn(int count, PSnodes_ID_t *dstnodes, char *workingdir,
     }
 
     /* send actual requests */
-    i = 0;
-    while (i < count && !error) {
-	int num;
-
+    bool error = false;
+    int expectedAnswers = 0;
+    unsigned int firstRank = rank;
+    for (int i = 0; i < count && !error;) {
 	task->rank = rank;
 	int protocolVersion = PSI_protocolVersion(dstnodes[i]);
 
+	int num;
 	if (protocolVersion == -1) {
 	    PSI_log(-1, "%s: unable to get protocol version for node %d\n",
 		    __func__, dstnodes[i]);
@@ -792,9 +781,9 @@ static int dospawn(int count, PSnodes_ID_t *dstnodes, char *workingdir,
 
 	i += num;
 	rank += num;
-	outstanding_answers += num;
+	expectedAnswers += num;
 
-	while (PSI_availMsg() > 0 && outstanding_answers) {
+	while (PSI_availMsg() > 0 && expectedAnswers) {
 	    int r = handleAnswer(firstRank, count, dstnodes, errors, tids);
 	    switch (r) {
 	    case -2:
@@ -807,7 +796,7 @@ static int dospawn(int count, PSnodes_ID_t *dstnodes, char *workingdir,
 		error = true;
 		__attribute__((fallthrough));
 	    case 1:
-		outstanding_answers--;
+		expectedAnswers--;
 		ret++;
 		break;
 	    default:
@@ -819,8 +808,8 @@ static int dospawn(int count, PSnodes_ID_t *dstnodes, char *workingdir,
 
     PStask_delete(task);
 
-    /* collect outstanding answers */
-    while (outstanding_answers > 0) {
+    /* collect expected answers */
+    while (expectedAnswers > 0) {
 	int r = handleAnswer(firstRank, count, dstnodes, errors, tids);
 	switch (r) {
 	case -2:
@@ -833,7 +822,7 @@ static int dospawn(int count, PSnodes_ID_t *dstnodes, char *workingdir,
 	    error = true;
 	    __attribute__((fallthrough));
 	case 1:
-	    outstanding_answers--;
+	    expectedAnswers--;
 	    ret++;
 	    break;
 	default:
