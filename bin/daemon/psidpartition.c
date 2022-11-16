@@ -194,6 +194,21 @@ static PSCPU_set_t **tmpStat = NULL;
  */
 static PSCPU_set_t *tmpSets = NULL;
 
+/**
+ * @brief Cleanup helper arrays
+ *
+ * @return No return value
+ */
+void cleanupTmpSpace(void)
+{
+    free(nodeStat);
+    nodeStat = NULL;
+    free(tmpStat);
+    tmpStat = NULL;
+    free(tmpSets);
+    tmpSets = NULL;
+}
+
 /** Number of nodes with pending tasks requests */
 static int pendingTaskReq = 0;
 
@@ -211,12 +226,7 @@ void initPartHandler(void)
 
     if (!nodeStat || !tmpStat || !tmpSets) {
 	PSID_log(-1, "%s: No memory\n", __func__);
-	free(nodeStat);
-	nodeStat = NULL;
-	free(tmpStat);
-	tmpStat = NULL;
-	free(tmpSets);
-	tmpSets = NULL;
+	cleanupTmpSpace();
 	return;
     }
 
@@ -242,12 +252,7 @@ void exitPartHandler(void)
     clrPartQueue(&runReq);
     clrPartQueue(&suspReq);
     clrPartQueue(&regisReq);
-    free(nodeStat);
-    nodeStat = NULL;
-    free(tmpStat);
-    tmpStat = NULL;
-    free(tmpSets);
-    tmpSets = NULL;
+    cleanupTmpSpace();
     PSIDhook_call(PSIDHOOK_MASTER_EXITPART, NULL);
 }
 
@@ -5074,6 +5079,33 @@ void PSIDpart_sendResNodes(PSrsrvtn_ID_t resID, PStask_t *task,
     }
 }
 
+/**
+ * @brief Memory cleanup
+ *
+ * Cleanup all dynamic memory currently used by the module. It will
+ * very aggressively free all allocated memory most likely destroying
+ * all the module's functionality.
+ *
+ * The purpose of this function is to cleanup before a fork()ed
+ * process is handling other businesses, e.g. becoming a forwarder. It
+ * will be registered to the PSIDHOOK_CLEARMEM hook in order to be
+ * called accordingly.
+ *
+ * @param dummy Ignored pointer to aggressive flag
+ *
+ * @return Always return 0
+ */
+static int clearMem(void *dummy)
+{
+    free(numToSend);
+    numToSend = NULL;
+
+    cleanupTmpSpace();
+
+    return 0;
+}
+
+
 void initPartition(void)
 {
     PSID_log(PSID_LOG_VERB, "%s()\n", __func__);
@@ -5117,4 +5149,8 @@ void initPartition(void)
 
     PSID_registerLoopAct(handlePartRequests);
     PSID_registerLoopAct(PSrsrvtn_gc);
+
+    if (!PSIDhook_add(PSIDHOOK_CLEARMEM, clearMem)) {
+	PSID_log(-1, "%s: cannot register to PSIDHOOK_CLEARMEM\n", __func__);
+    }
 }
