@@ -764,11 +764,11 @@ int initialize(FILE *logfile)
     /* init the configurations */
     initConfig(&SlurmConfig); // allow for early cleanup()
     int confRes = initPSSlurmConfig(PSSLURM_CONFIG_FILE);
+    haveBasicConfig = true;
     if (confRes == CONFIG_ERROR) {
 	mlog("%s: init of the configuration failed\n", __func__);
 	return 1;
     }
-    haveBasicConfig = true;
 
 
     /* we need to have root privileges */
