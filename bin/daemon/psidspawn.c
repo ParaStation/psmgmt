@@ -2383,7 +2383,7 @@ static int fillFromSPAWNLOC(PStask_t *task, PendingRes_t *res)
 	    return EADDRNOTAVAIL;
 	}
 	if (!PSCPU_any(ptask->spawnNodes[rank].CPUset, PSCPU_MAX)) {
-	    PSID_log(-1, "%s: rank %d exhausted\n", __func__, rank);
+	    PSID_log(-1, "%s: local rank %d exhausted\n", __func__, rank);
 	    return EADDRINUSE;
 	}
 
@@ -2686,6 +2686,24 @@ static bool msg_SPAWNREQUEST(DDTypedBufferMsg_t *msg)
 	    PSID_log(-1, "%s: no parent task?!\n", __func__);
 	    return true;
 	}
+
+	/* for the time being still invalidate the spawnNodes */
+	/* On the long run there will be no spawnNodes */
+	if (!isServiceTask(group)
+	    && PSIDnodes_getDmnProtoV(PSC_getID(ptask->loggertid)) >= 415
+	    && PSIDnodes_getDmnProtoV(PSC_getID(msg->header.dest)) >= 415) {
+	    if (ptask->spawnNodes) {
+		if (rank + num - 1 >= ptask->spawnNum) {
+		    PSID_log(-1, "%s: ranks %d-%d  out of range\n", __func__,
+			     rank, rank + num -1);
+		    num = ptask->spawnNum - rank;
+		}
+		for (uint32_t r = 0; r < num; r++) {
+		    /* Invalidate this entry */
+		    PSCPU_clrAll(ptask->spawnNodes[rank+r].CPUset);
+		}
+	    }
+	}
     }
 
     if (PSC_getID(msg->header.dest) == PSC_getMyID()) {
@@ -2719,6 +2737,7 @@ static bool msg_SPAWNREQUEST(DDTypedBufferMsg_t *msg)
     if (fragNum == 0 && !isServiceTask(group)
 	&& (PSIDnodes_getDmnProtoV(PSC_getID(ptask->loggertid)) < 415
 	    || PSIDnodes_getDmnProtoV(PSC_getID(msg->header.dest)) < 415)) {
+	/* Old protocol */
 	PSpart_slot_t *spawnNodes = ptask->spawnNodes;
 	if (!spawnNodes || rank + num - 1 >= ptask->spawnNum) {
 	    PSID_log(-1, "%s: ranks %d-%d  out of range\n", __func__,
@@ -2731,7 +2750,7 @@ static bool msg_SPAWNREQUEST(DDTypedBufferMsg_t *msg)
 		    || !PSCPU_any(spawnNodes[rank+r].CPUset, PSCPU_MAX);
 	    }
 	    if (notAvail) {
-		PSID_log(-1, "%s: node exhausted\n", __func__);
+		PSID_log(-1, "%s: nodes exhausted\n", __func__);
 		answer.error = EADDRINUSE;
 	    }
 	}
