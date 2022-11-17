@@ -157,7 +157,8 @@ Set of psid plugins for debug and testing psmgmt. This includes:
 - psBlackHole to randomly drop ParaStation messages
 - fakenode to mimick more potent hardware via pre-recorded hwloc info
 - no_flowcontrol to disable flow control for testing purposes
-- delaySlurmMsg to delay the arrival of Slurm messags in psslurm
+- delaySlurmMsg to delay the arrival of Slurm messages in psslurm
+- delayPSPMsg to delay the arrival of ParaStation protocol messages
 
 %endif
 
@@ -465,6 +466,8 @@ exit 0
 %if !0%{?disable_testplugins}
 %files testplugins
 %defattr(-,root,root,-)
+%exclude %{_plugindir}/delayPSPMsg.la
+%{_plugindir}/delayPSPMsg.so
 %exclude %{_plugindir}/delaySlurmMsg.la
 %{_plugindir}/delaySlurmMsg.so
 %exclude %{_plugindir}/delegateStat.la

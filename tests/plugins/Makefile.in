@@ -18,7 +18,7 @@
 # ParaStation
 #
 # Copyright (C) 2012-2021 ParTec Cluster Competence Center GmbH, Munich
-# Copyright (C) 2021 ParTec AG, Munich
+# Copyright (C) 2021-2022 ParTec AG, Munich
 #
 # This file may be distributed under the terms of the Q Public License
 # as defined in the file LICENSE.QPL included in the packaging of this
@@ -153,13 +153,16 @@ am__uninstall_files_from_dir = { \
   }
 am__installdirs = "$(DESTDIR)$(plugindir)"
 LTLIBRARIES = $(noinst_LTLIBRARIES) $(plugin_LTLIBRARIES)
-delaySlurmMsg_la_LIBADD =
-delaySlurmMsg_la_SOURCES = delaySlurmMsg.c
-delaySlurmMsg_la_OBJECTS = delaySlurmMsg_la-delaySlurmMsg.lo
+delayPSPMsg_la_DEPENDENCIES = $(libplugincommon) $(libpscommon)
+delayPSPMsg_la_SOURCES = delayPSPMsg.c
+delayPSPMsg_la_OBJECTS = delayPSPMsg.lo
 AM_V_lt = $(am__v_lt_@AM_V@)
 am__v_lt_ = $(am__v_lt_@AM_DEFAULT_V@)
 am__v_lt_0 = --silent
 am__v_lt_1 = 
+delaySlurmMsg_la_LIBADD =
+delaySlurmMsg_la_SOURCES = delaySlurmMsg.c
+delaySlurmMsg_la_OBJECTS = delaySlurmMsg_la-delaySlurmMsg.lo
 delegateStat_la_DEPENDENCIES = $(libplugincommon) $(libpscommon)
 delegateStat_la_SOURCES = delegateStat.c
 delegateStat_la_OBJECTS = delegateStat.lo
@@ -230,7 +233,8 @@ am__v_at_1 =
 DEFAULT_INCLUDES = -I.@am__isrc@
 depcomp = $(SHELL) $(top_srcdir)/scripts/depcomp
 am__maybe_remake_depfiles = depfiles
-am__depfiles_remade = ./$(DEPDIR)/delaySlurmMsg_la-delaySlurmMsg.Plo \
+am__depfiles_remade = ./$(DEPDIR)/delayPSPMsg.Plo \
+	./$(DEPDIR)/delaySlurmMsg_la-delaySlurmMsg.Plo \
 	./$(DEPDIR)/delegateStat.Plo ./$(DEPDIR)/dyn_resources.Plo \
 	./$(DEPDIR)/fakenode_la-fakenode.Plo \
 	./$(DEPDIR)/fixLoginuid.Plo ./$(DEPDIR)/no_flowcontrol.Plo \
@@ -260,15 +264,16 @@ AM_V_CCLD = $(am__v_CCLD_@AM_V@)
 am__v_CCLD_ = $(am__v_CCLD_@AM_DEFAULT_V@)
 am__v_CCLD_0 = @echo "  CCLD    " $@;
 am__v_CCLD_1 = 
-SOURCES = delaySlurmMsg.c delegateStat.c dyn_resources.c fakenode.c \
-	fixLoginuid.c no_flowcontrol.c oldHook.c plugin1.c plugin2.c \
-	plugin3.c plugin4.c plugin5.c plugin6.c plugin7.c plugin8.c \
-	plugin9.c pluginpsconfig.c psBlackHole.c spank_test.c
-DIST_SOURCES = delaySlurmMsg.c delegateStat.c dyn_resources.c \
+SOURCES = delayPSPMsg.c delaySlurmMsg.c delegateStat.c dyn_resources.c \
 	fakenode.c fixLoginuid.c no_flowcontrol.c oldHook.c plugin1.c \
 	plugin2.c plugin3.c plugin4.c plugin5.c plugin6.c plugin7.c \
 	plugin8.c plugin9.c pluginpsconfig.c psBlackHole.c \
 	spank_test.c
+DIST_SOURCES = delayPSPMsg.c delaySlurmMsg.c delegateStat.c \
+	dyn_resources.c fakenode.c fixLoginuid.c no_flowcontrol.c \
+	oldHook.c plugin1.c plugin2.c plugin3.c plugin4.c plugin5.c \
+	plugin6.c plugin7.c plugin8.c plugin9.c pluginpsconfig.c \
+	psBlackHole.c spank_test.c
 am__can_run_installinfo = \
   case $$AM_UPDATE_INFO_DIR in \
     n|no|NO) false;; \
@@ -483,9 +488,10 @@ noinst_LTLIBRARIES = plugin1.la plugin2.la plugin3.la plugin4.la \
 	plugin5.la plugin6.la plugin7.la plugin8.la plugin9.la \
 	dyn_resources.la fixLoginuid.la pluginpsconfig.la oldHook.la \
 	$(am__append_1)
-plugin_LTLIBRARIES = no_flowcontrol.la delaySlurmMsg.la	\
-	delegateStat.la psBlackHole.la fakenode.la
+plugin_LTLIBRARIES = no_flowcontrol.la delaySlurmMsg.la			\
+	delegateStat.la psBlackHole.la fakenode.la delayPSPMsg.la
 
+delayPSPMsg_la_LIBADD = $(libplugincommon) $(libpscommon)
 delaySlurmMsg_la_CPPFLAGS = $(AM_CPPFLAGS)		\
 	-I$(top_srcdir)/plugins/psslurm/src/psslurm	\
 	-I$(top_srcdir)/plugins/psslurm/src/common
@@ -580,6 +586,9 @@ clean-pluginLTLIBRARIES:
 	  rm -f $${locs}; \
 	}
 
+delayPSPMsg.la: $(delayPSPMsg_la_OBJECTS) $(delayPSPMsg_la_DEPENDENCIES) $(EXTRA_delayPSPMsg_la_DEPENDENCIES) 
+	$(AM_V_CCLD)$(LINK) -rpath $(plugindir) $(delayPSPMsg_la_OBJECTS) $(delayPSPMsg_la_LIBADD) $(LIBS)
+
 delaySlurmMsg.la: $(delaySlurmMsg_la_OBJECTS) $(delaySlurmMsg_la_DEPENDENCIES) $(EXTRA_delaySlurmMsg_la_DEPENDENCIES) 
 	$(AM_V_CCLD)$(LINK) -rpath $(plugindir) $(delaySlurmMsg_la_OBJECTS) $(delaySlurmMsg_la_LIBADD) $(LIBS)
 
@@ -643,6 +652,7 @@ mostlyclean-compile:
 distclean-compile:
 	-rm -f *.tab.c
 
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/delayPSPMsg.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/delaySlurmMsg_la-delaySlurmMsg.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/delegateStat.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/dyn_resources.Plo@am__quote@ # am--include-marker
@@ -847,7 +857,8 @@ clean-am: clean-generic clean-libtool clean-noinstLTLIBRARIES \
 	clean-pluginLTLIBRARIES mostlyclean-am
 
 distclean: distclean-am
-		-rm -f ./$(DEPDIR)/delaySlurmMsg_la-delaySlurmMsg.Plo
+		-rm -f ./$(DEPDIR)/delayPSPMsg.Plo
+	-rm -f ./$(DEPDIR)/delaySlurmMsg_la-delaySlurmMsg.Plo
 	-rm -f ./$(DEPDIR)/delegateStat.Plo
 	-rm -f ./$(DEPDIR)/dyn_resources.Plo
 	-rm -f ./$(DEPDIR)/fakenode_la-fakenode.Plo
@@ -911,7 +922,8 @@ install-ps-am:
 installcheck-am:
 
 maintainer-clean: maintainer-clean-am
-		-rm -f ./$(DEPDIR)/delaySlurmMsg_la-delaySlurmMsg.Plo
+		-rm -f ./$(DEPDIR)/delayPSPMsg.Plo
+	-rm -f ./$(DEPDIR)/delaySlurmMsg_la-delaySlurmMsg.Plo
 	-rm -f ./$(DEPDIR)/delegateStat.Plo
 	-rm -f ./$(DEPDIR)/dyn_resources.Plo
 	-rm -f ./$(DEPDIR)/fakenode_la-fakenode.Plo

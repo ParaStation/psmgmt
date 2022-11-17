@@ -743,6 +743,7 @@ tests/functional/test_paramspace.c \
 tests/functional/test_psicomm.c \
 tests/plugins/Makefile.am \
 tests/plugins/Makefile.in \
+tests/plugins/delayPSPMsg.c \
 tests/plugins/delaySlurmMsg.c \
 tests/plugins/delegateStat.c \
 tests/plugins/dyn_resources.c \
