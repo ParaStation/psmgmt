@@ -36,7 +36,12 @@
 
 int usize = 0;
 
+
+/** Number of clients to be expected -- more clients might appear */
 int np = 0;
+
+/** width of field to fit ranks up to np-1 */
+static int npWidth = 1;
 
 bool enableGDB = false;
 
@@ -644,10 +649,10 @@ static void handleOutMsg(PSLog_Msg_t *msg, int outfd)
 	size_t count = msg->header.len - PSLog_headerSize;
 
 	if (PSIlog_getDebugMask() & PSILOG_LOG_VERB) {
-	    snprintf(prefix, sizeof(prefix), "%d,%zd: ", msg->sender,
+	    snprintf(prefix, sizeof(prefix), "%*d,%zd: ", npWidth, msg->sender,
 		     msg->header.len - PSLog_headerSize);
 	} else if (count > 0) {
-	    snprintf(prefix, sizeof(prefix), "%d: ", msg->sender);
+	    snprintf(prefix, sizeof(prefix), "%*d: ", npWidth, msg->sender);
 	}
 
 	while (count>0) {
@@ -1363,6 +1368,11 @@ int main( int argc, char**argv)
 
     if ((envstr = getenv("PSI_NP_INFO"))) {
 	np = atoi(envstr);
+	int tmp = np-1;
+	while (tmp > 9) {
+	    npWidth++;
+	    tmp /= 10;
+	}
     }
 
     if ((envstr = getenv("PSI_USIZE_INFO"))) {
