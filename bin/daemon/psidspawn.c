@@ -48,16 +48,16 @@
 #include "config_parsing.h"
 #include "timer.h"
 
-#include "psidutil.h"
-#include "psidforwarder.h"
-#include "psidnodes.h"
-#include "psidtask.h"
-#include "psidcomm.h"
 #include "psidclient.h"
-#include "psidstatus.h"
-#include "psidsignal.h"
+#include "psidcomm.h"
+#include "psidforwarder.h"
 #include "psidhook.h"
+#include "psidnodes.h"
 #include "psidpin.h"
+#include "psidsignal.h"
+#include "psidstatus.h"
+#include "psidtask.h"
+#include "psidutil.h"
 
 /** File-descriptor used by the alarm-handler to write its errno */
 static int alarmFD = -1;
@@ -2347,6 +2347,116 @@ static inline bool isServiceTask(PStask_group_t group)
 }
 
 /**
+ * @brief Fill task's CPUset from SPAWNLOC results
+ *
+ * Fill the task structure @a task with a CPUset taken from the
+ * pending resource @a res holding the content of one or multiple
+ * PSP_DD_SPAWNLOC messages received before. In case of a local
+ * spawner to corresponding CPUset is taken directly from spawner's
+ * task structure.
+ *
+ * This mechanism is obsoleted by PSP_DD_RESSLOTS messages and @ref
+ * PSIDspawn_fillTaskFromResInfo().
+ *
+ * @param task Task structure to be filled with a CPU set
+ *
+ * @param res Structure holding the content of a SPAWNLOC messages
+ *
+ * @return On success 0 is returned, or a value to be interpreted as
+ * an errno in case of failure; it might be passed to the error field
+ * of a message of type DDErrorMsg_t
+ */
+static int fillFromSPAWNLOC(PStask_t *task, PendingRes_t *res)
+{
+    int32_t rank = task->rank;
+
+    /* use the old mechanism utilizing PSP_DD_SPAWNLOC messages or local info */
+    if (PSC_getID(task->spawnertid) == PSC_getMyID()) {
+	/* local spawner */
+	PStask_t *ptask = PStasklist_find(&managedTasks, task->spawnertid);
+	if (!ptask) {
+	    PSID_log(-1, "%s: no parent task?!\n", __func__);
+	    return EACCES;
+	}
+	if (!ptask->spawnNodes || rank >= (int)ptask->spawnNum) {
+	    PSID_log(-1, "%s: rank %d out of range\n", __func__, rank);
+	    return EADDRNOTAVAIL;
+	}
+	if (!PSCPU_any(ptask->spawnNodes[rank].CPUset, PSCPU_MAX)) {
+	    PSID_log(-1, "%s: rank %d exhausted\n", __func__, rank);
+	    return EADDRINUSE;
+	}
+
+	PSCPU_set_t *rankSet = &ptask->spawnNodes[rank].CPUset;
+	memcpy(task->CPUset, *rankSet, sizeof(task->CPUset));
+
+	PSID_log(PSID_LOG_SPAWN, "%s: got cores locally: ...%s\n", __func__,
+		 PSCPU_print_part(task->CPUset, 8));
+
+	/* Invalidate this entry */
+	PSCPU_clrAll(*rankSet);
+
+    } else {
+	/* we depend on PSP_DD_SPAWNLOC message already received */
+	if (!res || rank - res->rank >= (int32_t)res->num) {
+	    PSID_log(-1, "%s: rank %d out of range\n", __func__, rank);
+	    return EADDRNOTAVAIL;
+	}
+	if (!PSCPU_any(res->CPUsets[rank - res->rank], PSCPU_MAX)) {
+	    PSID_log(-1, "%s: rank %d exhausted\n", __func__, rank);
+	    return EADDRINUSE;
+	}
+
+	PSCPU_set_t *rankSet = &res->CPUsets[rank - res->rank];
+	memcpy(task->CPUset, *rankSet, sizeof(task->CPUset));
+
+	PSID_log(PSID_LOG_SPAWN, "%s: got cores remotely: ...%s\n", __func__,
+		 PSCPU_print_part(task->CPUset, 8));
+    }
+    return 0;
+}
+
+int PSIDspawn_fillTaskFromResInfo(PStask_t *task, PSresinfo_t *res)
+{
+    int32_t rank = task->rank;
+
+    /* we depend on PSP_DD_RESCREATED and PSP_DD_RESSLOTS message */
+    if (!res || !res->nLocalSlots) {
+	/* Resinfo not yet complete => delay task */
+	task->delayReasons |= DELAY_RESINFO;
+	return 0;
+    }
+
+    if (task->rank < res->minRank || task->rank > res->maxRank) {
+	PSID_log(-1, "%s: res %d rank %d out of range\n", __func__,
+		 res->resID, rank);
+	return EADDRNOTAVAIL;
+    }
+
+    /* try to fill the CPUset */
+    for (uint16_t s = 0; s < res->nLocalSlots; s++) {
+	if (task->rank != res->localSlots[s].rank) continue;
+
+	/* local slot found for rank */
+	memcpy(task->CPUset, res->localSlots[s].CPUset, sizeof(task->CPUset));
+
+	if (!PSCPU_any(task->CPUset, PSCPU_MAX)) {
+	    PSID_log(-1, "%s: res %d rank %d exhausted\n", __func__,
+		     res->resID, rank);
+	    return EADDRINUSE;
+	}
+
+	PSID_log(PSID_LOG_SPAWN, "%s: res %d rank %d got cores: ...%s\n",
+		 __func__, res->resID, rank, PSCPU_print_part(task->CPUset, 8));
+	return 0;
+    }
+
+    /* we missed the resource for the requested rank ?! */
+    PSID_log(-1, "%s: res %d rank %d not found\n", __func__, res->resID, rank);
+    return EADDRNOTAVAIL;
+}
+
+/**
  * @brief Spawn processes
  *
  * Actually spawn processes as described on the data buffer @a
@@ -2372,16 +2482,15 @@ static void handleSpawnReq(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
 	    .len = sizeof(answer) },
 	.error = 0,
 	.request = 0,};
-    uint32_t num, r;
-    PStask_t *task;
 
     /* ensure we use the same byteorder as libpsi */
     bool byteOrder = setByteOrder(true);
 
     /* fetch info from message */
+    uint32_t num;
     getUint32(&ptr, &num);
 
-    task = PStask_new();
+    PStask_t *task = PStask_new();
 
     ptr += PStask_decodeTask(ptr, task, false);
     task->spawnertid = msg->header.sender;
@@ -2397,7 +2506,7 @@ static void handleSpawnReq(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
 	PSID_log(-1, "%s: PSIDHOOK_RECV_SPAWNREQ failed.\n", __func__);
 	answer.error = EINVAL; //TODO which error code?
 	/* send one answer per rank */
-	for (r = 0; r < num; r++) {
+	for (uint32_t r = 0; r < num; r++) {
 	    answer.request = task->rank + r;
 	    sendMsg(&answer);
 	}
@@ -2407,69 +2516,37 @@ static void handleSpawnReq(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
 	return;
     }
 
-    /* Check if we have to and can copy the location */
-    if (isServiceTask(task->group)) {
-	PSCPU_setAll(task->CPUset);
+    /* service tasks will not be pinned (i.e. pinned to all HW threads) */
+    if (isServiceTask(task->group)) PSCPU_setAll(task->CPUset);
+
+    bool useLOC = PSIDnodes_getDmnProtoV(PSC_getID(task->loggertid)) < 415;
+
+    PendingRes_t *pRes = NULL;
+    PSresinfo_t *resI = NULL;
+    if (useLOC) {
+	pRes = findPendingRes(msg->header.sender, task->rank);
+    } else {
+	resI = PSID_findResInfo(task->loggertid, task->spawnertid, task->resID);
     }
 
-    PendingRes_t *res = findPendingRes(msg->header.sender, task->rank);
-
-    for (r = 0; r < num; r++) {
-	char **extraEnv;
-	uint32_t extraEnvSize;
-
+    for (uint32_t r = 0; r < num; r++) {
 	PStask_t *clone = PStask_clone(task);
 	clone->rank += r;
-	int32_t rank = clone->rank;
-	answer.request = rank;
+	answer.request = clone->rank;
 
+	char **extraEnv;
+	uint32_t extraEnvSize;
 	getStringArrayM(&ptr, &extraEnv, &extraEnvSize);
-
 	if (extraEnvSize) {
 	    appendStrV(&clone->environ, &clone->envSize, extraEnv);
 	    free(extraEnv);
 	}
 
 	if (!isServiceTask(task->group)) {
-	    bool localSender = (PSC_getID(msg->header.sender) == PSC_getMyID());
-	    if (localSender) {
-		PStask_t *ptask = PStasklist_find(&managedTasks,
-						  msg->header.sender);
-		if (!ptask) {
-		    PSID_log(-1, "%s: no parent task?!\n", __func__);
-		    answer.error = EACCES;
-		} else if (!ptask->spawnNodes || rank >= (int)ptask->spawnNum) {
-		    PSID_log(-1, "%s: rank %d out of range\n", __func__, rank);
-		    answer.error = EADDRNOTAVAIL;
-		} else if (!PSCPU_any(ptask->spawnNodes[rank].CPUset,
-				      PSCPU_MAX)) {
-		    PSID_log(-1, "%s: rank %d exhausted\n", __func__, rank);
-		    answer.error = EADDRINUSE;
-		} else {
-		    PSCPU_set_t *rankSet = &ptask->spawnNodes[rank].CPUset;
-		    memcpy(clone->CPUset, *rankSet, sizeof(clone->CPUset));
-
-		    PSID_log(PSID_LOG_SPAWN, "%s: get cores locally: ...%s\n",
-			     __func__, PSCPU_print_part(clone->CPUset, 8));
-
-		    /* Invalidate this entry */
-		    PSCPU_clrAll(*rankSet);
-		}
+	    if (useLOC) {
+		answer.error = fillFromSPAWNLOC(clone, pRes);
 	    } else {
-		if (!res || rank - res->rank >= (int32_t)res->num) {
-		    PSID_log(-1, "%s: rank %d out of range\n", __func__, rank);
-		    answer.error = EADDRNOTAVAIL;
-		} else if (!PSCPU_any(res->CPUsets[rank - res->rank],
-				      PSCPU_MAX)) {
-		    PSID_log(-1, "%s: rank %d exhausted\n", __func__, rank);
-		    answer.error = EADDRINUSE;
-		} else {
-		    PSCPU_set_t *rankSet = &res->CPUsets[rank - res->rank];
-		    memcpy(clone->CPUset, *rankSet, sizeof(clone->CPUset));
-
-		    PSID_log(PSID_LOG_SPAWN, "%s: get cores remotely: ...%s\n",
-			     __func__, PSCPU_print_part(clone->CPUset, 8));
-		}
+		answer.error = PSIDspawn_fillTaskFromResInfo(clone, resI);
 	    }
 
 	    if  (answer.error) {
@@ -2480,12 +2557,13 @@ static void handleSpawnReq(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
 	}
 
 	// Now clone might be used for actual spawn
+	// Save some data since clone will disappear if spawnTask() fails
 	PStask_ID_t loggerTID = clone->loggertid;
 	PSrsrvtn_ID_t resID = clone->resID;
 	PSCPU_set_t CPUset;
 	PSCPU_copy(CPUset, clone->CPUset);
-	char tasktxt[256];
 
+	char tasktxt[256];
 	PStask_snprintf(tasktxt, sizeof(tasktxt), clone);
 	PSID_log(PSID_LOG_SPAWN, "%s: Spawning %s\n", __func__, tasktxt);
 
@@ -2507,10 +2585,10 @@ static void handleSpawnReq(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
     setByteOrder(byteOrder);
 
     /* cleanup res if any */
-    if (res) {
-	free(res->CPUsets);
-	list_del(&res->next);
-	free(res);
+    if (pRes) {
+	free(pRes->CPUsets);
+	list_del(&pRes->next);
+	free(pRes);
     }
 
     PStask_delete(task);
@@ -2638,7 +2716,9 @@ static bool msg_SPAWNREQUEST(DDTypedBufferMsg_t *msg)
     }
 
     /* Check if we have to and can send a LOC-message */
-    if (fragNum == 0 && !isServiceTask(group)) {
+    if (fragNum == 0 && !isServiceTask(group)
+	&& (PSIDnodes_getDmnProtoV(PSC_getID(ptask->loggertid)) < 415
+	    || PSIDnodes_getDmnProtoV(PSC_getID(msg->header.dest)) < 415)) {
 	PSpart_slot_t *spawnNodes = ptask->spawnNodes;
 	if (!spawnNodes || rank + num - 1 >= ptask->spawnNum) {
 	    PSID_log(-1, "%s: ranks %d-%d  out of range\n", __func__,
@@ -2662,16 +2742,16 @@ static bool msg_SPAWNREQUEST(DDTypedBufferMsg_t *msg)
 		sendMsg(&answer);
 	    }
 	    return true;
-	} else {
-	    if (!send_SPAWNLOC(num, rank, msg->header.sender,
-			       msg->header.dest, ptask)) {
-		answer.error = EHOSTDOWN;
-		for (uint32_t r = 0; r < num; r++) {
-		    answer.request = rank + r;
-		    sendMsg(&answer);
-		}
-		return true;
+	}
+
+	if (!send_SPAWNLOC(num, rank, msg->header.sender,
+			   msg->header.dest, ptask)) {
+	    answer.error = EHOSTDOWN;
+	    for (uint32_t r = 0; r < num; r++) {
+		answer.request = rank + r;
+		sendMsg(&answer);
 	    }
+	    return true;
 	}
     }
 

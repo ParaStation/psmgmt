@@ -97,7 +97,7 @@ PSjob_t* PSID_findJobInSession(PSsession_t *session, PStask_ID_t spawnerTID);
  * @return Returns the reservation or NULL if none found
  */
 PSresinfo_t* PSID_findResInfo(PStask_ID_t loggerTID, PStask_ID_t spawnerTID,
-			  PSrsrvtn_ID_t resID);
+			      PSrsrvtn_ID_t resID);
 
 /**
  * @brief Initialize session stuff

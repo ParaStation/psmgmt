@@ -22,6 +22,8 @@
 #include "pstask.h"
 #include "selector.h"
 
+#include "psidsession.h"
+
 /**
  * @brief Cleanup task waiting to be spawned by node
  *
@@ -160,6 +162,27 @@ void PSIDspawn_startDelayedTasks(PSIDspawn_filter_t filter, void *info);
  * @return No return value
  */
 void PSIDspawn_cleanupDelayedTasks(PSIDspawn_filter_t filter, void *info);
+
+/**
+ * @brief Fill task's CPUset from Resinfo
+ *
+ * Fill the task structure @a task with a CPUset taken from the
+ * resource information @a res that was received via PSP_DD_RESCREATED
+ * and PSP_DD_RESSLOTS messages before. If @a res is NULL or still
+ * incomplete, the DELAY_RESINFO bit is set in the task's delayReasons
+ * member in order to flag to caller to delay the task creation.
+ *
+ * This mechanism is obsoletes the usage of PSP_DD_SPAWNLOC messages.
+ *
+ * @param task Task structure to be filled with a CPU set
+ *
+ * @param res Structure holding the resource information to utilize
+ *
+ * @return On success 0 is returned, or a value to be interpreted as
+ * an errno in case of failure; it might be passed to the error field
+ * of a message of type DDErrorMsg_t
+ */
+int PSIDspawn_fillTaskFromResInfo(PStask_t *task, PSresinfo_t *res);
 
 /**
  * @brief Handler to execute local task

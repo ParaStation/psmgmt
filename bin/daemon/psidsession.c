@@ -16,10 +16,12 @@
 #include "psserial.h"
 #include "psdaemonprotocol.h"
 
-#include "psidutil.h"
+#include "psidcomm.h"
 #include "psidhook.h"
 #include "psidnodes.h"
-#include "psidcomm.h"
+#include "psidspawn.h"
+#include "psidtask.h"
+#include "psidutil.h"
 
 /** Pool of compact reservation information structures (of type PSresinfo_t) */
 static PSitems_t resinfoPool = NULL;
@@ -51,12 +53,35 @@ PSresinfo_t *getResinfo(void)
 }
 
 /**
- * Release all memory of a resinfo and put it back into the pool
+ * @brief Filter passed to @ref PSIDspawn_cleanupDelayedTasks()
+ *
+ * @param task Task to investigate
+ *
+ * @param info Pointer to the reservation to match
+ *
+ * @return Return true if @a task is associated to reservation passed
+ * in @a info; or false otherwise
+ */
+static bool cleanupFilter(PStask_t *task, void *info)
+{
+    PSresinfo_t *resinfo = info;
+
+    if (task->resID != resinfo->resID) return false;
+
+    task->delayReasons &= ~DELAY_RESINFO;
+    return true;
+}
+
+/**
+ * Release all memory of a resinfo and put it back into the pool. As a
+ * side effect associated delayed tasks will be cleaned up, too.
  *
  * @param resinfo Resinfo to release
  */
 static void putResinfo(PSresinfo_t *resinfo)
 {
+    PSIDspawn_cleanupDelayedTasks(cleanupFilter, resinfo);
+
     free(resinfo->entries);
     resinfo->entries = NULL;
     free(resinfo->localSlots);
@@ -317,6 +342,9 @@ static void handleResCreated(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
 	return;
     }
 
+    /* set this early to enable putResinfo(res) to cleanup delayed tasks */
+    res->resID = resID;
+
     /* calculate size of one entry in the messsage */
     size_t entrysize = sizeof(res->entries->node)
 	+ sizeof(res->entries->firstrank) + sizeof(res->entries->lastrank);
@@ -330,8 +358,6 @@ static void handleResCreated(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
 	PSID_log(-1, "%s: No memory for reservation info entries\n", __func__);
 	return;
     }
-
-    res->resID = resID;
 
     /* get entries */
     for (size_t i = 0; i < res->nEntries; i++) {
@@ -542,6 +568,52 @@ static bool msg_RESRELEASED(DDBufferMsg_t *msg)
 }
 
 /**
+ * @brief Filter passed to @ref PSIDspawn_startDelayedTasks().
+ *
+ * If the reservation info passed in @a info matches @a task, this
+ * function will try to fill the missing CPUset into the task to spawn
+ * utilizing @ref PSIDspawn_fillTaskFromResInfo(). If successful, the
+ * filter will return true. Otherwise a PSP_CD_SPAWNFAILED message is
+ * emitted to the spawner and @a task is evicted from the list of
+ * delayed tasks and deleted.
+ *
+ * @param task Task to investigate
+ *
+ * @param info Pointer to the reservation to match
+ *
+ * @return Return true if @a task is associated to reservation passed
+ * in @a info and filled with the missing CPUset; or false otherwise
+ */
+static bool startFilter(PStask_t *task, void *info)
+{
+    PSresinfo_t *res = info;
+
+    if (task->resID != res->resID || !res->nLocalSlots
+	|| !(task->delayReasons | DELAY_RESINFO)) return false;
+
+    DDErrorMsg_t answer = {
+	.header = {
+	    .type = PSP_CD_SPAWNFAILED,
+	    .sender = PSC_getMyTID(),
+	    .dest = task->spawnertid,
+	    .len = sizeof(answer) },
+	.error = 0,
+	.request = task->rank,};
+
+    answer.error = PSIDspawn_fillTaskFromResInfo(task, res);
+
+    if (answer.error) {
+	sendMsg(&answer);
+	PStasklist_dequeue(task);
+	PStask_delete(task);
+	return false;
+    }
+
+    task->delayReasons &= ~DELAY_RESINFO;
+    return true;
+}
+
+/**
  * @brief Store local reservation information
  *
  * Actually stores the local reservation information contained in the
@@ -576,6 +648,11 @@ static void handleResSlots(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
 		 PSC_printTID(loggerTID));
 	PSID_log(-1, "spawner %s and resID %d\n", PSC_printTID(spawnerTID),
 		 resID);
+	/* we might have to cleanup delayed tasks */
+	res = getResinfo();
+	res->resID = resID;
+	putResinfo(res);
+
 	return;
     }
     if (res->localSlots) {
@@ -620,6 +697,9 @@ static void handleResSlots(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
     getInt32(&ptr, &rank);
     if (rank != -1)
 	PSID_log(-1, "%s: trailing slot for rank %d", __func__, rank);
+
+    /* there might be delayed tasks that are capable to start now */
+    PSIDspawn_startDelayedTasks(startFilter, res);
 }
 
 /**
