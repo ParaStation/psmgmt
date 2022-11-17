@@ -173,8 +173,6 @@ include/pse.h \
 include/psenv.h \
 include/pshostlist.h \
 include/psi.h \
-include/psicomm.h \
-include/psicomm_proto.h \
 include/psienv.h \
 include/psiinfo.h \
 include/psilog.h \
@@ -232,7 +230,6 @@ lib/pse/pse.c \
 lib/psi/Makefile.am \
 lib/psi/Makefile.in \
 lib/psi/psi.c \
-lib/psi/psicomm.c \
 lib/psi/psienv.c \
 lib/psi/psiinfo.c \
 lib/psi/psilog.c \
@@ -767,7 +764,6 @@ tests/functional/listInfoTypes.c \
 tests/functional/test_bitsets.c \
 tests/functional/test_logging.c \
 tests/functional/test_paramspace.c \
-tests/functional/test_psicomm.c \
 tests/plugins/Makefile.am \
 tests/plugins/Makefile.in \
 tests/plugins/delayPSPMsg.c \

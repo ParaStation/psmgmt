@@ -25,7 +25,7 @@
 /** Unique version number of the high-level protocol */
 #define PSProtocolVersion 344
 
-/** The location of the UNIX socket used to contact the daemon. */
+/** The location of the UNIX socket used to contact the daemon */
 #define PSmasterSocketName "\0parastation.sock"
 
 /** Environment used to pass number of service processes to logger */
@@ -224,7 +224,7 @@ typedef enum {
     PSP_INFO_LIST_RESNODES = 0x0032, /**< Get a reservation's node-list */
 } PSP_Info_t;
 
-/** Messages concerning spawning of tasks. */
+/** Messages concerning spawning of tasks */
 #define PSP_CD_SPAWNREQUEST      0x0020  /**< Spawn one or more processes */
 #define PSP_CD_SPAWNSUCCESS      0x0021  /**< Reply on successful spawn */
 #define PSP_CD_SPAWNFAILED       0x0022  /**< Reply on failed spawn */
@@ -259,7 +259,7 @@ typedef enum {
     PSP_ACCOUNT_LOG,              /**< Special info only known by the logger */
 } PSP_Account_t;
 
-/** All the signal handling stuff. */
+/** All the signal handling stuff */
 #define PSP_CD_NOTIFYDEAD        0x0040  /**< Register to get a signal */
 #define PSP_CD_NOTIFYDEADRES     0x0041  /**< Reply registration's success */
 #define PSP_CD_RELEASE           0x0042  /**< Cancel the signal */
@@ -268,7 +268,7 @@ typedef enum {
 #define PSP_CD_WHODIED           0x0045  /**< Find out who sent a signal */
 #define PSP_CD_SIGRES            0x0046  /**< Any error occurred during sending signal? */
 
-/** Messages to steer the daemons. */
+/** Messages to steer the daemons */
 #define PSP_CD_DAEMONSTART       0x0050  /**< Request to start remote daemon */
 #define PSP_CD_DAEMONSTOP        0x0051  /**< Request to stop remote daemon */
 #define PSP_CD_DAEMONRESET       0x0052  /**< Request to reset daemon */
@@ -298,7 +298,7 @@ typedef enum {
     PSP_ENV_UNSET,                /**< Unset an environment variable */
 } PSP_Env_t;
 
-/** Creation and handling of partitions. */
+/** Creation and handling of partitions */
 #define PSP_CD_CREATEPART        0x0060  /**< Bind a partition to a job */
 #define PSP_CD_CREATEPARTNL      0x0061  /**< Partition request nodelist */
 #define PSP_CD_PARTITIONRES      0x0062  /**< Reply partitions bind */
@@ -310,17 +310,15 @@ typedef enum {
 #define PSP_CD_GETSLOTS          0x0068  /**< Request slots from reservation */
 #define PSP_CD_SLOTSRES          0x0069  /**< Slots got from a reservation */
 
-/** Flow-control to loggers and forwarders. */
+/** Flow-control to loggers and forwarders */
 #define PSP_CD_SENDSTOP          0x0070  /**< Stop sending further packets */
 #define PSP_CD_SENDCONT          0x0071  /**< Continue sending packets */
 
-/** Client-client messages. These are fully transparent for the daemons. */
+/** Client-client messages. These are fully transparent to the daemons */
 #define PSP_CC_MSG               0x0080  /**< Message between clients */
 #define PSP_CC_ERROR             0x0081  /**< Error in client communication */
 #define PSP_PF_MSG               0x0082  /**< Message to/from pluginforwarder */
 #define PSP_PF_ERROR             0x0083  /**< Error to/from pluginforwarder */
-#define PSP_RR_MSG               0x0084  /**< Rank-routed message */
-#define PSP_RR_ERROR             0x0085  /**< Error in rank-routed comm */
 
 /** Error messages */
 #define PSP_CD_UNKNOWN           0x00FE  /**< Message reporting unknown types
@@ -336,7 +334,7 @@ typedef enum {
     /* The IDs from 0x0200 on are reserved for plugin messages */
     /***********************************************************/
 
-/** global reset actions. */
+/** global reset actions */
 #define PSP_RESET_HW              0x0001
 
 /**
@@ -350,7 +348,7 @@ typedef enum {
 /* Client-Daemon Protocol Message Types */
 /*--------------------------------------*/
 
-/** Message primitive. This is also the header of more complex messages. */
+/** Message primitive; this is also the header of more complex messages */
 typedef struct {
     int16_t type;          /**< message type */
     uint16_t len;          /**< total length of the message */
@@ -358,7 +356,7 @@ typedef struct {
     PStask_ID_t dest;      /**< final destination of the message */
 } DDMsg_t;
 
-/** Typed message containing the type and nothing else. */
+/** Typed message containing the type and nothing else */
 typedef struct {
     DDMsg_t header;        /**< message header */
     int32_t type;          /**< message (sub-)type */
@@ -380,7 +378,7 @@ typedef struct {
     char buf[BufMsgSize];  /**< message buffer */
 } DDBufferMsg_t;
 
-/** Buffer size of typed message. */
+/** Buffer size of typed message */
 #define BufTypedMsgSize (BufMsgSize-sizeof(int32_t))
 
 /**
@@ -400,20 +398,20 @@ typedef struct {
     PStask_ID_t request;   /**< request which caused the error */
 } DDErrorMsg_t;
 
-/** Initial message send by a potential client to the daemon. */
+/** Initial message send by a potential client to the daemon */
 typedef struct {
     DDMsg_t header;        /**< header of the message */
     PStask_group_t group;  /**< process group of the task */
     uint32_t version;      /**< Protocol version spoken by the PS library */
     PStask_ID_t ppid;      /**< PID of the parent process (for TG_SPAWNER) */
 #ifndef SO_PEERCRED
-    pid_t pid;             /**< process id. Not used with UNIX sockets. */
-    uid_t uid;             /**< user id. Not used with UNIX sockets. */
-    gid_t gid;             /**< group id. Not used with UNIX sockets. */
+    pid_t pid;             /**< process id; not used with UNIX sockets */
+    uid_t uid;             /**< user id; not used with UNIX sockets */
+    gid_t gid;             /**< group id; not used with UNIX sockets */
 #endif
 } DDInitMsg_t;
 
-/** Maximum number of options to set or get within one DDOption message. */
+/** Maximum number of options to set or get within one DDOption message */
 #define DDOptionMsgMax 16
 
 /** Type for option's value within an option message */
@@ -425,14 +423,14 @@ typedef struct {
     PSP_Optval_t value;    /**< option's value */
 } DDOption_t;
 
-/** Option message used to set or get various options. */
+/** Option message used to set or get various options */
 typedef struct {
     DDMsg_t header;        /**< message header */
     char count;            /**< no of options in opt[] */
     DDOption_t opt[DDOptionMsgMax]; /**< array of option-value pairs */
 } DDOptionMsg_t;
 
-/** Signal message used to (un)register and send signals. */
+/** Signal message used to (un)register and send signals */
 typedef struct {
     DDMsg_t header;        /**< message header */
     int32_t signal;        /**< signal to be set or sent */
@@ -442,14 +440,13 @@ typedef struct {
 			      - PSP_CD_RELEASE: unused
 			      - PSP_CD_RELEASERES: resulting error
 			      - PSP_CD_WHODIED: unused
-			      - PSP_CD_SIGNAL: uid of the sender.
-			      - PSP_DD_CHILDDEAD: unused. */
-    char pervasive;        /**< flag to send signal to the whole task.
-			      Only used within PSP_CD_SIGNAL messages. */
+			      - PSP_CD_SIGNAL: sender's uid
+			      - PSP_DD_CHILDDEAD: unused */
+    char pervasive;        /**< flag to send signal to the whole task;
+			      only used in PSP_CD_SIGNAL messages */
     char answer;           /**< flag to send answer on signal delivery
-			      or release.  Only used within
-			      PSP_CD_SIGNAL and PSP_CD_RELEASE
-			      messages. */
+			      or release; only used in PSP_CD_SIGNAL
+			      and PSP_CD_RELEASE messages */
 } DDSignalMsg_t;
 
 /**

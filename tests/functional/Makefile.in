@@ -100,8 +100,7 @@ build_triplet = @build@
 host_triplet = @host@
 target_triplet = @target@
 check_PROGRAMS = test_logging$(EXEEXT) test_paramspace$(EXEEXT) \
-	test_psicomm$(EXEEXT) listInfoTypes$(EXEEXT) \
-	test_bitsets$(EXEEXT)
+	listInfoTypes$(EXEEXT) test_bitsets$(EXEEXT)
 TESTS = test_logging$(EXEEXT) test_paramspace$(EXEEXT) \
 	test_bitsets$(EXEEXT)
 subdir = tests/functional
@@ -132,9 +131,6 @@ test_logging_DEPENDENCIES = $(libpscommon)
 am_test_paramspace_OBJECTS = test_paramspace.$(OBJEXT)
 test_paramspace_OBJECTS = $(am_test_paramspace_OBJECTS)
 test_paramspace_DEPENDENCIES = $(libpscommon) $(libputil)
-am_test_psicomm_OBJECTS = test_psicomm.$(OBJEXT)
-test_psicomm_OBJECTS = $(am_test_psicomm_OBJECTS)
-test_psicomm_DEPENDENCIES = $(libpsi)
 AM_V_P = $(am__v_P_@AM_V@)
 am__v_P_ = $(am__v_P_@AM_DEFAULT_V@)
 am__v_P_0 = false
@@ -152,7 +148,7 @@ depcomp = $(SHELL) $(top_srcdir)/scripts/depcomp
 am__maybe_remake_depfiles = depfiles
 am__depfiles_remade = ./$(DEPDIR)/listInfoTypes.Po \
 	./$(DEPDIR)/test_bitsets.Po ./$(DEPDIR)/test_logging.Po \
-	./$(DEPDIR)/test_paramspace.Po ./$(DEPDIR)/test_psicomm.Po
+	./$(DEPDIR)/test_paramspace.Po
 am__mv = mv -f
 COMPILE = $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) \
 	$(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
@@ -173,11 +169,9 @@ am__v_CCLD_ = $(am__v_CCLD_@AM_DEFAULT_V@)
 am__v_CCLD_0 = @echo "  CCLD    " $@;
 am__v_CCLD_1 = 
 SOURCES = $(listInfoTypes_SOURCES) $(test_bitsets_SOURCES) \
-	$(test_logging_SOURCES) $(test_paramspace_SOURCES) \
-	$(test_psicomm_SOURCES)
+	$(test_logging_SOURCES) $(test_paramspace_SOURCES)
 DIST_SOURCES = $(listInfoTypes_SOURCES) $(test_bitsets_SOURCES) \
-	$(test_logging_SOURCES) $(test_paramspace_SOURCES) \
-	$(test_psicomm_SOURCES)
+	$(test_logging_SOURCES) $(test_paramspace_SOURCES)
 am__can_run_installinfo = \
   case $$AM_UPDATE_INFO_DIR in \
     n|no|NO) false;; \
@@ -418,6 +412,7 @@ AM_DEFAULT_VERBOSITY = @AM_DEFAULT_VERBOSITY@
 # ParaStation
 #
 # Copyright (C) 2012-2020 ParTec Cluster Competence Center GmbH, Munich
+# Copyright (C) 2022 ParTec AG, Munich
 #
 # This file may be distributed under the terms of the Q Public License
 # as defined in the file LICENSE.QPL included in the packaging of this
@@ -608,8 +603,6 @@ test_logging_SOURCES = test_logging.c
 test_logging_LDADD = $(libpscommon)
 test_paramspace_SOURCES = test_paramspace.c
 test_paramspace_LDADD = $(libpscommon) $(libputil)
-test_psicomm_SOURCES = test_psicomm.c
-test_psicomm_LDADD = $(libpsi)
 listInfoTypes_SOURCES = listInfoTypes.c
 listInfoTypes_LDADD = $(libpscommon)
 test_bitsets_SOURCES = test_bitsets.c
@@ -674,10 +667,6 @@ test_paramspace$(EXEEXT): $(test_paramspace_OBJECTS) $(test_paramspace_DEPENDENC
 	@rm -f test_paramspace$(EXEEXT)
 	$(AM_V_CCLD)$(LINK) $(test_paramspace_OBJECTS) $(test_paramspace_LDADD) $(LIBS)
 
-test_psicomm$(EXEEXT): $(test_psicomm_OBJECTS) $(test_psicomm_DEPENDENCIES) $(EXTRA_test_psicomm_DEPENDENCIES) 
-	@rm -f test_psicomm$(EXEEXT)
-	$(AM_V_CCLD)$(LINK) $(test_psicomm_OBJECTS) $(test_psicomm_LDADD) $(LIBS)
-
 mostlyclean-compile:
 	-rm -f *.$(OBJEXT)
 
@@ -688,7 +677,6 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test_bitsets.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test_logging.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test_paramspace.Po@am__quote@ # am--include-marker
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test_psicomm.Po@am__quote@ # am--include-marker
 
 $(am__depfiles_remade):
 	@$(MKDIR_P) $(@D)
@@ -1036,7 +1024,6 @@ distclean: distclean-am
 	-rm -f ./$(DEPDIR)/test_bitsets.Po
 	-rm -f ./$(DEPDIR)/test_logging.Po
 	-rm -f ./$(DEPDIR)/test_paramspace.Po
-	-rm -f ./$(DEPDIR)/test_psicomm.Po
 	-rm -f Makefile
 distclean-am: clean-am distclean-compile distclean-generic \
 	distclean-tags
@@ -1086,7 +1073,6 @@ maintainer-clean: maintainer-clean-am
 	-rm -f ./$(DEPDIR)/test_bitsets.Po
 	-rm -f ./$(DEPDIR)/test_logging.Po
 	-rm -f ./$(DEPDIR)/test_paramspace.Po
-	-rm -f ./$(DEPDIR)/test_psicomm.Po
 	-rm -f Makefile
 maintainer-clean-am: distclean-am maintainer-clean-generic
 

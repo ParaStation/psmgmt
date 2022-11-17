@@ -17,18 +17,6 @@
 #
 # ParaStation
 #
-# Copyright (C) 2012-2014 ParTec Cluster Competence Center GmbH, Munich
-#
-# This file may be distributed under the terms of the Q Public License
-# as defined in the file LICENSE.QPL included in the packaging of this
-# file.
-#
-# Author:	Thomas Moschny <moschny@par-tec.com>
-#
-
-#
-# ParaStation
-#
 # Copyright (C) 2012-2020 ParTec Cluster Competence Center GmbH, Munich
 # Copyright (C) 2022 ParTec AG, Munich
 #
@@ -154,8 +142,8 @@ am__uninstall_files_from_dir = { \
 am__installdirs = "$(DESTDIR)$(libdir)"
 LTLIBRARIES = $(lib_LTLIBRARIES)
 libpsi_la_DEPENDENCIES = $(top_builddir)/lib/pscommon/libpscommon.la
-am_libpsi_la_OBJECTS = psi.lo psilog.lo psienv.lo psispawn.lo \
-	psipartition.lo psiinfo.lo psicomm.lo
+am_libpsi_la_OBJECTS = psi.lo psienv.lo psiinfo.lo psilog.lo \
+	psipartition.lo psispawn.lo
 libpsi_la_OBJECTS = $(am_libpsi_la_OBJECTS)
 AM_V_lt = $(am__v_lt_@AM_V@)
 am__v_lt_ = $(am__v_lt_@AM_DEFAULT_V@)
@@ -176,10 +164,9 @@ am__v_at_1 =
 DEFAULT_INCLUDES = -I.@am__isrc@
 depcomp = $(SHELL) $(top_srcdir)/scripts/depcomp
 am__maybe_remake_depfiles = depfiles
-am__depfiles_remade = ./$(DEPDIR)/psi.Plo ./$(DEPDIR)/psicomm.Plo \
-	./$(DEPDIR)/psienv.Plo ./$(DEPDIR)/psiinfo.Plo \
-	./$(DEPDIR)/psilog.Plo ./$(DEPDIR)/psipartition.Plo \
-	./$(DEPDIR)/psispawn.Plo
+am__depfiles_remade = ./$(DEPDIR)/psi.Plo ./$(DEPDIR)/psienv.Plo \
+	./$(DEPDIR)/psiinfo.Plo ./$(DEPDIR)/psilog.Plo \
+	./$(DEPDIR)/psipartition.Plo ./$(DEPDIR)/psispawn.Plo
 am__mv = mv -f
 COMPILE = $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) \
 	$(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
@@ -369,6 +356,17 @@ top_build_prefix = @top_build_prefix@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
 unitdir = @unitdir@
+
+#
+# ParaStation
+#
+# Copyright (C) 2012-2014 ParTec Cluster Competence Center GmbH, Munich
+# Copyright (C) 2022 ParTec AG, Munich
+#
+# This file may be distributed under the terms of the Q Public License
+# as defined in the file LICENSE.QPL included in the packaging of this
+# file.
+#
 AM_CPPFLAGS = -I$(top_srcdir)/include -DNDEBUG \
 	-DLOCALSTATEDIR=\"$(localstatedir)\"
 subst_verbose = $(subst_verbose_$(V))
@@ -410,8 +408,8 @@ scriptsdir = $(prefix)/scripts
 @HAVE_SYSTEMD_FALSE@default_cgroup_name = psmgmtGrp
 @HAVE_SYSTEMD_TRUE@default_cgroup_name = system.slice/psid.service/descendants
 lib_LTLIBRARIES = libpsi.la
-libpsi_la_SOURCES = psi.c psilog.c psienv.c psispawn.c psipartition.c	\
-	psiinfo.c psicomm.c
+libpsi_la_SOURCES = psi.c psienv.c psiinfo.c psilog.c psipartition.c	\
+	psispawn.c
 
 libpsi_la_LIBADD = $(top_builddir)/lib/pscommon/libpscommon.la
 all: all-am
@@ -494,7 +492,6 @@ distclean-compile:
 	-rm -f *.tab.c
 
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/psi.Plo@am__quote@ # am--include-marker
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/psicomm.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/psienv.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/psiinfo.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/psilog.Plo@am__quote@ # am--include-marker
@@ -665,7 +662,6 @@ clean-am: clean-generic clean-libLTLIBRARIES clean-libtool \
 
 distclean: distclean-am
 		-rm -f ./$(DEPDIR)/psi.Plo
-	-rm -f ./$(DEPDIR)/psicomm.Plo
 	-rm -f ./$(DEPDIR)/psienv.Plo
 	-rm -f ./$(DEPDIR)/psiinfo.Plo
 	-rm -f ./$(DEPDIR)/psilog.Plo
@@ -717,7 +713,6 @@ installcheck-am:
 
 maintainer-clean: maintainer-clean-am
 		-rm -f ./$(DEPDIR)/psi.Plo
-	-rm -f ./$(DEPDIR)/psicomm.Plo
 	-rm -f ./$(DEPDIR)/psienv.Plo
 	-rm -f ./$(DEPDIR)/psiinfo.Plo
 	-rm -f ./$(DEPDIR)/psilog.Plo

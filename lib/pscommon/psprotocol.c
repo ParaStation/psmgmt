@@ -80,9 +80,6 @@ static struct {
     { PSP_PF_MSG              , "PSP_PF_MSG"              },
     { PSP_PF_ERROR            , "PSP_PF_ERROR"            },
 
-    { PSP_RR_MSG              , "PSP_RR_MSG"              },
-    { PSP_RR_ERROR            , "PSP_RR_ERROR"            },
-
     { PSP_CD_UNKNOWN          , "PSP_CD_UNKNOWN"          },
     { PSP_CD_ERROR            , "PSP_CD_ERROR"            },
 
