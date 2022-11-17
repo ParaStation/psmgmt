@@ -2563,8 +2563,10 @@ static uint32_t releaseThreads(PSpart_slot_t *slot, uint32_t nSlots,
     }
 
     uint32_t numToRelease = totalRelease;
-    PSID_log(PSID_LOG_PART, "%s: total %d %s\n", __func__, numToRelease,
-	     PSCPU_print(slot[0].CPUset));
+    PSnodes_ID_t node = slot[0].node;
+    uint16_t nBytes = PSCPU_bytesForCPUs(PSIDnodes_getNumThrds(node));
+    PSID_log(PSID_LOG_PART, "%s@%s: total %d %s from %d\n", __func__, caller,
+	     numToRelease, PSCPU_print_part(slot[0].CPUset, nBytes), node);
 
     for (uint32_t t = 0; t < task->totalThreads && numToRelease; t++) {
 	PSpart_HWThread_t *thrd = &task->partThrds[t];
