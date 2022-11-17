@@ -644,10 +644,10 @@ static void handleOutMsg(PSLog_Msg_t *msg, int outfd)
 	size_t count = msg->header.len - PSLog_headerSize;
 
 	if (PSIlog_getDebugMask() & PSILOG_LOG_VERB) {
-	    snprintf(prefix, sizeof(prefix), "[%d, %zd]: ", msg->sender,
+	    snprintf(prefix, sizeof(prefix), "%d,%zd: ", msg->sender,
 		     msg->header.len - PSLog_headerSize);
 	} else if (count > 0) {
-	    snprintf(prefix, sizeof(prefix), "[%d]: ", msg->sender);
+	    snprintf(prefix, sizeof(prefix), "%d: ", msg->sender);
 	}
 
 	while (count>0) {
