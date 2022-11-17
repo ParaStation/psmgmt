@@ -31,21 +31,21 @@
 #include <sys/time.h>
 
 /**
- * @brief (Re-)Initialize the Selector module.
+ * @brief (Re-)Initialize the Selector module
  *
  * (Re-)Initialization of the Selector machinery. If any selector was
  * registered before, it will be removed.
  *
- * @param logfile File to use for logging. If NULL, syslog(3) is used.
+ * @param logfile File to use for logging or NULL to use syslog(3)
  *
- * @return No return value.
+ * @return No return value
  *
  * @see syslog(3)
  */
 void Selector_init(FILE* logfile);
 
 /**
- * @brief Test if the Selector module is initialized.
+ * @brief Test if the Selector module is initialized
  *
  * Test if the Selector module is initialized, i.e. if Selector_init()
  * was called before.
@@ -64,18 +64,18 @@ typedef enum {
 } Selector_log_key_t;
 
 /**
- * @brief Query the debug-mask.
+ * @brief Query the debug-mask
  *
  * Get the debug-mask of the Selector module.
  *
- * @return The actual debug-mask is returned.
+ * @return The actual debug-mask is returned
  *
  * @see Selector_setDebugMask()
  */
 int32_t Selector_getDebugMask(void);
 
 /**
- * @brief Set the debug-mask.
+ * @brief Set the debug-mask
  *
  * Set the debug-mask of the Selector module. @a mask is a bit-wise OR of
  * the different keys defined within @ref Selector_log_key_t. If the
@@ -93,9 +93,9 @@ int32_t Selector_getDebugMask(void);
  *
  * At the time the Selector module only produces critical errors yet!
  *
- * @param mask The debug-mask to set.
+ * @param mask The debug-mask to set
  *
- * @return No return value.
+ * @return No return value
  *
  * @see Selector_getDebugMask(), Selector_log_key_t
  */
@@ -115,8 +115,8 @@ void Selector_setDebugMask(int32_t mask);
  *
  * @param max New maximum number of selectors to handle
  *
- * @return On success 0 is returned. In case of failure -1 is returned
- * and errno is set appropriately.
+ * @return On success 0 is returned; in case of failure -1 is returned
+ * and errno is set appropriately
  */
 int Selector_setMax(int max);
 
@@ -131,7 +131,7 @@ int Selector_setMax(int max);
 typedef int Selector_CB_t (int, void *);
 
 /**
- * @brief Register a new selector.
+ * @brief Register a new selector
  *
  * Registration of a new selector. The selector will be identified by
  * its corresponding file descriptor @a fd. Only one selector per
@@ -172,27 +172,29 @@ typedef int Selector_CB_t (int, void *);
  *       readfds, i.e. to let it get handled outside.
  *
  * @param info Pointer to additional information passed to @a
- * selectHandler in case of pending data on the file descriptor.
+ * selectHandler in case of pending data on the file descriptor
  *
- * @return On success, 0 is returned. On error, e.g. if a selector on
- * @a fd is already registered, -1 is returned.
+ * @return On success, 0 is returned; in case of failure, e.g. if a
+ * selector on @a fd is already registered, -1 is returned and errno
+ * is set appropriately
  */
 int Selector_register(int fd, Selector_CB_t selectHandler, void *info);
 
 /**
- * @brief Remove a selector.
+ * @brief Remove a selector
  *
  * Remove a registered selector. The selector will be identified by its
  * corresponding file descriptor @a fd.
  *
- * @param fd The file descriptor to identify the selector.
+ * @param fd The file descriptor to identify the selector
  *
- * @return On success, 0 is returned. On error, -1 is returned.
+ * @return On success, 0 is returned; in case of failure -1 is
+ * returned and errno is set appropriately
  */
 int Selector_remove(int fd);
 
 /**
- * @brief Register a write selector.
+ * @brief Register a write selector
  *
  * Register the write handler @a writeHandler to a selector identified
  * by the file descriptor @a fd. Only one write-handler per file
@@ -204,7 +206,7 @@ int Selector_remove(int fd);
  * information might be passed to @a writeHandler via the pointer @a
  * info.
  *
- * @param fd The file descriptor, the selector is registered on.
+ * @param fd The file descriptor, the selector is registered on
  *
  * @param writeHandler If data can be sent to @a fd during a call to
  * Sselect() or Swait(), this functions is called. @a fd and @a info
@@ -235,22 +237,23 @@ int Selector_remove(int fd);
  *       will not be passed to Sselect()'s caller, even if requested.
  *
  * @param info Pointer to additional information passed to @a
- * writeHandler in case of data can be written to the file descriptor.
+ * writeHandler in case of data can be written to the file descriptor
  *
- * @return On success, 0 is returned. On error -1 is returned and
- * errno is set appropriately.
+ * @return On success, 0 is returned; in case of failure -1 is
+ * returned and errno is set appropriately
  */
 int Selector_awaitWrite(int fd, Selector_CB_t writeHandler, void *info);
 
 /**
- * @brief Vacate a write selector.
+ * @brief Vacate a write selector
  *
  * Remove a registered write selector. The selector will be identified
  * by its corresponding file descriptor @a fd.
  *
- * @param fd The file descriptor to identify the write selector.
+ * @param fd The file descriptor to identify the write selector
  *
- * @return On success, 0 is returned. On error, -1 is returned.
+ * @return On success, 0 is returned; in case of failure -1 is
+ * returned and errno is set appropriately
  */
 int Selector_vacateWrite(int fd);
 
@@ -259,39 +262,41 @@ int Selector_vacateWrite(int fd);
  *
  * Test for a registered selector on the file descriptor @a fd.
  *
- * @param fd The file descriptor to test.
+ * @param fd The file descriptor to test
  *
- * @return If a selector is found, true is returned. Otherwise false
- * is returned.
+ * @return If a selector is found, true is returned; otherwise false
+ * is returned
  */
 bool Selector_isRegistered(int fd);
 
 /**
- * @brief Disable a selector.
+ * @brief Disable a selector
  *
  * Disable a registered selector. The selector will be identified by
  * its corresponding file descriptor @a fd. As long as the selector is
  * disabled, it will not be monitored within @ref Sselect() or @ref
  * Swait() and the corresponding handler will not be called, even if
  * the file descriptor @a fd is explicitly monitored with the
- * file descriptor set passed to @ref Sselect()
+ * file descriptor set passed to @ref Sselect().
  *
- * @param fd The file descriptor to identify the selector.
+ * @param fd The file descriptor to identify the selector
  *
- * @return On success, 0 is returned. On error, -1 is returned.
+ * @return On success, 0 is returned; in case of failure -1 is
+ * returned and errno is set appropriately
  */
 int Selector_disable(int fd);
 
 /**
- * @brief Re-enable a selector.
+ * @brief Re-enable a selector
  *
  * Re-enables a registered selector. The selector will be identified
  * by its corresponding file descriptor @a fd. Basically this removes
  * the disabling via @ref Selector_disable().
  *
- * @param fd The file descriptor to identify the selector.
+ * @param fd The file descriptor to identify the selector
  *
- * @return On success, 0 is returned. On error, -1 is returned.
+ * @return On success, 0 is returned; in case of failure -1 is
+ * returned and errno is set appropriately
  */
 int Selector_enable(int fd);
 
@@ -303,15 +308,15 @@ int Selector_enable(int fd);
  * selector will be identified by its corresponding file descriptor @a
  * fd.
  *
- * @param fd The file descriptor to identify the selector.
+ * @param fd The file descriptor to identify the selector
  *
- * @return If the selector is disabled, 0 is returned or 1 otherwise.
- -1 might be returned if the selector was not found.
+ * @return If the selector is disabled, 0 is returned or 1 otherwise;
+ * -1 might be returned if the selector was not found
  */
 int Selector_isActive(int fd);
 
 /**
- * @brief select() replacement that handles registered file descriptors.
+ * @brief select() replacement that handles registered file descriptors
  *
  * This is deprecated functionality just kept for backward
  * compatibility. Instead @ref Swait() shall be used. This requires
@@ -330,22 +335,20 @@ int Selector_isActive(int fd);
  * It is recommended to avoid this mechanism and to use the more
  * appropriate @ref Swait() instead.
  *
- * @param nfds The highest-numbered descriptor in the three sets, plus 1.
+ * @param nfds The highest-numbered descriptor in the three sets, plus 1
  *
- * @param readfds The set of descriptors to be watched for data available to
- * read.
+ * @param readfds Set of descriptors to be watched for data available to read
  *
- * @param writefds The set of descriptors to be watched for becoming able
- * to write to.
+ * @param writefds Set of descriptors to be watched for becoming able
+ * to write to
  *
- * @param exceptfds The set of descriptors to be watched for exceptions.
+ * @param exceptfds Set of descriptors to be watched for exceptions
  *
  * @param timeout The upper bound on the amount of time elapsed before
- * Sselect() returns. It may be zero causing Sselect() to return
- * immediately.  If @a timeout is NULL, Sselect() can block
- * indefinitely.
+ * Sselect() returns; it may be zero causing Sselect() to return
+ * immediately; fi @a timeout is NULL, Sselect() can block indefinitely
  *
- * @deprecated Use @ref Swait() instead.
+ * @deprecated Use @ref Swait() instead!
  *
  * @return On success, the number of descriptors contained in the
  * descriptor-sets, which may be zero if the @a timeout expires before
@@ -360,7 +363,7 @@ int Sselect(int nfds, fd_set* readfds, fd_set* writefds, fd_set* exceptfds,
     __attribute__((deprecated));
 
 /**
- * @brief Simplified epoll_wait() replacement.
+ * @brief Simplified epoll_wait() replacement
  *
  * Simplified epoll_wait() replacement that handles registered
  * selectors. If the status of a registered file descriptor is
@@ -370,12 +373,11 @@ int Sselect(int nfds, fd_set* readfds, fd_set* writefds, fd_set* exceptfds,
  * event notification facility.
  *
  * @param timeout The upper bound (in milliseconds) on the amount of
- * time elapsed before Swait() returns. It may be zero causing
- * Swait() to return immediately.  If @a timeout is -1, Swait()
- * can block indefinitely.
+ * time elapsed before Swait() return; it may be zero causing Swait()
+ * to return immediately; if @a timeout is -1, Swait() can block indefinitely
  *
- * @return On success, 0 is returned. Or -1 if an error occurred. In
- * the latter case @ref errno is set appropriately.
+ * @return On success, 0 is returned; in case of failure -1 is
+ * returned and errno is set appropriately
  */
 int Swait(int timeout);
 
@@ -405,7 +407,7 @@ void Selector_startOver(void);
  * usage. Thus, this function shall be called regularly in order to
  * free() selector structures no longer required.
  *
- * @return No return value.
+ * @return No return value
  *
  * @see Selector_gcRequired()
  */
@@ -416,7 +418,7 @@ void Selector_gc(void);
  *
  * Print statistics concerning the usage of selector structures.
  *
- * @return No return value.
+ * @return No return value
  */
 void Selector_printStat(void);
 
