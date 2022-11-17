@@ -79,8 +79,8 @@ static PSitems_t selPool = NULL;
  * next is initialized, the deleted flag is cleared, it is marked as
  * SEL_USED, etc.
  *
- * @return On success, a pointer to the new selector is returned. Or
- * NULL if an error occurred.
+ * @return On success, a pointer to the new selector is returned; or
+ * NULL if an error occurred
  */
 static Selector_t * getSelector(void)
 {
@@ -111,8 +111,7 @@ static Selector_t * getSelector(void)
  * selectors. The selector structure might get reused and handed back
  * to the application by calling @ref getSelector().
  *
- * @param selector Pointer to the selector to be put back into the
- * pool.
+ * @param selector Pointer to selector to be put back into the pool
  *
  * @return No return value
  */
@@ -151,6 +150,30 @@ static bool relocSel(void *item)
     selectors[repl->fd] = repl;
 
     return true;
+}
+
+/**
+ * @brief String from epoll operation
+ *
+ * Deliver a string describing the epoll operation @a op.
+ *
+ * @param op epoll operation to describe
+ *
+ * @return String describing the epoll operation
+ */
+static char *strOp(int op)
+{
+    if (op == EPOLL_CTL_ADD) {
+	return "ADD";
+    } else if (op == EPOLL_CTL_MOD) {
+	return "MOD";
+    } else if (op == EPOLL_CTL_DEL) {
+	return "DEL";
+    } else {
+	static char buf[32];
+	snprintf(buf, sizeof(buf), "<unknown %d>", op);
+	return buf;
+    }
 }
 
 void Selector_gc(void)
@@ -259,10 +282,10 @@ bool Selector_isInitialized(void)
  *
  * Find the selector handling the file-descriptor @a fd.
  *
- * @param fd The file-descriptor handled by the searched selector.
+ * @param fd File descriptor handled by the searched selector
  *
  * @return If a selector handling @a fd exists, a pointer to this
- * selector is returned. Or NULL otherwise.
+ * selector is returned; or NULL otherwise
  */
 static Selector_t * findSelector(int fd)
 {
@@ -273,10 +296,6 @@ static Selector_t * findSelector(int fd)
 
 int Selector_register(int fd, Selector_CB_t selectHandler, void *info)
 {
-    Selector_t *selector = findSelector(fd);
-    struct epoll_event ev;
-    int rc;
-
     if (!Selector_isInitialized()) {
 	fprintf(stderr, "%s: uninitialized!\n", __func__);
 	syslog(LOG_CRIT, "%s: uninitialized\n", __func__);
@@ -290,7 +309,6 @@ int Selector_register(int fd, Selector_CB_t selectHandler, void *info)
 	} else {
 	    errno = ERANGE;
 	}
-
 	return -1;
     }
 
@@ -298,6 +316,7 @@ int Selector_register(int fd, Selector_CB_t selectHandler, void *info)
 		 selectHandler);
 
     /* Test if a selector is already registered on fd */
+    Selector_t *selector = findSelector(fd);
     if (selector && !selector->deleted) {
 	logger_print(logger, -1, "%s: found selector for fd %d", __func__, fd);
 	logger_print(logger, -1, " handlers are %p/%p %s disabled\n",
@@ -331,72 +350,61 @@ int Selector_register(int fd, Selector_CB_t selectHandler, void *info)
     list_add_tail(&selector->next, &selectorList);
     selectors[fd] = selector;
 
-    memset(&ev, 0, sizeof(ev));
+    struct epoll_event ev;
+    ev.events = EPOLLIN | EPOLLPRI;
     ev.data.fd = fd;
-    ev.events = EPOLLIN | EPOLLPRI | (selector->writeHandler ? EPOLLOUT : 0);
-    rc = epoll_ctl(epollFD,
-		   selector->writeHandler ? EPOLL_CTL_MOD : EPOLL_CTL_ADD,
-		   fd, &ev);
+
+    int rc = epoll_ctl(epollFD, EPOLL_CTL_ADD, fd, &ev);
 recheck:
     if (rc < 0) {
 	switch (errno) {
 	case EEXIST:
-	    if (!selector->writeHandler) {
-		logger_print(logger, -1, "%s: selector for %d existed before\n",
-			     __func__, fd);
-		rc = epoll_ctl(epollFD, EPOLL_CTL_MOD, fd, &ev);
-		goto recheck;
-	    }
-	    break;
+	    logger_print(logger, -1, "%s: selector for %d existed before\n",
+			 __func__, fd);
+	    rc = epoll_ctl(epollFD, EPOLL_CTL_MOD, fd, &ev);
+	    goto recheck;
 	case EPERM:
-	    logger_warn(logger, fd ? -1 : SELECTOR_LOG_VERB, errno,
-			"%s: epoll_ctl(%d) normal file?", __func__, fd);
-	    return -1;
+	    logger_warn(logger, -1, errno, "%s: epoll_ctl(%d) normal file?",
+			__func__, fd);
 	    break;
 	default:
-	    logger_warn(logger, fd ? -1 : SELECTOR_LOG_VERB, errno,
-			"%s: epoll_ctl(%d)", __func__, fd);
+	    logger_warn(logger, -1, errno, "%s: epoll_ctl(%d)", __func__, fd);
 	}
     }
 
-    return 0;
+    return rc;
 }
 
 int Selector_remove(int fd)
 {
     Selector_t *selector = findSelector(fd);
-    struct epoll_event ev;
-    int rc;
-
     if (!selector || selector->deleted) {
 	logger_print(logger, -1, "%s(fd %d): no selector\n", __func__, fd);
+	errno = ENOENT;
 	return -1;
     }
 
-    logger_print(logger, SELECTOR_LOG_VERB, "%s(%d, %s)\n", __func__, fd,
-		 selector->writeHandler ? "MOD" : "DEL");
+    int op = selector->writeHandler ? EPOLL_CTL_MOD : EPOLL_CTL_DEL;
+    logger_print(logger, SELECTOR_LOG_VERB,
+		 "%s(%d, %s)\n", __func__, fd, strOp(op));
 
+    struct epoll_event ev;
+    ev.events = EPOLLOUT;
     ev.data.fd = fd;
-    ev.events = selector->writeHandler ? EPOLLOUT : 0;
-    rc = epoll_ctl(epollFD,
-		   selector->writeHandler ? EPOLL_CTL_MOD : EPOLL_CTL_DEL,
-		   fd, &ev);
-    if (rc<0) logger_warn(logger, -1, errno, "%s: epoll_ctl(%d, %d)", __func__,
-			  epollFD, fd);
+
+    int rc = epoll_ctl(epollFD, op, fd, &ev);
+    if (rc < 0) logger_warn(logger, -1, errno, "%s: epoll_ctl(%d, %s, %d)",
+			    __func__, epollFD, strOp(op), fd);
 
     selector->readHandler = NULL;
     selector->disabled = true;
     if (!selector->writeHandler) selector->deleted = true;
 
-    return 0;
+    return rc;
 }
 
 int Selector_awaitWrite(int fd, Selector_CB_t writeHandler, void *info)
 {
-    Selector_t *selector = findSelector(fd);
-    struct epoll_event ev;
-    int rc;
-
     if (!Selector_isInitialized()) {
 	fprintf(stderr, "%s: uninitialized!\n", __func__);
 	syslog(LOG_CRIT, "%s: uninitialized\n", __func__);
@@ -410,10 +418,10 @@ int Selector_awaitWrite(int fd, Selector_CB_t writeHandler, void *info)
 	} else {
 	    errno = ERANGE;
 	}
-
 	return -1;
     }
 
+    Selector_t *selector = findSelector(fd);
     logger_print(logger, SELECTOR_LOG_VERB, "%s(%d, %p)\n", __func__,
 		 fd, writeHandler);
 
@@ -433,6 +441,7 @@ int Selector_awaitWrite(int fd, Selector_CB_t writeHandler, void *info)
     }
     if (!selector) {
 	logger_print(logger, -1, "%s: No memory\n", __func__);
+	errno = ENOMEM;
 	return -1;
     }
 
@@ -448,56 +457,56 @@ int Selector_awaitWrite(int fd, Selector_CB_t writeHandler, void *info)
 	selectors[fd] = selector;
     }
 
-    ev.data.fd = fd;
+    int op = selector->disabled ? EPOLL_CTL_ADD : EPOLL_CTL_MOD;
+    struct epoll_event ev;
     ev.events = EPOLLOUT | (selector->disabled ? 0 : (EPOLLIN | EPOLLPRI));
-    rc = epoll_ctl(epollFD,
-		   selector->disabled ? EPOLL_CTL_ADD : EPOLL_CTL_MOD,
-		   fd, &ev);
+    ev.data.fd = fd;
+
 recheck:
+    int rc = epoll_ctl(epollFD, op, fd, &ev);
     if (rc < 0) {
 	switch (errno) {
 	case EEXIST:
 	    if (selector->disabled) {
 		logger_print(logger, -1, "%s: selector for %d existed before\n",
 			     __func__, fd);
-		rc = epoll_ctl(epollFD, EPOLL_CTL_MOD, fd, &ev);
+		op = EPOLL_CTL_MOD;
 		goto recheck;
 	    } /* else fallthrough */
 	default:
-	    logger_warn(logger, -1, errno, "%s: epoll_ctl(%d)", __func__, fd);
+	    logger_warn(logger, -1, errno, "%s: epoll_ctl(%d, %s, %d)",
+			__func__, epollFD, strOp(op), fd);
 	}
     }
 
-    return 0;
+    return rc;
 }
 
 int Selector_vacateWrite(int fd)
 {
     Selector_t *selector = findSelector(fd);
-    struct epoll_event ev;
-    int rc;
-
     if (!selector || selector->deleted) {
 	logger_print(logger, -1, "%s(fd %d): no selector\n", __func__, fd);
+	errno = ENOENT;
 	return -1;
     }
 
-    logger_print(logger, SELECTOR_LOG_VERB, "%s(%d, %s)\n", __func__, fd,
-		 selector->disabled ? "DEL" : "MOD");
+    int op = selector->disabled ? EPOLL_CTL_DEL : EPOLL_CTL_MOD;
+    logger_print(logger, SELECTOR_LOG_VERB,
+		 "%s(%d, %s)\n", __func__, fd, strOp(op));
 
-    memset(&ev, 0, sizeof(ev));
-    ev.data.fd = fd;
+    struct epoll_event ev;
     ev.events = selector->disabled ? 0 : (EPOLLIN | EPOLLPRI);
-    rc = epoll_ctl(epollFD,
-		   selector->disabled ? EPOLL_CTL_DEL : EPOLL_CTL_MOD,
-		   fd, &ev);
-    if (rc<0) logger_warn(logger, -1, errno, "%s: epoll_ctl(%d, %d)", __func__,
-			  epollFD, fd);
+    ev.data.fd = fd;
+
+    int rc = epoll_ctl(epollFD, op, fd, &ev);
+    if (rc < 0) logger_warn(logger, -1, errno, "%s: epoll_ctl(%d, %s, %d)",
+			    __func__, epollFD, strOp(op), fd);
 
     selector->writeHandler = NULL;
     if (!selector->readHandler) selector->deleted = true;
 
-    return 0;
+    return rc;
 }
 
 static void doRemove(Selector_t *selector)
@@ -521,7 +530,6 @@ bool Selector_isRegistered(int fd)
 int Selector_isActive(int fd)
 {
     Selector_t *selector = findSelector(fd);
-
     if (!selector || selector->deleted) {
 	logger_print(logger, -1, "%s(fd %d): no selector\n", __func__, fd);
 	return -1;
@@ -533,49 +541,47 @@ int Selector_isActive(int fd)
 int Selector_disable(int fd)
 {
     Selector_t *selector = findSelector(fd);
-    struct epoll_event ev;
-    int rc;
-
     if (!selector || selector->deleted) {
 	logger_print(logger, -1, "%s(fd %d): no selector\n", __func__, fd);
+	errno = ENOENT;
 	return -1;
     }
     if (selector->disabled) return 0;
 
+    int op = selector->writeHandler ? EPOLL_CTL_MOD : EPOLL_CTL_DEL;
+    struct epoll_event ev;
+    ev.events = EPOLLOUT;
     ev.data.fd = fd;
-    ev.events = selector->writeHandler ? EPOLLOUT : 0;
-    rc = epoll_ctl(epollFD,
-		   selector->writeHandler ? EPOLL_CTL_MOD : EPOLL_CTL_DEL,
-		   fd, &ev);
-    if (rc<0) logger_warn(logger, -1, errno, "%s: epoll_ctl(%d)", __func__, fd);
 
+    int rc = epoll_ctl(epollFD, op, fd, &ev);
+    if (rc < 0) logger_warn(logger, -1, errno, "%s: epoll_ctl(%d, %s, %d)",
+			    __func__, epollFD, strOp(op), fd);
     selector->disabled = true;
 
-    return 0;
+    return rc;
 }
 
 int Selector_enable(int fd)
 {
     Selector_t *selector = findSelector(fd);
-    struct epoll_event ev;
-    int rc;
-
     if (!selector || selector->deleted) {
 	logger_print(logger, -1, "%s(fd %d): no selector\n", __func__, fd);
+	errno = ENOENT;
 	return -1;
     }
     if (!selector->disabled) return 0;
 
-    ev.data.fd = fd;
+    int op = selector->writeHandler ? EPOLL_CTL_MOD : EPOLL_CTL_ADD;
+    struct epoll_event ev;
     ev.events = EPOLLIN | EPOLLPRI | (selector->writeHandler ? EPOLLOUT : 0);
-    rc = epoll_ctl(epollFD,
-		   selector->writeHandler ? EPOLL_CTL_MOD : EPOLL_CTL_ADD,
-		   fd, &ev);
-    if (rc<0) logger_warn(logger, -1, errno, "%s: epoll_ctl(%d)", __func__, fd);
+    ev.data.fd = fd;
 
+    int rc = epoll_ctl(epollFD, op, fd, &ev);
+    if (rc < 0) logger_warn(logger, -1, errno, "%s: epoll_ctl(%d, %s, %d)",
+			    __func__, epollFD, strOp(op), fd);
     selector->disabled = false;
 
-    return 0;
+    return rc;
 }
 
 void Selector_startOver(void)
@@ -895,7 +901,6 @@ int Swait(int timeout)
 
 	for (int ev = 0; ev < retval; ev++) {
 	    Selector_t *selector = findSelector(events[ev].data.fd);
-
 	    if (!selector) {
 		logger_print(logger, -1, "%s: no selector for %d\n", __func__,
 			     events[ev].data.fd);
