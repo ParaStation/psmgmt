@@ -6,6 +6,12 @@ Copyright (C) 2021-2022 ParTec AG, Munich
 Please send bug reports, questions and suggestions to <support@par-tec.com>
 
 
+Version 5.1.52-4:
+=================
+Bugfixes:
+ - Prevent Selector deadlock (don't awaitWrite() on disabled Selector)
+
+
 Version 5.1.52-3:
 =================
 Bugfixes:
