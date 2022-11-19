@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
  * Copyright (C) 2005-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021 ParTec AG, Munich
+ * Copyright (C) 2021-2022 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -385,6 +385,7 @@ int Selector_remove(int fd)
 			  epollFD, fd);
 
     selector->readHandler = NULL;
+    selector->disabled = true;
     if (!selector->writeHandler) selector->deleted = true;
 
     return 0;
@@ -422,12 +423,13 @@ int Selector_awaitWrite(int fd, Selector_CB_t writeHandler, void *info)
 	selector->readHandler = NULL;
 	selector->readInfo = NULL;
 	selector->writeHandler = NULL;
-	selector->disabled = false;
+	selector->disabled = true;
 	selector->deleted = false;
     } else if (!selector) {
 	logger_print(logger, SELECTOR_LOG_VERB,
 		     "%s(fd %d): no selector yet?!\n", __func__,fd);
 	selector = getSelector();
+	selector->disabled = true;
     }
     if (!selector) {
 	logger_print(logger, -1, "%s: No memory\n", __func__);
@@ -447,15 +449,15 @@ int Selector_awaitWrite(int fd, Selector_CB_t writeHandler, void *info)
     }
 
     ev.data.fd = fd;
-    ev.events = EPOLLOUT | (selector->readHandler ? (EPOLLIN | EPOLLPRI) : 0);
+    ev.events = EPOLLOUT | (selector->disabled ? 0 : (EPOLLIN | EPOLLPRI));
     rc = epoll_ctl(epollFD,
-		   selector->readHandler ? EPOLL_CTL_MOD : EPOLL_CTL_ADD,
+		   selector->disabled ? EPOLL_CTL_ADD : EPOLL_CTL_MOD,
 		   fd, &ev);
 recheck:
     if (rc < 0) {
 	switch (errno) {
 	case EEXIST:
-	    if (!selector->readHandler) {
+	    if (selector->disabled) {
 		logger_print(logger, -1, "%s: selector for %d existed before\n",
 			     __func__, fd);
 		rc = epoll_ctl(epollFD, EPOLL_CTL_MOD, fd, &ev);
@@ -481,13 +483,13 @@ int Selector_vacateWrite(int fd)
     }
 
     logger_print(logger, SELECTOR_LOG_VERB, "%s(%d, %s)\n", __func__, fd,
-		 selector->readHandler ? "MOD" : "DEL");
+		 selector->disabled ? "DEL" : "MOD");
 
     memset(&ev, 0, sizeof(ev));
     ev.data.fd = fd;
-    ev.events = selector->readHandler ? (EPOLLIN | EPOLLPRI) : 0;
+    ev.events = selector->disabled ? 0 : (EPOLLIN | EPOLLPRI);
     rc = epoll_ctl(epollFD,
-		   selector->readHandler ? EPOLL_CTL_MOD : EPOLL_CTL_DEL,
+		   selector->disabled ? EPOLL_CTL_DEL : EPOLL_CTL_MOD,
 		   fd, &ev);
     if (rc<0) logger_warn(logger, -1, errno, "%s: epoll_ctl(%d, %d)", __func__,
 			  epollFD, fd);
