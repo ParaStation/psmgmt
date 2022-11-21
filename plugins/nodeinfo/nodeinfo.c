@@ -718,7 +718,7 @@ char *set(char *key, char *val)
 char *unset(char *key)
 {
     pluginConfig_remove(nodeInfoConfig, key);
-    evalValue(key, NULL, nodeInfoConfig);
+    evalValue(key, NULL, NULL);
 
     return NULL;
 }
