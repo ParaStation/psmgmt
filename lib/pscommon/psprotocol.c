@@ -101,6 +101,17 @@ char *PSP_printMsg(int msgtype)
     return txt;
 }
 
+int16_t PSP_resolveType(char *typeStr)
+{
+    if (!typeStr) return -1;
+
+    for (int m = 0; messages[m].name; m++) {
+	if (!strcmp(messages[m].name, typeStr)) return messages[m].id;
+    }
+
+    return -1;
+}
+
 /*
  * string identification of info IDs.
  * Nicer output for errrors and debugging.

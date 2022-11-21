@@ -12,6 +12,7 @@
 #include "psdaemonprotocol.h"
 
 #include <stdio.h>
+#include <string.h>
 
 #include "pspluginprotocol.h"
 
@@ -122,4 +123,36 @@ char *PSDaemonP_printMsg(int msgtype)
     static char txt[30];
     snprintf(txt, sizeof(txt), "msgtype %#x UNKNOWN", msgtype);
     return txt;
+}
+
+static int16_t resolvePluginType(char *typeStr)
+{
+    if (!typeStr) return -1;
+
+    for (int m = 0; pluginMessages[m].name; m++) {
+	if (!strcmp(pluginMessages[m].name, typeStr)) {
+	    return pluginMessages[m].id;
+	}
+    }
+
+    return -1;
+}
+
+int16_t PSDaemonP_resolveType(char *typeStr)
+{
+    if (!typeStr) return -1;
+
+    int16_t type = PSP_resolveType(typeStr);
+    if (type > -1) return type;
+
+    type = resolvePluginType(typeStr);
+    if (type > -1) return type;
+
+    for (int m = 0; daemonMessages[m].name; m++) {
+	if (!strcmp(daemonMessages[m].name, typeStr)) {
+	    return daemonMessages[m].id;
+	}
+    }
+
+    return -1;
 }

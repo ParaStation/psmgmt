@@ -467,32 +467,45 @@ typedef struct {
 } PSP_taskInfo_t;
 
 /**
- * @brief Generate a string describing the message type.
+ * @brief Generate a string describing the message type
  *
  * Generate a character string describing the message type @a
  * msgtype. The message type has to contain one of the PSP_CD_ or
  * PSP_CC_ message type constants.
  *
- * @param msgtype Message type the name should be generated for.
+ * @param msgtype Message type the name should be generated for
  *
  * @return A pointer to the '\\0' terminated character string
  * containing the name of the message type or a special message
- * containing @a msgtype if the type is unknown.
+ * containing @a msgtype if the type is unknown
  */
 char *PSP_printMsg(int msgtype);
 
 /**
- * @brief Generate a string describing the info type.
+ * @brief Resolve message type
+ *
+ * Analyse the character string @a typeStr and return the
+ * corresponding message type. This is basically the inverse operation
+ * of @ref PSP_printMsg() and uses the identical type strings.
+ *
+ * @param typeStr Name of the message type to resolve
+ *
+ * @return The identified message type or -1 otherwise
+ */
+int16_t PSP_resolveType(char *typeStr);
+
+/**
+ * @brief Generate a string describing the info type
  *
  * Generate a character string describing the info type @a
  * infotype. The info type has to contain one of the PSP_INFO_ info
  * type constants.
  *
- * @param infotype Info type the name should be generated for.
+ * @param infotype Info type the name should be generated for
  *
  * @return A pointer to the '\\0' terminated character string
  * containing the name of the info type or a special message
- * containing @a infotype if the type is unknown.
+ * containing @a infotype if the type is unknown
  */
 char *PSP_printInfo(PSP_Info_t infotype);
 

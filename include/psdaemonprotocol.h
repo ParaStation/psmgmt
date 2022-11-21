@@ -105,19 +105,34 @@
     /***********************************************************/
 
 /**
- * @brief Generate a string describing the message type.
+ * @brief Generate a string describing the message type
  *
  * Generate a character string describing the message type @a
  * msgtype. The message type has to contain one of the PSP_DD_,
- * PSP_CD_ or PSP_CC_ message type constants. For the PSP_CD_ and
- * PSP_CC_ type message, PSP_printMsg() is used.
+ * PSP_CD_ PSP_CC_, or PSP_PLUG_ message type constants. For the
+ * PSP_CD_ and PSP_CC_ type messages, PSP_printMsg() is used.
  *
- * @param msgtype Message type the name should be generated for.
+ * @param msgtype Message type the name should be generated for
  *
  * @return A pointer to the '\0' terminated character string
  * containing the name of the message type or a special message
- * containing @a msgtype if the type is unknown.
+ * containing @a msgtype if the type is unknown
  */
 char *PSDaemonP_printMsg(int msgtype);
+
+/**
+ * @brief Resolve message type
+ *
+ * Analyse the character string @a typeStr and return the
+ * corresponding message type. This is basically the inverse operation
+ * of @ref PSDaemonP_printMsg() and uses the identical type
+ * strings. For types covered in psprotocol.h @ref PSP_resolveType()
+ * will be used implicitly.
+ *
+ * @param typeStr Name of the message type to resolve
+ *
+ * @return The identified message type or -1 otherwise
+ */
+int16_t PSDaemonP_resolveType(char *typeStr);
 
 #endif /* __PSDAEMONPROTOCOL_H */
