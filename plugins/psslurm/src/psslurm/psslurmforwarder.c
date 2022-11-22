@@ -413,7 +413,7 @@ static void fwExecBatchJob(Forwarder_Data_t *fwdata, int rerun)
 }
 
 Step_t * __findStepByEnv(char **environ, uint32_t *jobid_out,
-			 uint32_t *stepid_out, bool isAdmin,
+			 uint32_t *stepid_out, bool verbose,
 			 const char *func, const int line)
 {
     uint32_t jobid = 0, stepid = SLURM_BATCH_SCRIPT;
@@ -440,11 +440,8 @@ Step_t * __findStepByEnv(char **environ, uint32_t *jobid_out,
     if (stepid_out) *stepid_out = stepid;
 
     Step_t *step = Step_findByStepId(jobid, stepid);
-    if (!step) {
-	if (!isAdmin) {
-	    mlog("%s: step '%u:%u' not found for '%s:%i'\n", __func__,
-		 jobid, stepid, func, line);
-	}
+    if (!step && verbose) {
+	flog("step '%u:%u' not found for '%s:%i'\n", jobid, stepid, func, line);
     }
 
     return step;
@@ -456,7 +453,7 @@ static void initFwPtr(PStask_t *task)
 
     bool isAdmin = isPSAdminUser(task->uid, task->gid);
     uint32_t jobid = 0;
-    Step_t *step = findStepByEnv(task->environ, &jobid, NULL, isAdmin);
+    Step_t *step = findStepByEnv(task->environ, &jobid, NULL, !isAdmin);
 
     if (step) {
 	fwStep = step;
