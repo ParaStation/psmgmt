@@ -390,7 +390,6 @@ bool pspmix_service_registerNamespace(PspmixJob_t *job)
 
     /* add node specific ranks to process information and count nodes */
     size_t nodeCount = 0;
-    ns->localClients = 0;
     list_t *n;
     list_for_each(n, &ns->procMap) {
 	nodeCount++;
@@ -429,7 +428,6 @@ bool pspmix_service_registerNamespace(PspmixJob_t *job)
 
     /* initialize list of clients */
     INIT_LIST_HEAD(&ns->clientList);
-    ns->clientsConnected = 0;
 
     /* add to list of namespaces */
     GET_LOCK(namespaceList);
