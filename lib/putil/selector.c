@@ -462,8 +462,9 @@ int Selector_awaitWrite(int fd, Selector_CB_t writeHandler, void *info)
     ev.events = EPOLLOUT | (selector->disabled ? 0 : (EPOLLIN | EPOLLPRI));
     ev.data.fd = fd;
 
+    int rc;
 recheck:
-    int rc = epoll_ctl(epollFD, op, fd, &ev);
+    rc = epoll_ctl(epollFD, op, fd, &ev);
     if (rc < 0) {
 	switch (errno) {
 	case EEXIST:
