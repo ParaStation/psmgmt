@@ -70,7 +70,6 @@ static struct timeval maxPeriod = {86400,0};
 static int timerdiv(struct timeval *tv1, struct timeval *tv2)
 {
     double div;
-
     div = (tv1->tv_sec+tv1->tv_usec*1e-6) / (tv2->tv_sec+tv2->tv_usec*1e-6);
 
     return (int) rint(div);
@@ -88,12 +87,12 @@ static int timerdiv(struct timeval *tv1, struct timeval *tv2)
  */
 static void rescaleActPeriods(struct timeval *newTimeout)
 {
-    list_t *t;
     struct itimerval itv;
 
     actPeriod = *newTimeout;
 
     /* Change all periods */
+    list_t *t;
     list_for_each(t, &timerList) {
 	Timer_t *timer = list_entry(t, Timer_t, next);
 	int old_period = timer->period;
@@ -139,14 +138,13 @@ static void sigHandler(int sig)
 
 static int deleteTimer(Timer_t *timer)
 {
-    sigset_t sigset;
-
     if (!timer) {
 	logger_print(logger, -1, "%s: timer is NULL\n", __func__);
 	return -1;
     }
 
     /* Block SIGALRM, while we fiddle around with the timers */
+    sigset_t sigset;
     sigemptyset(&sigset);
     sigaddset(&sigset, SIGALRM);
     sigprocmask(SIG_BLOCK, &sigset, NULL);
@@ -165,27 +163,21 @@ static int deleteTimer(Timer_t *timer)
 	rescaleActPeriods(&timeout);
     } else if (timercmp(&timer->timeout, &actPeriod, ==)) {
 	/* timer with actPeriod removed, search and set new one */
+	struct timeval newPeriod = maxPeriod;
 	list_t *t;
-	struct timeval oldActPeriod = actPeriod;
-
-	/* search new actPeriod */
-	actPeriod = maxPeriod;
-
 	list_for_each(t, &timerList) {
 	    Timer_t *tmr = list_entry(t, Timer_t, next);
 	    if (tmr->deleted) continue;
-	    if (timercmp(&tmr->timeout, &actPeriod, <)) {
-		actPeriod = tmr->timeout;
+	    if (timercmp(&tmr->timeout, &newPeriod, <)) {
+		newPeriod = tmr->timeout;
 	    }
 	}
 
-	if (timercmp(&oldActPeriod, &actPeriod, !=)) {
-	    /*
-	     * Only change period, if actPeriod != oldActPeriod
-	     * Two timer may have been registered with equal timeout !
-	     */
-	    rescaleActPeriods(&actPeriod);
-	}
+	/*
+	 * Only change if newPeriod != actPeriod
+	 * Two timer may have been registered with equal timeout !
+	 */
+	if (timercmp(&newPeriod, &actPeriod, !=)) rescaleActPeriods(&newPeriod);
     }
 
     /* Release allocated memory of removed timer */
@@ -204,10 +196,9 @@ static bool inTimerHandling = false;
 
 void Timer_handleSignals(void)
 {
-    list_t *t, *tmp;
-
     inTimerHandling = true;
 
+    list_t *t, *tmp;
     list_for_each_safe(t, tmp, &timerList) {
 	Timer_t *timer = list_entry(t, Timer_t, next);
 	if (timer->sigPending && !timer->deleted
@@ -279,9 +270,6 @@ bool Timer_isInitialized(void)
 static int Timer_doRegister(struct timeval *timeout, handler_t handler,
 			    bool enhanced, void *info)
 {
-    sigset_t sigset;
-    Timer_t *new;
-
     /* Test if timeout is appropiate */
     if (timercmp(timeout, &minPeriod, <)) {
 	logger_print(logger, -1, "%s: timeout = %ld.%.6ld sec too small\n",
@@ -290,7 +278,7 @@ static int Timer_doRegister(struct timeval *timeout, handler_t handler,
     }
 
     /* Create new timer */
-    new = malloc(sizeof(Timer_t));
+    Timer_t *new = malloc(sizeof(Timer_t));
     if (!new) {
 	logger_print(logger, -1, "%s: No memory.\n", __func__);
 	return -1;
@@ -307,6 +295,7 @@ static int Timer_doRegister(struct timeval *timeout, handler_t handler,
 	.sigPending = false };
 
     /* Block SIGALRM, while we fiddle around with the timers */
+    sigset_t sigset;
     sigemptyset(&sigset);
     sigaddset(&sigset, SIGALRM);
     sigprocmask(SIG_BLOCK, &sigset, NULL);
@@ -343,9 +332,7 @@ static int Timer_doRegister(struct timeval *timeout, handler_t handler,
 
 int Timer_register(struct timeval *timeout, void (*timeoutHandler)(void))
 {
-    handler_t handler;
-
-    handler.stdHandler = timeoutHandler;
+    handler_t handler = { .stdHandler = timeoutHandler };
 
     return Timer_doRegister(timeout, handler, false, NULL);
 }
@@ -353,9 +340,7 @@ int Timer_register(struct timeval *timeout, void (*timeoutHandler)(void))
 int Timer_registerEnhanced(struct timeval* timeout,
 			   void (*timeoutHandler)(int, void *), void *info)
 {
-    handler_t handler;
-
-    handler.enhHandler = timeoutHandler;
+    handler_t handler = { .enhHandler = timeoutHandler };
 
     return Timer_doRegister(timeout, handler, true, info);
 }
@@ -375,11 +360,10 @@ static Timer_t *timerCache = NULL;
  */
 static Timer_t * findTimer(int id)
 {
-    list_t *t;
-
     if (timerCache && timerCache->id == id && !timerCache->deleted)
 	return timerCache;
 
+    list_t *t;
     list_for_each(t, &timerList) {
 	Timer_t *timer = list_entry(t, Timer_t, next);
 	if (timer->deleted) continue;
@@ -396,7 +380,6 @@ static Timer_t * findTimer(int id)
 int Timer_remove(int id)
 {
     Timer_t *timer = findTimer(id);
-
     if (!timer) {
 	logger_print(logger, -1, "%s: no timer found id=%d\n", __func__, id);
 	return -1;
@@ -413,7 +396,6 @@ int Timer_remove(int id)
 int Timer_block(int id, bool block)
 {
     Timer_t *timer = findTimer(id);
-
     if (!timer) {
 	logger_print(logger, -1, "%s: no timer found id=%d\n", __func__, id);
 	return -1;
