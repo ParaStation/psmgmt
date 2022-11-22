@@ -152,6 +152,15 @@ int Timer_registerEnhanced(struct timeval* timeout,
 int Timer_remove(int id);
 
 /**
+ * @brief Get actual period used by the Timer module
+ *
+ * @doctodo
+ *
+ * @return Provide the actual period of the Timer module
+ */
+struct timeval Timer_getActPeriod(void);
+
+/**
  * @brief Block a timer
  *
  * Block or unblock a registered timer. The timer will be identified

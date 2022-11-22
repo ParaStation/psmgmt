@@ -430,3 +430,8 @@ int Timer_restart(int id)
 
     return 0;
 }
+
+struct timeval Timer_getActPeriod(void)
+{
+    return actPeriod;
+}
