@@ -78,7 +78,8 @@ typedef enum {
     PSPMIX_LOG_PROCMAP = 0x000020, /**< Log process mappings */
     PSPMIX_LOG_MODEX   = 0x000040, /**< Log modex data send/receive/forward */
     PSPMIX_LOG_INFOARR = 0x000080, /**< Log passed info arrays */
-    PSPMIX_LOG_VERBOSE = 0x000100, /**< Other verbose stuff */
+    PSPMIX_LOG_CLIENTS = 0x000100, /**< Log clients connected/disconnected */
+    PSPMIX_LOG_VERBOSE = 0x100000, /**< Other verbose stuff */
 } PSPMIX_log_types_t;
 
 /**
