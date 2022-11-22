@@ -210,14 +210,14 @@ static DDBufferMsg_t *msgToDeliver = NULL;
 static bool delayHandler(DDBufferMsg_t *msg)
 {
     if (msg == msgToDeliver) {
-	// fall back to original handlers
+	/* fall back to original handlers */
 	msgToDeliver = NULL;
 	return false;
     }
 
-    DelayContainer_t *delayContainer = findDelayContainer(msg->header.type, 0);
+    DelayContainer_t *delayC = findDelayContainer(msg->header.type, 0);
 
-    if (!delayContainer) {
+    if (!delayC) {
 	pluginlog("%s: no delay for type %d\n", __func__, msg->header.type);
 	return false;
     }
@@ -237,7 +237,9 @@ static bool delayHandler(DDBufferMsg_t *msg)
 		  PSC_printTID(msg->header.dest));
     }
 
-    list_add_tail(&msgContainer->next, &delayContainer->messages);
+    /* ensure we see the full delay for the first message */
+    if (list_empty(&delayC->messages)) Timer_restart(delayC->timerID);
+    list_add_tail(&msgContainer->next, &delayC->messages);
 
     return true;
 }
