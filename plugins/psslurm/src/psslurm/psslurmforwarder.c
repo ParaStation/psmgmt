@@ -538,11 +538,15 @@ int handleHookExecFW(void *data)
     initFwPtr(task);
 
     if (fwStep) {
+	if (!fwStep->nodeinfos) {
+	    flog("missing nodeinfos: unable to set jail environment\n");
+	    return -1;
+	}
 
 	/* set threads bitmaps env */
 	setJailEnv(NULL, NULL,
-		&(fwStep->nodeinfos[fwStep->localNodeId].stepHWthreads),
-		&(fwStep->nodeinfos[fwStep->localNodeId].jobHWthreads));
+		   &(fwStep->nodeinfos[fwStep->localNodeId].stepHWthreads),
+		   &(fwStep->nodeinfos[fwStep->localNodeId].jobHWthreads));
     }
 
     return 0;

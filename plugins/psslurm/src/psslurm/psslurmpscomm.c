@@ -619,15 +619,16 @@ static int handleGetReservation(void *res) {
 static int handleRecvSpawnReq(void *taskPtr)
 {
     PStask_t *spawnee = taskPtr;
-    uint32_t jobid, stepid;
 
     bool isAdmin = isPSAdminUser(spawnee->uid, spawnee->gid);
     /* allow processes spawned by admin users to pass */
     if (isAdmin) return 0;
 
-    if (!findStepByEnv(spawnee->environ, &jobid, &stepid, !isAdmin)) {
-	/* if the step is not already created, delay spawning processes */
-	flog("delay spawning processes for %s due to missing step %u:%u\n",
+    uint32_t jobid, stepid;
+    Step_t *step = findStepByEnv(spawnee->environ, &jobid, &stepid, true);
+    if (!step || !step->nodeinfos) {
+	/* if the step has no nodeinfo yet, delay spawning processes */
+	flog("delay spawning for %s due to missing nodeinfo in step %u:%u\n",
 	     PSC_printTID(spawnee->loggertid), jobid, stepid);
 
 	spawnee->suspended = true;
