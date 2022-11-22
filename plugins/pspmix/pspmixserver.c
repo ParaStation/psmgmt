@@ -466,6 +466,12 @@ static pmix_status_t server_fencenb_cb(
 
     /* handle command directives */
     for (size_t i = 0; i < ninfo; i++) {
+
+	/* This is required to be supported by PMIx 4.1 standard.
+	 * Actually, I don't know, what to to with this information. We just do
+	 * get blobs from each process participating in the fence and send them
+	 * around, we do not control whether there are all information included
+	 * or not (@todo) */
 	if (PMIX_CHECK_KEY(info+i, PMIX_COLLECT_DATA)) {
 	    mlog("%s: Found %s info [key '%s' value '%s']\n", __func__,
 		 (PMIX_INFO_IS_REQUIRED(&info[i])) ? "required" : "optional",
@@ -474,9 +480,34 @@ static pmix_status_t server_fencenb_cb(
 	    continue;
 	}
 
-	/* @todo implement PMIX_LOCAL_COLLECTIVE_STATUS (pmix.loc.col.st)
-	 * This is not part of PMIx 4.1 standard but is used by OpenMPI 4.1.4
+	/* This is not part of PMIx 4.1 standard but is used by OpenPMIx 4.
 	 * Currently it is included as provisional in the PMIx standard HEAD */
+	if (PMIX_CHECK_KEY(info+i, PMIX_LOCAL_COLLECTIVE_STATUS)) {
+	    mdbg(PSPMIX_LOG_FENCE, "%s: Found %s info [key '%s' value '%s']\n",
+		 __func__,
+		 (PMIX_INFO_IS_REQUIRED(&info[i])) ? "required" : "optional",
+		 info[i].key,
+		 PMIx_Error_string(info[i].value.data.status));
+	    if (info[i].value.data.status != PMIX_SUCCESS) {
+		mlog("%s: Local collective error status passed: %s\n", __func__,
+		     PMIx_Error_string(info[i].value.data.status));
+	    }
+	    continue;
+	}
+
+	/* This is not part of any PMIx standard version, but used by
+	 * openPMIx since 4.2.1.
+	 * https://github.com/openpmix/openpmix/commit/e66c29b93
+	 * Currently we do not rely on a sorted list, perhaps there is room for
+	 * optimization if this info is passed (@todo) */
+	if (PMIX_CHECK_KEY(info+i, PMIX_SORTED_PROC_ARRAY)) {
+	    mdbg(PSPMIX_LOG_FENCE, "%s: Found %s info [key '%s' value '%s']\n",
+		 __func__,
+		 (PMIX_INFO_IS_REQUIRED(&info[i])) ? "required" : "optional",
+		 info[i].key,
+		 (PMIX_INFO_TRUE(&info[i])) ? "true" : "false");
+	    continue;
+	}
 
 	/* inform about lacking implementation */
 	mlog("%s: Ignoring info [key '%s' flags '%s' value.type '%s']"
