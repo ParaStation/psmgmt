@@ -2911,7 +2911,9 @@ bool pspmix_server_createPSetByProcess(const char *name, list_t *procMap,
 						          members.len, name);
     vectorDestroy(&members);
 
-    if (!status == PMIX_SUCCESS) {
+    /* Standard says PMIX_SUCCESS should be returned, but OpenPMIx 4.2.2
+     * returns PMIX_OPERATION_SUCCEEDED instead */
+    if (status != PMIX_SUCCESS && status != PMIX_OPERATION_SUCCEEDED) {
 	ulog("failed to create process set '%s': %s\n", name,
 	     PMIx_Error_string(status));
 	return false;
@@ -2944,7 +2946,9 @@ bool pspmix_server_createPSetByNode(const char *name, list_t *procMap,
     ufree(members);
     members = NULL;
     len = 0;
-    if (!status == PMIX_SUCCESS) {
+    /* Standard says PMIX_SUCCESS should be returned, but OpenPMIx 4.2.2
+     * returns PMIX_OPERATION_SUCCEEDED instead */
+    if (status != PMIX_SUCCESS && status != PMIX_OPERATION_SUCCEEDED) {
 	ulog("failed to create process set '%s': %s\n", name,
 		PMIx_Error_string(status));
 	return false;
