@@ -435,3 +435,16 @@ int Timer_block(int id, bool block)
 
     return wasBlocked;
 }
+
+int Timer_restart(int id)
+{
+    Timer_t *timer = findTimer(id);
+    if (!timer) {
+	logger_print(logger, -1, "%s: no timer found id=%d\n", __func__, id);
+	return -1;
+    }
+
+    timer->calls = 0;
+
+    return 0;
+}

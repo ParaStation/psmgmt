@@ -152,12 +152,11 @@ int Timer_registerEnhanced(struct timeval* timeout,
 /**
  * @brief Remove a timer
  *
- * Remove a registered timer. The timer will be identified by its
- * corresponding unique ID @a id.
+ * Remove a registered timer identified by its unique ID @a id.
  *
- * @param fd The file-descriptor to identify the timer.
+ * @param id Unique ID used to identify the timer
  *
- * @return On success, 0 is returned. On error, -1 is returned.
+ * @return On success 0 is returned; or -1 in case of failure
  */
 int Timer_remove(int id);
 
@@ -195,6 +194,18 @@ int Timer_remove(int id);
  * occurred, -1 will be returned.
  */
 int Timer_block(int id, bool block);
+
+/**
+ * @brief Restart timer
+ *
+ * Restart the timer identified by its unique ID @a id. This
+ * guarantees that a new full timer period starts now.
+ *
+ * @param id Unique ID used to identify the timer
+ *
+ * @return On success 0 is returned; or -1 in case of failure
+ */
+int Timer_restart(int id);
 
 /**
  * @brief Handle elapsed timers
