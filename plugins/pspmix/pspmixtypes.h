@@ -23,6 +23,7 @@
 #include "pscommon.h"
 #include "psreservation.h"
 #include "psenv.h"
+#include "pscpu.h"
 
 #include "psidsession.h"
 
@@ -134,6 +135,8 @@ typedef struct {
     PspmixApp_t *app;   /**< application this process belongs to */
     uint16_t lrank;     /**< application local rank on the node running */
     uint16_t nrank;     /**< rank on the node running */
+    PSCPU_set_t cpus;   /**< CPUs assigned to the process
+			     (only used for local processes) */
     uint32_t reinc;     /**< times this process has been re-instantiated
 			     https://github.com/pmix/pmix-standard/issues/402 */
 } PspmixProcess_t;

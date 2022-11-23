@@ -358,6 +358,7 @@ bool pspmix_service_registerNamespace(PspmixJob_t *job)
 	}
 
 	pmix_rank_t apprank = 0;
+	size_t lslotidx = 0;
 	for (size_t i = 0; i < resInfo->nEntries; i++) {
 	    PSresinfoentry_t *entry = &resInfo->entries[i];
 	    PspmixNode_t *node = findNodeInList(entry->node, &ns->procMap);
@@ -383,6 +384,17 @@ bool pspmix_service_registerNamespace(PspmixJob_t *job)
 		    .arank = apprank++,
 		    .app = ns->apps + app,
 		    .reinc = 0 };
+
+		if (node->id == PSC_getMyID()) {
+		    PSresslot_t *slot = &(resInfo->localSlots[lslotidx++]);
+		    if (slot->rank == r) {
+			PSCPU_copy(proc.cpus, slot->CPUset);
+		    } else {
+			ulog("unexpected rank in local slots list"
+			     " (%d not %d)\n", slot->rank, r);
+			PSCPU_clrAll(proc.cpus);
+		    }
+		}
 		vectorAdd(&node->procs, &proc);
 	    }
 	}
