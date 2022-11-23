@@ -82,6 +82,13 @@ static void handleAddJob(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
 	}
 	resInfo->nEntries = len / sizeof(*resInfo->entries);
 
+	resInfo->localSlots = getDataM(&ptr, &len);
+	if (!resInfo->localSlots) {
+	    mlog("%s: message corrupted, cannot get local slots\n", __func__);
+	    return;
+	}
+	resInfo->nLocalSlots = len / sizeof(*resInfo->localSlots);
+
 	list_add_tail(&resInfo->next, &job->resInfos);
     }
 

@@ -384,6 +384,8 @@ static bool sendAddJob(PspmixServer_t *server, PStask_ID_t loggertid,
 	addResIdToMsg(resInfo->resID, &msg);
 	addDataToMsg(resInfo->entries,
 		     resInfo->nEntries * sizeof(*resInfo->entries), &msg);
+	addDataToMsg(resInfo->localSlots,
+		     resInfo->nLocalSlots * sizeof(*resInfo->localSlots), &msg);
     }
 
     addStringArrayToMsg(env->vars, &msg);
