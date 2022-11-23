@@ -73,13 +73,15 @@ static void handleAddJob(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
     for (size_t i = 0; i < numResInfos; i++) {
 	PSresinfo_t *resInfo = ucalloc(sizeof(*resInfo));
 	getResId(&ptr, &resInfo->resID);
-	getUint32(&ptr, &resInfo->nEntries);
-	resInfo->entries = ucalloc(resInfo->nEntries*sizeof(*resInfo->entries));
-	for (uint32_t j = 0; j < resInfo->nEntries; j++) {
-	    getNodeId(&ptr, &resInfo->entries[j].node);
-	    getInt32(&ptr, &resInfo->entries[j].firstrank);
-	    getInt32(&ptr, &resInfo->entries[j].lastrank);
+
+	size_t len;
+	resInfo->entries = getDataM(&ptr, &len);
+	if (!resInfo->entries) {
+	    mlog("%s: message corrupted, cannot get entries\n", __func__);
+	    return;
 	}
+	resInfo->nEntries = len / sizeof(*resInfo->entries);
+
 	list_add_tail(&resInfo->next, &job->resInfos);
     }
 

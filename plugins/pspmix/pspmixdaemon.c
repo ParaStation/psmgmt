@@ -382,12 +382,8 @@ static bool sendAddJob(PspmixServer_t *server, PStask_ID_t loggertid,
     list_for_each(r, resInfos) {
 	PSresinfo_t *resInfo = list_entry(r, PSresinfo_t, next);
 	addResIdToMsg(resInfo->resID, &msg);
-	addUint32ToMsg(resInfo->nEntries, &msg);
-	for (uint32_t i = 0; i < resInfo->nEntries; i++) {
-	    addNodeIdToMsg(resInfo->entries[i].node, &msg);
-	    addInt32ToMsg(resInfo->entries[i].firstrank, &msg);
-	    addInt32ToMsg(resInfo->entries[i].lastrank, &msg);
-	}
+	addDataToMsg(resInfo->entries,
+		     resInfo->nEntries * sizeof(*resInfo->entries), &msg);
     }
 
     addStringArrayToMsg(env->vars, &msg);
