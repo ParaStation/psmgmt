@@ -589,7 +589,7 @@ static bool startFilter(PStask_t *task, void *info)
     PSresinfo_t *res = info;
 
     if (task->resID != res->resID || !res->nLocalSlots
-	|| !(task->delayReasons | DELAY_RESINFO)) return false;
+	|| !(task->delayReasons & DELAY_RESINFO)) return false;
 
     DDErrorMsg_t answer = {
 	.header = {
