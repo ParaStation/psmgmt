@@ -14,7 +14,6 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <errno.h>
-#include <string.h>
 #include <syslog.h>
 #include <sys/epoll.h>
 #include <sys/select.h>
