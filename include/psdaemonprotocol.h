@@ -15,6 +15,8 @@
 #ifndef __PSDAEMONPROTOCOL_H
 #define __PSDAEMONPROTOCOL_H
 
+#include <stdint.h>
+
 #include "psprotocol.h" // IWYU pragma: export
 
 /** Unique version number of the high-level protocol */

@@ -7,13 +7,15 @@
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
+#include <stdbool.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/time.h>
 
 #include "list.h"
-#include "psprotocol.h"
+#include "pscommon.h"
 #include "psdaemonprotocol.h"
 #include "timer.h"
 
