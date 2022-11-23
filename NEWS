@@ -6,6 +6,12 @@ Copyright (C) 2021-2022 ParTec AG, Munich
 Please send bug reports, questions and suggestions to <support@par-tec.com>
 
 
+Version 5.1.52-5:
+=================
+Bugfixes:
+ - prevent segfault due to late REQUEST_LAUNCH_TASKS message
+
+
 Version 5.1.52-4:
 =================
 Bugfixes:
