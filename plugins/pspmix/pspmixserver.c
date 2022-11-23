@@ -27,6 +27,8 @@
 #include <pmix_version.h>
 #include <pmix.h>
 
+#include <hwloc.h>
+
 #include "list.h"
 #include "timer.h"
 #include "pluginmalloc.h"
@@ -35,6 +37,8 @@
 #if PMIX_VERSION_MAJOR >= 4
 #include "pluginhelper.h"
 #endif
+
+#include "psidnodes.h"
 
 #include "pspmixlog.h"
 #include "pspmixservice.h"
@@ -2547,9 +2551,28 @@ static void fillProcDataArray(pmix_data_array_t *procData,
 	 * processes - thus, a call to PMIx_Get for the locality string of a
 	 * process that returns PMIX_ERR_NOT_FOUND indicates that the process is
 	 * not executing on the same node. */
-	char *locstr = "@todo"; /* @todo somehow get the string */
+	char *locstr;
+	pmix_cpuset_t cpuset;
+	PMIX_CPUSET_CONSTRUCT(&cpuset);
+	cpuset.source = "hwloc";
+	cpuset.bitmap = hwloc_bitmap_alloc();
+	for (int cpu = 0; cpu < PSIDnodes_getNumThrds(nodeID); cpu++) {
+	    if (!PSCPU_isSet(proc->cpus, cpu)) continue;
+	    hwloc_bitmap_set(cpuset.bitmap,
+			     PSIDnodes_unmapCPU(PSC_getMyID(), cpu));
+	}
+	pmix_status_t status = PMIx_server_generate_locality_string(&cpuset,
+								    &locstr);
+	if (status != PMIX_SUCCESS) {
+	    mlog("%s: failed to generate locality string for rank %d: %s\n",
+		 __func__, proc->rank, PMIx_Error_string(status));
+	    hwloc_bitmap_free(cpuset.bitmap);
+	    locstr = strdup("pspmix:generation_error");
+	    if (!locstr) abort(); /* @todo handle somehow more gently? */
+	}
 	PMIX_INFO_LOAD(&infos[i], PMIX_LOCALITY_STRING, locstr, PMIX_STRING);
 	i++;
+	free(locstr);
 
 	/* Full path to the subdirectory under PMIX_NSDIR assigned to the
 	 * specified process. */
