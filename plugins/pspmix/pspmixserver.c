@@ -478,6 +478,7 @@ static pmix_status_t server_fencenb_cb(
 	    continue;
 	}
 
+#if PMIX_VERSION_MAJOR >= 4
 	/* This is not part of PMIx 4.1 standard but is used by OpenPMIx 4.
 	 * Currently it is included as provisional in the PMIx standard HEAD */
 	if (PMIX_CHECK_KEY(info+i, PMIX_LOCAL_COLLECTIVE_STATUS)) {
@@ -506,6 +507,7 @@ static pmix_status_t server_fencenb_cb(
 		 (PMIX_INFO_TRUE(&info[i])) ? "true" : "false");
 	    continue;
 	}
+#endif
 
 	/* inform about lacking implementation */
 	mlog("%s: Ignoring info [key '%s' flags '%s' value.type '%s']"
