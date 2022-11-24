@@ -17,8 +17,8 @@
  * completely filled.
  *
  * The actual sending mode might be chosen by either setting
- * PS_SendSB_t's @ref useFrag flag to false (accumulate serialized
- * data in a buffer) or by initializing the PS_SendSB_t structure via
+ * PS_SendDB_t's @ref useFrag flag to false (accumulate serialized
+ * data in a buffer) or by initializing the PS_SendDB_t structure via
  * @ref initFragBuffer() or @ref initFragBufferExtra() and @ref
  * setFragDest() or @ref setFragDestUniq() (immediately send a series
  * of PSP messages).
