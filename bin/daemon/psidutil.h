@@ -314,7 +314,7 @@ void PSID_createMasterSock(char *sName);
 /**
  * @brief Enable master socket.
  *
- * Register the master socket within the selector facility in order to
+ * Register the master socket within the Selector facility in order to
  * automatically handle connection requests.
  *
  * It is expected that the master socket is created via @ref
@@ -330,7 +330,7 @@ void PSID_enableMasterSock(void);
 /**
  * @brief Disable master socket.
  *
- * Unregister the master socket from the selector facility in order to
+ * Unregister the master socket from the Selector facility in order to
  * stop handling connection requests.
  *
  * The master socket shall be destroyed later via @ref
@@ -442,12 +442,17 @@ typedef void PSID_loopAction_t(void);
  * Register the main-loop action @a action to be executed repeatedly
  * from within the main loop.
  *
- * Basically the ParaStation daemon sleeps all the time in Sselect()
+ * Basically the ParaStation daemon sleeps all the time in Swait()
  * waiting for new messages coming in to be handled. After a period
  * defined by either by the SelectTime parameter in the
- * parastation.conf configuration file or psiadmin's 'set selecttime'
- * directive Sselect() returns and allows periodic actions. These type
- * of actions might be registered here.
+ * parastation.conf configuration file, in the Psid section of the
+ * psconfig database, or psiadmin's 'set selecttime' directive
+ * Swait() returns and allows periodic actions. These type of
+ * actions might be registered here.
+ *
+ * It is allowed to register multiple, independent actions.
+ *
+ * @param action Main-loop action to register
  *
  * @return On success, 0 is returned. On error, -1 is returned, and
  * errno is set appropriately.
@@ -467,22 +472,25 @@ int PSID_registerLoopAct(PSID_loopAction_t action);
  * besides the action currently executed from within a main-loop
  * action.
  *
+ * @param action Main-loop action to un-register
+ *
  * @return On success, 0 is returned. On error, -1 is returned, and
  * errno is set appropriately.
  */
-int PSID_unregisterLoopAct(PSID_loopAction_t);
+int PSID_unregisterLoopAct(PSID_loopAction_t action);
 
 /**
  * @brief Call main-loop action
  *
  * Call all main-loop actions registered via PSID_registerLoopAct().
  *
- * Basically the ParaStation daemon sleeps all the time in Sselect()
+ * Basically the ParaStation daemon sleeps all the time in Swait()
  * waiting for new messages coming in to be handled. After a period
  * defined by either by the SelectTime parameter in the
- * parastation.conf configuration file or psiadmin's 'set selecttime'
- * directive Sselect() returns and allows periodic actions. These type
- * of actions might be registered via @ref PSID_registerLoopAct().
+ * parastation.conf configuration file, in the Psid section of the
+ * psconfig database, or psiadmin's 'set selecttime' directive Swait()
+ * returns and allows periodic actions. These type of actions might be
+ * registered via @ref PSID_registerLoopAct().
  *
  * This function will actually call all actions registered. Thus, it
  * only makes sense to call this function from within psid's
