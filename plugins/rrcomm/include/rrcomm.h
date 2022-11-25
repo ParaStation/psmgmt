@@ -53,7 +53,46 @@ int RRC_init(void);
 bool RRC_isInitialized(void);
 
 /**
+ * @brief Configure error reporting of th rank routed protocol
  * @doctodo
+ *
+ * from the requirements document:
+ *
+ * Switch instant error reporting on or off.
+ *
+ * If instant error reporting is disabled (the default (but see
+ * below)), no immediate reporting on failed sends will be
+ * provided. Instead, errors will be reported upon the next call of
+ * RRC_send() to the same destination rank that has failed before.
+ *
+ * After enabling instant error reporting any information on failed
+ * sends gained by the chaperon forwarder will be reported immediately
+ * to libRRC. This flags a message on the connecting file descriptor
+ * and the following call to RRC_recv() will return -1 to indicate an
+ * error. Upon return errno is set accordingly and the source of the
+ * error, i.e. the destination rank of the failed send, is reported in
+ * rank.
+ *
+ *
+ * @attention it seems to be pretty complicated to implement the
+ * non-instant case (originally marked as the default) since we
+ * neither have a separate channel for error reporting back to
+ * librrcomm nor any garantee on the status of the fw->lib direction
+ * while sending a message lib->fw (as done during RRC_send()). Thus,
+ * sending an error indicator during message delivery in RRC_send()
+ * (or right before or after) is no option. Therefore, for the time
+ * being only instant error reporting is supported, and is the
+ * default. Furthermore, all attempts to disable instant error
+ * reporting will fail!
+ *
+ * I propose to remove this call from the API and document the error
+ * reporting in more detail in RRC_recv() @todo
+ *
+ * If switching the instant error reporting fails, i.e. if the
+ * connection to the chaperon forwarder was lost, false is returned;
+ * otherwise true is returned.
+ *
+ * @return Report true on success or false on failure
  */
 bool RRC_instantError(bool flag);
 
@@ -96,6 +135,8 @@ ssize_t RRC_send(int32_t rank, char *buf, size_t bufSize);
  * still "on the wire", triggering the repeated call of @ref
  * RRC_recv() might still be realized via the original mechanism of
  * @ref select(), @ref poll() or @ref epoll().
+ *
+ * @doctodo differentiate error reporting / failed actual receive via errno!
  *
  * @param rank Upon successful return provides the sending rank of the
  * received message
