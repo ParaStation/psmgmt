@@ -136,19 +136,27 @@ ssize_t RRC_send(int32_t rank, char *buf, size_t bufSize);
  * RRC_recv() might still be realized via the original mechanism of
  * @ref select(), @ref poll() or @ref epoll().
  *
- * @doctodo differentiate error reporting / failed actual receive via errno!
+ * If instant error reporting is enabled (the default), this function
+ * might receive error reports on messages that had to be dropped due
+ * to the fact that a delivery to the destination rank was not
+ * possible. In this case -1 is returned and @ref errno is set to
+ * 0. Furthermore, @a rank will indicate the destination rank of the
+ * dropped message.
  *
  * @param rank Upon successful return provides the sending rank of the
- * received message
+ * received message or the destination rank of the dropped message
  *
  * @param buf Pre-allocated buffer to store the message to
  *
  * @param bufSize Size of @a buf
  *
- * @return Success is indicated by a value not larger than @a bufSize;
- * if the return value is larger than @a bufSize, the buffer must be
- * enlarged sufficiently before calling this function again; in case
- * of error -1 is returned and errno is set appropriately
+ * @return For received messages success is indicated by a value not
+ * larger than @a bufSize; if the return value is larger than @a
+ * bufSize, the buffer must be enlarged sufficiently before calling
+ * this function again; in case of error -1 is returned and @ref errno
+ * is set appropriately; if @ref errno is 0 while -1 is returned, a
+ * successful receive of an instant error report is indicated and @a
+ * rank reports the destination of the dropped message
  */
 ssize_t RRC_recv(int32_t *rank, char *buf, size_t bufSize);
 

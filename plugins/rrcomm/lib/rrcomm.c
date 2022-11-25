@@ -143,12 +143,33 @@ ssize_t RRC_send(int32_t rank, char *buf, size_t bufSize)
 }
 
 /**
+ * @brief Handle RRCOMM_ERROR message from chaperon forwarder
+ *
+ * Handle RRCOMM_ERROR message received from the chaperon
+ * forwarder. In order to signal the calling function that everything
+ * worked fine locally, -1 is retuned but errno set to 0.
+ *
+ * @param rank Upon return provides the destination rank of the
+ * message that could not be delivered
+ *
+ * @return Always return -1
+ */
+static ssize_t recvError(int32_t *rank)
+{
+    ssize_t ret = PSCio_recvBufP(frwdSocket, rank, sizeof(*rank));
+    if (ret <= 0) return closeFrwdSock(ret);
+
+    errno = 0;
+    return -1;
+}
+
+/**
  * Size of the next message to be expected. This is used to preserve
  * this information between to consecutive calls of @ref RRC_recv()
  * after the first call returned prematurely due to lack of space in
  * the receive-buffer
  */
-static size_t xpctdSize = 0;
+static uint32_t xpctdSize = 0;
 
 ssize_t RRC_recv(int32_t *rank, char *buf, size_t bufSize)
 {
@@ -158,7 +179,13 @@ ssize_t RRC_recv(int32_t *rank, char *buf, size_t bufSize)
     }
 
     if (!xpctdSize) {
-	ssize_t ret = PSCio_recvBufP(frwdSocket, &xpctdSize, sizeof(xpctdSize));
+	uint8_t msgType;
+	ssize_t ret = PSCio_recvBufP(frwdSocket, &msgType, sizeof(msgType));
+	if (ret <= 0) return closeFrwdSock(ret);
+	if (msgType == RRCOMM_ERROR) return recvError(rank);
+
+	/* actually data => fetch the size to expect */
+	ret = PSCio_recvBufP(frwdSocket, &xpctdSize, sizeof(xpctdSize));
 	if (ret <= 0) return closeFrwdSock(ret);
     }
 

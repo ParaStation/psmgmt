@@ -159,7 +159,10 @@ static int closeClientSock(void)
     return 0;
 }
 
-/** Maximum protocol version the lib is capable to handle */
+/**
+ * Protocol version the client's lib is capable to handle; negotiated
+ * while accepting the client in @ref acceptNewClient()
+ */
 static uint32_t clntVer = 0;
 
 /**
@@ -308,14 +311,18 @@ static void handleRRCommData(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
 	return;
     }
 
+    /* pack meta-data into single blob */
+    PS_SendDB_t data = { .bufUsed = 0, .useFrag = false };
+    bool byteOrder = setByteOrder(false); // libRRC does not use byteorder
+    addUint8ToMsg(RRCOMM_DATA, &data);
+    addUint32ToMsg(rData->used, &data);
+    addInt32ToMsg(hdr->sender, &data);
+    setByteOrder(byteOrder);
+
     // @todo On the long run move to non-blocking sends!
-    if (PSCio_sendF(clntSock, &rData->used, sizeof(rData->used)) < 0) {
-	flog("failed to send size\n");
-	closeClientSock();
-    }
-    if (PSCio_sendF(clntSock, &hdr->sender, sizeof(hdr->sender)) < 0) {
-	flog("failed to send sender rank\n");
-	closeClientSock();
+    if (PSCio_sendF(clntSock, data.buf, data.bufUsed) < 0) {
+	flog("failed to send meta-data\n");
+	return;
     }
     if (PSCio_sendF(clntSock, rData->buf, rData->used) < 0) {
 	flog("failed to send data\n");
