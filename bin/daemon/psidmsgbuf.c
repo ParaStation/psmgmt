@@ -34,7 +34,8 @@
  */
 typedef struct {
     list_t next;                   /**< Use to put into msgbufFreeList, etc. */
-    int offset;                    /**< Number of bytes already sent */
+    int32_t offset;                /**< Number of bytes already sent */
+    uint32_t size;                 /**< Explicit size of @a msg */
     char msg[MSGBUF_SMALLSIZE];    /**< The actual message to store */
 } smallMsgBuf_t;
 
@@ -51,8 +52,9 @@ static bool relocSmallMsgBuf(void *item)
     if (!repl) return false;
 
     /* copy msgbuf's content */
-    memcpy(&repl->msg, &orig->msg, sizeof(repl->msg));
     repl->offset = orig->offset;
+    repl->size = orig->size;
+    memcpy(&repl->msg, &orig->msg, sizeof(repl->msg));
 
     /* tweak the list */
     __list_add(&repl->next, orig->next.prev, orig->next.next);
@@ -85,12 +87,9 @@ static void PSIDMsgbuf_gc(void)
 PSIDmsgbuf_t *PSIDMsgbuf_get(size_t len)
 {
     PSIDmsgbuf_t *mp;
-
     if (len <= MSGBUF_SMALLSIZE) {
 	int blockedRDP = RDP_blockTimer(true);
-
 	mp = PSitems_getItem(smallMsgBufs);
-
 	RDP_blockTimer(blockedRDP);
     } else {
 	mp = malloc(sizeof(*mp) + len);
@@ -105,18 +104,14 @@ PSIDmsgbuf_t *PSIDMsgbuf_get(size_t len)
 
     INIT_LIST_HEAD(&mp->next);
     mp->offset = 0;
-
-    DDMsg_t *msg = (DDMsg_t *)mp->msg;
-    msg->len = 0;
+    mp->size = len;
 
     return mp;
 }
 
 void PSIDMsgbuf_put(PSIDmsgbuf_t *mp)
 {
-    DDMsg_t *msg = (DDMsg_t *)mp->msg;
-
-    if (msg->len <= MSGBUF_SMALLSIZE) {
+    if (mp->size <= MSGBUF_SMALLSIZE) {
 	PSitems_putItem(smallMsgBufs, mp);
     } else {
 	free(mp);

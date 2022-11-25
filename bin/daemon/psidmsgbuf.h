@@ -3,6 +3,7 @@
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
  * Copyright (C) 2005-2020 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2022 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -15,6 +16,7 @@
 #define __PSIDMSGBUF_H
 
 #include <stddef.h>
+#include <stdint.h>
 
 #include "list.h"
 
@@ -27,7 +29,8 @@
  */
 typedef struct {
     list_t next;           /**< Pointer to the next message buffer */
-    int offset;            /**< Number of bytes already sent */
+    int32_t offset;        /**< Number of bytes already sent */
+    uint32_t size;         /**< Size of @ref msg */
     char msg[0];           /**< The actual message to store */
 } PSIDmsgbuf_t;
 
@@ -42,10 +45,10 @@ typedef struct {
  * is intended to be freed via passing it back via @ref PSIDMsgbuf_put().
  *
  * @param len The length of the message to be stored in the message
- * buffer acquired.
+ * buffer acquired
  *
  * @return On success a pointer to the message buffer is returned, or
- * NULL if allocating the message-buffer failed.
+ * NULL if allocating the message-buffer failed
  */
 PSIDmsgbuf_t *PSIDMsgbuf_get(size_t len);
 
@@ -61,9 +64,9 @@ PSIDmsgbuf_t *PSIDMsgbuf_get(size_t len);
  * calling this function, the corresponding list will break,
  * i.e. there will be pointers to memory not being allocated any more.
  *
- * @param mp Pointer to the message buffer to be put back.
+ * @param mp Pointer to the message buffer to be put back
  *
- * @return No return value.
+ * @return No return value
  */
 void PSIDMsgbuf_put(PSIDmsgbuf_t *mp);
 
@@ -79,7 +82,7 @@ void PSIDMsgbuf_put(PSIDmsgbuf_t *mp);
  * The purpose of this function is to cleanup before a fork()ed
  * process is handling other tasks, e.g. becoming a forwarder.
  *
- * @return No return value.
+ * @return No return value
  */
 void PSIDMsgbuf_clearMem(void);
 
@@ -88,7 +91,7 @@ void PSIDMsgbuf_clearMem(void);
  *
  * Print statistics concerning the usage of message-buffers.
  *
- * @return No return value.
+ * @return No return value
  */
 void PSIDMsgbuf_printStat(void);
 
