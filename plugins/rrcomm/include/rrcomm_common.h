@@ -8,9 +8,9 @@
  * file.
  */
 /**
- * @file Rank routed Communication interface
+ * @file Rank Routed Communication interface
  *
- * Common definitions shared between userspace library and the plugin.
+ * Common definitions shared between userspace library and the plugin
  */
 #ifndef __RRCOMM_COMMON_H
 #define __RRCOMM_COMMON_H
@@ -21,6 +21,12 @@
  * excludes the leading '\0' byte!
  */
 #define RRCOMM_SOCKET_ENV "__RRCOMM_SOCKET"
+
+/** Message types used within the RRComm protocol */
+typedef enum {
+    RRCOMM_DATA = 1,   /**< Payload */
+    RRCOMM_ERROR,      /**< Error signal */
+} RRComm_msg_t;
 
 /**
  * Protocol version supported by both userspace library and the plugin.

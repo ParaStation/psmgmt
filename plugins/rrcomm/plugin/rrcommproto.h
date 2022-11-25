@@ -8,7 +8,7 @@
  * file.
  */
 /**
- * @file Rank routed Communication protocol
+ * @file Rank Routed Communication protocol
  *
  * Protocol definitions shared between plugin parts living in the psid
  * and the psidforwarder
@@ -19,12 +19,6 @@
 #include <stdint.h>
 
 #include "pstaskid.h"
-
-/** Packet types used within the RRComm protocol */
-typedef enum {
-    RRCOMM_DATA,     /**< Payload */
-    RRCOMM_ERROR,    /**< Error signal */
-} RRComm_pkt_t;
 
 /** Extended header of RRComm fragments */
 typedef struct {

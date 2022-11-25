@@ -57,8 +57,8 @@ static int closeListenSock(void)
  * @brief Function hooked to PSIDHOOK_EXEC_FORWARDER
  *
  * This function prepares for the execution of the psidforwarder (and
- * client) process. It is used to prepare a coherent setup between the
- * two process. In detail it will:
+ * client) processes. It is used to prepare a coherent setup between
+ * the two process. In detail it will:
  *  - Create an abstract UNIX socket for the psidforwarder to listen to
  *  - Store the name of the socket to the environment
  *  - Store proto-task information on the client to spawn into clntHdr
@@ -224,7 +224,7 @@ static int handleClientMsg(int fd, void *data)
 /**
  * @brief Handle new client
  *
- * @ref accept() a newly connecting client if a possible old client
+ * @ref accept() a newly connecting client after a possible old client
  * has detached. After negotiating the protocol version to utilize the
  * new socket descriptor is registered at the Selector to be handled
  * by @ref handleClientMsg().
@@ -334,7 +334,7 @@ static void handleRRCommError(DDTypedBufferMsg_t *msg)
     RRComm_hdr_t hdr;
     PSP_getTypedMsgBuf(msg, &used, "hdr", &hdr, sizeof(hdr));
 
-    /* invalidate cache entry */
+    /* invalidate cache entry if any */
     updateAddrCache(hdr.dest, -1);
 
     /* pack data into single blob */

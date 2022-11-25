@@ -8,7 +8,7 @@
  * file.
  */
 /**
- * @file Rank routed Communication interface
+ * @file Rank Routed Communication interface
  *
  * Userspace library providing the all basic funtionality to send and
  * receive messages via the rank routed protocol.
@@ -82,9 +82,10 @@ ssize_t RRC_send(int32_t rank, char *buf, size_t bufSize);
 /**
  * @brief Receive a message from the rank routed protocol
  *
- * Receive a message delivered via the rank routed protocol and store
- * it to the pre-allocated buffer @a buf of size @a bufSize. Upon
- * successful return the sending rank is provided in @a rank.
+ * Receive a message delivered via the rank routed protocol from the
+ * chaperon forwarder and store it to the pre-allocated buffer @a buf
+ * of size @a bufSize. Upon successful return the sending rank is
+ * provided in @a rank.
  *
  * If the size of the buffer is not sufficient to store the whole
  * message, the buffer will be left untouched and @a rank is not
@@ -106,7 +107,7 @@ ssize_t RRC_send(int32_t rank, char *buf, size_t bufSize);
  * @return Success is indicated by a value not larger than @a bufSize;
  * if the return value is larger than @a bufSize, the buffer must be
  * enlarged sufficiently before calling this function again; in case
- * of error -1 is returned
+ * of error -1 is returned and errno is set appropriately
  */
 ssize_t RRC_recv(int32_t *rank, char *buf, size_t bufSize);
 

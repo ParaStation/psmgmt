@@ -27,6 +27,8 @@
 #include "pluginmalloc.h"
 #include "pluginpsconfig.h"
 
+#include "rrcomm_common.h"
+
 #include "rrcommconfig.h"
 #include "rrcommforwarder.h"
 #include "rrcommlog.h"

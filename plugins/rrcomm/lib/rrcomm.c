@@ -27,7 +27,10 @@ static int frwdSocket = -1;
 /** Maximum protocol version the lib is capable to handle */
 static uint32_t protoVersion = RRCOMM_PROTO_VERSION;
 
-/** Protocol version the chaperon forwarder is willing to talk */
+/**
+ * Protocol version the chaperon forwarder is willing to talk;
+ * determined during @ref RRC_init()
+ */
 static uint32_t currVersion = 0;
 
 /**
