@@ -22,6 +22,7 @@
 #include <sys/un.h>
 #include <unistd.h>
 
+#include "list.h"
 #include "pscio.h"
 #include "pscommon.h"
 #include "pslog.h"
@@ -33,6 +34,7 @@
 #include "psidcomm.h"
 #include "psidforwarder.h"
 #include "psidhook.h"
+#include "psidmsgbuf.h"
 
 #include "rrcomm_common.h"
 #include "rrcommlog.h"
@@ -150,14 +152,7 @@ static PStask_ID_t getAddrFromCache(int32_t rank)
 /** Socket connected to current client */
 static int clntSock = -1;
 
-static int closeClientSock(void)
-{
-    if (clntSock == -1) return 0;
-    Selector_remove(clntSock);
-    close(clntSock);
-    clntSock = -1;
-    return 0;
-}
+static int closeClientSock(void);
 
 /**
  * Protocol version the client's lib is capable to handle; negotiated
@@ -182,6 +177,9 @@ static uint32_t clntVer = 0;
  */
 static int handleClientMsg(int fd, void *data)
 {
+    /* we rely on blocking receives from the client */
+    bool blocked = PSCio_setFDblock(clntSock, true);
+
     ssize_t ret = PSCio_recvBufP(fd, &clntHdr.dest, sizeof(clntHdr.dest));
     if (ret != sizeof(clntHdr.dest)) return closeClientSock();
 
@@ -221,7 +219,234 @@ static int handleClientMsg(int fd, void *data)
     }
     sendFragMsg(&fBuf);
 
+    /* reestablish old blocking behavior */
+    PSCio_setFDblock(clntSock, blocked);
+
     return 0;
+}
+
+/** List of data waiting to be sent */
+static LIST_HEAD(oldData);
+
+/**
+ * @brief Send data to client
+ *
+ * Send data of size @a len in @a buf to the client socket starting at
+ * an offset of @a offset bytes. It is expected that the previous
+ * parts of the message were sent in earlier calls to this function.
+ *
+ * @param buf Data to transmit
+ *
+ * @param len Size of @a buf
+ *
+ * @param offset Number of bytes sent in earlier calls
+ *
+ * @return On success, the total number of bytes sent is returned,
+ * i.e. usually this is @a len. If the socket blocks, it might be
+ * smaller. In this case the total number of bytes sent in this and
+ * all previous calls is returned. If an error occurs, e.g. the client
+ * socket was closed, -1 is returned and @ref errno is set
+ * appropriately.
+ */
+static ssize_t doClientSend(char *buf, size_t len, size_t offset)
+{
+    if (clntSock == -1) return 0; // pile up data while waiting for client
+
+    size_t sent;
+    ssize_t ret = PSCio_sendProg(clntSock, buf + offset, len - offset, &sent);
+    if (ret < 0) {
+	int eno = errno;
+	if (eno == EAGAIN) return offset + sent;
+
+	char *errstr = strerror(eno);
+	PSIDfwd_printMsgf(STDERR, "%s: errno %d on clientSock: %s\n",
+			  __func__, eno, errstr ? errstr : "UNKNOWN");
+	if (Selector_isRegistered(clntSock)) Selector_vacateWrite(clntSock);
+	closeClientSock();
+	errno = eno;
+	return ret;
+    }
+    return offset + ret;
+}
+
+/**
+ * @brief Store data to send in oldData list
+ *
+ * Store the data in @a buf of size @a len to be transmitted to the
+ * client to the @ref oldData list. @a offset contains the number of
+ * bytes already transmitted to the client's socket
+ *
+ * @param buf Data to store
+ *
+ * @param len Size of @a buf
+ *
+ * @param offset Number of bytes already transmitted
+ *
+ * @return Upon successful storing @a buf, true is returned; or false
+ * otherwise
+ */
+static bool storeData(char *buf, size_t len, int offset)
+{
+    PSIDmsgbuf_t *msgbuf = PSIDMsgbuf_get(len);
+    if (!msgbuf) return false;
+
+    memcpy(msgbuf->msg, buf, len);
+    msgbuf->offset = offset;
+
+    list_add_tail(&msgbuf->next, &oldData);
+    return true;
+}
+
+/**
+ * @brief Send RRCOMM_ERROR message for each meta-data blob
+ *
+ * Filter used by @ref dropAllData() in order to deliver a
+ * RRCOMM_ERROR message to the sender of a RRCOMM_DATA message which
+ * is just dropped. For this @a blob is analyzed and if meta-data is
+ * detected, all information for error-message creation is
+ * extraced. In order to skip the following blob in @ref oldData that
+ * will contain the actual payload of the dropped message, true is
+ * returned.
+ *
+ * @param blob Data blob to be analyzed
+ *
+ * @return Return true if meta-data was detected and a data blob is expected
+ */
+static bool sendErrorMsg(PSIDmsgbuf_t *blob)
+{
+    char *ptr = blob->msg;
+
+    if (blob->size < 1) return false;
+    uint8_t type;
+    getUint8(&ptr, &type);
+    if (type != RRCOMM_DATA) return false;
+
+    bool byteOrder = setByteOrder(false); // libRRC does not use byteorder
+    uint32_t len;
+    getUint32(&ptr, &len);
+
+    /* reconstruct original fragment's extra header */
+    RRComm_hdr_t msgHdr = clntHdr;
+    msgHdr.dest = clntHdr.sender;
+    getInt32(&ptr, &msgHdr.sender);
+    setByteOrder(byteOrder);
+
+    /* send RRCOMM_ERROR to sender */
+    DDTypedBufferMsg_t answer = {
+	.header = {
+	    .type = PSP_PLUG_RRCOMM,
+	    .sender = PSC_getMyTID(),
+	    .dest = getAddrFromCache(msgHdr.sender),
+	    .len = 0, /* to be set by PSP_putTypedMsgBuf */ },
+	.type = RRCOMM_ERROR,
+	.buf = { '\0' } };
+    /* Add all information we have concerning the original message */
+    PSP_putTypedMsgBuf(&answer, "hdr", &msgHdr, sizeof(msgHdr));
+
+    sendDaemonMsg(&answer);
+
+    return len; // if len == 0, no data blob was stored!
+}
+
+/**
+ * @brief Drop all data stored to oldData list
+ *
+ * Drop all data stored to the @ref oldData list waiting to be sent to
+ * the client socket. This function shall be called once the
+ * corresponding socket is closed, especially if this happens
+ * unexpectedly.
+ *
+ * For each blob of data in the @ref oldData list @ref sendErrorMsg()
+ * is called with the blob as a parameter.
+ *
+ * @return No return value
+ */
+static void dropAllData(void)
+{
+    bool ignrNext = false;
+
+    list_t *m, *tmp;
+    list_for_each_safe(m, tmp, &oldData) {
+	PSIDmsgbuf_t *msgbuf = list_entry(m, PSIDmsgbuf_t, next);
+	list_del(&msgbuf->next);
+	if (!ignrNext && sendErrorMsg(msgbuf)) {
+	    ignrNext = true;
+	} else {
+	    ignrNext = false;
+	}
+	PSIDMsgbuf_put(msgbuf);
+    }
+}
+
+/**
+ * @brief Flush data stored in oldData list
+ *
+ * Flush data stored in the @ref oldData list to be sent to the client
+ * socket. All arguments of this function are ignored and only present
+ * to act as a writeHandler for the Selector facility.
+ *
+ * @param fd Ignored
+ *
+ * @param info Ignored
+ *
+ * @return According to the Selector facility's expectations -1, 0, or
+ * 1 is returned
+ */
+static int flushData(int fd /* dummy */, void *info /* dummy */)
+{
+    list_t *m, *tmp;
+    list_for_each_safe(m, tmp, &oldData) {
+	PSIDmsgbuf_t *msgbuf = list_entry(m, PSIDmsgbuf_t, next);
+
+	ssize_t sent = doClientSend(msgbuf->msg, msgbuf->size, msgbuf->offset);
+	if (sent < 0) return sent;
+
+	if (sent != msgbuf->size) {
+	    msgbuf->offset = sent;
+	    break;
+	}
+	list_del(&msgbuf->next);
+	PSIDMsgbuf_put(msgbuf);
+    }
+
+    if (!list_empty(&oldData)) return 1;
+
+    if (Selector_isRegistered(clntSock)) Selector_vacateWrite(clntSock);
+
+    return 0;
+}
+
+/**
+ * @brief Transmit data to client via its socket connection
+ *
+ * Transmit the data in @a buf of size @a len to the client process
+ * via the socket connecting to it. For this, first data queued in the
+ * @ref oldData list are flushed before the data in @a buf is
+ * transmitted. If the data can not or only partially be transmitted,
+ * @a buf will be queued via @ref storeData() to @ref oldData, too.
+ *
+ * @param buf Data to be sent
+ *
+ * @param len Size of @a buf
+ *
+ * @return On success, the total number of bytes sent is returned,
+ * i.e. usually this is @a len. If the socket blocks, it might be
+ * smaller. If an error occurs, e.g. the client socket was closed, -1
+ * is returned and @ref errno is set appropriately.
+ */
+static ssize_t sendToClient(char *buf, size_t len)
+{
+    if (!list_empty(&oldData)) flushData(0, NULL);
+
+    bool emptyList = list_empty(&oldData);
+    ssize_t sent = 0;
+    if (emptyList) sent = doClientSend(buf, len, 0);
+
+    if (sent >= 0 && sent != (ssize_t)len
+	&& storeData(buf, len, sent) && emptyList && clntSock != -1) {
+	Selector_awaitWrite(clntSock, flushData, NULL);
+    }
+    return sent;
 }
 
 /**
@@ -259,10 +484,14 @@ static int acceptNewClient(int fd, void *data)
     ssize_t ret = PSCio_recvBufP(clntSock, &clntVer, sizeof(clntVer));
     if (ret != sizeof(clntVer)) return closeClientSock();
 
+    if (clntVer < RRCOMM_PROTO_VERSION) dropAllData();
     if (clntVer > RRCOMM_PROTO_VERSION) clntVer = RRCOMM_PROTO_VERSION;
     if (PSCio_sendF(clntSock, &clntVer, sizeof(clntVer)) < 0) {
 	return closeClientSock();
     }
+
+    /* we rely on non-blocking sends to the client */
+    PSCio_setFDblock(clntSock, false);
 
     /* setup client handler */
     Selector_register(clntSock, handleClientMsg, NULL);
@@ -305,12 +534,6 @@ static void handleRRCommData(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
     fetchFragHeader(msg, &used, NULL, NULL, (void **)&hdr, &hdrSize);
     updateAddrCache(hdr->sender, msg->header.sender);
 
-    if (clntSock == -1) {
-	PSIDfwd_printMsgf(STDERR, "drop RRComm msg from %d\n", hdr->sender);
-	flog("drop RRComm msg from %d\n", hdr->sender);
-	return;
-    }
-
     /* pack meta-data into single blob */
     PS_SendDB_t data = { .bufUsed = 0, .useFrag = false };
     bool byteOrder = setByteOrder(false); // libRRC does not use byteorder
@@ -319,14 +542,14 @@ static void handleRRCommData(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
     addInt32ToMsg(hdr->sender, &data);
     setByteOrder(byteOrder);
 
-    // @todo On the long run move to non-blocking sends!
-    if (PSCio_sendF(clntSock, data.buf, data.bufUsed) < 0) {
+    if (sendToClient(data.buf, data.bufUsed) < 0) {
 	flog("failed to send meta-data\n");
 	return;
     }
-    if (PSCio_sendF(clntSock, rData->buf, rData->used) < 0) {
+
+    /* send actual data */
+    if (sendToClient(rData->buf, rData->used) < 0) {
 	flog("failed to send data\n");
-	closeClientSock();
     } else if (getRRCommLoggerMask() & RRCOMM_LOG_COMM) {
 	fdbg(RRCOMM_LOG_COMM, "Data is");
 	for (size_t i = 0; i < MIN(rData->used, 20); i++)
