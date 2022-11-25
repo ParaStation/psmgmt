@@ -30,6 +30,7 @@
 #include "psserial.h"
 #include "pspluginprotocol.h"
 #include "selector.h"
+#include "timer.h"
 
 #include "psidcomm.h"
 #include "psidforwarder.h"
@@ -45,6 +46,9 @@ static int listenSock = -1;
 
 /** All information on the client to spawn used within the fragment header */
 static RRComm_hdr_t clntHdr;
+
+/** Timer ensuring premature data does not pile up indefinitely */
+static int startupTimer = -1;
 
 static int closeListenSock(void)
 {
@@ -376,6 +380,11 @@ static void dropAllData(void)
 	}
 	PSIDMsgbuf_put(msgbuf);
     }
+
+    if (startupTimer != -1) {
+	Timer_remove(startupTimer);
+	startupTimer = -1;
+    }
 }
 
 /**
@@ -493,6 +502,12 @@ static int acceptNewClient(int fd, void *data)
     /* we rely on non-blocking sends to the client */
     PSCio_setFDblock(clntSock, false);
 
+    /* now that the client connected the startupTimer can be canceled */
+    if (startupTimer != -1) {
+	Timer_remove(startupTimer);
+	startupTimer = -1;
+    }
+
     /* setup client handler */
     Selector_register(clntSock, handleClientMsg, NULL);
 
@@ -533,6 +548,19 @@ static void handleRRCommData(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
     size_t used = 0, hdrSize;
     fetchFragHeader(msg, &used, NULL, NULL, (void **)&hdr, &hdrSize);
     updateAddrCache(hdr->sender, msg->header.sender);
+
+    if (clntSock == -1 && startupTimer == -1) {
+	/* pile up data blobs for some time during startup before dropping */
+	int startupTimeout = 60;
+	char *envStr = getenv("RRCOMM_STARTUP_TIMEOUT");
+	if (envStr) {
+	    char *end;
+	    int tmp = strtol(envStr, &end, 0);
+	    if (*envStr && !*end && tmp > 0) startupTimeout = tmp;
+	}
+	struct timeval timeout = { .tv_sec = startupTimeout, .tv_usec = 0 };
+	startupTimer = Timer_register(&timeout, dropAllData);
+    }
 
     /* pack meta-data into single blob */
     PS_SendDB_t data = { .bufUsed = 0, .useFrag = false };
