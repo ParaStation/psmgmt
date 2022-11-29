@@ -19,7 +19,7 @@ libpscommon = $(top_builddir)/lib/pscommon/libpscommon.la
 
 rrcomm_la_SOURCES = rrcomm.c rrcommconfig.c rrcommconfig.h		\
 	rrcommforwarder.c rrcommforwarder.h rrcommlog.c rrcommlog.h	\
-	rrcommproto.h
+	rrcommproto.c rrcommproto.h
 
 rrcomm_la_CPPFLAGS = $(AM_CPPFLAGS)
 rrcomm_la_LIBADD = $(libplugincommon) $(libpscommon)

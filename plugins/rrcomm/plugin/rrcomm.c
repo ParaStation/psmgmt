@@ -128,40 +128,20 @@ static bool handleRRCommMsg(DDTypedBufferMsg_t *msg)
     return PSID_dropMsg((DDBufferMsg_t *)msg);
 }
 
-static bool dropRRCommMsg(DDTypedBufferMsg_t *msg)
+static bool dropRRCommMsg(DDBufferMsg_t *msg)
 {
-    RRComm_hdr_t *hdr;
-    uint8_t fragType;
-    size_t used = 0, hdrSize;
-    fetchFragHeader(msg, &used, &fragType, NULL, (void **)&hdr, &hdrSize);
-
-    /* Silently drop non-data fragments and all fragments but the last */
-    if (msg->type != RRCOMM_DATA || fragType != FRAGMENT_END) return true;
-
-    DDTypedBufferMsg_t answer = {
-	.header = {
-	    .type = PSP_PLUG_RRCOMM,
-	    .sender = msg->header.dest,
-	    .dest = msg->header.sender,
-	    .len = 0, /* to be set by PSP_putTypedMsgBuf */ },
-	.type = RRCOMM_ERROR,
-	.buf = { '\0' } };
-    /* Add all information we have concerning the message */
-    PSP_putTypedMsgBuf(&answer, "hdr", hdr, sizeof(*hdr));
-
-    sendMsg(&answer);
-    return true;
+    return dropHelper((DDTypedBufferMsg_t *)msg, sendMsg);
 }
 
 static bool registerMsgHandlers(void)
 {
     if (!PSID_registerMsg(PSP_PLUG_RRCOMM, (handlerFunc_t)handleRRCommMsg)) {
-	flog("register 'PSP_PLUG_RRCOMM' handler failed\n");
+	flog("register PSP_PLUG_RRCOMM handler failed\n");
 	return false;
     }
 
-    if (!PSID_registerDropper(PSP_PLUG_RRCOMM, (handlerFunc_t)dropRRCommMsg)) {
-	flog("register 'PSP_PLUG_RRCOMM' dropper failed\n");
+    if (!PSID_registerDropper(PSP_PLUG_RRCOMM, dropRRCommMsg)) {
+	flog("register PSP_PLUG_RRCOMM dropper failed\n");
 	return false;
     }
     return true;
@@ -170,10 +150,10 @@ static bool registerMsgHandlers(void)
 static void removeMsgHandlers(bool verbose)
 {
     if (!PSID_clearMsg(PSP_PLUG_RRCOMM, (handlerFunc_t)handleRRCommMsg)) {
-	if (verbose) flog("clear 'PSP_PLUG_RRCOMM' handler failed\n");
+	if (verbose) flog("clear PSP_PLUG_RRCOMM handler failed\n");
     }
-    if (!PSID_clearDropper(PSP_PLUG_RRCOMM, (handlerFunc_t)dropRRCommMsg)) {
-	if (verbose) flog("clear 'PSP_PLUG_RRCOMM' dropper failed\n");
+    if (!PSID_clearDropper(PSP_PLUG_RRCOMM, dropRRCommMsg)) {
+	if (verbose) flog("clear PSP_PLUG_RRCOMM dropper failed\n");
     }
 }
 

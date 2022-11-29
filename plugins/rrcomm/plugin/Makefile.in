@@ -143,7 +143,8 @@ am__installdirs = "$(DESTDIR)$(plugindir)"
 LTLIBRARIES = $(plugin_LTLIBRARIES)
 rrcomm_la_DEPENDENCIES = $(libplugincommon) $(libpscommon)
 am_rrcomm_la_OBJECTS = rrcomm_la-rrcomm.lo rrcomm_la-rrcommconfig.lo \
-	rrcomm_la-rrcommforwarder.lo rrcomm_la-rrcommlog.lo
+	rrcomm_la-rrcommforwarder.lo rrcomm_la-rrcommlog.lo \
+	rrcomm_la-rrcommproto.lo
 rrcomm_la_OBJECTS = $(am_rrcomm_la_OBJECTS)
 AM_V_lt = $(am__v_lt_@AM_V@)
 am__v_lt_ = $(am__v_lt_@AM_DEFAULT_V@)
@@ -167,7 +168,8 @@ am__maybe_remake_depfiles = depfiles
 am__depfiles_remade = ./$(DEPDIR)/rrcomm_la-rrcomm.Plo \
 	./$(DEPDIR)/rrcomm_la-rrcommconfig.Plo \
 	./$(DEPDIR)/rrcomm_la-rrcommforwarder.Plo \
-	./$(DEPDIR)/rrcomm_la-rrcommlog.Plo
+	./$(DEPDIR)/rrcomm_la-rrcommlog.Plo \
+	./$(DEPDIR)/rrcomm_la-rrcommproto.Plo
 am__mv = mv -f
 COMPILE = $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) \
 	$(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
@@ -412,7 +414,7 @@ libplugincommon = $(top_builddir)/lib/plugincommon/libplugincommon.la
 libpscommon = $(top_builddir)/lib/pscommon/libpscommon.la
 rrcomm_la_SOURCES = rrcomm.c rrcommconfig.c rrcommconfig.h		\
 	rrcommforwarder.c rrcommforwarder.h rrcommlog.c rrcommlog.h	\
-	rrcommproto.h
+	rrcommproto.c rrcommproto.h
 
 rrcomm_la_CPPFLAGS = $(AM_CPPFLAGS)
 rrcomm_la_LIBADD = $(libplugincommon) $(libpscommon)
@@ -499,6 +501,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/rrcomm_la-rrcommconfig.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/rrcomm_la-rrcommforwarder.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/rrcomm_la-rrcommlog.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/rrcomm_la-rrcommproto.Plo@am__quote@ # am--include-marker
 
 $(am__depfiles_remade):
 	@$(MKDIR_P) $(@D)
@@ -557,6 +560,13 @@ rrcomm_la-rrcommlog.lo: rrcommlog.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='rrcommlog.c' object='rrcomm_la-rrcommlog.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(rrcomm_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o rrcomm_la-rrcommlog.lo `test -f 'rrcommlog.c' || echo '$(srcdir)/'`rrcommlog.c
+
+rrcomm_la-rrcommproto.lo: rrcommproto.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(rrcomm_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT rrcomm_la-rrcommproto.lo -MD -MP -MF $(DEPDIR)/rrcomm_la-rrcommproto.Tpo -c -o rrcomm_la-rrcommproto.lo `test -f 'rrcommproto.c' || echo '$(srcdir)/'`rrcommproto.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/rrcomm_la-rrcommproto.Tpo $(DEPDIR)/rrcomm_la-rrcommproto.Plo
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='rrcommproto.c' object='rrcomm_la-rrcommproto.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(rrcomm_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o rrcomm_la-rrcommproto.lo `test -f 'rrcommproto.c' || echo '$(srcdir)/'`rrcommproto.c
 
 mostlyclean-libtool:
 	-rm -f *.lo
@@ -695,6 +705,7 @@ distclean: distclean-am
 	-rm -f ./$(DEPDIR)/rrcomm_la-rrcommconfig.Plo
 	-rm -f ./$(DEPDIR)/rrcomm_la-rrcommforwarder.Plo
 	-rm -f ./$(DEPDIR)/rrcomm_la-rrcommlog.Plo
+	-rm -f ./$(DEPDIR)/rrcomm_la-rrcommproto.Plo
 	-rm -f Makefile
 distclean-am: clean-am distclean-compile distclean-generic \
 	distclean-tags
@@ -744,6 +755,7 @@ maintainer-clean: maintainer-clean-am
 	-rm -f ./$(DEPDIR)/rrcomm_la-rrcommconfig.Plo
 	-rm -f ./$(DEPDIR)/rrcomm_la-rrcommforwarder.Plo
 	-rm -f ./$(DEPDIR)/rrcomm_la-rrcommlog.Plo
+	-rm -f ./$(DEPDIR)/rrcomm_la-rrcommproto.Plo
 	-rm -f Makefile
 maintainer-clean-am: distclean-am maintainer-clean-generic
 
