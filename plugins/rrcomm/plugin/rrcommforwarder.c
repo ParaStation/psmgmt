@@ -211,11 +211,11 @@ static int handleClientMsg(int fd, void *data)
 	}
 
 	addMemToMsg(buf, chunk, &fBuf);
-	if ((getRRCommLoggerMask() & RRCOMM_LOG_COMM) && first) {
-	    fdbg(RRCOMM_LOG_COMM, "Data is");
+	if ((getRRCommLoggerMask() & RRCOMM_LOG_VERBOSE) && first) {
+	    fdbg(RRCOMM_LOG_VERBOSE, "Data is");
 	    for (ssize_t i = 0; i < MIN(chunk, 20); i++)
-		mdbg(RRCOMM_LOG_COMM, " %d", buf[i]);
-	    mdbg(RRCOMM_LOG_COMM, "... total %zd\n", msgSize);
+		mdbg(RRCOMM_LOG_VERBOSE, " %d", buf[i]);
+	    mdbg(RRCOMM_LOG_VERBOSE, "... total %zd\n", msgSize);
 	    first = false;
 	}
 
@@ -578,11 +578,11 @@ static void handleRRCommData(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
     /* send actual data */
     if (sendToClient(rData->buf, rData->used) < 0) {
 	flog("failed to send data\n");
-    } else if (getRRCommLoggerMask() & RRCOMM_LOG_COMM) {
-	fdbg(RRCOMM_LOG_COMM, "Data is");
+    } else if (getRRCommLoggerMask() & RRCOMM_LOG_VERBOSE) {
+	fdbg(RRCOMM_LOG_VERBOSE, "Data is");
 	for (size_t i = 0; i < MIN(rData->used, 20); i++)
-	    mdbg(RRCOMM_LOG_COMM, " %d", rData->buf[i]);
-	mdbg(RRCOMM_LOG_COMM, "... total %zd\n", rData->used);
+	    mdbg(RRCOMM_LOG_VERBOSE, " %d", rData->buf[i]);
+	mdbg(RRCOMM_LOG_VERBOSE, "... total %zd\n", rData->used);
     }
 }
 
@@ -723,6 +723,9 @@ static int hookFrwrdExit(void *data)
 
     /* finalize fragmentation layer */
     finalizeSerial();
+
+    /* flush all pending logs */
+    finalizeRRCommLogger();
 
     return 0;
 }
