@@ -621,7 +621,8 @@ static bool handleDaemonMsg(DDTypedBufferMsg_t *msg)
 {
     switch (msg->type) {
     case RRCOMM_DATA:
-	recvFragMsg(msg, handleRRCommData);
+	if (!tryRecvFragMsg(msg, handleRRCommData))
+	    dropHelper(msg, sendDaemonMsg);
 	break;
     case RRCOMM_ERROR:
 	handleRRCommError(msg);
