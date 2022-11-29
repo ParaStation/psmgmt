@@ -2492,13 +2492,13 @@ void psPmiResetFillSpawnTaskFunction(void)
 static int setupMsgHandlers(void *data)
 {
     if (!PSID_registerMsg(PSP_CC_MSG, msgCC))
-	elog("%s: register 'PSP_CC_MSG' handler failed\n", __func__);
+	mlog("%s: failed to register PSP_CC_MSG handler\n", __func__);
     if (!PSID_registerMsg(PSP_CD_SPAWNSUCCESS, msgSPAWNRES))
-	elog("%s: register 'PSP_CD_SPAWNSUCCESS' handler failed\n", __func__);
+	mlog("%s: failed to register PSP_CD_SPAWNSUCCESS handler\n", __func__);
     if (!PSID_registerMsg(PSP_CD_SPAWNFAILED, msgSPAWNRES))
-	elog("%s: register 'PSP_CD_SPAWNFAILED' handler failed\n", __func__);
+	mlog("%s: failed to register PSP_CD_SPAWNFAILED handler\n", __func__);
     if (!PSID_registerMsg(PSP_CC_ERROR, msgCCError))
-	elog("%s: register 'PSP_CC_ERROR' handler failed\n", __func__);
+	mlog("%s: failed to register PSP_CC_ERROR handler\n", __func__);
 
     return 0;
 }
@@ -2514,12 +2514,12 @@ static int clearMsgHandlers(void *unused)
 
 void initClient(void)
 {
-    PSIDhook_add(PSIDHOOK_FRWRD_INIT, setupMsgHandlers);
+    PSIDhook_add(PSIDHOOK_FRWRD_SETUP, setupMsgHandlers);
     PSIDhook_add(PSIDHOOK_FRWRD_EXIT, clearMsgHandlers);
 }
 
 void finalizeClient(void)
 {
-    PSIDhook_del(PSIDHOOK_FRWRD_INIT, setupMsgHandlers);
+    PSIDhook_del(PSIDHOOK_FRWRD_SETUP, setupMsgHandlers);
     PSIDhook_del(PSIDHOOK_FRWRD_EXIT, clearMsgHandlers);
 }

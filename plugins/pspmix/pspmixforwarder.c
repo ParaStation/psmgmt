@@ -373,7 +373,7 @@ static int hookExecForwarder(void *data)
 }
 
 /**
- * @brief Hook function for PSIDHOOK_FRWRD_INIT
+ * @brief Hook function for PSIDHOOK_FRWRD_SETUP
  *
  * Register handler for PSP_PLUG_PSPMIX messages.
  *
@@ -381,7 +381,7 @@ static int hookExecForwarder(void *data)
  *
  * @return Return 0 or -1 in case of error
  */
-static int hookForwarderInit(void *data)
+static int hookForwarderSetup(void *data)
 {
     /* break if this is not a PMIx job and no PMIx singleton */
     if (!childTask) return 0;
@@ -503,7 +503,7 @@ static int hookForwarderExit(void *data)
 void pspmix_initForwarderModule(void)
 {
     PSIDhook_add(PSIDHOOK_EXEC_FORWARDER, hookExecForwarder);
-    PSIDhook_add(PSIDHOOK_FRWRD_INIT, hookForwarderInit);
+    PSIDhook_add(PSIDHOOK_FRWRD_SETUP, hookForwarderSetup);
     PSIDhook_add(PSIDHOOK_EXEC_CLIENT_USER, hookExecClientUser);
     PSIDhook_add(PSIDHOOK_FRWRD_CLNT_RLS, hookForwarderClientRelease);
     PSIDhook_add(PSIDHOOK_FRWRD_EXIT, hookForwarderExit);
@@ -512,7 +512,7 @@ void pspmix_initForwarderModule(void)
 void pspmix_finalizeForwarderModule(void)
 {
     PSIDhook_del(PSIDHOOK_EXEC_FORWARDER, hookExecForwarder);
-    PSIDhook_del(PSIDHOOK_FRWRD_INIT, hookForwarderInit);
+    PSIDhook_del(PSIDHOOK_FRWRD_SETUP, hookForwarderSetup);
     PSIDhook_del(PSIDHOOK_EXEC_CLIENT_USER, hookExecClientUser);
     PSIDhook_del(PSIDHOOK_FRWRD_CLNT_RLS, hookForwarderClientRelease);
     PSIDhook_del(PSIDHOOK_FRWRD_EXIT, hookForwarderExit);

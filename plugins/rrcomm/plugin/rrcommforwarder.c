@@ -634,35 +634,32 @@ static bool handleDaemonMsg(DDTypedBufferMsg_t *msg)
 }
 
 /**
- * @brief Function hooked to PSIDHOOK_FRWRD_INIT
+ * @brief Function hooked to PSIDHOOK_FRWRD_SETUP
  *
  * This function establishs the setup within the psidforwarder
  * process. In detail it will:
  *  - Cleanup the environment prepared for the client process
  *  - Initialize the serialization layer
- *  - Register the PSP_PLUG_RRCOMM message types to the message handler
- *  - Register the abstract socket listening for clients to the Selector
+ *  - Register the PSP_PLUG_RRCOMM message type to the message handler
  *
  * @param data Pointer to the task structure to spawn (ignored)
  *
  * @return On success 0 is returned or -1 in case of failure
  */
-static int hookFrwrdInit(void *data)
+static int hookFrwrdSetup(void *data)
 {
     /* cleanup environment */
     unsetenv(RRCOMM_SOCKET_ENV);
 
     /* initialize fragmentation layer */
     if (!initSerial(0, sendDaemonMsg)) {
-	PSIDfwd_printMsgf(STDERR, "initSerial failed\n");
-	flog("initSerial failed\n");
+	flog("initSerial() failed\n");
 	return -1;
     }
 
     /* message type to handle */
     if (!PSID_registerMsg(PSP_PLUG_RRCOMM, (handlerFunc_t)handleDaemonMsg)) {
-	PSIDfwd_printMsgf(STDERR, "cannot register PSP_PLUG_RRCOMM handler\n");
-	flog("cannot register 'PSP_PLUG_RRCOMM' handler\n");
+	flog("failed to register PSP_PLUG_RRCOMM handler\n");
 	return -1;
     }
 
@@ -683,7 +680,11 @@ static int hookFrwrdInit(void *data)
 static int hookFrwrdInit(void *data)
 {
     /* register the listening socket */
-    Selector_register(listenSock, acceptNewClient, NULL);
+    if (Selector_register(listenSock, acceptNewClient, NULL) != 0) {
+	PSIDfwd_printMsgf(STDERR, "failed to register selector\n");
+	flog("failed to register selector\n");
+	return -1;
+    }
 
     return 0;
 }
@@ -729,22 +730,27 @@ static int hookFrwrdExit(void *data)
 bool attachRRCommForwarderHooks(void)
 {
     if (!PSIDhook_add(PSIDHOOK_EXEC_FORWARDER, hookExecForwarder)) {
-	flog("attaching 'PSIDHOOK_EXEC_FORWARDER' failed\n");
+	flog("attaching PSIDHOOK_EXEC_FORWARDER failed\n");
 	return false;
     }
 
     if (!PSIDhook_add(PSIDHOOK_EXEC_CLIENT, hookExecClient)) {
-	flog("attaching 'PSIDHOOK_EXEC_CLIENT' failed\n");
+	flog("attaching PSIDHOOK_EXEC_CLIENT failed\n");
+	return false;
+    }
+
+    if (!PSIDhook_add(PSIDHOOK_FRWRD_SETUP, hookFrwrdSetup)) {
+	flog("attaching PSIDHOOK_FRWRD_SETUP failed\n");
 	return false;
     }
 
     if (!PSIDhook_add(PSIDHOOK_FRWRD_INIT, hookFrwrdInit)) {
-	flog("attaching 'PSIDHOOK_FRWRD_INIT' failed\n");
+	flog("attaching PSIDHOOK_FRWRD_INIT failed\n");
 	return false;
     }
 
     if (!PSIDhook_add(PSIDHOOK_FRWRD_EXIT, hookFrwrdExit)) {
-	flog("attaching 'PSIDHOOK_FRWRD_EXIT' failed\n");
+	flog("attaching PSIDHOOK_FRWRD_EXIT failed\n");
 	return false;
     }
 
@@ -754,15 +760,18 @@ bool attachRRCommForwarderHooks(void)
 void detachRRCommForwarderHooks(bool verbose)
 {
     if (!PSIDhook_del(PSIDHOOK_FRWRD_EXIT, hookFrwrdExit)) {
-	if (verbose) flog("unregister 'PSIDHOOK_FRWRD_EXIT' failed\n");
+	if (verbose) flog("unregister PSIDHOOK_FRWRD_EXIT failed\n");
     }
     if (!PSIDhook_del(PSIDHOOK_FRWRD_INIT, hookFrwrdInit)) {
-	if (verbose) flog("unregister 'PSIDHOOK_FRWRD_INIT' failed\n");
+	if (verbose) flog("unregister PSIDHOOK_FRWRD_INIT failed\n");
+    }
+    if (!PSIDhook_del(PSIDHOOK_FRWRD_SETUP, hookFrwrdSetup)) {
+	if (verbose) flog("unregister PSIDHOOK_FRWRD_SETUP failed\n");
     }
     if (!PSIDhook_del(PSIDHOOK_EXEC_CLIENT, hookExecClient)) {
-	if (verbose) flog("unregister 'PSIDHOOK_EXEC_CLIENT' failed\n");
+	if (verbose) flog("unregister PSIDHOOK_EXEC_CLIENT failed\n");
     }
     if (!PSIDhook_del(PSIDHOOK_EXEC_FORWARDER, hookExecForwarder)) {
-	if (verbose) flog("unregister 'PSIDHOOK_EXEC_FORWARDER' failed\n");
+	if (verbose) flog("unregister PSIDHOOK_EXEC_FORWARDER failed\n");
     }
 }
