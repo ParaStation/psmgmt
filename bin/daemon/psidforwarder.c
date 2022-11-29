@@ -364,7 +364,7 @@ static bool connectLogger(PStask_ID_t tid)
 	}
     }
 
-    while (true) {
+    while (timerisset(&timeout)) {
 	DDBufferMsg_t msg;
 	PSLog_Msg_t *lmsg = (PSLog_Msg_t *)&msg;
 	ssize_t ret = recvDaemonMsg(&msg, &timeout);
@@ -375,39 +375,41 @@ static bool connectLogger(PStask_ID_t tid)
 	    break;
 	}
 
-	if (msg.header.len < PSLog_headerSize + (int) sizeof(int)) {
-	    PSID_log(-1, "%s(%s): rank %i: Message too short (%d)\n", __func__,
-		     PSC_printTID(tid), childTask->rank, msg.header.len);
-	    break;
-	} else if (msg.header.type != PSP_CC_MSG) {
-	    PSID_log(-1 ,"%s(%s): Protocol messed up, got %s\n", __func__,
-		     PSC_printTID(tid), PSDaemonP_printMsg(msg.header.type));
-	    continue;
-	} else if (lmsg->type != INITIALIZE) {
-	    PSID_log(-1 ,"%s(%s): Protocol messed up\n",
-		     __func__, PSC_printTID(tid));
-	    break;
-	} else if (msg.header.sender != tid) {
+	if (lmsg->header.type == PSP_CC_MSG && lmsg->type == INITIALIZE) {
+	    if (msg.header.len < PSLog_headerSize + (int) sizeof(int)) {
+		PSID_log(-1, "%s(%s, rank %i): Message too short (%d)\n",
+			 __func__, PSC_printTID(tid), childTask->rank,
+			 msg.header.len);
+		break;
+	    }
+
+	    if (msg.header.sender == tid) {
+		size_t used =
+		    offsetof(PSLog_Msg_t, buf) - offsetof(DDBufferMsg_t, buf);
+
+		/* Get verbosity */
+		uint32_t verb;
+		PSP_getMsgBuf(&msg, &used, "verb", &verb, sizeof(verb));
+		verbose = verb;
+		PSID_log(PSID_LOG_SPAWN, "%s(%s): Connected\n", __func__,
+			 PSC_printTID(tid));
+
+		/* print this message late (no connection to logger before) */
+		if (illegalTimeoutStr) {
+		    PSIDfwd_printMsgf(STDERR, "%s: Illegal __PSI_LOGGER_TIMEOUT"
+				      " '%s'\n", tag, timeoutStr);
+		}
+		return true;
+	    }
+
 	    PSID_log(-1, "%s(%s): Got INITIALIZE", __func__, PSC_printTID(tid));
 	    PSID_log(-1, " from %s\n", PSC_printTID(msg.header.sender));
 	    break;
-	} else {
-	    size_t used =
-		offsetof(PSLog_Msg_t, buf) - offsetof(DDBufferMsg_t, buf);
+	}
 
-	    /* Get verbosity */
-	    uint32_t verb;
-	    PSP_getMsgBuf(&msg, &used, "verb", &verb, sizeof(verb));
-	    verbose = verb;
-	    PSID_log(PSID_LOG_SPAWN, "%s(%s): Connected\n", __func__,
-		     PSC_printTID(tid));
-
-	    /* Send this message late. No connection to logger before */
-	    if (illegalTimeoutStr) {
-		PSIDfwd_printMsgf(STDERR, "%s: Illegal __PSI_LOGGER_TIMEOUT"
-				  " '%s'\n", tag, timeoutStr);
-	    }
-	    return true;
+	if (!PSID_handleMsg(&msg)) {
+	    PSID_log(-1 ,"%s(%s): Protocol messed up, got %s\n", __func__,
+		     PSC_printTID(tid), PSDaemonP_printMsg(msg.header.type));
 	}
     }
 
@@ -441,8 +443,6 @@ static void releaseLogger(int status)
 
 	    if (ret < 0) {
 		switch (errno) {
-		case EINTR:
-		    continue;
 		case EPIPE:
 		    PSID_log(-1, "%s: logger %s already disappeared\n",
 			     __func__, PSC_printTID(childTask->loggertid));
@@ -1193,8 +1193,6 @@ send_again:
 	ssize_t ret = recvDaemonMsg(&answer, &timeout);
 	if (ret < 0) {
 	    switch (errno) {
-	    case EINTR:
-		continue;
 	    case ETIME:
 		PSID_log(-1, "%s: receive timed out. Send again\n", __func__);
 		goto send_again;
