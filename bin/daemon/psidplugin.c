@@ -163,8 +163,10 @@ static LIST_HEAD(pluginList);
  * 136: new hook PSIDHOOK_PELOGUE_DROP
  *
  * 137: new hook PSIDHOOK_SPAWN_TASK
+ *
+ * 138: new hook PSIDHOOK_FRWRD_SETUP
  */
-static int pluginAPIVersion = 137;
+static int pluginAPIVersion = 138;
 
 
 /** Grace period between finalize and unload on forcefully unloads */

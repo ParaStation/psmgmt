@@ -1343,6 +1343,9 @@ void PSID_forwarder(PStask_t *task, int clientFD, int eno)
 	exit(0);
     }
 
+    /* call plugins' setup functions early to know all messsage types */
+    PSIDhook_call(PSIDHOOK_FRWRD_SETUP, task);
+
     if (!sendChildBorn(task, clientFD)) waitForChildsDead();
 
     /* Make stdin non-blocking for us */
@@ -1360,9 +1363,6 @@ void PSID_forwarder(PStask_t *task, int clientFD, int eno)
 	openfds++;
     }
 
-    /* init plugin client functions */
-    PSIDhook_call(PSIDHOOK_FRWRD_INIT, task);
-
     /* set the process title */
     snprintf(pTitle, sizeof(pTitle), "psidfw TID[%d:%d] R%d",
 	     PSC_getID(task->loggertid), PSC_getPID(task->loggertid),
@@ -1375,6 +1375,9 @@ void PSID_forwarder(PStask_t *task, int clientFD, int eno)
 	PSIDfwd_printMsgf(STDERR, " stdin=%d stdout=%d stderr=%d\n",
 			  task->stdin_fd, task->stdout_fd,  task->stderr_fd);
     }
+
+    /* finally start plugin functionality right before entering the loop */
+    PSIDhook_call(PSIDHOOK_FRWRD_INIT, task);
 
     /* Loop forever. We exit on SIGCHLD. */
     while (openfds || !gotSIGCHLD) {

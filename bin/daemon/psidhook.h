@@ -124,9 +124,9 @@ typedef enum {
 				pointer to the child's task structure. This
 				hook might be used to prepare the child's env */
     PSIDHOOK_FRWRD_INIT,      /**< In forwarder's init() function, arg is a
-				pointer to the child's task structure. Might be
-				used to register additional sockets and message
-				types. */
+				pointer to the child's task structure; this is
+				called right before entering forwarder's loop
+				when the forwarder is fully setup */
     PSIDHOOK_FRWRD_CINFO,     /**< When the forwarder is connecting to
 				the logger, arg is a pointer to the loggers
 				response msg buffer. Might be used to get info
@@ -243,6 +243,11 @@ typedef enum {
 				Arg is a pointer to the child's task structure.
 				If the hook's return value is < 0, the spawn
 				is canceled and a fail response is sent. */
+    PSIDHOOK_FRWRD_SETUP,     /**< Early in forwarder's init() function,
+				arg is a pointer to the child's task structure;
+				shall be used to register additional message
+				types that might already be received during
+				logger connection, etc. */
     PSIDHOOK_LAST,            /**< This has to be the last one */
 } PSIDhook_t;
 
