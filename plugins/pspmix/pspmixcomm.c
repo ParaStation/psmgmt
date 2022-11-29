@@ -80,11 +80,19 @@ static void handleAddJob(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
 	    mlog("%s: message corrupted, cannot get entries\n", __func__);
 	    return;
 	}
+	if (len % sizeof(*resInfo->entries) != 0) {
+	    mlog("%s: message corrupted, invalid entries length\n", __func__);
+	    return;
+	}
 	resInfo->nEntries = len / sizeof(*resInfo->entries);
 
 	resInfo->localSlots = getDataM(&ptr, &len);
 	if (!resInfo->localSlots) {
 	    mlog("%s: message corrupted, cannot get local slots\n", __func__);
+	    return;
+	}
+	if (len % sizeof(*resInfo->localSlots) != 0) {
+	    mlog("%s: message corrupted, invalid slots length\n", __func__);
 	    return;
 	}
 	resInfo->nLocalSlots = len / sizeof(*resInfo->localSlots);
