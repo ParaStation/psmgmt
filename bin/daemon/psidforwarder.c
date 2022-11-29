@@ -46,10 +46,11 @@
 #include "psidutil.h"
 
 static char tag[] = "PSID_forwarder";
-/** Forwarder's verbosity. Set in connectLogger() on behalf of logger's info. */
+
+/** Forwarder's verbosity; set in connectLogger() on behalf of logger's info */
 static bool verbose = false;
 
-/** The ParaStation task ID of the logger */
+/** logger's ParaStation task ID; also tracks the corresponding connection */
 static PStask_ID_t loggerTID = -1;
 
 /** Description of the local child-task */
@@ -66,14 +67,6 @@ static bool gotSIGCHLD = false;
 
 /** List of messages waiting to be sent */
 static LIST_HEAD(oldMsgs);
-
-/**
- * Timeout for connecting to logger. This will be set according to the
- * number of children the logger has to handle within @ref
- * PSID_forwarder(). Might be overruled via __PSI_LOGGER_TIMEOUT
- * environment
- */
-static int loggerTimeout = 60;
 
 /**
  * @brief Close socket to daemon.
@@ -325,26 +318,52 @@ ssize_t sendDaemonMsg(void *amsg)
 }
 
 /**
- * @brief Connect to the logger.
+ * @brief Connect to logger
  *
- * Connect to the logger described by the unique task ID @a tid. Wait
- * @a timeout seconds for #INITIALIZE answer and set @ref loggerTID and
- * @ref verbose accordingly.
+ * Connect to the logger identified by the unique task ID @a tid. This
+ * function waits for a specific time for the #INITIALIZE answer and
+ * set @ref loggerTID and @ref verbose accordingly. The default is to
+ * wait for 60 sec + <np> * 5 msec but this might be overrule by the
+ * __PSI_LOGGER_TIMEOUT environment variable.
  *
- * @param tid The logger's ParaStation task ID.
+ * @param tid logger's ParaStation task ID
  *
- * @param timeout Number of seconds to wait for #INITIALIZE answer.
- *
- * @return On success, true is returned and @ref loggerTID is
- * set; or false in case off error which sets @ref loggerTID to -1
+ * @return On success, true is returned and @ref loggerTID and @ref
+ * verbose are set; or false in case off error which resets @ref
+ * loggerTID to -1
  */
 static bool connectLogger(PStask_ID_t tid)
 {
-    loggerTID = tid; /* Only set for the first sendLogMsg()/recvMsg() pair */
-
+    loggerTID = tid; /* Set for the first sendLogMsg() call */
     sendLogMsg(INITIALIZE, (char *)&childTask->group, sizeof(childTask->group));
 
-    struct timeval timeout = {loggerTimeout, 0};
+    /* determine timeout for connecting the logger */
+    struct timeval timeout = { .tv_sec = 60, .tv_usec = 0 };
+    char *timeoutStr = getenv("__PSI_LOGGER_TIMEOUT");
+    bool illegalTimeoutStr = false;
+    if (timeoutStr) {
+	/* Overruled by __PSI_LOGGER_TIMEOUT environment */
+	char *end;
+	long val = strtol(timeoutStr, &end, 0);
+	if (*timeoutStr && !*end && val > 0) {
+	    timeout.tv_sec = val;
+	} else {
+	    illegalTimeoutStr = true;
+	}
+    } else {
+	char *envStr = getenv("PSI_NP_INFO");
+	if (envStr) {
+	    /* scale logger's timeout according to number of clients */
+	    char *end;
+	    long np = strtol(envStr, &end, 0);
+	    if (np > 0) {
+		/* add 5 millisec per client */
+		timeout.tv_sec += np / 200;
+		timeout.tv_usec = (np % 200) * 5000;
+	    }
+	}
+    }
+
     while (true) {
 	DDBufferMsg_t msg;
 	PSLog_Msg_t *lmsg = (PSLog_Msg_t *)&msg;
@@ -382,6 +401,12 @@ static bool connectLogger(PStask_ID_t tid)
 	    verbose = verb;
 	    PSID_log(PSID_LOG_SPAWN, "%s(%s): Connected\n", __func__,
 		     PSC_printTID(tid));
+
+	    /* Send this message late. No connection to logger before */
+	    if (illegalTimeoutStr) {
+		PSIDfwd_printMsgf(STDERR, "%s: Illegal __PSI_LOGGER_TIMEOUT"
+				  " '%s'\n", tag, timeoutStr);
+	    }
 	    return true;
 	}
     }
@@ -1263,7 +1288,6 @@ void PSID_forwarder(PStask_t *task, int clientFD, int eno)
 {
     static PSLog_msg_t stdoutType = STDOUT, stderrType = STDERR;
     char pTitle[50];
-    char *envStr, *timeoutStr;
 
     /* Ensure that PSCio can handle file descriptor to daemon via select() */
     if (task->fd >= FD_SETSIZE) {
@@ -1314,20 +1338,6 @@ void PSID_forwarder(PStask_t *task, int clientFD, int eno)
     /* Enable handling of daemon messages */
     Selector_register(daemonSock, readFromDaemon, NULL);
 
-    /* scale logger's timeout according to number of clients */
-    if ((envStr = getenv("PSI_NP_INFO"))) {
-	int np = atoi(envStr);
-	if (np > 0) loggerTimeout += np / 200; /* add 5 millisec per client */
-    }
-
-    long val = loggerTimeout;
-    timeoutStr = getenv("__PSI_LOGGER_TIMEOUT");
-    if (timeoutStr) {
-	char *end;
-	val = strtol(timeoutStr, &end, 0);
-	if (*timeoutStr && !*end && val>0) loggerTimeout = val;
-    }
-
     if (eno) {
 	sendSpawnFailed(task, eno);
 	exit(0);
@@ -1349,12 +1359,6 @@ void PSID_forwarder(PStask_t *task, int clientFD, int eno)
 	Selector_register(task->stderr_fd, readFromChild, &stderrType);
 	openfds++;
     }
-
-    /* Send this message late. No connection to logger before */
-    if (loggerTimeout != val)
-	PSIDfwd_printMsgf(STDERR,
-			  "%s: Illegal value '%s' for __PSI_LOGGER_TIMEOUT\n",
-			  tag, timeoutStr);
 
     /* init plugin client functions */
     PSIDhook_call(PSIDHOOK_FRWRD_INIT, task);
