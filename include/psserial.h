@@ -278,23 +278,29 @@ bool fetchFragHeader(DDTypedBufferMsg_t *msg, size_t *used, uint8_t *fragType,
  * complete receive of the message, i.e. after the last fragment
  * arrived, the callback @a func will be called with @a msg as the
  * first parameter and the message buffer used to collect all
- * fragments as the second argument.
+ * fragments as the second argument. If the @a verbose flag is false,
+ * unexpected fragments will not be reported in the syslog.
  *
  * @param msg Message to handle
  *
  * @param func Callback function to be called upon message completion
  *
+ * @param verbose Flag verbosity
+ *
  * @param caller Function name of the calling function
  *
  * @param line Line number where this function is called
  *
- * @return On success true is returned or false in case of an
- * error.
+ * @return On success true is returned or false in case of an error
  */
 bool __recvFragMsg(DDTypedBufferMsg_t *msg, PS_DataBuffer_func_t *func,
-		   const char *caller, const int line);
+		   bool verbose, const char *caller, const int line);
 
-#define recvFragMsg(msg, func) __recvFragMsg(msg, func, __func__, __LINE__)
+#define recvFragMsg(msg, func) __recvFragMsg(msg, func, true,		\
+					     __func__, __LINE__)
+
+#define tryRecvFragMsg(msg, func) __recvFragMsg(msg, func, false,	\
+						__func__, __LINE__)
 
 /**
  * @brief Send fragmented message

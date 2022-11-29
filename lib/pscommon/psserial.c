@@ -609,7 +609,7 @@ bool fetchFragHeader(DDTypedBufferMsg_t *msg, size_t *used, uint8_t *fragType,
 }
 
 bool __recvFragMsg(DDTypedBufferMsg_t *msg, PS_DataBuffer_func_t *func,
-		   const char *caller, const int line)
+		   bool verbose, const char *caller, const int line)
 {
     if (!msg) {
 	PSC_log(-1, "%s(%s@%d): invalid msg\n", __func__, caller, line);
@@ -651,9 +651,9 @@ bool __recvFragMsg(DDTypedBufferMsg_t *msg, PS_DataBuffer_func_t *func,
 	recvBuf = findRecvBuf(msg->header.sender);
 	uint16_t expectedFrag = recvBuf ? recvBuf->nextFrag : 0;
 	if (fragNum != expectedFrag) {
-	    PSC_log(-1, "%s(%s@%d): unexpected fragment %u/%u from %s\n",
-		    __func__, caller, line, fragNum, expectedFrag,
-		    PSC_printTID(msg->header.sender));
+	    if (verbose) PSC_log(-1, "%s(%s@%d): unexpected fragment %u/%u"
+				 " from %s\n", __func__, caller, line, fragNum,
+				 expectedFrag, PSC_printTID(msg->header.sender));
 	    if (fragNum) return false;
 	}
 
