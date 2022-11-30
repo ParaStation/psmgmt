@@ -316,6 +316,16 @@ int Selector_enable(int fd);
 int Selector_isActive(int fd);
 
 /**
+ * @brief Get number of selectors
+ *
+ * Determine the number of selectors currently registered. This
+ * includes disabled selectors but excludes selectors already deleted.
+ *
+ * @return The number of registered selectors
+ */
+int Selector_getNum(void);
+
+/**
  * @brief select() replacement that handles registered file descriptors
  *
  * This is deprecated functionality just kept for backward

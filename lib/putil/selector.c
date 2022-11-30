@@ -36,17 +36,17 @@ typedef enum {
  * Structure to hold all info about each selector
  */
 typedef struct {
-    list_t next;                   /**< Use to put into @ref selectorList. */
+    list_t next;                   /**< Use to put into @ref selectorList */
     Selector_state_t state;        /**< flag internal state of structure */
-    Selector_CB_t *readHandler;    /**< Handler called on available input. */
-    Selector_CB_t *writeHandler;   /**< Handler called on possible output. */
+    Selector_CB_t *readHandler;    /**< Handler called on available input */
+    Selector_CB_t *writeHandler;   /**< Handler called on possible output */
     void *readInfo;                /**< Extra info passed to readHandler */
     void *writeInfo;               /**< Extra info passed to writeHandler */
-    int fd;                        /**< The corresponding file-descriptor. */
-    bool reqRead;                  /**< Flag used within Sselect(). */
-    bool reqWrite;                 /**< Flag used within Sselect(). */
-    bool disabled;                 /**< Flag to disable fd temporarily. */
-    bool deleted;                  /**< Flag used for asynchronous delete. */
+    int fd;                        /**< The corresponding file-descriptor */
+    bool reqRead;                  /**< Flag used within Sselect() */
+    bool reqWrite;                 /**< Flag used within Sselect() */
+    bool disabled;                 /**< Flag to disable fd temporarily */
+    bool deleted;                  /**< Flag used for asynchronous delete */
 } Selector_t;
 
 /** The logger used by the Selector facility */
@@ -55,7 +55,10 @@ static logger_t *logger = NULL;
 /** File-descriptor used for all epoll actions */
 static int epollFD = -1;
 
-/** List of all registered selectors. */
+/** Number of registered selectors (i.e. length of @ref selectorList) */
+static int numSelectors = 0;
+
+/** List of all registered selectors */
 static LIST_HEAD(selectorList);
 
 /** Array (indexed by file-descriptor number) pointing to Selectors */
@@ -240,6 +243,7 @@ void Selector_init(FILE* logfile)
     list_for_each_safe(s, tmp, &selectorList) {
 	Selector_t *selector = list_entry(s, Selector_t, next);
 	putSelector(selector);
+	numSelectors--;
     }
 
     /* get rid of old epoll instance if any */
@@ -348,6 +352,7 @@ int Selector_register(int fd, Selector_CB_t selectHandler, void *info)
 
     list_add_tail(&selector->next, &selectorList);
     selectors[fd] = selector;
+    numSelectors++;
 
     struct epoll_event ev;
     ev.events = EPOLLIN | EPOLLPRI;
@@ -397,7 +402,10 @@ int Selector_remove(int fd)
 
     selector->readHandler = NULL;
     selector->disabled = true;
-    if (!selector->writeHandler) selector->deleted = true;
+    if (!selector->writeHandler) {
+	selector->deleted = true;
+	numSelectors--;
+    }
 
     return rc;
 }
@@ -427,6 +435,7 @@ int Selector_awaitWrite(int fd, Selector_CB_t writeHandler, void *info)
     if (selector && selector->deleted) {
 	logger_print(logger, -1, "%s(fd %d): deleted selector\n", __func__, fd);
 
+	list_del(&selector->next); // ensure selector is requeued for counting
 	selector->readHandler = NULL;
 	selector->readInfo = NULL;
 	selector->writeHandler = NULL;
@@ -436,12 +445,13 @@ int Selector_awaitWrite(int fd, Selector_CB_t writeHandler, void *info)
 	logger_print(logger, SELECTOR_LOG_VERB,
 		     "%s(fd %d): no selector yet?!\n", __func__,fd);
 	selector = getSelector();
+	if (!selector) {
+	    logger_print(logger, -1, "%s: No memory\n", __func__);
+	    errno = ENOMEM;
+	    return -1;
+	}
+
 	selector->disabled = true;
-    }
-    if (!selector) {
-	logger_print(logger, -1, "%s: No memory\n", __func__);
-	errno = ENOMEM;
-	return -1;
     }
 
     selector->fd = fd;
@@ -454,6 +464,7 @@ int Selector_awaitWrite(int fd, Selector_CB_t writeHandler, void *info)
     if (list_empty(&selector->next)) {
 	list_add_tail(&selector->next, &selectorList);
 	selectors[fd] = selector;
+	numSelectors++;
     }
 
     int op = selector->disabled ? EPOLL_CTL_ADD : EPOLL_CTL_MOD;
@@ -504,7 +515,10 @@ int Selector_vacateWrite(int fd)
 			    __func__, epollFD, strOp(op), fd);
 
     selector->writeHandler = NULL;
-    if (!selector->readHandler) selector->deleted = true;
+    if (!selector->readHandler) {
+	selector->deleted = true;
+	numSelectors--;
+    }
 
     return rc;
 }
@@ -582,6 +596,25 @@ int Selector_enable(int fd)
     selector->disabled = false;
 
     return rc;
+}
+
+int Selector_getNum(void)
+{
+#if 0
+    // @todo just for debugging -- on the long run numSelectors shall be valid
+    int count = 0;
+    list_t *s;
+    list_for_each(s, &selectorList) {
+	Selector_t *selector = list_entry(s, Selector_t, next);
+	if (!selector->deleted) count++;
+    }
+    if (count != numSelectors) {
+	logger_print(logger, -1, "%s: mismatch %d vs %d\n", __func__,
+		     count, numSelectors);
+    }
+    return count;
+#endif
+    return numSelectors;
 }
 
 void Selector_startOver(void)
