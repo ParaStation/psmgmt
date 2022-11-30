@@ -11,11 +11,14 @@ include $(top_srcdir)/common.am
 
 AM_CPPFLAGS += -I$(srcdir)/../include
 
-check_PROGRAMS = test_rrcomm
+check_PROGRAMS = poll_rrcomm test_rrcomm
 
-TESTS = test_rrcomm
+TESTS = poll_rrcomm test_rrcomm
 
 librrcomm = ../lib/librrcomm.a
+
+poll_rrcomm_SOURCES = poll_rrcomm.c
+poll_rrcomm_LDADD = $(librrcomm)
 
 test_rrcomm_SOURCES = test_rrcomm.c
 test_rrcomm_LDADD = $(librrcomm)

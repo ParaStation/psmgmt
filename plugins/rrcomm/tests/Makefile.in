@@ -99,8 +99,8 @@ POST_UNINSTALL = :
 build_triplet = @build@
 host_triplet = @host@
 target_triplet = @target@
-check_PROGRAMS = test_rrcomm$(EXEEXT)
-TESTS = test_rrcomm$(EXEEXT)
+check_PROGRAMS = poll_rrcomm$(EXEEXT) test_rrcomm$(EXEEXT)
+TESTS = poll_rrcomm$(EXEEXT) test_rrcomm$(EXEEXT)
 subdir = plugins/rrcomm/tests
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/m4/ax_check_compile_flag.m4 \
@@ -113,13 +113,16 @@ DIST_COMMON = $(srcdir)/Makefile.am $(am__DIST_COMMON)
 mkinstalldirs = $(install_sh) -d
 CONFIG_CLEAN_FILES =
 CONFIG_CLEAN_VPATH_FILES =
-am_test_rrcomm_OBJECTS = test_rrcomm.$(OBJEXT)
-test_rrcomm_OBJECTS = $(am_test_rrcomm_OBJECTS)
-test_rrcomm_DEPENDENCIES = $(librrcomm)
+am_poll_rrcomm_OBJECTS = poll_rrcomm.$(OBJEXT)
+poll_rrcomm_OBJECTS = $(am_poll_rrcomm_OBJECTS)
+poll_rrcomm_DEPENDENCIES = $(librrcomm)
 AM_V_lt = $(am__v_lt_@AM_V@)
 am__v_lt_ = $(am__v_lt_@AM_DEFAULT_V@)
 am__v_lt_0 = --silent
 am__v_lt_1 = 
+am_test_rrcomm_OBJECTS = test_rrcomm.$(OBJEXT)
+test_rrcomm_OBJECTS = $(am_test_rrcomm_OBJECTS)
+test_rrcomm_DEPENDENCIES = $(librrcomm)
 AM_V_P = $(am__v_P_@AM_V@)
 am__v_P_ = $(am__v_P_@AM_DEFAULT_V@)
 am__v_P_0 = false
@@ -135,7 +138,8 @@ am__v_at_1 =
 DEFAULT_INCLUDES = -I.@am__isrc@
 depcomp = $(SHELL) $(top_srcdir)/scripts/depcomp
 am__maybe_remake_depfiles = depfiles
-am__depfiles_remade = ./$(DEPDIR)/test_rrcomm.Po
+am__depfiles_remade = ./$(DEPDIR)/poll_rrcomm.Po \
+	./$(DEPDIR)/test_rrcomm.Po
 am__mv = mv -f
 COMPILE = $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) \
 	$(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
@@ -155,8 +159,8 @@ AM_V_CCLD = $(am__v_CCLD_@AM_V@)
 am__v_CCLD_ = $(am__v_CCLD_@AM_DEFAULT_V@)
 am__v_CCLD_0 = @echo "  CCLD    " $@;
 am__v_CCLD_1 = 
-SOURCES = $(test_rrcomm_SOURCES)
-DIST_SOURCES = $(test_rrcomm_SOURCES)
+SOURCES = $(poll_rrcomm_SOURCES) $(test_rrcomm_SOURCES)
+DIST_SOURCES = $(poll_rrcomm_SOURCES) $(test_rrcomm_SOURCES)
 am__can_run_installinfo = \
   case $$AM_UPDATE_INFO_DIR in \
     n|no|NO) false;; \
@@ -581,6 +585,8 @@ scriptsdir = $(prefix)/scripts
 @HAVE_SYSTEMD_FALSE@default_cgroup_name = psmgmtGrp
 @HAVE_SYSTEMD_TRUE@default_cgroup_name = system.slice/psid.service/descendants
 librrcomm = ../lib/librrcomm.a
+poll_rrcomm_SOURCES = poll_rrcomm.c
+poll_rrcomm_LDADD = $(librrcomm)
 test_rrcomm_SOURCES = test_rrcomm.c
 test_rrcomm_LDADD = $(librrcomm)
 all: all-am
@@ -627,6 +633,10 @@ clean-checkPROGRAMS:
 	echo " rm -f" $$list; \
 	rm -f $$list
 
+poll_rrcomm$(EXEEXT): $(poll_rrcomm_OBJECTS) $(poll_rrcomm_DEPENDENCIES) $(EXTRA_poll_rrcomm_DEPENDENCIES) 
+	@rm -f poll_rrcomm$(EXEEXT)
+	$(AM_V_CCLD)$(LINK) $(poll_rrcomm_OBJECTS) $(poll_rrcomm_LDADD) $(LIBS)
+
 test_rrcomm$(EXEEXT): $(test_rrcomm_OBJECTS) $(test_rrcomm_DEPENDENCIES) $(EXTRA_test_rrcomm_DEPENDENCIES) 
 	@rm -f test_rrcomm$(EXEEXT)
 	$(AM_V_CCLD)$(LINK) $(test_rrcomm_OBJECTS) $(test_rrcomm_LDADD) $(LIBS)
@@ -637,6 +647,7 @@ mostlyclean-compile:
 distclean-compile:
 	-rm -f *.tab.c
 
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/poll_rrcomm.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test_rrcomm.Po@am__quote@ # am--include-marker
 
 $(am__depfiles_remade):
@@ -868,6 +879,13 @@ recheck: all $(check_PROGRAMS)
 	        am__force_recheck=am--force-recheck \
 	        TEST_LOGS="$$log_list"; \
 	exit $$?
+poll_rrcomm.log: poll_rrcomm$(EXEEXT)
+	@p='poll_rrcomm$(EXEEXT)'; \
+	b='poll_rrcomm'; \
+	$(am__check_pre) $(LOG_DRIVER) --test-name "$$f" \
+	--log-file $$b.log --trs-file $$b.trs \
+	$(am__common_driver_flags) $(AM_LOG_DRIVER_FLAGS) $(LOG_DRIVER_FLAGS) -- $(LOG_COMPILE) \
+	"$$tst" $(AM_TESTS_FD_REDIRECT)
 test_rrcomm.log: test_rrcomm$(EXEEXT)
 	@p='test_rrcomm$(EXEEXT)'; \
 	b='test_rrcomm'; \
@@ -967,7 +985,8 @@ clean-am: clean-checkPROGRAMS clean-generic clean-libtool \
 	mostlyclean-am
 
 distclean: distclean-am
-		-rm -f ./$(DEPDIR)/test_rrcomm.Po
+		-rm -f ./$(DEPDIR)/poll_rrcomm.Po
+	-rm -f ./$(DEPDIR)/test_rrcomm.Po
 	-rm -f Makefile
 distclean-am: clean-am distclean-compile distclean-generic \
 	distclean-tags
@@ -1013,7 +1032,8 @@ install-ps-am:
 installcheck-am:
 
 maintainer-clean: maintainer-clean-am
-		-rm -f ./$(DEPDIR)/test_rrcomm.Po
+		-rm -f ./$(DEPDIR)/poll_rrcomm.Po
+	-rm -f ./$(DEPDIR)/test_rrcomm.Po
 	-rm -f Makefile
 maintainer-clean-am: distclean-am maintainer-clean-generic
 
