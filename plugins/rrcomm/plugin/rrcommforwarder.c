@@ -99,7 +99,7 @@ static int hookExecForwarder(void *data)
     /* put abstract socket's name to environment for the client to find it */
     setenv(RRCOMM_SOCKET_ENV, sa.sun_path + 1, 1);
 
-    fdbg(RRCOMM_LOG_VERBOSE, "client socket (%d) created at '%s'\n",
+    fdbg(RRCOMM_LOG_FRWRD, "client socket (%d) created at '%s'\n",
 	 listenSock, sa.sun_path + 1);
 
     /* setup common header from proto-task information */
@@ -347,6 +347,9 @@ static bool sendErrorMsg(PSIDmsgbuf_t *blob)
     /* Add all information we have concerning the original message */
     PSP_putTypedMsgBuf(&answer, "hdr", &msgHdr, sizeof(msgHdr));
 
+    fdbg(RRCOMM_LOG_FRWRD, "(%d -> %d / size %d) to %s\n",  msgHdr.sender,
+	 msgHdr.dest, len, PSC_printTID(answer.header.dest));
+
     sendDaemonMsg(&answer);
 
     return len; // if len == 0, no data blob was stored!
@@ -498,6 +501,7 @@ static int acceptNewClient(int fd, void *data)
     if (PSCio_sendF(clntSock, &clntVer, sizeof(clntVer)) < 0) {
 	return closeClientSock();
     }
+    fdbg(RRCOMM_LOG_FRWRD, "version %d @ fd %d\n", clntVer, clntSock);
 
     /* we rely on non-blocking sends to the client */
     PSCio_setFDblock(clntSock, false);
@@ -548,6 +552,9 @@ static void handleRRCommData(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
     size_t used = 0, hdrSize;
     fetchFragHeader(msg, &used, NULL, NULL, (void **)&hdr, &hdrSize);
     updateAddrCache(hdr->sender, msg->header.sender);
+
+    fdbg(RRCOMM_LOG_FRWRD, "%d -> %d / size %zd\n",
+	 hdr->sender, hdr->dest, rData->used);
 
     if (clntSock == -1 && startupTimer == -1) {
 	/* pile up data blobs for some time during startup before dropping */
