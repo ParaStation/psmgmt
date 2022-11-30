@@ -9,6 +9,8 @@
  */
 #include "rrcommproto.h"
 
+#include <stddef.h>
+
 #include "pscommon.h"
 #include "pspluginprotocol.h"
 #include "psserial.h"

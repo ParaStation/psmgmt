@@ -16,7 +16,6 @@
 
 #include "rdp.h"
 #include "psitems.h"
-#include "psprotocol.h"
 
 #include "psidutil.h"
 
