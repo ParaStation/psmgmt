@@ -34,9 +34,6 @@ static uint32_t protoVersion = RRCOMM_PROTO_VERSION;
  */
 static uint32_t currVersion = 0;
 
-/** Flag the error reporting behavior */
-static bool instantError = true;
-
 /**
  * @brief Close connection to chaperon forwarder
  *
@@ -102,17 +99,6 @@ bool RRC_isInitialized(void)
     return frwdSocket != -1;
 }
 
-bool RRC_instantError(bool flag)
-{
-    if (flag) instantError = flag;
-
-    // @todo most probably this has to be sent to the chaperon forwarder
-
-    return flag;
-    // i.e. true if instant error reporting is tried to be enabled or
-    // false otherwise (since non-instant reporting is not supported)
-}
-
 ssize_t RRC_send(int32_t rank, char *buf, size_t bufSize)
 {
     if (frwdSocket == -1) {
@@ -130,8 +116,6 @@ ssize_t RRC_send(int32_t rank, char *buf, size_t bufSize)
     }
 
     // @todo maybe sent namespace information here for protocol > 1
-
-    // @todo wait for error if instant error reporting is disabled
 
     if (PSCio_sendF(frwdSocket, &bufSize, sizeof(bufSize)) < 0) {
 	return closeFrwdSock(-1);
