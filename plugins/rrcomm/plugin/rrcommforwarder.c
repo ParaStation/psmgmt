@@ -699,6 +699,23 @@ static int hookFrwrdInit(void *data)
 }
 
 /**
+ * @brief Function hooked to PSIDHOOK_FRWRD_CLNT_RES
+ *
+ * This hook is called once the client has sent its SIGCHLD. It will:
+ * - Cleanup the abstract socket listening for clients
+ *
+ * @param data Pointer to exited client's status (ignored)
+ *
+ * @return Always returns 0
+ */
+static int hookFrwrdClntRes(void *data)
+{
+    closeListenSock();
+    Selector_startOver();
+    return 0;
+}
+
+/**
  * @brief Function hooked to PSIDHOOK_FRWRD_EXIT
  *
  * This function cleans up within the psidforwarder process. In detail
@@ -761,6 +778,11 @@ bool attachRRCommForwarderHooks(void)
 	return false;
     }
 
+    if (!PSIDhook_add(PSIDHOOK_FRWRD_CLNT_RES, hookFrwrdClntRes)) {
+	flog("attaching PSIDHOOK_FRWRD_CLNT_RES failed\n");
+	return false;
+    }
+
     if (!PSIDhook_add(PSIDHOOK_FRWRD_EXIT, hookFrwrdExit)) {
 	flog("attaching PSIDHOOK_FRWRD_EXIT failed\n");
 	return false;
@@ -773,6 +795,9 @@ void detachRRCommForwarderHooks(bool verbose)
 {
     if (!PSIDhook_del(PSIDHOOK_FRWRD_EXIT, hookFrwrdExit)) {
 	if (verbose) flog("unregister PSIDHOOK_FRWRD_EXIT failed\n");
+    }
+    if (!PSIDhook_del(PSIDHOOK_FRWRD_CLNT_RES, hookFrwrdClntRes)) {
+	if (verbose) flog("unregister PSIDHOOK_FRWRD_CLNT_RES failed\n");
     }
     if (!PSIDhook_del(PSIDHOOK_FRWRD_INIT, hookFrwrdInit)) {
 	if (verbose) flog("unregister PSIDHOOK_FRWRD_INIT failed\n");

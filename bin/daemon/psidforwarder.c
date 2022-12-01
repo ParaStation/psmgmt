@@ -59,9 +59,6 @@ static PStask_t *childTask = NULL;
 /** The socket connecting to the local ParaStation daemon */
 static int daemonSock = -1;
 
-/** Number of open file descriptors to wait for */
-static int openfds = 0;
-
 /** Flag for real SIGCHLD received */
 static bool gotSIGCHLD = false;
 
@@ -885,14 +882,20 @@ static int readFromChild(int fd, void *data)
 	}
 
 	Selector_remove(fd);
-	shutdown(fd, SHUT_RD);
-	openfds--;
-	if (!openfds && verbose) {
-	    /* stdout and stderr closed -> wait for SIGCHLD */
-	    PSIDfwd_printMsgf(STDERR, "%s: %s: wait for SIGCHLD\n",
-			      tag, __func__);
+	Selector_startOver();
+	if (fd == childTask->stdin_fd) {
+	    /* file descriptor shared with stdin */
+	    if (Selector_isRegistered(fd)) Selector_vacateWrite(fd);
+	    childTask->stdin_fd = -1;
 	}
-	if (!openfds) Selector_startOver();
+	close(fd);
+	if (Selector_getNum() <= 1) {
+	    if (verbose) {
+		/* stdout and stderr closed -> wait for SIGCHLD */
+		PSIDfwd_printMsgf(STDERR, "%s: %s: wait for SIGCHLD\n",
+				  tag, __func__);
+	    }
+	}
     } else if (n < 0 && errno != ETIME && errno != ECONNRESET) {
 	/* ignore the error */
 	PSIDfwd_printMsgf(STDERR, "%s: %s: collectRead(): %s\n",
@@ -1034,8 +1037,10 @@ static void sighandler(int sig)
 
 static void finalizeForwarder(void)
 {
-    if (openfds) PSIDfwd_printMsgf(STDERR, "%s: %s: %d open file-descriptors"
-				   " remaining\n", tag, __func__, openfds);
+    if (Selector_getNum() > 1) {
+	PSIDfwd_printMsgf(STDERR, "%s: %s: %d open file-descriptors"
+			  " remaining\n", tag, __func__, Selector_getNum());
+    }
 
     if (!gotSIGCHLD) PSIDfwd_printMsgf(STDERR, "%s: %s: SIGCHLD not yet"
 				       " received\n", tag, __func__);
@@ -1273,7 +1278,7 @@ static int handleSIGCHLD(int fd, void *info)
 static void waitForChildsDead(void)
 {
     while (!gotSIGCHLD) {
-	Swait(10 * 1000);  /* sleep in Swait */
+	Swait(10 * 1000);  /* sleep for 10 seconds in Swait */
 
 	sendSignal(PSC_getPID(childTask->tid), SIGKILL);
     }
@@ -1354,11 +1359,9 @@ void PSID_forwarder(PStask_t *task, int clientFD, int eno)
     /* Once the logger is connected, I/O forwarding is feasible */
     if (task->stdout_fd != -1) {
 	Selector_register(task->stdout_fd, readFromChild, &stdoutType);
-	openfds++;
     }
     if (task->stderr_fd != -1 && task->stderr_fd != task->stdout_fd) {
 	Selector_register(task->stderr_fd, readFromChild, &stderrType);
-	openfds++;
     }
 
     /* set the process title */
@@ -1377,8 +1380,9 @@ void PSID_forwarder(PStask_t *task, int clientFD, int eno)
     /* finally start plugin functionality right before entering the loop */
     PSIDhook_call(PSIDHOOK_FRWRD_INIT, task);
 
-    /* Loop forever. We exit on SIGCHLD. */
-    while (openfds || !gotSIGCHLD) {
+    /* Loop forever. We exit on SIGCHLD and all selectors removed */
+    /* Do not count daemon connection! */
+    while (Selector_getNum() > 1 || !gotSIGCHLD) {
 	if (Swait(-1) < 0) {
 	    if (errno && errno != EINTR) {
 		PSIDfwd_printMsgf(STDERR, "%s: %s: error on Swait(): %s\n",

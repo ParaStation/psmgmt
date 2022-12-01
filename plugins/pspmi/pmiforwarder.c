@@ -364,6 +364,24 @@ static int setupPMIsockets(void *data)
 }
 
 /**
+ * @brief Hook function for PSIDHOOK_FRWRD_CLNT_RES
+ *
+ * Close listening sockets upon receiving client's SIGCHLD since the
+ * client will not connect in the future. This is required since
+ * psidforwarder will only exit on all selectors removed.
+ *
+ * @param data Pointer to exited client's status (ignored)
+ *
+ * @return Always returns 0
+ */
+static int hookForwarderClntRes(void *data)
+{
+    closePMIlistenSocket();
+    Selector_startOver();
+    return 0;
+}
+
+/**
  * @brief Hook function for PSIDHOOK_FRWRD_EXIT
  *
  * Close all sockets and leave KVS explicitly if necessary. This is
@@ -389,6 +407,7 @@ void initForwarder(void)
 {
     PSIDhook_add(PSIDHOOK_FRWRD_INIT, setupPMIsockets);
     PSIDhook_add(PSIDHOOK_FRWRD_CLNT_RLS, getClientStatus);
+    PSIDhook_add(PSIDHOOK_FRWRD_CLNT_RES, hookForwarderClntRes);
     PSIDhook_add(PSIDHOOK_FRWRD_EXIT, hookForwarderExit);
 }
 
@@ -396,5 +415,6 @@ void finalizeForwarder(void)
 {
     PSIDhook_del(PSIDHOOK_FRWRD_INIT, setupPMIsockets);
     PSIDhook_del(PSIDHOOK_FRWRD_CLNT_RLS, getClientStatus);
+    PSIDhook_del(PSIDHOOK_FRWRD_CLNT_RES, hookForwarderClntRes);
     PSIDhook_del(PSIDHOOK_FRWRD_EXIT, hookForwarderExit);
 }
