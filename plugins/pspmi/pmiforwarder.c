@@ -61,28 +61,26 @@ PSIDhook_ClntRls_t clientStatus = IDLE;
 static void closePMIclientSocket(void)
 {
     /* close PMI client socket */
-    if (pmiClientSock > 0) {
-	if (Selector_isRegistered(pmiClientSock)) {
-	    Selector_remove(pmiClientSock);
-	}
-	close(pmiClientSock);
-	pmiClientSock = -1;
-    }
+    if (pmiClientSock < 0) return;
+    /* reg. check needed since selector might have been removed in critErr() */
+    if (Selector_isRegistered(pmiClientSock)) Selector_remove(pmiClientSock);
+    Selector_startOver();
+    close(pmiClientSock);
+    pmiClientSock = -1;
 }
 
 /**
- * @brief Close the socket which listens for new PMI TCP/IP connections.
+ * @brief Close the socket which listens for new PMI TCP/IP connections
  *
- * @return No return value.
+ * @return No return value
  */
 static void closePMIlistenSocket(void)
 {
     /* close PMI accept socket */
-    if (pmiTCPSocket > 0) {
-	Selector_remove(pmiTCPSocket);
-	close(pmiTCPSocket);
-	pmiTCPSocket = -1;
-    }
+    if (pmiTCPSocket < 0) return;
+    Selector_remove(pmiTCPSocket);
+    close(pmiTCPSocket);
+    pmiTCPSocket = -1;
 }
 
 /**
@@ -130,7 +128,8 @@ static int readFromPMIClient(int fd, void *data)
 	return 0;
     } else if (!len) {
 	/* no data received from client */
-	elog("%s: lost connection to the PMI client\n", __func__);
+	if (clientStatus == CONNECTED)
+	    elog("%s: lost connection to the PMI client\n", __func__);
 
 	/* close connection */
 	closePMIclientSocket();
@@ -337,6 +336,14 @@ static int setupPMIsockets(void *data)
 	    return -1;
 	}
 
+	/* close remote side of PMI client socket */
+	/* this ensures an exiting client to close pmiClientSock */
+	char *env = getenv("PMI_FD");
+	if (env) {
+	    int fd = atoi(env);
+	    if (fd >= 0) close(fd);
+	}
+
 	/* register PMI client socket */
 	Selector_register(pmiClientSock, readFromPMIClient, NULL);
 	break;
@@ -381,13 +388,13 @@ static int hookForwarderExit(void *data)
 void initForwarder(void)
 {
     PSIDhook_add(PSIDHOOK_FRWRD_INIT, setupPMIsockets);
-    PSIDhook_add(PSIDHOOK_FRWRD_EXIT, hookForwarderExit);
     PSIDhook_add(PSIDHOOK_FRWRD_CLNT_RLS, getClientStatus);
+    PSIDhook_add(PSIDHOOK_FRWRD_EXIT, hookForwarderExit);
 }
 
 void finalizeForwarder(void)
 {
     PSIDhook_del(PSIDHOOK_FRWRD_INIT, setupPMIsockets);
-    PSIDhook_del(PSIDHOOK_FRWRD_EXIT, hookForwarderExit);
     PSIDhook_del(PSIDHOOK_FRWRD_CLNT_RLS, getClientStatus);
+    PSIDhook_del(PSIDHOOK_FRWRD_EXIT, hookForwarderExit);
 }

@@ -252,7 +252,8 @@ static int handleClientSpawn(void *data)
 	char *env = getenv("__PMI_preput_num");
 
 	/* close the forwarder socket in the client process */
-	if (pmiType == PMI_OVER_UNIX) close(forwarderSock);
+	if (pmiType == PMI_OVER_UNIX
+	    || pmiType == PMI_OVER_TCP) close(forwarderSock);
 
 	unsetenv("__KVS_PROVIDER_TID");
 	unsetenv("__PMI_PROCESS_MAPPING");
