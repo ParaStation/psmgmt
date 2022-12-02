@@ -157,6 +157,10 @@ static PStask_ID_t getAddrFromCache(int32_t rank)
 /** Socket connected to current client */
 static int clntSock = -1;
 
+/** Track if ever a client has connected */
+static bool hasConnected = false;
+
+/** forward declaration */
 static int closeClientSock(void);
 
 /**
@@ -324,7 +328,12 @@ static bool sendErrorMsg(PSIDmsgbuf_t *blob)
     if (blob->size < 1) return false;
     uint8_t type;
     getUint8(&ptr, &type);
-    if (type != RRCOMM_DATA) return false;
+    if (type != RRCOMM_DATA) {
+	int32_t destRank;
+	getInt32(&ptr, &destRank);
+	fdbg(RRCOMM_LOG_ERR, "drop error from %d\n", destRank);
+	return false;
+    }
 
     bool byteOrder = setByteOrder(false); // libRRC does not use byteorder
     uint32_t len;
@@ -459,6 +468,10 @@ static ssize_t sendToClient(char *buf, size_t len)
 	&& storeData(buf, len, sent) && emptyList && clntSock != -1) {
 	Selector_awaitWrite(clntSock, flushData, NULL);
     }
+    if (clntSock == -1 && hasConnected) {
+	errno = EPIPE;
+	return -1;
+    }
     return sent;
 }
 
@@ -503,6 +516,7 @@ static int acceptNewClient(int fd, void *data)
 	return closeClientSock();
     }
     fdbg(RRCOMM_LOG_FRWRD, "version %d @ fd %d\n", clntVer, clntSock);
+    hasConnected = true; // track a once connected client
 
     /* we rely on non-blocking sends to the client */
     PSCio_setFDblock(clntSock, false);
@@ -579,13 +593,12 @@ static void handleRRCommData(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
     setByteOrder(byteOrder);
 
     if (sendToClient(data.buf, data.bufUsed) < 0) {
-	flog("failed to send meta-data\n");
-	return;
+	PSID_dropMsg((DDBufferMsg_t *)msg);
     }
 
     /* send actual data */
     if (sendToClient(rData->buf, rData->used) < 0) {
-	flog("failed to send data\n");
+	PSID_dropMsg((DDBufferMsg_t *)msg);
     } else if (getRRCommLoggerMask() & RRCOMM_LOG_VERBOSE) {
 	fdbg(RRCOMM_LOG_VERBOSE, "Data is");
 	for (size_t i = 0; i < MIN(rData->used, 20); i++)
@@ -611,7 +624,7 @@ static void handleRRCommError(DDTypedBufferMsg_t *msg)
     setByteOrder(byteOrder);
 
     if (sendToClient(data.buf, data.bufUsed) < 0) {
-	flog("failed to send error data\n");
+	fdbg(RRCOMM_LOG_ERR, "failed to deliver error on %d\n", hdr.dest);
 	return;
     }
 }
