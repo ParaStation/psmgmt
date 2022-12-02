@@ -30,9 +30,10 @@ extern logger_t *RRCommLogger;
 	logger_funcprint(RRCommLogger, __func__, key, __VA_ARGS__)
 
 typedef enum {
-    RRCOMM_LOG_VERBOSE = 0x00001,   /**< Be verbose */
-    RRCOMM_LOG_COMM    = 0x00002,   /**< All about routing */
+    RRCOMM_LOG_COMM    = 0x00001,   /**< All about routing */
+    RRCOMM_LOG_ERR     = 0x00002,   /**< Handling of error messages */
     RRCOMM_LOG_FRWRD   = 0x00004,   /**< Forwarder activity */
+    RRCOMM_LOG_VERBOSE = 0x00008,   /**< Be verbose */
 } RRComm_log_types_t;
 
 /*
