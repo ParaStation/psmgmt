@@ -26,10 +26,16 @@ bool __dropHelper(DDTypedBufferMsg_t *msg, ssize_t (sendFunc)(void *msg),
     size_t used = 0, hdrSize;
     fetchFragHeader(msg, &used, &fragType, NULL, (void **)&hdr, &hdrSize);
 
-    if (msg->type != RRCOMM_DATA) {
-	mdbg(RRCOMM_LOG_COMM, "%s: type %d %s->", caller, msg->type,
+    switch (msg->type) {
+    case RRCOMM_ERROR:
+	mdbg(RRCOMM_LOG_ERR, "%s: error %s->", caller,
 	     PSC_printTID(msg->header.sender));
-	mdbg(RRCOMM_LOG_COMM, "%s\n", PSC_printTID(msg->header.dest));
+	mdbg(RRCOMM_LOG_ERR, "%s\n", PSC_printTID(msg->header.dest));
+	return true;
+    case RRCOMM_DATA:
+	break;
+    default:
+	mlog("%s: unknown type %d\n", caller, msg->type);
 	return true;
     }
 
@@ -47,7 +53,7 @@ bool __dropHelper(DDTypedBufferMsg_t *msg, ssize_t (sendFunc)(void *msg),
     /* Add all information we have concerning the message */
     PSP_putTypedMsgBuf(&answer, "hdr", hdr, sizeof(*hdr));
 
-    mdbg(RRCOMM_LOG_COMM, "%s: send error to %s\n", caller,
+    mdbg(RRCOMM_LOG_ERR, "%s: send error on %d to %s\n", caller, hdr->dest,
 	 PSC_printTID(msg->header.sender));
 
     sendFunc(&answer);

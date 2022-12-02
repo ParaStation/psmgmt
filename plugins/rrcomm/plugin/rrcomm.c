@@ -7,6 +7,7 @@
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
+#include <errno.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -44,12 +45,16 @@ static bool handleRRCommMsg(DDTypedBufferMsg_t *msg)
 {
     if (msg->header.dest != PSC_getMyTID()) {
 	/* no messsage for me => forward */
-	fdbg(RRCOMM_LOG_COMM, "%s->", PSC_printTID(msg->header.sender));
-	mdbg(RRCOMM_LOG_COMM, "%s\n", PSC_printTID(msg->header.dest));
+	fdbg(msg->type == RRCOMM_ERROR ? RRCOMM_LOG_ERR : RRCOMM_LOG_VERBOSE,
+	     "type %d %s", msg->type, PSC_printTID(msg->header.sender));
+	mdbg(msg->type == RRCOMM_ERROR ? RRCOMM_LOG_ERR : RRCOMM_LOG_VERBOSE,
+	     " -> %s\n", PSC_printTID(msg->header.dest));
 	if (PSC_getID(msg->header.dest) != PSC_getMyID()) {
 	    sendMsg(msg);
 	} else {
-	    PSIDclient_send((DDMsg_t *)msg);
+	    if (PSIDclient_send((DDMsg_t *)msg) < 0 && errno != EWOULDBLOCK) {
+		PSID_dropMsg((DDBufferMsg_t *)msg);
+	    }
 	}
 	return true;
     }
@@ -121,8 +126,8 @@ static bool handleRRCommMsg(DDTypedBufferMsg_t *msg)
 	/* destination forwarder identified => forward */
 	fdbg(RRCOMM_LOG_COMM, "%s-fwd->", PSC_printTID(msg->header.sender));
 	mdbg(RRCOMM_LOG_COMM, "%s\n", PSC_printTID(msg->header.dest));
-	PSIDclient_send((DDMsg_t *)msg);
-	return true;
+	if (PSIDclient_send((DDMsg_t *)msg) >= 0 || errno == EWOULDBLOCK)
+	    return true;
     }
 
     return PSID_dropMsg((DDBufferMsg_t *)msg);
