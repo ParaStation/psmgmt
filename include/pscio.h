@@ -28,15 +28,16 @@
  *
  * If the flag @a block is true, the file-descriptor @a fd is brought
  * into blocking mode, i.e. the @ref O_NONBLOCK flag is removed from
- * the file-descriptor. If block is false, the flag is set.
+ * the file-descriptor. If @a block is false, the flag is set.
  *
  * @param fd File descriptor to manipulate
  *
  * @param block Flag the blocking mode
  *
- * @return No return value
+ * @return Flag if file-descriptor was in blocking mode before;
+ * i.e. return true if it was in blocking mode or false otherwise
  */
-void PSCio_setFDblock(int fd, bool block);
+bool PSCio_setFDblock(int fd, bool block);
 
 /**
  * Maximum number of retries within @ref PSCio_sendFunc(), @ref
