@@ -345,11 +345,8 @@ static int flushClientMsgs(int fd, void *info)
 
 int PSIDclient_send(DDMsg_t *msg)
 {
-    if (PSID_getDebugMask() & PSID_LOG_CLIENT) {
-	PSID_log(PSID_LOG_CLIENT, "%s(type %s (len=%d) to %s\n",
-		 __func__, PSDaemonP_printMsg(msg->type), msg->len,
-		 PSC_printTID(msg->dest));
-    }
+    PSID_log(PSID_LOG_CLIENT, "%s(type %s (len=%d) to %s\n", __func__,
+	     PSDaemonP_printMsg(msg->type), msg->len, PSC_printTID(msg->dest));
 
     if (PSC_getID(msg->dest) != PSC_getMyID()) {
 	errno = EHOSTUNREACH;
