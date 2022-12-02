@@ -169,7 +169,6 @@ void pollRRC(int fd, int *numToRecv, int timeout)
     }
 
     while (*numToRecv && ((timeout < 0) || timercmp(&now, &end, <))) {
-	printf("%s: %d to go\n", __func__, *numToRecv);
 	int tmout = timeout;
 	if (!(timeout < 0)) {
 	    struct timeval delta;
@@ -179,7 +178,10 @@ void pollRRC(int fd, int *numToRecv, int timeout)
 	    tmout = delta.tv_sec * 1000 + delta.tv_usec / 1000 + 1;
 	}
 
+	printf("%s: %d to go for %d msec\n", __func__, *numToRecv, tmout);
+	fflush(stdout);
 	int ret = poll(&pollfd, 1, tmout);
+
 	if (ret < 0) {
 	    printf("%s: poll(): %m\n", __func__);
 	} else if (ret > 0) {
@@ -199,6 +201,7 @@ int main(void)
 
     char *envStr = getenv("__RRCOMM_SOCKET");
     printf("RRComm socket expected at '%s'\n", envStr ? envStr : "???");
+    fflush(stdout);
 
     int fd = RRC_init();
     if (fd < 0) {
@@ -208,6 +211,7 @@ int main(void)
 
     printf("Connected on fd %d, my rank is %d of %d @ %s\n", fd, rank, num,
 	   nodeName);
+    fflush(stdout);
 
     /* setup data to send */
     for (size_t i = 0; i < sizeof(dataBuf); i++) dataBuf[i] = date(rank, i);
@@ -215,6 +219,7 @@ int main(void)
     int numToRecv = num -1;
 
     /* wait for incoming data before sending myself */
+    // the test will be harder if we do not wait before but just send
     pollRRC(fd, &numToRecv, rank * 1000 /* msec */);
 
     /* do my sends */
@@ -224,7 +229,10 @@ int main(void)
     }
 
     /* wait for remaining data and possible resends */
-    pollRRC(fd, &numToRecv, -1);
+    // usually the test shall finish long before
+    // nevertheless, the test might hang if we haven't waited before
+    // the race condition is due to partners finishing prematurely
+    pollRRC(fd, &numToRecv, 30000 /* 30 sec */);
 
     RRC_finalize();
 
