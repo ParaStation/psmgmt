@@ -946,27 +946,23 @@ int Swait(int timeout)
 	    }
 	    if (selector->deleted) continue;
 	    if (events[ev].events & EPOLLIN) {
-		if (selector->readHandler) {
-		    if (!selector->disabled) {
-			int ret = selector->readHandler(selector->fd,
-							selector->readInfo);
-			switch (ret) {
-			case -1:
-			    retval = -1;
-			    break;
-			case 0:
-			case 1:
-			    // do nothing
-			    break;
-			default:
-			    logger_print(logger, -1, "%s: readHandler for"
-					 " fd=%d returns %d\n", __func__,
-					 selector->fd, ret);
-			}
+		if (selector->readHandler && !selector->disabled) {
+		    int ret = selector->readHandler(selector->fd,
+						    selector->readInfo);
+		    switch (ret) {
+		    case -1:
+			retval = -1;
+			break;
+		    case 0:
+		    case 1:
+			// do nothing
+			break;
+		    default:
+			logger_print(logger, -1, "%s: readHandler(fd=%d) gives"
+				     " %d\n", __func__, selector->fd, ret);
 		    }
 		} else {
-		    logger_print(logger, -1,
-				 "%s: %d not registered for read\n",
+		    logger_print(logger, -1, "%s: %d not registered for read\n",
 				 __func__, selector->fd);
 		}
 	    }
@@ -983,13 +979,11 @@ int Swait(int timeout)
 			// do nothing
 			break;
 		    default:
-			logger_print(logger, -1, "%s: writeHandler for"
-				     " fd=%d returns %d\n", __func__,
-				     selector->fd, ret);
+			logger_print(logger, -1, "%s: writeHandler(fd=%d) gives"
+				     " %d\n", __func__, selector->fd, ret);
 		    }
 		} else if (!selector->deleted) {
-		    logger_print(logger, -1,
-				 "%s: %d not registered for write\n",
+		    logger_print(logger, -1, "%s: %d not registered for write\n",
 				 __func__, selector->fd);
 		}
 	    }
