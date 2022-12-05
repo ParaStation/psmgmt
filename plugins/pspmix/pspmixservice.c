@@ -327,7 +327,7 @@ bool pspmix_service_registerNamespace(PspmixJob_t *job)
 	goto nscreate_error;
     }
 
-    /* set if this namespace is spawner out of another one */
+    /* set if this namespace is spawned out of another one */
     ns->spawned = envGet(&job->env, "PMIX_SPAWNED") ? true : false;
 
     /* set the list of nodes string from environment set by the spawner */
