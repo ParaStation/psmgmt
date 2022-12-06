@@ -784,7 +784,7 @@ static int hookRecvSpawnReq(void *data)
  *
  * This hook is called right before the forwarder for a task is started
  *
- * Starts the PMIx server or notify the already running PMIx server of the user.
+ * Starts the user's PMIx server and/or notifies this PMIx server of the job.
  *
  * This function depends on all reservation information of the job being
  * received. This is guaranteed at the moment this hook is called.
@@ -843,13 +843,13 @@ static int hookSpawnTask(void *data)
     /* is there already a PMIx server running for this user? */
     PspmixServer_t *server = findServer(task->uid);
     if (server) {
-	/* break if this job is already known to the user's server */
+	/* nothing to do if job is already known to the user's server */
 	PspmixSession_t *session = findSessionInList(loggertid,
 						     &server->sessions);
-	if (session && findJobInList(psjob->spawnertid, &session->jobs)) {
+	if (session && findJobInList(spawnertid, &session->jobs)) {
 	    mdbg(PSPMIX_LOG_VERBOSE, "%s: rank %d: job already known (uid %d"
 		 " spawner %s)\n", __func__, task->rank, server->uid,
-		 PSC_printTID(psjob->spawnertid));
+		 PSC_printTID(spawnertid));
 	    return 0;
 	}
     } else {
