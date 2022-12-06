@@ -1461,6 +1461,12 @@ static int spawnTask(PStask_t *task)
 
     if (!task) return EINVAL;
 
+    /* Call hook once per task. */
+    if (PSIDhook_call(PSIDHOOK_SPAWN_TASK, task) < 0) {
+	PSID_log(-1, "%s: PSIDHOOK_SPAWN_TASK failed.\n", __func__);
+	return EINVAL; //TODO which error code?
+    }
+
     /* now try to start the task */
     err = buildSandboxAndStart(execForwarder, task);
 

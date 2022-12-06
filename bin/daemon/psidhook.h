@@ -114,6 +114,12 @@ typedef enum {
 				@ref PSIDspawn_startDelayedTasks() or
 				@ref PSIDspawn_cleanupDelayedTasks().
 			       */
+    PSIDHOOK_SPAWN_TASK,      /**< Right before entering the process to actually
+			        fork the process for a task.
+				It is guaranteed, that all information for the
+				task is complete and available.
+				If this hook returns < 0, the process start of
+				the task aborts with an error. */
     PSIDHOOK_EXEC_FORWARDER,  /**< Right before forking the forwarder's child.
 				Arg is a pointer to the child's task structure.
 				The hook might be used to prepare the child's
