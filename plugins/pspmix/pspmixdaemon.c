@@ -746,12 +746,8 @@ static void stopServer(PspmixServer_t *server)
  *
  * This hook is called after receiving a spawn request message
  *
- * Starts the PMIx server or notify the already running PMIx server of the user.
- *
- * This function assumes that the first spawn request for a job is not
- * received before all reservation information of the job have
- * arrived. So the reservation set (= PMIx job) is complete once this
- * hook is called.
+ * Marks in the prototask's environment whether or not PMIx usage is
+ * requested for this spawn request by mpiexec.
  *
  * Attention: The task passed is a prototype containing only the values
  * decoded in @a PStask_decodeTask and in addition spawnerid, workingdir,
@@ -780,6 +776,33 @@ static int hookRecvSpawnReq(void *data)
     prototask->environ = env.vars;
     prototask->envSize = env.cnt;
 
+    return 0;
+}
+
+/**
+ * @brief Hook function for PSIDHOOK_SPAWN_TASK
+ *
+ * This hook is called right before the forwarder for a task is started
+ *
+ * Starts the PMIx server or notify the already running PMIx server of the user.
+ *
+ * This function depends on all reservation information of the job being
+ * received. This is guaranteed at the moment this hook is called.
+ *
+ * @param data Pointer to task structure to be spawned
+ *
+ * @return Returns 0 on success and -1 on error.
+ */
+static int hookSpawnTask(void *data)
+{
+    PStask_t *task = data;
+
+    /* leave all special task groups alone */
+    if (task->group != TG_ANY) return 0;
+
+    mdbg(PSPMIX_LOG_CALL, "%s(task group TG_ANY)\n", __func__);
+
+    env_t env = { task->environ, task->envSize, task->envSize };
 
     /* continue only if PMIx support is requested
      * or singleton support is configured and np == 1 */
@@ -788,16 +811,16 @@ static int hookRecvSpawnReq(void *data)
     char *jobsize = envGet(&env, "PMI_SIZE");
     if (!usePMIx && (jobsize ? atoi(jobsize) : 1) != 1) return 0;
 
-    /* find job */
-    PStask_ID_t loggertid = prototask->loggertid;
+    /* find ParaStation session */
+    PStask_ID_t loggertid = task->loggertid;
     PSsession_t *pssession = PSID_findSessionByLoggerTID(loggertid);
     if (!pssession) {
 	mlog("%s: no session (logger %s)\n", __func__, PSC_printTID(loggertid));
 	return -1;
     }
 
-    /* check if there is a matching reservation set */
-    PStask_ID_t spawnertid = prototask->spawnertid;
+    /* find ParaStation job */
+    PStask_ID_t spawnertid = task->spawnertid;
     PSjob_t *psjob = PSID_findJobInSession(pssession, spawnertid);
     if (!psjob) {
 	mlog("%s: no job (spawner %s", __func__, PSC_printTID(spawnertid));
@@ -805,8 +828,8 @@ static int hookRecvSpawnReq(void *data)
 	return -1;
     }
 
-    /* check if there is a matching reservation in the job */
-    PSrsrvtn_ID_t resID = prototask->resID;
+    /* get the reservation information for this task */
+    PSrsrvtn_ID_t resID = task->resID;
     PSresinfo_t *resInfo = findReservationInList(resID, &psjob->resInfos);
     if (!resInfo) {
 	mlog("%s: no reservation %d (spawner %s", __func__, resID,
@@ -818,12 +841,23 @@ static int hookRecvSpawnReq(void *data)
     if (mset(PSPMIX_LOG_VERBOSE)) printServers();
 
     /* is there already a PMIx server running for this user? */
-    PspmixServer_t *server = findServer(prototask->uid);
-    if (!server) {
+    PspmixServer_t *server = findServer(task->uid);
+    if (server) {
+	/* break if this job is already known to the user's server */
+	PspmixSession_t *session = findSessionInList(loggertid,
+						     &server->sessions);
+	if (session && findJobInList(psjob->spawnertid, &session->jobs)) {
+	    mdbg(PSPMIX_LOG_VERBOSE, "%s: rank %d: job already known (uid %d"
+		 " spawner %s)\n", __func__, task->rank, server->uid,
+		 PSC_printTID(psjob->spawnertid));
+	    return 0;
+	}
+    } else {
+
 	/* No suitable server found, start one */
 	server = ucalloc(sizeof(*server));
-	server->uid = prototask->uid;
-	server->gid = prototask->gid;
+	server->uid = task->uid;
+	server->gid = task->gid;
 	server->timerId = -1;
 	INIT_LIST_HEAD(&server->sessions);
 
@@ -837,11 +871,6 @@ static int hookRecvSpawnReq(void *data)
 
 	mdbg(PSPMIX_LOG_VERBOSE, "%s: new PMIx server started (uid %d server "
 	     "%s)\n", __func__, server->uid, PSC_printTID(server->fwdata->tid));
-    } else {
-	/* there is already a server for the user running */
-	mdbg(PSPMIX_LOG_VERBOSE, "%s: existing PMIx server found (uid %d"
-	     " server %s)\n", __func__, server->uid,
-	     PSC_printTID(server->fwdata->tid));
     }
 
     /* clone environment so we can modify it in singleton case */
@@ -857,9 +886,9 @@ static int hookRecvSpawnReq(void *data)
 	envSet(&jobenv, "PMI_SIZE", "1");
 	envSet(&jobenv, "PMIX_APPCOUNT", "1");
 	envSet(&jobenv, "PMIX_APPSIZE_0", "1");
-	envSet(&jobenv, "PMIX_APPWDIR_0", prototask->workingdir);
-	char **argv = prototask->argv;
-	int argc = prototask->argc;
+	envSet(&jobenv, "PMIX_APPWDIR_0", task->workingdir);
+	char **argv = task->argv;
+	int argc = task->argc;
 	size_t sum = 1;
 	for (int j = 0; j < argc; j++) sum += strlen(argv[j]) + 1;
 	char *str = umalloc(sum);
@@ -980,6 +1009,7 @@ static int hookNodeDown(void *data)
 void pspmix_initDaemonModule(void)
 {
     PSIDhook_add(PSIDHOOK_RECV_SPAWNREQ, hookRecvSpawnReq);
+    PSIDhook_add(PSIDHOOK_SPAWN_TASK, hookSpawnTask);
     PSIDhook_add(PSIDHOOK_LOCALJOBREMOVED, hookLocalJobRemoved);
     PSIDhook_add(PSIDHOOK_NODE_DOWN, hookNodeDown);
     PSID_registerMsg(PSP_PLUG_PSPMIX, forwardPspmixMsg);
@@ -988,6 +1018,7 @@ void pspmix_initDaemonModule(void)
 void pspmix_finalizeDaemonModule(void)
 {
     PSIDhook_del(PSIDHOOK_RECV_SPAWNREQ, hookRecvSpawnReq);
+    PSIDhook_del(PSIDHOOK_SPAWN_TASK, hookSpawnTask);
     PSIDhook_del(PSIDHOOK_LOCALJOBREMOVED, hookLocalJobRemoved);
     PSIDhook_del(PSIDHOOK_NODE_DOWN, hookNodeDown);
     PSID_clearMsg(PSP_PLUG_PSPMIX, forwardPspmixMsg);
