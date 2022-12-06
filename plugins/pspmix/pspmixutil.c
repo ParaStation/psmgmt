@@ -57,13 +57,13 @@ static void printSessions(PspmixServer_t *server)
 void __pspmix_printServer(PspmixServer_t *server, bool sessions,
 			  const char *caller, const int line)
 {
-    mlog("%s(%s:%d): Server: uid %d gid %d fwdata %p used %s timerId %d\n",
-	 __func__, caller, line, server->uid, server->gid, server->fwdata,
+    mlog("%s@%d: Server: uid %d gid %d fwdata %p used %s timerId %d\n",
+	 caller, line, server->uid, server->gid, server->fwdata,
 	 server->used ? "true" : "false", server->timerId);
     if (server->fwdata) {
-	mlog("%s: Forwarder: pTitle %s jobID %s tid %s\n", __func__,
-		server->fwdata->pTitle, server->fwdata->jobID,
-		PSC_printTID(server->fwdata->tid));
+	mlog("%s@%d: Forwarder: pTitle %s jobID %s tid %s\n", caller, line,
+	     server->fwdata->pTitle, server->fwdata->jobID,
+	     PSC_printTID(server->fwdata->tid));
     }
     if (sessions) printSessions(server);
 }
@@ -97,8 +97,8 @@ void __pspmix_deleteSession(PspmixSession_t *session, bool warn,
     list_del(&session->next);
 
     if (!list_empty(&session->jobs) && warn) {
-	mlog("%s(%s@%d): jobs list not empty (logger %s)\n", __func__,
-	     caller, line, PSC_printTID(session->loggertid));
+	mlog("%s@%d: jobs list not empty (logger %s)\n", caller, line,
+	     PSC_printTID(session->loggertid));
     }
 
     list_t *j, *tmp;
@@ -119,8 +119,8 @@ void __pspmix_deleteServer(PspmixServer_t *server, bool warn,
     list_del(&server->next);
 
     if (!list_empty(&server->sessions) && warn) {
-	mlog("%s(%s@%d): sessions list not empty (uid %s)\n", __func__,
-	     caller, line, PSC_printTID(server->uid));
+	mlog("%s@%d: sessions list not empty (uid %s)\n", caller, line,
+	     PSC_printTID(server->uid));
     }
 
     list_t *s, *tmp;
