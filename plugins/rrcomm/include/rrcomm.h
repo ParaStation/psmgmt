@@ -24,7 +24,7 @@
  * @brief Initialize the RRComm interface
  *
  * Initialize the RRComm interface and create the socket connection to
- * the chaperon forwarder which will be used for all sending an
+ * the chaperon forwarder which will be used for all sending and
  * receiving of messages via the rank routed protocol. This function
  * must be called successfully before any other function of this
  * library.
@@ -65,6 +65,9 @@ bool RRC_isInitialized(void);
  * destination. Delivery failure might be notified later as an instant
  * error via @ref RRC_recv().
  *
+ * Ranks used for routing the messages happen to be identical to the
+ * ranks reported by PMI or PMIx.
+ *
  * @param rank Destination rank the message will be sent to
  *
  * @param buf Buffer holding the message to be sent
@@ -102,6 +105,9 @@ ssize_t RRC_send(int32_t rank, char *buf, size_t bufSize);
  * delivery to the destination rank was not possible. In this case -1
  * is returned and @ref errno is set to 0. Furthermore, @a rank will
  * indicate the destination rank of the dropped message.
+ *
+ * Ranks used for routing the messages happen to be identical to the
+ * ranks reported by PMI or PMIx.
  *
  * @param rank Upon successful return provides the sending rank of the
  * received message or the destination rank of the dropped message
