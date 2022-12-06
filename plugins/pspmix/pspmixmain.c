@@ -34,7 +34,7 @@
 /** psid plugin requirements */
 char name[] = "pspmix";
 int version = 2;
-int requiredAPI = 134;
+int requiredAPI = 137;
 plugin_dep_t dependencies[] = {
 #if 0
     { .name = "psaccount", .version = 24 },

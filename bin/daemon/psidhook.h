@@ -114,12 +114,6 @@ typedef enum {
 				@ref PSIDspawn_startDelayedTasks() or
 				@ref PSIDspawn_cleanupDelayedTasks().
 			       */
-    PSIDHOOK_SPAWN_TASK,      /**< Right before entering the process to actually
-			        fork the process for a task.
-				It is guaranteed, that all information for the
-				task is complete and available.
-				If this hook returns < 0, the process start of
-				the task aborts with an error. */
     PSIDHOOK_EXEC_FORWARDER,  /**< Right before forking the forwarder's child.
 				Arg is a pointer to the child's task structure.
 				The hook might be used to prepare the child's
@@ -242,6 +236,13 @@ typedef enum {
 				a pointer to the child's task structure.
 				Utilized by Spank in psslurm to change the
 				child's namespace */
+    PSIDHOOK_SPAWN_TASK,      /**< Right before doing the fork() to create the
+				forwarder of a child to spawn. This guarantees
+				that all information regarding the child is
+				available.
+				Arg is a pointer to the child's task structure.
+				If the hook's return value is < 0, the spawn
+				is canceled and a fail response is sent. */
     PSIDHOOK_LAST,            /**< This has to be the last one */
 } PSIDhook_t;
 

@@ -161,8 +161,10 @@ static LIST_HEAD(pluginList);
  * 135: Add key parameter to help() function
  *
  * 136: new hook PSIDHOOK_PELOGUE_DROP
+ *
+ * 137: new hook PSIDHOOK_SPAWN_TASK
  */
-static int pluginAPIVersion = 136;
+static int pluginAPIVersion = 137;
 
 
 /** Grace period between finalize and unload on forcefully unloads */

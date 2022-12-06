@@ -1457,18 +1457,16 @@ static int checkRequest(PStask_ID_t sender, PStask_t *task)
  */
 static int spawnTask(PStask_t *task)
 {
-    int err;
-
     if (!task) return EINVAL;
 
     /* Call hook once per task. */
     if (PSIDhook_call(PSIDHOOK_SPAWN_TASK, task) < 0) {
 	PSID_log(-1, "%s: PSIDHOOK_SPAWN_TASK failed.\n", __func__);
-	return EINVAL; //TODO which error code?
+	return EINVAL;   // most probably some illegal value was passed
     }
 
     /* now try to start the task */
-    err = buildSandboxAndStart(execForwarder, task);
+    int err = buildSandboxAndStart(execForwarder, task);
 
     if (!err) {
 	/* prepare forwarder task */
@@ -2510,7 +2508,7 @@ static void handleSpawnReq(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
      * the task specific stuff like rank specific environment. */
     if (PSIDhook_call(PSIDHOOK_RECV_SPAWNREQ, task) < 0) {
 	PSID_log(-1, "%s: PSIDHOOK_RECV_SPAWNREQ failed.\n", __func__);
-	answer.error = EINVAL; //TODO which error code?
+	answer.error = EINVAL; // most probably some illegal value was passed
 	/* send one answer per rank */
 	for (uint32_t r = 0; r < num; r++) {
 	    answer.request = task->rank + r;
