@@ -2563,10 +2563,10 @@ static void fillProcDataArray(pmix_data_array_t *procData,
 	}
 	pmix_status_t status = PMIx_server_generate_locality_string(&cpuset,
 								    &locstr);
+	hwloc_bitmap_free(cpuset.bitmap);
 	if (status != PMIX_SUCCESS) {
 	    mlog("%s: failed to generate locality string for rank %d: %s\n",
 		 __func__, proc->rank, PMIx_Error_string(status));
-	    hwloc_bitmap_free(cpuset.bitmap);
 	    locstr = strdup("pspmix:generation_error");
 	    if (!locstr) abort(); /* @todo handle somehow more gently? */
 	}
