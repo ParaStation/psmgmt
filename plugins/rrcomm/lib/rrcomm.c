@@ -90,6 +90,7 @@ int RRC_init(void)
 
     ssize_t ret = PSCio_recvBufP(frwdSocket, &currVersion, sizeof(currVersion));
     if (ret <= 0) return closeFrwdSock(ret);
+    errno = 0;   // reset errno -- might have been set in prior RRC_finalize()
 
     return frwdSocket;
 }
@@ -106,7 +107,7 @@ ssize_t RRC_send(int32_t rank, char *buf, size_t bufSize)
 	return -1;
     }
 
-    if (!buf || !bufSize) {
+    if (!buf && bufSize) {
 	errno = EINVAL;
 	return -1;
     }
@@ -194,12 +195,12 @@ ssize_t RRC_recv(int32_t *rank, char *buf, size_t bufSize)
 
     if (!buf || bufSize < xpctdSize) return xpctdSize;
 
-    size_t ret = PSCio_recvBufP(frwdSocket, buf, xpctdSize);
+    ssize_t ret = PSCio_recvBufP(frwdSocket, buf, xpctdSize);
 
     /* reset expected size to be prepared for next receive */
     xpctdSize = 0;
 
-    if (ret <= 0) return closeFrwdSock(ret);
+    if (ret < 0) return closeFrwdSock(ret);
 
     return ret;
 }
