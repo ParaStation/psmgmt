@@ -2566,6 +2566,8 @@ static void fillProcDataArray(pmix_data_array_t *procData,
 	hwloc_bitmap_free(cpuset.bitmap);
 #if PMIX_VERSION_MAJOR >= 4 && PMIX_VERSION_MINOR >= 2 && PMIX_VERSION_RELEASE > 2
 	PMIX_CPUSET_DESTRUCT(&cpuset);
+#else
+	PMIx_Cpuset_destruct(&cpuset);
 #endif
 	if (status != PMIX_SUCCESS) {
 	    mlog("%s: failed to generate locality string for rank %d: %s\n",
