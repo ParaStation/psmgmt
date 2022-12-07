@@ -156,6 +156,14 @@ static ssize_t recvError(int32_t *rank)
  */
 static uint32_t xpctdSize = 0;
 
+/**
+ * Rank of the next message to be expected. This is used to preserve
+ * this information between two consecutive calls of @ref RRC_recv()
+ * after the first call returned prematurely due to lack of space in
+ * the receive-buffer
+ */
+static int32_t xpctdRank = -1;
+
 ssize_t RRC_recv(int32_t *rank, char *buf, size_t bufSize)
 {
     if (frwdSocket == -1) {
@@ -164,6 +172,7 @@ ssize_t RRC_recv(int32_t *rank, char *buf, size_t bufSize)
     }
 
     if (!xpctdSize) {
+	/* no pending (meta-)data available, receive it now */
 	uint8_t msgType;
 	ssize_t ret = PSCio_recvBufP(frwdSocket, &msgType, sizeof(msgType));
 	if (ret <= 0) return closeFrwdSock(ret);
@@ -172,19 +181,20 @@ ssize_t RRC_recv(int32_t *rank, char *buf, size_t bufSize)
 	/* actually data => fetch the size to expect */
 	ret = PSCio_recvBufP(frwdSocket, &xpctdSize, sizeof(xpctdSize));
 	if (ret <= 0) return closeFrwdSock(ret);
+
+	ret = PSCio_recvBufP(frwdSocket, &xpctdRank, sizeof(xpctdRank));
+	if (ret <= 0) {
+	    xpctdSize = 0;
+	    return closeFrwdSock(ret);
+	}
+
+	// @todo maybe receive namespace information here for protocol > 1
     }
+    if (rank) *rank = xpctdRank;
 
     if (!buf || bufSize < xpctdSize) return xpctdSize;
 
-    ssize_t ret = PSCio_recvBufP(frwdSocket, rank, sizeof(*rank));
-    if (ret <= 0) {
-	xpctdSize = 0;
-	return closeFrwdSock(ret);
-    }
-
-    // @todo maybe receive namespace information here for protocol > 1
-
-    ret = PSCio_recvBufP(frwdSocket, buf, xpctdSize);
+    size_t ret = PSCio_recvBufP(frwdSocket, buf, xpctdSize);
 
     /* reset expected size to be prepared for next receive */
     xpctdSize = 0;

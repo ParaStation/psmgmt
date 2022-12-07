@@ -89,28 +89,33 @@ ssize_t RRC_send(int32_t rank, char *buf, size_t bufSize);
  * rank.
  *
  * If the size of the buffer is not sufficient to store the whole
- * message, the buffer will be left untouched and @a rank is not
- * set. In this case the size of the available message is still
+ * message, the buffer will be left untouched. Nevertheless, @a rank
+ * will still be set and the size of the available message is still
  * reported in the return value of this function. The calling function
  * must adapt the receive buffer @a buf to the appropriate size and
- * call @ref RRC_recv() again. Since the major part of the message is
- * still "on the wire", triggering the repeated call of @ref
- * RRC_recv() might still be realized via the original mechanism of
- * @ref select(), @ref poll() or @ref epoll(). Subsequent calls of
- * this function with insufficient buffer size @a bufSize will lead to
- * identical results.
+ * call @ref RRC_recv() again. Since major parts of the message remain
+ * "on the wire", triggering the repeated call of @ref RRC_recv() can
+ * still be realized using the original mechanism of @ref select(),
+ * @ref poll() or @ref epoll(). Subsequent calls of this function with
+ * insufficient buffer size @a bufSize will lead to identical results.
  *
  * Besides receiving actual data this function might pick up error
  * reports on messages that had to be dropped due to the fact that a
- * delivery to the destination rank was not possible. In this case -1
- * is returned and @ref errno is set to 0. Furthermore, @a rank will
- * indicate the destination rank of the dropped message.
+ * delivery to the destination rank was impossible. In this case -1 is
+ * returned and @ref errno is set to 0. Furthermore, @a rank will
+ * indicate the destination rank of the dropped message. Error reports
+ * will *not* be delivered "out of band". I.e. if libRRC is waiting
+ * for a sufficiently large buffer to deliver a message via @ref
+ * RRC_recv(), this message has to be received first before any error
+ * report can be received.
  *
  * Ranks used for routing the messages happen to be identical to the
  * ranks reported by PMI or PMIx.
  *
- * @param rank Upon successful return provides the sending rank of the
- * received message or the destination rank of the dropped message
+ * @param rank Upon return provides the sending rank of the received
+ * message or the destination rank of the dropped message unless an
+ * error is indicated by returning -1 and an @ref errno different from
+ * 0
  *
  * @param buf Buffer to store the message to
  *
