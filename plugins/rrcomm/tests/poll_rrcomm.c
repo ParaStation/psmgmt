@@ -150,9 +150,15 @@ bool recvBuf(int fd /* ignored */)
 /**
  * @brief Poll on RRC file descriptor
  *
- * @doctodo
- *
  * Poll on the RRC file descriptor @a fd for @a timeout milliseconds.
+ *
+ * @param fd file descriptor to poll on
+ *
+ * @param numToRecv Number of messages to receive
+ *
+ * @param timeout Milliseconds of timeout
+ *
+ * @return No return value
  */
 void pollRRC(int fd, int *numToRecv, int timeout)
 {
