@@ -99,8 +99,9 @@ POST_UNINSTALL = :
 build_triplet = @build@
 host_triplet = @host@
 target_triplet = @target@
-check_PROGRAMS = poll_rrcomm$(EXEEXT) test_rrcomm$(EXEEXT)
-TESTS = poll_rrcomm$(EXEEXT) test_rrcomm$(EXEEXT)
+check_PROGRAMS = poll_rrcomm$(EXEEXT) test_rrcomm$(EXEEXT) \
+	cornercases$(EXEEXT)
+TESTS = poll_rrcomm$(EXEEXT) test_rrcomm$(EXEEXT) cornercases$(EXEEXT)
 subdir = plugins/rrcomm/tests
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/m4/ax_check_compile_flag.m4 \
@@ -113,13 +114,16 @@ DIST_COMMON = $(srcdir)/Makefile.am $(am__DIST_COMMON)
 mkinstalldirs = $(install_sh) -d
 CONFIG_CLEAN_FILES =
 CONFIG_CLEAN_VPATH_FILES =
-am_poll_rrcomm_OBJECTS = poll_rrcomm.$(OBJEXT)
-poll_rrcomm_OBJECTS = $(am_poll_rrcomm_OBJECTS)
-poll_rrcomm_DEPENDENCIES = $(librrcomm)
+am_cornercases_OBJECTS = cornercases.$(OBJEXT)
+cornercases_OBJECTS = $(am_cornercases_OBJECTS)
+cornercases_DEPENDENCIES = $(librrcomm)
 AM_V_lt = $(am__v_lt_@AM_V@)
 am__v_lt_ = $(am__v_lt_@AM_DEFAULT_V@)
 am__v_lt_0 = --silent
 am__v_lt_1 = 
+am_poll_rrcomm_OBJECTS = poll_rrcomm.$(OBJEXT)
+poll_rrcomm_OBJECTS = $(am_poll_rrcomm_OBJECTS)
+poll_rrcomm_DEPENDENCIES = $(librrcomm)
 am_test_rrcomm_OBJECTS = test_rrcomm.$(OBJEXT)
 test_rrcomm_OBJECTS = $(am_test_rrcomm_OBJECTS)
 test_rrcomm_DEPENDENCIES = $(librrcomm)
@@ -138,8 +142,8 @@ am__v_at_1 =
 DEFAULT_INCLUDES = -I.@am__isrc@
 depcomp = $(SHELL) $(top_srcdir)/scripts/depcomp
 am__maybe_remake_depfiles = depfiles
-am__depfiles_remade = ./$(DEPDIR)/poll_rrcomm.Po \
-	./$(DEPDIR)/test_rrcomm.Po
+am__depfiles_remade = ./$(DEPDIR)/cornercases.Po \
+	./$(DEPDIR)/poll_rrcomm.Po ./$(DEPDIR)/test_rrcomm.Po
 am__mv = mv -f
 COMPILE = $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) \
 	$(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
@@ -159,8 +163,10 @@ AM_V_CCLD = $(am__v_CCLD_@AM_V@)
 am__v_CCLD_ = $(am__v_CCLD_@AM_DEFAULT_V@)
 am__v_CCLD_0 = @echo "  CCLD    " $@;
 am__v_CCLD_1 = 
-SOURCES = $(poll_rrcomm_SOURCES) $(test_rrcomm_SOURCES)
-DIST_SOURCES = $(poll_rrcomm_SOURCES) $(test_rrcomm_SOURCES)
+SOURCES = $(cornercases_SOURCES) $(poll_rrcomm_SOURCES) \
+	$(test_rrcomm_SOURCES)
+DIST_SOURCES = $(cornercases_SOURCES) $(poll_rrcomm_SOURCES) \
+	$(test_rrcomm_SOURCES)
 am__can_run_installinfo = \
   case $$AM_UPDATE_INFO_DIR in \
     n|no|NO) false;; \
@@ -589,6 +595,8 @@ poll_rrcomm_SOURCES = poll_rrcomm.c
 poll_rrcomm_LDADD = $(librrcomm)
 test_rrcomm_SOURCES = test_rrcomm.c
 test_rrcomm_LDADD = $(librrcomm)
+cornercases_SOURCES = cornercases.c
+cornercases_LDADD = $(librrcomm)
 all: all-am
 
 .SUFFIXES:
@@ -633,6 +641,10 @@ clean-checkPROGRAMS:
 	echo " rm -f" $$list; \
 	rm -f $$list
 
+cornercases$(EXEEXT): $(cornercases_OBJECTS) $(cornercases_DEPENDENCIES) $(EXTRA_cornercases_DEPENDENCIES) 
+	@rm -f cornercases$(EXEEXT)
+	$(AM_V_CCLD)$(LINK) $(cornercases_OBJECTS) $(cornercases_LDADD) $(LIBS)
+
 poll_rrcomm$(EXEEXT): $(poll_rrcomm_OBJECTS) $(poll_rrcomm_DEPENDENCIES) $(EXTRA_poll_rrcomm_DEPENDENCIES) 
 	@rm -f poll_rrcomm$(EXEEXT)
 	$(AM_V_CCLD)$(LINK) $(poll_rrcomm_OBJECTS) $(poll_rrcomm_LDADD) $(LIBS)
@@ -647,6 +659,7 @@ mostlyclean-compile:
 distclean-compile:
 	-rm -f *.tab.c
 
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/cornercases.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/poll_rrcomm.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test_rrcomm.Po@am__quote@ # am--include-marker
 
@@ -893,6 +906,13 @@ test_rrcomm.log: test_rrcomm$(EXEEXT)
 	--log-file $$b.log --trs-file $$b.trs \
 	$(am__common_driver_flags) $(AM_LOG_DRIVER_FLAGS) $(LOG_DRIVER_FLAGS) -- $(LOG_COMPILE) \
 	"$$tst" $(AM_TESTS_FD_REDIRECT)
+cornercases.log: cornercases$(EXEEXT)
+	@p='cornercases$(EXEEXT)'; \
+	b='cornercases'; \
+	$(am__check_pre) $(LOG_DRIVER) --test-name "$$f" \
+	--log-file $$b.log --trs-file $$b.trs \
+	$(am__common_driver_flags) $(AM_LOG_DRIVER_FLAGS) $(LOG_DRIVER_FLAGS) -- $(LOG_COMPILE) \
+	"$$tst" $(AM_TESTS_FD_REDIRECT)
 .test.log:
 	@p='$<'; \
 	$(am__set_b); \
@@ -985,7 +1005,8 @@ clean-am: clean-checkPROGRAMS clean-generic clean-libtool \
 	mostlyclean-am
 
 distclean: distclean-am
-		-rm -f ./$(DEPDIR)/poll_rrcomm.Po
+		-rm -f ./$(DEPDIR)/cornercases.Po
+	-rm -f ./$(DEPDIR)/poll_rrcomm.Po
 	-rm -f ./$(DEPDIR)/test_rrcomm.Po
 	-rm -f Makefile
 distclean-am: clean-am distclean-compile distclean-generic \
@@ -1032,7 +1053,8 @@ install-ps-am:
 installcheck-am:
 
 maintainer-clean: maintainer-clean-am
-		-rm -f ./$(DEPDIR)/poll_rrcomm.Po
+		-rm -f ./$(DEPDIR)/cornercases.Po
+	-rm -f ./$(DEPDIR)/poll_rrcomm.Po
 	-rm -f ./$(DEPDIR)/test_rrcomm.Po
 	-rm -f Makefile
 maintainer-clean-am: distclean-am maintainer-clean-generic
