@@ -195,7 +195,7 @@ ssize_t RRC_recv(int32_t *rank, char *buf, size_t bufSize)
 
     if (!buf || bufSize < xpctdSize) return xpctdSize;
 
-    ssize_t ret = PSCio_recvBufP(frwdSocket, buf, xpctdSize);
+    ssize_t ret = PSCio_recvBufB(frwdSocket, buf, xpctdSize);
 
     /* reset expected size to be prepared for next receive */
     xpctdSize = 0;
