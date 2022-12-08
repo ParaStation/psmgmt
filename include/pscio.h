@@ -183,11 +183,11 @@ ssize_t PSCio_recvBufFunc(int fd, void *buffer, size_t toRecv, size_t *rcvd,
  */
 static inline ssize_t _PSCio_recvBuf(int fd, void *buffer, size_t toRecv,
 				     const char *func, bool pedantic,
-				     bool silent)
+				     bool indefinite, bool silent)
 {
     size_t rcvd = 0;
     ssize_t ret = PSCio_recvBufFunc(fd, buffer, toRecv, &rcvd, func,
-				    pedantic, false, silent);
+				    pedantic, indefinite, silent);
     if (pedantic
 	&& ((ret == -1 && (!errno || errno == EINTR || errno == EAGAIN))
 	    || (ret && rcvd < toRecv))) {
@@ -200,15 +200,19 @@ static inline ssize_t _PSCio_recvBuf(int fd, void *buffer, size_t toRecv,
 
 /** Standard receive */
 #define PSCio_recvBuf(fd, buffer, toRecv)		\
-    _PSCio_recvBuf(fd, buffer, toRecv, __func__, false, false)
+    _PSCio_recvBuf(fd, buffer, toRecv, __func__, false, false, false)
 
 /** Silent receive */
 #define PSCio_recvBufS(fd, buffer, toRecv)		\
-    _PSCio_recvBuf(fd, buffer, toRecv, __func__, false, true)
+    _PSCio_recvBuf(fd, buffer, toRecv, __func__, false, false, true)
 
 /** Pedantic (and silent) receive */
 #define PSCio_recvBufP(fd, buffer, toRecv)		\
-    _PSCio_recvBuf(fd, buffer, toRecv, __func__, true, true)
+    _PSCio_recvBuf(fd, buffer, toRecv, __func__, true, false, true)
+
+/** Blocking (and silent) receive */
+#define PSCio_recvBufB(fd, buffer, toRecv)		\
+    _PSCio_recvBuf(fd, buffer, toRecv, __func__, true, true, true)
 
 /**
  * @brief Receive message from file descriptor
