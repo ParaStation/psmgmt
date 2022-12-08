@@ -655,10 +655,10 @@ bool __recvFragMsg(DDTypedBufferMsg_t *msg, PS_DataBuffer_func_t *func,
 
 	recvBuf = findRecvBuf(msg->header.sender);
 	uint16_t expectedFrag = recvBuf ? recvBuf->nextFrag : 0;
-
 	if (fragNum != expectedFrag) {
-	    PSC_log(-1, "%s: unexpected fragment %u/%u from %s\n", __func__,
-		    fragNum, expectedFrag, PSC_printTID(msg->header.sender));
+	    PSC_log(-1, "%s(%s@%d): unexpected fragment %u/%u from %s\n",
+		    __func__, caller, line, fragNum, expectedFrag,
+		    PSC_printTID(msg->header.sender));
 	    if (fragNum) return false;
 	}
 
@@ -674,7 +674,7 @@ bool __recvFragMsg(DDTypedBufferMsg_t *msg, PS_DataBuffer_func_t *func,
 	}
 
 	if (fragNum == 0) {
-	    if (recvBuf->buf) PSC_log(-1, "%s: found buffer for%s\n", __func__,
+	    if (recvBuf->buf) PSC_log(-1, "%s: found buffer for %s\n", __func__,
 				      PSC_printTID(msg->header.sender));
 
 	    resetBuf(recvBuf);
@@ -694,6 +694,8 @@ bool __recvFragMsg(DDTypedBufferMsg_t *msg, PS_DataBuffer_func_t *func,
 	    recvBuf->size *= 2;
 	    char * tmp = realloc(recvBuf->buf, recvBuf->size);
 	    if (!tmp) {
+		PSC_log(-1, "%s(%s@%d): realloc(%p, %zd) failed\n", __func__,
+			caller, line, recvBuf->buf, recvBuf->size);
 		putRecvBuf(list_entry(recvBuf, recvBuf_t, dBuf));
 		return false;
 	    }
@@ -703,6 +705,7 @@ bool __recvFragMsg(DDTypedBufferMsg_t *msg, PS_DataBuffer_func_t *func,
 	PSP_getTypedMsgBuf(msg, &used, "payload", ptr, toCopy);
 	recvBuf->used += toCopy;
 	recvBuf->nextFrag++;
+	if (!recvBuf->nextFrag) recvBuf->nextFrag = 1; // avoid second 0
     }
 
     PSC_log(PSC_LOG_COMM, "%s: recv fragment %d from %s\n", __func__, fragNum,
@@ -712,8 +715,9 @@ bool __recvFragMsg(DDTypedBufferMsg_t *msg, PS_DataBuffer_func_t *func,
     if (fragType == FRAGMENT_END) {
 	/* invoke callback */
 
-	PSC_log(PSC_LOG_COMM, "%s: msg of %zu bytes from %s complete\n",
-		__func__, recvBuf->used, PSC_printTID(msg->header.sender));
+	PSC_log(PSC_LOG_COMM, "%s: msg of %zu bytes from %s (%d fragments)\n",
+		__func__, recvBuf->used, PSC_printTID(msg->header.sender),
+		fragNum);
 
 	msg->buf[0] = '\0';
 	func(msg, recvBuf);
@@ -1083,6 +1087,7 @@ static void addFragmentedData(PS_SendDB_t *buffer, const void *data,
 
 	    /* prepare for next fragment */
 	    buffer->fragNum++;
+	    if (!buffer->fragNum) buffer->fragNum = 1; // avoid second 0
 
 	    setupFragMsg(buffer);
 	}
