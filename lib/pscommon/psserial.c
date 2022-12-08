@@ -725,6 +725,33 @@ bool __recvFragMsg(DDTypedBufferMsg_t *msg, PS_DataBuffer_func_t *func,
     return true;
 }
 
+/**
+ * @brief Setup @ref fragMsg
+ *
+ * Setup @ref fragMsg, i.e. the message utilized to collect and send
+ * fragments, based on information extracted from the send data-buffer
+ * @a buf.
+ *
+ * @param buf Send data-buffer defining the content to be set up
+ *
+ * @return No return value
+ */
+static void setupFragMsg(PS_SendDB_t *buf)
+{
+    fragMsg.header.type = buf->headType;
+    fragMsg.header.len = 0;
+    fragMsg.header.sender = PSC_getMyTID();
+    fragMsg.type = buf->msgType;
+    const uint8_t type = FRAGMENT_PART;
+    PSP_putTypedMsgBuf(&fragMsg, "fragType", &type, sizeof(type));
+    PSP_putTypedMsgBuf(&fragMsg, "fragNum", &buf->fragNum, sizeof(buf->fragNum));
+    PSP_putTypedMsgBuf(&fragMsg, "extraSize", &buf->extraSize,
+		       sizeof(buf->extraSize));
+    if (buf->extraSize) {
+	PSP_putTypedMsgBuf(&fragMsg, "extra", buf->extra, buf->extraSize);
+    }
+}
+
 int __sendFragMsg(PS_SendDB_t *buffer, const char *caller, const int line)
 {
     if (!sendBuf) {
@@ -732,10 +759,7 @@ int __sendFragMsg(PS_SendDB_t *buffer, const char *caller, const int line)
 	return -1;
     }
 
-    if (!buffer->bufUsed) {
-	PSC_log(-1, "%s(%s@%d): no data to send\n", __func__, caller, line);
-	return -1;
-    }
+    if (!buffer->bufUsed) setupFragMsg(buffer);
 
     /* last fragmented message */
     *(uint8_t *) fragMsg.buf = FRAGMENT_END;
@@ -1038,29 +1062,10 @@ static void addFragmentedData(PS_SendDB_t *buffer, const void *data,
 			      const size_t dataLen, const char *caller,
 			      const int line)
 {
-    const uint8_t type = FRAGMENT_PART;
+    if (!buffer->bufUsed) setupFragMsg(buffer);
+
     size_t dataLeft = dataLen;
-
-    if (!buffer->bufUsed) {
-	/* init first message */
-	buffer->fragNum = 0;
-
-	fragMsg.header.len = offsetof(DDTypedBufferMsg_t, buf);
-	fragMsg.header.sender = PSC_getMyTID();
-	fragMsg.header.type = buffer->headType;
-	fragMsg.type = buffer->msgType;
-	PSP_putTypedMsgBuf(&fragMsg, "fragType", &type, sizeof(type));
-	PSP_putTypedMsgBuf(&fragMsg, "fragNum", &buffer->fragNum,
-			   sizeof(buffer->fragNum));
-	PSP_putTypedMsgBuf(&fragMsg, "extraSize", &buffer->extraSize,
-			   sizeof(buffer->extraSize));
-	if (buffer->extraSize) {
-	    PSP_putTypedMsgBuf(&fragMsg, "extra", buffer->extra,
-			       buffer->extraSize);
-	}
-    }
-
-    while (dataLeft>0) {
+    while (dataLeft > 0) {
 	size_t off = fragMsg.header.len - offsetof(DDTypedBufferMsg_t, buf);
 	size_t chunkLeft = BufTypedMsgSize - off;
 
@@ -1077,18 +1082,9 @@ static void addFragmentedData(PS_SendDB_t *buffer, const void *data,
 	    sendFragment(buffer, caller, line);
 
 	    /* prepare for next fragment */
-	    fragMsg.header.len = offsetof(DDTypedBufferMsg_t, buf);
 	    buffer->fragNum++;
-	    PSP_putTypedMsgBuf(&fragMsg, "fragType", &type, sizeof(type));
-	    PSP_putTypedMsgBuf(&fragMsg, "fragNum", &buffer->fragNum,
-			       sizeof(buffer->fragNum));
-	    PSP_putTypedMsgBuf(&fragMsg, "extraSize", &buffer->extraSize,
-			       sizeof(buffer->extraSize));
-	    if (buffer->extraSize) {
-		PSP_putTypedMsgBuf(&fragMsg, "extra", buffer->extra,
-				   buffer->extraSize);
-	    }
 
+	    setupFragMsg(buffer);
 	}
     }
 }
