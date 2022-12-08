@@ -331,7 +331,8 @@ static bool sendErrorMsg(PSIDmsgbuf_t *blob)
     if (type != RRCOMM_DATA) {
 	int32_t destRank;
 	getInt32(&ptr, &destRank);
-	fdbg(RRCOMM_LOG_ERR, "drop error from %d\n", destRank);
+	fdbg(RRCOMM_LOG_ERR, "drop type %d from %d (size %d, off %d)\n", type,
+	     destRank, blob->size, blob->offset);
 	return false;
     }
 
@@ -596,7 +597,7 @@ static void handleRRCommData(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
 	PSID_dropMsg((DDBufferMsg_t *)msg);
     }
 
-    /* send actual data */
+    /* send actual data -- no data sent if rData->used == 0 */
     if (sendToClient(rData->buf, rData->used) < 0) {
 	PSID_dropMsg((DDBufferMsg_t *)msg);
     } else if (getRRCommLoggerMask() & RRCOMM_LOG_VERBOSE) {
