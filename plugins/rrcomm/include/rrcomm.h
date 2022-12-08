@@ -60,10 +60,15 @@ bool RRC_isInitialized(void);
  * protocol.
  *
  * This function will block until the message is fully delivered to
- * the chaperon forwarder. Seeing this function returning no error
- * gives no guarantee that the message will actually arrive its final
- * destination. Delivery failure might be notified later as an instant
- * error via @ref RRC_recv().
+ * the chaperon forwarder. The situation on the destination side has
+ * no effect on the behavior of this function. Especially, this
+ * function will return independent of a corresponding @ref RRC_recv()
+ * already posted at the destination side, the destination process
+ * already (or still) existing, or the size of the message. Thus,
+ * seeing this function returning no error gives no guarantee that the
+ * message will actually arrive its final destination. However, in
+ * case of delivery failure the caller will be notified later
+ * utilizing an instant error delivered via @ref RRC_recv().
  *
  * Ranks used for routing the messages happen to be identical to the
  * ranks reported by PMI or PMIx.
