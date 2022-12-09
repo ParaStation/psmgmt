@@ -17,6 +17,7 @@
 
 #include "list.h"
 #include "pscommon.h"
+#include "pscpu.h"
 #include "psenv.h"
 #include "psreservation.h"
 

@@ -27,7 +27,9 @@
 #include <pmix_version.h>
 #include <pmix.h>
 
+#if PMIX_VERSION_MAJOR >= 4
 #include <hwloc.h>
+#endif
 
 #include "list.h"
 #include "timer.h"
@@ -36,9 +38,9 @@
 #include "pluginvector.h"
 #if PMIX_VERSION_MAJOR >= 4
 #include "pluginhelper.h"
-#endif
 
 #include "psidnodes.h"
+#endif
 
 #include "pspmixlog.h"
 #include "pspmixservice.h"
