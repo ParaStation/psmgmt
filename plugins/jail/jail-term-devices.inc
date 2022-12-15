@@ -15,11 +15,8 @@
 # This script will be called by the jail plugin via system() and get
 # the process ID of the process to be jailed as an argument.
 
-CLEANUP_DONE="false"
-
-function termMemory()
+function termDevices()
 {
-    [ $CLEANUP_DONE == "true" ] && return;
     [ -n "$SLURM_USER" ] && export USER="$SLURM_USER"
 
     CG_USER="$BASE/$PREFIX-$USER"
@@ -58,27 +55,11 @@ function termMemory()
     else
 	elog "missing SLURM_JOBID"
     fi
-
-    CLEANUP_DONE="true"
 }
 
-if [ "$SLURM_CONSTRAIN_KMEM" == "no" ]; then
-    dlog "constrain KMEM *disabled*"
+if [ "$SLURM_CONSTRAIN_DEVICES" == "no" ]; then
+    dlog "constrain devices *disabled*"
 else
-    dlog "constrain KMEM enabled"
-    termMemory
-fi
-
-if [ "$SLURM_CONSTRAIN_RAM" == "no" ]; then
-    dlog "constrain RAM *disabled*"
-else
-    dlog "constrain RAM enabled"
-    termMemory
-fi
-
-if [ "$SLURM_CONSTRAIN_SWAP" == "no" ]; then
-    dlog "constrain SWAP *disabled*"
-else
-    dlog "constrain SWAP enabled"
-    termMemory
+    dlog "constrain devices enabled"
+    termDevices
 fi

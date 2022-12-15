@@ -9,7 +9,7 @@
 # file.
 
 # active modules
-MODULES="cpuset,oom,cpuacct,devices,memory"
+MODULES="cpuset,oom,devices,memory"
 
 # base directory of the cgroup filesystem
 CGROUP_BASE="/sys/fs/cgroup"

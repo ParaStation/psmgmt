@@ -279,11 +279,15 @@ plugins/jail/Makefile.in \
 plugins/jail/jail-config.inc \
 plugins/jail/jail-cpuacct.inc \
 plugins/jail/jail-cpuset.inc \
+plugins/jail/jail-devices.inc \
 plugins/jail/jail-functions.inc \
 plugins/jail/jail-main.sh \
+plugins/jail/jail-memory.inc \
 plugins/jail/jail-oom.inc \
 plugins/jail/jail-term-cpuacct.inc \
 plugins/jail/jail-term-cpuset.inc \
+plugins/jail/jail-term-devices.inc \
+plugins/jail/jail-term-memory.inc \
 plugins/jail/jail.c \
 plugins/jail/jail.conf \
 plugins/jail/jailconfig.c \

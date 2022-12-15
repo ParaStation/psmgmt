@@ -43,6 +43,15 @@ function initMem()
 	    CG_STEP="$CG_JOB/step-$SLURM_STEPID"
 	    mdsave "$CG_STEP"
     }
+
+    dlog "adding child $CHILD to $CG_JOB/tasks"
+    echo "$CHILD" > $CG_JOB/tasks
+
+    # step cgroup
+    [ -n "$SLURM_STEPID" ] && {
+	dlog "adding child $CHILD to $CG_STEP/tasks"
+	echo "$CHILD" > $CG_STEP/tasks
+    }
     IS_INIT="true"
 }
 
@@ -54,21 +63,16 @@ function setMem()
 
     # job cgroup
     dlog "$SLURM_JOB_MEM_ALLOC > $CG_JOB/$LIMIT JOB: $SLURM_JOBID STEP:$SLURM_STEPID"
-
     echo "$SLURM_JOB_MEM_ALLOC" > $CG_JOB/$LIMIT
-
-    dlog "adding child $CHILD to $CG_JOB/tasks"
-    echo "$CHILD" > $CG_JOB/tasks
 
     # step cgroup
     [ -n "$SLURM_STEPID" ] && {
-	echo "$JOB_CPUS" > $CG_STEP/$LIMIT
+	dlog "$SLURM_STEP_MEM_ALLOC > $CG_STEP/$LIMIT"
+        echo "$SLURM_STEP_MEM_ALLOC" > $CG_STEP/$LIMIT
 
-	dlog "adding child $CHILD to $CG_STEP/tasks"
-	echo "$CHILD" > $CG_STEP/tasks
+	echo "$SLURM_STEP_MEM_ALLOC" > $CG_STEP/$LIMIT
     }
 }
-
 
 if [ "$SLURM_CONSTRAIN_KMEM" == "no" ]; then
     dlog "constrain KMEM *disabled*"
