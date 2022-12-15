@@ -2,7 +2,7 @@
 #
 # ParaStation
 #
-# Copyright (C) 2020 ParTec Cluster Competence Center GmbH, Munich
+# Copyright (C) 2022 ParTec Cluster Competence Center GmbH, Munich
 #
 # This file may be distributed under the terms of the Q Public License
 # as defined in the file LICENSE.QPL included in the packaging of this
@@ -20,7 +20,9 @@
 # This script will be called by the jail plugin via system() and get
 # the process ID of the process to be jailed as an argument.
 
-if [ -n "$PSPAM_USER" ]; then
+if [ "$SLURM_CONSTRAIN_CORES" == "no" ]; then
+	dlog "setting *no* constrains for CPU cores"
+elif [ -n "$PSPAM_USER" ]; then
 	# ssh login via pspam which needs an existing user cgroup
 	CG_USER="$BASE/$PREFIX-$PSPAM_USER"
 	if [ -d $CG_USER ]; then
