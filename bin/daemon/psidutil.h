@@ -390,7 +390,7 @@ void PSID_initStarttime(void);
  *
  * Get the daemon's start-time as fixed via @ref
  * PSID_initStarttime(). If @ref PSID_initStarttime() was not called
- * before or the determination of the start-time failed than, -1. is
+ * before or the determination of the start-time failed, then -1 is
  * returned.
  *
  * @return Upon success the actual start-time is returned as the
@@ -468,7 +468,7 @@ int PSID_registerLoopAct(PSID_loopAction_t action);
  * This function might be called from within the actual main-loop
  * action. Thus, a action is allowed to un-register itself.
  *
- * @warning It is disallowed to unregister any other main-loop action
+ * @warning It is disallowed to un-register any other main-loop action
  * besides the action currently executed from within a main-loop
  * action.
  *
