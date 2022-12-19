@@ -1,3 +1,559 @@
+Version 5.1.53:
+===============
+------------------------------------------------------------------------
+bcc5634a3 | Norbert Eicker | Mon, 19 Dec 2022 19:10:43 +0100
+
+Nicer handling of not loaded rrcomm plugins
+
+ * Introduce 'show key inept' in rrcomm plugin interface
+------------------------------------------------------------------------
+1b0e32e97 | Michael Rauh | Fri, 16 Dec 2022 17:36:39 +0100
+
+Fix typos
+------------------------------------------------------------------------
+1bf33f1a9 | Norbert Eicker | Thu, 24 Nov 2022 22:49:29 +0100
+
+Fix typo
+------------------------------------------------------------------------
+4f1bc9c64 | Norbert Eicker | Thu, 24 Nov 2022 14:22:07 +0100
+
+Improve psidutil documentation
+------------------------------------------------------------------------
+b0f6e33f6 | Norbert Eicker | Fri, 9 Dec 2022 13:06:11 +0100
+
+IWYU fixes
+------------------------------------------------------------------------
+a2fd37282 | Norbert Eicker | Thu, 8 Dec 2022 16:07:57 +0100
+
+Enhance rrcomm plugin's log messsages
+------------------------------------------------------------------------
+529b973b3 | Norbert Eicker | Thu, 8 Dec 2022 16:04:11 +0100
+
+Enhance explanation of RRC_send()'s non-blocking behavior
+------------------------------------------------------------------------
+46ecdbf9d | Norbert Eicker | Thu, 8 Dec 2022 15:43:28 +0100
+
+Use PSCio_recvBufB() in libRRC to receive from chaperon forwarder
+
+ * Use of PSCio_recvBufP() might fail for huge (> 5 MB) messages
+   if file descriptor is in non-blocking mode
+------------------------------------------------------------------------
+1528fbcac | Norbert Eicker | Thu, 8 Dec 2022 15:38:08 +0100
+
+Introduce PSCio_recvBufB() for blocking receive
+------------------------------------------------------------------------
+f23841bf2 | Norbert Eicker | Wed, 7 Dec 2022 20:46:55 +0100
+
+Add test of libRRC for all kinds of corner-cases
+
+ * 0-length messages, growing buffers, re-connect, etc.
+------------------------------------------------------------------------
+6cb2bdc21 | Norbert Eicker | Wed, 7 Dec 2022 20:46:13 +0100
+
+Do not prevent length 0 messages
+------------------------------------------------------------------------
+e81a04a8e | Norbert Eicker | Wed, 7 Dec 2022 20:44:27 +0100
+
+Complete docu of RRComm/poll() test program
+------------------------------------------------------------------------
+162f7b4bc | Norbert Eicker | Wed, 7 Dec 2022 19:18:26 +0100
+
+Let RRC_recv() report sender's rank even if buf is too small
+------------------------------------------------------------------------
+a4bb7add1 | Norbert Eicker | Tue, 6 Dec 2022 21:50:36 +0100
+
+Enhance documentation in rrcomm.h
+------------------------------------------------------------------------
+03009b18b | Norbert Eicker | Fri, 2 Dec 2022 16:58:27 +0100
+
+Minor improvements to RRComm/poll() test program
+------------------------------------------------------------------------
+1b9dba04a | Norbert Eicker | Fri, 2 Dec 2022 16:36:46 +0100
+
+Track if client was connected before
+
+ * If this is the case generate additional error messages
+------------------------------------------------------------------------
+6eac4f794 | Norbert Eicker | Fri, 2 Dec 2022 15:44:19 +0100
+
+Improve code readability
+------------------------------------------------------------------------
+9d726f9f1 | Norbert Eicker | Fri, 2 Dec 2022 15:12:19 +0100
+
+Drop message where required and more fine-grained debug
+------------------------------------------------------------------------
+63c98205e | Norbert Eicker | Fri, 2 Dec 2022 15:10:08 +0100
+
+Add debug bit for error message handling
+------------------------------------------------------------------------
+1a793468f | Norbert Eicker | Fri, 2 Dec 2022 14:49:18 +0100
+
+Avoid unnecessary if-clause
+------------------------------------------------------------------------
+6eee03270 | Norbert Eicker | Thu, 1 Dec 2022 18:52:36 +0100
+
+Drop RRC_instantError() and adapt documentation
+------------------------------------------------------------------------
+2152ea16a | Norbert Eicker | Thu, 1 Dec 2022 18:11:43 +0100
+
+Let psidforwarder rely on reported number of Selectors
+
+ * Avoids own counting and enables plugins to do late fd handling
+ * This requires plugins to remove obsolete selectors
+------------------------------------------------------------------------
+e6dcfde3f | Norbert Eicker | Thu, 1 Dec 2022 17:25:44 +0100
+
+Sanitize file descriptor handling in pspmi
+
+ * close() unused descriptors, allow fd == 0, etc.
+ * only print warning on closed clientSock if client is currently connected
+------------------------------------------------------------------------
+9783fb733 | Norbert Eicker | Wed, 30 Nov 2022 22:09:40 +0100
+
+Count number of registered selectors and make it available via Selector_getNum()
+------------------------------------------------------------------------
+34a6ff9e9 | Norbert Eicker | Wed, 30 Nov 2022 11:57:57 +0100
+
+Add test program combining librrcomm and poll()
+------------------------------------------------------------------------
+193de3ffb | Norbert Eicker | Wed, 30 Nov 2022 01:42:34 +0100
+
+IWYU fixes
+------------------------------------------------------------------------
+4fff7f228 | Norbert Eicker | Wed, 30 Nov 2022 01:22:35 +0100
+
+Add more enhancements to rrcomm test program
+------------------------------------------------------------------------
+56a12a08a | Norbert Eicker | Wed, 30 Nov 2022 01:03:00 +0100
+
+Add debug capabilities to forwarder part of the rrcomm plugin
+------------------------------------------------------------------------
+0aea27efd | Norbert Eicker | Tue, 29 Nov 2022 22:20:52 +0100
+
+More instant errors to report
+------------------------------------------------------------------------
+e5cee4f45 | Norbert Eicker | Tue, 29 Nov 2022 22:17:52 +0100
+
+Adapt log verbosities of the rrcomm plugin
+------------------------------------------------------------------------
+896a77ba9 | Norbert Eicker | Tue, 29 Nov 2022 21:19:41 +0100
+
+Introduce dropHelper() to rrcomm plugin
+------------------------------------------------------------------------
+33ecfd914 | Norbert Eicker | Tue, 29 Nov 2022 21:01:54 +0100
+
+Introduce tryRecvFragMsg() in psserial
+------------------------------------------------------------------------
+5b6763f64 | Norbert Eicker | Tue, 29 Nov 2022 18:11:37 +0100
+
+Rework psidforwarder's connectLogger()
+
+ * add capability to handle early PSP_PLUG_RRCOMM messages
+------------------------------------------------------------------------
+fd0af5b46 | Norbert Eicker | Tue, 29 Nov 2022 17:43:54 +0100
+
+Make use of PSIDHOOK_FRWRD_SETUP where applicable
+------------------------------------------------------------------------
+df48963b7 | Norbert Eicker | Tue, 29 Nov 2022 17:09:59 +0100
+
+Add hook PSIDHOOK_FRWRD_SETUP
+
+  * bump plugin API version to 138
+------------------------------------------------------------------------
+b01616688 | Norbert Eicker | Tue, 29 Nov 2022 16:40:40 +0100
+
+Move connectLogger()'s timeout detection into the function
+------------------------------------------------------------------------
+1b103fc46 | Norbert Eicker | Fri, 25 Nov 2022 19:01:27 +0100
+
+Wait for the client before dropping RRC messsages
+------------------------------------------------------------------------
+ad235717e | Norbert Eicker | Fri, 25 Nov 2022 18:56:34 +0100
+
+Implement non-blocking sends to libRRC in psidforwarder
+------------------------------------------------------------------------
+8cc6b0c28 | Norbert Eicker | Fri, 2 Dec 2022 16:17:34 +0100
+
+Enhance PSCio_setFDblock() to report old setting on return
+------------------------------------------------------------------------
+0872787b3 | Norbert Eicker | Fri, 25 Nov 2022 18:34:51 +0100
+
+Add instant error reporting to libRRC
+------------------------------------------------------------------------
+d77a3fb38 | Norbert Eicker | Fri, 25 Nov 2022 17:42:18 +0100
+
+Add some thoughts on delayed error reporting in libRRC
+------------------------------------------------------------------------
+8164e8825 | Norbert Eicker | Fri, 25 Nov 2022 17:29:17 +0100
+
+Move RRComm_pkt_t as RRComm_msg_t to rrcomm_common.h
+
+ * Improve some docu comments
+------------------------------------------------------------------------
+672ab8534 | Norbert Eicker | Fri, 25 Nov 2022 10:58:44 +0100
+
+Store size in PSIDmsgbuf_t explicitly
+
+ * This enables PSIDmsgbuf_t to be used for plain buffers
+------------------------------------------------------------------------
+6ad845601 | Norbert Eicker | Thu, 17 Nov 2022 11:13:32 +0100
+
+Remove now obsolete remnants of psicomm
+
+ * psicomm contained early sketches of the rank-routing idea
+------------------------------------------------------------------------
+06527e3eb | Norbert Eicker | Sat, 29 Oct 2022 00:23:07 +0200
+
+Enhance rrcomm test program
+------------------------------------------------------------------------
+1c784ee0a | Norbert Eicker | Sat, 29 Oct 2022 00:18:22 +0200
+
+Improve logging capabilities of rrcomm plugin
+------------------------------------------------------------------------
+7c3b57d24 | Norbert Eicker | Thu, 27 Oct 2022 22:36:02 +0200
+
+Complete RRComm forwarder code
+------------------------------------------------------------------------
+c10150b3c | Norbert Eicker | Thu, 27 Oct 2022 19:32:03 +0200
+
+Extract definitions shared between plugin and lib to rccomm_common.h
+------------------------------------------------------------------------
+47f46bba8 | Norbert Eicker | Thu, 27 Oct 2022 14:24:04 +0200
+
+Add stubbs for RRComm's psidforwarder code
+------------------------------------------------------------------------
+7162b8011 | Norbert Eicker | Wed, 26 Oct 2022 21:52:16 +0200
+
+Implement RRComm's actual routing functionality
+
+ * Extract protocol definitions shared between psidforwarder and psid into
+   rrcommproto.h
+------------------------------------------------------------------------
+d4b3ac672 | Norbert Eicker | Wed, 26 Oct 2022 21:17:50 +0200
+
+Make psserial's fragment types public
+------------------------------------------------------------------------
+679230960 | Norbert Eicker | Tue, 25 Oct 2022 23:53:12 +0200
+
+Add docu on rrcom including psconfig parameters
+------------------------------------------------------------------------
+55773753c | Norbert Eicker | Tue, 25 Oct 2022 20:38:57 +0200
+
+Add stubbs for config and logging to rrcomm plugin
+------------------------------------------------------------------------
+c85644232 | Norbert Eicker | Tue, 25 Oct 2022 10:07:06 +0200
+
+Add librrcomm documentation to its header file
+------------------------------------------------------------------------
+2de16f110 | Norbert Eicker | Mon, 24 Oct 2022 19:08:09 +0200
+
+Implement a first version of librrcomm
+------------------------------------------------------------------------
+18eeb4923 | Norbert Eicker | Fri, 21 Oct 2022 17:25:47 +0200
+
+Add skeleton for RRComm development
+
+ - Add stubs for plugin, client library, and test programms
+ - Adapt the build system accordingly
+ - Introduce new RPM sub-package psmgmt-rrcomm-devel
+------------------------------------------------------------------------
+ac1159705 | Norbert Eicker | Fri, 21 Oct 2022 16:28:21 +0200
+
+Add message type for future Rank Routed Communication protocol
+------------------------------------------------------------------------
+487601bea | Norbert Eicker | Thu, 8 Dec 2022 10:37:30 +0100
+
+Remove size limitation from fragmented messages
+
+ * Allow fragmented messages to consist of arbritrary number of
+   fragments
+ * Enhance some logging
+------------------------------------------------------------------------
+fed7e342c | Norbert Eicker | Thu, 8 Dec 2022 09:29:35 +0100
+
+Do not prevent sending 0-length fragmented  messages
+------------------------------------------------------------------------
+da7cd9a12 | Stephan Krempel | Wed, 7 Dec 2022 15:08:43 +0100
+
+pspmix: Use PMIx_Cpuset_destruct() in current version
+------------------------------------------------------------------------
+8720a26ca | Norbert Eicker | Tue, 6 Dec 2022 21:16:39 +0100
+
+Improve docu comments
+------------------------------------------------------------------------
+983a77ffa | Norbert Eicker | Tue, 6 Dec 2022 21:05:38 +0100
+
+Rework introduction of PSIDHOOK_SPAWN_TASK
+
+ * Do not reenumerate the hooks
+ * Improve docu comments
+ * Bump plugin API version to 137
+ * Make pspmix plugin depend on plugin API version 137
+------------------------------------------------------------------------
+03d651019 | Stephan Krempel | Tue, 6 Dec 2022 18:03:31 +0100
+
+pspmix: Destruct cpuset in future versions
+
+see https://github.com/openpmix/openpmix/pull/2844
+------------------------------------------------------------------------
+634ba2501 | Stephan Krempel | Tue, 6 Dec 2022 18:03:12 +0100
+
+pspmix: Fix memory leak
+------------------------------------------------------------------------
+ef741dd7f | Stephan Krempel | Tue, 6 Dec 2022 17:40:04 +0100
+
+pspmix: Beautify debugging output
+------------------------------------------------------------------------
+4d7640a28 | Stephan Krempel | Tue, 6 Dec 2022 17:39:25 +0100
+
+pspmix: Move server start to new hook HOOK_SPAWN_TASK
+------------------------------------------------------------------------
+195340436 | Stephan Krempel | Tue, 6 Dec 2022 13:47:11 +0100
+
+Introduce PSIDHOOK_SPAWN_TASK
+------------------------------------------------------------------------
+ef3338a6c | Norbert Eicker | Mon, 5 Dec 2022 10:35:36 +0100
+
+Fix typos
+------------------------------------------------------------------------
+2fa888293 | Stephan Krempel | Tue, 29 Nov 2022 15:14:43 +0100
+
+pspmix: Add validity checks for array lengths in messages
+------------------------------------------------------------------------
+0fd4fc799 | Stephan Krempel | Wed, 23 Nov 2022 12:44:08 +0100
+
+pspmix: Set PMIX_LOCALITY_STRING using hwloc
+------------------------------------------------------------------------
+779795971 | Stephan Krempel | Wed, 23 Nov 2022 12:43:38 +0100
+
+pspsmix: Add CPUset to local processes
+------------------------------------------------------------------------
+3925a6406 | Stephan Krempel | Wed, 23 Nov 2022 13:41:30 +0100
+
+pspsmix: Add local slots to PSPMIX_ADD_JOB msg
+------------------------------------------------------------------------
+3d5a77e19 | Stephan Krempel | Wed, 23 Nov 2022 13:41:10 +0100
+
+pspmix: Use addData/getDataM to send reservation entries
+------------------------------------------------------------------------
+db8766ea6 | Norbert Eicker | Wed, 23 Nov 2022 23:22:58 +0100
+
+IWYU fixes
+------------------------------------------------------------------------
+e94707b3f | Norbert Eicker | Tue, 22 Nov 2022 09:13:38 +0100
+
+Use Timer_restart() to delay PSP msg for the full period
+------------------------------------------------------------------------
+0f3601f4e | Norbert Eicker | Tue, 22 Nov 2022 09:08:25 +0100
+
+Introduce Timer_restart()
+------------------------------------------------------------------------
+86afdf6a0 | Norbert Eicker | Mon, 21 Nov 2022 16:36:04 +0100
+
+Add user interface (via psiadmin) to delayPSPMsg
+------------------------------------------------------------------------
+d1dbe709b | Norbert Eicker | Mon, 21 Nov 2022 10:29:55 +0100
+
+Introduce PSP_resolveType() and PSDaemonP_resolveType()
+------------------------------------------------------------------------
+5336c9010 | Norbert Eicker | Fri, 18 Nov 2022 00:50:09 +0100
+
+First sketch of delayPSPMsg plugin
+------------------------------------------------------------------------
+71fe27239 | Norbert Eicker | Wed, 23 Nov 2022 23:10:06 +0100
+
+Bugfix: Fix filter logic bug unvealed by Clang
+------------------------------------------------------------------------
+d26c16f7c | Norbert Eicker | Wed, 23 Nov 2022 23:08:58 +0100
+
+IWYU fixes
+------------------------------------------------------------------------
+a317dfeb2 | Norbert Eicker | Fri, 18 Nov 2022 00:36:29 +0100
+
+Bugfix: we still have to mimick part of the old bookkeeping
+------------------------------------------------------------------------
+b0dc6d71a | Norbert Eicker | Fri, 18 Nov 2022 00:36:00 +0100
+
+Enhance releaseThreads() debug output
+------------------------------------------------------------------------
+42e72d7fd | Norbert Eicker | Thu, 17 Nov 2022 10:48:05 +0100
+
+Use local reservation info for process pinning
+
+ * This obsoletes to use of PSP_DD_SPAWNLOC messages
+------------------------------------------------------------------------
+c9cebda82 | Norbert Eicker | Wed, 16 Nov 2022 20:29:30 +0100
+
+Streamlining
+------------------------------------------------------------------------
+577036bc6 | Norbert Eicker | Wed, 16 Nov 2022 19:56:40 +0100
+
+Fix documentation error
+------------------------------------------------------------------------
+65ea3c52c | Norbert Eicker | Wed, 16 Nov 2022 16:22:27 +0100
+
+Prepare for multiple reasons to delay a spawn
+------------------------------------------------------------------------
+573f80681 | Norbert Eicker | Wed, 16 Nov 2022 11:00:29 +0100
+
+Protocol improvements
+------------------------------------------------------------------------
+2f218e525 | Norbert Eicker | Wed, 16 Nov 2022 10:39:51 +0100
+
+Add memory cleanup functionality to PSIDpart module
+------------------------------------------------------------------------
+e6518f918 | Norbert Eicker | Wed, 16 Nov 2022 10:38:52 +0100
+
+Send local reservation info more efficiently
+------------------------------------------------------------------------
+9e9a4b9e7 | Norbert Eicker | Tue, 15 Nov 2022 20:06:22 +0100
+
+Fix and optimize distribution of local reservation info
+------------------------------------------------------------------------
+60fd3eecd | Norbert Eicker | Mon, 14 Nov 2022 21:57:49 +0100
+
+Type enhancements and streamlining
+------------------------------------------------------------------------
+e476b0c4d | Norbert Eicker | Fri, 11 Nov 2022 18:10:00 +0100
+
+Bugfix: Don't mix loop variables
+------------------------------------------------------------------------
+ae256653e | Norbert Eicker | Fri, 11 Nov 2022 18:07:59 +0100
+
+Simplify and streamline
+------------------------------------------------------------------------
+55bd6cd25 | Norbert Eicker | Fri, 11 Nov 2022 17:57:32 +0100
+
+Fix PSDaemonP_printMsg()
+------------------------------------------------------------------------
+111cce6e2 | Norbert Eicker | Fri, 11 Nov 2022 17:55:57 +0100
+
+Rename PSP_DD_LOCALRESINFO to PSP_DD_RESSLOTS
+------------------------------------------------------------------------
+4887015a1 | Stephan Krempel | Mon, 7 Nov 2022 15:08:28 +0100
+
+Fix local resinfo transfer for multi node jobs
+------------------------------------------------------------------------
+add05dd0c | Stephan Krempel | Fri, 4 Nov 2022 12:03:12 +0100
+
+Send local reservation infos to the nodes
+
+ * Push PSDaemonProtocolVersion to 415
+------------------------------------------------------------------------
+7fb88acb9 | Stephan Krempel | Fri, 4 Nov 2022 12:02:02 +0100
+
+Enhance comment
+------------------------------------------------------------------------
+54b1854d4 | Stephan Krempel | Wed, 23 Nov 2022 12:04:41 +0100
+
+pspmix: Fix building with PMIx 3
+------------------------------------------------------------------------
+30adddb3c | Norbert Eicker | Wed, 23 Nov 2022 11:42:57 +0100
+
+Merge branch '5.1.52' once again
+------------------------------------------------------------------------
+4fa01a95f | Stephan Krempel | Tue, 22 Nov 2022 23:54:38 +0100
+
+pspmix: Remove unnecessary initializations
+------------------------------------------------------------------------
+d2717151c | Stephan Krempel | Tue, 22 Nov 2022 13:37:13 +0100
+
+pspmix: Reduce logging noise during normal operation
+------------------------------------------------------------------------
+f6f440cc1 | Stephan Krempel | Tue, 22 Nov 2022 11:54:10 +0100
+
+pspmix: Support more fence info types used by openpmix
+------------------------------------------------------------------------
+1c0773f52 | Norbert Eicker | Tue, 22 Nov 2022 22:07:39 +0100
+
+Fix syntax error not complained by gcc-11 or later
+------------------------------------------------------------------------
+5b0f05b85 | Norbert Eicker | Thu, 17 Nov 2022 20:24:04 +0100
+
+Improve Selector's docu comments
+------------------------------------------------------------------------
+3c19f97fb | Norbert Eicker | Thu, 17 Nov 2022 22:01:57 +0100
+
+Rework selector
+------------------------------------------------------------------------
+be06bceaf | Norbert Eicker | Mon, 21 Nov 2022 16:38:22 +0100
+
+Remove superfluous parameter
+------------------------------------------------------------------------
+01fecde20 | Norbert Eicker | Sat, 19 Nov 2022 14:20:18 +0100
+
+Merge branch '5.1.52' once again
+------------------------------------------------------------------------
+d5ef40a6e | Norbert Eicker | Thu, 17 Nov 2022 13:57:11 +0100
+
+Make logger print prefix look nicer
+------------------------------------------------------------------------
+33aeb5771 | Stephan Krempel | Thu, 17 Nov 2022 11:50:22 +0100
+
+Make logger print prefix sort compatible
+------------------------------------------------------------------------
+d426d5fd9 | Norbert Eicker | Thu, 10 Nov 2022 22:05:34 +0100
+
+Implement psid side of PART_OPT_FULL_LIST
+------------------------------------------------------------------------
+7809ed389 | Norbert Eicker | Thu, 10 Nov 2022 01:42:21 +0100
+
+Streamlining and improved comments
+------------------------------------------------------------------------
+d1293b1ba | Norbert Eicker | Wed, 9 Nov 2022 10:41:56 +0100
+
+Introduce mpiexec's --fullpartition (-P) option
+
+ * Implement all client side functionality
+------------------------------------------------------------------------
+06bf83161 | Norbert Eicker | Wed, 9 Nov 2022 10:18:05 +0100
+
+Fix typos
+------------------------------------------------------------------------
+8f472c1df | Norbert Eicker | Wed, 9 Nov 2022 10:00:32 +0100
+
+Use common definitions of crucial environment names
+------------------------------------------------------------------------
+264068d51 | Norbert Eicker | Thu, 10 Nov 2022 01:07:58 +0100
+
+Improve docu comments and fix one typo
+------------------------------------------------------------------------
+c86b49929 | Norbert Eicker | Wed, 16 Nov 2022 13:49:39 +0100
+
+Merge branch '5.1.52' again
+------------------------------------------------------------------------
+ef16bc04f | Norbert Eicker | Tue, 15 Nov 2022 17:20:27 +0100
+
+Fix print_array_if macro in gdbinit definitions
+------------------------------------------------------------------------
+389f20a3f | Norbert Eicker | Thu, 10 Nov 2022 23:17:24 +0100
+
+Merge branch '5.1.52'
+------------------------------------------------------------------------
+47ce8a5ba | Norbert Eicker | Fri, 28 Oct 2022 16:16:10 +0200
+
+Fix typo in documentation
+------------------------------------------------------------------------
+7d5024e2d | Norbert Eicker | Wed, 26 Oct 2022 20:20:09 +0200
+
+Add minRank/maxRank to PSIDsession's PSresinfo_t
+
+ * This shall speedup the search for the matching resinfo entry
+------------------------------------------------------------------------
+83b75f5cb | Norbert Eicker | Wed, 26 Oct 2022 20:03:46 +0200
+
+Ensure PSrsrvtn_ID_t is never in the range [-2..0]
+------------------------------------------------------------------------
+1575eb001 | Norbert Eicker | Wed, 26 Oct 2022 20:02:55 +0200
+
+Refactor PSIDsession to make use of PSitems
+------------------------------------------------------------------------
+5dfb75527 | Norbert Eicker | Wed, 26 Oct 2022 14:01:25 +0200
+
+Bugfix: Call GC for cbInfoPool only when necessary
+------------------------------------------------------------------------
+
+
 Version 5.1.52-5:
 =================
 ------------------------------------------------------------------------

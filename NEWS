@@ -6,6 +6,52 @@ Copyright (C) 2021-2022 ParTec AG, Munich
 Please send bug reports, questions and suggestions to <support@par-tec.com>
 
 
+Version 5.1.53:
+===============
+Bugfixes:
+ - Fix filter logic bug unvealed by Clang
+ - Fix syntax error not complained by gcc-11 or later
+ - Don't mix loop variables
+ - Fix memory leak in pspmix
+ - Use PMIx_Cpuset_destruct() in current version in pspmix
+ - Add validity checks for array lengths in pspmix messages
+ - Sanitize file descriptor handling in pspmi
+ - Call GC for cbInfoPool only when necessary
+ - Fix print_array_if macro in gdbinit definitions
+Enhancements:
+ - Set PMIX_LOCALITY_STRING using hwloc in pspmix
+ - Make logger print prefix look nicer and sort compatible
+ - Introduce rrcomm plugin and user-space library for Rank Router Communication
+ - Introduce mpiexec's --fullpartition (-P) option
+ - Use local reservation info for pinning (obsoletes PSP_DD_SPAWNLOC msgs)
+ - Support more fence info types used by openpmix
+ - Remove unnecessary initializations and reduce noise during pspmix's operation
+ - Add minRank/maxRank to PSIDsession's PSresinfo_t to speedup search)
+ - Add memory cleanup functionality to PSIDpart module
+ - Introduce delayPSPMsg plugin (delays specific message types for debugging)
+Additional changes:
+ - Introduce PSCio_recvBufB() for blocking receive
+ - Introduce tryRecvFragMsg() in psserial
+ - Introduce PSIDHOOK_SPAWN_TASK and bump plugin API version to 137
+ - Move pspmix server start to new hook HOOK_SPAWN_TASK
+ - Add hook PSIDHOOK_FRWRD_SETUP and bump plugin API version to 138
+ - Enhance PSCio_setFDblock() to report old setting on return
+ - Send local reservation infos to nodes (push PSDaemonProtocolVersion to 415)
+ - Use common definitions of crucial environment names
+ - Introduce Timer_restart()
+ - Introduce PSP_resolveType() and PSDaemonP_resolveType()
+ - Remove size limitation from fragmented messages
+ - Do not prevent sending 0-length fragmented messages
+ - Count number of selectors and make it available via Selector_getNum()
+ - Let psidforwarder rely on reported number of Selectors to decide on exit
+ - Store size in PSIDmsgbuf_t explicitly
+ - Make psserial's fragment types public
+ - Refactor PSIDsession to make use of PSitems
+ - Rework selector
+ - Remove obsolete remnants of psicomm (early sketches of rank-routing idea)
+ - Improve lots of documentation comments
+
+
 Version 5.1.52-5:
 =================
 Bugfixes:
