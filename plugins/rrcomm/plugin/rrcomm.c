@@ -11,6 +11,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 #include "list.h"
@@ -22,6 +23,7 @@
 
 #include "psidclient.h"
 #include "psidcomm.h"
+#include "psidhook.h"
 #include "psidsession.h"
 #include "psidtask.h"
 
@@ -41,8 +43,34 @@ int version = 1;
 int requiredAPI = 138;
 plugin_dep_t dependencies[] = { { NULL, 0 } };
 
+/** Flags of nodes without rrcomm plugin (due to PSP_CD_UNKNOWN message) */
+static bool *ineptNds = NULL;
+
+/** Mark node @a node to have no rrcomm plugin loaded */
+static void markNodeInept(PSnodes_ID_t node)
+{
+    if (!PSC_validNode(node)) return;
+    if (!ineptNds) ineptNds = calloc(PSC_getNrOfNodes(), sizeof(*ineptNds));
+    if (ineptNds) ineptNds[node] = true;
+}
+
+/** Clear inept flag for node @a node */
+static void clearNodeInept(PSnodes_ID_t node)
+{
+    if (!ineptNds || !PSC_validNode(node)) return;
+    ineptNds[node] = false;
+}
+
+/** Check if node @a node is assumed to have plugin loaded */
+static bool ineptNode(PSnodes_ID_t node)
+{
+    if (!PSC_validNode(node) || !ineptNds) return false;
+    return ineptNds[node];
+}
+
 static bool handleRRCommMsg(DDTypedBufferMsg_t *msg)
 {
+    clearNodeInept(PSC_getID(msg->header.sender)); // just in case...
     if (msg->header.dest != PSC_getMyTID()) {
 	/* no messsage for me => forward */
 	fdbg(msg->type == RRCOMM_ERROR ? RRCOMM_LOG_ERR : RRCOMM_LOG_VERBOSE,
@@ -96,6 +124,9 @@ static bool handleRRCommMsg(DDTypedBufferMsg_t *msg)
 	    for (uint32_t e = 0; e < res->nEntries; e++) {
 		if (hdr->dest < res->entries[e].firstrank
 		    || hdr->dest > res->entries[e].lastrank) continue;
+		if (ineptNode(res->entries[e].node)) {
+		    return PSID_dropMsg((DDBufferMsg_t *)msg);
+		}
 		msg->header.dest = PSC_getTID(res->entries[e].node, 0);
 		found = true;
 		break;
@@ -133,6 +164,28 @@ static bool handleRRCommMsg(DDTypedBufferMsg_t *msg)
     return PSID_dropMsg((DDBufferMsg_t *)msg);
 }
 
+static bool handleUnknownMsg(DDBufferMsg_t *msg)
+{
+    size_t used = 0;
+
+    /* original dest */
+    PStask_ID_t dest;
+    PSP_getMsgBuf(msg, &used, "dest", &dest, sizeof(dest));
+
+    /* original type */
+    int16_t type;
+    PSP_getMsgBuf(msg, &used, "type", &type, sizeof(type));
+
+    if (type != PSP_PLUG_RRCOMM) return false; // fallback to other handler
+
+    /* RRComm message */
+    flog("delivery failed; make sure '%s' plugin is active on node %d\n",
+	 name, PSC_getID(msg->header.sender));
+
+    markNodeInept(PSC_getID(msg->header.sender));
+    return true;
+}
+
 static bool dropRRCommMsg(DDBufferMsg_t *msg)
 {
     return dropHelper((DDTypedBufferMsg_t *)msg, sendMsg);
@@ -142,6 +195,11 @@ static bool registerMsgHandlers(void)
 {
     if (!PSID_registerMsg(PSP_PLUG_RRCOMM, (handlerFunc_t)handleRRCommMsg)) {
 	flog("register PSP_PLUG_RRCOMM handler failed\n");
+	return false;
+    }
+
+    if (!PSID_registerMsg(PSP_CD_UNKNOWN, handleUnknownMsg)) {
+	flog("register PSP_CD_UNKNOWN handler failed\n");
 	return false;
     }
 
@@ -156,6 +214,9 @@ static void removeMsgHandlers(bool verbose)
 {
     if (!PSID_clearMsg(PSP_PLUG_RRCOMM, (handlerFunc_t)handleRRCommMsg)) {
 	if (verbose) flog("clear PSP_PLUG_RRCOMM handler failed\n");
+    }
+    if (!PSID_clearMsg(PSP_CD_UNKNOWN, handleUnknownMsg)) {
+	if (verbose) flog("clear PSP_CD_UNKNOWN handler failed\n");
     }
     if (!PSID_clearDropper(PSP_PLUG_RRCOMM, dropRRCommMsg)) {
 	if (verbose) flog("clear PSP_PLUG_RRCOMM dropper failed\n");
@@ -176,6 +237,31 @@ static bool evalValue(const char *key, const pluginConfigVal_t *val,
     return true;
 }
 
+static int hookClearMem(void *data)
+{
+    free(ineptNds);
+    ineptNds = NULL;
+
+    return 0;
+}
+
+static bool attachRRCommHooks(void)
+{
+    if (!PSIDhook_add(PSIDHOOK_CLEARMEM, hookClearMem)) {
+	flog("attaching PSIDHOOK_CLEARMEM failed\n");
+	return false;
+    }
+
+    return true;
+}
+
+static void detachRRCommHooks(bool verbose)
+{
+    if (!PSIDhook_del(PSIDHOOK_CLEARMEM, hookClearMem)) {
+	if (verbose) flog("unregister PSIDHOOK_CLEARMEM failed\n");
+    }
+}
+
 int initialize(FILE *logfile)
 {
     /* init logging facility */
@@ -194,6 +280,8 @@ int initialize(FILE *logfile)
 
     if (!registerMsgHandlers()) goto INIT_ERROR;
 
+    if (!attachRRCommHooks()) goto INIT_ERROR;
+
     if (!attachRRCommForwarderHooks()) goto INIT_ERROR;
 
     mlog("(%i) successfully started\n", version);
@@ -202,6 +290,7 @@ int initialize(FILE *logfile)
 
 INIT_ERROR:
     detachRRCommForwarderHooks(false);
+    detachRRCommHooks(false);
     removeMsgHandlers(false);
     finalizeSerial();
     finalizeRRCommConfig();
@@ -213,9 +302,11 @@ INIT_ERROR:
 void cleanup(void)
 {
     detachRRCommForwarderHooks(true);
+    detachRRCommHooks(true);
     removeMsgHandlers(true);
     finalizeSerial();
     finalizeRRCommConfig();
+    hookClearMem(NULL);
 
     mlog("...Bye.\n");
 
@@ -228,6 +319,8 @@ char *help(char *key)
     StrBuffer_t strBuf = { .buf = NULL };
 
     addStrBuf("\tImplement rank routed communication\n\n", &strBuf);
+    addStrBuf("\tNodes assumed to have no loaded plugin are displayed"
+	      " under key 'inept'\n", &strBuf);
     addStrBuf("\n# configuration options #\n\n", &strBuf);
 
     pluginConfig_helpDesc(RRCommConfig, &strBuf);
@@ -257,6 +350,27 @@ char *unset(char *key)
     return NULL;
 }
 
+static void showInept(StrBuffer_t *strBuf)
+{
+    char line[80];
+
+    bool first = true;
+    addStrBuf("\tinept node(s): ", strBuf);
+
+    if (ineptNds) {
+	for (PSnodes_ID_t n = 0; n < PSC_getNrOfNodes(); n++) {
+	    if (!ineptNode(n)) continue;
+	    if (!first) addStrBuf(", ", strBuf);
+	    snprintf(line, sizeof(line), "%d", n);
+	    addStrBuf(line, strBuf);
+	    first = false;
+	}
+    }
+    if (first) addStrBuf("<none>", strBuf);
+    addStrBuf("\n", strBuf);
+}
+
+
 char *show(char *key)
 {
     StrBuffer_t strBuf = { .buf = NULL };
@@ -265,6 +379,8 @@ char *show(char *key)
 	/* Show the whole configuration */
 	addStrBuf("\n", &strBuf);
 	pluginConfig_traverse(RRCommConfig, pluginConfig_showVisitor,&strBuf);
+    } else if (!strcmp(key, "inept")) {
+	showInept(&strBuf);
     } else if (!pluginConfig_showKeyVal(RRCommConfig, key, &strBuf)) {
 	addStrBuf(" '", &strBuf);
 	addStrBuf(key, &strBuf);
