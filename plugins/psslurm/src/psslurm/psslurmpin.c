@@ -1479,12 +1479,14 @@ static ssize_t getMinimumIndex(uint32_t *val, uint16_t *subset, size_t num)
 }
 
 static bool parseGpuBindString(char *gpu_bind, bool *verbose,
-			       char** map_gpu, char **mask_gpu)
+			       char **map_gpu, char **mask_gpu,
+			       int *gpus_per_task)
 {
 
     *verbose = false;
     *map_gpu = NULL;
     *mask_gpu = NULL;
+    *gpus_per_task = 0;
 
     if (!strncasecmp(gpu_bind, "verbose", 7)) {
 	*verbose = true;
@@ -1523,6 +1525,10 @@ static bool parseGpuBindString(char *gpu_bind, bool *verbose,
 	*mask_gpu = gpu_bind + 9;
 	return true;
     }
+    if (!strncasecmp(gpu_bind, "per_task:", 9)) {
+	*gpus_per_task = atoi(gpu_bind + 9);
+	return true;
+    }
 
     flog("gpu_bind type \"%s\" is unknown\n", gpu_bind);
     return false;
@@ -1534,10 +1540,12 @@ int16_t getRankGpuPinning(uint32_t localRankId, Step_t *step,
     bool verbose = false;
     char *map_gpu = NULL;
     char *mask_gpu = NULL;
+    int gpus_per_task = 0;
 
     char *gpu_bind = getGpuBindString(step->tresBind);
     if (gpu_bind
-	&& !parseGpuBindString(gpu_bind, &verbose, &map_gpu, &mask_gpu)) {
+	&& !parseGpuBindString(gpu_bind, &verbose, &map_gpu, &mask_gpu,
+	    &gpus_per_task)) {
 	return -1;
     }
 
@@ -1567,6 +1575,10 @@ int16_t getRankGpuPinning(uint32_t localRankId, Step_t *step,
     } else if (mask_gpu) {
 	//TODO we need to support more than one GPU per task to support this
 	flog("gpu_bind type\"mask_gpu\" is not yet supported by psslurm\n");
+	return -1;
+    } else if (gpus_per_task > 1) {
+	//@todo we need to support more than one GPU per task to support this
+	flog("psslurm does not support more than one GPU per task\n");
 	return -1;
     } else {
 	uint16_t gpus[ltnum];
