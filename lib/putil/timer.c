@@ -23,7 +23,7 @@
 
 /**
  * The unique ID of the next timer to register. Set by @ref
- * Timer_init() to 1, thus negativ value signals an uninitialized
+ * Timer_init() to 1. Thus, negative value signals an uninitialized
  * module.
  */
 static int nextID = -1;
@@ -37,31 +37,29 @@ typedef union {
  * Structure to hold all info about each timer
  */
 typedef struct {
-    list_t next;                   /**< Use to put into @ref timerList. */
-    int id;                        /**< The corresponding unique ID. */
-    struct timeval timeout;        /**< The corresponding timeout. */
-    int calls;                     /**< Counter for timeouts. */
-    int period;                    /**< When do we have to call the
-				      timeoutHandler()? */
-    bool enhanced;                 /**< Enhanced handler expecting the ID */
-    handler_t timeoutHandler;      /**< Handler called, if signal received. */
-    void *info;                    /**< Pointer to be passed to enh. handler */
-    bool sigBlocked;               /**< Flag to block this timer.
-				      Set by Timer_block(). */
-    bool sigPending;               /**< A blocked signal is pending. */
-    bool deleted;                  /**< Timer is actually deleted */
+    list_t next;                   /**< used to put into @ref timerList */
+    int id;                        /**< unique identifier */
+    struct timeval timeout;        /**< corresponding timeout */
+    int calls;                     /**< counter for timeouts */
+    int period;                    /**< when to call @ref timeoutHandler() */
+    bool enhanced;                 /**< enhanced handler expecting ID & info */
+    handler_t timeoutHandler;      /**< handler to call when timer times out */
+    void *info;                    /**< pointer to be passed to enh. handler */
+    bool sigBlocked;               /**< flag blocked timer (see Timer_block()) */
+    bool sigPending;               /**< blocked timeout is pending */
+    bool deleted;                  /**< flag actually deleted timers */
 } Timer_t;
 
 /** The logger used by the Timer facility */
 static logger_t *logger = NULL;
 
-/** List of all registered timers. */
+/** List of all registered timers */
 static LIST_HEAD(timerList);
 
-/** The minimum timer period. */
+/** The minimum timer period */
 static const struct timeval minPeriod = {0, MIN_TIMEOUT_MSEC*1000};
 
-/** The actual timer period. */
+/** The actual timer period */
 static struct timeval actPeriod = {0,0};
 
 /** The maximum timer period -- one day should be large enough */
@@ -81,7 +79,7 @@ static int timerdiv(struct timeval *tv1, struct timeval *tv2)
  * Rescale all action periods such that they conform to the new
  * timeout @a newTimeout.
  *
- * @param newTimeout The new timeout all action periods have to conform to.
+ * @param newTimeout The new timeout all action periods have to conform to
  *
  * @return No return value
  */
@@ -351,12 +349,12 @@ static Timer_t *timerCache = NULL;
 /**
  * @brief Find timer
  *
- * Find the timer identified by its ID @a id.
+ * Find the timer identified by its unique identifier @a id.
  *
- * @param id The timer's unique identifier to search for.
+ * @param id The timer's unique identifier to search for
  *
  * @return If a timer identified by @a id is found, a pointer to this
- * timer is returned. Or NULL otherwise.
+ * timer is returned; or NULL otherwise
  */
 static Timer_t * findTimer(int id)
 {
