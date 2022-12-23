@@ -2555,7 +2555,7 @@ static void fillProcDataArray(pmix_data_array_t *procData,
 	 * not executing on the same node. */
 	char *locstr;
 	pmix_cpuset_t cpuset;
-	PMIX_CPUSET_CONSTRUCT(&cpuset);
+	PMIX_CPUSET_CONSTRUCT(&cpuset); /* @todo deprecated in 4.2.3 */
 	cpuset.source = "hwloc";
 	cpuset.bitmap = hwloc_bitmap_alloc();
 	for (int cpu = 0; cpu < PSIDnodes_getNumThrds(nodeID); cpu++) {
@@ -2566,11 +2566,10 @@ static void fillProcDataArray(pmix_data_array_t *procData,
 	pmix_status_t status = PMIx_server_generate_locality_string(&cpuset,
 								    &locstr);
 	hwloc_bitmap_free(cpuset.bitmap);
-#if PMIX_VERSION_MAJOR >= 4 && PMIX_VERSION_MINOR >= 2 && PMIX_VERSION_RELEASE > 2
-	PMIX_CPUSET_DESTRUCT(&cpuset);
-#else
+	cpuset.source = NULL; /* prevent free of const by destruct func */
+	cpuset.bitmap = NULL; /* prevent double free by destruct func */
 	PMIx_Cpuset_destruct(&cpuset);
-#endif
+
 	if (status != PMIX_SUCCESS) {
 	    mlog("%s: failed to generate locality string for rank %d: %s\n",
 		 __func__, proc->rank, PMIx_Error_string(status));
