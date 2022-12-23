@@ -27,12 +27,22 @@ typedef enum {
     GRES_CRED_JOB,              /**< GRES job credential */
 } GRes_Cred_type_t;
 
+/** Structure holding a GRes device */
+typedef struct {
+    list_t next;                /**< used to put into some gres-dev-lists */
+    char *path;			/**< path to device (e.g. /dev/gpu0) */
+    unsigned int major;		/**< major device ID */
+    unsigned int minor;		/**< minor device ID */
+    uint32_t slurmIdx;		/**< Slurm bitmap index of device */
+} GRes_Dev_t;
+
 /** Structure holding a GRes configuration */
 typedef struct {
     list_t next;                /**< used to put into some gres-conf-lists */
     char *name;                 /**< name of the GRES resource (e.g. gpu) */
     char *cpus;                 /**< obsolete, replaced by cores */
-    char *file;                 /**< filename of the device (e.g. /dev/gpu0) */
+    char *file;                 /**< compressed filename of the device
+				     (e.g. /dev/gpu[01-03]) */
     char *type;                 /**< GRES type */
     char *cores;                /**< cores to bind to GRES */
     char *strFlags;             /**< flags specified for the GRES from config */
@@ -42,6 +52,8 @@ typedef struct {
     uint32_t flags;             /**< parsed binary flags */
     uint64_t count;             /**< number of GRES resources */
     uint32_t id;                /**< GRES plugin ID */
+    uint32_t nextDevID;		/**< next device ID to use */
+    list_t devices;		/**< list of GRes devices */
 } Gres_Conf_t;
 
 /** Structure holding a GRes credential */
@@ -114,6 +126,17 @@ Gres_Cred_t *getGresCred(void);
  * @return Returns the found GRES credential or NULL otherwise
  */
 Gres_Cred_t *findGresCred(list_t *gresList, uint32_t id, int credType);
+
+/**
+ * @brief Find a GRes device
+ *
+ * @param pluginID The GRes plugin ID
+ *
+ * @param bitIdx The Slurm bitmap index of the device
+ *
+ * @return Returns the requested GRES device or NULL otherwise
+ */
+GRes_Dev_t *GRes_findDevice(uint32_t pluginID, uint32_t bitIdx);
 
 /**
  * @brief Free a GRES credential

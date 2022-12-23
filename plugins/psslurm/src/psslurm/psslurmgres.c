@@ -15,6 +15,7 @@
 #include <errno.h>
 #include <limits.h>
 #include <sys/stat.h>
+#include <sys/sysmacros.h>
 
 #include "pshostlist.h"
 
@@ -72,26 +73,52 @@ static int setGresCount(Gres_Conf_t *gres, char *count)
     return 1;
 }
 
-static bool testDevices(char *file, void *info)
+static bool discoverDevices(char *file, void *info)
 {
     struct stat sbuf;
     Gres_Conf_t *gres = info;
 
     if (stat(file, &sbuf) == -1) {
-	mlog("%s: invalid device '%s' for '%s'\n", __func__, file, gres->name);
+	flog("invalid GRes device '%s' for '%s'\n", file, gres->name);
     } else {
-	gres->count++;
+	GRes_Dev_t *gDev = umalloc(sizeof(gDev));
+	gDev->major = major(sbuf.st_rdev);
+	gDev->minor = minor(sbuf.st_rdev);
+	gDev->slurmIdx = gres->nextDevID + gres->count++;
+	gDev->path = ustrdup(file);
+	list_add_tail(&gDev->next, &gres->devices);
+
+	fdbg(PSSLURM_LOG_GRES, "GRes device %s major %u minor %u "
+	     "index %i type %s\n", gDev->path, gDev->major, gDev->minor,
+	     gDev->slurmIdx, gres->type);
     }
 
     return true;
 }
 
+GRes_Dev_t *GRes_findDevice(uint32_t pluginID, uint32_t bitIdx)
+{
+    list_t *g;
+
+    list_for_each(g, &GresConfList) {
+	Gres_Conf_t *conf = list_entry(g, Gres_Conf_t, next);
+	if (conf->id == pluginID) {
+	    list_t *l;
+	    list_for_each(l, &conf->devices) {
+		GRes_Dev_t *dev = list_entry(l, GRes_Dev_t, next);
+		if (dev->slurmIdx == bitIdx) return dev;
+	    }
+	}
+    }
+    return NULL;
+}
+
 static int parseGresFile(Gres_Conf_t *gres)
 {
-    /* test every devices */
-    if (!traverseHostList(gres->file, testDevices, gres)) {
-	mlog("%s: invalid gres file '%s' for '%s'\n", __func__,
-	     gres->file, gres->name);
+    /* discover all devices */
+    INIT_LIST_HEAD(&gres->devices);
+    if (!traverseHostList(gres->file, discoverDevices, gres)) {
+	flog("invalid gres file '%s' for '%s'\n", gres->file, gres->name);
 	return 0;
     }
 
@@ -107,12 +134,31 @@ static void freeGresConf(Gres_Conf_t *gres)
     ufree(gres->cores);
     ufree(gres->strFlags);
     ufree(gres->links);
+
+    list_t *g, *tmp;
+    list_for_each_safe(g, tmp, &gres->devices) {
+	GRes_Dev_t *dev = list_entry(g, GRes_Dev_t, next);
+	ufree(dev->path);
+	list_del(&dev->next);
+	ufree(dev);
+    }
+
     ufree(gres);
 }
 
 Gres_Conf_t *saveGresConf(Gres_Conf_t *gres, char *count)
 {
     gres->id = getGresId(gres->name);
+    gres->nextDevID = 0;
+
+    /* use continuing device IDs */
+    list_t *g;
+    list_for_each(g, &GresConfList) {
+	Gres_Conf_t *conf = list_entry(g, Gres_Conf_t, next);
+	if (conf->id == gres->id) {
+	    gres->nextDevID += conf->count;
+	}
+    }
 
     /* parse file */
     if (gres->file) {
