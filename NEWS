@@ -6,6 +6,12 @@ Copyright (C) 2021-2022 ParTec AG, Munich
 Please send bug reports, questions and suggestions to <support@par-tec.com>
 
 
+Version 5.1.53-1:
+=================
+Bugfixes:
+ - Avoid double/wrong free with PMIx_Cpuset_destruct() in pspmix
+
+
 Version 5.1.53:
 ===============
 Bugfixes:
