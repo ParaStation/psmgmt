@@ -800,7 +800,7 @@ int initialize(FILE *logfile)
     }
 
     if (confRes == CONFIG_SERVER) {
-	char *confDir = getConfValueC(&Config, "SLURM_CONF_DIR");
+	char *confDir = getConfValueC(&Config, "SLURM_CONF_CACHE");
 	if (needConfUpdate(confDir)) {
 	    /* wait for config response from slurmctld */
 	    if (!requestConfig()) goto INIT_ERROR;

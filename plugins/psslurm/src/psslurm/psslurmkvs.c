@@ -741,7 +741,7 @@ char *set(char *key, char *value)
     }
 
     if (!strcmp(key, "CLEAR_CONF_CACHE")) {
-	char *confDir = getConfValueC(&Config, "SLURM_CONF_DIR");
+	char *confDir = getConfValueC(&Config, "SLURM_CONF_CACHE");
 	removeDir(confDir, 0);
 	str2Buf("Clear Slurm configuration cache ", &buf, &bufSize);
 	str2Buf(confDir, &buf, &bufSize);

@@ -1169,7 +1169,7 @@ static void handleConfig(Slurm_Msg_t *sMsg)
     }
 
     /* update all configuration files */
-    char *confDir = getConfValueC(&Config, "SLURM_CONF_DIR");
+    char *confDir = getConfValueC(&Config, "SLURM_CONF_CACHE");
     flog("updating Slurm configuration files in %s\n", confDir);
 
     bool ret = writeSlurmConfigFiles(config, confDir);
@@ -3613,7 +3613,7 @@ static int handleSlurmConf(Slurm_Msg_t *sMsg, void *info)
 
     flog("successfully unpacked config msg\n");
 
-    char *confDir = getConfValueC(&Config, "SLURM_CONF_DIR");
+    char *confDir = getConfValueC(&Config, "SLURM_CONF_CACHE");
     bool ret = writeSlurmConfigFiles(config, confDir);
     freeSlurmConfigMsg(config);
 
