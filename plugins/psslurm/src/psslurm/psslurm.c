@@ -800,15 +800,15 @@ int initialize(FILE *logfile)
     }
 
     if (confRes == CONFIG_SERVER) {
-	char *confDir = getConfValueC(&Config, "SLURM_CONF_CACHE");
-	if (needConfUpdate(confDir)) {
+	char *confCache = getConfValueC(&Config, "SLURM_CONF_CACHE");
+	if (needConfUpdate(confCache)) {
 	    /* wait for config response from slurmctld */
 	    if (!requestConfig()) goto INIT_ERROR;
 	    return 0;
 	}
 
-	/* update configuration file defaults */
-	activateConfigCache(confDir);
+	/* update configuration directory */
+	addConfigEntry(&Config, "SLURM_CONFIG_DIR", confCache);
 
 	/* parse configuration files */
 	if (!parseSlurmConfigFiles()) goto INIT_ERROR;

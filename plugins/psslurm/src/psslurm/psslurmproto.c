@@ -3553,22 +3553,6 @@ void sendDrainNode(const char *nodeList, const char *reason)
     sendSlurmctldReq(req, &update);
 }
 
-void activateConfigCache(char *confDir)
-{
-    char path[1024];
-    snprintf(path, sizeof(path), "%s/%s", confDir, "slurm.conf");
-    addConfigEntry(&Config, "SLURM_CONF", path);
-
-    snprintf(path, sizeof(path), "%s/%s", confDir, "gres.conf");
-    addConfigEntry(&Config, "SLURM_GRES_CONF", path);
-
-    snprintf(path, sizeof(path), "%s/%s", confDir, "plugstack.conf");
-    addConfigEntry(&Config, "SLURM_SPANK_CONF", path);
-
-    snprintf(path, sizeof(path), "%s/%s", confDir, "acct_gather.conf");
-    addConfigEntry(&Config, "SLURM_GATHER_CONF", path);
-}
-
 /**
  * @brief Handle a Slurm configuration response
  *
@@ -3613,17 +3597,17 @@ static int handleSlurmConf(Slurm_Msg_t *sMsg, void *info)
 
     flog("successfully unpacked config msg\n");
 
-    char *confDir = getConfValueC(&Config, "SLURM_CONF_CACHE");
-    bool ret = writeSlurmConfigFiles(config, confDir);
+    char *confCache = getConfValueC(&Config, "SLURM_CONF_CACHE");
+    bool ret = writeSlurmConfigFiles(config, confCache);
     freeSlurmConfigMsg(config);
 
     if (!ret) {
-	flog("failed to write Slurm configuration files to %s\n", confDir);
+	flog("failed to write Slurm configuration files to %s\n", confCache);
 	return 0;
     }
 
     /* update configuration file defaults */
-    activateConfigCache(confDir);
+    addConfigEntry(&Config, "SLURM_CONFIG_DIR", confCache);
 
     switch (action) {
 	case CONF_ACT_STARTUP:
