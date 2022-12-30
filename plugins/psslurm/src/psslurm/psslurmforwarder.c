@@ -99,7 +99,8 @@ static int termJobJail(void *info)
 {
     Job_t *job = info;
 
-    setJailEnv(&job->env, job->username, NULL, &(job->hwthreads));
+    setJailEnv(&job->env, job->username, NULL, &(job->hwthreads),
+	       &job->gresList, job->cred, job->localNodeId);
     return PSIDhook_call(PSIDHOOK_JAIL_TERM, &job->fwdata->cPid);
 }
 
@@ -182,7 +183,8 @@ static int termStepJail(void *info)
 
     setJailEnv(&step->env, step->username,
 	    &(step->nodeinfos[step->localNodeId].stepHWthreads),
-	    &(step->nodeinfos[step->localNodeId].jobHWthreads));
+	    &(step->nodeinfos[step->localNodeId].jobHWthreads),
+	    &step->gresList, step->cred, step->localNodeId);
     return PSIDhook_call(PSIDHOOK_JAIL_TERM, &step->fwdata->cPid);
 }
 
@@ -546,7 +548,8 @@ int handleHookExecFW(void *data)
 	/* set threads bitmaps env */
 	setJailEnv(NULL, NULL,
 		   &(fwStep->nodeinfos[fwStep->localNodeId].stepHWthreads),
-		   &(fwStep->nodeinfos[fwStep->localNodeId].jobHWthreads));
+		   &(fwStep->nodeinfos[fwStep->localNodeId].jobHWthreads),
+		   &fwStep->gresList, fwStep->cred, fwStep->localNodeId);
     }
 
     return 0;
@@ -665,6 +668,23 @@ int handleExecClientUser(void *data)
     unsetenv("__MPIEXEC_DIST_START");
     unsetenv("MPIEXEC_VERBOSE");
     unsetenv("__PSI_NO_MEMBIND");
+
+    extern char **environ;
+    for (int i=0; environ[i] != NULL; i++) {
+	while (!strncmp(environ[i], "__PSJAIL_", 9)) {
+	    char *val = strchr(environ[i], '=');
+            if (val) {
+                char *key = environ[i];
+                *val = '\0';
+		char *dup = ustrdup(key);
+                *val = '=';
+		unsetenv(dup);
+		ufree(dup);
+            } else {
+		break;
+	    }
+	}
+    }
 
     /* reset FPE exceptions mask */
     if (getConfValueI(&Config, "ENABLE_FPE_EXCEPTION") &&
@@ -1091,7 +1111,8 @@ static int stepForwarderInit(Forwarder_Data_t *fwdata)
     initSerial(0, sendMsg);
     setJailEnv(&step->env, step->username,
 	    &(step->nodeinfos[step->localNodeId].stepHWthreads),
-	    &(step->nodeinfos[step->localNodeId].jobHWthreads));
+	    &(step->nodeinfos[step->localNodeId].jobHWthreads),
+	    &step->gresList, step->cred, step->localNodeId);
 
 #ifdef HAVE_SPANK
     struct spank_handle spank = {
@@ -1302,7 +1323,8 @@ static int jobForwarderInit(Forwarder_Data_t *fwdata)
 
     PSIDhook_call(PSIDHOOK_PSSLURM_JOB_FWINIT, job->username);
 
-    setJailEnv(&job->env, job->username, NULL, &(job->hwthreads));
+    setJailEnv(&job->env, job->username, NULL, &(job->hwthreads),
+	       &job->gresList, job->cred, job->localNodeId);
 
     return IO_openJobPipes(fwdata);
 }
@@ -1436,7 +1458,8 @@ static int initBCastFW(Forwarder_Data_t *fwdata)
 {
     BCast_t *bcast = fwdata->userData;
 
-    setJailEnv(bcast->env, bcast->username, NULL, &(bcast->hwthreads));
+    setJailEnv(bcast->env, bcast->username, NULL, &(bcast->hwthreads), NULL,
+	       NULL, 0);
 
     return 0;
 }
@@ -1521,7 +1544,8 @@ static int stepFollowerFWinit(Forwarder_Data_t *fwdata)
 
     setJailEnv(&step->env, step->username,
 	    &(step->nodeinfos[step->localNodeId].stepHWthreads),
-	    &(step->nodeinfos[step->localNodeId].jobHWthreads));
+	    &(step->nodeinfos[step->localNodeId].jobHWthreads),
+	    &step->gresList, step->cred, step->localNodeId);
 
 #ifdef HAVE_SPANK
 

@@ -282,8 +282,9 @@ static void setThreadsBitmapsEnv(const PSCPU_set_t *stepcpus,
     }
 }
 
-void setJailEnv(const env_t *env, const char *user,
-	const PSCPU_set_t *stepcpus, const PSCPU_set_t *jobcpus)
+void setJailEnv(const env_t *env, const char *user, const PSCPU_set_t *stepcpus,
+		const PSCPU_set_t *jobcpus, list_t *gresList, JobCred_t *cred,
+		uint32_t localNodeId)
 {
     setThreadsBitmapsEnv(stepcpus, jobcpus);
 
@@ -295,6 +296,82 @@ void setJailEnv(const env_t *env, const char *user,
     }
 
     if (user) setenv("SLURM_USER", user, 1);
+
+    char *c = getConfValueC(&SlurmCgroupConfig, "ConstrainCores");
+    if (c) setenv("__PSJAIL_CONSTRAIN_CORES", c, 1);
+
+    c = getConfValueC(&SlurmCgroupConfig, "ConstrainDevices");
+    if (c) setenv("__PSJAIL_CONSTRAIN_DEVICES", c, 1);
+
+    c = getConfValueC(&SlurmCgroupConfig, "ConstrainKmemSpace");
+    if (c) setenv("__PSJAIL_CONSTRAIN_KMEM", c, 1);
+
+    c = getConfValueC(&SlurmCgroupConfig, "ConstrainRAMSpace");
+    if (c) setenv("__PSJAIL_CONSTRAIN_RAM", c, 1);
+
+    c = getConfValueC(&SlurmCgroupConfig, "ConstrainSwapSpace");
+    if (c) setenv("__PSJAIL_CONSTRAIN_SWAP", c, 1);
+
+    if (gresList) {
+	list_t *g;
+	uint16_t numDevAllow = 0, numDevDeny = 0;
+	list_for_each(g, gresList) {
+	    Gres_Cred_t *gres = list_entry(g, Gres_Cred_t, next);
+
+	    PSCPU_set_t gresSet;
+	    hexBitstr2Set(gres->bitAlloc[localNodeId], gresSet);
+
+	    char name[128], val[64];
+	    for (uint16_t i = 0; i < sizeof(PSCPU_set_t)/sizeof(PSCPU_mask_t);
+		 i++) {
+		GRes_Dev_t *dev = GRes_findDevice(gres->id, i);
+		if (!dev) continue;
+		snprintf(val, sizeof(val), "%s %u:%u rwm",
+			 dev->isBlock ? "b" : "c", dev->major, dev->minor);
+		if (PSCPU_isSet(gresSet, i)) {
+		    flog("GRES ID %u num %u is SET\n", gres->id, i);
+		    snprintf(name, sizeof(name), "__PSJAIL_DEV_ALLOW_%u",
+			     numDevAllow++);
+		    setenv(name, val, 1);
+		} else {
+		    snprintf(name, sizeof(name), "__PSJAIL_DEV_DENY_%u",
+			     numDevDeny++);
+		    setenv(name, val, 1);
+		}
+	    }
+	}
+    }
+
+    if (cred) {
+	char buf[128];
+	if (cred->jobMemAllocSize) {
+	    for (uint32_t i=0, idx=0; i<cred->jobMemAllocSize; i++) {
+		for (uint32_t j=0; j<cred->jobMemAllocRepCount[i]; j++) {
+		    if (idx++ == localNodeId) {
+			snprintf(buf, sizeof(buf), "%zu",
+				 cred->jobMemAlloc[i]*1024*1024);
+			setenv("__PSJAIL_JOB_MEM_ALLOC", buf, 1);
+			break;
+		    }
+		}
+		if (idx > localNodeId) break;
+	    }
+	}
+
+	if (cred->stepMemAllocSize) {
+	    for (uint32_t i=0, idx=0; i<cred->stepMemAllocSize; i++) {
+		for (uint32_t j=0; j<cred->stepMemAllocRepCount[i]; j++) {
+		    if (idx++ == localNodeId) {
+			snprintf(buf, sizeof(buf), "%zu",
+				 cred->stepMemAlloc[i]*1024*1024);
+			setenv("__PSJAIL_STEP_MEM_ALLOC", buf, 1);
+			break;
+		    }
+		}
+		if (idx > localNodeId) break;
+	    }
+	}
+    }
 }
 
 /**
@@ -570,7 +647,7 @@ static void setPsslurmEnv(env_t *alloc_env, env_t *dest_env)
 }
 
 static void setGPUEnv(Gres_Cred_t *gres, uint32_t jobNodeId, Step_t *step,
-	uint32_t localRankId)
+		      uint32_t localRankId)
 {
     uint32_t stepNId = step->localNodeId;
 
