@@ -13,16 +13,16 @@
 # has to be taken when changing this script.
 
 function mlog {
-	echo $(date): $1
+	echo $(date) $modName[$CHILD]: $1
 }
 
 function dlog {
 	[ "$DEBUG" == "1" ] || return;
-	echo $(date): $1
+	echo $(date) $modName[$CHILD]: $1
 }
 
 function elog {
-	echo $(date): $1 >&2
+	echo $(date) $modName[$CHILD]: $1 >&2
 	exit 1
 }
 
