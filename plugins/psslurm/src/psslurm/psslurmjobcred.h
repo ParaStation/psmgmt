@@ -34,7 +34,7 @@ typedef enum {
 typedef struct {
     uint32_t jobid;             /**< unique job identifier */
     uint32_t stepid;            /**< unique step identifier */
-    uint32_t stepHetComp;       /**< TODO */
+    uint32_t stepHetComp;	/**< step het component identifier */
     uid_t uid;                  /**< job user ID */
     gid_t gid;			/**< primary group ID */
     char *username;		/**< username */
@@ -45,8 +45,8 @@ typedef struct {
     uint32_t gidsLen;		/**< size of gids array */
     char **gidNames;            /**< (currently) unused */
     uint16_t jobCoreSpec;       /**< specialized cores */
-    uint64_t jobMemLimit;       /**< job memory limit */
-    uint64_t stepMemLimit;      /**< step memory limit */
+    uint64_t jobMemLimit;       /**< job memory limit (defunct in 21.08) */
+    uint64_t stepMemLimit;      /**< step memory limit (defunct in 21.08) */
     char *stepHL;		/**< Slurm compressed step host-list */
     time_t ctime;               /**< creation time of credential */
     uint32_t totalCoreCount;    /**< number of total reserved cores */
@@ -69,12 +69,12 @@ typedef struct {
     char *sig;                  /**< munge signature */
     char *jobConstraints;       /**< job constraints */
     uint16_t x11;		/**< X11 flags for job */
-    uint32_t jobMemAllocSize;
-    uint64_t *jobMemAlloc;
-    uint32_t *jobMemAllocRepCount;
-    uint32_t stepMemAllocSize;
-    uint64_t *stepMemAlloc;
-    uint32_t *stepMemAllocRepCount;
+    uint32_t jobMemAllocSize;	/**< size of the following jobMemAlloc arrays */
+    uint64_t *jobMemAlloc;	/**< job memory allocation in MB */
+    uint32_t *jobMemAllocRepCount; /**< repetitions of nodes */
+    uint32_t stepMemAllocSize; /**< size of the following stepMemAlloc arrays */
+    uint64_t *stepMemAlloc;	/**< step memory allocation in MB */
+    uint32_t *stepMemAllocRepCount; /**< repetitions of nodes */
     char *SELinuxContext;
     char *jobAccount;
     char *jobAliasList;

@@ -112,7 +112,7 @@ JobCred_t *extractJobCred(list_t *gresList, Slurm_Msg_t *sMsg, bool verify)
 	sigBuf = NULL;
     }
 
-    /* convert slurm hostlist to PSnodes */
+    /* convert Slurm host-list to PSnodes */
     uint32_t count;
     if (!convHLtoPSnodes(cred->jobHostlist, getNodeIDbySlurmHost,
 			 &cred->jobNodes, &count)) {
@@ -127,11 +127,20 @@ JobCred_t *extractJobCred(list_t *gresList, Slurm_Msg_t *sMsg, bool verify)
     }
 
     if (psslurmlogger->mask & PSSLURM_LOG_AUTH) {
-	flog("cred len %u jobMemLimit %lu stepMemLimit %lu stepHostlist '%s' "
-	     "jobHostlist '%s' ctime %lu sig '%s' pwGecos '%s' pwDir '%s' "
-	     "pwShell '%s'\n", credLen, cred->jobMemLimit, cred->stepMemLimit,
-	     cred->stepHL, cred->jobHostlist, cred->ctime, cred->sig,
-	     cred->pwGecos, cred->pwDir, cred->pwShell);
+	flog("cred len %u stepHostlist '%s' jobHostlist '%s' ctime %lu"
+	     " sig '%s' pwGecos '%s' pwDir '%s' pwShell '%s' contrains %s\n",
+	     credLen, cred->stepHL, cred->jobHostlist, cred->ctime, cred->sig,
+	     cred->pwGecos, cred->pwDir, cred->pwShell, cred->jobConstraints);
+
+	/* memory allocation for job/step */
+	for (uint32_t i=0; i<cred->jobMemAllocSize; i++) {
+	    flog("idx:%u jobMemAlloc %zu jobMemAllocRepCount:%u\n",
+		 i, cred->jobMemAlloc[i], cred->jobMemAllocRepCount[i]);
+	}
+	for (uint32_t i=0; i<cred->stepMemAllocSize; i++) {
+	    flog("idx:%u stepMemAlloc %zu stepMemAllocRepCount:%u\n",
+		 i, cred->stepMemAlloc[i], cred->stepMemAllocRepCount[i]);
+	}
     }
 
     return cred;
@@ -153,7 +162,7 @@ bool *getCPUsetFromCoreBitmap(uint32_t total, const char *bitmap)
 
     int count = 0;
 
-    /* parse slurm bit string in LSB first order */
+    /* parse Slurm bit string in LSB first order */
     while (len--) {
 	int cur = (int)bitstr[len];
 
