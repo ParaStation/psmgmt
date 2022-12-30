@@ -194,6 +194,7 @@ make %{?_smp_mflags}
 rm -rf %{buildroot}
 make DESTDIR=%{buildroot} install
 touch %{buildroot}/etc/parastation.conf
+find %{buildroot} -type f -name '*.la' -delete
 
 %clean
 rm -rf %{buildroot}
@@ -276,36 +277,27 @@ exit 0
 %{_configdir}
 %{_scriptsdir}
 %{_libdir}/libpse.so*
-%exclude %{_libdir}/libpse.la
 %{_libdir}/libpsi.so*
-%exclude %{_libdir}/libpsi.la
 %dir %{_plugindir}
 %{_plugindir}/cgroup.so
-%exclude %{_plugindir}/cgroup.la
 %config(noreplace) %{_plugindir}/cgroup.conf
 %{_plugindir}/jail.so
-%exclude %{_plugindir}/jail.la
 %config(noreplace) %{_plugindir}/jail.conf
 %config(noreplace) %{_plugindir}/jail-config.inc
 %config(noreplace) %{_plugindir}/jail-cpuacct.inc
 %config(noreplace) %{_plugindir}/jail-cpuset.inc
 %config(noreplace) %{_plugindir}/jail-functions.inc
 %{_plugindir}/nodeinfo.so
-%exclude %{_plugindir}/nodeinfo.la
 %config(noreplace) %{_plugindir}/jail-main.sh
 %config(noreplace) %{_plugindir}/jail-oom.inc
 %config(noreplace) %{_plugindir}/jail-term-cpuacct.inc
 %config(noreplace) %{_plugindir}/jail-term-cpuset.inc
 %{_plugindir}/pelogue.so
-%exclude %{_plugindir}/pelogue.la
 %{_plugindir}/psaccount.so
-%exclude %{_plugindir}/psaccount.la
 %config(noreplace) %{_plugindir}/psaccount.conf
 %{_libexecdir}/psaccount
 %{_plugindir}/psexec.so
-%exclude %{_plugindir}/psexec.la
 %{_plugindir}/psgw.so
-%exclude %{_plugindir}/psgw.la
 %config(noreplace) %{_plugindir}/psgw.conf
 %doc doc/README.psgw
 %doc plugins/psgw/doc/README.psgw_plugins
@@ -314,20 +306,14 @@ exit 0
 %{_libexecdir}/psgw
 %endif
 %{_plugindir}/pspam.so
-%exclude %{_plugindir}/pspam.la
 %if !0%{?disable_pam}
 %{_pamdir}/pam_pspam.so
-%exclude %{_pamdir}/pam_pspam.la
 %{_plugindir}/pam_service.so
-%exclude %{_plugindir}/pam_service.la
 %endif
 %{_plugindir}/pspmi.so
-%exclude %{_plugindir}/pspmi.la
 %{_plugindir}/psresport.so
-%exclude %{_plugindir}/psresport.la
 %config(noreplace) %{_plugindir}/psresport.conf
 %{_plugindir}/rrcomm.so
-%exclude %{_plugindir}/rrcomm.la
 %config(missingok,noreplace) %{_sysconfdir}/gdbinit.d/psmgmt.gdb
 %config(missingok,noreplace) %{_sysconfdir}/profile.d/psmgmt.sh
 %config(missingok,noreplace) %{_sysconfdir}/profile.d/psmgmt.csh
@@ -402,7 +388,6 @@ exit 0
 %endif
 %config(noreplace) /etc/pam.d/psmom
 %{_plugindir}/psmom.so
-%exclude %{_plugindir}/psmom.la
 %config(noreplace) %{_plugindir}/psmom.conf
 %dir %{_spooldir}
 %dir %{_spooldir}/jobs
@@ -420,7 +405,6 @@ exit 0
 %doc plugins/psslurm/doc/psslurm-prologue.example
 %config(noreplace) %{_plugindir}/psslurm.conf
 %{_plugindir}/psslurm.so
-%exclude %{_plugindir}/psslurm.la
 %dir %{_spooldir}
 %dir %{_spooldir}/jobs
 %dir %{_spooldir}/nodefiles
@@ -432,11 +416,9 @@ exit 0
 %if !0%{?disable_spank}
 %dir %{_libdir}/slurm
 %{_libdir}/slurm/spank_api.so
-%exclude %{_libdir}/slurm/spank_api.la
 %endif
 %if !0%{?disable_munge}
 %{_plugindir}/psmunge.so
-%exclude %{_plugindir}/psmunge.la
 %if !0%{?disable_systemd}
 %config(missingok,noreplace) %{_systemdconfdir}/psid.service.d/munge.conf
 %endif
@@ -445,7 +427,6 @@ exit 0
 %files pspmix
 %defattr(-,root,root,-)
 %{_plugindir}/pspmix.so
-%exclude %{_plugindir}/pspmix.la
 %config(noreplace) %{_plugindir}/pspmix.conf
 
 %files slurmutils
@@ -456,25 +437,15 @@ exit 0
 %if !0%{?disable_spank}
 %dir %{_libdir}/slurm
 %{_libdir}/slurm/psgw_spank.so
-%exclude %{_libdir}/slurm/psgw_spank.la
 %{_libdir}/slurm/cudaspank.so
-%exclude %{_libdir}/slurm/cudaspank.la
 %{_libdir}/slurm/globresspank.so
-%exclude %{_libdir}/slurm/globresspank.la
 %{_libdir}/slurm/nopshcspank.so
-%exclude %{_libdir}/slurm/nopshcspank.la
 %{_libdir}/slurm/noturbospank.so
-%exclude %{_libdir}/slurm/noturbospank.la
 %{_libdir}/slurm/perfparanoidspank.so
-%exclude %{_libdir}/slurm/perfparanoidspank.la
 %{_libdir}/slurm/perftoolspank.so
-%exclude %{_libdir}/slurm/perftoolspank.la
 %{_libdir}/slurm/showglobresspank.so
-%exclude %{_libdir}/slurm/showglobresspank.la
 %{_libdir}/slurm/visspank.so
-%exclude %{_libdir}/slurm/visspank.la
 %{_libdir}/slurm/x11spank.so
-%exclude %{_libdir}/slurm/x11spank.la
 %endif
 
 %files rrcomm-devel
@@ -484,16 +455,10 @@ exit 0
 %if !0%{?disable_testplugins}
 %files testplugins
 %defattr(-,root,root,-)
-%exclude %{_plugindir}/delayPSPMsg.la
 %{_plugindir}/delayPSPMsg.so
-%exclude %{_plugindir}/delaySlurmMsg.la
 %{_plugindir}/delaySlurmMsg.so
-%exclude %{_plugindir}/delegateStat.la
 %{_plugindir}/delegateStat.so
-%exclude %{_plugindir}/fakenode.la
 %{_plugindir}/fakenode.so
-%exclude %{_plugindir}/no_flowcontrol.la
 %{_plugindir}/no_flowcontrol.so
-%exclude %{_plugindir}/psBlackHole.la
 %{_plugindir}/psBlackHole.so
 %endif
