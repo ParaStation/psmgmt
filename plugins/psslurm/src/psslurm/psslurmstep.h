@@ -32,7 +32,7 @@
 typedef struct {
     uint32_t jobid;         /**< unique job identifier */
     uint32_t stepid;        /**< unique step identifier */
-    uint32_t stepHetComp;   /**< TODO */
+    uint32_t stepHetComp;   /**< step het component identifier */
 } Slurm_Step_Head_t;
 
 typedef struct {
@@ -79,7 +79,7 @@ typedef struct {
 typedef struct {
     uint32_t jobid;		/**< unique job identifier */
     uint32_t stepid;		/**< unique step identifier */
-    uint32_t stepHetComp;       /**< TODO */
+    uint32_t stepHetComp;	/**< step het component identifier */
     uint32_t np;		/**< number of processes */
     uint16_t tpp;		/**< HW-threads per process (PSI_TPP) */
     char *username;		/**< username of step owner */
