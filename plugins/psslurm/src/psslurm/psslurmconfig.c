@@ -1283,6 +1283,18 @@ static bool verifyCgroupConf(char *key, char *value, const void *info)
 	    /* parsing failed */
 	    return true;
 	}
+    } else if (!strcasecmp(key, "CgroupAutomount")) {
+	flog("warning: ignoring unsupported option CgroupAutomount=%s\n",
+	     value);
+    } else if (!strcasecmp(key, "CgroupMountpoint")) {
+	flog("warning: ignoring unsupported option CgroupMountpoint=%s\n",
+	     value);
+    } else if (!strcasecmp(key, "IgnoreSystemd")) {
+	flog("warning: ignoring unsupported option IgnoreSystemd=%s\n",
+	     value);
+    } else if (!strcasecmp(key, "IgnoreSystemdOnFailure")) {
+	flog("warning: ignoring unsupported option IgnoreSystemdOnFailure=%s\n",
+	     value);
     } else {
 	fdbg(PSSLURM_LOG_WARN, "warning: ignoring unsupported cgroup "
 	     "configuration %s\n", key);
