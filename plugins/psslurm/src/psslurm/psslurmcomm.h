@@ -335,6 +335,17 @@ bool hexBitstr2ListEx(char *bitstr, StrBuffer_t *strBuf, bool range,
 		      hexBitStrConv_func_t *conv);
 
 /**
+ * @brief Convert a hex bitstring to a PSCPU_set_t
+ *
+ * @param bitstr The bitstring to convert
+ *
+ * @param set The set to store the hex bitstring to
+ *
+ * @return Returns true on success otherwise false
+ */
+bool hexBitstr2Set(char *bitstr, PSCPU_set_t set);
+
+/**
  * @brief Open a TCP connection
  *
  * Open a new TCP connection to the provided address and port.

@@ -1193,6 +1193,43 @@ bool hexBitstr2ListEx(char *bitstr, StrBuffer_t *strBuf, bool range,
     return true;
 }
 
+bool hexBitstr2Set(char *bitstr, PSCPU_set_t set)
+{
+    if (!set) {
+	flog("invalid set\n");
+	return false;
+    }
+    PSCPU_clrAll(set);
+
+    if (!bitstr) {
+	flog("invalid bitstring\n");
+	return false;
+    }
+    if (!strncmp(bitstr, "0x", 2)) bitstr += 2;
+    size_t len = strlen(bitstr);
+
+    uint16_t count = 0;
+    while (len--) {
+	uint8_t next = bitstr[len];
+
+	if (!isxdigit(next)) return false;
+
+	if (isdigit(next)) {
+	    next -= '0';
+	} else {
+	    next = toupper(next);
+	    next -= 'A' - 10;
+	}
+
+	for (uint8_t i = 1; i <= 8; i *= 2) {
+	    if (next & i) PSCPU_setCPU(set, count);
+	    count++;
+	}
+    }
+
+    return true;
+}
+
 /**
  * @brief Accept a new Slurm client
  *
