@@ -30,6 +30,9 @@ extern Config_t Config;
 /** The Slurm configuration list. */
 extern Config_t SlurmConfig;
 
+/** The Slurm cgroup configuration list. */
+extern Config_t SlurmCgroupConfig;
+
 /** Psslurm configuration options */
 extern const ConfDef_t confDef[];
 

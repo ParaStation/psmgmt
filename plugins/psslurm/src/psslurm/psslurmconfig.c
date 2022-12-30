@@ -42,6 +42,9 @@ Config_t Config;
 /** Slurm configuration list */
 Config_t SlurmConfig;
 
+/** Slurm cgroup configuration list */
+Config_t SlurmCgroupConfig;
+
 /** Hash value of the current Slurm configuration */
 static uint32_t configHash = -1;
 
@@ -65,6 +68,7 @@ typedef struct {
     int localHostIdx;	    /**< index of local host in host-list */
 } Host_Info_t;
 
+/** psslurm default configuration values */
 const ConfDef_t confDef[] =
 {
     { "SLURM_CONFIG_DIR", 0,
@@ -86,19 +90,23 @@ const ConfDef_t confDef[] =
     { "SLURM_GRES_CONF", 0,
 	"file",
 	"gres.conf",
-	"Gres configuration file of slurm" },
+	"Gres configuration file of Slurm" },
     { "SLURM_SPANK_CONF", 0,
 	"file",
 	"plugstack.conf",
-	"Default spank configuration file of slurm" },
+	"Default spank configuration file of Slurm" },
     { "SLURM_GATHER_CONF", 0,
 	"file",
 	"acct_gather.conf",
-	"Default account gather configuration file of slurm" },
+	"Default account gather configuration file of Slurm" },
     { "SLURM_TOPOLOGY_CONF", 0,
 	"file",
 	"topology.conf",
-	"Default fabric topology configuration file of slurm" },
+	"Default fabric topology configuration file of Slurm" },
+    { "SLURM_CGROUP_CONF", 0,
+	"file",
+	"cgroup.conf",
+	"Default cgroup configuration file of Slurm" },
     { "DIR_SCRIPTS", 0,
 	"path",
 	SPOOL_DIR "/scripts",
@@ -271,6 +279,36 @@ const ConfDef_t confDef[] =
 	"bool",
 	"1",
 	"Execute Slurm health-check on psslurm startup" },
+    { NULL, 0, NULL, NULL, NULL },
+};
+
+/** cgroup.conf default configuration values */
+const ConfDef_t cgroupDef[] =
+{
+    { "ConstrainCores", 0,
+	"string",
+	"no",
+	"constrain the jobs CPU cores" },
+    { "ConstrainDevices", 0,
+	"string",
+	"no",
+	"constrain the jobs GRES devices" },
+    { "ConstrainKmemSpace", 0,
+	"string",
+	"no",
+	"constrain the jobs kmem RAM usage" },
+    { "ConstrainRAMSpace", 0,
+	"string",
+	"no",
+	"constrain the jobs RAM usage" },
+    { "ConstrainSwapSpace", 0,
+	"string",
+	"no",
+	"constrain the jobs swap RAM usage" },
+    { "CgroupPlugin", 0,
+	"string",
+	"ncgroup/v1",
+	"version of cgroup subsystem to use" },
     { NULL, 0, NULL, NULL, NULL },
 };
 
@@ -1199,6 +1237,61 @@ static bool verifySlurmConf(void)
     return true;
 }
 
+/**
+ * @brief Parse a Slurm cgroup configuration line
+ *
+ * @param key The key of the line to parse
+ *
+ * @param value The value of the line to parse
+ *
+ * @return Returns true on error to stop further parsing
+ * and false otherwise
+ */
+static bool verifyCgroupConf(char *key, char *value, const void *info)
+{
+    if (!strcasecmp(key, "AllowedKmemSpace")) {
+	fdbg(PSSLURM_LOG_DEBUG, "cgroup AllowedKmemSpace=%s\n", value);
+    } else if (!strcasecmp(key, "ConstrainKmemSpace")) {
+	fdbg(PSSLURM_LOG_DEBUG, "cgroup ConstrainKmemSpace=%s\n", value);
+    } else if (!strcasecmp(key, "MaxKmemPercent")) {
+	fdbg(PSSLURM_LOG_DEBUG, "cgroup MaxKmemPercent=%s\n", value);
+    } else if (!strcasecmp(key, "MinKmemSpace")) {
+	fdbg(PSSLURM_LOG_DEBUG, "cgroup MinKmemSpace=%s\n", value);
+    } else if (!strcasecmp(key, "AllowedRAMSpace")) {
+	fdbg(PSSLURM_LOG_DEBUG, "cgroup AllowedRAMSpace=%s\n", value);
+    } else if (!strcasecmp(key, "ConstrainRAMSpace")) {
+	fdbg(PSSLURM_LOG_DEBUG, "cgroup ConstrainRAMSpace=%s\n", value);
+    } else if (!strcasecmp(key, "MaxRAMPercent")) {
+	fdbg(PSSLURM_LOG_DEBUG, "cgroup MaxRAMPercent=%s\n", value);
+    } else if (!strcasecmp(key, "MinRAMSpace")) {
+	fdbg(PSSLURM_LOG_DEBUG, "cgroup MinRAMSpace=%s\n", value);
+    } else if (!strcasecmp(key, "AllowedSwapSpace")) {
+	fdbg(PSSLURM_LOG_DEBUG, "cgroup AllowedSwapSpace=%s\n", value);
+    } else if (!strcasecmp(key, "ConstrainSwapSpace")) {
+	fdbg(PSSLURM_LOG_DEBUG, "cgroup ConstrainSwapSpace=%s\n", value);
+    } else if (!strcasecmp(key, "MaxSwapPercent")) {
+	fdbg(PSSLURM_LOG_DEBUG, "cgroup MaxSwapPercent=%s\n", value);
+    } else if (!strcasecmp(key, "MemorySwappiness")) {
+	fdbg(PSSLURM_LOG_DEBUG, "cgroup MemorySwappiness=%s\n", value);
+    } else if (!strcasecmp(key, "ConstrainCores")) {
+	fdbg(PSSLURM_LOG_DEBUG, "cgroup ConstrainCores=%s\n", value);
+    } else if (!strcasecmp(key, "ConstrainDevices")) {
+	fdbg(PSSLURM_LOG_DEBUG, "cgroup ConstrainDevices=%s\n", value);
+    } else if (!strcasecmp(key, "CgroupPlugin")) {
+	if (!strcasecmp(value, "cgroup/v2")) {
+	    flog("error: CgroupPlugin has to be cgroup/v1\n");
+	    /* parsing failed */
+	    return true;
+	}
+    } else {
+	fdbg(PSSLURM_LOG_WARN, "warning: ignoring unsupported cgroup "
+	     "configuration %s\n", key);
+    }
+
+    /* parsing was successful, continue with next line */
+    return false;
+}
+
 static bool parseAcctGatherConf(char *key, char *value, const void *info)
 {
     if (!strcasecmp(key, "InfinibandOFEDPort")) {
@@ -1324,6 +1417,28 @@ bool parseSlurmConfigFiles(void)
 	freeConfig(&SlurmTopoTmp);
     }
 
+    /* parse optional Slurm cgroup config file */
+    confFile = getConfValueC(&Config, "SLURM_CGROUP_CONF");
+    if (!confFile) {
+	flog("Configuration value SLURM_CGROUP_CONF not found\n");
+	return false;
+    }
+    snprintf(cPath, sizeof(cPath), "%s/%s", confDir, confFile);
+    initConfig(&SlurmCgroupConfig);
+
+    if (stat(cPath, &sbuf) != -1) {
+	if (parseConfigFile(cPath, &SlurmCgroupConfig,
+	    true /*trimQuotes*/) < 0) {
+	    flog("Parsing cgroup configuration file %s failed\n", cPath);
+	    return false;
+	}
+
+	setConfigDefaults(&SlurmCgroupConfig, cgroupDef);
+	if (traverseConfig(&SlurmCgroupConfig, verifyCgroupConf, NULL)) {
+	    flog("Traversing cgroup configuration failed\n");
+	    return false;
+	}
+    }
 
 #ifdef HAVE_SPANK
     Config_t SlurmPlugConf;
@@ -1483,6 +1598,39 @@ bool updateSlurmConf(void)
 	    return false;
 	}
 	freeConfig(&SlurmTopoTmp);
+    }
+
+    /* parse optional Slurm cgroup config file */
+    confFile = getConfValueC(&Config, "SLURM_CGROUP_CONF");
+    if (!confFile) {
+	flog("Configuration value SLURM_CGROUP_CONF not found\n");
+	return false;
+    }
+    snprintf(cPath, sizeof(cPath), "%s/%s", confDir, confFile);
+
+    initConfig(&SlurmCgroupConfig);
+    if (stat(cPath, &sbuf) != -1) {
+	Config_t SlurmCgrpTmp;
+	/* dry run to parse the new cgroup config */
+	if (parseConfigFile(cPath, &SlurmCgrpTmp, true /*trimQuotes*/) < 0) {
+	    flog("Parsing cgroup configuration file %s failed\n", cPath);
+	    return false;
+	}
+	setConfigDefaults(&SlurmCgrpTmp, cgroupDef);
+	if (traverseConfig(&SlurmCgrpTmp, verifyCgroupConf, NULL)) {
+	    flog("Traversing cgroup configuration failed\n");
+	    return false;
+	}
+	freeConfig(&SlurmCgrpTmp);
+
+	/* remove old cgroup configuration and rebuild it */
+	freeConfig(&SlurmCgroupConfig);
+	if (parseConfigFile(cPath, &SlurmCgroupConfig,
+	    true /*trimQuotes*/) < 0) {
+	    flog("Parsing cgroup configuration file %s failed\n", cPath);
+	    return false;
+	}
+	setConfigDefaults(&SlurmCgroupConfig, cgroupDef);
     }
 
     return true;
