@@ -20,9 +20,11 @@
 # This script will be called by the jail plugin via system() and get
 # the process ID of the process to be jailed as an argument.
 
-if [ "$SLURM_CONSTRAIN_CORES" == "no" ]; then
-	dlog "setting *no* constrains for CPU cores"
+if [ "$__PSJAIL_CONSTRAIN_CORES" == "no" ]; then
+	dlog "constrain cores *disabled*"
 elif [ -n "$PSPAM_USER" ]; then
+	dlog "constrain cores enabled"
+
 	# ssh login via pspam which needs an existing user cgroup
 	CG_USER="$BASE/$PREFIX-$PSPAM_USER"
 	if [ -d $CG_USER ]; then
@@ -38,7 +40,7 @@ elif [ -n "$PSPAM_USER" ]; then
 		elog "error: user cgroup $CG_USER is missing"
 	fi
 else
-
+	dlog "constrain cores enabled"
 	[ -n "$SLURM_USER" ] && USER=$SLURM_USER
 
 	[ -n "$USER" ] || {

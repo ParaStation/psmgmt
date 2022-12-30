@@ -57,7 +57,7 @@ function termDevices()
     fi
 }
 
-if [ "$SLURM_CONSTRAIN_DEVICES" == "no" ]; then
+if [ "$__PSJAIL_CONSTRAIN_DEVICES" == "no" ]; then
     dlog "constrain devices *disabled*"
 else
     dlog "constrain devices enabled"

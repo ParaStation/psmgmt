@@ -24,7 +24,6 @@ IS_INIT="false"
 
 function initMem()
 {
-
     [ -n "$SLURM_USER" ] && USER=$SLURM_USER
 
     [ -n "$USER" ] || {
@@ -62,33 +61,33 @@ function setMem()
     [ "$IS_INIT" == "false" ] && initMem;
 
     # job cgroup
-    dlog "$SLURM_JOB_MEM_ALLOC > $CG_JOB/$LIMIT JOB: $SLURM_JOBID STEP:$SLURM_STEPID"
-    echo "$SLURM_JOB_MEM_ALLOC" > $CG_JOB/$LIMIT
+    dlog "$__PSJAIL_JOB_MEM_ALLOC > $CG_JOB/$LIMIT JOB: $SLURM_JOBID STEP:$SLURM_STEPID"
+    echo "$__PSJAIL_JOB_MEM_ALLOC" > $CG_JOB/$LIMIT
 
     # step cgroup
     [ -n "$SLURM_STEPID" ] && {
-	dlog "$SLURM_STEP_MEM_ALLOC > $CG_STEP/$LIMIT"
-        echo "$SLURM_STEP_MEM_ALLOC" > $CG_STEP/$LIMIT
+	dlog "$__PSJAIL_STEP_MEM_ALLOC > $CG_STEP/$LIMIT"
+        echo "$__PSJAIL_STEP_MEM_ALLOC" > $CG_STEP/$LIMIT
 
-	echo "$SLURM_STEP_MEM_ALLOC" > $CG_STEP/$LIMIT
+	echo "$__PSJAIL_STEP_MEM_ALLOC" > $CG_STEP/$LIMIT
     }
 }
 
-if [ "$SLURM_CONSTRAIN_KMEM" == "no" ]; then
+if [ "$__PSJAIL_CONSTRAIN_KMEM" == "no" ]; then
     dlog "constrain KMEM *disabled*"
 else
     dlog "constrain KMEM enabled"
     setMem "memory.kmem.limit_in_bytes"
 fi
 
-if [ "$SLURM_CONSTRAIN_RAM" == "no" ]; then
+if [ "$__PSJAIL_CONSTRAIN_RAM" == "no" ]; then
     dlog "constrain RAM *disabled*"
 else
     dlog "constrain RAM enabled"
     setMem "memory.limit_in_bytes"
 fi
 
-if [ "$SLURM_CONSTRAIN_SWAP" == "no" ]; then
+if [ "$__PSJAIL_CONSTRAIN_SWAP" == "no" ]; then
     dlog "constrain SWAP *disabled*"
 else
     dlog "constrain SWAP enabled"

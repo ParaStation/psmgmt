@@ -65,7 +65,7 @@ function setDev()
     }
 }
 
-if [ "$SLURM_CONSTRAIN_DEVICES" == "no" ]; then
+if [ "$__PSJAIL_CONSTRAIN_DEVICES" == "no" ]; then
     dlog "constrain devices *disabled*"
 else
     dlog "constrain devices enabled"
@@ -75,7 +75,7 @@ else
     # set allowed devices
     cnt=0
     while true; do
-	next="SLURM_DEV_ALLOW_$cnt"
+	next="__PSJAIL_DEV_ALLOW_$cnt"
 	[ -z "${!next}" ] && break
 	dlog "allow device$cnt = ${!next}"
 
@@ -87,7 +87,7 @@ else
     # set denied devices
     cnt=0
     while true; do
-	next="SLURM_DEV_DENY_$cnt"
+	next="__PSJAIL_DEV_DENY_$cnt"
 	[ -z "${!next}" ] && break
 	dlog "deny device$cnt = ${!next}"
 

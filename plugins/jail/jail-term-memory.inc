@@ -62,21 +62,21 @@ function termMemory()
     CLEANUP_DONE="true"
 }
 
-if [ "$SLURM_CONSTRAIN_KMEM" == "no" ]; then
+if [ "$__PSJAIL_CONSTRAIN_KMEM" == "no" ]; then
     dlog "constrain KMEM *disabled*"
 else
     dlog "constrain KMEM enabled"
     termMemory
 fi
 
-if [ "$SLURM_CONSTRAIN_RAM" == "no" ]; then
+if [ "$__PSJAIL_CONSTRAIN_RAM" == "no" ]; then
     dlog "constrain RAM *disabled*"
 else
     dlog "constrain RAM enabled"
     termMemory
 fi
 
-if [ "$SLURM_CONSTRAIN_SWAP" == "no" ]; then
+if [ "$__PSJAIL_CONSTRAIN_SWAP" == "no" ]; then
     dlog "constrain SWAP *disabled*"
 else
     dlog "constrain SWAP enabled"
