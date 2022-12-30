@@ -34,6 +34,7 @@ typedef struct {
     unsigned int major;		/**< major device ID */
     unsigned int minor;		/**< minor device ID */
     uint32_t slurmIdx;		/**< Slurm bitmap index of device */
+    bool isBlock;		/**< true if device is a block device */
 } GRes_Dev_t;
 
 /** Structure holding a GRes configuration */
@@ -100,6 +101,15 @@ typedef struct {
  * NULL otherwise
  */
 Gres_Conf_t *saveGresConf(Gres_Conf_t *gres, char *count);
+
+/**
+ * @brief Find a GRes configuration
+ *
+ * @param id The GRes plugin id identifying the configuration
+ *
+ * @return Returns the requested configuration or NULL otherwise
+ */
+Gres_Conf_t *findGresConf(uint32_t id);
 
 /**
  * @brief Free all saved GRES configurations

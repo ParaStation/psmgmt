@@ -86,6 +86,7 @@ static bool discoverDevices(char *file, void *info)
 	gDev->minor = minor(sbuf.st_rdev);
 	gDev->slurmIdx = gres->nextDevID + gres->count++;
 	gDev->path = ustrdup(file);
+	gDev->isBlock = S_ISBLK(sbuf.st_mode);
 	list_add_tail(&gDev->next, &gres->devices);
 
 	fdbg(PSSLURM_LOG_GRES, "GRes device %s major %u minor %u "
@@ -193,6 +194,16 @@ int countGresConf(void)
     list_for_each(g, &GresConfList) count++;
 
     return count;
+}
+
+Gres_Conf_t *findGresConf(uint32_t id)
+{
+    list_t *g;
+    list_for_each(g, &GresConfList) {
+	Gres_Conf_t *gres = list_entry(g, Gres_Conf_t, next);
+	if (gres->id == id) return gres;
+    }
+    return NULL;
 }
 
 void clearGresConf(void)
