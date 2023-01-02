@@ -2,7 +2,7 @@
 # ParaStation
 #
 # Copyright (C) 2017 ParTec Cluster Competence Center GmbH, Munich
-# Copyright (C) 2022 ParTec AG, Munich
+# Copyright (C) 2022-2023 ParTec AG, Munich
 #
 # This file may be distributed under the terms of the Q Public License
 # as defined in the file LICENSE.QPL included in the packaging of this
@@ -28,7 +28,7 @@ mpiexec_LDADD = libstartupcommon.la $(libpse) $(POPT_LIBS)
 
 kvsprovider_SOURCES = kvsprovider.c providerloop.c
 kvsprovider_CPPFLAGS = $(AM_CPPFLAGS) -DPKGLIBEXECDIR=\"$(pkglibexecdir)\"
-kvsprovider_LDADD = libstartupcommon.la $(libpse) $(libpskvs) $(POPT_LIBS)
+kvsprovider_LDADD = libstartupcommon.la $(libpse) $(libpskvs) -lrt $(POPT_LIBS)
 
 spawner_SOURCES = spawner.c
 spawner_CPPFLAGS = $(AM_CPPFLAGS) -DCONFIGDIR=\"$(configdir)\"

@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2002-2004 ParTec AG, Karlsruhe
  * Copyright (C) 2005-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2022 ParTec AG, Munich
+ * Copyright (C) 2021-2023 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -11,15 +11,27 @@
  */
 #include "timer.h"
 
+#include <bits/types/__sigval_t.h>
+#include <bits/types/struct_itimerspec.h>
 #include <errno.h>
 #include <math.h>
 #include <signal.h>
 #include <stdlib.h>
 #include <syslog.h>
 #include <sys/time.h>
+#include <time.h>
 
 #include "list.h"
 #include "pscommon.h"
+
+/** Signal to use for timer handling */
+#define TIMER_SIG SIGRTMIN
+
+/** Clock to use for timer definition */
+#define TIMER_CLOCKID CLOCK_MONOTONIC
+
+/** Interval timer to use for triggering timers */
+timer_t itimer = NULL;
 
 /**
  * The unique ID of the next timer to register. Set by @ref
@@ -85,8 +97,6 @@ static int timerdiv(struct timeval *tv1, struct timeval *tv2)
  */
 static void rescaleActPeriods(struct timeval *newTimeout)
 {
-    struct itimerval itv;
-
     actPeriod = *newTimeout;
 
     /* Change all periods */
@@ -99,10 +109,11 @@ static void rescaleActPeriods(struct timeval *newTimeout)
 	timer->calls = timer->calls * timer->period / old_period;
     }
 
-    /* Change the timer */
-    itv.it_value.tv_sec = itv.it_interval.tv_sec = actPeriod.tv_sec;
-    itv.it_value.tv_usec = itv.it_interval.tv_usec = actPeriod.tv_usec;
-    if (setitimer(ITIMER_REAL, &itv, NULL)==-1) {
+    /* Change the interval timer */
+    struct itimerspec its;
+    its.it_value.tv_sec = its.it_interval.tv_sec = actPeriod.tv_sec;
+    its.it_value.tv_nsec = its.it_interval.tv_nsec = 1000 * actPeriod.tv_usec;
+    if (timer_settime(itimer, 0, &its, NULL) == -1) {
 	logger_exit(logger, errno, "%s: unable to set itimer to %ld.%.6ld",
 		    __func__, actPeriod.tv_sec, actPeriod.tv_usec);
     }
@@ -111,15 +122,15 @@ static void rescaleActPeriods(struct timeval *newTimeout)
 /**
  * @brief Handles received signals
  *
- * Does all the signal-handling work. When a SIGALRM is received, this
- * function updates the counter @ref calls for each timer and marks
- * the specific @ref timeoutHandler() to have a pending signal if
- * necessary. The actual call of this handler will happen in @ref
- * Timer_handleSignals() which for the time being is called from
- * within the Selector facility.
+ * Does all the signal-handling work. When a @ref TIMER_SIG is
+ * received, this function updates the counter @ref calls for each
+ * timer and marks the specific @ref timeoutHandler() to have a
+ * pending signal if necessary. The actual call of this handler will
+ * happen in @ref Timer_handleSignals() which for the time being is
+ * called from within the Selector facility.
  *
- * @param sig Signal to be the processed (ignored, since only SIGALRM
- * is handled)
+ * @param sig Signal to be the processed (ignored, since only @ref
+ * TIMER_SIG is handled)
  *
  * @return No return value
  */
@@ -141,10 +152,10 @@ static int deleteTimer(Timer_t *timer)
 	return -1;
     }
 
-    /* Block SIGALRM, while we fiddle around with the timers */
+    /* Block @ref TIMER_SIG, while we fiddle around with the timers */
     sigset_t sigset;
     sigemptyset(&sigset);
-    sigaddset(&sigset, SIGALRM);
+    sigaddset(&sigset, TIMER_SIG);
     sigprocmask(SIG_BLOCK, &sigset, NULL);
 
     /* Remove timer from timerList */
@@ -153,7 +164,7 @@ static int deleteTimer(Timer_t *timer)
     if (list_empty(&timerList)) {
 	/* list empty, i.e. last timer removed */
 	/* Set sigaction to default */
-	if (PSC_setSigHandler(SIGALRM, SIG_DFL) == SIG_ERR) {
+	if (PSC_setSigHandler(TIMER_SIG, SIG_DFL) == SIG_ERR) {
 	    logger_exit(logger, errno, "%s: unable to set SIG_DFL", __func__);
 	}
 
@@ -181,9 +192,9 @@ static int deleteTimer(Timer_t *timer)
     /* Release allocated memory of removed timer */
     free(timer);
 
-    /* Unblock SIGALRM, again */
+    /* Unblock @ref TIMER_SIG, again */
     sigemptyset(&sigset);
-    sigaddset(&sigset, SIGALRM);
+    sigaddset(&sigset, TIMER_SIG);
     sigprocmask(SIG_UNBLOCK, &sigset, NULL);
 
     return 0;
@@ -242,8 +253,17 @@ void Timer_init(FILE* logfile)
     }
 
     /* (Re)set sigaction to default */
-    if (PSC_setSigHandler(SIGALRM, SIG_DFL) == SIG_ERR) {
+    if (PSC_setSigHandler(TIMER_SIG, SIG_DFL) == SIG_ERR) {
 	logger_exit(logger, errno, "%s: unable to reset sigHandler", __func__);
+    }
+
+    /* Create the POSIX per-process timer to use if necessary */
+    struct sigevent sev;
+    sev.sigev_notify = SIGEV_SIGNAL;
+    sev.sigev_signo = TIMER_SIG;
+    sev.sigev_value.sival_ptr = &itimer;
+    if (timer_create(TIMER_CLOCKID, &sev, &itimer) == -1) {
+	logger_exit(logger, errno, "%s: timer_create()", __func__);
     }
 
     /* Free all old timers, if any */
@@ -292,15 +312,15 @@ static int Timer_doRegister(struct timeval *timeout, handler_t handler,
 	.sigBlocked = false,
 	.sigPending = false };
 
-    /* Block SIGALRM, while we fiddle around with the timers */
+    /* Block @ref TIMER_SIG, while we fiddle around with the timers */
     sigset_t sigset;
     sigemptyset(&sigset);
-    sigaddset(&sigset, SIGALRM);
+    sigaddset(&sigset, TIMER_SIG);
     sigprocmask(SIG_BLOCK, &sigset, NULL);
 
     if (list_empty(&timerList)) {
 	/* first timer to register */
-	if (PSC_setSigHandler(SIGALRM, sigHandler) == SIG_ERR) {
+	if (PSC_setSigHandler(TIMER_SIG, sigHandler) == SIG_ERR) {
 	    logger_exit(logger, errno,
 			"%s: unable to set sigHandler", __func__);
 	}
@@ -320,9 +340,9 @@ static int Timer_doRegister(struct timeval *timeout, handler_t handler,
     nextID++;
     list_add_tail(&new->next, &timerList);
 
-    /* Unblock SIGALRM, again */
+    /* Unblock @ref TIMER_SIG, again */
     sigemptyset(&sigset);
-    sigaddset(&sigset, SIGALRM);
+    sigaddset(&sigset, TIMER_SIG);
     sigprocmask(SIG_UNBLOCK, &sigset, NULL);
 
     return new->id;

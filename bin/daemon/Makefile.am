@@ -2,7 +2,7 @@
 # ParaStation
 #
 # Copyright (C) 2017-2020 ParTec Cluster Competence Center GmbH, Munich
-# Copyright (C) 2022 ParTec AG, Munich
+# Copyright (C) 2022-2023 ParTec AG, Munich
 #
 # This file may be distributed under the terms of the Q Public License
 # as defined in the file LICENSE.QPL included in the packaging of this
@@ -33,10 +33,10 @@ psid_SOURCES = psid.c psidaccount.c psidaccount.h psidclient.c		\
 	psidtask.c psidtask.h psidutil.c psidutil.h
 
 psid_LDFLAGS = $(AM_LDFLAGS) $(glib2_LIBS) -export-dynamic
-psid_LDADD = $(libputil) $(libpscommon) $(libpslog) -lutil	\
-	-ldl $(POPT_LIBS) $(NUMA_LIBS) $(HWLOC_LIBS) $(psconfig_LIBS)
+psid_LDADD = $(libputil) $(libpscommon) $(libpslog) -lutil -ldl -lrt	\
+	$(POPT_LIBS) $(NUMA_LIBS) $(HWLOC_LIBS) $(psconfig_LIBS)
 
 test_config_SOURCES = test_config.c psidnodes.c psidnodes.h	\
 	psidscripts.c psidscripts.h psidutil.c psidutil.h
-test_config_LDADD = $(libputil) $(libpscommon) $(POPT_LIBS)	\
+test_config_LDADD = $(libputil) $(libpscommon) -lrt $(POPT_LIBS)	\
 	$(glib2_LIBS) $(psconfig_LIBS)
