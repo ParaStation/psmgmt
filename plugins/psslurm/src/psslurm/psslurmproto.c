@@ -1709,11 +1709,7 @@ static void handleStepPids(Slurm_Msg_t *sMsg)
     sendSlurmReply(sMsg, RESPONSE_JOB_STEP_PIDS);
 }
 
-/**
- * @brief Calculate the real memory of the local node
- * in megabytes
- */
-static uint64_t getNodeMem(void)
+uint64_t getNodeMem(void)
 {
     long pages = sysconf(_SC_PHYS_PAGES);
     if (pages < 0) {

@@ -786,4 +786,12 @@ bool stopHealthCheck(int signal);
  */
 uint64_t getSlurmHCRuns(void);
 
+/**
+ * @brief Calculate the real memory of the local node
+ * in megabytes
+ *
+ * @return Returns the real memory of the local node or 1 on error.
+ */
+uint64_t getNodeMem(void);
+
 #endif /* __PSSLURM_PROTO */
