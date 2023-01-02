@@ -221,6 +221,23 @@ int getConfValueI(Config_t *conf, char *key);
  */
 long getConfValueL(Config_t *conf, char *key);
 
+/**
+ * @brief Get value as float
+ *
+ * Get the value of the entry identified by the key @a key from the
+ * configuration @a conf. The value is returned as a floating point variable. If
+ * no entry was found or conversion into a float failed -1 is returned.
+ *
+ * @param conf Configuration to be searched
+ *
+ * @param key Key identifying the entry
+ *
+ * @return If a corresponding entry is found and its value can be
+ * converted to a float, this value is returned. Otherwise -1
+ * is returned.
+ */
+float getConfValueF(Config_t *conf, char *key);
+
 /** Definition of a single configuration parameter */
 typedef struct {
     char *name;	    /**< name of the config key */

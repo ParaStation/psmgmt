@@ -271,6 +271,21 @@ long getConfValueL(Config_t *conf, char *key)
     return val;
 }
 
+float getConfValueF(Config_t *conf, char *key)
+{
+    float val = -1;
+    char *valStr;
+
+    if (!key || !(valStr = getConfValue(conf, key))) return val;
+
+    if ((sscanf(valStr, "%f", &val)) != 1) {
+	pluginlog("%s: option '%s' is not a float\n", __func__, key);
+	val = -1;
+    }
+
+    return val;
+}
+
 int getConfValueI(Config_t *conf, char *key)
 {
     int val = -1;
