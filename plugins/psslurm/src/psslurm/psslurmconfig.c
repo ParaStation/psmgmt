@@ -1250,33 +1250,33 @@ static bool verifySlurmConf(void)
 static bool verifyCgroupConf(char *key, char *value, const void *info)
 {
     if (!strcasecmp(key, "AllowedKmemSpace")) {
-	fdbg(PSSLURM_LOG_DEBUG, "cgroup AllowedKmemSpace=%s\n", value);
+	fdbg(PSSLURM_LOG_JAIL, "cgroup AllowedKmemSpace=%s\n", value);
     } else if (!strcasecmp(key, "ConstrainKmemSpace")) {
-	fdbg(PSSLURM_LOG_DEBUG, "cgroup ConstrainKmemSpace=%s\n", value);
+	fdbg(PSSLURM_LOG_JAIL, "cgroup ConstrainKmemSpace=%s\n", value);
     } else if (!strcasecmp(key, "MaxKmemPercent")) {
-	fdbg(PSSLURM_LOG_DEBUG, "cgroup MaxKmemPercent=%s\n", value);
+	fdbg(PSSLURM_LOG_JAIL, "cgroup MaxKmemPercent=%s\n", value);
     } else if (!strcasecmp(key, "MinKmemSpace")) {
-	fdbg(PSSLURM_LOG_DEBUG, "cgroup MinKmemSpace=%s\n", value);
+	fdbg(PSSLURM_LOG_JAIL, "cgroup MinKmemSpace=%s\n", value);
     } else if (!strcasecmp(key, "AllowedRAMSpace")) {
-	fdbg(PSSLURM_LOG_DEBUG, "cgroup AllowedRAMSpace=%s\n", value);
+	fdbg(PSSLURM_LOG_JAIL, "cgroup AllowedRAMSpace=%s\n", value);
     } else if (!strcasecmp(key, "ConstrainRAMSpace")) {
-	fdbg(PSSLURM_LOG_DEBUG, "cgroup ConstrainRAMSpace=%s\n", value);
+	fdbg(PSSLURM_LOG_JAIL, "cgroup ConstrainRAMSpace=%s\n", value);
     } else if (!strcasecmp(key, "MaxRAMPercent")) {
-	fdbg(PSSLURM_LOG_DEBUG, "cgroup MaxRAMPercent=%s\n", value);
+	fdbg(PSSLURM_LOG_JAIL, "cgroup MaxRAMPercent=%s\n", value);
     } else if (!strcasecmp(key, "MinRAMSpace")) {
-	fdbg(PSSLURM_LOG_DEBUG, "cgroup MinRAMSpace=%s\n", value);
+	fdbg(PSSLURM_LOG_JAIL, "cgroup MinRAMSpace=%s\n", value);
     } else if (!strcasecmp(key, "AllowedSwapSpace")) {
-	fdbg(PSSLURM_LOG_DEBUG, "cgroup AllowedSwapSpace=%s\n", value);
+	fdbg(PSSLURM_LOG_JAIL, "cgroup AllowedSwapSpace=%s\n", value);
     } else if (!strcasecmp(key, "ConstrainSwapSpace")) {
-	fdbg(PSSLURM_LOG_DEBUG, "cgroup ConstrainSwapSpace=%s\n", value);
+	fdbg(PSSLURM_LOG_JAIL, "cgroup ConstrainSwapSpace=%s\n", value);
     } else if (!strcasecmp(key, "MaxSwapPercent")) {
-	fdbg(PSSLURM_LOG_DEBUG, "cgroup MaxSwapPercent=%s\n", value);
+	fdbg(PSSLURM_LOG_JAIL, "cgroup MaxSwapPercent=%s\n", value);
     } else if (!strcasecmp(key, "MemorySwappiness")) {
-	fdbg(PSSLURM_LOG_DEBUG, "cgroup MemorySwappiness=%s\n", value);
+	fdbg(PSSLURM_LOG_JAIL, "cgroup MemorySwappiness=%s\n", value);
     } else if (!strcasecmp(key, "ConstrainCores")) {
-	fdbg(PSSLURM_LOG_DEBUG, "cgroup ConstrainCores=%s\n", value);
+	fdbg(PSSLURM_LOG_JAIL, "cgroup ConstrainCores=%s\n", value);
     } else if (!strcasecmp(key, "ConstrainDevices")) {
-	fdbg(PSSLURM_LOG_DEBUG, "cgroup ConstrainDevices=%s\n", value);
+	fdbg(PSSLURM_LOG_JAIL, "cgroup ConstrainDevices=%s\n", value);
     } else if (!strcasecmp(key, "CgroupPlugin")) {
 	if (!strcasecmp(value, "cgroup/v2")) {
 	    flog("error: CgroupPlugin has to be cgroup/v1\n");

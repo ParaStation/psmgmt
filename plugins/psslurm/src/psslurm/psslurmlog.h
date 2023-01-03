@@ -35,26 +35,27 @@ void initLogger(char *name, FILE *logfile);
 void maskLogger(int32_t mask);
 
 typedef enum {
-    PSSLURM_LOG_DEBUG    =      0x000010, /**< Debug */
-    PSSLURM_LOG_WARN     =      0x000020, /**< Warnings */
-    PSSLURM_LOG_PSCOMM   =      0x000040, /**< Daemon communication */
-    PSSLURM_LOG_PROCESS  =      0x000080, /**< Process */
-    PSSLURM_LOG_COMM     =      0x000100, /**< Slurm communication */
-    PSSLURM_LOG_PELOG    =      0x000200, /**< Prologue/Epilogue */
-    PSSLURM_LOG_JOB      =      0x000400, /**< Job */
-    PSSLURM_LOG_ENV      =      0x000800, /**< Env */
-    PSSLURM_LOG_PROTO    =      0x001000, /**< Protocol */
-    PSSLURM_LOG_AUTH     =      0x002000, /**< Auth */
-    PSSLURM_LOG_PART     =      0x004000, /**< Partition and Reservation */
-    PSSLURM_LOG_GRES     =      0x008000, /**< Gres */
-    PSSLURM_LOG_FWD      =      0x010000, /**< Msg forwarding */
-    PSSLURM_LOG_IO       =      0x020000, /**< I/O */
-    PSSLURM_LOG_ACC      =      0x040000, /**< Account */
-    PSSLURM_LOG_IO_VERB  =      0x080000, /**< more verbose I/O */
-    PSSLURM_LOG_PACK	 =	0x100000, /**< job pack */
-    PSSLURM_LOG_SPANK	 =	0x200000, /**< spank */
-    PSSLURM_LOG_SPLUGIN  =      0x400000, /**< slurm plugins */
-    PSSLURM_LOG_TOPO     =      0x800000, /**< Topology */
+    PSSLURM_LOG_DEBUG    =      0x0000010, /**< Debug */
+    PSSLURM_LOG_WARN     =      0x0000020, /**< Warnings */
+    PSSLURM_LOG_PSCOMM   =      0x0000040, /**< Daemon communication */
+    PSSLURM_LOG_PROCESS  =      0x0000080, /**< Process */
+    PSSLURM_LOG_COMM     =      0x0000100, /**< Slurm communication */
+    PSSLURM_LOG_PELOG    =      0x0000200, /**< Prologue/Epilogue */
+    PSSLURM_LOG_JOB      =      0x0000400, /**< Job */
+    PSSLURM_LOG_ENV      =      0x0000800, /**< Env */
+    PSSLURM_LOG_PROTO    =      0x0001000, /**< Protocol */
+    PSSLURM_LOG_AUTH     =      0x0002000, /**< Auth */
+    PSSLURM_LOG_PART     =      0x0004000, /**< Partition and Reservation */
+    PSSLURM_LOG_GRES     =      0x0008000, /**< Gres */
+    PSSLURM_LOG_FWD      =      0x0010000, /**< Msg forwarding */
+    PSSLURM_LOG_IO       =      0x0020000, /**< I/O */
+    PSSLURM_LOG_ACC      =      0x0040000, /**< Account */
+    PSSLURM_LOG_IO_VERB  =      0x0080000, /**< more verbose I/O */
+    PSSLURM_LOG_PACK	 =	0x0100000, /**< job pack */
+    PSSLURM_LOG_SPANK	 =	0x0200000, /**< spank */
+    PSSLURM_LOG_SPLUGIN  =      0x0400000, /**< slurm plugins */
+    PSSLURM_LOG_TOPO     =      0x0800000, /**< Topology */
+    PSSLURM_LOG_JAIL     =      0x1000000, /**< jail/cgroup */
 } PSSLURM_log_types_t;
 
 #endif  /* __PSSLURM_LOG */
