@@ -114,4 +114,14 @@ void setRankEnv(int32_t rank, Step_t *step);
  */
 void removeUserVars(env_t *env, pmi_type_t pmi_type);
 
+/**
+ * @brief Set SLURM_CONF environment
+ *
+ * Set SLURM_CONF environment variable in Slurm config-less mode.
+ *
+ * @param env The environment to change, if NULL setenv() is used
+ * to change to current environment
+ */
+void setSlurmConfEnvVar(env_t *env);
+
 #endif  /* __PS_SLURM_ENV */

@@ -25,6 +25,7 @@
 #include "slurmcommon.h"
 #include "psslurmconfig.h"
 #include "psslurmlog.h"
+#include "psslurmenv.h"
 
 static char buffer[1024];
 
@@ -271,11 +272,7 @@ int fillSpawnTaskWithSrun(SpawnRequest_t *req, int usize, PStask_t *task)
 	envPut(&newenv, step->env.vars[i]);
     }
 
-    char *confServer = getConfValueC(&Config, "SLURM_CONF_SERVER");
-    if (confServer && strcmp(confServer, "none")) {
-	/* ensure the configuration cache is used */
-	envSet(&newenv, "SLURM_CONF", getConfValueC(&Config, "SLURM_CONF"));
-    }
+    setSlurmConfEnvVar(&newenv);
 
     /* XXX: Do we need to set further variables as in setRankEnv()
      *      in psslurmforwarder.c? */

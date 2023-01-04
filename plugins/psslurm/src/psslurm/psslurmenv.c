@@ -18,6 +18,7 @@
 #include <string.h>
 #include <sys/stat.h>
 #include <unistd.h>
+#include <linux/limits.h>
 
 #include "list.h"
 #include "pscommon.h"
@@ -808,6 +809,33 @@ static void setOrdinaryRankEnv(uint32_t rank, Step_t *step)
     }
 }
 
+void setSlurmConfEnvVar(env_t *env)
+{
+    char *confServer = getConfValueC(&Config, "SLURM_CONF_SERVER");
+    if (confServer && strcmp(confServer, "none")) {
+	/* ensure the configuration cache is used */
+	char *confDir = getConfValueC(&Config, "SLURM_CONFIG_DIR");
+	if (!confDir) {
+	    flog("warning: invalid SLURM_CONFIG_DIR");
+	    return;
+	}
+
+	char *confFile = getConfValueC(&Config, "SLURM_CONF");
+	if (!confFile) {
+	    flog("warning: invalid SLURM_CONF");
+	    return;
+	}
+
+	char cPath[PATH_MAX];
+	snprintf(cPath, sizeof(cPath), "%s/%s", confDir, confFile);
+	if (env) {
+	    envSet(env, "SLURM_CONF", cPath);
+	} else {
+	    setenv("SLURM_CONF", cPath, 1);
+	}
+    }
+}
+
 /**
  * @brief Set common environment for a rank
  *
@@ -859,11 +887,7 @@ static void setCommonRankEnv(int32_t rank, Step_t *step)
 	free(rpath);
     }
 
-    char *confServer = getConfValueC(&Config, "SLURM_CONF_SERVER");
-    if (confServer && strcmp(confServer, "none")) {
-	/* ensure the configuration cache is used */
-	setenv("SLURM_CONF", getConfValueC(&Config, "SLURM_CONF"), 1);
-    }
+    setSlurmConfEnvVar(NULL);
 
     setenv("SLURMD_NODENAME", getConfValueC(&Config, "SLURM_HOSTNAME"), 1);
     char tmp[128];
@@ -1104,11 +1128,7 @@ void setJobEnv(Job_t *job)
 
     removeSpankOptions(&job->env);
 
-    char *confServer = getConfValueC(&Config, "SLURM_CONF_SERVER");
-    if (confServer && strcmp(confServer, "none")) {
-	/* ensure the configuration cache is used */
-	envSet(&job->env, "SLURM_CONF", getConfValueC(&Config, "SLURM_CONF"));
-    }
+    setSlurmConfEnvVar(&job->env);
 
     Alloc_t *alloc = Alloc_find(job->jobid);
     if (alloc) setPsslurmEnv(&alloc->env, &job->env);
