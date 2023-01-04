@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2014-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2022 ParTec AG, Munich
+ * Copyright (C) 2021-2023 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -52,7 +52,7 @@ typedef struct {
     uint32_t flags;             /**< parsed binary flags */
     uint64_t count;             /**< number of GRES resources */
     uint32_t id;                /**< GRES plugin ID */
-    uint32_t nextDevID;		/**< next device ID to use */
+    uint32_t nextDevID;		/**< first device ID in this configuration */
     list_t devices;		/**< list of GRes devices */
 } Gres_Conf_t;
 

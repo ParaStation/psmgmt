@@ -38,11 +38,11 @@ static uint32_t getGresId(char *name)
     return gresId;
 }
 
-static int setGresCount(Gres_Conf_t *gres, char *count)
+static bool setGresCount(Gres_Conf_t *gres, char *count)
 {
     if (!count) {
 	gres->count = 1;
-	return 1;
+	return true;
     }
 
     char *end;
@@ -52,11 +52,11 @@ static int setGresCount(Gres_Conf_t *gres, char *count)
     if (!gCount && errno != 0) {
 	mwarn(errno, "%s: invalid count '%s' for '%s'", __func__,
 	      count, gres->name);
-	return 0;
+	return false;
     }
     if (gCount == LONG_MIN || gCount == LONG_MAX) {
 	flog("invalid count '%s' for '%s'\n", count, gres->name);
-	return 0;
+	return false;
     }
     if (end[0] == 'k' || end[0] == 'K') {
 	gCount *= 1024;
@@ -66,11 +66,11 @@ static int setGresCount(Gres_Conf_t *gres, char *count)
 	gCount *= (1024 * 1024 * 1024);
     } else if (end[0] != '\0') {
 	flog("invalid count '%s' for '%s'\n", count, gres->name);
-	return 0;
+	return false;
     }
 
     gres->count = gCount;
-    return 1;
+    return true;
 }
 
 static bool discoverDevices(char *file, void *info)
@@ -98,31 +98,29 @@ static bool discoverDevices(char *file, void *info)
 
 GRes_Dev_t *GRes_findDevice(uint32_t pluginID, uint32_t bitIdx)
 {
-    list_t *g;
-
-    list_for_each(g, &GresConfList) {
-	Gres_Conf_t *conf = list_entry(g, Gres_Conf_t, next);
-	if (conf->id == pluginID) {
-	    list_t *l;
-	    list_for_each(l, &conf->devices) {
-		GRes_Dev_t *dev = list_entry(l, GRes_Dev_t, next);
-		if (dev->slurmIdx == bitIdx) return dev;
-	    }
+    list_t *c;
+    list_for_each(c, &GresConfList) {
+	Gres_Conf_t *conf = list_entry(c, Gres_Conf_t, next);
+	if (conf->id != pluginID) continue;
+	list_t *d;
+	list_for_each(d, &conf->devices) {
+	    GRes_Dev_t *dev = list_entry(d, GRes_Dev_t, next);
+	    if (dev->slurmIdx == bitIdx) return dev;
 	}
     }
     return NULL;
 }
 
-static int parseGresFile(Gres_Conf_t *gres)
+static bool parseGresFile(Gres_Conf_t *gres)
 {
     /* discover all devices */
     INIT_LIST_HEAD(&gres->devices);
     if (!traverseHostList(gres->file, discoverDevices, gres)) {
 	flog("invalid gres file '%s' for '%s'\n", gres->file, gres->name);
-	return 0;
+	return false;
     }
 
-    return 1;
+    return true;
 }
 
 static void freeGresConf(Gres_Conf_t *gres)
@@ -135,9 +133,9 @@ static void freeGresConf(Gres_Conf_t *gres)
     ufree(gres->strFlags);
     ufree(gres->links);
 
-    list_t *g, *tmp;
-    list_for_each_safe(g, tmp, &gres->devices) {
-	GRes_Dev_t *dev = list_entry(g, GRes_Dev_t, next);
+    list_t *d, *tmp;
+    list_for_each_safe(d, tmp, &gres->devices) {
+	GRes_Dev_t *dev = list_entry(d, GRes_Dev_t, next);
 	ufree(dev->path);
 	list_del(&dev->next);
 	ufree(dev);
@@ -152,12 +150,10 @@ Gres_Conf_t *saveGresConf(Gres_Conf_t *gres, char *count)
     gres->nextDevID = 0;
 
     /* use continuing device IDs */
-    list_t *g;
-    list_for_each(g, &GresConfList) {
-	Gres_Conf_t *conf = list_entry(g, Gres_Conf_t, next);
-	if (conf->id == gres->id) {
-	    gres->nextDevID += conf->count;
-	}
+    list_t *c;
+    list_for_each(c, &GresConfList) {
+	Gres_Conf_t *conf = list_entry(c, Gres_Conf_t, next);
+	if (conf->id == gres->id) gres->nextDevID += conf->count;
     }
 
     /* parse file */
@@ -194,19 +190,19 @@ int countGresConf(void)
 {
     int count = 0;
     list_t *g;
-
     list_for_each(g, &GresConfList) count++;
+
     return count;
 }
 
 void clearGresConf(void)
 {
-    list_t *g, *tmp;
-    list_for_each_safe(g, tmp, &GresConfList) {
-	Gres_Conf_t *gres = list_entry(g, Gres_Conf_t, next);
+    list_t *c, *tmp;
+    list_for_each_safe(c, tmp, &GresConfList) {
+	Gres_Conf_t *conf = list_entry(c, Gres_Conf_t, next);
 
-	list_del(&gres->next);
-	freeGresConf(gres);
+	list_del(&conf->next);
+	freeGresConf(conf);
     }
 }
 
@@ -264,11 +260,11 @@ void freeGresCred(list_t *gresList)
 
 bool traverseGresConf(GresConfVisitor_t visitor, void *info)
 {
-    list_t *g, *tmp;
-    list_for_each_safe(g, tmp, &GresConfList) {
-	Gres_Conf_t *gres = list_entry(g, Gres_Conf_t, next);
+    list_t *c, *tmp;
+    list_for_each_safe(c, tmp, &GresConfList) {
+	Gres_Conf_t *conf = list_entry(c, Gres_Conf_t, next);
 
-	if (visitor(gres, info)) return true;
+	if (visitor(conf, info)) return true;
     }
 
     return false;
