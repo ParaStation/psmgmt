@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2014-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2022 ParTec AG, Munich
+ * Copyright (C) 2021-2023 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -81,7 +81,7 @@ static bool discoverDevices(char *file, void *info)
     if (stat(file, &sbuf) == -1) {
 	flog("invalid GRes device '%s' for '%s'\n", file, gres->name);
     } else {
-	GRes_Dev_t *gDev = umalloc(sizeof(gDev));
+	GRes_Dev_t *gDev = umalloc(sizeof(*gDev));
 	gDev->major = major(sbuf.st_rdev);
 	gDev->minor = minor(sbuf.st_rdev);
 	gDev->slurmIdx = gres->nextDevID + gres->count++;
