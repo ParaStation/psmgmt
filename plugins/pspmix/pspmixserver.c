@@ -384,7 +384,7 @@ static void fencenb_release_fn(void *cbdata)
 /* tell server helper library about fence finished
  *
  * This takes over ownership of @a mdata so make sure it is dynamically
- * allocated using umalloc(). Of cause the same holds for mdata->data.
+ * allocated using umalloc(). Of course the same holds for mdata->data.
  * This function uses the fields data, ndata, cbfunc, and cbdata of mdata.
  * It is fine for each of them to be NULL resp. 0, but if data is set, cbfunc
  * has to be set, too.
