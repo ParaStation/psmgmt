@@ -1036,7 +1036,7 @@ int pspmix_service_fenceIn(const pmix_proc_t procs[], size_t nprocs,
 		PspmixNode_t *node;
 		node = list_entry(n, PspmixNode_t, next);
 
-		/* do not add doublicates */
+		/* do not add duplicates */
 		if (!vectorContains(&nodes, &node->id)) {
 		    vectorAdd(&nodes, &node->id);
 		}
@@ -1053,7 +1053,7 @@ int pspmix_service_fenceIn(const pmix_proc_t procs[], size_t nprocs,
 	    return -1;
 	}
 
-	/* do not add doublicates */
+	/* do not add duplicates */
 	if (!vectorContains(&nodes, &nodeid)) {
 	    vectorAdd(&nodes, &nodeid);
 	}
