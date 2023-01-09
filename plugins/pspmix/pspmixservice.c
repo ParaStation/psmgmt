@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2018-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2022 ParTec AG, Munich
+ * Copyright (C) 2021-2023 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -1078,10 +1078,7 @@ int pspmix_service_fenceIn(const pmix_proc_t procs[], size_t nprocs,
 
     if (nodes.len == 1) {
 	/* We are the only participant, return directly */
-	mdata->data = umalloc(ndata);
-	memcpy(mdata->data, data, ndata);
-	mdata->ndata = ndata;
-
+	/* No need to pass back the data blob we got from PMIx server */
 	mdbg(PSPMIX_LOG_FENCE, "%s: Just this node participating in fence\n",
 	     __func__);
 	vectorDestroy(&nodes);

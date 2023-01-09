@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2018-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2022 ParTec AG, Munich
+ * Copyright (C) 2021-2023 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -538,9 +538,9 @@ static pmix_status_t server_fencenb_cb(
     assert(ret == 1);
 
     PMIX_PROC_DESTRUCT(&mdata->proc);
+    ufree(mdata->data);
     ufree(mdata);
-    mdbg(PSPMIX_LOG_FENCE, "%s: Returning PMIX_OPERATION_SUCCEEDED.\n",
-	    __func__);
+    mlog("%s: return PMIX_OPERATION_SUCCEEDED\n", __func__);
     return PMIX_OPERATION_SUCCEEDED;
 }
 
