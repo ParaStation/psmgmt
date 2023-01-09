@@ -931,7 +931,7 @@ static uint64_t getFenceID(PSnodes_ID_t sortednodes[], int numnodes)
  *
  * @param fence      fence object
  */
-void checkFence(PspmixFence_t *fence) {
+static void checkFence(PspmixFence_t *fence) {
 
     mdbg(PSPMIX_LOG_CALL, "%s(id 0x%04lX receivedIn %d nnodes %lu)\n",
 	 __func__, fence->id, fence->receivedIn, fence->nnodes);
@@ -955,9 +955,9 @@ void checkFence(PspmixFence_t *fence) {
 	    /* we are not the last in the chain */
 
 	    /* concatenate our data */
-	    fence->rdata = urealloc(fence->rdata,
-		    fence->nrdata + fence->nldata);
+	    fence->rdata = urealloc(fence->rdata, fence->nrdata + fence->nldata);
 	    memcpy(fence->rdata + fence->nrdata, fence->ldata, fence->nldata);
+	    fence->nrdata += fence->nldata;
 
 	    /* get my follow up node */
 	    size_t i;
