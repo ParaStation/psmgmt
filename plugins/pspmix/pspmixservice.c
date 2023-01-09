@@ -999,11 +999,61 @@ static PspmixFence_t * createFenceObject(uint64_t fenceid, const char *caller)
     return fence;
 }
 
+static bool extractNodes(const pmix_proc_t procs[], size_t nprocs,
+			 vector_t *nodes)
+{
+    vectorInit(nodes, 32, 32, PSnodes_ID_t);
+
+    GET_LOCK(namespaceList);
+
+    PspmixNamespace_t *ns = NULL;
+    for (size_t p = 0; p < nprocs; p++) {
+	if (!ns || !PMIX_CHECK_NSPACE(procs[p].nspace, ns->name)) {
+	    ns = findNamespace(procs[p].nspace);
+	    if (!ns) {
+		ulog("UNEXPECTED: unknown namespaces '%s'\n", procs[p].nspace);
+		vectorDestroy(nodes);
+		RELEASE_LOCK(namespaceList);
+		return false;
+	    }
+	}
+
+	/* handle wildcard case */
+	if (procs[p].rank == PMIX_RANK_WILDCARD) {
+	    /* add all nodes of this namespace */
+	    list_t *n;
+	    list_for_each(n, &ns->procMap) {
+		PspmixNode_t *node = list_entry(n, PspmixNode_t, next);
+
+		/* do not add duplicates */
+		if (!vectorContains(nodes, &node->id)) {
+		    vectorAdd(nodes, &node->id);
+		}
+	    }
+	    continue;
+	}
+
+	PSnodes_ID_t nodeid = getNodeFromRank(ns, procs[p].rank);
+	if (nodeid < 0) {
+	    ulog("no node for rank %d in namespace '%s'\n",
+		 procs[p].rank, procs[p].nspace);
+	    vectorDestroy(nodes);
+	    RELEASE_LOCK(namespaceList);
+	    return false;
+	}
+
+	/* do not add duplicates */
+	if (!vectorContains(nodes, &nodeid)) vectorAdd(nodes, &nodeid);
+    }
+
+    RELEASE_LOCK(namespaceList);
+
+    return true;
+}
 
 int pspmix_service_fenceIn(const pmix_proc_t procs[], size_t nprocs,
-	char *data, size_t ndata, modexdata_t *mdata)
+			   char *data, size_t ndata, modexdata_t *mdata)
 {
-
     if (nprocs == 0) {
 	ulog("ERROR: nprocs == 0\n");
 	return -1;
@@ -1014,52 +1064,10 @@ int pspmix_service_fenceIn(const pmix_proc_t procs[], size_t nprocs,
 
     /* create list of participating nodes */
     vector_t nodes;
-    vectorInit(&nodes, 32, 32, PSnodes_ID_t);
-
-    GET_LOCK(namespaceList);
-
-    PspmixNamespace_t *ns = findNamespace(procs[0].nspace);
-
-    for (size_t i = 0; i < nprocs; i++) {
-	if (!PMIX_CHECK_NSPACE(procs[i].nspace, procs[0].nspace)) {
-	    ulog("UNEXPECTED: multiple namespaces in one fence operation:"
-		    "'%s' != '%s'\n", procs[i].nspace, procs[0].nspace);
-	    RELEASE_LOCK(namespaceList);
-	    return -1;
-	}
-
-	/* handle wildcard case */
-	if (procs[i].rank == PMIX_RANK_WILDCARD) {
-	    /* add all nodes of the namespace */
-	    list_t *n;
-	    list_for_each(n, &ns->procMap) {
-		PspmixNode_t *node;
-		node = list_entry(n, PspmixNode_t, next);
-
-		/* do not add duplicates */
-		if (!vectorContains(&nodes, &node->id)) {
-		    vectorAdd(&nodes, &node->id);
-		}
-	    }
-	    continue;
-	}
-
-	PSnodes_ID_t nodeid = getNodeFromRank(ns, procs[i].rank);
-	if (nodeid < 0) {
-	    ulog("failed to get node for rank %d in namespace '%s'\n",
-		 procs[i].rank, procs[i].nspace);
-	    vectorDestroy(&nodes);
-	    RELEASE_LOCK(namespaceList);
-	    return -1;
-	}
-
-	/* do not add duplicates */
-	if (!vectorContains(&nodes, &nodeid)) {
-	    vectorAdd(&nodes, &nodeid);
-	}
+    if (!extractNodes(procs, nprocs, &nodes)) {
+	ulog("UNEXPECTED: failed to extract nodes for fence operation\n");
+	return -1;
     }
-
-    RELEASE_LOCK(namespaceList);
 
     if (nodes.len == 0) {
 	ulog("UNEXPECTED: no node in list of participating nodes\n");
