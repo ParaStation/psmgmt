@@ -215,3 +215,5 @@ AC_CONFIG_LINKS(dist/Makefile:dist/Makefile)
 AC_CONFIG_COMMANDS([mkdir],[$MKDIR_P scripts/init.d scripts/xinetd.d scripts/systemd])
 
 AC_OUTPUT
+
+AM_COND_IF([BUILD_WITHOUT_PSPMIX], [], [echo -e "\nUsing pmix $(pkg-config --modversion pmix)"])
