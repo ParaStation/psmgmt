@@ -376,14 +376,13 @@ static void fencenb_release_fn(void *cbdata)
     modexdata_t *mdata = cbdata;
 
     ufree(mdata->data);
-    memset(mdata, 0, sizeof(*mdata)); /* only for debugging */
     PMIX_PROC_DESTRUCT(&mdata->proc);
     ufree(mdata);
 }
 
 /* tell server helper library about fence finished
  *
- * This takes over ownership of @a mdata so make sure it is dynamically
+ * This takes over ownership of @a mdata, thus, ensure it is dynamically
  * allocated using umalloc(). Of course the same holds for mdata->data.
  * This function uses the fields data, ndata, cbfunc, and cbdata of mdata.
  * It is fine for each of them to be NULL resp. 0, but if data is set, cbfunc
@@ -393,6 +392,12 @@ void pspmix_server_fenceOut(bool success, modexdata_t *mdata)
 {
     assert(mdata != NULL);
     assert(mdata->cbfunc != NULL || mdata->data == NULL);
+
+    /* do some early cleanup */
+    if (!mdata->ndata) {
+	ufree(mdata->data);
+	mdata->data = NULL;
+    }
 
     mdbg(PSPMIX_LOG_CALL, "%s(success %s, mdata->cbfunc %s,"
 	 " mdata->ndata %lu)\n", __func__, success ? "true" : "false",
