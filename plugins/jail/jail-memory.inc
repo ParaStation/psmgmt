@@ -54,42 +54,66 @@ function initMem()
     IS_INIT="true"
 }
 
-function setMem()
+function setJobMem()
 {
-    local LIMIT=$1
+    local LIMIT_VAL=$1
+    local LIMIT_NAME=$2
 
     [ "$IS_INIT" == "false" ] && initMem;
 
     # job cgroup
-    dlog "$__PSJAIL_JOB_MEM_ALLOC > $CG_JOB/$LIMIT JOB: $SLURM_JOBID STEP:$SLURM_STEPID"
-    echo "$__PSJAIL_JOB_MEM_ALLOC" > $CG_JOB/$LIMIT
+    dlog "$LIMIT_VAL > $CG_JOB/$LIMIT_NAME JOB: $SLURM_JOBID STEP:$SLURM_STEPID"
+    echo "$LIMIT_VAL" > $CG_JOB/$LIMIT_NAME
+}
+
+function setStepMem()
+{
+    local LIMIT_VAL=$1
+    local LIMIT_NAME=$2
+
+    [ "$IS_INIT" == "false" ] && initMem;
 
     # step cgroup
     [ -n "$SLURM_STEPID" ] && {
-	dlog "$__PSJAIL_STEP_MEM_ALLOC > $CG_STEP/$LIMIT"
-        echo "$__PSJAIL_STEP_MEM_ALLOC" > $CG_STEP/$LIMIT
+	dlog "$LIMIT_VAL > $CG_STEP/$LIMIT_NAME"
+        echo "$LIMIT_VAL" > $CG_STEP/$LIMIT_NAME
 
-	echo "$__PSJAIL_STEP_MEM_ALLOC" > $CG_STEP/$LIMIT
+	echo "$LIMIT_VAL" > $CG_STEP/$LIMIT_NAME
     }
 }
-
-if [ "$__PSJAIL_CONSTRAIN_KMEM" == "no" ]; then
-    dlog "constrain KMEM *disabled*"
-else
-    dlog "constrain KMEM enabled"
-    setMem "memory.kmem.limit_in_bytes"
-fi
 
 if [ "$__PSJAIL_CONSTRAIN_RAM" == "no" ]; then
     dlog "constrain RAM *disabled*"
 else
     dlog "constrain RAM enabled"
-    setMem "memory.limit_in_bytes"
+
+    setJobMem "$__PSJAIL_JOB_RAM_SOFT" "memory.soft_limit_in_bytes"
+    setJobMem "$__PSJAIL_JOB_RAM_HARD" "memory.limit_in_bytes"
+
+    setStepMem "$__PSJAIL_STEP_RAM_SOFT" "memory.soft_limit_in_bytes"
+    setStepMem "$__PSJAIL_STEP_RAM_HARD" "memory.limit_in_bytes"
+
+    if [ "$__PSJAIL_CONSTRAIN_KMEM" == "no" ]; then
+	dlog "constrain KMEM *disabled*"
+    else
+	dlog "constrain KMEM enabled"
+	setJobMem "$__PSJAIL_JOB_KMEM" "memory.kmem.limit_in_bytes"
+	setStepMem "$__PSJAIL_STEP_KMEM" "memory.kmem.limit_in_bytes"
+    fi
 fi
 
 if [ "$__PSJAIL_CONSTRAIN_SWAP" == "no" ]; then
     dlog "constrain SWAP *disabled*"
 else
     dlog "constrain SWAP enabled"
-    setMem "memory.memsw.limit_in_bytes"
+    setJobMem "$__PSJAIL_JOB_SWAP" "memory.memsw.limit_in_bytes"
+    setStepMem "$__PSJAIL_STEP_SWAP" "memory.memsw.limit_in_bytes"
+fi
+
+if [ -z "$__PSJAIL_SWAPINESS" ]; then
+    dlog "constrain swapiness *disabled*"
+else
+    dlog "constrain swapiness enabled"
+    setJobMem "$__PSJAIL_SWAPINESS" "memory.swapiness"
+    setStepMem "$__PSJAIL_SWAPINESS" "memory.swapiness"
 fi

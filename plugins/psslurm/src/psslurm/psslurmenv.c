@@ -283,6 +283,193 @@ static void setThreadsBitmapsEnv(const PSCPU_set_t *stepcpus,
     }
 }
 
+static void doSetJailMemEnv(const uint64_t ram, const char *scope)
+{
+    char name[256], val[128];
+    char *prefix = "__PSJAIL_";
+
+    /* total node memory in Byte */
+    uint64_t nodeMem = getNodeMem()*1024*1024;
+
+    /* RAM limits */
+    uint64_t softRamLimit = ram, hardRamLimit = ram;
+
+    /* allowed RAM in percent */
+    float f = getConfValueF(&SlurmCgroupConfig, "AllowedRAMSpace");
+    uint64_t allowedRam = (f != -1) ? (f/100.0) * ram : ram;
+    hardRamLimit = allowedRam;
+    if (hardRamLimit < softRamLimit) softRamLimit = hardRamLimit;
+
+    /* max RAM in percent */
+    f = getConfValueF(&SlurmCgroupConfig, "MaxRAMPercent");
+    uint64_t maxRam = ram;
+    if (f != -1) {
+	maxRam = (f/100.0) * (nodeMem);
+	if (hardRamLimit > maxRam) hardRamLimit = maxRam;
+	if (softRamLimit > maxRam) softRamLimit = maxRam;
+    }
+
+    /* lower RAM limit in MByte */
+    long minRam = getConfValueL(&SlurmCgroupConfig, "MinRAMSpace");
+    if (minRam != -1) {
+	uint64_t minRamLimit = minRam*1024*1024;
+	if (softRamLimit < minRamLimit) softRamLimit = minRamLimit;
+	if (hardRamLimit < minRamLimit) hardRamLimit = minRamLimit;
+    }
+
+    snprintf(name, sizeof(name), "%s%s_RAM_SOFT", prefix, scope);
+    snprintf(val, sizeof(val), "%zu", softRamLimit);
+    setenv(name, val, 1);
+
+    snprintf(name, sizeof(name), "%s%s_RAM_HARD", prefix, scope);
+    snprintf(val, sizeof(val), "%zu", hardRamLimit);
+    setenv(name, val, 1);
+
+    /* KMEM constrains */
+    uint64_t kmemLimit = hardRamLimit;
+    /* allowed KMEM in *bytes* */
+    long aKmem = getConfValueL(&SlurmCgroupConfig, "AllowedKmemSpace");
+    if (aKmem != -1) kmemLimit = aKmem;
+
+    /* upper KMEM limit in percent */
+    f = getConfValueF(&SlurmCgroupConfig, "MaxKmemPercent");
+    if (f != -1) {
+	uint64_t maxKmem = (f/100.0) * hardRamLimit;
+	if (kmemLimit > maxKmem) kmemLimit = maxKmem;
+    }
+
+    /* lower KMEM limit in MByte */
+    long minKmem = getConfValueL(&SlurmCgroupConfig, "MinKmemSpace");
+    if (minKmem != -1) {
+	uint64_t minKmemLimit = minKmem*1024*1024;
+	if (kmemLimit < minKmemLimit) kmemLimit = minKmemLimit;
+    }
+
+    snprintf(name, sizeof(name), "%s%s_KMEM", prefix, scope);
+    snprintf(val, sizeof(val), "%zu", kmemLimit);
+    setenv(name, val, 1);
+
+    /* swap constrain */
+    uint64_t swapLimit = ram;
+    /* allowed swap in percent */
+    f = getConfValueF(&SlurmCgroupConfig, "AllowedSwapSpace");
+    if (f != -1) {
+	if (!swapLimit) swapLimit = nodeMem;
+	swapLimit = ((f/100.0) * swapLimit) + allowedRam;
+    }
+
+    /* upper swap limit in percent */
+    f = getConfValueF(&SlurmCgroupConfig, "MaxSwapPercent");
+    if (f != -1) {
+	uint64_t maxSwap = ((f/100.0) * nodeMem) + maxRam;
+	if (swapLimit > maxSwap) swapLimit = maxSwap;
+    }
+
+    /* lower limit for swap equals lower limit for RAM */
+    if (minRam != -1) {
+	uint64_t minRamLimit = minRam*1024*1024;
+	if (swapLimit < minRamLimit) swapLimit = minRamLimit;
+    }
+
+    snprintf(name, sizeof(name), "%s%s_SWAP", prefix, scope);
+    snprintf(val, sizeof(val), "%zu", swapLimit);
+    setenv(name, val, 1);
+
+    /* memory swapiness */
+    long swapiness = getConfValueL(&SlurmCgroupConfig, "MemorySwappiness");
+    if (swapiness != -1) {
+	if (swapiness > 100) swapiness = 100;
+	snprintf(name, sizeof(name), "%s_SWAPINESS", scope);
+	snprintf(val, sizeof(val), "%lu", swapiness);
+	setenv(name, val, 1);
+    }
+
+    fdbg(PSSLURM_LOG_JAIL, "%s requested ram %zu mem soft: %zu mem hard: %zu "
+	 "kmem %zu swap %zu\n", scope, ram, softRamLimit, hardRamLimit,
+	 kmemLimit, swapLimit);
+}
+
+/**
+ * @brief Set jail environment to constrain memory
+ *
+ * @param cred The job credential holding memory information
+ *
+ * @param localNodeId Local node ID for this jobs/step
+ */
+static void setJailMemEnv(JobCred_t *cred, uint32_t localNodeId)
+{
+    /* set job env */
+    if (cred->jobMemAllocSize) {
+	for (uint32_t i=0, idx=0; i<cred->jobMemAllocSize; i++) {
+	    for (uint32_t j=0; j<cred->jobMemAllocRepCount[i]; j++) {
+		if (idx++ == localNodeId) {
+		    uint64_t ramSpace = cred->jobMemAlloc[i]*1024*1024;
+		    doSetJailMemEnv(ramSpace, "JOB");
+		    break;
+		}
+	    }
+	    if (idx > localNodeId) break;
+	}
+    }
+
+    /* set step env */
+    if (cred->stepMemAllocSize) {
+	for (uint32_t i=0, idx=0; i<cred->stepMemAllocSize; i++) {
+	    for (uint32_t j=0; j<cred->stepMemAllocRepCount[i]; j++) {
+		if (idx++ == localNodeId) {
+		    uint64_t ramSpace = cred->stepMemAlloc[i]*1024*1024;
+		    doSetJailMemEnv(ramSpace, "STEP");
+		    break;
+		}
+	    }
+	    if (idx > localNodeId) break;
+	}
+    }
+}
+
+/**
+ * @brief Set jail environment for GRes devices
+ *
+ * @param gresList List of generic resources for this job/step
+ *
+ * @param localNodeId Local node ID for this jobs/step
+ */
+static void setJailDevEnv(list_t *gresList, uint32_t localNodeId)
+{
+    list_t *g;
+    uint16_t numDevAllow = 0, numDevDeny = 0;
+    list_for_each(g, gresList) {
+	Gres_Cred_t *gres = list_entry(g, Gres_Cred_t, next);
+
+	PSCPU_set_t gresSet;
+	hexBitstr2Set(gres->bitAlloc[localNodeId], gresSet);
+
+	char name[128], val[64];
+	for (uint16_t i = 0; i < sizeof(PSCPU_set_t)/sizeof(PSCPU_mask_t);
+	     i++) {
+	    GRes_Dev_t *dev = GRes_findDevice(gres->id, i);
+	    if (!dev) continue;
+	    snprintf(val, sizeof(val), "%s %u:%u rwm",
+		     dev->isBlock ? "b" : "c", dev->major, dev->minor);
+	    if (PSCPU_isSet(gresSet, i)) {
+		fdbg(PSSLURM_LOG_JAIL, "Allow GRes ID %u path %s num %u "
+		     "major %u minor %u\n", gres->id, dev->path, i, dev->major,
+		     dev->minor);
+		snprintf(name, sizeof(name), "__PSJAIL_DEV_ALLOW_%u",
+			 numDevAllow++);
+		setenv(name, val, 1);
+	    } else {
+		fdbg(PSSLURM_LOG_JAIL, "Deny GRes ID %u path %s num %u "
+		     "major %u minor %u\n", gres->id, dev->path, i, dev->major,
+		     dev->minor);
+		snprintf(name, sizeof(name), "__PSJAIL_DEV_DENY_%u",
+			 numDevDeny++);
+		setenv(name, val, 1);
+	    }
+	}
+    }
+}
+
 void setJailEnv(const env_t *env, const char *user, const PSCPU_set_t *stepcpus,
 		const PSCPU_set_t *jobcpus, list_t *gresList, JobCred_t *cred,
 		uint32_t localNodeId)
@@ -313,66 +500,9 @@ void setJailEnv(const env_t *env, const char *user, const PSCPU_set_t *stepcpus,
     c = getConfValueC(&SlurmCgroupConfig, "ConstrainSwapSpace");
     if (c) setenv("__PSJAIL_CONSTRAIN_SWAP", c, 1);
 
-    if (gresList) {
-	list_t *g;
-	uint16_t numDevAllow = 0, numDevDeny = 0;
-	list_for_each(g, gresList) {
-	    Gres_Cred_t *gres = list_entry(g, Gres_Cred_t, next);
+    if (gresList) setJailDevEnv(gresList, localNodeId);
 
-	    PSCPU_set_t gresSet;
-	    hexBitstr2Set(gres->bitAlloc[localNodeId], gresSet);
-
-	    char name[128], val[64];
-	    for (uint16_t i = 0; i < sizeof(PSCPU_set_t)/sizeof(PSCPU_mask_t);
-		 i++) {
-		GRes_Dev_t *dev = GRes_findDevice(gres->id, i);
-		if (!dev) continue;
-		snprintf(val, sizeof(val), "%s %u:%u rwm",
-			 dev->isBlock ? "b" : "c", dev->major, dev->minor);
-		if (PSCPU_isSet(gresSet, i)) {
-		    flog("GRES ID %u num %u is SET\n", gres->id, i);
-		    snprintf(name, sizeof(name), "__PSJAIL_DEV_ALLOW_%u",
-			     numDevAllow++);
-		    setenv(name, val, 1);
-		} else {
-		    snprintf(name, sizeof(name), "__PSJAIL_DEV_DENY_%u",
-			     numDevDeny++);
-		    setenv(name, val, 1);
-		}
-	    }
-	}
-    }
-
-    if (cred) {
-	char buf[128];
-	if (cred->jobMemAllocSize) {
-	    for (uint32_t i=0, idx=0; i<cred->jobMemAllocSize; i++) {
-		for (uint32_t j=0; j<cred->jobMemAllocRepCount[i]; j++) {
-		    if (idx++ == localNodeId) {
-			snprintf(buf, sizeof(buf), "%zu",
-				 cred->jobMemAlloc[i]*1024*1024);
-			setenv("__PSJAIL_JOB_MEM_ALLOC", buf, 1);
-			break;
-		    }
-		}
-		if (idx > localNodeId) break;
-	    }
-	}
-
-	if (cred->stepMemAllocSize) {
-	    for (uint32_t i=0, idx=0; i<cred->stepMemAllocSize; i++) {
-		for (uint32_t j=0; j<cred->stepMemAllocRepCount[i]; j++) {
-		    if (idx++ == localNodeId) {
-			snprintf(buf, sizeof(buf), "%zu",
-				 cred->stepMemAlloc[i]*1024*1024);
-			setenv("__PSJAIL_STEP_MEM_ALLOC", buf, 1);
-			break;
-		    }
-		}
-		if (idx > localNodeId) break;
-	    }
-	}
-    }
+    if (cred) setJailMemEnv(cred, localNodeId);
 }
 
 /**
