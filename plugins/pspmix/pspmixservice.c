@@ -948,7 +948,7 @@ static void checkFence(PspmixFence_t *fence) {
     mdbg(PSPMIX_LOG_CALL, "%s(id 0x%04lX receivedIn %d nnodes %lu)\n",
 	 __func__, fence->id, fence->receivedIn, fence->nnodes);
 
-    if (fence->receivedIn && (fence->nodes != NULL)) {
+    if (fence->receivedIn && fence->nodes) {
 	/* we received fence in and pspmix_service_fenceIn has been called */
 
 	if (fence->started) {
@@ -1073,41 +1073,52 @@ int pspmix_service_fenceIn(const pmix_proc_t procs[], size_t nprocs,
     mdbg(PSPMIX_LOG_CALL, "%s(nprocs %lu nspace %s ndata %ld)\n", __func__,
 	 nprocs, procs[0].nspace, ndata);
 
+    uint64_t fenceID = getFenceID(procs, nprocs);
+
+    GET_LOCK(fenceList);
+
+    PspmixFence_t *fence = findFence(fenceID);
+
+    if (fence && fence->nodes) {
+	ulog("UNEXPECTED: fence 0x%04lX found with nodes set\n", fenceID);
+	RELEASE_LOCK(fenceList);
+	return -1;
+    }
+
     /* create list of participating nodes */
     vector_t nodes;
     if (!extractNodes(procs, nprocs, &nodes)) {
 	ulog("UNEXPECTED: failed to extract nodes for fence operation\n");
+	RELEASE_LOCK(fenceList);
 	return -1;
     }
 
     if (nodes.len == 0) {
 	ulog("UNEXPECTED: no node in list of participating nodes\n");
 	vectorDestroy(&nodes);
+	RELEASE_LOCK(fenceList);
 	return -1;
     }
 
-    PSnodes_ID_t myNodeID;
-    myNodeID = PSC_getMyID();
+    PSnodes_ID_t myNodeID = PSC_getMyID();
     if (!vectorContains(&nodes, &myNodeID)) {
-	ulog("UNEXPECTED: This node is not in list of participating nodes"
-	     " (length = %lu)\n", nodes.len);
+	ulog("UNEXPECTED: local node not in list of participants\n");
 	vectorDestroy(&nodes);
+	RELEASE_LOCK(fenceList);
 	return -1;
     }
 
     if (nodes.len == 1) {
 	/* We are the only participant, return directly */
 	/* No need to pass back the data blob we got from PMIx server */
-	mdbg(PSPMIX_LOG_FENCE, "%s: Just this node participating in fence\n",
-	     __func__);
+	mdbg(PSPMIX_LOG_FENCE, "%s: only local node in fence\n", __func__);
 	vectorDestroy(&nodes);
+	RELEASE_LOCK(fenceList);
 	return 1;
     }
 
     /* sort list of participating nodes */
     vectorSort(&nodes, compare_nodeIDs);
-
-    uint64_t fenceID = getFenceID(procs, nprocs);
 
     if (mset(PSPMIX_LOG_FENCE)) {
 	ulog("this fence has id 0x%04lX and nodelist: %hd", fenceID,
@@ -1118,42 +1129,14 @@ int pspmix_service_fenceIn(const pmix_proc_t procs[], size_t nprocs,
 	mlog("\n");
     }
 
-    GET_LOCK(fenceList);
-
-    PspmixFence_t *fence;
-    bool found = false;
-    list_t *f;
-    list_for_each(f, &fenceList) {
-	fence = list_entry(f, PspmixFence_t, next);
-	/* search first entry with matching id
-	 * and this function not yet called for */
-	if (fence->id == fenceID) {
-	    if (!fence->nodes) {
-		found = true;
-		mdbg(PSPMIX_LOG_FENCE, "%s: Matching fence object found for"
-			" fence id 0x%04lX\n", __func__, fenceID);
-		break;
-	    } else {
-		mdbg(PSPMIX_LOG_FENCE, "%s: Fence object with matching fence id"
-		" 0x%04lX found but nodes already set, continuing search\n",
-		__func__, fenceID);
-	    }
-	}
-    }
-
-    if (!found) {
+    if (!fence) {
 	/* no fence_in message received yet for this fence, create object */
 	fence = createFenceObject(fenceID, __func__);
-
-	/* add at the END of the list */
 	list_add_tail(&fence->next, &fenceList);
     }
 
-    /* take over data from vector */
-    PSnodes_ID_t *sortednodes = (PSnodes_ID_t *)nodes.data;
-
     /* fill fence object */
-    fence->nodes = sortednodes;
+    fence->nodes =  (PSnodes_ID_t *)nodes.data;
     fence->nnodes = nodes.len;
     fence->ldata = data;
     fence->nldata = ndata;
@@ -1161,14 +1144,14 @@ int pspmix_service_fenceIn(const pmix_proc_t procs[], size_t nprocs,
 
     /* if we are the first node, start daisy chain, else check if we already
      * got a fence in message */
-    if (sortednodes[0] == PSC_getMyID()) {
+    if (fence->nodes[0] == PSC_getMyID()) {
 	mdbg(PSPMIX_LOG_FENCE, "%s: Starting fence in daisy chain for fence id"
-		" 0x%04lX\n", __func__, fenceID);
+	     " 0x%04lX\n", __func__, fenceID);
 
-	pspmix_comm_sendFenceIn(sortednodes[1], fence->id, data, ndata);
+	pspmix_comm_sendFenceIn(fence->nodes[1], fence->id, data, ndata);
 	fence->started = true;
     } else {
-	if (found) checkFence(fence);
+	checkFence(fence);
     }
 
     RELEASE_LOCK(fenceList);
@@ -1176,37 +1159,25 @@ int pspmix_service_fenceIn(const pmix_proc_t procs[], size_t nprocs,
     return 0;
 }
 
-void pspmix_service_handleFenceIn(uint64_t fenceid, PStask_ID_t sender,
-	void *data, size_t len)
+void pspmix_service_handleFenceIn(uint64_t fenceID, PStask_ID_t sender,
+				  void *data, size_t len)
 {
     GET_LOCK(fenceList);
 
-    PspmixFence_t *fence;
-    bool found = false;
-    list_t *f;
-    list_for_each(f, &fenceList) {
-	fence = list_entry(f, PspmixFence_t, next);
-	/* search first entry with matching id
-	 * and this function not yet called for */
-	if (fence->id == fenceid) {
-	    if (!fence->receivedIn) {
-		found = true;
-		mdbg(PSPMIX_LOG_FENCE, "%s: Matching fence object found for"
-			" fence id 0x%04lX\n", __func__, fenceid);
-		break;
-	    } else {
-		mdbg(PSPMIX_LOG_FENCE, "%s: Fence object with matching fence id"
-		" 0x%04lX found but receivedIn already set, continuing"
-		" search\n", __func__, fenceid);
-	    }
-	}
+    PspmixFence_t *fence = findFence(fenceID);
+
+    if (fence && fence->receivedIn) {
+	ulog("UNEXPECTED: fence 0x%04lX found with receivedIn set\n", fenceID);
+	// @todo mark fence as spoiled (via PMIX_LOCAL_COLLECTIVE_STATUS?)
+	ufree(data);
+	RELEASE_LOCK(fenceList);
+	return;
     }
 
-    if (!found) {
+    if (!fence) {
 	/* pspmix_service_fenceIn() not called yet for this fence,
 	 * create object */
-	fence = createFenceObject(fenceid, __func__);
-
+	fence = createFenceObject(fenceID, __func__);
 	list_add_tail(&fence->next, &fenceList);
     }
 
@@ -1215,38 +1186,35 @@ void pspmix_service_handleFenceIn(uint64_t fenceid, PStask_ID_t sender,
     fence->rdata = data;
     fence->nrdata = len;
 
-    if (found) checkFence(fence);
+    checkFence(fence);
 
     RELEASE_LOCK(fenceList);
 }
 
-void pspmix_service_handleFenceOut(uint64_t fenceid, void *data, size_t len)
+void pspmix_service_handleFenceOut(uint64_t fenceID, void *data, size_t len)
 {
     GET_LOCK(fenceList);
 
-    PspmixFence_t *fence = findFence(fenceid);
+    PspmixFence_t *fence = findFence(fenceID);
     if (!fence) {
-	ulog("UNEXPECTED: no fence with id 0x%04lX found\n", fenceid);
+	ulog("UNEXPECTED: fence 0x%04lX not found\n", fenceID);
 	RELEASE_LOCK(fenceList);
 	return;
     }
 
     if (!fence->nodes) {
-	ulog("UNEXPECTED: first fence with id 0x%04lX has nodes not set\n",
-	     fenceid);
+	ulog("UNEXPECTED: fence 0x%04lX without nodes set\n", fenceID);
 	RELEASE_LOCK(fenceList);
 	return;
     }
 
     if (!fence->receivedIn) {
-	ulog("UNEXPECTED: first fence (id 0x%04lX) has receivedIn not set\n",
-	     fenceid);
+	ulog("UNEXPECTED: fence 0x%04lX without receivedIn\n", fenceID);
 	RELEASE_LOCK(fenceList);
 	return;
     }
 
-    mdbg(PSPMIX_LOG_FENCE, "%s: matching fence object found for fence id"
-	 " 0x%04lX\n", __func__, fenceid);
+    mdbg(PSPMIX_LOG_FENCE, "%s: fence 0x%04lX\n", __func__, fenceID);
 
     /* remove fence from list */
     list_del(&fence->next);
