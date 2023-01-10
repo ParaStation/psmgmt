@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2018 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021 ParTec AG, Munich
+ * Copyright (C) 2021-2023 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -128,6 +128,29 @@ bool __vectorContains(vector_t *vector, void *entry, const char *func,
 #define vectorContains(v, e) __vectorContains(v, e, __func__, __LINE__)
 
 /**
+ * @brief Find index of the given entry in the vector
+ *
+ * @param vector     pointer to an initialized vector object
+ * @param entry      pointer to entry type object to compare entries with
+ * @param func       calling function
+ * @param line       calling line
+ *
+ * @return Returns the index if a matching entry is found, vector->len else
+ */
+size_t __vectorFind(vector_t *vector, void *entry, const char *func,
+	const int line);
+
+/**
+ * @brief Find index of the given entry in the vector
+ *
+ * @param v     pointer to an initialized vector object
+ * @param e     pointer to entry type object to compare entries with
+ *
+ * @return Returns the index if a matching entry is found, vector->len else
+ */
+#define vectorFind(v, e) __vectorFind(v, e, __func__, __LINE__)
+
+/**
  * @brief Sorts the vector using qsort()
  *
  * @param vector     pointer to an initialized vector object
@@ -171,6 +194,7 @@ int __compare_uint32 (const void *a, const void *b);
 #define charvAddCount(v, n, c) vectorAddCount(v, (void *)n, c)
 #define charvGet(v, i) vectorGet(v, i, char)
 #define charvContains(v, e) vectorContains(v, e)
+#define charvFind(v, e) vectorFind(v, e)
 #define charSort(v) vectorSort(v, __compare_char)
 #define charvDestroy(v) vectorDestroy(v)
 
@@ -179,6 +203,7 @@ int __compare_uint32 (const void *a, const void *b);
 #define intvAddCount(v, n, c) vectorAddCount(v, (void *)n, c)
 #define intvGet(v, i) vectorGet(v, i, int)
 #define intvContains(v, e) vectorContains(v, e)
+#define intFind(v, e) vectorFind(v, e)
 #define intvSort(v) vectorSort(v, __compare_int)
 #define intvDestroy(v) vectorDestroy(v)
 
@@ -187,6 +212,7 @@ int __compare_uint32 (const void *a, const void *b);
 #define uint32vAddCount(v, n, c) vectorAddCount(v, (void *)n, c)
 #define uint32vGet(v, i) vectorGet(v, i, uint32_t)
 #define uint32vContains(v, e) vectorContains(v, e)
+#define uint32Find(v, e) vectorFind(v, e)
 #define uint32vSort(v) vectorSort(v, __compare_uint32)
 #define uint32vDestroy(v) vectorDestroy(v)
 

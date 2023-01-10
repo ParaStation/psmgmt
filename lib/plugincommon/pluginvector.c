@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2018-2019 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021 ParTec AG, Munich
+ * Copyright (C) 2021-2023 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -68,13 +68,27 @@ bool __vectorContains(vector_t *vector, void *entry, const char *func,
     assert(vector->data != NULL);
     assert(entry != NULL);
 
-    size_t i;
-    for (i = 0; i < vector->len; i++) {
+    for (size_t i = 0; i < vector->len; i++) {
 	if (memcmp(entry, (char *)vector->data + i * vector->typesize,
 		    vector->typesize) == 0) return true;
     }
 
     return false;
+}
+
+size_t __vectorFind(vector_t *vector, void *entry, const char *func,
+	const int line)
+{
+    assert(vector != NULL);
+    assert(vector->data != NULL);
+    assert(entry != NULL);
+
+    for (size_t i = 0; i < vector->len; i++) {
+	if (memcmp(entry, (char *)vector->data + i * vector->typesize,
+		    vector->typesize) == 0) return i;
+    }
+
+    return vector->len;
 }
 
 void __vectorSort(vector_t *vector, int (*compar)(const void *, const void *),
