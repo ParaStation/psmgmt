@@ -34,14 +34,23 @@
 #include "pspmixservicespawn.h"
 #include "pspmixuserserver.h"
 
-#define MAX_NODE_ID 32768
-
-/* Fence object */
+/**
+ * Fence object
+ *
+ * 16 entries in @ref srcs and @ref receivers are sufficient for up to
+ * 65536 nodes (which is more than the 32768 that fit into PSnodes_ID_t)
+ */
 typedef struct {
     list_t next;
-    uint64_t id;                /**< id of the fence */
+    uint64_t id;                /**< id of this fence */
     PSnodes_ID_t *nodes;        /**< sorted list of nodes involved */
     size_t nnodes;              /**< number of nodes involved */
+    uint32_t lrank;             /**< local rank within this fence */
+    uint32_t srcs[16];          /**< ranks to expected data from */
+    size_t nsrcs;               /**< number of srcs involved */
+    uint32_t dest;              /**< rank we send data to */
+    PSnodes_ID_t rcvrs[16];     /**< nodes currently expecting forwarded data */
+    size_t nreceivers;          /**< number of receivers involved */
     PStask_ID_t precursor;      /**< task id of the pmix server we got the
 				     fence in from */
     char *ldata;                /**< local data to share */
@@ -999,13 +1008,12 @@ static int compare_nodeIDs(const void *a, const void *b)
 /* create a fence object */
 static PspmixFence_t * createFenceObject(uint64_t fenceid, const char *caller)
 {
-    PspmixFence_t *fence;
-    fence = ucalloc(sizeof(*fence));
+    PspmixFence_t *fence = ucalloc(sizeof(*fence));
 
     fence->id = fenceid;
+    fence->dest = -1;
 
-    mdbg(PSPMIX_LOG_FENCE, "%s: Fence object created for fence id 0x%04lX\n",
-	    caller, fenceid);
+    mdbg(PSPMIX_LOG_FENCE, "%s: Fence 0x%04lX created\n", caller, fenceid);
 
     return fence;
 }
@@ -1101,7 +1109,8 @@ int pspmix_service_fenceIn(const pmix_proc_t procs[], size_t nprocs,
     }
 
     PSnodes_ID_t myNodeID = PSC_getMyID();
-    if (!vectorContains(&nodes, &myNodeID)) {
+    size_t myNodeRank = vectorFind(&nodes, &myNodeID);
+    if (myNodeRank == nodes.len) {
 	ulog("UNEXPECTED: local node not in list of participants\n");
 	vectorDestroy(&nodes);
 	RELEASE_LOCK(fenceList);
@@ -1118,6 +1127,7 @@ int pspmix_service_fenceIn(const pmix_proc_t procs[], size_t nprocs,
     }
 
     /* sort list of participating nodes */
+    // @todo is this actually required / useful ?
     vectorSort(&nodes, compare_nodeIDs);
 
     if (mset(PSPMIX_LOG_FENCE)) {
@@ -1138,9 +1148,20 @@ int pspmix_service_fenceIn(const pmix_proc_t procs[], size_t nprocs,
     /* fill fence object */
     fence->nodes =  (PSnodes_ID_t *)nodes.data;
     fence->nnodes = nodes.len;
+    fence->lrank = myNodeRank;
     fence->ldata = data;
     fence->nldata = ndata;
     fence->mdata = mdata;
+
+    /* determine dest and sources (if any) for tree communication */
+    uint32_t off = 1;
+    while (!(myNodeRank % (2*off))) {
+	if (myNodeRank + off < fence->nnodes) {
+	    fence->srcs[fence->nsrcs++] = myNodeRank + off;
+	} else if (!myNodeRank) break; // ensure rank == 0 breaks at some point
+	off <<= 1;
+    }
+    if (myNodeRank) fence->dest = myNodeRank - off;
 
     /* if we are the first node, start daisy chain, else check if we already
      * got a fence in message */
