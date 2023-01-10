@@ -658,8 +658,7 @@ bool pspmix_service_registerClientAndSendEnv(PStask_ID_t loggertid,
 		    && cur->lastrank >= (signed)client->rank) {
 		lrank += found ? 0 : client->rank - cur->firstrank + 1;
 		found = true;
-	    }
-	    else {
+	    } else {
 		lrank += found ? 0 : cur->lastrank - cur->firstrank + 1;
 	    }
 	    lsize += cur->lastrank - cur->firstrank + 1;
@@ -888,17 +887,30 @@ void pspmix_service_abort(void *clientObject)
 }
 
 /**
- * @brief Return fence id for the given node array
+ * @brief Return fence id for the given procs array
  *
- * @return  hash over the node list
+ * Create a unique ID from the given @a procs array. The strategy to
+ * create the hash is:
+ *
+ * - If the process' namespace is different from its predecessor,
+ *   include the namecespace's name
+ *
+ * - Include each process' rank
+ *
+ * @return hash over the procs array as describe above
  */
-static uint64_t getFenceID(PSnodes_ID_t sortednodes[], int numnodes)
+static uint64_t getFenceID(const pmix_proc_t procs[], size_t nprocs)
 {
-    uint64_t fenceid;
-    fenceid = 42023ll;
-    int i;
-    for(i = 0; i < numnodes; i++) {
-	fenceid = 23011ll * fenceid + (uint64_t)sortednodes[i];
+    uint64_t fenceid = UINT64_C(42023);
+    const pmix_nspace_t *ns = NULL;
+    for(size_t p = 0; p < nprocs; p++) {
+	if (!ns || PMIX_CHECK_NSPACE(*ns, procs[p].nspace)) {
+	    ns = &(procs[p].nspace);
+	    for (int i = 0; i < PMIX_MAX_NSLEN && (*ns)[i]; i++) {
+		fenceid =  UINT64_C(23011) * fenceid + (uint64_t)(*ns)[i];
+	    }
+	}
+	fenceid = UINT64_C(23011) * fenceid + (uint64_t)procs[p].rank;
     }
     return fenceid;
 }
@@ -950,8 +962,7 @@ static void checkFence(PspmixFence_t *fence) {
 
 	    pspmix_comm_sendFenceOut(fence->precursor, fence->id, fence->rdata,
 				     fence->nrdata);
-	}
-	else {
+	} else {
 	    /* we are not the last in the chain */
 
 	    /* concatenate our data */
@@ -1096,11 +1107,10 @@ int pspmix_service_fenceIn(const pmix_proc_t procs[], size_t nprocs,
     /* sort list of participating nodes */
     vectorSort(&nodes, compare_nodeIDs);
 
-    uint64_t fenceid;
-    fenceid = getFenceID((PSnodes_ID_t *)nodes.data, nodes.len);
+    uint64_t fenceID = getFenceID(procs, nprocs);
 
     if (mset(PSPMIX_LOG_FENCE)) {
-	ulog("this fence has id 0x%04lX and nodelist: %hd", fenceid,
+	ulog("this fence has id 0x%04lX and nodelist: %hd", fenceID,
 	     *vectorGet(&nodes, 0, PSnodes_ID_t));
 	for (size_t i = 1; i < nodes.len; i++) {
 	    mlog(",%hd", *vectorGet(&nodes, i, PSnodes_ID_t));
@@ -1117,23 +1127,23 @@ int pspmix_service_fenceIn(const pmix_proc_t procs[], size_t nprocs,
 	fence = list_entry(f, PspmixFence_t, next);
 	/* search first entry with matching id
 	 * and this function not yet called for */
-	if (fence->id == fenceid) {
+	if (fence->id == fenceID) {
 	    if (!fence->nodes) {
 		found = true;
 		mdbg(PSPMIX_LOG_FENCE, "%s: Matching fence object found for"
-			" fence id 0x%04lX\n", __func__, fenceid);
+			" fence id 0x%04lX\n", __func__, fenceID);
 		break;
 	    } else {
 		mdbg(PSPMIX_LOG_FENCE, "%s: Fence object with matching fence id"
 		" 0x%04lX found but nodes already set, continuing search\n",
-		__func__, fenceid);
+		__func__, fenceID);
 	    }
 	}
     }
 
     if (!found) {
 	/* no fence_in message received yet for this fence, create object */
-	fence = createFenceObject(fenceid, __func__);
+	fence = createFenceObject(fenceID, __func__);
 
 	/* add at the END of the list */
 	list_add_tail(&fence->next, &fenceList);
@@ -1153,7 +1163,7 @@ int pspmix_service_fenceIn(const pmix_proc_t procs[], size_t nprocs,
      * got a fence in message */
     if (sortednodes[0] == PSC_getMyID()) {
 	mdbg(PSPMIX_LOG_FENCE, "%s: Starting fence in daisy chain for fence id"
-		" 0x%04lX\n", __func__, fenceid);
+		" 0x%04lX\n", __func__, fenceID);
 
 	pspmix_comm_sendFenceIn(sortednodes[1], fence->id, data, ndata);
 	fence->started = true;
@@ -1184,8 +1194,7 @@ void pspmix_service_handleFenceIn(uint64_t fenceid, PStask_ID_t sender,
 		mdbg(PSPMIX_LOG_FENCE, "%s: Matching fence object found for"
 			" fence id 0x%04lX\n", __func__, fenceid);
 		break;
-	    }
-	    else {
+	    } else {
 		mdbg(PSPMIX_LOG_FENCE, "%s: Fence object with matching fence id"
 		" 0x%04lX found but receivedIn already set, continuing"
 		" search\n", __func__, fenceid);
@@ -1250,8 +1259,7 @@ void pspmix_service_handleFenceOut(uint64_t fenceid, void *data, size_t len)
 	     " with %lu nodes to node %d\n", __func__, fence->id,
 	     fence->nnodes, fence->precursor);
 	pspmix_comm_sendFenceOut(fence->precursor, fence->id, data, len);
-    }
-    else {
+    } else {
 	mdbg(PSPMIX_LOG_FENCE, "%s: Fence out daisy chain for fence id 0x%04lX"
 		" with %lu nodes completed\n", __func__, fence->id,
 		fence->nnodes);
