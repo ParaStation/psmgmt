@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2018-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2022 ParTec AG, Munich
+ * Copyright (C) 2021-2023 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -298,14 +298,15 @@ typedef enum {
     PSPMIX_REMOVE_JOB,         /**< Remove job from PMIx server */
     PSPMIX_REGISTER_CLIENT,    /**< Request to register a new client */
     PSPMIX_CLIENT_PMIX_ENV,    /**< Client's environment addition */
-    PSPMIX_FENCE_IN,           /**< Enter fence request */
-    PSPMIX_FENCE_OUT,          /**< Leave fence permission */
+    PSPMIX_FENCE_IN,           /**< Enter fence request @obsolete */
+    PSPMIX_FENCE_OUT,          /**< Leave fence permission @obsolete */
     PSPMIX_MODEX_DATA_REQ,     /**< Request direct modex */
     PSPMIX_MODEX_DATA_RES,     /**< Submit direct modex as response */
     PSPMIX_CLIENT_INIT,        /**< Notification of client's initialization */
     PSPMIX_CLIENT_INIT_RES,    /**< Response to initialization notification */
     PSPMIX_CLIENT_FINALIZE,    /**< Notification of client's finalization */
-    PSPMIX_CLIENT_FINALIZE_RES /**< Response to finalization notification */
+    PSPMIX_CLIENT_FINALIZE_RES,/**< Response to finalization notification */
+    PSPMIX_FENCE_DATA,         /**< Fence tree communication */
 } PSP_PSPMIX_t;
 
 
