@@ -21,8 +21,9 @@
 # This script will be called by the jail plugin via system() and get
 # the process ID of the process to be jailed as an argument.
 
+SELF=$(realpath $0)
 CommandName=${0##*/}
-CommandPath=${0%/*}
+CommandPath=${SELF%/*}
 CHILD=${1}
 SCRIPT=${CommandName%%.*}
 JOB_CPUS="$PSSLURM_JOB_CPUS"

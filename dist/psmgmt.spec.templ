@@ -212,6 +212,8 @@ fi
 exit 0
 
 %post
+ln -sf %{_libexecdir}/jail/jail-main.sh %{_plugindir}/jail.sh
+ln -sf %{_libexecdir}/jail/jail-main.sh %{_plugindir}/jail-term.sh
 if [ $1 -eq 1 ] ; then
     # first install
 %if !0%{?disable_systemd}
