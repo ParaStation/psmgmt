@@ -12,5 +12,4 @@
 include $(top_srcdir)/common.am
 
 dist_psgwlib_SCRIPTS = plugin01.py plugin02.py plugin03.py		\
-	psgwd_start psgwd_exec psgwd_stop psroute.py psexpand.py	\
-	pscompress.py
+	psgwd_start psgwd_exec psgwd_stop psroute.py

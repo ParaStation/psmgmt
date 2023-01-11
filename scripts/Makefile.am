@@ -38,6 +38,8 @@ scripts_SCRIPTS = ps_gmcounters single_node_config
 
 noinst_SCRIPTS = psid2cmustatus memtest.py
 
+pkglibexec_SCRIPTS = pscompress.py psexpand.py
+
 # for simplicity, put all dist files here, so no dist_ primaries above
 EXTRA_DIST = psmgmt.gdb init.d/parastation.in loggerdebug.py lsf	\
 	memtest.py mpiexec.gdb mpirun_java parastation_tru64		\

@@ -407,8 +407,6 @@ plugins/psgw/route/Makefile.in \
 plugins/psgw/route/plugin01.py \
 plugins/psgw/route/plugin02.py \
 plugins/psgw/route/plugin03.py \
-plugins/psgw/route/pscompress.py \
-plugins/psgw/route/psexpand.py \
 plugins/psgw/route/psgwd_exec \
 plugins/psgw/route/psgwd_start \
 plugins/psgw/route/psgwd_stop \
@@ -755,6 +753,8 @@ scripts/ps_acc.in \
 scripts/ps_gm.in \
 scripts/ps_gmcounters \
 scripts/psaccview.in \
+scripts/pscompress.py \
+scripts/psexpand.py \
 scripts/psid2cmustatus.in \
 scripts/psmgmt.csh.in \
 scripts/psmgmt.gdb \
