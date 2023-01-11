@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2018-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2022 ParTec AG, Munich
+ * Copyright (C) 2021-2023 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -50,8 +50,8 @@ static PspmixMsgExtra_t extra;
 *
 * This message is sent by the local psid.
 *
-* @param msg  The last fragment of the message to handle
-* @param data The defragmented data received
+* @param msg  Last fragment of the message to handle
+* @param data Accumulated data received
 */
 static void handleAddJob(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
 {
@@ -116,8 +116,8 @@ static void handleAddJob(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
 *
 * This message is sent by the local psid.
 *
-* @param msg  The last fragment of the message to handle
-* @param data The defragmented data received
+* @param msg  Last fragment of the message to handle
+* @param data Accumulated data received
 */
 static void handleRemoveJob(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
 {
@@ -139,8 +139,8 @@ static void handleRemoveJob(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
 *
 * This message is sent by a client's psid forwarder.
 *
-* @param msg  The last fragment of the message to handle
-* @param data The defragmented data received
+* @param msg  Last fragment of the message to handle
+* @param data Accumulated data received
 */
 static void handleRegisterClient(DDTypedBufferMsg_t *msg)
 {
@@ -178,8 +178,8 @@ static void handleRegisterClient(DDTypedBufferMsg_t *msg)
 *
 * This message is sent by a client's psid forwarder.
 *
-* @param msg  The last fragment of the message to handle
-* @param data The defragmented data received
+* @param msg  Last fragment of the message to handle
+* @param data Accumulated data received
 */
 static void handleClientNotifyResp(DDTypedBufferMsg_t *msg,
 				   PS_DataBuffer_t *data)
@@ -308,8 +308,8 @@ static void handleModexDataReq(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
 *
 * This message is sent by another PMIx server of the same user.
 *
-* @param msg  The last fragment of the message to handle
-* @param data The defragmented data received
+* @param msg  Last fragment of the message to handle
+* @param data Accumulated data received
 */
 static void handleModexDataResp(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
 {
