@@ -10,6 +10,8 @@
 #
 include $(top_srcdir)/common.am
 
+SUBDIRS = scripts
+
 AM_LDFLAGS += -avoid-version -module
 AM_CPPFLAGS += -I$(top_srcdir)/bin/daemon
 
@@ -24,8 +26,3 @@ jail_la_CPPFLAGS = $(AM_CPPFLAGS) -DPLUGINDIR=\"$(plugindir)\"
 jail_la_LIBADD = $(libplugincommon) $(libpscommon)
 
 dist_plugin_DATA = jail.conf
-dist_plugin_SCRIPTS = jail-config.inc jail-cpuacct.inc jail-cpuset.inc 		\
-		      jail-functions.inc jail-main.sh jail-oom.inc 		\
-		      jail-term-cpuacct.inc jail-term-cpuset.inc		\
-		      jail-memory.inc jail-devices.inc jail-term-memory.inc 	\
-		      jail-term-devices.inc

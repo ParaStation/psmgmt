@@ -40,6 +40,7 @@ slurmlibdir = $(libdir)/slurm
 
 psgwlibdir = $(libexecdir)/psgw
 psacctlibdir = $(libexecdir)/psaccount
+jaillibdir = $(libexecdir)/jail
 
 # should be $(libdir)/psmgmt-plugins or similar
 plugindir = $(prefix)/plugins

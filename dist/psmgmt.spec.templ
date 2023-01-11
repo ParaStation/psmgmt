@@ -283,19 +283,20 @@ exit 0
 %config(noreplace) %{_plugindir}/cgroup.conf
 %{_plugindir}/jail.so
 %config(noreplace) %{_plugindir}/jail.conf
-%config(noreplace) %{_plugindir}/jail-config.inc
-%config(noreplace) %{_plugindir}/jail-cpuacct.inc
-%config(noreplace) %{_plugindir}/jail-cpuset.inc
-%config(noreplace) %{_plugindir}/jail-devices.inc
-%config(noreplace) %{_plugindir}/jail-functions.inc
+%{_libexecdir}/jail
+%config(noreplace) %{_libexecdir}/jail/jail-config.inc
+%config(noreplace) %{_libexecdir}/jail/jail-cpuacct.inc
+%config(noreplace) %{_libexecdir}/jail/jail-cpuset.inc
+%config(noreplace) %{_libexecdir}/jail/jail-devices.inc
+%config(noreplace) %{_libexecdir}/jail/jail-functions.inc
+%config(noreplace) %{_libexecdir}/jail/jail-main.sh
+%config(noreplace) %{_libexecdir}/jail/jail-memory.inc
+%config(noreplace) %{_libexecdir}/jail/jail-oom.inc
+%config(noreplace) %{_libexecdir}/jail/jail-term-cpuacct.inc
+%config(noreplace) %{_libexecdir}/jail/jail-term-cpuset.inc
+%config(noreplace) %{_libexecdir}/jail/jail-term-devices.inc
+%config(noreplace) %{_libexecdir}/jail/jail-term-memory.inc
 %{_plugindir}/nodeinfo.so
-%config(noreplace) %{_plugindir}/jail-main.sh
-%config(noreplace) %{_plugindir}/jail-memory.inc
-%config(noreplace) %{_plugindir}/jail-oom.inc
-%config(noreplace) %{_plugindir}/jail-term-cpuacct.inc
-%config(noreplace) %{_plugindir}/jail-term-cpuset.inc
-%config(noreplace) %{_plugindir}/jail-term-devices.inc
-%config(noreplace) %{_plugindir}/jail-term-memory.inc
 %{_plugindir}/pelogue.so
 %{_plugindir}/psaccount.so
 %config(noreplace) %{_plugindir}/psaccount.conf
