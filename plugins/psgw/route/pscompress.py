@@ -1,7 +1,9 @@
+#!/usr/bin/env python3
 #
 # pscompress.py - fold node lists using range syntax
 #
 # Copyright (C) 2021 ParTec Cluster Competence Center GmbH, Munich
+# Copyright (C) 2023 ParTec AG, Munich
 #
 
 import sys
