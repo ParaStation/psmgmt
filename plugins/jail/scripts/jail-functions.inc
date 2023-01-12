@@ -50,6 +50,7 @@ function killTasks {
 
 	while [ -n "$PIDS" -a "$count" -le "$MAX_KILL_RETRY" ]; do
 		for child in $PIDS; do
+		        [ -d "/proc/$child" ] || continue
 			CMD=$(cat /proc/$child/cmdline)
 			dlog "killTasks($count): killing PID $child ($CMD) with signal $KILL_SIGNAL"
 			kill -"$KILL_SIGNAL" $child
