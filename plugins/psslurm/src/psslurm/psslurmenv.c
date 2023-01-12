@@ -449,7 +449,15 @@ static void setJailDevEnv(list_t *gresList, uint32_t localNodeId)
 	Gres_Cred_t *gres = list_entry(g, Gres_Cred_t, next);
 
 	PSCPU_set_t gresSet;
-	hexBitstr2Set(gres->bitAlloc[localNodeId], gresSet);
+	if (gres->bitAlloc[localNodeId]) {
+	    if (!hexBitstr2Set(gres->bitAlloc[localNodeId], gresSet)) {
+		flog("unable to get gres node allocation for nodeId %u\n",
+		     localNodeId);
+		return;
+	    }
+	} else {
+	    PSCPU_clrAll(gresSet);
+	}
 
 	char name[128], val[64];
 	for (uint16_t i = 0; i < sizeof(PSCPU_set_t)/sizeof(PSCPU_mask_t);
@@ -806,7 +814,10 @@ static void setGPUEnv(Gres_Cred_t *gres, uint32_t jobNodeId, Step_t *step,
     } else {
 	/* get assigned GPUs from GRES info */
 	PSCPU_set_t assGPUs;
-	hexBitstr2Set(gres->bitAlloc[jobNodeId], assGPUs);
+	if (!hexBitstr2Set(gres->bitAlloc[jobNodeId], assGPUs)) {
+	    flog("failed to get assigned GPUs from bitstring\n");
+	    return;
+	}
 
 	int16_t gpu = getRankGpuPinning(localRankId, step, stepNId, &assGPUs);
 	if (gpu < 0) return;

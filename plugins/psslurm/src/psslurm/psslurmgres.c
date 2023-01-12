@@ -106,7 +106,7 @@ GRes_Dev_t *GRes_findDevice(uint32_t pluginID, uint32_t bitIdx)
 	list_t *d;
 	list_for_each(d, &conf->devices) {
 	    GRes_Dev_t *dev = list_entry(d, GRes_Dev_t, next);
-	    if (dev->slurmIdx == bitIdx) return dev;
+	    if (dev && dev->slurmIdx == bitIdx) return dev;
 	}
     }
     return NULL;
@@ -115,7 +115,6 @@ GRes_Dev_t *GRes_findDevice(uint32_t pluginID, uint32_t bitIdx)
 static bool parseGresFile(Gres_Conf_t *gres)
 {
     /* discover all devices */
-    INIT_LIST_HEAD(&gres->devices);
     if (!traverseHostList(gres->file, discoverDevices, gres)) {
 	flog("invalid gres file '%s' for '%s'\n", gres->file, gres->name);
 	return false;
@@ -158,6 +157,7 @@ Gres_Conf_t *saveGresConf(Gres_Conf_t *gres, char *count)
     }
 
     /* parse file */
+    INIT_LIST_HEAD(&gres->devices);
     if (gres->file) {
 	if (!parseGresFile(gres)) goto GRES_ERROR;
 	gres->flags |= GRES_CONF_HAS_FILE;
