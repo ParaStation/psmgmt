@@ -1,5 +1,5 @@
 # special IWYU mappings for psmgmt
-# Copyright (C) 2021-2022 ParTec AG, Munich
+# Copyright (C) 2021-2023 ParTec AG, Munich
 [
   { symbol: ["struct timeval", "private", "<sys/time.h>", "public"] },
   { symbol: ["timeval", "private", "<sys/time.h>", "public"] },
@@ -7,6 +7,8 @@
   { symbol: ["sysinfo", "private", "<sys/sysinfo.h>", "public"] },
   { symbol: ["SI_LOAD_SHIFT", "private", "<sys/sysinfo.h>", "public"] },
   { symbol: ["iovec", "private", "<sys/socket.h>", "public"] },
+  { symbol: ["itimerspec", "private", "<time.h>", "public"] },
+  { symbol: ["__sigval_t", "private", "<signal.h>", "public"] },
   { include: ["@<hwloc/.*", "private", "<hwloc.h>", "public"] },
   { include: ["<bits/types/struct_rusage.h>", "private", "<sys/resource.h>", "public"] },
   { include: ["<bits/local_lim.h>", "private", "<limits.h>", "public"] },

@@ -11,8 +11,6 @@
  */
 #include "timer.h"
 
-#include <bits/types/__sigval_t.h>
-#include <bits/types/struct_itimerspec.h>
 #include <errno.h>
 #include <math.h>
 #include <signal.h>
