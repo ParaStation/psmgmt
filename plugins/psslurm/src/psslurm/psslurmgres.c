@@ -300,3 +300,16 @@ void freeGresJobAlloc(list_t *gresList)
 	ufree(gres);
     }
 }
+
+uint32_t GRes_countDevices(uint32_t pluginID)
+{
+    uint32_t numDev = 0;
+
+    list_t *c;
+    list_for_each(c, &GresConfList) {
+	Gres_Conf_t *conf = list_entry(c, Gres_Conf_t, next);
+	if (conf->id == pluginID) numDev += conf->count;
+    }
+
+    return numDev;
+}

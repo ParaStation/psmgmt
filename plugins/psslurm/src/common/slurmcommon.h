@@ -293,4 +293,7 @@ typedef enum {
 #define GRES_CONF_ENV_OPENCL SLURM_BIT(7) /* GPU_DEVICE_ORDINAL */
 #define GRES_CONF_ENV_DEF    SLURM_BIT(8) /* default env */
 
+#define MEM_PER_CPU  0x8000000000000000   /* bitmask to indicate memory per cpu
+					     instead of memory per node */
+
 #endif

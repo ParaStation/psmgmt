@@ -213,4 +213,13 @@ bool traverseGresConf(GresConfVisitor_t visitor, void *info);
  */
 void freeGresJobAlloc(list_t *gresList);
 
+/**
+ * @brief Count all devices identified by their plugin ID
+ *
+ * @param pluginID The ID of the plugin for the devices to count
+ *
+ * @return Returns the number of devices found
+ */
+uint32_t GRes_countDevices(uint32_t pluginID);
+
 #endif /* __PS_SLURM_GRES */

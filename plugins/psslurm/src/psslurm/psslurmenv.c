@@ -984,6 +984,21 @@ void setSlurmConfEnvVar(env_t *env)
     }
 }
 
+static void setTopoEnv(env_t *env)
+{
+    Topology_t *topo = getTopology(getConfValueC(&Config, "SLURM_HOSTNAME"));
+    if (env) {
+	envSet(env, "SLURM_TOPOLOGY_ADDR", topo->address);
+	envSet(env, "SLURM_TOPOLOGY_ADDR_PATTERN", topo->pattern);
+    } else {
+	setenv("SLURM_TOPOLOGY_ADDR", topo->address, 1);
+	setenv("SLURM_TOPOLOGY_ADDR_PATTERN", topo->pattern, 1);
+    }
+    ufree(topo->address);
+    ufree(topo->pattern);
+    ufree(topo);
+}
+
 /**
  * @brief Set common environment for a rank
  *
@@ -1070,12 +1085,7 @@ static void setCommonRankEnv(int32_t rank, Step_t *step)
     setenv("SLURM_TASKS_PER_NODE", val, 1);
 
     /* set topology environment */
-    Topology_t *topo = getTopology(getConfValueC(&Config, "SLURM_HOSTNAME"));
-    setenv("SLURM_TOPOLOGY_ADDR", topo->address, 1);
-    setenv("SLURM_TOPOLOGY_ADDR_PATTERN", topo->pattern, 1);
-    ufree(topo->address);
-    ufree(topo->pattern);
-    ufree(topo);
+    setTopoEnv(NULL);
 }
 
 void setRankEnv(int32_t rank, Step_t *step)
@@ -1251,11 +1261,20 @@ void setJobEnv(Job_t *job)
     envSet(&job->env, "SLURM_NODEID", "0");
     envSet(&job->env, "SLURM_PROCID", "0");
     envSet(&job->env, "SLURM_LOCALID", "0");
-    snprintf(tmp, sizeof(tmp), "%lu", job->nodeMinMemory);
-    envSet(&job->env, "SLURM_MEM_PER_NODE", tmp);
+
+    if (job->nodeMinMemory & MEM_PER_CPU) {
+	snprintf(tmp, sizeof(tmp), "%lu", job->nodeMinMemory & (~MEM_PER_CPU));
+	envSet(&job->env, "SLURM_MEM_PER_CPU", tmp);
+    } else if (job->nodeMinMemory) {
+	snprintf(tmp, sizeof(tmp), "%lu", job->nodeMinMemory);
+	envSet(&job->env, "SLURM_MEM_PER_NODE", tmp);
+    }
 
     snprintf(tmp, sizeof(tmp), "%u", getpid());
     envSet(&job->env, "SLURM_TASK_PID", tmp);
+
+    snprintf(tmp, sizeof(tmp), "%u", job->gid);
+    envSet(&job->env, "SLURM_JOB_GID", tmp);
 
     /* forward overbook mode */
     char *val = envGet(&job->env, "SLURM_OVERCOMMIT");
@@ -1277,6 +1296,21 @@ void setJobEnv(Job_t *job)
     removeSpankOptions(&job->env);
 
     setSlurmConfEnvVar(&job->env);
+
+    char *cname = getConfValueC(&SlurmConfig, "ClusterName");
+    if (cname) envSet(&job->env, "SLURM_CLUSTER_NAME", cname);
+
+    if (job->account) envSet(&job->env, "SLURM_JOB_ACCOUNT", job->account);
+    if (job->qos) envSet(&job->env, "SLURM_JOB_QOS", job->qos);
+
+    uint32_t numGPUs = GRes_countDevices(GRES_PLUGIN_GPU);
+    if (numGPUs) {
+	snprintf(tmp, sizeof(tmp), "%u", numGPUs);
+	envSet(&job->env, "SLURM_GPUS_ON_NODE", tmp);
+    }
+
+    /* set topology environment */
+    setTopoEnv(&job->env);
 
     Alloc_t *alloc = Alloc_find(job->jobid);
     if (alloc) setPsslurmEnv(&alloc->env, &job->env);

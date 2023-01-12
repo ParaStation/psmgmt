@@ -86,8 +86,8 @@ typedef struct {
     char *tresBind;         /**< TRes binding (currently env set only) */
     char *tresFreq;         /**< TRes frequency (currently env set only) */
     uint16_t restartCnt;    /**< job restart count */
-    char *account;          /**< account (unused) */
-    char *qos;              /**< qos (unused) */
+    char *account;          /**< account */
+    char *qos;              /**< qos */
     char *resName;          /**< reservation name (unused) */
     uint32_t profile;       /**< profile (unused) */
     PSCPU_set_t hwthreads;  /**< hwthreads to use for job on current node */
