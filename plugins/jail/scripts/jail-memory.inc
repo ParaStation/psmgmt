@@ -61,9 +61,14 @@ function setJobMem()
 
     [ "$IS_INIT" == "false" ] && initMem;
 
-    # job cgroup
-    dlog "$LIMIT_VAL > $CG_JOB/$LIMIT_NAME JOB: $SLURM_JOBID STEP:$SLURM_STEPID"
-    echo "$LIMIT_VAL" > $CG_JOB/$LIMIT_NAME
+    if [ "$LIMIT_VAL" -lt 1 ]; then
+	dlog "Skipping invalid limit $LIMIT_VAL for $LIMIT_NAME"
+    else
+	# job cgroup
+	dlog "$LIMIT_VAL > $CG_JOB/$LIMIT_NAME Job: $SLURM_JOBID:$SLURM_STEPID"
+	echo "$LIMIT_VAL" > $CG_JOB/$LIMIT_NAME
+    fi
+
 }
 
 function setStepMem()
@@ -75,10 +80,12 @@ function setStepMem()
 
     # step cgroup
     [ -n "$SLURM_STEPID" ] && {
-	dlog "$LIMIT_VAL > $CG_STEP/$LIMIT_NAME"
-        echo "$LIMIT_VAL" > $CG_STEP/$LIMIT_NAME
-
-	echo "$LIMIT_VAL" > $CG_STEP/$LIMIT_NAME
+	if [ "$LIMIT_VAL" -lt 1 ]; then
+	    dlog "Skipping invalid limit $LIMIT_VAL for $LIMIT_NAME"
+	else
+	    dlog "$LIMIT_VAL > $CG_STEP/$LIMIT_NAME"
+	    echo "$LIMIT_VAL" > $CG_STEP/$LIMIT_NAME
+	fi
     }
 }
 
