@@ -34,38 +34,41 @@
 #include "pspmixservicespawn.h"
 #include "pspmixuserserver.h"
 
+/** Pending fence message container */
+typedef struct {
+    PStask_ID_t sender;         /**< sending PMIx server's task ID */
+    uint16_t sRank;             /**< sender's node rank */
+    uint16_t nBlobs;            /**< number of blobs within message payload */
+    char *data;                 /**< message payload */
+    size_t len;                 /**< size of message payload */
+} PspmixFenceMsg_t;
+
 /**
  * Fence object
  *
- * 16 entries in @ref srcs and @ref receivers are sufficient for up to
- * 65536 nodes (which is more than the 32768 that fit into PSnodes_ID_t)
+ * 16 entries in @ref srcs, @ref rcvrs, and @ref msgs are sufficient
+ * for up to 65536 nodes (which is more than the 32768 that fit into
+ * PSnodes_ID_t)
  */
 typedef struct {
     list_t next;
     uint64_t id;                /**< id of this fence */
-    PSnodes_ID_t *nodes;        /**< sorted list of nodes involved */
-    size_t nnodes;              /**< number of nodes involved */
-    uint32_t lrank;             /**< local rank within this fence */
-    uint32_t srcs[16];          /**< ranks to expected data from */
-    size_t nsrcs;               /**< number of srcs involved */
-    uint32_t dest;              /**< rank we send data to */
-    PSnodes_ID_t rcvrs[16];     /**< nodes currently expecting forwarded data */
-    size_t nreceivers;          /**< number of receivers involved */
-    PStask_ID_t precursor;      /**< task id of the pmix server we got the
-				     fence in from */
-    char *ldata;                /**< local data to share */
-    size_t nldata;              /**< size of local data to share */
-    char *rdata;                /**< remote data to share */
-    size_t nrdata;              /**< size of remote data to share */
+    PSnodes_ID_t *nodes;        /**< list of nodes involved */
+    size_t nNodes;              /**< number of nodes involved */
+    uint16_t rank;              /**< local rank within this fence */
+    uint16_t srcs[16];          /**< ranks to expected forward data from */
+    uint8_t nSrcs;              /**< number of srcs involved */
+    uint8_t nGot;               /**< number forward data messages received */
+    uint16_t dest;              /**< rank to send forward data to */
+    PStask_ID_t rcvrs[16];      /**< PMIx servers expecting backward data */
+    uint8_t nRcvrs;             /**< number of receivers involved */
+    PspmixFenceMsg_t msgs[16];  /**< buffer for pending fence messages */
+    uint8_t nMsgs;              /**< number of pending messages */
+    uint16_t nBlobs;            /**< number of blobs within local data */
+    char *data;                 /**< accumulated local data to share */
+    size_t len;                 /**< size of local data to share */
     modexdata_t *mdata;         /**< callback data object */
-    bool started;               /**< set if we started the daisy chain */
-    bool receivedIn;            /**< set if we received the in message */
 } PspmixFence_t;
-
-/****** global variables set once and never changed ******/
-
-/* allow walking throu the environment */
-extern char **environ;
 
 /****** global variable needed to be lock protected ******/
 
@@ -133,23 +136,6 @@ static PspmixNamespace_t* findNamespaceByJobID(PStask_ID_t spawnertid)
     list_for_each(n, &namespaceList) {
 	PspmixNamespace_t *ns = list_entry(n, PspmixNamespace_t, next);
 	if (ns->job->spawnertid == spawnertid) return ns;
-    }
-    return NULL;
-}
-
-/**
- * @brief Find first matching fence in fence list
- *
- * @param fenceid  id of the fence
- *
- * @return Returns the fence or NULL if not in list
- */
-static PspmixFence_t* findFence(uint64_t fenceid)
-{
-    list_t *f;
-    list_for_each(f, &fenceList) {
-	PspmixFence_t *fence = list_entry(f, PspmixFence_t, next);
-	if (fence->id == fenceid) return fence;
     }
     return NULL;
 }
@@ -924,98 +910,305 @@ static uint64_t getFenceID(const pmix_proc_t procs[], size_t nprocs)
     return fenceid;
 }
 
-/**
- * @brief Check if all requirements for @a fence are met and proceed if so
- *
- * The general logic behind the fence handling is:
- *
- * If pspmix_service_fenceIn is called, forward search fenceList for id
- *   if found, check if the function was already called for this object
- *     if no, check if fence_in message was already received for this object
- *       if yes, forward fence_in message or start fence_out chain
- *       else proceed waiting for fence_in message
- *     else continue search
- *   else create a new object at the end of the list
- * If fence_in message is received, forward search fenceList for id
- *   if found, check if there was already received fence_in for this object
- *     if no, check if pspmix_service_fenceIn was already called for this object
- *       if yes, forward fence_in message or start fence_out chain
- *       else proceed waiting for pspmix_service_fenceIn call
- *     else continue search
- *   else create a new object at the end of the list
- * If fence_out message is received, forward search fenceList for id
- *   if found, check if pspmix_service_fenceIn was called and fence_in was
- *                                                      received for this object
- *     if yes, forward fence_in, call fence complete and delete object from list
- *     else return error
- *   else return error
- *
- * @param fence      fence object
- */
-static void checkFence(PspmixFence_t *fence) {
-
-    mdbg(PSPMIX_LOG_CALL, "%s(id 0x%04lX receivedIn %d nnodes %lu)\n",
-	 __func__, fence->id, fence->receivedIn, fence->nnodes);
-
-    if (fence->receivedIn && fence->nodes) {
-	/* we received fence in and pspmix_service_fenceIn has been called */
-
-	if (fence->started) {
-	    /* we started the chain, now start fence out */
-	    /* fence out runs in the opposite direction since we know
-	     * the tid of our precursor from fence in round
-	     * remote data blob received already contains our own data */
-	    mdbg(PSPMIX_LOG_FENCE, "%s: Starting fence_out daisy chain for"
-		    " fence id 0x%04lX with %lu nodes\n", __func__, fence->id,
-		    fence->nnodes);
-
-	    pspmix_comm_sendFenceOut(fence->precursor, fence->id, fence->rdata,
-				     fence->nrdata);
-	} else {
-	    /* we are not the last in the chain */
-
-	    /* concatenate our data */
-	    fence->rdata = urealloc(fence->rdata, fence->nrdata + fence->nldata);
-	    memcpy(fence->rdata + fence->nrdata, fence->ldata, fence->nldata);
-	    fence->nrdata += fence->nldata;
-
-	    /* get my follow up node */
-	    size_t i;
-	    for (i = 1; i < fence->nnodes; i++) {
-		if (fence->nodes[i] == PSC_getMyID()) break;
-	    }
-	    i = (i + 1) % fence->nnodes;
-
-	    /* send fence_in to next in chain */
-	    mdbg(PSPMIX_LOG_FENCE, "%s: Adding my data and forwarding fence_in"
-		    " for fence id 0x%04lX with %lu nodes to node %hd\n",
-		    __func__, fence->id, fence->nnodes, fence->nodes[i]);
-
-	    pspmix_comm_sendFenceIn(fence->nodes[i], fence->id,
-				    fence->rdata, fence->nrdata);
-	}
-    }
-}
-
-static int compare_nodeIDs(const void *a, const void *b)
-{
-    const PSnodes_ID_t *ca = (const PSnodes_ID_t *) a;
-    const PSnodes_ID_t *cb = (const PSnodes_ID_t *) b;
-
-    return (*ca > *cb) - (*ca < *cb);
-}
-
 /* create a fence object */
-static PspmixFence_t * createFenceObject(uint64_t fenceid, const char *caller)
+static PspmixFence_t * createFenceObject(uint64_t fenceID, const char *caller)
 {
     PspmixFence_t *fence = ucalloc(sizeof(*fence));
 
-    fence->id = fenceid;
+    fence->id = fenceID;
     fence->dest = -1;
 
-    mdbg(PSPMIX_LOG_FENCE, "%s: Fence 0x%04lX created\n", caller, fenceid);
+    mdbg(PSPMIX_LOG_FENCE, "%s: Fence 0x%016lX created\n", caller, fenceID);
 
     return fence;
+}
+
+/**
+ * @brief Find first matching fence in fence list
+ *
+ * @param fenceid  ID of the fence to search
+ *
+ * @return Returns the fence or NULL if not in list
+ */
+static PspmixFence_t* findFence(uint64_t fenceID)
+{
+    list_t *f;
+    list_for_each(f, &fenceList) {
+	PspmixFence_t *fence = list_entry(f, PspmixFence_t, next);
+	if (fence->id == fenceID) return fence;
+    }
+    return NULL;
+}
+
+static bool dropMsg(PspmixFence_t *fence, uint8_t msg)
+{
+    if (msg >= fence->nMsgs) {
+	ulog("UNEXPECTED: fence 0x%016lX lacks of messages (%u <= %u)\n",
+	     fence->id, fence->nMsgs, msg);
+	return false;
+    }
+
+    ufree(fence->msgs[msg].data);
+
+    for (uint8_t m = msg; m < fence->nMsgs - 1; m++) {
+	fence->msgs[m] = fence->msgs[m+1];
+    }
+    fence->msgs[fence->nMsgs - 1] = (PspmixFenceMsg_t) {0};
+    fence->nMsgs--;
+
+    return true;
+}
+
+static bool appendMsg(PspmixFence_t *fence, uint8_t msg)
+{
+    if (msg >= fence->nMsgs) {
+	ulog("UNEXPECTED: fence 0x%016lX lacks of messages (%u <= %u)\n",
+	     fence->id, fence->nMsgs, msg);
+	return false;
+    }
+
+    char *data = urealloc(fence->data, fence->len + fence->msgs[msg].len);
+    if (!data) {
+	ulog("UNEXPECTED: no memory for 0x%016lX\n", fence->id);
+	ufree(fence->data);
+	fence->data = NULL;
+	dropMsg(fence, msg);
+	// @todo mark fence spoiled (via PMIX_LOCAL_COLLECTIVE_STATUS?)
+	return false;
+    }
+    memcpy(data + fence->len, fence->msgs[msg].data, fence->msgs[msg].len);
+    fence->data = data;
+    fence->len += fence->msgs[msg].len;
+    fence->nBlobs += fence->msgs[msg].nBlobs;
+
+    return true;
+}
+
+/**
+ * @brief Check if @a fence is ready to proceed
+ *
+ * The general strategy for fence synchronization bases on tree communication:
+ *
+ * 1. create a binary tree with (node-)rank 0 as the root based on the
+ *    (node-)rank numbers. The tree will be unbalanced if the total
+ *    number of nodes is not a power of 2.
+ *
+ *    This leads to a (16 node) dependency tree like this:
+ *
+ *   comm level
+ *
+ *     4        0- - - - - - - - - - - - - - - -+
+ *              |                               |
+ *     3        0---------------+               8--------------+
+ *              |               |               |              |
+ *     2        0-------+       4-------+       8------+       12------+
+ *              |       |       |       |       |      |       |       |
+ *     1        0---+   2---+   4---+   6---+   8---+  10--+   12--+   14--+
+ *              |   |   |   |   |   |   |   |   |   |  |   |   |   |   |   |
+ *     0        0   1   2   3   4   5   6   7   8   9  10  11  12  13  14  15
+ *
+ *    Three types of messages are distinguished: upward, side-ward and
+ *    downward. E.g. at communication level 2 (i.e. the second wave of
+ *    messages to be handled) node 4 will:
+ *
+ *    - receive an upward message from node 6,
+ *    - sending an upward message to node 0 (containing the local data
+ *      consisting of node 4 and node 5 original data and the received
+ *      data consisting of node 6 and node 7 original data)
+ *    - expecting a side-ward message from node 0 (containing original
+ *      data of nodes 0,1,2,3)
+ *    - sending a downward message to nodes 6 and 5 based on the
+ *      side-ward message received from node 0
+ *
+ *    Furthermore in the next communication step node 4 will receive a
+ *    downward message from node 0 that contains the data of nodes 8-15.
+ *    This message will be forwarded as a downward message to nodes 5,6.
+ *
+ * 2. assign (possible) sources and destination to each node. This is
+ *    just about original data to be sent to root for re-distribution.
+ *
+ *    Example for an 8-node schema:
+ *
+ *             0      1     2     3     4     5     6     7
+ * send to     -      0     0     2     0     4     4     6
+ * recv from   1,2,4  -     3     -     5,6   -     7     -
+ *
+ *
+ * 3. at level 0 all nodes not expecting any pending data (i.e. "recv
+ *    from" empty) send their local data up to their destination (trigger
+ *    the "upward comm"). In the example nodes 1,3,5,7,9,11,13,15
+ *
+ * 4. at the same time nodes ready to receive data from their
+ *    immediate neighbors (i.e. the "other" nodes at level 0) will
+ *    send their local data to the nodes they expect next data from
+ *    (trigger the "side-ward comm"). In the example nodes 0,2,4,6,8,10,12,14
+ *
+ * 5. nodes receiving data part of "upward comm":
+ *    - append the received data to their local data
+ *    - enter the next level
+ *    - if no further upward data is expected, send the accumulated
+ *      data to their destination (trigger the next level of "upward
+ *      comm"). In the example at level 1 nodes 2,6,10,14, at level 2
+ *      nodes 4,12, at level 3 node 8
+ *    - at the same time nodes ready to receive data from their
+ *      immediate neighbors at their new level (i.e. the "other" nodes
+ *      at this level) send the accumulated data to the nodes they expect
+ *      data from (trigger the next level of "side-ward comm"). In the
+ *      example at level 1 nodes 0,4,8,12 at level 2 nodes 0,8 at
+ *      level 3 node 0
+ *    - send the received data "downward", i.e. to the nodes data was
+ *      received from until the level before. At level 1 no "downward comm"
+ *      is required, at level 2 node 0 sends to node 1 (0->1), 4->5, 8->9.
+ *      12->13, at level 3 node 0 sends to nodes 1,2 (0->1,2), 8->9,10, at
+ *      level 4 node 0 sends to nodes 1,2,4
+ *
+ * 6. nodes receiving data part of "side-ward comm":
+ *    - send the received data to the nodes data was received until the
+ *      level before (trigger the next wave of "downward comm"). At level 0
+ *      no "downward comm" is required, at level 1 node 2 sends to node 3
+ *      (2->3), 6->7, 10->11, 14->15, at level 2 node 4 sends to nodes 5,6
+ *      (4->5,6), 12->13,14, at level 3 node 8 sends to nodes 9,10,12.
+ *    - append the received data to their local data
+ *
+ * 5. nodes receiving data part of "downward comm"
+ *
+ *   - forward this data to all nodes they got "forward comm" data from
+ *     propagating this wave of "downward comm". Level 0 just receives
+ *     (no lower level), level 1 sees 2->3, 6->7, 10->11, 14->15, level 2
+ *     has 0->1,2, 4->5,6, 8->9,10, and 12->13,14, level 3 does not receive
+ *     "downward" data in the 16 node example but would contain 0->1,2,4
+ *     and 8->9,10,12 in larger examples
+ *    - append the received data to their local data
+ *
+ * 6. nodes keep track of the accumulated data and stop operation
+ *    (i.e. call pspmix_server_fenceOut()) as soon as fence->nNodes
+ *    (possibly empty) data blobs were received
+ *
+ * It must be ensured that receiving data that is part of "upward comm"
+ * happens in the right order, i.e. possibly delaying the handling of
+ * incoming "upward" messages. Furthermore "side-ward comm" must not be
+ * handled before all "upward" messages expected on this node were
+ * received and handled
+ * Beyond that the communication algorithm is self-synchronizing.
+ *
+ * Data will *not* be in the "correct" (node-)rank order. It would be
+ * easy to change this by prepending side-ward and downward data instead
+ * of appending it. Since this is not required by OpenPMIx, @ref appendMsg()
+ * will be always used for ease of implementation.
+ *
+ * @param fence Fence object to handle
+ */
+static void checkFence(PspmixFence_t *fence) {
+    mdbg(PSPMIX_LOG_CALL, "%s(0x%016lX)\n", __func__, fence->id);
+
+    if (!fence->nNodes) {
+	ulog("UNEXPECTED: no nodes in 0x%016lX\n", fence->id);
+	return;
+    }
+
+    if (!fence->nMsgs) {
+	ulog("UNEXPECTED: no pending messages in 0x%016lX\n", fence->id);
+	return;
+    }
+
+    /* investigate the newly appended message first */
+    size_t m = fence->nMsgs - 1;
+    do {
+	if (fence->nSrcs && fence->msgs[m].sRank == fence->srcs[fence->nGot]) {
+	    /* upward message */
+	    mdbg(PSPMIX_LOG_FENCE, "%s(0x%016lX): Upward data from %s (%d)\n",
+		 __func__, fence->id, PSC_printTID(fence->msgs[m].sender),
+		 fence->msgs[m].sRank);
+
+	    /* append received data to local data */
+	    if (!appendMsg(fence, m)) return;
+	    fence->nGot++;
+
+	    /* send accumulated data */
+	    if (fence->nGot < fence->nSrcs) {
+		/* sideward to next expected sender */
+		uint16_t destRank = fence->srcs[fence->nGot];
+		PStask_ID_t dest = PSC_getTID(fence->nodes[destRank], 0);
+		pspmix_comm_sendFenceData(&dest, 1, fence->id,
+					  fence->rank, fence->nBlobs,
+					  fence->data, fence->len);
+	    } else if (fence->rank != 0) {
+		/* or upward (but there is no up for the root on rank 0) */
+		PStask_ID_t dest = PSC_getTID(fence->nodes[fence->dest], 0);
+		pspmix_comm_sendFenceData(&dest, 1, fence->id,
+					  fence->rank, fence->nBlobs,
+					  fence->data, fence->len);
+	    }
+
+	    /* send received data down into old local sub-tree if any */
+	    pspmix_comm_sendFenceData(fence->rcvrs, fence->nRcvrs, fence->id,
+				      fence->rank, fence->msgs[m].nBlobs,
+				      fence->msgs[m].data, fence->msgs[m].len);
+
+	    /* extend local sub-tree by new sender */
+	    fence->rcvrs[fence->nRcvrs++] = fence->msgs[m].sender;
+
+	    /* release the message */
+	    dropMsg(fence, m);
+	} else if (fence->msgs[m].sRank == fence->dest   // side-/upwards node
+		   && fence->nRcvrs == fence->nSrcs) {   // all receivers known
+	    /* side-ward or downward message */
+	    mdbg(PSPMIX_LOG_FENCE, "%s(0x%016lX): Downward data from %s (%d)\n",
+		 __func__, fence->id, PSC_printTID(fence->msgs[m].sender),
+		 fence->msgs[m].sRank);
+
+	    /* send received data down into local sub-tree if any */
+	    pspmix_comm_sendFenceData(fence->rcvrs, fence->nRcvrs, fence->id,
+				      fence->rank, fence->msgs[m].nBlobs,
+				      fence->msgs[m].data, fence->msgs[m].len);
+
+	    /* append received data to local data */
+	    if (!appendMsg(fence, m)) return;
+
+	    /* release the message */
+	    dropMsg(fence, m);
+	} else if (fence->msgs[m].sRank == fence->dest
+		   && fence->nRcvrs < fence->nSrcs) {
+	    mdbg(PSPMIX_LOG_FENCE, "%s(0x%016lX) waiting for rcvrs (%d/%d)\n",
+		 __func__, fence->id, fence->nRcvrs, fence->nSrcs);
+	} else {
+	    mdbg(PSPMIX_LOG_FENCE, "%s(0x%016lX) no match (%d/%d)\n", __func__,
+		 fence->id, fence->msgs[m].sRank, fence->srcs[fence->nGot]);
+	}
+
+	/* check for other messages to handle */
+	for (m = 0; m < fence->nMsgs; m++) {
+	    if (fence->nSrcs
+		&& fence->msgs[m].sRank == fence->srcs[fence->nGot]) break;
+	    if (fence->msgs[m].sRank == fence->dest
+		&& fence->nRcvrs == fence->nSrcs) break;
+	}
+    } while (m < fence->nMsgs);
+
+    mdbg(PSPMIX_LOG_FENCE, "%s(0x%016lX): %u blobs (%zu bytes) accumulated \n",
+	 __func__, fence->id, fence->nBlobs, fence->len);
+
+    if (fence->nBlobs == fence->nNodes) {
+	/* fence complete */
+
+	list_del(&fence->next);
+
+	RELEASE_LOCK(fenceList);
+
+	/* pass back ownership acquired via server_fencenb_cb() */
+	fence->mdata->data = fence->data;
+	fence->mdata->ndata = fence->len;
+
+	/* tell the server */
+	pspmix_server_fenceOut(true, fence->mdata);
+
+	/* cleanup fence object */
+	while (fence->nMsgs) dropMsg(fence, fence->nMsgs - 1);
+	ufree(fence->nodes);
+	ufree(fence);
+
+	GET_LOCK(fenceList); // just to return with lock hold
+    }
 }
 
 static bool extractNodes(const pmix_proc_t procs[], size_t nprocs,
@@ -1070,32 +1263,40 @@ static bool extractNodes(const pmix_proc_t procs[], size_t nprocs,
     return true;
 }
 
-int pspmix_service_fenceIn(const pmix_proc_t procs[], size_t nprocs,
-			   char *data, size_t ndata, modexdata_t *mdata)
+static int compare_nodeIDs(const void *a, const void *b)
 {
-    if (nprocs == 0) {
-	ulog("ERROR: nprocs == 0\n");
+    const PSnodes_ID_t *ca = (const PSnodes_ID_t *) a;
+    const PSnodes_ID_t *cb = (const PSnodes_ID_t *) b;
+
+    return (*ca > *cb) - (*ca < *cb);
+}
+
+int pspmix_service_fenceIn(const pmix_proc_t procs[], size_t nProcs,
+			   char *data, size_t len, modexdata_t *mdata)
+{
+    if (nProcs == 0) {
+	ulog("ERROR: nProcs == 0\n");
 	return -1;
     }
 
-    mdbg(PSPMIX_LOG_CALL, "%s(nprocs %lu nspace %s ndata %ld)\n", __func__,
-	 nprocs, procs[0].nspace, ndata);
+    mdbg(PSPMIX_LOG_CALL, "%s(nProcs %lu nspace %s len %lu)\n", __func__,
+	 nProcs, procs[0].nspace, len);
 
-    uint64_t fenceID = getFenceID(procs, nprocs);
+    uint64_t fenceID = getFenceID(procs, nProcs);
 
     GET_LOCK(fenceList);
 
     PspmixFence_t *fence = findFence(fenceID);
 
     if (fence && fence->nodes) {
-	ulog("UNEXPECTED: fence 0x%04lX found with nodes set\n", fenceID);
+	ulog("UNEXPECTED: fence 0x%016lX found with nodes set\n", fenceID);
 	RELEASE_LOCK(fenceList);
 	return -1;
     }
 
     /* create list of participating nodes */
     vector_t nodes;
-    if (!extractNodes(procs, nprocs, &nodes)) {
+    if (!extractNodes(procs, nProcs, &nodes)) {
 	ulog("UNEXPECTED: failed to extract nodes for fence operation\n");
 	RELEASE_LOCK(fenceList);
 	return -1;
@@ -1131,7 +1332,7 @@ int pspmix_service_fenceIn(const pmix_proc_t procs[], size_t nprocs,
     vectorSort(&nodes, compare_nodeIDs);
 
     if (mset(PSPMIX_LOG_FENCE)) {
-	ulog("this fence has id 0x%04lX and nodelist: %hd", fenceID,
+	ulog("this fence has id 0x%016lX and nodelist: %hd", fenceID,
 	     *vectorGet(&nodes, 0, PSnodes_ID_t));
 	for (size_t i = 1; i < nodes.len; i++) {
 	    mlog(",%hd", *vectorGet(&nodes, i, PSnodes_ID_t));
@@ -1147,124 +1348,65 @@ int pspmix_service_fenceIn(const pmix_proc_t procs[], size_t nprocs,
 
     /* fill fence object */
     fence->nodes =  (PSnodes_ID_t *)nodes.data;
-    fence->nnodes = nodes.len;
-    fence->lrank = myNodeRank;
-    fence->ldata = data;
-    fence->nldata = ndata;
+    fence->nNodes = nodes.len;
+    fence->rank = myNodeRank;
+    fence->nBlobs = 1;
+    fence->data = data;
+    fence->len = len;
     fence->mdata = mdata;
 
     /* determine dest and sources (if any) for tree communication */
+    /* see checkFence() for details on the strategy */
     uint32_t off = 1;
     while (!(myNodeRank % (2*off))) {
-	if (myNodeRank + off < fence->nnodes) {
-	    fence->srcs[fence->nsrcs++] = myNodeRank + off;
+	if (myNodeRank + off < fence->nNodes) {
+	    fence->srcs[fence->nSrcs++] = myNodeRank + off;
 	} else if (!myNodeRank) break; // ensure rank == 0 breaks at some point
 	off <<= 1;
     }
     if (myNodeRank) fence->dest = myNodeRank - off;
 
-    /* if we are the first node, start daisy chain, else check if we already
-     * got a fence in message */
-    if (fence->nodes[0] == PSC_getMyID()) {
-	mdbg(PSPMIX_LOG_FENCE, "%s: Starting fence in daisy chain for fence id"
-	     " 0x%04lX\n", __func__, fenceID);
+    /* Trigger tree communication */
+    mdbg(PSPMIX_LOG_FENCE, "%s: Start 0x%016lX tree\n", __func__, fenceID);
 
-	pspmix_comm_sendFenceIn(fence->nodes[1], fence->id, data, ndata);
-	fence->started = true;
-    } else {
-	checkFence(fence);
-    }
+    /* this sends both, level 0 upward and sideward messages */
+    uint16_t destRank = fence->nSrcs ? fence->srcs[0] : fence->dest;
+    PStask_ID_t dest = PSC_getTID(fence->nodes[destRank], 0);
+    pspmix_comm_sendFenceData(&dest, 1, fence->id, fence->rank,
+			      fence->nBlobs, fence->data, fence->len);
+
+    /* check for postponed data messages */
+    if (fence->nMsgs) checkFence(fence);
 
     RELEASE_LOCK(fenceList);
 
     return 0;
 }
 
-void pspmix_service_handleFenceIn(uint64_t fenceID, PStask_ID_t sender,
-				  void *data, size_t len)
+void pspmix_service_handleFenceData(uint64_t fenceID, PStask_ID_t sender,
+				    uint16_t senderRank, uint16_t nBlobs,
+				    void *data, size_t len)
 {
     GET_LOCK(fenceList);
 
     PspmixFence_t *fence = findFence(fenceID);
 
-    if (fence && fence->receivedIn) {
-	ulog("UNEXPECTED: fence 0x%04lX found with receivedIn set\n", fenceID);
-	// @todo mark fence as spoiled (via PMIX_LOCAL_COLLECTIVE_STATUS?)
-	ufree(data);
-	RELEASE_LOCK(fenceList);
-	return;
-    }
-
     if (!fence) {
-	/* pspmix_service_fenceIn() not called yet for this fence,
-	 * create object */
+	/* pspmix_service_fenceIn() not yet called for this fence */
 	fence = createFenceObject(fenceID, __func__);
 	list_add_tail(&fence->next, &fenceList);
     }
 
-    fence->precursor = sender;
-    fence->receivedIn = true;
-    fence->rdata = data;
-    fence->nrdata = len;
+    fence->msgs[fence->nMsgs++] = (PspmixFenceMsg_t) {
+	.sender = sender,
+	.sRank = senderRank,
+	.nBlobs = nBlobs,
+	.data = data,
+	.len = len, };
 
-    checkFence(fence);
-
-    RELEASE_LOCK(fenceList);
-}
-
-void pspmix_service_handleFenceOut(uint64_t fenceID, void *data, size_t len)
-{
-    GET_LOCK(fenceList);
-
-    PspmixFence_t *fence = findFence(fenceID);
-    if (!fence) {
-	ulog("UNEXPECTED: fence 0x%04lX not found\n", fenceID);
-	RELEASE_LOCK(fenceList);
-	return;
-    }
-
-    if (!fence->nodes) {
-	ulog("UNEXPECTED: fence 0x%04lX without nodes set\n", fenceID);
-	RELEASE_LOCK(fenceList);
-	return;
-    }
-
-    if (!fence->receivedIn) {
-	ulog("UNEXPECTED: fence 0x%04lX without receivedIn\n", fenceID);
-	RELEASE_LOCK(fenceList);
-	return;
-    }
-
-    mdbg(PSPMIX_LOG_FENCE, "%s: fence 0x%04lX\n", __func__, fenceID);
-
-    /* remove fence from list */
-    list_del(&fence->next);
+    if (fence->nNodes) checkFence(fence);
 
     RELEASE_LOCK(fenceList);
-
-    if (!fence->started) {
-	/* we are not the last one of the chain */
-	mdbg(PSPMIX_LOG_FENCE, "%s: Forwarding fence_out for fence id 0x%04lX"
-	     " with %lu nodes to node %d\n", __func__, fence->id,
-	     fence->nnodes, fence->precursor);
-	pspmix_comm_sendFenceOut(fence->precursor, fence->id, data, len);
-    } else {
-	mdbg(PSPMIX_LOG_FENCE, "%s: Fence out daisy chain for fence id 0x%04lX"
-		" with %lu nodes completed\n", __func__, fence->id,
-		fence->nnodes);
-    }
-
-    fence->mdata->data = data;
-    fence->mdata->ndata = len;
-
-    /* tell server */
-    pspmix_server_fenceOut(true, fence->mdata);
-
-    /* cleanup fence object */
-    ufree(fence->nodes);
-    ufree(fence->rdata);
-    free(fence->ldata); /* ownership is passed by server_fencenb_cb() */
-    ufree(fence);
 }
 
 bool pspmix_service_sendModexDataRequest(modexdata_t *mdata)

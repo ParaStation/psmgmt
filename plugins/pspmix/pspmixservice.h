@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2018-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2022 ParTec AG, Munich
+ * Copyright (C) 2021-2023 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -178,56 +178,41 @@ void pspmix_service_abort(void *clientObject);
  * This means that the helper library there has called this function with the
  * same set of processed.
  *
- * We can forward a pending matching daisy chain barrier_in message now.
- * If we are the node with the first client in the chain we have to start the
- * daisy chain.
+ * We can trigger tree communication to handle the global fence logic now.
  *
- * @see checkFence() in pspmixservice.c for an overall description of
+ * @see checkFence() in pspmixservice.c for an overall description of the
  * fence handling logic
  *
- * @param procs Processes that need to participate
- * @param ndata Size of @a procs
- * @param data  Data to be collected
- * @param ndata Size of @a data
- * @param mdata Fence modexdata, collected data goes in here
+ * @param procs  processes that need to participate
+ * @param nProcs size of @a procs
+ * @param data   data to be collected
+ * @param len    size of @a data
+ * @param mdata  Fence modexdata, collected data goes in here
  *
  * @return  1 if the fence is already completed until return
  * @return  0 if input is valid and fence can be processed
  * @return -1 on any error
  */
 int pspmix_service_fenceIn(const pmix_proc_t procs[], size_t nprocs,
-	char *data, size_t ndata, modexdata_t *mdata);
+			   char *data, size_t len, modexdata_t *mdata);
 
 /**
- * @brief Handle messages of type PSPMIX_FENCE_IN comming from PMIx servers
- *        on other nodes
+ * @brief Handle messages of type PSPMIX_FENCE_DATA received from PMIx
+ *        servers on other nodes
  *
- * @see checkFence() in pspmixservice.c for an overall description of
+ * @see checkFence() in pspmixservice.c for an overall description of the
  * fence handling logic
  *
- * @param fenceid  ID of the fence
- * @param sender   task ID of the sending PMIx server
- * @param data     data blob to share with all participating nodes
- *                 (takes ownership)
- * @param len      size of the data blob to share
+ * @param fenceID    ID of the fence
+ * @param sender     task ID of the sending PMIx server
+ * @param senderRank sender's node rank
+ * @apram numBlobs   number of separate data blobs contained in data
+ * @param data       data blob(s) to be added to the fence (takes ownership)
+ * @param len        size of @a data
  */
-void pspmix_service_handleFenceIn(uint64_t fenceid, PStask_ID_t sender,
-	void *data, size_t len);
-
-/**
- * @brief Handle a fence out
- *
- * Put the data to the buffer list
- *
- * @see checkFence() in pspmixservice.c for an overall description of
- * fence handling logic
- *
- * @param fenceid   ID of the fence
- * @param data      cumulated data blob to share with all participating nodes
- *                  (takes ownership)
- * @param len       size of the cumulated data blob
- */
-void pspmix_service_handleFenceOut(uint64_t fenceid, void *data, size_t len);
+void pspmix_service_handleFenceData(uint64_t fenceID, PStask_ID_t sender,
+				    uint16_t senderRank, uint16_t numBlobs,
+				    void *data, size_t len);
 
 /**
  * @brief Send a modex data request

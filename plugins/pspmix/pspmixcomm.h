@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2018-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2022 ParTec AG, Munich
+ * Copyright (C) 2021-2023 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -48,30 +48,21 @@ bool pspmix_comm_handleMthrMsg(DDTypedBufferMsg_t *msg, ForwarderData_t *fw);
 bool pspmix_comm_sendClientPMIxEnvironment(PStask_ID_t targetTID, env_t *env);
 
 /**
- * @brief Compose and send a fence in message
+ * @brief Compose and send a fence data message if @a nDest != 0
  *
- * @param target     node id of the node to send the message to
- * @param fenceid    id of the fence
- * @param data       data blob to share with all participating nodes
- * @param ndata      size of the data blob to share
- *
- * @return Returns true on success, false on error
- */
-bool pspmix_comm_sendFenceIn(PSnodes_ID_t target, uint64_t fenceid,
-			     char *data, size_t ndata);
-
-/**
- * @brief Compose and send a fence out message
- *
- * @param targetTID  task id of the pmix server to send the message to
- * @param fenceid    id of the fence
- * @param data       cumulated data blob to share with all participating nodes
- * @param ndata      size of the cumulated data blob
+ * @param dest       task IDs of PMIx servers / psids to send data to
+ * @param nDest      number of elements in @a dest
+ * @param fenceID    id of the fence
+ * @param senderRank local rank to embed into message
+ * @param nBlobs     number of data blobs contained in @a data
+ * @param data       accumulated data to send
+ * @param len        size of the @a data (in bytes)
  *
  * @return Returns true on success, false on error
  */
-bool pspmix_comm_sendFenceOut(PStask_ID_t targetTID, uint64_t fenceid,
-			      char *data, size_t ndata);
+bool pspmix_comm_sendFenceData(PStask_ID_t *dest, uint8_t nDest,
+			       uint64_t fenceID, uint16_t senderRank,
+			       uint16_t nBlobs, char *data, size_t len);
 
 /**
  * @brief Compose and send a modex data request message

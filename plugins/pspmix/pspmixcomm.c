@@ -214,59 +214,57 @@ static void handleClientNotifyResp(DDTypedBufferMsg_t *msg,
 }
 
 /**
-* @brief Handle PSPMIX_FENCE_IN message
+* @brief Handle obsolete PSPMIX_FENCE_IN/PSPMIX_FENCE_OUT message
 *
-* This message is sent by another PMIx server of the same user.
+* This obsolete message was sent by an outdated PMIx server of the same user
 *
-* @param msg  The last fragment of the message to handle
-* @param data The defragmented data received
+* @param msg  Last fragment of the message to handle
+* @param data Accumulated data received
 */
-static void handleFenceIn(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
+static void handleFenceObsolete(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
 {
-    mdbg(PSPMIX_LOG_CALL, "%s()\n", __func__);
-
     char *ptr = data->buf;
 
-    uint64_t fenceid;
-    getUint64(&ptr, &fenceid);
-    size_t len;
-    void *rdata = getDataM(&ptr, &len);
+    uint64_t fenceID;
+    getUint64(&ptr, &fenceID);
 
-    mdbg(PSPMIX_LOG_COMM, "%s: received %s from %s for fence 0x%04lX"
-	 " (ndata %lu)\n", __func__, pspmix_getMsgTypeString(msg->type),
-	 PSC_printTID(msg->header.sender), fenceid, len);
-
-    /* transfers ownership of data */
-    pspmix_service_handleFenceIn(fenceid, msg->header.sender, rdata, len);
+    ulog("UNEXPECTED: received %s from %s for fence 0x%016lX\n",
+	 pspmix_getMsgTypeString(msg->type),
+	 PSC_printTID(msg->header.sender), fenceID);
 }
 
 /**
-* @brief Handle PSPMIX_FENCE_OUT message
+* @brief Handle PSPMIX_FENCE_DATA message
 *
-* This message is sent by another PMIx server of the same user.
+* Message sent by another PMIx server of the same user for fence tree
+* communication
 *
-* @param msg  The last fragment of the message to handle
-* @param data The defragmented data received
+* @param msg  Last fragment of the message to handle
+* @param data Accumulated data received
 */
-static void handleFenceOut(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
+static void handleFenceData(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
 {
     mdbg(PSPMIX_LOG_CALL, "%s()\n", __func__);
 
     char *ptr = data->buf;
 
-    uint64_t fenceid;
-    getUint64(&ptr, &fenceid);
+    uint64_t fenceID;
+    getUint64(&ptr, &fenceID);
+    uint16_t senderRank;
+    getUint16(&ptr, &senderRank);
+    uint16_t nBlobs;
+    getUint16(&ptr, &nBlobs);
     size_t len;
-    void *rdata = getDataM(&ptr, &len);
+    void *mData = getDataM(&ptr, &len);
 
-    mdbg(PSPMIX_LOG_COMM, "%s: received %s from %s for fence 0x%04lX"
-	 " (ndata %lu)\n", __func__, pspmix_getMsgTypeString(msg->type),
-	 PSC_printTID(msg->header.sender), fenceid, len);
+    mdbg(PSPMIX_LOG_COMM, "%s: got %s from %s (rank %u) for fence 0x%016lX"
+	 " (nBlobs %u len %lu)\n", __func__, pspmix_getMsgTypeString(msg->type),
+	 PSC_printTID(msg->header.sender), senderRank, fenceID, nBlobs, len);
 
     /* transfers ownership of data */
-    pspmix_service_handleFenceOut(fenceid, rdata, len);
+    pspmix_service_handleFenceData(fenceID, msg->header.sender, senderRank,
+				   nBlobs, mData, len);
 }
-
 /**
 * @brief Handle PSPMIX_MODEX_DATA_REQ message
 *
@@ -372,10 +370,11 @@ static void handlePspmixMsg(DDTypedBufferMsg_t *msg)
 	break;
     /* message types comming from another PMIx server of the same user */
     case PSPMIX_FENCE_IN:
-	recvFragMsg(msg, handleFenceIn);
-	break;
     case PSPMIX_FENCE_OUT:
-	recvFragMsg(msg, handleFenceOut);
+	recvFragMsg(msg, handleFenceObsolete);
+	break;
+    case PSPMIX_FENCE_DATA:
+	recvFragMsg(msg, handleFenceData);
 	break;
     case PSPMIX_MODEX_DATA_REQ:
 	recvFragMsg(msg, handleModexDataReq);
@@ -494,53 +493,37 @@ bool pspmix_comm_sendClientPMIxEnvironment(PStask_ID_t targetTID, env_t *env)
     return true;
 }
 
-bool pspmix_comm_sendFenceIn(PSnodes_ID_t target /* remote psid */,
-			     uint64_t fenceid, char *data, size_t ndata)
+bool pspmix_comm_sendFenceData(PStask_ID_t *dest, uint8_t nDest,
+			       uint64_t fenceID, uint16_t senderRank,
+			       uint16_t nBlobs, char *data, size_t len)
 {
-    mdbg(PSPMIX_LOG_CALL|PSPMIX_LOG_COMM,
-	 "%s(target %hd uid %d fenceid 0x%04lX ndata %lu)\n", __func__,
-	 target, extra.uid, fenceid, ndata);
+    if (mset((PSPMIX_LOG_CALL|PSPMIX_LOG_COMM))) {
+	mlog("%s(0x%016lX) to [%s", __func__, fenceID,
+	     nDest ? PSC_printTID(dest[0]) : "");
+	for (uint8_t d = 1; d < nDest; d++) mlog(",%s", PSC_printTID(dest[d]));
+	mlog("] uid %d nBlobs %u len %zu\n", extra.uid, nBlobs, len);
+    }
+    if (!nDest) return true;
 
-    PS_SendDB_t msg;
     pthread_mutex_lock(&send_lock);
-    initFragPspmix(&msg, PSPMIX_FENCE_IN);
-    setFragDest(&msg, PSC_getTID(target, 0));
+    PS_SendDB_t msg;
+    initFragPspmix(&msg, PSPMIX_FENCE_DATA);
+    for (uint8_t d = 0; d < nDest; d++) setFragDest(&msg, dest[d]);
 
-    addUint64ToMsg(fenceid, &msg);
-    addDataToMsg(data, ndata, &msg);
+    addUint64ToMsg(fenceID, &msg);
+    addUint16ToMsg(senderRank, &msg);
+    addUint16ToMsg(nBlobs, &msg);
+    addDataToMsg(data, len, &msg);
 
     int ret = sendFragMsg(&msg);
     pthread_mutex_unlock(&send_lock);
     if (ret < 0) {
-	mlog("%s(target %hd fenceid 0x%04lX ndata %lu) failed\n",
-	     __func__, target, fenceid, ndata);
+	mlog("%s(0x%016lX) to [%s", __func__, fenceID, PSC_printTID(dest[0]));
+	for (uint8_t d = 1; d < nDest; d++) mlog(",%s", PSC_printTID(dest[d]));
+	mlog("] nBlobs %u failed\n", nBlobs);
 	return false;
     }
-    return true;
-}
 
-bool pspmix_comm_sendFenceOut(PStask_ID_t targetTID /* remote PMIx server */,
-			      uint64_t fenceid, char *data, size_t ndata)
-{
-    mdbg(PSPMIX_LOG_CALL|PSPMIX_LOG_COMM,
-	 "%s(target %s fenceid 0x%04lX ndata %lu)\n", __func__,
-	 PSC_printTID(targetTID), fenceid, ndata);
-
-    PS_SendDB_t msg;
-    pthread_mutex_lock(&send_lock);
-    initFragPspmix(&msg, PSPMIX_FENCE_OUT);
-    setFragDest(&msg, targetTID);
-
-    addUint64ToMsg(fenceid, &msg);
-    addDataToMsg(data, ndata, &msg);
-
-    int ret = sendFragMsg(&msg);
-    pthread_mutex_unlock(&send_lock);
-    if (ret < 0) {
-	mlog("%s(target %s fenceid 0x%04lX ndata %lu) failed\n",
-	     __func__, PSC_printTID(targetTID), fenceid, ndata);
-	return false;
-    }
     return true;
 }
 
