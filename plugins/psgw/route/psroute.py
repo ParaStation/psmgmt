@@ -10,7 +10,7 @@ import re
 
 from pypsconfig import PSConfig
 
-sys.path.append(os.path.dirname(__file__))
+sys.path.append("%s/../psmgmt/" % os.path.dirname(__file__))
 from pscompress import compress
 from psexpand import expand_list
 
