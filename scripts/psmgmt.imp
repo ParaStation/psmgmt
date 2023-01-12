@@ -1,8 +1,6 @@
 # special IWYU mappings for psmgmt
 # Copyright (C) 2021-2023 ParTec AG, Munich
 [
-  { symbol: ["struct timeval", "private", "<sys/time.h>", "public"] },
-  { symbol: ["timeval", "private", "<sys/time.h>", "public"] },
   { symbol: ["__kernel_ulong_t", "private", "<sys/sysinfo.h>", "public"] },
   { symbol: ["sysinfo", "private", "<sys/sysinfo.h>", "public"] },
   { symbol: ["SI_LOAD_SHIFT", "private", "<sys/sysinfo.h>", "public"] },
