@@ -16,10 +16,10 @@ MODULES="cpuset,oom,devices,memory"
 CGROUP_BASE="/sys/fs/cgroup"
 
 # path to psnameexpand executable
-EXPAND="/opt/parastation/bin/psnameexpand"
+EXPAND="$CommandPath/../psmgmt/psexpand.py"
 
 # path to psnamecompress executable
-COMPRESS="/opt/parastation/bin/psnamecompress"
+COMPRESS="$CommandPath/../psmgmt/pscompress.py"
 
 # enable debug logging
 DEBUG="0"
