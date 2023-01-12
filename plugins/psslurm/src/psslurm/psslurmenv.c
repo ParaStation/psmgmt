@@ -392,19 +392,26 @@ static void doSetJailMemEnv(const uint64_t ram, const char *scope)
 /**
  * @brief Set jail environment to constrain memory
  *
+ * The slurmctld might not give a memory limit even though constraining
+ * memory is activated. In this case the total memory of the node is
+ * used as limit.
+ *
  * @param cred The job credential holding memory information
  *
  * @param localNodeId Local node ID for this jobs/step
  */
 static void setJailMemEnv(JobCred_t *cred, uint32_t localNodeId)
 {
+    /* total node memory in Byte */
+    uint64_t nodeMem = getNodeMem()*1024*1024;
+
     /* set job env */
     if (cred->jobMemAllocSize) {
 	for (uint32_t i=0, idx=0; i<cred->jobMemAllocSize; i++) {
 	    for (uint32_t j=0; j<cred->jobMemAllocRepCount[i]; j++) {
 		if (idx++ == localNodeId) {
 		    uint64_t ramSpace = cred->jobMemAlloc[i]*1024*1024;
-		    doSetJailMemEnv(ramSpace, "JOB");
+		    doSetJailMemEnv(ramSpace ? ramSpace : nodeMem, "JOB");
 		    break;
 		}
 	    }
@@ -418,7 +425,7 @@ static void setJailMemEnv(JobCred_t *cred, uint32_t localNodeId)
 	    for (uint32_t j=0; j<cred->stepMemAllocRepCount[i]; j++) {
 		if (idx++ == localNodeId) {
 		    uint64_t ramSpace = cred->stepMemAlloc[i]*1024*1024;
-		    doSetJailMemEnv(ramSpace, "STEP");
+		    doSetJailMemEnv(ramSpace ? ramSpace : nodeMem, "STEP");
 		    break;
 		}
 	    }
