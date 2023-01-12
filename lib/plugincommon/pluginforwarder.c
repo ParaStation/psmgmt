@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2014-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2022 ParTec AG, Munich
+ * Copyright (C) 2021-2023 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -515,7 +515,7 @@ static void sendAccInfo(Forwarder_Data_t *fw, int32_t status,
 	return;
     }
 
-    /* Put messsage into envelope */ // @todo think about sending directly
+    /* Put message into envelope */ // @todo think about sending directly
     DDTypedBufferMsg_t msg = {
 	.header = {
 	    .type = PSP_PF_MSG,

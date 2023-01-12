@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2022 ParTec AG, Munich
+ * Copyright (C) 2021-2023 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -257,7 +257,7 @@ static inline ssize_t _PSCio_recvBuf(int fd, void *buffer, size_t toRecv,
  * @param len Actual size provided by @a msg
  *
  * @param timeout Time after which this functions returns regardless
- * if a messsage was completely received. If @a timeout is NULL, this
+ * if a message was completely received. If @a timeout is NULL, this
  * function might block indefinitely. Upon return this value will get
  * updated and hold the remnant of the original timeout.
  *

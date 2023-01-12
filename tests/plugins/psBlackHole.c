@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2018-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2022 ParTec AG, Munich
+ * Copyright (C) 2022-2023 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -70,7 +70,7 @@ int doRandomDrop(void *amsg)
 	if (msg->header.type == type.type
 	    && (type.subType == -1 || type.subType == msg->type)) {
 	    if (100.0*rand()/(RAND_MAX) <= dropper->rate) {
-		return 0; // drop messsage
+		return 0; // drop message
 	    }
 	}
     }
@@ -115,9 +115,9 @@ char * help(char *key)
 	"\tAllow to drop messages randomly for debugging purposes.\n"
 	"\tUse the plugin's show directive to list all message types to drop:\n"
 	"\t\tplugin show " NAME "\n"
-	"\tUse the plugin's set directive add new messages type to drop\n"
+	"\tUse the plugin's set directive to add new message types to drop\n"
 	"\t\tplugin set " NAME " <type>[_<subtype>] <probability>\n"
-	"\tUse the plugin's unset directive stop dropping a messages type\n"
+	"\tUse the plugin's unset directive to stop dropping a message type\n"
 	"\t\tplugin unset " NAME " <type>[_<subtype>]\n";
 
     return strdup(helpText);

@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2022 ParTec AG, Munich
+ * Copyright (C) 2022-2023 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -650,7 +650,7 @@ static bool handleDaemonMsg(DDTypedBufferMsg_t *msg)
 	handleRRCommError(msg);
 	break;
     default:
-	flog("unknown messsage type %d/%d\n", msg->header.type, msg->type);
+	flog("unknown message type %d/%d\n", msg->header.type, msg->type);
     }
 
     return true;

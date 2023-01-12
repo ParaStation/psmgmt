@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2022 ParTec AG, Munich
+ * Copyright (C) 2022-2023 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -72,7 +72,7 @@ static bool handleRRCommMsg(DDTypedBufferMsg_t *msg)
 {
     clearNodeInept(PSC_getID(msg->header.sender)); // just in case...
     if (msg->header.dest != PSC_getMyTID()) {
-	/* no messsage for me => forward */
+	/* no message for me => forward */
 	fdbg(msg->type == RRCOMM_ERROR ? RRCOMM_LOG_ERR : RRCOMM_LOG_VERBOSE,
 	     "type %d %s", msg->type, PSC_printTID(msg->header.sender));
 	mdbg(msg->type == RRCOMM_ERROR ? RRCOMM_LOG_ERR : RRCOMM_LOG_VERBOSE,

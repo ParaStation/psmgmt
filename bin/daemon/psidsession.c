@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2022 ParTec AG, Munich
+ * Copyright (C) 2022-2023 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -345,7 +345,7 @@ static void handleResCreated(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
     /* set this early to enable putResinfo(res) to cleanup delayed tasks */
     res->resID = resID;
 
-    /* calculate size of one entry in the messsage */
+    /* calculate size of one entry in the message */
     size_t entrysize = sizeof(res->entries->node)
 	+ sizeof(res->entries->firstrank) + sizeof(res->entries->lastrank);
 

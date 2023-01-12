@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2010-2013 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2022 ParTec AG, Munich
+ * Copyright (C) 2022-2023 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -67,7 +67,7 @@ ssize_t tcpRead(int sock, char *buffer, ssize_t size, const char *caller);
  *
  * @param len The length of the message.
  *
- * @return Returns the length of the messsage saved or -1 on error.
+ * @return Returns the length of the message saved or -1 on error
  */
 int tcpWrite(int sock, void *msg, size_t len, const char *caller);
 

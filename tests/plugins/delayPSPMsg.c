@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2022 ParTec AG, Munich
+ * Copyright (C) 2022-2023 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -226,7 +226,7 @@ static bool delayHandler(DDBufferMsg_t *msg)
 
     msgContainer_t *msgContainer = newMsgContainer(msg);
     if (!msgContainer) {
-	pluginlog("%s: unabled to cache messsage of type %d\n", __func__,
+	pluginlog("%s: unabled to cache message of type %d\n", __func__,
 		  msg->header.type);
 	return false;
     }
@@ -306,7 +306,7 @@ static bool installDelayHandler(uint16_t type, uint32_t subType, uint32_t delay)
     if (!delayContainer) {
 	delayContainer = newDelayContainer();
 	if (!delayContainer) {
-	    PSID_log(-1, "%s: unabled to delay messsages of type %d\n",
+	    PSID_log(-1, "%s: unabled to delay messages of type %d\n",
 		     __func__, type /*, subType*/);
 	    return false;
 	}
@@ -541,7 +541,7 @@ static int16_t resolveMsgType(char *typeStr, StrBuffer_t *strBuf)
 	char *end;
 	msgType = strtol(typeStr, &end, 0);
 	if (*end || msgType < 1) {
-	    addStrBuf("\tunknown messsage type '", strBuf);
+	    addStrBuf("\tunknown message type '", strBuf);
 	    addStrBuf(typeStr, strBuf);
 	    addStrBuf("'\n", strBuf);
 	    return -1;
