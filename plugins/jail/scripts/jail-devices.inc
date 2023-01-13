@@ -20,7 +20,7 @@
 # This script will be called by the jail plugin via system() and get
 # the process ID of the process to be jailed as an argument.
 
-function initDev()
+function initDevices()
 {
     [ -n "$SLURM_USER" ] && USER=$SLURM_USER
 
@@ -65,13 +65,8 @@ function setDev()
     }
 }
 
-if [ "$__PSJAIL_CONSTRAIN_DEVICES" == "no" ]; then
-    dlog "constrain devices *disabled*"
-else
-    dlog "constrain devices enabled"
-
-    initDev
-
+function setDevices()
+{
     # set allowed devices
     cnt=0
     while true; do
@@ -95,4 +90,30 @@ else
 
 	cnt=$(( cnt + 1 ))
     done
+}
+
+function constrainDevSSH()
+{
+    # ssh login via pspam which needs an existing user cgroup
+    CG_USER="$BASE/$PREFIX-$PSPAM_USER"
+    if [ -d $CG_USER ]; then
+	    # add user to cgroup
+	    mlog "adding child $CHILD to user cgroup $CG_USER"
+	    echo "$CHILD" > $CG_USER/tasks
+    else
+	    elog "error: user cgroup $CG_USER is missing"
+    fi
+}
+
+if [ "$__PSJAIL_CONSTRAIN_DEVICES" == "no" ]; then
+    dlog "constrain devices *disabled*"
+else
+    dlog "constrain devices enabled"
+
+    if [ -n "$PSPAM_USER" ]; then
+	constrainDevSSH
+    else
+	initDevices
+	setDevices
+    fi
 fi

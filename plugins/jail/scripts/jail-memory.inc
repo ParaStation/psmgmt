@@ -89,23 +89,49 @@ function setStepMem()
     }
 }
 
-if [ "$__PSJAIL_CONSTRAIN_RAM" == "no" ]; then
-    dlog "constrain RAM *disabled*"
-else
-    dlog "constrain RAM enabled"
-
+function constrainRam()
+{
     setJobMem "$__PSJAIL_JOB_RAM_SOFT" "memory.soft_limit_in_bytes"
     setJobMem "$__PSJAIL_JOB_RAM_HARD" "memory.limit_in_bytes"
 
     setStepMem "$__PSJAIL_STEP_RAM_SOFT" "memory.soft_limit_in_bytes"
     setStepMem "$__PSJAIL_STEP_RAM_HARD" "memory.limit_in_bytes"
+}
+
+function constrainMemSSH()
+{
+    # ssh login via pspam which needs an existing user cgroup
+    CG_USER="$BASE/$PREFIX-$PSPAM_USER"
+    if [ -d $CG_USER ]; then
+	    # add user to cgroup
+	    mlog "adding child $CHILD to user cgroup $CG_USER"
+	    echo "$CHILD" > $CG_USER/tasks
+    else
+	    elog "error: user cgroup $CG_USER is missing"
+    fi
+}
+
+if [ "$__PSJAIL_CONSTRAIN_RAM" == "no" ]; then
+    dlog "constrain RAM *disabled*"
+else
+    dlog "constrain RAM enabled"
+
+    if [ -n "$PSPAM_USER" ]; then
+	constrainMemSSH
+    else
+	constrainRam
+    fi
 
     if [ "$__PSJAIL_CONSTRAIN_KMEM" == "no" ]; then
 	dlog "constrain KMEM *disabled*"
     else
 	dlog "constrain KMEM enabled"
-	setJobMem "$__PSJAIL_JOB_KMEM" "memory.kmem.limit_in_bytes"
-	setStepMem "$__PSJAIL_STEP_KMEM" "memory.kmem.limit_in_bytes"
+	if [ -n "$PSPAM_USER" ]; then
+	    constrainMemSSH
+	else
+	    setJobMem "$__PSJAIL_JOB_KMEM" "memory.kmem.limit_in_bytes"
+	    setStepMem "$__PSJAIL_STEP_KMEM" "memory.kmem.limit_in_bytes"
+	fi
     fi
 fi
 
@@ -113,14 +139,24 @@ if [ "$__PSJAIL_CONSTRAIN_SWAP" == "no" ]; then
     dlog "constrain SWAP *disabled*"
 else
     dlog "constrain SWAP enabled"
-    setJobMem "$__PSJAIL_JOB_SWAP" "memory.memsw.limit_in_bytes"
-    setStepMem "$__PSJAIL_STEP_SWAP" "memory.memsw.limit_in_bytes"
+	constrainMemSSH
+    if [ -n "$PSPAM_USER" ]; then
+	constrainMemSSH
+    else
+	setJobMem "$__PSJAIL_JOB_SWAP" "memory.memsw.limit_in_bytes"
+	setStepMem "$__PSJAIL_STEP_SWAP" "memory.memsw.limit_in_bytes"
+    fi
 fi
 
 if [ -z "$__PSJAIL_SWAPINESS" ]; then
     dlog "constrain swapiness *disabled*"
 else
     dlog "constrain swapiness enabled"
-    setJobMem "$__PSJAIL_SWAPINESS" "memory.swapiness"
-    setStepMem "$__PSJAIL_SWAPINESS" "memory.swapiness"
+
+    if [ -n "$PSPAM_USER" ]; then
+	constrainMemSSH
+    else
+	setJobMem "$__PSJAIL_SWAPINESS" "memory.swapiness"
+	setStepMem "$__PSJAIL_SWAPINESS" "memory.swapiness"
+    fi
 fi
