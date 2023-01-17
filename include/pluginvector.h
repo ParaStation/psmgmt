@@ -203,7 +203,7 @@ int __compare_uint32 (const void *a, const void *b);
 #define intvAddCount(v, n, c) vectorAddCount(v, (void *)n, c)
 #define intvGet(v, i) vectorGet(v, i, int)
 #define intvContains(v, e) vectorContains(v, e)
-#define intFind(v, e) vectorFind(v, e)
+#define intvFind(v, e) vectorFind(v, e)
 #define intvSort(v) vectorSort(v, __compare_int)
 #define intvDestroy(v) vectorDestroy(v)
 
@@ -212,7 +212,7 @@ int __compare_uint32 (const void *a, const void *b);
 #define uint32vAddCount(v, n, c) vectorAddCount(v, (void *)n, c)
 #define uint32vGet(v, i) vectorGet(v, i, uint32_t)
 #define uint32vContains(v, e) vectorContains(v, e)
-#define uint32Find(v, e) vectorFind(v, e)
+#define uint32vFind(v, e) vectorFind(v, e)
 #define uint32vSort(v) vectorSort(v, __compare_uint32)
 #define uint32vDestroy(v) vectorDestroy(v)
 
