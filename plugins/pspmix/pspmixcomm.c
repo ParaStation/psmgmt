@@ -346,7 +346,7 @@ static void handleModexDataResp(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
 */
 static void handlePspmixMsg(DDTypedBufferMsg_t *msg)
 {
-    mdbg(PSPMIX_LOG_CALL, "%s()\n", __func__);
+    mdbg(PSPMIX_LOG_CALL, "%s(%s)\n", __func__, PSC_printTID(msg->header.sender));
 
     mdbg(PSPMIX_LOG_COMM, "%s(type %s [%s", __func__,
 	 pspmix_getMsgTypeString(msg->type), PSC_printTID(msg->header.sender));
@@ -527,12 +527,12 @@ bool pspmix_comm_sendFenceData(PStask_ID_t *dest, uint8_t nDest,
     return true;
 }
 
-bool pspmix_comm_sendModexDataRequest(PSnodes_ID_t target /* remote psid */,
+bool pspmix_comm_sendModexDataRequest(PSnodes_ID_t target /* remote node */,
 				      const char *nspace, uint32_t rank,
 				      char **reqKeys, int32_t timeout)
 {
-    mdbg(PSPMIX_LOG_CALL|PSPMIX_LOG_COMM, "%s(target %s nspace %s rank %d)\n",
-	 __func__, PSC_printTID(target), nspace, rank);
+    mdbg(PSPMIX_LOG_CALL|PSPMIX_LOG_COMM, "%s(target %d nspace %s rank %d)\n",
+	 __func__, target, nspace, rank);
 
     PS_SendDB_t msg;
     pthread_mutex_lock(&send_lock);
