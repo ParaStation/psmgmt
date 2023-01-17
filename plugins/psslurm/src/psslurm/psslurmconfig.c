@@ -10,12 +10,13 @@
  */
 #include "psslurmconfig.h"
 
-#include <stdio.h>
 #include <dirent.h>
 #include <errno.h>
 #include <glob.h>
+#include <limits.h>
 #include <netdb.h>
 #include <netinet/in.h>
+#include <stdio.h>
 #include <string.h>
 #include <strings.h>
 #include <sys/stat.h>

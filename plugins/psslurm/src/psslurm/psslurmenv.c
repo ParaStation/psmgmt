@@ -13,14 +13,12 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <arpa/inet.h>
-#include <ctype.h>
+#include <limits.h>
 #include <netinet/in.h>
 #include <string.h>
 #include <sys/stat.h>
 #include <unistd.h>
-#include <linux/limits.h>
 
-#include "list.h"
 #include "pscommon.h"
 #include "psipartition.h"
 #include "pluginconfig.h"
