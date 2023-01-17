@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2014-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2022 ParTec AG, Munich
+ * Copyright (C) 2021-2023 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -39,14 +39,14 @@ extern const ConfDef_t confDef[];
 /**
  * @brief Initialize the psslurm configuration
  *
- * Parse and save diffrent configuration files including
- * the main psslurm configuration. Additionally various Slurm configuration
- * files are parsed if configless mode is not used.
+ * Parse and save diffrent configuration files including the main
+ * psslurm configuration. Additionally various Slurm configuration
+ * files are parsed if config-less mode is not used.
  *
  * @param filename The path to the psslurm configuration file
  *
- *  @return Returns CONFIG_SUCCESS on success. CONFIG_SERVER is returned
- *  when running in configless mode. On error in both cases
+ *  @return Returns CONFIG_SUCCESS on success. CONFIG_SERVER is
+ *  returned when running in config-less mode. On error in both cases
  *  CONFIG_ERROR will be returned.
  */
 int initPSSlurmConfig(char *filename);

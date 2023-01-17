@@ -727,9 +727,9 @@ void sendDrainNode(const char *nodeList, const char *reason);
  * @brief Send a Slurm configuration request
  *
  * Send a Slurm configuration request to the given slurmctld
- * server. In a configless mode the slurmctld will send all
- * known configuration files in the response message. The response
- * is handled in @ref handleSlurmConf().
+ * server. In config-less mode the slurmctld will send all known
+ * configuration files in the response message. The response is
+ * handled in @ref handleSlurmConf().
  *
  * @param server The slurmctld server to send the request to
  *
