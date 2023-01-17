@@ -966,12 +966,12 @@ static bool handleSlurmPlugInc(const char *path)
 	    flog("parsing file %s failed\n", pglob.gl_pathv[i]);
 	    goto ERROR;
 	}
-	if (traverseConfig(&SlurmPlugConf, parseSlurmPlugLine, NULL)) {
-	    flog("parsing file %s failed\n", pglob.gl_pathv[i]);
-	    freeConfig(&SlurmPlugConf);
-	    goto ERROR;
-	};
+	bool failed = traverseConfig(&SlurmPlugConf, parseSlurmPlugLine, NULL);
 	freeConfig(&SlurmPlugConf);
+	if (failed) {
+	    flog("parsing file %s failed\n", pglob.gl_pathv[i]);
+	    goto ERROR;
+	}
     }
 
     globfree(&pglob);
@@ -1401,11 +1401,12 @@ bool parseSlurmConfigFiles(void)
 	    return false;
 	}
 
-	if (traverseConfig(&SlurmGresTmp, parseSlurmConf, &type)) {
+	bool failed = traverseConfig(&SlurmGresTmp, parseSlurmConf, &type);
+	freeConfig(&SlurmGresTmp);
+	if (failed) {
 	    flog("Traversing GRes configuration failed\n");
 	    return false;
 	}
-	freeConfig(&SlurmGresTmp);
     }
 
     /* parse optional Slurm account gather config file */
@@ -1424,11 +1425,12 @@ bool parseSlurmConfigFiles(void)
 	    return false;
 	}
 
-	if (traverseConfig(&AcctGather, parseAcctGatherConf, NULL)) {
+	bool failed = traverseConfig(&AcctGather, parseAcctGatherConf, NULL);
+	freeConfig(&AcctGather);
+	if (failed) {
 	    flog("Traversing account gather configuration failed\n");
 	    return false;
 	}
-	freeConfig(&AcctGather);
     }
 
     /* parse optional Slurm topology config file */
@@ -1447,11 +1449,12 @@ bool parseSlurmConfigFiles(void)
 	    return false;
 	}
 
-	if (traverseConfig(&SlurmTopoTmp, parseSlurmConf, &type)) {
+	bool failed = traverseConfig(&SlurmTopoTmp, parseSlurmConf, &type);
+	freeConfig(&SlurmTopoTmp);
+	if (failed) {
 	    flog("Traversing topology configuration failed\n");
 	    return false;
 	}
-	freeConfig(&SlurmTopoTmp);
     }
 
     /* parse optional Slurm cgroup config file */
@@ -1498,11 +1501,12 @@ bool parseSlurmConfigFiles(void)
 	    return false;
 	}
 
-	if (traverseConfig(&SlurmPlugConf, parseSlurmPlugLine, NULL)) {
+	bool failed = traverseConfig(&SlurmPlugConf, parseSlurmPlugLine, NULL);
+	freeConfig(&SlurmPlugConf);
+	if (failed) {
 	    flog("Traversing Spank configuration failed\n");
 	    return false;
 	}
-	freeConfig(&SlurmPlugConf);
     }
 #endif
 
@@ -1605,11 +1609,12 @@ bool updateSlurmConf(void)
 	/* remove old GRes configuration and rebuild it */
 	clearGresConf();
 	config_type_t type = CONFIG_TYPE_GRES;
-	if (traverseConfig(&SlurmGresTmp, parseSlurmConf, &type)) {
+	bool failed = traverseConfig(&SlurmGresTmp, parseSlurmConf, &type);
+	freeConfig(&SlurmGresTmp);
+	if (failed) {
 	    flog("Traversing GRes configuration failed\n");
 	    return false;
 	}
-	freeConfig(&SlurmGresTmp);
     }
 
     /* parse optional Slurm topology config file */
@@ -1630,11 +1635,12 @@ bool updateSlurmConf(void)
 	/* remove old topology configuration and rebuild it */
 	clearTopologyConf();
 	config_type_t type = CONFIG_TYPE_TOPOLOGY;
-	if (traverseConfig(&SlurmTopoTmp, parseSlurmConf, &type)) {
+	bool failed = traverseConfig(&SlurmTopoTmp, parseSlurmConf, &type);
+	freeConfig(&SlurmTopoTmp);
+	if (failed) {
 	    flog("Traversing topology configuration failed\n");
 	    return false;
 	}
-	freeConfig(&SlurmTopoTmp);
     }
 
     /* parse optional Slurm cgroup config file */
@@ -1654,11 +1660,12 @@ bool updateSlurmConf(void)
 	    return false;
 	}
 	setConfigDefaults(&SlurmCgrpTmp, cgroupDef);
-	if (traverseConfig(&SlurmCgrpTmp, verifyCgroupConf, NULL)) {
+	bool failed = traverseConfig(&SlurmCgrpTmp, verifyCgroupConf, NULL);
+	freeConfig(&SlurmCgrpTmp);
+	if (failed) {
 	    flog("Traversing cgroup configuration failed\n");
 	    return false;
 	}
-	freeConfig(&SlurmCgrpTmp);
 
 	/* remove old cgroup configuration and rebuild it */
 	freeConfig(&SlurmCgroupConfig);
