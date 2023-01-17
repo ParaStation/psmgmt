@@ -376,7 +376,6 @@ static void fencenb_release_fn(void *cbdata)
     modexdata_t *mdata = cbdata;
 
     ufree(mdata->data);
-    PMIX_PROC_DESTRUCT(&mdata->proc);
     ufree(mdata);
 }
 
@@ -391,7 +390,7 @@ static void fencenb_release_fn(void *cbdata)
 void pspmix_server_fenceOut(bool success, modexdata_t *mdata)
 {
     assert(mdata != NULL);
-    assert(mdata->cbfunc != NULL || mdata->data == NULL);
+    assert(mdata->cbfunc != NULL || mdata->ndata == 0);
 
     /* do some early cleanup */
     if (!mdata->ndata) {
@@ -415,7 +414,6 @@ void pspmix_server_fenceOut(bool success, modexdata_t *mdata)
 		      fencenb_release_fn, mdata);
     } else {
 	assert(mdata->data == NULL);
-	PMIX_PROC_DESTRUCT(&mdata->proc);
 	ufree(mdata);
     }
 }
@@ -538,20 +536,14 @@ static pmix_status_t server_fencenb_cb(
 
     /* initialize return data struct */
     modexdata_t *mdata = ucalloc(sizeof(*mdata));
-    PMIX_PROC_CONSTRUCT(&mdata->proc);
     mdata->cbfunc = cbfunc;
     mdata->cbdata = cbdata;
 
-    /* XXX kind of a hack, can there be multiple nspaces involved? */
-    PMIX_PROC_LOAD(&mdata->proc, procs[0].nspace, 0);
-
-    int ret;
-    ret = pspmix_service_fenceIn(procs, nprocs, data, ndata, mdata);
+    int ret = pspmix_service_fenceIn(procs, nprocs, data, ndata, mdata);
     if (ret == -1) return PMIX_ERROR;
     if (ret == 0) return PMIX_SUCCESS;
     assert(ret == 1);
 
-    PMIX_PROC_DESTRUCT(&mdata->proc);
     ufree(mdata->data);
     ufree(mdata);
     mlog("%s: return PMIX_OPERATION_SUCCEEDED\n", __func__);
