@@ -10,7 +10,7 @@
 # file.
 #
 # This script is executed with the same permissions as the ParaStation
-# daemon psid, i.e. typically with root permission! Thus, special care
+# daemon psid, i.e. typically with root permissions! Thus, special care
 # has to be taken when changing this script.
 
 function mlog {
@@ -50,7 +50,7 @@ function killTasks {
 
 	while [ -n "$PIDS" -a "$count" -le "$MAX_KILL_RETRY" ]; do
 		for child in $PIDS; do
-		        [ -d "/proc/$child" ] || continue
+			[ -d "/proc/$child" ] || continue
 			CMD=$(cat /proc/$child/cmdline)
 			dlog "killTasks($count): killing PID $child ($CMD) with signal $KILL_SIGNAL"
 			kill -"$KILL_SIGNAL" $child
@@ -82,4 +82,3 @@ function killJob {
 	dlog "killJob: rmdir $DIR"
 	rmdir "$DIR"
 }
-

@@ -10,11 +10,12 @@
 # file.
 #
 # This script is executed with the same permissions as the ParaStation
-# daemon psid, i.e. typically with root permission! Thus, special care
+# daemon psid, i.e. typically with root permissions! Thus, special care
 # has to be taken when changing this script.
 #
-# This script will be called by the jail plugin via system() and get
-# the process ID of the process to be jailed as an argument.
+# This script will be called by the jail plugin via system() and
+# jail-main.sh with the process ID of the process to be jailed in
+# CHILD and configuration like CGROUP_BASE, BASE or SCRIPT set.
 
 [ -n "$SLURM_USER" ] && export USER="$SLURM_USER"
 

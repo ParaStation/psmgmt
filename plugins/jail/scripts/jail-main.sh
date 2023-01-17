@@ -3,7 +3,7 @@
 # ParaStation
 #
 # Copyright (C) 2018-2021 ParTec Cluster Competence Center GmbH, Munich
-# Copyright (C) 2021-2022 ParTec AG, Munich
+# Copyright (C) 2021-2023 ParTec AG, Munich
 #
 # This file may be distributed under the terms of the Q Public License
 # as defined in the file LICENSE.QPL included in the packaging of this
@@ -15,7 +15,7 @@
 # functionality is independent of the actual cgroup plugin.
 #
 # This script is executed with the same permissions as the ParaStation
-# daemon psid, i.e. typically with root permission! Thus, special care
+# daemon psid, i.e. typically with root permissions! Thus, special care
 # has to be taken when changing this script.
 #
 # This script will be called by the jail plugin via system() and get
