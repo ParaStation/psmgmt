@@ -1,0 +1,223 @@
+#!/bin/bash
+#
+# ParaStation
+#
+# Copyright (C) 2023 ParTec AG, Munich
+#
+# This file may be distributed under the terms of the Q Public License
+# as defined in the file LICENSE.QPL included in the packaging of this
+# file.
+#
+
+# psconfig command
+PSCONFIG=/opt/parastation/bin/psconfig
+
+# Command line options
+SHORT_OPTS=i:,n:,p:,h,v
+OPTS=$(getopt -n single_node_config --options $SHORT_OPTS -- "$@")
+
+# Variables and default values
+NODE_HOSTNAME=$(hostname -s)
+NODE_IP_ADDRESS=$(hostname -I | cut -d ' ' -f 1)
+VERBOSE=0
+PSID_PLUGINS="psslurm"
+
+# Check if psconfig exists
+function psconfig_exists() {
+    if ! command -v $PSCONFIG &> /dev/null
+    then
+        echo "Error: $PSCONFIG not found."
+        exit 1
+    fi
+}
+
+# Print help
+function print_usage() {
+    echo "Usage: single_node_config [OPTIONS]"
+    echo ""
+    echo "Configure psid for a single node (for development and testing only!)."
+    echo "Depending on your installation of psconfig, this script must be run with sudo"
+    echo ""
+    echo "Options:"
+    echo "-h              Print this usage info"
+    echo "-v              Verbose output"
+    echo "-n name         Configure the hostname (default: hostname -s)"
+    echo "-i x.x.x.x      Configure the IP address (default: hostname -I | cut -d ' ' -f 1)"
+    echo "-p plugin       Comma-separated list of plugins to be loaded by psid (default: psslurm)"
+}
+
+# Parse command line arguments
+function parse_arg() {
+
+    eval set -- "$OPTS"
+
+    while :
+    do
+        case "$1" in
+            -h)
+                print_usage
+                exit 0
+                ;;
+            -v)
+                VERBOSE=1
+                shift;
+                ;;
+            -n)
+                NODE_HOSTNAME="$2"
+                shift 2
+                ;;
+            -i)
+                NODE_IP_ADDRESS="$2"
+                shift 2
+                ;;
+            -p)
+                PSID_PLUGINS="$2"
+                shift 2
+                ;;
+            --)
+                shift
+                break
+                ;;
+        esac
+    done
+
+    # replace commas with spaces in plugin list (needed for psconfig)
+    PSID_PLUGINS=$(echo $PSID_PLUGINS | tr , ' ')
+
+    if [ $VERBOSE -eq 1 ]
+    then
+        echo "Configuring single-node psid with hostname=$NODE_HOSTNAME, IP=$NODE_IP_ADDRESS and plugins=$PSID_PLUGINS"
+    fi
+}
+
+
+# Configure psid for a single node
+function psconfig_single_node() {
+    #
+    # Lock database
+    #
+    eval $($(which --skip-alias --skip-function $PSCONFIG) lock "Database setup")
+    #
+    # Object "class:defaults"
+    #
+    $PSCONFIG -- create 'class:defaults'
+    $PSCONFIG -- setParents 'class:defaults' # empty #
+    #
+    # Object "class:host"
+    #
+    $PSCONFIG -- create 'class:host'
+    $PSCONFIG -- setParents 'class:host' # empty #
+    #
+    # Object "class:nodetype"
+    #
+    $PSCONFIG -- create 'class:nodetype'
+    $PSCONFIG -- setParents 'class:nodetype' # empty #
+    #
+    # Object "class:psid"
+    #
+    $PSCONFIG -- create 'class:psid'
+    $PSCONFIG -- setParents 'class:psid' 'defaults:psid'
+    #
+    # Object "defaults:psid"
+    #
+    $PSCONFIG -- create 'defaults:psid'
+    $PSCONFIG -- setParents 'defaults:psid' 'class:defaults'
+    $PSCONFIG -D -- set 'defaults:psid' 'AccountPollInterval' '0'
+    $PSCONFIG -D -- setList 'defaults:psid' 'AdminGroups' 'root'
+    $PSCONFIG -D -- setList 'defaults:psid' 'AdminUsers' 'root'
+    $PSCONFIG -D -- set 'defaults:psid' 'AllowExclusive' 'no'
+    $PSCONFIG -D -- set 'defaults:psid' 'AllowOverbooking' 'no'
+    $PSCONFIG -D -- set 'defaults:psid' 'AllowUserCpuMap' 'no'
+    $PSCONFIG -D -- setList 'defaults:psid' 'AllowedGroups' 'any'
+    $PSCONFIG -D -- setList 'defaults:psid' 'AllowedUsers' 'any'
+    $PSCONFIG -D -- setList 'defaults:psid' 'AvailableHardwareTypes' 'ethernet'
+    $PSCONFIG -D -- set 'defaults:psid' 'BindGpus' 'yes'
+    $PSCONFIG -D -- set 'defaults:psid' 'BindMemory' 'yes'
+    $PSCONFIG -D -- set 'defaults:psid' 'BindNics' 'yes'
+    $PSCONFIG -D -- set 'defaults:psid' 'CoreDirectory' '/tmp'
+    $PSCONFIG -D -- setList 'defaults:psid' 'CpuMap' '0' '1' '2' '3' '4' '5' '6' '7' '8' '9' '10' '11' '12' '13' '14' '15'
+    $PSCONFIG -D -- set 'defaults:psid' 'DeadLimit' '5'
+    $PSCONFIG -D -- set 'defaults:psid' 'EnableRdpStatistics' 'no'
+    $PSCONFIG -D -- set 'defaults:psid' 'FreeOnSuspend' 'no'
+    $PSCONFIG -D -- set 'defaults:psid' 'HandleOldBins' 'no'
+    $PSCONFIG -D -- set 'defaults:psid' 'InstallDirectory' '/opt/parastation'
+    $PSCONFIG -D -- set 'defaults:psid' 'IsStarter' 'yes'
+    $PSCONFIG -D -- set 'defaults:psid' 'KillDelay' '5'
+    $PSCONFIG -D -- setList 'defaults:psid' 'LoadPlugins' 'psslurm'
+    $PSCONFIG -D -- set 'defaults:psid' 'LogDestination' 'LOG_DAEMON'
+    $PSCONFIG -D -- set 'defaults:psid' 'LogMask' '0'
+    $PSCONFIG -D -- set 'defaults:psid' 'MCastDeadInterval' '10'
+    $PSCONFIG -D -- set 'defaults:psid' 'MCastGroup' '237'
+    $PSCONFIG -D -- set 'defaults:psid' 'MCastPort' '1889'
+    $PSCONFIG -D -- set 'defaults:psid' 'MaxNumberOfProcesses' 'any'
+    $PSCONFIG -D -- set 'defaults:psid' 'MaxStatTry' '1'
+    $PSCONFIG -D -- set 'defaults:psid' 'PinProcesses' 'yes'
+    $PSCONFIG -D -- set 'defaults:psid' 'PsiNodesSortStrategy' 'proc'
+    $PSCONFIG -D -- set 'defaults:psid' 'RdpClosedTimeout' '2000'
+    $PSCONFIG -D -- set 'defaults:psid' 'RdpMaxAckPending' '4'
+    $PSCONFIG -D -- set 'defaults:psid' 'RdpMaxRetrans' '32'
+    $PSCONFIG -D -- set 'defaults:psid' 'RdpPort' '886'
+    $PSCONFIG -D -- set 'defaults:psid' 'RdpResendTimeout' '300'
+    $PSCONFIG -D -- set 'defaults:psid' 'RdpTimeout' '100'
+    $PSCONFIG -- setPointerList 'defaults:psid' 'RessourceLimits.' 'defaults:ressourcelimits'
+    $PSCONFIG -D -- set 'defaults:psid' 'RunJobs' 'yes'
+    $PSCONFIG -D -- set 'defaults:psid' 'SelectTime' '2'
+    $PSCONFIG -D -- set 'defaults:psid' 'SetSupplementaryGroups' 'no'
+    $PSCONFIG -D -- set 'defaults:psid' 'StatusBroadcasts' '8'
+    $PSCONFIG -D -- set 'defaults:psid' 'StatusTimeout' '2000'
+    $PSCONFIG -D -- set 'defaults:psid' 'UseMCast' 'no'
+    #
+    # Object "defaults:ressourcelimits"
+    #
+    $PSCONFIG -- create 'defaults:ressourcelimits'
+    $PSCONFIG -- setParents 'defaults:ressourcelimits' 'class:defaults'
+    $PSCONFIG -D -- set 'defaults:ressourcelimits' 'Core' 'unlimited'
+    #
+    # Object for this node
+    #
+    $PSCONFIG -- create "host:$NODE_HOSTNAME"
+    $PSCONFIG -- setParents "host:$NODE_HOSTNAME" 'nodetype:compute' 'class:host'
+    $PSCONFIG -D -- set "host:$NODE_HOSTNAME" 'Net.DevIPAddress' "$NODE_IP_ADDRESS"
+    $PSCONFIG -D -- set "host:$NODE_HOSTNAME" 'NodeName' "$NODE_HOSTNAME"
+    $PSCONFIG -D -- set "host:$NODE_HOSTNAME" 'Psid.NodeId' '0'
+    #
+    # Object "nodetype:compute"
+    #
+    $PSCONFIG -- create 'nodetype:compute'
+    $PSCONFIG -- setParents 'nodetype:compute' 'class:nodetype'
+    $PSCONFIG -D -- set 'nodetype:compute' 'PSConfigRsyncCommand' 'rsync --port=874'
+    $PSCONFIG -D -- set 'nodetype:compute' 'PSConfigSyncSource' "$NODE_HOSTNAME::psconfig"
+    $PSCONFIG -- setPointerList 'nodetype:compute' 'Psid.' 'psid:compute'
+    $PSCONFIG -D -- set 'nodetype:compute' 'Psid.NetworkName' 'Net'
+    #
+    # Object "psid:compute"
+    #
+    $PSCONFIG -- create 'psid:compute'
+    $PSCONFIG -- setParents 'psid:compute' 'class:psid'
+    $PSCONFIG -D -- setList 'psid:compute' 'LoadPlugins' $PSID_PLUGINS
+    #
+    # Unlock database
+    #
+    eval $($(which --skip-alias --skip-function $PSCONFIG) unlock)
+    #
+    # dump the config for easier debugging
+    if [ $VERBOSE -eq 1 ]
+    then
+        $PSCONFIG dump
+    fi
+}
+
+
+################
+# Script start #
+################
+
+psconfig_exists
+
+parse_arg
+
+psconfig_single_node
+
+################
+#  Script end  #
+################

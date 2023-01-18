@@ -34,7 +34,7 @@ config_DATA = mpiexec.gdb
 
 config_SCRIPTS = ps_gm ps_acc
 
-scripts_SCRIPTS = ps_gmcounters
+scripts_SCRIPTS = ps_gmcounters single_node_config
 
 noinst_SCRIPTS = psid2cmustatus memtest.py
 
@@ -45,7 +45,8 @@ EXTRA_DIST = psmgmt.gdb init.d/parastation.in loggerdebug.py lsf	\
 	psid2cmustatus.in psmgmt.csh.in psmgmt.sh.in			\
 	systemd/munge.conf systemd/psid.service.in			\
 	systemd/psidstarter.socket systemd/psidstarter@.service		\
-	vcversion xinetd.d/psidstarter.in
+	vcversion xinetd.d/psidstarter.in						\
+	single_node_config
 
 # clean up generated files
 CLEANFILES = psaccview psmgmt.csh psmgmt.sh ps_gm ps_acc		\
