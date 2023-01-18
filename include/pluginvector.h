@@ -195,7 +195,7 @@ int __compare_uint32 (const void *a, const void *b);
 #define charvGet(v, i) vectorGet(v, i, char)
 #define charvContains(v, e) vectorContains(v, e)
 #define charvFind(v, e) vectorFind(v, e)
-#define charSort(v) vectorSort(v, __compare_char)
+#define charvSort(v) vectorSort(v, __compare_char)
 #define charvDestroy(v) vectorDestroy(v)
 
 #define intvInit(v, c) vectorInit(v, c, c, int)
