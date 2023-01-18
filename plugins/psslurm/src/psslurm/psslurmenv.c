@@ -270,13 +270,13 @@ static void setThreadsBitmapsEnv(const PSCPU_set_t *stepcpus,
     StrBuffer_t strBuf;
     if (stepcpus) {
 	getCompactThreadList(&strBuf, *stepcpus);
-        setenv("PSSLURM_STEP_CPUS", strBuf.buf, 1);
+	setenv("PSSLURM_STEP_CPUS", strBuf.buf, 1);
 	freeStrBuf(&strBuf);
     }
 
     if (jobcpus) {
 	getCompactThreadList(&strBuf, *jobcpus);
-        setenv("PSSLURM_JOB_CPUS", strBuf.buf, 1);
+	setenv("PSSLURM_JOB_CPUS", strBuf.buf, 1);
 	freeStrBuf(&strBuf);
     }
 }

@@ -260,10 +260,10 @@ const ConfDef_t confDef[] =
 	"/run/slurm",
 	"The Slurm /run directory. Used to link to Slurm configuration" },
     { "SLURM_CONF_CACHE", 0,
-        "path",
-        SPOOL_DIR "/slurm_conf",
-        "Slurm config cache directory. Used to save Slurm configuration"
-            " files in config-less mode" },
+	"path",
+	SPOOL_DIR "/slurm_conf",
+	"Slurm config cache directory. Used to save Slurm configuration"
+	    " files in config-less mode" },
     { "SLURM_UPDATE_CONF_AT_STARTUP", 1,
 	"bool",
 	"1",

@@ -1655,7 +1655,7 @@ static void handleStepStat(Slurm_Msg_t *sMsg)
 	.remoteTasks = &step->remoteTasks,
 	.childPid = 0,
 	.localNodeId = step->localNodeId,
-        .iBase = &step->acctBase };
+	.iBase = &step->acctBase };
     uint32_t numTasks = addSlurmAccData(&slurmAccData);
     packSlurmAccData(msg, &slurmAccData);
     /* correct number of tasks */
@@ -3184,7 +3184,7 @@ void sendStepExit(Step_t *step, uint32_t exitStatus)
 	.remoteTasks = &step->remoteTasks,
 	.childPid = 0,
 	.localNodeId = step->localNodeId,
-        .iBase = &step->acctBase };
+	.iBase = &step->acctBase };
     addSlurmAccData(&slurmAccData);
 
     Req_Step_Comp_t comp = {

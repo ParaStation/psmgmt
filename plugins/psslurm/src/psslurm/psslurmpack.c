@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2016-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2022 ParTec AG, Munich
+ * Copyright (C) 2021-2023 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -1947,7 +1947,7 @@ static void convAccDataToTRes(SlurmAccData_t *slurmAccData, TRes_t *tres)
 	    entry.out_min = accData->IC_sendBytesMin;
 	    entry.out_tot = accData->IC_sendBytesTot;
 	    entry.out_min_nodeid = getAccNodeID(slurmAccData,
-					        ACCID_MIN_IC_SEND);
+						ACCID_MIN_IC_SEND);
 	    entry.out_max_nodeid = getAccNodeID(slurmAccData,
 						ACCID_MAX_IC_SEND);
 	    entry.out_min_taskid = getAccRank(slurmAccData,

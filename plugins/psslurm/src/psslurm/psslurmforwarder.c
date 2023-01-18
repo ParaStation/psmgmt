@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2014-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2022 ParTec AG, Munich
+ * Copyright (C) 2021-2023 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -673,14 +673,14 @@ int handleExecClientUser(void *data)
     for (int i=0; environ[i] != NULL; i++) {
 	while (!strncmp(environ[i], "__PSJAIL_", 9)) {
 	    char *val = strchr(environ[i], '=');
-            if (val) {
-                char *key = environ[i];
-                *val = '\0';
+	    if (val) {
+		char *key = environ[i];
+		*val = '\0';
 		char *dup = ustrdup(key);
-                *val = '=';
+		*val = '=';
 		unsetenv(dup);
 		ufree(dup);
-            } else {
+	    } else {
 		break;
 	    }
 	}
