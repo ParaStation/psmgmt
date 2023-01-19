@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2014-2018 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021 ParTec AG, Munich
+ * Copyright (C) 2021-2023 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -26,49 +26,50 @@ typedef struct {
 } PSnodeList_t;
 
 /**
- * @brief Visit every node of a host-range
+ * @brief Visit every item of an item-range
  *
- * Expand a host-range and visit each host calling the @a visitor function.
- * The @a range is a describing string of the form "<first>[-<last>]".
- * <first> must be smaller or equal to <last>. Each host visited is
- * preceded by * @a prefix.
+ * Expand an item-range and visit each item calling the @a visitor
+ * function. The @a range is a describing string of the form
+ * "<first>[-<last>]". <first> must be smaller or equal to
+ * <last>. Each item visited is preceded by @a prefix.
  *
- * @param prefix Prefix repented to each host visited
+ * @param prefix Prefix prepended to each item visited
  *
- * @param range Range describing hosts visited "<first>[-<last>]"
+ * @param range Range describing items to be visited "<first>[-<last>]"
  *
- * @param visitor Visitor function to be called for each host
+ * @param visitor Visitor function to be called for each item
  *
  * @param info Additional information to be passed to @a visitor while
- * visiting the hosts
+ * visiting the items
  *
- * @return Returns true on success otherwise false.
+ * @return Returns true on success otherwise false
  */
-static bool visitHostRange(char *prefix, char *range, HL_Visitor_t visitor,
+static bool visitItemRange(char *prefix, char *range, HL_Visitor_t visitor,
 			   void *info)
 {
     char *sep = strchr(range, '-');
-    unsigned int i, min, max;
-    int pad;
-    char tmp[1024];
-
     if (!sep) {
+	// single item
+	char tmp[1024];
 	snprintf(tmp, sizeof(tmp), "%s%s", prefix ? prefix : "", range);
 	if (!visitor(tmp, info)) return false;
 	return true;
     }
 
+    unsigned int min, max;
+    int pad;
     if (sscanf(range, "%u%n-%u", &min, &pad, &max) != 2) {
 	PSC_log(-1, "%s: invalid range '%s'\n", __func__, range);
 	return false;
     }
 
-    if (min>max) {
+    if (min > max) {
 	PSC_log(-1, "%s: invalid range '%s'\n", __func__, range);
 	return false;
     }
 
-    for (i=min; i<=max; i++) {
+    for (unsigned int i = min; i <= max; i++) {
+	char tmp[1024];
 	snprintf(tmp, sizeof(tmp), "%s%0*u", prefix ? prefix : "", pad, i);
 	if (!visitor(tmp, info)) return false;
     }
@@ -76,87 +77,75 @@ static bool visitHostRange(char *prefix, char *range, HL_Visitor_t visitor,
     return true;
 }
 
-bool traverseHostList(const char *hostlist, HL_Visitor_t visitor, void *info)
+bool traverseHostList(const char *compList, HL_Visitor_t visitor, void *info)
 {
     const char delimiters[] =", \n";
-    char *saveptr, *range, *prefix = NULL;
-    bool isOpen = false;
+    bool isOpen = false, ret = false;
 
-    char *duphl = strdup(hostlist);
-    if (!duphl) PSC_exit(errno, "%s: strdup(hostlist)", __func__);
+    char *dupCL = strdup(compList);
+    if (!dupCL) PSC_exit(errno, "%s: strdup(compList)", __func__);
 
-    char *next = strtok_r(duphl, delimiters, &saveptr);
+    char *saveptr, *prefix = NULL;
+    char *next = strtok_r(dupCL, delimiters, &saveptr);
     while (next) {
 	char *openBrk = strchr(next, '[');
 	char *closeBrk = strchr(next, ']');
 
-	if (openBrk && !closeBrk) {
-	    if (isOpen) {
-		PSC_log(-1, "%s: error two open bracket found\n", __func__);
-		goto expandError;
-	    }
+	if (openBrk && isOpen) {
+	    PSC_log(-1, "%s: error nested brackets found\n", __func__);
+	    goto error;
+	}
 
-	    range = openBrk +1;
+	if (openBrk && closeBrk) {
+	    // whole bracket
+	    char *range = openBrk + 1;
+	    *openBrk = *closeBrk = '\0';
+	    if (!visitItemRange(next, range, visitor, info)) goto error;
+	} else if (openBrk && !closeBrk) {
+	    // start of a new bracket
+	    char *range = openBrk + 1;
 	    *openBrk = '\0';
-	    prefix = strdup(next);
-	    if (!prefix) PSC_exit(errno, "%s: strdup(next)", __func__);
-
-	    if (!visitHostRange(prefix, range, visitor, info)) {
-		goto expandError;
-	    }
+	    prefix = next;
+	    if (!visitItemRange(prefix, range, visitor, info)) goto error;
 	    isOpen = true;
-	} else if (openBrk && closeBrk) {
-	    if (isOpen) {
-		PSC_log(-1, "%s: error two open bracket found\n", __func__);
-		goto expandError;
-	    }
-
-	    range = openBrk +1;
-	    *closeBrk = *openBrk = '\0';
-
-	    if (!visitHostRange(next, range, visitor, info)) {
-		goto expandError;
-	    }
 	} else if (closeBrk) {
+	    // end of the bracket
 	    if (!isOpen) {
 		PSC_log(-1, "%s: error no open bracket found\n", __func__);
-		goto expandError;
+		goto error;
 	    }
 	    if (!prefix) {
 		PSC_log(-1, "%s: error invalid prefix\n", __func__);
-		goto expandError;
+		goto error;
 	    }
 
 	    *closeBrk = '\0';
-	    if (!visitHostRange(prefix, next, visitor, info)) {
-		goto expandError;
+	    if (!visitItemRange(prefix, next, visitor, info)) {
+		goto error;
 	    }
-
-	    free(prefix);
 	    prefix = NULL;
 	    isOpen = false;
 	} else if (isOpen) {
+	    // inside the bracket
 	    if (!prefix) {
 		PSC_log(-1, "%s: error invalid prefix\n", __func__);
-		goto expandError;
+		goto error;
 	    }
-	    if (!visitHostRange(prefix, next, visitor, info)) {
-		goto expandError;
+	    if (!visitItemRange(prefix, next, visitor, info)) {
+		goto error;
 	    }
 	} else {
-	    if (!visitor(next, info)) goto expandError;
+	    // no bracket at all
+	    if (!visitor(next, info)) goto error;
 	}
 	next = strtok_r(NULL, delimiters, &saveptr);
     }
 
-    free(duphl);
-    free(prefix);
-    return true;
+    ret = true;
 
-expandError:
-    free(duphl);
-    free(prefix);
-    return false;
+error:
+    free(dupCL);
+    return ret;
 }
 
 /**
