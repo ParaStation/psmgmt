@@ -671,7 +671,7 @@ int handleExecClientUser(void *data)
 
     extern char **environ;
     for (int i=0; environ[i] != NULL; i++) {
-	while (!strncmp(environ[i], "__PSJAIL_", 9)) {
+	while (environ[i] && !strncmp(environ[i], "__PSJAIL_", 9)) {
 	    char *val = strchr(environ[i], '=');
 	    if (val) {
 		char *key = environ[i];
