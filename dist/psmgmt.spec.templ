@@ -247,6 +247,8 @@ fi
 exit 0
 
 %postun
+rm -f %{_plugindir}/jail.sh
+rm -f %{_plugindir}/jail-term.sh
 %if !0%{?disable_systemd}
     systemctl daemon-reload >/dev/null 2>&1 || :
 %endif
