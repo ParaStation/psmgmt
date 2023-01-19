@@ -1651,7 +1651,6 @@ bool updateSlurmConf(void)
     }
     snprintf(cPath, sizeof(cPath), "%s/%s", confDir, confFile);
 
-    initConfig(&SlurmCgroupConfig);
     if (stat(cPath, &sbuf) != -1) {
 	Config_t SlurmCgrpTmp;
 	/* dry run to parse the new cgroup config */
