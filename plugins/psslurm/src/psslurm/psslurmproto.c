@@ -28,8 +28,8 @@
 #include <time.h>
 #include <unistd.h>
 
+#include "pscomplist.h"
 #include "pscpu.h"
-#include "pshostlist.h"
 #include "pslog.h"
 #include "psserial.h"
 #include "timer.h"

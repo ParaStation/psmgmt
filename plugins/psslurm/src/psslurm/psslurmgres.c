@@ -17,7 +17,7 @@
 #include <sys/stat.h>
 #include <sys/sysmacros.h>
 
-#include "pshostlist.h"
+#include "pscomplist.h"
 
 #include "pluginmalloc.h"
 

@@ -14,7 +14,7 @@
 #include <stdbool.h>
 
 #include "pscommon.h"
-#include "pshostlist.h"
+#include "pscomplist.h"
 
 #include "pluginmalloc.h"
 

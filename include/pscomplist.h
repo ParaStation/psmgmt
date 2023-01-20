@@ -8,8 +8,8 @@
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-#ifndef __PSHOSTLIST_H
-#define __PSHOSTLIST_H
+#ifndef __PSCOMPLIST_H
+#define __PSCOMPLIST_H
 
 #include <stdbool.h>
 #include <stdint.h>
@@ -97,4 +97,4 @@ typedef PSnodes_ID_t ResolveFunc_t(const char *host);
 bool convHLtoPSnodes(char *hostlist, ResolveFunc_t resolveNID,
 		     PSnodes_ID_t **nodes, uint32_t *nrOfNodes);
 
-#endif   /* __PSHOSTLIST_H */
+#endif   /* __PSCOMPLIST_H */

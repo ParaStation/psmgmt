@@ -8,7 +8,7 @@
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-#include "pshostlist.h"
+#include "pscomplist.h"
 
 #include <stdlib.h>
 #include <stdio.h>

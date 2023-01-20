@@ -24,9 +24,9 @@
 
 #include "list.h"
 #include "pscommon.h"
+#include "pscomplist.h"
 #include "pscpu.h"
 #include "psdaemonprotocol.h"
-#include "pshostlist.h"
 #include "pslog.h"
 #include "pspartition.h"
 #include "pspluginprotocol.h"

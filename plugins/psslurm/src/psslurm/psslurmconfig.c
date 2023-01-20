@@ -24,7 +24,7 @@
 #include <time.h>
 
 #include "pscommon.h"
-#include "pshostlist.h"
+#include "pscomplist.h"
 
 #include "pluginmalloc.h"
 #include "pluginstrv.h"

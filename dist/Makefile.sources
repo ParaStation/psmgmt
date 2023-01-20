@@ -166,12 +166,12 @@ include/pluginvector.h \
 include/psbyteorder.h \
 include/pscio.h \
 include/pscommon.h \
+include/pscomplist.h \
 include/psconfighelper.h \
 include/pscpu.h \
 include/psdaemonprotocol.h \
 include/pse.h \
 include/psenv.h \
-include/pshostlist.h \
 include/psi.h \
 include/psienv.h \
 include/psiinfo.h \
@@ -214,9 +214,9 @@ lib/pscommon/Makefile.in \
 lib/pscommon/logging.c \
 lib/pscommon/pscio.c \
 lib/pscommon/pscommon.c \
+lib/pscommon/pscomplist.c \
 lib/pscommon/pscpu.c \
 lib/pscommon/psenv.c \
-lib/pscommon/pshostlist.c \
 lib/pscommon/psitems.c \
 lib/pscommon/pspartition.c \
 lib/pscommon/psprotocol.c \
