@@ -106,7 +106,7 @@ GRes_Dev_t *GRes_findDevice(uint32_t pluginID, uint32_t bitIdx)
 	list_t *d;
 	list_for_each(d, &conf->devices) {
 	    GRes_Dev_t *dev = list_entry(d, GRes_Dev_t, next);
-	    if (dev && dev->slurmIdx == bitIdx) return dev;
+	    if (dev->slurmIdx == bitIdx) return dev;
 	}
     }
     return NULL;
