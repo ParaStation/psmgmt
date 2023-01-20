@@ -672,14 +672,12 @@ int handleExecClientUser(void *data)
     extern char **environ;
     for (int i=0; environ[i] != NULL; i++) {
 	while (environ[i] && !strncmp(environ[i], "__PSJAIL_", 9)) {
-	    char *dup = ustrdup(environ[i]);
-	    char *val = strchr(dup, '=');
+	    char *val = strchr(environ[i], '=');
 	    if (val) {
-		*val = '\0';
-		unsetenv(dup);
-		ufree(dup);
+		char *key = strndup(environ[i], val - environ[i]);
+		if (key) unsetenv(key);
+		free(key);
 	    } else {
-		ufree(dup);
 		break;
 	    }
 	}

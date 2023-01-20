@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2017-2020 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2022 ParTec AG, Munich
+ * Copyright (C) 2022-2023 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -380,16 +380,14 @@ void setupEnvironment(Conf_t *conf)
 	extern char **environ;
 	char *xprts = NULL;
 	size_t xprtsLen = 0;
-	int i;
 
 	/* Determine required length of xprts */
-	for (i=0; environ[i] != NULL; i++) {
+	for (int i = 0; environ[i] != NULL; i++) {
 	    char *val = strchr(environ[i], '=');
 	    if (val) {
-		char *key = environ[i];
-		*val = '\0';
+		char *key = strndup(environ[i], val - environ[i]);
 		if (!getPSIEnv(key)) xprtsLen += strlen(key) + 1;
-		*val = '=';
+		free(key);
 	    }
 	}
 	if (xprtsLen) {
@@ -401,20 +399,18 @@ void setupEnvironment(Conf_t *conf)
 	    *xprts = '\0';
 	}
 	/* now setup the actual environment */
-	for (i=0; environ[i] != NULL; i++) {
+	for (int i = 0; environ[i] != NULL; i++) {
 	    char *val = strchr(environ[i], '=');
 	    if (val) {
-		char *key = environ[i];
-		*val = '\0';
+		char *key = strndup(environ[i], val - environ[i]);
 		if (!getPSIEnv(key)) {
 		    val++;
 		    setPSIEnv(key, val, 1);
 		    if (xprtsLen) snprintf(xprts + strlen(xprts),
 					   xprtsLen - strlen(xprts), "%s%s",
 					   strlen(xprts) ? "," : "", key);
-		    val--;
 		}
-		*val = '=';
+		free(key);
 	    }
 	}
 	if (xprtsLen) {

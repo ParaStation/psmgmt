@@ -2,6 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2018-2021 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2023 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -188,11 +189,10 @@ int slurm_spank_init_post_opt(spank_t sp, int ac, char **av)
             if (!strncmp("PSP_", environ[i], 4)) {
                 char *val = strchr(environ[i], '=');
                 if (val) {
-                    char *key = environ[i];
-                    *val = '\0';
+		    char *key = strndup(environ[i], val - environ[i]);
                     snprintf(buf, sizeof(buf), "SLURM_SPANK_PSGWD_%s", key);
-                    *val = '=';
                     spank_job_control_setenv(sp, buf, val+1, 1);
+		    free(key);
                 }
             }
         }
