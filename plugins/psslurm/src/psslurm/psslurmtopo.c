@@ -156,3 +156,12 @@ Topology_t *getTopology(const char *node)
 
     return topology;
 }
+
+void clearTopology(Topology_t *topo)
+{
+    if (!topo) return;
+
+    ufree(topo->address);
+    ufree(topo->pattern);
+    ufree(topo);
+}

@@ -51,4 +51,11 @@ void clearTopologyConf(void);
  */
 Topology_t *getTopology(const char *node);
 
+/**
+ * @brief Clear a topology and free used memory
+ *
+ * @param topo Pointer to the topology to free
+ */
+void clearTopology(Topology_t *topo);
+
 #endif /* __PS_SLURM_TOPO */

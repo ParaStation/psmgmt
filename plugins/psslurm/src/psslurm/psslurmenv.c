@@ -992,9 +992,8 @@ static void setTopoEnv(env_t *env)
 	setenv("SLURM_TOPOLOGY_ADDR", topo->address, 1);
 	setenv("SLURM_TOPOLOGY_ADDR_PATTERN", topo->pattern, 1);
     }
-    ufree(topo->address);
-    ufree(topo->pattern);
-    ufree(topo);
+
+    clearTopology(topo);
 }
 
 /**
