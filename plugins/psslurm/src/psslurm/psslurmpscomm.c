@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2014-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2022 ParTec AG, Munich
+ * Copyright (C) 2021-2023 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -2514,7 +2514,7 @@ static bool resolveHostEntry(int confIdx)
     }
 
     /* resolve PS nodeIDs for every host */
-    if (!traverseHostList(hostEntry, saveHost, &info)) {
+    if (!traverseCompList(hostEntry, saveHost, &info)) {
 	flog("resolving nodes in host list %s index %i failed\n",
 	     hostEntry, confIdx);
 	goto FINISH;

@@ -626,11 +626,11 @@ static bool setMyHostDef(char *hosts, char *hostopt, char *nodeAddr,
 	.localHostIdx = -1 };
 
     /* call parseHost() for every host in the list */
-    traverseHostList(nodeAddr ? nodeAddr : hosts, parseHost, &hInfo);
+    traverseCompList(nodeAddr ? nodeAddr : hosts, parseHost, &hInfo);
 
     /* set missing SLURM_HOSTNAME if nodeAddr is used */
     if (nodeAddr && hInfo.localHostIdx != -1) {
-	traverseHostList(hosts, findMyHost, &hInfo);
+	traverseCompList(hosts, findMyHost, &hInfo);
     }
 
     return hInfo.result;

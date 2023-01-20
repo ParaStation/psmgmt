@@ -44,7 +44,7 @@ typedef struct {
  *
  * @return Returns true on success otherwise false
  */
-static bool visitItemRange(char *prefix, char *range, HL_Visitor_t visitor,
+static bool visitItemRange(char *prefix, char *range, CL_Visitor_t visitor,
 			   void *info)
 {
     char *sep = strchr(range, '-');
@@ -77,7 +77,7 @@ static bool visitItemRange(char *prefix, char *range, HL_Visitor_t visitor,
     return true;
 }
 
-bool traverseHostList(const char *compList, HL_Visitor_t visitor, void *info)
+bool traverseCompList(const char *compList, CL_Visitor_t visitor, void *info)
 {
     const char delimiters[] =", \n";
     bool isOpen = false, ret = false;
@@ -194,7 +194,7 @@ bool convHLtoPSnodes(char *hostlist, ResolveFunc_t resolveNID,
 	return false;
     }
 
-    if (!traverseHostList(hostlist, hostToPSnode, &psNL)) {
+    if (!traverseCompList(hostlist, hostToPSnode, &psNL)) {
 	free(psNL.nodes);
 	return false;
     }
