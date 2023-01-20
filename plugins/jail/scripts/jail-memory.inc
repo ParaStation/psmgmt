@@ -140,7 +140,6 @@ if [ "$__PSJAIL_CONSTRAIN_SWAP" == "no" ]; then
     dlog "constrain SWAP *disabled*"
 else
     dlog "constrain SWAP enabled"
-	constrainMemSSH
     if [ -n "$PSPAM_USER" ]; then
 	constrainMemSSH
     else
@@ -149,15 +148,15 @@ else
     fi
 fi
 
-if [ -z "$__PSJAIL_SWAPINESS" ]; then
-    dlog "constrain swapiness *disabled*"
+if [ -z "$__PSJAIL_SWAPPINESS" ]; then
+    dlog "constrain swappiness *disabled*"
 else
-    dlog "constrain swapiness enabled"
+    dlog "constrain swappiness enabled"
 
     if [ -n "$PSPAM_USER" ]; then
 	constrainMemSSH
     else
-	setJobMem "$__PSJAIL_SWAPINESS" "memory.swapiness"
-	setStepMem "$__PSJAIL_SWAPINESS" "memory.swapiness"
+	setJobMem "$__PSJAIL_SWAPPINESS" "memory.swappiness"
+	setStepMem "$__PSJAIL_SWAPPINESS" "memory.swappiness"
     fi
 fi

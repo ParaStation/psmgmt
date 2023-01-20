@@ -373,18 +373,18 @@ static void doSetJailMemEnv(const uint64_t ram, const char *scope)
     snprintf(val, sizeof(val), "%zu", swapLimit);
     setenv(name, val, 1);
 
-    /* memory swapiness */
-    long swapiness = getConfValueL(&SlurmCgroupConfig, "MemorySwappiness");
-    if (swapiness != -1) {
-	if (swapiness > 100) swapiness = 100;
-	snprintf(name, sizeof(name), "%s_SWAPINESS", scope);
-	snprintf(val, sizeof(val), "%lu", swapiness);
+    /* memory swappiness */
+    long swappiness = getConfValueL(&SlurmCgroupConfig, "MemorySwappiness");
+    if (swappiness != -1) {
+	if (swappiness > 100) swappiness = 100;
+	snprintf(name, sizeof(name), "%sSWAPPINESS", prefix);
+	snprintf(val, sizeof(val), "%lu", swappiness);
 	setenv(name, val, 1);
     }
 
     fdbg(PSSLURM_LOG_JAIL, "%s requested ram %zu mem soft: %zu mem hard: %zu "
-	 "kmem %zu swap %zu\n", scope, ram, softRamLimit, hardRamLimit,
-	 kmemLimit, swapLimit);
+	 "kmem %zu swap %zu swappiness %li\n", scope, ram, softRamLimit,
+	 hardRamLimit, kmemLimit, swapLimit, swappiness);
 }
 
 /**
