@@ -20,7 +20,8 @@ plugin_LTLIBRARIES = jail.la
 libplugincommon = $(top_builddir)/lib/plugincommon/libplugincommon.la
 libpscommon = $(top_builddir)/lib/pscommon/libpscommon.la
 
-jail_la_SOURCES = jail.c jailconfig.c jailconfig.h jaillog.c jaillog.h
+jail_la_SOURCES = jail.c jailconfig.c jailconfig.h jaillog.c	\
+	jaillog.h jailtypes.h
 
 jail_la_CPPFLAGS = $(AM_CPPFLAGS) -DPLUGINDIR=\"$(plugindir)\"
 jail_la_LIBADD = $(libplugincommon) $(libpscommon)

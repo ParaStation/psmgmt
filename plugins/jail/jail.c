@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2018-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2022 ParTec AG, Munich
+ * Copyright (C) 2021-2023 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -25,14 +25,15 @@
 #include "pluginconfig.h"
 #include "pluginmalloc.h"
 
-#include "jaillog.h"
 #include "jailconfig.h"
+#include "jaillog.h"
+#include "jailtypes.h"
 
 #define JAIL_CONFIG "jail.conf"
 
 /** psid plugin requirements */
 char name[] = "jail";
-int version = 2;
+int version = 3;
 int requiredAPI = 131;
 plugin_dep_t dependencies[] = { { NULL, 0 } };
 
@@ -117,6 +118,14 @@ static int jailTerminate(void *info)
     }
 
     return execScript(pid, termScript);
+}
+
+jailGetScripts_t jailGetScripts;
+
+void jailGetScripts(const char **jailScriptName, const char **termScriptName)
+{
+    if (jailScriptName) *jailScriptName = jailScript;
+    if (termScriptName) *termScriptName = termScript;
 }
 
 int initialize(FILE *logfile)
