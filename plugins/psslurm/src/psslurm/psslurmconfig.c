@@ -29,6 +29,7 @@
 #include "pluginmalloc.h"
 #include "pluginstrv.h"
 #include "psidhw.h"
+#include "jailhandles.h"
 
 #include "psslurmlog.h"
 #include "psslurmgres.h"
@@ -51,6 +52,9 @@ static uint32_t configHash = -1;
 
 /** Time of Slurm configuration's last update */
 static time_t configUpdateTime;
+
+/** True if cgroup constrains are active */
+static bool isJailActive = false;
 
 /** configuraton type */
 typedef enum {
@@ -1282,6 +1286,7 @@ static bool verifyCgroupConf(char *key, char *value, const void *info)
 	fdbg(PSSLURM_LOG_JAIL, "cgroup AllowedKmemSpace=%s\n", value);
     } else if (!strcasecmp(key, "ConstrainKmemSpace")) {
 	fdbg(PSSLURM_LOG_JAIL, "cgroup ConstrainKmemSpace=%s\n", value);
+	if (!strcasecmp(value, "yes")) isJailActive = true;
     } else if (!strcasecmp(key, "MaxKmemPercent")) {
 	fdbg(PSSLURM_LOG_JAIL, "cgroup MaxKmemPercent=%s\n", value);
     } else if (!strcasecmp(key, "MinKmemSpace")) {
@@ -1290,6 +1295,7 @@ static bool verifyCgroupConf(char *key, char *value, const void *info)
 	fdbg(PSSLURM_LOG_JAIL, "cgroup AllowedRAMSpace=%s\n", value);
     } else if (!strcasecmp(key, "ConstrainRAMSpace")) {
 	fdbg(PSSLURM_LOG_JAIL, "cgroup ConstrainRAMSpace=%s\n", value);
+	if (!strcasecmp(value, "yes")) isJailActive = true;
     } else if (!strcasecmp(key, "MaxRAMPercent")) {
 	fdbg(PSSLURM_LOG_JAIL, "cgroup MaxRAMPercent=%s\n", value);
     } else if (!strcasecmp(key, "MinRAMSpace")) {
@@ -1298,14 +1304,17 @@ static bool verifyCgroupConf(char *key, char *value, const void *info)
 	fdbg(PSSLURM_LOG_JAIL, "cgroup AllowedSwapSpace=%s\n", value);
     } else if (!strcasecmp(key, "ConstrainSwapSpace")) {
 	fdbg(PSSLURM_LOG_JAIL, "cgroup ConstrainSwapSpace=%s\n", value);
+	if (!strcasecmp(value, "yes")) isJailActive = true;
     } else if (!strcasecmp(key, "MaxSwapPercent")) {
 	fdbg(PSSLURM_LOG_JAIL, "cgroup MaxSwapPercent=%s\n", value);
     } else if (!strcasecmp(key, "MemorySwappiness")) {
 	fdbg(PSSLURM_LOG_JAIL, "cgroup MemorySwappiness=%s\n", value);
     } else if (!strcasecmp(key, "ConstrainCores")) {
 	fdbg(PSSLURM_LOG_JAIL, "cgroup ConstrainCores=%s\n", value);
+	if (!strcasecmp(value, "yes")) isJailActive = true;
     } else if (!strcasecmp(key, "ConstrainDevices")) {
 	fdbg(PSSLURM_LOG_JAIL, "cgroup ConstrainDevices=%s\n", value);
+	if (!strcasecmp(value, "yes")) isJailActive = true;
     } else if (!strcasecmp(key, "CgroupPlugin")) {
 	if (!strcasecmp(value, "cgroup/v2")) {
 	    flog("error: CgroupPlugin has to be cgroup/v1\n");
@@ -1351,6 +1360,18 @@ static bool parseAcctGatherConf(char *key, char *value, const void *info)
 
     /* parsing was successful, continue with next line */
     return false;
+}
+
+static bool testJailConfig(void)
+{
+    const char *jailScript, *termScript;
+    jailGetScripts(&jailScript, &termScript);
+    if (!jailScript || !termScript) {
+	flog("cgroup constrains are active, but no valid"
+		" jail scripts are configured\n");
+	return false;
+    }
+    return true;
 }
 
 bool parseSlurmConfigFiles(void)
@@ -1482,6 +1503,7 @@ bool parseSlurmConfigFiles(void)
 	    flog("Traversing cgroup configuration failed\n");
 	    return false;
 	}
+	if (isJailActive && !testJailConfig()) return false;
     }
 
 #ifdef HAVE_SPANK
@@ -1669,6 +1691,7 @@ bool updateSlurmConf(void)
 	    flog("Traversing cgroup configuration failed\n");
 	    return false;
 	}
+	if (isJailActive && !testJailConfig()) return false;
 
 	/* remove old cgroup configuration and rebuild it */
 	freeConfig(&SlurmCgroupConfig);

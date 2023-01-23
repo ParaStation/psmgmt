@@ -40,6 +40,7 @@
 #include "psmungehandles.h"
 #include "pspamhandles.h"
 #include "pspmihandles.h"
+#include "jailhandles.h"
 
 #include "psslurmalloc.h"
 #include "psslurmbcast.h"
@@ -93,6 +94,7 @@ plugin_dep_t dependencies[] = {
     { .name = "psexec", .version = 2 },
     { .name = "pspmi", .version = 4 },
     { .name = "nodeinfo", .version = 1 },
+    { .name = "jail", .version = 3 },
     { .name = NULL, .version = 0 } };
 
 static void cleanupJobs(void)
@@ -534,6 +536,16 @@ static bool regPsPMIHandles(void)
     return true;
 }
 
+static bool regJailHandles(void)
+{
+    void *pluginHandle = PSIDplugin_getHandle("jail");
+
+    jailGetScripts = dlsym(pluginHandle, "jailGetScripts");
+    if (!jailGetScripts) flog("loading jailGetScripts() failed\n");
+
+    return true;
+}
+
 static bool initPluginHandles(void)
 {
     /* get psaccount function handles */
@@ -553,6 +565,9 @@ static bool initPluginHandles(void)
 
     /* get pspmi function handles */
     if (!regPsPMIHandles()) return false;
+
+    /* get jail function handles */
+    if (!regJailHandles()) return false;
 
     return true;
 }
