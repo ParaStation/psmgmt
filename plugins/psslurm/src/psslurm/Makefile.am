@@ -18,6 +18,7 @@ psmunge_dir   := plugins/psmunge
 pspam_dir     := plugins/pspam/pspam
 psexec_dir    := plugins/psexec
 pspmi_dir     := plugins/pspmi
+jail_dir      := plugins/jail
 
 AM_CFLAGS += -std=gnu99
 AM_LDFLAGS += -avoid-version -module
@@ -29,7 +30,8 @@ AM_CPPFLAGS += -I$(top_srcdir)/bin/daemon -I$(srcdir)/../include \
 	       -I$(top_srcdir)/$(psmunge_dir) \
 	       -I$(top_srcdir)/$(pspam_dir) \
 	       -I$(top_srcdir)/$(psexec_dir) \
-	       -I$(top_srcdir)/$(pspmi_dir)
+	       -I$(top_srcdir)/$(pspmi_dir) \
+	       -I$(top_srcdir)/$(jail_dir)
 AM_CFLAGS += -fcommon
 
 plugin_LTLIBRARIES = psslurm.la
