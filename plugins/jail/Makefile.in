@@ -271,7 +271,6 @@ AWK = @AWK@
 CC = @CC@
 CCDEPMODE = @CCDEPMODE@
 CFLAGS = @CFLAGS@
-CPP = @CPP@
 CPPFLAGS = @CPPFLAGS@
 CSCOPE = @CSCOPE@
 CTAGS = @CTAGS@
@@ -386,6 +385,7 @@ program_transform_name = @program_transform_name@
 psconfig_CFLAGS = @psconfig_CFLAGS@
 psconfig_LIBS = @psconfig_LIBS@
 psdir = @psdir@
+runstatedir = @runstatedir@
 sbindir = @sbindir@
 sharedstatedir = @sharedstatedir@
 srcdir = @srcdir@
@@ -458,7 +458,7 @@ plugin_LTLIBRARIES = jail.la
 libplugincommon = $(top_builddir)/lib/plugincommon/libplugincommon.la
 libpscommon = $(top_builddir)/lib/pscommon/libpscommon.la
 jail_la_SOURCES = jail.c jailconfig.c jailconfig.h jaillog.c	\
-	jaillog.h jailtypes.h
+	jaillog.h jailtypes.h jailhandles.h
 
 jail_la_CPPFLAGS = $(AM_CPPFLAGS) -DPLUGINDIR=\"$(plugindir)\"
 jail_la_LIBADD = $(libplugincommon) $(libpscommon)
