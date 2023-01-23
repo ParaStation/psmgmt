@@ -7,12 +7,11 @@
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-
-#ifndef __JAIL__HANDLES
-#define __JAIL__HANDLES
+#ifndef __JAIL_HANDLES_H
+#define __JAIL_HANDLES_H
 
 #include "jailtypes.h"
 
 jailGetScripts_t *jailGetScripts;
 
-#endif  /* __JAIL__HANDLES */
+#endif  /* __JAIL_HANDLES_H */
