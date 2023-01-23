@@ -147,14 +147,8 @@ static void freeGresConf(Gres_Conf_t *gres)
 Gres_Conf_t *saveGresConf(Gres_Conf_t *gres, char *count)
 {
     gres->id = getGresId(gres->name);
-    gres->nextDevID = 0;
-
     /* use continuing device IDs */
-    list_t *c;
-    list_for_each(c, &GresConfList) {
-	Gres_Conf_t *conf = list_entry(c, Gres_Conf_t, next);
-	if (conf->id == gres->id) gres->nextDevID += conf->count;
-    }
+    gres->nextDevID = GRes_countDevices(gres->id);
 
     /* parse file */
     INIT_LIST_HEAD(&gres->devices);
