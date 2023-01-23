@@ -280,6 +280,7 @@ plugins/jail/jail.c \
 plugins/jail/jail.conf \
 plugins/jail/jailconfig.c \
 plugins/jail/jailconfig.h \
+plugins/jail/jailhandles.h \
 plugins/jail/jaillog.c \
 plugins/jail/jaillog.h \
 plugins/jail/jailtypes.h \
