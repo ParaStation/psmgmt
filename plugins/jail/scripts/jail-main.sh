@@ -26,18 +26,11 @@ CommandName=${0##*/}
 CommandPath=${SELF%/*}
 CHILD=${1}
 SCRIPT=${CommandName%%.*}
-JOB_CPUS="$__PSJAIL_JOB_CPUS"
-STEP_CPUS="$__PSJAIL_STEP_CPUS"
-JOBID="$__PSJAIL_JOBID"
-STEPID="$__PSJAIL_JOBID"
-PSPAM_USER="$__PSPAM_ADD_USER"
-[ -n "$__PSJAIL_USER" ] && USER=$__PSJAIL_USER
-
-unset LANGUAGE
-export LANG=C
 
 source $CommandPath/jail-functions.inc
 source $CommandPath/jail-config.inc
+
+initJailEnv
 
 exec 2>>$LOG_FILE 1>&2
 

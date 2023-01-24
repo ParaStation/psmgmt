@@ -90,11 +90,11 @@ function setStepMem()
 
 function constrainRam()
 {
-    setJobMem "$__PSJAIL_JOB_RAM_SOFT" "memory.soft_limit_in_bytes"
-    setJobMem "$__PSJAIL_JOB_RAM_HARD" "memory.limit_in_bytes"
+    setJobMem "$JOB_RAM_SOFT" "memory.soft_limit_in_bytes"
+    setJobMem "$JOB_RAM_HARD" "memory.limit_in_bytes"
 
-    setStepMem "$__PSJAIL_STEP_RAM_SOFT" "memory.soft_limit_in_bytes"
-    setStepMem "$__PSJAIL_STEP_RAM_HARD" "memory.limit_in_bytes"
+    setStepMem "$STEP_RAM_SOFT" "memory.soft_limit_in_bytes"
+    setStepMem "$STEP_RAM_HARD" "memory.limit_in_bytes"
 }
 
 function constrainMemSSH()
@@ -110,7 +110,7 @@ function constrainMemSSH()
     fi
 }
 
-if [ "$__PSJAIL_CONSTRAIN_RAM" == "no" ]; then
+if [ "$CONSTRAIN_RAM" == "no" ]; then
     dlog "constrain RAM *disabled*"
 else
     dlog "constrain RAM enabled"
@@ -121,32 +121,32 @@ else
 	constrainRam
     fi
 
-    if [ "$__PSJAIL_CONSTRAIN_KMEM" == "no" ]; then
+    if [ "$CONSTRAIN_KMEM" == "no" ]; then
 	dlog "constrain KMEM *disabled*"
     else
 	dlog "constrain KMEM enabled"
 	if [ -n "$PSPAM_USER" ]; then
 	    constrainMemSSH
 	else
-	    setJobMem "$__PSJAIL_JOB_KMEM" "memory.kmem.limit_in_bytes"
-	    setStepMem "$__PSJAIL_STEP_KMEM" "memory.kmem.limit_in_bytes"
+	    setJobMem "$JOB_KMEM" "memory.kmem.limit_in_bytes"
+	    setStepMem "$STEP_KMEM" "memory.kmem.limit_in_bytes"
 	fi
     fi
 fi
 
-if [ "$__PSJAIL_CONSTRAIN_SWAP" == "no" ]; then
+if [ "$CONSTRAIN_SWAP" == "no" ]; then
     dlog "constrain SWAP *disabled*"
 else
     dlog "constrain SWAP enabled"
     if [ -n "$PSPAM_USER" ]; then
 	constrainMemSSH
     else
-	setJobMem "$__PSJAIL_JOB_SWAP" "memory.memsw.limit_in_bytes"
-	setStepMem "$__PSJAIL_STEP_SWAP" "memory.memsw.limit_in_bytes"
+	setJobMem "$JOB_SWAP" "memory.memsw.limit_in_bytes"
+	setStepMem "$STEP_SWAP" "memory.memsw.limit_in_bytes"
     fi
 fi
 
-if [ -z "$__PSJAIL_SWAPPINESS" ]; then
+if [ -z "$SWAPPINESS" ]; then
     dlog "constrain swappiness *disabled*"
 else
     dlog "constrain swappiness enabled"
@@ -154,7 +154,7 @@ else
     if [ -n "$PSPAM_USER" ]; then
 	constrainMemSSH
     else
-	setJobMem "$__PSJAIL_SWAPPINESS" "memory.swappiness"
-	setStepMem "$__PSJAIL_SWAPPINESS" "memory.swappiness"
+	setJobMem "$SWAPPINESS" "memory.swappiness"
+	setStepMem "$SWAPPINESS" "memory.swappiness"
     fi
 fi

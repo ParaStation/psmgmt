@@ -17,7 +17,7 @@
 # jail-main.sh with the process ID of the process to be jailed in
 # CHILD and configuration like CGROUP_BASE, BASE or SCRIPT set.
 
-if [ "$__PSJAIL_CONSTRAIN_CORES" == "no" ]; then
+if [ "$CONSTRAIN_CORES" == "no" ]; then
     dlog "constrain cores *disabled*"
 else
     dlog "constrain cores enabled"

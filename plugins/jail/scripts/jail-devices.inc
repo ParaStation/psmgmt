@@ -105,7 +105,7 @@ function constrainDevSSH()
     fi
 }
 
-if [ "$__PSJAIL_CONSTRAIN_DEVICES" == "no" ]; then
+if [ "$CONSTRAIN_DEVICES" == "no" ]; then
     dlog "constrain devices *disabled*"
 else
     dlog "constrain devices enabled"

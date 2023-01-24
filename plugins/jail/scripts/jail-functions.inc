@@ -82,3 +82,40 @@ function killJob {
 	dlog "killJob: rmdir $DIR"
 	rmdir "$DIR"
 }
+
+function initJailEnv {
+	unset LANGUAGE
+	export LANG=C
+
+	export JOBID="$__PSJAIL_JOBID"
+	export STEPID="$__PSJAIL_JOBID"
+
+	export PSPAM_USER="$__PSPAM_ADD_USER"
+	[ -n "$__PSJAIL_USER" ] && export USER="$__PSJAIL_USER"
+
+	# map core pinning variables
+	export JOB_CPUS="$__PSJAIL_JOB_CPUS"
+	export STEP_CPUS="$__PSJAIL_STEP_CPUS"
+	export CONSTRAIN_CORES="$__PSJAIL_CONSTRAIN_CORES"
+
+	# map various memory pinning variables
+	export JOB_RAM_SOFT="$__PSJAIL_JOB_RAM_SOFT"
+	export STEP_RAM_SOFT="$__PSJAIL_STEP_RAM_SOFT"
+
+	export JOB_RAM_HARD="$__PSJAIL_JOB_RAM_HARD"
+	export STEP_RAM_HARD="$__PSJAIL_STEP_RAM_HARD"
+
+	export JOB_KMEM="$__PSJAIL_JOB_KMEM"
+	export STEP_KMEM="$__PSJAIL_STEP_KMEM"
+
+	export JOB_SWAP="$__PSJAIL_JOB_SWAP"
+	export STEP_SWAP="$__PSJAIL_STEP_SWAP"
+
+	export SWAPPINESS="$__PSJAIL_SWAPPINESS"
+
+	export CONSTRAIN_RAM="$__PSJAIL_CONSTRAIN_RAM"
+	export CONSTRAIN_KMEM="$__PSJAIL_CONSTRAIN_KMEM"
+	export CONSTRAIN_SWAP="$__PSJAIL_CONSTRAIN_SWAP"
+
+	export CONSTRAIN_DEVICES="$__PSJAIL_CONSTRAIN_DEVICES"
+}
