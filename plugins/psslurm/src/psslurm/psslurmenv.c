@@ -270,13 +270,13 @@ static void setThreadsBitmapsEnv(const PSCPU_set_t *stepcpus,
     StrBuffer_t strBuf;
     if (stepcpus) {
 	getCompactThreadList(&strBuf, *stepcpus);
-	setenv("PSSLURM_STEP_CPUS", strBuf.buf, 1);
+	setenv("__PSJAIL_STEP_CPUS", strBuf.buf, 1);
 	freeStrBuf(&strBuf);
     }
 
     if (jobcpus) {
 	getCompactThreadList(&strBuf, *jobcpus);
-	setenv("PSSLURM_JOB_CPUS", strBuf.buf, 1);
+	setenv("__PSJAIL_JOB_CPUS", strBuf.buf, 1);
 	freeStrBuf(&strBuf);
     }
 }
@@ -500,12 +500,17 @@ void setJailEnv(const env_t *env, const char *user, const PSCPU_set_t *stepcpus,
 
     if (env) {
 	char *id = envGet(env, "SLURM_JOBID");
-	if (id) setenv("SLURM_JOBID", id, 1);
+	if (id) setenv("__PSJAIL_JOBID", id, 1);
 	id = envGet(env, "SLURM_STEPID");
-	if (id) setenv("SLURM_STEPID", id, 1);
+	if (id) setenv("__PSJAIL_STEPID", id, 1);
+    } else {
+	char *id = getenv("SLURM_JOBID");
+	if (id) setenv("__PSJAIL_JOBID", id, 1);
+	id = getenv("SLURM_STEPID");
+	if (id) setenv("__PSJAIL_STEPID", id, 1);
     }
 
-    if (user) setenv("SLURM_USER", user, 1);
+    if (user) setenv("__PSJAIL_USER", user, 1);
 
     char *c = getConfValueC(&SlurmCgroupConfig, "ConstrainCores");
     if (c) setenv("__PSJAIL_CONSTRAIN_CORES", c, 1);

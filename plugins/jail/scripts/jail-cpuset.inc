@@ -43,14 +43,13 @@ elif [ -n "$PSPAM_USER" ]; then
 	fi
 else
 	dlog "constrain cores enabled"
-	[ -n "$SLURM_USER" ] && USER=$SLURM_USER
 
 	[ -n "$USER" ] || {
-		elog "no user env variable for job $SLURM_JOBID"
+		elog "no user env variable for job $JOBID"
 	}
 
 	[ -n "$JOB_CPUS" ] || {
-		elog "no CPU cores for job $SLURM_JOBID"
+		elog "no CPU cores for job $JOBID"
 	}
 
 	CG_USER="$BASE/$PREFIX-$USER"
@@ -79,13 +78,13 @@ else
 	echo "$MEM_NODES" > $CG_USER/cpuset.mems
 	dlog "user cpuset: " $(cat $CG_USER/cpuset.cpus)
 
-	[ -n "$SLURM_JOBID" ] || elog "no jobid for pid $CHILD user $USER"
+	[ -n "$JOBID" ] || elog "no jobid for pid $CHILD user $USER"
 
-	CG_JOB="$CG_USER/job-$SLURM_JOBID"
+	CG_JOB="$CG_USER/job-$JOBID"
 	mdsave "$CG_JOB"
 
 	# job cgroup
-	dlog "JOB: $SLURM_JOBID STEP:$SLURM_STEPID"
+	dlog "JOB: $JOBID STEP:$STEPID"
 
 	echo "$JOB_CPUS" > $CG_JOB/cpuset.cpus
 	echo "$MEM_NODES" > $CG_JOB/cpuset.mems
@@ -95,8 +94,8 @@ else
 	dlog "job cpuset: " $(cat $CG_JOB/cpuset.cpus)
 
 	# step cgroup
-	[ -n "$SLURM_STEPID" ] && {
-		CG_STEP="$CG_JOB/step-$SLURM_STEPID"
+	[ -n "$STEPID" ] && {
+		CG_STEP="$CG_JOB/step-$STEPID"
 		mdsave "$CG_STEP"
 
 		echo "$JOB_CPUS" > $CG_STEP/cpuset.cpus

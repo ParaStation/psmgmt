@@ -18,20 +18,18 @@
 
 function termDevices()
 {
-    [ -n "$SLURM_USER" ] && export USER="$SLURM_USER"
-
     CG_USER="$BASE/$PREFIX-$USER"
-    CG_JOB="$CG_USER/job-$SLURM_JOBID"
-    CG_STEP="$CG_JOB/step-$SLURM_STEPID"
+    CG_JOB="$CG_USER/job-$JOBID"
+    CG_STEP="$CG_JOB/step-$STEPID"
 
     [ -z "$KILL_SIGNAL" ] && export KILL_SIGNAL="9"
 
     [ -n "$USER" ] || {
-		elog "no user env variable for job $SLURM_JOBID"
+		elog "no user env variable for job $JOBID"
     }
 
-    if [ -n "$SLURM_STEPID" ]; then
-	dlog "killing step $SLURM_JOBID:$SLURM_STEPID with signal $KILL_SIGNAL"
+    if [ -n "$STEPID" ]; then
+	dlog "killing step $JOBID:$STEPID with signal $KILL_SIGNAL"
 
 	if [ -d "$CG_STEP" ]; then
 		killTasks "$CG_STEP"
@@ -39,8 +37,8 @@ function termDevices()
 		dlog "no cgroup step $CG_STEP"
 	fi
 
-    elif [ -n "$SLURM_JOBID" ]; then
-	dlog "killing job $SLURM_JOBID with signal $KILL_SIGNAL"
+    elif [ -n "$JOBID" ]; then
+	dlog "killing job $JOBID with signal $KILL_SIGNAL"
 	killJob $CG_JOB
 
 	BASE=$CG_USER
@@ -54,7 +52,7 @@ function termDevices()
 	done
 
     else
-	elog "missing SLURM_JOBID"
+	elog "missing JOBID"
     fi
 }
 

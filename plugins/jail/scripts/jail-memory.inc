@@ -25,22 +25,20 @@ IS_INIT="false"
 
 function initMem()
 {
-    [ -n "$SLURM_USER" ] && USER=$SLURM_USER
-
     [ -n "$USER" ] || {
-	    elog "no user env variable for job $SLURM_JOBID"
+	    elog "no user env variable for job $JOBID"
     }
 
     CG_USER="$BASE/$PREFIX-$USER"
     mdsave "$CG_USER"
 
-    [ -n "$SLURM_JOBID" ] || elog "no jobid for pid $CHILD user $USER"
+    [ -n "$JOBID" ] || elog "no jobid for pid $CHILD user $USER"
 
-    CG_JOB="$CG_USER/job-$SLURM_JOBID"
+    CG_JOB="$CG_USER/job-$JOBID"
     mdsave "$CG_JOB"
 
-    [ -n "$SLURM_STEPID" ] && {
-	    CG_STEP="$CG_JOB/step-$SLURM_STEPID"
+    [ -n "$STEPID" ] && {
+	    CG_STEP="$CG_JOB/step-$STEPID"
 	    mdsave "$CG_STEP"
     }
 
@@ -48,7 +46,7 @@ function initMem()
     echo "$CHILD" > $CG_JOB/tasks
 
     # step cgroup
-    [ -n "$SLURM_STEPID" ] && {
+    [ -n "$STEPID" ] && {
 	dlog "adding child $CHILD to $CG_STEP/tasks"
 	echo "$CHILD" > $CG_STEP/tasks
     }
@@ -66,7 +64,7 @@ function setJobMem()
 	dlog "Skipping invalid limit $LIMIT_VAL for $LIMIT_NAME"
     else
 	# job cgroup
-	dlog "$LIMIT_VAL > $CG_JOB/$LIMIT_NAME Job: $SLURM_JOBID:$SLURM_STEPID"
+	dlog "$LIMIT_VAL > $CG_JOB/$LIMIT_NAME Job: $JOBID:$STEPID"
 	echo "$LIMIT_VAL" > $CG_JOB/$LIMIT_NAME
     fi
 
@@ -80,7 +78,7 @@ function setStepMem()
     [ "$IS_INIT" == "false" ] && initMem;
 
     # step cgroup
-    [ -n "$SLURM_STEPID" ] && {
+    [ -n "$STEPID" ] && {
 	if [ "$LIMIT_VAL" -lt 1 ]; then
 	    dlog "Skipping invalid limit $LIMIT_VAL for $LIMIT_NAME"
 	else

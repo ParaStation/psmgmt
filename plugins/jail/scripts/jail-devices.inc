@@ -24,29 +24,27 @@
 
 function initDevices()
 {
-    [ -n "$SLURM_USER" ] && USER=$SLURM_USER
-
     [ -n "$USER" ] || {
-	    elog "no user env variable for job $SLURM_JOBID"
+	    elog "no user env variable for job $JOBID"
     }
 
     CG_USER="$BASE/$PREFIX-$USER"
     mdsave "$CG_USER"
 
-    [ -n "$SLURM_JOBID" ] || elog "no jobid for pid $CHILD user $USER"
+    [ -n "$JOBID" ] || elog "no jobid for pid $CHILD user $USER"
 
-    CG_JOB="$CG_USER/job-$SLURM_JOBID"
+    CG_JOB="$CG_USER/job-$JOBID"
     mdsave "$CG_JOB"
 
-    [ -n "$SLURM_STEPID" ] && {
-	    CG_STEP="$CG_JOB/step-$SLURM_STEPID"
+    [ -n "$STEPID" ] && {
+	    CG_STEP="$CG_JOB/step-$STEPID"
 	    mdsave "$CG_STEP"
     }
 
     dlog "adding child $CHILD to $CG_JOB/tasks"
     echo "$CHILD" > $CG_JOB/tasks
     # step cgroup
-    [ -n "$SLURM_STEPID" ] && {
+    [ -n "$STEPID" ] && {
 	dlog "adding child $CHILD to $CG_STEP/tasks"
 	echo "$CHILD" > $CG_STEP/tasks
     }
@@ -61,7 +59,7 @@ function setDev()
     echo $DEV > $CG_JOB/$ACTION
 
     # step cgroup
-    [ -n "$SLURM_STEPID" ] && {
+    [ -n "$STEPID" ] && {
 	dlog "$DEV > $CG_STEP/$ACTION"
 	echo $DEV > $CG_STEP/$ACTION
     }

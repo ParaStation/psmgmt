@@ -147,8 +147,8 @@ static int termJail(void *info)
     char buf[1024];
 
     snprintf(buf, sizeof(buf), "%u", alloc->id);
-    setenv("SLURM_JOBID", buf, 1);
-    setenv("SLURM_USER", alloc->username, 1);
+    setenv("__PSJAIL_JOBID", buf, 1);
+    setenv("__PSJAIL_USER", alloc->username, 1);
 
     return PSIDhook_call(PSIDHOOK_JAIL_TERM, &pid);
 }
