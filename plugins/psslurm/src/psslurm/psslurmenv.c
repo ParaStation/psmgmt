@@ -294,14 +294,14 @@ static void doSetJailMemEnv(const uint64_t ram, const char *scope)
 
     /* allowed RAM in percent */
     float f = getConfValueF(&SlurmCgroupConfig, "AllowedRAMSpace");
-    uint64_t allowedRam = (f != -1) ? (f/100.0) * ram : ram;
+    uint64_t allowedRam = (f >= 0) ? (f/100.0) * ram : ram;
     hardRamLimit = allowedRam;
     if (hardRamLimit < softRamLimit) softRamLimit = hardRamLimit;
 
     /* max RAM in percent */
     f = getConfValueF(&SlurmCgroupConfig, "MaxRAMPercent");
     uint64_t maxRam = ram;
-    if (f != -1) {
+    if (f >= 0) {
 	maxRam = (f/100.0) * (nodeMem);
 	if (hardRamLimit > maxRam) hardRamLimit = maxRam;
 	if (softRamLimit > maxRam) softRamLimit = maxRam;
@@ -331,7 +331,7 @@ static void doSetJailMemEnv(const uint64_t ram, const char *scope)
 
     /* upper KMEM limit in percent */
     f = getConfValueF(&SlurmCgroupConfig, "MaxKmemPercent");
-    if (f != -1) {
+    if (f >= 0) {
 	uint64_t maxKmem = (f/100.0) * hardRamLimit;
 	if (kmemLimit > maxKmem) kmemLimit = maxKmem;
     }
@@ -351,14 +351,14 @@ static void doSetJailMemEnv(const uint64_t ram, const char *scope)
     uint64_t swapLimit = ram;
     /* allowed swap in percent */
     f = getConfValueF(&SlurmCgroupConfig, "AllowedSwapSpace");
-    if (f != -1) {
+    if (f >= 0) {
 	if (!swapLimit) swapLimit = nodeMem;
 	swapLimit = ((f/100.0) * swapLimit) + allowedRam;
     }
 
     /* upper swap limit in percent */
     f = getConfValueF(&SlurmCgroupConfig, "MaxSwapPercent");
-    if (f != -1) {
+    if (f >= 0) {
 	uint64_t maxSwap = ((f/100.0) * nodeMem) + maxRam;
 	if (swapLimit > maxSwap) swapLimit = maxSwap;
     }
