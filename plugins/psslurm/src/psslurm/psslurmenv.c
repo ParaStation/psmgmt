@@ -409,7 +409,6 @@ static void setJailMemEnv(JobCred_t *cred, uint32_t localNodeId)
 	while (i < cred->jobMemAllocSize
 	       && idx + cred->jobMemAllocRepCount[i] <= localNodeId)
 	    idx += cred->jobMemAllocRepCount[i++];
-	if (idx == localNodeId) i--;
 	if (i < cred->jobMemAllocSize) {
 	    uint64_t ramSpace = cred->jobMemAlloc[i]*1024*1024;
 	    doSetJailMemEnv(ramSpace ? ramSpace : nodeMem, "JOB");
@@ -422,7 +421,6 @@ static void setJailMemEnv(JobCred_t *cred, uint32_t localNodeId)
 	while (i < cred->stepMemAllocSize
 	       && idx + cred->stepMemAllocRepCount[i] <= localNodeId)
 	    idx += cred->stepMemAllocRepCount[i++];
-	if (idx == localNodeId) i--;
 	if (i < cred->stepMemAllocSize) {
 	    uint64_t ramSpace = cred->stepMemAlloc[i]*1024*1024;
 	    doSetJailMemEnv(ramSpace ? ramSpace : nodeMem, "STEP");
