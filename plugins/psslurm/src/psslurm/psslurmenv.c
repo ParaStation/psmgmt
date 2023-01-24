@@ -432,6 +432,39 @@ static void setJailMemEnv(JobCred_t *cred, uint32_t localNodeId)
     }
 }
 
+typedef struct {
+    uint16_t nAllow;
+    uint16_t nDeny;
+    PSCPU_set_t set;
+} DevVisitorInfo_t;
+
+bool devEnvVisitor(GRes_Dev_t *dev, uint32_t id, void *info)
+{
+    DevVisitorInfo_t *devInfo = info;
+
+    bool isSet = PSCPU_isSet(devInfo->set, dev->slurmIdx);
+    fdbg(PSSLURM_LOG_JAIL, "%s GRes ID %u path %s num %u major %u minor %u\n",
+	 isSet ? "Allow" : "Deny",
+	 id, dev->path, dev->slurmIdx, dev->major, dev->minor);
+
+    char val[64];
+    snprintf(val, sizeof(val), "%s %u:%u rwm",
+	     dev->isBlock ? "b" : "c", dev->major, dev->minor);
+
+    uint16_t n;
+    if (isSet) {
+	n = devInfo->nAllow++;
+    } else {
+	n = devInfo->nDeny++;
+    }
+    char name[128];
+    snprintf(name, sizeof(name), "__PSJAIL_DEV_%s_%u",
+	     isSet ? "ALLOW" : "DENY", n);
+    setenv(name, val, 1);
+
+    return false;
+}
+
 /**
  * @brief Set jail environment for GRes devices
  *
@@ -442,44 +475,22 @@ static void setJailMemEnv(JobCred_t *cred, uint32_t localNodeId)
 static void setJailDevEnv(list_t *gresList, uint32_t localNodeId)
 {
     list_t *g;
-    uint16_t numDevAllow = 0, numDevDeny = 0;
     list_for_each(g, gresList) {
 	Gres_Cred_t *gres = list_entry(g, Gres_Cred_t, next);
 
-	PSCPU_set_t gresSet;
-	if (gres->bitAlloc[localNodeId]) {
-	    if (!hexBitstr2Set(gres->bitAlloc[localNodeId], gresSet)) {
-		flog("unable to get gres node allocation for nodeId %u\n",
-		     localNodeId);
-		return;
-	    }
-	} else {
-	    PSCPU_clrAll(gresSet);
+	DevVisitorInfo_t devInfo = {
+	    .nAllow = 0,
+	    .nDeny = 0 };
+	PSCPU_clrAll(devInfo.set);
+
+	if (gres->bitAlloc[localNodeId]
+	    && !hexBitstr2Set(gres->bitAlloc[localNodeId], devInfo.set)) {
+	    flog("unable to get gres node allocation for nodeId %u\n",
+		 localNodeId);
+	    return;
 	}
 
-	char name[128], val[64];
-	for (uint16_t i = 0; i < sizeof(PSCPU_set_t)/sizeof(PSCPU_mask_t);
-	     i++) {
-	    GRes_Dev_t *dev = GRes_findDevice(gres->id, i);
-	    if (!dev) continue;
-	    snprintf(val, sizeof(val), "%s %u:%u rwm",
-		     dev->isBlock ? "b" : "c", dev->major, dev->minor);
-	    if (PSCPU_isSet(gresSet, i)) {
-		fdbg(PSSLURM_LOG_JAIL, "Allow GRes ID %u path %s num %u "
-		     "major %u minor %u\n", gres->id, dev->path, i, dev->major,
-		     dev->minor);
-		snprintf(name, sizeof(name), "__PSJAIL_DEV_ALLOW_%u",
-			 numDevAllow++);
-		setenv(name, val, 1);
-	    } else {
-		fdbg(PSSLURM_LOG_JAIL, "Deny GRes ID %u path %s num %u "
-		     "major %u minor %u\n", gres->id, dev->path, i, dev->major,
-		     dev->minor);
-		snprintf(name, sizeof(name), "__PSJAIL_DEV_DENY_%u",
-			 numDevDeny++);
-		setenv(name, val, 1);
-	    }
-	}
+	traverseGResDevs(gres->id, devEnvVisitor, &devInfo);
     }
 }
 

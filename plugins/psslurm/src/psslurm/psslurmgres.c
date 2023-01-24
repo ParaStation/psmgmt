@@ -97,21 +97,6 @@ static bool discoverDevices(char *file, void *info)
     return true;
 }
 
-GRes_Dev_t *GRes_findDevice(uint32_t pluginID, uint32_t bitIdx)
-{
-    list_t *c;
-    list_for_each(c, &GresConfList) {
-	Gres_Conf_t *conf = list_entry(c, Gres_Conf_t, next);
-	if (conf->id != pluginID) continue;
-	list_t *d;
-	list_for_each(d, &conf->devices) {
-	    GRes_Dev_t *dev = list_entry(d, GRes_Dev_t, next);
-	    if (dev->slurmIdx == bitIdx) return dev;
-	}
-    }
-    return NULL;
-}
-
 static bool parseGresFile(Gres_Conf_t *gres)
 {
     /* discover all devices */
@@ -270,6 +255,23 @@ bool traverseGresConf(GresConfVisitor_t visitor, void *info)
 	Gres_Conf_t *conf = list_entry(c, Gres_Conf_t, next);
 
 	if (visitor(conf, info)) return true;
+    }
+
+    return false;
+}
+
+bool traverseGResDevs(uint32_t id, GResDevVisitor_t visitor, void *info)
+{
+    list_t *c, *tmp;
+    list_for_each_safe(c, tmp, &GresConfList) {
+	Gres_Conf_t *conf = list_entry(c, Gres_Conf_t, next);
+	if (conf->id != id) continue;
+
+	list_t *d, *tmp2;
+	list_for_each_safe(d, tmp2, &conf->devices) {
+	    GRes_Dev_t *dev = list_entry(d, GRes_Dev_t, next);
+	    if (visitor(dev, id, info)) return true;
+	}
     }
 
     return false;

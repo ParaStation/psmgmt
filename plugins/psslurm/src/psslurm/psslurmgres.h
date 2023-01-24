@@ -138,17 +138,6 @@ Gres_Cred_t *getGresCred(void);
 Gres_Cred_t *findGresCred(list_t *gresList, uint32_t id, int credType);
 
 /**
- * @brief Find a GRes device
- *
- * @param pluginID The GRes plugin ID
- *
- * @param bitIdx The Slurm bitmap index of the device
- *
- * @return Returns the requested GRES device or NULL otherwise
- */
-GRes_Dev_t *GRes_findDevice(uint32_t pluginID, uint32_t bitIdx);
-
-/**
  * @brief Free a GRES credential
  *
  * @param gres The GRES credential to free
@@ -221,5 +210,46 @@ void freeGresJobAlloc(list_t *gresList);
  * @return Returns the number of devices found
  */
 uint32_t GRes_countDevices(uint32_t pluginID);
+
+/**
+ * @brief Visitor function
+ *
+ * Visitor function used by @ref traverseGResDevs() in order to visit
+ * each GRes device associated to a given GRes plugin ID.
+ *
+ * The parameters are as follows: @a dev points to the GRes device to
+ * visit. @a id contains the GRes plugin ID of the devices to
+ * consider. @a info points to the additional information passed to
+ * @ref traverseGResDevs() in order to be forwarded to each GRes
+ * device.
+ *
+ * If the visitor function returns true, the traversal will stop and
+ * @ref traverseGResDevs() will return to its calling function.
+ */
+typedef bool GResDevVisitor_t(GRes_Dev_t *dev, uint32_t id, void *info);
+
+/**
+ * @brief Traverse GRes devices
+ *
+ * Traverse all GRes devices associated to the GRes plugin ID @a id by
+ * calling @a visitor for each of the GRes devices. As parameters @a
+ * visitor will get a pointer to the current GRes device, the plugin
+ * ID and the pointer to additional information @a info.
+ *
+ * If @a visitor returns true, the traversal will be stopped
+ * immediately and true is returned to the calling function.
+ *
+ * @param id GRes plugin ID traversed devices must be associated to
+ *
+ * @param visitor Visitor function to be called for each GRes device
+ *
+ * @param info Additional information to be passed to @a visitor while
+ * visiting the GRes devices
+ *
+ * @return If the visitor returns true, traversal will be stopped
+ * immediately and true is returned; if no visitor returned true
+ * during the traversal, false is returned
+ */
+bool traverseGResDevs(uint32_t id, GResDevVisitor_t visitor, void *info);
 
 #endif /* __PS_SLURM_GRES */
