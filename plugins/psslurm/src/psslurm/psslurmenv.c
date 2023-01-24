@@ -405,29 +405,27 @@ static void setJailMemEnv(JobCred_t *cred, uint32_t localNodeId)
 
     /* set job env */
     if (cred->jobMemAllocSize) {
-	for (uint32_t i=0, idx=0; i<cred->jobMemAllocSize; i++) {
-	    for (uint32_t j=0; j<cred->jobMemAllocRepCount[i]; j++) {
-		if (idx++ == localNodeId) {
-		    uint64_t ramSpace = cred->jobMemAlloc[i]*1024*1024;
-		    doSetJailMemEnv(ramSpace ? ramSpace : nodeMem, "JOB");
-		    break;
-		}
-	    }
-	    if (idx > localNodeId) break;
+	uint32_t i = 0, idx = 0;
+	while (i < cred->jobMemAllocSize
+	       && idx + cred->jobMemAllocRepCount[i] <= localNodeId)
+	    idx += cred->jobMemAllocRepCount[i++];
+	if (idx == localNodeId) i--;
+	if (i < cred->jobMemAllocSize) {
+	    uint64_t ramSpace = cred->jobMemAlloc[i]*1024*1024;
+	    doSetJailMemEnv(ramSpace ? ramSpace : nodeMem, "JOB");
 	}
     }
 
     /* set step env */
     if (cred->stepMemAllocSize) {
-	for (uint32_t i=0, idx=0; i<cred->stepMemAllocSize; i++) {
-	    for (uint32_t j=0; j<cred->stepMemAllocRepCount[i]; j++) {
-		if (idx++ == localNodeId) {
-		    uint64_t ramSpace = cred->stepMemAlloc[i]*1024*1024;
-		    doSetJailMemEnv(ramSpace ? ramSpace : nodeMem, "STEP");
-		    break;
-		}
-	    }
-	    if (idx > localNodeId) break;
+	uint32_t i = 0, idx = 0;
+	while (i < cred->stepMemAllocSize
+	       && idx + cred->stepMemAllocRepCount[i] <= localNodeId)
+	    idx += cred->stepMemAllocRepCount[i++];
+	if (idx == localNodeId) i--;
+	if (i < cred->stepMemAllocSize) {
+	    uint64_t ramSpace = cred->stepMemAlloc[i]*1024*1024;
+	    doSetJailMemEnv(ramSpace ? ramSpace : nodeMem, "STEP");
 	}
     }
 }
