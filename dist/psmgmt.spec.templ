@@ -212,10 +212,10 @@ fi
 exit 0
 
 %post
-ln -sf %{_libexecdir}/jail/jail-main.sh %{_plugindir}/jail.sh
-ln -sf %{_libexecdir}/jail/jail-main.sh %{_plugindir}/jail-term.sh
 if [ $1 -eq 1 ] ; then
     # first install
+    ln -sf %{_libexecdir}/jail/jail-main.sh %{_plugindir}/jail.sh
+    ln -sf %{_libexecdir}/jail/jail-main.sh %{_plugindir}/jail-term.sh
 %if !0%{?disable_systemd}
     systemctl preset psid.service psidstarter.socket >/dev/null 2>&1 || :
 %else
@@ -228,6 +228,17 @@ if [ $1 -eq 1 ] ; then
     echo "* /etc/parastation.conf                              *"
     echo "******************************************************"
 %endif
+else
+    # update
+    [ -L %{_plugindir}/jail.sh -a $(realpath %{_plugindir}/jail.sh) = %{_libexecdir}/jail/jail-main.sh ] || {
+	mv %{_plugindir}/jail.sh %{_plugindir}/jail.sh.rpmsave
+	ln -sf %{_libexecdir}/jail/jail-main.sh %{_plugindir}/jail.sh
+    }
+
+    [ -L %{_plugindir}/jail-term.sh -a $(realpath %{_plugindir}/jail-term.sh) = %{_libexecdir}/jail/jail-main.sh ] || {
+	mv %{_plugindir}/jail-term.sh %{_plugindir}/jail-term.sh.rpmsave
+	ln -sf %{_libexecdir}/jail/jail-main.sh %{_plugindir}/jail-term.sh
+    }
 fi
 exit 0
 
