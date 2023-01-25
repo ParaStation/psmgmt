@@ -1662,6 +1662,11 @@ bool setStepSlots(Step_t *step)
     hints_t hints;
     fillHints(&hints, &step->env);
 
+    /* reconstruct hint nomultithread */
+    if (step->cpuBindType & CPU_BIND_ONE_THREAD_PER_CORE) {
+	hints.nomultithread = 1;
+    }
+
     /* allow overbooking ? */
     char *overcommitStr = envGet(&step->env, "SLURM_OVERCOMMIT");
     bool overcommit = overcommitStr && !strcmp(overcommitStr, "1");
