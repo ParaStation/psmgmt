@@ -10,14 +10,13 @@
  */
 #include "pluginforwarder.h"
 
-#include <stddef.h>
-#include <stdlib.h>
+#include <arpa/inet.h>
 #include <errno.h>
-#include <netinet/in.h>
 #include <signal.h>
+#include <stdlib.h>
 #include <string.h>
 #include <syslog.h>
-#include <sys/resource.h>
+#include <sys/resource.h>  // IWYU pragma: keep
 #include <sys/signalfd.h>
 #include <sys/socket.h>
 #include <sys/time.h>

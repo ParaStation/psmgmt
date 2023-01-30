@@ -10,12 +10,12 @@
  */
 #include "psslurmpack.h"
 
-#include <netinet/in.h>
+#include <arpa/inet.h>
 #include <stdint.h>
 #include <string.h>
 #include <sys/resource.h>
 #include <sys/socket.h>
-#include <sys/types.h>
+#include <sys/wait.h>
 
 #include "pscommon.h"
 #include "psenv.h"

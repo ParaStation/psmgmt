@@ -25,7 +25,7 @@
 #include <sys/prctl.h>
 #include <sys/socket.h>
 #include <sys/time.h>
-#include <sys/resource.h>
+#include <sys/resource.h>  // IWYU pragma: keep
 #include <sys/select.h>
 #include <sys/signalfd.h>
 #include <sys/types.h>
@@ -921,7 +921,7 @@ static int readFromChild(int fd, void *data)
  *
  * @return No return value.
  */
-static void sendAcctData(struct rusage rusage, int32_t status)
+static void sendAcctData(struct rusage *rusage, int32_t status)
 {
     DDTypedBufferMsg_t msg = {
 	.header = {
@@ -949,7 +949,7 @@ static void sendAcctData(struct rusage rusage, int32_t status)
     PSP_putTypedMsgBuf(&msg, "pid", &pid, sizeof(pid));
 
     /* actual rusage structure */
-    PSP_putTypedMsgBuf(&msg, "rusage", &rusage, sizeof(rusage));
+    PSP_putTypedMsgBuf(&msg, "rusage", rusage, sizeof(*rusage));
 
     /* pagesize */
     int64_t pagesize = sysconf(_SC_PAGESIZE);
@@ -1071,7 +1071,7 @@ static void finalizeForwarder(void)
 	&& childTask->group != TG_SERVICE
 	&& childTask->group != TG_SERVICE_SIG
 	&& childTask->group != TG_KVS) {
-	sendAcctData(childRUsage, childStatus);
+	sendAcctData(&childRUsage, childStatus);
     }
 
     /*

@@ -8,7 +8,6 @@
   { symbol: ["itimerspec", "private", "<time.h>", "public"] },
   { symbol: ["__sigval_t", "private", "<signal.h>", "public"] },
   { include: ["@<hwloc/.*", "private", "<hwloc.h>", "public"] },
-  { include: ["<bits/types/struct_rusage.h>", "private", "<sys/resource.h>", "public"] },
   { include: ["<bits/local_lim.h>", "private", "<limits.h>", "public"] },
   { include: ["<security/_pam_types.h>", "private", "<security/pam_modules.h>", "public"] },
   { include: ["@<bits/termios-.*", "private", "<termios.h>", "public"] },

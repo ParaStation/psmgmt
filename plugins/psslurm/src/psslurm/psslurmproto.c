@@ -10,21 +10,22 @@
  */
 #include "psslurmproto.h"
 
-#include <stdio.h>
-#include <stdlib.h>
+#include <arpa/inet.h>
 #include <ctype.h>
 #include <errno.h>
 #include <malloc.h>
 #include <netinet/in.h>
+#include <stdio.h>
+#include <stdlib.h>
 #include <signal.h>
 #include <string.h>
 #include <strings.h>
-#include <sys/resource.h>
 #include <sys/stat.h>
 #include <sys/statfs.h>
 #include <sys/sysinfo.h>
 #include <sys/time.h>
 #include <sys/utsname.h>
+#include <sys/wait.h>
 #include <time.h>
 #include <unistd.h>
 

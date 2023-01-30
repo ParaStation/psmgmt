@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2014-2020 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021 ParTec AG, Munich
+ * Copyright (C) 2021-2023 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -10,7 +10,6 @@
  */
 #include "pluginpty.h"
 
-#include <stdio.h>
 #include <fcntl.h>
 #include <grp.h>
 #include <errno.h>

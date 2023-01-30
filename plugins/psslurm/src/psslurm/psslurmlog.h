@@ -15,7 +15,6 @@
 #include <stdio.h>
 
 #include "logging.h"  // IWYU pragma: export
-#include "pluginlog.h"  // IWYU pragma: keep
 
 extern logger_t *psslurmlogger;
 extern FILE *psslurmlogfile;
