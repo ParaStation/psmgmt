@@ -284,6 +284,10 @@ const ConfDef_t confDef[] =
 	"bool",
 	"1",
 	"Execute Slurm health-check on psslurm startup" },
+    { "DENIED_USERS", 0,
+	"list",
+	"root",
+	"Users listed won't be able to execute jobs/steps" },
     { NULL, 0, NULL, NULL, NULL },
 };
 

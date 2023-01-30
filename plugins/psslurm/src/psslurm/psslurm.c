@@ -802,6 +802,7 @@ int initialize(FILE *logfile)
 
     if (!registerHooks()) goto INIT_ERROR;
     if (!(initSlurmdProto())) goto INIT_ERROR;
+    if (!Auth_init()) goto INIT_ERROR;
 
     enableFPEexceptions();
 
@@ -920,6 +921,7 @@ void cleanup(void)
     freeConfig(&Config);
     freeConfig(&SlurmConfig);
     freeEnvFilter();
+    Auth_finalize();
 #ifdef HAVE_SPANK
     SpankFinalize();
 #endif

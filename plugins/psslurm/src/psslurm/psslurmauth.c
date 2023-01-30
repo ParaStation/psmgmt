@@ -11,8 +11,10 @@
 #include "psslurmauth.h"
 
 #include <arpa/inet.h>
+#include <pwd.h>
 #include <stdio.h>
 #include <string.h>
+#include <sys/types.h>
 
 #include "pluginmalloc.h"
 #include "psmungehandles.h"
@@ -23,9 +25,18 @@
 #include "psslurmlog.h"
 #include "psslurmpack.h"
 #include "psslurmproto.h"
+#include "psslurmconfig.h"
 
 /** munge plugin identification */
 #define MUNGE_PLUGIN_ID 101
+
+static LIST_HEAD(deniedUIDs);
+
+/** List type to store UID entries */
+typedef struct {
+    struct list_head next;
+    uid_t uid;
+} UIDent_t;
 
 /* Slurm message hash types */
 typedef enum {
@@ -45,6 +56,52 @@ typedef struct {
 bool verifyUserId(uid_t userID, uid_t validID)
 {
     if (userID == 0 || userID == validID || userID == slurmUserID) return true;
+    return false;
+}
+
+bool Auth_init(void)
+{
+    const char *deniedUsers = getConfValueC(&Config, "DENIED_USERS");
+    if (!deniedUsers) return true;
+
+    char *toksave, *next, *dup = ustrdup(deniedUsers);
+    const char delimiters[] =", \t\n";
+
+    next = strtok_r(dup, delimiters, &toksave);
+    while (next) {
+	uid_t uid = PSC_uidFromString(next);
+	if ((signed int ) uid < 0) {
+	    flog("unable to get UID from username %s\n", next);
+	    return false;
+	}
+	fdbg(PSSLURM_LOG_AUTH, "adding user %s uid %u to list of denied"
+	     " users\n", next, uid);
+	UIDent_t *uidEnt = umalloc(sizeof(*uidEnt));
+	uidEnt->uid = uid;
+	list_add_tail(&uidEnt->next ,&deniedUIDs);
+	next = strtok_r(NULL, delimiters, &toksave);
+    }
+
+    return true;
+}
+
+void Auth_finalize(void)
+{
+    list_t *s, *tmp;
+    list_for_each_safe(s, tmp, &deniedUIDs) {
+	UIDent_t *uidEnt = list_entry(s, UIDent_t, next);
+	list_del(&uidEnt->next);
+	ufree(uidEnt);
+    }
+}
+
+bool Auth_isDeniedUID(uid_t uid)
+{
+    list_t *c;
+    list_for_each(c, &deniedUIDs) {
+	UIDent_t *uidEnt = list_entry(c, UIDent_t, next);
+	if (uidEnt->uid == uid) return true;
+    }
     return false;
 }
 

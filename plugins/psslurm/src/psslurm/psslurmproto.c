@@ -525,6 +525,13 @@ static void handleLaunchTasks(Slurm_Msg_t *sMsg)
 	return;
     }
 
+    if (Auth_isDeniedUID(step->uid)) {
+	flog("denied UID %u to start step %s\n", sMsg->head.uid,
+	     Step_strID(step));
+	sendSlurmRC(sMsg, ESLURMD_INVALID_JOB_CREDENTIAL);
+	goto ERROR;
+    }
+
     /* verify job credential */
     if (!Step_verifyData(step)) {
 	flog("invalid data for %s\n", Step_strID(step));
@@ -1510,6 +1517,12 @@ static void handleFileBCast(Slurm_Msg_t *sMsg)
 	bcast->username = ustrdup(job->username);
     }
 
+    if (Auth_isDeniedUID(bcast->uid)) {
+	flog("denied UID %u to start bcast\n", sMsg->head.uid);
+	sendSlurmRC(sMsg, ESLURMD_INVALID_JOB_CREDENTIAL);
+	goto CLEANUP;
+    }
+
     fdbg(PSSLURM_LOG_PROTO, "jobid %u blockNum %u lastBlock %u force %u"
 	 " modes %u, user '%s' uid %u gid %u fileName '%s' blockLen %u\n",
 	 bcast->jobid, bcast->blockNumber,
@@ -2113,6 +2126,11 @@ static void handleBatchJobLaunch(Slurm_Msg_t *sMsg)
 	sendSlurmRC(sMsg, SLURM_ERROR);
 	Job_delete(job);
 	return;
+    }
+
+    if (Auth_isDeniedUID(job->uid)) {
+	flog("denied UID %u to start job %u\n", sMsg->head.uid, job->jobid);
+	goto ERROR;
     }
 
     /* memory cleanup  */
