@@ -176,7 +176,7 @@ void pspmix_service_abort(void *clientObject);
  * The library and the clients have to wait until all nodes running involved
  * clients have confirmed that those clients have entered the fence.
  * This means that the helper library there has called this function with the
- * same set of processed.
+ * same set of processes.
  *
  * We can trigger tree communication to handle the global fence logic now.
  *
@@ -206,7 +206,7 @@ int pspmix_service_fenceIn(const pmix_proc_t procs[], size_t nprocs,
  * @param fenceID    ID of the fence
  * @param sender     task ID of the sending PMIx server
  * @param senderRank sender's node rank
- * @apram numBlobs   number of separate data blobs contained in data
+ * @param numBlobs   number of separate data blobs contained in data
  * @param data       data blob(s) to be added to the fence (takes ownership)
  * @param len        size of @a data
  */
