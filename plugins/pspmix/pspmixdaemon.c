@@ -221,7 +221,7 @@ static PspmixMsgExtra_t* getExtra(DDTypedBufferMsg_t *msg)
 /**
  * @brief Set the target of the message to the TID of the right PMIx server.
  *
- * This function tries to find the right PMIx server for the user in @a extra
+ * Identify the PMIx server serving the user referenced in @a extra
  * and set its TID as target for @a msg.
  *
  * @param extra  extra information containing uid
@@ -277,14 +277,14 @@ static bool forwardPspmixMsg(DDBufferMsg_t *vmsg)
 	 PSC_printTID(msg->header.sender));
     mdbg(PSPMIX_LOG_COMM, "->%s]\n", PSC_printTID(msg->header.dest));
 
-    PspmixMsgExtra_t *extra = NULL;
+    PspmixMsgExtra_t *extra = getExtra(msg);
 
     /* local sender */
     if (PSC_getID(msg->header.sender) == PSC_getMyID()) {
 	switch(msg->type) {
 	case PSPMIX_ADD_JOB:
 	case PSPMIX_REMOVE_JOB:
-	    /* message types are only send by this daemon */
+	    /* message types are only sent by this psid to local pmix servers */
 	    if (msg->header.sender != PSC_getMyTID()) {
 		mlog("%s: invalid sender (sender %s type %s)\n", __func__,
 		     PSC_printTID(msg->header.sender),
@@ -301,55 +301,51 @@ static bool forwardPspmixMsg(DDBufferMsg_t *vmsg)
 	    if (PSC_getID(msg->header.dest) != PSC_getMyID()) {
 		mlog("%s: destination task is not local (dest %s type %s)\n",
 		     __func__, PSC_printTID(msg->header.dest),
-                    pspmix_getMsgTypeString(msg->type));
+		     pspmix_getMsgTypeString(msg->type));
 		return false;
 	    }
 
-	    PStask_t *senderTask = PStasklist_find(&managedTasks,
-						   msg->header.sender);
-	    if (!senderTask) {
-		mlog("%s: sender not among managed tasks (sender %s type %s)\n",
+	    PStask_t *sender = PStasklist_find(&managedTasks,
+					       msg->header.sender);
+	    if (!sender) {
+		mlog("%s: sender task not found (sender %s type %s)\n",
 		     __func__, PSC_printTID(msg->header.sender),
-                    pspmix_getMsgTypeString(msg->type));
+		     pspmix_getMsgTypeString(msg->type));
 		return false;
 	    }
 
-	    PStask_t *destTask = PStasklist_find(&managedTasks,
-						   msg->header.dest);
-	    if (!destTask) {
-		mlog("%s: dest not among managed tasks (dest %s type %s)\n",
+	    PStask_t *dest = PStasklist_find(&managedTasks, msg->header.dest);
+	    if (!dest) {
+		mlog("%s: dest task not found (dest %s type %s)\n",
 		     __func__, PSC_printTID(msg->header.dest),
-                    pspmix_getMsgTypeString(msg->type));
+		     pspmix_getMsgTypeString(msg->type));
 		return false;
 	    }
 
-	    if (senderTask->uid != destTask->uid) {
-		mlog("%s: sender (%s) and ", __func__,
+	    if (sender->uid != dest->uid) {
+		mlog("%s: sender (%s) and", __func__,
 		     PSC_printTID(msg->header.sender));
-		mlog("dest (%s) uids do not match (%d != %d)\n",
-		     PSC_printTID(msg->header.dest), senderTask->uid,
-		     destTask->uid);
+		mlog(" dest (%s) uids mismatch (%d != %d)\n",
+		     PSC_printTID(msg->header.dest), sender->uid, dest->uid);
 		return false;
 	    }
 	    goto forward_msg;
 	}
 
-	/* all other PMIX messages should have extra information set */ 
-	extra = getExtra(msg);
+	/* all other PMIX messages should have extra information set */
 	if (!extra) return false;
-	
-	PStask_t *senderTask = PStasklist_find(&managedTasks,
-					       msg->header.sender);
-	if (!senderTask) {
-	    mlog("%s: sender not among managed tasks (sender %s type %s)\n",
+
+	PStask_t *sender = PStasklist_find(&managedTasks, msg->header.sender);
+	if (!sender) {
+	    mlog("%s: sender task not found (sender %s type %s)\n",
 		 __func__, PSC_printTID(msg->header.sender),
 		 pspmix_getMsgTypeString(msg->type));
 	    return false;
 	}
 
-	if (senderTask->uid != extra->uid) {
-	    mlog("%s: sender %s set wrong uid (%u != %u)\n", __func__,
-		 PSC_printTID(msg->header.sender), senderTask->uid, extra->uid);
+	if (sender->uid != extra->uid) {
+	    mlog("%s: sender %s claims wrong uid (%u != %u)\n", __func__,
+		 PSC_printTID(msg->header.sender), sender->uid, extra->uid);
 	    return false;
 	}
     }
@@ -362,12 +358,9 @@ static bool forwardPspmixMsg(DDBufferMsg_t *vmsg)
 	return true;
     }
 
-    if (!extra) {
-	extra = getExtra(msg);
-	if (!extra) return false;
-    }
-
     /* destination is local, we might have to tweak dest */
+    if (!extra) return false;
+
     switch(msg->type) {
     case PSPMIX_FENCE_DATA:
 	if (PSC_getPID(msg->header.dest)) break; // destination already fixed
@@ -388,19 +381,17 @@ static bool forwardPspmixMsg(DDBufferMsg_t *vmsg)
     }
 
     /* check uid of destination task */
-    PStask_t *destTask = PStasklist_find(&managedTasks, msg->header.dest);
-    if (!destTask) {
-	mlog("%s: dest not among managed tasks (dest %s type %s)\n",
-	     __func__, PSC_printTID(msg->header.dest),
-	    pspmix_getMsgTypeString(msg->type));
+    PStask_t *dest = PStasklist_find(&managedTasks, msg->header.dest);
+    if (!dest) {
+	mlog("%s: dest task not found (dest %s type %s)\n", __func__,
+	     PSC_printTID(msg->header.dest), pspmix_getMsgTypeString(msg->type));
 	return false;
     }
 
-    if (destTask->uid != extra->uid) {
-	mlog("%s: dest (%s) and ", __func__,
-	     PSC_printTID(msg->header.dest));
-	mlog("sender (%s) uid do not match (%d != %d)\n",
-	     PSC_printTID(msg->header.sender), destTask->uid, extra->uid);
+    if (dest->uid != extra->uid) {
+	mlog("%s: dest (%s) and", __func__, PSC_printTID(msg->header.dest));
+	mlog(" sender (%s) uid mismatch (%d != %d)\n",
+	     PSC_printTID(msg->header.sender), dest->uid, extra->uid);
 	return false;
     }
 
