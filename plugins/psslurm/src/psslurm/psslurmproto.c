@@ -140,7 +140,7 @@ static void getSysInfo(uint32_t *cpuload, uint64_t *freemem, uint32_t *uptime)
 /**
  * @brief Check if a Slurm message has privileged rights
  *
- * If the user does not have privileged rights an error messages
+ * If the user does not have privileged rights, an error messages
  * is logged and the message sender is notified.
  *
  * @param sMsg The message to check
@@ -1257,29 +1257,25 @@ static void handleRebootNodes(Slurm_Msg_t *sMsg)
     char *prog = getConfValueC(&SlurmConfig, "RebootProgram");
     if (!prog) {
 	flog("error: RebootProgram is not set in slurm.conf\n");
-	goto CLEANUP;
-    }
 
-    /* check permissions */
-    if (!checkPrivMsg(sMsg)) goto CLEANUP;
+    } else if (checkPrivMsg(sMsg)) {
+	/* try to execute reboot program */
+	StrBuffer_t cmdline = { .buf = NULL };
+	addStrBuf(trim(prog), &cmdline);
 
-    /* try to execute reboot program */
-    StrBuffer_t cmdline = { .buf = NULL };
-    addStrBuf(trim(prog), &cmdline);
-
-    if (access(cmdline.buf, R_OK | X_OK) < 0) {
-	flog("invalid permissions for reboot program %s\n", cmdline.buf);
-    } else {
-	if (req->features && req->features[0]) {
-	    addStrBuf(" ", &cmdline);
-	    addStrBuf(req->features, &cmdline);
+	if (access(cmdline.buf, R_OK | X_OK) < 0) {
+	    flog("invalid permissions for reboot program %s\n", cmdline.buf);
+	} else {
+	    if (req->features && req->features[0]) {
+		addStrBuf(" ", &cmdline);
+		addStrBuf(req->features, &cmdline);
+	    }
+	    flog("calling reboot program '%s'\n", cmdline.buf);
+	    PSID_execScript(cmdline.buf, NULL, &cbRebootProgram, NULL,&cmdline);
 	}
-	flog("calling reboot program '%s'\n", cmdline.buf);
-	PSID_execScript(cmdline.buf, NULL, &cbRebootProgram, NULL,&cmdline);
+	freeStrBuf(&cmdline);
     }
-    freeStrBuf(&cmdline);
 
-CLEANUP:
     freeReqRebootNodes(req);
 
     /* slurmctld does not expect an answer for RPC */
