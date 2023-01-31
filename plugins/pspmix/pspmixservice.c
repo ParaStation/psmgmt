@@ -56,11 +56,11 @@ typedef struct {
     PSnodes_ID_t *nodes;        /**< list of nodes involved */
     size_t nNodes;              /**< number of nodes involved */
     uint16_t rank;              /**< local rank within this fence */
-    uint16_t srcs[16];          /**< ranks to expect forward data from */
+    uint16_t srcs[16];          /**< ranks to expect upward data from */
     uint8_t nSrcs;              /**< number of srcs involved */
-    uint8_t nGot;               /**< number forward data messages received */
-    uint16_t dest;              /**< rank to send forward data to */
-    PStask_ID_t rcvrs[16];      /**< PMIx servers expecting backward data */
+    uint8_t nGot;               /**< number upward data messages received */
+    uint16_t dest;              /**< rank to send upward data to */
+    PStask_ID_t rcvrs[16];      /**< PMIx servers expecting downward data */
     uint8_t nRcvrs;             /**< number of receivers involved */
     PspmixFenceMsg_t msgs[16];  /**< buffer for pending fence messages */
     uint8_t nMsgs;              /**< number of pending messages */
@@ -1072,7 +1072,7 @@ static bool appendMsg(PspmixFence_t *fence, uint8_t msg)
  *
  * 5. nodes receiving data part of "downward comm"
  *
- *   - forward this data to all nodes they got "forward comm" data from
+ *   - forward this data to all nodes they got "upward comm" data from
  *     propagating this wave of "downward comm". Level 0 just receives
  *     (no lower level), level 1 sees 2->3, 6->7, 10->11, 14->15, level 2
  *     has 0->1,2, 4->5,6, 8->9,10, and 12->13,14, level 3 does not receive
