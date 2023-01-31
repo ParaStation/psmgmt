@@ -30,13 +30,11 @@
 /** munge plugin identification */
 #define MUNGE_PLUGIN_ID 101
 
-static LIST_HEAD(deniedUIDs);
+/** list of denied UIDs */
+static uid_t *deniedUIDs = NULL;
 
-/** List type to store UID entries */
-typedef struct {
-    struct list_head next;
-    uid_t uid;
-} UIDent_t;
+/** number of denied UIDs */
+static uint16_t numDeniedUIDs = 0;
 
 /* Slurm message hash types */
 typedef enum {
@@ -64,9 +62,17 @@ bool Auth_init(void)
     const char *deniedUsers = getConfValueC(&Config, "DENIED_USERS");
     if (!deniedUsers) return true;
 
-    char *toksave, *next, *dup = ustrdup(deniedUsers);
+    char *toksave, *dup = ustrdup(deniedUsers);
     const char delimiters[] =", \t\n";
+    uint16_t countUIDs = 0;
 
+    char *next = strtok_r(dup, delimiters, &toksave);
+    while (next) {
+	countUIDs++;
+	next = strtok_r(NULL, delimiters, &toksave);
+    }
+
+    deniedUIDs = umalloc(sizeof(*deniedUIDs) * countUIDs);
     next = strtok_r(dup, delimiters, &toksave);
     while (next) {
 	uid_t uid = PSC_uidFromString(next);
@@ -76,31 +82,24 @@ bool Auth_init(void)
 	}
 	fdbg(PSSLURM_LOG_AUTH, "adding user %s uid %u to list of denied"
 	     " users\n", next, uid);
-	UIDent_t *uidEnt = umalloc(sizeof(*uidEnt));
-	uidEnt->uid = uid;
-	list_add_tail(&uidEnt->next ,&deniedUIDs);
+	deniedUIDs[numDeniedUIDs++] = uid;
 	next = strtok_r(NULL, delimiters, &toksave);
     }
+
+    ufree(dup);
 
     return true;
 }
 
 void Auth_finalize(void)
 {
-    list_t *s, *tmp;
-    list_for_each_safe(s, tmp, &deniedUIDs) {
-	UIDent_t *uidEnt = list_entry(s, UIDent_t, next);
-	list_del(&uidEnt->next);
-	ufree(uidEnt);
-    }
+    ufree(deniedUIDs);
 }
 
 bool Auth_isDeniedUID(uid_t uid)
 {
-    list_t *c;
-    list_for_each(c, &deniedUIDs) {
-	UIDent_t *uidEnt = list_entry(c, UIDent_t, next);
-	if (uidEnt->uid == uid) return true;
+    for (uint16_t i=0; i< numDeniedUIDs; i++) {
+	if (deniedUIDs[i] == uid) return true;
     }
     return false;
 }
