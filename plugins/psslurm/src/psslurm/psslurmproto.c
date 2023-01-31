@@ -138,6 +138,26 @@ static void getSysInfo(uint32_t *cpuload, uint64_t *freemem, uint32_t *uptime)
 }
 
 /**
+ * @brief Check if a Slurm message has privileged rights
+ *
+ * If the user does not have privileged rights an error messages
+ * is logged and the message sender is notified.
+ *
+ * @param sMsg The message to check
+ *
+ * @return Returns true on success otherwise false is returned.
+ */
+bool checkPrivMsg(Slurm_Msg_t *sMsg)
+{
+    if (sMsg->head.uid != 0 && sMsg->head.uid != slurmUserID) {
+	flog("request from invalid user %u\n", sMsg->head.uid);
+	sendSlurmRC(sMsg, ESLURM_USER_ID_MISSING);
+	return false;
+    }
+    return true;
+}
+
+/**
  * @brief Send a ping response
  *
  * Send a Slurm ping message including the current system
@@ -957,12 +977,7 @@ static void handleUpdateJobTime(Slurm_Msg_t *sMsg)
 {
     /* does nothing, since timelimit is not used in slurmd */
 
-    /* check permissions */
-    if (sMsg->head.uid != 0 && sMsg->head.uid != slurmUserID) {
-	mlog("%s: request from invalid user %u\n", __func__, sMsg->head.uid);
-	sendSlurmRC(sMsg, ESLURM_USER_ID_MISSING);
-	return;
-    }
+    if (!checkPrivMsg(sMsg)) return;
 
     sendSlurmRC(sMsg, SLURM_SUCCESS);
 }
@@ -978,11 +993,8 @@ static void handleUpdateJobTime(Slurm_Msg_t *sMsg)
 static void handleShutdown(Slurm_Msg_t *sMsg)
 {
     /* check permissions */
-    if (sMsg->head.uid != 0 && sMsg->head.uid != slurmUserID) {
-	mlog("%s: request from invalid user %u\n", __func__, sMsg->head.uid);
-	sendSlurmRC(sMsg, ESLURM_USER_ID_MISSING);
-	return;
-    }
+    if (!checkPrivMsg(sMsg)) return;
+
     sendSlurmRC(sMsg, SLURM_SUCCESS);
 
     mlog("%s: shutdown on request from uid %i\n", __func__, sMsg->head.uid);
@@ -992,11 +1004,7 @@ static void handleShutdown(Slurm_Msg_t *sMsg)
 static void handleReconfigure(Slurm_Msg_t *sMsg)
 {
     /* check permissions */
-    if (sMsg->head.uid != 0 && sMsg->head.uid != slurmUserID) {
-	mlog("%s: request from invalid user %u\n", __func__, sMsg->head.uid);
-	sendSlurmRC(sMsg, ESLURM_USER_ID_MISSING);
-	return;
-    }
+    if (!checkPrivMsg(sMsg)) return;
 
     /* activate the new configuration */
     updateSlurmConf();
@@ -1170,8 +1178,7 @@ static void handleConfig(Slurm_Msg_t *sMsg)
     }
 
     /* check permissions */
-    if (sMsg->head.uid != 0 && sMsg->head.uid != slurmUserID) {
-	flog("request from invalid user %u\n", sMsg->head.uid);
+    if (!checkPrivMsg(sMsg)) {
 	freeSlurmConfigMsg(config);
 	return;
     }
@@ -1250,26 +1257,29 @@ static void handleRebootNodes(Slurm_Msg_t *sMsg)
     char *prog = getConfValueC(&SlurmConfig, "RebootProgram");
     if (!prog) {
 	flog("error: RebootProgram is not set in slurm.conf\n");
-    } else if (sMsg->head.uid != 0 && sMsg->head.uid != slurmUserID) {
-	flog("request from invalid user %u\n", sMsg->head.uid);
-	sendSlurmRC(sMsg, ESLURM_USER_ID_MISSING);
-    } else {
-	/* try to execute reboot program */
-	StrBuffer_t cmdline = { .buf = NULL };
-	addStrBuf(trim(prog), &cmdline);
-
-	if (access(cmdline.buf, R_OK | X_OK) < 0) {
-	    flog("invalid permissions for reboot program %s\n", cmdline.buf);
-	} else {
-	    if (req->features && req->features[0]) {
-		addStrBuf(" ", &cmdline);
-		addStrBuf(req->features, &cmdline);
-	    }
-	    flog("calling reboot program '%s'\n", cmdline.buf);
-	    PSID_execScript(cmdline.buf, NULL, &cbRebootProgram, NULL,&cmdline);
-	}
-	freeStrBuf(&cmdline);
+	goto CLEANUP;
     }
+
+    /* check permissions */
+    if (!checkPrivMsg(sMsg)) goto CLEANUP;
+
+    /* try to execute reboot program */
+    StrBuffer_t cmdline = { .buf = NULL };
+    addStrBuf(trim(prog), &cmdline);
+
+    if (access(cmdline.buf, R_OK | X_OK) < 0) {
+	flog("invalid permissions for reboot program %s\n", cmdline.buf);
+    } else {
+	if (req->features && req->features[0]) {
+	    addStrBuf(" ", &cmdline);
+	    addStrBuf(req->features, &cmdline);
+	}
+	flog("calling reboot program '%s'\n", cmdline.buf);
+	PSID_execScript(cmdline.buf, NULL, &cbRebootProgram, NULL,&cmdline);
+    }
+    freeStrBuf(&cmdline);
+
+CLEANUP:
     freeReqRebootNodes(req);
 
     /* slurmctld does not expect an answer for RPC */
@@ -1384,11 +1394,7 @@ bool runHealthCheck(void)
 static void handleHealthCheck(Slurm_Msg_t *sMsg)
 {
     /* check permissions */
-    if (sMsg->head.uid != 0 && sMsg->head.uid != slurmUserID) {
-	flog("request from invalid user %u\n", sMsg->head.uid);
-	sendSlurmRC(sMsg, ESLURM_USER_ID_MISSING);
-	return;
-    }
+    if (!checkPrivMsg(sMsg)) return;
 
     sendSlurmRC(sMsg, SLURM_SUCCESS);
 
@@ -1400,11 +1406,7 @@ static void handleAcctGatherUpdate(Slurm_Msg_t *sMsg)
     PS_SendDB_t *msg = &sMsg->reply;
 
     /* check permissions */
-    if (sMsg->head.uid != 0 && sMsg->head.uid != slurmUserID) {
-	mlog("%s: request from invalid user %u\n", __func__, sMsg->head.uid);
-	sendSlurmRC(sMsg, ESLURM_USER_ID_MISSING);
-	return;
-    }
+    if (!checkPrivMsg(sMsg)) return;
 
     /* pack energy data */
     psAccountInfo_t info;
@@ -1421,11 +1423,7 @@ static void handleAcctGatherEnergy(Slurm_Msg_t *sMsg)
     PS_SendDB_t *msg = &sMsg->reply;
 
     /* check permissions */
-    if (sMsg->head.uid != 0 && sMsg->head.uid != slurmUserID) {
-	mlog("%s: request from invalid user %u\n", __func__, sMsg->head.uid);
-	sendSlurmRC(sMsg, ESLURM_USER_ID_MISSING);
-	return;
-    }
+    if (!checkPrivMsg(sMsg)) return;
 
     /* pack energy data */
     psAccountInfo_t info;
@@ -1873,6 +1871,9 @@ CLEANUP:
 
 static void handleForwardData(Slurm_Msg_t *sMsg)
 {
+    /* check permissions */
+    if (!checkPrivMsg(sMsg)) return;
+
     mlog("%s: implement me!\n", __func__);
     sendSlurmRC(sMsg, ESLURM_NOT_SUPPORTED);
 }
@@ -1967,6 +1968,9 @@ static void handleLaunchProlog(Slurm_Msg_t *sMsg)
 	return;
     }
 
+    /* check permissions */
+    if (!checkPrivMsg(sMsg)) goto CLEANUP;
+
     fdbg(PSSLURM_LOG_PELOG, "jobid %u het-jobid %u uid %u gid %u alias %s"
 	 " nodes=%s partition=%s stdErr='%s' stdOut='%s' work-dir=%s user=%s\n",
 	 req->jobid, req->hetJobid, req->uid, req->gid, req->aliasList,
@@ -2013,6 +2017,8 @@ static void handleLaunchProlog(Slurm_Msg_t *sMsg)
 	/* let the slurmctld know the prologue has finished */
 	sendPrologComplete(req->jobid, SLURM_SUCCESS);
     }
+
+CLEANUP:
 
     /* free request with the exception of the job credential and gres list
      * saved in the allocation */
@@ -2486,12 +2492,7 @@ static void handleTerminateReq(Slurm_Msg_t *sMsg)
 	.stepid = req->stepid };
 
     /* check permissions */
-    if (sMsg->head.uid != 0 && sMsg->head.uid != slurmUserID) {
-	flog("request from invalid user %u for %s\n", sMsg->head.uid,
-	     Step_strID(&s));
-	sendSlurmRC(sMsg, ESLURM_USER_ID_MISSING);
-	goto CLEANUP;
-    }
+    if (!checkPrivMsg(sMsg)) goto CLEANUP;
 
     flog("%s Slurm-state %u uid %u type %s\n", Step_strID(&s),
 	 req->jobstate, sMsg->head.uid, msgType2String(sMsg->head.type));
@@ -2559,6 +2560,9 @@ CLEANUP:
 
 static void handleNetworkCallerID(Slurm_Msg_t *sMsg)
 {
+    /* check permissions */
+    if (!checkPrivMsg(sMsg)) return;
+
     /* IN: */
     /* ip source */
     /* ip dest */
@@ -2590,6 +2594,9 @@ static void handleRespMessageComposite(Slurm_Msg_t *sMsg)
  */
 static void handleRespNodeReg(Slurm_Msg_t *sMsg)
 {
+    /* check permissions */
+    if (!checkPrivMsg(sMsg)) return;
+
     /* don't request the additional info again */
     needNodeRegResp = false;
 
@@ -2980,41 +2987,46 @@ bool initSlurmdProto(void)
 	slurmVerStr = ustrdup(buf);
     }
 
+    /* register privileged RPCs */
     registerSlurmdMsg(REQUEST_LAUNCH_PROLOG, handleLaunchProlog);
+    registerSlurmdMsg(REQUEST_KILL_PREEMPTED, handleTerminateReq);
+    registerSlurmdMsg(REQUEST_KILL_TIMELIMIT, handleTerminateReq);
+    registerSlurmdMsg(REQUEST_ABORT_JOB, handleTerminateReq);
+    registerSlurmdMsg(REQUEST_TERMINATE_JOB, handleTerminateReq);
+    registerSlurmdMsg(REQUEST_SHUTDOWN, handleShutdown);
+    registerSlurmdMsg(REQUEST_RECONFIGURE, handleReconfigure);
+    registerSlurmdMsg(REQUEST_RECONFIGURE_WITH_CONFIG, handleConfig);
+    registerSlurmdMsg(REQUEST_REBOOT_NODES, handleRebootNodes);
+    registerSlurmdMsg(REQUEST_HEALTH_CHECK, handleHealthCheck);
+    registerSlurmdMsg(REQUEST_ACCT_GATHER_UPDATE, handleAcctGatherUpdate);
+    registerSlurmdMsg(REQUEST_ACCT_GATHER_ENERGY, handleAcctGatherEnergy);
+    registerSlurmdMsg(REQUEST_FORWARD_DATA, handleForwardData);
+    registerSlurmdMsg(REQUEST_NETWORK_CALLERID, handleNetworkCallerID);
+    registerSlurmdMsg(RESPONSE_NODE_REGISTRATION, handleRespNodeReg);
+
+    /* register unprivileged RPCs */
     registerSlurmdMsg(REQUEST_BATCH_JOB_LAUNCH, handleBatchJobLaunch);
     registerSlurmdMsg(REQUEST_LAUNCH_TASKS, handleLaunchTasks);
     registerSlurmdMsg(REQUEST_SIGNAL_TASKS, handleSignalTasks);
     registerSlurmdMsg(REQUEST_TERMINATE_TASKS, handleSignalTasks);
     registerSlurmdMsg(REQUEST_REATTACH_TASKS, handleReattachTasks);
-    registerSlurmdMsg(REQUEST_KILL_PREEMPTED, handleTerminateReq);
-    registerSlurmdMsg(REQUEST_KILL_TIMELIMIT, handleTerminateReq);
-    registerSlurmdMsg(REQUEST_ABORT_JOB, handleTerminateReq);
-    registerSlurmdMsg(REQUEST_TERMINATE_JOB, handleTerminateReq);
     registerSlurmdMsg(REQUEST_SUSPEND_INT, handleSuspendInt);
-    registerSlurmdMsg(REQUEST_COMPLETE_BATCH_SCRIPT, handleInvalid); /* removed in 20.11 */
-    registerSlurmdMsg(REQUEST_UPDATE_JOB_TIME, handleUpdateJobTime); /* removed in 20.11 */
-    registerSlurmdMsg(REQUEST_SHUTDOWN, handleShutdown);
-    registerSlurmdMsg(REQUEST_RECONFIGURE, handleReconfigure);
-    registerSlurmdMsg(REQUEST_RECONFIGURE_WITH_CONFIG, handleConfig);
-    registerSlurmdMsg(REQUEST_REBOOT_NODES, handleRebootNodes);
     registerSlurmdMsg(REQUEST_NODE_REGISTRATION_STATUS, handleNodeRegStat);
     registerSlurmdMsg(REQUEST_PING, sendPing);
-    registerSlurmdMsg(REQUEST_HEALTH_CHECK, handleHealthCheck);
-    registerSlurmdMsg(REQUEST_ACCT_GATHER_UPDATE, handleAcctGatherUpdate);
-    registerSlurmdMsg(REQUEST_ACCT_GATHER_ENERGY, handleAcctGatherEnergy);
     registerSlurmdMsg(REQUEST_JOB_ID, handleJobId);
     registerSlurmdMsg(REQUEST_FILE_BCAST, handleFileBCast);
-    registerSlurmdMsg(REQUEST_STEP_COMPLETE, handleInvalid);
-    registerSlurmdMsg(REQUEST_STEP_COMPLETE_AGGR, handleInvalid); /* removed in 20.11 */
     registerSlurmdMsg(REQUEST_JOB_STEP_STAT, handleStepStat);
     registerSlurmdMsg(REQUEST_JOB_STEP_PIDS, handleStepPids);
     registerSlurmdMsg(REQUEST_DAEMON_STATUS, handleDaemonStatus);
+    registerSlurmdMsg(REQUEST_STEP_COMPLETE, handleInvalid);
     registerSlurmdMsg(REQUEST_JOB_NOTIFY, handleJobNotify);
-    registerSlurmdMsg(REQUEST_FORWARD_DATA, handleForwardData);
-    registerSlurmdMsg(REQUEST_NETWORK_CALLERID, handleNetworkCallerID);
-    registerSlurmdMsg(MESSAGE_COMPOSITE, handleInvalid); /* removed in 20.11 */
-    registerSlurmdMsg(RESPONSE_MESSAGE_COMPOSITE, handleRespMessageComposite); /* removed in 20.11 */
-    registerSlurmdMsg(RESPONSE_NODE_REGISTRATION, handleRespNodeReg);
+
+    /* removed in 20.11 */
+    registerSlurmdMsg(REQUEST_STEP_COMPLETE_AGGR, handleInvalid);
+    registerSlurmdMsg(RESPONSE_MESSAGE_COMPOSITE, handleRespMessageComposite);
+    registerSlurmdMsg(MESSAGE_COMPOSITE, handleInvalid);
+    registerSlurmdMsg(REQUEST_COMPLETE_BATCH_SCRIPT, handleInvalid);
+    registerSlurmdMsg(REQUEST_UPDATE_JOB_TIME, handleUpdateJobTime);
 
     return true;
 }
