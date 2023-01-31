@@ -200,28 +200,40 @@ static PspmixJob_t * findJobInServer(PStask_ID_t servertid,
  * ****************************************************** */
 
 /**
+ * @brief Extract the extra info field from the message fragment header
+ *
+ * @param msg   message fragment
+ *
+ * @return pointer to the extra field inside the header or NULL on error
+ */
+static PspmixMsgExtra_t* getExtra(DDTypedBufferMsg_t *msg)
+{
+    size_t used = 0, eS;
+    PspmixMsgExtra_t *extra;
+    if (!fetchFragHeader(msg, &used, NULL, NULL, (void **)&extra, &eS)
+	    || eS != sizeof(*extra)) {
+	mlog("%s: UNEXPECTED: Fetching extra from header failed\n", __func__);
+	return NULL;
+    }
+    return extra;
+}
+
+/**
  * @brief Set the target of the message to the TID of the right PMIx server.
  *
- * This function looks into the message fragment header, reads the user ID
- * from there and find the right PMIx server for the user. Its TID is then set
- * as target for @a msg.
+ * This function tries to find the right PMIx server for the user in @a extra
+ * and set its TID as target for @a msg.
  *
+ * @param extra  extra information containing uid
  * @param msg    message fragment to manipulate
  *
  * @return Returns true on success, i.e. when the destination could be
  * determined or false otherwise
  */
-static bool setTargetToPmixServer(DDTypedBufferMsg_t *msg)
+static bool setTargetToPmixServer(PspmixMsgExtra_t *extra,
+				  DDTypedBufferMsg_t *msg)
 {
     mdbg(PSPMIX_LOG_CALL, "%s()\n", __func__);
-
-    size_t used = 0, eS;
-    PspmixMsgExtra_t *extra;
-    if (!fetchFragHeader(msg, &used, NULL, NULL, (void **)&extra, &eS)
-	|| eS != sizeof(*extra)) {
-	mlog("%s: UNEXPECTED: Fetching header information failed\n", __func__);
-	return false;
-    }
 
     PspmixServer_t *server = findServer(extra->uid);
     if (!server) {
@@ -265,10 +277,94 @@ static bool forwardPspmixMsg(DDBufferMsg_t *vmsg)
 	 PSC_printTID(msg->header.sender));
     mdbg(PSPMIX_LOG_COMM, "->%s]\n", PSC_printTID(msg->header.dest));
 
+    PspmixMsgExtra_t *extra = NULL;
+
+    /* local sender */
+    if (PSC_getID(msg->header.sender) == PSC_getMyID()) {
+	switch(msg->type) {
+	case PSPMIX_ADD_JOB:
+	case PSPMIX_REMOVE_JOB:
+	    /* message types are only send by this daemon */
+	    if (msg->header.sender != PSC_getMyTID()) {
+		mlog("%s: invalid sender (sender %s type %s)\n", __func__,
+		     PSC_printTID(msg->header.sender),
+		     pspmix_getMsgTypeString(msg->type));
+		return false;
+	    }
+	    goto forward_msg;
+	case PSPMIX_REGISTER_CLIENT:
+	case PSPMIX_CLIENT_INIT_RES:
+	case PSPMIX_CLIENT_FINALIZE_RES:
+	    /* message from forwarder to local pmix server without extra
+	       verify match of user IDs */
+
+	    if (PSC_getID(msg->header.dest) != PSC_getMyID()) {
+		mlog("%s: destination task is not local (dest %s type %s)\n",
+		     __func__, PSC_printTID(msg->header.dest),
+                    pspmix_getMsgTypeString(msg->type));
+		return false;
+	    }
+
+	    PStask_t *senderTask = PStasklist_find(&managedTasks,
+						   msg->header.sender);
+	    if (!senderTask) {
+		mlog("%s: sender not among managed tasks (sender %s type %s)\n",
+		     __func__, PSC_printTID(msg->header.sender),
+                    pspmix_getMsgTypeString(msg->type));
+		return false;
+	    }
+
+	    PStask_t *destTask = PStasklist_find(&managedTasks,
+						   msg->header.dest);
+	    if (!destTask) {
+		mlog("%s: dest not among managed tasks (dest %s type %s)\n",
+		     __func__, PSC_printTID(msg->header.dest),
+                    pspmix_getMsgTypeString(msg->type));
+		return false;
+	    }
+
+	    if (senderTask->uid != destTask->uid) {
+		mlog("%s: sender (%s) and ", __func__,
+		     PSC_printTID(msg->header.sender));
+		mlog("dest (%s) uids do not match (%d != %d)\n",
+		     PSC_printTID(msg->header.dest), senderTask->uid,
+		     destTask->uid);
+		return false;
+	    }
+	    goto forward_msg;
+	}
+
+	/* all other PMIX messages should have extra information set */ 
+	extra = getExtra(msg);
+	if (!extra) return false;
+	
+	PStask_t *senderTask = PStasklist_find(&managedTasks,
+					       msg->header.sender);
+	if (!senderTask) {
+	    mlog("%s: sender not among managed tasks (sender %s type %s)\n",
+		 __func__, PSC_printTID(msg->header.sender),
+		 pspmix_getMsgTypeString(msg->type));
+	    return false;
+	}
+
+	if (senderTask->uid != extra->uid) {
+	    mlog("%s: sender %s set wrong uid (%u != %u)\n", __func__,
+		 PSC_printTID(msg->header.sender), senderTask->uid, extra->uid);
+	    return false;
+	}
+    }
+
     /* destination is remote, just forward */
     if (PSC_getID(msg->header.dest) != PSC_getMyID()) {
+	mdbg(PSPMIX_LOG_COMM, "%s: sending to remote %s\n", __func__,
+	     PSC_printTID(msg->header.dest));
 	sendMsg(vmsg);
 	return true;
+    }
+
+    if (!extra) {
+	extra = getExtra(msg);
+	if (!extra) return false;
     }
 
     /* destination is local, we might have to tweak dest */
@@ -278,7 +374,7 @@ static bool forwardPspmixMsg(DDBufferMsg_t *vmsg)
 	__attribute__((fallthrough));
     case PSPMIX_FENCE_IN:
     case PSPMIX_MODEX_DATA_REQ:
-	if (!setTargetToPmixServer(msg)) {
+	if (!setTargetToPmixServer(extra, msg)) {
 	    mlog("%s: setting target PMIx server failed (type %s), dropping\n",
 		 __func__, pspmix_getMsgTypeString(msg->type));
 	    return false;
@@ -291,6 +387,25 @@ static bool forwardPspmixMsg(DDBufferMsg_t *vmsg)
 	return false;
     }
 
+    /* check uid of destination task */
+    PStask_t *destTask = PStasklist_find(&managedTasks, msg->header.dest);
+    if (!destTask) {
+	mlog("%s: dest not among managed tasks (dest %s type %s)\n",
+	     __func__, PSC_printTID(msg->header.dest),
+	    pspmix_getMsgTypeString(msg->type));
+	return false;
+    }
+
+    if (destTask->uid != extra->uid) {
+	mlog("%s: dest (%s) and ", __func__,
+	     PSC_printTID(msg->header.dest));
+	mlog("sender (%s) uid do not match (%d != %d)\n",
+	     PSC_printTID(msg->header.sender), destTask->uid, extra->uid);
+	return false;
+    }
+
+forward_msg:
+    ;
     int ret = PSIDclient_send((DDMsg_t *)vmsg);
     if (ret < 0 && errno == EWOULDBLOCK) return true; /* message postponed */
     return (ret >= 0);
@@ -318,12 +433,9 @@ static bool forwardPspmixFwMsg(DDTypedBufferMsg_t *msg, ForwarderData_t *fw)
 
     if (msg->header.type != PSP_PLUG_PSPMIX) return false;
     if (msg->type == PSPMIX_CLIENT_INIT) {
-	size_t used = 0, eS;
-	PspmixMsgExtra_t *extra;
-	if (!fetchFragHeader(msg, &used, NULL, NULL, (void **)&extra, &eS)
-	    || eS != sizeof(*extra)) {
-	    mlog("%s: UNEXPECTED: Fetching header information failed, cannot"
-		    " mark job as using PMIx\n", __func__);
+	PspmixMsgExtra_t *extra = getExtra(msg);
+	if (!extra) {
+	    mlog("%s: Cannot mark job as using PMIx\n", __func__);
 	} else {
 	    PspmixJob_t *job = findJobInServer(msg->header.sender,
 					       extra->spawnertid);
