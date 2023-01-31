@@ -56,7 +56,7 @@ typedef struct {
     PSnodes_ID_t *nodes;        /**< list of nodes involved */
     size_t nNodes;              /**< number of nodes involved */
     uint16_t rank;              /**< local rank within this fence */
-    uint16_t srcs[16];          /**< ranks to expected forward data from */
+    uint16_t srcs[16];          /**< ranks to expect forward data from */
     uint8_t nSrcs;              /**< number of srcs involved */
     uint8_t nGot;               /**< number forward data messages received */
     uint16_t dest;              /**< rank to send forward data to */

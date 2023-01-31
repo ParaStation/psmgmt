@@ -546,7 +546,7 @@ static pmix_status_t server_fencenb_cb(
 
     ufree(mdata->data);
     ufree(mdata);
-    mlog("%s: return PMIX_OPERATION_SUCCEEDED\n", __func__);
+    mdbg(PSPMIX_LOG_FENCE, "%s: return PMIX_OPERATION_SUCCEEDED\n", __func__);
     return PMIX_OPERATION_SUCCEEDED;
 }
 
