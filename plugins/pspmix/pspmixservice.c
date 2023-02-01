@@ -1208,6 +1208,8 @@ static void checkFence(PspmixFence_t *fence) {
 	pspmix_server_fenceOut(true, fence->mdata);
 
 	/* cleanup fence object */
+	if (fence->nMsgs) ulog("UNEXPECTED: drop %u messages from 0x%016lX\n",
+			       fence->nMsgs, fence->id);
 	while (fence->nMsgs) dropMsg(fence, fence->nMsgs - 1);
 	ufree(fence->nodes);
 	ufree(fence);
