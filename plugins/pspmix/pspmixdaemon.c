@@ -211,10 +211,8 @@ static PspmixMsgExtra_t* getExtra(DDTypedBufferMsg_t *msg)
     size_t used = 0, eS;
     PspmixMsgExtra_t *extra;
     if (!fetchFragHeader(msg, &used, NULL, NULL, (void **)&extra, &eS)
-	    || eS != sizeof(*extra)) {
-	mlog("%s: UNEXPECTED: Fetching extra from header failed\n", __func__);
-	return NULL;
-    }
+	|| eS != sizeof(*extra)) return NULL;
+
     return extra;
 }
 
@@ -278,6 +276,12 @@ static bool forwardPspmixMsg(DDBufferMsg_t *vmsg)
     mdbg(PSPMIX_LOG_COMM, "->%s]\n", PSC_printTID(msg->header.dest));
 
     PspmixMsgExtra_t *extra = getExtra(msg);
+    if (!extra && msg->type != PSPMIX_REGISTER_CLIENT) {
+	mlog("%s: sender (%s) does not provide extra in %s\n", __func__,
+	     PSC_printTID(msg->header.sender),
+	     pspmix_getMsgTypeString(msg->type));
+	return false;
+    }
 
     /* local sender */
     if (PSC_getID(msg->header.sender) == PSC_getMyID()) {
@@ -332,9 +336,7 @@ static bool forwardPspmixMsg(DDBufferMsg_t *vmsg)
 	    goto forward_msg;
 	}
 
-	/* all other PMIX messages should have extra information set */
-	if (!extra) return false;
-
+	/* for all other PMIX messages double check extra's validity */
 	PStask_t *sender = PStasklist_find(&managedTasks, msg->header.sender);
 	if (!sender) {
 	    mlog("%s: sender task not found (sender %s type %s)\n",
@@ -359,8 +361,6 @@ static bool forwardPspmixMsg(DDBufferMsg_t *vmsg)
     }
 
     /* destination is local, we might have to tweak dest */
-    if (!extra) return false;
-
     switch(msg->type) {
     case PSPMIX_FENCE_DATA:
 	if (PSC_getPID(msg->header.dest)) break; // destination already fixed
