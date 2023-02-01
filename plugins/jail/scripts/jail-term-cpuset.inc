@@ -21,6 +21,7 @@ if [ "$CONSTRAIN_CORES" == "no" ]; then
     dlog "constrain cores *disabled*"
 else
     dlog "constrain cores enabled"
+    getLock
 
     CG_USER="$BASE/$PREFIX-$USER"
     CG_JOB="$CG_USER/job-$JOBID"
@@ -62,9 +63,10 @@ else
 		    NEW_CPU=$($EXPAND $REMAINING_CPUS |sort -g -u)
 		    COMP_CPU=$($COMPRESS $NEW_CPU | tr -d "\[\]")
 		    dlog "set remaining cpus: $COMP_CPU"
-		    echo $COMP_CPU >"$CG_USER/cpuset.cpus"
+		    cgWrite $COMP_CPU "$CG_USER/cpuset.cpus"
 	    }
     else
 	    elog "missing JOBID"
     fi
+    rmLock
 fi

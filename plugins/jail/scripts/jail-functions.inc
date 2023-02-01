@@ -27,6 +27,21 @@ function elog {
 	exit 1
 }
 
+function cgWrite {
+    echo $1 > $2 || {
+	mlog "write $1 to $2 failed"
+    }
+}
+
+function getLock {
+    exec 100>/dev/shm/psjail-$modName
+    flock 100
+}
+
+function rmLock {
+    flock -u 100
+}
+
 function mdsave {
 	local DIR=$1
 	[ -d "$DIR" ] || {
@@ -40,7 +55,8 @@ function mdsave {
 function killTasks {
 	local DIR=$1
 	[ -d "$DIR" ] || {
-		elog "killTasks: no directory $DIR to kill tasks"
+	    [ "$CHILD" != "-1" ] && elog "killTasks: no directory $DIR to kill tasks"
+	    return
 	}
 
 	dlog "killTasks: dir $DIR"
@@ -51,8 +67,7 @@ function killTasks {
 	while [ -n "$PIDS" -a "$count" -le "$MAX_KILL_RETRY" ]; do
 		for child in $PIDS; do
 			[ -d "/proc/$child" ] || continue
-			CMD=$(cat /proc/$child/cmdline)
-			dlog "killTasks($count): killing PID $child ($CMD) with signal $KILL_SIGNAL"
+			dlog "killTasks($count): killing PID $child with signal $KILL_SIGNAL"
 			kill -"$KILL_SIGNAL" $child
 		done
 
@@ -67,7 +82,8 @@ function killTasks {
 function killJob {
 	local DIR=$1
 	[ -d "$DIR" ] || {
-		elog "killJob: no directory $DIR to kill tasks"
+	    [ "$CHILD" != "-1" ] && elog "killJob: no directory $DIR to kill tasks"
+	    return
 	}
 
 	dlog "killJob: dir $DIR"
@@ -88,7 +104,7 @@ function initJailEnv {
 	export LANG=C
 
 	export JOBID="$__PSJAIL_JOBID"
-	export STEPID="$__PSJAIL_JOBID"
+	export STEPID="$__PSJAIL_STEPID"
 
 	export PSPAM_USER="$__PSPAM_ADD_USER"
 	[ -n "$__PSJAIL_USER" ] && export USER="$__PSJAIL_USER"
