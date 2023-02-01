@@ -50,6 +50,9 @@ bool pspmix_comm_sendClientPMIxEnvironment(PStask_ID_t targetTID, env_t *env);
 /**
  * @brief Compose and send a fence data message if @a nDest != 0
  *
+ * Note: It is fine (and used by intention) to call with no destinations and
+ *       will return true in that case.
+ *
  * @param dest       task IDs of PMIx servers / psids to send data to
  * @param nDest      number of elements in @a dest
  * @param fenceID    id of the fence

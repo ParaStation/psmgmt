@@ -53,13 +53,13 @@ typedef struct {
 typedef struct {
     list_t next;
     uint64_t id;                /**< id of this fence */
-    PSnodes_ID_t *nodes;        /**< list of nodes involved */
+    PSnodes_ID_t *nodes;        /**< list of nodes involved indexed by rank */
     size_t nNodes;              /**< number of nodes involved */
-    uint16_t rank;              /**< local rank within this fence */
-    uint16_t srcs[16];          /**< ranks to expect upward data from */
+    uint16_t rank;              /**< local node rank within this fence */
+    uint16_t srcs[16];          /**< node ranks to expect upward data from */
     uint8_t nSrcs;              /**< number of srcs involved */
-    uint8_t nGot;               /**< number upward data messages received */
-    uint16_t dest;              /**< rank to send upward data to */
+    uint8_t nGot;               /**< number of upward data messages received */
+    uint16_t dest;              /**< node rank to send upward data to */
     PStask_ID_t rcvrs[16];      /**< PMIx servers expecting downward data */
     uint8_t nRcvrs;             /**< number of receivers involved */
     PspmixFenceMsg_t msgs[16];  /**< buffer for pending fence messages */
@@ -1070,7 +1070,7 @@ static bool appendMsg(PspmixFence_t *fence, uint8_t msg)
  *      (4->5,6), 12->13,14, at level 3 node 8 sends to nodes 9,10,12.
  *    - append the received data to their local data
  *
- * 5. nodes receiving data part of "downward comm"
+ * 7. nodes receiving data part of "downward comm"
  *
  *   - forward this data to all nodes they got "upward comm" data from
  *     propagating this wave of "downward comm". Level 0 just receives
@@ -1080,7 +1080,7 @@ static bool appendMsg(PspmixFence_t *fence, uint8_t msg)
  *     and 8->9,10,12 in larger examples
  *    - append the received data to their local data
  *
- * 6. nodes keep track of the accumulated data and stop operation
+ * 8. nodes keep track of the accumulated data and stop operation
  *    (i.e. call pspmix_server_fenceOut()) as soon as fence->nNodes
  *    (possibly empty) data blobs were received
  *
@@ -1088,7 +1088,7 @@ static bool appendMsg(PspmixFence_t *fence, uint8_t msg)
  * happens in the right order, i.e. possibly delaying the handling of
  * incoming "upward" messages. Furthermore "side-ward comm" must not be
  * handled before all "upward" messages expected on this node were
- * received and handled
+ * received and handled.
  * Beyond that the communication algorithm is self-synchronizing.
  *
  * Data will *not* be in the "correct" (node-)rank order. It would be
@@ -1169,6 +1169,8 @@ static void checkFence(PspmixFence_t *fence) {
 	    dropMsg(fence, m);
 	} else if (fence->msgs[m].sRank == fence->dest
 		   && fence->nRcvrs < fence->nSrcs) {
+	    /* did not yet receive all expected upward messages
+	     * postpone handing of side-ward and downward messages */
 	    mdbg(PSPMIX_LOG_FENCE, "%s(0x%016lX) waiting for rcvrs (%d/%d)\n",
 		 __func__, fence->id, fence->nRcvrs, fence->nSrcs);
 	} else {
@@ -1178,8 +1180,11 @@ static void checkFence(PspmixFence_t *fence) {
 
 	/* check for other messages to handle */
 	for (m = 0; m < fence->nMsgs; m++) {
+	    /* is this the next expected updard message ? */
 	    if (fence->nSrcs
 		&& fence->msgs[m].sRank == fence->srcs[fence->nGot]) break;
+	    /* is this a side- or downward message and we are ready now since
+	     * we just handled the last expected upward message ? */
 	    if (fence->msgs[m].sRank == fence->dest
 		&& fence->nRcvrs == fence->nSrcs) break;
 	}
