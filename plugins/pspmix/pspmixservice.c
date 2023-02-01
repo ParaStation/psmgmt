@@ -1169,8 +1169,8 @@ static void checkFence(PspmixFence_t *fence) {
 	    dropMsg(fence, m);
 	} else if (fence->msgs[m].sRank == fence->dest
 		   && fence->nRcvrs < fence->nSrcs) {
-	    /* did not yet receive all expected upward messages
-	     * postpone handing of side-ward and downward messages */
+	    /* some expected upward messages were not yet received
+	     * => postpone handling of side-ward messages */
 	    mdbg(PSPMIX_LOG_FENCE, "%s(0x%016lX) waiting for rcvrs (%d/%d)\n",
 		 __func__, fence->id, fence->nRcvrs, fence->nSrcs);
 	} else {
@@ -1180,11 +1180,11 @@ static void checkFence(PspmixFence_t *fence) {
 
 	/* check for other messages to handle */
 	for (m = 0; m < fence->nMsgs; m++) {
-	    /* is this the next expected updard message ? */
+	    /* handle the next expected upward message right now */
 	    if (fence->nSrcs
 		&& fence->msgs[m].sRank == fence->srcs[fence->nGot]) break;
-	    /* is this a side- or downward message and we are ready now since
-	     * we just handled the last expected upward message ? */
+	    /* once all upward messages are handled, we can consider
+	     * the side-ward message immediately */
 	    if (fence->msgs[m].sRank == fence->dest
 		&& fence->nRcvrs == fence->nSrcs) break;
 	}
