@@ -539,6 +539,10 @@ static pmix_status_t server_fencenb_cb(
     mdata->cbfunc = cbfunc;
     mdata->cbdata = cbdata;
 
+    /* Advice to PMIx server hosts in PMIx standard 4.1 says: "The host is
+     * responsible for free’ing the data object passed to it by the PMIx server
+     * library."
+     * So we pass ownership of data to the service module here */
     int ret = pspmix_service_fenceIn(procs, nprocs, data, ndata, mdata);
     if (ret == -1) return PMIX_ERROR;
     if (ret == 0) return PMIX_SUCCESS;

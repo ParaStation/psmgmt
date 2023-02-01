@@ -172,7 +172,7 @@ bool pspmix_server_setupFork(const char *nspace, int rank, char ***childEnv);
  *  @brief Tell server helper library about fence finished
  *
  *  @param success  true if successful, false if not
- *  @param mdata    return data
+ *  @param mdata    return data (takes full ownership)
  */
 void pspmix_server_fenceOut(bool success, modexdata_t *mdata);
 

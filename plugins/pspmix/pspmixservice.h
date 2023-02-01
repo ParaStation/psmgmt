@@ -185,7 +185,7 @@ void pspmix_service_abort(void *clientObject);
  *
  * @param procs  processes that need to participate
  * @param nProcs size of @a procs
- * @param data   data to be collected
+ * @param data   data to be collected (takes ownership)
  * @param len    size of @a data
  * @param mdata  Fence modexdata, collected data goes in here
  *
