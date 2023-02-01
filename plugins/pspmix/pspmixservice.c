@@ -1302,6 +1302,8 @@ int pspmix_service_fenceIn(const pmix_proc_t procs[], size_t nProcs,
 
     PspmixFence_t *fence = findFence(fenceID);
 
+    /* fence object should only exist if pspmix_service_handleFenceData has
+     * already been called and then has no node list set */
     if (fence && fence->nodes) {
 	ulog("UNEXPECTED: fence 0x%016lX found with nodes set\n", fenceID);
 	RELEASE_LOCK(fenceList);
@@ -1355,13 +1357,13 @@ int pspmix_service_fenceIn(const pmix_proc_t procs[], size_t nProcs,
     }
 
     if (!fence) {
-	/* no fence_in message received yet for this fence, create object */
+	/* no message from other node received yet for this fence */
 	fence = createFenceObject(fenceID, __func__);
 	list_add_tail(&fence->next, &fenceList);
     }
 
     /* fill fence object */
-    fence->nodes =  (PSnodes_ID_t *)nodes.data;
+    fence->nodes = (PSnodes_ID_t *)nodes.data;
     fence->nNodes = nodes.len;
     fence->rank = myNodeRank;
     fence->nBlobs = 1;
