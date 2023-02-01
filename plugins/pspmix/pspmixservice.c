@@ -1098,6 +1098,12 @@ static bool appendMsg(PspmixFence_t *fence, uint8_t msg)
  *
  * @param fence Fence object to handle
  */
+/* main thread:
+	if called by pspmix_service_handleFenceData()
+   library thread:
+	if called by pspmix_service_fenceIn()
+
+   !!! always called with FenceList locked !!! */
 static void checkFence(PspmixFence_t *fence) {
     mdbg(PSPMIX_LOG_CALL, "%s(0x%016lX)\n", __func__, fence->id);
 
@@ -1278,6 +1284,7 @@ static int compare_nodeIDs(const void *a, const void *b)
     return (*ca > *cb) - (*ca < *cb);
 }
 
+/* library thread */
 int pspmix_service_fenceIn(const pmix_proc_t procs[], size_t nProcs,
 			   char *data, size_t len, modexdata_t *mdata)
 {
@@ -1390,6 +1397,7 @@ int pspmix_service_fenceIn(const pmix_proc_t procs[], size_t nProcs,
     return 0;
 }
 
+/* main thread */
 void pspmix_service_handleFenceData(uint64_t fenceID, PStask_ID_t sender,
 				    uint16_t senderRank, uint16_t nBlobs,
 				    void *data, size_t len)
