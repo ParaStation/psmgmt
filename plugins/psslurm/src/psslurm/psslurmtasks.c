@@ -19,6 +19,7 @@
 #include "psidtask.h"
 
 #include "psslurmlog.h"
+#include "psslurmstep.h"
 
 PS_Tasks_t *addTask(list_t *list, PStask_ID_t childTID,
 		    PStask_ID_t forwarderTID, PStask_t *forwarder,
@@ -136,11 +137,14 @@ int killChild(pid_t pid, int signal, uid_t uid)
     return pskill(pid, signal, uid);
 }
 
-int signalTasks(uint32_t jobid, uid_t uid, list_t *taskList, int signal,
-		int32_t group)
+int signalTasks(uint32_t jobid, uint32_t stepid, uid_t uid, list_t *taskList,
+	        int signal, int32_t group)
 {
     list_t *t, *tmp;
     int count = 0;
+    Step_t s = {
+	.jobid = jobid,
+	.stepid = stepid };
 
     list_for_each_safe(t, tmp, taskList) {
 	PS_Tasks_t *task = list_entry(t, PS_Tasks_t, next);
@@ -152,10 +156,10 @@ int signalTasks(uint32_t jobid, uid_t uid, list_t *taskList, int signal,
 	    if (child->forwarder
 		&& child->forwarder->tid == task->forwarderTID
 		&& child->uid == uid) {
-		mdbg(PSSLURM_LOG_PROCESS, "%s: rank %i/%i kill(%i) signal %i "
-		     "group %i job %u \n", __func__,
-		     task->childRank, child->rank,
-		     PSC_getPID(child->tid), signal, child->group, jobid);
+		fdbg(PSSLURM_LOG_PROCESS, "rank %i/%i kill(%i) signal %i "
+		     "group %i %s\n", task->childRank, child->rank,
+		     PSC_getPID(child->tid), signal, child->group,
+		     Step_strID(&s));
 		PSID_kill(PSC_getPID(child->tid), signal, child->uid);
 		count++;
 	    }
@@ -163,8 +167,8 @@ int signalTasks(uint32_t jobid, uid_t uid, list_t *taskList, int signal,
     }
 
     if (count) {
-	mlog("%s: killed %i processes with signal %i of job %u\n", __func__,
-	     count, signal, jobid);
+	flog("killed %i processes with signal %i of %s\n",
+	     count, signal, Step_strID(&s));
     }
 
     return count;

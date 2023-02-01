@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2017-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2022 ParTec AG, Munich
+ * Copyright (C) 2021-2023 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -357,7 +357,8 @@ bool Step_destroy(Step_t *step)
     BCast_clearByJobid(step->jobid);
 
     if (step->fwdata) {
-	signalTasks(step->jobid, step->uid, &step->tasks, SIGKILL, -1);
+	signalTasks(step->jobid, step->stepid, step->uid, &step->tasks,
+		    SIGKILL, -1);
 	if (step->fwdata->cPid) {
 	    killChild(step->fwdata->cPid, SIGKILL, step->uid);
 	}
@@ -400,7 +401,8 @@ int Step_signal(Step_t *step, int signal, uid_t reqUID)
 
     bool fatalSig = signal == SIGTERM || signal == SIGKILL;
     PStask_group_t group = fatalSig ? -1 : TG_ANY;
-    int ret = signalTasks(step->jobid, step->uid, &step->tasks, signal, group);
+    int ret = signalTasks(step->jobid, step->stepid, step->uid, &step->tasks,
+			  signal, group);
 
     if (fatalSig && step->fwdata) {
 	if (step->leader) {

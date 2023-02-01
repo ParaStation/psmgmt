@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2017-2020 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021 ParTec AG, Munich
+ * Copyright (C) 2021-2023 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -55,6 +55,8 @@ PS_Tasks_t *addTask(list_t *list, PStask_ID_t childTID,
  *
  * @param jobid The jobid of the task
  *
+ * @param stepid The stepid of the task or NO_VAL
+ *
  * @param uid The userid of the task
  *
  * @param tasks The list of tasks to signal
@@ -66,8 +68,8 @@ PS_Tasks_t *addTask(list_t *list, PStask_ID_t childTID,
  * @return Returns the number of tasks which actually
  * got signaled
  */
-int signalTasks(uint32_t jobid, uid_t uid, list_t *taskList, int signal,
-		int32_t group);
+int signalTasks(uint32_t jobid, uint32_t stepid, uid_t uid, list_t *taskList,
+	        int signal, int32_t group);
 
 /**
  * @brief Clear a list of tasks

@@ -138,7 +138,7 @@ static void jobCallback(int32_t exit_status, Forwarder_Data_t *fw)
 
     /* make sure all processes are gone */
     Step_signalByJobid(job->jobid, SIGKILL, 0);
-    signalTasks(job->jobid, job->uid, &job->tasks, SIGKILL, -1);
+    signalTasks(job->jobid, NO_VAL, job->uid, &job->tasks, SIGKILL, -1);
     Job_killForwarder(job->jobid);
 
     job->state = JOB_COMPLETE;
