@@ -72,7 +72,7 @@ bool Job_delete(Job_t *job)
     fdbg(PSSLURM_LOG_JOB, "%u\n", job->jobid);
 
     /* cleanup all corresponding resources */
-    Step_destroyByJobid(job->jobid);
+    Step_deleteByJobid(job->jobid);
     BCast_clearByJobid(job->jobid);
     freeGresCred(&job->gresList);
 

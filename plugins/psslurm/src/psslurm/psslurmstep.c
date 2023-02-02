@@ -240,6 +240,15 @@ void Step_destroyByJobid(uint32_t jobid)
     }
 }
 
+void Step_deleteByJobid(uint32_t jobid)
+{
+    list_t *s, *tmp;
+    list_for_each_safe(s, tmp, &StepList) {
+	Step_t *step = list_entry(s, Step_t, next);
+	if (step->jobid == jobid) Step_delete(step);
+    }
+}
+
 void JobComp_delete(JobCompInfo_t *jobComp)
 {
     if (!jobComp) return;
