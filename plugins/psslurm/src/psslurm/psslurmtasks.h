@@ -65,11 +65,20 @@ PS_Tasks_t *addTask(list_t *list, PStask_ID_t childTID,
  *
  * @param group The group of the tasks to signal
  *
+ * @param caller Function name of the calling function
+ *
+ * @param line Line number where this function is called
+ *
  * @return Returns the number of tasks which actually
  * got signaled
  */
-int signalTasks(uint32_t jobid, uint32_t stepid, uid_t uid, list_t *taskList,
-	        int signal, int32_t group);
+int __signalTasks(uint32_t jobid, uint32_t stepid, uid_t uid, list_t *taskList,
+	          int signal, int32_t group, const char *caller,
+		  const int line);
+
+#define signalTasks(jobid, stepid, uid, taskList, signal, group) \
+    __signalTasks(jobid, stepid, uid, taskList, signal, group, __func__, \
+	          __LINE__)
 
 /**
  * @brief Clear a list of tasks
