@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2017-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2022 ParTec AG, Munich
+ * Copyright (C) 2021-2023 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -235,6 +235,9 @@ void Step_addJobCompInfo(Step_t *step, JobCompInfo_t *info);
 /**
  * @brief Delete a step and free used memory
  *
+ * Remaing step processes and associated connections will
+ * *not* be touched. Also see @ref Step_destroy().
+ *
  * @param step Step to delete
  *
  * @return Returns true on success or false otherwise
@@ -246,7 +249,11 @@ bool Step_delete(Step_t *step);
  *
  * Delete a step and free used memory. Additionally all
  * remaining processes are killed and associated connections
- * closed.
+ * closed. Also see @ref Step_delete().
+ *
+ * @param step Step to destroy
+ *
+ * @return Returns true on success otherwise false is returned
  */
 bool Step_destroy(Step_t *step);
 
@@ -255,6 +262,10 @@ bool Step_destroy(Step_t *step);
  *
  * Delete all steps but the one @a preserve points to. If @a preserve
  * is NULL, all steps will be deleted.
+ *
+ * Remaing step processes and associated connections will
+ * *not* be touched. Also see @ref Step_destroyAll().
+ *
  *
  * @param preserve Step to preserve
  */
@@ -266,15 +277,21 @@ void Step_deleteAll(Step_t *preserve);
  * Delete all steps and free used memory. Additionally all
  * remaining processes are killed and associated connections
  * closed.
+ *
+ * Also see @ref Step_deleteAll();
  */
 void Step_destroyAll(void);
 
 /**
  * @brief Destroy all steps of a specific job
  *
+ * Delete all steps identified by @a stedid and free used memory.
+ * Additionally all remaining processes are killed and associated connections
+ * closed.
+ *
  * @param jobid The jobid to identify the steps to destroy
  */
-void Step_clearByJobid(uint32_t jobid);
+void Step_destroyByJobid(uint32_t jobid);
 
 /**
  * @brief Find a step identified by a jobid

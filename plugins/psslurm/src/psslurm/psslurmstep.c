@@ -231,7 +231,7 @@ void Step_destroyAll(void)
     }
 }
 
-void Step_clearByJobid(uint32_t jobid)
+void Step_destroyByJobid(uint32_t jobid)
 {
     list_t *s, *tmp;
     list_for_each_safe(s, tmp, &StepList) {

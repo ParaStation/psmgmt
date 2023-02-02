@@ -678,7 +678,7 @@ char *set(char *key, char *value)
     } else if (!strcmp(key, "DEL_STEP")) {
 	int id = atoi(value);
 	if (Step_findByJobid(id)) {
-	    Step_clearByJobid(id);
+	    Step_destroyByJobid(id);
 	    snprintf(line, sizeof(line), "\ndeleted steps with jobid %i\n", id);
 	} else {
 	    snprintf(line, sizeof(line), "\nfailed to delete steps with jobid "
