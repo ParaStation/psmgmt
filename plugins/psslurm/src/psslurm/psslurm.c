@@ -779,6 +779,9 @@ int initialize(FILE *logfile)
 	initPluginLogger("psslurm", logfile);
     }
 
+    /* init plugin handles, *has* to be called before using INIT_ERROR */
+    if (!initPluginHandles()) return 1;
+
     /* init the configurations */
     initConfig(&SlurmConfig); // allow for early cleanup()
     int confRes = initPSSlurmConfig(PSSLURM_CONFIG_FILE);
@@ -788,15 +791,11 @@ int initialize(FILE *logfile)
 	return 1;
     }
 
-
     /* we need to have root privileges */
     if(getuid() != 0) {
 	mlog("%s: psslurm must have root privileges\n", __func__);
 	return 1;
     }
-
-    /* init plugin handles, *has* to be called before using INIT_ERROR */
-    if (!initPluginHandles()) return 1;
 
     /* set various psslurm config options */
     setConfOpt();
