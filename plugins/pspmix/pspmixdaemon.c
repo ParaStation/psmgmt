@@ -275,15 +275,7 @@ static bool forwardPspmixMsg(DDBufferMsg_t *vmsg)
 	 PSC_printTID(msg->header.sender));
     mdbg(PSPMIX_LOG_COMM, "->%s]\n", PSC_printTID(msg->header.dest));
 
-    PspmixMsgExtra_t *extra = getExtra(msg);
-    if (!extra && msg->type != PSPMIX_REGISTER_CLIENT) {
-	mlog("%s: sender (%s) does not provide extra in %s\n", __func__,
-	     PSC_printTID(msg->header.sender),
-	     pspmix_getMsgTypeString(msg->type));
-	return false;
-    }
-
-    /* local sender */
+    /* local sender (types without extra) */
     if (PSC_getID(msg->header.sender) == PSC_getMyID()) {
 	switch(msg->type) {
 	case PSPMIX_ADD_JOB:
@@ -335,8 +327,19 @@ static bool forwardPspmixMsg(DDBufferMsg_t *vmsg)
 	    }
 	    goto forward_msg;
 	}
+    }
 
-	/* for all other PMIX messages double check extra's validity */
+    /* all other PSPMIX messages should have extra information set */
+    PspmixMsgExtra_t *extra = getExtra(msg);
+    if (!extra) {
+	mlog("%s: sender (%s) does not provide extra in %s\n", __func__,
+	     PSC_printTID(msg->header.sender),
+	     pspmix_getMsgTypeString(msg->type));
+	return false;
+    }
+
+    /* local sender (types with extra) */
+    if (PSC_getID(msg->header.sender) == PSC_getMyID()) {
 	PStask_t *sender = PStasklist_find(&managedTasks, msg->header.sender);
 	if (!sender) {
 	    mlog("%s: sender task not found (sender %s type %s)\n",
