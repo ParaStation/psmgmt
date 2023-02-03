@@ -271,7 +271,7 @@ static bool reservationFilter(PspmixNode_t *node, PspmixProcess_t *proc,
 }
 
 /**
- * @brief Create process set for reservation
+ * @brief Create process set for application (reservation)
  *
  * A process set will be created containing all processes included in @a procMap
  * belonging to @a app.
@@ -284,13 +284,12 @@ static bool reservationFilter(PspmixNode_t *node, PspmixProcess_t *proc,
  * @param nspace    name of namespace
  * @param app       application
  */
-static void createReservationPSet(const char *name, list_t *procMap,
-				  const char *nspace, PspmixApp_t *app)
+static void createAppPSet(const char *name, list_t *procMap, const char *nspace,
+			  PspmixApp_t *app)
 {
     if (!pspmix_server_createPSetByProcess(name, procMap, nspace,
 				   reservationFilter, app)) {
-	ulog("failed to create reservation process sets for id %d\n",
-	     app->resID);
+	ulog("failed to create application process set '%s'\n", name);
 	return;
     }
 }
@@ -383,6 +382,11 @@ bool pspmix_service_registerNamespace(PspmixJob_t *job)
 	    goto nscreate_error;
 	}
 	ns->apps[a].args = ustrdup(env);
+
+	/* set optional name defined by the user */
+	snprintf(var, sizeof(var), "PMIX_APPNAME_%zu", a);
+	env = envGet(&job->env, var);
+	strncpy(ns->apps[a].name, env ? env : "", MAX_APPNAMELEN);
 
 	/* get used reservation from environment set by the spawner */
 	snprintf(var, sizeof(var), "__PMIX_RESID_%zu", a);
@@ -502,10 +506,16 @@ bool pspmix_service_registerNamespace(PspmixJob_t *job)
 
     /* create a process set for each reservation (= app) */
     for (size_t a = 0; a < ns->appsCount; a++) {
-	char name[32];
-	snprintf(name, 32, "pspmix:reservation/%d", ns->apps[a].resID);
+	char name[MAX_APPNAMELEN+13];
+	snprintf(name, MAX_APPNAMELEN+13, "pspmix:reservation/%d",
+		 ns->apps[a].resID);
+	createAppPSet(name, &ns->procMap, ns->name, &ns->apps[a]);
 
-	createReservationPSet(name, &ns->procMap, ns->name, &ns->apps[a]);
+	if (ns->apps[a].name[0] != '\0') {
+	    snprintf(name, MAX_APPNAMELEN+13, "pspmix:user/%s",
+		     ns->apps[a].name);
+	    createAppPSet(name, &ns->procMap, ns->name, &ns->apps[a]);
+	}
     }
 
     /* setup local node */

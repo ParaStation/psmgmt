@@ -105,6 +105,8 @@ typedef struct {
 				  (only used for PSPMIX_CLIENT_* types) */
 } PspmixMsgExtra_t;
 
+#define MAX_APPNAMELEN 20
+
 /**
  * Application information
  *
@@ -119,6 +121,8 @@ typedef struct {
     pmix_rank_t firstRank; /**< rank of the first process of this app */
     char *wdir;            /**< working dir of the processes of this app */
     char *args;            /**< concatenated argv of the app, space delimited */
+    char name[MAX_APPNAMELEN+1];
+			   /**< user defined name of the app (for pset) */
 } PspmixApp_t;
 
 /**
