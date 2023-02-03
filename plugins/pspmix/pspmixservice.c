@@ -227,20 +227,36 @@ static void freeProcMap(list_t *map)
     }
 }
 
-static bool hwTypeFilter(PspmixNode_t *node, void *data)
+static bool nodeAttrFilter(PspmixNode_t *node, void *data)
 {
     int i = *((int *)data);
-    int hwTypes = PSIDnodes_getHWType(node->id);
-    return hwTypes & (1 << i) ? true : false;
+    /* renaming of hwtype to nodeattr pending */
+    int nodeattr = PSIDnodes_getHWType(node->id);
+    return nodeattr & (1 << i) ? true : false;
 }
 
 
-static void createHWTypePSets(list_t *procMap, const char *nspace)
+/**
+ * @brief Create process set for node attributes
+ *
+ * One process set will be created for each node attribute that is assigned
+ * to one of the nodes contained in  @a procMap.
+ *
+ * Current limitation: All processes in @a procMap need to be in the same
+ * namespace @a nspace. @todo Adjust latest with respawn implementation.
+ *
+ * @param procMap   node to process map
+ * @param nspace
+ */
+static void createNodeAttrPSets(list_t *procMap, const char *nspace)
 {
+    /* renaming of hwtype to nodeattr pending */
     int num = HW_num();
+    char name[64];
     for (int i = 0; i < num; i++) {
-	if (!pspmix_server_createPSetByNode(HW_name(i), procMap, nspace,
-				       hwTypeFilter, &i)) {
+	snprintf(name, 64, "pspmix:nodeattr/%s", HW_name(i));
+	if (!pspmix_server_createPSetByNode(name, procMap, nspace,
+				       nodeAttrFilter, &i)) {
 	    ulog("failed to create hardware type process sets\n");
 	    return;
 	}
@@ -254,6 +270,20 @@ static bool reservationFilter(PspmixNode_t *node, PspmixProcess_t *proc,
     return (proc->app->resID == app->resID);
 }
 
+/**
+ * @brief Create process set for reservation
+ *
+ * A process set will be created containing all processes included in @a procMap
+ * belonging to @a app.
+ *
+ * Current limitation: All processes in @a procMap need to be in the same
+ * namespace @a nspace. @todo Adjust latest with respawn implementation.
+ *
+ * @param name      name for the pset
+ * @param procMap   node to process map
+ * @param nspace    name of namespace
+ * @param app       application
+ */
 static void createReservationPSet(const char *name, list_t *procMap,
 				  const char *nspace, PspmixApp_t *app)
 {
@@ -468,12 +498,12 @@ bool pspmix_service_registerNamespace(PspmixJob_t *job)
     ufree(nsdir);
 
     /* create a process set for each hardware type */
-    createHWTypePSets(&ns->procMap, ns->name);
+    createNodeAttrPSets(&ns->procMap, ns->name);
 
     /* create a process set for each reservation (= app) */
     for (size_t a = 0; a < ns->appsCount; a++) {
 	char name[32];
-	snprintf(name, 32, "reservation_%d", ns->apps[a].resID);
+	snprintf(name, 32, "pspmix:reservation/%d", ns->apps[a].resID);
 
 	createReservationPSet(name, &ns->procMap, ns->name, &ns->apps[a]);
     }
