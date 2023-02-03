@@ -888,9 +888,22 @@ void pspmix_service_abort(void *clientObject)
  * create the hash is:
  *
  * - If the process' namespace is different from its predecessor,
- *   include the namecespace's name
+ *   include the namespace's name
  *
  * - Include each process' rank
+ *
+ * @warning The use of a hash created over @a procs to identify a
+ * fence assumes that all participants in this fence use identical
+ * entries in @a procs. I.e. no permutation of entries or additional
+ * (redundant) entries are allowed. This assumption is used by the
+ * OpenPMIx' server implementation, too. Thus, at least all local
+ * participants in the fence must follow this rules as long as pspmix
+ * is linked against OpenPMIx' server implementation. Otherwise
+ * OpenPMIx will not identify the different (local) calls of
+ * PMIx_Fence_[nb]() to belong to the same fence and therefore not
+ * call the host server at all. The use of the hash provided by this
+ * function to globally identify a hash will enforce this local
+ * requirement of OpenPMIx globally.
  *
  * @return hash over the procs array as describe above
  */
@@ -1276,14 +1289,6 @@ static bool extractNodes(const pmix_proc_t procs[], size_t nprocs,
     return true;
 }
 
-static int compare_nodeIDs(const void *a, const void *b)
-{
-    const PSnodes_ID_t *ca = (const PSnodes_ID_t *) a;
-    const PSnodes_ID_t *cb = (const PSnodes_ID_t *) b;
-
-    return (*ca > *cb) - (*ca < *cb);
-}
-
 /* library thread */
 int pspmix_service_fenceIn(const pmix_proc_t procs[], size_t nProcs,
 			   char *data, size_t len, modexdata_t *mdata)
@@ -1296,6 +1301,7 @@ int pspmix_service_fenceIn(const pmix_proc_t procs[], size_t nProcs,
     mdbg(PSPMIX_LOG_CALL, "%s(nProcs %lu nspace %s len %lu)\n", __func__,
 	 nProcs, procs[0].nspace, len);
 
+    /** @warning see remark at @ref getFenceID() */
     uint64_t fenceID = getFenceID(procs, nProcs);
 
     GET_LOCK(fenceList);
@@ -1342,10 +1348,6 @@ int pspmix_service_fenceIn(const pmix_proc_t procs[], size_t nProcs,
 	RELEASE_LOCK(fenceList);
 	return 1;
     }
-
-    /* sort list of participating nodes */
-    // @todo is this actually required / useful ?
-    vectorSort(&nodes, compare_nodeIDs);
 
     if (mset(PSPMIX_LOG_FENCE)) {
 	ulog("this fence has id 0x%016lX and nodelist: %hd", fenceID,
