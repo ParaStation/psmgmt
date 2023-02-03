@@ -124,6 +124,9 @@ bool pspmix_server_createPSetByProcess(const char *name, list_t *procMap,
  * only once per node, not once per process as
  * @see pspmix_server_createPSetByProcess() needs to.
  *
+ * If the filter does not return true for any node, no empty pset will be
+ * created but true will be returned never the less.
+ *
  * @param name     name of the process set to create
  * @param procMap  process map (as stored in @see PspmixNamespace_t)
  * @param nspace   name of the namespace

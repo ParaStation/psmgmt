@@ -2953,7 +2953,7 @@ bool pspmix_server_createPSetByNode(const char *name, list_t *procMap,
     if (!len) {
 	ufree(members);
 	udbg(PSPMIX_LOG_PSET, "process set '%s' would be empty\n", name);
-	return false;
+	return true;
     }
 
     pmix_status_t status = PMIx_server_define_process_set(members, len, name);
