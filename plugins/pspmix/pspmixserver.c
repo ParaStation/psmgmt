@@ -2924,6 +2924,7 @@ bool pspmix_server_createPSetByProcess(const char *name, list_t *procMap,
 	     PMIx_Error_string(status));
 	return false;
     }
+    udbg(PSPMIX_LOG_PSET, "created process set '%s'\n", name);
     return true;
 }
 
@@ -2951,6 +2952,7 @@ bool pspmix_server_createPSetByNode(const char *name, list_t *procMap,
     /* do not create empty psets */
     if (!len) {
 	ufree(members);
+	udbg(PSPMIX_LOG_PSET, "process set '%s' would be empty\n", name);
 	return false;
     }
 
@@ -2966,6 +2968,7 @@ bool pspmix_server_createPSetByNode(const char *name, list_t *procMap,
 	     PMIx_Error_string(status));
 	return false;
     }
+    udbg(PSPMIX_LOG_PSET, "created process set '%s'\n", name);
     return true;
 }
 
