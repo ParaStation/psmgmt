@@ -49,8 +49,6 @@ static LIST_HEAD(AllocList);
 Alloc_t *Alloc_add(uint32_t id, uint32_t packID, char *slurmHosts, env_t *env,
 		   uid_t uid, gid_t gid, char *username)
 {
-    Alloc_verify(false);
-
     Alloc_t *alloc = Alloc_find(id);
 
     if (alloc) return alloc;
