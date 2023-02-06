@@ -779,7 +779,13 @@ int initialize(FILE *logfile)
 	initPluginLogger("psslurm", logfile);
     }
 
-    /* init plugin handles, *has* to be called before using INIT_ERROR */
+    /* we need to have root privileges */
+    if(getuid() != 0) {
+	mlog("%s: psslurm must have root privileges\n", __func__);
+	return 1;
+    }
+
+    /* Must be called before using INIT_ERROR or handling the configuration */
     if (!initPluginHandles()) return 1;
 
     /* init the configurations */
@@ -788,12 +794,6 @@ int initialize(FILE *logfile)
     haveBasicConfig = true;
     if (confRes == CONFIG_ERROR) {
 	mlog("%s: init of the configuration failed\n", __func__);
-	return 1;
-    }
-
-    /* we need to have root privileges */
-    if(getuid() != 0) {
-	mlog("%s: psslurm must have root privileges\n", __func__);
 	return 1;
     }
 
