@@ -45,7 +45,6 @@ elif [ -n "$PSPAM_USER" ]; then
 	rmLock
 else
 	dlog "constrain cores enabled"
-	getLock
 
 	[ -n "$USER" ] || {
 		elog "no user env variable for job $JOBID"
@@ -55,6 +54,7 @@ else
 		elog "no CPU cores for job $JOBID"
 	}
 
+	getLock
 	CG_USER="$BASE/$PREFIX-$USER"
 	mdsave "$CG_USER"
 	if [ -z $(cat $CG_USER/cpuset.cpus) ]; then

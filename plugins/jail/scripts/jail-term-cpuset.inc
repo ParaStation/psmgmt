@@ -21,7 +21,6 @@ if [ "$CONSTRAIN_CORES" == "no" ]; then
     dlog "constrain cores *disabled*"
 else
     dlog "constrain cores enabled"
-    getLock
 
     CG_USER="$BASE/$PREFIX-$USER"
     CG_JOB="$CG_USER/job-$JOBID"
@@ -33,6 +32,7 @@ else
 		    elog "no user env variable for job $JOBID"
     }
 
+    getLock
     if [ -n "$STEPID" ]; then
 	    dlog "killing step $JOBID:$STEPID with signal $KILL_SIGNAL"
 
