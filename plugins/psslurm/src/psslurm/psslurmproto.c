@@ -2435,6 +2435,12 @@ static void handleKillReq(Slurm_Msg_t *sMsg, Alloc_t *alloc, Kill_Info_t *info)
 
     /* if we only kill one selected step, we are done */
     if (info->stepid != NO_VAL) {
+	Step_t s = {
+	    .jobid = info->jobid,
+	    .stepid = info->stepid };
+
+	fdbg(PSSLURM_LOG_JOB, "kill request for single step %s\n",
+	     Step_strID(&s));
 	sendSlurmRC(sMsg, SLURM_SUCCESS);
 	return;
     }
@@ -2463,7 +2469,8 @@ static void handleKillReq(Slurm_Msg_t *sMsg, Alloc_t *alloc, Kill_Info_t *info)
     if (alloc->state == A_RUNNING || alloc->state == A_PROLOGUE_FINISH) {
 	int pcount = Alloc_signal(alloc->id, SIGTERM, sMsg->head.uid);
 	if (pcount > 0) {
-	    flog("waiting for %i processes to complete\n", pcount);
+	    flog("waiting for %i processes to complete for allocation %u\n",
+		 pcount, alloc->id);
 	    sendSlurmRC(sMsg, SLURM_SUCCESS);
 	    return;
 	} else {
