@@ -53,9 +53,17 @@ else
 			    dlog "no more jobs, kill user cgroup $CG_USER"
 			    killTasks "$CG_USER"
 		    else
-			    dlog "leftover job: $i"
-			    JOB_CPUS=$(cat "$i/cpuset.cpus")
-			    REMAINING_CPUS="$REMAINING_CPUS,$JOB_CPUS"
+			    LEFTOVER_JOB_TASKS=$(cat "$i/tasks" 2>/dev/null)
+			    LEFTOVER_STEP_TASKS=$(cat "$i"/step-*/tasks 2>/dev/null)
+			    if [ -z "$LEFTOVER_JOB_TASKS" ] && [ -z "$LEFTOVER_STEP_TASKS" ]; then
+				dlog "removing leftover job $i"
+				rmdir "$i"/step-* 2>/dev/null
+				rmdir "$i"
+			    else
+				dlog "adding running job: $i"
+				JOB_CPUS=$(cat "$i/cpuset.cpus")
+				REMAINING_CPUS="$REMAINING_CPUS,$JOB_CPUS"
+			    fi
 		    fi
 	    done
 
