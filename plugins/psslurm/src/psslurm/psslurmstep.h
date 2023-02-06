@@ -283,17 +283,6 @@ void Step_deleteAll(Step_t *preserve);
 void Step_destroyAll(void);
 
 /**
- * @brief Destroy all steps of a specific job
- *
- * Delete all steps identified by @a stedid and free used memory.
- * Additionally all remaining processes are killed and associated connections
- * closed.
- *
- * @param jobid The jobid to identify the steps to destroy
- */
-void Step_destroyByJobid(uint32_t jobid);
-
-/**
  * @brief Delete all steps of a specific job
  *
  * Delete all steps identified by @a stedid and free used memory.
@@ -303,6 +292,17 @@ void Step_destroyByJobid(uint32_t jobid);
  * @param jobid The jobid to identify the steps to destroy
  */
 void Step_deleteByJobid(uint32_t jobid);
+
+/**
+ * @brief Destroy all steps of a specific job
+ *
+ * Delete all steps identified by @a stedid and free used memory.
+ * Additionally all remaining processes are killed and associated connections
+ * closed.
+ *
+ * @param jobid The jobid to identify the steps to destroy
+ */
+void Step_destroyByJobid(uint32_t jobid);
 
 /**
  * @brief Find a step identified by a jobid
