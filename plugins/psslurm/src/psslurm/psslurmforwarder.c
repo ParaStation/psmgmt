@@ -235,8 +235,8 @@ static void stepFollowerCB(int32_t exit_status, Forwarder_Data_t *fw)
 
     /* test if we were waiting only for this step to finish */
     Alloc_t *alloc = Alloc_find(step->jobid);
-    if (!Job_findById(step->jobid) && alloc && alloc->state == A_RUNNING
-	&& alloc->terminate) {
+    if (!Job_findById(step->jobid) && alloc && alloc->terminate &&
+	(alloc->state == A_RUNNING || alloc->state == A_PROLOGUE_FINISH)) {
 	/* run epilogue now */
 	flog("starting epilogue for %s\n", Step_strID(step));
 	startPElogue(alloc, PELOGUE_EPILOGUE);
@@ -308,8 +308,8 @@ static void stepCallback(int32_t exit_status, Forwarder_Data_t *fw)
     psAccountDelJob(PSC_getTID(-1, fw->cPid));
 
     /* test if we were waiting only for this step to finish */
-    if (!Job_findById(step->jobid) && alloc && alloc->state == A_RUNNING
-	&& alloc->terminate) {
+    if (!Job_findById(step->jobid) && alloc && alloc->terminate &&
+	(alloc->state == A_RUNNING || alloc->state == A_PROLOGUE_FINISH)) {
 	/* run epilogue now */
 	flog("starting epilogue for %s\n", Step_strID(step));
 	startPElogue(alloc, PELOGUE_EPILOGUE);
