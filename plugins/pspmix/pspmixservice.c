@@ -207,7 +207,7 @@ static void printProcMap(list_t *map)
 	PspmixNode_t *node = list_entry(n, PspmixNode_t, next);
 	ulog("node %u [%s", node->id,
 	     printProcess(vectorGet(&node->procs, 0, PspmixProcess_t)));
-	for(size_t rank = 1; rank < node->procs.len; rank++) {
+	for (size_t rank = 1; rank < node->procs.len; rank++) {
 	    mlog(",%s", printProcess(vectorGet(&node->procs, rank,
 					       PspmixProcess_t)));
 	}
@@ -240,7 +240,7 @@ static bool nodeAttrFilter(PspmixNode_t *node, void *data)
  * @brief Create process set for node attributes
  *
  * One process set will be created for each node attribute that is assigned
- * to one of the nodes contained in  @a procMap.
+ * to one of the nodes contained in @a procMap.
  *
  * Current limitation: All processes in @a procMap need to be in the same
  * namespace @a nspace. @todo Adjust latest with respawn implementation.
@@ -348,7 +348,7 @@ bool pspmix_service_registerNamespace(PspmixJob_t *job)
     ns->apps = umalloc(ns->appsCount * sizeof(*ns->apps));
 
     uint32_t procCount = 0;
-    for(size_t a = 0; a < ns->appsCount; a++) {
+    for (size_t a = 0; a < ns->appsCount; a++) {
 
 	ns->apps[a].num = a;
 
@@ -417,7 +417,7 @@ bool pspmix_service_registerNamespace(PspmixJob_t *job)
     }
 
     /* add process information and mapping to namespace */
-    for(size_t a = 0; a < ns->appsCount; a++) {
+    for (size_t a = 0; a < ns->appsCount; a++) {
 
 	PSresinfo_t *resInfo = findReservationInList(ns->apps[a].resID,
 						     &job->resInfos);
@@ -591,7 +591,7 @@ void pspmix_service_cleanupNamespace(void *nspace, bool error,
 	ufree(client);
     }
 
-    for(size_t i = 0; i < ns->appsCount; i++) {
+    for (size_t i = 0; i < ns->appsCount; i++) {
 	ufree(ns->apps[i].wdir);
 	ufree(ns->apps[i].args);
     }
@@ -1002,7 +1002,7 @@ static uint64_t getFenceID(const pmix_proc_t procs[], size_t nprocs)
 {
     uint64_t fenceid = UINT64_C(42023);
     const pmix_nspace_t *ns = NULL;
-    for(size_t p = 0; p < nprocs; p++) {
+    for (size_t p = 0; p < nprocs; p++) {
 	if (!ns || PMIX_CHECK_NSPACE(*ns, procs[p].nspace)) {
 	    ns = &(procs[p].nspace);
 	    for (int i = 0; i < PMIX_MAX_NSLEN && (*ns)[i]; i++) {

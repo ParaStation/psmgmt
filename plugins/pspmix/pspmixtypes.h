@@ -179,9 +179,9 @@ typedef struct {
     size_t appsCount;           /**< number of applications, length of apps */
     list_t procMap;             /**< nodes to process map
 				     (list of PspmixNodes_t objects each
-				      containing a vector of processes */
+				     containing a vector of processes */
     list_t clientList;          /**< list of clients on this node in this ns
-                                    (list of PspmixClient_t objects) */
+				     (list of PspmixClient_t objects) */
     uint32_t localClients;      /**< number of local clients */
     uint32_t clientsConnected;  /**< number of local clients connected */
 } PspmixNamespace_t;
