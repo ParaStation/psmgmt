@@ -2133,7 +2133,7 @@ static bool handleSpawnFailed(DDErrorMsg_t *msg)
 typedef struct {
     uint32_t jobid;
     uint32_t stepid;
-    bool cleanup;
+    bool cleanup;        /**< flag to act as a cleanup filter */
 } JobStepInfo_t;
 
 static bool filter(PStask_t *task, void *info)
@@ -2143,10 +2143,11 @@ static bool filter(PStask_t *task, void *info)
     /* get jobid and stepid from received environment */
     bool isAdmin = isPSAdminUser(task->uid, task->gid);
     JobStepInfo_t *js = info;
+    if (!js) return false;   // this filter requires info
     Step_t *step = findStepByEnv(task->environ, &jobid, &stepid, !isAdmin &&
 				 !js->cleanup);
 
-    if (!step && js && !js->cleanup) {
+    if (!step && !js->cleanup) {
 	if (!jobid) {
 	    mlog("%s: no slurm ids found in spawnee environment from %s\n",
 		 __func__, PSC_printTID(task->tid));
@@ -2157,7 +2158,7 @@ static bool filter(PStask_t *task, void *info)
 	return false;
     }
 
-    if (js && js->cleanup && !Alloc_find(jobid) && !Alloc_findByPackID(jobid)) {
+    if (js->cleanup && !Alloc_find(jobid) && !Alloc_findByPackID(jobid)) {
 	/* cleanup leftover tasks */
 	flog("cleanup leftover task %s for job %u with no allocation\n",
 	     PSC_printTID(task->tid), jobid);
@@ -2165,7 +2166,7 @@ static bool filter(PStask_t *task, void *info)
     }
 
     /* clean all steps if stepid is SLURM_BATCH_SCRIPT */
-    if (!js || js->jobid != jobid ||
+    if (js->jobid != jobid ||
 	(js->stepid != stepid && js->stepid != SLURM_BATCH_SCRIPT)) {
 	return false;
     }
@@ -2178,7 +2179,7 @@ void releaseDelayedSpawns(uint32_t jobid, uint32_t stepid) {
     JobStepInfo_t jsInfo = {
 	.jobid = jobid,
 	.stepid = stepid,
-        .cleanup = false };
+	.cleanup = false };
 
     /* double check if the step is ready now */
     if (!Step_findByStepId(jobid, stepid)) {
@@ -2196,7 +2197,7 @@ void cleanupDelayedSpawns(uint32_t jobid, uint32_t stepid) {
     JobStepInfo_t jsInfo = {
 	.jobid = jobid,
 	.stepid = stepid,
-        .cleanup = true };
+	.cleanup = true };
 
     PSIDspawn_cleanupDelayedTasks(filter, &jsInfo);
 }
