@@ -86,7 +86,7 @@ function killJob {
 	    return
 	}
 
-	dlog "killJob: dir $DIR"
+	dlog "kill steps in dir $DIR"
 
 	local BASE="$DIR"
 	for i in "$BASE"/step-*/; do
@@ -95,8 +95,8 @@ function killJob {
 		killTasks "$i"
 	done
 
-	dlog "killJob: rmdir $DIR"
-	rmdir "$DIR"
+	dlog "killJob: kill tasks of $DIR"
+	killTasks "$DIR"
 }
 
 function initJailEnv {
