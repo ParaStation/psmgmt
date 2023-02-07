@@ -2891,6 +2891,7 @@ bool pspmix_server_createPSetByProcess(const char *name, list_t *procMap,
 						   PspmixProcess_t *, void *),
 				       void *data)
 {
+#if PMIX_VERSION_MAJOR >= 4
     vector_t members;
     vectorInit(&members, 32, 32, pmix_proc_t);
 
@@ -2926,6 +2927,7 @@ bool pspmix_server_createPSetByProcess(const char *name, list_t *procMap,
 	return false;
     }
     udbg(PSPMIX_LOG_PSET, "created process set '%s'\n", name);
+#endif
     return true;
 }
 
@@ -2934,6 +2936,7 @@ bool pspmix_server_createPSetByNode(const char *name, list_t *procMap,
 				    bool filter(PspmixNode_t *, void *),
 				    void *data)
 {
+#if PMIX_VERSION_MAJOR >= 4
     pmix_proc_t *members = NULL;
     size_t len = 0;
 
@@ -2970,6 +2973,7 @@ bool pspmix_server_createPSetByNode(const char *name, list_t *procMap,
 	return false;
     }
     udbg(PSPMIX_LOG_PSET, "created process set '%s'\n", name);
+#endif
     return true;
 }
 
