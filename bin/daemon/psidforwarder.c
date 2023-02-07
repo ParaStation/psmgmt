@@ -784,8 +784,9 @@ static bool msgCC(DDBufferMsg_t *msg)
 static bool msgCC_ERROR(DDBufferMsg_t *msg)
 {
     if (msg->header.sender == loggerTID) {
-	PSID_log(-1, "%s: logger %s disappeared\n", __func__,
-		 PSC_printTID(loggerTID));
+	PSLog_Msg_t *logMsg = (PSLog_Msg_t *)msg;
+	PSID_log(-1, "%s: logger %s disappeared on '%s'\n", __func__,
+		 PSC_printTID(loggerTID), PSLog_printMsgType(logMsg->type));
 	loggerTID = -1;
 	return true;
     }

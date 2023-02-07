@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
  * Copyright (C) 2005-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2022 ParTec AG, Munich
+ * Copyright (C) 2021-2023 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -27,6 +27,7 @@
 #include "pscio.h"
 #include "pscommon.h"
 #include "psdaemonprotocol.h"
+#include "pslog.h"
 
 #include "rdp.h"
 
@@ -1059,7 +1060,7 @@ static bool msg_CC_MSG(DDBufferMsg_t *msg)
  * Drop the message @a msg of type PSP_CC_MSG.
  *
  * Since the sender might wait for an answer within a higher-level
- * protocol a corresponding answer is created on this lower level to
+ * protocol, a corresponding answer is created on this lower level to
  * send a hint that the original messages is dropped.
  *
  * @param msg Pointer to the message to drop
@@ -1068,11 +1069,14 @@ static bool msg_CC_MSG(DDBufferMsg_t *msg)
  */
 static bool drop_CC_MSG(DDBufferMsg_t *msg)
 {
-    DDMsg_t errmsg = {
-	.type = PSP_CC_ERROR,
-	.dest = msg->header.sender,
-	.sender = msg->header.dest,
-	.len = sizeof(errmsg) };
+    DDBufferMsg_t errmsg = {
+	.header = {
+	    .type = PSP_CC_ERROR,
+	    .dest = msg->header.sender,
+	    .sender = msg->header.dest,
+	    .len = 0 }, };
+    /* include the PSLog header (plus some bytes) */
+    PSP_putMsgBuf(&errmsg, "pslogHeader", msg->buf, PSLog_headerSize);
 
     sendMsg(&errmsg);
     return true;
