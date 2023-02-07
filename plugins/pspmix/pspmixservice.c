@@ -501,6 +501,13 @@ bool pspmix_service_registerNamespace(PspmixJob_t *job)
     }
     ufree(nsdir);
 
+    /* setup local node */
+    if (!pspmix_server_setupLocalSupport(ns->name)) {
+	ulog("failed to setup local support\n");
+	pspmix_server_deregisterNamespace(ns->name, ns);
+	goto nscreate_error;
+    }
+
     /* create a process set for each hardware type */
     createNodeAttrPSets(&ns->procMap, ns->name);
 
@@ -516,13 +523,6 @@ bool pspmix_service_registerNamespace(PspmixJob_t *job)
 		     ns->apps[a].name);
 	    createAppPSet(name, &ns->procMap, ns->name, &ns->apps[a]);
 	}
-    }
-
-    /* setup local node */
-    if (!pspmix_server_setupLocalSupport(ns->name)) {
-	ulog("failed to setup local support\n");
-	pspmix_server_deregisterNamespace(ns->name, ns);
-	goto nscreate_error;
     }
 
     /* initialize list of clients */
