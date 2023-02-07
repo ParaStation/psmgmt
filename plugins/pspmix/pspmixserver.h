@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2018-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2022 ParTec AG, Munich
+ * Copyright (C) 2021-2023 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -95,53 +95,28 @@ bool pspmix_server_registerNamespace(
 	PSnodes_ID_t nodeID);
 
 /**
- * Create a process set by process attributes
+ * Create a process set
  *
- * Create a process set with @a name containing all processes in @a procMap
- * for which @a filter is true.
+ * Create a process set named by @a name containing all processes from
+ * the namespace @a ns for which @a filter returns true. For this, @a
+ * filter() is called for each process in @a ns.
  *
- * If the filter does not return true for any process, no empty pset will be
- * created but true will be returned nevertheless.
+ * If the filter does not return true for any process, i.e. the
+ * process set would be empty, no such set will be created.
+ * Nevertheless, true will be returned in this case.
  *
  * @param name     name of the process set to create
- * @param procMap  process map (as stored in @see PspmixNamespace_t)
- * @param nspace   name of the namespace
+ * @param ns       namespace containing the processes being candidates to be
+ *                 added tothe process set
  * @param filter   process filter function
  * @param data     arbitrary data blob, passed to @a filter
  *
  * @return True on success, false on Error
  */
-bool pspmix_server_createPSetByProcess(const char *name, list_t *procMap,
-				       const char *nspace,
-				       bool filter(PspmixNode_t *,
-						   PspmixProcess_t *, void *),
-				       void *data);
-
-/**
- * Create a process set by node attributes
- *
- * Create a process set with @a name containing all processes in @a procMap
- * running on a node for which @a filter is true.
- *
- * This is optimized for node level attributes since it needs to call @a filter
- * only once per node, not once per process as
- * @see pspmix_server_createPSetByProcess() needs to.
- *
- * If the filter does not return true for any node, no empty pset will be
- * created but true will be returned nevertheless.
- *
- * @param name     name of the process set to create
- * @param procMap  process map (as stored in @see PspmixNamespace_t)
- * @param nspace   name of the namespace
- * @param filter   node filter function
- * @param data     arbitrary data blob, passed to @a filter
- *
- * @return True on success, false on Error
- */
-bool pspmix_server_createPSetByNode(const char *name, list_t *procMap,
-				    const char *nspace,
-				    bool filter(PspmixNode_t *, void *),
-				    void *data);
+bool pspmix_server_createPSet(const char *name, PspmixNamespace_t *ns,
+			      bool filter(PspmixNode_t *, PspmixProcess_t *,
+					  void *),
+			      void *data);
 
 /**
  * @brief Deregister namespace from the server library

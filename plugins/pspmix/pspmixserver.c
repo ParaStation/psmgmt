@@ -2885,24 +2885,23 @@ reg_nspace_error:
     return false;
 }
 
-bool pspmix_server_createPSetByProcess(const char *name, list_t *procMap,
-				       const char *nspace,
-				       bool filter(PspmixNode_t *,
-						   PspmixProcess_t *, void *),
-				       void *data)
+bool pspmix_server_createPSet(const char *name, PspmixNamespace_t *ns,
+			      bool filter(PspmixNode_t *, PspmixProcess_t *,
+					  void *),
+			      void *data)
 {
 #if PMIX_VERSION_MAJOR >= 4
     vector_t members;
-    vectorInit(&members, 32, 32, pmix_proc_t);
+    vectorInit(&members, 128, 128, pmix_proc_t);
 
     list_t *n;
-    list_for_each(n, procMap) {
+    list_for_each(n, &ns->procMap) {
 	PspmixNode_t *node = list_entry(n, PspmixNode_t, next);
 	for (uint16_t r = 0; r < node->procs.len; r++) {
 	    PspmixProcess_t *proc = vectorGet(&node->procs, r, PspmixProcess_t);
 	    if (filter(node, proc, data)) {
 		pmix_proc_t pmixproc;
-		PMIX_PROC_LOAD(&pmixproc, nspace, proc->rank);
+		PMIX_PROC_LOAD(&pmixproc, ns->name, proc->rank);
 		vectorAdd(&members, &pmixproc);
 	    }
 	}
@@ -2920,59 +2919,13 @@ bool pspmix_server_createPSetByProcess(const char *name, list_t *procMap,
     vectorDestroy(&members);
 
     /* Standard says PMIX_SUCCESS should be returned, but OpenPMIx 4.2.2
-     * returns PMIX_OPERATION_SUCCEEDED instead */
+     * might return PMIX_OPERATION_SUCCEEDED instead */
     if (status != PMIX_SUCCESS && status != PMIX_OPERATION_SUCCEEDED) {
 	ulog("failed to create process set '%s': %s\n", name,
 	     PMIx_Error_string(status));
 	return false;
     }
-    udbg(PSPMIX_LOG_PSET, "created process set '%s'\n", name);
-#endif
-    return true;
-}
-
-bool pspmix_server_createPSetByNode(const char *name, list_t *procMap,
-				    const char *nspace,
-				    bool filter(PspmixNode_t *, void *),
-				    void *data)
-{
-#if PMIX_VERSION_MAJOR >= 4
-    pmix_proc_t *members = NULL;
-    size_t len = 0;
-
-    list_t *n;
-    list_for_each(n, procMap) {
-	PspmixNode_t *node = list_entry(n, PspmixNode_t, next);
-	if (!filter(node, data)) continue;
-	size_t base = len;
-	len += node->procs.len;
-	members = urealloc(members, len);
-	for (uint16_t r = 0; r < node->procs.len; r++) {
-	    PspmixProcess_t *proc = vectorGet(&node->procs, r, PspmixProcess_t);
-	    PMIX_PROC_LOAD(members+base+r, nspace, proc->rank);
-	}
-    }
-
-    /* do not create empty psets */
-    if (!len) {
-	ufree(members);
-	udbg(PSPMIX_LOG_PSET, "process set '%s' would be empty\n", name);
-	return true;
-    }
-
-    pmix_status_t status = PMIx_server_define_process_set(members, len, name);
-    ufree(members);
-    members = NULL;
-    len = 0;
-
-    /* Standard says PMIX_SUCCESS should be returned, but OpenPMIx 4.2.2
-     * returns PMIX_OPERATION_SUCCEEDED instead */
-    if (status != PMIX_SUCCESS && status != PMIX_OPERATION_SUCCEEDED) {
-	ulog("failed to create process set '%s': %s\n", name,
-	     PMIx_Error_string(status));
-	return false;
-    }
-    udbg(PSPMIX_LOG_PSET, "created process set '%s'\n", name);
+    udbg(PSPMIX_LOG_PSET, "process set '%s' created\n", name);
 #endif
     return true;
 }

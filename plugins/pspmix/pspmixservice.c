@@ -227,36 +227,34 @@ static void freeProcMap(list_t *map)
     }
 }
 
-static bool nodeAttrFilter(PspmixNode_t *node, void *data)
+static bool nodeAttrFilter(PspmixNode_t *node, PspmixProcess_t *proc, void *data)
 {
-    int i = *((int *)data);
+    int nodeAttrIdx = *((int *)data);
     /* renaming of hwtype to nodeattr pending */
-    int nodeattr = PSIDnodes_getHWType(node->id);
-    return nodeattr & (1 << i) ? true : false;
+    int nodeAttr = PSIDnodes_getHWType(node->id);
+    return nodeAttr & (1 << nodeAttrIdx);
 }
 
-
 /**
- * @brief Create process set for node attributes
+ * @brief Create process sets for node attributes
  *
- * One process set will be created for each node attribute that is assigned
- * to one of the nodes contained in @a procMap.
+ * Create multiple process sets, one for each node attribute that is
+ * assigned to one of the processes hosted by the namespace @a ns
  *
- * Current limitation: All processes in @a procMap need to be in the same
- * namespace @a nspace. @todo Adjust latest with respawn implementation.
+ * Current limitation: Only a single namespace is handled. @todo
+ * Adjust latest with respawn implementation.
  *
- * @param procMap   node to process map
- * @param nspace
+ * @param ns namespace hosting all processes possibly added to the
+ * process set
  */
-static void createNodeAttrPSets(list_t *procMap, const char *nspace)
+static void createNodeAttrPSets(PspmixNamespace_t *ns)
 {
     /* renaming of hwtype to nodeattr pending */
     int num = HW_num();
     char name[64];
     for (int i = 0; i < num; i++) {
 	snprintf(name, 64, "pspmix:nodeattr/%s", HW_name(i));
-	if (!pspmix_server_createPSetByNode(name, procMap, nspace,
-				       nodeAttrFilter, &i)) {
+	if (!pspmix_server_createPSet(name, ns, nodeAttrFilter, &i)) {
 	    ulog("failed to create hardware type process sets\n");
 	    return;
 	}
@@ -273,22 +271,21 @@ static bool reservationFilter(PspmixNode_t *node, PspmixProcess_t *proc,
 /**
  * @brief Create process set for application (reservation)
  *
- * A process set will be created containing all processes included in @a procMap
- * belonging to @a app.
+ * Create a process set containing all processes hosted by the
+ * namespace @a ns belonging to the application @a app.
  *
- * Current limitation: All processes in @a procMap need to be in the same
- * namespace @a nspace. @todo Adjust latest with respawn implementation.
+ * Current limitation: Only a single namespace is handled. @todo
+ * Adjust latest with respawn implementation.
  *
- * @param name      name for the pset
- * @param procMap   node to process map
- * @param nspace    name of namespace
- * @param app       application
+ * @param name name of the process set to create
+ * @param ns   namespace hosting all processes possibly added to the
+ * process set
+ * @param app  application filtering the processes
  */
-static void createAppPSet(const char *name, list_t *procMap, const char *nspace,
+static void createAppPSet(const char *name, PspmixNamespace_t *ns,
 			  PspmixApp_t *app)
 {
-    if (!pspmix_server_createPSetByProcess(name, procMap, nspace,
-				   reservationFilter, app)) {
+    if (!pspmix_server_createPSet(name, ns, reservationFilter, app)) {
 	ulog("failed to create application process set '%s'\n", name);
 	return;
     }
@@ -509,19 +506,17 @@ bool pspmix_service_registerNamespace(PspmixJob_t *job)
     }
 
     /* create a process set for each hardware type */
-    createNodeAttrPSets(&ns->procMap, ns->name);
+    createNodeAttrPSets(ns);
 
     /* create a process set for each reservation (= app) */
     for (size_t a = 0; a < ns->appsCount; a++) {
-	char name[MAX_APPNAMELEN+13];
-	snprintf(name, MAX_APPNAMELEN+13, "pspmix:reservation/%d",
-		 ns->apps[a].resID);
-	createAppPSet(name, &ns->procMap, ns->name, &ns->apps[a]);
+	char name[128];
+	snprintf(name, sizeof(name), "pspmix:reservation/%d", ns->apps[a].resID);
+	createAppPSet(name, ns, &ns->apps[a]);
 
 	if (ns->apps[a].name[0] != '\0') {
-	    snprintf(name, MAX_APPNAMELEN+13, "pspmix:user/%s",
-		     ns->apps[a].name);
-	    createAppPSet(name, &ns->procMap, ns->name, &ns->apps[a]);
+	    snprintf(name, sizeof(name), "pspmix:user/%s", ns->apps[a].name);
+	    createAppPSet(name, ns, &ns->apps[a]);
 	}
     }
 
