@@ -100,6 +100,9 @@ bool pspmix_server_registerNamespace(
  * Create a process set with @a name containing all processes in @a procMap
  * for which @a filter is true.
  *
+ * If the filter does not return true for any process, no empty pset will be
+ * created but true will be returned nevertheless.
+ *
  * @param name     name of the process set to create
  * @param procMap  process map (as stored in @see PspmixNamespace_t)
  * @param nspace   name of the namespace
@@ -125,7 +128,7 @@ bool pspmix_server_createPSetByProcess(const char *name, list_t *procMap,
  * @see pspmix_server_createPSetByProcess() needs to.
  *
  * If the filter does not return true for any node, no empty pset will be
- * created but true will be returned never the less.
+ * created but true will be returned nevertheless.
  *
  * @param name     name of the process set to create
  * @param procMap  process map (as stored in @see PspmixNamespace_t)

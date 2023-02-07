@@ -2909,8 +2909,9 @@ bool pspmix_server_createPSetByProcess(const char *name, list_t *procMap,
 
     /* do not create empty psets */
     if (!members.len) {
+	udbg(PSPMIX_LOG_PSET, "process set '%s' would be empty\n", name);
 	vectorDestroy(&members);
-	return false;
+	return true;
     }
 
     pmix_status_t status = PMIx_server_define_process_set(members.data,
