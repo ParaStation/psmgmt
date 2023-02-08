@@ -107,7 +107,7 @@ bool pspmix_server_registerNamespace(
  *
  * @param name     name of the process set to create
  * @param ns       namespace containing the processes being candidates to be
- *                 added tothe process set
+ *                 added to the process set
  * @param filter   process filter function
  * @param data     arbitrary data blob, passed to @a filter
  *
