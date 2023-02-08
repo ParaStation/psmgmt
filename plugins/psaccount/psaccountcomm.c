@@ -456,7 +456,10 @@ static void handleAggDataUpdate(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
     getInt32(&ptr, &logger);
 
     if (!findJobByLogger(logger)) {
-	mlog("%s: update unknown logger %s\n", __func__, PSC_printTID(logger));
+	char *ltid = ustrdup(PSC_printTID(logger));
+	flog("update unknown logger %s from %s\n", ltid,
+	     PSC_printTID(msg->header.sender));
+	ufree(ltid);
 	return;
     }
 
