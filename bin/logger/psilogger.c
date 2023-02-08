@@ -25,6 +25,8 @@
 #include <sys/wait.h>
 #include <termios.h>
 #include <unistd.h>
+#include <sys/stat.h>
+#include <fcntl.h>
 
 #include "pscio.h"
 #include "pscommon.h"
@@ -1253,6 +1255,40 @@ static void loop(void)
     return;
 }
 
+static void redirectIO(void)
+{
+    char *lfile = getenv("__PSI_LOGGER_IO_FILE");
+    if (lfile) {
+	char fpath[PATH_MAX];
+	snprintf(fpath, sizeof(fpath), "%s-%i.stdout", lfile, getpid());
+
+	/* redirect stdout */
+	int fd = open(fpath, O_WRONLY | O_CREAT | O_CLOEXEC, 0666);
+	if (fd == -1) {
+	    PSIlog_stderr(-1, "%s: failed to open stdout file %s\n", __func__,
+		          fpath);
+	    exit(1);
+	}
+	if (dup2(fd, STDOUT_FILENO) == -1) {
+	    PSIlog_stderr(-1, "%s: dup2(%i/stdout) failed", __func__, fd);
+	    exit(1);
+	}
+
+	/* redirect stderr */
+	snprintf(fpath, sizeof(fpath), "%s-%i.stderr", lfile, getpid());
+	fd = open(fpath, O_WRONLY | O_CREAT | O_CLOEXEC, 0666);
+	if (fd == -1) {
+	    PSIlog_stderr(-1, "%s: failed to open stderr file %s\n", __func__,
+		          fpath);
+	    exit(1);
+	}
+	if (dup2(fd, STDERR_FILENO) == -1) {
+	    PSIlog_stderr(-1, "%s: dup2(%u/stderr) failed", __func__, fd);
+	    exit(1);
+	}
+    }
+}
+
 /**
  * @brief The main program
  *
@@ -1285,6 +1321,8 @@ int main( int argc, char**argv)
     sigset_t set;
 
     PSIlog_initLogs(NULL);
+
+    redirectIO();
 
     /* block SIGTTIN so logger works also in background */
     sigemptyset(&set);
