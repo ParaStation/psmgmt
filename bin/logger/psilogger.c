@@ -59,8 +59,8 @@ static bool prependSource = false;
 /** Merge output lines of different ranks?  Set from PSI_MERGEOUTPUT */
 static bool mergeOutput = false;
 
-/** Maximum number of service-processes in this job. */
-static int numService = 0;
+/** Number of service forwarders expected to connect; at least the spawner */
+static int numService = 1;
 
 /** Verbosity of Forwarders. Set from PSI_FORWARDERDEBUG */
 static bool forw_verbose = false;
@@ -68,7 +68,7 @@ static bool forw_verbose = false;
 /** Flag display of usage info. Set from PSI_USAGE */
 static bool showUsage = false;
 
-/** Number of maximum connected forwarders during runtime */
+/** Total number of forwarder that have connected during the job's runtime */
 static int32_t maxConnected = 0;
 
 /** The socket connecting to the local ParaStation daemon */
@@ -548,7 +548,7 @@ static void enterRawMode(void)
  *
  * @return On success, true is returned. On error, false is returned.
  */
-static bool newrequest(PSLog_Msg_t *msg)
+static bool newRequest(PSLog_Msg_t *msg)
 {
     char *ptr = msg->buf;
     PStask_group_t group = *(PStask_group_t *) ptr;
@@ -562,6 +562,7 @@ static bool newrequest(PSLog_Msg_t *msg)
 	linenoiseSetPrompt(GDBprompt);
     }
 
+    if (group == TG_KVS) numService++;
     maxConnected++;
     PSIlog_log(PSILOG_LOG_VERB, "%s: new connection from %s (%d)\n", __func__,
 	       PSC_printTID(msg->header.sender), rank);
@@ -954,7 +955,7 @@ static void handleCCMsg(PSLog_Msg_t *msg)
     int outfd = STDOUT_FILENO;
 
     if (msg->type == INITIALIZE) {
-	if (newrequest(msg) && maxConnected >= np + numService) {
+	if (newRequest(msg) && maxConnected >= np + numService) {
 	    timeoutval = MIN_WAIT;
 	    if (allActiveThere() && !stdinHandled) {
 		if (Selector_register(STDIN_FILENO, readFromStdin, NULL) < 0) {
@@ -1379,10 +1380,6 @@ int main( int argc, char**argv)
 
     if ((envstr = getenv("PSI_USIZE_INFO"))) {
 	usize = atoi(envstr);
-    }
-
-    if ((envstr = getenv(ENV_NUM_SERVICE_PROCS))) {
-	numService = atoi(envstr);
     }
 
     /* Destination list has to be set before initClients() */

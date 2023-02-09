@@ -3,7 +3,7 @@
  *
  * Copyright (C) 1999-2004 ParTec AG, Karlsruhe
  * Copyright (C) 2005-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2022 ParTec AG, Munich
+ * Copyright (C) 2021-2023 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -1012,9 +1012,6 @@ int PSI_spawnService(PSnodes_ID_t node, PStask_group_t taskGroup, char *wDir,
 		     int argc, char **argv, int *error, PStask_ID_t *tid,
 		     int rank)
 {
-    int ret;
-    char *envStr = getenv(ENV_NUM_SERVICE_PROCS);
-
     PSI_log(PSI_LOG_VERB, "%s(%d)\n", __func__, node);
 
     if (!error) {
@@ -1023,6 +1020,8 @@ int PSI_spawnService(PSnodes_ID_t node, PStask_group_t taskGroup, char *wDir,
     }
 
     /* tell logger about service process */
+    /* @todo remove this on the long run since the logger ignores it */
+    char *envStr = getenv(ENV_NUM_SERVICE_PROCS);
     if (envStr) {
 	char *end, newStr[32];
 	long oldNum = strtol(envStr, &end, 10);
@@ -1043,8 +1042,8 @@ int PSI_spawnService(PSnodes_ID_t node, PStask_group_t taskGroup, char *wDir,
 
     if (rank >= -1) rank = -2;
 
-    ret = dospawn(1, &node, wDir, argc, argv, false, taskGroup, -1, rank,
-		  error, tid);
+    int ret = dospawn(1, &node, wDir, argc, argv, false, taskGroup, -1, rank,
+		      error, tid);
     if (ret != 1) return -1;
 
     return 1;
