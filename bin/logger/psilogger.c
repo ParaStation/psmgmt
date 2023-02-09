@@ -90,23 +90,71 @@ logger_t *PSIlog_stdout = NULL;
 logger_t *PSIlog_stderr = NULL;
 logger_t *PSIlog_logger = NULL;
 
-/* Wrapper functions for logging */
-void PSIlog_initLogs(FILE *logfile)
+/* create a file handle pointing to <fNameBase>-<PID>.<ext> or exit() */
+static FILE * getFile(char *fNameBase, char *ext)
 {
-    PSIlog_logger = logger_init("PSIlogger", logfile ? logfile : stderr);
+    if (!fNameBase || !ext) return NULL;
+
+    char fpath[PATH_MAX];
+    snprintf(fpath, sizeof(fpath), "%s-%i.%s", fNameBase, getpid(), ext);
+    int fd = open(fpath, O_WRONLY | O_CREAT | O_CLOEXEC, 0644);
+    if (fd == -1) {
+	if (PSIlog_logger) {
+	    PSIlog_exit(errno, "failed to open %s file %s\n", ext, fpath);
+	} else {
+	    fprintf(stderr, "failed to open %s file %s: %m\n", ext, fpath);
+	    exit(1);
+	}
+    }
+    FILE *file = fdopen(fd, "w");
+    if (!file) {
+	if (PSIlog_logger) {
+	    PSIlog_exit(errno, "no file handle for %s\n", fpath);
+	} else {
+	    fprintf(stderr, "no file handle for %s: %m\n", fpath);
+	    exit(1);
+	}
+    }
+    return file;
+}
+
+/**
+ * @brief Initialize psilogger's logging facilities
+ *
+ * Initialize psilogger's logging facilities. This is mainly a wrapper
+ * to @ref logger_init() but additionally also initializes the
+ * facilities handling output to stdout and stderr.
+ *
+ * If @a fNameBase is given, all logs will be redirected into separate
+ * files. All filenames are of the form <fNameBase>-<PID>.<ext> where
+ * <ext> is "log", "stdout", or "stderr", respectively. exit() will be
+ * called if creation of either of the files fails.
+ *
+ * @param fNameBase Base name for logging files to create
+ *
+ * @return No return value
+ *
+ * @see PSIlog_finalizeLogs()
+ */
+static void initLogs(char *fNameBase)
+{
+    FILE *logFile = fNameBase ? getFile(fNameBase, "log") : stderr;
+    PSIlog_logger = logger_init("PSIlogger", logFile);
     if (!PSIlog_logger) {
-	fprintf(logfile ? logfile : stderr, "Failed to initialize logger\n");
+	fprintf(logFile, "Failed to initialize logger\n");
 	exit(1);
     }
 
-    PSIlog_stdout = logger_init(NULL, stdout);
+    FILE *stdoutFile = fNameBase ? getFile(fNameBase, "stdout") : stdout;
+    PSIlog_stdout = logger_init(NULL, stdoutFile);
     if (!PSIlog_stdout) {
-	PSIlog_exit(errno, "%s: Failed to initialize stdout", __func__);
+	PSIlog_exit(errno, "Failed to initialize stdout");
     }
 
-    PSIlog_stderr = logger_init(NULL, stderr);
+    FILE *stderrFile = fNameBase ? getFile(fNameBase, "stderr") : stderr;
+    PSIlog_stderr = logger_init(NULL, stderrFile);
     if (!PSIlog_stderr) {
-	PSIlog_exit(errno, "%s: Failed to initialize stderr", __func__);
+	PSIlog_exit(errno, "Failed to initialize stderr");
     }
 }
 
@@ -1255,40 +1303,6 @@ static void loop(void)
     return;
 }
 
-static void redirectIO(void)
-{
-    char *lfile = getenv("__PSI_LOGGER_IO_FILE");
-    if (lfile) {
-	char fpath[PATH_MAX];
-	snprintf(fpath, sizeof(fpath), "%s-%i.stdout", lfile, getpid());
-
-	/* redirect stdout */
-	int fd = open(fpath, O_WRONLY | O_CREAT | O_CLOEXEC, 0666);
-	if (fd == -1) {
-	    PSIlog_stderr(-1, "%s: failed to open stdout file %s\n", __func__,
-		          fpath);
-	    exit(1);
-	}
-	if (dup2(fd, STDOUT_FILENO) == -1) {
-	    PSIlog_stderr(-1, "%s: dup2(%i/stdout) failed", __func__, fd);
-	    exit(1);
-	}
-
-	/* redirect stderr */
-	snprintf(fpath, sizeof(fpath), "%s-%i.stderr", lfile, getpid());
-	fd = open(fpath, O_WRONLY | O_CREAT | O_CLOEXEC, 0666);
-	if (fd == -1) {
-	    PSIlog_stderr(-1, "%s: failed to open stderr file %s\n", __func__,
-		          fpath);
-	    exit(1);
-	}
-	if (dup2(fd, STDERR_FILENO) == -1) {
-	    PSIlog_stderr(-1, "%s: dup2(%u/stderr) failed", __func__, fd);
-	    exit(1);
-	}
-    }
-}
-
 /**
  * @brief The main program
  *
@@ -1315,16 +1329,11 @@ static void redirectIO(void)
  */
 int main( int argc, char**argv)
 {
-    char *envstr, *end, *input;
-    int i, dSock;
-
-    sigset_t set;
-
-    PSIlog_initLogs(NULL);
-
-    redirectIO();
+    char *logFileName = getenv("__PSI_LOGGER_IO_FILE");
+    initLogs(logFileName);
 
     /* block SIGTTIN so logger works also in background */
+    sigset_t set;
     sigemptyset(&set);
     sigaddset(&set, SIGTTIN);
     if (sigprocmask(SIG_BLOCK, &set, NULL)) {
@@ -1345,15 +1354,15 @@ int main( int argc, char**argv)
 	PSIlog_log(-1, "Sorry, program must be called correctly"
 		" inside an application.\n");
 	PSIlog_log(-1, "%d arguments:", argc);
-	for (i=0; i<argc; i++)
-	    PSIlog_log(-1, " '%s'", argv[i]);
+	for (int i = 0; i < argc; i++) PSIlog_log(-1, " '%s'", argv[i]);
 	PSIlog_log(-1, "\n");
 	PSIlog_finalizeLogs();
 	exit(1);
     }
 
     /* daemon socket lost during exec() */
-    dSock = strtol(argv[1], &end, 10);
+    char *end;
+    int dSock = strtol(argv[1], &end, 10);
     if (*end != '\0' || (dSock==0 && errno==EINVAL)) {
 	PSIlog_log(-1, "Sorry, program must be called correctly"
 		   " inside an application.\n");
@@ -1368,21 +1377,21 @@ int main( int argc, char**argv)
     }
 
     /* ParaStation ID lost during exec() */
-    i = strtol(argv[2], &end, 10);
-    if (*end != '\0' || (i==0 && errno==EINVAL)) {
+    int psID = strtol(argv[2], &end, 10);
+    if (*end != '\0' || (psID == 0 && errno == EINVAL)) {
 	PSIlog_log(-1, "Sorry, program must be called correctly"
 		   " inside an application.\n");
 	PSIlog_log(-1, "'%s' is not a ParaStation ID.\n", argv[2]);
 	PSIlog_finalizeLogs();
 	exit(1);
     }
-    PSC_setMyID(i);
+    PSC_setMyID(psID);
 
     if (getenv("PSI_LOGGERDEBUG")) {
 	PSIlog_setDebugMask(PSILOG_LOG_VERB);
 	PSIlog_log(PSILOG_LOG_VERB, "Going to be verbose.\n");
 	PSIlog_log(PSILOG_LOG_VERB, "Daemon on %d\n", dSock);
-	PSIlog_log(PSILOG_LOG_VERB, "My ID is %d\n", i);
+	PSIlog_log(PSILOG_LOG_VERB, "My ID is %d\n", psID);
     }
 
     if (getenv("PSI_TERMINATED")) {
@@ -1405,7 +1414,8 @@ int main( int argc, char**argv)
 	PSIlog_log(PSILOG_LOG_VERB, "Will print source-info.\n");
     }
 
-    if ((envstr = getenv("PSI_NP_INFO"))) {
+    char *envstr = getenv("PSI_NP_INFO");
+    if (envstr) {
 	np = atoi(envstr);
 	int tmp = np-1;
 	while (tmp > 9) {
@@ -1423,6 +1433,7 @@ int main( int argc, char**argv)
     }
 
     /* Destination list has to be set before initClients() */
+    char *input = "";
     if (dSock) {
 	input = getenv("PSI_INPUTDEST");
 	if (!input) input = "0";
@@ -1431,7 +1442,6 @@ int main( int argc, char**argv)
     } else {
 	/* dSock = 0 implies no stdin connected */
 	PSIlog_log(PSILOG_LOG_VERB, "No stdin available.\n");
-	input = "";
     }
     setupDestList(input);
 
@@ -1539,10 +1549,9 @@ int main( int argc, char**argv)
 
     closeDaemonSock(dSock);
 
-    for (i=3; i<argc; i++) {
-	int ret;
+    for (int i = 3; i < argc; i++) {
 	PSIlog_log(PSILOG_LOG_VERB, "Execute '%s'\n", argv[i]);
-	ret = system(argv[i]);
+	int ret = system(argv[i]);
 	if (ret < 0) {
 	    PSIlog_log(-1, "Failed to execute '%s' via system()\n", argv[i]);
 	}

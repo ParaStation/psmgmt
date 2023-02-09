@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2007-2020 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2022 ParTec AG, Munich
+ * Copyright (C) 2022-2023 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -53,22 +53,6 @@ extern bool GDBcmdEcho;
 
 /** Scan output for Valgrind PID patterns?  Set from PSI_USE_VALGRIND */
 extern bool useValgrind;
-
-/**
- * @brief Initialize psilogger's logging facilities
- *
- * Initialize psilogger's logging facilities. This is mainly a wrapper
- * to @ref logger_init() but additionally also initializes the
- * facilities handling output to stdout and stderr.
- *
- * @param logfile File to use for logging. If NULL, use stderr for
- * any output
- *
- * @return No return value
- *
- * @see logger_init(), PSIlog_finalizeLogs()
- */
-void PSIlog_initLogs(FILE *logfile);
 
 /**
  * @brief Get the log-mask of the psilogger logging facility.
