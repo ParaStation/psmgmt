@@ -69,7 +69,7 @@ static bool forw_verbose = false;
 static bool showUsage = false;
 
 /** Number of maximum connected forwarders during runtime */
-static int maxConnected = 0;
+static int32_t maxConnected = 0;
 
 /** The socket connecting to the local ParaStation daemon */
 static int daemonSock = -1;
@@ -225,12 +225,10 @@ char GDBprompt[128];
  */
 static void readGDBInput(const char *line)
 {
-    char buf[1000];
-    size_t len;
-
     if (!line) return;
 
     /* add the newline again */
+    char buf[1000];
     snprintf(buf, sizeof(buf), "%s\n", line);
     PSIlog_stdout(-1, "\n");
 
@@ -238,7 +236,7 @@ static void readGDBInput(const char *line)
     if (line[0]) linenoiseHistoryAdd(line);
 
     /* check for input changing cmd */
-    len = strlen(buf);
+    size_t len = strlen(buf);
     if (len > 2 && buf[0] == '[' && buf[len -2] == ']') {
 	/* remove trailing garbage */
 	buf[len-1] = '\0';
@@ -290,7 +288,6 @@ static void readGDBInput(const char *line)
 int sendMsg(PStask_ID_t tid, PSLog_msg_t type, char *buf, size_t len)
 {
     int ret = PSLog_write(tid, type, buf, len);
-
     if (ret < 0 && errno != EBADF) {
 	PSIlog_warn(-1, errno, "%s: error (%d)", __func__, errno);
     }
@@ -336,20 +333,17 @@ void terminateJob(void)
     PSIlog_log(-1, "Terminating the job\n");
 
     /* send kill signal to all children */
-    {
-	DDSignalMsg_t msg;
-
-	msg.header.type = PSP_CD_SIGNAL;
-	msg.header.sender = PSC_getMyTID();
-	msg.header.dest = PSC_getMyTID();
-	msg.header.len = sizeof(msg);
-	msg.signal = -1;
-	msg.param = getuid();
-	msg.pervasive = 1;
-	msg.answer = 0;
-
-	sendDaemonMsg((DDMsg_t *)&msg);
-    }
+    DDSignalMsg_t msg = {
+	.header = {
+	    .type = PSP_CD_SIGNAL,
+	    .sender = PSC_getMyTID(),
+	    .dest = PSC_getMyTID(),
+	    .len = sizeof(msg) },
+	.signal = -1,
+	.param = getuid(),
+	.pervasive = 1,
+	.answer = 0 };
+    sendDaemonMsg((DDMsg_t *)&msg);
 }
 
 /**
@@ -363,8 +357,8 @@ void terminateJob(void)
  */
 static void sighandler(int sig)
 {
-    int i;
     static bool firstTERM = true;
+    DDSignalMsg_t msg;
 
     switch(sig) {
     case SIGTERM:
@@ -373,51 +367,47 @@ static void sighandler(int sig)
 	    firstTERM = false;
 	}
 	PSIlog_log(PSILOG_LOG_VERB, "%d clients. Open logs:", getNoClients());
-	for (i=getMinRank(); i<=getMaxRank(); i++) {
+	for (int i = getMinRank(); i <= getMaxRank(); i++) {
 	    PStask_ID_t tid = getClientTID(i);
 	    if (tid == -1) continue;
 	    PSIlog_log(PSILOG_LOG_VERB, " %d (%s)", i, PSC_printTID(tid));
 	}
 	PSIlog_log(PSILOG_LOG_VERB, "\n");
-	{
-	    DDSignalMsg_t msg;
 
-	    msg.header.type = PSP_CD_SIGNAL;
-	    msg.header.sender = PSC_getMyTID();
-	    msg.header.dest = PSC_getMyTID();
-	    msg.header.len = sizeof(msg);
-	    msg.signal = sig;
-	    msg.param = getuid();
-	    msg.pervasive = 1;
-	    msg.answer = 0;
-
-	    sendDaemonMsg((DDMsg_t *)&msg);
-	}
+	msg = (DDSignalMsg_t) {
+	    .header = {
+		.type = PSP_CD_SIGNAL,
+		.sender = PSC_getMyTID(),
+		.dest = PSC_getMyTID(),
+		.len = sizeof(msg) },
+	    .signal = sig,
+	    .param = getuid(),
+	    .pervasive = 1,
+	    .answer = 0, };
+	sendDaemonMsg((DDMsg_t *)&msg);
 	break;
     case SIGINT:
 	PSIlog_log(PSILOG_LOG_VERB, "Got SIGINT\n");
 	if (getenv("PSI_SSH_COMPAT_HOST"))
 	    fprintf(stderr, "Killed by signal 2\n");
-	{
-	    DDSignalMsg_t msg;
 
-	    msg.header.type = PSP_CD_SIGNAL;
-	    msg.header.sender = PSC_getMyTID();
-	    msg.header.dest = PSC_getMyTID();
-	    msg.header.len = sizeof(msg);
-	    msg.signal = sig;
-	    msg.param = getuid();
-	    msg.pervasive = 1;
-	    msg.answer = 0;
-
-	    sendDaemonMsg((DDMsg_t *)&msg);
-	}
+	msg = (DDSignalMsg_t) {
+	    .header = {
+		.type = PSP_CD_SIGNAL,
+		.sender = PSC_getMyTID(),
+		.dest = PSC_getMyTID(),
+		.len = sizeof(msg) },
+	    .signal = sig,
+	    .param = getuid(),
+	    .pervasive = 1,
+	    .answer = 0, };
+	sendDaemonMsg((DDMsg_t *)&msg);
 	break;
     case SIGTTIN:
 	PSIlog_log(PSILOG_LOG_VERB, "Got SIGTTIN\n");
 	break;
     case SIGWINCH:
-	for (i=getMinRank(); i <= getMaxRank(); i++) {
+	for (int i = getMinRank(); i <= getMaxRank(); i++) {
 	    PStask_ID_t tid = getClientTID(i);
 	    if (!clientIsActive(i) || tid == -1) continue;
 
@@ -443,7 +433,7 @@ static void sighandler(int sig)
     case SIGUSR1:
 	if (!getenv("__SLURM_INFORM_TIDS")) {
 	    PSIlog_log(-1, "%d clients. Open logs:", getNoClients());
-	    for (i=getMinRank(); i<=getMaxRank(); i++) {
+	    for (int i = getMinRank(); i <= getMaxRank(); i++) {
 		PStask_ID_t tid = getClientTID(i);
 		if (tid == -1) continue;
 		PSIlog_log(-1, " %d (%s)", i, PSC_printTID(tid));
@@ -458,20 +448,18 @@ static void sighandler(int sig)
     case SIGUSR2:
     case SIGQUIT:
 	PSIlog_log(PSILOG_LOG_VERB, "Got signal %d\n", sig);
-	{
-	    DDSignalMsg_t msg;
+	msg = (DDSignalMsg_t) {
+	    .header = {
+		.type = PSP_CD_SIGNAL,
+		.sender = PSC_getMyTID(),
+		.dest = PSC_getMyTID(),
+		.len = sizeof(msg) },
+	    .signal = (sig==SIGTSTP) ? SIGSTOP : sig,
+	    .param = getuid(),
+	    .pervasive = 1,
+	    .answer = 0, };
+	sendDaemonMsg((DDMsg_t *)&msg);
 
-	    msg.header.type = PSP_CD_SIGNAL;
-	    msg.header.sender = PSC_getMyTID();
-	    msg.header.dest = PSC_getMyTID();
-	    msg.header.len = sizeof(msg);
-	    msg.signal = (sig==SIGTSTP) ? SIGSTOP : sig;
-	    msg.param = getuid();
-	    msg.pervasive = 1;
-	    msg.answer = 0;
-
-	    sendDaemonMsg((DDMsg_t *)&msg);
-	}
 	if (sig == SIGTSTP) raise(SIGSTOP);
 	break;
     default:
@@ -484,19 +472,18 @@ static void sighandler(int sig)
 
 static void handleMaxTime(void)
 {
-    DDSignalMsg_t msg;
-
     PSIlog_log(-1, "Maximum runtime of %ld seconds elapsed.\n", maxTime);
 
-    msg.header.type = PSP_CD_SIGNAL;
-    msg.header.sender = PSC_getMyTID();
-    msg.header.dest = PSC_getMyTID();
-    msg.header.len = sizeof(msg);
-    msg.signal = -1;
-    msg.param = getuid();
-    msg.pervasive = 1;
-    msg.answer = 0;
-
+    DDSignalMsg_t msg = {
+	.header = {
+	    .type = PSP_CD_SIGNAL,
+	    .sender = PSC_getMyTID(),
+	    .dest = PSC_getMyTID(),
+	    .len = sizeof(msg) },
+	.signal = -1,
+	.param = getuid(),
+	.pervasive = 1,
+	.answer = 0 };
     sendDaemonMsg((DDMsg_t *)&msg);
 
     if (maxTimeID != -1) Timer_remove(maxTimeID);
@@ -563,14 +550,11 @@ static void enterRawMode(void)
  */
 static bool newrequest(PSLog_Msg_t *msg)
 {
-    int rank = msg->sender;
     char *ptr = msg->buf;
-    PStask_group_t group;
-    uint32_t verb = forw_verbose;
-
-    group = *(PStask_group_t *) ptr;
+    PStask_group_t group = *(PStask_group_t *) ptr;
     //ptr += sizeof(PStask_group_t);
 
+    int rank = msg->sender;
     if (!registerClient(rank, msg->header.sender, group)) return false;
 
     if (enableGDB) {
@@ -590,6 +574,7 @@ static bool newrequest(PSLog_Msg_t *msg)
     }
 
     /* send init answer */
+    uint32_t verb = forw_verbose;
     sendMsg(msg->header.sender, INITIALIZE, (char *) &verb, sizeof(verb));
 
     return true;
@@ -608,9 +593,8 @@ static bool newrequest(PSLog_Msg_t *msg)
 static void forwardInput(int std_in)
 {
     char buf[1024];
-    ssize_t len;
-
-    len = read(std_in, buf, sizeof(buf) > SSIZE_MAX ? SSIZE_MAX : sizeof(buf));
+    ssize_t len = read(std_in, buf,
+		       sizeof(buf) > SSIZE_MAX ? SSIZE_MAX : sizeof(buf));
     switch (len) {
     case -1:
 	if (errno == EBADF) {
@@ -643,12 +627,8 @@ static void forwardInput(int std_in)
  */
 static void handleServiceMsg(PSLog_Msg_t *msg)
 {
-    int32_t minRank;
-
-    minRank = getNextServiceRank();
-
-    sendMsg(msg->header.sender, SERV_TID,
-	    (char *) &minRank, sizeof(minRank));
+    int32_t minRank = getNextServiceRank();
+    sendMsg(msg->header.sender, SERV_TID, (char *) &minRank, sizeof(minRank));
 }
 
 /**
@@ -660,16 +640,15 @@ static void handleServiceMsg(PSLog_Msg_t *msg)
  */
 static void handleUSAGEMsg(PSLog_Msg_t *msg)
 {
-    if (showUsage) {
-	struct rusage usage;
+    if (!showUsage) return;
 
-	memcpy(&usage, msg->buf, sizeof(usage));
+    struct rusage usage;
+    memcpy(&usage, msg->buf, sizeof(usage));
 
-	PSIlog_log(-1, "Child with rank %d used %.6f/%.6f sec (user/sys)\n",
-		   msg->sender,
-		   usage.ru_utime.tv_sec + usage.ru_utime.tv_usec * 1.0e-6,
-		   usage.ru_stime.tv_sec + usage.ru_stime.tv_usec * 1.0e-6);
-    }
+    PSIlog_log(-1, "Child with rank %d used %.6f/%.6f sec (user/sys)\n",
+	       msg->sender,
+	       usage.ru_utime.tv_sec + usage.ru_utime.tv_usec * 1.0e-6,
+	       usage.ru_stime.tv_sec + usage.ru_stime.tv_usec * 1.0e-6);
 }
 
 #define lastSenderMagic -13
@@ -854,9 +833,7 @@ static bool handleFINALIZEMsg(PSLog_Msg_t *msg)
  */
 static char * getIDstr(void)
 {
-    char *IDstr;
-
-    IDstr = getenv("PBS_JOBID");
+    char *IDstr = getenv("PBS_JOBID");
     if (IDstr) return IDstr;
 
     /* @todo Add support for other batch-systems */
@@ -875,62 +852,49 @@ static char * getIDstr(void)
  */
 static void sendAcctData(void)
 {
-    DDTypedBufferMsg_t msg;
-    char *ptr = msg.buf, *IDstr;
-
-    msg.header.type = PSP_CD_ACCOUNT;
-    msg.header.dest = PSC_getTID(-1, 0);
-    msg.header.sender = PSC_getMyTID();
-    msg.header.len = sizeof(msg.header);
-
-    msg.type = PSP_ACCOUNT_LOG;
-    msg.header.len += sizeof(msg.type);
+    DDTypedBufferMsg_t msg = {
+	.header = {
+	    .type = PSP_CD_ACCOUNT,
+	    .dest = PSC_getTID(-1, 0),
+	    .sender = PSC_getMyTID(),
+	    .len = 0, /* to be set by PSP_putTypedMsgBuf */ },
+	.type = PSP_ACCOUNT_LOG,
+	.buf = { '\0' } };
 
     /* logger's TID, this identifies a task uniquely */
-    *(PStask_ID_t *)ptr = PSC_getMyTID();
-    ptr += sizeof(PStask_ID_t);
-    msg.header.len += sizeof(PStask_ID_t);
+    PStask_ID_t myTID = PSC_getMyTID();
+    PSP_putTypedMsgBuf(&msg, "my/logger TID", &myTID, sizeof(myTID));
 
     /* current rank */
-    *(int32_t *)ptr = -1;
-    ptr += sizeof(int32_t);
-    msg.header.len += sizeof(int32_t);
+    int32_t myRank = -1;
+    PSP_putTypedMsgBuf(&msg, "rank", &myRank, sizeof(myRank));
 
     /* child's uid */
-    *(uid_t *)ptr = getuid();
-    ptr += sizeof(uid_t);
-    msg.header.len += sizeof(uid_t);
+    uid_t myUID = getuid();
+    PSP_putTypedMsgBuf(&msg, "uid", &myUID, sizeof(myUID));
 
     /* child's gid */
-    *(gid_t *)ptr = getgid();
-    ptr += sizeof(gid_t);
-    msg.header.len += sizeof(gid_t);
+    gid_t myGID = getgid();
+    PSP_putTypedMsgBuf(&msg, "uid", &myGID, sizeof(myGID));
 
     /* maximum number of connected children */
-    *(int32_t *)ptr = maxConnected;
-    ptr += sizeof(int32_t);
-    msg.header.len += sizeof(int32_t);
+    PSP_putTypedMsgBuf(&msg, "max conn", &maxConnected, sizeof(maxConnected));
 
     /* job id */
-    if ((IDstr = getIDstr())) {
-	size_t len = strlen(IDstr), offset=0;
-	size_t maxLen = sizeof(msg)-msg.header.len-1;
-
-	if (len > maxLen) {
-	    strcpy(ptr, "...");
-	    ptr += 3;
-	    msg.header.len += 3;
-
-	    offset = len-maxLen+3;
-	    len = maxLen-3;
+    char *IDstr = getIDstr();
+    if (IDstr) {
+	char *tailPtr = IDstr;
+	size_t len = strlen(IDstr);
+	size_t bufferFree = sizeof(msg) - msg.header.len - 1;
+	if (len > bufferFree) {
+	    char dots[] = "...";
+	    PSP_putTypedMsgBuf(&msg, "dots", dots, strlen(dots));
+	    tailPtr = IDstr + len - bufferFree + strlen(dots);
 	}
-	strcpy(ptr, &IDstr[offset]);
-	ptr += len;
-	msg.header.len += len;
+	PSP_putTypedMsgBuf(&msg, "tail", tailPtr, strlen(tailPtr));
     }
-    *ptr = '\0';
-    ptr++;
-    msg.header.len++;
+    char nullChr = '\0';
+    PSP_putTypedMsgBuf(&msg, "terminating \\0", &nullChr, sizeof(nullChr));
 
     sendDaemonMsg((DDMsg_t *)&msg);
 }
@@ -948,9 +912,8 @@ static void sendAcctData(void)
  */
 static void forwardInputFile(int fd)
 {
-    char buf[1024>SSIZE_MAX ? SSIZE_MAX : 1024];
+    char buf[1024 > SSIZE_MAX ? SSIZE_MAX : 1024];
     ssize_t len;
-
     do {
 	len = read(fd, buf, sizeof(buf));
 	switch (len) {
@@ -1052,10 +1015,10 @@ static void handleCCMsg(PSLog_Msg_t *msg)
 static int handleDebugMsg(int fd, void *info)
 {
     char buf[256];
-    size_t len;
-    int eno, i;
+    ssize_t len = read(fd, buf,
+		       (sizeof(buf) > SSIZE_MAX) ? SSIZE_MAX : sizeof(buf));
 
-    len = read(fd, buf, (sizeof(buf) > SSIZE_MAX) ? SSIZE_MAX : sizeof(buf));
+    int eno;
     switch (len) {
     case -1:
 	eno = errno;
@@ -1083,7 +1046,7 @@ static int handleDebugMsg(int fd, void *info)
     PSIlog_log(PSILOG_LOG_VERB, "%s: received '%d'\n", __func__, *(int *)buf);
 
     dprintf(fd, "%d clients. Open logs:\n", getNoClients());
-    for (i = getMinRank(); i <= getMaxRank(); i++) {
+    for (int i = getMinRank(); i <= getMaxRank(); i++) {
 	PStask_ID_t tid = getClientTID(i);
 	if (tid == -1) continue;
 	dprintf(fd, "\t%d (%s)\n", i, PSC_printTID(tid));
@@ -1115,13 +1078,9 @@ static int handleDebugMsg(int fd, void *info)
  */
 static int handleDebugSock(int fd, void *info)
 {
-    struct linger linger = { .l_onoff = 1,
-			     .l_linger= 1};
-    int ssock;
-
     PSIlog_log(PSILOG_LOG_VERB, "%s: accepting new connection\n", __func__);
 
-    ssock = accept(fd, NULL, 0);
+    int ssock = accept(fd, NULL, 0);
     if (ssock < 0) {
 	PSIlog_warn(-1, errno, "%s: error while accept()", __func__);
 	return -1;
@@ -1131,8 +1090,8 @@ static int handleDebugSock(int fd, void *info)
 
     PSIlog_log(PSILOG_LOG_VERB, "%s: new socket is %d\n", __func__, ssock);
 
-    linger.l_onoff=1;
-    linger.l_linger=1;
+    struct linger linger = { .l_onoff = 1,
+			     .l_linger= 1};
     if (setsockopt(ssock, SOL_SOCKET, SO_LINGER, &linger, sizeof(linger)) < 0) {
 	PSIlog_warn(-1, errno, "%s: cannot setsockopt(SO_LINGER)", __func__);
 	close(ssock);
@@ -1146,14 +1105,12 @@ static int handleDebugSock(int fd, void *info)
 
 static void enableDebugSock(void)
 {
-    int debugSock;
-    struct sockaddr_un sa;
-
-    debugSock = socket(PF_UNIX, SOCK_STREAM, 0);
+    int debugSock = socket(PF_UNIX, SOCK_STREAM, 0);
     if (debugSock < 0) {
 	PSIlog_exit(errno, "Unable to create socket for debugging");
     }
 
+    struct sockaddr_un sa;
     memset(&sa, 0, sizeof(sa));
 
     sa.sun_family = AF_UNIX;
@@ -1195,7 +1152,7 @@ static void enableDebugSock(void)
 static int handleDaemonMsg(int fd, void *info)
 {
     DDBufferMsg_t msg;
-    int ret = PSCio_recvMsg(fd, &msg);
+    ssize_t ret = PSCio_recvMsg(fd, &msg);
 
     /* Ignore all errors */
     if (ret < 0) {
@@ -1280,11 +1237,7 @@ static void loop(void)
 	if (mergeOutput && usize > 1) displayCachedOutput(false);
 
 	if (Swait(1000 /* msec */) < 0) {
-	    if (errno == EINTR) {
-		/* Interrupted syscall, just start again */
-		continue;
-	    }
-	    PSIlog_warn(-1, errno, "select()");
+	    if (errno != EINTR) PSIlog_warn(-1, errno, "select()");
 	    continue;
 	}
 	if (!getNoClients()) timeoutval++;
