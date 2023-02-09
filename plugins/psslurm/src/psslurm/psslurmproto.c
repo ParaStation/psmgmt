@@ -549,7 +549,7 @@ static void handleLaunchTasks(Slurm_Msg_t *sMsg)
     if (Auth_isDeniedUID(step->uid)) {
 	flog("denied UID %u to start step %s\n", sMsg->head.uid,
 	     Step_strID(step));
-	sendSlurmRC(sMsg, ESLURMD_INVALID_JOB_CREDENTIAL);
+	sendSlurmRC(sMsg, ESLURM_USER_ID_MISSING);
 	goto ERROR;
     }
 
@@ -1514,7 +1514,7 @@ static void handleFileBCast(Slurm_Msg_t *sMsg)
 
     if (Auth_isDeniedUID(bcast->uid)) {
 	flog("denied UID %u to start bcast\n", sMsg->head.uid);
-	sendSlurmRC(sMsg, ESLURMD_INVALID_JOB_CREDENTIAL);
+	sendSlurmRC(sMsg, ESLURM_USER_ID_MISSING);
 	goto CLEANUP;
     }
 
@@ -2133,7 +2133,9 @@ static void handleBatchJobLaunch(Slurm_Msg_t *sMsg)
 
     if (Auth_isDeniedUID(job->uid)) {
 	flog("denied UID %u to start job %u\n", sMsg->head.uid, job->jobid);
-	goto ERROR;
+	sendSlurmRC(sMsg, ESLURM_USER_ID_MISSING);
+	Job_delete(job);
+	return;
     }
 
     /* memory cleanup  */
