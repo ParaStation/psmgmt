@@ -2888,6 +2888,9 @@ static bool unpackRespJobInfo(Slurm_Msg_t *sMsg)
 	getTime(ptr, &resp->lastBackfill);
     }
 
+    /* only parse the first job description for now */
+    resp->numJobs = 1;
+
     resp->jobs = umalloc(sizeof(*(resp->jobs)) * resp->numJobs);
 
     for (uint32_t i=0; i<resp->numJobs; i++) {
