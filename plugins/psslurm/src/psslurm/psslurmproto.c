@@ -152,7 +152,7 @@ bool checkPrivMsg(Slurm_Msg_t *sMsg)
     if (sMsg->head.uid != 0 && sMsg->head.uid != slurmUserID) {
 	flog("request from invalid user %u message %s\n", sMsg->head.uid,
 	     msgType2String(sMsg->head.type));
-	sendSlurmRC(sMsg, ESLURM_USER_ID_MISSING);
+	sendSlurmRC(sMsg, ESLURM_ACCESS_DENIED);
 	return false;
     }
     return true;
