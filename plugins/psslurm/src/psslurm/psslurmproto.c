@@ -150,7 +150,8 @@ static void getSysInfo(uint32_t *cpuload, uint64_t *freemem, uint32_t *uptime)
 bool checkPrivMsg(Slurm_Msg_t *sMsg)
 {
     if (sMsg->head.uid != 0 && sMsg->head.uid != slurmUserID) {
-	flog("request from invalid user %u\n", sMsg->head.uid);
+	flog("request from invalid user %u message %s\n", sMsg->head.uid,
+	     msgType2String(sMsg->head.type));
 	sendSlurmRC(sMsg, ESLURM_USER_ID_MISSING);
 	return false;
     }
