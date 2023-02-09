@@ -73,6 +73,7 @@ bool Auth_init(void)
     }
 
     deniedUIDs = umalloc(sizeof(*deniedUIDs) * countUIDs);
+    strcpy(dup, deniedUsers);
     next = strtok_r(dup, delimiters, &toksave);
     while (next) {
 	uid_t uid = PSC_uidFromString(next);
