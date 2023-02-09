@@ -38,6 +38,7 @@
 #include "pluginvector.h"
 #if PMIX_VERSION_MAJOR >= 4
 #include "pluginhelper.h"
+#include "pscpu.h"
 
 #include "psidnodes.h"
 #endif

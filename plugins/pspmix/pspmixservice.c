@@ -19,7 +19,6 @@
 #include "pscommon.h"
 #include "pscpu.h"
 #include "psenv.h"
-#include "psreservation.h"
 #include "hardware.h"
 
 #include "pluginconfig.h"
