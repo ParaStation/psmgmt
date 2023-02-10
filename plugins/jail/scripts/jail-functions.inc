@@ -82,7 +82,7 @@ function killTasks {
 function killJob {
 	local DIR=$1
 	[ -d "$DIR" ] || {
-	    [ "$CHILD" != "-1" ] && elog "killJob: no directory $DIR to kill tasks"
+	    [ "$CHILD" != "-1" ] && dlog "killJob: no directory $DIR to kill tasks"
 	    return
 	}
 

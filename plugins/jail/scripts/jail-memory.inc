@@ -103,7 +103,7 @@ function constrainMemSSH()
     CG_USER="$BASE/$PREFIX-$PSPAM_USER"
     if [ -d $CG_USER ]; then
 	    # add user to cgroup
-	    mlog "adding child $CHILD to user cgroup $CG_USER"
+	    dlog "adding child $CHILD to user cgroup $CG_USER"
 	    echo "$CHILD" > $CG_USER/tasks
     else
 	    elog "error: user cgroup $CG_USER is missing"
