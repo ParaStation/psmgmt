@@ -27,7 +27,7 @@ if [ -n "$PSPAM_USER" ]; then
 	CG_USER="$BASE/$PREFIX-$PSPAM_USER"
 	if [ -d $CG_USER ]; then
 		# add user to cgroup
-		mlog "adding child $CHILD to user cgroup $CG_USER"
+		dlog "adding child $CHILD to user cgroup $CG_USER"
 		cgWrite "$CHILD" $CG_USER/tasks
 	else
 		elog "error: user cgroup $CG_USER is missing"

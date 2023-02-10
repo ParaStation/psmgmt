@@ -37,7 +37,7 @@ elif [ -n "$PSPAM_USER" ]; then
 		fi
 
 		# add user to cgroup
-		dlog "adding child $CHILD to user cgroup $CG_USER"
+		mlog "adding child $CHILD to user cgroup $CG_USER"
 		cgWrite "$CHILD" $CG_USER/tasks
 	else
 		elog "error: user cgroup $CG_USER is missing"
