@@ -1202,7 +1202,8 @@ static void handleConfig(Slurm_Msg_t *sMsg)
     /* send new configuration hash to slurmctld */
     sendNodeRegStatus(false);
 
-    /* slurmctld does not expect an answer for RPC */
+    /* slurmctld does not require an answer for this RPC and silently ignores
+     * any responses */
 }
 
 /**
@@ -1279,8 +1280,8 @@ static void handleRebootNodes(Slurm_Msg_t *sMsg)
 
     freeReqRebootNodes(req);
 
-    /* slurmctld does not expect an answer for RPC */
-}
+    /* slurmctld does not require an answer for this RPC and silently ignores
+     * any responses */
 
 uint64_t getSlurmHCRuns(void)
 {
