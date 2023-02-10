@@ -15,6 +15,7 @@
 #include "psilogger.h"
 
 #include <errno.h>
+#include <fcntl.h>
 #include <limits.h>
 #include <signal.h>
 #include <string.h>
@@ -25,8 +26,6 @@
 #include <sys/wait.h>
 #include <termios.h>
 #include <unistd.h>
-#include <sys/stat.h>
-#include <fcntl.h>
 
 #include "pscio.h"
 #include "pscommon.h"

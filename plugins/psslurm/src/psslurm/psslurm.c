@@ -43,6 +43,7 @@
 #include "jailhandles.h"
 
 #include "psslurmalloc.h"
+#include "psslurmauth.h"
 #include "psslurmbcast.h"
 #include "psslurmcomm.h"
 #include "psslurmconfig.h"

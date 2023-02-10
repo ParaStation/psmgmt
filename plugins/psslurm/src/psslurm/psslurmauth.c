@@ -11,12 +11,13 @@
 #include "psslurmauth.h"
 
 #include <arpa/inet.h>
-#include <pwd.h>
 #include <stdio.h>
 #include <string.h>
 #include <sys/types.h>
 
+#include "pluginconfig.h"
 #include "pluginmalloc.h"
+#include "pscommon.h"
 #include "psmungehandles.h"
 #include "slurmcommon.h"
 #include "KangarooTwelve.h"
