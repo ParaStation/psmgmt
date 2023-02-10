@@ -30,5 +30,8 @@ PREFIX="psid"
 # maximum retries to send signals to tasks of a cgroup
 MAX_KILL_RETRY="10"
 
+# log to syslog instead the log-file
+LOG_TO_SYSLOG="1"
+
 # path to logging file
 LOG_FILE="/tmp/jail.log"

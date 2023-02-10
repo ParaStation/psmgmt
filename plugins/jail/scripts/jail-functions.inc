@@ -14,17 +14,29 @@
 # has to be taken when changing this script.
 
 function mlog {
+    if [ "$LOG_TO_SYSLOG" == 1 ]; then
+	logger --tag "psid-jail-$modName"  $1
+    else
 	echo $(date) $modName[$CHILD]: $1
+    fi
 }
 
 function dlog {
-	[ "$DEBUG" == "1" ] || return;
+    [ "$DEBUG" == "1" ] || return;
+    if [ "$LOG_TO_SYSLOG" == 1 ]; then
+	logger --tag "psid-jail-$modName"  $1
+    else
 	echo $(date) $modName[$CHILD]: $1
+    fi
 }
 
 function elog {
+    if [ "$LOG_TO_SYSLOG" == 1 ]; then
+	logger --tag "psid-jail-$modName"  $1
+    else
 	echo $(date) $modName[$CHILD]: $1 >&2
-	exit 1
+    fi
+    exit 1
 }
 
 function cgWrite {
