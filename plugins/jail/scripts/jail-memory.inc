@@ -43,12 +43,12 @@ function initMem()
     }
 
     dlog "adding child $CHILD to $CG_JOB/tasks"
-    echo "$CHILD" > $CG_JOB/tasks
+    cgWrite "$CHILD" $CG_JOB/tasks
 
     # step cgroup
     [ -n "$STEPID" ] && {
 	dlog "adding child $CHILD to $CG_STEP/tasks"
-	echo "$CHILD" > $CG_STEP/tasks
+	cgWrite "$CHILD" $CG_STEP/tasks
     }
     IS_INIT="true"
 }
@@ -60,12 +60,12 @@ function setJobMem()
 
     [ "$IS_INIT" == "false" ] && initMem;
 
-    if [ "$LIMIT_VAL" -lt 1 ]; then
+    if [ -z "$LIMIT" ] || [ "$LIMIT_VAL" -lt 1 ]; then
 	dlog "Skipping invalid limit $LIMIT_VAL for $LIMIT_NAME"
     else
 	# job cgroup
 	dlog "$LIMIT_VAL > $CG_JOB/$LIMIT_NAME Job: $JOBID:$STEPID"
-	echo "$LIMIT_VAL" > $CG_JOB/$LIMIT_NAME
+	cgWrite "$LIMIT_VAL" $CG_JOB/$LIMIT_NAME
     fi
 
 }
@@ -79,11 +79,11 @@ function setStepMem()
 
     # step cgroup
     [ -n "$STEPID" ] && {
-	if [ "$LIMIT_VAL" -lt 1 ]; then
+	if [ -z "$LIMIT" ] || [ "$LIMIT_VAL" -lt 1 ]; then
 	    dlog "Skipping invalid limit $LIMIT_VAL for $LIMIT_NAME"
 	else
 	    dlog "$LIMIT_VAL > $CG_STEP/$LIMIT_NAME"
-	    echo "$LIMIT_VAL" > $CG_STEP/$LIMIT_NAME
+	    cgWrite "$LIMIT_VAL" $CG_STEP/$LIMIT_NAME
 	fi
     }
 }
@@ -104,7 +104,7 @@ function constrainMemSSH()
     if [ -d $CG_USER ]; then
 	    # add user to cgroup
 	    dlog "adding child $CHILD to user cgroup $CG_USER"
-	    echo "$CHILD" > $CG_USER/tasks
+	    cgWrite "$CHILD" $CG_USER/tasks
     else
 	    elog "error: user cgroup $CG_USER is missing"
     fi

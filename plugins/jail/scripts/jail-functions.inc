@@ -67,14 +67,14 @@ function mdsave {
 function killTasks {
 	local DIR=$1
 	[ -d "$DIR" ] || {
-	    [ "$CHILD" != "-1" ] && elog "killTasks: no directory $DIR to kill tasks"
+	    [ "$CHILD" != "-1" ] && dlog "killTasks: no directory $DIR to kill tasks"
 	    return
 	}
 
 	dlog "killTasks: dir $DIR"
 
 	local -i count=0
-	local PIDS=$(cat "$DIR/tasks")
+	local PIDS=$(cat "$DIR/tasks" 2>/dev/null)
 
 	while [ -n "$PIDS" -a "$count" -le "$MAX_KILL_RETRY" ]; do
 		for child in $PIDS; do
@@ -84,11 +84,11 @@ function killTasks {
 		done
 
 		(( count++ ))
-		PIDS=$(cat "$DIR/tasks")
+		PIDS=$(cat "$DIR/tasks" 2>/dev/null)
 	done
 
 	dlog "killTasks: rmdir $DIR"
-	rmdir "$DIR"
+	rmdir "$DIR" 2>/dev/null || dlog "killTasks: rmdir $DIR failed"
 }
 
 function killJob {

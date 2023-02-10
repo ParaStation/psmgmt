@@ -23,4 +23,4 @@
 # CHILD and configuration like CGROUP_BASE, BASE or SCRIPT set.
 
 # adjust oom killer score for child
-echo 0 > /proc/$CHILD/oom_score_adj
+cgWrite 0 /proc/$CHILD/oom_score_adj

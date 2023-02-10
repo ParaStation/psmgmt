@@ -42,11 +42,11 @@ function initDevices()
     }
 
     dlog "adding child $CHILD to $CG_JOB/tasks"
-    echo "$CHILD" > $CG_JOB/tasks
+    cgWrite "$CHILD" $CG_JOB/tasks
     # step cgroup
     [ -n "$STEPID" ] && {
 	dlog "adding child $CHILD to $CG_STEP/tasks"
-	echo "$CHILD" > $CG_STEP/tasks
+	cgWrite "$CHILD" $CG_STEP/tasks
     }
 }
 
@@ -56,12 +56,12 @@ function setDev()
     local DEV=$2
 
     dlog "$DEV > $CG_JOB/$ACTION"
-    echo $DEV > $CG_JOB/$ACTION
+    cgWrite $DEV $CG_JOB/$ACTION
 
     # step cgroup
     [ -n "$STEPID" ] && {
 	dlog "$DEV > $CG_STEP/$ACTION"
-	echo $DEV > $CG_STEP/$ACTION
+	cgWrite $DEV $CG_STEP/$ACTION
     }
 }
 
@@ -98,8 +98,8 @@ function constrainDevSSH()
     CG_USER="$BASE/$PREFIX-$PSPAM_USER"
     if [ -d $CG_USER ]; then
 	    # add user to cgroup
-	    mlog "adding child $CHILD to user cgroup $CG_USER"
-	    echo "$CHILD" > $CG_USER/tasks
+	    dlog "adding child $CHILD to user cgroup $CG_USER"
+	    cgWrite "$CHILD" $CG_USER/tasks
     else
 	    elog "error: user cgroup $CG_USER is missing"
     fi
