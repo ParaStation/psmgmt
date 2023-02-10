@@ -1282,6 +1282,7 @@ static void handleRebootNodes(Slurm_Msg_t *sMsg)
 
     /* slurmctld does not require an answer for this RPC and silently ignores
      * any responses */
+}
 
 uint64_t getSlurmHCRuns(void)
 {
