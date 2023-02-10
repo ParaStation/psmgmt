@@ -1,3 +1,820 @@
+Version 5.1.54:
+===============
+------------------------------------------------------------------------
+35070c7ff | Norbert Eicker | Fri, 10 Feb 2023 14:29:16 +0100
+
+IWYU fixes
+------------------------------------------------------------------------
+56b69ae7a | Norbert Eicker | Fri, 10 Feb 2023 14:09:19 +0100
+
+Let the handleRebootNodes() function actually end
+------------------------------------------------------------------------
+4e419464c | Michael Rauh | Fri, 10 Feb 2023 14:00:31 +0100
+
+Let jail module cpuset log additions to user cgroup (SSH logins)
+------------------------------------------------------------------------
+e4711031e | Michael Rauh | Fri, 10 Feb 2023 13:04:04 +0100
+
+Make more jail scripts less chatty
+------------------------------------------------------------------------
+77ab018a2 | Michael Rauh | Fri, 10 Feb 2023 12:18:24 +0100
+
+Introduce LOG_TO_SYSLOG and let jail scripts log to syslog as default
+------------------------------------------------------------------------
+8905748db | Michael Rauh | Fri, 10 Feb 2023 12:01:21 +0100
+
+Make jail scripts less chatty
+------------------------------------------------------------------------
+0719eb835 | Norbert Eicker | Thu, 9 Feb 2023 19:38:25 +0100
+
+Prevent premature exit of logger on short jobs
+------------------------------------------------------------------------
+2765db0fc | Michael Rauh | Thu, 9 Feb 2023 17:34:21 +0100
+
+Bugfix: fix possible segfault if psslurm verifies an allocation (#96)
+------------------------------------------------------------------------
+24c76f1a8 | Norbert Eicker | Thu, 9 Feb 2023 16:37:48 +0100
+
+Streamline psilogger code
+------------------------------------------------------------------------
+8433d5ee7 | Norbert Eicker | Thu, 9 Feb 2023 15:38:37 +0100
+
+Rework __PSI_LOGGER_IO_FILE implementation
+------------------------------------------------------------------------
+d94561297 | Michael Rauh | Thu, 9 Feb 2023 11:58:19 +0100
+
+Improve error log implementation
+------------------------------------------------------------------------
+3e2297aef | Michael Rauh | Wed, 8 Feb 2023 12:17:28 +0100
+
+Introduce __PSI_LOGGER_IO_FILE
+
+ - let psilogger redirect the stdout and stderr to a local file
+ - the filename will be prefixed with the name of the variable
+ - stdout and stderr will be redirected to one file each
+------------------------------------------------------------------------
+12d50b25f | Michael Rauh | Wed, 8 Feb 2023 10:13:53 +0100
+
+Show senders TID for failed psaccount update messages
+------------------------------------------------------------------------
+95c4020d1 | Norbert Eicker | Tue, 7 Feb 2023 21:49:32 +0100
+
+Give some indication why connection to logger gets lost
+
+ - For this PSP_CC_ERROR messages will contain some payload of the
+   dropped PSP_CC_MSG
+------------------------------------------------------------------------
+460fc3323 | Michael Rauh | Mon, 6 Feb 2023 17:26:00 +0100
+
+Cleanup leftover job/step entries in cpuset cgroup
+------------------------------------------------------------------------
+6b0a569d8 | Michael Rauh | Mon, 6 Feb 2023 17:25:23 +0100
+
+Kill cgroup tasks of jobs which have no steps
+------------------------------------------------------------------------
+7198f7c7e | Michael Rauh | Mon, 6 Feb 2023 15:02:06 +0100
+
+Enhancement: Speedup completing phase of steps which failed to start
+------------------------------------------------------------------------
+16f7f9240 | Michael Rauh | Mon, 6 Feb 2023 15:01:31 +0100
+
+Add additional logging information for job termination requests
+------------------------------------------------------------------------
+9d09ce525 | Norbert Eicker | Mon, 6 Feb 2023 12:49:56 +0100
+
+Let psslurm fail early if not run as root
+------------------------------------------------------------------------
+e61561a39 | Norbert Eicker | Mon, 6 Feb 2023 12:49:05 +0100
+
+Reorder function declaration
+------------------------------------------------------------------------
+e2815ebd4 | Norbert Eicker | Mon, 6 Feb 2023 12:48:36 +0100
+
+Simplify logic
+------------------------------------------------------------------------
+4e1593ec3 | Michael Rauh | Mon, 6 Feb 2023 11:55:34 +0100
+
+Move locking of cpuset cgroup after sanity checks
+------------------------------------------------------------------------
+7b5652b43 | Michael Rauh | Fri, 3 Feb 2023 14:45:38 +0100
+
+Don't instantly verify all allocations with enabled node sharing
+------------------------------------------------------------------------
+32b9f3f15 | Michael Rauh | Thu, 2 Feb 2023 17:37:53 +0100
+
+Bugfix: don't destroy steps in Job_delete()
+------------------------------------------------------------------------
+919d7dacb | Michael Rauh | Thu, 2 Feb 2023 17:30:02 +0100
+
+Rename Step_clearByJobid() to Step_destroyByJobid() and improve
+documentation
+------------------------------------------------------------------------
+d7fc7c5a0 | Michael Rauh | Thu, 2 Feb 2023 15:56:13 +0100
+
+Add caller information to signalTasks()
+------------------------------------------------------------------------
+44bbd97d9 | Michael Rauh | Thu, 2 Feb 2023 13:05:41 +0100
+
+Bugfix: Ensure all delayed tasks get removed if the corresponding
+allocation is gone
+------------------------------------------------------------------------
+62c28674e | Michael Rauh | Wed, 1 Feb 2023 16:45:16 +0100
+
+Add stepid information to signalTasks()
+------------------------------------------------------------------------
+16f222976 | Michael Rauh | Wed, 1 Feb 2023 16:35:58 +0100
+
+Add module locking to jail scripts and some minor fixes
+------------------------------------------------------------------------
+7e015087d | Michael Rauh | Fri, 10 Feb 2023 13:48:07 +0100
+
+Improve comments
+------------------------------------------------------------------------
+e52b9d41c | Michael Rauh | Thu, 9 Feb 2023 15:18:21 +0100
+
+Loop over complete denied user list
+------------------------------------------------------------------------
+fcdc2f25f | Michael Rauh | Thu, 9 Feb 2023 14:49:46 +0100
+
+Change error code for invalid user to ESLURM_USER_ID_MISSING
+------------------------------------------------------------------------
+1a08cf8e0 | Michael Rauh | Thu, 9 Feb 2023 14:45:45 +0100
+
+Change permission error code to ESLURM_ACCESS_DENIED
+------------------------------------------------------------------------
+6713721e4 | Michael Rauh | Thu, 9 Feb 2023 14:30:24 +0100
+
+Add message type error log of checkPrivMsg()
+------------------------------------------------------------------------
+10f1bcf7d | Norbert Eicker | Tue, 31 Jan 2023 13:56:23 +0100
+
+Avoid goto
+------------------------------------------------------------------------
+de78b3039 | Michael Rauh | Tue, 31 Jan 2023 12:16:00 +0100
+
+Use array to store denied UIDs
+------------------------------------------------------------------------
+906fe6f6f | Michael Rauh | Tue, 31 Jan 2023 11:53:23 +0100
+
+Introduce checkPrivMsg()
+------------------------------------------------------------------------
+4121ff8b1 | Norbert Eicker | Mon, 30 Jan 2023 19:38:54 +0100
+
+Fix typos
+------------------------------------------------------------------------
+9e30f144c | Michael Rauh | Mon, 30 Jan 2023 14:14:23 +0100
+
+Add new psslurm configuration option DENIED_USERS
+
+ * list of users unable to start a job/step/bcast
+ * default value is set to "root"
+------------------------------------------------------------------------
+aeeee24e1 | Norbert Eicker | Thu, 9 Feb 2023 21:57:19 +0100
+
+More IWYU fixes
+------------------------------------------------------------------------
+0d47e5384 | Norbert Eicker | Mon, 30 Jan 2023 15:48:51 +0100
+
+Adapt to IWYU 0.19
+------------------------------------------------------------------------
+19ab2a6ee | Stephan Krempel | Wed, 8 Feb 2023 05:06:36 +0100
+
+Fix typo
+------------------------------------------------------------------------
+26fc5e3ee | Norbert Eicker | Tue, 7 Feb 2023 22:44:57 +0100
+
+Unify process set creation
+------------------------------------------------------------------------
+1615a62d3 | Stephan Krempel | Tue, 7 Feb 2023 11:30:27 +0100
+
+pspmix: Make pset creations noops for PMIx < 4
+------------------------------------------------------------------------
+6dadd0eac | Stephan Krempel | Tue, 7 Feb 2023 04:53:38 +0100
+
+pspmix: Make behavior of pset creation consitent
+------------------------------------------------------------------------
+5c8695401 | Stephan Krempel | Tue, 7 Feb 2023 04:25:07 +0100
+
+pspmix: Setup local node before creating psets
+------------------------------------------------------------------------
+cffc80823 | Norbert Eicker | Mon, 6 Feb 2023 22:50:44 +0100
+
+Streamline
+------------------------------------------------------------------------
+ccf193503 | Stephan Krempel | Fri, 3 Feb 2023 08:18:41 +0100
+
+pspmix: Introduce application psets
+
+This uses the new environment variables PMIX_APPNAME_<ID> to be
+set by mpiexec.
+
+see #110
+------------------------------------------------------------------------
+6daf6c546 | Stephan Krempel | Fri, 3 Feb 2023 08:10:46 +0100
+
+pspmix: Adjust to new naming scheme
+------------------------------------------------------------------------
+340b57feb | Stephan Krempel | Fri, 3 Feb 2023 08:03:51 +0100
+
+pspmix: Do not report error on empty pset
+------------------------------------------------------------------------
+74bc0524e | Stephan Krempel | Fri, 3 Feb 2023 08:02:44 +0100
+
+pspmix: Debug log pset creation
+------------------------------------------------------------------------
+2e3b0fe6f | Stephan Krempel | Tue, 29 Nov 2022 18:04:06 +0100
+
+Fix format and streamlining
+------------------------------------------------------------------------
+fb1a3b2ea | Sonja Happ | Tue, 29 Nov 2022 15:22:34 +0100
+
+psmpix: do not create empty process sets
+------------------------------------------------------------------------
+b250e693f | Stephan Krempel | Tue, 22 Nov 2022 13:48:11 +0100
+
+pspmix: Be tolerant to PMIX_OPERATION_SUCCEEDED
+------------------------------------------------------------------------
+f7268e4e0 | Stephan Krempel | Fri, 28 Oct 2022 09:33:27 +0200
+
+pspmix: remove pragmas obsoleted by openpmix 4.2.2
+------------------------------------------------------------------------
+3694c8759 | Stephan Krempel | Thu, 27 Oct 2022 00:52:33 +0200
+
+pspmix: Create a psets based on reservation
+------------------------------------------------------------------------
+f481d4fe2 | Stephan Krempel | Thu, 27 Oct 2022 00:51:48 +0200
+
+pspmix: Add resID to PspmixApp_t
+------------------------------------------------------------------------
+b2bec48fe | Stephan Krempel | Thu, 27 Oct 2022 00:50:50 +0200
+
+pspmix: Add function to create pset based on process characteristics
+------------------------------------------------------------------------
+8afb126fc | Stephan Krempel | Wed, 26 Oct 2022 14:27:34 +0200
+
+pspmix: Create a psets based on hwtype
+------------------------------------------------------------------------
+12f68e4bb | Stephan Krempel | Wed, 26 Oct 2022 14:26:32 +0200
+
+pspmix: Add function to create pset based on node characteristics
+------------------------------------------------------------------------
+896b418f0 | Stephan Krempel | Thu, 2 Feb 2023 01:30:48 +0100
+
+pspmix: Fix msg extra handling when verifying UIDs
+------------------------------------------------------------------------
+26a9da652 | Norbert Eicker | Wed, 1 Feb 2023 16:00:51 +0100
+
+Improve logging
+------------------------------------------------------------------------
+e24dbe5d0 | Norbert Eicker | Tue, 31 Jan 2023 11:17:16 +0100
+
+Minor changes / improvements
+------------------------------------------------------------------------
+d8b829c07 | Stephan Krempel | Tue, 31 Jan 2023 03:19:35 +0100
+
+pspmix: Verify sender, dest and user IDs
+------------------------------------------------------------------------
+618e564e8 | Norbert Eicker | Fri, 3 Feb 2023 15:18:15 +0100
+
+Remove unnecessary sort
+------------------------------------------------------------------------
+c72cb51c0 | Stephan Krempel | Thu, 2 Feb 2023 00:24:41 +0100
+
+pspmix: Enhance comments about fence object existence
+------------------------------------------------------------------------
+ab439d5d5 | Stephan Krempel | Thu, 2 Feb 2023 00:22:34 +0100
+
+pspmix: Add comments about executing threads
+------------------------------------------------------------------------
+798be187f | Stephan Krempel | Thu, 2 Feb 2023 00:20:12 +0100
+
+pspmix: Some further comments about data ownership
+------------------------------------------------------------------------
+38b98d376 | Norbert Eicker | Wed, 1 Feb 2023 19:06:50 +0100
+
+Report pending messages in completed fence
+------------------------------------------------------------------------
+bbfdbb7e1 | Norbert Eicker | Wed, 1 Feb 2023 18:53:25 +0100
+
+Minor rephrasing of docu comments
+------------------------------------------------------------------------
+51fdeb5f4 | Stephan Krempel | Wed, 1 Feb 2023 18:35:25 +0100
+
+pspmix: Enhance comments
+------------------------------------------------------------------------
+bb6fb48ee | Norbert Eicker | Tue, 31 Jan 2023 18:23:46 +0100
+
+Adapt docu to upward/downward lingo
+------------------------------------------------------------------------
+c91ec287b | Norbert Eicker | Tue, 31 Jan 2023 16:15:37 +0100
+
+Minor fixes
+------------------------------------------------------------------------
+214521a2e | Stephan Krempel | Tue, 31 Jan 2023 13:44:39 +0100
+
+Fix typos
+------------------------------------------------------------------------
+8d38e1c15 | Norbert Eicker | Wed, 18 Jan 2023 08:38:06 +0100
+
+Yet another typo
+------------------------------------------------------------------------
+ededda131 | Stephan Krempel | Tue, 17 Jan 2023 23:22:12 +0000
+
+Fix typos in pluginvector.h
+------------------------------------------------------------------------
+c0399eaed | Norbert Eicker | Tue, 17 Jan 2023 12:06:06 +0100
+
+Ignore modexdata_t's proc member in fence context
+------------------------------------------------------------------------
+b79e78cda | Norbert Eicker | Tue, 17 Jan 2023 11:24:12 +0100
+
+Some simple PMIx examples to be used for testing
+------------------------------------------------------------------------
+bffa9da99 | Norbert Eicker | Tue, 17 Jan 2023 10:16:50 +0100
+
+Improve logging
+------------------------------------------------------------------------
+4cf87706c | Norbert Eicker | Thu, 12 Jan 2023 03:31:12 +0100
+
+Fix typos
+------------------------------------------------------------------------
+70add2dd3 | Norbert Eicker | Thu, 12 Jan 2023 03:18:23 +0100
+
+Implement pspmix' tree fence
+
+ * This shall reduce number of message from 2*N to 2*lg(N) and the
+   amount of time from N^2 to N*lg(N)
+------------------------------------------------------------------------
+e48fac1fa | Norbert Eicker | Wed, 11 Jan 2023 23:24:30 +0100
+
+Improve docu comments
+------------------------------------------------------------------------
+a7afc8ec3 | Norbert Eicker | Wed, 11 Jan 2023 22:27:54 +0100
+
+Introduce PSPMIX_FENCE_DATA for tree fence
+------------------------------------------------------------------------
+e3ffe6a96 | Norbert Eicker | Tue, 10 Jan 2023 16:10:44 +0100
+
+Prepare fence object of tree communication
+------------------------------------------------------------------------
+e80b5f21c | Norbert Eicker | Tue, 10 Jan 2023 12:16:44 +0100
+
+Add functionality to find entry in vector
+------------------------------------------------------------------------
+8426464c4 | Norbert Eicker | Tue, 10 Jan 2023 11:43:21 +0100
+
+Reflect the fact that fence IDs are now unique
+------------------------------------------------------------------------
+cb20b4d9a | Norbert Eicker | Tue, 10 Jan 2023 11:11:49 +0100
+
+Include namespace (as a jobID proxy) into fetchID hash
+------------------------------------------------------------------------
+41086c827 | Norbert Eicker | Mon, 9 Jan 2023 20:20:34 +0100
+
+Enhance some comments documenting PMIx server behavior
+------------------------------------------------------------------------
+e0e0b4777 | Norbert Eicker | Mon, 9 Jan 2023 20:03:32 +0100
+
+Minor cleanup in memory handling
+------------------------------------------------------------------------
+9c947ed16 | Norbert Eicker | Mon, 9 Jan 2023 19:53:25 +0100
+
+Fix typo in docu comment
+------------------------------------------------------------------------
+e7aa39b5d | Norbert Eicker | Mon, 9 Jan 2023 19:49:55 +0100
+
+Move node extraction into extractNodes()
+------------------------------------------------------------------------
+ecadf3d37 | Norbert Eicker | Mon, 9 Jan 2023 19:23:44 +0100
+
+Fix typo in comment
+------------------------------------------------------------------------
+56e5590b3 | Norbert Eicker | Mon, 9 Jan 2023 19:22:12 +0100
+
+Bugfix: ensure all data is sent to successor
+------------------------------------------------------------------------
+f53a20ecb | Norbert Eicker | Mon, 9 Jan 2023 19:17:12 +0100
+
+Fix potentiaal memory leak
+------------------------------------------------------------------------
+f493edc88 | Michael Rauh | Thu, 2 Feb 2023 14:03:33 +0100
+
+Bugfix: initialize plugins before parsing the configuration
+------------------------------------------------------------------------
+1d040c2f2 | Michael Rauh | Thu, 2 Feb 2023 11:01:48 +0100
+
+Don't load psslurm of jail function handles are not avaiable
+------------------------------------------------------------------------
+a8879acf8 | Norbert Eicker | Fri, 20 Jan 2023 01:15:38 +0100
+
+Reflect traverseCompList() rename in filenames
+------------------------------------------------------------------------
+d218d4f6f | Norbert Eicker | Fri, 20 Jan 2023 01:01:28 +0100
+
+Rename traverseHostList to traverseCompList
+------------------------------------------------------------------------
+5f99c44dc | Norbert Eicker | Fri, 20 Jan 2023 00:56:51 +0100
+
+Rework traverseHostList()
+------------------------------------------------------------------------
+69a0d46cb | Michael Rauh | Tue, 24 Jan 2023 17:00:52 +0100
+
+Save old jail scripts before introducing symlinks to updated scripts
+------------------------------------------------------------------------
+6f09e6e84 | Michael Rauh | Tue, 24 Jan 2023 14:03:30 +0100
+
+Introduce jail environment mapping function initJailEnv()
+------------------------------------------------------------------------
+106857f38 | Norbert Eicker | Tue, 24 Jan 2023 13:18:34 +0100
+
+Fix fast forward in psslurmenv
+------------------------------------------------------------------------
+21187a27f | Michael Rauh | Tue, 24 Jan 2023 12:49:38 +0100
+
+Remove "SLURM" prefix from jail script environment variables
+------------------------------------------------------------------------
+3373c4814 | Michael Rauh | Tue, 24 Jan 2023 10:27:56 +0100
+
+Fix float comparison
+------------------------------------------------------------------------
+0c39a4b1a | Norbert Eicker | Tue, 24 Jan 2023 09:05:04 +0100
+
+Fast forward loop while setting jail's memory env
+------------------------------------------------------------------------
+c75355579 | Norbert Eicker | Tue, 24 Jan 2023 08:43:57 +0100
+
+Introduce traverseGResDevs() to improve one nested loop
+------------------------------------------------------------------------
+9f3e1ec18 | Norbert Eicker | Mon, 23 Jan 2023 17:15:07 +0100
+
+Update buildsystem
+------------------------------------------------------------------------
+2a0d48c6f | Michael Rauh | Mon, 23 Jan 2023 14:26:13 +0100
+
+Remove duplicated code for counting GRes devices
+------------------------------------------------------------------------
+ce700f945 | Michael Rauh | Mon, 23 Jan 2023 13:56:06 +0100
+
+Use jailGetScripts() in psslurm to ensure valid jail scripts
+are available when cgroup constrains are configured
+------------------------------------------------------------------------
+425d151f3 | Michael Rauh | Mon, 23 Jan 2023 13:32:17 +0100
+
+Include jail handle in psslurm
+------------------------------------------------------------------------
+e355b4a2d | Michael Rauh | Mon, 23 Jan 2023 13:24:11 +0100
+
+Update buildsystem
+------------------------------------------------------------------------
+cb759063a | Michael Rauh | Mon, 23 Jan 2023 13:23:15 +0100
+
+Add jail handle to be used in psslurm
+------------------------------------------------------------------------
+e230b2c49 | Norbert Eicker | Mon, 23 Jan 2023 12:07:42 +0100
+
+Add jailGetScripts() interface to jail plugin
+
+ - Push jail version to 3
+------------------------------------------------------------------------
+b6d59f82b | Michael Rauh | Fri, 20 Jan 2023 17:55:10 +0100
+
+Fix cgroup swappiness spelling and scripts
+------------------------------------------------------------------------
+80d0aa327 | Michael Rauh | Fri, 20 Jan 2023 17:54:16 +0100
+
+Don't remove symlinks jail.sh and jail-term.sh when upgrading psmgmt
+------------------------------------------------------------------------
+4576af7f7 | Norbert Eicker | Fri, 20 Jan 2023 15:12:39 +0100
+
+Set RPM ownership of jail.sh and jail-term.sh
+------------------------------------------------------------------------
+e844ff2a6 | Michael Rauh | Fri, 20 Jan 2023 14:57:51 +0100
+
+Remove unnecessary check
+------------------------------------------------------------------------
+98eeea3e2 | Michael Rauh | Fri, 20 Jan 2023 14:55:07 +0100
+
+Add and use clearTopology()
+------------------------------------------------------------------------
+b0c882f4f | Michael Rauh | Fri, 20 Jan 2023 14:39:01 +0100
+
+Add missing cgroup configuration default for MinRAMSpace
+------------------------------------------------------------------------
+cd4c7c22f | Norbert Eicker | Fri, 20 Jan 2023 14:38:20 +0100
+
+Avoid changing the environment temporarily
+------------------------------------------------------------------------
+6d89843ae | Norbert Eicker | Fri, 20 Jan 2023 01:31:48 +0100
+
+More changes of cgroup config description
+------------------------------------------------------------------------
+fbb36c8d2 | Michael Rauh | Thu, 19 Jan 2023 20:06:30 +0100
+
+Remove jail symlinks when rpm package is uninstalled
+------------------------------------------------------------------------
+39c5cb7ba | Michael Rauh | Thu, 19 Jan 2023 19:53:37 +0100
+
+Fix cgroup config description
+------------------------------------------------------------------------
+03a27a921 | Michael Rauh | Thu, 19 Jan 2023 16:55:23 +0100
+
+Avoid changing the environment temporarily
+------------------------------------------------------------------------
+8592acb08 | Michael Rauh | Thu, 19 Jan 2023 15:57:56 +0100
+
+Fix possible segfault when comparing environment variables
+------------------------------------------------------------------------
+d2b68b26b | Michael Rauh | Thu, 19 Jan 2023 15:50:12 +0100
+
+Remove misplaced cgroup list initialisation
+------------------------------------------------------------------------
+e5f6fe0cd | Norbert Eicker | Wed, 18 Jan 2023 22:47:19 +0100
+
+Whitespace fixes
+------------------------------------------------------------------------
+4238408b3 | Norbert Eicker | Tue, 17 Jan 2023 19:55:17 +0100
+
+Fix potential memory leaks
+------------------------------------------------------------------------
+8152e0d4e | Norbert Eicker | Tue, 17 Jan 2023 18:51:27 +0100
+
+Unify spelling in docu comments
+------------------------------------------------------------------------
+86bf6aa1a | Norbert Eicker | Tue, 17 Jan 2023 18:01:08 +0100
+
+Push to automake 1.16.5 again
+------------------------------------------------------------------------
+692d8f2f8 | Norbert Eicker | Tue, 17 Jan 2023 17:48:49 +0100
+
+Enhance docu comments in jail scripts
+------------------------------------------------------------------------
+29951afac | Norbert Eicker | Tue, 17 Jan 2023 16:47:39 +0100
+
+IWYU fixes
+------------------------------------------------------------------------
+cee4200ed | Michael Rauh | Fri, 13 Jan 2023 18:06:36 +0100
+
+Change cpuset syntax for new expand script
+------------------------------------------------------------------------
+f8c8f5b62 | Michael Rauh | Fri, 13 Jan 2023 17:09:00 +0100
+
+Add basic pspam support for jail devices and memory
+------------------------------------------------------------------------
+0d0f0f9df | Michael Rauh | Thu, 12 Jan 2023 18:09:16 +0100
+
+Set missing job environment variables
+------------------------------------------------------------------------
+a7b50038b | Michael Rauh | Thu, 12 Jan 2023 15:17:27 +0100
+
+Fix possbile segfault for unset GRes devices
+------------------------------------------------------------------------
+eb18ed724 | Michael Rauh | Thu, 12 Jan 2023 12:52:14 +0100
+
+Use total node memory as limit if slurmctld does not provide one
+------------------------------------------------------------------------
+ba8f88f44 | Michael Rauh | Thu, 12 Jan 2023 12:13:45 +0100
+
+Improve cgroup.conf help messages
+------------------------------------------------------------------------
+86eb9871d | Michael Rauh | Thu, 12 Jan 2023 12:06:15 +0100
+
+Validate jail memory limits
+------------------------------------------------------------------------
+2f3148724 | Michael Rauh | Thu, 12 Jan 2023 11:29:38 +0100
+
+Fix warning in jail script
+------------------------------------------------------------------------
+d6232d31c | Michael Rauh | Thu, 12 Jan 2023 11:20:54 +0100
+
+Use pscompress and psexpand in jail scripts
+------------------------------------------------------------------------
+25000bbb1 | Michael Rauh | Thu, 12 Jan 2023 10:28:27 +0100
+
+Adopt psroute to new path of pscompress and psexpand
+------------------------------------------------------------------------
+e4951774d | Michael Rauh | Thu, 12 Jan 2023 10:23:19 +0100
+
+Update buildsystem
+------------------------------------------------------------------------
+1ebd83ffd | Michael Rauh | Wed, 11 Jan 2023 21:47:52 +0100
+
+Move pscompress psexpand to main scripts folder
+------------------------------------------------------------------------
+311cee94c | Michael Rauh | Wed, 11 Jan 2023 21:38:33 +0100
+
+Add shebang to pscompress and psexpand
+------------------------------------------------------------------------
+fd2362c4d | Michael Rauh | Wed, 11 Jan 2023 21:11:52 +0100
+
+Enable jail scripts as default
+------------------------------------------------------------------------
+f024795b8 | Michael Rauh | Wed, 11 Jan 2023 17:05:41 +0100
+
+Update buildsystem
+------------------------------------------------------------------------
+7b626d994 | Michael Rauh | Wed, 11 Jan 2023 17:02:32 +0100
+
+Move jail scripts to separate folders
+------------------------------------------------------------------------
+1b9ea066c | Michael Rauh | Tue, 10 Jan 2023 14:25:46 +0100
+
+Add support for additonal memory limit (soft ram, kmem, swap, swapiness)
+------------------------------------------------------------------------
+4969c8bd8 | Michael Rauh | Tue, 10 Jan 2023 14:23:09 +0100
+
+Add additional cgroup default values
+------------------------------------------------------------------------
+cf41f0ef4 | Michael Rauh | Wed, 4 Jan 2023 10:11:15 +0100
+
+Ensure SLURM_CONF has new SLURM_CONFIG_DIR path appended
+------------------------------------------------------------------------
+fbb77c365 | Norbert Eicker | Wed, 4 Jan 2023 14:26:25 +0100
+
+Fix copyright statements
+------------------------------------------------------------------------
+2831533bd | Michael Rauh | Tue, 3 Jan 2023 17:00:37 +0100
+
+Add log debug mask PSSLURM_LOG_JAIL
+------------------------------------------------------------------------
+1b62fa4bc | Michael Rauh | Mon, 2 Jan 2023 17:01:41 +0100
+
+Make private function getNodeMem() public
+------------------------------------------------------------------------
+99beeda6c | Michael Rauh | Mon, 2 Jan 2023 15:47:02 +0100
+
+Add getConfValueF() to query a configuration value as
+floating point number
+------------------------------------------------------------------------
+d9e5a0e8b | Michael Rauh | Mon, 2 Jan 2023 14:57:48 +0100
+
+Remove obsolete comment
+------------------------------------------------------------------------
+94ed4a8fb | Michael Rauh | Fri, 30 Dec 2022 15:34:25 +0100
+
+Add warning for unsupported cgroup.conf options
+------------------------------------------------------------------------
+f6eaa5d8c | Michael Rauh | Fri, 30 Dec 2022 15:18:39 +0100
+
+Forward cgroup configuration to jail scripts and cleanup environment
+for child processes
+------------------------------------------------------------------------
+ebc1e3ce2 | Michael Rauh | Fri, 30 Dec 2022 15:12:19 +0100
+
+Parse Slurm cgroup.conf configuration
+------------------------------------------------------------------------
+815e74626 | Michael Rauh | Fri, 30 Dec 2022 14:14:23 +0100
+
+Make private function hexBitstr2Set() public
+------------------------------------------------------------------------
+a04f6730a | Michael Rauh | Fri, 30 Dec 2022 14:09:27 +0100
+
+Log job memory contrains of job credentials and improve comments
+------------------------------------------------------------------------
+2418b46d6 | Michael Rauh | Fri, 30 Dec 2022 14:08:19 +0100
+
+Improve comment
+------------------------------------------------------------------------
+7a4697d05 | Michael Rauh | Fri, 30 Dec 2022 14:06:21 +0100
+
+Add device block information and search function for GRes configuration
+------------------------------------------------------------------------
+353d9d8b4 | Michael Rauh | Fri, 30 Dec 2022 14:01:53 +0100
+
+Let jail-term-cpuset use __PSJAIL_CONSTRAIN_CORES control variable
+------------------------------------------------------------------------
+7a2d90404 | Michael Rauh | Fri, 30 Dec 2022 14:00:04 +0100
+
+Use prefix __PSJAIL_ for jail specific control variables
+------------------------------------------------------------------------
+f614fa063 | Michael Rauh | Fri, 30 Dec 2022 13:56:44 +0100
+
+Improve logging functions of jail modules
+------------------------------------------------------------------------
+33a4decf7 | Michael Rauh | Thu, 29 Dec 2022 17:16:47 +0100
+
+Introduce psslurm configuration option SLURM_CONFIG_DIR
+
+ * warning *
+ The following configuration options defining the filename
+ without the path:
+   SLURM_CONF, SLURM_GRES_CONF, SLURM_SPANK_CONF,
+   SLURM_GATHER_CONF, SLURM_TOPOLOGY_CONF
+
+ - path to search for various Slurm configuration files
+ - is automatically adjusted in config-less mode
+ - default is /etc/slurm
+------------------------------------------------------------------------
+2e8954ccd | Michael Rauh | Thu, 29 Dec 2022 16:07:10 +0100
+
+Rename psslurm configuration option SLURM_CONF_DIR to SLURM_CONF_CACHE
+------------------------------------------------------------------------
+d9f66dcbd | Michael Rauh | Wed, 28 Dec 2022 16:23:10 +0100
+
+Fix quoting
+------------------------------------------------------------------------
+95345965c | Michael Rauh | Thu, 15 Dec 2022 10:32:09 +0100
+
+Update buildsystem
+------------------------------------------------------------------------
+c475b4007 | Michael Rauh | Thu, 15 Dec 2022 10:30:39 +0100
+
+Add memory and devices jail modules to buildsystem
+------------------------------------------------------------------------
+2b0df88c1 | Michael Rauh | Thu, 15 Dec 2022 10:27:21 +0100
+
+Prepare Slurm cgroup options in jail cpuset module
+------------------------------------------------------------------------
+08446faf9 | Michael Rauh | Thu, 15 Dec 2022 10:24:24 +0100
+
+Load memory and devices jail modules by default
+------------------------------------------------------------------------
+85f00f4c2 | Michael Rauh | Thu, 15 Dec 2022 10:23:17 +0100
+
+Add memory and devies jail modules
+------------------------------------------------------------------------
+3e012c216 | Norbert Eicker | Wed, 18 Jan 2023 23:58:54 +0100
+
+Streamlining
+------------------------------------------------------------------------
+1a690ae6c | Sonja Happ | Wed, 18 Jan 2023 11:37:42 +0100
+
+scripts: add a script to configure psid for a single node using psconfig
+------------------------------------------------------------------------
+40c811fec | Norbert Eicker | Wed, 25 Jan 2023 18:13:27 +0100
+
+Booleanize
+------------------------------------------------------------------------
+d28c04957 | Stephan Krempel | Wed, 25 Jan 2023 13:27:20 +0100
+
+psslurm: Fix handling of hint nomultithread
+
+Closes #104
+------------------------------------------------------------------------
+b8e6916bb | Norbert Eicker | Wed, 4 Jan 2023 13:47:32 +0100
+
+Streamline, booleanize, etc.
+------------------------------------------------------------------------
+66eaadb2e | Norbert Eicker | Wed, 4 Jan 2023 13:44:37 +0100
+
+Bugfix: Ensure allocated memory is large enough
+------------------------------------------------------------------------
+ad3b9cf41 | Michael Rauh | Fri, 23 Dec 2022 16:21:42 +0100
+
+Introduce GRes_findDevice()
+
+ - get major and minor device ID
+ - find a device by the GRes bitmap index
+------------------------------------------------------------------------
+b72304e06 | Norbert Eicker | Thu, 12 Jan 2023 16:17:27 +0100
+
+Cleanup IMYU mappings not needed any longer
+------------------------------------------------------------------------
+8deb9e8a1 | Norbert Eicker | Thu, 12 Jan 2023 12:58:17 +0100
+
+Add IWYU mappings for POSIX per-process timers
+------------------------------------------------------------------------
+86f1b4546 | Norbert Eicker | Mon, 2 Jan 2023 16:54:05 +0100
+
+Switch Timer to POSIX per-process timer
+------------------------------------------------------------------------
+8c042b81d | Norbert Eicker | Wed, 21 Dec 2022 17:00:23 +0100
+
+Cleanup docu comments
+------------------------------------------------------------------------
+5b72991f1 | Norbert Eicker | Wed, 23 Nov 2022 00:05:44 +0100
+
+Introduce Timer_getActPeriod()
+------------------------------------------------------------------------
+cf779bdb3 | Norbert Eicker | Wed, 23 Nov 2022 00:04:43 +0100
+
+Enhance documenation of the Timer module
+------------------------------------------------------------------------
+faf4d07e8 | Norbert Eicker | Tue, 22 Nov 2022 23:14:55 +0100
+
+Streamlining
+------------------------------------------------------------------------
+1f2d86e00 | Norbert Eicker | Mon, 9 Jan 2023 16:55:33 +0100
+
+Fix copyright year and autoreconf
+------------------------------------------------------------------------
+4f48fd56b | Stephan Krempel | Mon, 9 Jan 2023 16:44:16 +0100
+
+Print pmix version at the end of configure
+------------------------------------------------------------------------
+127833480 | Stephan Krempel | Tue, 20 Dec 2022 15:46:11 +0100
+
+psslurm: Warn about missing multi gpu per tasks support
+
+Related to mlx#842
+------------------------------------------------------------------------
+4e68733f2 | Stephan Krempel | Fri, 30 Dec 2022 14:06:58 +0100
+
+Avoid %exclude statement in spec file for each .la
+
+Closes #100
+------------------------------------------------------------------------
+
+
 Version 5.1.53-1:
 =================
 ------------------------------------------------------------------------

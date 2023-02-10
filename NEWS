@@ -1,9 +1,44 @@
 psmgmt NEWS -- history of user-visible changes.
 
 Copyright (C) 2010-2021 ParTec Cluster Competence Center GmbH, Munich
-Copyright (C) 2021-2022 ParTec AG, Munich
+Copyright (C) 2021-2023 ParTec AG, Munich
 
 Please send bug reports, questions and suggestions to <support@par-tec.com>
+
+
+Version 5.1.54:
+===============
+Bugfixes:
+ - Fix possible segfault if psslurm verifies an allocation (#96)
+ - Fix handling of hint nomultithread in pspmix (#104)
+ - Don't destroy steps in Job_delete()
+ - Ensure all delayed tasks get removed when allocation is gone
+ - Prevent premature exit of psilogger on short jobs
+ - Don't load psslurm if jail function handles are not avaiable
+ - Ensure all data gets distribute during PMIx fence operation
+Enhancements:
+ - Add cgroup support to psslurm (might limit various system resources)
+ - Major rework of jail plugin and scripts to allow node sharing
+ - Introduce automatic PMIx process sets to pspmix when acting as v4 server
+ - More scalable, tree protocol based PMIx fence operation in pspmix
+ - Introduce psslurm configuration option SLURM_CONFIG_DIR
+ - Rename psslurm configuration option SLURM_CONF_DIR to SLURM_CONF_CACHE
+ - Warn about missing multi gpu per tasks support in psslurm (mlx#842)
+ - Verify sender, dest and user IDs in pspmix communication
+ - Add new psslurm configuration option DENIED_USERS
+ - Speedup completing phase of steps which failed to start
+ - Introduce __PSI_LOGGER_IO_FILE to detour psidlogger's outputs
+Additional changes:
+ - Show senders TID for failed psaccount update messages
+ - Give some indication why psidforwarder's connection to logger gets lost
+ - Move jail scripts to separate folders
+ - Use pscompress and psexpand in jail scripts
+ - Switch psid's Timer facility to POSIX per-process timer
+ - Rename Step_clearByJobid() to Step_destroyByJobid()
+ - Rename traverseHostList() to traverseCompList()
+ - Add functionality to find entry in vector
+ - Print pmix version at the end of configure
+ - Avoid %exclude statement in spec file for each .la (#100)
 
 
 Version 5.1.53-1:
