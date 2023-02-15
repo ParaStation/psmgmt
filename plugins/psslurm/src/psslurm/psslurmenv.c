@@ -479,7 +479,7 @@ static void setJailDevEnv(list_t *gresList, uint32_t localNodeId)
 	    .nDeny = 0 };
 	PSCPU_clrAll(devInfo.set);
 
-	if (gres->bitAlloc[localNodeId]
+	if (gres->bitAlloc && gres->bitAlloc[localNodeId]
 	    && !hexBitstr2Set(gres->bitAlloc[localNodeId], devInfo.set)) {
 	    flog("unable to get gres node allocation for nodeId %u\n",
 		 localNodeId);
