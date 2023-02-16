@@ -92,14 +92,13 @@ static int fillCmdForSingleSpawn(SpawnRequest_t *req, int usize,
 				| CPU_BIND_LDMASK | CPU_BIND_TO_SOCKETS
 				| CPU_BIND_TO_LDOMS | CPU_BIND_LDRANK
 				| CPU_BIND_RANK | CPU_BIND_TO_THREADS ))) {
-	strvAdd(&argV, ustrdup("--cpu_bind"));
-	strvAdd(&argV, ustrdup("none"));
+	strvAdd(&argV, ustrdup("--cpu-bind=none"));
     }
 
     SingleSpawn_t *spawn = &(req->spawns[0]);
 
     /* set the number of processes to spawn */
-    strvAdd(&argV, ustrdup("--ntasks"));
+    strvAdd(&argV, ustrdup("-n"));                  // --ntasks=
     snprintf(buffer, sizeof(buffer), "%d", spawn->np);
     strvAdd(&argV, ustrdup(buffer));
 
@@ -133,10 +132,10 @@ static int fillCmdForSingleSpawn(SpawnRequest_t *req, int usize,
 	KVP_t *info = &(spawn->infov[i]);
 
 	if (strcmp(info->key, "wdir") == 0) {
-	    strvAdd(&argV, ustrdup("--chdir"));
+	    strvAdd(&argV, ustrdup("-D"));          // --chdir=
 	    strvAdd(&argV, ustrdup(info->value));
 	} else if (strcmp(info->key, "host") == 0) {
-	    strvAdd(&argV, ustrdup("--nodelist"));
+	    strvAdd(&argV, ustrdup("-w"));          // --nodelist=
 	    strvAdd(&argV, ustrdup(info->value));
 	} else {
 	    flog("info key '%s' not supported\n", info->key);
@@ -223,12 +222,11 @@ static int fillCmdForMultiSpawn(SpawnRequest_t *req, int usize,
 				| CPU_BIND_LDMASK | CPU_BIND_TO_SOCKETS
 				| CPU_BIND_TO_LDOMS | CPU_BIND_LDRANK
 				| CPU_BIND_RANK | CPU_BIND_TO_THREADS ))) {
-	strvAdd(&argV, ustrdup("--cpu_bind"));
-	strvAdd(&argV, ustrdup("none"));
+	strvAdd(&argV, ustrdup("--cpu-bind=none"));
     }
 
     /* set the number of processes to spawn */
-    strvAdd(&argV, ustrdup("--ntasks"));
+    strvAdd(&argV, ustrdup("-n"));                  // --ntasks=
     snprintf(buffer, sizeof(buffer), "%d", ntasks);
     strvAdd(&argV, ustrdup(buffer));
 
