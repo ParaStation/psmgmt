@@ -799,7 +799,7 @@ static void setGPUEnv(Gres_Cred_t *gres, uint32_t jobNodeId, Step_t *step,
 {
     uint32_t stepNId = step->localNodeId;
 
-    if (!gres->bitAlloc[jobNodeId]) {
+    if (!gres->bitAlloc || !gres->bitAlloc[jobNodeId]) {
 	flog("invalid gpu gres bitAlloc for job node id %u\n", jobNodeId);
 	return;
     }
