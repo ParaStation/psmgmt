@@ -1515,16 +1515,18 @@ bool parseSlurmConfigFiles(void)
 
     /* parse optional plugstack.conf holding spank plugins */
     confFile = getConfValueC(&SlurmConfig, "PlugStackConfig");
-    if (confFile) {
-	/* slurm.conf holds absolute path to spank configuration */
-	snprintf(cPath, sizeof(cPath), "%s", confFile);
-    } else {
+    if (!confFile) {
 	confFile = getConfValueC(&Config, "SLURM_SPANK_CONF");
 	if (!confFile) {
 	    flog("Configuration value SLURM_SPANK_CONF not found\n");
 	    return false;
 	}
+    }
+
+    if (confFile[0] != '/') {
 	snprintf(cPath, sizeof(cPath), "%s/%s", confDir, confFile);
+    } else {
+	snprintf(cPath, sizeof(cPath), "%s", confFile);
     }
 
     int disabled = getConfValueU(&Config, "DISABLE_SPANK");
