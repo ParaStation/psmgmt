@@ -6,6 +6,13 @@ Copyright (C) 2021-2023 ParTec AG, Munich
 Please send bug reports, questions and suggestions to <support@par-tec.com>
 
 
+Version 5.1.54-1:
+=================
+Bugfixes:
+ - Fix possbile segfault when parsing GRes usage in psslurm
+ - Update srun options for user triggered spawn in psslurm
+
+
 Version 5.1.54:
 ===============
 Bugfixes:
