@@ -9,6 +9,12 @@ Please send bug reports, questions and suggestions to <support@par-tec.com>
 Version 5.1.54-1:
 =================
 Bugfixes:
+ - slurm.conf might hold absolute or relative path to spank configuration
+
+
+Version 5.1.54-1:
+=================
+Bugfixes:
  - Fix possbile segfault when parsing GRes usage in psslurm
  - Update srun options for user triggered spawn in psslurm
 
