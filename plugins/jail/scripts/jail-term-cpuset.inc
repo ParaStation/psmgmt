@@ -23,8 +23,6 @@ if [ "$CONSTRAIN_CORES" == "no" ]; then
 else
     dlog "constrain cores enabled"
 
-    [ -z "$KILL_SIGNAL" ] && export KILL_SIGNAL="9"
-
     [ -n "$USER" ] || {
 		    elog "no user env variable for job $JOBID"
     }

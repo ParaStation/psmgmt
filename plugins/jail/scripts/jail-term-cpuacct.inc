@@ -18,8 +18,6 @@
 # CHILD and configuration like CGROUP_BASE, CG_USER, CG_JOB,
 # CG_STEP, BASE or SCRIPT set.
 
-[ -z "$KILL_SIGNAL" ] && export KILL_SIGNAL="9"
-
 [ -n "$USER" ] || {
 		elog "no user env variable for job $JOBID"
 }
