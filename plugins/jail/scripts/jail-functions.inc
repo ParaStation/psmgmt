@@ -40,7 +40,7 @@ function elog {
 }
 
 function cgWrite {
-    echo $1 > $2 || {
+    echo $1 > $2 2>/dev/null || {
 	mlog "write $1 to $2 failed"
     }
 }
@@ -57,7 +57,7 @@ function rmLock {
 function mdsave {
     local DIR=$1
     [ -d "$DIR" ] || {
-	mkdir "$DIR"
+	mkdir "$DIR" 2>/dev/null
 	[ -d "$DIR" ] || {
 	    elog "mkdir($DIR) failed"
 	}
