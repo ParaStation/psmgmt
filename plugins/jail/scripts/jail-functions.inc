@@ -120,6 +120,7 @@ function initJailEnv {
 
     export PSPAM_USER="$__PSPAM_ADD_USER"
     [ -n "$__PSJAIL_USER" ] && export USER="$__PSJAIL_USER"
+    [ -z "$USER" ] && [ -n "$PSPAM_USER" ] && export USER="$PSPAM_USER"
 
     # map core pinning variables
     export JOB_CPUS="$__PSJAIL_JOB_CPUS"

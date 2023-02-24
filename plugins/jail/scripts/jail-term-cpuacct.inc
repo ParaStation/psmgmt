@@ -15,11 +15,8 @@
 #
 # This script will be called by the jail plugin via system() and
 # jail-main.sh with the process ID of the process to be jailed in
-# CHILD and configuration like CGROUP_BASE, BASE or SCRIPT set.
-
-CG_USER="$BASE/$PREFIX-$USER"
-CG_JOB="$CG_USER/job-$JOBID"
-CG_STEP="$CG_JOB/step-$STEPID"
+# CHILD and configuration like CGROUP_BASE, CG_USER, CG_JOB,
+# CG_STEP, BASE or SCRIPT set.
 
 [ -z "$KILL_SIGNAL" ] && export KILL_SIGNAL="9"
 

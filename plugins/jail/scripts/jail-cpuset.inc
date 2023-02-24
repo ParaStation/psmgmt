@@ -20,7 +20,8 @@
 #
 # This script will be called by the jail plugin via system() and
 # jail-main.sh with the process ID of the process to be jailed in
-# CHILD and configuration like CGROUP_BASE, BASE or SCRIPT set.
+# CHILD and configuration like CGROUP_BASE, CG_USER, CG_JOB,
+# CG_STEP, BASE or SCRIPT set.
 
 if [ "$CONSTRAIN_CORES" == "no" ]; then
 	dlog "constrain cores *disabled*"
@@ -29,7 +30,6 @@ elif [ -n "$PSPAM_USER" ]; then
 	getLock
 
 	# ssh login via pspam which needs an existing user cgroup
-	CG_USER="$BASE/$PREFIX-$PSPAM_USER"
 	if [ -d $CG_USER ]; then
 		if [ -z $(cat $CG_USER/cpuset.cpus) ]; then
 			# error empty cpuset
@@ -55,7 +55,6 @@ else
 	}
 
 	getLock
-	CG_USER="$BASE/$PREFIX-$USER"
 	mdsave "$CG_USER"
 	if [ -z $(cat $CG_USER/cpuset.cpus) ]; then
 		dlog "empty cpuset.cpus"
@@ -83,7 +82,6 @@ else
 
 	[ -n "$JOBID" ] || elog "no jobid for pid $CHILD user $USER"
 
-	CG_JOB="$CG_USER/job-$JOBID"
 	mdsave "$CG_JOB"
 
 	# job cgroup
@@ -98,7 +96,6 @@ else
 
 	# step cgroup
 	[ -n "$STEPID" ] && {
-		CG_STEP="$CG_JOB/step-$STEPID"
 		mdsave "$CG_STEP"
 
 		cgWrite "$JOB_CPUS" $CG_STEP/cpuset.cpus

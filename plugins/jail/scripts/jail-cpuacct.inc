@@ -20,11 +20,11 @@
 #
 # This script will be called by the jail plugin via system() and
 # jail-main.sh with the process ID of the process to be jailed in
-# CHILD and configuration like CGROUP_BASE, BASE or SCRIPT set.
+# CHILD and configuration like CGROUP_BASE, CG_USER, CG_JOB,
+# CG_STEP, BASE or SCRIPT set.
 
 if [ -n "$PSPAM_USER" ]; then
 	# ssh login via pspam which needs an existing user cgroup
-	CG_USER="$BASE/$PREFIX-$PSPAM_USER"
 	if [ -d $CG_USER ]; then
 		# add user to cgroup
 		dlog "adding child $CHILD to user cgroup $CG_USER"
@@ -37,12 +37,10 @@ else
 		elog "no user env variable for job $JOBID"
 	}
 
-	CG_USER="$BASE/$PREFIX-$USER"
 	mdsave "$CG_USER"
 
 	[ -n "$JOBID" ] || elog "no jobid for pid $CHILD user $USER"
 
-	CG_JOB="$CG_USER/job-$JOBID"
 	mdsave "$CG_JOB"
 
 	dlog "adding child $CHILD to $CG_JOB/tasks"
@@ -50,7 +48,6 @@ else
 
 	# step cgroup
 	[ -n "$STEPID" ] && {
-		CG_STEP="$CG_JOB/step-$STEPID"
 		mdsave "$CG_STEP"
 
 		dlog "adding child $CHILD to $CG_STEP/tasks"
