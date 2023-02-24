@@ -40,7 +40,7 @@ function elog {
 }
 
 function cgWrite {
-    echo $1 > $2 2>/dev/null || {
+    echo 2>/dev/null $1 > $2 || {
 	mlog "write $1 to $2 failed"
     }
 }
