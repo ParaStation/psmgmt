@@ -24,86 +24,81 @@
 # CG_STEP, BASE or SCRIPT set.
 
 if [ "$CONSTRAIN_CORES" == "no" ]; then
-	dlog "constrain cores *disabled*"
+    dlog "constrain cores *disabled*"
 elif [ -n "$PSPAM_USER" ]; then
-	dlog "constrain cores enabled"
-	getLock
+    dlog "constrain cores enabled"
+    getLock
 
-	# ssh login via pspam which needs an existing user cgroup
-	if [ -d $CG_USER ]; then
-		if [ -z $(cat $CG_USER/cpuset.cpus) ]; then
-			# error empty cpuset
-			elog "error: user cgroup $CG_USER has empty cpuset.cpus"
-		fi
-
-		# add user to cgroup
-		mlog "adding child $CHILD to user cgroup $CG_USER"
-		cgWrite "$CHILD" $CG_USER/tasks
-	else
-		elog "error: user cgroup $CG_USER is missing"
-	fi
-	rmLock
-else
-	dlog "constrain cores enabled"
-
-	[ -n "$USER" ] || {
-		elog "no user env variable for job $JOBID"
-	}
-
-	[ -n "$JOB_CPUS" ] || {
-		elog "no CPU cores for job $JOBID"
-	}
-
-	getLock
-	mdsave "$CG_USER"
+    # ssh login via pspam which needs an existing user cgroup
+    if [ -d $CG_USER ]; then
 	if [ -z $(cat $CG_USER/cpuset.cpus) ]; then
-		dlog "empty cpuset.cpus"
-		cgWrite "$JOB_CPUS" $CG_USER/cpuset.cpus
-	else
-		OLD_CPU=$(cat $CG_USER/cpuset.cpus)
-		dlog "old cpuset.cpus is $OLD_CPU"
-		dlog "add cpuset.cpus is $JOB_CPUS"
-
-		if [ "$OLD_CPU" == "JOB_CPUS" ]; then
-			dlog "using old cpuset: $OLD_CPU"
-		else
-			NEW_CPU=$($EXPAND [$OLD_CPU],[$JOB_CPUS] |sort -g -u)
-			COMP_CPU=$($COMPRESS $NEW_CPU | tr -d "\[\]")
-			dlog "using new cpuset: $COMP_CPU"
-			cgWrite "$COMP_CPU" $CG_USER/cpuset.cpus
-		fi
+	    # error empty cpuset
+	    elog "error: user cgroup $CG_USER has empty cpuset.cpus"
 	fi
 
-	# set memory nodes from base for now
-	MEM_NODES=$(cat $BASE/cpuset.mems)
+	# add user to cgroup
+	mlog "adding child $CHILD to user cgroup $CG_USER"
+	cgWrite "$CHILD" $CG_USER/tasks
+    else
+	elog "error: user cgroup $CG_USER is missing"
+    fi
+    rmLock
+else
+    dlog "constrain cores enabled"
 
-	cgWrite "$MEM_NODES" $CG_USER/cpuset.mems
-	dlog "user cpuset: " $(cat $CG_USER/cpuset.cpus)
+    [ -n "$USER" ] || elog "no user env variable for job $JOBID"
+    [ -n "$JOB_CPUS" ] || elog "no CPU cores for job $JOBID"
 
-	[ -n "$JOBID" ] || elog "no jobid for pid $CHILD user $USER"
+    getLock
+    mdsave "$CG_USER"
+    if [ -z $(cat $CG_USER/cpuset.cpus) ]; then
+	dlog "empty cpuset.cpus"
+	cgWrite "$JOB_CPUS" $CG_USER/cpuset.cpus
+    else
+	OLD_CPU=$(cat $CG_USER/cpuset.cpus)
+	dlog "old cpuset.cpus is $OLD_CPU"
+	dlog "add cpuset.cpus is $JOB_CPUS"
 
-	mdsave "$CG_JOB"
+	if [ "$OLD_CPU" == "JOB_CPUS" ]; then
+	    dlog "using old cpuset: $OLD_CPU"
+	else
+	    NEW_CPU=$($EXPAND [$OLD_CPU],[$JOB_CPUS] |sort -g -u)
+	    COMP_CPU=$($COMPRESS $NEW_CPU | tr -d "\[\]")
+	    dlog "using new cpuset: $COMP_CPU"
+	    cgWrite "$COMP_CPU" $CG_USER/cpuset.cpus
+	fi
+    fi
 
-	# job cgroup
-	dlog "JOB: $JOBID STEP:$STEPID"
+    # set memory nodes from base for now
+    MEM_NODES=$(cat $BASE/cpuset.mems)
 
-	cgWrite "$JOB_CPUS" $CG_JOB/cpuset.cpus
-	cgWrite "$MEM_NODES" $CG_JOB/cpuset.mems
+    cgWrite "$MEM_NODES" $CG_USER/cpuset.mems
+    dlog "user cpuset: " $(cat $CG_USER/cpuset.cpus)
 
-	dlog "adding child $CHILD to $CG_JOB/tasks"
-	cgWrite "$CHILD" $CG_JOB/tasks
-	dlog "job cpuset: " $(cat $CG_JOB/cpuset.cpus)
+    [ -n "$JOBID" ] || elog "no jobid for pid $CHILD user $USER"
 
-	# step cgroup
-	[ -n "$STEPID" ] && {
-		mdsave "$CG_STEP"
+    mdsave "$CG_JOB"
 
-		cgWrite "$JOB_CPUS" $CG_STEP/cpuset.cpus
-		cgWrite "$MEM_NODES" $CG_STEP/cpuset.mems
+    # job cgroup
+    dlog "JOB: $JOBID STEP:$STEPID"
 
-		dlog "adding child $CHILD to $CG_STEP/tasks"
-		cgWrite "$CHILD" $CG_STEP/tasks
-		dlog "step cpuset: " $(cat $CG_STEP/cpuset.cpus)
-	}
-	rmLock
+    cgWrite "$JOB_CPUS" $CG_JOB/cpuset.cpus
+    cgWrite "$MEM_NODES" $CG_JOB/cpuset.mems
+
+    dlog "adding child $CHILD to $CG_JOB/tasks"
+    cgWrite "$CHILD" $CG_JOB/tasks
+    dlog "job cpuset: " $(cat $CG_JOB/cpuset.cpus)
+
+    # step cgroup
+    [ -n "$STEPID" ] && {
+	mdsave "$CG_STEP"
+
+	cgWrite "$JOB_CPUS" $CG_STEP/cpuset.cpus
+	cgWrite "$MEM_NODES" $CG_STEP/cpuset.mems
+
+	dlog "adding child $CHILD to $CG_STEP/tasks"
+	cgWrite "$CHILD" $CG_STEP/tasks
+	dlog "step cpuset: " $(cat $CG_STEP/cpuset.cpus)
+    }
+    rmLock
 fi

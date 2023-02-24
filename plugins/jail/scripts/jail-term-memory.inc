@@ -23,17 +23,15 @@ function termMemory()
 {
     [ $CLEANUP_DONE == "true" ] && return;
 
-    [ -n "$USER" ] || {
-		elog "no user env variable for job $JOBID"
-    }
+    [ -n "$USER" ] || elog "no user env variable for job $JOBID"
 
     if [ -n "$STEPID" ]; then
 	dlog "killing step $JOBID:$STEPID with signal $KILL_SIGNAL"
 
 	if [ -d "$CG_STEP" ]; then
-		killTasks "$CG_STEP"
+	    killTasks "$CG_STEP"
 	else
-		dlog "no cgroup step $CG_STEP"
+	    dlog "no cgroup step $CG_STEP"
 	fi
 
     elif [ -n "$JOBID" ]; then
@@ -42,12 +40,12 @@ function termMemory()
 
 	BASE=$CG_USER
 	for i in $BASE/job-*/; do
-		if [ "$i" == "$CG_USER/job-*/" ]; then
-			dlog "no more jobs, kill user cgroup $CG_USER"
-			killTasks "$CG_USER"
-		else
-			dlog "leftover job: $i"
-		fi
+	    if [ "$i" == "$CG_USER/job-*/" ]; then
+		dlog "no more jobs, kill user cgroup $CG_USER"
+		killTasks "$CG_USER"
+	    else
+		dlog "leftover job: $i"
+	    fi
 	done
 
     else

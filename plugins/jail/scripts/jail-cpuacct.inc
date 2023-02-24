@@ -24,33 +24,29 @@
 # CG_STEP, BASE or SCRIPT set.
 
 if [ -n "$PSPAM_USER" ]; then
-	# ssh login via pspam which needs an existing user cgroup
-	if [ -d $CG_USER ]; then
-		# add user to cgroup
-		dlog "adding child $CHILD to user cgroup $CG_USER"
-		cgWrite "$CHILD" $CG_USER/tasks
-	else
-		elog "error: user cgroup $CG_USER is missing"
-	fi
+    # ssh login via pspam which needs an existing user cgroup
+    if [ -d $CG_USER ]; then
+	# add user to cgroup
+	dlog "adding child $CHILD to user cgroup $CG_USER"
+	cgWrite "$CHILD" $CG_USER/tasks
+    else
+	elog "error: user cgroup $CG_USER is missing"
+    fi
 else
-	[ -n "$USER" ] || {
-		elog "no user env variable for job $JOBID"
-	}
+    [ -n "$CG_USER" ] || elog "no user env variable for job $JOBID"
+    mdsave "$CG_USER"
 
-	mdsave "$CG_USER"
+    [ -n "$CG_JOB" ] || elog "no jobid for pid $CHILD user $USER"
+    mdsave "$CG_JOB"
 
-	[ -n "$JOBID" ] || elog "no jobid for pid $CHILD user $USER"
+    dlog "adding child $CHILD to $CG_JOB/tasks"
+    cgWrite "$CHILD" $CG_JOB/tasks
 
-	mdsave "$CG_JOB"
+    # step cgroup
+    [ -n "$STEPID" ] && {
+	mdsave "$CG_STEP"
 
-	dlog "adding child $CHILD to $CG_JOB/tasks"
-	cgWrite "$CHILD" $CG_JOB/tasks
-
-	# step cgroup
-	[ -n "$STEPID" ] && {
-		mdsave "$CG_STEP"
-
-		dlog "adding child $CHILD to $CG_STEP/tasks"
-		cgWrite "$CHILD" $CG_STEP/tasks
-	}
+	dlog "adding child $CHILD to $CG_STEP/tasks"
+	cgWrite "$CHILD" $CG_STEP/tasks
+    }
 fi

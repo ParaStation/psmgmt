@@ -23,53 +23,51 @@ if [ "$CONSTRAIN_CORES" == "no" ]; then
 else
     dlog "constrain cores enabled"
 
-    [ -n "$USER" ] || {
-		    elog "no user env variable for job $JOBID"
-    }
+    [ -n "$USER" ] || elog "no user env variable for job $JOBID"
 
     getLock
     if [ -n "$STEPID" ]; then
-	    dlog "killing step $JOBID:$STEPID with signal $KILL_SIGNAL"
+	dlog "killing step $JOBID:$STEPID with signal $KILL_SIGNAL"
 
-	    if [ -d "$CG_STEP" ]; then
-		    killTasks "$CG_STEP"
-	    else
-		    dlog "no cgroup step $CG_STEP"
-	    fi
+	if [ -d "$CG_STEP" ]; then
+	    killTasks "$CG_STEP"
+	else
+	    dlog "no cgroup step $CG_STEP"
+	fi
 
     elif [ -n "$JOBID" ]; then
-	    dlog "killing job $JOBID with signal $KILL_SIGNAL"
-	    killJob $CG_JOB
+	dlog "killing job $JOBID with signal $KILL_SIGNAL"
+	killJob $CG_JOB
 
-	    BASE=$CG_USER
-	    REMAINING_CPUS=""
-	    for i in $BASE/job-*/; do
-		    if [ "$i" == "$CG_USER/job-*/" ]; then
-			    dlog "no more jobs, kill user cgroup $CG_USER"
-			    killTasks "$CG_USER"
-		    else
-			    LEFTOVER_JOB_TASKS=$(cat "$i/tasks" 2>/dev/null)
-			    LEFTOVER_STEP_TASKS=$(cat "$i"/step-*/tasks 2>/dev/null)
-			    if [ -z "$LEFTOVER_JOB_TASKS" ] && [ -z "$LEFTOVER_STEP_TASKS" ]; then
-				dlog "removing leftover job $i"
-				rmdir "$i"/step-* 2>/dev/null
-				rmdir "$i"
-			    else
-				dlog "adding running job: $i"
-				JOB_CPUS=$(cat "$i/cpuset.cpus")
-				REMAINING_CPUS="$REMAINING_CPUS,$JOB_CPUS"
-			    fi
-		    fi
-	    done
+	BASE=$CG_USER
+	REMAINING_CPUS=""
+	for i in $BASE/job-*/; do
+	    if [ "$i" == "$CG_USER/job-*/" ]; then
+		dlog "no more jobs, kill user cgroup $CG_USER"
+		killTasks "$CG_USER"
+	    else
+		LEFTOVER_JOB_TASKS=$(cat "$i/tasks" 2>/dev/null)
+		LEFTOVER_STEP_TASKS=$(cat "$i"/step-*/tasks 2>/dev/null)
+		if [ -z "$LEFTOVER_JOB_TASKS" ] && [ -z "$LEFTOVER_STEP_TASKS" ]; then
+		    dlog "removing leftover job $i"
+		    rmdir "$i"/step-* 2>/dev/null
+		    rmdir "$i"
+		else
+		    dlog "adding running job: $i"
+		    JOB_CPUS=$(cat "$i/cpuset.cpus")
+		    REMAINING_CPUS="$REMAINING_CPUS,$JOB_CPUS"
+		fi
+	    fi
+	done
 
-	    [ -n "$REMAINING_CPUS" ] && {
-		    NEW_CPU=$($EXPAND $REMAINING_CPUS |sort -g -u)
-		    COMP_CPU=$($COMPRESS $NEW_CPU | tr -d "\[\]")
-		    dlog "set remaining cpus: $COMP_CPU"
-		    cgWrite $COMP_CPU "$CG_USER/cpuset.cpus"
-	    }
+	[ -n "$REMAINING_CPUS" ] && {
+	    NEW_CPU=$($EXPAND $REMAINING_CPUS |sort -g -u)
+	    COMP_CPU=$($COMPRESS $NEW_CPU | tr -d "\[\]")
+	    dlog "set remaining cpus: $COMP_CPU"
+	    cgWrite $COMP_CPU "$CG_USER/cpuset.cpus"
+	}
     else
-	    elog "missing JOBID"
+	elog "missing JOBID"
     fi
     rmLock
 fi
