@@ -35,21 +35,21 @@ initJailEnv
 exec 2>>$LOG_FILE 1>&2
 
 if [ -z "$CHILD" ] || [ "$CHILD" == "0" ]; then
-  dlog "Skipping invalid child $CHILD"
-  exit 0
+    dlog "Skipping invalid child $CHILD"
+    exit 0
 fi
 
 for modName in ${MODULES//,/$IFS}; do
-	MODULE="$CommandPath/$SCRIPT-$modName.inc"
-	[ -r $MODULE ] || {
-		[ $SCRIPT != "jail-term" ] && {
-			mlog "$SCRIPT module $MODULE not found"
-		}
-		continue
+    MODULE="$CommandPath/$SCRIPT-$modName.inc"
+    [ -r $MODULE ] || {
+	[ $SCRIPT != "jail-term" ] && {
+	    mlog "$SCRIPT module $MODULE not found"
 	}
-	BASE="$CGROUP_BASE/$modName"
-	dlog "Calling module $MODULE for child $CHILD"
-	source $MODULE
+	continue
+    }
+    BASE="$CGROUP_BASE/$modName"
+    dlog "Calling module $MODULE for child $CHILD"
+    source $MODULE
 done
 
 exit 0

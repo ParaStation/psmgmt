@@ -55,95 +55,95 @@ function rmLock {
 }
 
 function mdsave {
-	local DIR=$1
+    local DIR=$1
+    [ -d "$DIR" ] || {
+	mkdir "$DIR"
 	[ -d "$DIR" ] || {
-		mkdir "$DIR"
-		[ -d "$DIR" ] || {
-			elog "mkdir($DIR) failed"
-		}
+	    elog "mkdir($DIR) failed"
 	}
+    }
 }
 
 function killTasks {
-	local DIR=$1
-	[ -d "$DIR" ] || {
-	    [ "$CHILD" != "-1" ] && dlog "killTasks: no directory $DIR to kill tasks"
-	    return
-	}
+    local DIR=$1
+    [ -d "$DIR" ] || {
+	[ "$CHILD" != "-1" ] && dlog "killTasks: no directory $DIR to kill tasks"
+	return
+    }
 
-	dlog "killTasks: dir $DIR"
+    dlog "killTasks: dir $DIR"
 
-	local -i count=0
-	local PIDS=$(cat "$DIR/tasks" 2>/dev/null)
+    local -i count=0
+    local PIDS=$(cat "$DIR/tasks" 2>/dev/null)
 
-	while [ -n "$PIDS" -a "$count" -le "$MAX_KILL_RETRY" ]; do
-		for child in $PIDS; do
-			[ -d "/proc/$child" ] || continue
-			dlog "killTasks($count): killing PID $child with signal $KILL_SIGNAL"
-			kill -"$KILL_SIGNAL" $child
-		done
-
-		(( count++ ))
-		PIDS=$(cat "$DIR/tasks" 2>/dev/null)
+    while [ -n "$PIDS" -a "$count" -le "$MAX_KILL_RETRY" ]; do
+	for child in $PIDS; do
+	    [ -d "/proc/$child" ] || continue
+	    dlog "killTasks($count): killing PID $child with signal $KILL_SIGNAL"
+	    kill -"$KILL_SIGNAL" $child
 	done
 
-	dlog "killTasks: rmdir $DIR"
-	rmdir "$DIR" 2>/dev/null || dlog "killTasks: rmdir $DIR failed"
+	(( count++ ))
+	PIDS=$(cat "$DIR/tasks" 2>/dev/null)
+    done
+
+    dlog "killTasks: rmdir $DIR"
+    rmdir "$DIR" 2>/dev/null || dlog "killTasks: rmdir $DIR failed"
 }
 
 function killJob {
-	local DIR=$1
-	[ -d "$DIR" ] || {
-	    [ "$CHILD" != "-1" ] && dlog "killJob: no directory $DIR to kill tasks"
-	    return
-	}
+    local DIR=$1
+    [ -d "$DIR" ] || {
+	[ "$CHILD" != "-1" ] && dlog "killJob: no directory $DIR to kill tasks"
+	return
+    }
 
-	dlog "kill steps in dir $DIR"
+    dlog "kill steps in dir $DIR"
 
-	local BASE="$DIR"
-	for i in "$BASE"/step-*/; do
-		[ -d "$i" ] || break
-		dlog "killJob: killTasks $i"
-		killTasks "$i"
-	done
+    local BASE="$DIR"
+    for i in "$BASE"/step-*/; do
+	[ -d "$i" ] || break
+	dlog "killJob: killTasks $i"
+	killTasks "$i"
+    done
 
-	dlog "killJob: kill tasks of $DIR"
-	killTasks "$DIR"
+    dlog "killJob: kill tasks of $DIR"
+    killTasks "$DIR"
 }
 
 function initJailEnv {
-	unset LANGUAGE
-	export LANG=C
+    unset LANGUAGE
+    export LANG=C
 
-	export JOBID="$__PSJAIL_JOBID"
-	export STEPID="$__PSJAIL_STEPID"
+    export JOBID="$__PSJAIL_JOBID"
+    export STEPID="$__PSJAIL_STEPID"
 
-	export PSPAM_USER="$__PSPAM_ADD_USER"
-	[ -n "$__PSJAIL_USER" ] && export USER="$__PSJAIL_USER"
+    export PSPAM_USER="$__PSPAM_ADD_USER"
+    [ -n "$__PSJAIL_USER" ] && export USER="$__PSJAIL_USER"
 
-	# map core pinning variables
-	export JOB_CPUS="$__PSJAIL_JOB_CPUS"
-	export STEP_CPUS="$__PSJAIL_STEP_CPUS"
-	export CONSTRAIN_CORES="$__PSJAIL_CONSTRAIN_CORES"
+    # map core pinning variables
+    export JOB_CPUS="$__PSJAIL_JOB_CPUS"
+    export STEP_CPUS="$__PSJAIL_STEP_CPUS"
+    export CONSTRAIN_CORES="$__PSJAIL_CONSTRAIN_CORES"
 
-	# map various memory pinning variables
-	export JOB_RAM_SOFT="$__PSJAIL_JOB_RAM_SOFT"
-	export STEP_RAM_SOFT="$__PSJAIL_STEP_RAM_SOFT"
+    # map various memory pinning variables
+    export JOB_RAM_SOFT="$__PSJAIL_JOB_RAM_SOFT"
+    export STEP_RAM_SOFT="$__PSJAIL_STEP_RAM_SOFT"
 
-	export JOB_RAM_HARD="$__PSJAIL_JOB_RAM_HARD"
-	export STEP_RAM_HARD="$__PSJAIL_STEP_RAM_HARD"
+    export JOB_RAM_HARD="$__PSJAIL_JOB_RAM_HARD"
+    export STEP_RAM_HARD="$__PSJAIL_STEP_RAM_HARD"
 
-	export JOB_KMEM="$__PSJAIL_JOB_KMEM"
-	export STEP_KMEM="$__PSJAIL_STEP_KMEM"
+    export JOB_KMEM="$__PSJAIL_JOB_KMEM"
+    export STEP_KMEM="$__PSJAIL_STEP_KMEM"
 
-	export JOB_SWAP="$__PSJAIL_JOB_SWAP"
-	export STEP_SWAP="$__PSJAIL_STEP_SWAP"
+    export JOB_SWAP="$__PSJAIL_JOB_SWAP"
+    export STEP_SWAP="$__PSJAIL_STEP_SWAP"
 
-	export SWAPPINESS="$__PSJAIL_SWAPPINESS"
+    export SWAPPINESS="$__PSJAIL_SWAPPINESS"
 
-	export CONSTRAIN_RAM="$__PSJAIL_CONSTRAIN_RAM"
-	export CONSTRAIN_KMEM="$__PSJAIL_CONSTRAIN_KMEM"
-	export CONSTRAIN_SWAP="$__PSJAIL_CONSTRAIN_SWAP"
+    export CONSTRAIN_RAM="$__PSJAIL_CONSTRAIN_RAM"
+    export CONSTRAIN_KMEM="$__PSJAIL_CONSTRAIN_KMEM"
+    export CONSTRAIN_SWAP="$__PSJAIL_CONSTRAIN_SWAP"
 
-	export CONSTRAIN_DEVICES="$__PSJAIL_CONSTRAIN_DEVICES"
+    export CONSTRAIN_DEVICES="$__PSJAIL_CONSTRAIN_DEVICES"
 }
