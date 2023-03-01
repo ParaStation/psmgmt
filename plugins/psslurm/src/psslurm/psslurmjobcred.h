@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2017-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2022 ParTec AG, Munich
+ * Copyright (C) 2021-2023 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -88,6 +88,11 @@ typedef struct {
     uint32_t cpuArrayCount;
     uint16_t *cpuArray;
     uint32_t *cpuArrayRep;
+    time_t jobEndTime;
+    char *jobExtra;
+    uint16_t jobOversubscribe;
+    time_t jobStartTime;
+    char *jobLicenses;
 } JobCred_t;
 
 /**

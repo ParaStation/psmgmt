@@ -357,7 +357,7 @@ typedef struct {
     uint16_t batchFlag;
     uint32_t hetJobID;
     char *container;
-    uint16_t stateReason;
+    uint32_t stateReason;
     uint8_t powerFlags;
     uint8_t reboot;
     uint16_t restartCount;
@@ -401,6 +401,9 @@ typedef struct {
     char *mcsLabel;
     uint32_t exitCode;
     uint32_t derivedExitCode;
+    char *containerID;
+    char *failedNode;
+    char *extra;
 } Slurm_Job_Rec_t;
 
 /** Holding all information for RPC RESPONSE_JOB_INFO */

@@ -543,10 +543,19 @@ bool __unpackJobCred(Slurm_Msg_t *sMsg, JobCred_t **credPtr,
     /* job constraints */
     cred->jobConstraints = getStringM(ptr);
 
+    if (msgVer >= SLURM_23_02_PROTO_VERSION) {
+	getTime(ptr, &cred->jobEndTime);
+	cred->jobExtra = getStringM(ptr);
+	getUint16(ptr, &cred->jobOversubscribe);
+    }
+
     if (msgVer >= SLURM_22_05_PROTO_VERSION) {
 	cred->jobPartition = getStringM(ptr);
 	cred->jobReservation = getStringM(ptr);
 	getUint16(ptr, &cred->jobRestartCount);
+	if (msgVer >= SLURM_23_02_PROTO_VERSION) {
+	    getTime(ptr, &cred->jobStartTime);
+	}
 	cred->jobStderr = getStringM(ptr);
 	cred->jobStdin = getStringM(ptr);
 	cred->jobStdout = getStringM(ptr);
@@ -629,6 +638,10 @@ bool __unpackJobCred(Slurm_Msg_t *sMsg, JobCred_t **credPtr,
 
     /* job hostlist */
     cred->jobHostlist = getStringM(ptr);
+
+    if (msgVer >= SLURM_23_02_PROTO_VERSION) {
+	cred->jobLicenses = getStringM(ptr);
+    }
 
     if (msgVer >= SLURM_21_08_PROTO_VERSION) {
 	/* job memory allocation size */
@@ -1100,9 +1113,13 @@ static bool unpackReqTerminate(Slurm_Msg_t *sMsg)
     }
     /* nodes */
     req->nodes = getStringM(ptr);
-    /* job info */
-    uint32_t tmp;
-    getUint32(ptr, &tmp);
+
+    if (msgVer < SLURM_23_02_PROTO_VERSION) {
+	/* job info */
+	uint32_t tmp;
+	getUint32(ptr, &tmp);
+    }
+
     /* spank env */
     getStringArrayM(ptr, &req->spankEnv.vars, &req->spankEnv.cnt);
     /* start time */
@@ -1533,8 +1550,11 @@ static bool unpackReqLaunchTasks(Slurm_Msg_t *sMsg)
 	step->restartDir = getStringM(ptr);
     }
 
-    /* jobinfo plugin id */
-    getUint32(ptr, &tmp);
+    if (msgVer < SLURM_23_02_PROTO_VERSION) {
+	/* jobinfo plugin id */
+	getUint32(ptr, &tmp);
+    }
+
     /* tres bind */
     step->tresBind = getStringM(ptr);
     /* tres freq */
@@ -1734,8 +1754,11 @@ static bool unpackReqBatchJobLaunch(Slurm_Msg_t *sMsg)
     /* overwrite empty memory limit */
     if (!job->memLimit) job->memLimit = job->cred->jobMemLimit;
 
-    /* jobinfo plugin id */
-    getUint32(ptr, &tmp);
+    if (msgVer < SLURM_23_02_PROTO_VERSION) {
+	/* jobinfo plugin id */
+	getUint32(ptr, &tmp);
+    }
+
     /* account */
     job->account = getStringM(ptr);
     /* qos (see sbatch --qos) */
@@ -2913,8 +2936,20 @@ static bool unpackRespJobInfo(Slurm_Msg_t *sMsg)
 	    char *tmp = getStringM(ptr);
 	    ufree(tmp);
 	}
+
+	/* container ID */
+	if (msgVer >= SLURM_23_02_PROTO_VERSION) {
+	    rec->containerID = getStringM(ptr);
+	}
+
 	/* delay boot */
 	getUint32(ptr, &rec->delayBoot);
+
+	/* failed node */
+	if (msgVer >= SLURM_23_02_PROTO_VERSION) {
+	    rec->failedNode = getStringM(ptr);
+	}
+
 	/* job ID */
 	getUint32(ptr, &rec->jobid);
 	/* user ID */
@@ -2933,8 +2968,13 @@ static bool unpackRespJobInfo(Slurm_Msg_t *sMsg)
 	getUint32(ptr, &rec->jobState);
 	/* batch flag */
 	getUint16(ptr, &rec->batchFlag);
+
 	/* state reason */
-	getUint16(ptr, &rec->stateReason);
+	if (msgVer >= SLURM_23_02_PROTO_VERSION) {
+	    getUint32(ptr, &rec->stateReason);
+	} else {
+	    getUint16(ptr, &rec->stateReason);
+	}
 
 	/* power flags */
 	getUint8(ptr, &rec->powerFlags);
@@ -2998,6 +3038,12 @@ static bool unpackRespJobInfo(Slurm_Msg_t *sMsg)
 	rec->network = getStringM(ptr);
 	/* comment */
 	rec->comment = getStringM(ptr);
+
+	/* extra */
+	if (msgVer >= SLURM_23_02_PROTO_VERSION) {
+	    rec->extra = getStringM(ptr);
+	}
+
 	/* container */
 	rec->container = getStringM(ptr);
 

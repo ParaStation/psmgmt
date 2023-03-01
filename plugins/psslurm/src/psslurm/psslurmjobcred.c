@@ -58,6 +58,8 @@ void freeJobCred(JobCred_t *cred)
     ufree(cred->jobStdout);
     ufree(cred->cpuArray);
     ufree(cred->cpuArrayRep);
+    ufree(cred->jobExtra);
+    ufree(cred->jobLicenses);
     ufree(cred);
 }
 

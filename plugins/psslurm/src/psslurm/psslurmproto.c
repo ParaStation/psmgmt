@@ -456,6 +456,9 @@ void freeRespJobInfo(Resp_Job_Info_t *resp)
 	ufree(rec->stateDesc);
 	ufree(rec->resvName);
 	ufree(rec->mcsLabel);
+	ufree(rec->containerID);
+	ufree(rec->failedNode);
+	ufree(rec->extra);
     }
     ufree(resp->jobs);
     ufree(resp);
@@ -2966,8 +2969,10 @@ bool initSlurmdProto(void)
     }
 
     // TODO  :  make a function which converts protocol version in int to string
-
-    if (!strncmp(pver, "22.05", 5) || !strncmp(pver, "2205", 4)) {
+    if (!strncmp(pver, "23.02", 5) || !strncmp(pver, "2302", 4)) {
+	slurmProto = SLURM_23_02_PROTO_VERSION;
+	slurmProtoStr = ustrdup("23.02");
+    } else if (!strncmp(pver, "22.05", 5) || !strncmp(pver, "2205", 4)) {
 	slurmProto = SLURM_22_05_PROTO_VERSION;
 	slurmProtoStr = ustrdup("22.05");
     } else if (!strncmp(pver, "21.08", 5) || !strncmp(pver, "2108", 4)) {
