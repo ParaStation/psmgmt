@@ -1,11 +1,14 @@
+#include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
 #include <sys/types.h>
 #include <unistd.h>
 #include <string.h>
+#include <sched.h>
 
 #include "psslurmpin.h"
+#include "psidpin.h"
 
 #include "slurmcommon.h" /* bind type constants */
 
@@ -185,28 +188,24 @@ logger_t *psslurmlogger = NULL;
 #endif
 logger_t *pluginlogger = NULL;
 
-void logger_print(logger_t* logger, int32_t key, const char* format, ...) {
+void logger_print(logger_t* logger, int32_t key, const char* format, ...)
+{
     va_list ap;
     va_start(ap, format);
     vprintf(format, ap);
     va_end(ap);
-    return;
 }
 
-#define MAX_FLOG_SIZE 4096
-void __flog(const char *func, int32_t key, char *format, ...)
+void logger_funcprint(logger_t* logger, const char *func, int32_t key,
+		      const char* format, ...)
 {
-    static char buf[MAX_FLOG_SIZE];
-    char *fmt = format;
+    static char fmtStr[1024];
+    const char *fmt = format;
+
+    size_t len = snprintf(fmtStr, sizeof(fmtStr), "%s: %s", func, format);
+    if (len + 1 <= sizeof(fmtStr)) fmt = fmtStr;
+
     va_list ap;
-    size_t len;
-
-    len = snprintf(NULL, 0, "%s: %s", func, format);
-    if (len+1 <= sizeof(buf)) {
-	snprintf(buf, sizeof(buf), "%s: %s", func, format);
-	fmt = buf;
-    }
-
     va_start(ap, format);
     vprintf(fmt, ap);
     va_end(ap);
@@ -214,8 +213,10 @@ void __flog(const char *func, int32_t key, char *format, ...)
 
 typedef void Job_t;
 
-uint32_t getLocalRankID(uint32_t rank, Step_t *step, uint32_t nodeId) {
-    return 0;
+uint32_t __getLocalRankID(uint32_t rank, Step_t *step,
+			  const char *caller, const int line)
+{
+    return rank;
 }
 
 Job_t *findJobById(uint32_t jobid) {
@@ -255,8 +256,8 @@ PSnodes_ID_t PSC_getMyID(void) {
     return 0;
 }
 
-void fwCMD_printMessage(Step_t *step, char *plMsg, uint32_t msgLen,
-		        uint8_t type, int32_t rank) {
+void fwCMD_printMsg(Job_t *job, Step_t *step, char *plMsg, uint32_t msgLen,
+		    uint8_t type, int32_t rank) {
     return;
 }
 
@@ -280,5 +281,34 @@ char *trim(char *string) {
     }
 
     return string;
+}
+
+int numa_available(void) {
+    return 0;
+}
+
+short PSIDnodes_mapCPU(PSnodes_ID_t id, short cpu)
+{
+    return cpu;
+}
+
+short PSIDnodes_unmapCPU(PSnodes_ID_t id, short hwthread)
+{
+    return hwthread;
+}
+
+short PSIDnodes_numGPUs(PSnodes_ID_t id) {
+    return 0;
+}
+
+bool PSIDpin_getCloseDevs(PSnodes_ID_t id, cpu_set_t *CPUs, PSCPU_set_t *GPUs,
+			  uint16_t closeGPUs[], size_t *closeCnt,
+			  uint16_t localGPUs[], size_t *localCnt,
+			  PSIDpin_devType_t type) {
+    return true;
+}
+
+cpu_set_t *PSIDpin_mapCPUs(PSnodes_ID_t id, PSCPU_set_t set) {
+    return NULL;
 }
 /* vim: set ts=8 sw=4 tw=0 sts=4 noet :*/
