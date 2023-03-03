@@ -39,6 +39,9 @@ static int verbosity = 0;
 static bool humanreadable = false;
 static bool printmembind = false;
 
+/* --extra-node-info, --hint, --threads-per-core, and --ntasks-per-core */
+static bool mutually_exclusive_0 = false;
+
 enum output_level {
     ERROROUT,
     INFOOUT,
@@ -621,6 +624,13 @@ int main(int argc, char *argv[])
 		exit(-1);
 	    }
 	} else if (!strncmp(cur, "--extra-node-info=", 18)) {
+	    if (mutually_exclusive_0) {
+		outline(ERROROUT, "srun options -B|--extra-node-info, --hint,"
+			" --threads-per-core (and --ntasks-per-core are"
+			" mutually exclusive.");
+		exit(-1);
+	    }
+	    mutually_exclusive_0 = true;
 	    outline(DEBUGOUT, "Reading --extra-node-info value: \"%s\"",
 		    cur+18);
 	    handleExtraNodeInfo(cur+18, &cpuBindType, &useThreadsPerCore);
@@ -629,9 +639,23 @@ int main(int argc, char *argv[])
 		outline(ERROROUT, "Syntax error reading value for -B.");
 		exit(-1);
 	    }
+	    if (mutually_exclusive_0) {
+		outline(ERROROUT, "srun options -B|--extra-node-info, --hint,"
+			" --threads-per-core (and --ntasks-per-core) are"
+			" mutually exclusive.");
+		exit(-1);
+	    }
+	    mutually_exclusive_0 = true;
 	    outline(DEBUGOUT, "Reading -B value: \"%s\"", argv[i]);
 	    handleExtraNodeInfo(argv[i++], &cpuBindType, &useThreadsPerCore);
 	} else if (!strcmp(cur, "--hint=nomultithread")) {
+	    if (mutually_exclusive_0) {
+		outline(ERROROUT, "srun options -B|--extra-node-info, --hint,"
+			" --threads-per-core (and --ntasks-per-core) are"
+			" mutually exclusive.");
+		exit(-1);
+	    }
+	    mutually_exclusive_0 = true;
 	    outline(DEBUGOUT, "Read hint \"nomultithread\"");
 	    nomultithread = true;
 	} else if (!strncmp(cur, "--mem-bind=", 11)) {
@@ -647,6 +671,13 @@ int main(int argc, char *argv[])
 	    outline(DEBUGOUT, "Read option \"exact\"");
 	    exact = true;
 	} else if (!strncmp(cur, "--threads-per-core=", 19)) {
+	    if (mutually_exclusive_0) {
+		outline(ERROROUT, "srun options -B|--extra-node-info, --hint,"
+			" --threads-per-core (and --ntasks-per-core) are"
+			" mutually exclusive.");
+		exit(-1);
+	    }
+	    mutually_exclusive_0 = true;
 	    outline(DEBUGOUT, "Reading --threads-per-core value: \"%s\"",
 		    cur+19);
 	    handleThreadsPerCore(cur+19, &cpuBindType, &useThreadsPerCore);
