@@ -2394,7 +2394,7 @@ void test_pinning(uint16_t socketCount, uint16_t coresPerSocket,
     /* handle threads per core limitation */
     if (useThreadsPerCore) {
 	nodeinfo.threadsPerCore = useThreadsPerCore;
-	nodeinfo.threadCount = nodeinfo.coreCount;
+	nodeinfo.threadCount = nodeinfo.coreCount * useThreadsPerCore;
 	fdbg(PSSLURM_LOG_PART, "threads per core limit given,"
 		" setting nodeinfo.threadsPerCore = %hu\n", useThreadsPerCore);
     }
