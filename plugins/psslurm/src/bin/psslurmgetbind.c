@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2020-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2022 ParTec AG, Munich
+ * Copyright (C) 2021-2023 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -102,7 +102,8 @@ static void print_help() {
 	    "   -B <resources>, --extra-node-info=<resources>\n"
 	    "   --mem-bind=<memBindType>\n"
 	    "   -O, --overcommit\n"
-	    "   --exact\n");
+	    "   --exact\n"
+	    "   --threads-per-core=<threads>\n");
 }
 
 static unsigned int atoui(char* in) {
@@ -272,6 +273,16 @@ static void handleExtraNodeInfo(char *value, uint16_t *cpuBindType,
 	    *useThreadsPerCore = atoi(cur+1);
 	}
     }
+}
+
+static void handleThreadsPerCore(char *value, uint16_t *cpuBindType,
+			        uint16_t *useThreadsPerCore)
+{
+    /* never override settings from --cpu-bind */
+    if (*cpuBindType) return;
+
+    *cpuBindType = CPU_BIND_TO_THREADS;
+    *useThreadsPerCore = atoi(value);
 }
 
 #define PSSLURM_CONFIG_FILE  PLUGINDIR "/psslurm.conf"
@@ -635,6 +646,10 @@ int main(int argc, char *argv[])
 	} else if (!strcmp(cur, "--exact")) {
 	    outline(DEBUGOUT, "Read option \"exact\"");
 	    exact = true;
+	} else if (!strncmp(cur, "--threads-per-core=", 19)) {
+	    outline(DEBUGOUT, "Reading --threads-per-core value: \"%s\"",
+		    cur+19);
+	    handleThreadsPerCore(cur+19, &cpuBindType, &useThreadsPerCore);
 	} else {
 	    outline(ERROROUT, "Invalid argument: \"%s\"", cur);
 	    exit(-1);
@@ -659,8 +674,9 @@ int main(int argc, char *argv[])
 	exit(-1);
     }
 
-    outline(INFOOUT, "job: %u tasks, %hu threads per task", tasksPerNode,
-	    threadsPerTask);
+    outline(INFOOUT, "job: %u tasks, %hu threads per task, "
+	    "using %hu threads per core", tasksPerNode, threadsPerTask,
+	    useThreadsPerCore ? useThreadsPerCore : threadsPerCore);
     outline(INFOOUT, "cpuBindType = 0x%X - cpuBindString = \"%s\"", cpuBindType,
 	    cpuBindString);
     outline(INFOOUT, "taskDist = 0x%X", taskDist);
