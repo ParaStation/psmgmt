@@ -166,10 +166,19 @@ Slurm_Auth_t *getSlurmAuth(Slurm_Msg_Header_t *head, char *body,
 
 bool extractSlurmAuth(Slurm_Msg_t *sMsg)
 {
-    Slurm_Auth_t *auth = NULL;
-    char *credHash = NULL;
     bool res = false;
 
+    /* no authentication credential for message response */
+    if (sMsg->head.flags & SLURM_NO_AUTH_CRED) {
+	if (sMsg->needVerifcation) {
+	    flog("message has flag SLURM_NO_AUTH_CRED set but comes "
+		 "from unverified source\n");
+	    return false;
+	}
+	return true;
+    }
+
+    Slurm_Auth_t *auth = NULL;
     if (!unpackSlurmAuth(sMsg, &auth)) {
 	flog("unpacking Slurm authentication failed\n");
 	goto CLEANUP;
@@ -190,6 +199,7 @@ bool extractSlurmAuth(Slurm_Msg_t *sMsg)
 
     /* decode message hash using munge */
     int hashLen;
+    char *credHash = NULL;
     if (!psMungeDecodeBuf(auth->cred, (void **) &credHash, &hashLen,
 			  &sMsg->head.uid, &sMsg->head.gid)) {
 	flog("decoding munge credential failed\n");

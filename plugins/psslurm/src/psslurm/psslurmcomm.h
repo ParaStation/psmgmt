@@ -60,6 +60,7 @@ typedef struct {
     bool readSize;	    /**< true if the message size was read */
     Msg_Forward_t fw;	    /**< message forwarding structure */
     Step_t *step;	    /**< set if connection is associated to a step */
+    bool needVerifcation;   /**< if true the connection needs to be validated */
 } Connection_t;
 
 /**

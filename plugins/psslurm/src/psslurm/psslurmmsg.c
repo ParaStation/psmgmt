@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2017-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2022 ParTec AG, Munich
+ * Copyright (C) 2021-2023 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -132,6 +132,10 @@ const char *msgType2String(int type)
 	    return "RESPONSE_MESSAGE_COMPOSITE";
 	case RESPONSE_NODE_REGISTRATION:
 	    return "RESPONSE_NODE_REGISTRATION";
+	case REQUEST_CONFIG:
+	    return "REQUEST_CONFIG";
+	case RESPONSE_CONFIG:
+	    return "RESPONSE_CONFIG";
     }
 
     static char buf[64];
@@ -289,6 +293,11 @@ Slurm_Msg_Buf_t *saveSlurmMsg(Slurm_Msg_Header_t *head, PS_SendDB_t *body,
 
     /* dup msg head */
     dupSlurmMsgHead(&msgBuf->head, head);
+
+    if (msgBuf->sock < 0) {
+	/* resending opens a new connection and needs authentication */
+	msgBuf->head.flags &= ~SLURM_NO_AUTH_CRED;
+    }
 
     /* save data buffer */
     msgBuf->body.buf = NULL;

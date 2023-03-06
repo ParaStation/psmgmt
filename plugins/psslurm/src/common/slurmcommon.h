@@ -30,6 +30,7 @@
 #define PATH_BUFFER_LEN 1024
 
 #define SLURM_GLOBAL_AUTH_KEY   0x0001
+#define SLURM_NO_AUTH_CRED      0x0040
 
 /* protocol versions */
 #define SLURM_MAX_PROTO_VERSION SLURM_23_02_PROTO_VERSION

@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2014-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2022 ParTec AG, Munich
+ * Copyright (C) 2021-2023 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -194,6 +194,7 @@ static Connection_t *addConnection(int socket, Connection_CB_t *cb, void *info)
 	ufree(con->info);
 	con->info = info;
 	gettimeofday(&con->openTime, NULL);
+	con->needVerifcation = false;
 	return con;
     }
 
@@ -521,6 +522,7 @@ CALLBACK:
 	sMsg.data = dBuf;
 	sMsg.ptr = sMsg.data->buf;
 	sMsg.recvTime = con->recvTime = time(NULL);
+	sMsg.needVerifcation = con->needVerifcation;
 
 	/* overwrite empty addr informations */
 	getSockInfo(sock, &sMsg.head.addr, &sMsg.head.port);
@@ -999,8 +1001,6 @@ int __sendSlurmMsg(int sock, slurm_msg_type_t type, PS_SendDB_t *body,
 int __sendSlurmMsgEx(int sock, Slurm_Msg_Header_t *head, PS_SendDB_t *body,
 		     Req_Info_t *req, const char *caller, const int line)
 {
-    PS_SendDB_t data = { .bufUsed = 0, .useFrag = false };
-
     if (sock >= 0 && req) {
 	flog("new request for existing connection from %s@%i\n", caller, line);
 	ufree(req);
@@ -1023,11 +1023,24 @@ int __sendSlurmMsgEx(int sock, Slurm_Msg_Header_t *head, PS_SendDB_t *body,
 	 "caller %s:%i\n", head->type, msgType2String(head->type),
 	 head->version, head->uid, caller, line);
 
-    Slurm_Auth_t *auth = getSlurmAuth(head, body->buf, body->bufUsed);
-    if (!auth) {
-	flog("getting a slurm authentication token failed\n");
-	ufree(req);
-	return -1;
+    Connection_t *con = findConnection(sock);
+    Slurm_Auth_t *auth = NULL;
+    if (slurmProto >= SLURM_23_02_PROTO_VERSION &&
+	sock >= 0 && con && con->needVerifcation) {
+	/* if the connection was verified before, the authentication can
+	 * be skipped for the response */
+	head->flags |= SLURM_NO_AUTH_CRED;
+	fdbg(PSSLURM_LOG_AUTH, "skipping Slurm auth for msg %s\n",
+	     msgType2String(head->type));
+    } else {
+	auth = getSlurmAuth(head, body->buf, body->bufUsed);
+	if (!auth) {
+	    flog("getting a slurm authentication token failed\n");
+	    ufree(req);
+	    return -1;
+	}
+	fdbg(PSSLURM_LOG_AUTH, "added Slurm auth for msg %s\n",
+	     msgType2String(head->type));
     }
 
     /* connect to slurmctld */
@@ -1061,6 +1074,8 @@ int __sendSlurmMsgEx(int sock, Slurm_Msg_Header_t *head, PS_SendDB_t *body,
 
     PS_DataBuffer_t payload = { .buf = NULL };
     memToDataBuffer(body->buf, body->bufUsed, &payload);
+
+    PS_SendDB_t data = { .bufUsed = 0, .useFrag = false };
     packSlurmMsg(&data, head, &payload, auth);
 
     size_t written = 0;
@@ -1264,8 +1279,11 @@ static int acceptSlurmClient(int socket, void *data)
 	}
     }
 
-    if (!registerSlurmSocket(newSock, handleSlurmdMsg, NULL)) {
+    Connection_t *con = registerSlurmSocket(newSock, handleSlurmdMsg, NULL);
+    if (!con) {
 	flog("failed to register socket %i\n", newSock);
+    } else {
+	con->needVerifcation = true;
     }
 
     return 0;

@@ -178,14 +178,12 @@ bool __packSlurmAuth(PS_SendDB_t *data, Slurm_Auth_t *auth,
 		     const char *caller, const int line)
 {
     if (!data) {
-	mlog("%s: invalid data pointer from '%s' at %i\n", __func__,
-		caller, line);
+	flog("invalid data pointer from '%s' at %i\n", caller, line);
 	return false;
     }
 
     if (!auth) {
-	mlog("%s: invalid auth pointer from '%s' at %i\n", __func__,
-		caller, line);
+	flog("invalid auth pointer from '%s' at %i\n", caller, line);
 	return false;
     }
 
@@ -2297,9 +2295,8 @@ bool __packSlurmMsg(PS_SendDB_t *data, Slurm_Msg_Header_t *head,
     uint32_t lastBufLen = 0, msgStart;
     char *ptr;
 
-    if (!data || !head || !body || !auth) {
-	mlog("%s: invalid param from '%s' at %i\n", __func__,
-	     caller, line);
+    if (!data || !head || !body) {
+	flog("invalid param from '%s' at %i\n", caller, line);
 	return false;
     }
 
@@ -2311,8 +2308,8 @@ bool __packSlurmMsg(PS_SendDB_t *data, Slurm_Msg_Header_t *head,
     head->bodyLen = body->used;
     __packSlurmHeader(data, head, caller, line);
 
-    mdbg(PSSLURM_LOG_COMM, "%s: slurm header len %i body len %zi RPC %s\n",
-	 __func__, data->bufUsed, body->used, msgType2String(head->type));
+    fdbg(PSSLURM_LOG_COMM, "slurm header len %i body len %zi RPC %s\n",
+	 data->bufUsed, body->used, msgType2String(head->type));
 
     if (logger_getMask(psslurmlogger) & PSSLURM_LOG_IO_VERB) {
 	printBinaryData(data->buf + lastBufLen, data->bufUsed - lastBufLen,
@@ -2321,9 +2318,10 @@ bool __packSlurmMsg(PS_SendDB_t *data, Slurm_Msg_Header_t *head,
     }
 
     /* add munge auth string, will *not* be counted to msg header body len */
-    __packSlurmAuth(data, auth, caller, line);
-    mdbg(PSSLURM_LOG_COMM, "%s: added slurm auth (%i)\n",
-	    __func__, data->bufUsed);
+    if (auth) {
+	__packSlurmAuth(data, auth, caller, line);
+	fdbg(PSSLURM_LOG_COMM, "added slurm auth (%i)\n", data->bufUsed);
+    }
 
     if (logger_getMask(psslurmlogger) & PSSLURM_LOG_IO_VERB) {
 	printBinaryData(data->buf + lastBufLen, data->bufUsed - lastBufLen,
@@ -2333,8 +2331,7 @@ bool __packSlurmMsg(PS_SendDB_t *data, Slurm_Msg_Header_t *head,
 
     /* add the message body */
     addMemToMsg(body->buf, body->used, data);
-    mdbg(PSSLURM_LOG_COMM, "%s: added slurm msg body (%i)\n",
-	    __func__, data->bufUsed);
+    fdbg(PSSLURM_LOG_COMM, "added slurm msg body (%i)\n", data->bufUsed);
 
     if (logger_getMask(psslurmlogger) & PSSLURM_LOG_IO_VERB) {
 	printBinaryData(data->buf + lastBufLen, data->bufUsed - lastBufLen,

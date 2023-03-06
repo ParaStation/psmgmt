@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2017-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2022 ParTec AG, Munich
+ * Copyright (C) 2021-2023 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -60,6 +60,7 @@ typedef struct {
 				     @ref data buffer */
     void *unpData;		/**< holding the unpacked message payload */
     time_t recvTime;		/**< time the message was received */
+    bool needVerifcation;	/**< if true the messages should be verified */
 } Slurm_Msg_t;
 
 // leave after Slurm_Msg_t definition to break include cycle
