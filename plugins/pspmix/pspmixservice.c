@@ -1218,7 +1218,8 @@ static void checkFence(PspmixFence_t *fence) {
     /* investigate the newly appended message first */
     size_t m = fence->nMsgs - 1;
     do {
-	if (fence->nSrcs && fence->msgs[m].sRank == fence->srcs[fence->nGot]) {
+	if (fence->nGot < fence->nSrcs
+	    && fence->msgs[m].sRank == fence->srcs[fence->nGot]) {
 	    /* upward message */
 	    mdbg(PSPMIX_LOG_FENCE, "%s(0x%016lX): Upward data from %s (%d)\n",
 		 __func__, fence->id, PSC_printTID(fence->msgs[m].sender),
@@ -1285,7 +1286,7 @@ static void checkFence(PspmixFence_t *fence) {
 	/* check for other messages to handle */
 	for (m = 0; m < fence->nMsgs; m++) {
 	    /* handle the next expected upward message right now */
-	    if (fence->nSrcs
+	    if (fence->nGot < fence->nSrcs
 		&& fence->msgs[m].sRank == fence->srcs[fence->nGot]) break;
 	    /* once all upward messages are handled, we can consider
 	     * the side-ward message immediately */
