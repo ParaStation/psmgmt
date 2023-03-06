@@ -623,7 +623,7 @@ static void execClient(PStask_t *task)
     if (write(task->fd, &eno, sizeof(eno)) < 0) {
 	eno = errno;
 	fprintf(stderr, "%s: write(): %s\n", __func__, strerror(eno));
-	PSID_exit(eno, "%s: write()", __func__);
+	PSID_exit(eno, "%s: write(%d)", __func__, task->fd);
     }
 
     if (PSCio_recvBuf(task->fd, &eno, sizeof(eno)) < 0) {
