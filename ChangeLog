@@ -1,3 +1,36 @@
+Version 5.1.54-3:
+=================
+------------------------------------------------------------------------
+8bc103552 | Stephan Krempel | Fri, 3 Mar 2023 01:26:39 +0100
+
+psslurmgetbind: Reject mututally exclusive srun options
+------------------------------------------------------------------------
+cdfb061f7 | Stephan Krempel | Fri, 3 Mar 2023 01:25:29 +0100
+
+psslurmgetbind: Fix --threads-per-core > 1
+------------------------------------------------------------------------
+c512576a1 | Stephan Krempel | Fri, 3 Mar 2023 01:24:31 +0100
+
+psslurmgetbind: Support srun option --threads-per-core
+------------------------------------------------------------------------
+62c40f3a7 | Stephan Krempel | Fri, 3 Mar 2023 00:20:25 +0100
+
+psslurm: Make test_psslurmpin work again
+------------------------------------------------------------------------
+cbfdcabc1 | Norbert Eicker | Mon, 6 Mar 2023 19:22:54 +0100
+
+Bugfix: Ensure downward messages are not handled as upward (jwt:#19720)
+------------------------------------------------------------------------
+756d8fc5d | Norbert Eicker | Mon, 6 Mar 2023 16:28:11 +0100
+
+Help debugging failed spawns
+------------------------------------------------------------------------
+189aeb961 | Norbert Eicker | Tue, 21 Feb 2023 15:43:30 +0100
+
+Fix typo
+------------------------------------------------------------------------
+
+
 Version 5.1.54-2:
 =================
 ------------------------------------------------------------------------

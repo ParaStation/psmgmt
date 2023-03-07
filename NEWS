@@ -6,6 +6,15 @@ Copyright (C) 2021-2023 ParTec AG, Munich
 Please send bug reports, questions and suggestions to <support@par-tec.com>
 
 
+Version 5.1.54-3:
+=================
+Bugfixes:
+ - Ensure downward messages are not handled as upward (jwt:#19720)
+Enhancements:
+ - Support srun option --threads-per-core in psslurmgetbind
+ - Reject mututally exclusive srun options in psslurmgetbind
+
+
 Version 5.1.54-2:
 =================
 Bugfixes:
