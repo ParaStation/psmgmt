@@ -802,7 +802,7 @@ void cleanupClients(void)
 {
     list_t *c, *tmp;
     time_t now = time(NULL);
-    int grace = getConfValueI(&config, "TIME_CLIENT_GRACE");
+    int grace = getConfValueI(config, "TIME_CLIENT_GRACE");
 
     list_for_each_safe(c, tmp, &clientList) {
 	Client_t *client = list_entry(c, Client_t, next);
@@ -856,7 +856,7 @@ void updateClients(Job_t *job)
     }
 
     if (globalCollectMode) {
-	int forwInterval = getConfValueI(&config, "FORWARD_INTERVAL");
+	int forwInterval = getConfValueI(config, "FORWARD_INTERVAL");
 	if (job) {
 	    forwardJobData(job, false);
 	} else if (++updateCount >= forwInterval) {

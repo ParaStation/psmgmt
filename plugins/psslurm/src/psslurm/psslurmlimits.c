@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2014-2020 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2022 ParTec AG, Munich
+ * Copyright (C) 2022-2023 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -74,7 +74,7 @@ bool initLimits(void)
     char *conf;
     int i = 0, found = 0;
 
-    if ((conf = getConfValueC(&SlurmConfig, "PropagateResourceLimits"))) {
+    if ((conf = getConfValueC(SlurmConfig, "PropagateResourceLimits"))) {
 
 	next = strtok_r(conf, delimiters, &saveptr);
 
@@ -106,7 +106,7 @@ bool initLimits(void)
 	setPropagateFlags(true);
     }
 
-    if ((conf = getConfValueC(&SlurmConfig, "PropagateResourceLimitsExcept"))) {
+    if ((conf = getConfValueC(SlurmConfig, "PropagateResourceLimitsExcept"))) {
 
 	next = strtok_r(conf, delimiters, &saveptr);
 
@@ -221,12 +221,12 @@ void setDefaultRlimits(void)
     char *limits;
 
     /* set default hard rlimits */
-    if ((limits = getConfValueC(&Config, "RLIMITS_HARD"))) {
+    if ((limits = getConfValueC(Config, "RLIMITS_HARD"))) {
 	doSetDefaultRlimits(limits, 0);
     }
 
     /* set default soft rlimits */
-    if ((limits = getConfValueC(&Config, "RLIMITS_SOFT"))) {
+    if ((limits = getConfValueC(Config, "RLIMITS_SOFT"))) {
 	doSetDefaultRlimits(limits, 1);
     }
 }

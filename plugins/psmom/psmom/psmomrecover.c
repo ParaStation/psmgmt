@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2010-2018 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2022 ParTec AG, Munich
+ * Copyright (C) 2021-2023 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -35,7 +35,7 @@ void recoverJobInfo()
     Job_t *job;
     struct passwd *result;
 
-    char *accPath = getConfValueC(&config, "DIR_JOB_ACCOUNT");
+    char *accPath = getConfValueC(config, "DIR_JOB_ACCOUNT");
 
     if (!(dir = opendir(accPath))) {
 	mlog("%s: opening accounting dir '%s' failed\n", __func__, accPath);
@@ -134,7 +134,7 @@ void saveJobInfo(Job_t *job)
 
     if (job->state == JOB_WAIT_OBIT) return;
 
-    accPath = getConfValueC(&config, "DIR_JOB_ACCOUNT");
+    accPath = getConfValueC(config, "DIR_JOB_ACCOUNT");
     snprintf(accFile, sizeof(accFile), "%s/%s", accPath, job->hashname);
 
     if (!(fp = fopen(accFile, "w"))) {

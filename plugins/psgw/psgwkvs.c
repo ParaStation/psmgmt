@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2019-2020 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2022 ParTec AG, Munich
+ * Copyright (C) 2022-2023 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -55,7 +55,7 @@ char *set(char *key, char *value)
 	}
 
 	/* save new config value */
-	addConfigEntry(&config, key, value);
+	addConfigEntry(config, key, value);
 
 	snprintf(line, sizeof(line), "\nsaved '%s = %s'\n", key, value);
 	return str2Buf(line, &buf, &bufSize);
@@ -106,7 +106,7 @@ static char *showConfig(void)
 
     while (confDef[i].name != NULL) {
 	char *name = confDef[i].name;
-	char *val = getConfValueC(&config, name);
+	char *val = getConfValueC(config, name);
 	snprintf(line, sizeof(line), "%21s = %s\n", name, val ? val:"<empty>");
 	str2Buf(line, &buf, &bufSize);
 	i++;
@@ -142,7 +142,7 @@ char *show(char *key)
     if (!key) return showVirtualKeys(buf, &bufSize, true);
 
     /* search in config for given key */
-    tmp = getConfValueC(&config, key);
+    tmp = getConfValueC(config, key);
     if (tmp) {
 	str2Buf(key, &buf, &bufSize);
 	str2Buf(" = ", &buf, &bufSize);
@@ -166,7 +166,7 @@ char *unset(char *key)
     char *buf = NULL;
     size_t bufSize = 0;
 
-    if (unsetConfigEntry(&config, confDef, key)) return buf;
+    if (unsetConfigEntry(config, confDef, key)) return buf;
 
     str2Buf("\nInvalid key '", &buf, &bufSize);
     str2Buf(key, &buf, &bufSize);

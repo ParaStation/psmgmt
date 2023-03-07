@@ -99,6 +99,6 @@ char *getSlurmUpdateTime(void);
  *
  * @param option The option to test
  */
-bool confHasOpt(Config_t *conf, char *key, char *option);
+bool confHasOpt(Config_t conf, char *key, char *option);
 
 #endif  /* __PS_SLURM_CONFIG */

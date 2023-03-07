@@ -642,7 +642,7 @@ bool pspmix_service_registerClientAndSendEnv(PStask_ID_t loggertid,
     /* find namespace in list */
     PspmixNamespace_t *ns = findNamespace(nsname);
     if (!ns) {
-	if (getConfValueI(&config, "SUPPORT_MPI_SINGLETON")) {
+	if (getConfValueI(config, "SUPPORT_MPI_SINGLETON")) {
 	    /* try singleton name */
 	    char *nsname2 = ustrdup(nsname);
 	    nsname = generateNamespaceName(spawnertid, true);

@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2010-2018 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2022 ParTec AG, Munich
+ * Copyright (C) 2021-2023 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -434,7 +434,7 @@ Data_Entry_t *getPBSNodeState(char *server, const char *host)
 	hostname = host;
     }
 
-    serverPort = getConfValueI(&config, "PORT_SERVER");
+    serverPort = getConfValueI(config, "PORT_SERVER");
 
     if (!findServerByrAddr(server)) {
 	mlog("%s: server object for addr '%s' not found\n", __func__, server);
@@ -510,7 +510,7 @@ int setPBSNodeState(char *server, char *note, char *state, const char *host)
 	hostname = host;
     }
 
-    serverPort = getConfValueI(&config, "PORT_SERVER");
+    serverPort = getConfValueI(config, "PORT_SERVER");
 
     if (!findServerByrAddr(server)) {
 	mlog("%s: server object for addr '%s' not found\n", __func__, server);
@@ -628,7 +628,7 @@ int sendTMJobTermination(Job_t *job)
 	updateJobInfo(job);
     }
 
-    serverPort = getConfValueI(&config, "PORT_SERVER");
+    serverPort = getConfValueI(config, "PORT_SERVER");
 
     if ((doSendObit(job, job->server, serverPort))) {
 	obitSuccess = 1;
@@ -1003,7 +1003,7 @@ static int handle_TM_Bjobscript(ComHandle_t *com)
 
     /* set jobscript filename */
     if (!job->jobscript) {
-	jobfiles = getConfValueC(&config, "DIR_JOB_FILES");
+	jobfiles = getConfValueC(config, "DIR_JOB_FILES");
 	snprintf(buf, sizeof(buf), "%s/%s", jobfiles, job->hashname);
 	job->jobscript = ustrdup(buf);
     }
@@ -1108,7 +1108,7 @@ int requestJobInformation(Job_t *job)
     mdbg(PSMOM_LOG_PTM, "%s: Requesting job info for %s\n", __func__,
 	    job->id);
 
-    serverPort = getConfValueI(&config, "PORT_SERVER");
+    serverPort = getConfValueI(config, "PORT_SERVER");
 
     if (!(com = wConnect(serverPort, job->server, TCP_PROTOCOL))) {
 	mlog("%s: failed sending job status request for '%s' from '%s'\n",
@@ -1463,17 +1463,17 @@ int jobCleanup(Job_t *job, int save)
     }
 
     /* delete jobscript file */
-    cleanJob = getConfValueI(&config, "CLEAN_JOBS_FILES");
+    cleanJob = getConfValueI(config, "CLEAN_JOBS_FILES");
     if (cleanJob) {
-	dir = getConfValueC(&config, "DIR_JOB_FILES");
+	dir = getConfValueC(config, "DIR_JOB_FILES");
 	snprintf(buf, sizeof(buf), "%s/%s", dir, job->hashname);
 	unlink(buf);
     }
 
     /* delete node file */
-    cleanNodes = getConfValueI(&config, "CLEAN_NODE_FILES");
+    cleanNodes = getConfValueI(config, "CLEAN_NODE_FILES");
     if (cleanNodes) {
-	dir = getConfValueC(&config, "DIR_NODE_FILES");
+	dir = getConfValueC(config, "DIR_NODE_FILES");
 	snprintf(buf, sizeof(buf), "%s/%s", dir, job->hashname);
 	unlink(buf);
 	snprintf(buf, sizeof(buf), "%s/%sgpu", dir, job->hashname);
@@ -1481,7 +1481,7 @@ int jobCleanup(Job_t *job, int save)
     }
 
     /* handle account informations */
-    dir = getConfValueC(&config, "DIR_JOB_ACCOUNT");
+    dir = getConfValueC(config, "DIR_JOB_ACCOUNT");
     snprintf(buf, sizeof(buf), "%s/%s", dir, job->hashname);
     if (save) {
 	char savePath[100];
@@ -1494,7 +1494,7 @@ int jobCleanup(Job_t *job, int save)
     }
 
     /* handle job output/error files */
-    dir = getConfValueC(&config, "DIR_SPOOL");
+    dir = getConfValueC(config, "DIR_SPOOL");
     if (save) {
 	char savePath[100];
 

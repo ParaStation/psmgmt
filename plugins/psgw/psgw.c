@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2018-2020 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2022 ParTec AG, Munich
+ * Copyright (C) 2021-2023 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -56,8 +56,8 @@ plugin_dep_t dependencies[] = {
 static bool checkRouteScript(void)
 {
     char rScript[PATH_MAX];
-    char *dir = getConfValueC(&config, "DIR_ROUTE_SCRIPTS");
-    char *script = getConfValueC(&config, "ROUTE_SCRIPT");
+    char *dir = getConfValueC(config, "DIR_ROUTE_SCRIPTS");
+    char *script = getConfValueC(config, "ROUTE_SCRIPT");
     struct stat sb;
 
     snprintf(rScript, sizeof(rScript), "%s/%s", dir, script);
@@ -67,7 +67,7 @@ static bool checkRouteScript(void)
 	return false;
     }
 
-    int strict = getConfValueI(&config, "STRICT_MODE");
+    int strict = getConfValueI(config, "STRICT_MODE");
     if (strict) {
 	/* readable and executable by root and NOT writable by anyone
 	 * besides root */
@@ -86,7 +86,7 @@ static bool checkRouteScript(void)
     }
 
     /* test default routing plugin */
-    script = getConfValueC(&config, "DEFAULT_ROUTE_PLUGIN");
+    script = getConfValueC(config, "DEFAULT_ROUTE_PLUGIN");
     if (stat(script, &sb) < 0) {
 	mlog("%s: routing plugin %s not found\n", __func__, script);
 	return false;
@@ -248,7 +248,7 @@ int initialize(FILE *logfile)
     }
 
     /* psgw debug */
-    int32_t mask = getConfValueI(&config, "DEBUG_MASK");
+    int32_t mask = getConfValueI(config, "DEBUG_MASK");
     if (mask) {
 	mlog("%s: set psgw debug mask '%i'\n", __func__, mask);
 	maskLogger(mask);
@@ -260,7 +260,7 @@ int initialize(FILE *logfile)
 	return 1;
     }
 
-    psPelogueAddPluginConfig("psgw", &config);
+    psPelogueAddPluginConfig("psgw", config);
 
     if (!PSIDhook_add(PSIDHOOK_PELOGUE_RES, handlePElogueRes)) {
 	mlog("register 'PSIDHOOK_PELOGUE_RES' failed\n");
@@ -312,7 +312,7 @@ void cleanup(void)
     Request_clear();
 
     psPelogueDelPluginConfig("psgw");
-    freeConfig(&config);
+    freeConfig(config);
 
     mlog("...Bye.\n");
 

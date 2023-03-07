@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2010-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2022 ParTec AG, Munich
+ * Copyright (C) 2021-2023 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -186,16 +186,16 @@ static bool shutdownJobs(void)
 */
 static void saveConfigValues(void)
 {
-    obitTime = getConfValueI(&config, "TIME_OBIT");
-    debugMask = getConfValueI(&config, "DEBUG_MASK");
+    obitTime = getConfValueI(config, "TIME_OBIT");
+    debugMask = getConfValueI(config, "DEBUG_MASK");
 
     /* network configuration */
-    momPort = getConfValueI(&config, "PORT_MOM");
-    rmPort = getConfValueI(&config, "PORT_RM");
-    serverPort = getConfValueI(&config, "PORT_SERVER");
+    momPort = getConfValueI(config, "PORT_MOM");
+    rmPort = getConfValueI(config, "PORT_RM");
+    serverPort = getConfValueI(config, "PORT_SERVER");
 
     /* torque protocol version */
-    torqueVer = getConfValueI(&config, "TORQUE_VERSION");
+    torqueVer = getConfValueI(config, "TORQUE_VERSION");
 }
 
 static bool initAccountingFunc(void)
@@ -344,23 +344,23 @@ static void cleanupLogs(void)
     char *dir = NULL;
 
     /* cleanup jobscript files */
-    cleanJob = getConfValueI(&config, "CLEAN_JOBS_FILES");
+    cleanJob = getConfValueI(config, "CLEAN_JOBS_FILES");
     if (cleanJob) {
-	dir = getConfValueC(&config, "DIR_JOB_FILES");
+	dir = getConfValueC(config, "DIR_JOB_FILES");
 	removeDir(dir, 0);
     }
 
     /* cleanup node files */
-    cleanNodes = getConfValueI(&config, "CLEAN_NODE_FILES");
+    cleanNodes = getConfValueI(config, "CLEAN_NODE_FILES");
     if (cleanNodes) {
-	dir = getConfValueC(&config, "DIR_NODE_FILES");
+	dir = getConfValueC(config, "DIR_NODE_FILES");
 	removeDir(dir, 0);
     }
 
     /* cleanup temp (scratch) dir */
-    cleanTemp = getConfValueI(&config, "CLEAN_TEMP_DIR");
+    cleanTemp = getConfValueI(config, "CLEAN_TEMP_DIR");
     if (cleanTemp) {
-	dir = getConfValueC(&config, "DIR_TEMP");
+	dir = getConfValueC(config, "DIR_TEMP");
 	if (dir) removeDir(dir, 0);
     }
 }
@@ -421,7 +421,7 @@ static int validateScripts(void)
     struct stat st;
     char *script, *dir, filename[400];
 
-    script = getConfValueC(&config, "BACKUP_SCRIPT");
+    script = getConfValueC(config, "BACKUP_SCRIPT");
     if (script) {
 	if (stat(script, &st) == -1) {
 	    mwarn(errno, "%s: invalid backup script '%s'", __func__, script);
@@ -436,7 +436,7 @@ static int validateScripts(void)
 	}
     }
 
-    script = getConfValueC(&config, "TIMEOUT_SCRIPT");
+    script = getConfValueC(config, "TIMEOUT_SCRIPT");
     if (script) {
 	if (stat(script, &st) == -1) {
 	    mwarn(errno, "%s: invalid timeout script '%s'", __func__, script);
@@ -452,7 +452,7 @@ static int validateScripts(void)
     }
 
     /* validate prologue/epilogue scripts */
-    dir = getConfValueC(&config, "DIR_SCRIPTS");
+    dir = getConfValueC(config, "DIR_SCRIPTS");
     snprintf(filename, sizeof(filename), "%s/prologue", dir);
     if (checkPELogueFileStats(filename, 1) == -2) {
 	mlog("%s: invalid permissions for '%s'\n", __func__, filename);
@@ -487,31 +487,31 @@ static int validateDirs(void)
     struct stat st;
     char *dir;
 
-    dir = getConfValueC(&config, "DIR_JOB_FILES");
+    dir = getConfValueC(config, "DIR_JOB_FILES");
     if (stat(dir, &st) == -1 || (st.st_mode & S_IFDIR) != S_IFDIR) {
 	mwarn(errno, "%s: invalid job dir '%s'", __func__, dir);
 	return 1;
     }
 
-    dir = getConfValueC(&config, "DIR_NODE_FILES");
+    dir = getConfValueC(config, "DIR_NODE_FILES");
     if (stat(dir, &st) == -1 || (st.st_mode & S_IFDIR) != S_IFDIR) {
 	mwarn(errno, "%s: invalid node files dir '%s'", __func__, dir);
 	return 1;
     }
 
-    dir = getConfValueC(&config, "DIR_TEMP");
+    dir = getConfValueC(config, "DIR_TEMP");
     if (dir && (stat(dir, &st) == -1 || (st.st_mode & S_IFDIR) != S_IFDIR)) {
 	mwarn(errno, "%s: invalid temp dir '%s'", __func__, dir);
 	return 1;
     }
 
-    dir = getConfValueC(&config, "DIR_JOB_ACCOUNT");
+    dir = getConfValueC(config, "DIR_JOB_ACCOUNT");
     if (stat(dir, &st) == -1 || (st.st_mode & S_IFDIR) != S_IFDIR) {
 	mwarn(errno, "%s: invalid account dir '%s'", __func__, dir);
 	return 1;
     }
 
-    dir = getConfValueC(&config, "DIR_SCRIPTS");
+    dir = getConfValueC(config, "DIR_SCRIPTS");
     if (stat(dir, &st) == -1 || (st.st_mode & S_IFDIR) != S_IFDIR) {
 	mwarn(errno, "%s: invalid scripts dir '%s'", __func__, dir);
 	return 1;
@@ -523,7 +523,7 @@ static int validateDirs(void)
 	return 1;
     }
 
-    dir = getConfValueC(&config, "DIR_LOCAL_BACKUP");
+    dir = getConfValueC(config, "DIR_LOCAL_BACKUP");
     if (dir && (stat(dir, &st) == -1 || (st.st_mode & S_IFDIR) != S_IFDIR)) {
 	mwarn(errno, "%s: invalid backup dir '%s'", __func__, dir);
 	return 1;
@@ -757,7 +757,7 @@ void cleanup(void)
 
     if (!isInit) {
 	/* free config values */
-	freeConfig(&config);
+	freeConfig(config);
 	return;
     }
 
@@ -767,7 +767,7 @@ void cleanup(void)
     }
 
     /* free config values */
-    freeConfig(&config);
+    freeConfig(config);
 
     /* set collect mode in psaccount */
     if (psAccountSetGlobalCollect) psAccountSetGlobalCollect(false);

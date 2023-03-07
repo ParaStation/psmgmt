@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2020 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2022 ParTec AG, Munich
+ * Copyright (C) 2021-2023 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -37,7 +37,7 @@ int handlePelogueOE(void *pedata)
     PElogueChild_t *child = oeData->child;
 
     /* don't forward messages requested by psslurm or other plugins */
-    int fwOE = getConfValueI(&config, "PELOGUE_LOG_OE");
+    int fwOE = getConfValueI(config, "PELOGUE_LOG_OE");
     if (!fwOE) return 0;
 
     /* forward output to leader */

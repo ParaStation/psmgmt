@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2018-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2022 ParTec AG, Munich
+ * Copyright (C) 2021-2023 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -344,7 +344,7 @@ static int hookExecForwarder(void *data)
      * or singleton support is configured and np == 1 */
     bool usePMIx = pspmix_common_usePMIx(&env);
     char *jobsize = envGet(&env, "PMI_SIZE");
-    if (!usePMIx && (!getConfValueI(&config, "SUPPORT_MPI_SINGLETON")
+    if (!usePMIx && (!getConfValueI(config, "SUPPORT_MPI_SINGLETON")
 		     || (jobsize ? atoi(jobsize) : 1) != 1)) {
 	childTask = NULL;
 	return 0;

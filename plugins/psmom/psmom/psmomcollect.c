@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2010-2016 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2022 ParTec AG, Munich
+ * Copyright (C) 2022-2023 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -369,7 +369,7 @@ static void setNCpus(void)
 static void setFsSize(void)
 {
     struct statfs st;
-    char *param = getConfValueC(&config, "REPORT_FS_SIZE");
+    char *param = getConfValueC(config, "REPORT_FS_SIZE");
     static bool report = true;
 
     if (!report) return;
@@ -399,7 +399,7 @@ static void setFsSize(void)
  */
 static void setOpsys(void)
 {
-    char *param = getConfValueC(&config, "SET_OPSYS");
+    char *param = getConfValueC(config, "SET_OPSYS");
     if (param) {
 	snprintf(buffer, sizeof(buffer), "opsys=%s", param);
 	setEntry(&staticInfoData.list, "opsys", "", buffer);
@@ -418,7 +418,7 @@ static void setOpsys(void)
  */
 static void setArch(void)
 {
-    char *param = getConfValueC(&config, "SET_ARCH");
+    char *param = getConfValueC(config, "SET_ARCH");
     if (param) {
 	snprintf(buffer, sizeof(buffer), "arch=%s", param);
 	setEntry(&staticInfoData.list, "arch", "", buffer);

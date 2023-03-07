@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2017-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2022 ParTec AG, Munich
+ * Copyright (C) 2021-2023 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -193,7 +193,7 @@ char *BCast_adjustExe(char *exe, uint32_t jobid, uint32_t stepid)
     char strID[128];
     snprintf(strID, sizeof(strID), "%u.%u", jobid, stepid);
     char *newExe = PSC_concat(exe, "slurm_bcast_", strID, "_",
-			      getConfValueC(&Config, "SLURM_HOSTNAME"));
+			      getConfValueC(Config, "SLURM_HOSTNAME"));
     if (!newExe) flog("PSC_concat(%s) out of memory\n", exe);
     return newExe;
 }

@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2011-2018 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2022 ParTec AG, Munich
+ * Copyright (C) 2022-2023 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -198,13 +198,13 @@ int openServerConnections()
     Server_t *serv;
     struct sockaddr_in* lAddr;
 
-    allServers = getConfValueC(&config, "PBS_SERVER");
+    allServers = getConfValueC(config, "PBS_SERVER");
     if (!allServers) {
 	mlog("%s: PBS server not configured, cannot continue\n", __func__);
 	return 1;
     }
 
-    serverPort = getConfValueI(&config, "PORT_SERVER");
+    serverPort = getConfValueI(config, "PORT_SERVER");
 
     copy = ustrdup(allServers);
     next = strtok_r(copy, delimiters, &toksave);
@@ -236,7 +236,7 @@ int openServerConnections()
     ufree(copy);
 
     /* check peridically if server connection is still in place */
-    keepAliveTime = getConfValueI(&config, "TIME_KEEP_ALIVE");
+    keepAliveTime = getConfValueI(config, "TIME_KEEP_ALIVE");
 
     if (keepAliveTime > 0) {
 	Timer.tv_sec = 30;
@@ -257,7 +257,7 @@ int openServerConnections()
     }
 
     /* send periodic update messages (also used as keep alive) to all servers */
-    Time = getConfValueI(&config, "TIME_UPDATE");
+    Time = getConfValueI(config, "TIME_UPDATE");
     Timer.tv_sec = Time;
     Timer.tv_usec = 0;
     if ((serverUpdateID = Timer_register(&Timer, sendStatusUpdate)) == -1) {

@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2010-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2022 ParTec AG, Munich
+ * Copyright (C) 2021-2023 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -364,13 +364,13 @@ void setResourceLimits(Job_t *job)
     struct list_head *pos;
     struct rlimit limit;
     Data_Entry_t *next, *data;
-    char *limits = getConfValueC(&config, "RLIMITS_HARD");
+    char *limits = getConfValueC(config, "RLIMITS_HARD");
 
     /* set default hard rlimits */
     if (limits) setDefaultResLimits(limits, 0);
 
     /* set default soft rlimits */
-    limits = getConfValueC(&config, "RLIMITS_SOFT");
+    limits = getConfValueC(config, "RLIMITS_SOFT");
     if (limits) setDefaultResLimits(limits, 1);
 
     data = &job->data;
@@ -454,10 +454,10 @@ int sendPElogueStart(Job_t *job, bool prologue)
     int32_t timeout, type, i;
 
     if (prologue) {
-	timeout = getConfValueI(&config, "TIMEOUT_PROLOGUE");
+	timeout = getConfValueI(config, "TIMEOUT_PROLOGUE");
 	type = PSP_PSMOM_PROLOGUE_START;
     } else {
-	timeout = getConfValueI(&config, "TIMEOUT_EPILOGUE");
+	timeout = getConfValueI(config, "TIMEOUT_EPILOGUE");
 	type = PSP_PSMOM_EPILOGUE_START;
     }
 
@@ -618,8 +618,8 @@ void afterJobCleanup(char *user)
 {
     if (!hasRunningJobs(user)) {
 	/* find all leftover user daemons and warn/kill them */
-	int killDaemons = getConfValueI(&config, "KILL_USER_DAEMONS");
-	int warnDaemons = getConfValueI(&config, "WARN_USER_DAEMONS");
+	int killDaemons = getConfValueI(config, "KILL_USER_DAEMONS");
+	int warnDaemons = getConfValueI(config, "WARN_USER_DAEMONS");
 
 	if (killDaemons || warnDaemons) {
 	    uid_t uid = PSC_uidFromString(user);

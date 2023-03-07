@@ -370,7 +370,7 @@ static void fwExecBatchJob(Forwarder_Data_t *fwdata, int rerun)
 
     /* switch user */
     char *cwd = job->cwd;
-    if (getConfValueI(&Config, "CWD_PATTERN") == 1) {
+    if (getConfValueI(Config, "CWD_PATTERN") == 1) {
 	cwd = IO_replaceJobSymbols(job, job->cwd);
     }
     if (!switchUser(job->username, job->uid, job->gid)) {
@@ -392,7 +392,7 @@ static void fwExecBatchJob(Forwarder_Data_t *fwdata, int rerun)
     setRlimitsFromEnv(&job->env, 0);
 
     /* reset FPE exceptions mask */
-    if (getConfValueI(&Config, "ENABLE_FPE_EXCEPTION") &&
+    if (getConfValueI(Config, "ENABLE_FPE_EXCEPTION") &&
 	oldExceptions != -1) {
 	if (feenableexcept(oldExceptions) == -1) {
 	    flog("warning: failed to reset exception mask\n");
@@ -692,7 +692,7 @@ int handleExecClientUser(void *data)
     }
 
     /* reset FPE exceptions mask */
-    if (getConfValueI(&Config, "ENABLE_FPE_EXCEPTION") &&
+    if (getConfValueI(Config, "ENABLE_FPE_EXCEPTION") &&
 	oldExceptions != -1) {
 	if (feenableexcept(oldExceptions) == -1) {
 	    flog("warning: failed to reset exception mask\n");
@@ -996,7 +996,7 @@ static void fwExecStep(Forwarder_Data_t *fwdata, int rerun)
     }
 
     char *cwd = step->cwd;
-    if (getConfValueI(&Config, "CWD_PATTERN") == 1) {
+    if (getConfValueI(Config, "CWD_PATTERN") == 1) {
 	cwd = IO_replaceStepSymbols(step, 0, step->cwd);
     }
 
@@ -1270,7 +1270,7 @@ static void handleChildStartStep(Forwarder_Data_t *fwdata, pid_t fw,
 
 bool execStepLeader(Step_t *step)
 {
-    int grace = getConfValueI(&SlurmConfig, "KillWait");
+    int grace = getConfValueI(SlurmConfig, "KillWait");
     if (grace < 3) grace = 30;
 
     char jobid[100], fname[300];
@@ -1301,7 +1301,7 @@ bool execStepLeader(Step_t *step)
 		 Step_strID(step));
 	flog("%s", msg);
 	setNodeOffline(&step->env, step->jobid,
-		       getConfValueC(&Config, "SLURM_HOSTNAME"), msg);
+		       getConfValueC(Config, "SLURM_HOSTNAME"), msg);
 	return false;
     }
 
@@ -1361,7 +1361,7 @@ bool execBatchJob(Job_t *job)
 	return false;
     }
 
-    int grace = getConfValueI(&SlurmConfig, "KillWait");
+    int grace = getConfValueI(SlurmConfig, "KillWait");
     if (grace < 3) grace = 30;
 
     char fname[300];
@@ -1390,7 +1390,7 @@ bool execBatchJob(Job_t *job)
 		 job->jobid);
 	flog("%s", msg);
 	setNodeOffline(&job->env, job->jobid,
-		       getConfValueC(&Config, "SLURM_HOSTNAME"), msg);
+		       getConfValueC(Config, "SLURM_HOSTNAME"), msg);
 	return false;
     }
 
@@ -1478,7 +1478,7 @@ static int initBCastFW(Forwarder_Data_t *fwdata)
 
 bool execBCast(BCast_t *bcast)
 {
-    int grace = getConfValueI(&SlurmConfig, "KillWait");
+    int grace = getConfValueI(SlurmConfig, "KillWait");
     if (grace < 3) grace = 30;
 
     char jobid[100], fname[300];
@@ -1506,7 +1506,7 @@ bool execBCast(BCast_t *bcast)
 		 bcast->jobid);
 	flog("%s", msg);
 	setNodeOffline(bcast->env, bcast->jobid,
-		       getConfValueC(&Config, "SLURM_HOSTNAME"), msg);
+		       getConfValueC(Config, "SLURM_HOSTNAME"), msg);
 	return false;
     }
 
@@ -1600,7 +1600,7 @@ static int stepFollowerFWinit(Forwarder_Data_t *fwdata)
 
 bool execStepFollower(Step_t *step)
 {
-    int grace = getConfValueI(&SlurmConfig, "KillWait");
+    int grace = getConfValueI(SlurmConfig, "KillWait");
     if (grace < 3) grace = 30;
 
     char jobid[100], fname[300];
@@ -1628,7 +1628,7 @@ bool execStepFollower(Step_t *step)
 		 Step_strID(step));
 	flog("%s", msg);
 	setNodeOffline(&step->env, step->jobid,
-		       getConfValueC(&Config, "SLURM_HOSTNAME"), msg);
+		       getConfValueC(Config, "SLURM_HOSTNAME"), msg);
 	return false;
     }
 
@@ -1664,7 +1664,7 @@ static void fwExecEpiFin(Forwarder_Data_t *fwdata, int rerun)
     Alloc_t *alloc = fwdata->userData;
     char *argv[2];
     char buf[1024], script[1024];
-    char *dirScripts = getConfValueC(&Config, "DIR_SCRIPTS");
+    char *dirScripts = getConfValueC(Config, "DIR_SCRIPTS");
 
     snprintf(script, sizeof(script), "%s/epilogue.finalize", dirScripts);
 
@@ -1697,7 +1697,7 @@ static void epiFinCallback(int32_t exit_status, Forwarder_Data_t *fwdata)
 
 bool execEpilogueFin(Alloc_t *alloc)
 {
-    int grace = getConfValueI(&SlurmConfig, "KillWait");
+    int grace = getConfValueI(SlurmConfig, "KillWait");
     if (grace < 3) grace = 30;
 
     char jobid[100], fname[300];

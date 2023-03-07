@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2018-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2022 ParTec AG, Munich
+ * Copyright (C) 2021-2023 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -66,7 +66,7 @@ static void prepEnv(void *reqPtr)
 
     char *tmp = getenv("SLURM_SPANK_PSGW_PLUGIN");
     if (!tmp) {
-	char *script = getConfValueC(&config, "DEFAULT_ROUTE_PLUGIN");
+	char *script = getConfValueC(config, "DEFAULT_ROUTE_PLUGIN");
 	setenv("SLURM_SPANK_PSGW_PLUGIN", script, 1);
     }
 
@@ -117,7 +117,7 @@ static bool stopPSGWD(PSGW_Req_t *req)
 {
     env_t env;
     uint32_t i, id = atoi(req->jobid);
-    char *dir = getConfValueC(&config, "DIR_ROUTE_SCRIPTS");
+    char *dir = getConfValueC(config, "DIR_ROUTE_SCRIPTS");
     char buf[1024];
 
     envInit(&env);
@@ -297,7 +297,7 @@ static void finalizeRequest(PSGW_Req_t *req)
     }
 
     /* set additional environment variables */
-    char *addEnv = getConfValueC(&config, "GATEWAY_ENV");
+    char *addEnv = getConfValueC(config, "GATEWAY_ENV");
     PElogueResource_t *res = req->res;
 
     if (addEnv && strlen(addEnv) > 0) {
@@ -405,7 +405,7 @@ static bool initRoutingEnv(PSGW_Req_t *req)
     char *routeFile = envGet(env, "SLURM_SPANK_PSGW_ROUTE_FILE");
     if (!routeFile) {
 	char *cwd = envGet(env, "SLURM_SPANK_PSGW_CWD");
-	char *prefix = getConfValueC(&config, "DEFAULT_ROUTE_PREFIX");
+	char *prefix = getConfValueC(config, "DEFAULT_ROUTE_PREFIX");
 	snprintf(buf, sizeof(buf), "%s/%s-%s", (cwd ? cwd : home), prefix,
 		 req->jobid);
 	routeFile = buf;
@@ -458,9 +458,9 @@ static void routeScriptTimeout(int timerId, void *data)
 static bool execRoutingScript(PSGW_Req_t *req)
 {
     char exePath[PATH_MAX];
-    char *dir = getConfValueC(&config, "DIR_ROUTE_SCRIPTS");
-    char *script = getConfValueC(&config, "ROUTE_SCRIPT");
-    int tmRouteScript = getConfValueI(&config, "TIMEOUT_ROUTE_SCRIPT");
+    char *dir = getConfValueC(config, "DIR_ROUTE_SCRIPTS");
+    char *script = getConfValueC(config, "ROUTE_SCRIPT");
+    int tmRouteScript = getConfValueI(config, "TIMEOUT_ROUTE_SCRIPT");
 
     snprintf(exePath, sizeof(exePath), "%s/%s", dir, script);
 
@@ -556,7 +556,7 @@ bool startPElogue(PSGW_Req_t *req, PElogueType_t type)
 	 (type == PELOGUE_PROLOGUE) ? "prologue" : "epilogue", req->jobid);
 
     if (type == PELOGUE_PROLOGUE) {
-	int fwOE = getConfValueI(&config, "PELOGUE_LOG_OE");
+	int fwOE = getConfValueI(config, "PELOGUE_LOG_OE");
 	ret = psPelogueAddJob("psgw", req->jobid, req->uid, req->gid,
 			      req->numGWnodes, req->gwNodes, pelogueCB, req,
 			      fwOE);
@@ -684,7 +684,7 @@ static void initPSGWDEnv(env_t *psgwdEnv, PSGW_Req_t *req)
 {
     /* build clean environment for the psgwd */
     envInit(psgwdEnv);
-    char *psgwd = getConfValueC(&config, "PSGWD_BINARY");
+    char *psgwd = getConfValueC(config, "PSGWD_BINARY");
     envSet(psgwdEnv, "PSGWD_BINARY", psgwd);
     char buf[64];
     snprintf(buf, sizeof(buf), "%u", req->uid);
@@ -728,7 +728,7 @@ static void initPSGWDEnv(env_t *psgwdEnv, PSGW_Req_t *req)
 bool startPSGWD(PSGW_Req_t *req)
 {
     env_t psgwdEnv;
-    char *dir = getConfValueC(&config, "DIR_ROUTE_SCRIPTS");
+    char *dir = getConfValueC(config, "DIR_ROUTE_SCRIPTS");
 
     initPSGWDEnv(&psgwdEnv, req);
 

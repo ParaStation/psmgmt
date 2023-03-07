@@ -1943,7 +1943,7 @@ static void convAccDataToTRes(SlurmAccData_t *slurmAccData, TRes_t *tres)
     TRes_set(tres, TRES_FS_DISK, &entry);
 
     /* interconnect data */
-    if (getConfValueC(&Config, "SLURM_ACC_NETWORK")) {
+    if (getConfValueC(Config, "SLURM_ACC_NETWORK")) {
 	uint32_t icID = TRes_getID("ic", "ofed");
 
 	if (icID == NO_VAL) {
@@ -2053,7 +2053,7 @@ bool packGresConf(Gres_Conf_t *gres, void *info)
 
     addUint32ToMsg(GRES_MAGIC, msg);
     addUint64ToMsg(gres->count, msg);
-    addUint32ToMsg(getConfValueI(&Config, "SLURM_CPUS"), msg);
+    addUint32ToMsg(getConfValueI(Config, "SLURM_CPUS"), msg);
 
     /* GRES flags (e.g. GRES_CONF_HAS_FILE) */
     if (slurmProto >= SLURM_21_08_PROTO_VERSION) {
@@ -2447,7 +2447,7 @@ bool __packEnergySensor(PS_SendDB_t *data, psAccountEnergy_t *sensor,
     }
 
     /* node name */
-    addStringToMsg(getConfValueC(&Config, "SLURM_HOSTNAME"), data);
+    addStringToMsg(getConfValueC(Config, "SLURM_HOSTNAME"), data);
 
     /* we need at least 1 sensor to prevent segfaults in slurmctld */
     addUint16ToMsg(1, data);
@@ -3176,7 +3176,7 @@ static bool packReqPrologComplete(PS_SendDB_t *data, Req_Prolog_Comp_t *req)
 
     if (slurmProto >= SLURM_22_05_PROTO_VERSION) {
 	/* node name */
-	addStringToMsg(getConfValueC(&Config, "SLURM_HOSTNAME"), data);
+	addStringToMsg(getConfValueC(Config, "SLURM_HOSTNAME"), data);
     }
 
     /* prolog return code */

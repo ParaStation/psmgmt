@@ -691,7 +691,7 @@ static void serverTerminated_cb(int32_t exit_status, Forwarder_Data_t *fw)
 	}
 	mlog(")\n");
 
-	if (getConfValueI(&config, "KILL_JOB_ON_SERVERFAIL")) {
+	if (getConfValueI(config, "KILL_JOB_ON_SERVERFAIL")) {
 	    list_t *s;
 	    list_for_each(s, &server->sessions) {
 		PspmixSession_t *session = list_entry(s, PspmixSession_t, next);
@@ -834,7 +834,7 @@ static void stopServer(PspmixServer_t *server)
     /* setup timer to kill the server in case it will not go smoothly
      * this is also used to ensure the server will not be used again */
     if (server->timerId < 0) {
-	int grace = getConfValueI(&config, "SERVER_KILL_WAIT");
+	int grace = getConfValueI(config, "SERVER_KILL_WAIT");
 	struct timeval timeout = {grace, 0};
 	server->timerId = Timer_registerEnhanced(&timeout, killServer, server);
     }
@@ -916,7 +916,7 @@ static int hookSpawnTask(void *data)
     /* continue only if PMIx support is requested
      * or singleton support is configured and np == 1 */
     bool usePMIx = pspmix_common_usePMIx(&env);
-    if (!usePMIx && !getConfValueI(&config, "SUPPORT_MPI_SINGLETON")) return 0;
+    if (!usePMIx && !getConfValueI(config, "SUPPORT_MPI_SINGLETON")) return 0;
     char *jobsize = envGet(&env, "PMI_SIZE");
     if (!usePMIx && (jobsize ? atoi(jobsize) : 1) != 1) return 0;
 

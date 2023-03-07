@@ -579,28 +579,28 @@ static bool initPluginHandles(void)
 static void setConfOpt(void)
 {
     /* plugin library debug */
-    int mask = getConfValueI(&Config, "PLUGIN_DEBUG_MASK");
+    int mask = getConfValueI(Config, "PLUGIN_DEBUG_MASK");
     if (mask) {
 	mlog("%s: set plugin debug mask '%i'\n", __func__, mask);
 	maskPluginLogger(mask);
     }
 
     /* glib malloc checking */
-    int mCheck = getConfValueI(&Config, "MALLOC_CHECK");
+    int mCheck = getConfValueI(Config, "MALLOC_CHECK");
     if (mCheck) {
 	mlog("%s: enable memory checking\n", __func__);
 	setenv("MALLOC_CHECK_", "2", 1);
     }
 
     /* measure libmunge */
-    int measure = getConfValueI(&Config, "MEASURE_MUNGE");
+    int measure = getConfValueI(Config, "MEASURE_MUNGE");
     if (measure) {
 	mlog("%s: measure libmunge executing times\n", __func__);
 	psMungeMeasure(true);
     }
 
     /* measure RPC calls */
-    measure = getConfValueI(&Config, "MEASURE_RPC");
+    measure = getConfValueI(Config, "MEASURE_RPC");
     if (measure) {
 	mlog("%s: measure Slurm RPC calls\n", __func__);
 	measureRPC = true;
@@ -615,7 +615,7 @@ static void setConfOpt(void)
  */
 static void enableFPEexceptions(void)
 {
-    if (!getConfValueI(&Config, "ENABLE_FPE_EXCEPTION")) return;
+    if (!getConfValueI(Config, "ENABLE_FPE_EXCEPTION")) return;
 
     int ret = feenableexcept(FE_DIVBYZERO | FE_INVALID
 			     | FE_OVERFLOW | FE_UNDERFLOW);
@@ -642,7 +642,7 @@ static void enableFPEexceptions(void)
  */
 static bool needConfUpdate(char *confDir)
 {
-    int forceUpdate = getConfValueI(&Config, "SLURM_UPDATE_CONF_AT_STARTUP");
+    int forceUpdate = getConfValueI(Config, "SLURM_UPDATE_CONF_AT_STARTUP");
     if (forceUpdate) return true;
 
     char buf[1024];
@@ -666,14 +666,14 @@ static bool needConfUpdate(char *confDir)
 static bool requestConfig(void)
 {
     /* request Slurm configuration files from slurmctld */
-    char *server = getConfValueC(&Config, "SLURM_CONF_SERVER");
+    char *server = getConfValueC(Config, "SLURM_CONF_SERVER");
     if (!server || !strcmp(server, "none")) {
 	flog("SLURM_CONF_SERVER not set\n");
 	return false;
     }
 
     if (!sendConfigReq(server, CONF_ACT_STARTUP)) {
-	server = getConfValueC(&Config, "SLURM_CONF_BACKUP_SERVER");
+	server = getConfValueC(Config, "SLURM_CONF_BACKUP_SERVER");
 	if (server && strcmp(server, "none")) {
 	    flog("requesting config from backup server %s\n", server);
 	    if (!sendConfigReq(server, CONF_ACT_STARTUP)) {
@@ -697,7 +697,7 @@ bool initSlurmOpt(void)
     if (!initLimits()) goto INIT_ERROR;
 
     /* save the Slurm user ID */
-    char *slurmUser = getConfValueC(&SlurmConfig, "SlurmUser");
+    char *slurmUser = getConfValueC(SlurmConfig, "SlurmUser");
     if (slurmUser) {
 	uid_t uid = PSC_uidFromString(slurmUser);
 	if ((int) uid < 0) {
@@ -745,8 +745,8 @@ bool finalizeInit(void)
     if (!Acc_Init()) return false;
 
     /* start health-check script */
-    char *script = getConfValueC(&SlurmConfig, "HealthCheckProgram");
-    bool run = getConfValueI(&Config, "SLURM_HC_STARTUP");
+    char *script = getConfValueC(SlurmConfig, "HealthCheckProgram");
+    bool run = getConfValueI(Config, "SLURM_HC_STARTUP");
     /* wait till health-check is complete to register to slurmctld */
     if (run && script) {
 	flog("running health-check before registering to slurmctld\n");
@@ -811,7 +811,7 @@ int initialize(FILE *logfile)
 
     if (!initEnvFilter()) goto INIT_ERROR;
 
-    psPelogueAddPluginConfig("psslurm", &Config);
+    psPelogueAddPluginConfig("psslurm", Config);
 
     /* make sure timer facility is ready */
     if (!Timer_isInitialized()) {
@@ -821,7 +821,7 @@ int initialize(FILE *logfile)
     }
 
     if (confRes == CONFIG_SERVER) {
-	char *confCache = getConfValueC(&Config, "SLURM_CONF_CACHE");
+	char *confCache = getConfValueC(Config, "SLURM_CONF_CACHE");
 	if (needConfUpdate(confCache)) {
 	    /* wait for config response from slurmctld */
 	    if (!requestConfig()) goto INIT_ERROR;
@@ -829,7 +829,7 @@ int initialize(FILE *logfile)
 	}
 
 	/* update configuration directory */
-	addConfigEntry(&Config, "SLURM_CONFIG_DIR", confCache);
+	addConfigEntry(Config, "SLURM_CONFIG_DIR", confCache);
 
 	/* parse configuration files */
 	if (!parseSlurmConfigFiles()) goto INIT_ERROR;
@@ -909,7 +909,7 @@ void cleanup(void)
     Acc_Finalize();
 
     /* reset FPE exceptions mask */
-    if (getConfValueI(&Config, "ENABLE_FPE_EXCEPTION") &&
+    if (getConfValueI(Config, "ENABLE_FPE_EXCEPTION") &&
 	oldExceptions != -1) {
 	if (feenableexcept(oldExceptions) == -1) {
 	    flog("warning: failed to reset exception mask\n");
@@ -923,8 +923,8 @@ void cleanup(void)
     clearSlurmdProto();
     clearMsgBuf();
     BCast_clearList();
-    freeConfig(&Config);
-    freeConfig(&SlurmConfig);
+    freeConfig(Config);
+    freeConfig(SlurmConfig);
     freeEnvFilter();
     Auth_finalize();
 #ifdef HAVE_SPANK

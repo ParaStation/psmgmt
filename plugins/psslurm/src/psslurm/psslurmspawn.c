@@ -70,7 +70,7 @@ static int fillCmdForSingleSpawn(SpawnRequest_t *req, int usize,
     strv_t argV;
     strvInit(&argV, NULL, 0);
 
-    const char *srun = getConfValueC(&Config, "SRUN_BINARY");
+    const char *srun = getConfValueC(Config, "SRUN_BINARY");
     if (!srun) {
 	flog("no SRUN_BINARY provided\n");
 	return 0;
@@ -200,7 +200,7 @@ static int fillCmdForMultiSpawn(SpawnRequest_t *req, int usize,
     strv_t argV;
     strvInit(&argV, NULL, 0);
 
-    const char *srun = getConfValueC(&Config, "SRUN_BINARY");
+    const char *srun = getConfValueC(Config, "SRUN_BINARY");
     if (!srun) {
 	flog("no SRUN_BINARY provided\n");
 	return 0;

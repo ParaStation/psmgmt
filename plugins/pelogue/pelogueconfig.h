@@ -2,6 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2013-2019 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2023 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -49,7 +50,7 @@ void initPluginConfigs(void);
  *
  * @return On success true is returned or false in case of error
  */
-bool addPluginConfig(const char *name, Config_t *config);
+bool addPluginConfig(const char *name, Config_t config);
 
 /**
  * @brief Get value as integer

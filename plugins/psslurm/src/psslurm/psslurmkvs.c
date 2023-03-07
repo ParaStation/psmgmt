@@ -607,7 +607,7 @@ static char *showConfig(void)
 
     while (confDef[i].name != NULL) {
 	char *cName = confDef[i].name;
-	char *cVal = getConfValueC(&Config, cName);
+	char *cVal = getConfValueC(Config, cName);
 	snprintf(line, sizeof(line), "%21s = %s\n",
 		 cName, cVal ? cVal : "<empty>");
 	str2Buf(line, &buf, &bufSize);
@@ -734,14 +734,14 @@ char *set(char *key, char *value)
 	}
 
 	/* save new config value */
-	addConfigEntry(&Config, key, value);
+	addConfigEntry(Config, key, value);
 
 	snprintf(line, sizeof(line), "\nsaved '%s = %s'\n", key, value);
 	return str2Buf(line, &buf, &bufSize);
     }
 
     if (!strcmp(key, "CLEAR_CONF_CACHE")) {
-	char *confDir = getConfValueC(&Config, "SLURM_CONF_CACHE");
+	char *confDir = getConfValueC(Config, "SLURM_CONF_CACHE");
 	removeDir(confDir, 0);
 	str2Buf("Clear Slurm configuration cache ", &buf, &bufSize);
 	str2Buf(confDir, &buf, &bufSize);
@@ -759,7 +759,7 @@ char *unset(char *key)
     char *buf = NULL;
     size_t bufSize = 0;
 
-    if (unsetConfigEntry(&Config, confDef, key)) return buf;
+    if (unsetConfigEntry(Config, confDef, key)) return buf;
 
     str2Buf("\nInvalid key '", &buf, &bufSize);
     str2Buf(key, &buf, &bufSize);
@@ -882,7 +882,7 @@ char *show(char *key)
     if (!key) return showVirtualKeys(buf, &bufSize, true);
 
     /* search in config for given key */
-    tmp = getConfValueC(&Config, key);
+    tmp = getConfValueC(Config, key);
     if (tmp) {
 	str2Buf(key, &buf, &bufSize);
 	str2Buf(" = ", &buf, &bufSize);

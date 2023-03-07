@@ -60,7 +60,7 @@ bool verifyUserId(uid_t userID, uid_t validID)
 
 bool Auth_init(void)
 {
-    const char *deniedUsers = getConfValueC(&Config, "DENIED_USERS");
+    const char *deniedUsers = getConfValueC(Config, "DENIED_USERS");
     if (!deniedUsers) return true;
 
     char *toksave, *dup = ustrdup(deniedUsers);

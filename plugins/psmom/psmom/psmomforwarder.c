@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2010-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2022 ParTec AG, Munich
+ * Copyright (C) 2021-2023 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -165,7 +165,7 @@ static void doForwarderChildStart(void)
 static void verifyTempDir(void)
 {
     struct stat st;
-    char *dir = getConfValueC(&config, "DIR_TEMP");
+    char *dir = getConfValueC(config, "DIR_TEMP");
 
     if (dir && stat(dir, &st) != 0) {
 	mwarn(errno, "%s: stat(TEMP DIR='%s')", __func__, dir);
@@ -209,10 +209,10 @@ void killForwarderChild(char *reason)
     switch (forwarder_type) {
 	case FORWARDER_INTER:
 	case FORWARDER_JOBSCRIPT:
-	    obitTime = getConfValueI(&config, "TIME_OBIT");
+	    obitTime = getConfValueI(config, "TIME_OBIT");
 	    break;
 	case FORWARDER_PELOGUE:
-	    obitTime = getConfValueI(&config, "TIMEOUT_PE_GRACE");
+	    obitTime = getConfValueI(config, "TIMEOUT_PE_GRACE");
 	    break;
 	case FORWARDER_COPY:
 	    obitTime = 3;
@@ -677,7 +677,7 @@ static char *rewriteCopyDest(char *dest)
 {
     char *myDest = dest;
 
-    if (traverseConfig(&config, rewriteCopyVisitor, &myDest)) return myDest;
+    if (traverseConfig(config, rewriteCopyVisitor, &myDest)) return myDest;
 
     return NULL;
 }
@@ -697,9 +697,9 @@ static int copyFile(char *src, char *dest, char *opt)
     int cp_status = -1, cp_wstat;
     struct rusage cp_rusage;
 
-    cmd_cp = getConfValueC(&config, "CMD_COPY");
+    cmd_cp = getConfValueC(config, "CMD_COPY");
     if (!opt) {
-	opt_cp = getConfValueC(&config, "OPT_COPY");
+	opt_cp = getConfValueC(config, "OPT_COPY");
     } else {
 	opt_cp = opt;
     }
@@ -752,7 +752,7 @@ int execCopyForwarder(void *info)
 	return 1;
     }
 
-    timeout = getConfValueL(&config, "TIMEOUT_COPY");
+    timeout = getConfValueL(config, "TIMEOUT_COPY");
 
     if ((forwarder_child_pid = fork()) < 0) {
 	fprintf(stdout, "%s: unable to fork copy process : %s\n", __func__,
@@ -777,7 +777,7 @@ int execCopyForwarder(void *info)
 	psmomSwitchUser(job->user, &job->passwd, 1);
 
 	/* get some config options */
-	spoolDir = getConfValueC(&config, "DIR_SPOOL");
+	spoolDir = getConfValueC(config, "DIR_SPOOL");
 
 	/* copy all files */
 	for (i=0; i<data->count; i++) {
@@ -1160,7 +1160,7 @@ static void startPAMSession(const char *user)
     int ret, disabled;
     pam_handle_t *pamh;
 
-    disabled = getConfValueI(&config, "DISABLE_PAM");
+    disabled = getConfValueI(config, "DISABLE_PAM");
     if (disabled) return;
 
     if ((ret = pam_start(service_name, user, &conversation, &pamh))
@@ -1519,7 +1519,7 @@ static int runPElogueScript(PElogue_Data_t *data, char *filename, int root)
 		    root ? "root" : "user");
 
 	    /* start timeout script */
-	    timeoutScript = getConfValueC(&config, "TIMEOUT_SCRIPT");
+	    timeoutScript = getConfValueC(config, "TIMEOUT_SCRIPT");
 	    if (timeoutScript) {
 		spawnTimeoutScript(timeoutScript, data, filename);
 	    }
@@ -1648,7 +1648,7 @@ static int setOutputStreams(Job_t *job, char *outLog, size_t outLen,
     char out[500], error[500];
 
     /* get dirs */
-    spoolDir = getConfValueC(&config, "DIR_SPOOL");
+    spoolDir = getConfValueC(config, "DIR_SPOOL");
     homeDir = getEnvValue("HOME");
     if (!homeDir) {
 	mlog("%s: invalid home dir\n", __func__);
@@ -1769,14 +1769,14 @@ static void backupJob(char *backupScript, Job_t *job, char *outLog,
     struct tm *ts;
     size_t len;
 
-    localBackupDir = getConfValueC(&config, "DIR_LOCAL_BACKUP");
+    localBackupDir = getConfValueC(config, "DIR_LOCAL_BACKUP");
     if (!localBackupDir) {
 	mlog("%s: no local backup dir given\n", __func__);
 	return;
     }
 
-    opt = getConfValueC(&config, "OPT_BACKUP_COPY");
-    spoolFiles = getConfValueC(&config, "DIR_SPOOL");
+    opt = getConfValueC(config, "OPT_BACKUP_COPY");
+    spoolFiles = getConfValueC(config, "DIR_SPOOL");
     len = strlen(spoolFiles);
 
     /* copy stdout */
@@ -1801,21 +1801,21 @@ static void backupJob(char *backupScript, Job_t *job, char *outLog,
     }
 
     /* copy nodefile */
-    nodeFiles = getConfValueC(&config, "DIR_NODE_FILES");
+    nodeFiles = getConfValueC(config, "DIR_NODE_FILES");
     snprintf(src, sizeof(src), "%s/%s", nodeFiles, job->hashname);
     snprintf(dest, sizeof(dest), "%s/%s.NODES", localBackupDir, job->hashname);
     setenv("PSMOM_BACKUP_NODES", dest, 1);
     copyFile(src ,dest, opt);
 
     /* copy accountfile */
-    accFiles = getConfValueC(&config, "DIR_JOB_ACCOUNT");
+    accFiles = getConfValueC(config, "DIR_JOB_ACCOUNT");
     snprintf(src, sizeof(src), "%s/%s", accFiles, job->hashname);
     snprintf(dest, sizeof(dest), "%s/%s.ACC", localBackupDir, job->hashname);
     setenv("PSMOM_BACKUP_ACCOUNT", dest, 1);
     copyFile(src ,dest, opt);
 
     /* copy jobscript */
-    jobFiles = getConfValueC(&config, "DIR_JOB_FILES");
+    jobFiles = getConfValueC(config, "DIR_JOB_FILES");
     snprintf(src, sizeof(src), "%s/%s", jobFiles, job->hashname);
     snprintf(dest, sizeof(dest), "%s/%s.JOBSCRIPT", localBackupDir,
 		job->hashname);
@@ -1863,7 +1863,7 @@ static void backupJob(char *backupScript, Job_t *job, char *outLog,
 	    exit(1);
 	} else {
 	    /* monitor backup process with a timeout */
-	    int bTimeout = getConfValueI(&config, "TIMEOUT_BACKUP");
+	    int bTimeout = getConfValueI(config, "TIMEOUT_BACKUP");
 	    if (bTimeout > 0) {
 		PSC_setSigHandler(SIGALRM, backupTimeout);
 		alarm(bTimeout);
@@ -1974,7 +1974,7 @@ int execJobscriptForwarder(void *info)
 	    /* make sure copyout is successful */
 	    mask = mask & 0377;
 	    old_mask = umask(mask);
-	} else if ((opt_mask = getConfValueC(&config, "JOB_UMASK"))) {
+	} else if ((opt_mask = getConfValueC(config, "JOB_UMASK"))) {
 	    if (opt_mask[0] == '0') {
 		if (sscanf(opt_mask, "%o", &mask) != 1) {
 		    mlog("%s: invalid umask from config: %s\n", __func__,
@@ -2052,14 +2052,14 @@ int execJobscriptForwarder(void *info)
     }
 
     /* write accounting data to stderr */
-    logAccount = getConfValueI(&config, "LOG_ACCOUNT_RECORDS");
+    logAccount = getConfValueI(config, "LOG_ACCOUNT_RECORDS");
     if ((logAccount || getEnvValue("PSMOM_LOG_ACCOUNT"))
 	&& !getEnvValue("PSMOM_DIS_ACCOUNT")) {
 	writeAccData(errLog, status);
     }
 
     /* backup job files */
-    backupScript = getConfValueC(&config, "BACKUP_SCRIPT");
+    backupScript = getConfValueC(config, "BACKUP_SCRIPT");
     if (backupScript) backupJob(backupScript, job, outLog, errLog);
 
     sendForwarderChildExit(&rusage, status);

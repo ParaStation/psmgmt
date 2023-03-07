@@ -242,7 +242,7 @@ bool startPElogue(Alloc_t *alloc, PElogueType_t type)
     /* register local prologue/epilogue */
     psPelogueAddJob("psslurm", sjobid, alloc->uid, alloc->gid,
 		    1, &myNode, cbPElogue, NULL,
-		    getConfValueU(&Config, "PELOGUE_LOG_OE"));
+		    getConfValueU(Config, "PELOGUE_LOG_OE"));
 
     /* buildup environment */
     envClone(&alloc->env, &clone, envFilter);
@@ -278,7 +278,7 @@ bool startPElogue(Alloc_t *alloc, PElogueType_t type)
 static bool epilogueFinScript(Alloc_t *alloc)
 {
     char buf[1024];
-    char *dirScripts = getConfValueC(&Config, "DIR_SCRIPTS");
+    char *dirScripts = getConfValueC(Config, "DIR_SCRIPTS");
 
     snprintf(buf, sizeof(buf), "%s/epilogue.finalize", dirScripts);
 
@@ -374,7 +374,7 @@ int handleLocalPElogueStart(void *data)
 	char reason[128];
 	snprintf(reason, sizeof(reason),
 		 "psslurm: resolve username for uid %i failed\n", pedata->uid);
-	char *hostname = getConfValueC(&Config, "SLURM_HOSTNAME");
+	char *hostname = getConfValueC(Config, "SLURM_HOSTNAME");
 	setNodeOffline(&pedata->env, id, hostname, reason);
 	return -1;
     }
@@ -452,7 +452,7 @@ int handleLocalPElogueStart(void *data)
 int handlePEloguePrepare(void *data)
 {
     /* reset FPE exceptions mask */
-    if (getConfValueI(&Config, "ENABLE_FPE_EXCEPTION") &&
+    if (getConfValueI(Config, "ENABLE_FPE_EXCEPTION") &&
 	oldExceptions != -1) {
 	if (feenableexcept(oldExceptions) == -1) {
 	    flog("warning: failed to reset exception mask\n");
@@ -523,7 +523,7 @@ int handleLocalPElogueFinish(void *data)
 		 pedata->exit);
 
 	setNodeOffline(&alloc->env, alloc->id,
-		       getConfValueC(&Config, "SLURM_HOSTNAME"), msg);
+		       getConfValueC(Config, "SLURM_HOSTNAME"), msg);
     }
 
     return 0;
@@ -637,7 +637,7 @@ static int execTaskPrologue(Step_t *step, PStask_t *task, char *taskPrologue)
 void startTaskPrologue(Step_t *step, PStask_t *task)
 {
     /* exec task prologue from slurm.conf */
-    char *script = getConfValueC(&SlurmConfig, "TaskProlog");
+    char *script = getConfValueC(SlurmConfig, "TaskProlog");
     if (script && script[0] != '\0') {
 	execTaskPrologue(step, task, script);
     }
@@ -706,7 +706,7 @@ int execTaskEpilogue(Step_t *step, PStask_t *task, char *taskEpilogue)
 
     /* This is the parent */
     time_t t = time(NULL);
-    int grace = getConfValueI(&SlurmConfig, "KillWait");
+    int grace = getConfValueI(SlurmConfig, "KillWait");
 
     while(1) {
 	if ((time(NULL) - t) > 5) pskill(-childpid, SIGTERM, task->uid);
@@ -728,7 +728,7 @@ int execTaskEpilogue(Step_t *step, PStask_t *task, char *taskEpilogue)
 void startTaskEpilogue(Step_t *step, PStask_t *task)
 {
     /* exec task epilogue from slurm.conf */
-    char *script = getConfValueC(&SlurmConfig, "TaskEpilog");
+    char *script = getConfValueC(SlurmConfig, "TaskEpilog");
     if (script && script[0] != '\0') {
 	execTaskEpilogue(step, task, script);
     }
@@ -747,7 +747,7 @@ int handlePelogueOE(void *data)
     uint32_t jobid = atoi(pedata->jobid);
 
     /* don't forward output requested by other plugins */
-    bool fwEpilogueOE= getConfValueU(&Config, "PELOGUE_LOG_OE");
+    bool fwEpilogueOE= getConfValueU(Config, "PELOGUE_LOG_OE");
     if (!fwEpilogueOE) return 0;
 
     Alloc_t *alloc = Alloc_find(jobid);

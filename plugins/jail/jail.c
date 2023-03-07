@@ -142,11 +142,11 @@ int initialize(FILE *logfile)
     initJailConfig(configFile);
 
     /* adapt the debug mask */
-    debugMask = getConfValueI(&config, "DEBUG_MASK");
+    debugMask = getConfValueI(config, "DEBUG_MASK");
     maskLogger(debugMask);
     jlog(J_LOG_VERBOSE, "%s: debugMask set to %#x\n", __func__, debugMask);
 
-    char *script = getConfValueC(&config, "JAIL_SCRIPT");
+    char *script = getConfValueC(config, "JAIL_SCRIPT");
     jailScript = checkScript(script);
 
     if (!jailScript) {
@@ -155,7 +155,7 @@ int initialize(FILE *logfile)
 	jlog(J_LOG_VERBOSE, "jail script set to '%s'\n", jailScript);
     }
 
-    script = getConfValueC(&config, "JAIL_TERM_SCRIPT");
+    script = getConfValueC(config, "JAIL_TERM_SCRIPT");
     termScript = checkScript(script);
 
     if (!termScript) {
@@ -191,7 +191,7 @@ void cleanup(void)
 
     free(jailScript);
     free(termScript);
-    freeConfig(&config);
+    freeConfig(config);
 
     jlog(-1, "...Bye.\n");
 
@@ -233,9 +233,9 @@ char *set(char *key, char *val)
 	return ustrdup("\tIllegal value\n");
 
     if (!strcmp(key, "JAIL_SCRIPT")) {
-	addConfigEntry(&config, key, val);
+	addConfigEntry(config, key, val);
 	free(jailScript);
-	char *script = getConfValueC(&config, "JAIL_SCRIPT");
+	char *script = getConfValueC(config, "JAIL_SCRIPT");
 	jailScript = checkScript(script);
 	jlog(J_LOG_VERBOSE, "jailScript set to '%s'\n",
 	     jailScript ? jailScript : "<invalid>");
@@ -248,9 +248,9 @@ char *set(char *key, char *val)
 	    return buf;
 	}
     } else if (!strcmp(key, "JAIL_TERM_SCRIPT")) {
-	addConfigEntry(&config, key, val);
+	addConfigEntry(config, key, val);
 	free(termScript);
-	char *script = getConfValueC(&config, "JAIL_TERM_SCRIPT");
+	char *script = getConfValueC(config, "JAIL_TERM_SCRIPT");
 	termScript = checkScript(script);
 	jlog(J_LOG_VERBOSE, "termScript set to '%s'\n",
 	     termScript ? termScript : "<invalid>");
@@ -264,8 +264,8 @@ char *set(char *key, char *val)
 	}
     } else if (!strcmp(key, "DEBUG_MASK")) {
 	int dbgMask;
-	addConfigEntry(&config, key, val);
-	dbgMask = getConfValueI(&config, key);
+	addConfigEntry(config, key, val);
+	dbgMask = getConfValueI(config, key);
 	maskLogger(dbgMask);
 	jlog(J_LOG_VERBOSE, "debugMask set to %#x\n", dbgMask);
     } else {
@@ -278,9 +278,9 @@ char *set(char *key, char *val)
 char *unset(char *key)
 {
     if (!strcmp(key, "JAIL_SCRIPT")) {
-	unsetConfigEntry(&config, confDef, key);
+	unsetConfigEntry(config, confDef, key);
 	free(jailScript);
-	char *script = getConfValueC(&config, "JAIL_SCRIPT");
+	char *script = getConfValueC(config, "JAIL_SCRIPT");
 	jailScript = checkScript(script);
 	if (!jailScript) {
 	    jlog(-1, "%s: no script defined\n", __func__);
@@ -288,9 +288,9 @@ char *unset(char *key)
 	    jlog(J_LOG_VERBOSE, "script set to '%s'\n", jailScript);
 	}
     } else if (!strcmp(key, "JAIL_TERM_SCRIPT")) {
-	unsetConfigEntry(&config, confDef, key);
+	unsetConfigEntry(config, confDef, key);
 	free(termScript);
-	char *script = getConfValueC(&config, "JAIL_TERM_SCRIPT");
+	char *script = getConfValueC(config, "JAIL_TERM_SCRIPT");
 	termScript = checkScript(script);
 	if (!termScript) {
 	    jlog(-1, "%s: no term script defined\n", __func__);
@@ -299,8 +299,8 @@ char *unset(char *key)
 	}
     } else if (!strcmp(key, "DEBUG_MASK")) {
 	int dbgMask;
-	unsetConfigEntry(&config, confDef, key);
-	dbgMask = getConfValueI(&config, key);
+	unsetConfigEntry(config, confDef, key);
+	dbgMask = getConfValueI(config, key);
 	maskLogger(dbgMask);
 	jlog(J_LOG_VERBOSE, "debugMask set to %#x\n", dbgMask);
     } else {
@@ -323,7 +323,7 @@ char *show(char *key)
 	str2Buf("\n", &buf, &bufSize);
 	for (i = 0; confDef[i].name; i++) {
 	    char *cName = confDef[i].name, line[160];
-	    val = getConfValueC(&config, cName);
+	    val = getConfValueC(config, cName);
 
 	    snprintf(line, sizeof(line), "%*s = %s\n", maxKeyLen+2, cName, val);
 	    str2Buf(line, &buf, &bufSize);
@@ -343,7 +343,7 @@ char *show(char *key)
 	} else {
 	    str2Buf("no term script defined!\n", &buf, &bufSize);
 	}
-    } else if ((val = getConfValueC(&config, key))) {
+    } else if ((val = getConfValueC(config, key))) {
 	str2Buf("\t", &buf, &bufSize);
 	str2Buf(key, &buf, &bufSize);
 	str2Buf(" = ", &buf, &bufSize);

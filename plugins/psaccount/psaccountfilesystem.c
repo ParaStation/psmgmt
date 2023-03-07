@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2022 ParTec AG, Munich
+ * Copyright (C) 2022-2023 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -79,7 +79,7 @@ bool FS_startScript(void)
     if (fsScript) return true;
 
     if (pollTime < 1) pollTime = DEFAULT_POLL_TIME;
-    char *fsPath = getConfValueC(&config, "FILESYSTEM_SCRIPT");
+    char *fsPath = getConfValueC(config, "FILESYSTEM_SCRIPT");
 
     fsScript = Script_start("psaccount-filesystem", fsPath, parseFilesys,
 			    pollTime, &scriptEnv);
@@ -98,7 +98,7 @@ bool FS_init(void)
     memset(&fsData, 0, sizeof(fsData));
     envInit(&scriptEnv);
 
-    char *fsPath = getConfValueC(&config, "FILESYSTEM_SCRIPT");
+    char *fsPath = getConfValueC(config, "FILESYSTEM_SCRIPT");
     if (!fsPath || fsPath[0] == '\0') return true;
 
     if (!Script_test(fsPath, "filesytem")) {
@@ -106,7 +106,7 @@ bool FS_init(void)
 	return false;
     }
 
-    pollTime = getConfValueI(&config, "FILESYSTEM_POLL");
+    pollTime = getConfValueI(config, "FILESYSTEM_POLL");
     if (pollTime < 1) {
 	/* filesytem polling is disabled */
 	return true;

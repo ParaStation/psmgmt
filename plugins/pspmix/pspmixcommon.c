@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2019-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2022 ParTec AG, Munich
+ * Copyright (C) 2021-2023 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -28,7 +28,7 @@ bool __pspmix_common_usePMIx(const env_t *env, const char* func) {
     }
     mdbg(PSPMIX_LOG_VERBOSE, "%s: No PMIx support requested by mpiexec\n", func);
 
-    if (getConfValueI(&config, "SUPPORT_MPI_SINGLETON")) {
+    if (getConfValueI(config, "SUPPORT_MPI_SINGLETON")) {
 	mdbg(PSPMIX_LOG_VERBOSE, "%s: Singleton support enabled\n", func);
     }
 

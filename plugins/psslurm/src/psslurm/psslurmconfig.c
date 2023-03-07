@@ -39,13 +39,13 @@
 #endif
 
 /** psslurm plugin configuration list */
-Config_t Config;
+Config_t Config = NULL;
 
 /** Slurm configuration list */
-Config_t SlurmConfig;
+Config_t SlurmConfig = NULL;
 
 /** Slurm cgroup configuration list */
-Config_t SlurmCgroupConfig;
+Config_t SlurmCgroupConfig = NULL;
 
 /** Hash value of the current Slurm configuration */
 static uint32_t configHash = -1;
@@ -366,29 +366,29 @@ static bool addHostOptions(char *options)
     next = strtok_r(options, delimiters, &toksave);
     while (next) {
 	if (!strncasecmp(next, "Sockets=", 8)) {
-	    addConfigEntry(&Config, "SLURM_SOCKETS", next+8);
+	    addConfigEntry(Config, "SLURM_SOCKETS", next+8);
 	} else if (!strncasecmp(next, "CoresPerSocket=", 15)) {
-	    addConfigEntry(&Config, "SLURM_CORES_PER_SOCKET", next+15);
+	    addConfigEntry(Config, "SLURM_CORES_PER_SOCKET", next+15);
 	} else if (!strncasecmp(next, "ThreadsPerCore=", 15)) {
-	    addConfigEntry(&Config, "SLURM_THREADS_PER_CORE", next+15);
+	    addConfigEntry(Config, "SLURM_THREADS_PER_CORE", next+15);
 	} else if (!strncasecmp(next, "CPUs=", 5)) {
-	    addConfigEntry(&Config, "SLURM_CPUS", next+5);
+	    addConfigEntry(Config, "SLURM_CPUS", next+5);
 	} else if (!strncasecmp(next, "Feature=", 8)) {
-	    addConfigEntry(&Config, "SLURM_FEATURE", next+8);
+	    addConfigEntry(Config, "SLURM_FEATURE", next+8);
 	} else if (!strncasecmp(next, "Features=", 9)) {
-	    addConfigEntry(&Config, "SLURM_FEATURE", next+8);
+	    addConfigEntry(Config, "SLURM_FEATURE", next+8);
 	} else if (!strncasecmp(next, "Gres=", 5)) {
-	    addConfigEntry(&Config, "SLURM_GRES", next+5);
+	    addConfigEntry(Config, "SLURM_GRES", next+5);
 	} else if (!strncasecmp(next, "State=", 6)) {
-	    addConfigEntry(&Config, "SLURM_STATE", next+6);
+	    addConfigEntry(Config, "SLURM_STATE", next+6);
 	} else if (!strncasecmp(next, "Procs=", 6)) {
-	    addConfigEntry(&Config, "SLURM_PROCS", next+6);
+	    addConfigEntry(Config, "SLURM_PROCS", next+6);
 	} else if (!strncasecmp(next, "Weight=", 7)) {
-	    addConfigEntry(&Config, "SLURM_WEIGHT", next+7);
+	    addConfigEntry(Config, "SLURM_WEIGHT", next+7);
 	} else if (!strncasecmp(next, "RealMemory=", 11)) {
-	    addConfigEntry(&Config, "SLURM_REAL_MEMORY", next+11);
+	    addConfigEntry(Config, "SLURM_REAL_MEMORY", next+11);
 	} else if (!strncasecmp(next, "Boards=", 7)) {
-	    addConfigEntry(&Config, "SLURM_BOARDS", next+7);
+	    addConfigEntry(Config, "SLURM_BOARDS", next+7);
 	} else if (!strncasecmp(next, "NodeAddr=", 9)) {
 	    /* already set before */
 	} else {
@@ -556,7 +556,7 @@ static bool parseHost(char *host, void *info)
     hInfo->count++;
 
     if (hInfo->type == CONFIG_TYPE_GRES) {
-	char *myHost = getConfValueC(&Config, "SLURM_HOSTNAME");
+	char *myHost = getConfValueC(Config, "SLURM_HOSTNAME");
 	if (myHost && !strcmp(myHost, host) && hInfo->options) {
 	    res = parseGresOptions(hInfo->options);
 	}
@@ -569,7 +569,7 @@ static bool parseHost(char *host, void *info)
 	} else if (isLocalAddr(host)) {
 	    flog("local addr: %s args: %s\n", host, hInfo->options);
 	    if (!hInfo->useNodeAddr) {
-		addConfigEntry(&Config, "SLURM_HOSTNAME", host);
+		addConfigEntry(Config, "SLURM_HOSTNAME", host);
 	    }
 	    hInfo->localHostIdx = hInfo->count;
 	    if (hInfo->options) {
@@ -599,7 +599,7 @@ static bool findMyHost(char *host, void *info)
     Host_Info_t *hInfo = info;
 
     if (count++ == hInfo->localHostIdx) {
-	addConfigEntry(&Config, "SLURM_HOSTNAME", host);
+	addConfigEntry(Config, "SLURM_HOSTNAME", host);
 	return false;
     }
     return true;
@@ -684,21 +684,21 @@ static void saveNodeNameEntry(char *NodeName, char *nodeAddr)
     int numEntry;
 
     /* save node entry in config */
-    numEntry = getConfValueI(&Config, "SLURM_HOST_ENTRY_COUNT");
+    numEntry = getConfValueI(Config, "SLURM_HOST_ENTRY_COUNT");
     numEntry = (numEntry == -1) ? 0 : numEntry;
     numEntry++;
 
     snprintf(tmp, sizeof(tmp), "SLURM_HOST_ENTRY_%i", numEntry);
-    addConfigEntry(&Config, tmp, NodeName);
+    addConfigEntry(Config, tmp, NodeName);
 
     if (nodeAddr) {
 	snprintf(tmp, sizeof(tmp), "SLURM_HOST_ADDR_%i", numEntry);
-	addConfigEntry(&Config, tmp, nodeAddr);
+	addConfigEntry(Config, tmp, nodeAddr);
     }
 
     /* update node entry count */
     snprintf(tmp, sizeof(tmp), "%i", numEntry);
-    addConfigEntry(&Config, "SLURM_HOST_ENTRY_COUNT", tmp);
+    addConfigEntry(Config, "SLURM_HOST_ENTRY_COUNT", tmp);
 }
 
 /**
@@ -743,7 +743,7 @@ static bool parseNodeNameEntry(char *line, config_type_t type)
 static bool saveCtldHost(char *confVal)
 {
     /* save node entry in config */
-    int numEntry = getConfValueI(&Config, "SLURM_CTLHOST_ENTRY_COUNT");
+    int numEntry = getConfValueI(Config, "SLURM_CTLHOST_ENTRY_COUNT");
     numEntry = (numEntry == -1) ? 0 : numEntry;
 
     /* separate and save host address */
@@ -765,12 +765,12 @@ static bool saveCtldHost(char *confVal)
     char tmp[128];
     if (addr) {
 	snprintf(tmp, sizeof(tmp), "SLURM_CTLHOST_ADDR_%i", numEntry);
-	addConfigEntry(&Config, tmp, addr);
+	addConfigEntry(Config, tmp, addr);
     }
 
     /* save host-name */
     snprintf(tmp, sizeof(tmp), "SLURM_CTLHOST_ENTRY_%i", numEntry);
-    addConfigEntry(&Config, tmp, value);
+    addConfigEntry(Config, tmp, value);
 
     flog("slurmctld(%i) host=%s", numEntry, value);
     if (addr) {
@@ -781,7 +781,7 @@ static bool saveCtldHost(char *confVal)
 
     /* update node entry count */
     snprintf(tmp, sizeof(tmp), "%i", ++numEntry);
-    addConfigEntry(&Config, "SLURM_CTLHOST_ENTRY_COUNT", tmp);
+    addConfigEntry(Config, "SLURM_CTLHOST_ENTRY_COUNT", tmp);
 
     ufree(value);
     return true;
@@ -797,13 +797,13 @@ static void parseSlurmdParam(char *param)
     next = strtok_r(param, delimiters, &toksave);
     while (next) {
 	if (!strcasecmp(next, "config_overrides")) {
-	    addConfigEntry(&Config, "SLURMD_CONF_OVERRIDES", "true");
+	    addConfigEntry(Config, "SLURMD_CONF_OVERRIDES", "true");
 	}
 	if (!strcasecmp(next, "l3cache_as_socket")) {
-	    addConfigEntry(&Config, "SLURMD_L3CACHE_AS_SOCK", "true");
+	    addConfigEntry(Config, "SLURMD_L3CACHE_AS_SOCK", "true");
 	}
 	if (!strcasecmp(next, "shutdown_on_reboot")) {
-	    addConfigEntry(&Config, "SLURMD_SHUTDOWN_ON_REBOOT", "true");
+	    addConfigEntry(Config, "SLURMD_SHUTDOWN_ON_REBOOT", "true");
 	}
 	next = strtok_r(NULL, delimiters, &toksave);
     }
@@ -817,16 +817,16 @@ static void parseSlurmAccFreq(char *param)
     next = strtok_r(param, delimiters, &toksave);
     while (next) {
 	if (!strncasecmp(next, "network=", 8)) {
-	    addConfigEntry(&Config, "SLURM_ACC_NETWORK", next+8);
+	    addConfigEntry(Config, "SLURM_ACC_NETWORK", next+8);
 	}
 	if (!strncasecmp(next, "task=", 5)) {
-	    addConfigEntry(&Config, "SLURM_ACC_TASK", next+5);
+	    addConfigEntry(Config, "SLURM_ACC_TASK", next+5);
 	}
 	if (!strncasecmp(next, "energy=", 7)) {
-	    addConfigEntry(&Config, "SLURM_ACC_ENERGY", next+7);
+	    addConfigEntry(Config, "SLURM_ACC_ENERGY", next+7);
 	}
 	if (!strncasecmp(next, "filesystem=", 11)) {
-	    addConfigEntry(&Config, "SLURM_ACC_FILESYSTEM", next+11);
+	    addConfigEntry(Config, "SLURM_ACC_FILESYSTEM", next+11);
 	}
 	next = strtok_r(NULL, delimiters, &toksave);
     }
@@ -902,7 +902,7 @@ static bool findSpankAbsPath(char *relPath, char *absPath, size_t lenPath)
 {
     const char delimiters[] =": ";
     char *toksave;
-    char *plugDir = getConfValueC(&SlurmConfig, "PluginDir");
+    char *plugDir = getConfValueC(SlurmConfig, "PluginDir");
     if (!plugDir) plugDir = DEFAULT_PLUG_DIR;
 
     char *dirDup = ustrdup(plugDir);
@@ -973,13 +973,15 @@ static bool handleSlurmPlugInc(const char *path)
     /* parse all files */
     for (size_t i=0; i<pglob.gl_pathc; i++) {
 	fdbg(PSSLURM_LOG_SPANK, "parse file %s\n", pglob.gl_pathv[i]);
-	Config_t SlurmPlugConf;
-	if (parseConfigFile(pglob.gl_pathv[i], &SlurmPlugConf, true) < 0) {
+	Config_t SlurmPlugConf = NULL;
+	initConfig(&SlurmPlugConf);
+	if (parseConfigFile(pglob.gl_pathv[i], SlurmPlugConf, true) < 0) {
 	    flog("parsing file %s failed\n", pglob.gl_pathv[i]);
+	    freeConfig(SlurmPlugConf);
 	    goto ERROR;
 	}
-	bool failed = traverseConfig(&SlurmPlugConf, parseSlurmPlugLine, NULL);
-	freeConfig(&SlurmPlugConf);
+	bool failed = traverseConfig(SlurmPlugConf, parseSlurmPlugLine, NULL);
+	freeConfig(SlurmPlugConf);
 	if (failed) {
 	    flog("parsing file %s failed\n", pglob.gl_pathv[i]);
 	    goto ERROR;
@@ -1096,9 +1098,9 @@ ERROR:
 }
 #endif
 
-bool confHasOpt(Config_t *conf, char *key, char *option)
+bool confHasOpt(Config_t conf, char *key, char *option)
 {
-    if (!conf || !key || !option) {
+    if (!key || !option) {
 	flog("called with empty parameters\n");
 	return false;
     }
@@ -1131,7 +1133,7 @@ bool confHasOpt(Config_t *conf, char *key, char *option)
 static bool verifySlurmPlugins(void)
 {
     /* AcctGatherInterconnectType */
-    char *val = getConfValueC(&SlurmConfig, "AcctGatherInterconnectType");
+    char *val = getConfValueC(SlurmConfig, "AcctGatherInterconnectType");
     if (val) {
 	if (!strcasecmp(val, "acct_gather_interconnect/ofed")) {
 	    fdbg(PSSLURM_LOG_SPLUGIN, "gather interconnect: ofed\n");
@@ -1145,7 +1147,7 @@ static bool verifySlurmPlugins(void)
     }
 
     /* AcctGatherFilesystemType */
-    val = getConfValueC(&SlurmConfig, "AcctGatherFilesystemType");
+    val = getConfValueC(SlurmConfig, "AcctGatherFilesystemType");
     if (val) {
 	if (!strcasecmp(val, "acct_gather_filesystem/none")) {
 	    fdbg(PSSLURM_LOG_SPLUGIN, "gather filesystem: none\n");
@@ -1159,7 +1161,7 @@ static bool verifySlurmPlugins(void)
     }
 
     /* AcctGatherEnergyType */
-    val = getConfValueC(&SlurmConfig, "AcctGatherEnergyType");
+    val = getConfValueC(SlurmConfig, "AcctGatherEnergyType");
     if (val) {
 	if (!strcasecmp(val, "acct_gather_energy/none")) {
 	    fdbg(PSSLURM_LOG_SPLUGIN, "gather energy: none\n");
@@ -1185,10 +1187,10 @@ static bool verifySlurmPlugins(void)
 static bool verifySlurmConf(void)
 {
     /* ensure mandatory prologue is configured */
-    char *prologue = getConfValueC(&SlurmConfig, "Prolog");
+    char *prologue = getConfValueC(SlurmConfig, "Prolog");
     if (!prologue || prologue[0] == '\0') {
 
-	prologue = getConfValueC(&SlurmConfig, "PrologSlurmctld");
+	prologue = getConfValueC(SlurmConfig, "PrologSlurmctld");
 	if (!prologue || prologue[0] == '\0') {
 	    flog("error: PrologSlurmctld is mandatory for psslurm\n");
 	    /*
@@ -1212,31 +1214,31 @@ static bool verifySlurmConf(void)
 	*/
     }
 
-    if (!getConfValueC(&Config, "SLURM_HOSTNAME")) {
+    if (!getConfValueC(Config, "SLURM_HOSTNAME")) {
 	flog("could not find my host address in slurm.conf\n");
 	return false;
     }
 
-    int boards = getConfValueI(&Config, "SLURM_BOARDS");
+    int boards = getConfValueI(Config, "SLURM_BOARDS");
     if (boards == -1) {
 	/* set default boards */
-	addConfigEntry(&Config, "SLURM_BOARDS", "1");
+	addConfigEntry(Config, "SLURM_BOARDS", "1");
 	boards = 1;
     }
 
-    int sockets = getConfValueI(&Config, "SLURM_SOCKETS");
+    int sockets = getConfValueI(Config, "SLURM_SOCKETS");
     if (sockets == -1) {
 	/* set default socket */
-	addConfigEntry(&Config, "SLURM_SOCKETS", "1");
+	addConfigEntry(Config, "SLURM_SOCKETS", "1");
 	sockets = 1;
     }
 
-    int cores = getConfValueI(&Config, "SLURM_CORES_PER_SOCKET");
+    int cores = getConfValueI(Config, "SLURM_CORES_PER_SOCKET");
     if (cores == -1) {
 	mlog("%s: invalid SLURM_CORES_PER_SOCKET\n", __func__);
 	return false;
     }
-    int threads = getConfValueI(&Config, "SLURM_THREADS_PER_CORE");
+    int threads = getConfValueI(Config, "SLURM_THREADS_PER_CORE");
     if (threads == -1) {
 	mlog("%s: invalid SLURM_THREADS_PER_CORE\n", __func__);
 	return false;
@@ -1244,12 +1246,12 @@ static bool verifySlurmConf(void)
 
     int calcCPUs = boards * sockets * cores * threads;
 
-    int slurmCPUs = getConfValueI(&Config, "SLURM_CPUS");
+    int slurmCPUs = getConfValueI(Config, "SLURM_CPUS");
     if (slurmCPUs == -1) {
 	char CPUs[64];
 	snprintf(CPUs, sizeof(CPUs), "%i", calcCPUs);
-	addConfigEntry(&Config, "SLURM_CPUS", CPUs);
-	slurmCPUs = getConfValueI(&Config, "SLURM_CPUS");
+	addConfigEntry(Config, "SLURM_CPUS", CPUs);
+	slurmCPUs = getConfValueI(Config, "SLURM_CPUS");
     }
     /* verify that the Slurm configuration is consistent */
     if (calcCPUs != slurmCPUs) {
@@ -1349,17 +1351,17 @@ static bool verifyCgroupConf(char *key, char *value, const void *info)
 static bool parseAcctGatherConf(char *key, char *value, const void *info)
 {
     if (!strcasecmp(key, "InfinibandOFEDPort")) {
-	addConfigEntry(&SlurmConfig, "INFINIBAND_OFED_PORT", value);
+	addConfigEntry(SlurmConfig, "INFINIBAND_OFED_PORT", value);
     } else if (!strcasecmp(key, "EnergyIPMIFrequency")) {
-	addConfigEntry(&SlurmConfig, "IPMI_FREQUENCY", value);
+	addConfigEntry(SlurmConfig, "IPMI_FREQUENCY", value);
     } else if (!strcasecmp(key, "EnergyIPMICalcAdjustment")) {
-	addConfigEntry(&SlurmConfig, "IPMI_ADJUSTMENT", value);
+	addConfigEntry(SlurmConfig, "IPMI_ADJUSTMENT", value);
     } else if (!strcasecmp(key, "EnergyIPMIPowerSensors")) {
-	addConfigEntry(&SlurmConfig, "IPMI_POWER_SENSORS", value);
+	addConfigEntry(SlurmConfig, "IPMI_POWER_SENSORS", value);
     } else if (!strcasecmp(key, "EnergyIPMIUsername")) {
-	addConfigEntry(&SlurmConfig, "IPMI_USERNAME", value);
+	addConfigEntry(SlurmConfig, "IPMI_USERNAME", value);
     } else if (!strcasecmp(key, "EnergyIPMIPassword")) {
-	addConfigEntry(&SlurmConfig, "IPMI_PASSWORD", value);
+	addConfigEntry(SlurmConfig, "IPMI_PASSWORD", value);
     }
 
     /* parsing was successful, continue with next line */
@@ -1384,14 +1386,14 @@ bool parseSlurmConfigFiles(void)
     config_type_t type = CONFIG_TYPE_DEFAULT;
     char cPath[PATH_MAX];
 
-    char *confDir = getConfValueC(&Config, "SLURM_CONFIG_DIR");
+    char *confDir = getConfValueC(Config, "SLURM_CONFIG_DIR");
     if (!confDir) {
 	flog("Configuration value SLURM_CONFIG_DIR not found\n");
 	return false;
     }
 
     /* parse Slurm config file */
-    char *confFile = getConfValueC(&Config, "SLURM_CONF");
+    char *confFile = getConfValueC(Config, "SLURM_CONF");
     if (!confFile) {
 	flog("Configuration value SLURM_CONF not found\n");
 	return false;
@@ -1400,14 +1402,14 @@ bool parseSlurmConfigFiles(void)
 
     registerConfigHashAccumulator(&configHash);
     configHash = 0;
-    if (parseConfigFile(cPath, &SlurmConfig, true /*trimQuotes*/) < 0) {
+    if (parseConfigFile(cPath, SlurmConfig, true /*trimQuotes*/) < 0) {
 	flog("Parsing Slurm configuration file %s failed\n", cPath);
 	return false;
     }
     configUpdateTime = time(NULL);
     registerConfigHashAccumulator(NULL);
 
-    if (traverseConfig(&SlurmConfig, parseSlurmConf, &type)) {
+    if (traverseConfig(SlurmConfig, parseSlurmConf, &type)) {
 	flog("Traversing Slurm configuration failed\n");
 	return false;
     }
@@ -1416,7 +1418,7 @@ bool parseSlurmConfigFiles(void)
 
     /* parse optional Slurm GRes config file */
     type = CONFIG_TYPE_GRES;
-    confFile = getConfValueC(&Config, "SLURM_GRES_CONF");
+    confFile = getConfValueC(Config, "SLURM_GRES_CONF");
     if (!confFile) {
 	flog("Configuration value SLURM_GRES_CONF not found\n");
 	return false;
@@ -1424,14 +1426,16 @@ bool parseSlurmConfigFiles(void)
     snprintf(cPath, sizeof(cPath), "%s/%s", confDir, confFile);
 
     if (stat(cPath, &sbuf) != -1) {
-	Config_t SlurmGresTmp;
-	if (parseConfigFile(cPath, &SlurmGresTmp, true /*trimQuotes*/) < 0) {
+	Config_t SlurmGresTmp = NULL;
+	initConfig(&SlurmGresTmp);
+	if (parseConfigFile(cPath, SlurmGresTmp, true /*trimQuotes*/) < 0) {
 	    flog("Parsing GRes configuration file %s failed\n", cPath);
+	    freeConfig(SlurmGresTmp);
 	    return false;
 	}
 
-	bool failed = traverseConfig(&SlurmGresTmp, parseSlurmConf, &type);
-	freeConfig(&SlurmGresTmp);
+	bool failed = traverseConfig(SlurmGresTmp, parseSlurmConf, &type);
+	freeConfig(SlurmGresTmp);
 	if (failed) {
 	    flog("Traversing GRes configuration failed\n");
 	    return false;
@@ -1439,7 +1443,7 @@ bool parseSlurmConfigFiles(void)
     }
 
     /* parse optional Slurm account gather config file */
-    confFile = getConfValueC(&Config, "SLURM_GATHER_CONF");
+    confFile = getConfValueC(Config, "SLURM_GATHER_CONF");
     if (!confFile) {
 	flog("Configuration value SLURM_GATHER_CONF not found\n");
 	return false;
@@ -1447,15 +1451,17 @@ bool parseSlurmConfigFiles(void)
     snprintf(cPath, sizeof(cPath), "%s/%s", confDir, confFile);
 
     if (stat(cPath, &sbuf) != -1) {
-	Config_t AcctGather;
-	if (parseConfigFile(cPath, &AcctGather, true /*trimQuotes*/) < 0) {
+	Config_t AcctGather = NULL;
+	initConfig(&AcctGather);
+	if (parseConfigFile(cPath, AcctGather, true /*trimQuotes*/) < 0) {
 	    flog("Parsing account gather configuration file %s failed\n",
 		 cPath);
+	    freeConfig(AcctGather);
 	    return false;
 	}
 
-	bool failed = traverseConfig(&AcctGather, parseAcctGatherConf, NULL);
-	freeConfig(&AcctGather);
+	bool failed = traverseConfig(AcctGather, parseAcctGatherConf, NULL);
+	freeConfig(AcctGather);
 	if (failed) {
 	    flog("Traversing account gather configuration failed\n");
 	    return false;
@@ -1464,7 +1470,7 @@ bool parseSlurmConfigFiles(void)
 
     /* parse optional Slurm topology config file */
     type = CONFIG_TYPE_TOPOLOGY;
-    confFile = getConfValueC(&Config, "SLURM_TOPOLOGY_CONF");
+    confFile = getConfValueC(Config, "SLURM_TOPOLOGY_CONF");
     if (!confFile) {
 	flog("Configuration value SLURM_TOPOLOGY_CONF not found\n");
 	return false;
@@ -1472,14 +1478,16 @@ bool parseSlurmConfigFiles(void)
     snprintf(cPath, sizeof(cPath), "%s/%s", confDir, confFile);
 
     if (stat(cPath, &sbuf) != -1) {
-	Config_t SlurmTopoTmp;
-	if (parseConfigFile(cPath, &SlurmTopoTmp, true /*trimQuotes*/) < 0) {
+	Config_t SlurmTopoTmp = NULL;
+	initConfig(&SlurmTopoTmp);
+	if (parseConfigFile(cPath, SlurmTopoTmp, true /*trimQuotes*/) < 0) {
 	    flog("Parsing topology configuration file %s failed\n", cPath);
+	    freeConfig(SlurmTopoTmp);
 	    return false;
 	}
 
-	bool failed = traverseConfig(&SlurmTopoTmp, parseSlurmConf, &type);
-	freeConfig(&SlurmTopoTmp);
+	bool failed = traverseConfig(SlurmTopoTmp, parseSlurmConf, &type);
+	freeConfig(SlurmTopoTmp);
 	if (failed) {
 	    flog("Traversing topology configuration failed\n");
 	    return false;
@@ -1487,7 +1495,7 @@ bool parseSlurmConfigFiles(void)
     }
 
     /* parse optional Slurm cgroup config file */
-    confFile = getConfValueC(&Config, "SLURM_CGROUP_CONF");
+    confFile = getConfValueC(Config, "SLURM_CGROUP_CONF");
     if (!confFile) {
 	flog("Configuration value SLURM_CGROUP_CONF not found\n");
 	return false;
@@ -1496,14 +1504,14 @@ bool parseSlurmConfigFiles(void)
     initConfig(&SlurmCgroupConfig);
 
     if (stat(cPath, &sbuf) != -1) {
-	if (parseConfigFile(cPath, &SlurmCgroupConfig,
+	if (parseConfigFile(cPath, SlurmCgroupConfig,
 	    true /*trimQuotes*/) < 0) {
 	    flog("Parsing cgroup configuration file %s failed\n", cPath);
 	    return false;
 	}
 
-	setConfigDefaults(&SlurmCgroupConfig, cgroupDef);
-	if (traverseConfig(&SlurmCgroupConfig, verifyCgroupConf, NULL)) {
+	setConfigDefaults(SlurmCgroupConfig, cgroupDef);
+	if (traverseConfig(SlurmCgroupConfig, verifyCgroupConf, NULL)) {
 	    flog("Traversing cgroup configuration failed\n");
 	    return false;
 	}
@@ -1511,12 +1519,10 @@ bool parseSlurmConfigFiles(void)
     }
 
 #ifdef HAVE_SPANK
-    Config_t SlurmPlugConf;
-
     /* parse optional plugstack.conf holding spank plugins */
-    confFile = getConfValueC(&SlurmConfig, "PlugStackConfig");
+    confFile = getConfValueC(SlurmConfig, "PlugStackConfig");
     if (!confFile) {
-	confFile = getConfValueC(&Config, "SLURM_SPANK_CONF");
+	confFile = getConfValueC(Config, "SLURM_SPANK_CONF");
 	if (!confFile) {
 	    flog("Configuration value SLURM_SPANK_CONF not found\n");
 	    return false;
@@ -1529,15 +1535,18 @@ bool parseSlurmConfigFiles(void)
 	snprintf(cPath, sizeof(cPath), "%s", confFile);
     }
 
-    int disabled = getConfValueU(&Config, "DISABLE_SPANK");
+    int disabled = getConfValueU(Config, "DISABLE_SPANK");
     if (!disabled && stat(cPath, &sbuf) != -1) {
-	if (parseConfigFile(cPath, &SlurmPlugConf, true/*trimQuotes*/) < 0) {
+	Config_t SlurmPlugConf = NULL;
+	initConfig(&SlurmPlugConf);
+	if (parseConfigFile(cPath, SlurmPlugConf, true/*trimQuotes*/) < 0) {
 	    flog("Parsing Spank configuration file %s failed\n", cPath);
+	    freeConfig(SlurmPlugConf);
 	    return false;
 	}
 
-	bool failed = traverseConfig(&SlurmPlugConf, parseSlurmPlugLine, NULL);
-	freeConfig(&SlurmPlugConf);
+	bool failed = traverseConfig(SlurmPlugConf, parseSlurmPlugLine, NULL);
+	freeConfig(SlurmPlugConf);
 	if (failed) {
 	    flog("Traversing Spank configuration failed\n");
 	    return false;
@@ -1556,26 +1565,26 @@ int initPSSlurmConfig(char *filename)
 
     /* parse psslurm config file */
     if (stat(filename, &sbuf) != -1) {
-	if (parseConfigFile(filename, &Config, false /*trimQuotes*/) < 0) {
+	if (parseConfigFile(filename, Config, false /*trimQuotes*/) < 0) {
 	    flog("parsing '%s' failed\n", filename);
 	    return CONFIG_ERROR;
 	}
     }
 
-    setConfigDefaults(&Config, confDef);
-    if (verifyConfig(&Config, confDef) != 0) {
+    setConfigDefaults(Config, confDef);
+    if (verifyConfig(Config, confDef) != 0) {
 	mlog("%s: verfiy of %s failed\n", __func__, filename);
 	return CONFIG_ERROR;
     }
 
     /* make logging with debug mask available */
-    int mask = getConfValueI(&Config, "DEBUG_MASK");
+    int mask = getConfValueI(Config, "DEBUG_MASK");
     if (mask) {
 	mlog("%s: set psslurm debug mask '%i'\n", __func__, mask);
 	maskLogger(mask);
     }
 
-    char *confServer = getConfValueC(&Config, "SLURM_CONF_SERVER");
+    char *confServer = getConfValueC(Config, "SLURM_CONF_SERVER");
     if (confServer && strcmp(confServer, "none")) {
 	/* request Slurm configuration files */
 	return CONFIG_SERVER;
@@ -1592,13 +1601,13 @@ bool updateSlurmConf(void)
 {
     char cPath[PATH_MAX];
 
-    char *confDir = getConfValueC(&Config, "SLURM_CONFIG_DIR");
+    char *confDir = getConfValueC(Config, "SLURM_CONFIG_DIR");
     if (!confDir) {
 	flog("Configuration value SLURM_CONFIG_DIR not found\n");
 	return false;
     }
 
-    char *confFile = getConfValueC(&Config, "SLURM_CONF");
+    char *confFile = getConfValueC(Config, "SLURM_CONF");
     if (!confFile) {
 	flog("Configuration value SLURM_CONF not found\n");
 	return false;
@@ -1606,19 +1615,21 @@ bool updateSlurmConf(void)
     snprintf(cPath, sizeof(cPath), "%s/%s", confDir, confFile);
 
     /* dry run to parse new configuration */
-    Config_t newConf;
+    Config_t newConf = NULL;
+    initConfig(&newConf);
     registerConfigHashAccumulator(NULL);
-    if (parseConfigFile(cPath, &newConf, true /*trimQuotes*/) < 0) {
+    int ret = parseConfigFile(cPath, newConf, true /*trimQuotes*/);
+    freeConfig(newConf);
+    if (ret < 0) {
 	flog("Parsing updated Slurm configuration file %s failed\n", cPath);
 	return false;
     }
-    freeConfig(&newConf);
 
     /* update the original configuration now */
-    freeConfig(&SlurmConfig);
+    initConfig(&SlurmConfig);
     registerConfigHashAccumulator(&configHash);
     configHash = 0;
-    if (parseConfigFile(cPath, &SlurmConfig, true /*trimQuotes*/) < 0) {
+    if (parseConfigFile(cPath, SlurmConfig, true /*trimQuotes*/) < 0) {
 	flog("Parsing updated Slurm configuration file %s failed\n", cPath);
 	return false;
     }
@@ -1626,7 +1637,7 @@ bool updateSlurmConf(void)
     registerConfigHashAccumulator(NULL);
 
     /* parse optional Slurm GRes config file */
-    confFile = getConfValueC(&Config, "SLURM_GRES_CONF");
+    confFile = getConfValueC(Config, "SLURM_GRES_CONF");
     if (!confFile) {
 	flog("Configuration value SLURM_GRES_CONF not found\n");
 	return false;
@@ -1635,17 +1646,19 @@ bool updateSlurmConf(void)
 
     struct stat sbuf;
     if (stat(cPath, &sbuf) != -1) {
-	Config_t SlurmGresTmp;
-	if (parseConfigFile(cPath, &SlurmGresTmp, true /*trimQuotes*/) < 0) {
+	Config_t SlurmGresTmp = NULL;
+	initConfig(&SlurmGresTmp);
+	if (parseConfigFile(cPath, SlurmGresTmp, true /*trimQuotes*/) < 0) {
 	    flog("Parsing GRes configuration file %s failed\n", cPath);
+	    freeConfig(SlurmGresTmp);
 	    return false;
 	}
 
 	/* remove old GRes configuration and rebuild it */
 	clearGresConf();
 	config_type_t type = CONFIG_TYPE_GRES;
-	bool failed = traverseConfig(&SlurmGresTmp, parseSlurmConf, &type);
-	freeConfig(&SlurmGresTmp);
+	bool failed = traverseConfig(SlurmGresTmp, parseSlurmConf, &type);
+	freeConfig(SlurmGresTmp);
 	if (failed) {
 	    flog("Traversing GRes configuration failed\n");
 	    return false;
@@ -1653,7 +1666,7 @@ bool updateSlurmConf(void)
     }
 
     /* parse optional Slurm topology config file */
-    confFile = getConfValueC(&Config, "SLURM_TOPOLOGY_CONF");
+    confFile = getConfValueC(Config, "SLURM_TOPOLOGY_CONF");
     if (!confFile) {
 	flog("Configuration value SLURM_TOPOLOGY_CONF not found\n");
 	return false;
@@ -1661,17 +1674,19 @@ bool updateSlurmConf(void)
     snprintf(cPath, sizeof(cPath), "%s/%s", confDir, confFile);
 
     if (stat(cPath, &sbuf) != -1) {
-	Config_t SlurmTopoTmp;
-	if (parseConfigFile(cPath, &SlurmTopoTmp, true /*trimQuotes*/) < 0) {
+	Config_t SlurmTopoTmp = NULL;
+	initConfig(&SlurmTopoTmp);
+	if (parseConfigFile(cPath, SlurmTopoTmp, true /*trimQuotes*/) < 0) {
 	    flog("Parsing topology configuration file %s failed\n", cPath);
+	    freeConfig(SlurmTopoTmp);
 	    return false;
 	}
 
 	/* remove old topology configuration and rebuild it */
 	clearTopologyConf();
 	config_type_t type = CONFIG_TYPE_TOPOLOGY;
-	bool failed = traverseConfig(&SlurmTopoTmp, parseSlurmConf, &type);
-	freeConfig(&SlurmTopoTmp);
+	bool failed = traverseConfig(SlurmTopoTmp, parseSlurmConf, &type);
+	freeConfig(SlurmTopoTmp);
 	if (failed) {
 	    flog("Traversing topology configuration failed\n");
 	    return false;
@@ -1679,7 +1694,7 @@ bool updateSlurmConf(void)
     }
 
     /* parse optional Slurm cgroup config file */
-    confFile = getConfValueC(&Config, "SLURM_CGROUP_CONF");
+    confFile = getConfValueC(Config, "SLURM_CGROUP_CONF");
     if (!confFile) {
 	flog("Configuration value SLURM_CGROUP_CONF not found\n");
 	return false;
@@ -1687,15 +1702,17 @@ bool updateSlurmConf(void)
     snprintf(cPath, sizeof(cPath), "%s/%s", confDir, confFile);
 
     if (stat(cPath, &sbuf) != -1) {
-	Config_t SlurmCgrpTmp;
+	Config_t SlurmCgrpTmp = NULL;
+	initConfig(&SlurmCgrpTmp);
 	/* dry run to parse the new cgroup config */
-	if (parseConfigFile(cPath, &SlurmCgrpTmp, true /*trimQuotes*/) < 0) {
+	if (parseConfigFile(cPath, SlurmCgrpTmp, true /*trimQuotes*/) < 0) {
 	    flog("Parsing cgroup configuration file %s failed\n", cPath);
+	    freeConfig(SlurmCgrpTmp);
 	    return false;
 	}
-	setConfigDefaults(&SlurmCgrpTmp, cgroupDef);
-	bool failed = traverseConfig(&SlurmCgrpTmp, verifyCgroupConf, NULL);
-	freeConfig(&SlurmCgrpTmp);
+	setConfigDefaults(SlurmCgrpTmp, cgroupDef);
+	bool failed = traverseConfig(SlurmCgrpTmp, verifyCgroupConf, NULL);
+	freeConfig(SlurmCgrpTmp);
 	if (failed) {
 	    flog("Traversing cgroup configuration failed\n");
 	    return false;
@@ -1703,13 +1720,12 @@ bool updateSlurmConf(void)
 	if (isJailActive && !testJailConfig()) return false;
 
 	/* remove old cgroup configuration and rebuild it */
-	freeConfig(&SlurmCgroupConfig);
-	if (parseConfigFile(cPath, &SlurmCgroupConfig,
-	    true /*trimQuotes*/) < 0) {
+	initConfig(&SlurmCgroupConfig);
+	if (parseConfigFile(cPath, SlurmCgroupConfig, true /*trimQuotes*/) < 0) {
 	    flog("Parsing cgroup configuration file %s failed\n", cPath);
 	    return false;
 	}
-	setConfigDefaults(&SlurmCgroupConfig, cgroupDef);
+	setConfigDefaults(SlurmCgroupConfig, cgroupDef);
     }
 
     return true;

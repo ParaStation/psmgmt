@@ -262,7 +262,7 @@ static bool sendPartitionReq(PStask_t *task, PSGW_Req_t *req, int numNodes)
 	flog("PSpart_newReq() failed\n");
 	return false;
     }
-    int tpp = getConfValueI(&config, "GATEWAY_TPP");
+    int tpp = getConfValueI(config, "GATEWAY_TPP");
 
     task->request->uid = req->uid;
     task->request->gid = req->gid;
@@ -353,7 +353,7 @@ static bool handleMotherMsg(DDTypedBufferMsg_t *msg, Forwarder_Data_t *fw)
 
     /* failed to get resources from master */
     if (msg->header.type == PSP_CD_PARTITIONRES) {
-	int tpp = getConfValueI(&config, "GATEWAY_TPP");
+	int tpp = getConfValueI(config, "GATEWAY_TPP");
 	flog("error: no free gateway nodes with %i cores found\n", tpp);
 	snprintf(msgBuf, sizeof(msgBuf), "getting gateway resources for job %s "
 		 "failed\n", req->jobid);

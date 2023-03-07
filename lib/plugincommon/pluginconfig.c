@@ -19,6 +19,15 @@
 #include "pluginhelper.h"
 #include "pluginlog.h"
 
+#define PLUGIN_CONFIG_MAGIC 0x5822281553
+
+struct pluginConfig {
+    long magic;
+    list_t config;
+    //const pluginConfigDef_t *def;
+    //size_t maxKeyLen;
+};
+
 /** Single object of a configuration */
 typedef struct {
     struct list_head next;  /**< Used to put object into a configration */
@@ -26,14 +35,31 @@ typedef struct {
     char *value;            /**< Object's value */
 } ConfObj_t;
 
-static void doAddConfigEntry(Config_t *conf, char *key, char *value)
+/**
+ * @brief Check configuration context's integrity
+ *
+ * Check the integrity of the configuration context @a conf. This
+ * basically checks if the context's magic value is valid.
+ *
+ * @param conf Configuration context to check
+ *
+ * @return Return true if the configuration context @a conf is valid;
+ * or false otherwise
+ */
+static inline bool checkConfig(Config_t conf) {
+    return (conf && conf->magic == PLUGIN_CONFIG_MAGIC);
+}
+
+static void doAddConfigEntry(Config_t conf, char *key, char *value)
 {
+    if (!checkConfig(conf) || !key) return;
+
     ConfObj_t *obj = umalloc(sizeof(*obj));
     char *myVal = (value) ? ustrdup(value) : ustrdup("");
 
     obj->key = ustrdup(key);
     obj->value = myVal;
-    list_add_tail(&(obj->next), conf);
+    list_add_tail(&(obj->next), &conf->config);
 }
 
 /** Pointer to hash accumulator */
@@ -65,13 +91,26 @@ void registerConfigHashAccumulator(uint32_t *hashAcc)
     configHashAcc = hashAcc;
 }
 
-void initConfig(Config_t *conf)
+static void cleanAllObjs(Config_t conf);
+
+bool initConfig(Config_t *conf)
 {
-    /* init config list */
-    INIT_LIST_HEAD(conf);
+    if (checkConfig(*conf)) {
+	cleanAllObjs(*conf);
+    } else {
+	*conf = umalloc(sizeof(**conf));
+	if (!*conf) return false;
+    }
+
+    (*conf)->magic = PLUGIN_CONFIG_MAGIC;
+    INIT_LIST_HEAD(&((*conf)->config));
+    //(*conf)->def = NULL;
+    //(*conf)->maxKeyLen = 0;
+
+    return true;
 }
 
-int parseConfigFile(char *filename, Config_t *conf, bool trimQuotes)
+int parseConfigFile(char *filename, Config_t conf, bool trimQuotes)
 {
     FILE *fp;
     char *linebuf = NULL;
@@ -79,7 +118,8 @@ int parseConfigFile(char *filename, Config_t *conf, bool trimQuotes)
     ssize_t read;
     int count = 0;
 
-    initConfig(conf);
+    if (!checkConfig(conf)) return -1;
+    cleanAllObjs(conf);
 
     if (!(fp = fopen(filename, "r"))) {
 	char *cwd = getcwd(NULL, 0);
@@ -127,13 +167,12 @@ int parseConfigFile(char *filename, Config_t *conf, bool trimQuotes)
     return count;
 }
 
-static ConfObj_t *findConfObj(Config_t *conf, char *key)
+static ConfObj_t *findConfObj(Config_t conf, char *key)
 {
+    if (!checkConfig(conf) || !key) return NULL;
+
     list_t *o;
-
-    if (!key || list_empty(conf)) return NULL;
-
-    list_for_each(o, conf) {
+    list_for_each(o, &(conf->config)) {
 	ConfObj_t *obj = list_entry(o, ConfObj_t, next);
 
 	if (!(strcmp(obj->key, key))) return obj;
@@ -142,7 +181,7 @@ static ConfObj_t *findConfObj(Config_t *conf, char *key)
     return NULL;
 }
 
-static char *getConfValue(Config_t *conf, char *key)
+static char *getConfValue(Config_t conf, char *key)
 {
     ConfObj_t *obj = findConfObj(conf, key);
 
@@ -151,7 +190,7 @@ static char *getConfValue(Config_t *conf, char *key)
     return NULL;
 }
 
-void addConfigEntry(Config_t *conf, char *key, char *value)
+void addConfigEntry(Config_t conf, char *key, char *value)
 {
     ConfObj_t *obj = findConfObj(conf, key);
 
@@ -166,11 +205,9 @@ void addConfigEntry(Config_t *conf, char *key, char *value)
     }
 }
 
-void setConfigDefaults(Config_t *conf, const ConfDef_t confDef[])
+void setConfigDefaults(Config_t conf, const ConfDef_t confDef[])
 {
-    int i;
-
-    for (i = 0; confDef[i].name; i++) {
+    for (int i = 0; confDef[i].name; i++) {
 	if (!(getConfValue(conf, confDef[i].name)) && confDef[i].def) {
 	    addConfigEntry(conf, confDef[i].name, confDef[i].def);
 	}
@@ -179,9 +216,7 @@ void setConfigDefaults(Config_t *conf, const ConfDef_t confDef[])
 
 const ConfDef_t *getConfigDef(char *name, const ConfDef_t confDef[])
 {
-    int i;
-
-    for (i = 0; confDef[i].name; i++) {
+    for (int i = 0; confDef[i].name; i++) {
 	if (!(strcmp(name, confDef[i].name))) return confDef + i;
     }
     return NULL;
@@ -207,10 +242,12 @@ int verifyConfigEntry(const ConfDef_t confDef[], char *key, char *value)
     return 0;
 }
 
-int verifyConfig(Config_t *conf, const ConfDef_t confDef[])
+int verifyConfig(Config_t conf, const ConfDef_t confDef[])
 {
+    if (!checkConfig(conf)) return -1;
+
     list_t *o;
-    list_for_each(o, conf) {
+    list_for_each(o, &(conf->config)) {
 	ConfObj_t *obj = list_entry(o, ConfObj_t, next);
 	int res = verifyConfigEntry(confDef, obj->key, obj->value);
 	if (res) return res;
@@ -229,16 +266,28 @@ static void delConfObj(ConfObj_t *obj)
     ufree(obj);
 }
 
-void freeConfig(Config_t *conf)
+static void cleanAllObjs(Config_t conf)
 {
+    if (!checkConfig(conf)) return;
+
     list_t *o, *tmp;
-    list_for_each_safe(o, tmp, conf) {
+    list_for_each_safe(o, tmp, &(conf->config)) {
 	ConfObj_t *obj = list_entry(o, ConfObj_t, next);
 	delConfObj(obj);
     }
 }
 
-bool unsetConfigEntry(Config_t *conf, const ConfDef_t confDef[], char *key)
+
+void freeConfig(Config_t conf)
+{
+    if (!checkConfig(conf)) return;
+
+    cleanAllObjs(conf);
+    conf->magic = 0;
+    ufree(conf);
+}
+
+bool unsetConfigEntry(Config_t conf, const ConfDef_t confDef[], char *key)
 {
     ConfObj_t *obj = findConfObj(conf, key);
     const ConfDef_t *def = getConfigDef(key, confDef);
@@ -256,7 +305,7 @@ bool unsetConfigEntry(Config_t *conf, const ConfDef_t confDef[], char *key)
     return true;
 }
 
-long getConfValueL(Config_t *conf, char *key)
+long getConfValueL(Config_t conf, char *key)
 {
     long val = -1;
     char *valStr;
@@ -271,7 +320,7 @@ long getConfValueL(Config_t *conf, char *key)
     return val;
 }
 
-float getConfValueF(Config_t *conf, char *key)
+float getConfValueF(Config_t conf, char *key)
 {
     float val = -1;
     char *valStr;
@@ -286,7 +335,7 @@ float getConfValueF(Config_t *conf, char *key)
     return val;
 }
 
-int getConfValueI(Config_t *conf, char *key)
+int getConfValueI(Config_t conf, char *key)
 {
     int val = -1;
     char *valStr;
@@ -301,7 +350,7 @@ int getConfValueI(Config_t *conf, char *key)
     return val;
 }
 
-unsigned int getConfValueU(Config_t *conf, char *key)
+unsigned int getConfValueU(Config_t conf, char *key)
 {
     unsigned int val = -1;
     char *valStr;
@@ -316,16 +365,17 @@ unsigned int getConfValueU(Config_t *conf, char *key)
     return val;
 }
 
-char *getConfValueC(Config_t *conf, char *key)
+char *getConfValueC(Config_t conf, char *key)
 {
     return getConfValue(conf, key);
 }
 
-bool traverseConfig(Config_t *conf, configVisitor_t visitor, const void *info)
+bool traverseConfig(Config_t conf, configVisitor_t visitor, const void *info)
 {
-    list_t *o;
+    if (!checkConfig(conf)) return false;
 
-    list_for_each(o, conf) {
+    list_t *o;
+    list_for_each(o, &(conf->config)) {
 	ConfObj_t *obj = list_entry(o, ConfObj_t, next);
 
 	if (visitor(obj->key, obj->value, info)) return true;

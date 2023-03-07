@@ -18,30 +18,58 @@
 #include "list.h"
 
 /** Configuration parsed from a file */
-typedef list_t Config_t;
+typedef struct pluginConfig * Config_t;
 
 /**
  * @brief Init configuration
  *
  * Initialize the configuration @a conf. @a conf is assumed to be
- * empty. If @a conf already holds valid configuration, some memory
- * might get leaked. Therefore, previous configurations shall be
- * destructed via @ref freeConfig().
+ * empty. If @a conf already holds valid configuration, this will be
+ * destroyed with all memory used getting free()ed.
  *
  * @param conf Configuration ready for further use
  *
+ * @return true on success, false on error
+ */
+bool initConfig(Config_t *conf);
+
+/**
+ * @brief Set configuration's case sensitivity
+ *
+ * Adjust case sensitivity of all key matching within the
+ * configuration @a conf. If @a sensitivity is true, all key matching
+ * in the context of @a conf is case sensitive. This is the
+ * default. Otherwise key matching will be case insensitive.
+ *
+ * In order to avoid double or ghost entries the configuration's case
+ * sensitivity must be adjusted before any entries are added or the
+ * actual configration is fetched from a file.
+ *
+ * @param sensitivity Flag the configuration's case sensitivity
+ *
  * @return No return value
  */
-void initConfig(Config_t *conf);
+void setConfigCaseSensitivity(Config_t conf, bool sensitivity);
+
+/**
+ * @brief Set configuration's case sensitivity
+ *
+ * Determine if the key handling within the configuration @a conf is
+ * case sensitive.
+ *
+ * @return Returns true if key handling in @a conf is case sensitive;
+ * otherwise false is returned
+ */
+bool getConfigCaseSensitivity(Config_t conf);
 
 /**
  * @brief Fetch configuration from a file
  *
  * Parse the configuration from the file named by @a filename and
- * store it into @a conf. @a conf is assumed to be empty. If @a conf
- * already holds valid configuration, some memory might get
- * leaked. Therefore, previous configurations shall be destructed via
- * @ref freeConfig(). If the flag @a trimQuotes is true, each
+ * store it into @a conf. @a conf is assumed to be initialized via
+ * initConfig(). If @a conf already holds a valid configuration, this
+ * will be destroyed with all used memory free()ed before fetching the
+ * new configuration. If the flag @a trimQuotes is true, each
  * configuration value gets unquoted before being put into the
  * configuration.
  *
@@ -59,7 +87,7 @@ void initConfig(Config_t *conf);
  * @return Upon success the number of configuration entries found in
  * the file is returned. Or -1 if an error occurred.
  */
-int parseConfigFile(char *filename, Config_t *conf, bool trimQuotes);
+int parseConfigFile(char *filename, Config_t conf, bool trimQuotes);
 
 /**
  * @brief Register a hash accumulator
@@ -85,13 +113,14 @@ void registerConfigHashAccumulator(uint32_t *hashAcc);
  * Free the complete configuration @a conf, i.e. release all dynamic
  * memory associated to the configuration. For this, the whole
  * configuration is traversed and for each key, value and
- * helper-structure free() is called.
+ * helper-structure free() is called. Furthermore the configuration
+ * context itself will be invalidated and free()ed.
  *
  * @param conf The configuration to be released
  *
  * @return No return value
  */
-void freeConfig(Config_t *conf);
+void freeConfig(Config_t conf);
 
 /**
  * @brief Visitor function
@@ -131,7 +160,7 @@ typedef bool configVisitor_t(char *key, char *value, const void *info);
  * true is returned. If no visitor returned true during the traversal
  * false is returned.
  */
-bool traverseConfig(Config_t *conf, configVisitor_t visitor, const void *info);
+bool traverseConfig(Config_t conf, configVisitor_t visitor, const void *info);
 
 /**
  * @brief Add entry to configuration
@@ -150,7 +179,7 @@ bool traverseConfig(Config_t *conf, configVisitor_t visitor, const void *info);
  *
  * @return No return value
  */
-void addConfigEntry(Config_t *conf, char *key, char *value);
+void addConfigEntry(Config_t conf, char *key, char *value);
 
 /**
  * @brief Get value as character array
@@ -166,7 +195,7 @@ void addConfigEntry(Config_t *conf, char *key, char *value);
  * @return If a corresponding entry is found, a pointer to the value's
  * character array is returned. Otherwise NULL is returned.
  */
-char *getConfValueC(Config_t *conf, char *key);
+char *getConfValueC(Config_t conf, char *key);
 
 /**
  * @brief Get value as unsigned integer
@@ -184,7 +213,7 @@ char *getConfValueC(Config_t *conf, char *key);
  * converted to an unsigned integer, this value is returned. Otherwise
  * -1 is returned.
  */
-unsigned int getConfValueU(Config_t *conf, char *key);
+unsigned int getConfValueU(Config_t conf, char *key);
 
 /**
  * @brief Get value as integer
@@ -202,7 +231,7 @@ unsigned int getConfValueU(Config_t *conf, char *key);
  * converted to an integer, this value is returned. Otherwise -1 is
  * returned.
  */
-int getConfValueI(Config_t *conf, char *key);
+int getConfValueI(Config_t conf, char *key);
 
 /**
  * @brief Get value as long
@@ -219,7 +248,7 @@ int getConfValueI(Config_t *conf, char *key);
  * converted to a long integer, this value is returned. Otherwise -1
  * is returned.
  */
-long getConfValueL(Config_t *conf, char *key);
+long getConfValueL(Config_t conf, char *key);
 
 /**
  * @brief Get value as float
@@ -236,7 +265,7 @@ long getConfValueL(Config_t *conf, char *key);
  * converted to a float, this value is returned. Otherwise -1
  * is returned.
  */
-float getConfValueF(Config_t *conf, char *key);
+float getConfValueF(Config_t conf, char *key);
 
 /** Definition of a single configuration parameter */
 typedef struct {
@@ -283,9 +312,10 @@ int verifyConfigEntry(const ConfDef_t confDef[], char *key, char *value);
  *
  * @return If @a conf conforms to @a confDef, 0 is returned. Or 1 or 2
  * depending on the results of @ref verifyConfigEntry() for the first
- * non-conforming pair.
+ * non-conforming pair. -1 will be returned if @a conf is not
+ * initialized.
  */
-int verifyConfig(Config_t *conf, const ConfDef_t confDef[]);
+int verifyConfig(Config_t conf, const ConfDef_t confDef[]);
 
 /**
  * @brief Get definition for a name
@@ -319,7 +349,7 @@ const ConfDef_t *getConfigDef(char *name, const ConfDef_t confDef[]);
  * @return If a corresponding entry is found and modified true is
  * returned. Or false otherwise.
  */
-bool unsetConfigEntry(Config_t *conf, const ConfDef_t confDef[], char *key);
+bool unsetConfigEntry(Config_t conf, const ConfDef_t confDef[], char *key);
 
 /**
  * @brief Extend configuration by defaults
@@ -336,7 +366,7 @@ bool unsetConfigEntry(Config_t *conf, const ConfDef_t confDef[], char *key);
  *
  * @return No return value
  */
-void setConfigDefaults(Config_t *conf, const ConfDef_t confDef[]);
+void setConfigDefaults(Config_t conf, const ConfDef_t confDef[]);
 
 /**
  * @brief Get length of longest key-name

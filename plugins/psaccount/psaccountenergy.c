@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2019-2020 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2022 ParTec AG, Munich
+ * Copyright (C) 2022-2023 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -106,7 +106,7 @@ static void parseEnergy(char *data)
 
 static bool initPowerUnit(void)
 {
-    char *powerUnit = getConfValueC(&config, "POWER_UNIT");
+    char *powerUnit = getConfValueC(config, "POWER_UNIT");
     if (!powerUnit || powerUnit[0] == '\0') {
 	flog("empty config parameter POWER_UNIT\n");
 	return false;
@@ -134,7 +134,7 @@ bool Energy_startScript(void)
     if (pollTime < 1) pollTime = DEFAULT_POLL_TIME;
 
     /* start forwarder to execute energy collect script */
-    char *energyScript = getConfValueC(&config, "ENERGY_SCRIPT");
+    char *energyScript = getConfValueC(config, "ENERGY_SCRIPT");
     eScript = Script_start("psaccount-energy", energyScript, parseEnergy,
 			   pollTime, &scriptEnv);
     if (!eScript) {
@@ -155,15 +155,15 @@ bool Energy_init(void)
     envInit(&scriptEnv);
 
     /* test energy collect configuration */
-    char *energyScript = getConfValueC(&config, "ENERGY_SCRIPT");
+    char *energyScript = getConfValueC(config, "ENERGY_SCRIPT");
     if (energyScript && energyScript[0] != '\0') {
-	char *energyPath = getConfValueC(&config, "ENERGY_PATH");
+	char *energyPath = getConfValueC(config, "ENERGY_PATH");
 	if (energyPath && energyPath[0] != '\0') {
 	    flog("error: ENERGY_SCRIPT and ENERGY_PATH are mutual exclusive\n");
 	    return false;
 	}
 
-	char *powerPath = getConfValueC(&config, "POWER_PATH");
+	char *powerPath = getConfValueC(config, "POWER_PATH");
 	if (powerPath && powerPath[0] != '\0') {
 	    flog("error: ENERGY_SCRIPT and POWER_PATH are mutual exclusive\n");
 	    return false;
@@ -172,7 +172,7 @@ bool Energy_init(void)
 
     if (!Energy_update()) return false;
 
-    pollTime = getConfValueI(&config, "ENERGY_SCRIPT_POLL");
+    pollTime = getConfValueI(config, "ENERGY_SCRIPT_POLL");
     if (pollTime < 1 || !energyScript || energyScript[0] == '\0') {
 	/* energy polling is disabled */
 	return true;
@@ -195,7 +195,7 @@ bool Energy_update(void)
     if (eScript) return true;
 
     /* update energy */
-    char *energyPath = getConfValueC(&config, "ENERGY_PATH");
+    char *energyPath = getConfValueC(config, "ENERGY_PATH");
     if (energyPath && energyPath[0] != '\0') {
 	uint64_t energy = readEnergyFile(energyPath);
 	if (energy != NO_VAL64) {
@@ -207,7 +207,7 @@ bool Energy_update(void)
     }
 
     /* update power */
-    char *powerPath = getConfValueC(&config, "POWER_PATH");
+    char *powerPath = getConfValueC(config, "POWER_PATH");
     if (powerPath && powerPath[0] != '\0') {
 	uint64_t power = readEnergyFile(powerPath);
 	if (power != NO_VAL64) {

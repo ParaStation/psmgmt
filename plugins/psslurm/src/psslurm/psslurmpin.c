@@ -1318,7 +1318,7 @@ static void setDistributions(task_dist_states_t *taskDist)
 /* initialization function to be called the very first */
 bool initPinning(void)
 {
-    const char *type = getConfValueC(&Config, "DEFAULT_CPU_BIND_TYPE");
+    const char *type = getConfValueC(Config, "DEFAULT_CPU_BIND_TYPE");
 
     if (!strcmp(type, "none"))         defaultCPUbindType = CPU_BIND_NONE;
     else if (!strcmp(type, "rank"))    defaultCPUbindType = CPU_BIND_RANK;
@@ -1333,7 +1333,7 @@ bool initPinning(void)
 
     fdbg(PSSLURM_LOG_PART, "Using default cpu-bind '%s'\n", type);
 
-    const char *dist = getConfValueC(&Config, "DEFAULT_SOCKET_DIST");
+    const char *dist = getConfValueC(Config, "DEFAULT_SOCKET_DIST");
 
     if (!strcmp(dist, "block"))       defaultSocketDist = SLURM_DIST_SOCKBLOCK;
     else if (!strcmp(dist, "cyclic")) defaultSocketDist = SLURM_DIST_SOCKCYCLIC;
@@ -1347,7 +1347,7 @@ bool initPinning(void)
     fdbg(PSSLURM_LOG_PART, "Using default distribution on sockets: '%s'\n",
 	    dist);
 
-    dist = getConfValueC(&Config, "DEFAULT_CORE_DIST");
+    dist = getConfValueC(Config, "DEFAULT_CORE_DIST");
 
     if (!strcmp(dist, "block"))       defaultCoreDist = SLURM_DIST_COREBLOCK;
     else if (!strcmp(dist, "cyclic")) defaultCoreDist = SLURM_DIST_CORECYCLIC;
@@ -1914,7 +1914,7 @@ void verboseCpuPinningOutput(Step_t *step, PS_Tasks_t *task)
 
 	snprintf(vStr, sizeof(vStr),
 		 "cpu_bind%s=%s - %s, task %2d %2u [%d]: mask %s%s\n", units,
-		 bind_type, getConfValueC(&Config, "SLURM_HOSTNAME"),
+		 bind_type, getConfValueC(Config, "SLURM_HOSTNAME"),
 		 task->childRank, getLocalRankID(task->childRank, step),
 		 pid, printCpuMask(pid), action);
 
@@ -1954,7 +1954,7 @@ void verboseMemPinningOutput(Step_t *step, PStask_t *task)
 
     fprintf(stderr, "mem_bind=%s - "
 	    "%s, task %2d %2u [%d]: mask %s%s\n", bind_type,
-	    getConfValueC(&Config, "SLURM_HOSTNAME"), // hostname
+	    getConfValueC(Config, "SLURM_HOSTNAME"), // hostname
 	    task->rank, getLocalRankID(task->rank, step),
 	    getpid(), printMemMask(), action);
 }

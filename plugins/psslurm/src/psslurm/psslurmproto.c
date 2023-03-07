@@ -211,7 +211,7 @@ bool writeJobscript(Job_t *job)
     }
 
     /* set jobscript filename */
-    char *jobdir = getConfValueC(&Config, "DIR_JOB_FILES");
+    char *jobdir = getConfValueC(Config, "DIR_JOB_FILES");
     char buf[PATH_BUFFER_LEN];
     snprintf(buf, sizeof(buf), "%s/%s", jobdir, Job_strID(job->jobid));
     job->jobscript = ustrdup(buf);
@@ -292,7 +292,7 @@ static void setAccOpts(char *freqString, uint16_t *accType)
 	}
     }
 
-    char *strAcctType = getConfValueC(&SlurmConfig, "JobAcctGatherType");
+    char *strAcctType = getConfValueC(SlurmConfig, "JobAcctGatherType");
     if (strAcctType) {
 	*accType = !strcmp(strAcctType, "jobacct_gather/none") ? 0 : 1;
     } else {
@@ -781,7 +781,7 @@ static void doSendTermKill(Req_Signal_Tasks_t *req)
     Req_Signal_Tasks_t *reqDup = umalloc(sizeof(*req));
     memcpy(reqDup, req, sizeof(*req));
 
-    int grace = getConfValueI(&SlurmConfig, "KillWait");
+    int grace = getConfValueI(SlurmConfig, "KillWait");
     struct timeval timeout = {grace, 0};
     Timer_registerEnhanced(&timeout, sendDelayedKill, reqDup);
 }
@@ -840,7 +840,7 @@ static void sendReattachFail(Slurm_Msg_t *sMsg, uint32_t rc)
     PS_SendDB_t *reply = &sMsg->reply;
 
     /* hostname */
-    addStringToMsg(getConfValueC(&Config, "SLURM_HOSTNAME"), reply);
+    addStringToMsg(getConfValueC(Config, "SLURM_HOSTNAME"), reply);
     /* return code */
     addUint32ToMsg(rc, reply);
     /* number of tasks */
@@ -859,7 +859,7 @@ static void sendReattchReply(Step_t *step, Slurm_Msg_t *sMsg)
     PS_SendDB_t *reply = &sMsg->reply;
 
     /* hostname */
-    addStringToMsg(getConfValueC(&Config, "SLURM_HOSTNAME"), reply);
+    addStringToMsg(getConfValueC(Config, "SLURM_HOSTNAME"), reply);
     /* return code */
     addUint32ToMsg(SLURM_SUCCESS, reply);
     /* number of tasks */
@@ -1143,7 +1143,7 @@ static bool writeSlurmConfigFiles(Config_Msg_t *config, char *confDir)
 
     /* link configuration to Slurm /run-directory so Slurm commands (e.g.
      * scontrol, sbatch) can use them */
-    char *runDir = getConfValueC(&Config, "SLURM_RUN_DIR");
+    char *runDir = getConfValueC(Config, "SLURM_RUN_DIR");
     if (mkdir(runDir, 0755) == -1) {
 	if (errno != EEXIST) {
 	    mwarn(errno, "%s: mkdir(%s)", __func__, runDir);
@@ -1186,7 +1186,7 @@ static void handleConfig(Slurm_Msg_t *sMsg)
     }
 
     /* update all configuration files */
-    char *confDir = getConfValueC(&Config, "SLURM_CONF_CACHE");
+    char *confDir = getConfValueC(Config, "SLURM_CONF_CACHE");
     flog("updating Slurm configuration files in %s\n", confDir);
 
     bool ret = writeSlurmConfigFiles(config, confDir);
@@ -1234,7 +1234,7 @@ static void cbRebootProgram(int exit, bool tmdOut, int iofd, void *info)
 
     if (cmdline) freeStrBuf(cmdline);
 
-    char *shutdown = getConfValueC(&Config, "SLURMD_SHUTDOWN_ON_REBOOT");
+    char *shutdown = getConfValueC(Config, "SLURMD_SHUTDOWN_ON_REBOOT");
     if (shutdown) {
 	flog("unloading psslurm after reboot program\n");
 	PSIDplugin_finalize("psslurm");
@@ -1257,7 +1257,7 @@ static void handleRebootNodes(Slurm_Msg_t *sMsg)
 	return;
     }
 
-    char *prog = getConfValueC(&SlurmConfig, "RebootProgram");
+    char *prog = getConfValueC(SlurmConfig, "RebootProgram");
     if (!prog) {
 	flog("error: RebootProgram is not set in slurm.conf\n");
 
@@ -1310,9 +1310,9 @@ static void cbHealthcheck(int exit, bool tmdOut, int iofd, void *info)
 
     if (errMsg[0] != '\0') flog("health-check script message: %s\n", errMsg);
 
-    char *script = getConfValueC(&SlurmConfig, "HealthCheckProgram");
+    char *script = getConfValueC(SlurmConfig, "HealthCheckProgram");
     if (tmdOut) {
-	int seconds = getConfValueU(&Config, "SLURM_HC_TIMEOUT");
+	int seconds = getConfValueU(Config, "SLURM_HC_TIMEOUT");
 	flog("'%s' was terminated because it exceeded the time-limit"
 	     " of %u seconds\n", script, seconds);
     } else if (exit != 0) {
@@ -1338,7 +1338,7 @@ static void cbHealthcheck(int exit, bool tmdOut, int iofd, void *info)
 
 static void prepHCenv(void *info)
 {
-    setenv("SLURMD_NODENAME", getConfValueC(&Config, "SLURM_HOSTNAME"), 1);
+    setenv("SLURMD_NODENAME", getConfValueC(Config, "SLURM_HOSTNAME"), 1);
 }
 
 bool stopHealthCheck(int signal)
@@ -1359,7 +1359,7 @@ bool stopHealthCheck(int signal)
 bool runHealthCheck(void)
 {
     /* run health-check script */
-    char *script = getConfValueC(&SlurmConfig, "HealthCheckProgram");
+    char *script = getConfValueC(SlurmConfig, "HealthCheckProgram");
     if (!script) return true;
 
     if (access(script, R_OK | X_OK) < 0) {
@@ -1372,7 +1372,7 @@ bool runHealthCheck(void)
 	return false;
     }
 
-    int seconds = getConfValueU(&Config, "SLURM_HC_TIMEOUT");
+    int seconds = getConfValueU(Config, "SLURM_HC_TIMEOUT");
     struct timeval timeout = {seconds, 0};
     slurmHCpid = PSID_execScript(script, &prepHCenv, &cbHealthcheck,
 	    &timeout, NULL);
@@ -1675,7 +1675,7 @@ static void handleStepStat(Slurm_Msg_t *sMsg)
 
     /* add step PIDs */
     Slurm_PIDs_t sPID;
-    sPID.hostname = getConfValueC(&Config, "SLURM_HOSTNAME");
+    sPID.hostname = getConfValueC(Config, "SLURM_HOSTNAME");
     psAccountGetPidsByLogger(step->loggerTID, &sPID.pid, &sPID.count);
     packSlurmPIDs(msg, &sPID);
 
@@ -1714,7 +1714,7 @@ static void handleStepPids(Slurm_Msg_t *sMsg)
     PS_SendDB_t *msg = &sMsg->reply;
     Slurm_PIDs_t sPID;
 
-    sPID.hostname = getConfValueC(&Config, "SLURM_HOSTNAME");
+    sPID.hostname = getConfValueC(Config, "SLURM_HOSTNAME");
     psAccountGetPidsByLogger(step->loggerTID, &sPID.pid, &sPID.count);
     packSlurmPIDs(msg, &sPID);
 
@@ -1751,7 +1751,7 @@ static uint32_t getTmpDisk(void)
     }
 
     char tmpDef[] = "/tmp";
-    char *fs = getConfValueC(&SlurmConfig, "TmpFS");
+    char *fs = getConfValueC(SlurmConfig, "TmpFS");
     if (!fs) fs = tmpDef;
 
     struct statfs sbuf;
@@ -1784,17 +1784,17 @@ static void handleDaemonStatus(Slurm_Msg_t *sMsg)
     /* last slurmctld msg */
     stat.now = time(NULL);
     /* debug */
-    stat.debug = getConfValueI(&Config, "DEBUG_MASK");
+    stat.debug = getConfValueI(Config, "DEBUG_MASK");
     /* cpus */
-    stat.cpus = getConfValueI(&Config, "SLURM_CPUS");
+    stat.cpus = getConfValueI(Config, "SLURM_CPUS");
     /* boards */
-    stat.boards = getConfValueI(&Config, "SLURM_BOARDS");
+    stat.boards = getConfValueI(Config, "SLURM_BOARDS");
     /* sockets */
-    stat.sockets = getConfValueI(&Config, "SLURM_SOCKETS");
+    stat.sockets = getConfValueI(Config, "SLURM_SOCKETS");
     /* cores */
-    stat.coresPerSocket = getConfValueI(&Config, "SLURM_CORES_PER_SOCKET");
+    stat.coresPerSocket = getConfValueI(Config, "SLURM_CORES_PER_SOCKET");
     /* threads */
-    stat.threadsPerCore = getConfValueI(&Config, "SLURM_THREADS_PER_CORE");
+    stat.threadsPerCore = getConfValueI(Config, "SLURM_THREADS_PER_CORE");
     /* real mem */
     stat.realMem = getNodeMem();
     /* tmp disk */
@@ -1802,7 +1802,7 @@ static void handleDaemonStatus(Slurm_Msg_t *sMsg)
     /* pid */
     stat.pid = getpid();
     /* hostname */
-    stat.hostname = getConfValueC(&Config, "SLURM_HOSTNAME");
+    stat.hostname = getConfValueC(Config, "SLURM_HOSTNAME");
     /* logfile */
     stat.logfile = "syslog";
     /* step list */
@@ -1921,7 +1921,7 @@ void sendJobRequeue(uint32_t jobid)
     Req_Job_Requeue_t requeue = { .jobid = jobid };
 
     /* cancel or requeue the job on error */
-    bool nohold = confHasOpt(&SlurmConfig, "SchedulerParameters",
+    bool nohold = confHasOpt(SlurmConfig, "SchedulerParameters",
 			     "nohold_on_prolog_fail");
 
     requeue.flags = nohold ? SLURM_JOB_PENDING :
@@ -2183,13 +2183,13 @@ static void handleBatchJobLaunch(Slurm_Msg_t *sMsg)
     PSCPU_copy(job->hwthreads, nodeinfo->jobHWthreads);
     ufree(nodeinfo);
 
-    job->hostname = ustrdup(getConfValueC(&Config, "SLURM_HOSTNAME"));
+    job->hostname = ustrdup(getConfValueC(Config, "SLURM_HOSTNAME"));
 
     /* write the jobscript */
     if (!writeJobscript(job)) {
 	/* set myself offline and requeue the job */
 	setNodeOffline(&job->env, job->jobid,
-			getConfValueC(&Config, "SLURM_HOSTNAME"),
+		       getConfValueC(Config, "SLURM_HOSTNAME"),
 			"psslurm: writing jobscript failed");
 	/* need to return success to be able to requeue the job */
 	sendSlurmRC(sMsg, SLURM_SUCCESS);
@@ -2216,7 +2216,7 @@ static void handleBatchJobLaunch(Slurm_Msg_t *sMsg)
 
     Alloc_t *alloc = Alloc_find(job->jobid);
     bool ret = false;
-    char *prologue = getConfValueC(&SlurmConfig, "Prolog");
+    char *prologue = getConfValueC(SlurmConfig, "Prolog");
     if (!prologue || prologue[0] == '\0') {
 	/* no slurmd prologue configured,
 	 * pspelogue should have added an allocation */
@@ -2271,8 +2271,8 @@ ERROR:
 
 static void doTerminateAlloc(Slurm_Msg_t *sMsg, Alloc_t *alloc)
 {
-    int grace = getConfValueI(&SlurmConfig, "KillWait");
-    int maxTermReq = getConfValueI(&Config, "MAX_TERM_REQUESTS");
+    int grace = getConfValueI(SlurmConfig, "KillWait");
+    int maxTermReq = getConfValueI(Config, "MAX_TERM_REQUESTS");
     int signal = SIGTERM, pcount;
 
     if (!alloc->firstKillReq) alloc->firstKillReq = time(NULL);
@@ -2625,7 +2625,7 @@ static void handleRespNodeReg(Slurm_Msg_t *sMsg)
 	     tresDBconfig->entry[i].name, tresDBconfig->entry[i].type);
     }
 
-    char *val = getConfValueC(&SlurmConfig, "AcctGatherInterconnectType");
+    char *val = getConfValueC(SlurmConfig, "AcctGatherInterconnectType");
     if (val && !strcasecmp(val, "acct_gather_interconnect/ofed")) {
 	if (TRes_getID("ic", "ofed") == NO_VAL) {
 	    flog("warning: missing ic/ofed in AccountingStorageTRES\n");
@@ -2633,7 +2633,7 @@ static void handleRespNodeReg(Slurm_Msg_t *sMsg)
 	}
     }
 
-    val = getConfValueC(&SlurmConfig, "AcctGatherFilesystemType");
+    val = getConfValueC(SlurmConfig, "AcctGatherFilesystemType");
     if (val && !strcasecmp(val, "acct_gather_filesystem/lustre")) {
 	if (TRes_getID("fs", "lustre") == NO_VAL) {
 	    flog("warning: missing fs/lustre in AccountingStorageTRES\n");
@@ -2897,10 +2897,10 @@ static const char *autoDetectSlurmVer(void)
 {
     static char autoVer[32] = { '\0' };
 
-    const char *confVer = getConfValueC(&Config, "SLURM_PROTO_VERSION");
+    const char *confVer = getConfValueC(Config, "SLURM_PROTO_VERSION");
     if (strcmp(confVer, "auto")) return NULL;
 
-    const char *sinfo = getConfValueC(&Config, "SINFO_BINARY");
+    const char *sinfo = getConfValueC(Config, "SINFO_BINARY");
     if (!sinfo) {
 	flog("no SINFO_BINARY provided\n");
 	return NULL;
@@ -2916,7 +2916,7 @@ static const char *autoDetectSlurmVer(void)
     }
 
     char sinfoCmd[128];
-    char *server = getConfValueC(&Config, "SLURM_CONF_SERVER");
+    char *server = getConfValueC(Config, "SLURM_CONF_SERVER");
     if (!strcmp(server, "none")) {
 	snprintf(sinfoCmd, sizeof(sinfoCmd), "%s --version", sinfo);
     } else {
@@ -2955,7 +2955,7 @@ static const char *autoDetectSlurmVer(void)
 
 bool initSlurmdProto(void)
 {
-    const char *pver = getConfValueC(&Config, "SLURM_PROTO_VERSION");
+    const char *pver = getConfValueC(Config, "SLURM_PROTO_VERSION");
 
     if (!strcmp(pver, "auto")) {
 	const char *autoVer = autoDetectSlurmVer();
@@ -3073,7 +3073,7 @@ void sendNodeRegStatus(bool startup)
     memset(&stat, 0, sizeof(stat));
 
     flog("answer ping request, host %s protoVersion %u\n",
-	 getConfValueC(&Config, "SLURM_HOSTNAME"), slurmProto);
+	 getConfValueC(Config, "SLURM_HOSTNAME"), slurmProto);
 
     /* current time */
     stat.now = time(NULL);
@@ -3082,7 +3082,7 @@ void sendNodeRegStatus(bool startup)
     /* status */
     stat.status = SLURM_SUCCESS;
     /* node_name */
-    stat.nodeName = getConfValueC(&Config, "SLURM_HOSTNAME");
+    stat.nodeName = getConfValueC(Config, "SLURM_HOSTNAME");
     /* architecture */
     struct utsname sys;
     uname(&sys);
@@ -3090,15 +3090,15 @@ void sendNodeRegStatus(bool startup)
     /* os */
     stat.sysname = sys.sysname;
     /* cpus */
-    stat.cpus = getConfValueI(&Config, "SLURM_CPUS");
+    stat.cpus = getConfValueI(Config, "SLURM_CPUS");
     /* boards */
-    stat.boards = getConfValueI(&Config, "SLURM_BOARDS");
+    stat.boards = getConfValueI(Config, "SLURM_BOARDS");
     /* sockets */
-    stat.sockets = getConfValueI(&Config, "SLURM_SOCKETS");
+    stat.sockets = getConfValueI(Config, "SLURM_SOCKETS");
     /* cores */
-    stat.coresPerSocket = getConfValueI(&Config, "SLURM_CORES_PER_SOCKET");
+    stat.coresPerSocket = getConfValueI(Config, "SLURM_CORES_PER_SOCKET");
     /* threads */
-    stat.threadsPerCore = getConfValueI(&Config, "SLURM_THREADS_PER_CORE");
+    stat.threadsPerCore = getConfValueI(Config, "SLURM_THREADS_PER_CORE");
     /* real mem */
     stat.realMem = getNodeMem();
     /* tmp disk */
@@ -3106,7 +3106,7 @@ void sendNodeRegStatus(bool startup)
     /* sysinfo (uptime, cpu load average, free mem) */
     getSysInfo(&stat.cpuload, &stat.freemem, &stat.uptime);
     /* hash value of the SLURM config file */
-    if (getConfValueI(&Config, "DISABLE_CONFIG_HASH") == 1) {
+    if (getConfValueI(Config, "DISABLE_CONFIG_HASH") == 1) {
 	stat.config = NO_VAL;
     } else {
 	stat.config = getSlurmConfHash();
@@ -3463,7 +3463,7 @@ void sendTaskPids(Step_t *step)
     resp.stepid = step->stepid;
     resp.stepHetComp = step->stepHetComp;
     resp.returnCode = SLURM_SUCCESS;
-    resp.nodeName = getConfValueC(&Config, "SLURM_HOSTNAME");
+    resp.nodeName = getConfValueC(Config, "SLURM_HOSTNAME");
 
     /* count of PIDs */
     list_for_each(t, &step->tasks) {
@@ -3564,7 +3564,7 @@ void sendEpilogueComplete(uint32_t jobid, uint32_t rc)
     Req_Epilog_Complete_t msg = {
 	.jobid = jobid,
 	.rc = rc,
-	.nodeName = getConfValueC(&Config, "SLURM_HOSTNAME")
+	.nodeName = getConfValueC(Config, "SLURM_HOSTNAME")
     };
 
     Req_Info_t *req = ucalloc(sizeof(*req));
@@ -3635,7 +3635,7 @@ static int handleSlurmConf(Slurm_Msg_t *sMsg, void *info)
 
     flog("successfully unpacked config msg\n");
 
-    char *confCache = getConfValueC(&Config, "SLURM_CONF_CACHE");
+    char *confCache = getConfValueC(Config, "SLURM_CONF_CACHE");
     bool ret = writeSlurmConfigFiles(config, confCache);
     freeSlurmConfigMsg(config);
 
@@ -3645,7 +3645,7 @@ static int handleSlurmConf(Slurm_Msg_t *sMsg, void *info)
     }
 
     /* update configuration file defaults */
-    addConfigEntry(&Config, "SLURM_CONFIG_DIR", confCache);
+    addConfigEntry(Config, "SLURM_CONFIG_DIR", confCache);
 
     switch (action) {
 	case CONF_ACT_STARTUP:

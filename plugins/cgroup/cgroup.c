@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2016-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2022 ParTec AG, Munich
+ * Copyright (C) 2021-2023 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -221,28 +221,28 @@ int initialize(FILE *logfile)
     initCgConfig(configFile);
 
     /* adapt the debug mask */
-    debugMask = getConfValueI(&config, "DEBUG_MASK");
+    debugMask = getConfValueI(config, "DEBUG_MASK");
     maskCgLogger(debugMask);
     cglog(CG_LOG_VERBOSE, "%s: debugMask set to %#x\n", __func__, debugMask);
 
-    cgroupRoot = ustrdup(getConfValueC(&config, "CGROUP_ROOT"));
+    cgroupRoot = ustrdup(getConfValueC(config, "CGROUP_ROOT"));
     if (!cgroupRoot) {
 	cglog(-1, "%s: CGROUP_ROOT not found in '%s'\n", __func__, configFile);
 	return 1;
     }
     cglog(CG_LOG_VERBOSE, "%s: cgroupRoot set to '%s'\n", __func__, cgroupRoot);
 
-    cgroupName = ustrdup(getConfValueC(&config, "CGROUP_NAME"));
+    cgroupName = ustrdup(getConfValueC(config, "CGROUP_NAME"));
     if (!cgroupName) {
 	cglog(-1, "%s: CGROUP_NAME not found in '%s'\n", __func__, configFile);
 	return 1;
     }
     cglog(CG_LOG_VERBOSE, "%s: cgroupName set to '%s'\n", __func__, cgroupName);
 
-    memLim = getConfValueL(&config, "MEM_LIMIT");
+    memLim = getConfValueL(config, "MEM_LIMIT");
     cglog(CG_LOG_VERBOSE, "%s: memLim set to %ld\n", __func__, memLim);
 
-    memSwLim = getConfValueL(&config, "MEMSW_LIMIT");
+    memSwLim = getConfValueL(config, "MEMSW_LIMIT");
     cglog(CG_LOG_VERBOSE, "%s: memSwLim set to %ld\n", __func__, memSwLim);
 
     if (!initCgroup()) return 1;
@@ -287,7 +287,7 @@ void cleanup(void)
 	cgTimer = -1;
     }
     unregisterHooks(true);
-    freeConfig(&config);
+    freeConfig(config);
     ufree(cgroupRoot);
     ufree(cgroupName);
     ufree(myCgroup);
@@ -329,21 +329,21 @@ char *set(char *key, char *val)
 	return ustrdup("\nIllegal value\n");
 
     if (!strcmp(key, "MEM_LIMIT")) {
-	addConfigEntry(&config, key, val);
-	memLim = getConfValueL(&config, key);
+	addConfigEntry(config, key, val);
+	memLim = getConfValueL(config, key);
 	cglog(CG_LOG_VERBOSE, "%s: memLim set to %ld\n", __func__, memLim);
 
 	enforceAllLimits();
     } else if (!strcmp(key, "MEMSW_LIMIT")) {
-	addConfigEntry(&config, key, val);
-	memSwLim = getConfValueL(&config, key);
+	addConfigEntry(config, key, val);
+	memSwLim = getConfValueL(config, key);
 	cglog(CG_LOG_VERBOSE, "%s: memSwLim set to %ld\n", __func__, memSwLim);
 
 	enforceAllLimits();
     } else if (!strcmp(key, "DEBUG_MASK")) {
 	int dbgMask;
-	addConfigEntry(&config, key, val);
-	dbgMask = getConfValueI(&config, key);
+	addConfigEntry(config, key, val);
+	dbgMask = getConfValueI(config, key);
 	maskCgLogger(dbgMask);
 	cglog(CG_LOG_VERBOSE, "%s: debugMask set to %#x\n", __func__, dbgMask);
     } else {
@@ -356,21 +356,21 @@ char *set(char *key, char *val)
 char *unset(char *key)
 {
     if (!strcmp(key, "MEM_LIMIT")) {
-	unsetConfigEntry(&config, confDef, key);
-	memLim = getConfValueL(&config, key);
+	unsetConfigEntry(config, confDef, key);
+	memLim = getConfValueL(config, key);
 	cglog(CG_LOG_VERBOSE, "%s: memLim set to %ld\n", __func__, memLim);
 
 	enforceAllLimits();
     } else if (!strcmp(key, "MEMSW_LIMIT")) {
-	unsetConfigEntry(&config, confDef, key);
-	memSwLim = getConfValueL(&config, key);
+	unsetConfigEntry(config, confDef, key);
+	memSwLim = getConfValueL(config, key);
 	cglog(CG_LOG_VERBOSE, "%s: memSwLim set to %ld\n", __func__, memSwLim);
 
 	enforceAllLimits();
     } else if (!strcmp(key, "DEBUG_MASK")) {
 	int dbgMask;
-	unsetConfigEntry(&config, confDef, key);
-	dbgMask = getConfValueI(&config, key);
+	unsetConfigEntry(config, confDef, key);
+	dbgMask = getConfValueI(config, key);
 	maskCgLogger(dbgMask);
 	cglog(CG_LOG_VERBOSE, "%s: debugMask set to %#x\n", __func__, dbgMask);
     } else {
@@ -476,14 +476,14 @@ char *show(char *key)
 	str2Buf("\n", &buf, &bufSize);
 	for (i = 0; confDef[i].name; i++) {
 	    char *cName = confDef[i].name, line[160];
-	    val = getConfValueC(&config, cName);
+	    val = getConfValueC(config, cName);
 
 	    snprintf(line, sizeof(line), "%*s = %s\n", maxKeyLen+2, cName, val);
 	    str2Buf(line, &buf, &bufSize);
 	}
     } else if (!(strcmp(key, "status"))) {
 	return showStatus(&buf, &bufSize);
-    } else if ((val = getConfValueC(&config, key))) {
+    } else if ((val = getConfValueC(config, key))) {
 	str2Buf("\n", &buf, &bufSize);
 	str2Buf(key, &buf, &bufSize);
 	str2Buf(" = ", &buf, &bufSize);

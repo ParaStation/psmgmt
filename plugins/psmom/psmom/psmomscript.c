@@ -586,7 +586,7 @@ static void PElogueTimeoutAction(char *server, char *jobid, int prologue,
     struct tm *ts;
     time_t now;
 
-    offline = getConfValueI(&config, "OFFLINE_PELOGUE_TIMEOUT");
+    offline = getConfValueI(config, "OFFLINE_PELOGUE_TIMEOUT");
     if (!offline) return;
 
     mlog("%s: %s for job '%s' timed out, setting node '%s' offline\n", __func__,
@@ -832,11 +832,11 @@ void monitorPELogueTimeout(Job_t *job)
     char *jobid;
 
     if (job->state == JOB_PROLOGUE) {
-	timeout = getConfValueI(&config, "TIMEOUT_PROLOGUE");
+	timeout = getConfValueI(config, "TIMEOUT_PROLOGUE");
     } else {
-	timeout = getConfValueI(&config, "TIMEOUT_EPILOGUE");
+	timeout = getConfValueI(config, "TIMEOUT_EPILOGUE");
     }
-    grace = getConfValueI(&config, "TIMEOUT_PE_GRACE");
+    grace = getConfValueI(config, "TIMEOUT_PE_GRACE");
 
     pelogueTimer.tv_sec = timeout + (2 * grace);
     jobid = ustrdup(job->id);
@@ -866,7 +866,7 @@ void handlePELogueStart(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *msgData)
     getString(&ptr, buf, sizeof(buf));
 
     /* set temp dir using hashname */
-    confTmpDir = getConfValueC(&config, "DIR_TEMP");
+    confTmpDir = getConfValueC(config, "DIR_TEMP");
     if (confTmpDir) snprintf(tmpDir, sizeof(tmpDir), "%s/%s", confTmpDir, buf);
 
     /* fetch username */
@@ -911,7 +911,7 @@ void handlePELogueStart(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *msgData)
     }
     setFragDest(&ans, msg->header.sender);
 
-    disPE = getConfValueI(&config, "DISABLE_PELOGUE");
+    disPE = getConfValueI(config, "DISABLE_PELOGUE");
 
     if (disPE == 1) {
 	/* no PElogue scripts to run */
@@ -941,7 +941,7 @@ void handlePELogueStart(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *msgData)
     }
 
     /* collect all data and start the script */
-    dirScripts = getConfValueC(&config, "DIR_SCRIPTS");
+    dirScripts = getConfValueC(config, "DIR_SCRIPTS");
     data = umalloc(sizeof(PElogue_Data_t));
 
     /* build up data struct */

@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2018-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2022 ParTec AG, Munich
+ * Copyright (C) 2021-2023 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -58,7 +58,7 @@ int initialize(FILE *logfile)
 	 PMIX_VERSION_RELEASE);
 
     /* adapt the debug mask */
-    debugMask = getConfValueI(&config, "DEBUG_MASK");
+    debugMask = getConfValueI(config, "DEBUG_MASK");
     pspmix_maskLogger(debugMask);
 /*    pspmix_maskLogger(PSPMIX_LOG_CALL | PSPMIX_LOG_ENV | PSPMIX_LOG_COMM
 		    | PSPMIX_LOG_LOCK | PSPMIX_LOG_FENCE | PSPMIX_LOG_VERBOSE);
@@ -101,7 +101,7 @@ void cleanup(void)
     pspmix_finalizeDaemonModule();
 
 //    if (memoryDebug) fclose(memoryDebug); XXX wozu ist das gut?
-    freeConfig(&config);
+    freeConfig(config);
 
     logger_finalize(pmixlogger);
 }
@@ -134,10 +134,10 @@ char *set(char *key, char *val)
     if (verifyConfigEntry(confDef, key, val))
 	return ustrdup("\tIllegal value\n");
 
-    addConfigEntry(&config, key, val);
+    addConfigEntry(config, key, val);
 
     if (!strcmp(key, "DEBUG_MASK")) {
-	int dbgMask = getConfValueI(&config, key);
+	int dbgMask = getConfValueI(config, key);
 	pspmix_maskLogger(dbgMask);
 	mlog("debugMask set to %#x\n", dbgMask);
     }
@@ -149,10 +149,10 @@ char *unset(char *key)
 {
     if (!getConfigDef(key, confDef)) return ustrdup("\nUnknown key\n");
 
-    unsetConfigEntry(&config, confDef, key);
+    unsetConfigEntry(config, confDef, key);
 
     if (!strcmp(key, "DEBUG_MASK")) {
-	int dbgMask = getConfValueI(&config, key);
+	int dbgMask = getConfValueI(config, key);
 	pspmix_maskLogger(dbgMask);
 	mlog("debugMask set to %#x\n", dbgMask);
     }
@@ -174,13 +174,13 @@ char *show(char *key)
 	for (i = 0; confDef[i].name; i++) {
 
 	    char *cName = confDef[i].name, line[160];
-	    val = getConfValueC(&config, cName);
+	    val = getConfValueC(config, cName);
 
 	    snprintf(line, sizeof(line), "%*s = %s\n", maxKeyLen+2, cName, val);
 	    str2Buf(line, &buf, &bufSize);
 	}
 	str2Buf("\n", &buf, &bufSize);
-    } else if ((val = getConfValueC(&config, key))) {
+    } else if ((val = getConfValueC(config, key))) {
 	str2Buf("\t", &buf, &bufSize);
 	str2Buf(key, &buf, &bufSize);
 	str2Buf(" = ", &buf, &bufSize);

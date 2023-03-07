@@ -322,13 +322,14 @@ const ConfDef_t confDef[] =
     { NULL, 0, NULL, NULL, NULL },
 };
 
-Config_t Config = LIST_HEAD_INIT(Config);
+Config_t Config = NULL;
 
-bool readConfigFile(void) {
-
+bool readConfigFile(void)
+{
+    initConfig(&Config);
     /* parse psslurm config file */
-    if (parseConfigFile(PSSLURM_CONFIG_FILE, &Config, false) < 0) return false;
-    setConfigDefaults(&Config, confDef);
+    if (parseConfigFile(PSSLURM_CONFIG_FILE, Config, false) < 0) return false;
+    setConfigDefaults(Config, confDef);
 
     return true;
 }
@@ -337,7 +338,7 @@ const char *autoDetectSlurmVersion(void)
 {
     static char autoVer[32] = { '\0' };
 
-    const char *sinfo = getConfValueC(&Config, "SINFO_BINARY");
+    const char *sinfo = getConfValueC(Config, "SINFO_BINARY");
     if (*sinfo == '\0' ) {
 	outline(DEBUGOUT, "no SINFO_BINARY provided");
 	return NULL;
@@ -353,7 +354,7 @@ const char *autoDetectSlurmVersion(void)
     }
 
     char sinfoCmd[128];
-    char *server = getConfValueC(&Config, "SLURM_CONF_SERVER");
+    char *server = getConfValueC(Config, "SLURM_CONF_SERVER");
     if (!strcmp(server, "none")) {
 	snprintf(sinfoCmd, sizeof(sinfoCmd), "%s --version", sinfo);
     } else {
@@ -730,7 +731,7 @@ int main(int argc, char *argv[])
 
     const char *slurmver = getenv("SLURM_VERSION");
     if (!slurmver) {
-	slurmver = getConfValueC(&Config, "SLURM_PROTO_VERSION");
+	slurmver = getConfValueC(Config, "SLURM_PROTO_VERSION");
 	if (!slurmver || !strcmp(slurmver, "auto")) {
 	    slurmver = autoDetectSlurmVersion();
 	    if (slurmver) outline(INFOOUT, "SLURM_VERSION autodetected");

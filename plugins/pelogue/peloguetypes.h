@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2015-2020 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2022 ParTec AG, Munich
+ * Copyright (C) 2022-2023 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -161,7 +161,7 @@ typedef void(PElogueJobCb_t)(char *jobid, int exit, bool timeout,
  *
  * @return On success true is returned or false in case of error
  */
-typedef bool(psPelogueAddPluginConfig_t)(char *name, Config_t *config);
+typedef bool(psPelogueAddPluginConfig_t)(char *name, Config_t config);
 
 /**
  * @brief Remove configuration

@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2010-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2022 ParTec AG, Munich
+ * Copyright (C) 2021-2023 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -131,7 +131,7 @@ static void partitionDone(PStask_t *task)
 
 int handleCreatePart(void *msg)
 {
-    int enforceBatch = getConfValueI(&config, "ENFORCE_BATCH_START");
+    int enforceBatch = getConfValueI(config, "ENFORCE_BATCH_START");
     PStask_t *task;
     DDBufferMsg_t *inmsg = msg;
     Job_t *job = NULL;
@@ -206,7 +206,7 @@ error:
 
 int handleCreatePartNL(void *msg)
 {
-    int enforceBatch = getConfValueI(&config, "ENFORCE_BATCH_START");
+    int enforceBatch = getConfValueI(config, "ENFORCE_BATCH_START");
     PStask_t *task;
     DDBufferMsg_t *inmsg = (DDBufferMsg_t *) msg;
 

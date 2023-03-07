@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2011-2018 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2022 ParTec AG, Munich
+ * Copyright (C) 2021-2023 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -292,7 +292,7 @@ void setupPBSEnv(Job_t *job, int interactive)
 	/* set umask */
 	oldmask = umask(0133);
 
-	nodefiles = getConfValueC(&config, "DIR_NODE_FILES");
+	nodefiles = getConfValueC(config, "DIR_NODE_FILES");
 	snprintf(filename, sizeof(filename), "%s/%s", nodefiles, job->hashname);
 
 	if (stat(filename, &statbuf) == -1) {
@@ -352,7 +352,7 @@ void setupPBSEnv(Job_t *job, int interactive)
     addEnv("PBS_TASKNUM=1");
     addEnv("PBS_VNODENUM=0");
 
-    portRM = getConfValueI(&config, "PORT_RM");
+    portRM = getConfValueI(config, "PORT_RM");
     snprintf(name, sizeof(name), "PBS_MOMPORT=%i", portRM);
     addEnv(name);
 
@@ -370,7 +370,7 @@ void setupPBSEnv(Job_t *job, int interactive)
 	/* set umask */
 	oldmask = umask(0133);
 
-	nodefiles = getConfValueC(&config, "DIR_NODE_FILES");
+	nodefiles = getConfValueC(config, "DIR_NODE_FILES");
 	snprintf(filename, sizeof(filename), "%s/%sgpu", nodefiles, job->id);
 
 	if (stat(filename, &statbuf) == -1) {
@@ -400,7 +400,7 @@ void setupPBSEnv(Job_t *job, int interactive)
     }
 
     /* setup tmp dir */
-    confTmpDir = getConfValueC(&config, "DIR_TEMP");
+    confTmpDir = getConfValueC(config, "DIR_TEMP");
     if (confTmpDir) {
 	char tmpDir[256];
 
@@ -410,5 +410,5 @@ void setupPBSEnv(Job_t *job, int interactive)
     }
 
     /* set additional env vars from config */
-    traverseConfig(&config, environmentVisitor, NULL);
+    traverseConfig(config, environmentVisitor, NULL);
 }

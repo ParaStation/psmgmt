@@ -345,7 +345,7 @@ void Alloc_verify(bool grace)
 {
     if (slurmProto < SLURM_21_08_PROTO_VERSION) return;
 
-    char *prologue = getConfValueC(&SlurmConfig, "Prolog");
+    char *prologue = getConfValueC(SlurmConfig, "Prolog");
     if (!prologue || prologue[0] == '\0') {
 	/* no slurmd prologue configured,
 	 * pspelogue should have added an allocation */
@@ -353,13 +353,11 @@ void Alloc_verify(bool grace)
 	list_t *a;
 	list_for_each(a, &AllocList) {
 	    Alloc_t *alloc = list_entry(a, Alloc_t, next);
-	    if (alloc->verified) continue;
+	    if (alloc->verified || !Alloc_isLeader(alloc)) continue;
 
-	    if (Alloc_isLeader(alloc)) {
-		if (!grace || time(0) - alloc->startTime > ALLOC_VERIFY_TIME) {
-		    flog("request status for allocation %u\n", alloc->id);
-		    requestJobInfo(alloc->id, &verifyJobInfo);
-		}
+	    if (!grace || time(0) - alloc->startTime > ALLOC_VERIFY_TIME) {
+		flog("request status for allocation %u\n", alloc->id);
+		requestJobInfo(alloc->id, &verifyJobInfo);
 	    }
 	}
     }

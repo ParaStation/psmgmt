@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2013-2019 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2022 ParTec AG, Munich
+ * Copyright (C) 2021-2023 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -27,16 +27,14 @@ static bool initialized = false;
 
 static struct {
     char *name;
-    Config_t *conf;
+    Config_t conf;
 } pluginConfList[MAX_SUPPORTED_PLUGINS];
 
 void initPluginConfigs(void)
 {
-    int i;
-
     if (initialized) return;
 
-    for (i=0; i<MAX_SUPPORTED_PLUGINS; i++) {
+    for (int i = 0; i < MAX_SUPPORTED_PLUGINS; i++) {
 	pluginConfList[i].name = NULL;
 	pluginConfList[i].conf = NULL;
     }
@@ -44,8 +42,8 @@ void initPluginConfigs(void)
     initialized = true;
 }
 
-static Config_t *getPluginConfig(const char *plugin, const char *caller,
-				 const int line)
+static Config_t getPluginConfig(const char *plugin, const char *caller,
+				const int line)
 {
     if (!plugin) {
 	mlog("%s: no plugin given, caller %s:%i\n", __func__, caller, line);
@@ -53,8 +51,7 @@ static Config_t *getPluginConfig(const char *plugin, const char *caller,
 	mlog("%s: configuration not initialized caller %s:%i\n",
 	     __func__, caller, line);
     } else {
-	int i;
-	for (i=0; i<MAX_SUPPORTED_PLUGINS; i++) {
+	for (int i = 0; i < MAX_SUPPORTED_PLUGINS; i++) {
 	    if (pluginConfList[i].name &&
 		!(strcmp(pluginConfList[i].name, plugin))) {
 		return pluginConfList[i].conf;
@@ -69,7 +66,7 @@ static Config_t *getPluginConfig(const char *plugin, const char *caller,
 int __getPluginConfValueI(const char *plugin, char *key, const char *caller,
 			  const int line)
 {
-    Config_t *config = getPluginConfig(plugin, caller, line);
+    Config_t config = getPluginConfig(plugin, caller, line);
 
     if (!key || !config) return -1;
 
@@ -79,7 +76,7 @@ int __getPluginConfValueI(const char *plugin, char *key, const char *caller,
 char *__getPluginConfValueC(const char *plugin, char *key, const char *caller,
 			  const int line)
 {
-    Config_t *config = getPluginConfig(plugin, caller, line);
+    Config_t config = getPluginConfig(plugin, caller, line);
 
     if (!key || !config) return NULL;
 
@@ -140,7 +137,7 @@ static bool validateDirs(char *dir)
     return true;
 }
 
-static bool checkPluginConfig(Config_t *config)
+static bool checkPluginConfig(Config_t config)
 {
     char *opt = getConfValueC(config, "TIMEOUT_PROLOGUE");
     if (!opt) {
@@ -169,7 +166,7 @@ static bool checkPluginConfig(Config_t *config)
     return validateDirs(scriptDir) && validateScripts(scriptDir);
 }
 
-bool addPluginConfig(const char *name, Config_t *config)
+bool addPluginConfig(const char *name, Config_t config)
 {
     if (!name || !config) return false;
     if (!checkPluginConfig(config)) {
@@ -212,10 +209,9 @@ static void clearConfigEntry(int i)
 
 bool delPluginConfig(const char *name)
 {
-    int i;
     if (!initialized || !name) return false;
 
-    for (i=0; i<MAX_SUPPORTED_PLUGINS; i++) {
+    for (int i = 0; i < MAX_SUPPORTED_PLUGINS; i++) {
 	if (pluginConfList[i].name &&
 	    !(strcmp(pluginConfList[i].name, name))) {
 	    clearConfigEntry(i);
@@ -227,11 +223,9 @@ bool delPluginConfig(const char *name)
 
 void clearAllPluginConfigs(void)
 {
-    int i;
-
     if (!initialized) return;
 
-    for (i=0; i<MAX_SUPPORTED_PLUGINS; i++) {
+    for (int i = 0; i < MAX_SUPPORTED_PLUGINS; i++) {
 	if (pluginConfList[i].name) clearConfigEntry(i);
     }
 

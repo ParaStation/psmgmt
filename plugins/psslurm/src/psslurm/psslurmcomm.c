@@ -940,7 +940,7 @@ int openSlurmctldCon(void *info)
 
 int openSlurmctldConEx(Connection_CB_t *cb, void *info)
 {
-    char *port = getConfValueC(&SlurmConfig, "SlurmctldPort");
+    char *port = getConfValueC(SlurmConfig, "SlurmctldPort");
 
     int sock = -1;
     for (int i = 0; i < ctlHostsCount; i++) {
@@ -1918,8 +1918,8 @@ void handleBrokenConnection(PSnodes_ID_t nodeID)
 static bool resControllerIDs(void)
 {
     /* resolve main controller */
-    char *addr = getConfValueC(&SlurmConfig, "ControlAddr");
-    char *host = getConfValueC(&SlurmConfig, "ControlMachine");
+    char *addr = getConfValueC(SlurmConfig, "ControlAddr");
+    char *host = getConfValueC(SlurmConfig, "ControlMachine");
 
     char *name = (addr) ? addr : host;
     if (!name) mlog("%s: invalid ControlMachine\n", __func__);
@@ -1936,8 +1936,8 @@ static bool resControllerIDs(void)
     ctlHostsCount++;
 
     /* resolve backup controller */
-    addr = getConfValueC(&SlurmConfig, "BackupAddr");
-    host = getConfValueC(&SlurmConfig, "BackupController");
+    addr = getConfValueC(SlurmConfig, "BackupAddr");
+    host = getConfValueC(SlurmConfig, "BackupController");
 
     name = (addr) ? addr : host;
     /* we may not have a backup controller configured */
@@ -1968,15 +1968,15 @@ static bool resControllerIDs(void)
  */
 static bool initControlHosts()
 {
-    int numEntry = getConfValueI(&Config, "SLURM_CTLHOST_ENTRY_COUNT");
+    int numEntry = getConfValueI(Config, "SLURM_CTLHOST_ENTRY_COUNT");
     for (int i = 0; i < numEntry; i++) {
 	char key[64];
 
 	snprintf(key, sizeof(key), "SLURM_CTLHOST_ADDR_%i", i);
-	char *addr = getConfValueC(&Config, key);
+	char *addr = getConfValueC(Config, key);
 
 	snprintf(key, sizeof(key), "SLURM_CTLHOST_ENTRY_%i", i);
-	char *host = getConfValueC(&Config, key);
+	char *host = getConfValueC(Config, key);
 
 	char *name = (addr) ? addr : host;
 	PSnodes_ID_t id = getNodeIDbyName(name);
@@ -2012,7 +2012,7 @@ bool initSlurmCon(void)
     }
 
     /* listening on slurmd port */
-    int ctlPort = getConfValueI(&SlurmConfig, "SlurmdPort");
+    int ctlPort = getConfValueI(SlurmConfig, "SlurmdPort");
     if (ctlPort < 0) ctlPort = PSSLURM_SLURMD_PORT;
     if (openSlurmdSocket(ctlPort) < 0) {
 	flog("open slurmd socket failed");
@@ -2020,9 +2020,9 @@ bool initSlurmCon(void)
     }
 
     /* register to slurmctld */
-    ctlPort = getConfValueI(&SlurmConfig, "SlurmctldPort");
+    ctlPort = getConfValueI(SlurmConfig, "SlurmctldPort");
     if (ctlPort < 0) {
-	addConfigEntry(&SlurmConfig, "SlurmctldPort", PSSLURM_SLURMCTLD_PORT);
+	addConfigEntry(SlurmConfig, "SlurmctldPort", PSSLURM_SLURMCTLD_PORT);
     }
     sendNodeRegStatus(true);
 

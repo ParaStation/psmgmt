@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2010-2019 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2022 ParTec AG, Munich
+ * Copyright (C) 2022-2023 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -101,7 +101,7 @@ void deleteJobsByJobscript(pid_t js)
 
 void cleanupJobs(void)
 {
-    int grace = getConfValueI(&config, "TIME_JOB_GRACE");
+    int grace = getConfValueI(config, "TIME_JOB_GRACE");
     time_t now = time(NULL);
     list_t *j, *tmp;
 
@@ -140,7 +140,7 @@ static struct timeval jobTimer = {1,0};
 static void monitorJobStarted(void)
 {
     bool startingJob = false, updated = false;
-    int grace = getConfValueI(&config, "TIME_JOBSTART_WAIT");
+    int grace = getConfValueI(config, "TIME_JOBSTART_WAIT");
     list_t *j;
 
     mdbg(PSACC_LOG_VERBOSE, "%s: grace is %d\n", __func__, grace);
@@ -185,7 +185,7 @@ static void monitorJobStarted(void)
 void triggerJobStartMonitor(void)
 {
     if (jobTimerID == -1) {
-	jobTimer.tv_sec = getConfValueL(&config, "TIME_JOBSTART_POLL");
+	jobTimer.tv_sec = getConfValueL(config, "TIME_JOBSTART_POLL");
 	jobTimerID = Timer_register(&jobTimer, monitorJobStarted);
     }
 }

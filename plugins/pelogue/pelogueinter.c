@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2013-2020 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2022 ParTec AG, Munich
+ * Copyright (C) 2021-2023 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -24,10 +24,13 @@
 #include "peloguecomm.h"
 #include "peloguelog.h"
 
-bool psPelogueAddPluginConfig(char *name, Config_t *configList)
+bool psPelogueAddPluginConfig(char *name, Config_t configList)
 {
-    Config_t *config = umalloc(sizeof(*config));
-    INIT_LIST_HEAD(config);
+    Config_t config = NULL;
+    if (!initConfig(&config)) {
+	mlog("%s: failed to create config\n", __func__);
+	goto ERROR;
+    }
 
     char *val = getConfValueC(configList, "TIMEOUT_PROLOGUE");
     if (!val) {
@@ -60,7 +63,7 @@ bool psPelogueAddPluginConfig(char *name, Config_t *configList)
     return addPluginConfig(name, config);
 
 ERROR:
-    ufree(config);
+    freeConfig(config);
     return false;
 }
 

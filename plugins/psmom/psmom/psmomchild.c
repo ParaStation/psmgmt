@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2010-2016 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2022 ParTec AG, Munich
+ * Copyright (C) 2022-2023 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -143,7 +143,7 @@ static void handleChildTimeout(int timerId, void *data)
     child->killFlag = 1;
 
     /* set timer for hard killing via SIGKILL */
-    childTimer.tv_sec = getConfValueL(&config, "TIMEOUT_CHILD_GRACE");
+    childTimer.tv_sec = getConfValueL(config, "TIMEOUT_CHILD_GRACE");
 
     id = Timer_registerEnhanced(&childTimer, handleChildTimeout, child);
     if (id == -1) {
@@ -187,11 +187,11 @@ void setChildTimeout(Child_t *child, time_t timeout, int addGrace)
 	switch (child->type) {
 	    case PSMOM_CHILD_PROLOGUE:
 	    case PSMOM_CHILD_EPILOGUE:
-		grace = getConfValueI(&config, "TIMEOUT_PE_GRACE");
+		grace = getConfValueI(config, "TIMEOUT_PE_GRACE");
 		break;
 	    case PSMOM_CHILD_JOBSCRIPT:
 	    case PSMOM_CHILD_INTERACTIVE:
-		grace = getConfValueI(&config, "TIME_OBIT");
+		grace = getConfValueI(config, "TIME_OBIT");
 		break;
 	    case PSMOM_CHILD_COPY:
 		grace = 3;
@@ -231,7 +231,7 @@ Child_t *addChild(pid_t pid, PSMOM_child_types_t type, char *jobid)
     gettimeofday(&child->start_time, 0);
 
     /* monitor every forwarder */
-    conTimeout = getConfValueL(&config, "TIMEOUT_CHILD_CONNECT");
+    conTimeout = getConfValueL(config, "TIMEOUT_CHILD_CONNECT");
     setChildTimeout(child, conTimeout, 0);
 
     list_add_tail(&(child->list), &ChildList.list);

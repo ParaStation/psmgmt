@@ -135,7 +135,7 @@ static char *getAbsMonPath(char *spath)
     if (spath[0] == '/') {
 	fName = strdup(spath);
     } else {
-	const char *monPath = getConfValueC(&config, "MONITOR_SCRIPT_PATH");
+	const char *monPath = getConfValueC(config, "MONITOR_SCRIPT_PATH");
 	if (!monPath) {
 	    flog("invalid MONITOR_SCRIPT_PATH\n");
 	    return NULL;

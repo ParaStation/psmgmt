@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2018-2020 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2022 ParTec AG, Munich
+ * Copyright (C) 2021-2023 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -83,15 +83,18 @@ const ConfDef_t confDef[] =
     { NULL, 0, NULL, NULL, NULL },
 };
 
-Config_t config;
+Config_t config = NULL;
 
 bool initPSGWConfig(char *filename)
 {
+    if (!initConfig(&config)) return false;
+
     /* parse psslurm config file */
-    if (parseConfigFile(filename, &config, false /*trimQuotes*/) < 0) return 0;
-    setConfigDefaults(&config, confDef);
-    if (verifyConfig(&config, confDef) != 0) {
-	mlog("%s: verfiy of %s failed\n", __func__, filename);
+    if (parseConfigFile(filename, config, false /*trimQuotes*/) < 0) return false;
+
+    setConfigDefaults(config, confDef);
+    if (verifyConfig(config, confDef) != 0) {
+	mlog("%s: verification of %s failed\n", __func__, filename);
 	return false;
     }
     return true;

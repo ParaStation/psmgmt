@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2012-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2022 ParTec AG, Munich
+ * Copyright (C) 2022-2023 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -52,7 +52,7 @@ static char *showConfig(char *buf, size_t *bufSize)
 
     for (i = 0; confDef[i].name; i++) {
 	char *cName = confDef[i].name;
-	char *cVal = getConfValueC(&config, cName);
+	char *cVal = getConfValueC(config, cName);
 
 	snprintf(line, sizeof(line), "%*s = %s\n", maxKeyLen+2, cName, cVal);
 	str2Buf(line, &buf, bufSize);
@@ -142,16 +142,16 @@ char *set(char *key, char *val)
 	    }
 	} else {
 	    /* save new config value */
-	    addConfigEntry(&config, key, val);
+	    addConfigEntry(config, key, val);
 
 	    snprintf(line, sizeof(line), "\nsaved '%s = %s'\n", key, val);
 	    str2Buf(line, &buf, &bufSize);
 
 	    if (!strcmp(key, "DEBUG_MASK")) {
-		int debugMask = getConfValueI(&config, "DEBUG_MASK");
+		int debugMask = getConfValueI(config, "DEBUG_MASK");
 		maskLogger(debugMask);
 	    } else if (!strcmp(key, "POLL_INTERVAL")) {
-		int poll = getConfValueI(&config, "POLL_INTERVAL");
+		int poll = getConfValueI(config, "POLL_INTERVAL");
 		if (poll >= 0) setMainTimer(poll);
 	    }
 	}
@@ -186,14 +186,14 @@ char *unset(char *key)
     size_t bufSize = 0;
 
     /* search in config for given key */
-    if (getConfValueC(&config, key)) {
-	unsetConfigEntry(&config, confDef, key);
+    if (getConfValueC(config, key)) {
+	unsetConfigEntry(config, confDef, key);
 
 	if (!strcmp(key, "DEBUG_MASK")) {
-	    int debugMask = getConfValueI(&config, "DEBUG_MASK");
+	    int debugMask = getConfValueI(config, "DEBUG_MASK");
 	    maskLogger(debugMask);
 	} else if (!strcmp(key, "POLL_INTERVAL")) {
-	    int poll = getConfValueI(&config, "POLL_INTERVAL");
+	    int poll = getConfValueI(config, "POLL_INTERVAL");
 	    if (poll >= 0) setMainTimer(poll);
 	}
     } else if (!strcmp(key, "memdebug")) {

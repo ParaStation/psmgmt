@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2013-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2022 ParTec AG, Munich
+ * Copyright (C) 2021-2023 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -154,9 +154,11 @@ static void handlePluginConfigDel(DDTypedBufferMsg_t *msg,
 
 static void savePluginConfig(char *plugin, uint32_t timeout, uint32_t grace)
 {
-    Config_t *config = umalloc(sizeof(*config));
-
-    INIT_LIST_HEAD(config);
+    Config_t config = NULL;
+    if (!initConfig(&config)) {
+	mlog("%s: failed to add conf for '%s'\n", __func__, plugin);
+	return;
+    }
 
     char timeoutStr[16];
     snprintf(timeoutStr, sizeof(timeoutStr), "%u", timeout);

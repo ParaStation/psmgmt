@@ -323,7 +323,7 @@ static int handleCreatePart(void *msg)
     Step_t *step;
     PStask_t *task;
 
-    int enforceBatch = getConfValueI(&Config, "ENFORCE_BATCH_START");
+    int enforceBatch = getConfValueI(Config, "ENFORCE_BATCH_START");
 
     /* everyone is allowed to start, nothing to do for us here */
     if (!enforceBatch) return 1;
@@ -401,7 +401,7 @@ error:
 static int handleCreatePartNL(void *msg)
 {
     DDBufferMsg_t *inmsg = (DDBufferMsg_t *) msg;
-    int enforceBatch = getConfValueI(&Config, "ENFORCE_BATCH_START");
+    int enforceBatch = getConfValueI(Config, "ENFORCE_BATCH_START");
     PStask_t *task;
 
     /* everyone is allowed to start, nothing to do for us here */
@@ -750,7 +750,7 @@ void setNodeOffline(env_t *env, uint32_t id, const char *host,
 	return;
     }
 
-    int directDrain = getConfValueI(&Config, "DIRECT_DRAIN");
+    int directDrain = getConfValueI(Config, "DIRECT_DRAIN");
     if (directDrain == 1) {
 	/* emulate a scontrol request to drain a node in Slurm */
 	flog("draining hosts %s, reason: %s\n", host, reason);
@@ -1126,7 +1126,7 @@ static void handle_PElogueRes(DDTypedBufferMsg_t *msg)
 		flog("prologue for allocation %u on %u node(s) finished \n",
 		     alloc->id, alloc->nrOfNodes);
 
-		char *prologue = getConfValueC(&SlurmConfig, "Prolog");
+		char *prologue = getConfValueC(SlurmConfig, "Prolog");
 		if (prologue && prologue[0] != '\0') {
 		    /* let waiting jobs start */
 		    Job_traverse(startWaitingJobs, &alloc->id);
@@ -1515,7 +1515,7 @@ static void handlePElogueOEMsg(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
     getInt8(&ptr, &msgType);
     /* message */
     char *msgData = getStringM(&ptr);
-    char *logPath = getConfValueC(&Config, "PELOGUE_LOG_PATH");
+    char *logPath = getConfValueC(Config, "PELOGUE_LOG_PATH");
     char buf[2048];
     snprintf(buf, sizeof(buf), "%s/%u", logPath, allocID);
 
@@ -2512,7 +2512,7 @@ static bool resolveHostEntry(int confIdx)
 
     /* get next host-list */
     snprintf(tmp, sizeof(tmp), "SLURM_HOST_ENTRY_%i", confIdx);
-    char *hostEntry = getConfValueC(&Config, tmp);
+    char *hostEntry = getConfValueC(Config, tmp);
     if (!hostEntry) {
 	mlog("%s: host entry %s not found\n", __func__, tmp);
 	goto FINISH;
@@ -2520,7 +2520,7 @@ static bool resolveHostEntry(int confIdx)
 
     /* resolve PS nodeIDs from optional address-list */
     snprintf(tmp, sizeof(tmp), "SLURM_HOST_ADDR_%i", confIdx);
-    char *addrList = getConfValueC(&Config, tmp);
+    char *addrList = getConfValueC(Config, tmp);
     if (addrList) {
 	if (!convHLtoPSnodes(addrList, getNodeIDbyName,
 			     &info.addrIDs, &info.nrOfAddrIDs)) {
@@ -2613,7 +2613,7 @@ static bool initHostLT(void)
 	HostLT[i].nodeID = -1;
     }
 
-    int numEntry = getConfValueI(&Config, "SLURM_HOST_ENTRY_COUNT");
+    int numEntry = getConfValueI(Config, "SLURM_HOST_ENTRY_COUNT");
     if (numEntry == -1) {
 	mlog("%s: missing NodeName definition in slurm.conf\n", __func__);
 	goto ERROR;

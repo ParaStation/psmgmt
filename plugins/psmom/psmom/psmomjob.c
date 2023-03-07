@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2010-2018 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2022 ParTec AG, Munich
+ * Copyright (C) 2021-2023 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -58,7 +58,7 @@ void setJobObitTimer(Job_t *job)
     /* timer already in place */
     if (jobObitTimerID != -1) return;
 
-    Time = getConfValueI(&config, "TIME_OBIT_RESEND");
+    Time = getConfValueI(config, "TIME_OBIT_RESEND");
     Timer.tv_sec = Time;
     if ((jobObitTimerID = Timer_register(&Timer, obitWaitingJobs)) == -1) {
 	mlog("%s: registering job obit timer failed\n", __func__);

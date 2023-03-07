@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2011-2018 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2022 ParTec AG, Munich
+ * Copyright (C) 2022-2023 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -606,7 +606,7 @@ static char *showConfig(char *buf, size_t *bufSize)
 
     for (i = 0; confDef[i].name; i++) {
 	char *cName = confDef[i].name;
-	char *cVal = getConfValueC(&config, cName);
+	char *cVal = getConfValueC(config, cName);
 
 	snprintf(line, sizeof(line), "%*s = %s\n", maxKeyLen+2, cName, cVal);
 	str2Buf(line, &buf, bufSize);
@@ -717,7 +717,7 @@ char *set(char *key, char *value)
 	    }
 	} else {
 	    /* save new config value */
-	    addConfigEntry(&config, key, value);
+	    addConfigEntry(config, key, value);
 
 	    snprintf(line, sizeof(line), "\nsaved '%s = %s'\n", key, value);
 	    str2Buf(line, &buf, &bufSize);
@@ -772,8 +772,8 @@ char *unset(char *key)
     char *buf = NULL;
     size_t bufSize = 0;
 
-    if (getConfValueC(&config, key)) {
-	unsetConfigEntry(&config, confDef, key);
+    if (getConfValueC(config, key)) {
+	unsetConfigEntry(config, confDef, key);
     } else if (!(strcmp(key, "memdebug"))) {
 	if (memoryDebug) {
 	    finalizePluginLogger();
@@ -840,7 +840,7 @@ char *show(char *key)
     }
 
     /* search in config for given key */
-    tmp = getConfValueC(&config, key);
+    tmp = getConfValueC(config, key);
     if (tmp) {
 	str2Buf(key, &buf, &bufSize);
 	str2Buf(" = ", &buf, &bufSize);

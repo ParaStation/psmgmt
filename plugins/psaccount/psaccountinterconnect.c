@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2022 ParTec AG, Munich
+ * Copyright (C) 2022-2023 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -81,7 +81,7 @@ bool IC_startScript(void)
     if (iScript) return true;
 
     if (pollTime < 1) pollTime = DEFAULT_POLL_TIME;
-    char *interScript = getConfValueC(&config, "INTERCONNECT_SCRIPT");
+    char *interScript = getConfValueC(config, "INTERCONNECT_SCRIPT");
 
     iScript = Script_start("psaccount-interconn", interScript, parseInterconn,
 			   pollTime, &scriptEnv);
@@ -100,7 +100,7 @@ bool IC_init(void)
     memset(&icData, 0, sizeof(icData));
     envInit(&scriptEnv);
 
-    char *interScript = getConfValueC(&config, "INTERCONNECT_SCRIPT");
+    char *interScript = getConfValueC(config, "INTERCONNECT_SCRIPT");
     if (!interScript || interScript[0] == '\0') return true;
 
     if (!Script_test(interScript, "interconnect")) {
@@ -108,7 +108,7 @@ bool IC_init(void)
 	return false;
     }
 
-    pollTime = getConfValueI(&config, "INTERCONNECT_POLL");
+    pollTime = getConfValueI(config, "INTERCONNECT_POLL");
     if (pollTime < 1) {
 	/* interconnect polling is disabled */
 	return true;

@@ -53,7 +53,7 @@ bool initEnvFilter(void)
     const char delimiters[] =",\n";
     uint32_t count = 0, index = 0;
 
-    if (!(conf = getConfValueC(&Config, "PELOGUE_ENV_FILTER"))) {
+    if (!(conf = getConfValueC(Config, "PELOGUE_ENV_FILTER"))) {
 	mlog("%s: invalid PELOGUE_ENV_FILTER config option", __func__);
 	return false;
     }
@@ -293,13 +293,13 @@ static void doSetJailMemEnv(const uint64_t ram, const char *scope)
     uint64_t softRamLimit = ram, hardRamLimit = ram;
 
     /* allowed RAM in percent */
-    float f = getConfValueF(&SlurmCgroupConfig, "AllowedRAMSpace");
+    float f = getConfValueF(SlurmCgroupConfig, "AllowedRAMSpace");
     uint64_t allowedRam = (f >= 0) ? (f/100.0) * ram : ram;
     hardRamLimit = allowedRam;
     if (hardRamLimit < softRamLimit) softRamLimit = hardRamLimit;
 
     /* max RAM in percent */
-    f = getConfValueF(&SlurmCgroupConfig, "MaxRAMPercent");
+    f = getConfValueF(SlurmCgroupConfig, "MaxRAMPercent");
     uint64_t maxRam = ram;
     if (f >= 0) {
 	maxRam = (f/100.0) * (nodeMem);
@@ -308,7 +308,7 @@ static void doSetJailMemEnv(const uint64_t ram, const char *scope)
     }
 
     /* lower RAM limit in MByte */
-    long minRam = getConfValueL(&SlurmCgroupConfig, "MinRAMSpace");
+    long minRam = getConfValueL(SlurmCgroupConfig, "MinRAMSpace");
     if (minRam != -1) {
 	uint64_t minRamLimit = minRam*1024*1024;
 	if (softRamLimit < minRamLimit) softRamLimit = minRamLimit;
@@ -326,18 +326,18 @@ static void doSetJailMemEnv(const uint64_t ram, const char *scope)
     /* KMEM constrains */
     uint64_t kmemLimit = hardRamLimit;
     /* allowed KMEM in *bytes* */
-    long aKmem = getConfValueL(&SlurmCgroupConfig, "AllowedKmemSpace");
+    long aKmem = getConfValueL(SlurmCgroupConfig, "AllowedKmemSpace");
     if (aKmem != -1) kmemLimit = aKmem;
 
     /* upper KMEM limit in percent */
-    f = getConfValueF(&SlurmCgroupConfig, "MaxKmemPercent");
+    f = getConfValueF(SlurmCgroupConfig, "MaxKmemPercent");
     if (f >= 0) {
 	uint64_t maxKmem = (f/100.0) * hardRamLimit;
 	if (kmemLimit > maxKmem) kmemLimit = maxKmem;
     }
 
     /* lower KMEM limit in MByte */
-    long minKmem = getConfValueL(&SlurmCgroupConfig, "MinKmemSpace");
+    long minKmem = getConfValueL(SlurmCgroupConfig, "MinKmemSpace");
     if (minKmem != -1) {
 	uint64_t minKmemLimit = minKmem*1024*1024;
 	if (kmemLimit < minKmemLimit) kmemLimit = minKmemLimit;
@@ -350,14 +350,14 @@ static void doSetJailMemEnv(const uint64_t ram, const char *scope)
     /* swap constrain */
     uint64_t swapLimit = ram;
     /* allowed swap in percent */
-    f = getConfValueF(&SlurmCgroupConfig, "AllowedSwapSpace");
+    f = getConfValueF(SlurmCgroupConfig, "AllowedSwapSpace");
     if (f >= 0) {
 	if (!swapLimit) swapLimit = nodeMem;
 	swapLimit = ((f/100.0) * swapLimit) + allowedRam;
     }
 
     /* upper swap limit in percent */
-    f = getConfValueF(&SlurmCgroupConfig, "MaxSwapPercent");
+    f = getConfValueF(SlurmCgroupConfig, "MaxSwapPercent");
     if (f >= 0) {
 	uint64_t maxSwap = ((f/100.0) * nodeMem) + maxRam;
 	if (swapLimit > maxSwap) swapLimit = maxSwap;
@@ -374,7 +374,7 @@ static void doSetJailMemEnv(const uint64_t ram, const char *scope)
     setenv(name, val, 1);
 
     /* memory swappiness */
-    long swappiness = getConfValueL(&SlurmCgroupConfig, "MemorySwappiness");
+    long swappiness = getConfValueL(SlurmCgroupConfig, "MemorySwappiness");
     if (swappiness != -1) {
 	if (swappiness > 100) swappiness = 100;
 	snprintf(name, sizeof(name), "%sSWAPPINESS", prefix);
@@ -510,19 +510,19 @@ void setJailEnv(const env_t *env, const char *user, const PSCPU_set_t *stepcpus,
 
     if (user) setenv("__PSJAIL_USER", user, 1);
 
-    char *c = getConfValueC(&SlurmCgroupConfig, "ConstrainCores");
+    char *c = getConfValueC(SlurmCgroupConfig, "ConstrainCores");
     if (c) setenv("__PSJAIL_CONSTRAIN_CORES", c, 1);
 
-    c = getConfValueC(&SlurmCgroupConfig, "ConstrainDevices");
+    c = getConfValueC(SlurmCgroupConfig, "ConstrainDevices");
     if (c) setenv("__PSJAIL_CONSTRAIN_DEVICES", c, 1);
 
-    c = getConfValueC(&SlurmCgroupConfig, "ConstrainKmemSpace");
+    c = getConfValueC(SlurmCgroupConfig, "ConstrainKmemSpace");
     if (c) setenv("__PSJAIL_CONSTRAIN_KMEM", c, 1);
 
-    c = getConfValueC(&SlurmCgroupConfig, "ConstrainRAMSpace");
+    c = getConfValueC(SlurmCgroupConfig, "ConstrainRAMSpace");
     if (c) setenv("__PSJAIL_CONSTRAIN_RAM", c, 1);
 
-    c = getConfValueC(&SlurmCgroupConfig, "ConstrainSwapSpace");
+    c = getConfValueC(SlurmCgroupConfig, "ConstrainSwapSpace");
     if (c) setenv("__PSJAIL_CONSTRAIN_SWAP", c, 1);
 
     if (gresList) setJailDevEnv(gresList, localNodeId);
@@ -669,7 +669,7 @@ void initJobEnv(Job_t *job)
     }
 
     envSet(&job->env, "SLURMD_NODENAME",
-	   getConfValueC(&Config, "SLURM_HOSTNAME"));
+	   getConfValueC(Config, "SLURM_HOSTNAME"));
 
     envSet(&job->env, "SLURM_JOBID", Job_strID(job->jobid));
     envSet(&job->env, "SLURM_JOB_ID", Job_strID(job->jobid));
@@ -682,8 +682,7 @@ void initJobEnv(Job_t *job)
     envSet(&job->env, "SLURM_JOB_USER", job->username);
     snprintf(tmp, sizeof(tmp), "%u", job->uid);
     envSet(&job->env, "SLURM_JOB_UID", tmp);
-    envSet(&job->env, "SLURM_CPUS_ON_NODE",
-	   getConfValueC(&Config, "SLURM_CPUS"));
+    envSet(&job->env, "SLURM_CPUS_ON_NODE", getConfValueC(Config, "SLURM_CPUS"));
 
     char *cpus = getCPUsPerNode(job);
     envSet(&job->env, "SLURM_JOB_CPUS_PER_NODE", cpus);
@@ -1032,16 +1031,16 @@ static void setOrdinaryRankEnv(uint32_t rank, Step_t *step)
 
 void setSlurmConfEnvVar(env_t *env)
 {
-    char *confServer = getConfValueC(&Config, "SLURM_CONF_SERVER");
+    char *confServer = getConfValueC(Config, "SLURM_CONF_SERVER");
     if (confServer && strcmp(confServer, "none")) {
 	/* ensure the configuration cache is used */
-	char *confDir = getConfValueC(&Config, "SLURM_CONFIG_DIR");
+	char *confDir = getConfValueC(Config, "SLURM_CONFIG_DIR");
 	if (!confDir) {
 	    flog("warning: invalid SLURM_CONFIG_DIR");
 	    return;
 	}
 
-	char *confFile = getConfValueC(&Config, "SLURM_CONF");
+	char *confFile = getConfValueC(Config, "SLURM_CONF");
 	if (!confFile) {
 	    flog("warning: invalid SLURM_CONF");
 	    return;
@@ -1055,7 +1054,7 @@ void setSlurmConfEnvVar(env_t *env)
 
 static void setTopoEnv(env_t *env)
 {
-    Topology_t *topo = getTopology(getConfValueC(&Config, "SLURM_HOSTNAME"));
+    Topology_t *topo = getTopology(getConfValueC(Config, "SLURM_HOSTNAME"));
 
     doSetEnv(env, "SLURM_TOPOLOGY_ADDR", topo->address);
     doSetEnv(env, "SLURM_TOPOLOGY_ADDR_PATTERN", topo->pattern);
@@ -1116,13 +1115,13 @@ static void setCommonRankEnv(int32_t rank, Step_t *step)
 
     setSlurmConfEnvVar(NULL);
 
-    setenv("SLURMD_NODENAME", getConfValueC(&Config, "SLURM_HOSTNAME"), 1);
+    setenv("SLURMD_NODENAME", getConfValueC(Config, "SLURM_HOSTNAME"), 1);
     char tmp[128];
     gethostname(tmp, sizeof(tmp));
     setenv("HOSTNAME", tmp, 1);
     snprintf(tmp, sizeof(tmp), "%u", getpid());
     setenv("SLURM_TASK_PID", tmp, 1);
-    setenv("SLURM_CPUS_ON_NODE", getConfValueC(&Config, "SLURM_CPUS"), 1);
+    setenv("SLURM_CPUS_ON_NODE", getConfValueC(Config, "SLURM_CPUS"), 1);
 
     sprintf(tmp, "%d", rank);
     setenv("SLURM_PROCID", tmp, 1);
@@ -1242,7 +1241,7 @@ void setStepEnv(Step_t *step)
     int dist;
 
     /* distribute mpiexec service processes */
-    dist = getConfValueI(&Config, "DIST_START");
+    dist = getConfValueI(Config, "DIST_START");
     if (dist) envSet(&step->env, "__MPIEXEC_DIST_START", "1");
 
     /* forward overbook mode */
@@ -1272,7 +1271,7 @@ void setStepEnv(Step_t *step)
     }
 
     /* handle memory mapping */
-    val = getConfValueC(&Config, "MEMBIND_DEFAULT");
+    val = getConfValueC(Config, "MEMBIND_DEFAULT");
     if (step->memBindType & MEM_BIND_NONE ||
 	    (!(step->memBindType & (MEM_BIND_RANK | MEM_BIND_MAP |
 				    MEM_BIND_MASK | MEM_BIND_LOCAL)) &&
@@ -1364,7 +1363,7 @@ void setJobEnv(Job_t *job)
 
     setSlurmConfEnvVar(&job->env);
 
-    char *cname = getConfValueC(&SlurmConfig, "ClusterName");
+    char *cname = getConfValueC(SlurmConfig, "ClusterName");
     if (cname) envSet(&job->env, "SLURM_CLUSTER_NAME", cname);
 
     if (job->account) envSet(&job->env, "SLURM_JOB_ACCOUNT", job->account);

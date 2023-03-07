@@ -287,7 +287,7 @@ Slurm_Msg_Buf_t *saveSlurmMsg(Slurm_Msg_Header_t *head, PS_SendDB_t *body,
     msgBuf->timerID = -1;
     msgBuf->sendRetry = 0;
     msgBuf->conRetry = 0;
-    msgBuf->maxConRetry = getConfValueI(&Config, "RECONNECT_MAX_RETRIES");
+    msgBuf->maxConRetry = getConfValueI(Config, "RECONNECT_MAX_RETRIES");
     msgBuf->authTime = (auth) ? time(NULL) : 0;
     msgBuf->req = req;
 
@@ -372,7 +372,7 @@ int resendSlurmMsg(int sock, void *msg)
     if (ret == -1) {
 	/* default authTime is 300 (= default TTL of munge cred) */
 	if (time(NULL) - savedMsg->authTime >
-	    getConfValueI(&Config, "RESEND_TIMEOUT")) {
+	    getConfValueI(Config, "RESEND_TIMEOUT")) {
 	    mlog("%s: resend timeout reached, dropping message %s\n", __func__,
 		 msgType2String(savedMsg->head.type));
 	    goto CLEANUP;
@@ -444,7 +444,7 @@ int setReconTimer(Slurm_Msg_Buf_t *savedMsg)
 {
     struct timeval timeout = {0, 0};
 
-    timeout.tv_sec = getConfValueI(&Config, "RECONNECT_TIME");
+    timeout.tv_sec = getConfValueI(Config, "RECONNECT_TIME");
 
     savedMsg->timerID = Timer_registerEnhanced(&timeout,
 					       handleReconTimeout, savedMsg);

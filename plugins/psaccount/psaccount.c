@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2010-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2022 ParTec AG, Munich
+ * Copyright (C) 2022-2023 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -92,7 +92,7 @@ bool setMainTimer(int poll)
     /* Also push the timer setting into the configuration */
     char valStr[32];
     snprintf(valStr, sizeof(valStr), "%d", poll);
-    addConfigEntry(&config, "POLL_INTERVAL", valStr);
+    addConfigEntry(config, "POLL_INTERVAL", valStr);
 
     return true;
 }
@@ -118,7 +118,7 @@ int initialize(FILE *logfile)
     if (!initPSAccConfig(configfn)) return 1;
 
     /* initialize logging facility */
-    int debugMask = getConfValueI(&config, "DEBUG_MASK");
+    int debugMask = getConfValueI(config, "DEBUG_MASK");
     maskLogger(debugMask);
 
     /* initialize energy facility */
@@ -171,7 +171,7 @@ int initialize(FILE *logfile)
     PSID_adjustLoginUID(getuid());
 
     /* register periodic timer */
-    int poll = getConfValueI(&config, "POLL_INTERVAL");
+    int poll = getConfValueI(config, "POLL_INTERVAL");
     if (!setMainTimer(poll)) {
 	mlog("registering main timer for poll = %d failed\n", poll);
 	return 1;
@@ -200,5 +200,5 @@ void cleanup(void)
     finalizeJobs();
     clearAllClients();
     finalizeProc();
-    freeConfig(&config);
+    freeConfig(config);
 }
