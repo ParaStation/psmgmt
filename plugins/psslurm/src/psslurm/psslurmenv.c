@@ -602,6 +602,66 @@ static void setGResJobEnv(list_t *gresList, env_t *env)
     }
 }
 
+static void doSetEnv(env_t *env, char *key, char *val)
+{
+    if (val[0] == '\0') return;
+
+    if (env) {
+	envSet(env, key, val);
+    } else {
+	setenv(key, val, 1);
+    }
+}
+
+/**
+ * @brief Set various environment variables from job credential
+ *
+ * Already set by srun/slurmctld: SLURM_JOB_ACCOUNT, SLURM_JOB_PARTITION
+ */
+static void setCredEnv(JobCred_t *cred, env_t *env)
+{
+    char tmp[1024];
+
+    if (!cred) return;
+
+    if (cred->jobStartTime) {
+	snprintf(tmp, sizeof(tmp), "%lu", cred->jobStartTime);
+	doSetEnv(env, "SLURM_JOB_START_TIME", tmp);
+    }
+
+    if (cred->jobEndTime) {
+	snprintf(tmp, sizeof(tmp), "%lu", cred->jobEndTime);
+	doSetEnv(env, "SLURM_JOB_END_TIME", tmp);
+    }
+
+    if (cred->jobExtra) doSetEnv(env, "SLURM_JOB_EXTRA", cred->jobExtra);
+
+    if (cred->jobLicenses) {
+	doSetEnv(env, "SLURM_JOB_LICENSES", cred->jobLicenses);
+    }
+
+    if (cred->jobStderr) doSetEnv(env, "SLURM_JOB_STDERR", cred->jobStderr);
+
+    if (cred->jobStdin) doSetEnv(env, "SLURM_JOB_STDIN", cred->jobStdin);
+
+    if (cred->jobStdout) doSetEnv(env, "SLURM_JOB_STDOUT", cred->jobStdout);
+
+    if (cred->jobRestartCount != INFINITE16) {
+	snprintf(tmp, sizeof(tmp), "%u", cred->jobRestartCount);
+	doSetEnv(env, "SLURM_JOB_RESTART_COUNT", tmp);
+    }
+
+    if (cred->jobReservation) {
+	doSetEnv(env, "SLURM_JOB_RESERVATION", cred->jobReservation);
+    }
+
+    if (cred->jobComment) doSetEnv(env, "SLURM_JOB_COMMENT", cred->jobComment);
+
+    if (cred->jobConstraints) {
+	doSetEnv(env, "SLURM_JOB_CONSTRAINTS", cred->jobConstraints);
+    }
+}
+
 void initJobEnv(Job_t *job)
 {
     if (job->partition) {
@@ -666,6 +726,9 @@ void initJobEnv(Job_t *job)
 
     /* set GRes environment */
     setGResJobEnv(&job->gresList, &job->env);
+
+    /* set job credential environment */
+    setCredEnv(job->cred, &job->env);
 }
 
 /**
@@ -1095,6 +1158,9 @@ static void setCommonRankEnv(int32_t rank, Step_t *step)
 
     /* set topology environment */
     setTopoEnv(NULL);
+
+    /* set job credential environment */
+    setCredEnv(step->cred, NULL);
 }
 
 void setRankEnv(int32_t rank, Step_t *step)

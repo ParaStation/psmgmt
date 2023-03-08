@@ -88,11 +88,11 @@ typedef struct {
     uint32_t cpuArrayCount;
     uint16_t *cpuArray;
     uint32_t *cpuArrayRep;
-    time_t jobEndTime;
-    char *jobExtra;
-    uint16_t jobOversubscribe;
-    time_t jobStartTime;
-    char *jobLicenses;
+    time_t jobEndTime;		/**< job end time */
+    char *jobExtra;		/**< job extra */
+    uint16_t jobOversubscribe;  /**< job oversubcribe */
+    time_t jobStartTime;	/**< time the job started */
+    char *jobLicenses;		/**< the licenses the job reserved */
 } JobCred_t;
 
 /**
