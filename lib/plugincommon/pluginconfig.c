@@ -61,6 +61,24 @@ static void doAddConfigEntry(Config_t conf, char *key, char *value)
     list_add_tail(&(obj->next), &conf->config);
 }
 
+static ConfObj_t *findConfObj(Config_t conf, char *key)
+{
+    if (!checkConfig(conf) || !key) return NULL;
+
+    list_t *o;
+    list_for_each(o, &(conf->config)) {
+	ConfObj_t *obj = list_entry(o, ConfObj_t, next);
+
+	if (conf->caseSensitive) {
+	    if (!(strcmp(obj->key, key))) return obj;
+	} else {
+	    if (!(strcasecmp(obj->key, key))) return obj;
+	}
+    }
+
+    return NULL;
+}
+
 static void delConfObj(ConfObj_t *obj)
 {
     if (!obj) return;
@@ -185,32 +203,22 @@ int parseConfigFile(char *filename, Config_t conf, bool trimQuotes)
 
 	key = trim(key);
 
-	doAddConfigEntry(conf, key, val);
-	count++;
+	/* avoid double entries */
+	ConfObj_t *obj = findConfObj(conf, key);
+	if (obj) {
+	    // @todo do we want to warn here?
+	    ufree(obj->value);
+	    obj->value = (val) ? ustrdup(val) : ustrdup("");
+	} else {
+	    doAddConfigEntry(conf, key, val);
+	    count++;
+	}
     }
 
     ufree(linebuf);
     fclose(fp);
 
     return count;
-}
-
-static ConfObj_t *findConfObj(Config_t conf, char *key)
-{
-    if (!checkConfig(conf) || !key) return NULL;
-
-    list_t *o;
-    list_for_each(o, &(conf->config)) {
-	ConfObj_t *obj = list_entry(o, ConfObj_t, next);
-
-	if (conf->caseSensitive) {
-	    if (!(strcmp(obj->key, key))) return obj;
-	} else {
-	    if (!(strcasecmp(obj->key, key))) return obj;
-	}
-    }
-
-    return NULL;
 }
 
 static char *getConfValue(Config_t conf, char *key)
