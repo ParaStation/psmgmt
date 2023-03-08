@@ -24,8 +24,7 @@
 struct pluginConfig {
     long magic;
     list_t config;
-    //const pluginConfigDef_t *def;
-    //size_t maxKeyLen;
+    bool caseSensitive;
 };
 
 /** Single object of a configuration */
@@ -62,6 +61,27 @@ static void doAddConfigEntry(Config_t conf, char *key, char *value)
     list_add_tail(&(obj->next), &conf->config);
 }
 
+static void delConfObj(ConfObj_t *obj)
+{
+    if (!obj) return;
+
+    ufree(obj->key);
+    ufree(obj->value);
+    list_del(&obj->next);
+    ufree(obj);
+}
+
+static void cleanAllObjs(Config_t conf)
+{
+    if (!checkConfig(conf)) return;
+
+    list_t *o, *tmp;
+    list_for_each_safe(o, tmp, &(conf->config)) {
+	ConfObj_t *obj = list_entry(o, ConfObj_t, next);
+	delConfObj(obj);
+    }
+}
+
 /** Pointer to hash accumulator */
 static uint32_t *configHashAcc = NULL;
 
@@ -91,8 +111,6 @@ void registerConfigHashAccumulator(uint32_t *hashAcc)
     configHashAcc = hashAcc;
 }
 
-static void cleanAllObjs(Config_t conf);
-
 bool initConfig(Config_t *conf)
 {
     if (checkConfig(*conf)) {
@@ -104,10 +122,20 @@ bool initConfig(Config_t *conf)
 
     (*conf)->magic = PLUGIN_CONFIG_MAGIC;
     INIT_LIST_HEAD(&((*conf)->config));
-    //(*conf)->def = NULL;
-    //(*conf)->maxKeyLen = 0;
+    (*conf)->caseSensitive = true;
 
     return true;
+}
+
+void setConfigCaseSensitivity(Config_t conf, bool sensitivity)
+{
+    if (checkConfig(conf)) conf->caseSensitive = sensitivity;
+}
+
+bool getConfigCaseSensitivity(Config_t conf)
+{
+    if (checkConfig(conf)) return conf->caseSensitive;
+    return false;
 }
 
 int parseConfigFile(char *filename, Config_t conf, bool trimQuotes)
@@ -175,7 +203,11 @@ static ConfObj_t *findConfObj(Config_t conf, char *key)
     list_for_each(o, &(conf->config)) {
 	ConfObj_t *obj = list_entry(o, ConfObj_t, next);
 
-	if (!(strcmp(obj->key, key))) return obj;
+	if (conf->caseSensitive) {
+	    if (!(strcmp(obj->key, key))) return obj;
+	} else {
+	    if (!(strcasecmp(obj->key, key))) return obj;
+	}
     }
 
     return NULL;
@@ -255,28 +287,6 @@ int verifyConfig(Config_t conf, const ConfDef_t confDef[])
 
     return 0;
 }
-
-static void delConfObj(ConfObj_t *obj)
-{
-    if (!obj) return;
-
-    ufree(obj->key);
-    ufree(obj->value);
-    list_del(&obj->next);
-    ufree(obj);
-}
-
-static void cleanAllObjs(Config_t conf)
-{
-    if (!checkConfig(conf)) return;
-
-    list_t *o, *tmp;
-    list_for_each_safe(o, tmp, &(conf->config)) {
-	ConfObj_t *obj = list_entry(o, ConfObj_t, next);
-	delConfObj(obj);
-    }
-}
-
 
 void freeConfig(Config_t conf)
 {
