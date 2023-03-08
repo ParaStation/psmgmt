@@ -1049,24 +1049,16 @@ void setSlurmConfEnvVar(env_t *env)
 
 	char cPath[PATH_MAX];
 	snprintf(cPath, sizeof(cPath), "%s/%s", confDir, confFile);
-	if (env) {
-	    envSet(env, "SLURM_CONF", cPath);
-	} else {
-	    setenv("SLURM_CONF", cPath, 1);
-	}
+	doSetEnv(env, "SLURM_CONF", cPath);
     }
 }
 
 static void setTopoEnv(env_t *env)
 {
     Topology_t *topo = getTopology(getConfValueC(&Config, "SLURM_HOSTNAME"));
-    if (env) {
-	envSet(env, "SLURM_TOPOLOGY_ADDR", topo->address);
-	envSet(env, "SLURM_TOPOLOGY_ADDR_PATTERN", topo->pattern);
-    } else {
-	setenv("SLURM_TOPOLOGY_ADDR", topo->address, 1);
-	setenv("SLURM_TOPOLOGY_ADDR_PATTERN", topo->pattern, 1);
-    }
+
+    doSetEnv(env, "SLURM_TOPOLOGY_ADDR", topo->address);
+    doSetEnv(env, "SLURM_TOPOLOGY_ADDR_PATTERN", topo->pattern);
 
     clearTopology(topo);
 }
