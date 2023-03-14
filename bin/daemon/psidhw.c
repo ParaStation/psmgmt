@@ -993,7 +993,9 @@ static bool msg_HWSTART(DDBufferMsg_t *msg)
 	PSID_log(-1, "%s: task %s not allowed to start HW\n",
 		 __func__, PSC_printTID(msg->header.sender));
     } else if (msg->header.dest == PSC_getMyTID()) {
-	int hw = *(int *)msg->buf;
+	size_t used = 0;
+	int hw;
+	PSP_getMsgBuf(msg, &used, "hardware type", &hw, sizeof(hw));
 
 	if (hw == -1) {
 	    PSID_startAllHW();
@@ -1029,7 +1031,9 @@ static bool msg_HWSTOP(DDBufferMsg_t *msg)
 	PSID_log(-1, "%s: task %s not allowed to stop HW\n", __func__,
 		 PSC_printTID(msg->header.sender));
     } else if (msg->header.dest == PSC_getMyTID()) {
-	int hw = *(int *)msg->buf;
+	size_t used = 0;
+	int hw;
+	PSP_getMsgBuf(msg, &used, "hardware type", &hw, sizeof(hw));
 
 	if (hw == -1) {
 	    PSID_stopAllHW();

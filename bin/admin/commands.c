@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
  * Copyright (C) 2005-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2022 ParTec AG, Munich
+ * Copyright (C) 2021-2023 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -11,7 +11,6 @@
  */
 #include "commands.h"
 
-#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <errno.h>
@@ -347,7 +346,7 @@ void PSIADM_ShutdownNode(int silent, bool *nl)
     }
 }
 
-void PSIADM_HWStart(int hw, bool *nl)
+void PSIADM_HWStart(int32_t hw, bool *nl)
 {
     DDBufferMsg_t msg = {
 	.header = {
@@ -356,7 +355,6 @@ void PSIADM_HWStart(int hw, bool *nl)
 	    .dest = 0,
 	    .len = sizeof(msg.header) } };
     int hwnum, err;
-    int32_t hw32 = hw;
 
     if (geteuid()) {
 	printf("Insufficient privilege\n");
@@ -366,7 +364,7 @@ void PSIADM_HWStart(int hw, bool *nl)
     err = PSI_infoInt(-1, PSP_INFO_HWNUM, NULL, &hwnum, true);
     if (err || hw < -1 || hw >= hwnum) return;
 
-    PSP_putMsgBuf(&msg, "hardware type", &hw32, sizeof(hw32));
+    PSP_putMsgBuf(&msg, "hardware type", &hw, sizeof(hw));
 
     if (! getHostStatus()) return;
 
@@ -382,7 +380,7 @@ void PSIADM_HWStart(int hw, bool *nl)
     }
 }
 
-void PSIADM_HWStop(int hw, bool *nl)
+void PSIADM_HWStop(int32_t hw, bool *nl)
 {
     DDBufferMsg_t msg = {
 	.header = {
@@ -391,7 +389,6 @@ void PSIADM_HWStop(int hw, bool *nl)
 	    .dest = 0,
 	    .len = sizeof(msg.header) } };
     int hwnum, err;
-    int32_t hw32 = hw;
 
     if (geteuid()) {
 	printf("Insufficient privilege\n");
@@ -401,7 +398,7 @@ void PSIADM_HWStop(int hw, bool *nl)
     err = PSI_infoInt(-1, PSP_INFO_HWNUM, NULL, &hwnum, true);
     if (err || hw < -1 || hw >= hwnum) return;
 
-    PSP_putMsgBuf(&msg, "hardware type", &hw32, sizeof(hw32));
+    PSP_putMsgBuf(&msg, "hardware type", &hw, sizeof(hw));
 
     if (! getHostStatus()) return;
 

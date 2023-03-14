@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
  * Copyright (C) 2005-2020 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2022 ParTec AG, Munich
+ * Copyright (C) 2022-2023 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -17,6 +17,7 @@
 #define __COMMANDS_H
 
 #include <stdbool.h>
+#include <stdint.h>
 #include <stddef.h>
 
 #include "pstask.h"
@@ -88,7 +89,7 @@ void PSIADM_ShutdownNode(int silent, bool *nl);
  *
  * @return No return value
  */
-void PSIADM_HWStart(int hw, bool *nl);
+void PSIADM_HWStart(int32_t hw, bool *nl);
 
 /**
  * @brief Stop communication hardware
@@ -102,7 +103,7 @@ void PSIADM_HWStart(int hw, bool *nl);
  *
  * @return No return value
  */
-void PSIADM_HWStop(int hw, bool *nl);
+void PSIADM_HWStop(int32_t hw, bool *nl);
 
 /**
  * @brief Show node status
