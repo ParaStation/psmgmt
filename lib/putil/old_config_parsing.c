@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
  * Copyright (C) 2005-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2022 ParTec AG, Munich
+ * Copyright (C) 2021-2023 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -661,75 +661,73 @@ static int getCoreDir(char *token)
     return 0;
 }
 
-static int default_hwtype = 0, node_hwtype, hwtype;
+static AttrMask_t defaultAttr = 0, nodeAttr, curAttr;
 
-static int setHWType(int hw)
+static int setAttr(AttrMask_t attr)
 {
     if (currentID == DEFAULT_ID) {
-	default_hwtype = hw;
-	parser_comment(PARSER_LOG_NODE, "setting default HWType to '%s'\n",
-		       HW_printType(hw));
+	defaultAttr = attr;
+	parser_comment(PARSER_LOG_NODE, "setting default attributes to '%s'\n",
+		       Attr_print(attr));
     } else {
-	node_hwtype = hw;
-	parser_comment(PARSER_LOG_NODE, " HW '%s'", HW_printType(hw));
+	nodeAttr = attr;
+	parser_comment(PARSER_LOG_NODE, " attributes '%s'", Attr_print(attr));
     }
     return 0;
 }
 
-static int getHWnone(char *token)
+static int getAttrNone(char *token)
 {
-    return setHWType(0);
+    return setAttr(0);
 }
 
-static int getHWent(char *token)
+static int addAttr(char *token)
 {
-    int idx = HW_index(token);
+    AttrIdx_t idx = Attr_index(token);
 
     if (idx < 0) return parser_error(token);
 
-    hwtype |= 1<<idx;
+    curAttr |= 1<<idx;
 
     return 0;
 }
 
-static int getHWsingle(char *token)
+static int getSingleAttr(char *token)
 {
-    int ret;
+    curAttr = 0;
 
-    hwtype = 0;
-
-    ret = getHWent(token);
+    int ret = addAttr(token);
     if (ret) return ret;
 
-    return setHWType(hwtype);
+    return setAttr(curAttr);
 }
 
 static int endHWEnv(char *token)
 {
-    int ret = setHWType(hwtype);
+    int ret = setAttr(curAttr);
     if (ret) return ret;
 
     return ENV_END;
 }
 
 static keylist_t hwenv_list[] = {
-    {"none", getHWnone, NULL},
+    {"none", getAttrNone, NULL},
     {"}", endHWEnv, NULL},
-    {NULL, getHWent, NULL}
+    {NULL, addAttr, NULL}
 };
 
 static parser_t hwenv_parser = {" \t\n", hwenv_list};
 
 static int getHWEnv(char *token)
 {
-    hwtype = 0;
+    curAttr = 0;
     return parser_parseOn(parser_getString(), &hwenv_parser);
 }
 
 static keylist_t hw_list[] = {
     {"{", getHWEnv, NULL},
-    {"none", getHWnone, NULL},
-    {NULL, getHWsingle, NULL}
+    {"none", getAttrNone, NULL},
+    {NULL, getSingleAttr, NULL}
 };
 
 static parser_t hw_parser = {" \t\n", hw_list};
@@ -1729,7 +1727,7 @@ static int setupNodeFromDefault(void)
 {
     int ret;
 
-    node_hwtype = default_hwtype;
+    nodeAttr = defaultAttr;
     node_canstart = default_canstart;
     node_runjobs = default_runjobs;
     node_procs = default_procs;
@@ -1829,9 +1827,8 @@ static int newHost(int id, char *nodename, in_addr_t addr)
     }
 
     /* setup further settings */
-    if (PSIDnodes_setHWType(id, node_hwtype)) {
-	parser_comment(-1, "PSIDnodes_setHWType(%d, %d) failed\n",
-		       id, node_hwtype);
+    if (!PSIDnodes_setAttr(id, nodeAttr)) {
+	parser_comment(-1, "PSIDnodes_setAttr(%d, %d) failed\n", id, nodeAttr);
 	return -1;
     }
 
@@ -2298,7 +2295,7 @@ static int getNodes(char *token)
 
 /* ---------------------------------------------------------------------- */
 
-static int actHW = -1;
+static AttrIdx_t thisHW = -1;
 
 static int getHardwareScript(char *token)
 {
@@ -2326,10 +2323,10 @@ static int getHardwareScript(char *token)
     }
 
     /* store environment */
-    if (HW_getScript(actHW, name)) {
+    if (HW_getScript(thisHW, name)) {
 	parser_comment(-1, "redefineing hardware script: %s\n", name);
     }
-    HW_setScript(actHW, name, value);
+    HW_setScript(thisHW, name, value);
 
     parser_comment(PARSER_LOG_RES, "got hardware script: %s='%s'\n",
 		   name, value);
@@ -2353,10 +2350,10 @@ static int getHardwareEnvLine(char *token)
     }
 
     /* store environment */
-    if (HW_getEnv(actHW, token)) {
+    if (HW_getEnv(thisHW, token)) {
 	parser_comment(-1, "redefineing hardware environment: %s\n", token);
     }
-    HW_setEnv(actHW, token, value);
+    HW_setEnv(thisHW, token, value);
 
     parser_comment(PARSER_LOG_RES, "got hardware environment: %s='%s'\n",
 		   token, value);
@@ -2366,7 +2363,7 @@ static int getHardwareEnvLine(char *token)
 
 static int endHardwareEnv(char *token)
 {
-    actHW = -1;
+    thisHW = -1;
     return ENV_END;
 }
 
@@ -2393,13 +2390,13 @@ static int getHardware(char *token)
 	return -1;
     }
 
-    actHW = HW_index(name);
+    thisHW = Attr_index(name);
 
-    if (actHW == -1) {
-	actHW = HW_add(name);
+    if (thisHW == -1) {
+	thisHW = Attr_add(name);
 
-	parser_comment(PARSER_LOG_RES, "new hardware '%s' registered as %d\n",
-		       name, actHW);
+	parser_comment(PARSER_LOG_RES, "new attribute '%s' registered as %d\n",
+		       name, thisHW);
     }
 
     brace = parser_getString();

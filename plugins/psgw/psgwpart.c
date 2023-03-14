@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2018-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2022 ParTec AG, Munich
+ * Copyright (C) 2021-2023 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -277,12 +277,12 @@ static bool sendPartitionReq(PStask_t *task, PSGW_Req_t *req, int numNodes)
     task->request->size = numNodes;
     task->request->hwType = 0;
 
-    int hwIdx = HW_index("gateway");
-    if (hwIdx == -1) {
-	flog("invalid hardware index for gateway\n");
+    AttrIdx_t gwAttrIdx = Attr_index("gateway");
+    if (gwAttrIdx == -1) {
+	flog("unknown attribute 'gateway'\n");
 	return false;
     }
-    task->request->hwType |= 1 << hwIdx;
+    task->request->hwType |= 1 << gwAttrIdx;
     task->request->sort = PART_SORT_NONE;
 
     PSpart_option_t options = 0;

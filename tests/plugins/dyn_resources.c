@@ -139,7 +139,7 @@ int handleDynReservation(void *resPtr)
 
     PSID_log(-1, "%s: %s: Try to reserve %d to %d slots of type '%s' with"
 	     " %d threads for reservation ID %#x\n", name, __func__, min, max,
-	     HW_printType(res->hwType), res->tpp, res->rid);
+	     Attr_print(res->hwType), res->tpp, res->rid);
 
     if (min > MAXTHREADS) {
 	/* Unsuccessful: No slots to be provided */

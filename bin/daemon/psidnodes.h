@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2003 ParTec AG, Karlsruhe
  * Copyright (C) 2005-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2022 ParTec AG, Munich
+ * Copyright (C) 2021-2023 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -25,6 +25,7 @@
 #include "pscpu.h"
 #include "psnodes.h"
 #include "pstask.h"
+#include "hardware.h"
 
 #include "psidhw.h"
 
@@ -239,29 +240,33 @@ int PSIDnodes_setDmnProtoV(PSnodes_ID_t id, int version);
 int PSIDnodes_getDmnProtoV(PSnodes_ID_t id);
 
 /**
- * @brief Set node's hardware type
+ * @brief Set node's attributes
  *
- * Set the hardware type of the node with ParaStation ID @a id to @a hwType.
+ * Set the attributes of the node with ParaStation ID @a id to the
+ * attributes encoded in the mask @a attr.
  *
  * @param id ParaStation ID of the node to be modified
  *
- * @param hwType The hardware type to be set to this node
+ * @param attr Attribute mask encoding the node's attributes to be
+ * set. This is supposed to be a bitwise-or of the (1<<idx), where @a
+ * idx are the indexes of the various attributes assigned to the node
  *
- * @return On success, 0 is returned; or -1 if an error occurred
+ * @return On success true is returned; or false if an error occurred
  */
-int PSIDnodes_setHWType(PSnodes_ID_t id, int hwType);
+bool PSIDnodes_setAttr(PSnodes_ID_t id, AttrMask_t attr);
 
 /**
- * @brief Get node's hardware type
+ * @brief Get node's attributes
  *
- * Get the hardware type of the node with ParaStation ID @a id.
+ * Get the mask encoding attributes of the node with ParaStation
+ * ID @a id.
  *
  * @param id ParaStation ID of the node to look up
  *
- * @return If the node was found, the hardware type is returned; or
+ * @return If the node was found, the attribute mask is returned; or
  * -1 if an error occurred
  */
-int PSIDnodes_getHWType(PSnodes_ID_t id);
+AttrMask_t PSIDnodes_getAttr(PSnodes_ID_t id);
 
 /**
  * @brief Set node's runjobs flag
@@ -402,9 +407,9 @@ short PSIDnodes_getNumThrds(PSnodes_ID_t id);
  *
  * @param hwStatus Hardware status to be set to this node
  *
- * @return On success, 0 is returned; or -1 if an error occurred
+ * @return On success true is returned; or false if an error occurred
  */
-int PSIDnodes_setHWStatus(PSnodes_ID_t id, int hwStatus);
+bool PSIDnodes_setHWStatus(PSnodes_ID_t id, AttrMask_t hwStatus);
 
 /**
  * @brief Get node's hardware status
@@ -416,7 +421,7 @@ int PSIDnodes_setHWStatus(PSnodes_ID_t id, int hwStatus);
  * @return If the node was found, the hardware status is returned; or
  * -1 if an error occurred
  */
-int PSIDnodes_getHWStatus(PSnodes_ID_t id);
+AttrMask_t PSIDnodes_getHWStatus(PSnodes_ID_t id);
 
 /**
  * Container type to allow the use of PSID_nodes_*GUID() call for

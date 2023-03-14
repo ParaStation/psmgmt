@@ -385,7 +385,7 @@ uint16_t PSIDhw_getNumPCIDevs(PCI_ID_t ID_list[])
 }
 
 static int comparePCIaddr(const void *a, const void *b, void *pciaddr) {
-    uint32_t *pciaddress = (uint32_t *) pciaddr;
+    uint32_t *pciaddress = pciaddr;
 
     int64_t val_a = pciaddress[*(uint16_t*)a];
     int64_t val_b = pciaddress[*(uint16_t*)b];
@@ -595,8 +595,8 @@ PSCPU_set_t * PSIDhw_getPCISets(bool PCIorder, PCI_ID_t ID_list[],
 
 /** Info to be passed to @ref prepSwitchEnv() and @ref switchHWCB(). */
 typedef struct {
-    int hw;    /**< Hardware-type to prepare for. */
-    int on;    /**< Switch-mode, i.e. on (1) or off (0). */
+    AttrIdx_t hw;  /**< Hardware-type to prepare for */
+    bool on;       /**< Switch-mode, i.e. on (true) or off (false) */
 } switchInfo_t;
 
 /**
@@ -612,21 +612,19 @@ typedef struct {
  */
 static void prepSwitchEnv(void *info)
 {
-    int hw = -1;
-    char buf[20];
-
+    AttrIdx_t hw = -1;
     if (info) {
-	switchInfo_t *i = (switchInfo_t *)info;
+	switchInfo_t *i = info;
 	hw = i->hw;
     }
 
     if (hw > -1) {
-	int i;
-	for (i=0; i<HW_getEnvSize(hw); i++) putenv(HW_dumpEnv(hw, i));
+	for (int i = 0; i < HW_getEnvSize(hw); i++) putenv(HW_dumpEnv(hw, i));
     }
 
-    snprintf(buf, sizeof(buf), "%d", PSC_getMyID());
-    setenv("PS_ID", buf, 1);
+    char myIDStr[20];
+    snprintf(myIDStr, sizeof(myIDStr), "%d", PSC_getMyID());
+    setenv("PS_ID", myIDStr, 1);
 
     setenv("PS_INSTALLDIR", PSC_lookupInstalldir(NULL), 1);
 }
@@ -679,18 +677,19 @@ static void informOtherNodes(void)
  */
 static void switchHWCB(int result, bool tmdOut, int iofd, void *info)
 {
-    int hw = -1, on = 0;
-    char *hwName = "unknown";
-    char *hwScript = "unknown";
-
+    AttrIdx_t hw = -1;
+    bool on = false;
     if (info) {
-	switchInfo_t *i = (switchInfo_t *)info;
+	switchInfo_t *i = info;
 	hw = i->hw;
 	on = i->on;
 	free(info);
     }
+
+    char *hwName = "unknown";
+    char *hwScript = "unknown";
     if (hw > -1) {
-	hwName = HW_name(hw);
+	hwName = Attr_name(hw);
 	hwScript = HW_getScript(hw, on ? HW_STARTER : HW_STOPPER);
     }
 
@@ -711,7 +710,7 @@ static void switchHWCB(int result, bool tmdOut, int iofd, void *info)
 	PSID_log(-1, "%s: script(%s, %s) returned %d: '%s'\n", __func__,
 		 hwName, hwScript, result, line);
     } else if (hw > -1) {
-	int oldState = PSIDnodes_getHWStatus(PSC_getMyID());
+	AttrMask_t oldState = PSIDnodes_getHWStatus(PSC_getMyID());
 
 	PSID_log(PSID_LOG_HW, "%s: script(%s, %s): success\n", __func__,
 		 hwName, hwScript);
@@ -746,11 +745,11 @@ static void switchHWCB(int result, bool tmdOut, int iofd, void *info)
  *
  * @return No return value.
  */
-static void switchHW(int hw, int on)
+static void switchHW(AttrIdx_t hw, bool on)
 {
     char *script = HW_getScript(hw, on ? HW_STARTER : HW_STOPPER);
 
-    if (hw<0 || hw>HW_num()) {
+    if (hw < 0 || hw > Attr_num()) {
 	PSID_log(-1, "%s: hw = %d out of range\n", __func__, hw);
 	return;
     }
@@ -766,14 +765,14 @@ static void switchHW(int hw, int on)
 
 	if (PSID_execScript(script, prepSwitchEnv, switchHWCB, NULL,info) < 0) {
 	    PSID_log(-1, "%s: Failed to execute '%s' for hw '%s'\n",
-		     __func__, script, HW_name(hw));
+		     __func__, script, Attr_name(hw));
 	}
     } else {
 	/* No script, assume HW is switched anyhow */
-	int oldState = PSIDnodes_getHWStatus(PSC_getMyID());
+	AttrMask_t oldState = PSIDnodes_getHWStatus(PSC_getMyID());
 
 	PSID_log(PSID_LOG_HW, "%s: assume %s already %s\n",
-		 __func__, HW_name(hw), on ? "up" : "down");
+		 __func__, Attr_name(hw), on ? "up" : "down");
 	if (on) {
 	    PSIDnodes_setHWStatus(PSC_getMyID(), oldState | (1<<hw));
 	} else {
@@ -787,17 +786,15 @@ static void switchHW(int hw, int on)
 
 void PSID_startAllHW(void)
 {
-    int hw;
-    for (hw=0; hw<HW_num(); hw++) {
-	if (PSIDnodes_getHWType(PSC_getMyID()) & (1<<hw)) switchHW(hw, 1);
+    for (AttrIdx_t hw = 0; hw < Attr_num(); hw++) {
+	if (PSIDnodes_getAttr(PSC_getMyID()) & (1<<hw)) switchHW(hw, true);
     }
 }
 
 void PSID_stopAllHW(void)
 {
-    int hw;
-    for (hw=HW_num()-1; hw>=0; hw--) {
-	if (PSIDnodes_getHWStatus(PSC_getMyID()) & (1<<hw)) switchHW(hw, 0);
+    for (AttrIdx_t hw = Attr_num() - 1; hw >= 0; hw--) {
+	if (PSIDnodes_getHWStatus(PSC_getMyID()) & (1<<hw)) switchHW(hw, false);
     }
 }
 
@@ -816,22 +813,22 @@ void PSID_stopAllHW(void)
  */
 static void prepCounterEnv(void *info)
 {
-    int hw = -1;
-
+    AttrIdx_t hw = -1;
     if (info) {
 	DDTypedBufferMsg_t *inmsg = info;
-	hw = *(int *) inmsg->buf;
+	size_t used = 0;
+	int32_t hw32;
+	PSP_getTypedMsgBuf(inmsg, &used, "hardware type", &hw32, sizeof(hw32));
+	hw = hw32;
     }
 
     if (hw > -1) {
 	/* Put the hardware's environment into the real one */
-	int i;
-	char buf[20];
+	for (int i = 0; i < HW_getEnvSize(hw); i++) putenv(HW_dumpEnv(hw, i));
 
-	for (i=0; i<HW_getEnvSize(hw); i++) putenv(HW_dumpEnv(hw, i));
-
-	snprintf(buf, sizeof(buf), "%d", PSC_getMyID());
-	setenv("PS_ID", buf, 1);
+	char myIDStr[20];
+	snprintf(myIDStr, sizeof(myIDStr), "%d", PSC_getMyID());
+	setenv("PS_ID", myIDStr, 1);
 
 	setenv("PS_INSTALLDIR", PSC_lookupInstalldir(NULL), 1);
     }
@@ -859,34 +856,37 @@ static void getCounterCB(int result, bool tmdOut, int iofd, void *info)
 {
     PStask_ID_t dest = 0;
     PSP_Info_t type = 0;
-    int hw = -1, num, eno = 0;
-    char *hwName, *hwScript;
-    DDTypedBufferMsg_t msg;
-
+    AttrIdx_t hw = -1;
     if (info) {
 	DDTypedBufferMsg_t *inmsg = info;
-	hw = *(int *) inmsg->buf;
+	size_t used = 0;
+	int32_t hw32;
+	PSP_getTypedMsgBuf(inmsg, &used, "hardware type", &hw32, sizeof(hw32));
+	hw = hw32;
 	dest = inmsg->header.sender;
 	type = inmsg->type;
 	free(info);
     }
+
+    char *hwName, *hwScript;
     if (hw > -1) {
 	int header = type == PSP_INFO_COUNTHEADER;
-	hwName = HW_name(hw);
+	hwName = Attr_name(hw);
 	hwScript = HW_getScript(hw, header ? HW_HEADERLINE : HW_COUNTER);
 	if (!hwScript) hwScript = "unknown";
     } else {
 	hwName = hwScript = "unknown";
     }
 
-    msg = (DDTypedBufferMsg_t) {
+    DDTypedBufferMsg_t msg = (DDTypedBufferMsg_t) {
 	.header = { .type = PSP_CD_INFORESPONSE,
-		    .sender = PSC_getMyTID(),
-		    .dest = dest,
-		    .len = sizeof(msg.header) + sizeof(msg.type) },
+	    .sender = PSC_getMyTID(),
+	    .dest = dest,
+	    .len = sizeof(msg.header) + sizeof(msg.type) },
 	.type = type,
 	.buf = { 0 } };
 
+    int num, eno = 0;
     if (iofd == -1) {
 	PSID_log(-1, "%s: %s\n", __func__, msg.buf);
 	num = snprintf(msg.buf, sizeof(msg.buf), "<not connected>");
@@ -920,7 +920,6 @@ static void getCounterCB(int result, bool tmdOut, int iofd, void *info)
 
 void PSID_sendCounter(DDTypedBufferMsg_t *inmsg)
 {
-    int hw = *(int *) inmsg->buf;
     DDTypedBufferMsg_t msg = {
 	.header = {
 	    .type = PSP_CD_INFORESPONSE,
@@ -929,6 +928,11 @@ void PSID_sendCounter(DDTypedBufferMsg_t *inmsg)
 	    .len = sizeof(msg.header) + sizeof(msg.type) },
 	.type = inmsg->type,
 	.buf = { 0 } };
+
+    size_t used = 0;
+    int32_t hw32;
+    PSP_getTypedMsgBuf(inmsg, &used, "hardware type", &hw32, sizeof(hw32));
+    AttrIdx_t hw = hw32;
 
     if (PSIDnodes_getHWStatus(PSC_getMyID()) & (1<<hw)) {
 	int header = (PSP_Info_t) inmsg->type == PSP_INFO_COUNTHEADER;
@@ -947,10 +951,10 @@ void PSID_sendCounter(DDTypedBufferMsg_t *inmsg)
 				NULL, info)<0) {
 		PSID_log(PSID_LOG_HW,
 			 "%s: Failed to execute '%s' for hw '%s'\n",
-			 __func__, script, HW_name(hw));
+			 __func__, script, Attr_name(hw));
 		snprintf(msg.buf, sizeof(msg.buf),
 			 "%s: Failed to execute '%s' for hw '%s'\n",
-			 __func__, script, HW_name(hw));
+			 __func__, script, Attr_name(hw));
 	    } else {
 		/* answer created within callback */
 		return;
@@ -958,16 +962,16 @@ void PSID_sendCounter(DDTypedBufferMsg_t *inmsg)
 	} else {
 	    /* No script, cannot get counter */
 	    PSID_log(PSID_LOG_HW, "%s: no %s-script for %s available\n",
-		     __func__, header ? "header" : "counter", HW_name(hw));
+		     __func__, header ? "header" : "counter", Attr_name(hw));
 	    snprintf(msg.buf, sizeof(msg.buf),
 		     "%s: no %s-script for %s available", __func__,
-		     header ? "header" : "counter", HW_name(hw));
+		     header ? "header" : "counter", Attr_name(hw));
 	}
     } else {
 	/* No HW, cannot get counter */
-	PSID_log(-1, "%s: no %s hardware available\n", __func__, HW_name(hw));
+	PSID_log(-1, "%s: no %s hardware available\n", __func__, Attr_name(hw));
 	snprintf(msg.buf, sizeof(msg.buf), "%s: no %s hardware available",
-		 __func__, HW_name(hw));
+		 __func__, Attr_name(hw));
     }
 
     sendMsg(&msg);
@@ -994,13 +998,14 @@ static bool msg_HWSTART(DDBufferMsg_t *msg)
 		 __func__, PSC_printTID(msg->header.sender));
     } else if (msg->header.dest == PSC_getMyTID()) {
 	size_t used = 0;
-	int hw;
-	PSP_getMsgBuf(msg, &used, "hardware type", &hw, sizeof(hw));
+	int32_t hw32;
+	PSP_getMsgBuf(msg, &used, "hardware type", &hw32, sizeof(hw32));
 
+	AttrIdx_t hw = hw32;
 	if (hw == -1) {
 	    PSID_startAllHW();
 	} else {
-	    switchHW(hw, 1);
+	    switchHW(hw, true);
 	}
     } else {
 	sendMsg(msg);
@@ -1032,13 +1037,14 @@ static bool msg_HWSTOP(DDBufferMsg_t *msg)
 		 PSC_printTID(msg->header.sender));
     } else if (msg->header.dest == PSC_getMyTID()) {
 	size_t used = 0;
-	int hw;
-	PSP_getMsgBuf(msg, &used, "hardware type", &hw, sizeof(hw));
+	int32_t hw32;
+	PSP_getMsgBuf(msg, &used, "hardware type", &hw32, sizeof(hw32));
 
+	AttrIdx_t hw = hw32;
 	if (hw == -1) {
 	    PSID_stopAllHW();
 	} else {
-	    switchHW(hw, 0);
+	    switchHW(hw, false);
 	}
     } else {
 	sendMsg(msg);

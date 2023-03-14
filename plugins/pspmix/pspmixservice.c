@@ -228,9 +228,9 @@ static void freeProcMap(list_t *map)
 
 static bool nodeAttrFilter(PspmixNode_t *node, PspmixProcess_t *proc, void *data)
 {
-    int nodeAttrIdx = *((int *)data);
+    AttrIdx_t nodeAttrIdx = *((AttrIdx_t *)data);
     /* renaming of hwtype to nodeattr pending */
-    int nodeAttr = PSIDnodes_getHWType(node->id);
+    AttrMask_t nodeAttr = PSIDnodes_getAttr(node->id);
     return nodeAttr & (1 << nodeAttrIdx);
 }
 
@@ -249,10 +249,9 @@ static bool nodeAttrFilter(PspmixNode_t *node, PspmixProcess_t *proc, void *data
 static void createNodeAttrPSets(PspmixNamespace_t *ns)
 {
     /* renaming of hwtype to nodeattr pending */
-    int num = HW_num();
-    char name[64];
-    for (int i = 0; i < num; i++) {
-	snprintf(name, 64, "pspmix:nodeattr/%s", HW_name(i));
+    for (AttrIdx_t i = 0; i < Attr_num(); i++) {
+	char name[64];
+	snprintf(name, sizeof(name), "pspmix:nodeattr/%s", Attr_name(i));
 	if (!pspmix_server_createPSet(name, ns, nodeAttrFilter, &i)) {
 	    ulog("failed to create hardware type process sets\n");
 	    return;

@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2014-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2022 ParTec AG, Munich
+ * Copyright (C) 2021-2023 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -93,7 +93,7 @@ typedef struct {
 
 typedef struct {
     long id;
-    unsigned int hwtype;     /**< bit field of enabled hw types */
+    AttrMask_t attributes;    /**< bit field of enabled attributes */
     bool canstart;
     bool runjobs;
     long procs;
@@ -113,7 +113,7 @@ typedef struct {
 
 static nodeconf_t nodeconf = {
     .id = 0,                       /* local node */
-    .hwtype = 0,                   /* local node */
+    .attributes = 0,               /* local node */
     .canstart = true,              /* local node */
     .runjobs = true,               /* local node */
     .procs = -1,                   /* local node */
@@ -635,22 +635,22 @@ static bool getPSINodesSort(char *key)
 
 /* ----------------------- Stuff for hardware types ------------------------ */
 
-static void setHWType(const unsigned int hw)
+static void setHWType(const AttrIdx_t attr)
 {
-    nodeconf.hwtype = hw;
-    parser_comment(PARSER_LOG_NODE, " HW '%s'\n", HW_printType(hw));
+    nodeconf.attributes = attr;
+    parser_comment(PARSER_LOG_NODE, " HW '%s'\n", Attr_print(attr));
 }
 
-static bool addHWent(char *token, unsigned int *hwtype)
+static bool addAttr(char *token, AttrMask_t *attributes)
 {
-    int idx = HW_index(token);
+    AttrIdx_t idx = Attr_index(token);
 
     if (idx < 0) {
 	parser_comment(-1, "Hardware type '%s' not available.\n", token);
 	return false;
     }
 
-    *hwtype |= 1<<idx;
+    *attributes |= 1<<idx;
     return true;
 }
 
@@ -666,13 +666,12 @@ static bool getHW(char *key)
     if (!list->len) {
 	setHWType(0);
     } else {
-	unsigned int hwtype = 0;
+	AttrMask_t attrs = 0;
 	for (guint i = 0; i < list->len; i++) {
-	    if (!(ret = addHWent((char*)g_ptr_array_index(list,i), &hwtype))) {
-		break;
-	    }
+	    ret = addAttr((char*)g_ptr_array_index(list,i), &attrs);
+	    if (!ret) break;
 	}
-	if (ret) setHWType(hwtype);
+	if (ret) setHWType(attrs);
     }
     g_ptr_array_free(list, TRUE);
     return ret;
@@ -1474,7 +1473,7 @@ static bool getNodes(char *psiddomain)
 
 /* ---------------------------------------------------------------------- */
 
-static int actHW = -1;
+static AttrIdx_t thisHW = -1; // @todo
 
 static bool setHardwareScript(char *type, char *value)
 {
@@ -1495,10 +1494,10 @@ static bool setHardwareScript(char *type, char *value)
     }
 
     /* store script */
-    if (HW_getScript(actHW, name)) {
+    if (HW_getScript(thisHW, name)) {
 	parser_comment(-1, "redefineing hardware script: %s\n", name);
     }
-    HW_setScript(actHW, name, value);
+    HW_setScript(thisHW, name, value);
 
     parser_comment(PARSER_LOG_RES, "got hardware script: %s='%s'\n",
 		   name, value);
@@ -1508,10 +1507,10 @@ static bool setHardwareScript(char *type, char *value)
 static bool setHardwareEnv(char *key, char *value)
 {
     /* store environment */
-    if (HW_getEnv(actHW, key)) {
+    if (HW_getEnv(thisHW, key)) {
 	parser_comment(-1, "redefineing hardware environment: %s\n", key);
     }
-    HW_setEnv(actHW, key, value);
+    HW_setEnv(thisHW, key, value);
 
     parser_comment(PARSER_LOG_RES, "got hardware environment: %s='%s'\n",
 		   key, value);
@@ -1627,13 +1626,13 @@ static bool getHardware(char *name)
 	return false;
     }
 
-    actHW = HW_index(name);
+    thisHW = Attr_index(name);
 
-    if (actHW == -1) {
-	actHW = HW_add(name);
+    if (thisHW == -1) {
+	thisHW = Attr_add(name);
 
-	parser_comment(PARSER_LOG_RES, "new hardware '%s' registered as %d\n",
-		       name, actHW);
+	parser_comment(PARSER_LOG_RES, "new attribute '%s' registered as %d\n",
+		       name, thisHW);
     }
 
     return getHardwareOptions(name);
@@ -1810,9 +1809,9 @@ static bool setupLocalNode(void)
     if (fail) return false;
 
     // setup local node
-    if (PSIDnodes_setHWType(nodeconf.id, nodeconf.hwtype)) {
-	parser_comment(-1, "PSIDnodes_setHWType(%ld, %d) failed\n",
-		       nodeconf.id, nodeconf.hwtype);
+    if (!PSIDnodes_setAttr(nodeconf.id, nodeconf.attributes)) {
+	parser_comment(-1, "PSIDnodes_setAttr(%ld, %d) failed\n",
+		       nodeconf.id, nodeconf.attributes);
 	return false;
     }
 

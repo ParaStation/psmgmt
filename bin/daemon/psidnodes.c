@@ -49,8 +49,8 @@ typedef struct {
     short numCores;        /**< Number of physical processor cores */
     short numThrds;        /**< Number of hardware threads */
     bool isUp;             /**< Actual status of that node */
-    unsigned int hwType;   /**< Communication hardware on that node */
-    unsigned int hwStatus; /**< Corresponding statuses of the hardware */
+    AttrMask_t attributes; /**< Attributes assigned to that node */
+    AttrMask_t hwStatus;   /**< Statuses of hardware associated to attributes */
     in_addr_t extraIP;     /**< Additional IP address of that node */
     char runJobs;          /**< Flag to mark that node to run jobs */
     char isStarter;        /**< Flag to allow to start jobs from that node */
@@ -102,7 +102,7 @@ static void nodeInit(node_t *node)
     node->numCores = 0;
     node->numThrds = 0;
     node->isUp = false;
-    node->hwType = 0;
+    node->attributes = 0;
     node->hwStatus = 0;
     node->extraIP = INADDR_ANY;
     node->runJobs = 0;
@@ -333,19 +333,19 @@ int PSIDnodes_getDmnProtoV(PSnodes_ID_t id)
 
 /**********************************************************************/
 
-int PSIDnodes_setHWType(PSnodes_ID_t id, int hwType)
+bool PSIDnodes_setAttr(PSnodes_ID_t id, AttrMask_t attr)
 {
-    if (!validID(id)) return -1;
+    if (!validID(id)) return false;
 
-    nodes[id].hwType = hwType;
-    return 0;
+    nodes[id].attributes = attr;
+    return true;
 }
 
-int PSIDnodes_getHWType(PSnodes_ID_t id)
+AttrMask_t PSIDnodes_getAttr(PSnodes_ID_t id)
 {
     if (!validID(id)) return -1;
 
-    return nodes[id].hwType;
+    return nodes[id].attributes;
 }
 
 int PSIDnodes_setRunJobs(PSnodes_ID_t id, int runjobs)
@@ -614,15 +614,15 @@ short PSIDnodes_getNumThrds(PSnodes_ID_t id)
     return nodes[id].numThrds;
 }
 
-int PSIDnodes_setHWStatus(PSnodes_ID_t id, int hwStatus)
+bool PSIDnodes_setHWStatus(PSnodes_ID_t id, AttrMask_t hwStatus)
 {
-    if (!validID(id)) return -1;
+    if (!validID(id)) return false;
 
     nodes[id].hwStatus = hwStatus;
-    return 0;
+    return true;
 }
 
-int PSIDnodes_getHWStatus(PSnodes_ID_t id)
+AttrMask_t PSIDnodes_getHWStatus(PSnodes_ID_t id)
 {
     if (!validID(id)) return -1;
 

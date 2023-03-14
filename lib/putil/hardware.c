@@ -21,121 +21,111 @@ typedef struct {
     char *name;
     env_t scripts;
     env_t environment;
-} hardware_t;
+} attributes_t;
 
-static hardware_t *hw = NULL;
-static int cnt = 0, size = 0;
+static attributes_t *attributes = NULL;
+static uint8_t cnt = 0, size = 0;
 
-char *HW_name(const int idx)
+char *Attr_name(const AttrIdx_t idx)
 {
     if (idx < 0 || idx >= cnt) return NULL;
-    return hw[idx].name;
+    return attributes[idx].name;
 }
 
-int HW_index(const char *name)
+AttrIdx_t Attr_index(const char *name)
 {
     if (!name) return -1;
 
-    for (int i = 0; i < cnt; i++) if (!strcmp(name, hw[i].name)) return i;
+    for (AttrIdx_t i = 0; i < cnt; i++)
+	if (!strcmp(name, attributes[i].name)) return i;
 
     return -1;
 }
 
-int HW_add(const char *name)
+AttrIdx_t Attr_add(const char *name)
 {
-    if (!name || HW_index(name) != -1) return -1;
+    if (!name || Attr_index(name) != -1) return -1;
 
     if (cnt >= size) {
-	hardware_t *new_hw;
-	size += 5;
-	new_hw = realloc(hw, size * sizeof(*hw));
+	size += 8;
+	attributes_t *newAttr = realloc(attributes, size * sizeof(*attributes));
 
-	if (!new_hw) {
-	    size -= 5;
+	if (!newAttr) {
+	    size -= 8;
 	    return -1;
 	}
-	hw = new_hw;
+	attributes = newAttr;
     }
 
-    hw[cnt].name = strdup(name);
-    envInit(&hw[cnt].scripts);
-    envInit(&hw[cnt].environment);
+    attributes[cnt].name = strdup(name);
+    envInit(&attributes[cnt].scripts);
+    envInit(&attributes[cnt].environment);
 
     cnt++;
-
     return cnt-1;
 }
 
-int HW_num(void)
+AttrIdx_t Attr_num(void)
 {
     return cnt;
 }
 
-bool HW_setScript(const int idx, const char *type, const char *script)
+bool HW_setScript(const AttrIdx_t idx, const char *type, const char *script)
 {
     if (idx < 0 || idx >= cnt) return false;
 
-    return envSet(&hw[idx].scripts, type, script);
+    return envSet(&attributes[idx].scripts, type, script);
 }
 
-char *HW_getScript(const int idx, const char *type)
+char *HW_getScript(const AttrIdx_t idx, const char *type)
 {
     if (idx < 0 || idx >= cnt) return NULL;
 
-    return envGet(&hw[idx].scripts, type);
+    return envGet(&attributes[idx].scripts, type);
 }
 
-bool HW_setEnv(const int idx, const char *name, const char *val)
+bool HW_setEnv(const AttrIdx_t idx, const char *name, const char *val)
 {
     if (idx < 0 || idx >= cnt) return false;
 
-    return envSet(&hw[idx].environment, name, val);
+    return envSet(&attributes[idx].environment, name, val);
 }
 
-char *HW_getEnv(const int idx, const char *name)
+char *HW_getEnv(const AttrIdx_t idx, const char *name)
 {
     if (idx < 0 || idx >= cnt) return NULL;
 
-    return envGet(&hw[idx].environment, name);
+    return envGet(&attributes[idx].environment, name);
 }
 
-int HW_getEnvSize(const int idx)
+int HW_getEnvSize(const AttrIdx_t idx)
 {
     if (idx < 0 || idx >= cnt) return 0;
 
-    return envSize(&hw[idx].environment);
+    return envSize(&attributes[idx].environment);
 }
 
-char *HW_dumpEnv(const int idx, const int num)
+char *HW_dumpEnv(const AttrIdx_t idx, const int num)
 {
     if (idx < 0 || idx >= cnt) return NULL;
 
-    return envDumpIndex(&hw[idx].environment, num);
+    return envDumpIndex(&attributes[idx].environment, num);
 }
 
-char *HW_printType(const unsigned int hwType)
+char *Attr_print(AttrMask_t attrs)
 {
-    unsigned int hwT = hwType;
-    int index = 0;
     static char txt[256];
 
     txt[0] = '\0';
 
-    if (!hwT) snprintf(txt, sizeof(txt), "none ");
+    if (!attrs) snprintf(txt, sizeof(txt), "none ");
 
-    while (hwT) {
-	if (hwT & 1) {
-	    char *name = HW_name(index);
-
-	    if (name) {
-		snprintf(txt+strlen(txt), sizeof(txt)-strlen(txt), "%s ", name);
-	    } else {
-		snprintf(txt+strlen(txt), sizeof(txt)-strlen(txt), "unknown ");
-	    }
+    for (AttrIdx_t idx = 0; attrs; idx++, attrs >>= 1) {
+	if (attrs & 1) {
+	    char *name = Attr_name(idx);
+	    if (!name) name = "<unknown>";
+	    snprintf(txt+strlen(txt), sizeof(txt)-strlen(txt), "%s ", name);
 	}
-
-	hwT >>= 1;
-	index++;
     }
 
     txt[strlen(txt)-1] = '\0';
