@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2015-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2022 ParTec AG, Munich
+ * Copyright (C) 2022-2023 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -34,36 +34,6 @@ int version = 100;
 
 plugin_dep_t dependencies[] = {
     { NULL, 0 } };
-
-char *getHWStr(unsigned int hwType)
-{
-    int hwNum = 0;
-    static char txt[256];
-
-    txt[0] = '\0';
-
-    if (!hwType) snprintf(txt, sizeof(txt), "none ");
-
-    while (hwType) {
-	if (hwType & 1) {
-	    char *hwName = HW_name(hwNum);
-
-	    if (hwName) {
-		snprintf(txt+strlen(txt), sizeof(txt)-strlen(txt),
-			 "%s ", hwName);
-	    } else {
-		snprintf(txt+strlen(txt), sizeof(txt)-strlen(txt), "unknown ");
-	    }
-	}
-
-	hwType >>= 1;
-	hwNum++;
-    }
-
-    txt[strlen(txt)-1] = '\0';
-
-    return txt;
-}
 
 static int resTimer = -1;
 
@@ -169,7 +139,7 @@ int handleDynReservation(void *resPtr)
 
     PSID_log(-1, "%s: %s: Try to reserve %d to %d slots of type '%s' with"
 	     " %d threads for reservation ID %#x\n", name, __func__, min, max,
-	     getHWStr(res->hwType), res->tpp, res->rid);
+	     HW_printType(res->hwType), res->tpp, res->rid);
 
     if (min > MAXTHREADS) {
 	/* Unsuccessful: No slots to be provided */
