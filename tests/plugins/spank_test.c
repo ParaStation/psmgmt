@@ -1,6 +1,7 @@
 #include <stdint.h>
 #include <string.h>
 #include <unistd.h>
+#include <stdlib.h>
 
 #include <slurm/spank.h>
 
@@ -57,17 +58,26 @@ static int optArgAdd = -1;
 static int opt_process(int val, const char *optarg, int remote);
 static int opt_process_add(int val, const char *optarg, int remote);
 
-static void getAllEnv(spank_t sp, const char *func)
+static void getAllEnv(spank_t sp, int ctx, const char *func)
 {
     char buf[1024];
     spank_err_t ret;
     int i;
 
     for (i=0; Spank_Hook_Table[i].strName; i++) {
-	ret = spank_getenv(sp, Spank_Hook_Table[i].strName, buf, sizeof(buf));
-	if (ret == ESPANK_SUCCESS) {
-	    slurm_info("%s: env%i: %s=%s", func, i,
-		       Spank_Hook_Table[i].strName, buf);
+	if (ctx == S_CTX_REMOTE) {
+	    ret = spank_getenv(sp, Spank_Hook_Table[i].strName, buf,
+		               sizeof(buf));
+	    if (ret == ESPANK_SUCCESS) {
+		slurm_info("%s: env%i: %s=%s", func, i,
+			   Spank_Hook_Table[i].strName, buf);
+	    }
+	} else {
+	    char *name = getenv(Spank_Hook_Table[i].strName);
+	    if (name) {
+		slurm_info("%s: env%i: %s=%s", func, i,
+			   Spank_Hook_Table[i].strName, name);
+	    }
 	}
     }
 }
@@ -142,13 +152,46 @@ static int testHook(spank_t sp, int ac, char **av, const char *func)
 	       "isremote %i", func, hookCount, optArg, getuid(), getgid(),
 	       getpid(), spank_remote(sp));
 
+    /* context */
+    int ctx = spank_context();
+    char *strCtx = NULL;
+
+    switch (ctx) {
+	case S_CTX_ERROR:
+	    strCtx = "S_CTX_ERROR";
+	    break;
+	case S_CTX_LOCAL:
+	    strCtx = "S_CTX_LOCAL";
+	    break;
+	case S_CTX_REMOTE:
+	    strCtx = "S_CTX_REMOTE";
+	    break;
+	case S_CTX_ALLOCATOR:
+	    strCtx = "S_CTX_ALLOCATOR";
+	    break;
+	case S_CTX_SLURMD:
+	    strCtx = "S_CTX_SLURMD";
+	    break;
+	case S_CTX_JOB_SCRIPT:
+	    strCtx = "S_CTX_JOB_SCRIPT";
+	    break;
+	default:
+	    strCtx = "unknown";
+    }
+    slurm_info("%s: current context(%i) %s\n", func, ctx, strCtx);
+
     /* set environment */
-    ret = spank_setenv(sp, func, "psslurm-test", 1); if (ret != ESPANK_SUCCESS) {
-	slurm_info("%s: spank_setenv failed: %i, %s", func, ret,
-		   spank_strerror(ret));
+    if (ctx == S_CTX_REMOTE) {
+	ret = spank_setenv(sp, func, "psslurm-test", 1);
+	if (ret != ESPANK_SUCCESS) {
+	    slurm_info("%s: spank_setenv failed: %i, %s", func, ret,
+		       spank_strerror(ret));
+	}
+    } else {
+	setenv(func, "psslurm-test", 1);
     }
 
-    getAllEnv(sp, func);
+    getAllEnv(sp, ctx, func);
 
     /* print spank arguments */
     for (i=0; i<ac; i++) {
@@ -351,34 +394,6 @@ static int testHook(spank_t sp, int ac, char **av, const char *func)
     uint32_t arrayTaskID;
     ret = spank_get_item(sp, S_JOB_ARRAY_TASK_ID, &arrayTaskID);
     slurm_info("%s: S_JOB_ARRAY_TASK_ID: %u ret: %i", func, arrayTaskID, ret);
-
-    /* context */
-    int ctx = spank_context();
-    char *strCtx = NULL;
-
-    switch (ctx) {
-	case S_CTX_ERROR:
-	    strCtx = "S_CTX_ERROR";
-	    break;
-	case S_CTX_LOCAL:
-	    strCtx = "S_CTX_LOCAL";
-	    break;
-	case S_CTX_REMOTE:
-	    strCtx = "S_CTX_REMOTE";
-	    break;
-	case S_CTX_ALLOCATOR:
-	    strCtx = "S_CTX_ALLOCATOR";
-	    break;
-	case S_CTX_SLURMD:
-	    strCtx = "S_CTX_SLURMD";
-	    break;
-	case S_CTX_JOB_SCRIPT:
-	    strCtx = "S_CTX_JOB_SCRIPT";
-	    break;
-	default:
-	    strCtx = "unknown";
-    }
-    slurm_info("%s: current context(%i) %s\n", func, ctx, strCtx);
 
     return ESPANK_SUCCESS;
 }
