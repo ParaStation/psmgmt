@@ -720,7 +720,9 @@ bool initSlurmOpt(void)
 	.alloc = NULL,
 	.job = NULL,
 	.step = NULL,
-	.hook = SPANK_SLURMD_INIT
+	.hook = SPANK_SLURMD_INIT,
+	.envSet = NULL,
+	.envUnset = NULL
     };
     SpankCallHook(&spank);
 #endif
@@ -872,7 +874,9 @@ void finalize(void)
 	.alloc = NULL,
 	.job = NULL,
 	.step = NULL,
-	.hook = SPANK_SLURMD_EXIT
+	.hook = SPANK_SLURMD_EXIT,
+	.envSet = NULL,
+	.envUnset = NULL
     };
 
     if (SpankIsInitialized()) SpankCallHook(&spank);

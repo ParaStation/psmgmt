@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2020 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2022 ParTec AG, Munich
+ * Copyright (C) 2021-2023 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -142,5 +142,44 @@ void fwCMD_enableSrunIO(Step_t *step);
  * @param senderRank The origin of the message
  */
 void fwCMD_msgSrunProxy(Step_t *step, PSLog_Msg_t *lmsg, int32_t senderRank);
+
+/**
+ * @brief Send CMD_SETENV to mother
+ *
+ * Let SPANK hooks running in the psslurm forwarder modify the step
+ * environment of the mother psid. Therefore the environment can be
+ * changed before the user processes will inherit them.
+ *
+ * @param step The step which holds the environment to modify
+ *
+ * @param var The name of the environment variable to set
+ *
+ * @param val The value to set
+ */
+void fwCMD_setEnv(Step_t *step, const char *var, const char *val);
+
+/**
+ * @brief Send CMD_UNSETENV to mother
+ *
+ * Let SPANK hooks running in the psslurm forwarder modify the step
+ * environment of the mother psid. Therefore the environment can be
+ * changed before the user processes will inherit them.
+ *
+ * @param step The step which holds the environment to modify
+ *
+ * @param var The name of the environment variable to unset
+ */
+void fwCMD_unsetEnv(Step_t *step, const char *var);
+
+/**
+ * @brief Send CMD_INIT_COMPLETE to mother
+ *
+ * Inform the mother psid that the psslurmstep forwarder
+ * successfully complete the initialization phase including
+ * SPANK hooks.
+ *
+ * @param step The step the forwarder is responsible for
+ */
+void fwCMD_initComplete(Step_t *step);
 
 #endif  /* __PS_SLURM_FW_COMM */

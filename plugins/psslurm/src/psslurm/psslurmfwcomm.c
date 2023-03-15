@@ -27,6 +27,7 @@
 #include "psslurmio.h"
 #include "psslurmlog.h"
 #include "psslurmproto.h"
+#include "psslurmpscomm.h"
 
 typedef enum {
     CMD_PRINT_CHILD_MSG = PLGN_TYPE_LAST+1,
@@ -36,6 +37,9 @@ typedef enum {
     CMD_INFO_TASKS,
     CMD_STEP_TIMEOUT,
     CMD_BROKE_IO_CON,
+    CMD_SETENV,
+    CMD_UNSETENV,
+    CMD_INIT_COMPLETE,
 } PSSLURM_Fw_Cmds_t;
 
 static void handleStepTimeout(Forwarder_Data_t *fwdata)
@@ -208,6 +212,57 @@ static void handleBrokeIOcon(DDTypedBufferMsg_t *msg)
     if (step->ioCon == IO_CON_NORM) step->ioCon = IO_CON_ERROR;
 }
 
+static void changeEnv(int cmd, DDTypedBufferMsg_t *msg)
+{
+    char *ptr = msg->buf;
+
+    uint32_t jobid;
+    getUint32(&ptr, &jobid);
+    uint32_t stepid;
+    getUint32(&ptr, &stepid);
+
+    Step_t *step = Step_findByStepId(jobid, stepid);
+    if (!step) {
+	flog("warning: step %u:%u already gone\n", jobid, stepid);
+	return;
+    }
+
+    char *var = getStringM(&ptr);
+
+    if (cmd == CMD_SETENV) {
+	char *val = getStringM(&ptr);
+	fdbg(PSSLURM_LOG_SPANK, "setenv %s:%s for %u:%u\n", var, val,
+	     jobid, stepid);
+	envSet(&step->env, var, val);
+
+	ufree(val);
+    } else {
+	fdbg(PSSLURM_LOG_SPANK, "unsetenv %s for %u:%u\n", var, jobid, stepid);
+	envUnset(&step->env, var);
+    }
+
+    ufree(var);
+}
+
+static void handleInitComplete(DDTypedBufferMsg_t *msg)
+{
+    char *ptr = msg->buf;
+
+    uint32_t jobid;
+    getUint32(&ptr, &jobid);
+    uint32_t stepid;
+    getUint32(&ptr, &stepid);
+
+    Step_t *step = Step_findByStepId(jobid, stepid);
+    if (!step) {
+	flog("warning: step %u:%u already gone\n", jobid, stepid);
+	return;
+    }
+
+    handleCachedMsg(step);
+    releaseDelayedSpawns(step->jobid, step->stepid);
+}
+
 bool fwCMD_handleFwStepMsg(DDTypedBufferMsg_t *msg, Forwarder_Data_t *fwdata)
 {
     if (msg->header.type == PSP_CC_MSG) {
@@ -226,6 +281,13 @@ bool fwCMD_handleFwStepMsg(DDTypedBufferMsg_t *msg, Forwarder_Data_t *fwdata)
 	switch ((PSSLURM_Fw_Cmds_t)msg->type) {
 	case CMD_BROKE_IO_CON:
 	    handleBrokeIOcon(msg);
+	    break;
+	case CMD_SETENV:
+	case CMD_UNSETENV:
+	    changeEnv((PSSLURM_Fw_Cmds_t)msg->type, msg);
+	    break;
+	case CMD_INIT_COMPLETE:
+	    handleInitComplete(msg);
 	    break;
 	default:
 	    mdbg(PSSLURM_LOG_IO_VERB, "%s: Unhandled type %d\n", __func__,
@@ -251,6 +313,82 @@ void fwCMD_stepTimeout(Forwarder_Data_t *fwdata)
     if (!fwdata) return;
 
     sendMsg(&msg);
+}
+
+void fwCMD_setEnv(Step_t *step, const char *var, const char *val)
+{
+    if (!step || !var || !val) {
+	flog("error: missing parameters\n");
+	return;
+    }
+
+    DDTypedBufferMsg_t msg = {
+	.header = {
+	    .type = PSP_PLUG_PSSLURM,
+	    .dest = PSC_getTID(-1,0),
+	    .sender = PSC_getMyTID(),
+	    .len = 0, },
+	.type = CMD_SETENV };
+    uint32_t myJobID = htonl(step->jobid);
+    PSP_putTypedMsgBuf(&msg, "jobID", &myJobID, sizeof(myJobID));
+    uint32_t myStepID = htonl(step->stepid);
+    PSP_putTypedMsgBuf(&msg, "stepID", &myStepID, sizeof(myStepID));
+
+    uint32_t len = htonl(PSP_strLen(var));
+    PSP_putTypedMsgBuf(&msg, "len", &len, sizeof(len));
+    PSP_putTypedMsgBuf(&msg, "var", var, PSP_strLen(var));
+
+    len = htonl(PSP_strLen(val));
+    PSP_putTypedMsgBuf(&msg, "len", &len, sizeof(len));
+    PSP_putTypedMsgBuf(&msg, "val", val, PSP_strLen(val));
+
+    sendMsgToMother(&msg);
+}
+
+void fwCMD_initComplete(Step_t *step)
+{
+    if (!step) {
+	flog("error: missing step\n");
+	return;
+    }
+
+    DDTypedBufferMsg_t msg = {
+	.header = {
+	    .type = PSP_PLUG_PSSLURM,
+	    .dest = PSC_getTID(-1,0),
+	    .sender = PSC_getMyTID(),
+	    .len = 0, },
+	.type = CMD_INIT_COMPLETE };
+    uint32_t myJobID = htonl(step->jobid);
+    PSP_putTypedMsgBuf(&msg, "jobID", &myJobID, sizeof(myJobID));
+    uint32_t myStepID = htonl(step->stepid);
+    PSP_putTypedMsgBuf(&msg, "stepID", &myStepID, sizeof(myStepID));
+}
+
+void fwCMD_unsetEnv(Step_t *step, const char *var)
+{
+    if (!step || !var) {
+	flog("error: missing parameters\n");
+	return;
+    }
+
+    DDTypedBufferMsg_t msg = {
+	.header = {
+	    .type = PSP_PLUG_PSSLURM,
+	    .dest = PSC_getTID(-1,0),
+	    .sender = PSC_getMyTID(),
+	    .len = 0, },
+	.type = CMD_UNSETENV };
+    uint32_t myJobID = htonl(step->jobid);
+    PSP_putTypedMsgBuf(&msg, "jobID", &myJobID, sizeof(myJobID));
+    uint32_t myStepID = htonl(step->stepid);
+    PSP_putTypedMsgBuf(&msg, "stepID", &myStepID, sizeof(myStepID));
+
+    uint32_t len = htonl(PSP_strLen(var));
+    PSP_putTypedMsgBuf(&msg, "len", &len, sizeof(len));
+    PSP_putTypedMsgBuf(&msg, "var", var, PSP_strLen(var));
+
+    sendMsgToMother(&msg);
 }
 
 void fwCMD_brokeIOcon(Step_t *step)

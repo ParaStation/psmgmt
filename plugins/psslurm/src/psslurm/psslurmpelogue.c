@@ -468,7 +468,9 @@ int handlePEloguePrepare(void *data)
 	.alloc = Alloc_find(jobid),
 	.job = Job_findById(jobid),
 	.step = NULL,
-	.hook = SPANK_JOB_PROLOG
+	.hook = SPANK_JOB_PROLOG,
+	.envSet = NULL,
+	.envUnset = NULL
     };
 
     if (pedata->type != PELOGUE_PROLOGUE) spank.hook = SPANK_JOB_EPILOG;

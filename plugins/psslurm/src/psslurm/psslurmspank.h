@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2019-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2022 ParTec AG, Munich
+ * Copyright (C) 2022-2023 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -56,6 +56,11 @@ typedef enum {
     SPANK_END                   /**< mark end of hook table */
 } Spank_Hook_Calls_t;
 
+typedef void SPANK_envSet_t(Step_t *, const char *key, const char *val);
+
+typedef void SPANK_envUnset_t(Step_t *, const char *key);
+
+/** holding all information to execute SPANK calls (spank_t) */
 struct spank_handle {
     int magic;               /**< magic to detect corrupted spank structures */
     Alloc_t *alloc;          /**< allocation of the current context or NULL */
@@ -65,6 +70,10 @@ struct spank_handle {
     PStask_t *task;          /**< child task structure which called the hook */
     Spank_Plugin_t *plugin;  /**< spank plugin currently executed */
     unsigned int context;    /**< spank context */
+    SPANK_envSet_t *envSet;  /**< function which sets step environment
+			          of mother psid */
+    SPANK_envUnset_t *envUnset; /**< function which unsets step environment
+				     of mother psid */
 };
 
 /** flag to mark if a spank plugin taints the main psid process */

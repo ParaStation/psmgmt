@@ -710,8 +710,6 @@ static void handleLaunchTasks(Slurm_Msg_t *sMsg)
 	}
     }
 
-    handleCachedMsg(step);
-    releaseDelayedSpawns(step->jobid, step->stepid);
     return;
 
 ERROR:

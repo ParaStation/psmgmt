@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2019-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2022 ParTec AG, Munich
+ * Copyright (C) 2021-2023 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -390,6 +390,9 @@ spank_err_t psSpankUnsetenv(spank_t spank, const char *var)
 	    unsetenv(var);
     }
 
+    /* let the psslurmforwarder send change to mother */
+    if (spank->envUnset) spank->envUnset(spank->step, var);
+
     return ESPANK_SUCCESS;
 }
 
@@ -410,18 +413,12 @@ spank_err_t psSpankSetenv(spank_t spank, const char *var, const char *val,
 	    if (setenv(var, val, overwrite) == -1) return ESPANK_BAD_ARG;
     }
 
-    /* TODO: should we set it also in the management structures? */
-    if (spank->step) {
-	envSet(&spank->step->env, var, val);
-    }
+    if (spank->step) envSet(&spank->step->env, var, val);
+    if (spank->job) envSet(&spank->job->env, var, val);
+    if (spank->alloc) envSet(&spank->alloc->env, var, val);
 
-    if (spank->job) {
-	envSet(&spank->job->env, var, val);
-    }
-
-    if (spank->alloc) {
-	envSet(&spank->alloc->env, var, val);
-    }
+    /* let the psslurmforwarder send change to mother */
+    if (spank->envSet) spank->envSet(spank->step, var, val);
 
     return ESPANK_SUCCESS;
 }

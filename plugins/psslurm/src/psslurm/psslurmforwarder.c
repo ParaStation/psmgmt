@@ -506,7 +506,9 @@ int handleForwarderInit(void * data)
 	.alloc = fwAlloc,
 	.job = fwJob,
 	.step = fwStep,
-	.hook = SPANK_TASK_POST_FORK
+	.hook = SPANK_TASK_POST_FORK,
+	.envSet = NULL,
+	.envUnset = NULL
     };
     SpankCallHook(&spank);
 #endif
@@ -572,7 +574,9 @@ int handleExecClient(void *data)
 	.alloc = fwAlloc,
 	.job = fwJob,
 	.step = fwStep,
-	.hook = SPANK_TASK_INIT_PRIVILEGED
+	.hook = SPANK_TASK_INIT_PRIVILEGED,
+	.envSet = NULL,
+	.envUnset = NULL
     };
     SpankCallHook(&spank);
 #endif
@@ -622,7 +626,9 @@ int handleExecClientPrep(void *data)
 	.alloc = fwAlloc,
 	.job = fwJob,
 	.step = fwStep,
-	.hook = SPANK_TASK_INIT
+	.hook = SPANK_TASK_INIT,
+	.envSet = NULL,
+	.envUnset = NULL
     };
     SpankCallHook(&spank);
 #endif
@@ -1117,7 +1123,9 @@ static int stepForwarderInit(Forwarder_Data_t *fwdata)
 	.alloc = Alloc_find(step->jobid),
 	.job = Job_findById(step->jobid),
 	.step = step,
-	.hook = SPANK_INIT
+	.hook = SPANK_INIT,
+	.envSet = fwCMD_setEnv,
+	.envUnset = fwCMD_unsetEnv
     };
     SpankCallHook(&spank);
 
@@ -1165,6 +1173,9 @@ static int stepForwarderInit(Forwarder_Data_t *fwdata)
 	    return -1;
 	}
     }
+
+    /* inform the mother psid */
+    fwCMD_initComplete(step);
 
     return 1;
 }
@@ -1222,7 +1233,9 @@ static void stepFinalize(Forwarder_Data_t *fwdata)
 	.alloc = Alloc_find(step->jobid),
 	.job = Job_findById(step->jobid),
 	.step = step,
-	.hook = SPANK_EXIT
+	.hook = SPANK_EXIT,
+	.envSet = NULL,
+	.envUnset = NULL
     };
 
     /* set environment variables from user */
@@ -1551,7 +1564,9 @@ static int stepFollowerFWinit(Forwarder_Data_t *fwdata)
 	.alloc = Alloc_find(step->jobid),
 	.job = Job_findById(step->jobid),
 	.step = step,
-	.hook = SPANK_INIT
+	.hook = SPANK_INIT,
+	.envSet = fwCMD_setEnv,
+	.envUnset = fwCMD_unsetEnv
     };
     SpankCallHook(&spank);
 
@@ -1574,6 +1589,9 @@ static int stepFollowerFWinit(Forwarder_Data_t *fwdata)
     }
 
 #endif
+
+    /* inform the mother psid */
+    fwCMD_initComplete(step);
 
     return 1;
 }
@@ -1629,7 +1647,9 @@ int handleFwRes(void * data)
 	    .alloc = fwAlloc,
 	    .job = fwJob,
 	    .step = fwStep,
-	    .hook = SPANK_TASK_EXIT
+	    .hook = SPANK_TASK_EXIT,
+	    .envSet = NULL,
+	    .envUnset = NULL
 	};
 	SpankCallHook(&spank);
     }
