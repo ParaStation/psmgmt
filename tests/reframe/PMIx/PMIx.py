@@ -1,0 +1,47 @@
+import reframe as rfm
+import reframe.utility.sanity as sn
+
+
+@rfm.simple_test
+class getSizes(rfm.RegressionTest):
+    valid_systems = ["*"]
+    valid_prog_environs = ["gnu"]
+    sourcesdir = "../../PMIx"
+    sourcepath = ""
+    build_system = "Make"
+    executable = "./getSizes"
+
+    ntasks = parameter(range(1, 5))
+    nnodes = parameter(range(1, 3))
+
+    @run_after("init")
+    def set_parameters(self):
+        self.num_tasks = self.ntasks
+        self.num_nodes = self.nnodes
+
+    @run_before("run")
+    def set_pmix(self):
+        self.job.launcher.options = ["--mpi=pspmix"]
+
+    @sanity_function
+    def validate_output(self):
+        names = ["UNIV_SIZE", "JOB_SIZE", "APP_SIZE"]
+
+        num = {}
+        for var in names:
+            num[var] = sn.len(
+                sn.findall(
+                    rf"^\[\s?\d+\]: PMIX_{var} is {self.num_tasks}$", self.stdout
+                )
+            )
+
+        return sn.all(
+            [
+                sn.assert_eq(
+                    num[var], self.num_tasks, f"number of outputs of PMIX_{var}"
+                )
+                for var in names
+            ]
+        )
+
+        return 0
