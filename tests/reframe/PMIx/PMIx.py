@@ -55,3 +55,45 @@ class getSizes(SimplePMIxTest):
         )
 
         return 0
+
+
+@rfm.simple_test
+class putGet(SimplePMIxTest):
+    executable = "./putGet"
+
+    ntasks = parameter([4, 5, 8])
+    nnodes = parameter([2, 4])
+
+    @sanity_function
+    def validate_output(self):
+        prefix = r"\[pspmix_0x[\dabcdef]{8}\[\d+:\d+\]:\d+\]"
+
+        return sn.all(
+            [
+                # error out should be empty
+                sn.assert_found(r"\A\Z", self.stderr),
+                # no "failed" should be reported
+                sn.assert_not_found(r"failed", self.stdout),
+                # number of fence complete messages should match
+                sn.assert_eq(
+                    sn.len(
+                        sn.findall(
+                            rf"^{prefix} Fence complete$",
+                            self.stdout,
+                        )
+                    ),
+                    self.num_tasks,
+                ),
+                sn.assert_eq(
+                    sn.len(
+                        sn.findall(
+                            rf"^{prefix} complete and successful$",
+                            self.stdout,
+                        )
+                    ),
+                    self.num_tasks,
+                ),
+            ]
+        )
+
+        return 0
