@@ -17,10 +17,10 @@ class getSizes(rfm.RegressionTest):
     @run_after("init")
     def set_parameters(self):
         self.num_tasks = self.ntasks
-        self.num_nodes = self.nnodes
 
     @run_before("run")
     def set_pmix(self):
+        self.job.options = [f"-N {self.nnodes}"]
         self.job.launcher.options = ["--mpi=pspmix"]
 
     @sanity_function
