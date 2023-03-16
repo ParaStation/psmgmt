@@ -37,10 +37,17 @@ class getSizes(rfm.RegressionTest):
 
         return sn.all(
             [
-                sn.assert_eq(
-                    num[var], self.num_tasks, f"number of outputs of PMIX_{var}"
-                )
-                for var in names
+                # error out should be empty
+                sn.assert_found(r"\A\Z", self.stderr),
+                # number and value of each variable should match
+                sn.all(
+                    [
+                        sn.assert_eq(
+                            num[var], self.num_tasks, f"number of outputs of PMIX_{var}"
+                        )
+                        for var in names
+                    ]
+                ),
             ]
         )
 
