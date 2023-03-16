@@ -2,17 +2,12 @@ import reframe as rfm
 import reframe.utility.sanity as sn
 
 
-@rfm.simple_test
-class getSizes(rfm.RegressionTest):
+class SimplePMIxTest(rfm.RegressionTest):
     valid_systems = ["*"]
     valid_prog_environs = ["gnu"]
     sourcesdir = "../../PMIx"
     sourcepath = ""
     build_system = "Make"
-    executable = "./getSizes"
-
-    ntasks = parameter(range(1, 5))
-    nnodes = parameter(range(1, 3))
 
     @run_after("init")
     def set_parameters(self):
@@ -22,6 +17,14 @@ class getSizes(rfm.RegressionTest):
     def set_pmix(self):
         self.job.options = [f"-N {self.nnodes}"]
         self.job.launcher.options = ["--mpi=pspmix"]
+
+
+@rfm.simple_test
+class getSizes(SimplePMIxTest):
+    executable = "./getSizes"
+
+    ntasks = parameter(range(1, 5))
+    nnodes = parameter(range(1, 3))
 
     @sanity_function
     def validate_output(self):
