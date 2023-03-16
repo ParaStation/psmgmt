@@ -13,7 +13,7 @@ $> pip3 install --user reframe-hpc
 
 You first need to create a description of the system.
 
-Find an example for partecvm in partecvm.py
+Find an example for partecvm in config/partecvm.py
 
 Full documentation can be found here:
 https://reframe-hpc.readthedocs.io/en/stable/configure.html
