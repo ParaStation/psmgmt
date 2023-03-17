@@ -194,7 +194,7 @@ static Connection_t *addConnection(int socket, Connection_CB_t *cb, void *info)
 	ufree(con->info);
 	con->info = info;
 	gettimeofday(&con->openTime, NULL);
-	con->needVerifcation = false;
+	con->authByInMsg = false;
 	return con;
     }
 
@@ -522,7 +522,7 @@ CALLBACK:
 	sMsg.data = dBuf;
 	sMsg.ptr = sMsg.data->buf;
 	sMsg.recvTime = con->recvTime = time(NULL);
-	sMsg.needVerifcation = con->needVerifcation;
+	sMsg.authRequired = con->authByInMsg;
 
 	/* overwrite empty addr informations */
 	getSockInfo(sock, &sMsg.head.addr, &sMsg.head.port);
@@ -1026,7 +1026,7 @@ int __sendSlurmMsgEx(int sock, Slurm_Msg_Header_t *head, PS_SendDB_t *body,
     Connection_t *con = findConnection(sock);
     Slurm_Auth_t *auth = NULL;
     if (slurmProto >= SLURM_23_02_PROTO_VERSION &&
-	sock >= 0 && con && con->needVerifcation) {
+	sock >= 0 && con && con->authByInMsg) {
 	/* if the connection was verified before, the authentication can
 	 * be skipped for the response */
 	head->flags |= SLURM_NO_AUTH_CRED;
@@ -1283,7 +1283,7 @@ static int acceptSlurmClient(int socket, void *data)
     if (!con) {
 	flog("failed to register socket %i\n", newSock);
     } else {
-	con->needVerifcation = true;
+	con->authByInMsg = true;
     }
 
     return 0;

@@ -170,7 +170,7 @@ bool extractSlurmAuth(Slurm_Msg_t *sMsg)
 
     /* no authentication credential for message response */
     if (sMsg->head.flags & SLURM_NO_AUTH_CRED) {
-	if (sMsg->needVerifcation) {
+	if (sMsg->authRequired) {
 	    flog("message has flag SLURM_NO_AUTH_CRED set but comes "
 		 "from unverified source\n");
 	    return false;

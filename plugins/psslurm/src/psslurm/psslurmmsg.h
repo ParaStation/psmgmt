@@ -60,7 +60,7 @@ typedef struct {
 				     @ref data buffer */
     void *unpData;		/**< holding the unpacked message payload */
     time_t recvTime;		/**< time the message was received */
-    bool needVerifcation;	/**< if true the messages should be verified */
+    bool authRequired;		/**< need to verify messages authentification */
 } Slurm_Msg_t;
 
 // leave after Slurm_Msg_t definition to break include cycle
