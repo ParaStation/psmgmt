@@ -43,13 +43,15 @@ bool initConfig(Config_t *conf);
  *
  * In order to avoid double or ghost entries the configuration's case
  * sensitivity must be adjusted before any entries are added or the
- * actual configration is fetched from a file.
+ * actual configration is fetched from a file. This function will
+ * check for an empty configuration and fail in case of existing
+ * entries.
  *
  * @param sensitivity Flag the configuration's case sensitivity
  *
- * @return No return value
+ * @return true on success, false on error
  */
-void setConfigCaseSensitivity(Config_t conf, bool sensitivity);
+bool setConfigCaseSensitivity(Config_t conf, bool sensitivity);
 
 /**
  * @brief Set configuration's case sensitivity

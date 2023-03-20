@@ -145,9 +145,12 @@ bool initConfig(Config_t *conf)
     return true;
 }
 
-void setConfigCaseSensitivity(Config_t conf, bool sensitivity)
+bool setConfigCaseSensitivity(Config_t conf, bool sensitivity)
 {
-    if (checkConfig(conf)) conf->caseSensitive = sensitivity;
+    if (!checkConfig(conf) || !list_empty(&(conf->config))) return false;
+
+    conf->caseSensitive = sensitivity;
+    return true;
 }
 
 bool getConfigCaseSensitivity(Config_t conf)
