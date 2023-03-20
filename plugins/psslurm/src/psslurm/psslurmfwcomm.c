@@ -363,6 +363,8 @@ void fwCMD_initComplete(Step_t *step)
     PSP_putTypedMsgBuf(&msg, "jobID", &myJobID, sizeof(myJobID));
     uint32_t myStepID = htonl(step->stepid);
     PSP_putTypedMsgBuf(&msg, "stepID", &myStepID, sizeof(myStepID));
+
+    sendMsgToMother(&msg);
 }
 
 void fwCMD_unsetEnv(Step_t *step, const char *var)
