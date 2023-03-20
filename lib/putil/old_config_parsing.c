@@ -702,7 +702,7 @@ static int getSingleAttr(char *token)
     return setAttr(curAttr);
 }
 
-static int endHWEnv(char *token)
+static int endAttrEnv(char *token)
 {
     int ret = setAttr(curAttr);
     if (ret) return ret;
@@ -710,31 +710,31 @@ static int endHWEnv(char *token)
     return ENV_END;
 }
 
-static keylist_t hwenv_list[] = {
+static keylist_t attrEnv_list[] = {
     {"none", getAttrNone, NULL},
-    {"}", endHWEnv, NULL},
+    {"}", endAttrEnv, NULL},
     {NULL, addAttr, NULL}
 };
 
-static parser_t hwenv_parser = {" \t\n", hwenv_list};
+static parser_t attrEnv_parser = {" \t\n", attrEnv_list};
 
-static int getHWEnv(char *token)
+static int getAttrEnv(char *token)
 {
     curAttr = 0;
-    return parser_parseOn(parser_getString(), &hwenv_parser);
+    return parser_parseOn(parser_getString(), &attrEnv_parser);
 }
 
-static keylist_t hw_list[] = {
-    {"{", getHWEnv, NULL},
+static keylist_t attr_list[] = {
+    {"{", getAttrEnv, NULL},
     {"none", getAttrNone, NULL},
     {NULL, getSingleAttr, NULL}
 };
 
-static parser_t hw_parser = {" \t\n", hw_list};
+static parser_t attr_parser = {" \t\n", attr_list};
 
-static int getHW(char *token)
+static int getAttr(char *token)
 {
-    int ret = parser_parseToken(parser_getString(), &hw_parser);
+    int ret = parser_parseToken(parser_getString(), &attr_parser);
 
     if (ret == ENV_END) ret = 0;
 
@@ -1957,7 +1957,8 @@ static int newHost(int id, char *nodename, in_addr_t addr)
 /* ---------------------------------------------------------------------- */
 
 static keylist_t nodeline_list[] = {
-    {"hwtype", getHW, NULL},
+    {"attributes", getAttr, NULL},
+    {"hwtype", getAttr, NULL},
     {"runjobs", getRJ, NULL},
     {"starter", getCS, NULL},
     {"user", getUser, NULL},
@@ -2381,34 +2382,46 @@ static parser_t hardwareenv_parser = {" \t\n", hardwareenv_list};
 
 static int getHardware(char *token)
 {
-    char *name, *brace;
-    int ret;
-
-    name = parser_getString();
+    char *name = parser_getString();
     if (!name) {
 	parser_comment(-1, "no hardware name\n");
 	return -1;
     }
 
     thisHW = Attr_index(name);
-
     if (thisHW == -1) {
 	thisHW = Attr_add(name);
 
-	parser_comment(PARSER_LOG_RES, "new attribute '%s' registered as %d\n",
+	parser_comment(PARSER_LOG_RES, "new hardware '%s' registered as %d\n",
 		       name, thisHW);
     }
 
-    brace = parser_getString();
+    char *brace = parser_getString();
     if (!brace || strcmp(brace, "{")) return -1;
 
-    ret = parser_parseOn(parser_getString(), &hardwareenv_parser);
-
-    if (ret == ENV_END) {
-	return 0;
-    }
+    int ret = parser_parseOn(parser_getString(), &hardwareenv_parser);
+    if (ret == ENV_END) return 0;
 
     return ret;
+}
+
+static int getFeature(char *token)
+{
+    char *name = parser_getString();
+    if (!name) {
+	parser_comment(-1, "no feature name\n");
+	return -1;
+    }
+
+    AttrIdx_t attr = Attr_index(name);
+    if (attr == -1) {
+	attr = Attr_add(name);
+
+	parser_comment(PARSER_LOG_RES, "new feature '%s' registered as %d\n",
+		       name, attr);
+    }
+
+    return 0;
 }
 
 /* ---------------------------------------------------------------------- */
@@ -2574,8 +2587,10 @@ static keylist_t config_list[] = {
     {"installdirectory", getInstDir, NULL},
     {"coredirectory", getCoreDir, NULL},
     {"hardware", getHardware, NULL},
+    {"feature", getFeature, NULL},
     {"nrofnodes", getNumNodes, NULL},
-    {"hwtype", getHW, NULL},
+    {"attributes", getAttr, NULL},
+    {"hwtype", getAttr, NULL},
     {"runjobs", getRJ, NULL},
     {"starter", getCS, NULL},
     {"user", getUser, NULL},
