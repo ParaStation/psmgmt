@@ -31,11 +31,11 @@ config_t *parseConfig(FILE* logfile, int logmask, char *configfile)
 #include <glib.h>
 #include <psconfig.h>
 
-#include "pscommon.h"
-#include "hardware.h"
-#include "pspartition.h"
 #include "parser.h"
+#include "psattribute.h"
+#include "pscommon.h"
 #include "psconfighelper.h"
+#include "pspartition.h"
 #include "selector.h"
 #include "rdp.h"
 #include "timer.h"

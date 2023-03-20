@@ -142,7 +142,6 @@ doc/systemd/psidstarter_socket_d_port.conf \
 include/Makefile.am \
 include/Makefile.in \
 include/config_parsing.h \
-include/hardware.h \
 include/kvs.h \
 include/kvscommon.h \
 include/kvslog.h \
@@ -163,6 +162,7 @@ include/pluginpsconfig.h \
 include/pluginpty.h \
 include/pluginstrv.h \
 include/pluginvector.h \
+include/psattribute.h \
 include/psbyteorder.h \
 include/pscio.h \
 include/pscommon.h \
@@ -246,11 +246,11 @@ lib/pslog/pslog.c \
 lib/putil/Makefile.am \
 lib/putil/Makefile.in \
 lib/putil/config_parsing.c \
-lib/putil/hardware.c \
 lib/putil/linenoise.c \
 lib/putil/mcast.c \
 lib/putil/old_config_parsing.c \
 lib/putil/parser.c \
+lib/putil/psattribute.c \
 lib/putil/psconfighelper.c \
 lib/putil/psdaemonprotocol.c \
 lib/putil/psparamspace.c \

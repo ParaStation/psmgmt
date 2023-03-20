@@ -18,10 +18,9 @@
 #include <errno.h>
 #include <string.h>
 
+#include "psattribute.h"
 #include "pscommon.h"
 #include "pscio.h"
-
-#include "hardware.h"
 
 #include "psidutil.h"
 #include "psidnodes.h"

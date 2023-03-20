@@ -22,10 +22,10 @@
 #include <sys/types.h>
 #include <netinet/in.h>
 
+#include "psattribute.h"
 #include "pscpu.h"
 #include "psnodes.h"
 #include "pstask.h"
-#include "hardware.h"
 
 #include "psidhw.h"
 

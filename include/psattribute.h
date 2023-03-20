@@ -12,8 +12,8 @@
 /**
  * @file Attribute management
  */
-#ifndef _HARDWARE_H_
-#define _HARDWARE_H_
+#ifndef _PSATTRIBUTE_H_
+#define _PSATTRIBUTE_H_
 
 #include <stdbool.h>
 #include <stdint.h>
@@ -221,4 +221,4 @@ char *HW_dumpEnv(const AttrIdx_t idx, const int num);
 
 /*\@}*/
 
-#endif /* _HARDWARE_H_ */
+#endif /* _PSATTRIBUTE_H_ */

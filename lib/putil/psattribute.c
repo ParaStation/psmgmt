@@ -9,7 +9,7 @@
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-#include "hardware.h"
+#include "psattribute.h"
 
 #include <stdio.h>
 #include <stdlib.h>

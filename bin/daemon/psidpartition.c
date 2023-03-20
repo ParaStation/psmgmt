@@ -19,13 +19,13 @@
 #include <sys/types.h>
 
 #include "list.h"
+#include "psattribute.h"
 #include "pscommon.h"
 #include "pscpu.h"
 #include "psdaemonprotocol.h"
 #include "psserial.h"
 
 #include "config_parsing.h"
-#include "hardware.h"
 
 #include "psidutil.h"
 #include "psidcomm.h"

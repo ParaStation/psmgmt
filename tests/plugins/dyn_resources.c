@@ -12,11 +12,11 @@
 #include <string.h>
 #include <sys/time.h>
 
+#include "psattribute.h"
 #include "pscpu.h"
 #include "pspartition.h"
 #include "psreservation.h"
 #include "pstask.h"
-#include "hardware.h"
 #include "timer.h"
 
 #include "plugin.h"

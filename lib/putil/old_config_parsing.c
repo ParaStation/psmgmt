@@ -23,9 +23,9 @@
 #include <arpa/inet.h>
 
 #include "pscommon.h"
-#include "hardware.h"
-#include "pspartition.h"
 #include "parser.h"
+#include "psattribute.h"
+#include "pspartition.h"
 #include "rdp.h"
 #include "selector.h"
 #include "timer.h"

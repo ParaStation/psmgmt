@@ -16,10 +16,10 @@
 #include <pthread.h>
 
 #include "list.h"
+#include "psattribute.h"
 #include "pscommon.h"
 #include "pscpu.h"
 #include "psenv.h"
-#include "hardware.h"
 
 #include "pluginconfig.h"
 #include "pluginmalloc.h"

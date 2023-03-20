@@ -17,11 +17,11 @@
 #include <errno.h>
 #include <sys/time.h>
 
+#include "psattribute.h"
 #include "pscommon.h"
 #include "pscpu.h"
 #include "psdaemonprotocol.h"
 #include "pspartition.h"
-#include "hardware.h"
 #include "timer.h"
 #include "pluginconfig.h"
 #include "pluginforwarder.h"

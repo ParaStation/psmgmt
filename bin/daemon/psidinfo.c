@@ -17,13 +17,13 @@
 #include <netinet/in.h>
 
 #include "list.h"
+#include "psattribute.h"
 #include "pscommon.h"
 #include "psprotocol.h"
 #include "pspartition.h"
 #include "psreservation.h"
 
 #include "config_parsing.h"
-#include "hardware.h"
 #include "mcast.h"
 #include "rdp.h"
 
