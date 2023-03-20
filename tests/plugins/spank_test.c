@@ -1,7 +1,7 @@
 #include <stdint.h>
+#include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-#include <stdlib.h>
 
 #include <slurm/spank.h>
 
@@ -32,7 +32,7 @@ typedef enum {
 static const struct {
     int hook;
     char *strName;
-} Spank_Hook_Table[] = {
+} hookTable[] = {
     { SPANK_INIT,                   "slurm_spank_init"		       },
     { SPANK_SLURMD_INIT,            "slurm_spank_slurmd_init"	       },
     { SPANK_JOB_PROLOG,             "slurm_spank_job_prolog"	       },
@@ -60,23 +60,20 @@ static int opt_process_add(int val, const char *optarg, int remote);
 
 static void getAllEnv(spank_t sp, int ctx, const char *func)
 {
-    char buf[1024];
-    spank_err_t ret;
-    int i;
-
-    for (i=0; Spank_Hook_Table[i].strName; i++) {
+    for (int i = 0; hookTable[i].strName; i++) {
 	if (ctx == S_CTX_REMOTE) {
-	    ret = spank_getenv(sp, Spank_Hook_Table[i].strName, buf,
-		               sizeof(buf));
+	    char buf[1024];
+	    spank_err_t ret = spank_getenv(sp, hookTable[i].strName,
+					   buf, sizeof(buf));
 	    if (ret == ESPANK_SUCCESS) {
 		slurm_info("%s: env%i: %s=%s", func, i,
-			   Spank_Hook_Table[i].strName, buf);
+			   hookTable[i].strName, buf);
 	    }
 	} else {
-	    char *name = getenv(Spank_Hook_Table[i].strName);
+	    char *name = getenv(hookTable[i].strName);
 	    if (name) {
 		slurm_info("%s: env%i: %s=%s", func, i,
-			   Spank_Hook_Table[i].strName, name);
+			   hookTable[i].strName, name);
 	    }
 	}
     }
@@ -145,7 +142,6 @@ struct spank_option additional_options[] =
 static int testHook(spank_t sp, int ac, char **av, const char *func)
 {
     spank_err_t ret;
-    int i;
     hookCount++;
 
     slurm_info("%s: hook-count %u static-opt: %i local uid %i gid %i pid %i "
@@ -194,7 +190,7 @@ static int testHook(spank_t sp, int ac, char **av, const char *func)
     getAllEnv(sp, ctx, func);
 
     /* print spank arguments */
-    for (i=0; i<ac; i++) {
+    for (int i = 0; i < ac; i++) {
 	slurm_info("%s: av[%i]: %s", func, i, av[i]);
     }
 
@@ -249,7 +245,7 @@ static int testHook(spank_t sp, int ac, char **av, const char *func)
     char **argv;
     ret = spank_get_item(sp, S_JOB_ARGV, &argc, &argv);
     if (ret == ESPANK_SUCCESS) {
-	for (i=0; i<argc;i++) {
+	for (int i = 0; i < argc;i++) {
 	    slurm_info("%s: S_JOB_ARGV: arg%u=%s ret: %i", func, i,
 		       argv[i], ret);
 	}
@@ -315,7 +311,7 @@ static int testHook(spank_t sp, int ac, char **av, const char *func)
     int gidCount;
     ret = spank_get_item(sp, S_JOB_SUPPLEMENTARY_GIDS, &gids, &gidCount);
     if (ret == ESPANK_SUCCESS) {
-	for (i=0; i<gidCount; i++) {
+	for (int i = 0; i < gidCount; i++) {
 	    slurm_info("%s: S_JOB_SUPPLEMENTARY_GIDS: %u ret: %i", func,
 		       taskPID, ret);
 	}
@@ -355,7 +351,7 @@ static int testHook(spank_t sp, int ac, char **av, const char *func)
     ret = spank_get_item(sp, S_JOB_ALLOC_CORES, &jobAllocCores);
     if (ret == ESPANK_SUCCESS) {
 	slurm_info("%s: S_JOB_ALLOC_CORES: %s ret: %i", func,
-	           jobAllocCores, ret);
+		   jobAllocCores, ret);
     } else {
 	slurm_info("%s: S_JOB_ALLOC_CORES: NULL ret: %i", func, ret);
     }
