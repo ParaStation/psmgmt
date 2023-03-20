@@ -33,10 +33,10 @@ if [ -n "$PSPAM_USER" ]; then
 	elog "error: user cgroup $CG_USER is missing"
     fi
 else
-    [ -n "$CG_USER" ] || elog "no user env variable for job $JOBID"
+    [ -n "$USER" ] || elog "no user env variable for job $JOBID"
     mdsave "$CG_USER"
 
-    [ -n "$CG_JOB" ] || elog "no jobid for pid $CHILD user $USER"
+    [ -n "$JOBID" ] || elog "no jobid for pid $CHILD user $USER"
     mdsave "$CG_JOB"
 
     dlog "adding child $CHILD to $CG_JOB/tasks"

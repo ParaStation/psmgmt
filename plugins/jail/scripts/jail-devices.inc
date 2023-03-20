@@ -24,10 +24,10 @@
 
 function initDevices()
 {
-    [ -n "$CG_USER" ] || elog "no user env variable for job $JOBID"
+    [ -n "$USER" ] || elog "no user env variable for job $JOBID"
     mdsave "$CG_USER"
 
-    [ -n "$CG_JOB" ] || elog "no jobid for pid $CHILD user $USER"
+    [ -n "$JOBID" ] || elog "no jobid for pid $CHILD user $USER"
     mdsave "$CG_JOB"
 
     [ -n "$STEPID" ] && mdsave "$CG_STEP"
