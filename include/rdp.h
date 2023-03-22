@@ -25,8 +25,8 @@
  * Information container for callback of type @ref RDP_PKT_UNDELIVERABLE.
  */
 typedef struct {
-    int32_t dst;      /**< The destination of the canceled message */
-    void* buf;        /**< The payload of the canceled message */
+    int32_t dst;      /**< Destination node ID of the canceled message */
+    void* buf;        /**< Payload of the canceled message */
     size_t buflen;    /**< The payload's length */
 } RDPDeadbuf;
 
@@ -35,11 +35,11 @@ typedef enum {
     RDP_NEW_CONNECTION = 0x1,    /**< New connection detected; the
 				  * second argument of RDPCallback()
 				  * will point to an int holding the
-				  * number of the connecting node */
+				  * ID of the connecting node */
     RDP_LOST_CONNECTION = 0x2,   /**< Connection lost; the second
 				  * argument of RDPCallback() will
-				  * point to an int holding the number
-				  * of the lost node */
+				  * point to an int holding the ID of
+				  * the lost node */
     RDP_PKT_UNDELIVERABLE = 0x3, /**< Cannot deliver packet; the
 				  * second argument points to a
 				  * structure of type @ref RDPDeadbuf
@@ -410,35 +410,32 @@ void RDP_setStatistics(bool newState);
 /**
  * @brief Send an RDP packet
  *
- * Send a RDP packet of length @a len in @a buf to node @a node.
+ * Send an RDP packet of length @a len in @a buf to node with ID @a node.
  *
+ * @param node ID of the node to send the message to
  *
- * @param node The node to send the message to.
+ * @param buf Buffer containing the actual message
  *
- * @param buf Buffer containing the actual message.
+ * @param len Length of the message to send
  *
- * @param len The length of the message.
- *
- *
- * @return On success, the number of bytes sent is returned, or -1 if an error
- * occured.
+ * @return On success, the number of bytes sent is returned; or -1 if
+ * an error occurred
  *
  * @see sendto(2)
  */
 ssize_t Rsendto(int32_t node, void* buf, size_t len);
 
 /**
- * @brief Receive a RDP packet
+ * @brief Receive an RDP packet
  *
- * Receive a RDP packet of maximal length @a len. The message is stored in
- * @a buf, the node it was received from in @a node.
+ * Receive an RDP packet of maximum length @a len. The message will be
+ * stored to @a buf. The ID of the sending node is presented in @a node.
  *
+ * @param node Source node ID of the message
  *
- * @param node Source node of the message.
+ * @param buf Buffer to store the message to
  *
- * @param buf Buffer to store the message in.
- *
- * @param len The maximum length of the message, i.e. the size of @a buf.
+ * @param len Maximum length of the message, i.e. the size of @a buf
  *
  *
  * @return On success, the number of bytes received is returned, or -1
@@ -453,56 +450,52 @@ ssize_t Rrecvfrom(int32_t* node, void* buf, size_t len);
 /**
  * @brief Get status info
  *
- * Get status information from the RDP module concerning the connection to
- * node @a node. The result is returned in @a string and can be directly
- * put out via printf() and friends.
+ * Get status information from the RDP module concerning the
+ * connection to node with ID @a node. The result is returned in @a
+ * string and can be directly put out via printf() and friends.
  *
+ * @param node ID of the remote node to retrieve local connection
+ * status information about
  *
- * @param node The node, which is joined via the connection, the status
- * information is retrieved from.
+ * @param string Character string to which the information is written
  *
- * @param string The string to which the status information is written.
+ * @param len Length of @a string
  *
- * @param len The length of @a string.
- *
- *
- * @return No return value.
+ * @return No return value
  *
  * @see printf(3)
  */
 void getStateInfoRDP(int32_t node, char* string, size_t len);
 
 /**
- * @brief Get connection info.
+ * @brief Get connection info
  *
  * Get connection information from the RDP module concerning the
- * connection to node @a node. The result is returned in @a string and
- * can be directly put out via printf() and friends.
+ * connection to node with ID @a node. The result is returned in
+ * @a string and can be directly put out via printf() and friends.
  *
+ * @param node ID of the remote node to retrieve connection
+ * information about
  *
- * @param node The node, which is joined via the connection, the status
- * information is retrieved from.
+ * @param string Character string to which the information is written
  *
- * @param string The string to which the status information is written.
+ * @param len Length of @a string
  *
- * @param len The length of @a string.
- *
- *
- * @return No return value.
+ * @return No return value
  *
  * @see printf(3)
  */
 void getConnInfoRDP(int32_t node, char* string, size_t len);
 
 /**
- * @brief Shutdown connection.
+ * @brief Shutdown connection
  *
- * Shutdown the connection to node @a node. This will remove all
- * pending messages from this connection and reset it completely.
+ * Shutdown the connection to node with ID @a node. This will remove
+ * all pending messages from this connection and reset it completely.
  *
- * @param node Connection to this node will be closed.
+ * @param node ID of the node to disconnect
  *
- * @return No return value.
+ * @return No return value
  */
 void closeConnRDP(int32_t node);
 
@@ -537,7 +530,8 @@ void RDP_printStat(void);
  *
  * Get the current state of RDP's connection to node @a node.
  *
- * @param node The node determining the connection to check
+ * @param node ID of the remote node to retrieve connection status
+ * information about
  *
  * @return Return the connection state or -1 if @a node is invalid
  */
@@ -546,12 +540,12 @@ RDPState_t RDP_getState(int32_t node);
 /**
  * @brief Get number of pending messages
  *
- * Get the number of pending messages on RDP's connection to node @a
- * node during (re-)connect. This value is only meaningful if the
- * connection is not yet establihed, i.e. if @ref RDP_getState() does
- * *not* return ACTIVE.
+ * Get the number of pending messages on RDP's connection to node with
+ * ID @a node during (re-)connect. This value is only meaningful if
+ * the connection is not yet establihed, i.e. if @ref RDP_getState()
+ * does *not* return ACTIVE.
  *
- * @param node The node determining the connection to investigate
+ * @param node ID of the node to investigate
  *
  * @return Return the number of pending messages or -1 if @a node is invalid
  *
