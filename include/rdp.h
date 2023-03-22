@@ -3,7 +3,7 @@
  *
  * Copyright (C) 1999-2004 ParTec AG, Karlsruhe
  * Copyright (C) 2005-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2022 ParTec AG, Munich
+ * Copyright (C) 2021-2023 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -25,9 +25,9 @@
  * Information container for callback of type @ref RDP_PKT_UNDELIVERABLE.
  */
 typedef struct {
-    int dst;     /**< The destination of the canceled message */
-    void* buf;   /**< The payload of the canceled message */
-    int buflen;  /**< The payload's length */
+    int32_t dst;      /**< The destination of the canceled message */
+    void* buf;        /**< The payload of the canceled message */
+    size_t buflen;    /**< The payload's length */
 } RDPDeadbuf;
 
 /** Types of RDP callbacks */
@@ -105,8 +105,8 @@ typedef enum {
  *
  * @see syslog()
  */
-int RDP_init(int nodes, in_addr_t addr, unsigned short portno, FILE* logfile,
-	     unsigned int hosts[], void (*dispatcher)(void),
+int RDP_init(int nodes, in_addr_t addr, in_port_t portno, FILE* logfile,
+	     in_addr_t hosts[], void (*dispatcher)(void),
 	     void (*callback)(RDP_CB_type_t, void*));
 
 /**
@@ -425,7 +425,7 @@ void RDP_setStatistics(bool newState);
  *
  * @see sendto(2)
  */
-int Rsendto(int node, void* buf, size_t len);
+ssize_t Rsendto(int32_t node, void* buf, size_t len);
 
 /**
  * @brief Receive a RDP packet
@@ -448,7 +448,7 @@ int Rsendto(int node, void* buf, size_t len);
  *
  * @see recvfrom(2)
  */
-int Rrecvfrom(int* node, void* buf, size_t len);
+ssize_t Rrecvfrom(int32_t* node, void* buf, size_t len);
 
 /**
  * @brief Get status info
@@ -470,7 +470,7 @@ int Rrecvfrom(int* node, void* buf, size_t len);
  *
  * @see printf(3)
  */
-void getStateInfoRDP(int node, char* string, size_t len);
+void getStateInfoRDP(int32_t node, char* string, size_t len);
 
 /**
  * @brief Get connection info.
@@ -492,7 +492,7 @@ void getStateInfoRDP(int node, char* string, size_t len);
  *
  * @see printf(3)
  */
-void getConnInfoRDP(int node, char* string, size_t len);
+void getConnInfoRDP(int32_t node, char* string, size_t len);
 
 /**
  * @brief Shutdown connection.
@@ -504,7 +504,7 @@ void getConnInfoRDP(int node, char* string, size_t len);
  *
  * @return No return value.
  */
-void closeConnRDP(int node);
+void closeConnRDP(int32_t node);
 
 /**
  * @brief Block RDP timer
@@ -541,7 +541,7 @@ void RDP_printStat(void);
  *
  * @return Return the connection state or -1 if @a node is invalid
  */
-RDPState_t RDP_getState(int node);
+RDPState_t RDP_getState(int32_t node);
 
 /**
  * @brief Get number of pending messages
@@ -556,7 +556,7 @@ RDPState_t RDP_getState(int node);
  * @return Return the number of pending messages or -1 if @a node is invalid
  *
 */
-int RDP_getNumPend(int node);
+int RDP_getNumPend(int32_t node);
 
 /**
  * @brief Memory cleanup

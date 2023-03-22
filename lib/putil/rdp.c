@@ -3,7 +3,7 @@
  *
  * Copyright (C) 1999-2004 ParTec AG, Karlsruhe
  * Copyright (C) 2005-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2022 ParTec AG, Munich
+ * Copyright (C) 2021-2023 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -11,15 +11,15 @@
  */
 #include "rdp.h"
 
-#include <stdlib.h>
-#include <errno.h>
-#include <syslog.h>
-#include <unistd.h>
-#include <sys/time.h>
-#include <sys/socket.h>
-#include <sys/select.h>
-#include <string.h>
 #include <arpa/inet.h>
+#include <errno.h>
+#include <stdlib.h>
+#include <string.h>
+#include <syslog.h>
+#include <sys/select.h>
+#include <sys/socket.h>
+#include <sys/time.h>
+#include <unistd.h>
 
 /* Extra includes for extended reliable error message passing */
 #include <linux/errqueue.h>
@@ -37,7 +37,7 @@ static int rdpsock = -1;
 static int timerID = -1;
 
 /** The size of the cluster. Set via RDP_init(). */
-static unsigned int nrOfNodes = 0;
+static uint32_t nrOfNodes = 0;
 
 /** The logger we use inside RDP */
 static logger_t *logger;
@@ -96,8 +96,8 @@ static struct {
 static char *RDPMsgString(int msgtype)
 {
     static char txt[30];
-    int i = 0;
 
+    int i = 0;
     while (RDPTypes[i].name && RDPTypes[i].id != msgtype) i++;
 
     if (RDPTypes[i].name) {
@@ -122,7 +122,7 @@ typedef struct {
 
 /**
  * The maximum size of a RDP message.
- * 1472 is derived from 1500 (MTU) - 20 (IP header) - 8 (UDP header)
+ * 1472 is derived from 1500 (Ethernet MTU) - 20 (IP header) - 8 (UDP header)
  */
 #define RDP_MAX_DATA_SIZE (1472-sizeof(rdphdr_t))
 
@@ -184,105 +184,96 @@ static unsigned int retransCount = 0;
  * One entry for each node we want to connect with
  */
 typedef struct ipentry_ {
-    unsigned int ipnr;      /**< IP number of the node */
-    int node;               /**< logical node number */
+    in_addr_t ipAddr;       /**< IP(v4) address of the node */
+    int32_t node;           /**< logical node number */
     struct ipentry_ *next;  /**< pointer to next entry */
 } ipentry_t;
 
 /**
- * 256 entries since lookup is based on LAST byte of IP number.
- * Initialized by initIPTable().
+ * Hash of size 256 indexed by LAST octal of the IP(v4) address;
+ * initialized by @ref initIPTable()
  */
 static ipentry_t iptable[256];
 
 /**
- * @brief Initialize @ref iptable.
+ * @brief Initialize @ref iptable hash
  *
- * Initializes @ref iptable. List is empty after this call.
+ * Initializes @ref iptable hash; will be empty after this call
  *
- * @return No return value.
+ * @return No return value
  */
 static void initIPTable(void)
 {
-    int i;
-    for (i=0; i<256; i++) {
-	iptable[i].ipnr = 0;
+    for (uint32_t i = 0; i < 256; i++) {
+	iptable[i].ipAddr = 0;
 	iptable[i].node = 0;
 	iptable[i].next = NULL;
     }
 }
 
 /**
- * @brief Create new entry in @ref iptable.
+ * @brief Create new entry in @ref iptable
  *
- * Register another node in @ref iptable.
+ * Register another node in @ref iptable
  *
- * @param ipno The IP number of the node to register.
- * @param node The corresponding node number.
+ * @param addr IP(v4) address of the node to register
  *
- * @return No return value.
+ * @param node Corresponding node number
+ *
+ * @return No return value
  */
-static void insertIPTable(struct in_addr ipno, int node)
+static void addToIPTable(struct in_addr addr, int32_t node)
 {
-    ipentry_t *ip;
-    int idx = ntohl(ipno.s_addr) & 0xff;  /* use last byte of IP addr */
-
-    if ((ntohl(ipno.s_addr) >> 24) == IN_LOOPBACKNET) {
+    if ((ntohl(addr.s_addr) >> 24) == IN_LOOPBACKNET) {
 	RDP_log(-1, "%s: address <%s> within loopback range\n",
-		__func__, inet_ntoa(ipno));
+		__func__, inet_ntoa(addr));
 	exit(1);
     }
 
-    if (iptable[idx].ipnr != 0) {
+    int idx = ntohl(addr.s_addr) & 0xff;  /* last octet of IP addr is hash */
+    if (iptable[idx].ipAddr != 0) {
 	/* create new entry */
-	ip = &iptable[idx];
+	ipentry_t *ip = &iptable[idx];
 	while (ip->next) ip = ip->next; /* search end */
 	ip->next = malloc(sizeof(ipentry_t));
 	if (!ip->next) RDP_exit(errno, "%s", __func__);
 	ip = ip->next;
 	ip->next = NULL;
-	ip->ipnr = ipno.s_addr;
+	ip->ipAddr = addr.s_addr;
 	ip->node = node;
     } else {
 	/* base entry is free, so use it */
-	iptable[idx].ipnr = ipno.s_addr;
+	iptable[idx].ipAddr = addr.s_addr;
 	iptable[idx].node = node;
     }
 }
 
 /**
- * @brief Get node number from IP number.
+ * @brief Get node number from IP address
  *
- * Get the node number from given IP number for a node registered via
- * insertIPTable().
+ * Get the node number from given IP(v4) address for a node registered
+ * via addToIPTable().
  *
- * @param ipno The IP number of the node to find.
+ * @param addr IP(v4) address to lookup
  *
- * @return On success, the node number corresponding to @a ipno is returned,
- * or -1 if the node could not be found in @ref iptable.
+ * @return On success, the node number corresponding to @a addr is returned;
+ * or -1 if the node could not be found in @ref iptable
  */
-static int lookupIPTable(struct in_addr ipno)
+static int32_t lookupIPTable(struct in_addr addr)
 {
-    int idx = ntohl(ipno.s_addr) & 0xff;  /* use last byte of IP addr */
-    ipentry_t *ip = &iptable[idx];
+    int idx = ntohl(addr.s_addr) & 0xff;  /* use last byte of IP addr */
 
-    do {
-	if (ip->ipnr == ipno.s_addr) {
-	    /* node found */
-	    return ip->node;
-	}
-	ip = ip->next;
-    } while (ip);
+    for (ipentry_t *ip = &iptable[idx]; ip; ip = ip->next) {
+	if (ip->ipAddr == addr.s_addr) return ip->node;
+    }
 
     return -1;
 }
 
 static void cleanupIPTable(void)
 {
-    int i;
-    for (i=0; i<256; i++) {
+    for (uint32_t i = 0; i < 256; i++) {
 	ipentry_t *ip = iptable[i].next;
-
 	while (ip) {
 	    ipentry_t *next = ip->next;
 	    free(ip);
@@ -326,7 +317,7 @@ static Smsg_t *SMsgFreeList;
  *
  * @return No return value.
  */
-static void initSMsgList(int nodes)
+static void initSMsgList(uint32_t nodes)
 {
     if (SmsgPool) return;
 
@@ -389,14 +380,14 @@ typedef struct {
 typedef struct {
     list_t next;                    /**< Use to put into @ref MsgFreeList etc.*/
     list_t nxtACK;                  /**< Use to put into @ref AckList */
-    int node;                       /**< ID of connection */
-    int len;                        /**< Length of body */
+    int32_t node;                   /**< ID of connection */
+    int16_t len;                    /**< Length of body or -1 if unused */
     union {
 	Smsg_t *small;              /**< Pointer to a small msg */
 	Lmsg_t *large;              /**< Pointer to a large msg */
     } msg;                          /**< The actual message */
     struct timeval sentTime;        /**< Time message is sent initially */
-    char deleted;                   /**< Flag message as gone. Cleanup
+    bool deleted;                   /**< Flag message as gone / cleanup
 				     * during next timeout */
 } msgbuf_t;
 
@@ -420,7 +411,7 @@ static LIST_HEAD(MsgFreeList);
  *
  * @return No return value.
  */
-static void initMsgList(int nodes)
+static void initMsgList(uint32_t nodes)
 {
     if (MsgPool) return;
 
@@ -433,7 +424,7 @@ static void initMsgList(int nodes)
 	MsgPool[i].len = -1;
 	INIT_LIST_HEAD(&MsgPool[i].nxtACK);
 	MsgPool[i].msg.small = NULL;
-	MsgPool[i].deleted = 0;
+	MsgPool[i].deleted = false;
 	list_add_tail(&MsgPool[i].next, &MsgFreeList);
     }
 }
@@ -478,7 +469,7 @@ static void putMsg(msgbuf_t *mp)
     }
     mp->msg.small = NULL;                   /* invalidate message buffer */
     mp->node = -1;
-    mp->deleted = 0;
+    mp->deleted = false;
     timerclear(&mp->sentTime);
     list_del(&mp->nxtACK);                  /* remove msgbuf from ACK-list */
     INIT_LIST_HEAD(&mp->nxtACK);
@@ -530,33 +521,37 @@ static Rconninfo_t *conntable = NULL;
  * Initialize the @ref conntable for @a nodes nodes to receive data from
  * or send data to. The IP numbers of all nodes are stored in @a host.
  *
- * @param nodes The number of nodes that should be connected.
- * @param host The IP number of each node indexed by node number. The length
- * of @a host must be at least @a nodes.
- * @param port The port we expect the data to be sent from.
+ * @param nodes Number of nodes that shall be supported
  *
- * @return No return value.
+ * @param host Nodes' IP(v4) addresses indexed by node number; length
+ * must be at least @a nodes
+ *
+ * @param port Port number used to send data from
+ *
+ * @return No return value
  */
-static void initConntable(int nodes, unsigned int host[], unsigned short port)
+static void initConntable(size_t nodes, in_addr_t hosts[], in_port_t port)
 {
-    int i;
-    struct timeval tv;
-
     if (!conntable) {
 	conntable = malloc(nodes * sizeof(*conntable));
 	if (!conntable) RDP_exit(errno, "%s", __func__);
     }
     initIPTable();
+
+    struct timeval tv;
     gettimeofday(&tv, NULL);
     srandom(tv.tv_sec+tv.tv_usec);
     RDP_log(RDP_LOG_INIT,
-	    "%s: nodes=%d, win is %d\n", __func__, nodes, MAX_WINDOW_SIZE);
-    for (i=0; i<nodes; i++) {
-	memset(&conntable[i].sin, 0, sizeof(struct sockaddr_in));
-	conntable[i].sin.sin_family = AF_INET;
-	conntable[i].sin.sin_addr.s_addr = host[i];
-	conntable[i].sin.sin_port = port;
-	insertIPTable(conntable[i].sin.sin_addr, i);
+	    "%s: nodes=%zd, win is %d\n", __func__, nodes, MAX_WINDOW_SIZE);
+    for (uint32_t i = 0; i < nodes; i++) {
+	conntable[i].sin = (struct sockaddr_in) {
+	    .sin_family = AF_INET,
+	    .sin_addr.s_addr = hosts[i],
+	    .sin_port = port,
+	};
+	if (hosts[i] != INADDR_ANY && hosts[i] != INADDR_NONE) {
+	    addToIPTable(conntable[i].sin.sin_addr, i);
+	}
 	RDP_log(RDP_LOG_INIT, "%s: IP-ADDR of node %d is %s\n",
 		__func__, i, inet_ntoa(conntable[i].sin.sin_addr));
 	INIT_LIST_HEAD(&conntable[i].pendList);
@@ -584,7 +579,7 @@ static void initConntable(int nodes, unsigned int host[], unsigned short port)
 }
 
 
-static int handleErr(int eno);
+static ssize_t handleErr(int eno);
 
 /**
  * @brief Recv a message
@@ -598,17 +593,17 @@ static int handleErr(int eno);
  * return value of 0 in the special case, where only such an extended
  * message is pending without any other "normal" message.
  *
- * @param sock The socket to read from.
+ * @param sock The socket to read from
  *
- * @param buf Buffer the message is stored to.
+ * @param buf Buffer the message is stored to
  *
- * @param len Length of @a buf.
+ * @param len Length of @a buf
  *
- * @param flags Flags passed to recvfrom().
+ * @param flags Flags passed to recvfrom()
  *
- * @param from The address of the message-sender.
+ * @param from The address of the message-sender
  *
- * @param fromlen Length of @a from.
+ * @param fromlen Length of @a from
  *
  * @return On success, the number of bytes received is returned, or -1
  * if an error occurred. Be aware of return values of 0 triggered by
@@ -617,13 +612,12 @@ static int handleErr(int eno);
  *
  * @see recvfrom(2)
  */
-static int MYrecvfrom(int sock, void *buf, size_t len, int flags,
-		      struct sockaddr *from, socklen_t *fromlen)
+static ssize_t MYrecvfrom(int sock, void *buf, size_t len, int flags,
+			  struct sockaddr *from, socklen_t *fromlen)
 {
-    int ret;
- restart:
+  restart:
     errno = 0;
-    ret = recvfrom(sock, buf, len, flags, from, fromlen);
+    ssize_t ret = recvfrom(sock, buf, len, flags, from, fromlen);
     if (ret < 0) {
 	int eno = errno;
 	switch (eno) {
@@ -642,33 +636,30 @@ static int MYrecvfrom(int sock, void *buf, size_t len, int flags,
 		return ret;
 	    }
 	    /* Another packet pending ? */
-	select_cont:
-	    {
-		struct timeval tv = {.tv_sec = 0, .tv_usec = 0};
+	    do {
 		fd_set fds;
-
 		FD_ZERO(&fds);
 		FD_SET(sock, &fds);
 
+		struct timeval tv = {.tv_sec = 0, .tv_usec = 0};
 		ret = select(sock+1, &fds, NULL, NULL, &tv);
 		if (ret < 0) {
 		    if (errno == EINTR) {
 			/* Interrupted syscall, just start again */
 			RDP_log(RDP_LOG_INTR,
 				"%s: select() interrupted\n", __func__);
-			goto select_cont;
-		    } else {
-			eno = errno;
-			RDP_warn(-1, eno, "%s: select", __func__);
-			errno = eno;
-			return ret;
+			continue;
 		    }
+		    eno = errno;
+		    RDP_warn(-1, eno, "%s: select", __func__);
+		    errno = eno;
+		    return ret;
 		}
-		if (ret) goto restart;
+	    } while (ret < 0);
 
-		return 0;
-	    }
-	    break;
+	    if (ret) goto restart;
+
+	    return 0;
 	default:
 	    RDP_warn(-1, eno, "%s", __func__);
 	}
@@ -723,10 +714,9 @@ static int MYrecvfrom(int sock, void *buf, size_t len, int flags,
  *
  * @see sendto(2)
  */
-static int MYsendto(int sock, void *buf, size_t len, int flags,
-		    int node, bool hton)
+static ssize_t MYsendto(int sock, void *buf, size_t len, int flags,
+			int32_t node, bool hton)
 {
-    int ret;
     struct sockaddr *to = (struct sockaddr *)&conntable[node].sin;
     socklen_t tolen = sizeof(struct sockaddr);
 
@@ -747,7 +737,7 @@ static int MYsendto(int sock, void *buf, size_t len, int flags,
     }
  restart:
     errno = 0;
-    ret = sendto(sock, buf, len, flags, to, tolen);
+    ssize_t ret = sendto(sock, buf, len, flags, to, tolen);
     if (ret < 0) {
 	int eno = errno;
 	switch (eno) {
@@ -791,69 +781,69 @@ static int MYsendto(int sock, void *buf, size_t len, int flags,
 /* ---------------------------------------------------------------------- */
 
 /**
- * @brief Send a SYN message.
+ * @brief Send a SYN message
  *
  * Send a SYN message to node @a node.
  *
- * @param node The node number the message is send to.
+ * @param node The node number the message is send to
  *
- * @return No return value.
+ * @return No return value
  */
-static void sendSYN(int node)
+static void sendSYN(int32_t node)
 {
-    rdphdr_t hdr;
-
-    hdr.type = RDP_SYN;
-    hdr.len = 0;
-    hdr.seqno = conntable[node].frameToSend;       /* Tell initial seqno */
-    hdr.ackno = 0;                                 /* nothing to ack yet */
-    hdr.connid = conntable[node].ConnID_out;
+    rdphdr_t hdr = {
+	.type = RDP_SYN,
+	.len = 0,
+	.seqno = conntable[node].frameToSend,       /* Tell initial seqno */
+	.ackno = 0,                                 /* nothing to ack yet */
+	.connid = conntable[node].ConnID_out,
+    };
     RDP_log(RDP_LOG_CNTR, "%s: to %d (%s), NFTS=%x\n", __func__, node,
 	    inet_ntoa(conntable[node].sin.sin_addr), hdr.seqno);
     MYsendto(rdpsock, &hdr, sizeof(hdr), 0, node, true);
 }
 
 /**
- * @brief Send a explicit ACK message.
+ * @brief Send an explicit ACK message
  *
  * Send a ACK message to node @a node.
  *
- * @param node The node number the message is send to.
+ * @param node The node number the message is send to
  *
- * @return No return value.
+ * @return No return value
  */
-static void sendACK(int node)
+static void sendACK(int32_t node)
 {
-    rdphdr_t hdr;
-
-    hdr.type = RDP_ACK;
-    hdr.len = 0;
-    hdr.seqno = 0;                                 /* ACKs have no seqno */
-    hdr.ackno = conntable[node].frameExpected-1;   /* ACK Expected - 1 */
-    hdr.connid = conntable[node].ConnID_out;
+    rdphdr_t hdr = {
+	.type = RDP_ACK,
+	.len = 0,
+	.seqno = 0,                                 /* ACKs have no seqno */
+	.ackno = conntable[node].frameExpected-1,   /* ACK Expected - 1 */
+	.connid = conntable[node].ConnID_out,
+    };
     RDP_log(RDP_LOG_ACKS, "%s: to %d, FE=%x\n", __func__, node, hdr.ackno);
     MYsendto(rdpsock, &hdr, sizeof(hdr), 0, node, true);
     conntable[node].ackPending = 0;
 }
 
 /**
- * @brief Send a SYNACK message.
+ * @brief Send a SYNACK message
  *
  * Send a SYNACK message to node @a node.
  *
- * @param node The node number the message is send to.
+ * @param node The node number the message is send to
  *
- * @return No return value.
+ * @return No return value
  */
-static void sendSYNACK(int node)
+static void sendSYNACK(int32_t node)
 {
-    rdphdr_t hdr;
-
-    hdr.type = RDP_SYNACK;
-    hdr.len = 0;
-    hdr.seqno = conntable[node].frameToSend;       /* Tell initial seqno */
-    hdr.ackno = conntable[node].frameExpected-1;   /* ACK Expected - 1 */
-    hdr.connid = conntable[node].ConnID_out;
+    rdphdr_t hdr = {
+	.type = RDP_SYNACK,
+	.len = 0,
+	.seqno = conntable[node].frameToSend,       /* Tell initial seqno */
+	.ackno = conntable[node].frameExpected-1,   /* ACK Expected - 1 */
+	.connid = conntable[node].ConnID_out,
+    };
     RDP_log(RDP_LOG_CNTR, "%s: to %d, NFTS=%x, FE=%x\n", __func__, node,
 	    hdr.seqno, hdr.ackno);
     MYsendto(rdpsock, &hdr, sizeof(hdr), 0, node, true);
@@ -861,23 +851,23 @@ static void sendSYNACK(int node)
 }
 
 /**
- * @brief Send a NACK message.
+ * @brief Send a NACK message
  *
  * Send a NACK message to node @a node.
  *
- * @param node The node number the message is send to.
+ * @param node The node number the message is send to
  *
- * @return No return value.
+ * @return No return value
  */
-static void sendNACK(int node)
+static void sendNACK(int32_t node)
 {
-    rdphdr_t hdr;
-
-    hdr.type = RDP_NACK;
-    hdr.len = 0;
-    hdr.seqno = 0;                                 /* NACKs have no seqno */
-    hdr.ackno = conntable[node].frameExpected-1;   /* The frame I expect */
-    hdr.connid = conntable[node].ConnID_out;
+    rdphdr_t hdr = {
+	.type = RDP_NACK,
+	.len = 0,
+	.seqno = 0,                                 /* NACKs have no seqno */
+	.ackno = conntable[node].frameExpected-1,   /* The frame I expect */
+	.connid = conntable[node].ConnID_out,
+    };
     conntable[node].totNACK++;
     RDP_log(RDP_LOG_CNTR, "%s: to %d, FE=%x\n", __func__, node, hdr.ackno);
     MYsendto(rdpsock, &hdr, sizeof(hdr), 0, node, true);
@@ -886,49 +876,40 @@ static void sendNACK(int node)
 /* ---------------------------------------------------------------------- */
 
 /**
- * @brief Setup a socket for RDP communication.
+ * @brief Setup a socket for RDP communication
  *
  * Sets up a socket used for all RDP communications.
  *
- * @param addr The source IP address to bind to.
- * @param port The UDP port to use.
- * @param qlen No used yet
+ * @param addr Source IP(v4) address to bind to
+ *
+ * @param port UDP port to use
  *
  * @return -1 is returned if an error occurs; otherwise the return value
- * is a descriptor referencing the socket.
+ * is a descriptor referencing the socket
  */
-static int initSockRDP(in_addr_t addr, unsigned short port, int qlen)
+static int initSockRDP(in_addr_t addr, unsigned short port)
 {
-    struct sockaddr_in sin;  /* an internet endpoint address */
-    int s;                   /* socket descriptor */
+    struct sockaddr_in sin = {
+	.sin_family = AF_INET,
+	.sin_addr.s_addr = addr,
+	.sin_port = port,
+    };
 
-    memset(&sin, 0, sizeof(sin));
-    sin.sin_family = AF_INET;
-    sin.sin_addr.s_addr = addr;
-    sin.sin_port = port;
-
-    /*
-     * allocate a socket
-     */
-    if ((s = socket(PF_INET, SOCK_DGRAM, IPPROTO_UDP)) < 0) {
+    /* allocate a socket */
+    int s = socket(PF_INET, SOCK_DGRAM, IPPROTO_UDP);
+    if (s < 0) {
 	RDP_exit(errno, "%s: socket", __func__);
     }
 
-    /*
-     * bind the socket
-     */
+    /* bind the socket */
     if (bind(s, (struct sockaddr *)&sin, sizeof(sin)) < 0) {
 	RDP_exit(errno, "%s: bind(%d)", __func__, ntohs(port));
     }
 
-    /*
-     * enable RECV Error Queue
-     */
-    {
-	int val = 1;
-	if (setsockopt(s, SOL_IP, IP_RECVERR, &val, sizeof(int)) < 0) {
-	    RDP_exit(errno, "%s: setsockopt(IP_RECVERR)", __func__);
-	}
+    /* enable RECV Error Queue */
+    int one = 1;
+    if (setsockopt(s, SOL_IP, IP_RECVERR, &one, sizeof(one)) < 0) {
+	RDP_exit(errno, "%s: setsockopt(IP_RECVERR)", __func__);
     }
 
     return s;
@@ -937,16 +918,16 @@ static int initSockRDP(in_addr_t addr, unsigned short port, int qlen)
 static RDPDeadbuf deadbuf;
 
 /**
- * @brief Clear message queue of a connection.
+ * @brief Clear message queue to node
  *
  * Clear the message queue of the connection to node @a node. This is usually
  * called upon final timeout.
  *
- * @param node The node number of the connection to be cleared.
+ * @param node The node number of the connection to be cleared
  *
- * @return No return value.
+ * @return No return value
  */
-static void clearMsgQ(int node)
+static void clearMsgQ(int32_t node)
 {
     Rconninfo_t *cp = &conntable[node];
     list_t *m;
@@ -963,7 +944,7 @@ static void clearMsgQ(int node)
 	}
 	RDP_log(RDP_LOG_DROP, "%s: drop msg %x to %d\n",
 		__func__, psntoh32(mp->msg.small->header.seqno), node);
-	mp->deleted = 1;
+	mp->deleted = true;
 	cleanupReq = true;
     }
 
@@ -971,7 +952,7 @@ static void clearMsgQ(int node)
 }
 
 /**
- * @brief Close a connection.
+ * @brief Close a connection
  *
  * Close the RDP connection to node @a node and inform the calling
  * program. The last step will be performed only if the @a callback
@@ -987,9 +968,9 @@ static void clearMsgQ(int node)
  *
  * @param silent Flag suppressing log messages
  *
- * @return No return value.
+ * @return No return value
  */
-static void closeConnection(int node, bool callback, bool silent)
+static void closeConnection(int32_t node, bool callback, bool silent)
 {
     RDP_log((conntable[node].state == ACTIVE && !silent) ? -1 : RDP_LOG_CONN,
 	    "%s(%d)\n", __func__, node);
@@ -1022,7 +1003,7 @@ static void closeConnection(int node, bool callback, bool silent)
 }
 
 /**
- * @brief Resend pending message.
+ * @brief Resend pending message
  *
  * Resend the first pending message to node @a node. Pending messages
  * will be resent, if the @ref RESEND_TIMEOUT since the last (re-)send
@@ -1033,20 +1014,18 @@ static void closeConnection(int node, bool callback, bool silent)
  *
  * If no pending message to the requested node exists, nothing will be done.
  *
- * @param node The node, the pending message should be resent to.
+ * @param node Destination of the pending message to resent
  *
- * @return No return value.
+ * @return No return value
  */
-static void resendMsgs(int node)
+static void resendMsgs(int32_t node)
 {
-    struct timeval tv;
-    list_t *m;
-
     if (list_empty(&conntable[node].pendList)) {
 	RDP_log(RDP_LOG_ACKS, "%s: no pending messages\n", __func__);
 	return;
     }
 
+    struct timeval tv;
     gettimeofday(&tv, NULL);
     if (!timercmp(&conntable[node].tmout, &tv, <)) return;    /* no timeout */
     timeradd(&tv, &RESEND_TIMEOUT, &conntable[node].tmout);
@@ -1079,10 +1058,9 @@ static void resendMsgs(int node)
     case ACTIVE:
     {
 	int blocked = Timer_block(timerID, true);
+	list_t *m;
 	list_for_each(m, &conntable[node].pendList) {
-	    int ret;
 	    msgbuf_t *mp = list_entry(m, msgbuf_t, next);
-
 	    if (mp->deleted) continue;
 
 	    RDP_log(RDP_LOG_ACKS, "%s: %d to %d\n",
@@ -1090,8 +1068,8 @@ static void resendMsgs(int node)
 	    /* update ackinfo */
 	    mp->msg.small->header.ackno =
 		pshton32(conntable[node].frameExpected-1);
-	    ret = MYsendto(rdpsock, &mp->msg.small->header,
-			   mp->len + sizeof(rdphdr_t), 0, node, false);
+	    ssize_t ret = MYsendto(rdpsock, &mp->msg.small->header,
+				   mp->len + sizeof(rdphdr_t), 0, node, false);
 	    if (ret < 0) break;
 	}
 	conntable[node].ackPending = 0;
@@ -1106,7 +1084,7 @@ static void resendMsgs(int node)
 }
 
 /**
- * @brief Update state machine.
+ * @brief Update state machine
  *
  * Update the state of the connection to node @a node according to the
  * information in the packet header @a hdr.
@@ -1124,13 +1102,13 @@ static void resendMsgs(int node)
  * type of packet received various actions like sending packets to the
  * communication partner might be attempted.
  *
- * @param hdr Packet header according to which the state is updated.
+ * @param hdr Packet header according to which the state is updated
  *
- * @param node The node whose state is updated.
+ * @param node The node to update the state for
  *
- * @return No return value.
+ * @return No return value
  */
-static void updateState(rdphdr_t *hdr, int node)
+static void updateState(rdphdr_t *hdr, int32_t node)
 {
     Rconninfo_t *cp = &conntable[node];
     int logLevel = RDP_LOG_CNTR;
@@ -1314,22 +1292,21 @@ static void updateState(rdphdr_t *hdr, int node)
 
 
 /**
- * @brief Timeout handler to be registered in Timer facility.
+ * @brief Timeout handler to be registered in Timer facility
  *
  * Timeout handler called from Timer facility every time @ref RDPTimeout
  * expires.
  *
- * @param fd Descriptor referencing the RDP socket.
+ * @param fd Descriptor referencing the RDP socket
  *
- * @return No return value.
+ * @return No return value
  */
 static void handleTimeoutRDP(void)
 {
-    list_t *a, *tmp;
     struct timeval tv;
-
     gettimeofday(&tv, NULL);
 
+    list_t *a;
     list_for_each(a, &AckList) {
 	msgbuf_t *mp = list_entry(a, msgbuf_t, nxtACK);
 	int node = mp->node;
@@ -1348,6 +1325,7 @@ static void handleTimeoutRDP(void)
      * and nothing else is done within this loop
      */
     if (cleanupReq) {
+	list_t *tmp;
 	list_for_each_safe(a, tmp, &AckList) {
 	    msgbuf_t *mp = list_entry(a, msgbuf_t, nxtACK);
 
@@ -1367,7 +1345,7 @@ static void handleTimeoutRDP(void)
 }
 
 /**
- * @brief Handle piggyback ACK.
+ * @brief Handle piggyback ACK
  *
  * Handle the piggyback acknowledgment information contained in the
  * header of @a hdr received from node @a fromnode.
@@ -1382,21 +1360,18 @@ static void handleTimeoutRDP(void)
  * @param hdr The packet header with the ACK in
  *
  * @param fromnode The node @a hdr was received from and whose ACK
- * information has to be updated.
+ * information has to be updated
  *
- * @return No return value.
+ * @return No return value
  */
-static void doACK(rdphdr_t *hdr, int fromnode)
+static void doACK(rdphdr_t *hdr, int32_t fromnode)
 {
-    Rconninfo_t *cp;
-    list_t *m, *tmp;
     bool callback = false, doStatistics = RDPStatistics;
-    struct timeval now;
 
     if ((hdr->type == RDP_SYN) || (hdr->type == RDP_SYNACK)) return;
     /* these packets are used for initialization only */
 
-    cp = &conntable[fromnode];
+    Rconninfo_t *cp = &conntable[fromnode];
 
     RDP_log(RDP_LOG_ACKS,
 	    "process ACK from %d [Type=%d, seq=%x, AE=%x, got=%x]\n",
@@ -1420,10 +1395,12 @@ static void doACK(rdphdr_t *hdr, int fromnode)
 	}
     }
 
+    struct timeval now;
     if (doStatistics) gettimeofday(&now, NULL);
 
     int blocked = Timer_block(timerID, true);
 
+    list_t *m, *tmp;
     list_for_each_safe(m, tmp, &cp->pendList) {
 	msgbuf_t *mp = list_entry(m, msgbuf_t, next);
 	int32_t seqno = psntoh32(mp->msg.small->header.seqno);
@@ -1472,19 +1449,19 @@ static void doACK(rdphdr_t *hdr, int fromnode)
 }
 
 /**
- * @brief Handle control packets.
+ * @brief Handle control packets
  *
  * Handle the control packet @a hdr received from node @a
  * node. Control packets within RDP are all packets except the ones of
  * type RDP_DATA.
  *
- * @param hdr The control packet received.
+ * @param hdr The control packet received
  *
- * @param node The node the packet was received from.
+ * @param node The node the packet was received from
  *
- * @return No return value.
+ * @return No return value
  */
-static void handleControlPacket(rdphdr_t *hdr, int node)
+static void handleControlPacket(rdphdr_t *hdr, int32_t node)
 {
     RDP_log((hdr->type == RDP_ACK) ? RDP_LOG_ACKS : RDP_LOG_CNTR,
 	    "%s: got %s from %d\n", __func__, RDPMsgString(hdr->type), node);
@@ -1515,7 +1492,7 @@ static void handleControlPacket(rdphdr_t *hdr, int node)
 }
 
 /**
- * @brief Handle extended reliable error message.
+ * @brief Handle extended reliable error message
  *
  * Handle extended reliable error messages. Thus the message is
  * received from the corresponding error queue and handled
@@ -1528,24 +1505,23 @@ static void handleControlPacket(rdphdr_t *hdr, int node)
  *
  * @see cmsg(3), IP(7)
  */
-static int handleErr(int eno)
+static ssize_t handleErr(int eno)
 {
-    struct msghdr errmsg;
     struct sockaddr_in sin;
-    struct iovec iov;
-    struct cmsghdr *cmsg;
-    struct sock_extended_err *extErr;
-    int node;
+    struct iovec iov = {
+	.iov_base = NULL,
+	.iov_len = 0,
+    };
     char cbuf[256];
 
-    errmsg.msg_name = &sin;
-    errmsg.msg_namelen = sizeof(sin);
-    errmsg.msg_iov = &iov;
-    errmsg.msg_iovlen = 1;
-    errmsg.msg_control = &cbuf;
-    errmsg.msg_controllen = sizeof(cbuf);
-    iov.iov_base = NULL;
-    iov.iov_len = 0;
+    struct msghdr errmsg = {
+	.msg_name = &sin,
+	.msg_namelen = sizeof(sin),
+	.msg_iov = &iov,
+	.msg_iovlen = 1,
+	.msg_control = &cbuf,
+	.msg_controllen = sizeof(cbuf),
+    };
     if (recvmsg(rdpsock, &errmsg, MSG_ERRQUEUE) == -1) {
 	int leno = errno;
 	if (errno == EAGAIN) return 0;
@@ -1578,7 +1554,7 @@ static int handleErr(int eno)
 	    (errmsg.msg_flags & MSG_ERRQUEUE) ? "MSG_ERRQUEUE ":"",
 	    (errmsg.msg_flags & MSG_DONTWAIT) ? "MSG_DONTWAIT ":"");
 
-    cmsg = CMSG_FIRSTHDR(&errmsg);
+    struct cmsghdr *cmsg = CMSG_FIRSTHDR(&errmsg);
     if (!cmsg) {
 	RDP_log(-1, "%s: cmsg is NULL\n", __func__);
 	return -1;
@@ -1595,7 +1571,7 @@ static int handleErr(int eno)
 	return -1;
     }
 
-    extErr = (struct sock_extended_err *)CMSG_DATA(cmsg);
+    struct sock_extended_err *extErr = (struct sock_extended_err *)CMSG_DATA(cmsg);
     if (!extErr) {
 	RDP_log(-1, "%s: extErr is NULL\n", __func__);
 	return -1;
@@ -1607,7 +1583,7 @@ static int handleErr(int eno)
 	    __func__, extErr->ee_errno, extErr->ee_origin, extErr->ee_type,
 	    extErr->ee_code, extErr->ee_pad, extErr->ee_info, extErr->ee_data);
 
-    node = lookupIPTable(sin.sin_addr);
+    int32_t node = lookupIPTable(sin.sin_addr);
     if (node < 0) {
 	RDP_log(-1, "%s: unable to resolve %s\n", __func__,
 		inet_ntoa(sin.sin_addr));
@@ -1640,7 +1616,7 @@ static int handleErr(int eno)
 }
 
 /**
- * @brief Handle RDP message.
+ * @brief Handle RDP message
  *
  * Peek into a RDP message pending on @a fd. Depending on the type of
  * the message it is either fully handled within this function or a
@@ -1662,9 +1638,9 @@ static int handleErr(int eno)
  * message is pending on the socket used for realizing the RDP
  * protocol.
  *
- * @param fd The file-descriptor on which a RDP message is pending.
+ * @param fd The file-descriptor on which a RDP message is pending
  *
- * @param info Extra info. Currently ignored.
+ * @param info Extra info. Currently ignored
  *
  * @return If an error occurs, -1 is returned. Otherwise the return
  * value depends on the type of message pending. If it is a control
@@ -1675,15 +1651,12 @@ static int handleErr(int eno)
 static int handleRDP(int fd, void *info)
 {
     Lmsg_t msg;
-    struct sockaddr_in sin;
-    socklen_t slen;
-    int fromnode, ret;
+    struct sockaddr_in sin = { 0 };
+    socklen_t slen = sizeof(sin);
 
-    slen = sizeof(sin);
-    memset(&sin, 0, slen);
     /* read msg for inspection */
-    ret = MYrecvfrom(fd, &msg, sizeof(msg), MSG_PEEK,
-		     (struct sockaddr *)&sin, &slen);
+    ssize_t ret = MYrecvfrom(fd, &msg, sizeof(msg), MSG_PEEK,
+			     (struct sockaddr *)&sin, &slen);
     if (ret < 0) {
 	RDP_warn(-1, errno, "%s: MYrecvfrom(MSG_PEEK)", __func__);
 	return ret;
@@ -1694,7 +1667,7 @@ static int handleRDP(int fd, void *info)
 
 	    /* Actually get the msg */
 	    if (MYrecvfrom(fd, &msg, sizeof(msg), 0,
-			   (struct sockaddr *) &sin, &slen)<0) {
+			   (struct sockaddr *) &sin, &slen) < 0) {
 		RDP_exit(errno, "%s/PKTLOSS: MYrecvfrom", __func__);
 	    } else if (!ret) {
 		RDP_log(-1, "%s/PKTLOSS: MYrecvfrom() returns 0\n", __func__);
@@ -1705,14 +1678,14 @@ static int handleRDP(int fd, void *info)
 	}
     }
 
-    fromnode = lookupIPTable(sin.sin_addr);     /* lookup node */
+    int32_t fromnode = lookupIPTable(sin.sin_addr);
     if (fromnode < 0) {
 	RDP_log(-1, "%s: unable to resolve %s\n", __func__,
 		inet_ntoa(sin.sin_addr));
 
 	/* Actually get the msg */
 	if (MYrecvfrom(fd, &msg, sizeof(msg), 0,
-		       (struct sockaddr *) &sin, &slen)<0) {
+		       (struct sockaddr *) &sin, &slen) < 0) {
 	    RDP_exit(errno, "%s/ELNRNG: MYrecvfrom", __func__);
 	} else if (!ret) {
 	    RDP_log(-1, "%s/ELNRNG: MYrecvfrom() returns 0\n", __func__);
@@ -1730,7 +1703,7 @@ static int handleRDP(int fd, void *info)
 	if (timercmp(&tv, &conntable[fromnode].closed, <)) {
 	    /* Actually fetch the msg */
 	    if (MYrecvfrom(fd, &msg, sizeof(msg), 0,
-			   (struct sockaddr *) &sin, &slen)<0) {
+			   (struct sockaddr *) &sin, &slen) < 0) {
 		RDP_exit(errno, "%s/CLOSED: MYrecvfrom", __func__);
 	    } else if (!ret) {
 		RDP_log(-1, "%s/CLOSED: MYrecvfrom() returns 0\n", __func__);
@@ -1829,8 +1802,8 @@ static char *stateStringRDP(RDPState_t state)
 
 /* ---------------------------------------------------------------------- */
 
-int RDP_init(int nodes, in_addr_t addr, unsigned short portno, FILE* logfile,
-	     unsigned int hosts[], void (*dispatcher)(void),
+int RDP_init(int nodes, in_addr_t addr, in_port_t portno, FILE* logfile,
+	     in_addr_t hosts[], void (*dispatcher)(void),
 	     void (*callback)(RDP_CB_type_t, void*))
 {
     logger = logger_init("RDP", logfile);
@@ -1857,7 +1830,7 @@ int RDP_init(int nodes, in_addr_t addr, unsigned short portno, FILE* logfile,
 
     if (!Selector_isInitialized()) Selector_init(logfile);
 
-    rdpsock = initSockRDP(addr, htons(portno), 0);
+    rdpsock = initSockRDP(addr, htons(portno));
     Selector_register(rdpsock, handleRDP, NULL);
 
     if (!Timer_isInitialized()) Timer_init(logfile);
@@ -1893,9 +1866,7 @@ int getPktLossRDP(void)
 
 void setPktLossRDP(int rate)
 {
-    if (0<=rate && rate<=100) {
-	RDPPktLoss = rate;
-    }
+    if (0 <= rate && rate <= 100) RDPPktLoss = rate;
 }
 
 int getTmOutRDP(void)
@@ -1988,22 +1959,18 @@ bool RDP_getStatistics(void)
 void RDP_setStatistics(bool state)
 {
     RDPStatistics = state;
+    if (!state) return;
 
-    if (RDPStatistics) {
-	for (unsigned int n = 0; n < nrOfNodes; n++) {
-	    timerclear(&conntable[n].TTA);
-	    conntable[n].totRetrans = 0;
-	    conntable[n].totSent = 0;
-	    conntable[n].totNACK = 0;
-	}
+    for (uint32_t n = 0; n < nrOfNodes; n++) {
+	timerclear(&conntable[n].TTA);
+	conntable[n].totRetrans = 0;
+	conntable[n].totSent = 0;
+	conntable[n].totNACK = 0;
     }
 }
 
-int Rsendto(int node, void *buf, size_t len)
+ssize_t Rsendto(int32_t node, void *buf, size_t len)
 {
-    msgbuf_t *mp;
-    int retval = 0;
-
     if (node < 0 || node >= (int)nrOfNodes) {
 	/* illegal node number */
 	RDP_log(-1, "%s: illegal node number %d\n", __func__, node);
@@ -2024,7 +1991,7 @@ int Rsendto(int node, void *buf, size_t len)
 	errno = EAGAIN;
 	return -1;
     }
-    if (len>RDP_MAX_DATA_SIZE) {
+    if (len > RDP_MAX_DATA_SIZE) {
 	/* msg too large */
 	RDP_log(-1, "%s: len=%zd > RDP_MAX_DATA_SIZE=%zd\n",
 		__func__, len, RDP_MAX_DATA_SIZE);
@@ -2056,7 +2023,7 @@ int Rsendto(int node, void *buf, size_t len)
     int blocked = Timer_block(timerID, true);
 
     /* setup msg buffer */
-    mp = getMsg();
+    msgbuf_t *mp = getMsg();
     if (!mp) {
 	RDP_log(-1, "%s: Unable to get msg buffer\n", __func__);
 	Timer_block(timerID, blocked);
@@ -2113,6 +2080,7 @@ int Rsendto(int node, void *buf, size_t len)
      */
     conntable[node].window--;
 
+    ssize_t retval = 0;
     switch (conntable[node].state) {
     case CLOSED:
 	conntable[node].state = SYN_SENT;
@@ -2166,14 +2134,8 @@ int Rsendto(int node, void *buf, size_t len)
     return (retval - sizeof(rdphdr_t));
 }
 
-int Rrecvfrom(int *node, void *msg, size_t len)
+ssize_t Rrecvfrom(int32_t *node, void *msg, size_t len)
 {
-    struct sockaddr_in sin;
-    Lmsg_t msgbuf;
-    socklen_t slen;
-    int retval;
-    int fromnode;
-
     if (!node || !msg) {
 	/* we definitely need a pointer */
 	RDP_log(-1, "%s: got NULL pointer\n", __func__);
@@ -2193,10 +2155,12 @@ int Rrecvfrom(int *node, void *msg, size_t len)
 	return -1;
     }
 
-    slen = sizeof(sin);
+    Lmsg_t msgbuf;
+    struct sockaddr_in sin;
+    socklen_t slen = sizeof(sin);
     /* get pending msg */
-    retval = MYrecvfrom(rdpsock, &msgbuf, sizeof(msgbuf), 0,
-			(struct sockaddr *)&sin, &slen);
+    ssize_t retval = MYrecvfrom(rdpsock, &msgbuf, sizeof(msgbuf), 0,
+				(struct sockaddr *)&sin, &slen);
 
     if (retval < 0) {
 	if (errno == EWOULDBLOCK) {
@@ -2209,7 +2173,7 @@ int Rrecvfrom(int *node, void *msg, size_t len)
 	return 0;
     }
 
-    fromnode = lookupIPTable(sin.sin_addr);        /* lookup node */
+    int32_t fromnode = lookupIPTable(sin.sin_addr);
     if (fromnode < 0) {
 	RDP_log(-1, "%s: unable to resolve %s\n", __func__,
 		inet_ntoa(sin.sin_addr));
@@ -2280,7 +2244,7 @@ int Rrecvfrom(int *node, void *msg, size_t len)
     return retval;
 }
 
-void getConnInfoRDP(int node, char *s, size_t len)
+void getConnInfoRDP(int32_t node, char *s, size_t len)
 {
     snprintf(s, len, "%3d [%s]: IP=%-15s ID[%08x|%08x] FTS=%08x AE=%08x"
 	     " FE=%08x AP=%2d MP=%2d",
@@ -2292,7 +2256,7 @@ void getConnInfoRDP(int node, char *s, size_t len)
 	     conntable[node].msgPending);
 }
 
-void getStateInfoRDP(int node, char *s, size_t len)
+void getStateInfoRDP(int32_t node, char *s, size_t len)
 {
     snprintf(s, len, "%3d [%s]: IP=%-15s TOT=%6u AP=%2d MP=%2d RTR=%2d"
 	     " TOTRET=%4u NACK=%4u", node,
@@ -2317,7 +2281,7 @@ void getStateInfoRDP(int node, char *s, size_t len)
     }
 }
 
-void closeConnRDP(int node)
+void closeConnRDP(int32_t node)
 {
     struct timeval tv;
 
@@ -2367,7 +2331,7 @@ void RDP_printStat(void)
     }
 }
 
-RDPState_t RDP_getState(int node)
+RDPState_t RDP_getState(int32_t node)
 {
     if (node < 0 || node >= (int)nrOfNodes) {
 	RDP_log(-1, "%s: illegal node number %d\n", __func__, node);
@@ -2377,7 +2341,7 @@ RDPState_t RDP_getState(int node)
     return conntable[node].state;
 }
 
-int RDP_getNumPend(int node)
+int RDP_getNumPend(int32_t node)
 {
     if (node < 0 || node >= (int)nrOfNodes) {
 	RDP_log(-1, "%s: illegal node number %d\n", __func__, node);

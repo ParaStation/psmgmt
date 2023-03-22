@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
  * Copyright (C) 2005-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021 ParTec AG, Munich
+ * Copyright (C) 2021-2023 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -14,6 +14,8 @@
  */
 #ifndef __PSIDRDP_H
 #define __PSIDRDP_H
+
+#include <sys/types.h>
 
 #include "psprotocol.h"
 
@@ -54,7 +56,7 @@ void clearRDPMsgs(int node);
  *
  * @see sendRDP()
  */
-int flushRDPMsgs(int node);
+ssize_t flushRDPMsgs(int node);
 
 /**
  * @brief Send a message via RDP
@@ -75,7 +77,7 @@ int flushRDPMsgs(int node);
  *
  * @see Rsendto(), flushRDPMsgs()
  */
-int sendRDP(DDMsg_t *msg);
+ssize_t sendRDP(DDMsg_t *msg);
 
 /**
  * @brief Handle message from RDP
