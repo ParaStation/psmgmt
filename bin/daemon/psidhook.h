@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2013-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2022 ParTec AG, Munich
+ * Copyright (C) 2021-2023 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -248,6 +248,10 @@ typedef enum {
 				shall be used to register additional message
 				types that might already be received during
 				logger connection, etc. */
+    PSIDHOOK_NODE_UNKNOWN,    /**< Node IP is unknown, arg is PSnodes_ID_t ID;
+				this shall update the node's IP address to a
+				valid one in order to allow to grow the numer
+				of available nodes dynamically. */
     PSIDHOOK_LAST,            /**< This has to be the last one */
 } PSIDhook_t;
 
