@@ -110,6 +110,25 @@ int RDP_init(int nodes, in_addr_t addr, in_port_t portno, FILE* logfile,
 	     void (*callback)(RDP_CB_type_t, void*));
 
 /**
+ * @brief Update a remote node's IP(v4) address
+ *
+ * Update the IP(v4) address of the node with ID @a node to @a
+ * addr. Updating the address might shutdown an existing connection
+ * and drop all pending message to this node (if any).
+ *
+ * If @a addr is set to INADDR_ANY or INADDR_NONE, any future
+ * connections to this node will be prevented until a valid IP address
+ * is provided again.
+ *
+ * @param node ID of the node to update
+ *
+ * @param addr New IP(v4) address to reach the node in the future
+ *
+ * @return On success true is returned or false in case of failure
+ */
+bool RDP_updateNode(int32_t node, in_addr_t addr);
+
+/**
  * @brief Shutdown the RDP module.
  *
  * Shutdown the whole RDP machinery.

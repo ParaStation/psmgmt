@@ -249,6 +249,59 @@ static void addToIPTable(struct in_addr addr, int32_t node)
 }
 
 /**
+ * @brief Remove entry from @ref iptable
+ *
+ * Remove the entry @a ip from the iptable. For this, the content of
+ * the entry @a ip points to is replace by the content of ip->next (if
+ * any) before ip->next is remove.
+ *
+ * @param ip Pointer to the entry to remove
+ *
+ * @return If @a ip is NULL return false or true on success
+ */
+static bool doRemove(ipentry_t *ip)
+{
+    if (!ip) return false;
+
+    ipentry_t *tmp = ip->next;
+    ip->ipAddr = tmp ? tmp->ipAddr : 0;
+    ip->node = tmp ? tmp->node : 0;
+    ip->next = tmp ? tmp->next : NULL;
+    free(tmp);
+    return true;
+}
+
+/**
+ * @brief Remove entry from @ref iptable
+ *
+ * Remove the entry identified by the IP(v4) address @a addr and node
+ * ID @a node from the @ref iptable. If no corresponding entry is
+ * found, @ref iptable is left untouched and false is returned
+ *
+ * @param addr IP(v4) address of the node to remove
+ *
+ * @param node Corresponding node number
+ *
+ * @return On success (i.e. if an entry is removed) true is returned
+ * or false in case of failure
+ */
+static bool rmFromIPTable(in_addr_t addr, int32_t node)
+{
+    int idx = ntohl(addr) & 0xff;  /* last octet of IP addr is hash */
+    ipentry_t *ip = &iptable[idx];
+
+    if (ip->ipAddr == addr && ip->node == node) return doRemove(ip);
+
+    while (ip->next) {
+	if (ip->next->ipAddr == addr && ip->next->node == node) {
+	    return doRemove(ip->next);
+	}
+	ip = ip->next;
+    }
+    return false;
+}
+
+/**
  * @brief Get node number from IP address
  *
  * Get the node number from given IP(v4) address for a node registered
@@ -1839,6 +1892,29 @@ int RDP_init(int nodes, in_addr_t addr, in_port_t portno, FILE* logfile,
     return rdpsock;
 }
 
+bool RDP_updateNode(int32_t node, in_addr_t addr)
+{
+    if (node < 0 || node >= (int)nrOfNodes) {
+	/* illegal node number */
+	RDP_log(-1, "%s: illegal node number %d\n", __func__, node);
+	return false;
+    }
+
+    /* ignore identical IP */
+    if (conntable[node].sin.sin_addr.s_addr == addr) return true;
+
+    if (conntable[node].state != CLOSED)
+	closeConnection(node, false /* callback */, true /* silent */);
+
+    rmFromIPTable(conntable[node].sin.sin_addr.s_addr, node);
+
+    conntable[node].sin.sin_addr.s_addr = addr;
+    if (addr != INADDR_ANY && addr != INADDR_NONE)
+	addToIPTable(conntable[node].sin.sin_addr, node);
+
+    return true;
+}
+
 void exitRDP(void)
 {
     Selector_remove(rdpsock);      /* unregister selector */
@@ -1978,7 +2054,8 @@ ssize_t Rsendto(int32_t node, void *buf, size_t len)
 	return -1;
     }
 
-    if (conntable[node].sin.sin_addr.s_addr == INADDR_ANY) {
+    if (conntable[node].sin.sin_addr.s_addr == INADDR_ANY
+	|| conntable[node].sin.sin_addr.s_addr == INADDR_NONE) {
 	/* no IP configured */
 	RDP_log(RDP_LOG_CONN, "%s: node %d not configured\n", __func__, node);
 	errno = EHOSTUNREACH;
