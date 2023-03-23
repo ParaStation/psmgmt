@@ -29,12 +29,12 @@ typedef uint32_t AttrMask_t;
  *
  * Create the new node attribute @a name. If an attribute with this
  * name already exists, nothing is done. The new node attribute is
- * registered to an unique positive index which is returned. It might
+ * registered to a unique positive index which is returned. It might
  * be looked up later using the Attr_index() function.
  *
  * @param name Name of the new node attribute
  *
- * @return If an node attribute named @a name was registered before or
+ * @return If a node attribute named @a name was registered before or
  * an error occured, -1 is returned; otherwise the index of the new
  * attribute is given
  *
