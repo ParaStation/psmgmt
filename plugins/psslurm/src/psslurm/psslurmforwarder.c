@@ -630,6 +630,9 @@ int handleExecClientPrep(void *data)
 	.envSet = NULL,
 	.envUnset = NULL
     };
+
+    SpankInitOpt(&spank);
+
     SpankCallHook(&spank);
 #endif
 
