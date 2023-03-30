@@ -510,6 +510,7 @@ int handleForwarderInit(void * data)
 	.envSet = NULL,
 	.envUnset = NULL
     };
+    SpankInitOpt(&spank);
     SpankCallHook(&spank);
 #endif
 
@@ -578,6 +579,7 @@ int handleExecClient(void *data)
 	.envSet = NULL,
 	.envUnset = NULL
     };
+    SpankInitOpt(&spank);
     SpankCallHook(&spank);
 #endif
 
@@ -630,9 +632,6 @@ int handleExecClientPrep(void *data)
 	.envSet = NULL,
 	.envUnset = NULL
     };
-
-    SpankInitOpt(&spank);
-
     SpankCallHook(&spank);
 #endif
 
