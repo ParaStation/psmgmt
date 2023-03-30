@@ -203,7 +203,6 @@ static void clearConfigEntry(int i)
     pluginConfList[i].name = NULL;
 
     freeConfig(pluginConfList[i].conf);
-    ufree(pluginConfList[i].conf);
     pluginConfList[i].conf = NULL;
 }
 
