@@ -638,6 +638,10 @@ static spank_err_t getTaskItem(spank_t spank, spank_item_t item, va_list ap)
     pid_t *pPID;
     uint32_t *pUint32;
     int *pInt;
+#ifdef HAVE_S_TASK_ARGV
+    uint32_t **p2UInt32;
+    char ****p4Char;
+#endif
     Step_t *step = spank->step;
 
     switch(item) {
@@ -707,6 +711,21 @@ static spank_err_t getTaskItem(spank_t spank, spank_item_t item, va_list ap)
 		return ESPANK_NOT_AVAIL;
 	    }
 	    break;
+#ifdef HAVE_S_TASK_ARGV
+	case S_TASK_ARGV:
+	    p2UInt32 = va_arg(ap, uint32_t **);
+	    p4Char = va_arg(ap, char ****);
+	    if ((spank->hook == SPANK_TASK_INIT
+		 || spank->hook == SPANK_TASK_INIT_PRIVILEGED)
+		&& spank->task) {
+		*p2UInt32 = &spank->task->argc;
+		*p4Char = &spank->task->argv;
+	    } else {
+		*p2UInt32 = NULL;
+		return ESPANK_NOT_AVAIL;
+	    }
+	    break;
+#endif
 	default:
 	    return ESPANK_BAD_ARG;
     }
@@ -869,6 +888,9 @@ spank_err_t psSpankGetItem(spank_t spank, spank_item_t item, va_list ap)
 	case S_TASK_EXIT_STATUS:
 	case S_TASK_PID:
 	case S_STEP_CPUS_PER_TASK:
+#ifdef HAVE_S_TASK_ARGV
+	case S_TASK_ARGV:
+#endif
 	    return getTaskItem(spank, item, ap);
 	case S_SLURM_VERSION:
 	case S_SLURM_VERSION_MAJOR:
