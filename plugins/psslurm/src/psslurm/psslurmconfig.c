@@ -1627,6 +1627,7 @@ bool updateSlurmConf(void)
 
     /* update the original configuration now */
     initConfig(&SlurmConfig);
+    setConfigAvoidDoubleEntry(SlurmConfig, false);
     registerConfigHashAccumulator(&configHash);
     configHash = 0;
     if (parseConfigFile(cPath, SlurmConfig, true /*trimQuotes*/) < 0) {

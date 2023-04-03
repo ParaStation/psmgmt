@@ -793,6 +793,7 @@ int initialize(FILE *logfile)
 
     /* init the configurations */
     initConfig(&SlurmConfig); // allow for early cleanup()
+    setConfigAvoidDoubleEntry(SlurmConfig, false);
     int confRes = initPSSlurmConfig(PSSLURM_CONFIG_FILE);
     haveBasicConfig = true;
     if (confRes == CONFIG_ERROR) {

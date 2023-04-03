@@ -54,7 +54,7 @@ bool initConfig(Config_t *conf);
 bool setConfigCaseSensitivity(Config_t conf, bool sensitivity);
 
 /**
- * @brief Set configuration's case sensitivity
+ * @brief Get configuration's case sensitivity
  *
  * Determine if the key handling within the configuration @a conf is
  * case sensitive.
@@ -63,6 +63,40 @@ bool setConfigCaseSensitivity(Config_t conf, bool sensitivity);
  * otherwise false is returned
  */
 bool getConfigCaseSensitivity(Config_t conf);
+
+/**
+ * @brief Set configuration's double entry avoidance
+ *
+ * Adjust double entry avoidance of the configuration @a conf. If @a
+ * flag is true, no double entries will be stored in @a conf. In this
+ * case if an entry is added twice, the second addition will replace
+ * the first one. This is the default. Otherwise multiple entries
+ * belonging to a single key might be added.
+ *
+ * Double or ghost entries in the configuration are only accessible
+ * through @ref traverseConfig() and might not be found by @ref
+ * getConfValue*(). Furthermore, such entries might have to be removed
+ * multiple times via @ref unsetConfigEntry() before all ghost entries
+ * are gone. In order to avoid unexpected behavior this function will
+ * check for an empty configuration and fail in case of existing
+ * entries.
+ *
+ * @param flag Flag the avoidance of double entries
+ *
+ * @return true on success, false on error
+ */
+bool setConfigAvoidDoubleEntry(Config_t conf, bool flag);
+
+/**
+ * @brief Get configuration's double entry avoidance
+ *
+ * Determine if the key handling within the configuration @a conf
+ * avoids double entries only accessible through @ref traverseConfig().
+ *
+ * @return Returns true if key handling in @a conf avoids double
+ * entries; otherwise false is returned
+ */
+bool getConfigAvoidDoubleEntry(Config_t conf);
 
 /**
  * @brief Fetch configuration from a file

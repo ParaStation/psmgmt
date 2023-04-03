@@ -25,6 +25,7 @@ struct pluginConfig {
     long magic;
     list_t config;
     bool caseSensitive;
+    bool avoidDoubleEntry;
 };
 
 /** Single object of a configuration */
@@ -141,6 +142,7 @@ bool initConfig(Config_t *conf)
     (*conf)->magic = PLUGIN_CONFIG_MAGIC;
     INIT_LIST_HEAD(&((*conf)->config));
     (*conf)->caseSensitive = true;
+    (*conf)->avoidDoubleEntry = true;
 
     return true;
 }
@@ -156,6 +158,20 @@ bool setConfigCaseSensitivity(Config_t conf, bool sensitivity)
 bool getConfigCaseSensitivity(Config_t conf)
 {
     if (checkConfig(conf)) return conf->caseSensitive;
+    return false;
+}
+
+bool setConfigAvoidDoubleEntry(Config_t conf, bool flag)
+{
+    if (!checkConfig(conf) || !list_empty(&(conf->config))) return false;
+
+    conf->avoidDoubleEntry = flag;
+    return true;
+}
+
+bool getConfigAvoidDoubleEntry(Config_t conf)
+{
+    if (checkConfig(conf)) return conf->avoidDoubleEntry;
     return false;
 }
 
@@ -208,8 +224,7 @@ int parseConfigFile(char *filename, Config_t conf, bool trimQuotes)
 
 	/* avoid double entries */
 	ConfObj_t *obj = findConfObj(conf, key);
-	if (obj) {
-	    // @todo do we want to warn here?
+	if (obj && conf->avoidDoubleEntry) {
 	    ufree(obj->value);
 	    obj->value = (val) ? ustrdup(val) : ustrdup("");
 	} else {
