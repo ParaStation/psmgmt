@@ -288,6 +288,17 @@ const char * PSIDnodes_getHostname(PSnodes_ID_t id)
     return nodes[id].hostname;
 }
 
+PSnodes_ID_t PSIDnodes_getID(const char *hostname)
+{
+    if (!hostname) return -1;
+
+    for (PSnodes_ID_t id = 0; id <= maxID; id++) {
+	if (nodes[id].hostname
+	    && !strcmp(hostname, nodes[id].hostname)) return id;
+    }
+    return -1;
+}
+
 int PSIDnodes_bringUp(PSnodes_ID_t id)
 {
     if (!validID(id)) return -1;

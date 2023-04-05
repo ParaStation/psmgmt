@@ -172,6 +172,18 @@ const char * PSIDnodes_getNodename(PSnodes_ID_t id);
 const char * PSIDnodes_getHostname(PSnodes_ID_t id);
 
 /**
+ * @brief Get ParaStation ID of a node by its configured hostname
+ *
+ * Get the ParaStation node ID of the node with the configured hostname
+ * @a hostname.
+ *
+ * @param hostname configured hostname of the node to look up
+ *
+ * @return If the node was found, the ID is returned; or -1 if an error occurred
+ */
+PSnodes_ID_t PSIDnodes_getID(const char *hostname);
+
+/**
  * @brief Declare a node to be up
  *
  * Declare the node with ParaStation ID @a id to be up.
