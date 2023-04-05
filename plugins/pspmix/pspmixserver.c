@@ -1578,8 +1578,19 @@ static bool fillServerSessionArray(pmix_data_array_t *sessionInfo,
     INFO_LIST_ADD(list, PMIX_RM_VERSION, rmversion, PMIX_STRING);
 
     /* Host where target PMIx server is located */
-    const char *hostname = getHostnameByNodeId(PSC_getMyID());
-    INFO_LIST_ADD(list, PMIX_SERVER_HOSTNAME, hostname, PMIX_STRING);
+    const char *hostname = PSIDnodes_getHostname(PSC_getMyID());
+    if (!hostname) {
+	mdbg(PSPMIX_LOG_VERBOSE, "%s: Unable to get my own hostname from psid"
+	     " => falling back to resolver\n", __func__);
+	hostname = getHostnameByNodeId(PSC_getMyID());
+    }
+    if (hostname) {
+	INFO_LIST_ADD(list, PMIX_SERVER_HOSTNAME, hostname, PMIX_STRING);
+    } else {
+	mlog("%s: Unable to get my own hostname\n", __func__);
+	PMIx_Info_list_release(list);
+	return false;
+    }
 
     pmix_status_t status;
     status = PMIx_Info_list_convert(list, sessionInfo);

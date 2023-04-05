@@ -431,7 +431,8 @@ bool pspmix_service_registerNamespace(PspmixJob_t *job)
 		/* add new node to process map */
 		node = umalloc(sizeof(*node));
 		node->id = entry->node;
-		const char *hostname = PSIDnodes_getNodename(node->id);
+		const char *hostname = PSIDnodes_getHostname(node->id);
+		if (!hostname) hostname = PSIDnodes_getNodename(node->id);
 		if (!hostname) {
 		    ulog("no hostname for node %hd", node->id);
 		    ufree(node);
