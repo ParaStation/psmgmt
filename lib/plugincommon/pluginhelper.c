@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2012-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2022 ParTec AG, Munich
+ * Copyright (C) 2021-2023 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -24,6 +24,7 @@
 #include <sys/types.h>
 #include <unistd.h>
 #include <pwd.h>
+#include <arpa/inet.h>
 
 #include "pscio.h"
 #include "pscommon.h"
@@ -129,6 +130,33 @@ PSnodes_ID_t getNodeIDbyName(const char *host)
     }
 
     return nodeID;
+}
+
+PSnodes_ID_t getNodeIDbyHostname(const char *hostname)
+{
+    PSnodes_ID_t nodeID = -1;
+
+    /* first try if the "host" is actually an IP address string */
+    struct in_addr inp;
+    if (inet_aton(hostname, &inp)) {
+	/* try to internally resolv as address */
+	nodeID = PSIDnodes_lookupHost(inp.s_addr);
+        plugindbg(PLUGIN_LOG_VERBOSE, "%s: %s => %hd\n", __func__, hostname,
+		  nodeID);
+	if (nodeID >= 0) return nodeID;
+    }
+
+    /* try to internally resolv as hostname */
+    nodeID = PSIDnodes_getID(hostname);
+    plugindbg(PLUGIN_LOG_VERBOSE, "%s: %s => %hd\n", __func__, hostname,
+	      nodeID);
+    if (nodeID >= 0) return nodeID;
+
+    /* fall back to using the resolver */
+    plugindbg(PLUGIN_LOG_VERBOSE, "%s: '%s' not found internally => fall back"
+	      " to resolver\n", __func__, hostname);
+
+    return getNodeIDbyName(hostname);
 }
 
 const char *getHostnameByNodeId(PSnodes_ID_t id)

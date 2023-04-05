@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2014-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2022 ParTec AG, Munich
+ * Copyright (C) 2021-2023 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -31,11 +31,34 @@ int removeDir(char *directory, int root);
 /**
  * @brief Get the PS Node ID by hostname.
  *
- * @param host The hostname to get the nodeID for.
+ * Tries to resolve the hostname/address using the system's resolver. It first
+ * gets all addresses returned by the resolver for the given string and then
+ * returns the first PS ID found for one of those addresses.
+ *
+ * @a host can be any string resolvable by @a getaddrinfo().
+ *
+ * @param host The hostname/address to get the nodeID for.
  *
  * @return Returns the requested nodeID or -1 on error.
  */
 PSnodes_ID_t getNodeIDbyName(const char *host);
+
+/**
+ * @brief Get the PS Node ID by hostname.
+ *
+ * This differs from the older @ref getNodeIDbyName(). It first tries to
+ * resolve the hostname/address using psid's internal node database and
+ * if not successful falls back to using the system's resolver by calling
+ * @ref getNodeIDbyName().
+ *
+ * @a hostname can be a string representing an IPv4 address that can be
+ * converted by inet_aton() or a hostname.
+ *
+ * @param hostname The hostname/address to get the nodeID for.
+ *
+ * @return Returns the requested nodeID or -1 on error.
+ */
+PSnodes_ID_t getNodeIDbyHostname(const char *hostname);
 
 /**
  * @brief Get the hostname from a PS node ID
