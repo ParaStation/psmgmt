@@ -51,6 +51,10 @@ typedef enum {
 				  * RDPCallback() will point to an int
 				  * holding the ID of the node which
 				  * is reachable again */
+    RDP_UNKNOWN_SENDER = 0x5,    /**< Received message from an unknown
+				  * sender IP; the second argument
+				  * points to the sender's sockaddr_in
+				  * struct */
 } RDP_CB_type_t;
 
 /** States a RDP connection can take */

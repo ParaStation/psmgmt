@@ -1732,6 +1732,12 @@ static int handleRDP(int fd, void *info)
     }
 
     int32_t fromnode = lookupIPTable(sin.sin_addr);
+    if (fromnode < 0 && msg.header.type == RDP_SYN && RDPCallback) {
+	/* Sender IP might be dynamic: allow daemon to detect and fix this */
+	RDPCallback(RDP_UNKNOWN_SENDER, &sin);
+	fromnode = lookupIPTable(sin.sin_addr);
+    }
+
     if (fromnode < 0) {
 	RDP_log(-1, "%s: unable to resolve %s\n", __func__,
 		inet_ntoa(sin.sin_addr));

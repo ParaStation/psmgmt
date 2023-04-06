@@ -129,17 +129,22 @@ static void MCastCallBack(int msgid, void *buf)
  * related to the callback. Currently four types of callback are
  * handled:
  *
- * - RDP_NEW_CONNECTION: a new partner inaccessible before was detected.
+ * - RDP_NEW_CONNECTION: a new partner inaccessible before was detected
  *
  * - RDP_LOST_CONNECTION: a partner that was recently accessible
- *   disappeared.
+ *   disappeared
  *
  * - RDP_PKT_UNDELIVERABLE: RDP was not able to deliver a packet
  *   originating on the local node. The actual packet is passed back
  *   within @a buf in order to create a suitable answer.
  *
  * - RDP_CAN_CONTINUE: RDP's flow control signals the possibility to
- *   send further packets to the destination indicated in @a buf.
+ *   send further packets to the destination indicated in @a buf
+ *
+ * - RDP_UNKNOWN_SENDER: RDP received a message from an unknown IP.
+ *   @a buf points to this sender's sockaddr_in struct. A plugin might
+ *   updated a node's IP(v4) address via RDP_updateNode() in its
+ *   PSIDHOOK_SENDER_UNKNOWN hook.
  *
  * @param type Type of callback to handle
  *
@@ -194,6 +199,9 @@ static void RDPCallBack(RDP_CB_type_t type, void *buf)
 	break;
     case RDP_CAN_CONTINUE:
 	flushRDPMsgs(*(int*)buf);
+	break;
+    case RDP_UNKNOWN_SENDER:
+	PSIDhook_call(PSIDHOOK_SENDER_UNKNOWN, buf);
 	break;
     default:
 	PSID_log(-1, "%s(%d,%p): unhandled callback\n", __func__, type, buf);

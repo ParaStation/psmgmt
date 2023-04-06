@@ -165,7 +165,7 @@ static LIST_HEAD(pluginList);
  *
  * 138: new hook PSIDHOOK_FRWRD_SETUP
  *
- * 139: new hook PSIDHOOK_NODE_UNKNOWN
+ * 139: new hooks PSIDHOOK_NODE_UNKNOWN, PSIDHOOK_SENDER_UNKNOWN
  */
 static int pluginAPIVersion = 139;
 

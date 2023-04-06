@@ -252,6 +252,9 @@ typedef enum {
 				this shall update the node's IP address to a
 				valid one in order to allow to grow the numer
 				of available nodes dynamically. */
+    PSIDHOOK_SENDER_UNKNOWN,  /**< Sender's IP is unknown to RDP, arg
+				 point's to sender's struct
+				 sockaddr_in */
     PSIDHOOK_LAST,            /**< This has to be the last one */
 } PSIDhook_t;
 
