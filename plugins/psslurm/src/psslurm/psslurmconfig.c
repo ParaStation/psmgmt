@@ -557,11 +557,11 @@ static bool parseHost(char *host, void *info)
 
     if (hInfo->type == CONFIG_TYPE_GRES) {
 	char *myHost = getConfValueC(Config, "SLURM_HOSTNAME");
-	if (myHost && !strcmp(myHost, host) && hInfo->options) {
+	if (myHost && !strcasecmp(myHost, host) && hInfo->options) {
 	    res = parseGresOptions(hInfo->options);
 	}
     } else {
-	if (!strcmp(host, "DEFAULT")) {
+	if (!strcasecmp(host, "DEFAULT")) {
 	    flog("saved default host definition\n");
 	    if (hInfo->options) {
 		res = addHostOptions(hInfo->options);
@@ -721,7 +721,7 @@ static bool parseNodeNameEntry(char *line, config_type_t type)
     }
 
     /* save all host definitions from default config except the default host */
-    if (type == CONFIG_TYPE_DEFAULT && strcmp(line, "DEFAULT")) {
+    if (type == CONFIG_TYPE_DEFAULT && strcasecmp(line, "DEFAULT")) {
 	saveNodeNameEntry(line, nodeAddr);
     }
 
@@ -848,32 +848,32 @@ static bool parseSlurmConf(char *key, char *value, const void *info)
     const config_type_t *type = info;
     switch(*type) {
     case CONFIG_TYPE_DEFAULT:
-	if (!strcmp(key, "NodeName")) {
+	if (!strcasecmp(key, "NodeName")) {
 	    char *hostline = ustrdup(value);
 	    if (!parseNodeNameEntry(hostline, *type)) {
 		ufree(hostline);
 		return true; /* an error occurred, true stops parsing */
 	    }
 	    ufree(hostline);
-	} else if (!strcmp(key, "SlurmctldHost")) {
+	} else if (!strcasecmp(key, "SlurmctldHost")) {
 	    if (!saveCtldHost(value)) {
 		return true; /* an error occurred, true stops parsing */
 	    }
-	} else if (!strcmp(key, "SlurmdParameters")) {
+	} else if (!strcasecmp(key, "SlurmdParameters")) {
 	    parseSlurmdParam(value);
-	} else if (!strcmp(key, "JobAcctGatherFrequency")) {
+	} else if (!strcasecmp(key, "JobAcctGatherFrequency")) {
 	    parseSlurmAccFreq(value);
 	}
 	break;
     case CONFIG_TYPE_GRES:
-	if (!strcmp(key, "NodeName")) {
+	if (!strcasecmp(key, "NodeName")) {
 	    char *hostline = ustrdup(value);
 	    if (!parseNodeNameEntry(hostline, *type)) {
 		ufree(hostline);
 		return true; /* an error occurred, true stops parsing */
 	    }
 	    ufree(hostline);
-	} else if (!strcmp(key, "Name")) {
+	} else if (!strcasecmp(key, "Name")) {
 	    char *tmp = umalloc(strlen(value) + 6);
 	    snprintf(tmp, strlen(value) + 6, "Name=%s", value);
 	    //mlog("%s: Gres single name '%s'\n", __func__, tmp);
@@ -882,7 +882,7 @@ static bool parseSlurmConf(char *key, char *value, const void *info)
 	}
 	break;
     case CONFIG_TYPE_TOPOLOGY:
-	if (!strcmp(key, "SwitchName")) {
+	if (!strcasecmp(key, "SwitchName")) {
 	    char *tmp = umalloc(strlen(value) + 12);
 	    snprintf(tmp, strlen(value) + 12, "SwitchName=%s", value);
 	    parseTopologyOptions(tmp);
@@ -975,6 +975,8 @@ static bool handleSlurmPlugInc(const char *path)
 	fdbg(PSSLURM_LOG_SPANK, "parse file %s\n", pglob.gl_pathv[i]);
 	Config_t SlurmPlugConf = NULL;
 	initConfig(&SlurmPlugConf);
+	setConfigCaseSensitivity(SlurmPlugConf, false);
+	setConfigAvoidDoubleEntry(SlurmPlugConf, false);
 	if (parseConfigFile(pglob.gl_pathv[i], SlurmPlugConf, true) < 0) {
 	    flog("parsing file %s failed\n", pglob.gl_pathv[i]);
 	    freeConfig(SlurmPlugConf);
@@ -1025,7 +1027,7 @@ static bool parseSlurmPlugLine(char *key, char *value, const void *info)
 	goto ERROR;
     }
 
-    if (!strcmp("include", flag)) {
+    if (!strcasecmp("include", flag)) {
 	const char *path = strtok_r(NULL, delimiters, &toksave);
 	if (!path) {
 	    flog("missing path for include statement\n");
@@ -1033,9 +1035,9 @@ static bool parseSlurmPlugLine(char *key, char *value, const void *info)
 	}
 	if (!handleSlurmPlugInc(path)) return true; /* break on error */
 	return false; /* success, continue with next line */
-    } else if (!strcmp("optional", flag)) {
+    } else if (!strcasecmp("optional", flag)) {
 	def->optional = true;
-    } else if (!strcmp("required", flag)) {
+    } else if (!strcasecmp("required", flag)) {
 	def->optional = false;
     } else {
 	flog("invalid flag '%s'\n", flag);
@@ -1428,6 +1430,8 @@ bool parseSlurmConfigFiles(void)
     if (stat(cPath, &sbuf) != -1) {
 	Config_t SlurmGresTmp = NULL;
 	initConfig(&SlurmGresTmp);
+	setConfigCaseSensitivity(SlurmGresTmp, false);
+	setConfigAvoidDoubleEntry(SlurmGresTmp, false);
 	if (parseConfigFile(cPath, SlurmGresTmp, true /*trimQuotes*/) < 0) {
 	    flog("Parsing GRes configuration file %s failed\n", cPath);
 	    freeConfig(SlurmGresTmp);
@@ -1453,6 +1457,8 @@ bool parseSlurmConfigFiles(void)
     if (stat(cPath, &sbuf) != -1) {
 	Config_t AcctGather = NULL;
 	initConfig(&AcctGather);
+	setConfigCaseSensitivity(AcctGather, false);
+	setConfigAvoidDoubleEntry(AcctGather, false);
 	if (parseConfigFile(cPath, AcctGather, true /*trimQuotes*/) < 0) {
 	    flog("Parsing account gather configuration file %s failed\n",
 		 cPath);
@@ -1480,6 +1486,8 @@ bool parseSlurmConfigFiles(void)
     if (stat(cPath, &sbuf) != -1) {
 	Config_t SlurmTopoTmp = NULL;
 	initConfig(&SlurmTopoTmp);
+	setConfigCaseSensitivity(SlurmTopoTmp, false);
+	setConfigAvoidDoubleEntry(SlurmTopoTmp, false);
 	if (parseConfigFile(cPath, SlurmTopoTmp, true /*trimQuotes*/) < 0) {
 	    flog("Parsing topology configuration file %s failed\n", cPath);
 	    freeConfig(SlurmTopoTmp);
@@ -1502,6 +1510,8 @@ bool parseSlurmConfigFiles(void)
     }
     snprintf(cPath, sizeof(cPath), "%s/%s", confDir, confFile);
     initConfig(&SlurmCgroupConfig);
+    setConfigCaseSensitivity(SlurmCgroupConfig, false);
+    setConfigAvoidDoubleEntry(SlurmCgroupConfig, false);
 
     if (stat(cPath, &sbuf) != -1) {
 	if (parseConfigFile(cPath, SlurmCgroupConfig,
@@ -1539,6 +1549,8 @@ bool parseSlurmConfigFiles(void)
     if (!disabled && stat(cPath, &sbuf) != -1) {
 	Config_t SlurmPlugConf = NULL;
 	initConfig(&SlurmPlugConf);
+	setConfigCaseSensitivity(SlurmPlugConf, false);
+	setConfigAvoidDoubleEntry(SlurmPlugConf, false);
 	if (parseConfigFile(cPath, SlurmPlugConf, true/*trimQuotes*/) < 0) {
 	    flog("Parsing Spank configuration file %s failed\n", cPath);
 	    freeConfig(SlurmPlugConf);
@@ -1585,7 +1597,7 @@ int initPSSlurmConfig(char *filename)
     }
 
     char *confServer = getConfValueC(Config, "SLURM_CONF_SERVER");
-    if (confServer && strcmp(confServer, "none")) {
+    if (confServer && strcasecmp(confServer, "none")) {
 	/* request Slurm configuration files */
 	return CONFIG_SERVER;
     }
@@ -1617,6 +1629,8 @@ bool updateSlurmConf(void)
     /* dry run to parse new configuration */
     Config_t newConf = NULL;
     initConfig(&newConf);
+    setConfigCaseSensitivity(newConf, false);
+    setConfigAvoidDoubleEntry(newConf, false);
     registerConfigHashAccumulator(NULL);
     int ret = parseConfigFile(cPath, newConf, true /*trimQuotes*/);
     freeConfig(newConf);
@@ -1628,6 +1642,7 @@ bool updateSlurmConf(void)
     /* update the original configuration now */
     initConfig(&SlurmConfig);
     setConfigAvoidDoubleEntry(SlurmConfig, false);
+    setConfigCaseSensitivity(SlurmConfig, false);
     registerConfigHashAccumulator(&configHash);
     configHash = 0;
     if (parseConfigFile(cPath, SlurmConfig, true /*trimQuotes*/) < 0) {
@@ -1649,6 +1664,8 @@ bool updateSlurmConf(void)
     if (stat(cPath, &sbuf) != -1) {
 	Config_t SlurmGresTmp = NULL;
 	initConfig(&SlurmGresTmp);
+	setConfigCaseSensitivity(SlurmGresTmp, false);
+	setConfigAvoidDoubleEntry(SlurmGresTmp, false);
 	if (parseConfigFile(cPath, SlurmGresTmp, true /*trimQuotes*/) < 0) {
 	    flog("Parsing GRes configuration file %s failed\n", cPath);
 	    freeConfig(SlurmGresTmp);
@@ -1677,6 +1694,8 @@ bool updateSlurmConf(void)
     if (stat(cPath, &sbuf) != -1) {
 	Config_t SlurmTopoTmp = NULL;
 	initConfig(&SlurmTopoTmp);
+	setConfigCaseSensitivity(SlurmTopoTmp, false);
+	setConfigAvoidDoubleEntry(SlurmTopoTmp, false);
 	if (parseConfigFile(cPath, SlurmTopoTmp, true /*trimQuotes*/) < 0) {
 	    flog("Parsing topology configuration file %s failed\n", cPath);
 	    freeConfig(SlurmTopoTmp);
@@ -1705,6 +1724,8 @@ bool updateSlurmConf(void)
     if (stat(cPath, &sbuf) != -1) {
 	Config_t SlurmCgrpTmp = NULL;
 	initConfig(&SlurmCgrpTmp);
+	setConfigCaseSensitivity(SlurmCgrpTmp, false);
+	setConfigAvoidDoubleEntry(SlurmCgrpTmp, false);
 	/* dry run to parse the new cgroup config */
 	if (parseConfigFile(cPath, SlurmCgrpTmp, true /*trimQuotes*/) < 0) {
 	    flog("Parsing cgroup configuration file %s failed\n", cPath);
@@ -1722,6 +1743,8 @@ bool updateSlurmConf(void)
 
 	/* remove old cgroup configuration and rebuild it */
 	initConfig(&SlurmCgroupConfig);
+	setConfigCaseSensitivity(SlurmCgroupConfig, false);
+	setConfigAvoidDoubleEntry(SlurmCgroupConfig, false);
 	if (parseConfigFile(cPath, SlurmCgroupConfig, true /*trimQuotes*/) < 0) {
 	    flog("Parsing cgroup configuration file %s failed\n", cPath);
 	    return false;
