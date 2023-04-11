@@ -178,7 +178,6 @@ bool addPluginConfig(const char *name, Config_t config)
 	if (pluginConfList[i].name && !strcmp(pluginConfList[i].name, name)) {
 	    /* update existing plugin configuration */
 	    freeConfig(pluginConfList[i].conf);
-	    ufree(pluginConfList[i].conf);
 
 	    pluginConfList[i].conf = config;
 	    return true;
