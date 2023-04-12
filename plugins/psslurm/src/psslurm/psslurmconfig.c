@@ -498,7 +498,7 @@ static bool parseTopologyOptions(char *options)
  *
  * @return Returns true if the address is local otherwise false
  */
-bool isLocalAddr(char *addr)
+static bool isLocalAddr(char *addr)
 {
     struct addrinfo hints;
     struct addrinfo *result, *rp;
