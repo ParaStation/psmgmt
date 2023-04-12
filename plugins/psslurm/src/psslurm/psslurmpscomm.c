@@ -2471,7 +2471,7 @@ static bool saveHost(char *host, void *info)
 
     if (!rInfo->addrIDs) {
 	/* resolve hostname if NodeAddr is not used */
-	HostLT[numHostLT].nodeID = getNodeIDbyName(host);
+	HostLT[numHostLT].nodeID = getNodeIDbyHostname(host);
     } else {
 	if (addrIdx >= nrOfNodes || addrIdx >= rInfo->nrOfAddrIDs) {
 	    mlog("%s: invalid index %i of %i nodes and %i addresses\n",
@@ -2522,7 +2522,7 @@ static bool resolveHostEntry(int confIdx)
     snprintf(tmp, sizeof(tmp), "SLURM_HOST_ADDR_%i", confIdx);
     char *addrList = getConfValueC(Config, tmp);
     if (addrList) {
-	if (!convHLtoPSnodes(addrList, getNodeIDbyName,
+	if (!convHLtoPSnodes(addrList, getNodeIDbyHostname,
 			     &info.addrIDs, &info.nrOfAddrIDs)) {
 	    flog("resolving nodes in address list %s index %i failed\n",
 		 addrList, confIdx);

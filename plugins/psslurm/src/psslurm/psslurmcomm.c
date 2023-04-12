@@ -1924,7 +1924,7 @@ static bool resControllerIDs(void)
     char *name = (addr) ? addr : host;
     if (!name) mlog("%s: invalid ControlMachine\n", __func__);
 
-    PSnodes_ID_t slurmCtl = getNodeIDbyName(name);
+    PSnodes_ID_t slurmCtl = getNodeIDbyHostname(name);
     if (slurmCtl == -1) {
 	flog("unable to resolve main controller '%s'\n", name);
 	return false;
@@ -1943,7 +1943,7 @@ static bool resControllerIDs(void)
     /* we may not have a backup controller configured */
     if (!name) return true;
 
-    PSnodes_ID_t slurmBackupCtl = getNodeIDbyName(name);
+    PSnodes_ID_t slurmBackupCtl = getNodeIDbyHostname(name);
     if (slurmBackupCtl == -1) {
 	flog("unable to resolve backup controller '%s'\n", name);
 	return false;
@@ -1979,7 +1979,7 @@ static bool initControlHosts()
 	char *host = getConfValueC(Config, key);
 
 	char *name = (addr) ? addr : host;
-	PSnodes_ID_t id = getNodeIDbyName(name);
+	PSnodes_ID_t id = getNodeIDbyHostname(name);
 	if (id == -1) {
 	    flog("unable to resolve controller(%i) '%s'\n", i, name);
 	    return false;
