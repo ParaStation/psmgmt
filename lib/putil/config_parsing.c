@@ -148,7 +148,10 @@ static nodeconf_t nodeconf = {
  * On success, *value is set to the string value and true is returned.
  * On error *value will be NULL, prints a parser comment, and return false
  *
- * Note: For psconfig a non-existing key and an empty value are the same
+ * Note: For psconfig a non-existing key and an empty value are the same,
+ *       so if the key is not found, **value == '\0' and true is returned.
+ *
+ * @todo Perhaps this should be reworked to not return true if value is empty?
  */
 static bool getString(char *key, gchar **value)
 {
@@ -1256,10 +1259,13 @@ static confkeylist_t each_node_configkey_list[] = {
  *
  * @param addr IP address of the node to register
  *
+ * @param hostname Hostname the node has in the network @a addr belongs to
+ *		   (may be NULL)
+ *
  * @return Return false if an error occurred or true if the node was
  * inserted successfully.
  */
-static bool newHost(int id, char *nodename, in_addr_t addr)
+static bool newHost(int id, char *nodename, in_addr_t addr, char *hostname)
 {
     if (id < 0) { /* id out of Range */
 	parser_comment(-1, "node ID <%d> out of range\n", id);
@@ -1288,10 +1294,10 @@ static bool newHost(int id, char *nodename, in_addr_t addr)
 	return false;
     }
 
-    /* install hostname */
-    if (!PSIDnodes_register(id, nodename, addr)) {
-	parser_comment(-1, "PSIDnodes_register(%d, %s, <%s>) failed\n",
-		       id, nodename, inet_ntoa(*(struct in_addr *)&addr));
+    if (!PSIDnodes_register(id, nodename, addr, hostname)) {
+	parser_comment(-1, "PSIDnodes_register(%d, %s, <%s>, %s) failed\n",
+		       id, nodename, inet_ntoa(*(struct in_addr *)&addr),
+		       hostname ? hostname : "<none>");
 	return false;
     }
 
@@ -1362,10 +1368,10 @@ static bool insertNode(void)
 
     char buffer[64];
     snprintf(buffer, sizeof(buffer), "%s.DevIPAddress", netname);
-    g_free(netname);
     gchar *ipaddress;
     if (!getString(buffer, &ipaddress)) {
 	g_free(nodename);
+	g_free(netname);
 	return false;
     }
 
@@ -1374,6 +1380,7 @@ static bool insertNode(void)
 		nodename);
 	g_free(ipaddress);
 	g_free(nodename);
+	g_free(netname);
 	return false;
     }
 
@@ -1382,15 +1389,35 @@ static bool insertNode(void)
 	parser_comment(-1, "Cannot convert IP address '%s' for node '%s'\n",
 		ipaddress, nodename);
 	g_free(ipaddress);
+	g_free(netname);
 	return false;
     }
     g_free(ipaddress);
     in_addr_t ipaddr = tmpaddr.s_addr;
 
+    // get hostname used for the node in the psid network
+    gchar *hostname;
+    snprintf(buffer, sizeof(buffer), "%s.Hostname", netname);
+    g_free(netname);
+    if (!getString(buffer, &hostname)) {
+	g_free(nodename);
+	return false;
+    }
+    if (*hostname == '\0') {
+	/* missing hostname is not an error for the time being */
+	g_free(hostname);
+	hostname = NULL;
+    } else {
+	parser_comment(PARSER_LOG_NODE, "Found '%s' = '%s' for node '%s'\n",
+		       buffer, hostname, nodename);
+    }
+
     int nodeid;
     if (!getNumber("Psid.NodeId", &nodeid)) {
 	if (!getNumber("NodeNo", &nodeid)) {
 	    parser_comment(-1, "Psid.NodeId not set for node '%s'\n", nodename);
+	    g_free(nodename);
+	    g_free(hostname);
 	    return false;
 	}
 	parser_comment(-1, "NodeNo used node '%s'. NodeNo is deprecated and"
@@ -1401,8 +1428,9 @@ static bool insertNode(void)
     parser_comment(PARSER_LOG_NODE, "Register '%s' as %d\n", nodename, nodeid);
     parser_updateHash(&config.nodeListHash, nodename);
 
-    if (!newHost(nodeid, nodename, ipaddr)) {
+    if (!newHost(nodeid, nodename, ipaddr, hostname)) {
 	g_free(nodename);
+	g_free(hostname);
 	return false;
     }
 
@@ -1412,6 +1440,7 @@ static bool insertNode(void)
     }
 
     g_free(nodename);
+    g_free(hostname);
     return true;
 }
 

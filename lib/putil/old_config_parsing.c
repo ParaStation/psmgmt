@@ -1820,7 +1820,7 @@ static int newHost(int id, char *nodename, in_addr_t addr)
     }
 
     /* install hostname */
-    if (!PSIDnodes_register(id, nodename, addr)) {
+    if (!PSIDnodes_register(id, nodename, addr, NULL)) {
 	parser_comment(-1, "PSIDnodes_register(%d, %s, <%s>) failed\n",
 		       id, nodename, inet_ntoa(*(struct in_addr *)&addr));
 	return -1;

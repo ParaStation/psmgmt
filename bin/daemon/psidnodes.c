@@ -79,6 +79,8 @@ typedef struct {
     PSCPU_set_t *GPUset;   /**< Distribution of GPUs over NUMA domains */
     short numNICs;         /**< Number of HPC NICs (like HCAs, HFIs, etc.) */
     PSCPU_set_t *NICset;   /**< Distribution of NICs over NUMA domains */
+    char *hostname;        /**< name of that node in the network @ref addr
+			        belongs to, as givin in psid's config */
 } node_t;
 
 /** Array (indexed by node number) to store all known nodes */
@@ -198,7 +200,8 @@ static bool validID(PSnodes_ID_t id)
 
 #define GROW_CHUNK 64
 
-bool PSIDnodes_register(PSnodes_ID_t id, const char *nodename, in_addr_t addr)
+bool PSIDnodes_register(PSnodes_ID_t id, const char *nodename, in_addr_t addr,
+			const char *hostname)
 {
     unsigned int hostno;
     struct host_t *host;
@@ -238,6 +241,7 @@ bool PSIDnodes_register(PSnodes_ID_t id, const char *nodename, in_addr_t addr)
     nodes[id].addr = addr;
     free(nodes[id].nodename);
     nodes[id].nodename = strdup(nodename);
+    nodes[id].hostname = hostname ? strdup(hostname) : NULL;
 
     if (id > PSIDnodes_getMaxID()) maxID = id;
 
@@ -275,6 +279,13 @@ const char * PSIDnodes_getNodename(PSnodes_ID_t id)
     if (!validID(id)) return NULL;
 
     return nodes[id].nodename;
+}
+
+const char * PSIDnodes_getHostname(PSnodes_ID_t id)
+{
+    if (!validID(id)) return NULL;
+
+    return nodes[id].hostname;
 }
 
 int PSIDnodes_bringUp(PSnodes_ID_t id)
