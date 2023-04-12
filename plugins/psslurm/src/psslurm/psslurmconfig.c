@@ -27,6 +27,7 @@
 #include "pscomplist.h"
 
 #include "pluginmalloc.h"
+#include "pluginhelper.h"
 #include "pluginstrv.h"
 #include "psidhw.h"
 #include "jailhandles.h"
@@ -833,6 +834,74 @@ static void parseSlurmAccFreq(char *param)
 }
 
 /**
+ * @brief Handle an include statement of a Slurm configuration file
+ *
+ * @param path The path to include
+ *
+ * @param parseFunc The function to parse the new included files
+ *
+ * @param info Extra information passed to config parser
+ *
+ * @return Return true on succes otherwise false is returned
+ */
+static bool handleSlurmInclude(const char *path, configVisitor_t parserFunc,
+				const void *info)
+{
+    /* expand shell patterns  */
+    glob_t pglob;
+    int ret = glob(path, GLOB_NOCHECK, NULL, &pglob);
+    switch (ret) {
+    case 0:
+	break;
+    case GLOB_NOSPACE:
+	flog("glob(%s) failed: out of memory\n", path);
+	return false;
+    case GLOB_ABORTED:
+	fdbg(PSSLURM_LOG_WARN, "could not include %s\n", path);
+	return true;
+    default:
+	flog("glob(%s) returns unexpected %d\n", path, ret);
+	return true;
+    }
+
+    /* parse all files */
+    char *confDir = getConfValueC(Config, "SLURM_CONFIG_DIR");
+    char cPath[PATH_MAX];
+
+    for (size_t i=0; i<pglob.gl_pathc; i++) {
+	char *newConf = pglob.gl_pathv[i];
+	if (newConf[0] != '/') {
+	    snprintf(cPath, sizeof(cPath), "%s/%s", confDir, newConf);
+	    newConf = cPath;
+	}
+	fdbg(PSSLURM_LOG_DEBUG, "parse include file %s\n", newConf);
+
+	Config_t thisConf = NULL;
+	initConfig(&thisConf);
+	setConfigCaseSensitivity(thisConf, false);
+	setConfigAvoidDoubleEntry(thisConf, false);
+	if (parseConfigFile(newConf, thisConf, true) < 0) {
+	    flog("parsing file %s failed\n", newConf);
+	    freeConfig(thisConf);
+	    goto ERROR;
+	}
+	bool failed = traverseConfig(thisConf, parserFunc, info);
+	freeConfig(thisConf);
+	if (failed) {
+	    flog("parsing file %s failed\n", newConf);
+	    goto ERROR;
+	}
+    }
+
+    globfree(&pglob);
+    return true;
+
+ERROR:
+    globfree(&pglob);
+    return false;
+}
+
+/**
  * @brief Parse a Slurm configuration pair
  *
  * @param key The key to parse
@@ -863,6 +932,11 @@ static bool parseSlurmConf(char *key, char *value, const void *info)
 	    parseSlurmdParam(value);
 	} else if (!strcasecmp(key, "JobAcctGatherFrequency")) {
 	    parseSlurmAccFreq(value);
+	} else if (!strncasecmp(key, "include ", 8)) {
+	    const char *path = trim(key+8);
+	    if (!handleSlurmInclude(path, &parseSlurmConf, info)) {
+		return true; /* break on error */
+	    }
 	}
 	break;
     case CONFIG_TYPE_GRES:
@@ -938,72 +1012,14 @@ static bool findSpankAbsPath(char *relPath, char *absPath, size_t lenPath)
     return false;
 }
 
-/* forward declaration */
-static bool parseSlurmPlugLine(char *key, char *value, const void *info);
-
-/**
- * @brief Handle an include statement of the Slurm plugstack.conf
- *
- * @param path The path to include
- *
- * @return Return true on succes otherwise false is returned
- */
-static bool handleSlurmPlugInc(const char *path)
-{
-    /* expand shell patterns  */
-    glob_t pglob;
-    int ret = glob(path, 0, NULL, &pglob);
-    switch (ret) {
-    case 0:
-	break;
-    case GLOB_NOSPACE:
-	flog("glob(%s) failed: out of memory\n", path);
-	return false;
-    case GLOB_NOMATCH:
-	fdbg(PSSLURM_LOG_DEBUG, "no match for %s\n", path);
-	return true;
-    case GLOB_ABORTED:
-	fdbg(PSSLURM_LOG_WARN, "could not include %s\n", path);
-	return true;
-    default:
-	flog("glob(%s) returns unexpected %d\n", path, ret);
-	return true;
-    }
-
-    /* parse all files */
-    for (size_t i=0; i<pglob.gl_pathc; i++) {
-	fdbg(PSSLURM_LOG_SPANK, "parse file %s\n", pglob.gl_pathv[i]);
-	Config_t SlurmPlugConf = NULL;
-	initConfig(&SlurmPlugConf);
-	setConfigCaseSensitivity(SlurmPlugConf, false);
-	setConfigAvoidDoubleEntry(SlurmPlugConf, false);
-	if (parseConfigFile(pglob.gl_pathv[i], SlurmPlugConf, true) < 0) {
-	    flog("parsing file %s failed\n", pglob.gl_pathv[i]);
-	    freeConfig(SlurmPlugConf);
-	    goto ERROR;
-	}
-	bool failed = traverseConfig(SlurmPlugConf, parseSlurmPlugLine, NULL);
-	freeConfig(SlurmPlugConf);
-	if (failed) {
-	    flog("parsing file %s failed\n", pglob.gl_pathv[i]);
-	    goto ERROR;
-	}
-    }
-
-    globfree(&pglob);
-    return true;
-
-ERROR:
-    globfree(&pglob);
-    return false;
-}
-
 /**
  * @brief Parse a Slurm plugstack configuration line
  *
  * @param key The key of the line to parse
  *
  * @param value The value of the line to parse
+ *
+ * @param info Extra information forwarded to include parser
  *
  * @return Returns true on error to stop further parsing
  * and false otherwise
@@ -1033,7 +1049,9 @@ static bool parseSlurmPlugLine(char *key, char *value, const void *info)
 	    flog("missing path for include statement\n");
 	    goto ERROR;
 	}
-	if (!handleSlurmPlugInc(path)) return true; /* break on error */
+	if (!handleSlurmInclude(path, &parseSlurmPlugLine, info)) {
+	    return true; /* break on error */
+	}
 	return false; /* success, continue with next line */
     } else if (!strcasecmp("optional", flag)) {
 	def->optional = true;
