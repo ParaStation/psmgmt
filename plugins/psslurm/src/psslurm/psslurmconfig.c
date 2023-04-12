@@ -288,6 +288,10 @@ const ConfDef_t confDef[] =
 	"list",
 	"root",
 	"Users listed won't be able to execute jobs/steps" },
+    { "SKIP_CORE_VERIFICATION", 1,
+	"bool",
+	"0",
+	"Skip verification check of slurm.conf and psid view of cores" },
     { NULL, 0, NULL, NULL, NULL },
 };
 
@@ -1254,30 +1258,46 @@ static bool verifySlurmConf(void)
 	sockets = 1;
     }
 
+    bool skipCoreCheck = getConfValueI(Config, "SKIP_CORE_VERIFICATION");
     int cores = getConfValueI(Config, "SLURM_CORES_PER_SOCKET");
-    if (cores == -1) {
-	mlog("%s: invalid SLURM_CORES_PER_SOCKET\n", __func__);
-	return false;
-    }
-    int threads = getConfValueI(Config, "SLURM_THREADS_PER_CORE");
-    if (threads == -1) {
-	mlog("%s: invalid SLURM_THREADS_PER_CORE\n", __func__);
+    if (!skipCoreCheck && cores == -1) {
+	flog("invalid SLURM_CORES_PER_SOCKET\n");
 	return false;
     }
 
-    int calcCPUs = boards * sockets * cores * threads;
+    int threads = getConfValueI(Config, "SLURM_THREADS_PER_CORE");
+    if (!skipCoreCheck && threads == -1) {
+	flog("invalid SLURM_THREADS_PER_CORE\n");
+	return false;
+    }
 
     int slurmCPUs = getConfValueI(Config, "SLURM_CPUS");
-    if (slurmCPUs == -1) {
-	char CPUs[64];
-	snprintf(CPUs, sizeof(CPUs), "%i", calcCPUs);
-	addConfigEntry(Config, "SLURM_CPUS", CPUs);
-	slurmCPUs = getConfValueI(Config, "SLURM_CPUS");
+    if (cores != -1 && threads != -1) {
+	int calcCPUs = boards * sockets * cores * threads;
+
+	if (slurmCPUs == -1) {
+	    char CPUs[64];
+	    snprintf(CPUs, sizeof(CPUs), "%i", calcCPUs);
+	    addConfigEntry(Config, "SLURM_CPUS", CPUs);
+	    slurmCPUs = getConfValueI(Config, "SLURM_CPUS");
+	}
+
+	/* verify that the Slurm configuration is consistent */
+	if (calcCPUs != slurmCPUs) {
+	    flog("mismatching SLURM_CPUS %i calculated by "
+		    "sockets/threads/cores %i\n", slurmCPUs, calcCPUs);
+	    return false;
+	}
     }
-    /* verify that the Slurm configuration is consistent */
-    if (calcCPUs != slurmCPUs) {
-	flog("mismatching SLURM_CPUS %i calculated by "
-		"sockets/threads/cores %i\n", slurmCPUs, calcCPUs);
+
+    if (!skipCoreCheck && boards * sockets * cores != PSIDhw_getCores()) {
+	flog("Slurm cores %i mismatching psid cores %i\n", sockets * cores,
+	     PSIDhw_getCores());
+	return false;
+    }
+
+    if (slurmCPUs == -1) {
+	flog("could not find my Slurm CPU configuration\n");
 	return false;
     }
 
@@ -1285,12 +1305,6 @@ static bool verifySlurmConf(void)
     if (slurmCPUs != PSIDhw_getHWthreads()) {
 	flog("Slurm CPUs %i mismatching psid CPUs %i\n", slurmCPUs,
 	     PSIDhw_getHWthreads());
-	return false;
-    }
-
-    if (boards * sockets * cores != PSIDhw_getCores()) {
-	flog("Slurm cores %i mismatching psid cores %i\n", sockets * cores,
-	     PSIDhw_getCores());
 	return false;
     }
 
