@@ -294,7 +294,7 @@ static void setAccOpts(char *freqString, uint16_t *accType)
 
     char *strAcctType = getConfValueC(SlurmConfig, "JobAcctGatherType");
     if (strAcctType) {
-	*accType = !strcmp(strAcctType, "jobacct_gather/none") ? 0 : 1;
+	*accType = !strcasecmp(strAcctType, "jobacct_gather/none") ? 0 : 1;
     } else {
 	*accType = 0;
     }
