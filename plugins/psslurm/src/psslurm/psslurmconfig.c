@@ -27,7 +27,6 @@
 #include "pscomplist.h"
 
 #include "pluginmalloc.h"
-#include "pluginhelper.h"
 #include "pluginstrv.h"
 #include "psidhw.h"
 #include "jailhandles.h"
@@ -932,8 +931,9 @@ static bool parseSlurmConf(char *key, char *value, const void *info)
 	    parseSlurmdParam(value);
 	} else if (!strcasecmp(key, "JobAcctGatherFrequency")) {
 	    parseSlurmAccFreq(value);
-	} else if (!strncasecmp(key, "include ", 8)) {
-	    const char *path = trim(key+8);
+	} else if (!strncasecmp(key, "include", 7)) {
+	    const char delimiters[] =" \t\n";
+	    const char *path = strtok(key+7, delimiters);
 	    if (!handleSlurmInclude(path, &parseSlurmConf, info)) {
 		return true; /* break on error */
 	    }
