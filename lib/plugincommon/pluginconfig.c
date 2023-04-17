@@ -24,6 +24,7 @@
 struct pluginConfig {
     long magic;
     list_t config;
+    bool trimQuotes;
     bool caseSensitive;
     bool avoidDoubleEntry;
 };
@@ -141,10 +142,25 @@ bool initConfig(Config_t *conf)
 
     (*conf)->magic = PLUGIN_CONFIG_MAGIC;
     INIT_LIST_HEAD(&((*conf)->config));
+    (*conf)->trimQuotes = false;
     (*conf)->caseSensitive = true;
     (*conf)->avoidDoubleEntry = true;
 
     return true;
+}
+
+bool setConfigTrimQuotes(Config_t conf, bool trimQuotes)
+{
+    if (!checkConfig(conf) || !list_empty(&(conf->config))) return false;
+
+    conf->trimQuotes = trimQuotes;
+    return true;
+}
+
+bool getConfigTrimQuotes(Config_t conf)
+{
+    if (checkConfig(conf)) return conf->trimQuotes;
+    return false;
 }
 
 bool setConfigCaseSensitivity(Config_t conf, bool sensitivity)

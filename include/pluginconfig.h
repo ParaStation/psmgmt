@@ -34,6 +34,36 @@ typedef struct pluginConfig * Config_t;
 bool initConfig(Config_t *conf);
 
 /**
+ * @ brief Set configuration's quote trimming of values
+ *
+ * Adjust quote trimming of all values within the configuration @a
+ * conf. If @a trimQuotes is true, all quotes are trimmed from a value
+ * before it is stored to the configuration. The default is to not
+ * trim quotes from values.
+ *
+ * In order to make quote trimming consistent, this must be adjusted
+ * before any entries are added or the actual configration is fetched
+ * from a file. This function will check for an empty configuration
+ * and fail in case of existing entries.
+ *
+ * @param trimQuotes Flag the configuration's quote trimming strategy
+ *
+ * @return true on success, false on error
+ */
+bool setConfigTrimQuotes(Config_t conf, bool trimQuotes);
+
+/**
+ * @brief Get configuration's quote trimming
+ *
+ * Determine if quotes are trimmed from values within the
+ * configuration @a conf.
+ *
+ * @return Returns true if quotes are trimmed from values in @a conf;
+ * otherwise false is returned
+ */
+bool getConfigTrimQuotes(Config_t conf);
+
+/**
  * @brief Set configuration's case sensitivity
  *
  * Adjust case sensitivity of all key matching within the
