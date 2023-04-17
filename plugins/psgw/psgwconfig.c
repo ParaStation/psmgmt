@@ -90,7 +90,7 @@ bool initPSGWConfig(char *filename)
     if (!initConfig(&config)) return false;
 
     /* parse psslurm config file */
-    if (parseConfigFile(filename, config, false /*trimQuotes*/) < 0) return false;
+    if (parseConfigFile(filename, config) < 0) return false;
 
     setConfigDefaults(config, confDef);
     if (verifyConfig(config, confDef) != 0) {

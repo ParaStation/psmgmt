@@ -59,7 +59,7 @@ Config_t config = NULL;
 void initJailConfig(char *cfgName)
 {
     initConfig(&config);
-    if (parseConfigFile(cfgName, config, false /* trimQuotes */) < 0) {
+    if (parseConfigFile(cfgName, config) < 0) {
 	jlog(-1, "%s: failed to open '%s'\n", __func__, cfgName);
     }
 

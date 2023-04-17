@@ -793,6 +793,7 @@ int initialize(FILE *logfile)
 
     /* init the configurations */
     initConfig(&SlurmConfig); // allow for early cleanup()
+    setConfigTrimQuotes(SlurmConfig,true);
     setConfigAvoidDoubleEntry(SlurmConfig, false);
     setConfigCaseSensitivity(SlurmConfig, false);
     int confRes = initPSSlurmConfig(PSSLURM_CONFIG_FILE);

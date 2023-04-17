@@ -139,7 +139,7 @@ Config_t config = NULL;
 bool initPSMomConfig(char *cfgName)
 {
     if (!initConfig(&config)) return false;
-    if (parseConfigFile(cfgName, config, false /* trimQuotes */) < 0) {
+    if (parseConfigFile(cfgName, config) < 0) {
 	mlog("%s: failed to open '%s'\n", __func__, cfgName);
 	return false;
     }

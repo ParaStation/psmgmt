@@ -135,9 +135,7 @@ bool getConfigAvoidDoubleEntry(Config_t conf);
  * store it into @a conf. @a conf is assumed to be initialized via
  * initConfig(). If @a conf already holds a valid configuration, this
  * will be destroyed with all used memory free()ed before fetching the
- * new configuration. If the flag @a trimQuotes is true, each
- * configuration value gets unquoted before being put into the
- * configuration.
+ * new configuration.
  *
  * As a side-effect hash accumulation of the configuration might be
  * conducted if a hash accumulator was registered before via @ref
@@ -147,13 +145,10 @@ bool getConfigAvoidDoubleEntry(Config_t conf);
  *
  * @param conf Configuration ready for further use
  *
- * @param trimQuotes Flag to unquote each configuration value before
- * putting it into @a conf
- *
  * @return Upon success the number of configuration entries found in
  * the file is returned. Or -1 if an error occurred.
  */
-int parseConfigFile(char *filename, Config_t conf, bool trimQuotes);
+int parseConfigFile(char *filename, Config_t conf);
 
 /**
  * @brief Register a hash accumulator

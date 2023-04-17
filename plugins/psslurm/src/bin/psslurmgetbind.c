@@ -328,7 +328,7 @@ bool readConfigFile(void)
 {
     initConfig(&Config);
     /* parse psslurm config file */
-    if (parseConfigFile(PSSLURM_CONFIG_FILE, Config, false) < 0) return false;
+    if (parseConfigFile(PSSLURM_CONFIG_FILE, Config) < 0) return false;
     setConfigDefaults(Config, confDef);
 
     return true;

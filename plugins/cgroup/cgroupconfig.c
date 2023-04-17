@@ -63,7 +63,7 @@ Config_t config = NULL;
 void initCgConfig(char *cfgName)
 {
     initConfig(&config);
-    if (parseConfigFile(cfgName, config, false /* trimQuotes */) < 0) {
+    if (parseConfigFile(cfgName, config) < 0) {
 	cglog(-1, "%s: failed to open '%s'\n", __func__, cfgName);
     }
 

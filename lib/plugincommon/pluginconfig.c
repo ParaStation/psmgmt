@@ -191,7 +191,7 @@ bool getConfigAvoidDoubleEntry(Config_t conf)
     return false;
 }
 
-int parseConfigFile(char *filename, Config_t conf, bool trimQuotes)
+int parseConfigFile(char *filename, Config_t conf)
 {
     FILE *fp;
     char *linebuf = NULL;
@@ -232,7 +232,7 @@ int parseConfigFile(char *filename, Config_t conf, bool trimQuotes)
 	    *val = '\0';
 	    val = trim(++val);
 	    /* remove quotes from value if required */
-	    if (trimQuotes) val = trim_quotes(val);
+	    if (conf->trimQuotes) val = trim_quotes(val);
 	    if (!strlen(val)) val = NULL;
 	}
 
@@ -266,10 +266,15 @@ static char *getConfValue(Config_t conf, char *key)
 
 void addConfigEntry(Config_t conf, char *key, char *value)
 {
-    ConfObj_t *obj = findConfObj(conf, key);
-
     //pluginlog("%s: key '%s' value '%s'\n", __func__, key, value);
+    if (value) {
+	value = trim(value);
+	/* remove quotes from value if required */
+	if (conf->trimQuotes) value = trim_quotes(value);
+	if (!strlen(value)) value = NULL;
+    }
 
+    ConfObj_t *obj = findConfObj(conf, key);
     if (obj) {
 	char *myVal = (value) ? ustrdup(value) : ustrdup("");
 	ufree(obj->value);
