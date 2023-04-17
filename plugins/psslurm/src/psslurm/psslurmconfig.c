@@ -832,19 +832,22 @@ static void parseSlurmAccFreq(char *param)
     }
 }
 
+/** forward declaration */
+static bool includeConf(char *line, Config_t conf, const void *info);
+
 /**
  * @brief Handle an include statement of a Slurm configuration file
  *
  * @param path The path to include
  *
- * @param parseFunc The function to parse the new included files
+ * @param parentConf The configuration to be extended
  *
  * @param info Extra information passed to config parser
  *
  * @return Return true on succes otherwise false is returned
  */
-static bool handleSlurmInclude(const char *path, configVisitor_t parserFunc,
-				const void *info)
+static bool handleSlurmInclude(const char *path, Config_t parentConf,
+			       const void *info)
 {
     /* expand shell patterns  */
     glob_t pglob;
@@ -875,19 +878,8 @@ static bool handleSlurmInclude(const char *path, configVisitor_t parserFunc,
 	}
 	fdbg(PSSLURM_LOG_DEBUG, "parse include file %s\n", newConf);
 
-	Config_t thisConf = NULL;
-	initConfig(&thisConf);
-	setConfigTrimQuotes(thisConf, true);
-	setConfigCaseSensitivity(thisConf, false);
-	setConfigAvoidDoubleEntry(thisConf, false);
-	if (parseConfigFile(newConf, thisConf) < 0) {
-	    flog("parsing file %s failed\n", newConf);
-	    freeConfig(thisConf);
-	    goto ERROR;
-	}
-	bool failed = traverseConfig(thisConf, parserFunc, info);
-	freeConfig(thisConf);
-	if (failed) {
+	if (parseConfigFileExt(newConf, parentConf, true, includeConf,
+	    info) < 0) {
 	    flog("parsing file %s failed\n", newConf);
 	    goto ERROR;
 	}
@@ -898,6 +890,36 @@ static bool handleSlurmInclude(const char *path, configVisitor_t parserFunc,
 
 ERROR:
     globfree(&pglob);
+    return false;
+}
+
+/**
+ * @brief Handle include statements of Slurm configuration files
+ *
+ * Try to include the additional configuration file if an "include"
+ * statement is found. This is necessary to calculate the hash of
+ * the configuration correctly.
+ *
+ * @param line The line to investigate
+ *
+ * @param conf The current configuration being parsed
+ *
+ * @param info Some extra information passed on
+ *
+ * @return Returns false if the line needs further handling or true
+ * otherwise
+ */
+static bool includeConf(char *line, Config_t conf, const void *info)
+{
+    if (!strncasecmp(line, "include", 7)) {
+	const char delimiters[] =" \t\n";
+	const char *path = strtok(line+7, delimiters);
+	if (!handleSlurmInclude(path, conf, info)) {
+	    flog("including configuration failed\n");
+	    return false;
+	}
+	return true;
+    }
     return false;
 }
 
@@ -932,12 +954,6 @@ static bool parseSlurmConf(char *key, char *value, const void *info)
 	    parseSlurmdParam(value);
 	} else if (!strcasecmp(key, "JobAcctGatherFrequency")) {
 	    parseSlurmAccFreq(value);
-	} else if (!strncasecmp(key, "include", 7)) {
-	    const char delimiters[] =" \t\n";
-	    const char *path = strtok(key+7, delimiters);
-	    if (!handleSlurmInclude(path, &parseSlurmConf, info)) {
-		return true; /* break on error */
-	    }
 	}
 	break;
     case CONFIG_TYPE_GRES:
@@ -1044,17 +1060,7 @@ static bool parseSlurmPlugLine(char *key, char *value, const void *info)
 	goto ERROR;
     }
 
-    if (!strcasecmp("include", flag)) {
-	const char *path = strtok_r(NULL, delimiters, &toksave);
-	if (!path) {
-	    flog("missing path for include statement\n");
-	    goto ERROR;
-	}
-	if (!handleSlurmInclude(path, &parseSlurmPlugLine, info)) {
-	    return true; /* break on error */
-	}
-	return false; /* success, continue with next line */
-    } else if (!strcasecmp("optional", flag)) {
+    if (!strcasecmp("optional", flag)) {
 	def->optional = true;
     } else if (!strcasecmp("required", flag)) {
 	def->optional = false;
@@ -1423,7 +1429,8 @@ bool parseSlurmConfigFiles(void)
 
     registerConfigHashAccumulator(&configHash);
     configHash = 0;
-    if (parseConfigFile(cPath, SlurmConfig) < 0) {
+    if (parseConfigFileExt(cPath, SlurmConfig, true, &includeConf,
+	&type) < 0) {
 	flog("Parsing Slurm configuration file %s failed\n", cPath);
 	return false;
     }
@@ -1574,7 +1581,8 @@ bool parseSlurmConfigFiles(void)
 	setConfigTrimQuotes(SlurmPlugConf, true);
 	setConfigCaseSensitivity(SlurmPlugConf, false);
 	setConfigAvoidDoubleEntry(SlurmPlugConf, false);
-	if (parseConfigFile(cPath, SlurmPlugConf) < 0) {
+	if (parseConfigFileExt(cPath, SlurmPlugConf, true, &includeConf,
+	    NULL) < 0) {
 	    flog("Parsing Spank configuration file %s failed\n", cPath);
 	    freeConfig(SlurmPlugConf);
 	    return false;
@@ -1670,7 +1678,9 @@ bool updateSlurmConf(void)
     setConfigCaseSensitivity(SlurmConfig, false);
     registerConfigHashAccumulator(&configHash);
     configHash = 0;
-    if (parseConfigFile(cPath, SlurmConfig) < 0) {
+    config_type_t type = CONFIG_TYPE_DEFAULT;
+    if (parseConfigFileExt(cPath, SlurmConfig, true, &includeConf,
+	&type) < 0) {
 	flog("Parsing updated Slurm configuration file %s failed\n", cPath);
 	return false;
     }
