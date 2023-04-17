@@ -129,13 +129,45 @@ bool setConfigAvoidDoubleEntry(Config_t conf, bool flag);
 bool getConfigAvoidDoubleEntry(Config_t conf);
 
 /**
+ * @brief Line-handler function
+ *
+ * Handler function used by @ref parseConfigFile() in order to handle
+ * a line immediately. This might be used to include
+ * sub-configurations straight away which might be required to
+ * guarantee compatibility in the hash computation.
+ *
+ * The parameters are as follows: @a line is the line that was just
+ * read after trailing comments were removed. @a conf is the
+ * configuration to read that might be extended by the line-handler
+ * function itself or subsequent functionality. This is especially
+ * used for including sub-configurations when the original
+ * configuration to read shall be extended. @a info points to the
+ * additional information that might be passed to @ref
+ * parseConfigFile() et al in order to extend the configuration @a
+ * conf.
+ *
+ * If the handler function returns true, further handling of the line
+ * will be skipped and the next line is read. This means a key-value
+ * pair resulting from splitting the line at '=' is not added to the
+ * configuration. Otherwise line handling is continued in the same way
+ * as if no line-handler is defined.
+ */
+typedef bool configLineHandler_t(char *line, Config_t conf, const void *info);
+
+/**
  * @brief Fetch configuration from a file
  *
  * Parse the configuration from the file named by @a filename and
  * store it into @a conf. @a conf is assumed to be initialized via
  * initConfig(). If @a conf already holds a valid configuration, this
  * will be destroyed with all used memory free()ed before fetching the
- * new configuration.
+ * new configuration unless the flag @a keepObjects is true.
+ *
+ * If @a handleImmediate is given, each line will be passed to this
+ * function before adding its content to the configuration. This
+ * handler might veto adding the line's content to the configuration
+ * by returning true. Additional information might be passed to the
+ * handler function via the @a info pointer.
  *
  * As a side-effect hash accumulation of the configuration might be
  * conducted if a hash accumulator was registered before via @ref
@@ -145,10 +177,22 @@ bool getConfigAvoidDoubleEntry(Config_t conf);
  *
  * @param conf Configuration ready for further use
  *
+ * @param keepObjects Flag to keep existing objects in @a conf
+ *
+ * @param handleImmediate Line-handler function to handle and filter
+ * each line before adding its content to the configuration
+ *
+ * @param info Pointer to additional information to be passed to @a
+ * handleImmediate()
+ *
  * @return Upon success the number of configuration entries found in
  * the file is returned. Or -1 if an error occurred.
  */
-int parseConfigFile(char *filename, Config_t conf);
+int parseConfigFileExt(char *filename, Config_t conf, bool keepObjects,
+		       configLineHandler_t handleImmediate, const void *info);
+
+#define parseConfigFile(filename, conf)				\
+    parseConfigFileExt(filename, conf, false, NULL, NULL)
 
 /**
  * @brief Register a hash accumulator

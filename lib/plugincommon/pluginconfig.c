@@ -191,7 +191,8 @@ bool getConfigAvoidDoubleEntry(Config_t conf)
     return false;
 }
 
-int parseConfigFile(char *filename, Config_t conf)
+int parseConfigFileExt(char *filename, Config_t conf, bool keepObjects,
+		       configLineHandler_t handleImmediate, const void *info)
 {
     FILE *fp;
     char *linebuf = NULL;
@@ -200,7 +201,7 @@ int parseConfigFile(char *filename, Config_t conf)
     int count = 0;
 
     if (!checkConfig(conf)) return -1;
-    cleanAllObjs(conf);
+    if (!keepObjects) cleanAllObjs(conf);
 
     if (!(fp = fopen(filename, "r"))) {
 	char *cwd = getcwd(NULL, 0);
@@ -223,6 +224,11 @@ int parseConfigFile(char *filename, Config_t conf)
 
 	/* remove trailing comments */
 	if ((tmp = strchr(line, '#'))) *tmp = '\0';
+
+	/* try to handle the line immediately (for include, etc.) */
+	if (handleImmediate && handleImmediate(line, conf, info)) {
+	    continue;
+	}
 
 	/* Split line into key and value */
 	key = line;
