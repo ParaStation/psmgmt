@@ -832,95 +832,76 @@ static void parseSlurmAccFreq(char *param)
     }
 }
 
-/** forward declaration */
-static bool includeConf(char *line, Config_t conf, const void *info);
-
 /**
- * @brief Handle an include statement of a Slurm configuration file
+ * @brief Check for an include statements and handle it immediately
  *
- * @param path The path to include
+ * Check for an "include" statement in the configuration line @a line
+ * and handle it accordingly. The content of the included files will
+ * be added to the configuration @a conf. @a info is unused but passed
+ * to the recursive call to @ref parseConfigFileExt().
  *
- * @param parentConf The configuration to be extended
+ * @param line Configuration line to investigate
  *
- * @param info Extra information passed to config parser
+ * @param conf Configuration to possibly expand
  *
- * @return Return true on succes otherwise false is returned
+ * @param info Some extra information passed on (unused)
+ *
+ * @return Returns false if the line needs further handling or true
+ * otherwise
  */
-static bool handleSlurmInclude(const char *path, Config_t parentConf,
-			       const void *info)
+static bool tryInclude(char *line, Config_t conf, const void *info)
 {
+    const char delimiters[] =" \t\n";
+    char *myLine = ustrdup(line);
+
+    char *token = strtok(myLine, delimiters);
+    if (strncasecmp(token, "include", 7)) {
+	ufree(myLine);
+	return false;
+    }
+
+    /* get absolute path */
+    char *path = strtok(NULL, delimiters);
+    char cPath[PATH_MAX];
+
+    if (path[0] != '/') {
+	char *confDir = getConfValueC(Config, "SLURM_CONFIG_DIR");
+	snprintf(cPath, sizeof(cPath), "%s/%s", confDir, path);
+    } else {
+	snprintf(cPath, sizeof(cPath), "%s", path);
+    }
+    ufree(myLine);
+
     /* expand shell patterns  */
     glob_t pglob;
-    int ret = glob(path, GLOB_NOCHECK, NULL, &pglob);
+    int ret = glob(cPath, GLOB_NOCHECK, NULL, &pglob);
     switch (ret) {
     case 0:
 	break;
     case GLOB_NOSPACE:
-	flog("glob(%s) failed: out of memory\n", path);
+	flog("glob(%s) failed: out of memory\n", cPath);
 	return false;
     case GLOB_ABORTED:
-	fdbg(PSSLURM_LOG_WARN, "could not include %s\n", path);
+	fdbg(PSSLURM_LOG_WARN, "could not include %s\n", cPath);
 	return true;
     default:
-	flog("glob(%s) returns unexpected %d\n", path, ret);
+	flog("glob(%s) returns unexpected %d\n", cPath, ret);
 	return true;
     }
 
-    /* parse all files */
-    char *confDir = getConfValueC(Config, "SLURM_CONFIG_DIR");
-    char cPath[PATH_MAX];
+    for (size_t i = 0; i < pglob.gl_pathc; i++) {
+	char *thisFile = pglob.gl_pathv[i];
+	fdbg(PSSLURM_LOG_DEBUG, "parse include file %s\n", thisFile);
 
-    for (size_t i=0; i<pglob.gl_pathc; i++) {
-	char *newConf = pglob.gl_pathv[i];
-	if (newConf[0] != '/') {
-	    snprintf(cPath, sizeof(cPath), "%s/%s", confDir, newConf);
-	    newConf = cPath;
-	}
-	fdbg(PSSLURM_LOG_DEBUG, "parse include file %s\n", newConf);
-
-	if (parseConfigFileExt(newConf, parentConf, true, includeConf,
-	    info) < 0) {
-	    flog("parsing file %s failed\n", newConf);
-	    goto ERROR;
+	if (parseConfigFileExt(thisFile, conf, true, tryInclude, info) < 0) {
+	    flog("including '%s' failed\n", thisFile);
+	    globfree(&pglob);
+	    return false;
 	}
     }
 
     globfree(&pglob);
     return true;
-
-ERROR:
-    globfree(&pglob);
-    return false;
-}
-
-/**
- * @brief Handle include statements of Slurm configuration files
- *
- * Try to include the additional configuration file if an "include"
- * statement is found. This is necessary to calculate the hash of
- * the configuration correctly.
- *
- * @param line The line to investigate
- *
- * @param conf The current configuration being parsed
- *
- * @param info Some extra information passed on
- *
- * @return Returns false if the line needs further handling or true
- * otherwise
- */
-static bool includeConf(char *line, Config_t conf, const void *info)
-{
-    if (!strncasecmp(line, "include", 7)) {
-	const char delimiters[] =" \t\n";
-	const char *path = strtok(line+7, delimiters);
-	if (!handleSlurmInclude(path, conf, info)) {
-	    flog("including configuration failed\n");
-	    return false;
-	}
-	return true;
-    }
-    return false;
 }
 
 /**
@@ -1429,8 +1410,7 @@ bool parseSlurmConfigFiles(void)
 
     registerConfigHashAccumulator(&configHash);
     configHash = 0;
-    if (parseConfigFileExt(cPath, SlurmConfig, true, &includeConf,
-	&type) < 0) {
+    if (parseConfigFileExt(cPath, SlurmConfig, true, tryInclude, &type) < 0) {
 	flog("Parsing Slurm configuration file %s failed\n", cPath);
 	return false;
     }
@@ -1581,7 +1561,7 @@ bool parseSlurmConfigFiles(void)
 	setConfigTrimQuotes(SlurmPlugConf, true);
 	setConfigCaseSensitivity(SlurmPlugConf, false);
 	setConfigAvoidDoubleEntry(SlurmPlugConf, false);
-	if (parseConfigFileExt(cPath, SlurmPlugConf, true, &includeConf,
+	if (parseConfigFileExt(cPath, SlurmPlugConf, true, &tryInclude,
 	    NULL) < 0) {
 	    flog("Parsing Spank configuration file %s failed\n", cPath);
 	    freeConfig(SlurmPlugConf);
@@ -1679,8 +1659,7 @@ bool updateSlurmConf(void)
     registerConfigHashAccumulator(&configHash);
     configHash = 0;
     config_type_t type = CONFIG_TYPE_DEFAULT;
-    if (parseConfigFileExt(cPath, SlurmConfig, true, &includeConf,
-	&type) < 0) {
+    if (parseConfigFileExt(cPath, SlurmConfig, true, tryInclude, &type) < 0) {
 	flog("Parsing updated Slurm configuration file %s failed\n", cPath);
 	return false;
     }
