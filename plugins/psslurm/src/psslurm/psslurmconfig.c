@@ -1410,7 +1410,7 @@ bool parseSlurmConfigFiles(void)
 
     registerConfigHashAccumulator(&configHash);
     configHash = 0;
-    if (parseConfigFileExt(cPath, SlurmConfig, true, tryInclude, &type) < 0) {
+    if (parseConfigFileExt(cPath, SlurmConfig, true, tryInclude, NULL) < 0) {
 	flog("Parsing Slurm configuration file %s failed\n", cPath);
 	return false;
     }
@@ -1657,8 +1657,7 @@ bool updateSlurmConf(void)
     setConfigCaseSensitivity(SlurmConfig, false);
     registerConfigHashAccumulator(&configHash);
     configHash = 0;
-    config_type_t type = CONFIG_TYPE_DEFAULT;
-    if (parseConfigFileExt(cPath, SlurmConfig, true, tryInclude, &type) < 0) {
+    if (parseConfigFileExt(cPath, SlurmConfig, true, tryInclude, NULL) < 0) {
 	flog("Parsing updated Slurm configuration file %s failed\n", cPath);
 	return false;
     }
