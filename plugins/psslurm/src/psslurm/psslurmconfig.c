@@ -1556,20 +1556,19 @@ bool parseSlurmConfigFiles(void)
 
     int disabled = getConfValueU(Config, "DISABLE_SPANK");
     if (!disabled && stat(cPath, &sbuf) != -1) {
-	Config_t SlurmPlugConf = NULL;
-	initConfig(&SlurmPlugConf);
-	setConfigTrimQuotes(SlurmPlugConf, true);
-	setConfigCaseSensitivity(SlurmPlugConf, false);
-	setConfigAvoidDoubleEntry(SlurmPlugConf, false);
-	if (parseConfigFileExt(cPath, SlurmPlugConf, true, &tryInclude,
-	    NULL) < 0) {
+	Config_t plugConf = NULL;
+	initConfig(&plugConf);
+	setConfigTrimQuotes(plugConf, true);
+	setConfigCaseSensitivity(plugConf, false);
+	setConfigAvoidDoubleEntry(plugConf, false);
+	if (parseConfigFileExt(cPath, plugConf, true, tryInclude, NULL) < 0) {
 	    flog("Parsing Spank configuration file %s failed\n", cPath);
-	    freeConfig(SlurmPlugConf);
+	    freeConfig(plugConf);
 	    return false;
 	}
 
-	bool failed = traverseConfig(SlurmPlugConf, parseSlurmPlugLine, NULL);
-	freeConfig(SlurmPlugConf);
+	bool failed = traverseConfig(plugConf, parseSlurmPlugLine, NULL);
+	freeConfig(plugConf);
 	if (failed) {
 	    flog("Traversing Spank configuration failed\n");
 	    return false;
