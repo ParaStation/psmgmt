@@ -349,6 +349,16 @@ const ConfDef_t cgroupDef[] =
     { NULL, 0, NULL, NULL, NULL },
 };
 
+bool initSlurmConfig(Config_t *conf)
+{
+    if (!initConfig(conf)) return false;
+    setConfigTrimQuotes(*conf, true);
+    setConfigCaseSensitivity(*conf, false);
+    setConfigAvoidDoubleEntry(*conf, false);
+
+    return true;
+}
+
 /**
  * @brief Add current host options to psslurm configuration
  *
@@ -1434,19 +1444,16 @@ bool parseSlurmConfigFiles(void)
     snprintf(cPath, sizeof(cPath), "%s/%s", confDir, confFile);
 
     if (stat(cPath, &sbuf) != -1) {
-	Config_t SlurmGresTmp = NULL;
-	initConfig(&SlurmGresTmp);
-	setConfigTrimQuotes(SlurmGresTmp, true);
-	setConfigCaseSensitivity(SlurmGresTmp, false);
-	setConfigAvoidDoubleEntry(SlurmGresTmp, false);
-	if (parseConfigFile(cPath, SlurmGresTmp) < 0) {
+	Config_t thisConf = NULL;
+	initSlurmConfig(&thisConf);
+	if (parseConfigFile(cPath, thisConf) < 0) {
 	    flog("Parsing GRes configuration file %s failed\n", cPath);
-	    freeConfig(SlurmGresTmp);
+	    freeConfig(thisConf);
 	    return false;
 	}
 
-	bool failed = traverseConfig(SlurmGresTmp, parseSlurmConf, &type);
-	freeConfig(SlurmGresTmp);
+	bool failed = traverseConfig(thisConf, parseSlurmConf, &type);
+	freeConfig(thisConf);
 	if (failed) {
 	    flog("Traversing GRes configuration failed\n");
 	    return false;
@@ -1462,20 +1469,17 @@ bool parseSlurmConfigFiles(void)
     snprintf(cPath, sizeof(cPath), "%s/%s", confDir, confFile);
 
     if (stat(cPath, &sbuf) != -1) {
-	Config_t AcctGather = NULL;
-	initConfig(&AcctGather);
-	setConfigTrimQuotes(AcctGather, true);
-	setConfigCaseSensitivity(AcctGather, false);
-	setConfigAvoidDoubleEntry(AcctGather, false);
-	if (parseConfigFile(cPath, AcctGather) < 0) {
+	Config_t thisConf = NULL;
+	initSlurmConfig(&thisConf);
+	if (parseConfigFile(cPath, thisConf) < 0) {
 	    flog("Parsing account gather configuration file %s failed\n",
 		 cPath);
-	    freeConfig(AcctGather);
+	    freeConfig(thisConf);
 	    return false;
 	}
 
-	bool failed = traverseConfig(AcctGather, parseAcctGatherConf, NULL);
-	freeConfig(AcctGather);
+	bool failed = traverseConfig(thisConf, parseAcctGatherConf, NULL);
+	freeConfig(thisConf);
 	if (failed) {
 	    flog("Traversing account gather configuration failed\n");
 	    return false;
@@ -1492,19 +1496,16 @@ bool parseSlurmConfigFiles(void)
     snprintf(cPath, sizeof(cPath), "%s/%s", confDir, confFile);
 
     if (stat(cPath, &sbuf) != -1) {
-	Config_t SlurmTopoTmp = NULL;
-	initConfig(&SlurmTopoTmp);
-	setConfigTrimQuotes(SlurmTopoTmp, true);
-	setConfigCaseSensitivity(SlurmTopoTmp, false);
-	setConfigAvoidDoubleEntry(SlurmTopoTmp, false);
-	if (parseConfigFile(cPath, SlurmTopoTmp) < 0) {
+	Config_t topoConf = NULL;
+	initSlurmConfig(&topoConf);
+	if (parseConfigFile(cPath, topoConf) < 0) {
 	    flog("Parsing topology configuration file %s failed\n", cPath);
-	    freeConfig(SlurmTopoTmp);
+	    freeConfig(topoConf);
 	    return false;
 	}
 
-	bool failed = traverseConfig(SlurmTopoTmp, parseSlurmConf, &type);
-	freeConfig(SlurmTopoTmp);
+	bool failed = traverseConfig(topoConf, parseSlurmConf, &type);
+	freeConfig(topoConf);
 	if (failed) {
 	    flog("Traversing topology configuration failed\n");
 	    return false;
@@ -1518,10 +1519,7 @@ bool parseSlurmConfigFiles(void)
 	return false;
     }
     snprintf(cPath, sizeof(cPath), "%s/%s", confDir, confFile);
-    initConfig(&SlurmCgroupConfig);
-    setConfigTrimQuotes(SlurmCgroupConfig, true);
-    setConfigCaseSensitivity(SlurmCgroupConfig, false);
-    setConfigAvoidDoubleEntry(SlurmCgroupConfig, false);
+    initSlurmConfig(&SlurmCgroupConfig);
 
     if (stat(cPath, &sbuf) != -1) {
 	if (parseConfigFile(cPath, SlurmCgroupConfig) < 0) {
@@ -1556,19 +1554,16 @@ bool parseSlurmConfigFiles(void)
 
     int disabled = getConfValueU(Config, "DISABLE_SPANK");
     if (!disabled && stat(cPath, &sbuf) != -1) {
-	Config_t plugConf = NULL;
-	initConfig(&plugConf);
-	setConfigTrimQuotes(plugConf, true);
-	setConfigCaseSensitivity(plugConf, false);
-	setConfigAvoidDoubleEntry(plugConf, false);
-	if (parseConfigFileExt(cPath, plugConf, true, tryInclude, NULL) < 0) {
+	Config_t thisConf = NULL;
+	initSlurmConfig(&thisConf);
+	if (parseConfigFileExt(cPath, thisConf, true, tryInclude, NULL) < 0) {
 	    flog("Parsing Spank configuration file %s failed\n", cPath);
-	    freeConfig(plugConf);
+	    freeConfig(thisConf);
 	    return false;
 	}
 
-	bool failed = traverseConfig(plugConf, parseSlurmPlugLine, NULL);
-	freeConfig(plugConf);
+	bool failed = traverseConfig(thisConf, parseSlurmPlugLine, NULL);
+	freeConfig(thisConf);
 	if (failed) {
 	    flog("Traversing Spank configuration failed\n");
 	    return false;
@@ -1638,11 +1633,7 @@ bool updateSlurmConf(void)
 
     /* dry run to parse new configuration */
     Config_t newConf = NULL;
-    initConfig(&newConf);
-    setConfigTrimQuotes(newConf, true);
-    setConfigCaseSensitivity(newConf, false);
-    setConfigAvoidDoubleEntry(newConf, false);
-    registerConfigHashAccumulator(NULL);
+    initSlurmConfig(&newConf);
     int ret = parseConfigFile(cPath, newConf);
     freeConfig(newConf);
     if (ret < 0) {
@@ -1651,10 +1642,7 @@ bool updateSlurmConf(void)
     }
 
     /* update the original configuration now */
-    initConfig(&SlurmConfig);
-    setConfigTrimQuotes(SlurmConfig, true);
-    setConfigAvoidDoubleEntry(SlurmConfig, false);
-    setConfigCaseSensitivity(SlurmConfig, false);
+    initSlurmConfig(&SlurmConfig);
     registerConfigHashAccumulator(&configHash);
     configHash = 0;
     if (parseConfigFileExt(cPath, SlurmConfig, true, tryInclude, NULL) < 0) {
@@ -1674,22 +1662,19 @@ bool updateSlurmConf(void)
 
     struct stat sbuf;
     if (stat(cPath, &sbuf) != -1) {
-	Config_t SlurmGresTmp = NULL;
-	initConfig(&SlurmGresTmp);
-	setConfigTrimQuotes(SlurmGresTmp, true);
-	setConfigCaseSensitivity(SlurmGresTmp, false);
-	setConfigAvoidDoubleEntry(SlurmGresTmp, false);
-	if (parseConfigFile(cPath, SlurmGresTmp) < 0) {
+	Config_t thisConf = NULL;
+	initSlurmConfig(&thisConf);
+	if (parseConfigFile(cPath, thisConf) < 0) {
 	    flog("Parsing GRes configuration file %s failed\n", cPath);
-	    freeConfig(SlurmGresTmp);
+	    freeConfig(thisConf);
 	    return false;
 	}
 
 	/* remove old GRes configuration and rebuild it */
 	clearGresConf();
 	config_type_t type = CONFIG_TYPE_GRES;
-	bool failed = traverseConfig(SlurmGresTmp, parseSlurmConf, &type);
-	freeConfig(SlurmGresTmp);
+	bool failed = traverseConfig(thisConf, parseSlurmConf, &type);
+	freeConfig(thisConf);
 	if (failed) {
 	    flog("Traversing GRes configuration failed\n");
 	    return false;
@@ -1705,22 +1690,19 @@ bool updateSlurmConf(void)
     snprintf(cPath, sizeof(cPath), "%s/%s", confDir, confFile);
 
     if (stat(cPath, &sbuf) != -1) {
-	Config_t SlurmTopoTmp = NULL;
-	initConfig(&SlurmTopoTmp);
-	setConfigTrimQuotes(SlurmTopoTmp, true);
-	setConfigCaseSensitivity(SlurmTopoTmp, false);
-	setConfigAvoidDoubleEntry(SlurmTopoTmp, false);
-	if (parseConfigFile(cPath, SlurmTopoTmp) < 0) {
+	Config_t thisConf = NULL;
+	initSlurmConfig(&thisConf);
+	if (parseConfigFile(cPath, thisConf) < 0) {
 	    flog("Parsing topology configuration file %s failed\n", cPath);
-	    freeConfig(SlurmTopoTmp);
+	    freeConfig(thisConf);
 	    return false;
 	}
 
 	/* remove old topology configuration and rebuild it */
 	clearTopologyConf();
 	config_type_t type = CONFIG_TYPE_TOPOLOGY;
-	bool failed = traverseConfig(SlurmTopoTmp, parseSlurmConf, &type);
-	freeConfig(SlurmTopoTmp);
+	bool failed = traverseConfig(thisConf, parseSlurmConf, &type);
+	freeConfig(thisConf);
 	if (failed) {
 	    flog("Traversing topology configuration failed\n");
 	    return false;
@@ -1736,20 +1718,17 @@ bool updateSlurmConf(void)
     snprintf(cPath, sizeof(cPath), "%s/%s", confDir, confFile);
 
     if (stat(cPath, &sbuf) != -1) {
-	Config_t SlurmCgrpTmp = NULL;
-	initConfig(&SlurmCgrpTmp);
-	setConfigTrimQuotes(SlurmCgrpTmp, true);
-	setConfigCaseSensitivity(SlurmCgrpTmp, false);
-	setConfigAvoidDoubleEntry(SlurmCgrpTmp, false);
+	Config_t thisConf = NULL;
+	initSlurmConfig(&thisConf);
 	/* dry run to parse the new cgroup config */
-	if (parseConfigFile(cPath, SlurmCgrpTmp) < 0) {
+	if (parseConfigFile(cPath, thisConf) < 0) {
 	    flog("Parsing cgroup configuration file %s failed\n", cPath);
-	    freeConfig(SlurmCgrpTmp);
+	    freeConfig(thisConf);
 	    return false;
 	}
-	setConfigDefaults(SlurmCgrpTmp, cgroupDef);
-	bool failed = traverseConfig(SlurmCgrpTmp, verifyCgroupConf, NULL);
-	freeConfig(SlurmCgrpTmp);
+	setConfigDefaults(thisConf, cgroupDef);
+	bool failed = traverseConfig(thisConf, verifyCgroupConf, NULL);
+	freeConfig(thisConf);
 	if (failed) {
 	    flog("Traversing cgroup configuration failed\n");
 	    return false;
@@ -1757,10 +1736,7 @@ bool updateSlurmConf(void)
 	if (isJailActive && !testJailConfig()) return false;
 
 	/* remove old cgroup configuration and rebuild it */
-	initConfig(&SlurmCgroupConfig);
-	setConfigTrimQuotes(SlurmCgroupConfig, true);
-	setConfigCaseSensitivity(SlurmCgroupConfig, false);
-	setConfigAvoidDoubleEntry(SlurmCgroupConfig, false);
+	initSlurmConfig(&SlurmCgroupConfig);
 	if (parseConfigFile(cPath, SlurmCgroupConfig) < 0) {
 	    flog("Parsing cgroup configuration file %s failed\n", cPath);
 	    return false;

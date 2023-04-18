@@ -66,6 +66,25 @@ bool parseSlurmConfigFiles(void);
 bool updateSlurmConf(void);
 
 /**
+ * @brief Init and prepare configuration
+ *
+ * Initialize the configuration @a conf and prepare it for usage
+ * within psslurm. This will set different flags for @a conf to adapt
+ * it to the Slurm requirements. This includes trimming quotes from
+ * values, disabling case sensitivity, and allowing double entries in
+ * the configuration.
+ *
+ * This is basically a wrapper around @ref initConfig() and the
+ * corresponding calls into libplugincommon to tweak the configuration
+ * accordingly.
+ *
+ * @param conf Configuration to initialize and prepare
+ *
+ * @return true on success, false on error
+ */
+bool initSlurmConfig(Config_t *conf);
+
+/**
  * @brief Get hash of latest Slurm configuration read
  *
  * While reading slurm.conf a hash is generated that might be sent to

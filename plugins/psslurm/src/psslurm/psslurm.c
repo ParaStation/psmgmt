@@ -792,10 +792,7 @@ int initialize(FILE *logfile)
     if (!initPluginHandles()) return 1;
 
     /* init the configurations */
-    initConfig(&SlurmConfig); // allow for early cleanup()
-    setConfigTrimQuotes(SlurmConfig,true);
-    setConfigAvoidDoubleEntry(SlurmConfig, false);
-    setConfigCaseSensitivity(SlurmConfig, false);
+    initSlurmConfig(&SlurmConfig); // allow for early cleanup()
     int confRes = initPSSlurmConfig(PSSLURM_CONFIG_FILE);
     haveBasicConfig = true;
     if (confRes == CONFIG_ERROR) {
