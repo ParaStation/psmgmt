@@ -115,13 +115,17 @@ bool SpankInitPlugins(void)
 	Spank_Plugin_t *sp = list_entry(s, Spank_Plugin_t, next);
 
 	if (stat(sp->path, &sbuf) == -1) {
-	    flog("plugin %s not found\n", sp->path);
+	    flog("%s plugin %s not found\n",
+		 sp->optional ? "optional" : "required", sp->path);
+	    if (sp->optional) continue;
 	    return false;
 	}
 
 	sp->handle = dlopen(sp->path, RTLD_LAZY);
 	if (!sp->handle) {
-	    flog("dlopen(%s) failed: %s\n", sp->path, dlerror());
+	    flog("%s plugin dlopen(%s) failed: %s\n",
+		 sp->optional ? "optional" : "required", sp->path, dlerror());
+	    if (sp->optional) continue;
 	    return false;
 	}
 
@@ -336,7 +340,10 @@ void __SpankCallHook(spank_t spank, const char *func, const int line)
     list_for_each(s, &SpankList) {
 	Spank_Plugin_t *plugin = list_entry(s, Spank_Plugin_t, next);
 	if (!plugin->handle) {
-	    flog("no handle for plugin %s\n", plugin->name);
+	    if (!plugin->optional) {
+		flog("no handle for plugin %s path %s\n", plugin->name,
+		     plugin->path);
+	    }
 	    continue;
 	}
 	doCallHook(plugin, spank, strHook);
