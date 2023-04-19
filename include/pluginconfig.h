@@ -136,23 +136,28 @@ bool getConfigAvoidDoubleEntry(Config_t conf);
  * sub-configurations straight away which might be required to
  * guarantee compatibility in the hash computation.
  *
- * The parameters are as follows: @a line is the line that was just
- * read after trailing comments were removed. @a conf is the
- * configuration to read that might be extended by the line-handler
- * function itself or subsequent functionality. This is especially
- * used for including sub-configurations when the original
- * configuration to read shall be extended. @a info points to the
- * additional information that might be passed to @ref
- * parseConfigFile() et al in order to extend the configuration @a
- * conf.
+ * The parameters are as follows:
  *
- * If the handler function returns true, further handling of the line
- * will be skipped and the next line is read. This means a key-value
- * pair resulting from splitting the line at '=' is not added to the
- * configuration. Otherwise line handling is continued in the same way
- * as if no line-handler is defined.
+ * @param line The line that was just
+ * read with trailing comments removed
+ *
+ * @param conf The configuration to read that might be extended by the
+ * line-handler function itself or subsequent functionality; this is
+ * especially used for including sub-configurations when the original
+ * configuration to read shall be extended
+ *
+ * @param info Pointer to additional information that might be passed
+ * to subsequent calls to @ref parseConfigFile() et al in order to
+ * extend the configuration @a conf
+ *
+ * @return If the handler function returns 1, the line is expected to
+ * be fully handled. Thus, further handling of the line will be
+ * skipped and the next line is read. If it return 0, normal line
+ * handling will be applied, i.e. a key-value pair resulting from
+ * splitting the line at '=' is added to the configuration. Returning
+ * -1 will signal an error and stop @ref parseConfFile() immediately.
  */
-typedef bool configLineHandler_t(char *line, Config_t conf, const void *info);
+typedef int configLineHandler_t(char *line, Config_t conf, const void *info);
 
 /**
  * @brief Fetch configuration from a file

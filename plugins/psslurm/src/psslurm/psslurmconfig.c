@@ -859,7 +859,7 @@ static void parseSlurmAccFreq(char *param)
  * @return Returns false if the line needs further handling or true
  * otherwise
  */
-static bool tryInclude(char *line, Config_t conf, const void *info)
+static int tryInclude(char *line, Config_t conf, const void *info)
 {
     const char delimiters[] =" \t\n";
     char *myLine = ustrdup(line);
@@ -867,7 +867,7 @@ static bool tryInclude(char *line, Config_t conf, const void *info)
     char *token = strtok(myLine, delimiters);
     if (strncasecmp(token, "include", 7)) {
 	ufree(myLine);
-	return false;
+	return 0; // proceed normal line handling
     }
 
     /* get absolute path */
@@ -890,13 +890,13 @@ static bool tryInclude(char *line, Config_t conf, const void *info)
 	break;
     case GLOB_NOSPACE:
 	flog("glob(%s) failed: out of memory\n", cPath);
-	return false;
+	return -1;
     case GLOB_ABORTED:
 	fdbg(PSSLURM_LOG_WARN, "could not include %s\n", cPath);
-	return true;
+	return -1;
     default:
 	flog("glob(%s) returns unexpected %d\n", cPath, ret);
-	return true;
+	return -1;
     }
 
     for (size_t i = 0; i < pglob.gl_pathc; i++) {
@@ -906,12 +906,12 @@ static bool tryInclude(char *line, Config_t conf, const void *info)
 	if (parseConfigFileExt(thisFile, conf, true, tryInclude, info) < 0) {
 	    flog("including '%s' failed\n", thisFile);
 	    globfree(&pglob);
-	    return false;
+	    return -1;
 	}
     }
 
     globfree(&pglob);
-    return true;
+    return 1;
 }
 
 /**

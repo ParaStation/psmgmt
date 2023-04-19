@@ -226,8 +226,20 @@ int parseConfigFileExt(char *filename, Config_t conf, bool keepObjects,
 	if ((tmp = strchr(line, '#'))) *tmp = '\0';
 
 	/* try to handle the line immediately (for include, etc.) */
-	if (handleImmediate && handleImmediate(line, conf, info)) {
-	    continue;
+	if (handleImmediate) {
+	    int ret = handleImmediate(line, conf, info);
+	    switch (ret) {
+	    case 1:
+		continue;
+	    case 0:
+		break;
+	    case -1:
+		pluginlog("%s: failed to handle '%s'\n", __func__, line);
+		free(line);
+		return -1;
+	    default:
+		pluginlog("%s: handleImmediate() returns %d\n", __func__, ret);
+	    }
 	}
 
 	/* Split line into key and value */
