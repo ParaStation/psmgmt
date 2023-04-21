@@ -40,7 +40,7 @@ if [ -z "$CHILD" ] || [ "$CHILD" == "0" ]; then
 fi
 
 for modName in ${MODULES//,/$IFS}; do
-    MODULE="$CommandPath/$SCRIPT-$modName.inc"
+    MODULE="$CommandPath/$SCRIPT-$CGROUP_VERSION-$modName.inc"
     [ -r $MODULE ] || {
 	[ $SCRIPT != "jail-term" ] && {
 	    mlog "$SCRIPT module $MODULE not found"

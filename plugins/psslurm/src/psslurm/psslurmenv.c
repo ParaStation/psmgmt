@@ -531,6 +531,17 @@ void setGlobalJailEnvironment(void)
 
     c = getConfValueC(SlurmCgroupConfig, "ConstrainSwapSpace");
     if (c) setenv("__PSJAIL_CONSTRAIN_SWAP", c, 1);
+
+    c = getConfValueC(SlurmCgroupConfig, "CgroupPlugin");
+    if (c) {
+	if (!strcmp(c, "cgroup/v1")) {
+	    setenv("__PSJAIL_CGROUP_VERSION", "v1", 1);
+	} else if (!strcmp(c, "cgroup/v2")) {
+	    setenv("__PSJAIL_CGROUP_VERSION", "v2", 1);
+	} else {
+	    setenv("__PSJAIL_CGROUP_VERSION", "autodetect", 1);
+	}
+    }
 }
 
 /**

@@ -10,10 +10,10 @@
 
 include $(top_srcdir)/common.am
 
-dist_jaillib_SCRIPTS = jail-config.inc jail-cpuacct.inc			\
-		       jail-cpuset.inc jail-functions.inc		\
-		       jail-main.sh jail-oom.inc			\
-		       jail-term-cpuacct.inc jail-term-cpuset.inc	\
-		       jail-memory.inc jail-devices.inc			\
-		       jail-term-memory.inc jail-term-devices.inc	\
+dist_jaillib_SCRIPTS = jail-config.inc jail-v1-cpuacct.inc		\
+		       jail-v1-cpuset.inc jail-functions.inc		\
+		       jail-main.sh jail-v1-oom.inc			\
+		       jail-term-v1-cpuacct.inc jail-term-v1-cpuset.inc	\
+		       jail-v1-memory.inc jail-v1-devices.inc		\
+		       jail-term-v1-memory.inc jail-term-v1-devices.inc	\
 		       jail-init.sh

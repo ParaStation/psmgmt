@@ -347,7 +347,7 @@ const ConfDef_t cgroupDef[] =
 	"upper limit of job's swap+RAM usage in percent of total RAM" },
     { "CgroupPlugin", 0,
 	"string",
-	"ncgroup/v1",
+	"cgroup/v1",
 	"version of cgroup subsystem to use" },
     { NULL, 0, NULL, NULL, NULL },
 };
@@ -1294,11 +1294,7 @@ static bool verifyCgroupConf(char *key, char *value, const void *info)
 	fdbg(PSSLURM_LOG_JAIL, "cgroup ConstrainDevices=%s\n", value);
 	if (!strcasecmp(value, "yes")) isJailActive = true;
     } else if (!strcasecmp(key, "CgroupPlugin")) {
-	if (!strcasecmp(value, "cgroup/v2")) {
-	    flog("error: CgroupPlugin has to be cgroup/v1\n");
-	    /* parsing failed */
-	    return true;
-	}
+	fdbg(PSSLURM_LOG_JAIL, "cgroup pluign=%s\n", value);
     } else if (!strcasecmp(key, "CgroupAutomount")) {
 	flog("warning: ignoring unsupported option CgroupAutomount=%s\n",
 	     value);

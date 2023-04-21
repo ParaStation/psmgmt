@@ -164,4 +164,14 @@ function initJailEnv {
     [ -z "$TERM_SIGNAL" ] && export TERM_SIGNAL="15"
 
     [ -z "$KILL_SIGNAL" ] && export KILL_SIGNAL="9"
+
+    export CGROUP_VERSION="$__PSJAIL_CGROUP_VERSION"
+    if [ -z "$CGROUP_VERSION" ] || [ "$CGROUP_VERSION" == "autodetect" ]; then
+	# auto detect cgroup version
+	if [ -f "$CGROUP_BASE/cgroup.controllers" ]; then
+	    export CGROUP_VERSION="v2"
+	else
+	    export CGROUP_VERSION="v1"
+	fi
+    fi
 }
