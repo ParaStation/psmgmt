@@ -884,7 +884,7 @@ static int tryInclude(char *line, Config_t conf, const void *info)
 
     /* expand shell patterns  */
     glob_t pglob;
-    int ret = glob(cPath, GLOB_NOCHECK, NULL, &pglob);
+    int ret = glob(cPath, 0, NULL, &pglob);
     switch (ret) {
     case 0:
 	break;
@@ -893,6 +893,9 @@ static int tryInclude(char *line, Config_t conf, const void *info)
 	return -1;
     case GLOB_ABORTED:
 	fdbg(PSSLURM_LOG_WARN, "could not include %s\n", cPath);
+	return -1;
+    case GLOB_NOMATCH:
+	fdbg(PSSLURM_LOG_DEBUG, "no match for %s\n", cPath);
 	return -1;
     default:
 	flog("glob(%s) returns unexpected %d\n", cPath, ret);
