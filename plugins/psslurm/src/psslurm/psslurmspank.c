@@ -346,8 +346,7 @@ void __SpankCallHook(spank_t spank, const char *func, const int line)
     list_for_each(s, &SpankList) {
 	Spank_Plugin_t *plugin = list_entry(s, Spank_Plugin_t, next);
 	if (!plugin->handle) {
-	    flog("no handle for plugin %s path %s\n", plugin->name,
-		 plugin->path);
+	    flog("no handle for plugin %s (%s)\n", plugin->name, plugin->path);
 	    continue;
 	}
 	doCallHook(plugin, spank, strHook);
