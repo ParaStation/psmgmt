@@ -77,6 +77,15 @@ function killTasks {
     local PIDS=$(cat "$DIR/tasks" 2>/dev/null)
 
     while [ -n "$PIDS" -a "$count" -le "$MAX_KILL_RETRY" ]; do
+	[ "$TERM_DELAY" != "0" ] && {
+	    for child in $PIDS; do
+		[ -d "/proc/$child" ] || continue
+		dlog "killTasks($count): send signal $TERM_SIGNAL to PID $child"
+		kill -"$TERM_SIGNAL" $child
+	    done
+	    sleep "$TERM_DELAY"
+	    PIDS=$(cat "$DIR/tasks" 2>/dev/null)
+	}
 	for child in $PIDS; do
 	    [ -d "/proc/$child" ] || continue
 	    dlog "killTasks($count): killing PID $child with signal $KILL_SIGNAL"
@@ -149,6 +158,8 @@ function initJailEnv {
     export CONSTRAIN_DEVICES="$__PSJAIL_CONSTRAIN_DEVICES"
 
     export PSID_PID=$(ps -C psid -o ppid,cmd,pid | awk '/\/psid/ { if ($1 == "1") print $3; }')
+
+    [ -z "$TERM_SIGNAL" ] && export TERM_SIGNAL="15"
 
     [ -z "$KILL_SIGNAL" ] && export KILL_SIGNAL="9"
 }

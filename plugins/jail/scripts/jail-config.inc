@@ -30,6 +30,9 @@ PREFIX="psid"
 # maximum retries to send signals to tasks of a cgroup
 MAX_KILL_RETRY="10"
 
+# delay (float) between sending TERM and KILL signal; 0 averts the TERM signal
+TERM_DELAY="0"
+
 # log to syslog instead the log-file
 LOG_TO_SYSLOG="1"
 
