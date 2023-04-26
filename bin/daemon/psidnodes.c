@@ -131,6 +131,7 @@ static void nodeInit(node_t *node)
     node->GPUset = NULL;
     node->numNICs = 0;
     node->NICset = NULL;
+    node->hostname = NULL;
 }
 
 static void initHash(void)
@@ -241,6 +242,7 @@ bool PSIDnodes_register(PSnodes_ID_t id, const char *nodename, in_addr_t addr,
     nodes[id].addr = addr;
     free(nodes[id].nodename);
     nodes[id].nodename = strdup(nodename);
+    free(nodes[id].hostname);
     nodes[id].hostname = hostname ? strdup(hostname) : NULL;
 
     if (id > PSIDnodes_getMaxID()) maxID = id;
