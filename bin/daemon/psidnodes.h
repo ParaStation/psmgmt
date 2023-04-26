@@ -160,14 +160,16 @@ const char * PSIDnodes_getNodename(PSnodes_ID_t id);
  *
  * Get the hostname of the node with ParaStation ID @a id. This
  * returns the node's hostname as it is configured within psid's
- * configuration for the network the IP address returned by
- * @ref PSIDnodes_getIPaddr belongs to. This should always the
- * be the name the resolver would get for the node's IP address.
+ * configuration for the network the IP address returned by @ref
+ * PSIDnodes_getIPaddr() belongs to. I.e. this hostname must be
+ * resolved to the mentioned IP address which is the one psid is
+ * expected to listen to.
  *
  * @param id ParaStation ID of the node to look up
  *
- * @return If the node was found, a string containing the hostname
- * is returned; or NULL if an error occurred
+ * @return If the node was found, a string containing the hostname is
+ * returned; or NULL if an error occurred or the hostname is not
+ * configured
  */
 const char * PSIDnodes_getHostname(PSnodes_ID_t id);
 
