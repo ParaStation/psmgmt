@@ -1370,8 +1370,8 @@ static bool insertNode(void)
     snprintf(buffer, sizeof(buffer), "%s.DevIPAddress", netname);
     gchar *ipaddress;
     if (!getString(buffer, &ipaddress)) {
-	g_free(nodename);
 	g_free(netname);
+	g_free(nodename);
 	return false;
     }
 
@@ -1379,8 +1379,8 @@ static bool insertNode(void)
 	parser_comment(-1, "empty value of '%s' for node '%s'\n", buffer,
 		nodename);
 	g_free(ipaddress);
-	g_free(nodename);
 	g_free(netname);
+	g_free(nodename);
 	return false;
     }
 
@@ -1390,6 +1390,7 @@ static bool insertNode(void)
 		ipaddress, nodename);
 	g_free(ipaddress);
 	g_free(netname);
+	g_free(nodename);
 	return false;
     }
     g_free(ipaddress);
