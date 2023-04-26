@@ -29,34 +29,36 @@
 int removeDir(char *directory, int root);
 
 /**
- * @brief Get the PS Node ID by hostname
+ * @brief Get the ParaStation ID by hostname
  *
- * Tries to resolve the hostname/address using the system's resolver. It first
- * gets all addresses returned by the resolver for the given string and then
- * returns the first PS ID found for one of those addresses.
+ * Resolve the ParaStation ID from the hostname/address @a host using
+ * the system's resolver. It first gets all addresses returned by the
+ * resolver for the given string and then returns the first
+ * ParaStation ID found for one of those addresses.
  *
- * @a host can be any string resolvable by @a getaddrinfo()
+ * @a host is allowed to be any string resolvable by @a getaddrinfo().
  *
- * @param host The hostname/address to get the nodeID for
+ * @param host The hostname/address to be resolved
  *
- * @return Returns the requested nodeID or -1 on error
+ * @return Returns the requested node's ParaStation ID or -1 on error
  */
 PSnodes_ID_t getNodeIDbyName(const char *host);
 
 /**
- * @brief Get the PS Node ID by hostname
+ * @brief Get the ParaStation ID by configured hostname
  *
- * This differs from the older @ref getNodeIDbyName(). It first tries to
- * resolve the hostname/address using psid's internal node database and
- * if not successful falls back to using the system's resolver by calling
- * @ref getNodeIDbyName().
+ * The behavior is similar to the older @ref getNodeIDbyName() but
+ * utilizes psid's internal PSIDnodes database and its configured
+ * hostname (consulted via @ref PSIDnodes_lookup()) first before
+ * falling back to @ref getNodeIDbyName() utilizing the system's
+ * resolver.
  *
- * @a hostname can be a string representing an IPv4 address that can be
- * converted by inet_aton() or a hostname
+ * @a hostname might be a string representing an IPv4 address that can
+ * be converted by inet_aton() or a hostname.
  *
- * @param hostname The hostname/address to get the nodeID for
+ * @param hostname The hostname/address to be resolved
  *
- * @return Returns the requested nodeID or -1 on error
+ * @return Returns the requested node's ParaStation ID or -1 on error
  */
 PSnodes_ID_t getNodeIDbyHostname(const char *hostname);
 
