@@ -1584,13 +1584,12 @@ static bool fillServerSessionArray(pmix_data_array_t *sessionInfo,
 	     " => falling back to resolver\n", __func__);
 	hostname = getHostnameByNodeId(PSC_getMyID());
     }
-    if (hostname) {
-	INFO_LIST_ADD(list, PMIX_SERVER_HOSTNAME, hostname, PMIX_STRING);
-    } else {
+    if (!hostname) {
 	mlog("%s: Unable to get my own hostname\n", __func__);
 	PMIx_Info_list_release(list);
 	return false;
     }
+    INFO_LIST_ADD(list, PMIX_SERVER_HOSTNAME, hostname, PMIX_STRING);
 
     pmix_status_t status;
     status = PMIx_Info_list_convert(list, sessionInfo);
