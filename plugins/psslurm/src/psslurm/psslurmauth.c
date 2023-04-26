@@ -178,6 +178,7 @@ bool extractSlurmAuth(Slurm_Msg_t *sMsg)
 	return true;
     }
 
+    char *credHash = NULL;
     Slurm_Auth_t *auth = NULL;
     if (!unpackSlurmAuth(sMsg, &auth)) {
 	flog("unpacking Slurm authentication failed\n");
@@ -199,7 +200,6 @@ bool extractSlurmAuth(Slurm_Msg_t *sMsg)
 
     /* decode message hash using munge */
     int hashLen;
-    char *credHash = NULL;
     if (!psMungeDecodeBuf(auth->cred, (void **) &credHash, &hashLen,
 			  &sMsg->head.uid, &sMsg->head.gid)) {
 	flog("decoding munge credential failed\n");
