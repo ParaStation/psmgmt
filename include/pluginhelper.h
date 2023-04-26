@@ -18,33 +18,33 @@
 #include "psnodes.h"
 
 /**
- * @brief Remove a directory recursive.
+ * @brief Remove a directory recursive
  *
- * @param directory The directory to remove.
+ * @param directory The directory to remove
  *
- * @param root Also delete the root directory.
+ * @param root Also delete the root directory
  *
- * @return Returns 0 on error and 1 on success.
+ * @return Returns 0 on error and 1 on success
  */
 int removeDir(char *directory, int root);
 
 /**
- * @brief Get the PS Node ID by hostname.
+ * @brief Get the PS Node ID by hostname
  *
  * Tries to resolve the hostname/address using the system's resolver. It first
  * gets all addresses returned by the resolver for the given string and then
  * returns the first PS ID found for one of those addresses.
  *
- * @a host can be any string resolvable by @a getaddrinfo().
+ * @a host can be any string resolvable by @a getaddrinfo()
  *
- * @param host The hostname/address to get the nodeID for.
+ * @param host The hostname/address to get the nodeID for
  *
- * @return Returns the requested nodeID or -1 on error.
+ * @return Returns the requested nodeID or -1 on error
  */
 PSnodes_ID_t getNodeIDbyName(const char *host);
 
 /**
- * @brief Get the PS Node ID by hostname.
+ * @brief Get the PS Node ID by hostname
  *
  * This differs from the older @ref getNodeIDbyName(). It first tries to
  * resolve the hostname/address using psid's internal node database and
@@ -52,11 +52,11 @@ PSnodes_ID_t getNodeIDbyName(const char *host);
  * @ref getNodeIDbyName().
  *
  * @a hostname can be a string representing an IPv4 address that can be
- * converted by inet_aton() or a hostname.
+ * converted by inet_aton() or a hostname
  *
- * @param hostname The hostname/address to get the nodeID for.
+ * @param hostname The hostname/address to get the nodeID for
  *
- * @return Returns the requested nodeID or -1 on error.
+ * @return Returns the requested nodeID or -1 on error
  */
 PSnodes_ID_t getNodeIDbyHostname(const char *hostname);
 
@@ -106,7 +106,7 @@ char *rtrim(char *string);
  *
  * @param string Character array to be trimmed
  *
- * @return According to @ref ltrim()'s return value.
+ * @return According to @ref ltrim()'s return value
  */
 char *trim(char *string);
 
@@ -121,7 +121,7 @@ char *trim(char *string);
  * @param string Character array to be cleaned from double-quotes
  *
  * @return If @a string's first character is a double-quote, @a string
- * + 1 is returned. Or @a string otherwise.
+ * + 1 is returned; or @a string otherwise
  */
 char *trim_quotes(char *string);
 
@@ -149,7 +149,7 @@ char *printTime(time_t time);
  * @param wtime String describing the time
  *
  * @return On success the number of seconds described by @a wtime is
- * returned. Otherwise 0 is returned.
+ * returned; otherwise 0 is returned
  *
  */
 unsigned long stringTimeToSec(char *wtime);
