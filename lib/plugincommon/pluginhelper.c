@@ -141,13 +141,13 @@ PSnodes_ID_t getNodeIDbyHostname(const char *hostname)
     if (inet_aton(hostname, &inp)) {
 	/* try to internally resolv as address */
 	nodeID = PSIDnodes_lookupHost(inp.s_addr);
-        plugindbg(PLUGIN_LOG_VERBOSE, "%s: %s => %hd\n", __func__, hostname,
+	plugindbg(PLUGIN_LOG_VERBOSE, "%s: %s => %hd\n", __func__, hostname,
 		  nodeID);
 	if (nodeID >= 0) return nodeID;
     }
 
     /* try to internally resolv as hostname */
-    nodeID = PSIDnodes_getID(hostname);
+    nodeID = PSIDnodes_lookupHostname(hostname);
     plugindbg(PLUGIN_LOG_VERBOSE, "%s: %s => %hd\n", __func__, hostname,
 	      nodeID);
     if (nodeID >= 0) return nodeID;

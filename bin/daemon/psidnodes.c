@@ -290,7 +290,7 @@ const char * PSIDnodes_getHostname(PSnodes_ID_t id)
     return nodes[id].hostname;
 }
 
-PSnodes_ID_t PSIDnodes_getID(const char *hostname)
+PSnodes_ID_t PSIDnodes_lookupHostname(const char *hostname)
 {
     if (!hostname) return -1;
 
