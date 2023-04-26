@@ -15,8 +15,6 @@
 #include <stddef.h>
 #include <stdint.h>
 
-#include "list.h"
-
 /** Configuration parsed from a file */
 typedef struct pluginConfig * Config_t;
 

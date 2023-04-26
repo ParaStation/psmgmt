@@ -23,7 +23,6 @@
 #include "pspartition.h"
 #include "psreservation.h"
 
-#include "config_parsing.h"
 #include "mcast.h"
 #include "rdp.h"
 

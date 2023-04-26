@@ -25,8 +25,6 @@
 #include "slurmcommon.h"
 #include "slurmerrno.h"
 
-#include "psslurmalloc.h"
-#include "psslurmjob.h"
 #include "psslurmstep.h"
 #include "psslurmlog.h"
 #include "psslurmproto.h"

@@ -30,14 +30,12 @@
 #include <pmix.h>
 #include <pmix_common.h>
 #include <sys/select.h>
-#include <sys/types.h>
 
 #include "pscio.h"
 #include "pscommon.h"
 #include "psenv.h"
 #include "psprotocol.h"
 #include "pspluginprotocol.h"
-#include "psreservation.h"
 #include "psserial.h"
 
 #include "psidcomm.h"

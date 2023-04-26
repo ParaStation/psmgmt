@@ -16,12 +16,10 @@
 
 #include <errno.h>
 #include <pthread.h>
-#include <pmix_common.h>
 
 #include "list.h"
 #include "psdaemonprotocol.h"
 #include "pspluginprotocol.h"
-#include "psreservation.h"
 #include "psserial.h"
 #include "psenv.h"
 

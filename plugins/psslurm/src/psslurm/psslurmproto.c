@@ -40,7 +40,6 @@
 #include "psidscripts.h"
 
 #include "pluginconfig.h"
-#include "pluginforwarder.h"
 #include "pluginhelper.h"
 #include "pluginmalloc.h"
 

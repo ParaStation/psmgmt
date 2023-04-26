@@ -13,8 +13,10 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <strings.h>
 #include <unistd.h>
 
+#include "list.h"
 #include "pluginmalloc.h"
 #include "pluginhelper.h"
 #include "pluginlog.h"

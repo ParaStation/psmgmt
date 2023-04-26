@@ -11,13 +11,12 @@
 #include "pelogueinter.h"
 
 #include <stdbool.h>
+#include <stddef.h>
 #include <sys/types.h>
 
-#include "list.h"
 #include "pscommon.h"
 #include "psenv.h"
 #include "pluginconfig.h"
-#include "pluginmalloc.h"
 
 #include "pelogueconfig.h"
 #include "peloguejob.h"

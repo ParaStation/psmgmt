@@ -24,11 +24,9 @@
 #include "pscommon.h"
 #include "pscomplist.h"
 #include "pscpu.h"
-#include "pspartition.h"
 
 #include "plugin.h"
 #include "pluginconfig.h"
-#include "pluginforwarder.h"
 #include "pluginhelper.h"
 #include "pluginmalloc.h"
 
@@ -45,7 +43,6 @@
 #include "psslurmjob.h"
 #include "psslurmjobcred.h"
 #include "psslurmmsg.h"
-#include "psslurmnodeinfotype.h"
 #include "psslurmpin.h"
 #include "psslurmproto.h"
 #include "psslurmpscomm.h"

@@ -18,7 +18,6 @@
 #include <time.h>
 #include <errno.h>
 
-#include "list.h"
 #include "pscommon.h"
 #include "pspluginprotocol.h"
 #include "psprotocol.h"

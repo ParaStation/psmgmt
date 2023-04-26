@@ -24,7 +24,6 @@
 
 #include "slurmcommon.h" /* bind type constants */
 
-#include "list.h"
 #include "pscommon.h"  /* typedef of PSnodes_ID_t for stubs */
 #include "pscpu.h"
 #include "psenv.h"

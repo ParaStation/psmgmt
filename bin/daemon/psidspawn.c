@@ -44,7 +44,6 @@
 #include "psreservation.h"
 #include "psserial.h"
 
-#include "config_parsing.h"
 #include "timer.h"
 
 #include "psidclient.h"

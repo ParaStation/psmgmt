@@ -28,7 +28,6 @@
 
 #include "list.h"
 #include "pscio.h"
-#include "config_parsing.h"
 #include "selector.h"
 #include "timer.h"
 #include "psipartition.h"

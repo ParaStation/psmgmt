@@ -66,7 +66,6 @@
 #include "psslurmlog.h"
 #include "psslurmmsg.h"
 #include "psslurmmultiprog.h"
-#include "psslurmnodeinfo.h"
 #include "psslurmpelogue.h"
 #include "psslurmpin.h"
 #include "psslurmproto.h"

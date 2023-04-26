@@ -25,8 +25,6 @@
 #include "psdaemonprotocol.h"
 #include "psserial.h"
 
-#include "config_parsing.h"
-
 #include "psidutil.h"
 #include "psidcomm.h"
 #include "psidnodes.h"
