@@ -1,3 +1,347 @@
+Version 5.1.55:
+===============
+------------------------------------------------------------------------
+64d3c89a7 | Norbert Eicker | Thu, 27 Apr 2023 13:23:06 +0200
+
+Ignore empty include directories in slurm's configuration includes
+------------------------------------------------------------------------
+e88630b14 | Norbert Eicker | Wed, 26 Apr 2023 15:52:27 +0200
+
+Various IWYU fixes most new detections by version 0.20
+------------------------------------------------------------------------
+b301b898b | Norbert Eicker | Wed, 26 Apr 2023 15:50:44 +0200
+
+Ensure credHash is initialized before ufree()ed
+------------------------------------------------------------------------
+c8a851823 | Norbert Eicker | Wed, 26 Apr 2023 09:59:49 +0200
+
+Streamlining
+------------------------------------------------------------------------
+e11c952ed | Norbert Eicker | Wed, 26 Apr 2023 09:49:37 +0200
+
+Improve docu comments
+------------------------------------------------------------------------
+204f6a619 | Norbert Eicker | Wed, 26 Apr 2023 09:35:57 +0200
+
+Streamline docu comments
+------------------------------------------------------------------------
+692a59efb | Norbert Eicker | Wed, 26 Apr 2023 09:30:53 +0200
+
+Rename PSIDnodes_getID() to PSIDnodes_lookupHostname()
+
+ - This shall make the naming scheme more consistent with
+   PSIDnodes_lookupHost()
+------------------------------------------------------------------------
+b5d385c77 | Norbert Eicker | Wed, 26 Apr 2023 09:20:10 +0200
+
+Proper initialization of PSIDnode's hostname and fix memory leak
+------------------------------------------------------------------------
+7bee666ec | Norbert Eicker | Wed, 26 Apr 2023 09:18:02 +0200
+
+Improve docu comments
+------------------------------------------------------------------------
+e7ae20e6a | Norbert Eicker | Wed, 26 Apr 2023 09:15:44 +0200
+
+Fix possible memory leak
+------------------------------------------------------------------------
+b43be3fb8 | Stephan Krempel | Wed, 5 Apr 2023 17:18:28 +0200
+
+pspmix: First use internal name resolution for hostnames
+------------------------------------------------------------------------
+fd7d6cf54 | Stephan Krempel | Thu, 13 Apr 2023 01:50:18 +0200
+
+psslurm: Use getNodeIDbyHostname() instead of getNodeIDbyName()
+------------------------------------------------------------------------
+5b5cefb64 | Stephan Krempel | Wed, 5 Apr 2023 17:21:28 +0200
+
+Introduce getNodeIDbyHostname()
+
+This new function first tries to resolve the string internally
+and then falls back to classical getNodeIDbyName() using the
+resolver and searching for PS IDs to the IP addresses.
+------------------------------------------------------------------------
+6dadae129 | Stephan Krempel | Wed, 5 Apr 2023 17:20:30 +0200
+
+Introduce PSIDnodes_getID() to internally resolve hostnames
+------------------------------------------------------------------------
+eb5607130 | Stephan Krempel | Thu, 13 Apr 2023 00:57:23 +0200
+
+Read real hostname from psconfig
+
+Tries to reads <Psid.NetworkName>.Hostname from psconfig and
+stores it as nodes[id].hostname in the nodes database.
+
+If it is not found, this is not an error.
+
+This hostname is meant to be the real hostname of the node in
+the network used by the psid. As we take the IP address from
+the same network, this should always be the pair the resolver
+returns, too. It is a misconfiguration if not so.
+------------------------------------------------------------------------
+ae24acd9c | Norbert Eicker | Mon, 24 Apr 2023 11:18:14 +0200
+
+Let jail kill leftover processes more gracefully
+------------------------------------------------------------------------
+c2f5d82e4 | Norbert Eicker | Fri, 21 Apr 2023 16:54:23 +0200
+
+Improve failure log
+------------------------------------------------------------------------
+0641613f2 | Michael Rauh | Fri, 21 Apr 2023 16:01:25 +0200
+
+Optional SPANK plugins that cannot be loaded get
+removed from SpankList
+------------------------------------------------------------------------
+554c0f18d | Michael Rauh | Tue, 18 Apr 2023 10:44:19 +0200
+
+Actual use optional keyword of plugstack.conf
+------------------------------------------------------------------------
+e9891c94d | Michael Rauh | Wed, 12 Apr 2023 16:37:41 +0200
+
+Add psslurm option SKIP_CORE_VERIFICATION
+
+ - allow slurm.conf without the specification of cores and threads
+   in the NodeName section
+ - *warning*: skipping this verification can lead to unforeseen consequences
+   if the hardware view of psid and slurmctld is not consistent
+------------------------------------------------------------------------
+d25b063fb | Michael Rauh | Fri, 21 Apr 2023 16:25:16 +0200
+
+Remove flag GLOB_NOCHECK from psslurm include parsing
+------------------------------------------------------------------------
+9e954258b | Norbert Eicker | Wed, 19 Apr 2023 17:00:07 +0200
+
+Add error treatment to configurations include handling
+------------------------------------------------------------------------
+9c4cc9d9e | Norbert Eicker | Tue, 18 Apr 2023 14:08:07 +0200
+
+Introduce initSlurmConfig()
+------------------------------------------------------------------------
+9b0889c32 | Norbert Eicker | Tue, 18 Apr 2023 11:39:53 +0200
+
+Cleanup superfluous info parameter to parseConfigFile()
+------------------------------------------------------------------------
+fbaebf81a | Norbert Eicker | Tue, 18 Apr 2023 11:33:53 +0200
+
+Minor renaming
+------------------------------------------------------------------------
+0a6d1aa7d | Norbert Eicker | Tue, 18 Apr 2023 11:30:50 +0200
+
+Rework psslurm's configuration file include handling
+------------------------------------------------------------------------
+61698380c | Michael Rauh | Mon, 17 Apr 2023 20:05:04 +0200
+
+Use parseConfigFileExt() in psslurm configuration parsing
+to correctly handle include statements
+------------------------------------------------------------------------
+fb2cb84ec | Norbert Eicker | Mon, 17 Apr 2023 14:01:00 +0200
+
+Introduce parseConfigFileExt()
+
+ - This adds functionality that might be required by immediate
+   include handling while reading a configuration
+------------------------------------------------------------------------
+d6c87f207 | Norbert Eicker | Mon, 17 Apr 2023 12:03:44 +0200
+
+Remove unnecessary trimQuotes flag from parseConfigFile()
+------------------------------------------------------------------------
+7e89d9bbd | Norbert Eicker | Mon, 17 Apr 2023 11:41:02 +0200
+
+Make quote trimming a configuration feature
+------------------------------------------------------------------------
+4d84cfd17 | Michael Rauh | Fri, 14 Apr 2023 12:18:58 +0200
+
+Improve slurm.conf include parsing
+------------------------------------------------------------------------
+638d642b2 | Michael Rauh | Wed, 12 Apr 2023 15:44:47 +0200
+
+Add static to isLocalAddr()
+------------------------------------------------------------------------
+cb940e759 | Michael Rauh | Wed, 12 Apr 2023 12:21:12 +0200
+
+Add support for include statement in slurm.conf
+------------------------------------------------------------------------
+b2b54b110 | Michael Rauh | Fri, 14 Apr 2023 12:27:30 +0200
+
+Make one more config comparison case insensitive
+------------------------------------------------------------------------
+0a684daf4 | Michael Rauh | Tue, 11 Apr 2023 13:15:56 +0200
+
+Fix another double free()
+------------------------------------------------------------------------
+8bff8d0a1 | Michael Rauh | Tue, 11 Apr 2023 12:58:24 +0200
+
+Set all Slurm configuration files to case-insensitive and
+allow double entries
+------------------------------------------------------------------------
+5e3a585cc | Norbert Eicker | Mon, 3 Apr 2023 18:33:40 +0200
+
+Slurm's configuration might depend on double entries
+------------------------------------------------------------------------
+a8ae37b9c | Norbert Eicker | Thu, 30 Mar 2023 14:14:54 +0200
+
+Fix double free()
+------------------------------------------------------------------------
+169d14178 | Norbert Eicker | Mon, 20 Mar 2023 17:48:13 +0100
+
+Check for empty config in setConfigCaseSensitivity()
+------------------------------------------------------------------------
+8df62f06a | Norbert Eicker | Wed, 8 Mar 2023 10:58:23 +0100
+
+Avoid double entries in configuration
+------------------------------------------------------------------------
+5c542b9ed | Norbert Eicker | Wed, 8 Mar 2023 10:53:20 +0100
+
+Implement case sensitivity switch for config handling
+------------------------------------------------------------------------
+8a9aae8a0 | Norbert Eicker | Wed, 8 Mar 2023 00:01:50 +0100
+
+Make pluginconfig's Config_t opaque
+------------------------------------------------------------------------
+3de716af6 | Norbert Eicker | Sun, 2 Apr 2023 18:01:44 +0200
+
+Add support for S_TASK_ARGV to psslurmspank
+------------------------------------------------------------------------
+35e5c1030 | Norbert Eicker | Sun, 2 Apr 2023 18:01:18 +0200
+
+Add configure test for S_TASK_ARGV propose for vanilla Slurm
+------------------------------------------------------------------------
+d471d8870 | Stephan Krempel | Thu, 23 Mar 2023 01:30:08 +0100
+
+Fix typos
+------------------------------------------------------------------------
+89f330638 | Norbert Eicker | Mon, 20 Mar 2023 15:55:30 +0100
+
+Rename hardware.[ch] to psattribute.[ch]
+------------------------------------------------------------------------
+0a7fbfe92 | Norbert Eicker | Mon, 20 Mar 2023 15:19:53 +0100
+
+Extend parastation.conf parser to Feature/Attribute syntax
+------------------------------------------------------------------------
+4c1d042b0 | Norbert Eicker | Tue, 14 Mar 2023 21:44:33 +0100
+
+Rename HW to Attr to reflect changed usage
+------------------------------------------------------------------------
+d505fb50e | Norbert Eicker | Tue, 14 Mar 2023 15:09:43 +0100
+
+De-duplicate function
+------------------------------------------------------------------------
+7882044d0 | Norbert Eicker | Tue, 14 Mar 2023 12:00:21 +0100
+
+Improve psid<->psiadmin protocol constraints
+------------------------------------------------------------------------
+9af69e600 | Norbert Eicker | Thu, 30 Mar 2023 13:56:49 +0200
+
+Add more Spank option handling
+------------------------------------------------------------------------
+b7c712321 | Norbert Eicker | Wed, 29 Mar 2023 14:17:49 +0200
+
+Handle Spank options for SPANK_TASK_INIT, too
+------------------------------------------------------------------------
+5190622b5 | Michael Rauh | Mon, 20 Mar 2023 14:28:15 +0100
+
+Improve sanity checks for user and jobids
+------------------------------------------------------------------------
+e79a0ca1b | Michael Rauh | Fri, 24 Feb 2023 16:58:15 +0100
+
+Fix error redirection
+------------------------------------------------------------------------
+945c5bb05 | Michael Rauh | Fri, 24 Feb 2023 16:57:16 +0100
+
+Fix more indentation of jail scripts
+------------------------------------------------------------------------
+54d697f17 | Michael Rauh | Fri, 24 Feb 2023 16:25:41 +0100
+
+Set KILL_SIGNAL globally in jail-functions
+------------------------------------------------------------------------
+9c0e816f2 | Michael Rauh | Fri, 24 Feb 2023 16:17:37 +0100
+
+Ensure leftover cgroup entries don't interfere with jail scripts
+------------------------------------------------------------------------
+752878c67 | Michael Rauh | Fri, 24 Feb 2023 14:02:03 +0100
+
+Suppress obsolete error messages in jail scripts
+------------------------------------------------------------------------
+9761ee874 | Michael Rauh | Fri, 24 Feb 2023 13:51:25 +0100
+
+Set CG_USER, CG_JOB and CG_STEP globally in jail-main
+------------------------------------------------------------------------
+076206b3c | Michael Rauh | Fri, 24 Feb 2023 13:15:32 +0100
+
+Fix indentation
+------------------------------------------------------------------------
+5fdcafdb4 | Norbert Eicker | Fri, 17 Mar 2023 14:42:06 +0100
+
+Rename flags for Slurm's message authentification
+------------------------------------------------------------------------
+1ba55be28 | Michael Rauh | Wed, 8 Mar 2023 16:13:03 +0100
+
+More use of doSetEnv()
+------------------------------------------------------------------------
+c4307f300 | Michael Rauh | Wed, 8 Mar 2023 16:08:24 +0100
+
+Set various missing environment variables from
+job credential
+------------------------------------------------------------------------
+14f42b599 | Michael Rauh | Mon, 6 Mar 2023 14:03:18 +0100
+
+Skip authentication for Slurm message responses
+------------------------------------------------------------------------
+6345ff1af | Michael Rauh | Wed, 1 Mar 2023 16:28:29 +0100
+
+Add support for Slurm 23.02 protocol
+------------------------------------------------------------------------
+71b34b1b7 | Stephan Krempel | Thu, 16 Mar 2023 03:12:15 +0100
+
+ReFrame: Add test using putGet PMIx test program
+------------------------------------------------------------------------
+f0f92abf1 | Stephan Krempel | Thu, 16 Mar 2023 03:11:09 +0100
+
+ReFrame: Create generic parent class for simple PMIx tests
+------------------------------------------------------------------------
+5b5b9c450 | Stephan Krempel | Thu, 16 Mar 2023 03:09:59 +0100
+
+ReFrame: Check error output to be empty
+------------------------------------------------------------------------
+cd6744bce | Stephan Krempel | Thu, 16 Mar 2023 03:08:59 +0100
+
+ReFrame: Fix using multiple nodes
+------------------------------------------------------------------------
+9e7e088ae | Stephan Krempel | Thu, 16 Mar 2023 01:36:49 +0100
+
+Move ReFrame config into subdirectory
+------------------------------------------------------------------------
+9901f8d8c | Stephan Krempel | Thu, 16 Mar 2023 01:00:27 +0100
+
+Add ReFrame testsuite and first PMIx test
+
+* Add short README how to use ReFrame
+* Add configuration for partecvm
+* Add parameterized test using PMIx getSizes test program
+------------------------------------------------------------------------
+ab8aec4c5 | Norbert Eicker | Mon, 20 Mar 2023 09:58:28 +0100
+
+Minor streamlining of spank_test plugin
+------------------------------------------------------------------------
+7ca97aabc | Michael Rauh | Mon, 20 Mar 2023 09:48:16 +0100
+
+Actually send CMD_INIT_COMPLETE to mother psid
+------------------------------------------------------------------------
+a49e2d6de | Michael Rauh | Wed, 15 Mar 2023 15:19:09 +0100
+
+Enhance compatibility of SPANK hooks
+
+ - enable SPANK hooks spank_init, spank_init_post_opt and spank_user_init
+   to modify the environment of corresponding user processes
+
+ - additionally ensure the correct order of SPANK hook calls
+------------------------------------------------------------------------
+a91e4dd50 | Michael Rauh | Wed, 15 Mar 2023 15:18:06 +0100
+
+Use the correct functions to change the environment dependent on the
+SPANK context
+------------------------------------------------------------------------
+
+
 Version 5.1.54-3:
 =================
 ------------------------------------------------------------------------

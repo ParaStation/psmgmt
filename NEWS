@@ -6,6 +6,28 @@ Copyright (C) 2021-2023 ParTec AG, Munich
 Please send bug reports, questions and suggestions to <support@par-tec.com>
 
 
+Version 5.1.55:
+===============
+Bugfixes:
+ - Ensure the correct order of SPANK hook calls
+ - Add SPANK option handling at all necessary places
+ - Actual use optional keyword of plugstack.conf
+Enhancements:
+ - Add support for Slurm 23.02 protocol
+ - Add support for include statement in slurm.conf
+ - Set all Slurm configuration files to case-insensitive
+ - Allow SPANK hooks spank_init, spank_init_post_opt and spank_user_init
+   to modify the environment of corresponding user processes
+ - Rework and improve jail scripts
+ - Introduce PSIDnodes_lookupHostname() to internally resolve hostnames;
+   this utilizes <Psid.NetworkName>.Hostname in psconfig's node objects
+ - Add support for S_TASK_ARGV (might be in future Slurm vers) to psslurmspank
+Additional changes:
+ - Add psslurm option SKIP_CORE_VERIFICATION as preparation for AWS pClusters
+ - Add ReFrame testsuite and first PMIx test
+ - Make pluginconfig's Config_t opaque
+
+
 Version 5.1.54-3:
 =================
 Bugfixes:
