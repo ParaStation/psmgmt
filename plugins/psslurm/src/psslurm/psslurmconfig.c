@@ -860,8 +860,11 @@ static void parseSlurmAccFreq(char *param)
  *
  * @param info Some extra information passed on (unused)
  *
- * @return Returns false if the line needs further handling or true
- * otherwise
+ * @return Returns 1 if @a line was handled sufficiently or -1 if an
+ * error occurred, i.e. if none of the suggested include(s) could be
+ * handled; if the path to be included ends with '\/\*', i.e. a whole
+ * sub-directory shall be checked for include files, but no file was
+ * found, this is *not* handled as an error
  */
 static int tryInclude(char *line, Config_t conf, const void *info)
 {
@@ -899,6 +902,7 @@ static int tryInclude(char *line, Config_t conf, const void *info)
 	fdbg(PSSLURM_LOG_WARN, "could not include %s\n", cPath);
 	return -1;
     case GLOB_NOMATCH:
+	if (strncmp(cPath + strlen(cPath) - 2, "/*", 2) == 0) return 1;
 	fdbg(PSSLURM_LOG_DEBUG, "no match for %s\n", cPath);
 	return -1;
     default:
