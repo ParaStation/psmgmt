@@ -468,7 +468,7 @@ int handleForwarderInit(void * data)
 {
     PStask_t *task = data;
 
-    if (task->rank <0 || task->group != TG_ANY) return 0;
+    if (task->rank < 0 || task->group != TG_ANY) return 0;
 
     initFwPtr(task);
     if (fwStep) {
@@ -520,7 +520,7 @@ int handleForwarderClientStatus(void * data)
 {
     PStask_t *task = data;
 
-    if (task->rank <0 || task->group != TG_ANY) return IDLE;
+    if (task->rank < 0 || task->group != TG_ANY) return IDLE;
 
     initFwPtr(task);
     if (!fwStep) {
@@ -563,7 +563,7 @@ int handleExecClient(void *data)
 
     if (!task) return -1;
     /* skip service tasks */
-    if (task->rank <0) return 0;
+    if (task->rank < 0) return 0;
 
     setDefaultRlimits();
     initFwPtr(task);
@@ -590,7 +590,7 @@ int handleExecClientPrep(void *data)
     PStask_t *task = data;
 
     if (!task) return -1;
-    if (task->rank <0 || task->group != TG_ANY) return 0;
+    if (task->rank < 0 || task->group != TG_ANY) return 0;
 
     /* unset MALLOC_CHECK_ set by psslurm */
     unsetenv("MALLOC_CHECK_");
@@ -642,7 +642,7 @@ int handleExecClientUser(void *data)
     PStask_t *task = data;
 
     if (!task) return -1;
-    if (task->rank <0 || task->group != TG_ANY) return 0;
+    if (task->rank < 0 || task->group != TG_ANY) return 0;
 
     initFwPtr(task);
     if (fwStep) {
