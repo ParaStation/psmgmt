@@ -450,7 +450,7 @@ Step_t * __findStepByEnv(char **environ, uint32_t *jobid_out,
 
 static void initFwPtr(PStask_t *task)
 {
-    if (fwStep) return;
+    if (fwStep || !task) return;
 
     bool isAdmin = isPSAdminUser(task->uid, task->gid);
     uint32_t jobid = 0;
@@ -1640,7 +1640,7 @@ bool execStepFollower(Step_t *step)
 int handleFwRes(void * data)
 {
 #ifdef HAVE_SPANK
-    if (fwStep) {
+    if (fwStep && fwTask && fwTask->rank >= 0) {
 	fwStep->exitCode = *(int *) data;
 
 	struct spank_handle spank = {
