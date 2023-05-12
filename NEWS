@@ -6,6 +6,14 @@ Copyright (C) 2021-2023 ParTec AG, Munich
 Please send bug reports, questions and suggestions to <support@par-tec.com>
 
 
+Version 5.1.55-1:
+=================
+Bugfixes:
+ - Ensure SPANK calls (esp. TASK_EXIT) are not called for service procs
+Enhancements:
+ - Extra analysis checks for jwt:#20747
+
+
 Version 5.1.55:
 ===============
 Bugfixes:
