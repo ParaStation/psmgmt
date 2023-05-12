@@ -276,6 +276,11 @@ plugins/cgroup/cgroupconfig.c \
 plugins/cgroup/cgroupconfig.h \
 plugins/cgroup/cgrouplog.c \
 plugins/cgroup/cgrouplog.h \
+plugins/dynIP/Makefile.am \
+plugins/dynIP/Makefile.in \
+plugins/dynIP/dynIP.c \
+plugins/dynIP/dynIPlog.c \
+plugins/dynIP/dynIPlog.h \
 plugins/jail/Makefile.am \
 plugins/jail/Makefile.in \
 plugins/jail/jail.c \
