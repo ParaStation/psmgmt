@@ -13360,6 +13360,8 @@ ac_config_files="$ac_config_files plugins/Makefile"
 
 ac_config_files="$ac_config_files plugins/cgroup/Makefile"
 
+ac_config_files="$ac_config_files plugins/dynIP/Makefile"
+
 ac_config_files="$ac_config_files plugins/jail/Makefile"
 
 ac_config_files="$ac_config_files plugins/jail/scripts/Makefile"
@@ -14539,6 +14541,7 @@ do
     "lib/putil/Makefile") CONFIG_FILES="$CONFIG_FILES lib/putil/Makefile" ;;
     "plugins/Makefile") CONFIG_FILES="$CONFIG_FILES plugins/Makefile" ;;
     "plugins/cgroup/Makefile") CONFIG_FILES="$CONFIG_FILES plugins/cgroup/Makefile" ;;
+    "plugins/dynIP/Makefile") CONFIG_FILES="$CONFIG_FILES plugins/dynIP/Makefile" ;;
     "plugins/jail/Makefile") CONFIG_FILES="$CONFIG_FILES plugins/jail/Makefile" ;;
     "plugins/jail/scripts/Makefile") CONFIG_FILES="$CONFIG_FILES plugins/jail/scripts/Makefile" ;;
     "plugins/nodeinfo/Makefile") CONFIG_FILES="$CONFIG_FILES plugins/nodeinfo/Makefile" ;;
