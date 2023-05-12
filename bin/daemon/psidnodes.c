@@ -283,6 +283,14 @@ in_addr_t PSIDnodes_getAddr(PSnodes_ID_t id)
     return nodes[id].addr;
 }
 
+int PSIDnodes_setAddr(PSnodes_ID_t id, in_addr_t addr)
+{
+    if (!validID(id)) return -1;
+
+    nodes[id].addr = addr;
+    return 0;
+}
+
 const char * PSIDnodes_getNodename(PSnodes_ID_t id)
 {
     if (!validID(id)) return NULL;

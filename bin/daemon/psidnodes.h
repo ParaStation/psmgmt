@@ -141,6 +141,19 @@ PSnodes_ID_t PSIDnodes_lookupHost(in_addr_t addr);
 in_addr_t PSIDnodes_getAddr(PSnodes_ID_t id);
 
 /**
+ * @brief Set node's IP address
+ *
+ * Set the IP address of the node with ParaStation ID @a id.
+ *
+ * @param id ParaStation ID of the node to be modified
+ *
+ * @param addr IP address to set
+ *
+ * @return On success, 0 is returned; or -1 if an error occurred
+ */
+int PSIDnodes_setAddr(PSnodes_ID_t id, in_addr_t addr);
+
+/**
  * @brief Get node's configured name
  *
  * Get the symbolic name of the node with ParaStation ID @a id. This
