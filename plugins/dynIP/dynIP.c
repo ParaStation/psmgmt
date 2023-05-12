@@ -16,10 +16,11 @@
 
 #include "psidhook.h"
 #include "psidplugin.h"
-#include "rdp.h"
 #include "psidnodes.h"
+#include "rdp.h"
 
 #include "plugin.h"
+#include "pluginmalloc.h"
 #include "dynIPlog.h"
 
 /** psid plugin requirements */
@@ -54,6 +55,8 @@ int resolveUnknownNode(void *data)
 	flog("get hostname for node ID %u failed", nodeID);
 	return 0;
     }
+
+    fdbg(DYNIP_LOG_DEBUG, "resolve %s with node ID %u\n", host, nodeID);
 
     struct addrinfo *result;
     int rc = getaddrinfo(host, NULL, &hints, &result);
@@ -102,7 +105,10 @@ int resolveUnknownSender(void *senderAddr)
     for (PSnodes_ID_t n = 0; n < PSIDnodes_getNum(); n++) {
 	in_addr_t nAddr = PSIDnodes_getAddr(n);
 	/* skip nodes which have a valid address */
-	if (nAddr != INADDR_NONE && nAddr != INADDR_ANY) continue;
+	if (nAddr != INADDR_NONE && nAddr != INADDR_ANY) {
+	    fdbg(DYNIP_LOG_DEBUG, "skip node %i with valid address\n", n);
+	    continue;
+	}
 
 	const char *host = PSIDnodes_getHostname(n);
 
@@ -119,7 +125,7 @@ int resolveUnknownSender(void *senderAddr)
 	struct addrinfo *result;
 	int rc = getaddrinfo(host, NULL, &hints, &result);
 	if (rc) {
-	    fdbg(DYNIP_LOG_DEBUG, "getaddrinfo(%s) failed: %s", host,
+	    fdbg(DYNIP_LOG_DEBUG, "getaddrinfo(%s) failed: %s\n", host,
 		 gai_strerror(rc));
 	    continue;
 	}
@@ -218,24 +224,37 @@ void cleanup(void)
     }
 }
 
-/*
 char *help(char *key)
 {
+    char *buf = NULL;
+    size_t bufSize = 0;
 
+    str2Buf("\n# dynIP configuration options #\n\n", &buf, &bufSize);
+    str2Buf("Use 'plugin set dynIP DEBUG_MASK MASK' to set "
+	    "the debug mask\n", &buf, &bufSize);
+    return buf;
 }
 
-char *set(char *key, char *val)
+char *set(char *key, char *value)
 {
+    char *buf = NULL;
+    size_t bufSize = 0;
+    static char line[256];
 
+    if (!strcmp(key, "DEBUG_MASK")) {
+	int32_t mask;
+
+	if (sscanf(value, "%i", &mask) != 1) {
+	    return str2Buf("\nInvalid debug mask: NAN\n", &buf, &bufSize);
+	}
+	maskLogger(mask);
+
+	snprintf(line, sizeof(line), "\nsaved '%s = %s'\n", key, value);
+	return str2Buf(line, &buf, &bufSize);
+    }
+
+    str2Buf("\nInvalid key '", &buf, &bufSize);
+    str2Buf(key, &buf, &bufSize);
+    return str2Buf("' for cmd set : use 'plugin help dynIP' for help.\n",
+		   &buf, &bufSize);
 }
-
-char *unset(char *key)
-{
-
-}
-
-char *show(char *key)
-{
-
-}
-*/
