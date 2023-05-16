@@ -1384,17 +1384,23 @@ static bool insertNode(void)
 	return false;
     }
 
-    struct in_addr tmpaddr;
-    if (!inet_pton(AF_INET, ipaddress, &tmpaddr)) {
-	parser_comment(-1, "Cannot convert IP address '%s' for node '%s'\n",
-		ipaddress, nodename);
-	g_free(ipaddress);
-	g_free(netname);
-	g_free(nodename);
-	return false;
+    in_addr_t ipaddr = INADDR_NONE;
+    if (!strcmp(ipaddress, "DYNAMIC")) {
+	parser_comment(PARSER_LOG_VERB, "node '%s' has dynamic IP address\n",
+		nodename);
+    } else {
+	struct in_addr tmpaddr;
+	if (!inet_pton(AF_INET, ipaddress, &tmpaddr)) {
+	    parser_comment(-1, "Cannot convert IP address '%s' for node '%s'\n",
+		    ipaddress, nodename);
+	    g_free(ipaddress);
+	    g_free(netname);
+	    g_free(nodename);
+	    return false;
+	}
+	ipaddr = tmpaddr.s_addr;
     }
     g_free(ipaddress);
-    in_addr_t ipaddr = tmpaddr.s_addr;
 
     // get hostname used for the node in the psid network
     gchar *hostname;
