@@ -6,6 +6,12 @@ Copyright (C) 2021-2023 ParTec AG, Munich
 Please send bug reports, questions and suggestions to <support@par-tec.com>
 
 
+Version 5.1.55-2:
+=================
+Bugfixes:
+ - Prevent free() on uninitialized pointer (jwt:#20926)
+
+
 Version 5.1.55-1:
 =================
 Bugfixes:
