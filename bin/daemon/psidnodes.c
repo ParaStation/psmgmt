@@ -211,12 +211,9 @@ static bool validID(PSnodes_ID_t id)
 bool PSIDnodes_register(PSnodes_ID_t id, const char *nodename, in_addr_t addr,
 			const char *hostname)
 {
-    unsigned int hostno;
-    struct host_t *host;
-
     if (id < 0) return false;
 
-    if (PSIDnodes_lookupHost(addr) != -1) {
+    if (addr != INADDR_NONE && PSIDnodes_lookupHost(addr) != -1) {
 	/* duplicated host */
 	return false;
     }
@@ -232,21 +229,9 @@ bool PSIDnodes_register(PSnodes_ID_t id, const char *nodename, in_addr_t addr,
 	return false;
     }
 
-    hostno = ntohl(addr) & 0xff;
+    if (PSIDnodes_setAddr(id, addr) < 0) return false;
 
-    host = (struct host_t*) malloc(sizeof(struct host_t));
-    if (!host) {
-	PSID_warn(-1, ENOMEM, "%s", __func__);
-	return false;
-    }
-
-    host->addr = addr;
-    host->id = id;
-    host->next = hosts[hostno];
-    hosts[hostno] = host;
-
-    /* install hostname */
-    nodes[id].addr = addr;
+    /* install nodename / hostname */
     free(nodes[id].nodename);
     nodes[id].nodename = strdup(nodename);
     free(nodes[id].hostname);
@@ -262,15 +247,12 @@ PSnodes_ID_t PSIDnodes_lookupHost(in_addr_t addr)
     if (PSIDnodes_getNum() < 0) return -1;
 
     /* loopback address */
-    if ((ntohl(addr) >> 24 ) == IN_LOOPBACKNET)
-	return PSC_getMyID();
+    if ((ntohl(addr) >> 24 ) == IN_LOOPBACKNET) return PSC_getMyID();
 
     /* other addresses */
-    unsigned int hostno = ntohl(addr) & 0xff;
-    for (struct host_t *host = hosts[hostno]; host; host = host->next) {
-	if (host->addr == addr) {
-	    return host->id;
-	}
+    uint8_t hostIdx = ntohl(addr) & 0xff;
+    for (struct host_t *h = hosts[hostIdx]; h; h = h->next) {
+	if (h->addr == addr) return h->id;
     }
 
     return -1;
@@ -286,6 +268,41 @@ in_addr_t PSIDnodes_getAddr(PSnodes_ID_t id)
 int PSIDnodes_setAddr(PSnodes_ID_t id, in_addr_t addr)
 {
     if (!validID(id)) return -1;
+
+    in_addr_t oldAddr = PSIDnodes_getAddr(id);
+
+    /* cleanup old hash entry if any */
+    if (oldAddr != INADDR_ANY && oldAddr != INADDR_NONE) {
+	uint8_t hostIdx = ntohl(oldAddr) & 0xff;
+	struct host_t *h = hosts[hostIdx], *pred = NULL;
+	while (h && h->addr != addr) {
+	    pred = h;
+	    h = h->next;
+	}
+	if (h) {
+	    if (pred) {
+		pred->next = h->next;
+	    } else {
+		hosts[hostIdx] = h->next;
+	    }
+	    free(h);
+	}
+    }
+
+    if (addr != INADDR_ANY && addr != INADDR_NONE) {
+	struct host_t *host = malloc(sizeof(*host));
+	if (!host) {
+	    PSID_warn(-1, ENOMEM, "%s", __func__);
+	    return -1;
+	}
+
+	host->addr = addr;
+	host->id = id;
+
+	uint8_t hostIdx = ntohl(addr) & 0xff;
+	host->next = hosts[hostIdx];
+	hosts[hostIdx] = host;
+    }
 
     nodes[id].addr = addr;
     return 0;
