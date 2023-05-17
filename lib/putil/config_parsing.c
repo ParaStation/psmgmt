@@ -1495,15 +1495,6 @@ static bool getNodes(char *psiddomain)
 
     parser_comment(PARSER_LOG_NODE, "%d nodes registered\n", nodesfound);
 
-    if (PSC_getMyID() == -1) {
-	parser_comment(-1, "PSConfig-Error: Local node not configured.\n"
-		" The host object for this node needs to contain a valid"
-		" NodeName\n"
-		" and <Psid.NetworkName>.DevIPAddress matching a local IP"
-		" address.\n");
-	ret = false;
-    }
-
     return ret;
 }
 
@@ -2014,6 +2005,15 @@ config_t *parseConfig(FILE* logfile, int logmask, char *configfile)
 	goto parseConfigError;
     }
 
+    // did we find ourself in the node list?
+    if (PSC_getMyID() == -1) {
+	parser_comment(-1, "PSConfig-Error: Local node not configured.\n"
+		" The host object for this node needs to contain a valid"
+		" NodeName\n"
+		" and <Psid.NetworkName>.DevIPAddress matching a local IP"
+		" address.\n");
+	goto parseConfigError;
+    }
 
     // set default UID/GID for local node
     setID(&nodeUID, PSNODES_ANYUSER);
