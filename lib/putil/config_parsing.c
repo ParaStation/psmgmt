@@ -2007,12 +2007,23 @@ config_t *parseConfig(FILE* logfile, int logmask, char *configfile)
 
     // did we find ourself in the node list?
     if (PSC_getMyID() == -1) {
-	parser_comment(-1, "PSConfig-Error: Local node not configured.\n"
-		" The host object for this node needs to contain a valid"
-		" NodeName\n"
-		" and <Psid.NetworkName>.DevIPAddress matching a local IP"
-		" address.\n");
-	goto parseConfigError;
+	int id;
+	if (!getNumber("Psid.NodeId", &id)) {
+	    parser_comment(-1, "ERROR: Failed to get local Psid.NodeId\n");
+	    goto parseConfigError;
+	}
+	PSnodes_ID_t nodeid = id;
+	if (PSIDnodes_getAddr(nodeid) == INADDR_NONE) { /* dynamic node */
+	    nodeconf.id = nodeid;
+	    PSC_setMyID(nodeid);
+	} else {
+	    parser_comment(-1, "PSConfig-Error: Local node not configured.\n"
+		    " The host object for this node needs to contain a valid"
+		    " NodeName\n"
+		    " and <Psid.NetworkName>.DevIPAddress matching a local IP"
+		    " address or the magic DYNAMIC keyword.\n");
+	    goto parseConfigError;
+	}
     }
 
     // set default UID/GID for local node
