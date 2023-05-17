@@ -1989,6 +1989,8 @@ config_t *parseConfig(FILE* logfile, int logmask, char *configfile)
 
     parser_setDebugMask(logmask); //TODO
 
+    gchar *psiddomain = NULL;
+
     // open psconfig database
     psconfig = psconfig_new();
     // generate local psconfig host object name
@@ -2000,7 +2002,6 @@ config_t *parseConfig(FILE* logfile, int logmask, char *configfile)
     }
 
     // get local psid domain
-    gchar *psiddomain;
     if (!getString("Psid.Domain", &psiddomain)) {
 	parser_comment(-1, "INFO: No psid domain configured, using all host"
 		       " objects.\n");
@@ -2010,11 +2011,9 @@ config_t *parseConfig(FILE* logfile, int logmask, char *configfile)
     if (!getNodes(psiddomain)) {
 	parser_comment(-1, "ERROR: Reading nodes configuration from psconfig"
 		       " failed.\n");
-	g_free(psiddomain);
 	goto parseConfigError;
     }
 
-    config.psiddomain = psiddomain;
 
     // set default UID/GID for local node
     setID(&nodeUID, PSNODES_ANYUSER);
@@ -2036,11 +2035,13 @@ config_t *parseConfig(FILE* logfile, int logmask, char *configfile)
     }
 
     cleanup();
-
     parser_finalize(); //TODO
+
+    config.psiddomain = psiddomain;
     return &config;
 
 parseConfigError:
+    g_free(psiddomain);
     cleanup();
     return NULL;
 }
