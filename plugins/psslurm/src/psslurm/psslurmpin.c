@@ -1546,6 +1546,7 @@ int16_t getRankGpuPinning(uint32_t localRankId, Step_t *step,
     if (gpu_bind
 	&& !parseGpuBindString(gpu_bind, &verbose, &map_gpu, &mask_gpu,
 	    &gpus_per_task)) {
+	flog("no or invalid gpu_bind string\n");
 	return -1;
     }
 
@@ -1596,6 +1597,7 @@ int16_t getRankGpuPinning(uint32_t localRankId, Step_t *step,
 	    if (!PSIDpin_getCloseDevs(step->nodes[stepNodeId], physSet,
 				      assGPUs, closeList, &closeCnt,
 				      NULL, NULL, PSPIN_DEV_TYPE_GPU)) {
+		flog("unable to get close GPUs (lTID %d)\n", lTID);
 		return -1;
 	    }
 
