@@ -1301,6 +1301,10 @@ static bool newHost(int id, char *nodename, in_addr_t addr, char *hostname)
 	return false;
     }
 
+    if (addr == INADDR_NONE) { /* dynamic node */
+	PSIDnodes_setIsDynamic(id, true);
+    }
+
     nodesfound++;
 
     parser_comment(PARSER_LOG_VERB,

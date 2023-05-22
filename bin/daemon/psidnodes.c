@@ -82,6 +82,7 @@ typedef struct {
     PSCPU_set_t *NICset;   /**< Distribution of NICs over NUMA domains */
     char *hostname;        /**< name of that node in the network @ref addr
 			        belongs to, as givin in psid's config */
+    bool isDynamic;        /**< Flag to mark the node's IP address as dynamic */
 } node_t;
 
 /** Array (indexed by node number) to store all known nodes */
@@ -133,6 +134,7 @@ static void nodeInit(node_t *node)
     node->numNICs = 0;
     node->NICset = NULL;
     node->hostname = NULL;
+    node->isDynamic = false;
 }
 
 static void initHash(void)
@@ -523,6 +525,21 @@ int PSIDnodes_bindNICs(PSnodes_ID_t id)
     if (!validID(id)) return -1;
 
     return nodes[id].bindNICs;
+}
+
+int PSIDnodes_setIsDynamic(PSnodes_ID_t id, bool dynamic)
+{
+    if (!validID(id)) return -1;
+
+    nodes[id].isDynamic = dynamic;
+    return 0;
+}
+
+int PSIDnodes_isDynamic(PSnodes_ID_t id)
+{
+    if (!validID(id)) return -1;
+
+    return nodes[id].isDynamic;
 }
 
 short PSIDnodes_mapCPU(PSnodes_ID_t id, short cpu)

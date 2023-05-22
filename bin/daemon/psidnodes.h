@@ -762,6 +762,31 @@ int PSIDnodes_setBindNICs(PSnodes_ID_t id, int bindNICs);
  */
 int PSIDnodes_bindNICs(PSnodes_ID_t id);
 
+/**
+ * @brief Set node's dynamic flag
+ *
+ * Set the dynamic flag of the node with ParaStation ID @a id to @a dynamic.
+ *
+ * @param id ParaStation ID of the node to be modified
+ *
+ * @param starter The dynamic flag to be set to this node
+ *
+ * @return On success, 0 is returned; or -1 if an error occurred
+ */
+int PSIDnodes_setIsDynamic(PSnodes_ID_t id, bool dynamic);
+
+/**
+ * @brief Get node's dynamic flag
+ *
+ * Get the dynamic flag of the node with ParaStation ID @a id.
+ *
+ * @param id ParaStation ID of the node to look up
+ *
+ * @return If the node was found, the dynamic flag is returned; or
+ * -1 if an error occurred
+ */
+int PSIDnodes_isDynamic(PSnodes_ID_t id);
+
 
 /**
  * @brief Clear node's CPU-map
