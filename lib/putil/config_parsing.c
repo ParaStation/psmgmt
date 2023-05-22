@@ -2016,6 +2016,22 @@ config_t *parseConfig(FILE* logfile, int logmask, char *configfile)
 	if (PSIDnodes_getAddr(nodeid) == INADDR_NONE) { /* dynamic node */
 	    nodeconf.id = nodeid;
 	    PSC_setMyID(nodeid);
+
+	    const char *hostname = PSIDnodes_getHostname(nodeid);
+	    if (!hostname) hostname = PSIDnodes_getNodename(nodeid);
+	    if (!hostname) {
+		parser_comment(-1, "PSConfig-Error: No hostname or nodename"
+			" found for dynamic local node (id %d)\n", nodeid);
+		goto parseConfigError;
+	    }
+	    in_addr_t addr = parser_getHostname(hostname);
+	    if (!addr) {
+		parser_comment(-1, "PSConfig-Error: No address found for"
+			" dynamic local node (hostname %s id %d)\n", hostname,
+			nodeid);
+		goto parseConfigError;
+	    }
+	    PSIDnodes_setAddr(nodeid, addr);
 	} else {
 	    parser_comment(-1, "PSConfig-Error: Local node not configured.\n"
 		    " The host object for this node needs to contain a valid"

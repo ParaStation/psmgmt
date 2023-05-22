@@ -424,7 +424,7 @@ char* parser_getFilename(char* token, char* prefix, char* extradir);
  * @return On success, the resolved IP address of the hostname is
  * returned. Or 0, if an error occurred.
  */
-in_addr_t parser_getHostname(char* token);
+in_addr_t parser_getHostname(const char* token);
 
 /**
  * @brief Get a numerical value.

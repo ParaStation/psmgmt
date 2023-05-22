@@ -410,7 +410,7 @@ char *parser_getFilename(char *token, char *prefix, char *extradir)
     return NULL;
 }
 
-in_addr_t parser_getHostname(char *token)
+in_addr_t parser_getHostname(const char *token)
 {
     char *hname;
     struct addrinfo hints;
