@@ -21,6 +21,7 @@
 
 #include "plugin.h"
 #include "pluginmalloc.h"
+#include "pluginpsconfig.h"
 #include "dynIPlog.h"
 
 /** psid plugin requirements */
@@ -28,6 +29,46 @@ char name[] = "dynIP";
 int version = 1;
 int requiredAPI = 139;
 plugin_dep_t dependencies[] = { { NULL, 0 } };
+
+/** Description of dynIP's configuration parameters */
+static const pluginConfigDef_t confDef[] = {
+    { "DebugMask", PLUGINCONFIG_VALUE_NUM, "Mask to steer debug output" },
+    { NULL, PLUGINCONFIG_VALUE_NONE, NULL }
+};
+
+static pluginConfig_t config = NULL;
+
+static bool evalValue(const char *key, const pluginConfigVal_t *val,
+		      const void *info)
+{
+    if (!strcmp(key, "DebugMask")) {
+	uint32_t mask = val ? val->val.num : 0;
+	maskLogger(mask);
+	mdbg(DYNIP_LOG_DEBUG, "debugMask set to %#x\n", mask);
+    } else {
+	flog("unknown key '%s'\n", key);
+    }
+
+    return true;
+}
+
+static void initConfig(void)
+{
+    pluginConfig_new(&config);
+    pluginConfig_setDef(config, confDef);
+
+    pluginConfig_addStr(config, "DebugMask", "0");
+    pluginConfig_verify(config);
+
+    /* Activate configuration values */
+    pluginConfig_traverse(config, evalValue, NULL);
+}
+
+void finalizeConfig(void)
+{
+    pluginConfig_destroy(config);
+    config = NULL;
+}
 
 /**
  * @brief Resolve an unkown node
@@ -191,6 +232,9 @@ int initialize(FILE *logfile)
     /* initialize logging facility */
     initLogger(name, logfile);
 
+    /* init configuration (ignores psconfig) */
+    initConfig();
+
     if (!PSIDhook_add(PSIDHOOK_NODE_UNKNOWN, resolveUnknownNode)) {
 	flog("register 'PSIDHOOK_NODE_UNKNOWN' failed\n");
 	return false;
@@ -222,39 +266,57 @@ void cleanup(void)
     if (!PSIDhook_del(PSIDHOOK_NODE_DOWN, handleNodeDown)) {
 	flog("unregister 'PSIDHOOK_NODE_DOWN' failed\n");
     }
+
+    finalizeConfig();
 }
 
 char *help(char *key)
 {
-    char *buf = NULL;
-    size_t bufSize = 0;
+    StrBuffer_t strBuf = { .buf = NULL };
 
-    str2Buf("\n# dynIP configuration options #\n\n", &buf, &bufSize);
-    str2Buf("Use 'plugin set dynIP DEBUG_MASK MASK' to set "
-	    "the debug mask\n", &buf, &bufSize);
-    return buf;
+    addStrBuf("\n# ", &strBuf);
+    addStrBuf(name, &strBuf);
+    addStrBuf(" configuration options #\n\n", &strBuf);
+    pluginConfig_helpDesc(config, &strBuf);
+
+    return strBuf.buf;
 }
 
-char *set(char *key, char *value)
+char *set(char *key, char *val)
 {
-    char *buf = NULL;
-    size_t bufSize = 0;
-    static char line[256];
+    const pluginConfigDef_t *thisDef = pluginConfig_getDef(config, key);
 
-    if (!strcmp(key, "DEBUG_MASK")) {
-	int32_t mask;
+    if (!thisDef) return strdup(" Unknown option\n");
 
-	if (sscanf(value, "%i", &mask) != 1) {
-	    return str2Buf("\nInvalid debug mask: NAN\n", &buf, &bufSize);
-	}
-	maskLogger(mask);
-
-	snprintf(line, sizeof(line), "\nsaved '%s = %s'\n", key, value);
-	return str2Buf(line, &buf, &bufSize);
+    if (!pluginConfig_addStr(config, key, val)
+	|| !evalValue(key, pluginConfig_get(config, key), NULL)) {
+	return strdup(" Illegal value\n");
     }
 
-    str2Buf("\nInvalid key '", &buf, &bufSize);
-    str2Buf(key, &buf, &bufSize);
-    return str2Buf("' for cmd set : use 'plugin help dynIP' for help.\n",
-		   &buf, &bufSize);
+    return NULL;
+}
+
+char *unset(char *key)
+{
+    pluginConfig_remove(config, key);
+    evalValue(key, NULL, config);
+
+    return NULL;
+}
+
+char *show(char *key)
+{
+    StrBuffer_t strBuf = { .buf = NULL };
+
+    if (!key) {
+	/* Show the whole configuration */
+	addStrBuf("\n", &strBuf);
+	pluginConfig_traverse(config, pluginConfig_showVisitor,&strBuf);
+    } else if (!pluginConfig_showKeyVal(config, key, &strBuf)) {
+	addStrBuf(" '", &strBuf);
+	addStrBuf(key, &strBuf);
+	addStrBuf("' is unknown\n", &strBuf);
+    }
+
+    return strBuf.buf;
 }
