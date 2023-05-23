@@ -170,7 +170,7 @@ int resolveUnknownSender(void *senderAddr)
 /**
  * @brief Remove IP from an unreachable node
  *
- * The IP address might get re-signed to another node therefore it
+ * The IP address might get re-assigned to another node therefore it
  * has to be reset for a host becoming unreachable.
  *
  * @param nodeID The ID of the node gone down
@@ -179,9 +179,8 @@ int resolveUnknownSender(void *senderAddr)
  */
 static int handleNodeDown(void *nodeID)
 {
-    /* Hook Node Down → PSID_nodesSetAddr(none) + RDP_updateNode() */
-
     PSnodes_ID_t node = *((PSnodes_ID_t *) nodeID);
+    if (!PSIDnodes_isDynamic(node)) return 0;
 
     struct in_addr sin_addr = { .s_addr = PSIDnodes_getAddr(node) };
     char hostIP[INET_ADDRSTRLEN];
