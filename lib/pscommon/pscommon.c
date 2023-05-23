@@ -818,3 +818,39 @@ char* PSC_groupFromGID(int gid)
     }
     return strdup("ANY");
 }
+
+int PSC_traverseHostInfo(const char *host, hostInfoVisitor_t visitor,
+			 void *info, bool *match)
+{
+    struct addrinfo hints;
+    memset(&hints, 0, sizeof(struct addrinfo));
+    hints.ai_family = AF_UNSPEC;    /* Allow IPv4 or IPv6 */
+    hints.ai_socktype = SOCK_DGRAM; /* Datagram socket */
+    hints.ai_flags = 0;
+    hints.ai_protocol = 0;          /* Any protocol */
+    hints.ai_canonname = NULL;
+    hints.ai_addr = NULL;
+    hints.ai_next = NULL;
+
+    struct addrinfo *result;
+    int rc = getaddrinfo(host, NULL, &hints, &result);
+    if (rc) return rc;
+
+    bool myMatch;
+    if (!match) match = &myMatch;
+    *match = false;
+    for (struct addrinfo *rp = result; rp && !(*match); rp = rp->ai_next) {
+	switch (rp->ai_family) {
+	case AF_INET:
+	    *match = visitor((struct sockaddr_in *)rp->ai_addr, info);
+	    break;
+	case AF_INET6:
+	    /* ignore -- don't handle IPv6 yet */
+	    continue;
+	}
+    }
+
+    freeaddrinfo(result);
+
+    return 0;
+}

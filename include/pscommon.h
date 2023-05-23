@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2002-2004 ParTec AG, Karlsruhe
  * Copyright (C) 2005-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2022 ParTec AG, Munich
+ * Copyright (C) 2021-2023 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -687,5 +687,63 @@ struct passwd *PSC_getpwnamBuf(const char *user, char **pwBuf);
  * user information or NULL on error.
  */
 struct passwd *PSC_getpwuidBuf(uid_t uid, char **pwBuf);
+
+/**
+ * @brief Visitor function
+ *
+ * Visitor function utilized by @ref int PSC_traverseHostInfo() in
+ * order to visit each item of type AF_INET in the linked list
+ * returned by @ref getaddrinfo().
+ *
+ * The parameters are as follows: @a saddr is a pointer to the struct
+ * sockaddr contained in the AF_INET item currently visited. @a info
+ * points to the additional information passed to @ref
+ * PSC_traverseHostInfo() in order to be forwarded to each object.
+ *
+ * If the visitor function returns true, this result will be stored to
+ * the memory @ref traverseHostInfo()'s @a match parameter points to
+ * and the traversal will be interrupted. Thus, @ref
+ * PSC_traverseHostInfo() will return to its calling function.
+ */
+typedef bool hostInfoVisitor_t(struct sockaddr_in * saddr, void *info);
+
+/**
+ * @brief Traverse hostinfo elements provided by @ref getaddrinfo()
+ *
+ * Traverse all hostinfo elements of type AF_INET in the linked list
+ * returned by @ref getaddrinfo() when @a host is passed as its node
+ * parameter. For each according item of the link list @a visitor is
+ * called with the item's ai_addr element as the first parameter and
+ * @a info as the second parameter. Thus, @a info might be used to
+ * pass additional information to the @a visitor function.
+ *
+ * If @a visitor returns true, the return value will be stored to the
+ * memory @a match points to and the traversal will be stopped
+ * immediately and true is returned to the calling function.
+ *
+ * @a match might be NULL. In this case the caller of this function
+ * will get no direct information on a possible matches. If @a match
+ * points to some memory, this memory will be initialized as false!
+ *
+ * @param host Hostname passed to @ref getaddrinfo() as the node
+ * parameter
+ *
+ * @param visitor Visitor function to be called for each item of type
+ * AF_INET in the linked list provided by @ref getaddrinfo()
+ *
+ * @param info Additional information to be passed to @a visitor while
+ * visiting all items of the linked list
+ *
+ * @param match Points to memory indicating a match (i.e. @a visitor
+ * has returned true) has happened during the traversal; might be NULL
+ *
+ * @return Returns the return value of the utilized @ref getaddrinfo()
+ * call. Thus, if getaddrinfo() returned successfully and the linked
+ * list was traversed (with or without match), 0 is
+ * returned. Otherwise, @ref getaddrinfo()'s error code is returned
+ * that might be passed to @ref gai_strerror().
+ */
+int PSC_traverseHostInfo(const char *host, hostInfoVisitor_t visitor,
+			 void *info, bool *match);
 
 #endif  /* __PSCOMMON_H */
