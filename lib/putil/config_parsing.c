@@ -2018,9 +2018,6 @@ config_t *parseConfig(FILE* logfile, int logmask, char *configfile)
 	}
 	PSnodes_ID_t nodeid = id;
 	if (PSIDnodes_getAddr(nodeid) == INADDR_NONE) { /* dynamic node */
-	    nodeconf.id = nodeid;
-	    PSC_setMyID(nodeid);
-
 	    const char *hostname = PSIDnodes_getHostname(nodeid);
 	    if (!hostname) hostname = PSIDnodes_getNodename(nodeid);
 	    if (!hostname) {
@@ -2036,6 +2033,8 @@ config_t *parseConfig(FILE* logfile, int logmask, char *configfile)
 			nodeid);
 		goto parseConfigError;
 	    }
+	    nodeconf.id = nodeid;
+	    PSC_setMyID(nodeid);
 	    PSIDnodes_setAddr(nodeid, addr);
 	} else {
 	    parser_comment(-1, "PSConfig-Error: Local node not configured.\n"
