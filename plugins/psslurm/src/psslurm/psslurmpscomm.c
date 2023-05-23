@@ -2389,13 +2389,11 @@ static bool handleUnknownMsg(DDBufferMsg_t *msg)
 
 static void freeHostLT(void)
 {
-    PSnodes_ID_t i, nrOfNodes = PSC_getNrOfNodes();
-
     if (!HostLT) return;
 
-    for (i=0; i<nrOfNodes; i++) {
-	ufree(HostLT[i].hostname);
-    }
+    PSnodes_ID_t nrOfNodes = PSC_getNrOfNodes();
+    for (PSnodes_ID_t i = 0; i < nrOfNodes; i++) ufree(HostLT[i].hostname);
+
     ufree(HostLT);
     HostLT = NULL;
     numHostLT = 0;
@@ -2611,10 +2609,10 @@ PSnodes_ID_t getNodeIDbySlurmHost(const char *host)
  */
 static bool initHostLT(void)
 {
-    PSnodes_ID_t i, nrOfNodes = PSC_getNrOfNodes();
+    PSnodes_ID_t nrOfNodes = PSC_getNrOfNodes();
 
     HostLT = ucalloc(sizeof(*HostLT) * nrOfNodes);
-    for (i=0; i<nrOfNodes; i++) {
+    for (PSnodes_ID_t i = 0; i < nrOfNodes; i++) {
 	HostLT[i].hostname = NULL;
 	HostLT[i].nodeID = -1;
     }
@@ -2625,7 +2623,7 @@ static bool initHostLT(void)
 	goto ERROR;
     }
 
-    for (i=1; i<=numEntry; i++) {
+    for (PSnodes_ID_t i = 1; i <= numEntry; i++) {
 	/* find PS nodeIDs and save the result in HostLT */
 	if (!resolveHostEntry(i)) {
 	    mlog("%s: saving host entry %i failed\n", __func__, i);
@@ -2644,8 +2642,7 @@ static bool initHostLT(void)
 	goto ERROR;
     }
     ENTRY e, *f;
-    size_t z;
-    for (z=0; z<numHostLT; z++) {
+    for (size_t z = 0; z < numHostLT; z++) {
 	e.key = HostLT[z].hostname;
 	e.data = &HostLT[z].nodeID;
 	if (!hsearch_r(e, ENTER, &f, &HostHash)) {
