@@ -65,26 +65,25 @@ int removeDir(char *directory, int root)
     return 1;
 }
 
+static bool nodeIdVisitor(struct sockaddr_in *saddr, void *info)
+{
+    PSnodes_ID_t *nodeID = info;
+
+    *nodeID = PSIDnodes_lookupHost(saddr->sin_addr.s_addr);
+    if (PSC_validNode(*nodeID)) return true;
+
+    return false;
+}
+
 PSnodes_ID_t getNodeIDbyName(const char *host)
 {
-    struct addrinfo hints;
-
-    memset(&hints, 0, sizeof(struct addrinfo));
-    hints.ai_family = AF_UNSPEC;    /* Allow IPv4 or IPv6 */
-    hints.ai_socktype = SOCK_DGRAM; /* Datagram socket */
-    hints.ai_flags = 0;
-    hints.ai_protocol = 0;          /* Any protocol */
-    hints.ai_canonname = NULL;
-    hints.ai_addr = NULL;
-    hints.ai_next = NULL;
-
     /** timer to measure resolve times */
     struct timeval time_start, time_diff, time_now;
 
     gettimeofday(&time_start, NULL);
 
-    struct addrinfo *result;
-    int rc = getaddrinfo(host, NULL, &hints, &result);
+    PSnodes_ID_t nodeID = -1;
+    int rc = PSC_traverseHostInfo(host, nodeIdVisitor, &nodeID, NULL);
 
     gettimeofday(&time_now, NULL);
     timersub(&time_now, &time_start, &time_diff);
@@ -95,30 +94,9 @@ PSnodes_ID_t getNodeIDbyName(const char *host)
     }
 
     if (rc) {
-	pluginlog("%s: unknown host %s: %s\n", __func__, host,
-		  gai_strerror(rc));
+	pluginlog("%s: unknown host %s: %s\n", __func__, host, gai_strerror(rc));
 	return -1;
     }
-
-    /* try each address returned by getaddrinfo() until a node ID is
-       successfully resolved */
-    PSnodes_ID_t nodeID = -1;
-    for (struct addrinfo *rp = result; rp; rp = rp->ai_next) {
-	struct sockaddr_in *saddr;
-	switch (rp->ai_family) {
-	case AF_INET:
-	    saddr = (struct sockaddr_in *)rp->ai_addr;
-	    nodeID = PSIDnodes_lookupHost(saddr->sin_addr.s_addr);
-	    break;
-	case AF_INET6:
-	    /* ignore -- don't handle IPv6 yet */
-	    nodeID = -1;
-	    break;
-	}
-
-	if (PSC_validNode(nodeID)) break;
-    }
-    freeaddrinfo(result);
 
     if (nodeID < 0) {
 	pluginlog("%s: cannot get PS_ID for host %s\n", __func__, host);

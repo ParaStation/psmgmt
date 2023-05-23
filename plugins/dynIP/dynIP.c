@@ -14,6 +14,7 @@
 #include <netdb.h>
 #include <arpa/inet.h>
 
+#include "pscommon.h"
 #include "psidhook.h"
 #include "psidplugin.h"
 #include "psidnodes.h"
@@ -70,27 +71,28 @@ void finalizeConfig(void)
     config = NULL;
 }
 
+static bool nodeVisitor(struct sockaddr_in *saddr, void *info)
+{
+    PSnodes_ID_t *nodeID = info;
+    PSIDnodes_setAddr(*nodeID, saddr->sin_addr.s_addr);
+
+    char hostIP[INET_ADDRSTRLEN];
+    inet_ntop(AF_INET, &saddr->sin_addr, hostIP, INET_ADDRSTRLEN);
+    flog("set IP %s for node %i\n", hostIP, *nodeID);
+
+    return true;
+}
+
 /**
  * @brief Resolve an unkown node
  *
- * @param data The ID of the node to resolve
+ * @param id Node ID to resolve
  *
  * @return Always returns 0
  */
-int resolveUnknownNode(void *data)
+int resolveUnknownNode(void *id)
 {
-    PSnodes_ID_t nodeID = *(PSnodes_ID_t *) data;
-
-    struct addrinfo hints;
-    memset(&hints, 0, sizeof(struct addrinfo));
-    hints.ai_family = AF_UNSPEC;    /* Allow IPv4 or IPv6 */
-    hints.ai_socktype = SOCK_DGRAM; /* Datagram socket */
-    hints.ai_flags = 0;
-    hints.ai_protocol = 0;          /* Any protocol */
-    hints.ai_canonname = NULL;
-    hints.ai_addr = NULL;
-    hints.ai_next = NULL;
-
+    PSnodes_ID_t nodeID = *(PSnodes_ID_t *)id;
     const char *host = PSIDnodes_getHostname(nodeID);
     if (!host) {
 	flog("get hostname for node ID %u failed", nodeID);
@@ -99,51 +101,51 @@ int resolveUnknownNode(void *data)
 
     fdbg(DYNIP_LOG_DEBUG, "resolve %s with node ID %u\n", host, nodeID);
 
-    struct addrinfo *result;
-    int rc = getaddrinfo(host, NULL, &hints, &result);
+    int rc = PSC_traverseHostInfo(host, nodeVisitor, &nodeID, NULL);
     if (rc) {
 	flog("getaddrinfo(%s) failed: %s", host, gai_strerror(rc));
-	return 0;
     }
-
-    for (struct addrinfo *rp = result; rp; rp = rp->ai_next) {
-	struct sockaddr_in *saddr;
-	switch (rp->ai_family) {
-	case AF_INET:
-	    saddr = (struct sockaddr_in *)rp->ai_addr;
-	    PSIDnodes_setAddr(nodeID, saddr->sin_addr.s_addr);
-
-	    char hostIP[INET_ADDRSTRLEN];
-	    inet_ntop(AF_INET, &(saddr->sin_addr.s_addr), hostIP,
-		      INET_ADDRSTRLEN);
-	    flog("set IP %s for node %i\n", hostIP, nodeID);
-	    break;
-	case AF_INET6:
-	    /* ignore -- don't handle IPv6 yet */
-	    continue;
-	}
-    }
-    freeaddrinfo(result);
 
     return 0;
+}
+
+typedef struct {
+    PSnodes_ID_t nodeID;
+    struct sockaddr_in *senderIP;
+} senderData_t;
+
+static bool senderVisitor(struct sockaddr_in *saddr, void *info)
+{
+    const senderData_t *data = info;
+
+    if (data->senderIP->sin_addr.s_addr != saddr->sin_addr.s_addr) return false;
+
+    PSIDnodes_setAddr(data->nodeID, saddr->sin_addr.s_addr);
+    RDP_updateNode(data->nodeID, saddr->sin_addr.s_addr);
+
+    char hostIP[INET_ADDRSTRLEN];
+    inet_ntop(AF_INET, &saddr->sin_addr, hostIP, INET_ADDRSTRLEN);
+    flog("set IP %s for node %i\n", hostIP, data->nodeID);
+
+    return true;
 }
 
 /**
  * @brief Resolve an unknown sender
  *
  * Examine all nodes which do not have a vaild IP and try to find a matching
- * address by resolving the hostname.
+ * address by resolving the hostnames.
  *
- * @param senderAddr The IP address of the unknown sender
+ * @param senderAddr Pointer to sender's sockaddr_in structure
  *
  * @return Always returns 0
  */
 int resolveUnknownSender(void *senderAddr)
 {
-    struct sockaddr_in *sender = senderAddr;
-    bool foundAddr = false;
+    senderData_t senderData = { .senderIP = senderAddr };
+    bool match = false;
 
-    for (PSnodes_ID_t n = 0; n < PSIDnodes_getNum(); n++) {
+    for (PSnodes_ID_t n = 0; n < PSIDnodes_getNum() && !match; n++) {
 	in_addr_t nAddr = PSIDnodes_getAddr(n);
 	/* skip nodes which have a valid address */
 	if (nAddr != INADDR_NONE && nAddr != INADDR_ANY) {
@@ -152,49 +154,13 @@ int resolveUnknownSender(void *senderAddr)
 	}
 
 	const char *host = PSIDnodes_getHostname(n);
-
-	struct addrinfo hints;
-	memset(&hints, 0, sizeof(struct addrinfo));
-	hints.ai_family = AF_UNSPEC;    /* Allow IPv4 or IPv6 */
-	hints.ai_socktype = SOCK_DGRAM; /* Datagram socket */
-	hints.ai_flags = 0;
-	hints.ai_protocol = 0;          /* Any protocol */
-	hints.ai_canonname = NULL;
-	hints.ai_addr = NULL;
-	hints.ai_next = NULL;
-
-	struct addrinfo *result;
-	int rc = getaddrinfo(host, NULL, &hints, &result);
+	senderData.nodeID = n;
+	int rc = PSC_traverseHostInfo(host, senderVisitor, &senderData, &match);
 	if (rc) {
 	    fdbg(DYNIP_LOG_DEBUG, "getaddrinfo(%s) failed: %s\n", host,
 		 gai_strerror(rc));
 	    continue;
 	}
-
-	for (struct addrinfo *rp = result; rp; rp = rp->ai_next) {
-	    struct sockaddr_in *saddr;
-	    switch (rp->ai_family) {
-	    case AF_INET:
-		saddr = (struct sockaddr_in *)rp->ai_addr;
-		if (sender->sin_addr.s_addr == saddr->sin_addr.s_addr) {
-		    PSIDnodes_setAddr(n, saddr->sin_addr.s_addr);
-		    RDP_updateNode(n, saddr->sin_addr.s_addr);
-
-		    char hostIP[INET_ADDRSTRLEN];
-		    inet_ntop(AF_INET, &(saddr->sin_addr.s_addr), hostIP,
-			    INET_ADDRSTRLEN);
-		    flog("set IP %s for node %i\n", hostIP, n);
-		    foundAddr = true;
-		}
-		break;
-	    case AF_INET6:
-		/* ignore -- don't handle IPv6 yet */
-		continue;
-	    }
-	}
-	freeaddrinfo(result);
-
-	if (foundAddr) break;
     }
 
     return 0;

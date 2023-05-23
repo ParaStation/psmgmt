@@ -410,6 +410,14 @@ char *parser_getFilename(char *token, char *prefix, char *extradir)
     return NULL;
 }
 
+static bool hostVisitor(struct sockaddr_in *saddr, void *info)
+{
+    struct in_addr *sin_addr = info;
+    *sin_addr = saddr->sin_addr;
+
+    return true;
+}
+
 in_addr_t parser_getHostname(const char *token)
 {
     if (!token) {
@@ -417,54 +425,24 @@ in_addr_t parser_getHostname(const char *token)
 	return 0;
     }
 
-    struct addrinfo hints;
-    memset(&hints, 0, sizeof(struct addrinfo));
-    hints.ai_family = AF_UNSPEC;    /* Allow IPv4 or IPv6 */
-    hints.ai_socktype = SOCK_DGRAM; /* Datagram socket */
-    hints.ai_flags = 0;
-    hints.ai_protocol = 0;          /* Any protocol */
-    hints.ai_canonname = NULL;
-    hints.ai_addr = NULL;
-    hints.ai_next = NULL;
-
-    struct addrinfo *result;
-    int rc = getaddrinfo(token, NULL, &hints, &result);
-    if (rc != 0) {
+    struct in_addr sin_addr = { .s_addr = 0 };
+    int rc = PSC_traverseHostInfo(token, hostVisitor, &sin_addr, NULL);
+    if (rc) {
 	parser_comment(-1, "Unknown host '%s': %s\n", token, gai_strerror(rc));
 	return 0;
     }
 
-    /*
-     * getaddrinfo() returns a list of address structures.
-     * Try each address until we successfully resolve to ParaStation ID.
-     */
-    struct in_addr *in_addr = NULL;
-    for (struct addrinfo *rp = result; rp && !in_addr; rp = rp->ai_next) {
-	char addrStr[INET_ADDRSTRLEN] = {'\0'};
-	switch (rp->ai_family) {
-	case AF_INET:
-	    in_addr = &((struct sockaddr_in *)rp->ai_addr)->sin_addr;
-	    inet_ntop(rp->ai_family, in_addr,addrStr, sizeof(addrStr));
-	    parser_comment(PARSER_LOG_RES,
-			   "Found host '%s' to have address %s\n",
-			   token, addrStr);
-	    break;
-	case AF_INET6:
-	    /* ignore -- don't handle IPv6 yet */
-	    break;
-	}
-    }
-
-    if (!in_addr) {
+    if (!sin_addr.s_addr) {
 	parser_comment(-1, "%s: No entry for '%s'\n", __func__, token);
 	return 0;
     }
 
-    in_addr_t addr = in_addr->s_addr;
+    char hostIP[INET_ADDRSTRLEN];
+    inet_ntop(AF_INET, &sin_addr, hostIP, INET_ADDRSTRLEN);
+    parser_comment(PARSER_LOG_RES, "Found host '%s' to have address %s\n",
+		   token, hostIP);
 
-    freeaddrinfo(result);           /* No longer needed */
-
-    return addr;
+    return sin_addr.s_addr;
 }
 
 int parser_getNumValue(char *token, int *value, char *valname)

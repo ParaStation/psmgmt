@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
  * Copyright (C) 2005-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021 ParTec AG, Munich
+ * Copyright (C) 2021-2023 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -769,50 +769,24 @@ char *PSI_printHWType(unsigned int hwType)
     return txt;
 }
 
+static bool nodeIdVisitor(struct sockaddr_in *saddr, void *info)
+{
+    PSnodes_ID_t *nodeID = info;
+    int ret = PSI_infoNodeID(-1, PSP_INFO_HOST, &saddr->sin_addr.s_addr,
+			     nodeID, false);
+    if (!ret && PSC_validNode(*nodeID)) return true;
+
+    return false;
+}
+
 PSnodes_ID_t PSI_resolveNodeID(const char *host)
 {
     PSnodes_ID_t nodeID = -1;
-    struct addrinfo hints;
-    struct addrinfo *result, *rp;
-    int rc;
-
-    memset(&hints, 0, sizeof(struct addrinfo));
-    hints.ai_family = AF_UNSPEC;    /* Allow IPv4 or IPv6 */
-    hints.ai_socktype = SOCK_DGRAM; /* Datagram socket */
-    hints.ai_flags = 0;
-    hints.ai_protocol = 0;          /* Any protocol */
-    hints.ai_canonname = NULL;
-    hints.ai_addr = NULL;
-    hints.ai_next = NULL;
-
-    rc = getaddrinfo(host, NULL, &hints, &result);
+    int rc = PSC_traverseHostInfo(host, nodeIdVisitor, &nodeID, NULL);
     if (rc != 0) {
 	PSI_log(-1, "Unknown host '%s': %s\n", host, gai_strerror(rc));
 	return -1;
     }
-
-    /*
-     * getaddrinfo() returns a list of address structures.
-     * Try each address until we successfully resolve to ParaStation ID.
-     */
-
-    for (rp = result; rp != NULL; rp = rp->ai_next) {
-	switch (rp->ai_family) {
-	case AF_INET:
-	    rc = PSI_infoNodeID(-1, PSP_INFO_HOST,
-			&((struct sockaddr_in *)rp->ai_addr)->sin_addr.s_addr,
-				&nodeID, false);
-	    break;
-	case AF_INET6:
-	    /* ignore -- don't handle IPv6 yet */
-	    rc = -1;
-	    break;
-	}
-
-	if (!rc && PSC_validNode(nodeID)) break;
-    }
-
-    freeaddrinfo(result);           /* No longer needed */
 
     if (nodeID < 0) {
 	PSI_log(-1, "Cannot get PS_ID for host '%s'\n", host);

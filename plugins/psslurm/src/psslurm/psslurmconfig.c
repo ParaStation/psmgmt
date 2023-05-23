@@ -503,6 +503,13 @@ static bool parseTopologyOptions(char *options)
     return topo ? true : false;
 }
 
+static bool addrVisitor(struct sockaddr_in *saddr, void *info)
+{
+    if (PSC_isLocalIP(saddr->sin_addr.s_addr)) return true;
+
+    return false;
+}
+
 /**
  * @brief Test if an IP address is local
  *
@@ -512,44 +519,14 @@ static bool parseTopologyOptions(char *options)
  */
 static bool isLocalAddr(char *addr)
 {
-    struct addrinfo hints;
-    struct addrinfo *result, *rp;
-    int rc;
-
-    memset(&hints, 0, sizeof(struct addrinfo));
-    hints.ai_family = AF_UNSPEC;    /* Allow IPv4 or IPv6 */
-    hints.ai_socktype = SOCK_DGRAM; /* Datagram socket */
-    hints.ai_flags = 0;
-    hints.ai_protocol = 0;          /* Any protocol */
-    hints.ai_canonname = NULL;
-    hints.ai_addr = NULL;
-    hints.ai_next = NULL;
-
-    rc = getaddrinfo(addr, NULL, &hints, &result);
+    bool match = false;
+    int rc = PSC_traverseHostInfo(addr, addrVisitor, NULL, &match);
     if (rc) {
 	mlog("%s: unknown address %s: %s\n", __func__, addr, gai_strerror(rc));
 	return false;
     }
 
-    /* try each address returned by getaddrinfo() */
-    for (rp = result; rp != NULL; rp = rp->ai_next) {
-	struct sockaddr_in *saddr;
-	switch (rp->ai_family) {
-	case AF_INET:
-	    saddr = (struct sockaddr_in *)rp->ai_addr;
-	    if (PSC_isLocalIP(saddr->sin_addr.s_addr)) {
-		freeaddrinfo(result);
-		return true;
-	    }
-	    break;
-	case AF_INET6:
-	    /* ignore -- don't handle IPv6 yet */
-	    break;
-	}
-    }
-    freeaddrinfo(result);
-
-    return false;
+    return match;
 }
 
 /**
