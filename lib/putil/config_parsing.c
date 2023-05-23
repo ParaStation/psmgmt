@@ -2024,8 +2024,9 @@ config_t *parseConfig(FILE* logfile, int logmask, char *configfile)
 	    const char *hostname = PSIDnodes_getHostname(nodeid);
 	    if (!hostname) hostname = PSIDnodes_getNodename(nodeid);
 	    if (!hostname) {
-		parser_comment(-1, "PSConfig-Error: No hostname or nodename"
-			" found for dynamic local node (id %d)\n", nodeid);
+		parser_comment(-1, "PSConfig-Error: Neither hostname nor"
+			       " nodename given for dynamic local node"
+			       " (id %d)\n", nodeid);
 		goto parseConfigError;
 	    }
 	    in_addr_t addr = parser_getHostname(hostname);
