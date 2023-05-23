@@ -182,9 +182,9 @@ static int handleNodeDown(void *nodeID)
 
     PSnodes_ID_t node = *((PSnodes_ID_t *) nodeID);
 
-    in_addr_t nAddr = PSIDnodes_getAddr(node);
+    struct in_addr sin_addr = { .s_addr = PSIDnodes_getAddr(node) };
     char hostIP[INET_ADDRSTRLEN];
-    inet_ntop(AF_INET, &(nAddr), hostIP, INET_ADDRSTRLEN);
+    inet_ntop(AF_INET, &sin_addr, hostIP, INET_ADDRSTRLEN);
     flog("remove IP %s from node %i\n", hostIP, node);
 
     PSIDnodes_setAddr(node, INADDR_NONE);

@@ -706,7 +706,7 @@ int handleExecClientUser(void *data)
 static void initX11Forward(Step_t *step)
 {
     char srunIP[INET_ADDRSTRLEN];
-    inet_ntop(AF_INET, &(step->srun.sin_addr.s_addr), srunIP, INET_ADDRSTRLEN);
+    inet_ntop(AF_INET, &step->srun.sin_addr, srunIP, INET_ADDRSTRLEN);
 
     int port = atoi(envGet(&step->spankenv, "X11_PORT"));
     port -= 6000;
