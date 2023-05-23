@@ -81,7 +81,7 @@ typedef struct {
     short numNICs;         /**< Number of HPC NICs (like HCAs, HFIs, etc.) */
     PSCPU_set_t *NICset;   /**< Distribution of NICs over NUMA domains */
     char *hostname;        /**< name of that node in the network @ref addr
-			        belongs to, as givin in psid's config */
+			      belongs to, as givin in psid's config */
     bool isDynamic;        /**< Flag to mark the node's IP address as dynamic */
 } node_t;
 
@@ -231,7 +231,7 @@ bool PSIDnodes_register(PSnodes_ID_t id, const char *nodename, in_addr_t addr,
 	return false;
     }
 
-    if (PSIDnodes_setAddr(id, addr) < 0) return false;
+    if (!PSIDnodes_setAddr(id, addr)) return false;
 
     /* install nodename / hostname */
     free(nodes[id].nodename);
@@ -267,9 +267,9 @@ in_addr_t PSIDnodes_getAddr(PSnodes_ID_t id)
     return nodes[id].addr;
 }
 
-int PSIDnodes_setAddr(PSnodes_ID_t id, in_addr_t addr)
+bool PSIDnodes_setAddr(PSnodes_ID_t id, in_addr_t addr)
 {
-    if (!validID(id)) return -1;
+    if (!validID(id)) return false;
 
     in_addr_t oldAddr = PSIDnodes_getAddr(id);
 
@@ -295,7 +295,7 @@ int PSIDnodes_setAddr(PSnodes_ID_t id, in_addr_t addr)
 	struct host_t *host = malloc(sizeof(*host));
 	if (!host) {
 	    PSID_warn(-1, ENOMEM, "%s", __func__);
-	    return -1;
+	    return false;
 	}
 
 	host->addr = addr;
@@ -307,7 +307,7 @@ int PSIDnodes_setAddr(PSnodes_ID_t id, in_addr_t addr)
     }
 
     nodes[id].addr = addr;
-    return 0;
+    return true;
 }
 
 const char * PSIDnodes_getNodename(PSnodes_ID_t id)
@@ -527,12 +527,12 @@ int PSIDnodes_bindNICs(PSnodes_ID_t id)
     return nodes[id].bindNICs;
 }
 
-int PSIDnodes_setIsDynamic(PSnodes_ID_t id, bool dynamic)
+bool PSIDnodes_setIsDynamic(PSnodes_ID_t id, bool dynamic)
 {
-    if (!validID(id)) return -1;
+    if (!validID(id)) return false;
 
     nodes[id].isDynamic = dynamic;
-    return 0;
+    return true;
 }
 
 int PSIDnodes_isDynamic(PSnodes_ID_t id)

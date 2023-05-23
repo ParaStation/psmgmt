@@ -149,9 +149,9 @@ in_addr_t PSIDnodes_getAddr(PSnodes_ID_t id);
  *
  * @param addr IP address to set
  *
- * @return On success, 0 is returned; or -1 if an error occurred
+ * @return On success true is returned; or false if an error occurred
  */
-int PSIDnodes_setAddr(PSnodes_ID_t id, in_addr_t addr);
+bool PSIDnodes_setAddr(PSnodes_ID_t id, in_addr_t addr);
 
 /**
  * @brief Get node's configured name
@@ -765,15 +765,18 @@ int PSIDnodes_bindNICs(PSnodes_ID_t id);
 /**
  * @brief Set node's dynamic flag
  *
- * Set the dynamic flag of the node with ParaStation ID @a id to @a dynamic.
+ * Set the dynamic flag of the node with ParaStation ID @a id to @a
+ * dynamic. Dynamic nodes get their IP address on demand when
+ * started. This includes that the address might change in between
+ * different starts of the node.
  *
  * @param id ParaStation ID of the node to be modified
  *
- * @param starter The dynamic flag to be set to this node
+ * @param dynamic The dynamic flag to be set to this node
  *
- * @return On success, 0 is returned; or -1 if an error occurred
+ * @return On success true is returned; or false if an error occurred
  */
-int PSIDnodes_setIsDynamic(PSnodes_ID_t id, bool dynamic);
+bool PSIDnodes_setIsDynamic(PSnodes_ID_t id, bool dynamic);
 
 /**
  * @brief Get node's dynamic flag
@@ -786,7 +789,6 @@ int PSIDnodes_setIsDynamic(PSnodes_ID_t id, bool dynamic);
  * -1 if an error occurred
  */
 int PSIDnodes_isDynamic(PSnodes_ID_t id);
-
 
 /**
  * @brief Clear node's CPU-map
