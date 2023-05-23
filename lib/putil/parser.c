@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2002-2003 ParTec AG, Karlsruhe
  * Copyright (C) 2005-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2022 ParTec AG, Munich
+ * Copyright (C) 2021-2023 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -412,20 +412,12 @@ char *parser_getFilename(char *token, char *prefix, char *extradir)
 
 in_addr_t parser_getHostname(const char *token)
 {
-    const char *hname;
-    struct addrinfo hints;
-    struct addrinfo *result, *rp;
-    int rc;
-    struct in_addr *in_addr = NULL;
-    in_addr_t addr;
-
     if (!token) {
 	parser_comment(-1, "%s: token is NULL\n", __func__);
 	return 0;
     }
 
-    hname = token;
-
+    struct addrinfo hints;
     memset(&hints, 0, sizeof(struct addrinfo));
     hints.ai_family = AF_UNSPEC;    /* Allow IPv4 or IPv6 */
     hints.ai_socktype = SOCK_DGRAM; /* Datagram socket */
@@ -435,18 +427,19 @@ in_addr_t parser_getHostname(const char *token)
     hints.ai_addr = NULL;
     hints.ai_next = NULL;
 
-    rc = getaddrinfo(hname, NULL, &hints, &result);
+    struct addrinfo *result;
+    int rc = getaddrinfo(token, NULL, &hints, &result);
     if (rc != 0) {
-	parser_comment(-1, "Unknown host '%s': %s\n", hname, gai_strerror(rc));
-	return -1;
+	parser_comment(-1, "Unknown host '%s': %s\n", token, gai_strerror(rc));
+	return 0;
     }
 
     /*
      * getaddrinfo() returns a list of address structures.
      * Try each address until we successfully resolve to ParaStation ID.
      */
-
-    for (rp = result; rp && !in_addr; rp = rp->ai_next) {
+    struct in_addr *in_addr = NULL;
+    for (struct addrinfo *rp = result; rp && !in_addr; rp = rp->ai_next) {
 	char addrStr[INET_ADDRSTRLEN] = {'\0'};
 	switch (rp->ai_family) {
 	case AF_INET:
@@ -454,7 +447,7 @@ in_addr_t parser_getHostname(const char *token)
 	    inet_ntop(rp->ai_family, in_addr,addrStr, sizeof(addrStr));
 	    parser_comment(PARSER_LOG_RES,
 			   "Found host '%s' to have address %s\n",
-			   hname, addrStr);
+			   token, addrStr);
 	    break;
 	case AF_INET6:
 	    /* ignore -- don't handle IPv6 yet */
@@ -463,11 +456,11 @@ in_addr_t parser_getHostname(const char *token)
     }
 
     if (!in_addr) {
-	parser_comment(-1, "%s: No entry for '%s'\n", __func__, hname);
+	parser_comment(-1, "%s: No entry for '%s'\n", __func__, token);
 	return 0;
     }
 
-    addr = in_addr->s_addr;
+    in_addr_t addr = in_addr->s_addr;
 
     freeaddrinfo(result);           /* No longer needed */
 
