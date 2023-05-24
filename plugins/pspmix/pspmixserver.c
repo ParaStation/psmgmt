@@ -1455,7 +1455,32 @@ static pmix_status_t server_grp_cb(pmix_group_operation_t op, char grp[],
 {
     mdbg(PSPMIX_LOG_CALL, "%s()\n", __func__);
 
-    // @todo implement at low priority
+    switch(op) {
+	case PMIX_GROUP_CONSTRUCT:
+	    mlog("%s: op: %s\n", __func__, "PMIX_GROUP_CONSTRUCT");
+	    break;
+	case PMIX_GROUP_DESTRUCT:
+	    mlog("%s: op: %s\n", __func__, "PMIX_GROUP_DESTRUCT");
+	    break;
+	default:
+	    mlog("%s: op: %d\n", __func__, op);
+    }
+
+    mlog("grp: %s\n", grp);
+
+    mlog("%s: procs:\n", __func__);
+    for (size_t i = 0; i < nprocs; i++) {
+	mlog("%s:  %s:%d\n", __func__, procs[i].nspace, procs[i].rank);
+    }
+
+    mlog("%s: directives:\n", __func__);
+    for (size_t i = 0; i < ndirs; i++) {
+	char * istr = PMIx_Info_string(&directives[i]);
+	mlog("%s:  %s\n", __func__, istr);
+	free(istr);
+    }
+
+    // @todo implement at high priority
 
     mlog("%s: NOT IMPLEMENTED\n", __func__);
 
