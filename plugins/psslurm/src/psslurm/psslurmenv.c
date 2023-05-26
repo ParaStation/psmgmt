@@ -856,30 +856,52 @@ static void setPsslurmEnv(env_t *alloc_env, env_t *dest_env)
     }
 }
 
-static void setGPUEnv(Gres_Cred_t *gres, uint32_t jobNodeId, Step_t *step,
-		      uint32_t localRankId)
+static void setGPUEnv(Step_t *step, uint32_t jobNodeId, uint32_t localRankId)
 {
-    uint32_t stepNId = step->localNodeId;
+    Gres_Cred_t *gres;
+    gres = findGresCred(&step->gresList, GRES_PLUGIN_GPU, GRES_CRED_STEP);
 
-    if (!gres->bitAlloc || !gres->bitAlloc[jobNodeId]) {
-	flog("invalid gpu gres bitAlloc for job node id %u\n", jobNodeId);
+    if (!(gres && gres->bitAlloc && gres->bitAlloc[jobNodeId])) {
+	/* this step does not have GPUs assigned on this node */
+	unsetenv("SLURM_STEP_GPUS");
+	unsetenv("PSSLURM_BIND_GPUS");
+
+	char *prefix = "__AUTO_";
+	char name[GPU_VARIABLE_MAXLEN+strlen(prefix)+1];
+	for (size_t i = 0; gpu_variables[i]; i++) {
+	    snprintf(name, sizeof(name), "%s%s", prefix, gpu_variables[i]);
+	    if (getenv(gpu_variables[i]) && getenv(name)
+			&& !strcmp(getenv(name), getenv(gpu_variables[i]))) {
+		/* variable not changed by the user */
+		unsetenv(gpu_variables[i]);
+	    }
+
+	    /* automation detection is no longer needed */
+	    unsetenv(name);
+	}
+
+	/* prevent doClamps() from doing automatic GPU pinning */
+	setenv("__PSID_USE_GPUS", "", 1);
+
 	return;
     }
 
+    /* decode step GPUs */
+    StrBuffer_t strList = { .buf = NULL };
+    hexBitstr2List(gres->bitAlloc[jobNodeId], &strList, false);
+
+    /* always set informational variable */
+    setenv("SLURM_STEP_GPUS", strList.buf, 1);
+
+    /* tell doClamps() which gpus to use to correctly set PSID_CLOSE_GPUS */
+    setenv("__PSID_USE_GPUS", strList.buf, 1);
+
+    uint32_t stepNId = step->localNodeId;
     uint32_t ltnum = step->globalTaskIdsLen[stepNId];
 
     /* if there is only one local rank, bind all assigned GPUs to it */
     if (ltnum == 1) {
-	/* nothing to do, gpu_variables[*] should already be set that way */
 	flog("Only one task on this node, bind all assigned GPUs to it.\n");
-	/* always set our own variable */
-	char *value = getenv("SLURM_STEP_GPUS");
-	setenv("PSSLURM_BIND_GPUS", value ? value : "", 1);
-    /* if this is an interactive step, bind all assigned GPUs to it, too */
-    } else if (step->stepid == SLURM_INTERACTIVE_STEP) {
-	/* nothing to do, gpu_variables[*] should already be set that way */
-	flog("interactive step detected, bind to all GPUs assigned"
-		" (usually none)\n");
 	/* always set our own variable */
 	char *value = getenv("SLURM_STEP_GPUS");
 	setenv("PSSLURM_BIND_GPUS", value ? value : "", 1);
@@ -892,7 +914,7 @@ static void setGPUEnv(Gres_Cred_t *gres, uint32_t jobNodeId, Step_t *step,
 	}
 
 	int16_t gpu = getRankGpuPinning(localRankId, step, stepNId, &assGPUs);
-	if (gpu < 0) return;
+	if (gpu < 0) return; /* error message already printed */
 
 	char tmp[10];
 	snprintf(tmp, sizeof(tmp), "%hd", gpu);
@@ -928,10 +950,7 @@ static void setGresEnv(uint32_t localRankId, Step_t *step)
 	StrBuffer_t strList = { .buf = NULL };
 
 	/* gres "gpu" plugin */
-	gres = findGresCred(&step->gresList, GRES_PLUGIN_GPU, GRES_CRED_STEP);
-	if (gres && gres->bitAlloc) {
-	    setGPUEnv(gres, jobNodeId, step, localRankId);
-	}
+	setGPUEnv(step, jobNodeId, localRankId);
 
 	/* gres "mic" plugin */
 	gres = findGresCred(&step->gresList, GRES_PLUGIN_MIC, GRES_CRED_STEP);
@@ -1227,7 +1246,6 @@ void removeUserVars(env_t *env, pmi_type_t pmi_type)
 	    if (!strncmp(env->vars[i], "PMIX_SPAWNED", 12)) continue;
 	}
 	if (!strncmp(env->vars[i], "__PSID_", 7)) continue;
-	if (!(strncmp(env->vars[i], "SLURM_STEP_GPUS=", 16))) continue;
 
 	envUnsetIndex(env, i);
 	i--;
@@ -1284,35 +1302,6 @@ void setStepEnv(Step_t *step)
 
     if (step->tresBind) envSet(&step->env, "SLURMD_TRES_BIND", step->tresBind);
     if (step->tresFreq) envSet(&step->env, "SLURMD_TRES_FREQ", step->tresFreq);
-
-
-    /* if GPUs are assigned */
-    Gres_Cred_t *gres;
-    gres = findGresCred(&step->gresList, GRES_PLUGIN_GPU, GRES_CRED_STEP);
-    if (gres && gres->bitAlloc) {
-	uint32_t jobNodeId = getJobNodeId(step);
-	if (jobNodeId != NO_VAL) {
-	    if (gres->bitAlloc[jobNodeId]) {
-		StrBuffer_t strList = { .buf = NULL };
-		hexBitstr2List(gres->bitAlloc[jobNodeId], &strList, false);
-
-		/* always set informational variable */
-		envSet(&step->env, "SLURM_STEP_GPUS", strList.buf);
-
-		/* tell doClamps() which gpus to use */
-		envSet(&step->env, "__PSID_USE_GPUS", strList.buf);
-
-		freeStrBuf(&strList);
-	    }
-	}
-	else {
-	    flog("Cannot find job node id for getting GPU credentials.\n");
-	}
-    }
-    else {
-	/* tell psid to bind no GPUs */
-	envSet(&step->env, "__PSID_USE_GPUS", "");
-    }
 
     /* cleanup env */
     removeSpankOptions(&step->env);
