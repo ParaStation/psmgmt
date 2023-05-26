@@ -1134,6 +1134,9 @@ static void setCommonRankEnv(int32_t rank, Step_t *step)
 
     setSlurmConfEnvVar(NULL);
 
+    if (step->tresBind) envSet(&step->env, "SLURMD_TRES_BIND", step->tresBind);
+    if (step->tresFreq) envSet(&step->env, "SLURMD_TRES_FREQ", step->tresFreq);
+
     setenv("SLURMD_NODENAME", getConfValueC(Config, "SLURM_HOSTNAME"), 1);
     char tmp[128];
     gethostname(tmp, sizeof(tmp));
@@ -1299,9 +1302,6 @@ void setStepEnv(Step_t *step)
 
     /* prevent mpiexec from resolving the nodelist */
     envSet(&step->env, ENV_PSID_BATCH, "1");
-
-    if (step->tresBind) envSet(&step->env, "SLURMD_TRES_BIND", step->tresBind);
-    if (step->tresFreq) envSet(&step->env, "SLURMD_TRES_FREQ", step->tresFreq);
 
     /* cleanup env */
     removeSpankOptions(&step->env);
