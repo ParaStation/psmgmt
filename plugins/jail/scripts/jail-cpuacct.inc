@@ -28,7 +28,7 @@ if [ -n "$PSPAM_USER" ]; then
     if [ -d $CG_USER ]; then
 	# add user to cgroup
 	dlog "adding child $CHILD to user cgroup $CG_USER"
-	cgWrite "$CHILD" $CG_USER/tasks
+	cgWrite "$CHILD" "$CG_USER/tasks"
     else
 	elog "error: user cgroup $CG_USER is missing"
     fi
@@ -40,13 +40,13 @@ else
     mdsave "$CG_JOB"
 
     dlog "adding child $CHILD to $CG_JOB/tasks"
-    cgWrite "$CHILD" $CG_JOB/tasks
+    cgWrite "$CHILD" "$CG_JOB/tasks"
 
     # step cgroup
     [ -n "$STEPID" ] && {
 	mdsave "$CG_STEP"
 
 	dlog "adding child $CHILD to $CG_STEP/tasks"
-	cgWrite "$CHILD" $CG_STEP/tasks
+	cgWrite "$CHILD" "$CG_STEP/tasks"
     }
 fi

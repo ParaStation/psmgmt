@@ -33,11 +33,11 @@ function initDevices()
     [ -n "$STEPID" ] && mdsave "$CG_STEP"
 
     dlog "adding child $CHILD to $CG_JOB/tasks"
-    cgWrite "$CHILD" $CG_JOB/tasks
+    cgWrite "$CHILD" "$CG_JOB/tasks"
     # step cgroup
     [ -n "$STEPID" ] && {
 	dlog "adding child $CHILD to $CG_STEP/tasks"
-	cgWrite "$CHILD" $CG_STEP/tasks
+	cgWrite "$CHILD" "$CG_STEP/tasks"
     }
 }
 
@@ -46,13 +46,15 @@ function setDev()
     local ACTION=$1
     local DEV=$2
 
+    local DEBUG=1
+
     dlog "$DEV > $CG_JOB/$ACTION"
-    cgWrite $DEV $CG_JOB/$ACTION
+    cgWrite "$DEV" "$CG_JOB/$ACTION"
 
     # step cgroup
     [ -n "$STEPID" ] && {
 	dlog "$DEV > $CG_STEP/$ACTION"
-	cgWrite $DEV $CG_STEP/$ACTION
+	cgWrite "$DEV" "$CG_STEP/$ACTION"
     }
 }
 
@@ -89,7 +91,7 @@ function constrainDevSSH()
     if [ -d $CG_USER ]; then
 	# add user to cgroup
 	dlog "adding child $CHILD to user cgroup $CG_USER"
-	cgWrite "$CHILD" $CG_USER/tasks
+	cgWrite "$CHILD" "$CG_USER/tasks"
     else
 	elog "error: user cgroup $CG_USER is missing"
     fi

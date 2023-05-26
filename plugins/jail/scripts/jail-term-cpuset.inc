@@ -64,7 +64,7 @@ else
 	    NEW_CPU=$($EXPAND $REMAINING_CPUS |sort -g -u)
 	    COMP_CPU=$($COMPRESS $NEW_CPU | tr -d "\[\]")
 	    dlog "set remaining cpus: $COMP_CPU"
-	    cgWrite $COMP_CPU "$CG_USER/cpuset.cpus"
+	    cgWrite "$COMP_CPU" "$CG_USER/cpuset.cpus"
 	}
     else
 	elog "missing JOBID"
