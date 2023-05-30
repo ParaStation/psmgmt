@@ -30,8 +30,8 @@ elif [ -n "$PSPAM_USER" ]; then
     getLock
 
     # ssh login via pspam which needs an existing user cgroup
-    if [ -d $CG_USER ]; then
-	if [ -z $(cat $CG_USER/cpuset.cpus) ]; then
+    if [ -d "$CG_USER" ]; then
+	if [ -z $(cat "$CG_USER/cpuset.cpus") ]; then
 	    # error empty cpuset
 	    elog "error: user cgroup $CG_USER has empty cpuset.cpus"
 	fi
@@ -51,11 +51,11 @@ else
 
     getLock
     mdsave "$CG_USER"
-    if [ -z $(cat $CG_USER/cpuset.cpus) ]; then
+    if [ -z $(cat "$CG_USER/cpuset.cpus") ]; then
 	dlog "empty cpuset.cpus"
 	cgWrite "$JOB_CPUS" "$CG_USER/cpuset.cpus"
     else
-	OLD_CPU=$(cat $CG_USER/cpuset.cpus)
+	OLD_CPU=$(cat "$CG_USER/cpuset.cpus")
 	dlog "old cpuset.cpus is $OLD_CPU"
 	dlog "add cpuset.cpus is $JOB_CPUS"
 
@@ -73,7 +73,7 @@ else
     MEM_NODES=$(cat $BASE/cpuset.mems)
 
     cgWrite "$MEM_NODES" "$CG_USER/cpuset.mems"
-    dlog "user cpuset: " $(cat $CG_USER/cpuset.cpus)
+    dlog "user cpuset: " $(cat "$CG_USER/cpuset.cpus")
 
     [ -n "$JOBID" ] || elog "no jobid for pid $CHILD user $USER"
 
@@ -87,7 +87,7 @@ else
 
     dlog "adding child $CHILD to $CG_JOB/tasks"
     cgWrite "$CHILD" "$CG_JOB/tasks"
-    dlog "job cpuset: " $(cat $CG_JOB/cpuset.cpus)
+    dlog "job cpuset: " $(cat "$CG_JOB/cpuset.cpus")
 
     # step cgroup
     [ -n "$STEPID" ] && {
@@ -98,7 +98,7 @@ else
 
 	dlog "adding child $CHILD to $CG_STEP/tasks"
 	cgWrite "$CHILD" "$CG_STEP/tasks"
-	dlog "step cpuset: " $(cat $CG_STEP/cpuset.cpus)
+	dlog "step cpuset: " $(cat "$CG_STEP/cpuset.cpus")
     }
     rmLock
 fi

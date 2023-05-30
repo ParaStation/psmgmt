@@ -88,7 +88,7 @@ function setDevices()
 function constrainDevSSH()
 {
     # ssh login via pspam which needs an existing user cgroup
-    if [ -d $CG_USER ]; then
+    if [ -d "$CG_USER" ]; then
 	# add user to cgroup
 	dlog "adding child $CHILD to user cgroup $CG_USER"
 	cgWrite "$CHILD" "$CG_USER/tasks"

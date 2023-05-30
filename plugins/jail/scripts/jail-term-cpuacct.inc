@@ -31,10 +31,10 @@ if [ -n "$STEPID" ]; then
 
 elif [ -n "$JOBID" ]; then
     dlog "killing job $JOBID with signal $KILL_SIGNAL"
-    killJob $CG_JOB
+    killJob "$CG_JOB"
 
     # cleanup user directory
-    LEFT_JOBS=$(ls $CG_USER/job-*/ 2>/dev/null)
+    LEFT_JOBS=$(ls "$CG_USER"/job-*/ 2>/dev/null)
     if [ -z "$LEFT_JOBS" ]; then
 	killTasks "$CG_USER"
     fi

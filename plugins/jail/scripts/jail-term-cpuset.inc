@@ -37,11 +37,11 @@ else
 
     elif [ -n "$JOBID" ]; then
 	dlog "killing job $JOBID with signal $KILL_SIGNAL"
-	killJob $CG_JOB
+	killJob "$CG_JOB"
 
-	BASE=$CG_USER
+	BASE="$CG_USER"
 	REMAINING_CPUS=""
-	for i in $BASE/job-*/; do
+	for i in "$BASE"/job-*/; do
 	    if [ "$i" == "$CG_USER/job-*/" ]; then
 		dlog "no more jobs, kill user cgroup $CG_USER"
 		killTasks "$CG_USER"
