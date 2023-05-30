@@ -896,6 +896,8 @@ static void setGPUEnv(Step_t *step, uint32_t jobNodeId, uint32_t localRankId)
     /* tell doClamps() which gpus to use to correctly set PSID_CLOSE_GPUS */
     setenv("__PSID_USE_GPUS", strList.buf, 1);
 
+    freeStrBuf(&strList);
+
     uint32_t stepNId = step->localNodeId;
     uint32_t ltnum = step->globalTaskIdsLen[stepNId];
 
