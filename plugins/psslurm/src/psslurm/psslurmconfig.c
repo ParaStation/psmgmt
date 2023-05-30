@@ -1554,6 +1554,8 @@ bool parseSlurmConfigFiles(void)
 	    return false;
 	}
 	if (isJailActive && !testJailConfig()) return false;
+    } else {
+	setConfigDefaults(SlurmCgroupConfig, cgroupDef);
     }
 
 #ifdef HAVE_SPANK
@@ -1700,6 +1702,9 @@ bool updateSlurmConf(void)
 	    flog("Traversing GRes configuration failed\n");
 	    return false;
 	}
+    } else {
+	/* remove old configuration entries */
+	clearGresConf();
     }
 
     /* parse optional Slurm topology config file */
@@ -1728,6 +1733,9 @@ bool updateSlurmConf(void)
 	    flog("Traversing topology configuration failed\n");
 	    return false;
 	}
+    } else {
+	/* remove old configuration entries */
+	clearTopologyConf();
     }
 
     /* parse optional Slurm cgroup config file */
@@ -1762,6 +1770,10 @@ bool updateSlurmConf(void)
 	    flog("Parsing cgroup configuration file %s failed\n", cPath);
 	    return false;
 	}
+	setConfigDefaults(SlurmCgroupConfig, cgroupDef);
+    } else {
+	/* cgroup.conf may get removed, set default values */
+	initSlurmConfig(&SlurmCgroupConfig);
 	setConfigDefaults(SlurmCgroupConfig, cgroupDef);
     }
 
