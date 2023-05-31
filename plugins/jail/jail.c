@@ -16,6 +16,7 @@
 #include <signal.h>
 #include <string.h>
 #include <sys/stat.h>
+#include <unistd.h>
 
 #include "plugin.h"
 #include "pscommon.h"
@@ -42,6 +43,9 @@ static char *jailScript = NULL;
 
 /** Name of the script to use for terminating a jail */
 static char *termScript = NULL;
+
+/** Name of the script to initialize jail */
+static char *initScript = NULL;
 
 static char *checkScript(char *script)
 {
@@ -164,6 +168,10 @@ int initialize(FILE *logfile)
 	jlog(J_LOG_VERBOSE, "terminate script set to '%s'\n", termScript);
     }
 
+    script = getConfValueC(&config, "JAIL_INIT_SCRIPT");
+    initScript = checkScript(script);
+    if (initScript) execScript(getpid(), initScript);
+
     if (!PSIDhook_add(PSIDHOOK_JAIL_CHILD, jailProcess)) {
 	jlog(-1, "%s: register PSIDHOOK_JAIL_CHILD failed\n", __func__);
 	return 1;
@@ -191,6 +199,7 @@ void cleanup(void)
 
     free(jailScript);
     free(termScript);
+    free(initScript);
     freeConfig(config);
 
     jlog(-1, "...Bye.\n");
@@ -342,6 +351,13 @@ char *show(char *key)
 	    str2Buf("'\n", &buf, &bufSize);
 	} else {
 	    str2Buf("no term script defined!\n", &buf, &bufSize);
+	}
+	if (initScript) {
+	    str2Buf("init script in use: '", &buf, &bufSize);
+	    str2Buf(initScript, &buf, &bufSize);
+	    str2Buf("'\n", &buf, &bufSize);
+	} else {
+	    str2Buf("no init script defined!\n", &buf, &bufSize);
 	}
     } else if ((val = getConfValueC(config, key))) {
 	str2Buf("\t", &buf, &bufSize);

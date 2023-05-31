@@ -23,12 +23,18 @@
 #define DEFAULT_JAIL_TERM_SCRIPT "jail-term.sh"
 #endif
 
+#ifndef DEFAULT_JAIL_INIT_SCRIPT
+#define DEFAULT_JAIL_INIT_SCRIPT "jail-init.sh"
+#endif
+
 const ConfDef_t confDef[] =
 {
     { "JAIL_SCRIPT", false, "path", DEFAULT_JAIL_SCRIPT,
       "(Relative or absolute) path to jailing script" },
     { "JAIL_TERM_SCRIPT", false, "path", DEFAULT_JAIL_TERM_SCRIPT,
       "(Relative or absolute) path to jail terminate script" },
+    { "JAIL_INIT_SCRIPT", false, "path", DEFAULT_JAIL_INIT_SCRIPT,
+      "(Relative or absolute) path to jail initialize script" },
     { "DEBUG_MASK", true, "mask", "0",
       "Mask to steer debug output" },
     { NULL, false, NULL, NULL, NULL},
