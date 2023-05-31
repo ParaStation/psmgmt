@@ -291,6 +291,7 @@ plugins/jail/scripts/jail-cpuacct.inc \
 plugins/jail/scripts/jail-cpuset.inc \
 plugins/jail/scripts/jail-devices.inc \
 plugins/jail/scripts/jail-functions.inc \
+plugins/jail/scripts/jail-init.sh \
 plugins/jail/scripts/jail-main.sh \
 plugins/jail/scripts/jail-memory.inc \
 plugins/jail/scripts/jail-oom.inc \

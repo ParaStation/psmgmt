@@ -216,6 +216,7 @@ if [ $1 -eq 1 ] ; then
     # first install
     ln -sf %{_libexecdir}/jail/jail-main.sh %{_plugindir}/jail.sh
     ln -sf %{_libexecdir}/jail/jail-main.sh %{_plugindir}/jail-term.sh
+    ln -sf %{_libexecdir}/jail/jail-init.sh %{_plugindir}/jail-init.sh
 %if !0%{?disable_systemd}
     systemctl preset psid.service psidstarter.socket >/dev/null 2>&1 || :
 %else
@@ -238,6 +239,10 @@ else
     [ -L %{_plugindir}/jail-term.sh -a $(realpath %{_plugindir}/jail-term.sh) = %{_libexecdir}/jail/jail-main.sh ] || {
 	mv %{_plugindir}/jail-term.sh %{_plugindir}/jail-term.sh.rpmsave
 	ln -sf %{_libexecdir}/jail/jail-main.sh %{_plugindir}/jail-term.sh
+    }
+    [ -L %{_plugindir}/jail-init.sh -a $(realpath %{_plugindir}/jail-init.sh) = %{_libexecdir}/jail/jail-init.sh ] || {
+	mv %{_plugindir}/jail-init.sh %{_plugindir}/jail-init.sh.rpmsave
+	ln -sf %{_libexecdir}/jail/jail-init.sh %{_plugindir}/jail-init.sh
     }
 fi
 exit 0
@@ -262,6 +267,7 @@ if [ $1 -eq 0]; then
     # de-install
     [ -L %{_plugindir}/jail.sh ] && rm -f %{_plugindir}/jail.sh
     [ -L %{_plugindir}/jail-term.sh ] && rm -f %{_plugindir}/jail-term.sh
+    [ -L %{_plugindir}/jail-init.sh ] && rm -f %{_plugindir}/jail-init.sh
 fi
 %if !0%{?disable_systemd}
     systemctl daemon-reload >/dev/null 2>&1 || :
@@ -307,6 +313,7 @@ fi
 %config(noreplace) %{_libexecdir}/jail/jail-cpuset.inc
 %config(noreplace) %{_libexecdir}/jail/jail-devices.inc
 %config(noreplace) %{_libexecdir}/jail/jail-functions.inc
+%config(noreplace) %{_libexecdir}/jail/jail-init.sh
 %config(noreplace) %{_libexecdir}/jail/jail-main.sh
 %config(noreplace) %{_libexecdir}/jail/jail-memory.inc
 %config(noreplace) %{_libexecdir}/jail/jail-oom.inc
@@ -353,6 +360,7 @@ fi
 %ghost %config(missingok,noreplace) /etc/parastation.conf
 %ghost %{_plugindir}/jail.sh
 %ghost %{_plugindir}/jail-term.sh
+%ghost %{_plugindir}/jail-init.sh
 %attr(770,root,root) %{_localstatedir}/log/psaccounter
 
 %files devel

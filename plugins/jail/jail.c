@@ -168,7 +168,7 @@ int initialize(FILE *logfile)
 	jlog(J_LOG_VERBOSE, "terminate script set to '%s'\n", termScript);
     }
 
-    script = getConfValueC(&config, "JAIL_INIT_SCRIPT");
+    script = getConfValueC(config, "JAIL_INIT_SCRIPT");
     initScript = checkScript(script);
     if (initScript) execScript(getpid(), initScript);
 

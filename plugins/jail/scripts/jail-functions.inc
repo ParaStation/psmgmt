@@ -157,7 +157,7 @@ function initJailEnv {
 
     export CONSTRAIN_DEVICES="$__PSJAIL_CONSTRAIN_DEVICES"
 
-    export PSID_PID=$(ps -C psid -o ppid,cmd,pid | awk '/\/psid/ { if ($1 == "1") print $3; }')
+    export PSID_PID=$(cat /dev/shm/psjail-psid-pid)
 
     [ -z "$TERM_SIGNAL" ] && export TERM_SIGNAL="15"
 
