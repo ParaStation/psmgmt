@@ -187,7 +187,6 @@ AWK = @AWK@
 CC = @CC@
 CCDEPMODE = @CCDEPMODE@
 CFLAGS = @CFLAGS@
-CPP = @CPP@
 CPPFLAGS = @CPPFLAGS@
 CSCOPE = @CSCOPE@
 CTAGS = @CTAGS@
@@ -302,6 +301,7 @@ program_transform_name = @program_transform_name@
 psconfig_CFLAGS = @psconfig_CFLAGS@
 psconfig_LIBS = @psconfig_LIBS@
 psdir = @psdir@
+runstatedir = @runstatedir@
 sbindir = @sbindir@
 sharedstatedir = @sharedstatedir@
 srcdir = @srcdir@
@@ -362,7 +362,8 @@ dist_jaillib_SCRIPTS = jail-config.inc jail-cpuacct.inc			\
 		       jail-main.sh jail-oom.inc			\
 		       jail-term-cpuacct.inc jail-term-cpuset.inc	\
 		       jail-memory.inc jail-devices.inc			\
-		       jail-term-memory.inc jail-term-devices.inc
+		       jail-term-memory.inc jail-term-devices.inc	\
+		       jail-init.sh
 
 all: all-am
 
