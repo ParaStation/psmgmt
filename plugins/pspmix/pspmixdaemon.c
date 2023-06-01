@@ -769,6 +769,11 @@ int initialCleanup(Forwarder_Data_t *fwdata)
      * so we need to cleanup the tasks here */
     PSIDtask_clearMem();
 
+    /* let pluginfowarder jail the server */
+    char *user = PSC_userFromUID(myserver->uid);
+    setenv("__PSJAIL_ADD_USER_TO_CGROUP", user, 1);
+    ufree(user);
+
     return 0;
 }
 
@@ -802,6 +807,7 @@ static bool startServer(PspmixServer_t *server)
     fwdata->hookFinalize = pspmix_userserver_finalize;
     fwdata->handleMthrMsg = pspmix_comm_handleMthrMsg;
     fwdata->handleFwMsg = forwardPspmixFwMsg;
+    fwdata->jailChild = true;
 
     if (!startForwarder(fwdata)) {
 	mlog("%s: starting PMIx server for user ID %d failed\n", __func__,
