@@ -85,9 +85,9 @@ function setDevices()
     done
 }
 
-function constrainDevSSH()
+function constrainSingleUser()
 {
-    # ssh login via pspam which needs an existing user cgroup
+    # ssh login via pspam/pspmix server needs an existing user cgroup
     if [ -d "$CG_USER" ]; then
 	# add user to cgroup
 	dlog "adding child $CHILD to user cgroup $CG_USER"
@@ -102,8 +102,8 @@ if [ "$CONSTRAIN_DEVICES" == "no" ]; then
 else
     dlog "constrain devices enabled"
 
-    if [ -n "$PSPAM_USER" ]; then
-	constrainDevSSH
+    if [ -n "$ADD_USER_TO_CGROUP" ]; then
+	constrainSingleUser
     else
 	initDevices
 	setDevices

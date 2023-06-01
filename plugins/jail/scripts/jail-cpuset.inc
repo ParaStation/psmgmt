@@ -25,11 +25,11 @@
 
 if [ "$CONSTRAIN_CORES" == "no" ]; then
     dlog "constrain cores *disabled*"
-elif [ -n "$PSPAM_USER" ]; then
+elif [ -n "$ADD_USER_TO_CGROUP" ]; then
     dlog "constrain cores enabled"
     getLock
 
-    # ssh login via pspam which needs an existing user cgroup
+    # ssh login via pspam/pspmix server needs an existing user cgroup
     if [ -d "$CG_USER" ]; then
 	if [ -z $(cat "$CG_USER/cpuset.cpus") ]; then
 	    # error empty cpuset

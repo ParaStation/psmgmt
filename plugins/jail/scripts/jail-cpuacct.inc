@@ -23,8 +23,8 @@
 # CHILD and configuration like CGROUP_BASE, CG_USER, CG_JOB,
 # CG_STEP, BASE or SCRIPT set.
 
-if [ -n "$PSPAM_USER" ]; then
-    # ssh login via pspam which needs an existing user cgroup
+if [ -n "$ADD_USER_TO_CGROUP" ]; then
+    # ssh login via pspam/pspmix server needs an existing user cgroup
     if [ -d "$CG_USER" ]; then
 	# add user to cgroup
 	dlog "adding child $CHILD to user cgroup $CG_USER"

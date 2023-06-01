@@ -95,9 +95,9 @@ function constrainRam()
     setStepMem "$STEP_RAM_HARD" "memory.limit_in_bytes"
 }
 
-function constrainMemSSH()
+function constrainMemSingleUser()
 {
-    # ssh login via pspam which needs an existing user cgroup
+    # ssh login via pspam/pspmix server needs an existing user cgroup
     if [ -d "$CG_USER" ]; then
 	    # add user to cgroup
 	    dlog "adding child $CHILD to user cgroup $CG_USER"
@@ -112,8 +112,8 @@ if [ "$CONSTRAIN_RAM" == "no" ]; then
 else
     dlog "constrain RAM enabled"
 
-    if [ -n "$PSPAM_USER" ]; then
-	constrainMemSSH
+    if [ -n "$ADD_USER_TO_CGROUP" ]; then
+	constrainMemSingleUser
     else
 	constrainRam
     fi
@@ -122,8 +122,8 @@ else
 	dlog "constrain KMEM *disabled*"
     else
 	dlog "constrain KMEM enabled"
-	if [ -n "$PSPAM_USER" ]; then
-	    constrainMemSSH
+	if [ -n "$ADD_USER_TO_CGROUP" ]; then
+	    constrainMemSingleUser
 	else
 	    setJobMem "$JOB_KMEM" "memory.kmem.limit_in_bytes"
 	    setStepMem "$STEP_KMEM" "memory.kmem.limit_in_bytes"
@@ -135,8 +135,8 @@ if [ "$CONSTRAIN_SWAP" == "no" ]; then
     dlog "constrain SWAP *disabled*"
 else
     dlog "constrain SWAP enabled"
-    if [ -n "$PSPAM_USER" ]; then
-	constrainMemSSH
+    if [ -n "$ADD_USER_TO_CGROUP" ]; then
+	constrainMemSingleUser
     else
 	setJobMem "$JOB_SWAP" "memory.memsw.limit_in_bytes"
 	setStepMem "$STEP_SWAP" "memory.memsw.limit_in_bytes"
@@ -148,8 +148,8 @@ if [ -z "$SWAPPINESS" ]; then
 else
     dlog "constrain swappiness enabled"
 
-    if [ -n "$PSPAM_USER" ]; then
-	constrainMemSSH
+    if [ -n "$ADD_USER_TO_CGROUP" ]; then
+	constrainMemSingleUser
     else
 	setJobMem "$SWAPPINESS" "memory.swappiness"
 	setStepMem "$SWAPPINESS" "memory.swappiness"
