@@ -170,7 +170,12 @@ int initialize(FILE *logfile)
 
     script = getConfValueC(config, "JAIL_INIT_SCRIPT");
     initScript = checkScript(script);
-    if (initScript) execScript(getpid(), initScript);
+    if (initScript) {
+	if (execScript(getpid(), initScript) != 0) {
+	    jlog(-1, "%s: JAIL_INIT_SCRIPT failed\n", __func__);
+	    return 1;
+	}
+    }
 
     if (!PSIDhook_add(PSIDHOOK_JAIL_CHILD, jailProcess)) {
 	jlog(-1, "%s: register PSIDHOOK_JAIL_CHILD failed\n", __func__);

@@ -18,3 +18,16 @@
 
 # save PID of main psid
 echo $1 > /run/psid.pid
+
+SELF=$(realpath $0)
+CommandPath=${SELF%/*}
+source $CommandPath/jail-functions.inc
+source $CommandPath/jail-config.inc
+
+exec 2>>$LOG_FILE 1>&2
+
+if [ ! -d "$CGROUP_BASE" ]; then
+    elog "cgroup filesystem $CGROUP_BASE not mounted"
+fi
+
+exit 0
