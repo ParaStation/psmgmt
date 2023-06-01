@@ -212,9 +212,9 @@ function psconfig_single_node() {
 # Script start #
 ################
 
-psconfig_exists
-
 parse_arg
+
+psconfig_exists
 
 psconfig_single_node
 
