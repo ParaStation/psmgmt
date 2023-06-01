@@ -10,7 +10,7 @@
 #
 
 # psconfig command
-PSCONFIG=/opt/parastation/bin/psconfig
+PSCONFIG=psconfig
 
 # Command line options
 SHORT_OPTS=i:,n:,p:,h,v
@@ -26,7 +26,7 @@ PSID_PLUGINS="psslurm"
 function psconfig_exists() {
     if ! command -v $PSCONFIG &> /dev/null
     then
-        echo "Error: $PSCONFIG not found."
+        echo "Error: $PSCONFIG required but not found."
         exit 1
     fi
 }
