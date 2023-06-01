@@ -8,17 +8,13 @@
 # as defined in the file LICENSE.QPL included in the packaging of this
 # file.
 #
-#
-# Script to be executed by ParaStation's jail plugin each time a
-# process will be jailed into the cgroup. Nevertheless, this
-# functionality is independent of the actual cgroup plugin.
-#
-# This script is executed with the same permissions as the ParaStation
+# Script to be executed by ParaStation's jail plugin once at
+# initialization. This script is executed with the same permissions as the ParaStation
 # daemon psid, i.e. typically with root permissions! Thus, special care
 # has to be taken when changing this script.
 #
 # This script will be called by the jail plugin via system() and get
-# the process ID of the process to be jailed as an argument.
+# the process ID of the main psid as an argument.
 
 # save PID of main psid
-echo $1 > /dev/shm/psjail-psid-pid
+echo $1 > /run/psid.pid
