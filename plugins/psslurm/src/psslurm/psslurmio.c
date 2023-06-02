@@ -199,6 +199,9 @@ static void IO_writeMsg(Forwarder_Data_t *fwdata, char *msg, uint32_t msgLen,
     }
     */
 
+    /* discard output from exiting ranks for steps with pty */
+    if (step->taskFlags & LAUNCH_PTY && grank >0) return;
+
     /* forward the message to all sattach processes */
     if (sattachCon > 0) forward2Sattach(msgPtr, msgLen, grank, type);
 
