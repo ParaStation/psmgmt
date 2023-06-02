@@ -117,7 +117,7 @@ libplugincommon_la_LIBADD =
 am_libplugincommon_la_OBJECTS = pluginconfig.lo pluginforwarder.lo \
 	pluginhelper.lo pluginlog.lo pluginmalloc.lo \
 	pluginpartition.lo pluginpsconfig.lo pluginpty.lo \
-	pluginstrv.lo pluginvector.lo
+	pluginspawn.lo pluginstrv.lo pluginvector.lo
 libplugincommon_la_OBJECTS = $(am_libplugincommon_la_OBJECTS)
 AM_V_lt = $(am__v_lt_@AM_V@)
 am__v_lt_ = $(am__v_lt_@AM_DEFAULT_V@)
@@ -142,8 +142,8 @@ am__depfiles_remade = ./$(DEPDIR)/pluginconfig.Plo \
 	./$(DEPDIR)/pluginforwarder.Plo ./$(DEPDIR)/pluginhelper.Plo \
 	./$(DEPDIR)/pluginlog.Plo ./$(DEPDIR)/pluginmalloc.Plo \
 	./$(DEPDIR)/pluginpartition.Plo ./$(DEPDIR)/pluginpsconfig.Plo \
-	./$(DEPDIR)/pluginpty.Plo ./$(DEPDIR)/pluginstrv.Plo \
-	./$(DEPDIR)/pluginvector.Plo
+	./$(DEPDIR)/pluginpty.Plo ./$(DEPDIR)/pluginspawn.Plo \
+	./$(DEPDIR)/pluginstrv.Plo ./$(DEPDIR)/pluginvector.Plo
 am__mv = mv -f
 COMPILE = $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) \
 	$(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
@@ -383,7 +383,8 @@ scriptsdir = $(prefix)/scripts
 noinst_LTLIBRARIES = libplugincommon.la
 libplugincommon_la_SOURCES = pluginconfig.c pluginforwarder.c		\
 	pluginhelper.c pluginlog.c pluginmalloc.c pluginpartition.c	\
-	pluginpsconfig.c pluginpty.c pluginstrv.c pluginvector.c
+	pluginpsconfig.c pluginpty.c pluginspawn.c pluginstrv.c		\
+	pluginvector.c
 
 all: all-am
 
@@ -448,6 +449,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/pluginpartition.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/pluginpsconfig.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/pluginpty.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/pluginspawn.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/pluginstrv.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/pluginvector.Plo@am__quote@ # am--include-marker
 
@@ -619,6 +621,7 @@ distclean: distclean-am
 	-rm -f ./$(DEPDIR)/pluginpartition.Plo
 	-rm -f ./$(DEPDIR)/pluginpsconfig.Plo
 	-rm -f ./$(DEPDIR)/pluginpty.Plo
+	-rm -f ./$(DEPDIR)/pluginspawn.Plo
 	-rm -f ./$(DEPDIR)/pluginstrv.Plo
 	-rm -f ./$(DEPDIR)/pluginvector.Plo
 	-rm -f Makefile
@@ -674,6 +677,7 @@ maintainer-clean: maintainer-clean-am
 	-rm -f ./$(DEPDIR)/pluginpartition.Plo
 	-rm -f ./$(DEPDIR)/pluginpsconfig.Plo
 	-rm -f ./$(DEPDIR)/pluginpty.Plo
+	-rm -f ./$(DEPDIR)/pluginspawn.Plo
 	-rm -f ./$(DEPDIR)/pluginstrv.Plo
 	-rm -f ./$(DEPDIR)/pluginvector.Plo
 	-rm -f Makefile

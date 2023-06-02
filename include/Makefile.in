@@ -381,9 +381,9 @@ noinst_HEADERS = kvscommon.h kvs.h mcast.h parser.h psilog.h pslog.h	\
 	psprotocolenv.h psserial.h kvslog.h linenoise.h			\
 	pluginconfig.h pluginforwarder.h pluginhelper.h pluginlog.h	\
 	pluginmalloc.h pluginpartition.h pluginpsconfig.h pluginpty.h	\
-	pluginstrv.h pluginvector.h pspluginprotocol.h pssenddb_t.h	\
-	psattribute.h psbyteorder.h pscio.h psconfighelper.h		\
-	psitems.h
+	pluginspawn.h pluginstrv.h pluginvector.h pspluginprotocol.h	\
+	pssenddb_t.h psattribute.h psbyteorder.h pscio.h		\
+	psconfighelper.h psitems.h
 
 all: all-am
 

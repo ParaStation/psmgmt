@@ -32,6 +32,7 @@
 #include "kvscommon.h"
 #include "pluginmalloc.h"
 #include "pluginstrv.h"
+#include "pluginspawn.h"
 
 #include "psidcomm.h"
 #include "psidforwarder.h"
@@ -39,7 +40,6 @@
 
 #include "psaccounthandles.h"
 
-#include "pmiclientspawn.h"
 #include "pmilog.h"
 
 #define SOCKET int

@@ -2,16 +2,19 @@
  * ParaStation
  *
  * Copyright (C) 2015-2017 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2023-2024 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
+#include "pluginspawn.h"
+
 #include <string.h>
 
-#include "pluginmalloc.h"
+#include "psenv.h"
 
-#include "pmiclientspawn.h"
+#include "pluginmalloc.h"
 
 SpawnRequest_t *initSpawnRequest(int num) {
 
@@ -26,8 +29,7 @@ SpawnRequest_t *initSpawnRequest(int num) {
     /* set everything to zero */
     memset(req->spawns, 0, num * sizeof(*req->spawns));
 
-    req->pmienvc = 0;
-    req->pmienvv = NULL;
+    req->env = envNew(NULL);
 
     return req;
 }
@@ -74,13 +76,10 @@ SpawnRequest_t *copySpawnRequest(SpawnRequest_t *req) {
 	}
     }
 
-    if (req->pmienvv) {
-	ret->pmienvc = req->pmienvc;
-	ret->pmienvv = umalloc(ret->pmienvc * sizeof(*ret->pmienvv));
-	for (i = 0; i < req->pmienvc; i++) {
-	    ret->pmienvv[i].key = ustrdup(req->pmienvv[i].key);
-	    ret->pmienvv[i].value = ustrdup(req->pmienvv[i].value);
-	}
+    ret->env = envClone(req->env, NULL);
+    if (!ret->env) {
+	freeSpawnRequest(ret);
+	return NULL;
     }
 
     return ret;
@@ -113,13 +112,7 @@ void freeSpawnRequest(SpawnRequest_t *req) {
 	}
     }
 
-    if (req->pmienvv) {
-	for (j = 0; j < req->pmienvc; j++) {
-	    ufree(req->pmienvv[j].key);
-	    ufree(req->pmienvv[j].value);
-	}
-	ufree(req->pmienvv);
-    }
+    envDestroy(req->env);
 
     ufree(req->spawns);
 }

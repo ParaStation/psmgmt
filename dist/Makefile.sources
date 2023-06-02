@@ -156,6 +156,7 @@ include/pluginmalloc.h \
 include/pluginpartition.h \
 include/pluginpsconfig.h \
 include/pluginpty.h \
+include/pluginspawn.h \
 include/pluginstrv.h \
 include/pluginvector.h \
 include/psattribute.h \
@@ -203,6 +204,7 @@ lib/plugincommon/pluginmalloc.c \
 lib/plugincommon/pluginpartition.c \
 lib/plugincommon/pluginpsconfig.c \
 lib/plugincommon/pluginpty.c \
+lib/plugincommon/pluginspawn.c \
 lib/plugincommon/pluginstrv.c \
 lib/plugincommon/pluginvector.c \
 lib/pscommon/Makefile.am \
@@ -559,8 +561,6 @@ plugins/pspmi/Makefile.am \
 plugins/pspmi/Makefile.in \
 plugins/pspmi/pmiclient.c \
 plugins/pspmi/pmiclient.h \
-plugins/pspmi/pmiclientspawn.c \
-plugins/pspmi/pmiclientspawn.h \
 plugins/pspmi/pmiforwarder.c \
 plugins/pspmi/pmiforwarder.h \
 plugins/pspmi/pmikvs.c \

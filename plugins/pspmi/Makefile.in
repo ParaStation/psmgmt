@@ -144,7 +144,7 @@ LTLIBRARIES = $(plugin_LTLIBRARIES)
 pspmi_la_DEPENDENCIES = $(libpskvs) $(libpsi) $(libplugincommon)
 am_pspmi_la_OBJECTS = pspmi_la-pmiclient.lo pspmi_la-pmiforwarder.lo \
 	pspmi_la-pmilog.lo pspmi_la-pmimain.lo pspmi_la-pmispawn.lo \
-	pspmi_la-pmikvs.lo pspmi_la-pmiclientspawn.lo
+	pspmi_la-pmikvs.lo
 pspmi_la_OBJECTS = $(am_pspmi_la_OBJECTS)
 AM_V_lt = $(am__v_lt_@AM_V@)
 am__v_lt_ = $(am__v_lt_@AM_DEFAULT_V@)
@@ -166,7 +166,6 @@ DEFAULT_INCLUDES = -I.@am__isrc@
 depcomp = $(SHELL) $(top_srcdir)/scripts/depcomp
 am__maybe_remake_depfiles = depfiles
 am__depfiles_remade = ./$(DEPDIR)/pspmi_la-pmiclient.Plo \
-	./$(DEPDIR)/pspmi_la-pmiclientspawn.Plo \
 	./$(DEPDIR)/pspmi_la-pmiforwarder.Plo \
 	./$(DEPDIR)/pspmi_la-pmikvs.Plo \
 	./$(DEPDIR)/pspmi_la-pmilog.Plo \
@@ -415,8 +414,7 @@ plugin_LTLIBRARIES = pspmi.la
 libplugincommon = $(top_builddir)/lib/plugincommon/libplugincommon.la
 pspmi_la_SOURCES = pmiclient.c pmiclient.h pmiforwarder.c	\
 	pmiforwarder.h pmilog.c pmilog.h pmimain.c pmispawn.c	\
-	pmispawn.h pmikvs.h pmikvs.c pmiclientspawn.c		\
-	pmiclientspawn.h pmitypes.h pspmihandles.h
+	pmispawn.h pmikvs.h pmikvs.c pmitypes.h pspmihandles.h
 
 pspmi_la_CPPFLAGS = $(AM_CPPFLAGS) -DPLUGINDIR=\"$(plugindir)\" \
 	-DPKGLIBEXECDIR=\"$(pkglibexecdir)\"
@@ -502,7 +500,6 @@ distclean-compile:
 	-rm -f *.tab.c
 
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/pspmi_la-pmiclient.Plo@am__quote@ # am--include-marker
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/pspmi_la-pmiclientspawn.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/pspmi_la-pmiforwarder.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/pspmi_la-pmikvs.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/pspmi_la-pmilog.Plo@am__quote@ # am--include-marker
@@ -580,13 +577,6 @@ pspmi_la-pmikvs.lo: pmikvs.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='pmikvs.c' object='pspmi_la-pmikvs.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(pspmi_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o pspmi_la-pmikvs.lo `test -f 'pmikvs.c' || echo '$(srcdir)/'`pmikvs.c
-
-pspmi_la-pmiclientspawn.lo: pmiclientspawn.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(pspmi_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT pspmi_la-pmiclientspawn.lo -MD -MP -MF $(DEPDIR)/pspmi_la-pmiclientspawn.Tpo -c -o pspmi_la-pmiclientspawn.lo `test -f 'pmiclientspawn.c' || echo '$(srcdir)/'`pmiclientspawn.c
-@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/pspmi_la-pmiclientspawn.Tpo $(DEPDIR)/pspmi_la-pmiclientspawn.Plo
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='pmiclientspawn.c' object='pspmi_la-pmiclientspawn.lo' libtool=yes @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(pspmi_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o pspmi_la-pmiclientspawn.lo `test -f 'pmiclientspawn.c' || echo '$(srcdir)/'`pmiclientspawn.c
 
 mostlyclean-libtool:
 	-rm -f *.lo
@@ -722,7 +712,6 @@ clean-am: clean-generic clean-libtool clean-pluginLTLIBRARIES \
 
 distclean: distclean-am
 		-rm -f ./$(DEPDIR)/pspmi_la-pmiclient.Plo
-	-rm -f ./$(DEPDIR)/pspmi_la-pmiclientspawn.Plo
 	-rm -f ./$(DEPDIR)/pspmi_la-pmiforwarder.Plo
 	-rm -f ./$(DEPDIR)/pspmi_la-pmikvs.Plo
 	-rm -f ./$(DEPDIR)/pspmi_la-pmilog.Plo
@@ -774,7 +763,6 @@ installcheck-am:
 
 maintainer-clean: maintainer-clean-am
 		-rm -f ./$(DEPDIR)/pspmi_la-pmiclient.Plo
-	-rm -f ./$(DEPDIR)/pspmi_la-pmiclientspawn.Plo
 	-rm -f ./$(DEPDIR)/pspmi_la-pmiforwarder.Plo
 	-rm -f ./$(DEPDIR)/pspmi_la-pmikvs.Plo
 	-rm -f ./$(DEPDIR)/pspmi_la-pmilog.Plo
