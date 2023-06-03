@@ -155,19 +155,10 @@ static void forward2Sattach(char *msg, uint32_t msgLen, uint32_t grank,
 
 static void msg2Buffer(char *msg, uint32_t msgLen, uint32_t grank, uint8_t type)
 {
-    RingMsgBuffer_t *rBuf;
-    int stype;
-
-    /*
-    mlog("%s: msgLen:%u ringBufLast:%u ringBufStart:%u\n", __func__, msgLen,
-	    ringBufLast, ringBufStart);
-    */
-
     if (!msgLen) return;
 
-    stype = (type == STDOUT) ?  SLURM_IO_STDOUT : SLURM_IO_STDERR;
-
-    rBuf = &ringBuf[ringBufLast];
+    int stype = (type == STDOUT) ?  SLURM_IO_STDOUT : SLURM_IO_STDERR;
+    RingMsgBuffer_t *rBuf = &ringBuf[ringBufLast];
     rBuf->grank = grank;
     rBuf->type = stype;
     if (rBuf->msgLen < msgLen) {
@@ -193,14 +184,9 @@ static void IO_writeMsg(Forwarder_Data_t *fwdata, char *msg, uint32_t msgLen,
     fdbg(PSSLURM_LOG_IO, "msgLen %u grank %u type %s(%u) local rank %u "
 	    "sattach %i\n", msgLen, grank, PSLog_printMsgType(type), type,
 	    lrank, sattachCon);
-    /*
-    if (msgLen>0) {
-	mdbg(PSSLURM_LOG_IO, "%s: msg: '%.*s'\n", __func__, msgLen, msg);
-    }
-    */
 
     /* discard output from exiting ranks for steps with pty */
-    if (step->taskFlags & LAUNCH_PTY && grank >0) return;
+    if (step->taskFlags & LAUNCH_PTY && grank > 0) return;
 
     /* forward the message to all sattach processes */
     if (sattachCon > 0) forward2Sattach(msgPtr, msgLen, grank, type);
