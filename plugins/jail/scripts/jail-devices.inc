@@ -46,8 +46,6 @@ function setDev()
     local ACTION=$1
     local DEV=$2
 
-    local DEBUG=1
-
     dlog "$DEV > $CG_JOB/$ACTION"
     cgWrite "$DEV" "$CG_JOB/$ACTION"
 
