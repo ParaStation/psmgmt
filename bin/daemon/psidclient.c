@@ -1134,6 +1134,7 @@ int PSIDclient_setMax(int max)
     if (oldMax >= max) return 0; /* don't shrink */
 
     maxClientFD = max;
+    size_t oldClients = (size_t)clients;
     client_t *newClients = realloc(clients, sizeof(*clients) * maxClientFD);
     if (!newClients) {
 	PSID_warn(-1, ENOMEM, "%s", __func__);
@@ -1145,9 +1146,13 @@ int PSIDclient_setMax(int max)
     /* Restore old lists if necessary */
     if (newClients != clients) {
 	for (int fd = 0; fd < oldMax; fd++) {
-	    list_fix(&newClients[fd].msgs, &clients[fd].msgs);
+	    size_t oldClnt = oldClients + fd * sizeof(client_t);
+	    void *oldHead = (void *)(oldClnt + offsetof(client_t, msgs));
+	    list_fix(&newClients[fd].msgs, oldHead);
 	    for (int h = 0; h < FLWCNTRL_HASH_SIZE; h++) {
-		list_fix(&newClients[fd].stops[h], &clients[fd].stops[h]);
+		void *oldStop = (void *)(oldClnt + offsetof(client_t, stops)
+					 + h * sizeof(PSIDFlwCntrl_hash_t));
+		list_fix(&newClients[fd].stops[h], oldStop);
 	    }
 	}
     }

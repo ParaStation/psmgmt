@@ -150,6 +150,7 @@ int PSIDnodes_grow(PSnodes_ID_t num)
     }
 
     numNodes = num;
+    size_t oldNodes = (size_t) nodes;
     node_t *newNodes = realloc(nodes, sizeof(*nodes) * numNodes);
     if (!newNodes) {
 	PSID_warn(-1, ENOMEM, "%s", __func__);
@@ -160,10 +161,15 @@ int PSIDnodes_grow(PSnodes_ID_t num)
     /* Restore old lists if necessary */
     if (newNodes != nodes) {
 	for (int i = 0; i < oldNum; i++) {
-	    list_fix(&newNodes[i].uid_list, &nodes[i].uid_list);
-	    list_fix(&newNodes[i].gid_list, &nodes[i].gid_list);
-	    list_fix(&newNodes[i].admuid_list, &nodes[i].admuid_list);
-	    list_fix(&newNodes[i].admgid_list, &nodes[i].admgid_list);
+	    size_t oldNode = oldNodes + i * sizeof(node_t);
+	    list_fix(&newNodes[i].uid_list,
+		     (void *)(oldNode + offsetof(node_t, uid_list)));
+	    list_fix(&newNodes[i].gid_list,
+		     (void *)(oldNode + offsetof(node_t, gid_list)));
+	    list_fix(&newNodes[i].admuid_list,
+		     (void *)(oldNode + offsetof(node_t, admuid_list)));
+	    list_fix(&newNodes[i].admgid_list,
+		     (void *)(oldNode + offsetof(node_t, admgid_list)));
 	}
     }
     /* Initialize new nodes */
