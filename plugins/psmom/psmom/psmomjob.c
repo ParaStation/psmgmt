@@ -850,17 +850,16 @@ void cleanJobByNode(PSnodes_ID_t id)
     list_t *j, *tmp;
     list_for_each_safe(j, tmp, &jobList) {
 	Job_t *job = list_entry(j, Job_t, next);
-	int i;
-
 	if (job->state != JOB_PROLOGUE && job->state != JOB_EPILOGUE
 	    && job->state != JOB_RUNNING  && job->state != JOB_CANCEL_PROLOGUE
 	    && job->state != JOB_CANCEL_EPILOGUE) continue;
 
-	for (i=0; i<job->nrOfUniqueNodes; i++) {
+	for (int i = 0; i < job->nrOfUniqueNodes; i++) {
 	    if (job->nodes[i].id != id) continue;
 
 	    mlog("%s: node %s(%i) died: job '%s' jstate '%s' affected \n",
-		 __func__, hname, id, job->id, jobState2String(job->state));
+		 __func__, hname ? hname : "<unknown>", id, job->id,
+		 jobState2String(job->state));
 
 	    /* tell the PBS server that the node is down */
 	    if (hname) setPBSNodeState(job->server, NULL, "down", hname);
