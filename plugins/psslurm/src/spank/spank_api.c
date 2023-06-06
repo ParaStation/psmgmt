@@ -71,6 +71,12 @@ bool psSpank_Init(bool verbose)
 	return false;
     }
 
+    psSpankPrependArgv = dlsym(pluginHandle, "psSpankPrependArgv");
+    if (!psSpankPrependArgv) {
+	mlog("%s: loading psSpankPrependArgv() failed\n", __func__);
+	return false;
+    }
+
     psSpankSymbolSup = dlsym(pluginHandle, "psSpankSymbolSup");
     if (!psSpankSymbolSup) {
 	mlog("%s: loading psSpankSymbolSup() failed\n", __func__);
@@ -368,7 +374,7 @@ spank_err_t spank_job_control_setenv (spank_t sp, const char *name,
  *     ESPANK_NOT_LOCAL   = not called in local context
  */
 spank_err_t spank_job_control_getenv (spank_t sp, const char *name,
-                                      char *buf, int len)
+				      char *buf, int len)
 {
     if (!sp || !name || !buf || len <=0) return ESPANK_BAD_ARG;
     return ESPANK_NOT_LOCAL;
@@ -385,4 +391,24 @@ spank_err_t spank_job_control_unsetenv (spank_t sp, const char *name)
 {
     if (!sp || !name) return ESPANK_BAD_ARG;
     return ESPANK_NOT_LOCAL;
+}
+
+/*
+ *  Prepend the argument vector "argv" of length "argc" to the
+ *  argument vector of the task to be spawned
+ *  This function can be invoked from the following functions to take effect:
+ *  slurm_spank_task_init_privileged, and slurm_spank_task_init.
+ *
+ *  Returns ESPANK_SUCCESS on success, o/w spank_err_t on failure:
+ *    ESPANK_BAD_ARG   = spank handle invalid or argv is NULL.
+ *    ESPANK_NOT_TASK  = called from outside a task context.
+ *    ESPANK_NOSPACE   = no memory available to expand argument vector.
+ */
+
+spank_err_t spank_prepend_task_argv (spank_t spank, const unsigned int argc,
+				     const char *argv[])
+{
+    if (!spank || !argv) return ESPANK_BAD_ARG;
+
+    return psSpankPrependArgv(spank, argc, argv);
 }

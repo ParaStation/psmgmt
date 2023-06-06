@@ -32,6 +32,7 @@ psSpankSetenv_t *psSpankSetenv;
 psSpankGetenv_t *psSpankGetenv;
 psSpankUnsetenv_t *psSpankUnsetenv;
 psSpankGetItem_t *psSpankGetItem;
+psSpankPrependArgv_t *psSpankPrependArgv;
 psSpankSymbolSup_t *psSpankSymbolSup;
 psSpankGetContext_t *psSpankGetContext;
 psSpankOptRegister_t *psSpankOptRegister;

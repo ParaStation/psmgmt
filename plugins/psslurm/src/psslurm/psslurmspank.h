@@ -71,7 +71,7 @@ struct spank_handle {
     Spank_Plugin_t *plugin;  /**< spank plugin currently executed */
     unsigned int context;    /**< spank context */
     SPANK_envSet_t *envSet;  /**< function which sets step environment
-			          of mother psid */
+				of mother psid */
     SPANK_envUnset_t *envUnset; /**< function which unsets step environment
 				     of mother psid */
 };
@@ -181,13 +181,16 @@ bool SpankTraversePlugins(SpankVisitor_t visitor, const void *info);
  **/
 
 spank_err_t psSpankSetenv(spank_t spank, const char *var, const char *val,
-                          int overwrite);
+			  int overwrite);
 
 spank_err_t psSpankGetenv(spank_t spank, const char *var, char *buf, int len);
 
 spank_err_t psSpankUnsetenv(spank_t spank, const char *var);
 
 spank_err_t psSpankGetItem(spank_t spank, spank_item_t item, va_list ap);
+
+spank_err_t pspSpankPrependArgv(spank_t spank, const uint32_t argc,
+				const char *argv[]);
 
 int psSpankSymbolSup(const char *symbol);
 

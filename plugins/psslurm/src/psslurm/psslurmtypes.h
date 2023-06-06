@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2017-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021 ParTec AG, Munich
+ * Copyright (C) 2021-2023 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -13,6 +13,7 @@
 
 #ifdef HAVE_SPANK
 #include <stdarg.h>
+#include <stdint.h>
 #endif
 
 #include "psslurmmsg.h"
@@ -101,6 +102,8 @@ typedef spank_err_t psSpankGetenv_t(spank_t, const char *, char *buf, int len);
 typedef spank_err_t psSpankUnsetenv_t(spank_t, const char *);
 
 typedef spank_err_t psSpankGetItem_t(spank_t, spank_item_t, va_list);
+
+typedef spank_err_t psSpankPrependArgv_t(spank_t, const uint32_t, const char *[]);
 
 typedef int psSpankSymbolSup_t(const char *);
 
