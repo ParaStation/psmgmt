@@ -1322,11 +1322,11 @@ static int createPartition(PSpart_request_t *request, sortlist_t *candidates)
     }
 
     if (curSlot < numRequested) {
-	request->slots = realloc(slots, curSlot * sizeof(*slots));
-	if (!request->slots) free(slots);
-    } else {
-	request->slots = slots;
+	PSpart_slot_t *bak = slots;
+	slots = realloc(slots, curSlot * sizeof(*slots));
+	if (!slots) free(bak);
     }
+    request->slots = slots;
 
     /* Adapt to the actual partition size */
     request->size = curSlot;
