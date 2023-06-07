@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2017-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2022 ParTec AG, Munich
+ * Copyright (C) 2021-2023 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -463,6 +463,8 @@ static void setupCommonEnv(Conf_t *conf)
 	    snprintf(tmp, sizeof(tmp), "%d", conf->exec[i].resID);
 	    setPSIEnv(var, tmp, 1);
 	}
+
+	setPSIEnv("PSPMIX_ENV_TMOUT", getenv("PSPMIX_ENV_TMOUT"), 1);
     }
 
     /* unset PSI_LOOP_NODES_FIRST in PSI env which is only needed for OpenMPI */

@@ -360,10 +360,16 @@ static int hookExecForwarder(void *data)
 	return -1;
     }
 
-    /* block until PMIx environment is set */
-    struct timeval timeout;
-    timeout.tv_sec = 3;
-    timeout.tv_usec = 0;
+    /* block until PMIx environment is set with some timeout */
+    uint32_t tmout = 3;
+    char *tmoutStr = envGet(&env, "PSPMIX_ENV_TMOUT");
+    if (tmoutStr && *tmoutStr) {
+	char *end;
+	long tmp = strtol(tmoutStr, &end, 0);
+	if (! *end && tmp >= 0) tmout = tmp;
+	mlog("%s(r%d): timeout is %d\n", __func__, rank, tmout);
+    }
+    struct timeval timeout = { .tv_sec = tmout, .tv_usec = 0 };
     if (!readClientPMIxEnvironment(childTask->fd, timeout)) return -1;
 
     finalizeSerial();

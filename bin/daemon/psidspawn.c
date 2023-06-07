@@ -845,8 +845,7 @@ static void execForwarder(PStask_t *task)
     setenv("PWD", task->workingdir, 1);
 
     if (task->environ) {
-	int i;
-	for (i=0; task->environ[i]; i++) {
+	for (int i = 0; task->environ[i]; i++) {
 	    putenv(strdup(task->environ[i]));
 	}
     }

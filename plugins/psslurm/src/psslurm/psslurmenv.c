@@ -1122,6 +1122,7 @@ static void setCommonRankEnv(int32_t rank, Step_t *step)
 	if (!(strncmp(step->env.vars[i], "PMI_BARRIER_ROUNDS=", 19))) continue;
 	if (!strncmp(step->env.vars[i], "PMIX_", 5)
 		&& strncmp(step->env.vars[i], "PMIX_MCA_", 9)) continue;
+	if (!(strncmp(step->env.vars[i], "PSPMIX_ENV_TMOUT=", 17))) continue;
 	if (!(strncmp(step->env.vars[i], "PSP_SMP_NODE_ID=", 16))) continue;
 
 	putenv(step->env.vars[i]);
@@ -1252,6 +1253,7 @@ void removeUserVars(env_t *env, pmi_type_t pmi_type)
 	if (pmi_type == PMI_TYPE_PMIX) {
 	    if (!strncmp(env->vars[i], "PMIX_DEBUG", 10)) continue;
 	    if (!strncmp(env->vars[i], "PMIX_SPAWNED", 12)) continue;
+	    if (!strncmp(env->vars[i], "PSPMIX_ENV_TMOUT=", 17)) continue;
 	}
 	if (!strncmp(env->vars[i], "__PSID_", 7)) continue;
 
