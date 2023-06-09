@@ -510,6 +510,13 @@ void setJailEnv(const env_t *env, const char *user, const PSCPU_set_t *stepcpus,
 
     if (user) setenv("__PSJAIL_USER", user, 1);
 
+    if (gresList) setJailDevEnv(gresList, localNodeId);
+
+    if (cred) setJailMemEnv(cred, localNodeId);
+}
+
+void setGlobalJailEnvironment(void)
+{
     char *c = getConfValueC(SlurmCgroupConfig, "ConstrainCores");
     if (c) setenv("__PSJAIL_CONSTRAIN_CORES", c, 1);
 
@@ -524,10 +531,6 @@ void setJailEnv(const env_t *env, const char *user, const PSCPU_set_t *stepcpus,
 
     c = getConfValueC(SlurmCgroupConfig, "ConstrainSwapSpace");
     if (c) setenv("__PSJAIL_CONSTRAIN_SWAP", c, 1);
-
-    if (gresList) setJailDevEnv(gresList, localNodeId);
-
-    if (cred) setJailMemEnv(cred, localNodeId);
 }
 
 /**

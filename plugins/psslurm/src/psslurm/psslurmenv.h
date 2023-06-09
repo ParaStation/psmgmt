@@ -49,7 +49,7 @@ bool initEnvFilter(void);
 void freeEnvFilter(void);
 
 /**
- * @brief Initialize the jail environment
+ * @brief Initialize the job/user specific jail environment
  *
  * Set variables used by the jail scripts.
  * This function is used by the psslurm forwarder.
@@ -65,6 +65,14 @@ void freeEnvFilter(void);
 void setJailEnv(const env_t *env, const char *user, const PSCPU_set_t *stepcpus,
 		const PSCPU_set_t *jobcpus, list_t *gresList, JobCred_t *cred,
 		uint32_t localNodeId);
+
+/**
+ * @brief Initialize global jail environment
+ *
+ * The global jail configuration is set by psslurm at startup
+ * in the main psid so all children may access it.
+ */
+void setGlobalJailEnvironment(void);
 
 /**
  * @brief Initialize a job environment

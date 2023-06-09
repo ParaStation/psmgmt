@@ -33,6 +33,7 @@
 
 #include "psslurmlog.h"
 #include "psslurmgres.h"
+#include "psslurmenv.h"
 #include "psslurmtopo.h"
 #ifdef HAVE_SPANK
 #include "psslurmspank.h"
@@ -1557,6 +1558,7 @@ bool parseSlurmConfigFiles(void)
     } else {
 	setConfigDefaults(SlurmCgroupConfig, cgroupDef);
     }
+    setGlobalJailEnvironment();
 
 #ifdef HAVE_SPANK
     /* parse optional plugstack.conf holding spank plugins */
@@ -1776,6 +1778,7 @@ bool updateSlurmConf(void)
 	initSlurmConfig(&SlurmCgroupConfig);
 	setConfigDefaults(SlurmCgroupConfig, cgroupDef);
     }
+    setGlobalJailEnvironment();
 
     return true;
 }
