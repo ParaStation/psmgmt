@@ -2498,6 +2498,11 @@ int PSIDspawn_fillTaskFromResInfo(PStask_t *task, PSresinfo_t *res)
 	return EADDRNOTAVAIL;
     }
 
+    if (!res->localSlots) {
+	PSID_log(-1, "%s: no local slots in res %d\n", __func__, res->resID);
+	return EADDRNOTAVAIL;
+    }
+
     /* try to fill the CPUset */
     for (uint16_t s = 0; s < res->nLocalSlots; s++) {
 	if (task->rank != res->localSlots[s].rank) continue;
