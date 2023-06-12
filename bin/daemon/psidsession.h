@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2022 ParTec AG, Munich
+ * Copyright (C) 2022-2023 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -16,6 +16,7 @@
 
 #include <stdbool.h>
 #include <stdint.h>
+#include <time.h>
 
 #include "list.h"
 #include "psnodes.h"
@@ -40,6 +41,7 @@ typedef struct {
 typedef struct {
     list_t next;               /**< used to put into PSjob_t.resInfos */
     PSrsrvtn_ID_t resID;       /**< unique reservation identifier */
+    time_t creation;           /**< creation time of this info item */
     int32_t minRank;           /**< minimum rank in this reservation */
     int32_t maxRank;           /**< maximum rank in this reservation */
     uint32_t nEntries;         /**< Number of entries in @ref entries */
@@ -52,6 +54,7 @@ typedef struct {
 typedef struct {
     list_t next;             /**< used to put into PSsession_t.jobs */
     PStask_ID_t spawnertid;  /**< spawner's tid, unique job identifier */
+    time_t creation;         /**< creation time of this job */
     list_t resInfos;         /**< reservations in this job (PSresinfo_t) */
 } PSjob_t;
 
@@ -59,6 +62,7 @@ typedef struct {
 typedef struct {
     list_t next;             /**< used to put into localSessions */
     PStask_ID_t loggertid;   /**< logger's tid, unique session identifier */
+    time_t creation;         /**< creation time of this session */
     list_t jobs;             /**< jobs in this session (PSjob_t) */
 } PSsession_t;
 

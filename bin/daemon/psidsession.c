@@ -43,9 +43,10 @@ static LIST_HEAD(localSessions);
 PSresinfo_t *getResinfo(void)
 {
     PSresinfo_t *resinfo = PSitems_getItem(resinfoPool);
-    resinfo->nEntries = 0;
+    resinfo->creation = time(NULL);
     resinfo->minRank = 0;
     resinfo->maxRank = 0;
+    resinfo->nEntries = 0;
     resinfo->entries = NULL;
     resinfo->localSlots = NULL;
 
@@ -96,6 +97,7 @@ static void putResinfo(PSresinfo_t *resinfo)
 PSjob_t *getJob(void)
 {
     PSjob_t *job = PSitems_getItem(jobPool);
+    job->creation = time(NULL);
     INIT_LIST_HEAD(&job->resInfos);
 
     return job;
@@ -124,6 +126,7 @@ static void putJob(PSjob_t *job)
 PSsession_t *getSession(void)
 {
     PSsession_t *session = PSitems_getItem(sessionPool);
+    session->creation = time(NULL);
     INIT_LIST_HEAD(&session->jobs);
 
     return session;
