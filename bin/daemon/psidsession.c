@@ -238,32 +238,39 @@ PSsession_t* PSID_findSessionByLoggerTID(PStask_ID_t loggerTID)
 /**
  * @brief Try to add reservation to job
  *
- * If the reservation already exists and is identical, it is simply ignored,
- * if it is not the same, it is ignored and a warning is logged.
- *
+ * If a reservation with the same ID already exists, it will be
+ * dropped. Adding @a res to the job @a job will always be
+ * successful.
+ **
  * @param job   job to add the reservation to
  * @param res   reservation to add
  *
- * @return Returns true if the reservation is added to the job, false if not
+ * @return No return value
  */
-static bool addReservationToJob(PSjob_t *job, PSresinfo_t *res)
+static void addReservationToJob(PSjob_t *job, PSresinfo_t *res)
 {
-    list_t *r;
-    list_for_each(r, &job->resInfos) {
+    list_t *r, *tmp;
+    list_for_each_safe(r, tmp, &job->resInfos) {
 	PSresinfo_t *cur = list_entry(r, PSresinfo_t, next);
 	if (cur->resID != res->resID) continue;
-	if (cur->nEntries != res->nEntries || cur->minRank != res->minRank
-	    || cur->maxRank != res->maxRank) {
-	    PSID_log(-1, "%s: Reservation %d already known but differs,"
-		     " this should never happen\n", __func__, res->resID);
+
+	PSID_log(-1, "%s: Drop remnant reservation %d created at %s,"
+		 " this should never happen:\n", __func__, cur->resID,
+		 ctime(&cur->creation));
+	PSID_log(-1, "\tminRank %d maxRank %d with %u entries:", cur->minRank,
+		 cur->maxRank, cur->nEntries);
+	for (uint32_t i = 0; i < cur->nEntries; i++) {
+	    PSID_log(-1, " (%d, %d, %d)", cur->entries[i].node,
+		     cur->entries[i].firstrank, cur->entries[i].lastrank);
 	}
-	/* Note: Could also check all entries, but that may be overkill? */
-	return false;
+	PSID_log(-1, "\n\tbelonging to job %s created at %s\n",
+		 PSC_printTID(job->spawnertid), ctime(&job->creation));
+
+	list_del(&cur->next);
+	putResinfo(cur);
     }
 
     list_add_tail(&res->next, &job->resInfos);
-
-    return true;
 }
 
 /**
@@ -427,24 +434,10 @@ static void handleResCreated(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
     }
 
     /* try to add reservation to job */
-    if (!addReservationToJob(job, res)) {
-	PSID_log(PSID_LOG_SPAWN, "%s: Reservation %d exists (spawner %s",
-		__func__, resID, PSC_printTID(spawnerTID));
-	PSID_log(PSID_LOG_SPAWN, " logger %s)\n", PSC_printTID(loggerTID));
-	if (sessionCreated) {
-	    list_del(&session->next);
-	    putSession(session);
-	} else if (jobCreated) {
-	    list_del(&job->next);
-	    putJob(job);
-	}
-	putResinfo(res);
-	return;
-    } else {
-	PSID_log(PSID_LOG_SPAWN, "%s: Reservation %d added (spawner %s",
-		__func__, resID, PSC_printTID(spawnerTID));
-	PSID_log(PSID_LOG_SPAWN, " logger %s)\n", PSC_printTID(loggerTID));
-    }
+    addReservationToJob(job, res);
+    PSID_log(PSID_LOG_SPAWN, "%s: Reservation %d added (spawner %s",
+	     __func__, resID, PSC_printTID(spawnerTID));
+    PSID_log(PSID_LOG_SPAWN, " logger %s)\n", PSC_printTID(loggerTID));
 
     /* Give plugins the option to react on job creation */
     if (jobCreated) PSIDhook_call(PSIDHOOK_LOCALJOBCREATED, job);
