@@ -414,15 +414,15 @@ int parser_getNumber(char *token, long *val);
 char* parser_getFilename(char* token, char* prefix, char* extradir);
 
 /**
- * @brief Get a hostname.
+ * @brief Get a hostname
  *
  * Get a hostname (i.e. a whitespace delimited string) from the
- * character array @a token and test if it can be resolved.
+ * character string @a token and test if it can be resolved.
  *
- * @param token The character array that contains the hostname.
+ * @param token Character string containing the hostname
  *
  * @return On success, the resolved IP address of the hostname is
- * returned. Or 0, if an error occurred.
+ * returned; or 0 if an error occurred
  */
 in_addr_t parser_getHostname(const char* token);
 
