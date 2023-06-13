@@ -2109,7 +2109,7 @@ Enhancements:
  - Replace obsolete gethostbyaddr() by getnameinfo() (#2589)
  - Replace obsoletet gethostbyname() by getaddrinfo() again (#654)
  - Don't let psidclient and psidcomm spoil the global namespace
- - Initialize fragmentation layer explicitely in psmom
+ - Initialize fragmentation layer explicitly in psmom
 
 Additional changes:
  - More booleanization
@@ -2850,7 +2850,7 @@ Enhancements:
  - Better error-message from mpiexec, if spawning of service-process failed.
  - More detailed messages on late receives in psilogger.
  - Improve testing on failed initialization of loggers.
- - Initialize timer facility explicitely (#799).
+ - Initialize timer facility explicitly (#799).
 
 Additional changes:
  - Remove extra debug in context of #442.
@@ -2919,7 +2919,7 @@ Enhancements:
  - Improved logging from RDP's state-machine.
  - psaccview: new option --last_days to show the last x days of accounting data.
  - psaccview: new option --timeout will stop parsing if the timeout is reached.
- - Allow service-tasks to explicitely request signals on children's end (#554).
+ - Allow service-tasks to explicitly request signals on children's end (#554).
 
 Additional changes:
  - If core-dumps are enabled, psid does not catch SIGBUS any longer.

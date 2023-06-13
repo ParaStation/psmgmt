@@ -347,7 +347,7 @@ int PStask_decodeTask(char *buffer, PStask_t *task, bool withWdir);
  * Send task structure @a task via the serialization layer utilizing
  * the data buffer @a msg. Only the core members of @a task will be
  * sent. Further parts like the argument vector or the environment are
- * omitted and have to be added explicitely via @ref addStringArray().
+ * omitted and have to be added explicitly via @ref addStringArray().
  *
  * @a msg has to be setup before in order to provide the message type,
  * the destination address, etc.

@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2017-2019 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2022 ParTec AG, Munich
+ * Copyright (C) 2021-2023 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -1114,7 +1114,7 @@ Conf_t * parseCmdOptions(int argc, const char *argv[])
     if (!envStr) envStr = getenv("OMP_NUM_THREADS");
     if (envStr) {
 	envtpp = strtol(envStr, NULL, 0);
-	/* Propagate explicitely since PSI_* is not */
+	/* Propagate explicitly since PSI_* is not */
 	setPSIEnv("PSI_TPP", envStr, 1);
     }
     conf->maxTPP = 1;

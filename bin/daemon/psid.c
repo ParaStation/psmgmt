@@ -646,7 +646,7 @@ int main(int argc, const char *argv[])
     if (!Selector_isInitialized()) Selector_init(logfile);
     PSID_registerLoopAct(Selector_gc);
 
-    /* Initialize timer facility explicitely to ensure correct logging */
+    /* Initialize timer facility explicitly to ensure correct logging */
     if (!Timer_isInitialized()) Timer_init(logfile);
 
     /*

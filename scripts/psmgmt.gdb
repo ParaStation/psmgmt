@@ -2,7 +2,7 @@
 # ParaStation
 #
 # Copyright (C) 2011-2021 ParTec Cluster Competence Center GmbH, Munich
-# Copyright (C) 2021-2022 ParTec AG, Munich
+# Copyright (C) 2021-2023 ParTec AG, Munich
 #
 # This file may be distributed under the terms of the Q Public License
 # as defined in the file LICENSE.QPL included in the packaging of this
@@ -89,7 +89,7 @@ Print list defined with the help of the Linux kernel's list.h.
 
 LISTHEAD is the corresponding anchor of the list. It is assumed, that
 each element of the list is of type TYPE. If TYPE is not given
-explicitely, PStask_t is the assumed type. If the optional argument
+explicitly, PStask_t is the assumed type. If the optional argument
 NUM is given, the first NUM elements will be displayed. Otherwise only
 the first element will be printed.
 
@@ -135,7 +135,7 @@ Print list defined with the help of the Linux kernel's list.h.
 
 LISTHEAD is the corresponding anchor of the list. It is assumed, that
 each element of the list is of type TYPE. If TYPE is not given
-explicitely, PStask_t is the assumed type. If the optional argument
+explicitly, PStask_t is the assumed type. If the optional argument
 NUM is given, the first NUM elements will be displayed. Otherwise only
 the first element will be printed.
 
@@ -218,7 +218,7 @@ elements.
 
 ARRAY is the name of the array to look at. Each array element is
 assumed to be structured and to contain a list within the entry named
-ENTRY. If ENTRY is not given explicitely, 'list' is the assumed
+ENTRY. If ENTRY is not given explicitly, 'list' is the assumed
 entry-name. If the optional argument NUM is given, the first NUM array
 elements will be displayed. Otherwise only the first five elements
 will be printed. If furthermore FIRST is given, handling ARRAY will
