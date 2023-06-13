@@ -749,52 +749,42 @@ int main(int argc, const char *argv[])
     /*
      * Prepare hostlist to initialize RDP and MCast
      */
-    {
-	in_addr_t *hostlist;
-	int i;
+    in_addr_t *hostlist = malloc(PSC_getNrOfNodes() * sizeof(*hostlist));
+    if (!hostlist) PSID_exit(errno, "Failed to get memory for hostlist");
 
-	hostlist = malloc(PSC_getNrOfNodes() * sizeof(unsigned int));
-	if (!hostlist) {
-	    PSID_exit(errno, "Failed to get memory for hostlist");
-	}
-
-	for (i=0; i<PSC_getNrOfNodes(); i++) {
-	    hostlist[i] = PSIDnodes_getAddr(i);
-	}
-
-	if (PSID_config->useMCast) {
-	    /* Initialize MCast */
-	    int MCastSock = initMCast(PSC_getNrOfNodes(),
-				      PSID_config->MCastGroup,
-				      PSID_config->MCastPort,
-				      logfile, hostlist,
-				      PSC_getMyID(), MCastCallBack);
-	    if (MCastSock<0) {
-		PSID_exit(errno, "Error while trying initMCast");
-	    }
-	    setDeadLimitMCast(PSID_config->deadInterval);
-
-	    PSID_log(-1, "MCast and ");
-	} else {
-	    setStatusTimeout(PSID_config->statusTimeout);
-	    setMaxStatBCast(PSID_config->statusBroadcasts);
-	    setDeadLimit(PSID_config->deadLimit);
-	    setTmOutRDP(PSID_config->RDPTimeout);
-	}
-
-	/* Initialize RDP */
-	int RDPSocket = RDP_init(PSC_getNrOfNodes(),
-				 PSIDnodes_getAddr(PSC_getMyID()),
-				 PSID_config->RDPPort, logfile, hostlist,
-				 PSIDRDP_handleMsg, RDPCallBack);
-	if (RDPSocket < 0) {
-	    PSID_exit(errno, "Error while trying to initialize RDP");
-	}
-
-	PSID_log(-1, "RDP (%d) initialized.\n", RDPSocket);
-
-	free(hostlist);
+    for (int i = 0; i < PSC_getNrOfNodes(); i++) {
+	hostlist[i] = PSIDnodes_getAddr(i);
     }
+
+    if (PSID_config->useMCast) {
+	/* Initialize MCast */
+	int MCastSock = initMCast(PSC_getNrOfNodes(),
+				  PSID_config->MCastGroup,
+				  PSID_config->MCastPort,
+				  logfile, hostlist,
+				  PSC_getMyID(), MCastCallBack);
+	if (MCastSock < 0) PSID_exit(errno, "Error while trying initMCast");
+
+	setDeadLimitMCast(PSID_config->deadInterval);
+
+	PSID_log(-1, "MCast and ");
+    } else {
+	setStatusTimeout(PSID_config->statusTimeout);
+	setMaxStatBCast(PSID_config->statusBroadcasts);
+	setDeadLimit(PSID_config->deadLimit);
+	setTmOutRDP(PSID_config->RDPTimeout);
+    }
+
+    /* Initialize RDP */
+    int RDPSocket = RDP_init(PSC_getNrOfNodes(),
+			     PSIDnodes_getAddr(PSC_getMyID()),
+			     PSID_config->RDPPort, logfile, hostlist,
+			     PSIDRDP_handleMsg, RDPCallBack);
+    if (RDPSocket < 0) PSID_exit(errno, "Error while trying to initialize RDP");
+
+    PSID_log(-1, "RDP (%d) initialized.\n", RDPSocket);
+
+    free(hostlist);
 
     /* Now start to listen for clients */
     PSID_enableMasterSock();

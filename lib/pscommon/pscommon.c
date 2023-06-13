@@ -823,7 +823,7 @@ int PSC_traverseHostInfo(const char *host, hostInfoVisitor_t visitor,
 			 void *info, bool *match)
 {
     struct addrinfo hints;
-    memset(&hints, 0, sizeof(struct addrinfo));
+    memset(&hints, 0, sizeof(hints));
     hints.ai_family = AF_UNSPEC;    /* Allow IPv4 or IPv6 */
     hints.ai_socktype = SOCK_DGRAM; /* Datagram socket */
     hints.ai_flags = 0;
