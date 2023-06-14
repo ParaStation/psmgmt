@@ -347,7 +347,7 @@ const ConfDef_t cgroupDef[] =
 	"upper limit of job's swap+RAM usage in percent of total RAM" },
     { "CgroupPlugin", 0,
 	"string",
-	"cgroup/v1",
+	"autodetect",
 	"version of cgroup subsystem to use" },
     { NULL, 0, NULL, NULL, NULL },
 };
