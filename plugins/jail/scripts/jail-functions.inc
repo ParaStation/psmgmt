@@ -15,26 +15,26 @@
 
 function mlog {
     if [ "$LOG_TO_SYSLOG" == 1 ]; then
-	logger --tag "psid-jail-$modName"  $1
+	logger --tag "psid-jail-$modName.$CGROUP_VERSION"  $1
     else
-	echo $(date) $modName[$CHILD]: $1
+	echo $(date) $modName.$CGROUP_VERSION-[$CHILD]: $1
     fi
 }
 
 function dlog {
     [ "$DEBUG" == "1" ] || return;
     if [ "$LOG_TO_SYSLOG" == 1 ]; then
-	logger --tag "psid-jail-$modName"  $1
+	logger --tag "psid-jail-$modName.$CGROUP_VERSION"  $1
     else
-	echo $(date) $modName[$CHILD]: $1
+	echo $(date) $modName.$CGROUP_VERSION-[$CHILD]: $1
     fi
 }
 
 function elog {
     if [ "$LOG_TO_SYSLOG" == 1 ]; then
-	logger --tag "psid-jail-$modName"  $1
+	logger --tag "psid-jail-$modName.$CGROUP_VERSION"  $1
     else
-	echo $(date) $modName[$CHILD]: $1 >&2
+	echo $(date) $modName.$CGROUP_VERSION-[$CHILD]: $1
     fi
     exit 1
 }
