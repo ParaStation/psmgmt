@@ -46,6 +46,13 @@
 #include "pspmixlog.h"
 #include "pspmixservice.h"
 
+/* PMIx' return code change on the move to version 4 of the standard */
+#if PMIX_VERSION_MAJOR < 4
+#define __PSPMIX_NOT_IMPLEMENTED PMIX_ERR_NOT_IMPLEMENTED
+#else
+#define __PSPMIX_NOT_IMPLEMENTED PMIX_ERR_NOT_SUPPORTED
+#endif
+
 /* allow walking throu the environment */
 extern char **environ;
 
@@ -908,7 +915,7 @@ static pmix_status_t server_publish_cb(const pmix_proc_t *proc,
     return PMIX_SUCCESS;
 #endif
 
-    return PMIX_ERR_NOT_IMPLEMENTED;
+    return __PSPMIX_NOT_IMPLEMENTED;
 }
 
 /* Lookup published data. The host server will be passed a NULL-terminated array
@@ -984,7 +991,7 @@ static pmix_status_t server_lookup_cb(const pmix_proc_t *proc, char **keys,
     return PMIX_SUCCESS;
 #endif
 
-    return PMIX_ERR_NOT_IMPLEMENTED;
+    return __PSPMIX_NOT_IMPLEMENTED;
 }
 
 /* Delete data from the data store. The host server will be passed a
@@ -1011,7 +1018,7 @@ static pmix_status_t server_unpublish_cb(const pmix_proc_t *proc, char **keys,
 
     // @todo implement
 
-    return PMIX_ERR_NOT_IMPLEMENTED;
+    return __PSPMIX_NOT_IMPLEMENTED;
 }
 
 /* Spawn a set of applications/processes as per the PMIx_Spawn API.
@@ -1036,7 +1043,7 @@ static pmix_status_t server_spawn_cb(const pmix_proc_t *proc,
 
     // @todo implement at highest priority
 
-    return PMIX_ERR_NOT_IMPLEMENTED;
+    return __PSPMIX_NOT_IMPLEMENTED;
 }
 
 /* Record the processes specified by the procs array as connected as per the
@@ -1062,7 +1069,7 @@ static pmix_status_t server_connect_cb(const pmix_proc_t procs[], size_t nprocs,
     // @todo implement
 
     /* not implemented yet */
-    return PMIX_ERR_NOT_IMPLEMENTED;
+    return __PSPMIX_NOT_IMPLEMENTED;
 }
 
 /* Disconnect a previously connected set of processes. The callback is to be
@@ -1090,7 +1097,7 @@ static pmix_status_t server_disconnect_cb(const pmix_proc_t procs[], size_t npro
     // @todo implement
 
     /* not implemented yet */
-    return PMIX_ERR_NOT_IMPLEMENTED;
+    return __PSPMIX_NOT_IMPLEMENTED;
 }
 
 /* Register to receive notifications for the specified status codes. The info
@@ -1116,7 +1123,7 @@ static pmix_status_t server_register_events_cb(pmix_status_t *codes, size_t ncod
     // @todo implement
 
     /* not implemented yet */
-    return PMIX_ERR_NOT_IMPLEMENTED;
+    return __PSPMIX_NOT_IMPLEMENTED;
 }
 
 /* Deregister to receive notifications for the specified events to which the
@@ -1132,7 +1139,7 @@ static pmix_status_t server_deregister_events_cb(pmix_status_t *codes, size_t nc
     // @todo implement
 
     /* not implemented yet */
-    return PMIX_ERR_NOT_IMPLEMENTED;
+    return __PSPMIX_NOT_IMPLEMENTED;
 }
 
 /* Notify the specified processes (described through a combination of range
@@ -1165,7 +1172,7 @@ static pmix_status_t server_notify_event_cb(pmix_status_t code,
     // @todo implement
 
     /* not implemented */
-    return PMIX_ERR_NOT_IMPLEMENTED;
+    return __PSPMIX_NOT_IMPLEMENTED;
 }
 
 #if 0
@@ -1185,7 +1192,7 @@ pspmix_server_listener_cb(int listening_sd,
     mdbg(PSPMIX_LOG_CALL, "%s()\n", __func__);
 
     /* not implemented */
-    return PMIX_ERR_NOT_IMPLEMENTED;
+    return __PSPMIX_NOT_IMPLEMENTED;
 }
 #endif
 
@@ -1221,7 +1228,7 @@ static pmix_status_t server_query_cb(pmix_proc_t *proc,
     charvDestroy(&query);
 
     /* not implemented */
-    return PMIX_ERR_NOT_IMPLEMENTED;
+    return __PSPMIX_NOT_IMPLEMENTED;
 }
 
 /* Register that a tool has connected to the server, possibly requesting that
@@ -1309,7 +1316,7 @@ static pmix_status_t server_alloc_cb(const pmix_proc_t *client,
 
     // @todo implement at low priority
 
-    return PMIX_ERR_NOT_IMPLEMENTED;
+    return __PSPMIX_NOT_IMPLEMENTED;
 }
 
 /* Execute a job control action on behalf of a client.
@@ -1339,7 +1346,7 @@ static pmix_status_t server_job_control_cb(const pmix_proc_t *requestor,
     mlog("%s: NOT IMPLEMENTED\n", __func__);
 
     /* not implemented */
-    return PMIX_ERR_NOT_IMPLEMENTED;
+    return __PSPMIX_NOT_IMPLEMENTED;
 }
 
 
@@ -1359,7 +1366,7 @@ static pmix_status_t server_monitor_cb(const pmix_proc_t *requestor,
     mlog("%s: NOT IMPLEMENTED\n", __func__);
 
     /* not implemented */
-    return PMIX_ERR_NOT_IMPLEMENTED;
+    return __PSPMIX_NOT_IMPLEMENTED;
 }
 
 /* Request a credential from the host environment. */
@@ -1377,7 +1384,7 @@ static pmix_status_t server_get_cred_cb(const pmix_proc_t *proc,
     mlog("%s: NOT IMPLEMENTED\n", __func__);
 
     /* not implemented */
-    return PMIX_ERR_NOT_IMPLEMENTED;
+    return __PSPMIX_NOT_IMPLEMENTED;
 }
 
 /* Request validation of a credential. */
@@ -1396,7 +1403,7 @@ static pmix_status_t server_validate_cred_cb(const pmix_proc_t *proc,
     mlog("%s: NOT IMPLEMENTED\n", __func__);
 
     /* not implemented */
-    return PMIX_ERR_NOT_IMPLEMENTED;
+    return __PSPMIX_NOT_IMPLEMENTED;
 }
 
 /* Request the specified IO channels be forwarded from the given array of
@@ -1414,7 +1421,7 @@ static pmix_status_t server_iof_cb(const pmix_proc_t procs[], size_t nprocs,
     mlog("%s: NOT IMPLEMENTED\n", __func__);
 
     /* not implemented */
-    return PMIX_ERR_NOT_IMPLEMENTED;
+    return __PSPMIX_NOT_IMPLEMENTED;
 }
 
 /* Pass standard input data to the host environment for transmission to
@@ -1433,7 +1440,7 @@ static pmix_status_t server_stdin_cb(const pmix_proc_t *source,
     mlog("%s: NOT IMPLEMENTED\n", __func__);
 
     /* not implemented */
-    return PMIX_ERR_NOT_IMPLEMENTED;
+    return __PSPMIX_NOT_IMPLEMENTED;
 }
 
 #if PMIX_VERSION_MAJOR >= 4
@@ -1485,7 +1492,7 @@ static pmix_status_t server_grp_cb(pmix_group_operation_t op, char grp[],
     mlog("%s: NOT IMPLEMENTED\n", __func__);
 
     /* not implemented */
-    return PMIX_ERR_NOT_IMPLEMENTED;
+    return __PSPMIX_NOT_IMPLEMENTED;
 }
 
 /* Request fabric-related operations (e.g., information on a fabric) on behalf
@@ -1510,7 +1517,7 @@ static pmix_status_t server_fabric_cb(const pmix_proc_t *requestor,
     mlog("%s: NOT IMPLEMENTED\n", __func__);
 
     /* not implemented */
-    return PMIX_ERR_NOT_IMPLEMENTED;
+    return __PSPMIX_NOT_IMPLEMENTED;
 }
 #endif
 
