@@ -263,7 +263,7 @@ fi
 exit 0
 
 %postun
-if [ $1 -eq 0]; then
+if [ $1 -eq 0 ]; then
     # de-install
     [ -L %{_plugindir}/jail.sh ] && rm -f %{_plugindir}/jail.sh
     [ -L %{_plugindir}/jail-term.sh ] && rm -f %{_plugindir}/jail-term.sh
