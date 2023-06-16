@@ -1,3 +1,172 @@
+Version 5.1.56:
+===============
+------------------------------------------------------------------------
+200e30493 | Norbert Eicker | Fri, 16 Jun 2023 10:06:49 +0200
+
+Adapt spank_prepend_task_argv() to the final upstream signature
+------------------------------------------------------------------------
+49313072b | Norbert Eicker | Wed, 7 Jun 2023 16:40:32 +0200
+
+pspmix: Use PSPMIX_ENV_TMOUT to steer environment timeout
+------------------------------------------------------------------------
+6eea327eb | Norbert Eicker | Mon, 12 Jun 2023 23:46:21 +0200
+
+Drop remnant reservervation information
+
+ - Do not keep old reservation but use the current one
+ - Give detailed information on dropped reservation
+------------------------------------------------------------------------
+8d1055c2c | Norbert Eicker | Mon, 12 Jun 2023 23:08:49 +0200
+
+Add creation time info to PSresinfo_t, PSjob_t, and PSsession_t
+------------------------------------------------------------------------
+d63b20f84 | Norbert Eicker | Mon, 12 Jun 2023 23:07:23 +0200
+
+Prevent segfault if resInfo is broken (jwt:#21216)
+------------------------------------------------------------------------
+63cdea6fd | Norbert Eicker | Tue, 6 Jun 2023 16:58:59 +0200
+
+Fix improbable segfault unveiled by gcc 13.1
+------------------------------------------------------------------------
+a32584747 | Norbert Eicker | Tue, 6 Jun 2023 16:58:02 +0200
+
+Work around gcc 13.1 strange warnings
+------------------------------------------------------------------------
+de55b8f00 | Norbert Eicker | Tue, 6 Jun 2023 16:04:09 +0200
+
+Work around a gcc 13.1 false positive
+------------------------------------------------------------------------
+cb1fa28e8 | Michael Rauh | Fri, 9 Jun 2023 16:51:25 +0200
+
+Let psslurm export jail configuration to main psid
+environment. This ensures pmix servers have access to it.
+------------------------------------------------------------------------
+4fdf71b2b | Michael Rauh | Wed, 7 Jun 2023 16:01:49 +0200
+
+Fix typo in spank function name
+------------------------------------------------------------------------
+8e0fb54cd | Norbert Eicker | Tue, 6 Jun 2023 10:59:47 +0200
+
+Prepare for Slurm's future spank_prepend_task_argv()
+------------------------------------------------------------------------
+9638507a8 | Stephan Krempel | Tue, 30 May 2023 12:30:16 +0200
+
+Fix memory leak
+------------------------------------------------------------------------
+24d33cad0 | Stephan Krempel | Fri, 26 May 2023 17:47:38 +0200
+
+psslurm: Move SLURM_TRES_* setting place
+
+Set the variables in setRankEnv() context to take effect. Until now
+they have been set in setStepEnv() and directly filtered out again
+in removeUserVars().
+------------------------------------------------------------------------
+67ecd63e8 | Stephan Krempel | Fri, 26 May 2023 17:38:55 +0200
+
+psslurm: Rework GPU pinning
+
+Only set GPU pinning variables for non-interactive tasks
+in setRankEnv() context. This prevents conflict issues
+if a step is started from inside an interactive step.
+------------------------------------------------------------------------
+08bdb9b56 | Stephan Krempel | Mon, 22 May 2023 15:50:29 +0200
+
+Avoid silent fails in GPU pinning
+------------------------------------------------------------------------
+179309de3 | Michael Rauh | Mon, 5 Jun 2023 10:22:12 +0200
+
+Remove debug output from jail-devices script
+------------------------------------------------------------------------
+fae2eaefe | Norbert Eicker | Sat, 3 Jun 2023 08:08:47 +0200
+
+Update buildsystem
+------------------------------------------------------------------------
+762d9283e | Norbert Eicker | Sat, 3 Jun 2023 08:06:58 +0200
+
+Fix docu comment formatting
+------------------------------------------------------------------------
+176cd9907 | Michael Rauh | Thu, 1 Jun 2023 15:48:18 +0200
+
+Let pluginforwarder jail pspmix server processes
+
+ - a pspmix server is responsible for multiple steps of the same user,
+   therefore it is confined to the user cgroup
+------------------------------------------------------------------------
+99ad39f8f | Michael Rauh | Thu, 1 Jun 2023 15:47:20 +0200
+
+Make jail user environment variable more generic
+------------------------------------------------------------------------
+69fd08529 | Michael Rauh | Thu, 1 Jun 2023 11:32:39 +0200
+
+Let jail init script verify if cgroup is available
+------------------------------------------------------------------------
+a80bbdf20 | Michael Rauh | Thu, 1 Jun 2023 10:55:09 +0200
+
+Save main psid PID to /run
+------------------------------------------------------------------------
+1f09cd54c | Michael Rauh | Thu, 1 Jun 2023 10:00:51 +0200
+
+Update buildsystem
+------------------------------------------------------------------------
+f94d06435 | Michael Rauh | Wed, 31 May 2023 15:17:22 +0200
+
+Add jail initialize script
+------------------------------------------------------------------------
+ce9cbf5da | Michael Rauh | Wed, 31 May 2023 15:07:47 +0200
+
+Add jail configuration option JAIL_INIT_SCRIPT
+------------------------------------------------------------------------
+73c5c237f | Michael Rauh | Tue, 30 May 2023 10:04:45 +0200
+
+Improve jail script quoting
+------------------------------------------------------------------------
+e3f1a18a8 | Michael Rauh | Tue, 30 May 2023 09:50:51 +0200
+
+Set correct cgroup configuration default if no cgroup.conf
+is present. Additional ensure configuration updates will
+remove obsolete entries.
+------------------------------------------------------------------------
+757cd4558 | Michael Rauh | Fri, 26 May 2023 15:38:36 +0200
+
+Fix quoting to prevent device jail script from generating
+unexpected files
+------------------------------------------------------------------------
+373fd075f | Norbert Eicker | Sat, 3 Jun 2023 07:33:07 +0200
+
+Cleanup early debug remnants
+------------------------------------------------------------------------
+f82e7661c | Michael Rauh | Fri, 2 Jun 2023 15:14:32 +0200
+
+Don't let exiting shell spoiling output for steps with pty
+(jwt:#21114)
+------------------------------------------------------------------------
+2d5aab17a | Sonja Happ | Thu, 1 Jun 2023 10:01:34 +0200
+
+scripts/single_node_config: Parse args first and then check for psconfig
+
+If only the help argument is provided, we do not need to check for psconfig.
+It is sufficient to check if psconfig is found after we parsed the args.
+------------------------------------------------------------------------
+1d2dd8618 | Sonja Happ | Thu, 1 Jun 2023 09:59:11 +0200
+
+scripts/single_node_config: Remove limitation of psconfig install path
+
+Do not limit the install path of psconfig to /opt/parastation/bin/.
+As long as psconfig is found somewhere in the $PATH, this is sufficient.
+------------------------------------------------------------------------
+4bb9f7262 | Stephan Krempel | Wed, 24 May 2023 15:59:45 +0200
+
+pspmix: Print input to server_grp_cb()
+------------------------------------------------------------------------
+de86b2127 | Stephan Krempel | Wed, 17 May 2023 12:01:52 +0200
+
+Let RPMs depend on PMIx minor but release version
+
+API changes should never happen between release versions,
+so depending on minor is sufficient.
+------------------------------------------------------------------------
+
+
 Version 5.1.55-2:
 =================
 ------------------------------------------------------------------------

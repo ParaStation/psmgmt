@@ -6,6 +6,29 @@ Copyright (C) 2021-2023 ParTec AG, Munich
 Please send bug reports, questions and suggestions to <support@par-tec.com>
 
 
+Version 5.1.56:
+===============
+Bugfixes:
+ - Prevent segfault if resInfo is broken (jwt:#21216)
+ - Don't let exiting shell spoiling output for steps with pty (jwt:#21114)
+ - Fix quoting prevents device jail script to generate unexpected files (dt:3151)
+ - Set correct cgroup configuration default if no cgroup.conf is present
+ - Ensure configuration updates will remove obsolete entries
+ - psslurm: Move SLURM_TRES_* setting place
+ - Fix one improbable segfault unveiled by gcc 13.1
+Enhancements:
+ - pspmix: Use PSPMIX_ENV_TMOUT to steer environment timeout
+ - Add jail configuration option JAIL_INIT_SCRIPT and the corresponding script
+ - Save main psid PID to /run for jail scripts and pshc
+ - Let pluginforwarder jail pspmix server processes
+ - psslurm: Rework GPU pinning
+ - Avoid silent fails in GPU pinning
+ - Introduce spank_prepend_task_argv() expected for Slurm 23.11
+ - Let RPMs depend on PMIx minor but release version
+Additional changes:
+ - pspmix: Print input to server_grp_cb()
+
+
 Version 5.1.55-2:
 =================
 Bugfixes:
