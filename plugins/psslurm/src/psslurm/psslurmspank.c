@@ -919,8 +919,7 @@ spank_err_t psSpankGetItem(spank_t spank, spank_item_t item, va_list ap)
     return ESPANK_SUCCESS;
 }
 
-spank_err_t psSpankPrependArgv(spank_t spank, const uint32_t argc,
-				const char *argv[])
+spank_err_t psSpankPrependArgv(spank_t spank, int argc, const char *argv[])
 {
     if (!testMagic(spank, __func__)) return ESPANK_BAD_ARG;
 
@@ -931,10 +930,9 @@ spank_err_t psSpankPrependArgv(spank_t spank, const uint32_t argc,
 
     uint32_t new_argc = argc + spank->task->argc;
     char **new_argv = umalloc((new_argc+1) * sizeof(char *));
-    if (!new_argv) return ESPANK_NOSPACE;
 
     uint32_t j = 0;
-    for (uint32_t i = 0; i < argc && argv[i]; i++) {
+    for (int i = 0; i < argc && argv[i]; i++) {
 	new_argv[j++] = ustrdup(argv[i]);
     }
     for (uint32_t i = 0; i < spank->task->argc && spank->task->argv[i]; i++) {

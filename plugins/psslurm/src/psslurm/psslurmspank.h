@@ -189,8 +189,7 @@ spank_err_t psSpankUnsetenv(spank_t spank, const char *var);
 
 spank_err_t psSpankGetItem(spank_t spank, spank_item_t item, va_list ap);
 
-spank_err_t psSpankPrependArgv(spank_t spank, const uint32_t argc,
-				const char *argv[]);
+spank_err_t psSpankPrependArgv(spank_t spank, int argc, const char *argv[]);
 
 int psSpankSymbolSup(const char *symbol);
 

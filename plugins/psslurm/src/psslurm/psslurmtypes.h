@@ -103,7 +103,7 @@ typedef spank_err_t psSpankUnsetenv_t(spank_t, const char *);
 
 typedef spank_err_t psSpankGetItem_t(spank_t, spank_item_t, va_list);
 
-typedef spank_err_t psSpankPrependArgv_t(spank_t, const uint32_t, const char *[]);
+typedef spank_err_t psSpankPrependArgv_t(spank_t, int, const char *[]);
 
 typedef int psSpankSymbolSup_t(const char *);
 

@@ -402,11 +402,9 @@ spank_err_t spank_job_control_unsetenv (spank_t sp, const char *name)
  *  Returns ESPANK_SUCCESS on success, o/w spank_err_t on failure:
  *    ESPANK_BAD_ARG   = spank handle invalid or argv is NULL.
  *    ESPANK_NOT_TASK  = called from outside a task context.
- *    ESPANK_NOSPACE   = no memory available to expand argument vector.
  */
 
-spank_err_t spank_prepend_task_argv (spank_t spank, const unsigned int argc,
-				     const char *argv[])
+spank_err_t spank_prepend_task_argv (spank_t spank, int argc, const char *argv[])
 {
     if (!spank || !argv) return ESPANK_BAD_ARG;
 
