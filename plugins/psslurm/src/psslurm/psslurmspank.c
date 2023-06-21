@@ -191,6 +191,8 @@ void SpankFinalize(void)
 
 bool SpankInitGlobalSym(void)
 {
+    if (SpankIsInitialized()) return true;
+
     globalSym = dlopen(GLOBAL_SYMBOLS, RTLD_NOW | RTLD_GLOBAL);
     if (!globalSym) {
 	flog("dlopen(%s) failed: %s\n", GLOBAL_SYMBOLS, dlerror());
