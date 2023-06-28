@@ -231,8 +231,7 @@ Gres_Cred_t *findGresCred(list_t *gresList, uint32_t id, int credType)
 		    flog("node '%zu' bit_alloc '%s'\n", i, ret->bitAlloc[i]);
 		}
 	    }
-	}
-	else {
+	} else {
 	    flog("no GRes credential of type %d found\n", credType);
 	}
     }

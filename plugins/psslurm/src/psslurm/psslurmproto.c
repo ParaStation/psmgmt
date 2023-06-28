@@ -526,11 +526,10 @@ int requestJobInfo(uint32_t jobid, Connection_CB_t *cb)
 
 uint32_t getLocalID(PSnodes_ID_t *nodes, uint32_t nrOfNodes)
 {
-    uint32_t id = NO_VAL;
     PSnodes_ID_t myID = PSC_getMyID();
+    for (uint32_t i = 0; i < nrOfNodes; i++) if (nodes[i] == myID) return i;
 
-    for (uint32_t i = 0; i < nrOfNodes; i++) if (nodes[i] == myID) id = i;
-    return id;
+    return NO_VAL;
 }
 
 static void handleLaunchTasks(Slurm_Msg_t *sMsg)
