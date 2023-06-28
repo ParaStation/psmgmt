@@ -206,13 +206,38 @@ Gres_Cred_t *getGresCred(void)
 
 Gres_Cred_t *findGresCred(list_t *gresList, uint32_t id, int credType)
 {
+    Gres_Cred_t *ret = NULL;
+
     list_t *g;
     list_for_each(g, gresList) {
 	Gres_Cred_t *gres = list_entry(g, Gres_Cred_t, next);
-	if (gres->credType == credType && gres->id == id) return gres;
-	if (id == NO_VAL && gres->credType == credType) return gres;
+	if (gres->credType == credType && (gres->id == id || id == NO_VAL)) {
+	    ret = gres;
+	    break;
+	}
     }
-    return NULL;
+
+    if (psslurmlogger->mask & PSSLURM_LOG_GRES) {
+	if (ret) {
+	    flog("credType %d pluginID %u cpusPerGres %u gresPerStep %lu"
+		 " gresPerNode %lu gresPerSocket %lu gresPerTask %lu"
+		 " memPerGres %lu totalGres %lu nodeInUse %s\n", credType, id,
+		 ret->cpusPerGRes, ret->gresPerStep, ret->gresPerNode,
+		 ret->gresPerSocket, ret->gresPerTask, ret->memPerGRes,
+		 ret->totalGres, ret->nodeInUse);
+
+	    if (ret->bitAlloc) {
+		for (size_t i = 0; i < ret->nodeCount; i++) {
+		    flog("node '%zu' bit_alloc '%s'\n", i, ret->bitAlloc[i]);
+		}
+	    }
+	}
+	else {
+	    flog("no GRes credential of type %d found\n", credType);
+	}
+    }
+
+    return ret;
 }
 
 void releaseGresCred(Gres_Cred_t *gres)
