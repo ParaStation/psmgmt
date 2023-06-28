@@ -1181,6 +1181,12 @@ static void handle_JobLaunch(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
 	flog("converting %s to PS node IDs failed\n", job->slurmHosts);
     }
 
+    job->localNodeId = getLocalID(job->nodes, job->nrOfNodes);
+    if (job->localNodeId == NO_VAL) {
+	flog("could not find my local ID for job %u in %s\n",
+	     job->jobid, job->slurmHosts);
+    }
+
     Alloc_t *alloc = Alloc_find(jobid);
     if (alloc) alloc->verified = true;
 
