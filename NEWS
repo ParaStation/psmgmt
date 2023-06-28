@@ -6,6 +6,16 @@ Copyright (C) 2021-2023 ParTec AG, Munich
 Please send bug reports, questions and suggestions to <support@par-tec.com>
 
 
+Version 5.1.56-1:
+=================
+Bugfixes:
+ - Set correct localNodeId for jobs on sister nodes (psc:#427)
+ - Prevent spank_api.so from being dlopen()ed twice
+ - Fix RPM's postun scriptlet
+Enhancements:
+ - Add debugging output in psslurm's findGresCred()
+
+
 Version 5.1.56:
 ===============
 Bugfixes:
