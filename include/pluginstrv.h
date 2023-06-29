@@ -19,6 +19,7 @@
 #define __PLUGIN_LIB_STRV
 
 #include <stdint.h>
+#include <stdbool.h>
 
 /** String vector to be handled by strv* functions */
 typedef struct {
@@ -127,17 +128,26 @@ void __strvDestroy(strv_t *strv, const char *func, const int line);
  * vector itself is invalidated and free()ed. Nevertheless, memory
  * used by the strings within the vector is left untouched.
  *
- * @attention This function especially frees strv->strings.
+ * With the @a array switch, you can choose to steal the strings array and the
+ * contained strings (true), or to only steal the contained strings (false).
  *
- * @param strv The string vector to be destroy
+ * @attention This function especially frees strv->strings iff array == false.
  *
- * @param func Function name of the calling function
+ * @attention You cannot access any pointer in @a strv after calling this
+ * function, so you need to copy strv->strings beforehand iff array == true or
+ * the memory pointed to by it will be leaked.
  *
- * @param line Line number where this function is called
+ * @param strv   The string vector to be destroy
+ *
+ * @param sarray Flag to free or not free the strings array
+ *
+ * @param func   Function name of the calling function
+ *
+ * @param line   Line number where this function is called
  *
  * @return No return value
  */
-void __strvSteal(strv_t *strv, const char *func, const int line);
-#define strvSteal(strv) __strvSteal(strv, __func__, __LINE__)
+void __strvSteal(strv_t *strv, bool sarray, const char *func, const int line);
+#define strvSteal(strv, sarray) __strvSteal(strv, sarray, __func__, __LINE__)
 
 #endif  /* __PLUGIN_LIB_STRV */

@@ -71,14 +71,14 @@ void __strvDestroy(strv_t *strv, const char *func, const int line)
 	__ufree(strv->strings[s], func, line);
     }
 
-    __strvSteal(strv, func, line);
+    __strvSteal(strv, false, func, line);
 }
 
-void __strvSteal(strv_t *strv, const char *func, const int line)
+void __strvSteal(strv_t *strv, bool sarray, const char *func, const int line)
 {
     if (!strv || !strv->strings) return;
 
-    __ufree(strv->strings, func, line);
+    if (!sarray) __ufree(strv->strings, func, line);
     memset(strv, 0, sizeof(strv_t));
 }
 
