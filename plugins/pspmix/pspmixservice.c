@@ -74,6 +74,7 @@ typedef struct {
  * Information needed to execute a call to PMIx_Spawn()
  */
 typedef struct {
+    list_t next;               /**< list head to put into SpawnList */
     uint16_t id;               /**< identifier of this spawn */
     const pmix_proc_t *caller; /**< process that called PMIx_Spawn() */
     uint16_t napps;            /**< number of applications, length of arrays */
@@ -91,6 +92,9 @@ static LIST_HEAD(fenceList);
 /** A list of pending modex message requests */
 static LIST_HEAD(modexRequestList);
 
+/** A list of open spawns */
+static LIST_HEAD(spawnList);
+
 /****** locks to protect the global variables ******/
 
 /* mutex to synchronize access to namespaceList */
@@ -101,6 +105,10 @@ static pthread_mutex_t fenceList_lock = PTHREAD_MUTEX_INITIALIZER;
 
 /* mutex to synchronize access to namespaceList */
 static pthread_mutex_t modexRequestList_lock = PTHREAD_MUTEX_INITIALIZER;
+
+/* mutex to synchronize access to spawnList */
+static pthread_mutex_t spawnList_lock = PTHREAD_MUTEX_INITIALIZER;
+
 
 #define GET_LOCK(var) \
     do { \
@@ -1682,7 +1690,52 @@ bool pspmix_service_spawn(const pmix_proc_t *caller, uint16_t napps,
 	return false;
     }
 
+    GET_LOCK(spawnList);
+    list_add_tail(&spawn->next, &spawnList);
+    RELEASE_LOCK(spawnList);
+
     return true;
+}
+
+/**
+ * @brief Find first matching spawn in spawn list
+ *
+ * @param spawnID  ID of the spawn to search
+ *
+ * @return Returns the spawn or NULL if not in list
+ */
+static PspmixSpawn_t* findSpawn(uint16_t spawnID)
+{
+    list_t *s;
+    list_for_each(s, &spawnList) {
+	PspmixSpawn_t *spawn = list_entry(s, PspmixSpawn_t, next);
+	if (spawn->id == spawnID) return spawn;
+    }
+    return NULL;
+}
+
+/* main thread */
+void pspmix_service_spawnRes(uint16_t spawnID, int result)
+{
+    GET_LOCK(spawnList);
+    PspmixSpawn_t *spawn = findSpawn(spawnID);
+    if (!spawn) {
+	RELEASE_LOCK(spawnList);
+	ulog("UNEXPECTED: spawn id %hu not found (result %d)", spawnID, result);
+	return;
+    }
+
+    list_del(&spawn->next);
+    RELEASE_LOCK(spawnList);
+
+    /* @todo tell result to server */
+
+    /* cleanup spawn */
+    for (size_t a = 0; a < spawn->napps; a++) {
+	ufree(spawn->apps[a].cmd);
+    }
+    ufree(spawn->apps);
+    ufree(spawn);
 }
 
 /* vim: set ts=8 sw=4 tw=0 sts=4 noet :*/
