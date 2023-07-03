@@ -223,7 +223,7 @@ static void handleClientSpawnResp(DDTypedBufferMsg_t *msg,
     uint8_t result;
     getUint8(data, &result);
 
-    /* @todo implement */
+    pspmix_service_spawnRes(spawnID, result);
 }
 
 /**

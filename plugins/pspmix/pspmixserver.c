@@ -1021,6 +1021,24 @@ static pmix_status_t server_unpublish_cb(const pmix_proc_t *proc, char **keys,
     return __PSPMIX_NOT_IMPLEMENTED;
 }
 
+/* tell server helper library about spawn finished
+ *
+ * This takes back ownership of @a sdata.
+ */
+void pspmix_server_spawnRes(bool success, spawndata_t *sdata)
+{
+    assert(sdata != NULL);
+    assert(sdata->cbfunc != NULL);
+
+    mdbg(PSPMIX_LOG_CALL, "%s(success %s)\n", __func__,
+	 success ? "true" : "false");
+
+    pmix_status_t status = success ? PMIX_SUCCESS : PMIX_ERROR;
+
+    sdata->cbfunc(status, sdata->nspace, sdata->cbdata);
+    ufree(sdata);
+}
+
 
 typedef struct {
     char *wdir;
@@ -1206,7 +1224,12 @@ static pmix_status_t server_spawn_cb(const pmix_proc_t *proc,
 				 si_job.hostfile;
     }
 
-    bool ret = pspmix_service_spawn(proc, napps, sapps);
+    /* initialize return data struct */
+    spawndata_t *sdata = ucalloc(sizeof(*sdata));
+    sdata->cbfunc = cbfunc;
+    sdata->cbdata = cbdata;
+
+    bool ret = pspmix_service_spawn(proc, napps, sapps, sdata);
 
     /* Invalidate all data not copied */
     for (size_t a = 0; a < napps; a++) {
@@ -1219,6 +1242,7 @@ static pmix_status_t server_spawn_cb(const pmix_proc_t *proc,
 
     if (!ret) {
 	for (size_t a = 0; a < napps; a++) ufree(sapps[a].cmd);
+	ufree(sdata);
     }
 
     return ret ? PMIX_SUCCESS : PMIX_ERROR;

@@ -37,6 +37,13 @@ typedef struct {
     time_t reqtime;              /**< time the request handling started */
 } modexdata_t;
 
+/** Type for callback data for fence and get */
+typedef struct {
+    pmix_spawn_cbfunc_t cbfunc;  /**< function to use to pass back data */
+    void *cbdata;                /**< pointer to pass back to cbfunc */
+    pmix_nspace_t nspace;        /**< namespace of the spawned processes */
+} spawndata_t;
+
 /**
  * @brief Initialize the pmix server library and register all callbacks
  *
@@ -229,6 +236,14 @@ void pspmix_server_returnModexData(pmix_status_t status, modexdata_t *mdata);
  *          @a mdata is taken.
  */
 bool pspmix_server_requestModexData(modexdata_t *mdata);
+
+/**
+ *  @brief Tell server helper library about spawn finished
+ *
+ *  @param success  true if successful, false if not
+ *  @param sdata    return data (takes full ownership)
+ */
+void pspmix_server_spawnRes(bool success, spawndata_t *sdata);
 
 /**
  * @brief Finalize the pmix server library

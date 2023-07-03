@@ -79,6 +79,7 @@ typedef struct {
     const pmix_proc_t *caller; /**< process that called PMIx_Spawn() */
     uint16_t napps;            /**< number of applications, length of arrays */
     PspmixSpawnApp_t *apps;    /**< applications to spawn */
+    spawndata_t *sdata;        /**< callback data object */
 } PspmixSpawn_t;
 
 /****** global variable needed to be lock protected ******/
@@ -1651,7 +1652,7 @@ void pspmix_service_handleModexDataResponse(pmix_status_t status,
 
 /* library thread */
 bool pspmix_service_spawn(const pmix_proc_t *caller, uint16_t napps,
-			  PspmixSpawnApp_t *apps)
+			  PspmixSpawnApp_t *apps, spawndata_t *sdata)
 {
     /* ID that is uniq local to this user server */
     static uint16_t spawnID = 0;
@@ -1689,6 +1690,8 @@ bool pspmix_service_spawn(const pmix_proc_t *caller, uint16_t napps,
 	     spawn->caller->nspace, spawn->caller->rank);
 	return false;
     }
+
+    spawn->sdata = sdata;
 
     GET_LOCK(spawnList);
     list_add_tail(&spawn->next, &spawnList);
@@ -1728,7 +1731,9 @@ void pspmix_service_spawnRes(uint16_t spawnID, int result)
     list_del(&spawn->next);
     RELEASE_LOCK(spawnList);
 
-    /* @todo tell result to server */
+    /* @todo set sdata->nspace somewhere */
+
+    pspmix_server_spawnRes(result, spawn->sdata);
 
     /* cleanup spawn */
     for (size_t a = 0; a < spawn->napps; a++) {
