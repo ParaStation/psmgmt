@@ -885,8 +885,8 @@ static void buildMpiexecArgs(Forwarder_Data_t *fwdata, strv_t *argV,
 
     strvInit(argV, NULL, 0);
 
-    if (getenv("PMI_SPAWNED")) {
-	char *tmpStr = getenv("__PSI_MPIEXEC_KVSPROVIDER");
+    if (envGet(&step->env, "PMI_SPAWNED")) {
+	char *tmpStr = envGet(&step->env, "__PSI_MPIEXEC_KVSPROVIDER");
 	if (tmpStr) {
 	    strvAdd(argV, ustrdup(tmpStr));
 	} else {
@@ -1026,7 +1026,7 @@ static void fwExecStep(Forwarder_Data_t *fwdata, int rerun)
     /* setup X11 forwarding */
     if (step->x11forward) initX11Forward(step);
 
-    flog("exec %s mypid %u\n", Step_strID(step), getpid());
+    flog("exec %s via %s mypid %u\n", Step_strID(step), argV.strings[0], getpid());
 
     /* set RLimits */
     setRlimitsFromEnv(&step->env, 1);
