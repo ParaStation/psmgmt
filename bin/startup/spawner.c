@@ -1070,7 +1070,7 @@ int main(int argc, const char *argv[], char** envp)
 
     setupSighandler(true);
 
-    /* Initialzie daemon connection */
+    /* Initialize daemon connection */
     PSE_initialize();
 
     /* parse command line options */

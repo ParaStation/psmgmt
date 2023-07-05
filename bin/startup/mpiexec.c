@@ -101,7 +101,7 @@ int main(int argc, const char *argv[])
 
     setupSighandler(true);
 
-    /* Initialzie daemon connection */
+    /* Initialize daemon connection */
     PSE_initialize();
 
     int rank = PSE_getRank();
