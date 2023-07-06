@@ -690,6 +690,9 @@ static void handleLaunchTasks(Slurm_Msg_t *sMsg)
 		sendSlurmRC(sMsg, ESLURMD_FORK_FAILED);
 		goto ERROR;
 	    }
+	} else {
+	    /* Check for cached hw threads */
+	    handleCachedMsg(step);
 	}
     } else {
 	/* sister node (pack follower) */
@@ -705,6 +708,8 @@ static void handleLaunchTasks(Slurm_Msg_t *sMsg)
 
     if (step->packJobid != NO_VAL && step->nodes[0] == PSC_getMyID()) {
 	/* forward hw thread infos to pack leader */
+	/* if this is the pack leader execStepLeader() might be called
+	 * in the handler */
 	if (send_PS_PackInfo(step) == -1) {
 	    sendSlurmRC(sMsg, ESLURMD_INVALID_JOB_CREDENTIAL);
 	    goto ERROR;

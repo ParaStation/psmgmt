@@ -259,8 +259,6 @@ static void handleInitComplete(DDTypedBufferMsg_t *msg)
 	flog("warning: step %u:%u already gone\n", jobid, stepid);
 	return;
     }
-
-    handleCachedMsg(step);
     releaseDelayedSpawns(step->jobid, step->stepid);
 }
 
