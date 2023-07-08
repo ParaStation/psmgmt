@@ -320,16 +320,14 @@ static bool genThreadsArray(PSpart_HWThread_t **threads, uint32_t *numThreads,
 static int handleCreatePart(void *msg)
 {
     DDBufferMsg_t *inmsg = (DDBufferMsg_t *) msg;
-    Step_t *step;
-    PStask_t *task;
-
     int enforceBatch = getConfValueI(Config, "ENFORCE_BATCH_START");
 
     /* everyone is allowed to start, nothing to do for us here */
     if (!enforceBatch) return 1;
 
     /* find task */
-    if (!(task = PStasklist_find(&managedTasks, inmsg->header.sender))) {
+    PStask_t *task = PStasklist_find(&managedTasks, inmsg->header.sender);
+    if (!task) {
 	flog("task for msg from %s not found\n",
 	     PSC_printTID(inmsg->header.sender));
 	errno = EACCES;
@@ -337,7 +335,8 @@ static int handleCreatePart(void *msg)
     }
 
     /* find step */
-    if (!(step = Step_findByPsslurmChild(PSC_getPID(inmsg->header.sender)))) {
+    Step_t *step = Step_findByPsslurmChild(PSC_getPID(inmsg->header.sender));
+    if (!step) {
 	/* admin user can always pass */
 	if (isPSAdminUser(task->uid, task->gid)) return 1;
 
@@ -402,13 +401,13 @@ static int handleCreatePartNL(void *msg)
 {
     DDBufferMsg_t *inmsg = (DDBufferMsg_t *) msg;
     int enforceBatch = getConfValueI(Config, "ENFORCE_BATCH_START");
-    PStask_t *task;
 
     /* everyone is allowed to start, nothing to do for us here */
     if (!enforceBatch) return 1;
 
     /* find task */
-    if (!(task = PStasklist_find(&managedTasks, inmsg->header.sender))) {
+    PStask_t *task = PStasklist_find(&managedTasks, inmsg->header.sender);
+    if (!task) {
 	mlog("%s: task for msg from %s not found\n", __func__,
 	     PSC_printTID(inmsg->header.sender));
 	errno = EACCES;
