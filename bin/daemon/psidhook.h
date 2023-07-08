@@ -255,6 +255,9 @@ typedef enum {
     PSIDHOOK_SENDER_UNKNOWN,  /**< Sender's IP is unknown to RDP, arg
 				 point's to sender's struct
 				 sockaddr_in */
+    PSIDHOOK_LAST_CHILD_GONE, /**< Task's last child has released itself,
+				 i.e. there are no further children of this
+				 task; arg points to the task */
     PSIDHOOK_LAST,            /**< This has to be the last one */
 } PSIDhook_t;
 

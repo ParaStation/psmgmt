@@ -166,8 +166,10 @@ static LIST_HEAD(pluginList);
  * 138: new hook PSIDHOOK_FRWRD_SETUP
  *
  * 139: new hooks PSIDHOOK_NODE_UNKNOWN, PSIDHOOK_SENDER_UNKNOWN
+ *
+ * 140: new hook PSIDHOOK_LAST_CHILD_GONE
  */
-static int pluginAPIVersion = 139;
+static int pluginAPIVersion = 140;
 
 
 /** Grace period between finalize and unload on forcefully unloads */

@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
  * Copyright (C) 2005-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2022 ParTec AG, Munich
+ * Copyright (C) 2021-2023 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -34,8 +34,10 @@
 #include "psidtask.h"
 #include "psidutil.h"
 #include "psidcomm.h"
+#include "psidhook.h"
 #include "psidnodes.h"
 #include "psidpartition.h"
+#include "psidtask.h"
 
 #include "pslog.h"
 
@@ -1094,7 +1096,10 @@ static int releaseChild(PStask_ID_t parent, PStask_ID_t child, bool answer)
 		 __func__, PSC_printTID(child));
 	PSID_log(PSID_LOG_SIGNAL, " %s\n", PSC_printTID(parent));
 	PSID_setSignal(&task->releasedBefore, child, -1);
+    } else if (PSID_emptySigList(&task->childList)) {
+	PSIDhook_call(PSIDHOOK_LAST_CHILD_GONE, task);
     }
+
     return 0;
 }
 
