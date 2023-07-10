@@ -1158,56 +1158,6 @@ char *PSI_createPGfile(int num, const char *prog, int local)
     return PIfilename;
 }
 
-char *PSI_createMPIhosts(int num, int local)
-{
-    char *MPIhostsFilename, filename[20];
-    FILE *MPIhostsFile;
-    int i;
-
-    snprintf(filename, sizeof(filename), "mpihosts%d", getpid());
-    MPIhostsFile = fopen(filename, "w+");
-
-    if (MPIhostsFile) {
-	MPIhostsFilename = strdup(filename);
-    } else {
-	/* File open failed, lets try the user's home directory */
-	char *home = getenv("HOME");
-	MPIhostsFilename = PSC_concat(home, "/", filename);
-
-	MPIhostsFile = fopen(MPIhostsFilename, "w+");
-	/* File open failed finally */
-	if (!MPIhostsFile) {
-	    PSI_warn(-1, errno, "%s: fopen", __func__);
-	    free(MPIhostsFilename);
-	    return NULL;
-	}
-    }
-
-    for (i = 0; i < num; i++) {
-	PSnodes_ID_t node;
-	static struct in_addr hostaddr;
-
-	if (!local || !i) {
-	    if (PSI_infoNodeID(-1, PSP_INFO_RANKID, &i, &node, true)
-		|| (node < 0)) {
-		fclose(MPIhostsFile);
-		free(MPIhostsFilename);
-		return NULL;
-	    }
-	    if (PSI_infoUInt(-1, PSP_INFO_NODE, &node, &hostaddr.s_addr, false)
-		|| (hostaddr.s_addr == INADDR_ANY)) {
-		fclose(MPIhostsFile);
-		free(MPIhostsFilename);
-		return NULL;
-	    }
-	}
-	fprintf(MPIhostsFile, "%s\n", inet_ntoa(hostaddr));
-    }
-    fclose(MPIhostsFile);
-
-    return MPIhostsFilename;
-}
-
 int PSI_kill(PStask_ID_t tid, short signal, int async)
 {
     DDSignalMsg_t msg = {
