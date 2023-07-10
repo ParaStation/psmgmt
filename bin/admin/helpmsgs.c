@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
  * Copyright (C) 2005-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2022 ParTec AG, Munich
+ * Copyright (C) 2022-2023 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -141,7 +141,8 @@ static info_t nodeInfo = {
 	  " The default preselected node range contains all nodes of the"
 	  " ParaStation cluster. As an extension <nodes> might also be a"
 	  " comma-separated list of hostnames that can be resolved into a"
-	  " valid ParaStation ID." },
+	  " valid ParaStation ID. Furthermore, ParaStation ID -1 always"
+	  " addresses the local node." },
 	{ NULL, NULL }
     },
     .comment = NULL
