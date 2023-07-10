@@ -139,21 +139,21 @@ struct __task__ {
     PStask_delay_t delayReasons;   /**< reason to delay the spawn */
     time_t killat;                 /**< flag a killed task, i.e. the time when
 				      the task should really go away */
-    struct timeval started;        /**< Time the task structure was created. */
-    uint16_t protocolVersion;      /**< Protocol version the task speaks. */
-    list_t childList;              /**< Task's children. Signal not used. */
+    struct timeval started;        /**< Time the task structure was created */
+    uint16_t protocolVersion;      /**< Protocol version the task speaks */
+    list_t childList;              /**< Task's children (signal not used) */
     list_t releasedBefore;         /**< released children to be inherited */
     list_t deadBefore;             /**< dead children to be inherited */
     PSpart_request_t *request;     /**< Pointer to temp. partition request */
-    PSpart_option_t options;       /**< The partition's options. */
-    uint32_t partitionSize;        /**< Number of slots in the partition. */
-    PSpart_slot_t *partition;      /**< The actual partition. List of slots. */
-    uint32_t totalThreads;         /**< Size of @ref partThreads. */
-    PSpart_HWThread_t *partThrds;  /**< HW-threads forming the partition. */
+    PSpart_option_t options;       /**< Options to first create partition */
+    uint32_t partitionSize;        /**< Number of slots in partition */
+    PSpart_slot_t *partition;      /**< Actual partition (array of of slots) */
+    uint32_t totalThreads;         /**< Size of @ref partThreads */
+    PSpart_HWThread_t *partThrds;  /**< HW-threads forming the partition */
     int32_t usedThreads;           /**< Number of HW-threads currently in use */
     PSrsrvtn_ID_t nextResID;       /**< ID to be used for next reservation */
     list_t reservations;           /**< List of active reservations */
-    list_t resRequests;            /**< List of reservation-requestd (FIFO). */
+    list_t resRequests;            /**< List of reservation-requestd (FIFO) */
     int32_t activeChild;           /**< # of active children right now */
     int32_t numChild;              /**< Total # of children spawned over time */
     PSpart_slot_t *spawnNodes;     /**< Nodes the task can spawn to */
