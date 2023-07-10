@@ -528,7 +528,7 @@ int send_TASKDEAD(PStask_ID_t tid)
  *
  * Drop the message @a msg of type PSP_DD_TASKDEAD.
  *
- * If this type of message is dropped, most probably the master-daemon
+ * If this type of message is dropped, most probably the master daemon
  * has changed. Thus, inform the new master about the dead task, too.
  *
  * @param msg Pointer to message to drop
@@ -546,7 +546,7 @@ static bool drop_TASKDEAD(DDBufferMsg_t *msg)
  *
  * Handle the message @a msg of type PSP_DD_TASKDEAD.
  *
- * A PSP_DD_TASKDEAD message informs the master process upon exit of
+ * A PSP_DD_TASKDEAD message informs the master daemon upon exit of
  * the tasks root process. This enables the master to free the
  * resources allocated by the corresponding task.
  *
@@ -601,7 +601,7 @@ int send_TASKSUSPEND(PStask_ID_t tid)
  *
  * Handle the message @a msg of type PSP_DD_TASKSUSPEND.
  *
- * A PSP_DD_TASKSUSPEND message informs the master process upon
+ * A PSP_DD_TASKSUSPEND message informs the master daemon upon
  * suspension of the tasks root process. This enables the master to
  * temporarily free the resources allocated by the corresponding task
  * if requested.
@@ -657,7 +657,7 @@ int send_TASKRESUME(PStask_ID_t tid)
  *
  * Handle the message @a msg of type PSP_DD_TASKRESUME.
  *
- * A PSP_DD_TASKRESUME message informs the master process upon
+ * A PSP_DD_TASKRESUME message informs the master daemon upon
  * continuation of the suspended tasks root process. This enables the
  * master to realloc the temporarily freed resources allocated by the
  * corresponding task during startup.
@@ -713,7 +713,7 @@ int send_CANCELPART(PStask_ID_t tid)
  *
  * Handle the message @a inmsg of type PSP_CD_CANCELPART.
  *
- * A PSP_CD_CANCELPART message informs the master process upon exit of
+ * A PSP_CD_CANCELPART message informs the master daemon upon exit of
  * the tasks root process. This enables the master to remove partition
  * requests sent from this task from the queue of pending partition
  * requests.
@@ -1745,7 +1745,7 @@ static void sendAcctQueueMsg(PStask_t *task)
  * Handle the message @a inmsg of type PSP_CD_CREATEPART.
  *
  * With this kind of message a client will request for a partition of
- * nodes. Besides forwarding this kind of message to the master node
+ * nodes. Besides forwarding this kind of message to the master daemon
  * as a PSP_DD_GETPART message it will be stored locally in order to
  * allow re-sending it if the master changes.
  *
