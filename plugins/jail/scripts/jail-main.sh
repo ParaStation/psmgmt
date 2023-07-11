@@ -39,6 +39,13 @@ if [ -z "$CHILD" ] || [ "$CHILD" == "0" ]; then
     exit 0
 fi
 
+if [ "$CGROUP_VERSION" == "v2" ]; then
+    BASE="$CGROUP_BASE/$PREFIX-$PSID_PID"
+    CG_USER="$BASE/$USER"
+    CG_JOB="$CG_USER/job-$JOBID"
+    CG_STEP="$CG_JOB/step-$JOBID:$STEPID"
+fi
+
 for modName in ${MODULES//,/$IFS}; do
     MODULE="$CommandPath/$SCRIPT-$CGROUP_VERSION-$modName.inc"
     [ -r $MODULE ] || {
@@ -47,10 +54,13 @@ for modName in ${MODULES//,/$IFS}; do
 	}
 	continue
     }
-    BASE="$CGROUP_BASE/$modName"
-    CG_USER="$BASE/$PREFIX-$PSID_PID-$USER"
-    CG_JOB="$CG_USER/job-$JOBID"
-    CG_STEP="$CG_JOB/step-$STEPID"
+
+    if [ "$CGROUP_VERSION" == "v1" ]; then
+	BASE="$CGROUP_BASE/$modName"
+	CG_USER="$BASE/$PREFIX-$PSID_PID-$USER"
+	CG_JOB="$CG_USER/job-$JOBID"
+	CG_STEP="$CG_JOB/step-$STEPID"
+    fi
 
     dlog "Calling module $MODULE for child $CHILD"
     source $MODULE
