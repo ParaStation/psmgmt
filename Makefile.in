@@ -18,7 +18,7 @@
 # ParaStation
 #
 # Copyright (C) 2012-2021 ParTec Cluster Competence Center GmbH, Munich
-# Copyright (C) 2022 ParTec AG, Munich
+# Copyright (C) 2022-2023 ParTec AG, Munich
 #
 # This file may be distributed under the terms of the Q Public License
 # as defined in the file LICENSE.QPL included in the packaging of this
@@ -243,10 +243,10 @@ AUTOCONF = @AUTOCONF@
 AUTOHEADER = @AUTOHEADER@
 AUTOMAKE = @AUTOMAKE@
 AWK = @AWK@
+BPF_LIBS = @BPF_LIBS@
 CC = @CC@
 CCDEPMODE = @CCDEPMODE@
 CFLAGS = @CFLAGS@
-CPP = @CPP@
 CPPFLAGS = @CPPFLAGS@
 CSCOPE = @CSCOPE@
 CTAGS = @CTAGS@
@@ -361,6 +361,7 @@ program_transform_name = @program_transform_name@
 psconfig_CFLAGS = @psconfig_CFLAGS@
 psconfig_LIBS = @psconfig_LIBS@
 psdir = @psdir@
+runstatedir = @runstatedir@
 sbindir = @sbindir@
 sharedstatedir = @sharedstatedir@
 srcdir = @srcdir@
@@ -429,6 +430,7 @@ PKG_VER := $(shell ${top_srcdir}/scripts/vcversion -r $(top_srcdir) -n)
 #
 nodist_noinst_DATA = VERSION.psmgmt
 CLEANFILES = VERSION.psmgmt
+@BPF_ENABLED_FALSE@AM_CONFIGARGS := $(AM_CONFIGARGS) -without bpf
 
 # ---- proxy to dist/Makefile
 #
