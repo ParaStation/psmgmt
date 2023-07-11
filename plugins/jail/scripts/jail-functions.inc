@@ -72,9 +72,11 @@ function killTasks {
     }
 
     dlog "killTasks: dir $DIR"
+    local TASKS="$DIR/tasks"
+    [ "$CGROUP_VERSION" == "v2" ] && TASKS="$DIR/tasks/cgroup.procs"
 
     local -i count=0
-    local PIDS=$(cat "$DIR/tasks" 2>/dev/null)
+    local PIDS=$(cat "$TASKS" 2>/dev/null)
 
     while [ -n "$PIDS" -a "$count" -le "$MAX_KILL_RETRY" ]; do
 	[ "$TERM_DELAY" != "0" ] && {
@@ -84,7 +86,7 @@ function killTasks {
 		kill -"$TERM_SIGNAL" $child
 	    done
 	    sleep "$TERM_DELAY"
-	    PIDS=$(cat "$DIR/tasks" 2>/dev/null)
+	    PIDS=$(cat "$TASKS" 2>/dev/null)
 	}
 	for child in $PIDS; do
 	    [ -d "/proc/$child" ] || continue
@@ -93,10 +95,11 @@ function killTasks {
 	done
 
 	(( count++ ))
-	PIDS=$(cat "$DIR/tasks" 2>/dev/null)
+	PIDS=$(cat "$TASKS" 2>/dev/null)
     done
 
     dlog "killTasks: rmdir $DIR"
+    [ "$CGROUP_VERSION" == "v2" ] && rmdir "$DIR/tasks" 2>/dev/null || dlog "killTasks rmdir $DIR/tasks failed"
     rmdir "$DIR" 2>/dev/null || dlog "killTasks: rmdir $DIR failed"
 }
 
@@ -174,4 +177,32 @@ function initJailEnv {
 	    export CGROUP_VERSION="v1"
 	fi
     fi
+}
+
+function enableController {
+    local CONTROLLER=$1
+    [ -z "$CONTROLLER" ] && elog "no controller given"
+
+    ENABLED="cat $CGROUP_BASE/cgroup.controllers"
+    if [[ ! " $ENABLED " == *" $CONTROLLER "* ]]; then
+	cgWrite "+$CONTROLLER" "$CGROUP_BASE/cgroup.subtree_control"
+    fi
+
+    mdsave "$BASE"
+    ENABLED="cat $BASE/cgroup.controllers"
+    if [[ ! " $ENABLED " == *" $CONTROLLER "* ]]; then
+	cgWrite "+$CONTROLLER" "$BASE/cgroup.subtree_control"
+	dlog "BASE: cgWrite +$CONTROLLER $BASE/cgroup.subtree_control"
+    fi
+
+    local DIR=$2
+    mdsave "$DIR"
+    ENABLED="cat $DIR/cgroup.controllers"
+
+    if [[ ! " $ENABLED " == *" $CONTROLLER "* ]]; then
+	cgWrite "+$CONTROLLER" "$DIR/cgroup.subtree_control"
+	dlog "SUB: cgWrite +$CONTROLLER $DIR/cgroup.subtree_control"
+    fi
+
+    mdsave "$DIR/tasks"
 }
