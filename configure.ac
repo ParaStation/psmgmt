@@ -59,6 +59,12 @@ AC_CHECK_LIB([pam], [pam_open_session],
    [ pam_enabled=true ] ])
 AM_CONDITIONAL([PAM_ENABLED], [test "x$pam_enabled" = xtrue])
 
+AC_CHECK_LIB([bpf], [bpf_prog_attach],
+  [AC_SUBST([BPF_LIBS], [-lbpf])
+   AC_DEFINE([HAVE_BPF_DEVEL])
+   [ bpf_enabled=true ] ])
+AM_CONDITIONAL([BPF_ENABLED], [test "x$bpf_enabled" = xtrue])
+
 AM_COND_IF([PAM_ENABLED], [
   AC_ARG_WITH([pamdir], [AS_HELP_STRING([--with-pamdir=DIR],
     [specify pam plugin dir])],

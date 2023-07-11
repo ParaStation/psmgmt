@@ -14,6 +14,7 @@
 %{?_without_pam: %global disable_pam 1}
 %{?_without_spank: %global disable_spank 1}
 %{?_without_testplugins: %global disable_testplugins 1}
+%{?_without_bpf: %global disable_bpf 1}
 
 # we do not use rpm changelog
 %global source_date_epoch_from_changelog 0
@@ -62,6 +63,9 @@ Requires(postun): systemd
 %endif
 %if !0%{?disable_munge}
 BuildRequires: munge-devel
+%endif
+%if !0%{?disable_bpf}
+BuildRequires:	libbpf-devel
 %endif
 
 
@@ -335,6 +339,9 @@ fi
 %config(noreplace) %{_libexecdir}/jail/jail-v1-devices.inc
 %config(noreplace) %{_libexecdir}/jail/jail-v1-memory.inc
 %config(noreplace) %{_libexecdir}/jail/jail-v1-oom.inc
+%if !0%{?disable_bpf}
+%{_libexecdir}/jail/bpf_device_loader
+%endif
 %{_plugindir}/nodeinfo.so
 %{_plugindir}/pelogue.so
 %{_plugindir}/psaccount.so
