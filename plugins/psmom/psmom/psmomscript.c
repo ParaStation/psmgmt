@@ -312,7 +312,8 @@ static void registerPartition(Job_t *job, int childType)
     PStasklist_enqueue(&managedTasks, job->resDelegate);
 
     /* Now register the partition at the master */
-    PSIDpart_register(job->resDelegate);
+    PSIDpart_register(job->resDelegate,
+		      job->resDelegate->partThrds, job->nrOfNodes);
 }
 
 static void PElogueExit(Job_t *job, int status, bool prologue)

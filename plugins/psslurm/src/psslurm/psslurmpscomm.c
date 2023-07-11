@@ -175,7 +175,7 @@ static void grantPartRequest(PStask_t *task)
     if (!task || !task->request) return;
 
     /* generate slots from hw threads and register partition to master psid */
-    PSIDpart_register(task);
+    PSIDpart_register(task, task->partThrds, task->totalThreads);
 
     /* Cleanup the actual request not required any longer (see jrt:#5879) */
     PSpart_delReq(task->request);

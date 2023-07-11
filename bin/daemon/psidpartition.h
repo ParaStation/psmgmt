@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
  * Copyright (C) 2005-2017 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021 ParTec AG, Munich
+ * Copyright (C) 2021-2023 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -221,22 +221,27 @@ void sendRequestLists(PStask_ID_t requester, PSpart_list_t opt);
 /**
  * @brief Register partition
  *
- * Register a partition as given within the @ref partThrds section of
- * the task-structure @a task. @ref partThrds is expected to hold a
- * list of HW-threads that the task is allowed to use as its
- * partition. For that, the @ref partition section will be created out
- * of the list of HW-threads and registered within the master psid.
+ * Register or extend an existing partition as given within the array
+ * of HW-threads @a thrds of size @a num to the task-structure @a
+ * task. @ref thrds is expected to hold HW-threads that the task is
+ * allowed to use as part of its partition. For that, the @ref
+ * partition section in @a task will be created out or extended by the
+ * the passed HW-threads and registered to the master psid.
  *
  * This mechanism shall be used in order to inform the master daemon
  * on partitioning decisions taken by some external resource
- * manager. Thus, it will be called primarily from inside psmom and
+ * manager. Thus, it will be called primarily from inside psmom or
  * psslurm.
  *
- * @param task The task to register
+ * @param task Task to register or modify
+ *
+ * @param threads Array of HW-threads forming or extending the partition
+ *
+ * @param num Size of @a threads
  *
  * @return No return value
  */
-void PSIDpart_register(PStask_t *task);
+void PSIDpart_register(PStask_t *task, PSpart_HWThread_t *threads, uint32_t num);
 
 /**
  * @brief Send reservation's nodelist

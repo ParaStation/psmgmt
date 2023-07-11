@@ -1389,38 +1389,33 @@ static int sendNodelist(PSpart_request_t *request, DDBufferMsg_t *msg)
 }
 
 /**
- * @brief Send a list of slots.
+ * @brief Send array of slots
  *
- * Send a list of @a num slots stored within @a slots to the
+ * Send an array of @a num slots stored within @a slots to the
  * destination stored in @a msg. The message @a msg furthermore
  * contains the sender and the message type used to send one or more
- * messages containing the list of nodes. Additionally @a msg's buffer
- * might contain some preset content. Thus, its internally stored
- * length (in the .len field) has to correctly represent the message's
- * preset content.
+ * messages containing the array of slots. Additionally @a msg's
+ * buffer might contain some preset content. Thus, its internally
+ * stored length (in the .len field) has to correctly represent the
+ * message's preset content.
  *
- * In order to send the list of slots, it is split into chunks. Each
+ * In order to send the array of slots, it is split into chunks. Each
  * chunk is copied into the message and send separately to its
  * destination.
  *
- * @param slots The list of slots to send.
+ * @param slots Array of slots to send
  *
- * @param num The number of slots within @a slots to send.
+ * @param num Number of slots within @a slots to send
  *
- * @param msg The message buffer used to send the slot-list.
+ * @param msg Message buffer used to send the slots
  *
  * @return If something went wrong, -1 is returned and errno is set
  * appropriately. Otherwise 0 is returned.
  *
  * @see errno(3)
  */
-static int sendSlotlist(PSpart_slot_t *slots, int num, DDBufferMsg_t *msg)
+static int sendSlots(PSpart_slot_t *slots, uint32_t num, DDBufferMsg_t *msg)
 {
-    int offset = 0;
-    int bufOffset = msg->header.len - sizeof(msg->header);
-    unsigned short numBits = 0;
-    int slotsChunk, n;
-
     PSID_log(PSID_LOG_PART, "%s(%s)\n", __func__,
 	     PSC_printTID(msg->header.dest));
 
@@ -1430,15 +1425,15 @@ static int sendSlotlist(PSpart_slot_t *slots, int num, DDBufferMsg_t *msg)
     }
 
     /* Determine maximum number of bits to send */
-    for (n = 0; n < num; n++) {
-	unsigned short thrds = PSIDnodes_getNumThrds(slots[n].node);
+    uint16_t numBits = 0;
+    for (uint32_t n = 0; n < num; n++) {
+	uint16_t thrds = PSIDnodes_getNumThrds(slots[n].node);
 	if (thrds > numBits) numBits = thrds;
     }
     if (!numBits) {
 	PSID_log(-1, "%s: No bits to send?\n", __func__);
 	return -1;
     }
-    slotsChunk = 1024/(sizeof(PSnodes_ID_t)+PSCPU_bytesForCPUs(numBits));
 
     uint16_t nBytes = PSCPU_bytesForCPUs(numBits);
     if (!nBytes) {
@@ -1446,15 +1441,20 @@ static int sendSlotlist(PSpart_slot_t *slots, int num, DDBufferMsg_t *msg)
 	return -1;
     }
 
+    size_t bufOffset = msg->header.len - offsetof(DDBufferMsg_t, buf);
+    size_t itemSize = sizeof(PSnodes_ID_t) + nBytes;
+    uint32_t slotsChunk = (BufMsgSize - bufOffset - 4) / itemSize;
+
+    uint32_t offset = 0;
     while (offset < num && PSIDnodes_isUp(PSC_getID(msg->header.dest))) {
 	PSpart_slot_t *mySlots = slots+offset;
-	uint16_t chunk = (num-offset > slotsChunk) ? slotsChunk : num-offset;
+	uint16_t chunk = (num - offset > slotsChunk) ? slotsChunk : num - offset;
 	msg->header.len = sizeof(msg->header) + bufOffset;
 
 	PSP_putMsgBuf(msg, "chunk", &chunk, sizeof(chunk));
 	PSP_putMsgBuf(msg, "nBytes", &nBytes, sizeof(nBytes));
 
-	for (n = 0; n < chunk; n++) {
+	for (uint16_t n = 0; n < chunk; n++) {
 	    char cpuBuf[nBytes];
 
 	    PSP_putMsgBuf(msg, "node", &mySlots[n].node,
@@ -1561,8 +1561,8 @@ static bool sendPartition(PSpart_request_t *req)
 
     msg.header.type = PSP_DD_PROVIDEPARTSL;
     msg.header.len = sizeof(msg.header);
-    if (sendSlotlist(req->slots, req->size, &msg) < 0) {
-	PSID_warn(-1, errno, "%s: sendSlotlist()", __func__);
+    if (sendSlots(req->slots, req->size, &msg) < 0) {
+	PSID_warn(-1, errno, "%s: sendSlots()", __func__);
 	return false;
     }
 
@@ -2908,7 +2908,7 @@ static bool msg_GETNODES(DDBufferMsg_t *inmsg)
 
 	PSP_putMsgBuf(&msg, "num", &shortNum, sizeof(shortNum));
 
-	sendSlotlist(slots, num, &msg);
+	sendSlots(slots, num, &msg);
 	return true;
     }
 
@@ -3374,7 +3374,7 @@ static bool msg_GETRANKNODE(DDBufferMsg_t *msg)
 
 	PSP_putMsgBuf(&answer, "requested", &rqstd, sizeof(rqstd));
 
-	sendSlotlist(&slot, 1, &answer);
+	sendSlots(&slot, 1, &answer);
 
 	return true;
     }
@@ -4230,7 +4230,7 @@ static bool msg_GETSLOTS(DDBufferMsg_t *inmsg)
     PSP_putMsgBuf(&msg, "rank", &rank, sizeof(rank));
     PSP_putMsgBuf(&msg, "num", &num, sizeof(num));
 
-    sendSlotlist(res->slots + res->nextSlot, num, &msg);
+    sendSlots(res->slots + res->nextSlot, num, &msg);
 
     task->activeChild += num;
     res->nextSlot += num;
@@ -4586,8 +4586,8 @@ static void sendSinglePart(PStask_ID_t dest, int16_t type, PStask_t *task)
 	PSP_DD_PROVIDETASKSL : PSP_DD_REGISTERPARTSL;
     msg.header.len = sizeof(msg.header);
 
-    if (sendSlotlist(task->partition, task->partitionSize, &msg)<0) {
-	PSID_warn(-1, errno, "%s: sendSlotlist()", __func__);
+    if (sendSlots(task->partition,task->partitionSize, &msg) < 0) {
+	PSID_warn(-1, errno, "%s: sendSlots()", __func__);
     }
 
     /* send OpenMPI reserved ports */
@@ -4602,10 +4602,21 @@ static void sendSinglePart(PStask_ID_t dest, int16_t type, PStask_t *task)
     }
 }
 
+/**
+ * @brief Send existing partitions
+ *
+ * Send all existing paritions known to the local daemon to the task
+ * @a dest. Typically @a dest is the new master that has requested to
+ * get all partitions by sending a message of type PSP_DD_GETTASKS to
+ * all daemons being up and running.
+ *
+ * @param dest Destination to send partitions to
+ *
+ * @return No return value
+ */
 static void sendExistingPartitions(PStask_ID_t dest)
 {
     list_t *t;
-
     list_for_each(t, &managedTasks) {
 	PStask_t *task = list_entry(t, PStask_t, next);
 	if (task->deleted) continue;
@@ -4777,6 +4788,19 @@ static bool msg_PROVIDETASKSL(DDBufferMsg_t *msg)
     appendToSlotlist(msg, req);
 
     if (req->sizeGot == req->size) {
+	/* find out if this is an update to an existing partition */
+	PSpart_request_t *old = findPart(&runReq, msg->header.sender);
+	if (old) {
+	    deqPart(&runReq, old);
+	} else if (req->suspended) {
+	    old = findPart(&suspReq, msg->header.sender);
+	    if (old) deqPart(&suspReq, old);
+	}
+	if (old) {
+	    if (!old->freed) unregisterReq(old);
+	    PSpart_delReq(old);
+	}
+
 	if (!deqPart(&regisReq, req)) {
 	    PSID_log(-1, "%s: Unable to dequeue request %s\n",
 		     __func__, PSC_printTID(req->tid));
@@ -4961,52 +4985,80 @@ void sendRequestLists(PStask_ID_t requester, PSpart_list_t opt)
 	sendReqList(requester, &suspReq, PART_LIST_SUSP | nodes);
 }
 
-static int partFromThreads(PStask_t *task)
+/**
+ * @brief Create partition form HW-threads
+ *
+ * Create a partition (i.e. an array of slots) from the array of
+ * HW-threads @a threads of size @a num and store it to @a
+ * partition. The memory used to store the partition is allocated
+ * within this function and must be free()ed by the caller. No memory
+ * will be allocated in case of error. In this case 0 is returned.
+ *
+ * @param threads Array of HW-threads describing the partition
+ *
+ * @param num Size of @a threads
+ *
+ * @param partition Points to the partition upon return
+ *
+ * @return If @a partition was created successfully, return the number
+ * of slots in it; or 0 in case of error
+ */
+static uint32_t partFromThreads(PSpart_HWThread_t *threads, uint32_t num,
+				PSpart_slot_t **partition)
 {
-    unsigned int t, slot = 0;
-
-    for (t = 0; t < task->totalThreads; t++) {
-	if (!t || task->partThrds[t-1].node != task->partThrds[t].node) slot++;
+    uint32_t slots = 0;
+    for (uint32_t t = 0; t < num; t++) {
+	if (!t || threads[t-1].node != threads[t].node) slots++;
     }
 
-    if (!slot) {
-	PSID_log(-1, "%s: No slots in %s\n", __func__, PSC_printTID(task->tid));
+    if (!slots) {
+	PSID_log(-1, "%s: no slots\n", __func__);
 	return 0;
     }
 
-    task->partition = malloc(slot * sizeof(PSpart_slot_t));
-    if (!task->partition) {
-	PSID_warn(-1, errno, "%s(%s)", __func__, PSC_printTID(task->tid));
+    *partition = malloc(slots * sizeof(**partition));
+    if (!*partition) {
+	PSID_warn(-1, errno, "%s", __func__);
 	return 0;
     }
-    task->partitionSize = slot;
-    slot = 0;
 
-    for (t = 0; t < task->totalThreads; t++) {
-	if (!t || task->partition[slot].node != task->partThrds[t].node) {
-	    if (t) slot++;
-	    task->partition[slot].node = task->partThrds[t].node;
-	    PSCPU_clrAll(task->partition[slot].CPUset);
+    uint32_t s = 0;
+    for (uint32_t t = 0; t < num; t++) {
+	if (!t || (*partition)[s].node != threads[t].node) {
+	    if (t) s++;
+	    (*partition)[s].node = threads[t].node;
+	    PSCPU_clrAll((*partition)[s].CPUset);
 	}
-	PSCPU_setCPU(task->partition[slot].CPUset, task->partThrds[t].id);
+	PSCPU_setCPU((*partition)[s].CPUset, threads[t].id);
+    }
+    if (s != slots - 1) {
+	PSID_flog("last slot mismatch (%d != %d)\n", s, slots - 1);
+	free(*partition);
+	*partition = NULL;
+	return 0;
     }
 
-    return 1;
+    return slots;
 }
 
-void PSIDpart_register(PStask_t *task)
+void PSIDpart_register(PStask_t *task, PSpart_HWThread_t *threads, uint32_t num)
 {
     if (!task) {
-	PSID_log(-1, "%s: No task\n", __func__);
+	PSID_log(-1, "%s: no task\n", __func__);
+	return;
+    }
+
+    if (!threads || !num) {
+	PSID_log(-1, "%s: no HW-threads for %s\n", __func__,
+		 PSC_printTID(task->tid));
 	return;
     }
 
     if (PSID_getDebugMask() & PSID_LOG_PART) {
-	unsigned int t;
 	PSID_log(PSID_LOG_PART, "%s(TID %s, num %d, (", __func__,
-		 PSC_printTID(task->tid), task->totalThreads);
-	for (t = 0; t < task->totalThreads; t++) {
-	    PSpart_HWThread_t thrd = task->partThrds[t];
+		 PSC_printTID(task->tid), num);
+	for (uint32_t t = 0; t < num; t++) {
+	    PSpart_HWThread_t thrd = threads[t];
 	    PSID_log(PSID_LOG_PART, "%s%d/%d ", t?",":"", thrd.node, thrd.id);
 	}
 	PSID_log(PSID_LOG_PART, "))\n");
@@ -5017,27 +5069,36 @@ void PSIDpart_register(PStask_t *task)
 	return;
     }
 
-    if (!task->totalThreads || !task->partThrds) {
-	PSID_log(-1, "%s: Task %s owns now HW-threads\n", __func__,
-		 PSC_printTID(task->tid));
-	return;
-    }
-
-    if (task->partition) {
-	PSID_log(-1, "%s: Task %s already has a partition\n", __func__,
-		 PSC_printTID(task->tid));
-	return;
-    }
-
-    if (!partFromThreads(task)) {
+    PSpart_slot_t *partSlots;
+    uint32_t numSlots = partFromThreads(threads, num, &partSlots);
+    if (!numSlots) {
 	PSID_log(-1, "%s: Failed to create partition for task %s\n", __func__,
 		 PSC_printTID(task->tid));
 	return;
     }
 
+    /* extend (or create) partition */
+    PSpart_slot_t *bak = task->partition;
+
+    task->partitionSize += numSlots;
+    task->partition = realloc(task->partition,
+			      task->partitionSize * sizeof(*task->partition));
+    if (!task->partition) {
+	PSID_log(-1, "%s: Failed to extend partition for task %s\n",
+		 __func__, PSC_printTID(task->tid));
+	task->partition = bak;
+	task->partitionSize -= numSlots;
+	free(partSlots);
+	return;
+    } else {
+	memcpy(&task->partition[task->partitionSize - numSlots],
+	       partSlots, numSlots * sizeof(*task->partition));
+    }
+    free(partSlots);
+
     if (knowMaster()) {
 	sendSinglePart(PSC_getTID(getMasterID(), 0), PSP_DD_REGISTERPART, task);
-	/* Otherwise we'll have to wait for a PSP_DD_GETTASKS message */
+	/* Otherwise we'ld have to wait for a PSP_DD_GETTASKS message */
     }
 }
 
