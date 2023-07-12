@@ -46,12 +46,13 @@
 
 Forwarder_Data_t *ForwarderData_new(void)
 {
-    Forwarder_Data_t *fw;
-
-    fw = calloc(sizeof(*fw), 1);
+    Forwarder_Data_t *fw = calloc(sizeof(*fw), 1);
     if (fw) {
 	fw->childRerun = 1;
 	fw->tid = -1;
+	fw->pTid = -1;
+	fw->loggerTid = -1;
+	fw->rank = -1;
 	fw->exitRcvd = false;
 	fw->codeRcvd = false;
 	fw->stdIn[0] = -1;
@@ -953,7 +954,9 @@ bool startForwarder(Forwarder_Data_t *fw)
     PStask_t *task = PStask_new();
 
     task->group = TG_PLUGINFW;
-    task->ptid = PSC_getMyTID();
+    task->ptid = fw->pTid != -1 ? fw->pTid : PSC_getMyTID();
+    if (fw->loggerTid != -1) task->loggertid = fw->loggerTid;
+    if (fw->rank != -1) task->rank = fw->rank;
     task->uid = fw->uID;
     task->gid = fw->gID;
     task->info = fw;
@@ -973,6 +976,23 @@ bool startForwarder(Forwarder_Data_t *fw)
 	goto ERROR;
     }
     fw->tid = task->tid;
+    if (fw->pTid != -1) {
+	/* tell parent (if any) about the spawn */
+	DDErrorMsg_t msg = {
+	    .header = {
+		.type = PSP_CD_SPAWNSUCCESS,
+		.dest =fw->pTid,
+		.sender = task->tid,
+		.len = sizeof(msg) },
+	    .error = 0,
+	    .request = task->rank,};
+	/* this message might need to be handled locally */
+	if (PSC_getID(msg.header.dest) == PSC_getMyID()) {
+	    PSID_handleMsg((DDBufferMsg_t *)&msg);
+	} else {
+	    sendMsg(&msg);
+	}
+    }
 
     return true;
 

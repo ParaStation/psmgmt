@@ -45,6 +45,10 @@ typedef struct __fwData__ {
 			    * psAccountRegisterJob().
 			    * Not doing so might confuse accounters. */
     PStask_ID_t tid;       /**< Forwarder's task ID */
+    PStask_ID_t pTid;      /**< Parent's task ID if any; otherwhise
+			    * local psid will act as parent */
+    PStask_ID_t loggerTid; /**< logger's task ID if any */
+    int32_t rank;          /**< rank of forwarder in a job if any */
     pid_t cPid;            /**< PID of forwarder's child if any */
     pid_t cSid;            /**< Session ID of forwarder's child if any */
     int32_t fwExitStatus;  /**< Forwarder's exit status (only available in cb)*/
