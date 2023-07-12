@@ -1,16 +1,18 @@
 ; defaults class object
 ;
 [+class:defaults]
+.parents = []
 
 ; host class object
 ;
 [+class:host]
+.parents = []
 
 ; psid defaults object
 ; not to be changed by the administrator
 ;
 [+defaults:psid]
-.parents = [class:defaults]
+.parents = ["class:defaults"]
 AdminGroups = ["root"]
 AdminUsers = ["root"]
 AllowExclusive = "no"
@@ -62,7 +64,7 @@ UseMCast = "no"
 ; not to be changed by the administrator
 ;
 [+defaults:resourcelimits]
-.parents = [class:defaults]
+.parents = ["class:defaults"]
 Core = "unlimited"
 # Inherited keys:
 
@@ -133,6 +135,7 @@ StackSize = "unlimited"
 ; pointer "Psid." makes psid configuration available in each host object
 ;
 [+class:nodetype]
+.parents = []
 Psid. = ptr(["class:psid"])
 
 ; psidhwtype class object
@@ -140,6 +143,7 @@ Psid. = ptr(["class:psid"])
 ; currently only existing by convention
 ;
 [+class:psidhwtype]
+.parents = []
 
 ; psidhwtype object
 ; one such object has to exist for each entry in any [Psid.HardwareTypes] list
