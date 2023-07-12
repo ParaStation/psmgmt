@@ -134,6 +134,8 @@ doc/parastation.conf.tmpl \
 doc/psaccount.conf \
 doc/psconfig/nodeinfo.dump \
 doc/psconfig/nodeinfo.vipsconfig \
+doc/psconfig/psmgmt-base.dump \
+doc/psconfig/psmgmt-defaults.dump \
 doc/psconfig/psmgmt.vipsconfig \
 doc/psconfig/update_defaults_5.1.51.sh \
 doc/psresport.conf \

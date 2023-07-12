@@ -1,0 +1,74 @@
+#
+# Lock database
+#
+eval $($(which --skip-alias --skip-function psconfig) lock "Create base database structure for psmgmt")
+#
+# Object "class:defaults"
+#
+psconfig -q -- create 'class:defaults'
+psconfig -q -- setParents 'class:defaults' # empty #
+psconfig -q -D -- set 'class:defaults' '.comment' ' defaults class object'
+#
+# Object "class:host"
+#
+psconfig -q -- create 'class:host'
+psconfig -q -- setParents 'class:host' # empty #
+psconfig -q -D -- set 'class:host' '.comment' ' host class object'
+#
+# Object "class:nodetype"
+#
+psconfig -q -- create 'class:nodetype'
+psconfig -q -- setParents 'class:nodetype' # empty #
+psconfig -q -D -- set 'class:nodetype' '.comment' ' nodetype class object
+ ancestor of all nodetype and host objects
+ pointer "Psid." makes psid configuration available in each host object'
+psconfig -q -- setPointerList 'class:nodetype' 'Psid.' 'class:psid'
+#
+# Object "class:psid"
+#
+psconfig -q -- create 'class:psid'
+psconfig -q -- setParents 'class:psid' 'defaults:psid'
+psconfig -q -D -- set 'class:psid' '.comment' ' psid class object
+ adapt system wide configuration parameters here'
+#
+# Object "class:psidhwtype"
+#
+psconfig -q -- create 'class:psidhwtype'
+psconfig -q -- setParents 'class:psidhwtype' # empty #
+psconfig -q -D -- set 'class:psidhwtype' '.comment' ' psidhwtype class object
+ parent of all psidhwtype objects
+ currently only existing by convention'
+#
+# Object "class:resourcelimits"
+#
+psconfig -q -- create 'class:resourcelimits'
+psconfig -q -- setParents 'class:resourcelimits' 'defaults:resourcelimits'
+psconfig -q -D -- set 'class:resourcelimits' '.comment' ' resources class object
+ referenced in "class:psid" object
+ adapt system wide resource limits here'
+#
+# Object "psidhwtype:ethernet"
+#
+psconfig -q -- create 'psidhwtype:ethernet'
+psconfig -q -- setParents 'psidhwtype:ethernet' 'class:psidhwtype'
+psconfig -q -D -- set 'psidhwtype:ethernet' '.comment' ' psidhwtype object
+ one such object has to exist for each entry in any [Psid.HardwareTypes] list'
+psconfig -q -D -- set 'psidhwtype:ethernet' 'HeaderScript' 'config/ps_ethernet statusheader'
+psconfig -q -D -- set 'psidhwtype:ethernet' 'StartScript' 'config/ps_ethernet start'
+psconfig -q -D -- set 'psidhwtype:ethernet' 'StatusScript' 'config/ps_ethernet status'
+psconfig -q -D -- set 'psidhwtype:ethernet' 'StopScript' 'config/ps_ethernet stop'
+#
+# Object "psidhwtype:p4sock"
+#
+psconfig -q -- create 'psidhwtype:p4sock'
+psconfig -q -- setParents 'psidhwtype:p4sock' 'class:psidhwtype'
+psconfig -q -D -- set 'psidhwtype:p4sock' '.comment' ' psidhwtype object
+ one such object has to exist for each entry in any [Psid.HardwareTypes] list'
+psconfig -q -D -- set 'psidhwtype:p4sock' 'HeaderScript' 'config/ps_p4sock statusheader'
+psconfig -q -D -- set 'psidhwtype:p4sock' 'StartScript' 'config/ps_p4sock start'
+psconfig -q -D -- set 'psidhwtype:p4sock' 'StatusScript' 'config/ps_p4sock status'
+psconfig -q -D -- set 'psidhwtype:p4sock' 'StopScript' 'config/ps_p4sock stop'
+#
+# Unlock database
+#
+eval $($(which --skip-alias --skip-function psconfig) unlock)
