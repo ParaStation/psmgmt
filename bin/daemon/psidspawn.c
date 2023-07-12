@@ -3567,18 +3567,25 @@ static void checkObstinateTasks(void)
 int PSIDspawn_localTask(PStask_t *task, PSIDspawn_creator_t creator,
 			Selector_CB_t *msgHandler)
 {
-    int err;
-
-    if (!task || !creator) return EINVAL;
+    if (!task) return EINVAL;
 
     /* now try to start the task */
-    err = buildSandboxAndStart(creator, task);
+    int err = buildSandboxAndStart(creator ? creator : execForwarder, task);
 
     if (!err) {
 	/* prepare and enqueue task */
 	task->protocolVersion = PSProtocolVersion;
-	/* No signals expected to be sent, thus, release immediately */
-	task->released = true;
+	if (!creator) {
+	    /* we spawned a psidforwarder task */
+	    /* prepare forwarder task */
+	    task->childGroup = task->group;
+	    task->group = TG_FORWARDER;
+	    /* Tell everybody about the new forwarder task */
+	    incJobs(1, 0);
+	} else {
+	    /* No signals expected to be sent, thus, release immediately */
+	    task->released = true;
+	}
 	PStasklist_enqueue(&managedTasks, task);
 	/* The newly created process is already connected and established */
 	PSIDclient_register(task->fd, task->tid, task);
