@@ -252,11 +252,11 @@ int fillSpawnTaskWithSrun(SpawnRequest_t *req, int usize, PStask_t *task)
     envInit(&newenv);
 
     /* start with existing task environment */
-    for (size_t i=0; task->environ[i] != NULL; i++) {
+    for (size_t i = 0; task->environ[i] != NULL; i++) {
 	envPut(&newenv, task->environ[i]);
     }
 
-    /* add step environment */
+    /* add (filtered) step environment */
 
     /* we need the DISPLAY variable set by psslurm */
     char *display = getenv("DISPLAY");
@@ -271,6 +271,15 @@ int fillSpawnTaskWithSrun(SpawnRequest_t *req, int usize, PStask_t *task)
     }
 
     setSlurmConfEnvVar(&newenv);
+
+    /* propagate parent TID, logger TID and rank through Slurm */
+    char nStr[32];
+    snprintf(nStr, sizeof(nStr), "%d", task->ptid);
+    envSet(&newenv, "__PSSLURM_SPAWN_PTID", nStr);
+    snprintf(nStr, sizeof(nStr), "%d", task->loggertid);
+    envSet(&newenv, "__PSSLURM_SPAWN_LTID", nStr);
+    snprintf(nStr, sizeof(nStr), "%d", task->rank);
+    envSet(&newenv, "__PSSLURM_SPAWN_RANK", nStr);
 
     /* XXX: Do we need to set further variables as in setRankEnv()
      *      in psslurmforwarder.c? */
