@@ -184,17 +184,6 @@ Step_t *Step_findByJobid(uint32_t jobid)
     return NULL;
 }
 
-Step_t *Step_findByLogger(PStask_ID_t loggerTID)
-{
-    list_t *s;
-    list_for_each(s, &StepList) {
-	Step_t *step = list_entry(s, Step_t, next);
-	if (step->state == JOB_COMPLETE || step->state == JOB_EXIT) continue;
-	if (loggerTID == step->loggerTID) return step;
-    }
-    return NULL;
-}
-
 Step_t *Step_findByPsslurmChild(pid_t pid)
 {
     list_t *s;

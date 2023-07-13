@@ -322,23 +322,6 @@ void Step_destroyByJobid(uint32_t jobid);
 Step_t *Step_findByJobid(uint32_t jobid);
 
 /**
- * @brief Find an active step identified by the logger TID
- *
- * Find an active step identified by the TaskID of the psilogger.
- * Steps in the state "completed" or "exit" will be ignored.
- *
- * @warning: The logger TID will be set by catching the message
- * PSP_DD_CHILDBORN in @ref handleChildBornMsg(). Thus, before any
- * user processes are spawned step->loggerTID will be 0 and therefore
- * this function will return NULL.
- *
- * @param loggerTID Task ID of the psilogger
- *
- * @return Returns the requested step or NULL on error
- */
-Step_t *Step_findByLogger(PStask_ID_t loggerTID);
-
-/**
  * @brief Find a step identified by a jobid and stepid
  *
  * @param jobid The jobid of the step
