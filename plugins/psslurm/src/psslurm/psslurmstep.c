@@ -211,9 +211,29 @@ Step_t *Step_findByPsidTask(pid_t pid)
 	Step_t *step = list_entry(s, Step_t, next);
 	if (findTaskByChildPid(&step->tasks, pid)) return step;
     }
-
     return NULL;
 }
+
+Step_t *Step_findByEnv(char **environ, uint32_t *jobidOut, uint32_t *stepidOut)
+{
+    uint32_t jobid = NO_VAL, stepid = SLURM_BATCH_SCRIPT;
+
+    if (!environ) {
+	flog("no environment\n");
+	return NULL;
+    }
+
+    for (int i = 0; environ[i]; i++) {
+	char *ptr = environ[i];
+	if (!strncmp(ptr, "SLURM_STEPID=", 13)) sscanf(ptr+13, "%u", &stepid);
+	if (!strncmp(ptr, "SLURM_JOBID=", 12)) sscanf(ptr+12, "%u", &jobid);
+    }
+    if (jobidOut) *jobidOut = jobid;
+    if (stepidOut) *stepidOut = stepid;
+
+    return Step_findByStepId(jobid, stepid);
+}
+
 
 void Step_deleteAll(Step_t *preserve)
 {

@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2014-2021 ParTec Cluster Competence Center GmbH, Munich
- * Copyright (C) 2021-2022 ParTec AG, Munich
+ * Copyright (C) 2021-2023 ParTec AG, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -12,7 +12,6 @@
 #define __PS_SLURM_FORWARDER
 
 #include <stdbool.h>
-#include <stdint.h>
 
 #include "psslurmalloc.h"
 #include "psslurmbcast.h"
@@ -139,32 +138,6 @@ int handleForwarderInit(void * data);
  * @return Always returns 0
  */
 int handleForwarderClientStatus(void * data);
-
-/**
- * @brief Find a step using the passed environment
- *
- * Find step structure by using the values of SLURM_STEPID and SLURM_JOBID
- * in the passed environment. If NULL is passed as environment or one of the
- * variables is not found, the values used are 0 as jobid and
- * SLURM_BATCH_SCRIPT as stepid.
- *
- * @param environ Environment to investigate
- *
- * @param jobid_out Holds the jobid of the step on return if not NULL
- *
- * @param stepid_out Holds the stepid of the step on return if not NULL
- *
- * @param verbose Flag to be more verbose if step was not found
- *
- * @return On success the found step is returned or NULL otherwise
- */
-Step_t * __findStepByEnv(char **environ, uint32_t *jobid_out,
-			 uint32_t *stepid_out, bool verbose,
-			 const char *func, const int line);
-
-#define findStepByEnv(environ, jobid_out, stepid_out, verbose) \
-	    __findStepByEnv(environ, jobid_out, stepid_out, verbose, \
-			    __func__, __LINE__)
 
 /**
  * @brief Handle hook PSIDHOOK_FRWRD_CLNT_RES

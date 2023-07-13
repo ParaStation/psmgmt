@@ -620,16 +620,16 @@ static int handleRecvSpawnReq(void *taskPtr)
 {
     PStask_t *spawnee = taskPtr;
 
-    bool isAdmin = isPSAdminUser(spawnee->uid, spawnee->gid);
     /* allow processes spawned by admin users to pass */
-    if (isAdmin) return 0;
+    if (isPSAdminUser(spawnee->uid, spawnee->gid)) return 0;
 
     uint32_t jobid, stepid;
-    Step_t *step = findStepByEnv(spawnee->environ, &jobid, &stepid, true);
+    Step_t *step = Step_findByEnv(spawnee->environ, &jobid, &stepid);
     if (!step || !step->nodeinfos) {
 	/* if the step has no nodeinfo yet, delay spawning processes */
-	flog("delay spawning for %s due to missing nodeinfo in step %u:%u\n",
-	     PSC_printTID(spawnee->loggertid), jobid, stepid);
+	flog("delay spawning for %s due to missing %sstep %u:%u\n",
+	     PSC_printTID(spawnee->ptid), step ? "nodeinfo in " : "",
+	     jobid, stepid);
 
 	spawnee->delayReasons |= DELAY_PSSLURM;
     }
@@ -2044,12 +2044,12 @@ static bool getJobIDbyForwarder(PStask_ID_t fwTID, PStask_t **fwPtr,
     *fwPtr = forwarder;
 
     bool isAdmin = isPSAdminUser(forwarder->uid, forwarder->gid);
-    Step_t *step = findStepByEnv(forwarder->environ, jobid, stepid, !isAdmin);
+    Step_t *step = Step_findByEnv(forwarder->environ, jobid, stepid);
     if (!step) {
 	/* admin users may start jobs directly via mpiexec */
 	if (!isAdmin) {
-	    mlog("%s: could not find jobid/stepid in forwarder task for sender"
-		 " %s\n", __func__, PSC_printTID(fwTID));
+	    flog("insufficient jobid/stepid in forwarder task for sender %s\n",
+		 PSC_printTID(fwTID));
 	}
 	return false;
     }
@@ -2146,30 +2146,27 @@ typedef struct {
 
 static bool filter(PStask_t *task, void *info)
 {
-    uint32_t jobid = NO_VAL, stepid = NO_VAL;
-
-    /* get jobid and stepid from received environment */
-    bool isAdmin = isPSAdminUser(task->uid, task->gid);
     JobStepInfo_t *js = info;
     if (!js) return false;   // this filter requires info
-    Step_t *step = findStepByEnv(task->environ, &jobid, &stepid, !isAdmin &&
-				 !js->cleanup);
 
+    /* get jobid and stepid from received environment */
+    uint32_t jobid, stepid;
+    Step_t *step = Step_findByEnv(task->environ, &jobid, &stepid);
     if (!step && !js->cleanup) {
-	if (!jobid) {
-	    mlog("%s: no slurm ids found in spawnee environment from %s\n",
-		 __func__, PSC_printTID(task->tid));
+	if (jobid == NO_VAL) {
+	    flog("no slurm IDs in spawnee environment from %s\n",
+		 PSC_printTID(task->ptid));
 	} else {
-	    mlog("%s: no step found for %u:%u from %s\n", __func__,
-		 jobid, stepid, PSC_printTID(task->tid));
+	    flog("no step for %u:%u from %s\n", jobid, stepid,
+		 PSC_printTID(task->ptid));
 	}
 	return false;
     }
 
     if (js->cleanup && !Alloc_find(jobid) && !Alloc_findByPackID(jobid)) {
 	/* cleanup leftover tasks */
-	flog("cleanup leftover task %s for job %u with no allocation\n",
-	     PSC_printTID(task->tid), jobid);
+	flog("cleanup leftover task from %s for job %u with no allocation\n",
+	     PSC_printTID(task->ptid), jobid);
 	return true;
     }
 
@@ -2253,7 +2250,7 @@ static bool handleSpawnReq(DDTypedBufferMsg_t *msg)
     /* get jobid and stepid from received environment */
     bool isAdmin = isPSAdminUser(spawnee->uid, spawnee->gid);
     uint32_t jobid, stepid;
-    Step_t *step = findStepByEnv(spawnee->environ, &jobid, &stepid, !isAdmin);
+    Step_t *step = Step_findByEnv(spawnee->environ, &jobid, &stepid);
     if (!step) {
 	/* admin users may start jobs directly via mpiexec */
 	if (isAdmin) return false; // call the old handler if any

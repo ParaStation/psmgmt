@@ -382,6 +382,28 @@ Step_t *Step_findByPsslurmChild(pid_t pid);
 Step_t *Step_findByPsidTask(pid_t pid);
 
 /**
+ * @brief Find step from an environment
+ *
+ * Find a step from the values of the variables SLURM_STEPID and
+ * SLURM_JOBID in the environment passed in @a environ. If NULL is
+ * passed as @a environ or one of the variables is not found, NO_VAL
+ * for jobid and SLURM_BATCH_SCRIPT for stepid are assumed.
+ *
+ * If @a jobidOut or @a stepidOut are provided they will be used to
+ * provide the found jobid and stepid respectively.
+ *
+ * @param environ Environment to investigate
+ *
+ * @param jobidOut Provide jobid of the step on return if not NULL
+ *
+ * @param stepidOut Provide stepid of the step on return if not NULL
+ *
+ * @return On success a pointer to the step is returned or NULL
+ * otherwise
+ */
+Step_t *Step_findByEnv(char **environ, uint32_t *jobidOut, uint32_t *stepidOut);
+
+/**
  * @brief Get the number of steps
  *
  * Returns the number of steps

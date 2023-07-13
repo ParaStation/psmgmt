@@ -413,47 +413,22 @@ static void fwExecBatchJob(Forwarder_Data_t *fwdata, int rerun)
     exit(err);
 }
 
-Step_t * __findStepByEnv(char **environ, uint32_t *jobid_out,
-			 uint32_t *stepid_out, bool verbose,
-			 const char *func, const int line)
-{
-    uint32_t jobid = 0, stepid = SLURM_BATCH_SCRIPT;
-
-    if (!environ) {
-	mlog("%s: invalid environ pointer from '%s:%i'\n", __func__,
-		func, line);
-	return NULL;
-    }
-
-    for (int i = 0; environ[i]; i++) {
-	char *ptr = environ[i];
-	if (!strncmp(ptr, "SLURM_STEPID=", 13)) sscanf(ptr+13, "%u", &stepid);
-	if (!strncmp(ptr, "SLURM_JOBID=", 12)) sscanf(ptr+12, "%u", &jobid);
-    }
-    if (jobid_out) *jobid_out = jobid;
-    if (stepid_out) *stepid_out = stepid;
-
-    Step_t *step = Step_findByStepId(jobid, stepid);
-    if (!step && verbose) {
-	flog("step '%u:%u' not found for '%s:%i'\n", jobid, stepid, func, line);
-    }
-
-    return step;
-}
-
 static void initFwPtr(PStask_t *task)
 {
     if (fwStep || !task) return;
 
     bool isAdmin = isPSAdminUser(task->uid, task->gid);
-    uint32_t jobid = 0;
-    Step_t *step = findStepByEnv(task->environ, &jobid, NULL, !isAdmin);
+    uint32_t jobid, stepid;
+    Step_t *step = Step_findByEnv(task->environ, &jobid, &stepid);
 
     if (step) {
 	fwStep = step;
 	fwJob = Job_findById(jobid);
 	fwAlloc = Alloc_find(jobid);
+    } else if (!isAdmin) {
+	flog("step '%u:%u' not found\n", jobid, stepid);
     }
+
     fwTask = task;
 }
 
