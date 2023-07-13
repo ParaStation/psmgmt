@@ -669,6 +669,21 @@ int handleExecClientUser(void *data)
     return 0;
 }
 
+int handleLastChildGone(void *data)
+{
+    PStask_t *task = data;
+    if (!task) return -1;
+
+    Forwarder_Data_t *fw = task->info;
+    if (!fw || fw->callback != stepCallback) return 0;
+
+    Step_t *step = fw->userData;
+    if (!step || !step->spawned) return 0;
+
+    shutdownForwarder(fw);
+    return 0;
+}
+
 static void initX11Forward(Step_t *step)
 {
     char srunIP[INET_ADDRSTRLEN];
